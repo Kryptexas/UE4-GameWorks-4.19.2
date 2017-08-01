@@ -46,6 +46,7 @@ public:
 
 FSkeletalMeshComponentDetails::FSkeletalMeshComponentDetails()
 	: CurrentDetailBuilder(NULL)
+	, bAnimPickerEnabled(false)
 {
 
 }
@@ -101,6 +102,7 @@ void FSkeletalMeshComponentDetails::UpdateAnimationCategory( IDetailLayoutBuilde
 				if(!Skeleton)
 				{
 					Skeleton = Mesh->SkeletalMesh->Skeleton;
+					bAnimPickerEnabled = true;
 				}
 				else if(Mesh->SkeletalMesh->Skeleton != Skeleton)
 				{

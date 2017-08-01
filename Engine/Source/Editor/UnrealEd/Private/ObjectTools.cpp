@@ -4147,9 +4147,29 @@ namespace ThumbnailTools
 		return true;
 	}
 
+	UNREALED_API bool AssetHasCustomThumbnail(const FAssetData& InAssetData)
+	{
+		const FObjectThumbnail* CachedThumbnail = FindCachedThumbnail(InAssetData.GetFullName());
+		if (CachedThumbnail != NULL && !CachedThumbnail->IsEmpty())
+		{
+			return true;
+		}
 
+		// If we don't yet have a thumbnail map, check the disk
+		FName ObjectFullName = FName(*InAssetData.GetFullName());
+		TArray<FName> ObjectFullNames;
+		FThumbnailMap LoadedThumbnails;
+		ObjectFullNames.Add(ObjectFullName);
+		if (ConditionallyLoadThumbnailsForObjects(ObjectFullNames, LoadedThumbnails))
+		{
+			const FObjectThumbnail* Thumbnail = LoadedThumbnails.Find(ObjectFullName);
 
-
-
+			if (Thumbnail != NULL && !Thumbnail->IsEmpty())
+			{
+				return true;
+			}
+		}
+		return false;
+	}
 }
 

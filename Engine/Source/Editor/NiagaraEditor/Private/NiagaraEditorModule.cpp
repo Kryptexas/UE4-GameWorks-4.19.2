@@ -6,6 +6,8 @@
 #include "AssetToolsModule.h"
 #include "Misc/ConfigCacheIni.h"
 #include "ISequencerModule.h"
+#include "ISettingsModule.h"
+#include "SequencerSettings.h"
 
 #include "AssetTypeActions/AssetTypeActions_NiagaraEffect.h"
 #include "AssetTypeActions/AssetTypeActions_NiagaraEmitter.h"
@@ -107,6 +109,11 @@ private:
 	TMap<FString, FCreateGraphPin> MiscSubCategoryToCreatePinDelegateMap;
 };
 
+FNiagaraEditorModule::FNiagaraEditorModule() 
+	: SequencerSettings(nullptr)
+{
+}
+
 void FNiagaraEditorModule::StartupModule()
 {
 	MenuExtensibilityManager = MakeShareable(new FExtensibilityManager);
@@ -179,6 +186,8 @@ void FNiagaraEditorModule::StartupModule()
 
 	FNiagaraOpInfo::Init();
 
+	RegisterSettings();
+
 	// Register sequencer track editor
 	ISequencerModule &SequencerModule = FModuleManager::LoadModuleChecked<ISequencerModule>("Sequencer");
 	CreateEmitterTrackEditorHandle = SequencerModule.RegisterTrackEditor(FOnCreateTrackEditor::CreateStatic(&FNiagaraEmitterTrackEditor::CreateTrackEditor));
@@ -210,6 +219,8 @@ void FNiagaraEditorModule::ShutdownModule()
 	}
 
 	FNiagaraEditorStyle::Shutdown();
+
+	UnregisterSettings();
 
 	ISequencerModule* SequencerModule = FModuleManager::GetModulePtr<ISequencerModule>("Sequencer");
 	if (SequencerModule != nullptr)
@@ -252,6 +263,39 @@ void FNiagaraEditorModule::RegisterAssetTypeAction(IAssetTools& AssetTools, TSha
 {
 	AssetTools.RegisterAssetTypeActions(Action);
 	CreatedAssetTypeActions.Add(Action);
+}
+
+void FNiagaraEditorModule::RegisterSettings()
+{
+	ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
+
+	if (SettingsModule != nullptr)
+	{
+		SequencerSettings = USequencerSettingsContainer::GetOrCreate<USequencerSettings>(TEXT("NiagaraSequenceEditor"));
+
+		SettingsModule->RegisterSettings("Editor", "ContentEditors", "NiagaraSequenceEditor",
+			LOCTEXT("NiagaraSequenceEditorSettingsName", "Niagara Sequence Editor"),
+			LOCTEXT("NiagaraSequenceEditorSettingsDescription", "Configure the look and feel of the Niagara Sequence Editor."),
+			SequencerSettings);	
+	}
+}
+
+void FNiagaraEditorModule::UnregisterSettings()
+{
+	ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
+
+	if (SettingsModule != nullptr)
+	{
+		SettingsModule->UnregisterSettings("Editor", "ContentEditors", "NiagaraSequenceEditor");
+	}
+}
+
+void FNiagaraEditorModule::AddReferencedObjects( FReferenceCollector& Collector )
+{
+	if (SequencerSettings)
+	{
+		Collector.AddReferencedObject(SequencerSettings);
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

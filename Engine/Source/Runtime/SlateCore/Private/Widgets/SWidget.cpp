@@ -214,7 +214,7 @@ FReply SWidget::OnPreviewKeyDown( const FGeometry& MyGeometry, const FKeyEvent& 
 
 FReply SWidget::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	if (SupportsKeyboardFocus())
+	if (bCanSupportFocus && SupportsKeyboardFocus())
 	{
 		EUINavigation Direction = FSlateApplicationBase::Get().GetNavigationDirectionFromKey(InKeyEvent);
 		// It's the left stick return a navigation request of the correct direction
@@ -234,6 +234,15 @@ FReply SWidget::OnKeyUp( const FGeometry& MyGeometry, const FKeyEvent& InKeyEven
 
 FReply SWidget::OnAnalogValueChanged( const FGeometry& MyGeometry, const FAnalogInputEvent& InAnalogInputEvent )
 {
+	if (bCanSupportFocus && SupportsKeyboardFocus())
+	{
+		EUINavigation Direction = FSlateApplicationBase::Get().GetNavigationDirectionFromAnalog(InAnalogInputEvent);
+		// It's the left stick return a navigation request of the correct direction
+		if (Direction != EUINavigation::Invalid)
+		{
+			return FReply::Handled().SetNavigation(Direction, ENavigationGenesis::Controller);
+		}
+	}
 	return FReply::Unhandled();
 }
 
@@ -824,7 +833,12 @@ int32 SWidget::Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, 
 
 	// Record if we're part of a volatility pass, this is critical for ensuring we don't report a child
 	// of a volatile widget as non-volatile, causing the invalidation panel to do work that's not required.
-	bInheritedVolatility = Args.IsVolatilityPass();
+	//
+	// Note: We only do this if we're not also caching.  The retainer panel takes advantage of the fact that
+	// it can both send down it's caching & it's a volatile pass, implying everyone should render, everyone
+	// is getting cached.  So we don't want volatile widgets to wait to be drawn later, they won't get another
+	// chance.
+	bInheritedVolatility = Args.IsVolatilityPass() && !Args.IsCaching();
 
 	// If this widget clips to its bounds, then generate a new clipping rect representing the intersection of the bounding
 	// rectangle of the widget's geometry, and the current clipping rectangle.
@@ -834,7 +848,7 @@ int32 SWidget::Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, 
 	// If this paint pass is to cache off our geometry, but we're a volatile widget,
 	// record this widget as volatile in the draw elements so that we get our own tick/paint 
 	// pass later when the layout cache draws.
-	if ( Args.IsCaching() && IsVolatile() )
+	if ( IsVolatile() && Args.IsCaching() && !Args.IsVolatilityPass() )
 	{
 		const int32 VolatileLayerId = LayerId + 1;
 		OutDrawElements.QueueVolatilePainting(

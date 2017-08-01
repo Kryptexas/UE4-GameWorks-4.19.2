@@ -24,12 +24,13 @@
 #ifndef USD_PRIMDATAHANDLE_H
 #define USD_PRIMDATAHANDLE_H
 
+#include "pxr/pxr.h"
 #include "pxr/usd/usd/api.h"
-
 #include <boost/functional/hash.hpp>
 #include <boost/intrusive_ptr.hpp>
 
-#include <ciso646>
+PXR_NAMESPACE_OPEN_SCOPE
+
 
 // To start we always validate.
 #define USD_CHECK_ALL_PRIM_ACCESSES
@@ -39,7 +40,8 @@ void intrusive_ptr_add_ref(const class Usd_PrimData *prim);
 void intrusive_ptr_release(const class Usd_PrimData *prim);
 
 // Forward declarations for Usd_PrimDataHandle's use.  Defined in primData.h.
-USD_API void Usd_IssueFatalPrimAccessError(Usd_PrimData const *p);
+USD_API
+void Usd_IssueFatalPrimAccessError(Usd_PrimData const *p);
 bool Usd_IsDead(Usd_PrimData const *p);
 
 // convenience typedefs for raw ptrs.
@@ -94,7 +96,7 @@ public:
     element_type *operator->() const {
         element_type *p = _p.get();
 #ifdef USD_CHECK_ALL_PRIM_ACCESSES
-        if (not p or Usd_IsDead(p))
+        if (!p || Usd_IsDead(p))
             Usd_IssueFatalPrimAccessError(p);
 #endif
         return p;
@@ -104,7 +106,7 @@ public:
     // instance that is not marked dead, false otherwise.
     operator _UnspecifiedBoolType() const {
         element_type *p = _p.get();
-        return p and not Usd_IsDead(p) ? &Usd_PrimDataHandle::_p : NULL;
+        return p && !Usd_IsDead(p) ? &Usd_PrimDataHandle::_p : NULL;
     }
 
     // Return a text description of this prim data, used primarily for
@@ -121,7 +123,7 @@ private:
     // Inequality comparison.
     friend bool operator!=(const Usd_PrimDataHandle &lhs,
                            const Usd_PrimDataHandle &rhs) {
-        return not (lhs == rhs);
+        return !(lhs == rhs);
     }
 
     // Swap \p lhs and \p rhs.
@@ -140,5 +142,8 @@ private:
 
     Usd_PrimDataConstIPtr _p;
 };
+
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // USD_PRIMDATAHANDLE_H

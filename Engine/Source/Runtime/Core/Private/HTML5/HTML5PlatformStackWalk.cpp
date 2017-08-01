@@ -28,11 +28,11 @@ void FHTML5PlatformStackWalk::ProgramCounterToSymbolInfo(uint64 ProgramCounter,F
 	out_SymbolInfo.SymbolDisplacement = 0;
 	out_SymbolInfo.OffsetInModule = 0;
 	out_SymbolInfo.ProgramCounter = 0;
-	for (int Index = 0; Index < FProgramCounterSymbolInfo::MAX_NAME_LENGHT && out_SymbolInfo.FunctionName[Index] != 0; ++Index)
+	for (int Index = 0; Index < FProgramCounterSymbolInfo::MAX_NAME_LENGTH && out_SymbolInfo.FunctionName[Index] != 0; ++Index)
 	{
 		out_SymbolInfo.FunctionName[Index] = 0;
 	}
-	for(int Index = 0; Index < FProgramCounterSymbolInfo::MAX_NAME_LENGHT && out_SymbolInfo.Filename[Index] != 0; ++Index)
+	for(int Index = 0; Index < FProgramCounterSymbolInfo::MAX_NAME_LENGTH && out_SymbolInfo.Filename[Index] != 0; ++Index)
 	{
 		out_SymbolInfo.Filename[Index] = 0;
 	}
@@ -57,7 +57,7 @@ void FHTML5PlatformStackWalk::ProgramCounterToSymbolInfo(uint64 ProgramCounter,F
 	bool ParameterParse=false;
 	while ((!isspace(*Ptr) || ParameterParse))
 	{
-		if(*Ptr == 0 || Out >= FProgramCounterSymbolInfo::MAX_NAME_LENGHT)
+		if(*Ptr == 0 || Out >= FProgramCounterSymbolInfo::MAX_NAME_LENGTH)
 		{
 			return ParseError(out_SymbolInfo);
 		}
@@ -87,7 +87,7 @@ void FHTML5PlatformStackWalk::ProgramCounterToSymbolInfo(uint64 ProgramCounter,F
 	Out=0;
 	while(*Ptr != '\n' && *Ptr != '\r')
 	{
-		if(*Ptr == 0 || Out >= FProgramCounterSymbolInfo::MAX_NAME_LENGHT)
+		if(*Ptr == 0 || Out >= FProgramCounterSymbolInfo::MAX_NAME_LENGTH)
 		{
 			return ParseError(out_SymbolInfo);
 		}

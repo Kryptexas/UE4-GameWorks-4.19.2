@@ -292,7 +292,7 @@ namespace HLODOutliner
 			/*InNotifyHook=*/ NotifyHook,
 			/*InSearchInitialKeyFocus=*/ false,
 			/*InViewIdentifier=*/ NAME_None);
-		DetailsViewArgs.DefaultsOnlyVisibility = FDetailsViewArgs::EEditDefaultsOnlyNodeVisibility::Automatic;
+		DetailsViewArgs.DefaultsOnlyVisibility = EEditDefaultsOnlyNodeVisibility::Automatic;
 		DetailsViewArgs.bShowOptions = false;
 
 		SettingsView = EditModule.CreateDetailView(DetailsViewArgs);

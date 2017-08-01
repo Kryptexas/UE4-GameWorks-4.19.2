@@ -3352,23 +3352,45 @@ FbxNode* FFbxExporter::ExportStaticMeshToFbx(const UStaticMesh* StaticMesh, int3
 		}
 
 		// Create and fill in the per-face-vertex normal data source.
-		// We extract the Z-tangent and drop the X/Y-tangents which are also stored in the render mesh.
+		// We extract the Z-tangent and the X/Y-tangents which are also stored in the render mesh.
 		FbxLayerElementNormal* LayerElementNormal = FbxLayerElementNormal::Create(Mesh, "");
+		FbxLayerElementTangent* LayerElementTangent = FbxLayerElementTangent::Create(Mesh, "");
+		FbxLayerElementBinormal* LayerElementBinormal = FbxLayerElementBinormal::Create(Mesh, "");
 
-		// Set 3 normals per triangle instead of storing normals on positional control points
+		// Set 3 NTBs per triangle instead of storing on positional control points
 		LayerElementNormal->SetMappingMode(FbxLayerElement::eByPolygonVertex);
+		LayerElementTangent->SetMappingMode(FbxLayerElement::eByPolygonVertex);
+		LayerElementBinormal->SetMappingMode(FbxLayerElement::eByPolygonVertex);
 
-		// Set the normal values for every polygon vertex.
+		// Set the NTBs values for every polygon vertex.
 		LayerElementNormal->SetReferenceMode(FbxLayerElement::eDirect);
+		LayerElementTangent->SetReferenceMode(FbxLayerElement::eDirect);
+		LayerElementBinormal->SetReferenceMode(FbxLayerElement::eDirect);
 
 		TArray<FbxVector4> FbxNormals;
+		TArray<FbxVector4> FbxTangents;
+		TArray<FbxVector4> FbxBinormals;
+		
 		FbxNormals.AddUninitialized(VertexCount);
-		for (int32 NormalIndex = 0; NormalIndex < VertexCount; ++NormalIndex)
+		FbxTangents.AddUninitialized(VertexCount);
+		FbxBinormals.AddUninitialized(VertexCount);
+		
+		for (int32 NTBIndex = 0; NTBIndex < VertexCount; ++NTBIndex)
 		{
-			FVector Normal = (FVector)(RenderMesh.VertexBuffer.VertexTangentZ(NormalIndex));
-			FbxVector4& FbxNormal = FbxNormals[NormalIndex];
+			FVector Normal = (FVector)(RenderMesh.VertexBuffer.VertexTangentZ(NTBIndex));
+			FbxVector4& FbxNormal = FbxNormals[NTBIndex];
 			FbxNormal = FbxVector4(Normal.X, -Normal.Y, Normal.Z);
 			FbxNormal.Normalize();
+
+			FVector Tangent = (FVector)(RenderMesh.VertexBuffer.VertexTangentX(NTBIndex));
+			FbxVector4& FbxTangent = FbxTangents[NTBIndex];
+			FbxTangent = FbxVector4(Tangent.X, -Tangent.Y, Tangent.Z);
+			FbxTangent.Normalize();
+
+			FVector Binormal = -(FVector)(RenderMesh.VertexBuffer.VertexTangentY(NTBIndex));
+			FbxVector4& FbxBinormal = FbxBinormals[NTBIndex];
+			FbxBinormal = FbxVector4(Binormal.X, -Binormal.Y, Binormal.Z);
+			FbxBinormal.Normalize();
 		}
 
 		// Add one normal per each face index (3 per triangle)
@@ -3376,9 +3398,17 @@ FbxNode* FFbxExporter::ExportStaticMeshToFbx(const UStaticMesh* StaticMesh, int3
 		{
 			uint32 UnrealVertIndex = Indices[FbxVertIndex];
 			LayerElementNormal->GetDirectArray().Add(FbxNormals[UnrealVertIndex]);
+			LayerElementTangent->GetDirectArray().Add(FbxTangents[UnrealVertIndex]);
+			LayerElementBinormal->GetDirectArray().Add(FbxBinormals[UnrealVertIndex]);
 		}
+		
 		Layer->SetNormals(LayerElementNormal);
+		Layer->SetTangents(LayerElementTangent);
+		Layer->SetBinormals(LayerElementBinormal);
+		
 		FbxNormals.Empty();
+		FbxTangents.Empty();
+		FbxBinormals.Empty();
 
 		// Create and fill in the per-face-vertex texture coordinate data source(s).
 		// Create UV for Diffuse channel.

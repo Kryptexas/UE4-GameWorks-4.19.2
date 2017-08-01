@@ -84,6 +84,17 @@ public:
 	{
 		return false;
 	}
+
+	const TArray<TWeakObjectPtr<UObject>>& GetSelectedObjects() const override
+	{
+		static TArray<TWeakObjectPtr<UObject>> NotSupported;
+		return NotSupported;
+	}
+
+	virtual bool HasClassDefaultObject() const override
+	{
+		return false;
+	}
 private:
 
 	SPropertyTreeViewImpl& View;

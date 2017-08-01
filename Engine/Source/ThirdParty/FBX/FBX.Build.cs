@@ -9,7 +9,7 @@ public class FBX : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		string FBXSDKDir = Target.UEThirdPartySourceDirectory + "FBX/2016.1.1/";
+		string FBXSDKDir = Target.UEThirdPartySourceDirectory + "FBX/2018.1.1/";
 		PublicSystemIncludePaths.AddRange(
 			new string[] {
 					FBXSDKDir + "include",

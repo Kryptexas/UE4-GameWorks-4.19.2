@@ -163,10 +163,10 @@ void FDefaultGameMoviePlayer::Initialize(FSlateRenderer& InSlateRenderer)
 	}
 
 	// Add a delegate to start playing movies when we start loading a map
-	FCoreUObjectDelegates::PreLoadMap.AddSP( this, &FDefaultGameMoviePlayer::OnPreLoadMap );
+	FCoreUObjectDelegates::PreLoadMap.AddRaw( this, &FDefaultGameMoviePlayer::OnPreLoadMap );
 	
 	// Shutdown the movie player if the app is exiting
-	FCoreDelegates::OnPreExit.AddSP( this, &FDefaultGameMoviePlayer::Shutdown );
+	FCoreDelegates::OnPreExit.AddRaw( this, &FDefaultGameMoviePlayer::Shutdown );
 
 	FPlatformSplash::Hide();
 
@@ -236,8 +236,9 @@ void FDefaultGameMoviePlayer::Shutdown()
 
 	bInitialized = false;
 
+	FCoreDelegates::OnPreExit.RemoveAll(this);
 	FCoreUObjectDelegates::PreLoadMap.RemoveAll( this );
-	FCoreDelegates::OnPreExit.RemoveAll( this );
+	FCoreUObjectDelegates::PostLoadMapWithWorld.RemoveAll(this);
 
 	LoadingScreenContents.Reset();
 	UserWidgetHolder.Reset();
@@ -699,7 +700,7 @@ void FDefaultGameMoviePlayer::OnPreLoadMap(const FString& LevelName)
 
 	if( PlayMovie() )
 	{
-		FCoreUObjectDelegates::PostLoadMapWithWorld.AddSP(this, &FDefaultGameMoviePlayer::OnPostLoadMap );
+		FCoreUObjectDelegates::PostLoadMapWithWorld.AddRaw(this, &FDefaultGameMoviePlayer::OnPostLoadMap );
 	}
 }
 
@@ -720,7 +721,6 @@ bool FDefaultGameMoviePlayer::WillAutoCompleteWhenLoadFinishes()
 {
 	return LoadingScreenAttributes.bAutoCompleteWhenLoadingCompletes || (LoadingScreenAttributes.PlaybackType == MT_LoadingLoop && (MovieStreamer.IsValid() && MovieStreamer->IsLastMovieInPlaylist()));
 }
-
 
 FString FDefaultGameMoviePlayer::GetMovieName()
 {
@@ -763,7 +763,7 @@ void FMoviePlayerWidgetRenderer::DrawWindow(float DeltaTime)
 
 	int32 MaxLayerId = 0;
 	{
-		FPaintArgs PaintArgs(*VirtualRenderWindow, *HittestGrid, FVector2D::ZeroVector, FApp::GetCurrentTime(), DeltaTime);
+		FPaintArgs PaintArgs(*VirtualRenderWindow, *HittestGrid, FVector2D::ZeroVector, FSlateApplication::Get().GetCurrentTime(), FSlateApplication::Get().GetDeltaTime());
 
 		// Paint the window
 		MaxLayerId = VirtualRenderWindow->Paint(

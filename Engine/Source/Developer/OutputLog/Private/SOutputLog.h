@@ -192,7 +192,7 @@ struct FLogFilter
 	void ToggleLogCategory(const FName& LogCategory);
 
 	/** Returns true if the specified log category is enabled */
-	bool IsLogCategoryEnabled(const FName& LogCategory);
+	bool IsLogCategoryEnabled(const FName& LogCategory) const;
 
 	/** Empties the list of selected log categories */
 	void ClearSelectedLogCategories();
@@ -303,38 +303,38 @@ private:
 	/** Make the "Filters" menu. */
 	TSharedRef<SWidget> MakeAddFilterMenu();
 
-	/** Make the "Categories" menu. */
-	TSharedRef<SWidget> MakeSelectCategoriesMenu();
+	/** Make the "Categories" sub-menu. */
+	void MakeSelectCategoriesSubMenu(FMenuBuilder& MenuBuilder);
 
-	/** Fills in the filter menu. */
-	void FillVerbosityEntries(FMenuBuilder& MenuBuilder);
+	/** Toggles Verbosity "Logs" true/false. */
+	void VerbosityLogs_Execute();
 
-	/** A simple function for the filters to keep them enabled. */
-	bool Menu_CanExecute() const;
+	/** Returns the state of Verbosity "Logs". */
+	bool VerbosityLogs_IsChecked() const;
 
-	/** Toggles "Logs" true/false. */
-	void MenuLogs_Execute();
+	/** Toggles Verbosity "Warnings" true/false. */
+	void VerbosityWarnings_Execute();
 
-	/** Returns the state of "Logs". */
-	bool MenuLogs_IsChecked() const;
+	/** Returns the state of Verbosity "Warnings". */
+	bool VerbosityWarnings_IsChecked() const;
 
-	/** Toggles "Warnings" true/false. */
-	void MenuWarnings_Execute();
+	/** Toggles Verbosity "Errors" true/false. */
+	void VerbosityErrors_Execute();
 
-	/** Returns the state of "Warnings". */
-	bool MenuWarnings_IsChecked() const;
+	/** Returns the state of Verbosity "Errors". */
+	bool VerbosityErrors_IsChecked() const;
 
-	/** Toggles "Errors" true/false. */
-	void MenuErrors_Execute();
-
-	/** Returns the state of "Errors". */
-	bool MenuErrors_IsChecked() const;
-
-	/** Toggles All Categories ture/false. */
-	void MenuShowAllCategories_Execute();
+	/** Toggles All Categories true/false. */
+	void CategoriesShowAll_Execute();
 
 	/** Returns the state of "Show All" */
-	bool MenuShowAllCategories_IsChecked() const;
+	bool CategoriesShowAll_IsChecked() const;
+
+	/** Toggles the given category true/false. */
+	void CategoriesSingle_Execute(FName InName);
+
+	/** Returns the state of the given category */
+	bool CategoriesSingle_IsChecked(FName InName) const;
 
 	/** Forces re-population of the messages list */
 	void Refresh();

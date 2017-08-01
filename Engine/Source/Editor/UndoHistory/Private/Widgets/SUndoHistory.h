@@ -87,6 +87,9 @@ private:
 	// Holds the number of transactions at the last undo list reload.
 	int32 LastQueueLength;
 
+	// Holds the number of undo actions at the last undo list reload.
+	int32 LastUndoCount;
+
 	// Holds the list of undo transaction indices.
 	TArray<TSharedPtr<FTransactionInfo> > UndoList;
 

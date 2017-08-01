@@ -91,8 +91,8 @@ void FActorSequenceComponentCustomization::CustomizeDetails(IDetailLayoutBuilder
 		return;
 	}
 
-	const IDetailsView& DetailsView = DetailBuilder.GetDetailsView();
-	TSharedPtr<FTabManager> HostTabManager = DetailsView.GetHostTabManager();
+	const IDetailsView* DetailsView = DetailBuilder.GetDetailsView();
+	TSharedPtr<FTabManager> HostTabManager = DetailsView->GetHostTabManager();
 
 	DetailBuilder.HideProperty("Sequence");
 

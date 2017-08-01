@@ -25,16 +25,13 @@
 #define WORK_LOOPS_H
 
 /// \file work/loops.h
-#include <utility>
+#include "pxr/pxr.h"
 #include "pxr/base/work/threadLimits.h"
-
-#include "pxr/base/arch/defines.h"
-#include "pxr/base/arch/pragmas.h"
-#include <tbb/tbb.h>
-
 #include "pxr/base/work/api.h"
 
+#include <tbb/tbb.h>
 
+PXR_NAMESPACE_OPEN_SCOPE
 
 ///////////////////////////////////////////////////////////////////////////////
 ///
@@ -76,7 +73,7 @@ WorkParallelForN(size_t n, Fn &&callback)
     // Don't bother with parallel_for, if concurrency is limited to 1.
     if (WorkGetConcurrencyLimit() > 1) {
 
-        class Work_ParallelForN_TBB
+        class Work_ParallelForN_TBB 
         {
         public:
             Work_ParallelForN_TBB(Fn &fn) : _fn(fn) { }
@@ -94,7 +91,7 @@ WorkParallelForN(size_t n, Fn &&callback)
             Fn &_fn;
         };
 
-        // Note that for the tbb version in the future, we will likely want to
+        // Note that for the tbb version in the future, we will likely want to 
         // tune the grain size.
         // In most cases we do not want to inherit cancellation state from the
         // parent context, so we create an isolated task group context.
@@ -128,10 +125,12 @@ WorkParallelForN(size_t n, Fn &&callback)
 template <typename InputIterator, typename Fn>
 inline void
 WorkParallelForEach(
-    InputIterator first, InputIterator last, Fn &fn)
+    InputIterator first, InputIterator last, Fn &&fn)
 {
     tbb::task_group_context ctx(tbb::task_group_context::isolated);
     tbb::parallel_for_each(first, last, std::forward<Fn>(fn), ctx);
 }
 
-#endif
+PXR_NAMESPACE_CLOSE_SCOPE
+
+#endif // WORK_LOOPS_H

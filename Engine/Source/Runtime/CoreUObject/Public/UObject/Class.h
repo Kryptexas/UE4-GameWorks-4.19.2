@@ -1183,7 +1183,7 @@ public:
 	 * @param	ExportRootScope	The scope to create relative paths from, if the PPF_ExportsNotFullyQualified flag is passed in.  If NULL, the package containing the object will be used instead.
 	 * @param	bAllowNativeOverride If true, will try to run native version of export text on the struct
 	 */
-	COREUOBJECT_API void ExportText(FString& ValueStr, const void* Value, const void* Defaults, UObject* OwnerObject, int32 PortFlags, UObject* ExportRootScope, bool bAllowNativeOverride = true);
+	COREUOBJECT_API void ExportText(FString& ValueStr, const void* Value, const void* Defaults, UObject* OwnerObject, int32 PortFlags, UObject* ExportRootScope, bool bAllowNativeOverride = true) const;
 
 	/**
 	 * Sets value of script struct based on imported string

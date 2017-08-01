@@ -189,15 +189,6 @@ void FSequencer::InitSequencer(const FSequencerInitParams& InitParams, const TSh
 
 	Settings = USequencerSettingsContainer::GetOrCreate<USequencerSettings>(*InitParams.ViewParams.UniqueName);
 
-	if (ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
-	{
-		FName SettingsSectionName = *Settings->GetName();
-		FText SettingsDisplayName = FText::FromString(FName::NameToDisplayString(*Settings->GetName(), false));
-		FText SettingsDescription = FText::FromString("Configure the look and feel of the " + FName::NameToDisplayString(*Settings->GetName(), false));
-
-		SettingsModule->RegisterSettings("Editor", "ContentEditors", SettingsSectionName, SettingsDisplayName, SettingsDescription, Settings);
-	}
-	
 	Settings->GetOnLockPlaybackToAudioClockChanged().AddSP(this, &FSequencer::ResetTimingManager);
 	ResetTimingManager(Settings->ShouldLockPlaybackToAudioClock());
 
@@ -325,12 +316,6 @@ FSequencer::FSequencer()
 FSequencer::~FSequencer()
 {
 	GEditor->UnregisterForUndo(this);
-
-	if (ISettingsModule* SettingsModulePtr = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
-	{
-		FName SettingsSectionName = *Settings->GetName();
-		SettingsModulePtr->UnregisterSettings("Editor", "ContentEditors", SettingsSectionName);
-	}
 
 	for (auto TrackEditor : TrackEditors)
 	{
@@ -3800,8 +3785,6 @@ void FSequencer::SetShowCurveEditor(bool bInShowCurveEditor)
 
 void FSequencer::SaveCurrentMovieScene()
 {
-	OnPreSaveEvent.Broadcast(*this);
-
 	// Capture thumbnail
 	// Convert UObject* array to FAssetData array
 	TArray<FAssetData> AssetDataList;
@@ -3843,6 +3826,8 @@ void FSequencer::SaveCurrentMovieScene()
 		GCurrentLevelEditingViewportClient->SetGameView(bIsInGameView);
 		Viewport->Draw();
 	}
+
+	OnPreSaveEvent.Broadcast(*this);
 
 	TArray<UPackage*> PackagesToSave;
 	TArray<UMovieScene*> MovieScenesToSave;

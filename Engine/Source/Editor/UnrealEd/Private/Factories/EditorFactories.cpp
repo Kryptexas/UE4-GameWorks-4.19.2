@@ -242,6 +242,7 @@
 #include "ActorGroupingUtils.h"
 
 #include "Editor/EditorPerProjectUserSettings.h"
+#include "JsonObjectConverter.h"
 
 DEFINE_LOG_CATEGORY(LogEditorFactories);
 
@@ -2612,6 +2613,19 @@ UTextureFactory::UTextureFactory(const FObjectInitializer& ObjectInitializer)
 	bEditorImport = true;
 }
 
+bool UTextureFactory::FactoryCanImport(const FString& Filename)
+{
+	FString Extension = FPaths::GetExtension(Filename).ToLower();
+
+	return (Formats.ContainsByPredicate(
+		[&Extension](const FString& Format)
+		{
+			return Format.StartsWith(Extension);
+		}));
+}
+
+
+
 void UTextureFactory::PostInitProperties()
 {
 	Super::PostInitProperties();
@@ -3729,6 +3743,13 @@ UObject* UTextureFactory::FactoryCreateBinary
 	// Automatically detect if the texture is a normal map and configure its properties accordingly
 	NormalMapIdentification::HandleAssetPostImport(this, Texture);
 
+	if(IsAutomatedImport())
+	{
+		// Apply Auto import settings 
+		// Should be applied before post edit change
+		ApplyAutoImportSettings(Texture);
+	}
+
 	FEditorDelegates::OnAssetPostImport.Broadcast(this, Texture);
 
 	// Invalidate any materials using the newly imported texture. (occurs if you import over an existing texture)
@@ -3854,6 +3875,10 @@ UObject* UTextureFactory::FactoryCreateBinary
 	return Texture;
 }
 
+void UTextureFactory::ApplyAutoImportSettings(UTexture* Texture)
+{
+	FJsonObjectConverter::JsonObjectToUStruct(AutomatedImportSettings.ToSharedRef(), Texture->GetClass(), Texture, 0, CPF_InstancedReference);
+}
 
 bool UTextureFactory::IsImportResolutionValid(int32 Width, int32 Height, bool bAllowNonPowerOfTwo, FFeedbackContext* Warn)
 {
@@ -3885,6 +3910,19 @@ bool UTextureFactory::IsImportResolutionValid(int32 Width, int32 Height, bool bA
 	return bValid;
 }
 
+IImportSettingsParser* UTextureFactory::GetImportSettingsParser()
+{
+	return this;
+}
+
+void UTextureFactory::ParseFromJson(TSharedRef<class FJsonObject> ImportSettingsJson)
+{
+	// Store these settings to be applied to the texture later
+	AutomatedImportSettings = ImportSettingsJson;
+
+	// Try to apply any import time options now 
+	FJsonObjectConverter::JsonObjectToUStruct(ImportSettingsJson, GetClass(), this, 0, CPF_InstancedReference);
+}
 
 /*------------------------------------------------------------------------------
 	UTextureExporterPCX implementation.
@@ -5454,6 +5492,7 @@ EReimportResult::Type UReimportFbxAnimSequenceFactory::Reimport( UObject* Obj )
 			// has still technically "handled" the reimport, so return true instead of false
 			UE_LOG(LogEditorFactories, Warning, TEXT("-- import failed") );
 			Importer->AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, LOCTEXT("Error_CouldNotFindSkeleton", "Cannot re-import animation with no skeleton.\nImport failed.")), FFbxErrors::SkeletalMesh_NoBoneFound);
+			Importer->ReleaseScene();
 			return EReimportResult::Succeeded;
 		}
 	}

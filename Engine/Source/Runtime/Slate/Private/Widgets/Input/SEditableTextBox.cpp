@@ -42,6 +42,7 @@ void SEditableTextBox::Construct( const FArguments& InArgs )
 					SAssignNew( EditableText, SEditableText )
 					.Text( InArgs._Text )
 					.HintText( InArgs._HintText )
+					.SearchText( InArgs._SearchText )
 					.Font( this, &SEditableTextBox::DetermineFont )
 					.IsReadOnly( InArgs._IsReadOnly )
 					.IsPassword( InArgs._IsPassword )
@@ -182,6 +183,16 @@ void SEditableTextBox::ScrollTo(const FTextLocation& NewLocation)
 	EditableText->ScrollTo(NewLocation);
 }
 
+void SEditableTextBox::BeginSearch(const FText& InSearchText, const ESearchCase::Type InSearchCase, const bool InReverse)
+{
+	EditableText->BeginSearch(InSearchText, InSearchCase, InReverse);
+}
+
+void SEditableTextBox::AdvanceSearch(const bool InReverse)
+{
+	EditableText->AdvanceSearch(InReverse);
+}
+
 bool SEditableTextBox::HasError() const
 {
 	return ErrorReporting.IsValid() && ErrorReporting->HasError();
@@ -277,6 +288,18 @@ FSlateColor SEditableTextBox::DetermineForegroundColor() const
 void SEditableTextBox::SetHintText(const TAttribute< FText >& InHintText)
 {
 	EditableText->SetHintText(InHintText);
+}
+
+
+void SEditableTextBox::SetSearchText(const TAttribute<FText>& InSearchText)
+{
+	EditableText->SetSearchText(InSearchText);
+}
+
+
+FText SEditableTextBox::GetSearchText() const
+{
+	return EditableText->GetSearchText();
 }
 
 

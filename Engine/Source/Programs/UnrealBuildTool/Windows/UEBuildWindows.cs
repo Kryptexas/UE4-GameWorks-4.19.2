@@ -292,6 +292,7 @@ namespace UnrealBuildTool
 			{
 				Target.bCompileSimplygon = false;
 				Target.bCompileSimplygonSSF = false;
+				Target.bCompileCEF3 = false;
 			}
 
 			// Set the compiler version if necessary

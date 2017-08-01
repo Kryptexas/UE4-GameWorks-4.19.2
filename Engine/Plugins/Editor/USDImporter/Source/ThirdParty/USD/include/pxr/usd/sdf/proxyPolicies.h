@@ -24,12 +24,15 @@
 #ifndef SDF_PROXYPOLICIES_H
 #define SDF_PROXYPOLICIES_H
 
-#include "pxr/usd/sdf/api.h"
 /// \file sdf/proxyPolicies.h
 
+#include "pxr/pxr.h"
+#include "pxr/usd/sdf/api.h"
 #include "pxr/usd/sdf/declareHandles.h"
 #include "pxr/usd/sdf/path.h"
 #include "pxr/usd/sdf/spec.h"
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 class SdfReference;
 class SdfMapperSpec;
@@ -128,7 +131,7 @@ private:
 template <>
 struct Vt_DefaultValueFactory<SdfPathKeyPolicy> {
     static Vt_DefaultValueHolder Invoke() {
-        TF_AXIOM(false and "Failed VtValue::Get<SdfPathKeyPolicy> not allowed");
+        TF_AXIOM(false && "Failed VtValue::Get<SdfPathKeyPolicy> not allowed");
         return Vt_DefaultValueHolder::Create((void*)0);
     }
 };
@@ -157,7 +160,7 @@ public:
 template <>
 struct Vt_DefaultValueFactory<SdfReferenceTypePolicy> {
     static Vt_DefaultValueHolder Invoke() {
-        TF_AXIOM(false and "Failed VtValue::Get<SdfReferenceTypePolicy> not allowed");
+        TF_AXIOM(false && "Failed VtValue::Get<SdfReferenceTypePolicy> not allowed");
         return Vt_DefaultValueHolder::Create((void*)0);
     }
 };
@@ -216,7 +219,6 @@ public:
 
     SDF_API
     static Type CanonicalizeType(const SdfSpecHandle& v, const Type& x);
-
     SDF_API
     static key_type CanonicalizeKey(const SdfSpecHandle& v,
                                     const key_type& x);
@@ -268,4 +270,6 @@ public:
     SdfRelationshipViewPredicate();
 };
 
-#endif
+PXR_NAMESPACE_CLOSE_SCOPE
+
+#endif // SDF_PROXYPOLICIES_H

@@ -26,6 +26,7 @@
 
 /// \file tf/diagnosticMgr.h
 
+#include "pxr/pxr.h"
 #include "pxr/base/tf/callContext.h"
 #include "pxr/base/tf/copyOnWritePtr.h"
 #include "pxr/base/tf/debug.h"
@@ -39,15 +40,11 @@
 #include "pxr/base/tf/enum.h"
 #include "pxr/base/tf/api.h"
 
-#include "pxr/base/arch/pragmas.h"
 #include "pxr/base/arch/inttypes.h"
 #include "pxr/base/arch/attributes.h"
 #include "pxr/base/arch/functionLite.h"
 
-
-ARCH_PRAGMA_SHIFT_TO_64_BITS
 #include <tbb/enumerable_thread_specific.h>
-ARCH_PRAGMA_RESTORE
 #include <tbb/atomic.h>
 
 #include <boost/scoped_ptr.hpp>
@@ -55,6 +52,8 @@ ARCH_PRAGMA_RESTORE
 #include <cstdarg>
 #include <list>
 #include <string>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 TF_DEBUG_CODES(
     TF_LOG_STACK_TRACE_ON_ERROR,
@@ -64,7 +63,6 @@ TF_DEBUG_CODES(
 
 class TfError;
 class TfErrorMark;
-template <typename T> class TfSingleton;
 
 /// \class TfDiagnosticMgr
 /// \ingroup group_tf_Diagnostic
@@ -244,24 +242,24 @@ public:
         }
 
         TF_API
-        ErrorIterator Post(const char* fmt, ...) const
+        void Post(const char* fmt, ...) const
             ARCH_PRINTF_FUNCTION(2,3);
 
         TF_API
-        ErrorIterator PostQuietly(const char* fmt, ...) const
+        void PostQuietly(const char* fmt, ...) const
             ARCH_PRINTF_FUNCTION(2,3);
 
         TF_API
-        ErrorIterator Post(const std::string& msg) const;
+        void Post(const std::string& msg) const;
 
         TF_API
-        ErrorIterator PostWithInfo(
+        void PostWithInfo(
                 const std::string& msg,
                 TfDiagnosticInfo info = TfDiagnosticInfo()) const;
 
         TF_API
-        ErrorIterator PostQuietly(const std::string& msg,
-                            TfDiagnosticInfo info = TfDiagnosticInfo()) const;
+        void PostQuietly(const std::string& msg,
+                         TfDiagnosticInfo info = TfDiagnosticInfo()) const;
 
       private:
         TfCallContext _context;
@@ -360,6 +358,7 @@ private:
     
     // Return an iterator to the first error with serial number >= mark, or the
     // past-the-end iterator, if no such errors exist.
+    TF_API
     ErrorIterator _GetErrorMarkBegin(size_t mark, size_t *nErrors);
 
     // Invoked by ErrorMark ctor.
@@ -385,10 +384,7 @@ private:
     void _RebuildErrorLogText();
 
     // Helper to actually publish log text into the Arch crash handler.
-    void _SetLogInfoForErrors(const std::string &logText) const;
-
-    // Helper to write error text from all errors in [i, end) to out.
-    void _AppendErrorTextToString(ErrorIterator i, std::string &out);
+    void _SetLogInfoForErrors(std::vector<std::string> const &logText) const;
 
     // The current diagnostic delegate.
     DelegateWeakPtr _delegate;
@@ -400,8 +396,18 @@ private:
     tbb::enumerable_thread_specific<ErrorList> _errorList;
 
     // Thread-specific diagnostic log text for pending errors.
-    tbb::enumerable_thread_specific<
-        boost::scoped_ptr<std::string> > _logText;
+    struct _LogText {
+        void AppendAndPublish(ErrorIterator i, ErrorIterator end);
+        void RebuildAndPublish(ErrorIterator i, ErrorIterator end);
+        
+        std::pair<std::vector<std::string>,
+                  std::vector<std::string>> texts;
+        bool parity = false;
+    private:
+        void _AppendAndPublishImpl(bool clear,
+                                   ErrorIterator i, ErrorIterator end);
+    };
+    tbb::enumerable_thread_specific<_LogText> _logText;
 
     // Thread-specific error mark counts.  Use a native key for best performance
     // here.
@@ -417,5 +423,7 @@ private:
 };
 
 TF_API_TEMPLATE_CLASS(TfSingleton<TfDiagnosticMgr>);
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // TF_DIAGNOSTIC_MGR_H

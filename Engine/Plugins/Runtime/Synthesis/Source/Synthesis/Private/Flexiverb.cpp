@@ -36,7 +36,7 @@ namespace Audio
 
 		PreDelayLine.Init(SampleRate, 2.0f);
 
-		APFArray.Init(FDelayAPF::FDelayAPF(), NumberOfAPFDiffusers);
+		APFArray.Init(FDelayAPF(), NumberOfAPFDiffusers);
 		int32 Index = 0;
 		for (FDelayAPF& Filter : APFArray)
 		{
@@ -80,7 +80,7 @@ namespace Audio
 
 	void FFlexiverb::UpdateComplexity(const int32 Complexity)
 	{	
-		DelayLines.Init(FDelayAPF::FDelayAPF(), Complexity);
+		DelayLines.Init(FDelayAPF(), Complexity);
 		int32 Index = 0;
 		for (FDelayAPF& Delay : DelayLines)
 		{
@@ -88,7 +88,7 @@ namespace Audio
 			Delay.SetDelaySamples(DelayLineSampleLengths[Index++]);
 		}
 
-		DampeningArray.Init(FOnePoleLPF::FOnePoleLPF(), Complexity);
+		DampeningArray.Init(FOnePoleLPF(), Complexity);
 
 		ScatteringMatrixLength = Complexity;
 	}

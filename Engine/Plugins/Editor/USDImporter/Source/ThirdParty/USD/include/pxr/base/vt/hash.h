@@ -24,11 +24,14 @@
 #ifndef VT_HASH_H
 #define VT_HASH_H
 
+#include "pxr/pxr.h"
 #include "pxr/base/vt/api.h"
 #include "pxr/base/tf/hash.h"
 #include <boost/functional/hash.hpp>
 #include <typeinfo>
 #include <utility>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 namespace Vt_HashDetail {
 
@@ -92,5 +95,7 @@ size_t VtHashValue(T const &val)
 {
     return Vt_HashDetail::_HashValueImpl(val, 0);
 }
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // VT_HASH_H

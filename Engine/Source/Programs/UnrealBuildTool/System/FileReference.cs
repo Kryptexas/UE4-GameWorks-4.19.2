@@ -20,7 +20,8 @@ namespace UnrealBuildTool
 		public FileReference(string InPath)
 			: base(Path.GetFullPath(InPath))
 		{
-			if(FullName.EndsWith("\\") || FullName.EndsWith("/"))
+			char LastCharacter = FullName.Length > 0 ? FullName[FullName.Length - 1] : ' ';
+			if(LastCharacter == '\\' || LastCharacter ==  '/')
 			{
 				throw new ArgumentException("File names may not be terminated by a path separator character");
 			}

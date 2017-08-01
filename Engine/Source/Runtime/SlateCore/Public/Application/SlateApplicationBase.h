@@ -211,7 +211,10 @@ public:
 	virtual TSharedPtr< SWidget > GetKeyboardFocusedWidget( ) const = 0;
 
 	virtual EUINavigation GetNavigationDirectionFromKey( const FKeyEvent& InKeyEvent ) const = 0;
+	virtual EUINavigation GetNavigationDirectionFromAnalog(const FAnalogInputEvent& InAnalogEvent) = 0;
 
+	/** @return	Returns true if there are any pop-up menus summoned */
+	virtual bool AnyMenusVisible() const = 0;
 protected:
 	/**
 	 * Implementation of GetMouseCaptor which can be overridden without warnings.

@@ -57,6 +57,11 @@ enum EFBXExpectedResultPreset
 	Bone_Number,
 	/** Data should contain the bone index [int0] and a position xyz [float0 float1 float2] optionnaly you can pass a tolerance [float3]. */
 	Bone_Position,
+	
+	/** Data should contain the Number of Frame [int0]. */
+	Animation_Frame_Number,
+	/** Data should contain the animation length [float0]. */
+	Animation_Length,
 };
 
 /** Import mesh type */

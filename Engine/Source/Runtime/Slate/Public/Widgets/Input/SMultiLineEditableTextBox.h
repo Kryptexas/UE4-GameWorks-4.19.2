@@ -40,6 +40,7 @@ public:
 		, _Marshaller()
 		, _Text()
 		, _HintText()
+		, _SearchText()
 		, _Font()
 		, _ForegroundColor()
 		, _ReadOnlyForegroundColor()
@@ -85,6 +86,9 @@ public:
 
 		/** Hint text that appears when there is no text in the text box */
 		SLATE_ATTRIBUTE( FText, HintText )
+
+		/** Text to search for (a new search is triggered whenever this text changes) */
+		SLATE_ATTRIBUTE( FText, SearchText )
 
 		/** Font color and opacity (overrides Style) */
 		SLATE_ATTRIBUTE( FSlateFontInfo, Font )
@@ -255,6 +259,12 @@ public:
 	 */
 	void SetHintText( const TAttribute< FText >& InHintText );
 
+	/** Set the text that is currently being searched for (if any) */
+	void SetSearchText(const TAttribute<FText>& InSearchText);
+
+	/** Get the text that is currently being searched for (if any) */
+	FText GetSearchText() const;
+
 	/**
 	 * Sets the text color and opacity (overrides Style)
 	 *
@@ -351,6 +361,12 @@ public:
 
 	/** Apply the given style to the currently selected text (or insert a new run at the current cursor position if no text is selected) */
 	void ApplyToSelection(const FRunInfo& InRunInfo, const FTextBlockStyle& InStyle);
+
+	/** Begin a new text search (this is called automatically when the bound search text changes) */
+	void BeginSearch(const FText& InSearchText, const ESearchCase::Type InSearchCase = ESearchCase::IgnoreCase, const bool InReverse = false);
+
+	/** Advance the current search to the next match (does nothing if not currently searching) */
+	void AdvanceSearch(const bool InReverse = false);
 
 	/** Get the run currently under the cursor, or null if there is no run currently under the cursor */
 	TSharedPtr<const IRun> GetRunUnderCursor() const;

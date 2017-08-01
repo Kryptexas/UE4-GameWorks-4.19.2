@@ -24,8 +24,9 @@
 #ifndef VT_STREAMOUT_H
 #define VT_STREAMOUT_H
 
-#include "pxr/base/tf/enum.h"
+#include "pxr/pxr.h"
 #include "pxr/base/vt/api.h"
+#include "pxr/base/tf/enum.h"
 
 #include <boost/type_traits/is_enum.hpp>
 #include <boost/type_traits/has_left_shift.hpp>
@@ -34,6 +35,8 @@
 #include <iosfwd>
 #include <string>
 #include <typeinfo>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 // Helper that's used to stream a generic string for a type that isn't
 // streamable and doesn't provide VtStreamOut.  Inserts a message like
@@ -97,6 +100,8 @@ public:
 struct Vt_Reserved;
 
 VT_API void VtStreamOutArray(VtStreamOutIterator*, size_t size,
-                      const Vt_Reserved*, std::ostream&);
+                             const Vt_Reserved*, std::ostream&);
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // VT_STREAMOUT_H

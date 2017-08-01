@@ -24,9 +24,13 @@
 #ifndef USDGEOM_METRICS_H
 #define USDGEOM_METRICS_H
 
+#include "pxr/pxr.h"
 #include "pxr/usd/usdGeom/api.h"
 #include "pxr/base/tf/token.h"
 #include "pxr/usd/usd/common.h"
+
+PXR_NAMESPACE_OPEN_SCOPE
+
 
 /// \file usdGeom/metrics.h
 ///
@@ -115,5 +119,8 @@ USDGEOM_API
 TfToken UsdGeomGetFallbackUpAxis();
 
 /// @}
+
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // USDGEOM_METRICS_H

@@ -1659,7 +1659,7 @@ FText FPersonaMeshDetails::GetMaterialSlotNameText(int32 MaterialIndex) const
 
 void FPersonaMeshDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 {
-	const TArray<TWeakObjectPtr<UObject>>& SelectedObjects = DetailLayout.GetDetailsView().GetSelectedObjects();
+	const TArray<TWeakObjectPtr<UObject>>& SelectedObjects = DetailLayout.GetSelectedObjects();
 	check(SelectedObjects.Num()<=1); // The OnGenerateCustomWidgets delegate will not be useful if we try to process more than one object.
 
 	TSharedRef<IPersonaPreviewScene> PreviewScene = GetPersonaToolkit()->GetPreviewScene();

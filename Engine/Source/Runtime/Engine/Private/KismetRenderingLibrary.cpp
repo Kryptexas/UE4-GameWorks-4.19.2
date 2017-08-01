@@ -48,13 +48,14 @@ void UKismetRenderingLibrary::ClearRenderTarget2D(UObject* WorldContextObject, U
 	}
 }
 
-UTextureRenderTarget2D* UKismetRenderingLibrary::CreateRenderTarget2D(UObject* WorldContextObject, int32 Width, int32 Height)
+UTextureRenderTarget2D* UKismetRenderingLibrary::CreateRenderTarget2D(UObject* WorldContextObject, int32 Width, int32 Height, bool bHDR)
 {
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 
 	if (Width > 0 && Height > 0 && World && FApp::CanEverRender())
 	{
 		UTextureRenderTarget2D* NewRenderTarget2D = NewObject<UTextureRenderTarget2D>(WorldContextObject);
+		NewRenderTarget2D->RenderTargetFormat = bHDR ? RTF_RGBA16f : RTF_RGBA8;
 		check(NewRenderTarget2D);
 		NewRenderTarget2D->InitAutoFormat(Width, Height); 
 		NewRenderTarget2D->UpdateResourceImmediate(true);
@@ -142,7 +143,16 @@ void UKismetRenderingLibrary::ExportRenderTarget(UObject* WorldContextObject, UT
 		if (Ar)
 		{
 			FBufferArchive Buffer;
-			bool bSuccess = FImageUtils::ExportRenderTarget2DAsHDR(TextureRenderTarget, Buffer);
+
+			bool bSuccess = false;
+			if (TextureRenderTarget->RenderTargetFormat == RTF_RGBA16f)
+			{
+				bSuccess = FImageUtils::ExportRenderTarget2DAsHDR(TextureRenderTarget, Buffer);
+			}
+			else
+			{
+				bSuccess = FImageUtils::ExportRenderTarget2DAsPNG(TextureRenderTarget, Buffer);
+			}
 
 			if (bSuccess)
 			{

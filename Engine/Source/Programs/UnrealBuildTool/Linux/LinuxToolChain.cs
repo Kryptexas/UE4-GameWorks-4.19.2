@@ -102,10 +102,10 @@ namespace UnrealBuildTool
 				throw new BuildException("clang 3.4.x is known to miscompile the engine - refusing to register the Linux toolchain.");
 			}
 			// prevent unknown clangs since the build is likely to fail on too old or too new compilers
-			else if ((CompilerVersionMajor * 10 + CompilerVersionMinor) > 40 || (CompilerVersionMajor * 10 + CompilerVersionMinor) < 35)
+			else if ((CompilerVersionMajor * 10 + CompilerVersionMinor) > 50 || (CompilerVersionMajor * 10 + CompilerVersionMinor) < 35)
 			{
 				throw new BuildException(
-					string.Format("This version of the Unreal Engine can only be compiled with clang 4.0, 3.9, 3.8, 3.7, 3.6 and 3.5. clang {0} may not build it - please use a different version.",
+					string.Format("This version of the Unreal Engine can only be compiled with clang 5.0, 4.0, 3.9, 3.8, 3.7, 3.6 and 3.5. clang {0} may not build it - please use a different version.",
 						CompilerVersionString)
 					);
 			}
@@ -390,6 +390,11 @@ namespace UnrealBuildTool
 				{
 					Result += " -Wno-undefined-var-template"; // not really a good warning to disable
 				}
+
+				if (CompilerVersionGreaterOrEqual(5, 0, 0))
+				{
+					Result += " -Wno-unused-lambda-capture";  // suppressed because capturing of compile-time constants is seemingly inconsistent. And MSVC doesn't do that.
+				}
 			}
 
 			Result += " -Wno-unused-variable";
@@ -608,7 +613,6 @@ namespace UnrealBuildTool
 				Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/ThirdParty/ICU/icu4c-53_1/Linux/" + LinkEnvironment.Architecture;
 			}
 			Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/ThirdParty/OpenAL/Linux/" + LinkEnvironment.Architecture;
-			Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/ThirdParty/CEF3/Linux";
 			Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/ThirdParty/OpenVR/OpenVRv1_0_7/linux64";
 
 			// Some OS ship ld with new ELF dynamic tags, which use DT_RUNPATH vs DT_RPATH. Since DT_RUNPATH do not propagate to dlopen()ed DSOs,
@@ -1114,7 +1118,7 @@ namespace UnrealBuildTool
 
 				if ((AdditionalLibrary.Contains("Plugins") || AdditionalLibrary.Contains("Binaries/ThirdParty") || AdditionalLibrary.Contains("Binaries\\ThirdParty")) && Path.GetDirectoryName(AdditionalLibrary) != Path.GetDirectoryName(OutputFile.AbsolutePath))
 				{
-					string RelativePath = Utils.MakePathRelativeTo(Path.GetDirectoryName(AdditionalLibrary), Path.GetDirectoryName(OutputFile.AbsolutePath));
+					string RelativePath = new FileReference(AdditionalLibrary).Directory.MakeRelativeTo(OutputFile.Reference.Directory);
 					if (!RPaths.Contains(RelativePath))
 					{
 						RPaths.Add(RelativePath);

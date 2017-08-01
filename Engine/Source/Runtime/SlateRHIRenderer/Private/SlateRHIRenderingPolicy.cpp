@@ -698,8 +698,6 @@ void FSlateRHIRenderingPolicy::DrawElements(
 #if WITH_SLATE_VISUALIZERS
 				if ( CVarShowSlateBatching.GetValueOnRenderThread() != 0 )
 				{
-					BatchingPixelShader->SetBatchColor(RHICmdList, BatchColor);
-
 					GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_One, BF_InverseSourceAlpha>::GetRHI();
 				}
 				else if ( CVarShowSlateOverdraw.GetValueOnRenderThread() != 0 )
@@ -709,13 +707,13 @@ void FSlateRHIRenderingPolicy::DrawElements(
 				else
 #endif
 				{
-				GraphicsPSOInit.BlendState =
-					EnumHasAllFlags( DrawFlags, ESlateBatchDrawFlag::NoBlending )
-					? TStaticBlendState<>::GetRHI()
-					: ( EnumHasAllFlags(DrawFlags, ESlateBatchDrawFlag::PreMultipliedAlpha )
-						? TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_InverseSourceAlpha, BO_Add, BF_One, BF_InverseSourceAlpha>::GetRHI()
-						: TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_One, BF_InverseSourceAlpha>::GetRHI() )
-					;
+					GraphicsPSOInit.BlendState =
+						EnumHasAllFlags( DrawFlags, ESlateBatchDrawFlag::NoBlending )
+						? TStaticBlendState<>::GetRHI()
+						: ( EnumHasAllFlags(DrawFlags, ESlateBatchDrawFlag::PreMultipliedAlpha )
+							? TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_InverseSourceAlpha, BO_Add, BF_One, BF_InverseSourceAlpha>::GetRHI()
+							: TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_One, BF_InverseSourceAlpha>::GetRHI() )
+						;
 				}
 
 				if ( EnumHasAllFlags(DrawFlags, ESlateBatchDrawFlag::Wireframe) || Options.bWireFrame )
@@ -745,6 +743,12 @@ void FSlateRHIRenderingPolicy::DrawElements(
 				GlobalVertexShader->SetViewProjection(RHICmdList, ViewProjection);
 				GlobalVertexShader->SetVerticalAxisMultiplier(RHICmdList, bSwitchVerticalAxis ? -1.0f : 1.0f);
 
+#if WITH_SLATE_VISUALIZERS
+				if (CVarShowSlateBatching.GetValueOnRenderThread() != 0)
+				{
+					BatchingPixelShader->SetBatchColor(RHICmdList, BatchColor);
+				}
+#endif
 
 				FSamplerStateRHIParamRef SamplerState = BilinearClamp;
 				FTextureRHIParamRef TextureRHI = GWhiteTexture->TextureRHI;
@@ -939,13 +943,9 @@ void FSlateRHIRenderingPolicy::DrawElements(
 						{
 							FSlateDebugBatchingPS* BatchingPixelShader = *TShaderMapRef<FSlateDebugBatchingPS>(ShaderMap);
 
-							RHICmdList.SetLocalBoundShaderState(RHICmdList.BuildLocalBoundShaderState(
-								GSlateVertexDeclaration.VertexDeclarationRHI,
-								GlobalVertexShader->GetVertexShader(),
-								nullptr,
-								nullptr,
-								BatchingPixelShader->GetPixelShader(),
-								FGeometryShaderRHIRef()));
+							GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = bUseInstancing ? GSlateInstancedVertexDeclaration.VertexDeclarationRHI : GSlateVertexDeclaration.VertexDeclarationRHI;
+							GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*GlobalVertexShader);
+							GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(BatchingPixelShader);
 
 							BatchingPixelShader->SetBatchColor(RHICmdList, BatchColor);
 							GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_One, BO_Add, BF_Zero, BF_InverseSourceAlpha>::GetRHI();
@@ -954,53 +954,46 @@ void FSlateRHIRenderingPolicy::DrawElements(
 						{
 							FSlateElementPS* OverdrawPixelShader = *TShaderMapRef<FSlateDebugOverdrawPS>(ShaderMap);
 
-							RHICmdList.SetLocalBoundShaderState(RHICmdList.BuildLocalBoundShaderState(
-								GSlateVertexDeclaration.VertexDeclarationRHI,
-								GlobalVertexShader->GetVertexShader(),
-								nullptr,
-								nullptr,
-								OverdrawPixelShader->GetPixelShader(),
-								FGeometryShaderRHIRef()));
+							GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = bUseInstancing ? GSlateInstancedVertexDeclaration.VertexDeclarationRHI : GSlateVertexDeclaration.VertexDeclarationRHI;
+							GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*GlobalVertexShader);
+							GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(OverdrawPixelShader);
 
 							GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_One, BO_Add, BF_Zero, BF_InverseSourceAlpha>::GetRHI();
 						}
 						else
-						{
-							GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None, false>::GetRHI();
-						}
-						
 #endif
-
-						PixelShader->SetBlendState(GraphicsPSOInit, Material);
-						FSlateShaderResource* MaskResource = MaterialShaderResource->GetTextureMaskResource();
-						if (MaskResource)
 						{
-							GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_InverseDestAlpha, BF_One>::GetRHI();
-						}
-					
-						GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = bUseInstancing ? GSlateInstancedVertexDeclaration.VertexDeclarationRHI : GSlateVertexDeclaration.VertexDeclarationRHI;
-						GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(VertexShader);
-						GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(PixelShader);
-						GraphicsPSOInit.PrimitiveType = GetRHIPrimitiveType(RenderBatch.DrawPrimitiveType);
+							PixelShader->SetBlendState(GraphicsPSOInit, Material);
+							FSlateShaderResource* MaskResource = MaterialShaderResource->GetTextureMaskResource();
+							if (MaskResource)
+							{
+								GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_InverseDestAlpha, BF_One>::GetRHI();
+							}
 
-						FLocalGraphicsPipelineState BaseGraphicsPSO = RHICmdList.BuildLocalGraphicsPipelineState(GraphicsPSOInit);
-						RHICmdList.SetLocalGraphicsPipelineState(BaseGraphicsPSO);
+							GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = bUseInstancing ? GSlateInstancedVertexDeclaration.VertexDeclarationRHI : GSlateVertexDeclaration.VertexDeclarationRHI;
+							GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(VertexShader);
+							GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(PixelShader);
+							GraphicsPSOInit.PrimitiveType = GetRHIPrimitiveType(RenderBatch.DrawPrimitiveType);
 
-						RHICmdList.SetStencilRef(StencilRef);
+							FLocalGraphicsPipelineState BaseGraphicsPSO = RHICmdList.BuildLocalGraphicsPipelineState(GraphicsPSOInit);
+							RHICmdList.SetLocalGraphicsPipelineState(BaseGraphicsPSO);
 
-						VertexShader->SetViewProjection(RHICmdList, ViewProjection);
-						VertexShader->SetVerticalAxisMultiplier(RHICmdList, bSwitchVerticalAxis ? -1.0f : 1.0f);
-						VertexShader->SetMaterialShaderParameters(RHICmdList, ActiveSceneView, MaterialRenderProxy, Material);
+							RHICmdList.SetStencilRef(StencilRef);
 
-						PixelShader->SetParameters(RHICmdList, ActiveSceneView, MaterialRenderProxy, Material, ShaderParams.PixelParams);
-						PixelShader->SetDisplayGamma(RHICmdList, EnumHasAllFlags(DrawFlags, ESlateBatchDrawFlag::NoGamma) ? 1.0f : DisplayGamma);
+							VertexShader->SetViewProjection(RHICmdList, ViewProjection);
+							VertexShader->SetVerticalAxisMultiplier(RHICmdList, bSwitchVerticalAxis ? -1.0f : 1.0f);
+							VertexShader->SetMaterialShaderParameters(RHICmdList, ActiveSceneView, MaterialRenderProxy, Material);
 
-						if (MaskResource)
-						{
-							FTexture2DRHIRef TextureRHI;
-							TextureRHI = ((TSlateTexture<FTexture2DRHIRef>*)MaskResource)->GetTypedResource();
+							PixelShader->SetParameters(RHICmdList, ActiveSceneView, MaterialRenderProxy, Material, ShaderParams.PixelParams);
+							PixelShader->SetDisplayGamma(RHICmdList, EnumHasAllFlags(DrawFlags, ESlateBatchDrawFlag::NoGamma) ? 1.0f : DisplayGamma);
 
-							PixelShader->SetAdditionalTexture(RHICmdList, TextureRHI, BilinearClamp);
+							if (MaskResource)
+							{
+								FTexture2DRHIRef TextureRHI;
+								TextureRHI = ((TSlateTexture<FTexture2DRHIRef>*)MaskResource)->GetTypedResource();
+
+								PixelShader->SetAdditionalTexture(RHICmdList, TextureRHI, BilinearClamp);
+							}
 						}
 
 						if (bUseInstancing)
@@ -1102,6 +1095,7 @@ void FSlateRHIRenderingPolicy::DrawElements(
 
 				// Disable scissor rect. A previous draw element may have had one
 				RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
+				LastClippingIndex = -1;
 
 				// This element is custom and has no Slate geometry.  Tell it to render itself now
 				CustomDrawer->DrawRenderThread(RHICmdList, &BackBuffer.GetRenderTargetTexture());

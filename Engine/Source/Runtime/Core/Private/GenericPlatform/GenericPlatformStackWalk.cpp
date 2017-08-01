@@ -11,9 +11,9 @@ FProgramCounterSymbolInfo::FProgramCounterSymbolInfo() :
 	OffsetInModule( 0 ),
 	ProgramCounter( 0 )
 {
-	FCStringAnsi::Strncpy( ModuleName, "", MAX_NAME_LENGHT );
-	FCStringAnsi::Strncpy( FunctionName, "", MAX_NAME_LENGHT );
-	FCStringAnsi::Strncpy( Filename, "", MAX_NAME_LENGHT );
+	FCStringAnsi::Strncpy( ModuleName, "", MAX_NAME_LENGTH );
+	FCStringAnsi::Strncpy( FunctionName, "", MAX_NAME_LENGTH );
+	FCStringAnsi::Strncpy( Filename, "", MAX_NAME_LENGTH );
 }
 
 /** Settings for stack walking */

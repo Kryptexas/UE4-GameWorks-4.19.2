@@ -26,6 +26,7 @@
 
 /// \file usdRi/lookAPI.h
 
+#include "pxr/pxr.h"
 #include "pxr/usd/usdRi/api.h"
 #include "pxr/usd/usd/schemaBase.h"
 #include "pxr/usd/usd/prim.h"
@@ -50,6 +51,8 @@
 
 #include "pxr/base/tf/token.h"
 #include "pxr/base/tf/type.h"
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 class SdfAssetPath;
 
@@ -115,6 +118,7 @@ public:
 private:
     // needs to invoke _GetStaticTfType.
     friend class UsdSchemaRegistry;
+    USDRI_API
     static const TfType &_GetStaticTfType();
 
     static bool _IsTypedSchema();
@@ -212,15 +216,17 @@ public:
     // Feel free to add custom code below this line, it will be preserved by 
     // the code generator. 
     //
-    // Just remember to close the class delcaration with }; and complete the
-    // include guard with #endif
+    // Just remember to: 
+    //  - Close the class declaration with }; 
+    //  - Close the namespace with PXR_NAMESPACE_CLOSE_SCOPE
+    //  - Close the include guard with #endif
     // ===================================================================== //
     // --(BEGIN CUSTOM CODE)--
 
-    // A constructor for creating a look API object from a look prim.
-    explicit UsdRiLookAPI(const UsdShadeLook& look)
+    // A constructor for creating a look API object from a material prim.
+    explicit UsdRiLookAPI(const UsdShadeMaterial& material)
         // : UsdRiLookAPI(look.GetPrim()) // This will have to wait until c++11!
-        : UsdSchemaBase(look.GetPrim())
+        : UsdSchemaBase(material.GetPrim())
     {
     }
     
@@ -259,16 +265,37 @@ public:
     USDRI_API
     std::vector<UsdRiRisPattern> GetPatterns();
 
+    /// Set the input consumer of the named \p interfaceInput.
+    USDRI_API
+    bool SetInterfaceInputConsumer(UsdShadeInput &interfaceInput, 
+                                   const UsdShadeInput &consumer);
+
+    /// Walks the namespace subtree below the material and computes a map 
+    /// containing the list of all inputs on the material and the associated 
+    /// vector of consumers of their values. The consumers can be inputs on 
+    /// shaders within the material or on node-graphs under it).
+    USDRI_API
+    UsdShadeNodeGraph::InterfaceInputConsumersMap
+    ComputeInterfaceInputConsumersMap(
+            bool computeTransitiveConsumers=false) const;
+
+    /// Returns all the interface inputs belonging to the material.
+    USDRI_API
+    std::vector<UsdShadeInput> GetInterfaceInputs() const;
+
     /// Set the ri shadeParameter recipient of the named
     ///  \p interfaceAttr, which may also drive parameters in other shading
     /// API's with which we are not concerned.
     /// \sa UsdShadeInterfaceAttribute::SetRecipient()
+    /// 
+    /// \deprecated
     USDRI_API
     bool SetInterfaceRecipient(
             UsdShadeInterfaceAttribute& interfaceAttr,
             const SdfPath& recipientPath);
 
     /// \overload
+    /// \deprecated
     USDRI_API
     bool SetInterfaceRecipient(
             UsdShadeInterfaceAttribute& interfaceAttr,
@@ -277,6 +304,7 @@ public:
     /// Retrieve all ri shadeParameters driven by the named 
     /// \p interfaceAttr
     /// \sa UsdShadeInterfaceAttribute::GetRecipientParameters()
+    /// \deprecated
     USDRI_API
     std::vector<UsdShadeParameter> GetInterfaceRecipientParameters(
             const UsdShadeInterfaceAttribute& interfaceAttr) const;
@@ -286,5 +314,7 @@ public:
     USDRI_API
     std::vector<UsdShadeInterfaceAttribute> GetInterfaceAttributes() const;
 };
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif

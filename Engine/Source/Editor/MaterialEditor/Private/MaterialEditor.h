@@ -560,9 +560,9 @@ private:
 	/** Command for toggling real time preview of selected node */
 	void OnToggleRealtimePreview();
 	/** Command to select nodes downstream of selected node */
-	void OnSelectDownsteamNodes();
+	void OnSelectDownstreamNodes();
 	/** Command to select nodes upstream of selected node */
-	void OnSelectUpsteamNodes();
+	void OnSelectUpstreamNodes();
 	/** Command to force a refresh of all previews (triggered by space bar) */
 	void OnForceRefreshPreviews();
 	/** Create comment node on graph */
@@ -677,6 +677,7 @@ private:
 	TSharedRef<SDockTab> SpawnTab_Palette(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTab_Stats(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTab_Find(const FSpawnTabArgs& Args);
+	TSharedRef<SDockTab> SpawnTab_PreviewSettings(const FSpawnTabArgs& Args);
 
 	void OnFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent);
 private:
@@ -763,4 +764,5 @@ private:
 	static const FName PaletteTabId;
 	static const FName StatsTabId;
 	static const FName FindTabId;
+	static const FName PreviewSettingsTabId;
 };

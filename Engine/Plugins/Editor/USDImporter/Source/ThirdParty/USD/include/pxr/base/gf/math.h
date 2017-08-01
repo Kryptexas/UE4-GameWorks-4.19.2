@@ -28,8 +28,11 @@
 /// \ingroup group_gf_BasicMath
 /// Assorted mathematical utility functions.
 
+#include "pxr/pxr.h"
 #include "pxr/base/arch/math.h"
 #include "pxr/base/gf/api.h"
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 /// Returns true if \p a and \p b are with \p epsilon of each other.
 /// \ingroup group_gf_BasicMath
@@ -226,4 +229,6 @@ inline T GfMax(T a1, T a2, T a3, T a4, T a5) {
     return GfMax(GfMax(a1, a2, a3, a4), a5);
 }
 
-#endif /* GF_MATH_H */
+PXR_NAMESPACE_CLOSE_SCOPE
+
+#endif // GF_MATH_H 

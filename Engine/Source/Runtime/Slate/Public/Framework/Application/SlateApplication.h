@@ -127,6 +127,8 @@ public:
 
 	FGestureDetector GestureDetector;
 
+	TSharedPtr<FNavigationConfig> NavigationConfig;
+
 private:
 	FORCEINLINE bool HasValidFocusPath() const
 	{
@@ -346,8 +348,9 @@ public:
 	/** Returns true if this slate application is ready to display windows. */
 	bool CanDisplayWindows() const;
 
-	virtual EUINavigation GetNavigationDirectionFromKey( const FKeyEvent& InKeyEvent ) const override;
-	
+	virtual EUINavigation GetNavigationDirectionFromKey(const FKeyEvent& InKeyEvent) const override;
+	virtual EUINavigation GetNavigationDirectionFromAnalog(const FAnalogInputEvent& InAnalogEvent) override;
+
 	/**
 	 * Adds a modal window to the application.  
 	 * In most cases, this function does not return until the modal window is closed (the only exception is a modal window for slow tasks)  
@@ -439,7 +442,7 @@ public:
 	bool HasOpenSubMenus(TSharedPtr<IMenu> InMenu) const;
 
 	/** @return	Returns true if there are any pop-up menus summoned */
-	bool AnyMenusVisible() const;
+	virtual bool AnyMenusVisible() const override;
 
 	/**
 	 * Attempt to locate a menu that contains the specified widget
@@ -940,23 +943,7 @@ protected:
 	 * Locates the SlateUser object corresponding to the index, if one can't be found, it will create a slate user at
 	 * the provided index.  If the index is less than 0, null is returned.
 	 */
-	FORCEINLINE FSlateUser* GetOrCreateUser(int32 UserIndex)
-	{
-		if ( UserIndex < 0 )
-		{
-			return nullptr;
-		}
-
-		if ( FSlateUser* User = GetUser(UserIndex) )
-		{
-			return User;
-		}
-
-		TSharedRef<FSlateUser> NewUser = MakeShareable(new FSlateUser(UserIndex, false));
-		RegisterUser(NewUser);
-
-		return &NewUser.Get();
-	}
+	FSlateUser* GetOrCreateUser(int32 UserIndex);
 
 	friend class FAnalogCursor;
 	friend class FEventRouter;
@@ -1150,7 +1137,7 @@ public:
 
 public:
 
-	void SetNavigationConfig( TSharedRef<FNavigationConfig> Config );
+	void SetNavigationConfigFactory( TFunction<TSharedRef<FNavigationConfig>()> InNavigationConfigFactory );
 
 	/** Called when the slate application is being shut down. */
 	void OnShutdown();
@@ -2073,10 +2060,10 @@ private:
 	TMap< const ILayoutCache*, TSharedPtr<FCacheElementPools> > CachedElementLists;
 	TArray< TSharedPtr<FCacheElementPools> > ReleasedCachedElementLists;
 
-	/** Configured fkeys to control navigation */
-	TSharedRef<FNavigationConfig> NavigationConfig;
+	/** This factory function creates a navigation config for each slate user. */
+	TFunction<TSharedRef<FNavigationConfig>()> NavigationConfigFactory;
 
-	/**  */
+	/** The simulated gestures Slate Application will be in charge of. */
 	TBitArray<FDefaultBitArrayAllocator> SimulateGestures;
 
 	/** Delegate for pre slate tick */

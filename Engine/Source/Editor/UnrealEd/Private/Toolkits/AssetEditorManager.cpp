@@ -617,7 +617,7 @@ void FAssetEditorManager::SpawnRestorePreviouslyOpenAssetsNotification(const boo
 		));
 
 	// We will let the notification expire automatically after 10 seconds
-	Info.bFireAndForget = true;
+	Info.bFireAndForget = false;
 	Info.ExpireDuration = 10.0f;
 
 	// We want the auto-save to be subtle

@@ -6,12 +6,12 @@
 #include "Misc/Attribute.h"
 #include "Input/Reply.h"
 #include "IPropertyUtilities.h"
-#include "IDetailTreeNode.h"
+#include "DetailTreeNode.h"
 #include "Widgets/Views/STableViewBase.h"
 #include "Widgets/Views/STableRow.h"
 #include "DetailCategoryBuilderImpl.h"
 
-class FAdvancedDropdownNode : public IDetailTreeNode, public TSharedFromThis<FAdvancedDropdownNode>
+class FAdvancedDropdownNode : public FDetailTreeNode, public TSharedFromThis<FAdvancedDropdownNode>
 {
 public:
 	FAdvancedDropdownNode( FDetailCategoryImpl& InParentCategory, const TAttribute<bool>& InExpanded, const TAttribute<bool>& InEnabled, bool bInShouldShowAdvancedButton, bool bInDisplayShowAdvancedMessage, bool bInShowSplitter )
@@ -33,9 +33,10 @@ public:
 	{}
 private:
 	/** IDetailTreeNode Interface */
-	virtual IDetailsViewPrivate& GetDetailsView() const override{ return ParentCategory.GetDetailsView(); }
-	virtual TSharedRef< ITableRow > GenerateNodeWidget( const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, const TSharedRef<IPropertyUtilities>& PropertyUtilities, bool bAllowFavoriteSystem) override;
-	virtual void GetChildren( TArray< TSharedRef<IDetailTreeNode> >& OutChildren )  override {}
+	virtual IDetailsViewPrivate* GetDetailsView() const override{ return ParentCategory.GetDetailsView(); }
+	virtual TSharedRef< ITableRow > GenerateWidgetForTableView( const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, bool bAllowFavoriteSystem) override;
+	virtual bool GenerateStandaloneWidget(FDetailWidgetRow& OutRow) const override;
+	virtual void GetChildren(FDetailNodeList& OutChildren) override {}
 	virtual void OnItemExpansionChanged( bool bIsExpanded, bool bShouldSaveState) override {}
 	virtual bool ShouldBeExpanded() const override { return false; }
 	virtual ENodeVisibility GetVisibility() const override { return ENodeVisibility::Visible; }
@@ -43,6 +44,9 @@ private:
 	virtual void Tick( float DeltaTime ) override {}
 	virtual bool ShouldShowOnlyChildren() const override { return false; }
 	virtual FName GetNodeName() const override { return NAME_None; }
+
+	virtual EDetailNodeType GetNodeType() const override { return EDetailNodeType::Advanced; }
+	virtual TSharedPtr<IPropertyHandle> CreatePropertyHandle() const override { return nullptr; }
 
 	/** Called when the advanced drop down arrow is clicked */
 	FReply OnAdvancedDropDownClicked();

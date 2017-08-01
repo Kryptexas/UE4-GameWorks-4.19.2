@@ -161,7 +161,7 @@ void FCollisionResponse::SetCollisionResponseContainer(const FCollisionResponseC
 void FCollisionResponse::SetResponsesArray(const TArray<FResponseChannel>& InChannelResponses)
 {
 #if DO_GUARD_SLOW
-	// verify if the name is overlapping, if so, ensure, do not remove in debug becuase it will cause inconsistent bug between debug/release
+	// verify if the name is overlapping, if so, ensure, do not remove in debug because it will cause inconsistent bug between debug/release
 	int32 const ResponseNum = InChannelResponses.Num();
 	for (int32 I=0; I<ResponseNum; ++I)
 	{

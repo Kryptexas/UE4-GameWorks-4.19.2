@@ -42,7 +42,7 @@ TSharedRef<IDetailCustomization> FPaperTileMapDetailsCustomization::MakeInstance
 
 void FPaperTileMapDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailLayout)
 {
-	const TArray< TWeakObjectPtr<UObject> >& SelectedObjects = DetailLayout.GetDetailsView().GetSelectedObjects();
+	const TArray< TWeakObjectPtr<UObject> >& SelectedObjects = DetailLayout.GetSelectedObjects();
 	MyDetailLayout = nullptr;
 	
 	FNotifyHook* NotifyHook = DetailLayout.GetPropertyUtilities()->GetNotifyHook();
@@ -194,7 +194,7 @@ void FPaperTileMapDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& D
 	}
 
 	// Try to get the hosting command list from the details view
-	TSharedPtr<FUICommandList> CommandList = DetailLayout.GetDetailsView().GetHostCommandList();
+	TSharedPtr<FUICommandList> CommandList = DetailLayout.GetDetailsView()->GetHostCommandList();
 	if (!CommandList.IsValid())
 	{
 		CommandList = MakeShareable(new FUICommandList);

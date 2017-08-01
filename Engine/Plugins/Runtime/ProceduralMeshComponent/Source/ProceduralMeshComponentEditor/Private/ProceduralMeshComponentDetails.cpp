@@ -35,7 +35,7 @@ void FProceduralMeshComponentDetails::CustomizeDetails( IDetailLayoutBuilder& De
 	const FText ConvertToStaticMeshText = LOCTEXT("ConvertToStaticMesh", "Create StaticMesh");
 
 	// Cache set of selected things
-	SelectedObjectsList = DetailBuilder.GetDetailsView().GetSelectedObjects();
+	SelectedObjectsList = DetailBuilder.GetSelectedObjects();
 
 	ProcMeshCategory.AddCustomRow(ConvertToStaticMeshText, false)
 	.NameContent()

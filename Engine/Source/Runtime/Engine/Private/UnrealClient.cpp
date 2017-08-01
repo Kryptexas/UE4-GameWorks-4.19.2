@@ -307,7 +307,12 @@ void FScreenshotRequest::RequestScreenshot(const FString& InFilename, bool bInSh
 	}
 
 	GScreenMessagesRestoreState = GAreScreenMessagesEnabled;
-	GAreScreenMessagesEnabled = bInShowUI;
+
+	// Disable Screen Messages when the screenshot is requested without UI.
+	if (bInShowUI == false)
+	{
+		GAreScreenMessagesEnabled = false;
+	}
 }
 
 

@@ -391,7 +391,9 @@ void FOpenGLDynamicRHI::RHISetViewport(uint32 MinX,uint32 MinY,float MinZ,uint32
 	PendingState.Viewport.Max.Y = MaxY;
 	PendingState.DepthMinZ = MinZ;
 	PendingState.DepthMaxZ = MaxZ;
-	
+
+	RHISetScissorRect(false, 0, 0, 0, 0);
+
 	FShaderCache::SetViewport(FShaderCache::GetDefaultCacheState(), MinX, MinY, MinZ, MaxX, MaxY, MaxZ);
 }
 

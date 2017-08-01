@@ -1019,9 +1019,10 @@ UProperty* FKismetCompilerUtilities::CreatePrimitiveProperty(UObject* PropertySc
 
 		if (Enum && Enum->GetCppForm() == UEnum::ECppForm::EnumClass)
 		{
-			UEnumProperty* EnumProp = new (EC_InternalUseOnlyConstructor, PropertyScope, ValidatedPropertyName, ObjectFlags) UEnumProperty(FObjectInitializer(), CastChecked<UEnum>(PinSubCategoryObject));
+			UEnumProperty* EnumProp = NewObject<UEnumProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
 			UNumericProperty* UnderlyingProp = NewObject<UByteProperty>(EnumProp, TEXT("UnderlyingType"), ObjectFlags);
 
+			EnumProp->SetEnum(Enum);
 			EnumProp->AddCppProperty(UnderlyingProp);
 
 			NewProperty = EnumProp;

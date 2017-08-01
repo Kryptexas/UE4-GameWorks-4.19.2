@@ -28,6 +28,8 @@
 /// \ingroup group_tf_Memory
 /// Type independent WeakPtr holder class
 
+#include "pxr/pxr.h"
+#include "pxr/base/tf/api.h"
 #include "pxr/base/tf/cxxCast.h"
 #include "pxr/base/tf/pyUtils.h"
 #include "pxr/base/tf/traits.h"
@@ -40,6 +42,8 @@
 #include <cstddef>
 #include <type_traits>
 #include <utility>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 /// \class TfAnyWeakPtr
 ///
@@ -95,31 +99,31 @@ public:
 
     /// Return true *only* if this expiry checker is watching a weak pointer
     /// which has expired.
-	TF_API bool IsInvalid() const;
+    TF_API bool IsInvalid() const;
 
     /// Return the unique identifier of the WeakPtr this AnyWeakPtr conrtains
-	TF_API void const *GetUniqueIdentifier() const;
+    TF_API void const *GetUniqueIdentifier() const;
 
     /// Return the TfWeakBase object of the WeakPtr we are holding
-	TF_API TfWeakBase const *GetWeakBase() const;
+    TF_API TfWeakBase const *GetWeakBase() const;
 
     /// bool operator
-	TF_API operator bool() const;
+    TF_API operator bool() const;
 
     /// operator !
-	TF_API bool operator !() const;
+    TF_API bool operator !() const;
 
     /// equality operator
-	TF_API bool operator ==(const TfAnyWeakPtr &rhs) const;
+    TF_API bool operator ==(const TfAnyWeakPtr &rhs) const;
 
     /// comparison operator
-	TF_API bool operator <(const TfAnyWeakPtr &rhs) const;
+    TF_API bool operator <(const TfAnyWeakPtr &rhs) const;
 
     /// returns the type_info of the underlying WeakPtr
-	TF_API const std::type_info & GetTypeInfo() const;
+    TF_API const std::type_info & GetTypeInfo() const;
 
     /// Returns the TfType of the underlying WeakPtr.
-	TF_API TfType const& GetType() const;
+    TF_API TfType const& GetType() const;
 
     /// Return a hash value for this instance.
     size_t GetHash() const {
@@ -283,5 +287,7 @@ TfAnyWeakPtr::_PointerHolder<Ptr>::_IsConst() const
 {
     return TfTraits::Type<typename Ptr::DataType>::isConst;
 }
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif

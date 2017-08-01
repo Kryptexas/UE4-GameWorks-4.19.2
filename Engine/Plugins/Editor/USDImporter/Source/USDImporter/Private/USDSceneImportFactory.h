@@ -5,6 +5,7 @@
 #include "Factories/SceneImportFactory.h"
 #include "USDImporter.h"
 #include "Editor/EditorEngine.h"
+#include "Factories/ImportSettings.h"
 #include "USDSceneImportFactory.generated.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogUSDSceneImport, Log, All);
@@ -15,10 +16,13 @@ struct FActorSpawnData
 {
 	FActorSpawnData()
 		: Asset(nullptr)
+		, CustomActorClass(nullptr)
 		, Prim(nullptr)
 	{}
 
+	UActorFactory* ActorFactory;
 	UObject* Asset;
+	TSubclassOf<AActor> CustomActorClass;
 	FName ActorName;
 	FName InstanceName;
 	IUsdPrim* Prim;
@@ -41,10 +45,10 @@ struct FUSDSceneImportContext : public FUsdImportContext
 	TArray<FName> ActorsToDestroy;
 
 	UPROPERTY()
-	class UActorFactory* StaticMeshFactory;
+	class UActorFactory* EmptyActorFactory;
 
 	UPROPERTY()
-	class UActorFactory* EmptyActorFactory;
+	TMap<UClass*, UActorFactory*> UsedFactories;
 
 	FCachedActorLabels ActorLabels;
 
@@ -52,22 +56,29 @@ struct FUSDSceneImportContext : public FUsdImportContext
 };
 
 UCLASS(transient)
-class UUSDSceneImportFactory : public USceneImportFactory
+class UUSDSceneImportFactory : public USceneImportFactory, public IImportSettingsParser
 {
 	GENERATED_UCLASS_BODY()
 
 public:
-	// UFactory Interface
+	/** UFactory Interface */
 	virtual UObject* FactoryCreateFile(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, const FString& Filename, const TCHAR* Parms, FFeedbackContext* Warn, bool& bOutOperationCanceled) override;
 	virtual bool FactoryCanImport(const FString& Filename) override;
 	virtual void CleanUp() override;
+	virtual IImportSettingsParser* GetImportSettingsParser() override { return this; }
+
+	/** IImportSettingsParser interface */
+	virtual void ParseFromJson(TSharedRef<class FJsonObject> ImportSettingsJson) override;
 private:
 
 	void GenerateSpawnables(TArray<FActorSpawnData>& OutRootSpawnData, int32& OutTotalNumSpawnables);
 	void InitSpawnData_Recursive(class IUsdPrim* Prim, TArray<FActorSpawnData>& OutSpawnDatas, int32& OutTotalNumSpawnables);
 	void SpawnActors(const FActorSpawnData& SpawnData, AActor* AttachParent, int32 TotalNumSpawnables, FScopedSlowTask& SlowTask);
+	void OnActorSpawned(AActor* SpawnedActor, const FActorSpawnData& SpawnData);
 private:
 	UPROPERTY()
 	FUSDSceneImportContext ImportContext;
 
+	UPROPERTY()
+	UUSDSceneImportOptions* ImportOptions;
 };

@@ -26,6 +26,25 @@ void FInputBindingEditorPanel::Initialize(class IDetailLayoutBuilder& InDetailBu
 	UpdateUI();
 }
 
+void FInputBindingEditorPanel::Tick(float DeltaSeconds)
+{
+	if(bUpdateRequested)
+	{
+		UpdateContextMasterList();
+
+		if (DetailBuilder)
+		{
+			DetailBuilder->ForceRefreshDetails();
+			// Force refreshing is going to invalidate the detail builder anyway
+			DetailBuilder = nullptr;
+			FBindingContext::CommandsChanged.RemoveAll(this);
+		}
+
+		bUpdateRequested = false;
+	}
+
+	
+}
 
 void FInputBindingEditorPanel::UpdateContextMasterList()
 {
@@ -58,15 +77,7 @@ void FInputBindingEditorPanel::UpdateContextMasterList()
 
 void FInputBindingEditorPanel::OnCommandsChanged(const FBindingContext& ContextThatChanged)
 {
-	UpdateContextMasterList();
-
-	if(DetailBuilder)
-	{
-		DetailBuilder->ForceRefreshDetails();
-		// Force refreshing is going to invalidate the detail builder anyway
-		DetailBuilder = nullptr;
-		FBindingContext::CommandsChanged.RemoveAll(this);
-	}
+	bUpdateRequested = true;
 }
 
 void FInputBindingEditorPanel::UpdateUI()

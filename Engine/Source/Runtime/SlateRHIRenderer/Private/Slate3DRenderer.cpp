@@ -50,6 +50,11 @@ void FSlate3DRenderer::FinishCleanup()
 	delete this;
 }
 
+void FSlate3DRenderer::SetUseGammaCorrection(bool bUseGammaCorrection)
+{
+	RenderTargetPolicy->SetUseGammaCorrection(bUseGammaCorrection);
+}
+
 FSlateDrawBuffer& FSlate3DRenderer::GetDrawBuffer()
 {
 	FreeBufferIndex = (FreeBufferIndex + 1) % NUM_DRAW_BUFFERS;

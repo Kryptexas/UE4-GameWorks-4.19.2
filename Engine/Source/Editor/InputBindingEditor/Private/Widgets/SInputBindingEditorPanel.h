@@ -6,6 +6,7 @@
 #include "Framework/Commands/UICommandInfo.h"
 #include "Framework/Commands/InputBindingManager.h"
 #include "Widgets/Views/STableRow.h"
+#include "TickableEditorObject.h"
 
 class IDetailLayoutBuilder;
 
@@ -61,12 +62,13 @@ struct FChordTreeItem
 /**
  * The main input binding editor widget                   
  */
-class FInputBindingEditorPanel : public TSharedFromThis<FInputBindingEditorPanel>
+class FInputBindingEditorPanel : public TSharedFromThis<FInputBindingEditorPanel>, public FTickableEditorObject
 {
 public:
 
 	/** Default constructor. */
 	FInputBindingEditorPanel()
+		: bUpdateRequested(false)
 	{ }
 
 	/** Destructor. */
@@ -85,6 +87,10 @@ public:
 	 */
 	void Initialize(class IDetailLayoutBuilder& InDetailBuilder);
 
+	/** FTickableEditorObject interface */
+	virtual void Tick(float DeltaSeconds) override;
+	virtual bool IsTickable() const override { return bUpdateRequested; }
+	virtual TStatId GetStatId() const override { RETURN_QUICK_DECLARE_CYCLE_STAT(FInputBindingEditorPanel, STATGROUP_Tickables);  }
 private:
 	void UpdateUI();
 
@@ -103,4 +109,6 @@ private:
 	IDetailLayoutBuilder* DetailBuilder;
 	/** List of all known contexts. */
 	TArray< TSharedPtr<FChordTreeItem> > ContextMasterList;
+	/** If the details panel needs to be updated */
+	bool bUpdateRequested;
 };

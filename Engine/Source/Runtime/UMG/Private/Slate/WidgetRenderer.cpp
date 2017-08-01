@@ -38,6 +38,18 @@ ISlate3DRenderer* FWidgetRenderer::GetSlateRenderer()
 	return Renderer.Get();
 }
 
+void FWidgetRenderer::SetUseGammaCorrection(bool bInUseGammaSpace)
+{
+	bUseGammaSpace = bInUseGammaSpace;
+
+#if !UE_SERVER
+	if (LIKELY(FApp::CanEverRender()))
+	{
+		Renderer->SetUseGammaCorrection(bInUseGammaSpace);
+	}
+#endif
+}
+
 UTextureRenderTarget2D* FWidgetRenderer::DrawWidget(const TSharedRef<SWidget>& Widget, FVector2D DrawSize)
 {
 	if ( LIKELY(FApp::CanEverRender()) )
@@ -111,6 +123,18 @@ void FWidgetRenderer::DrawWindow(
 	FSlateRect WindowClipRect,
 	float DeltaTime)
 {
+	FPaintArgs PaintArgs(Window.Get(), HitTestGrid.Get(), FVector2D::ZeroVector, FApp::GetCurrentTime(), DeltaTime);
+	DrawWindow(PaintArgs, RenderTarget, Window, WindowGeometry, WindowClipRect, DeltaTime);
+}
+
+void FWidgetRenderer::DrawWindow(
+	const FPaintArgs& PaintArgs,
+	UTextureRenderTarget2D* RenderTarget,
+	TSharedRef<SWindow> Window,
+	FGeometry WindowGeometry,
+	FSlateRect WindowClipRect,
+	float DeltaTime)
+{
 #if !UE_SERVER
 	if ( LIKELY(FApp::CanEverRender()) )
 	{
@@ -120,8 +144,11 @@ void FWidgetRenderer::DrawWindow(
 		    Window->SlatePrepass(WindowGeometry.Scale);
 	    }
     
-	    // Prepare the test grid 
-	    HitTestGrid->ClearGridForNewFrame(WindowClipRect);
+		if ( bClearHitTestGrid )
+		{
+			// Prepare the test grid 
+			PaintArgs.GetGrid().ClearGridForNewFrame(WindowClipRect);
+		}
     
 	    // Get the free buffer & add our virtual window
 	    FSlateDrawBuffer& DrawBuffer = Renderer->GetDrawBuffer();
@@ -129,8 +156,6 @@ void FWidgetRenderer::DrawWindow(
     
 	    int32 MaxLayerId = 0;
 	    {
-		    FPaintArgs PaintArgs(Window.Get(), HitTestGrid.Get(), FVector2D::ZeroVector, FApp::GetCurrentTime(), DeltaTime);
-    
 		    // Paint the window
 		    MaxLayerId = Window->Paint(
 			    PaintArgs,
@@ -171,56 +196,4 @@ void FWidgetRenderer::DrawWindow(
 			});
 	}
 #endif // !UE_SERVER
-}
-
-void FWidgetRenderer::PrepassWindowAndChildren(TSharedRef<SWindow> Window, float Scale)
-{
-	Window->SlatePrepass(Scale);
-
-	const TArray< TSharedRef<SWindow> >& WindowChildren = Window->GetChildWindows();
-	for ( int32 ChildIndex=0; ChildIndex < WindowChildren.Num(); ++ChildIndex )
-	{
-		const TSharedRef<SWindow>& ChildWindow = WindowChildren[ChildIndex];
-		PrepassWindowAndChildren(ChildWindow, Scale);
-	}
-}
-
-void FWidgetRenderer::DrawWindowAndChildren(
-	UTextureRenderTarget2D* RenderTarget,
-	FSlateDrawBuffer& DrawBuffer,
-	TSharedRef<FHittestGrid> HitTestGrid,
-	TSharedRef<SWindow> Window,
-	FGeometry WindowGeometry,
-	FSlateRect WindowClipRect,
-	float DeltaTime)
-{
-	// Prepare the test grid 
-	HitTestGrid->ClearGridForNewFrame(WindowClipRect);
-
-	// Get the free buffer & add our virtual window
-	FSlateWindowElementList& WindowElementList = DrawBuffer.AddWindowElementList(Window);
-
-	int32 MaxLayerId = 0;
-	{
-		FPaintArgs PaintArgs(Window.Get(), HitTestGrid.Get(), FVector2D::ZeroVector, FApp::GetCurrentTime(), DeltaTime);
-
-		// Paint the window
-		MaxLayerId = Window->Paint(
-			PaintArgs,
-			WindowGeometry, WindowClipRect,
-			WindowElementList,
-			0,
-			FWidgetStyle(),
-			Window->IsEnabled());
-	}
-
-	// Draw the child windows
-	const TArray< TSharedRef<SWindow> >& WindowChildren = Window->GetChildWindows();
-	for ( int32 ChildIndex=0; ChildIndex < WindowChildren.Num(); ++ChildIndex )
-	{
-		const TSharedRef<SWindow>& ChildWindow = WindowChildren[ChildIndex];
-		FGeometry ChildWindowGeometry = ChildWindow->GetWindowGeometryInWindow();
-		FSlateRect ChildWindowClipRect = ChildWindow->GetClippingRectangleInWindow();
-		DrawWindowAndChildren(RenderTarget, DrawBuffer, HitTestGrid, ChildWindow, ChildWindowGeometry, ChildWindowClipRect, DeltaTime);
-	}
 }

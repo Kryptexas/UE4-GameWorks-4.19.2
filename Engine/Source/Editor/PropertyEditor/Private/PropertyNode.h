@@ -6,7 +6,6 @@
 #include "UObject/Object.h"
 #include "UObject/UnrealType.h"
 #include "PropertyPath.h"
-#include "IDetailTreeNode.h"
 
 class FComplexPropertyNode;
 class FNotifyHook;
@@ -929,7 +928,7 @@ protected:
 	TArray<TSharedRef<const class FPropertyRestriction>> Restrictions;
 
 	/** Optional reference to a tree node that is displaying this property */
-	TWeakPtr< class IDetailTreeNode > TreeNode;
+	TWeakPtr< class FDetailTreeNode > TreeNode;
 
 	/**
 	 * Stores metadata for this instasnce of the property (in contrast

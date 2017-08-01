@@ -243,4 +243,22 @@ namespace PropertyEditorHelpers
 	 */
 	TArray<FName> GetValidEnumsFromPropertyOverride(const UProperty* Property, const UEnum* InEnum);
 
+	/**
+	 * Whether or not a category is hidden by a given root object
+	 * @param InRootNode	The root node that for the objects we are customizing
+	 * @param CategoryName	The name of the category to check
+	 * @return true if a category is hidden, false otherwise
+	 */
+	bool IsCategoryHiddenByClass(const TSharedPtr<FComplexPropertyNode>& InRootNode, FName CategoryName);
+	
+	/**
+	 * Determines whether or not a property should be visible in the default generated detail layout
+	 *
+	 * @param PropertyNode	The property node to check
+	 * @param ParentNode	The parent property node to check
+	 * @return true if the property should be visible
+	 */
+	bool IsVisibleStandaloneProperty(const FPropertyNode& PropertyNode, const FPropertyNode& ParentNode);
+
 }
+

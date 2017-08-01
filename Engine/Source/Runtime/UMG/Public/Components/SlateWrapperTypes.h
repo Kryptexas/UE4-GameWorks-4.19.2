@@ -20,7 +20,7 @@
 UENUM(BlueprintType)
 enum class ESlateVisibility : uint8
 {
-	/** Default widget visibility - visible and can interactive with the cursor */
+	/** Default widget visibility - visible and can interact with the cursor */
 	Visible,
 	/** Not visible and takes up no space in the layout; can never be clicked on because it takes up no space. */
 	Collapsed,

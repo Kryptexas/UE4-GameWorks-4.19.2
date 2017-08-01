@@ -194,12 +194,12 @@ int32 FRawInputWindows::RegisterInputDevice(const int32 DeviceType, const int32 
 			{
 				SetupBindings(DeviceHandle, true);
 
-				UE_LOG(LogRawInputWindows, Log, TEXT("Device was registered succesfully and is connected (Usage:%d UsagePage:%d"), DeviceData.Usage, DeviceData.UsagePage);				
+				UE_LOG(LogRawInputWindows, Log, TEXT("Device was registered succesfully and is connected (Usage:%d UsagePage:%d)"), DeviceData.Usage, DeviceData.UsagePage);				
 			}
 			else
 			{
 				DeviceHandle = INDEX_NONE;
-				UE_LOG(LogRawInputWindows, Warning, TEXT("Device was registered succesfully but not connected (Usage:%d UsagePage:%d"), DeviceData.Usage, DeviceData.UsagePage);
+				UE_LOG(LogRawInputWindows, Warning, TEXT("Device was registered succesfully but not connected (Usage:%d UsagePage:%d)"), DeviceData.Usage, DeviceData.UsagePage);
 			}
 		}
 		else

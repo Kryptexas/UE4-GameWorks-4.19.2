@@ -24,14 +24,16 @@
 #ifndef PCP_PAYLOAD_CONTEXT_H
 #define PCP_PAYLOAD_CONTEXT_H
 
+#include "pxr/pxr.h"
 #include "pxr/usd/pcp/api.h"
 #include "pxr/usd/pcp/types.h"
 #include "pxr/usd/pcp/node.h"
 #include "pxr/base/vt/value.h"
-
 #include "pxr/base/tf/type.h"
 
 #include <boost/function.hpp>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 class PcpPrimIndex_StackFrame;
 class TfToken;
@@ -74,5 +76,7 @@ private:
     PcpNodeRef _parentNode;
     PcpPrimIndex_StackFrame* _previousStackFrame;
 };
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // PCP_PAYLOAD_CONTEXT_H

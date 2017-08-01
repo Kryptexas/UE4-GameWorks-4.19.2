@@ -207,7 +207,7 @@ namespace UnrealBuildTool
 				int SearchAttempts = 0;
 				if (Path.IsPathRooted(RelativeIncludePath))
 				{
-					FileReference Reference = new FileReference(RelativeIncludePath);
+					FileReference Reference = FileReference.Combine(UnrealBuildTool.EngineSourceDirectory, RelativeIncludePath);
 					if (DirectoryLookupCache.FileExists(Reference))
 					{
 						Result = FileItem.GetItemByFileReference(Reference);
@@ -233,7 +233,7 @@ namespace UnrealBuildTool
 						FileReference FullFilePath = null;
 						try
 						{
-							FullFilePath = new FileReference(RelativeFilePath);
+							FullFilePath = FileReference.Combine(UnrealBuildTool.EngineSourceDirectory, RelativeFilePath);
 						}
 						catch (Exception)
 						{

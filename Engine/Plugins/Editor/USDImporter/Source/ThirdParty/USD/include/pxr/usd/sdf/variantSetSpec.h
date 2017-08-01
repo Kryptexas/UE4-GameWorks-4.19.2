@@ -26,6 +26,7 @@
 
 /// \file sdf/variantSetSpec.h
 
+#include "pxr/pxr.h"
 #include "pxr/usd/sdf/api.h"
 #include "pxr/usd/sdf/declareSpec.h"
 #include "pxr/usd/sdf/spec.h"
@@ -36,6 +37,8 @@
 #include <map>
 #include <string>
 #include <vector>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 /// \class SdfVariantSetSpec 
 ///
@@ -71,6 +74,11 @@ public:
     static SdfVariantSetSpecHandle
     New(const SdfPrimSpecHandle& prim, const std::string& name);
 
+    /// Constructs a new instance.
+    SDF_API
+    static SdfVariantSetSpecHandle
+    New(const SdfVariantSpecHandle& prim, const std::string& name);
+
     /// @}
 
     /// \name Name
@@ -88,9 +96,9 @@ public:
     /// \name Namespace hierarchy
     /// @{
 
-    /// Returns the prim that this variant set belongs to.
+    /// Returns the prim or variant that this variant set belongs to.
     SDF_API
-    SdfPrimSpecHandle GetOwner() const;
+    SdfSpecHandle GetOwner() const;
 
     /// @}
     /// \name Variants
@@ -113,5 +121,7 @@ public:
 
     /// @}
 };
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // SD_VARIANTSETSPEC_H

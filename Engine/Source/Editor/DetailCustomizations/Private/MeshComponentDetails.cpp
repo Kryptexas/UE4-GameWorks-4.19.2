@@ -21,7 +21,7 @@ void FMeshComponentDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout
 	if( MaterialProperty->IsValidHandle() )
 	{
 		// Only show this in the advanced section of the category if we have selected actors (which will show a separate material section)
-		bool bIsAdvanced = DetailLayout.GetDetailsView().GetSelectedActorInfo().NumSelected > 0;
+		bool bIsAdvanced = DetailLayout.GetDetailsView()->GetSelectedActorInfo().NumSelected > 0;
 
 		RenderingCategory->AddProperty( MaterialProperty, bIsAdvanced ? EPropertyLocation::Advanced : EPropertyLocation::Default );
 	}

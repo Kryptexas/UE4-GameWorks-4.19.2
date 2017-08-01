@@ -90,18 +90,6 @@ public:
 		return bViewingClassDefaultObject;
 	}
 
-	/** IDetailsViewPrivate interface */
-	virtual void AddExternalRootPropertyNode(TSharedRef<FComplexPropertyNode> ExternalRootNode) override;
-	virtual bool IsExternalRootPropertyNode(TSharedRef<FComplexPropertyNode> RootNode) const override;
-
-	/**
-	 * Whether or not a category is hidden by a given root object
-	 * @param InRootNode	The root node that for the objects we are customizing
-	 * @param CategoryName	The name of the category to check
-	 * @return true if a category is hidden, false otherwise
-	 */
-	bool IsCategoryHiddenByClass(const TSharedPtr<FComplexPropertyNode>& InRootNode, FName CategoryName) const override;
-
 	virtual bool IsConnected() const override;
 
 	virtual FRootPropertyNodeList& GetRootNodes() override
@@ -124,8 +112,6 @@ public:
 		return RootObjectCustomization;
 	}
 private:
-	void RegisterInstancedCustomPropertyLayout( UStruct* Class, FOnGetDetailCustomizationInstance DetailLayoutDelegate ) override;
-	void UnregisterInstancedCustomPropertyLayout( UStruct* Class ) override;
 	void SetObjectArrayPrivate( const TArray< TWeakObjectPtr< UObject > >& InObjects );
 
 	TSharedRef<SDetailTree> ConstructTreeView( TSharedRef<SScrollBar>& ScrollBar );
@@ -161,6 +147,10 @@ private:
 
 	/** Returns the name of the image used for the icon on the locked button */
 	const FSlateBrush* OnGetLockButtonImageResource() const;
+
+	/** Whether the property matrix button should be enabled */
+	bool CanOpenRawPropertyEditor() const;
+
 	/**
 	 * Called to open the raw property editor (property matrix)                                                              
 	 */

@@ -54,7 +54,7 @@ void FSlateColorCustomization::MakeHeaderRow(TSharedRef<class IPropertyHandle>& 
 			+ SHorizontalBox::Slot()
 			.FillWidth(1.0f)
 			[
-				CreateColorWidget()
+				CreateColorWidget(StructPropertyHandle)
 			]
 
 			+ SHorizontalBox::Slot()

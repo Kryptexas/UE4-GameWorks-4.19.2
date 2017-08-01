@@ -24,6 +24,7 @@
 #ifndef USD_TIMECODE_H
 #define USD_TIMECODE_H
 
+#include "pxr/pxr.h"
 #include "pxr/usd/usd/api.h"
 #include "pxr/base/arch/hints.h"
 
@@ -32,7 +33,9 @@
 #include <limits>
 #include <iosfwd>
 #include <cmath>
-#include <ciso646>
+
+PXR_NAMESPACE_OPEN_SCOPE
+
 
 /// \class UsdTimeCode
 ///
@@ -121,7 +124,7 @@ public:
     /// Return true if this time represents a numeric value, false otherwise.
     /// This is equivalent to !IsDefault().
     bool IsNumeric() const {
-        return not IsDefault();
+        return !IsDefault();
     }
 
     /// Return the numeric value for this time.  If this time \a IsDefault(),
@@ -134,40 +137,40 @@ public:
 
     /// Equality comparison.
     friend bool operator==(const UsdTimeCode &lhs, const UsdTimeCode& rhs) {
-        return lhs.IsDefault() == rhs.IsDefault() and
-            (lhs.IsDefault() or (lhs.GetValue() == rhs.GetValue()));
+        return lhs.IsDefault() == rhs.IsDefault() &&
+            (lhs.IsDefault() || (lhs.GetValue() == rhs.GetValue()));
     }
 
     /// Inequality comparison.
     friend bool operator!=(const UsdTimeCode &lhs, const UsdTimeCode& rhs) {
-        return not (lhs == rhs);
+        return !(lhs == rhs);
     }
 
     /// Less-than.  Default() times are less than all numeric times,
     /// \em including EarliestTime()
     friend bool operator<(const UsdTimeCode &lhs, const UsdTimeCode &rhs) {
-        return (lhs.IsDefault() and rhs.IsNumeric()) or
-            (lhs.IsNumeric() and rhs.IsNumeric() and
+        return (lhs.IsDefault() && rhs.IsNumeric()) ||
+            (lhs.IsNumeric() && rhs.IsNumeric() &&
              lhs.GetValue() < rhs.GetValue());
     }
 
     /// Greater-equal.  Default() times are less than all numeric times,
     /// \em including EarliestTime().
     friend bool operator>=(const UsdTimeCode &lhs, const UsdTimeCode &rhs) {
-        return not (lhs < rhs);
+        return !(lhs < rhs);
     }
 
     /// Less-equal.  Default() times are less than all numeric times,
     /// \em including EarliestTime().
     friend bool operator<=(const UsdTimeCode &lhs, const UsdTimeCode &rhs) {
-        return lhs.IsDefault() or
-            (rhs.IsNumeric() and lhs.GetValue() <= rhs.GetValue());
+        return lhs.IsDefault() || 
+            (rhs.IsNumeric() && lhs.GetValue() <= rhs.GetValue());
     }
 
     /// Greater-than.  Default() times are less than all numeric times,
     /// \em including EarliestTime().
     friend bool operator>(const UsdTimeCode &lhs, const UsdTimeCode &rhs) {
-        return not (lhs <= rhs);
+        return !(lhs <= rhs);
     }
 
     /// Hash function.
@@ -176,12 +179,17 @@ public:
     }
 
 private:
-    USD_API void _IssueGetValueOnDefaultError() const;
+    USD_API
+    void _IssueGetValueOnDefaultError() const;
 
     double _value;
 };
 
 // Stream insertion.
-USD_API std::ostream& operator<<(std::ostream& os, const UsdTimeCode& time);
+USD_API
+std::ostream& operator<<(std::ostream& os, const UsdTimeCode& time);
+
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // USD_TIMECODE_H

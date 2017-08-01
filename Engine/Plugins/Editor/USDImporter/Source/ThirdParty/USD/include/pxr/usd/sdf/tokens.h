@@ -24,8 +24,11 @@
 #ifndef SDF_TOKENS_H
 #define SDF_TOKENS_H
 
-#include "pxr/base/tf/staticTokens.h"
+#include "pxr/pxr.h"
 #include "pxr/usd/sdf/api.h"
+#include "pxr/base/tf/staticTokens.h"
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 // Miscellaneous Tokens
 #define SDF_TOKENS                                      \
@@ -60,7 +63,9 @@ TF_DECLARE_PUBLIC_TOKENS(SdfPathTokens, SDF_API, SDF_PATH_TOKENS);
     ((ui, "User Interface"))
 
 TF_DECLARE_PUBLIC_TOKENS(SdfMetadataDisplayGroupTokens,
-						SDF_API,
+                         SDF_API,
                          SDF_METADATA_DISPLAYGROUP_TOKENS);
 
-#endif
+PXR_NAMESPACE_CLOSE_SCOPE
+
+#endif // SDF_TOKENS_H

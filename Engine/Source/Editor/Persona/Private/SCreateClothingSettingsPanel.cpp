@@ -58,7 +58,7 @@ void SCreateClothingSettingsPanel::Construct(const FArguments& InArgs)
 
 	StructureDetailsView = PropertyEditorModule.CreateStructureDetailView(DetailsViewArgs, StructureViewArgs, nullptr);
 
-	StructureDetailsView->GetDetailsView().SetGenericLayoutDetailsDelegate(FOnGetDetailCustomizationInstance::CreateStatic(&FClothCreateSettingsCustomization::MakeInstance, InArgs._Mesh, InArgs._bIsSubImport));
+	StructureDetailsView->GetDetailsView()->SetGenericLayoutDetailsDelegate(FOnGetDetailCustomizationInstance::CreateStatic(&FClothCreateSettingsCustomization::MakeInstance, InArgs._Mesh, InArgs._bIsSubImport));
 
 	BuildParams.AssetName = InArgs._MeshName + TEXT("_Clothing");
 

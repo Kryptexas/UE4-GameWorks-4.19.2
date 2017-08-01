@@ -14,13 +14,16 @@ class IAssetTypeActions;
 struct FNiagaraCompileResults;
 class INiagaraEditorTypeUtilities;
 class UNiagaraSettings;
+class USequencerSettings;
 
 /** Niagara Editor module */
 class FNiagaraEditorModule : public IModuleInterface,
-	public IHasMenuExtensibility, public IHasToolBarExtensibility
+	public IHasMenuExtensibility, public IHasToolBarExtensibility, public FGCObject
 {
 
 public:
+	FNiagaraEditorModule();
+
 	// IModuleInterface
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
@@ -34,6 +37,10 @@ public:
 
 	/** Registers niagara editor type utilities for a specific type. */
 	void RegisterTypeUtilities(FNiagaraTypeDefinition Type, TSharedRef<INiagaraEditorTypeUtilities> EditorUtilities);
+
+	/** Register/unregister niagara editor settings. */
+	void RegisterSettings();
+	void UnregisterSettings();
 
 	/** Gets niagara editor type utilities for a specific type if there are any registered. */
 	TSharedPtr<INiagaraEditorTypeUtilities> GetTypeUtilities(const FNiagaraTypeDefinition& Type);
@@ -55,6 +62,10 @@ private:
 
 	/** Compile the specified script. */
 	ENiagaraScriptCompileStatus CompileEffectScript(class UNiagaraScript* ScriptToCompile, FString& OutGraphLevelErrorMessages);
+
+	/** FGCObject interface */
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
+
 private:
 	TSharedPtr<FExtensibilityManager> MenuExtensibilityManager;
 	TSharedPtr<FExtensibilityManager> ToolBarExtensibilityManager;
@@ -70,6 +81,8 @@ private:
 	FDelegateHandle CreateSystemTrackEditorHandle;
 	FDelegateHandle CreateFloatParameterTrackEditorHandle;
 	FDelegateHandle CreateBoolParameterTrackEditorHandle;
+
+	USequencerSettings* SequencerSettings;
 };
 
 

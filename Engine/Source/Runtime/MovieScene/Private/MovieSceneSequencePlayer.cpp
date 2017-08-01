@@ -107,11 +107,14 @@ void UMovieSceneSequencePlayer::PlayInternal()
 			GEngine->SetMaxFPS(1.f / FixedFrameInterval.GetValue());
 		}
 
-		// Ensure we're at the current sequence position
-		PlayPosition.JumpTo(GetSequencePosition(), FixedFrameInterval);
+		if (!PlayPosition.GetPreviousPosition().IsSet() || PlayPosition.GetPreviousPosition().GetValue() != GetSequencePosition())
+		{
+			// Ensure we're at the current sequence position
+			PlayPosition.JumpTo(GetSequencePosition(), FixedFrameInterval);
 
-		// We pass the range of PlayTo here in order to correctly update the last evaluated time in the playposition
-		UpdateMovieSceneInstance(PlayPosition.PlayTo(GetSequencePosition(), FixedFrameInterval));
+			// We pass the range of PlayTo here in order to correctly update the last evaluated time in the playposition
+			UpdateMovieSceneInstance(PlayPosition.PlayTo(GetSequencePosition(), FixedFrameInterval));
+		}
 
 		if (OnPlay.IsBound())
 		{
@@ -160,10 +163,13 @@ void UMovieSceneSequencePlayer::Pause()
 			UMovieSceneSequence* MovieSceneSequence = RootTemplateInstance.GetSequence(MovieSceneSequenceID::Root);
 			TOptional<float> FixedFrameInterval = MovieSceneSequence->GetMovieScene() ? MovieSceneSequence->GetMovieScene()->GetOptionalFixedFrameInterval() : TOptional<float>();
 
-			FMovieSceneEvaluationRange Range = PlayPosition.JumpTo(GetSequencePosition(), FixedFrameInterval);
+			if (!PlayPosition.GetPreviousPosition().IsSet() || PlayPosition.GetPreviousPosition().GetValue() != GetSequencePosition())
+			{
+				FMovieSceneEvaluationRange Range = PlayPosition.JumpTo(GetSequencePosition(), FixedFrameInterval);
 
-			const FMovieSceneContext Context(Range, EMovieScenePlayerStatus::Stopped);
-			RootTemplateInstance.Evaluate(Context, *this);
+				const FMovieSceneContext Context(Range, EMovieScenePlayerStatus::Stopped);
+				RootTemplateInstance.Evaluate(Context, *this);
+			}
 
 			bIsEvaluating = false;
 		}

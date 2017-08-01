@@ -27,16 +27,19 @@
 /// \file tf/notice.h
 /// \ingroup group_tf_Notification
 
+#include "pxr/pxr.h"
+#include "pxr/base/tf/api.h"
 #include "pxr/base/tf/anyWeakPtr.h"
 #include "pxr/base/tf/diagnostic.h"
 #include "pxr/base/tf/type.h"
 #include "pxr/base/tf/weakPtr.h"
-#include "pxr/base/tf/api.h"
 #include "pxr/base/arch/demangle.h"
 #include "pxr/base/arch/hints.h"
 
 #include <list>
 #include <typeinfo>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 class Tf_NoticeRegistry;
 
@@ -378,14 +381,16 @@ public:
     /// \c Revoke will return a bool value indicating whether or not the key
     /// was successfully revoked.  Subsequent calls to \c Revoke with the same
     /// key will return false.
-	TF_API static bool Revoke(TfNotice::Key& key);
+    TF_API
+    static bool Revoke(TfNotice::Key& key);
     
     /// Revoke interest by listeners.
     ///
     /// This revokes interest by the listeners for the particular
     /// notice types and call-back methods for which the keys were
     /// created.  It then clears the keys container.
-	TF_API static void Revoke(TfNotice::Keys* keys);
+    TF_API
+    static void Revoke(TfNotice::Keys* keys);
 
     /// Deliver the notice to interested listeners, returning the number
     /// of interested listeners.  
@@ -432,7 +437,8 @@ public:
                             const void *senderUniqueId,
                             const std::type_info &type) const;
 
-    TF_API virtual ~TfNotice();
+    TF_API
+    virtual ~TfNotice();
 
     /// Blocks sending of all notices in current thread.
     ///
@@ -444,10 +450,8 @@ public:
     /// Notices that are sent when blocking is active will *not* be resent.
     class Block {
     public:
-        TF_API
-        Block();
-        TF_API
-        ~Block();
+        TF_API Block();
+        TF_API ~Block();
     };
 
 private:
@@ -460,7 +464,8 @@ private:
         {
         }
         
-        TF_API virtual ~_DelivererBase();
+        TF_API
+        virtual ~_DelivererBase();
 
         TF_API 
         void _BeginDelivery(const TfNotice &notice,
@@ -561,9 +566,9 @@ private:
         virtual bool Delivers(TfType const &noticeType,
                               TfWeakBase const *sender) const {
             Derived const *derived = this->AsDerived();
-            return noticeType.IsA(GetNoticeType()) and
-                not derived->_sender.IsInvalid() and
-                sender and derived->_sender.GetWeakBase() == sender;
+            return noticeType.IsA(GetNoticeType()) &&
+                !derived->_sender.IsInvalid() &&
+                sender && derived->_sender.GetWeakBase() == sender;
         }
 
         virtual TfWeakBase const *GetSenderWeakBase() const {
@@ -592,8 +597,8 @@ private:
             typedef typename Derived::NoticeType NoticeType;
             ListenerType *listener = get_pointer(derived->_listener);
 
-            if (listener and not derived->_sender.IsInvalid()) {
-                if (ARCH_UNLIKELY(not probes.empty())) {
+            if (listener && !derived->_sender.IsInvalid()) {
+                if (ARCH_UNLIKELY(!probes.empty())) {
                     TfWeakBase const *senderWeakBase = GetSenderWeakBase(),
                         *listenerWeakBase = derived->_listener.GetWeakBase();
                     _BeginDelivery(notice, senderWeakBase,
@@ -609,7 +614,7 @@ private:
                                           noticeType, sender,
                                           senderUniqueId, senderType);
                 
-                if (ARCH_UNLIKELY(not probes.empty()))
+                if (ARCH_UNLIKELY(!probes.empty()))
                     _EndDelivery(probes);
 
                 return true;
@@ -747,10 +752,13 @@ private:
 
 private:
     // Internal non-templated function to install listeners.
-    TF_API static Key _Register(_DelivererBase*);
+    TF_API
+    static Key _Register(_DelivererBase*);
 
-    TF_API static void _VerifyFailedCast(const std::type_info& toType,
-                                  const TfNotice& notice, const TfNotice* castNotice);
+    TF_API
+    static void _VerifyFailedCast(const std::type_info& toType,
+                                  const TfNotice& notice,
+                                  const TfNotice* castNotice);
 
     TF_API 
     size_t _Send(const TfWeakBase* sender,
@@ -779,4 +787,6 @@ TfNotice::Send(SenderPtr const &s) const
                  typeid(typename SenderPtr::DataType) : typeid(void));
 }
 
-#endif
+PXR_NAMESPACE_CLOSE_SCOPE
+
+#endif // TF_NOTICE_H

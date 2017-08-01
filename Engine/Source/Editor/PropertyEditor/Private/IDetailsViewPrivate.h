@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "AssetThumbnail.h"
-#include "IDetailTreeNode.h"
+#include "DetailTreeNode.h"
 #include "PropertyNode.h"
 #include "IDetailsView.h"
 
@@ -22,7 +22,7 @@ public:
 	 * @param bIsItemExpanded	The new expansion state
 	 * @param bRecursive		Whether or not to apply the expansion change to any children
 	 */
-	virtual void SetNodeExpansionState(TSharedRef<IDetailTreeNode> InTreeNode, bool bIsItemExpanded, bool bRecursive) = 0;
+	virtual void SetNodeExpansionState(TSharedRef<FDetailTreeNode> InTreeNode, bool bIsItemExpanded, bool bRecursive) = 0;
 
 	/**
 	 * Requests that an item in the tree be expanded or collapsed
@@ -30,7 +30,7 @@ public:
 	 * @param TreeNode	The tree node to expand
 	 * @param bExpand	true if the item should be expanded, false otherwise
 	 */
-	virtual void RequestItemExpanded(TSharedRef<IDetailTreeNode> TreeNode, bool bExpand) = 0;
+	virtual void RequestItemExpanded(TSharedRef<FDetailTreeNode> TreeNode, bool bExpand) = 0;
 
 	/**
 	 * Refreshes the detail's treeview
@@ -44,11 +44,6 @@ public:
 	 * Returns the property utilities for this view
 	 */
 	virtual TSharedPtr<IPropertyUtilities> GetPropertyUtilities() = 0;
-
-	/**
-	 * @return True if a category is hidden by any of the uobject classes currently in view by this details panel
-	 */
-	virtual bool IsCategoryHiddenByClass(const TSharedPtr<FComplexPropertyNode>& InRootNode, FName CategoryName) const = 0;
 
 	/** Causes the details view to be refreshed (new widgets generated) with the current set of objects */
 	virtual void ForceRefresh() = 0;
@@ -92,18 +87,6 @@ public:
 	virtual TSharedPtr<class FAssetThumbnailPool> GetThumbnailPool() const = 0;
 
 	/**
-	 * Adds an external property root node to the list of root nodes that the details new needs to manage
-	 *
-	 * @param InExternalRootNode		The node to add
-	 */
-	virtual void AddExternalRootPropertyNode(TSharedRef<FComplexPropertyNode> ExternalRootNode) = 0;
-
-	/**
-	 * @return Whether or not a root property node is an exteranl root node
-	 */
-	virtual bool IsExternalRootPropertyNode(TSharedRef<FComplexPropertyNode> RootNode) const = 0;
-
-	/**
 	 * Creates the color picker window for this property view.
 	 *
 	 * @param PropertyEditor				The slate property node to edit.
@@ -138,4 +121,5 @@ public:
 	/** Runs the details customization update on a root property node */
 	virtual void UpdateSinglePropertyMap(TSharedPtr<FComplexPropertyNode> InRootPropertyNode, struct FDetailLayoutData& LayoutData) = 0;
 
+	virtual const FCustomPropertyTypeLayoutMap& GetCustomPropertyTypeLayoutMap() const = 0;
 };

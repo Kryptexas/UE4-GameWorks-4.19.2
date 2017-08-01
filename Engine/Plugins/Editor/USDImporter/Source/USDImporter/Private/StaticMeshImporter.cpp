@@ -48,12 +48,7 @@ UStaticMesh* FUSDStaticMeshImporter::ImportStaticMesh(FUsdImportContext& ImportC
 					}
 				}
 
-				// Material Indices 
-				{
-					RawTriangles.FaceMaterialIndices.AddZeroed(GeomData.FaceVertexCounts.size());
-					FMemory::Memcpy(&RawTriangles.FaceMaterialIndices[0], &GeomData.FaceMaterialIndices[0], sizeof(int32)*GeomData.FaceMaterialIndices.size());
-				}
-
+			
 
 				// Positions
 				{
@@ -73,6 +68,15 @@ UStaticMesh* FUSDStaticMeshImporter::ImportStaticMesh(FUsdImportContext& ImportC
 				}
 
 				int32 NumFaces = RawTriangles.WedgeIndices.Num() / 3;
+
+
+				// Material Indices 
+				{
+					RawTriangles.FaceMaterialIndices.AddZeroed(GeomData.FaceVertexCounts.size());
+					FMemory::Memcpy(&RawTriangles.FaceMaterialIndices[0], &GeomData.FaceMaterialIndices[0], sizeof(int32)*GeomData.FaceMaterialIndices.size());
+				}
+
+
 				// UVs and normals
 				{
 					if (GeomData.NumUVs > 0)
@@ -170,6 +174,8 @@ UStaticMesh* FUSDStaticMeshImporter::ImportStaticMesh(FUsdImportContext& ImportC
 
 			FStaticMeshSourceModel& SrcModel = ImportedMesh->SourceModels[LODIndex];
 
+			RawTriangles.CompactMaterialIndices();
+
 			SrcModel.RawMeshBulkData->SaveRawMesh(RawTriangles);
 
 			SrcModel.BuildSettings.bRecomputeNormals = true;
@@ -213,7 +219,8 @@ UStaticMesh* FUSDStaticMeshImporter::ImportStaticMesh(FUsdImportContext& ImportC
 				ImportedMesh->SectionInfoMap.Set(LODIndex, MaterialIdx, FMeshSectionInfo(MaterialIdx));
 			}
 
-			ImportedMesh->ImportVersion = EImportStaticMeshVersion::LastVersion;
+
+			ImportedMesh->ImportVersion = EImportStaticMeshVersion::BeforeImportStaticMeshVersionWasAdded;
 
 			ImportedMesh->CreateBodySetup();
 

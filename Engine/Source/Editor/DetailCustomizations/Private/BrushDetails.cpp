@@ -53,7 +53,7 @@ void FBrushDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 
 	// See if we have a volume. If we do - we hide the BSP stuff (solidity, order)
 	bool bHaveAVolume = false;
-	TArray< TWeakObjectPtr<UObject> > SelectedObjects = DetailLayout.GetDetailsView().GetSelectedObjects();
+	const TArray< TWeakObjectPtr<UObject> >& SelectedObjects = DetailLayout.GetSelectedObjects();
 	for (int32 ObjIdx = 0; ObjIdx < SelectedObjects.Num(); ObjIdx++)
 	{
 		if (ABrush* Brush = Cast<ABrush>(SelectedObjects[ObjIdx].Get()))

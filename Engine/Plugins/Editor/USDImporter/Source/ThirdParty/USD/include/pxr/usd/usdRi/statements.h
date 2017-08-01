@@ -26,6 +26,7 @@
 
 /// \file usdRi/statements.h
 
+#include "pxr/pxr.h"
 #include "pxr/usd/usdRi/api.h"
 #include "pxr/usd/usd/schemaBase.h"
 #include "pxr/usd/usd/prim.h"
@@ -40,6 +41,8 @@
 
 #include "pxr/base/tf/token.h"
 #include "pxr/base/tf/type.h"
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 class SdfAssetPath;
 
@@ -105,6 +108,7 @@ public:
 private:
     // needs to invoke _GetStaticTfType.
     friend class UsdSchemaRegistry;
+    USDRI_API
     static const TfType &_GetStaticTfType();
 
     static bool _IsTypedSchema();
@@ -144,8 +148,10 @@ public:
     // Feel free to add custom code below this line, it will be preserved by 
     // the code generator. 
     //
-    // Just remember to close the class delcaration with }; and complete the
-    // include guard with #endif
+    // Just remember to: 
+    //  - Close the class declaration with }; 
+    //  - Close the namespace with PXR_NAMESPACE_CLOSE_SCOPE
+    //  - Close the include guard with #endif
     // ===================================================================== //
     // --(BEGIN CUSTOM CODE)--
 
@@ -210,7 +216,8 @@ public:
     std::vector<UsdProperty>
     GetRiAttributes(const std::string &nameSpace = "") const;
 
-    USDRI_API bool 
+    USDRI_API
+    bool 
     _IsCompatible(const UsdPrim &prim) const;
 
     // --------------------------------------------------------------------- //
@@ -350,5 +357,7 @@ public:
     bool GetModelScopedCoordinateSystems(SdfPathVector *targets) const;
 
 };
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif

@@ -24,10 +24,14 @@
 #ifndef USDGEOM_CONSTRAINT_TARGET_H
 #define USDGEOM_CONSTRAINT_TARGET_H
 
+#include "pxr/pxr.h"
 #include "pxr/usd/usdGeom/api.h"
 #include "pxr/usd/usd/attribute.h"
 
 #include <string>
+
+PXR_NAMESPACE_OPEN_SCOPE
+
 
 class GfMatrix4d;
 class UsdGeomXformCache;
@@ -166,5 +170,8 @@ private:
 
     UsdAttribute _attr;
 };
+
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // USD_CONSTRAINT_TARGET_H

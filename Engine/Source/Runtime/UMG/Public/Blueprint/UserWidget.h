@@ -118,7 +118,7 @@ namespace EUMGSequencePlayMode
 		Forward,
 		/** Animation plays and loops from the end to the beginning. */
 		Reverse,
-		/** Animation plays from the begging to the end and then from the end to beginning. */
+		/** Animation plays from the beginning to the end and then from the end to the beginning. */
 		PingPong,
 	};
 }

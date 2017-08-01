@@ -24,8 +24,9 @@
 #ifndef PCP_ITERATOR_H
 #define PCP_ITERATOR_H
 
-#include "pxr/usd/pcp/node.h"
+#include "pxr/pxr.h"
 #include "pxr/usd/pcp/api.h"
+#include "pxr/usd/pcp/node.h"
 
 #include "pxr/usd/sdf/primSpec.h"
 #include "pxr/usd/sdf/propertySpec.h"
@@ -35,6 +36,8 @@
 
 #include <boost/iterator/iterator_facade.hpp>
 #include <boost/iterator/reverse_iterator.hpp>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 class PcpPrimIndex;
 class PcpPrimIndex_Graph;
@@ -136,12 +139,18 @@ public:
 
 private:
     friend class boost::iterator_core_access;
-    PCP_API void increment();
-    PCP_API void decrement();
-    PCP_API void advance(difference_type n);
-    PCP_API difference_type distance_to(const PcpPrimIterator& other) const;
-    PCP_API bool equal(const PcpPrimIterator& other) const;
-    PCP_API reference dereference() const;
+    PCP_API
+    void increment();
+    PCP_API
+    void decrement();
+    PCP_API
+    void advance(difference_type n);
+    PCP_API
+    difference_type distance_to(const PcpPrimIterator& other) const;
+    PCP_API
+    bool equal(const PcpPrimIterator& other) const;
+    PCP_API
+    reference dereference() const;
 
 private:
     const PcpPrimIndex* _primIndex;
@@ -189,7 +198,7 @@ class PcpPropertyIterator
 public:
     /// Constructs an invalid iterator.
     PCP_API
-        PcpPropertyIterator();
+    PcpPropertyIterator();
 
     /// Constructs a property iterator for \p index beginning at position
     /// \p pos in the property stack.
@@ -197,20 +206,28 @@ public:
     PcpPropertyIterator(const PcpPropertyIndex& index, size_t pos = 0);
 
     /// Returns the PcpNode from which the current property originated.
-    PCP_API PcpNodeRef GetNode() const;
+    PCP_API
+    PcpNodeRef GetNode() const;
 
     /// Returns true if the current property is local to the owning
     /// property index's layer stack, false otherwise.
-    PCP_API bool IsLocal() const;
+    PCP_API
+    bool IsLocal() const;
 
 private:
     friend class boost::iterator_core_access;
-    PCP_API void increment();
-    PCP_API void decrement();
-    PCP_API void advance(difference_type n);
-    PCP_API difference_type distance_to(const PcpPropertyIterator& other) const;
-    PCP_API bool equal(const PcpPropertyIterator& other) const;
-    PCP_API reference dereference() const;
+    PCP_API
+    void increment();
+    PCP_API
+    void decrement();
+    PCP_API
+    void advance(difference_type n);
+    PCP_API
+    difference_type distance_to(const PcpPropertyIterator& other) const;
+    PCP_API
+    bool equal(const PcpPropertyIterator& other) const;
+    PCP_API
+    reference dereference() const;
 
 private:
     const PcpPropertyIndex* _propertyIndex;
@@ -324,5 +341,7 @@ struct PcpIteratorTraits<PcpPropertyIterator>
     typedef PcpPropertyRange RangeType;
     typedef PcpPropertyReverseIterator ReverseIteratorType;
 };
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // PCP_ITERATOR_H

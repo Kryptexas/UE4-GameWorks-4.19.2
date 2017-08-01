@@ -3039,7 +3039,7 @@ BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 {
 	DetailsLayoutPtr = &DetailLayout;
-	ObjectsBeingEdited = DetailsLayoutPtr->GetDetailsView().GetSelectedObjects();
+	ObjectsBeingEdited = DetailsLayoutPtr->GetSelectedObjects();
 
 	SetEntryAndResultNodes();
 
@@ -3816,7 +3816,7 @@ void FBlueprintDelegateActionDetails::OnCategorySelectionChanged( TSharedPtr<FTe
 void FBlueprintDelegateActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 {
 	DetailsLayoutPtr = &DetailLayout;
-	ObjectsBeingEdited = DetailsLayoutPtr->GetDetailsView().GetSelectedObjects();
+	ObjectsBeingEdited = DetailsLayoutPtr->GetSelectedObjects();
 
 	SetEntryNode();
 
@@ -5844,7 +5844,7 @@ void FBlueprintComponentDetails::OnSocketSelection( FName SocketName )
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void FBlueprintGraphNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 {
-	const TArray<TWeakObjectPtr<UObject>> SelectedObjects = DetailLayout.GetDetailsView().GetSelectedObjects();
+	const TArray<TWeakObjectPtr<UObject>>& SelectedObjects = DetailLayout.GetSelectedObjects();
 	if( SelectedObjects.Num() == 1 )
 	{
 		if (SelectedObjects[0].IsValid() && SelectedObjects[0]->IsA<UEdGraphNode>())

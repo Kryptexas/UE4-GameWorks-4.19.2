@@ -170,12 +170,6 @@ void FMeshMergeHelpers::RetrieveMesh(const UStaticMeshComponent* StaticMeshCompo
 
 	// Transform raw mesh to world space
 	FTransform ComponentToWorldTransform = StaticMeshComponent->ComponentToWorld;
-	// Take into account build scale settings only for meshes imported from raw data
-	// meshes reconstructed from render data already have build scale applied
-	if (bImportedMesh)
-	{
-		ComponentToWorldTransform.SetScale3D(ComponentToWorldTransform.GetScale3D()*BuildSettings.BuildScale3D);
-	}
 
 	// Handle spline mesh deformation
 	if (bIsSplineMeshComponent)

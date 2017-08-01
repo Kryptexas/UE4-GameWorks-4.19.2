@@ -1104,8 +1104,11 @@ UObject* USpeedTreeImportFactory::FactoryCreateBinary( UClass* InClass, UObject*
 					OldMaterials = ExistingMesh->StaticMaterials;
 					for (int32 i = 0; i < OldMaterials.Num(); ++i)
 					{
-						OldMaterials[i].MaterialInterface->PreEditChange(NULL);
-						OldMaterials[i].MaterialInterface->PostEditChange();
+						if(OldMaterials[i].MaterialInterface)
+						{
+							OldMaterials[i].MaterialInterface->PreEditChange(NULL);
+							OldMaterials[i].MaterialInterface->PostEditChange();
+						}
 					}
 
 					// Free any RHI resources for existing mesh before we re-create in place.

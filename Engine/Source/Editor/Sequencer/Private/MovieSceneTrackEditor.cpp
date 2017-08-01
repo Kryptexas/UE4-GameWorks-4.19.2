@@ -184,6 +184,16 @@ bool FMovieSceneTrackEditor::HandleAssetAdded(UObject* Asset, const FGuid& Targe
 	return false; 
 }
 
+bool FMovieSceneTrackEditor::OnAllowDrop(const FDragDropEvent& DragDropEvent, UMovieSceneTrack* Track)
+{
+	return false;
+}
+
+FReply FMovieSceneTrackEditor::OnDrop(const FDragDropEvent& DragDropEvent, UMovieSceneTrack* Track)
+{
+	return FReply::Unhandled();
+}
+
 void FMovieSceneTrackEditor::OnInitialize() 
 { 
 }

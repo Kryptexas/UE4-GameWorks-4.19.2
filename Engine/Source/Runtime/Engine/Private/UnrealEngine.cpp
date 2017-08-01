@@ -130,6 +130,9 @@
 #include "Components/TextRenderComponent.h"
 #include "Classes/Sound/AudioSettings.h"
 
+#if WITH_EDITOR
+#include "Settings/LevelEditorPlaySettings.h"
+#endif
 // @todo this is here only due to circular dependency to AIModule. To be removed
 
 #if WITH_EDITORONLY_DATA
@@ -9463,8 +9466,24 @@ bool UEngine::HandleOpenCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld *In
 			return true;
 		}
 	}
-
-	SetClientTravel( InWorld, Cmd, TRAVEL_Absolute );
+#if WITH_EDITOR
+	// Next comes a complicated but necessary way of blocking a crash caused by opening a level when playing multiprocess as a client (that's not allowed because of streaming levels)
+	ULevelEditorPlaySettings* PlayInSettings = GetMutableDefault<ULevelEditorPlaySettings>();
+	check(PlayInSettings);
+	bool bMultiProcess = !([&PlayInSettings] { bool RunUnderOneProcess(false); return (PlayInSettings->GetRunUnderOneProcess(RunUnderOneProcess) && RunUnderOneProcess); }());
+	
+	const EPlayNetMode PlayNetMode = [&PlayInSettings] { EPlayNetMode NetMode(PIE_Standalone); return (PlayInSettings->GetPlayNetMode(NetMode) ? NetMode : PIE_Standalone); }();
+	bool bClientMode = PlayNetMode == EPlayNetMode::PIE_Client;
+	
+	if (bMultiProcess && bClientMode)
+	{
+		UE_LOG(LogNet, Log, TEXT("%s"), TEXT("Opening a map is not allowed in this play mode (client mode + multiprocess)!"));
+	}
+	else
+#endif
+	{
+		SetClientTravel(InWorld, Cmd, TRAVEL_Absolute);
+	}
 	return true;
 }
 
@@ -10360,6 +10379,7 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 			{
 				NewWorld->RenameToPIEWorld(WorldContext.PIEInstance);
 			}
+			ResetPIEAudioSetting(NewWorld);
 		}
 		else if (WorldContext.WorldType == EWorldType::Game)
 		{

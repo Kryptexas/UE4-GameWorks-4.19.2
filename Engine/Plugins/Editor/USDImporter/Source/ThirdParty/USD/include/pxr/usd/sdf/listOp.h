@@ -24,8 +24,9 @@
 #ifndef SDF_LIST_OP_H
 #define SDF_LIST_OP_H
 
-#include "pxr/base/tf/token.h"
+#include "pxr/pxr.h"
 #include "pxr/usd/sdf/api.h"
+#include "pxr/base/tf/token.h"
 
 #include <boost/function.hpp>
 #include <boost/functional/hash.hpp>
@@ -36,6 +37,8 @@
 #include <map>
 #include <string>
 #include <vector>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 /// \enum SdfListOpType
 ///
@@ -74,9 +77,9 @@ public:
     typedef ItemType value_type;
     typedef ItemVector value_vector_type;
 
-	SDF_API SdfListOp();
+    SDF_API SdfListOp();
 
-	SDF_API void Swap(SdfListOp<T>& rhs);
+    SDF_API void Swap(SdfListOp<T>& rhs);
 
     /// Returns \c true if the editor has an explicit list (even if it's
     /// empty) or it has any added, deleted, or ordered keys.
@@ -85,7 +88,7 @@ public:
         if (IsExplicit()) {
             return true;
         }
-        if (_addedItems.size() != 0 or
+        if (_addedItems.size() != 0 ||
             _deletedItems.size() != 0) {
             return true;
         }
@@ -123,21 +126,21 @@ public:
     }
 
     /// Return the item vector identified by \p type.
-	SDF_API const ItemVector& GetItems(SdfListOpType type) const;
+    SDF_API const ItemVector& GetItems(SdfListOpType type) const;
 
-	SDF_API void SetExplicitItems(const ItemVector &items);
-	SDF_API void SetAddedItems(const ItemVector &items);
-	SDF_API void SetDeletedItems(const ItemVector &items);
-	SDF_API void SetOrderedItems(const ItemVector &items);
+    SDF_API void SetExplicitItems(const ItemVector &items);
+    SDF_API void SetAddedItems(const ItemVector &items);
+    SDF_API void SetDeletedItems(const ItemVector &items);
+    SDF_API void SetOrderedItems(const ItemVector &items);
 
     /// Sets the item vector for the given operation \p type.
-	SDF_API void SetItems(const ItemVector &items, SdfListOpType type);
+    SDF_API void SetItems(const ItemVector &items, SdfListOpType type);
 
     /// Removes all items and changes the list to be non-explicit.
-	SDF_API void Clear();
+    SDF_API void Clear();
 
     /// Removes all items and changes the list to be explicit.
-	SDF_API void ClearAndMakeExplicit();
+    SDF_API void ClearAndMakeExplicit();
 
     /// Callback type for ApplyOperations.
     typedef boost::function<
@@ -149,7 +152,7 @@ public:
     /// before they are applied to \p vec. Consumers can use this to transform
     /// the items stored in the operation vectors to match what's stored in
     /// \p vec.
-	SDF_API 
+    SDF_API 
     void ApplyOperations(ItemVector* vec, 
                          const ApplyCallback& cb = ApplyCallback()) const;
 
@@ -164,18 +167,18 @@ public:
     /// with the returned key.
     ///
     /// Returns true if a change was made, false otherwise.
-	SDF_API bool ModifyOperations(const ModifyCallback& callback);
+    SDF_API bool ModifyOperations(const ModifyCallback& callback);
 
     /// Replaces the items in the specified operation vector in the range
     /// (index, index + n] with the given \p newItems. If \p newItems is empty
     /// the items in the range will simply be removed.
-	SDF_API 
+    SDF_API 
     bool ReplaceOperations(const SdfListOpType op, size_t index, size_t n, 
                            const ItemVector& newItems);
 
     /// Composes a stronger SdfListOp's opinions for a given operation list
     /// over this one.
-	SDF_API 
+    SDF_API 
     void ComposeOperations(const SdfListOp<T>& stronger, SdfListOpType op);
 
     friend inline size_t hash_value(const SdfListOp &op) {
@@ -226,12 +229,14 @@ private:
 // Helper function for applying an ordering operation described by \p orderVector
 // to vector \p v.
 template <class ItemType>
-SDF_API void SdfApplyListOrdering(std::vector<ItemType>* v, 
+SDF_API
+void SdfApplyListOrdering(std::vector<ItemType>* v, 
                           const std::vector<ItemType>& order);
 
 // Ostream output methods for list values (useful for debugging and required
 // for storing a list value in a VtValue).
 template <typename T>
+SDF_API
 std::ostream & operator<<( std::ostream &, const SdfListOp<T> & );
 
 // Concrete, instantiated listop types.
@@ -244,5 +249,7 @@ typedef class SdfListOp<std::string> SdfStringListOp;
 typedef class SdfListOp<class SdfPath> SdfPathListOp;
 typedef class SdfListOp<class SdfReference> SdfReferenceListOp;
 typedef class SdfListOp<class SdfUnregisteredValue> SdfUnregisteredValueListOp;
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // SDF_LIST_OP_H

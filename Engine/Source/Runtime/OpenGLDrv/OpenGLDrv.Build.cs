@@ -31,6 +31,12 @@ public class OpenGLDrv : ModuleRules
 		    AddEngineThirdPartyPrivateStaticDependencies(Target, "ANGLE"); 
 		}
 
+		if (Target.Platform == UnrealTargetPlatform.Linux)
+		{
+			string GLPath = Target.UEThirdPartySourceDirectory + "OpenGL/";
+			PublicIncludePaths.Add(GLPath);
+		}
+
 		if (Target.Platform == UnrealTargetPlatform.Linux || Target.Platform == UnrealTargetPlatform.HTML5)
 		{
 			AddEngineThirdPartyPrivateStaticDependencies(Target, "SDL2");

@@ -1301,8 +1301,14 @@ struct SLATECORE_API FDockTabStyle : public FSlateWidgetStyle
 
 	/** Brush used to overlay a given color onto this tab */
 	UPROPERTY(EditAnywhere, Category=Appearance)
-	FSlateBrush ColorOverlayBrush;
-	FDockTabStyle& SetColorOverlayBrush( const FSlateBrush& InColorOverlayBrush ){ ColorOverlayBrush = InColorOverlayBrush; return *this; }
+	FSlateBrush ColorOverlayTabBrush;
+	FDockTabStyle& SetColorOverlayTabBrush( const FSlateBrush& InColorOverlayBrush ){ ColorOverlayTabBrush = InColorOverlayBrush; return *this; }
+
+	/** Brush used to overlay a given color onto this tab */
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FSlateBrush ColorOverlayIconBrush;
+	FDockTabStyle& SetColorOverlayIconBrush(const FSlateBrush& InColorOverlayBrush) { ColorOverlayIconBrush = InColorOverlayBrush; return *this; }
+
 
 	/** Brush used when this tab is in the foreground */
 	UPROPERTY(EditAnywhere, Category=Appearance)

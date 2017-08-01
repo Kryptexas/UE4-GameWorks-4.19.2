@@ -9,7 +9,7 @@
 #include "Input/Reply.h"
 #include "AssetThumbnail.h"
 #include "IPropertyUtilities.h"
-#include "IDetailTreeNode.h"
+#include "DetailTreeNode.h"
 #include "Widgets/Views/STableViewBase.h"
 #include "Widgets/Views/STableRow.h"
 #include "PropertyNode.h"
@@ -20,6 +20,7 @@
 #include "Widgets/Views/STreeView.h"
 #include "IDetailsView.h"
 #include "IDetailsViewPrivate.h"
+#include "PropertyRowGenerator.h"
 
 class FDetailCategoryImpl;
 class FDetailLayoutBuilderImpl;
@@ -29,59 +30,11 @@ class IDetailKeyframeHandler;
 class IDetailPropertyExtensionHandler;
 class SDetailNameArea;
 
-struct FPropertyNodeMap
-{
-	FPropertyNodeMap()
-		: ParentProperty(NULL)
-	{}
 
-	/** Object property node which contains the properties in the node map */
-	FPropertyNode* ParentProperty;
 
-	/** Property name to property node map */
-	TMap<FName, TSharedPtr<FPropertyNode> > PropertyNameToNode;
+typedef STreeView< TSharedRef<class FDetailTreeNode> > SDetailTree;
 
-	bool Contains(FName PropertyName) const
-	{
-		return PropertyNameToNode.Contains(PropertyName);
-	}
 
-	void Add(FName PropertyName, TSharedPtr<FPropertyNode>& PropertyNode)
-	{
-		PropertyNameToNode.Add(PropertyName, PropertyNode);
-	}
-};
-
-typedef TArray< TSharedRef<class IDetailTreeNode> > FDetailNodeList;
-
-/** Mapping of categories to all top level item property nodes in that category */
-typedef TMap<FName, TSharedPtr<FDetailCategoryImpl> > FCategoryMap;
-
-/** Class to properties in that class */
-typedef TMap<FName, FPropertyNodeMap> FClassInstanceToPropertyMap;
-
-/** Class to properties in that class */
-typedef TMap<FName, FClassInstanceToPropertyMap> FClassToPropertyMap;
-
-typedef STreeView< TSharedRef<class IDetailTreeNode> > SDetailTree;
-
-typedef TArray<TSharedPtr<FComplexPropertyNode>> FRootPropertyNodeList;
-
-struct FDetailLayoutData
-{
-	TSharedPtr<FDetailLayoutBuilderImpl> DetailLayout;
-
-	FClassToPropertyMap ClassToPropertyMap;
-
-	/** A  unique classes being viewed */
-	TSet< TWeakObjectPtr<UStruct> > ClassesWithProperties;
-
-	/** Customization class instances currently active in this view */
-	TArray< TSharedPtr<IDetailCustomization> > CustomizationClassInstances;
-
-};
-
-typedef TArray<FDetailLayoutData> FDetailLayoutList;
 
 /** Represents a filter which controls the visibility of items in the details view */
 struct FDetailFilter
@@ -188,11 +141,15 @@ public:
 	virtual FOnGetDetailCustomizationInstance& GetGenericLayoutDetailsDelegate() override { return GenericLayoutDelegate; }
 	virtual bool IsLocked() const override { return bIsLocked; }
 	virtual void RefreshRootObjectVisibility() override;
-	virtual FOnFinishedChangingProperties& OnFinishedChangingProperties() override { return OnFinishedChangingPropertiesDelegate; }
+	virtual FOnFinishedChangingProperties& OnFinishedChangingProperties() const override { return OnFinishedChangingPropertiesDelegate; }
+	virtual void RegisterInstancedCustomPropertyLayout(UStruct* Class, FOnGetDetailCustomizationInstance DetailLayoutDelegate) override;
+	virtual void RegisterInstancedCustomPropertyTypeLayout(FName PropertyTypeName, FOnGetPropertyTypeCustomizationInstance PropertyTypeLayoutDelegate, TSharedPtr<IPropertyTypeIdentifier> Identifier = nullptr) override;
+	virtual void UnregisterInstancedCustomPropertyLayout(UStruct* Class) override;
+	virtual void UnregisterInstancedCustomPropertyTypeLayout(FName PropertyTypeName, TSharedPtr<IPropertyTypeIdentifier> Identifier = nullptr) override;
 
 	/** IDetailsViewPrivate interface */
 	virtual void RerunCurrentFilter() override;
-	void SetNodeExpansionState(TSharedRef<IDetailTreeNode> InTreeNode, bool bIsItemExpanded, bool bRecursive) override;
+	void SetNodeExpansionState(TSharedRef<FDetailTreeNode> InTreeNode, bool bIsItemExpanded, bool bRecursive) override;
 	void SaveCustomExpansionState(const FString& NodePath, bool bIsExpanded) override;
 	bool GetCustomSavedExpansionState(const FString& NodePath) const override;
 	virtual void NotifyFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent) override;
@@ -201,11 +158,10 @@ public:
 	TSharedPtr<IPropertyUtilities> GetPropertyUtilities() override;
 	void CreateColorPickerWindow(const TSharedRef< class FPropertyEditor >& PropertyEditor, bool bUseAlpha) override;
 	virtual void UpdateSinglePropertyMap(TSharedPtr<FComplexPropertyNode> InRootPropertyNode, FDetailLayoutData& LayoutData) override;
-
 	virtual FNotifyHook* GetNotifyHook() const override { return DetailsViewArgs.NotifyHook; }
+	virtual const FCustomPropertyTypeLayoutMap& GetCustomPropertyTypeLayoutMap() const { return InstancedTypeToLayoutMap; }
 
 	virtual bool IsConnected() const = 0;
-
 	virtual FRootPropertyNodeList& GetRootNodes() = 0;
 
 	/**
@@ -219,7 +175,7 @@ public:
 	 * @param TreeNode	The tree node to expand
 	 * @param bExpand	true if the item should be expanded, false otherwise
 	 */
-	void RequestItemExpanded(TSharedRef<IDetailTreeNode> TreeNode, bool bExpand) override;
+	void RequestItemExpanded(TSharedRef<FDetailTreeNode> TreeNode, bool bExpand) override;
 
 	/**
 	 * Sets the expansion state all root nodes and optionally all of their children
@@ -228,16 +184,6 @@ public:
 	 * @param bRecurse			Whether or not to apply the expansion change to any children
 	 */
 	void SetRootExpansionStates(const bool bExpand, const bool bRecurse);
-
-	/**
-	 * Queries a layout for a specific class
-	 */
-	void QueryLayoutForClass(FDetailLayoutData& LayoutData, UStruct* Class) const;
-
-	/**
-	 * Calls a delegate for each registered class that has properties visible to get any custom detail layouts
-	 */
-	void QueryCustomDetailLayout(FDetailLayoutData& LayoutData) const;
 
 	/** Column width accessibility */
 	float OnGetLeftColumnWidth() const { return 1.0f - ColumnWidth; }
@@ -274,15 +220,6 @@ protected:
 	/** Updates the property map for access when customizing the details view.  Generates default layout for properties */
 	void UpdatePropertyMaps();
 
-	/** 
-	 * Recursively updates children of property nodes. Generates default layout for properties 
-	 * 
-	 * @param InNode	The parent node to get children from
-	 * @param The detail layout builder that will be used for customization of this property map
-	 * @param CurCategory The current category name
-	 */
-	void UpdateSinglePropertyMapRecursive( FPropertyNode& InNode, FDetailLayoutData& LayoutData, FName CurCategory, FComplexPropertyNode* CurObjectNode, bool bEnableFavoriteSystem, bool bUpdateFavoriteSystemOnly);
-
 	virtual void CustomUpdatePropertyMap(TSharedPtr<FDetailLayoutBuilderImpl>& InDetailLayout) {}
 
 	/** Called to get the visibility of the tree view */
@@ -300,7 +237,7 @@ protected:
 	 * @param InTreeNode		The node that was expanded or collapsed
 	 * @param bIsItemExpanded	True if the item is expanded, false if it is collapsed
 	 */
-	void SetNodeExpansionStateRecursive( TSharedRef<IDetailTreeNode> InTreeNode, bool bIsItemExpanded );
+	void SetNodeExpansionStateRecursive( TSharedRef<FDetailTreeNode> InTreeNode, bool bIsItemExpanded );
 
 	/**
 	 * Called when an item is expanded or collapsed in the detail tree
@@ -308,7 +245,7 @@ protected:
 	 * @param InTreeNode		The node that was expanded or collapsed
 	 * @param bIsItemExpanded	True if the item is expanded, false if it is collapsed
 	 */
-	void OnItemExpansionChanged( TSharedRef<IDetailTreeNode> InTreeNode, bool bIsItemExpanded );
+	void OnItemExpansionChanged( TSharedRef<FDetailTreeNode> InTreeNode, bool bIsItemExpanded );
 
 	/** 
 	 * Function called through a delegate on the TreeView to request children of a tree node 
@@ -316,12 +253,12 @@ protected:
 	 * @param InTreeNode		The tree node to get children from
 	 * @param OutChildren		The list of children of InTreeNode that should be visible 
 	 */
-	void OnGetChildrenForDetailTree( TSharedRef<IDetailTreeNode> InTreeNode, TArray< TSharedRef<IDetailTreeNode> >& OutChildren );
+	void OnGetChildrenForDetailTree( TSharedRef<FDetailTreeNode> InTreeNode, TArray< TSharedRef<FDetailTreeNode> >& OutChildren );
 
 	/**
 	 * Returns an SWidget used as the visual representation of a node in the treeview.                     
 	 */
-	TSharedRef<ITableRow> OnGenerateRowForDetailTree( TSharedRef<IDetailTreeNode> InTreeNode, const TSharedRef<STableViewBase>& OwnerTable );
+	TSharedRef<ITableRow> OnGenerateRowForDetailTree( TSharedRef<FDetailTreeNode> InTreeNode, const TSharedRef<STableViewBase>& OwnerTable );
 
 	/** @return true if show only modified is checked */
 	bool IsShowOnlyModifiedChecked() const { return CurrentFilter.bShowOnlyModifiedProperties; }
@@ -374,17 +311,13 @@ protected:
 	/** Called to get the visibility of the filter box */
 	EVisibility GetFilterBoxVisibility() const;
 
-	/** Utility function allowing derived classes to optionally implement RegisterInstancedCustomPropertyLayout */
-	void RegisterInstancedCustomPropertyLayoutInternal(UStruct* Class, FOnGetDetailCustomizationInstance DetailLayoutDelegate);
-
-	/** Utility function allowing derived classes to optionally implement UnregisterInstancedCustomPropertyLayout */
-	void UnregisterInstancedCustomPropertyLayoutInternal(UStruct* Class);
-
 protected:
 	/** The user defined args for the details view */
 	FDetailsViewArgs DetailsViewArgs;
 	/** A mapping of classes to detail layout delegates, called when querying for custom detail layouts in this instance of the details view only*/
 	FCustomDetailLayoutMap InstancedClassToDetailLayoutMap;
+	/** A mapping of type names to detail layout delegates, called when querying for custom detail layouts in this instance of the details view only */
+	FCustomPropertyTypeLayoutMap InstancedTypeToLayoutMap;
 	/** The current detail layout based on objects in this details panel.  There is one layout for each top level object node.*/
 	FDetailLayoutList DetailLayouts;
 	/** Row for searching and view options */
@@ -394,7 +327,7 @@ protected:
 	/** Customization instances that need to be destroyed when safe to do so */
 	TArray< TSharedPtr<IDetailCustomization> > CustomizationClassInstancesPendingDelete;
 	/** Map of nodes that are requesting an automatic expansion/collapse due to being filtered */
-	TMap< TSharedRef<IDetailTreeNode>, bool > FilteredNodesRequestingExpansionState;
+	TMap< TSharedRef<FDetailTreeNode>, bool > FilteredNodesRequestingExpansionState;
 	/** Current set of expanded detail nodes (by path) that should be saved when the details panel closes */
 	TSet<FString> ExpandedDetailNodes;
 	/** Tree view */
@@ -408,7 +341,7 @@ protected:
 	/** Delegate called to see if a property editing is enabled */
 	FIsPropertyEditingEnabled IsPropertyEditingEnabledDelegate;
 	/** Delegate called when the details panel finishes editing a property (after post edit change is called) */
-	FOnFinishedChangingProperties OnFinishedChangingPropertiesDelegate;
+	mutable FOnFinishedChangingProperties OnFinishedChangingPropertiesDelegate;
 	/** Container for passing around column size data to rows in the tree (each row has a splitter which can affect the column size)*/
 	FDetailColumnSizeData ColumnSizeData;
 	/** The actual width of the right column.  The left column is 1-ColumnWidth */
@@ -433,21 +366,14 @@ protected:
 	FOnGetDetailCustomizationInstance GenericLayoutDelegate;
 	/** Actions that should be executed next tick */
 	TArray<FSimpleDelegate> DeferredActions;
-
 	/** Root tree nodes that needs to be destroyed when safe */
 	FRootPropertyNodeList RootNodesPendingKill;
-
 	/** The handler for the keyframe UI, determines if the key framing UI should be displayed. */
 	TSharedPtr<IDetailKeyframeHandler> KeyframeHandler;
-
 	/** Property extension handler returns additional UI to apply after the customization is applied to the property. */
 	TSharedPtr<IDetailPropertyExtensionHandler> ExtensionHandler;
-
-	/** External property nodes which need to validated each tick */
-	TArray< TSharedPtr<FComplexPropertyNode> > ExternalRootPropertyNodes;
-
 	/** The tree node that is currently highlighted, may be none: */
-	TWeakPtr< IDetailTreeNode > CurrentlyHighlightedNode;
+	TWeakPtr< FDetailTreeNode > CurrentlyHighlightedNode;
 
 	/** Executed when the tree is refreshed */
 	FOnDisplayedPropertiesChanged OnDisplayedPropertiesChangedDelegate;

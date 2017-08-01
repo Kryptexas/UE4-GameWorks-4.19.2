@@ -32,6 +32,7 @@
 #include "CanvasTypes.h"
 #include "UnrealEdGlobals.h"
 #include "Editor/UnrealEdEngine.h"
+#include "AdvancedPreviewSceneModule.h"
 
 
 #define LOCTEXT_NAMESPACE "MaterialInstanceEditor"
@@ -41,6 +42,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogMaterialInstanceEditor, Log, All);
 const FName FMaterialInstanceEditor::PreviewTabId( TEXT( "MaterialInstanceEditor_Preview" ) );
 const FName FMaterialInstanceEditor::PropertiesTabId( TEXT( "MaterialInstanceEditor_MaterialProperties" ) );
 const FName FMaterialInstanceEditor::ParentsTabId( TEXT( "MaterialInstanceEditor_MaterialParents" ) );
+const FName FMaterialInstanceEditor::PreviewSettingsTabId(TEXT("MaterialInstanceEditor_PreviewSettings"));
 
 //////////////////////////////////////////////////////////////////////////
 // SMaterialTreeWidgetItem
@@ -144,6 +146,11 @@ void FMaterialInstanceEditor::RegisterTabSpawners(const TSharedRef<class FTabMan
 		.SetGroup( WorkspaceMenuCategoryRef )
 		.SetIcon( FSlateIcon( FEditorStyle::GetStyleSetName(), "Kismet.Tabs.Palette" ) );
 
+	InTabManager->RegisterTabSpawner(PreviewSettingsTabId, FOnSpawnTab::CreateSP(this, &FMaterialInstanceEditor::SpawnTab_PreviewSettings))
+		.SetDisplayName(LOCTEXT("PreviewSceneSettingsTab", "Preview Scene Settings"))
+		.SetGroup(WorkspaceMenuCategoryRef)
+		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Details"));
+
 	OnRegisterTabSpawners().Broadcast(InTabManager);
 }
 
@@ -154,6 +161,7 @@ void FMaterialInstanceEditor::UnregisterTabSpawners(const TSharedRef<class FTabM
 	InTabManager->UnregisterTabSpawner( PreviewTabId );		
 	InTabManager->UnregisterTabSpawner( PropertiesTabId );	
 	InTabManager->UnregisterTabSpawner( ParentsTabId );		
+	InTabManager->UnregisterTabSpawner( PreviewSettingsTabId );
 
 	OnUnregisterTabSpawners().Broadcast(InTabManager);
 }
@@ -189,7 +197,7 @@ void FMaterialInstanceEditor::InitMaterialInstanceEditor( const EToolkitMode::Ty
 
 	UpdatePreviewViewportsVisibility();
 
-	TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout( "Standalone_MaterialInstanceEditor_Layout_v2" )
+	TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout( "Standalone_MaterialInstanceEditor_Layout_v3" )
 	->AddArea
 	(
 		FTabManager::NewPrimaryArea() ->SetOrientation( Orient_Vertical )
@@ -208,6 +216,7 @@ void FMaterialInstanceEditor::InitMaterialInstanceEditor( const EToolkitMode::Ty
 				(
 					FTabManager::NewStack() ->SetSizeCoefficient(0.6f) 
 					->AddTab( PropertiesTabId, ETabState::OpenedTab )
+					->AddTab(PreviewSettingsTabId, ETabState::ClosedTab)
 				)
 				->Split
 				(
@@ -643,7 +652,31 @@ TSharedRef<SDockTab> FMaterialInstanceEditor::SpawnTab_Parents( const FSpawnTabA
 }
 
 
-void FMaterialInstanceEditor::AddToSpawnedToolPanels( const FName& TabIdentifier, const TSharedRef<SDockTab>& SpawnedTab )
+TSharedRef<SDockTab> FMaterialInstanceEditor::SpawnTab_PreviewSettings(const FSpawnTabArgs& Args)
+{
+	check(Args.GetTabId() == PreviewSettingsTabId);
+
+	TSharedRef<SWidget> InWidget = SNullWidget::NullWidget;
+	if (PreviewVC.IsValid())
+	{
+		FAdvancedPreviewSceneModule& AdvancedPreviewSceneModule = FModuleManager::LoadModuleChecked<FAdvancedPreviewSceneModule>("AdvancedPreviewScene");
+		InWidget = AdvancedPreviewSceneModule.CreateAdvancedPreviewSceneSettingsWidget(PreviewVC->GetPreviewScene());
+	}
+
+	TSharedRef<SDockTab> SpawnedTab = SNew(SDockTab)
+		.Icon(FEditorStyle::GetBrush("LevelEditor.Tabs.Details"))
+		.Label(LOCTEXT("PreviewSceneSettingsTab", "Preview Scene Settings"))
+		[
+			SNew(SBox)
+			[
+				InWidget
+			]
+		];
+
+	return SpawnedTab;
+}
+
+void FMaterialInstanceEditor::AddToSpawnedToolPanels(const FName& TabIdentifier, const TSharedRef<SDockTab>& SpawnedTab)
 {
 	TWeakPtr<SDockTab>* TabSpot = SpawnedToolPanels.Find(TabIdentifier);
 	if (!TabSpot)
@@ -947,12 +980,6 @@ void FMaterialInstanceEditor::GetShowHiddenParameters(bool& bShowHiddenParameter
 
 void FMaterialInstanceEditor::SaveSettings()
 {
-	// Save the preview scene
-	if(PreviewVC.IsValid())
-	{
-		PreviewVC->PreviewScene.SaveSettings(TEXT("MaterialInstanceEditor"));
-	}
-
 	GConfig->SetBool(TEXT("MaterialInstanceEditor"), TEXT("bShowGrid"), PreviewVC->IsTogglePreviewGridChecked(), GEditorPerProjectIni);
 	GConfig->SetBool(TEXT("MaterialInstanceEditor"), TEXT("bDrawGrid"), PreviewVC->IsRealtime(), GEditorPerProjectIni);
 	GConfig->SetInt(TEXT("MaterialInstanceEditor"), TEXT("PrimType"), PreviewVC->PreviewPrimType, GEditorPerProjectIni);
@@ -987,9 +1014,6 @@ void FMaterialInstanceEditor::LoadSettings()
 		}
 
 		PreviewVC->OnSetPreviewPrimitive( static_cast<EThumbnailPrimType>(PrimType), true);
-
-		// Load the preview scene
-		PreviewVC->PreviewScene.LoadSettings(TEXT("MaterialInstanceEditor"));
 	}
 }
 

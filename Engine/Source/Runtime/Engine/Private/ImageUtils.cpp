@@ -10,10 +10,40 @@ ImageUtils.cpp: Image utility functions.
 #include "Engine/TextureRenderTarget2D.h"
 #include "CubemapUnwrapUtils.h"
 #include "Logging/MessageLog.h"
+#include "IImageWrapper.h"
+#include "IImageWrapperModule.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogImageUtils, Log, All);
 
 #define LOCTEXT_NAMESPACE "ImageUtils"
+
+static bool GetRawData(UTextureRenderTarget2D* TexRT, TArray<uint8>& RawData)
+{
+	FRenderTarget* RenderTarget = TexRT->GameThread_GetRenderTargetResource();
+	EPixelFormat Format = TexRT->GetFormat();
+
+	int32 ImageBytes = CalculateImageBytes(TexRT->SizeX, TexRT->SizeY, 0, Format);
+	RawData.AddUninitialized(ImageBytes);
+	bool bReadSuccess = false;
+	switch (Format)
+	{
+	case PF_FloatRGBA:
+	{
+		TArray<FFloat16Color> FloatColors;
+		bReadSuccess = RenderTarget->ReadFloat16Pixels(FloatColors);
+		FMemory::Memcpy(RawData.GetData(), FloatColors.GetData(), ImageBytes);
+	}
+	break;
+	case PF_B8G8R8A8:
+		bReadSuccess = RenderTarget->ReadPixelsPtr((FColor*)RawData.GetData());
+		break;
+	}
+	if (bReadSuccess == false)
+	{
+		RawData.Empty();
+	}
+	return bReadSuccess;
+}
 
 /**
  * Resizes the given image using a simple average filter and stores it in the destination array.
@@ -591,31 +621,7 @@ private:
 	* @param RawData - an array to be filled with pixel data.
 	* @return true if RawData has been successfully filled.
 	*/
-	bool GetRawData(UTextureRenderTarget2D* TexRT, TArray<uint8>& RawData)
-	{
-		FRenderTarget* RenderTarget = TexRT->GameThread_GetRenderTargetResource();
-		int32 ImageBytes = CalculateImageBytes(TexRT->SizeX, TexRT->SizeY, 0, Format);
-		RawData.AddUninitialized(ImageBytes);
-		bool bReadSuccess = false;
-		switch (Format)
-		{
-		case PF_FloatRGBA:
-		{
-			TArray<FFloat16Color> FloatColors;
-			bReadSuccess = RenderTarget->ReadFloat16Pixels(FloatColors);
-			FMemory::Memcpy(RawData.GetData(), FloatColors.GetData(), ImageBytes);
-		}
-		break;
-		case PF_B8G8R8A8:
-			bReadSuccess = RenderTarget->ReadPixelsPtr((FColor*)RawData.GetData());
-			break;
-		}
-		if (bReadSuccess == false)
-		{
-			RawData.Empty();
-		}
-		return bReadSuccess;
-	}
+	
 
 	static FColor ToRGBEDithered(const FLinearColor& ColorIN, const FRandomStream& Rand)
 	{
@@ -651,6 +657,32 @@ bool FImageUtils::ExportRenderTarget2DAsHDR(UTextureRenderTarget2D* TexRT, FArch
 {
 	FHDRExportHelper Exporter;
 	return Exporter.ExportHDR(TexRT, Ar);
+}
+
+bool FImageUtils::ExportRenderTarget2DAsPNG(UTextureRenderTarget2D* TexRT, FArchive& Ar)
+{
+	bool bSuccess = false;
+	if(TexRT->GetFormat() == PF_B8G8R8A8)
+	{
+		check(TexRT != nullptr);
+		FRenderTarget* RenderTarget = TexRT->GameThread_GetRenderTargetResource();
+		FIntPoint Size = RenderTarget->GetSizeXY();
+
+		TArray<uint8> RawData;
+		bSuccess = GetRawData(TexRT, RawData);
+
+		IImageWrapperModule& ImageWrapperModule = FModuleManager::Get().LoadModuleChecked<IImageWrapperModule>(TEXT("ImageWrapper"));
+
+		IImageWrapperPtr PNGImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
+
+		PNGImageWrapper->SetRaw(RawData.GetData(), RawData.GetAllocatedSize(), Size.X, Size.Y, ERGBFormat::BGRA, 8);
+
+		const TArray<uint8>& PNGData = PNGImageWrapper->GetCompressed(100);
+
+		Ar.Serialize((void*)PNGData.GetData(), PNGData.GetAllocatedSize());
+	}
+
+	return bSuccess;
 }
 
 bool FImageUtils::ExportTexture2DAsHDR(UTexture2D* TexRT, FArchive& Ar)

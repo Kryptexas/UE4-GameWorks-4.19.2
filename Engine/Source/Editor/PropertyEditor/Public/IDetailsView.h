@@ -7,7 +7,6 @@
 #include "PropertyEditorDelegates.h"
 #include "Framework/Commands/UICommandList.h"
 
-
 class AActor;
 class FNotifyHook;
 class FPropertyPath;
@@ -15,6 +14,18 @@ class FTabManager;
 class IDetailKeyframeHandler;
 class IDetailPropertyExtensionHandler;
 class IDetailRootObjectCustomization;
+class IPropertyTypeIdentifier;
+
+
+enum class EEditDefaultsOnlyNodeVisibility : uint8
+{
+	/** Always show nodes that have the EditDefaultsOnly aka CPF_DisableEditOnInstance flag. */
+	Show,
+	/** Always hide nodes that have the EditDefaultsOnly aka CPF_DisableEditOnInstance flag. */
+	Hide,
+	/** Let the details panel control it. If the CDO is selected EditDefaultsOnly nodes will be visible, otherwise false. */
+	Automatic,
+};
 
 
 /**
@@ -32,16 +43,6 @@ struct FDetailsViewArgs
 		ActorsUseNameArea,
 		/** Components and actors use the name area. Components will display their actor owner as the name */
 		ComponentsAndActorsUseNameArea,
-	};
-
-	enum class EEditDefaultsOnlyNodeVisibility : uint8
-	{
-		/** Always show nodes that have the EditDefaultsOnly aka CPF_DisableEditOnInstance flag. */
-		Show,
-		/** Always hide nodes that have the EditDefaultsOnly aka CPF_DisableEditOnInstance flag. */
-		Hide,
-		/** Let the details panel control it. If the CDO is selected EditDefaultsOnly nodes will be visible, otherwise false. */
-		Automatic,
 	};
 
 	/** Controls how CPF_DisableEditOnInstance nodes will be treated */
@@ -67,6 +68,8 @@ struct FDetailsViewArgs
 	uint32 bHideSelectionTip : 1;
 	/** True if you want the search box to have initial keyboard focus */
 	uint32 bSearchInitialKeyFocus : 1;
+	/** True if the 'Open Selection in Property Matrix' button should be shown */
+	uint32 bShowPropertyMatrixButton : 1;
 	/** Allow options to be changed */
 	uint32 bShowOptions : 1;
 	/** True if you want to show the 'Show Only Modified Properties'. Only valid in conjunction with bShowOptions */
@@ -105,6 +108,7 @@ public:
 		, bAllowSearch( InAllowSearch )
 		, bHideSelectionTip( InHideSelectionTip )
 		, bSearchInitialKeyFocus( InSearchInitialKeyFocus )
+		, bShowPropertyMatrixButton(true)
 		, bShowOptions( true )
 		, bShowModifiedPropertiesOption(true)
 		, bShowActorLabel(true)
@@ -146,23 +150,24 @@ public:
 	 * @param Class	The class the custom detail layout is for
 	 * @param DetailLayoutDelegate	The delegate to call when querying for custom detail layouts for the classes properties
 	 */
-	virtual void RegisterInstancedCustomPropertyLayout( UStruct* Class, FOnGetDetailCustomizationInstance DetailLayoutDelegate ) = 0;
-
-
-	/**
-	* Registers a customization that will be used only if this details panel contains multiple top level objects.
-	* I.E it was created with bAllowMultipleTopLevelObjects = true.	This interface will be used to customize the header for each top level object in the details panel
-	*
-	* @param InRootObjectCustomization	If null is passed in, the customization will be removed
-	*/
-	virtual void SetRootObjectCustomizationInstance( TSharedPtr<class IDetailRootObjectCustomization> InRootObjectCustomization ) = 0;
+	virtual void RegisterInstancedCustomPropertyLayout(UStruct* Class, FOnGetDetailCustomizationInstance DetailLayoutDelegate) = 0;
+	virtual void RegisterInstancedCustomPropertyTypeLayout(FName PropertyTypeName, FOnGetPropertyTypeCustomizationInstance PropertyTypeLayoutDelegate, TSharedPtr<IPropertyTypeIdentifier> Identifier = nullptr) = 0; 
 
 	/**
 	 * Unregisters a custom detail layout delegate for a specific class in this instance of the details view only
 	 *
 	 * @param Class	The class with the custom detail layout delegate to remove
 	 */
-	virtual void UnregisterInstancedCustomPropertyLayout( UStruct* Class ) = 0;
+	virtual void UnregisterInstancedCustomPropertyLayout(UStruct* Class) = 0;
+	virtual void UnregisterInstancedCustomPropertyTypeLayout(FName PropertyTypeName, TSharedPtr<IPropertyTypeIdentifier> Identifier = nullptr) = 0;
+
+	/**
+	 * Registers a customization that will be used only if this details panel contains multiple top level objects.
+	 * I.E it was created with bAllowMultipleTopLevelObjects = true.	This interface will be used to customize the header for each top level object in the details panel
+	 *
+	 * @param InRootObjectCustomization	If null is passed in, the customization will be removed
+	 */
+	virtual void SetRootObjectCustomizationInstance(TSharedPtr<class IDetailRootObjectCustomization> InRootObjectCustomization) = 0;
 
 	/**
 	 * Sets the objects this details view is viewing
@@ -257,7 +262,7 @@ public:
 	 * This can be used to safely make changes to data that the details panel is observing instead of during PostEditChange (which is
 	 * unsafe)
 	 */
-	virtual FOnFinishedChangingProperties& OnFinishedChangingProperties() = 0;
+	virtual FOnFinishedChangingProperties& OnFinishedChangingProperties() const = 0;
 
 	/** 
 	 * Sets the visible state of the filter box/property grid area

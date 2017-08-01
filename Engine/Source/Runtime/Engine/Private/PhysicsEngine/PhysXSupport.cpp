@@ -110,7 +110,7 @@ UCollision2PGeom::UCollision2PGeom(const FCollisionShape& CollisionShape)
 FMatrix P2UMatrix(const PxMat44& PMat)
 {
 	FMatrix Result;
-	// we have to use Memcpy instead of typecasting, becuase PxMat44's are not aligned like FMatrix is
+	// we have to use Memcpy instead of typecasting, because PxMat44's are not aligned like FMatrix is
 	FMemory::Memcpy(&Result, &PMat, sizeof(PMat));
 	return Result;
 }

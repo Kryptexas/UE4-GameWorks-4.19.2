@@ -574,7 +574,8 @@ void FDockTabStyle::GetResources( TArray< const FSlateBrush* >& OutBrushes ) con
 	CloseButtonStyle.GetResources(OutBrushes);
 	OutBrushes.Add( &NormalBrush );
 	OutBrushes.Add( &ActiveBrush );
-	OutBrushes.Add( &ColorOverlayBrush );
+	OutBrushes.Add( &ColorOverlayTabBrush );
+	OutBrushes.Add( &ColorOverlayIconBrush );
 	OutBrushes.Add( &ForegroundBrush );
 	OutBrushes.Add( &HoveredBrush );
 	OutBrushes.Add( &ContentAreaBrush );

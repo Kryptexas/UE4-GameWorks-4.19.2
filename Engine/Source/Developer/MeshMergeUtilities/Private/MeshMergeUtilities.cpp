@@ -929,7 +929,6 @@ void FMeshMergeUtilities::CreateProxyMesh(const TArray<AActor*>& InActors, const
 		return;
 	}
 
-	typedef FIntPoint FMeshIdAndLOD;
 	TArray<FRawMeshExt> SourceMeshes;
 	//TArray<FSectionInfo> UniqueSections;
 	TMap<FMeshIdAndLOD, TArray<int32>> GlobalMaterialMap;

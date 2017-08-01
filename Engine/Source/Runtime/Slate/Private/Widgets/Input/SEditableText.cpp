@@ -56,9 +56,11 @@ void SEditableText::Construct( const FArguments& InArgs )
 
 	EditableTextLayout = MakeUnique<FSlateEditableTextLayout>(*this, InArgs._Text, TextStyle, InArgs._TextShapingMethod, InArgs._TextFlowDirection, FCreateSlateTextLayout(), PlainTextMarshaller.ToSharedRef(), HintTextMarshaller);
 	EditableTextLayout->SetHintText(InArgs._HintText);
+	EditableTextLayout->SetSearchText(InArgs._SearchText);
 	EditableTextLayout->SetCursorBrush(InArgs._CaretImage.IsSet() ? InArgs._CaretImage : &InArgs._Style->CaretImage);
 	EditableTextLayout->SetCompositionBrush(InArgs._BackgroundImageComposing.IsSet() ? InArgs._BackgroundImageComposing : &InArgs._Style->BackgroundImageComposing);
 	EditableTextLayout->SetDebugSourceInfo(TAttribute<FString>::Create(TAttribute<FString>::FGetter::CreateLambda([this]{ return FReflectionMetaData::GetWidgetDebugInfo(this); })));
+	EditableTextLayout->SetJustification(InArgs._Justification);
 
 	// build context menu extender
 	MenuExtender = MakeShareable(new FExtender());
@@ -258,6 +260,16 @@ FText SEditableText::GetHintText() const
 	return EditableTextLayout->GetHintText();
 }
 
+void SEditableText::SetSearchText(const TAttribute<FText>& InSearchText)
+{
+	EditableTextLayout->SetSearchText(InSearchText);
+}
+
+FText SEditableText::GetSearchText() const
+{
+	return EditableTextLayout->GetSearchText();
+}
+
 void SEditableText::SetIsReadOnly( TAttribute< bool > InIsReadOnly )
 {
 	bIsReadOnly = InIsReadOnly;
@@ -352,6 +364,16 @@ void SEditableText::GoTo(ETextLocation GoToLocation)
 void SEditableText::ScrollTo(const FTextLocation& NewLocation)
 {
 	EditableTextLayout->ScrollTo(NewLocation);
+}
+
+void SEditableText::BeginSearch(const FText& InSearchText, const ESearchCase::Type InSearchCase, const bool InReverse)
+{
+	EditableTextLayout->BeginSearch(InSearchText, InSearchCase, InReverse);
+}
+
+void SEditableText::AdvanceSearch(const bool InReverse)
+{
+	EditableTextLayout->AdvanceSearch(InReverse);
 }
 
 void SEditableText::SynchronizeTextStyle()

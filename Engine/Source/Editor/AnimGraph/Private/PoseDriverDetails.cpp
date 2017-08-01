@@ -667,7 +667,7 @@ void FPoseDriverDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 	SourceBonesPropHandle->SetOnPropertyValueChanged(FSimpleDelegate::CreateSP(this, &FPoseDriverDetails::OnSourceBonesChanged));
 
 	// Cache set of selected things
-	SelectedObjectsList = DetailBuilder.GetDetailsView().GetSelectedObjects();
+	SelectedObjectsList = DetailBuilder.GetSelectedObjects();
 
 	// Create list of driven names
 	UpdateDrivenNameOptions();

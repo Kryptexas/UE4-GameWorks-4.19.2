@@ -222,6 +222,9 @@ protected:
 	/** Store end of the laser pointer. This will be returned when calling GetLaserPointer multiple times a tick */
 	TOptional<FVector> SavedLaserPointerEnd;
 
+	/** Store the last hitresult from the laser, to use that when calling GetHitResultFromLaserPointer multiple times in a tick. */
+	TOptional<FHitResult> SavedHitResult;
+
 private:
 
 	/** Smoothing filter for laser */

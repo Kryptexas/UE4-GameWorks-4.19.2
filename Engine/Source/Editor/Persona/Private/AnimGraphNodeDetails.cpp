@@ -53,7 +53,7 @@ TSharedRef<IDetailCustomization> FAnimGraphNodeDetails::MakeInstance()
 
 void FAnimGraphNodeDetails::CustomizeDetails(class IDetailLayoutBuilder& DetailBuilder)
 {
-	TArray< TWeakObjectPtr<UObject> > SelectedObjectsList = DetailBuilder.GetDetailsView().GetSelectedObjects();
+	TArray< TWeakObjectPtr<UObject> > SelectedObjectsList = DetailBuilder.GetSelectedObjects();
 
 	// Hide the pin options property; it's represented inline per-property instead
 	IDetailCategoryBuilder& PinOptionsCategory = DetailBuilder.EditCategory("PinOptions");

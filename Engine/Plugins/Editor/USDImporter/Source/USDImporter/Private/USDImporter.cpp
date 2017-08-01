@@ -279,7 +279,7 @@ bool UUSDImporter::ShowImportOptions(UObject& ImportOptions)
 	return OptionsWindow->ShouldImport();
 }
 
-IUsdStage* UUSDImporter::ReadUSDFile(const FString& Filename)
+IUsdStage* UUSDImporter::ReadUSDFile(FUsdImportContext& ImportContext, const FString& Filename)
 {
 	FString FilePath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*Filename);
 	FilePath = FPaths::GetPath(FilePath) + TEXT("/");
@@ -288,6 +288,12 @@ IUsdStage* UUSDImporter::ReadUSDFile(const FString& Filename)
 	IUsdPrim* RootPrim = nullptr;
 	IUsdStage* Stage = UnrealUSDWrapper::ImportUSDFile(TCHAR_TO_ANSI(*FilePath), TCHAR_TO_ANSI(*CleanFilename));
 
+	const char* Errors = UnrealUSDWrapper::GetErrors();
+	if (Errors)
+	{
+		FString ErrorStr = USDToUnreal::ConvertString(Errors);
+		ImportContext.AddErrorMessage(EMessageSeverity::Error, FText::Format(LOCTEXT("CouldNotImportUSDFile", "Could not import USD file {0}\n {1}"), FText::FromString(CleanFilename), FText::FromString(ErrorStr)));
+	}
 	return Stage;
 }
 
@@ -303,29 +309,37 @@ void UUSDImporter::FindPrimsToImport_Recursive(FUsdImportContext& ImportContext,
 	const int32 NumLODs = Prim->GetNumLODs();
 
 	const FString PrimName = USDToUnreal::ConvertString(Prim->GetPrimName());
-	if (NumLODs)
+
+	bool bHasUnrealAssetPath = Prim->GetUnrealAssetPath() != nullptr;
+	bool bHasUnrealActorClass = Prim->GetUnrealActorClass() != nullptr;
+	// Ignore prims with unreal asset path or actor class specified as these are custom and should not spawn geometry
+	if(!bHasUnrealAssetPath || bHasUnrealActorClass)
 	{
-		// Note if there are lod's the prim is not expected to have it's own geometry
+		if (NumLODs)
+		{
+			// Note if there are lod's the prim is not expected to have it's own geometry
 
-		//@todo LODs are not expected to have children with geometry 
-		FUsdPrimToImport NewPrim;
-		NewPrim.NumLODs = NumLODs;
-		NewPrim.Prim = Prim;
+			//@todo LODs are not expected to have children with geometry 
+			FUsdPrimToImport NewPrim;
+			NewPrim.NumLODs = NumLODs;
+			NewPrim.Prim = Prim;
 
-		OutTopLevelPrims.Add(NewPrim);
+			OutTopLevelPrims.Add(NewPrim);
+		}
+		else if (Prim->HasGeometryData())
+		{
+			// Prim has geometry data but no LODs
+			// combining meshes is not supported yet
+			FUsdPrimToImport NewPrim;
+			NewPrim.NumLODs = 0;
+			NewPrim.Prim = Prim;
+
+			OutTopLevelPrims.Add(NewPrim);
+
+		}
 	}
-	else if (Prim->HasGeometryData())
-	{
-		// Prim has geometry data but no LODs
-		//@todo what we do with children here depends on whether or not we are combining meshes or not.  Not supported yet
-		FUsdPrimToImport NewPrim;
-		NewPrim.NumLODs = 0;
-		NewPrim.Prim = Prim;
-
-		OutTopLevelPrims.Add(NewPrim);
-
-	}
-	else if(!ImportContext.bFindUnrealAssetReferences || Prim->GetUnrealAssetPath() == nullptr)
+	
+	if(!ImportContext.bFindUnrealAssetReferences || bHasUnrealAssetPath)
 	{
 		// prim has no geometry data or LODs and does not define an unreal asset path (or we arent checking). Look at children
 		int32 NumChildren = Prim->GetNumChildren();
@@ -385,19 +399,29 @@ void FUsdImportContext::AddErrorMessage(EMessageSeverity::Type MessageSeverity, 
 	TokenizedErrorMessages.Add(FTokenizedMessage::Create(MessageSeverity, ErrorMessage));
 }
 
-void FUsdImportContext::DisplayErrorMessages()
+void FUsdImportContext::DisplayErrorMessages(bool bAutomated)
 {
-	//Always clear the old message after an import or re-import
-	const TCHAR* LogTitle = TEXT("USDImport");
-	FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
-	TSharedPtr<class IMessageLogListing> LogListing = MessageLogModule.GetLogListing(LogTitle);
-	LogListing->SetLabel(FText::FromString("USD Import"));
-	LogListing->ClearMessages();
-
-	if (TokenizedErrorMessages.Num() > 0)
+	if(!bAutomated)
 	{
-		LogListing->AddMessages(TokenizedErrorMessages);
-		MessageLogModule.OpenMessageLog(LogTitle);
+		//Always clear the old message after an import or re-import
+		const TCHAR* LogTitle = TEXT("USDImport");
+		FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
+		TSharedPtr<class IMessageLogListing> LogListing = MessageLogModule.GetLogListing(LogTitle);
+		LogListing->SetLabel(FText::FromString("USD Import"));
+		LogListing->ClearMessages();
+
+		if (TokenizedErrorMessages.Num() > 0)
+		{
+			LogListing->AddMessages(TokenizedErrorMessages);
+			MessageLogModule.OpenMessageLog(LogTitle);
+		}
+	}
+	else
+	{
+		for (const TSharedRef<FTokenizedMessage>& Message : TokenizedErrorMessages)
+		{
+			UE_LOG(LogUSDImport, Error, TEXT("%s"), *Message->ToText().ToString());
+		}
 	}
 }
 

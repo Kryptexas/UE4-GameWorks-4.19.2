@@ -24,6 +24,7 @@
 #ifndef TF_DIAGNOSTIC_HELPER_H
 #define TF_DIAGNOSTIC_HELPER_H
 
+#include "pxr/pxr.h"
 #include "pxr/base/tf/api.h"
 #include "pxr/base/tf/stringUtils.h"
 #include "pxr/base/arch/attributes.h"
@@ -31,6 +32,8 @@
 #include <boost/any.hpp>
 #include <cstdarg>
 #include <string>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 typedef boost::any TfDiagnosticInfo;
 class TfCallContext;
@@ -161,5 +164,7 @@ Tf_PostStatusHelper(
     const TfDiagnosticInfo &info,
     const TfEnum &code,
     const char *fmt, ...) ARCH_PRINTF_FUNCTION(4, 5);
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // TF_DIAGNOSTIC_HELPER_H

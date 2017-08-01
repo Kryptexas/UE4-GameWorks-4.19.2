@@ -24,11 +24,14 @@
 #ifndef SDF_PY_UTILS_H
 #define SDF_PY_UTILS_H
 
-#include <boost/python/dict.hpp>
-
+#include "pxr/pxr.h"
 #include "pxr/usd/sdf/api.h"
 #include "pxr/usd/sdf/layer.h"
+
+#include <boost/python/dict.hpp>
 #include <string>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 /// Convert the Python dictionary \p dict to an SdfLayer::FileFormatArguments
 /// object and return it via \p args. 
@@ -41,5 +44,7 @@ SdfFileFormatArgumentsFromPython(
     const boost::python::dict& dict,
     SdfLayer::FileFormatArguments* args,
     std::string* errMsg = NULL);
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // SDF_PY_UTILS_H

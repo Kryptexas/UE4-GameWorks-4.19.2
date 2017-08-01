@@ -598,7 +598,7 @@ static bool SaveWorld(UWorld* World,
 		if (bSuccess && !bAutosaving)
 		{
 			// Also save MapBuildData packages when saving the current level
-			FEditorFileUtils::SaveMapDataPackages(DuplicatedWorld ? DuplicatedWorld : World, bCheckDirty);
+			FEditorFileUtils::SaveMapDataPackages(DuplicatedWorld ? DuplicatedWorld : World, bCheckDirty || bPIESaving);
 		}
 
 		SlowTask.EnterProgressFrame(25);
@@ -1109,7 +1109,9 @@ void FEditorFileUtils::Import(const FString& InFilename)
 		FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools");
 		TArray<FString> Files;
 		Files.Add(InFilename);
-		AssetToolsModule.Get().ImportAssets(Files, Path, SceneFactory);
+
+		const bool bSyncToBrowser = SceneFactory->ImportsAssets();
+		AssetToolsModule.Get().ImportAssets(Files, Path, SceneFactory, bSyncToBrowser);
 	}
 	else
 	{

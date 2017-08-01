@@ -209,7 +209,7 @@ struct FBXImportOptions
 	static void ResetOptions(FBXImportOptions *OptionsToReset)
 	{
 		check(OptionsToReset != nullptr);
-		FMemory::Memzero(OptionsToReset, sizeof(*OptionsToReset));
+		*OptionsToReset = FBXImportOptions();
 	}
 };
 
@@ -331,6 +331,7 @@ public:
 		Scene = nullptr;
 	}
 	//Name API
+	UNREALED_API void GetAllNodeNameArray(TArray<FString> &AllNodeNames) const;
 	UNREALED_API void GetAnimatedNodeNameArray(TArray<FString> &AnimatedNodeNames) const;
 	UNREALED_API void GetNodeAnimatedPropertyNameArray(const FString &NodeName, TArray<FString> &AnimatedPropertyNames) const;
 	UNREALED_API void GetCurveData(const FString& NodeName, const FString& PropertyName, int32 ChannelIndex, int32 CompositeIndex, FInterpCurveFloat& CurveData, bool bNegative) const;
@@ -345,10 +346,12 @@ public:
 	//Conversion API
 	UNREALED_API void GetConvertedTransformCurveData(const FString& NodeName, FInterpCurveFloat& TranslationX, FInterpCurveFloat& TranslationY, FInterpCurveFloat& TranslationZ,
 													 FInterpCurveFloat& EulerRotationX, FInterpCurveFloat& EulerRotationY, FInterpCurveFloat& EulerRotationZ, 
-													 FInterpCurveFloat& ScaleX, FInterpCurveFloat& ScaleY, FInterpCurveFloat& ScaleZ) const;
+													 FInterpCurveFloat& ScaleX, FInterpCurveFloat& ScaleY, FInterpCurveFloat& ScaleZ,
+													 FTransform& DefaultTransform) const;
 
 	FbxScene* Scene;
 	TMap<uint64, FFbxAnimNodeHandle> CurvesData;
+	TMap<uint64, FTransform> TransformData;
 
 private:
 	EInterpCurveMode GetUnrealInterpMode(FbxAnimCurveKey FbxKey) const;

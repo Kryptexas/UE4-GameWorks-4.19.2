@@ -13,10 +13,10 @@
 UENUM()
 enum ERichCurveInterpMode
 {
-	RCIM_Linear,
-	RCIM_Constant,
-	RCIM_Cubic,
-	RCIM_None
+	RCIM_Linear UMETA(DisplayName="Linear"),
+	RCIM_Constant UMETA(DisplayName="Constant"),
+	RCIM_Cubic UMETA(DisplayName="Cubic"),
+	RCIM_None UMETA(DisplayName="None")
 };
 
 
@@ -24,10 +24,10 @@ enum ERichCurveInterpMode
 UENUM()
 enum ERichCurveTangentMode
 {
-	RCTM_Auto,
-	RCTM_User,
-	RCTM_Break,
-	RCTM_None
+	RCTM_Auto UMETA(DisplayName="Auto"),
+	RCTM_User UMETA(DisplayName="User"),
+	RCTM_Break UMETA(DisplayName="Break"),
+	RCTM_None UMETA(DisplayName="None")
 };
 
 
@@ -35,10 +35,10 @@ enum ERichCurveTangentMode
 UENUM()
 enum ERichCurveTangentWeightMode
 {
-	RCTWM_WeightedNone,
-	RCTWM_WeightedArrive,
-	RCTWM_WeightedLeave,
-	RCTWM_WeightedBoth
+	RCTWM_WeightedNone UMETA(DisplayName="None"),
+	RCTWM_WeightedArrive UMETA(DisplayName="Arrive"),
+	RCTWM_WeightedLeave UMETA(DisplayName="Leave"),
+	RCTWM_WeightedBoth UMETA(DisplayName="Both")
 };
 
 
@@ -46,12 +46,12 @@ enum ERichCurveTangentWeightMode
 UENUM()
 enum ERichCurveExtrapolation
 {
-	RCCE_Cycle,
-	RCCE_CycleWithOffset,
-	RCCE_Oscillate,
-	RCCE_Linear,
-	RCCE_Constant,
-	RCCE_None
+	RCCE_Cycle UMETA(DisplayName="Cycle"),
+	RCCE_CycleWithOffset UMETA(DisplayName="CycleWithOffset"),
+	RCCE_Oscillate UMETA(DisplayName="Oscillate"),
+	RCCE_Linear UMETA(DisplayName="Linear"),
+	RCCE_Constant UMETA(DisplayName="Constant"),
+	RCCE_None UMETA(DisplayName="None")
 };
 
 
@@ -230,15 +230,13 @@ public:
 	FKeyHandle AddKey(float InTime, float InValue, const bool bUnwindRotation = false, FKeyHandle KeyHandle = FKeyHandle());
 
 	/**
-	 * Sets the keys with the supplied times and values.
+	 * Sets the keys with the keys.
 	 *
-	 * Expects that the times and values are already sorted.
+	 * Expects that the keys are already sorted.
 	 *
-	 * @param InTimes The times at which to insert the keys.
-	 * @param InValues The key values to insert.
 	 * @see AddKey, DeleteKey
 	 */
-	void SetKeys(const TArray<float>& InTimes, const TArray<float>& InValues);
+	void SetKeys(const TArray<FRichCurveKey>& InKeys);
 
 	/**
 	 *  Remove the specified key from the curve.

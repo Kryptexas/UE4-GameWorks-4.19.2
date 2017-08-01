@@ -24,8 +24,11 @@
 #ifndef USDSHADE_GENERATED_MATERIAL_H
 #define USDSHADE_GENERATED_MATERIAL_H
 
+/// \file usdShade/material.h
+
+#include "pxr/pxr.h"
 #include "pxr/usd/usdShade/api.h"
-#include "pxr/usd/usdShade/subgraph.h"
+#include "pxr/usd/usdShade/nodeGraph.h"
 #include "pxr/usd/usd/prim.h"
 #include "pxr/usd/usd/stage.h"
 
@@ -42,12 +45,16 @@
 #include "pxr/base/tf/token.h"
 #include "pxr/base/tf/type.h"
 
+PXR_NAMESPACE_OPEN_SCOPE
+
 class SdfAssetPath;
 
 // -------------------------------------------------------------------------- //
 // MATERIAL                                                                   //
 // -------------------------------------------------------------------------- //
 
+/// \class UsdShadeMaterial
+///
 /// A Material provides a container into which multiple "render targets"
 /// can add data that defines a "shading material" for a renderer.  Typically
 /// this consists of one or more UsdRelationship properties that target
@@ -92,7 +99,7 @@ class SdfAssetPath;
 /// 
 /// 
 ///
-class UsdShadeMaterial : public UsdShadeSubgraph
+class UsdShadeMaterial : public UsdShadeNodeGraph
 {
 public:
     /// Compile-time constant indicating whether or not this class corresponds
@@ -106,7 +113,7 @@ public:
     /// for a \em valid \p prim, but will not immediately throw an error for
     /// an invalid \p prim
     explicit UsdShadeMaterial(const UsdPrim& prim=UsdPrim())
-        : UsdShadeSubgraph(prim)
+        : UsdShadeNodeGraph(prim)
     {
     }
 
@@ -114,7 +121,7 @@ public:
     /// Should be preferred over UsdShadeMaterial(schemaObj.GetPrim()),
     /// as it preserves SchemaBase state.
     explicit UsdShadeMaterial(const UsdSchemaBase& schemaObj)
-        : UsdShadeSubgraph(schemaObj)
+        : UsdShadeNodeGraph(schemaObj)
     {
     }
 
@@ -129,7 +136,7 @@ public:
     static const TfTokenVector &
     GetSchemaAttributeNames(bool includeInherited=true);
 
-    /// \brief Return a UsdShadeMaterial holding the prim adhering to this
+    /// Return a UsdShadeMaterial holding the prim adhering to this
     /// schema at \p path on \p stage.  If no prim exists at \p path on
     /// \p stage, or if the prim at that path does not adhere to this schema,
     /// return an invalid schema object.  This is shorthand for the following:
@@ -142,7 +149,7 @@ public:
     static UsdShadeMaterial
     Get(const UsdStagePtr &stage, const SdfPath &path);
 
-    /// \brief Attempt to ensure a \a UsdPrim adhering to this schema at \p path
+    /// Attempt to ensure a \a UsdPrim adhering to this schema at \p path
     /// is defined (according to UsdPrim::IsDefined()) on this stage.
     ///
     /// If a prim adhering to this schema at \p path is already defined on this
@@ -171,6 +178,7 @@ public:
 private:
     // needs to invoke _GetStaticTfType.
     friend class UsdSchemaRegistry;
+    USDSHADE_API
     static const TfType &_GetStaticTfType();
 
     static bool _IsTypedSchema();
@@ -184,10 +192,22 @@ public:
     // Feel free to add custom code below this line, it will be preserved by 
     // the code generator. 
     //
-    // Just remember to close the class delcaration with }; and complete the
-    // include guard with #endif
+    // Just remember to: 
+    //  - Close the class declaration with }; 
+    //  - Close the namespace with PXR_NAMESPACE_CLOSE_SCOPE
+    //  - Close the include guard with #endif
     // ===================================================================== //
     // --(BEGIN CUSTOM CODE)--
+
+    // --------------------------------------------------------------------- //
+    /// \name Helpful Types
+    /// @{
+    // --------------------------------------------------------------------- //
+
+    /// A function type that takes a path and returns a bool.
+    typedef std::function<bool (const SdfPath &)> PathPredicate;
+
+    /// @}
 
     // --------------------------------------------------------------------- //
     /// \name Binding Geometry Prims to Materials
@@ -355,12 +375,10 @@ public:
     // --------------------------------------------------------------------- //
     /// \anchor UsdShadeMaterial_BaseMaterial
     /// \name BaseMaterial
-    /// Relationship to describe child/parent inheritance.
-    /// A Material that derives from a BaseMaterial will curruntely only
-    /// present/compose the properties unique to the derived Material, and does
-    /// not retain a live composition relationship to its BaseMaterial
-    //
-    /// \todo We plan to add a "derives" Usd composition arc to replace this.
+    /// A specialize arc describes child/parent inheritance.
+    /// A Material that derives from a BaseMaterial will retain a live 
+    /// composition relationship to its BaseMaterial
+    ///
     /// @{
     // --------------------------------------------------------------------- //
 
@@ -373,6 +391,16 @@ public:
     /// If there is no base Material, an empty path is returned
     USDSHADE_API
     SdfPath GetBaseMaterialPath() const;
+
+    /// Given a PcpPrimIndex, searches it for an arc to a parent material.
+    ///
+    /// This is a public static function to support applications that use
+    /// Pcp but not Usd. Most clients should call \ref GetBaseMaterialPath,
+    /// which uses this function when appropriate.
+    USDSHADE_API
+    static SdfPath FindBaseMaterialPathInPrimIndex(
+        const PcpPrimIndex & primIndex,
+        const PathPredicate & pathIsMaterialPredicate);
 
     /// Set the base Material of this Material.
     /// An empty Material is equivalent to clearing the base Material.
@@ -427,7 +455,7 @@ public:
     /// 
     /// If a "Material" face-set already exists, it is returned. If not, it
     /// creates one and returns it.
-    ///
+    /// 
     USDSHADE_API
     static UsdGeomFaceSetAPI CreateMaterialFaceSet(const UsdPrim &prim);
 
@@ -444,37 +472,8 @@ public:
     static bool HasMaterialFaceSet(const UsdPrim &prim);
 
     /// @}
-
-    // --------------------------------------------------------------------- //
-    /// \anchor UsdShadeMaterial_Terminals
-    /// 
-    /// API to create and query the existence of standard terminals
-    //
-    /// @{
-    // --------------------------------------------------------------------- //
-
-    /// Get the main terminal of a Material: the surface. Different renderers
-    /// will interpret this terminal in their own way
-    /// 
-    USDSHADE_API
-    UsdRelationship GetSurfaceTerminal() const;
-
-    /// Create and set the main terminal of a Material: the surface. Different renderers
-    /// will interpret this terminal in their own way
-    /// 
-    USDSHADE_API
-    UsdRelationship CreateSurfaceTerminal(const SdfPath& targetPath) const;
-
-    /// Get the displacement terminal of a Material
-    /// 
-    USDSHADE_API
-    UsdRelationship GetDisplacementTerminal() const;
-
-    /// Create and set the displacement terminal of a Material
-    /// 
-    USDSHADE_API
-    UsdRelationship CreateDisplacementTerminal(const SdfPath& targetPath) const;
-    /// @}
 };
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif

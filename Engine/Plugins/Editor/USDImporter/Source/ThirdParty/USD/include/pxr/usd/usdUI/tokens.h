@@ -33,14 +33,19 @@
 // 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
+#include "pxr/pxr.h"
 #include "pxr/usd/usdUI/api.h"
 #include "pxr/base/tf/staticTokens.h"
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 /// \hideinitializer
 #define USDUI_TOKENS \
     (closed) \
     (minimized) \
     (open) \
+    ((uiDisplayGroup, "ui:displayGroup")) \
+    ((uiDisplayName, "ui:displayName")) \
     ((uiNodegraphNodeDisplayColor, "ui:nodegraph:node:displayColor")) \
     ((uiNodegraphNodeExpansionState, "ui:nodegraph:node:expansionState")) \
     ((uiNodegraphNodeIcon, "ui:nodegraph:node:icon")) \
@@ -70,11 +75,15 @@
 /// \li <b>closed</b> - Possible value for UsdUINodeGraphNodeAPI::GetUiNodegraphNodeExpansionStateAttr()
 /// \li <b>minimized</b> - Possible value for UsdUINodeGraphNodeAPI::GetUiNodegraphNodeExpansionStateAttr()
 /// \li <b>open</b> - Possible value for UsdUINodeGraphNodeAPI::GetUiNodegraphNodeExpansionStateAttr()
+/// \li <b>uiDisplayGroup</b> - UsdUISceneGraphPrimAPI
+/// \li <b>uiDisplayName</b> - UsdUISceneGraphPrimAPI
 /// \li <b>uiNodegraphNodeDisplayColor</b> - UsdUINodeGraphNodeAPI
 /// \li <b>uiNodegraphNodeExpansionState</b> - UsdUINodeGraphNodeAPI
 /// \li <b>uiNodegraphNodeIcon</b> - UsdUINodeGraphNodeAPI
 /// \li <b>uiNodegraphNodePos</b> - UsdUINodeGraphNodeAPI
 /// \li <b>uiNodegraphNodeStackingOrder</b> - UsdUINodeGraphNodeAPI
 TF_DECLARE_PUBLIC_TOKENS(UsdUITokens, USDUI_API, USDUI_TOKENS);
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif

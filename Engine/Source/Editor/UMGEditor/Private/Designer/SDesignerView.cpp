@@ -470,6 +470,13 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 	DesignerHittestGrid = MakeShared<FHittestGrid>();
 
 	ZoomToFit(/*bInstantZoom*/ true);
+
+	//RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SDesignerView::EnsureTick));
+}
+
+EActiveTimerReturnType SDesignerView::EnsureTick(double InCurrentTime, float InDeltaTime)
+{
+	return EActiveTimerReturnType::Continue;
 }
 
 TSharedRef<SWidget> SDesignerView::CreateOverlayUI()

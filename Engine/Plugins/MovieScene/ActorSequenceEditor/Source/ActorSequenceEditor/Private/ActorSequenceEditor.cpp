@@ -15,6 +15,8 @@
 #include "WorkflowTabManager.h"
 #include "Modules/ModuleManager.h"
 #include "Widgets/Docking/SDockTab.h"
+#include "ISettingsModule.h"
+#include "SequencerSettings.h"
 
 
 #define LOCTEXT_NAMESPACE "ActorSequenceEditor"
@@ -100,9 +102,14 @@ private:
  * Implements the ActorSequenceEditor module.
  */
 class FActorSequenceEditorModule
-	: public IModuleInterface
+	: public IModuleInterface, public FGCObject
 {
 public:
+
+	FActorSequenceEditorModule()
+		: Settings(nullptr)
+	{
+	}
 
 	virtual void StartupModule() override
 	{
@@ -111,6 +118,7 @@ public:
 
 		BlueprintEditorTabBinding = MakeShared<FActorSequenceEditorTabBinding>();
 		RegisterCustomizations();
+		RegisterSettings();
 		OnInitializeSequenceHandle = UActorSequence::OnInitializeSequence().AddStatic(FActorSequenceEditorModule::OnInitializeSequence);
 	}
 	
@@ -118,6 +126,7 @@ public:
 	{
 		UActorSequence::OnInitializeSequence().Remove(OnInitializeSequenceHandle);
 		UnregisterCustomizations();
+		UnregisterSettings();
 		BlueprintEditorTabBinding = nullptr;
 	}
 
@@ -145,9 +154,46 @@ public:
 		}
 	}
 
+	/** Register settings objects. */
+	void RegisterSettings()
+	{
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
+
+		if (SettingsModule != nullptr)
+		{
+			Settings = USequencerSettingsContainer::GetOrCreate<USequencerSettings>(TEXT("EmbeddedActorSequenceEditor"));
+
+			SettingsModule->RegisterSettings("Editor", "ContentEditors", "EmbeddedActorSequenceEditor",
+				LOCTEXT("EmbeddedActorSequenceEditorSettingsName", "Embedded Actor Sequence Editor"),
+				LOCTEXT("EmbeddedActorSequenceEditorSettingsDescription", "Configure the look and feel of the Embedded Actor Sequence Editor."),
+				Settings);	
+		}
+	}
+
+	/** Unregister settings objects. */
+	void UnregisterSettings()
+	{
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
+
+		if (SettingsModule != nullptr)
+		{
+			SettingsModule->UnregisterSettings("Editor", "ContentEditors", "EmbeddedActorSequenceEditor");
+		}
+	}
+
+	/** FGCObject interface */
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override
+	{
+		if (Settings)
+		{
+			Collector.AddReferencedObject(Settings);
+		}
+	}
+
 	FDelegateHandle OnInitializeSequenceHandle;
 	TSharedPtr<FActorSequenceEditorTabBinding> BlueprintEditorTabBinding;
 	FName ActorSequenceComponentName;
+	USequencerSettings* Settings;
 };
 
 IMPLEMENT_MODULE(FActorSequenceEditorModule, ActorSequenceEditor);

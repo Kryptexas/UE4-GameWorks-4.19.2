@@ -1540,10 +1540,16 @@ FProcHandle FShaderCompilingManager::LaunchWorker(const FString& WorkingDirector
 	{
 		WorkerParameters += FString(TEXT(" -buildmachine "));
 	}
-	if (PLATFORM_LINUX && UE_BUILD_DEBUG) //-V560
+	if (PLATFORM_LINUX) //-V560
 	{
-		// when running a debug build under Linux, make SCW crash with core for easier debugging
-		WorkerParameters += FString(TEXT(" -core "));
+		// suppress log generation as much as possible
+		WorkerParameters += FString(TEXT(" -logcmds=\"Global None\" "));
+
+		if (UE_BUILD_DEBUG)
+		{
+			// when running a debug build under Linux, make SCW crash with core for easier debugging
+			WorkerParameters += FString(TEXT(" -core "));
+		}
 	}
 	WorkerParameters += FCommandLine::GetSubprocessCommandline();
 

@@ -426,7 +426,8 @@ void FUnrealEdMisc::OnInit()
 
 	SlowTask.EnterProgressFrame(10);
 
-	LoadFBxLibraries();
+	//Fbx dll is currently compile with a different windows platform sdk so we should use this memory bypass later when unreal ed will be using windows 10 platform sdk
+	//LoadFBxLibraries();
 
 	// Register message log UIs
 	FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
@@ -894,7 +895,8 @@ void FUnrealEdMisc::OnExit()
 
 	UWorldComposition::EnableWorldCompositionEvent.Unbind();
 	
-	UnloadFBxLibraries();
+	//Fbx dll is currently compile with a different windows platform sdk so we should use this memory bypass later when unreal ed will be using windows 10 platform sdk
+	//UnloadFBxLibraries();
 
 	const TMap<FString, FString>& IniRestoreFiles = GetConfigRestoreFilenames();
 

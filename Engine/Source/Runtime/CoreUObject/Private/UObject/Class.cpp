@@ -2090,7 +2090,7 @@ const TCHAR* UScriptStruct::ImportText(const TCHAR* InBuffer, void* Value, UObje
 	return Buffer;
 }
 
-void UScriptStruct::ExportText(FString& ValueStr, const void* Value, const void* Defaults, UObject* OwnerObject, int32 PortFlags, UObject* ExportRootScope, bool bAllowNativeOverride)
+void UScriptStruct::ExportText(FString& ValueStr, const void* Value, const void* Defaults, UObject* OwnerObject, int32 PortFlags, UObject* ExportRootScope, bool bAllowNativeOverride) const
 {
 	if (bAllowNativeOverride && StructFlags & STRUCT_ExportTextItemNative)
 	{

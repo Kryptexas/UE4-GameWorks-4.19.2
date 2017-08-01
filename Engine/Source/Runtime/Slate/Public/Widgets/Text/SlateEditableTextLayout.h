@@ -44,6 +44,9 @@ public:
 	void SetHintText(const TAttribute<FText>& InHintText);
 	FText GetHintText() const;
 
+	void SetSearchText(const TAttribute<FText>& InSearchText);
+	FText GetSearchText() const;
+
 	void SetTextStyle(const FTextBlockStyle& InTextStyle);
 	const FTextBlockStyle& GetTextStyle() const;
 
@@ -117,6 +120,12 @@ public:
 
 	/** Force the text layout to be updated from the marshaller */
 	void ForceRefreshTextLayout(const FText& CurrentText);
+
+	/** Begin a new text search (this is called automatically when BoundSearchText changes) */
+	void BeginSearch(const FText& InSearchText, const ESearchCase::Type InSearchCase = ESearchCase::IgnoreCase, const bool InReverse = false);
+
+	/** Advance the current search to the next match (does nothing if not currently searching) */
+	void AdvanceSearch(const bool InReverse = false);
 
 	/** Update the horizontal scroll amount from the given fraction */
 	FVector2D SetHorizontalScrollFraction(const float InScrollOffsetFraction);
@@ -495,6 +504,18 @@ private:
 	/** The text that appears when there is no text in the text box */
 	TAttribute<FText> HintText;
 
+	/** The text to be searched for */
+	TAttribute<FText> BoundSearchText;
+
+	/** The state of BoundSearchText last Tick() (used to allow updates when the text is changed) */
+	FTextSnapshot BoundSearchTextLastTick;
+
+	/** The active search text (set from BeginSearch) */
+	FText SearchText;
+
+	/** The case-sensitivity of the active search (set from BeginSearch) */
+	ESearchCase::Type SearchCase;
+
 	/** Whether text wraps onto a new line when it's length exceeds this width; if this value is zero or negative, no wrapping occurs. */
 	TAttribute<float> WrapTextAt;
 
@@ -531,8 +552,11 @@ private:
 	/** Layout highlighter used to draw an active text composition */
 	TSharedPtr<SlateEditableTextTypes::FTextCompositionHighlighter> TextCompositionHighlighter;
 
-	/** Run renderer used to draw the active text selection */
+	/** Layout highlighter used to draw the active text selection */
 	TSharedPtr<SlateEditableTextTypes::FTextSelectionHighlighter> TextSelectionHighlighter;
+
+	/** Layout highlighter used to draw the active search selection */
+	TSharedPtr<SlateEditableTextTypes::FTextSearchHighlighter> SearchSelectionHighlighter;
 
 	/** Line highlights that have been added from this editable text layout (used for cleanup without removing) */
 	TArray<FTextLineHighlight> ActiveLineHighlights;

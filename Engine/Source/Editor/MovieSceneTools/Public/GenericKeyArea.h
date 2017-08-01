@@ -273,7 +273,7 @@ private:
 		{
 			IDetailCategoryBuilder& GeneralCategory = DetailBuilder.EditCategory("General");
 
-			IDetailsView* DetailsView = const_cast<IDetailsView*>(&DetailBuilder.GetDetailsView());
+			const IDetailsView* DetailsView = DetailBuilder.GetDetailsView();
 			auto OnValueChanged = [=](TimeType InTime)
 			{
 				this->SetKeyTime(KeyHandle, InTime);

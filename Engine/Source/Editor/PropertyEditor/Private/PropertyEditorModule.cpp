@@ -31,6 +31,7 @@
 
 #include "SStructureDetailsView.h"
 #include "Widgets/Colors/SColorPicker.h"
+#include "PropertyRowGenerator.h"
 
 
 IMPLEMENT_MODULE( FPropertyEditorModule, PropertyEditor );
@@ -64,11 +65,11 @@ void FPropertyTypeLayoutCallbackList::Remove( const TSharedPtr<IPropertyTypeIden
 	}
 }
 
-const FPropertyTypeLayoutCallback& FPropertyTypeLayoutCallbackList::Find( const IPropertyHandle& PropertyHandle )
+const FPropertyTypeLayoutCallback& FPropertyTypeLayoutCallbackList::Find( const IPropertyHandle& PropertyHandle ) const 
 {
 	if( IdentifierList.Num() > 0 )
 	{
-		FPropertyTypeLayoutCallback* Callback =
+		const FPropertyTypeLayoutCallback* Callback =
 			IdentifierList.FindByPredicate
 			(
 				[&]( const FPropertyTypeLayoutCallback& InCallback )
@@ -230,6 +231,17 @@ TSharedRef<SPropertyTreeViewImpl> FPropertyEditorModule::CreatePropertyView(
 	}
 
 	return PropertyView;
+}
+
+TSharedPtr<FAssetThumbnailPool> FPropertyEditorModule::GetThumbnailPool()
+{
+	if (!GlobalThumbnailPool.IsValid())
+	{
+		// Create a thumbnail pool for the view if it doesn't exist.  This does not use resources of no thumbnails are used
+		GlobalThumbnailPool = MakeShareable(new FAssetThumbnailPool(50, false));
+	}
+
+	return GlobalThumbnailPool;
 }
 
 TSharedRef<IDetailsView> FPropertyEditorModule::CreateDetailView( const FDetailsViewArgs& DetailsViewArgs )
@@ -427,7 +439,7 @@ void FPropertyEditorModule::UnregisterCustomClassLayout( FName ClassName )
 }
 
 
-void FPropertyEditorModule::RegisterCustomPropertyTypeLayout( FName PropertyTypeName, FOnGetPropertyTypeCustomizationInstance PropertyTypeLayoutDelegate, TSharedPtr<IPropertyTypeIdentifier> Identifier, TSharedPtr<IDetailsView> ForSpecificInstance )
+void FPropertyEditorModule::RegisterCustomPropertyTypeLayout( FName PropertyTypeName, FOnGetPropertyTypeCustomizationInstance PropertyTypeLayoutDelegate, TSharedPtr<IPropertyTypeIdentifier> Identifier)
 {
 	if( PropertyTypeName != NAME_None )
 	{
@@ -435,70 +447,61 @@ void FPropertyEditorModule::RegisterCustomPropertyTypeLayout( FName PropertyType
 		Callback.PropertyTypeLayoutDelegate = PropertyTypeLayoutDelegate;
 		Callback.PropertyTypeIdentifier = Identifier;
 
-		if( ForSpecificInstance.IsValid() )
+		FPropertyTypeLayoutCallbackList* LayoutCallbacks = GlobalPropertyTypeToLayoutMap.Find(PropertyTypeName);
+		if (LayoutCallbacks)
 		{
-			FCustomPropertyTypeLayoutMap& PropertyTypeToLayoutMap = InstancePropertyTypeLayoutMap.FindOrAdd( ForSpecificInstance );
-			
-			FPropertyTypeLayoutCallbackList* LayoutCallbacks = PropertyTypeToLayoutMap.Find( PropertyTypeName );
-			if( LayoutCallbacks )
-			{
-				LayoutCallbacks->Add( Callback );
-			}
-			else
-			{
-				FPropertyTypeLayoutCallbackList NewLayoutCallbacks;
-				NewLayoutCallbacks.Add( Callback );
-				PropertyTypeToLayoutMap.Add( PropertyTypeName, NewLayoutCallbacks );
-			}
+			LayoutCallbacks->Add(Callback);
 		}
 		else
 		{
-			FPropertyTypeLayoutCallbackList* LayoutCallbacks = GlobalPropertyTypeToLayoutMap.Find( PropertyTypeName );
-			if( LayoutCallbacks )
-			{
-				LayoutCallbacks->Add( Callback );
-			}
-			else
-			{
-				FPropertyTypeLayoutCallbackList NewLayoutCallbacks;
-				NewLayoutCallbacks.Add( Callback );
-				GlobalPropertyTypeToLayoutMap.Add( PropertyTypeName, NewLayoutCallbacks );
-			}
+			FPropertyTypeLayoutCallbackList NewLayoutCallbacks;
+			NewLayoutCallbacks.Add(Callback);
+			GlobalPropertyTypeToLayoutMap.Add(PropertyTypeName, NewLayoutCallbacks);
 		}
 	}
 }
 
-void FPropertyEditorModule::UnregisterCustomPropertyTypeLayout( FName PropertyTypeName, TSharedPtr<IPropertyTypeIdentifier> Identifier, TSharedPtr<IDetailsView> ForSpecificInstance )
+void FPropertyEditorModule::RegisterCustomPropertyTypeLayout(FName PropertyTypeName, FOnGetPropertyTypeCustomizationInstance PropertyTypeLayoutDelegate, TSharedPtr<IPropertyTypeIdentifier> Identifier, TSharedPtr<IDetailsView> ForSpecificInstance)
+{
+	if (ForSpecificInstance.IsValid())
+	{
+		ForSpecificInstance->RegisterInstancedCustomPropertyTypeLayout(PropertyTypeName, PropertyTypeLayoutDelegate, Identifier);
+	}
+	else
+	{
+		RegisterCustomPropertyTypeLayout(PropertyTypeName, PropertyTypeLayoutDelegate, Identifier);
+	}
+}
+
+void FPropertyEditorModule::UnregisterCustomPropertyTypeLayout(FName PropertyTypeName, TSharedPtr<IPropertyTypeIdentifier> InIdentifier, TSharedPtr<IDetailsView> ForSpecificInstance)
+{
+	if (ForSpecificInstance.IsValid())
+	{
+		ForSpecificInstance->UnregisterInstancedCustomPropertyTypeLayout(PropertyTypeName, InIdentifier);
+	}
+	else
+	{
+		UnregisterCustomPropertyTypeLayout(PropertyTypeName, InIdentifier);
+	}
+}
+
+
+void FPropertyEditorModule::UnregisterCustomPropertyTypeLayout( FName PropertyTypeName, TSharedPtr<IPropertyTypeIdentifier> Identifier)
 {
 	if (!PropertyTypeName.IsValid() || (PropertyTypeName == NAME_None))
 	{
 		return;
 	}
 
-	if (ForSpecificInstance.IsValid())
-	{
-		FCustomPropertyTypeLayoutMap* PropertyTypeToLayoutMap = InstancePropertyTypeLayoutMap.Find(ForSpecificInstance);
-			
-		if (PropertyTypeToLayoutMap)
-		{
-			FPropertyTypeLayoutCallbackList* LayoutCallbacks = PropertyTypeToLayoutMap->Find(PropertyTypeName);
-			
-			if (LayoutCallbacks)
-			{
-				LayoutCallbacks->Remove(Identifier);
-			}
-		}
-	}
-	else
-	{
-		FPropertyTypeLayoutCallbackList* LayoutCallbacks = GlobalPropertyTypeToLayoutMap.Find(PropertyTypeName);
+	FPropertyTypeLayoutCallbackList* LayoutCallbacks = GlobalPropertyTypeToLayoutMap.Find(PropertyTypeName);
 
-		if (LayoutCallbacks)
-		{
-			LayoutCallbacks->Remove(Identifier);
-		}
+	if (LayoutCallbacks)
+	{
+		LayoutCallbacks->Remove(Identifier);
 	}
 }
+
+
 
 bool FPropertyEditorModule::HasUnlockedDetailViews() const
 {
@@ -602,18 +605,12 @@ void FPropertyEditorModule::RemoveDeletedObjects( TArray<UObject*>& DeletedObjec
 	}
 }
 
-bool FPropertyEditorModule::IsCustomizedStruct(const UStruct* Struct, TSharedPtr<IDetailsView> DetailsViewInstance ) const
+bool FPropertyEditorModule::IsCustomizedStruct(const UStruct* Struct, const FCustomPropertyTypeLayoutMap& InstancePropertyTypeLayoutMap) const
 {
 	bool bFound = false;
 	if (Struct && !Struct->IsA<UUserDefinedStruct>())
 	{
-		const FCustomPropertyTypeLayoutMap* Map = InstancePropertyTypeLayoutMap.Find( DetailsViewInstance );
-
-		if( Map )
-		{
-			bFound = Map->Contains( Struct->GetFName() );
-		}
-		
+		bFound = InstancePropertyTypeLayoutMap.Contains( Struct->GetFName() );
 		if( !bFound )
 		{
 			bFound = GlobalPropertyTypeToLayoutMap.Contains( Struct->GetFName() );
@@ -623,7 +620,7 @@ bool FPropertyEditorModule::IsCustomizedStruct(const UStruct* Struct, TSharedPtr
 	return bFound;
 }
 
-FPropertyTypeLayoutCallback FPropertyEditorModule::GetPropertyTypeCustomization(const UProperty* Property, const IPropertyHandle& PropertyHandle, TSharedPtr<IDetailsView> DetailsViewInstance )
+FPropertyTypeLayoutCallback FPropertyEditorModule::GetPropertyTypeCustomization(const UProperty* Property, const IPropertyHandle& PropertyHandle, const FCustomPropertyTypeLayoutMap& InstancedPropertyTypeLayoutMap)
 {
 	if( Property )
 	{
@@ -672,14 +669,8 @@ FPropertyTypeLayoutCallback FPropertyEditorModule::GetPropertyTypeCustomization(
 
 		if (PropertyTypeName != NAME_None)
 		{
-			FCustomPropertyTypeLayoutMap* Map = InstancePropertyTypeLayoutMap.Find( DetailsViewInstance );
-			
-			FPropertyTypeLayoutCallbackList* LayoutCallbacks = nullptr;
-			if( Map )
-			{
-				LayoutCallbacks = Map->Find( PropertyTypeName );
-			}
-				
+			const FPropertyTypeLayoutCallbackList* LayoutCallbacks = InstancedPropertyTypeLayoutMap.Find( PropertyTypeName );
+	
 			if( !LayoutCallbacks )
 			{
 				LayoutCallbacks = GlobalPropertyTypeToLayoutMap.Find(PropertyTypeName);
@@ -770,4 +761,9 @@ TSharedRef<class IStructureDetailsView> FPropertyEditorModule::CreateStructureDe
 	DetailView->SetStructureData(StructData);
 
 	return DetailView;
+}
+
+TSharedRef<class IPropertyRowGenerator> FPropertyEditorModule::CreatePropertyRowGenerator(const struct FPropertyRowGeneratorArgs& InArgs)
+{
+	return MakeShared<FPropertyRowGenerator>(InArgs, GetThumbnailPool());
 }

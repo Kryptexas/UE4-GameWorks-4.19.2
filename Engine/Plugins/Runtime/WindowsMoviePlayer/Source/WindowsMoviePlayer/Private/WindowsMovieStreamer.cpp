@@ -86,8 +86,9 @@ bool FMediaFoundationMovieStreamer::Tick(float DeltaTime)
 	if (!VideoPlayer->MovieIsRunning())
 	{
 		CloseMovie();
-		if (MovieIndex < StoredMoviePaths.Num())
+		if ((MovieIndex + 1) < StoredMoviePaths.Num())
 		{
+			++MovieIndex;
 			OpenNextMovie();
 		}
 		else if (PlaybackType != MT_Normal)
@@ -111,7 +112,7 @@ FString FMediaFoundationMovieStreamer::GetMovieName()
 
 bool FMediaFoundationMovieStreamer::IsLastMovieInPlaylist()
 {
-	return MovieIndex == StoredMoviePaths.Num() -1;
+	return MovieIndex == (StoredMoviePaths.Num() - 1);
 }
 
 
@@ -164,8 +165,6 @@ void FMediaFoundationMovieStreamer::OpenNextMovie()
 		MovieViewport->SetTexture(Texture);
 		VideoPlayer->StartPlayback();
 	}
-	++MovieIndex;
-
 }
 
 void FMediaFoundationMovieStreamer::CloseMovie()

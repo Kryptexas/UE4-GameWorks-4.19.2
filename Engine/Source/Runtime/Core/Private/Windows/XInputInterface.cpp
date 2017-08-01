@@ -170,43 +170,25 @@ void XInputInterface::SendControllerEvents()
 			CurrentStates[X360ToXboxControllerMapping[22]] = !!(XInputState.Gamepad.sThumbRX < -XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE);
 			CurrentStates[X360ToXboxControllerMapping[23]] = !!(XInputState.Gamepad.sThumbRX > XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE);
 
-			// Check Analog state
+			// Send new analog data if it's different or outside the platform deadzone.
+			auto OnControllerAnalog = [this, &ControllerState](const FName& GamePadKey, const auto NewAxisValue, const float NewAxisValueNormalized, auto& OldAxisValue, const auto DeadZone) {
+				if (OldAxisValue != NewAxisValue || FMath::Abs((int32)NewAxisValue) > DeadZone)
+				{
+					MessageHandler->OnControllerAnalog(GamePadKey, ControllerState.ControllerId, NewAxisValueNormalized);
+				}
+				OldAxisValue = NewAxisValue;
+			};
 
-			if( ControllerState.LeftXAnalog != XInputState.Gamepad.sThumbLX )
-			{
-				MessageHandler->OnControllerAnalog( FGamepadKeyNames::LeftAnalogX, ControllerState.ControllerId, ShortToNormalizedFloat(XInputState.Gamepad.sThumbLX) );
-				ControllerState.LeftXAnalog = XInputState.Gamepad.sThumbLX;
-			}
+			const auto& Gamepad = XInputState.Gamepad;
 
-			if( ControllerState.LeftYAnalog != XInputState.Gamepad.sThumbLY )
-			{
-				MessageHandler->OnControllerAnalog( FGamepadKeyNames::LeftAnalogY, ControllerState.ControllerId, ShortToNormalizedFloat(XInputState.Gamepad.sThumbLY) );
-				ControllerState.LeftYAnalog = XInputState.Gamepad.sThumbLY;
-			}
+			OnControllerAnalog(FGamepadKeyNames::LeftAnalogX, Gamepad.sThumbLX, ShortToNormalizedFloat(Gamepad.sThumbLX), ControllerState.LeftXAnalog, XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE);
+			OnControllerAnalog(FGamepadKeyNames::LeftAnalogY, Gamepad.sThumbLY, ShortToNormalizedFloat(Gamepad.sThumbLY), ControllerState.LeftYAnalog, XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE);
 
-			if( ControllerState.RightXAnalog != XInputState.Gamepad.sThumbRX )
-			{
-				MessageHandler->OnControllerAnalog( FGamepadKeyNames::RightAnalogX, ControllerState.ControllerId, ShortToNormalizedFloat(XInputState.Gamepad.sThumbRX) );
-				ControllerState.RightXAnalog = XInputState.Gamepad.sThumbRX;
-			}
+			OnControllerAnalog(FGamepadKeyNames::RightAnalogX, Gamepad.sThumbRX, ShortToNormalizedFloat(Gamepad.sThumbRX), ControllerState.RightXAnalog, XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE);
+			OnControllerAnalog(FGamepadKeyNames::RightAnalogY, Gamepad.sThumbRY, ShortToNormalizedFloat(Gamepad.sThumbRY), ControllerState.RightYAnalog, XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE);
 
-			if( ControllerState.RightYAnalog != XInputState.Gamepad.sThumbRY )
-			{
-				MessageHandler->OnControllerAnalog( FGamepadKeyNames::RightAnalogY, ControllerState.ControllerId, ShortToNormalizedFloat(XInputState.Gamepad.sThumbRY) );
-				ControllerState.RightYAnalog = XInputState.Gamepad.sThumbRY;
-			}
-
-			if( ControllerState.LeftTriggerAnalog != XInputState.Gamepad.bLeftTrigger )
-			{
-				MessageHandler->OnControllerAnalog( FGamepadKeyNames::LeftTriggerAnalog, ControllerState.ControllerId, XInputState.Gamepad.bLeftTrigger / 255.f );
-				ControllerState.LeftTriggerAnalog = XInputState.Gamepad.bLeftTrigger;
-			}
-
-			if( ControllerState.RightTriggerAnalog != XInputState.Gamepad.bRightTrigger )
-			{
-				MessageHandler->OnControllerAnalog( FGamepadKeyNames::RightTriggerAnalog, ControllerState.ControllerId, XInputState.Gamepad.bRightTrigger / 255.f );
-				ControllerState.RightTriggerAnalog = XInputState.Gamepad.bRightTrigger;
-			}
+			OnControllerAnalog(FGamepadKeyNames::LeftTriggerAnalog, Gamepad.bLeftTrigger, Gamepad.bLeftTrigger / 255.f, ControllerState.LeftTriggerAnalog, XINPUT_GAMEPAD_TRIGGER_THRESHOLD);
+			OnControllerAnalog(FGamepadKeyNames::RightTriggerAnalog, Gamepad.bRightTrigger, Gamepad.bRightTrigger / 255.f, ControllerState.RightTriggerAnalog, XINPUT_GAMEPAD_TRIGGER_THRESHOLD);
 
 			const double CurrentTime = FPlatformTime::Seconds();
 

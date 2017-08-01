@@ -1072,6 +1072,7 @@ void SHierarchyViewItem::Construct(const FArguments& InArgs, const TSharedRef< S
 			// Widget icon
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
+			.VAlign(VAlign_Center)
 			[
 				SNew(SImage)
 				.ColorAndOpacity(FLinearColor(1,1,1,0.5))

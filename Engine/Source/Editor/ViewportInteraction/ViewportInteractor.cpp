@@ -609,6 +609,7 @@ void UViewportInteractor::ResetHoverState()
 {
 	InteractorData.HoverLocation.Reset();
 	InteractorData.HoveringOverTransformGizmoComponent = nullptr;
+	SavedHitResult.Reset();
 }
 
 FHitResult UViewportInteractor::GetHitResultFromLaserPointer( TArray<AActor*>* OptionalListOfIgnoredActors /*= nullptr*/, const bool bIgnoreGizmos /*= false*/, 
@@ -616,104 +617,113 @@ FHitResult UViewportInteractor::GetHitResultFromLaserPointer( TArray<AActor*>* O
 {
 	FHitResult BestHitResult;
 
-	FVector LaserPointerStart, LaserPointerEnd;
-	if ( GetLaserPointer( LaserPointerStart, LaserPointerEnd, bEvenIfBlocked, LaserLengthOverride ) )
+	if (SavedHitResult.IsSet())
 	{
-		bool bActuallyIgnoreGizmos = bIgnoreGizmos;
-		if( !WorldInteraction->IsTransformGizmoVisible() )
+		BestHitResult = SavedHitResult.GetValue();
+	}
+	else
+	{
+		FVector LaserPointerStart, LaserPointerEnd;
+		if ( GetLaserPointer( LaserPointerStart, LaserPointerEnd, bEvenIfBlocked, LaserLengthOverride ) )
 		{
-			bActuallyIgnoreGizmos = true;
-		}
-
-		// Ignore all volume objects.  They'll just get in the way of selecting other things.
-		// @todo viewportinteraction: We'll need to device a way to allow volume wire bounds to be selectable using this system
-		static TArray<AActor*> VolumeActors;
-		VolumeActors.Reset();
-		{
-			for( TActorIterator<AVolume> It( WorldInteraction->GetWorld(), AVolume::StaticClass() ); It; ++It )
+			bool bActuallyIgnoreGizmos = bIgnoreGizmos;
+			if( !WorldInteraction->IsTransformGizmoVisible() )
 			{
-				AActor* Actor = *It;
-				if( !Actor->IsPendingKill() )
-				{
-					VolumeActors.Add( Actor );
-				}
-			}
-		}
-
-		// Twice twice.  Once for editor gizmos which are "on top" and always take precedence, then a second time
-		// for all of the scene objects
-		for ( int32 PassIndex = bActuallyIgnoreGizmos ? 1 : 0; PassIndex < 2; ++PassIndex )
-		{
-			const bool bOnlyEditorGizmos = ( PassIndex == 0 );
-
-			const bool bTraceComplex = true;
-			FCollisionQueryParams TraceParams( NAME_None, FCollisionQueryParams::GetUnknownStatId(), bTraceComplex, nullptr );
-
-			if ( OptionalListOfIgnoredActors != nullptr )
-			{
-				TraceParams.AddIgnoredActors( *OptionalListOfIgnoredActors );
+				bActuallyIgnoreGizmos = true;
 			}
 
-			for( const TWeakObjectPtr<AActor> ActorToIgnoreWeakPtr : WorldInteraction->GetActorsToExcludeFromHitTest() )
+			// Ignore all volume objects.  They'll just get in the way of selecting other things.
+			// @todo viewportinteraction: We'll need to device a way to allow volume wire bounds to be selectable using this system
+			static TArray<AActor*> VolumeActors;
+			VolumeActors.Reset();
 			{
-				AActor* ActorToIgnore = ActorToIgnoreWeakPtr.Get();
-				if( ActorToIgnore != nullptr )
+				for( TActorIterator<AVolume> It( WorldInteraction->GetWorld(), AVolume::StaticClass() ); It; ++It )
 				{
-					TraceParams.AddIgnoredActor( ActorToIgnore );
-				}
-			}
-
-			TraceParams.AddIgnoredActors( VolumeActors );
-
-			bool bHit = false;
-			FHitResult HitResult;
-			if ( bOnlyEditorGizmos )
-			{
-				const FCollisionResponseParams& ResponseParam = FCollisionResponseParams::DefaultResponseParam;
-				const ECollisionChannel CollisionChannel = bOnlyEditorGizmos ? COLLISION_GIZMO : ECC_Visibility;
-
-				bHit = WorldInteraction->GetWorld()->LineTraceSingleByChannel( HitResult, LaserPointerStart, LaserPointerEnd, CollisionChannel, TraceParams, ResponseParam );
-				if ( bHit )
-				{
-					BestHitResult = HitResult;
-				}
-			}
-			else
-			{
-				FCollisionObjectQueryParams EverythingButGizmos( FCollisionObjectQueryParams::AllObjects );
-				EverythingButGizmos.RemoveObjectTypesToQuery( COLLISION_GIZMO );
-				bHit = WorldInteraction->GetWorld()->LineTraceSingleByObjectType( HitResult, LaserPointerStart, LaserPointerEnd, EverythingButGizmos, TraceParams );
-				
-				if ( bHit )
-				{
-					InteractorData.bHitResultIsPriorityType = false;
-					if ( !bOnlyEditorGizmos && ObjectsInFrontOfGizmo )
+					AActor* Actor = *It;
+					if( !Actor->IsPendingKill() )
 					{
-						for ( UClass* CurrentClass : *ObjectsInFrontOfGizmo )
-						{
-							bool bClassHasPriority = false;
-							bClassHasPriority =
-								( HitResult.GetComponent() != nullptr && HitResult.GetComponent()->IsA( CurrentClass ) ) ||
-								( HitResult.GetActor() != nullptr && HitResult.GetActor()->IsA( CurrentClass ) );
-
-							if ( bClassHasPriority )
-							{
-								InteractorData.bHitResultIsPriorityType = bClassHasPriority;
-								break;
-							}
-						}
+						VolumeActors.Add( Actor );
 					}
+				}
+			}
 
-					const bool bHitResultIsGizmo = HitResult.GetActor() != nullptr && HitResult.GetActor() == WorldInteraction->GetTransformGizmoActor();
-					if ( BestHitResult.GetActor() == nullptr ||
-						 InteractorData.bHitResultIsPriorityType ||
-						 bHitResultIsGizmo )
+			// Twice twice.  Once for editor gizmos which are "on top" and always take precedence, then a second time
+			// for all of the scene objects
+			for ( int32 PassIndex = bActuallyIgnoreGizmos ? 1 : 0; PassIndex < 2; ++PassIndex )
+			{
+				const bool bOnlyEditorGizmos = ( PassIndex == 0 );
+
+				const bool bTraceComplex = true;
+				FCollisionQueryParams TraceParams( NAME_None, FCollisionQueryParams::GetUnknownStatId(), bTraceComplex, nullptr );
+
+				if ( OptionalListOfIgnoredActors != nullptr )
+				{
+					TraceParams.AddIgnoredActors( *OptionalListOfIgnoredActors );
+				}
+
+				for( const TWeakObjectPtr<AActor> ActorToIgnoreWeakPtr : WorldInteraction->GetActorsToExcludeFromHitTest() )
+				{
+					AActor* ActorToIgnore = ActorToIgnoreWeakPtr.Get();
+					if( ActorToIgnore != nullptr )
+					{
+						TraceParams.AddIgnoredActor( ActorToIgnore );
+					}
+				}
+
+				TraceParams.AddIgnoredActors( VolumeActors );
+
+				bool bHit = false;
+				FHitResult HitResult;
+				if ( bOnlyEditorGizmos )
+				{
+					const FCollisionResponseParams& ResponseParam = FCollisionResponseParams::DefaultResponseParam;
+					const ECollisionChannel CollisionChannel = bOnlyEditorGizmos ? COLLISION_GIZMO : ECC_Visibility;
+
+					bHit = WorldInteraction->GetWorld()->LineTraceSingleByChannel( HitResult, LaserPointerStart, LaserPointerEnd, CollisionChannel, TraceParams, ResponseParam );
+					if ( bHit )
 					{
 						BestHitResult = HitResult;
 					}
 				}
+				else
+				{
+					FCollisionObjectQueryParams EverythingButGizmos( FCollisionObjectQueryParams::AllObjects );
+					EverythingButGizmos.RemoveObjectTypesToQuery( COLLISION_GIZMO );
+					bHit = WorldInteraction->GetWorld()->LineTraceSingleByObjectType( HitResult, LaserPointerStart, LaserPointerEnd, EverythingButGizmos, TraceParams );
+				
+					if ( bHit )
+					{
+						InteractorData.bHitResultIsPriorityType = false;
+						if ( !bOnlyEditorGizmos && ObjectsInFrontOfGizmo )
+						{
+							for ( UClass* CurrentClass : *ObjectsInFrontOfGizmo )
+							{
+								bool bClassHasPriority = false;
+								bClassHasPriority =
+									( HitResult.GetComponent() != nullptr && HitResult.GetComponent()->IsA( CurrentClass ) ) ||
+									( HitResult.GetActor() != nullptr && HitResult.GetActor()->IsA( CurrentClass ) );
+
+								if ( bClassHasPriority )
+								{
+									InteractorData.bHitResultIsPriorityType = bClassHasPriority;
+									break;
+								}
+							}
+						}
+
+						const bool bHitResultIsGizmo = HitResult.GetActor() != nullptr && HitResult.GetActor() == WorldInteraction->GetTransformGizmoActor();
+						if ( BestHitResult.GetActor() == nullptr ||
+							 InteractorData.bHitResultIsPriorityType ||
+							 bHitResultIsGizmo )
+						{
+							BestHitResult = HitResult;
+						}
+					}
+				}
 			}
 		}
+
+		SavedHitResult = BestHitResult;
 	}
 
 	return BestHitResult;

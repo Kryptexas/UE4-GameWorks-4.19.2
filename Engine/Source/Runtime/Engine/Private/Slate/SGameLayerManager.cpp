@@ -387,8 +387,11 @@ void SGameLayerManager::AddOrUpdatePlayerLayers(const FGeometry& AllottedGeometr
 
 			FVector2D AspectRatioInset = GetAspectRatioInset(Player);
 
-			Size = ( Size * AllottedGeometry.GetLocalSize() - ( AspectRatioInset * 2.0f ) ) * InverseDPIScale;
-			Position = ( Position * AllottedGeometry.GetLocalSize() + AspectRatioInset ) * InverseDPIScale;
+			Position += AspectRatioInset;
+			Size -= (AspectRatioInset * 2.0f);
+
+			Size = Size * AllottedGeometry.GetLocalSize() * InverseDPIScale;
+			Position = Position * AllottedGeometry.GetLocalSize() * InverseDPIScale;
 
 			if (bIsWindowTitleBarVisible)
 			{
@@ -417,8 +420,9 @@ FVector2D SGameLayerManager::GetAspectRatioInset(ULocalPlayer* LocalPlayer) cons
 			FIntRect ViewRect = ViewInitOptions.GetViewRect();
 			FIntRect ConstrainedViewRect = ViewInitOptions.GetConstrainedViewRect();
 
-			Offset.X = ( ConstrainedViewRect.Min.X - ViewRect.Min.X );
-			Offset.Y = ( ConstrainedViewRect.Min.Y - ViewRect.Min.Y );
+			// Return normalized coordinates.
+			Offset.X = ( ConstrainedViewRect.Min.X - ViewRect.Min.X ) / (float)ViewRect.Width();
+			Offset.Y = ( ConstrainedViewRect.Min.Y - ViewRect.Min.Y ) / (float)ViewRect.Height();
 		}
 	}
 

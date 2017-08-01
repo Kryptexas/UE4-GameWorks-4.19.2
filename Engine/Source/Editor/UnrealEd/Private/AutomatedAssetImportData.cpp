@@ -4,6 +4,7 @@
 #include "Factories/Factory.h"
 #include "UObject/Package.h"
 #include "Misc/PackageName.h"
+#include "UObjectIterator.h"
 
 DEFINE_LOG_CATEGORY(LogAutomatedImport);
 
@@ -27,10 +28,21 @@ void UAutomatedAssetImportData::Initialize(TSharedPtr<FJsonObject> InImportGroup
 	ImportGroupJsonData = InImportGroupJsonData;
 	if(Filenames.Num() > 0)
 	{
-		// IF a factory doesn't have a vaild full path assume it is an unreal internal factory
+		// If a factory doesn't have a vaild full path assume it is an unreal internal factory
 		if(!FactoryName.IsEmpty() && !FactoryName.StartsWith("/Script/"))
 		{
-			FactoryName = TEXT("/Script/UnrealEd.") + FactoryName;
+			FName FactoryFName = *FactoryName;
+			// Find the factory among loaded factory classes
+			EObjectFlags ExclusionFlags = RF_NoFlags;
+			for (UFactory* TestFactory : TObjectRange<UFactory>(ExclusionFlags))
+			{
+				if (TestFactory->GetClass()->GetFName() == FactoryFName)
+				{
+					// factory has been found
+					FactoryName = TestFactory->GetClass()->GetPathName();
+					break;
+				}
+			}
 		}
 
 		if(!FactoryName.IsEmpty())
@@ -78,9 +90,22 @@ void UAutomatedAssetImportData::Initialize(TSharedPtr<FJsonObject> InImportGroup
 		}
 	}
 
-	if(!DestinationPath.IsEmpty() && !DestinationPath.StartsWith("/Game"))
+	if(!DestinationPath.IsEmpty() && FPackageName::GetPackageMountPoint(DestinationPath) == NAME_None)
 	{
+		// Path doesnt have a valid moint point.  assume it is in /Game
 		DestinationPath = TEXT("/Game") / DestinationPath;
+
+		UE_LOG(LogAutomatedImport, Warning, TEXT("DestinationPath has no valid mount point.  Assuming /Game is the mount point"));
+	}
+
+	if (!LevelToLoad.IsEmpty())
+	{
+		FText FailReason;
+
+		if (!FPackageName::IsValidLongPackageName(LevelToLoad, false, &FailReason))
+		{
+			UE_LOG(LogAutomatedImport, Error, TEXT("Invalid level specified: %s"), *FailReason.ToString());
+		}
 	}
 
 	FString PackagePath;

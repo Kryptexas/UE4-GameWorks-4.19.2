@@ -26,6 +26,7 @@
 #include "ComponentAssetBroker.h"
 #include "SlateMaterialBrush.h"
 #include "Widgets/Input/SNumericEntryBox.h"
+#include "AdvancedPreviewScene.h"
 
 
 #define LOCTEXT_NAMESPACE "MaterialEditor"
@@ -34,7 +35,7 @@
 class FMaterialEditorViewportClient : public FEditorViewportClient
 {
 public:
-	FMaterialEditorViewportClient(TWeakPtr<IMaterialEditor> InMaterialEditor, FPreviewScene& InPreviewScene, const TSharedRef<SMaterialEditor3DPreviewViewport>& InMaterialEditorViewport);
+	FMaterialEditorViewportClient(TWeakPtr<IMaterialEditor> InMaterialEditor, FAdvancedPreviewScene& InPreviewScene, const TSharedRef<SMaterialEditor3DPreviewViewport>& InMaterialEditorViewport);
 
 	// FEditorViewportClient interface
 	virtual FLinearColor GetBackgroundColor() const override;
@@ -58,7 +59,7 @@ private:
 	TWeakPtr<IMaterialEditor> MaterialEditorPtr;
 };
 
-FMaterialEditorViewportClient::FMaterialEditorViewportClient(TWeakPtr<IMaterialEditor> InMaterialEditor, FPreviewScene& InPreviewScene, const TSharedRef<SMaterialEditor3DPreviewViewport>& InMaterialEditorViewport)
+FMaterialEditorViewportClient::FMaterialEditorViewportClient(TWeakPtr<IMaterialEditor> InMaterialEditor, FAdvancedPreviewScene& InPreviewScene, const TSharedRef<SMaterialEditor3DPreviewViewport>& InMaterialEditorViewport)
 	: FEditorViewportClient(nullptr, &InPreviewScene, StaticCastSharedRef<SEditorViewport>(InMaterialEditorViewport))
 	, MaterialEditorPtr(InMaterialEditor)
 {
@@ -184,14 +185,10 @@ void FMaterialEditorViewportClient::FocusViewportOnBounds(const FBoxSphereBounds
 void SMaterialEditor3DPreviewViewport::Construct(const FArguments& InArgs)
 {
 	MaterialEditorPtr = InArgs._MaterialEditor;
-
+	AdvancedPreviewScene = MakeShareable(new FAdvancedPreviewScene(FPreviewScene::ConstructionValues()));
 	bShowGrid = false;
 	bShowBackground = false;
 	PreviewPrimType = TPT_None;
-
-	// Rotate the light in the preview scene so that it faces the preview object
-	PreviewScene.SetLightDirection(FRotator(-40.0f, 27.5f, 0.0f));
-	PreviewScene.SetSkyCubemap(GUnrealEd->GetThumbnailManager()->AmbientCubemap);
 
 	SEditorViewport::Construct( SEditorViewport::FArguments() );
 
@@ -246,7 +243,7 @@ bool SMaterialEditor3DPreviewViewport::SetPreviewAsset(UObject* InAsset)
 	// Unregister the current component
 	if (PreviewMeshComponent != nullptr)
 	{
-		PreviewScene.RemoveComponent(PreviewMeshComponent);
+		AdvancedPreviewScene->RemoveComponent(PreviewMeshComponent);
 		PreviewMeshComponent = nullptr;
 	}
 
@@ -303,7 +300,9 @@ bool SMaterialEditor3DPreviewViewport::SetPreviewAsset(UObject* InAsset)
 	// Add the new component to the scene
 	if (PreviewMeshComponent != nullptr)
 	{
-		PreviewScene.AddComponent(PreviewMeshComponent, Transform);
+		AdvancedPreviewScene->AddComponent(PreviewMeshComponent, Transform);
+		AdvancedPreviewScene->SetFloorOffset(-PreviewMeshComponent->Bounds.Origin.Z + PreviewMeshComponent->Bounds.BoxExtent.Z);
+
 	}
 
 	// Make sure the preview material is applied to the component
@@ -544,14 +543,14 @@ void SMaterialEditor3DPreviewViewport::OnFloatingButtonClicked()
 
 TSharedRef<FEditorViewportClient> SMaterialEditor3DPreviewViewport::MakeEditorViewportClient() 
 {
-	EditorViewportClient = MakeShareable( new FMaterialEditorViewportClient(MaterialEditorPtr, PreviewScene, SharedThis(this)) );
+	EditorViewportClient = MakeShareable( new FMaterialEditorViewportClient(MaterialEditorPtr, *AdvancedPreviewScene.Get(), SharedThis(this)) );
 	
 	EditorViewportClient->SetViewLocation( FVector::ZeroVector );
 	EditorViewportClient->SetViewRotation( FRotator::ZeroRotator );
 	EditorViewportClient->SetViewLocationForOrbiting( FVector::ZeroVector );
 	EditorViewportClient->bSetListenerPosition = false;
 
-	EditorViewportClient->SetRealtime( false );
+	EditorViewportClient->SetRealtime( true );
 	EditorViewportClient->VisibilityDelegate.BindSP( this, &SMaterialEditor3DPreviewViewport::IsVisible );
 
 	return EditorViewportClient.ToSharedRef();

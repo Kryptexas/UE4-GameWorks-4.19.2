@@ -24,12 +24,16 @@
 #ifndef USD_TYPED_H
 #define USD_TYPED_H
 
+#include "pxr/pxr.h"
 #include "pxr/usd/usd/api.h"
 #include "pxr/usd/usd/schemaBase.h"
 #include "pxr/usd/usd/prim.h"
 #include "pxr/usd/usd/stage.h"
 
 #include "pxr/base/tf/token.h"
+
+PXR_NAMESPACE_OPEN_SCOPE
+
 
 /// \class UsdTyped
 ///
@@ -61,7 +65,8 @@ public:
     {
     }
 
-    USD_API virtual ~UsdTyped();
+    USD_API
+    virtual ~UsdTyped();
 
     /// Return a vector of names of all pre-declared attributes for this schema
     /// class and all its ancestor classes.  Does not include attributes that
@@ -82,12 +87,18 @@ public:
     /// UsdTyped(stage->GetPrimAtPath(path));
     /// \endcode
     ///
-	USD_API static UsdTyped
+    USD_API
+    static UsdTyped
     Get(const UsdStagePtr &stage, const SdfPath &path);
 
 private:
-	USD_API virtual bool _IsCompatible(const UsdPrim &prim) const;
-	USD_API virtual const TfType &_GetTfType() const;
+    USD_API
+    virtual bool _IsCompatible(const UsdPrim &prim) const;
+    USD_API
+    virtual const TfType &_GetTfType() const;
 };
+
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // USD_TYPED_H

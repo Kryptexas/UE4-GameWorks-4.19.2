@@ -28,9 +28,9 @@
 /// \ingroup group_arch_SystemFunctions
 /// Architecture dependent file system access
 
+#include "pxr/pxr.h"
 #include "pxr/base/arch/api.h"
 #include "pxr/base/arch/defines.h"
-#include "pxr/base/arch/api.h"
 #include "pxr/base/arch/inttypes.h"
 #include <memory>
 #include <cstdio>
@@ -42,14 +42,18 @@
 #include <sys/stat.h>
 
 #if defined(ARCH_OS_LINUX)
+#include <unistd.h>
 #include <sys/statfs.h>
 #include <glob.h>
 #elif defined(ARCH_OS_DARWIN)
+#include <unistd.h>
 #include <sys/mount.h>
 #include <glob.h>
 #elif defined(ARCH_OS_WINDOWS)
 #include <io.h>
 #endif
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 /// \addtogroup group_arch_SystemFunctions
 ///@{
@@ -60,23 +64,31 @@
         #include <sys/param.h>                  /* for MAXPATHLEN */
     #endif
 #else
+    // XXX -- Should probably have ARCH_ macro for this.
     #define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
 
-	// See https://msdn.microsoft.com/en-us/library/1w06ktdy.aspx
-	#define F_OK    0       // Test for existence.
-	#define W_OK    2       // Test for write permission.
-	#define R_OK    4       // Test for read permission.
+    // See https://msdn.microsoft.com/en-us/library/1w06ktdy.aspx
+    // XXX -- Should probably have Arch enum for these.
+    #define F_OK    0       // Test for existence.
+    #define X_OK    1       // Test for execute permission.
+    #define W_OK    2       // Test for write permission.
+    #define R_OK    4       // Test for read permission.
 #endif
 
-#if !defined(ARCH_OS_WINDOWS)
-    #define ARCH_GLOB_DEFAULT   GLOB_NOCHECK|GLOB_MARK
+#if defined(ARCH_OS_WINDOWS)
+    #define ARCH_GLOB_NOCHECK   1
+    #define ARCH_GLOB_MARK      2
+    #define ARCH_GLOB_NOSORT    4
 #else
-    #define ARCH_GLOB_DEFAULT   0
+    #define ARCH_GLOB_NOCHECK   GLOB_NOCHECK
+    #define ARCH_GLOB_MARK      GLOB_MARK
+    #define ARCH_GLOB_NOSORT    GLOB_NOSORT
 #endif
+#define ARCH_GLOB_DEFAULT   (ARCH_GLOB_NOCHECK | ARCH_GLOB_MARK)
 
 #ifndef ARCH_PATH_MAX
-    #ifdef _POSIX_VERSION
-        #define ARCH_PATH_MAX _POSIX_PATH_MAX
+    #ifdef PATH_MAX
+        #define ARCH_PATH_MAX PATH_MAX
     #else
         #ifdef MAXPATHLEN
             #define ARCH_PATH_MAX MAXPATHLEN
@@ -91,13 +103,19 @@
 #endif
 
 #if defined(ARCH_OS_WINDOWS)
-    #define ARCH_PATH_SEP		'\\'
+    #define ARCH_PATH_SEP       "\\"
     #define ARCH_PATH_LIST_SEP  ";"
     #define ARCH_REL_PATH_IDENT ".\\"
 #else
-    #define ARCH_PATH_SEP       '/'
+    #define ARCH_PATH_SEP       "/"
     #define ARCH_PATH_LIST_SEP  ":"
     #define ARCH_REL_PATH_IDENT "./"
+#endif
+
+#if defined(ARCH_OS_WINDOWS)
+typedef struct __stat64 ArchStatType;
+#else
+typedef struct stat ArchStatType;
 #endif
 
 /// \file fileSystem.h
@@ -105,23 +123,7 @@
 /// \ingroup group_arch_SystemFunctions
 ///
 
-/// Return the length of a file in bytes.
-///
-/// Returns -1 if the file cannot be opened/read.
-ARCH_API int64_t ArchGetFileLength(const char *fileName);
-ARCH_API int64_t ArchGetFileLength(FILE *file);
-
-/// This enum is used to specify a comparison operator for
-/// \c ArchStatCompare().
-/// \ingroup group_arch_SystemFunctions
-enum ArchStatComparisonOp {
-    ARCH_STAT_MTIME_EQUAL,	/*!< Modification times are equal */
-    ARCH_STAT_MTIME_LESS,	/*!< Modification time for \c stat1 is less */
-    ARCH_STAT_SAME_FILE		/*!< Both refer to same file */
-};
-    
 /// Opens a file.
-/// \ingroup group_arch_SystemFunctions
 ///
 /// Opens the file that is specified by filename.
 /// Returning true if the file was opened successfully; false otherwise.
@@ -142,7 +144,7 @@ ArchOpenFile(char const* fileName, char const* mode);
 #endif
 
 #if defined(ARCH_OS_WINDOWS)
-	ARCH_API int ArchFileAccess(const char* path, int mode);
+    ARCH_API int ArchFileAccess(const char* path, int mode);
 #else
 #   define ArchFileAccess(path, mode)   access(path, mode)
 #endif
@@ -150,7 +152,7 @@ ArchOpenFile(char const* fileName, char const* mode);
 #if defined(ARCH_OS_WINDOWS)
 #   define ArchFdOpen(fd, mode)         _fdopen(fd, mode)
 #else
-#   define ArchFdOpen(fd, mode)         open(fd, mode)
+#   define ArchFdOpen(fd, mode)         fdopen(fd, mode)
 #endif
 
 #if defined(ARCH_OS_WINDOWS)
@@ -171,33 +173,9 @@ ArchOpenFile(char const* fileName, char const* mode);
 #   define ArchRmDir(path)   rmdir(path)
 #endif
 
-// BEGIN EPIC CHANGE - Support 64 bit file sizes
-#if defined(ARCH_OS_WINDOWS)
-	typedef struct _stat64 StatRes;
-#	define ArchStat(filename, stat)		_stat64(filename, stat)
-#else
-	typedef struct stat64 StatRes;
-#	define ArchStat(filename, stat)		stat64(filename, stat)
-#endif
-// END EPIC CHANGE
-
-/// Compares two \c stat structures.
-/// \ingroup group_arch_SystemFunctions
-///
-/// Compares two \c stat structures with a given comparison
-/// operation, returning non-zero if the operation is true with respect
-/// to \p stat1 and \p stat2.
-///
-ARCH_API
-int ArchStatCompare(enum ArchStatComparisonOp op,
-		    const StatRes *stat1,
-		    const StatRes *stat2);
-
 /// Return the length of a file in bytes.
-/// \ingroup group_arch_SystemFunctions
 ///
 /// Returns -1 if the file cannot be opened/read.
-///
 ARCH_API int64_t ArchGetFileLength(const char* fileName);
 ARCH_API int64_t ArchGetFileLength(FILE *file);
 
@@ -207,13 +185,20 @@ ARCH_API int64_t ArchGetFileLength(FILE *file);
 /// This returns true if the struct pointer is valid, and the stat indicates
 /// the target is writable by the effective user, effective group, or all
 /// users.
-ARCH_API bool ArchStatIsWritable(const StatRes *st);
+ARCH_API bool ArchStatIsWritable(const ArchStatType *st);
+
+/// Returns the modification time (mtime) in seconds for a file.
+///
+/// This function stores the modification time with as much precision as is
+/// available in the stat structure for the current platform in \p time and
+/// returns \c true on success, otherwise just returns \c false.
+ARCH_API bool ArchGetModificationTime(const char* pathname, double* time);
 
 /// Returns the modification time (mtime) in seconds from the stat struct.
 ///
 /// This function returns the modification time with as much precision as is
 /// available in the stat structure for the current platform.
-ARCH_API double ArchGetModificationTime(const StatRes& st);
+ARCH_API double ArchGetModificationTime(const ArchStatType& st);
 
 /// Return the path to a temporary directory for this platform.
 ///
@@ -241,7 +226,7 @@ ARCH_API const char *ArchGetTmpDir();
 /// favor of \c ArchMakeTmpFile().
 ARCH_API
 std::string ArchMakeTmpFileName(const std::string& prefix,
-    	    	    	    	const std::string& suffix = std::string());
+                                const std::string& suffix = std::string());
 
 /// Create a temporary file, in a system-determined temporary directory.
 ///
@@ -341,12 +326,10 @@ int64_t ArchPRead(FILE *file, void *buffer, size_t count, int64_t offset);
 ARCH_API
 int64_t ArchPWrite(FILE *file, void const *bytes, size_t count, int64_t offset);
 
-#if defined(ARCH_OS_WINDOWS)
-/// Attempts to resolve a symbolic link. \p path can be a file or directory.
-/// Returns the resolved path if successful or the original path on error.
+/// Returns the value of the symbolic link at \p path.  Returns the empty
+/// string on error or if \p path does not refer to a symbolic link.
 ARCH_API
-std::string ArchResolveSymlink(const char* path);
-#endif
+std::string ArchReadLink(const char* path);
 
 enum ArchFileAdvice {
     ArchFileAdviceWillNeed, // OS may prefetch this range.
@@ -362,5 +345,7 @@ void ArchFileAdvise(FILE *file, int64_t offset, size_t count,
                     ArchFileAdvice adv);
 
 ///@}
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // ARCH_FILESYSTEM_H

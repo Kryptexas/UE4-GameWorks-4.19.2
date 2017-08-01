@@ -314,13 +314,13 @@ public:
 					.VAlign(VAlign_Center)
 					[
 						SAssignNew(Hyperlink, SHyperlink)
-						.Visibility(EVisibility::Collapsed)
 						.Text(LOCTEXT("OpenFolder", "Open Capture Folder..."))
 						.OnNavigate_Lambda(OnBrowseToFolder)
 					]
 
 					+ SHorizontalBox::Slot()
 					.AutoWidth()
+					.Padding(FMargin(5.0f,0,0,0))
 					.VAlign(VAlign_Center)
 					[
 						SAssignNew(Button, SButton)
@@ -373,7 +373,6 @@ public:
 		State = InState;
 		if (State != SNotificationItem::CS_Pending)
 		{
-			Hyperlink->SetVisibility(EVisibility::Visible);
 			Throbber->SetVisibility(EVisibility::Collapsed);
 			Button->SetVisibility(EVisibility::Collapsed);
 		}
@@ -557,7 +556,9 @@ private:
 						}
 					}
 					
-					Window->Resize(PreviewWindowSize);
+					// Resize and move the window into the desktop a bit
+					FVector2D PreviewWindowPosition(50, 50);
+					Window->ReshapeWindow(PreviewWindowPosition, PreviewWindowSize);
 
 					if (CaptureObject->Settings.GameModeOverride != nullptr)
 					{

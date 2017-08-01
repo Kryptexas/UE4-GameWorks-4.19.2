@@ -456,7 +456,7 @@ void FPropertyEditorToolkit::TableColumnsChanged()
 void FPropertyEditorToolkit::GridSelectionChanged()
 {
 	TArray< TWeakObjectPtr< UObject > > SelectedObjects;
-	PropertyTable->GetSelectedObjects( SelectedObjects );
+	PropertyTable->GetSelectedTableObjects( SelectedObjects );
 	PropertyTree->SetObjectArray( SelectedObjects );
 
 	const TSet< TSharedRef< IPropertyTableRow > > SelectedRows = PropertyTable->GetSelectedRows();

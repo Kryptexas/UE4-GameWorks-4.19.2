@@ -21,8 +21,8 @@
 // KIND, either express or implied. See the Apache License for the specific
 // language governing permissions and limitations under the Apache License.
 //
-#ifndef _USDUTILS_PINTROSPECTION_H_
-#define _USDUTILS_PINTROSPECTION_H_
+#ifndef USDUTILS_INTROSPECTION_H
+#define USDUTILS_INTROSPECTION_H
 
 /// \file usdUtils/introspection.h
 ///
@@ -30,6 +30,7 @@
 /// Future additions might include full-on dependency extraction, queries like
 /// "Does this stage contain this asset?", "usd grep" functionality, etc.
 
+#include "pxr/pxr.h"
 #include "pxr/usd/usdUtils/api.h"
 #include "pxr/usd/sdf/declareHandles.h"
 #include "pxr/usd/sdf/path.h"
@@ -38,6 +39,9 @@
 
 #include "pxr/base/tf/envSetting.h"
 #include "pxr/base/vt/dictionary.h"
+
+PXR_NAMESPACE_OPEN_SCOPE
+
 
 SDF_DECLARE_HANDLES(SdfLayer);
 
@@ -61,7 +65,8 @@ SDF_DECLARE_HANDLES(SdfLayer);
     (primCountsByType)                  \
         (untyped)
 
-TF_DECLARE_PUBLIC_TOKENS(UsdUtilsUsdStageStatsKeys, USDUTILS_API, USDUTILS_USDSTAGE_STATS);
+TF_DECLARE_PUBLIC_TOKENS(UsdUtilsUsdStageStatsKeys,
+                         USDUTILS_API, USDUTILS_USDSTAGE_STATS);
 
 /// Opens the given layer on a USD stage and collects various stats. 
 /// The stats are populated in the dictionary-valued output param \p stats.
@@ -116,4 +121,7 @@ USDUTILS_API
 size_t UsdUtilsComputeUsdStageStats(const UsdStageWeakPtr &stage, 
                                     VtDictionary *stats);
 
-#endif /* _USDUTILS_INTROSPECTION_H_ */
+
+PXR_NAMESPACE_CLOSE_SCOPE
+
+#endif /* USDUTILS_INTROSPECTION_H */

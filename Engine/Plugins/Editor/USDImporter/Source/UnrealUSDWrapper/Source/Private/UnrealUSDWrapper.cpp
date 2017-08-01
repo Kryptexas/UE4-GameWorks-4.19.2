@@ -5,7 +5,9 @@
 #include "pxr/usd/usd/usdFileFormat.h"
 #include "pxr/usd/usd/common.h"
 #include "pxr/usd/usd/stage.h"
-#include "pxr/usd/usd/treeIterator.h"
+#if PXR_VERSION < 075   // this file seems to have been removed in recent versions
+    #include "pxr/usd/usd/treeIterator.h"
+#endif // PXR_VERSION < 075
 #include "pxr/base/tf/errorMark.h"
 #include "pxr/base/plug/registry.h"
 #include "pxr/base/plug/plugin.h"
@@ -29,10 +31,36 @@
 using std::vector;
 using std::string;
 
-static UsdGeomXformCache XFormCache;
+using namespace pxr;
 
-#if _WINDOWS
+#ifdef _WINDOWS
 #pragma warning(disable:4267)
+
+#define USDWRAPPER_USE_XFORMACHE	1
+#else
+#define USDWRAPPER_USE_XFORMACHE	0
+#endif
+
+
+#if USDWRAPPER_USE_XFORMACHE
+static UsdGeomXformCache XFormCache;
+#endif // USDWRAPPER_USE_XFORMACHE
+
+namespace UnrealIdentifiers
+{
+	/**
+	* Identifies the LOD variant set on a primitive which means this primitive has child prims that LOD meshes
+	* named LOD0, LOD1, LOD2, etc
+	*/
+	static const TfToken LOD("LOD");
+
+	static const TfToken AssetPath("unrealAssetPath");
+
+	static const TfToken ActorClass("unrealActorClass");
+
+	static const TfToken PropertyPath("unrealPropertyPath");
+}
+
 
 void Log(const char* Format, ...)
 {
@@ -42,15 +70,17 @@ void Log(const char* Format, ...)
 
 	va_start(args, Format);
 
+#if _WINDOWS
 	vsprintf_s(Buffer, Format, args);
 
 	OutputDebugString(Buffer);
+#else
+	vsprintf(Buffer, Format, args);
+	printf("%s", Buffer);
+#endif
 
 	va_end(args);
 }
-#endif
-
-
 
 class USDHelpers
 {
@@ -75,7 +105,7 @@ private:
 		Log(string(Concat + "Prim: [%s] %s Model:%d Abstract:%d Group:%d Instance:%d Active:%d InMaster:%d IsMaster:%d\n").c_str(),
 			TypeName.c_str(), Prim.GetName().GetText(), bIsModel, bIsAbstract, bIsGroup, bIsInstance, bIsActive, bInMaster, bIsMaster);
 		{
-			/*UsdMetadataValueMap Metadata = Prim.GetAllMetadata();
+			UsdMetadataValueMap Metadata = Prim.GetAllMetadata();
 			if(Metadata.size())
 			{
 				Log(string(Concat+"\tMetaData:\n").c_str());
@@ -83,9 +113,11 @@ private:
 				{
 					Log(string(Concat+"\t\t[%s] %s\n").c_str(), KeyValue.second.GetTypeName().c_str(), KeyValue.first.GetText());
 				}
-			}*/
+			}
 
-			/*vector<UsdAttribute> Attributes = Prim.GetAttributes();
+		
+
+			vector<UsdAttribute> Attributes = Prim.GetAttributes();
 			if(Attributes.size())
 			{
 				Log(string(Concat+"\tAttributes:\n").c_str());
@@ -96,9 +128,9 @@ private:
 						Log(string(Concat + "\t\t[%s] %s %s\n").c_str(), Attribute.GetTypeName().GetAsToken().GetText(), Attribute.GetBaseName().GetText(), Attribute.GetDisplayName().c_str());
 					}
 				}
-			}*/
+			}
 
-			/*if (Prim.HasVariantSets())
+			if (Prim.HasVariantSets())
 			{
 				Log(string(Concat + "\tVariant Sets:\n").c_str());
 				UsdVariantSets VariantSets = Prim.GetVariantSets();
@@ -120,11 +152,11 @@ private:
 						Log(string(Concat + "\t\t\t%s%c\n").c_str(), VariantName.c_str(), ActiveChar);
 					}
 				}
-			}*/
+			}
 		}
 
 
-		for(UsdPrim& Child : Prim.GetChildren())
+		for(const UsdPrim& Child : Prim.GetChildren())
 		{
 			LogPrimTreeHelper(Concat+"\t", Child);
 		}
@@ -149,24 +181,302 @@ struct FPrimAndData
 	{}
 };
 
+
+class FAttribInternalData
+{
+public:
+	FAttribInternalData(UsdAttribute& InAttribute)
+		: Attribute(InAttribute)
+	{
+		VtValue CustomData = Attribute.GetCustomDataByKey(UnrealIdentifiers::PropertyPath);
+
+		AttributeName = Attribute.GetBaseName().GetString();
+		TypeName = Attribute.GetTypeName().GetAsToken().GetString();
+
+		if (CustomData.IsHolding<std::string>())
+		{
+			UnrealPropertyPath = CustomData.Get<std::string>();
+		}
+	}
+
+	std::string UnrealPropertyPath;
+	std::string AttributeName;
+	std::string TypeName;
+	UsdAttribute Attribute;
+};
+
+
+FUsdAttribute::FUsdAttribute(std::shared_ptr<FAttribInternalData> InInternalData)
+	: InternalData(InInternalData)
+{
+}
+
+FUsdAttribute::~FUsdAttribute()
+{
+}
+
+const char* FUsdAttribute::GetAttributeName() const
+{
+	return InternalData->AttributeName.c_str();
+}
+
+const char* FUsdAttribute::GetTypeName() const
+{
+	return InternalData->TypeName.c_str();
+}
+
+const char* FUsdAttribute::GetUnrealPropertyPath() const
+{
+	return InternalData->UnrealPropertyPath.c_str();
+}
+
+template<typename T>
+bool GetValue(T& OutVal, UsdAttribute Attrib, int ArrayIndex, double Time)
+{
+	bool bResult = false;
+
+	if (ArrayIndex != -1)
+	{
+		// Note: VtArray is copy on write so this is cheap
+		VtArray<T> Array;
+		if (Attrib.Get(&Array, Time))
+		{
+			OutVal = Array[ArrayIndex];
+			bResult = true;
+		}
+	}
+	else
+	{
+		bResult = Attrib.Get(&OutVal, Time);
+	}
+
+	return bResult;
+}
+
+template<typename T>
+bool IsHolding(const VtValue& Value)
+{
+	return Value.IsHolding<T>() || Value.IsHolding<VtArray<T>>();
+}
+
+bool FUsdAttribute::AsInt(int64_t& OutVal, int ArrayIndex, double Time) const
+{
+	// We test multiple types of ints here. int64 is always returned as it can hold all other types
+	// Unreal expects this
+	VtValue Value;
+	bool bResult = InternalData->Attribute.Get(&Value, Time);
+	if (IsHolding<int8_t>(Value))
+	{
+		uint8_t Val;
+		bResult = GetValue(Val, InternalData->Attribute, ArrayIndex, Time);
+		OutVal = Val;
+	}
+	else if (IsHolding<int32_t>(Value))
+	{
+		int32_t Val;
+		bResult = GetValue(Val, InternalData->Attribute, ArrayIndex, Time);
+		OutVal = Val;
+	}
+	else if (IsHolding<int64_t>(Value))
+	{
+		int64_t Val;
+		bResult = GetValue(Val, InternalData->Attribute, ArrayIndex, Time);
+		OutVal = Val;
+	}
+
+	return bResult;
+}
+
+bool FUsdAttribute::AsUnsignedInt(uint64_t& OutVal, int ArrayIndex, double Time) const
+{
+	// We test multiple types of ints here. uint64 is always returned as it can hold all other types
+	// Unreal expects this
+	VtValue Value;
+	bool bResult = InternalData->Attribute.Get(&Value, Time);
+	if (IsHolding<uint8_t>(Value))
+	{
+		uint8_t Val;
+		bResult = GetValue(Val, InternalData->Attribute, ArrayIndex, Time);
+		OutVal = Val;
+	}
+	else if (IsHolding<uint32_t>(Value))
+	{
+		uint32_t Val;
+		bResult = GetValue(Val, InternalData->Attribute, ArrayIndex, Time);
+		OutVal = Val;
+	}
+	else if (IsHolding<uint64_t>(Value))
+	{
+		uint64_t Val;
+		bResult = GetValue(Val, InternalData->Attribute, ArrayIndex, Time);
+		OutVal = Val;
+	}
+
+	return bResult;
+}
+
+bool FUsdAttribute::AsDouble(double& OutVal, int ArrayIndex, double Time) const
+{
+	bool bResult = false;
+
+
+	bResult = GetValue<double>(OutVal, InternalData->Attribute, ArrayIndex, Time);
+
+	if (!bResult)
+	{
+		float Val = 0.0f;
+		bResult = GetValue<float>(Val, InternalData->Attribute, ArrayIndex, Time);
+		OutVal = Val;
+	}
+
+	return bResult;
+}
+
+bool FUsdAttribute::AsString(const char*& OutVal, int ArrayIndex, double Time) const
+{
+	// this method is very hacky to return temp strings
+	// designed to have the string copied immediately
+	bool bResult = false;
+
+	VtValue Value;
+	InternalData->Attribute.Get(&Value);
+	// mem leak
+	static std::string Temp;
+	if (IsHolding<std::string>(Value))
+	{
+		bResult = GetValue(Temp, InternalData->Attribute, ArrayIndex, Time);
+
+		OutVal = Temp.c_str();
+	}
+	else if (IsHolding<TfToken>(Value))
+	{
+		TfToken Token;
+		bResult = GetValue(Token, InternalData->Attribute, ArrayIndex, Time);
+
+		Temp = Token.GetString();
+
+		OutVal = Temp.c_str();
+	}
+
+	return bResult;
+}
+
+bool FUsdAttribute::AsBool(bool& OutVal, int ArrayIndex, double Time) const
+{
+	return GetValue(OutVal, InternalData->Attribute, ArrayIndex, Time);
+}
+
+bool FUsdAttribute::AsVector2(FUsdVector2Data& OutVal, int ArrayIndex, double Time) const
+{
+	GfVec2f Value;
+	const bool bResult = GetValue(Value, InternalData->Attribute, ArrayIndex, Time);
+
+	OutVal.X = Value[0];
+	OutVal.Y = Value[1];
+
+	return bResult;
+}
+
+bool FUsdAttribute::AsVector3(FUsdVectorData& OutVal, int ArrayIndex, double Time) const
+{
+	GfVec3f Value;
+	const bool bResult = GetValue(Value, InternalData->Attribute, ArrayIndex, Time);
+
+	OutVal.X = Value[0];
+	OutVal.Y = Value[1];
+	OutVal.Z = Value[2];
+
+	return bResult;
+}
+
+bool FUsdAttribute::AsVector4(FUsdVector4Data& OutVal, int ArrayIndex, double Time) const
+{
+	GfVec4f Value;
+	const bool bResult = GetValue(Value, InternalData->Attribute, ArrayIndex, Time);
+
+	OutVal.X = Value[0];
+	OutVal.Y = Value[1];
+	OutVal.Z = Value[2];
+	OutVal.W = Value[3];
+
+	return bResult;
+}
+
+bool FUsdAttribute::AsColor(FUsdVector4Data& OutVal, int ArrayIndex, double Time) const
+{
+	GfVec4f Value;
+	bool bResult = GetValue(Value, InternalData->Attribute, ArrayIndex, Time);
+
+	if (bResult)
+	{
+		OutVal.X = Value[0];
+		OutVal.Y = Value[1];
+		OutVal.Z = Value[2];
+		OutVal.W = Value[3];
+	}
+	else
+	{
+		// Try color 3 with a = 1;
+		GfVec3f Value;
+		bResult = GetValue<GfVec3f>(Value, InternalData->Attribute, ArrayIndex, Time);
+		OutVal.X = Value[0];
+		OutVal.Y = Value[1];
+		OutVal.Z = Value[2];
+		OutVal.W = 1;
+	}
+
+	return bResult;
+}
+
+bool FUsdAttribute::IsUnsigned() const
+{
+	VtValue Value;
+	InternalData->Attribute.Get(&Value);
+
+	return IsHolding<uint8_t>(Value)
+		|| IsHolding<uint32_t>(Value)
+		|| IsHolding<uint64_t>(Value);
+}
+
+int FUsdAttribute::GetArraySize() const
+{
+	VtValue Value;
+	InternalData->Attribute.Get(&Value);
+
+	return Value.IsArrayValued() ? (int)Value.GetArraySize() : -1;
+}
+
+
 class FUsdPrim : public IUsdPrim
 {
 public:
-	FUsdPrim(UsdPrim& InPrim)
+	FUsdPrim(const UsdPrim& InPrim)
 		: Prim(InPrim)
 		, GeomData(nullptr)
 	{
 		PrimName = Prim.GetName().GetString();
 		PrimPath = Prim.GetPath().GetString();
 
-		static const TfToken AssetPathToken = TfToken(UnrealIdentifiers::AssetPath);
-		UsdAttribute UnrealAssetPathAttr = Prim.GetAttribute(AssetPathToken);
+		UsdAttribute UnrealAssetPathAttr = Prim.GetAttribute(UnrealIdentifiers::AssetPath);
 		if (UnrealAssetPathAttr.HasValue())
 		{
 			UnrealAssetPathAttr.Get(&UnrealAssetPath);
 		}
 
-		for (UsdPrim& Child : Prim.GetChildren())
+		UsdAttribute UnrealActorClassAttr = Prim.GetAttribute(UnrealIdentifiers::ActorClass);
+		if (UnrealActorClassAttr.HasValue())
+		{
+			UnrealActorClassAttr.Get(&UnrealActorClass);
+		}
+	
+		VtValue CustomData = Prim.GetCustomDataByKey(UnrealIdentifiers::PropertyPath);
+		if (CustomData.IsHolding<std::string>())
+		{
+			UnrealPropertyPath = CustomData.Get<std::string>();
+
+		}
+
+		for (const UsdPrim& Child : Prim.GetChildren())
 		{
 			Children.push_back(FPrimAndData(Child));
 		}
@@ -211,10 +521,19 @@ public:
 		return PrimPath.c_str();
 	}
 
+	virtual const char* GetUnrealPropertyPath() const override
+	{
+		return UnrealPropertyPath.c_str();
+	}
 
 	virtual bool IsGroup() const override
 	{
 		return Prim.IsGroup();
+	}
+
+	virtual bool IsUnrealProperty() const override
+	{
+		return Prim.HasCustomDataKey(UnrealIdentifiers::PropertyPath);
 	}
 
 	virtual bool HasTransform() const override
@@ -226,12 +545,49 @@ public:
 	{
 		return GetLocalToWorldTransform(UsdTimeCode::Default().GetValue());
 	}
+
+#if !USDWRAPPER_USE_XFORMACHE
+	static GfMatrix4d GetLocalToWorldTransform(const UsdPrim& Prim, double Time, const SdfPath& AbsoluteRootPath)
+	{
+		SdfPath PrimPath = Prim.GetPath();
+		if (!Prim || PrimPath == AbsoluteRootPath)
+		{
+			return GfMatrix4d(1);
+		}
+
+		GfMatrix4d AccumulatedTransform(1.);
+		bool bResetsXFormStack = false;
+		UsdGeomXformable XFormable(Prim);
+		// silently ignoring errors
+		XFormable.GetLocalTransformation(&AccumulatedTransform, &bResetsXFormStack, Time);
+
+		if (!bResetsXFormStack)
+		{
+			AccumulatedTransform = AccumulatedTransform * GetLocalToWorldTransform(Prim.GetParent(), Time, AbsoluteRootPath);
+		}
+
+		return AccumulatedTransform;
+	}
+#endif // !USDWRAPPER_USE_XFORMACHE
 	
 	virtual FUsdMatrixData GetLocalToWorldTransform(double Time) const override
 	{
+#if USDWRAPPER_USE_XFORMACHE
 		XFormCache.SetTime(Time);
-
 		GfMatrix4d LocalToWorld = XFormCache.GetLocalToWorldTransform(Prim);
+#else
+		UsdGeomXformable XFormable(Prim);
+		SdfPath WorldPath = SdfPath::AbsoluteRootPath();
+		GfMatrix4d LocalToWorld;
+		if (!Prim.GetPath().HasPrefix(WorldPath))
+		{
+			LocalToWorld = GfMatrix4d(1);
+		}
+		else
+		{
+			LocalToWorld = GetLocalToWorldTransform(Prim, Time, WorldPath);
+		}
+#endif
 
 		FUsdMatrixData Ret;
 		memcpy(Ret.Data, LocalToWorld.GetArray(), sizeof(double) * 16);
@@ -247,11 +603,16 @@ public:
 
 	virtual FUsdMatrixData GetLocalToParentTransform(double Time) const override
 	{
-		XFormCache.SetTime(Time);
-
 		bool bResetsXFormStack = false;
+#if USDWRAPPER_USE_XFORMACHE
+		XFormCache.SetTime(Time);
 		GfMatrix4d LocalToParent = XFormCache.GetLocalTransformation(Prim, &bResetsXFormStack);
-
+#else
+		UsdGeomXformable XFormable(Prim);
+		GfMatrix4d LocalToParent;
+		// silently ignoring errors
+		XFormable.GetLocalTransformation(&LocalToParent, &bResetsXFormStack, Time);
+#endif
 		FUsdMatrixData Ret;
 		memcpy(Ret.Data, LocalToParent.GetArray(), sizeof(double) * 16);
 		
@@ -260,7 +621,7 @@ public:
 
 	virtual int GetNumChildren() const override
 	{
-		return Children.size();
+		return (int)Children.size();
 	}
 
 	virtual IUsdPrim* GetChild(int ChildIndex) override
@@ -279,14 +640,19 @@ public:
 		return UnrealAssetPath.length() > 0 ? UnrealAssetPath.c_str() : nullptr;
 	}
 
-	bool HasGeometryData() const override
+	virtual const char* GetUnrealActorClass() const override
+	{
+		return UnrealActorClass.length() > 0 ? UnrealActorClass.c_str() : nullptr;
+	}
+
+	virtual bool HasGeometryData() const override
 	{
 		UsdGeomMesh Mesh(Prim);
 
 		return Mesh;
 	}
 
-	virtual const FUsdGeomData* GetGeometryData()
+	virtual const FUsdGeomData* GetGeometryData() override
 	{
 		return GetGeometryData(UsdTimeCode::Default().GetValue());
 	}
@@ -516,7 +882,6 @@ public:
 						}
 
 						GeomData->MaterialNames.push_back(MaterialName);
-
 					}
 					// Faces must be mutually exclusive
 					if (FaceSet.GetIsPartition())
@@ -641,7 +1006,7 @@ public:
 		return GeomData;
 	}
 
-	virtual int GetNumLODs() const
+	virtual int GetNumLODs() const override
 	{
 		// 0 indicates no variant or no lods in variant. 
 		int NumLODs = 0;
@@ -658,7 +1023,7 @@ public:
 		return NumLODs;
 	}
 
-	virtual IUsdPrim* GetLODChild(int LODIndex)
+	virtual IUsdPrim* GetLODChild(int LODIndex) override
 	{
 		if (Prim.HasVariantSets())
 		{
@@ -666,7 +1031,11 @@ public:
 			if (LODVariantSet.IsValid())
 			{
 				char LODName[10];
+#if _WINDOWS
 				sprintf_s(LODName, "LOD%d", LODIndex);
+#else
+				sprintf(LODName, "LOD%d", LODIndex);
+#endif
 				LODVariantSet.SetVariantSelection(string(LODName));
 
 				UsdPrim LODChild = Prim.GetChild(TfToken(LODName));
@@ -701,13 +1070,52 @@ public:
 
 		return nullptr;
 	}
+
+	virtual const std::vector<FUsdAttribute>& GetAttributes() const override
+	{
+		AllAttributes.clear();
+		PrivateGetAttributes(AllAttributes, TfToken());
+
+		return AllAttributes;
+	}
+
+	virtual const std::vector<FUsdAttribute>& GetUnrealPropertyAttributes() const override
+	{
+		UnrealPropAttributes.clear();
+		PrivateGetAttributes(UnrealPropAttributes, UnrealIdentifiers::PropertyPath);
+
+		return UnrealPropAttributes;
+	}
+
+	UsdPrim GetUSDPrim() { return Prim; }
+
+private:
+	void PrivateGetAttributes(std::vector<FUsdAttribute>& OutAttributes, const TfToken& ByMetadata) const
+	{
+		std::vector<UsdAttribute> Attributes = Prim.GetAttributes();
+		OutAttributes.reserve(Attributes.size());
+
+		for (UsdAttribute& Attr : Attributes)
+		{
+			if (ByMetadata.IsEmpty() || Attr.HasCustomDataKey(ByMetadata))
+			{
+				OutAttributes.push_back(
+					FUsdAttribute(std::shared_ptr<FAttribInternalData>(new FAttribInternalData(Attr)))
+				);
+			}
+		}
+	}
 private:
 	UsdPrim Prim;
 	vector<FPrimAndData> Children;
 	vector<FPrimAndData> VariantData;
+	mutable std::vector<FUsdAttribute> AllAttributes;
+	mutable std::vector<FUsdAttribute> UnrealPropAttributes;
 	string PrimName;
 	string PrimPath;
 	string UnrealAssetPath;
+	string UnrealActorClass;
+	string UnrealPropertyPath;
 	FUsdGeomData* GeomData;
 };
 
@@ -776,25 +1184,24 @@ private:
 
 bool UnrealUSDWrapper::bInitialized = false;
 FUsdStage* UnrealUSDWrapper::CurrentStage = nullptr;
+std::string UnrealUSDWrapper::Errors;
 
 
-
-void UnrealUSDWrapper::Initialize(const char* PathToModule)
+void UnrealUSDWrapper::Initialize(const std::vector<std::string>& PluginDirectories)
 {
 	bInitialized = true;
 
-	string PluginPath = PathToModule;
-	PluginPath += "/Resources/UsdResources/plugins";
-
 	// Needed to find plugins in non-standard places
-	PlugRegistry::GetInstance().RegisterPlugins(PluginPath);
+	PlugRegistry::GetInstance().RegisterPlugins(PluginDirectories);
 }
 
 IUsdStage* UnrealUSDWrapper::ImportUSDFile(const char* Path, const char* Filename)
 {
+	Errors.clear();
+
 	if (!bInitialized)
 	{
-		return false;
+		return nullptr;
 	}
 
 	bool bImportedSuccessfully = false;
@@ -810,21 +1217,20 @@ IUsdStage* UnrealUSDWrapper::ImportUSDFile(const char* Path, const char* Filenam
 
 	UsdStageRefPtr Stage = UsdStage::Open(PathAndFilename);
 
-	if(Stage)
+	if (Stage)
 	{
 		CurrentStage = new FUsdStage(Stage);
-
-
-		//USDHelpers::LogPrimTree(Stage->GetPseudoRoot());
 	}
-
 
 	if (!ErrorMark.IsClean())
 	{
 		TfErrorMark::Iterator i;
 		for (i = ErrorMark.GetBegin(); i != ErrorMark.GetEnd(); ++i)
 		{
-			Log("%s %s\n", i->GetErrorCodeAsString().c_str(), i->GetCommentary().c_str());
+			Errors += i->GetErrorCodeAsString();
+			Errors += " ";
+			Errors += i->GetCommentary();
+			Errors += "\n";
 		}
 	}
 
@@ -833,10 +1239,12 @@ IUsdStage* UnrealUSDWrapper::ImportUSDFile(const char* Path, const char* Filenam
 
 void UnrealUSDWrapper::CleanUp()
 {
-	XFormCache.Clear();
-
 	if (CurrentStage)
 	{
+#if USDWRAPPER_USE_XFORMACHE
+		XFormCache.Clear();
+#endif // USDWRAPPER_USE_XFORMACHE
+
 		delete CurrentStage;
 		CurrentStage = nullptr;
 	}
@@ -846,3 +1254,9 @@ double UnrealUSDWrapper::GetDefaultTimeCode()
 {
 	return UsdTimeCode::Default().GetValue();
 }
+
+const char* UnrealUSDWrapper::GetErrors()
+{
+	return Errors.length() > 0 ? Errors.c_str() : nullptr;
+}
+

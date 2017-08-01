@@ -26,9 +26,9 @@
 
 /// \file sdf/fileFormat.h
 
-#include "pxr/usd/sdf/declareHandles.h"
+#include "pxr/pxr.h"
 #include "pxr/usd/sdf/api.h"
-
+#include "pxr/usd/sdf/declareHandles.h"
 #include "pxr/base/tf/declarePtrs.h"
 #include "pxr/base/tf/refBase.h"
 #include "pxr/base/tf/staticTokens.h"
@@ -40,6 +40,8 @@
 #include <map>
 #include <string>
 #include <vector>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 class ArAssetInfo;
 
@@ -65,28 +67,28 @@ public:
     SDF_API const TfToken& GetFormatId() const;
 
     /// Returns the target for this file format.
-	SDF_API const TfToken& GetTarget() const;
+    SDF_API const TfToken& GetTarget() const;
 
     /// Returns the cookie to be used when writing files with this format.
-	SDF_API const std::string& GetFileCookie() const;
+    SDF_API const std::string& GetFileCookie() const;
 
     /// Returns the current version of this file format.
-	SDF_API const TfToken& GetVersionString() const;
+    SDF_API const TfToken& GetVersionString() const;
 
     /// Returns true if this file format is the primary format for the 
     /// extensions it handles.
-	SDF_API bool IsPrimaryFormatForExtensions() const;
+    SDF_API bool IsPrimaryFormatForExtensions() const;
 
     /// Returns a list of extensions that this format supports.
-	SDF_API const std::vector<std::string>& GetFileExtensions() const;
+    SDF_API const std::vector<std::string>& GetFileExtensions() const;
 
     /// Returns the primary file extension for this format. This is the
     /// extension that is reported for layers using this file format.
-	SDF_API const std::string& GetPrimaryFileExtension() const;
+    SDF_API const std::string& GetPrimaryFileExtension() const;
 
     /// Returns true if \p extension matches one of the extensions returned by
     /// GetFileExtensions.
-	SDF_API bool IsSupportedExtension(const std::string& extension) const;
+    SDF_API bool IsSupportedExtension(const std::string& extension) const;
 
     /// Type for specifying additional file format-specific arguments
     /// to the various API below.
@@ -95,16 +97,18 @@ public:
     /// Returns the FileFormatArguments that correspond to the default behavior
     /// of this file format when no FileFormatArguments are passed to NewLayer
     /// or InitData.
-	SDF_API virtual FileFormatArguments GetDefaultFileFormatArguments() const;
+    SDF_API
+    virtual FileFormatArguments GetDefaultFileFormatArguments() const;
 
     /// This method allows the file format to bind to whatever data container is
     /// appropriate. 
     ///
     /// Returns a shared pointer to an SdfAbstractData implementation.
-	SDF_API virtual SdfAbstractDataRefPtr InitData(const FileFormatArguments& args) const;
+    SDF_API
+    virtual SdfAbstractDataRefPtr InitData(const FileFormatArguments& args) const;
 
     /// Instantiate a layer.
-	SDF_API 
+    SDF_API 
     SdfLayerBaseRefPtr NewLayer(const SdfFileFormatConstPtr &fileFormat,
                                 const std::string &identifier,
                                 const std::string &realPath,
@@ -129,7 +133,7 @@ public:
 
     /// Return true if this file format prefers to skip reloading anonymous
     /// layers.
-	SDF_API bool ShouldSkipAnonymousReload() const;
+    SDF_API bool ShouldSkipAnonymousReload() const;
 
     /// Return true if the the \p layer produced by this file format
     /// streams its data to and from its serialized data store on demand.
@@ -144,23 +148,43 @@ public:
     ///
     /// It is a coding error to call this function with a layer that was
     /// not created with this file format.
-	SDF_API bool IsStreamingLayer(const SdfLayerBase& layer) const;
+    SDF_API bool IsStreamingLayer(const SdfLayerBase& layer) const;
+
+    /// Return true if layers produced by this file format are based
+    /// on physical files on disk. If so, this file format requires
+    /// layers to be serialized to and read from files on disk.
+    ///
+    /// For file formats where this function returns true, when
+    /// opening a layer Sdf will fetch layers to the filesystem 
+    /// via calls to ArResolver::FetchToLocalResolvedPath prior 
+    /// to calling ReadFromFile.
+    ///
+    /// This allows asset systems that do not store layers as individual
+    /// files to operate with file formats that require these files.
+    ///
+    /// \sa ArResolver::Resolve
+    /// \sa ArResolver::FetchToLocalResolvedPath
+    SDF_API bool LayersAreFileBased() const;
 
     /// Returns true if \p file can be read by this format.
+    SDF_API
     virtual bool CanRead(
         const std::string& file) const = 0;
 
-    /// Reads data in the file at \p filePath into the layer \p layerBase. If
-    /// the file is successfully read, this method returns true. Otherwise,
-    /// false is returned and errors are posted.
+    /// Reads scene description from the asset specified by \p resolvedPath
+    /// into the layer \p layerBase.
     ///
     /// \p metadataOnly is a flag that asks for only the layer metadata
-    //// to be read in, which can be much faster if that is all that is
+    /// to be read in, which can be much faster if that is all that is
     /// required.  Note that this is just a hint: some FileFormat readers
     /// may disregard this flag and still fully populate the layer contents.
-    virtual bool ReadFromFile(
+    ///
+    /// Returns true if the asset is successfully read into \p layerBase,
+    /// false otherwise.
+    SDF_API
+    virtual bool Read(
         const SdfLayerBasePtr& layerBase,
-        const std::string& filePath,
+        const std::string& resolvedPath,
         bool metadataOnly) const = 0;
 
     /// Writes the content in \p layerBase into the file at \p filePath. If the
@@ -205,7 +229,7 @@ public:
     /// Returns the file format instance with the specified \p formatId
     /// identifier. If a format with a matching identifier is not found, this
     /// returns a null file format pointer.
-	SDF_API 
+    SDF_API 
     static SdfFileFormatConstPtr FindById(
         const TfToken& formatId);
 
@@ -218,28 +242,28 @@ public:
     /// the file format that is registered as the primary plugin will be
     /// returned. Otherwise, the file format whose target matches \p target
     /// will be returned.
-	SDF_API
+    SDF_API
     static SdfFileFormatConstPtr FindByExtension(
         const std::string& extension,
         const std::string& target = std::string());
 
 protected:
     /// Constructor.
-	SDF_API SdfFileFormat(
+    SDF_API SdfFileFormat(
         const TfToken& formatId,
         const TfToken& versionString,
         const TfToken& target,
         const std::string& extensions);
 
     /// Constructor.
-	SDF_API SdfFileFormat(
+    SDF_API SdfFileFormat(
         const TfToken& formatId,
         const TfToken& versionString,
         const TfToken& target,
         const std::vector<std::string> &extensions);
 
     /// Destructor.
-	SDF_API virtual ~SdfFileFormat();
+    SDF_API virtual ~SdfFileFormat();
 
     //
     // Minimally break layer encapsulation with the following methods.  These
@@ -248,21 +272,26 @@ protected:
     //
 
     /// Swap the layers internal _data member with \p data.
-	SDF_API static void _SwapLayerData(const SdfLayerHandle& layer,
+    SDF_API
+    static void _SwapLayerData(const SdfLayerHandle& layer,
                                SdfAbstractDataRefPtr& data);
 
     /// Set the layers internal _data member to \p data.
-	SDF_API static void _SetLayerData(const SdfLayerHandle& layer,
+    SDF_API
+    static void _SetLayerData(const SdfLayerHandle& layer,
                               const SdfAbstractDataPtr& data);
 
     /// Get the layers internal _data member.
-	SDF_API static SdfAbstractDataConstPtr _GetLayerData(const SdfLayerHandle& layer);
+    SDF_API
+    static SdfAbstractDataConstPtr _GetLayerData(const SdfLayerHandle& layer);
 
     /// Returns true if the layer is loading as a new layer.
-	SDF_API static bool _LayerIsLoadingAsNew(const SdfLayerHandle& layer);
+    SDF_API
+    static bool _LayerIsLoadingAsNew(const SdfLayerHandle& layer);
 
 private:
-	SDF_API virtual SdfLayerBase *_InstantiateNewLayer(
+    SDF_API
+    virtual SdfLayerBase *_InstantiateNewLayer(
         const SdfFileFormatConstPtr &fileFormat,
         const std::string &identifier,
         const std::string &realPath,
@@ -271,16 +300,22 @@ private:
 
     // File format subclasses may override this if they prefer not to skip
     // reloading anonymous layers.  Default implementation returns true.
-	SDF_API virtual bool _ShouldSkipAnonymousReload() const;
+    SDF_API
+    virtual bool _ShouldSkipAnonymousReload() const;
 
     // File format subclasses must override this to determine whether the
     // given layer is streaming or not. The file format of \p layer is 
     // guaranteed to be an instance of this class.
-	SDF_API 
     virtual bool _IsStreamingLayer(const SdfLayerBase& layer) const = 0;
 
+    /// File format subclasses may override this to specify whether
+    /// their layers are backed by physical files on disk.
+    /// Default implementation returns true.
+    SDF_API
+    virtual bool _LayersAreFileBased() const;
+
     // Helper to issue an error in case the method template NewLayer fails.
-	SDF_API 
+    SDF_API 
     void _IssueNewLayerFailError(SdfLayerBaseRefPtr const &l,
                                  std::type_info const &type,
                                  std::string const &identifier,
@@ -330,5 +365,7 @@ public:
 
 #define SDF_FILE_FORMAT_FACTORY_ACCESS \
     template<typename T> friend class Sdf_FileFormatFactory
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // SDF_FILE_FORMAT_H

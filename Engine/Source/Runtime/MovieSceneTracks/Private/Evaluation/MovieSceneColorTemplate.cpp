@@ -6,6 +6,7 @@
 #include "UObject/UnrealType.h"
 #include "MovieSceneCommonHelpers.h"
 #include "Components/LightComponent.h"
+#include "Components/SkyLightComponent.h"
 #include "Styling/SlateColor.h"
 #include "MovieSceneEvaluation.h"
 #include "IMovieScenePlayer.h"
@@ -109,6 +110,10 @@ private:
 			// follow the sequencer convention of having a single parameter of the correct type, which in this case is an FColor
 			// already in sRGB format.
 			LightComponent->SetLightColor( ColorValue, bConvertBackToSRgb );
+		}
+		else if (USkyLightComponent* SkyLightComponent = Cast<USkyLightComponent>(&Object))
+		{
+			SkyLightComponent->SetLightColor( ColorValue );
 		}
 		else
 		{

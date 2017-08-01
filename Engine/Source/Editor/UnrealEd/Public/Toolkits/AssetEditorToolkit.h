@@ -216,6 +216,9 @@ protected:
 	/** Called when "Save As" is clicked for this asset */
 	virtual void SaveAssetAs_Execute();
 
+	/** Called to test if "Find in Content Browser" should be enabled for this asset */
+	virtual bool CanFindInContentBrowser() const {return true;}
+
 	/** Called when "Find in Content Browser" is clicked for this asset */
 	virtual void FindInContentBrowser_Execute();
 

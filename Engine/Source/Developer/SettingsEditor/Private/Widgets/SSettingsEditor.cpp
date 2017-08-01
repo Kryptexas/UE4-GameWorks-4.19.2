@@ -63,6 +63,7 @@ void SSettingsEditor::Construct( const FArguments& InArgs, const ISettingsEditor
 		DetailsViewArgs.bCustomNameAreaLocation = true;
 		DetailsViewArgs.bCustomFilterAreaLocation = true;
 		DetailsViewArgs.NameAreaSettings = FDetailsViewArgs::HideNameArea;
+		DetailsViewArgs.bShowPropertyMatrixButton = false;
 	}
 
 	SettingsView = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor").CreateDetailView(DetailsViewArgs);

@@ -200,7 +200,10 @@ private:
 	 *			anything more sophisticated, but in the future perhaps the messages should be appended, multiple panel types should exist, etc.
 	 */
 	void DisplayMessage( bool bError, const FText& ErrorMessage );
-	
+
+	/**  Closes the parent window and clears the consolidation objects, dropped assets and error panel. */
+	void ClearAndCloseWindow( );
+
 	// Button Responses
 
 	/** Called in response to the user clicking the "X" button on the error panel; dismisses the error panel */
@@ -766,6 +769,15 @@ void SConsolidateToolWidget::DisplayMessage( bool bError, const FText& ErrorMess
 
 }
 
+/** Closes the parent window and clears the consolidation objects, dropped assets and error panel.*/
+void SConsolidateToolWidget::ClearAndCloseWindow()
+{
+	ParentWindowPtr.Pin()->RequestDestroyWindow();
+	ClearConsolidationObjects();
+	ClearDroppedAssets();
+	ResetErrorPanel();
+}
+
 /** Called in response to the user clicking the "X" button on the error panel; dismisses the error panel */
 FReply SConsolidateToolWidget::OnDismissErrorPanelButtonClicked( )
 {
@@ -820,7 +832,15 @@ FReply SConsolidateToolWidget::OnConsolidateButtonClicked()
 	}
 
 	RefreshListItems();
-	ParentWindowPtr.Pin()->ShowWindow();
+	// No point in showing the list again if it's empty
+	if (ListViewItems.Num() > 0)
+	{
+		ParentWindowPtr.Pin()->ShowWindow();
+	}
+	else
+	{
+		ClearAndCloseWindow();
+	}
 
 	return FReply::Handled();
 }
@@ -829,10 +849,7 @@ FReply SConsolidateToolWidget::OnConsolidateButtonClicked()
 FReply SConsolidateToolWidget::OnCancelButtonClicked( )
 {
 	// Close the window and clear out all the consolidation assets/dropped assets/etc.
-	ParentWindowPtr.Pin()->RequestDestroyWindow();
-	ClearConsolidationObjects();
-	ClearDroppedAssets();
-	ResetErrorPanel();
+	ClearAndCloseWindow();
 
 	return FReply::Handled();
 }

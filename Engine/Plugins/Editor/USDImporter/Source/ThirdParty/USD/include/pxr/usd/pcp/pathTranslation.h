@@ -26,10 +26,11 @@
 
 /// \file pcp/pathTranslation.h
 /// Path translation.
+
+#include "pxr/pxr.h"
 #include "pxr/usd/pcp/api.h"
 
-/// \file
-/// \brief Path translation.
+PXR_NAMESPACE_OPEN_SCOPE
 
 class PcpMapFunction;
 class PcpNodeRef;
@@ -50,7 +51,8 @@ class SdfPath;
 /// In Sd/Csd terminology, this is forward path translation from the 
 /// namespace of the prim spec represented by \p sourceNode to the composed 
 /// scene namespace.
-PCP_API SdfPath
+PCP_API
+SdfPath
 PcpTranslatePathFromNodeToRoot(
     const PcpNodeRef& sourceNode, 
     const SdfPath& pathInNodeNamespace,
@@ -71,7 +73,8 @@ PcpTranslatePathFromNodeToRoot(
 /// In Sd/Csd terminology, this is reverse path translation from the
 /// namespace of the composed scene to the namespace of the prim spec 
 /// represented by \p destNode.
-PCP_API SdfPath
+PCP_API
+SdfPath
 PcpTranslatePathFromRootToNode(
     const PcpNodeRef& destNode,
     const SdfPath& pathInRootNamespace,
@@ -83,7 +86,8 @@ PcpTranslatePathFromRootToNode(
 /// be included in the translated path. This is functionally equivalent to
 /// calling StripAllVariantSelections() on the result of the referenced
 /// function, but is more efficient.
-PCP_API SdfPath
+PCP_API
+SdfPath
 PcpTranslateTargetPathFromRootToNode(
     const PcpNodeRef& destNode,
     const SdfPath& pathInRootNamespace,
@@ -91,7 +95,8 @@ PcpTranslateTargetPathFromRootToNode(
 
 /// Convenience function like \a PcpTranslatePathFromRootToNode, but
 /// takes a function rather than a node.
-PCP_API SdfPath
+PCP_API
+SdfPath
 PcpTranslatePathFromRootToNodeUsingFunction(
     const PcpMapFunction &mapToRoot,
     const SdfPath &pathInRootNamespace,
@@ -99,10 +104,13 @@ PcpTranslatePathFromRootToNodeUsingFunction(
 
 /// Convenience function like \a PcpTranslatePathFromNodeToRoot, but
 /// takes a function rather than a node.
-PCP_API SdfPath
+PCP_API
+SdfPath
 PcpTranslatePathFromNodeToRootUsingFunction(
     const PcpMapFunction &mapToRoot,
     const SdfPath &pathInNodeNamespace,
     bool *pathWasTranslated = 0);
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // PCP_PATH_TRANSLATION_H

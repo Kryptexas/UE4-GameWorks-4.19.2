@@ -1761,9 +1761,19 @@ EWindowZone::Type SWindow::GetCurrentWindowZone(FVector2D LocalMousePosition)
 					}
 				}
 			}
-		}
 
-		WindowZone = InZone;
+			WindowZone = InZone;
+		}
+		else if (FSlateApplicationBase::Get().AnyMenusVisible())
+		{
+			// Prevent resizing when a menu is open.  This is consistent with OS behavior and prevents a number of crashes when menus 
+			// stay open while resizing windows causing their parents to often be clipped (SClippingHorizontalBox)
+			WindowZone = EWindowZone::ClientArea;
+		}
+		else
+		{
+			WindowZone = InZone;
+		}
 	}
 	else
 	{

@@ -5,16 +5,22 @@
 #include "USDImportOptions.h"
 #include "TokenizedMessage.h"
 
+THIRD_PARTY_INCLUDES_START
+/*
 #if USING_CODE_ANALYSIS
 MSVC_PRAGMA(warning(push))
 MSVC_PRAGMA(warning(disable : ALL_CODE_ANALYSIS_WARNINGS))
 #endif	// USING_CODE_ANALYSIS
+*/
 
 #include "UnrealUSDWrapper.h"
 
+/*
 #if USING_CODE_ANALYSIS
 MSVC_PRAGMA(warning(pop))
 #endif	// USING_CODE_ANALYSIS
+*/
+THIRD_PARTY_INCLUDES_END
 
 #include "USDImporter.generated.h"
 
@@ -77,7 +83,7 @@ struct FUsdImportContext
 	virtual void Init(UObject* InParent, const FString& InName, EObjectFlags InFlags, IUsdStage* InStage);
 
 	void AddErrorMessage(EMessageSeverity::Type MessageSeverity, FText ErrorMessage);
-	void DisplayErrorMessages();
+	void DisplayErrorMessages(bool bAutomated);
 	void ClearErrorMessages();
 private:
 	/** Error messages **/
@@ -93,7 +99,7 @@ class UUSDImporter : public UObject
 public:
 	bool ShowImportOptions(UObject& ImportOptions);
 
-	IUsdStage* ReadUSDFile(const FString& Filename);
+	IUsdStage* ReadUSDFile(FUsdImportContext& ImportContext, const FString& Filename);
 
 	void FindPrimsToImport(FUsdImportContext& ImportContext, TArray<FUsdPrimToImport>& OutPrimsToImport);
 

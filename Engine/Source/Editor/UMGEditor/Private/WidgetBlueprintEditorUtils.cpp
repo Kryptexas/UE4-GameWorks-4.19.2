@@ -448,6 +448,12 @@ void FWidgetBlueprintEditorUtils::FindAllAncestorNamedSlotHostWidgetsForContent(
 
 	if (Preview != nullptr && WidgetTree != nullptr)
 	{
+		// Find the first widget up the chain with a null parent, they're the only candidates for this approach.
+		while (WidgetTemplate->GetParent())
+		{
+			WidgetTemplate = WidgetTemplate->GetParent();
+		}
+
 		UWidget* SlotHostWidget = FindNamedSlotHostWidgetForContent(WidgetTemplate, WidgetTree);
 		while (SlotHostWidget != nullptr)
 		{
@@ -469,6 +475,12 @@ void FWidgetBlueprintEditorUtils::FindAllAncestorNamedSlotHostWidgetsForContent(
 			SlotHostWidget = nullptr;
 			if (WidgetTemplate != nullptr)
 			{
+				// Find the first widget up the chain with a null parent, they're the only candidates for this approach.
+				while (WidgetTemplate->GetParent())
+				{
+					WidgetTemplate = WidgetTemplate->GetParent();
+				}
+
 				SlotHostWidget = FindNamedSlotHostWidgetForContent(WidgetRef.GetTemplate(), WidgetTree);
 			}
 		}

@@ -41,11 +41,15 @@
 /// converted to warnings because our error handling mechanisms are not thread
 /// safe.
 
+#include "pxr/pxr.h"
 #include "pxr/base/arch/attributes.h"
 #include "pxr/base/tf/api.h"
 #include "pxr/base/arch/hints.h"
 #include "pxr/base/tf/callContext.h"
+
 #include <stddef.h>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 /// \enum TfDiagnosticType
 /// Enum describing various diagnostic conditions.
@@ -136,5 +140,8 @@ private:
     TfDiagnosticType _type;
 };
 
-#endif  /* !defined(doxygen) */
-#endif
+#endif  // !defined(doxygen)
+
+PXR_NAMESPACE_CLOSE_SCOPE
+
+#endif // TF_DIAGNOSTICLITE_H

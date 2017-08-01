@@ -24,9 +24,13 @@
 #ifndef TF_PYLOCK_H
 #define TF_PYLOCK_H
 
+#include <Python.h>
+
+#include "pxr/pxr.h"
+
 #include "pxr/base/tf/api.h"
 
-#include <Python.h>
+PXR_NAMESPACE_OPEN_SCOPE
 
 /// \class TfPyLock
 ///
@@ -183,5 +187,7 @@ private:
 /// \hideinitializer
 #define TF_PY_ALLOW_THREADS_IN_SCOPE()                  \
     TfPyEnsureGILUnlockedObj __py_lock_allow_threads__
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // TF_PYLOCK_H

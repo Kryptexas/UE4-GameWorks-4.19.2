@@ -24,9 +24,12 @@
 #ifndef PLUG_NOTICE_H
 #define PLUG_NOTICE_H
 
+#include "pxr/pxr.h"
 #include "pxr/base/plug/api.h"
 #include "pxr/base/tf/declarePtrs.h"
 #include "pxr/base/tf/notice.h"
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 TF_DECLARE_WEAK_PTRS(PlugPlugin);
 
@@ -39,7 +42,7 @@ public:
     class Base : public TfNotice
     {
     public:
-		PLUG_API virtual ~Base();
+        PLUG_API virtual ~Base();
     };
 
     /// Notice sent after new plugins have been registered with the Plug
@@ -48,7 +51,7 @@ public:
     {
     public:
         explicit DidRegisterPlugins(const PlugPluginPtrVector& newPlugins);
-		PLUG_API virtual ~DidRegisterPlugins();
+        PLUG_API virtual ~DidRegisterPlugins();
 
         const PlugPluginPtrVector& GetNewPlugins() const
         { return _plugins; }
@@ -60,5 +63,7 @@ public:
 private:
     PlugNotice();
 };
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // PLUG_NOTICE_H

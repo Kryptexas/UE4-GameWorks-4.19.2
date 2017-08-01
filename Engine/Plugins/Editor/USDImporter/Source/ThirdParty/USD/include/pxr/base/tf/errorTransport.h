@@ -26,9 +26,12 @@
 
 /// \file tf/errorTransport.h
 
+#include "pxr/pxr.h"
 #include "pxr/base/tf/diagnosticMgr.h"
 #include "pxr/base/arch/hints.h"
 #include "pxr/base/tf/api.h"
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 /// \class TfErrorTransport
 ///
@@ -51,7 +54,7 @@ public:
     /// Post all contained errors to the current thread's error list, leaving
     /// this TfErrorTransport empty.
     void Post() {
-        if (ARCH_UNLIKELY(not IsEmpty()))
+        if (ARCH_UNLIKELY(!IsEmpty()))
             _PostImpl();
     }
 
@@ -75,7 +78,8 @@ private:
         _errorList.splice(_errorList.begin(), src, first, last);
     }
 
-    void TF_API _PostImpl();
+    TF_API
+    void _PostImpl();
     
     ErrorList _errorList;
 };
@@ -85,5 +89,7 @@ swap(TfErrorTransport &l, TfErrorTransport &r)
 {
     l.swap(r);
 }
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // TF_ERROR_TRANSPORT

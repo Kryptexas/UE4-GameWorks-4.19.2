@@ -317,6 +317,7 @@ public:
 	TEnumAsByte<enum ENetRole> Role;
 
 	/** Dormancy setting for actor to take itself off of the replication list without being destroyed on clients. */
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = Replication)
 	TEnumAsByte<enum ENetDormancy> NetDormancy;
 
 	/** Gives the actor a chance to pause replication to a player represented by the passed in actor - only called on server */
@@ -2172,6 +2173,7 @@ public:
 	class UNetDriver * GetNetDriver() const;
 
 	/** Puts actor in dormant networking state */
+	UFUNCTION(BlueprintAuthorityOnly, BlueprintCallable, Category = "Networking")
 	void SetNetDormancy(ENetDormancy NewDormancy);
 
 	/** Forces dormant actor to replicate but doesn't change NetDormancy state (i.e., they will go dormant again if left dormant) */

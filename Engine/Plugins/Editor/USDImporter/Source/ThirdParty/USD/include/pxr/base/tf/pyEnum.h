@@ -27,6 +27,21 @@
 /// \file tf/pyEnum.h
 /// Provide facilities for wrapping enums for script.
 
+#include "pxr/pxr.h"
+
+#include "pxr/base/tf/api.h"
+#include "pxr/base/tf/pyObjWrapper.h"
+#include "pxr/base/tf/pyUtils.h"
+#include "pxr/base/tf/type.h"
+
+#include "pxr/base/arch/demangle.h"
+#include "pxr/base/tf/enum.h"
+#include "pxr/base/tf/hash.h"
+#include "pxr/base/tf/hashmap.h"
+#include "pxr/base/tf/iterator.h"
+#include "pxr/base/tf/singleton.h"
+#include "pxr/base/tf/stringUtils.h"
+
 #include <boost/preprocessor/stringize.hpp>
 #include <boost/python/class.hpp>
 #include <boost/python/converter/from_python.hpp>
@@ -40,18 +55,9 @@
 #include <boost/python/to_python_converter.hpp>
 #include <boost/python/tuple.hpp>
 
-#include "pxr/base/tf/api.h"
-#include "pxr/base/tf/pyUtils.h"
-#include "pxr/base/tf/type.h"
-
-#include "pxr/base/arch/demangle.h"
-#include "pxr/base/tf/enum.h"
-#include "pxr/base/tf/hash.h"
-#include "pxr/base/tf/iterator.h"
-#include "pxr/base/tf/singleton.h"
-#include "pxr/base/tf/stringUtils.h"
-#include "pxr/base/tf/hashmap.h"
 #include <string>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 /// \class Tf_PyEnum
 ///
@@ -273,7 +279,7 @@ Tf_PyEnumRegistry::_EnumToPython<T>::convert(T const &t)
 
     // If there is no registered enum object, create a new one of
     // the appropriate type.
-    if (not Tf_PyEnumRegistry::GetInstance()._enumsToObjects.count(e)) {
+    if (!Tf_PyEnumRegistry::GetInstance()._enumsToObjects.count(e)) {
         std::string name = ArchGetDemangled(e.GetType());
         name = TfStringReplace(name, " ", "_");
         name = TfStringReplace(name, "::", "_");
@@ -357,7 +363,7 @@ public:
     {
         using namespace boost::python;
 
-        bool explicitName = not name.empty();
+        bool explicitName = !name.empty();
 
         // First, take either the given name, or the demangled type name.
         std::string enumName = explicitName ? name :
@@ -370,13 +376,13 @@ public:
             baseName = std::string();
 
         // If the name is dotted, take the last element as the enum name.
-        if (not TfStringGetSuffix(enumName).empty())
+        if (!TfStringGetSuffix(enumName).empty())
             enumName = TfStringGetSuffix(enumName);
 
         // If the name was not explicitly given, then clean it up by removing
         // the mfb package name prefix if it exists.
-        if (not explicitName) {
-            if (not baseName.empty())
+        if (!explicitName) {
+            if (!baseName.empty())
                 baseName = Tf_PyCleanEnumName(baseName);
             else
                 enumName = Tf_PyCleanEnumName(enumName);
@@ -397,7 +403,7 @@ public:
         // that represents an enum are able to get to the equivalent 
         // python class with .pythonclass
         const TfType &type = TfType::Find<T>();
-        if (not type.IsUnknown())
+        if (!type.IsUnknown())
             type.DefinePythonClass(enumClass);
     }
     
@@ -407,15 +413,13 @@ public:
     /// If no explicit names have been registered, this will export the TfEnum
     /// registered names and values (if any).
     void _ExportValues(bool cleanNames, _EnumPyClassType &enumClass) {
-        using namespace boost::python;
-
         boost::python::list valueList;
 
         std::vector<std::string> names = TfEnum::GetAllNames<T>();
         TF_FOR_ALL(name, names) {
             bool success = false;
             TfEnum enumValue = TfEnum::GetValueFromName<T>(*name, &success);
-            if (not success) {
+            if (!success) {
                 continue;
             }
 
@@ -424,14 +428,14 @@ public:
 
             // convert value to python.
             Tf_TypedPyEnumWrapper<T> wrappedValue(cleanedName, enumValue);
-            object pyValue(wrappedValue);
+            boost::python::object pyValue(wrappedValue);
 
             // register it as the python object for this value.
             Tf_PyEnumRegistry::GetInstance().RegisterValue(enumValue, pyValue);
 
             // Take all the values and export them into the current scope.
             std::string valueName = wrappedValue.GetName();
-            scope s;
+            boost::python::scope s;
 
             // Skip exporting attr if the scope already has an attribute
             // with that name, but do make sure to place it in .allValues
@@ -453,5 +457,7 @@ public:
     }
 
 };
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // TF_PYENUM_H

@@ -33,9 +33,22 @@
 #ifndef TF_HASHSET_H
 #define TF_HASHSET_H
 
+#include "pxr/pxr.h"
+
 #if !defined(TF_NO_GNU_EXT)
 // Use GNU extension.
 #include <ext/hash_set>
+#elif __cplusplus > 201103L
+// Use C++11 unordered_set.
+#include <unordered_set>
+#else
+// Use boost unordered_set.
+#include <boost/unordered_set.hpp>
+#endif // TF_NO_GNU_EXT
+
+PXR_NAMESPACE_OPEN_SCOPE
+
+#if !defined(TF_NO_GNU_EXT)
 
 template<class Key, class HashFn = __gnu_cxx::hash<Key>,
 	 class EqualKey = __gnu_cxx::equal_to<Key>,
@@ -247,9 +260,7 @@ private:
     }
 };
 
-#elif __cplusplus > 201103L || defined(ARCH_OS_WINDOWS)
-// Use C++11 unordered_set.
-#include <unordered_set>
+#elif __cplusplus > 201103L // C++11
 
 template<class Key, class HashFn = std::hash<Key>,
 	 class EqualKey = std::equal_to<Key>,
@@ -434,8 +445,6 @@ public:
 };
 
 #else
-// Use boost unordered_set.
-#include <boost/unordered_set.hpp>
 
 template<class Key, class HashFn = boost::hash<Key>,
 	 class EqualKey = std::equal_to<Key>,
@@ -619,7 +628,7 @@ public:
                const TfHashMultiSet<Key2, HashFn2, EqualKey2, Alloc2>&);
 };
 
-#endif
+#endif // TF_NO_GNU_EXT
 
 template<class Key, class HashFn, class EqualKey, class Alloc>
 inline void
@@ -643,7 +652,7 @@ inline bool
 operator!=(const TfHashSet<Key, HashFn, EqualKey, Alloc>& lhs,
            const TfHashSet<Key, HashFn, EqualKey, Alloc>& rhs)
 {
-    return not (lhs == rhs);
+    return !(lhs == rhs);
 }
 
 template<class Key, class HashFn, class EqualKey, class Alloc>
@@ -668,7 +677,9 @@ inline bool
 operator!=(const TfHashMultiSet<Key, HashFn, EqualKey, Alloc>& lhs,
            const TfHashMultiSet<Key, HashFn, EqualKey, Alloc>& rhs)
 {
-    return not (lhs == rhs);
+    return !(lhs == rhs);
 }
 
-#endif
+PXR_NAMESPACE_CLOSE_SCOPE
+
+#endif // TF_HASHSET_H

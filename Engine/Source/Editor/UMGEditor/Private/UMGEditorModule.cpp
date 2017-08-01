@@ -29,6 +29,7 @@
 
 #include "UMGEditorProjectSettings.h"
 #include "ISettingsModule.h"
+#include "SequencerSettings.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -42,13 +43,14 @@ const FSlateBrush* GetEditorIcon_Deprecated(UWidget* Widget)
 }
 PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
-class FUMGEditorModule : public IUMGEditorModule, public IBlueprintCompiler
+class FUMGEditorModule : public IUMGEditorModule, public IBlueprintCompiler, public FGCObject
 {
 public:
 	/** Constructor, set up console commands and variables **/
 	FUMGEditorModule()
 		: ReRegister(nullptr)
 		, CompileCount(0)
+		, Settings(nullptr)
 	{
 	}
 
@@ -78,6 +80,8 @@ public:
 		MarginTrackEditorCreateTrackEditorHandle          = SequencerModule.RegisterPropertyTrackEditor<FMarginTrackEditor>();
 		TransformTrackEditorCreateTrackEditorHandle       = SequencerModule.RegisterPropertyTrackEditor<F2DTransformTrackEditor>();
 		WidgetMaterialTrackEditorCreateTrackEditorHandle  = SequencerModule.RegisterTrackEditor(FOnCreateTrackEditor::CreateStatic(&FWidgetMaterialTrackEditor::CreateTrackEditor));
+
+		RegisterSettings();
 	}
 
 	/** Called before the module is unloaded, right before the module object is destroyed. */
@@ -105,6 +109,8 @@ public:
 			SequencerModule->UnRegisterTrackEditor( TransformTrackEditorCreateTrackEditorHandle );
 			SequencerModule->UnRegisterTrackEditor( WidgetMaterialTrackEditorCreateTrackEditorHandle );
 		}
+
+		UnregisterSettings();
 
 		//// Unregister the setting
 		//ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
@@ -175,6 +181,42 @@ public:
 	virtual TSharedPtr<FExtensibilityManager> GetMenuExtensibilityManager() override { return MenuExtensibilityManager; }
 	virtual TSharedPtr<FExtensibilityManager> GetToolBarExtensibilityManager() override { return ToolBarExtensibilityManager; }
 
+	/** Register settings objects. */
+	void RegisterSettings()
+	{
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
+
+		if (SettingsModule != nullptr)
+		{
+			Settings = USequencerSettingsContainer::GetOrCreate<USequencerSettings>(TEXT("UMGSequencerSettings"));
+
+			SettingsModule->RegisterSettings("Editor", "ContentEditors", "UMGSequencerSettings",
+				LOCTEXT("UMGSequencerSettingsSettingsName", "UMG Sequence Editor"),
+				LOCTEXT("UMGSequencerSettingsSettingsDescription", "Configure the look and feel of the UMG Sequence Editor."),
+				Settings);	
+		}
+	}
+
+	/** Unregister settings objects. */
+	void UnregisterSettings()
+	{
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
+
+		if (SettingsModule != nullptr)
+		{
+			SettingsModule->UnregisterSettings("Editor", "ContentEditors", "UMGSequencerSettings");
+		}
+	}
+
+	/** FGCObject interface */
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override
+	{
+		if (Settings)
+		{
+			Collector.AddReferencedObject(Settings);
+		}
+	}
+
 private:
 	void RegisterAssetTypeAction(IAssetTools& AssetTools, TSharedRef<IAssetTypeActions> Action)
 	{
@@ -201,6 +243,8 @@ private:
 	 * compiling has stopped.
 	 */
 	int32 CompileCount;
+
+	USequencerSettings* Settings;
 };
 
 IMPLEMENT_MODULE(FUMGEditorModule, UMGEditor);

@@ -2297,6 +2297,8 @@ public:
 
 	virtual void FocusNextPIEWorld(UWorld *CurrentPieWorld, bool previous=false) { }
 
+	virtual void ResetPIEAudioSetting(UWorld *CurrentPieWorld) {}
+
 	virtual class UGameViewportClient* GetNextPIEViewport(UGameViewportClient * CurrentViewport) { return nullptr; }
 
 	virtual void RemapGamepadControllerIdForPIE(class UGameViewportClient* InGameViewport, int32 &ControllerId) { }

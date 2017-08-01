@@ -28,15 +28,16 @@
 /// \ingroup group_arch_Math
 /// Architecture-specific math function calls.
 
+#include "pxr/pxr.h"
 #include "pxr/base/arch/defines.h"
 #include "pxr/base/arch/inttypes.h"
-#include <cmath>
 
-#if defined(ARCH_OS_WINDOWS)
-#define _USE_MATH_DEFINES	// For M_PI
-#include <float.h>
-#include <math.h>
+#include <cmath>
+#if !defined(M_PI)
+#define M_PI 3.14159265358979323846
 #endif
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 /// \addtogroup group_arch_Math
 ///@{
@@ -103,14 +104,10 @@ inline double ArchBitPatternToDouble(uint64_t v) {
 #if defined(ARCH_OS_LINUX) || defined(doxygen)
 
 /// Computes the sine and cosine of the specified value as a float.
-inline void ArchSinCosf(float v, float *s, float *c) { 
-	sincosf(v, s, c); 
-}
+inline void ArchSinCosf(float v, float *s, float *c) { sincosf(v, s, c); }
 
 /// Computes the sine and cosine of the specified value as a double.
-inline void ArchSinCos(double v, double *s, double *c) { 
-	sincos(v, s, c); 
-}
+inline void ArchSinCos(double v, double *s, double *c) { sincos(v, s, c); }
 
 #elif defined(ARCH_OS_DARWIN) || defined(ARCH_OS_WINDOWS)
 
@@ -128,5 +125,7 @@ inline void ArchSinCos(double v, double *s, double *c) {
 #endif
 
 ///@}
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // ARCH_MATH_H

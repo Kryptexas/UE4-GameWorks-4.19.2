@@ -84,17 +84,15 @@ void FEventTrackEditor::BuildTrackContextMenu(FMenuBuilder& MenuBuilder, UMovieS
 			FOnGetPropertyTypeCustomizationInstance Factory = FOnGetPropertyTypeCustomizationInstance::CreateLambda([=]{ return MakeShared<FMovieSceneObjectBindingIDCustomization>(InSequencer->GetFocusedTemplateID(), InSequencer); });
 
 			// Register an object binding ID customization that can use the current sequencer interface
-			FPropertyEditorModule& PropertyEditor = FModuleManager::Get().LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
-			PropertyEditor.RegisterCustomPropertyTypeLayout("MovieSceneObjectBindingID", Factory, nullptr, InDetailsView);
+			InDetailsView->RegisterInstancedCustomPropertyTypeLayout("MovieSceneObjectBindingID", Factory);
 		}
 
 		~FEventTrackCustomization()
 		{
-			FPropertyEditorModule* PropertyEditor = FModuleManager::Get().GetModulePtr<FPropertyEditorModule>("PropertyEditor");
 			auto PinnedDetailsView = WeakDetailsView.Pin();
-			if (PropertyEditor && PinnedDetailsView.IsValid())
+			if (PinnedDetailsView.IsValid())
 			{
-				PropertyEditor->UnregisterCustomPropertyTypeLayout("MovieSceneObjectBindingID", nullptr, PinnedDetailsView);
+				PinnedDetailsView->UnregisterInstancedCustomPropertyTypeLayout("MovieSceneObjectBindingID");
 			}
 		}
 
@@ -116,7 +114,7 @@ void FEventTrackEditor::BuildTrackContextMenu(FMenuBuilder& MenuBuilder, UMovieS
 
 		// Create a details view for the track
 		FDetailsViewArgs DetailsViewArgs(false,false,false,FDetailsViewArgs::HideNameArea,true);
-		DetailsViewArgs.DefaultsOnlyVisibility = FDetailsViewArgs::EEditDefaultsOnlyNodeVisibility::Automatic;
+		DetailsViewArgs.DefaultsOnlyVisibility = EEditDefaultsOnlyNodeVisibility::Automatic;
 		DetailsViewArgs.bShowOptions = false;
 		
 		TSharedRef<IDetailsView> DetailsView = PropertyEditor.CreateDetailView(DetailsViewArgs);

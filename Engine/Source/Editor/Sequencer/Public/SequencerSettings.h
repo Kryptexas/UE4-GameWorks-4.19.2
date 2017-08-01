@@ -70,7 +70,7 @@ enum ESequencerTimeSnapInterval
 
 /** Empty class used to house multiple named USequencerSettings */
 UCLASS()
-class USequencerSettingsContainer
+class SEQUENCER_API USequencerSettingsContainer
 	: public UObject
 {
 public:

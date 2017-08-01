@@ -1334,7 +1334,7 @@ FText SGraphNode::GetErrorMsgToolTip( ) const
 
 bool SGraphNode::IsNameReadOnly() const
 {
-	return !GraphNode->bCanRenameNode;
+	return (!GraphNode->bCanRenameNode || !IsNodeEditable());
 }
 
 bool SGraphNode::OnVerifyNameTextChanged(const FText& InText, FText& OutErrorMessage)

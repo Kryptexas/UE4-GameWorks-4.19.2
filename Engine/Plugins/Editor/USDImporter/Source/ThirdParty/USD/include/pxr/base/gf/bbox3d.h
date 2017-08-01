@@ -27,11 +27,14 @@
 /// \file gf/bbox3d.h
 /// \ingroup group_gf_BasicGeometry
 
+#include "pxr/pxr.h"
 #include "pxr/base/gf/matrix4d.h"
 #include "pxr/base/gf/range3d.h"
 #include "pxr/base/gf/api.h"
 
 #include <iosfwd>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 /// \class GfBBox3d
 /// \ingroup group_gf_BasicGeometry
@@ -252,5 +255,7 @@ class GfBBox3d {
 ///
 /// \ingroup group_gf_DebuggingOutput
 GF_API std::ostream& operator<<(std::ostream&, const GfBBox3d&);
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // GF_BBOX3D_H

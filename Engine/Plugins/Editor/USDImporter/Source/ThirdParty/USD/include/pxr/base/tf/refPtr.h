@@ -105,7 +105,7 @@
 /// count decremented.
 ///
 /// A \c TfRefPtr<T> can access \c T's public members by the
-/// \c -> operator; however, the dereference operator "\c *" is not defined.
+/// \c -> operator and can be dereferenced by the "\c *" operator.
 /// Here is a simple example:
 /// \code
 ///    #include "pxr/base/tf/refPtr.h"
@@ -424,6 +424,8 @@
 /// \endcode
 ///
 
+#include "pxr/pxr.h"
+
 #include "pxr/base/tf/diagnosticLite.h"
 #include "pxr/base/tf/nullPtr.h"
 #include "pxr/base/tf/refBase.h"
@@ -444,6 +446,8 @@
 #include <typeinfo>
 #include <type_traits>
 #include <cstddef>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 // Tf_SupportsUniqueChanged is a metafunction that may be specialized to return
 // false for classes (and all derived classes) that *cannot* ever invoke unique
@@ -504,10 +508,33 @@ struct Tf_RefPtr_UniqueChangedCounter {
         return false;
     }
 
+    // Increment ptr's count if it is not zero.  Return true if done so
+    // successfully, false if its count is zero.
+    static inline bool
+    AddRefIfNonzero(TfRefBase const *ptr,
+                    TfRefBase::UniqueChangedListener const &listener) {
+        if (!ptr)
+            return false;
+        if (ptr->_shouldInvokeUniqueChangedListener) {
+            return _AddRefIfNonzero(ptr, listener);
+        } else {
+            auto &counter = ptr->GetRefCount()._counter;
+            auto val = counter.load();
+            do {
+                if (val == 0)
+                    return false;
+            } while (!counter.compare_exchange_weak(val, val + 1));
+            return true;
+        }
+    }
+    
     TF_API static bool _RemoveRef(TfRefBase const *refBase,
                            TfRefBase::UniqueChangedListener const &listener);
 
     TF_API static int _AddRef(TfRefBase const *refBase,
+                       TfRefBase::UniqueChangedListener const &listener);
+
+    TF_API static bool _AddRefIfNonzero(TfRefBase const *refBase,
                        TfRefBase::UniqueChangedListener const &listener);
 };
 
@@ -523,9 +550,25 @@ struct Tf_RefPtr_Counter {
     }
 
     static inline bool
-    RemoveRef(const TfRefBase* ptr,
+    RemoveRef(TfRefBase const *ptr,
               TfRefBase::UniqueChangedListener const &) {
-        return (ptr and (ptr->GetRefCount()._DecrementAndTestIfZero()));
+        return (ptr && (ptr->GetRefCount()._DecrementAndTestIfZero()));
+    }
+
+    // Increment ptr's count if it is not zero.  Return true if done so
+    // successfully, false if its count is zero.
+    static inline bool
+    AddRefIfNonzero(TfRefBase const *ptr,
+                    TfRefBase::UniqueChangedListener const &) {
+        if (!ptr)
+            return false;
+        auto &counter = ptr->GetRefCount()._counter;
+        auto val = counter.load();
+        do {
+            if (val == 0)
+                return false;
+        } while (!counter.compare_exchange_weak(val, val + 1));
+        return true;
     }
 };
 
@@ -841,10 +884,15 @@ public:
 
     /// Accessor to \c T's public members.
     T* operator ->() const {
-        if (ARCH_UNLIKELY(!static_cast<const void*>(_refBase)))
+        if (ARCH_UNLIKELY(!_refBase))
             TF_FATAL_ERROR("attempted member lookup on NULL %s",
                            ArchGetDemangled(typeid(TfRefPtr)).c_str());
         return static_cast<T*>(const_cast<TfRefBase*>(_refBase));
+    }
+
+    /// Dereferences the stored pointer.
+    T& operator *() const {
+        return *operator->();
     }
 
 #if !defined(doxygen)
@@ -853,7 +901,7 @@ public:
 
     /// True if the pointer points to an object.
     operator UnspecifiedBoolType() const {
-        return static_cast<const void*>(_refBase) ? &TfRefPtr::_refBase : NULL;
+        return _refBase ? &TfRefPtr::_refBase : nullptr;
     }
 
     /// True if the pointer points to \c NULL.
@@ -1043,23 +1091,23 @@ private:
 template <class T>
 inline bool operator== (const TfRefPtr<T> &p, std::nullptr_t)
 {
-    return not p;
+    return !p;
 }
 template <class T>
 inline bool operator== (std::nullptr_t, const TfRefPtr<T> &p)
 {
-    return not p;
+    return !p;
 }
 
 template <class T>
 inline bool operator!= (const TfRefPtr<T> &p, std::nullptr_t)
 {
-    return not (p == nullptr);
+    return !(p == nullptr);
 }
 template <class T>
 inline bool operator!= (std::nullptr_t, const TfRefPtr<T> &p)
 {
-    return not (nullptr == p);
+    return !(nullptr == p);
 }
 
 template <class T>
@@ -1076,12 +1124,12 @@ inline bool operator< (std::nullptr_t, const TfRefPtr<T> &p)
 template <class T>
 inline bool operator<= (const TfRefPtr<T> &p, std::nullptr_t)
 {
-    return not (nullptr < p);
+    return !(nullptr < p);
 }
 template <class T>
 inline bool operator<= (std::nullptr_t, const TfRefPtr<T> &p)
 {
-    return not (p < nullptr);
+    return !(p < nullptr);
 }
 
 template <class T>
@@ -1098,12 +1146,12 @@ inline bool operator> (std::nullptr_t, const TfRefPtr<T> &p)
 template <class T>
 inline bool operator>= (const TfRefPtr<T> &p, std::nullptr_t)
 {
-    return not (p < nullptr);
+    return !(p < nullptr);
 }
 template <class T>
 inline bool operator>= (std::nullptr_t, const TfRefPtr<T> &p)
 {
-    return not (nullptr < p);
+    return !(nullptr < p);
 }
 
 
@@ -1222,16 +1270,20 @@ swap(TfRefPtr<T>& lhs, TfRefPtr<T>& rhs)
     lhs.swap(rhs);
 }
 
+PXR_NAMESPACE_CLOSE_SCOPE
+
 namespace boost {
 
 template<typename T>
 T *
-get_pointer(TfRefPtr<T> const& p)
+get_pointer(PXR_NS::TfRefPtr<T> const& p)
 {
     return get_pointer(p);
 }
 
-}
+} // end namespace boost
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 // Extend boost::hash to support TfRefPtr.
 template <class T>
@@ -1268,4 +1320,6 @@ hash_value(const TfRefPtr<T>& ptr)
 #define TF_REFPTR_CONST_VOLATILE_GET(x)
 #endif
 
-#endif
+PXR_NAMESPACE_CLOSE_SCOPE
+
+#endif // TF_REFPTR_H

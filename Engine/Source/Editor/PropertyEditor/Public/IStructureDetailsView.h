@@ -21,7 +21,7 @@ public:
 	 *
 	 * @return Details view interface.
 	 */
-	virtual IDetailsView& GetDetailsView() = 0;
+	virtual IDetailsView* GetDetailsView() = 0;
 
 	/**
 	 * Get this view's Slate widget.

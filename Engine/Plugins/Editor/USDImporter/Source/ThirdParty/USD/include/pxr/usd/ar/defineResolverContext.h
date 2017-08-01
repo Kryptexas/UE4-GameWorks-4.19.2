@@ -24,22 +24,33 @@
 #ifndef AR_DEFINE_RESOLVER_CONTEXT_H
 #define AR_DEFINE_RESOLVER_CONTEXT_H
 
+#include "pxr/pxr.h"
+#include "pxr/usd/ar/api.h"
 #include "pxr/usd/ar/resolverContext.h"
 #include "pxr/usd/ar/pyResolverContext.h"
 
-/// \def AR_DECLARE_RESOLVER_CONTEXT(ContextObject)
+/// \file ar/defineResolverContext.h
+/// Macros for defining an object for use with ArResolverContext
+
+PXR_NAMESPACE_OPEN_SCOPE
+
+/// \def AR_DECLARE_RESOLVER_CONTEXT
 ///
 /// Declare that the specified ContextObject type may be used as an asset
 /// resolver context object for ArResolverContext. This typically
 /// would be invoked in the header where the ContextObject is
 /// declared.
 ///
+#ifdef doxygen
+#define AR_DECLARE_RESOLVER_CONTEXT(ContextObject)
+#else
 #define AR_DECLARE_RESOLVER_CONTEXT(context)           \
 template <>                                            \
 struct ArIsContextObject<context>                      \
 {                                                      \
     static const bool value = true;                    \
 }
+#endif
 
 /// Register the specified type as a context object that may be
 /// converted from a Python into a ArResolverContext object
@@ -49,5 +60,7 @@ struct ArIsContextObject<context>                      \
 template <class Context>
 void 
 ArWrapResolverContextForPython();
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // AR_DEFINE_RESOLVER_CONTEXT_H

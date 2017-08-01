@@ -2631,19 +2631,6 @@ void UStaticMesh::PostLoad()
 			CleanUpRedondantMaterialPostLoad = false;
 		}
 
-		// Only required in an editor build as other builds process this in a different place
-		if (bRequiresLODDistanceConversion)
-		{
-			// Convert distances to Display Factors
-			ConvertLegacyLODDistance();
-		}
-
-		if (bRequiresLODScreenSizeConversion)
-		{
-			// Convert screen area to screen size
-			ConvertLegacyLODScreenArea();
-		}
-
 		if (RenderData && GStaticMeshesThatNeedMaterialFixup.Get(this))
 		{
 			FixupZeroTriangleSections();
@@ -2691,16 +2678,24 @@ void UStaticMesh::PostLoad()
 	}
 
 #if WITH_EDITOR
-	if (GetLinkerUE4Version() < VER_UE4_STATIC_MESH_EXTENDED_BOUNDS)
+	// Fix extended bounds if needed
+	const int32 CustomVersion = GetLinkerCustomVersion(FReleaseObjectVersion::GUID);
+	if (GetLinkerUE4Version() < VER_UE4_STATIC_MESH_EXTENDED_BOUNDS || CustomVersion < FReleaseObjectVersion::StaticMeshExtendedBoundsFix)
 	{
 		CalculateExtendedBounds();
 	}
-
-	// New fix for incorrect extended bounds
-	const int32 CustomVersion = GetLinkerCustomVersion(FReleaseObjectVersion::GUID);
-	if (CustomVersion < FReleaseObjectVersion::StaticMeshExtendedBoundsFix)
+	//Conversion of LOD distance need valid bounds it must be call after the extended Bounds fixup
+	// Only required in an editor build as other builds process this in a different place
+	if (bRequiresLODDistanceConversion)
 	{
-		CalculateExtendedBounds();
+		// Convert distances to Display Factors
+		ConvertLegacyLODDistance();
+	}
+
+	if (bRequiresLODScreenSizeConversion)
+	{
+		// Convert screen area to screen size
+		ConvertLegacyLODScreenArea();
 	}
 
 	//Always redo the whole SectionInfoMap to be sure it contain only valid data

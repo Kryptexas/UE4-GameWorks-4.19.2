@@ -16,6 +16,7 @@
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
 #include "Animation/AnimationSettings.h"
+#include "Animation/AnimationRecordingSettings.h"
 #include "Animation/AnimNotifies/AnimNotify.h"
 #include "Animation/AnimNotifies/AnimNotifyState.h"
 
@@ -28,6 +29,8 @@ FAnimationRecorder::FAnimationRecorder()
 	, bRecordLocalToWorld(false)
 	, bAutoSaveAsset(false)
 	, bRemoveRootTransform(true)
+	, InterpMode(ERichCurveInterpMode::RCIM_Linear)
+	, TangentMode(ERichCurveTangentMode::RCTM_Auto)
 
 {
 	SetSampleRateAndLength(FAnimationRecordingSettings::DefaultSampleRate, FAnimationRecordingSettings::DefaultMaximumLength);
@@ -338,7 +341,16 @@ UAnimSequence* FAnimationRecorder::StopRecord(bool bShowMessage)
 				// Fill all the curve data at once
 				if (FloatCurveData)
 				{
-					FloatCurveData->FloatCurve.SetKeys(TimesToRecord, ValuesToRecord);
+					TArray<FRichCurveKey> Keys;
+					for (int32 Index = 0; Index < TimesToRecord.Num(); ++Index)
+					{
+						FRichCurveKey Key(TimesToRecord[Index], ValuesToRecord[Index]);
+						Key.InterpMode = InterpMode;
+						Key.TangentMode = TangentMode;
+						Keys.Add(Key);
+					}
+
+					FloatCurveData->FloatCurve.SetKeys(Keys);
 				}
 			}	
 		}
@@ -772,6 +784,8 @@ void FAnimRecorderInstance::InitInternal(USkeletalMeshComponent* InComponent, co
 	Recorder = MakeShareable(new FAnimationRecorder());
 	Recorder->SetSampleRateAndLength(Settings.SampleRate, Settings.Length);
 	Recorder->bRecordLocalToWorld = Settings.bRecordInWorldSpace;
+	Recorder->InterpMode = Settings.InterpMode;
+	Recorder->TangentMode = Settings.TangentMode;
 	Recorder->SetAnimCompressionScheme(UAnimCompress_BitwiseCompressOnly::StaticClass());
 	Recorder->bAutoSaveAsset = Settings.bAutoSaveAsset;
 	Recorder->bRemoveRootTransform = Settings.bRemoveRootAnimation;

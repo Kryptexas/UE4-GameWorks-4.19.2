@@ -21,12 +21,13 @@
 // KIND, either express or implied. See the Apache License for the specific
 // language governing permissions and limitations under the Apache License.
 //
-#ifndef _USDUTILS_STAGECACHE_H_
-#define _USDUTILS_STAGECACHE_H_
+#ifndef USDUTILS_STAGECACHE_H
+#define USDUTILS_STAGECACHE_H
 
 /// \file usdUtils/stageCache.h
 /// A simple interface for handling a singleton usd stage cache.
 
+#include "pxr/pxr.h"
 #include "pxr/usd/usdUtils/api.h"
 #include "pxr/usd/usd/stageCache.h"
 
@@ -35,6 +36,9 @@
 
 #include <string>
 #include <vector>
+
+PXR_NAMESPACE_OPEN_SCOPE
+
 
 TF_DECLARE_WEAK_AND_REF_PTRS(SdfLayer);
 
@@ -61,4 +65,7 @@ public:
         const std::vector<std::pair<std::string, std::string> > &variantSelections);
 };
 
-#endif
+
+PXR_NAMESPACE_CLOSE_SCOPE
+
+#endif /* USDUTILS_STAGECACHE_H */

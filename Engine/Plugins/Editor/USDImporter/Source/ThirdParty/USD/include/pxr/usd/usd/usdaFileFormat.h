@@ -24,10 +24,14 @@
 #ifndef USD_USDA_FILE_FORMAT_H
 #define USD_USDA_FILE_FORMAT_H
  
+#include "pxr/pxr.h"
 #include "pxr/usd/usd/api.h"
 #include "pxr/usd/sdf/textFileFormat.h"
 #include "pxr/base/tf/declarePtrs.h"
 #include "pxr/base/tf/staticTokens.h"
+
+PXR_NAMESPACE_OPEN_SCOPE
+
 
 #define USD_USDA_FILE_FORMAT_TOKENS \
     ((Id,      "usda"))             \
@@ -50,5 +54,8 @@ private:
 
     virtual ~UsdUsdaFileFormat();
 };
+
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // USDA_FILE_FORMAT_H

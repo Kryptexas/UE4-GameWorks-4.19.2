@@ -28,6 +28,8 @@
 /// \ingroup group_tf_Memory
 /// Pointer storage with deletion detection.
 
+#include "pxr/pxr.h"
+
 #include "pxr/base/tf/nullPtr.h"
 #include "pxr/base/tf/refPtr.h"
 #include "pxr/base/tf/tf.h"
@@ -43,6 +45,8 @@
 
 #include <cstddef>
 #include <type_traits>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 class TfHash;
 template <class U> class TfRefPtr;
@@ -70,8 +74,8 @@ template <class T> class TfWeakPtr;
 ///
 /// <b>Basic Use</b>
 ///
-/// A \c TfWeakPtr<T> can access \c T's public members by the \c -> operator;
-/// however, the dereference operator "\c *" is not defined.
+/// A \c TfWeakPtr<T> can access \c T's public members by the \c -> operator
+/// and can be dereferenced by the "\c *" operator.
 ///
 /// A \c TfWeakPtr converts to a \c true bool value (for example, in an \c if
 /// statement) only if the pointer points to an unexpired object.  Otherwise,
@@ -213,13 +217,13 @@ private:
     }
 
     T *_FetchPointer() const {
-        if (ARCH_LIKELY(_remnant and _remnant->_IsAlive()))
+        if (ARCH_LIKELY(_remnant && _remnant->_IsAlive()))
             return _rawPtr;
         return 0;
     }
 
     bool _IsInvalid() const {
-        return _remnant and not _remnant->_IsAlive();
+        return _remnant && !_remnant->_IsAlive();
     }
 
     void const *_GetUniqueIdentifier() const {
@@ -270,18 +274,16 @@ TfRefPtr<T>
 TfCreateRefPtrFromProtectedWeakPtr(TfWeakPtr<T> const &p) {
     typedef typename TfRefPtr<T>::_Counter Counter;
     if (T *rawPtr = get_pointer(p)) {
-        // Atomically increment the ref-count and check if the old
-        // count (which is returned by AddRef) was zero.
-        if (Counter::AddRef(rawPtr, TfRefBase::_uniqueChangedListener) == 0) {
-            // There were 0 refs to this object, so we know it is
-            // expiring and we cannot use it.  Drop our ref.
-            Counter::RemoveRef(rawPtr, TfRefBase::_uniqueChangedListener);
-        } else {
-            // There was at least 1 other ref at the time we acquired
-            // our ref, so this object is safe from destruction.
-            // Transfer ownership of the ref to a new TfRefPtr.
+        // Atomically increment the ref-count iff it's nonzero.
+        if (Counter::AddRefIfNonzero(
+                rawPtr, TfRefBase::_uniqueChangedListener)) {
+            // There was at least 1 other ref at the time we acquired our ref,
+            // so this object is safe from destruction.  Transfer ownership of
+            // the ref to a new TfRefPtr.
             return TfCreateRefPtr(rawPtr);
         }
+        // There were 0 refs to this object, so we know it is expiring and
+        // we cannot use it.
     }
     return TfNullPtr;
 }
@@ -442,5 +444,7 @@ struct Tf_SupportsWeakPtr
     virtual TfWeakBase const &__GetTfWeakBase__() const {       \
         return *this;                                           \
     }
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // TF_WEAKPTR_H

@@ -24,10 +24,13 @@
 #ifndef GF_GAMMA_H
 #define GF_GAMMA_H
 
+#include "pxr/pxr.h"
+#include "pxr/base/gf/api.h"
+
 /// \file gf/gamma.h
 /// Utilities to map colors between gamma spaces.
 
-#include "pxr/base/gf/api.h"
+PXR_NAMESPACE_OPEN_SCOPE
 
 class GfVec3f;
 class GfVec3d;
@@ -68,6 +71,8 @@ T GfConvertLinearToDisplay(const T& v);
 /// gamma space, return an energy-linear vec of the same type. This is
 /// instantiated for GfVec3f, GfVec4d, GfVec3d, and GfVec4d
 template <class T>
-GF_API T GfConvertDisplayToLinear(const T& v);
+T GfConvertDisplayToLinear(const T& v);
 
-#endif /* GF_GAMMA_H */
+PXR_NAMESPACE_CLOSE_SCOPE
+
+#endif // GF_GAMMA_H 

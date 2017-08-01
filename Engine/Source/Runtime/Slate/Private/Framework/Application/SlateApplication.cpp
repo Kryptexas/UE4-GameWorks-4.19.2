@@ -982,7 +982,7 @@ FSlateApplication::FSlateApplication()
 	, bMenuAnimationsEnabled( true )
 	, AppIcon( FCoreStyle::Get().GetBrush("DefaultAppIcon") )
 	, VirtualDesktopRect( 0,0,0,0 )
-	, NavigationConfig(MakeShareable(new FNavigationConfig()))
+	, NavigationConfigFactory([] { return MakeShared<FNavigationConfig>(); })
 	, SimulateGestures(false, (int32)EGestureEvent::Count)
 	, ProcessingInput(0)
 {
@@ -1984,10 +1984,22 @@ bool FSlateApplication::CanDisplayWindows() const
 	return Renderer.IsValid() && Renderer->AreShadersInitialized();
 }
 
-
 EUINavigation FSlateApplication::GetNavigationDirectionFromKey(const FKeyEvent& InKeyEvent) const
 {
-	return NavigationConfig->GetNavigationDirectionFromKey(InKeyEvent);
+	if (const FSlateUser* User = GetUser(InKeyEvent.GetUserIndex()))
+	{
+		return User->NavigationConfig->GetNavigationDirectionFromKey(InKeyEvent);
+	}
+	return EUINavigation::Invalid;
+}
+
+EUINavigation FSlateApplication::GetNavigationDirectionFromAnalog(const FAnalogInputEvent& InAnalogEvent)
+{
+	if (const FSlateUser* User = GetUser(InAnalogEvent.GetUserIndex()))
+	{
+		return User->NavigationConfig->GetNavigationDirectionFromAnalog(InAnalogEvent);
+	}
+	return EUINavigation::Invalid;
 }
 
 void FSlateApplication::AddModalWindow( TSharedRef<SWindow> InSlateWindow, const TSharedPtr<const SWidget> InParentWidget, bool bSlowTaskWindow )
@@ -1997,8 +2009,6 @@ void FSlateApplication::AddModalWindow( TSharedRef<SWindow> InSlateWindow, const
 		// Bail out.  The incoming window will never be added, and no native window will be created.
 		return;
 	}
-
-
 
 	// Push the active modal window onto the stack.  
 	ActiveModalWindows.AddUnique( InSlateWindow );
@@ -4358,6 +4368,24 @@ TSharedRef<FSlateVirtualUser> FSlateApplication::FindOrCreateVirtualUser(int32 V
 	return VirtualUser.ToSharedRef();
 }
 
+FSlateUser* FSlateApplication::GetOrCreateUser(int32 UserIndex)
+{
+	if (UserIndex < 0)
+	{
+		return nullptr;
+	}
+
+	if (FSlateUser* User = GetUser(UserIndex))
+	{
+		return User;
+	}
+
+	TSharedRef<FSlateUser> NewUser = MakeShared<FSlateUser>(UserIndex, false);
+	RegisterUser(NewUser);
+
+	return &NewUser.Get();
+}
+
 void FSlateApplication::RegisterUser(TSharedRef<FSlateUser> NewUser)
 {
 	if ( NewUser->UserIndex == -1 )
@@ -4385,6 +4413,8 @@ void FSlateApplication::RegisterUser(TSharedRef<FSlateUser> NewUser)
 		// Replace the user that's at this index with the new user.
 		Users[NewUser->GetUserIndex()] = NewUser;
 	}
+
+	NewUser->NavigationConfig = NavigationConfigFactory();
 }
 
 void FSlateApplication::UnregisterUser(int32 UserIndex)
@@ -4610,7 +4640,6 @@ TSharedRef<IToolTip> FSlateApplication::MakeToolTip( const FText& ToolTipText )
 	return SNew(SToolTip)
 		.Text(ToolTipText);
 }
-
 
 /* FGenericApplicationMessageHandler interface
  *****************************************************************************/
@@ -4853,7 +4882,7 @@ bool FSlateApplication::ProcessAnalogInputEvent(FAnalogInputEvent& InAnalogInput
 	{
 		Reply = FReply::Handled();
 	}
-	
+
 	if (!Reply.IsEventHandled())
 	{
 		if (FSlateUser* User = GetOrCreateUser(InAnalogInputEvent.GetUserIndex()))
@@ -4866,9 +4895,9 @@ bool FSlateApplication::ProcessAnalogInputEvent(FAnalogInputEvent& InAnalogInput
 			// Switch worlds for widgets in the current path
 			FScopedSwitchWorldHack SwitchWorld(EventPath);
 
-			Reply = FEventRouter::RouteAlongFocusPath(this, FEventRouter::FBubblePolicy(EventPath), InAnalogInputEvent, [] (const FArrangedWidget& SomeWidgetGettingEvent, const FAnalogInputEvent& Event)
+			Reply = FEventRouter::RouteAlongFocusPath(this, FEventRouter::FBubblePolicy(EventPath), InAnalogInputEvent, [](const FArrangedWidget& SomeWidgetGettingEvent, const FAnalogInputEvent& Event)
 			{
-				return ( SomeWidgetGettingEvent.Widget->IsEnabled() )
+				return (SomeWidgetGettingEvent.Widget->IsEnabled())
 					? SomeWidgetGettingEvent.Widget->OnAnalogValueChanged(SomeWidgetGettingEvent.Geometry, Event)
 					: FReply::Unhandled();
 			});
@@ -6520,10 +6549,12 @@ void FSlateApplication::ProcessApplicationActivationEvent(bool InAppActivated)
 	OnApplicationActivationStateChanged().Broadcast(InAppActivated);
 }
 
-
-void FSlateApplication::SetNavigationConfig(TSharedRef<FNavigationConfig> Config)
+void FSlateApplication::SetNavigationConfigFactory(TFunction<TSharedRef<FNavigationConfig>()> InNavigationConfigFactory)
 {
-	NavigationConfig = Config;
+	NavigationConfigFactory = InNavigationConfigFactory;
+	ForEachUser([&](FSlateUser* User) {
+		User->NavigationConfig = NavigationConfigFactory();
+	}, true);
 }
 
 bool FSlateApplication::OnConvertibleLaptopModeChanged()

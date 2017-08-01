@@ -190,7 +190,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;_USRDLL;UNREALUSDWRAPPER_EXPORTS;TF_NO_GNU_EXT;BUILD_OPTLEVEL_OPT;BUILD_COMPONENT_SRC_PREFIX="";NOMINMAX;TBB_USE_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>Public;..\..\ThirdParty\OpenEXR;..\..\ThirdParty\Python\include;..\..\ThirdParty\USD\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>Public;..\..\ThirdParty\USD\OpenEXR;..\..\ThirdParty\USD\Python\include;..\..\ThirdParty\USD\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <CompileAs>CompileAsCpp</CompileAs>
       <DisableSpecificWarnings>4946;4244;4305;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
@@ -198,7 +198,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>arch.lib;gf.lib;tf.lib;kind.lib;sdf.lib;plug.lib;js.lib;work.lib;tracelite.lib;vt.lib;pcp.lib;boost_python-vc140-mt-1_61.lib;python27.lib;usd.lib;usdGeom.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\..\..\Source\ThirdParty\USD\lib;..\..\..\Source\ThirdParty\Python\libs;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\Source\ThirdParty\USD\lib;..\..\..\Source\ThirdParty\USD\Python\libs;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>copy /Y "$(TargetDir)$(ProjectName).dll" "$(SolutionDir)..\..\Binaries\Win64\$(ProjectName).dll"
@@ -272,7 +272,7 @@ copy /Y "$(TargetDir)$(ProjectName).dll" "$(SolutionDir)\x64\Release\$(ProjectNa
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;_USRDLL;UNREALUSDWRAPPER_EXPORTS;TF_NO_GNU_EXT;BUILD_OPTLEVEL_OPT;BUILD_COMPONENT_SRC_PREFIX="";NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>Public;..\..\ThirdParty\USD\OpenEXR;..\..\ThirdParty\USD\Python\include;..\..\ThirdParty\USD\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <RuntimeTypeInfo>false</RuntimeTypeInfo>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <CompileAs>CompileAsCpp</CompileAs>
       <DisableSpecificWarnings>4946;4244;4305;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <ExceptionHandling>Sync</ExceptionHandling>

@@ -1318,7 +1318,7 @@ private:
 
 protected:
 	/** Dtor ensures that active timer handles are UnRegistered with the SlateApplication. */
-	~SWidget();
+	virtual ~SWidget();
 
 protected:
 	/** Is this widget hovered? */

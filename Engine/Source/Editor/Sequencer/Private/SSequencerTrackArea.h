@@ -105,6 +105,10 @@ public:
 	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override;
 	virtual FVector2D ComputeDesiredSize(float) const override;
 	virtual FChildren* GetChildren() override;
+	virtual void OnDragEnter(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
+	virtual void OnDragLeave(const FDragDropEvent& DragDropEvent) override;
+	virtual FReply OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
+	virtual FReply OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
 
 protected:
 
@@ -144,6 +148,13 @@ private:
 
 	/** The currently active edit tool on this track area */
 	TArray<TSharedPtr<ISequencerEditTool>> EditTools;
+
+	/** Weak pointer to the dropped node */
+	TWeakPtr<FSequencerDisplayNode> DroppedNode;
+
+	/** Whether the dropped node is allowed to be dropped onto */
+	bool bAllowDrop;
+
 private:
 
 	/** Input handler stack responsible for routing input to the different handlers */

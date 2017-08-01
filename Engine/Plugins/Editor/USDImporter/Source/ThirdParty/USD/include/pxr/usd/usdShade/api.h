@@ -1,5 +1,5 @@
 //
-// Copyright 2016 Pixar
+// Copyright 2017 Pixar
 //
 // Licensed under the Apache License, Version 2.0 (the "Apache License")
 // with the following modification; you may not use this file except in
@@ -28,16 +28,18 @@
 
 #if defined(USDSHADE_STATIC)
 #   define USDSHADE_API
+#   define USDSHADE_API_TEMPLATE_CLASS(...)
+#   define USDSHADE_API_TEMPLATE_STRUCT(...)
 #   define USDSHADE_LOCAL
 #else
 #   if defined(USDSHADE_EXPORTS)
 #       define USDSHADE_API ARCH_EXPORT
-#       define USDSHADE_API_TEMPLATE_CLASS(...)
-#       define USDSHADE_API_TEMPLATE_STRUCT(...)
+#       define USDSHADE_API_TEMPLATE_CLASS(...) ARCH_EXPORT_TEMPLATE(class, __VA_ARGS__)
+#       define USDSHADE_API_TEMPLATE_STRUCT(...) ARCH_EXPORT_TEMPLATE(struct, __VA_ARGS__)
 #   else
 #       define USDSHADE_API ARCH_IMPORT
-#       define USDSHADE_API_TEMPLATE_CLASS(...) extern template class USDSHADE_API __VA_ARGS__
-#       define USDSHADE_API_TEMPLATE_STRUCT(...) extern template struct USDSHADE_API __VA_ARGS__
+#       define USDSHADE_API_TEMPLATE_CLASS(...) ARCH_IMPORT_TEMPLATE(class, __VA_ARGS__)
+#       define USDSHADE_API_TEMPLATE_STRUCT(...) ARCH_IMPORT_TEMPLATE(struct, __VA_ARGS__)
 #   endif
 #   define USDSHADE_LOCAL ARCH_HIDDEN
 #endif

@@ -6,7 +6,7 @@
 #include "Layout/Visibility.h"
 #include "Widgets/SWidget.h"
 #include "IPropertyUtilities.h"
-#include "IDetailTreeNode.h"
+#include "DetailTreeNode.h"
 #include "Widgets/Views/STableViewBase.h"
 #include "Widgets/Views/STableRow.h"
 #include "PropertyNode.h"
@@ -145,7 +145,7 @@ private:
 /**
  * Detail category implementation
  */
-class FDetailCategoryImpl : public IDetailCategoryBuilder, public IDetailTreeNode, public TSharedFromThis<FDetailCategoryImpl>
+class FDetailCategoryImpl : public IDetailCategoryBuilder, public FDetailTreeNode, public TSharedFromThis<FDetailCategoryImpl>
 {
 public:
 	FDetailCategoryImpl(FName InCategoryName, TSharedRef<FDetailLayoutBuilderImpl> InDetalLayout);
@@ -171,10 +171,16 @@ public:
 	virtual const FText& GetDisplayName() const override { return DisplayName; }
 	virtual void SetCategoryVisibility(bool bIsVisible) override;
 
+	/** FDetailTreeNode interface */
+	virtual IDetailsViewPrivate* GetDetailsView() const override { return DetailLayoutBuilder.Pin()->GetDetailsView(); }
+	virtual TSharedRef< ITableRow > GenerateWidgetForTableView(const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, bool bAllowFavoriteSystem) override;
+	virtual bool GenerateStandaloneWidget(FDetailWidgetRow& OutRow) const override;
+
 	/** IDetailTreeNode interface */
-	virtual IDetailsViewPrivate& GetDetailsView() const override { return DetailLayoutBuilder.Pin()->GetDetailsView(); }
-	virtual TSharedRef< ITableRow > GenerateNodeWidget(const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, const TSharedRef<IPropertyUtilities>& PropertyUtilities, bool bAllowFavoriteSystem) override;
-	virtual void GetChildren(TArray< TSharedRef<IDetailTreeNode> >& OutChildren) override;
+	virtual EDetailNodeType GetNodeType() const override { return EDetailNodeType::Category; }
+	virtual TSharedPtr<IPropertyHandle> CreatePropertyHandle() const override { return nullptr; }
+
+	virtual void GetChildren(FDetailNodeList& OutChildren) override;
 	virtual bool ShouldBeExpanded() const override;
 	virtual ENodeVisibility GetVisibility() const override;
 	virtual void FilterNode(const FDetailFilter& DetailFilter) override;
@@ -234,7 +240,7 @@ public:
 	 * @param TreeNode				The node to expand or collapse
 	 * @param bShouldBeExpanded		True if the node should be expanded, false to collapse it
 	 */
-	void RequestItemExpanded(TSharedRef<IDetailTreeNode> TreeNode, bool bShouldBeExpanded);
+	void RequestItemExpanded(TSharedRef<FDetailTreeNode> TreeNode, bool bShouldBeExpanded);
 
 	/**
 	 * Notifies the tree view that it needs to be refreshed
@@ -248,14 +254,14 @@ public:
 	 *
 	 * @param TickableNode	The node that needs to be ticked
 	 */
-	void AddTickableNode(IDetailTreeNode& TickableNode);
+	void AddTickableNode(FDetailTreeNode& TickableNode);
 
 	/**
 	 * Removes a node that no longer needs to be ticked
 	 *
 	 * @param TickableNode	The node that no longer needs to be ticked
 	 */
-	void RemoveTickableNode(IDetailTreeNode& TickableNode);
+	void RemoveTickableNode(FDetailTreeNode& TickableNode);
 
 	/** @return The category path for this category */
 	const FString& GetCategoryPathName() const { return CategoryPathName; }
@@ -265,7 +271,7 @@ public:
 	 *
 	 * @param InTreeNode	The node to save expansion state from
 	 */
-	void SaveExpansionState(IDetailTreeNode& InTreeNode);
+	void SaveExpansionState(FDetailTreeNode& InTreeNode);
 
 	/**
 	 * Gets the saved expansion state of a tree node in this category
@@ -273,7 +279,7 @@ public:
 	 * @param InTreeNode	The node to get expansion state for
 	 * @return true if the node should be expanded, false otherwise
 	 */
-	bool GetSavedExpansionState(IDetailTreeNode& InTreeNode) const;
+	bool GetSavedExpansionState(FDetailTreeNode& InTreeNode) const;
 
 	/** @return true if this category only contains advanced properties */
 	bool ContainsOnlyAdvanced() const;
@@ -376,13 +382,13 @@ private:
 	/** Layouts that appear in this category category */
 	FDetailLayoutMap LayoutMap;
 	/** All Simple child nodes */
-	TArray< TSharedRef<IDetailTreeNode> > SimpleChildNodes;
+	TArray< TSharedRef<FDetailTreeNode> > SimpleChildNodes;
 	/** All Advanced child nodes */
-	TArray< TSharedRef<IDetailTreeNode> > AdvancedChildNodes;
+	TArray< TSharedRef<FDetailTreeNode> > AdvancedChildNodes;
 	/** Advanced dropdown node (always shown) */
-	TSharedPtr<IDetailTreeNode> AdvancedDropdownNodeBottom;
+	TSharedPtr<FDetailTreeNode> AdvancedDropdownNodeBottom;
 	/** Advanced dropdown node that is shown if the advanced dropdown is expanded */
-	TSharedPtr<IDetailTreeNode> AdvancedDropdownNodeTop;
+	TSharedPtr<FDetailTreeNode> AdvancedDropdownNodeTop;
 	/** Delegate called when expansion of the category changes */
 	FOnBooleanValueChanged OnExpansionChangedDelegate;
 	/** The display name of the category */

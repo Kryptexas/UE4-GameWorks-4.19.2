@@ -48,20 +48,34 @@ UObject* FLevelSequenceBindingReference::Resolve(UObject* InContext) const
 		const TCHAR* SearchWithinPackage = *PackageName;
 		FString FixupPIEPackageName;
 
-	#if WITH_EDITORONLY_DATA
+#if WITH_EDITORONLY_DATA
 		int32 PIEInstanceID = InContext ? InContext->GetOutermost()->PIEInstanceID : INDEX_NONE;
-		if (PIEInstanceID != INDEX_NONE)
+
+		const FString ShortPackageOuterAndName = FPackageName::GetLongPackageAssetName(PackageName);
+		if (ensureMsgf(!ShortPackageOuterAndName.StartsWith(PLAYWORLD_PACKAGE_PREFIX), TEXT("Detected PIE world prefix in level sequence binding - this should not happen")))
 		{
-			const FString ShortPackageOuterAndName = FPackageName::GetLongPackageAssetName(PackageName);
-			if (ensureMsgf(!ShortPackageOuterAndName.StartsWith(PLAYWORLD_PACKAGE_PREFIX), TEXT("Detected PIE world prefix in level sequence binding - this should not happen")))
+			if (PIEInstanceID != INDEX_NONE)
 			{
 				FixupPIEPackageName = FPackageName::GetLongPackagePath(PackageName) / FString::Printf(PLAYWORLD_PACKAGE_PREFIX TEXT("_%d_"), PIEInstanceID) + ShortPackageOuterAndName;
-				SearchWithinPackage = *FixupPIEPackageName;
 			}
+			else
+			{
+				const FString PlayOnConsolePackageName = FPackageName::FilenameToLongPackageName(FPaths::Combine(*FPaths::ProjectSavedDir(), *GEngine->PlayOnConsoleSaveDir));
+				const FString ConsoleName = FString(TEXT("PC"));
+				const FString Prefix = FString(PLAYWORLD_CONSOLE_BASE_PACKAGE_PREFIX) + ConsoleName;
+
+				FixupPIEPackageName = PlayOnConsolePackageName + FPackageName::GetLongPackagePath(PackageName) / Prefix + ShortPackageOuterAndName;
+			}
+			SearchWithinPackage = *FixupPIEPackageName;
 		}
-	#endif
+#endif
 
 		UPackage* Package = FindPackage(nullptr, SearchWithinPackage);
+		if (!Package)
+		{
+			//Package wasn't found, fall back to default path
+			Package = FindPackage(nullptr, *PackageName);
+		}
 		return Package ? FindObject<UObject>(Package, *ObjectPath, false) : nullptr;
 	}
 }

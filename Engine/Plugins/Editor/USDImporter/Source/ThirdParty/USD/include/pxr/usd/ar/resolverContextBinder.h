@@ -24,9 +24,14 @@
 #ifndef AR_RESOLVER_CONTEXT_BINDER_H
 #define AR_RESOLVER_CONTEXT_BINDER_H
 
+/// \file ar/resolverContextBinder.h
+
+#include "pxr/pxr.h"
 #include "pxr/usd/ar/api.h"
 #include "pxr/usd/ar/resolverContext.h"
 #include "pxr/base/vt/value.h"
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 class ArResolver;
 
@@ -35,8 +40,8 @@ class ArResolver;
 /// Helper object for managing the binding and unbinding of 
 /// ArResolverContext objects with the asset resolver.
 ///
-/// \see ArResolverContext::BindContext
-/// \see ArResolverContext::UnbindContext
+/// \see \ref ArResolver_context "Path Resolver Context Operations"
+/// \see \ref ArResolver_contextBinder "Path Resolver Context Binder"
 class ArResolverContextBinder
 {
 public:
@@ -61,5 +66,7 @@ private:
     ArResolverContext _context;
     VtValue _bindingData;
 };
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // AR_RESOLVER_CONTEXT_BINDER_H

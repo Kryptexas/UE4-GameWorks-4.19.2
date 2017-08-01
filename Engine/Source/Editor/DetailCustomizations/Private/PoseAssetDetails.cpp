@@ -25,10 +25,10 @@ TSharedRef<IDetailCustomization> FPoseAssetDetails::MakeInstance()
 
 void FPoseAssetDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 {
-	TArray< TWeakObjectPtr<UObject> > SelectedObjectsList = DetailBuilder.GetDetailsView().GetSelectedObjects();
+	const TArray< TWeakObjectPtr<UObject> >& SelectedObjectsList = DetailBuilder.GetSelectedObjects();
 	TArray< TWeakObjectPtr<UPoseAsset> > SelectedPoseAssets;
 
-	for (auto SelectionIt = SelectedObjectsList.CreateIterator(); SelectionIt; ++SelectionIt)
+	for (auto SelectionIt = SelectedObjectsList.CreateConstIterator(); SelectionIt; ++SelectionIt)
 	{
 		if (UPoseAsset* TestPoseAsset = Cast<UPoseAsset>(SelectionIt->Get()))
 		{

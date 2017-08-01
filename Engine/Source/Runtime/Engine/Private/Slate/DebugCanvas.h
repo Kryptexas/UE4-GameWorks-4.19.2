@@ -4,10 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "Rendering/RenderingCommon.h"
+#include "CanvasTypes.h"
 
-class FCanvas;
-class FCanvasProxy;
 class FRHICommandListImmediate;
+
+typedef TSharedPtr<FCanvas, ESPMode::ThreadSafe> FCanvasPtr;
 
 /**
  * Custom Slate drawer to render a debug canvas on top of a Slate window
@@ -45,18 +46,18 @@ private:
 	/**
 	 * Gets the render thread canvas 
 	 */
-	FCanvasProxy* GetRenderThreadCanvas();
+	FCanvasPtr GetRenderThreadCanvas();
 
 	/**
 	 * Set the canvas that can be used by the render thread
 	 */
-	void SetRenderThreadCanvas( const FIntRect& InCanvasRect, FCanvasProxy* Canvas );
+	void SetRenderThreadCanvas(const FIntRect& InCanvasRect, FCanvasPtr& Canvas);
 
 private:
 	/** The canvas that can be used by the game thread */
-	FCanvasProxy* GameThreadCanvas;
+	FCanvasPtr GameThreadCanvas;
 	/** The canvas that can be used by the render thread */
-	FCanvasProxy* RenderThreadCanvas;
+	FCanvasPtr RenderThreadCanvas;
 	/** Render target that the canvas renders to */
 	class FSlateCanvasRenderTarget* RenderTarget;
 };

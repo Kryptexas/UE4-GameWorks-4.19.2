@@ -124,7 +124,7 @@ FBXImportOptions* GetImportOptions( UnFbx::FFbxImporter* FbxImporter, UFbxImport
 			.AutoCenter(EAutoCenter::None)
 			.ScreenPosition(WindowPosition);
 		
-		auto OnPreviewFbxImportLambda = FOnPreviewFbxImport::CreateLambda([=]
+		auto OnPreviewFbxImportLambda = ImportUI->MeshTypeToImport == FBXIT_Animation ? nullptr : FOnPreviewFbxImport::CreateLambda([=]
 		{
 			UnFbx::FFbxImporter* PreviewFbxImporter = UnFbx::FFbxImporter::GetPreviewInstance();
 			PreviewFbxImporter->ShowFbxReimportPreview(ReimportObject, ImportUI, FullPath);
@@ -2269,6 +2269,7 @@ FbxNode* FFbxImporter::FindFBXMeshesByBone(const FName& RootBoneName, bool bExpa
 	for (int32 SkelMeshIndex = 0; SkelMeshIndex < SkelMeshArray.Num(); SkelMeshIndex++)
 	{
 		FbxNode* MeshNode = NULL;
+		if((*SkelMeshArray[SkelMeshIndex]).IsValidIndex(0))
 		{
 			FbxNode* Node = (*SkelMeshArray[SkelMeshIndex])[0];
 			if (Node->GetNodeAttribute() && Node->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eLODGroup)

@@ -1136,7 +1136,7 @@ bool FOneSkyShowImportTaskWorker::Execute(class FOneSkyLocalizationServiceComman
 	int32 InProjectId = -1;
 	int32 InImportId = -1;
 	int32 InExecutionDelayInSeconds = -1;
-	FDateTime InCreationTimeStamp = FDateTime::FDateTime(1970, 1, 1);
+	FDateTime InCreationTimeStamp = FDateTime(1970, 1, 1);
 
 	if (ShowImportTaskOp.IsValid())
 	{

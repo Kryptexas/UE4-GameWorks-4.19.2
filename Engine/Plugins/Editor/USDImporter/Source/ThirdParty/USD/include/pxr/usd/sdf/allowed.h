@@ -21,17 +21,21 @@
 // KIND, either express or implied. See the Apache License for the specific
 // language governing permissions and limitations under the Apache License.
 //
-#ifndef SD_ALLOWED_H
-#define SD_ALLOWED_H
+#ifndef SDF_ALLOWED_H
+#define SDF_ALLOWED_H
 
 /// \file sdf/allowed.h
 
-#include "pxr/base/tf/diagnostic.h"
+#include "pxr/pxr.h"
 #include "pxr/usd/sdf/api.h"
+#include "pxr/base/tf/diagnostic.h"
+
 #include <string>
 #include <utility>
 #include <boost/operators.hpp>
 #include <boost/optional.hpp>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 /// \class SdfAllowed
 ///
@@ -57,12 +61,12 @@ public:
     SdfAllowed(const std::string& whyNot) : _state(whyNot) { }
     /// Construct in \p condition with annotation \p whyNot if \c false.
     SdfAllowed(bool condition, const char* whyNot) :
-        _state(not condition, std::string(whyNot)) { }
+        _state(!condition, std::string(whyNot)) { }
     /// Construct in \p condition with annotation \p whyNot if \c false.
     SdfAllowed(bool condition, const std::string& whyNot) :
-        _state(not condition, whyNot) { }
+        _state(!condition, whyNot) { }
     /// Construct from bool,string pair \p x.
-    SdfAllowed(const Pair& x) : _state(not x.first, x.second) { }
+    SdfAllowed(const Pair& x) : _state(!x.first, x.second) { }
     ~SdfAllowed() { }
 
 #if !defined(doxygen)
@@ -90,16 +94,16 @@ public:
 
     /// Returns the reason why the operation is not allowed.  If the
     /// operation is allowed this returns the empty string.
-	SDF_API const std::string& GetWhyNot() const;
+    SDF_API const std::string& GetWhyNot() const;
 
     /// Returns \c true if allowed, otherwise fills \p whyNot if not \c NULL
     /// and returns \c false.
     bool IsAllowed(std::string* whyNot) const
     {
-        if (whyNot and _state) {
+        if (whyNot && _state) {
             *whyNot = *_state;
         }
-        return not _state;
+        return !_state;
     }
 
     /// Compare to \p other.  Returns \c true if both are \c true or
@@ -113,4 +117,6 @@ private:
     _State _state;
 };
 
-#endif
+PXR_NAMESPACE_CLOSE_SCOPE
+
+#endif // SDF_ALLOWED_H
