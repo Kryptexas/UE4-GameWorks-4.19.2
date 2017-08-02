@@ -333,7 +333,10 @@ namespace UnrealBuildTool
 	 * 	<!-- optional AAR imports additions -->
 	 * 	<AARImports> </AARImports>
 	 * 	
-	 * 	<!-- optional build.gradle additions -->
+	 * 	<!-- optional base build.gradle additions -->
+	 * 	<baseBuildGradleAdditions>  </baseBuildGradleAdditions>
+	 *
+	 * 	<!-- optional app build.gradle additions -->
 	 * 	<buildGradleAdditions>  </buildGradleAdditions>
 	 * 	
 	 * 	<!-- optional additions to generated build.xml before ${sdk.dir}/tools/ant/build.xml import -->
