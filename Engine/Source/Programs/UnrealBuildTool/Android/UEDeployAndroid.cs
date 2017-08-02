@@ -3671,7 +3671,8 @@ namespace UnrealBuildTool
 			AARImportsContent.AppendLine("repositories {");
 			foreach (string Repository in AARHandler.Repositories)
 			{
-				AARImportsContent.AppendLine("\tmaven { url uri('" + Repository.Replace('\\', '/') + "') }");
+				string RepositoryPath = Path.GetFullPath(Repository).Replace('\\', '/');
+				AARImportsContent.AppendLine("\tmaven { url uri('" + RepositoryPath + "') }");
 			}
 			AARImportsContent.AppendLine("}");
 
