@@ -32,7 +32,12 @@ UImagePlateFileSequence::UImagePlateFileSequence(const FObjectInitializer& Init)
 
 FImagePlateAsyncCache UImagePlateFileSequence::GetAsyncCache()
 {
-	FString Path = SequencePath.Path;
+	FString Path;
+	if (!FPackageName::TryConvertLongPackageNameToFilename(SequencePath.Path, Path))
+	{
+		UE_LOG(LogImagePlateFileSequence, Warning, TEXT("Sequence path is not a long package name. This path is not portable, and may not work in a packaged build."));
+		Path = SequencePath.Path;
+	}
 
 	if (GetDefault<UImagePlateSettings>()->ProxyName.Len() != 0)
 	{
@@ -370,21 +375,6 @@ namespace ImagePlateFrameCache
 		: CurrentFrameNumber(-1), MinCacheRange(-1), MaxCacheRange(-1), Framerate(InFramerate)
 	{
 		FString SequenceFolder = InSequencePath;
-		if (!FPackageName::TryConvertLongPackageNameToFilename(InSequencePath, SequenceFolder))
-		{
-			SequenceFolder = InSequencePath;
-			if (FPaths::IsRelative(SequenceFolder))
-			{
-				if (SequenceFolder.StartsWith(TEXT("./")))
-				{
-					SequenceFolder = FPaths::ConvertRelativePathToFull(FPaths::GameContentDir(), SequenceFolder.RightChop(2));
-				}
-				else
-				{
-					SequenceFolder = FPaths::ConvertRelativePathToFull(SequenceFolder);
-				}
-			}
-		}
 
 		IFileManager::Get().FindFiles(FrameFilenames, *SequenceFolder, *InWildcard);
 		if (FrameFilenames.Num() == 0)
