@@ -12,7 +12,7 @@
 struct NvFlexExtJoint;
 
 /**
-*	Used to emit a soft joint that can affect flex objects.
+*	Used to emit a soft joint that can affect flex objects in the same container.
 */
 UCLASS(hidecategories = (Object, Mobility, LOD, Physics), ClassGroup = Physics, showcategories = Trigger, meta = (BlueprintSpawnableComponent))
 class ENGINE_API USoftJointComponent : public USceneComponent, public IFlexContainerClient
@@ -31,6 +31,9 @@ class ENGINE_API USoftJointComponent : public USceneComponent, public IFlexConta
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SoftJointComponent, meta = (editcondition = "OverrideAsset"))
 	UFlexContainer* ContainerTemplate;
 
+	/* The simulation container the joint belongs to */
+	FFlexContainerInstance* ContainerInstance;
+
 	/** The global particle indice*/
 	TArray<int32> ParticleIndices;
 
@@ -41,24 +44,11 @@ class ENGINE_API USoftJointComponent : public USceneComponent, public IFlexConta
 	int32 NumParticles;
 
 	/** Whether it has been initialized */
-	bool JointIsInitialized;
+	bool bJointIsInitialized;
 
 	NvFlexExtJoint* Joint;
 
-	/** Add an object type for this soft joint to affect */
-	UFUNCTION(BlueprintCallable, Category = "Physics|Components|SoftJoint")
-	virtual void AddObjectTypeToAffect(TEnumAsByte<enum EObjectTypeQuery> ObjectType);
-
-	/** Remove an object type that is affected by this soft joint */
-	UFUNCTION(BlueprintCallable, Category = "Physics|Components|SoftJoint")
-	virtual void RemoveObjectTypeToAffect(TEnumAsByte<enum EObjectTypeQuery> ObjectType);
-
-	/** Add a collision channel for this soft joint to affect */
-	void AddCollisionChannelToAffect(enum ECollisionChannel CollisionChannel);
-
 public:
-	/* The simulation container the joint belongs to */
-	FFlexContainerInstance* ContainerInstance;
 
 	/** Returns the number of particles in the joint**/
 	FORCEINLINE int32 GetNumParticles() const { return NumParticles; }
@@ -79,31 +69,11 @@ protected:
 
 	virtual void OnUnregister() override;
 
-	/** The object types that are affected by this radial force */
-	UPROPERTY(EditAnywhere, Category = RadialForceComponent)
-		TArray<TEnumAsByte<enum EObjectTypeQuery> > ObjectTypesToAffect;
-
-	/** Cached object query params derived from ObjectTypesToAffect */
-	FCollisionObjectQueryParams CollisionObjectQueryParams;
-
 protected:
 
 	//~ Begin UActorComponent Interfac
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override; 
-
-	virtual void BeginPlay() override;
 	//~ End UActorComponent Interface.
-
-	//~ Begin UObject Interface.
-	virtual void PostLoad() override;
-
-#if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-#endif
-	//~ End UObject Interface.
-
-	/** Update CollisionObjectQueryParams from ObjectTypesToAffect */
-	void UpdateCollisionObjectQueryParams();
 };
 
 

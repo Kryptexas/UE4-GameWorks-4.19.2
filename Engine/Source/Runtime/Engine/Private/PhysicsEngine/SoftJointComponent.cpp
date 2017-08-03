@@ -33,13 +33,13 @@ USoftJointComponent::USoftJointComponent(const FObjectInitializer& ObjectInitial
 	bAutoActivate = true;
 	NumParticles = 0;
 	bAutoActivate = true;
-	JointIsInitialized = false;
+	bJointIsInitialized = false;
 	Joint = nullptr;
+}
 
-	// by default we affect all Flex objects that can currently be affected by soft joint
-	AddCollisionChannelToAffect(ECC_Flex);
-
-	UpdateCollisionObjectQueryParams();
+UFlexContainer* USoftJointComponent::GetContainerTemplate()
+{
+	return ContainerInstance ? ContainerInstance->Template : nullptr;
 }
 
 void USoftJointComponent::OnUnregister()
@@ -65,7 +65,7 @@ void USoftJointComponent::TickComponent(float DeltaTime, enum ELevelTick TickTyp
 
 #if WITH_FLEX
 	// Do the initialization the first time this joint is ticked
-	if (!JointIsInitialized)
+	if (!bJointIsInitialized)
 	{
 		// Create rigid attachments to overlapping Flex actors
 		const FVector Origin = GetComponentLocation();
@@ -109,7 +109,7 @@ void USoftJointComponent::TickComponent(float DeltaTime, enum ELevelTick TickTyp
 		// Create shape-matching constraint between joint particles
 		FPhysScene* PhysScene = GetWorld()->GetPhysicsScene();
 		const uint32 FlexBit = ECC_TO_BITFIELD(ECC_Flex);
-		if (PhysScene && (CollisionObjectQueryParams.GetQueryBitfield() & FlexBit) != 0)
+		if (PhysScene)
 		{
 			FFlexContainerInstance* Container = PhysScene->GetJointContainer(ContainerTemplate);
 			if (Container)
@@ -121,61 +121,9 @@ void USoftJointComponent::TickComponent(float DeltaTime, enum ELevelTick TickTyp
 			}
 		}
 
-		JointIsInitialized = true;
+		bJointIsInitialized = true;
 	}
 #endif
-}
-
-void USoftJointComponent::BeginPlay()
-{
-	Super::BeginPlay();
-}
-
-void USoftJointComponent::PostLoad()
-{
-	Super::PostLoad();
-
-	UpdateCollisionObjectQueryParams();
-}
-
-void USoftJointComponent::AddCollisionChannelToAffect(enum ECollisionChannel CollisionChannel)
-{
-	EObjectTypeQuery ObjectType = UEngineTypes::ConvertToObjectType(CollisionChannel);
-	if (ObjectType != ObjectTypeQuery_MAX)
-	{
-		AddObjectTypeToAffect(ObjectType);
-	}
-}
-
-void USoftJointComponent::AddObjectTypeToAffect(TEnumAsByte<enum EObjectTypeQuery> ObjectType)
-{
-	ObjectTypesToAffect.AddUnique(ObjectType);
-	UpdateCollisionObjectQueryParams();
-}
-
-void USoftJointComponent::RemoveObjectTypeToAffect(TEnumAsByte<enum EObjectTypeQuery> ObjectType)
-{
-	ObjectTypesToAffect.Remove(ObjectType);
-	UpdateCollisionObjectQueryParams();
-}
-
-UFlexContainer* USoftJointComponent::GetContainerTemplate()
-{
-	return ContainerInstance ? ContainerInstance->Template : nullptr;
-}
-
-#if WITH_EDITOR
-
-void USoftJointComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
-{
-	Super::PostEditChangeProperty(PropertyChangedEvent);
-}
-
-#endif
-
-void USoftJointComponent::UpdateCollisionObjectQueryParams()
-{
-	CollisionObjectQueryParams = FCollisionObjectQueryParams(ObjectTypesToAffect);
 }
 
 //////////////////////////////////////////////////////////////////////////
