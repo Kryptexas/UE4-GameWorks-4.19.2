@@ -685,6 +685,15 @@ bool UAIPerceptionComponent::GetActorsPerception(AActor* Actor, FActorPerception
 	return bInfoFound;
 }
 
+void UAIPerceptionComponent::SetSenseEnabled(TSubclassOf<UAISense> SenseClass, const bool bEnable)
+{
+	const FAISenseID SenseID = UAISense::GetSenseID(SenseClass);
+	if (SenseID.IsValid())
+	{
+		UpdatePerceptionWhitelist(SenseID, bEnable);
+	}
+}
+
 //----------------------------------------------------------------------//
 // debug
 //----------------------------------------------------------------------//

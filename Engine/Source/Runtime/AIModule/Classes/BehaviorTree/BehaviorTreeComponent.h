@@ -89,7 +89,6 @@ class AIMODULE_API UBehaviorTreeComponent : public UBrainComponent
 
 	// Begin UBrainComponent overrides
 	virtual void RestartLogic() override;
-protected:
 	virtual void StopLogic(const FString& Reason) override;
 	virtual void PauseLogic(const FString& Reason) override;
 	virtual EAILogicResuming::Type ResumeLogic(const FString& Reason) override;

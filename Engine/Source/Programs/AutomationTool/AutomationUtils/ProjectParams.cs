@@ -224,6 +224,7 @@ namespace AutomationTool
 			this.AddPatchLevel = InParams.AddPatchLevel;
 			this.StageBaseReleasePaks = InParams.StageBaseReleasePaks;
 			this.DLCFile = InParams.DLCFile;
+			this.GenerateRemaster = InParams.GenerateRemaster;
             this.DLCIncludeEngineContent = InParams.DLCIncludeEngineContent;
             this.DiffCookedContentPath = InParams.DiffCookedContentPath;
             this.AdditionalCookerOptions = InParams.AdditionalCookerOptions;
@@ -399,6 +400,7 @@ namespace AutomationTool
             bool? GeneratePatch = null,
 			bool? AddPatchLevel = null,
 			bool? StageBaseReleasePaks = null,
+			bool? GenerateRemaster = null,
 			string DLCName = null,
             string DiffCookedContentPath = null,
             bool? DLCIncludeEngineContent = null,
@@ -533,6 +535,7 @@ namespace AutomationTool
             this.GeneratePatch = GetParamValueIfNotSpecified(Command, GeneratePatch, this.GeneratePatch, "GeneratePatch");
             this.AddPatchLevel = GetParamValueIfNotSpecified(Command, AddPatchLevel, this.AddPatchLevel, "AddPatchLevel");
 			this.StageBaseReleasePaks = GetParamValueIfNotSpecified(Command, StageBaseReleasePaks, this.StageBaseReleasePaks, "StageBaseReleasePaks");
+			this.GenerateRemaster = GetParamValueIfNotSpecified(Command, GenerateRemaster, this.GenerateRemaster, "GenerateRemaster");
 			this.AdditionalCookerOptions = ParseParamValueIfNotSpecified(Command, AdditionalCookerOptions, "AdditionalCookerOptions", String.Empty);
 
 			DLCName = ParseParamValueIfNotSpecified(Command, DLCName, "DLCName", String.Empty);
@@ -1346,21 +1349,23 @@ namespace AutomationTool
         /// see also CreateReleaseVersion, BasedOnReleaseVersion
         /// </summary>
         public bool GeneratePatch;
+		
+		/// <summary>
+		/// Are we generating a remaster, generate a patch from a previously released version of the game (use CreateReleaseVersion to create a release). 
+		/// this requires BasedOnReleaseVersion
+		/// see also CreateReleaseVersion, BasedOnReleaseVersion
+		/// </summary>
+		public bool GenerateRemaster;
 
-        /// <summary>
-        /// Are we adding a new patch tier (otherwise patch will modify the most recent patch tier), this requires GeneratePatch and BasedOnReleaseVersion
-        /// see also GeneratePatch, BasedOnReleaseVersion
+		/// <summary>
         /// </summary>
         public bool AddPatchLevel;
-
         /// <summary>
         /// Are we staging the unmodified pak files from the base release
-        /// </summary>
         public bool StageBaseReleasePaks;
 
-        /// <summary>
-        /// Plugin file for dlc to cook and package (if this paramter is supplied cooks the dlc and packages it into the dlc directory)
-        /// </summary>
+        /// Name of dlc to cook and package (if this paramter is supplied cooks the dlc and packages it into the dlc directory)
+		/// </summary>
         public FileReference DLCFile;
 
         /// <summary>
@@ -2174,6 +2179,14 @@ namespace AutomationTool
         }
 
 		/// <summary>
+		/// True if we are generating a patch
+		/// </summary>
+		public bool IsGeneratingRemaster
+		{
+			get { return GenerateRemaster; }
+		}
+
+		/// <summary>
 		/// Filename of the target game exe (or program exe).
 		/// </summary>
 		public string ProjectGameExeFilename
@@ -2441,6 +2454,7 @@ namespace AutomationTool
 				CommandUtils.LogLog("GeneratePatch={0}", GeneratePatch);
 				CommandUtils.LogLog("AddPatchLevel={0}", AddPatchLevel);
 				CommandUtils.LogLog("StageBaseReleasePaks={0}", StageBaseReleasePaks);
+				CommandUtils.LogLog("GenerateRemaster={0}", GenerateRemaster);
 				CommandUtils.LogLog("CreateReleaseVersion={0}", CreateReleaseVersion);
                 CommandUtils.LogLog("BasedOnReleaseVersion={0}", BasedOnReleaseVersion);
                 CommandUtils.LogLog("DLCFile={0}", DLCFile);

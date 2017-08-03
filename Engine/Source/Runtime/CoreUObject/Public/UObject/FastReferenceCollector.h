@@ -116,7 +116,6 @@ public:
 				}
 			}
 			ArrayStruct->WeakReferences.Reset();
-			
 			if (bClearPools)
 			{
 				delete ArrayStruct;

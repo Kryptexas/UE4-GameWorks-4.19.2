@@ -288,7 +288,14 @@ float FCustomCalculationBasedFloat::CalculateMagnitude(const FGameplayEffectSpec
 
 	const float SpecLvl = InRelevantSpec.GetLevel();
 	FString ContextString = FString::Printf(TEXT("FCustomCalculationBasedFloat::CalculateMagnitude from effect %s"), *CalcCDO->GetName());
-	return ((Coefficient.GetValueAtLevel(SpecLvl, &ContextString) * (CustomBaseValue + PreMultiplyAdditiveValue.GetValueAtLevel(SpecLvl, &ContextString))) + PostMultiplyAdditiveValue.GetValueAtLevel(SpecLvl, &ContextString));
+
+	float FinalValue = ((Coefficient.GetValueAtLevel(SpecLvl, &ContextString) * (CustomBaseValue + PreMultiplyAdditiveValue.GetValueAtLevel(SpecLvl, &ContextString))) + PostMultiplyAdditiveValue.GetValueAtLevel(SpecLvl, &ContextString));
+	if (FinalLookupCurve.IsValid(ContextString))
+	{
+		FinalValue = FinalLookupCurve.Eval(FinalValue, ContextString);
+	}
+
+	return FinalValue;
 }
 
 /** Equality/Inequality operators */
@@ -537,15 +544,22 @@ FText FGameplayEffectModifierMagnitude::GetValueForEditorDisplay() const
 
 void FGameplayEffectModifierMagnitude::ReportErrors(const FString& PathName) const
 {
-	GETCURVE_REPORTERROR_WITHPATHNAME(ScalableFloatMagnitude.Curve, PathName);
-
-	GETCURVE_REPORTERROR_WITHPATHNAME(AttributeBasedMagnitude.Coefficient.Curve, PathName);
-	GETCURVE_REPORTERROR_WITHPATHNAME(AttributeBasedMagnitude.PreMultiplyAdditiveValue.Curve, PathName);
-	GETCURVE_REPORTERROR_WITHPATHNAME(AttributeBasedMagnitude.PostMultiplyAdditiveValue.Curve, PathName);
-
-	GETCURVE_REPORTERROR_WITHPATHNAME(CustomMagnitude.Coefficient.Curve, PathName);
-	GETCURVE_REPORTERROR_WITHPATHNAME(CustomMagnitude.PreMultiplyAdditiveValue.Curve, PathName);
-	GETCURVE_REPORTERROR_WITHPATHNAME(CustomMagnitude.PostMultiplyAdditiveValue.Curve, PathName);
+	if (MagnitudeCalculationType == EGameplayEffectMagnitudeCalculation::ScalableFloat)
+	{
+		GETCURVE_REPORTERROR_WITHPATHNAME(ScalableFloatMagnitude.Curve, PathName);
+	}
+	else if (MagnitudeCalculationType == EGameplayEffectMagnitudeCalculation::AttributeBased)
+	{
+		GETCURVE_REPORTERROR_WITHPATHNAME(AttributeBasedMagnitude.Coefficient.Curve, PathName);
+		GETCURVE_REPORTERROR_WITHPATHNAME(AttributeBasedMagnitude.PreMultiplyAdditiveValue.Curve, PathName);
+		GETCURVE_REPORTERROR_WITHPATHNAME(AttributeBasedMagnitude.PostMultiplyAdditiveValue.Curve, PathName);
+	}
+	else if (MagnitudeCalculationType == EGameplayEffectMagnitudeCalculation::CustomCalculationClass)
+	{
+		GETCURVE_REPORTERROR_WITHPATHNAME(CustomMagnitude.Coefficient.Curve, PathName);
+		GETCURVE_REPORTERROR_WITHPATHNAME(CustomMagnitude.PreMultiplyAdditiveValue.Curve, PathName);
+		GETCURVE_REPORTERROR_WITHPATHNAME(CustomMagnitude.PostMultiplyAdditiveValue.Curve, PathName);
+	}
 }
 #endif // WITH_EDITOR
 
@@ -737,11 +751,14 @@ FGameplayEffectSpecForRPC::FGameplayEffectSpecForRPC(const FGameplayEffectSpec& 
 	// Only copy attributes that are in the gameplay cue info
 	for (int32 i = InSpec.ModifiedAttributes.Num() - 1; i >= 0; i--)
 	{
-		for (const FGameplayEffectCue& CueInfo : Def->GameplayCues)
+		if (Def)
 		{
-			if (CueInfo.MagnitudeAttribute == InSpec.ModifiedAttributes[i].Attribute)
+			for (const FGameplayEffectCue& CueInfo : Def->GameplayCues)
 			{
-				ModifiedAttributes.Add(InSpec.ModifiedAttributes[i]);
+				if (CueInfo.MagnitudeAttribute == InSpec.ModifiedAttributes[i].Attribute)
+				{
+					ModifiedAttributes.Add(InSpec.ModifiedAttributes[i]);
+				}
 			}
 		}
 	}
@@ -1306,6 +1323,18 @@ bool FGameplayEffectAttributeCaptureSpec::AttemptAddAggregatorModsToAggregator(O
 	return false;
 }
 
+bool FGameplayEffectAttributeCaptureSpec::AttemptGatherAttributeMods(OUT TMap<EGameplayModEvaluationChannel, const TArray<FAggregatorMod>*>& OutModMap) const
+{
+	FAggregator* Agg = AttributeAggregator.Get();
+	if (Agg)
+	{
+		Agg->GetAllAggregatorMods(OutModMap);
+		return true;
+	}
+
+	return false;
+}
+
 void FGameplayEffectAttributeCaptureSpec::RegisterLinkedAggregatorCallback(FActiveGameplayEffectHandle Handle) const
 {
 	if (BackingDefinition.bSnapshot == false)
@@ -1551,6 +1580,7 @@ FActiveGameplayEffect::FActiveGameplayEffect(FActiveGameplayEffect&& Other)
 	,IsPendingRemove(Other.IsPendingRemove)
 	,ClientCachedStackCount(0)
 	,OnRemovedDelegate(Other.OnRemovedDelegate)
+	,OnRemoved_InfoDelegate(Other.OnRemoved_InfoDelegate)
 	,PeriodHandle(Other.PeriodHandle)
 	,DurationHandle(Other.DurationHandle)
 {
@@ -1575,6 +1605,7 @@ FActiveGameplayEffect& FActiveGameplayEffect::operator=(FActiveGameplayEffect&& 
 	IsPendingRemove = Other.IsPendingRemove;
 	ClientCachedStackCount = Other.ClientCachedStackCount;
 	OnRemovedDelegate = Other.OnRemovedDelegate;
+	OnRemoved_InfoDelegate = Other.OnRemoved_InfoDelegate;
 	PeriodHandle = Other.PeriodHandle;
 	DurationHandle = Other.DurationHandle;
 	// Note: purposefully not copying PendingNext pointer.
@@ -1598,6 +1629,7 @@ FActiveGameplayEffect& FActiveGameplayEffect::operator=(const FActiveGameplayEff
 	IsPendingRemove = Other.IsPendingRemove;
 	ClientCachedStackCount = Other.ClientCachedStackCount;
 	OnRemovedDelegate = Other.OnRemovedDelegate;
+	OnRemoved_InfoDelegate = Other.OnRemoved_InfoDelegate;
 	PeriodHandle = Other.PeriodHandle;
 	DurationHandle = Other.DurationHandle;
 	PendingNext = Other.PendingNext;
@@ -1642,7 +1674,21 @@ void FActiveGameplayEffect::PreReplicatedRemove(const struct FActiveGameplayEffe
 
 	ABILITY_LOG(Verbose, TEXT("PreReplicatedRemove: %s %s Marked as Pending Remove: %s"), *Handle.ToString(), *Spec.Def->GetName(), IsPendingRemove ? TEXT("TRUE") : TEXT("FALSE"));
 
-	const_cast<FActiveGameplayEffectsContainer&>(InArray).InternalOnActiveGameplayEffectRemoved(*this, !bIsInhibited);	// Const cast is ok. It is there to prevent mutation of the GameplayEffects array, which this wont do.
+	FGameplayEffectRemovalInfo GameplayEffectRemovalInfo;
+	GameplayEffectRemovalInfo.StackCount = ClientCachedStackCount;
+	//Check duration to set bPrematureRemoval as req.
+	if (DurationHandle.IsValid())
+	{
+		float SecondsRemaining = GetTimeRemaining(const_cast<FActiveGameplayEffectsContainer&>(InArray).GetWorldTime());
+
+		if (SecondsRemaining > 0.f)
+		{
+			GameplayEffectRemovalInfo.bPrematureRemoval = true;
+		}
+	}
+	GameplayEffectRemovalInfo.EffectContext = Spec.GetEffectContext();
+
+	const_cast<FActiveGameplayEffectsContainer&>(InArray).InternalOnActiveGameplayEffectRemoved(*this, !bIsInhibited, GameplayEffectRemovalInfo);	// Const cast is ok. It is there to prevent mutation of the GameplayEffects array, which this wont do.
 }
 
 void FActiveGameplayEffect::PostReplicatedAdd(const struct FActiveGameplayEffectsContainer &InArray)
@@ -1933,6 +1979,8 @@ void FActiveGameplayEffectsContainer::ExecutePeriodicGameplayEffect(FActiveGamep
 	FActiveGameplayEffect* ActiveEffect = GetActiveGameplayEffect(Handle);
 	if (ActiveEffect && !ActiveEffect->bIsInhibited)
 	{
+		FScopeCurrentGameplayEffectBeingApplied ScopedGEApplication(&ActiveEffect->Spec, Owner);
+
 		if (UE_LOG_ACTIVE(VLogAbilitySystem, Log))
 		{
 			ABILITY_VLOG(Owner->OwnerActor, Log, TEXT("Executed Periodic Effect %s"), *ActiveEffect->Spec.Def->GetFName().ToString());
@@ -2992,6 +3040,8 @@ void FActiveGameplayEffectsContainer::AddActiveGameplayEffectGrantedTagsAndModif
 			if (AbilitySpecDef.AssignedHandle.IsValid() == false)
 			{
 				Owner->GiveAbility( FGameplayAbilitySpec(AbilitySpecDef, Effect.Spec.GetLevel(), Effect.Handle) );
+
+				ABILITY_LOG(Display, TEXT("::AddActiveGameplayEffectGrantedTagsAndModifiers granted ability %s (Handle %s) from GE %s (Handle: %s)"), *GetNameSafe(AbilitySpecDef.Ability), *AbilitySpecDef.AssignedHandle.ToString(), *Effect.GetDebugString(), *Effect.Handle.ToString());
 			}
 		}	
 	}
@@ -3074,6 +3124,11 @@ bool FActiveGameplayEffectsContainer::InternalRemoveActiveGameplayEffect(int32 I
 
 		ABILITY_LOG(Verbose, TEXT("InternalRemoveActiveGameplayEffect: Auth: %s Handle: %s Def: %s"), IsNetAuthority() ? TEXT("TRUE") : TEXT("FALSE"), *Effect.Handle.ToString(), Effect.Spec.Def ? *Effect.Spec.Def->GetName() : TEXT("NONE"));
 
+		FGameplayEffectRemovalInfo GameplayEffectRemovalInfo;
+		GameplayEffectRemovalInfo.StackCount = Effect.Spec.StackCount;
+		GameplayEffectRemovalInfo.bPrematureRemoval = bPrematureRemoval;
+		GameplayEffectRemovalInfo.EffectContext = Effect.Spec.GetEffectContext();
+
 		if (StacksToRemove > 0 && Effect.Spec.StackCount > StacksToRemove)
 		{
 			// This won't be a full remove, only a change in StackCount.
@@ -3099,7 +3154,7 @@ bool FActiveGameplayEffectsContainer::InternalRemoveActiveGameplayEffect(int32 I
 		ShouldInvokeGameplayCueEvent &= !Effect.bIsInhibited;
 
 		// Mark the effect pending remove, and remove all side effects from the effect
-		InternalOnActiveGameplayEffectRemoved(Effect, ShouldInvokeGameplayCueEvent);
+		InternalOnActiveGameplayEffectRemoved(Effect, ShouldInvokeGameplayCueEvent, GameplayEffectRemovalInfo);
 
 		if (Effect.DurationHandle.IsValid())
 		{
@@ -3159,7 +3214,7 @@ bool FActiveGameplayEffectsContainer::InternalRemoveActiveGameplayEffect(int32 I
 }
 
 /** Called by client and server: This does cleanup that has to happen whether the effect is being removed locally or due to replication */
-void FActiveGameplayEffectsContainer::InternalOnActiveGameplayEffectRemoved(FActiveGameplayEffect& Effect, bool bInvokeGameplayCueEvents)
+void FActiveGameplayEffectsContainer::InternalOnActiveGameplayEffectRemoved(FActiveGameplayEffect& Effect, bool bInvokeGameplayCueEvents, const FGameplayEffectRemovalInfo& GameplayEffectRemovalInfo)
 {
 	SCOPE_CYCLE_COUNTER(STAT_OnActiveGameplayEffectRemoved);
 
@@ -3186,6 +3241,7 @@ void FActiveGameplayEffectsContainer::InternalOnActiveGameplayEffectRemoved(FAct
 	}
 
 	Effect.OnRemovedDelegate.Broadcast();
+	Effect.OnRemoved_InfoDelegate.Broadcast(GameplayEffectRemovalInfo);
 	OnActiveGameplayEffectRemovedDelegate.Broadcast(Effect);
 }
 
@@ -3671,6 +3727,8 @@ void FActiveGameplayEffectsContainer::CheckDuration(FActiveGameplayEffectHandle 
 					float PeriodTimeRemaining = TimerManager.GetTimerRemaining(Effect.PeriodHandle);
 					if (PeriodTimeRemaining <= KINDA_SMALL_NUMBER && !Effect.bIsInhibited)
 					{
+						FScopeCurrentGameplayEffectBeingApplied ScopedGEApplication(&Effect.Spec, Owner);
+
 						ExecuteActiveEffectsFrom(Effect.Spec);
 
 						// The above call to ExecuteActiveEffectsFrom could cause this effect to be explicitly removed

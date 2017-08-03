@@ -714,6 +714,9 @@ public:
 	ENGINE_API virtual uint32 GetMaximumDimension() const;
 #endif
 
+	// Daniel L: Temporary code to track down OR-40458 REMOVE ME
+	ENGINE_API virtual void MarkPendingKill() override;
+
 	/** @return the width of the surface represented by the texture. */
 	virtual float GetSurfaceWidth() const PURE_VIRTUAL(UTexture::GetSurfaceWidth,return 0;);
 

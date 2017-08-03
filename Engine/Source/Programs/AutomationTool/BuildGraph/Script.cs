@@ -1135,6 +1135,7 @@ namespace AutomationTool
 				string[] Users = ReadListAttribute(Element, "Users");
 				string[] Submitters = ReadListAttribute(Element, "Submitters");
 				bool? bWarnings = Element.HasAttribute("Warnings") ? (bool?)ReadBooleanAttribute(Element, "Warnings", true) : null;
+				bool bAbsolute = Element.HasAttribute("Absolute") ? ReadBooleanAttribute(Element, "Absolute", true) : false;
 
 				// Find the list of targets which are included, and recurse through all their dependencies
 				HashSet<Node> Nodes = new HashSet<Node>();
@@ -1167,11 +1168,25 @@ namespace AutomationTool
 				{
 					if (Users != null)
 					{
-						Node.NotifyUsers.UnionWith(Users);
+						if (bAbsolute)
+						{
+							Node.NotifyUsers = new HashSet<string>(Users);
+						}
+						else
+						{
+							Node.NotifyUsers.UnionWith(Users);
+						}
 					}
 					if (Submitters != null)
 					{
-						Node.NotifySubmitters.UnionWith(Submitters);
+						if (bAbsolute)
+						{
+							Node.NotifySubmitters = new HashSet<string>(Submitters);
+						}
+						else
+						{
+							Node.NotifySubmitters.UnionWith(Submitters);
+						}
 					}
 					if (bWarnings.HasValue)
 					{

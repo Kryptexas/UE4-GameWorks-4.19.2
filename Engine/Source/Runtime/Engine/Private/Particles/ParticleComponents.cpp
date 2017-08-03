@@ -119,6 +119,17 @@ FAutoConsoleVariableRef CVarParticleLODBias(
 	ECVF_Scalability
 	);
 
+static TAutoConsoleVariable<float> CVarQLSpawnRateReferenceLevel(
+	TEXT("fx.QualityLevelSpawnRateScaleReferenceLevel"),
+	2,
+	TEXT("Controls the reference level for quality level based spawn rate scaling. This is the FX quality level\n")
+	TEXT("at which spawn rate is not scaled down; Spawn rate scaling will happen by each emitter's\n")
+	TEXT("QualityLevelSpawnRateScale value for each reduction in level below the reference level.\n")
+	TEXT("\n")
+	TEXT("Default = 2. Value should range from 0 to the maximum FX quality level."),
+	ECVF_Scalability);
+
+
 /** Whether to allow particle systems to perform work. */
 bool GIsAllowingParticles = true;
 
@@ -1739,13 +1750,10 @@ void UParticleEmitter::CacheEmitterModuleInfo()
 float UParticleEmitter::GetQualityLevelSpawnRateMult()
 {
 	int32 EffectsQuality = Scalability::GetEffectsQualityDirect(true);
-	float Q = 1;
-	float Level = (1 - EffectsQuality);
-	for (int i = 0; i < Level + 1; i++)
-	{
-		Q = Q*QualityLevelSpawnRateScale;
-	}
-	return Q;
+	int32 ReferenceLevel = CVarQLSpawnRateReferenceLevel.GetValueOnAnyThread();
+	float Level = (ReferenceLevel - EffectsQuality);
+	float Q = FMath::Pow(QualityLevelSpawnRateScale, Level);
+	return FMath::Min(1.0f, Q);
 }
 
 bool UParticleEmitter::HasAnyEnabledLODs()const

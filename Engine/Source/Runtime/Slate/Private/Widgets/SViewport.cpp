@@ -6,7 +6,9 @@
 #include "Application/SlateApplicationBase.h"
 #include "Framework/Application/SlateApplication.h"
 
-DECLARE_CYCLE_STAT(TEXT("Game UI Tick/Paint"), STAT_ViewportUpdateTime, STATGROUP_Slate);
+DECLARE_CYCLE_STAT(TEXT("Game UI Tick"), STAT_ViewportTickTime, STATGROUP_Slate);
+DECLARE_CYCLE_STAT(TEXT("Game UI Paint"), STAT_ViewportPaintTime, STATGROUP_Slate);
+
 
 /* SViewport constructors
  *****************************************************************************/
@@ -61,7 +63,7 @@ EActiveTimerReturnType SViewport::EnsureTick(double InCurrentTime, float InDelta
 int32 SViewport::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	SCOPED_NAMED_EVENT(SViewport_OnPaint, FColor::Purple);
-	SCOPE_CYCLE_COUNTER(STAT_ViewportUpdateTime);
+	SCOPE_CYCLE_COUNTER(STAT_ViewportPaintTime);
 
 	bool bEnabled = ShouldBeEnabled( bParentEnabled );
 	bool bShowDisabledEffect = ShowDisabledEffect.Get();
@@ -168,7 +170,7 @@ int32 SViewport::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeome
 
 void SViewport::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
-	SCOPE_CYCLE_COUNTER(STAT_ViewportUpdateTime);
+	SCOPE_CYCLE_COUNTER(STAT_ViewportTickTime);
 
 	if ( ViewportInterface.IsValid() )
 	{

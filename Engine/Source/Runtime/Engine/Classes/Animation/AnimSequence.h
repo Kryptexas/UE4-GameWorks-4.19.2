@@ -683,6 +683,11 @@ public:
 	// End Transform related functions 
 
 	// Begin Memory related functions
+
+	/** @return	estimate uncompressed raw size. This is *not* the real raw size. 
+				Here we estimate what it would be with no trivial compression. */
+	int32 GetUncompressedRawSize() const;
+
 	/**
 	 * @return		The approximate size of raw animation data.
 	 */

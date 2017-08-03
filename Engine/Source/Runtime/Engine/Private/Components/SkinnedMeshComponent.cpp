@@ -166,6 +166,11 @@ namespace FAnimUpdateRateManager
 		0,
 		TEXT("Set to 1 to force interpolation"));
 
+	static TAutoConsoleVariable<int32> CVarURODisableInterpolation(
+		TEXT("a.URO.DisableInterpolation"),
+		0,
+		TEXT("Set to 1 to disable interpolation"));
+
 	void AnimUpdateRateSetParams(FAnimUpdateRateParametersTracker* Tracker, float DeltaTime, bool bRecentlyRendered, float MaxDistanceFactor, int32 MinLod, bool bNeedsValidRootMotion, bool bUsingRootMotionFromEverything)
 	{
 		// default rules for setting update rates
@@ -2860,7 +2865,8 @@ void FAnimUpdateRateParameters::SetTrailMode(float DeltaTime, uint8 UpdateRateSh
 	UpdateRate = FMath::Max(NewUpdateRate, 1);
 	// Make sure EvaluationRate is a multiple of UpdateRate.
 	EvaluationRate = FMath::Max((NewEvaluationRate / UpdateRate) * UpdateRate, 1);
-	bInterpolateSkippedFrames = (bNewInterpSkippedFrames && (EvaluationRate < MaxEvalRateForInterpolation)) || (FAnimUpdateRateManager::CVarForceInterpolation.GetValueOnAnyThread() == 1);
+	bInterpolateSkippedFrames = (FAnimUpdateRateManager::CVarURODisableInterpolation.GetValueOnAnyThread() == 0) &&
+		((bNewInterpSkippedFrames && (EvaluationRate < MaxEvalRateForInterpolation)) || (FAnimUpdateRateManager::CVarForceInterpolation.GetValueOnAnyThread() == 1));
 
 	// Make sure we don't overflow. we don't need very large numbers.
 	const uint32 Counter = (GFrameCounter + UpdateRateShift)% MAX_uint32;

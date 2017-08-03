@@ -14,11 +14,13 @@
 #include "UObject/UObjectIterator.h"
 #include "AbilitySystemGlobals.h"
 #include "AbilitySystemComponent.h"
-
+#include "AbilitySystemTestAttributeSet.h"
 
 #if WITH_EDITOR
 #include "EditorReimportHandler.h"
 #endif
+#include "UObjectThreadContext.h"
+
 
 #if ENABLE_VISUAL_LOG
 namespace
@@ -219,14 +221,17 @@ void FGameplayAttribute::PostSerialize(const FArchive& Ar)
 
 			if (!Attribute)
 			{
+				FUObjectThreadContext& ThreadContext = FUObjectThreadContext::Get();
+				FString AssetName = ThreadContext.SerializedObject ? ThreadContext.SerializedObject->GetPathName() : TEXT("Unknown Object");
+
 				FString OwnerName = AttributeOwner ? AttributeOwner->GetName() : TEXT("NONE");
-				ABILITY_LOG(Warning, TEXT("FGameplayAttribute::PostSerialize called on an invalid attribute with owner %s and name %s."), *OwnerName, *AttributeName);
+				ABILITY_LOG(Warning, TEXT("FGameplayAttribute::PostSerialize called on an invalid attribute with owner %s and name %s. (Asset: %s)"), *OwnerName, *AttributeName, *AssetName);
 			}
 		}
 	}
 }
 
-void FGameplayAttribute::GetAllAttributeProperties(TArray<UProperty*>& OutProperties, FString FilterMetaStr)
+void FGameplayAttribute::GetAllAttributeProperties(TArray<UProperty*>& OutProperties, FString FilterMetaStr, bool UseEditorOnlyData)
 {
 	// Gather all UAttribute classes
 	for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
@@ -234,53 +239,68 @@ void FGameplayAttribute::GetAllAttributeProperties(TArray<UProperty*>& OutProper
 		UClass *Class = *ClassIt;
 		if (Class->IsChildOf(UAttributeSet::StaticClass()) && !Class->ClassGeneratedBy)
 		{
-#if WITH_EDITOR
-			// Allow entire classes to be filtered globally
-			if (Class->HasMetaData(TEXT("HideInDetailsView")))
+			if (UseEditorOnlyData)
+			{
+				#if WITH_EDITOR
+				// Allow entire classes to be filtered globally
+				if (Class->HasMetaData(TEXT("HideInDetailsView")))
+				{
+					continue;
+				}
+				#endif
+			}
+
+			if (Class == UAbilitySystemTestAttributeSet::StaticClass())
 			{
 				continue;
 			}
-#endif
+
 
 			for (TFieldIterator<UProperty> PropertyIt(Class, EFieldIteratorFlags::ExcludeSuper); PropertyIt; ++PropertyIt)
 			{
 				UProperty* Property = *PropertyIt;
 
-#if WITH_EDITOR
-				if (!FilterMetaStr.IsEmpty() && Property->HasMetaData(*FilterMetaStr))
+				if (UseEditorOnlyData)
 				{
-					continue;
-				}
+					#if WITH_EDITOR
+					if (!FilterMetaStr.IsEmpty() && Property->HasMetaData(*FilterMetaStr))
+					{
+						continue;
+					}
 
-				// Allow properties to be filtered globally (never show up)
-				if (Property->HasMetaData(TEXT("HideInDetailsView")))
-				{
-					continue;
+					// Allow properties to be filtered globally (never show up)
+					if (Property->HasMetaData(TEXT("HideInDetailsView")))
+					{
+						continue;
+					}
+					#endif
 				}
-#endif
 				
 				OutProperties.Add(Property);
 			}
 		}
 
-#if WITH_EDITOR
-		// UAbilitySystemComponent can add 'system' attributes
-		if (Class->IsChildOf(UAbilitySystemComponent::StaticClass()) && !Class->ClassGeneratedBy)
+		if (UseEditorOnlyData)
 		{
-			for (TFieldIterator<UProperty> PropertyIt(Class, EFieldIteratorFlags::ExcludeSuper); PropertyIt; ++PropertyIt)
+			#if WITH_EDITOR
+			// UAbilitySystemComponent can add 'system' attributes
+			if (Class->IsChildOf(UAbilitySystemComponent::StaticClass()) && !Class->ClassGeneratedBy)
 			{
-				UProperty* Property = *PropertyIt;
-
-
-				// SystemAttributes have to be explicitly tagged
-				if (Property->HasMetaData(TEXT("SystemGameplayAttribute")) == false)
+				for (TFieldIterator<UProperty> PropertyIt(Class, EFieldIteratorFlags::ExcludeSuper); PropertyIt; ++PropertyIt)
 				{
-					continue;
+					UProperty* Property = *PropertyIt;
+
+
+					// SystemAttributes have to be explicitly tagged
+					if (Property->HasMetaData(TEXT("SystemGameplayAttribute")) == false)
+					{
+						continue;
+					}
+					OutProperties.Add(Property);
 				}
-				OutProperties.Add(Property);
 			}
+			#endif
 		}
-#endif
 	}
 }
 

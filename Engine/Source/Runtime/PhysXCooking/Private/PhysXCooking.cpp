@@ -294,12 +294,15 @@ bool FPhysXCooking::CookTriMeshImp(FName Format, EPhysXMeshCookFlags CookFlags, 
 	}
 	else
 	{
+		if (PhysXCooking->validateTriangleMesh(PTriMeshDesc) == false)
+		{
+			NewParams.meshPreprocessParams = PxMeshPreprocessingFlag::eDISABLE_CLEAN_MESH;
+		}
 		//For non deformable meshes we can try to use BVH34
 		UseBVH34IfSupported(Format, NewParams);
 	}
 
 	PhysXCooking->setParams(NewParams);
-
 	bool bResult = false;
 
 	// Cook TriMesh Data

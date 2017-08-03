@@ -39,6 +39,8 @@
 #include "Components/BoxComponent.h"
 #include "GameFramework/MovementComponent.h"
 
+#include "Misc/TimeGuard.h"
+
 #define LOCTEXT_NAMESPACE "LevelActor"
 
 // CVars
@@ -295,6 +297,9 @@ AActor* UWorld::SpawnActor( UClass* Class, FVector const* Location, FRotator con
 AActor* UWorld::SpawnActor( UClass* Class, FTransform const* UserTransformPtr, const FActorSpawnParameters& SpawnParameters )
 {
 	SCOPE_CYCLE_COUNTER(STAT_SpawnActorTime);
+	SCOPE_TIME_GUARD_NAMED_MS(TEXT("SpawnActor Of Type"), Class->GetFName(), 2);
+	
+
 	check( CurrentLevel ); 	
 	check(GIsEditor || (CurrentLevel == PersistentLevel));
 

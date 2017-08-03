@@ -1177,20 +1177,9 @@ void UAnimCompress_PerTrackCompression::CompressUsingUnderlyingCompressor(
 			AnimSeq->CompressedScaleOffsets.SetOffsetData(TrackIndex, 0, ScaleOffset);
 		}
 
-		// See if we can skip saving translation track.
-		bool bSkipTranslationTrack = false;
-#if( SKIP_FORCEMESHTRANSLATION_TRACKS || SKIP_ANIMROTATIONONLY_TRACKS )
-		{
-			USkeleton* Skeleton = AnimSeq->Skeleton;
-			check (Skeleton);
-			int32 const BoneTreeIndex = AnimSeq->TrackToSkeletonMapTable[TrackIndex].BoneTreeIndex;
-			bSkipTranslationTrack = (Skeleton->GetBoneTranslationRetargetingMode(BoneTreeIndex) == EBoneTranslationRetargetingMode::Skeleton);
-		}
-#endif
-
 		// Now write out compression and translation frames into the stream
 		int32 TranslationOffset = INDEX_NONE;
-		if( !bSkipTranslationTrack && BestTranslation.CompressedBytes.Num() > 0 )
+		if (BestTranslation.CompressedBytes.Num() > 0 )
 		{
 			check(BestTranslation.ActualCompressionMode < ACF_MAX);
 			TranslationOffset = AnimSeq->CompressedByteStream.Num();

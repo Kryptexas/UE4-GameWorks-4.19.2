@@ -146,8 +146,6 @@ public:
 
 	/** AI logic won't be needed anymore, stop all activity and run cleanup */
 	virtual void Cleanup() {}
-
-protected:
 	virtual void PauseLogic(const FString& Reason) {}
 	/** MUST be called by child implementations!
 	 *	@return indicates whether child class' ResumeLogic should be called (true) or has it been 

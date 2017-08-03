@@ -1435,7 +1435,6 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 
 			FCoreUObjectDelegates::PreGarbageCollectConditionalBeginDestroy.Broadcast();
 
-			// This nulls all weak references to unreachable objects, and may clear the pools
 			FGCArrayPool::Get().ClearWeakReferences(bPerformFullPurge);
 
 			// Unhash all unreachable objects.
@@ -1492,6 +1491,8 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 					FScopedCBDProfile Profile(Object);
 					Object->ConditionalBeginDestroy();
 				}
+
+
 			}
 
 			UE_LOG(LogGarbage, Log, TEXT("%f ms for unhashing unreachable objects. Clusters removed: %d.   Items %d Cluster Items %d"), (FPlatformTime::Seconds() - StartTime) * 1000, ClustersRemoved, Items, ClusterItems);

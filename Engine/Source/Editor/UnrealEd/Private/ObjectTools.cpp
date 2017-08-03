@@ -143,7 +143,7 @@ namespace ObjectTools
 		bool bIsSupported = false;
 
 		// Check object prerequisites
-		if ( Obj->IsAsset() )
+		if (ensure(Obj) && Obj->IsAsset() )
 		{
 			UPackage* ObjectPackage = Obj->GetOutermost();
 			if( ObjectPackage != NULL )

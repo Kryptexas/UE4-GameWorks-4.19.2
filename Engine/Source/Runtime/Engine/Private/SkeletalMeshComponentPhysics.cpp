@@ -635,7 +635,7 @@ void USkeletalMeshComponent::InstantiatePhysicsAsset(const UPhysicsAsset& PhysAs
 			else
 			{
 				BodyInst->DOFMode = EDOFMode::None;
-				if (!CVarEnableRagdollPhysics.GetValueOnGameThread())
+				if (PhysScene != nullptr && !CVarEnableRagdollPhysics.GetValueOnGameThread())	//We only limit creation of the global physx scenes and not assets related to immedate mode
 				{
 					continue;
 				}

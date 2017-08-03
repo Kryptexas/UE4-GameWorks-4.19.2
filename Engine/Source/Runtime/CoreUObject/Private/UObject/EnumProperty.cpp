@@ -264,6 +264,13 @@ const TCHAR* UEnumProperty::ImportText_Internal(const TCHAR* InBuffer, void* Dat
 				UnderlyingProp->SetIntPropertyValue(Data, Enum->GetValueByIndex(EnumIndex));
 				return Buffer;
 			}
+			else
+			{
+				// Enum could not be created from value. This indicates a bad value so
+				// return null so that the caller of ImportText can generate a more meaningful
+				// warning/error
+				return nullptr;
+			}
 		}
 	}
 

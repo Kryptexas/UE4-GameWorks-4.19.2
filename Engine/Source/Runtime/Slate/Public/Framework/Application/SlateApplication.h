@@ -1137,6 +1137,8 @@ public:
 
 public:
 
+	TSharedRef<FNavigationConfig> GetNavigationConfig() const { return NavigationConfigFactory(); }
+	
 	void SetNavigationConfigFactory( TFunction<TSharedRef<FNavigationConfig>()> InNavigationConfigFactory );
 
 	/** Called when the slate application is being shut down. */

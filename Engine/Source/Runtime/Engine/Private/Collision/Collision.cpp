@@ -12,7 +12,15 @@
 #include "CollisionQueryParams.h"
 #include "Engine/World.h"
 #include "Components/PrimitiveComponent.h"
+#include "Components/ShapeComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Components/SkinnedMeshComponent.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/SkeletalMesh.h"
 #include "Engine/CollisionProfile.h"
+#include "PhysicsEngine/BodySetupEnums.h"
+#include "PhysicsEngine/BodySetup.h"
+#include "PhysicsEngine/PhysicsSettings.h"
 
 // TEMP until crash is fixed in IsCollisionEnabled().
 #include "LandscapeHeightfieldCollisionComponent.h"
@@ -524,7 +532,24 @@ DEFINE_LOG_CATEGORY(LogCollisionCommands);
 
 namespace CollisionResponseConsoleCommands
 {
-	static const FString ResponseStrings[] = {TEXT("Ignore"), TEXT("Overlap"), TEXT("Block")};
+	static const TArray<FString> ResponseStrings = {TEXT("Ignore"), TEXT("Overlap"), TEXT("Block")};
+	static const TArray<FString> ComplexityStrings = {TEXT("Default"), TEXT("SimpleAndComplex"), TEXT("UseSimpleAsComplex"), TEXT("UseComplexAsSimple")};
+
+	FString GetCommaSeparatedList(const TArray<FString>& List)
+	{
+		FString Result;
+		if (List.Num() > 0)
+		{
+			Result.Reserve(128);
+			for (int32 i=0; i < List.Num()-1; i++)
+			{
+				Result.Append(List[i]);
+				Result.Append(TEXT(", "));
+			}
+			Result.Append(List[List.Num()-1]);
+		}
+		return Result;
+	}
 
 	FString FillString(TCHAR Char, int32 Count)
 	{
@@ -560,14 +585,52 @@ namespace CollisionResponseConsoleCommands
 		{
 			if (Obj->GetOuter())
 			{
-				Result = TEXT("'") + Obj->GetPathName(Obj->GetOuter()->GetOuter()) + TEXT("'");
+				Result = FString::Printf(TEXT("'%s'"), *Obj->GetPathName(Obj->GetOuter()->GetOuter()));
 			}
 			else
 			{
-				Result = TEXT("'") + Obj->GetPathName(Obj->GetOuter()) + TEXT("'");
+				Result = FString::Printf(TEXT("'%s'"), *Obj->GetPathName(Obj->GetOuter()));
 			}
 		}
 		return Result;
+	}
+
+	FString GetAssetName(const UPrimitiveComponent* Comp)
+	{
+		FString AssetName;
+		if (const UStaticMeshComponent* StaticMeshComp = Cast<UStaticMeshComponent>(Comp))
+		{
+			if (StaticMeshComp->GetStaticMesh())
+			{
+				AssetName = StaticMeshComp->GetStaticMesh()->GetPathName();
+			}
+		}
+		else if (const USkinnedMeshComponent* SkinnedMeshComp = Cast<USkinnedMeshComponent>(Comp))
+		{
+			if (SkinnedMeshComp->SkeletalMesh)
+			{
+				AssetName = SkinnedMeshComp->SkeletalMesh->GetPathName();
+			}
+		}
+
+		return AssetName;
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Helper to map enum to display name through a map (to avoid repeated string building).
+	template<typename EnumType>
+	const FString& MapEnumToDisplayName(const UEnum *ComplexityEnum, EnumType EnumFlag, TMap<EnumType, FString>& EnumToDisplayNameMap)
+	{
+		if (!EnumToDisplayNameMap.Contains(EnumFlag))
+		{
+			const FString ComplexityName = ComplexityEnum ? ComplexityEnum->GetNameByValue((int64)EnumFlag).ToString() : TEXT("<unknown>");
+			const FString ComplexityDisplayName = GetDisplayNameText(ComplexityEnum, (int64)EnumFlag, ComplexityName);
+			return EnumToDisplayNameMap.Add(EnumFlag, ComplexityDisplayName);
+		}
+		else
+		{
+			return EnumToDisplayNameMap.FindChecked(EnumFlag);
+		}
 	}
 
 	void ListCollisionProfileNames()
@@ -629,6 +692,41 @@ namespace CollisionResponseConsoleCommands
 
 	private:
 		ECollisionResponse RequiredResponse;
+	};
+
+	struct FSortComponentsForComplexity
+	{
+		FSortComponentsForComplexity(TMap<UPrimitiveComponent*, FString>& NameMap)
+		: InternalNameMap(NameMap)
+		{
+		}
+
+		bool operator()(const UPrimitiveComponent& A, const UPrimitiveComponent& B) const
+		{
+			// Sort by asset name;
+			const FString NameA = InternalNameMap.FindRef(&A);
+			const FString NameB = InternalNameMap.FindRef(&B);
+			if (NameA != NameB)
+			{
+				return NameA < NameB;
+			}
+
+			// Sort by object name.
+			UObject* AOwner = A.GetOuter();
+			UObject* BOwner = B.GetOuter();
+			if (AOwner && BOwner)
+			{
+				return AOwner->GetName() < BOwner->GetName();
+			}
+			else
+			{
+				return false;
+			}
+		}
+
+	private: 
+
+		TMap<UPrimitiveComponent*, FString>& InternalNameMap;
 	};
 
 	ECollisionResponse StringToCollisionResponse(const FString& InString)
@@ -708,6 +806,52 @@ namespace CollisionResponseConsoleCommands
 		return NAME_None;
 	}
 
+	ECollisionTraceFlag StringToCollisionComplexity(const FString& InString)
+	{
+		const UEnum *ComplexityEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("ECollisionTraceFlag"), true);
+		if (ComplexityEnum)
+		{
+			int32 ComplexityInt = INDEX_NONE;
+
+			// Try the name they gave us.
+			ComplexityInt = ComplexityEnum->GetValueByName(FName(*InString));
+			if (ComplexityInt != INDEX_NONE)
+			{
+				return ECollisionTraceFlag(ComplexityInt);
+			}
+
+			// Try with adding the prefix, ie "CTF_".
+			const FString WithPrefixName = ComplexityEnum->GenerateEnumPrefix() + TEXT("_") + InString;
+			ComplexityInt = ComplexityEnum->GetValueByName(FName(*WithPrefixName));
+			if (ComplexityInt != INDEX_NONE)
+			{
+				return ECollisionTraceFlag(ComplexityInt);
+			}
+
+			// Try with adding the prefix and "Use", ie "CTF_Use" (for example 'Default'->'CTF_UseDefault').
+			const FString WithPrefixUseName = ComplexityEnum->GenerateEnumPrefix() + TEXT("_Use") + InString;
+			ComplexityInt = ComplexityEnum->GetValueByName(FName(*WithPrefixUseName));
+			if (ComplexityInt != INDEX_NONE)
+			{
+				return ECollisionTraceFlag(ComplexityInt);
+			}
+
+			// Try matching the display name
+			const FString NullString(TEXT(""));
+			for (int32 ComplexityIndex = 0; ComplexityIndex < ComplexityEnum->NumEnums(); ComplexityIndex++)
+			{
+				int64 ComplexityValue = ComplexityEnum->GetValueByIndex(ComplexityIndex);
+				const FString ComplexityDisplayName = GetDisplayNameText(ComplexityEnum, ComplexityValue, NullString);
+				if (ComplexityDisplayName == InString)
+				{
+					return ECollisionTraceFlag(ComplexityValue);
+				}
+			}
+		}
+
+		return CTF_MAX;
+	}
+
 	//////////////////////////////////////////////////////////////////////////
 	void ListComponentsWithResponseToProfile(const ECollisionResponse RequiredResponse, const FName& ProfileToCheck)
 	{
@@ -749,6 +893,7 @@ namespace CollisionResponseConsoleCommands
 		{
 			Results.Sort(FSortComponentsWithResponseToProfile(RequiredResponse));
 			const UEnum *ChannelEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("ECollisionChannel"), true);
+			TMap<ECollisionChannel, FString> EnumToDisplayNameMap;
 
 			// Get max column widths for some data
 			int32 MaxNameWidth = 0;
@@ -765,8 +910,7 @@ namespace CollisionResponseConsoleCommands
 
 				if (ChannelEnum)
 				{
-					const FString ChannelName = ChannelEnum->GetNameByValue((int64)Comp->GetCollisionObjectType()).ToString();
-					const FString ChannelDisplayName = GetDisplayNameText(ChannelEnum, (int64)Comp->GetCollisionObjectType(), ChannelName);
+					const FString& ChannelDisplayName = MapEnumToDisplayName<ECollisionChannel>(ChannelEnum, Comp->GetCollisionObjectType(), EnumToDisplayNameMap);
 					MaxChannelWidth = FMath::Max<int32>(MaxChannelWidth, ChannelDisplayName.Len());
 				}
 
@@ -792,8 +936,7 @@ namespace CollisionResponseConsoleCommands
 			int32 Index=0;
 			for (UPrimitiveComponent* Comp : Results)
 			{
-				const FString ChannelName = (ChannelEnum ? ChannelEnum->GetNameByValue((int64)Comp->GetCollisionObjectType()).ToString() : TEXT("<unknown>"));
-				const FString ChannelDisplayName = GetDisplayNameText(ChannelEnum, (int64)Comp->GetCollisionObjectType(), ChannelName);
+				const FString& ChannelDisplayName = MapEnumToDisplayName<ECollisionChannel>(ChannelEnum, Comp->GetCollisionObjectType(), EnumToDisplayNameMap);
 				UObject* Outer = Comp->GetOuter();
 				if (Outer)
 				{
@@ -814,6 +957,7 @@ namespace CollisionResponseConsoleCommands
 			}
 			UE_LOG(LogCollisionCommands, Log, TEXT("%s"), *LineMarker);
 		}
+		// Summary
 		check(RequiredResponse < ECollisionResponse::ECR_MAX);
 		UE_LOG(LogCollisionCommands, Log, TEXT("Found %d components with '%s' response to profile '%s'."), Results.Num(), *ResponseStrings[(int32)RequiredResponse], *ProfileToCheck.ToString());
 	}
@@ -825,7 +969,7 @@ namespace CollisionResponseConsoleCommands
 		if (Args.Num() < 2)
 		{
 			UE_LOG(LogCollisionCommands, Warning, TEXT("Usage: 'Collision.ListComponentsWithResponseToProfile <Response> <Profile>'."));
-			UE_LOG(LogCollisionCommands, Warning, TEXT("  Response: Ignore, Overlap, Block"));
+			UE_LOG(LogCollisionCommands, Warning, TEXT("  Response: %s"), *GetCommaSeparatedList(ResponseStrings));
 			UE_LOG(LogCollisionCommands, Warning, TEXT("  Profile:  Collision profile name or index. Use 'Collision.ListProfiles' to see a full list."));
 			return;
 		}
@@ -835,7 +979,7 @@ namespace CollisionResponseConsoleCommands
 		ECollisionResponse RequiredResponse = StringToCollisionResponse(ResponseString);
 		if (RequiredResponse == ECollisionResponse::ECR_MAX)
 		{
-			UE_LOG(LogCollisionCommands, Warning, TEXT("Unknown response '%s'. Must be Ignore, Overlap, or Block."), *ResponseString);
+			UE_LOG(LogCollisionCommands, Warning, TEXT("Unknown response '%s'. Must be one of %s."), *ResponseString, *GetCommaSeparatedList(ResponseStrings));
 			return;
 		}
 
@@ -854,6 +998,7 @@ namespace CollisionResponseConsoleCommands
 	//////////////////////////////////////////////////////////////////////////
 	void ListProfilesWithResponseToChannel(const ECollisionResponse RequiredResponse, const ECollisionChannel TestChannel)
 	{
+		// Match
 		TSet<FName> Results;
 		TArray<TSharedPtr<FName>> ProfileNameList;
 		UCollisionProfile::Get()->GetProfileNames(ProfileNameList);
@@ -873,6 +1018,7 @@ namespace CollisionResponseConsoleCommands
 			++Index;
 		}
 
+		// Display Data
 		if (Results.Num() > 0)
 		{
 			Results.Sort([](const FName& A, const FName& B) { return A < B; });
@@ -881,6 +1027,7 @@ namespace CollisionResponseConsoleCommands
 				UE_LOG(LogCollisionCommands, Log, TEXT("%s"), *ResultName.ToString());
 			}
 		}
+		// Display Summary
 		check(RequiredResponse < ECollisionResponse::ECR_MAX);
 		const UEnum *ChannelEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("ECollisionChannel"), true);
 		const FString ChannelName = (ChannelEnum ? ChannelEnum->GetNameStringByValue(TestChannel) : TEXT("<unknown>"));
@@ -896,7 +1043,7 @@ namespace CollisionResponseConsoleCommands
 		if (Args.Num() < 2)
 		{
 			UE_LOG(LogCollisionCommands, Warning, TEXT("Usage: 'Collision.ListProfilesWithResponseToChannel <Response> <Channel>'."));
-			UE_LOG(LogCollisionCommands, Warning, TEXT("  Response: Ignore, Overlap, Block"));
+			UE_LOG(LogCollisionCommands, Warning, TEXT("  Response: %s"), *GetCommaSeparatedList(ResponseStrings));
 			UE_LOG(LogCollisionCommands, Warning, TEXT("  Profile:  Collision channel name or index. Use 'Collision.ListChannels' to see a full list."));
 			return;
 		}
@@ -906,7 +1053,7 @@ namespace CollisionResponseConsoleCommands
 		const ECollisionResponse RequiredResponse = StringToCollisionResponse(ResponseString);
 		if (RequiredResponse == ECollisionResponse::ECR_MAX)
 		{
-			UE_LOG(LogCollisionCommands, Warning, TEXT("Unknown response '%s'. Must be Ignore, Overlap, or Block."), *ResponseString);
+			UE_LOG(LogCollisionCommands, Warning, TEXT("Unknown response '%s'. Must be one of %s."), *ResponseString, *GetCommaSeparatedList(ResponseStrings));
 			return;
 		}
 
@@ -920,6 +1067,168 @@ namespace CollisionResponseConsoleCommands
 		}
 
 		ListProfilesWithResponseToChannel(RequiredResponse, Channel);
+	}
+
+
+	//////////////////////////////////////////////////////////////////////////
+	void ListObjectsWithCollisionComplexity(ECollisionTraceFlag Complexity)
+	{
+		if (Complexity == CTF_MAX)
+		{
+			return;
+		}
+
+		// See what "Default" means, so we can include those
+		const ECollisionTraceFlag DefaultFlag = UPhysicsSettings::Get()->DefaultShapeComplexity;
+		const ECollisionTraceFlag ActualComplexity = (Complexity == CTF_UseDefault) ? DefaultFlag : Complexity;
+
+		// Look at all components and check collision complexity
+		TSet<UPrimitiveComponent*> Results;
+		for (TObjectIterator<UPrimitiveComponent> Iter(RF_NoFlags, /*bIncludeDerivedClasses*/ true, /*ExclusionFlags*/ EInternalObjectFlags::None); Iter; ++Iter)
+		{
+			UPrimitiveComponent* Comp = *Iter;
+			if (Comp)
+			{
+				// Special case for UShapeComponent CDOs, GetBodySetup() asserts.
+				if (Comp->GetClass() == UShapeComponent::StaticClass())
+				{
+					continue;
+				}
+
+				// Get collision complexity from body setup
+				if (UBodySetup* BodySetup = Comp->GetBodySetup())
+				{
+					// If matching "Default", only list those explicitly set to default.
+					if (Complexity == CTF_UseDefault && BodySetup->CollisionTraceFlag == CTF_UseDefault)
+					{
+						Results.Add(Comp);
+					}
+					else
+					{
+						// Using GetCollisionTraceFlag includes both the same requested complexity and those with Default if that is the same as the requested mode.
+						const ECollisionTraceFlag BodyFlag = BodySetup->GetCollisionTraceFlag();
+						if (Complexity == BodyFlag)
+						{
+							Results.Add(Comp);
+						}
+					}
+				}
+			}
+		}
+
+		// Log results.
+		if (Results.Num() > 0)
+		{
+			// Fill component name Maps.
+			TMap<UPrimitiveComponent*, FString> ComponentAssetNameMap;
+			TMap<UPrimitiveComponent*, FString> ComponentPathNameMap;
+			for (UPrimitiveComponent* Comp : Results)
+			{
+				const FString AssetName = GetAssetName(Comp);
+				if (AssetName.Len() > 0)
+				{
+					ComponentAssetNameMap.Add(Comp, AssetName);
+				}
+
+				UObject* Outer = Comp->GetOuter();
+				if (Outer)
+				{
+					const FString PathName = FormatObjectName(Comp);
+					ComponentPathNameMap.Add(Comp, PathName);
+				}
+			}
+
+			Results.Sort(FSortComponentsForComplexity(ComponentAssetNameMap));
+			const UEnum *ComplexityEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("ECollisionTraceFlag"), true);
+			if (!ensure(ComplexityEnum != nullptr))
+			{
+				return;
+			}
+
+			// Generate map of enum->name mappings
+			TMap<ECollisionTraceFlag, FString> EnumToDisplayNameMap;
+
+			// Get max column widths for some data
+			const FString ComplexityHeading = TEXT("Collision Complexity");
+			int32 MaxComplexityWidth = ComplexityHeading.Len();
+			int32 MaxNameWidth = 0;
+			int32 MaxAssetNameWidth = 0;
+			for (UPrimitiveComponent* Comp : Results)
+			{
+				// Object name width
+				UObject* Outer = Comp->GetOuter();
+				if (Outer)
+				{
+					const FString PathName = ComponentPathNameMap.FindRef(Comp);
+					MaxNameWidth = FMath::Max<int32>(MaxNameWidth, PathName.Len());
+				}
+
+				// Complexity display name width
+				const UBodySetup* BodySetup = Comp->GetBodySetup();
+				const ECollisionTraceFlag BodyFlag = BodySetup->CollisionTraceFlag;
+
+				const FString& ComplexityDisplayName = MapEnumToDisplayName<ECollisionTraceFlag>(ComplexityEnum, BodyFlag, EnumToDisplayNameMap);				
+				MaxComplexityWidth = FMath::Max(MaxComplexityWidth, ComplexityDisplayName.Len());
+
+				// Asset name width
+				const FString& AssetName = ComponentAssetNameMap.FindRef(Comp);
+				MaxAssetNameWidth = FMath::Max(MaxAssetNameWidth, AssetName.Len());
+			}
+
+			// Display Column headings
+			const FString Output = FString::Printf(TEXT("  #, %-*s, %-*s, %-*s, Path"), MaxNameWidth, TEXT("Component"), MaxComplexityWidth, *ComplexityHeading, MaxAssetNameWidth, TEXT("Asset"));
+			UE_LOG(LogCollisionCommands, Log, TEXT("%s"), *Output);
+			const int32 TotalLen = Output.Len() + 16;
+			const FString LineMarker = FillString(TCHAR('-'), TotalLen);
+			UE_LOG(LogCollisionCommands, Log, TEXT("%s"), *LineMarker);
+
+			// Display Data
+			int32 Index=0;
+			for (UPrimitiveComponent* Comp : Results)
+			{
+				UObject* Outer = Comp->GetOuter();
+				if (Outer)
+				{
+					const FString& PathName = ComponentPathNameMap.FindRef(Comp);
+					const UBodySetup* BodySetup = Comp->GetBodySetup();
+					const ECollisionTraceFlag BodyFlag = BodySetup->CollisionTraceFlag;
+					const FString& ComplexityDisplayName = MapEnumToDisplayName<ECollisionTraceFlag>(ComplexityEnum, BodyFlag, EnumToDisplayNameMap);
+					const FString& AssetName = ComponentAssetNameMap.FindRef(Comp);
+
+					UE_LOG(LogCollisionCommands, Log, TEXT("%3d, %-*s, %-*s, %-*s, %s"),
+						   Index, MaxNameWidth, *PathName, MaxComplexityWidth, *ComplexityDisplayName, MaxAssetNameWidth, *AssetName, Outer->GetOuter() ? *GetPathNameSafe(Outer->GetOuter()) : *GetPathNameSafe(Outer));
+					Index++;
+				}
+			}
+			UE_LOG(LogCollisionCommands, Log, TEXT("%s"), *LineMarker);
+		}
+		// Display Summary
+		UE_LOG(LogCollisionCommands, Log, TEXT("Found %d components with '%s' collision complexity."), Results.Num(), *ComplexityStrings[int32(Complexity)]);
+	}
+
+
+
+	//////////////////////////////////////////////////////////////////////////
+	// Args: <Complexity>
+	void Parse_ListObjectsWithCollisionComplexity(const TArray<FString>& Args, UWorld* World)
+	{
+		if (Args.Num() < 1)
+		{
+			UE_LOG(LogCollisionCommands, Warning, TEXT("Usage: 'Collision.ListObjectsWithCollisionComplexity <Complexity>'."));
+			UE_LOG(LogCollisionCommands, Warning, TEXT("  Complexity: %s"), *GetCommaSeparatedList(ComplexityStrings));
+			return;
+		}
+
+		// Arg0 : Complexity
+		const FString& ComplexityString = Args[0];
+		const ECollisionTraceFlag Complexity = StringToCollisionComplexity(ComplexityString);
+		if (Complexity == CTF_MAX)
+		{
+			UE_LOG(LogCollisionCommands, Warning, TEXT("Unknown complexity '%s'. Must be one of %s."), *ComplexityString, *GetCommaSeparatedList(ComplexityStrings));
+			return;
+		}
+
+		ListObjectsWithCollisionComplexity(Complexity);
 	}
 
 
@@ -948,6 +1257,12 @@ namespace CollisionResponseConsoleCommands
 		TEXT("Collision.ListProfilesWithResponseToChannel"),
 		TEXT(""),
 		FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(CollisionResponseConsoleCommands::Parse_ListProfilesWithResponseToChannel)
+	);
+
+	static FAutoConsoleCommandWithWorldAndArgs ListProfilesWithCollisionComplexityCommand(
+		TEXT("Collision.ListObjectsWithCollisionComplexity"),
+		TEXT(""),
+		FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(CollisionResponseConsoleCommands::Parse_ListObjectsWithCollisionComplexity)
 	);
 
 }

@@ -332,6 +332,12 @@ public:
 	{
 		return true;
 	}
+
+	virtual bool IsTickableInEditor() const override
+	{
+		return true;
+	}
+
 	virtual TStatId GetStatId() const override;
 
 	/** Pushes the PreviewMesh assigned the the material instance to the thumbnail info */

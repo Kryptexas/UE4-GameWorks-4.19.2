@@ -1645,6 +1645,11 @@ FCursorReply UUserWidget::NativeOnCursorQuery( const FGeometry& InGeometry, cons
 	return FCursorReply::Unhandled();
 }
 
+FNavigationReply UUserWidget::NativeOnNavigation(const FGeometry& InGeometry, const FNavigationEvent& InNavigationEvent)
+{
+	return FNavigationReply::Escape();
+}
+	
 void UUserWidget::NativeOnMouseCaptureLost()
 {
 	OnMouseCaptureLost();
@@ -1822,6 +1827,7 @@ UUserWidget* UUserWidget::CreateWidgetOfClass(UClass* UserWidgetClass, UGameInst
 
 	UObject* Outer = nullptr;
 	ULocalPlayer* PlayerContext = nullptr;
+	UWorld* World = InWorld;
 
 	if ( InOwningPlayer )
 	{
@@ -1844,7 +1850,7 @@ UUserWidget* UUserWidget::CreateWidgetOfClass(UClass* UserWidgetClass, UGameInst
 		}
 
 		// Assign the outer to the game instance if it exists, otherwise use the player controller's world
-		UWorld* World = InOwningPlayer->GetWorld();
+		World = InOwningPlayer->GetWorld();
 
 		Outer = World->GetGameInstance() ? StaticCast<UObject*>(World->GetGameInstance()) : StaticCast<UObject*>(World);
 		PlayerContext = CastChecked<ULocalPlayer>(InOwningPlayer->Player);
@@ -1871,7 +1877,7 @@ UUserWidget* UUserWidget::CreateWidgetOfClass(UClass* UserWidgetClass, UGameInst
 
 	if ( PlayerContext )
 	{
-		NewWidget->SetPlayerContext(FLocalPlayerContext(PlayerContext));
+		NewWidget->SetPlayerContext(FLocalPlayerContext(PlayerContext, World));
 	}
 
 	NewWidget->Initialize();

@@ -210,15 +210,20 @@ void SGameLayerManager::ClearWidgets()
 {
 	PlayerCanvas->ClearChildren();
 
-	for(const auto& LayerIt : PlayerLayers)
+	// Potential for removed layers to impact the map, so need to
+	// remove & delete as separate steps
+	while (PlayerLayers.Num())
 	{
-		const TSharedPtr<FPlayerLayer>& Layer = LayerIt.Value;
+		const auto LayerIt = PlayerLayers.CreateIterator();
+		const TSharedPtr<FPlayerLayer> Layer = LayerIt.Value();
+
 		if (Layer.IsValid())
 		{
 			Layer->Slot = nullptr;
 		}
+
+		PlayerLayers.Remove(LayerIt.Key());
 	}
-	PlayerLayers.Reset();
 
 	WindowTitleBarContentStack.Empty();
 	bIsWindowTitleBarVisible = false;

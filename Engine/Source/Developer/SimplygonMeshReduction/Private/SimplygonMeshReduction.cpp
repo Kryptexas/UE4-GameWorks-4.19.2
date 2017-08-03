@@ -1094,6 +1094,11 @@ public:
 		{
 			SmoothingMask = 1;
 		}
+
+		if (!OutProxyMesh.IsValid())
+		{
+			FailedDelegate.ExecuteIfBound(InJobGUID, TEXT("Simplygon failed to generate a valid proxy mesh"));
+		}
 				
 		CompleteDelegate.ExecuteIfBound(OutProxyMesh, OutMaterial, InJobGUID);
 	}

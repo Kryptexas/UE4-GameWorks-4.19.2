@@ -281,17 +281,17 @@ void FSimulation::EvictCache()
 	
 }*/
 
-DECLARE_DWORD_COUNTER_STAT(TEXT("Simulated Bodies"), STAT_NumSimulatedBodies, STATGROUP_ImmediatePhysics);
-DECLARE_DWORD_COUNTER_STAT(TEXT("Active Simulated Bodies"), STAT_NumActiveSimulatedBodies, STATGROUP_ImmediatePhysics);
-DECLARE_DWORD_COUNTER_STAT(TEXT("Kinematic Bodies"), STAT_NumKinematicBodies, STATGROUP_ImmediatePhysics);
+DECLARE_DWORD_COUNTER_STAT(TEXT("Simulated Bodies"), STAT_IPNumSimulatedBodies, STATGROUP_ImmediatePhysics);
+DECLARE_DWORD_COUNTER_STAT(TEXT("Active Simulated Bodies"), STAT_IPNumActiveSimulatedBodies, STATGROUP_ImmediatePhysics);
+DECLARE_DWORD_COUNTER_STAT(TEXT("Kinematic Bodies"), STAT_IPNumKinematicBodies, STATGROUP_ImmediatePhysics);
 
 DECLARE_CYCLE_STAT(TEXT("FSimulation::Simulate"), STAT_ImmediateSimulate, STATGROUP_ImmediatePhysics);
 
 void FSimulation::Simulate(float DeltaTime, const FVector& Gravity)
 {
-	SET_DWORD_STAT(STAT_NumSimulatedBodies, NumSimulatedBodies);
-	SET_DWORD_STAT(STAT_NumActiveSimulatedBodies, NumActiveSimulatedBodies);
-	SET_DWORD_STAT(STAT_NumKinematicBodies, NumKinematicBodies);
+	SET_DWORD_STAT(STAT_IPNumSimulatedBodies, NumSimulatedBodies);
+	SET_DWORD_STAT(STAT_IPNumActiveSimulatedBodies, NumActiveSimulatedBodies);
+	SET_DWORD_STAT(STAT_IPNumKinematicBodies, NumKinematicBodies);
 
 	DeltaTime = FMath::Min(DeltaTime, 0.033f);
 	//Create dynamic bodies and integrate their unconstrained velocities

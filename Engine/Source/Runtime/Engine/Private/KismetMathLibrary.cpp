@@ -758,10 +758,24 @@ void UKismetMathLibrary::GetYawPitchFromVector(FVector InVec, float& Yaw, float&
 {
 	FVector NormalizedVector = InVec.GetSafeNormal();
 	// Find yaw.
-	Yaw = FMath::Atan2(NormalizedVector.Y, NormalizedVector.X) * 180.f / PI;
+	Yaw = FMath::RadiansToDegrees(FMath::Atan2(NormalizedVector.Y, NormalizedVector.X));
 
 	// Find pitch.
-	Pitch = FMath::Atan2(NormalizedVector.Z, FMath::Sqrt(NormalizedVector.X*NormalizedVector.X + NormalizedVector.Y*NormalizedVector.Y)) * 180.f / PI;
+	Pitch = FMath::RadiansToDegrees(FMath::Atan2(NormalizedVector.Z, FMath::Sqrt(NormalizedVector.X*NormalizedVector.X + NormalizedVector.Y*NormalizedVector.Y)));
+}
+
+void UKismetMathLibrary::GetAzimuthAndElevation(FVector InDirection, const FTransform& ReferenceFrame, float& Azimuth, float& Elevation)
+{
+	FVector2D Result = FMath::GetAzimuthAndElevation
+	(
+		InDirection.GetSafeNormal(),
+		ReferenceFrame.GetUnitAxis(EAxis::X),
+		ReferenceFrame.GetUnitAxis(EAxis::Y),
+		ReferenceFrame.GetUnitAxis(EAxis::Z)
+	);
+
+	Azimuth = FMath::RadiansToDegrees(Result.X);
+	Elevation = FMath::RadiansToDegrees(Result.Y);
 }
 
 void UKismetMathLibrary::BreakRotIntoAxes(const FRotator& InRot, FVector& X, FVector& Y, FVector& Z)

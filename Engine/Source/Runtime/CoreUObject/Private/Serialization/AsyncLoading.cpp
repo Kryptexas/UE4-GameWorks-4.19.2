@@ -3001,7 +3001,7 @@ UObject* FAsyncPackage::EventDrivenIndexToObject(FPackageIndex Index, bool bChec
 
 		if (!Result)
 		{
-			UE_LOG(LogStreaming, Fatal, TEXT("Missing Dependency, request for %s but it hasn't been created yet."), *Linker->ImpExp(Index).ObjectName.ToString());
+			UE_LOG(LogStreaming, Error, TEXT("Missing Dependency, request for %s but it hasn't been created yet."), *Linker->ImpExp(Index).ObjectName.ToString());
 		}
 		else if (EventNodeArray.GetNode(MyDependentNode, false).bAddedToGraph || !EventNodeArray.GetNode(MyDependentNode, false).bFired)
 		{

@@ -7,6 +7,7 @@
 #include "UObject/UObjectGlobals.h"
 #include "HAL/PlatformFilemanager.h"
 #include "HAL/FileManager.h"
+#include "Misc/Paths.h"
 #include "Misc/ITransaction.h"
 #include "Serialization/ArchiveProxy.h"
 #include "Misc/CommandLine.h"
@@ -2244,7 +2245,7 @@ UObject* StaticAllocateObject
 	if (bCreatingCDO)
 	{
 		check(InClass->GetClass());
-		if( !GIsDuplicatingClassForReinstancing )
+		if( !GIsDuplicatingClassForReinstancing || InClass->HasAnyClassFlags(CLASS_Native) )
 		{
 			InName = InClass->GetDefaultObjectName();
 		}
@@ -3740,6 +3741,66 @@ COREUOBJECT_API UFunction* FindDelegateSignature(FName DelegateSignatureName)
 	return nullptr;
 }
 
+/**
+ * Takes a path of some sort and attempts to turn it into the asset log's canonical path.
+ */
+FString FAssetMsg::FormatPathForAssetLog(const TCHAR* InPath)
+{
+	static bool Once = false;
+	static bool ShowDiskPath = true;
+
+	if (!Once)
+	{
+		GConfig->GetBool(TEXT("Core.System"), TEXT("AssetLogShowsDiskPath"), ShowDiskPath, GEngineIni);
+		Once = true;
+	}
+
+	if (FPlatformProperties::RequiresCookedData() || !ShowDiskPath)
+	{
+		return FString(InPath);
+	}
+	
+	FString AssetPath = InPath;
+	FString FilePath;
+
+	// check for /Game/Path/Package.obj and turn it into a package reference
+	if (FPackageName::IsValidObjectPath(AssetPath))
+	{
+		AssetPath = FPackageName::ObjectPathToPackageName(AssetPath);
+	}
+
+	// Try to convert this to a file path
+	if (FPackageName::DoesPackageExist(AssetPath, 0, &FilePath) == false)
+	{
+		// if failed, assume we were given something that's a file path (e.g. ../../../Game/Whatever)
+		FilePath = AssetPath;
+	}
+
+	// if that succeeded FilePath will be a relative path to a  file, if not just assume that's what we were given and proceed...
+	if (IFileManager::Get().FileExists(*FilePath) == false)
+	{
+		return FString::Printf(TEXT("%s (no disk path found)"), InPath);
+	}
+
+	// turn this into an absolute path for error logging
+	FilePath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*FilePath);
+	
+	// turn into a native platform file
+	FPaths::MakePlatformFilename(FilePath);
+	return FilePath;
+}
+
+/**
+ * Format the path of the passed in object
+ */
+FString FAssetMsg::FormatPathForAssetLog(const UObject* Object)
+{
+	FString ResolvedPath;
+	ResolvedPath = FormatPathForAssetLog(*Object->GetPathName());
+	return ResolvedPath;
+}
+
+
 namespace UE4CodeGen_Private
 {
 	void ConstructUProperty(UObject* Outer, const FPropertyParamsBase* const*& PropertyArray, int32& NumProperties)
@@ -3914,7 +3975,6 @@ namespace UE4CodeGen_Private
 
 					SetBit(Buffer.Get());
 
-					// Here we are making the assumption that bitfields are aligned in the struct. Probably true.
 					// If not, it may be ok unless we are on a page boundary or something, but the check will fire in that case.
 					// Have faith.
 					for (uint32 TestOffset = 0; TestOffset < SizeOf; TestOffset++)
@@ -4060,7 +4120,6 @@ namespace UE4CodeGen_Private
 				const FArrayPropertyParams* Prop = (const FArrayPropertyParams*)PropBase;
 				NewProp = new (EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Prop->NameUTF8), Prop->ObjectFlags) UArrayProperty(FObjectInitializer(), EC_CppProperty, Prop->Offset, Prop->PropertyFlags);
 
-				// Next property is the array inner
 				ReadMore = 1;
 
 #if WITH_METADATA
@@ -4074,7 +4133,6 @@ namespace UE4CodeGen_Private
 			{
 				const FMapPropertyParams* Prop = (const FMapPropertyParams*)PropBase;
 				NewProp = new (EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Prop->NameUTF8), Prop->ObjectFlags) UMapProperty(FObjectInitializer(), EC_CppProperty, Prop->Offset, Prop->PropertyFlags);
-
 				// Next two properties are the map key and value inners
 				ReadMore = 2;
 
@@ -4089,7 +4147,6 @@ namespace UE4CodeGen_Private
 			{
 				const FSetPropertyParams* Prop = (const FSetPropertyParams*)PropBase;
 				NewProp = new (EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Prop->NameUTF8), Prop->ObjectFlags) USetProperty(FObjectInitializer(), EC_CppProperty, Prop->Offset, Prop->PropertyFlags);
-
 				// Next property is the set inner
 				ReadMore = 1;
 
@@ -4153,7 +4210,6 @@ namespace UE4CodeGen_Private
 				const FEnumPropertyParams* Prop = (const FEnumPropertyParams*)PropBase;
 				NewProp = new (EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Prop->NameUTF8), Prop->ObjectFlags) UEnumProperty(FObjectInitializer(), EC_CppProperty, Prop->Offset, Prop->PropertyFlags, Prop->EnumFunc ? Prop->EnumFunc() : nullptr);
 
-				// Next property is the underlying integer property
 				ReadMore = 1;
 
 #if WITH_METADATA

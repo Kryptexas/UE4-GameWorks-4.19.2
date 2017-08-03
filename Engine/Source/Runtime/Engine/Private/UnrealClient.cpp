@@ -279,8 +279,8 @@ FUnorderedAccessViewRHIRef FRenderTarget::GetRenderTargetUAV() const
 
 void FScreenshotRequest::RequestScreenshot(bool bInShowUI)
 {
-	bShowUI = bInShowUI;
-	bIsScreenshotRequested = true;
+	// empty string means we'll later pick the name
+	RequestScreenshot(TEXT(""), bInShowUI, true);
 }
 
 void FScreenshotRequest::RequestScreenshot(const FString& InFilename, bool bInShowUI, bool bAddUniqueSuffix)

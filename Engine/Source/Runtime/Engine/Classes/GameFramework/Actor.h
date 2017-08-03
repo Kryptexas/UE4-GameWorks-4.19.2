@@ -618,7 +618,7 @@ public:
 	uint8 bIgnoresOriginShifting:1;
 	
 	/** If true, and if World setting has bEnableHierarchicalLOD equal to true, then it will generate LODActor from groups of clustered Actor */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Actor)
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = HLOD, meta = (DisplayName = "Include Actor for HLOD Mesh generation"))
 	uint8 bEnableAutoLODGeneration:1;
 
 private:

@@ -263,7 +263,7 @@ namespace UnrealBuildTool
 			{
 				if (Parent == null)
 				{
-					throw new BuildException("Could not find definition for module '{0}'", ModuleName);
+					throw new BuildException("Could not find definition for module '{0}' (referenced via {1})", ModuleName, ReferenceChain);
 				}
 				else
 				{

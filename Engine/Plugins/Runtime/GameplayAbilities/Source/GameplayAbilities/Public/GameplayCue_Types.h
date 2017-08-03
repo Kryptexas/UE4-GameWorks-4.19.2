@@ -67,7 +67,7 @@ struct FPreallocationInfo
 	TMap<UClass*, TArray<AGameplayCueNotify_Actor*> >	PreallocatedInstances;
 
 	UPROPERTY(transient)
-	TArray<AGameplayCueNotify_Actor*>	ClassesNeedingPreallocation;
+	TArray<TSubclassOf<AGameplayCueNotify_Actor>>	ClassesNeedingPreallocation;
 
 	FObjectKey OwningWorldKey;
 };

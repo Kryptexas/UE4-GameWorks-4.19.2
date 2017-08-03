@@ -26,12 +26,15 @@ void UActorSequenceComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	SequencePlayer = NewObject<UActorSequencePlayer>(this, "SequencePlayer");
-	SequencePlayer->Initialize(Sequence, PlaybackSettings);
-
-	if (bAutoPlay)
+	if (Sequence != nullptr)
 	{
-		SequencePlayer->Play();
+		SequencePlayer = NewObject<UActorSequencePlayer>(this, "SequencePlayer");
+		SequencePlayer->Initialize(Sequence, PlaybackSettings);
+
+		if (bAutoPlay)
+		{
+			SequencePlayer->Play();
+		}
 	}
 }
 

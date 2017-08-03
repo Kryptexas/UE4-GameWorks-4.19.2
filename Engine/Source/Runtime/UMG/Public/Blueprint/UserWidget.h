@@ -967,6 +967,7 @@ protected:
 
 	virtual bool NativeIsInteractable() const;
 	virtual bool NativeSupportsKeyboardFocus() const;
+	virtual bool NativeSupportsCustomNavigation() const { return false; }
 
 	virtual FReply NativeOnFocusReceived( const FGeometry& InGeometry, const FFocusEvent& InFocusEvent );
 	virtual void NativeOnFocusLost( const FFocusEvent& InFocusEvent );
@@ -999,6 +1000,7 @@ protected:
 	virtual FReply NativeOnTouchEnded( const FGeometry& InGeometry, const FPointerEvent& InGestureEvent );
 	virtual FReply NativeOnMotionDetected( const FGeometry& InGeometry, const FMotionEvent& InMotionEvent );
 	virtual FCursorReply NativeOnCursorQuery( const FGeometry& InGeometry, const FPointerEvent& InCursorEvent );
+	virtual FNavigationReply NativeOnNavigation(const FGeometry& InGeometry, const FNavigationEvent& InNavigationEvent);
 	virtual void NativeOnMouseCaptureLost();
 
 protected:

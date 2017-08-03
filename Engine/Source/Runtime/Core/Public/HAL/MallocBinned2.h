@@ -51,24 +51,31 @@
 #endif
 
 
-#if UE_BUILD_SHIPPING && !WITH_EDITOR
-	#define BINNED2_ALLOCATOR_STATS 0
-#else
-	#define BINNED2_ALLOCATOR_STATS 1
+#ifndef BINNED2_ALLOCATOR_STATS
+	#if UE_BUILD_SHIPPING && !WITH_EDITOR
+		#define BINNED2_ALLOCATOR_STATS 0	
+	#else
+		#define BINNED2_ALLOCATOR_STATS 0
+	#endif
 #endif
 
 
+#define BINNED2_ALLOCATOR_STATS_VALIDATION (BINNED2_ALLOCATOR_STATS && 0)
+
 #if BINNED2_ALLOCATOR_STATS
-extern int64 AllocatedSmallPoolMemory; // memory that's requested to be allocated by the game
-
-
 //////////////////////////////////////////////////////////////////////////
 // the following don't need a critical section because they are covered by the critical section called Mutex
+extern int64 AllocatedSmallPoolMemory; // memory that's requested to be allocated by the game
 extern int64 AllocatedOSSmallPoolMemory;
 extern int64 AllocatedLargePoolMemory; // memory requests to the OS which don't fit in the small pool
 extern int64 AllocatedLargePoolMemoryWAlignment; // when we allocate at OS level we need to align to a size
 #endif
-
+#if BINNED2_ALLOCATOR_STATS_VALIDATION
+#include "Misc/ScopeLock.h"
+extern int64 AllocatedSmallPoolMemoryValidation;
+extern FCriticalSection ValidationCriticalSection;
+extern int32 RecursionCounter;
+#endif
 
 
 //
@@ -342,6 +349,12 @@ class CORE_API FMallocBinned2 final : public FMalloc
 		static void SetTLS();
 		static void ClearTLS();
 
+		FPerThreadFreeBlockLists() 
+#if BINNED2_ALLOCATOR_STATS
+			: AllocatedMemory(0) 
+#endif
+		{ }
+
 		FORCEINLINE void* Malloc(uint32 InPoolIndex)
 		{
 			return FreeLists[InPoolIndex].PopFromFront(InPoolIndex);
@@ -370,6 +383,11 @@ class CORE_API FMallocBinned2 final : public FMalloc
 		{
 			return FreeLists[InPoolIndex].PopBundles(InPoolIndex);
 		}
+#if BINNED2_ALLOCATOR_STATS
+	public:
+		int64 AllocatedMemory;
+		static int64 ConsolidatedMemory;
+#endif
 	private:
 		FFreeBlockList FreeLists[BINNED2_SMALL_POOL_COUNT];
 	};
@@ -390,8 +408,34 @@ public:
 	virtual bool IsInternallyThreadSafe() const override;
 	FORCEINLINE virtual void* Malloc(SIZE_T Size, uint32 Alignment) override
 	{
+#if BINNED2_ALLOCATOR_STATS_VALIDATION
+		FScopeLock Lock(&ValidationCriticalSection);
+		++RecursionCounter;
+		void *Result = MallocInline(Size, Alignment);
+		if ( !IsOSAllocation(Result))
+		{
+			SIZE_T OutSize;
+			ensure( GetAllocationSize(Result, OutSize) );
+			AllocatedSmallPoolMemoryValidation += OutSize;
+			if (RecursionCounter==1)
+			{
+				check(GetTotalAllocatedSmallPoolMemory() == AllocatedSmallPoolMemoryValidation);
+				if (GetTotalAllocatedSmallPoolMemory() != AllocatedSmallPoolMemoryValidation)
+				{
+					FPlatformMisc::DebugBreak();
+				}
+			}
+		}
+		--RecursionCounter;
+		return Result;
+#else
+		return MallocInline(Size, Alignment);
+#endif
+	}
+	FORCEINLINE void* MallocInline(SIZE_T Size, uint32 Alignment )
+	{
 		void* Result = nullptr;
-
+	
 		// Only allocate from the small pools if the size is small enough and the alignment isn't crazy large.
 		// With large alignments, we'll waste a lot of memory allocating an entire page, but such alignments are highly unlikely in practice.
 		if ((Size <= BINNED2_MAX_SMALL_POOL_SIZE) & (Alignment <= BINNED2_MINIMUM_ALIGNMENT)) // one branch, not two
@@ -399,7 +443,15 @@ public:
 			FPerThreadFreeBlockLists* Lists = GMallocBinned2PerThreadCaches ? FPerThreadFreeBlockLists::Get() : nullptr;
 			if (Lists)
 			{
-				Result = Lists->Malloc(BoundSizeToPoolIndex(Size));
+				uint32 PoolIndex = BoundSizeToPoolIndex(Size);
+				uint32 BlockSize = PoolIndexToBlockSize(PoolIndex);
+				Result = Lists->Malloc(PoolIndex);
+#if BINNED2_ALLOCATOR_STATS
+				if (Result)
+				{
+					Lists->AllocatedMemory += BlockSize;
+				}
+#endif
 			}
 		}
 		if (Result == nullptr)
@@ -409,8 +461,43 @@ public:
 
 		return Result;
 	}
-
 	FORCEINLINE virtual void* Realloc(void* Ptr, SIZE_T NewSize, uint32 Alignment) override
+	{
+#if BINNED2_ALLOCATOR_STATS_VALIDATION
+		bool bOldIsOsAllocation = IsOSAllocation(Ptr);
+		SIZE_T OldSize;
+		if (!bOldIsOsAllocation)
+		{
+			ensure(GetAllocationSize(Ptr, OldSize));
+		}
+		FScopeLock Lock(&ValidationCriticalSection);
+		++RecursionCounter;
+		void *Result = ReallocInline(Ptr, NewSize, Alignment);
+		if ( !bOldIsOsAllocation )
+		{
+			AllocatedSmallPoolMemoryValidation -= OldSize;
+		}
+		if (!IsOSAllocation(Result))
+		{
+			SIZE_T OutSize;
+			ensure(GetAllocationSize(Result, OutSize));
+			AllocatedSmallPoolMemoryValidation += OutSize;
+		}
+		if (RecursionCounter == 1)
+		{
+			check(GetTotalAllocatedSmallPoolMemory() == AllocatedSmallPoolMemoryValidation);
+			if (GetTotalAllocatedSmallPoolMemory() != AllocatedSmallPoolMemoryValidation)
+			{
+				FPlatformMisc::DebugBreak();
+			}
+		}
+		--RecursionCounter;
+		return Result;
+#else
+		return ReallocInline(Ptr, NewSize, Alignment);
+#endif
+	}
+	FORCEINLINE void* ReallocInline(void* Ptr, SIZE_T NewSize, uint32 Alignment) 
 	{
 		if (NewSize <= BINNED2_MAX_SMALL_POOL_SIZE && Alignment <= BINNED2_MINIMUM_ALIGNMENT) // one branch, not two
 		{
@@ -436,7 +523,15 @@ public:
 				}
 				if (bCanFree)
 				{
-					void* Result = NewSize ? Lists->Malloc(BoundSizeToPoolIndex(NewSize)) : nullptr;
+					uint32 NewPoolIndex = BoundSizeToPoolIndex(NewSize);
+					uint32 NewBlockSize = PoolIndexToBlockSize(NewPoolIndex);
+					void* Result = NewSize ? Lists->Malloc(NewPoolIndex) : nullptr;
+#if BINNED2_ALLOCATOR_STATS
+					if (Result)
+					{
+						Lists->AllocatedMemory += NewBlockSize;
+					}
+#endif
 					if (Result || !NewSize)
 					{
 						if (Result && Ptr)
@@ -447,6 +542,9 @@ public:
 						{
 							bool bDidPush = Lists->Free(Ptr, PoolIndex, BlockSize);
 							checkSlow(bDidPush);
+#if BINNED2_ALLOCATOR_STATS
+							Lists->AllocatedMemory -= BlockSize;
+#endif
 						}
 
 						return Result;
@@ -460,21 +558,50 @@ public:
 
 	FORCEINLINE virtual void Free(void* Ptr) override
 	{
+#if BINNED2_ALLOCATOR_STATS_VALIDATION
+		FScopeLock Lock(&ValidationCriticalSection);
+		++RecursionCounter;
+		if (!IsOSAllocation(Ptr))
+		{
+			SIZE_T OutSize;
+			ensure(GetAllocationSize(Ptr, OutSize));
+			AllocatedSmallPoolMemoryValidation -= OutSize;
+		}
+		FreeInline(Ptr);
+		if (RecursionCounter == 1)
+		{
+			check(GetTotalAllocatedSmallPoolMemory() == AllocatedSmallPoolMemoryValidation);
+			if (GetTotalAllocatedSmallPoolMemory() != AllocatedSmallPoolMemoryValidation)
+			{
+				FPlatformMisc::DebugBreak();
+			}
+		}
+		--RecursionCounter;
+#else
+		FreeInline(Ptr);
+#endif
+	}
+
+	FORCEINLINE void FreeInline(void* Ptr)
+	{
 		if (!IsOSAllocation(Ptr))
 		{
 			FPerThreadFreeBlockLists* Lists = GMallocBinned2PerThreadCaches ? FPerThreadFreeBlockLists::Get() : nullptr;
 			if (Lists)
 			{
 				FFreeBlock* BasePtr = GetPoolHeaderFromPointer(Ptr);
+				int32 BlockSize = BasePtr->BlockSize;
 				if (BasePtr->IsCanaryOk() && Lists->Free(Ptr, BasePtr->PoolIndex, BasePtr->BlockSize))
 				{
+#if BINNED2_ALLOCATOR_STATS
+					Lists->AllocatedMemory -= BasePtr->BlockSize;
+#endif
 					return;
 				}
 			}
 		}
 		FreeExternal(Ptr);
 	}
-
 	FORCEINLINE virtual bool GetAllocationSize(void *Ptr, SIZE_T &SizeOut) override
 	{
 		if (!IsOSAllocation(Ptr))
@@ -521,6 +648,9 @@ public:
 	void FreeExternal(void *Ptr);
 	bool GetAllocationSizeExternal(void* Ptr, SIZE_T& SizeOut);
 
+#if BINNED2_ALLOCATOR_STATS
+	int64 GetTotalAllocatedSmallPoolMemory() const;
+#endif
 	virtual void GetAllocatorStats( FGenericMemoryStats& out_Stats ) override;
 	/** Dumps current allocator stats to the log. */
 	virtual void DumpAllocatorStats(class FOutputDevice& Ar) override;

@@ -160,7 +160,7 @@ void AGameplayCueNotify_Actor::HandleGameplayCue(AActor* MyTarget, EGameplayCueE
 
 		if (EventType == EGameplayCueEvent::WhileActive && !bAllowMultipleWhileActiveEvents && bHasHandledWhileActiveEvent)
 		{
-			ABILITY_LOG(Display, TEXT("GameplayCue Notify %s WhileActive already handled, skipping this one."), *GetName());
+			ABILITY_LOG(Log, TEXT("GameplayCue Notify %s WhileActive already handled, skipping this one."), *GetName());
 			return;
 		}
 

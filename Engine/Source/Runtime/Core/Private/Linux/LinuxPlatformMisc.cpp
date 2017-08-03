@@ -673,9 +673,15 @@ FString FLinuxPlatformMisc::GetCPUBrand()
 #if !UE_BUILD_SHIPPING
 bool FLinuxPlatformMisc::IsDebuggerPresent()
 {
+	extern CORE_API bool GIgnoreDebugger;
+	if (GIgnoreDebugger)
+	{
+		return false;
+	}
+
 	// If a process is tracing this one then TracerPid in /proc/self/status will
 	// be the id of the tracing process. Use SignalHandler safe functions 
-
+	
 	int StatusFile = open("/proc/self/status", O_RDONLY);
 	if (StatusFile == -1) 
 	{

@@ -1755,6 +1755,10 @@ bool APlayerController::SetPause( bool bPause, FCanUnpause CanUnpauseDelegate)
 			{
 				// Pause gamepad rumbling too if needed
 				bResult = GameMode->SetPause(this, CanUnpauseDelegate);
+
+				// Force an update, otherwise since the game time is not updating, the net driver
+				// might not see that it is time for the world settings actor to replicate
+				ForceSingleNetUpdateFor(GetWorldSettings());
 			}
 			else if (!bPause && bCurrentPauseState)
 			{
@@ -1765,7 +1769,7 @@ bool APlayerController::SetPause( bool bPause, FCanUnpause CanUnpauseDelegate)
 	return bResult;
 }
 
-bool APlayerController::IsPaused()
+bool APlayerController::IsPaused() const
 {
 	return GetWorldSettings()->Pauser != NULL;
 }
@@ -4267,6 +4271,7 @@ void APlayerController::TickActor( float DeltaSeconds, ELevelTick TickType, FAct
 								// Also null the pointer to make sure no one accidentally starts using it below the call to ForcePositionUpdate
 								ServerData->ServerTimeStamp = GetWorld()->GetTimeSeconds();
 								ServerData = nullptr;
+
 								NetworkPredictionInterface->ForcePositionUpdate(PawnTimeSinceUpdate);
 							}
 						}

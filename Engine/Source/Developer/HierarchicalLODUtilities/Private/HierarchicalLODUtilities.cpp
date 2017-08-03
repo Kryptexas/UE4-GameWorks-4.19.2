@@ -146,7 +146,10 @@ bool FHierarchicalLODUtilities::BuildStaticMeshForLODActor(ALODActor* LODActor, 
 				}
 
 				// TODO: support instanced static meshes
-				Components.RemoveAll([](UStaticMeshComponent* Val){ return Val->IsA(UInstancedStaticMeshComponent::StaticClass()); });
+				Components.RemoveAll([](UStaticMeshComponent* Val)
+				{ 
+					return Val->IsA(UInstancedStaticMeshComponent::StaticClass()) || !Val->ShouldGenerateAutoLOD();
+				});
 
 				AllComponents.Append(Components);
 			}

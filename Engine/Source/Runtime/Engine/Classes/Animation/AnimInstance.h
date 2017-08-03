@@ -1129,7 +1129,7 @@ protected:
 	void UpdateMontageEvaluationData();
 
 	/** Called to setup for updates */
-	void PreUpdateAnimation(float DeltaSeconds);
+	virtual void PreUpdateAnimation(float DeltaSeconds);
 
 	/** update animation curves to component */
 	void UpdateCurvesToComponents(USkeletalMeshComponent* Component);

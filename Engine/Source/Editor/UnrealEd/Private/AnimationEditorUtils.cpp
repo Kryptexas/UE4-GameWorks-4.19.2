@@ -39,6 +39,7 @@
 #include "AnimationStateMachineGraph.h"
 #include "K2Node_Composite.h"
 #include "Kismet2/BlueprintEditorUtils.h"
+#include "Animation/AnimCompress_Automatic.h"
 
 #define LOCTEXT_NAMESPACE "AnimationEditorUtils"
 
@@ -501,6 +502,13 @@ namespace AnimationEditorUtils
 
 					for (UAnimSequence* AnimSeq : AnimSequencePtrs)
 					{
+						// If we are not compressing with 'Auto', then clear CompressCommandletVersion
+						// So we can recompress these animations later.
+						const bool bIsAutoCompressor = Algorithm->IsA(UAnimCompress_Automatic::StaticClass());
+						if (!bIsAutoCompressor)
+						{
+							AnimSeq->CompressCommandletVersion = 0;
+						}
 						AnimSeq->CompressionScheme = static_cast<UAnimCompress*>(StaticDuplicateObject(Algorithm, AnimSeq));
 						AnimSeq->RequestAnimCompression(false, CompressContext);
 						++CompressContext->AnimIndex;

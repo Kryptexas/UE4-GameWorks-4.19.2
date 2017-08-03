@@ -316,7 +316,7 @@ protected:
 
 	/** Classes that we need to preallocate instances for */
 	UPROPERTY(transient)
-	TArray<AGameplayCueNotify_Actor*> GameplayCueClassesForPreallocation;
+	TArray<TSubclassOf<AGameplayCueNotify_Actor>> GameplayCueClassesForPreallocation;
 
 	/** List of gameplay cue executes that haven't been processed yet */
 	UPROPERTY(transient)

@@ -1261,7 +1261,7 @@ void FD3D11DynamicRHI::InitD3DDevice()
 
 		GRHISupportsTextureStreaming = true;
 		GRHISupportsFirstInstance = true;
-
+		GRHINeedsExtraDeletionLatency = true;
 		// Set the RHI initialized flag.
 		GIsRHIInitialized = true;
 	}

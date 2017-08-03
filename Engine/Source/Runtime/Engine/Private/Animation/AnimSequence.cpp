@@ -172,12 +172,16 @@ void UAnimSequence::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) con
 	}
 #endif
 
-	const float CompressionRatio = CompressedRawDataSize > 0 ? (float)GetApproxCompressedSize() / (float)CompressedRawDataSize : -1.f;
 
-	OutTags.Add(FAssetRegistryTag(TEXT("Compression Ratio"), FString::Printf(TEXT("%.03f"), CompressionRatio), FAssetRegistryTag::TT_Numerical));
+	OutTags.Add(FAssetRegistryTag(TEXT("Compression Ratio"), FString::Printf(TEXT("%.03f"), (float)GetApproxCompressedSize() / (float)GetUncompressedRawSize()), FAssetRegistryTag::TT_Numerical));
 	OutTags.Add(FAssetRegistryTag(TEXT("Compressed Size (KB)"), FString::Printf(TEXT("%.02f"), (float)GetApproxCompressedSize() / 1024.0f), FAssetRegistryTag::TT_Numerical));
 
 	Super::GetAssetRegistryTags(OutTags);
+}
+
+int32 UAnimSequence::GetUncompressedRawSize() const
+{
+	return ((sizeof(FVector) + sizeof(FQuat) + sizeof(FVector)) * RawAnimationData.Num() * NumFrames);
 }
 
 int32 UAnimSequence::GetApproxRawSize() const
@@ -2103,9 +2107,12 @@ void UAnimSequence::RequestAnimCompression(bool bAsyncCompression, TSharedPtr<FA
 		FDerivedDataAnimationCompression* AnimCompressor = new FDerivedDataAnimationCompression(this, CompressContext, bDoCompressionInPlace);
 		// For debugging DDC/Compression issues		
 		const bool bSkipDDC = false;
-		if (bSkipDDC)
+		if (bSkipDDC || (CompressCommandletVersion == INDEX_NONE))
 		{
 			AnimCompressor->Build(OutData);
+
+			delete AnimCompressor;
+			AnimCompressor = nullptr;
 		}
 		else
 		{

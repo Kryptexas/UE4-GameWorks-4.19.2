@@ -987,7 +987,19 @@ static void GameThreadWaitForTask(const FGraphEventRef& Task, bool bEmptyGameThr
 				if (!bDone && !WITH_EDITOR && !FPlatformMisc::IsDebuggerPresent())
 				{
 					static bool bDisabled = FParse::Param(FCommandLine::Get(), TEXT("nothreadtimeout"));
+					static bool bGPUDebugging = FParse::Param(FCommandLine::Get(), TEXT("gpucrashdebugging"));
 
+					if (bGPUDebugging && FPlatformTime::Seconds() > 2.0f)
+					{
+						bool IsGpuAlive = true;
+						if (GDynamicRHI)
+						{
+							IsGpuAlive = GDynamicRHI->CheckGpuHeartbeat();
+						}
+
+						UE_CLOG(!IsGpuAlive, LogRendererCore, Fatal, TEXT("CheckGpuHeartbeat returned false after %.02f secs of waiting for the GPU"), FPlatformTime::Seconds() - StartTime);
+					}
+		
 					// Fatal timeout if we run out of time and this thread is being monitor for heartbeats
 					// (We could just let the heartbeat monitor error for us, but this leads to better diagnostics).
 					if (FPlatformTime::Seconds() >= EndTime && FThreadHeartBeat::Get().IsBeating() && !bDisabled)

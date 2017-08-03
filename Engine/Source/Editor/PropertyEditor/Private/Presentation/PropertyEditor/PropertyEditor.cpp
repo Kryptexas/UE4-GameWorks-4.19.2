@@ -659,25 +659,22 @@ bool FPropertyEditor::GetEditConditionPropertyAddress( UBoolProperty*& Condition
 		{
 			for (int32 Index = 0; Index < ComplexParentNode->GetInstancesNum(); ++Index)
 			{
-				TWeakObjectPtr<UObject> Object = ComplexParentNode->GetInstanceAsUObject(Index);
+				uint8* BaseAddress = ComplexParentNode->GetMemoryOfInstance(Index);
+				if (BaseAddress)
+				{
+					// Get the address corresponding to the base of this property (i.e. if a struct property, set BaseOffset to the address of value for the whole struct)
+					uint8* BaseOffset = ParentNode->GetValueAddress(BaseAddress);
+					check(BaseOffset != NULL);
 
-			if( Object.IsValid() )
-			{
-				UObject* Obj = Object.Get();
-
-				// Get the address corresponding to the base of this property (i.e. if a struct property, set BaseOffset to the address of value for the whole struct)
-				uint8* BaseOffset = ParentNode->GetValueAddress((uint8*)Obj);
-				check(BaseOffset != NULL);
-
-				FPropertyConditionInfo NewCondition;
-				// now calculate the address of the property value being used as the condition and add it to the array.
-				NewCondition.Address = EditConditionProperty->ContainerPtrToValuePtr<uint8>(BaseOffset);
-				NewCondition.bNegateValue = bNegate;
-				ConditionPropertyAddresses.Add(NewCondition);
-				bResult = true;
+					FPropertyConditionInfo NewCondition;
+					// now calculate the address of the property value being used as the condition and add it to the array.
+					NewCondition.Address = EditConditionProperty->ContainerPtrToValuePtr<uint8>(BaseOffset);
+					NewCondition.bNegateValue = bNegate;
+					ConditionPropertyAddresses.Add(NewCondition);
+					bResult = true;
+				}
 			}
 		}
-	}
 	}
 
 	if ( bResult )

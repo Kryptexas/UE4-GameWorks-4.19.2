@@ -28,6 +28,7 @@ UScrollBox::UScrollBox(const FObjectInitializer& ObjectInitializer)
 
 	WidgetStyle = *Defaults._Style;
 	WidgetBarStyle = *Defaults._ScrollBarStyle;
+	bAllowRightClickDragScrolling = true;
 }
 
 void UScrollBox::ReleaseSlateResources(bool bReleaseChildren)
@@ -97,6 +98,7 @@ void UScrollBox::SynchronizeProperties()
 	MyScrollBox->SetScrollBarThickness(ScrollbarThickness);
 	MyScrollBox->SetScrollBarAlwaysVisible(AlwaysShowScrollbar);
 	MyScrollBox->SetAllowOverscroll(AllowOverscroll ? EAllowOverscroll::Yes : EAllowOverscroll::No);
+	MyScrollBox->SetScrollBarRightClickDragAllowed(bAllowRightClickDragScrolling);
 }
 
 float UScrollBox::GetScrollOffset() const

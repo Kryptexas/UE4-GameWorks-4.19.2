@@ -319,6 +319,8 @@ protected:
 	 *	provided GameplayTasksComponent is configured to care about priorities (the default behavior)*/
 	uint8 Priority;
 
+	/** You should _never_ access it directly. We'll make it private once we have
+	 *	a good way of "deprecating: direct access */
 	EGameplayTaskState TaskState;
 
 	UPROPERTY(config)

@@ -97,9 +97,12 @@ bool UK2Node_Variable::CreatePinForVariable(EEdGraphPinDirection Direction, FStr
 	{
 		if (!VariableReference.IsLocalScope())
 		{
-			FString WarningMsg = FString::Printf(TEXT("'%s' variable not found. Base class was probably changed."), *GetVarNameString());
-
 			UBlueprint* OwnerBP = GetBlueprint();
+
+			FString AssetName = OwnerBP ? OwnerBP->GetPathName() : TEXT("Unknown BP");
+
+			FString WarningMsg = FString::Printf(TEXT("'%s' variable not found. Base class was probably changed. %s"), *GetVarNameString(), *AssetName);
+
 			if (OwnerBP && OwnerBP->CurrentMessageLog)
 			{
 				OwnerBP->CurrentMessageLog->Warning(*FString::Printf(TEXT("@@: %s"), *WarningMsg), this);
