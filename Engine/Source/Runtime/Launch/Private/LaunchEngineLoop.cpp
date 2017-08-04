@@ -894,7 +894,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 {
 	// disable/enable LLM based on commandline
 	LLM(FLowLevelMemTracker::Get().ProcessCommandLine(CmdLine));
-	LLM_SCOPED_SINGLE_MALLOC_STAT_TAG(EnginePreInitMemory);
+	LLM_SCOPED_SINGLE_STAT_TAG(EnginePreInitMemory);
 
 	FPlatformMisc::InitTaggedStorage(1024);
 
@@ -2610,7 +2610,7 @@ void GameLoopIsStarved()
 
 int32 FEngineLoop::Init()
 {
-	LLM_SCOPED_SINGLE_MALLOC_STAT_TAG(EngineInitMemory);
+	LLM_SCOPED_SINGLE_STAT_TAG(EngineInitMemory);
 
 	CheckImageIntegrity();
 
@@ -3055,7 +3055,7 @@ void FEngineLoop::Tick()
 	// let the low level mem tracker pump once a frame to update states
 	LLM(FLowLevelMemTracker::Get().UpdateStatsPerFrame());
 
-	LLM_SCOPED_SINGLE_MALLOC_STAT_TAG(EngineTickMemory);
+	LLM_SCOPED_SINGLE_STAT_TAG(EngineTickMemory);
 
 	// Send a heartbeat for the diagnostics thread
 	FThreadHeartBeat::Get().HeartBeat();
@@ -3201,6 +3201,7 @@ void FEngineLoop::Tick()
 		{
 			SCOPE_TIME_GUARD(TEXT("SlateInput"));
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_Tick_SlateInput);
+			LLM_SCOPED_SINGLE_STAT_TAG(Slate);
 
 			FSlateApplication& SlateApp = FSlateApplication::Get();
 			SlateApp.PollGameDeviceState();

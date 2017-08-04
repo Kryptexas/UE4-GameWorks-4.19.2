@@ -8,6 +8,7 @@
 #include "ProfilingDebugging/ResourceSize.h"
 #include "EngineUtils.h"
 #include "Animation/MorphTarget.h"
+#include "HAL/LowLevelMemTracker.h"
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -19,6 +20,8 @@ UMorphTarget::UMorphTarget(const FObjectInitializer& ObjectInitializer)
 
 void UMorphTarget::Serialize( FArchive& Ar )
 {
+	LLM_SCOPED_SINGLE_STAT_TAG(Animation);
+	
 	Super::Serialize( Ar );
 	FStripDataFlags StripFlags( Ar );
 	if( !StripFlags.IsDataStrippedForServer() )

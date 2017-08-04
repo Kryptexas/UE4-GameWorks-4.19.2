@@ -1041,7 +1041,7 @@ FPooledRenderTargetDesc FRCPassPostProcessCombineLUTs::ComputeOutputDesc(EPassOu
 			Ret.Extent = FIntPoint(GLUTSize, GLUTSize);
 			Ret.Depth = GLUTSize;
 		}
-		Ret.Flags |= GetTextureFastVRamFlag_DynamicLayout();
+		Ret.Flags |= GFastVRamConfig.CombineLUTs;
 		Ret.DebugName = TEXT("CombineLUTs");
 	}
 	Ret.ClearValue = FClearValueBinding::Transparent;

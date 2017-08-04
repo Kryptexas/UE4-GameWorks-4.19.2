@@ -11,6 +11,7 @@
 #include "Misc/CoreStats.h"
 #include "UObject/UObjectGlobals.h"
 #include "Audio.h"
+#include "HAL/LowLevelMemTracker.h"
 
 //
 // Globals
@@ -150,6 +151,8 @@ void FAudioThread::Exit()
 
 uint32 FAudioThread::Run()
 {
+	LLM_SCOPED_SINGLE_STAT_TAG(Audio);
+
 	FPlatformProcess::SetupAudioThread();
 	AudioThreadMain( TaskGraphBoundSyncEvent );
 	return 0;

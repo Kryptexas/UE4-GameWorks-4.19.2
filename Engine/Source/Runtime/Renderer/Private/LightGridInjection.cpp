@@ -623,9 +623,10 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 			FForwardLightingCullingResources& ForwardLightingCullingResources = bShouldCacheTemporaryBuffers ? View.ViewState->ForwardLightingCullingResources : LocalCullingResources;
 
 			const uint32 CulledLightLinksElements = NumCells * GMaxCulledLightsPerCell * LightLinkStride;
-			if (ForwardLightingCullingResources.CulledLightLinks.NumBytes != (CulledLightLinksElements * sizeof(uint32)))
+			if (ForwardLightingCullingResources.CulledLightLinks.NumBytes != (CulledLightLinksElements * sizeof(uint32) )
+				|| ( GFastVRamConfig.bDirty && ForwardLightingCullingResources.CulledLightLinks.NumBytes > 0 ) )
 			{
-				const uint32 FastVRamFlag = IsTransientResourceBufferAliasingEnabled() ? (BUF_FastVRAM | BUF_Transient) : BUF_None;
+				const uint32 FastVRamFlag = GFastVRamConfig.ForwardLightingCullingResources | (IsTransientResourceBufferAliasingEnabled() ? BUF_Transient : BUF_None);
 				ForwardLightingCullingResources.CulledLightLinks.Initialize(sizeof(uint32), CulledLightLinksElements, PF_R32_UINT, FastVRamFlag, TEXT("CulledLightLinks"));
 				ForwardLightingCullingResources.NextCulledLightLink.Initialize(sizeof(uint32), 1, PF_R32_UINT, FastVRamFlag, TEXT("NextCulledLightLink"));
 				ForwardLightingCullingResources.StartOffsetGrid.Initialize(sizeof(uint32), NumCells, PF_R32_UINT, FastVRamFlag, TEXT("StartOffsetGrid"));

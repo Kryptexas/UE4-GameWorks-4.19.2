@@ -118,6 +118,8 @@ void FD3D12BuddyAllocator::Initialize()
 		{
 			LLM_SCOPED_SINGLE_PLATFORM_STAT_TAG(D3D12Heap);
 
+			// we are tracking allocations ourselves, so don't let XMemAlloc track these as well
+			LLM_SCOPED_PAUSE_TRACKING_FOR_TRACKER(ELLMTracker::Default);
 			VERIFYD3D12RESULT(Adapter->GetD3DDevice()->CreateHeap(&Desc, IID_PPV_ARGS(&Heap)));
 		}
 		SetName(Heap, L"Placed Resource Allocator Backing Heap");
@@ -133,7 +135,10 @@ void FD3D12BuddyAllocator::Initialize()
 	}
 	else
 	{
-		VERIFYD3D12RESULT(Adapter->CreateBuffer(HeapType, GetNodeMask(), GetVisibilityMask(), MaxBlockSize, BackingResource.GetInitReference(), ResourceFlags));
+		{
+			LLM_SCOPED_PAUSE_TRACKING_FOR_TRACKER(ELLMTracker::Default);
+			VERIFYD3D12RESULT(Adapter->CreateBuffer(HeapType, GetNodeMask(), GetVisibilityMask(), MaxBlockSize, BackingResource.GetInitReference(), ResourceFlags));
+		}
 		SetName(BackingResource, L"Resource Allocator Underlying Buffer");
 
 		if (IsCPUWritable(HeapType))
@@ -291,7 +296,7 @@ void FD3D12BuddyAllocator::Allocate(uint32 SizeInBytes, uint32 Alignment, FD3D12
 #endif
 
 	// track the allocation
-	LLM(FLowLevelMemTracker::Get().OnLowLevelAlloc(ELLMTracker::RHI, ResourceLocation.GetMappedBaseAddress(), SizeInBytes));
+	LLM(FLowLevelMemTracker::Get().OnLowLevelAlloc(ELLMTracker::Default, ResourceLocation.GetMappedBaseAddress(), SizeInBytes));
 }
 
 bool FD3D12BuddyAllocator::TryAllocate(uint32 SizeInBytes, uint32 Alignment, FD3D12ResourceLocation& ResourceLocation)
@@ -343,7 +348,7 @@ void FD3D12BuddyAllocator::Deallocate(FD3D12ResourceLocation& ResourceLocation)
 #endif
 
 	// track the allocation
-	LLM(FLowLevelMemTracker::Get().OnLowLevelFree(ELLMTracker::RHI, ResourceLocation.GetMappedBaseAddress(), 0));
+	LLM(FLowLevelMemTracker::Get().OnLowLevelFree(ELLMTracker::Default, ResourceLocation.GetMappedBaseAddress(), 0));
 }
 
 void FD3D12BuddyAllocator::DeallocateInternal(RetiredBlock& Block)
@@ -398,6 +403,8 @@ void FD3D12BuddyAllocator::CleanUpAllocations()
 
 void FD3D12BuddyAllocator::ReleaseAllResources()
 {
+	LLM_SCOPED_PAUSE_TRACKING_FOR_TRACKER(ELLMTracker::Default);
+
 	for (RetiredBlock& Block : DeferredDeletionQueue)
 	{
 		DeallocateInternal(Block);
@@ -1080,7 +1087,7 @@ FD3D12TextureAllocator::~FD3D12TextureAllocator()
 	FD3D12DynamicRHI::GetD3DRHI()->UpdataTextureMemorySize(-int32(MaxBlockSize / 1024));
 }
 
-HRESULT FD3D12TextureAllocator::AllocateTexture(D3D12_RESOURCE_DESC Desc, const D3D12_CLEAR_VALUE* ClearValue, FD3D12ResourceLocation& TextureLocation, const D3D12_RESOURCE_STATES InitialState)
+HRESULT FD3D12TextureAllocator::AllocateTexture(D3D12_RESOURCE_DESC Desc, const D3D12_CLEAR_VALUE* ClearValue, FD3D12ResourceLocation& TextureLocation, const D3D12_RESOURCE_STATES InitialState, bool bForcePlacementCreation)
 {
 	FD3D12Device* Device = GetParentDevice();
 	FD3D12Adapter* Adapter = Device->GetParentAdapter();
@@ -1110,7 +1117,15 @@ HRESULT FD3D12TextureAllocator::AllocateTexture(D3D12_RESOURCE_DESC Desc, const 
 	// Request default alignment for stand alone textures
 	Desc.Alignment = 0;
 	const D3D12_HEAP_PROPERTIES HeapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT, GetNodeMask(), GetVisibilityMask());
-	hr = Adapter->CreateCommittedResource(Desc, HeapProps, InitialState, ClearValue, &NewResource);
+
+	if (bForcePlacementCreation)
+	{
+		hr = Adapter->CreatePlacedResourceWithHeap(Desc, HeapProps, InitialState, ClearValue, &NewResource);
+	}
+	else
+	{
+		hr = Adapter->CreateCommittedResource(Desc, HeapProps, InitialState, ClearValue, &NewResource);
+	}
 
 	TextureLocation.SetType(FD3D12ResourceLocation::ResourceLocationType::eStandAlone);
 	TextureLocation.SetResource(NewResource);
@@ -1124,7 +1139,7 @@ FD3D12TextureAllocatorPool::FD3D12TextureAllocatorPool(FD3D12Device* Device, con
 	FD3D12MultiNodeGPUObject(Device->GetNodeMask(), VisibilityNode)
 {};
 
-HRESULT FD3D12TextureAllocatorPool::AllocateTexture(D3D12_RESOURCE_DESC Desc, const D3D12_CLEAR_VALUE* ClearValue, uint8 UEFormat, FD3D12ResourceLocation& TextureLocation, const D3D12_RESOURCE_STATES InitialState)
+HRESULT FD3D12TextureAllocatorPool::AllocateTexture(D3D12_RESOURCE_DESC Desc, const D3D12_CLEAR_VALUE* ClearValue, uint8 UEFormat, FD3D12ResourceLocation& TextureLocation, const D3D12_RESOURCE_STATES InitialState, bool bForcePlacementCreation)
 {
 	// 4KB alignment is only available for read only textures
 	if ((Desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET ||
@@ -1144,7 +1159,15 @@ HRESULT FD3D12TextureAllocatorPool::AllocateTexture(D3D12_RESOURCE_DESC Desc, co
 	FD3D12Resource* Resource = nullptr;
 
 	const D3D12_HEAP_PROPERTIES HeapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT, GetNodeMask(), GetVisibilityMask());
-	HRESULT hr = Adapter->CreateCommittedResource(Desc, HeapProps, InitialState, ClearValue, &Resource);
+	HRESULT hr;
+	if (bForcePlacementCreation)
+	{
+		hr = Adapter->CreatePlacedResourceWithHeap(Desc, HeapProps, InitialState, ClearValue, &Resource);
+	}
+	else
+	{
+		hr = Adapter->CreateCommittedResource(Desc, HeapProps, InitialState, ClearValue, &Resource);
+	}
 
 	TextureLocation.SetType(FD3D12ResourceLocation::ResourceLocationType::eStandAlone);
 	TextureLocation.SetResource(Resource);

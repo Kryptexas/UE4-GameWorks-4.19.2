@@ -492,7 +492,7 @@ static_assert(PT_Num <= (1 << PT_NumBits), "PT_NumBits is too small");
 enum EBufferUsageFlags
 {
 	BUF_None			  = 0x0000,
-
+	
 	// Mutually exclusive write-frequency flags
 	BUF_Static            = 0x0001, // The buffer will be written to once.
 	BUF_Dynamic           = 0x0002, // The buffer will be written to occasionally, GPU read only, CPU write only.  The data lifetime is until the next update, or the buffer is destroyed.
@@ -532,6 +532,9 @@ enum EBufferUsageFlags
 
 	/** Buffer should be allocated from transient memory. */
 	BUF_Transient		  = 0x2000,
+
+	/** Buffer that should be accessed one byte at a time. */
+	BUF_UINT8             = 0x4000,
 
 	// Helper bit-masks
 	BUF_AnyDynamic = (BUF_Dynamic | BUF_Volatile),

@@ -4181,6 +4181,8 @@ void FAudioDevice::Flush(UWorld* WorldToFlush, bool bClearActivatedReverb)
 
 void FAudioDevice::Precache(USoundWave* SoundWave, bool bSynchronous, bool bTrackMemory, bool bForceFullDecompression)
 {
+	LLM_SCOPED_SINGLE_STAT_TAG(Audio);
+
 	if (SoundWave == nullptr)
 	{
 		return;

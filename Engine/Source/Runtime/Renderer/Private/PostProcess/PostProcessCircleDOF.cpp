@@ -280,7 +280,7 @@ FPooledRenderTargetDesc FRCPassPostProcessCircleDOFSetup::ComputeOutputDesc(EPas
 	Ret.TargetableFlags &= ~(uint32)TexCreate_UAV;
 	Ret.TargetableFlags |= TexCreate_RenderTargetable;
 	Ret.AutoWritable = false;
-	Ret.Flags |= GetTextureFastVRamFlag_DynamicLayout();
+	Ret.Flags |= GFastVRamConfig.CircleDOF;
 
 	if (FPostProcessing::HasAlphaChannelSupport())
 	{
@@ -496,7 +496,7 @@ FPooledRenderTargetDesc FRCPassPostProcessCircleDOFDilate::ComputeOutputDesc(EPa
 //	Ret.Format = PF_FloatRGBA;
 	// we only use one channel, maybe using 4 channels would save memory as we reuse
 	Ret.Format = PF_R16F;
-	Ret.Flags |= GetTextureFastVRamFlag_DynamicLayout();
+	Ret.Flags |= GFastVRamConfig.CircleDOF;
 
 	return Ret;
 }
@@ -751,7 +751,7 @@ FPooledRenderTargetDesc FRCPassPostProcessCircleDOF::ComputeOutputDesc(EPassOutp
 	Ret.Reset();
 	Ret.TargetableFlags &= ~(uint32)TexCreate_UAV;
 	Ret.TargetableFlags |= TexCreate_RenderTargetable;
-	Ret.Flags |= GetTextureFastVRamFlag_DynamicLayout();
+	Ret.Flags |= GFastVRamConfig.CircleDOF;
 
 	if (FPostProcessing::HasAlphaChannelSupport())
 	{

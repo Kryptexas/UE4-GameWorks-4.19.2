@@ -200,6 +200,12 @@ public:
 		const D3D12_CLEAR_VALUE* ClearValue,
 		FD3D12Resource** ppOutResource);
 
+	HRESULT CreatePlacedResourceWithHeap(const D3D12_RESOURCE_DESC& Desc,
+		const D3D12_HEAP_PROPERTIES& HeapProps,
+		const D3D12_RESOURCE_STATES& InitialUsage,
+		const D3D12_CLEAR_VALUE* ClearValue,
+		FD3D12Resource** ppOutResource);
+
 	HRESULT CreatePlacedResource(const D3D12_RESOURCE_DESC& Desc,
 		FD3D12Heap* BackingHeap,
 		uint64 HeapOffset,

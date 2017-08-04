@@ -889,6 +889,11 @@ public:
 		return PLATFORM_HAS_TOUCH_MAIN_SCREEN;
 	}
 
+	static bool SupportsTouchInput()
+	{
+		return PLATFORM_HAS_TOUCH_MAIN_SCREEN;
+	}
+
 	/*
 	 * Returns whether the volume buttons are handled by the system
 	 */

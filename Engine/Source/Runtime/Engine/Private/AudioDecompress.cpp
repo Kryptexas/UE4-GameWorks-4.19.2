@@ -617,6 +617,8 @@ FAsyncAudioDecompressWorker::FAsyncAudioDecompressWorker(USoundWave* InWave)
 
 void FAsyncAudioDecompressWorker::DoWork()
 {
+	LLM_SCOPED_SINGLE_STAT_TAG(Audio);
+
 	if (AudioInfo)
 	{
 		FSoundQualityInfo QualityInfo = { 0 };

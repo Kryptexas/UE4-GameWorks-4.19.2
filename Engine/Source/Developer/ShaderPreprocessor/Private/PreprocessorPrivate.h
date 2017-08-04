@@ -6,12 +6,19 @@
 #include "ShaderCore.h"
 #include "mcpp.h"
 
+enum class EMessageType
+{
+	Error = 0,
+	Warn = 1,
+	ShaderMetaData = 2,
+};
+
 /**
  * Filter MCPP errors.
  * @param ErrorMsg - The error message.
  * @returns true if the message is valid and has not been filtered out.
  */
-inline bool FilterMcppError(const FString& ErrorMsg)
+inline EMessageType FilterMcppError(const FString& ErrorMsg)
 {
 	const TCHAR* SubstringsToFilter[] =
 	{
@@ -21,14 +28,27 @@ inline bool FilterMcppError(const FString& ErrorMsg)
 	};
 	const int32 FilteredSubstringCount = ARRAY_COUNT(SubstringsToFilter);
 
+	if (ErrorMsg.Contains(TEXT("UE4SHADERMETADATA")))
+	{
+		return EMessageType::ShaderMetaData;
+	}
+
 	for (int32 SubstringIndex = 0; SubstringIndex < FilteredSubstringCount; ++SubstringIndex)
 	{
 		if (ErrorMsg.Contains(SubstringsToFilter[SubstringIndex]))
 		{
-			return false;
+			return EMessageType::Warn;
 		}
 	}
-	return true;
+	return EMessageType::Error;
+}
+
+static void ExtractDirective(FString& OutString, FString WarningString)
+{
+	static const FString PrefixString = TEXT("UE4SHADERMETADATA_");
+	uint32 DirectiveStartPosition = WarningString.Find(PrefixString) + PrefixString.Len();
+	uint32 DirectiveEndPosition = WarningString.Find(TEXT("\n"));
+	OutString = WarningString.Mid(DirectiveStartPosition, (DirectiveEndPosition - DirectiveStartPosition));
 }
 
 /**
@@ -36,7 +56,7 @@ inline bool FilterMcppError(const FString& ErrorMsg)
  * @param ShaderOutput - Shader output to which to add errors.
  * @param McppErrors - MCPP error output.
  */
-static bool ParseMcppErrors(TArray<FShaderCompilerError>& OutErrors, const FString& McppErrors)
+static bool ParseMcppErrors(TArray<FShaderCompilerError>& OutErrors, TArray<FString>& OutStrings, const FString& McppErrors)
 {
 	bool bSuccess = true;
 	if (McppErrors.Len() > 0)
@@ -63,13 +83,31 @@ static bool ParseMcppErrors(TArray<FShaderCompilerError>& OutErrors, const FStri
 					Message = Message.Trim().TrimTrailing();
 
 					// Ignore the warning about files that don't end with a newline.
-					if (FilterMcppError(Message))
+					switch (FilterMcppError(Message))
 					{
-						FShaderCompilerError* CompilerError = new(OutErrors) FShaderCompilerError;
-						CompilerError->ErrorVirtualFilePath = Filename;
-						CompilerError->ErrorLineString = LineNumStr;
-						CompilerError->StrippedErrorMessage = Message;
-						bSuccess = false;
+						case EMessageType::Error:
+						{
+							FShaderCompilerError* CompilerError = new(OutErrors) FShaderCompilerError;
+							CompilerError->ErrorVirtualFilePath = Filename;
+							CompilerError->ErrorLineString = LineNumStr;
+							CompilerError->StrippedErrorMessage = Message;
+							bSuccess = false;
+						}
+							break;
+						case EMessageType::Warn:
+						{
+							// Warnings are ignored.
+						}
+							break;
+						case EMessageType::ShaderMetaData:
+						{
+							FString Directive;
+							ExtractDirective(Directive, Message);
+							OutStrings.Add(Directive);
+						}
+							break;
+						default:
+							break;
 					}
 				}
 

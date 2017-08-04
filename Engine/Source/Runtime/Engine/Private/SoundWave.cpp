@@ -171,6 +171,8 @@ void USoundWave::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 
 void USoundWave::Serialize( FArchive& Ar )
 {
+	LLM_SCOPED_SINGLE_STAT_TAG(Audio);
+
 	DECLARE_SCOPE_CYCLE_COUNTER( TEXT("USoundWave::Serialize"), STAT_SoundWave_Serialize, STATGROUP_LoadTime );
 
 	Super::Serialize( Ar );
@@ -357,6 +359,8 @@ void USoundWave::InvalidateCompressedData()
 
 void USoundWave::PostLoad()
 {
+	LLM_SCOPED_SINGLE_STAT_TAG(Audio);
+
 	Super::PostLoad();
 
 	if (GetOutermost()->HasAnyPackageFlags(PKG_ReloadingForCooker))

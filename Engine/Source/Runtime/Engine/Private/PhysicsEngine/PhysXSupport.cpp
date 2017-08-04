@@ -17,6 +17,9 @@
 #include "PhysicsEngine/ConstraintInstance.h"
 #include "PhysicsEngine/BodySetup.h"
 
+DECLARE_LLM_MEMORY_STAT(TEXT("PhysX (Convex)"), STAT_PhysXConvexMesh, STATGROUP_LLM);
+DECLARE_LLM_MEMORY_STAT(TEXT("PhysX (TriMesh)"), STAT_PhysXTriMesh, STATGROUP_LLM);
+
 PxFoundation*			GPhysXFoundation = NULL;
 PxPvd*					GPhysXVisualDebugger = NULL;
 PxPhysics*				GPhysXSDK = NULL;
@@ -622,6 +625,8 @@ FPhysXCookingDataReader::FPhysXCookingDataReader( FByteBulkData& InBulkData, FBo
 
 PxConvexMesh* FPhysXCookingDataReader::ReadConvexMesh( FBufferReader& Ar, uint8* InBulkDataPtr, int32 InBulkDataSize )
 {
+	LLM_SCOPED_TAG_WITH_STAT(STAT_PhysXConvexMesh, ELLMTracker::Default);
+
 	PxConvexMesh* CookedMesh = NULL;
 	uint8 IsMeshCooked = false;
 	Ar << IsMeshCooked;
@@ -637,6 +642,8 @@ PxConvexMesh* FPhysXCookingDataReader::ReadConvexMesh( FBufferReader& Ar, uint8*
 
 PxTriangleMesh* FPhysXCookingDataReader::ReadTriMesh( FBufferReader& Ar, uint8* InBulkDataPtr, int32 InBulkDataSize )
 {
+	LLM_SCOPED_TAG_WITH_STAT(STAT_PhysXTriMesh, ELLMTracker::Default);
+
 	FPhysXInputStream Buffer( InBulkDataPtr + Ar.Tell(), InBulkDataSize - Ar.Tell() );
 	PxTriangleMesh* CookedMesh = GPhysXSDK->createTriangleMesh(Buffer);
 	check(CookedMesh);

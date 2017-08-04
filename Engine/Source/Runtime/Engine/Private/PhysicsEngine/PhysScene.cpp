@@ -1154,6 +1154,8 @@ void FPhysScene::SceneCompletionTask(ENamedThreads::Type CurrentThread, const FG
 
 void FPhysScene::ProcessPhysScene(uint32 SceneType)
 {
+	LLM_SCOPED_SINGLE_STAT_TAG(Phys);
+	
 	SCOPED_NAMED_EVENT(FPhysScene_ProcessPhysScene, FColor::Orange);
 	checkSlow(SceneType < PST_MAX);
 

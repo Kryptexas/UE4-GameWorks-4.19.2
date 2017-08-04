@@ -394,7 +394,8 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 	}
 
 	// Can not load new level now either, we're still processing visibility for this one
-    if (PersistentWorld->IsVisibilityRequestPending() && PersistentWorld->CurrentLevelPendingVisibility == LoadedLevel)
+	ULevel* PendingLevelVisOrInvis = (PersistentWorld->CurrentLevelPendingVisibility) ? PersistentWorld->CurrentLevelPendingVisibility : PersistentWorld->CurrentLevelPendingInvisibility;
+    if (PendingLevelVisOrInvis && PendingLevelVisOrInvis == LoadedLevel)
     {
 		UE_LOG(LogLevelStreaming, Verbose, TEXT("Delaying load of new level %s, because %s still processing visibility request."), *DesiredPackageName.ToString(), *CachedLoadedLevelPackageName.ToString());
 		return false;
@@ -561,21 +562,22 @@ void ULevelStreaming::AsyncLevelLoadComplete(const FName& InPackageName, UPackag
 			if (Level)
 			{
 				UWorld* LevelOwningWorld = Level->OwningWorld;
-
-				if (LevelOwningWorld && 
-					LevelOwningWorld->IsVisibilityRequestPending() && 
-					LevelOwningWorld->CurrentLevelPendingVisibility == LoadedLevel)
- 				{
- 					// We can't change current loaded level if it's still processing visibility request
-					// On next UpdateLevelStreaming call this loaded package will be found in memory by RequestLevel function in case visibility request has finished
- 					UE_LOG(LogLevelStreaming, Verbose, TEXT("Delaying setting result of async load new level %s, because current loaded level still processing visibility request"), *LevelPackage->GetName());
- 				}
-				else
+				if (LevelOwningWorld)
 				{
-					check(PendingUnloadLevel == NULL);
-					SetLoadedLevel(Level);
-					// Broadcast level loaded event to blueprints
-					OnLevelLoaded.Broadcast();
+					ULevel* PendingLevelVisOrInvis = (LevelOwningWorld->CurrentLevelPendingVisibility) ? LevelOwningWorld->CurrentLevelPendingVisibility : LevelOwningWorld->CurrentLevelPendingInvisibility;
+					if (PendingLevelVisOrInvis && PendingLevelVisOrInvis == LoadedLevel)
+					{
+						// We can't change current loaded level if it's still processing visibility request
+						// On next UpdateLevelStreaming call this loaded package will be found in memory by RequestLevel function in case visibility request has finished
+						UE_LOG(LogLevelStreaming, Verbose, TEXT("Delaying setting result of async load new level %s, because current loaded level still processing visibility request"), *LevelPackage->GetName());
+					}
+					else
+					{
+						check(PendingUnloadLevel == NULL);
+						SetLoadedLevel(Level);
+						// Broadcast level loaded event to blueprints
+						OnLevelLoaded.Broadcast();
+					}
 				}
 
 				Level->HandleLegacyMapBuildData();

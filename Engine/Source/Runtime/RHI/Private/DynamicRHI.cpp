@@ -175,6 +175,8 @@ void RHIInit(bool bHasEditorToken)
 		}
 		else
 		{
+			LLM_SCOPED_TAG_WITH_STAT(STAT_RHIMiscLLM, ELLMTracker::Default);
+
 			GDynamicRHI = PlatformCreateDynamicRHI();
 			if (GDynamicRHI)
 			{

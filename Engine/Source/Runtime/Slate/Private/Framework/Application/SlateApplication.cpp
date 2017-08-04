@@ -35,6 +35,7 @@
 #include "ToolboxModule.h"
 #include "Framework/Docking/TabCommands.h"
 #include "Math/UnitConversion.h"
+#include "HAL/LowLevelMemTracker.h"
 
 #define SLATE_HAS_WIDGET_REFLECTOR !UE_BUILD_SHIPPING || PLATFORM_DESKTOP
 
@@ -1570,6 +1571,8 @@ void FSlateApplication::FinishedInputThisFrame()
 
 void FSlateApplication::Tick(ESlateTickType TickType)
 {
+	LLM_SCOPED_SINGLE_STAT_TAG(Slate);
+
 	SCOPE_TIME_GUARD(TEXT("FSlateApplication::Tick"));
 
 	// It is not valid to tick Slate on any other thread but the game thread unless we are only updating time

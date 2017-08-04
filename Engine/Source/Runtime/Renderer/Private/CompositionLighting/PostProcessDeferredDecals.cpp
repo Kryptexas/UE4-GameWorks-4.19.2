@@ -569,7 +569,7 @@ void FRCPassPostProcessDeferredDecals::DecodeRTWriteMask(FRenderingCompositePass
 	FPooledRenderTargetDesc MaskDesc(FPooledRenderTargetDesc::Create2DDesc(RTWriteMaskDims,
 		PF_R8_UINT,
 		FClearValueBinding::White,
-		TexCreate_None,
+		TexCreate_None | GFastVRamConfig.DBufferMask,
 		TexCreate_UAV | TexCreate_RenderTargetable,
 		false));
 
@@ -655,13 +655,13 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(GBufferADesc.Extent,
 				PF_B8G8R8A8,
 				FClearValueBinding::None,
-				TexCreate_None,
+				TexCreate_None | GFastVRamConfig.DBufferA,
 				TexCreate_ShaderResource | TexCreate_RenderTargetable,
 				false,
 				1,
 				true,
 				true));
-
+			
 			if (!SceneContext.DBufferA)
 			{
 				Desc.ClearValue = FClearValueBinding::Black;
@@ -670,6 +670,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 
 			if (!SceneContext.DBufferB)
 			{
+				Desc.Flags = TexCreate_None | GFastVRamConfig.DBufferB;
 				Desc.ClearValue = FClearValueBinding(FLinearColor(128.0f / 255.0f, 128.0f / 255.0f, 128.0f / 255.0f, 1));
 				GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SceneContext.DBufferB, TEXT("DBufferB"));
 			}
@@ -678,6 +679,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 
 			if (!SceneContext.DBufferC)
 			{
+				Desc.Flags = TexCreate_None | GFastVRamConfig.DBufferC;
 				Desc.ClearValue = FClearValueBinding(FLinearColor(0, 1, 0, 1));
 				GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SceneContext.DBufferC, TEXT("DBufferC"));
 			}
@@ -866,8 +868,8 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 			if (CurrentStage == DRS_BeforeBasePass)
 			{
 				// combine DBuffer RTWriteMasks; will end up in one texture we can load from in the base pass PS and decide whether to do the actual work or not
-				RenderTargetManager.FlushMetaData();
-
+				RenderTargetManager.FlushMetaData(SceneContext.DBufferA->GetRenderTargetItem().TargetableTexture);
+				
 				if (GSupportsRenderTargetWriteMask && bLastView)
 				{
 					DecodeRTWriteMask(Context);
@@ -1035,7 +1037,7 @@ void FDecalRenderTargetManager::SetRenderTargetMode(FDecalRenderingCommon::ERend
 
 
 
-void FDecalRenderTargetManager::FlushMetaData()
+void FDecalRenderTargetManager::FlushMetaData(FTextureRHIParamRef Texture)
 {
-	RHICmdList.TransitionResource(EResourceTransitionAccess::EMetaData, nullptr);
+	RHICmdList.TransitionResource(EResourceTransitionAccess::EMetaData, Texture);
 }

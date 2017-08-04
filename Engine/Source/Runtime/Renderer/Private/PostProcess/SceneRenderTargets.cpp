@@ -91,27 +91,6 @@ static TAutoConsoleVariable<int32> CVarGBufferFormat(
 	TEXT(" 5: high precision"),
 	ECVF_RenderThreadSafe);
 
-// Fast VRam Settings. These should be tuned based on title requirements and resolution
-
-static TAutoConsoleVariable<int32> CVarFastVRamFillWithGBuffers(
-	TEXT("r.FastVRamStaticLayoutFillWithGBuffers"),
-	1,
-	TEXT("Whether to fill ESRAM with GBuffers, all pass temporaries will fail to allocate.  Games with mostly static lighting will benefit more from filling ESRAM with GBuffers instead of pass temporaries.\n")
-	TEXT("NOTE: Only applies if r.FastVRamDynamicAllocation is disabled."),
-	ECVF_RenderThreadSafe);
-
-static TAutoConsoleVariable<int32> CVarFastVRamSceneColor(
-	TEXT("r.FastVRamSceneColor"),
-	1,
-	TEXT("Whether to store scene color in fast VRAM"),
-	ECVF_RenderThreadSafe);
-
-static TAutoConsoleVariable<int32> CVarFastVRamSceneDepth(
-	TEXT("r.FastVRamSceneDepth"),
-	1,
-	TEXT("Whether to store scene depth in fast VRAM"),
-	ECVF_RenderThreadSafe);
-
 /** The global render targets used for scene rendering. */
 static TGlobalResource<FSceneRenderTargets> SceneRenderTargetsSingleton;
 
@@ -745,10 +724,7 @@ void FSceneRenderTargets::AllocSceneColor(FRHICommandList& RHICmdList)
 	// Create the scene color.
 	{
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, SceneColorBufferFormat, DefaultColorClear, TexCreate_None, TexCreate_RenderTargetable, false));
-		if (CVarFastVRamSceneColor.GetValueOnRenderThread() >= 1)
-		{
-			Desc.Flags |= TexCreate_FastVRAM;
-		}
+		Desc.Flags |= GFastVRamConfig.SceneColor;
 		Desc.NumSamples = GetNumSceneColorMSAASamples(CurrentFeatureLevel);
 
 		if (CurrentFeatureLevel >= ERHIFeatureLevel::SM5 && Desc.NumSamples == 1)
@@ -847,7 +823,7 @@ void FSceneRenderTargets::AllocSceneMonoRenderTargets(FRHICommandList& RHICmdLis
 
 void FSceneRenderTargets::AllocLightAttenuation(FRHICommandList& RHICmdList)
 {
-	if(LightAttenuation)
+	if(LightAttenuation && !GFastVRamConfig.bDirty )
 	{
 		// no work needed
 		return;
@@ -859,6 +835,7 @@ void FSceneRenderTargets::AllocLightAttenuation(FRHICommandList& RHICmdList)
 	{
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_B8G8R8A8, FClearValueBinding::White, TexCreate_None, TexCreate_RenderTargetable, false));
 		Desc.NumSamples = GetNumSceneColorMSAASamples(CurrentFeatureLevel);
+		Desc.Flags |= GFastVRamConfig.LightAttenuation;
 		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, LightAttenuation, TEXT("LightAttenuation"));
 	}
 
@@ -904,6 +881,7 @@ void FSceneRenderTargets::GetGBufferADesc(FPooledRenderTargetDesc& Desc) const
 		}
 
 		Desc = FPooledRenderTargetDesc::Create2DDesc(BufferSize, NormalGBufferFormat, FClearValueBinding::Transparent, TexCreate_None, TexCreate_RenderTargetable, false);
+		Desc.Flags |= GFastVRamConfig.GBufferA;
 	}
 }
 
@@ -941,7 +919,7 @@ void FSceneRenderTargets::AllocGBufferTargets(FRHICommandList& RHICmdList)
 			const EPixelFormat SpecularGBufferFormat = bHighPrecisionGBuffers ? PF_FloatRGBA : PF_B8G8R8A8;
 
 			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, SpecularGBufferFormat, FClearValueBinding::Transparent, TexCreate_None, TexCreate_RenderTargetable, false));
-				Desc.Flags |= TexCreate_FastVRAM;
+			Desc.Flags |= GFastVRamConfig.GBufferB;
 			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, GBufferB, TEXT("GBufferB"));
 		}
 
@@ -949,32 +927,28 @@ void FSceneRenderTargets::AllocGBufferTargets(FRHICommandList& RHICmdList)
 		{
 			const EPixelFormat DiffuseGBufferFormat = bHighPrecisionGBuffers ? PF_FloatRGBA : PF_B8G8R8A8;
 			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, DiffuseGBufferFormat, FClearValueBinding::Transparent, TexCreate_SRGB, TexCreate_RenderTargetable, false));
-			if (CVarFastVRamFillWithGBuffers.GetValueOnRenderThread() >= 1)
-			{
-				Desc.Flags |= GetTextureFastVRamFlag_StaticLayout();
-			}
+			Desc.Flags |= GFastVRamConfig.GBufferC;
 			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, GBufferC, TEXT("GBufferC"));
 		}
 
 		// Create the mask g-buffer (e.g. SSAO, subsurface scattering, wet surface mask, skylight mask, ...).
 		{
 			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_B8G8R8A8, FClearValueBinding::Transparent, TexCreate_None, TexCreate_RenderTargetable, false));
-			if (CVarFastVRamFillWithGBuffers.GetValueOnRenderThread() >= 1)
-			{
-				Desc.Flags |= GetTextureFastVRamFlag_StaticLayout();
-			}
+			Desc.Flags |= GFastVRamConfig.GBufferD;
 			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, GBufferD, TEXT("GBufferD"));
 		}
 
 		if (bAllowStaticLighting)
 		{
 			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_B8G8R8A8, FClearValueBinding::Transparent, TexCreate_None, TexCreate_RenderTargetable, false));
+			Desc.Flags |= GFastVRamConfig.GBufferE;
 			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, GBufferE, TEXT("GBufferE"));
 		}
 
 		if (bAllocateVelocityGBuffer)
 		{
 			FPooledRenderTargetDesc VelocityRTDesc = FVelocityRendering::GetRenderTargetDesc();
+			VelocityRTDesc.Flags |= GFastVRamConfig.GBufferVelocity; 
 			GRenderTargetPool.FindFreeElement(RHICmdList, VelocityRTDesc, GBufferVelocity, TEXT("GBufferVelocity"));
 		}
 
@@ -1327,6 +1301,7 @@ TRefCountPtr<IPooledRenderTarget>& FSceneRenderTargets::GetSeparateTranslucency(
 
 		// Create the SeparateTranslucency render target (alpha is needed to lerping)
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(Size, PF_FloatRGBA, FClearValueBinding::Black, TexCreate_None, Flags, false));
+		Desc.Flags |= GFastVRamConfig.SeparateTranslucency;
 		Desc.AutoWritable = false;
 		Desc.NumSamples = GetNumSceneColorMSAASamples(CurrentFeatureLevel);
 		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SeparateTranslucencyRT, TEXT("SeparateTranslucency"));
@@ -1705,7 +1680,7 @@ void FSceneRenderTargets::AllocateDebugViewModeTargets(FRHICommandList& RHICmdLi
 
 void FSceneRenderTargets::AllocateCommonDepthTargets(FRHICommandList& RHICmdList)
 {
-	if (SceneDepthZ && !(SceneDepthZ->GetRenderTargetItem().TargetableTexture->GetClearBinding() == DefaultDepthClear))
+	if (SceneDepthZ && !(SceneDepthZ->GetRenderTargetItem().TargetableTexture->GetClearBinding() == DefaultDepthClear) )
 	{
 		uint32 StencilCurrent, StencilNew;
 		float DepthCurrent, DepthNew;
@@ -1715,15 +1690,12 @@ void FSceneRenderTargets::AllocateCommonDepthTargets(FRHICommandList& RHICmdList
 		SceneDepthZ.SafeRelease();
 	}
 
-	if (!SceneDepthZ)
+	if (!SceneDepthZ || GFastVRamConfig.bDirty)
 	{
 		// Create a texture to store the resolved scene depth, and a render-targetable surface to hold the unresolved scene depth.
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_DepthStencil, DefaultDepthClear, TexCreate_None, TexCreate_DepthStencilTargetable, false));
 		Desc.NumSamples = GetNumSceneColorMSAASamples(CurrentFeatureLevel);
-		if (CVarFastVRamSceneDepth.GetValueOnRenderThread() >= 1)
-		{
-			Desc.Flags |= TexCreate_FastVRAM;
-		}
+		Desc.Flags |= GFastVRamConfig.SceneDepth;
 		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SceneDepthZ, TEXT("SceneDepthZ"));
 		SceneStencilSRV = RHICreateShaderResourceView((FTexture2DRHIRef&)SceneDepthZ->GetRenderTargetItem().TargetableTexture, 0, 1, PF_X24_G8);
 	}
@@ -1800,6 +1772,7 @@ void FSceneRenderTargets::AllocateDeferredShadingPathRenderTargets(FRHICommandLi
 		// Create the screen space ambient occlusion buffer
 		{
 			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_G8, FClearValueBinding::White, TexCreate_None, TexCreate_RenderTargetable, false));
+			Desc.Flags |= GFastVRamConfig.ScreenSpaceAO;
 
 			if (CurrentFeatureLevel >= ERHIFeatureLevel::SM5)
 			{
@@ -1884,6 +1857,7 @@ void FSceneRenderTargets::AllocateDeferredShadingPathRenderTargets(FRHICommandLi
 		{
 			Desc.TargetableFlags |= TexCreate_UAV;
 		}
+		Desc.Flags |= GFastVRamConfig.LightAccumulation;
 		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, LightAccumulation, TEXT("LightAccumulation"));
 	}
 
@@ -1892,6 +1866,7 @@ void FSceneRenderTargets::AllocateDeferredShadingPathRenderTargets(FRHICommandLi
 	if (bAllocateVelocityGBuffer)
 	{
 		FPooledRenderTargetDesc VelocityRTDesc = FVelocityRendering::GetRenderTargetDesc();
+		VelocityRTDesc.Flags |= GFastVRamConfig.GBufferVelocity;
 		GRenderTargetPool.FindFreeElement(RHICmdList, VelocityRTDesc, GBufferVelocity, TEXT("GBufferVelocity"));
 	}
 }

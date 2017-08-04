@@ -1403,7 +1403,7 @@ UPackage* LoadPackage(UPackage* InOuter, const TCHAR* InLongPackageName, uint32 
 
 	// since we are faking the object name, this is basically a duplicate of LLM_SCOPED_TAG_WITH_OBJECT_IN_SET
 	FString FakePackageName = FString(TEXT("Package ")) + InLongPackageName;
-	LLM_SCOPED_TAG_WITH_STAT_NAME_IN_SET(FLowLevelMemTracker::Get().IsTagSetActive(ELLMTagSet::Assets) ? FDynamicStats::CreateMemoryStatId<FStatGroup_STATGROUP_LLMAssets>(FName(*FakePackageName)).GetName() : NAME_None, ELLMTagSet::Assets);
+	LLM_SCOPED_TAG_WITH_STAT_NAME_IN_SET(FLowLevelMemTracker::Get().IsTagSetActive(ELLMTagSet::Assets) ? FDynamicStats::CreateMemoryStatId<FStatGroup_STATGROUP_LLMAssets>(FName(*FakePackageName)).GetName() : NAME_None, ELLMTagSet::Assets, ELLMTracker::Default);
 	return LoadPackageInternal(InOuter, InLongPackageName, LoadFlags, /*ImportLinker =*/ nullptr);
 }
 
@@ -2390,6 +2390,7 @@ UObject* StaticAllocateObject
 
 	if (!bSubObject)
 	{
+		LLM_SCOPED_SINGLE_STAT_TAG(UObject);
 		FMemory::Memzero((void *)Obj, TotalSize);
 		new ((void *)Obj) UObjectBase(InClass, InFlags|RF_NeedInitialization, InternalSetFlags, InOuter, InName);
 	}

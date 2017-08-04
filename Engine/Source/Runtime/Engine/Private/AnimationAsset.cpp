@@ -184,6 +184,8 @@ UAnimationAsset::UAnimationAsset(const FObjectInitializer& ObjectInitializer)
 
 void UAnimationAsset::PostLoad()
 {
+	LLM_SCOPED_SINGLE_STAT_TAG(Animation);
+
 	Super::PostLoad();
 
 	// Load skeleton, to make sure anything accessing from PostLoad
@@ -217,6 +219,8 @@ void UAnimationAsset::ResetSkeleton(USkeleton* NewSkeleton)
 
 void UAnimationAsset::Serialize(FArchive& Ar)
 {
+	LLM_SCOPED_SINGLE_STAT_TAG(Animation);
+
 	Super::Serialize(Ar);
 
 	if (Ar.UE4Ver() >= VER_UE4_SKELETON_GUID_SERIALIZATION)

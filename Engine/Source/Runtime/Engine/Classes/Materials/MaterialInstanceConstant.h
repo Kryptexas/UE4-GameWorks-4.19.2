@@ -60,5 +60,7 @@ class UMaterialInstanceConstant : public UMaterialInstance
 	 */
 	ENGINE_API void ClearParameterValuesEditorOnly();
 #endif // #if WITH_EDITOR
+
+	ENGINE_API void PostLoad();
 };
 

@@ -11,6 +11,7 @@
 #include "Async/AsyncWork.h"
 #include "Sound/SoundWave.h"
 #include "Misc/ScopeLock.h"
+#include "HAL/LowLevelMemTracker.h"
 
 // 186ms of 44.1KHz data
 // 372ms of 22KHz data
@@ -358,6 +359,8 @@ public:
 
 	void DoWork()
 	{
+		LLM_SCOPED_SINGLE_STAT_TAG(Audio);
+
 		switch(TaskType)
 		{
 		case ERealtimeAudioTaskType::CompressedInfo:

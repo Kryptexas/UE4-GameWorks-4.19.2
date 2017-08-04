@@ -507,6 +507,7 @@ void GetShaderIncludes(const TCHAR* EntryPointVirtualFilePath, const TCHAR* Virt
 					const bool bIsOptionalInclude = (ExtractedIncludeFilename == TEXT("/Engine/Public/PS4/PS4Common.ush") 
 						|| ExtractedIncludeFilename == TEXT("/Engine/Private/PS4/PostProcessHMDMorpheus.usf")
 						|| ExtractedIncludeFilename == TEXT("/Engine/Private/PS4/RTWriteMaskProcessing.usf")
+						|| ExtractedIncludeFilename == TEXT("/Engine/Private/XboxOne/RTWriteMaskProcessing.usf")
 						|| ExtractedIncludeFilename == TEXT("/Engine/Private/PS4/RGBAToYUV420.ush")
 						|| ExtractedIncludeFilename == TEXT("/Engine/Public/XboxOne/XboxOneCommon.ush")
 						);
@@ -514,7 +515,8 @@ void GetShaderIncludes(const TCHAR* EntryPointVirtualFilePath, const TCHAR* Virt
 					if (bIsOptionalInclude)
 					{
 						// Search in the default engine shader folder and in the same folder as the shader (in case its a project or plugin shader)
-						FString EngineShaderFilename = FPaths::Combine(FPlatformProcess::BaseDir(), FPlatformProcess::ShaderDir(), *ExtractedIncludeFilename);
+						FString StrippedString = ExtractedIncludeFilename.Replace(TEXT("/Engine"), TEXT(""), ESearchCase::CaseSensitive);
+						FString EngineShaderFilename = FPaths::Combine(FPlatformProcess::BaseDir(), FPlatformProcess::ShaderDir(), *StrippedString);
 						FString LocalShaderFilename = FPaths::Combine(FPaths::GetPath(ExtractedIncludeFilename), *ExtractedIncludeFilename);
 						if (!FPaths::FileExists(EngineShaderFilename) && !FPaths::FileExists(LocalShaderFilename))
 						{
@@ -816,6 +818,6 @@ FString FShaderCompilerError::GetShaderSourceFilePath() const
 	}
 	else
 	{
-		return ::GetShaderSourceFilePath(ErrorVirtualFilePath);
+	return ::GetShaderSourceFilePath(ErrorVirtualFilePath);
 	}
 }

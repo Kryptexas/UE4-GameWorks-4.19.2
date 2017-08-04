@@ -15,6 +15,7 @@
 #include "GenericPlatform/GenericPlatformMemoryPoolStats.h"
 #include "HAL/MemoryMisc.h"
 #include "Misc/CoreDelegates.h"
+#include "HAL/LowLevelMemTracker.h"
 
 #if PLATFORM_LINUX || PLATFORM_MAC
 	#include <sys/mman.h>
@@ -32,6 +33,7 @@
 #define UE4_PLATFORM_SANITY_CHECK_OS_ALLOCATIONS			(UE_BUILD_DEBUG || (UE_BUILD_DEVELOPMENT && (UE_GAME || UE_SERVER)))
 
 DEFINE_STAT(MCR_Physical);
+DEFINE_STAT(MCR_PhysicalLLM);
 DEFINE_STAT(MCR_GPU);
 DEFINE_STAT(MCR_TexturePool);
 DEFINE_STAT(MCR_StreamingPool);
@@ -103,7 +105,8 @@ void* FGenericPlatformMemory::BackupOOMMemoryPool = nullptr;
 
 void FGenericPlatformMemory::SetupMemoryPools()
 {
-	SET_MEMORY_STAT(MCR_Physical, 0); // "unlimited" physical memory, we still need to make this call to set the short name, etc
+	SET_MEMORY_STAT(MCR_Physical, 0); // "unlimited" physical memory for the CPU, we still need to make this call to set the short name, etc
+	SET_MEMORY_STAT(MCR_PhysicalLLM, 0); // total "unlimited" physical memory, we still need to make this call to set the short name, etc
 	SET_MEMORY_STAT(MCR_GPU, 0); // "unlimited" GPU memory, we still need to make this call to set the short name, etc
 	SET_MEMORY_STAT(MCR_TexturePool, 0); // "unlimited" Texture memory, we still need to make this call to set the short name, etc
 	SET_MEMORY_STAT(MCR_StreamingPool, 0);
@@ -112,6 +115,8 @@ void FGenericPlatformMemory::SetupMemoryPools()
 	// if the platform chooses to have a BackupOOM pool, create it now
 	if (FPlatformMemory::GetBackMemoryPoolSize() > 0)
 	{
+		LLM_SCOPED_TAG_WITH_ENUM(ELLMScopeTag::BackupOOMMemoryPoolPlatform, ELLMTracker::Platform);
+		LLM_SCOPED_TAG_WITH_ENUM(ELLMScopeTag::BackupOOMMemoryPoolDefault, ELLMTracker::Platform);
 		BackupOOMMemoryPool = FPlatformMemory::BinnedAllocFromOS(FPlatformMemory::GetBackMemoryPoolSize());
 	}
 }
@@ -545,3 +550,14 @@ void FGenericPlatformMemory::InternalUpdateStats( const FPlatformMemoryStats& Me
 {
 	// Generic method is empty. Implement at platform level.
 }
+
+bool FGenericPlatformMemory::IsDebugMemoryEnabled()
+{
+	return false;
+}
+
+bool FGenericPlatformMemory::GetLLMAllocFunctions(void*(*&AllocFunction)(size_t), void(*&FreeFunction)(void*, size_t))
+{
+	return false;
+}
+

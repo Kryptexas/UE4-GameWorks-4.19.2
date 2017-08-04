@@ -580,7 +580,7 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 				if ((bDrawShadows || bDrawLightFunction || bDrawPreviewIndicator) && !ScreenShadowMaskTexture.IsValid())
 				{
 					FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(SceneContext.GetBufferSizeXY(), PF_B8G8R8A8, FClearValueBinding::White, TexCreate_None, TexCreate_RenderTargetable, false));
-					Desc.Flags |= GetTextureFastVRamFlag_DynamicLayout();
+					Desc.Flags |= GFastVRamConfig.ScreenSpaceShadowMask;
 					Desc.NumSamples = SceneContext.GetNumSceneColorMSAASamples(SceneContext.GetCurrentFeatureLevel());
 					GRenderTargetPool.FindFreeElement(RHICmdList, Desc, ScreenShadowMaskTexture, TEXT("ScreenShadowMaskTexture"));
 				}

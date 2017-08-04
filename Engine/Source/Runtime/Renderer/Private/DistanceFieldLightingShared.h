@@ -292,7 +292,7 @@ public:
 	{
 		if (MaxObjects > 0)
 		{
-			const uint32 FastVRamFlag = IsTransientResourceBufferAliasingEnabled() ? ( BUF_FastVRAM | BUF_Transient ) : BUF_None;
+			const uint32 FastVRamFlag = GFastVRamConfig.DistanceFieldCulledObjectBuffers | ( IsTransientResourceBufferAliasingEnabled() ? BUF_Transient : BUF_None );
 
 			ObjectIndirectArguments.Initialize(sizeof(uint32), 5, PF_R32_UINT, BUF_Static | BUF_DrawIndirect);
 			ObjectIndirectDispatch.Initialize(sizeof(uint32), 3, PF_R32_UINT, BUF_Static | BUF_DrawIndirect);

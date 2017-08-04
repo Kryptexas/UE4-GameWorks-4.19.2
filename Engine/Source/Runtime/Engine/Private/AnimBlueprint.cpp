@@ -135,6 +135,8 @@ bool UAnimBlueprint::GetAssetOverrides(TArray<FAnimParentNodeAssetOverride*>& Ou
 
 void UAnimBlueprint::PostLoad()
 {
+	LLM_SCOPED_SINGLE_STAT_TAG(Animation);
+
 	Super::PostLoad();
 #if WITH_EDITOR
 	// Validate animation overrides
@@ -165,6 +167,8 @@ void UAnimBlueprint::PostLoad()
 
 void UAnimBlueprint::Serialize(FArchive& Ar)
 {
+	LLM_SCOPED_SINGLE_STAT_TAG(Animation);
+
 	Super::Serialize(Ar);
 	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
 }

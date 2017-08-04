@@ -23,6 +23,7 @@
 #include "Stats/StatsData.h"
 #include "HAL/IConsoleManager.h"
 #include "Async/TaskGraphInterfaces.h"
+#include "HAL/LowLevelMemTracker.h"
 
 /*-----------------------------------------------------------------------------
 	Global
@@ -869,6 +870,8 @@ public:
 	/** Tick function. */
 	virtual void Tick() override
 	{
+		LLM_SCOPED_SINGLE_STAT_TAG(Stats);
+
 		static double LastTime = -1.0;
 		bool bShouldProcess = false;
 
@@ -950,6 +953,8 @@ public:
 	/** Received a stat packet from other thread and add to the processing queue. */
 	void StatMessage(FStatPacket* Packet)
 	{
+		LLM_SCOPED_SINGLE_STAT_TAG(Stats);
+
 		if (CVarDumpStatPackets.GetValueOnAnyThread())
 		{
 			UE_LOG(LogStats, Log, TEXT("Packet from %x with %d messages"), Packet->ThreadId, Packet->StatMessages.Num());
@@ -1107,6 +1112,8 @@ void FThreadStats::Flush( bool bHasBrokenCallstacks /*= false*/, bool bForceFlus
 
 void FThreadStats::FlushRegularStats( bool bHasBrokenCallstacks, bool bForceFlush )
 {
+	LLM_SCOPED_SINGLE_STAT_TAG(Stats);
+
 	if (bReentranceGuard)
 	{
 		return;
