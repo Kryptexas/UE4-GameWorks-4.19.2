@@ -17,6 +17,7 @@
 
 FWidgetRenderer::FWidgetRenderer(bool bUseGammaCorrection, bool bInClearTarget)
 	: bPrepassNeeded(true)
+	, bClearHitTestGrid(true)
 	, bUseGammaSpace(bUseGammaCorrection)
 	, bClearTarget(bInClearTarget)
 	, ViewOffset(0.0f, 0.0f)
