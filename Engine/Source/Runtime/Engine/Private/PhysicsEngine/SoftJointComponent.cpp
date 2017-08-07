@@ -7,9 +7,7 @@
 #include "Engine/World.h"
 #include "Components/BillboardComponent.h"
 #include "Engine/Texture2D.h"
-#include "GameFramework/MovementComponent.h"
 #include "PhysicsEngine/SoftJointActor.h"
-#include "Components/DestructibleComponent.h"
 
 #include "PhysicsPublic.h"
 
@@ -27,7 +25,7 @@ USoftJointComponent::USoftJointComponent(const FObjectInitializer& ObjectInitial
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.TickGroup = TG_PostPhysics; //  TG_PostUpdateWork
 	Radius = 200.0f;
-	Stiffness = 0.0002f;
+	Stiffness = 0.1f;
 	ContainerTemplate = nullptr;
 	ContainerInstance = nullptr;
 	bAutoActivate = true;
@@ -50,6 +48,9 @@ void USoftJointComponent::OnUnregister()
 	{
 		ContainerInstance->DestroyJointInstance(Joint);
 		Joint = nullptr;
+
+		ParticleIndices.Empty();
+		ParticleLocalPositions.Empty();
 	}
 
 	if (ContainerInstance)
@@ -97,13 +98,30 @@ void USoftJointComponent::TickComponent(float DeltaTime, enum ELevelTick TickTyp
 						{
 							int ParticleIndex = FlexComponent->AssetInstance->particleIndices[i];
 							ParticleIndices.Add(ParticleIndex);
-							ParticleLocalPositions.Add(LocalPosition);
+
+							// Currently it still stores the global particle position, we will subtract the center of mass of the joint from it later
+							ParticleLocalPositions.Add(ParticlePos);	
 
 							++NumParticles;
 						}
 					}
 				}
 			}
+		}
+
+		// Compute center of mass of the joint
+		FVector JointCom(0.0f, 0.0f, 0.0f);
+		for (const FVector& ParticlePosition : ParticleLocalPositions)
+		{
+			JointCom += ParticlePosition;
+		}
+		JointCom /= float(NumParticles);
+
+		// Compute local positions relative to the joint com
+		for (FVector& ParticleLocalPosition : ParticleLocalPositions)
+		{
+			// Now it stores the relative particle position
+			ParticleLocalPosition -= JointCom;
 		}
 
 		// Create shape-matching constraint between joint particles

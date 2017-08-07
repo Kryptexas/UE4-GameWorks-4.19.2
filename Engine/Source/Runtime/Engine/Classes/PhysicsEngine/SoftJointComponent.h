@@ -24,7 +24,7 @@ class ENGINE_API USoftJointComponent : public USceneComponent, public IFlexConta
 	float Radius;
 
 	/** Stiffness parameter allows small scale elastic deformation  */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SoftJointComponent)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SoftJointComponent, meta = (ClampMin = 0.0, ClampMax = 1.0, UIMin = 0.0, UIMax = 1.0))
 	float Stiffness;
 
 	/** The simulation container the joint belongs to */
@@ -37,7 +37,7 @@ class ENGINE_API USoftJointComponent : public USceneComponent, public IFlexConta
 	/** The global particle indice*/
 	TArray<int32> ParticleIndices;
 
-	/** The relative offsets from the particles of the joint to the center */
+	/** The relative offsets from the particles to the center of mass of the joint */
 	TArray<FVector> ParticleLocalPositions;
 
 	/** How many particles affected by this soft joint */
