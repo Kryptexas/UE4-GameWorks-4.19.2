@@ -19,6 +19,15 @@ static FAutoConsoleVariableRef CVarAdjustTexturePoolSizeBasedOnBudget(
 	TEXT("Indicates if the RHI should lower the texture pool size when the application is over the memory budget provided by the OS. This can result in lower quality textures (but hopefully improve performance).")
 	);
 
+
+static TAutoConsoleVariable<int32> CVarUseUpdateTexture3DComputeShader(
+	TEXT("D3D12.UseUpdateTexture3DComputeShader"),
+	PLATFORM_XBOXONE,
+	TEXT("If enabled, use a compute shader for UpdateTexture3D. Avoids alignment restrictions")
+	TEXT(" 0: off (default)\n")
+	TEXT(" 1: on"),
+	ECVF_RenderThreadSafe );
+
 // Forward Decls for template types
 template TD3D12Texture2D<FD3D12BaseTexture2D>::TD3D12Texture2D(class FD3D12Device* InParent, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, uint32 InNumMips, uint32 InNumSamples,
 	EPixelFormat InFormat, bool bInCubemap, uint32 InFlags, const FClearValueBinding& InClearValue, const FD3D12TextureLayout* InTextureLayout
@@ -240,9 +249,10 @@ void FD3D12TextureStats::D3D12TextureDeleted(FD3D12Texture3D& Texture)
 	{
 		const D3D12_RESOURCE_DESC& Desc = D3D12Texture3D->GetDesc();
 		const int64 TextureSize = Texture.GetMemorySize();
-		check(TextureSize > 0);
-
-		UpdateD3D12TextureStats(Desc, -TextureSize, true, false);
+		if (TextureSize > 0)
+		{
+			UpdateD3D12TextureStats(Desc, -TextureSize, true, false);
+		}
 	}
 }
 
@@ -1860,78 +1870,94 @@ void FD3D12DynamicRHI::RHIUpdateTexture3D(FTexture3DRHIParamRef TextureRHI, uint
 {
 	FD3D12Texture3D*  Texture = FD3D12DynamicRHI::ResourceCast(TextureRHI);
 
-	D3D12_BOX DestBox =
+	FD3D12Device* Device = Texture->GetParentDevice();
+	FD3D12CommandListHandle& hCommandList = Device->GetDefaultCommandContext().CommandListHandle;
+#if USE_PIX
+	PIXBeginEvent(hCommandList.GraphicsCommandList(), PIX_COLOR(255, 255, 255), TEXT("RHIUpdateTexture3D"));
+#endif
+
+	bool bDidComputeShaderUpdate = false;
+	if (CVarUseUpdateTexture3DComputeShader.GetValueOnRenderThread() != 0 && Texture->GetResource()->GetHeap() )
 	{
-		UpdateRegion.DestX, UpdateRegion.DestY, UpdateRegion.DestZ,
-		UpdateRegion.DestX + UpdateRegion.Width, UpdateRegion.DestY + UpdateRegion.Height, UpdateRegion.DestZ + UpdateRegion.Depth
-	};
+		// Try a compute shader update
+		bDidComputeShaderUpdate = UpdateTexture3D_ComputeShader(Texture, MipIndex, UpdateRegion, SourceRowPitch, SourceDepthPitch, SourceData);
+	}
 
-	check(GPixelFormats[Texture->GetFormat()].BlockSizeX == 1);
-	check(GPixelFormats[Texture->GetFormat()].BlockSizeY == 1);
-
-	const uint32 AlignedSourcePitch = Align(SourceRowPitch, FD3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
-	const uint32 bufferSize = Align(UpdateRegion.Height*UpdateRegion.Depth*AlignedSourcePitch, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
-
-	FD3D12ResourceLocation UploadHeapResourceLocation(GetRHIDevice());
-	void* pData = GetRHIDevice()->GetDefaultFastAllocator().Allocate<FD3D12ScopeLock>(bufferSize, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT, &UploadHeapResourceLocation);
-	check(nullptr != pData);
-
-	byte* pRowData = (byte*)pData;
-	byte* pSourceRowData = (byte*)SourceData;
-	byte* pSourceDepthSlice = (byte*)SourceData;
-
-	uint32 CopyPitch = UpdateRegion.Width * GPixelFormats[Texture->GetFormat()].BlockBytes;
-	check(CopyPitch <= SourceRowPitch);
-	for (uint32 i = 0; i < UpdateRegion.Depth; i++)
+	if (!bDidComputeShaderUpdate)
 	{
-		for (uint32 j = 0; j < UpdateRegion.Height; j++)
+		D3D12_BOX DestBox =
 		{
-			FMemory::Memcpy(pRowData, pSourceRowData, CopyPitch);
-			pSourceRowData += SourceRowPitch;
-			pRowData += AlignedSourcePitch;
-		}
-		pSourceDepthSlice += SourceDepthPitch;
-		pSourceRowData = pSourceDepthSlice;
-	}
-	D3D12_SUBRESOURCE_FOOTPRINT sourceSubresource;
-	sourceSubresource.Depth = UpdateRegion.Depth;
-	sourceSubresource.Height = UpdateRegion.Height;
-	sourceSubresource.Width = UpdateRegion.Width;
-	sourceSubresource.Format = (DXGI_FORMAT)GPixelFormats[Texture->GetFormat()].PlatformFormat;
-	sourceSubresource.RowPitch = AlignedSourcePitch;
-	check(sourceSubresource.RowPitch % FD3D12_TEXTURE_DATA_PITCH_ALIGNMENT == 0);
-
-	D3D12_PLACED_SUBRESOURCE_FOOTPRINT placedTexture3D = { 0 };
-	placedTexture3D.Offset = UploadHeapResourceLocation.GetOffsetFromBaseOfResource();
-	placedTexture3D.Footprint = sourceSubresource;
-
-	FD3D12Resource* UploadBuffer = UploadHeapResourceLocation.GetResource();
-
-	while(Texture)
-	{
-		CD3DX12_TEXTURE_COPY_LOCATION DestCopyLocation(Texture->GetResource()->GetResource(), MipIndex);
-		CD3DX12_TEXTURE_COPY_LOCATION SourceCopyLocation(UploadBuffer->GetResource(), placedTexture3D);
-
-		check(Texture);
-		FD3D12Device* Device = Texture->GetParentDevice();
-
-		FD3D12CommandListHandle& hCommandList = Device->GetDefaultCommandContext().CommandListHandle;
-		FScopeResourceBarrier ScopeResourceBarrierDest(hCommandList, Texture->GetResource(), Texture->GetResource()->GetDefaultResourceState(), D3D12_RESOURCE_STATE_COPY_DEST, DestCopyLocation.SubresourceIndex);
-
-		Device->GetDefaultCommandContext().numCopies++;
-		hCommandList.FlushResourceBarriers();
-		hCommandList->CopyTextureRegion(
-			&DestCopyLocation,
 			UpdateRegion.DestX, UpdateRegion.DestY, UpdateRegion.DestZ,
-			&SourceCopyLocation,
-			nullptr);
+			UpdateRegion.DestX + UpdateRegion.Width, UpdateRegion.DestY + UpdateRegion.Height, UpdateRegion.DestZ + UpdateRegion.Depth
+		};
 
-		hCommandList.UpdateResidency(Texture->GetResource());
+		check(GPixelFormats[Texture->GetFormat()].BlockSizeX == 1);
+		check(GPixelFormats[Texture->GetFormat()].BlockSizeY == 1);
 
-		DEBUG_RHI_EXECUTE_COMMAND_LIST(this);
+		const uint32 AlignedSourcePitch = Align(SourceRowPitch, FD3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+		const uint32 bufferSize = Align(UpdateRegion.Height*UpdateRegion.Depth*AlignedSourcePitch, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
 
-		Texture = (FD3D12Texture3D*)Texture->GetNextObject();
+		FD3D12ResourceLocation UploadHeapResourceLocation(GetRHIDevice());
+		void* pData = GetRHIDevice()->GetDefaultFastAllocator().Allocate<FD3D12ScopeLock>(bufferSize, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT, &UploadHeapResourceLocation);
+		check(nullptr != pData);
+
+		byte* pRowData = (byte*)pData;
+		byte* pSourceRowData = (byte*)SourceData;
+		byte* pSourceDepthSlice = (byte*)SourceData;
+
+		uint32 CopyPitch = UpdateRegion.Width * GPixelFormats[Texture->GetFormat()].BlockBytes;
+		check(CopyPitch <= SourceRowPitch);
+		for (uint32 i = 0; i < UpdateRegion.Depth; i++)
+		{
+			for (uint32 j = 0; j < UpdateRegion.Height; j++)
+			{
+				FMemory::Memcpy(pRowData, pSourceRowData, CopyPitch);
+				pSourceRowData += SourceRowPitch;
+				pRowData += AlignedSourcePitch;
+			}
+			pSourceDepthSlice += SourceDepthPitch;
+			pSourceRowData = pSourceDepthSlice;
+		}
+		D3D12_SUBRESOURCE_FOOTPRINT sourceSubresource;
+		sourceSubresource.Depth = UpdateRegion.Depth;
+		sourceSubresource.Height = UpdateRegion.Height;
+		sourceSubresource.Width = UpdateRegion.Width;
+		sourceSubresource.Format = (DXGI_FORMAT)GPixelFormats[Texture->GetFormat()].PlatformFormat;
+		sourceSubresource.RowPitch = AlignedSourcePitch;
+		check(sourceSubresource.RowPitch % FD3D12_TEXTURE_DATA_PITCH_ALIGNMENT == 0);
+
+		D3D12_PLACED_SUBRESOURCE_FOOTPRINT placedTexture3D = { 0 };
+		placedTexture3D.Offset = UploadHeapResourceLocation.GetOffsetFromBaseOfResource();
+		placedTexture3D.Footprint = sourceSubresource;
+
+		FD3D12Resource* UploadBuffer = UploadHeapResourceLocation.GetResource();
+
+		while (Texture)
+		{
+			CD3DX12_TEXTURE_COPY_LOCATION DestCopyLocation(Texture->GetResource()->GetResource(), MipIndex);
+			CD3DX12_TEXTURE_COPY_LOCATION SourceCopyLocation(UploadBuffer->GetResource(), placedTexture3D);
+
+			FScopeResourceBarrier ScopeResourceBarrierDest(hCommandList, Texture->GetResource(), Texture->GetResource()->GetDefaultResourceState(), D3D12_RESOURCE_STATE_COPY_DEST, DestCopyLocation.SubresourceIndex);
+
+			Device->GetDefaultCommandContext().numCopies++;
+			hCommandList.FlushResourceBarriers();
+			hCommandList->CopyTextureRegion(
+				&DestCopyLocation,
+				UpdateRegion.DestX, UpdateRegion.DestY, UpdateRegion.DestZ,
+				&SourceCopyLocation,
+				nullptr);
+
+			hCommandList.UpdateResidency(Texture->GetResource());
+
+			DEBUG_RHI_EXECUTE_COMMAND_LIST(this);
+
+			Texture = (FD3D12Texture3D*)Texture->GetNextObject();
+		}
 	}
+#if USE_PIX
+	PIXEndEvent(hCommandList.GraphicsCommandList());
+#endif
+
 }
 
 /*-----------------------------------------------------------------------------

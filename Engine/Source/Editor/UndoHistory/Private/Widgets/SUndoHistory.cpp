@@ -88,7 +88,7 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SUndoHistory::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
 	// reload the transaction list if necessary
-	if ((GEditor == nullptr) || (GEditor->Trans == nullptr) || (LastQueueLength != GEditor->Trans->GetQueueLength()))
+	if ((GEditor == nullptr) || (GEditor->Trans == nullptr) || (LastQueueLength != GEditor->Trans->GetQueueLength()) || (GEditor->Trans->GetUndoCount() != LastUndoCount))
 	{
 		ReloadUndoList();
 	}
@@ -120,6 +120,7 @@ void SUndoHistory::ReloadUndoList( )
 	}
 
 	LastQueueLength = GEditor->Trans->GetQueueLength();
+	LastUndoCount = GEditor->Trans->GetUndoCount();
 
 	for (int32 QueueIndex = 0; QueueIndex < LastQueueLength; ++QueueIndex)
 	{

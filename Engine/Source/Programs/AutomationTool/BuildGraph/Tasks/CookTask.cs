@@ -115,8 +115,14 @@ namespace BuildGraph.Tasks
 					throw new AutomationException("Cooking did not produce any files in {0}", PlatformCookedDirectory.FullName);
 				}
 				CookedFiles.AddRange(PlatformCookedFiles);
-			}
 
+				DirectoryReference PackagingFilesDirectory = DirectoryReference.Combine(ProjectFile.Directory, "Saved", "TmpPackaging", Platform);
+				if (DirectoryReference.Exists(PackagingFilesDirectory))
+				{
+					List<FileReference> PackagingFiles = DirectoryReference.EnumerateFiles(PackagingFilesDirectory, "*", System.IO.SearchOption.AllDirectories).ToList();
+					CookedFiles.AddRange(PackagingFiles);
+				}
+			}
 			// Apply the optional tag to the build products
 			foreach(string TagName in FindTagNamesFromList(Parameters.Tag))
 			{

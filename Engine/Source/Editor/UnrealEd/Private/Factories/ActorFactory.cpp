@@ -24,7 +24,6 @@ ActorFactory.cpp:
 #include "ActorFactories/ActorFactoryClass.h"
 #include "ActorFactories/ActorFactoryCylinderVolume.h"
 #include "ActorFactories/ActorFactoryDeferredDecal.h"
-#include "ActorFactories/ActorFactoryDestructible.h"
 #include "ActorFactories/ActorFactoryDirectionalLight.h"
 #include "ActorFactories/ActorFactoryEmitter.h"
 #include "ActorFactories/ActorFactoryEmptyActor.h"
@@ -112,13 +111,10 @@ ActorFactory.cpp:
 #include "Engine/TriggerCapsule.h"
 #include "Engine/TextRenderActor.h"
 
-#include "Engine/DestructibleMesh.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "PhysicsEngine/PhysicsAsset.h"
 #include "Components/AudioComponent.h"
-#include "PhysicsEngine/DestructibleActor.h"
-#include "Components/DestructibleComponent.h"
 #include "Components/BrushComponent.h"
 #include "Components/VectorFieldComponent.h"
 #include "ActorFactories/ActorFactoryPlanarReflection.h"
@@ -846,21 +842,6 @@ bool UActorFactoryAnimationAsset::CanCreateActorFrom( const FAssetData& AssetDat
 		}
 	}
 
-	FAssetData SkeletalMeshData;
-
-	if ( !SkeletalMeshData.IsValid() )
-	{
-		OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoSkeletalMeshAss", "No valid skeletal mesh was found associated with the animation sequence.");
-		return false;
-	}
-
-	// Check to see if it's actually a DestructibleMesh, in which case we won't use this factory
-	if ( SkeletalMeshData.GetClass()->IsChildOf( UDestructibleMesh::StaticClass() ) )
-	{
-		OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoDestructibleMesh", "The animation sequence must not have a DestructibleMesh associated with it.");
-		return false;
-	}
-
 	return true;
 }
 
@@ -878,8 +859,8 @@ USkeletalMesh* UActorFactoryAnimationAsset::GetSkeletalMeshFromAsset( UObject* A
 		SkeletalMesh = AnimBlueprint->TargetSkeleton ? AnimBlueprint->TargetSkeleton->GetAssetPreviewMesh(AnimBlueprint) : nullptr;
 	}
 
-	// Check to see if it's actually a DestructibleMesh, in which case we won't use this factory
-	if( SkeletalMesh != NULL && SkeletalMesh->IsA(UDestructibleMesh::StaticClass()) )
+	// Check to see if we are using a custom factory in which case this should probably be ignored. This seems kind of wrong...
+	if( SkeletalMesh && SkeletalMesh->HasCustomActorFactory())
 	{
 		SkeletalMesh = NULL;
 	}
@@ -1037,11 +1018,12 @@ bool UActorFactorySkeletalMesh::CanCreateActorFrom( const FAssetData& AssetData,
 		return false;
 	}
 
-	// Check to see if it's actually a DestructibleMesh, in which case we won't use this factory
-	if ( SkeletalMeshData.GetClass()->IsChildOf( UDestructibleMesh::StaticClass() ) )
+	if(USkeletalMesh* SkeletalMeshCDO = Cast<USkeletalMesh>(AssetData.GetClass()->GetDefaultObject()))
 	{
-		OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoDestructibleMesh", "The animation sequence must not have a DestructibleMesh associated with it.");
-		return false;
+		if(SkeletalMeshCDO->HasCustomActorFactory())
+		{
+			return false;
+		}
 	}
 
 	return true;
@@ -1646,71 +1628,6 @@ UActorFactoryTriggerSphere::UActorFactoryTriggerSphere(const FObjectInitializer&
 {
 	DisplayName = LOCTEXT("TriggerSphereDisplayName", "Sphere Trigger");
 	NewActorClass = ATriggerSphere::StaticClass();
-}
-
-/*-----------------------------------------------------------------------------
-UActorFactoryDestructible
------------------------------------------------------------------------------*/
-UActorFactoryDestructible::UActorFactoryDestructible(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
-{
-	DisplayName = LOCTEXT("DestructibleDisplayName", "Destructible");
-	NewActorClass = ADestructibleActor::StaticClass();
-	bUseSurfaceOrientation = true;
-}
-
-bool UActorFactoryDestructible::CanCreateActorFrom( const FAssetData& AssetData, FText& OutErrorMsg )
-{
-	if ( !AssetData.IsValid() || !AssetData.GetClass()->IsChildOf( UDestructibleMesh::StaticClass() ) )
-	{
-		OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoDestructibleMeshSpecified", "No destructible mesh was specified.");
-		return false;
-	}
-
-	return true;
-}
-
-void UActorFactoryDestructible::PostSpawnActor( UObject* Asset, AActor* NewActor )
-{
-	Super::PostSpawnActor(Asset, NewActor);
-
-	UDestructibleMesh* DestructibleMesh = CastChecked<UDestructibleMesh>( Asset );
-	ADestructibleActor* NewDestructibleActor = CastChecked<ADestructibleActor>(NewActor);
-
-	// Term Component
-	NewDestructibleActor->GetDestructibleComponent()->UnregisterComponent();
-
-	// Change properties
-	NewDestructibleActor->GetDestructibleComponent()->SetSkeletalMesh( DestructibleMesh );
-
-	// Init Component
-	NewDestructibleActor->GetDestructibleComponent()->RegisterComponent();
-}
-
-UObject* UActorFactoryDestructible::GetAssetFromActorInstance(AActor* Instance)
-{
-	check(Instance->IsA(NewActorClass));
-	ADestructibleActor* DA = CastChecked<ADestructibleActor>(Instance);
-
-	check(DA->GetDestructibleComponent());
-	return DA->GetDestructibleComponent()->SkeletalMesh;
-}
-
-void UActorFactoryDestructible::PostCreateBlueprint( UObject* Asset, AActor* CDO )
-{
-	if (Asset != NULL && CDO != NULL)
-	{
-		UDestructibleMesh* DestructibleMesh = CastChecked<UDestructibleMesh>(Asset);
-		ADestructibleActor* DestructibleActor = CastChecked<ADestructibleActor>(CDO);
-
-		DestructibleActor->GetDestructibleComponent()->SetSkeletalMesh(DestructibleMesh);
-	}
-}
-
-FQuat UActorFactoryDestructible::AlignObjectToSurfaceNormal(const FVector& InSurfaceNormal, const FQuat& ActorRotation) const
-{
-	// Meshes align the Z (up) axis with the surface normal
-	return FindActorAlignmentRotation(ActorRotation, FVector(0.f, 0.f, 1.f), InSurfaceNormal);
 }
 
 

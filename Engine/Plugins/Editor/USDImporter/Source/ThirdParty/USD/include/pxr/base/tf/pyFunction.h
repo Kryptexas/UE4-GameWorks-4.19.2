@@ -24,6 +24,8 @@
 #ifndef TF_PYFUNCTION_H
 #define TF_PYFUNCTION_H
 
+#include "pxr/pxr.h"
+
 #include "pxr/base/tf/pyCall.h"
 #include "pxr/base/tf/pyLock.h"
 #include "pxr/base/tf/pyObjWrapper.h"
@@ -39,6 +41,8 @@
 #include <boost/function.hpp>
 
 #include <functional>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 template <typename T>
 struct TfPyFunctionFromPython;
@@ -156,7 +160,7 @@ struct TfPyFunctionFromPython<Ret (Args...)>
                     TfPyObjWrapper(weakSelf),
                     TfPyObjWrapper(cls)});
 
-        } else if (PyObject_HasAttrString(pyCallable, "__name__") and
+        } else if (PyObject_HasAttrString(pyCallable, "__name__") &&
                    extract<string>(callable.attr("__name__"))() == "<lambda>") {
             // Explicitly hold on to strong references to lambdas.
             new (storage) FuncType(Call{TfPyObjWrapper(callable)});
@@ -177,5 +181,7 @@ struct TfPyFunctionFromPython<Ret (Args...)>
         data->convertible = storage;
     }
 };
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // TF_PYFUNCTION_H

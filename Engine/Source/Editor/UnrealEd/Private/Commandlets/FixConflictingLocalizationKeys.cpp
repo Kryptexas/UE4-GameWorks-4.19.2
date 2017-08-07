@@ -172,9 +172,27 @@ bool ReKeyTextProperty(UStruct* InOuterType, void* InAddrToUpdate, const TArray<
 						AddrToUpdate = MangledPropToUpdate->ContainerPtrToValuePtr<void>(AddrToUpdate);
 
 						FScriptMapHelper ScriptMapHelper(MapProp, AddrToUpdate);
-						if (ScriptMapHelper.IsValidIndex(ContainerIndex))
+
+						// ContainerIndex is the element index, but we need the sparse index
+						int32 SparseIndex = 0;
 						{
-							AddrToUpdate = ScriptMapHelper.GetPairPtr(ContainerIndex) + MapProp->MapLayout.ValueOffset;
+							const int32 ElementCount = ScriptMapHelper.Num();
+							for (int32 ElementIndex = 0; ElementIndex < ElementCount; ++SparseIndex)
+							{
+								if (ScriptMapHelper.IsValidIndex(SparseIndex))
+								{
+									if (ElementIndex == ContainerIndex)
+									{
+										break;
+									}
+									++ElementIndex;
+								}
+							}
+						}
+
+						if (ScriptMapHelper.IsValidIndex(SparseIndex))
+						{
+							AddrToUpdate = ScriptMapHelper.GetPairPtr(SparseIndex) + MapProp->MapLayout.ValueOffset;
 
 							// Is this a complex property? If so, we need to recurse into it
 							if (UStructProperty* StructProp = Cast<UStructProperty>(MapProp->ValueProp))
@@ -190,10 +208,28 @@ bool ReKeyTextProperty(UStruct* InOuterType, void* InAddrToUpdate, const TArray<
 					{
 						AddrToUpdate = MangledPropToUpdate->ContainerPtrToValuePtr<void>(AddrToUpdate);
 
-						FScriptSetHelper ScriptMapHelper(SetProp, AddrToUpdate);
-						if (ScriptMapHelper.IsValidIndex(ContainerIndex))
+						FScriptSetHelper ScriptSetHelper(SetProp, AddrToUpdate);
+
+						// ContainerIndex is the element index, but we need the sparse index
+						int32 SparseIndex = 0;
 						{
-							AddrToUpdate = ScriptMapHelper.GetElementPtr(ContainerIndex) + SetProp->SetLayout.ElementOffset;
+							const int32 ElementCount = ScriptSetHelper.Num();
+							for (int32 ElementIndex = 0; ElementIndex < ElementCount; ++SparseIndex)
+							{
+								if (ScriptSetHelper.IsValidIndex(SparseIndex))
+								{
+									if (ElementIndex == ContainerIndex)
+									{
+										break;
+									}
+									++ElementIndex;
+								}
+							}
+						}
+
+						if (ScriptSetHelper.IsValidIndex(SparseIndex))
+						{
+							AddrToUpdate = ScriptSetHelper.GetElementPtr(SparseIndex) + SetProp->SetLayout.ElementOffset;
 
 							// Is this a complex property? If so, we need to recurse into it
 							if (UStructProperty* StructProp = Cast<UStructProperty>(SetProp->ElementProp))

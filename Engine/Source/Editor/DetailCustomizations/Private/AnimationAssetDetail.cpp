@@ -22,9 +22,9 @@ TSharedRef<IDetailCustomization> FAnimationAssetDetails::MakeInstance()
 
 void FAnimationAssetDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 {
-	TArray< TWeakObjectPtr<UObject> > SelectedObjectsList = DetailBuilder.GetDetailsView().GetSelectedObjects();
+	const TArray< TWeakObjectPtr<UObject> >& SelectedObjectsList = DetailBuilder.GetSelectedObjects();
 
-	for (auto SelectionIt = SelectedObjectsList.CreateIterator(); SelectionIt; ++SelectionIt)
+	for (auto SelectionIt = SelectedObjectsList.CreateConstIterator(); SelectionIt; ++SelectionIt)
 	{
 		if (UAnimationAsset* TestAsset = Cast<UAnimationAsset>(SelectionIt->Get()))
 		{

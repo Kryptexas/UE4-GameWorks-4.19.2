@@ -24,15 +24,13 @@
 #ifndef TF_PATHUTILS_H
 #define TF_PATHUTILS_H
 
-#include "pxr/base/arch/defines.h"
-#include "pxr/base/arch/fileSystem.h"
+#include "pxr/pxr.h"
 #include "pxr/base/tf/api.h"
+#include "pxr/base/arch/fileSystem.h"
 #include <string>
 #include <vector>
 
-#if !defined(ARCH_OS_WINDOWS)
-#include <glob.h>
-#endif
+PXR_NAMESPACE_OPEN_SCOPE
 
 /// \file tf/pathUtils.h
 /// \ingroup group_tf_Path
@@ -87,7 +85,8 @@ std::string TfNormPath(std::string const& path);
 /// If an error occurs, and the \a error string is not null, it is set to the
 /// reason for the error. If the error string is set, the returned index is
 /// the path separator before the element at which the error occurred.
-TF_API std::string::size_type
+TF_API
+std::string::size_type
 TfFindLongestAccessiblePrefix(std::string const &path, std::string* error = 0);
 
 /// Returns the canonical absolute path of the specified filename.
@@ -97,7 +96,8 @@ TfFindLongestAccessiblePrefix(std::string const &path, std::string* error = 0);
 /// This function differs from TfRealPath in that the path may point to a
 /// symlink, or not exist at all, and still result in an absolute path, rather
 /// than an empty string.
-TF_API std::string TfAbsPath(std::string const& path);
+TF_API
+std::string TfAbsPath(std::string const& path);
 
 /// Returns the extension for a file path
 ///
@@ -113,17 +113,18 @@ TF_API std::string TfAbsPath(std::string const& path);
 /// TfGetExtension('/foo/bar/foo.101.baz')  -> 'baz'
 /// TfGetExtension('/foo/bar/.foo.baz')     -> 'baz'
 /// TfGetExtension('/foo/bar/.foo')         -> ''
-TF_API std::string TfGetExtension(std::string const& path);
+TF_API
+std::string TfGetExtension(std::string const& path);
 
-/// Returns the source path for a symbolic link.
-///
-/// This is a wrapper to readlink(2).
-TF_API std::string TfReadLink(std::string const& path);
+/// Returns the value of a symbolic link.  Returns the empty string on
+/// error or if path is not a symbolic link.
+TF_API
+std::string TfReadLink(std::string const& path);
 
-/*! \brief Determines if a path is absolute.
-*
-*/
-TF_API bool TfIsRelativePath(std::string const& path);
+/// Return true if and only if a path is relative (not absolute).
+TF_API
+bool TfIsRelativePath(std::string const& path);
+
 /// Expands one or more shell glob patterns.
 ///
 /// This is a wrapper to glob(3), which manages the C structures necessary to
@@ -144,5 +145,7 @@ std::vector<std::string> TfGlob(std::vector<std::string> const& paths,
 TF_API
 std::vector<std::string> TfGlob(std::string const& path,
                                 unsigned int flags=ARCH_GLOB_DEFAULT);
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif /* TF_PATHUTILS_H */

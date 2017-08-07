@@ -110,6 +110,7 @@
 #include "CanvasTypes.h"
 #include "Engine/Selection.h"
 #include "Materials/Material.h"
+#include "AdvancedPreviewSceneModule.h"
 
 #define LOCTEXT_NAMESPACE "MaterialEditor"
 
@@ -128,6 +129,7 @@ const FName FMaterialEditor::HLSLCodeTabId( TEXT( "MaterialEditor_HLSLCode" ) );
 const FName FMaterialEditor::PaletteTabId( TEXT( "MaterialEditor_Palette" ) );
 const FName FMaterialEditor::StatsTabId( TEXT( "MaterialEditor_Stats" ) );
 const FName FMaterialEditor::FindTabId( TEXT( "MaterialEditor_Find" ) );
+const FName FMaterialEditor::PreviewSettingsTabId( TEXT ("MaterialEditor_PreviewSettings" ) );
 
 ///////////////////////////
 // FMatExpressionPreview //
@@ -257,6 +259,12 @@ void FMaterialEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& I
 		.SetGroup( WorkspaceMenuCategoryRef )
 		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "MaterialEditor.Tabs.HLSLCode"));
 
+	InTabManager->RegisterTabSpawner(PreviewSettingsTabId, FOnSpawnTab::CreateSP(this, &FMaterialEditor::SpawnTab_PreviewSettings))
+		.SetDisplayName( LOCTEXT("PreviewSceneSettingsTab", "Preview Scene Settings") )
+		.SetGroup( WorkspaceMenuCategoryRef )
+		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Details"));
+
+
 	OnRegisterTabSpawners().Broadcast(InTabManager);
 }
 
@@ -272,6 +280,7 @@ void FMaterialEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>&
 	InTabManager->UnregisterTabSpawner( StatsTabId );
 	InTabManager->UnregisterTabSpawner( FindTabId );
 	InTabManager->UnregisterTabSpawner( HLSLCodeTabId );
+	InTabManager->UnregisterTabSpawner( PreviewSettingsTabId );
 
 	OnUnregisterTabSpawners().Broadcast(InTabManager);
 }
@@ -399,7 +408,7 @@ void FMaterialEditor::InitMaterialEditor( const EToolkitMode::Type Mode, const T
 
 	BindCommands();
 
-	const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_MaterialEditor_Layout_v5")
+	const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_MaterialEditor_Layout_v6")
 	->AddArea
 	(
 		FTabManager::NewPrimaryArea() ->SetOrientation(Orient_Vertical)
@@ -426,6 +435,7 @@ void FMaterialEditor::InitMaterialEditor( const EToolkitMode::Type Mode, const T
 				(
 					FTabManager::NewStack()
 					->AddTab( PropertiesTabId, ETabState::OpenedTab )
+					->AddTab( PreviewSettingsTabId, ETabState::ClosedTab)
 				)
 			)
 			->Split
@@ -1221,9 +1231,6 @@ void FMaterialEditor::LoadEditorSettings()
 		{
 			PreviewViewport->OnToggleRealtime();
 		}
-
-		// Load the preview scene
-		PreviewViewport->PreviewScene.LoadSettings(TEXT("MaterialEditor"));
 	}
 
 	if (EditorOptions->bShowMobileStats)
@@ -1244,7 +1251,6 @@ void FMaterialEditor::SaveEditorSettings()
 {
 	// Save the preview scene
 	check( PreviewViewport.IsValid() );
-	PreviewViewport->PreviewScene.SaveSettings(TEXT("MaterialEditor"));
 
 	if ( EditorOptions )
 	{
@@ -1880,11 +1886,11 @@ void FMaterialEditor::BindCommands()
 
 	ToolkitCommands->MapAction(
 		Commands.SelectDownstreamNodes,
-		FExecuteAction::CreateSP(this, &FMaterialEditor::OnSelectDownsteamNodes));
+		FExecuteAction::CreateSP(this, &FMaterialEditor::OnSelectDownstreamNodes));
 
 	ToolkitCommands->MapAction(
 		Commands.SelectUpstreamNodes,
-		FExecuteAction::CreateSP(this, &FMaterialEditor::OnSelectUpsteamNodes));
+		FExecuteAction::CreateSP(this, &FMaterialEditor::OnSelectUpstreamNodes));
 
 	ToolkitCommands->MapAction(
 		Commands.RemoveFromFavorites,
@@ -2339,7 +2345,7 @@ void FMaterialEditor::OnToggleRealtimePreview()
 	}
 }
 
-void FMaterialEditor::OnSelectDownsteamNodes()
+void FMaterialEditor::OnSelectDownstreamNodes()
 {
 	TArray<UMaterialGraphNode*> NodesToCheck;
 	TArray<UMaterialGraphNode*> CheckedNodes;
@@ -2392,7 +2398,7 @@ void FMaterialEditor::OnSelectDownsteamNodes()
 	}
 }
 
-void FMaterialEditor::OnSelectUpsteamNodes()
+void FMaterialEditor::OnSelectUpstreamNodes()
 {
 	TArray<UMaterialGraphNode*> NodesToCheck;
 	TArray<UMaterialGraphNode*> CheckedNodes;
@@ -2915,6 +2921,30 @@ TSharedRef<SDockTab> FMaterialEditor::SpawnTab_Find(const FSpawnTabArgs& Args)
 			.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("MaterialFind")))
 			[
 				FindResults.ToSharedRef()
+			]
+		];
+
+	return SpawnedTab;
+}
+
+TSharedRef<SDockTab> FMaterialEditor::SpawnTab_PreviewSettings(const FSpawnTabArgs& Args)
+{
+	check(Args.GetTabId() == PreviewSettingsTabId);
+
+	TSharedRef<SWidget> InWidget = SNullWidget::NullWidget;
+	if (PreviewViewport.IsValid())
+	{
+		FAdvancedPreviewSceneModule& AdvancedPreviewSceneModule = FModuleManager::LoadModuleChecked<FAdvancedPreviewSceneModule>("AdvancedPreviewScene");
+		InWidget = AdvancedPreviewSceneModule.CreateAdvancedPreviewSceneSettingsWidget(PreviewViewport->GetPreviewScene());
+	}
+
+	TSharedRef<SDockTab> SpawnedTab = SNew(SDockTab)
+		.Icon(FEditorStyle::GetBrush("LevelEditor.Tabs.Details"))
+		.Label(LOCTEXT("PreviewSceneSettingsTab", "Preview Scene Settings"))
+		[
+			SNew(SBox)
+			[
+				InWidget
 			]
 		];
 
@@ -3894,11 +3924,11 @@ TSharedRef<SGraphEditor> FMaterialEditor::CreateGraphEditorWidget()
 			);
 
 		GraphEditorCommands->MapAction( FMaterialEditorCommands::Get().SelectDownstreamNodes,
-			FExecuteAction::CreateSP(this, &FMaterialEditor::OnSelectDownsteamNodes)
+			FExecuteAction::CreateSP(this, &FMaterialEditor::OnSelectDownstreamNodes)
 			);
 
 		GraphEditorCommands->MapAction( FMaterialEditorCommands::Get().SelectUpstreamNodes,
-			FExecuteAction::CreateSP(this, &FMaterialEditor::OnSelectUpsteamNodes)
+			FExecuteAction::CreateSP(this, &FMaterialEditor::OnSelectUpstreamNodes)
 			);
 
 		GraphEditorCommands->MapAction( FMaterialEditorCommands::Get().RemoveFromFavorites,

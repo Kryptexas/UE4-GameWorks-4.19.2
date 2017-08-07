@@ -26,9 +26,7 @@
 
 /// \file sdf/pyListProxy.h
 
-#include <boost/python.hpp>
-#include <boost/python/slice.hpp>
-
+#include "pxr/pxr.h"
 #include "pxr/usd/sdf/changeBlock.h"
 #include "pxr/usd/sdf/listProxy.h"
 #include "pxr/base/arch/demangle.h"
@@ -37,6 +35,10 @@
 #include "pxr/base/tf/pyResultConversions.h"
 #include "pxr/base/tf/stringUtils.h"
 #include <stdexcept>
+#include <boost/python.hpp>
+#include <boost/python/slice.hpp>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 template <class T>
 class SdfPyWrapListProxy {
@@ -149,7 +151,7 @@ private:
     {
         using namespace boost::python;
 
-        if (not x._Validate()) {
+        if (! x._Validate()) {
             return;
         }
 
@@ -246,7 +248,7 @@ private:
         if (index < 0) {
             index += x._GetSize();
         }
-        if (index < 0 or index > static_cast<int>(x._GetSize())) {
+        if (index < 0 || index > static_cast<int>(x._GetSize())) {
             TfPyThrowIndexError("list index out of range");
         }
         x._Edit(index, 0, value_vector_type(1, value));
@@ -258,4 +260,6 @@ private:
     }
 };
 
-#endif
+PXR_NAMESPACE_CLOSE_SCOPE
+
+#endif // SDF_PYLISTPROXY_H

@@ -63,9 +63,9 @@ THIRD_PARTY_INCLUDES_START
 THIRD_PARTY_INCLUDES_END
 
 // Modules
-
-#include "ModuleDestructible.h"
-#include "DestructibleAsset.h"
+//These are still included until we get all of APEX into its own plugin
+#include "destructible/ModuleDestructible.h"
+#include "destructible/DestructibleAsset.h"
 #include "destructible/DestructibleActor.h"
 
 THIRD_PARTY_INCLUDES_START

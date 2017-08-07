@@ -35,6 +35,7 @@
 /// in this file is appropriate, (and more importantly, when they're not!)
 /// see \ref page_tf_Diagnostic.
 
+#include "pxr/pxr.h"
 #include "pxr/base/arch/function.h"
 #include "pxr/base/tf/diagnosticLite.h"
 #include "pxr/base/tf/api.h"
@@ -47,6 +48,8 @@
 #include <stddef.h>
 #include <stdarg.h>
 #include <string>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 // Note: diagnosticLite.h defines the various macros, but we'll document
 // them here.  The following block is only for doxygen, not seen by a real
@@ -481,5 +484,7 @@ TF_API
 void TfInstallTerminateAndCrashHandlers();
 
 ///@}
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // TF_DIAGNOSTIC_H

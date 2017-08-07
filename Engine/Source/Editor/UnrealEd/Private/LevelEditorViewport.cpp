@@ -3118,9 +3118,9 @@ void FLevelEditorViewportClient::MoveLockedActorToCamera()
 	{
 		if ( !ActiveActorLock->bLockLocation )
 		{
-			ActiveActorLock->SetActorLocation( GCurrentLevelEditingViewportClient->GetViewLocation(), false );
+			ActiveActorLock->SetActorLocation(GCurrentLevelEditingViewportClient->GetViewLocation(), false);
+			ActiveActorLock->SetActorRotation(GCurrentLevelEditingViewportClient->GetViewRotation());
 		}
-		ActiveActorLock->SetActorRotation( GCurrentLevelEditingViewportClient->GetViewRotation() );
 
 		ABrush* Brush = Cast< ABrush >( ActiveActorLock.Get() );
 		if( Brush )

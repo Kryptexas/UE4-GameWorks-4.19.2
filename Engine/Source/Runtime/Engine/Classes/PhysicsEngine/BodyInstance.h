@@ -376,6 +376,10 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = Physics)
 	float MassScale;
 
+	/** Per-instance scaling of inertia (bigger number means  it'll be harder to rotate) */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = Physics)
+	float InertiaScale;
+
 	/** Use the collision profile found in the given BodySetup's default BodyInstance */
 	void UseExternalCollisionProfile(UBodySetup* InExternalCollisionProfileBodySetup);
 

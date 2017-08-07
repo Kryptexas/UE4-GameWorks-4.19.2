@@ -24,6 +24,8 @@
 #ifndef USD_RESOLVER_H
 #define USD_RESOLVER_H
 
+#include "pxr/pxr.h"
+#include "pxr/usd/usd/api.h"
 #include "pxr/usd/usd/common.h"
 
 #include "pxr/usd/pcp/node.h"
@@ -33,6 +35,9 @@
 #include "pxr/usd/sdf/declareHandles.h"
 
 #include <boost/scoped_ptr.hpp>
+
+PXR_NAMESPACE_OPEN_SCOPE
+
 
 class PcpPrimIndex;
 
@@ -49,6 +54,7 @@ public:
     /// is \c true, the resolver will skip over nodes that provide no opinions
     /// about the prim represented by \p index. Otherwise, the resolver will
     /// visit all non-inert nodes in the index.
+    USD_API
     explicit Usd_Resolver(const PcpPrimIndex* index, bool skipEmptyNodes = true);
 
     /// Returns true when there is a current Node and Layer.
@@ -61,17 +67,20 @@ public:
     /// be advanced to the next weaker PcpNode. If no layers are available, the
     /// resolver will be marked as invalid.  Returns \c true iff the resolver
     /// advanced to another node or was or became invalid.
+    USD_API
     bool NextLayer();
 
     /// Skips all pending layers in the current LayerStack and jumps to
     /// the next weaker PcpNode. When no more nodes are available, the resolver
     /// will be marked as invalid.
+    USD_API
     void NextNode();
 
     /// Returns the current PCP node. 
     ///
     /// This is useful for coarse grained resolution tasks, however
     /// individual layers must be inspected in the common case.
+    USD_API
     PcpNodeRef GetNode() const;
 
     /// Returns the current layer for the current PcpNode.
@@ -79,15 +88,18 @@ public:
     /// PERFORMANCE: This returns a const-ref to avoid ref-count bumps during
     /// resolution. This is safe under the assumption that no changes will occur
     /// during resolution and that the lifetime of this object will be short.
+    USD_API
     const SdfLayerRefPtr& GetLayer() const;
 
     /// Returns a translated path for the current PcpNode and Layer.
+    USD_API
     const SdfPath& GetLocalPath() const;
 
     /// Returns the PcpPrimIndex. 
     ///
     /// This value is initialized when the resolver is constructed and does not
     /// change as a result of calling NextLayer() or NextNode().
+    USD_API
     const PcpPrimIndex* GetPrimIndex() const;
 
 private:
@@ -102,5 +114,8 @@ private:
     SdfLayerRefPtrVector::const_iterator _curLayer;
     SdfLayerRefPtrVector::const_iterator _lastLayer;
 };
+
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // USD_RESOLVER_H

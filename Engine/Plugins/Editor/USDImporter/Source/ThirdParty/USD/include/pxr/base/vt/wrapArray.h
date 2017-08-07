@@ -21,31 +21,20 @@
 // KIND, either express or implied. See the Apache License for the specific
 // language governing permissions and limitations under the Apache License.
 //
-#include <boost/python/operators.hpp>
-#include <boost/preprocessor.hpp>
+#ifndef VT_WRAP_ARRAY_H
+#define VT_WRAP_ARRAY_H
 
-#include <boost/python/class.hpp>
-#include <boost/python/copy_const_reference.hpp>
-#include <boost/python/def.hpp>
-#include <boost/python/detail/api_placeholder.hpp>
-#include <boost/python/extract.hpp>
-#include <boost/python/iterator.hpp>
-#include <boost/python/make_constructor.hpp>
-#include <boost/python/object.hpp>
-#include <boost/python/overloads.hpp>
-#include <boost/python/return_arg.hpp>
-#include <boost/python/slice.hpp>
-#include <boost/python/type_id.hpp>
-
+#include "pxr/pxr.h"
+#include "pxr/base/vt/api.h"
 #include "pxr/base/vt/array.h"
 #include "pxr/base/vt/types.h"
 #include "pxr/base/vt/value.h"
 #include "pxr/base/vt/operators.h"
 #include "pxr/base/vt/functions.h"
-#include "pxr/base/vt/api.h"
 
 #include "pxr/base/arch/math.h"
 #include "pxr/base/arch/inttypes.h"
+#include "pxr/base/arch/pragmas.h"
 #include "pxr/base/gf/half.h"
 #include "pxr/base/tf/pyContainerConversions.h"
 #include "pxr/base/tf/pyFunction.h"
@@ -58,11 +47,29 @@
 #include "pxr/base/tf/tf.h"
 #include "pxr/base/tf/wrapTypeHelpers.h"
 
+#include <boost/preprocessor.hpp>
+
+#include <boost/python/class.hpp>
+#include <boost/python/copy_const_reference.hpp>
+#include <boost/python/def.hpp>
+#include <boost/python/detail/api_placeholder.hpp>
+#include <boost/python/extract.hpp>
+#include <boost/python/iterator.hpp>
+#include <boost/python/make_constructor.hpp>
+#include <boost/python/object.hpp>
+#include <boost/python/operators.hpp>
+#include <boost/python/return_arg.hpp>
+#include <boost/python/slice.hpp>
+#include <boost/python/type_id.hpp>
+#include <boost/python/overloads.hpp>
+
 #include <algorithm>
 #include <ostream>
 #include <string>
 #include <memory>
 #include <vector>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 namespace Vt_WrapArray {
 
@@ -123,7 +130,7 @@ setArraySlice(VtArray<T> &self, S value,
     const size_t length = len(value);
     if (length == 0)
         TfPyThrowValueError("No values with which to set array slice.");
-    if (not tile and length < setSize) {
+    if (!tile && length < setSize) {
         string msg = TfStringPrintf
             ("Not enough values to set slice.  Expected %zu, got %zu.",
              setSize, length);
@@ -147,7 +154,7 @@ setArraySlice(VtArray<T> &self, S value,
 
     // We're fine, go through and set them.  Handle common case as a fast
     // path.
-    if (range.step == 1 and length >= setSize) {
+    if (range.step == 1 && length >= setSize) {
         std::copy(extracted.begin(), extracted.begin() + setSize, range.start);
     }
     else {
@@ -181,7 +188,7 @@ setArraySlice(VtArray<T> &self, slice idx, object value, bool tile = false)
         const size_t length = val.size();
         if (length == 0)
             TfPyThrowValueError("No values with which to set array slice.");
-        if (not tile and length < setSize) {
+        if (!tile && length < setSize) {
             string msg = TfStringPrintf
                 ("Not enough values to set slice.  Expected %zu, got %zu.",
                  setSize, length);
@@ -196,7 +203,7 @@ setArraySlice(VtArray<T> &self, slice idx, object value, bool tile = false)
 
     // Copy from scalar.
     else if (extract<T>(value).check()) {
-        if (not tile) {
+        if (!tile) {
             // XXX -- We're allowing implicit tiling;  do we want to?
             //TfPyThrowValueError("can only assign an iterable.");
         }
@@ -293,7 +300,7 @@ template <typename T>
 static bool _IsFinite(T const &value) {
     return std::isfinite(value);
 }
-static bool _IsFinite(half const &value) {
+static bool _IsFinite(GfHalf const &value) {
     return std::isfinite(static_cast<float>(value));
 }
 
@@ -384,7 +391,9 @@ VtArray<T> *VtArray__init__2(unsigned int size, object const &values)
 
 // overloading for operator special methods, to allow tuple / list & array
 // combinations
-#pragma warning (disable: 4804 4146)
+ARCH_PRAGMA_PUSH
+ARCH_PRAGMA_UNSAFE_USE_OF_BOOL
+ARCH_PRAGMA_UNARY_MINUS_ON_UNSIGNED
 VTOPERATOR_WRAP(+,__add__,__radd__)
 VTOPERATOR_WRAP_NONCOMM(-,__sub__,__rsub__)
 VTOPERATOR_WRAP(*,__mul__,__rmul__)
@@ -397,9 +406,14 @@ VTOPERATOR_WRAP_BOOL(Greater,>)
 VTOPERATOR_WRAP_BOOL(Less,<)
 VTOPERATOR_WRAP_BOOL(GreaterOrEqual,>=)
 VTOPERATOR_WRAP_BOOL(LessOrEqual,<=)
-#pragma warning (default: 4804 4146)
+ARCH_PRAGMA_POP
 }
 
+template <typename T>
+static std::string _VtStr(T const &self)
+{
+    return boost::lexical_cast<std::string>(self);
+}
 
 template <typename T>
 void VtWrapArray()
@@ -439,7 +453,8 @@ void VtWrapArray()
         .def("__repr__", __repr1__<Type>)
         .def("__repr2__", __repr2__<Type>)
 
-        .def(str(self))
+//        .def(str(self))
+        .def("__str__", _VtStr<T>)
         .def(self == self)
         .def(self != self)
 
@@ -514,18 +529,18 @@ Vt_ConvertFromPySequence(TfPyObjWrapper const &obj)
     typedef typename Array::ElementType ElemType;
     TfPyLock lock;
     if (PySequence_Check(obj.ptr())) {
-		Py_ssize_t len = PySequence_Length(obj.ptr());
+        Py_ssize_t len = PySequence_Length(obj.ptr());
         Array result(len);
         ElemType *elem = result.data();
         for (size_t i = 0; i != len; ++i) {
             boost::python::handle<> h(PySequence_ITEM(obj.ptr(), i));
-            if (not h) {
+            if (!h) {
                 if (PyErr_Occurred())
                     PyErr_Clear();
                 return VtValue();
             }
             boost::python::extract<ElemType> e(h.get());
-            if (not e.check())
+            if (!e.check())
                 return VtValue();
             *elem++ = e();
         }
@@ -577,3 +592,7 @@ void VtRegisterValueCastsFromPythonSequencesToArray()
     VtWrapArray< VtArray< VT_TYPE(elem) > >();
 #define VT_WRAP_COMPARISON(r, unused, elem)        \
     VtWrapComparisonFunctions< VtArray< VT_TYPE(elem) > >();
+
+PXR_NAMESPACE_CLOSE_SCOPE
+
+#endif // VT_WRAP_ARRAY_H

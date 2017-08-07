@@ -977,6 +977,17 @@ uint32 UTexture::GetMaximumDimension() const
 }
 #endif // #if WITH_EDITOR
 
+void UTexture::MarkPendingKill()
+{
+	Super::MarkPendingKill();
+	if ( FPlatformProperties::RequiresCookedData() )
+	{
+		// Daniel L: Temporary code to track down OR-40458 REMOVE ME
+		UE_LOG(LogTexture, Warning, TEXT("Texture is being marked as pending kill!!! %s"), *GetFullName());
+	}
+}
+
+
 FName GetDefaultTextureFormatName( const ITargetPlatform* TargetPlatform, const UTexture* Texture, const FConfigFile& EngineSettings, bool bSupportDX11TextureFormats )
 {
 	FName TextureFormatName = NAME_None;

@@ -419,9 +419,9 @@ namespace
 	TMap<FPortableObjectEntryIdentity, TArray<FString>> ExtractPreservedPOComments(const FPortableObjectFormatDOM& InPortableObject)
 	{
 		TMap<FPortableObjectEntryIdentity, TArray<FString>> POEntryToCommentMap;
-		for (auto EntriesIterator = InPortableObject.GetEntriesIterator(); EntriesIterator; ++EntriesIterator)
+		for (auto EntryPairIterator = InPortableObject.GetEntriesIterator(); EntryPairIterator; ++EntryPairIterator)
 		{
-			const TSharedPtr< FPortableObjectEntry >& Entry = *EntriesIterator;
+			const TSharedPtr< FPortableObjectEntry >& Entry = EntryPairIterator->Value;
 
 			// Preserve only non-procedurally generated extracted comments.
 			const TArray<FString> CommentsToPreserve = Entry->ExtractedComments.FilterByPredicate([](const FString& ExtractedComment) -> bool
@@ -471,9 +471,9 @@ namespace
 
 		bool bModifiedArchive = false;
 		{
-			for (auto EntryIter = PortableObject.GetEntriesIterator(); EntryIter; ++EntryIter)
+			for (auto EntryPairIter = PortableObject.GetEntriesIterator(); EntryPairIter; ++EntryPairIter)
 			{
-				auto POEntry = *EntryIter;
+				auto POEntry = EntryPairIter->Value;
 				if (POEntry->MsgId.IsEmpty() || POEntry->MsgStr.Num() == 0 || POEntry->MsgStr[0].Trim().IsEmpty())
 				{
 					// We ignore the header entry or entries with no translation.

@@ -1201,6 +1201,13 @@ void UEditorEngine::FinishDestroy()
 
 		// Remove editor array from root.
 		UE_LOG(LogExit, Log, TEXT("Editor shut down") );
+
+		// Any access of GEditor after finish destroy is invalid
+		// Null out GEditor so that potential module shutdown that happens after can check for nullptr
+		if (GEditor == this)
+		{
+			GEditor = nullptr;
+		}
 	}
 
 	Super::FinishDestroy();
@@ -4561,9 +4568,12 @@ AActor* UEditorEngine::UseActorFactory( UActorFactory* Factory, const FAssetData
 	if( !Factory->CanCreateActorFrom( AssetData, ActorErrorMsg ) )
 	{
 		bIsAllowedToCreateActor = false;
-		FMessageLog EditorErrors("EditorErrors");
-		EditorErrors.Warning(ActorErrorMsg);
-		EditorErrors.Notify();
+		if(!ActorErrorMsg.IsEmpty())
+		{
+			FMessageLog EditorErrors("EditorErrors");
+			EditorErrors.Warning(ActorErrorMsg);
+			EditorErrors.Notify();
+		}
 	}
 
 	//Load Asset
@@ -4879,7 +4889,7 @@ void UEditorEngine::ReplaceSelectedActors(UActorFactory* Factory, const FAssetDa
 	ReplaceActors(Factory, AssetData, ActorsToReplace);
 }
 
-void UEditorEngine::ReplaceActors(UActorFactory* Factory, const FAssetData& AssetData, const TArray<AActor*> ActorsToReplace)
+void UEditorEngine::ReplaceActors(UActorFactory* Factory, const FAssetData& AssetData, const TArray<AActor*>& ActorsToReplace)
 {
 	// Cache for attachment info of all actors being converted.
 	TArray<ReattachActorsHelper::FActorAttachmentCache> AttachmentInfo;

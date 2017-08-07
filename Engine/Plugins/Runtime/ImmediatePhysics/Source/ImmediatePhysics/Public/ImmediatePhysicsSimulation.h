@@ -14,6 +14,7 @@
 #include "ImmediatePhysicsPersistentContactPairData.h"
 #include "ImmediatePhysicsCacheAllocator.h"
 #include "ImmediatePhysicsConstraintAllocator.h"
+#include "ImmediatePhysicsKinematicTarget.h"
 
 DECLARE_STATS_GROUP(TEXT("Immediate Physics"), STATGROUP_ImmediatePhysics, STATCAT_Advanced);
 
@@ -84,6 +85,9 @@ public:
 	/** Add a radial impulse to the given actor */
 	void AddRadialForce(int32 ActorDataIndex, const FVector& Origin, float Strength, float Radius, ERadialImpulseFalloff Falloff, EForceType ForceType);
 
+	/** Add a force to the given actor */
+	void AddForce(int32 ActorDataIndex, const FVector& Force);
+
 	FSimulation();
 
 	~FSimulation();
@@ -102,6 +106,16 @@ private:
 		return RigidBodiesData[ActorDataIndex];
 	}
 #endif
+
+	const FKinematicTarget& GetKinematicTarget(int32 ActorDataIndex) const
+	{
+		return KinematicTargets[ActorDataIndex];
+	}
+
+	FKinematicTarget& GetKinematicTarget(int32 ActorDataIndex)
+	{
+		return KinematicTargets[ActorDataIndex];
+	}
 
 	enum class ECreateActorType
 	{
@@ -166,6 +180,9 @@ private:
 	
 	/** Low level solver bodies data */
 	TArray<PxSolverBodyData> SolverBodiesData;
+	
+	/** Kinematic targets used to implicitly compute the velocity of moving kinematic actors */
+	TArray<FKinematicTarget> KinematicTargets;
 
 	TArray<PxVec3> PendingAcceleration;
 

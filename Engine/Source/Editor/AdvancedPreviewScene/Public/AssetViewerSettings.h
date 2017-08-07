@@ -34,9 +34,7 @@ struct FPreviewSceneProfile
 		RotationSpeed = 2.0f;
 		// Set up default cube map texture from editor/engine textures
 		EnvironmentCubeMap = nullptr;
-#if WITH_EDITORONLY_DATA
-		EnvironmentCubeMap = LoadObject<UTextureCube>(NULL, TEXT("/Engine/EditorMaterials/AssetViewer/EpicQuadPanorama_CC+EV1.EpicQuadPanorama_CC+EV1"));		
-#endif
+		EnvironmentCubeMapPath = TEXT("/Engine/EditorMaterials/AssetViewer/EpicQuadPanorama_CC+EV1.EpicQuadPanorama_CC+EV1");
 		bPostProcessingEnabled = true;
 		DirectionalLightRotation = FRotator(-40.f, -67.5f, 0.f);
 	}
@@ -106,14 +104,17 @@ struct FPreviewSceneProfile
 	{
 		if (EnvironmentCubeMap == nullptr)
 		{
-			// Load cube map from stored path
-			UObject* LoadedObject = LoadObject<UObject>(nullptr, *EnvironmentCubeMapPath);
-			while (UObjectRedirector* Redirector = Cast<UObjectRedirector>(LoadedObject))
+			if (!EnvironmentCubeMapPath.IsEmpty())
 			{
-				LoadedObject = Redirector->DestinationObject;
-			}
+				// Load cube map from stored path
+				UObject* LoadedObject = LoadObject<UObject>(nullptr, *EnvironmentCubeMapPath);
+				while (UObjectRedirector* Redirector = Cast<UObjectRedirector>(LoadedObject))
+				{
+					LoadedObject = Redirector->DestinationObject;
+				}
 
-			EnvironmentCubeMap = LoadedObject;
+				EnvironmentCubeMap = LoadedObject;
+			}
 		}		
 	}
 };

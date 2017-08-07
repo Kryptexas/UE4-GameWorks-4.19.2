@@ -131,6 +131,8 @@ public:
 		SLATE_ATTRIBUTE( bool, SelectAllTextOnCommit )
 		/** Minimum width that a spin box should be */
 		SLATE_ATTRIBUTE( float, MinDesiredWidth )
+		/** How should the value be justified in the spinbox. */
+		SLATE_ATTRIBUTE( ETextJustify::Type, Justification )
 		/** Provide custom type conversion functionality to this spin box */
 		SLATE_ARGUMENT( TSharedPtr< INumericTypeInterface<NumericType> >, TypeInterface )
 
@@ -225,6 +227,7 @@ public:
 				.Font(InArgs._Font)
 				.Text( this, &SSpinBox<NumericType>::GetValueAsText )
 				.MinDesiredWidth( this, &SSpinBox<NumericType>::GetTextMinDesiredWidth )
+				.Justification(InArgs._Justification)
 			]
 
 			+ SHorizontalBox::Slot()
@@ -245,6 +248,7 @@ public:
 				.SelectAllTextOnCommit( InArgs._SelectAllTextOnCommit )
 				.MinDesiredWidth( this, &SSpinBox<NumericType>::GetTextMinDesiredWidth )
 				.VirtualKeyboardType(EKeyboardType::Keyboard_Number)
+				.Justification(InArgs._Justification)
 			]			
 
 			+SHorizontalBox::Slot()

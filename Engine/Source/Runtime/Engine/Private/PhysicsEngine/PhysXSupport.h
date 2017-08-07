@@ -12,6 +12,7 @@
 #include "EngineDefines.h"
 #include "Containers/Queue.h"
 #include "Physics/PhysicsFiltering.h"
+#include "PhysXPublic.h"
 
 class UBodySetup;
 class UPhysicalMaterial;
@@ -71,13 +72,8 @@ const uint32 AggregateBodyShapesThreshold	   = 999999999;
 /** Perform any deferred cleanup of resources (GPhysXPendingKillConvex etc) */
 ENGINE_API void DeferredPhysResourceCleanup();
 
-/** Calculates correct impulse at the body's center of mass and adds the impulse to the body. */
-ENGINE_API void AddRadialImpulseToPxRigidBody_AssumesLocked(PxRigidBody& PRigidBody, const FVector& Origin, float Radius, float Strength, uint8 Falloff, bool bVelChange);
-
 
 /** Calculates correct impulse at the body's center of mass and adds the impulse to the body. */
-ENGINE_API void AddRadialForceToPxRigidBody_AssumesLocked(PxRigidBody& PRigidBody, const FVector& Origin, float Radius, float Strength, uint8 Falloff, bool bAccelChange);
-
 /** Util to see if a PxRigidBody is non-kinematic */
 bool IsRigidBodyKinematic_AssumesLocked(const PxRigidBody* PRigidBody);
 
@@ -538,38 +534,7 @@ public:
 };
 extern FApexResourceCallback GApexResourceCallback;
 
-/**
-	APEX PhysX3 interface
-	This interface allows us to modify the PhysX simulation filter shader data with contact pair flags 
-*/
-class FApexPhysX3Interface : public nvidia::apex::PhysX3Interface
-{
-public:
-	// NxApexPhysX3Interface interface.
 
-	virtual void				setContactReportFlags(physx::PxShape* PShape, physx::PxPairFlags PFlags, nvidia::apex::DestructibleActor* actor, PxU16 actorChunkIndex) override;
-
-	virtual physx::PxPairFlags	getContactReportFlags(const physx::PxShape* PShape) const override;
-};
-extern FApexPhysX3Interface GApexPhysX3Interface;
-
-/**
-	APEX Destructible chunk report interface
-	This interface delivers summaries (which can be detailed to the single chunk level, depending on the settings)
-	of chunk fracture and destroy events.
-*/
-class FApexChunkReport : public nvidia::apex::UserChunkReport
-{
-public:
-	// NxUserChunkReport interface.
-
-	virtual void	onDamageNotify(const nvidia::apex::DamageEventReportData& damageEvent) override;
-	virtual void	onStateChangeNotify(const nvidia::apex::ChunkStateEventData& visibilityEvent) override;
-	virtual bool	releaseOnNoChunksVisible(const nvidia::apex::DestructibleActor* destructible) override;
-	virtual void	onDestructibleWake(nvidia::apex::DestructibleActor** destructibles, physx::PxU32 count) override;
-	virtual void	onDestructibleSleep(nvidia::apex::DestructibleActor** destructibles, physx::PxU32 count) override;
-};
-extern FApexChunkReport GApexChunkReport;
 #endif // #if WITH_APEX
 
 /** Util to determine whether to use NegX version of mesh, and what transform (rotation) to apply. */

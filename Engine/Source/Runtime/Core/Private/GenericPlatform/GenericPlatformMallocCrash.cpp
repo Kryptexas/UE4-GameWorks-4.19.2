@@ -4,6 +4,7 @@
 #include "HAL/PlatformProcess.h"
 #include "HAL/PlatformTLS.h"
 #include "Templates/AlignmentTemplates.h"
+#include "HAL/LowLevelMemTracker.h"
 
 /** Describes a pool. */
 struct FPoolDesc
@@ -195,6 +196,8 @@ FGenericPlatformMallocCrash::FGenericPlatformMallocCrash( FMalloc* MainMalloc ) 
 	SmallMemoryPoolOffset( 0 ),
 	PreviousMalloc( MainMalloc )
 {
+	LLM_SCOPED_TAG_WITH_ENUM(ELLMScopeTag::GenericPlatformMallocCrash, ELLMTracker::Platform);
+
 	const uint32 LargeMemoryPoolSize = Align(LARGE_MEMORYPOOL_SIZE,SafePageSize());
 	LargeMemoryPool = (uint8*)FPlatformMemory::BinnedAllocFromOS( LargeMemoryPoolSize );
 	SmallMemoryPool = (uint8*)FPlatformMemory::BinnedAllocFromOS( (SIZE_T)GetSmallPoolTotalSize() );

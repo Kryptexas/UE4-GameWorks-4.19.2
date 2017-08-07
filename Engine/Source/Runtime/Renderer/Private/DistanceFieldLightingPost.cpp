@@ -444,7 +444,7 @@ void UpdateHistory(
 			// If the scene render targets reallocate, toss the history so we don't read uninitialized data
 			&& (*BentNormalHistoryState)->GetDesc().Extent == BufferSize)
 		{
-			uint32 HistoryPassOutputFlags = GAOHistoryStabilityPass ? GetTextureFastVRamFlag_DynamicLayout() : 0;
+			uint32 HistoryPassOutputFlags = GAOHistoryStabilityPass ? GFastVRamConfig.DistanceFieldAOHistory : 0;
 			// Reuse a render target from the pool with a consistent name, for vis purposes
 			TRefCountPtr<IPooledRenderTarget> NewBentNormalHistory;
 			AllocateOrReuseAORenderTarget(RHICmdList, NewBentNormalHistory, BentNormalHistoryRTName, PF_FloatRGBA, HistoryPassOutputFlags);

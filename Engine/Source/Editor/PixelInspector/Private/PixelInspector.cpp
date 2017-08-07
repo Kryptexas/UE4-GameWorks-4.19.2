@@ -425,7 +425,7 @@ namespace PixelInspector
 		TickSinceLastCreateRequest++;
 	}
 	
-	void SPixelInspector::CreatePixelInspectorRequest(FIntPoint ScreenPosition, int32 viewportUniqueId, FSceneInterface *SceneInterface)
+	void SPixelInspector::CreatePixelInspectorRequest(FIntPoint ScreenPosition, int32 viewportUniqueId, FSceneInterface *SceneInterface, bool bInGameViewMode)
 	{
 		if (TickSinceLastCreateRequest < MINIMUM_TICK_BETWEEN_CREATE_REQUEST)
 			return;
@@ -456,7 +456,7 @@ namespace PixelInspector
 		const bool AllowStaticLighting = CVarAllowStaticLighting != nullptr ? CVarAllowStaticLighting->GetValueOnGameThread() == 1 : true;
 		
 		//Try to create the request buffer
-		int32 BufferIndex = CreateRequestBuffer(SceneInterface, GBufferFormat);
+		int32 BufferIndex = CreateRequestBuffer(SceneInterface, GBufferFormat, bInGameViewMode);
 		if (BufferIndex == -1)
 			return;
 		
@@ -523,7 +523,7 @@ namespace PixelInspector
 		}
 	}
 
-	int32 SPixelInspector::CreateRequestBuffer(FSceneInterface *SceneInterface, const int32 GBufferFormat)
+	int32 SPixelInspector::CreateRequestBuffer(FSceneInterface *SceneInterface, const int32 GBufferFormat, bool bInGameViewMode)
 	{
 		//Toggle the last buffer Index
 		LastBufferIndex = (LastBufferIndex + 1) % 2;
@@ -565,7 +565,14 @@ namespace PixelInspector
 		//HDR is in float RGB format
 		Buffer_HDR_Float[LastBufferIndex] = NewObject<UTextureRenderTarget2D>(GetTransientPackage(), TEXT("PixelInspectorBufferHDRTarget"), RF_Standalone);
 		Buffer_HDR_Float[LastBufferIndex]->AddToRoot();
-		Buffer_HDR_Float[LastBufferIndex]->InitCustomFormat(1, 1, PF_FloatRGB, true);
+		if (!bInGameViewMode)
+		{
+			Buffer_HDR_Float[LastBufferIndex]->InitCustomFormat(1, 1, PF_FloatRGBA, true);
+		}
+		else
+		{
+			Buffer_HDR_Float[LastBufferIndex]->InitCustomFormat(1, 1, PF_FloatRGB, true);
+		}
 		Buffer_HDR_Float[LastBufferIndex]->ClearColor = FLinearColor::Black;
 		Buffer_HDR_Float[LastBufferIndex]->UpdateResourceImmediate(true);
 		HDRRenderTargetResource = Buffer_HDR_Float[LastBufferIndex]->GameThread_GetRenderTargetResource();

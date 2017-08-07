@@ -26,11 +26,15 @@
 
 /// \file sdf/layerTree.h
 
+#include "pxr/pxr.h"
+#include "pxr/usd/sdf/api.h"
 #include "pxr/usd/sdf/declareHandles.h"
 #include "pxr/usd/sdf/layerOffset.h"
-#include "pxr/usd/sdf/api.h"
+
 #include <boost/noncopyable.hpp>
 #include <vector>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 // Layer tree forward declarations.
 class SdfLayerTree;
@@ -54,7 +58,7 @@ SDF_DECLARE_HANDLES(SdfLayer);
 class SdfLayerTree : public TfRefBase, public TfWeakBase, boost::noncopyable {
 public:
     /// Create a new layer tree node.
-	SDF_API
+    SDF_API
     static SdfLayerTreeHandle
     New( const SdfLayerHandle & layer,
          const SdfLayerTreeHandleVector & childTrees,
@@ -80,4 +84,6 @@ private:
     const SdfLayerTreeHandleVector _childTrees;
 };
 
-#endif
+PXR_NAMESPACE_CLOSE_SCOPE
+
+#endif // SDF_LAYER_TREE_H

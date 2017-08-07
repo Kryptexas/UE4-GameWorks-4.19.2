@@ -35,6 +35,7 @@ FAdvancedPreviewScene::FAdvancedPreviewScene(ConstructionValues CVS, float InFlo
 	CurrentProfileIndex = DefaultSettings->Profiles.IsValidIndex(CurrentProfileIndex) ? GetDefault<UEditorPerProjectUserSettings>()->AssetViewerProfileIndex : 0;
 	ensureMsgf(DefaultSettings->Profiles.IsValidIndex(CurrentProfileIndex), TEXT("Invalid default settings pointer or current profile index"));
 	FPreviewSceneProfile& Profile = DefaultSettings->Profiles[CurrentProfileIndex];
+	Profile.LoadEnvironmentMap();
 
 	SphereReflectionComponent = nullptr;
 
@@ -223,6 +224,7 @@ void FAdvancedPreviewScene::SetFloorOffset(const float InFloorOffset)
 void FAdvancedPreviewScene::SetProfileIndex(const int32 InProfileIndex)
 {
 	CurrentProfileIndex = InProfileIndex;
+	DefaultSettings->Profiles[CurrentProfileIndex].LoadEnvironmentMap();
 	SetLightDirection(DefaultSettings->Profiles[CurrentProfileIndex].DirectionalLightRotation);
 	UpdateScene(DefaultSettings->Profiles[CurrentProfileIndex]);
 	DefaultSettings->OnAssetViewerSettingsChanged().Broadcast(NAME_None);

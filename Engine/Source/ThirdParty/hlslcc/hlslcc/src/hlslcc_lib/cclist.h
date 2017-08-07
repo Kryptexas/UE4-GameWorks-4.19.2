@@ -342,7 +342,10 @@ struct exec_list {
        * The first two methods tend to generate better code on modern systems
        * because they save a pointer dereference.
        */
-      return head == (exec_node *) &tail;
+      // Cast to volatile is needed to prevent clang 3.8+ from optimizing is_empty() away in MoveGlobalInstructionsToMain().
+      // Consider a list that was created (make_empty()) and only push_tail()-ed to. Without this clang considers is_empty() to be true
+      // because it never sees head being updated (it is updated indirectly through n->prev->next = n; assignment in push_tail()).
+      return *((volatile exec_node **)&head) == (exec_node *) &tail;
    }
 
    const exec_node *get_head() const

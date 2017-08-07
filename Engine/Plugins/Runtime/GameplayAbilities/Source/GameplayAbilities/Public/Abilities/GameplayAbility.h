@@ -21,6 +21,7 @@ class UGameplayAbility;
 class UGameplayTask;
 class UGameplayTasksComponent;
 struct EventData;
+struct FAbilityEndedData;
 
 /**
  * UGameplayAbility
@@ -243,6 +244,9 @@ public:
 
 	/** Notification that the ability has ended.  Set using TryActivateAbility. */
 	FOnGameplayAbilityEnded OnGameplayAbilityEnded;
+
+	/** Notification that the ability has ended with data on how it was ended */
+	FGameplayAbilityEndedDelegate OnGameplayAbilityEndedWithData;
 
 	/** Notification that the ability is being cancelled.  Called before OnGameplayAbilityEnded. */
 	FOnGameplayAbilityCancelled OnGameplayAbilityCancelled;

@@ -81,7 +81,7 @@ void SPropertyValueWidget::Construct( const FArguments& InArgs, TSharedPtr<FProp
 
 	if ( !ValueEditorWidget->GetToolTip().IsValid() )
 	{
-	ValueEditorWidget->SetToolTipText( PropertyEditor->GetToolTipText() );
+		ValueEditorWidget->SetToolTipText( PropertyEditor->GetToolTipText() );
 	}
 
 
@@ -1056,6 +1056,47 @@ namespace PropertyEditorHelpers
 
 		return ValidEnumValues;
 	}
+
+	bool IsCategoryHiddenByClass(const TSharedPtr<FComplexPropertyNode>& InRootNode, FName CategoryName)
+	{
+		return InRootNode->AsObjectNode() && InRootNode->AsObjectNode()->GetHiddenCategories().Contains(CategoryName);
+	}
+
+	/**
+	* Determines whether or not a property should be visible in the default generated detail layout
+	*
+	* @param PropertyNode	The property node to check
+	* @param ParentNode	The parent property node to check
+	* @return true if the property should be visible
+	*/
+	bool IsVisibleStandaloneProperty(const FPropertyNode& PropertyNode, const FPropertyNode& ParentNode)
+	{
+		const UProperty* Property = PropertyNode.GetProperty();
+		const UArrayProperty* ParentArrayProperty = Cast<const UArrayProperty>(ParentNode.GetProperty());
+
+		bool bIsVisibleStandalone = false;
+		if (Property)
+		{
+			if (Property->IsA(UObjectPropertyBase::StaticClass()))
+			{
+				// Do not add this child node to the current map if its a single object property in a category (serves no purpose for UI)
+				bIsVisibleStandalone = !ParentArrayProperty && (PropertyNode.GetNumChildNodes() == 0 || PropertyNode.GetNumChildNodes() > 1);
+			}
+			else if (Property->IsA(UArrayProperty::StaticClass()) || (Property->ArrayDim > 1 && PropertyNode.GetArrayIndex() == INDEX_NONE))
+			{
+				// Base array properties are always visible
+				bIsVisibleStandalone = true;
+			}
+			else
+			{
+				bIsVisibleStandalone = true;
+			}
+
+		}
+
+		return bIsVisibleStandalone;
+	}
+
 }
 
 #undef LOCTEXT_NAMESPACE

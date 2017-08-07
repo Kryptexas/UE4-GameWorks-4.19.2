@@ -278,7 +278,13 @@ void UGameplayTask::PerformActivation()
 
 	Activate();
 
-	TasksComponent->OnGameplayTaskActivated(*this);
+	// Activate call may result in the task actually "instantly" finishing.
+	// If this happens we don't want to bother the TaskComponent
+	// with information on this task
+	if (IsFinished() == false)
+	{
+		TasksComponent->OnGameplayTaskActivated(*this);
+	}
 }
 
 void UGameplayTask::Activate()

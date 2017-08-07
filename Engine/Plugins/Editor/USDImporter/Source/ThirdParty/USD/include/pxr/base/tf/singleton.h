@@ -102,11 +102,14 @@
 /// the longer \c TfSingleton<Registry>::GetInstance() to obtain a reference
 /// to the sole instance of the registry.
 
+#include "pxr/pxr.h"
 #include "pxr/base/arch/hints.h"
 #include "pxr/base/arch/pragmas.h"
-#include "pxr/base/tf/api.h"
 #include "pxr/base/tf/diagnosticLite.h"
+
 #include <mutex>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 /// \class TfSingleton
 /// \ingroup group_tf_ObjectCreation
@@ -184,9 +187,12 @@ private:
     static T& _CreateInstance();
     static void _DestroyInstance();
     static T* _instance;
+    ARCH_PRAGMA_PUSH
     ARCH_PRAGMA_NEEDS_EXPORT_INTERFACE
     static std::mutex* _mutex;
-    ARCH_PRAGMA_RESTORE
+    ARCH_PRAGMA_POP
 };
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif

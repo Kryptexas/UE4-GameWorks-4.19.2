@@ -504,6 +504,11 @@ void SScrollBox::SetScrollBarThickness(FVector2D InThickness)
 	ScrollBar->SetThickness(InThickness);
 }
 
+void SScrollBox::SetScrollBarRightClickDragAllowed(bool bIsAllowed)
+{
+	bAllowsRightClickDragScrolling = bIsAllowed;
+}
+
 EActiveTimerReturnType SScrollBox::UpdateInertialScroll(double InCurrentTime, float InDeltaTime)
 {
 	bool bKeepTicking = bIsScrolling;
@@ -641,11 +646,11 @@ FReply SScrollBox::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointe
 	}
 	else
 	{
-		if ( MouseEvent.GetEffectingButton() == EKeys::RightMouseButton && ScrollBar->IsNeeded() )
+		if ( MouseEvent.GetEffectingButton() == EKeys::RightMouseButton && ScrollBar->IsNeeded()  && bAllowsRightClickDragScrolling)
 		{
 			AmountScrolledWhileRightMouseDown = 0;
 
-		Invalidate(EInvalidateWidget::Layout);
+			Invalidate(EInvalidateWidget::Layout);
 
 			return FReply::Handled();
 		}
@@ -656,7 +661,7 @@ FReply SScrollBox::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointe
 
 FReply SScrollBox::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	if ( MouseEvent.GetEffectingButton() == EKeys::RightMouseButton )
+	if ( MouseEvent.GetEffectingButton() == EKeys::RightMouseButton && bAllowsRightClickDragScrolling)
 	{
 		if ( !bIsScrollingActiveTimerRegistered && IsRightClickScrolling() )
 		{
@@ -739,7 +744,7 @@ FReply SScrollBox::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent
 	}
 	else
 	{
-		if ( MouseEvent.IsMouseButtonDown(EKeys::RightMouseButton) )
+		if ( MouseEvent.IsMouseButtonDown(EKeys::RightMouseButton)  && bAllowsRightClickDragScrolling)
 		{
 			// If scrolling with the right mouse button, we need to remember how much we scrolled.
 			// If we did not scroll at all, we will bring up the context menu when the mouse is released.

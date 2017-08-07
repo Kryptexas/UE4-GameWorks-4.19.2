@@ -183,6 +183,8 @@ public:
 	float OrthoZoom;
 	float FieldOfView;
 	float FocalLength;
+	float ApertureWidth;
+	float ApertureHeight;
 
 	FFbxCameraInfo()
 		: Name(TEXT(""))
@@ -195,6 +197,8 @@ public:
 		, OrthoZoom(0.0f)
 		, FieldOfView(0.0f)
 		, FocalLength(0.0f)
+		, ApertureWidth(0.0f)
+		, ApertureHeight(0.0f)
 	{}
 };
 
@@ -343,6 +347,7 @@ class UNREALED_API UFbxSceneImportFactory : public USceneImportFactory
 	GENERATED_UCLASS_BODY()
 
 	/** UFactory Interface */
+	virtual UObject* FactoryCreateFile(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, const FString& Filename, const TCHAR* Parms, FFeedbackContext* Warn, bool& bOutOperationCanceled) override;
 	virtual UObject* FactoryCreateBinary(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, const TCHAR* Type, const uint8*& Buffer, const uint8* BufferEnd, FFeedbackContext* Warn) override;
 	virtual UObject* FactoryCreateBinary(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, const TCHAR* Type, const uint8*& Buffer, const uint8* BufferEnd, FFeedbackContext* Warn, bool& bOutOperationCanceled) override;
 	virtual bool FactoryCanImport(const FString& Filename) override;

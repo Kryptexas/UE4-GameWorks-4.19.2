@@ -235,22 +235,142 @@ static TAutoConsoleVariable<int32> CVarWideCustomResolve(
 
 TAutoConsoleVariable<int32> CVarTransientResourceAliasing_RenderTargets(
 	TEXT("r.TransientResourceAliasing.RenderTargets"),
-	1,
+	2,
+	TEXT("Enables transient resource aliasing for rendertargets. Used only if GSupportsTransientResourceAliasing is true.\n")
 	TEXT("0 : Disabled\n")
 	TEXT("1 : enable transient resource aliasing for fastVRam rendertargets\n")
-	TEXT("2 : enable transient resource aliasing for ALL rendertargets (experimental!)\n"),
+	TEXT("2 : enable transient resource aliasing for ALL rendertargets\n"),
 	ECVF_ReadOnly);
 
 TAutoConsoleVariable<int32> CVarTransientResourceAliasing_Buffers(
 	TEXT("r.TransientResourceAliasing.Buffers"),
 	1,
-	TEXT("If true, enable transient resource aliasing for buffers"),
+	TEXT("Enables transient resource aliasing for specified buffers. Used only if GSupportsTransientResourceAliasing is true.\n"),
 	ECVF_ReadOnly);
 
 static FParallelCommandListSet* GOutstandingParallelCommandListSet = nullptr;
 
 DECLARE_CYCLE_STAT(TEXT("DeferredShadingSceneRenderer MotionBlurStartFrame"), STAT_FDeferredShadingSceneRenderer_MotionBlurStartFrame, STATGROUP_SceneRendering);
 DECLARE_CYCLE_STAT(TEXT("DeferredShadingSceneRenderer UpdateMotionBlurCache"), STAT_FDeferredShadingSceneRenderer_UpdateMotionBlurCache, STATGROUP_SceneRendering);
+
+#define FASTVRAM_CVAR(Name,DefaultValue) static TAutoConsoleVariable<int32> CVarFastVRam_##Name(TEXT("r.FastVRam."#Name), DefaultValue, TEXT(""))
+
+FASTVRAM_CVAR(GBufferA, 0);
+FASTVRAM_CVAR(GBufferB, 1);
+FASTVRAM_CVAR(GBufferC, 0);
+FASTVRAM_CVAR(GBufferD, 0);
+FASTVRAM_CVAR(GBufferE, 0);
+FASTVRAM_CVAR(GBufferVelocity, 0);
+FASTVRAM_CVAR(HZB, 0);
+FASTVRAM_CVAR(SceneDepth, 1);
+FASTVRAM_CVAR(SceneColor, 1);
+FASTVRAM_CVAR(LPV, 1);
+FASTVRAM_CVAR(BokehDOF, 1);
+FASTVRAM_CVAR(CircleDOF, 1);
+FASTVRAM_CVAR(CombineLUTs, 1);
+FASTVRAM_CVAR(Downsample, 1);
+FASTVRAM_CVAR(EyeAdaptation, 1);
+FASTVRAM_CVAR(Histogram, 1);
+FASTVRAM_CVAR(HistogramReduce, 1);
+FASTVRAM_CVAR(VelocityFlat, 1);
+FASTVRAM_CVAR(VelocityMax, 1);
+FASTVRAM_CVAR(MotionBlur, 1);
+FASTVRAM_CVAR(Tonemap, 1);
+FASTVRAM_CVAR(Upscale, 1);
+FASTVRAM_CVAR(DistanceFieldNormal, 1);
+FASTVRAM_CVAR(DistanceFieldAOHistory, 1);
+FASTVRAM_CVAR(DistanceFieldAODownsampledBentNormal, 1); 
+FASTVRAM_CVAR(DistanceFieldAOBentNormal, 0); 
+FASTVRAM_CVAR(DistanceFieldAOConfidence, 0); 
+FASTVRAM_CVAR(DistanceFieldIrradiance, 0); 
+FASTVRAM_CVAR(DistanceFieldShadows, 1);
+FASTVRAM_CVAR(Distortion, 1);
+FASTVRAM_CVAR(ScreenSpaceShadowMask, 1);
+FASTVRAM_CVAR(VolumetricFog, 1);
+FASTVRAM_CVAR(SeparateTranslucency, 0); 
+FASTVRAM_CVAR(LightAccumulation, 0); 
+FASTVRAM_CVAR(LightAttenuation, 0); 
+FASTVRAM_CVAR(ScreenSpaceAO,0);
+FASTVRAM_CVAR(DBufferA, 0);
+FASTVRAM_CVAR(DBufferB, 0);
+FASTVRAM_CVAR(DBufferC, 0); 
+FASTVRAM_CVAR(DBufferMask, 0);
+
+FASTVRAM_CVAR(DistanceFieldCulledObjectBuffers, 1);
+FASTVRAM_CVAR(DistanceFieldTileIntersectionResources, 1);
+FASTVRAM_CVAR(DistanceFieldAOScreenGridResources, 1);
+FASTVRAM_CVAR(ForwardLightingCullingResources, 1);
+
+FFastVramConfig::FFastVramConfig()
+{
+	FMemory::Memset(*this, 0);
+}
+
+void FFastVramConfig::Update()
+{
+	bDirty = false;
+	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_GBufferA, GBufferA);
+	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_GBufferB, GBufferB);
+	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_GBufferC, GBufferC);
+	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_GBufferD, GBufferD);
+	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_GBufferE, GBufferE);
+	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_GBufferVelocity, GBufferVelocity);
+	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_HZB, HZB);
+	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_SceneDepth, SceneDepth);
+	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_SceneColor, SceneColor);
+	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_LPV, LPV);
+	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_BokehDOF, BokehDOF);
+	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_CircleDOF, CircleDOF);
+	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_CombineLUTs, CombineLUTs);
+	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_Downsample, Downsample);
+	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_EyeAdaptation, EyeAdaptation);
+	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_Histogram, Histogram);
+	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_HistogramReduce, HistogramReduce);
+	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_VelocityFlat, VelocityFlat);
+	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_VelocityMax, VelocityMax);
+	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_MotionBlur, MotionBlur);
+	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_Tonemap, Tonemap);
+	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_Upscale, Upscale);
+	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_DistanceFieldNormal, DistanceFieldNormal);
+	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_DistanceFieldAOHistory, DistanceFieldAOHistory);
+	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_DistanceFieldAODownsampledBentNormal, DistanceFieldAODownsampledBentNormal);
+	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_DistanceFieldAOBentNormal, DistanceFieldAOBentNormal);
+	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_DistanceFieldAOConfidence, DistanceFieldAOConfidence);
+	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_DistanceFieldIrradiance, DistanceFieldIrradiance);
+	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_DistanceFieldShadows, DistanceFieldShadows);
+	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_Distortion, Distortion);
+	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_ScreenSpaceShadowMask, ScreenSpaceShadowMask);
+	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_VolumetricFog, VolumetricFog);
+	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_SeparateTranslucency, SeparateTranslucency);
+	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_LightAccumulation, LightAccumulation);
+	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_LightAttenuation, LightAttenuation);
+	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_ScreenSpaceAO, ScreenSpaceAO);
+	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_DBufferA, DBufferA);
+	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_DBufferB, DBufferB);
+	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_DBufferC, DBufferC);
+	bDirty |= UpdateTextureFlagFromCVar(CVarFastVRam_DBufferMask, DBufferMask);
+
+	bDirty |= UpdateBufferFlagFromCVar(CVarFastVRam_DistanceFieldCulledObjectBuffers, DistanceFieldCulledObjectBuffers);
+	bDirty |= UpdateBufferFlagFromCVar(CVarFastVRam_DistanceFieldTileIntersectionResources, DistanceFieldTileIntersectionResources);
+	bDirty |= UpdateBufferFlagFromCVar(CVarFastVRam_DistanceFieldAOScreenGridResources, DistanceFieldAOScreenGridResources);
+	bDirty |= UpdateBufferFlagFromCVar(CVarFastVRam_ForwardLightingCullingResources, ForwardLightingCullingResources);
+}
+
+bool FFastVramConfig::UpdateTextureFlagFromCVar(TAutoConsoleVariable<int32>& CVar, ETextureCreateFlags& InOutValue)
+{
+	ETextureCreateFlags OldValue = InOutValue;
+	InOutValue = CVar.GetValueOnRenderThread() ? ( TexCreate_FastVRAM ) : TexCreate_None;
+	return OldValue != InOutValue;
+}
+
+bool FFastVramConfig::UpdateBufferFlagFromCVar(TAutoConsoleVariable<int32>& CVar, EBufferUsageFlags& InOutValue)
+{
+	EBufferUsageFlags OldValue = InOutValue;
+	InOutValue = CVar.GetValueOnRenderThread() ? ( BUF_FastVRAM ) : BUF_None;
+	return OldValue != InOutValue;
+}
+
+FFastVramConfig GFastVRamConfig;
 
 
 FParallelCommandListSet::FParallelCommandListSet(TStatId InExecuteStat, const FViewInfo& InView, FRHICommandListImmediate& InParentCmdList, bool bInParallelExecute, bool bInCreateSceneContext)
@@ -1966,6 +2086,12 @@ void FRendererModule::BeginRenderingViewFamily(FCanvas* Canvas, FSceneViewFamily
 			FMaterialRenderProxy::UpdateDeferredCachedUniformExpressions();
 		});
 
+	ENQUEUE_RENDER_COMMAND(UpdateFastVRamConfig)(
+		[](FRHICommandList& RHICmdList)
+	{
+		GFastVRamConfig.Update();
+	});
+
 	// Flush the canvas first.
 	Canvas->Flush_GameThread();
 
@@ -2408,3 +2534,4 @@ FTextureRHIParamRef FSceneRenderer::GetMultiViewSceneColor(const FSceneRenderTar
 		return static_cast<FTextureRHIRef>(ViewFamily.RenderTarget->GetRenderTargetTexture());
 	}
 }
+

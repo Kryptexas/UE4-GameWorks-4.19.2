@@ -24,14 +24,20 @@
 #ifndef PCP_NAMESPACE_EDITS_H
 #define PCP_NAMESPACE_EDITS_H
 
+#include "pxr/pxr.h"
+#include "pxr/usd/pcp/api.h"
 #include "pxr/usd/pcp/cache.h"
+#include "pxr/base/tf/hashset.h"
+
 #include <boost/noncopyable.hpp>
 #include <boost/optional.hpp>
 #include <boost/scoped_ptr.hpp>
 #include <boost/shared_ptr.hpp>
-#include "pxr/base/tf/hashset.h"
+
 #include <string>
 #include <vector>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 // Forward declarations:
 class PcpChanges;
@@ -132,6 +138,7 @@ struct PcpNamespaceEdits {
 /// index referenced /A then this method would not report that prim. 
 /// As a result that prim would continue to reference /A, which no
 /// longer exists.
+PCP_API
 PcpNamespaceEdits
 PcpComputeNamespaceEdits(const PcpCache *primaryCache,
                          const std::vector<PcpCache*>& caches,
@@ -139,4 +146,6 @@ PcpComputeNamespaceEdits(const PcpCache *primaryCache,
                          const SdfPath& newPath,
                          const SdfLayerHandle& relocatesLayer);
 
-#endif
+PXR_NAMESPACE_CLOSE_SCOPE
+
+#endif // PCP_NAMESPACE_EDITS_H

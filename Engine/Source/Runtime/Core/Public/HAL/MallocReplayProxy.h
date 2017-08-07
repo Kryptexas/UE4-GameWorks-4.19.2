@@ -25,7 +25,7 @@ private:
 	/** Malloc we're based on, aka using under the hood */
 	FMalloc* UsedMalloc;
 
-protected:
+private:
 
 	enum
 	{

@@ -231,7 +231,7 @@ public:
 		ShowNotification(LOCTEXT("MigrationText", "Migrated Tag Settings, check DefaultEngine.ini before checking in!"), 10.0f);
 	}
 
-	void GameplayTagsUpdateSourceControl(FString RelativeConfigFilePath)
+	void GameplayTagsUpdateSourceControl(const FString& RelativeConfigFilePath)
 	{
 		FString ConfigPath = FPaths::ConvertRelativePathToFull(RelativeConfigFilePath);
 
@@ -258,7 +258,7 @@ public:
 		}
 	}
 
-	bool DeleteTagRedirector(FString TagToDelete)
+	bool DeleteTagRedirector(const FString& TagToDelete)
 	{
 		FName TagName = FName(*TagToDelete);
 
@@ -286,7 +286,7 @@ public:
 		return false;
 	}
 
-	virtual bool AddNewGameplayTagToINI(FString NewTag, FString Comment, FName TagSourceName) override
+	virtual bool AddNewGameplayTagToINI(const FString& NewTag, const FString& Comment, FName TagSourceName) override
 	{
 		UGameplayTagsManager& Manager = UGameplayTagsManager::Get();
 
@@ -367,7 +367,7 @@ public:
 		return true;
 	}
 
-	virtual bool DeleteTagFromINI(FString TagToDelete) override
+	virtual bool DeleteTagFromINI(const FString& TagToDelete) override
 	{
 		FName TagName = FName(*TagToDelete);
 
@@ -484,7 +484,7 @@ public:
 		return false;
 	}
 
-	virtual bool RenameTagInINI(FString TagToRename, FString TagToRenameTo) override
+	virtual bool RenameTagInINI(const FString& TagToRename, const FString& TagToRenameTo) override
 	{
 		FName OldTagName = FName(*TagToRename);
 		FName NewTagName = FName(*TagToRenameTo);
@@ -552,6 +552,27 @@ public:
 		ShowNotification(FText::Format(LOCTEXT("AddTagRedirect", "Renamed tag {0} to {1}"), FText::FromString(TagToRename), FText::FromString(TagToRenameTo)), 3.0f);
 
 		Manager.EditorRefreshGameplayTagTree();
+
+		return true;
+	}
+
+	virtual bool AddTransientEditorGameplayTag(const FString& NewTransientTag) override
+	{
+		UGameplayTagsManager& Manager = UGameplayTagsManager::Get();
+
+		if (NewTransientTag.IsEmpty())
+		{
+			return false;
+		}
+
+		Manager.TransientEditorTags.Add(*NewTransientTag);
+
+		{
+			FString PerfMessage = FString::Printf(TEXT("ConstructGameplayTagTree GameplayTag tables after adding new transient tag"));
+			SCOPE_LOG_TIME_IN_SECONDS(*PerfMessage, nullptr)
+
+			Manager.EditorRefreshGameplayTagTree();
+		}
 
 		return true;
 	}

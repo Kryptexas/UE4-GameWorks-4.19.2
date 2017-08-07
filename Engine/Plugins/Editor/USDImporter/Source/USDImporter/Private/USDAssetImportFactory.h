@@ -4,6 +4,8 @@
 
 #include "Factories/Factory.h"
 #include "USDImporter.h"
+#include "Factories/ImportSettings.h"
+
 #include "USDAssetImportFactory.generated.h"
 
 USTRUCT()
@@ -15,16 +17,23 @@ struct FUSDAssetImportContext : public FUsdImportContext
 };
 
 UCLASS(transient)
-class UUSDAssetImportFactory : public UFactory
+class UUSDAssetImportFactory : public UFactory, public IImportSettingsParser
 {
 	GENERATED_UCLASS_BODY()
 
 public:
-	// UFactory Interface
+	/** UFactory interface */
 	virtual UObject* FactoryCreateFile(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, const FString& Filename, const TCHAR* Parms, FFeedbackContext* Warn, bool& bOutOperationCanceled) override;
 	virtual bool FactoryCanImport(const FString& Filename) override;
 	virtual void CleanUp() override;
+	virtual IImportSettingsParser* GetImportSettingsParser() override { return this; }
+
+	/** IImportSettingsParser interface */
+	virtual void ParseFromJson(TSharedRef<class FJsonObject> ImportSettingsJson) override;
 private:
 	UPROPERTY()
 	FUSDAssetImportContext ImportContext;
+
+	UPROPERTY()
+	UUSDImportOptions* ImportOptions;
 };

@@ -1953,6 +1953,13 @@ void UStaticMesh::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 		DefaultCollisionName = BodySetup->DefaultInstance.GetCollisionProfileName();
 	}
 
+	static const UEnum *ComplexityEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("ECollisionTraceFlag"), true);
+	FString ComplexityString;
+	if (BodySetup && ComplexityEnum)
+	{
+		ComplexityString = ComplexityEnum->GetNameStringByValue((int64)BodySetup->GetCollisionTraceFlag());
+	}
+
 	OutTags.Add( FAssetRegistryTag("Triangles", FString::FromInt(NumTriangles), FAssetRegistryTag::TT_Numerical) );
 	OutTags.Add( FAssetRegistryTag("Vertices", FString::FromInt(NumVertices), FAssetRegistryTag::TT_Numerical) );
 	OutTags.Add( FAssetRegistryTag("UVChannels", FString::FromInt(NumUVChannels), FAssetRegistryTag::TT_Numerical) );
@@ -1962,6 +1969,7 @@ void UStaticMesh::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 	OutTags.Add( FAssetRegistryTag("LODs", FString::FromInt(NumLODs), FAssetRegistryTag::TT_Numerical));
 	OutTags.Add( FAssetRegistryTag("SectionsWithCollision", FString::FromInt(NumSectionsWithCollision), FAssetRegistryTag::TT_Numerical));
 	OutTags.Add( FAssetRegistryTag("DefaultCollision", DefaultCollisionName.ToString(), FAssetRegistryTag::TT_Alphabetical));
+	OutTags.Add( FAssetRegistryTag("CollisionComplexity", ComplexityString, FAssetRegistryTag::TT_Alphabetical));
 
 #if WITH_EDITORONLY_DATA
 	if (AssetImportData)
@@ -2631,19 +2639,6 @@ void UStaticMesh::PostLoad()
 			CleanUpRedondantMaterialPostLoad = false;
 		}
 
-		// Only required in an editor build as other builds process this in a different place
-		if (bRequiresLODDistanceConversion)
-		{
-			// Convert distances to Display Factors
-			ConvertLegacyLODDistance();
-		}
-
-		if (bRequiresLODScreenSizeConversion)
-		{
-			// Convert screen area to screen size
-			ConvertLegacyLODScreenArea();
-		}
-
 		if (RenderData && GStaticMeshesThatNeedMaterialFixup.Get(this))
 		{
 			FixupZeroTriangleSections();
@@ -2691,16 +2686,24 @@ void UStaticMesh::PostLoad()
 	}
 
 #if WITH_EDITOR
-	if (GetLinkerUE4Version() < VER_UE4_STATIC_MESH_EXTENDED_BOUNDS)
+	// Fix extended bounds if needed
+	const int32 CustomVersion = GetLinkerCustomVersion(FReleaseObjectVersion::GUID);
+	if (GetLinkerUE4Version() < VER_UE4_STATIC_MESH_EXTENDED_BOUNDS || CustomVersion < FReleaseObjectVersion::StaticMeshExtendedBoundsFix)
 	{
 		CalculateExtendedBounds();
 	}
-
-	// New fix for incorrect extended bounds
-	const int32 CustomVersion = GetLinkerCustomVersion(FReleaseObjectVersion::GUID);
-	if (CustomVersion < FReleaseObjectVersion::StaticMeshExtendedBoundsFix)
+	//Conversion of LOD distance need valid bounds it must be call after the extended Bounds fixup
+	// Only required in an editor build as other builds process this in a different place
+	if (bRequiresLODDistanceConversion)
 	{
-		CalculateExtendedBounds();
+		// Convert distances to Display Factors
+		ConvertLegacyLODDistance();
+	}
+
+	if (bRequiresLODScreenSizeConversion)
+	{
+		// Convert screen area to screen size
+		ConvertLegacyLODScreenArea();
 	}
 
 	//Always redo the whole SectionInfoMap to be sure it contain only valid data

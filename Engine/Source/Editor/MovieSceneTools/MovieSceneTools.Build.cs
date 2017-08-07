@@ -32,6 +32,7 @@ public class MovieSceneTools : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
                 "ActorPickerMode",
+                "CinematicCamera",
                 "DesktopPlatform",
 				"LevelSequence",
 				"MovieScene",

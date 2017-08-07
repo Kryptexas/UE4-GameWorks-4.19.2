@@ -199,6 +199,7 @@ enum EPixelFormat
 	PF_BC7,
 	PF_R8_UINT,
 	PF_L8,
+	PF_XGXR8,
 	PF_MAX,
 };
 

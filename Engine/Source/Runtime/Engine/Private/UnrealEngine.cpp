@@ -130,6 +130,9 @@
 #include "Components/TextRenderComponent.h"
 #include "Classes/Sound/AudioSettings.h"
 
+#if WITH_EDITOR
+#include "Settings/LevelEditorPlaySettings.h"
+#endif
 // @todo this is here only due to circular dependency to AIModule. To be removed
 
 #if WITH_EDITORONLY_DATA
@@ -8450,6 +8453,8 @@ float DrawOnscreenDebugMessages(UWorld* World, FViewport* Viewport, FCanvas* Can
  */
 void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas* CanvasObject, TArray<FDebugDisplayProperty>& DebugProperties, const FVector& ViewLocation, const FRotator& ViewRotation )
 {
+	LLM_SCOPED_SINGLE_STAT_TAG(Stats);
+
 	DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "DrawStatsHUD" ), STAT_DrawStatsHUD, STATGROUP_StatSystem );
 
 	// We cannot draw without a canvas
@@ -8523,6 +8528,15 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 				Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
 				MessageY += FontSizeY;
 			}
+
+#if ENABLE_LOW_LEVEL_MEM_TRACKER
+			if (FLowLevelMemTracker::IsEnabled() && !FPlatformMemory::IsDebugMemoryEnabled())
+			{
+				SmallTextItem.Text = LOCTEXT("MEMPROFILINGWARNING", "LLM enabled without Debug Memory enabled!");
+				Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
+				MessageY += FontSizeY;
+			}
+#endif
 		}
 #endif // STATS
 
@@ -9503,8 +9517,24 @@ bool UEngine::HandleOpenCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld *In
 			return true;
 		}
 	}
-
-	SetClientTravel( InWorld, Cmd, TRAVEL_Absolute );
+#if WITH_EDITOR
+	// Next comes a complicated but necessary way of blocking a crash caused by opening a level when playing multiprocess as a client (that's not allowed because of streaming levels)
+	ULevelEditorPlaySettings* PlayInSettings = GetMutableDefault<ULevelEditorPlaySettings>();
+	check(PlayInSettings);
+	bool bMultiProcess = !([&PlayInSettings] { bool RunUnderOneProcess(false); return (PlayInSettings->GetRunUnderOneProcess(RunUnderOneProcess) && RunUnderOneProcess); }());
+	
+	const EPlayNetMode PlayNetMode = [&PlayInSettings] { EPlayNetMode NetMode(PIE_Standalone); return (PlayInSettings->GetPlayNetMode(NetMode) ? NetMode : PIE_Standalone); }();
+	bool bClientMode = PlayNetMode == EPlayNetMode::PIE_Client;
+	
+	if (bMultiProcess && bClientMode)
+	{
+		UE_LOG(LogNet, Log, TEXT("%s"), TEXT("Opening a map is not allowed in this play mode (client mode + multiprocess)!"));
+	}
+	else
+#endif
+	{
+		SetClientTravel(InWorld, Cmd, TRAVEL_Absolute);
+	}
 	return true;
 }
 
@@ -10066,7 +10096,7 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("UEngine::LoadMap"), STAT_LoadMap, STATGROUP_LoadTime);
 
 	// example of a high level scoped tag
-	LLM_SCOPED_SINGLE_MALLOC_STAT_TAG(LoadMapMemory);
+	LLM_SCOPED_SINGLE_STAT_TAG(LoadMapMemory);
 
 	NETWORK_PROFILER(GNetworkProfiler.TrackSessionChange(true,URL));
 	MALLOC_PROFILER( FMallocProfiler::SnapshotMemoryLoadMapStart( URL.Map ) );
@@ -10400,6 +10430,7 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 			{
 				NewWorld->RenameToPIEWorld(WorldContext.PIEInstance);
 			}
+			ResetPIEAudioSetting(NewWorld);
 		}
 		else if (WorldContext.WorldType == EWorldType::Game)
 		{

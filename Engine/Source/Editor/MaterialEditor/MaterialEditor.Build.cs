@@ -39,6 +39,7 @@ public class MaterialEditor : ModuleRules
                 "MaterialUtilities",
                 "PropertyEditor",
 				"GraphEditor",
+                "AdvancedPreviewScene",
 			}
 		);
 

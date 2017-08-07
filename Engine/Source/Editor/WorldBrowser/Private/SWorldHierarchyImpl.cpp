@@ -745,12 +745,29 @@ void SWorldHierarchyImpl::OnUpdateSelection()
 	bUpdatingSelection = true;
 
 	ItemsSelectedAfterRefresh.Empty();
-	TArray<WorldHierarchy::FWorldTreeItemPtr> SelectedItems = GetSelectedTreeItems();
+	const FLevelModelList& SelectedItems = WorldModel->GetSelectedLevels();
+	TreeWidget->ClearSelection();
 
-	for (WorldHierarchy::FWorldTreeItemPtr Item : SelectedItems)
+	// To get the list of items that should be displayed as selected we need to find the level tree items belonging to the selected level models.
+	if (SelectedItems.Num() > 0)
 	{
-		ItemsSelectedAfterRefresh.Add(Item->GetID());
+		for (auto It = TreeItemMap.CreateConstIterator(); It; ++It)
+		{
+			WorldHierarchy::FWorldTreeItemPtr TreeItemPtr = It->Value;
+			if (TreeItemPtr.IsValid())
+			{
+				for (auto SelectedItemIt = SelectedItems.CreateConstIterator(); SelectedItemIt; ++SelectedItemIt)
+				{
+					if (TreeItemPtr->HasModel(*SelectedItemIt))
+					{
+						ItemsSelectedAfterRefresh.Add(It->Key);
+						break;
+					}
+				}
+			}
+		}
 	}
+
 
 	RefreshView();
 

@@ -24,6 +24,7 @@
 #ifndef USD_ATTRIBUTE_QUERY_H
 #define USD_ATTRIBUTE_QUERY_H
 
+#include "pxr/pxr.h"
 #include "pxr/usd/usd/api.h"
 #include "pxr/usd/usd/attribute.h"
 #include "pxr/usd/usd/common.h"
@@ -35,14 +36,21 @@
 
 #include <vector>
 
+PXR_NAMESPACE_OPEN_SCOPE
+
+
 /// \class UsdAttributeQuery
 ///
 /// Object for efficiently making repeated queries for attribute values.
 ///
 /// Retrieving an attribute's value at a particular time requires determining
-/// the source of strongest opinion for that value.  This source does not vary 
-/// over time.  UsdAttributeQuery uses this fact to speed up repeated queries 
-/// by caching the source information for an attribute.
+/// the source of strongest opinion for that value.  Often (i.e.  unless the
+/// attribute is affected by \ref Usd_Page_ValueClips "Value Clips") this
+/// source does not vary over time.  UsdAttributeQuery uses this fact to
+/// speed up repeated value queries by caching the source information for an
+/// attribute.  It is safe to use a UsdAttributeQuery for any attribute - if
+/// the attribute \em is affected by Value Clips, the performance gain will
+/// just be less.
 ///
 /// \section Thread safety
 /// This object provides the basic thread-safety guarantee.  Multiple threads
@@ -59,19 +67,23 @@ class UsdAttributeQuery
 {
 public:
     /// Construct an invalid query object.
-	USD_API UsdAttributeQuery();
+    USD_API
+    UsdAttributeQuery();
 
     /// Construct a new query for the attribute \p attr.
-	USD_API explicit UsdAttributeQuery(const UsdAttribute& attr);
+    USD_API
+    explicit UsdAttributeQuery(const UsdAttribute& attr);
 
     /// Construct a new query for the attribute named \p attrName under
     /// the prim \p prim.
-	USD_API UsdAttributeQuery(const UsdPrim& prim, const TfToken& attrName);
+    USD_API
+    UsdAttributeQuery(const UsdPrim& prim, const TfToken& attrName);
 
     /// Construct new queries for the attributes named in \p attrNames under
     /// the prim \p prim. The objects in the returned vector will line up
     /// 1-to-1 with \p attrNames.
-	USD_API static std::vector<UsdAttributeQuery> CreateQueries(
+    USD_API
+    static std::vector<UsdAttributeQuery> CreateQueries(
         const UsdPrim& prim, const TfTokenVector& attrNames);
 
     // --------------------------------------------------------------------- //
@@ -81,7 +93,8 @@ public:
     /// @{
 
     /// Return the attribute associated with this query.
-	USD_API const UsdAttribute& GetAttribute() const;
+    USD_API
+    const UsdAttribute& GetAttribute() const;
 
     /// Return true if this query is valid (i.e. it is associated with a
     /// valid attribute), false otherwise.
@@ -115,40 +128,44 @@ public:
     /// \sa UsdAttribute::Get
     template <typename T>
     bool Get(T* value, UsdTimeCode time = UsdTimeCode::Default()) const {
-        BOOST_STATIC_ASSERT(SdfValueTypeTraits<T>::IsValueType);
+        static_assert(SdfValueTypeTraits<T>::IsValueType,
+                      "T must be an SdfValueType.");
         return _Get(value, time);
     }
     /// \overload
     /// Type-erased access, often not as efficient as typed access.
-	USD_API bool Get(VtValue* value, UsdTimeCode time = UsdTimeCode::Default()) const;
+    USD_API
+    bool Get(VtValue* value, UsdTimeCode time = UsdTimeCode::Default()) const;
     
     /// Populates a vector with authored sample times. 
     /// Returns false only on error. 
     //
-    /// \sa UsdAttribute::GetTimeSamples
+    /// Behaves identically to UsdAttribute::GetTimeSamples()
+    ///
     /// \sa UsdAttributeQuery::GetTimeSamplesInInterval
-	USD_API bool GetTimeSamples(std::vector<double>* times) const;
+    USD_API
+    bool GetTimeSamples(std::vector<double>* times) const;
 
     /// Populates a vector with authored sample times in \p interval.
-    /// The interval may have any combination of open/infinite and 
-    /// closed/finite endpoints; it may not have open/finite endpoints, however,
-    /// this restriction may be lifted in the future.
     /// Returns false only on an error.
     ///
-    /// \sa UsdAttribute::GetTimeSamplesInInterval
-	USD_API bool GetTimeSamplesInInterval(const GfInterval& interval,
+    /// Behaves identically to UsdAttribute::GetTimeSamplesInInterval()
+    USD_API
+    bool GetTimeSamplesInInterval(const GfInterval& interval,
                                   std::vector<double>* times) const;
 
     /// Returns the number of time samples that have been authored.
     /// 
     /// \sa UsdAttribute::GetNumTimeSamples
-	USD_API size_t GetNumTimeSamples() const;
+    USD_API
+    size_t GetNumTimeSamples() const;
 
     /// Populate \a lower and \a upper with the next greater and lesser
     /// value relative to the \a desiredTime.
     ///
     /// \sa UsdAttribute::GetBracketingTimeSamples
-	USD_API bool GetBracketingTimeSamples(double desiredTime, 
+    USD_API
+    bool GetBracketingTimeSamples(double desiredTime, 
                                   double* lower, 
                                   double* upper, 
                                   bool* hasTimeSamples) const;
@@ -158,25 +175,29 @@ public:
     /// provided by a registered schema.
     ///
     /// \sa UsdAttribute::HasValue
-	USD_API bool HasValue() const;
+    USD_API
+    bool HasValue() const;
 
     /// Return true if the attribute associated with this query has either an 
     /// authored default value or authored time samples.
     ///
     /// \sa UsdAttribute::HasAuthoredValueOpinion
-	USD_API bool HasAuthoredValueOpinion() const;
+    USD_API
+    bool HasAuthoredValueOpinion() const;
 
     /// Return true if the attribute associated with this query has a 
     /// fallback value provided by a registered schema.
     ///
     /// \sa UsdAttribute::HasFallbackValue
-	USD_API bool HasFallbackValue() const;
+    USD_API
+    bool HasFallbackValue() const;
 
     /// Return true if it is possible, but not certain, that this attribute's
     /// value changes over time, false otherwise. 
     ///
     /// \sa UsdAttribute::ValueMightBeTimeVarying
-	USD_API bool ValueMightBeTimeVarying() const;
+    USD_API
+    bool ValueMightBeTimeVarying() const;
 
     /// @}
 
@@ -184,15 +205,14 @@ private:
     void _Initialize(const UsdAttribute& attr);
 
     template <typename T>
-    bool _Get(T* value, UsdTimeCode time) const
-	{
-		return _attr._GetStage()->_GetValueFromResolveInfo(
-			_resolveInfo, time, _attr, value);
-	}
+    USD_API
+    bool _Get(T* value, UsdTimeCode time) const;
 
 private:
     UsdAttribute _attr;
     UsdResolveInfo _resolveInfo;
 };
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // USD_ATTRIBUTE_QUERY_H

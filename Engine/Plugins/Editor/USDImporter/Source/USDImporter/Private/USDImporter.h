@@ -72,7 +72,7 @@ struct FUsdImportContext
 	virtual void Init(UObject* InParent, const FString& InName, EObjectFlags InFlags, IUsdStage* InStage);
 
 	void AddErrorMessage(EMessageSeverity::Type MessageSeverity, FText ErrorMessage);
-	void DisplayErrorMessages();
+	void DisplayErrorMessages(bool bAutomated);
 	void ClearErrorMessages();
 private:
 	/** Error messages **/
@@ -88,7 +88,7 @@ class UUSDImporter : public UObject
 public:
 	bool ShowImportOptions(UObject& ImportOptions);
 
-	IUsdStage* ReadUSDFile(const FString& Filename);
+	IUsdStage* ReadUSDFile(FUsdImportContext& ImportContext, const FString& Filename);
 
 	void FindPrimsToImport(FUsdImportContext& ImportContext, TArray<FUsdPrimToImport>& OutPrimsToImport);
 

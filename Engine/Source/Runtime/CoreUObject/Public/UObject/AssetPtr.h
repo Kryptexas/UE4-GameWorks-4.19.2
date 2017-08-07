@@ -11,6 +11,7 @@
 #include "Templates/Casts.h"
 #include "UObject/PersistentObjectPtr.h"
 #include "Misc/StringAssetReference.h"
+#include "PackageName.h"
 
 /**
  * FAssetPtr is a type of weak pointer to a UObject, that also keeps track of the path to the object on disk.
@@ -285,6 +286,17 @@ public:
 	{
 		// This does the runtime type check
 		return Get() != nullptr;
+	}
+
+	/**
+	* Test if this points to an asset on disk
+	*
+	* @return true if the file exists
+	*/
+	FORCEINLINE bool DoesAssetExist() const
+	{
+		// This does the runtime type check
+		return FPackageName::DoesPackageExist(GetLongPackageName());
 	}
 
 	/**  

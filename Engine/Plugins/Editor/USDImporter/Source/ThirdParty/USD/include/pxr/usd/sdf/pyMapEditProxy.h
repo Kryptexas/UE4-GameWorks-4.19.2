@@ -26,13 +26,15 @@
 
 /// \file sdf/pyMapEditProxy.h
 
-#include <boost/python.hpp>
-
+#include "pxr/pxr.h"
 #include "pxr/usd/sdf/changeBlock.h"
 #include "pxr/base/arch/demangle.h"
 #include "pxr/base/tf/iterator.h"
 #include "pxr/base/tf/pyUtils.h"
 #include "pxr/base/tf/stringUtils.h"
+#include <boost/python.hpp>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 template <class T>
 class SdfPyWrapMapEditProxy {
@@ -192,7 +194,7 @@ private:
     static std::string _GetStr(const Type& x)
     {
         std::string result("{");
-        if (x and not x.empty()) {
+        if (x && ! x.empty()) {
             const_iterator i = x.begin(), n = x.end();
             result += TfPyRepr(i->first) + ": " + TfPyRepr(i->second);
             while (++i != n) {
@@ -219,7 +221,7 @@ private:
     {
         std::pair<typename Type::iterator, bool> i =
             x.insert(value_type(key, value));
-        if (not i.second and i.first != typename Type::iterator()) {
+        if (! i.second && i.first != typename Type::iterator()) {
             i.first->second = value;
         }
     }
@@ -368,4 +370,6 @@ private:
     }
 };
 
-#endif
+PXR_NAMESPACE_CLOSE_SCOPE
+
+#endif // SDF_PYMAPEDITPROXY_H

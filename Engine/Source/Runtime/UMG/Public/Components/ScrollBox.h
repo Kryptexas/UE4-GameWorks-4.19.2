@@ -71,6 +71,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Scroll")
 	float NavigationScrollPadding;
 	
+	/** Option to disable right-click-drag scrolling */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Scroll")
+	bool bAllowRightClickDragScrolling;
+
 	UFUNCTION(BlueprintCallable, Category = "Scroll")
 	void SetOrientation(EOrientation NewOrientation);
 

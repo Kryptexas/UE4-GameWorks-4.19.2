@@ -88,6 +88,8 @@ FSlateEditableTextLayout::FSlateEditableTextLayout(ISlateEditableTextWidget& InO
 	LineHeightPercentage = 1.0f;
 	DebugSourceInfo = FString();
 
+	SearchCase = ESearchCase::IgnoreCase;
+
 	GraphemeBreakIterator = FBreakIterator::CreateCharacterBoundaryIterator();
 
 	BoundText = InInitialText;
@@ -131,6 +133,7 @@ FSlateEditableTextLayout::FSlateEditableTextLayout(ISlateEditableTextWidget& InO
 	CursorLineHighlighter = SlateEditableTextTypes::FCursorLineHighlighter::Create(&CursorInfo);
 	TextCompositionHighlighter = SlateEditableTextTypes::FTextCompositionHighlighter::Create();
 	TextSelectionHighlighter = SlateEditableTextTypes::FTextSelectionHighlighter::Create();
+	SearchSelectionHighlighter = SlateEditableTextTypes::FTextSearchHighlighter::Create();
 
 	ScrollOffset = FVector2D::ZeroVector;
 	PreferredCursorScreenOffsetInLine = 0.0f;
@@ -286,6 +289,22 @@ void FSlateEditableTextLayout::SetHintText(const TAttribute<FText>& InHintText)
 FText FSlateEditableTextLayout::GetHintText() const
 {
 	return HintText.Get(FText::GetEmpty());
+}
+
+void FSlateEditableTextLayout::SetSearchText(const TAttribute<FText>& InSearchText)
+{
+	const FText& SearchTextToSet = InSearchText.Get(FText::GetEmpty());
+
+	BoundSearchText = InSearchText;
+	BoundSearchTextLastTick = FTextSnapshot(SearchTextToSet);
+
+	BeginSearch(SearchTextToSet);
+	OwnerWidget->GetSlateWidget()->Invalidate(EInvalidateWidget::LayoutAndVolatility);
+}
+
+FText FSlateEditableTextLayout::GetSearchText() const
+{
+	return SearchText;
 }
 
 void FSlateEditableTextLayout::SetTextStyle(const FTextBlockStyle& InTextStyle)
@@ -550,6 +569,69 @@ void FSlateEditableTextLayout::ForceRefreshTextLayout(const FText& CurrentText)
 	UpdateCursorHighlight();
 
 	TextLayout->UpdateIfNeeded();
+}
+
+void FSlateEditableTextLayout::BeginSearch(const FText& InSearchText, const ESearchCase::Type InSearchCase, const bool InReverse)
+{
+	SearchText = InSearchText;
+	SearchCase = InSearchCase;
+	AdvanceSearch(InReverse);
+}
+
+void FSlateEditableTextLayout::AdvanceSearch(const bool InReverse)
+{
+	if (!SearchText.IsEmpty())
+	{
+		const FTextLocation CursorInteractionPosition = CursorInfo.GetCursorInteractionLocation();
+		const FTextLocation SelectionLocation = SelectionStart.Get(CursorInteractionPosition);
+		const FTextSelection Selection(SelectionLocation, CursorInteractionPosition);
+
+		const FTextLocation SearchStartLocation = InReverse ? Selection.GetBeginning() : Selection.GetEnd();
+
+		const FString& SearchTextString = SearchText.ToString();
+		const int32 SearchTextLength = SearchTextString.Len();
+		const TArray<FTextLayout::FLineModel>& Lines = TextLayout->GetLineModels();
+
+		int32 CurrentLineIndex = SearchStartLocation.GetLineIndex();
+		int32 CurrentLineOffset = SearchStartLocation.GetOffset();
+		do
+		{
+			const FTextLayout::FLineModel& Line = Lines[CurrentLineIndex];
+
+			// Do we have a match on this line?
+			const int32 CurrentSearchBegin = Line.Text->Find(SearchTextString, SearchCase, InReverse ? ESearchDir::FromEnd : ESearchDir::FromStart, CurrentLineOffset);
+			if (CurrentSearchBegin != INDEX_NONE)
+			{
+				SelectionStart = FTextLocation(CurrentLineIndex, CurrentSearchBegin);
+				CursorInfo.SetCursorLocationAndCalculateAlignment(*TextLayout, FTextLocation(CurrentLineIndex, CurrentSearchBegin + SearchTextLength));
+				break;
+			}
+
+			if (InReverse)
+			{
+				// Advance and loop the line (the outer loop will break once we loop fully around)
+				--CurrentLineIndex;
+				if (CurrentLineIndex < 0)
+				{
+					CurrentLineIndex = Lines.Num() - 1;
+				}
+				CurrentLineOffset = Lines[CurrentLineIndex].Text->Len();
+			}
+			else
+			{
+				// Advance and loop the line (the outer loop will break once we loop fully around)
+				++CurrentLineIndex;
+				if (CurrentLineIndex == Lines.Num())
+				{
+					CurrentLineIndex = 0;
+				}
+				CurrentLineOffset = 0;
+			}
+		}
+		while (CurrentLineIndex != SearchStartLocation.GetLineIndex());
+	}
+
+	UpdateCursorHighlight();
 }
 
 FVector2D FSlateEditableTextLayout::SetHorizontalScrollFraction(const float InScrollOffsetFraction)
@@ -924,6 +1006,22 @@ FReply FSlateEditableTextLayout::HandleKeyDown(const FKeyEvent& InKeyEvent)
 		Reply = BoolToReply(HandleBackspace());
 	}
 
+	// @Todo: Slate keybindings support more than one set of keys. 
+	// Begin search (Ctrl+[Shift]+F3)
+	else if (Key == EKeys::F3 && InKeyEvent.IsControlDown() && !InKeyEvent.IsAltDown())
+	{
+		BeginSearch(GetSelectedText(), ESearchCase::IgnoreCase, InKeyEvent.IsShiftDown());
+		Reply = FReply::Handled();
+	}
+
+	// @Todo: Slate keybindings support more than one set of keys. 
+	// Advance search ([Shift]+F3)
+	else if (Key == EKeys::F3 && !InKeyEvent.IsControlDown() && !InKeyEvent.IsAltDown())
+	{
+		AdvanceSearch(InKeyEvent.IsShiftDown());
+		Reply = FReply::Handled();
+	}
+
 	else if (!InKeyEvent.IsAltDown() && !InKeyEvent.IsControlDown() && InKeyEvent.GetKey() != EKeys::Tab && InKeyEvent.GetCharacter() != 0)
 	{
 		// Shift and a character was pressed or a single character was pressed.  We will type something in an upcoming OnKeyChar event.  
@@ -1144,6 +1242,14 @@ FReply FSlateEditableTextLayout::HandleMouseButtonDoubleClick(const FGeometry& I
 
 bool FSlateEditableTextLayout::HandleEscape()
 {
+	if (!SearchText.IsEmpty())
+	{
+		// Clear search
+		SearchText = FText::GetEmpty();
+		UpdateCursorHighlight();
+		return true;
+	}
+
 	if (AnyTextSelected())
 	{
 		// Clear selection
@@ -2318,6 +2424,7 @@ void FSlateEditableTextLayout::UpdateCursorHighlight()
 	RemoveCursorHighlight();
 
 	static const int32 SelectionHighlightZOrder = -10; // draw below the text
+	static const int32 SearchHighlightZOrder = -9; // draw above the base highlight as this is partially transparent
 	static const int32 CompositionRangeZOrder = 10; // draw above the text
 	static const int32 CursorZOrder = 11; // draw above the text and the composition
 
@@ -2327,7 +2434,31 @@ void FSlateEditableTextLayout::UpdateCursorHighlight()
 	const bool bHasKeyboardFocus = OwnerWidget->GetSlateWidget()->HasAnyUserFocus().IsSet();
 	const bool bIsComposing = TextInputMethodContext->IsComposing();
 	const bool bHasSelection = SelectionLocation != CursorInteractionPosition;
+	const bool bHasSearch = !SearchText.IsEmpty();
 	const bool bIsReadOnly = OwnerWidget->IsTextReadOnly();
+
+	if (bHasSearch)
+	{
+		const FString& SearchTextString = SearchText.ToString();
+		const int32 SearchTextLength = SearchTextString.Len();
+
+		const TArray< FTextLayout::FLineModel >& Lines = TextLayout->GetLineModels();
+		for (int32 LineIndex = 0; LineIndex < Lines.Num(); ++LineIndex)
+		{
+			const FTextLayout::FLineModel& Line = Lines[LineIndex];
+
+			int32 FindBegin = 0;
+			int32 CurrentSearchBegin = 0;
+			const int32 TextLength = Line.Text->Len();
+			while (FindBegin < TextLength && (CurrentSearchBegin = Line.Text->Find(SearchTextString, SearchCase, ESearchDir::FromStart, FindBegin)) != INDEX_NONE)
+			{
+				FindBegin = CurrentSearchBegin + SearchTextLength;
+				ActiveLineHighlights.Add(FTextLineHighlight(LineIndex, FTextRange(CurrentSearchBegin, FindBegin), SearchHighlightZOrder, SearchSelectionHighlighter.ToSharedRef()));
+			}
+		}
+
+		SearchSelectionHighlighter->SetHasKeyboardFocus(bHasKeyboardFocus);
+	}
 
 	if (bIsComposing)
 	{
@@ -2372,7 +2503,7 @@ void FSlateEditableTextLayout::UpdateCursorHighlight()
 		{
 			const TArray< FTextLayout::FLineModel >& Lines = TextLayout->GetLineModels();
 
-			for (int32 LineIndex = SelectionBeginningLineIndex; LineIndex <= SelectionEndLineIndex; LineIndex++)
+			for (int32 LineIndex = SelectionBeginningLineIndex; LineIndex <= SelectionEndLineIndex; ++LineIndex)
 			{
 				if (LineIndex == SelectionBeginningLineIndex)
 				{
@@ -2995,6 +3126,7 @@ bool FSlateEditableTextLayout::ComputeVolatility() const
 {
 	return BoundText.IsBound()
 		|| HintText.IsBound()
+		|| BoundSearchText.IsBound()
 		|| WrapTextAt.IsBound()
 		|| AutoWrapText.IsBound()
 		|| WrappingPolicy.IsBound()
@@ -3035,6 +3167,22 @@ void FSlateEditableTextLayout::Tick(const FGeometry& AllottedGeometry, const dou
 	{
 		// We don't have focus, so we can perform a full refresh
 		Refresh();
+	}
+
+	// Update the search before we process the next PositionToScrollIntoView
+	{
+		const FText& SearchTextToSet = BoundSearchText.Get(FText::GetEmpty());
+		if (!BoundSearchTextLastTick.IdenticalTo(SearchTextToSet))
+		{
+			// The pointer used by the bound text has changed, however the text may still be the same - check that now
+			if (!BoundSearchTextLastTick.IsDisplayStringEqualTo(SearchTextToSet))
+			{
+				BeginSearch(SearchTextToSet);
+			}
+
+			// Update this even if the text is lexically identical, as it will update the pointer compared by IdenticalTo for the next Tick
+			BoundSearchTextLastTick = FTextSnapshot(SearchTextToSet);
+		}
 	}
 
 	const float FontMaxCharHeight = FTextEditHelper::GetFontHeight(TextStyle.Font);

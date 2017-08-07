@@ -171,29 +171,9 @@ protected:
 	TMap<uint32, FD3D12LockedResource*> LockedMap;
 };
 
-struct FD3D12TextureMipLayout
-{
-	uint64	SizeInBytes;
-	uint64	OffsetInBytes;
-	uint64	SliceSizeInBytes;
-};
-
-struct FD3D12TextureLayout
-{
-	void FillFromDesc(const struct D3D12_RESOURCE_DESC& D3DTextureDesc);
-
-	uint64 GetSubresourceOffset(uint32 Plane, uint32 Mip, uint32 Slice) const
-	{
-		check(Plane == 0);
-		return Plane0MipLayout[Mip].OffsetInBytes + (Plane0MipLayout[Mip].SliceSizeInBytes * Slice);
-	}
-
-	uint64							SizeInBytes;				// Size in bytes, rounded to FD3D12_TEXTURE_DATA_PITCH_ALIGNMENT
-	uint32							AlignmentInBytes;			// Alignment in bytes
-	uint32							MipLevels;					// Number of mip levels
-	uint32							Planes;						// Number of planes
-	FD3D12TextureMipLayout			Plane0MipLayout[15];		// 15 == Maximum texture dimension
-};
+#if !PLATFORM_SUPPORTS_VIRTUAL_TEXTURES
+struct FD3D12TextureLayout {};
+#endif
 
 /** 2D texture (vanilla, cubemap or 2D array) */
 template<typename BaseResourceType>
@@ -404,7 +384,7 @@ public:
 	}
 };
 
-class FD3D12BaseTexture2D : public FRHITexture2D
+class FD3D12BaseTexture2D : public FRHITexture2D, public FD3D12FastClearResource
 {
 public:
 	FD3D12BaseTexture2D(uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, uint32 InNumMips, uint32 InNumSamples, EPixelFormat InFormat, uint32 InFlags, const FClearValueBinding& InClearValue)
@@ -413,7 +393,7 @@ public:
 	uint32 GetSizeZ() const { return 0; }
 };
 
-class FD3D12BaseTexture2DArray : public FRHITexture2DArray
+class FD3D12BaseTexture2DArray : public FRHITexture2DArray, public FD3D12FastClearResource
 {
 public:
 	FD3D12BaseTexture2DArray(uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, uint32 InNumMips, uint32 InNumSamples, EPixelFormat InFormat, uint32 InFlags, const FClearValueBinding& InClearValue)
@@ -423,7 +403,7 @@ public:
 	}
 };
 
-class FD3D12BaseTextureCube : public FRHITextureCube
+class FD3D12BaseTextureCube : public FRHITextureCube, public FD3D12FastClearResource
 {
 public:
 	FD3D12BaseTextureCube(uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, uint32 InNumMips, uint32 InNumSamples, EPixelFormat InFormat, uint32 InFlags, const FClearValueBinding& InClearValue)

@@ -695,14 +695,14 @@ static void DumpHitch(int64 Frame)
 				GameThread = ChildIter.Value();
 				UE_LOG( LogStats, Log, TEXT( "------------------ Game Thread %.2fms" ), GameThreadTime * 1000.0f );
 				GameThread->CullByCycles( MinCycles );
-				GameThread->DebugPrint();
+				GameThread->DebugPrint(nullptr, 127);
 			}
 			else if( ThreadName == FName( NAME_RenderThread ) )
 			{
 				RenderThread = ChildIter.Value();
 				UE_LOG( LogStats, Log, TEXT( "------------------ Render Thread (%s) %.2fms" ), *RenderThread->Meta.NameAndInfo.GetRawName().ToString(), RenderThreadTime * 1000.0f );
 				RenderThread->CullByCycles( MinCycles );
-				RenderThread->DebugPrint();
+				RenderThread->DebugPrint(nullptr, 127);
 			}
 		}
 

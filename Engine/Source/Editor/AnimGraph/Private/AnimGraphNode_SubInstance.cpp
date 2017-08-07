@@ -247,7 +247,7 @@ void UAnimGraphNode_SubInstance::CustomizeDetails(IDetailLayoutBuilder& DetailBu
 	Super::CustomizeDetails(DetailBuilder);
 
 	// We dont allow multi-select here
-	if(DetailBuilder.GetDetailsView().GetSelectedObjects().Num() > 1)
+	if(DetailBuilder.GetSelectedObjects().Num() > 1)
 	{
 		return;
 	}

@@ -7,7 +7,7 @@
 /** Is an entity visible? */
 struct SLATECORE_API EVisibility
 {
-	/** Default widget visibility - visible and can interactive with the cursor */
+	/** Default widget visibility - visible and can interact with the cursor */
 	static const EVisibility Visible;
 
 	/** Not visible and takes up no space in the layout; can never be clicked on because it takes up no space. */

@@ -26,10 +26,14 @@
 
 /// \file sdf/variantSpec.h
 
+#include "pxr/pxr.h"
 #include "pxr/usd/sdf/api.h"
 #include "pxr/usd/sdf/declareSpec.h"
+#include "pxr/usd/sdf/proxyTypes.h"
 #include "pxr/usd/sdf/spec.h"
 #include <string>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 SDF_DECLARE_HANDLES(SdfLayer);
 SDF_DECLARE_HANDLES(SdfPrimSpec);
@@ -87,6 +91,19 @@ public:
     /// Get the prim spec owned by this variant.
     SDF_API
     SdfPrimSpecHandle GetPrimSpec() const;
+
+    /// Returns the nested variant sets.
+    ///
+    /// The result maps variant set names to variant sets.  Variant sets
+    /// may be removed through the proxy.
+    SDF_API
+    SdfVariantSetsProxy GetVariantSets() const;
+
+    /// Returns list of variant names for the given varient set.
+    SDF_API
+    std::vector<std::string> GetVariantNames(const std::string& name) const;
+
+    /// @}
 };
 
 /// Convenience function to create a variant spec for a given variant set and
@@ -104,5 +121,7 @@ SDF_API SdfVariantSpecHandle SdfCreateVariantInLayer(
     const SdfPath &primPath,
     const std::string &variantSetName,
     const std::string &variantName );
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif /* SDF_VARIANT_SPEC_H */

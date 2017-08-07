@@ -74,9 +74,8 @@ public:
 	virtual TSharedRef< FPropertyPath> GetRootPath() const = 0;
 	virtual TArray< struct FPropertyInfo > GetPossibleExtensionsForPath( const TSharedRef< FPropertyPath >& Path ) const = 0;
 
-	virtual void GetSelectedObjects( TArray< TWeakObjectPtr< UObject > >& OutSelectedObjects) const = 0;
+	virtual void GetSelectedTableObjects( TArray< TWeakObjectPtr< UObject > >& OutSelectedObjects) const = 0;
 
-	virtual const TArray< TWeakObjectPtr< UObject > >& GetObjects() const = 0;
 	virtual void SetObjects( const TArray< TWeakObjectPtr< UObject > >& Objects ) = 0;
 	virtual void SetObjects( const TArray< UObject* >& Objects ) = 0;
 

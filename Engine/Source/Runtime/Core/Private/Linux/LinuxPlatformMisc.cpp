@@ -673,9 +673,15 @@ FString FLinuxPlatformMisc::GetCPUBrand()
 #if !UE_BUILD_SHIPPING
 bool FLinuxPlatformMisc::IsDebuggerPresent()
 {
+	extern CORE_API bool GIgnoreDebugger;
+	if (GIgnoreDebugger)
+	{
+		return false;
+	}
+
 	// If a process is tracing this one then TracerPid in /proc/self/status will
 	// be the id of the tracing process. Use SignalHandler safe functions 
-
+	
 	int StatusFile = open("/proc/self/status", O_RDONLY);
 	if (StatusFile == -1) 
 	{
@@ -886,3 +892,18 @@ bool FLinuxPlatformMisc::IsRunningOnBattery()
 
 	return bIsOnBattery;
 }
+
+#if !UE_BUILD_SHIPPING
+void FLinuxPlatformMisc::DebugBreak()
+{
+	if( IsDebuggerPresent() )
+	{
+		UngrabAllInput();
+#if PLATFORM_CPU_X86_FAMILY
+		__asm__ volatile("int $0x03");
+#else
+		raise(SIGTRAP);
+#endif
+	}
+}
+#endif // !UE_BUILD_SHIPPING

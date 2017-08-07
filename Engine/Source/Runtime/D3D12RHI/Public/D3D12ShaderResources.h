@@ -6,6 +6,9 @@
 
 #pragma once
 
+// Key used for determining whether shader code is packed or not.
+const int32 PackedShaderKey = 'XSHA';
+
 struct FD3D12ShaderResourceTable : public FBaseShaderResourceTable
 {
 	/** Mapping of bound Textures to their location in resource tables. */

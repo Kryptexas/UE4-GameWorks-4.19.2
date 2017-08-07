@@ -3240,8 +3240,11 @@ public:
 	// Post duplication event.
 	static FWorldPostDuplicateEvent OnPostDuplicate;
 
-	// Callback for world cleanup
+	// Callback for world cleanup start
 	static FWorldCleanupEvent OnWorldCleanup;
+
+	// Callback for world cleanup end
+	static FWorldCleanupEvent OnPostWorldCleanup;
 
 	// Callback for world destruction (only called for initialized worlds)
 	static FWorldEvent OnPreWorldFinishDestroy;

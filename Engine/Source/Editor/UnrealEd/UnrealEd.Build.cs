@@ -177,7 +177,6 @@ public class UnrealEd : ModuleRules
 				"ContentBrowser",
 				"CurveTableEditor",
 				"DataTableEditor",
-				"DestructibleMeshEditor",
 				"EditorSettingsViewer",
 				"LandscapeEditor",
 				"KismetCompiler",
@@ -265,7 +264,12 @@ public class UnrealEd : ModuleRules
 		{
 			PublicDependencyModuleNames.Add("XAudio2");
 			PublicDependencyModuleNames.Add("AudioMixerXAudio2");
-			PublicDependencyModuleNames.Add("UnrealAudioXAudio2");
+
+            // SDL ony has 64 bit binary
+            if (Target.Platform == UnrealTargetPlatform.Win64)
+            {
+                PublicDependencyModuleNames.Add("AudioMixerSDL");
+            }
 
 			AddEngineThirdPartyPrivateStaticDependencies(Target, 
 				"UEOgg",
@@ -283,7 +287,6 @@ public class UnrealEd : ModuleRules
 		}
 
 		AddEngineThirdPartyPrivateStaticDependencies(Target,
-			"HACD",
 			"VHACD",
 			"FBX",
 			"FreeType2"

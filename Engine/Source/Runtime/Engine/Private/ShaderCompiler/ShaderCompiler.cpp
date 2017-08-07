@@ -1536,10 +1536,16 @@ FProcHandle FShaderCompilingManager::LaunchWorker(const FString& WorkingDirector
 	{
 		WorkerParameters += FString(TEXT(" -buildmachine "));
 	}
-	if (PLATFORM_LINUX && UE_BUILD_DEBUG) //-V560
+	if (PLATFORM_LINUX) //-V560
 	{
-		// when running a debug build under Linux, make SCW crash with core for easier debugging
-		WorkerParameters += FString(TEXT(" -core "));
+		// suppress log generation as much as possible
+		WorkerParameters += FString(TEXT(" -logcmds=\"Global None\" "));
+
+		if (UE_BUILD_DEBUG)
+		{
+			// when running a debug build under Linux, make SCW crash with core for easier debugging
+			WorkerParameters += FString(TEXT(" -core "));
+		}
 	}
 	WorkerParameters += FCommandLine::GetSubprocessCommandline();
 
@@ -1812,8 +1818,7 @@ void FShaderCompilingManager::ProcessCompiledShaderMaps(
 								UE_LOG(LogShaderCompilers, Fatal,TEXT("Failed to compile default material %s!"), *Material->GetBaseMaterialPathName());
 							}
 
-							UE_LOG(LogShaderCompilers, Warning, TEXT("Failed to compile Material %s for platform %s, Default Material will be used in game."), 
-								*Material->GetBaseMaterialPathName(), 
+							UE_ASSET_LOG(LogShaderCompilers, Warning, *Material->GetBaseMaterialPathName(), TEXT("Failed to compile Material for platform %s, Default Material will be used in game."),
 								*LegacyShaderPlatformToShaderFormat(ShaderMap->GetShaderPlatform()).ToString());
 
 							for (int32 ErrorIndex = 0; ErrorIndex < Errors.Num(); ErrorIndex++)
@@ -1821,7 +1826,7 @@ void FShaderCompilingManager::ProcessCompiledShaderMaps(
 								FString ErrorMessage = Errors[ErrorIndex];
 								// Work around build machine string matching heuristics that will cause a cook to fail
 								ErrorMessage.ReplaceInline(TEXT("error "), TEXT("err0r "), ESearchCase::CaseSensitive);
-								UE_LOG(LogShaderCompilers, Warning, TEXT("	%s"), *ErrorMessage);
+								UE_LOG(LogShaderCompilers, Log, TEXT("	%s"), *ErrorMessage);
 							}
 						}
 						else

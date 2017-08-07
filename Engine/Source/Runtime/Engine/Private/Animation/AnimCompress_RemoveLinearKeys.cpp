@@ -138,26 +138,49 @@ void FilterLinearKeysTemplate(
 	{
 		int32 LowKey = 0;
 		int32 HighKey = KeyCount-1;
-		int32 PrevKey = 0;
+
+		TArray<uint32> KnownParentTimes;
+		KnownParentTimes.Empty(KeyCount);
+		const int32 ParentKeyCount = ParentTimes ? ParentTimes->Num() : 0;
+		for (int32 TimeIndex = 0, ParentTimeIndex = 0; TimeIndex < KeyCount; TimeIndex++)
+		{
+			while ((ParentTimeIndex < ParentKeyCount) && (Times[TimeIndex] > (*ParentTimes)[ParentTimeIndex]))
+			{
+				ParentTimeIndex++;
+			}
+
+			KnownParentTimes.Add((ParentTimeIndex < ParentKeyCount) && (Times[TimeIndex] == (*ParentTimes)[ParentTimeIndex]));
+		}
+
+		TArray<FTransform> CachedInvRawBases;
+		CachedInvRawBases.Empty(KeyCount);
+		for (int32 FrameIndex = 0; FrameIndex < KeyCount; ++FrameIndex)
+		{
+			const FTransform& RawBase = RawWorldBones[(BoneIndex*NumFrames) + FrameIndex];
+			CachedInvRawBases.Add(RawBase.Inverse());
+		}
 		
 		// copy the low key (this one is a given)
 		NewTimes.Add(Times[0]);
 		NewKeys.Add(Keys[0]);
 
-		FTransform DummyBone(FQuat::Identity, FVector(END_EFFECTOR_SOCKET_DUMMY_BONE_SIZE, END_EFFECTOR_SOCKET_DUMMY_BONE_SIZE, END_EFFECTOR_SOCKET_DUMMY_BONE_SIZE));
+		const FTransform EndEffectorDummyBoneSocket(FQuat::Identity, FVector(END_EFFECTOR_DUMMY_BONE_LENGTH_SOCKET));
+		const FTransform EndEffectorDummyBone(FQuat::Identity, FVector(END_EFFECTOR_DUMMY_BONE_LENGTH));
 
-		float const DeltaThreshold = (BoneData[BoneIndex].IsEndEffector() && (BoneData[BoneIndex].bHasSocket || BoneData[BoneIndex].bKeyEndEffector)) ? EffectorDiffSocket : MaxTargetDelta;
+		const float DeltaThreshold = (BoneData[BoneIndex].IsEndEffector() && (BoneData[BoneIndex].bHasSocket || BoneData[BoneIndex].bKeyEndEffector)) ? EffectorDiffSocket : MaxTargetDelta;
 
 		// We will test within a sliding window between LowKey and HighKey.
 		// Therefore, we are done when the LowKey exceeds the range
-		while (LowKey < KeyCount-1)
+		while (LowKey + 1 < KeyCount)
 		{
-			// high key always starts at the top of the range
-			HighKey = KeyCount-1;
-
-			// keep testing until the window is closed
-			while (HighKey > LowKey+1)
+			int32 GoodHighKey = LowKey + 1;
+			int32 BadHighKey = KeyCount;
+			
+			// bisect until we find the lowest acceptable high key
+			while (BadHighKey - GoodHighKey >= 2)
 			{
+				HighKey = GoodHighKey + (BadHighKey - GoodHighKey) / 2;
+
 				// get the parameters of the window we are testing
 				const float LowTime = Times[LowKey];
 				const float HighTime = Times[HighKey];
@@ -190,7 +213,7 @@ void FilterLinearKeysTemplate(
 					{
 						// get the raw world transform for this bone (the original world-space position)
 						const int32 FrameIndex = TestKey;
-						const FTransform& RawBase = RawWorldBones[(BoneIndex*NumFrames) + FrameIndex];
+						const FTransform& InvRawBase = CachedInvRawBases[FrameIndex];
 						
 						// generate the proposed local bone atom and transform (local space)
 						FTransform ProposedTM = UpdateBoneAtom(BoneIndex, BoneAtoms[FrameIndex], LerpValue);
@@ -205,24 +228,30 @@ void FilterLinearKeysTemplate(
 							// find the offset transform from the raw base to the end effector
 							const int32 TargetBoneIndex = TargetBoneIndices[TargetIndex];
 							FTransform RawTarget = RawWorldBones[(TargetBoneIndex*NumFrames) + FrameIndex];
-							const FTransform& RelTM = RawTarget.GetRelativeTransform(RawBase); 
+							const FTransform RelTM = RawTarget * InvRawBase;
 
 							// forecast where the new end effector would be using our proposed key
 							FTransform ProposedTarget = RelTM * ProposedBase;
 
-							// If this is an EndEffector with a Socket attached to it, add an extra bone, to measure error introduced by effector rotation compression.
-							if( BoneData[TargetIndex].bHasSocket || BoneData[TargetIndex].bKeyEndEffector )
+							// If this is an EndEffector, add a dummy bone to measure the effect of compressing the rotation.
+							// Sockets and Key EndEffectors have a longer dummy bone to maintain higher precision.
+							if (BoneData[TargetIndex].bHasSocket || BoneData[TargetIndex].bKeyEndEffector)
 							{
-								ProposedTarget = DummyBone * ProposedTarget;
-								RawTarget = DummyBone * RawTarget;
+								ProposedTarget = EndEffectorDummyBoneSocket * ProposedTarget;
+								RawTarget = EndEffectorDummyBoneSocket * RawTarget;
+							}
+							else
+							{
+								ProposedTarget = EndEffectorDummyBone * ProposedTarget;
+								RawTarget = EndEffectorDummyBone * RawTarget;
 							}
 
 							// determine the extend of error at the target end effector
-							float ThisError = (ProposedTarget.GetTranslation() - RawTarget.GetTranslation()).Size();
+							const float ThisError = (ProposedTarget.GetTranslation() - RawTarget.GetTranslation()).Size();
 							TargetError = FMath::Max(TargetError, ThisError); 
 
 							// exit early when we encounter a large delta
-							float const TargetDeltaThreshold = BoneData[TargetIndex].bHasSocket ? EffectorDiffSocket : DeltaThreshold;
+							const float TargetDeltaThreshold = BoneData[TargetIndex].bHasSocket ? EffectorDiffSocket : DeltaThreshold;
 							if( TargetError > TargetDeltaThreshold )
 							{ 
 								break;
@@ -235,7 +264,7 @@ void FilterLinearKeysTemplate(
 					// making the skeleton more uniform in key distribution.
 					if (ParentTimes)
 					{
-						if (ParentTimes->Find(TestTime) != INDEX_NONE)
+						if (KnownParentTimes[TestKey])
 						{
 							// our parent has a key at this time, 
 							// inflate our perceived error to increase our sensitivity
@@ -259,39 +288,20 @@ void FilterLinearKeysTemplate(
 				}
 
 				// determine if the span succeeded. That is, the worst errors found are within tolerances
-				if (MaxLerpError <= MaxDelta &&
-					MaxTargetError <= DeltaThreshold)
+				if ((MaxLerpError <= MaxDelta) && (MaxTargetError <= DeltaThreshold))
 				{
-					// save the high end of the test span as our next key
-					NewTimes.Add(Times[HighKey]);
-					NewKeys.Add(Keys[HighKey]);
-
-					// start testing a new span
-					LowKey = HighKey;
-					HighKey =  KeyCount-1;
+					GoodHighKey = HighKey;
 				}
 				else
 				{
-					// we failed, shrink the test span window and repeat
-					--HighKey;
+					BadHighKey = HighKey;
 				}
 			}
 
-			// if the test window is still valid, accept the high key
-			if (HighKey > LowKey)
-			{
-				NewTimes.Add(Times[HighKey]);
-				NewKeys.Add(Keys[HighKey]);
-			}
-			LowKey= HighKey;
-		}
+			NewTimes.Add(Times[GoodHighKey]);
+			NewKeys.Add(Keys[GoodHighKey]);
 
-		// The process has ended, but we must make sure the last key is accounted for
-		if (NewTimes.Last() != Times.Last() &&
-			CalcDelta(Keys.Last(), NewKeys.Last()) >= MaxDelta )
-		{
-			NewTimes.Add(Times.Last());
-			NewKeys.Add(Keys.Last());
+			LowKey = GoodHighKey;
 		}
 
 		// return the new key set to the caller

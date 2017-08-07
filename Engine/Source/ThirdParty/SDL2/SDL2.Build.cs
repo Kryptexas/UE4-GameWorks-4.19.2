@@ -43,6 +43,17 @@ public class SDL2 : ModuleRules
             SDL2LibPath = Target.UEThirdPartySourceDirectory + "SDL2/HTML5/SDL2-master/libs/";
             PublicAdditionalLibraries.Add(SDL2LibPath + "/libSDL2.a");
         }
-     
-	}
+        else if (Target.Platform == UnrealTargetPlatform.Win64)
+        {
+            PublicIncludePaths.Add(SDL2Path + "include");
+
+            SDL2LibPath += "Win64/";
+
+            PublicAdditionalLibraries.Add(SDL2LibPath + "SDL2.lib");
+
+            RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/SDL2/Win64/SDL2.dll"));
+            PublicDelayLoadDLLs.Add("SDL2.dll");
+        }
+
+    }
 }

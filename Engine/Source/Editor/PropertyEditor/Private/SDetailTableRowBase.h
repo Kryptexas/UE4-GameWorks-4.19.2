@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "InputCoreTypes.h"
 #include "Input/Reply.h"
-#include "IDetailTreeNode.h"
+#include "DetailTreeNode.h"
 #include "Widgets/Views/STableViewBase.h"
 #include "Widgets/Views/STableRow.h"
 #include "Textures/SlateIcon.h"
@@ -17,7 +17,7 @@
 #include "Framework/Application/SlateApplication.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 
-class SDetailTableRowBase : public STableRow< TSharedPtr< IDetailTreeNode > >
+class SDetailTableRowBase : public STableRow< TSharedPtr< FDetailTreeNode > >
 {
 public:
 	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
@@ -26,7 +26,7 @@ public:
 		{
 			FMenuBuilder MenuBuilder( true, NULL );
 
-			TArray< TSharedRef<IDetailTreeNode> > VisibleChildren;
+			FDetailNodeList VisibleChildren;
 			OwnerTreeNode.Pin()->GetChildren( VisibleChildren );
 
 			bool bShouldOpenMenu = false;
@@ -57,7 +57,7 @@ public:
 			}
 		}
 
-		return STableRow< TSharedPtr< IDetailTreeNode > >::OnMouseButtonUp( MyGeometry, MouseEvent );
+		return STableRow< TSharedPtr< FDetailTreeNode > >::OnMouseButtonUp( MyGeometry, MouseEvent );
 	}
 
 protected:
@@ -72,26 +72,26 @@ protected:
 private:
 	void OnExpandAllClicked()
 	{
-		TSharedPtr<IDetailTreeNode> OwnerTreeNodePin = OwnerTreeNode.Pin();
+		TSharedPtr<FDetailTreeNode> OwnerTreeNodePin = OwnerTreeNode.Pin();
 		if( OwnerTreeNodePin.IsValid() )
 		{
 			const bool bRecursive = true;
 			const bool bIsExpanded = true;
-			OwnerTreeNodePin->GetDetailsView().SetNodeExpansionState( OwnerTreeNodePin.ToSharedRef(), bIsExpanded, bRecursive );
+			OwnerTreeNodePin->GetDetailsView()->SetNodeExpansionState( OwnerTreeNodePin.ToSharedRef(), bIsExpanded, bRecursive );
 		}
 	}
 
 	void OnCollapseAllClicked()
 	{
-		TSharedPtr<IDetailTreeNode> OwnerTreeNodePin = OwnerTreeNode.Pin();
+		TSharedPtr<FDetailTreeNode> OwnerTreeNodePin = OwnerTreeNode.Pin();
 		if( OwnerTreeNodePin.IsValid() )
 		{
 			const bool bRecursive = true;
 			const bool bIsExpanded = false;
-			OwnerTreeNodePin->GetDetailsView().SetNodeExpansionState( OwnerTreeNodePin.ToSharedRef(), bIsExpanded, bRecursive );
+			OwnerTreeNodePin->GetDetailsView()->SetNodeExpansionState( OwnerTreeNodePin.ToSharedRef(), bIsExpanded, bRecursive );
 		}
 	}
 protected:
 	static float ScrollbarPaddingSize;
-	TWeakPtr<IDetailTreeNode> OwnerTreeNode;
+	TWeakPtr<FDetailTreeNode> OwnerTreeNode;
 };

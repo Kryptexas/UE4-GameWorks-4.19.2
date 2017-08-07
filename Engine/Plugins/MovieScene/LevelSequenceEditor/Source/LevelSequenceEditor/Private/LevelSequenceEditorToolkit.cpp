@@ -918,4 +918,10 @@ bool FLevelSequenceEditorToolkit::OnRequestClose()
 	return true;
 }
 
+bool FLevelSequenceEditorToolkit::CanFindInContentBrowser() const
+{
+	// False so that sequencer doesn't take over Find In Content Browser functionality and always find the level sequence asset
+	return false;
+}
+
 #undef LOCTEXT_NAMESPACE

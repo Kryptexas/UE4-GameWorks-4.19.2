@@ -55,6 +55,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Display")
 	FSlateFontInfo Font;
 
+	/** The justification the value text should appear as. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Display")
+	TEnumAsByte<ETextJustify::Type> Justification;
+
 	/** The minimum width of the spin box */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Display", AdvancedDisplay, DisplayName = "Minimum Desired Width")
 	float MinDesiredWidth;

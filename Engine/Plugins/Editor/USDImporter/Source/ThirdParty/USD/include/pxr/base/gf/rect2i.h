@@ -27,12 +27,16 @@
 /// \file gf/rect2i.h
 /// \ingroup group_gf_LinearAlgebra
 
+#include "pxr/pxr.h"
 #include "pxr/base/gf/math.h"
 #include "pxr/base/gf/vec2i.h"
 #include "pxr/base/gf/api.h"
+
 #include <boost/functional/hash.hpp>
 
 #include <iosfwd>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 /// \class GfRect2i
 /// \ingroup group_gf_LinearAlgebra
@@ -296,5 +300,7 @@ private:
 /// Output a GfRect2i using the format [(x y):(x y)].
 /// \ingroup group_gf_DebuggingOutput
 GF_API std::ostream& operator<<(std::ostream&, const GfRect2i&);
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif

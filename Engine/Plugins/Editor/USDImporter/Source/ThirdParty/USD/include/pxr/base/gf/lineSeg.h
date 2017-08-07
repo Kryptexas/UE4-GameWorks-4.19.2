@@ -27,12 +27,15 @@
 /// \file gf/lineSeg.h
 /// \ingroup group_gf_BasicGeometry
 
+#include "pxr/pxr.h"
 #include "pxr/base/gf/line.h"
 #include "pxr/base/gf/vec3d.h"
 #include "pxr/base/gf/api.h"
 
 #include <float.h>
 #include <iosfwd>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 /// \class GfLineSeg
 /// \ingroup group_gf_BasicGeometry
@@ -126,5 +129,7 @@ bool GfFindClosestPoints( const GfLineSeg &seg1, const GfLineSeg &seg2,
 /// Output a GfLineSeg.
 /// \ingroup group_gf_DebuggingOutput
 GF_API std::ostream &operator<<(std::ostream&, const GfLineSeg&);
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // GF_LINESEG_H

@@ -6,7 +6,7 @@
 #include "Layout/Visibility.h"
 #include "Input/Reply.h"
 #include "IPropertyUtilities.h"
-#include "IDetailTreeNode.h"
+#include "DetailTreeNode.h"
 #include "Widgets/Views/STableViewBase.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/Views/STableRow.h"
@@ -28,7 +28,7 @@ public:
 		SLATE_ARGUMENT( const FDetailColumnSizeData*, ColumnSizeData )
 	SLATE_END_ARGS()
 
-	void Construct( const FArguments& InArgs, TSharedRef<IDetailTreeNode> InOwnerTreeNode, const TSharedRef<STableViewBase>& InOwnerTableView );
+	void Construct( const FArguments& InArgs, TSharedRef<FDetailTreeNode> InOwnerTreeNode, const TSharedRef<STableViewBase>& InOwnerTableView );
 private:
 	EVisibility IsSeparatorVisible() const;
 	const FSlateBrush* GetBackgroundImage() const;
@@ -42,7 +42,7 @@ private:
 };
 
 
-class FDetailCategoryGroupNode : public IDetailTreeNode, public TSharedFromThis<FDetailCategoryGroupNode>
+class FDetailCategoryGroupNode : public FDetailTreeNode, public TSharedFromThis<FDetailCategoryGroupNode>
 {
 public:
 	FDetailCategoryGroupNode( const FDetailNodeList& InChildNodes, FName InGroupName, FDetailCategoryImpl& InParentCategory );
@@ -56,12 +56,17 @@ public:
 	bool GetHasSplitter() const { return bHasSplitter; }
 
 private:
-	virtual IDetailsViewPrivate& GetDetailsView() const override{ return ParentCategory.GetDetailsView(); }
+	virtual IDetailsViewPrivate* GetDetailsView() const override{ return ParentCategory.GetDetailsView(); }
 	virtual void OnItemExpansionChanged( bool bIsExpanded, bool bShouldSaveState) override {}
 	virtual bool ShouldBeExpanded() const override { return true; }
 	virtual ENodeVisibility GetVisibility() const override { return bShouldBeVisible ? ENodeVisibility::Visible : ENodeVisibility::HiddenDueToFiltering; }
-	virtual TSharedRef< ITableRow > GenerateNodeWidget( const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, const TSharedRef<IPropertyUtilities>& PropertyUtilities, bool bAllowFavoriteSystem) override;
-	virtual void GetChildren( TArray< TSharedRef<IDetailTreeNode> >& OutChildren )  override;
+	virtual TSharedRef< ITableRow > GenerateWidgetForTableView( const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, bool bAllowFavoriteSystem) override;
+	virtual bool GenerateStandaloneWidget(FDetailWidgetRow& OutRow) const override;
+
+	virtual EDetailNodeType GetNodeType() const override { return EDetailNodeType::Category; }
+	virtual TSharedPtr<IPropertyHandle> CreatePropertyHandle() const override { return nullptr; }
+
+	virtual void GetChildren(FDetailNodeList& OutChildren )  override;
 	virtual void FilterNode( const FDetailFilter& InFilter ) override;
 	virtual void Tick( float DeltaTime ) override {}
 	virtual bool ShouldShowOnlyChildren() const override { return false; }

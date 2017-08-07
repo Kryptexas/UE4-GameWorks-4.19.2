@@ -21,8 +21,8 @@
 // KIND, either express or implied. See the Apache License for the specific
 // language governing permissions and limitations under the Apache License.
 //
-#ifndef _USDUTILS_PIPELINE_H_
-#define _USDUTILS_PIPELINE_H_
+#ifndef USDUTILS_PIPELINE_H_
+#define USDUTILS_PIPELINE_H_
 
 /// \file usdUtils/pipeline.h
 ///
@@ -30,6 +30,7 @@
 /// conventions for things not currently suitable or possible to canonize in
 /// USD's schema modules.
 
+#include "pxr/pxr.h"
 #include "pxr/usd/usdUtils/api.h"
 #include "pxr/usd/usdUtils/registeredVariantSet.h"
 
@@ -37,6 +38,9 @@
 #include "pxr/usd/sdf/path.h"
 #include "pxr/usd/usd/common.h"
 #include "pxr/base/tf/envSetting.h"
+
+PXR_NAMESPACE_OPEN_SCOPE
+
 
 SDF_DECLARE_HANDLES(SdfLayer);
 
@@ -121,4 +125,7 @@ UsdPrim UsdUtilsUninstancePrimAtPath(const UsdStagePtr &stage,
 USDUTILS_API
 TfToken UsdUtilsGetPrimaryUVSetName();
 
-#endif /* _USDUTILS_PIPELINE_H_ */
+
+PXR_NAMESPACE_CLOSE_SCOPE
+
+#endif /* USDUTILS_PIPELINE_H_ */

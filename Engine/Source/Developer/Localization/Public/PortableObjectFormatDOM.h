@@ -15,19 +15,6 @@ public:
 
 	FPortableObjectCulture( const FString& LangCode, const FString& PluralForms = TEXT("") );
 
-	FPortableObjectCulture( const FPortableObjectCulture& Other );
-
-	FPortableObjectCulture& operator=( const FPortableObjectCulture& Other )
-	{
-		if (this == &Other)
-		{
-			return *this;
-		}
-		SetLanguageCode( Other.GetLanguageCode() );
-		SetPluralForms( Other.GetPluralForms() );
-		return *this;
-	}
-
 	/**
 	 * Checks to see if we have a language code and if we were able to match a culture to that code
 	 */
@@ -99,45 +86,56 @@ private:
 
 
 /**
+* Class for representing the key of an entry in a Portable Object file(.po) or a Portable Object Template file(.pot).
+*/
+class LOCALIZATION_API FPortableObjectEntryKey
+{
+public:
+	FPortableObjectEntryKey()
+	{
+	}
+
+	FPortableObjectEntryKey(const FString& InMsgId, const FString& InMsgIdPlural, const FString& InMsgCtxt)
+		: MsgId(InMsgId)
+		, MsgIdPlural(InMsgIdPlural)
+		, MsgCtxt(InMsgCtxt)
+	{
+	}
+
+	bool operator==(const FPortableObjectEntryKey& Other) const
+	{
+		return MsgId.Equals(Other.MsgId, ESearchCase::CaseSensitive) 
+			&& MsgIdPlural.Equals(Other.MsgIdPlural, ESearchCase::CaseSensitive) 
+			&& MsgCtxt.Equals(Other.MsgCtxt, ESearchCase::CaseSensitive);
+	}
+
+	friend inline uint32 GetTypeHash(const FPortableObjectEntryKey& Key)
+	{
+		uint32 Hash = 0;
+		Hash = HashCombine(FCrc::StrCrc32(*Key.MsgId), Hash);
+		Hash = HashCombine(FCrc::StrCrc32(*Key.MsgIdPlural), Hash);
+		Hash = HashCombine(FCrc::StrCrc32(*Key.MsgCtxt), Hash);
+		return Hash;
+	}
+
+	/* Represents the original source text(also called the id or context).  Stored here are the msgid values from the Portable Object entries. */
+	FString MsgId;
+
+	/* Represents the plural form of the source text.  Stored here are the msgid_plural values from the Portable Object file entries. */
+	FString MsgIdPlural;
+
+	/* Represents the disambiguating  context for the source text.  If used, will prevent two identical source strings from getting collapsed into one entry. */
+	FString MsgCtxt;
+};
+
+/**
 * Class for representing entries in a Portable Object file(.po) or a Portable Object Template file(.pot).
 */
-class LOCALIZATION_API FPortableObjectEntry
+class LOCALIZATION_API FPortableObjectEntry : public FPortableObjectEntryKey
 {
 public: 
-
 	FPortableObjectEntry()
 	{
-	}
-
-	FPortableObjectEntry( const FPortableObjectEntry& Other )
-		: MsgId( Other.MsgId )
-		, MsgIdPlural( Other.MsgIdPlural )
-		, MsgCtxt( Other.MsgCtxt )
-		, MsgStr( Other.MsgStr )
-		, UnknownElements( Other.UnknownElements )
-	{
-	}
-
-	FPortableObjectEntry& operator=( const FPortableObjectEntry& Other )
-	{
-		if (this == &Other)
-		{
-			return *this;
-		}
-		this->MsgId				= Other.MsgId;
-		this->MsgIdPlural		= Other.MsgIdPlural;
-		this->MsgCtxt			= Other.MsgCtxt;
-		this->MsgStr			= Other.MsgStr;
-		this->UnknownElements	= Other.UnknownElements;
-		return *this;
-	}
-
-	
-	bool operator==( const FPortableObjectEntry& Other ) 
-	{ 
-		return ( MsgId.Equals(Other.MsgId, ESearchCase::CaseSensitive) &&
-				MsgIdPlural.Equals(Other.MsgIdPlural, ESearchCase::CaseSensitive) &&
-				MsgCtxt.Equals(Other.MsgCtxt, ESearchCase::IgnoreCase) ); 
 	}
 	
 	/**
@@ -176,15 +174,6 @@ public:
 	FString ToString() const;
 
 public:
-	/* Represents the original source text(also called the id or context).  Stored here are the msgid values from the Portable Object entries. */
-	FString MsgId;
-
-	/* Represents the plural form of the source text.  Stored here are the msgid_plural values from the Portable Object file entries. */
-	FString MsgIdPlural;
-
-	/* Represents the disambiguating  context for the source text.  If used, will prevent two identical source strings from getting collapsed into one entry. */
-	FString MsgCtxt;
-
 	/* Represents the translated text.  This stores the msgstr, msgstr[0], msgstr[1], etc values from Portable Object entries. */
 	TArray< FString > MsgStr;
 
@@ -227,6 +216,8 @@ public:
 	/* Stores any unknown elements we may encounter when processing a Portable Object file.  */
 	TArray< FString > UnknownElements;
 };
+
+typedef TMap<FPortableObjectEntryKey, TSharedPtr<FPortableObjectEntry>> FPortableObjectEntries;
 
 /**
 * Class that stores and manipulates PO and POT file header info.
@@ -302,11 +293,17 @@ class LOCALIZATION_API FPortableObjectFormatDOM
 {
 public:
 	FPortableObjectFormatDOM()
-	{}
+	{
+	}
 
 	FPortableObjectFormatDOM( const FString& LanguageCode )
 		: Language( LanguageCode )
-	{}
+	{
+	}
+
+	/** Copying is not supported */
+	FPortableObjectFormatDOM(const FPortableObjectFormatDOM&) = delete;
+	FPortableObjectFormatDOM& operator=(const FPortableObjectFormatDOM&) = delete;
 
 	/**
 	 * Creates a string representation of the Portable Object.
@@ -355,7 +352,7 @@ public:
 	/* Sets the project name from the Project-Id-Version header entry */
 	FString GetProjectName() const { return ProjectName; }
 
-	TArray< TSharedPtr< FPortableObjectEntry > >::TConstIterator GetEntriesIterator() const
+	FPortableObjectEntries::TConstIterator GetEntriesIterator() const
 	{
 		return Entries.CreateConstIterator();
 	}
@@ -363,13 +360,8 @@ public:
 	void SortEntries();
 
 private:
-	/** Copying is not supported */
-	FPortableObjectFormatDOM( const FPortableObjectFormatDOM& ); 
-	FPortableObjectFormatDOM& operator=( const FPortableObjectFormatDOM& );
-
-private:
 	FPortableObjectCulture Language;
 	FPortableObjectHeader Header;
 	FString ProjectName;
-	TArray< TSharedPtr< FPortableObjectEntry > > Entries;
+	FPortableObjectEntries Entries;
 };

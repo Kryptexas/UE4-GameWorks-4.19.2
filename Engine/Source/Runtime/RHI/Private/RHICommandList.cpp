@@ -18,13 +18,13 @@ DECLARE_CYCLE_STAT(TEXT("All Command List Execute"), STAT_ImmedCmdListExecuteTim
 DECLARE_DWORD_COUNTER_STAT(TEXT("Immed. Command List memory"), STAT_ImmedCmdListMemory, STATGROUP_RHICMDLIST);
 DECLARE_DWORD_COUNTER_STAT(TEXT("Immed. Command count"), STAT_ImmedCmdListCount, STATGROUP_RHICMDLIST);
 
-DEFINE_STAT(STAT_VertexBufferMemoryLLM);
-DEFINE_STAT(STAT_IndexBufferMemoryLLM);
+DEFINE_STAT(STAT_MeshMemoryLLM);
 DEFINE_STAT(STAT_UniformBufferMemoryLLM);
-DEFINE_STAT(STAT_BufferMemoryLLM);
 DEFINE_STAT(STAT_ShaderMemoryLLM);
 DEFINE_STAT(STAT_TextureMemoryLLM);
-DEFINE_STAT(STAT_StateMemoryLLM);
+DEFINE_STAT(STAT_RenderTargetMemoryLLM);
+DEFINE_STAT(STAT_StructuredBufferLLM);
+DEFINE_STAT(STAT_RHIMiscLLM);
 
 
 

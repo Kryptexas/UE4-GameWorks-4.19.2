@@ -24,6 +24,8 @@
 #include "Factories/FbxTextureImportData.h"
 #include "Factories/FbxImportUI.h"
 
+#include "Animation/AnimSequence.h"
+
 #include "AssetRegistryModule.h"
 #include "ObjectTools.h"
 #include "StaticMeshResources.h"
@@ -435,6 +437,8 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 		TestPlan->ImportUI->TextureImportData->RemoveFromRoot();
 		TestPlan->ImportUI->RemoveFromRoot();
 		TestPlan->ImportUI = nullptr;
+		TArray<FAssetData> ImportedAssets;
+		AssetRegistryModule.Get().GetAssetsByPath(FName(*ImportAssetPath), ImportedAssets, true);
 
 		WarningNum = ExecutionInfo.GetWarningTotal() - WarningNum;
 		ErrorNum = ExecutionInfo.GetErrorTotal() - ErrorNum;
@@ -1341,6 +1345,73 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 				}
 			}
 			break;
+			
+			case Animation_Frame_Number:
+			{
+				UAnimSequence* AnimSequence = nullptr;
+				for (const FAssetData& AssetData : ImportedAssets)
+				{
+					UObject *ImportedAsset = AssetData.GetAsset();
+					if (ImportedAsset->IsA(UAnimSequence::StaticClass()))
+					{
+						AnimSequence = Cast<UAnimSequence>(ImportedAsset);
+					}
+				}
+
+				if (AnimSequence == nullptr)
+				{
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s no animation was imported"),
+						*GetFormatedMessageErrorInTestData(CleanFilename, TestPlan->TestPlanName, TEXT("Animation_Frame_Number"), ExpectedResultIndex)));
+					break;
+				}
+				if (ExpectedResult.ExpectedPresetsDataInteger.Num() < 1)
+				{
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s expected result need 1 integer data (Expected Animation Frame Number)"),
+						*GetFormatedMessageErrorInTestData(CleanFilename, TestPlan->TestPlanName, TEXT("Animation_Frame_Number"), ExpectedResultIndex)));
+					break;
+				}
+				int32 FrameNumber = AnimSequence->GetNumberOfFrames();
+				if (FrameNumber != ExpectedResult.ExpectedPresetsDataInteger[0])
+				{
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s [%d frames but expected %d]"),
+						*GetFormatedMessageErrorInExpectedResult(*CleanFilename, *(TestPlan->TestPlanName), TEXT("Animation_Frame_Number"), ExpectedResultIndex), FrameNumber, ExpectedResult.ExpectedPresetsDataInteger[0]));
+				}
+			}
+			break;
+			
+			case Animation_Length:
+			{
+				UAnimSequence* AnimSequence = nullptr;
+				for (const FAssetData& AssetData : ImportedAssets)
+				{
+					UObject *ImportedAsset = AssetData.GetAsset();
+					if (ImportedAsset->IsA(UAnimSequence::StaticClass()))
+					{
+						AnimSequence = Cast<UAnimSequence>(ImportedAsset);
+					}
+				}
+
+				if (AnimSequence == nullptr)
+				{
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s no animation was imported"),
+						*GetFormatedMessageErrorInTestData(CleanFilename, TestPlan->TestPlanName, TEXT("Animation_Length"), ExpectedResultIndex)));
+					break;
+				}
+				if (ExpectedResult.ExpectedPresetsDataFloat.Num() < 1)
+				{
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s expected result need 1 float data (Expected Animation Length in seconds)"),
+						*GetFormatedMessageErrorInTestData(CleanFilename, TestPlan->TestPlanName, TEXT("Animation_Length"), ExpectedResultIndex)));
+					break;
+				}
+				float AnimationLength = AnimSequence->GetPlayLength();
+				if (!FMath::IsNearlyEqual(AnimationLength, ExpectedResult.ExpectedPresetsDataFloat[0], 0.001f))
+				{
+					ExecutionInfo.AddError(FString::Printf(TEXT("%s [%f seconds but expected %f]"),
+						*GetFormatedMessageErrorInExpectedResult(*CleanFilename, *(TestPlan->TestPlanName), TEXT("Animation_Length"), ExpectedResultIndex), AnimationLength, ExpectedResult.ExpectedPresetsDataFloat[0]));
+				}
+			}
+			break;
+
 			default:
 			{
 				ExecutionInfo.AddError(FString::Printf(TEXT("%s->%s: Wrong Test plan, Unknown expected result preset."),
@@ -1357,8 +1428,6 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 			//delete assets.
 			if (TestPlan->Action != EFBXTestPlanActionType::ImportReload)
 			{
-				TArray<FAssetData> ImportedAssets;
-				AssetRegistryModule.Get().GetAssetsByPath(FName(*ImportAssetPath), ImportedAssets, true);
 				for (const FAssetData& AssetData : ImportedAssets)
 				{
 					UPackage *Package = AssetData.GetPackage();

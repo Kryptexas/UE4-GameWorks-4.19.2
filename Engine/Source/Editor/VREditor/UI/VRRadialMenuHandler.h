@@ -84,6 +84,8 @@ protected:
 
 	void ModesMenuGenerator(FMenuBuilder& MenuBuilder, TSharedPtr<FUICommandList> CommandList, UVREditorMode* VRMode, float& RadiusOverride);
 
+	void SystemMenuGenerator(FMenuBuilder& MenuBuilder, TSharedPtr<FUICommandList> CommandList, UVREditorMode* VRMode, float& RadiusOverride);
+
 protected:
 
 	FOnRadialMenuGenerated OnRadialMenuGenerated;
@@ -103,6 +105,8 @@ protected:
 	FOnRadialMenuGenerated ModesMenu;
 
 	FOnRadialMenuGenerated ActionsMenu;
+
+	FOnRadialMenuGenerated SystemMenu;
 
 	static FText ActionMenuLabel;
 

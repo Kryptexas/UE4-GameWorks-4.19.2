@@ -32,14 +32,7 @@ struct CORE_API FLinuxPlatformMisc : public FGenericPlatformMisc
 
 #if !UE_BUILD_SHIPPING
 	static bool IsDebuggerPresent();
-	FORCEINLINE static void DebugBreak()
-	{
-		if( IsDebuggerPresent() )
-		{
-			UngrabAllInput();
-			raise(SIGTRAP);
-		}
-	}
+	static void DebugBreak();
 #endif // !UE_BUILD_SHIPPING
 
 	/** Break into debugger. Returning false allows this function to be used in conditionals. */

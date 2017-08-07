@@ -31,13 +31,17 @@
 /// \file gf/quatd.h
 /// \ingroup group_gf_LinearAlgebra
 
+#include "pxr/pxr.h"
+#include "pxr/base/gf/api.h"
+#include "pxr/base/gf/declare.h"
 #include "pxr/base/gf/vec3d.h"
 #include "pxr/base/gf/traits.h"
-#include "pxr/base/gf/api.h"
 
 #include <boost/functional/hash.hpp>
 
 #include <iosfwd>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 template <>
 struct GfIsGfQuat<class GfQuatd> { static const bool value = true; };
@@ -140,7 +144,7 @@ class GfQuatd
 
     /// Hash.
     friend inline size_t hash_value(const GfQuatd &q) {
-        size_t h = hash_value(q.GetReal());
+        size_t h = boost::hash<ScalarType>()(q.GetReal());
         boost::hash_combine(h, q.GetImaginary());
         return h;
     }
@@ -258,5 +262,7 @@ GfSlerp(const GfQuatd& q0, const GfQuatd& q1, double alpha);
 /// Output a GfQuatd using the format (re, i, j, k)
 /// \ingroup group_gf_DebuggingOutput
 GF_API std::ostream& operator<<(std::ostream &, GfQuatd const &);
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // GF_QUATD_H

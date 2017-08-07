@@ -57,6 +57,8 @@ void UAutomatedLevelSequenceCapture::AddFormatMappings(TMap<FString, FStringForm
 
 void UAutomatedLevelSequenceCapture::Initialize(TSharedPtr<FSceneViewport> InViewport, int32 PIEInstance)
 {
+	Viewport = InViewport;
+
 	// Apply command-line overrides from parent class first. This needs to be called before setting up the capture strategy with the desired frame rate.
 	Super::Initialize(InViewport);
 
@@ -398,6 +400,32 @@ void UAutomatedLevelSequenceCapture::SetupFrameRange()
 	}
 }
 
+void UAutomatedLevelSequenceCapture::EnableCinematicMode()
+{
+	if (!GetSettings().bCinematicMode)
+	{
+		return;
+	}
+
+	// iterate through the controller list and set cinematic mode if necessary
+	bool bNeedsCinematicMode = !GetSettings().bAllowMovement || !GetSettings().bAllowTurning || !GetSettings().bShowPlayer || !GetSettings().bShowHUD;
+	if (!bNeedsCinematicMode)
+	{
+		return;
+	}
+
+	if (Viewport.IsValid())
+	{
+		for (FConstPlayerControllerIterator Iterator = Viewport.Pin()->GetClient()->GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator)
+		{
+			APlayerController *PC = Iterator->Get();
+			if (PC->IsLocalController())
+			{
+				PC->SetCinematicMode(true, !GetSettings().bShowPlayer, !GetSettings().bShowHUD, !GetSettings().bAllowMovement, !GetSettings().bAllowTurning);
+			}
+		}
+	}
+}
 
 void UAutomatedLevelSequenceCapture::Tick(float DeltaSeconds)
 {
@@ -412,6 +440,8 @@ void UAutomatedLevelSequenceCapture::Tick(float DeltaSeconds)
 	if (CaptureState == ELevelSequenceCaptureState::Setup)
 	{
 		SetupFrameRange();
+
+		EnableCinematicMode();
 		
 		// Bind to the event so we know when to capture a frame
 		OnPlayerUpdatedBinding = Actor->SequencePlayer->OnSequenceUpdated().AddUObject( this, &UAutomatedLevelSequenceCapture::SequenceUpdated );

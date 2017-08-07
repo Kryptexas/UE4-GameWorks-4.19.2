@@ -3,13 +3,7 @@
 #include "DrawElements.h"
 #include "IConsoleManager.h"
 
-// This feature has not been tested on es2
-#if PLATFORM_USES_ES2
 static int32 bAllowBackgroundBlur = 1;
-#else
-static int32 bAllowBackgroundBlur = 1;
-#endif
-
 static FAutoConsoleVariableRef CVarSlateAllowBackgroundBlurWidgets(TEXT("Slate.AllowBackgroundBlurWidgets"), bAllowBackgroundBlur, TEXT("If 0, no background blur widgets will be rendered"));
 
 static int32 MaxKernelSize = 255;
@@ -18,7 +12,14 @@ static FAutoConsoleVariableRef CVarSlateMaxKernelSize(TEXT("Slate.BackgroundBlur
 static int32 bDownsampleForBlur = 1;
 static FAutoConsoleVariableRef CVarDownsampleForBlur(TEXT("Slate.BackgroundBlurDownsample"), bDownsampleForBlur, TEXT(""), ECVF_Cheat);
 
+#if PLATFORM_USES_ES2
+// This feature has not been tested on es2 and will likely not work so we force low quality fallback mode
+static int32 bForceLowQualityBrushFallback = 1;
+#else
 static int32 bForceLowQualityBrushFallback = 0;
+#endif
+
+
 static FAutoConsoleVariableRef CVarForceLowQualityBackgroundBlurOverride(TEXT("Slate.ForceBackgroundBlurLowQualityOverride"), bForceLowQualityBrushFallback, TEXT("Whether or not to force a slate brush to be used instead of actually blurring the background"), ECVF_Scalability);
 
 

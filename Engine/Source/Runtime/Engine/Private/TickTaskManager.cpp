@@ -17,6 +17,7 @@
 #include "Engine/World.h"
 #include "TickTaskManagerInterface.h"
 #include "Async/ParallelFor.h"
+#include "Misc/TimeGuard.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogTick, Log, All);
 
@@ -264,6 +265,11 @@ public:
 		}
 		if (Target->IsTickFunctionEnabled())
 		{
+#if DO_TIMEGUARD
+			FTimerNameDelegate NameFunction = FTimerNameDelegate::CreateLambda( [&]{ return FString::Printf(TEXT("Slowtick %s "), *Target->DiagnosticMessage()); } );
+			SCOPE_TIME_GUARD_DELEGATE_MS(NameFunction, 2);
+#endif
+
 			Target->ExecuteTick(Target->CalculateDeltaTime(Context), Context.TickType, CurrentThread, MyCompletionGraphEvent);
 		}
 		Target->TaskPointer = nullptr;  // This is stale and a good time to clear it for safety

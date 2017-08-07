@@ -152,7 +152,9 @@ class FMalloc* FLinuxPlatformMemory::BaseAllocator()
 		break;
 	}
 
+#if UE_BUILD_DEBUG
 	printf("Using %ls.\n", Allocator ? Allocator->GetDescriptiveName() : TEXT("NULL allocator! We will probably crash right away"));
+#endif // UE_BUILD_DEBUG
 
 #if UE_USE_MALLOC_REPLAY_PROXY
 	if (bAddReplayProxy)
@@ -314,7 +316,9 @@ namespace LinuxMemoryPool
 			}
 		}
 
+#if UE_BUILD_DEBUG
 		printf("Pooling OS allocations (pool size: %llu MB, maximum allocations: %llu).\n", PoolSize / (1024ULL * 1024ULL), MaxPooledAllocs);
+#endif // UE_BUILD_DEBUG
 
 		return InOutPoolTable;
 	}

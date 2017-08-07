@@ -27,6 +27,8 @@
 /// \file tf/pyPtrHelpers.h
 /// Enables wrapping of Weak or Ref & Weak held types to python.
 
+#include "pxr/pxr.h"
+
 #include "pxr/base/tf/pyUtils.h"
 #include "pxr/base/tf/pyIdentity.h"
 #include "pxr/base/tf/pyObjectFinder.h"
@@ -38,8 +40,6 @@
 #include "pxr/base/tf/stringUtils.h"
 #include "pxr/base/tf/weakPtr.h"
 #include "pxr/base/tf/anyWeakPtr.h"
-
-#include <boost/type_traits.hpp>
 
 #include <boost/python/class.hpp>
 #include <boost/python/converter/from_python.hpp>
@@ -53,6 +53,8 @@
 #include <boost/python/implicit.hpp>
 #include <boost/python/to_python_converter.hpp>
 #include <boost/type_traits/is_abstract.hpp>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 //
 // Boost.Python def visitors for wrapping objects held by weak pointers.  This
@@ -83,14 +85,14 @@ struct TfMakePyPtr {
     static Result Execute(Ptr const& p)
     {
         // null pointers -> python None.
-        if (not p.GetUniqueIdentifier())
+        if (!p.GetUniqueIdentifier())
             return Result(boost::python::detail::none(), false);
 
         // Force instantiation.  We must do this before checking if we
         // have a python identity, otherwise the identity might be set
         // during instantiation and our caller will attempt to set it
         // again, which isn't allowed.
-        boost::get_pointer(p);
+        get_pointer(p);
 
         if (PyObject *id = Tf_PyGetPythonIdentity(p))
             return Result(id, false);
@@ -114,7 +116,6 @@ using namespace boost::python;
 using boost::disable_if;
 using boost::enable_if;
 using boost::is_abstract;
-using boost::is_same;
 
 template <typename Ptr>
 struct _PtrInterface {
@@ -136,7 +137,7 @@ template <typename PtrType>
 bool _IsPtrExpired(object const &self) {
     try {
         PtrType p = extract<PtrType>(self);
-        return not p;
+        return !p;
     } catch (boost::python::error_already_set const &) {
         PyErr_Clear();
         return true;
@@ -145,7 +146,7 @@ bool _IsPtrExpired(object const &self) {
 
 template <typename PtrType>
 bool _IsPtrValid(object const &self) {
-    return not _IsPtrExpired<PtrType>(self);
+    return !_IsPtrExpired<PtrType>(self);
 }
 
 template <typename PtrType>
@@ -331,10 +332,10 @@ struct WeakPtr : def_visitor<WeakPtr> {
     template <typename WrapperPtrType, typename Wrapper, typename T>
     static void _RegisterConversionsHelper() {
 
-        // Pointee should be same as Wrapper.
-        BOOST_STATIC_ASSERT((boost::is_same \
-                             <typename _PtrInterface<WrapperPtrType>::Pointee, \
-                             Wrapper>::value));
+        static_assert(std::is_same<
+                        typename _PtrInterface<WrapperPtrType>::Pointee, 
+                        Wrapper>::value,
+                      "Pointee must be same type as Wrapper.");
 
         typedef typename
             _PtrInterface<WrapperPtrType>::template Rebind<T>::Type PtrType;
@@ -373,7 +374,7 @@ struct WeakPtr : def_visitor<WeakPtr> {
             // CODE_COVERAGE_ON
         }
         
-        if (not is_same<Wrapper, T>::value)
+        if (!std::is_same<Wrapper, T>::value)
             _PtrToPython<PtrType>();
 
     }
@@ -400,8 +401,8 @@ struct WeakPtr : def_visitor<WeakPtr> {
     void visit(CLS &c) const {
         typedef typename CLS::wrapped_type Type;
         typedef typename CLS::metadata::held_type_arg PtrType;
-        // Must support weak ptr.
-        BOOST_STATIC_ASSERT(TF_SUPPORTS_WEAKPTR(Type));
+        static_assert(TF_SUPPORTS_WEAKPTR(Type),
+                      "Type must support TfWeakPtr.");
         // Register conversions
         _RegisterConversions<PtrType>
             ((Type *)0, detail::unwrap_wrapper((Type *)0));
@@ -429,8 +430,8 @@ struct RefAndWeakPtr : def_visitor<RefAndWeakPtr> {
     template <typename CLS>    
     void visit(CLS &c) const {
         typedef typename CLS::wrapped_type Type;
-        // Must support ref ptr.
-        BOOST_STATIC_ASSERT((TF_SUPPORTS_REFPTR(Type)));
+        static_assert(TF_SUPPORTS_REFPTR(Type),
+                      "Type must support TfRefPtr.");
         // Same as weak ptr plus ref conversions.
         WeakPtr().visit(c);
         _AddAPI<CLS>((Type *)0, detail::unwrap_wrapper((Type *)0));
@@ -441,5 +442,7 @@ struct RefAndWeakPtr : def_visitor<RefAndWeakPtr> {
 
 struct TfPyWeakPtr : Tf_PyDefHelpers::WeakPtr {};
 struct TfPyRefAndWeakPtr : Tf_PyDefHelpers::RefAndWeakPtr {};
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // TF_PYPTRHELPERS_H

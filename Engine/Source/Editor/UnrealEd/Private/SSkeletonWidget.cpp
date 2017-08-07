@@ -11,7 +11,6 @@
 #include "Engine/SkeletalMesh.h"
 #include "Animation/AnimationAsset.h"
 #include "Animation/DebugSkelMeshComponent.h"
-#include "Settings/DestructableMeshEditorSettings.h"
 #include "Animation/AnimBlueprint.h"
 #include "Editor.h"
 #include "Animation/AnimSet.h"
@@ -23,6 +22,7 @@
 #include "AnimPreviewInstance.h"
 #include "AssetRegistryModule.h"
 #include "AnimationRuntime.h"
+#include "Settings/SkeletalMeshEditorSettings.h"
 
 #define LOCTEXT_NAMESPACE "SkeletonWidget"
 
@@ -1357,7 +1357,7 @@ public:
 
 	void UpdateLighting()
 	{
-		const UDestructableMeshEditorSettings* Options = GetDefault<UDestructableMeshEditorSettings>();
+		const USkeletalMeshEditorSettings* Options = GetDefault<USkeletalMeshEditorSettings>();
 
 		PreviewScene->SetLightDirection(Options->AnimPreviewLightingDirection);
 		PreviewScene->SetLightColor(Options->AnimPreviewDirectionalColor);

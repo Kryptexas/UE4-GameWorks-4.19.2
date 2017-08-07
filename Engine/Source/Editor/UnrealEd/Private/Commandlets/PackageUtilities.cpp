@@ -2119,22 +2119,29 @@ struct CompressAnimationsFunctor
 				continue;
 			}
 
-			// Set version since we've checked this animation for recompression.
-			if (AnimSeq->CompressCommandletVersion != CompressCommandletVersion)
-			{
-				AnimSeq->CompressCommandletVersion = CompressCommandletVersion;
-				bDirtyPackage = true;
-			}
-
 			UE_LOG(LogPackageUtilities, Warning, TEXT("Compressing animation '%s' [#%d / %d in package '%s']"),
 				*AnimSeq->GetName(),
 				ActiveAnimationIndex,
 				NumAnimationsInPackage,
 				*PackageFileName);
 
+			// First set automatic compressor and call it.
+			// This will run through a bunch of compressors and pick the best.
+			// Problem is this is going to create a DDC key with 'Automatic Compressor'
 			UAnimCompress* CompressionAlgorithm = NewObject<UAnimCompress_Automatic>();
 			AnimSeq->CompressionScheme = static_cast<UAnimCompress*>(StaticDuplicateObject(CompressionAlgorithm, AnimSeq));
-			AnimSeq->RequestAnimCompression(false, false, false);
+			AnimSeq->RequestAnimCompression(false, true, false);
+
+			// Automatic compression should have picked a suitable compressor that is not UAnimCompress_Automatic
+			if (ensure(!AnimSeq->CompressionScheme->IsA(UAnimCompress_Automatic::StaticClass())))
+			{
+				// Update CompressCommandletVersion in that case, and create a proper DDC entry
+				// (with actual compressor)
+				AnimSeq->CompressCommandletVersion = CompressCommandletVersion;
+				AnimSeq->RequestAnimCompression(false, false, false);
+				bDirtyPackage = true;
+			}
+
 			{
 				NewSize = AnimSeq->GetResourceSizeBytes(EResourceSizeMode::Inclusive);
 			}

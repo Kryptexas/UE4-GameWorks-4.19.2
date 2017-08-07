@@ -65,7 +65,7 @@ FVector2D GetJitterOffset(int32 SampleIndex)
 void FAOScreenGridResources::InitDynamicRHI()
 {
 	//@todo - 2d textures
-	const uint32 FastVRamFlag = IsTransientResourceBufferAliasingEnabled() ? (BUF_FastVRAM | BUF_Transient) : BUF_None;
+	const uint32 FastVRamFlag = GFastVRamConfig.DistanceFieldAOScreenGridResources | (IsTransientResourceBufferAliasingEnabled() ? BUF_Transient : BUF_None);
 	ScreenGridConeVisibility.Initialize(sizeof(uint32), NumConeSampleDirections * ScreenGridDimensions.X * ScreenGridDimensions.Y, PF_R32_UINT, BUF_Static | FastVRamFlag, TEXT("ScreenGridConeVisibility"));
 
 	if (bAllocateResourceForGI)
@@ -640,12 +640,12 @@ void PostProcessBentNormalAOScreenGrid(
 	TRefCountPtr<IPooledRenderTarget> DistanceFieldAOBentNormal;
 	TRefCountPtr<IPooledRenderTarget> DistanceFieldAOConfidence;
 	TRefCountPtr<IPooledRenderTarget> DistanceFieldIrradiance;
-	AllocateOrReuseAORenderTarget(RHICmdList, DistanceFieldAOBentNormal, TEXT("DistanceFieldBentNormalAO"), PF_FloatRGBA);
-	AllocateOrReuseAORenderTarget(RHICmdList, DistanceFieldAOConfidence, TEXT("DistanceFieldConfidence"), PF_G8);
+	AllocateOrReuseAORenderTarget(RHICmdList, DistanceFieldAOBentNormal, TEXT("DistanceFieldBentNormalAO"), PF_FloatRGBA, GFastVRamConfig.DistanceFieldAOBentNormal);
+	AllocateOrReuseAORenderTarget(RHICmdList, DistanceFieldAOConfidence, TEXT("DistanceFieldConfidence"), PF_G8, GFastVRamConfig.DistanceFieldAOConfidence);
 
 	if (bUseDistanceFieldGI)
 	{
-		AllocateOrReuseAORenderTarget(RHICmdList, DistanceFieldIrradiance, TEXT("DistanceFieldIrradiance"), PF_FloatRGB);
+		AllocateOrReuseAORenderTarget(RHICmdList, DistanceFieldIrradiance, TEXT("DistanceFieldIrradiance"), PF_FloatRGB, GFastVRamConfig.DistanceFieldIrradiance);
 	}
 
 	{
@@ -754,10 +754,11 @@ void FDeferredShadingSceneRenderer::RenderDistanceFieldAOScreenGrid(
 
 	FAOScreenGridResources*& ScreenGridResources = View.ViewState->AOScreenGridResources;
 
-	if (!ScreenGridResources 
+	if ( !ScreenGridResources 
 		|| ScreenGridResources->ScreenGridDimensions != ConeTraceBufferSize 
 		|| ScreenGridResources->bAllocateResourceForGI != bUseDistanceFieldGI
-		|| !ScreenGridResources->IsInitialized())
+		|| !ScreenGridResources->IsInitialized()
+		|| GFastVRamConfig.bDirty )
 	{
 		if (ScreenGridResources)
 		{
@@ -889,7 +890,7 @@ void FDeferredShadingSceneRenderer::RenderDistanceFieldAOScreenGrid(
 
 	{
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(ConeTraceBufferSize, PF_FloatRGBA, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable | TexCreate_UAV, false));
-		Desc.Flags |= GetTextureFastVRamFlag_DynamicLayout();
+		Desc.Flags |= GFastVRamConfig.DistanceFieldAODownsampledBentNormal;
 		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, DownsampledBentNormal, TEXT("DownsampledBentNormal"));
 	}
 

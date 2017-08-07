@@ -51,15 +51,12 @@ THIRD_PARTY_INCLUDES_START
 #include "Apex.h"
 
 // Modules
-#include "ModuleDestructible.h"
 #include "ModuleClothing.h"
 
 // Assets
-#include "DestructibleAsset.h"
 #include "ClothingAsset.h"
 
 // Actors
-#include "DestructibleActor.h"
 #include "ClothingActor.h"
 
 // Utilities

@@ -51,9 +51,9 @@ public:
 	virtual TSharedRef< FPropertyPath > GetRootPath() const override { return RootPath; }
 	virtual TArray< FPropertyInfo > GetPossibleExtensionsForPath( const TSharedRef< FPropertyPath >& Path ) const override;
 
-	virtual void GetSelectedObjects( TArray< TWeakObjectPtr< UObject > >& OutSelectedObjects) const override;
+	virtual void GetSelectedTableObjects( TArray< TWeakObjectPtr< UObject > >& OutSelectedObjects) const override;
 
-	virtual const TArray< TWeakObjectPtr< UObject > >& GetObjects() const override { return SourceObjects; }
+	virtual const TArray<TWeakObjectPtr<UObject>>& GetSelectedObjects() const { return SourceObjects; }
 	virtual void SetObjects( const TArray< TWeakObjectPtr< UObject > >& Objects ) override;
 	virtual void SetObjects( const TArray< UObject* >& Objects ) override;
 
@@ -137,6 +137,11 @@ public:
 	virtual bool IsPropertyEditingEnabled() const override { return true; }
 
 	virtual bool DontUpdateValueWhileEditing() const override
+	{
+		return false;
+	}
+
+	virtual bool HasClassDefaultObject() const
 	{
 		return false;
 	}

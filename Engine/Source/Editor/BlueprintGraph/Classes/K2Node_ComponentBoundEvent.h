@@ -18,17 +18,17 @@ class UK2Node_ComponentBoundEvent : public UK2Node_Event
 {
 	GENERATED_UCLASS_BODY()
 
-	/** Delegate property name that this event is associated with */
-	UPROPERTY()
-	FName DelegatePropertyName;
+		/** Delegate property name that this event is associated with */
+		UPROPERTY()
+		FName DelegatePropertyName;
 
 	/** Delegate property's owner class that this event is associated with */
 	UPROPERTY()
-	UClass* DelegateOwnerClass;
+		UClass* DelegateOwnerClass;
 
 	/** Name of property in Blueprint class that pointer to component we want to bind to */
 	UPROPERTY()
-	FName ComponentPropertyName;
+		FName ComponentPropertyName;
 
 	//~ Begin UObject Interface
 	virtual bool Modify(bool bAlwaysMarkDirty = true) override;
@@ -61,7 +61,7 @@ class UK2Node_ComponentBoundEvent : public UK2Node_Event
 private:
 	/** Cached display name for the delegate property */
 	UPROPERTY()
-	FText DelegatePropertyDisplayName;
+		FText DelegatePropertyDisplayName;
 
 	/** Constructing FText strings can be costly, so we cache the node's title */
 	FNodeTextCache CachedNodeTitle;

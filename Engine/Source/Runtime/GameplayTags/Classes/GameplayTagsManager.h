@@ -89,6 +89,14 @@ struct FGameplayTagSource
 		static FName DefaultName = FName(TEXT("DefaultGameplayTags.ini"));
 		return DefaultName;
 	}
+
+#if WITH_EDITOR
+	static FName GetTransientEditorName()
+	{
+		static FName TransientEditorName = FName(TEXT("TransientEditor"));
+		return TransientEditorName;
+	}
+#endif
 };
 
 /** Simple tree node for gameplay tags, this stores metadata about specific tags */
@@ -228,6 +236,9 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 	void DoneAddingNativeTags();
 
 	static FSimpleMulticastDelegate& OnLastChanceToAddNativeTags();
+
+
+	void CallOrRegister_OnDoneAddingNativeTagsDelegate(FSimpleMulticastDelegate::FDelegate Delegate);
 
 	/**
 	 * Gets a Tag Container containing the supplied tag and all of it's parents as explicit tags
@@ -470,6 +481,9 @@ private:
 	/** Initializes the manager */
 	static void InitializeManager();
 
+	/** finished loading/adding native tags */
+	static FSimpleMulticastDelegate& OnDoneAddingNativeTagsDelegate();
+
 	/** The Tag Manager singleton */
 	static UGameplayTagsManager* SingletonManager;
 
@@ -539,9 +553,12 @@ private:
 	bool bDoneAddingNativeTags;
 
 #if WITH_EDITOR
-	// This critical section is to handle and editor-only issue where tag requests come from another thread when async loading from a background thread in FGameplayTagContainer::Serialize.
+	// This critical section is to handle an editor-only issue where tag requests come from another thread when async loading from a background thread in FGameplayTagContainer::Serialize.
 	// This class is not generically threadsafe.
 	mutable FCriticalSection GameplayTagMapCritical;
+
+	// Transient editor-only tags to support quick-iteration PIE workflows
+	TSet<FName> TransientEditorTags;
 #endif
 
 	/** Sorted list of nodes, used for network replication */

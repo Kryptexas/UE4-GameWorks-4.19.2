@@ -279,8 +279,8 @@ FUnorderedAccessViewRHIRef FRenderTarget::GetRenderTargetUAV() const
 
 void FScreenshotRequest::RequestScreenshot(bool bInShowUI)
 {
-	bShowUI = bInShowUI;
-	bIsScreenshotRequested = true;
+	// empty string means we'll later pick the name
+	RequestScreenshot(TEXT(""), bInShowUI, true);
 }
 
 void FScreenshotRequest::RequestScreenshot(const FString& InFilename, bool bInShowUI, bool bAddUniqueSuffix)
@@ -307,7 +307,12 @@ void FScreenshotRequest::RequestScreenshot(const FString& InFilename, bool bInSh
 	}
 
 	GScreenMessagesRestoreState = GAreScreenMessagesEnabled;
-	GAreScreenMessagesEnabled = bInShowUI;
+
+	// Disable Screen Messages when the screenshot is requested without UI.
+	if (bInShowUI == false)
+	{
+		GAreScreenMessagesEnabled = false;
+	}
 }
 
 

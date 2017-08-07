@@ -29,6 +29,9 @@
 #include "FbxImporter.h"
 #include "MatineeImportTools.h"
 #include "MovieSceneToolsProjectSettings.h"
+#include "CineCameraActor.h"
+#include "CineCameraComponent.h"
+#include "Math/UnitConversion.h"
 
 
 /* MovieSceneToolHelpers
@@ -705,14 +708,8 @@ bool ImportFBXTransform(FString NodeName, FGuid ObjectBinding, UnFbx::FFbxCurves
 	FInterpCurveFloat Translation[3];
 	FInterpCurveFloat EulerRotation[3];
 	FInterpCurveFloat Scale[3];
-	CurveAPI.GetConvertedTransformCurveData(NodeName, Translation[0], Translation[1], Translation[2], EulerRotation[0], EulerRotation[1], EulerRotation[2], Scale[0], Scale[1], Scale[2]);
-
-	if (Translation[0].Points.Num() == 0 &&  Translation[1].Points.Num() == 0 && Translation[2].Points.Num() == 0 &&
-		EulerRotation[0].Points.Num() == 0 && EulerRotation[1].Points.Num() == 0 && EulerRotation[2].Points.Num() == 0 &&
-		Scale[0].Points.Num() == 0 && Scale[1].Points.Num() && Scale[2].Points.Num())
-	{
-		return false;
-	}
+	FTransform DefaultTransform;
+	CurveAPI.GetConvertedTransformCurveData(NodeName, Translation[0], Translation[1], Translation[2], EulerRotation[0], EulerRotation[1], EulerRotation[2], Scale[0], Scale[1], Scale[2], DefaultTransform);
 
 	UMovieScene3DTransformTrack* TransformTrack = InMovieScene->FindTrack<UMovieScene3DTransformTrack>(ObjectBinding); 
 	if (!TransformTrack)
@@ -731,6 +728,22 @@ bool ImportFBXTransform(FString NodeName, FGuid ObjectBinding, UnFbx::FFbxCurves
 	if (bSectionAdded)
 	{
 		TransformSection->SetIsInfinite(true);
+	}
+
+	for (int32 ChannelIndex = 0; ChannelIndex < 3; ++ChannelIndex)
+	{
+		EAxis::Type ChannelAxis = EAxis::X;
+		if (ChannelIndex == 1)
+		{
+			ChannelAxis = EAxis::Y;
+		}
+		else if (ChannelIndex == 2)
+		{
+			ChannelAxis = EAxis::Z;
+		}
+		TransformSection->GetTranslationCurve(ChannelAxis).SetDefaultValue(DefaultTransform.GetLocation()[ChannelIndex]);
+		TransformSection->GetRotationCurve(ChannelAxis).SetDefaultValue(DefaultTransform.GetRotation().Euler()[ChannelIndex]);
+		TransformSection->GetScaleCurve(ChannelAxis).SetDefaultValue(DefaultTransform.GetScale3D()[ChannelIndex]);
 	}
 
 	float MinTime = FLT_MAX;
@@ -853,6 +866,156 @@ bool ImportFBXNode(FString NodeName, UnFbx::FFbxCurvesAPI& CurveAPI, UMovieScene
 	return true;
 }
 
+FbxCamera* FindCamera( FbxNode* Parent )
+{
+	FbxCamera* Camera = Parent->GetCamera();
+	if( !Camera )
+	{
+		int32 NodeCount = Parent->GetChildCount();
+		for ( int32 NodeIndex = 0; NodeIndex < NodeCount && !Camera; ++NodeIndex )
+		{
+			FbxNode* Child = Parent->GetChild( NodeIndex );
+			Camera = Child->GetCamera();
+		}
+	}
+
+	return Camera;
+}
+
+FbxNode* RetrieveObjectFromName(const TCHAR* ObjectName, FbxNode* Root)
+{
+	if (!Root)
+	{
+		return nullptr;
+	}
+	
+	for (int32 ChildIndex=0;ChildIndex<Root->GetChildCount();++ChildIndex)
+	{
+		FbxNode* Node = Root->GetChild(ChildIndex);
+		if (Node)
+		{
+			FString NodeName = FString(Node->GetName());
+
+			if ( !FCString::Strcmp(ObjectName,UTF8_TO_TCHAR(Node->GetName())))
+			{
+				return Node;
+			}
+
+			if (FbxNode* NextNode = RetrieveObjectFromName(ObjectName,Node))
+			{
+				return NextNode;
+			}
+		}
+	}
+
+	return nullptr;
+}
+
+
+void ImportFBXCamera(UnFbx::FFbxImporter* FbxImporter, UMovieScene* InMovieScene, ISequencer& InSequencer, const TMap<FGuid, FString>& InObjectBindingMap)
+{
+	for (auto InObjectBinding : InObjectBindingMap)
+	{
+		TArrayView<TWeakObjectPtr<>> BoundObjects = InSequencer.FindBoundObjects(InObjectBinding.Key, InSequencer.GetFocusedTemplateID());
+		
+		FString ObjectName = InObjectBinding.Value;
+		FbxCamera* CameraNode = nullptr;
+		FbxNode* Node = RetrieveObjectFromName(*ObjectName, FbxImporter->Scene->GetRootNode());
+		if (Node)
+		{
+			CameraNode = FindCamera(Node);
+		}
+
+		if (!CameraNode)
+		{
+			CameraNode = FindCamera(FbxImporter->Scene->GetRootNode());
+			if (CameraNode)
+			{
+				UE_LOG(LogMovieScene, Warning, TEXT("Fbx Import: Failed to find exact matching camera for (%s). Using first camera from fbx (%s)"), *ObjectName, UTF8_TO_TCHAR(CameraNode->GetName()));
+			}
+			else
+			{
+				UE_LOG(LogMovieScene, Error, TEXT("Fbx Import: Failed to find any matching camera for (%s)."), *ObjectName);
+				continue;
+			}
+		}
+
+		if (!CameraNode)
+		{
+			continue;
+		}
+
+		float FieldOfView;
+		float FocalLength;
+
+		if (CameraNode->GetApertureMode() == FbxCamera::eFocalLength)
+		{
+			FocalLength = CameraNode->FocalLength.Get();
+			FieldOfView = CameraNode->ComputeFieldOfView(FocalLength);
+		}
+		else
+		{
+			FieldOfView = CameraNode->FieldOfView.Get();
+			FocalLength = CameraNode->ComputeFocalLength(FieldOfView);
+		}
+
+		float ApertureWidth = CameraNode->GetApertureWidth();
+		float ApertureHeight = CameraNode->GetApertureHeight();
+
+		for (TWeakObjectPtr<>& WeakObject : BoundObjects)
+		{
+			UObject* FoundObject = WeakObject.Get();
+			if (FoundObject && FoundObject->IsA(ACineCameraActor::StaticClass()))
+			{
+				ACineCameraActor* CineCameraActor = Cast<ACineCameraActor>(FoundObject);
+				UCineCameraComponent* CineCameraComponent = CineCameraActor->GetCineCameraComponent();
+
+				CineCameraComponent->SetProjectionMode(CameraNode->ProjectionType.Get() == FbxCamera::ePerspective ? ECameraProjectionMode::Perspective : ECameraProjectionMode::Orthographic);
+				CineCameraComponent->SetAspectRatio(CameraNode->AspectWidth.Get() / CameraNode->AspectHeight.Get());
+				CineCameraComponent->SetOrthoNearClipPlane(CameraNode->NearPlane.Get());
+				CineCameraComponent->SetOrthoFarClipPlane(CameraNode->FarPlane.Get());
+				CineCameraComponent->SetOrthoWidth(CameraNode->OrthoZoom.Get());
+				CineCameraComponent->SetFieldOfView(FieldOfView);
+				CineCameraComponent->FilmbackSettings.SensorWidth = FUnitConversion::Convert(ApertureWidth, EUnit::Inches, EUnit::Millimeters);
+				CineCameraComponent->FilmbackSettings.SensorHeight = FUnitConversion::Convert(ApertureHeight, EUnit::Inches, EUnit::Millimeters);
+				if (FocalLength < CineCameraComponent->LensSettings.MinFocalLength)
+				{
+					CineCameraComponent->LensSettings.MinFocalLength = FocalLength;
+				}
+				if (FocalLength > CineCameraComponent->LensSettings.MaxFocalLength)
+				{
+					CineCameraComponent->LensSettings.MaxFocalLength = FocalLength;
+				}
+
+				// Set the default value of the current focal length section
+				FGuid PropertyOwnerGuid = InSequencer.GetHandleToObject(CineCameraComponent);
+				if (!PropertyOwnerGuid.IsValid())
+				{
+					continue;
+				}
+
+				UMovieSceneFloatTrack* FloatTrack = InMovieScene->FindTrack<UMovieSceneFloatTrack>(PropertyOwnerGuid, TEXT("CurrentFocalLength"));
+				if (FloatTrack)
+				{
+					bool bSectionAdded = false;
+					UMovieSceneFloatSection* FloatSection = Cast<UMovieSceneFloatSection>(FloatTrack->FindOrAddSection(0.f, bSectionAdded));
+					if (!FloatSection)
+					{
+						continue;
+					}
+
+					if (bSectionAdded)
+					{
+						FloatSection->SetIsInfinite(true);
+					}
+
+					FloatSection->SetDefault(FocalLength);
+				}
+			}
+		}
+	}
+}
+
 bool MovieSceneToolHelpers::ImportFBX(UMovieScene* InMovieScene, ISequencer& InSequencer, const TMap<FGuid, FString>& InObjectBindingMap)
 {
 	TArray<FString> OpenFilenames;
@@ -907,12 +1070,15 @@ bool MovieSceneToolHelpers::ImportFBX(UMovieScene* InMovieScene, ISequencer& InS
 
 	const FScopedTransaction Transaction( NSLOCTEXT( "MovieSceneTools", "ImportFBX", "Import FBX" ) );
 
+	// Import static cameras first
+	ImportFBXCamera(FbxImporter, InMovieScene, InSequencer, InObjectBindingMap);
+
 	UnFbx::FFbxCurvesAPI CurveAPI;
 	FbxImporter->PopulateAnimatedCurveData(CurveAPI);
-	TArray<FString> AnimatedNodeNames;
-	CurveAPI.GetAnimatedNodeNameArray(AnimatedNodeNames);
+	TArray<FString> AllNodeNames;
+	CurveAPI.GetAllNodeNameArray(AllNodeNames);
 
-	for (FString NodeName : AnimatedNodeNames)
+	for (FString NodeName : AllNodeNames)
 	{
 		ImportFBXNode(NodeName, CurveAPI, InMovieScene, InSequencer, InObjectBindingMap);
 	}

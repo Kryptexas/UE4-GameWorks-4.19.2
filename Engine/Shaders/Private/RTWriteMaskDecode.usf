@@ -1,7 +1,10 @@
+#include "Common.ush"
 #if PS4_PROFILE
-	#include "Common.ush"
 	#include "FastMath.ush"
 	#include "PS4/RTWriteMaskProcessing.usf"
+#elif XBOXONE_PROFILE
+	#include "FastMath.ush"
+	#include "XboxOne/RTWriteMaskProcessing.usf"
 #else
 
 	[numthreads(THREADGROUP_SIZEX, THREADGROUP_SIZEY, 1)]

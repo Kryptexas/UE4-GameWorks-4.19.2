@@ -24,6 +24,7 @@
 #ifndef PCP_INSTANCE_KEY_H
 #define PCP_INSTANCE_KEY_H
 
+#include "pxr/pxr.h"
 #include "pxr/usd/pcp/api.h"
 #include "pxr/usd/pcp/mapExpression.h"
 #include "pxr/usd/pcp/node.h"
@@ -38,6 +39,8 @@
 #include <utility>
 #include <vector>
 
+PXR_NAMESPACE_OPEN_SCOPE
+
 class PcpPrimIndex;
 
 /// \class PcpInstanceKey
@@ -51,14 +54,18 @@ class PcpPrimIndex;
 class PcpInstanceKey
 {
 public:
-	PCP_API PcpInstanceKey();
+    PCP_API
+    PcpInstanceKey();
 
     /// Create an instance key for the given prim index.
-	PCP_API explicit PcpInstanceKey(const PcpPrimIndex& primIndex);
+    PCP_API
+    explicit PcpInstanceKey(const PcpPrimIndex& primIndex);
 
     /// Comparison operators
-	PCP_API bool operator==(const PcpInstanceKey& rhs) const;
-	PCP_API bool operator!=(const PcpInstanceKey& rhs) const;
+    PCP_API
+    bool operator==(const PcpInstanceKey& rhs) const;
+    PCP_API
+    bool operator!=(const PcpInstanceKey& rhs) const;
 
     /// Returns hash value for this instance key.
     friend size_t hash_value(const PcpInstanceKey& key) 
@@ -79,7 +86,8 @@ public:
 
     /// Returns string representation of this instance key
     /// for debugging purposes.
-	PCP_API std::string GetString() const;
+    PCP_API
+    std::string GetString() const;
 
 private:
     struct _Collector;
@@ -95,9 +103,9 @@ private:
 
         bool operator==(const _Arc& rhs) const
         {
-            return _arcType == rhs._arcType and
-            _sourceSite == rhs._sourceSite and
-            _timeOffset == rhs._timeOffset;
+            return _arcType == rhs._arcType    &&
+                _sourceSite == rhs._sourceSite &&
+                _timeOffset == rhs._timeOffset;
         }
 
         size_t GetHash() const
@@ -119,5 +127,7 @@ private:
 
     size_t _hash;
 };
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // PCP_INSTANCE_KEY_H

@@ -26,10 +26,14 @@
 
 /// \file sdf/layerUtils.h
 
+#include "pxr/pxr.h"
+#include "pxr/usd/sdf/api.h"
 #include "pxr/usd/sdf/declareHandles.h"
 #include "pxr/usd/sdf/layer.h"
-#include "pxr/usd/sdf/api.h"
+
 #include <string>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 TF_DECLARE_REF_PTRS(SdfLayer);
 SDF_DECLARE_HANDLES(SdfLayer);
@@ -59,5 +63,7 @@ SdfFindOrOpenRelativeToLayer(
     std::string* layerPath,
     const SdfLayer::FileFormatArguments& args 
         = SdfLayer::FileFormatArguments());
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // SDF_LAYER_UTILS_H

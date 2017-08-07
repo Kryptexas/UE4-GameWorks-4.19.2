@@ -180,7 +180,6 @@ MONOLITHIC_HEADER_BOILERPLATE()
 #include "Debug/DebugDrawService.h"
 #include "Components/LineBatchComponent.h"
 #include "Components/MaterialBillboardComponent.h"
-#include "Components/DestructibleComponent.h"
 #include "Lightmass/LightmassPrimitiveSettingsObject.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"

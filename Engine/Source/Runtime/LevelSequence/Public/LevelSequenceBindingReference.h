@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "Misc/Guid.h"
+#include "Engine/Engine.h"
+#include "Paths.h"
 #include "LevelSequenceBindingReference.generated.h"
 
 /**

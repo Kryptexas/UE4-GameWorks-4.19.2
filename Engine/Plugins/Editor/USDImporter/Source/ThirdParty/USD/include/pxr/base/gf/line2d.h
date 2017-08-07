@@ -27,10 +27,13 @@
 /// \file gf/line2d.h
 /// \ingroup group_gf_BasicGeometry
 
+#include "pxr/pxr.h"
 #include "pxr/base/gf/vec2d.h"
 #include "pxr/base/gf/api.h"
 
 #include <float.h>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 /// \class GfLine2d
 /// \ingroup group_gf_BasicGeometry
@@ -111,5 +114,7 @@ GF_API
 bool GfFindClosestPoints(const GfLine2d &l1, const GfLine2d &l2,
                          GfVec2d *p1 = nullptr, GfVec2d *p2 = nullptr,
                          double *t1 = nullptr, double *t2 = nullptr);
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // GF_LINE2D_H

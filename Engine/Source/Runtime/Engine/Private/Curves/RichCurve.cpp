@@ -285,13 +285,13 @@ FKeyHandle FRichCurve::AddKey( const float InTime, const float InValue, const bo
 }
 
 
-void FRichCurve::SetKeys(const TArray<float>& InTimes, const TArray<float>& InValues)
+void FRichCurve::SetKeys(const TArray<FRichCurveKey>& InKeys)
 {
 	Reset();
 
-	for (int32 Index = 0; Index < InTimes.Num(); ++Index)
+	for (int32 Index = 0; Index < InKeys.Num(); ++Index)
 	{
-		Keys.Add(FRichCurveKey(InTimes[Index], InValues[Index]));
+		Keys.Add(InKeys[Index]);
 		KeyHandlesToIndices.Add(FKeyHandle(), Index);
 	}
 

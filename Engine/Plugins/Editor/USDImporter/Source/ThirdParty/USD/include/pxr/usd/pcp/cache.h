@@ -24,6 +24,7 @@
 #ifndef PCP_CACHE_H
 #define PCP_CACHE_H
 
+#include "pxr/pxr.h"
 #include "pxr/usd/pcp/api.h"
 #include "pxr/usd/pcp/dependency.h"
 #include "pxr/usd/pcp/errors.h"
@@ -44,6 +45,8 @@
 #include "pxr/base/tf/hashset.h"
 #include <string>
 #include <vector>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 // Forward declarations:
 class PcpChanges;
@@ -108,19 +111,20 @@ public:
     /// child names are performed without relocates, inherits, permissions, 
     /// symmetry, or payloads, and without populating the prim stack and 
     /// gathering its dependencies.
-	PCP_API
+    PCP_API
     PcpCache(const PcpLayerStackIdentifier & layerStackIdentifier,
              const std::string& targetSchema = std::string(),
              bool usd = false,
              const PcpPayloadDecoratorRefPtr& payloadDecorator 
                  = PcpPayloadDecoratorRefPtr());
-	PCP_API ~PcpCache();
+    PCP_API ~PcpCache();
 
     /// \name Parameters
     /// @{
 
     /// Get the identifier of the layerStack used for composition.
-	PCP_API PcpLayerStackIdentifier GetLayerStackIdentifier() const;
+    PCP_API
+    PcpLayerStackIdentifier GetLayerStackIdentifier() const;
 
     /// Get the layer stack for GetLayerStackIdentifier().  Note that
     /// this will neither compute the layer stack nor report errors.
@@ -128,21 +132,26 @@ public:
     /// return \c NULL.  Use ComputeLayerStack() if you need to
     /// compute the layer stack if it hasn't been computed already
     /// and/or get errors caused by computing the layer stack.
-	PCP_API PcpLayerStackPtr GetLayerStack() const;
+    PCP_API
+    PcpLayerStackPtr GetLayerStack() const;
 
     /// Return true if the cache is configured in Usd mode.
-	PCP_API bool IsUsd() const;
+    PCP_API
+    bool IsUsd() const;
 
     /// Returns the target schema this cache is configured for.
-	PCP_API const std::string& GetTargetSchema() const;
+    PCP_API
+    const std::string& GetTargetSchema() const;
 
     /// Returns the payload decorator used by this cache or NULL if
     /// this cache does not have one set.
-	PCP_API PcpPayloadDecorator* GetPayloadDecorator() const;
+    PCP_API
+    PcpPayloadDecorator* GetPayloadDecorator() const;
 
     /// Get the list of fallbacks to attempt to use when evaluating
     /// variant sets that lack an authored selection.
-    PCP_API PcpVariantFallbackMap GetVariantFallbacks() const;
+    PCP_API
+    PcpVariantFallbackMap GetVariantFallbacks() const;
 
     /// Set the list of fallbacks to attempt to use when evaluating
     /// variant sets that lack an authored selection.
@@ -150,14 +159,17 @@ public:
     /// If \p changes is not \c NULL then it's adjusted to reflect the
     /// changes necessary to see the change in standin preferences,
     /// otherwise those changes are applied immediately.
-    PCP_API void SetVariantFallbacks( const PcpVariantFallbackMap & map,
-                                PcpChanges* changes = NULL );
+    PCP_API
+    void SetVariantFallbacks( const PcpVariantFallbackMap & map,
+                              PcpChanges* changes = NULL );
 
     /// Return true if the payload is included for the given path.
-	PCP_API bool IsPayloadIncluded(const SdfPath &path) const;
+    PCP_API
+    bool IsPayloadIncluded(const SdfPath &path) const;
 
     /// Returns the payloads requested for inclusion.
-	PCP_API SdfPathSet GetIncludedPayloads() const;
+    PCP_API
+    SdfPathSet GetIncludedPayloads() const;
 
     /// Request payloads to be included or excluded from composition.
     /// \param pathsToInclude is a set of paths to add to the set for
@@ -170,7 +182,7 @@ public:
     /// \note If a path is listed in both pathsToInclude and pathsToExclude,
     /// it will be treated as an inclusion only.
     ///
-	PCP_API 
+    PCP_API 
     void RequestPayloads( const SdfPathSet & pathsToInclude,
                           const SdfPathSet & pathsToExclude,
                           PcpChanges* changes = NULL );
@@ -202,7 +214,7 @@ public:
     /// changes necessary to see the change in muted layers.  Otherwise,
     /// those changes are applied immediately.
     /// 
-	PCP_API 
+    PCP_API 
     void RequestLayerMuting(const std::vector<std::string>& layersToMute,
                             const std::vector<std::string>& layersToUnmute,
                             PcpChanges* changes = nullptr);
@@ -210,7 +222,7 @@ public:
     /// Returns the list of canonical identifiers for muted layers
     /// in this cache.  See documentation on RequestLayerMuting for
     /// more details.
-	PCP_API 
+    PCP_API 
     const std::vector<std::string>& GetMutedLayers() const;
 
     /// Returns true if the layer specified by \p layerIdentifier is
@@ -218,7 +230,7 @@ public:
     /// is relative, it is assumed to be relative to this cache's
     /// root layer.  See documentation on RequestLayerMuting for
     /// more details.
-	PCP_API 
+    PCP_API 
     bool IsLayerMuted(const std::string& layerIdentifier) const;
 
     /// Returns true if the layer specified by \p layerIdentifier is
@@ -228,7 +240,7 @@ public:
     /// populated with the canonical identifier of the muted layer if this
     /// function returns true.  See documentation on RequestLayerMuting
     /// for more details.  
-	PCP_API 
+    PCP_API 
     bool IsLayerMuted(const SdfLayerHandle& anchorLayer,
                       const std::string& layerIdentifier,
                       std::string* canonicalMutedLayerIdentifier 
@@ -236,7 +248,8 @@ public:
 
     /// Returns parameter object containing all inputs for the prim index
     /// computation used by this cache. 
-	PCP_API PcpPrimIndexInputs GetPrimIndexInputs();
+    PCP_API
+    PcpPrimIndexInputs GetPrimIndexInputs();
 
     /// @}
 
@@ -248,19 +261,22 @@ public:
     /// if \p identifier is invalid (i.e. its root layer is \c NULL). 
     /// \p allErrors will contain any errors encountered while creating a 
     /// new layer stack.  It'll be unchanged if the layer stack already existed.
-	PCP_API PcpLayerStackRefPtr
+    PCP_API
+    PcpLayerStackRefPtr
     ComputeLayerStack(const PcpLayerStackIdentifier &identifier, 
                       PcpErrorVector *allErrors);
 
     /// Returns the layer stack for \p identifier if it has been computed
     /// and cached, otherwise returns \c NULL.
-	PCP_API PcpLayerStackPtr
+    PCP_API
+    PcpLayerStackPtr
     FindLayerStack(const PcpLayerStackIdentifier &identifier) const;
 
     /// Compute and return a reference to the cached result for the
     /// prim index for the given path. \p allErrors will contain any errors 
     /// encountered while performing this operation.
-	PCP_API  const PcpPrimIndex &
+    PCP_API
+    const PcpPrimIndex &
     ComputePrimIndex(const SdfPath &primPath, PcpErrorVector *allErrors);
 
     /// Compute PcpPrimIndexes in the subtree rooted at path in parallel,
@@ -336,18 +352,21 @@ public:
 
     /// Returns a pointer to the cached computed prim index for the given
     /// path, or NULL if it has not been computed.
-	PCP_API const PcpPrimIndex *
+    PCP_API
+    const PcpPrimIndex *
     FindPrimIndex(const SdfPath &primPath) const;
 
     /// Compute and return a reference to the cached result for the
     /// property index for the given path. \p allErrors will contain any
     /// errors encountered while performing this operation.
-	PCP_API const PcpPropertyIndex &
+    PCP_API
+    const PcpPropertyIndex &
     ComputePropertyIndex(const SdfPath &propPath, PcpErrorVector *allErrors);
 
     /// Returns a pointer to the cached computed propery index for the given
     /// path, or NULL if it has not been computed.
-	PCP_API const PcpPropertyIndex *
+    PCP_API
+    const PcpPropertyIndex *
     FindPropertyIndex(const SdfPath &propPath) const;
 
     /// Compute the relationship target paths for the relationship at
@@ -357,7 +376,8 @@ public:
     /// relationship targets at \p stopProperty, including \p stopProperty
     /// iff \p includeStopProperty is \c true.  \p allErrors will contain any
     /// errors encountered while performing this operation.
-	PCP_API void
+    PCP_API
+    void
     ComputeRelationshipTargetPaths(const SdfPath &relationshipPath, 
                                    SdfPathVector *paths,
                                    bool localOnly,
@@ -372,7 +392,8 @@ public:
     /// attribute connections at \p stopProperty, including \p stopProperty
     /// iff \p includeStopProperty is \c true.  \p allErrors will contain any
     /// errors encountered while performing this operation.
-	PCP_API void
+    PCP_API
+    void
     ComputeAttributeConnectionPaths(const SdfPath &attributePath,
                                     SdfPathVector *paths,
                                     bool localOnly,
@@ -385,13 +406,16 @@ public:
     /// @{
 
     /// Returns set of all layers used by this cache. 
-	PCP_API SdfLayerHandleSet GetUsedLayers() const;
+    PCP_API
+    SdfLayerHandleSet GetUsedLayers() const;
 
     /// Returns set of all root layers used by this cache.
-	PCP_API SdfLayerHandleSet GetUsedRootLayers() const;
+    PCP_API
+    SdfLayerHandleSet GetUsedRootLayers() const;
 
     /// Returns every computed & cached layer stack that includes \p layer.
-	PCP_API const PcpLayerStackPtrVector&
+    PCP_API
+    const PcpLayerStackPtrVector&
     FindAllLayerStacksUsingLayer(const SdfLayerHandle& layer) const;
 
     /// Returns dependencies on the given site of scene description,
@@ -442,26 +466,26 @@ public:
     ///
     /// This returns \c false if no prim index has yet been computed for
     /// \p localPcpSitePath.
-	PCP_API 
+    PCP_API 
     bool CanHaveOpinionForSite(const SdfPath& localPcpSitePath,
                                const SdfLayerHandle& layer,
                                SdfPath* allowedPathInLayer) const;
 
     /// Returns a vector of sublayer asset paths used in the layer stack
     /// that didn't resolve to valid assets.
-	PCP_API 
+    PCP_API 
     std::vector<std::string> GetInvalidSublayerIdentifiers() const;
 
     /// Returns true if \p identifier was used as a sublayer path in a 
     /// layer stack but did not identify a valid layer. This is functionally 
     /// equivalent to examining the values in the vector returned by
     /// GetInvalidSublayerIdentifiers, but more efficient.
-	PCP_API 
+    PCP_API 
     bool IsInvalidSublayerIdentifier(const std::string& identifier) const;
 
     /// Returns a map of prim paths to asset paths used by that prim
     /// (e.g. in a reference) that didn't resolve to valid assets.
-	PCP_API 
+    PCP_API 
     std::map<SdfPath, std::vector<std::string>, SdfPath::FastLessThan>
     GetInvalidAssetPaths() const;
 
@@ -469,7 +493,7 @@ public:
     /// a reference) but did not resolve to a valid asset. This is
     /// functionally equivalent to examining the values in the map returned
     /// by GetInvalidAssetPaths, but more efficient.
-	PCP_API 
+    PCP_API 
     bool IsInvalidAssetPath(const std::string& resolvedAssetPath) const;
 
     /// @}
@@ -496,7 +520,7 @@ public:
     /// we don't destroy the layer and then read it again.  However, if
     /// the client destroys \p lifeboat before pulling on the cache then
     /// we would destroy the layer then read it again.
-	PCP_API 
+    PCP_API 
     void Apply(const PcpCacheChanges& changes, PcpLifeboat* lifeboat);
 
     /// Reload the layers of the layer stack, except session layers
@@ -505,7 +529,8 @@ public:
     /// previously.  It will also try to load any referenced or payloaded
     /// layer that could not be loaded previously.  Clients should
     /// subsequently \c Apply() \p changes to use any now-valid layers.
-	PCP_API void Reload(PcpChanges* changes);
+    PCP_API
+    void Reload(PcpChanges* changes);
 
     /// Reload every layer used by the prim at \p primPath that's across
     /// a reference or payload.  Clients should subsequently apply the
@@ -518,7 +543,7 @@ public:
     /// valid reference to layer X with sublayer Y.  If on reload R now
     /// has a valid reference to layer Z with sublayer Y, we will load Z
     /// but we will not reload Y.
-	PCP_API 
+    PCP_API 
     void ReloadReferences(PcpChanges* changes, const SdfPath& primPath);
 
     /// @}
@@ -527,7 +552,8 @@ public:
     /// @{
 
     /// Prints various statistics about the data stored in this cache.
-	PCP_API void PrintStatistics() const;
+    PCP_API
+    void PrintStatistics() const;
 
     /// @}
 
@@ -597,22 +623,19 @@ private:
         const char *mallocTag1,
         const char *mallocTag2);
 
-	PCP_API 
     void _RemovePrimCache(const SdfPath& primPath, PcpLifeboat* lifeboat);
     void _RemovePrimAndPropertyCaches(const SdfPath& root,
                                       PcpLifeboat* lifeboat);
-	PCP_API 
-	void _RemovePropertyCache(const SdfPath& root, PcpLifeboat* lifeboat);
-	PCP_API 
+    void _RemovePropertyCache(const SdfPath& root, PcpLifeboat* lifeboat);
     void _RemovePropertyCaches(const SdfPath& root, PcpLifeboat* lifeboat);
 
     // Returns the prim index for \p path if it exists, NULL otherwise.
-	PCP_API PcpPrimIndex* _GetPrimIndex(const SdfPath& path);
-	PCP_API const PcpPrimIndex* _GetPrimIndex(const SdfPath& path) const;
+    PcpPrimIndex* _GetPrimIndex(const SdfPath& path);
+    const PcpPrimIndex* _GetPrimIndex(const SdfPath& path) const;
 
     // Returns the property index for \p path if it exists, NULL otherwise.
-	PCP_API PcpPropertyIndex* _GetPropertyIndex(const SdfPath& path);
-	PCP_API const PcpPropertyIndex* _GetPropertyIndex(const SdfPath& path) const;
+    PcpPropertyIndex* _GetPropertyIndex(const SdfPath& path);
+    const PcpPropertyIndex* _GetPropertyIndex(const SdfPath& path) const;
 
 private:
     // Fixed evaluation parameters, set when the cache is created.  Note that
@@ -661,4 +684,6 @@ private:
     boost::scoped_ptr<Pcp_Dependencies> _primDependencies;
 };
 
-#endif
+PXR_NAMESPACE_CLOSE_SCOPE
+
+#endif // PCP_CACHE_H

@@ -27,11 +27,14 @@
 /// \file tf/staticData.h
 /// \ingroup group_tf_Initialization
 
+#include "pxr/pxr.h"
 #include "pxr/base/arch/hints.h"
 #include "pxr/base/tf/preprocessorUtils.h"
 #include "pxr/base/tf/preprocessorUtilsLite.h"
 
 #include <atomic>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 /// \class TfStaticData
 /// \ingroup group_tf_Initialization
@@ -126,12 +129,12 @@ public:
     
     /// Return true if the underlying data object is created and initialized.
     /// Return false otherwise.
-    inline bool IsInitialized() const { return static_cast<void*>(_data); }
+    inline bool IsInitialized() const { return _data.load() != nullptr; }
 
 private:
     T *_TryToCreateData() const {
         // Allocate an instance.
-        T *tmp = const_cast<T*>(Factory::New());
+        T *tmp = Factory::New();
 
         // Try to atomically set the pointer from null to tmp.
         T *n = nullptr;
@@ -196,5 +199,7 @@ private:
         TF_PP_EAT_PARENS(Type), TF_PP_CAT(Name,_Tf_StaticDataFactory)> Name;   \
     static void TF_PP_CAT(Name,_Tf_StaticDataFactoryImpl)(                     \
         TF_PP_EAT_PARENS(Type) *Name)
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif

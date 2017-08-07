@@ -264,7 +264,7 @@ FLinearColor FUserDefinedEnumEditor::GetWorldCentricTabColorScale() const
 
 void FEnumDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 {
-	const TArray<TWeakObjectPtr<UObject>> Objects = DetailLayout.GetDetailsView().GetSelectedObjects();
+	const TArray<TWeakObjectPtr<UObject>>& Objects = DetailLayout.GetSelectedObjects();
 	check(Objects.Num() > 0);
 
 	if (Objects.Num() == 1)

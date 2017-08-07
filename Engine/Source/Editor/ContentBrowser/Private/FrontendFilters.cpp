@@ -12,6 +12,35 @@
 #include "ICollectionManager.h"
 #include "CollectionManagerModule.h"
 #include "ObjectTools.h"
+#include "AssetRegistryModule.h"
+#include "SAssetView.h"
+
+/** Helper functions for frontend filters */
+namespace FrontendFilterHelper
+{
+	/**
+	 * Get a set of dependencies as package name's from a list of assets found with the given Asset Registry Filter.
+	 * @param InAssetRegistryFilter		The filter to find assets for in the asset registry.
+	 * @param AssetRegistry				The Asset Registry to find assets and dependencies.
+	 * @param OutDependencySet			The output of dependencies found from a set of assets.
+	 */
+	void GetDependencies(const FARFilter& InAssetRegistryFilter, const IAssetRegistry& AssetRegistry, TSet<FName>& OutDependencySet)
+	{
+		TArray<FAssetData> FoundAssets;
+		AssetRegistry.GetAssets(InAssetRegistryFilter, FoundAssets);
+
+		for (const FAssetData& AssetData : FoundAssets)
+		{
+			// Store all the dependencies of all the levels
+			TArray<FAssetIdentifier> AssetDependencies;
+			AssetRegistry.GetDependencies(FAssetIdentifier(AssetData.PackageName), AssetDependencies);
+			for (const FAssetIdentifier& Dependency : AssetDependencies)
+			{
+				OutDependencySet.Add(Dependency.PackageName);
+			}
+		}
+	}
+}
 
 /////////////////////////////////////////
 // FFrontendFilter_Text
@@ -1021,4 +1050,77 @@ void FFrontendFilter_InUseByLoadedLevels::OnEditorMapChange( uint32 MapChangeFla
 		ObjectTools::TagInUseObjects(ObjectTools::SO_LoadedLevels);
 		BroadcastChangedEvent();
 	}
+}
+
+/////////////////////////////////////////
+// FFrontendFilter_InUseByAnyLevel
+/////////////////////////////////////////
+
+FFrontendFilter_UsedInAnyLevel::FFrontendFilter_UsedInAnyLevel(TSharedPtr<FFrontendFilterCategory> InCategory)
+	: FFrontendFilter(InCategory)
+{
+	// Prepare asset registry.
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	AssetRegistry = &AssetRegistryModule.Get();
+	check (AssetRegistry != nullptr);
+}
+
+FFrontendFilter_UsedInAnyLevel::~FFrontendFilter_UsedInAnyLevel()
+{
+	AssetRegistry = nullptr;
+}
+
+void FFrontendFilter_UsedInAnyLevel::ActiveStateChanged(bool bActive)
+{
+	LevelsDependencies.Empty();
+
+	if (bActive)
+	{
+		// Find all the levels
+		FARFilter Filter;
+		Filter.ClassNames.Add(UWorld::StaticClass()->GetFName());
+		FrontendFilterHelper::GetDependencies(Filter, *AssetRegistry, LevelsDependencies);
+	}
+}
+
+bool FFrontendFilter_UsedInAnyLevel::PassesFilter(FAssetFilterType InItem) const	
+{
+	return LevelsDependencies.Contains(InItem.PackageName);
+}
+
+/////////////////////////////////////////
+// FFrontendFilter_NotUsedInAnyLevel
+/////////////////////////////////////////
+
+FFrontendFilter_NotUsedInAnyLevel::FFrontendFilter_NotUsedInAnyLevel(TSharedPtr<FFrontendFilterCategory> InCategory)
+	: FFrontendFilter(InCategory)
+{
+	// Prepare asset registry.
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	AssetRegistry = &AssetRegistryModule.Get();
+	check (AssetRegistry != nullptr);
+}
+
+
+FFrontendFilter_NotUsedInAnyLevel::~FFrontendFilter_NotUsedInAnyLevel()
+{
+	AssetRegistry = nullptr;
+}
+
+void FFrontendFilter_NotUsedInAnyLevel::ActiveStateChanged(bool bActive)
+{
+	LevelsDependencies.Empty();
+	
+	if (bActive)
+	{
+		// Find all the levels
+		FARFilter Filter;
+		Filter.ClassNames.Add(UWorld::StaticClass()->GetFName());
+		FrontendFilterHelper::GetDependencies(Filter, *AssetRegistry, LevelsDependencies);
+	}
+}
+
+bool FFrontendFilter_NotUsedInAnyLevel::PassesFilter(FAssetFilterType InItem) const
+{
+	return !LevelsDependencies.Contains(InItem.PackageName);
 }

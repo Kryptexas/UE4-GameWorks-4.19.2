@@ -121,8 +121,9 @@ public class CEF3 : ModuleRules
 			}
 			else if (Target.Platform == UnrealTargetPlatform.Linux)
 			{
-				PublicLibraryPaths.Add(LibraryPath);
-				PublicAdditionalLibraries.Add("cef");
+				// link against runtime library since this produces correct RPATH
+				string RuntimeLibCEFPath = Path.Combine(RuntimePath, "libcef.so");
+				PublicAdditionalLibraries.Add(RuntimeLibCEFPath);
 
 				string Configuration;
 				if (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT)
@@ -135,8 +136,7 @@ public class CEF3 : ModuleRules
 				}
 				string WrapperLibraryPath =  Path.Combine(PlatformPath, Configuration, "libcef_dll");
 
-				PublicLibraryPaths.Add(WrapperLibraryPath);
-				PublicAdditionalLibraries.Add("cef_dll_wrapper");
+				PublicAdditionalLibraries.Add(Path.Combine(WrapperLibraryPath, "libcef_dll_wrapper.a"));
 
 				RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/CEF3/" + Target.Platform.ToString() + "/libcef.so"));
 				RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/CEF3/" + Target.Platform.ToString() + "/icudtl.dat"));

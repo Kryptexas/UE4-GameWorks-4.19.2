@@ -125,6 +125,7 @@ void UVRRadialMenuHandler::Init(UVREditorUISystem* InUISystem)
 	EditMenu.BindUObject(this, &UVRRadialMenuHandler::EditMenuGenerator);
 	ToolsMenu.BindUObject(this, &UVRRadialMenuHandler::ToolsMenuGenerator);
 	ModesMenu.BindUObject(this, &UVRRadialMenuHandler::ModesMenuGenerator);
+	SystemMenu.BindUObject(this, &UVRRadialMenuHandler::SystemMenuGenerator);
 
 	Home();
 }
@@ -261,6 +262,19 @@ void UVRRadialMenuHandler::HomeMenuGenerator(FMenuBuilder& MenuBuilder, TSharedP
 		NAME_None,
 		EUserInterfaceActionType::CollapsedButton
 		);
+
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("System", "System"),
+		FText(),
+		FSlateIcon(FVREditorStyle::GetStyleSetName(), "VREditorStyle.SystemMenu"),
+		FUIAction
+		(
+			FExecuteAction::CreateUObject(this, &UVRRadialMenuHandler::RegisterMenuGenerator, SystemMenu, true),
+			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::DefaultCanExecuteAction)
+		),
+		NAME_None,
+		EUserInterfaceActionType::CollapsedButton
+	);
 
 	MenuBuilder.EndSection();
 }
@@ -793,6 +807,26 @@ void UVRRadialMenuHandler::ModesMenuGenerator(FMenuBuilder& MenuBuilder, TShared
 		NAME_None,
 		EUserInterfaceActionType::ToggleButton
 		);
+
+	MenuBuilder.EndSection();
+}
+
+void UVRRadialMenuHandler::SystemMenuGenerator(FMenuBuilder& MenuBuilder, TSharedPtr<FUICommandList> CommandList, UVREditorMode* VRMode, float& RadiusOverride)
+{
+	MenuBuilder.BeginSection("System");
+
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("Exit", "Exit"),
+		FText(),
+		FSlateIcon(FVREditorStyle::GetStyleSetName(), "VREditorStyle.ExitVRMode"),
+		FUIAction
+		(
+			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::ExitVRMode, VRMode),
+			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::DefaultCanExecuteAction)
+		),
+		NAME_None,
+		EUserInterfaceActionType::Button
+	);
 
 	MenuBuilder.EndSection();
 }

@@ -811,17 +811,23 @@ UFbxImportUI::UFbxImportUI(const FObjectInitializer& ObjectInitializer)
 {
 	bIsReimport = false;
 	bAutomatedImportShouldDetectType = true;
+	//Make sure we are transactional to allow undo redo
+	this->SetFlags(RF_Transactional);
 	
 	StaticMeshImportData = CreateDefaultSubobject<UFbxStaticMeshImportData>(TEXT("StaticMeshImportData"));
+	StaticMeshImportData->SetFlags(RF_Transactional);
 	StaticMeshImportData->LoadOptions();
 	
 	SkeletalMeshImportData = CreateDefaultSubobject<UFbxSkeletalMeshImportData>(TEXT("SkeletalMeshImportData"));
+	StaticMeshImportData->SetFlags(RF_Transactional);
 	SkeletalMeshImportData->LoadOptions();
 	
 	AnimSequenceImportData = CreateDefaultSubobject<UFbxAnimSequenceImportData>(TEXT("AnimSequenceImportData"));
+	StaticMeshImportData->SetFlags(RF_Transactional);
 	AnimSequenceImportData->LoadOptions();
 	
 	TextureImportData = CreateDefaultSubobject<UFbxTextureImportData>(TEXT("TextureImportData"));
+	StaticMeshImportData->SetFlags(RF_Transactional);
 	TextureImportData->LoadOptions();
 }
 

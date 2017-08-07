@@ -703,7 +703,7 @@ void FSourceCodeNavigationImpl::NavigateToFunctionSource( const FString& Functio
 
 FCriticalSection FSourceCodeNavigation::CriticalSection;
 FSourceFileDatabase FSourceCodeNavigation::Instance;
-
+bool FSourceCodeNavigation::bCachedIsCompilerAvailable = false;
 
 void FSourceCodeNavigation::Initialize()
 {
@@ -727,6 +727,8 @@ void FSourceCodeNavigation::Initialize()
 			RETURN_QUICK_DECLARE_CYCLE_STAT(FAsyncInitializeSourceFileDatabase, STATGROUP_ThreadPoolAsyncTasks);
 		}
 	};
+
+	RefreshCompilerAvailability();
 
 	// Initialize SourceFileDatabase instance asynchronously
 	(new FAutoDeleteAsyncTask<FAsyncInitializeSourceFileDatabase>)->StartBackgroundTask();
@@ -1580,13 +1582,9 @@ void FSourceCodeNavigation::DownloadAndInstallSuggestedIDE(FOnIDEInstallerDownlo
 void FSourceCodeNavigation::RefreshCompilerAvailability()
 {
 	ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::LoadModuleChecked<ISourceCodeAccessModule>("SourceCodeAccess");
-	return SourceCodeAccessModule.GetAccessor().RefreshAvailability();
-}
+	SourceCodeAccessModule.GetAccessor().RefreshAvailability();
 
-bool FSourceCodeNavigation::IsCompilerAvailable()
-{
-	ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::LoadModuleChecked<ISourceCodeAccessModule>("SourceCodeAccess");
-	return SourceCodeAccessModule.GetAccessor().CanAccessSourceCode();
+	bCachedIsCompilerAvailable = SourceCodeAccessModule.GetAccessor().CanAccessSourceCode();
 }
 
 bool FSourceCodeNavigation::OpenSourceFile( const FString& AbsoluteSourcePath, int32 LineNumber, int32 ColumnNumber )

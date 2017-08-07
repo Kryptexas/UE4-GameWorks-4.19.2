@@ -27,6 +27,11 @@ public:
 	{
 		return Sequence;
 	}
+
+	UActorSequencePlayer* GetSequencePlayer() const 
+	{
+		return SequencePlayer;
+	}
 	
 	virtual void PostInitProperties() override;
 	virtual void BeginPlay() override;

@@ -52,14 +52,16 @@ void FColorStructCustomization::MakeHeaderRow(TSharedRef<class IPropertyHandle>&
 	TSharedPtr<SWidget> ColorWidget;
 	float ContentWidth = 250.0f;
 
+	TWeakPtr<IPropertyHandle> StructWeakHandlePtr = StructPropertyHandle;
+
 	if (InStructPropertyHandle->HasMetaData("InlineColorPicker"))
 	{
-		ColorWidget = CreateInlineColorPicker();
+		ColorWidget = CreateInlineColorPicker(StructWeakHandlePtr);
 		ContentWidth = 384.0f;
 	}
 	else
 	{
-		ColorWidget = CreateColorWidget();
+		ColorWidget = CreateColorWidget(StructWeakHandlePtr);
 	}
 
 	Row.NameContent()
@@ -74,7 +76,7 @@ void FColorStructCustomization::MakeHeaderRow(TSharedRef<class IPropertyHandle>&
 }
 
 
-TSharedRef<SWidget> FColorStructCustomization::CreateColorWidget()
+TSharedRef<SWidget> FColorStructCustomization::CreateColorWidget(TWeakPtr<IPropertyHandle> StructWeakHandlePtr)
 {
 	FSlateFontInfo NormalText = IDetailLayoutBuilder::GetDetailFont();
 
@@ -93,6 +95,7 @@ TSharedRef<SWidget> FColorStructCustomization::CreateColorWidget()
 				.IgnoreAlpha(bIgnoreAlpha)
 				.OnMouseButtonDown(this, &FColorStructCustomization::OnMouseButtonDownColorBlock)
 				.Size(FVector2D(35.0f, 12.0f))
+				.IsEnabled(this, &FColorStructCustomization::IsValueEnabled, StructWeakHandlePtr)
 			]
 			+SOverlay::Slot()
 			.HAlign(HAlign_Center)
@@ -222,7 +225,7 @@ void FColorStructCustomization::CreateColorPicker(bool bUseAlpha)
 }
 
 
-TSharedRef<SColorPicker> FColorStructCustomization::CreateInlineColorPicker()
+TSharedRef<SColorPicker> FColorStructCustomization::CreateInlineColorPicker(TWeakPtr<IPropertyHandle> StructWeakHandlePtr)
 {
 	int32 NumObjects = StructPropertyHandle->GetNumOuterObjects();
 
@@ -261,7 +264,8 @@ TSharedRef<SColorPicker> FColorStructCustomization::CreateInlineColorPicker()
 		.OnInteractivePickBegin(FSimpleDelegate::CreateSP(this, &FColorStructCustomization::OnColorPickerInteractiveBegin))
 		.OnInteractivePickEnd(FSimpleDelegate::CreateSP(this, &FColorStructCustomization::OnColorPickerInteractiveEnd))
 		.sRGBOverride(sRGBOverride)
-		.TargetColorAttribute(InitialColor);
+		.TargetColorAttribute(InitialColor)
+		.IsEnabled(this, &FColorStructCustomization::IsValueEnabled, StructWeakHandlePtr);
 }
 
 

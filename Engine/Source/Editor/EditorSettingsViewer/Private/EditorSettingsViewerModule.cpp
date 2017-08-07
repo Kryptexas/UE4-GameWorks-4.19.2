@@ -43,6 +43,7 @@
 #include "Analytics/AnalyticsPrivacySettings.h"
 #include "VRModeSettings.h"
 #include "Editor/EditorPerformanceSettings.h"
+#include "Settings/SkeletalMeshEditorSettings.h"
 
 #define LOCTEXT_NAMESPACE "FEditorSettingsViewerModule"
 
@@ -222,12 +223,12 @@ protected:
 			GetMutableDefault<UContentBrowserSettings>()
 		);
 
-		// destructable mesh editor
-/*		SettingsModule.RegisterSettings("Editor", "ContentEditors", "DestructableMeshEditor",
-			LOCTEXT("ContentEditorsDestructableMeshEditorSettingsName", "Destructable Mesh Editor"),
-			LOCTEXT("ContentEditorsDestructableMeshEditorSettingsDescription", "Change the behavior of the Destructable Mesh Editor."),
-			GetMutableDefault<UDestructableMeshEditorSettings>()
-		);*/
+		// skeletal mesh editor
+		SettingsModule.RegisterSettings("Editor", "ContentEditors", "SkeletalMeshEditor",
+			LOCTEXT("ContentEditorsSkeletalMeshEditorSettingsName", "Skeletal Mesh Editor"),
+			LOCTEXT("ContentEditorsSkeletalMeshEditorSettingsDescription", "Change the behavior of the Skeletal Mesh Editor."),
+			GetMutableDefault<USkeletalMeshEditorSettings>()
+		);
 
 		// graph editors
 		SettingsModule.RegisterSettings("Editor", "ContentEditors", "GraphEditor",
@@ -293,7 +294,6 @@ protected:
 
 			// other tools
 			SettingsModule->UnregisterSettings("Editor", "ContentEditors", "ContentBrowser");
-//			SettingsModule->UnregisterSettings("Editor", "ContentEditors", "DestructableMeshEditor");
 			SettingsModule->UnregisterSettings("Editor", "ContentEditors", "GraphEditor");
 			SettingsModule->UnregisterSettings("Editor", "ContentEditors", "Persona");
 			SettingsModule->UnregisterSettings("Editor", "ContentEditors", "CurveEditor");

@@ -506,7 +506,7 @@ FPooledRenderTargetDesc FRCPassPostProcessBokehDOFRecombine::ComputeOutputDesc(E
 
 	Ret.AutoWritable = false;
 	Ret.DebugName = TEXT("BokehDOFRecombine");
-	Ret.Flags |= GetTextureFastVRamFlag_DynamicLayout();
+	Ret.Flags |= GFastVRamConfig.BokehDOF;
 
 	return Ret;
 }

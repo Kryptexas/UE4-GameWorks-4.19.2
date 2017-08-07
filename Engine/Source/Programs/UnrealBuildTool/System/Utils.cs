@@ -421,6 +421,87 @@ namespace UnrealBuildTool
 			return CleanPath != null ? CleanPath.ToString() : FilePath;
 		}
 
+		/// <summary>
+		/// Correctly collapses any ../ or ./ entries in a path.
+		/// </summary>
+		/// <param name="InPath">The path to be collapsed</param>
+		/// <returns>true if the path could be collapsed, false otherwise.</returns>
+		static string CollapseRelativeDirectories(string InPath)
+		{
+			string LocalString = InPath;
+			bool bHadBackSlashes = false;
+			// look to see what kind of slashes we had
+			if (LocalString.IndexOf("\\") != -1)
+			{
+				LocalString = LocalString.Replace("\\", "/");
+				bHadBackSlashes = true;
+			}
+
+			string ParentDir = "/..";
+			int ParentDirLength = ParentDir.Length;
+
+			for (; ; )
+			{
+				// An empty path is finished
+				if (string.IsNullOrEmpty(LocalString))
+				{
+					break;
+				}
+
+				// Consider empty paths or paths which start with .. or /.. as invalid
+				if (LocalString.StartsWith("..") || LocalString.StartsWith(ParentDir))
+				{
+					return InPath;
+				}
+
+				// If there are no "/.."s left then we're done
+				int Index = LocalString.IndexOf(ParentDir);
+				if (Index == -1)
+				{
+					break;
+				}
+
+				int PreviousSeparatorIndex = Index;
+				for (; ; )
+				{
+					// Find the previous slash
+					PreviousSeparatorIndex = Math.Max(0, LocalString.LastIndexOf("/", PreviousSeparatorIndex - 1));
+
+					// Stop if we've hit the start of the string
+					if (PreviousSeparatorIndex == 0)
+					{
+						break;
+					}
+
+					// Stop if we've found a directory that isn't "/./"
+					if ((Index - PreviousSeparatorIndex) > 1 && (LocalString[PreviousSeparatorIndex + 1] != '.' || LocalString[PreviousSeparatorIndex + 2] != '/'))
+					{
+						break;
+					}
+				}
+
+				// If we're attempting to remove the drive letter, that's illegal
+				int Colon = LocalString.IndexOf(":", PreviousSeparatorIndex);
+				if (Colon >= 0 && Colon < Index)
+				{
+					return InPath;
+				}
+
+				LocalString = LocalString.Substring(0, PreviousSeparatorIndex) + LocalString.Substring(Index + ParentDirLength);
+			}
+
+			LocalString = LocalString.Replace("./", "");
+
+			// restore back slashes now
+			if (bHadBackSlashes)
+			{
+				LocalString = LocalString.Replace("/", "\\");
+			}
+
+			// and pass back out
+			return LocalString;
+		}
+
 
 		/// <summary>
 		/// Given a file path and a directory, returns a file path that is relative to the specified directory
@@ -481,10 +562,11 @@ namespace UnrealBuildTool
 			{
 				// Check if result is correct
 				string TestPath = Path.GetFullPath(Path.Combine(AbsoluteRelativeDirectory, RelativePath));
-				if (TestPath != AbsolutePath)
+				string AbsoluteTestPath = CollapseRelativeDirectories(AbsolutePath);
+				if (TestPath != AbsoluteTestPath)
 				{
 					TestPath += "/";
-					if (TestPath != AbsolutePath)
+					if (TestPath != AbsoluteTestPath)
 					{
 						// Fix the path. @todo Mac: replace this hack with something better
 						RelativePath = "../" + RelativePath;

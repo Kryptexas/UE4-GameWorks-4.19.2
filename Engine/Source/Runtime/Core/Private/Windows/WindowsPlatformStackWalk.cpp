@@ -327,10 +327,10 @@ void FWindowsPlatformStackWalk::ProgramCounterToSymbolInfo( uint64 ProgramCounte
 	HANDLE ProcessHandle = GetCurrentProcess();
 
 	// Initialize symbol.
-	ANSICHAR SymbolBuffer[sizeof( IMAGEHLP_SYMBOL64 ) + FProgramCounterSymbolInfo::MAX_NAME_LENGHT] = {0};
+	ANSICHAR SymbolBuffer[sizeof( IMAGEHLP_SYMBOL64 ) + FProgramCounterSymbolInfo::MAX_NAME_LENGTH] = {0};
 	IMAGEHLP_SYMBOL64* Symbol = (IMAGEHLP_SYMBOL64*)SymbolBuffer;
 	Symbol->SizeOfStruct = sizeof(SymbolBuffer);
-	Symbol->MaxNameLength = FProgramCounterSymbolInfo::MAX_NAME_LENGHT;
+	Symbol->MaxNameLength = FProgramCounterSymbolInfo::MAX_NAME_LENGTH;
 
 	// Get function name.
 	if( SymGetSymFromAddr64( ProcessHandle, ProgramCounter, nullptr, Symbol ) )
@@ -343,8 +343,8 @@ void FWindowsPlatformStackWalk::ProgramCounterToSymbolInfo( uint64 ProgramCounte
 		}
 
 		// Write out function name.
-		FCStringAnsi::Strncpy( out_SymbolInfo.FunctionName, Symbol->Name + Offset, FProgramCounterSymbolInfo::MAX_NAME_LENGHT ); 
-		FCStringAnsi::Strncat( out_SymbolInfo.FunctionName, "()", FProgramCounterSymbolInfo::MAX_NAME_LENGHT );
+		FCStringAnsi::Strncpy( out_SymbolInfo.FunctionName, Symbol->Name + Offset, FProgramCounterSymbolInfo::MAX_NAME_LENGTH ); 
+		FCStringAnsi::Strncat( out_SymbolInfo.FunctionName, "()", FProgramCounterSymbolInfo::MAX_NAME_LENGTH );
 	}
 	else
 	{
@@ -357,7 +357,7 @@ void FWindowsPlatformStackWalk::ProgramCounterToSymbolInfo( uint64 ProgramCounte
 	ImageHelpLine.SizeOfStruct = sizeof( ImageHelpLine );
 	if( SymGetLineFromAddr64( ProcessHandle, ProgramCounter, (::DWORD *)&out_SymbolInfo.SymbolDisplacement, &ImageHelpLine ) )
 	{
-		FCStringAnsi::Strncpy( out_SymbolInfo.Filename, ImageHelpLine.FileName, FProgramCounterSymbolInfo::MAX_NAME_LENGHT );
+		FCStringAnsi::Strncpy( out_SymbolInfo.Filename, ImageHelpLine.FileName, FProgramCounterSymbolInfo::MAX_NAME_LENGTH );
 		out_SymbolInfo.LineNumber = ImageHelpLine.LineNumber;
 	}
 	else
@@ -371,7 +371,7 @@ void FWindowsPlatformStackWalk::ProgramCounterToSymbolInfo( uint64 ProgramCounte
 	if( SymGetModuleInfo64( ProcessHandle, ProgramCounter, &ImageHelpModule) )
 	{
 		// Write out module information.
-		FCStringAnsi::Strncpy( out_SymbolInfo.ModuleName, ImageHelpModule.ImageName, FProgramCounterSymbolInfo::MAX_NAME_LENGHT );
+		FCStringAnsi::Strncpy( out_SymbolInfo.ModuleName, ImageHelpModule.ImageName, FProgramCounterSymbolInfo::MAX_NAME_LENGTH );
 	}
 	else
 	{
@@ -532,11 +532,11 @@ static void LoadProcessModules(const FString &RemoteStorage)
 	{
 		MODULEINFO ModuleInfo = {0};
 #if WINVER > 0x502
-		WCHAR ModuleName[FProgramCounterSymbolInfo::MAX_NAME_LENGHT] = {0};
-		WCHAR ImageName[FProgramCounterSymbolInfo::MAX_NAME_LENGHT] = {0};
+		WCHAR ModuleName[FProgramCounterSymbolInfo::MAX_NAME_LENGTH] = {0};
+		WCHAR ImageName[FProgramCounterSymbolInfo::MAX_NAME_LENGTH] = {0};
 #else
-		ANSICHAR ModuleName[FProgramCounterSymbolInfo::MAX_NAME_LENGHT] = { 0 };
-		ANSICHAR ImageName[FProgramCounterSymbolInfo::MAX_NAME_LENGHT] = { 0 };
+		ANSICHAR ModuleName[FProgramCounterSymbolInfo::MAX_NAME_LENGTH] = { 0 };
+		ANSICHAR ImageName[FProgramCounterSymbolInfo::MAX_NAME_LENGTH] = { 0 };
 #endif
 #if PLATFORM_64BITS
 		static_assert(sizeof( MODULEINFO ) == 24, "Broken alignment for 64bit Windows include.");
@@ -544,8 +544,8 @@ static void LoadProcessModules(const FString &RemoteStorage)
 		static_assert(sizeof( MODULEINFO ) == 12, "Broken alignment for 32bit Windows include.");
 #endif
 		FGetModuleInformation( ProcessHandle, ModuleHandlePointer[ModuleIndex], &ModuleInfo, sizeof( ModuleInfo ) );
-		FGetModuleFileNameEx( ProcessHandle, ModuleHandlePointer[ModuleIndex], ImageName, FProgramCounterSymbolInfo::MAX_NAME_LENGHT );
-		FGetModuleBaseName( ProcessHandle, ModuleHandlePointer[ModuleIndex], ModuleName, FProgramCounterSymbolInfo::MAX_NAME_LENGHT );
+		FGetModuleFileNameEx( ProcessHandle, ModuleHandlePointer[ModuleIndex], ImageName, FProgramCounterSymbolInfo::MAX_NAME_LENGTH );
+		FGetModuleBaseName( ProcessHandle, ModuleHandlePointer[ModuleIndex], ModuleName, FProgramCounterSymbolInfo::MAX_NAME_LENGTH );
 
 		// Set the search path to find PDBs in the same folder as the DLL.
 #if WINVER > 0x502

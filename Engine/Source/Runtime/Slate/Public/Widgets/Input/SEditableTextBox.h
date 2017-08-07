@@ -32,6 +32,7 @@ public:
 		: _Style(&FCoreStyle::Get().GetWidgetStyle< FEditableTextBoxStyle >("NormalEditableTextBox"))
 		, _Text()
 		, _HintText()
+		, _SearchText()
 		, _Font()
 		, _ForegroundColor()
 		, _ReadOnlyForegroundColor()
@@ -59,6 +60,9 @@ public:
 
 		/** Hint text that appears when there is no text in the text box */
 		SLATE_ATTRIBUTE( FText, HintText )
+
+		/** Text to search for (a new search is triggered whenever this text changes) */
+		SLATE_ATTRIBUTE( FText, SearchText )
 
 		/** Font color and opacity (overrides Style) */
 		SLATE_ATTRIBUTE( FSlateFontInfo, Font )
@@ -164,6 +168,12 @@ public:
 	/** See the HintText attribute */
 	void SetHintText( const TAttribute< FText >& InHintText );
 	
+	/** Set the text that is currently being searched for (if any) */
+	void SetSearchText(const TAttribute<FText>& InSearchText);
+
+	/** Get the text that is currently being searched for (if any) */
+	FText GetSearchText() const;
+
 	/** See the IsReadOnly attribute */
 	void SetIsReadOnly( TAttribute< bool > InIsReadOnly );
 	
@@ -286,6 +296,12 @@ public:
 
 	/** Scroll to the given location in the document (without moving the cursor) */
 	void ScrollTo(const FTextLocation& NewLocation);
+
+	/** Begin a new text search (this is called automatically when the bound search text changes) */
+	void BeginSearch(const FText& InSearchText, const ESearchCase::Type InSearchCase = ESearchCase::IgnoreCase, const bool InReverse = false);
+
+	/** Advance the current search to the next match (does nothing if not currently searching) */
+	void AdvanceSearch(const bool InReverse = false);
 
 	bool HasError() const;
 

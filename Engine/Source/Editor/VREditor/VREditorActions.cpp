@@ -325,7 +325,7 @@ void FVREditorActionCallbacks::SimulateCharacterEntry(const FString InChar)
 	{
 		TCHAR CharKey = InChar[CharIndex];
 		const bool bRepeat = false;
-		FCharacterEvent CharacterEvent(CharKey, FModifierKeysState::FModifierKeysState(), 0, bRepeat);
+		FCharacterEvent CharacterEvent(CharKey, FModifierKeysState(), 0, bRepeat);
 		FSlateApplication::Get().ProcessKeyCharEvent(CharacterEvent);
 	}
 
@@ -348,12 +348,12 @@ void FVREditorActionCallbacks::SimulateKeyDown(const FKey Key, const bool bRepea
 	uint32 KeyCode = KeyCodePtr ? *KeyCodePtr : 0;
 	uint32 CharCode = CharCodePtr ? *CharCodePtr : 0;
 
-	FKeyEvent KeyEvent( Key, FModifierKeysState::FModifierKeysState(), 0, bRepeat, KeyCode, CharCode );
+	FKeyEvent KeyEvent( Key, FModifierKeysState(), 0, bRepeat, KeyCode, CharCode );
 	bool DownResult = FSlateApplication::Get().ProcessKeyDownEvent( KeyEvent );
 
 	if (CharCodePtr)
 	{
-		FCharacterEvent CharacterEvent( CharCode, FModifierKeysState::FModifierKeysState(), 0, bRepeat );
+		FCharacterEvent CharacterEvent( CharCode, FModifierKeysState(), 0, bRepeat );
 		FSlateApplication::Get().ProcessKeyCharEvent( CharacterEvent );
 	}
 }
@@ -367,7 +367,7 @@ void FVREditorActionCallbacks::SimulateKeyUp(const FKey Key)
 	uint32 KeyCode = KeyCodePtr ? *KeyCodePtr : 0;
 	uint32 CharCode = CharCodePtr ? *CharCodePtr : 0;
 
-	FKeyEvent KeyEvent( Key, FModifierKeysState::FModifierKeysState(), 0, false, KeyCode, CharCode );
+	FKeyEvent KeyEvent( Key, FModifierKeysState(), 0, false, KeyCode, CharCode );
 	FSlateApplication::Get().ProcessKeyUpEvent( KeyEvent );
 }
 
@@ -575,6 +575,11 @@ void FVREditorActionCallbacks::DeselectAll()
 	GEditor->SelectNone(true, true, false);
 	GEditor->GetSelectedActors()->DeselectAll();
 	GEditor->GetSelectedObjects()->DeselectAll();
+}
+
+void FVREditorActionCallbacks::ExitVRMode(UVREditorMode* InVRMode)
+{
+	InVRMode->StartExitingVRMode();
 }
 
 #undef LOCTEXT_NAMESPACE

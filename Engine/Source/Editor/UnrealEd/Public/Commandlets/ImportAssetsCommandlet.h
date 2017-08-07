@@ -39,6 +39,9 @@ private:
 	 */
 	bool ImportAndSave(const TArray<UAutomatedAssetImportData*>& AssetImportList);
 
+	/** Loads a level to be used for spawning actors from import factories */
+	bool LoadLevel(const FString& LevelToLoad);
+
 	/**
 	 * Clears dirty flag from all packages
 	 */

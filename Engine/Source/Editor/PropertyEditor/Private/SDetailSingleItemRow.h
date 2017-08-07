@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Input/Reply.h"
 #include "Widgets/SWidget.h"
-#include "IDetailTreeNode.h"
+#include "DetailTreeNode.h"
 #include "Widgets/Views/STableViewBase.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "SDetailsViewBase.h"
@@ -13,6 +13,25 @@
 
 class IDetailKeyframeHandler;
 struct FDetailLayoutCustomization;
+
+class SConstrainedBox : public SCompoundWidget
+{
+public:
+	SLATE_BEGIN_ARGS(SConstrainedBox)
+		: _MinWidth()
+		, _MaxWidth()
+	{}
+	SLATE_DEFAULT_SLOT(FArguments, Content)
+		SLATE_ATTRIBUTE(TOptional<float>, MinWidth)
+		SLATE_ATTRIBUTE(TOptional<float>, MaxWidth)
+	SLATE_END_ARGS()
+
+	void Construct(const FArguments& InArgs);
+	virtual FVector2D ComputeDesiredSize(float LayoutScaleMultiplier) const override;
+private:
+	TAttribute< TOptional<float> > MinWidth;
+	TAttribute< TOptional<float> > MaxWidth;
+};
 
 /**
  * A widget for details that span the entire tree row and have no columns                                                              
@@ -30,7 +49,8 @@ public:
 	/**
 	 * Construct the widget
 	 */
-	void Construct( const FArguments& InArgs, FDetailLayoutCustomization* InCustomization, bool bHasMultipleColumns, TSharedRef<IDetailTreeNode> InOwnerTreeNode, const TSharedRef<STableViewBase>& InOwnerTableView );
+	void Construct( const FArguments& InArgs, FDetailLayoutCustomization* InCustomization, bool bHasMultipleColumns, TSharedRef<FDetailTreeNode> InOwnerTreeNode, const TSharedRef<STableViewBase>& InOwnerTableView );
+
 protected:
 	virtual bool OnContextMenuOpening( FMenuBuilder& MenuBuilder ) override;
 private:
@@ -39,9 +59,9 @@ private:
 	void OnPasteProperty();
 	bool CanPasteProperty() const;
 	const FSlateBrush* GetBorderImage() const;
-	TSharedRef<SWidget> CreateExtensionWidget( TSharedRef<SWidget> ValueWidget, FDetailLayoutCustomization& InCustomization, TSharedRef<IDetailTreeNode> InTreeNode );
-	TSharedRef<SWidget> CreateKeyframeButton( FDetailLayoutCustomization& InCustomization, TSharedRef<IDetailTreeNode> InTreeNode );
-	bool IsKeyframeButtonEnabled(TSharedRef<IDetailTreeNode> InTreeNode) const;
+	TSharedRef<SWidget> CreateExtensionWidget( TSharedRef<SWidget> ValueWidget, FDetailLayoutCustomization& InCustomization, TSharedRef<FDetailTreeNode> InTreeNode );
+	TSharedRef<SWidget> CreateKeyframeButton( FDetailLayoutCustomization& InCustomization, TSharedRef<FDetailTreeNode> InTreeNode );
+	bool IsKeyframeButtonEnabled(TSharedRef<FDetailTreeNode> InTreeNode) const;
 	FReply OnAddKeyframeClicked();
 	bool IsHighlighted() const;
 

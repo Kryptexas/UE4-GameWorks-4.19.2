@@ -27,7 +27,7 @@ public:
 	{
 		// Check to make sure that the object the event is bound to is valid
 		const UK2Node_ActorBoundEvent* BoundEventNode = Cast<UK2Node_ActorBoundEvent>(Node);
-		if( BoundEventNode && BoundEventNode->EventOwner )
+		if (BoundEventNode && BoundEventNode->EventOwner)
 		{
 			FKCHandler_EventEntry::Compile(Context, Node);
 		}
@@ -78,27 +78,27 @@ void UK2Node_ActorBoundEvent::ReconstructNode()
 
 void UK2Node_ActorBoundEvent::DestroyNode()
 {
-	if( EventOwner )
+	if (EventOwner)
 	{
 		// If we have an event owner, remove the delegate referencing this event, if any
 		const ULevel* TargetLevel = Cast<ULevel>(EventOwner->GetOuter());
-		if( TargetLevel )
+		if (TargetLevel)
 		{
 			ALevelScriptActor* LSA = TargetLevel->GetLevelScriptActor();
-			if( LSA )
+			if (LSA)
 			{
 				// Create a delegate of the correct signature to remove
 				FScriptDelegate Delegate;
 				Delegate.BindUFunction(LSA, CustomFunctionName);
-				
+
 				// Attempt to remove it from the target's MC delegate
 				if (FMulticastScriptDelegate* TargetDelegate = GetTargetDelegate())
 				{
 					TargetDelegate->Remove(Delegate);
-				}				
+				}
 			}
 		}
-		
+
 	}
 
 	Super::DestroyNode();
@@ -152,7 +152,7 @@ FText UK2Node_ActorBoundEvent::GetNodeTitle(ENodeTitleType::Type TitleType) cons
 FText UK2Node_ActorBoundEvent::GetTooltipText() const
 {
 	UMulticastDelegateProperty* TargetDelegateProp = GetTargetDelegateProperty();
-	if(TargetDelegateProp)
+	if (TargetDelegateProp)
 	{
 		return TargetDelegateProp->GetToolTipText();
 	}
@@ -185,13 +185,13 @@ AActor* UK2Node_ActorBoundEvent::GetReferencedLevelActor() const
 
 void UK2Node_ActorBoundEvent::InitializeActorBoundEventParams(AActor* InEventOwner, const UMulticastDelegateProperty* InDelegateProperty)
 {
-	if( InEventOwner && InDelegateProperty )
+	if (InEventOwner && InDelegateProperty)
 	{
 		EventOwner = InEventOwner;
 		DelegatePropertyName = InDelegateProperty->GetFName();
 		DelegateOwnerClass = CastChecked<UClass>(InDelegateProperty->GetOuter())->GetAuthoritativeClass();
 		EventReference.SetFromField<UFunction>(InDelegateProperty->SignatureFunction, false);
-		CustomFunctionName = FName( *FString::Printf(TEXT("BndEvt__%s_%s_%s"), *InEventOwner->GetName(), *GetName(), *EventReference.GetMemberName().ToString()) );
+		CustomFunctionName = FName(*FString::Printf(TEXT("BndEvt__%s_%s_%s"), *InEventOwner->GetName(), *GetName(), *EventReference.GetMemberName().ToString()));
 		bOverrideFunction = false;
 		bInternalEvent = true;
 		CachedNodeTitle.MarkDirty();
@@ -208,18 +208,18 @@ FMulticastScriptDelegate* UK2Node_ActorBoundEvent::GetTargetDelegate() const
 	if( EventOwner )
 	{
 		UMulticastDelegateProperty* TargetDelegateProp = GetTargetDelegateProperty();
-		if( TargetDelegateProp )
+		if (TargetDelegateProp)
 		{
 			return TargetDelegateProp->GetPropertyValuePtr_InContainer(EventOwner);
 		}
 	}
-	
+
 	return NULL;
 }
 
 bool UK2Node_ActorBoundEvent::IsUsedByAuthorityOnlyDelegate() const
 {
-	const UMulticastDelegateProperty* TargetDelegateProp = Cast<const UMulticastDelegateProperty>(FindField<UMulticastDelegateProperty>( DelegateOwnerClass, DelegatePropertyName ));
+	const UMulticastDelegateProperty* TargetDelegateProp = Cast<const UMulticastDelegateProperty>(FindField<UMulticastDelegateProperty>(DelegateOwnerClass, DelegatePropertyName));
 	return (TargetDelegateProp && TargetDelegateProp->HasAnyPropertyFlags(CPF_BlueprintAuthorityOnly));
 }
 
@@ -228,9 +228,9 @@ void UK2Node_ActorBoundEvent::Serialize(FArchive& Ar)
 	Super::Serialize(Ar);
 
 	// Fix up legacy nodes that may not yet have a delegate pin
-	if(Ar.IsLoading())
+	if (Ar.IsLoading())
 	{
-		if(Ar.UE4Ver() < VER_UE4_K2NODE_EVENT_MEMBER_REFERENCE)
+		if (Ar.UE4Ver() < VER_UE4_K2NODE_EVENT_MEMBER_REFERENCE)
 		{
 			DelegateOwnerClass = EventSignatureClass_DEPRECATED;	
 		}

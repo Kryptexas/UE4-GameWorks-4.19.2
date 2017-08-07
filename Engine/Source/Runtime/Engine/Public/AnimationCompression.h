@@ -18,27 +18,9 @@ DECLARE_LOG_CATEGORY_EXTERN(LogAnimationCompression, Log, All);
 #define SCALE_ZEROING_THRESHOLD (0.000001f)
 
 /** Size of Dummy bone used, when measuring error at an end effector which has a socket attached to it */
-#define END_EFFECTOR_SOCKET_DUMMY_BONE_SIZE	(50.f)
-
-// @Laurent: This is currently disabled. We don't want to do this during production as we would have to recompress data if Retargeting settings were to change.
-// We should consider only doing this when cooking content to a non editor shipping build.
-
-	/** This will reduce automatically bAnimRotationOnly Translation Tracks to 1 key, even if they have animated data. */
-	#define REDUCE_ANIMROTATIONONLY_TRACKS (0)
-
-	/** 
-	 * This will skip storing bAnimRotationOnly Translation Tracks, and assumes the AnimSet->bAnimRotationOnly flag won't be changed at runtime.
-	 * This is currently only used in the PerTrack compressor.
-	 */
-	#define SKIP_ANIMROTATIONONLY_TRACKS (0)
-
-	/**
-	 * Do not store translation tracks when those are marked 'ForceMeshTranslation'
-	 * true if SKIP_ANIMROTATIONONLY_TRACKS is defined to true.
-	 */
-	#define SKIP_FORCEMESHTRANSLATION_TRACKS (0 || SKIP_ANIMROTATIONONLY_TRACKS)
-
-// END
+#define END_EFFECTOR_DUMMY_BONE_LENGTH_SOCKET	(50.f)
+/** Dummy bone added to end effectors to make sure rotation doesn't get too aggressively compressed. */
+#define END_EFFECTOR_DUMMY_BONE_LENGTH	(5.f)
 
 #define Quant16BitDiv     (32767.f)
 #define Quant16BitFactor  (32767.f)

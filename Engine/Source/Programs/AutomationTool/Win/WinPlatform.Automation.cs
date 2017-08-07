@@ -222,25 +222,37 @@ public abstract class BaseWinPlatform : Platform
 		PathVariables["EngineDir"] = SC.EngineRoot.FullName;
 		PathVariables["ProjectDir"] = SC.ProjectRoot.FullName;
 
-		string ExpandedAppLocalDir = Utils.ExpandVariables(Params.AppLocalDirectory, PathVariables);
-
-		DirectoryReference BaseAppLocalDependenciesPath = Path.IsPathRooted(ExpandedAppLocalDir) ? new DirectoryReference(CombinePaths(ExpandedAppLocalDir, PlatformDir)) : DirectoryReference.Combine(SC.ProjectRoot, ExpandedAppLocalDir, PlatformDir);
-		if (DirectoryReference.Exists(BaseAppLocalDependenciesPath))
+		// support multiple comma-separated paths
+		string[] AppLocalDirectories = Params.AppLocalDirectory.Split(';');
+		foreach (string AppLocalDirectory in AppLocalDirectories)
 		{
-			StagedDirectoryReference ProjectBinaryPath = new StagedDirectoryReference(SC.ProjectBinariesFolder.MakeRelativeTo(SC.ProjectRoot.ParentDirectory));
-			StagedDirectoryReference EngineBinaryPath = new StagedDirectoryReference(CombinePaths("Engine", "Binaries", PlatformDir));
+			string ExpandedAppLocalDir = Utils.ExpandVariables(AppLocalDirectory, PathVariables);
 
-			Log("Copying AppLocal dependencies from {0} to {1} and {2}", BaseAppLocalDependenciesPath, ProjectBinaryPath, EngineBinaryPath);
-
-			foreach (DirectoryReference DependencyDirectory in DirectoryReference.EnumerateDirectories(BaseAppLocalDependenciesPath))
+			DirectoryReference BaseAppLocalDependenciesPath = Path.IsPathRooted(ExpandedAppLocalDir) ? new DirectoryReference(CombinePaths(ExpandedAppLocalDir, PlatformDir)) : DirectoryReference.Combine(SC.ProjectRoot, ExpandedAppLocalDir, PlatformDir);
+			if (DirectoryReference.Exists(BaseAppLocalDependenciesPath))
 			{
-				SC.StageFiles(StagedFileType.NonUFS, DependencyDirectory, StageFilesSearch.TopDirectoryOnly, ProjectBinaryPath);
-				SC.StageFiles(StagedFileType.NonUFS, DependencyDirectory, StageFilesSearch.TopDirectoryOnly, EngineBinaryPath);
+				StagedDirectoryReference ProjectBinaryPath = new StagedDirectoryReference(SC.ProjectBinariesFolder.MakeRelativeTo(SC.ProjectRoot.ParentDirectory));
+				StagedDirectoryReference EngineBinaryPath = new StagedDirectoryReference(CombinePaths("Engine", "Binaries", PlatformDir));
+
+				Log("Copying AppLocal dependencies from {0} to {1} and {2}", BaseAppLocalDependenciesPath, ProjectBinaryPath, EngineBinaryPath);
+
+
+
+				// Stage files in subdirs
+				foreach (DirectoryReference DependencyDirectory in DirectoryReference.EnumerateDirectories(BaseAppLocalDependenciesPath))
+				{	
+					SC.StageFiles(StagedFileType.NonUFS, DependencyDirectory, StageFilesSearch.TopDirectoryOnly, ProjectBinaryPath);
+					SC.StageFiles(StagedFileType.NonUFS, DependencyDirectory, StageFilesSearch.TopDirectoryOnly, EngineBinaryPath);
+				}
+				
+				// stage loose files here
+				SC.StageFiles(StagedFileType.NonUFS, BaseAppLocalDependenciesPath, StageFilesSearch.AllDirectories, ProjectBinaryPath);
+				SC.StageFiles(StagedFileType.NonUFS, BaseAppLocalDependenciesPath, StageFilesSearch.AllDirectories, EngineBinaryPath);
 			}
-		}
-		else
-		{
-			throw new AutomationException("Unable to deploy AppLocalDirectory dependencies. No such path: {0}", BaseAppLocalDependenciesPath);
+			else
+			{
+				LogWarning("Unable to deploy AppLocalDirectory dependencies. No such path: {0}", BaseAppLocalDependenciesPath);
+			}
 		}
 	}
 

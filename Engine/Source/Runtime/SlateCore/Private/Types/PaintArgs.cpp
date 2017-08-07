@@ -61,7 +61,7 @@ FPaintArgs FPaintArgs::RecordHittestGeometry(const SWidget* Widget, const FGeome
 		}
 
 		int32 RealLastHitTestIndex = LastHittestIndex;
-		if ( bIsVolatilityPass && ParentCacheNode )
+		if ( bIsVolatilityPass && !bIsCaching && ParentCacheNode )
 		{
 			RealLastHitTestIndex = ParentCacheNode->LastRecordedHittestIndex;
 			UpdatedArgs.ParentCacheNode = nullptr;

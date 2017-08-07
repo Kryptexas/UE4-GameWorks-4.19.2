@@ -132,14 +132,17 @@ namespace UnrealBuildTool
 			// depends on arch, APEX cannot be as of November'16 compiled for AArch32/64
 			Target.bCompileAPEX = Target.Architecture.StartsWith("x86_64");
 			Target.bCompileNvCloth = Target.Architecture.StartsWith("x86_64");
-			Target.bCompileCEF3 = false; // turn off until the dynamic library is rebuilt against bundled libpng
 
 			// Disable Simplygon support if compiling against the NULL RHI.
 			if (Target.GlobalDefinitions.Contains("USE_NULL_RHI=1"))
 			{
 				Target.bCompileSimplygon = false;
-                Target.bCompileSimplygonSSF = false;
+				Target.bCompileSimplygonSSF = false;
+				Target.bCompileCEF3 = false;
 			}
+
+			// check if OS update invalidated our build
+			Target.bCheckSystemHeadersForModification = (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Linux);
 
 			// At the moment ICU has not been compiled for AArch64 and i686. Also, localization isn't needed on servers by default, and ICU is pretty heavy
 			if (Target.Architecture.StartsWith("aarch64") || Target.Architecture.StartsWith("i686") || Target.Type == TargetType.Server)
@@ -310,6 +313,12 @@ namespace UnrealBuildTool
 
 			CompileEnvironment.Definitions.Add("PLATFORM_SUPPORTS_JEMALLOC=1");	// this define does not set jemalloc as default, just indicates its support
 			CompileEnvironment.Definitions.Add("WITH_DATABASE_SUPPORT=0");		//@todo linux: valid?
+
+			// During the native builds, check the system includes as well (check toolchain when cross-compiling?)
+			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Linux)
+			{
+				CompileEnvironment.IncludePaths.SystemIncludePaths.Add("/usr/include");
+			}
 
 			if (Target.Architecture.StartsWith("arm"))	// AArch64 doesn't strictly need that - aligned access improves perf, but this will be likely offset by memcpys we're doing to guarantee it.
 			{

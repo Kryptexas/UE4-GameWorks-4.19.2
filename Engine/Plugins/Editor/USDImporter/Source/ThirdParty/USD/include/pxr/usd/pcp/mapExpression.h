@@ -24,8 +24,10 @@
 #ifndef PCP_MAP_EXPRESSION_H
 #define PCP_MAP_EXPRESSION_H
 
+#include "pxr/pxr.h"
 #include "pxr/usd/pcp/api.h"
 #include "pxr/usd/pcp/mapFunction.h"
+
 #include <boost/shared_ptr.hpp>
 #include <boost/intrusive_ptr.hpp>
 #include <boost/noncopyable.hpp>
@@ -33,6 +35,8 @@
 
 #include <tbb/atomic.h>
 #include <tbb/spin_mutex.h>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 /// \class PcpMapExpression
 ///
@@ -59,25 +63,31 @@ public:
     /// The computed result is cached.
     /// The return value is a reference to the internal cached value.
     /// The cache is automatically invalidated as needed.
-	PCP_API const Value & Evaluate() const;
+    PCP_API
+    const Value & Evaluate() const;
 
     /// Default-construct a NULL expression.
-	PCP_API PcpMapExpression();
+    PCP_API
+    PcpMapExpression();
 
     /// Swap this expression with the other.
-	PCP_API void Swap(PcpMapExpression &other);
+    PCP_API
+    void Swap(PcpMapExpression &other);
 
     /// Return true if this is a null expression.
-	PCP_API bool IsNull() const;
+    PCP_API
+    bool IsNull() const;
 
     /// \name Creating expressions
     /// @{
 
     /// Return an expression representing PcpMapFunction::Identity().
-	PCP_API static PcpMapExpression Identity();
+    PCP_API
+    static PcpMapExpression Identity();
 
     /// Create a new constant.
-	PCP_API static PcpMapExpression Constant( const Value & constValue );
+    PCP_API
+    static PcpMapExpression Constant( const Value & constValue );
 
     /// A Variable is a mutable memory cell that holds a value.
     /// Changing a variable's value invalidates any expressions using
@@ -104,18 +114,22 @@ public:
     /// After the reference is dropped, expressions using the variable
     /// will continue to be valid, but there will be no way to further
     /// change the value of the variable.
-	PCP_API static VariableRefPtr NewVariable( const Value & initialValue );
+    PCP_API
+    static VariableRefPtr NewVariable( const Value & initialValue );
 
     /// Create a new PcpMapExpression representing the application of
     /// f's value, followed by the application of this expression's value.
-	PCP_API PcpMapExpression Compose(const PcpMapExpression &f) const;
+    PCP_API
+    PcpMapExpression Compose(const PcpMapExpression &f) const;
 
     /// Create a new PcpMapExpression representing the inverse of f.
-	PCP_API PcpMapExpression Inverse() const;
+    PCP_API
+    PcpMapExpression Inverse() const;
 
     /// Return a new expression representing this expression with an added
     /// (if necessary) mapping from </> to </>.
-	PCP_API PcpMapExpression AddRootIdentity() const;
+    PCP_API
+    PcpMapExpression AddRootIdentity() const;
 
     /// Return true if the map function is the constant identity function.
     bool IsConstantIdentity() const {
@@ -164,7 +178,7 @@ public:
 private:
     // Allow Pcp_Statistics access to internal data for diagnostics.
     friend class Pcp_Statistics;
-    friend class Pcp_VariableImpl;
+    friend struct Pcp_VariableImpl;
 
     class _Node;
     typedef boost::intrusive_ptr<_Node> _NodeRefPtr;
@@ -261,4 +275,6 @@ private: // data
     _NodeRefPtr _node;
 };
 
-#endif
+PXR_NAMESPACE_CLOSE_SCOPE
+
+#endif // PCP_MAP_EXPRESSION_H

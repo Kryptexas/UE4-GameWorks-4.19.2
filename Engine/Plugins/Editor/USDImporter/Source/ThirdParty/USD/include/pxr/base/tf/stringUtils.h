@@ -28,11 +28,12 @@
 /// \ingroup group_tf_String
 /// Definitions of basic string utilities in tf.
 
-#include "pxr/base/arch/defines.h"
+#include "pxr/pxr.h"
+
 #include "pxr/base/arch/attributes.h"
 #include "pxr/base/arch/inttypes.h"
-#include "pxr/base/tf/enum.h"
 #include "pxr/base/tf/api.h"
+#include "pxr/base/tf/enum.h"
 
 #include <boost/type_traits/is_enum.hpp>
 #include <boost/utility/enable_if.hpp>
@@ -44,7 +45,10 @@
 #include <sstream>
 #include <string>
 #include <vector>
-#include <ciso646>
+
+PXR_NAMESPACE_OPEN_SCOPE
+
+class TfToken;
 
 /// \addtogroup group_tf_String
 ///@{
@@ -206,7 +210,7 @@ inline bool
 Tf_StringStartsWithImpl(char const *s, size_t slen,
                         char const *prefix, size_t prelen)
 {
-    return slen >= prelen and strncmp(s, prefix, prelen) == 0;
+    return slen >= prelen && strncmp(s, prefix, prelen) == 0;
 }
 
 /// Returns true if \p s starts with \p prefix.
@@ -225,13 +229,13 @@ TfStringStartsWith(const std::string& s, const std::string& prefix) {
 
 /// \overload
 TF_API
-bool TfStringStartsWith(const std::string &s, const class TfToken& prefix);
+bool TfStringStartsWith(const std::string &s, const TfToken& prefix);
 
 inline bool
 Tf_StringEndsWithImpl(char const *s, size_t slen,
                       char const *suffix, size_t suflen)
 {
-    return slen >= suflen and strcmp(s + (slen - suflen), suffix) == 0;
+    return slen >= suflen && strcmp(s + (slen - suflen), suffix) == 0;
 }
 
 /// Returns true if \p s ends with \p suffix.
@@ -250,7 +254,7 @@ TfStringEndsWith(const std::string& s, const std::string& suffix)
 
 /// \overload
 TF_API
-bool TfStringEndsWith(const std::string &s, const class TfToken& suffix);
+bool TfStringEndsWith(const std::string &s, const TfToken& suffix);
 
 /// Returns true if \p s contains \p substring.
 // \ingroup group_tf_String
@@ -265,7 +269,7 @@ TfStringContains(const std::string &s, const std::string &substring) {
 
 /// \overload
 TF_API
-bool TfStringContains(const std::string &s, const class TfToken& substring);
+bool TfStringContains(const std::string &s, const TfToken& substring);
 
 /// Makes all characters in \p source lowercase, and returns the result.
 TF_API
@@ -336,10 +340,11 @@ std::string TfGetBaseName(const std::string& fileName);
 
 /// Returns the path component of a file (complement of TfGetBaseName()).
 ///
-/// The returned string ends in a '/', unless there were no slashes in \c
-/// fileName, in which case the empty string is returned.  In particular, \c
-/// TfGetPathName(s)+TfGetBaseName(s) == \c s for any string \c s ( as long as
-/// \c s doesn't end with multiple adjacent slashes, which is illegal).
+/// The returned string ends in a '/' (or possibly a '\' on Windows), unless
+/// none was found in \c fileName, in which case the empty string is returned.
+/// In particular, \c TfGetPathName(s)+TfGetBaseName(s) == \c s for any string
+/// \c s (as long as \c s doesn't end with multiple adjacent slashes, which is
+/// illegal).
 TF_API
 std::string TfGetPathName(const std::string& fileName);
 
@@ -541,6 +546,28 @@ TF_API std::string TfStringify(float);
 /// \overload
 TF_API std::string TfStringify(double);
 
+/// \struct TfStreamFloat
+/// 
+/// A type which offers streaming for floats in a canonical
+/// format that can safely roundtrip with the minimal number of digits.
+struct TfStreamFloat {
+    explicit TfStreamFloat(float f) : value(f) {}
+    float value;
+};
+
+TF_API std::ostream& operator<<(std::ostream& o, TfStreamFloat t);
+
+/// \struct TfStreamDouble
+///
+/// A type which offers streaming for doubles in a canonical
+/// format that can safely roundtrip with the minimal number of digits.
+struct TfStreamDouble {
+    explicit TfStreamDouble(double d) : value(d) {}
+    double value;
+};
+
+TF_API std::ostream& operator<<(std::ostream& o, TfStreamDouble t);
+
 /// Convert a string to an arbitrary type
 ///
 /// Use the type's stream input operator to get it from a string. If \p status
@@ -625,16 +652,16 @@ inline bool
 TfIsValidIdentifier(const std::string &identifier)
 {
     char const *p = identifier.c_str();
-    if (not *p or (not (('a' <= *p and *p <= 'z') or
-                        ('A' <= *p and *p <= 'Z') or 
-                        *p == '_')))
+    if (!*p || (!(('a' <= *p && *p <= 'z') || 
+                  ('A' <= *p && *p <= 'Z') || 
+                  *p == '_')))
         return false;
 
     for (++p; *p; ++p) {
-        if (not (('a' <= *p and *p <= 'z') or
-                 ('A' <= *p and *p <= 'Z') or
-                 ('0' <= *p and *p <= '9') or
-                 *p == '_')) {
+        if (!(('a' <= *p && *p <= 'z') || 
+              ('A' <= *p && *p <= 'Z') || 
+              ('0' <= *p && *p <= '9') || 
+              *p == '_')) {
             return false;
         }
     }
@@ -656,10 +683,6 @@ std::string TfGetXmlEscapedString(const std::string &in);
 
 ///@}
 
-/*!
-* \brief Copy a string (with size).
-*/
-TF_API
-errno_t TfStringCopy(char* destination, rsize_t size, char const* source);
+PXR_NAMESPACE_CLOSE_SCOPE
 
-#endif /* TF_STRINGUTILS_H */
+#endif // TF_STRINGUTILS_H 

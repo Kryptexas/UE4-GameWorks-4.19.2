@@ -8,14 +8,14 @@
 #include "StructurePropertyNode.h"
 #include "DetailMultiTopLevelObjectRootNode.h"
 
-FDetailLayoutBuilderImpl::FDetailLayoutBuilderImpl(TSharedPtr<FComplexPropertyNode>& InRootNode, FClassToPropertyMap& InPropertyMap, const TSharedRef< class IPropertyUtilities >& InPropertyUtilities, const TSharedRef< IDetailsViewPrivate >& InDetailsView)
+FDetailLayoutBuilderImpl::FDetailLayoutBuilderImpl(TSharedPtr<FComplexPropertyNode>& InRootNode, FClassToPropertyMap& InPropertyMap, const TSharedRef< class IPropertyUtilities >& InPropertyUtilities, const TSharedPtr< IDetailsViewPrivate >& InDetailsView)
 	: RootNode( InRootNode )
 	, PropertyMap( InPropertyMap )
 	, PropertyDetailsUtilities( InPropertyUtilities )
-	, DetailsView( *InDetailsView )
+	, DetailsView( InDetailsView.Get() )
 	, CurrentCustomizationClass( nullptr )
 {
-	bLayoutForExternalRoot = DetailsView.IsExternalRootPropertyNode(InRootNode.ToSharedRef());
+	bLayoutForExternalRoot = ExternalRootPropertyNodes.Contains(InRootNode.ToSharedRef());
 }
 
 IDetailCategoryBuilder& FDetailLayoutBuilderImpl::EditCategory( FName CategoryName, const FText& NewLocalizedDisplayName, ECategoryPriority::Type CategoryType )
@@ -109,7 +109,7 @@ void FDetailLayoutBuilderImpl::HideProperty( FName PropertyPath, const UClass* C
 
 void FDetailLayoutBuilderImpl::ForceRefreshDetails()
 {
-	DetailsView.ForceRefresh();
+	PropertyDetailsUtilities.Pin()->ForceRefresh();
 }
 
 FDetailCategoryImpl& FDetailLayoutBuilderImpl::DefaultCategory( FName CategoryName )
@@ -144,7 +144,7 @@ void FDetailLayoutBuilderImpl::BuildCategories( const FCategoryMap& CategoryMap,
 		FString CategoryDelimiterString;
 		CategoryDelimiterString.AppendChar(FPropertyNodeConstants::CategoryDelimiterChar);
 		TSharedPtr<FComplexPropertyNode> RootPropertyNode = GetRootNode();
-		const bool bCategoryHidden = GetDetailsView().IsCategoryHiddenByClass(RootPropertyNode, DetailCategory->GetCategoryName()) 
+		const bool bCategoryHidden = PropertyEditorHelpers::IsCategoryHiddenByClass(RootPropertyNode, DetailCategory->GetCategoryName()) 
 			|| ForceHiddenCategories.Contains(DetailCategory->GetCategoryName()) || DetailCategory->GetCategoryName().ToString().Contains(CategoryDelimiterString);
 
 		if( !bCategoryHidden )
@@ -212,13 +212,13 @@ void FDetailLayoutBuilderImpl::GenerateDetailLayout()
 		CategoryNodes.AddUnique(AdvancedOnlyCategories[CategoryIndex]);
 	}
 
-	if(DetailsView.ContainsMultipleTopLevelObjects())
+	if(DetailsView && DetailsView->ContainsMultipleTopLevelObjects())
 	{
 		// This should always exist here
 		UObject* RootObject = RootNode.Pin()->AsObjectNode()->GetUObject(0);
 		check(RootObject);
 
-		TSharedPtr<IDetailRootObjectCustomization> RootObjectCustomization = DetailsView.GetRootObjectCustomization();
+		TSharedPtr<IDetailRootObjectCustomization> RootObjectCustomization = DetailsView->GetRootObjectCustomization();
 
 		// there are multiple objects in the details panel.  Separate each one with a unique object name node to differentiate them
 		AllRootTreeNodes.Add( MakeShareable( new FDetailMultiTopLevelObjectRootNode( CategoryNodes, RootObjectCustomization, DetailsView, *RootObject) ) );
@@ -237,14 +237,17 @@ void FDetailLayoutBuilderImpl::FilterDetailLayout( const FDetailFilter& InFilter
 
 	for(int32 RootNodeIndex = 0; RootNodeIndex < AllRootTreeNodes.Num(); ++RootNodeIndex)
 	{
-		TSharedRef<IDetailTreeNode>& RootTreeNode = AllRootTreeNodes[RootNodeIndex];
+		TSharedRef<FDetailTreeNode>& RootTreeNode = AllRootTreeNodes[RootNodeIndex];
 
 		RootTreeNode->FilterNode(InFilter);
 
 		if(RootTreeNode->GetVisibility() == ENodeVisibility::Visible)
 		{
 			FilteredRootTreeNodes.Add(RootTreeNode);
-			DetailsView.RequestItemExpanded(RootTreeNode, RootTreeNode->ShouldBeExpanded());
+			if (DetailsView)
+			{
+				DetailsView->RequestItemExpanded(RootTreeNode, RootTreeNode->ShouldBeExpanded());
+			}
 		}
 	}
 }
@@ -436,7 +439,7 @@ TSharedRef<IPropertyHandle> FDetailLayoutBuilderImpl::GetPropertyHandle( TShared
 		TSharedRef<FPropertyNode> PropertyNode = PropertyNodePtr.ToSharedRef();
 		FNotifyHook* NotifyHook = GetPropertyUtilities()->GetNotifyHook();
 
-		PropertyHandle = PropertyEditorHelpers::GetPropertyHandle( PropertyNode, NotifyHook, PropertyDetailsUtilities );
+		PropertyHandle = PropertyEditorHelpers::GetPropertyHandle( PropertyNode, NotifyHook, PropertyDetailsUtilities.Pin() );
 	}
 	else
 	{
@@ -449,12 +452,12 @@ TSharedRef<IPropertyHandle> FDetailLayoutBuilderImpl::GetPropertyHandle( TShared
 
 void FDetailLayoutBuilderImpl::AddExternalRootPropertyNode(TSharedRef<FComplexPropertyNode> InExternalRootNode)
 {
-	DetailsView.AddExternalRootPropertyNode(InExternalRootNode);
+	ExternalRootPropertyNodes.Add(InExternalRootNode);
 }
 
 TSharedPtr<FAssetThumbnailPool> FDetailLayoutBuilderImpl::GetThumbnailPool() const
 {
-	return DetailsView.GetThumbnailPool();
+	return PropertyDetailsUtilities.Pin()->GetThumbnailPool();
 }
 
 bool FDetailLayoutBuilderImpl::IsPropertyVisible( TSharedRef<IPropertyHandle> PropertyHandle ) const
@@ -480,7 +483,7 @@ bool FDetailLayoutBuilderImpl::IsPropertyVisible( TSharedRef<IPropertyHandle> Pr
 
 bool FDetailLayoutBuilderImpl::IsPropertyVisible( const struct FPropertyAndParent& PropertyAndParent ) const
 {
-	return DetailsView.IsPropertyVisible( PropertyAndParent );
+	return DetailsView ? DetailsView->IsPropertyVisible( PropertyAndParent ) : true;
 }
 
 void FDetailLayoutBuilderImpl::HideCategory( FName CategoryName )
@@ -488,7 +491,7 @@ void FDetailLayoutBuilderImpl::HideCategory( FName CategoryName )
 	ForceHiddenCategories.Add(CategoryName);
 }
 
-const IDetailsView& FDetailLayoutBuilderImpl::GetDetailsView() const
+const IDetailsView* FDetailLayoutBuilderImpl::GetDetailsView() const
 { 
 	return DetailsView; 
 }
@@ -575,15 +578,27 @@ void FDetailLayoutBuilderImpl::GetStructsBeingCustomized( TArray< TSharedPtr<FSt
 	}
 }
 
-const TSharedRef< IPropertyUtilities >& FDetailLayoutBuilderImpl::GetPropertyUtilities() const
+const TSharedRef< IPropertyUtilities > FDetailLayoutBuilderImpl::GetPropertyUtilities() const
 {
-	return PropertyDetailsUtilities;
+	return PropertyDetailsUtilities.Pin().ToSharedRef();
 }
 
 UClass* FDetailLayoutBuilderImpl::GetBaseClass() const
 {
 	return RootNode.IsValid() ? Cast<UClass>(RootNode.Pin()->GetBaseStructure()) : nullptr;
 }
+
+const TArray<TWeakObjectPtr<UObject>>& FDetailLayoutBuilderImpl::GetSelectedObjects() const
+{
+	return PropertyDetailsUtilities.Pin()->GetSelectedObjects();
+}
+
+
+bool FDetailLayoutBuilderImpl::HasClassDefaultObject() const
+{
+	return PropertyDetailsUtilities.Pin()->HasClassDefaultObject();
+}
+
 void FDetailLayoutBuilderImpl::SetCustomProperty( const TSharedPtr<FPropertyNode>& PropertyNode ) 
 {
 	PropertyNode->SetNodeFlags( EPropertyNodeFlags::IsCustomized, true );
@@ -597,22 +612,25 @@ void FDetailLayoutBuilderImpl::Tick( float DeltaTime )
 	}
 }
 
-void FDetailLayoutBuilderImpl::AddTickableNode( IDetailTreeNode& TickableNode )
+void FDetailLayoutBuilderImpl::AddTickableNode( FDetailTreeNode& TickableNode )
 {
 	TickableNodes.Add( &TickableNode );
 }
 
-void FDetailLayoutBuilderImpl::RemoveTickableNode( IDetailTreeNode& TickableNode )
+void FDetailLayoutBuilderImpl::RemoveTickableNode( FDetailTreeNode& TickableNode )
 {
 	TickableNodes.Remove( &TickableNode );
 }
 
 void FDetailLayoutBuilderImpl::SaveExpansionState( const FString& NodePath, bool bIsExpanded )
 {
-	DetailsView.SaveCustomExpansionState( NodePath, bIsExpanded );
+	if (DetailsView)
+	{
+		DetailsView->SaveCustomExpansionState(NodePath, bIsExpanded);
+	}
 }
 
 bool FDetailLayoutBuilderImpl::GetSavedExpansionState( const FString& NodePath ) const
 {
-	return DetailsView.GetCustomSavedExpansionState( NodePath );
+	return DetailsView ? DetailsView->GetCustomSavedExpansionState(NodePath) : false;
 }

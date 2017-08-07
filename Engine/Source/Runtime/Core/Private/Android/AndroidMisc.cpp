@@ -814,6 +814,21 @@ bool FAndroidMisc::GetUseVirtualJoysticks()
 	return true;
 }
 
+
+bool FAndroidMisc::SupportsTouchInput()
+{
+	// Amazon Fire TV doesn't require virtual joysticks
+	if (FAndroidMisc::GetDeviceMake() == FString("Amazon"))
+	{
+		if (FAndroidMisc::GetDeviceModel().StartsWith(TEXT("AFT")))
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
 extern void AndroidThunkCpp_RegisterForRemoteNotifications();
 extern void AndroidThunkCpp_UnregisterForRemoteNotifications();
 

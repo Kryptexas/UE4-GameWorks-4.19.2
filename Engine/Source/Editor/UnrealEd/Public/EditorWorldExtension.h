@@ -121,9 +121,6 @@ public:
 	/** Gets the world from the world context */
 	virtual UWorld* GetWorld() const override;
 
-	/** Gets the world context */
-	FWorldContext* GetWorldContext() const;
-
 	/**
 	 * Checks if the passed extension already exists and creates one if it doesn't.
 	 * @param EditorExtensionClass the subclass of an extension to create if necessary and add.
@@ -164,7 +161,7 @@ public:
 private:
 
 	/** Sets the world for this collection and gives every extension an opportunity to transition */
-	void SetWorldContext(FWorldContext* InWorldContext);
+	void SetWorld(UWorld* World);
 
 	/** Called by the editor after PIE or Simulate is started */
 	void PostPIEStarted( bool bIsSimulatingInEditor );
@@ -176,11 +173,11 @@ private:
 	void OnEndPIE( bool bWasSimulatingInEditor );
 
 	/** World context */
-	FWorldContext* WorldContext;
+	TWeakObjectPtr<UWorld> Currentworld;
 
 	/** After entering Simulate, this stores the counterpart editor world to the Simulate world, so that we
         know this collection needs to transition back to editor world after Simulate finishes */
-	FWorldContext* EditorWorldOnSimulate;
+	TWeakObjectPtr<UWorld> EditorWorldOnSimulate;
 
 	/** List of extensions along with their reference count.  Extensions will only be truly removed and Shutdown() after their
 	    reference count drops to zero. */
@@ -205,7 +202,7 @@ public:
 
 	/** Gets the editor world wrapper that is found with the world passed.
 	 * Adds one for this world if there was non found. */
-	UEditorWorldExtensionCollection* GetEditorWorldExtensions(const UWorld* InWorld, const bool bCreateIfNeeded = true);
+	UEditorWorldExtensionCollection* GetEditorWorldExtensions(UWorld* InWorld, const bool bCreateIfNeeded = true);
 
 	/** Ticks all the collections */
 	void Tick( float DeltaSeconds );
@@ -213,7 +210,7 @@ public:
 private:
 
 	/** Adds a new editor world wrapper when a new world context was created */
-	UEditorWorldExtensionCollection* OnWorldContextAdd(FWorldContext* InWorldContext);
+	UEditorWorldExtensionCollection* OnWorldAdd(UWorld* World);
 
 	/** Adds a new editor world wrapper when a new world context was created */
 	void OnWorldContextRemove(FWorldContext& InWorldContext);

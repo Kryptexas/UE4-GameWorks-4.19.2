@@ -8,6 +8,7 @@
 #include "USDImportOptions.h"
 #include "Engine/StaticMesh.h"
 #include "Paths.h"
+#include "JsonObjectConverter.h"
 
 void FUSDAssetImportContext::Init(UObject* InParent, const FString& InName, EObjectFlags InFlags, class IUsdStage* InStage)
 {
@@ -22,6 +23,8 @@ UUSDAssetImportFactory::UUSDAssetImportFactory(const FObjectInitializer& ObjectI
 	bEditAfterNew = true;
 	SupportedClass = UStaticMesh::StaticClass();
 
+	ImportOptions = ObjectInitializer.CreateDefaultSubobject<UUSDImportOptions>(this, TEXT("USDImportOptions"));
+
 	bEditorImport = true;
 	bText = false;
 
@@ -34,13 +37,11 @@ UObject* UUSDAssetImportFactory::FactoryCreateFile(UClass* InClass, UObject* InP
 {
 	UObject* ImportedObject = nullptr;
 
-	UUSDImportOptions* ImportOptions = NewObject<UUSDImportOptions>(this);
-
 	UUSDImporter* USDImporter = IUSDImporterModule::Get().GetImporter();
 
-	if (USDImporter->ShowImportOptions(*ImportOptions))
+	if (IsAutomatedImport() || USDImporter->ShowImportOptions(*ImportOptions))
 	{
-		IUsdStage* Stage = USDImporter->ReadUSDFile(Filename);
+		IUsdStage* Stage = USDImporter->ReadUSDFile(ImportContext, Filename);
 		if (Stage)
 		{
 			ImportContext.Init(InParent, InName.ToString(), Flags, Stage);
@@ -55,9 +56,13 @@ UObject* UUSDAssetImportFactory::FactoryCreateFile(UClass* InClass, UObject* InP
 			// Just return the first one imported
 			ImportedObject = ImportContext.PrimToAssetMap.Num() > 0 ? ImportContext.PrimToAssetMap.CreateConstIterator().Value() : nullptr;
 		}
-	}
 
-	ImportContext.DisplayErrorMessages();
+		ImportContext.DisplayErrorMessages(IsAutomatedImport());
+	}
+	else
+	{
+		bOutOperationCanceled = true;
+	}
 
 	return ImportedObject;
 }
@@ -78,4 +83,9 @@ void UUSDAssetImportFactory::CleanUp()
 {
 	ImportContext = FUSDAssetImportContext();
 	UnrealUSDWrapper::CleanUp();
+}
+
+void UUSDAssetImportFactory::ParseFromJson(TSharedRef<class FJsonObject> ImportSettingsJson)
+{
+	FJsonObjectConverter::JsonObjectToUStruct(ImportSettingsJson, ImportOptions->GetClass(), ImportOptions, 0, CPF_InstancedReference);
 }

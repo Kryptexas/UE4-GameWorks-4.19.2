@@ -165,7 +165,7 @@ FShaderResourceViewRHIRef FD3D12DynamicRHI::RHICreateShaderResourceView(FStructu
 
 		const uint32 BufferUsage = StructuredBuffer->GetUsage();
 		const bool bByteAccessBuffer = (BufferUsage & BUF_ByteAddressBuffer) != 0;
-
+		const bool bUINT8Access = (BufferUsage & BUF_UINT8) != 0;
 		// Create a Shader Resource View
 		D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc = {};
 		SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -178,6 +178,13 @@ FShaderResourceViewRHIRef FD3D12DynamicRHI::RHICreateShaderResourceView(FStructu
 			SRVDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_RAW;
 			SRVDesc.Format = DXGI_FORMAT_R32_TYPELESS;
 			Stride = 4;
+		}
+		else if (bUINT8Access)
+		{
+			SRVDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+			SRVDesc.Format = DXGI_FORMAT_R8_UINT;
+			Stride = 1;
+			SRVDesc.Buffer.StructureByteStride = Stride;
 		}
 		else
 		{

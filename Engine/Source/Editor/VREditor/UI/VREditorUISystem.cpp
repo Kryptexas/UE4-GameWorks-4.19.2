@@ -1725,7 +1725,7 @@ TSharedRef<SWidget> UVREditorUISystem::SetButtonFormatting(TSharedRef<SWidget>& 
 	{
 		TSharedRef<SImage> Image = StaticCastSharedRef<SImage>(TestWidget);
 		Image->SetRenderTransformPivot(FVector2D(0.5f, 0.5f));
-		Image->SetRenderTransform(FSlateRenderTransform::FTransform2D(4.0f));	
+		Image->SetRenderTransform(FTransform2D(4.0f));	
 	}
 
 	// Format the button text
@@ -1935,7 +1935,7 @@ void UVREditorUISystem::BuildNumPadWidget()
 		FSlateIcon(),
 		FUIAction
 		(
-			FExecuteAction::CreateStatic( &FVREditorActionCallbacks::SimulateCharacterEntry, FString::FString( TEXT( "-" ) ) )
+			FExecuteAction::CreateStatic( &FVREditorActionCallbacks::SimulateCharacterEntry, FString( TEXT( "-" ) ) )
 		)
 	);
 	MenuBuilder.AddMenuEntry(
@@ -1944,7 +1944,7 @@ void UVREditorUISystem::BuildNumPadWidget()
 		FSlateIcon(),
 		FUIAction
 		(
-			FExecuteAction::CreateStatic( &FVREditorActionCallbacks::SimulateCharacterEntry, FString::FString( TEXT( "." ) ) )
+			FExecuteAction::CreateStatic( &FVREditorActionCallbacks::SimulateCharacterEntry, FString( TEXT( "." ) ) )
 		)
 	);
 	MenuBuilder.AddMenuEntry(
@@ -2418,7 +2418,7 @@ void UVREditorUISystem::UpdateActorPreviewUI(TSharedRef<SWidget> InWidget)
 		{
 			TSharedRef<SButton> Button = StaticCastSharedRef<SButton>(TestWidget);
 			Button->SetRenderTransformPivot(FVector2D(0.5f, 0.5f));
-			Button->SetRenderTransform(FSlateRenderTransform::FTransform2D(2.0f));
+			Button->SetRenderTransform(FTransform2D(2.0f));
 		}
 		const bool bWithSceneComponent = false;
 		PreviewPanel->SetSlateWidget(WidgetToDraw);

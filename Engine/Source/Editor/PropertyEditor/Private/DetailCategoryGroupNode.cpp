@@ -2,7 +2,7 @@
 
 #include "DetailCategoryGroupNode.h"
 
-void SDetailCategoryTableRow::Construct( const FArguments& InArgs, TSharedRef<IDetailTreeNode> InOwnerTreeNode, const TSharedRef<STableViewBase>& InOwnerTableView )
+void SDetailCategoryTableRow::Construct( const FArguments& InArgs, TSharedRef<FDetailTreeNode> InOwnerTreeNode, const TSharedRef<STableViewBase>& InOwnerTableView )
 {
 	OwnerTreeNode = InOwnerTreeNode;
 
@@ -102,7 +102,7 @@ void SDetailCategoryTableRow::Construct( const FArguments& InArgs, TSharedRef<ID
 		];
 	}
 
-	STableRow< TSharedPtr< IDetailTreeNode > >::ConstructInternal(
+	STableRow< TSharedPtr< FDetailTreeNode > >::ConstructInternal(
 		STableRow::FArguments()
 			.Style(FEditorStyle::Get(), "DetailsView.TreeView.TableRow")
 			.ShowSelection(false),
@@ -166,7 +166,7 @@ FDetailCategoryGroupNode::FDetailCategoryGroupNode( const FDetailNodeList& InChi
 {
 }
 
-TSharedRef< ITableRow > FDetailCategoryGroupNode::GenerateNodeWidget( const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, const TSharedRef<IPropertyUtilities>& PropertyUtilities, bool bAllowFavoriteSystem)
+TSharedRef< ITableRow > FDetailCategoryGroupNode::GenerateWidgetForTableView( const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, bool bAllowFavoriteSystem)
 {
 	const FDetailColumnSizeData* SizeData = bHasSplitter ? &ColumnSizeData : nullptr;
 
@@ -179,11 +179,23 @@ TSharedRef< ITableRow > FDetailCategoryGroupNode::GenerateNodeWidget( const TSha
 }
 
 
-void FDetailCategoryGroupNode::GetChildren( TArray< TSharedRef<IDetailTreeNode> >& OutChildren )
+bool FDetailCategoryGroupNode::GenerateStandaloneWidget(FDetailWidgetRow& OutRow) const
+{
+	OutRow.NameContent()
+	[
+		SNew(STextBlock)
+		.Font(FEditorStyle::GetFontStyle("PropertyWindow.NormalFont"))
+		.Text(FText::FromName(GroupName))
+	];
+
+	return true;
+}
+
+void FDetailCategoryGroupNode::GetChildren(FDetailNodeList& OutChildren)
 {
 	for( int32 ChildIndex = 0; ChildIndex < ChildNodes.Num(); ++ChildIndex )
 	{
-		TSharedRef<IDetailTreeNode>& Child = ChildNodes[ChildIndex];
+		TSharedRef<FDetailTreeNode>& Child = ChildNodes[ChildIndex];
 		if( Child->GetVisibility() == ENodeVisibility::Visible )
 		{
 			if( Child->ShouldShowOnlyChildren() )
@@ -203,7 +215,7 @@ void FDetailCategoryGroupNode::FilterNode( const FDetailFilter& InFilter )
 	bShouldBeVisible = false;
 	for( int32 ChildIndex = 0; ChildIndex < ChildNodes.Num(); ++ChildIndex )
 	{
-		TSharedRef<IDetailTreeNode>& Child = ChildNodes[ChildIndex];
+		TSharedRef<FDetailTreeNode>& Child = ChildNodes[ChildIndex];
 
 		Child->FilterNode( InFilter );
 

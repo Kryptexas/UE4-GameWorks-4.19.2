@@ -121,7 +121,7 @@ namespace Audio
 
 			OpenStreamParams.NumBuffers = PlatformSettings.NumBuffers;
 			OpenStreamParams.NumFrames = PlatformSettings.CallbackBufferFrameSize;
-			OpenStreamParams.OutputDeviceIndex = 0; // Default device
+			OpenStreamParams.OutputDeviceIndex = AUDIO_MIXER_DEFAULT_DEVICE_INDEX; // TODO: Support overriding which audio device user wants to open, not necessarily default.
 			OpenStreamParams.SampleRate = SampleRate;
 			OpenStreamParams.AudioMixer = this;
 
@@ -421,23 +421,26 @@ namespace Audio
 				MasterReverbPluginSubmix->SetParentSubmix(MasterSubmixInstance);
 				MasterSubmixInstance->AddChildSubmix(MasterReverbPluginSubmix);
 			}
+			else
+			{
+				// Setup the master reverb only if we don't have a reverb plugin
 
-			// Setup the master reverb
-			USoundSubmix* MasterReverbSubix = FMixerDevice::MasterSubmixes[EMasterSubmixType::Reverb];
-			USubmixEffectReverbPreset* ReverbPreset = NewObject<USubmixEffectReverbPreset>(MasterReverbSubix, TEXT("Master Reverb Effect Preset"));
+				USoundSubmix* MasterReverbSubix = FMixerDevice::MasterSubmixes[EMasterSubmixType::Reverb];
+				USubmixEffectReverbPreset* ReverbPreset = NewObject<USubmixEffectReverbPreset>(MasterReverbSubix, TEXT("Master Reverb Effect Preset"));
 
-			FSoundEffectSubmix* ReverbEffectSubmix = static_cast<FSoundEffectSubmix*>(ReverbPreset->CreateNewEffect());
+				FSoundEffectSubmix* ReverbEffectSubmix = static_cast<FSoundEffectSubmix*>(ReverbPreset->CreateNewEffect());
 
-			ReverbEffectSubmix->Init(InitData);
-			ReverbEffectSubmix->SetPreset(ReverbPreset);
-			ReverbEffectSubmix->SetEnabled(true);
+				ReverbEffectSubmix->Init(InitData);
+				ReverbEffectSubmix->SetPreset(ReverbPreset);
+				ReverbEffectSubmix->SetEnabled(true);
 
-			const uint32 ReverbPresetId = ReverbPreset->GetUniqueID();
+				const uint32 ReverbPresetId = ReverbPreset->GetUniqueID();
 
-			FMixerSubmixPtr MasterReverbSubmix = MasterSubmixInstances[EMasterSubmixType::Reverb];
-			MasterReverbSubmix->AddSoundEffectSubmix(ReverbPresetId, MakeShareable(ReverbEffectSubmix));
-			MasterReverbSubmix->SetParentSubmix(MasterSubmixInstance);
-			MasterSubmixInstance->AddChildSubmix(MasterReverbSubmix);
+				FMixerSubmixPtr MasterReverbSubmix = MasterSubmixInstances[EMasterSubmixType::Reverb];
+				MasterReverbSubmix->AddSoundEffectSubmix(ReverbPresetId, MakeShareable(ReverbEffectSubmix));
+				MasterReverbSubmix->SetParentSubmix(MasterSubmixInstance);
+				MasterSubmixInstance->AddChildSubmix(MasterReverbSubmix);
+			}
 
 			// Setup the master EQ
 			USoundSubmix* MasterEQSoundSubmix = FMixerDevice::MasterSubmixes[EMasterSubmixType::EQ];

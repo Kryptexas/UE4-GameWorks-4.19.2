@@ -40,7 +40,7 @@ FDetailPropertyRow::FDetailPropertyRow(TSharedPtr<FPropertyNode> InPropertyNode,
 		{
 			// We are showing an entirely different object inline.  Generate a layout for it now.
 			ExternalObjectLayout = MakeShared<FDetailLayoutData>();
-			InParentCategory->GetDetailsView().UpdateSinglePropertyMap(InExternalRootNode, *ExternalObjectLayout);
+			InParentCategory->GetDetailsView()->UpdateSinglePropertyMap(InExternalRootNode, *ExternalObjectLayout);
 		}
 
 		if (PropertyNode->GetPropertyKeyNode().IsValid())
@@ -296,7 +296,7 @@ void FDetailPropertyRow::GenerateChildrenForPropertyNode( TSharedPtr<FPropertyNo
 				// Only struct children can have custom visibility that is different from their parent.
 				else if ( !bStructProperty || LayoutBuilder.IsPropertyVisible( FPropertyAndParent(*ChildNode->GetProperty(), ParentProperty, Objects ) ) )
 				{	
-					TArray<TSharedRef<IDetailTreeNode>> PropNodes;
+					TArray<TSharedRef<FDetailTreeNode>> PropNodes;
 					bool bHasKeyNode = false;
 
 					// Create and initialize the child first
@@ -375,11 +375,9 @@ TSharedPtr<IPropertyTypeCustomization> FDetailPropertyRow::GetPropertyCustomizat
 		static FName NAME_PropertyEditor("PropertyEditor");
 		FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>(NAME_PropertyEditor);
 
-		IDetailsViewPrivate& DetailsView = InParentCategory->GetDetailsView();
+		IDetailsViewPrivate* DetailsView = InParentCategory->GetDetailsView();
 
-		TSharedRef<IDetailsView> DetailsViewPtr = StaticCastSharedRef<IDetailsView>(DetailsView.AsShared());
-
-		FPropertyTypeLayoutCallback LayoutCallback = PropertyEditorModule.GetPropertyTypeCustomization(Property, *PropHandle, DetailsViewPtr);
+		FPropertyTypeLayoutCallback LayoutCallback = PropertyEditorModule.GetPropertyTypeCustomization(Property, *PropHandle, DetailsView ? DetailsView->GetCustomPropertyTypeLayoutMap() : FCustomPropertyTypeLayoutMap() );
 		if (LayoutCallback.IsValid())
 		{
 			if (PropHandle->IsValidHandle())

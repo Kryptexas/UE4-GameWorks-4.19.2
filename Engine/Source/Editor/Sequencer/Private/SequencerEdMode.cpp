@@ -470,7 +470,7 @@ void FSequencerEdMode::DrawTransformTrack(const TSharedPtr<FSequencer>& Sequence
 								}
 								else if (TrailActor != nullptr)
 								{
-									TrailActor->AddFrameMeshComponent(NewTime, FTransform::FTransform(NewRot, NewPos, FVector::FVector(3.0f)));
+									TrailActor->AddFrameMeshComponent(NewTime, FTransform(NewRot, NewPos, FVector(3.0f)));
 								}
 							}
 							OldTime = NewTime;
@@ -522,7 +522,7 @@ void FSequencerEdMode::DrawTransformTrack(const TSharedPtr<FSequencer>& Sequence
 
 					for (UMovieScene3DTransformSection* Section : AllSections)
 					{
-						TrailActor->AddKeyMeshActor(NewKeyTime, FTransform::FTransform(NewKeyRot, NewKeyPos, FVector::FVector(3.0f)), Section);
+						TrailActor->AddKeyMeshActor(NewKeyTime, FTransform(NewKeyRot, NewKeyPos, FVector(3.0f)), Section);
 					}
 				}
 

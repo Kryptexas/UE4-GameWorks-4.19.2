@@ -69,15 +69,15 @@ private:
 void FDefaultValueDetails::CustomizeDetails(class IDetailLayoutBuilder& DetailLayout) 
 {
 	DetailLayoutPtr = &DetailLayout;
-	const TArray<TWeakObjectPtr<UObject>> Objects = DetailLayout.GetDetailsView().GetSelectedObjects();
+	const TArray<TWeakObjectPtr<UObject>>& Objects = DetailLayout.GetSelectedObjects();
 	check(Objects.Num() > 0);
 
 	if (Objects.Num() == 1)
 	{
 		UserDefinedStruct = CastChecked<UUserDefinedStruct>(Objects[0].Get());
 
-		IDetailsView& DetailsView = (IDetailsView&)(DetailLayout.GetDetailsView());
-		DetailsView.OnFinishedChangingProperties().AddSP(this, &FDefaultValueDetails::OnFinishedChangingProperties);
+		const IDetailsView* DetailsView = DetailLayout.GetDetailsView();
+		DetailsView->OnFinishedChangingProperties().AddSP(this, &FDefaultValueDetails::OnFinishedChangingProperties);
 
 		IDetailCategoryBuilder& StructureCategory = DetailLayout.EditCategory("DefaultValues", LOCTEXT("DefaultValues", "Default Values"));
 
@@ -1103,7 +1103,7 @@ void FUserDefinedStructureLayout::GenerateChildContent( IDetailChildrenBuilder& 
 /** IDetailCustomization interface */
 void FUserDefinedStructureDetails::CustomizeDetails(class IDetailLayoutBuilder& DetailLayout) 
 {
-	const TArray<TWeakObjectPtr<UObject>> Objects = DetailLayout.GetDetailsView().GetSelectedObjects();
+	const TArray<TWeakObjectPtr<UObject>>& Objects = DetailLayout.GetSelectedObjects();
 	check(Objects.Num() > 0);
 
 	if (Objects.Num() == 1)

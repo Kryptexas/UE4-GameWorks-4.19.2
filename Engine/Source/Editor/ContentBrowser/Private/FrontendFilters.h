@@ -249,4 +249,50 @@ public:
 private:
 	bool bIsCurrentlyActive;
 };
+
+
+/** A filter that only displays assets used by any level */
+class FFrontendFilter_UsedInAnyLevel: public FFrontendFilter
+{
+public:
+	/** Constructor/Destructor */
+	FFrontendFilter_UsedInAnyLevel(TSharedPtr<FFrontendFilterCategory> InCategory);
+	virtual ~FFrontendFilter_UsedInAnyLevel();
+
+	// FFrontendFilter implementation
+	virtual FString GetName() const override { return TEXT("UsedInAnyLevel"); }
+	virtual FText GetDisplayName() const override { return LOCTEXT("FFrontendFilter_UsedInAnyLevel", "Used In Any Level"); }
+	virtual FText GetToolTipText() const override { return LOCTEXT("FFrontendFilter_UsedInAnyLevelTooltip", "Show only assets that are used in any level."); }
+	virtual void ActiveStateChanged(bool bActive) override;
+
+	// IFilter implementation
+	virtual bool PassesFilter(FAssetFilterType InItem) const override;
+
+private:
+	class IAssetRegistry* AssetRegistry;
+	TSet<FName> LevelsDependencies;
+};
+
+/** A filter that only displays assets used by any level */
+class FFrontendFilter_NotUsedInAnyLevel : public FFrontendFilter
+{
+public:
+	/** Constructor/Destructor */
+	FFrontendFilter_NotUsedInAnyLevel(TSharedPtr<FFrontendFilterCategory> InCategory);
+	virtual ~FFrontendFilter_NotUsedInAnyLevel();
+
+	// FFrontendFilter implementation
+	virtual FString GetName() const override { return TEXT("NotUsedInAnyLevel"); }
+	virtual FText GetDisplayName() const override { return LOCTEXT("FFrontendFilter_NotUsedInAnyLevel", "Not Used In Any Level"); }
+	virtual FText GetToolTipText() const override { return LOCTEXT("FFrontendFilter_NotUsedInAnyLevelTooltip", "Show only assets that are not used in any level."); }
+	virtual void ActiveStateChanged(bool bActive) override;
+
+	// IFilter implementation
+	virtual bool PassesFilter(FAssetFilterType InItem) const override;
+
+private:
+	class IAssetRegistry* AssetRegistry;
+	TSet<FName> LevelsDependencies;
+};
+
 #undef LOCTEXT_NAMESPACE

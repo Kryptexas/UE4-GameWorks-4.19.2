@@ -11,7 +11,6 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/ShapeComponent.h"
 #include "Engine/CollisionProfile.h"
-#include "Components/DestructibleComponent.h"
 #include "Kismet2/ComponentEditorUtils.h"
 #include "DetailLayoutBuilder.h"
 #include "DetailWidgetRow.h"
@@ -26,6 +25,7 @@
 #include "PhysicsEngine/BodySetup.h"
 #include "PhysicsEngine/PhysicsSettings.h"
 #include "ObjectEditorUtils.h"
+#include "DestructibleInterface.h"
 
 #define LOCTEXT_NAMESPACE "BodyInstanceCustomization"
 
@@ -1273,7 +1273,7 @@ void FBodyInstanceCustomizationHelper::UpdateFilters()
 	{
 		if (ObjectsCustomized[i].IsValid())
 		{
-			if(ObjectsCustomized[i]->IsA(UDestructibleComponent::StaticClass()))
+			if(Cast<IDestructibleInterface>(ObjectsCustomized[i].Get()))
 			{
 				bDisplayMass = false;
 				bDisplayConstraints = false;

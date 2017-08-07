@@ -1940,6 +1940,52 @@ struct COREUOBJECT_API FDynamicClassStaticData
 
 COREUOBJECT_API TMap<FName, FDynamicClassStaticData>& GetDynamicClassMap();
 
+/**
+* FAssetMsg
+* This struct contains functions for asset-related messaging
+**/
+struct FAssetMsg
+{
+	/** Formats a path for the UE_ASSET_LOG macro */
+	static COREUOBJECT_API FString FormatPathForAssetLog(const TCHAR* Path);
+
+	/** If possible, finds a path to the underlying asset for the provided object and formats it for the UE_ASSET_LOG macro */
+	static COREUOBJECT_API FString FormatPathForAssetLog(const UObject* Object);
+};
+
+#if NO_LOGGING
+	#define UE_ASSET_LOG(...)
+#else
+	/**
+	* A  macro that outputs a formatted message to log with a canonical reference to an asset if a given logging category is active at a given verbosity level
+	* @param CategoryName name of the logging category
+	* @param Verbosity, verbosity level to test against
+	* @param Asset, Object or asset path to format
+	* @param Format, format text
+	***/
+	#define UE_ASSET_LOG(CategoryName, Verbosity, Asset, Format, ...) \
+	{ \
+		static_assert(IS_TCHAR_ARRAY(Format), "Formatting string must be a TCHAR array."); \
+		static_assert((ELogVerbosity::Verbosity & ELogVerbosity::VerbosityMask) < ELogVerbosity::NumVerbosity && ELogVerbosity::Verbosity > 0, "Verbosity must be constant and in range."); \
+		CA_CONSTANT_IF((ELogVerbosity::Verbosity & ELogVerbosity::VerbosityMask) <= ELogVerbosity::COMPILED_IN_MINIMUM_VERBOSITY && (ELogVerbosity::Warning & ELogVerbosity::VerbosityMask) <= FLogCategory##CategoryName::CompileTimeVerbosity) \
+		{ \
+			UE_LOG_EXPAND_IS_FATAL(Verbosity, PREPROCESSOR_NOTHING, if (!CategoryName.IsSuppressed(ELogVerbosity::Verbosity))) \
+			{ \
+				FString NewFormat = FString::Printf(TEXT("%s: %s"), *FAssetMsg::FormatPathForAssetLog(Asset), Format);\
+				FMsg::Logf_Internal(__FILE__, __LINE__, CategoryName.GetCategoryName(), ELogVerbosity::Verbosity, *NewFormat, ##__VA_ARGS__); \
+				UE_LOG_EXPAND_IS_FATAL(Verbosity, \
+					{ \
+						_DebugBreakAndPromptForRemote(); \
+						FDebug::AssertFailed("", __FILE__, __LINE__, *NewFormat, ##__VA_ARGS__); \
+						CA_ASSUME(false); \
+					}, \
+					PREPROCESSOR_NOTHING \
+				) \
+			} \
+		} \
+	}
+#endif // NO_LOGGING
+
 #if WITH_EDITOR
 /** 
  * Returns if true if the object is editor-only:

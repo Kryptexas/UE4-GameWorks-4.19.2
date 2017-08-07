@@ -69,7 +69,6 @@ public class AssetTools : ModuleRules
 				"CurveTableEditor",
 				"DataTableEditor",
 				"DesktopPlatform",
-				"DestructibleMeshEditor",
 				"EditorWidgets",
 				"GameProjectGeneration",
                 "ActorPickerMode",

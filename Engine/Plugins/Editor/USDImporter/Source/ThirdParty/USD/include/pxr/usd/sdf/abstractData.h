@@ -24,7 +24,7 @@
 #ifndef SDF_ABSTRACTDATA_H
 #define SDF_ABSTRACTDATA_H
 
-#include "pxr/usd/sdf/api.h"
+#include "pxr/pxr.h"
 #include "pxr/usd/sdf/path.h"
 #include "pxr/usd/sdf/types.h"
 
@@ -38,6 +38,8 @@
 
 #include <boost/optional.hpp>
 #include <vector>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 TF_DECLARE_WEAK_AND_REF_PTRS(SdfAbstractData);
 class SdfAbstractDataSpecVisitor;
@@ -95,7 +97,7 @@ public:
     /// Returns the full path to the spec identified by this object.
     const SdfPath& GetFullSpecPath() const
     {
-        return (not _propertyName ? *_path : _ComputeFullSpecPath());
+        return (!_propertyName ? *_path : _ComputeFullSpecPath());
     }
 
     /// If this object identifies a property, returns the path to the spec
@@ -105,7 +107,7 @@ public:
     /// This path and the property name together form the full spec path.
     const SdfPath& GetPropertyOwningSpecPath() const
     {
-        return (_propertyName or not _path->IsPropertyPath() ? 
+        return (_propertyName || !_path->IsPropertyPath() ? 
             *_path : _ComputePropertyOwningSpecPath());
     }
 
@@ -117,8 +119,8 @@ public:
     SDF_API const TfToken& GetPropertyName() const;
 
 private:
-	SDF_API const SdfPath& _ComputeFullSpecPath() const;
-	SDF_API const SdfPath& _ComputePropertyOwningSpecPath() const;
+    SDF_API const SdfPath& _ComputeFullSpecPath() const;
+    SDF_API const SdfPath& _ComputePropertyOwningSpecPath() const;
 
 private:
     const SdfPath* _path;
@@ -225,16 +227,19 @@ public:
 
     /// Returns whether a value exists for the given \a id and \a fieldName.
     /// Optionally returns the value if it exists.
+    SDF_API
     virtual bool Has(const SdfAbstractDataSpecId& id, const TfToken& fieldName,
                      SdfAbstractDataValue* value) const = 0;
 
     /// Return whether a value exists for the given \a id and \a fieldName.
     /// Optionally returns the value if it exists.
+    SDF_API
     virtual bool Has(const SdfAbstractDataSpecId& id, const TfToken &fieldName,
                      VtValue *value = NULL) const = 0;
 
     /// Return the value for the given \a id and \a fieldName. Returns an
     /// empty value if none is set.
+    SDF_API
     virtual VtValue Get(const SdfAbstractDataSpecId& id, 
                         const TfToken& fieldName) const = 0;
 
@@ -242,20 +247,24 @@ public:
     ///
     /// It's an error to set a field on a spec that does not exist. Setting a
     /// field to an empty VtValue is the same as calling Erase() on it.
+    SDF_API
     virtual void Set(const SdfAbstractDataSpecId &id, const TfToken &fieldName,
                      const VtValue &value) = 0;
 
     /// Set the value of the given \a id and \a fieldName.
     ///
     /// It's an error to set a field on a spec that does not exist.
+    SDF_API
     virtual void Set(const SdfAbstractDataSpecId &id, const TfToken &fieldName,
                      const SdfAbstractDataConstValue& value) = 0;
 
     /// Remove the field at \p id and \p fieldName, if one exists.
+    SDF_API
     virtual void Erase(const SdfAbstractDataSpecId& id, 
                        const TfToken& fieldName) = 0;
 
     /// Return the names of all the fields that are set at \p id.
+    SDF_API
     virtual std::vector<TfToken> List(const SdfAbstractDataSpecId& id) const = 0;
 
     /// Return the value for the given \a id and \a fieldName. Returns the
@@ -337,34 +346,43 @@ public:
     ///
     /// @{
 
+    SDF_API
     virtual std::set<double>
     ListAllTimeSamples() const = 0;
     
+    SDF_API
     virtual std::set<double>
     ListTimeSamplesForPath(const SdfAbstractDataSpecId& id) const = 0;
 
+    SDF_API
     virtual bool
     GetBracketingTimeSamples(double time, double* tLower, double* tUpper) const = 0;
 
+    SDF_API
     virtual size_t
     GetNumTimeSamplesForPath(const SdfAbstractDataSpecId& id) const = 0;
 
+    SDF_API
     virtual bool
     GetBracketingTimeSamplesForPath(const SdfAbstractDataSpecId& id, 
                                     double time,
                                     double* tLower, double* tUpper) const = 0;
 
+    SDF_API
     virtual bool
     QueryTimeSample(const SdfAbstractDataSpecId& id, double time,
                     VtValue *optionalValue = NULL) const = 0;
+    SDF_API
     virtual bool
     QueryTimeSample(const SdfAbstractDataSpecId& id, double time,
                     SdfAbstractDataValue *optionalValue) const = 0;
 
+    SDF_API
     virtual void
     SetTimeSample(const SdfAbstractDataSpecId& id, double time, 
                   const VtValue & value) = 0;
 
+    SDF_API
     virtual void
     EraseTimeSample(const SdfAbstractDataSpecId& id, double time) = 0;
 
@@ -376,6 +394,7 @@ protected:
     /// The visitor may not modify the SdfAbstractData object it is visiting.
     /// This method should \b not call \c Done() on the visitor.
     /// \sa SdfAbstractDataSpecVisitor
+    SDF_API
     virtual void _VisitSpecs(SdfAbstractDataSpecVisitor* visitor) const = 0;
 };
 
@@ -457,7 +476,7 @@ public:
             return true;
         }
 
-        if (not v.IsHolding<T>()) {
+        if (!v.IsHolding<T>()) {
             return false;
         }
 
@@ -528,7 +547,7 @@ public:
 
     virtual bool IsEqual(const VtValue& v) const
     {
-        return (v.IsHolding<T>() and v.UncheckedGet<T>() == _GetValue());
+        return (v.IsHolding<T>() && v.UncheckedGet<T>() == _GetValue());
     }
 
 private:
@@ -563,19 +582,23 @@ private:
 class SdfAbstractDataSpecVisitor
 {
 public:
-	SDF_API
+    SDF_API
     virtual ~SdfAbstractDataSpecVisitor();
 
     /// \c SdfAbstractData::VisitSpecs will call this function for every entry
     /// it contains, passing itself as \p data and the entry's spec id as \p id.
     /// If this function returns false, the iteration through the entries 
     /// will end early, otherwise it will continue.
+    SDF_API
     virtual bool VisitSpec(const SdfAbstractData& data, 
                            const SdfAbstractDataSpecId& id) = 0;
 
     /// \c SdfAbstractData::VisitSpecs will call this after visitation is
     /// complete, even if some \c VisitSpec() returned \c false.
+    SDF_API
     virtual void Done(const SdfAbstractData& data) = 0;
 };
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // SD_ABSTRACTDATA_H

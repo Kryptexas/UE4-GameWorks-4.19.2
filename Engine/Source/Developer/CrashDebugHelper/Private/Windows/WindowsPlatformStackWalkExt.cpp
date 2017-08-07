@@ -426,7 +426,7 @@ void FWindowsPlatformStackWalkExt::GetExceptionInfo()
 
 int FWindowsPlatformStackWalkExt::GetCallstacks(bool bTrimCallstack)
 {
-	const int32 MAX_NAME_LENGHT = FProgramCounterSymbolInfo::MAX_NAME_LENGHT;
+	const int32 MAX_NAME_LENGHT = FProgramCounterSymbolInfo::MAX_NAME_LENGTH;
 	int32 NumValidFunctionNames = 0;
 
 	FCrashExceptionInfo& Exception = CrashInfo.Exception;

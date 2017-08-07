@@ -29,6 +29,16 @@ namespace USDToUnreal
 		return FString(ANSI_TO_TCHAR(InString.c_str()));
 	}
 
+	static FString ConvertString(const char* InString)
+	{
+		return FString(ANSI_TO_TCHAR(InString));
+	}
+
+	static FName ConvertName(const char* InString)
+	{
+		return FName(InString);
+	}
+
 	static FName ConvertName(const std::string& InString)
 	{
 		return FName(InString.c_str());

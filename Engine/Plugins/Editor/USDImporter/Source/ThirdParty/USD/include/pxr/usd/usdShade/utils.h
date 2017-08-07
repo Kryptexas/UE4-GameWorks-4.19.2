@@ -24,8 +24,66 @@
 #ifndef USD_SHD_UTILS_H
 #define USD_SHD_UTILS_H
 
-#include "pxr/usd/usd/attribute.h"
-#include "pxr/usd/usd/prim.h"
-#include "pxr/usd/usd/relationship.h"
+#include "pxr/pxr.h"
+#include "pxr/usd/usdShade/api.h"
+
+#include "pxr/base/tf/token.h"
+
+#include <string>
+#include <utility>
+
+PXR_NAMESPACE_OPEN_SCOPE
+
+
+/// \enum UsdShadeAttributeType
+/// 
+/// Specifies the type of a shading attribute.
+/// 
+/// "Parameter" and "InterfaceAttribute" are deprecated shading attribute types.
+/// 
+enum class UsdShadeAttributeType {
+    Input,
+    Output,
+    Parameter,
+    InterfaceAttribute
+};
+
+/// \class UsdShadeUtils
+///
+/// This class contains a set of utility functions used when authoring and 
+/// querying shading networks.
+///
+class UsdShadeUtils {
+public:
+    /// Returns the namespace prefix of the USD attribute associated with the given
+    /// shading attribute type.
+    USDSHADE_API
+    static std::string GetPrefixForAttributeType(
+        UsdShadeAttributeType sourceType);
+
+    /// Given the full name of a shading property, returns it's base name and type.
+    USDSHADE_API
+    static std::pair<TfToken, UsdShadeAttributeType> 
+        GetBaseNameAndType(const TfToken &fullName);
+
+    /// Returns the full shading attribute name given the basename and the type.
+    /// \p baseName is the name of the input or output on the shading node.
+    /// \p type is the \ref UsdShadeAttributeType of the shading attribute.
+    USDSHADE_API
+    static TfToken GetFullName(const TfToken &baseName, 
+                               const UsdShadeAttributeType type);
+
+    /// Whether the env-setting that enables the reading of old-style encoding 
+    /// of shading networks is set to 'true'.
+    USDSHADE_API
+    static bool ReadOldEncoding();
+
+    /// Whether the env-setting that enables the writing of new-style encoding 
+    /// of shading networks is set to 'true'.
+    USDSHADE_API
+    static bool WriteNewEncoding();
+};
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif

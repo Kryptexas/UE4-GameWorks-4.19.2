@@ -18,6 +18,7 @@ public class SlateReflector : ModuleRules
 				"InputCore",
 				"Slate",
 				"SlateCore",
+				"EditorStyle",
 				"Json",
 				"AssetRegistry",
 			}

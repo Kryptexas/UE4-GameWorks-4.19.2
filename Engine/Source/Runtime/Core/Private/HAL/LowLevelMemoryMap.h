@@ -14,16 +14,12 @@
 
 //-----------------------------------------------------------------
 template<typename TKey, typename TValue>
-class VirtualMap
+class LLMMap
 {
 public:
-// 	class CriticalSectionScope
-// 	{
-// 	public:
-// 		CriticalSectionScope(FCriticalSection& cs) : m_CriticalSection(cs) { EnterCriticalSection(&cs); }
-// 		~CriticalSectionScope() { LeaveCriticalSection(&m_CriticalSection); }
-// 		FCriticalSection& m_CriticalSection;
-// 	};
+	//-----------------------------------------------------------------
+	typedef void*(*AllocFunction)(size_t);
+	typedef void(*FreeFunction)(void*, size_t);
 
 	//-----------------------------------------------------------------
 	struct Pair
@@ -36,34 +32,42 @@ public:
 	// The default capacity of the set. The capacity is the number
 	// of elements that the set is expected to hold. The set will resized
 	// when the item count is greater than the capacity;
-	VirtualMap(const int capacity=m_DefaultCapacity, int alloc_size=m_DefaultAllocSize)
-	:	m_AllocatedMemory(0),
+	LLMMap(
+		const int capacity=m_DefaultCapacity,
+		int alloc_size=m_DefaultAllocSize)
+	:
+		m_AllocFunction(NULL),
+		m_FreeFunction(NULL),
+		m_AllocatedMemory(0),
 		m_Capacity(0),
 		mp_Table(NULL),
 		m_Count(0),
 		m_AllocSize(alloc_size),
 		mp_ItemPool(NULL),
 		mp_FreePair(NULL)
-#ifdef PROFILE_VirtualMap
+#ifdef PROFILE_LLMMAP
 		,m_IterAcc(0)
 		,m_IterCount(0)
 #endif
 	{
-		//InitializeCriticalSection(&m_CriticalSection);
-
 		m_Capacity = GetNextPow2((256 * capacity) / m_Margin);
 		check(m_Capacity < m_MaxCapacity);
 	}
 
 	//-----------------------------------------------------------------
-	~VirtualMap()
+	~LLMMap()
 	{
 		Clear();
-
-		Free(mp_Table, m_Capacity * sizeof(Pair*));
-		FreePools();
 	}
 
+	//-----------------------------------------------------------------
+	void SetAllocationFunctions(AllocFunction& alloc_function, FreeFunction free_function)
+	{
+		m_AllocFunction = alloc_function;
+		m_FreeFunction = free_function;
+	}
+
+	//-----------------------------------------------------------------
 	int64 GetTotalMemoryUsed()
 	{
 		return m_AllocatedMemory;
@@ -73,6 +77,15 @@ public:
 	void Clear()
 	{
 		RemoveAll();
+
+		if (mp_Table)
+		{
+			Free(mp_Table, m_Capacity * sizeof(Pair*));
+			mp_Table = NULL;
+		}
+		m_Capacity = 0;
+
+		FreePools();
 	}
 
 	//-----------------------------------------------------------------
@@ -81,7 +94,6 @@ public:
 	void Add(const TKey& key, const TValue& value)
 	{
 		FScopeLock Lock(&m_CriticalSection);
-		//CriticalSectionScope lock(m_CriticalSection);
 
 		if (mp_Table == NULL)
 		{
@@ -118,7 +130,6 @@ public:
 	TValue GetValue(const TKey& key)
 	{
 		FScopeLock Lock(&m_CriticalSection);
-//		CriticalSectionScope lock(m_CriticalSection);
 
 		check(mp_Table);
 
@@ -134,7 +145,6 @@ public:
 	TValue Remove(const TKey& key)
 	{
 		FScopeLock Lock(&m_CriticalSection);
-//		CriticalSectionScope lock(m_CriticalSection);
 
 		check(mp_Table);
 
@@ -223,7 +233,6 @@ public:
 	void Resize(int new_capacity)
 	{
 		FScopeLock Lock(&m_CriticalSection);
-//		CriticalSectionScope lock(m_CriticalSection);
 
 		new_capacity = GetNextPow2(new_capacity);
 
@@ -254,23 +263,17 @@ private:
 	//-----------------------------------------------------------------
 	void* Alloc(size_t size)
 	{
-// #if PLATFORM_XBOXONE
-// 		int extra_flags = MEM_TITLE;
-// #else
-// 		int extra_flags = 0;
-// #endif
-//		return VirtualAlloc(NULL, size, MEM_COMMIT|extra_flags, PAGE_READWRITE);
-
+		check(m_AllocFunction);
 		m_AllocatedMemory += size;
-		return malloc(size);
+		return m_AllocFunction(size);
 	}
 
 	//-----------------------------------------------------------------
 	void Free(void* p, size_t size)
 	{
 		m_AllocatedMemory -= size;
-//		VirtualFree(p, 0, MEM_RELEASE);
-		free(p);
+		check(m_FreeFunction);
+		m_FreeFunction(p, size);
 	}
 
 	//-----------------------------------------------------------------
@@ -281,7 +284,6 @@ private:
 		{
 			return;
 		}
-//		CriticalSectionScope lock(m_CriticalSection);
 
 		for(int i=0; i<m_Capacity; ++i)
 		{
@@ -331,12 +333,12 @@ private:
 		while(IsItemInUse(srch_index) && !(mp_Table[srch_index]->m_Key == key))
 		{
 			srch_index = (srch_index + 1) & (m_Capacity-1);
-#ifdef PROFILE_VirtualMap
+#ifdef PROFILE_LLMMAP
 			++m_IterAcc;
 #endif
 		}
 
-#ifdef PROFILE_VirtualMap
+#ifdef PROFILE_LLMMAP
 		++m_IterCount;
 		double average = m_IterAcc / (double)m_IterCount;
 		if(average > 2.0)
@@ -346,7 +348,7 @@ private:
 			if(now - last_write_time > 1000)
 			{
 				last_write_time = now;
-				Debug::Write("WARNING: VirtualMap average: %f\n", (float)average);
+				Debug::Write("WARNING: LLMMap average: %f\n", (float)average);
 			}
 		}
 #endif
@@ -434,11 +436,13 @@ private:
 	enum { m_InvalidIndex = 0xffffffff };
 	enum { m_MaxCapacity = 0x7fffffff };
 	enum { m_Margin = (30 * 256) / 100 };
-	enum { m_DefaultAllocSize = 4096 };
+	enum { m_DefaultAllocSize = 16*1024 };
 
-//	CRITICAL_SECTION m_CriticalSection;
 	FCriticalSection m_CriticalSection;
 	
+	AllocFunction m_AllocFunction;
+	FreeFunction m_FreeFunction;
+
 	int64 m_AllocatedMemory;
 
 	int m_Capacity;			// the current capacity of this set, will always be >= m_Margin*m_Count/256
@@ -449,7 +453,7 @@ private:
 	char* mp_ItemPool;
 	char* mp_FreePair;
 
-#ifdef PROFILE_VirtualMap
+#ifdef PROFILE_LLMMAP
 	mutable int64 m_IterAcc;
 	mutable int64 m_IterCount;
 #endif

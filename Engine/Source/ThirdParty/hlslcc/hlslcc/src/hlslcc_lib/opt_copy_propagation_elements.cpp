@@ -108,6 +108,7 @@ public:
 		this->shader_mem_ctx = NULL;
 		this->acp = new(mem_ctx)exec_list;
 		this->kills = new(mem_ctx)exec_list;
+		this->killed_all = false;
 	}
 	~ir_copy_propagation_elements_visitor()
 	{

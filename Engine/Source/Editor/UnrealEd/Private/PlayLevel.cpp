@@ -246,14 +246,17 @@ void UEditorEngine::EndPlayMap()
 	GetSelectedComponents()->DeselectAll();
 
 	// For every actor that was selected previously, make sure it's editor equivalent is selected
+	GEditor->GetSelectedActors()->BeginBatchSelectOperation();
 	for ( int32 ActorIndex = 0; ActorIndex < SelectedActors.Num(); ++ActorIndex )
 	{
 		AActor* Actor = Cast<AActor>( SelectedActors[ ActorIndex ] );
 		if (Actor)
 		{
-			SelectActor( Actor, true, false );
+			// We need to notify or else the manipulation transform widget won't appear, but only notify once at the end because OnEditorSelectionChanged is expensive for large groups. 
+			SelectActor( Actor, false, false );
 		}
-	}
+	}	
+	GEditor->GetSelectedActors()->EndBatchSelectOperation(true);
 
 	// let the editor know
 	FEditorDelegates::EndPIE.Broadcast(bIsSimulatingInEditor);
@@ -3997,7 +4000,17 @@ void UEditorEngine::FocusNextPIEWorld(UWorld *CurrentPieWorld, bool previous)
 		}
 	}
 }
-
+void UEditorEngine::ResetPIEAudioSetting(UWorld *CurrentPieWorld)
+{
+	ULevelEditorPlaySettings* PlayInSettings = GetMutableDefault<ULevelEditorPlaySettings>();
+	if (!PlayInSettings->EnableGameSound)
+	{
+		if (FAudioDevice* AudioDevice = CurrentPieWorld->GetAudioDevice())
+		{
+			AudioDevice->SetTransientMasterVolume(0.0f);
+		}
+	}
+}
 UGameViewportClient * UEditorEngine::GetNextPIEViewport(UGameViewportClient * CurrentViewport)
 {
 	// Get the current world's idx

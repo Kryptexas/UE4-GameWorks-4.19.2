@@ -804,6 +804,7 @@ public:
 	virtual bool GetPropertyColorationColor(class UObject* Object, FColor& OutColor) override;
 	virtual bool WorldIsPIEInNewViewport(UWorld* InWorld) override;
 	virtual void FocusNextPIEWorld(UWorld* CurrentPieWorld, bool previous = false) override;
+	virtual void ResetPIEAudioSetting(UWorld *CurrentPieWorld) override;
 	virtual class UGameViewportClient* GetNextPIEViewport(UGameViewportClient* CurrentViewport) override;
 	virtual UWorld* CreatePIEWorldByDuplication(FWorldContext &WorldContext, UWorld* InWorld, FString &PlayWorldMapName) override;
 	virtual bool GetMapBuildCancelled() const override { return false; }
@@ -1264,7 +1265,7 @@ public:
 	 * 
 	 * @param Factory - the Factory to use to create Actors
 	 */
-	void ReplaceActors(UActorFactory* Factory, const FAssetData& AssetData, const TArray<AActor*> ActorsToReplace);
+	void ReplaceActors(UActorFactory* Factory, const FAssetData& AssetData, const TArray<AActor*>& ActorsToReplace);
 
 	/**
 	 * Converts passed in brushes into a single static mesh actor. 

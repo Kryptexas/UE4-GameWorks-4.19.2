@@ -851,6 +851,7 @@ struct FShaderCompilerOutput
 
 	FShaderParameterMap ParameterMap;
 	TArray<FShaderCompilerError> Errors;
+	TArray<FString> PragmaDirectives;
 	FShaderTarget Target;
 	FShaderCode ShaderCode;
 	FSHAHash OutputHash;

@@ -8,6 +8,7 @@
 #include "Misc/OutputDeviceRedirector.h"
 #include "HAL/IConsoleManager.h"
 #include "Containers/List.h"
+#include "HAL/LowLevelMemTracker.h"
 
 #define LOG_EVERY_ALLOCATION			0
 #define DUMP_ALLOC_FREQUENCY			0 // 100
@@ -791,6 +792,8 @@ protected:
 	*/
 	void Relocate(FRelocationStats& Stats, FMemoryChunk* Dest, int64 DestOffset, const void* Source, int64 Size, void* UserPayload)
 	{
+		LLM(FLowLevelMemTracker::Get().OnLowLevelAllocMoved(ELLMTracker::Default, Dest->Base, Source));
+
 		uint8* DestAddr = Dest->Base + DestOffset;
 		int64 MemDistance = (int64)(Dest)-(int64)(Source);
 		int64 AbsDistance = FMath::Abs(MemDistance);

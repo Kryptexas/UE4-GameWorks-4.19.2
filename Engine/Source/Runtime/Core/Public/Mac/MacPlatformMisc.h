@@ -35,6 +35,13 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 #if !UE_BUILD_SHIPPING
 	FORCEINLINE static bool IsDebuggerPresent()
 	{
+		extern CORE_API bool GIgnoreDebugger;
+
+		if (GIgnoreDebugger)
+		{
+			return false;
+		}
+
 		// Based on http://developer.apple.com/library/mac/#qa/qa1361/_index.html
 
 #pragma clang diagnostic push

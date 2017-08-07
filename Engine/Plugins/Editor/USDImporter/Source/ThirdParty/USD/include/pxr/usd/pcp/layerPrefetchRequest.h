@@ -24,10 +24,14 @@
 #ifndef PCP_LAYER_PREFETCH_REQUEST_H
 #define PCP_LAYER_PREFETCH_REQUEST_H
 
+#include "pxr/pxr.h"
+#include "pxr/usd/pcp/api.h"
 #include "pxr/usd/sdf/layer.h"
 
 #include <set>
 #include <utility>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 class Pcp_MutedLayers;
 
@@ -45,11 +49,13 @@ public:
     /// Enqueue a request to pre-fetch of the sublayers of \a layer.
     /// This recursively includes any nested sublayers. Arguments in \a args
     /// will be passed to Sdf when finding or opening sublayers.
+    PCP_API
     void RequestSublayerStack(
         const SdfLayerRefPtr &layer,
         const SdfLayer::FileFormatArguments &args);
 
     /// Run the queued requests, returning when complete.
+    PCP_API
     void Run(const Pcp_MutedLayers& mutedLayers);
 
 private:
@@ -61,4 +67,6 @@ private:
     std::set<SdfLayerRefPtr> _retainedLayers;
 };
 
-#endif
+PXR_NAMESPACE_CLOSE_SCOPE
+
+#endif // PCP_LAYER_PREFETCH_REQUEST_H

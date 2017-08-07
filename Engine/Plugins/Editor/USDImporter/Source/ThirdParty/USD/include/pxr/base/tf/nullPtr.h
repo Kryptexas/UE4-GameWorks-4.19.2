@@ -24,7 +24,10 @@
 #ifndef TF_NULLPTR_H
 #define TF_NULLPTR_H
 
+#include "pxr/pxr.h"
 #include "pxr/base/tf/api.h"
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 // A type used to create the \a TfNullPtr token.
 struct TfNullPtrType
@@ -33,6 +36,8 @@ struct TfNullPtrType
 
 // A token to represent null for smart pointers like \a TfWeakPtr and \a
 // TfRefPtr.
-extern const TF_API TfNullPtrType TfNullPtr;
+TF_API extern const TfNullPtrType TfNullPtr;
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // TF_NULLPTR_H

@@ -24,6 +24,7 @@
 #ifndef USDGEOM_FACE_SET_API_H
 #define USDGEOM_FACE_SET_API_H
 
+#include "pxr/pxr.h"
 #include "pxr/usd/usdGeom/api.h"
 #include "pxr/usd/sdf/path.h"
 #include "pxr/usd/usd/prim.h"
@@ -34,6 +35,9 @@
 #include "pxr/base/tf/token.h"
 
 #include <string>
+
+PXR_NAMESPACE_OPEN_SCOPE
+
 
 // -------------------------------------------------------------------------- //
 // FACESET API                                                                //
@@ -144,13 +148,15 @@ public:
     }
 
     /// Destructor
-    USDGEOM_API virtual ~UsdGeomFaceSetAPI();
+    USDGEOM_API
+    virtual ~UsdGeomFaceSetAPI();
 
 private:
     // Returns true if the face-set contains the isPartition attribute. Note 
     // that this does not check the validity of the face-set attribute values. 
     // To check the validity, invoke \ref Validate().
-	USDGEOM_API virtual bool _IsCompatible(const UsdPrim &prim) const;
+    USDGEOM_API
+    virtual bool _IsCompatible(const UsdPrim &prim) const;
 
 public:
 
@@ -172,13 +178,15 @@ public:
     /// If \b isPartition is true, then any given face index can appear only 
     /// once in the \b faceIndices attribute value belonging to the face-set.
     /// 
-	USDGEOM_API bool SetIsPartition(bool isPartition) const; 
+    USDGEOM_API
+    bool SetIsPartition(bool isPartition) const; 
 
     /// Returns whether the set of enumerated faces must be mutually exclusive.
     /// If this returns true, then any given face index can appear only 
     /// once in the \b faceIndices attribute value belonging to the face-set.
     /// 
-	USDGEOM_API bool GetIsPartition() const;
+    USDGEOM_API
+    bool GetIsPartition() const;
 
     /// Sets the lengths of various groups of faces belonging to this face-set
     ///  at UsdTimeCode \p time.
@@ -189,7 +197,7 @@ public:
     /// groups must be uniform over time, and this schema will enforce this.
     /// 
     /// \sa UsdGeomFaceSetAPI::GetFaceCounts()
-	USDGEOM_API 
+    USDGEOM_API
     bool SetFaceCounts(const VtIntArray &faceCounts,
                        const UsdTimeCode &time=UsdTimeCode::Default()) const;
 
@@ -203,7 +211,7 @@ public:
     /// 
     /// \sa UsdGeomFaceSetAPI::GetFaceIndices()
     /// \sa UsdGeomFaceSetAPI::SetFaceCounts()
-	USDGEOM_API 
+    USDGEOM_API
     bool GetFaceCounts(VtIntArray *faceCounts, 
                        const UsdTimeCode &time=UsdTimeCode::Default()) const;
 
@@ -288,7 +296,8 @@ public:
     ///
     /// \ref GetIsPartition()
     ///
-    USDGEOM_API UsdAttribute GetIsPartitionAttr() const;
+    USDGEOM_API
+    UsdAttribute GetIsPartitionAttr() const;
 
     /// Creates the "isPartition" attribute associated with the face-set.
     /// 
@@ -297,7 +306,7 @@ public:
     /// sparsely (when it makes sense to do so) if \p writeSparsely is \c true -
     /// the default for \p writeSparsely is \c false.
     /// 
-	USDGEOM_API
+    USDGEOM_API
     UsdAttribute CreateIsPartitionAttr(const VtValue &defaultValue=VtValue(),
                                        bool writeSparsely=false) const;
 
@@ -309,7 +318,8 @@ public:
     ///
     /// \ref GetFaceCounts()
     ///
-	USDGEOM_API UsdAttribute GetFaceCountsAttr() const;
+    USDGEOM_API
+    UsdAttribute GetFaceCountsAttr() const;
 
     /// Creates the "faceCounts" attribute associated with the face-set.
     /// 
@@ -459,5 +469,8 @@ private:
     // The name of the FaceSet.
     TfToken _setName;
 };
+
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif

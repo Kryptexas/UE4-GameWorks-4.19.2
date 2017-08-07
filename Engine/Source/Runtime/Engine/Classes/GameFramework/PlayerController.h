@@ -1555,7 +1555,7 @@ public:
 	virtual bool DefaultCanUnpause();
 
 	/** @return true if game is currently paused. */
-	bool IsPaused();
+	bool IsPaused() const;
 
 	bool InputEnabled() const { return bInputEnabled; }
 

@@ -26,6 +26,7 @@
 
 /// \file sdf/primSpec.h
 
+#include "pxr/pxr.h"
 #include "pxr/usd/sdf/declareSpec.h"
 #include "pxr/usd/sdf/spec.h"
 #include "pxr/usd/sdf/path.h"
@@ -39,6 +40,8 @@
 #include <map>
 #include <string>
 #include <vector>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 template <class TypePolicy> class Sdf_ListEditor;
 
@@ -466,6 +469,16 @@ public:
     SDF_API
     void SetPrefix(const std::string& value);
 
+    /// Returns the suffix string for this prim spec.
+    ///
+    /// The default value for suffix is "".
+    SDF_API
+    std::string GetSuffix() const;
+
+    /// Sets the suffix string for this prim spec.
+    SDF_API
+    void SetSuffix(const std::string& value);
+
     /// Returns the custom data for this prim.
     ///
     /// The default value for custom data is an empty dictionary.
@@ -534,6 +547,16 @@ public:
     /// Sets the \p prefixSubstitutions dictionary for this prim spec.
     SDF_API
     void SetPrefixSubstitutions(const VtDictionary& prefixSubstitutions);
+
+    /// Returns the suffixSubstitutions dictionary for this prim spec.
+    ///
+    /// The default value for suffixSubstitutions is an empty VtDictionary.
+    SDF_API
+    VtDictionary GetSuffixSubstitutions() const;
+
+    /// Sets the \p suffixSubstitutions dictionary for this prim spec.
+    SDF_API
+    void SetSuffixSubstitutions(const VtDictionary& suffixSubstitutions);
 
     /// Sets the value for the prim's instanceable flag.
     SDF_API
@@ -687,7 +710,7 @@ public:
     /// Key and value paths are stored as absolute regardless of how they're
     /// added.
     SDF_API
-	SdfRelocatesMapProxy GetRelocates() const;
+    SdfRelocatesMapProxy GetRelocates() const;
     
     /// Set the entire map of namespace relocations specified on this prim.
     /// Use the editing proxy for modifying single paths in the map.
@@ -746,5 +769,7 @@ private:
 SDF_API 
 SdfPrimSpecHandle SdfCreatePrimInLayer(const SdfLayerHandle& layer,
                                        const SdfPath& primPath);
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // SDF_PRIMSPEC_H

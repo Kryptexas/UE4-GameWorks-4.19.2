@@ -69,7 +69,7 @@ void FParticleSystemComponentDetails::CustomizeDetails(IDetailLayoutBuilder& InD
 
 FReply FParticleSystemComponentDetails::OnAutoPopulateClicked()
 {
-	const TArray< TWeakObjectPtr<UObject> >& SelectedObjects = DetailLayout->GetDetailsView().GetSelectedObjects();
+	const TArray< TWeakObjectPtr<UObject> >& SelectedObjects = DetailLayout->GetSelectedObjects();
 
 	for (int32 Idx = 0; Idx < SelectedObjects.Num(); ++Idx)
 	{
@@ -91,7 +91,7 @@ FReply FParticleSystemComponentDetails::OnAutoPopulateClicked()
 
 FReply FParticleSystemComponentDetails::OnResetEmitter()
 {
-	const TArray< TWeakObjectPtr<UObject> >& SelectedObjects = DetailLayout->GetDetailsView().GetSelectedObjects();
+	const TArray< TWeakObjectPtr<UObject> >& SelectedObjects = DetailLayout->GetSelectedObjects();
 	// Iterate over selected Actors.
 	for (int32 Idx = 0; Idx < SelectedObjects.Num(); ++Idx)
 	{

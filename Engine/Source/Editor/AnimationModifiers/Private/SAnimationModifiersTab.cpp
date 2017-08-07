@@ -292,7 +292,7 @@ void SAnimationModifiersTab::CreateInstanceDetailsView()
 		/*InNotifyHook=*/ nullptr,
 		/*InSearchInitialKeyFocus=*/ false,
 		/*InViewIdentifier=*/ NAME_None);
-	DetailsViewArgs.DefaultsOnlyVisibility = FDetailsViewArgs::EEditDefaultsOnlyNodeVisibility::Automatic;
+	DetailsViewArgs.DefaultsOnlyVisibility = EEditDefaultsOnlyNodeVisibility::Automatic;
 	DetailsViewArgs.bShowOptions = false;	
 
 	ModifierInstanceDetailsView = EditModule.CreateDetailView(DetailsViewArgs);	

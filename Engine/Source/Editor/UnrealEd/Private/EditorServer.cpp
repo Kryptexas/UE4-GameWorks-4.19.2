@@ -3655,7 +3655,6 @@ bool UEditorEngine::Map_Check( UWorld* InWorld, const TCHAR* Str, FOutputDevice&
 		MapCheckLog.NewPage(MapCheckPageName);
 	}
 
-	TMap<FGridBounds,AActor*>	GridBoundsToActorMap;
 	TMap<FGuid,AActor*>			LightGuidToActorMap;
 	const int32 ProgressDenominator = InWorld->GetProgressDenominator();
 
@@ -3798,31 +3797,6 @@ bool UEditorEngine::Map_Check( UWorld* InWorld, const TCHAR* Str, FOutputDevice&
 				{
 					LightGuidToActorMap.Add( LightComponent->LightGuid, LightActor );
 				}
-			}
-			
-
-			// Use center of bounding box for location.
-			if( MeshComponent )
-			{
-				Center = MeshComponent->Bounds.GetBox().GetCenter();
-				Extent = MeshComponent->Bounds.GetBox().GetExtent();
-			}
-
-			// Check for two actors being in the same location.
-			FGridBounds	GridBounds( Center, Extent );
-			AActor*		ExistingActorInSameLocation = GridBoundsToActorMap.FindRef( GridBounds );		
-			if( ExistingActorInSameLocation )
-			{
-				// We emit two warnings to allow easy double click selection.
-//superville
-// Disable same location warnings for now
-//				GWarn->MapCheck_Add( MCTYPE_WARNING, Actor, *FString::Printf( LocalizeSecure( NSLOCTEXT("UnrealEd", "MapCheck_Message_ActorInSameLocation", "'`~' in same location as '`~'" ).ToString(), *Actor->GetName(), *ExistingActorInSameLocation->GetName() ) ), TEXT( "ActorInSameLocation" ) );
-//				GWarn->MapCheck_Add( MCTYPE_WARNING, ExistingActorInSameLocation, *FString::Printf( LocalizeSecure( NSLOCTEXT("UnrealEd", "MapCheck_Message_ActorInSameLocation", "'`~' in same location as '`~'" ).ToString(), *ExistingActorInSameLocation->GetName(), *Actor->GetName() ) ), TEXT( "ActorInSameLocation" ) );
-			}
-			// We only care about placeable classes.
-			else if( !Actor->GetClass()->HasAnyClassFlags( CLASS_NotPlaceable | CLASS_Abstract ) )
-			{
-				GridBoundsToActorMap.Add( GridBounds, Actor );
 			}
 		}
 

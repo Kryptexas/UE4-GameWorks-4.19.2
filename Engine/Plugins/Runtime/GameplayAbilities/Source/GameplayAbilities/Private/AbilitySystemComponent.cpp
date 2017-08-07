@@ -75,14 +75,14 @@ void UAbilitySystemComponent::K2_InitStats(TSubclassOf<class UAttributeSet> Attr
 
 const UAttributeSet* UAbilitySystemComponent::GetOrCreateAttributeSubobject(TSubclassOf<UAttributeSet> AttributeClass)
 {
-	AActor *OwningActor = GetOwner();
-	const UAttributeSet *MyAttributes  = NULL;
+	AActor* OwningActor = GetOwner();
+	const UAttributeSet* MyAttributes = nullptr;
 	if (OwningActor && AttributeClass)
 	{
 		MyAttributes = GetAttributeSubobject(AttributeClass);
 		if (!MyAttributes)
 		{
-			UAttributeSet *Attributes = NewObject<UAttributeSet>(OwningActor, AttributeClass);
+			UAttributeSet* Attributes = NewObject<UAttributeSet>(OwningActor, AttributeClass);
 			SpawnedAttributes.AddUnique(Attributes);
 			MyAttributes = Attributes;
 		}
@@ -93,7 +93,7 @@ const UAttributeSet* UAbilitySystemComponent::GetOrCreateAttributeSubobject(TSub
 
 const UAttributeSet* UAbilitySystemComponent::GetAttributeSubobjectChecked(const TSubclassOf<UAttributeSet> AttributeClass) const
 {
-	const UAttributeSet *Set = GetAttributeSubobject(AttributeClass);
+	const UAttributeSet* Set = GetAttributeSubobject(AttributeClass);
 	check(Set);
 	return Set;
 }
@@ -400,6 +400,17 @@ FOnActiveGameplayEffectRemoved* UAbilitySystemComponent::OnGameplayEffectRemoved
 	if (ActiveEffect)
 	{
 		return &ActiveEffect->OnRemovedDelegate;
+	}
+
+	return nullptr;
+}
+
+FOnActiveGameplayEffectRemoved_Info* UAbilitySystemComponent::OnGameplayEffectRemoved_InfoDelegate(FActiveGameplayEffectHandle Handle)
+{
+	FActiveGameplayEffect* ActiveEffect = ActiveGameplayEffects.GetActiveGameplayEffect(Handle);
+	if (ActiveEffect)
+	{
+		return &ActiveEffect->OnRemoved_InfoDelegate;
 	}
 
 	return nullptr;
@@ -1420,6 +1431,17 @@ void UAbilitySystemComponent::OnPredictiveGameplayCueCatchup(FGameplayTag Tag)
 	}
 }
 
+void UAbilitySystemComponent::ReinvokeActiveGameplayCues()
+{
+	for (const FActiveGameplayEffect& Effect : &ActiveGameplayEffects)
+	{
+		if (Effect.bIsInhibited == false)
+		{
+			InvokeGameplayCueEvent(Effect.Spec, EGameplayCueEvent::WhileActive);
+		}
+	}
+}
+
 // ---------------------------------------------------------------------------------------
 
 void UAbilitySystemComponent::PrintAllGameplayEffects() const
@@ -1970,7 +1992,7 @@ void UAbilitySystemComponent::Debug_Internal(FAbilitySystemComponentDebugInfo& I
 				FAggregator& Aggregator = *AggregatorRef.Get();
 
 				TMap<EGameplayModEvaluationChannel, const TArray<FAggregatorMod>*> ModMap;
-				Aggregator.DebugGetAllAggregatorMods(ModMap);
+				Aggregator.GetAllAggregatorMods(ModMap);
 
 				if (ModMap.Num() == 0)
 				{

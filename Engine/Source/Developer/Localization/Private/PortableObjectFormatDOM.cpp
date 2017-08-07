@@ -222,20 +222,11 @@ FPortableObjectCulture::FPortableObjectCulture( const FString& LangCode, const F
 	
 }
 
-FPortableObjectCulture::FPortableObjectCulture( const FPortableObjectCulture& Other )
-	: LanguageCode( Other.LanguageCode )
-	, LanguagePluralForms( Other.LanguagePluralForms )
-	, Culture( FInternationalization::Get().GetCulture( Other.LanguageCode ) )
-{
-
-}
-
 void FPortableObjectCulture::SetLanguageCode( const FString& LangCode )
 {
 	LanguageCode = LangCode;
 	Culture = FInternationalization::Get().GetCulture( LangCode );
 }
-
 
 FString FPortableObjectCulture::Language() const
 {
@@ -460,9 +451,9 @@ FString FPortableObjectFormatDOM::ToString()
 	Result += Header.ToString();
 	Result += NewLineDelimiter;
 
-	for( auto Entry : Entries )
+	for( const auto& EntryPair : Entries )
 	{
-		Result += Entry->ToString();
+		Result += EntryPair.Value->ToString();
 		Result += NewLineDelimiter;
 	}
 
@@ -807,7 +798,7 @@ bool FPortableObjectFormatDOM::AddEntry( const TSharedRef< FPortableObjectEntry>
 	}
 	else
 	{
-		Entries.Add( LocEntry );
+		Entries.Add( *LocEntry, LocEntry );
 	}
 
 	return true;
@@ -816,35 +807,24 @@ bool FPortableObjectFormatDOM::AddEntry( const TSharedRef< FPortableObjectEntry>
 
 TSharedPtr<FPortableObjectEntry> FPortableObjectFormatDOM::FindEntry( const TSharedRef<const FPortableObjectEntry> LocEntry ) const
 {
-	for( auto Entry : Entries )
-	{
-		if( *Entry == *LocEntry )
-		{
-			return Entry;
-		}
-	}
-	return NULL;
+	return Entries.FindRef(*LocEntry);
 }
 
 TSharedPtr<FPortableObjectEntry> FPortableObjectFormatDOM::FindEntry( const FString& MsgId, const FString& MsgIdPlural, const FString& MsgCtxt ) const
 {
-	TSharedRef<FPortableObjectEntry> TempEntry = MakeShareable( new FPortableObjectEntry );
-	TempEntry->MsgId = MsgId;
-	TempEntry->MsgIdPlural = MsgIdPlural;
-	TempEntry->MsgCtxt = MsgCtxt;
-	return FindEntry( TempEntry );
+	return Entries.FindRef(FPortableObjectEntryKey(MsgId, MsgIdPlural, MsgCtxt));
 }
 
 void FPortableObjectFormatDOM::SortEntries()
 {
 	// Sort keys.
-	for (const TSharedPtr<FPortableObjectEntry>& Entry : Entries)
+	for( const auto& EntryPair : Entries )
 	{
-		Entry->ReferenceComments.Sort();
+		EntryPair.Value->ReferenceComments.Sort();
 	}
 
 	// Sort by namespace, then keys, then source text.
-	const auto& SortingPredicate = [](const TSharedPtr<FPortableObjectEntry>& A, const TSharedPtr<FPortableObjectEntry>& B) -> bool
+	auto SortingPredicate = [](const TSharedPtr<FPortableObjectEntry>& A, const TSharedPtr<FPortableObjectEntry>& B) -> bool
 	{
 		// Compare namespace
 		if (A->MsgCtxt < B->MsgCtxt)
@@ -897,7 +877,7 @@ void FPortableObjectFormatDOM::SortEntries()
 
 		return A.Get() < B.Get();
 	};
-	Entries.Sort(SortingPredicate);
+	Entries.ValueSort(SortingPredicate);
 }
 
 void FPortableObjectEntry::AddExtractedComment( const FString& InComment )

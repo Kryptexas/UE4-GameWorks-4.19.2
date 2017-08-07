@@ -156,6 +156,9 @@ private:
 	/**	Spawns the parents tab */
 	TSharedRef<SDockTab> SpawnTab_Parents( const FSpawnTabArgs& Args );
 
+	/** Spawns the advanced preview settings tab */
+	TSharedRef<SDockTab> SpawnTab_PreviewSettings(const FSpawnTabArgs& Args);
+
 	/**	Caches the specified tab for later retrieval */
 	void AddToSpawnedToolPanels( const FName& TabIdentifier, const TSharedRef<SDockTab>& SpawnedTab );
 
@@ -205,5 +208,6 @@ private:
 	/**	The ids for the tabs spawned by this toolkit */
 	static const FName PreviewTabId;		
 	static const FName PropertiesTabId;	
-	static const FName ParentsTabId;		
+	static const FName ParentsTabId;	
+	static const FName PreviewSettingsTabId;
 };

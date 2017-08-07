@@ -20,6 +20,7 @@
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Input/STextComboBox.h"
 #include "Widgets/SToolTip.h"
+#include "Editor.h"
 
 #define LOCTEXT_NAMESPACE "FbxImportUIDetails"
 
@@ -45,7 +46,48 @@ FFbxImportUIDetails::FFbxImportUIDetails()
 	{
 		LODGroupOptions.Add(MakeShareable(new FString(LODGroupNames[GroupIndex].GetPlainNameString())));
 	}
+
+	UEditorEngine* Editor = Cast<UEditorEngine>(GEngine);
+	if (Editor != nullptr)
+	{
+		Editor->RegisterForUndo(this);
+	}
 }
+
+FFbxImportUIDetails::~FFbxImportUIDetails()
+{
+	UEditorEngine* Editor = Cast<UEditorEngine>(GEngine);
+	if (Editor != nullptr)
+	{
+		Editor->UnregisterForUndo(this);
+	}
+}
+
+void FFbxImportUIDetails::RefreshCustomDetail()
+{
+	UEditorEngine* Editor = Cast<UEditorEngine>(GEngine);
+	if (Editor != nullptr)
+	{
+		Editor->UnregisterForUndo(this);
+	}
+	if (CachedDetailBuilder)
+	{
+		CachedDetailBuilder->ForceRefreshDetails();
+	}
+}
+
+void FFbxImportUIDetails::PostUndo(bool bSuccess)
+{
+	//Refresh the UI
+	RefreshCustomDetail();
+}
+
+void FFbxImportUIDetails::PostRedo(bool bSuccess)
+{
+	//Refresh the UI
+	RefreshCustomDetail();
+}
+
 
 TSharedRef<IDetailCustomization> FFbxImportUIDetails::MakeInstance()
 {
@@ -613,53 +655,38 @@ bool FFbxImportUIDetails::IsImportTypeMetaDataValid(EFBXImportType& ImportType, 
 
 void FFbxImportUIDetails::ImportAutoComputeLodDistancesChanged()
 {
-	//We need to update the Base Material UI
-	if (CachedDetailBuilder)
-	{
-		CachedDetailBuilder->ForceRefreshDetails();
-	}
+	//We need to update the LOD distance UI
+	RefreshCustomDetail();
 }
 
 void FFbxImportUIDetails::ImportMaterialsChanged()
 {
 	//We need to update the Base Material UI
-	if (CachedDetailBuilder)
-	{
-		CachedDetailBuilder->ForceRefreshDetails();
-	}
+	RefreshCustomDetail();
 }
 
 void FFbxImportUIDetails::MeshImportModeChanged()
 {
-	if(CachedDetailBuilder)
-	{
-		ImportUI->SetMeshTypeToImport();
-		CachedDetailBuilder->ForceRefreshDetails();
-	}
+	ImportUI->SetMeshTypeToImport();
+	RefreshCustomDetail();
 }
 
 void FFbxImportUIDetails::ImportMeshToggleChanged()
 {
-	if(CachedDetailBuilder)
+	if(ImportUI->bImportMesh)
 	{
-		if(ImportUI->bImportMesh)
-		{
-			ImportUI->SetMeshTypeToImport();
-		}
-		else
-		{
-			ImportUI->MeshTypeToImport = FBXIT_Animation;
-		}
-
-		CachedDetailBuilder->ForceRefreshDetails();
+		ImportUI->SetMeshTypeToImport();
 	}
+	else
+	{
+		ImportUI->MeshTypeToImport = FBXIT_Animation;
+	}
+	RefreshCustomDetail();
 }
 
-void FFbxImportUIDetails::BaseMaterialChanged() {
-	if (CachedDetailBuilder)
-	{
-		CachedDetailBuilder->ForceRefreshDetails();
-	}
+void FFbxImportUIDetails::BaseMaterialChanged()
+{
+	RefreshCustomDetail();
 }
 
 void FFbxImportUIDetails::OnBaseColor(TSharedPtr<FString> Selection, ESelectInfo::Type SelectInfo) {

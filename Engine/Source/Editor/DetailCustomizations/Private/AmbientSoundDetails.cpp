@@ -35,7 +35,7 @@ TSharedRef<IDetailCustomization> FAmbientSoundDetails::MakeInstance()
 
 void FAmbientSoundDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 {
-	const TArray< TWeakObjectPtr<UObject> >& SelectedObjects = DetailBuilder.GetDetailsView().GetSelectedObjects();
+	const TArray< TWeakObjectPtr<UObject> >& SelectedObjects = DetailBuilder.GetSelectedObjects();
 
 	for( int32 ObjectIndex = 0; !AmbientSound.IsValid() && ObjectIndex < SelectedObjects.Num(); ++ObjectIndex )
 	{

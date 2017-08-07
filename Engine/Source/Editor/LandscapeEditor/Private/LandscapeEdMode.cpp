@@ -2241,7 +2241,7 @@ void FEdModeLandscape::UpdateShownLayerList()
 	}
 }
 
-void FEdModeLandscape::UpdateLayerUsageInformation()
+void FEdModeLandscape::UpdateLayerUsageInformation(TWeakObjectPtr<ULandscapeLayerInfoObject>* LayerInfoObjectThatChanged)
 {
 	if (!CurrentToolTarget.LandscapeInfo.IsValid())
 	{
@@ -2249,39 +2249,66 @@ void FEdModeLandscape::UpdateLayerUsageInformation()
 	}
 
 	bool DetailPanelRefreshRequired = false;
+	TArray<ULandscapeComponent*> AllComponents;
+	CurrentToolTarget.LandscapeInfo->XYtoComponentMap.GenerateValueArray(AllComponents);
 
-	for (const TSharedRef<FLandscapeTargetListInfo>& TargetInfo : GetTargetList())
+	TArray<TWeakObjectPtr<ULandscapeLayerInfoObject>> LayerInfoObjectToProcess;
+	const TArray<TSharedRef<FLandscapeTargetListInfo>>& TargetList = GetTargetList();
+
+	if (LayerInfoObjectThatChanged != nullptr)
+	{
+		if ((*LayerInfoObjectThatChanged).IsValid())
+		{
+			LayerInfoObjectToProcess.Add(*LayerInfoObjectThatChanged);
+		}
+	}
+	else
+	{
+		LayerInfoObjectToProcess.Reserve(TargetList.Num());
+
+		for (const TSharedRef<FLandscapeTargetListInfo>& TargetInfo : TargetList)
+		{
+			if (!TargetInfo->LayerInfoObj.IsValid() || TargetInfo->TargetType != ELandscapeToolTargetType::Weightmap)
+			{
+				continue;
+			}
+
+			LayerInfoObjectToProcess.Add(TargetInfo->LayerInfoObj);
+		}
+	}
+
+
+	for (const TWeakObjectPtr<ULandscapeLayerInfoObject>& LayerInfoObj : LayerInfoObjectToProcess)
 	{		
-		TArray<ULandscapeComponent*> AllComponents;
-		CurrentToolTarget.LandscapeInfo->XYtoComponentMap.GenerateValueArray(AllComponents);
 		for (ULandscapeComponent* Component : AllComponents)
 		{
-			if (TargetInfo->LayerInfoObj.IsValid())
+			TArray<uint8> WeightmapTextureData;
+			FLandscapeComponentDataInterface DataInterface(Component);
+			DataInterface.GetWeightmapTextureData(LayerInfoObj.Get(), WeightmapTextureData);
+
+			bool IsUsed = false;
+
+			for (uint8 Value : WeightmapTextureData)
 			{
-				TArray<uint8> WeightmapTextureData;
-				FLandscapeComponentDataInterface DataInterface(Component);
-				DataInterface.GetWeightmapTextureData(TargetInfo->LayerInfoObj.Get(), WeightmapTextureData);
-
-				int32 UsageCount = 0;
-
-				for (uint8 Value : WeightmapTextureData)
+				if (Value > 0)
 				{
-					UsageCount += Value;
-				}
-
-				bool PreviousValue = TargetInfo->LayerInfoObj->IsReferencedFromLoadedData;
-				TargetInfo->LayerInfoObj->IsReferencedFromLoadedData = UsageCount > 0;
-
-				if (PreviousValue != TargetInfo->LayerInfoObj->IsReferencedFromLoadedData)
-				{
-					DetailPanelRefreshRequired = true;
-				}
-
-				// Early exit as we already found a component using this layer
-				if (TargetInfo->LayerInfoObj->IsReferencedFromLoadedData)
-				{
+					IsUsed = true;
 					break;
 				}
+			}
+
+			bool PreviousValue = LayerInfoObj->IsReferencedFromLoadedData;
+			LayerInfoObj->IsReferencedFromLoadedData = IsUsed;
+
+			if (PreviousValue != LayerInfoObj->IsReferencedFromLoadedData)
+			{
+				DetailPanelRefreshRequired = true;
+			}
+
+			// Early exit as we already found a component using this layer
+			if (LayerInfoObj->IsReferencedFromLoadedData)
+			{
+				break;
 			}
 		}
 	}

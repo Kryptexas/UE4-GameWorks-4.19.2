@@ -185,7 +185,7 @@ bool FPackageReader::ReadAssetRegistryData (TArray<FAssetData*>& AssetDataList)
 		if (ObjectPath.StartsWith(TEXT("/"), ESearchCase::CaseSensitive))
 		{
 			// This should never happen, it means that package A has an export with an outer of package B
-			UE_LOG(LogAssetRegistry, Warning, TEXT("Package %s has invalid export %s, resave source package!"), *PackageName, *ObjectPath);
+			UE_ASSET_LOG(LogAssetRegistry, Warning, *PackageName, TEXT("Package has invalid export %s, resave source package!"), *ObjectPath);
 			continue;
 		}
 

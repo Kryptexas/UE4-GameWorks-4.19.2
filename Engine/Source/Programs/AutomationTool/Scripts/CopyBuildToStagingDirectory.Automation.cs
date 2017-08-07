@@ -646,7 +646,7 @@ public partial class Project : CommandUtils
 			}
 			Message.Append("\nIf these files are intended to be distributed in packaged builds, move the source files out of a restricted folder, or remap them during staging using the following syntax in DefaultGame.ini:");
 			Message.Append("\n[Staging]");
-			Message.Append("\n+RemapDirectory=(From=\"Foo/NoRedist\", To=\"Foo\")");
+			Message.Append("\n+RemapDirectories=(From=\"Foo/NoRedist\", To=\"Foo\")");
 			throw new AutomationException(Message.ToString());
 		}
 	}

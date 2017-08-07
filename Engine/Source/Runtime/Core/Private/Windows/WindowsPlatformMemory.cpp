@@ -51,6 +51,7 @@ void FWindowsPlatformMemory::Init()
 #if PLATFORM_32BITS
 	const int64 GB(1024*1024*1024);
 	SET_MEMORY_STAT(MCR_Physical, 2*GB); //2Gb of physical memory on win32
+	SET_MEMORY_STAT(MCR_PhysicalLLM, 5*GB);	// no upper limit on Windows. Choose 5GB because it's roughly the same as current consoles.
 #endif
 
 	const FPlatformMemoryConstants& MemoryConstants = FPlatformMemory::GetConstants();
@@ -398,6 +399,63 @@ void FWindowsPlatformMemory::InternalUpdateStats( const FPlatformMemoryStats& Me
 {
 	// Windows specific stats.
 	SET_MEMORY_STAT( STAT_WindowsSpecificMemoryStat, MemoryStats.WindowsSpecificMemoryStat );
+}
+
+/**
+* Return true if the title has access to extra debug memory
+*/
+bool FWindowsPlatformMemory::IsDebugMemoryEnabled()
+{
+	// debug memory only applies to consoles with fixed memory.
+	// On windows we can use as much memory as we want for debug features
+	return true;
+}
+
+/**
+* LLM uses these low level functions (LLMAlloc and LLMFree) to allocate memory. It grabs
+* the function pointers by calling FPlatformMemory::GetLLMAllocFunctions. If these functions
+* are not implemented GetLLMAllocFunctions should return false and LLM will be disabled.
+*/
+
+#if ENABLE_LOW_LEVEL_MEM_TRACKER
+
+int64 LLMMallocTotal = 0;
+
+const size_t LLMPageSize = 4096;
+
+void* LLMAlloc(size_t Size)
+{
+	int AlignedSize = Align(Size, LLMPageSize);
+
+	off_t DirectMem = 0;
+	void* Addr = VirtualAlloc(NULL, Size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+
+	check(Addr);
+
+	LLMMallocTotal += AlignedSize;
+
+	return Addr;
+}
+
+void LLMFree(void* Addr, size_t Size)
+{
+	VirtualFree(Addr, 0, MEM_RELEASE);
+
+	int AlignedSize = Align(Size, LLMPageSize);
+	LLMMallocTotal -= AlignedSize;
+}
+
+#endif
+
+bool FWindowsPlatformMemory::GetLLMAllocFunctions(void*(*&AllocFunction)(size_t), void(*&FreeFunction)(void*, size_t))
+{
+#if ENABLE_LOW_LEVEL_MEM_TRACKER
+	AllocFunction = LLMAlloc;
+	FreeFunction = LLMFree;
+	return true;
+#else
+	return false;
+#endif
 }
 
 #include "Windows/HideWindowsPlatformTypes.h"

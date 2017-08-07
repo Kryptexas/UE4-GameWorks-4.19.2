@@ -91,6 +91,16 @@ void UTextureRenderTarget2D::InitCustomFormat( uint32 InSizeX, uint32 InSizeY, E
 	OverrideFormat = InOverrideFormat;
 	bForceLinearGamma = bInForceLinearGamma;
 
+	if (!ensureMsgf(SizeX >= 0 && SizeX <= 65536, TEXT("Invalid SizeX=%u for RenderTarget %s"), SizeX, *GetName()))
+	{
+		SizeX = 1;
+	}
+
+	if (!ensureMsgf(SizeY >= 0 && SizeY <= 65536, TEXT("Invalid SizeY=%u for RenderTarget %s"), SizeY, *GetName()))
+	{
+		SizeY = 1;
+	}
+
 	// Recreate the texture's resource.
 	UpdateResource();
 }
@@ -361,6 +371,7 @@ FTextureRenderTarget2DResource::FTextureRenderTarget2DResource(const class UText
 	,	TargetSizeX(Owner->SizeX)
 	,	TargetSizeY(Owner->SizeY)
 {
+	
 }
 
 /**
@@ -379,6 +390,7 @@ void FTextureRenderTarget2DResource::ClampSize(int32 MaxSizeX,int32 MaxSizeY)
 		TargetSizeX = NewSizeX;
 		TargetSizeY = NewSizeY;
 		// reinit the resource with new TargetSizeX,TargetSizeY
+		check(TargetSizeX >= 0 && TargetSizeY >= 0);
 		UpdateRHI();
 	}	
 }

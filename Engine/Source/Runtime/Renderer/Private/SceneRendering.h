@@ -1628,3 +1628,63 @@ FORCEINLINE uint32 GetTextureFastVRamFlag_StaticLayout()
 	return (GSupportsTransientResourceAliasing == false && CVarTransientResourceAliasing_RenderTargets.GetValueOnRenderThread() == 0) ? TexCreate_FastVRAM : 0;
 }
 
+struct FFastVramConfig
+{
+	FFastVramConfig();
+	void Update();
+	void OnCVarUpdated();
+	void OnSceneRenderTargetsAllocated();
+
+	ETextureCreateFlags GBufferA;
+	ETextureCreateFlags GBufferB;
+	ETextureCreateFlags GBufferC;
+	ETextureCreateFlags GBufferD;
+	ETextureCreateFlags GBufferE;
+	ETextureCreateFlags GBufferVelocity;
+	ETextureCreateFlags HZB;
+	ETextureCreateFlags SceneDepth;
+	ETextureCreateFlags SceneColor;
+	ETextureCreateFlags LPV;
+	ETextureCreateFlags BokehDOF;
+	ETextureCreateFlags CircleDOF;
+	ETextureCreateFlags CombineLUTs;
+	ETextureCreateFlags Downsample;
+	ETextureCreateFlags EyeAdaptation;
+	ETextureCreateFlags Histogram;
+	ETextureCreateFlags HistogramReduce;
+	ETextureCreateFlags VelocityFlat;
+	ETextureCreateFlags VelocityMax;
+	ETextureCreateFlags MotionBlur;
+	ETextureCreateFlags Tonemap;
+	ETextureCreateFlags Upscale;
+	ETextureCreateFlags DistanceFieldNormal;
+	ETextureCreateFlags DistanceFieldAOHistory;
+	ETextureCreateFlags DistanceFieldAOBentNormal;
+	ETextureCreateFlags DistanceFieldAODownsampledBentNormal;
+	ETextureCreateFlags DistanceFieldShadows;
+	ETextureCreateFlags DistanceFieldIrradiance;
+	ETextureCreateFlags DistanceFieldAOConfidence;
+	ETextureCreateFlags Distortion;
+	ETextureCreateFlags ScreenSpaceShadowMask;
+	ETextureCreateFlags VolumetricFog;
+	ETextureCreateFlags SeparateTranslucency;
+	ETextureCreateFlags LightAccumulation;
+	ETextureCreateFlags LightAttenuation;
+	ETextureCreateFlags ScreenSpaceAO;
+	ETextureCreateFlags DBufferA;
+	ETextureCreateFlags DBufferB;
+	ETextureCreateFlags DBufferC;
+	ETextureCreateFlags DBufferMask;
+
+	EBufferUsageFlags DistanceFieldCulledObjectBuffers;
+	EBufferUsageFlags DistanceFieldTileIntersectionResources;
+	EBufferUsageFlags DistanceFieldAOScreenGridResources;
+	EBufferUsageFlags ForwardLightingCullingResources;
+	bool bDirty;
+
+private:
+	bool UpdateTextureFlagFromCVar(TAutoConsoleVariable<int32>& CVar, ETextureCreateFlags& InOutValue);
+	bool UpdateBufferFlagFromCVar(TAutoConsoleVariable<int32>& CVar, EBufferUsageFlags& InOutValue);
+};
+
+extern FFastVramConfig GFastVRamConfig;

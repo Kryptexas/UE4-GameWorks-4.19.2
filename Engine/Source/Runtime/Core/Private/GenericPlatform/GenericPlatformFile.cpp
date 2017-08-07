@@ -9,6 +9,8 @@
 #include "Async/AsyncWork.h"
 #include "UniquePtr.h"
 #include "ScopeLock.h"
+#include "HAL/LowLevelMemTracker.h"
+
 #include "AsyncFileHandle.h"
 
 class FGenericBaseRequest;
@@ -372,6 +374,8 @@ FGenericReadRequest::~FGenericReadRequest()
 
 void FGenericReadRequest::PerformRequest()
 {
+	LLM_SCOPED_SINGLE_STAT_TAG(GenericReadRequest);
+
 	if (!bCanceled)
 	{
 		bool bMemoryHasBeenAcquired = bUserSuppliedMemory;

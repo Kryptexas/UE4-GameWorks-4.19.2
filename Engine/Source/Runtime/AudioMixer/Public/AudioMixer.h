@@ -79,6 +79,8 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("HRTF"), STAT_AudioMixerHRTF, STATGROUP_AudioMixe
 #define AUDIO_MIXER_MAX_PITCH						4.0f
 #define AUDIO_MIXER_MAX_OUTPUT_CHANNELS				8			// Max number of speakers/channels supported (7.1)
 
+#define AUDIO_MIXER_DEFAULT_DEVICE_INDEX			INDEX_NONE
+
 namespace Audio
 {
 

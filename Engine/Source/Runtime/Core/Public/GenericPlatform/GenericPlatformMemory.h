@@ -156,6 +156,7 @@ struct CORE_API FGenericPlatformMemory
 		MCR_StreamingPool, // amount of texture pool available for streaming.
 		MCR_UsedStreamingPool, // amount of texture pool used for streaming.
 		MCR_GPUDefragPool, // presized pool of memory that can be defragmented.
+		MCR_PhysicalLLM, // total physical memory including CPU and GPU
 		MCR_MAX
 	};
 
@@ -461,6 +462,19 @@ public:
 	{
 		return false;
 	}
+
+	/**
+	* Returns true if debug memory has been assigned to the title for general use.
+	* Only applies to consoles with fixed memory and no paging.
+	* On XB1 set Debug Memory Mode to PIX_Title. On PS4 set Memory Budget Mode to LARGE.
+	*/
+	static bool IsDebugMemoryEnabled();
+
+	/**
+	* This function sets AllocFunction and FreeFunction and returns true, or just returns false.
+	* These functions are the platform dependant low low low level functions that LLM uses to allocate memory.
+	*/
+	static bool GetLLMAllocFunctions(void*(*&AllocFunction)(size_t), void(*&FreeFunction)(void*, size_t));
 
 protected:
 	friend struct FGenericStatsUpdater;

@@ -214,7 +214,8 @@ void FD3D12CommandContext::RHIDispatchIndirectComputeShader(FVertexBufferRHIPara
 void FD3D12CommandContext::RHITransitionResources(EResourceTransitionAccess TransitionType, FTextureRHIParamRef* InTextures, int32 NumTextures)
 {
 #if !USE_D3D12RHI_RESOURCE_STATE_TRACKING
-	check(TransitionType == EResourceTransitionAccess::EReadable || TransitionType == EResourceTransitionAccess::EWritable || TransitionType == EResourceTransitionAccess::ERWSubResBarrier);
+	// TODO: Make sure that EMetaData is supported with an aliasing barrier, otherwise the CMask decal optimisation will break.
+	check(TransitionType != EResourceTransitionAccess::EMetaData && (TransitionType == EResourceTransitionAccess::EReadable || TransitionType == EResourceTransitionAccess::EWritable || TransitionType == EResourceTransitionAccess::ERWSubResBarrier));
 	// TODO: Remove this skip.
 	// Skip for now because we don't have enough info about what mip to transition yet.
 	// Note: This causes visual corruption.
@@ -269,6 +270,12 @@ void FD3D12CommandContext::RHITransitionResources(EResourceTransitionAccess Tran
 
 			DUMP_TRANSITION(Resource->GetName(), TransitionType);
 		}
+	}
+#else
+	if (TransitionType == EResourceTransitionAccess::EMetaData && InTextures[0])
+	{
+		FD3D12Resource* Resource = RetrieveTextureBase(InTextures[0])->GetResource();
+		CommandListHandle.AddAliasingBarrier(Resource);
 	}
 #endif // !USE_D3D12RHI_RESOURCE_STATE_TRACKING
 }

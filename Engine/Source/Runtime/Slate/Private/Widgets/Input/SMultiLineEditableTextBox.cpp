@@ -94,6 +94,7 @@ void SMultiLineEditableTextBox::Construct( const FArguments& InArgs )
 					SAssignNew( EditableText, SMultiLineEditableText )
 					.Text( InArgs._Text )
 					.HintText( InArgs._HintText )
+					.SearchText( InArgs._SearchText )
 					.TextStyle( InArgs._TextStyle )
 					.Marshaller( InArgs._Marshaller )
 					.Font( this, &SMultiLineEditableTextBox::DetermineFont )
@@ -224,6 +225,16 @@ void SMultiLineEditableTextBox::SetText( const TAttribute< FText >& InNewText )
 void SMultiLineEditableTextBox::SetHintText( const TAttribute< FText >& InHintText )
 {
 	EditableText->SetHintText( InHintText );
+}
+
+void SMultiLineEditableTextBox::SetSearchText(const TAttribute<FText>& InSearchText)
+{
+	EditableText->SetSearchText(InSearchText);
+}
+
+FText SMultiLineEditableTextBox::GetSearchText() const
+{
+	return EditableText->GetSearchText();
 }
 
 void SMultiLineEditableTextBox::SetTextBoxForegroundColor(const TAttribute<FSlateColor>& InForegroundColor)
@@ -412,6 +423,16 @@ void SMultiLineEditableTextBox::ScrollTo(const FTextLocation& NewLocation)
 void SMultiLineEditableTextBox::ApplyToSelection(const FRunInfo& InRunInfo, const FTextBlockStyle& InStyle)
 {
 	EditableText->ApplyToSelection(InRunInfo, InStyle);
+}
+
+void SMultiLineEditableTextBox::BeginSearch(const FText& InSearchText, const ESearchCase::Type InSearchCase, const bool InReverse)
+{
+	EditableText->BeginSearch(InSearchText, InSearchCase, InReverse);
+}
+
+void SMultiLineEditableTextBox::AdvanceSearch(const bool InReverse)
+{
+	EditableText->AdvanceSearch(InReverse);
 }
 
 TSharedPtr<const IRun> SMultiLineEditableTextBox::GetRunUnderCursor() const

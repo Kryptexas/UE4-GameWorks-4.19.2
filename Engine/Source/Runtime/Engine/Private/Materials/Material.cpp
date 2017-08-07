@@ -2293,20 +2293,19 @@ void UMaterial::CacheShadersForResources(EShaderPlatform ShaderPlatform, const T
 		{
 			if (IsDefaultMaterial())
 			{
-				UE_LOG(LogMaterial, Fatal, TEXT("Failed to compile Default Material %s for platform %s!"), 
-					*GetPathName(), 
+				UE_ASSET_LOG(LogMaterial, Fatal, this,
+					TEXT("Failed to compile Default Material for platform %s!"),
 					*LegacyShaderPlatformToShaderFormat(ShaderPlatform).ToString());
 			}
 
-			UE_LOG(LogMaterial, Warning, TEXT("Failed to compile Material %s for platform %s, Default Material will be used in game."), 
-				*GetPathName(), 
+			UE_ASSET_LOG(LogMaterial, Warning, this, TEXT("Failed to compile Material for platform %s, Default Material will be used in game."), 
 				*LegacyShaderPlatformToShaderFormat(ShaderPlatform).ToString());
 
 			const TArray<FString>& CompileErrors = CurrentResource->GetCompileErrors();
 			for (int32 ErrorIndex = 0; ErrorIndex < CompileErrors.Num(); ErrorIndex++)
 			{
 				// Always log material errors in an unsuppressed category
-				UE_LOG(LogMaterial, Warning, TEXT("	%s"), *CompileErrors[ErrorIndex]);
+				UE_LOG(LogMaterial, Log, TEXT("	%s"), *CompileErrors[ErrorIndex]);
 			}
 		}
 	}

@@ -1472,16 +1472,16 @@ void UGameplayCueManager::CheckForPreallocation(UClass* GCClass)
 {
 	if (AGameplayCueNotify_Actor* InstancedCue = Cast<AGameplayCueNotify_Actor>(GCClass->ClassDefaultObject))
 	{
-		if (InstancedCue->NumPreallocatedInstances > 0 && GameplayCueClassesForPreallocation.Contains(InstancedCue) == false)
+		if (InstancedCue->NumPreallocatedInstances > 0 && GameplayCueClassesForPreallocation.Contains(GCClass) == false)
 		{
 			// Add this to the global list
-			GameplayCueClassesForPreallocation.Add(InstancedCue);
+			GameplayCueClassesForPreallocation.Add(GCClass);
 
 			// Add it to any world specific lists
 			for (FPreallocationInfo& Info : PreallocationInfoList_Internal)
 			{
-				ensure(Info.ClassesNeedingPreallocation.Contains(InstancedCue)==false);
-				Info.ClassesNeedingPreallocation.Push(InstancedCue);
+				ensure(Info.ClassesNeedingPreallocation.Contains(GCClass)==false);
+				Info.ClassesNeedingPreallocation.Push(GCClass);
 			}
 		}
 	}
@@ -1511,7 +1511,8 @@ void UGameplayCueManager::UpdatePreallocation(UWorld* World)
 
 	if (Info.ClassesNeedingPreallocation.Num() > 0)
 	{
-		AGameplayCueNotify_Actor* CDO = Info.ClassesNeedingPreallocation.Last();
+		TSubclassOf<AGameplayCueNotify_Actor> GCClass = Info.ClassesNeedingPreallocation.Last();
+		AGameplayCueNotify_Actor* CDO = GCClass->GetDefaultObject<AGameplayCueNotify_Actor>();
 		TArray<AGameplayCueNotify_Actor*>& PreallocatedList = Info.PreallocatedInstances.FindOrAdd(CDO->GetClass());
 
 		AGameplayCueNotify_Actor* PrespawnedInstance = Cast<AGameplayCueNotify_Actor>(World->SpawnActor(CDO->GetClass()));

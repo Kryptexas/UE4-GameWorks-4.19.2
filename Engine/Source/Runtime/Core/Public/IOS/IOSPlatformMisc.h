@@ -58,6 +58,12 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 	{
 		// Based on http://developer.apple.com/library/mac/#qa/qa1361/_index.html
 
+		extern CORE_API bool GIgnoreDebugger;
+		if (GIgnoreDebugger)
+		{
+			return false;
+		}
+
 		struct kinfo_proc Info;
 		int32 Mib[] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid() };
 		SIZE_T Size = sizeof(Info);

@@ -161,7 +161,7 @@ void FCollisionResponse::SetCollisionResponseContainer(const FCollisionResponseC
 void FCollisionResponse::SetResponsesArray(const TArray<FResponseChannel>& InChannelResponses)
 {
 #if DO_GUARD_SLOW
-	// verify if the name is overlapping, if so, ensure, do not remove in debug becuase it will cause inconsistent bug between debug/release
+	// verify if the name is overlapping, if so, ensure, do not remove in debug because it will cause inconsistent bug between debug/release
 	int32 const ResponseNum = InChannelResponses.Num();
 	for (int32 I=0; I<ResponseNum; ++I)
 	{
@@ -473,6 +473,7 @@ FBodyInstance::FBodyInstance()
 	, CustomDOFPlaneNormal(FVector::ZeroVector)
 	, COMNudge(ForceInit)
 	, MassScale(1.f)
+	, InertiaScale(1.f)
 	, DOFConstraint(NULL)
 	, WeldParent(NULL)
 	, PhysMaterialOverride(NULL)
@@ -3684,6 +3685,7 @@ PxMassProperties ComputeMassProperties(const FBodyInstance* OwningBodyInstance, 
 	PxMassProperties FinalMassProps = MassProps * MassRatio;
 
 	FinalMassProps.centerOfMass += U2PVector(MassModifierTransform.TransformVector(OwningBodyInstance->COMNudge));
+	FinalMassProps.inertiaTensor *= OwningBodyInstance->InertiaScale;
 
 	return FinalMassProps;
 }
@@ -4640,7 +4642,9 @@ bool FBodyInstance::GetSquaredDistanceToBody(const FVector& Point, float& OutDis
 				continue;
 			}
 
-			PxGeometry& PGeom = PShape->getGeometry().any();
+			PxGeometryHolder Holder = PShape->getGeometry();	// getGeometry() result is stored on the stack, if we don't hold on to it it may be gone next statement.
+			PxGeometry& PGeom = Holder.any();
+
 			PxTransform PGlobalPose = GetPxTransform_AssumesLocked(PShape, RigidActor);
 			PxGeometryType::Enum GeomType = PShape->getGeometryType();
 

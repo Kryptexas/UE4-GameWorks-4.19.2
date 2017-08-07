@@ -147,6 +147,7 @@ bool PreprocessShader(
 
 	AddMcppDefines(McppOptions, ShaderInput.Environment.GetDefinitions());
 	AddMcppDefines(McppOptions, AdditionalDefines.GetDefinitionMap());
+	McppOptions += TEXT(" -V199901L");
 
 	int32 Result = mcpp_run(
 		TCHAR_TO_ANSI(*McppOptions),
@@ -159,7 +160,7 @@ bool PreprocessShader(
 	McppOutput = McppOutAnsi;
 	McppErrors = McppErrAnsi;
 
-	if (ParseMcppErrors(ShaderOutput.Errors, McppErrors))
+	if (ParseMcppErrors(ShaderOutput.Errors, ShaderOutput.PragmaDirectives, McppErrors))
 	{
 		// exchange strings
 		FMemory::Memswap( &OutPreprocessedShader, &McppOutput, sizeof(FString) );

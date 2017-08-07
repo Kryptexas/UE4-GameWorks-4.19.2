@@ -73,6 +73,7 @@ void SMultiLineEditableText::Construct( const FArguments& InArgs )
 
 	EditableTextLayout = MakeUnique<FSlateEditableTextLayout>(*this, InArgs._Text, TextStyle, InArgs._TextShapingMethod, InArgs._TextFlowDirection, InArgs._CreateSlateTextLayout, Marshaller.ToSharedRef(), Marshaller.ToSharedRef());
 	EditableTextLayout->SetHintText(InArgs._HintText);
+	EditableTextLayout->SetSearchText(InArgs._SearchText);
 	EditableTextLayout->SetTextWrapping(InArgs._WrapTextAt, InArgs._AutoWrapText, InArgs._WrappingPolicy);
 	EditableTextLayout->SetMargin(InArgs._Margin);
 	EditableTextLayout->SetJustification(InArgs._Justification);
@@ -107,6 +108,16 @@ void SMultiLineEditableText::SetHintText(const TAttribute< FText >& InHintText)
 FText SMultiLineEditableText::GetHintText() const
 {
 	return EditableTextLayout->GetHintText();
+}
+
+void SMultiLineEditableText::SetSearchText(const TAttribute<FText>& InSearchText)
+{
+	EditableTextLayout->SetSearchText(InSearchText);
+}
+
+FText SMultiLineEditableText::GetSearchText() const
+{
+	return EditableTextLayout->GetSearchText();
 }
 
 void SMultiLineEditableText::SetTextStyle(const FTextBlockStyle* InTextStyle)
@@ -422,6 +433,16 @@ void SMultiLineEditableText::ScrollTo(const FTextLocation& NewLocation)
 void SMultiLineEditableText::ApplyToSelection(const FRunInfo& InRunInfo, const FTextBlockStyle& InStyle)
 {
 	EditableTextLayout->ApplyToSelection(InRunInfo, InStyle);
+}
+
+void SMultiLineEditableText::BeginSearch(const FText& InSearchText, const ESearchCase::Type InSearchCase, const bool InReverse)
+{
+	EditableTextLayout->BeginSearch(InSearchText, InSearchCase, InReverse);
+}
+
+void SMultiLineEditableText::AdvanceSearch(const bool InReverse)
+{
+	EditableTextLayout->AdvanceSearch(InReverse);
 }
 
 TSharedPtr<const IRun> SMultiLineEditableText::GetRunUnderCursor() const

@@ -65,7 +65,7 @@ public:
 	 */
 	bool CanCloseEditor()
 	{
-		if ( FSlateApplication::IsInitialized() && !FSlateApplication::Get().IsNormalExecution() )
+		if ( FSlateApplication::IsInitialized() && !FSlateApplication::Get().IsNormalExecution())
 		{
 			// DEBUGGER EXIT PATH
 
@@ -76,20 +76,20 @@ public:
 			FSlateApplication::Get().LeaveDebuggingMode();
 
 			// Defer the call RequestCloseEditor() till next tick.
-			GEngine->DeferredCommands.Add( TEXT("CLOSE_SLATE_MAINFRAME") );
+			GEngine->DeferredCommands.AddUnique( TEXT("CLOSE_SLATE_MAINFRAME") );
 
 			// Cannot exit right now.
 			return false;
 		}
-		else if (GIsSavingPackage || IsGarbageCollecting())
+		else if (GIsSavingPackage || IsGarbageCollecting() || IsLoading() || GIsSlowTask)
 		{
-			// SAVING/GC PATH
+			// Saving / Loading / GC / Slow Task path.  It is all unsafe to do that here.
 
 			// We're currently saving or garbage collecting and can't close the editor just yet.
 			// We will have to wait and try to request to close the editor on the next frame.
 
 			// Defer the call RequestCloseEditor() till next tick.
-			GEngine->DeferredCommands.Add( TEXT("CLOSE_SLATE_MAINFRAME") );
+			GEngine->DeferredCommands.AddUnique( TEXT("CLOSE_SLATE_MAINFRAME") );
 
 			// Cannot exit right now.
 			return false;

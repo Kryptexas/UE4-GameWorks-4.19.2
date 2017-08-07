@@ -24,15 +24,18 @@
 #ifndef TF_POINTERANDBITS_H
 #define TF_POINTERANDBITS_H
 
-#include "pxr/base/arch/defines.h"
+#include "pxr/pxr.h"
+#include "pxr/base/arch/pragmas.h"
 
-#include <ciso646>
 #include <cstdint>
+#include <type_traits>
 #include <utility>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 // Return true if \p val is a power of two.
 constexpr bool Tf_IsPow2(uintptr_t val) {
-    return val && not (val & (val - 1));
+    return val && !(val & (val - 1));
 }
 
 /// \class TfPointerAndBits
@@ -46,19 +49,30 @@ constexpr bool Tf_IsPow2(uintptr_t val) {
 /// The bits may be set and retrieved as any integral type.  The pointer value
 /// and the bits value may be set and retrieved independently.
 ///
-/// Note about cross-platform compatibility. The C++ standard says:
-///		An alignof expression yields the alignment requirement of its operand
-///		type. The operand shall be a type-id representing a complete object
-///		type, or an array thereof, or a reference to one of those types.
-/// GCC appears to interpret "complete object type" to include abstract
-/// classes, but Microsoft Visual C++ does not. However, providing a reference
-/// appears to appease the Microsoft Visual C++ compiler.
-///
 template <class T>
 class TfPointerAndBits
 {
+    // Microsoft Visual Studio doesn't like alignof(<abstract-type>).
+    // We'll assume that such an object has a pointer in it (the vtbl
+    // pointer) and use void* for alignment in that case.
+    template <typename U, bool = false>
+    struct _AlignOf {
+        static constexpr uintptr_t value = alignof(U);
+    };
+    template <typename U>
+    struct _AlignOf<U, true> {
+        static constexpr uintptr_t value = alignof(void*);
+    };
+
+    // Microsoft Visual Studio doesn't like alignof(<abstract-type>).
+    // We'll assume that such an object has a pointer in it (the vtbl
+    // pointer) and use void* for alignment in that case.
+    static constexpr uintptr_t _GetAlign() {
+        return _AlignOf<T, std::is_abstract<T>::value>::value;
+    }
+
     static constexpr bool _SupportsAtLeastOneBit() {
-        return alignof(T&) > 1 and Tf_IsPow2(alignof(T&));
+        return _GetAlign() > 1 && Tf_IsPow2(_GetAlign());
     }
 
 public:
@@ -78,11 +92,11 @@ public:
     }
 
     constexpr uintptr_t GetMaxValue() const {
-        return alignof(T&) - 1;
+        return _GetAlign() - 1;
     }
 
     constexpr uintptr_t GetNumBitsValues() const {
-        return alignof(T&);
+        return _GetAlign();
     }
 
     /// Assignment.  Leaves bits unmodified.
@@ -104,16 +118,12 @@ public:
     /// Retrieve the stored bits as the integral type \a Integral.
     template <class Integral>
     Integral BitsAs() const {
+        ARCH_PRAGMA_PUSH
+        ARCH_PRAGMA_FORCING_TO_BOOL
         return static_cast<Integral>(_GetBits());
+        ARCH_PRAGMA_POP
     }
 
-#if defined(ARCH_OS_WINDOWS)
-	/// Retrieve the stored bits as the integral type \a Integral.
-	template <>
-	bool BitsAs<bool>() const {
-		return _GetBits() > 0;
-	}
-#endif
     /// Set the stored bits.  No static range checking is performed.
     template <class Integral>
     void SetBits(Integral val) {
@@ -138,7 +148,7 @@ public:
 
     /// Swap this PointerAndBits with \a other.
     void Swap(TfPointerAndBits &other) {
-        std::swap(_ptrAndBits, other._ptrAndBits);
+        ::std::swap(_ptrAndBits, other._ptrAndBits);
     }
 
 private:
@@ -186,5 +196,7 @@ private:
     // Single pointer member stores pointer value and bits.
     T *_ptrAndBits;
 };
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // TF_POINTERANDBITS_H

@@ -12,6 +12,12 @@ UMaterialInstanceConstant::UMaterialInstanceConstant(const FObjectInitializer& O
 {
 }
 
+void UMaterialInstanceConstant::PostLoad()
+{
+	LLM_SCOPED_SINGLE_STAT_TAG(UMaterialInstanceConstant);
+	UMaterialInstance::PostLoad();
+}
+
 #if WITH_EDITOR
 void UMaterialInstanceConstant::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {

@@ -28,9 +28,10 @@
 /// Utilities for converting between USD encodings and Renderman encodings in
 /// cases where there is a difference.
 
+#include "pxr/pxr.h"
 #include "pxr/usd/usdRi/api.h"
 
-#include "pxr/usd/usdRi/api.h"
+PXR_NAMESPACE_OPEN_SCOPE
 
 class TfToken;
 
@@ -53,5 +54,8 @@ int UsdRiConvertToRManFaceVaryingLinearInterpolation(const TfToken &token);
 /// interpolate boundary condition, returns the equivalent UsdGeom token.
 USDRI_API
 const TfToken &UsdRiConvertFromRManFaceVaryingLinearInterpolation(int i);
+
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif //USDRI_RMANUTILITIES_H

@@ -24,10 +24,14 @@
 #ifndef TF_PYMODULENOTICE_H
 #define TF_PYMODULENOTICE_H
 
+#include "pxr/pxr.h"
+
 #include "pxr/base/tf/api.h"
 #include "pxr/base/tf/notice.h"
 
 #include <string>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 /// \class TfPyModuleWasLoaded
 ///
@@ -45,9 +49,11 @@ public:
     
     /// Return the name of the module that was loaded.
     std::string const &GetName() { return _name; }
+
 private:
     std::string _name;
 };
 
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // TF_PYMODULENOTICE_H

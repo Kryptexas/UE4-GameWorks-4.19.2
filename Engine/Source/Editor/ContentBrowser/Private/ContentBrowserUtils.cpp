@@ -1025,34 +1025,30 @@ void ContentBrowserUtils::CaptureThumbnailFromViewport(FViewport* InViewport, co
 		{
 			const FAssetData& CurrentAsset = *AssetIt;
 
-			// check whether this is a type that uses one of the shared static thumbnails
-			if ( AssetToolsModule.Get().AssetUsesGenericThumbnail( CurrentAsset ) )
+			//assign the thumbnail and dirty
+			const FString ObjectFullName = CurrentAsset.GetFullName();
+			const FString PackageName    = CurrentAsset.PackageName.ToString();
+
+			UPackage* AssetPackage = FindObject<UPackage>( NULL, *PackageName );
+			if ( ensure(AssetPackage) )
 			{
-				//assign the thumbnail and dirty
-				const FString ObjectFullName = CurrentAsset.GetFullName();
-				const FString PackageName    = CurrentAsset.PackageName.ToString();
-
-				UPackage* AssetPackage = FindObject<UPackage>( NULL, *PackageName );
-				if ( ensure(AssetPackage) )
+				FObjectThumbnail* NewThumbnail = ThumbnailTools::CacheThumbnail(ObjectFullName, &TempThumbnail, AssetPackage);
+				if ( ensure(NewThumbnail) )
 				{
-					FObjectThumbnail* NewThumbnail = ThumbnailTools::CacheThumbnail(ObjectFullName, &TempThumbnail, AssetPackage);
-					if ( ensure(NewThumbnail) )
-					{
-						//we need to indicate that the package needs to be resaved
-						AssetPackage->MarkPackageDirty();
+					//we need to indicate that the package needs to be resaved
+					AssetPackage->MarkPackageDirty();
 
-						// Let the content browser know that we've changed the thumbnail
-						NewThumbnail->MarkAsDirty();
+					// Let the content browser know that we've changed the thumbnail
+					NewThumbnail->MarkAsDirty();
 						
-						// Signal that the asset was changed if it is loaded so thumbnail pools will update
-						if ( CurrentAsset.IsAssetLoaded() )
-						{
-							CurrentAsset.GetAsset()->PostEditChange();
-						}
-
-						//Set that thumbnail as a valid custom thumbnail so it'll be saved out
-						NewThumbnail->SetCreatedAfterCustomThumbsEnabled();
+					// Signal that the asset was changed if it is loaded so thumbnail pools will update
+					if ( CurrentAsset.IsAssetLoaded() )
+					{
+						CurrentAsset.GetAsset()->PostEditChange();
 					}
+
+					//Set that thumbnail as a valid custom thumbnail so it'll be saved out
+					NewThumbnail->SetCreatedAfterCustomThumbsEnabled();
 				}
 			}
 		}
@@ -1098,26 +1094,7 @@ bool ContentBrowserUtils::AssetHasCustomThumbnail( const FAssetData& AssetData )
 	FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
 	if ( AssetToolsModule.Get().AssetUsesGenericThumbnail(AssetData) )
 	{
-		const FObjectThumbnail* CachedThumbnail = ThumbnailTools::FindCachedThumbnail(AssetData.GetFullName());
-		if ( CachedThumbnail != NULL && !CachedThumbnail->IsEmpty() )
-		{
-			return true;
-		}
-
-		// If we don't yet have a thumbnail map, check the disk
-		FName ObjectFullName = FName(*AssetData.GetFullName());
-		TArray<FName> ObjectFullNames;
-		FThumbnailMap LoadedThumbnails;
-		ObjectFullNames.Add( ObjectFullName );
-		if ( ThumbnailTools::ConditionallyLoadThumbnailsForObjects( ObjectFullNames, LoadedThumbnails ) )
-		{
-			const FObjectThumbnail* Thumbnail = LoadedThumbnails.Find(ObjectFullName);
-
-			if ( Thumbnail != NULL && !Thumbnail->IsEmpty() )
-			{
-				return true;
-			}
-		}
+		return ThumbnailTools::AssetHasCustomThumbnail(AssetData);
 	}
 
 	return false;
@@ -1877,7 +1854,7 @@ void GetOutOfDatePackageDependencies(const TArray<FString>& InPackagesThatWillBe
 					AllPackagesArray.Emplace(PackageDependency);
 
 					FString PackageDependencyStr = PackageDependency.ToString();
-					if (!FPackageName::IsScriptPackage(PackageDependencyStr))
+					if (!FPackageName::IsScriptPackage(PackageDependencyStr) && FPackageName::IsValidLongPackageName(PackageDependencyStr))
 					{
 						AllDependencies.Emplace(MoveTemp(PackageDependencyStr));
 					}
@@ -1890,7 +1867,18 @@ void GetOutOfDatePackageDependencies(const TArray<FString>& InPackagesThatWillBe
 	if (AllDependencies.Num() > 0)
 	{
 		ISourceControlProvider& SCCProvider = ISourceControlModule::Get().GetProvider();
-		const TArray<FString> DependencyFilenames = SourceControlHelpers::PackageFilenames(AllDependencies);
+		
+		TArray<FString> DependencyFilenames = SourceControlHelpers::PackageFilenames(AllDependencies);
+		for (int32 DependencyIndex = 0; DependencyIndex < AllDependencies.Num(); ++DependencyIndex)
+		{
+			// Dependency data may contain files that no longer exist on disk; strip those from the list now
+			if (!FPaths::FileExists(DependencyFilenames[DependencyIndex]))
+			{
+				AllDependencies.RemoveAt(DependencyIndex, 1, false);
+				DependencyFilenames.RemoveAt(DependencyIndex, 1, false);
+				--DependencyIndex;
+			}
+		}
 
 		SCCProvider.Execute(ISourceControlOperation::Create<FUpdateStatus>(), DependencyFilenames);
 		for (int32 DependencyIndex = 0; DependencyIndex < AllDependencies.Num(); ++DependencyIndex)

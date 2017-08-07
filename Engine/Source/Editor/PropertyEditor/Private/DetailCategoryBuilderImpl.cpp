@@ -189,7 +189,7 @@ void FDetailCategoryImpl::SetCategoryVisibility(bool bIsVisible)
 	{
 		bIsCategoryVisible = bIsVisible;
 
-		GetDetailsView().RerunCurrentFilter();
+		GetDetailsView()->RerunCurrentFilter();
 	}
 }
 
@@ -435,30 +435,30 @@ bool FDetailCategoryImpl::IsAdvancedDropdownEnabled() const
 	return !bForceAdvanced;
 }
 
-void FDetailCategoryImpl::RequestItemExpanded(TSharedRef<IDetailTreeNode> TreeNode, bool bShouldBeExpanded)
+void FDetailCategoryImpl::RequestItemExpanded(TSharedRef<FDetailTreeNode> TreeNode, bool bShouldBeExpanded)
 {
 	TSharedPtr<FDetailLayoutBuilderImpl> DetailLayoutBuilderPtr = DetailLayoutBuilder.Pin();
-	if (DetailLayoutBuilderPtr.IsValid())
+	if (DetailLayoutBuilderPtr.IsValid() && GetDetailsView())
 	{
-		GetDetailsView().RequestItemExpanded(TreeNode, bShouldBeExpanded);
+		GetDetailsView()->RequestItemExpanded(TreeNode, bShouldBeExpanded);
 	}
 }
 
 void FDetailCategoryImpl::RefreshTree(bool bRefilterCategory)
 {
 	TSharedPtr<FDetailLayoutBuilderImpl> DetailLayoutBuilderPtr = DetailLayoutBuilder.Pin();
-	if (DetailLayoutBuilderPtr.IsValid())
+	if (DetailLayoutBuilderPtr.IsValid() && GetDetailsView())
 	{
 		if (bRefilterCategory)
 		{
 			FilterNode(DetailLayoutBuilderPtr->GetCurrentFilter());
 		}
 
-		GetDetailsView().RefreshTree();
+		GetDetailsView()->RefreshTree();
 	}
 }
 
-void FDetailCategoryImpl::AddTickableNode(IDetailTreeNode& TickableNode)
+void FDetailCategoryImpl::AddTickableNode(FDetailTreeNode& TickableNode)
 {
 	TSharedPtr<FDetailLayoutBuilderImpl> DetailLayoutBuilderPtr = DetailLayoutBuilder.Pin();
 	if (DetailLayoutBuilderPtr.IsValid())
@@ -467,7 +467,7 @@ void FDetailCategoryImpl::AddTickableNode(IDetailTreeNode& TickableNode)
 	}
 }
 
-void FDetailCategoryImpl::RemoveTickableNode(IDetailTreeNode& TickableNode)
+void FDetailCategoryImpl::RemoveTickableNode(FDetailTreeNode& TickableNode)
 {
 	TSharedPtr<FDetailLayoutBuilderImpl> DetailLayoutBuilderPtr = DetailLayoutBuilder.Pin();
 	if (DetailLayoutBuilderPtr.IsValid())
@@ -476,7 +476,7 @@ void FDetailCategoryImpl::RemoveTickableNode(IDetailTreeNode& TickableNode)
 	}
 }
 
-void FDetailCategoryImpl::SaveExpansionState(IDetailTreeNode& InTreeNode)
+void FDetailCategoryImpl::SaveExpansionState(FDetailTreeNode& InTreeNode)
 {
 	TSharedPtr<FDetailLayoutBuilderImpl> DetailLayoutBuilderPtr = DetailLayoutBuilder.Pin();
 	if (DetailLayoutBuilderPtr.IsValid())
@@ -491,7 +491,7 @@ void FDetailCategoryImpl::SaveExpansionState(IDetailTreeNode& InTreeNode)
 	}
 }
 
-bool FDetailCategoryImpl::GetSavedExpansionState(IDetailTreeNode& InTreeNode) const
+bool FDetailCategoryImpl::GetSavedExpansionState(FDetailTreeNode& InTreeNode) const
 {
 	TSharedPtr<FDetailLayoutBuilderImpl> DetailLayoutBuilderPtr = DetailLayoutBuilder.Pin();
 	if (DetailLayoutBuilderPtr.IsValid())
@@ -555,7 +555,7 @@ void FDetailCategoryImpl::SetDisplayName(FName InCategoryName, const FText& Loca
 }
 
 
-TSharedRef<ITableRow> FDetailCategoryImpl::GenerateNodeWidget(const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, const TSharedRef<IPropertyUtilities>& PropertyUtilities, bool bAllowFavoriteSystem)
+TSharedRef<ITableRow> FDetailCategoryImpl::GenerateWidgetForTableView(const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, bool bAllowFavoriteSystem)
 {
 	return
 		SNew(SDetailCategoryTableRow, AsShared(), OwnerTable)
@@ -564,6 +564,29 @@ TSharedRef<ITableRow> FDetailCategoryImpl::GenerateNodeWidget(const TSharedRef<S
 		.HeaderContent(HeaderContentWidget);
 }
 
+
+bool FDetailCategoryImpl::GenerateStandaloneWidget(FDetailWidgetRow& OutRow) const
+{
+	const bool bIsInnerCategory = DetailLayoutBuilder.Pin()->IsLayoutForExternalRoot();
+
+	OutRow.NameContent()
+	[
+		SNew(STextBlock)
+		.Text(GetDisplayName())
+		.Font(FEditorStyle::GetFontStyle(bIsInnerCategory ? "PropertyWindow.NormalFont" : "DetailsView.CategoryFontStyle"))
+		.ShadowOffset(bIsInnerCategory ? FVector2D::ZeroVector : FVector2D(1.0f, 1.0f))
+	];
+
+	if(HeaderContentWidget.IsValid())
+	{
+		OutRow.ValueContent()
+			[
+				HeaderContentWidget.ToSharedRef()
+			];
+	}
+
+	return true;
+}
 
 void FDetailCategoryImpl::OnItemExpansionChanged(bool bIsExpanded, bool bShouldSaveState)
 {
@@ -652,7 +675,7 @@ bool FDetailCategoryImpl::GenerateChildrenForSingleLayout(const FName RequiredGr
 			bGeneratedAnyChildren = true;
 			if (bNeedsGroup)
 			{
-				TSharedRef<IDetailTreeNode> GroupNode = MakeShareable(new FDetailCategoryGroupNode(GeneratedChildren, RequiredGroupName, *this));
+				TSharedRef<FDetailTreeNode> GroupNode = MakeShareable(new FDetailCategoryGroupNode(GeneratedChildren, RequiredGroupName, *this));
 				OutChildren.Add(GroupNode);
 			}
 			else
@@ -740,11 +763,11 @@ void FDetailCategoryImpl::GenerateChildrenForLayouts()
 }
 
 
-void FDetailCategoryImpl::GetChildren(TArray< TSharedRef<IDetailTreeNode> >& OutChildren)
+void FDetailCategoryImpl::GetChildren(FDetailNodeList& OutChildren)
 {
 	for (int32 ChildIndex = 0; ChildIndex < SimpleChildNodes.Num(); ++ChildIndex)
 	{
-		TSharedRef<IDetailTreeNode>& Child = SimpleChildNodes[ChildIndex];
+		TSharedRef<FDetailTreeNode>& Child = SimpleChildNodes[ChildIndex];
 		if (Child->GetVisibility() == ENodeVisibility::Visible)
 		{
 			if (Child->ShouldShowOnlyChildren())
@@ -767,7 +790,7 @@ void FDetailCategoryImpl::GetChildren(TArray< TSharedRef<IDetailTreeNode> >& Out
 
 		for (int32 ChildIndex = 0; ChildIndex < AdvancedChildNodes.Num(); ++ChildIndex)
 		{
-			TSharedRef<IDetailTreeNode>& Child = AdvancedChildNodes[ChildIndex];
+			TSharedRef<FDetailTreeNode>& Child = AdvancedChildNodes[ChildIndex];
 
 			if (Child->GetVisibility() == ENodeVisibility::Visible)
 			{
@@ -798,7 +821,7 @@ void FDetailCategoryImpl::FilterNode(const FDetailFilter& InFilter)
 
 	for (int32 ChildIndex = 0; ChildIndex < SimpleChildNodes.Num(); ++ChildIndex)
 	{
-		TSharedRef<IDetailTreeNode>& Child = SimpleChildNodes[ChildIndex];
+		TSharedRef<FDetailTreeNode>& Child = SimpleChildNodes[ChildIndex];
 		Child->FilterNode(InFilter);
 
 		if (Child->GetVisibility() == ENodeVisibility::Visible)
@@ -810,7 +833,7 @@ void FDetailCategoryImpl::FilterNode(const FDetailFilter& InFilter)
 
 	for (int32 ChildIndex = 0; ChildIndex < AdvancedChildNodes.Num(); ++ChildIndex)
 	{
-		TSharedRef<IDetailTreeNode>& Child = AdvancedChildNodes[ChildIndex];
+		TSharedRef<FDetailTreeNode>& Child = AdvancedChildNodes[ChildIndex];
 		Child->FilterNode(InFilter);
 
 		if (Child->GetVisibility() == ENodeVisibility::Visible)
@@ -837,5 +860,5 @@ void FDetailCategoryImpl::GenerateLayout()
 bool FDetailCategoryImpl::IsParentEnabled() const
 {
 	TSharedPtr<FDetailLayoutBuilderImpl> DetailLayoutBuilderPtr = DetailLayoutBuilder.Pin();
-	return !DetailLayoutBuilderPtr.IsValid() || DetailLayoutBuilderPtr->GetDetailsView().IsPropertyEditingEnabled();
+	return !DetailLayoutBuilderPtr.IsValid() || !DetailLayoutBuilderPtr->GetDetailsView() || DetailLayoutBuilderPtr->GetDetailsView()->IsPropertyEditingEnabled();
 }

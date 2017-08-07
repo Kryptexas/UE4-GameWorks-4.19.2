@@ -31,14 +31,18 @@
 /// \file gf/range1f.h
 /// \ingroup group_gf_BasicGeometry
 
-#include "pxr/base/gf/traits.h"
+#include "pxr/pxr.h"
+
 #include "pxr/base/gf/api.h"
+#include "pxr/base/gf/traits.h"
 
 #include <boost/functional/hash.hpp>
 
 #include <cfloat>
 #include <cstddef>
 #include <iosfwd>
+
+PXR_NAMESPACE_OPEN_SCOPE
 
 class GfRange1d;
 class GfRange1f;
@@ -91,6 +95,14 @@ public:
 
     /// Returns the size of the range.
     float GetSize() const { return _max - _min; }
+
+    /// Returns the midpoint of the range, that is, 0.5*(min+max).
+    /// Note: this returns zero in the case of default-constructed ranges,
+    /// or ranges set via SetEmpty().
+    float GetMidpoint() const {
+        return static_cast<ScalarType>(0.5) * _min
+               + static_cast<ScalarType>(0.5) * _max;
+    }
 
     /// Sets the minimum value of the range.
     void SetMin(float min) { _min = min; }
@@ -325,7 +337,9 @@ public:
 /// \ingroup group_gf_DebuggingOutput
 GF_API std::ostream& operator<<(std::ostream &, GfRange1f const &);
 
+PXR_NAMESPACE_CLOSE_SCOPE
 #include "pxr/base/gf/range1d.h"
+PXR_NAMESPACE_OPEN_SCOPE
 
 inline bool
 GfRange1f::operator ==(const GfRange1d& other) const {
@@ -338,5 +352,7 @@ GfRange1f::operator !=(const GfRange1d& other) const {
     return !(*this == other);
 }
 
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // GF_RANGE1F_H

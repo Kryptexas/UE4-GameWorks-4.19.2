@@ -226,6 +226,12 @@ private:
 	// Holds the list of directories being watched.
 	TArray<FString> WatchedDirectories;
 
+	// Local path to the engine directory
+	FString LocalEngineDir;
+
+	// Local path to the project directory
+	FString LocalProjectDir;
+
 	const FNetworkFileDelegateContainer* NetworkFileDelegates;
 
 	// cached copy of the active target platforms (if any)

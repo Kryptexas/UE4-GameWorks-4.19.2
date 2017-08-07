@@ -877,7 +877,7 @@ void AActor::SetLODParent(UPrimitiveComponent* InLODParent, float InParentDrawDi
 	TArray<UPrimitiveComponent*> ComponentsToBeReplaced;
 	GetComponents(ComponentsToBeReplaced);
 
-	for(auto& Component : ComponentsToBeReplaced)
+	for(UPrimitiveComponent* Component : ComponentsToBeReplaced)
 	{
 		// parent primitive will be null if no LOD parent is selected
 		Component->SetLODParentPrimitive(InLODParent);

@@ -158,7 +158,7 @@ void UAITask_MoveTo::PerformMove()
 		PathFinishDelegateHandle = PFComp->OnRequestFinished.AddUObject(this, &UAITask_MoveTo::OnRequestFinished);
 		SetObservedPath(FollowedPath);
 
-		if (TaskState == EGameplayTaskState::Finished)
+		if (IsFinished())
 		{
 			UE_VLOG(GetGameplayTasksComponent(), LogGameplayTasks, Error, TEXT("%s> re-Activating Finished task!"), *GetName());
 		}

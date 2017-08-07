@@ -669,7 +669,7 @@ TSharedPtr<FBlueprintDifferenceTreeEntry> FBlueprintDifferenceTreeEntry::NoDiffe
 	const auto GenerateWidget = []() -> TSharedRef<SWidget>
 	{
 		return SNew(STextBlock)
-			.ColorAndOpacity(FLinearColor::FLinearColor(.7f, .7f, .7f))
+			.ColorAndOpacity(FLinearColor(.7f, .7f, .7f))
 			.TextStyle(FEditorStyle::Get(), TEXT("BlueprintDif.ItalicText"))
 			.Text(NSLOCTEXT("FBlueprintDifferenceTreeEntry", "NoDifferencesLabel", "No differences detected..."));
 	};
@@ -688,7 +688,7 @@ TSharedPtr<FBlueprintDifferenceTreeEntry> FBlueprintDifferenceTreeEntry::AnimBlu
 	const auto GenerateWidget = []() -> TSharedRef<SWidget>
 	{
 		return SNew(STextBlock)
-			.ColorAndOpacity(FLinearColor::FLinearColor(.7f, .7f, .7f))
+			.ColorAndOpacity(FLinearColor(.7f, .7f, .7f))
 			.TextStyle(FEditorStyle::Get(), TEXT("BlueprintDif.ItalicText"))
 			.Text(NSLOCTEXT("FBlueprintDifferenceTreeEntry", "AnimBlueprintsNotSupported", "Warning: Detecting differences in Animation Blueprint specific data is not yet supported..."));
 	};
@@ -722,7 +722,7 @@ TSharedPtr<FBlueprintDifferenceTreeEntry> FBlueprintDifferenceTreeEntry::WidgetB
 	const auto GenerateWidget = []() -> TSharedRef<SWidget>
 	{
 		return SNew(STextBlock)
-			.ColorAndOpacity(FLinearColor::FLinearColor(.7f, .7f, .7f))
+			.ColorAndOpacity(FLinearColor(.7f, .7f, .7f))
 			.TextStyle(FEditorStyle::Get(), TEXT("BlueprintDif.ItalicText"))
 			.Text(NSLOCTEXT("FBlueprintDifferenceTreeEntry", "WidgetTreeNotSupported", "Warning: Detecting differences in Widget Blueprint specific data is not yet supported..."));
 	};

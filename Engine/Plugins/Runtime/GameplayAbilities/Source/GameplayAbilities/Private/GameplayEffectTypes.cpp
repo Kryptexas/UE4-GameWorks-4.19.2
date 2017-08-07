@@ -616,7 +616,7 @@ FGameplayCueParameters::FGameplayCueParameters(const struct FGameplayEffectConte
 
 bool FGameplayCueParameters::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
 {
-	static const uint8 NUM_LEVEL_BITS = 4;
+	static const uint8 NUM_LEVEL_BITS = 5; // need to bump this up to support 20 levels for AbilityLevel
 	static const uint8 MAX_LEVEL = (1 << NUM_LEVEL_BITS) - 1;
 
 	enum RepFlag

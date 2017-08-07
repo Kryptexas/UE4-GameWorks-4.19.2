@@ -88,6 +88,17 @@ bool UImportAssetsCommandlet::ParseParams(const FString& InParams)
 
 	GlobalImportData->bReplaceExisting = Params.Contains(TEXT("replaceexisting"));
 
+	GlobalImportData->LevelToLoad = ParamVals.FindRef(TEXT("level"));
+
+	if (!GlobalImportData->LevelToLoad.IsEmpty())
+	{
+		FText FailReason;
+		if (!FPackageName::IsValidLongPackageName(GlobalImportData->LevelToLoad, false, &FailReason))
+		{
+			UE_LOG(LogAutomatedImport, Error, TEXT("Invalid level specified: %s"), *FailReason.ToString());
+		}
+	}
+
 	ImportSettingsPath = ParamVals.FindRef(TEXT("importsettings"));
 
 	GlobalImportData->Initialize(nullptr);
@@ -191,13 +202,21 @@ bool UImportAssetsCommandlet::ImportAndSave(const TArray<UAutomatedAssetImportDa
 			UE_LOG(LogAutomatedImport, Warning, TEXT("A vaild factory name must be specfied in order to specify settings"));
 		}
 
+		// Load a level if specified
+		bImportAndSaveSucceeded = LoadLevel(ImportData->LevelToLoad);
+
+		// Clear dirty packages that were created as a result of loading the level.  We do not want to save these
+		ClearDirtyPackages();
+
 		TArray<UObject*> ImportedAssets = AssetToolsModule.Get().ImportAssetsAutomated(ImportData);
-		if(ImportedAssets.Num() > 0)
+		if(ImportedAssets.Num() > 0 && bImportAndSaveSucceeded)
 		{
 			TArray<UPackage*> DirtyPackages;
+
 			TArray<FSourceControlStateRef> PackageStates;
 
 			FEditorFileUtils::GetDirtyContentPackages(DirtyPackages);
+			FEditorFileUtils::GetDirtyWorldPackages(DirtyPackages);
 
 			bool bUseSourceControl = bHasSourceControl && SourceControlProvider.IsAvailable();
 			if(bUseSourceControl)
@@ -301,10 +320,68 @@ bool UImportAssetsCommandlet::ImportAndSave(const TArray<UAutomatedAssetImportDa
 	return bImportAndSaveSucceeded;
 }
 
+bool UImportAssetsCommandlet::LoadLevel(const FString& LevelToLoad)
+{
+	bool bResult = false;
+
+	if (!LevelToLoad.IsEmpty())
+	{
+		UE_LOG(LogAutomatedImport, Log, TEXT("Loading Map %s"), *LevelToLoad);
+
+		FString Filename;
+		if (FPackageName::TryConvertLongPackageNameToFilename(LevelToLoad, Filename))
+		{
+			UPackage* Package = LoadPackage(NULL, *Filename, 0);
+
+			UWorld* World = UWorld::FindWorldInPackage(Package);
+			if (World)
+			{
+				// Clean up any previous world.  The world should have already been saved
+				UWorld* ExistingWorld = GEditor->GetEditorWorldContext().World();
+
+				GEngine->DestroyWorldContext(ExistingWorld);
+				ExistingWorld->DestroyWorld(true, World);
+
+				GWorld = World;
+
+				World->WorldType = EWorldType::Editor;
+
+				FWorldContext& WorldContext = GEngine->CreateNewWorldContext(World->WorldType);
+				WorldContext.SetCurrentWorld(World);
+
+				// add the world to the root set so that the garbage collection to delete replaced actors doesn't garbage collect the whole world
+				World->AddToRoot();
+
+				// initialize the levels in the world
+				World->InitWorld(UWorld::InitializationValues().AllowAudioPlayback(false));
+				World->GetWorldSettings()->PostEditChange();
+				World->UpdateWorldComponents(true, false);
+
+				bResult = true;
+			}
+		}
+	}
+	else
+	{
+		// a map was not specified, ignore
+		bResult = true;
+	}
+
+	if (!bResult)
+	{
+		UE_LOG(LogAutomatedImport, Error, TEXT("Could not find or load level %s"), *LevelToLoad);
+	}
+
+	return bResult;
+
+}
+
 void UImportAssetsCommandlet::ClearDirtyPackages()
 {
 	TArray<UPackage*> DirtyPackages;
 	FEditorFileUtils::GetDirtyContentPackages(DirtyPackages);
+	FEditorFileUtils::GetDirtyWorldPackages(DirtyPackages);
+
 	for(UPackage* Package : DirtyPackages)
 	{
 		Package->SetDirtyFlag(false);

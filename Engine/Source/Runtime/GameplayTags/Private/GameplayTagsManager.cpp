@@ -189,6 +189,14 @@ void UGameplayTagsManager::ConstructGameplayTagTree()
 			}
 		}
 
+#if WITH_EDITOR
+		// Add any transient editor-only tags
+		for (FName TransientTag : TransientEditorTags)
+		{
+			AddTagTableRow(FGameplayTagTableRow(TransientTag), FGameplayTagSource::GetTransientEditorName());
+		}
+#endif
+
 		// Grab the commonly replicated tags
 		CommonlyReplicatedTags.Empty();
 		for (FName TagName : MutableDefault->CommonlyReplicatedTags)
@@ -1181,6 +1189,27 @@ FGameplayTag UGameplayTagsManager::AddNativeGameplayTag(FName TagName)
 
 	return FGameplayTag();
 }
+void UGameplayTagsManager::CallOrRegister_OnDoneAddingNativeTagsDelegate(FSimpleMulticastDelegate::FDelegate Delegate)
+{
+	if (bDoneAddingNativeTags)
+	{
+		Delegate.Execute();
+	}
+	else
+	{
+		bool bAlreadyBound = Delegate.GetUObject() != nullptr ? OnDoneAddingNativeTagsDelegate().IsBoundToObject(Delegate.GetUObject()) : false;
+		if (!bAlreadyBound)
+		{
+			OnDoneAddingNativeTagsDelegate().Add(Delegate);
+		}
+	}
+}
+
+FSimpleMulticastDelegate& UGameplayTagsManager::OnDoneAddingNativeTagsDelegate()
+{
+	static FSimpleMulticastDelegate Delegate;
+	return Delegate;
+}
 
 FSimpleMulticastDelegate& UGameplayTagsManager::OnLastChanceToAddNativeTags()
 {
@@ -1201,6 +1230,7 @@ void UGameplayTagsManager::DoneAddingNativeTags()
 		{
 			ConstructNetIndex();
 		}
+		OnDoneAddingNativeTagsDelegate().Broadcast();
 	}
 }
 

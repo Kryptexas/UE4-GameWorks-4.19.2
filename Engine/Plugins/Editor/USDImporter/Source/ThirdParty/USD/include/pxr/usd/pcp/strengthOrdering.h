@@ -24,6 +24,11 @@
 #ifndef PCP_STRENGTH_ORDERING_H
 #define PCP_STRENGTH_ORDERING_H
 
+#include "pxr/pxr.h"
+#include "pxr/usd/pcp/api.h"
+
+PXR_NAMESPACE_OPEN_SCOPE
+
 class PcpNodeRef;
 
 /// Compares the strength of nodes \p a and \p b. These nodes must be siblings; 
@@ -32,6 +37,7 @@ class PcpNodeRef;
 /// Returns -1 if a is stronger than b,
 ///          0 if a is equivalent to b,
 ///          1 if a is weaker than b
+PCP_API
 int
 PcpCompareSiblingNodeStrength(const PcpNodeRef& a, const PcpNodeRef& b);
 
@@ -42,7 +48,10 @@ PcpCompareSiblingNodeStrength(const PcpNodeRef& a, const PcpNodeRef& b);
 /// Returns -1 if a is stronger than b,
 ///          0 if a is equivalent to b,
 ///          1 if a is weaker than b
+PCP_API
 int
 PcpCompareNodeStrength(const PcpNodeRef& a, const PcpNodeRef& b);
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // PCP_STRENGTH_ORDERING_H

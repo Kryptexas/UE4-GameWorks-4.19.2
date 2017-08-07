@@ -25,8 +25,7 @@
 FVREditorModeManager::FVREditorModeManager() :
 	CurrentVREditorMode( nullptr ),
 	bEnableVRRequest( false ),
-	HMDWornState( EHMDWornState::Unknown ),
-	TimeSinceHMDChecked( 0.0f )
+	HMDWornState( EHMDWornState::Unknown )
 {
 }
 
@@ -37,25 +36,22 @@ FVREditorModeManager::~FVREditorModeManager()
 
 void FVREditorModeManager::Tick( const float DeltaTime )
 {
-	//@todo vreditor: Make the timer a configurable variable and/or change the polling system to an event-based one.
-	TimeSinceHMDChecked += DeltaTime;
-
 	// You can only auto-enter VR if the setting is enabled. Other criteria are that the VR Editor is enabled in experimental settings, that you are not in PIE, and that the editor is foreground.
-	bool bCanAutoEnterVR = GetDefault<UVRModeSettings>()->bEnableAutoVREditMode && 
-		(GEditor->PlayWorld == nullptr || (CurrentVREditorMode != nullptr && CurrentVREditorMode->GetStartedPlayFromVREditor())) && 
-		FPlatformProcess::IsThisApplicationForeground();
-	if( GEngine != nullptr && GEngine->HMDDevice.IsValid() )
+	if (GetDefault<UVRModeSettings>()->bEnableAutoVREditMode
+		&& GEngine != nullptr 
+		&& GEngine->HMDDevice.IsValid()
+		&& (GEditor->PlayWorld == nullptr || (CurrentVREditorMode != nullptr && CurrentVREditorMode->GetStartedPlayFromVREditor()))
+		&& FPlatformProcess::IsThisApplicationForeground())
 	{
-		// Only check whether you are wearing the HMD every second, if you are allowed to auto-enter VR, and if your HMD state has changed since the last check. 
-		if( ( TimeSinceHMDChecked >= 1.0f ) && bCanAutoEnterVR && ( HMDWornState != GEngine->HMDDevice->GetHMDWornState() ) )
+		const EHMDWornState::Type LatestHMDWornState = GEngine->HMDDevice->GetHMDWornState();
+		if (HMDWornState != LatestHMDWornState)
 		{
-			TimeSinceHMDChecked = 0.0f;
-			HMDWornState = GEngine->HMDDevice->GetHMDWornState();
-			if( HMDWornState == EHMDWornState::Worn )
+			HMDWornState = LatestHMDWornState;
+			if (HMDWornState == EHMDWornState::Worn && CurrentVREditorMode == nullptr)
 			{
 				EnableVREditor( true, false );
 			}
-			else if( HMDWornState == EHMDWornState::NotWorn )
+			else if (HMDWornState == EHMDWornState::NotWorn && CurrentVREditorMode != nullptr)
 			{
 				if (GEditor->PlayWorld && !GEditor->bIsSimulatingInEditor)
 				{

@@ -24,14 +24,18 @@
 #ifndef TF_PYTRACING_H
 #define TF_PYTRACING_H
 
-#include "pxr/base/tf/api.h"
-
 #include <Python.h>
+
+#include "pxr/pxr.h"
+
+#include "pxr/base/tf/api.h"
 
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
 
-/// \struct PyTraceInfo
+PXR_NAMESPACE_OPEN_SCOPE
+
+/// \struct TfPyTraceInfo
 /// Structure passed to python trace functions.  See the Python C API
 /// documentation reference for the meaning of \a what and \a arg.
 struct TfPyTraceInfo {
@@ -55,5 +59,7 @@ TF_API void Tf_PyFabricateTraceEvent(TfPyTraceInfo const &info);
 
 // For internal use only.  Do not use.
 TF_API void Tf_PyTracingPythonInitialized();
+
+PXR_NAMESPACE_CLOSE_SCOPE
 
 #endif // TF_PYTRACING_H
