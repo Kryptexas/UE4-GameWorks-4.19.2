@@ -12,6 +12,7 @@ UMovieSceneImagePlateSection::UMovieSceneImagePlateSection(const FObjectInitiali
 #endif
 
 	EvalOptions.CompletionMode = EMovieSceneCompletionMode::RestoreState;
+	bReuseExistingTexture = false;
 
 	// Video tracks have some preroll by default to precache frames
 	SetPreRollTime(0.5f);

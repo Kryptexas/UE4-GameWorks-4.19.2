@@ -1007,7 +1007,7 @@ void SBlueprintPaletteItem::Construct(const FArguments& InArgs, FCreateWidgetFor
 			return bIsFullyReadOnly || FBlueprintEditorUtils::IsPaletteActionReadOnly(WeakGraphAction.Pin(), InBlueprintEditor.Pin());
 		}
 
-		return false;
+		return bIsFullyReadOnly;
 	};
 	
 	// We differentiate enabled/read-only state here to not dim icons out unnecessarily, which in some situations

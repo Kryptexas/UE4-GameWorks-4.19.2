@@ -5,7 +5,15 @@
 
 #define LOCTEXT_NAMESPACE "ResetToDefaultPropertyEditor"
 
-void SResetToDefaultPropertyEditor::Construct( const FArguments& InArgs, const TSharedPtr<IPropertyHandle>& InPropertyHandle )
+SResetToDefaultPropertyEditor::~SResetToDefaultPropertyEditor()
+{
+	if (PropertyHandle.IsValid())
+	{
+		PropertyHandle->ClearResetToDefaultCustomized();
+	}
+}
+
+void SResetToDefaultPropertyEditor::Construct(const FArguments& InArgs, const TSharedPtr<IPropertyHandle>& InPropertyHandle)
 {
 	PropertyHandle = InPropertyHandle;
 	NonVisibleState = InArgs._NonVisibleState;

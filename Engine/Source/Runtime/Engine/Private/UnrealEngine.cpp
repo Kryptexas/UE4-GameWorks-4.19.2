@@ -9564,8 +9564,17 @@ bool UEngine::HandleStreamMapCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorl
 	if (TestURL.IsLocalInternal())
 	{
 		// make sure the file exists if we are opening a local file
-		if (MakeSureMapNameIsValid(WorldContext.LastURL.Map))
+		if (MakeSureMapNameIsValid(TestURL.Map) && TestURL.Valid)
 		{
+			for (const ULevel* const Level : InWorld->GetLevels())
+			{
+				if (Level->URL.Map == TestURL.Map)
+				{
+					Ar.Logf(TEXT("ERROR: The map '%s' is already loaded."), *TestURL.Map);
+					return true;
+				}
+			}
+
 			TArray<FName> LevelNames;
 			LevelNames.Add(*TestURL.Map);
 

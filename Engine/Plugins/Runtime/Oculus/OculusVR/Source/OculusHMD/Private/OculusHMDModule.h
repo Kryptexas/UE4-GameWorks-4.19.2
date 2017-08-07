@@ -42,7 +42,7 @@ public:
 
 	virtual void GetRawSensorData(FVector& AngularAcceleration, FVector& LinearAcceleration, FVector& AngularVelocity, FVector& LinearVelocity, float& TimeInSeconds) override
 	{
-		UOculusFunctionLibrary::GetRawSensorData(ETrackedDeviceType::HMD, AngularAcceleration, LinearAcceleration, AngularVelocity, LinearVelocity, TimeInSeconds);
+		UOculusFunctionLibrary::GetRawSensorData(AngularAcceleration, LinearAcceleration, AngularVelocity, LinearVelocity, TimeInSeconds, ETrackedDeviceType::HMD);
 	}
 
 	virtual bool GetUserProfile(struct FHmdUserProfile& Profile) override

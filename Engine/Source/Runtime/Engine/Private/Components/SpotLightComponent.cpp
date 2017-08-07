@@ -129,11 +129,14 @@ public:
 		OutInitializer.WorldToLight = GetWorldToLight().RemoveTranslation();
 		OutInitializer.Scales = FVector(1.0f,InvTanOuterCone,InvTanOuterCone);
 		OutInitializer.FaceDirection = FVector(1,0,0);
+
+		const FSphere AbsoluteBoundingSphere = FSpotLightSceneProxy::GetBoundingSphere();
 		OutInitializer.SubjectBounds = FBoxSphereBounds(
-			GetLightToWorld().RemoveTranslation().TransformPosition(FVector(Radius, 0, 0)),
-			FVector(Radius, Radius, Radius),
-			Radius
+			AbsoluteBoundingSphere.Center - GetOrigin(),
+			FVector(AbsoluteBoundingSphere.W, AbsoluteBoundingSphere.W, AbsoluteBoundingSphere.W),
+			AbsoluteBoundingSphere.W
 			);
+
 		OutInitializer.WAxis = FVector4(0,0,1,0);
 		OutInitializer.MinLightW = 0.1f;
 		OutInitializer.MaxDistanceToCastInLightW = Radius;

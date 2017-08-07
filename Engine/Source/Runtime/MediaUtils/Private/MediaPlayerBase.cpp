@@ -198,7 +198,7 @@ bool FMediaPlayerBase::Open(const FString& Url, const IMediaOptions& Options)
 	}
 
 	// find & initialize new player
-	TSharedPtr<IMediaPlayer> NewPlayer = FindPlayerForUrl(Url, Options);
+	TSharedPtr<IMediaPlayer, ESPMode::ThreadSafe> NewPlayer = FindPlayerForUrl(Url, Options);
 
 	if (NewPlayer != NativePlayer)
 	{
@@ -336,7 +336,7 @@ void FMediaPlayerBase::TickVideo(float DeltaTime)
 /* FMediaPlayerBase implementation
 *****************************************************************************/
 
-TSharedPtr<IMediaPlayer> FMediaPlayerBase::FindPlayerForUrl(const FString& Url, const IMediaOptions& Options)
+TSharedPtr<IMediaPlayer, ESPMode::ThreadSafe> FMediaPlayerBase::FindPlayerForUrl(const FString& Url, const IMediaOptions& Options)
 {
 	const FName PlayerName = (DesiredPlayerName != NAME_None) ? DesiredPlayerName : Options.GetDesiredPlayerName();
 
@@ -366,7 +366,7 @@ TSharedPtr<IMediaPlayer> FMediaPlayerBase::FindPlayerForUrl(const FString& Url, 
 			return nullptr;
 		}
 
-		TSharedPtr<IMediaPlayer> NewPlayer = Factory->CreatePlayer();
+		TSharedPtr<IMediaPlayer, ESPMode::ThreadSafe> NewPlayer = Factory->CreatePlayer();
 
 		if (!NewPlayer.IsValid())
 		{
@@ -400,7 +400,7 @@ TSharedPtr<IMediaPlayer> FMediaPlayerBase::FindPlayerForUrl(const FString& Url, 
 			continue;
 		}
 
-		TSharedPtr<IMediaPlayer> NewPlayer = Factory->CreatePlayer();
+		TSharedPtr<IMediaPlayer, ESPMode::ThreadSafe> NewPlayer = Factory->CreatePlayer();
 
 		if (NewPlayer.IsValid())
 		{

@@ -432,6 +432,8 @@ namespace OculusHMD
 			EyeLayer->Initialize_RenderThread(CustomPresent, EyeLayer_RenderThread.Get());
 			EyeLayer_RenderThread = Layers_RenderThread[0] = EyeLayer;
 
+			UE_LOG(LogHMD, Log, TEXT("Allocating Oculus %d x %d rendertarget swapchain"), SizeX, SizeY);
+
 			const FTextureSetProxyPtr& TextureSet = EyeLayer->GetTextureSetProxy();
 
 			if (TextureSet.IsValid())
@@ -1482,6 +1484,8 @@ namespace OculusHMD
 				}
 			}
 
+			UpdateHMDWornState();
+
 			// Update tracking
 			ovrp_Update3(ovrpStep_Game, Frame->FrameNumber, 0.0);
 
@@ -1499,6 +1503,23 @@ namespace OculusHMD
 		return retval;
 	}
 
+	void FOculusHMD::UpdateHMDWornState()
+	{
+		const EHMDWornState::Type NewHMDWornState = GetHMDWornState();
+
+		if (NewHMDWornState != HMDWornState)
+		{
+			HMDWornState = NewHMDWornState;
+			if (HMDWornState == EHMDWornState::Worn)
+			{
+				FCoreDelegates::VRHeadsetPutOnHead.Broadcast();
+			}
+			else if (HMDWornState == EHMDWornState::NotWorn)
+			{
+				FCoreDelegates::VRHeadsetRemovedFromHead.Broadcast();
+			}
+		}
+	}
 
 	bool FOculusHMD::OnEndGameFrame(FWorldContext& InWorldContext)
 	{
@@ -2490,7 +2511,7 @@ namespace OculusHMD
 		ovrpLayerDesc_EyeFov EyeLayerDesc;
 		if (OVRP_SUCCESS(ovrp_CalculateEyeLayerDesc(
 			Layout,
-			Settings->PixelDensityMax,
+			Settings->bPixelDensityAdaptive ? Settings->PixelDensityMax : Settings->PixelDensity,
 			Settings->Flags.bHQDistortion ? 0 : 1,
 			1, // UNDONE
 			CustomPresent->GetOvrpTextureFormat(CustomPresent->GetDefaultPixelFormat(), true),
@@ -2498,7 +2519,7 @@ namespace OculusHMD
 			&EyeLayerDesc)))
 		{
 			// Update viewports
-			float ViewportScale = PixelDensity / Settings->PixelDensityMax;
+			float ViewportScale = Settings->bPixelDensityAdaptive ? PixelDensity / Settings->PixelDensityMax : 1.0f;
 			ovrpSizei rtSize = EyeLayerDesc.TextureSize;
 			ovrpSizei vpSizeMax = EyeLayerDesc.MaxViewportSize;
 			ovrpRecti vpRect[3];
@@ -2539,7 +2560,6 @@ namespace OculusHMD
 			if (!FMath::IsNearlyEqual(Settings->PixelDensity, PixelDensity))
 			{
 				Settings->PixelDensity = PixelDensity;
-				Settings->UpdateScreenPercentageFromPixelDensity();
 			}
 		}
 	}
@@ -2550,8 +2570,6 @@ namespace OculusHMD
 		CheckInGameThread();
 
 		static const auto ScreenPercentageCVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.ScreenPercentage"));
-		Settings->CurrentScreenPercentage = ScreenPercentageCVar->GetValueOnGameThread();
-		Settings->IdealScreenPercentage = Settings->CurrentScreenPercentage / Settings->PixelDensityMax;
 		ovrp_GetSystemDisplayFrequency2(&Settings->VsyncToNextVsync);
 	}
 
@@ -2949,7 +2967,6 @@ namespace OculusHMD
 		Settings->PixelDensity = FMath::Clamp(NewPD, ClampPixelDensityMin, ClampPixelDensityMax);
 		Settings->PixelDensityMin = FMath::Min(Settings->PixelDensity, Settings->PixelDensityMin);
 		Settings->PixelDensityMax = FMath::Max(Settings->PixelDensity, Settings->PixelDensityMax);
-		Settings->UpdateScreenPercentageFromPixelDensity();
 	}
 
 
@@ -3328,7 +3345,6 @@ namespace OculusHMD
 			if (!FMath::IsNearlyEqual(NewPixelDensity, Settings->PixelDensity))
 			{
 				Settings->PixelDensity = NewPixelDensity;
-				Settings->UpdateScreenPercentageFromPixelDensity();
 			}
 		}
 		Ar.Logf(TEXT("vr.oculus.PixelDensity.min = \"%1.2f\""), Settings->PixelDensityMin);
@@ -3347,7 +3363,6 @@ namespace OculusHMD
 			if (!FMath::IsNearlyEqual(NewPixelDensity, Settings->PixelDensity))
 			{
 				Settings->PixelDensity = NewPixelDensity;
-				Settings->UpdateScreenPercentageFromPixelDensity();
 			}
 		}
 		Ar.Logf(TEXT("vr.oculus.PixelDensity.max = \"%1.2f\""), Settings->PixelDensityMax);

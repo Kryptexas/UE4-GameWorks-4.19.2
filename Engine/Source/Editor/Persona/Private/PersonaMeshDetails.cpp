@@ -668,9 +668,9 @@ FPersonaMeshDetails::~FPersonaMeshDetails()
 	}
 }
 
-TSharedRef<IDetailCustomization> FPersonaMeshDetails::MakeInstance(TSharedRef<class IPersonaToolkit> InPersonaToolkit)
+TSharedRef<IDetailCustomization> FPersonaMeshDetails::MakeInstance(TWeakPtr<class IPersonaToolkit> InPersonaToolkit)
 {
-	return MakeShareable( new FPersonaMeshDetails(InPersonaToolkit) );
+	return MakeShareable( new FPersonaMeshDetails(InPersonaToolkit.Pin().ToSharedRef()) );
 }
 
 void FPersonaMeshDetails::OnCopySectionList(int32 LODIndex)

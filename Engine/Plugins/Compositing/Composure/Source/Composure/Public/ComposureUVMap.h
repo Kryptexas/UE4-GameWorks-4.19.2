@@ -7,7 +7,7 @@
 
 
 USTRUCT(BlueprintType)
-struct FComposureUVMapSettings
+struct COMPOSURE_API FComposureUVMapSettings
 {
 	GENERATED_USTRUCT_BODY()
 	FComposureUVMapSettings()

@@ -33,6 +33,7 @@ struct FLandscapeTextureDataInfo;
 struct FStaticLightingPrimitiveInfo;
 
 struct FLandscapeEditDataInterface;
+struct FLandscapeMobileRenderData;
 
 //
 // FLandscapeEditToolRenderData
@@ -96,12 +97,21 @@ class FLandscapeComponentDerivedData
 	/** The compressed Landscape component data for mobile rendering. Serialized to disk. 
 	    On device, freed once it has been decompressed. */
 	TArray<uint8> CompressedLandscapeData;
+	
+	/** Cached render data. Only valid on device. */
+	TSharedPtr<FLandscapeMobileRenderData, ESPMode::ThreadSafe > CachedRenderData;
 
 public:
 	/** Returns true if there is any valid platform data */
 	bool HasValidPlatformData() const
 	{
 		return CompressedLandscapeData.Num() != 0;
+	}
+
+	/** Returns true if there is any valid platform data */
+	bool HasValidRuntimeData() const
+	{
+		return CompressedLandscapeData.Num() != 0 || CachedRenderData.IsValid();
 	}
 
 	/** Returns the size of the platform data if there is any. */
@@ -113,8 +123,9 @@ public:
 	/** Initializes the compressed data from an uncompressed source. */
 	void InitializeFromUncompressedData(const TArray<uint8>& UncompressedData);
 
-	/** Decompresses and returns the data. Also frees the compressed data from memory when running with cooked data */
-	void GetUncompressedData(TArray<uint8>& OutUncompressedData);
+	/** Decompresses data if necessary and returns the render data object. 
+     *  On device, this frees the compressed data and keeps a reference to the render data. */
+	TSharedPtr<FLandscapeMobileRenderData, ESPMode::ThreadSafe> GetRenderData();
 
 	/** Constructs a key string for the DDC that uniquely identifies a the Landscape component's derived data. */
 	static FString GetDDCKeyString(const FGuid& StateId);

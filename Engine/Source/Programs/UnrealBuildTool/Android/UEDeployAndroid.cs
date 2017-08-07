@@ -3199,11 +3199,15 @@ namespace UnrealBuildTool
 						GradleBuildAdditionsContent.AppendLine("}");
 					}
 
-					// Add any UPL GradleAdditions
+					// Add any UPL app buildGradleAdditions
 					GradleBuildAdditionsContent.Append(UPL.ProcessPluginNode(NDKArch, "buildGradleAdditions", ""));
 
 					string GradleBuildAdditionsFilename = Path.Combine(UE4BuildGradleAppPath, "buildAdditions.gradle");
 					File.WriteAllText(GradleBuildAdditionsFilename, GradleBuildAdditionsContent.ToString());
+
+					// Create baseBuildAdditions.gradle from plugins baseBuildGradleAdditions
+					string GradleBaseBuildAdditionsFilename = Path.Combine(UE4BuildGradlePath, "baseBuildAdditions.gradle");
+					File.WriteAllText(GradleBaseBuildAdditionsFilename, UPL.ProcessPluginNode(NDKArch, "baseBuildGradleAdditions", ""));
 
 					string GradleScriptPath = Path.Combine(UE4BuildGradlePath, "gradlew");
 					if (Utils.IsRunningOnMono)
@@ -3671,7 +3675,8 @@ namespace UnrealBuildTool
 			AARImportsContent.AppendLine("repositories {");
 			foreach (string Repository in AARHandler.Repositories)
 			{
-				AARImportsContent.AppendLine("\tmaven { url uri('" + Repository.Replace('\\', '/') + "') }");
+				string RepositoryPath = Path.GetFullPath(Repository).Replace('\\', '/');
+				AARImportsContent.AppendLine("\tmaven { url uri('" + RepositoryPath + "') }");
 			}
 			AARImportsContent.AppendLine("}");
 

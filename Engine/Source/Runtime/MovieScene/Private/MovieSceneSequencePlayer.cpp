@@ -32,7 +32,7 @@ UMovieSceneSequencePlayer::UMovieSceneSequencePlayer(const FObjectInitializer& I
 
 UMovieSceneSequencePlayer::~UMovieSceneSequencePlayer()
 {
-	if (OldMaxTickRate.IsSet())
+	if (GEngine && OldMaxTickRate.IsSet())
 	{
 		GEngine->SetMaxFPS(OldMaxTickRate.GetValue());
 	}

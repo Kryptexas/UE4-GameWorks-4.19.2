@@ -79,7 +79,11 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugParallelRenderCommandEncoder)
     [Inner popDebugGroup];
 }
 
+#if METAL_NEW_NONNULL_DECL
+- (nullable id <MTLRenderCommandEncoder>)renderCommandEncoder
+#else
 - (id <MTLRenderCommandEncoder>)renderCommandEncoder
+#endif
 {
     return [[[FMetalDebugRenderCommandEncoder alloc] initWithEncoder:[Inner renderCommandEncoder] andCommandBuffer:Buffer] autorelease];
 }
@@ -98,6 +102,24 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugParallelRenderCommandEncoder)
 {
     [Inner setStencilStoreAction:storeAction];
 }
+
+#if (METAL_NEW_NONNULL_DECL && !PLATFORM_MAC)
+// Null implementations of these functions to support iOS 11 beta.  To be filled out later
+- (void)setColorStoreActionOptions:(MTLStoreActionOptions)storeActionOptions atIndex:(NSUInteger)colorAttachmentIndex
+{
+	[Inner setColorStoreActionOptions:storeActionOptions atIndex:colorAttachmentIndex];
+}
+
+- (void)setDepthStoreActionOptions:(MTLStoreActionOptions)storeActionOptions
+{
+	[Inner setDepthStoreActionOptions:storeActionOptions];
+}
+
+- (void)setStencilStoreActionOptions:(MTLStoreActionOptions)storeActionOptions
+{
+	[Inner setStencilStoreActionOptions:storeActionOptions];
+}
+#endif //(METAL_NEW_NONNULL_DECL && !PLATFORM_MAC)
 
 @end
 

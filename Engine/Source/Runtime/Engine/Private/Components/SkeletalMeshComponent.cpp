@@ -1731,6 +1731,13 @@ void USkeletalMeshComponent::WritebackClothingSimulationData()
 		if(MasterPoseComponent.IsValid())
 		{
 			OverrideComponent = Cast<USkeletalMeshComponent>(MasterPoseComponent.Get());
+
+			// Check if our bone map is actually valid, if not there is no clothing data to build
+			if(MasterBoneMap.Num() == 0)
+			{
+				CurrentSimulationData_GameThread.Reset();
+				return;
+			}
 		}
 
 		ClothingSimulation->GetSimulationData(CurrentSimulationData_GameThread, this, OverrideComponent);

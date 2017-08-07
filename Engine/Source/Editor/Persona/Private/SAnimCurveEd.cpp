@@ -95,6 +95,7 @@ void SAnimCurveEd::Construct(const FArguments& InArgs)
 {
 	OnGetScrubValue = InArgs._OnGetScrubValue;
 	NumberOfKeys = InArgs._NumberOfKeys;
+	SetClipping(EWidgetClipping::ClipToBounds);
 
 	SCurveEditor::Construct(SCurveEditor::FArguments()
 		.ViewMinInput(InArgs._ViewMinInput)

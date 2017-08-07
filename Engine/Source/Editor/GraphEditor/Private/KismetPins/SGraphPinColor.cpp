@@ -17,7 +17,7 @@ void SGraphPinColor::Construct(const FArguments& InArgs, UEdGraphPin* InGraphPin
 
 TSharedRef<SWidget>	SGraphPinColor::GetDefaultValueWidget()
 {
-	return SNew(SBorder)
+	return SAssignNew(DefaultValueWidget, SBorder)
 		.BorderImage( FEditorStyle::GetBrush("FilledBorder") )
 		.Visibility( this, &SGraphPin::GetDefaultValueVisibility )
 		.Padding(1)
@@ -44,7 +44,7 @@ FReply SGraphPinColor::OnColorBoxClicked(const FGeometry& MyGeometry, const FPoi
 
 		FColorPickerArgs PickerArgs;
 		PickerArgs.bIsModal = true;
-		PickerArgs.ParentWidget = AsShared();
+		PickerArgs.ParentWidget = DefaultValueWidget;
 		PickerArgs.DisplayGamma = TAttribute<float>::Create(TAttribute<float>::FGetter::CreateUObject(GEngine, &UEngine::GetDisplayGamma));
 		PickerArgs.LinearColorArray = &LinearColorArray;
 		PickerArgs.OnColorCommitted = FOnLinearColorValueChanged::CreateSP(this, &SGraphPinColor::OnColorCommitted);
@@ -84,6 +84,10 @@ void SGraphPinColor::OnColorCommitted(FLinearColor InColor)
 		GraphPinObj->Modify();
 		
 		GraphPinObj->GetSchema()->TrySetDefaultValue(*GraphPinObj, ColorString);
-		OwnerNodePtr.Pin()->UpdateGraphNode();
+
+		if (OwnerNodePtr.IsValid())
+		{
+			OwnerNodePtr.Pin()->UpdateGraphNode();
+		}
 	}
 }

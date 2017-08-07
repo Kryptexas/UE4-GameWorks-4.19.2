@@ -715,6 +715,8 @@ FReply FSequencerTimeSliderController::OnMouseButtonUp( SWidget& WidgetOwner, co
 		}
 
 		MouseDragType = DRAG_NONE;
+		DistanceDragged = 0.f;
+
 		return FReply::Handled().ReleaseMouseCapture();
 	}
 

@@ -402,16 +402,30 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 					.ZoomAmount(this, &SDesignerView::GetZoomAmount)
 					.ViewOffset(this, &SDesignerView::GetViewOffset)
 					[
-						SNew(SBorder)
-						.Padding(FMargin(0))
-						.BorderImage(this, &SDesignerView::GetPreviewBackground)
+						SNew(SOverlay)
+
+						+ SOverlay::Slot()
 						[
-							SAssignNew(PreviewAreaConstraint, SBox)
-							.WidthOverride(this, &SDesignerView::GetPreviewAreaWidth)
-							.HeightOverride(this, &SDesignerView::GetPreviewAreaHeight)
+							SNew(SBorder)
 							[
-								SAssignNew(PreviewSurface, SDPIScaler)
-								.DPIScale(this, &SDesignerView::GetPreviewDPIScale)
+								SNew(SSpacer)
+								.Size(FVector2D(1, 1))
+							]
+						]
+						
+						+ SOverlay::Slot()
+						[
+							SNew(SBorder)
+							.Padding(FMargin(0))
+							.BorderImage(this, &SDesignerView::GetPreviewBackground)
+							[
+								SAssignNew(PreviewAreaConstraint, SBox)
+								.WidthOverride(this, &SDesignerView::GetPreviewAreaWidth)
+								.HeightOverride(this, &SDesignerView::GetPreviewAreaHeight)
+								[
+									SAssignNew(PreviewSurface, SDPIScaler)
+									.DPIScale(this, &SDesignerView::GetPreviewDPIScale)
+								]
 							]
 						]
 					]

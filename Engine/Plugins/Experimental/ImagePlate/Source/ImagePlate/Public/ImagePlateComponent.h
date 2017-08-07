@@ -10,7 +10,7 @@
 class FPrimitiveSceneProxy;
 class UImagePlateFrustumComponent;
 class UMaterialInterface;
-class UTexture2DDynamic;
+class UTexture;
 
 USTRUCT(BlueprintType)
 struct IMAGEPLATE_API FImagePlateParameters
@@ -40,8 +40,8 @@ struct IMAGEPLATE_API FImagePlateParameters
 	FVector2D FixedSize;
 
 	/** Transient texture that receives image frames */
-	UPROPERTY(transient)
-	UTexture2DDynamic* RenderTexture;
+	UPROPERTY(transient, BlueprintReadOnly, Category="Image Plate")
+	UTexture* RenderTexture;
 
 	/** Transient MID to hold the material with the render texture patched in */
 	UPROPERTY(transient)

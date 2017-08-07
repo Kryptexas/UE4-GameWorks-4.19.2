@@ -345,7 +345,10 @@ void FOculusInput::SendControllerEvents()
 									break;
 
 								case EOculusTouchControllerButton::XA:
-									bButtonPressed = bIsLeft ? (OvrpControllerState.Buttons & ovrpButton_X) != 0 : (OvrpControllerState.Buttons & ovrpButton_A) != 0;
+									bButtonPressed =
+										bIsMalibuTracked ?
+										(OvrpControllerState.Buttons & ovrpButton_Back) != 0 : 
+										(bIsLeft ? (OvrpControllerState.Buttons & ovrpButton_X) != 0 : (OvrpControllerState.Buttons & ovrpButton_A) != 0);
 									break;
 
 								case EOculusTouchControllerButton::YB:
@@ -353,7 +356,10 @@ void FOculusInput::SendControllerEvents()
 									break;
 
 								case EOculusTouchControllerButton::Thumbstick:
-									bButtonPressed = bIsLeft ? (OvrpControllerState.Buttons & ovrpButton_LThumb) != 0 : (OvrpControllerState.Buttons & ovrpButton_RThumb) != 0;
+									bButtonPressed = 
+										bIsMalibuTracked ?
+											(bIsLeft ? (OvrpControllerState.Buttons & ovrpButton_LTouchpad) != 0 : (OvrpControllerState.Buttons & ovrpButton_RTouchpad) != 0) :
+											(bIsLeft ? (OvrpControllerState.Buttons & ovrpButton_LThumb) != 0 : (OvrpControllerState.Buttons & ovrpButton_RThumb) != 0);
 									break;
 
 								case EOculusTouchControllerButton::Thumbstick_Up:

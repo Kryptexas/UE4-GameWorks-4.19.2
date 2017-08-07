@@ -11,5 +11,5 @@
     <EndUserGroup>Git</EndUserGroup>
     <EndUserGroup>P4</EndUserGroup>
   </RedistributeTo>
-  <LicenseFolder>/Engine/Source/ThirdParty/Licenses/BoostSoftwarev1_License.txt</Location>
+  <LicenseFolder>/Engine/Source/ThirdParty/Licenses/BoostSoftwarev1_License.txt</LicenseFolder>
 </TpsData>

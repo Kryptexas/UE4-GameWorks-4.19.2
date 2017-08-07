@@ -655,7 +655,11 @@ bool UWorld::DestroyActor( AActor* ThisActor, bool bNetForce, bool bShouldModify
 	// Invalidate the lighting cache in the Editor.  We need to check for GIsEditor as play has not begun in network game and objects get destroyed on switching levels
 	if ( GIsEditor )
 	{
-		ThisActor->InvalidateLightingCache();
+		if (!IsGameWorld())
+		{
+			ThisActor->InvalidateLightingCache();
+		}
+		
 #if WITH_EDITOR
 		GEngine->BroadcastLevelActorDeleted(ThisActor);
 #endif

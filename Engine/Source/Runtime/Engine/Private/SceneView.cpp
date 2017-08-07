@@ -1485,7 +1485,7 @@ void FSceneView::OverridePostProcessSettings(const FPostProcessSettings& Src, fl
 		{
 			UObject* Object = Src.WeightedBlendables.Array[i].Object;
 
-			if(!Object)
+			if(!Object || !Object->IsValidLowLevel())
 			{
 				continue;
 			}
@@ -2480,8 +2480,11 @@ bool FSceneViewFamily::AllowTranslucencyAfterDOF() const
 	static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.PostProcessing.PropagateAlpha"));
 	const bool bPostProcessAlphaChannel = CVar ? (CVar->GetInt() != 0) : false;
 
+	static IConsoleVariable* CVarMobileMSAA = IConsoleManager::Get().FindConsoleVariable(TEXT("r.MobileMSAA"));
+	const bool bMobileMSAA = CVarMobileMSAA ? (CVarMobileMSAA->GetInt() > 1) : false;
+	
 	return CVarAllowTranslucencyAfterDOF.GetValueOnRenderThread() != 0
-		&& (GetFeatureLevel() > ERHIFeatureLevel::ES3_1 || IsMobileHDR()) // on mobile separate translucency requires HDR
+		&& (GetFeatureLevel() > ERHIFeatureLevel::ES3_1 || (IsMobileHDR() && !bMobileMSAA)) // on <= ES3_1 separate translucency requires HDR on and MSAA off
 		&& EngineShowFlags.PostProcessing // Used for reflection captures.
 		&& !UseDebugViewPS()
 		&& EngineShowFlags.SeparateTranslucency

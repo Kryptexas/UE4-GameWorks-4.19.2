@@ -119,11 +119,16 @@ FVertexFactoryShaderParameters* FSplineMeshVertexFactory::ConstructShaderParamet
 
 void FSplineMeshSceneProxy::InitVertexFactory(USplineMeshComponent* InComponent, int32 InLODIndex, FColorVertexBuffer* InOverrideColorVertexBuffer)
 {
+	if (InComponent == nullptr || InComponent->GetStaticMesh() == nullptr)
+	{
+		return;
+	}
+
 	uint32 TangentXOffset = 0;
 	uint32 TangetnZOffset = 0;
 	uint32 UVsBaseOffset = 0;
 
-	auto& RD = InComponent->GetStaticMesh()->RenderData->LODResources[InLODIndex];
+	FStaticMeshLODResources& RD = InComponent->GetStaticMesh()->RenderData->LODResources[InLODIndex];
 	SELECT_STATIC_MESH_VERTEX_TYPE(
 		RD.VertexBuffer.GetUseHighPrecisionTangentBasis(),
 		RD.VertexBuffer.GetUseFullPrecisionUVs(),
@@ -530,16 +535,19 @@ void USplineMeshComponent::UpdateMesh_Concurrent()
 
 void USplineMeshComponent::CalculateScaleZAndMinZ(float& OutScaleZ, float& OutMinZ) const
 {
-	if (FMath::IsNearlyEqual(SplineBoundaryMin, SplineBoundaryMax))
+	if (GetStaticMesh())
 	{
-		FBoxSphereBounds StaticMeshBounds = GetStaticMesh()->GetBounds();
-		OutScaleZ = 0.5f / USplineMeshComponent::GetAxisValue(StaticMeshBounds.BoxExtent, ForwardAxis); // 1/(2 * Extent)
-		OutMinZ = USplineMeshComponent::GetAxisValue(StaticMeshBounds.Origin, ForwardAxis) * OutScaleZ - 0.5f;
-	}
-	else
-	{
-		OutScaleZ = 1.0f / (SplineBoundaryMax - SplineBoundaryMin);
-		OutMinZ = SplineBoundaryMin * OutScaleZ;
+		if (FMath::IsNearlyEqual(SplineBoundaryMin, SplineBoundaryMax))
+		{
+			FBoxSphereBounds StaticMeshBounds = GetStaticMesh()->GetBounds();
+			OutScaleZ = 0.5f / USplineMeshComponent::GetAxisValue(StaticMeshBounds.BoxExtent, ForwardAxis); // 1/(2 * Extent)
+			OutMinZ = USplineMeshComponent::GetAxisValue(StaticMeshBounds.Origin, ForwardAxis) * OutScaleZ - 0.5f;
+		}
+		else
+		{
+			OutScaleZ = 1.0f / (SplineBoundaryMax - SplineBoundaryMin);
+			OutMinZ = SplineBoundaryMin * OutScaleZ;
+		}
 	}
 }
 
@@ -845,12 +853,12 @@ FTransform USplineMeshComponent::CalcSliceTransform(const float DistanceAlong) c
 	const bool bHasCustomBoundary = !FMath::IsNearlyEqual(SplineBoundaryMin, SplineBoundaryMax);
 
 	// Find how far 'along' mesh we are
-	float Alpha;
+	float Alpha = 0.f;
 	if (bHasCustomBoundary)
 	{
 		Alpha = (DistanceAlong - SplineBoundaryMin) / (SplineBoundaryMax - SplineBoundaryMin);
 	}
-	else
+	else if (GetStaticMesh())
 	{
 		const FBoxSphereBounds StaticMeshBounds = GetStaticMesh()->GetBounds();
 		const float MeshMinZ = GetAxisValue(StaticMeshBounds.Origin, ForwardAxis) - GetAxisValue(StaticMeshBounds.BoxExtent, ForwardAxis);
@@ -1265,8 +1273,10 @@ FStaticMeshStaticLightingMesh* USplineMeshComponent::AllocateStaticLightingMesh(
 
 float USplineMeshComponent::GetTextureStreamingTransformScale() const
 {
-		float SplineDeformFactor = 1.f;
+	float SplineDeformFactor = 1.f;
 
+	if (GetStaticMesh())
+	{
 		// We do this by looking at the ratio between current bounds (including deformation) and undeformed (straight from staticmesh)
 		const float MinExtent = 1.0f;
 		FBoxSphereBounds UndeformedBounds = GetStaticMesh()->GetBounds().TransformBy(GetComponentTransform());
@@ -1282,6 +1292,7 @@ float USplineMeshComponent::GetTextureStreamingTransformScale() const
 		{
 			SplineDeformFactor = FMath::Max(SplineDeformFactor, Bounds.BoxExtent.Z / UndeformedBounds.BoxExtent.Z);
 		}
+	}
 
 	return SplineDeformFactor * Super::GetTextureStreamingTransformScale();
 }

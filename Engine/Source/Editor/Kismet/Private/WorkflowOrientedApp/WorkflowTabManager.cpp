@@ -250,7 +250,7 @@ bool FTabInfo::CanStepForwardInHistory() const
 
 FReply FTabInfo::OnMouseDownHisory( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, TWeakPtr< SMenuAnchor > InMenuAnchor )
 {
-	if(MouseEvent.GetEffectingButton() == EKeys::RightMouseButton)
+	if(MouseEvent.GetEffectingButton() == EKeys::RightMouseButton && InMenuAnchor.IsValid())
 	{
 		InMenuAnchor.Pin()->SetIsOpen(true);
 		return FReply::Handled();

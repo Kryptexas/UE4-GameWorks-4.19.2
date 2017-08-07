@@ -54,6 +54,16 @@ FName UHeadMountedDisplayFunctionLibrary::GetHMDDeviceName()
 	return DeviceName;
 }
 
+EHMDWornState::Type UHeadMountedDisplayFunctionLibrary::GetHMDWornState()
+{
+	if (GEngine->HMDDevice.IsValid())
+	{
+		return GEngine->HMDDevice->GetHMDWornState();
+	}
+
+	return EHMDWornState::Unknown;
+}
+
 void UHeadMountedDisplayFunctionLibrary::GetOrientationAndPosition(FRotator& DeviceRotation, FVector& DevicePosition)
 {
 	if(GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed())

@@ -20,6 +20,7 @@
 #include "IContentBrowserSingleton.h"
 #include "SequencerUtilities.h"
 #include "MovieSceneBinding.h"
+#include "Engine/Texture2D.h"
 #include "Engine/Texture2DDynamic.h"
 #include "Rendering/DrawElements.h"
 
@@ -143,7 +144,7 @@ public:
 		{
 			ThumbnailLoader = ImagePlateSection->FileSequence->GetAsyncCache();
 			RenderTexture = NewObject<UTexture2DDynamic>(GetTransientPackage(), FName(), RF_Transient);
-			RenderTexture->Init(256, 256, PF_B8G8R8A8);
+			RenderTexture->Init(256, 256, PF_R8G8B8A8);
 		}
 		else
 		{
@@ -204,6 +205,23 @@ FImagePlateTrackEditor::FImagePlateTrackEditor(TSharedRef<ISequencer> InSequence
 	: FMovieSceneTrackEditor(InSequencer)
 {
 	ThumbnailPool = MakeShared<FTrackEditorThumbnailPool>(InSequencer);
+
+	for (auto& PropertyKey : GetAnimatedPropertyTypes())
+	{
+		InSequencer->GetObjectChangeListener().GetOnAnimatablePropertyChanged(PropertyKey).AddRaw(this, &FImagePlateTrackEditor::OnAnimatedPropertyChanged);
+	}
+}
+
+FImagePlateTrackEditor::~FImagePlateTrackEditor()
+{
+	TSharedPtr<ISequencer> SequencerPtr = GetSequencer();
+	if (SequencerPtr.IsValid())
+	{
+		for (auto& PropertyKey : GetAnimatedPropertyTypes())
+		{
+			SequencerPtr->GetObjectChangeListener().GetOnAnimatablePropertyChanged(PropertyKey).RemoveAll(this);
+		}
+	}
 }
 
 UMovieSceneTrack* FImagePlateTrackEditor::AddTrack(UMovieScene* FocusedMovieScene, const FGuid& ObjectHandle, TSubclassOf<class UMovieSceneTrack> TrackClass, FName UniqueTypeName)

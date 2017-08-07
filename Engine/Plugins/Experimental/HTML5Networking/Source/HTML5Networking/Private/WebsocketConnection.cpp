@@ -161,9 +161,18 @@ void UWebSocketConnection::ReceivedRawPacket(void* Data,int32 Count)
 	
 			TSharedPtr<StatelessConnectHandlerComponent> StatelessConnect = Driver->StatelessConnectComponent.Pin();
 
-			// @todo #JohnB: This is not connectionless. Defeats the purpose of the connectionless handshake? (review this code)
 			if (!UnProcessedPacket.bError && StatelessConnect->HasPassedChallenge(LowLevelGetRemoteAddress(true)))
 			{
+				UE_LOG(LogNet, Log, TEXT("Server accepting post-challenge connection from: %s"), *LowLevelGetRemoteAddress(true));
+				// Set the initial packet sequence from the handshake data
+				if (StatelessConnectComponent.IsValid())
+				{
+					int32 ServerSequence = 0;
+					int32 ClientSequence = 0;
+					StatelessConnect->GetChallengeSequence(ServerSequence, ClientSequence);
+					InitSequence(ClientSequence, ServerSequence);
+				}
+
 				if (Handler.IsValid())
 				{
 					Handler->BeginHandshaking();

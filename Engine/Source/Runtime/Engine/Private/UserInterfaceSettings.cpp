@@ -11,7 +11,7 @@
 
 UUserInterfaceSettings::UUserInterfaceSettings(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
-	, RenderFocusRule(ERenderFocusRule::Never)
+	, RenderFocusRule(ERenderFocusRule::NavigationOnly)
 	, ApplicationScale(1)
 	, bLoadWidgetsOnDedicatedServer(true)
 {

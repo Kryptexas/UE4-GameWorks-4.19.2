@@ -2790,7 +2790,11 @@ void UK2Node_MathExpression::ReconstructNode()
 	{
 		RebuildExpression(Expression);
 	}
+
+	// Call the super ReconstructNode, preserving our error message since we never want it automatically cleared
+	const FString OldErrorMessage = ErrorMsg;
 	Super::ReconstructNode();
+	ErrorMsg = OldErrorMessage;
 }
 
 //------------------------------------------------------------------------------

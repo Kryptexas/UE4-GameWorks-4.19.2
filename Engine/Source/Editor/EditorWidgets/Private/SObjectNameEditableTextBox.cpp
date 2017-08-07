@@ -7,6 +7,7 @@
 #include "EditorStyleSet.h"
 #include "GameFramework/Actor.h"
 #include "ScopedTransaction.h"
+#include "ActorEditorUtils.h"
 
 const float SObjectNameEditableTextBox::HighlightRectLeftOffset = 0.0f;
 const float SObjectNameEditableTextBox::HighlightRectRightOffset = 0.0f;
@@ -240,7 +241,8 @@ void SObjectNameEditableTextBox::OnNameTextCommitted(const FText& NewText, EText
 {
 	// Don't apply the change if the TextCommit type is OnCleared - this will only be the case if the keyboard focus was cleared due to
 	// Enter being pressed, in which case we will already have been here once with a TextCommit type of OnEnter.
-	if (InTextCommit != ETextCommit::OnCleared)
+	FText ErrorMessage;
+	if (InTextCommit != ETextCommit::OnCleared && FActorEditorUtils::ValidateActorName(NewText, ErrorMessage))
 	{
 		FText TrimmedText = FText::TrimPrecedingAndTrailing(NewText);
 
@@ -298,17 +300,11 @@ void SObjectNameEditableTextBox::OnNameTextCommitted(const FText& NewText, EText
 
 void SObjectNameEditableTextBox::OnTextChanged( const FText& InLabel )
 {
-	FText TrimmedLabel = FText::TrimPrecedingAndTrailing(InLabel);
+	FText OutErrorMessage;
 
-	if (TrimmedLabel.IsEmpty())
+	if(!FActorEditorUtils::ValidateActorName(InLabel, OutErrorMessage))
 	{
-		TextBox->SetError(LOCTEXT( "RenameFailed_LeftBlank", "Names cannot be left blank" ));
-	}
-	else if (TrimmedLabel.ToString().Len() >= NAME_SIZE)
-	{
-		FFormatNamedArguments Arguments;
-		Arguments.Add( TEXT("CharCount"), NAME_SIZE );
-		TextBox->SetError(FText::Format(LOCTEXT("RenameFailed_TooLong", "Actor names must be less than {CharCount} characters long."), Arguments));
+		TextBox->SetError(OutErrorMessage);
 	}
 	else
 	{

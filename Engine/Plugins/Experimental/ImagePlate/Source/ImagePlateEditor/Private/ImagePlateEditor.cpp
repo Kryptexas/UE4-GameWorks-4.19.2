@@ -71,7 +71,7 @@ public:
 		FImagePlateEditorStyle::Get();
 
 		ISequencerModule& SequencerModule = FModuleManager::Get().LoadModuleChecked<ISequencerModule>("Sequencer");
-		TrackEditorBindingHandle = SequencerModule.RegisterTrackEditor(FOnCreateTrackEditor::CreateStatic(FImagePlateTrackEditor::CreateTrackEditor));
+		TrackEditorBindingHandle = SequencerModule.RegisterPropertyTrackEditor<FImagePlateTrackEditor>();
 
 		AssetTypeActions = MakeShared<FAssetTypeActions_ImagePlateFileSequence>();
 

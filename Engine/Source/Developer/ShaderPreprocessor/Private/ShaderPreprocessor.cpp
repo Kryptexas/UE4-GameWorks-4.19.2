@@ -34,7 +34,7 @@ public:
 		, ShaderOutput(InShaderOutput)
 	{
 		FString InputShaderSource;
-		if (LoadShaderSourceFile(*InShaderInput.VirtualSourceFilePath, InputShaderSource))
+		if (LoadShaderSourceFile(*InShaderInput.VirtualSourceFilePath, InputShaderSource, nullptr))
 		{
 			InputShaderSource = FString::Printf(TEXT("%s\n#line 1\n%s"), *ShaderInput.SourceFilePrefix, *InputShaderSource);
 			CachedFileContents.Add(InShaderInput.VirtualSourceFilePath, StringToArray<ANSICHAR>(*InputShaderSource, InputShaderSource.Len()));
@@ -72,20 +72,15 @@ private:
 			}
 			else
 			{
-				if (!CheckVirtualShaderFilePath(*VirtualFilePath, &This->ShaderOutput.Errors))
-				{
-					return 0;
-				}
-
-				LoadShaderSourceFile(*VirtualFilePath, FileContents);
+				LoadShaderSourceFile(*VirtualFilePath, FileContents, &This->ShaderOutput.Errors);
 			}
-
-			// Adds a #line 1 "<Absolute file path>" on top of every file content to have nice absolute virtual source
-			// file path in error messages.
-			FileContents = FString::Printf(TEXT("#line 1 \"%s\"\n%s"), *VirtualFilePath, *FileContents);
 
 			if (FileContents.Len() > 0)
 			{
+				// Adds a #line 1 "<Absolute file path>" on top of every file content to have nice absolute virtual source
+				// file path in error messages.
+				FileContents = FString::Printf(TEXT("#line 1 \"%s\"\n%s"), *VirtualFilePath, *FileContents);
+
 				CachedContents = &This->CachedFileContents.Add(InVirtualFilePath, StringToArray<ANSICHAR>(*FileContents, FileContents.Len()));
 			}
 		}

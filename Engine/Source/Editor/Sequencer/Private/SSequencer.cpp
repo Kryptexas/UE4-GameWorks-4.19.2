@@ -2299,7 +2299,12 @@ void SSequencer::OnSequenceInstanceActivated( FMovieSceneSequenceIDRef ActiveIns
 		UMovieScene* MovieScene = Sequencer->GetFocusedMovieSceneSequence()->GetMovieScene();
 		if ( MovieScene->GetFixedFrameInterval() == 0 )
 		{
-			OnTimeSnapIntervalChanged(Settings->GetTimeSnapInterval());
+			MovieScene->Modify();
+			MovieScene->SetFixedFrameInterval(Settings->GetTimeSnapInterval());
+
+			// Update the current time to the new interval
+			float NewTime = SequencerHelpers::SnapTimeToInterval(Sequencer->GetLocalTime(), Settings->GetTimeSnapInterval());
+			Sequencer->SetLocalTime(NewTime);
 		}
 	}
 }

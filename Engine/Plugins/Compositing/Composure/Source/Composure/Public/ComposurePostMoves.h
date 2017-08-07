@@ -7,7 +7,7 @@
 
 
 USTRUCT(BlueprintType)
-struct FComposurePostMoveSettings
+struct COMPOSURE_API FComposurePostMoveSettings
 {
 	GENERATED_USTRUCT_BODY()
 	FComposurePostMoveSettings()

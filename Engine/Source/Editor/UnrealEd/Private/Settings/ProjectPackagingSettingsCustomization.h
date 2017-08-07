@@ -221,7 +221,7 @@ protected:
 							.Style(FEditorStyle::Get(), "RadioButton")
 							[
 								SNew(STextBlock)
-								.Text(LOCTEXT("AllCulturesCheckBoxText", "Show all"))
+								.Text(LOCTEXT("AllCulturesCheckBoxText", "Show All"))
 							]
 						]
 
@@ -236,7 +236,7 @@ protected:
 							.Style(FEditorStyle::Get(), "RadioButton")
 							[
 								SNew(STextBlock)
-								.Text(LOCTEXT("CookedCulturesCheckBoxText", "Show localized"))
+								.Text(LOCTEXT("CookedCulturesCheckBoxText", "Show Localized"))
 							]
 						]
 					]
@@ -262,26 +262,30 @@ protected:
 		{
 		case EFilterCulturesChoices::AllAvailableCultures:
 			{
-				CultureList.Empty();
 				TArray<FString> CultureNames;
 				FInternationalization::Get().GetCultureNames(CultureNames);
+				
+				CultureList.Reset();
 				for(const FString& CultureName : CultureNames)
 				{
 					CultureList.Add(FInternationalization::Get().GetCulture(CultureName));
 				}
 			}
 			break;
+
 		case EFilterCulturesChoices::OnlyLocalizedCultures:
 			{
 				TArray<FCultureRef> LocalizedCultureList;
 				TArray<FString> LocalizationPaths = FPaths::GetGameLocalizationPaths();
 				FInternationalization::Get().GetCulturesWithAvailableLocalization(LocalizationPaths, LocalizedCultureList, true);
-				CultureList.Empty();
-				for(const auto& Culture : LocalizedCultureList)
-				{
-					CultureList.Add(Culture);
-				}
+
+				CultureList.Reset();
+				CultureList.Append(LocalizedCultureList);
 			}
+			break;
+
+		default:
+			checkf(false, TEXT("Unknown EFilterCulturesChoices"));
 			break;
 		}
 	}

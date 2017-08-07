@@ -542,6 +542,14 @@ void FScene::UpdateSceneCaptureContents(USceneCaptureComponent2D* CaptureCompone
 
 	if (CaptureComponent->TextureTarget)
 	{
+		// Only ensure motion blur cache is up to date when doing USceneCaptureComponent2D::CaptureScene(),
+		// but only when bAlwaysPersistRenderingState == true for backward compatibility.
+		if (!CaptureComponent->bCaptureEveryFrame && CaptureComponent->bAlwaysPersistRenderingState)
+		{
+			// We assume the world is not paused since the CaptureScene() has manually been called.
+			EnsureMotionBlurCacheIsUpToDate(/* bWorldIsPaused = */ false);
+		}
+
 		FTransform Transform = CaptureComponent->GetComponentToWorld();
 		FVector ViewLocation = Transform.GetTranslation();
 

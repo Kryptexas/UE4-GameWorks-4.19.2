@@ -150,7 +150,12 @@ public:
 	virtual TSharedPtr<FTabManager> GetAssociatedTabManager() override
 	{
 		IAssetEditorInstance* Instance = FAssetEditorManager::Get().FindEditorForAsset(MyAsset, /*bFocusIfOpen=*/ false);
-		return Instance->GetAssociatedTabManager();
+		if (Instance)
+		{
+			return Instance->GetAssociatedTabManager();
+		}
+
+		return nullptr;
 	}
 
 protected:

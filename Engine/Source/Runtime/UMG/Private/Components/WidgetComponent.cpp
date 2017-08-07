@@ -1031,17 +1031,21 @@ void UWidgetComponent::DrawWidgetToRenderTarget(float DeltaTime)
 
 	UpdateRenderTarget(CurrentDrawSize);
 
-	bRedrawRequested = false;
+	// The render target could be null if the current draw size is zero
+	if(RenderTarget)
+	{
+		bRedrawRequested = false;
 
-	WidgetRenderer->DrawWindow(
-		RenderTarget,
-		SlateWindow->GetHittestGrid(),
-		SlateWindow.ToSharedRef(),
-		DrawScale,
-		CurrentDrawSize,
-		DeltaTime);
+		WidgetRenderer->DrawWindow(
+			RenderTarget,
+			SlateWindow->GetHittestGrid(),
+			SlateWindow.ToSharedRef(),
+			DrawScale,
+			CurrentDrawSize,
+			DeltaTime);
 
-	LastWidgetRenderTime = GetCurrentTime();
+		LastWidgetRenderTime = GetCurrentTime();
+	}
 }
 
 float UWidgetComponent::ComputeComponentWidth() const
@@ -1422,7 +1426,6 @@ void UWidgetComponent::UpdateRenderTarget(FIntPoint DesiredRenderTargetSize)
 			if ( RenderTarget->SizeX != DesiredRenderTargetSize.X || RenderTarget->SizeY != DesiredRenderTargetSize.Y )
 			{
 				RenderTarget->InitCustomFormat(DesiredRenderTargetSize.X, DesiredRenderTargetSize.Y, PF_B8G8R8A8, false);
-				RenderTarget->UpdateResourceImmediate(false);
 				bWidgetRenderStateDirty = true;
 			}
 
@@ -1435,7 +1438,7 @@ void UWidgetComponent::UpdateRenderTarget(FIntPoint DesiredRenderTargetSize)
 
 			if ( bWidgetRenderStateDirty )
 			{
-				RenderTarget->UpdateResource();
+				RenderTarget->UpdateResourceImmediate();
 			}
 		}
 	}

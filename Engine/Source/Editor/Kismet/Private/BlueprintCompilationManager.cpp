@@ -3,6 +3,7 @@
 #include "BlueprintCompilationManager.h"
 
 #include "BlueprintEditorUtils.h"
+#include "BlueprintEditorSettings.h"
 #include "Blueprint/BlueprintSupport.h"
 #include "CompilerResultsLog.h"
 #include "Components/TimelineComponent.h"
@@ -12,6 +13,7 @@
 #include "Engine/SCS_Node.h"
 #include "Engine/SimpleConstructionScript.h"
 #include "Engine/TimelineTemplate.h"
+#include "FileHelpers.h"
 #include "FindInBlueprintManager.h"
 #include "K2Node_CustomEvent.h"
 #include "K2Node_FunctionEntry.h"
@@ -107,6 +109,9 @@ struct FBlueprintCompilationManagerImpl : public FGCObject
 	// Data stored for reinstancing, which finishes much later than compilation,
 	// populated by FlushCompilationQueueImpl, cleared by FlushReinstancingQueueImpl:
 	TMap<UClass*, UClass*> ClassesToReinstance;
+	
+	// Blueprints that should be saved after the compilation pass is complete:
+	TArray<UBlueprint*> CompiledBlueprintsToSave;
 
 	// State stored so that we can check what stage of compilation we're in:
 	bool bGeneratedClassLayoutReady;
@@ -114,6 +119,7 @@ struct FBlueprintCompilationManagerImpl : public FGCObject
 
 // free function that we use to cross a module boundary (from CoreUObject to here)
 void FlushReinstancingQueueImplWrapper();
+void MoveSkelCDOAside(UClass* Class, TMap<UClass*, UClass*>& OldToNewMap);
 
 FBlueprintCompilationManagerImpl::FBlueprintCompilationManagerImpl()
 {
@@ -199,6 +205,18 @@ void FBlueprintCompilationManagerImpl::CompileSynchronouslyImpl(const FBPCompile
 		{
 			GEditor->BroadcastBlueprintCompiled();	
 		}
+	}
+
+	if(CompiledBlueprintsToSave.Num() > 0)
+	{
+		TArray<UPackage*> PackagesToSave;
+		for(UBlueprint* BP : CompiledBlueprintsToSave)
+		{
+			PackagesToSave.Add(BP->GetOutermost());
+		}
+	
+		FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, /*bCheckDirty =*/true, /*bPromptToSave =*/false);
+		CompiledBlueprintsToSave.Empty();
 	}
 }
 
@@ -485,11 +503,10 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 			for (FCompilerData& CompilerData : CurrentlyCompilingBPs)
 			{
 				UBlueprint* BP = CompilerData.BP;
-				if(BP->SkeletonGeneratedClass)
+				UClass* OldSkeletonClass = BP->SkeletonGeneratedClass;
+				if(OldSkeletonClass)
 				{
-					UClass* CopyOfOldClass = FBlueprintCompileReinstancer::MoveCDOToNewClass(BP->SkeletonGeneratedClass, OldSkeletonToNewSkeleton, true);
-					OldSkeletonToNewSkeleton.Add(BP->SkeletonGeneratedClass, CopyOfOldClass);
-					// Child types will need to use CopyOfOldClass
+					MoveSkelCDOAside(OldSkeletonClass, OldSkeletonToNewSkeleton);
 				}
 			}
 		}
@@ -681,6 +698,11 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 		bGeneratedClassLayoutReady = true;
 	
 		// STAGE XIII: Compile functions
+		UBlueprintEditorSettings* Settings = GetMutableDefault<UBlueprintEditorSettings>();
+		
+		const bool bSaveBlueprintsAfterCompile = Settings->SaveOnCompile == SoC_Always;
+		const bool bSaveBlueprintAfterCompileSucceeded = Settings->SaveOnCompile == SoC_SuccessOnly;
+
 		for (FCompilerData& CompilerData : CurrentlyCompilingBPs)
 		{
 			UBlueprint* BP = CompilerData.BP;
@@ -734,6 +756,15 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 				else
 				{
 					BP->Status = BS_Error; // do we still have the old version of the class?
+				}
+
+				// SOC settings only apply after compile on load:
+				if(!BP->bIsRegeneratingOnLoad)
+				{
+					if(bSaveBlueprintsAfterCompile || (bSaveBlueprintAfterCompileSucceeded && BP->Status == BS_UpToDate))
+					{
+						CompiledBlueprintsToSave.Add(BP);
+					}
 				}
 			}
 
@@ -1813,6 +1844,38 @@ void FlushReinstancingQueueImplWrapper()
 	BPCMImpl->FlushReinstancingQueueImpl();
 }
 
+// Recursive function to move CDOs aside to immutable versions of classes
+// so that CDOs can be safely GC'd. Recursion is necessary to find REINST_ classes
+// that are still parented to a valid SKEL (e.g. from MarkBlueprintAsStructurallyModified)
+// and therefore need to be REINST_'d again before the SKEL is mutated... Normally
+// these old REINST_ classes are GC'd but, there is no guarantee of that:
+void MoveSkelCDOAside(UClass* Class, TMap<UClass*, UClass*>& OutOldToNewMap)
+{
+	UClass* CopyOfOldClass = FBlueprintCompileReinstancer::MoveCDOToNewClass(Class, OutOldToNewMap, true);
+	OutOldToNewMap.Add(Class, CopyOfOldClass);
+
+	// Child types that are associated with a BP will be compiled by the compilation
+	// manager, but old REINST_ or TRASH_ types need to be handled explicitly:
+	TArray<UClass*> Children;
+	GetDerivedClasses(Class, Children);
+	for(UClass* Child : Children)
+	{
+		if(UBlueprint* BP = Cast<UBlueprint>(Child->ClassGeneratedBy))
+		{
+			if(BP->SkeletonGeneratedClass != Child)
+			{
+				if(	ensureMsgf ( 
+					BP->GeneratedClass != Child, 
+					TEXT("Class in skeleton hierarchy is cached as GeneratedClass"))
+				)
+				{
+					MoveSkelCDOAside(Child, OutOldToNewMap);
+				}
+			}
+		}
+	}
+};
+
 void FBlueprintCompilationManager::Initialize()
 {
 	if(!BPCMImpl)
@@ -1833,6 +1896,9 @@ void FBlueprintCompilationManager::FlushCompilationQueue(TArray<UObject*>* ObjLo
 	if(BPCMImpl)
 	{
 		BPCMImpl->FlushCompilationQueueImpl(ObjLoaded, false);
+
+		// we can't support save on compile when reinstancing is deferred:
+		BPCMImpl->CompiledBlueprintsToSave.Empty();
 	}
 }
 

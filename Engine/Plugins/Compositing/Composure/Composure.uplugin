@@ -18,7 +18,12 @@
 	[
 		{
 			"Name" : "Composure",
-			"Type" : "Developer",
+			"Type" : "Runtime",
+			"LoadingPhase" : "Default"
+		},
+		{
+			"Name" : "ComposureEditor",
+			"Type" : "Editor",
 			"LoadingPhase" : "Default"
 		}
 	],

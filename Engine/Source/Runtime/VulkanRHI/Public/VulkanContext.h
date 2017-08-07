@@ -318,6 +318,7 @@ protected:
 		TMap<FVulkanQueryPool*, TArray<uint64>> ResetList;
 	};
 	FOcclusionQueryData CurrentOcclusionQueryData;
+	void AdvanceQuery(FVulkanRenderQuery* Query);
 
 	FVulkanPendingGfxState* PendingGfxState;
 	FVulkanPendingComputeState* PendingComputeState;

@@ -728,7 +728,11 @@ bool FGoogleVRController::GetControllerOrientationAndPosition(const int32 Contro
 			FQuat Orientation = ConvertGvrQuaternionToUnreal(ControllerRotation.w(), ControllerRotation.x(), ControllerRotation.y(), ControllerRotation.z());
 
 			FQuat BaseOrientation;
-			if (GEngine->HMDDevice.IsValid())
+			const bool bUsingGoogleVRHMD =
+				GEngine->HMDDevice.IsValid() &&
+				(GEngine->HMDDevice->GetDeviceName() == FName(TEXT("FGoogleVRHMD")));
+
+			if (bUsingGoogleVRHMD)
 			{
 				BaseOrientation = GEngine->HMDDevice->GetBaseOrientation();
 			}

@@ -4950,7 +4950,7 @@ FKey TranslateMouseButtonToKey( const EMouseButtons::Type Button )
 	return Key;
 }
 
-#if PLATFORM_DESKTOP
+#if PLATFORM_DESKTOP || PLATFORM_HTML5
 
 void FSlateApplication::SetGameIsFakingTouchEvents(const bool bIsFaking, FVector2D* CursorLocation)
 {

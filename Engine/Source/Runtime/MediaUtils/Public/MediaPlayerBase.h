@@ -93,7 +93,7 @@ public:
 	 *
 	 * @return The player, or nullptr if no player was created.
 	 */
-	TSharedPtr<IMediaPlayer> GetNativePlayer() const
+	TSharedPtr<IMediaPlayer, ESPMode::ThreadSafe> GetNativePlayer() const
 	{
 		return NativePlayer;
 	}
@@ -364,7 +364,7 @@ protected:
 	 * @param Options The media options for the URL.
 	 * @return The player if found, or nullptr otherwise.
 	 */
-	TSharedPtr<IMediaPlayer> FindPlayerForUrl(const FString& Url, const IMediaOptions& Options);
+	TSharedPtr<IMediaPlayer, ESPMode::ThreadSafe> FindPlayerForUrl(const FString& Url, const IMediaOptions& Options);
 
 	/** Select the default media tracks. */
 	void SelectDefaultTracks();
@@ -375,7 +375,7 @@ protected:
 	FString CurrentUrl;
 
 	/** The low-level player used to play the media source. */
-	TSharedPtr<IMediaPlayer> NativePlayer;
+	TSharedPtr<IMediaPlayer, ESPMode::ThreadSafe> NativePlayer;
 
 private:
 

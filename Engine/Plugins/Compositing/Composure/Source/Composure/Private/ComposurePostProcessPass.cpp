@@ -99,9 +99,6 @@ void UComposurePostProcessPass::InitializeComponent()
 	BlendableInterface->Target = this;
 
 	SceneCapture->RegisterComponent();
-
-	// Disables as much stuf as possible using showflags. 
-	FComposureUtils::SetEngineShowFlagsForPostprocessingOnly(SceneCapture->ShowFlags);
 }
 
 void UComposurePostProcessPass::UninitializeComponent()

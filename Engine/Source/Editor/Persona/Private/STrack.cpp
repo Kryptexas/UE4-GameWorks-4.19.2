@@ -376,6 +376,8 @@ void STrack::Construct( const FArguments& InArgs )
 	DraggableBarIndex = INDEX_NONE;
 	bDraggingBar = false;
 
+	SetClipping(EWidgetClipping::ClipToBounds);
+
 	Font = FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 10 );
 }
 

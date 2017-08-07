@@ -105,7 +105,7 @@ void FSystemTextures::InternalInitializeTextures(FRHICommandListImmediate& RHICm
 		}
 
 		// Create the SobolSampling texture
-		if (InFeatureLevel >= ERHIFeatureLevel::ES3_1)
+		if (InFeatureLevel >= ERHIFeatureLevel::ES3_1 && GPixelFormats[PF_R16_UINT].Supported)
 		{
 			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(32, 16), PF_R16_UINT, FClearValueBinding::None, TexCreate_HideInVisualizeTexture, TexCreate_NoFastClear, false));
 			Desc.AutoWritable = false;

@@ -11,10 +11,14 @@
 #include "Public/SceneUtils.h"
 #include "Public/SceneInterface.h"
 #include "Public/ShaderParameterUtils.h"
+#include "Public/Logging/MessageLog.h"
+#include "Public/Internationalization/Internationalization.h"
 
 
 static const uint32 kGridSubdivisionX = 32;
 static const uint32 kGridSubdivisionY = 16;
+
+#define LOCTEXT_NAMESPACE "LensDistortionPlugin"
 
 
 /**
@@ -326,6 +330,14 @@ void FLensDistortionCameraModel::DrawUVDisplacementToRenderTarget(
 {
 	check(IsInGameThread());
 
+	if (!OutputRenderTarget)
+	{
+		FMessageLog("Blueprint").Warning(
+			LOCTEXT("LensDistortionCameraModel_DrawUVDisplacementToRenderTarget",
+			"DrawUVDisplacementToRenderTarget: Output render target is required."));
+		return;
+	}
+
 	// Compiles the camera model to know the overscan scale factor.
 	float TanHalfUndistortedHorizontalFOV = FMath::Tan(DistortedHorizontalFOV * 0.5f) * UndistortOverscanFactor;
 	float TanHalfUndistortedVerticalFOV = TanHalfUndistortedHorizontalFOV / DistortedAspectRatio;
@@ -364,3 +376,5 @@ void FLensDistortionCameraModel::DrawUVDisplacementToRenderTarget(
 		}
 	);
 }
+
+#undef LOCTEXT_NAMESPACE

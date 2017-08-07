@@ -629,11 +629,11 @@ public:
 	FInfo Infos[NUM_RENDER_BUFFERS];
 };
 
-class FVulkanOcclusionQueryPool : public FVulkanQueryPool
+class FVulkanBufferedQueryPool : public FVulkanQueryPool
 {
 public:
-	FVulkanOcclusionQueryPool(FVulkanDevice* InDevice, uint32 InNumQueries)
-		: FVulkanQueryPool(InDevice, InNumQueries, VK_QUERY_TYPE_OCCLUSION)
+	FVulkanBufferedQueryPool(FVulkanDevice* InDevice, uint32 InNumQueries, VkQueryType InQueryType)
+		: FVulkanQueryPool(InDevice, InNumQueries, InQueryType)
 		, LastBeginIndex(0)
 	{
 		QueryOutput.SetNum(InNumQueries);
@@ -678,7 +678,9 @@ public:
 		{
 			// Use the lowest word available
 			const uint64 AllUsedMask = (uint64)-1;
-			if (UsedQueryBits[LastBeginIndex / 64] == AllUsedMask)
+			const uint64 LastQueryWord = LastBeginIndex / 64;
+			if (LastQueryWord >= UsedQueryBits.Num()
+				|| UsedQueryBits[LastQueryWord] == AllUsedMask)
 			{
 				LastBeginIndex = QueryIndex;
 			}
@@ -740,16 +742,30 @@ public:
 	virtual ~FVulkanRenderQuery();
 
 private:
+
+	enum
+	{
+		NumQueries = NUM_RENDER_BUFFERS
+	};
+	
+	int32 CurrentQueryIdx;
+
 	// Actual index and pool filled in after RHIBeginOcclusionQueryBatch
-	FVulkanQueryPool* QueryPool;
-	int32 QueryIndex;
+	FVulkanQueryPool* QueryPools[NumQueries];
+	FVulkanQueryPool* GetActiveQueryPool() const { return QueryPools[CurrentQueryIdx]; }
+	void SetActiveQueryPool(FVulkanQueryPool* Pool) { QueryPools[CurrentQueryIdx] = Pool; }
+	
+	int32 QueryIndices[NumQueries];
+	int32 GetActiveQueryIndex() const { return QueryIndices[CurrentQueryIdx]; }
+	void SetActiveQueryIndex(int32 QueryIndex) { QueryIndices[CurrentQueryIdx] = QueryIndex; }
+	void AdvanceQueryIndex() { CurrentQueryIdx = (CurrentQueryIdx + 1) % NumQueries; }
 
 	ERenderQueryType QueryType;
 	FVulkanCmdBuffer* CurrentCmdBuffer;
 
 	friend class FVulkanDynamicRHI;
 	friend class FVulkanCommandListContext;
-	friend class FVulkanOcclusionQueryPool;
+	friend class FVulkanBufferedQueryPool;
 
 	void Begin(FVulkanCmdBuffer* CmdBuffer);
 	void End(FVulkanCmdBuffer* CmdBuffer);

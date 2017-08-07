@@ -115,7 +115,7 @@ class OCULUSHMD_API UOculusFunctionLibrary : public UBlueprintFunctionLibrary
 	* @param TimeInSeconds			(out) Time when the reported IMU reading took place, in seconds.
 	*/
 	UFUNCTION(BlueprintPure, Category = "Input|OculusLibrary")
-	static void GetRawSensorData(ETrackedDeviceType DeviceType, FVector& AngularAcceleration, FVector& LinearAcceleration, FVector& AngularVelocity, FVector& LinearVelocity, float& TimeInSeconds);
+	static void GetRawSensorData(FVector& AngularAcceleration, FVector& LinearAcceleration, FVector& AngularVelocity, FVector& LinearVelocity, float& TimeInSeconds, ETrackedDeviceType DeviceType = ETrackedDeviceType::HMD);
 
 	/**
 	* Returns if the device is currently tracked by the runtime or not.

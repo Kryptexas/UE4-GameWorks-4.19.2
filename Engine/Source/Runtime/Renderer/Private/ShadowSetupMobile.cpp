@@ -108,7 +108,7 @@ static bool ShouldPrimitiveReceiveCombinedCSMAndStaticShadowsFromStationaryLight
 template<typename TReceiverFunc>
 static bool MobileDetermineStaticMeshesCSMVisibilityStateInner(
 	FScene* Scene,
-	const FConvexVolume& ViewFrustum,
+	FViewInfo& View,
 	const FPrimitiveSceneInfoCompact& PrimitiveSceneInfoCompact,
 	FProjectedShadowInfo* WholeSceneShadow,
 	TReceiverFunc IsReceiverFunc
@@ -155,10 +155,9 @@ static bool MobileDetermineStaticMeshesCSMVisibilityStateInner(
 			&& !(ProjectedDistanceFromShadowOriginAlongLightDir < 0
 				&& PrimitiveToShadowCenter.SizeSquared() > CombinedRadiusSq))
 		{
-			FViewInfo* View = ProjectedShadowInfo->DependentView;
-			FVisibleLightViewInfo& VisibleLightViewInfo = View->VisibleLightInfos[WholeSceneShadow->GetLightSceneInfo().Id];
+			FVisibleLightViewInfo& VisibleLightViewInfo = View.VisibleLightInfos[WholeSceneShadow->GetLightSceneInfo().Id];
 
-			const FPrimitiveViewRelevance& Relevance = View->PrimitiveViewRelevanceMap[PrimitiveSceneInfo->GetIndex()];
+			const FPrimitiveViewRelevance& Relevance = View.PrimitiveViewRelevanceMap[PrimitiveSceneInfo->GetIndex()];
 			const bool bLit = (Relevance.ShadingModelMaskRelevance & (1 << MSM_Unlit)) == 0;
 			bool bCanReceiveDynamicShadow =
 				bLit
@@ -167,7 +166,7 @@ static bool MobileDetermineStaticMeshesCSMVisibilityStateInner(
 
 			if (bCanReceiveDynamicShadow)
 			{
-				bFoundCSMReceiver = EnableStaticMeshCombinedStaticAndCSMVisibilityState(PrimitiveSceneInfo, View->MobileCSMVisibilityInfo, *View);
+				bFoundCSMReceiver = EnableStaticMeshCombinedStaticAndCSMVisibilityState(PrimitiveSceneInfo, View.MobileCSMVisibilityInfo, View);
 			}
 		}
 	}
@@ -175,11 +174,8 @@ static bool MobileDetermineStaticMeshesCSMVisibilityStateInner(
 }
 
 template<typename TReceiverFunc>
-static bool MobileDetermineStaticMeshesCSMVisibilityState(FScene* Scene, FProjectedShadowInfo* WholeSceneShadow, TReceiverFunc IsReceiverFunc)
+static bool MobileDetermineStaticMeshesCSMVisibilityState(FScene* Scene, FViewInfo& View, FProjectedShadowInfo* WholeSceneShadow, TReceiverFunc IsReceiverFunc)
 {
-	FConvexVolume ViewFrustum;
-	FViewInfo* View = WholeSceneShadow->DependentView;
-	GetViewFrustumBounds(ViewFrustum, View->ViewMatrices.GetViewProjectionMatrix(), true);
 	bool bFoundReceiver = false;
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_ShadowOctreeTraversal);
@@ -211,7 +207,7 @@ static bool MobileDetermineStaticMeshesCSMVisibilityState(FScene* Scene, FProjec
 			for (FScenePrimitiveOctree::ElementConstIt NodePrimitiveIt(PrimitiveOctreeNode.GetElementIt()); NodePrimitiveIt; ++NodePrimitiveIt)
 			{
 				// gather the shadows for this one primitive
-				bFoundReceiver = MobileDetermineStaticMeshesCSMVisibilityStateInner(Scene, ViewFrustum, *NodePrimitiveIt, WholeSceneShadow, IsReceiverFunc) || bFoundReceiver;
+				bFoundReceiver = MobileDetermineStaticMeshesCSMVisibilityStateInner(Scene, View, *NodePrimitiveIt, WholeSceneShadow, IsReceiverFunc) || bFoundReceiver;
 			}
 		}
 	}
@@ -375,7 +371,9 @@ void FMobileSceneRenderer::BuildCombinedStaticAndCSMVisibilityState(FLightSceneI
 		{
 			bool bStaticCSMReceiversFound = false;
 			FViewInfo& View = Views[ViewIndex];
-			FVisibleLightViewInfo& VisibleLightViewInfo = View.VisibleLightInfos[LightSceneInfo->Id];
+
+			FViewInfo* ShadowSubjectView = ProjectedShadowInfo->DependentView ? ProjectedShadowInfo->DependentView : &View;
+			FVisibleLightViewInfo& VisibleLightViewInfo = ShadowSubjectView->VisibleLightInfos[LightSceneInfo->Id];
 			FMobileCSMSubjectPrimitives& MobileCSMSubjectPrimitives = VisibleLightViewInfo.MobileCSMSubjectPrimitives;
 			FMobileCSMVisibilityInfo& MobileCSMVisibilityInfo = View.MobileCSMVisibilityInfo;
 			const auto& ShadowSubjectPrimitives = MobileCSMSubjectPrimitives.GetShadowSubjectPrimitives();
@@ -475,7 +473,7 @@ void FMobileSceneRenderer::BuildCombinedStaticAndCSMVisibilityState(FLightSceneI
 						{
 							return IsShadowReceiverNoView(PrimOrigin, PrimExtent) && IsShadowReceiverCasterVsBox(PrimOrigin, PrimExtent, CombinedCasterStart, CombinedCasterEnd, CombinedBounds.SphereRadius);
 						};
-						bStaticCSMReceiversFound = MobileDetermineStaticMeshesCSMVisibilityState(Scene, ProjectedShadowInfo, IsShadowReceiverCombinedBox);
+						bStaticCSMReceiversFound = MobileDetermineStaticMeshesCSMVisibilityState(Scene, View, ProjectedShadowInfo, IsShadowReceiverCombinedBox);
 					}
 					else
 					{
@@ -489,7 +487,7 @@ void FMobileSceneRenderer::BuildCombinedStaticAndCSMVisibilityState(FLightSceneI
 						{
 							return IsShadowReceiverNoView(PrimOrigin, PrimExtent) && IsShadowReceiverAllCastersVsBox(PrimOrigin, PrimExtent);
 						};
-						bStaticCSMReceiversFound = MobileDetermineStaticMeshesCSMVisibilityState(Scene, ProjectedShadowInfo, IsShadowReceiverBoxAllCasters);
+						bStaticCSMReceiversFound = MobileDetermineStaticMeshesCSMVisibilityState(Scene, View, ProjectedShadowInfo, IsShadowReceiverBoxAllCasters);
 					}
 				}
 				else
@@ -530,7 +528,7 @@ void FMobileSceneRenderer::BuildCombinedStaticAndCSMVisibilityState(FLightSceneI
 						{
 							return IsShadowReceiverNoView(PrimOrigin, PrimExtent) && IsShadowReceiverCasterVsSphere(PrimOrigin, PrimRadius, CombinedCasterStart, CombinedCasterEnd, CombinedBounds.SphereRadius);
 						};
-						bStaticCSMReceiversFound = MobileDetermineStaticMeshesCSMVisibilityState(Scene, ProjectedShadowInfo, IsShadowReceiverCombined);
+						bStaticCSMReceiversFound = MobileDetermineStaticMeshesCSMVisibilityState(Scene, View, ProjectedShadowInfo, IsShadowReceiverCombined);
 					}
 					else // all casters test
 					{
@@ -546,7 +544,7 @@ void FMobileSceneRenderer::BuildCombinedStaticAndCSMVisibilityState(FLightSceneI
 							return IsShadowReceiverNoView(PrimOrigin, PrimExtent) && IsShadowReceiverAllCastersVsSphere(PrimOrigin, PrimRadius);
 						};
 
-						bStaticCSMReceiversFound = MobileDetermineStaticMeshesCSMVisibilityState(Scene, ProjectedShadowInfo, IsShadowReceiverSphereAllCasters);
+						bStaticCSMReceiversFound = MobileDetermineStaticMeshesCSMVisibilityState(Scene, View, ProjectedShadowInfo, IsShadowReceiverSphereAllCasters);
 					}
 				}
 			}

@@ -1648,12 +1648,18 @@ FClassHierarchy::~FClassHierarchy()
 		AssetRegistryModule.Get().OnAssetRemoved().RemoveAll( this );
 
 		// Unregister to have Populate called when doing a Hot Reload.
-		IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
-		HotReloadSupport.OnHotReload().RemoveAll( this );
+		if(FModuleManager::Get().IsModuleLoaded("HotReload"))
+		{
+			IHotReloadInterface& HotReloadSupport = FModuleManager::GetModuleChecked<IHotReloadInterface>("HotReload");
+			HotReloadSupport.OnHotReload().RemoveAll(this);
+		}
 
-		// Unregister to have Populate called when a Blueprint is compiled.
-		GEditor->OnBlueprintCompiled().Remove(OnBlueprintCompiledRequestPopulateClassHierarchyDelegateHandle);
-		GEditor->OnClassPackageLoadedOrUnloaded().Remove(OnClassPackageLoadedOrUnloadedRequestPopulateClassHierarchyDelegateHandle);
+		if(GEditor)
+		{
+			// Unregister to have Populate called when a Blueprint is compiled.
+			GEditor->OnBlueprintCompiled().Remove(OnBlueprintCompiledRequestPopulateClassHierarchyDelegateHandle);
+			GEditor->OnClassPackageLoadedOrUnloaded().Remove(OnClassPackageLoadedOrUnloadedRequestPopulateClassHierarchyDelegateHandle);
+		}
 	}
 
 	FModuleManager::Get().OnModulesChanged().RemoveAll(this);

@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "MovieSceneTrackEditor.h"
 #include "AnimatedPropertyKey.h"
+#include "Engine/Texture.h"
 
 class ISequencer;
 struct FAssetData;
@@ -18,6 +19,12 @@ public:
 	static TSharedRef<ISequencerTrackEditor> CreateTrackEditor(TSharedRef<ISequencer> OwningSequencer) { return MakeShared<FImagePlateTrackEditor>(OwningSequencer); }
 
 	FImagePlateTrackEditor(TSharedRef<ISequencer> InSequencer);
+	~FImagePlateTrackEditor();
+
+	static TArray<FAnimatedPropertyKey, TInlineAllocator<1>> GetAnimatedPropertyTypes()
+	{
+		return TArray<FAnimatedPropertyKey, TInlineAllocator<1>>({ FAnimatedPropertyKey::FromObjectType(UTexture::StaticClass()) });
+	}
 
 	virtual TSharedRef<ISequencerSection> MakeSectionInterface(UMovieSceneSection& SectionObject, UMovieSceneTrack& Track, FGuid ObjectBinding) override;
 	virtual bool SupportsType(TSubclassOf<UMovieSceneTrack> TrackClass) const override;

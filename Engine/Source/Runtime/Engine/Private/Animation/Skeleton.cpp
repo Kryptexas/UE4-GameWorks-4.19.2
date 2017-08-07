@@ -221,13 +221,18 @@ void USkeleton::Serialize( FArchive& Ar )
 }
 
 #if WITH_EDITOR
+void USkeleton::PreEditUndo()
+{
+	// Undoing so clear cached data as it will now be stale
+	ClearCacheData();
+}
+
 void USkeleton::PostEditUndo()
 {
 	Super::PostEditUndo();
 
-	//if we were undoing virtual bone changes then we need to handle stale cache data
-	SkelMesh2LinkupCache.Empty();
-	LinkupCache.Empty();
+	//If we were undoing virtual bone changes then we need to handle stale cache data
+	// Cached data is cleared in PreEditUndo to make sure it is done before any object hits their PostEditUndo
 	HandleVirtualBoneChanges();
 }
 #endif // WITH_EDITOR

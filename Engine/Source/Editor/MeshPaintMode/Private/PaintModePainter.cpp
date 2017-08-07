@@ -2151,7 +2151,7 @@ void FPaintModePainter::CacheTexturePaintData()
 		UTexture2D* NewTexture = nullptr;
 		if (PaintableTextures.Num() > 0)
 		{
-			NewTexture = CastChecked<UTexture2D>(PaintableTextures[0].Texture);
+			NewTexture = Cast<UTexture2D>(PaintableTextures[0].Texture);
 		}
 		PaintSettings->TexturePaintSettings.PaintTexture = NewTexture;
 	}

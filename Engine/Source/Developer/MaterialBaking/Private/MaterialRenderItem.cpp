@@ -176,7 +176,7 @@ void FMeshMaterialRenderItem::PopulateWithQuadData()
 	const float SizeV = MeshSettings->TextureCoordinateBox.Max.Y - MeshSettings->TextureCoordinateBox.Min.Y;
 	const FIntPoint& PropertySize = MaterialSettings->PropertySizes[MaterialProperty];
 	const float ScaleX = PropertySize.X;
-	const float ScaleY = PropertySize.X;
+	const float ScaleY = PropertySize.Y;
 
 	// add vertices
 	for (int32 VertIndex = 0; VertIndex < 4; VertIndex++)

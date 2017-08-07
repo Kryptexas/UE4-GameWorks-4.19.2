@@ -21,7 +21,7 @@ class UComposurePostProcessBlendable;
  * In engine post process based pass.
  */
 UCLASS()
-class UComposurePostProcessPass
+class COMPOSURE_API UComposurePostProcessPass
 	: public USceneComponent
 {
 	GENERATED_UCLASS_BODY()
