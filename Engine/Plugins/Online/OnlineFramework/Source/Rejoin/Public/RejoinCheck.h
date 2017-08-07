@@ -89,7 +89,7 @@ public:
 	 *
 	 * @param CompletionDelegate delegate called after the check for possible rejoin is complete
 	 */
-	void CheckRejoinStatus(const FOnRejoinCheckComplete& CompletionDelegate = FOnRejoinCheckComplete());
+	virtual void CheckRejoinStatus(const FOnRejoinCheckComplete& CompletionDelegate = FOnRejoinCheckComplete());
 
 	/**
 	 * Rejoin the last session if one is found.  One final call to CheckRejoinStatus is made to
@@ -174,11 +174,12 @@ protected:
 	/** Clear all timers associated with rejoin */
 	void ClearTimers();
 
-private:
-
 	/** Rejoin status */
 	UPROPERTY()
 	ERejoinStatus LastKnownStatus;
+
+private:
+
 	/** Flag set during a possible brief period where the user hit rejoin but the check was already in flight */
 	UPROPERTY()
 	bool bRejoinAfterCheck;

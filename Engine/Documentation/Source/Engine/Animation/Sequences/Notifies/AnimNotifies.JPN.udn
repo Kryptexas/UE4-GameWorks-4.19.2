@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2720152
+﻿INTSourceChangelist:3429233
 Availability:Public
 Title:アニメーション通知
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Sequences
@@ -8,6 +8,7 @@ Related:Engine/Animation/Sequences/Editor
 Related:Engine/Animation/AnimMontage
 Related:Engine/Animation
 Related:Engine/Animation/AnimHowTo
+topic-image:Engine/Animation/Overview/AnimNotifiesTopic.png
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -81,7 +82,7 @@ Play Particle Effect 通知は、挙動の制御に Animation ブループリン
 | **プロパティ** | **説明** |
 | --- | --- |
 | **Attach Name** | サウンド エフェクトのスポーン ポイントとして使用するスケルタルメッシュのソケットまたはボーンを含みます。 |
-| **Volume Multiplier** | このスケーリング乗数は、サウンド エフェクトのボリュームに適用されます。|
+| **Volume Multiplier** | このスケーリング乗数は、サウンド エフェクトのボリュームに適用されます。 |
 | **Pitch Multiplier** | このスケーリング乗数は、サウンド エフェクトのピッチに適用されます。 |
 | **Follow** | チェックを入れると、スタティックメッシュが動くにつれて、サウンド エフェクトのソースが追随します。チェックを入れないと、サウンドはスポーンされた場所に留まります。 |
 | **Notify Color** | 通知バーの通知のカラーを変更します。|
@@ -104,7 +105,7 @@ Play Particle Effect 通知は、挙動の制御に Animation ブループリン
 
 **AnimNotifyStates** (**Notify States**) は、上記の標準的な通知のように機能し、start、tick、end の3 種類のイベントがあります。これらは簡単に開始し、通知が開始、終了する瞬間に発行し、その中にある **イベントグラフ** はアニメーションで時間がくると発生します。end event に到達するまで、アニメーションがアップデートされるたびにティックが発生します。標準の通知との違いは、NotifyStates は、自己完結型の [ブループリント](Engine/Blueprints) であるという点です。
 
-Notify State (通知ステート) の作成は、アニメーションの **通知トラック** で **右クリック** して通常の通知を追加するのと同じ方法で行うことができます (通知ステートは 、[ネイティブ通知ステート](#ネイティブ通知ステート) と同じですが、アニメーション中に発生させる必要があるどのようなロジックでも提供できるカスタム ブループリントです) 。
+Notify State (通知ステート) の作成は、アニメーションの **通知トラック** で **右クリック** して **Add Notify State...** を選択するのと同じ方法で行うことができます (通知ステートは、[ネイティブ通知ステート](#ネイティブ通知ステート) と同じですが、アニメーション中に発生させる必要があるどのようなロジックでも提供できるカスタム ブループリントです) 。
 
 [REGION:note]
 カスタム通知を使用するには、まず AnimNotifyState クラスの [Blueprint クラスを作成](Engine/Blueprints/UserGuide/Types/ClassBlueprint/Creation) しなければなりません。 
@@ -134,21 +135,21 @@ _Notify Tick のオーバーライド_
 
 | **ピン** | **説明** |
 | --- | ----------- |
-| **Mesh Comp** | この AnimNotifyState をトリガーしているアニメーション シーケンスまたはモンタージュのスケルタルメッシュのコンポーネントです。 |
-| **Anim Seq** | この AnimNotifyState をトリガーしている特定のアニメーション シーケンスです。 |
-| **Frame Delta Time** | Received Notify Tick 関数にのみ存在し、アニメーションの最終アップデートからの時間を表します。 |
+| **Mesh Comp** | AnimNotifyStateをトリガーするアニメーション シーケンスまたはモンタージュの Skeletal Mesh コンポーネントです。 |
+| **Anim Seq** | AnimNotifyStateをトリガーする特定のアニメーション シーケンスです。 |
+| **Frame Delta Time** | Received Notify Tick 関数でのみ。アニメーションの最終更新からの時間がわかります。 |
 
 [REGION:note]
-現在、ブループリント内で AnimNotifyState の長さを取得する方法はありません。
+ブループリント内で AnimNotifyState の長さを取り出す手段は現在ありません。
 [/REGION]
 
-### 規則
+### ルール
 
 * 必ず NotifyBegin Eventで開始するようになっています。
 * 必ず NotifyEnd Eventで終了するようになっています。
 * 必ず NotifyBegin と NotifyEnd のイベントの間に NotifyTick をラップするようになっています。
 * 異なる AnimNotifies (normal または state) 間の順序は保証されません。2 つの AnimNotifyStates を隣同士に入れると、最初の AnimNotifyStates が、次の AnimNotifyStates が開始するまでに終了することは保証されません。これは、他の通知に依存していない個別のアクションにのみ使用してください。
-* 負の再生速度をサポートしています。それでも NotifyBegin が最初に呼ばれ、NotifyEnd が最後に呼ばれます。
+* 負の再生速度がサポートされます。それでも NotifyBegin が最初に呼ばれ、NotifyEnd が最後に呼ばれます。
 
 ### 順序とロジック
 
@@ -164,7 +165,7 @@ Notify State を追加することを選択する際に、2 つある **Native N
 
 ### Timed Particle Effects
 
-Timed Particle Effect (時限式パーティクルエフェクト) は、**Play Particle Effect(パーティクルエフェクト再生)** 通知と非常に似ています。両方とも、アニメーションの任意のポイントでパーティクル エフェクトを再生できるからです。この 2 つの違いは、Timed Particle Effect では、通知そのものの内部でエフェクトの長さを定義できるという点です。 
+Timed Particle Effect (時限式パーティクルエフェクト) は、**Play Particle Effect (パーティクルエフェクト再生)** 通知と非常に似ています。両方とも、アニメーションの任意のポイントでパーティクル エフェクトを再生できるからです。この 2 つの違いは、Timed Particle Effect では、通知そのものの内部でエフェクトの長さを定義できるという点です。 
 
 ![](TimedParticleEffect.png)
 
@@ -176,7 +177,7 @@ Animation Trails (または略して **AnimTrail**) は、シーン内で移動�
   
 AnimTrail エミッタを使用するには、以下を行う必要があります。
 1. AnimTrail タイプのデータを含む [パーティクル システム](Engine/Rendering/ParticleSystems) を作成します。 
-1.  **Trail** タイプの通知ステートを作成しアニメーションに追加します。
+2. **Trail** タイプの通知ステートを作成しアニメーションに追加します。
 
 <!-- To be included as part of a HowTo.
 パーティクル システムをセットアップする

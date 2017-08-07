@@ -39,7 +39,6 @@
 #include "AudioDevice.h"
 #include "Sound/SoundWave.h"
 #include "HighResScreenshot.h"
-#include "Runtime/GameLiveStreaming/Public/IGameLiveStreaming.h"
 #include "BufferVisualizationData.h"
 #include "GameFramework/InputSettings.h"
 #include "Components/LineBatchComponent.h"
@@ -260,6 +259,12 @@ FSceneViewport* UGameViewportClient::GetGameViewport()
 	return static_cast<FSceneViewport*>(Viewport);
 }
 
+const FSceneViewport* UGameViewportClient::GetGameViewport() const
+{
+	return static_cast<FSceneViewport*>(Viewport);
+}
+
+
 TSharedPtr<class SViewport> UGameViewportClient::GetGameViewportWidget()
 {
 	FSceneViewport* SceneViewport = GetGameViewport();
@@ -357,6 +362,22 @@ void UGameViewportClient::Init(struct FWorldContext& WorldContext, UGameInstance
 
 	// Set all the hardware cursors.
 	for ( auto& Entry : UISettings->HardwareCursors )
+	{
+		SetHardwareCursor(Entry.Key, Entry.Value.CursorPath, Entry.Value.HotSpot);
+	}
+}
+
+void UGameViewportClient::RebuildCursors()
+{
+	UUserInterfaceSettings* UISettings = GetMutableDefault<UUserInterfaceSettings>(UUserInterfaceSettings::StaticClass());
+	// Set all the software cursors.
+	for (auto& Entry : UISettings->SoftwareCursors)
+	{
+		AddSoftwareCursor(Entry.Key, Entry.Value);
+	}
+
+	// Set all the hardware cursors.
+	for (auto& Entry : UISettings->HardwareCursors)
 	{
 		SetHardwareCursor(Entry.Key, Entry.Value.CursorPath, Entry.Value.HotSpot);
 	}
@@ -568,10 +589,12 @@ bool UGameViewportClient::InputMotion(FViewport* InViewport, int32 ControllerId,
 
 void UGameViewportClient::SetIsSimulateInEditorViewport(bool bInIsSimulateInEditorViewport)
 {
+#if PLATFORM_DESKTOP || PLATFORM_HTML5
 	if (GetDefault<UInputSettings>()->bUseMouseForTouch)
 	{
 		FSlateApplication::Get().SetGameIsFakingTouchEvents(!bInIsSimulateInEditorViewport);
 	}
+#endif
 
 	for (ULocalPlayer* LocalPlayer : GetOuterUEngine()->GetGamePlayers(this))
 	{
@@ -593,10 +616,12 @@ void UGameViewportClient::MouseEnter(FViewport* InViewport, int32 x, int32 y)
 {
 	Super::MouseEnter(InViewport, x, y);
 
+#if PLATFORM_DESKTOP || PLATFORM_HTML5
 	if (GetDefault<UInputSettings>()->bUseMouseForTouch && !GetGameViewport()->GetPlayInEditorIsSimulate())
 	{
 		FSlateApplication::Get().SetGameIsFakingTouchEvents(true);
 	}
+#endif
 
 	// Replace all the cursors.
 	TSharedPtr<ICursor> PlatformCursor = FSlateApplication::Get().GetPlatformCursor();
@@ -622,8 +647,11 @@ void UGameViewportClient::MouseLeave(FViewport* InViewport)
 		{
 			FIntPoint LastViewportCursorPos;
 			InViewport->GetMousePos(LastViewportCursorPos, false);
+
+#if PLATFORM_DESKTOP || PLATFORM_HTML5
 			FVector2D CursorPos(LastViewportCursorPos.X, LastViewportCursorPos.Y);
 			FSlateApplication::Get().SetGameIsFakingTouchEvents(false, &CursorPos);
+#endif
 		}
 	}
 
@@ -718,23 +746,44 @@ EMouseCursor::Type UGameViewportClient::GetCursor(FViewport* InViewport, int32 X
 	return FViewportClient::GetCursor(InViewport, X, Y);
 }
 
-void UGameViewportClient::AddSoftwareCursor(EMouseCursor::Type Cursor, const FStringClassReference& CursorClass)
+void UGameViewportClient::SetVirtualCursorWidget(EMouseCursor::Type Cursor, UUserWidget* UserWidget)
 {
-	if ( CursorClass.IsValid() )
+	if (ensure(UserWidget))
 	{
-		UClass* Class = CursorClass.TryLoadClass<UUserWidget>();
-		if ( Class )
+		if (CursorWidgets.Contains(Cursor))
 		{
-			UUserWidget* UserWidget = CreateWidget<UUserWidget>(GetGameInstance(), Class);
-			if ( ensure(UserWidget) )
-			{
-				CursorWidgets.Add(Cursor, UserWidget->TakeWidget());
-			}
+			TSharedRef<SWidget>* Widget = CursorWidgets.Find(Cursor);
+			(*Widget) = UserWidget->TakeWidget();
 		}
 		else
 		{
-			FMessageLog("PIE").Error(FText::Format(LOCTEXT("CursorClassNotFoundFormat", "The cursor class '{0}' was not found, check your custom cursor settings."), FText::FromString(CursorClass.ToString())));
+			CursorWidgets.Add(Cursor, UserWidget->TakeWidget());
 		}
+	}
+}
+
+void UGameViewportClient::AddSoftwareCursor(EMouseCursor::Type Cursor, const FStringClassReference& CursorClass)
+{
+	if (ensureMsgf(CursorClass.IsValid(), TEXT("UGameViewportClient::AddCusor: Cursor class is not valid!")))
+	{
+		UClass* Class = CursorClass.TryLoadClass<UUserWidget>();
+		if (Class)
+		{
+			UUserWidget* UserWidget = CreateWidget<UUserWidget>(GetGameInstance(), Class);
+			AddCursorWidget(Cursor, UserWidget);
+		}
+		else
+		{
+			UE_LOG(LogPlayerManagement, Warning, TEXT("UGameViewportClient::AddCursor: Could not load cursor class %s."), *CursorClass.GetAssetName());
+		}
+	}
+}
+
+void UGameViewportClient::AddCursorWidget(EMouseCursor::Type Cursor, class UUserWidget* CursorWidget)
+{
+	if (ensure(CursorWidget))
+	{
+		CursorWidgets.Add(Cursor, CursorWidget->TakeWidget());
 	}
 }
 
@@ -742,13 +791,20 @@ TOptional<TSharedRef<SWidget>> UGameViewportClient::MapCursor(FViewport* InViewp
 {
 	if (bUseSoftwareCursorWidgets)
 	{
-		const TSharedRef<SWidget>* CursorWidgetPtr = CursorWidgets.Find(CursorReply.GetCursorType());
-		if (CursorWidgetPtr != nullptr)
+		if (CursorReply.GetCursorType() != EMouseCursor::None)
 		{
-			return *CursorWidgetPtr;
+			const TSharedRef<SWidget>* CursorWidgetPtr = CursorWidgets.Find(CursorReply.GetCursorType());
+
+			if (CursorWidgetPtr != nullptr)
+			{
+				return *CursorWidgetPtr;
+			}
+			else
+			{
+				UE_LOG(LogPlayerManagement, Warning, TEXT("UGameViewportClient::MapCursor: Could not find cursor to map to %d."),int32(CursorReply.GetCursorType()));
+			}
 		}
 	}
-
 	return TOptional<TSharedRef<SWidget>>();
 }
 
@@ -974,7 +1030,8 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 	}
 
 	ESplitScreenType::Type SplitScreenConfig = GetCurrentSplitscreenConfiguration();
-	EngineShowFlagOverride(ESFIM_Game, (EViewModeIndex)ViewModeIndex, ViewFamily.EngineShowFlags, NAME_None, SplitScreenConfig != ESplitScreenType::None);
+	ViewFamily.ViewMode = EViewModeIndex(ViewModeIndex);
+	EngineShowFlagOverride(ESFIM_Game, ViewFamily.ViewMode, ViewFamily.EngineShowFlags, NAME_None, SplitScreenConfig != ESplitScreenType::None);
 
 	if (ViewFamily.EngineShowFlags.VisualizeBuffer && AllowDebugViewmodes())
 	{
@@ -1196,9 +1253,14 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 	
 	// If the views don't cover the entire bounding rectangle, clear the entire buffer.
 	bool bBufferCleared = false;
-	if ( ViewFamily.Views.Num() == 0 || TotalArea != (MaxX-MinX)*(MaxY-MinY) || bDisableWorldRendering )
+	if (ViewFamily.Views.Num() == 0 || TotalArea != (MaxX-MinX)*(MaxY-MinY) || bDisableWorldRendering)
 	{
-		SceneCanvas->DrawTile(0,0,InViewport->GetSizeXY().X,InViewport->GetSizeXY().Y,0.0f,0.0f,1.0f,1.f,FLinearColor::Black,NULL,false);
+		bool bStereoscopicPass = (ViewFamily.Views.Num() != 0 && ViewFamily.Views[0]->StereoPass != eSSP_FULL);
+		if (bDisableWorldRendering || !bStereoscopicPass) // TotalArea computation does not work correctly for stereoscopic views
+		{
+			SceneCanvas->Clear(FLinearColor::Transparent);
+		}
+		
 		bBufferCleared = true;
 	}
 
@@ -1348,7 +1410,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 		PostRender(DebugCanvasObject);
 		
 		// Render the console.
-		if (ViewportConsole)
+		if (ViewportConsole && DebugCanvas)
 		{
 			// Reset the debug canvas to be full-screen before drawing the console
 			// (the debug draw service above has messed with the viewport size to fit it to a single player's subregion)
@@ -1528,10 +1590,12 @@ void UGameViewportClient::LostFocus(FViewport* InViewport)
 
 void UGameViewportClient::ReceivedFocus(FViewport* InViewport)
 {
+#if PLATFORM_DESKTOP || PLATFORM_HTML5
 	if (GetDefault<UInputSettings>()->bUseMouseForTouch && GetGameViewport() && !GetGameViewport()->GetPlayInEditorIsSimulate())
 	{
 		FSlateApplication::Get().SetGameIsFakingTouchEvents(true);
 	}
+#endif
 
 	if (GEngine && GEngine->GetAudioDeviceManager())
 	{ 
@@ -1564,7 +1628,9 @@ void UGameViewportClient::CloseRequested(FViewport* InViewport)
 {
 	check(InViewport == Viewport);
 
+#if PLATFORM_DESKTOP || PLATFORM_HTML5
 	FSlateApplication::Get().SetGameIsFakingTouchEvents(false);
+#endif
 	
 	// broadcast close request to anyone that registered an interest
 	CloseRequestedDelegate.Broadcast(InViewport);
@@ -1593,10 +1659,6 @@ void UGameViewportClient::PostRender(UCanvas* Canvas)
 
 	// Draw the transition screen.
 	DrawTransition(Canvas);
-
-	// Draw default web cam.  This only will draw something if a web camera is currently enabled in the live streaming settings
-	// and the user has activated it.  Also, the game may override this functionality entirely, and draw the web cam video itself.
-	IGameLiveStreaming::Get().DrawSimpleWebCamVideo( Canvas );
 }
 
 void UGameViewportClient::PeekTravelFailureMessages(UWorld* InWorld, ETravelFailure::Type FailureType, const FString& ErrorString)
@@ -2321,15 +2383,9 @@ bool UGameViewportClient::HandleShowCommand( const TCHAR* Cmd, FOutputDevice& Ar
 	// First, look for skeletal mesh show commands
 
 	bool bUpdateSkelMeshCompDebugFlags = false;
-	static bool bShowSkelBones = false;
 	static bool bShowPrePhysSkelBones = false;
 
-	if(FParse::Command(&Cmd,TEXT("BONES")))
-	{
-		bShowSkelBones = !bShowSkelBones;
-		bUpdateSkelMeshCompDebugFlags = true;
-	}
-	else if(FParse::Command(&Cmd,TEXT("PREPHYSBONES")))
+	if(FParse::Command(&Cmd,TEXT("PREPHYSBONES")))
 	{
 		bShowPrePhysSkelBones = !bShowPrePhysSkelBones;
 		bUpdateSkelMeshCompDebugFlags = true;
@@ -2343,7 +2399,6 @@ bool UGameViewportClient::HandleShowCommand( const TCHAR* Cmd, FOutputDevice& Ar
 			USkeletalMeshComponent* SkelComp = *It;
 			if( SkelComp->GetScene() == InWorld->Scene )
 			{
-				SkelComp->bDisplayBones = bShowSkelBones;
 				SkelComp->bShowPrePhysBones = bShowPrePhysSkelBones;
 				SkelComp->MarkRenderStateDirty();
 			}
@@ -3277,6 +3332,13 @@ bool UGameViewportClient::SetHardwareCursor(EMouseCursor::Type CursorShape, FNam
 	}
 	
 	return true;
+}
+
+bool UGameViewportClient::IsSimulateInEditorViewport() const
+{
+	const FSceneViewport* GameViewport = GetGameViewport();
+
+	return GameViewport ? GameViewport->GetPlayInEditorIsSimulate() : false;
 }
 
 #undef LOCTEXT_NAMESPACE

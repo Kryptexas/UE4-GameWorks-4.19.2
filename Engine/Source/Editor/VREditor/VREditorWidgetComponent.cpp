@@ -2,12 +2,12 @@
 
 #include "VREditorWidgetComponent.h"
 
-UVREditorWidgetComponent::UVREditorWidgetComponent(const FObjectInitializer& ObjectInitializer)
-	: Super( ObjectInitializer )
+UVREditorWidgetComponent::UVREditorWidgetComponent()
+	: Super(),
+	DrawingPolicy(EVREditorWidgetDrawingPolicy::Always),
+	bIsHovering(false),
+	bHasEverDrawn(false)
 {
-	bIsHovering = false;
-	DrawingPolicy = EVREditorWidgetDrawingPolicy::Always;
-	bHasEverDrawn = false;
 	bSelectable = false;
 }
 

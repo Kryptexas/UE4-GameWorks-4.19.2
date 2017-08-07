@@ -226,7 +226,7 @@ void UBlendSpaceBase::TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimNot
 			if (bCanDoMarkerSync)
 			{
 				//Copy previous frame marker data to current frame
-				for (FBlendSampleData& PrevBlendSampleItem : OldSampleDataList)
+				for (const FBlendSampleData& PrevBlendSampleItem : OldSampleDataList)
 				{
 					for (FBlendSampleData& CurrentBlendSampleItem : SampleDataList)
 					{
@@ -289,13 +289,14 @@ void UBlendSpaceBase::TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimNot
 					{
 						SampleDataItem.MarkerTickRecord.Reset();
 						bResetMarkerDataOnFollowers = true;
+						SampleDataItem.Time = NormalizedCurrentTime * Sample.Animation->SequenceLength;
 					}
 					else if (!SampleDataItem.MarkerTickRecord.IsValid() && Context.MarkerTickContext.GetMarkerSyncStartPosition().IsValid())
 					{
 						Sample.Animation->GetMarkerIndicesForPosition(Context.MarkerTickContext.GetMarkerSyncStartPosition(), true, SampleDataItem.MarkerTickRecord.PreviousMarker, SampleDataItem.MarkerTickRecord.NextMarker, SampleDataItem.Time);
 					}
 
-					const float NewDeltaTime = Context.GetDeltaTime() * Instance.PlayRateMultiplier;
+					const float NewDeltaTime = Context.GetDeltaTime() * Instance.PlayRateMultiplier * Sample.RateScale;
 					if (!FMath::IsNearlyZero(NewDeltaTime))
 					{
 						Context.SetLeaderDelta(NewDeltaTime);
@@ -340,7 +341,7 @@ void UBlendSpaceBase::TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimNot
 						TickFollowerSamples(SampleDataList, -1, Context, false);
 					}
 					*Instance.MarkerTickRecord = SampleDataItem.MarkerTickRecord;
-					NormalizedCurrentTime =  SampleDataItem.Time / Sample.Animation->SequenceLength;
+					NormalizedCurrentTime = SampleDataItem.Time / Sample.Animation->SequenceLength;
 				}
 				else
 				{
@@ -504,7 +505,7 @@ int32 UBlendSpaceBase::GetPerBoneInterpolationIndex(int32 BoneIndex, const FBone
 	for (int32 Iter=0; Iter<PerBoneBlend.Num(); ++Iter)
 	{
 		// we would like to make sure if 
-		if (PerBoneBlend[Iter].BoneReference.IsValid(RequiredBones) && RequiredBones.BoneIsChildOf(BoneIndex, PerBoneBlend[Iter].BoneReference.BoneIndex))
+		if (PerBoneBlend[Iter].BoneReference.IsValidToEvaluate(RequiredBones) && RequiredBones.BoneIsChildOf(BoneIndex, PerBoneBlend[Iter].BoneReference.BoneIndex))
 		{
 			return Iter;
 		}

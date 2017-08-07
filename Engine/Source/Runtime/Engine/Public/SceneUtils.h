@@ -252,6 +252,16 @@ public:
 };
 #endif // HAS_GPU_STATS
 
+enum class EMobileHDRMode
+{
+	Unset,
+	Disabled,
+	EnabledFloat16,
+	EnabledMosaic,
+	EnabledRGBE,
+	EnabledRGBA8
+};
+
 /** True if HDR is enabled for the mobile renderer. */
 ENGINE_API bool IsMobileHDR();
 
@@ -260,6 +270,8 @@ ENGINE_API bool IsMobileHDR32bpp();
 
 /** True if the mobile renderer is emulating HDR with mosaic. */
 ENGINE_API bool IsMobileHDRMosaic();
+
+ENGINE_API EMobileHDRMode GetMobileHDRMode();
 
 /**
 * A pool of render (e.g. occlusion/timer) queries which are allocated individually, and returned to the pool as a group.

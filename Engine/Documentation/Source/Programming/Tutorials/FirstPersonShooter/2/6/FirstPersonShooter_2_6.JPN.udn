@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3069483
-Availability: Public
+﻿INTSourceChangelist:3388665
+Availability:Public
 Title:2.6 - キャラクターにメッシュを追加する
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
 Description:FPS キャラクターにメッシュを追加する方法を学びます。
-SkillLevel: Beginner
-Version: 4.11
+SkillLevel:Beginner
+Version:4.15
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -49,24 +49,6 @@ Version: 4.11
 
 1.	**[Save]** ボタンをクリックしてインポートしたメッシュを保存します。
 
-## FPS キャラクターのブループリントを作成する
-
-1.	**コンテンツ ブラウザ** を右クリックして、 **[New Folder (新規フォルダ)]** を選択します。 
-
-1.	この新しいフォルダに "Blueprints" と名前を付けてその上でダブルクリックしてフォルダを開きます。
-
-1.	 **[Add New]** ボタンをクリックして、**Blueprint クラス** を選択します。
-
-	![](AddNewBPClass.png)
-
-1.	**[All Classes]** ドロップダウン メニューを展開して、検索ボックスに "FPSCharacter" と入力します。検索結果に **FPSCharacter** が表示されたら、先に進んで **FPSCharacter** を選択してから **[Select]** ボタンをクリックします。
-
-	![](AddFPSCharacterClass.png)
-
-1.	新しいブループリントに、 "BP_FPSCharacter" と名前を付けます。
-
-	![](NameBP_FPSCharacter.png)
-
 ## Third Person Mesh をセットアップする
 
 1.	**BP_FPSCharacter** のアイコンをダブルクリックして **ブループリント エディタ** 内で開きます。
@@ -95,75 +77,11 @@ Version: 4.11
 
 1. 	 **BP_FPSCharacter** ブループリントを **Compile (コンパイル)** および **Save (保存)** してから、**ブループリント エディタ** を閉じてください。
 
-## デフォルトの Pawn クラスを設定する
-
-1.	Visual Studio に切り替えて、`FPSProjectGameMode.cpp` を開きます。
-
-1.	`FPSGameMode.cpp` で `AFPSProjectGameMode` コンストラクタを探して、既存の `DefaultPawnClass` 代入を見つけます。以下の行のようになります。
-
-		DefaultPawnClass = AFPSCharacter::StaticClass();
-
-1.	この `DefaultPawnClass` 代入を以下のコードに置き換えます。
-
-		// デフォルトのポーンクラスを Blueprint キャラクターに設定
-		static ConstructorHelpers::FClassFinder<APawn> PlayerPawnObject(TEXT("Pawn'/Game/Blueprints/BP_FPSCharacter.BP_FPSCharacter_C'"));
-		if (PlayerPawnObject.Class != nullptr)
-		{
-			DefaultPawnClass = PlayerPawnObject.Class;
-		}
-
-	このコードはブループリントで生成されたクラスを見つけてそれをデフォルト ポーン クラスとして代入します。このアセット パスの "_C" の接尾辞は、ゲームが使用する実際のクラスとブループリントのアセットとを区別しています。アセットツリーの別のフォルダへブループリントを格納した場合、コンテンツ ブラウザでアセットを右クリックして [Copy Reference] を選択すると、フルパスを取得できます。
-	![](CopyAssetReference.png)
-
-1.	この時点で `#include "FPSCharacter.h"` を `FPSProjectGameMode.cpp` の上から取り除くことができます。`FPSProjectGameMode.cpp` は以下のようになります。
-
-		// Project Settings の Description ページに著作権情報を入力してください。
-		#include "FPSProject.h"
-
-		#include "FPSProjectGameMode.h"
-		AFPSProjectGameMode::AFPSProjectGameMode()
-
-		{
-			// デフォルトのポーンクラスを Blueprint キャラクターに設定
-			static ConstructorHelpers::FClassFinder<APawn> PlayerPawnObject(TEXT("Pawn'/Game/Blueprints/BP_FPSCharacter.BP_FPSCharacter_C'"));
-			if (PlayerPawnObject.Class != nullptr)
-			{
-				DefaultPawnClass = PlayerPawnObject.Class;
-			}
-		}
-		void AFPSProjectGameMode::StartPlay()
-
-		{
-			Super::StartPlay();
-		StartMatch();
-
-		const int32 Key = -1;
-
-			static const FString DebugMessage = TEXT("Hello World, this is FPSGameMode!");
-			FColor DisplayColor = FColor::Yellow;
-			float TimeToDisplay = 5.0f; //秒
-		if (GEngine != nullptr)
-
-			{
-				GEngine->AddOnScreenDebugMessage(Key, TimeToDisplay, DisplayColor, DebugMessage);
-			}
-		}
-
 ## PIE モードで新しいメッシュを確認する
 
 新規追加したメッシュをエディタ内で見ます。
 
-1.	`FPSProjectGameMode.cpp` を Visual Studio に保存します。
-
-1.	**[Solution Explorer (ソリューション エクスプローラ)]** で **[FPSProject]** を探します。
-
-1.	**[FPSProject]** 上で右クリックして、**[Build (ビルド)]** を選択してプロジェクトをコンパイルします。
-
-	![](BuildProject.png)
-
-1.	ビルドが終了したらアンリアル エディタで **FPSProject** を開きます。
-
-1.	レベル エディタのツールバーで、**[Play (再生)]** ボタンをクリックします。移動するにつれて、キャラクターのシャドウが表示されるはずです。
+1.	レベル エディタのツールバー で、**[Play (プレイ)]** ボタンをクリックします。移動するにつれて、キャラクターのシャドウが表示されるはずです。
 
 	![](PawnwithShadow.png)
 

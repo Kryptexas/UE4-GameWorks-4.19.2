@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2679264
+﻿INTSourceChangelist:3244370
 Availability:Public
-Title:グラフを折りたたむ
+Title:グラフを折り畳む
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
 Description:ノードを折り畳んで新しいグラフ、関数、またはマクロにします。 
 Related:Engine/Blueprints/UserGuide
@@ -9,8 +9,9 @@ Related:Engine/Blueprints/UserGuide/Macros
 version:4.9
 skilllevel:Beginner
 parent:Engine/Blueprints/BP_HowTo
-type:howto
+type:how-to
 order:4
+tags:Blueprints
 
 このページでは、**ブループリント** グラフを折り畳んで、単一のノード、**関数** または **マクロ** にするいくつかの方法について説明します。こうすることで、大きなグラフをリンク付けされたグラフに統合して整理します。 
 
@@ -30,7 +31,7 @@ order:4
 
 	![](Collapse2.png)(w:740)
 
-	**Control + 左クリック** して選択したものに追加したり、選択したものを減らすこともできます。 
+	**[Control] と左クリック** で選択した内容へのノードの追加や削除が可能です。 
 
 1.	折り畳みたいノードがあれば、選択したノードを **右クリック** して、**[Collapse Nodes (ノードを折り畳む)]** を選択します。 
 
@@ -44,7 +45,7 @@ order:4
 
 	![](Collapse5.png)
 
-1.	**Collapsed Graph** を **ダブルクリック** すると、新規グラフが選択したノードと共に開きます。 
+1.	**[Collapsed Graph]** を **ダブルクリック** すると、新規グラフが選択したノードと共に開きます。 
 
 	![](Collapse6.png)(w:740)
 
@@ -77,7 +78,7 @@ order:4
 
 	![](CollapseFunction1.png)(w:700)
 
-1.	新規 **関数** が作成されます。これは **F2** を押して **MyBlueprint** ウィンドウから名前を変更できます。 
+1.	新規 **関数** が作成されます。これは **F2** を押して **[MyBlueprint]** ウィンドウから名前を変更できます。 
 
 	![](CollapseFunction2.png)
 

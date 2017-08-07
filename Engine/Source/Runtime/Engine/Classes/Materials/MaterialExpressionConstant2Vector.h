@@ -13,10 +13,10 @@ class UMaterialExpressionConstant2Vector : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(EditAnywhere, Category=MaterialExpressionConstant2Vector)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = MaterialExpressionConstant2Vector)
 	float R;
 
-	UPROPERTY(EditAnywhere, Category=MaterialExpressionConstant2Vector)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MaterialExpressionConstant2Vector)
 	float G;
 
 

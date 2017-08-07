@@ -12,6 +12,8 @@ public class Core : ModuleRules
 
 		SharedPCHHeaderFile = "Public/CoreSharedPCH.h";
 
+		bAddDefaultIncludePaths = false;
+
 		PublicIncludePaths.AddRange(
 			new string[] {
 				"Runtime/Core/Public",
@@ -105,7 +107,10 @@ public class Core : ModuleRules
 			PublicFrameworks.AddRange(new string[] { "UIKit", "Foundation", "AudioToolbox", "AVFoundation", "GameKit", "StoreKit", "CoreVideo", "CoreMedia", "CoreGraphics", "GameController", "SystemConfiguration" });
 			if (Target.Platform == UnrealTargetPlatform.IOS)
 			{
-				PublicFrameworks.AddRange(new string[] { "CoreMotion" });
+				PublicFrameworks.AddRange(new string[] { "CoreMotion", "AdSupport" });
+                AddEngineThirdPartyPrivateStaticDependencies(Target,
+                    "PLCrashReporter"
+                    );
 			}
 
 			bool bSupportAdvertising = Target.Platform == UnrealTargetPlatform.IOS;

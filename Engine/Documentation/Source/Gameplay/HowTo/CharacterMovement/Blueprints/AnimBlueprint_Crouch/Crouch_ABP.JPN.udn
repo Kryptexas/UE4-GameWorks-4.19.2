@@ -1,25 +1,16 @@
-﻿Availability:Public
+﻿INTSourceChangelist:3429254
+Availability:Public
 Title:6.Animationブループリント - Crouch ステート
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
-Description:引き続きキャラクターに Animation ブループリントの設定を行います。このセクションでは Crouch States の設定をします。 
+Description:引き続きキャラクターに Animation ブループリントの設定を行います。このセクションでは Crouch ステートの設定をします。 
+Version:4.9
+Parent:Gameplay/HowTo/CharacterMovement/Blueprints
+SkillLevel:Advanced
+type:how-to
+type:multi-step
+order:6
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[前のステップ](Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Walk "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Walk:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[キャラクターの移動の概要](Gameplay\HowTo\CharacterMovement\Blueprints)
-	[/PARAM]
-	[PARAM:next]
-		[次のステップ](Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jog "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jog:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 引き続き **Animation ブループリント** と **ステートマシン** を使って、このセクションでは **Crouch** ステートに焦点を当てていきます。 
 
@@ -58,7 +49,7 @@ Description:引き続きキャラクターに Animation ブループリントの
 
 	ここで、 Crouch Walk から Crouch Idle (および Crouch Idle から Crouch Walk) になる移行を設定します。Crouch Idle から Standing Idle (および Standing Idle から Crouch Idle) になる遷移を設定します。 
 
-	必要であれば、遷移がスムーズになるように、グラフ上にノードを移動させることもできます。 
+	必要であれば、遷移がスムーズになるように、グラフ上でノードを移動させることもできます。 
 
 1.	**Idle_Rifle_Hip** から **Crouch_Idle_Rifle_Hip** への **遷移ルール** を開きます。 
 
@@ -94,4 +85,4 @@ Description:引き続きキャラクターに Animation ブループリントの
 
 1.	Animation ブループリントを **コンパイル** し **保存** します。 
 
-%Steps%
+[NAV]

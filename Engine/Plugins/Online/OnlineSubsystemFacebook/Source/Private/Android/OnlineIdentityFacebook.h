@@ -14,7 +14,7 @@ enum class EFacebookLoginResponse : uint8
 {
 	/** Facebook SDK ok response */
 	RESPONSE_OK = 0,
-	/** Facebook SDK user cancelation */
+	/** Facebook SDK user cancellation */
 	RESPONSE_CANCELED = 1,
 	/** Facebook SDK error */
 	RESPONSE_ERROR = 2,

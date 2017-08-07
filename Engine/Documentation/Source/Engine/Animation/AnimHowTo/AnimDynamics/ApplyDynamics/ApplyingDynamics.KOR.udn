@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3376720
 Availability: Public
 Title:2 - 애님 다이내믹스 적용
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo, Engine\Animation\AnimHowTo\AnimDynamics
 Description:이번 단계에서는 캐릭터가 맨 장비와 풀무에 AnimDynamics 를 적용하여 움직임에 반응하도록 합니다.
 version: 4.12
 skilllevel: Advanced
+Order: 2
 
 [VAR:Steps]
 [OBJECT:Navigation]

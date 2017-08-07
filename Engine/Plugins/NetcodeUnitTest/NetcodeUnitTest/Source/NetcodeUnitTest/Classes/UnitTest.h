@@ -6,6 +6,7 @@
 #include "UObject/ObjectMacros.h"
 #include "Styling/SlateColor.h"
 #include "Misc/App.h"
+#include "Misc/OutputDeviceFile.h"
 #include "NetcodeUnitTest.h"
 #include "UnitTestBase.h"
 
@@ -88,6 +89,7 @@ class NETCODEUNITTEST_API UUnitTest : public UUnitTestBase
 
 	friend class UUnitTestManager;
 	friend class FUnitTestEnvironment;
+	friend class UMinimalClient;
 	friend struct NUTNet;
 
 
@@ -208,6 +210,13 @@ protected:
 	TArray<TSharedPtr<FUnitStatusLog>> StatusLogSummary;
 
 
+	/** The log file for outputting all log information for the current unit test */
+	TUniquePtr<FOutputDeviceFile> UnitLog;
+
+	/** The log directory for this unit test */
+	FString UnitLogDir;
+
+
 public:
 	/**
 	 * Returns the name/command, for the current unit test
@@ -325,6 +334,11 @@ protected:
 
 	virtual bool UTStartUnitTest() override final;
 
+	/**
+	 * Sets up the log directory and log output device instances.
+	 */
+	void InitializeLogs();
+
 public:
 	/**
 	 * Executes the main unit test
@@ -398,6 +412,11 @@ public:
 	virtual bool IsTickable() const override;
 
 	virtual void TickIsComplete(float DeltaTime) override;
+
+	/**
+	 * Triggered upon unit test completion, for outputting that the unit test has completed - plus other unit test state information
+	 */
+	virtual void LogComplete();
 
 
 	/**

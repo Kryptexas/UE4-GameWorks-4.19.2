@@ -1471,4 +1471,24 @@ struct FMath : public FPlatformMath
 
 		return Quantize8UnsignedByte(y);
 	}
+
+	// Use the Euclidean method to find the GCD
+	static int32 GreatestCommonDivisor(int32 a, int32 b)
+	{
+		while (b != 0)
+		{
+			int32 t = b;
+			b = a % b;
+			a = t;
+		}
+		return a;
+	}
+
+	// LCM = a/gcd * b
+	// a and b are the number we want to find the lcm
+	static int32 LeastCommonMultiplier(int32 a, int32 b)
+	{
+		int32 CurrentGcd = GreatestCommonDivisor(a, b);
+		return CurrentGcd == 0 ? 0 : (a / CurrentGcd) * b;
+	}
 };

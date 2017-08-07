@@ -59,6 +59,8 @@ struct SLATECORE_API FPaintGeometry
 		LocalSize = TransformVector(Inverse(AccumulatedLayoutTransform), DrawSize);
 	}
 
+	bool HasRenderTransform() const { return bHasRenderTransform; }
+
 private:
 	// Mutable to support legacy constructors. Doesn't account for render transforms.
 	mutable FVector2D DrawSize;
@@ -71,7 +73,10 @@ private:
 	mutable FSlateRenderTransform AccumulatedRenderTransform;
 
 	// Support legacy constructors.
-	bool bUsingLegacyConstructor;
+	uint8 bUsingLegacyConstructor : 1;
+
+	uint8 bHasRenderTransform : 1;
+
 public:
 	/** Default ctor. */
 	FPaintGeometry() 
@@ -81,6 +86,7 @@ public:
 		, LocalSize(0.0f, 0.0f)
 		, AccumulatedRenderTransform()
 		, bUsingLegacyConstructor(true)
+		, bHasRenderTransform(false)
 	{}
 
 	/**
@@ -90,13 +96,14 @@ public:
 	 * @param InAccumulatedLayoutTransform	The accumulated layout transform (from an FGeometry)
 	 * @param InAccumulatedRenderTransform	The accumulated render transform (from an FGeometry)
 	 */
-	FPaintGeometry( const FSlateLayoutTransform& InAccumulatedLayoutTransform, const FSlateRenderTransform& InAccumulatedRenderTransform, const FVector2D& InLocalSize )
+	FPaintGeometry( const FSlateLayoutTransform& InAccumulatedLayoutTransform, const FSlateRenderTransform& InAccumulatedRenderTransform, const FVector2D& InLocalSize, bool bInHasRenderTransform)
 		: DrawPosition(InAccumulatedLayoutTransform.GetTranslation())
 		, DrawScale(InAccumulatedLayoutTransform.GetScale())
 		, DrawSize(0.0f, 0.0f)
 		, LocalSize(InLocalSize)
 		, AccumulatedRenderTransform(InAccumulatedRenderTransform)
 		, bUsingLegacyConstructor(false)
+		, bHasRenderTransform(bInHasRenderTransform)
 	{ 
 	}
 
@@ -108,6 +115,7 @@ public:
 		, LocalSize(0.0f, 0.0f)
 		, AccumulatedRenderTransform()
 		, bUsingLegacyConstructor(true)
+		, bHasRenderTransform(false)
 	{ 
 	}
 

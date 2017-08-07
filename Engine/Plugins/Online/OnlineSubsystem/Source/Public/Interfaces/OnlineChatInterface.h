@@ -201,6 +201,7 @@ typedef FOnChatPrivateMessageReceived::FDelegate FOnChatPrivateMessageReceivedDe
 class IOnlineChat
 {
 public:
+	virtual ~IOnlineChat() { }
 
 	/**
 	 * Kick off request for creating a chat room with a provided configuration

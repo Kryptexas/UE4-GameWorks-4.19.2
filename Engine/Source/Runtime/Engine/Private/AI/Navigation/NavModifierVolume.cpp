@@ -6,6 +6,7 @@
 #include "AI/Navigation/NavAreas/NavArea_Null.h"
 #include "AI/NavigationOctree.h"
 #include "Components/BrushComponent.h"
+#include "AI/NavigationSystemHelpers.h"
 #include "Engine/CollisionProfile.h"
 
 //----------------------------------------------------------------------//
@@ -62,11 +63,30 @@ void ANavModifierVolume::PostEditUndo()
 
 void ANavModifierVolume::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-	Super::PostEditChangeProperty(PropertyChangedEvent);
+	static const FName NAME_AreaClass = GET_MEMBER_NAME_CHECKED(ANavModifierVolume, AreaClass);
+	static const FName NAME_BrushComponent = TEXT("BrushComponent");
 
-	if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(ANavModifierVolume, AreaClass))
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+	
+	const FName PropName = PropertyChangedEvent.Property ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+
+	if (PropName == NAME_AreaClass)
 	{
 		UNavigationSystem::UpdateActorInNavOctree(*this);
+	}
+	else if (PropName == NAME_BrushComponent)
+	{
+		if (GetBrushComponent())
+		{
+			if (GetBrushComponent()->GetBodySetup() && NavigationHelper::IsBodyNavigationRelevant(*GetBrushComponent()->GetBodySetup()))
+			{
+				UNavigationSystem::UpdateActorInNavOctree(*this);
+			}
+			else
+			{
+				UNavigationSystem::OnActorUnregistered(this);
+			}
+		}
 	}
 }
 

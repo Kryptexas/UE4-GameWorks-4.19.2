@@ -24,6 +24,8 @@
 #include "LiveLinkClientPanel.h"
 #include "LiveLinkClientCommands.h"
 
+#include "LiveLinkRemapAssetActions.h"
+
 /**
  * Implements the Messaging module.
  */
@@ -94,6 +96,7 @@ public:
 
 		FSlateStyleRegistry::RegisterSlateStyle(*StyleSet.Get());
 
+		RegisterAssetTypeAction(MakeShareable(new FLiveLinkRemapAssetActions()));
 	}
 
 	virtual void ShutdownModule() override
@@ -109,6 +112,15 @@ public:
 		{
 			FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
 			LevelEditorModule.OnTabManagerChanged().Remove(LevelEditorTabManagerChangedHandle);
+		}
+
+		FAssetToolsModule* AssetToolsModule = FModuleManager::GetModulePtr<FAssetToolsModule>("AssetTools");
+		if (AssetToolsModule)
+		{
+			for (TSharedRef<IAssetTypeActions> RegisteredAssetTypeAction : RegisteredAssetTypeActions)
+			{
+				AssetToolsModule->Get().UnregisterAssetTypeActions(RegisteredAssetTypeAction);
+			}
 		}
 	}
 
@@ -134,6 +146,16 @@ public:
 private:
 
 	FDelegateHandle LevelEditorTabManagerChangedHandle;
+
+	// Store all module registered asset type actions
+	TArray<TSharedRef<IAssetTypeActions>> RegisteredAssetTypeActions;
+
+	void RegisterAssetTypeAction(TSharedRef<IAssetTypeActions> AssetTypeAction)
+	{
+		IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
+		RegisteredAssetTypeActions.Add(AssetTypeAction);
+		AssetTools.RegisterAssetTypeActions(AssetTypeAction);
+	}
 	
 };
 

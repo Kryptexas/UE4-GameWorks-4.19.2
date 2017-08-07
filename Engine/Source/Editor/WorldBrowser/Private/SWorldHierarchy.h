@@ -11,10 +11,7 @@
 class FLevelCollectionModel;
 struct FSlateBrush;
 
-//----------------------------------------------------------------
-//
-//
-//----------------------------------------------------------------
+
 class SWorldHierarchy
 	: public SCompoundWidget
 {

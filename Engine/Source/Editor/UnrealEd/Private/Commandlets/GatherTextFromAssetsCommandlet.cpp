@@ -233,23 +233,20 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 	}
 
 	// Preload necessary modules.
-	TArray<TSharedRef<IModuleInterface>> PreloadedModules;
 	{
 		bool HasFailedToPreloadAnyModules = false;
 		for (const FString& ModuleName : ModulesToPreload)
 		{
 			EModuleLoadResult ModuleLoadResult;
-			const TSharedPtr<IModuleInterface> Module = FModuleManager::Get().LoadModuleWithFailureReason(*ModuleName, ModuleLoadResult);
+			FModuleManager::Get().LoadModuleWithFailureReason(*ModuleName, ModuleLoadResult);
+
 			if (ModuleLoadResult != EModuleLoadResult::Success)
 			{
 				HasFailedToPreloadAnyModules = true;
 				continue;
 			}
-			if (Module.IsValid())
-			{
-				PreloadedModules.Add(Module.ToSharedRef());
-			}
 		}
+
 		if (HasFailedToPreloadAnyModules)
 		{
 			return -1;
@@ -421,7 +418,7 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 			MustLoadForGather = true;
 		}
 		// Package not resaved since gatherable text data was added to package headers must be loaded, since their package header won't contain pregathered text data.
-		else if (PackageFileSummary.GetFileVersionUE4() < VER_UE4_SERIALIZE_TEXT_IN_PACKAGES || (!EditorVersion || EditorVersion->Version < FEditorObjectVersion::GatheredTextPackageCacheFixesV2))
+		else if (PackageFileSummary.GetFileVersionUE4() < VER_UE4_SERIALIZE_TEXT_IN_PACKAGES || (!EditorVersion || EditorVersion->Version < FEditorObjectVersion::GatheredTextEditorOnlyPackageLocId))
 		{
 			// Fallback on the old package flag check.
 			if (PackageFileSummary.PackageFlags & PKG_RequiresLocalizationGather)

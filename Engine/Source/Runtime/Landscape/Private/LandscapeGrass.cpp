@@ -51,6 +51,8 @@
 #include "Containers/Algo/Accumulate.h"
 #include "Package.h"
 #include "Engine/StaticMesh.h"
+#include "Components/InstancedStaticMeshComponent.h"
+#include "InstancedStaticMesh.h"
 
 #define LOCTEXT_NAMESPACE "Landscape"
 
@@ -209,7 +211,7 @@ public:
 	}
 };
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(, FLandscapeGrassWeightVS, TEXT("LandscapeGrassWeight"), TEXT("VSMain"), SF_Vertex);
+IMPLEMENT_MATERIAL_SHADER_TYPE(, FLandscapeGrassWeightVS, TEXT("/Engine/Private/LandscapeGrassWeight.usf"), TEXT("VSMain"), SF_Vertex);
 
 class FLandscapeGrassWeightPS : public FMeshMaterialShader
 {
@@ -253,7 +255,7 @@ public:
 	}
 };
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(, FLandscapeGrassWeightPS, TEXT("LandscapeGrassWeight"), TEXT("PSMain"), SF_Pixel);
+IMPLEMENT_MATERIAL_SHADER_TYPE(, FLandscapeGrassWeightPS, TEXT("/Engine/Private/LandscapeGrassWeight.usf"), TEXT("PSMain"), SF_Pixel);
 
 /**
 * Drawing policy used to write out landscape grass weightmap.
@@ -708,7 +710,7 @@ public:
 };
 
 FLandscapeComponentGrassData::FLandscapeComponentGrassData(ULandscapeComponent* Component)
-	: RotationForWPO(Component->GetLandscapeMaterial()->GetMaterial()->WorldPositionOffset.IsConnected() ? Component->ComponentToWorld.GetRotation() : FQuat(0, 0, 0, 0))
+	: RotationForWPO(Component->GetLandscapeMaterial()->GetMaterial()->WorldPositionOffset.IsConnected() ? Component->GetComponentTransform().GetRotation() : FQuat(0, 0, 0, 0))
 {
 	UMaterialInterface* Material = Component->GetLandscapeMaterial();
 	for (UMaterialInstanceConstant* MIC = Cast<UMaterialInstanceConstant>(Material); MIC; MIC = Cast<UMaterialInstanceConstant>(Material))
@@ -757,7 +759,7 @@ bool ULandscapeComponent::IsGrassMapOutdated() const
 			return true;
 		}
 
-		FQuat RotationForWPO = GetLandscapeMaterial()->GetMaterial()->WorldPositionOffset.IsConnected() ? ComponentToWorld.GetRotation() : FQuat(0, 0, 0, 0);
+		FQuat RotationForWPO = GetLandscapeMaterial()->GetMaterial()->WorldPositionOffset.IsConnected() ? GetComponentTransform().GetRotation() : FQuat(0, 0, 0, 0);
 		if (GrassData->RotationForWPO != RotationForWPO)
 		{
 			return true;
@@ -1304,7 +1306,7 @@ struct FGrassBuilderBase
 			bHaveValidData = false;
 		}
 		const FRotator DrawRot = Landscape->GetActorRotation();
-		LandscapeToWorld = Landscape->GetRootComponent()->ComponentToWorld.ToMatrixNoScale();
+		LandscapeToWorld = Landscape->GetRootComponent()->GetComponentTransform().ToMatrixNoScale();
 
 		if (bHaveValidData && SqrtSubsections != 1)
 		{
@@ -1416,7 +1418,7 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 		, AlignToSurface(GrassVariety.AlignToSurface)
 		, PlacementJitter(GrassVariety.PlacementJitter)
 		, RandomStream(HierarchicalInstancedStaticMeshComponent->InstancingRandomSeed)
-		, XForm(LandscapeToWorld * HierarchicalInstancedStaticMeshComponent->ComponentToWorld.ToMatrixWithScale().Inverse())
+		, XForm(LandscapeToWorld * HierarchicalInstancedStaticMeshComponent->GetComponentTransform().ToMatrixWithScale().Inverse())
 		, MeshBox(GrassVariety.GrassMesh->GetBounds().GetBox())
 		, DesiredInstancesPerLeaf(HierarchicalInstancedStaticMeshComponent->DesiredInstancesPerLeaf())
 
@@ -1619,7 +1621,7 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 			if (InstanceTransforms.Num())
 			{
 				TotalInstances += InstanceTransforms.Num();
-				InstanceBuffer.AllocateInstances(InstanceTransforms.Num());
+				InstanceBuffer.AllocateInstances(InstanceTransforms.Num(), true);
 				for (int32 InstanceIndex = 0; InstanceIndex < InstanceTransforms.Num(); InstanceIndex++)
 				{
 					const FMatrix& OutXForm = InstanceTransforms[InstanceIndex];
@@ -1666,7 +1668,7 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 				InstanceTransforms.AddUninitialized(NumKept);
 				TotalInstances += NumKept;
 				{
-					InstanceBuffer.AllocateInstances(NumKept);
+					InstanceBuffer.AllocateInstances(NumKept, true);
 					int32 InstanceIndex = 0;
 					int32 OutInstanceIndex = 0;
 					for (int32 xStart = 0; xStart < SqrtMaxInstances; xStart++)
@@ -1985,7 +1987,7 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 					continue;
 				}
 
-				FBoxSphereBounds WorldBounds = Component->CalcBounds(Component->ComponentToWorld);
+				FBoxSphereBounds WorldBounds = Component->CalcBounds(Component->GetComponentTransform());
 				float MinDistanceToComp = Cameras.Num() ? MAX_flt : 0.0f;
 
 				for (auto& Pos : Cameras)
@@ -2053,7 +2055,7 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 											BoxMax.Z = LocalBox.Max.Z;
 
 											FBox LocalSubBox(BoxMin, BoxMax);
-											FBox WorldSubBox = LocalSubBox.TransformBy(Component->ComponentToWorld);
+											FBox WorldSubBox = LocalSubBox.TransformBy(Component->GetComponentTransform());
 
 											MinDistanceToSubComp = Cameras.Num() ? MAX_flt : 0.0f;
 											for (auto& Pos : Cameras)
@@ -2203,7 +2205,7 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 											QUICK_SCOPE_CYCLE_COUNTER(STAT_GrassAttachComp);
 
 											HierarchicalInstancedStaticMeshComponent->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
-											FTransform DesiredTransform = GetRootComponent()->ComponentToWorld;
+											FTransform DesiredTransform = GetRootComponent()->GetComponentTransform();
 											DesiredTransform.RemoveScaling();
 											HierarchicalInstancedStaticMeshComponent->SetWorldTransform(DesiredTransform);
 
@@ -2390,7 +2392,16 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 					if (Inner.Builder->InstanceBuffer.NumInstances())
 					{
 						QUICK_SCOPE_CYCLE_COUNTER(STAT_FoliageGrassEndComp_AcceptPrebuiltTree);
-						FMemory::Memswap(&HierarchicalInstancedStaticMeshComponent->WriteOncePrebuiltInstanceBuffer, &Inner.Builder->InstanceBuffer, sizeof(FStaticMeshInstanceData));
+
+						if (!HierarchicalInstancedStaticMeshComponent->PerInstanceRenderData.IsValid())
+						{
+							HierarchicalInstancedStaticMeshComponent->InitPerInstanceRenderData(&Inner.Builder->InstanceBuffer);
+						}
+						else
+						{
+							HierarchicalInstancedStaticMeshComponent->PerInstanceRenderData->UpdateFromPreallocatedData(HierarchicalInstancedStaticMeshComponent, Inner.Builder->InstanceBuffer);
+						}
+
 						HierarchicalInstancedStaticMeshComponent->AcceptPrebuiltTree(Inner.Builder->ClusterTree, Inner.Builder->OutOcclusionLayerNum);
 						if (bForceSync && GetWorld())
 						{

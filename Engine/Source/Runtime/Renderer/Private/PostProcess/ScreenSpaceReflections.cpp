@@ -205,7 +205,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessScreenSpaceReflectionsStencilPS,TEXT("ScreenSpaceReflections"),TEXT("ScreenSpaceReflectionsStencilPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FPostProcessScreenSpaceReflectionsStencilPS,TEXT("/Engine/Private/ScreenSpaceReflections.usf"),TEXT("ScreenSpaceReflectionsStencilPS"),SF_Pixel);
 static const uint32 SSRConeQuality = 5;
 
 /**
@@ -293,7 +293,7 @@ public:
 // Typedef is necessary because the C preprocessor thinks the comma in the template parameter list is a comma in the macro parameter list.
 #define IMPLEMENT_REFLECTION_PIXELSHADER_TYPE(A, B) \
 	typedef FPostProcessScreenSpaceReflectionsPS<A,B> FPostProcessScreenSpaceReflectionsPS##A##B; \
-	IMPLEMENT_SHADER_TYPE(template<>,FPostProcessScreenSpaceReflectionsPS##A##B,TEXT("ScreenSpaceReflections"),TEXT("ScreenSpaceReflectionsPS"),SF_Pixel)
+	IMPLEMENT_SHADER_TYPE(template<>,FPostProcessScreenSpaceReflectionsPS##A##B,TEXT("/Engine/Private/ScreenSpaceReflections.usf"),TEXT("ScreenSpaceReflectionsPS"),SF_Pixel)
 
 IMPLEMENT_REFLECTION_PIXELSHADER_TYPE(0,0);
 IMPLEMENT_REFLECTION_PIXELSHADER_TYPE(0,1);
@@ -376,7 +376,7 @@ void FRCPassPostProcessScreenSpaceReflections::Process(FRenderingCompositePassCo
 		Context.SetViewportAndCallRHI(View.ViewRect);
 
 		// Clear stencil to 0
-		DrawClearQuad(RHICmdList, Context.GetFeatureLevel(), false, FLinearColor(), false, 0, true, 0, PassOutputs[0].RenderTargetDesc.Extent, View.ViewRect);
+		DrawClearQuad(RHICmdList, false, FLinearColor(), false, 0, true, 0, PassOutputs[0].RenderTargetDesc.Extent, View.ViewRect);
 	
 		FGraphicsPipelineStateInitializer GraphicsPSOInit;
 		RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
@@ -437,7 +437,7 @@ void FRCPassPostProcessScreenSpaceReflections::Process(FRenderingCompositePassCo
 		RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 
 		// clear DestRenderTarget only outside of the view's rectangle
-		DrawClearQuad(RHICmdList, SceneContext.GetCurrentFeatureLevel(), true, FLinearColor::Black, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, View.ViewRect);
+		DrawClearQuad(RHICmdList, true, FLinearColor::Black, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, View.ViewRect);
 
 		// set the state
 		GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
@@ -549,7 +549,7 @@ void RenderScreenSpaceReflections(FRHICommandListImmediate& RHICmdList, FViewInf
 	{
 		{
 			FRenderingCompositeOutputRef HistoryInput;
-			if( ViewState && ViewState->SSRHistoryRT && !Context.View.bCameraCut )
+			if( ViewState->SSRHistoryRT && !Context.View.bCameraCut )
 			{
 				HistoryInput = Context.Graph.RegisterPass( new FRCPassPostProcessInput( ViewState->SSRHistoryRT ) );
 			}
@@ -568,13 +568,10 @@ void RenderScreenSpaceReflections(FRHICommandListImmediate& RHICmdList, FViewInf
 			Context.FinalOutput = FRenderingCompositeOutputRef( TemporalAAPass );
 		}
 
-		if( ViewState )
-		{
-			FRenderingCompositePass* HistoryOutput = Context.Graph.RegisterPass( new FRCPassPostProcessOutput( &ViewState->SSRHistoryRT ) );
-			HistoryOutput->SetInput( ePId_Input0, Context.FinalOutput );
+		FRenderingCompositePass* HistoryOutput = Context.Graph.RegisterPass( new FRCPassPostProcessOutput( &ViewState->SSRHistoryRT ) );
+		HistoryOutput->SetInput( ePId_Input0, Context.FinalOutput );
 
-			Context.FinalOutput = FRenderingCompositeOutputRef( HistoryOutput );
-		}
+		Context.FinalOutput = FRenderingCompositeOutputRef( HistoryOutput );
 	}
 
 	{

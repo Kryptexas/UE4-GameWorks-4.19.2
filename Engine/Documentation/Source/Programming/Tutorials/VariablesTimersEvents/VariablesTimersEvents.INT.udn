@@ -3,6 +3,9 @@ Title:Variables, Timers, and Events
 Crumbs:%ROOT%, GettingStarted, Programming/Tutorials
 Description:Expose variables and functions to the editor, use timers, and override C++ functions with Blueprints.
 version:4.9
+type:how-to
+type:landing
+skilllevel:Beginner
 
 [VAR:Topic]
 [OBJECT:Topic]

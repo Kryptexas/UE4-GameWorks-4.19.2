@@ -89,7 +89,7 @@ INCLUDE(../common/PhysX.cmake)
 IF(DEFINED PX_STATIC_LIBRARIES)
 	TARGET_LINK_LIBRARIES(PhysX PUBLIC PhysXCommon PxFoundation PxPvdSDK)
 ELSE()
-	TARGET_LINK_LIBRARIES(PhysX PUBLIC -Wl,--start-group ${NVTOOLSEXT_LIBRARIES} LowLevel LowLevelAABB LowLevelCloth LowLevelDynamics LowLevelParticles PhysXCommon PxFoundation PxPvdSDK PxTask SceneQuery SimulationController -Wl,--end-group dl rt)
+	TARGET_LINK_LIBRARIES(PhysX PRIVATE -Wl,--start-group LowLevel LowLevelAABB LowLevelCloth LowLevelDynamics LowLevelParticles PxTask SceneQuery SimulationController -Wl,--end-group PUBLIC PhysXCommon PxFoundation PxPvdSDK dl rt)
 ENDIF()
 
 SET_TARGET_PROPERTIES(PhysX PROPERTIES 

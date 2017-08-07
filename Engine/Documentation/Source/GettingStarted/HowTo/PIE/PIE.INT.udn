@@ -27,7 +27,37 @@ This section will show you how you can use **Play In Editor** to play your game.
 
 	When clicking the **Play** button, the game should start and you should see the character in the Level Editor Viewport. 
 
-	![](PIE2b.png)(w:800)
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	![](PIE_Windows.png)
+	[/REGION]
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	![](PIE_Mac.png)
+	[/REGION]
+	[/PARAM]
+	[/OBJECT]
 
 	You will also see text appear in the upper left corner of the Level Editor Viewport. 
 

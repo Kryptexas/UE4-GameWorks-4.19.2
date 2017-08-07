@@ -21,7 +21,6 @@
 
 class UAnimSequence;
 class UBlendProfile;
-class UPreviewMeshCollection;
 class URig;
 class USkeletalMesh;
 class USkeletalMeshSocket;
@@ -307,6 +306,7 @@ protected:
 public:
 	//~ Begin UObject Interface.
 #if WITH_EDITOR
+	ENGINE_API virtual void PreEditUndo() override;
 	ENGINE_API virtual void PostEditUndo() override;
 #endif
 
@@ -318,10 +318,6 @@ public:
 
 	/** Accessor for the array of virtual bones on this skeleton */
 	const TArray<FVirtualBone>& GetVirtualBones() const { return VirtualBones; }
-
-	/** Non-serialised cache of linkups between different skeletal meshes and this Skeleton. */
-	UPROPERTY(transient)
-	TArray<struct FSkeletonToMeshLinkup> LinkupCache;
 
 	/** 
 	 *	Array of named socket locations, set up in editor and used as a shortcut instead of specifying 
@@ -475,7 +471,7 @@ private:
 
 	/** The additional skeletal meshes to use when previewing this skeleton */
 	UPROPERTY(duplicatetransient, AssetRegistrySearchable)
-	TAssetPtr<class UPreviewMeshCollection> AdditionalPreviewSkeletalMeshes;
+	TAssetPtr<class UDataAsset> AdditionalPreviewSkeletalMeshes;
 
 	UPROPERTY()
 	FRigConfiguration RigConfig;
@@ -531,6 +527,9 @@ public:
 
 	typedef TArray<FBoneNode> FBoneTreeType;
 
+	/** Non-serialised cache of linkups between different skeletal meshes and this Skeleton. */
+	TArray<struct FSkeletonToMeshLinkup> LinkupCache;
+
 	/** Runtime built mapping table between SkeletalMeshes, and LinkupCache array indices. */
 	TMap<TWeakObjectPtr<USkeletalMesh>, int32> SkelMesh2LinkupCache;
 
@@ -557,10 +556,10 @@ public:
 	ENGINE_API void LoadAdditionalPreviewSkeletalMeshes();
 
 	/** Get the additional skeletal meshes we use when previewing this skeleton */
-	ENGINE_API UPreviewMeshCollection* GetAdditionalPreviewSkeletalMeshes() const;
+	ENGINE_API UDataAsset* GetAdditionalPreviewSkeletalMeshes() const;
 
 	/** Set the additional skeletal meshes we use when previewing this skeleton */
-	ENGINE_API void SetAdditionalPreviewSkeletalMeshes(UPreviewMeshCollection* PreviewMeshCollection);
+	ENGINE_API void SetAdditionalPreviewSkeletalMeshes(UDataAsset* InPreviewCollectionAsset);
 
 	/**
 	 * Makes sure all attached objects are valid and removes any that aren't.

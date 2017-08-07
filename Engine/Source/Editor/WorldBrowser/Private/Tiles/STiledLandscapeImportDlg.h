@@ -11,7 +11,7 @@
 #include "Widgets/Views/STableRow.h"
 #include "Widgets/Input/SComboBox.h"
 
-class FAssetData;
+struct FAssetData;
 
 /////////////////////////////////////////////////////
 // STiledLandcapeImportDlg

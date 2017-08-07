@@ -24,6 +24,8 @@ public:
 
 	void CollectChildPropertiesRecursive(TSharedPtr<IPropertyHandle> Node, TArray<TSharedPtr<IPropertyHandle>>& OutProperties);
 	
+	void ConstructBaseMaterialUI(TSharedPtr<IPropertyHandle> Handle, class IDetailCategoryBuilder& MaterialCategory);
+
 	/** Checks whether a metadata string is valid for a given import type 
 	* @param ImportType the type of mesh being imported
 	* @param MetaData the metadata string to validate

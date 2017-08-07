@@ -13,5 +13,6 @@ public class MeshBoneReduction : ModuleRules
 		PrivateDependencyModuleNames.Add("Engine");
         PrivateDependencyModuleNames.Add("RenderCore");
 		PrivateDependencyModuleNames.Add("RHI");
-	}
+        PrivateDependencyModuleNames.Add("AnimationModifiers");
+    }
 }

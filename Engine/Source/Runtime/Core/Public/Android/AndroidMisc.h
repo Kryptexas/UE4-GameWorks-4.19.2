@@ -28,6 +28,7 @@ struct CORE_API FAndroidMisc : public FGenericPlatformMisc
 	static void PlatformPreInit();
 	static void PlatformInit();
 	static void PlatformPostInit();
+	static void PlatformTearDown();
 	static void PlatformHandleSplashScreen(bool ShowSplashScreen);
 	static void GetEnvironmentVariable(const TCHAR* VariableName, TCHAR* Result, int32 ResultLength);
 	static void* GetHardwareWindow();
@@ -41,6 +42,9 @@ struct CORE_API FAndroidMisc : public FGenericPlatformMisc
 	static bool HasPlatformFeature(const TCHAR* FeatureName);
 	static bool ShouldDisablePluginAtRuntime(const FString& PluginName);
 	static bool SupportsES30();
+	static EScreenPhysicalAccuracy ComputePhysicalScreenDensity(int32& OutScreenDensity);
+
+public:
 
 	static bool AllowThreadHeartBeat()
 	{
@@ -91,14 +95,20 @@ struct CORE_API FAndroidMisc : public FGenericPlatformMisc
 	// Returns current volume, 0-15
 	static int GetVolumeState(double* OutTimeOfChangeInSec = nullptr);
 	static const TCHAR* GamePersistentDownloadDir();
+	static FString GetDeviceId();
+	static FString GetLoginId();
+	static FString GetUniqueAdvertisingId();
+	static FString GetCPUVendor();
+	static FString GetCPUBrand();
+	static void GetOSVersions(FString& out_OSVersionLabel, FString& out_OSSubVersionLabel);
 
 	enum EBatteryState
 	{
+		BATTERY_STATE_UNKNOWN = 1,
 		BATTERY_STATE_CHARGING,
 		BATTERY_STATE_DISCHARGING,
-		BATTERY_STATE_FULL,
 		BATTERY_STATE_NOT_CHARGING,
-		BATTERY_STATE_UNKNOWN
+		BATTERY_STATE_FULL
 	};
 	struct FBatteryState
 	{
@@ -108,8 +118,13 @@ struct CORE_API FAndroidMisc : public FGenericPlatformMisc
 	};
 
 	static FBatteryState GetBatteryState();
+	static int GetBatteryLevel();
+	static bool IsRunningOnBattery();
 	static bool AreHeadPhonesPluggedIn();
 	static bool HasActiveWiFiConnection();
+
+	static void RegisterForRemoteNotifications();
+	static void UnregisterForRemoteNotifications();
 
 	/** @return Memory representing a true type or open type font provided by the platform as a default font for unreal to consume; empty array if the default font failed to load. */
 	static TArray<uint8> GetSystemFontBytes();
@@ -136,6 +151,7 @@ struct CORE_API FAndroidMisc : public FGenericPlatformMisc
 	static ReInitWindowCallbackType GetOnReInitWindowCallback();
 	static void SetOnReInitWindowCallback(ReInitWindowCallbackType InOnReInitWindowCallback);
 	static FString GetOSVersion();
+	static float GetWindowUpscaleFactor();
 
 #if !UE_BUILD_SHIPPING
 	static bool IsDebuggerPresent();
@@ -179,7 +195,24 @@ struct CORE_API FAndroidMisc : public FGenericPlatformMisc
 	}
 
 
+#if STATS
+	/**
+	* Platform specific function for adding a named event that can be viewed in PIX
+	*/
+	static void BeginNamedEvent(const struct FColor& Color, const TCHAR* Text);
+	static void BeginNamedEvent(const struct FColor& Color, const ANSICHAR* Text);
+
+	/**
+	* Platform specific function for closing a named event that can be viewed in PIX
+	*/
+	static void EndNamedEvent();
+#endif
+
 	static void* NativeWindow ; //raw platform Main window
+
+#if STATS
+	static int32 TraceMarkerFileDescriptor;
+#endif
 	
 	// run time compatibility information
 	static FString AndroidVersion; // version of android we are running eg "4.0.4"

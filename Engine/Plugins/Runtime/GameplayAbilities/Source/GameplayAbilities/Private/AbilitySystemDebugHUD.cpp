@@ -45,7 +45,7 @@ void AAbilitySystemDebugHUD::DrawWithBackground(UFont* InFont, const FString& Te
 	OffsetY += 25;
 }
 
-void AAbilitySystemDebugHUD::DrawDebugHUD(UCanvas* InCanvas, APlayerController* PC)
+void AAbilitySystemDebugHUD::DrawDebugHUD(UCanvas* InCanvas, APlayerController*)
 {
 	Canvas = InCanvas;
 	if (!Canvas)
@@ -59,7 +59,7 @@ void AAbilitySystemDebugHUD::DrawDebugHUD(UCanvas* InCanvas, APlayerController* 
 		return;
 	}
 
-	PC = LocalPlayer->PlayerController;	
+	APlayerController *PC = LocalPlayer->PlayerController;
 	if (!PC)
 	{
 		return;

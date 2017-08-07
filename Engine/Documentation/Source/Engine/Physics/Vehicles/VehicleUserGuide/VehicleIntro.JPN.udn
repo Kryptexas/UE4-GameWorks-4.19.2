@@ -1,337 +1,89 @@
-﻿INTSourceChangelist:2752762
+﻿INTSourceChangelist:3453053
 Availability:Public
-Title:ビークル ユーザー ガイド
-Crumbs:%ROOT%
-Description:アンリアル エンジン 4 のブループリントのビークル ユーザー ガイド
-Navigation:topic
-Version:4.9
+crumbs:%ROOT%
+Title:ビークルのユーザーガイド
+Description:UE4 のブループリントのビークルのユーザーガイド
+Type:how-to
 SkillLevel:Advanced
+Version:4.15
+Parent:Engine/Physics/Vehicles
+Prereq:Engine/Physics/Vehicles/VehcileContentCreation
+Order:1
+checkpoint:vehicleuserguideHT
+Tags:Vehicles
+topic-image:Vechicle_Topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Programming/Gameplay/Framework/Vehicle:title%](vehicle_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Programming/Gameplay/Framework/Vehicle:title%
-	[/PARAM]
-	[PARAM:description]
-		%Programming/Gameplay/Framework/Vehicle:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Programming/Gameplay/Framework/Vehicle]
-	[/PARAM]
+
+
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	pYelGtIMQpk
+	[/PARAMLITERAL]
 [/OBJECT]
-[/VAR]
 
-[TOC(start:2 end:3)]
+このガイドを終えると、ゲーム プロジェクトで使用可能な十分機能するビークルが出来上がります。
 
+## ゴール
 
+このガイドでは、新規ブランク プロジェクトで **Wheeled Vehicle** Blueprint クラスを使用したビークル作成について説明します。このガイドでは、ビークルを機能させるために必要なすべてのインエディタのアイテムを作成する方法を説明しますが、
+ご自身で **スケルタルメッシュ** と **Physics アセット** を用意してあることを前提とします。このガイドを終えると、 Vehicle Game や Vehicle Template にあるもののように
+十分機能するビークルが出来上がります。
 
-このドキュメントでは、ブランク プロジェクトで、**Wheeled Vehicle** ブループリント クラスを使用したビークルの作成について説明します。このプロセスでは、必要なすべてのインエディタのアイテムを作成する方法を説明しますが、 
-ご自身のビークルの スケルタルメッシュ と 物理アセット を用意してあることを前提とします。
+[REGION:note]
+ビークルのスケルタルメッシュと Physics アセットをアンリアル エンジンで用意するための情報が必要な場合は、[ビークルのコンテンツ ガイド] (Engine/Physics/Vehicles/VehcileContentCreation) をご覧ください。
+他の方法としては、**Vehicle Template** または **Vehicle Game** プロジェクトで作業して、プリビルドされたスケルタルメッシュと Physics アセットを利用できます。
+**Vehicle Template** は、**Unreal Project Browser** の **[New Project]** メニューにあります。**Vehicle Game** は **Epic Games Launcher** の **[Learn]** タブにあります。
+[/REGION]
 
-ビークルのスケルタルメッシュと物理アセットをエンジンに用意する情報が必要な場合は、[ビークルのコンテンツ ガイド] (Engine/Physics/Vehicles/VehcileContentCreation) をご覧ください。 
-他の方法としては、**Vehicle Template** または **Vehicle Game** で作業して、プリビルドされたスケルタルメッシュと物理アセットを利用できます。
+## 目的
 
+このチュートリアルでは、UE4 のビークルを構成する主なコンポーネントを作成します。その一部は UE4 の外部で作成したアセットを必要としますが、ほとんどのコンポーネントは
+エディタ内で作成できます。
 
-## コンテンツ
+以下は、これから作成するビークルを構成するアセットです。 
 
-アンリアル エンジン 4 のビークルは、以下のような数多くのアセットから構成されます。
-
-* スケルタル メッシュ
-* 物理アセット
+* スケルタルメッシュ
+* Physics アセット
 * Animation ブループリント
 * Vehicle ブループリント
-* 1 つ以上の Wheel のブループリント
-* TireType のデータアセット
+* ひとつ以上の Wheel ブループリント
+* TireConfig Data アセット
 
 [REGION:raw]
 ![](overview.png)(convert:false)
 [/REGION]
 
-[REGION:note]
-このドキュメントでは、アンリアル エンジン 4 で機能するビークルを作るために必要なブループリントのセットアップについて説明します。ただし、作業するビークル アセットを既にご用意いただいていることを前提とします。詳細は 
-ビークルの スケルタルメッシュ と 物理アセット をセットアップする情報については、以下をご覧ください。[ビークルのコンテンツ ガイド] (Engine/Physics/Vehicles/VehcileContentCreation)
+このガイドを終えると、こうしたアセットをセットアップし、それがどのように機能してビークルを生き生きと動かすかがわかるようになるでしょう。
+
+* TireConfig Data アセットの設定方法
+* 前輪と後輪に対して Wheel ブループリントを設定する方法
+* 特にビークル用に Animation ブループリントをセットアップする方法
+* スケルタルメッシュ、Animation ブループリント、および Wheel ブループリントを使って Vehicle ブループリントを設定する方法
+* 軸マッピングとバインディングを設定してビークルを制御する方法
+* 新しい Game Mode を作成し割り当ててビークルをスポーンする方法
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		ステップ
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	[DIR(output:"checkpoint" parent:"Engine/Physics/Vehicles/VehicleUserGuide" org:"hierarchy")]
+	[/PARAM]
+[/OBJECT]
+
+[REGION:call_to_action]
+	[クリックして開始](Engine/Physics/Vehicles/VehicleUserGuide/1 "%Engine/Physics/Vehicles/VehicleUserGuide/1:title%")
 [/REGION]
-
-## Vehicle のブループリントを作成する
-
-新規 **Vehicle ブループリント** を作成するには、**[コンテンツ ブラウザ]** の **[New (新規)]** ボタン -> **[Blueprint]** -> [vehicle (ビークル)] を検索し、次に、リストの **[WheeledVehicle]** をクリックします。
-
-[REGION:raw]
-![](newVehicle.png)(convert:false)
-[/REGION]
-
-## Wheel ブループリントを作成する
-
-**Vehicle ブループリント** を作成するには、**[コンテンツ ブラウザ]** の **[New (新規)]** ボタン -> **[Blueprint]** -> [vehicle (ビークル)] を検索し、次にリストの **[WheeledVehicle]** をクリックします。上記手順を最低 1 回繰り返すと、 
-前輪と後輪のタイプができます。
-
-[REGION:raw]
-![](newWheels.png)(convert:false)
-[/REGION]
-
-車輪の種類は、最低でも 2 種類選ぶことが多いです。ステアリングの影響を受ける車輪と影響を受けない車輪の 2 種類です。また、異なる半径、質量、幅、ハンドブレーキの効果、サスペンションや他の多くのプロパティを設定し、 
-必要とするハンドリングをビークルに設定します。
-
-
-## TireType のデータアセットを作成する
-
-**コンテンツ ブラウザ** で新規 **TireType のデータアセット** を作成するには、以下の順序で選択します。**[Add New (新規追加)]** ボタン-> **[Misc (その他)]** -> **[Data Asset (データアセット)]** -> **[TireType]** を選択し **[Select (選択)]** ボタンをクリックします。
-
-[REGION:raw]
-![](newDataAsset.png)(convert:false)
-[/REGION]
-
-[EXCERPT:frictionScale]
-**TireType のデータアセット** には、次の 1 つの値だけがあります。**Friction Scale** です。この値は、車輪の未加工の摩擦力に影響を与えるだけでなく、 
-きついカーブで車輪がどれくらいスライドしづらいか (またはスライドしやすいか) についてもスケーリングします。
-[/EXCERPT:frictionScale]
-
-**TireType データアセット** には、**VehicleWheel** ブループリントのプロパティ スロットがあります。
-
-## Animation ブループリントを作成する
-
-新規 **Animation ブループリント** を作成するには、**[コンテンツ ブラウザ]** で **[New (新規)]** ボタン -> **[Animation]**  -> **[Animation ブループリント]** を選択し、 
-ビークルのリストから **[Skeleton]** そして **VehicleAnimInstance** を選択したら [Ok] ボタンをクリックします。
-
-[REGION:raw]
-![](newAnimBP.png)(convert:false)
-[/REGION]
-
-
-## Animation ブループリントを編集する
-
-**[コンテンツ ブラウザ]** から **[Animation ブループリント]** を **ダブルクリック** して、ペルソナでビークルの Animation ブループリントを編集します。ビークルの **Anim Graph** は、 
-4.2 リリースでは非常に単純化されています。
-
-1. コンテキスト メニューから、**[Anim Graph]** で **右クリック** して、**Mesh Space Ref Pose** ノードを検索し、それを選択し、作成します。
-
-	[REGION:raw]
-	![](meshSpace.png)
-	[/REGION]
-
-1. コンテキスト メニューから、**[Anim Graph]** で **右クリック** して、**Wheel Handler** ノードを検索し、それを選択し、作成します。
-
-	[REGION:raw]
-	![](wheelHandler01.png)
-	[/REGION]
-
-1. **Mesh Space Ref Pose** ノードを **Wheel Handler** ノードに接続します。
-1. **Wheel Handler** ノードを **Final Animation Pose** ノードに接続します。
-
-
-![](animBPPreAnimGraph.png)
-
-完了です ! **Component to Local** 変換ノードが自動的に作成され、Animation ブループリントがビークルの車輪を動かします。
-
-![](animBPanimGraph.png)
-
-### Wheel Handler ノード
-
-![](wheelHandler02.png)
-
-**Wheel Handler** ノードは、スピン、ステアリング、ハンドブレーキ、サスペンションの車輪のすべてのアニメーションのニーズを処理します。新たにセットアップするものはなく、 
-単に車輪から必要な情報 (どれくらい速くスピンするか、操縦できるか？ハンドブレーキの影響を受けるか？車輪のサスペンション設定はどうなっているか？) を集め、 
-それを車輪が関連づけられているボーンのアニメーションに変換します。
-
-追加のストラットやその他のサスペンションが必要であれば、ポリゴンに影響を与えるジョイントを処理するためのノードを Anim Graph に追加する必要があります。カメラから遠ざかるにつれてメッシュの影響が制限されます。 
-ビークル ゲームのビークルには、いくつかのエクストラ ジョイントがあります。こうしたジョイントは単純な **Look At** ノードによって動きます。
-
-![](fullVehGameAnimBP.png)
-
-ビークル ゲームのビークルの Anim Graph は単にストラット ジョイントが車輪ジョイントをポイントするようにします。車輪ジョイントが Wheel Handler Node で動き、 
-**Look At** ノードによって、サスペンションが車輪に確実にアタッチされる状態を保つようにすることを前提とします。
-
-## タイヤのデータアセットを編集する
-
-**コンテンツ ブラウザ** から **TireType Data Asset** を **ダブルクリック** します。
-
-![](tires02.png)
-
-[INCLUDE:#frictionscale]
-
-
-## Wheel ブループリントを編集する
-
-**コンテンツ ブラウザ** から **Wheel Blueprint** を **ダブルクリック** して、ブループリント エディタ を表示します。
-
-
-1. ブループリント エディタをデフォルトの編集モードに切り替えます。
-
-	![](defaultsMode.png)
-
-1. 以下は最初に設定すべきプロパティです。
-
-	* Shape Radius
-	* Shape Width
-	* Affected by Handbrake (通常は後輪に制限)
-	* Steer Angle (通常、前輪のみ)
-
-		[REGION:raw]
-		![](wheelProps.png)
-		[/REGION]
-
-1. 最後に、Tire Type を設定する必要があります。
-
-	[REGION:raw]
-	![](tireType.png)
-	[/REGION]
-
-
-上記 5 つのプロパティを、各車輪に対して変更する必要があります。それ以外のプロパティは、ビークルの動き方を変えるものであり、 
-ビークルのテストを開始後に微調整できます。
-
-## Vehicle のブループリントを編集する
-
-ここから、実際にビークルが一体化されていきます。アートの準備が整い、車輪をセットアップしたら、この時点で動作するビークルを形作ることができます。
-
-**コンテンツ ブラウザ** から **Vehicle ブループリント** を **ダブルクリック** して、ブループリント エディタを表示します。
-
-1. 「Mesh」 という **Skeletal Mesh コンポーネント** で、 **Skeletal Mesh** プロパティをビークルの Skeletal Mesh アセットに設定します。
-
-	![](componentsMode.png)
-
-1. **Anim Blueprint Generated クラス** をビークルの Animation ブループリントに設定します。
-
-	[REGION:raw]
-	![](AnimBPandSkelMesh.png)
-	[/REGION]
-
-1. **Components モード** のまま、**Camera コンポーネント** を追加します。
-
-	[REGION:raw]
-	![](addCamera.png)
-	[/REGION]
-
-1. お好みの位置にカメラを **配置** します。以下の画像では、カメラはビークルの後ろにあります。
-
-	![](cameraPlacement.png)
-
-1. 以下の順序で、**[Camera Settings (カメラ設定)]** -> **[Use Controller View Rotation (コントローラー ビュー回転を使用)]** を無効にします。これにより、カメラをプレイヤー コントローラの方向ではなく視線方向にロックします。
-
-	![](cameraControllerOff.png)
-
-1. **Vehicle Movement コンポーネント** の **[Vehicle Setup (ビークル設定)]** カテゴリで **[Wheel Setups (車輪の設定)]** を展開します。
-
-	![](defaultsMode.png)
-
-1. 各車輪 (0-3) に対して以下を設定します。
-	1. 作成した車輪のブループリントの 1 つに **[Wheel Class (車輪のクラス)]** を **設定** します。
-	1. 車輪が制御するジョイント名に **[Bone Name (ボーン名)]** を **設定** します。
-
-		[REGION:raw]
-		![](wheelsSetup.png)
-		[/REGION]
-
-		_上記画像の **ボーン名** は、このスケルタルメッシュ固有のものです。_
-
-	車輪を割り当てた順序は、前輪であるか後輪であるかに関係なく、**[Bone Name (ボーン名)]** と **[Wheel Class (車輪のクラス)}** だけが影響を与えます。
-
-	[REGION:note]
-	4 つ以上の車輪が必要な場合、**Wheel Setups** プロパティの隣にある "**+**" アイコンをクリックして車輪を追加できます。
-	[/REGION]
-
-この時点では、ビークルがミニバンよりもはるかに大きなものではないことを前提とし、テストを開始するにはデフォルト値が最適な開始点になるでしょう。
-
-
-## テスト
-
-テストのためにビークルをセットアップするには、2、3 の方法があります。いくつかの手順は、どのテンプレートで開始したかによって変わります。
-
-1. コントロール
-
-	[REGION:raw]
-	![](input.png)
-	[/REGION]
-
-	1. **[Project Settings (プロジェクト設定)]** -> **[Input (入力)]**
-	1. **Axis Mappings** プロパティの隣にある "**+**" 記号をクリックして、Axis Mappings を **追加** します。
-	1. 軸マッピングを **展開** します。
-	1. 軸マッピングを "None" から **Forward** に **名前変更** します。
-	1. **Forward** 軸マッピングの隣にある "**+**" 記号を **クリック** します。
-	1. **Forward** 軸マッピングを **展開** します。
-	1. 1 つ目の "None" を "**W**" に **設定** します。
-	1. 2 つ目の"None" を "**S**" に **設定** します。
-	1. "**S**" マッピングのスケールを "-1.0" に **設定** します。
-	1. **Axis Mappings** プロパティの隣にある "**+**" 記号をクリックして、Axis Mappings プロパティにもう 1 つ追加します。
-	1. 新しい軸マッピングを "None" から **Right** に **名前変更** します。 
-	1. **Right** 軸マッピングを **展開** します。
-	1. 1 つ目の "None" を "**D**" に **設定** します。
-	1. 2 つ目の"None" を "**A**" に **設定** します。
-	1. "**A**" マッピングのスケールを "-1.0" に **設定** します。
-	1. **Action Mappings** プロパティの隣にある "**+**" 記号をクリックして、Action マッピングを追加します。
-	1. **Action Mappings** プロパティを **展開** します。
-	1. 新しい Action マッピング名を "None" から **Handbrake** に **変更** します。
-	1. **Handbrake** アクション マッピングを **展開** します。
-	1. "None" を "**Space Bar**" に **設定** します。
-1. 新規ゲームモード
-	1. 新規ゲームモードのブループリントを作成します。
-
-		[REGION:raw]
-		![](newGameMode.png)
-		[/REGION]
-
-	1. 新規ゲームモードのブループリントを編集するには **ダブルクリック** します。
-
-	1. **[Game Mode]** カテゴリ-> **[Default Pawn Class]** -> の順序で選択し、"None" をご自身の **ビークル ブループリント** に変更してください。
-
-		[REGION:raw]
-		![](defaultPawnClass.png)
-		[/REGION]
-
-1. **[World Settings (ワールド設定)]** -> **[Game Mode]** -> **[Gamemode Override (ゲームモードをオーバーライド)]** をご自身のゲームモードに設定します。
-
-	[REGION:raw]
-	![](setGameMode.png)
-	[/REGION]
-
-1. Vehicle ブループリントで、**[Project Settings Input]** カテゴリで作成した Axis Event と Action Event を呼び出すことができます。
-	1. Vehicle ブループリントを **編集** し、**Event Graph** に切り替えます。
-
-		![](graphMode.png)
-
-	1. スロットル
-
-		![](throttleBP.png)
-
-	1. ステアリング
-
-		![](steeringBP.png)
-
-	1. ハンドブレーキ
-
-		![](handbrakeBP.png)
-
-1. プレイヤースタート
-	* ワールドに **Player Start** アクタがない場合、以下の順序で選択してマップに追加することができます。 
-	**[Modes Panel]** -> **[Placement Mode]** -> **[Basic]** -> 次に、[Player Start] をクリックしてワールドにドラッグします。
-
-	[REGION:raw]
-	![](playerStart.png)
-	[/REGION]
-
-	または現在のカメラ位置からプレイするために PIE (Play in Editor) を設定することもできます。
-1. 最後に、すべてをセットアップした状態で、**Play in Editor** を使用してビークルをテストする準備が整いました。
-
-	[REGION:raw]
-	![](Play.png)
-	[/REGION]
-
-	上記で設定した軸と Axis と Action Bindings を前提に、**W** はスロットルを強め、**S** はブレーキを適用し、**A** は左折、**D** は右折、 
-	**Space Bar** はハンドブレーキを適用します。
-
-
-
-
-
-
-
-
-
-
 

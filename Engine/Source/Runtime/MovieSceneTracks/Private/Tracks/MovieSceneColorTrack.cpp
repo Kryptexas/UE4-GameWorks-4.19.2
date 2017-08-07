@@ -7,7 +7,9 @@
 
 UMovieSceneColorTrack::UMovieSceneColorTrack( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
-{ }
+{
+	SupportedBlendTypes = FMovieSceneBlendTypeField::All();
+}
 
 
 UMovieSceneSection* UMovieSceneColorTrack::CreateNewSection()

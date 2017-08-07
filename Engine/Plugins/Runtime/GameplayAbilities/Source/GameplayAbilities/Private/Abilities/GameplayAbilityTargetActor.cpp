@@ -143,7 +143,7 @@ bool AGameplayAbilityTargetActor::OnReplicatedTargetDataReceived(FGameplayAbilit
 bool AGameplayAbilityTargetActor::ShouldProduceTargetData() const
 {
 	// return true if we are locally owned, or (we are the server and this is a gameplaytarget ability that can produce target data server side)
-	return (MasterPC && (MasterPC->IsLocalController() || ShouldProduceTargetDataOnServer));
+	return (MasterPC && MasterPC->IsLocalController()) || ShouldProduceTargetDataOnServer;
 }
 
 void AGameplayAbilityTargetActor::BindToConfirmCancelInputs()

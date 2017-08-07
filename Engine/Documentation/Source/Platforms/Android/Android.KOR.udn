@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3275208
+﻿INTSourceChangelist:3467293
 Availability: Public
 Title: 안드로이드 게임 개발
 Crumbs:%ROOT%, Platforms
@@ -10,6 +10,7 @@ tags:Android
 tags:Mobile
 parent:Platforms/Mobile
 type:landing
+Topic-image:AndroidGameDevelopment_topic.png
 
 ## 시작하기
 

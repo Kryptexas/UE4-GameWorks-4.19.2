@@ -228,6 +228,8 @@ public:
 	void SetIsRecordingToFile(bool InIsRecording);
 	/** return information is vlog recording is enabled or not */
 	bool IsRecordingToFile() const { return !!bIsRecordingToFile; }
+	/** disables recording to file and discards all data without saving it to file */
+	void DiscardRecordingToFile();
 
 	void SetIsRecordingOnServer(bool IsRecording) { bIsRecordingOnServer = IsRecording; }
 	bool IsRecordingOnServer() const { return !!bIsRecordingOnServer; }

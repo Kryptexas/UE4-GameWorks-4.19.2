@@ -1339,6 +1339,12 @@ void FGameplayTag::FromExportString(FString ExportString)
 	FGameplayTag::StaticStruct()->ImportText(*ExportString, this, nullptr, 0, &NullOut, TEXT("FGameplayTag"), true);
 }
 
+FGameplayTagNativeAdder::FGameplayTagNativeAdder()
+{
+	UE_LOG(LogGameplayTags, Display, TEXT("FGameplayTagNativeAdder::FGameplayTagNativeAdder"));
+	UGameplayTagsManager::OnLastChanceToAddNativeTags().AddRaw(this, &FGameplayTagNativeAdder::AddTags);
+}
+
 FGameplayTagQuery::FGameplayTagQuery()
 	: TokenStreamVersion(EGameplayTagQueryStreamVersion::LatestVersion)
 {
@@ -1894,6 +1900,16 @@ FAutoConsoleCommand GameplayTagPrintReplicationMapCmd(
 	FConsoleCommandDelegate::CreateStatic(GameplayTagPrintReplicationMap)
 );
 
+static void GameplayTagPrintReplicationIndices()
+{
+	UGameplayTagsManager::Get().PrintReplicationIndices();
+}
+
+FAutoConsoleCommand GameplayTagPrintReplicationIndicesCmd(
+	TEXT("GameplayTags.PrintNetIndices"), 
+	TEXT( "Prints net indices for all known tags" ), 
+	FConsoleCommandDelegate::CreateStatic(GameplayTagPrintReplicationIndices)
+);
 
 static void TagPackingTest()
 {

@@ -186,8 +186,8 @@ void USkeletalMeshComponent::SetSimulatePhysics(bool bSimulate)
 		SetRootBodyIndex(RootBodyData.BodyIndex);	//Update the root body data cache in case animation has moved root body relative to root joint
 	}
 
-	UpdateEndPhysicsTickRegisteredState();
-	UpdateClothTickRegisteredState();
+ 	UpdateEndPhysicsTickRegisteredState();
+ 	UpdateClothTickRegisteredState();
 }
 
 void USkeletalMeshComponent::OnComponentCollisionSettingsChanged()
@@ -534,7 +534,7 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 		return;
 	}
 
-	FVector Scale3D = ComponentToWorld.GetScale3D();
+	FVector Scale3D = GetComponentTransform().GetScale3D();
 
 	// Find root physics body
 	RootBodyData.BodyIndex = INDEX_NONE;	//Reset the root body index just in case we need to refind a new one
@@ -542,7 +542,7 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 
 	if(RootBodyIndex == INDEX_NONE)
 	{
-		UE_LOG(LogSkeletalMesh, Log, TEXT("USkeletalMeshComponent::InitArticulated : Could not find root physics body: %s"), *GetName() );
+		UE_LOG(LogSkeletalMesh, Log, TEXT("USkeletalMeshComponent::InitArticulated : Could not find root physics body: '%s'"), *GetPathName() );
 		return;
 	}
 
@@ -571,9 +571,10 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 	// Update Flag
 #if WITH_APEX_CLOTHING
 	PrevRootBoneMatrix = GetBoneMatrix(0); // save the root bone transform
+
 	// pre-compute cloth teleport thresholds for performance
-	ClothTeleportCosineThresholdInRad = FMath::Cos(FMath::DegreesToRadians(TeleportRotationThreshold));
-	ClothTeleportDistThresholdSquared = TeleportDistanceThreshold * TeleportDistanceThreshold;	
+	ComputeTeleportDistanceThresholdInRadians();
+	ComputeTeleportRotationThresholdInRadians();
 #endif // #if WITH_APEX_CLOTHING
 }
 
@@ -1315,7 +1316,7 @@ void USkeletalMeshComponent::SendRenderDebugPhysics(FPrimitiveSceneProxy* Overri
 				FPrimitiveSceneProxy::FDebugMassData& MassData = DebugMassData.Last();
 				const FTransform MassToWorld = BI->GetMassSpaceToWorldSpace();
 				const FTransform& BoneTM = GetComponentSpaceTransforms()[BoneIndex];
-				const FTransform BoneToWorld = BoneTM * ComponentToWorld;
+				const FTransform BoneToWorld = BoneTM * GetComponentTransform();
 
 				MassData.LocalCenterOfMass = BoneToWorld.InverseTransformPosition(MassToWorld.GetLocation());
 				MassData.LocalTensorOrientation = MassToWorld.GetRotation() * BoneToWorld.GetRotation().Inverse();
@@ -1859,7 +1860,7 @@ FVector USkeletalMeshComponent::GetSkinnedVertexPosition(int32 VertexIndex) cons
 			{
 				// a simulated position is in world space and convert this to local space
 				// because SkinnedMeshComponent::GetSkinnedVertexPosition() returns the position in local space
-				SimulatedPos = ComponentToWorld.InverseTransformPosition(SimulatedPos);
+				SimulatedPos = GetComponentTransform().InverseTransformPosition(SimulatedPos);
 
 				// if blend weight is 1.0, doesn't need to blend with a skinned position
 				if (ClothBlendWeight < 1.0f) 
@@ -1953,7 +1954,7 @@ bool USkeletalMeshComponent::GetClosestPointOnPhysicsAsset(const FVector& WorldP
 	{
 		const TArray<FTransform>& BoneTransforms = GetComponentSpaceTransforms();
 		const bool bHasMasterPoseComponent = MasterPoseComponent.IsValid();
-		const FVector ComponentPosition = ComponentToWorld.InverseTransformPosition(WorldPosition);
+		const FVector ComponentPosition = GetComponentTransform().InverseTransformPosition(WorldPosition);
 	
 		float CurrentClosestDistance = FLT_MAX;
 		int32 CurrentClosestBoneIndex = INDEX_NONE;
@@ -1984,7 +1985,7 @@ bool USkeletalMeshComponent::GetClosestPointOnPhysicsAsset(const FVector& WorldP
 		{
 			bSuccess = true;
 
-			const FTransform BoneTM = bHasMasterPoseComponent ? GetBoneTransform(CurrentClosestBoneIndex) : (BoneTransforms[CurrentClosestBoneIndex] * ComponentToWorld);
+			const FTransform BoneTM = bHasMasterPoseComponent ? GetBoneTransform(CurrentClosestBoneIndex) : (BoneTransforms[CurrentClosestBoneIndex] * GetComponentTransform());
 			ClosestPointOnPhysicsAsset.Distance = CurrentClosestBodySetup->GetClosestPointAndNormal(WorldPosition, BoneTM, ClosestPointOnPhysicsAsset.ClosestWorldPosition, ClosestPointOnPhysicsAsset.Normal);
 			ClosestPointOnPhysicsAsset.BoneName = CurrentClosestBodySetup->BoneName;
 		}
@@ -2036,7 +2037,7 @@ bool USkeletalMeshComponent::LineTraceComponent(struct FHitResult& OutHit, const
 	}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if(World && (World->DebugDrawTraceTag != NAME_None) && (World->DebugDrawTraceTag == Params.TraceTag))
+	if(World && World->DebugDrawSceneQueries(Params.TraceTag))
 	{
 		TArray<FHitResult> Hits;
 		if (bHaveHit)
@@ -2105,7 +2106,7 @@ bool USkeletalMeshComponent::ComponentOverlapMultiImpl(TArray<struct FOverlapRes
 		return false;
 	}
 
-	const FTransform WorldToComponent(ComponentToWorld.Inverse());
+	const FTransform WorldToComponent(GetComponentTransform().Inverse());
 	const FCollisionResponseParams ResponseParams(GetCollisionResponseToChannels());
 
 	FComponentQueryParams ParamsWithSelf = Params;
@@ -2163,6 +2164,8 @@ void USkeletalMeshComponent::RecreateClothingActors()
 
 			ClothingSimulation->CreateActor(this, Asset, BaseAssetIndex);
 		}
+
+		WritebackClothingSimulationData();
 	}
 }
 
@@ -2205,7 +2208,7 @@ void USkeletalMeshComponent::GetWindForCloth_GameThread(FVector& WindDirection, 
 		// set wind
 		if(IsWindEnabled())
 		{
-			FVector Position = ComponentToWorld.GetTranslation();
+			FVector Position = GetComponentTransform().GetTranslation();
 
 			float WindSpeed;
 			float WindMinGust;
@@ -2310,8 +2313,7 @@ void USkeletalMeshComponent::ProcessClothCollisionWithEnvironment()
 	// to collide with other clothing objects
 	ObjectParams.AddObjectTypesToQuery(ECollisionChannel::ECC_PhysicsBody);
 
-	static FName ClothOverlapComponentsName(TEXT("ClothOverlapComponents"));
-	FCollisionQueryParams Params(ClothOverlapComponentsName, false);
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(ClothOverlapComponents), false);
 
 	GetWorld()->OverlapMultiByObjectType(Overlaps, Bounds.Origin, FQuat::Identity, ObjectParams, FCollisionShape::MakeBox(Bounds.BoxExtent), Params);
 
@@ -2345,9 +2347,9 @@ void USkeletalMeshComponent::ProcessClothCollisionWithEnvironment()
 
 					// Matrices required to transform shapes into sim space (component space)
 					// Transform of external component and matrix describing external component -> this component
-					FTransform Transform = Component->ComponentToWorld;
+					FTransform Transform = Component->GetComponentTransform();
 					FMatrix TransformMatrix = Transform.ToMatrixWithScale();
-					FMatrix ComponentToClothMatrix = TransformMatrix * ComponentToWorld.ToMatrixWithScale().Inverse();
+					FMatrix ComponentToClothMatrix = TransformMatrix * GetComponentTransform().ToMatrixWithScale().Inverse();
 
 					for(PxShape* Shape : AllShapes)
 					{
@@ -2575,15 +2577,17 @@ void USkeletalMeshComponent::UpdateClothTransformImp()
 #endif // WITH_CLOTH_COLLISION_DETECTION
 
 #if !(UE_BUILD_SHIPPING)
-	if (ComponentToWorld.GetRotation().ContainsNaN())
+	FTransform ComponentTransform = GetComponentTransform();
+	if (ComponentTransform.GetRotation().ContainsNaN())
 	{
-		logOrEnsureNanError(TEXT("SkeletalMeshComponent::UpdateClothTransform found NaN in ComponentToWorld.GetRotation()"));
-		ComponentToWorld.SetRotation(FQuat(0.0f, 0.0f, 0.0f, 1.0f));
+		logOrEnsureNanError(TEXT("SkeletalMeshComponent::UpdateClothTransform found NaN in GetComponentTransform().GetRotation()"));
+		ComponentTransform.SetRotation(FQuat(0.0f, 0.0f, 0.0f, 1.0f));
+		SetComponentToWorld(ComponentTransform);
 	}
-	if (ComponentToWorld.ContainsNaN())
+	if (ComponentTransform.ContainsNaN())
 	{
-		logOrEnsureNanError(TEXT("SkeletalMeshComponent::UpdateClothTransform still found NaN in ComponentToWorld (wasn't the rotation)"));
-		ComponentToWorld.SetIdentity();
+		logOrEnsureNanError(TEXT("SkeletalMeshComponent::UpdateClothTransform still found NaN in GetComponentTransform() (wasn't the rotation)"));
+		SetComponentToWorld(FTransform::Identity);
 	}
 #endif
 }
@@ -2747,7 +2751,7 @@ void USkeletalMeshComponent::UpdateClothStateAndSimulate(float DeltaTime, FTickF
 	}
 #endif // WITH_CLOTH_COLLISION_DETECTION
 
-	UpdateClothSimulationContext();
+	UpdateClothSimulationContext(DeltaTime);
 
 	if(ClothingSimulation)
 	{
@@ -2782,7 +2786,7 @@ bool USkeletalMeshComponent::GetClothSimulatedPosition_GameThread(const FGuid& A
 
 		if(ActorData && ActorData->Positions.IsValidIndex(VertexIndex))
 		{
-			OutSimulPos = ComponentToWorld.TransformPosition(ActorData->Positions[VertexIndex]);
+			OutSimulPos = GetComponentTransform().TransformPosition(ActorData->Positions[VertexIndex]);
 
 			bSucceed = true;
 		}
@@ -2949,7 +2953,7 @@ FTransform USkeletalMeshComponent::GetComponentTransformFromBodyInstance(FBodyIn
 	}
 	else
 	{
-		return ComponentToWorld;
+		return GetComponentTransform();
 	}
 }
 #undef LOCTEXT_NAMESPACE

@@ -70,6 +70,7 @@ class IProjectManager
 {
 
 public:
+	virtual ~IProjectManager() { }
 
 	/**
 	 * Static: Access singleton instance
@@ -180,13 +181,6 @@ public:
 	virtual FOnTargetPlatformsForCurrentProjectChangedEvent& OnTargetPlatformsForCurrentProjectChanged() = 0;
 
 	/**
-	 * Gets a list of plugins enabled for the current project.
-	 * 
-	 * @param	OutPluginNames		Array to receive the list of plugin names
-	 */
-	virtual void GetEnabledPlugins(TArray<FString>& OutPluginNames) const = 0;
-
-	/**
 	 * Hack to checks whether the current project has a non-default plugin enabled (ie. one which is not included by default in UE4Game).
 	 * 
 	 * @return	True if the project has a non-default plugin enabled.
@@ -203,6 +197,11 @@ public:
 	 * @return	True if the plugin has been marked as enabled, and the project descriptor has been updated.
 	 */
 	virtual bool SetPluginEnabled(const FString& PluginName, bool bEnabled, FText& OutFailReason, const FString& MarketplaceURL = TEXT("")) = 0;
+
+	/**
+	 * 
+	 */
+	virtual bool RemovePluginReference(const FString& PluginName, FText& OutFailReason) = 0;
 
 	/**
 	 * Updates a directory to be scanned for plugins (added or removed)

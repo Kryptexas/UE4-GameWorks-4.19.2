@@ -466,7 +466,7 @@ void FD3D12Adapter::SignalFrameFence_RenderThread(FRHICommandListImmediate& RHIC
 	const uint64 PreviousFence = FrameFence.IncrementCurrentFence();
 
 	// Queue a command to signal the frame fence is complete on the GPU (on the RHI thread timeline if using an RHI thread).
-	if (RHICmdList.Bypass() || !GRHIThread)
+	if (RHICmdList.Bypass() || !IsRunningRHIInSeparateThread())
 	{
 		FRHICommandSignalFrameFence Cmd(pCommandQueue, &FrameFence, PreviousFence);
 		Cmd.Execute(RHICmdList);

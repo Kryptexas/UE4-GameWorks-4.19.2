@@ -18,7 +18,13 @@
 #include <sys/ioctl.h>
 #include <sys/file.h>
 #include <asm/ioctls.h>
+#include <sys/prctl.h>
 #include "Linux/LinuxApplication.h"
+#include "Linux/LinuxPlatformOutputDevices.h"
+#include "Linux/LinuxPlatformTLS.h"
+#include "Containers/CircularQueue.h"
+#include "Misc/FileHelper.h"
+#include "Misc/OutputDeviceRedirector.h"
 
 namespace PlatformProcessLimits
 {
@@ -27,6 +33,10 @@ namespace PlatformProcessLimits
 		MaxUserHomeDirLength = MAX_PATH + 1
 	};
 };
+
+#if IS_MONOLITHIC
+__thread uint32 FLinuxTLS::ThreadIdTLS = 0;
+#endif
 
 void* FLinuxPlatformProcess::GetDllHandle( const TCHAR* Filename )
 {
@@ -151,14 +161,17 @@ void FLinuxPlatformProcess::CleanFileCache()
 	if (bShouldCleanShaderWorkingDirectory && !FParse::Param( FCommandLine::Get(), TEXT("Multiprocess")))
 	{
 		// get shader path, and convert it to the userdirectory
-		FString ShaderDir = FString(FPlatformProcess::BaseDir()) / FPlatformProcess::ShaderDir();
-		FString UserShaderDir = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*ShaderDir);
-		FPaths::CollapseRelativeDirectories(ShaderDir);
-
-		// make sure we don't delete from the source directory
-		if (ShaderDir != UserShaderDir)
+		for (const auto& ShaderSourceDirectoryEntry : FPlatformProcess::AllShaderSourceDirectoryMappings())
 		{
-			IFileManager::Get().DeleteDirectory(*UserShaderDir, false, true);
+			FString ShaderDir = FString(FPlatformProcess::BaseDir()) / ShaderSourceDirectoryEntry.Value;
+			FString UserShaderDir = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*ShaderDir);
+			FPaths::CollapseRelativeDirectories(ShaderDir);
+
+			// make sure we don't delete from the source directory
+			if (ShaderDir != UserShaderDir)
+			{
+				IFileManager::Get().DeleteDirectory(*UserShaderDir, false, true);
+			}
 		}
 
 		FPlatformProcess::CleanShaderWorkingDir();
@@ -564,6 +577,11 @@ bool FLinuxPlatformProcess::WritePipe(void* WritePipe, const FString& Message, F
 FRunnableThread* FLinuxPlatformProcess::CreateRunnableThread()
 {
 	return new FRunnableThreadLinux();
+}
+
+bool FLinuxPlatformProcess::CanLaunchURL(const TCHAR* URL)
+{
+	return URL != nullptr;
 }
 
 void FLinuxPlatformProcess::LaunchURL(const TCHAR* URL, const TCHAR* Parms, FString* Error)
@@ -1177,6 +1195,229 @@ void FLinuxPlatformProcess::TerminateProc( FProcHandle & ProcessHandle, bool Kil
 		int KillResult = kill(ProcInfo->GetProcessId(), SIGTERM);	// graceful
 		check(KillResult != -1 || errno != EINVAL);
 	}
+}
+
+/*
+ * WaitAndFork on Linux
+ *
+ * This is a function that halts execution and waits for signals to cause forked processes to be created and continue execution.
+ * The parent process will return when GIsRequestingExit is true. SIGRTMIN+1 is used to cause a fork to happen.
+ * If sigqueue is used, the payload int will be split into the upper and lower uint16 values. The upper value is a "cookie" and the
+ *     lower value is an "index". These two values will be used to name the process using the pattern DS-<cookie>-<index>. This name
+ *     can be used to uniquely discover the process that was spawned.
+ * If -NumForks=x is suppled on the command line, x forks will be made when the function is called.
+ * If -WaitAndForkCmdLinePath=Foo is suppled, the command line parameters of the child processes will be filled out with the contents
+ *     of files found in the directory referred to by Foo, where the child's "index" is the name of the file to be read in the directory.
+ * If -WaitAndForkRequireResponse is on the command line, child processes will not proceed after being spawned until a SIGRTMIN+2 signal is sent to them.
+ */
+FGenericPlatformProcess::EWaitAndForkResult FLinuxPlatformProcess::WaitAndFork()
+{
+#define WAIT_AND_FORK_QUEUE_SIGNAL SIGRTMIN + 1
+#define WAIT_AND_FORK_RESPONSE_SIGNAL SIGRTMIN + 2
+#define WAIT_AND_FORK_QUEUE_LENGTH 4096
+#define WAIT_AND_FORK_PARENT_SLEEP_DURATION 10
+#define WAIT_AND_FORK_CHILD_SPAWN_DELAY 0.125
+
+	// Only works in -nothreading mode for now (probably best this way)
+	if (FPlatformProcess::SupportsMultithreading())
+	{
+		return EWaitAndForkResult::Error;
+	}
+
+	static TCircularQueue<int32> WaitAndForkSignalQueue(WAIT_AND_FORK_QUEUE_LENGTH);
+
+	// If we asked to fork up front without the need to send signals, just push the fork requests on the queue
+	int32 NumForks = 0;
+	FParse::Value(FCommandLine::Get(), TEXT("-NumForks="), NumForks);
+	if (NumForks > 0)
+	{
+		for (int32 ForkIdx = 0; ForkIdx < NumForks; ++ForkIdx)
+		{
+			WaitAndForkSignalQueue.Enqueue(ForkIdx + 1);
+		}
+	}
+
+	// If we asked to fill out command line parameters from files on disk, read the folder that contains the parameters
+	FString ChildParametersPath;
+	FParse::Value(FCommandLine::Get(), TEXT("-WaitAndForkCmdLinePath="), ChildParametersPath);
+	if (!ChildParametersPath.IsEmpty())
+	{
+		bool bDirExists = IFileManager::Get().DirectoryExists(*ChildParametersPath);
+		if (!bDirExists)
+		{
+			UE_LOG(LogHAL, Fatal, TEXT("Path referred to by -WaitAndForkCmdLinePath does not exist: %s"), *ChildParametersPath);
+		}
+	}
+
+	// If we are asked to wait for a response signal, keep track of that here so we can behave differently in children.
+	const bool bRequireResponseSignal = FParse::Param(FCommandLine::Get(), TEXT("WaitAndForkRequireResponse"));
+
+	// Set up a signal handler for the signal to fork()
+	{
+		struct sigaction Action;
+		FMemory::Memzero(Action);
+		sigfillset(&Action.sa_mask);
+		Action.sa_flags = SA_SIGINFO | SA_RESTART | SA_ONSTACK;
+		Action.sa_sigaction = [](int32 Signal, siginfo_t* Info, void* Context) {
+			if (Signal == WAIT_AND_FORK_QUEUE_SIGNAL && Info)
+			{
+				WaitAndForkSignalQueue.Enqueue(Info->si_value.sival_int);
+			}
+		};
+		sigaction(WAIT_AND_FORK_QUEUE_SIGNAL, &Action, nullptr);
+	}
+
+	UE_LOG(LogHAL, Log, TEXT("   *** WaitAndFork awaiting signal %d to create child processes... ***"), WAIT_AND_FORK_QUEUE_SIGNAL);
+	GLog->Flush();
+
+	// Skip the first NumForks responses. These forks should happen at startup without confirmation.
+	int32 NumForksToNotRequireResponse = bRequireResponseSignal ? NumForks : 0;
+
+	EWaitAndForkResult RetVal = EWaitAndForkResult::Parent;
+	TArray<pid_t> AllChildren;
+	AllChildren.Reserve(512);
+	while (!GIsRequestingExit)
+	{
+		int32 SignalValue = 0;
+		if (WaitAndForkSignalQueue.Dequeue(SignalValue))
+		{
+			// Sleep for a short while to avoid spamming new processes to the OS all at once
+			FPlatformProcess::Sleep(WAIT_AND_FORK_CHILD_SPAWN_DELAY);
+			
+			// Make sure there are no pending messages in the log.
+			GLog->Flush();
+
+			// ******** The fork happens here! ********
+			pid_t ChildPID = fork();
+			// ******** The fork happened! This is now either the parent process or the new child process ********
+
+			if (ChildPID == -1)
+			{
+				// Error handling
+				// We could return with an error code here, but instead it is somewhat better to log out an error and continue since this loop is supposed to be stable.
+				// Fork errors may include hitting process limits or other environmental factors so we will just report the issue since the environmental factor can be
+				// fixed while the process is still running.
+				int ErrNo = errno;
+				UE_LOG(LogHAL, Error, TEXT("WaitAndFork failed to fork! fork() error:%d"), ErrNo);
+			}
+			else if (ChildPID == 0)
+			{
+				// Child
+				uint16 Cookie = (SignalValue >> 16) & 0xffff;
+				uint16 ChildIdx = SignalValue & 0xffff;
+
+				// Close the log state we inherited from our parent
+				GLog->TearDown();
+
+				// Update GGameThreadId
+				FLinuxTLS::ClearThreadIdTLS();
+				GGameThreadId = FLinuxTLS::GetCurrentThreadId();
+
+				// Fix the command line, if a path to command line parameters was specified
+				if (!ChildParametersPath.IsEmpty() && ChildIdx > 0)
+				{
+					FString NewCmdLine;
+					const FString CmdLineFilename = ChildParametersPath / FString::Printf(TEXT("%d"), ChildIdx);
+					FFileHelper::LoadFileToString(NewCmdLine, *CmdLineFilename);
+					if (!NewCmdLine.IsEmpty())
+					{
+						FCommandLine::Set(*NewCmdLine);
+					}
+				}
+
+				// Start up the log again
+				FPlatformOutputDevices::SetupOutputDevices();
+				GLog->SetCurrentThreadAsMasterThread();
+
+				// Set the process name, if specified
+				if (ChildIdx > 0)
+				{
+					if (prctl(PR_SET_NAME, TCHAR_TO_UTF8(*FString::Printf(TEXT("DS-%04x-%04x"), Cookie, ChildIdx))) != 0)
+					{
+						int ErrNo = errno;
+						UE_LOG(LogHAL, Fatal, TEXT("WaitAndFork failed to set process name with prctl! error:%d"), ErrNo);
+					}
+				}
+
+				// If requested, now wait for a SIGRTMIN+2 signal before continuing execution.
+				if (bRequireResponseSignal && NumForksToNotRequireResponse <= 0)
+				{
+					static bool bResponseReceived = false;
+					struct sigaction Action;
+					FMemory::Memzero(Action);
+					sigfillset(&Action.sa_mask);
+					Action.sa_flags = SA_SIGINFO | SA_RESTART | SA_ONSTACK;
+					Action.sa_sigaction = [](int32 Signal, siginfo_t* Info, void* Context) {
+						if (Signal == WAIT_AND_FORK_RESPONSE_SIGNAL)
+						{
+							bResponseReceived = true;
+						}
+					};
+					sigaction(WAIT_AND_FORK_RESPONSE_SIGNAL, &Action, nullptr);
+
+					UE_LOG(LogHAL, Log, TEXT("[Child] WaitAndFork child waiting for signal %d to proceed."), WAIT_AND_FORK_RESPONSE_SIGNAL);
+					while (!GIsRequestingExit && !bResponseReceived)
+					{
+						FPlatformProcess::Sleep(1);
+					}
+
+					FMemory::Memzero(Action);
+					sigaction(WAIT_AND_FORK_RESPONSE_SIGNAL, &Action, nullptr);
+				}
+
+				UE_LOG(LogHAL, Log, TEXT("[Child] WaitAndFork child process has started."));
+				UE_LOG(LogHAL, Log, TEXT("[Child] Command line: %s"), FCommandLine::Get());
+
+				// Children break out of the loop and return
+				RetVal = EWaitAndForkResult::Child;
+				break;
+			}
+			else
+			{
+				// Parent
+				AllChildren.Add(ChildPID);
+
+				if (NumForksToNotRequireResponse > 0)
+				{
+					NumForksToNotRequireResponse--;
+				}
+
+				UE_LOG(LogHAL, Log, TEXT("[Parent] WaitAndFork Successfully made a child with pid %d!"), ChildPID);
+			}
+		}
+		else
+		{
+			// No signal to process. Sleep for a bit and do some bookkeeping.
+			FPlatformProcess::Sleep(WAIT_AND_FORK_PARENT_SLEEP_DURATION);
+
+			// Trim terminated children
+			for (int32 ChildIdx = AllChildren.Num() - 1; ChildIdx >= 0; --ChildIdx)
+			{
+				pid_t ChildPID = AllChildren[ChildIdx];
+
+				pid_t WaitResult = waitpid(ChildPID, nullptr, WNOHANG);
+				if (WaitResult == -1)
+				{
+					int32 ErrNo = errno;
+					UE_LOG(LogHAL, Log, TEXT("[Parent] WaitAndFork unknown error while querying existance of child %d. Error:%d"), ChildPID, ErrNo);
+				}
+				else if (WaitResult != 0)
+				{
+					UE_LOG(LogHAL, Log, TEXT("[Parent] WaitAndFork child %d missing. Removing from children list..."), ChildPID);
+					AllChildren.RemoveAt(ChildIdx);
+				}
+			}
+		}
+	}
+
+	// Clean up the queue signal handler from earlier.
+	{
+		struct sigaction Action;
+ 		FMemory::Memzero(Action);
+ 		sigaction(WAIT_AND_FORK_QUEUE_SIGNAL, &Action, nullptr);
+	}
+
+	return RetVal;
 }
 
 uint32 FLinuxPlatformProcess::GetCurrentProcessId()

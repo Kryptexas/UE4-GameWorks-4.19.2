@@ -50,6 +50,18 @@ THIRD_PARTY_INCLUDES_END
 
 DEFINE_LOG_CATEGORY(LogWindowsDesktop);
 
+/**
+ * Hack to get around multiple mouse events being triggered for touch events.
+ * Enabling this will prevent pen tablets from working since until we switch to the windows 8 sdk (and can use WM_POINTER*) events we cannot detect the difference
+ */
+static int32 bPreventDuplicateMouseEventsForTouch = false;
+
+FAutoConsoleVariableRef	CVarPreventDuplicateMouseEventsForTouch(
+	TEXT("Slate.PreventDuplicateMouseEventsForTouch"),
+	bPreventDuplicateMouseEventsForTouch,
+	TEXT("Hack to get around multiple mouse events being triggered for touch events.  Enabling this will prevent pen tablets from working since until we switch to the windows 8 sdk (and can use WM_POINTER* events) we cannot detect the difference")
+);
+
 const FIntPoint FWindowsApplication::MinimizedWindowPosition(-32000,-32000);
 
 FWindowsApplication* WindowsApplication = nullptr;
@@ -408,11 +420,6 @@ void FWindowsApplication::SetHighPrecisionMouseMode( const bool Enable, const TS
 
 	// Register the raw input device
 	::RegisterRawInputDevices( &RawInputDevice, 1, sizeof( RAWINPUTDEVICE ) );
-}
-
-bool FWindowsApplication::TryCalculatePopupWindowPosition( const FPlatformRect& InAnchor, const FVector2D& InSize, const EPopUpOrientation::Type Orientation, /*OUT*/ FVector2D* const CalculatedPopUpPosition ) const
-{
-	return false;
 }
 
 FPlatformRect FWindowsApplication::GetWorkArea( const FPlatformRect& CurrentWindow ) const
@@ -791,6 +798,13 @@ int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam,
 				}
 			}
 		}
+
+#if WINVER >= 0x0601
+		if (IsFakeMouseInputMessage(msg))
+		{
+			return 0;
+		}
+#endif
 
 		switch(msg)
 		{
@@ -1786,19 +1800,18 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 							if ( Input.dwFlags & TOUCHEVENTF_DOWN )
 							{
 								int32 TouchIndex = GetTouchIndexForID( Input.dwID );
-								if (TouchIndex < 0)
+								if (TouchIndex == INDEX_NONE)
 								{
 									TouchIndex = GetFirstFreeTouchIndex();
-									if (TouchIndex >= 0)
-									{
-										TouchIDs[TouchIndex] = TOptional<int32>( Input.dwID );
-										UE_LOG(LogWindowsDesktop, Verbose, TEXT("OnTouchStarted at (%f, %f), finger %d (system touch id %d)"), Location.X, Location.Y, TouchIndex + 1, Input.dwID);
-										MessageHandler->OnTouchStarted(CurrentNativeEventWindowPtr, Location, TouchIndex + 1, 0);
-									}
-									else
-									{
-										// TODO: Error handling for more than 10 touches?
-									}
+									check(TouchIndex >= 0);
+									
+									TouchIDs[TouchIndex] = TOptional<int32>(Input.dwID);
+									UE_LOG(LogWindowsDesktop, Verbose, TEXT("OnTouchStarted at (%f, %f), finger %d (system touch id %d)"), Location.X, Location.Y, TouchIndex, Input.dwID);
+									MessageHandler->OnTouchStarted(CurrentNativeEventWindowPtr, Location, TouchIndex, 0);
+								}
+								else
+								{
+									// TODO: Error handling.
 								}
 							}
 							else if ( Input.dwFlags & TOUCHEVENTF_MOVE )
@@ -1806,8 +1819,8 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 								int32 TouchIndex = GetTouchIndexForID( Input.dwID );
 								if ( TouchIndex >= 0 )
 								{
-									UE_LOG(LogWindowsDesktop, Verbose, TEXT("OnTouchMoved at (%f, %f), finger %d (system touch id %d)"), Location.X, Location.Y, TouchIndex + 1, Input.dwID);
-									MessageHandler->OnTouchMoved(Location, TouchIndex + 1, 0);
+									UE_LOG(LogWindowsDesktop, Verbose, TEXT("OnTouchMoved at (%f, %f), finger %d (system touch id %d)"), Location.X, Location.Y, TouchIndex, Input.dwID);
+									MessageHandler->OnTouchMoved(Location, TouchIndex, 0);
 								}
 							}
 							else if ( Input.dwFlags & TOUCHEVENTF_UP )
@@ -1816,8 +1829,8 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 								if ( TouchIndex >= 0 )
 								{
 									TouchIDs[TouchIndex] = TOptional<int32>();
-									UE_LOG(LogWindowsDesktop, Verbose, TEXT("OnTouchEnded at (%f, %f), finger %d (system touch id %d)"), Location.X, Location.Y, TouchIndex + 1, Input.dwID);
-									MessageHandler->OnTouchEnded(Location, TouchIndex + 1, 0);
+									UE_LOG(LogWindowsDesktop, Verbose, TEXT("OnTouchEnded at (%f, %f), finger %d (system touch id %d)"), Location.X, Location.Y, TouchIndex, Input.dwID);
+									MessageHandler->OnTouchEnded(Location, TouchIndex, 0);
 								}
 								else
 								{
@@ -1847,7 +1860,7 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 			// Window focus and activation
 		case WM_ACTIVATE:
 			{
-				EWindowActivation::Type ActivationType;
+				EWindowActivation ActivationType;
 
 				if (LOWORD(wParam) & WA_ACTIVE)
 				{
@@ -2114,6 +2127,27 @@ bool FWindowsApplication::IsInputMessage( uint32 msg )
 	}
 	return false;
 }
+
+#define MOUSEEVENTF_FROMTOUCH 0xFF515700
+
+bool FWindowsApplication::IsFakeMouseInputMessage(uint32 msg)
+{
+	if (bPreventDuplicateMouseEventsForTouch && IsMouseInputMessage(msg))
+	{
+		// This is only legal to call when handling messages in the pump, and is not valid
+		// to call in a deferred fashion.
+		if ((GetMessageExtraInfo() & MOUSEEVENTF_FROMTOUCH) == MOUSEEVENTF_FROMTOUCH)
+		{
+			// Click was generated by wisptis / Windows Touch
+			return true;
+		}
+	}
+	
+	// Click was generated by the mouse.
+	return false;
+}
+
+#undef MOUSEEVENTF_FROMTOUCH
 
 void FWindowsApplication::DeferMessage( TSharedPtr<FWindowsWindow>& NativeWindow, HWND InHWnd, uint32 InMessage, WPARAM InWParam, LPARAM InLParam, int32 MouseX, int32 MouseY, uint32 RawInputFlags )
 {
@@ -2394,6 +2428,7 @@ void FWindowsApplication::QueryConnectedMice()
 		TUniquePtr<char[]> Name;
 		if (Device.dwType != RIM_TYPEMOUSE)
 			continue;
+
 		//Force the use of ANSI versions of these calls
 		if (GetRawInputDeviceInfoA(Device.hDevice, RIDI_DEVICENAME, nullptr, &NameLen) == static_cast<UINT>(-1))
 			continue;
@@ -2405,6 +2440,7 @@ void FWindowsApplication::QueryConnectedMice()
 		Name[NameLen] = 0;
 		FString WName = ANSI_TO_TCHAR(Name.Get());
 		WName.ReplaceInline(TEXT("#"), TEXT("\\"), ESearchCase::CaseSensitive);
+
 		/*
 		 * Name XP starts with \??\, vista+ starts \\?\ 
 		 * In the device list exists a fake Mouse device with the device name of RDP_MOU
@@ -2418,32 +2454,44 @@ void FWindowsApplication::QueryConnectedMice()
 		++MouseCount;
 	}
 
+	// If the session is a remote desktop session - assume that a mouse is present, it seems that you can end up
+	// in a situation where RDP mice don't have a valid name, so the code above fails to locate a valid mouse, 
+	// even though one is present.
+	if ( MouseCount == 0 )
+	{
+		if ( GetSystemMetrics(SM_REMOTESESSION) )
+		{
+			MouseCount++;
+		}
+	}
+
 	bIsMouseAttached = MouseCount > 0;
 }
 
 #if WINVER >= 0x0601
 uint32 FWindowsApplication::GetTouchIndexForID( int32 TouchID )
 {
-	for ( int i = 0; i < MaxTouches; i++ )
+	for (int i = 0; i < TouchIDs.Num(); i++)
 	{
 		if ( TouchIDs[i].IsSet() && TouchIDs[i].GetValue() == TouchID )
 		{
 			return i;
 		}
 	}
-	return -1;
+	return INDEX_NONE;
 }
 
 uint32 FWindowsApplication::GetFirstFreeTouchIndex()
 {
-	for ( int i = 0; i < MaxTouches; i++ )
+	for ( int i = 0; i < TouchIDs.Num(); i++ )
 	{
 		if ( TouchIDs[i].IsSet() == false )
 		{
 			return i;
 		}
 	}
-	return -1;
+
+	return TouchIDs.Add(TOptional<int32>());
 }
 #endif
 

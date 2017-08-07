@@ -679,7 +679,7 @@ static FString CustomThunkFunctionPostfix(FBlueprintCompiledStatement& Statement
 			if (UArrayProperty* ArrayProperty = Cast<UArrayProperty>(*PropIt))
 			{
 				ArrayTerm = Statement.RHS[NumParams];
-				ensure(ArrayTerm && ArrayTerm->Type.bIsArray);
+				ensure(ArrayTerm && ArrayTerm->Type.IsArray());
 				break;
 			}
 			NumParams++;
@@ -713,11 +713,13 @@ static FString CustomThunkFunctionPostfix(FBlueprintCompiledStatement& Statement
 
 FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext& EmitterContext, FBlueprintCompiledStatement& Statement, bool bInline, FString PostFix)
 {
+	check(Statement.FunctionToCall != nullptr);
+
 	const bool bCallOnDifferentObject = Statement.FunctionContext && (Statement.FunctionContext->Name != TEXT("self"));
 	const bool bStaticCall = Statement.FunctionToCall->HasAnyFunctionFlags(FUNC_Static);
 	const bool bUseSafeContext = bCallOnDifferentObject && !bStaticCall;
 	const bool bAnyInterfaceCall = bCallOnDifferentObject && Statement.FunctionContext && (Statement.bIsInterfaceContext || UEdGraphSchema_K2::PC_Interface == Statement.FunctionContext->Type.PinCategory);
-	const bool bInterfaceCallExecute = bAnyInterfaceCall && Statement.FunctionToCall && Statement.FunctionToCall->HasAnyFunctionFlags(FUNC_Event | FUNC_BlueprintEvent);
+	const bool bInterfaceCallExecute = bAnyInterfaceCall && Statement.FunctionToCall->HasAnyFunctionFlags(FUNC_Event | FUNC_BlueprintEvent);
 	const bool bNativeEvent = FEmitHelper::ShouldHandleAsNativeEvent(Statement.FunctionToCall, false);
 
 	const UClass* CurrentClass = EmitterContext.GetCurrentlyGeneratedClass();
@@ -1059,10 +1061,10 @@ FString FBlueprintCompilerCppBackend::TermToText(FEmitterLocalContext& EmitterCo
 		}
 
 		const bool bNativeConstTemplateArg = Term->AssociatedVarProperty && Term->AssociatedVarProperty->HasMetaData(FName(TEXT("NativeConstTemplateArg")));
-		if (Term->Type.bIsArray && bNativeConstTemplateArg && bIsAccessible && bGetter)
+		if (Term->Type.IsArray() && bNativeConstTemplateArg && bIsAccessible && bGetter)
 		{
 			FEdGraphPinType InnerType = Term->Type;
-			InnerType.bIsArray = false;
+			InnerType.ContainerType = EPinContainerType::None;
 			InnerType.bIsConst = false;
 			const FString CppType = FEmitHelper::PinTypeToNativeType(InnerType);
 			ResultPath = FString::Printf(TEXT("TArrayCaster<const %s>(%s).Get<%s>()"), *CppType, *ResultPath, *CppType);

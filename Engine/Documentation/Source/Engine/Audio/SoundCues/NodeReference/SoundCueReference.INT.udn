@@ -3,6 +3,10 @@ Title: Sound Cue Reference
 Crumbs: %ROOT%, Engine, Engine/Audio
 Description:Reference describing the nodes available for use in SoundCues and their properties.
 version: 4.9
+Parent:Engine/Audio
+type:reference
+order:6
+
 [TOC (start:2)]
 
 

@@ -18,8 +18,8 @@ void FControlRigSequencerAnimInstanceProxy::Initialize(UAnimInstance* InAnimInst
 	AdditiveLayeredBoneBlendNode.BasePose.SetLinkNode(OldAdditiveLinkedNode);
 
 	FAnimationInitializeContext Context(this);
-	LayeredBoneBlendNode.Initialize(Context);
-	AdditiveLayeredBoneBlendNode.Initialize(Context);
+	LayeredBoneBlendNode.Initialize_AnyThread(Context);
+	AdditiveLayeredBoneBlendNode.Initialize_AnyThread(Context);
 }
 
 void FControlRigSequencerAnimInstanceProxy::Update(float DeltaSeconds)
@@ -48,7 +48,7 @@ void FControlRigSequencerAnimInstanceProxy::CacheBones()
 
 		CachedBonesCounter.Increment();
 		FAnimationCacheBonesContext Context(this);
-		SequencerRootNode.CacheBones(Context);
+		SequencerRootNode.CacheBones_AnyThread(Context);
 	}
 }
 
@@ -127,8 +127,8 @@ void FControlRigSequencerAnimInstanceProxy::InitControlRigTrack(UControlRig* InC
 		PlayerState->bAdditive = bAdditive;
 
 		// initialize player
-		PlayerState->ControlRigNode.RootInitialize(this);
-		PlayerState->ControlRigNode.Initialize(FAnimationInitializeContext(this));
+		PlayerState->ControlRigNode.OnInitializeAnimInstance(this, CastChecked<UAnimInstance>(GetAnimInstanceObject()));
+		PlayerState->ControlRigNode.Initialize_AnyThread(FAnimationInitializeContext(this));
 	}
 }
 

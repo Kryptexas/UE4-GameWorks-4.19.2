@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3318475
+﻿INTSourceChangelist:3347993
 Availability:Public
 Title:カスタム仕様の高さマップとレイヤーの作成および使用方法
 Crumbs:
@@ -14,13 +14,13 @@ related:Engine/Landscape/Creation
 
 [TOC(start:2 end:3)]
 
-ランドスケープで必要とされる高さマップとレイヤーの中には、その両方を外部プログラムで作成しなければならないものがあります。 
-アンリアル エンジン (UE4) はこのワークフローのスタイルに対応しています。このガイドでは、このようなワークフローを使う場合の注意点を説明します。 
+ランドスケープでは、必要な高さマップとレイヤーの両方を外部プログラムで作成しなければならない場合があります。 
+アンリアル エンジン (UE4) はこのスタイルのワークフローに対応しています。本ガイドにおいてワークフローの使用上の注意点を説明します。 
 
 ![](Landscape_Example_Image.png)
 
 [REGION:note]
-このガイドはかなり高度な内容になりますので、Landscape ツールを初めて使う場合はまず [ランドスケープの概要](Engine/Landscape/Editing) をお読みください。 
+本ガイドはかなり高度な内容になりますので、Landscape ツールを初めて使う場合はまず [ランドスケープの概要](Engine/Landscape/Editing) をお読みください。 
 [/REGION]
 
 ## レイヤー
@@ -57,19 +57,19 @@ related:Engine/Landscape/Creation
 
 ### レイヤのインポート 
 
-外部のアプリケーションで作成されたレイヤをインポートするプロセスはシンプルですが、以下の設定を行うことで、問題なく作業を行うことができます。 
+外部アプリケーションで作成されたレイヤーのインポート プロセスはシンプルです。正常に作業を実行するために、まず以下の設定を確実に行います。 
 
-1. 作業するランドスケープがあることをまず確認してください。ない場合は、ここで 1 つ作成してください。 
+1. 作業するランドスケープがあるか、まず確認してください。ない場合は、1 つ作成してください。 
 
-1. 作成したランドスケープ用に新規マテリアルを作成する必要があります。例として非常に簡単なマテリアルを作成しますが、必要に応じて簡単に拡張することができます。設定する必要のあるマテリアルは、このような感じです。
+1. 作成したランドスケープ用に新規マテリアルを作成する必要があります。このガイドでは非常に簡単なマテリアルをサンプルとして作成します。必要に応じて簡単に拡張することができます。設定する必要のあるマテリアルは、このような感じです。
 
 	![](Landscape_Simple_Shader.png)
 
-1. マテリアルを作成したら、それを Landscape アクタに適用します。このような感じになります。 
+1. 作成したマテリアルを Landscape アクタに適用します。このような感じになります。 
 
 	![](Landscape_Applied_Material.png)
 
-1. マテリアルを適用したまま **Layer Info** を Landscape アクタに追加します。レイヤーごとに **レイヤー情報** オブジェクトを追加します。例えば 3 つ追加してみると、**Layer Info** オブジェクトについては、[ペイント モード](Engine/Landscape/Editing/PaintMode) の [Layer Info Objects (レイヤー情報オブジェクト)](Engine/Landscape/Editing/PaintMode#LayerInfOobjects（レイヤー情報オブジェクト）) セクションを参照してください。
+1. マテリアルを適用したら、次は **Layer Info** を Landscape アクタに追加します。レイヤーごとに **Layer Info** オブジェクトを追加します。ここでは 3 つ追加してみます。**Layer Info** オブジェクトについては、[ペイント モード](Engine/Landscape/Editing/PaintMode) の [Layer Info Objects (レイヤー情報オブジェクト)](Engine/Landscape/Editing/PaintMode#LayerInfOobjects（レイヤー情報オブジェクト）) セクションを参照してください。
 
 	![](Landscape_Create_Layer.png)
 
@@ -77,7 +77,7 @@ related:Engine/Landscape/Creation
 
 	![](Landscape_Target_Layers.png)
 
-1. では、レイヤーをインポートします。手順は、レイヤーのインポート先となる Target Layer を **右クリック** してから、表示されたダイアログ ボックスからインポートしたいレイヤーを選択するだけです。 
+1. では、レイヤーをインポートします。レイヤーをインポートする Target Layer を **右クリック** します。そして表示されたダイアログ ボックスからインポートしたいレイヤーを選択します。これだけです。 
 
 	![](Landscape_Import_Layer_Option.png)
 
@@ -86,11 +86,11 @@ related:Engine/Landscape/Creation
 	![](Landscape_Layer_Import_Error.png)
  
 	 この問題を解決するには、インポート先の **ランドスケープ** レイヤーの大きさを決める必要があります。方法は、対象とする **ターゲット レイヤー** を右クリックしてレイヤーをエクスポートし、ポップアップ表示されるダイアログ ボックスから **[Export (エクスポート)]** を選択します。
-	 そうすると、レイヤー ファイルを PC 上のどこかに保存するようにメッセージが出ます。ファイルを保存したら、それを開いてレイヤーのサイズを決定することができます。 
+	 そうすると、レイヤー ファイルを PC 上のどこかに保存するようにメッセージが出ます。ファイルを保存したら、そのファイルを開けばレイヤーのサイズを決定することができます。 
 
 ## 高さマップ
 
-外部ツールを使用してベース高さマップを作成してアンリアル内で作業をすると、ランドスケープ作成プロセスが迅速化するのでお勧めです。このベース高さマップは、後でアンリアル エディタ内の編集ツールを使って、インポート、クリーン アップ、修正、ランドスケープのカスタム、ワールドや希望するゲームプレイへのフィットが可能です。 
+ベースとなる高さマップを外部ツールで作成してからアンリアルで作業をすると、ランドスケープ作成プロセスがスピードアップするのでお勧めです。このベースとなる高さマップは、アンリアル エディタ内の編集ツールを使って、インポート、クリーン アップ、修正、ランドスケープのカスタム、ワールドや希望するゲームプレイへのフィットを後で行うことができます。 
 
 ### 高さマップの形式
 
@@ -125,7 +125,6 @@ related:Engine/Landscape/Creation
 
 PC 上に高さマップを保存したら Landscape ツールの中で使ってみましょう。 
 1. Landscape ツールを開いたら、[Manage モード](Engine/Landscape/Editing/ManageMode) を開きます。
-
 	![](Landscape_Open_Manage_Mode.png)
 
 1. **[Import from File (ファイルからインポート)]** のオプションを選択します。
@@ -136,7 +135,7 @@ PC 上に高さマップを保存したら Landscape ツールの中で使って
 
 	![](Engine\Landscape\Creation\Landscape_Import_Section_Button.png)
 
-1. 完了したら、**[Import]** ボタンを押して、高さマップを元にランドスケープを新規作成します。
+1. 完了したら、**[Import]** ボタンを押して、高さマップをベースにしてランドスケープを新規作成します。
 
 	![](Landscape_Press_Import.png)
 
@@ -148,25 +147,4 @@ PC 上に高さマップを保存したら Landscape ツールの中で使って
 ![](Engine\Landscape\Creation\Landscape_Import_Heightmap_Finsh.png)
 
 
-インポートしたばかりの高さマップを元に、作業用のランドスケープが新規作成されました。 
-
-
-## カスタム インポーターの書き出し
-
-* インポーターを新規作成するためには、プラグインが `ILandscapeHeightmapFileFormat` および `ILandscapeWeightmapFileFormat` を実装するオブジェクトのインスタンスを作成し、これらのオブジェクトをそれぞれ `ILandscapeEditorModulemodule::RegisterHeightmapFileFormat`、`ILandscapeEditorModulemodule::RegisterWeightmapFileFormat` で登録する必要があります。
-
-* プラグインの `ILandscapeHeightmapFileFormat` インターフェースが次の関数をオーバーライドすることが必要です。
-1. **const FLandscapeFileTypeInfo& GetInfo() const**:このクラスを処理するファイル タイプ、そしてエクスポート処理のサポート有無を示す型の情報を返します。
-1. **FLandscapeHeightmapInfo Validate(const TCHAR* HeightmapFilename) const** - 名前のついたファイルを承認、またはエラーコードとメッセージをつけて却下します
-1. **FLandscapeHeightmapImportData Import(const TCHAR* HeightmapFilename, FLandscapeFileResolution ExpectedResolution) const** - 実際にファイルをインポートします。
-1. **void Export(const TCHAR* HeightmapFilename, TArrayView<const uint16> Data, FLandscapeFileResolution DataResolution, FVector Scale) const** - エクスポートできる形式であれば、エクスポートします (`GetInfo` からの戻り値を参照)。コンパイルにオーバーライドを必要としない唯一の関数です。ただし、オーバーライドされずに呼び出されると、`check` を呼び出します。
-1. **(Destructor)** - このインターフェースを実装するクラスは、インターフェース クラスへのポインタによって削除されるので、仮想ディストラクタを使用します。
-
-* 戻り値の型が若干違いますが、`ILandscapeHeightmapFileFormat` インターフェースを実装している状態とほぼ同じです。
-1. **const FLandscapeFileTypeInfo& GetInfo() const** - このクラスを処理するファイル タイプがどれか、そしてエクスポート処理をサポートしているかどうかを表示する型情報を返します。
-1. **FLandscapeWeightmapInfo Validate(const TCHAR* WeightmapFilename) const** - 名前のついたファイルを承認、またはエラーコードとメッセージをつけて却下します
-1. **FLandscapeWeightmapImportData Import(const TCHAR* WeightmapFilename, FLandscapeFileResolution ExpectedResolution) const** - 実際にファイルをインポートします。
-1. **void Export(const TCHAR* WeightmapFilename, TArrayView<const uint16> Data, FLandscapeFileResolution DataResolution, FVector Scale) const** - エクスポートできる形式であれば、エクスポートします (`GetInfo` からの戻り値を参照)。コンパイルにオーバーライドを必要としない唯一の関数です。ただし、オーバーライドされずに呼び出されると、`check` を呼び出します。
-1. **(Destructor)** - このインターフェースを実装するクラスは、インターフェース クラスへのポインタによって削除されるので、仮想ディストラクタを使用します。
-
-* 詳細とサンプルについては、`LandscapeFileFormatInterfaces.h` のインターフェース、 in `LandscapeFileFormatPng.cpp1` と `LandscapeFileFormatPng.h` の.PNG 実装、`LandscapeFileFormatRaw.cpp` と `LandscapeFileFormatRaw.h` の .RAW 実装をご覧ください。このコードはすべて、エンジンの LandscapeEditor モジュールに入っています。
+インポートした高さマップをベースに、作業用のランドスケープが新規作成されました。 

@@ -21,6 +21,10 @@
 #include "ProfilingDebugging/ScopedTimers.h"
 #include "GameFramework/GameStateBase.h"
 
+#if WITH_EDITOR
+#include "UObject/ObjectRedirector.h"
+#endif // WITH_EDITOR
+
 // ( OutPacketId == GUID_PACKET_NOT_ACKED ) == NAK'd		(this GUID is not acked, and is not pending either, so sort of waiting)
 // ( OutPacketId == GUID_PACKET_ACKED )		== FULLY ACK'd	(this GUID is fully acked, and we no longer need to send full path)
 // ( OutPacketId > GUID_PACKET_ACKED )		== PENDING		(this GUID needs to be acked, it has been recently reference, and path was sent)
@@ -333,6 +337,15 @@ bool UPackageMapClient::SerializeNewActor(FArchive& Ar, class UActorChannel *Cha
 
 		FNetworkGUID ArchetypeNetGUID;
 		SerializeObject( Ar, UObject::StaticClass(), Archetype, &ArchetypeNetGUID );
+
+#if WITH_EDITOR
+		UObjectRedirector* ArchetypeRedirector = Cast<UObjectRedirector>(Archetype);
+		if (ArchetypeRedirector)
+		{
+			// Redirectors not supported
+			Archetype = nullptr;
+		}
+#endif // WITH_EDITOR
 
 		if ( ArchetypeNetGUID.IsValid() && Archetype == NULL )
 		{

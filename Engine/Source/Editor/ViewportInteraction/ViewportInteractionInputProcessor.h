@@ -15,7 +15,7 @@ struct FPointerEvent;
 class FViewportInteractionInputProcessor : public IInputProcessor
 {
 public:
-	FViewportInteractionInputProcessor ( FViewportWorldInteractionManager* InWorldInteractionManager );
+	FViewportInteractionInputProcessor(class UViewportWorldInteraction* InWorldInteraction);
 	virtual ~FViewportInteractionInputProcessor ();
 
 	// IInputProcess overrides
@@ -28,6 +28,5 @@ public:
 private:
 
 	/** The WorldInteraction that will receive the input */
-	FViewportWorldInteractionManager* WorldInteractionManager;
-
+	class UViewportWorldInteraction* WorldInteraction;
 };

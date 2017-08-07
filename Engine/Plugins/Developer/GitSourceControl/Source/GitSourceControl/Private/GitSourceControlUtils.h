@@ -62,6 +62,13 @@ bool CheckGitAvailability(const FString& InPathToGitBinary, FGitVersion* OutVers
  void FindGitCapabilities(const FString& InPathToGitBinary, FGitVersion *OutVersion);
 
 /**
+ * Run a Git "lfs" command to check the availability of the "Large File System" extension.
+ * @param InPathToGitBinary		The path to the Git binary
+ * @param OutGitVersion			If provided, populate with the git version parsed from "version" command
+ */
+ void FindGitLfsCapabilities(const FString& InPathToGitBinary, FGitVersion *OutVersion);
+
+/**
  * Find the root of the Git repository, looking from the provided path and upward in its parent directories
  * @param InPath				The path to the Game Directory (or any path or file in any git repository)
  * @param OutRepositoryRoot		The path to the root directory of the Git repository if found, else the path to the GameDir
@@ -83,8 +90,9 @@ void GetUserConfig(const FString& InPathToGitBinary, const FString& InRepository
  * @param	InPathToGitBinary	The path to the Git binary
  * @param	InRepositoryRoot	The Git repository from where to run the command - usually the Game directory (can be empty)
  * @param	OutBranchName		Name of the current checked-out branch (if any, ie. not in detached HEAD)
+ * @returns true if the command succeeded and returned no errors
  */
-void GetBranchName(const FString& InPathToGitBinary, const FString& InRepositoryRoot, FString& OutBranchName);
+bool GetBranchName(const FString& InPathToGitBinary, const FString& InRepositoryRoot, FString& OutBranchName);
 
 /**
  * Run a Git command - output is a string TArray.

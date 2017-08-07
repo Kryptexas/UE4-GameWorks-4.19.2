@@ -34,7 +34,7 @@ void FPostProcessPassThroughPS::SetParameters(const FRenderingCompositePassConte
 	PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI());
 }
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessPassThroughPS,TEXT("PostProcessPassThrough"),TEXT("MainPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FPostProcessPassThroughPS,TEXT("/Engine/Private/PostProcessPassThrough.usf"),TEXT("MainPS"),SF_Pixel);
 
 
 FRCPassPostProcessPassThrough::FRCPassPostProcessPassThrough(IPooledRenderTarget* InDest, bool bInAdditiveBlend)

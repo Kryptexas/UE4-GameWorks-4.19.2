@@ -34,14 +34,9 @@ void STransformHandle::Construct(const FArguments& InArgs, IUMGDesigner* InDesig
 
 	ChildSlot
 	[
-		SNew(SBox)
-		.WidthOverride(10)
-		.HeightOverride(10)
+		SNew(SImage)
 		.Visibility(this, &STransformHandle::GetHandleVisibility)
-		[
-			SNew(SImage)
-			.Image(FEditorStyle::Get().GetBrush("CurveEd.CurveKey"))
-		]
+		.Image(FEditorStyle::Get().GetBrush("UMGEditor.TransformHandle"))
 	];
 }
 

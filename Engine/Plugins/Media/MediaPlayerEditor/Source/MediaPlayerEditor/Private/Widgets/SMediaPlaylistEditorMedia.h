@@ -34,7 +34,7 @@ public:
 private:
 
 	/** Callback for double-clicking an asset in the asset picker. */
-	void HandleAssetPickerAssetDoubleClicked(const class FAssetData& AssetData);
+	void HandleAssetPickerAssetDoubleClicked(const struct FAssetData& AssetData);
 
 private:
 

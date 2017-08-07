@@ -16,6 +16,9 @@
 #include "Animation/AnimNotifies/AnimNotify.h"
 #include "AnimInstance.generated.h"
 
+// Post Compile Validation requires WITH_EDITOR
+#define ANIMINST_PostCompileValidation WITH_EDITOR
+
 class FDebugDisplayInfo;
 class IAnimClassInterface;
 class UAnimInstance;
@@ -486,6 +489,10 @@ public:
 	UFUNCTION(BlueprintImplementableEvent)
 	void BlueprintPostEvaluateAnimation();
 
+	/** Executed when begin play is called on the owning component */
+	UFUNCTION(BlueprintImplementableEvent)
+	void BlueprintBeginPlay();
+
 	bool CanTransitionSignature() const;
 	
 	/*********************************************************************************************
@@ -812,7 +819,6 @@ public:
 
 	/** Returns the baked sync group index from the compile step */
 	int32 GetSyncGroupIndexFromName(FName SyncGroupName) const;
-protected:
 
 	/** Gets the index of the state machine matching MachineName */
 	int32 GetStateMachineIndex(FName MachineName);
@@ -841,36 +847,6 @@ public:
 
 	/** Returns value of named curved in OutValue, returns whether the curve was actually found or not. */
 	bool GetCurveValue(FName CurveName, float& OutValue);
-
-	/** Returns the length (in seconds) of an animation AnimAsset. */
-	DEPRECATED(4.9, "GetAnimAssetPlayerLength is deprecated, use GetInstanceAssetPlayerLength instead")
-	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintInternalUseOnly = "true"))
-	static float GetAnimAssetPlayerLength(UAnimationAsset* AnimAsset);
-
-	//** Returns how far through the animation AnimAsset we are (as a proportion between 0.0 and 1.0). */
-	DEPRECATED(4.9, "GetAnimAssetPlayerTimeFraction is deprecated, use GetInstanceAssetPlayerTimeFraction instead")
-	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintInternalUseOnly = "true"))
-	static float GetAnimAssetPlayerTimeFraction(UAnimationAsset* AnimAsset, float CurrentTime);
-
-	/** Returns how long until the end of the animation AnimAsset (in seconds). */
-	DEPRECATED(4.9, "GetAnimAssetPlayerTimeFromEnd is deprecated, use GetInstanceAssetPlayerTimeFromEnd instead")
-	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintInternalUseOnly = "true"))
-	float GetAnimAssetPlayerTimeFromEnd(UAnimationAsset* AnimAsset, float CurrentTime);
-
-	/** Returns how long until the end of the animation AnimAsset we are (as a proportion between 0.0 and 1.0). */
-	DEPRECATED(4.9, "GetAnimAssetPlayerTimeFromEndFraction is deprecated, use GetInstanceAssetPlayerTimeFromEndFraction instead")
-	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintInternalUseOnly = "true"))
-	static float GetAnimAssetPlayerTimeFromEndFraction(UAnimationAsset* AnimAsset, float CurrentTime);
-
-	/** Returns the weight of a state in a state machine. */
-	DEPRECATED(4.9, "GetStateWeight is deprecated, use GetInstanceStateWeight instead")
-	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintInternalUseOnly = "true"))
-	float GetStateWeight(int32 MachineIndex, int32 StateIndex);
-
-	/** Returns (in seconds) the time a state machine has been active. */
-	DEPRECATED(4.9, "GetCurrentStateElapsedTime is deprecated, use GetInstanceCurrentStateElapsedTime instead")
-	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintInternalUseOnly = "true"))
-	float GetCurrentStateElapsedTime(int32 MachineIndex);
 
 	/** Returns the name of a currently active state in a state machine. */
 	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintInternalUseOnly = "true", AnimGetter = "true"))
@@ -923,6 +899,16 @@ public:
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	//~ End UObject Interface
 
+#if WITH_EDITORONLY_DATA // ANIMINST_PostCompileValidation
+	/** Name of Class to do Post Compile Validation.
+	* See Class UAnimBlueprintPostCompileValidation. */
+	UPROPERTY()
+	FStringClassReference PostCompileValidationClassName;
+
+	/** Warn if AnimNodes are not using fast path during AnimBP compilation. */
+	virtual bool PCV_ShouldWarnAboutNodesNotUsingFastPath() const { return false; }
+#endif // WITH_EDITORONLY_DATA
+
 	virtual void OnUROSkipTickAnimation() {}
 	virtual void OnUROPreInterpolation() {}
 
@@ -948,7 +934,7 @@ public:
 	bool ParallelCanEvaluate(const USkeletalMesh* InSkeletalMesh) const;
 
 	/** Perform evaluation. Can be called from worker threads. */
-	void ParallelEvaluateAnimation(bool bForceRefPose, const USkeletalMesh* InSkeletalMesh, TArray<FTransform>& OutBoneSpaceTransforms, FBlendedHeapCurve& OutCurve);
+	void ParallelEvaluateAnimation(bool bForceRefPose, const USkeletalMesh* InSkeletalMesh, TArray<FTransform>& OutBoneSpaceTransforms, FBlendedHeapCurve& OutCurve, FCompactPose& OutPose);
 
 	void PostEvaluateAnimation();
 	void UninitializeAnimation();
@@ -1062,7 +1048,7 @@ public:
 	/**
 	* Recalculate Required Curves based on Required Bones [RequiredBones]
 	*/
-	void RecalcRequiredCurves();
+	void RecalcRequiredCurves(bool bDisableAnimCurves);
 
 	// @todo document
 	inline USkeletalMeshComponent* GetSkelMeshComponent() const { return CastChecked<USkeletalMeshComponent>(GetOuter()); }
@@ -1242,4 +1228,8 @@ public:
 
 	/** Called when a montage hits a 'PlayMontageNotify' or 'PlayMontageNotifyWindow' end */
 	FPlayMontageAnimNotifyDelegate OnPlayMontageNotifyEnd;
+
+public:
+	/** Dispatch AnimEvents (AnimNotifies, Montage Events) queued during UpdateAnimation() */
+	void DispatchQueuedAnimEvents();
 };

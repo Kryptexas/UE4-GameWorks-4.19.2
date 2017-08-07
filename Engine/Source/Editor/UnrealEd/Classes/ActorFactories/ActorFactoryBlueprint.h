@@ -9,7 +9,7 @@
 #include "ActorFactoryBlueprint.generated.h"
 
 class AActor;
-class FAssetData;
+struct FAssetData;
 
 UCLASS(MinimalAPI, config=Editor, collapsecategories, hidecategories=Object)
 class UActorFactoryBlueprint : public UActorFactory

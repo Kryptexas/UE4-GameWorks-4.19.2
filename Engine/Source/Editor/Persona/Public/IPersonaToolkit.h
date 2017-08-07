@@ -43,8 +43,13 @@ public:
 	/** Set the preview mesh, according to context (mesh, skeleton or animation etc.) */
 	virtual class USkeletalMesh* GetPreviewMesh() const = 0;
 
-	/** Set the preview mesh, according to context (mesh, skeleton or animation etc.) */
-	virtual void SetPreviewMesh(class USkeletalMesh* InSkeletalMesh) = 0;
+	/** 
+	 * Set the preview mesh, according to context (mesh, skeleton or animation etc.) 
+	 * @param	InSkeletalMesh			The mesh to set
+	 * @param	bSetPreviewMeshInAsset	If true, the mesh will be written to the asset so it can be permanently saved. 
+	 *									Otherwise the change is merely transient and will reset next time the editor is opened.
+	 */
+	virtual void SetPreviewMesh(class USkeletalMesh* InSkeletalMesh, bool bSetPreviewMeshInAsset = true) = 0;
 
 	/** Get the context in which this toolkit is being used (usually the class name of the asset) */
 	virtual FName GetContext() const = 0;

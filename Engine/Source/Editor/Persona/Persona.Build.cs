@@ -28,6 +28,7 @@ public class Persona : ModuleRules
                 "ContentBrowser",
                 "AssetTools",
                 "AnimationEditor",
+                "MeshReductionInterface"
             }
         );
 
@@ -55,6 +56,7 @@ public class Persona : ModuleRules
                 "ClothingSystemRuntime",
                 "ClothingSystemEditorInterface",
                 "ClothingSystemRuntimeInterface",
+                "AnimGraphRuntime",
             }
         );
 
@@ -67,6 +69,7 @@ public class Persona : ModuleRules
                 "SkeletonEditor",
                 "AssetTools",
                 "AnimationEditor",
+                "MeshReductionInterface"
             }
         );
     }

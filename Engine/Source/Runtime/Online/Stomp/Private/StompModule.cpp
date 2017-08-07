@@ -44,7 +44,8 @@ FStompModule& FStompModule::Get()
 
 TSharedRef<IStompClient> FStompModule::CreateClient(const FString& Url)
 {
-	return MakeShareable(new FStompClient(Url, DefaultPingInterval, DefaultPingInterval));
+	// no server pong - wasteful having all the cloud websocket workers sending out heartbeats
+	return MakeShareable(new FStompClient(Url, DefaultPingInterval, 0));
 }
 
 #endif // #if WITH_STOMP

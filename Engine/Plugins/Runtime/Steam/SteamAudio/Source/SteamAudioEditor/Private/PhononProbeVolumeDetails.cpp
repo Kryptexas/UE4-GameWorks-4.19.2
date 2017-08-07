@@ -4,6 +4,8 @@
 
 #include "PhononProbeVolumeDetails.h"
 
+#include "PhononCommon.h"
+
 #include "DetailLayoutBuilder.h"
 #include "DetailCategoryBuilder.h"
 #include "DetailWidgetRow.h"
@@ -40,15 +42,6 @@ namespace SteamAudio
 	TSharedRef<IDetailCustomization> FPhononProbeVolumeDetails::MakeInstance()
 	{
 		return MakeShareable(new FPhononProbeVolumeDetails);
-	}
-
-	FText GetKBTextFromByte(const int32 NumBytes)
-	{
-		float NumKilobytes = (float)NumBytes / 1000.0f;
-		NumKilobytes = (float)roundf(NumKilobytes * 10) / 10;
-		FFormatNamedArguments Arguments;
-		Arguments.Add(TEXT("NumKilobytes"), FText::AsNumber(NumKilobytes));
-		return FText::Format(NSLOCTEXT("KBText", "KBText", "{NumKilobytes} KB"), Arguments);
 	}
 
 	FText FPhononProbeVolumeDetails::GetTotalDataSize()
@@ -129,7 +122,7 @@ namespace SteamAudio
 
 	void FPhononProbeVolumeDetails::OnGenerateBakedDataInfo(TSharedRef<IPropertyHandle> PropertyHandle, int32 ArrayIndex, IDetailChildrenBuilder& ChildrenBuilder)
 	{
-		auto& BakedDataRow = ChildrenBuilder.AddChildProperty(PropertyHandle);
+		auto& BakedDataRow = ChildrenBuilder.AddProperty(PropertyHandle);
 		auto& BakedDataInfo = PhononProbeVolume->BakedDataInfo[ArrayIndex];
 
 		BakedDataRow.ShowPropertyButtons(false);
@@ -166,7 +159,7 @@ namespace SteamAudio
 	{
 		IPLhandle ProbeBox = nullptr;
 		iplLoadProbeBox(PhononProbeVolume->GetProbeBoxData(), PhononProbeVolume->GetProbeBoxDataSize(), &ProbeBox);
-		iplDeleteBakedDataByName(ProbeBox, TCHAR_TO_ANSI(*PhononProbeVolume->BakedDataInfo[ArrayIndex].Name.ToString()));
+		iplDeleteBakedDataByName(ProbeBox, TCHAR_TO_ANSI(*PhononProbeVolume->BakedDataInfo[ArrayIndex].Name.ToString().ToLower()));
 		PhononProbeVolume->BakedDataInfo.RemoveAt(ArrayIndex);
 		PhononProbeVolume->UpdateProbeBoxData(ProbeBox);
 		iplDestroyProbeBox(&ProbeBox);
@@ -202,7 +195,7 @@ namespace SteamAudio
 			iplDestroyScene(&SceneCopy);
 
 			// Update probe component with new probe locations
-			auto& ProbeLocations = PhononProbeVolumeHandle->PhononProbeComponent->ProbeLocations;
+			auto& ProbeLocations = PhononProbeVolumeHandle->GetPhononProbeComponent()->ProbeLocations;
 			ProbeLocations.Empty();
 			ProbeLocations.SetNumUninitialized(ProbeSpheres.Num());
 			for (auto i = 0; i < ProbeSpheres.Num(); ++i)

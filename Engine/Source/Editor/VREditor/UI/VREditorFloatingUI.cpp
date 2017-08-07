@@ -26,7 +26,9 @@ AVREditorFloatingUI::AVREditorFloatingUI()
 	bShouldBeVisible(),
 	FadeAlpha( 1.0f ),
 	FadeDelay( 0.0f ),
-	InitialScale( 1.0f )
+	InitialScale( 1.0f ),
+	UISystemID(NAME_None),
+	bClearWidgetOnHide(false)
 {
 	const bool bTransient = true;
 	USceneComponent* SceneComponent = CreateDefaultSubobject<USceneComponent>( TEXT( "SceneComponent" ), bTransient );
@@ -118,10 +120,12 @@ void AVREditorFloatingUI::SetupWidgetComponent()
 	}
 }
 
-void AVREditorFloatingUI::SetSlateWidget( UVREditorUISystem& InitOwner, const TSharedRef<SWidget>& InitSlateWidget, const FIntPoint InitResolution, const float InitScale, const EDockedTo InitDockedTo )
+void AVREditorFloatingUI::SetSlateWidget( UVREditorUISystem& InitOwner, const VREditorPanelID& InID, const TSharedRef<SWidget>& InitSlateWidget, const FIntPoint InitResolution, const float InitScale, const EDockedTo InitDockedTo )
 {
 	Owner = &InitOwner;
 	SetVRMode( &Owner->GetOwner() );
+
+	UISystemID = InID;
 
 	SlateWidget = InitSlateWidget;
 
@@ -136,11 +140,18 @@ void AVREditorFloatingUI::SetSlateWidget( UVREditorUISystem& InitOwner, const TS
 	SetupWidgetComponent();
 }
 
+void AVREditorFloatingUI::SetSlateWidget(const TSharedRef<SWidget>& InitSlateWidget)
+{
+	SlateWidget = InitSlateWidget;
+	SetupWidgetComponent();
+}
 
-void AVREditorFloatingUI::SetUMGWidget( UVREditorUISystem& InitOwner, TSubclassOf<UVREditorBaseUserWidget> InitUserWidgetClass, const FIntPoint InitResolution, const float InitScale, const EDockedTo InitDockedTo )
+void AVREditorFloatingUI::SetUMGWidget( UVREditorUISystem& InitOwner, const VREditorPanelID& InID, TSubclassOf<UVREditorBaseUserWidget> InitUserWidgetClass, const FIntPoint InitResolution, const float InitScale, const EDockedTo InitDockedTo )
 {
 	Owner = &InitOwner;
 	SetVRMode( &Owner->GetOwner() );
+
+	UISystemID = InID;
 
 	check( InitUserWidgetClass != nullptr );
 	UserWidgetClass = InitUserWidgetClass;
@@ -236,6 +247,12 @@ void AVREditorFloatingUI::UpdateFadingState( const float DeltaTime )
 				SetActorHiddenInGame( true );
 				WidgetComponent->SetVisibility( false );
 				FadeDelay = 0.0f;
+
+				if (bClearWidgetOnHide)
+				{
+					SetSlateWidget(SNullWidget::NullWidget);
+					bClearWidgetOnHide = false;
+				}
 			}
 		}
 
@@ -287,7 +304,7 @@ float AVREditorFloatingUI::GetInitialScale() const
 	return InitialScale;
 }
 
-void AVREditorFloatingUI::ShowUI( const bool bShow, const bool bAllowFading, const float InitFadeDelay )
+void AVREditorFloatingUI::ShowUI( const bool bShow, const bool bAllowFading, const float InitFadeDelay, const bool bInClearWidgetOnHide )
 {
 	if( !bShouldBeVisible.IsSet() || bShow != bShouldBeVisible.GetValue() )
 	{
@@ -298,7 +315,19 @@ void AVREditorFloatingUI::ShowUI( const bool bShow, const bool bAllowFading, con
 			SetActorHiddenInGame( !bShow );
 			WidgetComponent->SetVisibility( bShow );
 			FadeAlpha = bShow ? 1.0f : 0.0f;
+			if (bInClearWidgetOnHide )
+			{
+				SetSlateWidget(SNullWidget::NullWidget);
+			}
 		}
+		else
+		{
+			if (bInClearWidgetOnHide)
+			{
+				bClearWidgetOnHide = bInClearWidgetOnHide;
+			}
+		}
+		
 
 		// Set collision on components
 		if (bShow)
@@ -315,6 +344,24 @@ void AVREditorFloatingUI::ShowUI( const bool bShow, const bool bAllowFading, con
 	}		
 }
 
+
+void AVREditorFloatingUI::SetResolution(const FIntPoint& InResolution)
+{
+	Resolution = InResolution;
+	check(Resolution.X > 0 && Resolution.Y > 0);
+
+	WidgetComponent->SetDrawSize(FVector2D(Resolution.X, Resolution.Y));		// NOTE: Must be called before 
+	
+	{
+		const float WindowMeshSize = 100.0f;	// Size of imported mesh, we need to inverse compensate for
+
+		const FVector WindowMeshScale = FVector(
+			1.0f,
+			GetSize().X / WindowMeshSize,
+			GetSize().Y / WindowMeshSize) * GetOwner().GetOwner().GetWorldScaleFactor();
+		WindowMeshComponent->SetRelativeScale3D(WindowMeshScale);
+	}
+}
 
 FVector2D AVREditorFloatingUI::GetSize() const
 {
@@ -343,4 +390,20 @@ void AVREditorFloatingUI::SetWidgetComponentScale(const FVector& InScale)
 {
 	const float Aspect = (float)Resolution.X / (float)Resolution.Y;
 	WidgetComponent->SetWorldScale3D(FVector(1.0f / InScale.X, 1.0f / (float)Resolution.X, 1.0f / (float)Resolution.Y / Aspect) * InScale);
+}
+
+VREditorPanelID AVREditorFloatingUI::GetID() const
+{
+	return UISystemID;
+}
+
+TSharedPtr<SWidget> AVREditorFloatingUI::GetSlateWidget() const
+{
+	return SlateWidget;
+}
+
+void AVREditorFloatingUI::SetWindowMesh(class UStaticMesh* InWindowMesh)
+{
+	check(InWindowMesh != nullptr);
+	WindowMeshComponent->SetStaticMesh(InWindowMesh);
 }

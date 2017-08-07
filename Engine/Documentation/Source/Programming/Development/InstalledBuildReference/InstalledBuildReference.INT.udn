@@ -3,7 +3,7 @@ Title: Installed Build Reference
 Crumbs: %ROOT%, Programming, Programming/Development
 Description:This page describes the Installed Build process, including an overview of how to write Installed Build scripts.
 version: 4.13
-parent:Programming/Development
+parent:Programming/Development/BuildGraph
 type:Reference
 related:Programming/Development/BuildGraph
 related:Programming/UnrealBuildSystem

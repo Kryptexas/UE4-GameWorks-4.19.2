@@ -9,7 +9,37 @@ The **Play** settings panel can be opened two different ways:
 
 * The **Play** settings panel can be opened clicking **Edit** > **Editor Preferences**...
 
-	![](PIE_settings.png) 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	![](PIE_settings.png)
+	[/REGION]
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	![](PIESettings_Mac.png)
+	[/REGION]
+	[/PARAM]
+	[/OBJECT]
 
 	Then, select the **Play** section of the Editor Preferences window.
 

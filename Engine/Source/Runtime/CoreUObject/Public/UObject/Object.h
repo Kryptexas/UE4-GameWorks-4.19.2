@@ -166,11 +166,10 @@ public:
 	 * PostSaveRoot. This is used to allow objects used as base to perform required actions before saving and cleanup
 	 * afterwards.
 	 * @param Filename: Name of the file being saved to (includes path)
-	 * @param AdditionalPackagesToCook [out] Array of other packages the Root wants to make sure are cooked when this is cooked
 	 *
 	 * @return	Whether PostSaveRoot needs to perform internal cleanup
 	 */
-	virtual bool PreSaveRoot(const TCHAR* Filename, TArray<FString>& AdditionalPackagesToCook)
+	virtual bool PreSaveRoot(const TCHAR* Filename)
 	{
 		return false;
 	}
@@ -325,7 +324,15 @@ public:
 	/** Called after applying a transaction to the object in cases where transaction annotation was provided. Default implementation simply calls PostEditChange. */
 	virtual void PostEditUndo(TSharedPtr<ITransactionObjectAnnotation> TransactionAnnotation);
 
-
+	/**
+	 * Test the selection state of a UObject
+	 *
+	 * @return		true if the object is selected, false otherwise.
+	 * @todo UE4 this doesn't belong here, but it doesn't belong anywhere else any better
+	 */
+private:
+	virtual bool IsSelectedInEditor() const;
+public:
 #endif // WITH_EDITOR
 
 	// @todo document
@@ -390,11 +397,20 @@ public:
 	}
 
 	/**
-	* Called during cooking. Must return all objects that will be Preload()ed when this is serialized at load time
+	* Called during cooking. Must return all objects that will be Preload()ed when this is serialized at load time. Only used by the EDL.
 	*
 	* @param	OutDeps				all objects that will be preloaded when this is serialized at load time
 	*/
 	virtual void GetPreloadDependencies(TArray<UObject*>& OutDeps);
+
+	/**
+	* Called during cooking. Returns a list of objects. The packages containing those objects will be prestreamed, when the package containing this is loaded. Only used by the EDL.
+	*
+	* @param	OutPrestream				all objects that will be prestreamed when this packages is streamed
+	*/
+	virtual void GetPrestreamPackages(TArray<UObject*>& OutPrestream)
+	{
+	}
 
 	/**
 	*	Update the list of classes that we should exclude from dedicated server builds
@@ -570,20 +586,43 @@ public:
 	 */
 	struct FAssetRegistryTag
 	{
+		/** Enum specifying the type of this tag */
 		enum ETagType
 		{
+			/** This tag should not be shown in the UI */
 			TT_Hidden,
+			/** This tag should be shown, and sorted alphabetically in the UI */
 			TT_Alphabetical,
+			/** This tag should be shown, and is a number */
 			TT_Numerical,
-			TT_Dimensional
+			/** This tag should be shown, and is an "x" delimited list of dimensions */ 
+			TT_Dimensional,
+			/** This tag should be shown, and is a timestamp formatted via FDateTime::ToString */
+			TT_Chronological,
 		};
 
+		/** Flags controlling how this tag should be shown in the UI */
+		enum ETagDisplay
+		{
+			/** No special display */
+			TD_None = 0,
+			/** For TT_Chronological, include the date */
+			TD_Date = 1<<0,
+			/** For TT_Chronological, include the time */
+			TD_Time = 1<<1,
+			/** For TT_Chronological, specifies that the timestamp should be displayed using the invariant timezone (typically for timestamps that are already in local time) */
+			TD_InvariantTz = 1<<2,
+			/** For TT_Numerical, specifies that the number is a value in bytes that should be displayed using FText::AsMemory */
+			TD_Memory = 1<<3,
+		};
+		
 		FName Name;
-		ETagType Type;
 		FString Value;
+		ETagType Type;
+		uint32 DisplayFlags;
 
-		FAssetRegistryTag(FName InName, const FString& InValue, ETagType InType)
-			: Name(InName), Type(InType), Value(InValue) {}
+		FAssetRegistryTag(FName InName, const FString& InValue, ETagType InType, uint32 InDisplayFlags = TD_None)
+			: Name(InName), Value(InValue), Type(InType), DisplayFlags(InDisplayFlags) {}
 
 		/** Gathers a list of asset registry searchable tags from given objects properties */
 		COREUOBJECT_API static void GetAssetRegistryTagsFromSearchableProperties(const UObject* Object, TArray<FAssetRegistryTag>& OutTags);

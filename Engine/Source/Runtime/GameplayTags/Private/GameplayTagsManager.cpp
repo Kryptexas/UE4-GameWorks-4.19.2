@@ -15,13 +15,17 @@
 #include "GameplayTagsModule.h"
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
-#include "Engine/Engine.h"
+#include "Misc/CoreDelegates.h"
 
 #if WITH_EDITOR
 #include "SourceControlHelpers.h"
 #include "ISourceControlModule.h"
 #include "Editor.h"
+#include "PropertyHandle.h"
+FSimpleMulticastDelegate UGameplayTagsManager::OnEditorRefreshGameplayTagTree;
 #endif
+#include "IConsoleManager.h"
+
 
 #define LOCTEXT_NAMESPACE "GameplayTagManager"
 
@@ -67,7 +71,10 @@ struct FCompareFGameplayTagNodeByTag
 {
 	FORCEINLINE bool operator()( const TSharedPtr<FGameplayTagNode>& A, const TSharedPtr<FGameplayTagNode>& B ) const
 	{
-		return (A->GetSimpleTagName().Compare(B->GetSimpleTagName())) < 0;
+		// Note: GetSimpleTagName() is not good enough here. The individual tag nodes are share frequently (E.g, Dog.Tail, Cat.Tail have sub nodes with the same simple tag name)
+		// Compare with equal FNames will look at the backing number/indice to the FName. For FNames used elsewhere, like "A" for example, this can cause non determinism in platforms
+		// (For example if static order initialization differs on two platforms, the "version" of the "A" FName that two places get could be different, causing this comparison to also be)
+		return (A->GetCompleteTagName().Compare(B->GetCompleteTagName())) < 0;
 	}
 };
 
@@ -268,11 +275,21 @@ void UGameplayTagsManager::ConstructGameplayTagTree()
 				FGameplayTag OldTag = RequestGameplayTag(OldTagName, false); //< This only succeeds if OldTag is in the Table!
 				if (OldTag.IsValid())
 				{
-					UE_LOG(LogGameplayTags, Warning,
-						TEXT("Old tag (%s) which is being redirected still exists in the table!  Generally you should "
+					FGameplayTagContainer MatchingChildren = RequestGameplayTagChildren(OldTag);
+
+					FString Msg = FString::Printf(TEXT("Old tag (%s) which is being redirected still exists in the table!  Generally you should "
 						TEXT("remove the old tags from the table when you are redirecting to new tags, or else users will ")
-						TEXT("still be able to add the old tags to containers.")), *OldTagName.ToString()
-						);
+						TEXT("still be able to add the old tags to containers.")), *OldTagName.ToString());
+
+					if (MatchingChildren.Num() == 0)
+					{
+						UE_LOG(LogGameplayTags, Warning, TEXT("%s"), *Msg);
+					}
+					else
+					{
+						Msg += TEXT("\nSuppressed warning due to redirected tag being a single component that matched other hierarchy elements.");
+						UE_LOG(LogGameplayTags, Log, TEXT("%s"), *Msg);
+					}
 				}
 
 				FGameplayTag NewTag = (NewTagName != NAME_None) ? RequestGameplayTag(NewTagName, false) : FGameplayTag();
@@ -314,6 +331,8 @@ void UGameplayTagsManager::ConstructGameplayTagTree()
 	}
 }
 
+int32 PrintNetIndiceAssignment = 0;
+static FAutoConsoleVariableRef CVarPrintNetIndiceAssignment(TEXT("GameplayTags.PrintNetIndiceAssignment"), PrintNetIndiceAssignment, TEXT("Logs GameplayTag NetIndice assignment"), ECVF_Default );
 void UGameplayTagsManager::ConstructNetIndex()
 {
 	NetworkGameplayTagNodeIndex.Empty();
@@ -359,11 +378,21 @@ void UGameplayTagsManager::ConstructNetIndex()
 		NetworkGameplayTagNodeIndex.SetNum(INVALID_TAGNETINDEX - 1);
 	}
 
+
+
+	UE_CLOG(PrintNetIndiceAssignment, LogGameplayTags, Display, TEXT("Assigning NetIndices to %d tags."), NetworkGameplayTagNodeIndex.Num() );
+
 	for (FGameplayTagNetIndex i = 0; i < NetworkGameplayTagNodeIndex.Num(); i++)
 	{
 		if (NetworkGameplayTagNodeIndex[i].IsValid())
 		{
 			NetworkGameplayTagNodeIndex[i]->NetIndex = i;
+
+			UE_CLOG(PrintNetIndiceAssignment, LogGameplayTags, Display, TEXT("Assigning NetIndex (%d) to Tag (%s)"), i, *NetworkGameplayTagNodeIndex[i]->GetCompleteTag().ToString());
+		}
+		else
+		{
+			UE_LOG(LogGameplayTags, Warning, TEXT("TagNode Indice %d is invalid!"), i);
 		}
 	}
 }
@@ -515,7 +544,7 @@ void UGameplayTagsManager::InitializeManager()
 	SingletonManager->ConstructGameplayTagTree();
 
 	// Bind to end of engine init to be done adding native tags
-	UEngine::OnPostEngineInit.AddUObject(SingletonManager, &UGameplayTagsManager::DoneAddingNativeTags);
+	FCoreDelegates::OnPostEngineInit.AddUObject(SingletonManager, &UGameplayTagsManager::DoneAddingNativeTags);
 }
 
 void UGameplayTagsManager::PopulateTreeFromDataTable(class UDataTable* InTable)
@@ -644,6 +673,21 @@ int32 UGameplayTagsManager::InsertTagIntoNodeArray(FName Tag, TSharedPtr<FGamepl
 #endif
 
 	return InsertionIdx;
+}
+
+void UGameplayTagsManager::PrintReplicationIndices()
+{
+
+	UE_LOG(LogGameplayTags, Display, TEXT("::PrintReplicationIndices (TOTAL %d"), GameplayTagNodeMap.Num());
+
+	for (auto It : GameplayTagNodeMap)
+	{
+		FGameplayTag Tag = It.Key;
+		TSharedPtr<FGameplayTagNode> Node = It.Value;
+
+		UE_LOG(LogGameplayTags, Display, TEXT("Tag %s NetIndex: %d"), *Tag.ToString(), Node->GetNetIndex());
+	}
+
 }
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -843,6 +887,81 @@ void UGameplayTagsManager::GetFilteredGameplayRootTags(const FString& InFilterSt
 	}
 }
 
+FString UGameplayTagsManager::GetCategoriesMetaFromPropertyHandle(TSharedPtr<IPropertyHandle> PropertyHandle) const
+{
+	// Global delegate override. Useful for parent structs that want to override tag categories based on their data (e.g. not static property meta data)
+	FString DelegateOverrideString;
+	OnGetCategoriesMetaFromPropertyHandle.Broadcast(PropertyHandle, DelegateOverrideString);
+	if (DelegateOverrideString.IsEmpty() == false)
+	{
+		return DelegateOverrideString;
+	}
+
+
+	const FName CategoriesName = TEXT("Categories");
+	FString Categories;
+
+	auto GetMetaData = ([&](UField* Field)
+	{
+		if (Field->HasMetaData(CategoriesName))
+		{
+			Categories = Field->GetMetaData(CategoriesName);
+			return true;
+		}
+
+		return false;
+	});
+	
+	while(PropertyHandle.IsValid())
+	{
+		if (UProperty* Property = PropertyHandle->GetProperty())
+		{
+			/**
+			 *	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (Categories="GameplayCue"))
+			 *	FGameplayTag GameplayCueTag;
+			 */
+			if (GetMetaData(Property))
+			{
+				break;
+			}
+
+			/**
+			 *	USTRUCT(meta=(Categories="EventKeyword"))
+			 *	struct FGameplayEventKeywordTag : public FGameplayTag
+			 */
+			if (UStructProperty* StructProperty = Cast<UStructProperty>(Property))
+			{
+				if (GetMetaData(StructProperty->Struct))
+				{
+					break;
+				}
+			}
+
+			/**	TArray<FGameplayEventKeywordTag> QualifierTagTestList; */
+			if (UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Property))
+			{
+				if (GetMetaData(ArrayProperty->Inner))
+				{
+					break;
+				}
+			}
+		}
+		PropertyHandle = PropertyHandle->GetParentHandle();
+	}
+	
+	return Categories;
+}
+
+FString UGameplayTagsManager::GetCategoriesMetaFromFunction(UFunction* ThisFunction) const
+{
+	FString FilterString;
+	if (ThisFunction->HasMetaData(TEXT("GameplayTagFilter")))
+	{
+		FilterString = ThisFunction->GetMetaData(TEXT("GameplayTagFilter"));
+	}
+	return FilterString;
+}
+
 void UGameplayTagsManager::GetAllTagsFromSource(FName TagSource, TArray< TSharedPtr<FGameplayTagNode> >& OutTagArray) const
 {
 	for (const TPair<FGameplayTag, TSharedPtr<FGameplayTagNode>>& NodePair : GameplayTagNodeMap)
@@ -882,6 +1001,8 @@ void UGameplayTagsManager::EditorRefreshGameplayTagTree()
 	DestroyGameplayTagTree();
 	LoadGameplayTagTables();
 	ConstructGameplayTagTree();
+
+	OnEditorRefreshGameplayTagTree.Broadcast();
 }
 
 FGameplayTagContainer UGameplayTagsManager::RequestGameplayTagChildrenInDictionary(const FGameplayTag& GameplayTag) const
@@ -895,6 +1016,29 @@ FGameplayTagContainer UGameplayTagsManager::RequestGameplayTagChildrenInDictiona
 		AddChildrenTags(TagContainer, GameplayTagNode, true, true);
 	}
 	return TagContainer;
+}
+
+void UGameplayTagsManager::NotifyGameplayTagDoubleClickedEditor(FString TagName)
+{
+	FGameplayTag Tag = RequestGameplayTag(FName(*TagName), false);
+	if(Tag.IsValid())
+	{
+		FSimpleMulticastDelegate Delegate;
+		OnGatherGameplayTagDoubleClickedEditor.Broadcast(Tag, Delegate);
+		Delegate.Broadcast();
+	}
+}
+
+bool UGameplayTagsManager::ShowGameplayTagAsHyperLinkEditor(FString TagName)
+{
+	FGameplayTag Tag = RequestGameplayTag(FName(*TagName), false);
+	if(Tag.IsValid())
+	{
+		FSimpleMulticastDelegate Delegate;
+		OnGatherGameplayTagDoubleClickedEditor.Broadcast(Tag, Delegate);
+		return Delegate.IsBound();
+	}
+	return false;
 }
 
 #endif // WITH_EDITOR
@@ -976,6 +1120,43 @@ FGameplayTag UGameplayTagsManager::RequestGameplayTag(FName TagName, bool ErrorI
 	return FGameplayTag();
 }
 
+FGameplayTag UGameplayTagsManager::FindGameplayTagFromPartialString_Slow(FString PartialString) const
+{
+#if WITH_EDITOR
+	// This critical section is to handle and editor-only issue where tag requests come from another thread when async loading from a background thread in FGameplayTagContainer::Serialize.
+	// This function is not generically threadsafe.
+	FScopeLock Lock(&GameplayTagMapCritical);
+#endif
+
+	// Exact match first
+	FGameplayTag PossibleTag(*PartialString);
+	if (GameplayTagNodeMap.Contains(PossibleTag))
+	{
+		return PossibleTag;
+	}
+
+	// Find shortest tag name that contains the match string
+	FGameplayTag FoundTag;
+	FGameplayTagContainer AllTags;
+	RequestAllGameplayTags(AllTags, false);
+
+	int32 BestMatchLength = MAX_int32;
+	for (FGameplayTag MatchTag : AllTags)
+	{
+		FString Str = MatchTag.ToString();
+		if (Str.Contains(PartialString))
+		{
+			if (Str.Len() < BestMatchLength)
+			{
+				FoundTag = MatchTag;
+				BestMatchLength = Str.Len();
+			}
+		}
+	}
+	
+	return FoundTag;
+}
+
 FGameplayTag UGameplayTagsManager::AddNativeGameplayTag(FName TagName)
 {
 	if (TagName.IsNone())
@@ -1001,11 +1182,19 @@ FGameplayTag UGameplayTagsManager::AddNativeGameplayTag(FName TagName)
 	return FGameplayTag();
 }
 
+FSimpleMulticastDelegate& UGameplayTagsManager::OnLastChanceToAddNativeTags()
+{
+	static FSimpleMulticastDelegate Delegate;
+	return Delegate;
+}
+
 void UGameplayTagsManager::DoneAddingNativeTags()
 {
 	// Safe to call multiple times, only works the first time
 	if (!bDoneAddingNativeTags)
 	{
+		UE_LOG(LogGameplayTags, Display, TEXT("UGameplayTagsManager::DoneAddingNativeTags. DelegateIsBound: %d"), (int32)OnLastChanceToAddNativeTags().IsBound());
+		OnLastChanceToAddNativeTags().Broadcast();
 		bDoneAddingNativeTags = true;
 
 		if (ShouldUseFastReplication())

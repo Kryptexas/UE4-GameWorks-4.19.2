@@ -43,24 +43,24 @@ void FGameplayEffectExecutionDefinitionDetails::CustomizeChildren(TSharedRef<IPr
 		if (CalculationClassPropHandle.IsValid())
 		{
 			CalculationClassPropHandle->SetOnPropertyValueChanged(FSimpleDelegate::CreateSP(this, &FGameplayEffectExecutionDefinitionDetails::OnCalculationClassChanged));
-			StructBuilder.AddChildProperty(CalculationClassPropHandle.ToSharedRef());
+			StructBuilder.AddProperty(CalculationClassPropHandle.ToSharedRef());
 			StructCustomizationUtils.GetPropertyUtilities()->EnqueueDeferredAction(FSimpleDelegate::CreateSP(this, &FGameplayEffectExecutionDefinitionDetails::UpdateCalculationModifiers));
 		}
 
 		if (CalculationModifiersArrayPropHandle.IsValid())
 		{
-			IDetailPropertyRow& PropRow = StructBuilder.AddChildProperty(CalcModPropHandle.ToSharedRef());
+			IDetailPropertyRow& PropRow = StructBuilder.AddProperty(CalcModPropHandle.ToSharedRef());
 			PropRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FGameplayEffectExecutionDefinitionDetails::GetCalculationModifierVisibility)));
 		}
 
 		if (ConditionalEffectsPropHandle.IsValid())
 		{
-			StructBuilder.AddChildProperty(ConditionalEffectsPropHandle.ToSharedRef());
+			StructBuilder.AddProperty(ConditionalEffectsPropHandle.ToSharedRef());
 		}
 
 		if (PassedInTagsHandle.IsValid())
 		{
-			IDetailPropertyRow& PropRow = StructBuilder.AddChildProperty(PassedInTagsHandle.ToSharedRef());
+			IDetailPropertyRow& PropRow = StructBuilder.AddProperty(PassedInTagsHandle.ToSharedRef());
 			PropRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FGameplayEffectExecutionDefinitionDetails::GetPassedInTagsVisibility)));
 		}
 	}

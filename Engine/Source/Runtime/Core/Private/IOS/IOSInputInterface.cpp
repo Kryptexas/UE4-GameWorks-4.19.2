@@ -239,7 +239,7 @@ void FIOSInputInterface::ProcessTouchesAndKeys(uint32 ControllerId)
 		int32 KeyCode = KeyInputStack[KeyIndex];
 		int32 CharCode = KeyInputStack[KeyIndex + 1];
 		MessageHandler->OnKeyDown(KeyCode, CharCode, false);
-		MessageHandler->OnKeyChar(KeyCode,  false);
+		MessageHandler->OnKeyChar(CharCode,  false);
 		MessageHandler->OnKeyUp  (KeyCode, CharCode, false);
 	}
 	KeyInputStack.Empty(0);

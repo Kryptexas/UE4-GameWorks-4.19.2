@@ -60,7 +60,7 @@ void USoundCueGraphNode::SetSoundNode(USoundNode* InSoundNode)
 
 void USoundCueGraphNode::CreateInputPin()
 {
-	UEdGraphPin* NewPin = CreatePin(EGPD_Input, TEXT("SoundNode"), TEXT(""), NULL, /*bIsArray=*/ false, /*bIsReference=*/ false, SoundNode->GetInputPinName(GetInputCount()).ToString());
+	UEdGraphPin* NewPin = CreatePin(EGPD_Input, TEXT("SoundNode"), FString(), nullptr, SoundNode->GetInputPinName(GetInputCount()).ToString());
 	if (NewPin->PinName.IsEmpty())
 	{
 		// Makes sure pin has a name for lookup purposes but user will never see it

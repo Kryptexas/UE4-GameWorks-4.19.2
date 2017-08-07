@@ -216,7 +216,7 @@ void FSplinePointDetails::GenerateHeaderRowContent(FDetailWidgetRow& NodeRow)
 void FSplinePointDetails::GenerateChildContent(IDetailChildrenBuilder& ChildrenBuilder)
 {
 	// Message which is shown when no points are selected
-	ChildrenBuilder.AddChildContent(LOCTEXT("NoneSelected", "None selected"))
+	ChildrenBuilder.AddCustomRow(LOCTEXT("NoneSelected", "None selected"))
 	.Visibility(TAttribute<EVisibility>(this, &FSplinePointDetails::IsDisabled))
 	[
 		SNew(SBox)
@@ -230,7 +230,7 @@ void FSplinePointDetails::GenerateChildContent(IDetailChildrenBuilder& ChildrenB
 	];
 
 	// Input key
-	ChildrenBuilder.AddChildContent(LOCTEXT("InputKey", "Input Key"))
+	ChildrenBuilder.AddCustomRow(LOCTEXT("InputKey", "Input Key"))
 	.Visibility(TAttribute<EVisibility>(this, &FSplinePointDetails::IsEnabled))
 	.NameContent()
 	.HAlign(HAlign_Left)
@@ -253,7 +253,7 @@ void FSplinePointDetails::GenerateChildContent(IDetailChildrenBuilder& ChildrenB
 	];
 
 	// Position
-	ChildrenBuilder.AddChildContent(LOCTEXT("Position", "Position"))
+	ChildrenBuilder.AddCustomRow(LOCTEXT("Position", "Position"))
 	.Visibility(TAttribute<EVisibility>(this, &FSplinePointDetails::IsEnabled))
 	.NameContent()
 	.HAlign(HAlign_Left)
@@ -279,7 +279,7 @@ void FSplinePointDetails::GenerateChildContent(IDetailChildrenBuilder& ChildrenB
 	];
 
 	// ArriveTangent
-	ChildrenBuilder.AddChildContent(LOCTEXT("ArriveTangent", "Arrive Tangent"))
+	ChildrenBuilder.AddCustomRow(LOCTEXT("ArriveTangent", "Arrive Tangent"))
 	.Visibility(TAttribute<EVisibility>(this, &FSplinePointDetails::IsEnabled))
 	.NameContent()
 	.HAlign(HAlign_Left)
@@ -305,7 +305,7 @@ void FSplinePointDetails::GenerateChildContent(IDetailChildrenBuilder& ChildrenB
 	];
 
 	// LeaveTangent
-	ChildrenBuilder.AddChildContent(LOCTEXT("LeaveTangent", "Leave Tangent"))
+	ChildrenBuilder.AddCustomRow(LOCTEXT("LeaveTangent", "Leave Tangent"))
 	.Visibility(TAttribute<EVisibility>(this, &FSplinePointDetails::IsEnabled))
 	.NameContent()
 	.HAlign(HAlign_Left)
@@ -331,7 +331,7 @@ void FSplinePointDetails::GenerateChildContent(IDetailChildrenBuilder& ChildrenB
 	];
 
 	// Rotation
-	ChildrenBuilder.AddChildContent(LOCTEXT("Rotation", "Rotation"))
+	ChildrenBuilder.AddCustomRow(LOCTEXT("Rotation", "Rotation"))
 	.Visibility(TAttribute<EVisibility>(this, &FSplinePointDetails::IsEnabled))
 	.NameContent()
 	.HAlign(HAlign_Left)
@@ -357,7 +357,7 @@ void FSplinePointDetails::GenerateChildContent(IDetailChildrenBuilder& ChildrenB
 	];
 
 	// Scale
-	ChildrenBuilder.AddChildContent(LOCTEXT("Scale", "Scale"))
+	ChildrenBuilder.AddCustomRow(LOCTEXT("Scale", "Scale"))
 	.Visibility(TAttribute<EVisibility>(this, &FSplinePointDetails::IsEnabled))
 	.NameContent()
 	.HAlign(HAlign_Left)
@@ -383,7 +383,7 @@ void FSplinePointDetails::GenerateChildContent(IDetailChildrenBuilder& ChildrenB
 	];
 
 	// Type
-	ChildrenBuilder.AddChildContent(LOCTEXT("Type", "Type"))
+	ChildrenBuilder.AddCustomRow(LOCTEXT("Type", "Type"))
 	.Visibility(TAttribute<EVisibility>(this, &FSplinePointDetails::IsEnabled))
 	.NameContent()
 	.HAlign(HAlign_Left)

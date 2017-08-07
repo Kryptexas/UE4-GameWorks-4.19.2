@@ -22,6 +22,8 @@
  */
 bool FFileHelper::LoadFileToArray( TArray<uint8>& Result, const TCHAR* Filename, uint32 Flags )
 {
+	FScopedLoadingState ScopedLoadingState(Filename);
+
 	FArchive* Reader = IFileManager::Get().CreateFileReader( Filename, Flags );
 	if( !Reader )
 	{
@@ -103,6 +105,8 @@ void FFileHelper::BufferToString( FString& Result, const uint8* Buffer, int32 Si
  */
 bool FFileHelper::LoadFileToString( FString& Result, const TCHAR* Filename, uint32 VerifyFlags )
 {
+	FScopedLoadingState ScopedLoadingState(Filename);
+
 	TUniquePtr<FArchive> Reader( IFileManager::Get().CreateFileReader( Filename ) );
 	if( !Reader )
 	{
@@ -438,6 +442,8 @@ bool FFileHelper::CreateBitmap( const TCHAR* Pattern, int32 SourceWidth, int32 S
  */
 bool FFileHelper::LoadANSITextFileToStrings(const TCHAR* InFilename, IFileManager* InFileManager, TArray<FString>& OutStrings)
 {
+	FScopedLoadingState ScopedLoadingState(InFilename);
+
 	IFileManager* FileManager = (InFileManager != NULL) ? InFileManager : &IFileManager::Get();
 	// Read and parse the file, adding the pawns and their sounds to the list
 	FArchive* TextFile = FileManager->CreateFileReader(InFilename, 0);

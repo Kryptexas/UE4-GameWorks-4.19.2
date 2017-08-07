@@ -347,6 +347,7 @@ void FVorbisAudioInfo::ExpandFile( uint8* DstBuffer, FSoundQualityInfo* QualityI
  */
 bool FVorbisAudioInfo::ReadCompressedData( uint8* InDestination, bool bLooping, uint32 BufferSize )
 {
+	SCOPED_NAMED_EVENT(FVorbisAudioInfo_ReadCompressedData, FColor::Blue);
 	bPerformingOperation = true;
 
 	bool		bLooped;

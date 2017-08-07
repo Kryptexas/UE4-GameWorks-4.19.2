@@ -1,17 +1,4 @@
-/* Copyright 2016 Google Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2017 Google Inc.
 
 #include "CoreMinimal.h"
 #include "IHeadMountedDisplay.h"
@@ -382,7 +369,8 @@ bool FGoogleVRHMD::AllocateRenderTargetTexture(uint32 Index, uint32 SizeX, uint3
 #if GOOGLEVRHMD_SUPPORTED_PLATFORMS
 	if(CustomPresent)
 	{
-		bool Success = CustomPresent->AllocateRenderTargetTexture(Index, SizeX, SizeY, Format, NumMips, InFlags, TargetableTextureFlags);
+		const uint32 NumLayers = (IsMobileMultiViewDirect()) ? 2 : 1;
+		bool Success = CustomPresent->AllocateRenderTargetTexture(Index, SizeX, SizeY, Format, NumLayers, NumMips, InFlags, TargetableTextureFlags);
 		if (Success)
 		{
 			OutTargetableTexture = CustomPresent->TextureSet->GetTexture2D();
@@ -444,11 +432,11 @@ FGoogleVRHMDTexture2DSet::~FGoogleVRHMDTexture2DSet()
 FGoogleVRHMDTexture2DSet* FGoogleVRHMDTexture2DSet::CreateTexture2DSet(
 	FOpenGLDynamicRHI* InGLRHI,
 	uint32 DesiredSizeX, uint32 DesiredSizeY,
-	uint32 InNumSamples, uint32 InNumSamplesTileMem,
+	uint32 InNumLayers, uint32 InNumSamples, uint32 InNumSamplesTileMem,
 	EPixelFormat InFormat,
 	uint32 InFlags)
 {
-	GLenum Target = (InNumSamples > 1) ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
+	GLenum Target = (InNumLayers > 1) ? GL_TEXTURE_2D_ARRAY : ((InNumSamples > 1) ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D);
 	GLenum Attachment = GL_NONE;//GL_COLOR_ATTACHMENT0;
 	bool bAllocatedStorage = false;
 	uint32 NumMips = 1;
@@ -456,7 +444,7 @@ FGoogleVRHMDTexture2DSet* FGoogleVRHMDTexture2DSet::CreateTexture2DSet(
 
 	// Note that here we are passing a 0 as the texture resource id which means we are not creating the actually opengl texture resource here.
 	FGoogleVRHMDTexture2DSet* NewTextureSet = new FGoogleVRHMDTexture2DSet(
-		InGLRHI, 0, Target, Attachment, DesiredSizeX, DesiredSizeY, 0, NumMips, InNumSamples, InNumSamplesTileMem, 1, InFormat, false, bAllocatedStorage, InFlags, TextureRange);
+		InGLRHI, 0, Target, Attachment, DesiredSizeX, DesiredSizeY, 0, NumMips, InNumSamples, InNumSamplesTileMem, InNumLayers, InFormat, false, bAllocatedStorage, InFlags, TextureRange);
 
 	UE_LOG(LogHMD, Log, TEXT("Created FGoogleVRHMDTexture2DSet of size (%d, %d), NewTextureSet [%p]"), DesiredSizeX, DesiredSizeY, NewTextureSet);
 
@@ -503,7 +491,7 @@ namespace {
 	}
 }
 
-bool FGoogleVRHMDCustomPresent::AllocateRenderTargetTexture(uint32 Index, uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 InFlags, uint32 TargetableTextureFlags)
+bool FGoogleVRHMDCustomPresent::AllocateRenderTargetTexture(uint32 Index, uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumLayers, uint32 NumMips, uint32 InFlags, uint32 TargetableTextureFlags)
 {
 	FOpenGLDynamicRHI* GLRHI = static_cast<FOpenGLDynamicRHI*>(GDynamicRHI);
 
@@ -516,7 +504,7 @@ bool FGoogleVRHMDCustomPresent::AllocateRenderTargetTexture(uint32 Index, uint32
 	static int32 MobileMSAAValue = GetMobileMSAASampleSetting();
 	TextureSet = FGoogleVRHMDTexture2DSet::CreateTexture2DSet(
 		GLRHI,
-		SizeX, SizeY,
+		SizeX, SizeY, NumLayers,
 		1, MobileMSAAValue,
 		EPixelFormat(Format),
 		TexCreate_RenderTargetable | TexCreate_ShaderResource
@@ -550,6 +538,15 @@ void FGoogleVRHMDCustomPresent::CreateGVRSwapChain()
 	// No need to create the depth buffer in GVR FBO since we are only use the color_buffer from FBO not the entire FBO.
 	gvr_buffer_spec_set_depth_stencil_format(BufferSpec, GVR_DEPTH_STENCIL_FORMAT_NONE);
 	// We are using the default color buffer format in GVRSDK, which is RGBA8, and that is also the format passed in.
+
+	if (HMD->IsMobileMultiViewDirect())
+	{
+		gvr_sizei BufferSize = gvr_buffer_spec_get_size(BufferSpec);
+		BufferSize.width /= 2;
+
+		gvr_buffer_spec_set_multiview_layers(BufferSpec, 2);
+		gvr_buffer_spec_set_size(BufferSpec, BufferSize);
+	}
 
 	const gvr_buffer_spec* Specs[1];
 	Specs[0] = BufferSpec;

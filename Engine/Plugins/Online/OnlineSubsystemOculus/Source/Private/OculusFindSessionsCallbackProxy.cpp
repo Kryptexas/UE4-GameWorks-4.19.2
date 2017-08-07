@@ -2,15 +2,15 @@
 
 #include "OculusFindSessionsCallbackProxy.h"
 #include "OnlineSubsystemOculusPrivate.h"
-#include "CoreOnline.h"
 #include "Online.h"
 #include "OnlineSessionInterfaceOculus.h"
 #include "OnlineSubsystemOculusPrivate.h"
 
 UOculusFindSessionsCallbackProxy::UOculusFindSessionsCallbackProxy(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
-	, Delegate(FOnFindSessionsCompleteDelegate::CreateUObject(this, &ThisClass::OnCompleted))
-	, bSearchModeratedRoomsOnly(false)
+	  , Delegate(FOnFindSessionsCompleteDelegate::CreateUObject(this, &ThisClass::OnCompleted))
+	  , MaxResults(0)
+	  , bSearchModeratedRoomsOnly(false)
 {
 }
 

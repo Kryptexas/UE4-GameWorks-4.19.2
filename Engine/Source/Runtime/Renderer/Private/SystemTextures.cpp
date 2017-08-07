@@ -104,6 +104,52 @@ void FSystemTextures::InternalInitializeTextures(FRHICommandListImmediate& RHICm
 			RHICmdList.UnlockTexture2D((FTexture2DRHIRef&)PerlinNoiseGradient->GetRenderTargetItem().ShaderResourceTexture, 0, false);
 		}
 
+		// Create the SobolSampling texture
+		if (InFeatureLevel >= ERHIFeatureLevel::ES3_1 && GPixelFormats[PF_R16_UINT].Supported)
+		{
+			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(32, 16), PF_R16_UINT, FClearValueBinding::None, TexCreate_HideInVisualizeTexture, TexCreate_NoFastClear, false));
+			Desc.AutoWritable = false;
+			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SobolSampling, TEXT("SobolSampling"));
+			// Write the contents of the texture.
+			uint32 DestStride;
+			uint8* DestBuffer = (uint8*)RHICmdList.LockTexture2D((FTexture2DRHIRef&)SobolSampling->GetRenderTargetItem().ShaderResourceTexture, 0, RLM_WriteOnly, DestStride, false);
+
+			uint16 Result, *Dest;
+			for (int y = 0; y < 16; ++y)
+			{
+				Dest = (uint16*)(DestBuffer + y * DestStride);
+
+				// 16x16 block starting at 0,0 = Sobol X,Y from bottom 4 bits of cell X,Y
+				for (int x = 0; x < 16; ++x, ++Dest)
+				{
+					Result  = (x & 0x001) ? 0xf68e : 0;
+					Result ^= (x & 0x002) ? 0x8e56 : 0;
+					Result ^= (x & 0x004) ? 0x1135 : 0;
+					Result ^= (x & 0x008) ? 0x220a : 0;
+					Result ^= (y & 0x001) ? 0x94c4 : 0;
+					Result ^= (y & 0x002) ? 0x4ac2 : 0;
+					Result ^= (y & 0x004) ? 0xfb57 : 0;
+					Result ^= (y & 0x008) ? 0x0454 : 0;
+					*Dest = Result;
+				}
+
+				// 16x16 block starting at 16,0 = Sobol X,Y from 2nd 4 bits of cell X,Y
+				for (int x = 0; x < 16; ++x, ++Dest)
+				{
+					Result  = (x & 0x010) ? 0x4414 : 0;
+					Result ^= (x & 0x020) ? 0x8828 : 0;
+					Result ^= (x & 0x040) ? 0xe69e : 0;
+					Result ^= (x & 0x080) ? 0xae76 : 0;
+					Result ^= (y & 0x010) ? 0xa28a : 0;
+					Result ^= (y & 0x020) ? 0x265e : 0;
+					Result ^= (y & 0x040) ? 0xe69e : 0;
+					Result ^= (y & 0x080) ? 0xae76 : 0;
+					*Dest = Result;
+				}
+			}
+			RHICmdList.UnlockTexture2D((FTexture2DRHIRef&)SobolSampling->GetRenderTargetItem().ShaderResourceTexture, 0, false);
+		}
+
 		if (!GSupportsShaderFramebufferFetch && GPixelFormats[PF_FloatRGBA].Supported)
 		{
 			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(1, 1), PF_FloatRGBA, FClearValueBinding(FLinearColor(65000.0f, 65000.0f, 65000.0f, 65000.0f)), TexCreate_HideInVisualizeTexture, TexCreate_RenderTargetable | TexCreate_NoFastClear, false));
@@ -129,7 +175,7 @@ void FSystemTextures::InternalInitializeTextures(FRHICommandListImmediate& RHICm
 	}
 
 	// Create the PerlinNoise3D texture (similar to http://prettyprocs.wordpress.com/2012/10/20/fast-perlin-noise/)
-	if (FeatureLevelInitializedTo < ERHIFeatureLevel::SM5 && InFeatureLevel >= ERHIFeatureLevel::SM4)
+	if (InFeatureLevel >= ERHIFeatureLevel::SM4)
 	{
 		uint32 Extent = 16;
 
@@ -241,7 +287,7 @@ void FSystemTextures::InternalInitializeTextures(FRHICommandListImmediate& RHICm
 	}
 
 	// Create the SSAO randomization texture
-	if (FeatureLevelInitializedTo < ERHIFeatureLevel::SM4 && InFeatureLevel >= ERHIFeatureLevel::SM4)
+	if (InFeatureLevel >= ERHIFeatureLevel::SM4)
 	{
 		float g_AngleOff1 = 127;
 		float g_AngleOff2 = 198;
@@ -302,7 +348,7 @@ void FSystemTextures::InternalInitializeTextures(FRHICommandListImmediate& RHICm
 				Format = PF_G16R16;
 			}
 
-			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(128, 32), Format, FClearValueBinding::None, TexCreate_FastVRAM, TexCreate_None, false));
+			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(128, 32), Format, FClearValueBinding::None, 0, TexCreate_None, false));
 			Desc.AutoWritable = false;
 			if (bReference)
 			{
@@ -432,6 +478,7 @@ void FSystemTextures::ReleaseDynamicRHI()
 	BlackAlphaOneDummy.SafeRelease();
 	PerlinNoiseGradient.SafeRelease();
 	PerlinNoise3D.SafeRelease();
+	SobolSampling.SafeRelease();
 	SSAORandomization.SafeRelease();
 	PreintegratedGF.SafeRelease();
 	MaxFP16Depth.SafeRelease();

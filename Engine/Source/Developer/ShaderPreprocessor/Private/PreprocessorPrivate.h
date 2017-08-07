@@ -36,7 +36,7 @@ inline bool FilterMcppError(const FString& ErrorMsg)
  * @param ShaderOutput - Shader output to which to add errors.
  * @param McppErrors - MCPP error output.
  */
-static bool ParseMcppErrors(TArray<FShaderCompilerError>& OutErrors, const FString& McppErrors, bool bConvertFilenameToRelative)
+static bool ParseMcppErrors(TArray<FShaderCompilerError>& OutErrors, const FString& McppErrors)
 {
 	bool bSuccess = true;
 	if (McppErrors.Len() > 0)
@@ -66,7 +66,7 @@ static bool ParseMcppErrors(TArray<FShaderCompilerError>& OutErrors, const FStri
 					if (FilterMcppError(Message))
 					{
 						FShaderCompilerError* CompilerError = new(OutErrors) FShaderCompilerError;
-						CompilerError->ErrorFile = bConvertFilenameToRelative ? GetRelativeShaderFilename(Filename): Filename;
+						CompilerError->ErrorVirtualFilePath = Filename;
 						CompilerError->ErrorLineString = LineNumStr;
 						CompilerError->StrippedErrorMessage = Message;
 						bSuccess = false;

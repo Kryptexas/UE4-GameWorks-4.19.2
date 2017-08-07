@@ -9,20 +9,20 @@ FAnimNode_TransitionResult::FAnimNode_TransitionResult()
 {
 }
 
-void FAnimNode_TransitionResult::Initialize(const FAnimationInitializeContext& Context)
+void FAnimNode_TransitionResult::Initialize_AnyThread(const FAnimationInitializeContext& Context)
 {
-	FAnimNode_Base::Initialize(Context);
+	FAnimNode_Base::Initialize_AnyThread(Context);
 }
 
-void FAnimNode_TransitionResult::CacheBones(const FAnimationCacheBonesContext& Context) 
-{
-}
-
-void FAnimNode_TransitionResult::Update(const FAnimationUpdateContext& Context)
+void FAnimNode_TransitionResult::CacheBones_AnyThread(const FAnimationCacheBonesContext& Context) 
 {
 }
 
-void FAnimNode_TransitionResult::Evaluate(FPoseContext& Output)
+void FAnimNode_TransitionResult::Update_AnyThread(const FAnimationUpdateContext& Context)
+{
+}
+
+void FAnimNode_TransitionResult::Evaluate_AnyThread(FPoseContext& Output)
 {
 }
 

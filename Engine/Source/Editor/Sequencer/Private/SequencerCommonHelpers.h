@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "DisplayNodes/SequencerDisplayNode.h"
 #include "Widgets/Input/SNumericDropDown.h"
+#include "ArrayView.h"
 
 #define LOCTEXT_NAMESPACE "SequencerHelpers"
 
@@ -19,6 +20,12 @@ public:
 	 * Gets the key areas from the requested node
 	 */
 	static void GetAllKeyAreas(TSharedPtr<FSequencerDisplayNode> DisplayNode, TSet<TSharedPtr<IKeyArea>>& KeyAreas);
+
+	/**
+	 * Get the section index that relates to the specified time
+	 * @return the index corresponding to the highest overlapping section, or nearest section where no section overlaps the current time
+	 */
+	static int32 GetSectionFromTime(TArrayView<UMovieSceneSection* const> InSections, float Time);
 
 	/**
 	 * Get descendant nodes

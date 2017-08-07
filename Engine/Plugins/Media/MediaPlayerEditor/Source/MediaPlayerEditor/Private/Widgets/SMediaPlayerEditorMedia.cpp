@@ -108,7 +108,7 @@ void SMediaPlayerEditorMedia::ShowMediaOpenFailedMessage()
 /* SMediaPlayerEditorMedia callbacks
  *****************************************************************************/
 
-void SMediaPlayerEditorMedia::HandleAssetPickerAssetDoubleClicked(const class FAssetData& AssetData)
+void SMediaPlayerEditorMedia::HandleAssetPickerAssetDoubleClicked(const struct FAssetData& AssetData)
 {
 	OpenMediaAsset(AssetData.GetAsset());
 }

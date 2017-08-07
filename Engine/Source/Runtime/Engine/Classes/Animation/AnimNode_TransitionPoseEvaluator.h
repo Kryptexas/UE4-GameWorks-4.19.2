@@ -41,7 +41,7 @@ namespace EEvaluatorMode
 /** Animation data node for state machine transitions.
  * Can be set to supply either the animation data from the transition source (From State) or the transition destination (To State).
 */
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ENGINE_API FAnimNode_TransitionPoseEvaluator : public FAnimNode_Base
 {
 	GENERATED_USTRUCT_BODY()
@@ -65,10 +65,10 @@ public:
 	FAnimNode_TransitionPoseEvaluator();
 
 	// FAnimNode_Base interface
-	virtual void Initialize(const FAnimationInitializeContext& Context) override;
-	virtual void CacheBones(const FAnimationCacheBonesContext& Context) override;
-	virtual void Update(const FAnimationUpdateContext& Context) override;
-	virtual void Evaluate(FPoseContext& Output) override;
+	virtual void Initialize_AnyThread(const FAnimationInitializeContext& Context) override;
+	virtual void CacheBones_AnyThread(const FAnimationCacheBonesContext& Context) override;
+	virtual void Update_AnyThread(const FAnimationUpdateContext& Context) override;
+	virtual void Evaluate_AnyThread(FPoseContext& Output) override;
 	virtual void GatherDebugData(FNodeDebugData& DebugData) override;
 	// End of FAnimNode_Base interface
 

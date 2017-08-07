@@ -10,9 +10,15 @@
 
 typedef struct ovrMatchmakingEnqueuedUser *ovrMatchmakingEnqueuedUserHandle;
 
-OVRP_PUBLIC_FUNCTION(ovrID)              ovr_MatchmakingEnqueuedUser_GetAdditionalUserID(const ovrMatchmakingEnqueuedUserHandle obj, unsigned int index);
-OVRP_PUBLIC_FUNCTION(unsigned int)       ovr_MatchmakingEnqueuedUser_GetAdditionalUserIDsSize(const ovrMatchmakingEnqueuedUserHandle obj);
+/// This method may return null. This indicates that the value is not present or that the curent
+/// app or user is not permitted to access it.
 OVRP_PUBLIC_FUNCTION(ovrDataStoreHandle) ovr_MatchmakingEnqueuedUser_GetCustomData(const ovrMatchmakingEnqueuedUserHandle obj);
-OVRP_PUBLIC_FUNCTION(ovrUserHandle)      ovr_MatchmakingEnqueuedUser_GetUser(const ovrMatchmakingEnqueuedUserHandle obj);
+
+/// This method may return null. This indicates that the value is not present or that the curent
+/// app or user is not permitted to access it.
+OVRP_PUBLIC_FUNCTION(ovrUserHandle) ovr_MatchmakingEnqueuedUser_GetUser(const ovrMatchmakingEnqueuedUserHandle obj);
+
+OVRP_PUBLIC_FUNCTION(ovrID)        ovr_MatchmakingEnqueuedUser_GetAdditionalUserID(const ovrMatchmakingEnqueuedUserHandle obj, unsigned int index);
+OVRP_PUBLIC_FUNCTION(unsigned int) ovr_MatchmakingEnqueuedUser_GetAdditionalUserIDsSize(const ovrMatchmakingEnqueuedUserHandle obj);
 
 #endif

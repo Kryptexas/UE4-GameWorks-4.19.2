@@ -44,6 +44,9 @@ public:
 
 	void UpdateWidgetProperties();
 
+	UFUNCTION(BlueprintCallable, Category = "SafeZone")
+	void SetSidesToPad(bool InPadLeft, bool InPadRight, bool InPadTop, bool InPadBottom);
+
 public:
 
 	/** If this safe zone should pad for the left side of the screen's safe zone */

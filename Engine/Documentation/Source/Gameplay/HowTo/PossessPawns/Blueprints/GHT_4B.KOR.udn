@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3429254
 Availability: Public
 Title:블루프린트로 폰 빙의
 Crumbs: %ROOT%, Gameplay, Gameplay/HowTo/PossessPawns
 Description:블루프린트로 Possess 노드를 사용하여 다수의 캐릭터를 제어하고 전환하는 법에 대한 설명입니다.
 Version: 4.8
 SkillLevel: Intermediate
+type:how-to
 Related: Engine/Blueprints
 Related: Gameplay/Framework/Pawn
 Related: Gameplay/Framework/Pawn/Character

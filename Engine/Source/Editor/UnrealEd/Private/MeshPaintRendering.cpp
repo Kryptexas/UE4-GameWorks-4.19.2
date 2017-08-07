@@ -60,7 +60,7 @@ namespace MeshPaintRendering
 	};
 
 
-	IMPLEMENT_SHADER_TYPE( , TMeshPaintVertexShader, TEXT( "MeshPaintVertexShader" ), TEXT( "Main" ), SF_Vertex);
+	IMPLEMENT_SHADER_TYPE( , TMeshPaintVertexShader, TEXT( "/Engine/Private/MeshPaintVertexShader.usf" ), TEXT( "Main" ), SF_Vertex);
 
 
 
@@ -180,7 +180,7 @@ namespace MeshPaintRendering
 	};
 
 
-	IMPLEMENT_SHADER_TYPE( , TMeshPaintPixelShader, TEXT( "MeshPaintPixelShader" ), TEXT( "Main" ), SF_Pixel );
+	IMPLEMENT_SHADER_TYPE( , TMeshPaintPixelShader, TEXT( "/Engine/Private/MeshPaintPixelShader.usf" ), TEXT( "Main" ), SF_Pixel );
 
 
 	/** Mesh paint dilate vertex shader */
@@ -223,7 +223,7 @@ namespace MeshPaintRendering
 	};
 
 
-	IMPLEMENT_SHADER_TYPE( , TMeshPaintDilateVertexShader, TEXT( "meshpaintdilatevertexshader" ), TEXT( "Main" ), SF_Vertex );
+	IMPLEMENT_SHADER_TYPE( , TMeshPaintDilateVertexShader, TEXT( "/Engine/Private/meshpaintdilatevertexshader.usf" ), TEXT( "Main" ), SF_Vertex );
 
 
 
@@ -332,7 +332,7 @@ namespace MeshPaintRendering
 	};
 
 
-	IMPLEMENT_SHADER_TYPE( , TMeshPaintDilatePixelShader, TEXT( "meshpaintdilatepixelshader" ), TEXT( "Main" ), SF_Pixel );
+	IMPLEMENT_SHADER_TYPE( , TMeshPaintDilatePixelShader, TEXT( "/Engine/Private/meshpaintdilatepixelshader.usf" ), TEXT( "Main" ), SF_Pixel );
 
 
 	/** Mesh paint vertex format */

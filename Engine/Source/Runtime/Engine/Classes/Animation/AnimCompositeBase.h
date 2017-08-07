@@ -60,26 +60,26 @@ struct FAnimSegment
 	GENERATED_USTRUCT_BODY()
 
 	/** Anim Reference to play - only allow AnimSequence or AnimComposite **/
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AnimSegment)
+	UPROPERTY(EditAnywhere, Category=AnimSegment)
 	UAnimSequenceBase* AnimReference;
 
 	/** Start Pos within this AnimCompositeBase */
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category=AnimSegment)
+	UPROPERTY(VisibleAnywhere, Category=AnimSegment)
 	float	StartPos;
 
 	/** Time to start playing AnimSequence at. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AnimSegment)
+	UPROPERTY(EditAnywhere, Category=AnimSegment)
 	float	AnimStartTime;
 
 	/** Time to end playing the AnimSequence at. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AnimSegment)
+	UPROPERTY(EditAnywhere, Category=AnimSegment)
 	float	AnimEndTime;
 
 	/** Playback speed of this animation. If you'd like to reverse, set -1*/
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AnimSegment)
+	UPROPERTY(EditAnywhere, Category=AnimSegment)
 	float	AnimPlayRate;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AnimSegment)
+	UPROPERTY(EditAnywhere, Category=AnimSegment)
 	int32		LoopingCount;
 
 	FAnimSegment()
@@ -106,9 +106,15 @@ struct FAnimSegment
 		return (float(LoopingCount) * (AnimEndTime - AnimStartTime)) / FMath::Abs(GetValidPlayRate());
 	}
 
+	/** End Position within this AnimCompositeBase */
+	float GetEndPos() const
+	{
+		return StartPos + GetLength();
+	}
+
 	bool IsInRange(float CurPos) const
 	{
-		return ((CurPos >= StartPos) && (CurPos <= (StartPos + GetLength())));
+		return ((CurPos >= StartPos) && (CurPos <= GetEndPos()));
 	}
 
 	/*
@@ -136,9 +142,9 @@ struct FAnimSegment
 		return false;
 	}
 	/**
-	 * Get Animation Data, for now have weight to be controlled here, in the future, it will be controlled in Track
+	 * Get Animation Data.
 	 */
-	ENGINE_API UAnimSequenceBase* GetAnimationData(float PositionInTrack, float& PositionInAnim, float& Weight) const;
+	ENGINE_API UAnimSequenceBase* GetAnimationData(float PositionInTrack, float& PositionInAnim) const;
 
 	/** Converts 'Track Position' to position on AnimSequence.
 	 * Note: doesn't check that position is in valid range, must do that before calling this function! */
@@ -187,7 +193,7 @@ struct FAnimTrack
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AnimTrack, EditFixedSize)
+	UPROPERTY(EditAnywhere, Category=AnimTrack, EditFixedSize)
 	TArray<FAnimSegment>	AnimSegments;
 
 	FAnimTrack() {}
@@ -214,10 +220,11 @@ struct FAnimTrack
 	ENGINE_API bool IsValidToAdd(const UAnimSequenceBase* SequenceBase) const;
 
 	/** Gets the index of the segment at the given absolute montage time. */	
-	ENGINE_API int32 GetSegmentIndexAtTime(float InTime);
+	ENGINE_API int32 GetSegmentIndexAtTime(float InTime) const;
 
 	/** Get the segment at the given absolute montage time */
 	ENGINE_API FAnimSegment* GetSegmentAtTime(float InTime);
+	ENGINE_API const FAnimSegment* GetSegmentAtTime(float InTime) const;
 
 	/** Get animation pose function */
 	void GetAnimationPose(/*out*/ FCompactPose& OutPose,/*out*/ FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext) const;

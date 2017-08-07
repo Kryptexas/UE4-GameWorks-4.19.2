@@ -11,23 +11,18 @@
 #include "Net/DataBunch.h"
 #include "Engine/LocalPlayer.h"
 #include "EngineUtils.h"
-
-#include "Net/UnitTestChannel.h"
 #include "IpNetDriver.h"
-#include "Net/UnitTestNetDriver.h"
+#include "Net/DataChannel.h"
+#include "OnlineBeaconClient.h"
 
 #include "NUTUtil.h"
 #include "UnitTest.h"
+#include "ClientUnitTest.h"
+#include "MinimalClient.h"
 #include "UnitTestEnvironment.h"
 #include "Net/UnitTestPackageMap.h"
-
-
-#include "Net/DataChannel.h"
-#include "OnlineBeaconClient.h"
-#include "Misc/NetworkVersion.h"
-#include "OnlineSubsystemTypes.h"
-
-#include "ClientUnitTest.h"
+#include "Net/UnitTestChannel.h"
+#include "Net/UnitTestNetDriver.h"
 
 // Forward declarations
 class FWorldTickHook;
@@ -91,6 +86,11 @@ bool FSocketHook::SendTo(const uint8* Data, int32 Count, int32& BytesSent, const
 {
 	bool bReturnVal = false;
 	bool bBlockSend = false;
+
+	if (MinClient != nullptr)
+	{
+		MinClient->SocketSendDel.ExecuteIfBound((void*)Data, Count, bBlockSend);
+	}
 
 	SendToDel.ExecuteIfBound((void*)Data, Count, bBlockSend);
 
@@ -203,11 +203,6 @@ int32 FSocketHook::GetPortNo()
 /**
  * FNetworkNotifyHook
  */
-
-void FNetworkNotifyHook::NotifyHandleClientPlayer(APlayerController* PC, UNetConnection* Connection)
-{
-	NotifyHandleClientPlayerDelegate.ExecuteIfBound(PC, Connection);
-}
 
 EAcceptConnection::Type FNetworkNotifyHook::NotifyAcceptingConnection()
 {
@@ -549,154 +544,6 @@ UUnitTestNetDriver* NUTNet::CreateUnitTestNetDriver(UWorld* InWorld)
 	return ReturnVal;
 }
 
-bool NUTNet::CreateFakePlayer(UWorld* InWorld, UNetDriver*& InNetDriver, FString ServerIP, FNetworkNotify* InNotify/*=NULL*/,
-								bool bSkipJoin/*=false*/, FUniqueNetIdRepl* InNetID/*=NULL*/, bool bBeaconConnect/*=false*/,
-								FString InBeaconType/*=TEXT("")*/)
-{
-	bool bSuccess = false;
-
-	if (InNetDriver == NULL)
-	{
-		InNetDriver = (InWorld != NULL ? NUTNet::CreateUnitTestNetDriver(InWorld) : NULL);
-	}
-
-	if (InNetDriver != NULL)
-	{
-		if (InNotify == NULL)
-		{
-			FNetworkNotifyHook* NotifyHook = new FNetworkNotifyHook();
-			InNotify = NotifyHook;
-
-			auto DefaultRejectChan = [](UChannel* Channel)
-				{
-					UE_LOG(LogUnitTest, Log, TEXT("UnitTestNetDriver: NotifyAcceptingChannel: %s"), *Channel->Describe());
-
-					return false;
-				};
-
-			NotifyHook->NotifyAcceptingChannelDelegate.BindLambda(DefaultRejectChan);
-		}
-
-		FURL DefaultURL;
-		FURL TravelURL(&DefaultURL, *ServerIP, TRAVEL_Absolute);
-		FString ConnectionError;
-
-		if (InNetDriver->InitConnect(InNotify, TravelURL, ConnectionError))
-		{
-			UNetConnection* TargetConn = InNetDriver->ServerConnection;
-
-			UE_LOG(LogUnitTest, Log, TEXT("Successfully kicked off connect to IP '%s'"), *ServerIP);
-
-#if TARGET_UE4_CL >= CL_STATELESSCONNECT
-			if (TargetConn->StatelessConnectComponent.IsValid())
-			{
-				TargetConn->StatelessConnectComponent.Pin()->SendInitialConnect();
-			}
-#endif
-
-
-			int ControlBunchSequence = 0;
-
-			FOutBunch* ControlChanBunch = NUTNet::CreateChannelBunch(ControlBunchSequence, TargetConn, CHTYPE_Control, 0);
-
-			if (ControlChanBunch != nullptr)
-			{
-				// Need to send 'NMT_Hello' to start off the connection (the challenge is not replied to)
-				uint8 IsLittleEndian = uint8(PLATFORM_LITTLE_ENDIAN);
-
-				// We need to construct the NMT_Hello packet manually, for the initial connection
-				uint8 MessageType = NMT_Hello;
-
-				*ControlChanBunch << MessageType;
-				*ControlChanBunch << IsLittleEndian;
-
-				uint32 LocalNetworkVersion = FNetworkVersion::GetLocalNetworkVersion();
-				*ControlChanBunch << LocalNetworkVersion;
-
-				if (bBeaconConnect)
-				{
-					if (!bSkipJoin)
-					{
-						MessageType = NMT_BeaconJoin;
-						*ControlChanBunch << MessageType;
-						*ControlChanBunch << InBeaconType;
-
-						// Also immediately ack the beacon GUID setup; we're just going to let the server setup the client beacon,
-						// through the actor channel
-						MessageType = NMT_BeaconNetGUIDAck;
-						*ControlChanBunch << MessageType;
-						*ControlChanBunch << InBeaconType;
-					}
-				}
-				else
-				{
-					// Then send NMT_Login
-#if TARGET_UE4_CL < CL_CONSTUNIQUEID
-#else
-					TSharedPtr<const FUniqueNetId> DudPtr = MakeShareable(new FUniqueNetIdString(TEXT("Dud")));
-#endif
-
-					FUniqueNetIdRepl PlayerUID(DudPtr);
-					FString BlankStr = TEXT("");
-					FString ConnectURL = UUnitTest::UnitEnv->GetDefaultClientConnectURL();
-
-					if (InNetID != NULL)
-					{
-						PlayerUID = *InNetID;
-					}
-
-					MessageType = NMT_Login;
-					*ControlChanBunch << MessageType;
-					*ControlChanBunch << BlankStr;
-					*ControlChanBunch << ConnectURL;
-					*ControlChanBunch << PlayerUID;
-
-
-					// Now send NMT_Join, to trigger a fake player, which should then trigger replication of basic actor channels
-					if (!bSkipJoin)
-					{
-						MessageType = NMT_Join;
-						*ControlChanBunch << MessageType;
-					}
-				}
-
-
-				// Big hack: Store OutRec value on the unit test control channel, to enable 'retry-send' code
-				TargetConn->Channels[0]->OutRec = ControlChanBunch;
-
-				TargetConn->SendRawBunch(*ControlChanBunch, true);
-
-
-				bSuccess = true;
-			}
-			else
-			{
-				UE_LOG(LogUnitTest, Log, TEXT("Failed to kickoff connect to IP '%s', could not create control channel bunch."),
-						*ServerIP);
-			}
-		}
-		else
-		{
-			UE_LOG(LogUnitTest, Log, TEXT("Failed to kickoff connect to IP '%s', error: %s"), *ServerIP, *ConnectionError);
-		}
-	}
-	else if (InNetDriver == NULL)
-	{
-		UE_LOG(LogUnitTest, Log, TEXT("Failed to create an instance of the unit test net driver"));
-	}
-	else
-	{
-		UE_LOG(LogUnitTest, Log, TEXT("Failed to get a reference to WorldContext"));
-	}
-
-	return bSuccess;
-}
-
-void NUTNet::DisconnectFakePlayer(UWorld* PlayerWorld, UNetDriver* InNetDriver)
-{
-	GEngine->DestroyNamedNetDriver(PlayerWorld, InNetDriver->NetDriverName);
-}
-
 void NUTNet::HandleBeaconReplicate(AOnlineBeaconClient* InBeacon, UNetConnection* InConnection)
 {
 	// Due to the way the beacon is created in unit tests (replicated, instead of taking over a local beacon client),
@@ -843,42 +690,3 @@ bool NUTNet::IsUnitTestWorld(UWorld* InWorld)
 	return UnitTestWorlds.Contains(InWorld);
 }
 
-bool NUTNet::IsSteamNetDriverAvailable()
-{
-	bool bReturnVal = false;
-	UGameEngine* GameEngine = Cast<UGameEngine>(GEngine);
-
-	if (GameEngine != nullptr)
-	{
-		bool bFoundSteamDriver = false;
-		const TCHAR* SteamDriverClassName = TEXT("OnlineSubsystemSteam.SteamNetDriver");
-
-		for (int i=0; i<GameEngine->NetDriverDefinitions.Num(); i++)
-		{
-			if (GameEngine->NetDriverDefinitions[i].DefName == NAME_GameNetDriver)
-			{
-				if (GameEngine->NetDriverDefinitions[i].DriverClassName == SteamDriverClassName)
-				{
-					bFoundSteamDriver = true;
-				}
-
-				break;
-			}
-		}
-
-		if (bFoundSteamDriver)
-		{
-			UClass* SteamNetDriverClass = StaticLoadClass(UNetDriver::StaticClass(), nullptr, SteamDriverClassName, nullptr,
-															LOAD_Quiet);
-
-			if (SteamDriverClassName != nullptr && SteamNetDriverClass != nullptr)
-			{
-				UNetDriver* SteamNetDriverDef = Cast<UNetDriver>(SteamNetDriverClass->GetDefaultObject());
-
-				bReturnVal = SteamNetDriverDef != nullptr && SteamNetDriverDef->IsAvailable();
-			}
-		}
-	}
-
-	return bReturnVal;
-}

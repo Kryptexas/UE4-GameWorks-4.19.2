@@ -11,5 +11,5 @@
     <EndUserGroup>Git</EndUserGroup>
     <EndUserGroup>P4</EndUserGroup>
   </RedistributeTo>
-  <LicenseFolder>/Engine/Source/ThirdParty/Licenses/Aftermath_NVAPI_License.txt<text></LicenseFolder>
+  <LicenseFolder>/Engine/Source/ThirdParty/Licenses/Aftermath_NVAPI_License.txt</LicenseFolder>
 </TpsData>

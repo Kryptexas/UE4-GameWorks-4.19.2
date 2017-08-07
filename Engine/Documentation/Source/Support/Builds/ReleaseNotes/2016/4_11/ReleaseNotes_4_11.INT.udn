@@ -5646,85 +5646,83 @@ Stats are automatically broken into the threads they execute on and can appear i
 
     * Here is an example of how one would build a custom native AnimInstance class using the new proxy, granting Blueprint access to its innards and avoiding copies of shared data between the proxy and the instance:
 
-USTRUCT()
+			USTRUCT()
 
-struct FExampleAnimInstanceProxy : public FAnimInstanceProxy
+			struct FExampleAnimInstanceProxy : public FAnimInstanceProxy
 
-{
+			{
 
-	GENERATED_BODY()
+				GENERATED_BODY()
 
-	FExampleAnimInstanceProxy()
+				FExampleAnimInstanceProxy()
 
-	: FAnimInstanceProxy()
+				: FAnimInstanceProxy()
 
-	{}
+				{}
 
-	FExampleAnimInstanceProxy(UAnimInstance* Instance);
+				FExampleAnimInstanceProxy(UAnimInstance* Instance);
 
-	virtual void Update(float DeltaSeconds) override
+				virtual void Update(float DeltaSeconds) override
 
-	{
+				{
 
-		// Update internal variables
+					// Update internal variables
 
-		MovementAngle += 1.0f * DeltaSeconds;
+					MovementAngle += 1.0f * DeltaSeconds;
 
-		HorizontalSpeed = FMath::Max(0.0f, HorizontalSpeed - DeltaSeconds);
+					HorizontalSpeed = FMath::Max(0.0f, HorizontalSpeed - DeltaSeconds);
 
-	}
+				}
 
-public:
+			public:
 
-	UPROPERTY(Transient, BlueprintReadWrite, EditAnywhere, Category = "Example")
+				UPROPERTY(Transient, BlueprintReadWrite, EditAnywhere, Category = "Example")
 
-	float MovementAngle;
+				float MovementAngle;
 
-	UPROPERTY(Transient, BlueprintReadWrite, EditAnywhere, Category = "Example")
+				UPROPERTY(Transient, BlueprintReadWrite, EditAnywhere, Category = "Example")
 
-	float HorizontalSpeed;
+				float HorizontalSpeed;
 
-};
+			};
 
-UCLASS(Transient, Blueprintable)
+			UCLASS(Transient, Blueprintable)
 
-class UExampleAnimInstance : public UAnimInstance
+			class UExampleAnimInstance : public UAnimInstance
 
-{
+			{
 
-	GENERATED_UCLASS_BODY()
+				GENERATED_UCLASS_BODY()
 
-	
+			private:
 
-private:
+				// The AllowPrivateAccess meta flag will allow this to be exposed to Blueprint,
 
-	// The AllowPrivateAccess meta flag will allow this to be exposed to Blueprint,
+				// but only to graphs internal to this class.
 
-	// but only to graphs internal to this class.
+				UPROPERTY(Transient, BlueprintReadOnly, Category = "Example", meta = (AllowPrivateAccess = "true"))
 
-	UPROPERTY(Transient, BlueprintReadOnly, Category = "Example", meta = (AllowPrivateAccess = "true"))
+				FExampleAnimInstanceProxy Proxy;
 
-	FExampleAnimInstanceProxy Proxy;
+				virtual FAnimInstanceProxy* CreateAnimInstanceProxy() override
 
-	virtual FAnimInstanceProxy* CreateAnimInstanceProxy() override
+				{
 
-	{
+					// override this to just return the proxy on this instance
 
-		// override this to just return the proxy on this instance
+					return &Proxy;
 
-		return &Proxy;
+				}
 
-	}
+				virtual void DestroyAnimInstanceProxy(FAnimInstanceProxy* InProxy) override
 
-	virtual void DestroyAnimInstanceProxy(FAnimInstanceProxy* InProxy) override
+				{
 
-	{
+				}
 
-	}
+				friend struct FExampleAnimInstanceProxy;
 
-	friend struct FExampleAnimInstanceProxy;
-
-};
+			};
 
 * The following functions and variables of the **UAnimInstance** class are **now deprecated**:
 

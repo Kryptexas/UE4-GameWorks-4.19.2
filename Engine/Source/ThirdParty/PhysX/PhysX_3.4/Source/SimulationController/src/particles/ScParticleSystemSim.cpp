@@ -53,7 +53,7 @@ Sc::ParticleSystemSim::ParticleSystemSim(Scene& scene, ParticleSystemCore& core)
 , mParticlePacketShapePool(PX_DEBUG_EXP("ParticlePacketShapePool"))
 , mParticlePacketShapes(PX_DEBUG_EXP("ParticleSysPacketShapes"))
 , mInteractionCount(0)
-, mCollisionInputPrepTask(this, "ScParticleSystemSim.prepareCollisionInput")
+, mCollisionInputPrepTask(scene.getContextId(), this, "ScParticleSystemSim.prepareCollisionInput")
 {
 	// Set size of interaction list
 	ActorSim::setInteractionCountHint(32);
@@ -718,6 +718,8 @@ void Sc::ParticleSystemSim::visualizeInteractions(Cm::RenderOutput& out)
 	}
 }
 
+#endif  // PX_ENABLE_DEBUG_VISUALIZATION
+
 //----------------------------------------------------------------------------//
 
 PxBaseTask& Sc::ParticleSystemSim::scheduleShapeGeneration(Pt::Context& context, const Ps::Array<ParticleSystemSim*>& particleSystems, PxBaseTask& continuation)
@@ -861,8 +863,5 @@ void Sc::ParticleSystemSim::prepareCollisionInput(PxBaseTask* /*continuation*/)
 }
 
 //----------------------------------------------------------------------------//
-
-#endif  // PX_ENABLE_DEBUG_VISUALIZATION
-
 
 #endif	// PX_USE_PARTICLE_SYSTEM_API

@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3206402
+﻿INTSourceChangelist:3467293
 Availability:Public
 Title: 애니메이션 리타게팅
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:리타게팅된 애니메이션을 여러 스켈레탈 메시에 사용하여, 애니메이션을 공유하는 법입니다.
 version:4.14
+topic-image:AnimationgRetargeting_topic.png
 
 [REGION:fullwidth]
 ![](RetargetingHeader.png)

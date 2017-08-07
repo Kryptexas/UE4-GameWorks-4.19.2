@@ -1,13 +1,14 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3429254
 Availability:Public
 Title:카메라
 Crumbs:%ROOT%, Gameplay, Gameplay/Framework
 Description:Camera, 카메라는 플레이어의 시점, 플레이어가 월드를 보는 방식을 나타냅니다.
 Version: 4.9
-type:reference
+type:overview
 parent:Gameplay/Framework
-order:6
+order:5
 tags:Gameplay Framework
+topic-image:Gameplay/Framework/camera_lander.png
 
 **Camera** (카메라)는 플레이어의 시점, 플레이어가 월드를 보는 방식을 나타냅니다. 그 이유로 
 카메라는 사람이 제어하는 플레이어에만 관련이 있습니다. **PlayerController** 는 카메라 클래스를 나타내며, 

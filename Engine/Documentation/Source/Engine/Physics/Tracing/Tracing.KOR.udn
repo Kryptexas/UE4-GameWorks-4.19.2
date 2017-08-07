@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:3346514
+﻿INTSourceChangelist:3429244
 Availability: Public
-Title:트레이스, 레이캐스트
+Title:레이캐스트와 트레이스
 Crumbs:
-Description:피직스 트레이스, 또는 레이캐스트 홈 페이지입니다.
+Description:피직스 트레이스 홈 페이지입니다.
 version: 4.14
 Parent:Engine/Physics
 type:landing

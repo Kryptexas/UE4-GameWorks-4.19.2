@@ -66,7 +66,8 @@ public:
 
 	virtual bool IsValid() const override
 	{
-		return ID != 0;
+		// Not completely accurate, but safe to assume numbers below this is invalid
+		return ID > 100000;
 	}
 
 	ovrID GetID() const

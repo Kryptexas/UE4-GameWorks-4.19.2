@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3348041
+﻿INTSourceChangelist:3439832
 Availability: Public
 Title:런타임에 다이내믹 오브젝트 애니메이션
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
@@ -11,27 +11,19 @@ checkpoint: editorqs
 Related: Engine/Sequencer/Overview
 Related: Engine\Sequencer\ReferenceEditor\
 tags:Sequencer
+type:how-to
 
 게임플레이 용도로 시네마틱을 제작할 때, 시퀀서를 통해 런타임 동적 스폰되는 오브젝트에 애니메이션을 주고플 때가 있습니다.
 예를 들어 경로를 따라 움직이는 애니메이션 오브젝트를 만드는데, 그 오브젝트를 플레이어가 정의할 수 있는 것입니다.
 [블루프린트 비주얼 스크립트](Engine/Blueprints) 덕에 **Get Sequence Bindings** 노드를 사용하여 레벨 시퀀스에서의 바인딩 식별자를 노출시키고 그 바인딩을 자신의 것으로 덮어쓸 수 있습니다.
 
-이 예제에서는 길을 따라 오브젝트를 움직이고 애니메이션을 적용하며, 아래와 같이 플레이어가 버튼을 누르면 그 오브젝트를 바꿀 수 있습니다.
+이 예제에서는 길을 따라 오브젝트를 움직이고 애니메이션을 적용하며, 플레이어가 버튼을 누르면 그 오브젝트를 바꿀 수 있습니다.
 
-[OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-XdahqJz2cyM
-[/PARAMLITERAL]
-[/OBJECT]
+![](EndResult.png)
+
 
 [REGION:note]
-여기서는 **블루프린트 삼인칭 템플릿** 프로젝트에 **시작용 콘텐츠** 를 포함시켜 사용하고 있습니다.
+여기서는 **블루프린트 삼인칭 템플릿** 프로젝트에 **시작용 콘텐츠** 포함, 기본 **타겟 하드웨어** 및 **프로젝트 세팅** 을 사용하고 있습니다.
 [/REGION]
 
 ## 단계
@@ -72,7 +64,7 @@ XdahqJz2cyM
 
 	100 프레임에 있을 때 시퀀서 안에서 **]** 키를 눌러도 이 키에서 시퀀스를 종료시킬 수 있습니다.
 
-1.	레벨 뷰포트에서 레벨 시퀀스를 선택한 후, **디테일** 패널에서 **Loop** 를 **Lopp Indefinitely** (무한 반복)으로 설정합니다. 
+1.	레벨 뷰포트에서 레벨 시퀀스를 선택한 후, **디테일** 패널에서 **Loop** 를 **Loop Indefinitely** (무한 루프)로 설정합니다. 
 
 	![](DynamicAnim_09.png)
 
@@ -104,6 +96,8 @@ XdahqJz2cyM
 
 1.	**우클릭** 후 **Spawn Actor From Class** 노드를 생성한 뒤 클래스를 **Cube Blueprint** 로 설정합니다. 
 
+	![](DynamicAnim_13b.png)
+
 1.	**Return Value** 에 **우클릭** 하고 **변수로 승격** 시켜 **Cube** 라 한 뒤, **Spawn Transform** 을 끌어 놓고 **Make Transform** 을 사용합니다. 
 
 	![](DynamicAnim_14.png)
@@ -120,14 +114,16 @@ XdahqJz2cyM
 
 	![](DynamicAnim_16.png)
 
-	그러면 블루프린트 스크립트를 통해 레벨 시퀀스 내용물에 접근하고 덮어쓸 수 있도록 해줍니다.
+	그러면 블루프린트 스크립트를 통해 레벨 시퀀스 내 콘텐츠에 접근하고 덮어쓸 수 있도록 해줍니다.
 
 1.	그래프에 **우클릭** 하고 **Add Binding** 노드를 추가한 뒤 다음 노드를 연결합니다:
 
 	![](DynamicAnim_17.png)
 
+	[REGION:note]
 	위에서 레벨 시퀀스로의 레퍼런스를 **Target** 으로, **Get Sequence Bindings** 노드를 **Binding** 으로, 스폰한 큐브에 대해 생성한 변수를 **Actor** 로 연결했습니다.
 	그러면 레벨 시퀀스의 공백 액터 (**Actor**) 를 지정한 (**Cube** 또는 **Sphere**) 액터로 대체할 수 있습니다. 공백 액터에 적용된 애니메이션 역시 바인딩 일부로 설정한 액터에 적용될 것입니다.
+	[/REGION]
 
 1.	스크립트 **Sphere** 부분에 대한 예전 단계를 반복, **Cube** 를 **Sphere** 로 **Actor** 에 대체합니다. 
 
@@ -147,22 +143,26 @@ XdahqJz2cyM
 
 1.	에디터에서 플레이한 뒤, **1** 키를 눌러 스폰되는 액터를 순환시킵니다.
 	
-
-
 ## 최종 결과
 
 에디터에서 플레이하고 1 키를 누르면, 공백 액터가 큐브 또는 구체로 스폰되는 액터로 대체되나, 적용한 애니메이션은 계속 유지됩니다.
 
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-XdahqJz2cyM
-[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	XdahqJz2cyM
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
 [/OBJECT]
 
 **Set Binding** 노드로 바인딩에 액터 배열을 설정 및 바인딩할 수도, **Reset Binding** 으로 특정 바인딩 또는 **Reset Bindings** 로 전체 레벨 시퀀스 리셋도 가능합니다.

@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "AssetTypeActions_Base.h"
 
-class FAssetData;
+struct FAssetData;
 class FMenuBuilder;
 class USoundBase;
 

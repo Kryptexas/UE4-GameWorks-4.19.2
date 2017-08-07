@@ -25,6 +25,7 @@
 #include "Utils.h"
 #include "Engine/CurveTable.h"
 #include "Misc/PackageName.h"
+#include "AssetRegistryModule.h"
 
 #define LOCTEXT_NAMESPACE "SFacialAnimationBulkImporter"
 
@@ -121,6 +122,9 @@ private:
 			}
 		}
 
+		FAssetRegistryModule& AssetRegistry = FModuleManager::Get().LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+		AssetRegistry.AssetCreated(SoundWave);
+
 		return SoundWave;
 	}
 
@@ -133,8 +137,8 @@ private:
 			// create our curve table internal to the sound wave
 			static const FName InternalCurveTableName("InternalCurveTable");
 			SoundWave->Curves = NewObject<UCurveTable>(SoundWave, InternalCurveTableName);
-			SoundWave->Curves->ClearFlags(RF_Public);
-			SoundWave->Curves->SetFlags(SoundWave->Curves->GetFlags() | RF_Standalone | RF_Transactional);
+			SoundWave->Curves->ClearFlags(RF_Public | RF_Standalone);
+			SoundWave->Curves->SetFlags(SoundWave->Curves->GetFlags() | RF_Transactional);
 			SoundWave->InternalCurves = SoundWave->Curves;
 
 			// import curves from FBX

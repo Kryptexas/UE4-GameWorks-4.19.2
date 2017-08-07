@@ -2,6 +2,7 @@
 
 #include "Kismet/KismetNodeHelperLibrary.h"
 #include "EngineLogs.h"
+#include "Misc/RuntimeErrors.h"
 
 UKismetNodeHelperLibrary::UKismetNodeHelperLibrary(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -158,7 +159,7 @@ FString UKismetNodeHelperLibrary::GetEnumeratorUserFriendlyName(const UEnum* Enu
 
 uint8 UKismetNodeHelperLibrary::GetValidValue(const UEnum* Enum, uint8 EnumeratorValue)
 {
-	if (ensure(Enum))
+	if (ensureAsRuntimeWarning(Enum != nullptr))
 	{
 		if (Enum->IsValidEnumValue(EnumeratorValue))
 		{
@@ -166,7 +167,6 @@ uint8 UKismetNodeHelperLibrary::GetValidValue(const UEnum* Enum, uint8 Enumerato
 		}
 		return Enum->GetMaxEnumValue();
 	}
-	UE_LOG(LogBlueprintUserMessages, Error, TEXT("UKismetNodeHelperLibrary::GetValidValue is called with Enum == null"));
 	return INDEX_NONE;
 }
 

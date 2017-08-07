@@ -94,7 +94,7 @@ private:
 	FShaderParameter ShadowToWorld;
 };
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(,FVolumetricFogLightFunctionPS,TEXT("VolumetricFogLightFunction"),TEXT("Main"),SF_Pixel);
+IMPLEMENT_MATERIAL_SHADER_TYPE(,FVolumetricFogLightFunctionPS,TEXT("/Engine/Private/VolumetricFogLightFunction.usf"),TEXT("Main"),SF_Pixel);
 
 void FDeferredShadingSceneRenderer::RenderLightFunctionForVolumetricFog(
 	FRHICommandListImmediate& RHICmdList, 
@@ -187,6 +187,7 @@ void FDeferredShadingSceneRenderer::RenderLightFunctionForVolumetricFog(
 		if (MaterialProxy && MaterialProxy->GetMaterial(Scene->GetFeatureLevel())->IsLightFunction())
 		{
 			FPooledRenderTargetDesc LightFunctionTextureDesc(FPooledRenderTargetDesc::Create2DDesc(LightFunctionResolution, PF_G8, FClearValueBinding::None, TexCreate_None, TexCreate_ShaderResource | TexCreate_RenderTargetable, false));
+			LightFunctionTextureDesc.Flags |= GetTextureFastVRamFlag_DynamicLayout();
 			GRenderTargetPool.FindFreeElement(RHICmdList, LightFunctionTextureDesc, OutLightFunctionTexture, TEXT("VolumetricFogLightFunction"));
 			
 			const FMatrix WorldToShadowValue = FTranslationMatrix(ProjectedShadowInfo.PreShadowTranslation) * ProjectedShadowInfo.SubjectAndReceiverMatrix;

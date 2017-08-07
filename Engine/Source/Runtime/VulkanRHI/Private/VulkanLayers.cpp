@@ -5,10 +5,23 @@
 =============================================================================*/
 
 #include "VulkanRHIPrivate.h"
+#include "IHeadMountedDisplayModule.h"
 
 #if PLATFORM_LINUX
 #include <SDL.h>
 #endif
+
+TAutoConsoleVariable<int32> GValidationCvar(
+	TEXT("r.Vulkan.EnableValidation"),
+	0,
+	TEXT("0 to disable validation layers (default)\n")
+	TEXT("1 to enable errors\n")
+	TEXT("2 to enable errors & warnings\n")
+	TEXT("3 to enable errors, warnings & performance warnings\n")
+	TEXT("4 to enable errors, warnings, performance & information messages\n")
+	TEXT("5 to enable all messages"),
+	ECVF_ReadOnly | ECVF_RenderThreadSafe
+);
 
 #if VULKAN_HAS_DEBUGGING_ENABLED
 
@@ -16,20 +29,14 @@
 		#define RENDERDOC_LAYER_NAME	"VK_LAYER_RENDERDOC_Capture"
 	#endif
 
-TAutoConsoleVariable<int32> GValidationCvar(
-	TEXT("r.Vulkan.EnableValidation"),
-	0,
-	TEXT("1 to use validation layers"),
-	ECVF_ReadOnly | ECVF_RenderThreadSafe
-	);
-
 // List of validation layers which we want to activate for the instance
 static const ANSICHAR* GRequiredLayersInstance[] =
 {
 	nullptr,
 };
 
-#define VULKAN_ENABLE_STANDARD_VALIDATION	1
+// Disable to be able to selectively choose which validation layers you want
+#define VULKAN_ENABLE_STANDARD_VALIDATION	0
 
 // List of validation layers which we want to activate for the instance
 static const ANSICHAR* GValidationLayersInstance[] =
@@ -41,18 +48,23 @@ static const ANSICHAR* GValidationLayersInstance[] =
 #if VULKAN_ENABLE_STANDARD_VALIDATION
 	"VK_LAYER_LUNARG_standard_validation",
 #else
-	//"VK_LAYER_GOOGLE_threading",
+	"VK_LAYER_GOOGLE_threading",
 	"VK_LAYER_LUNARG_parameter_validation",
-	//"VK_LAYER_LUNARG_object_tracker",
-	//"VK_LAYER_LUNARG_image",
+	"VK_LAYER_LUNARG_object_tracker",
+#if defined(VK_HEADER_VERSION) && (VK_HEADER_VERSION < 42)
+	"VK_LAYER_LUNARG_image",
+#endif
 	"VK_LAYER_LUNARG_core_validation",
-	//"VK_LAYER_LUNARG_swapchain",
-	//"VK_LAYER_GOOGLE_unique_objects",
+#if defined(VK_HEADER_VERSION) && (VK_HEADER_VERSION < 51)
+	"VK_LAYER_LUNARG_swapchain",
+#endif
+	"VK_LAYER_GOOGLE_unique_objects",
 #endif
 
 	//"VK_LAYER_LUNARG_screenshot",
 	//"VK_LAYER_NV_optimus",
 	//"VK_LAYER_LUNARG_vktrace",		// Useful for future
+	nullptr
 };
 
 // List of validation layers which we want to activate for the device
@@ -68,6 +80,8 @@ static const ANSICHAR* GValidationLayersDevice[] =
 	"VK_LAYER_LUNARG_api_dump",
 #endif
 
+	// Only have device validation layers on SDKs below 13
+#if defined(VK_HEADER_VERSION) && (VK_HEADER_VERSION < 13)
 #if VULKAN_ENABLE_STANDARD_VALIDATION
 	"VK_LAYER_LUNARG_standard_validation",
 #else
@@ -78,15 +92,14 @@ static const ANSICHAR* GValidationLayersDevice[] =
 	"VK_LAYER_LUNARG_core_validation",
 	"VK_LAYER_LUNARG_swapchain",
 	"VK_LAYER_GOOGLE_unique_objects",
-#endif
-#if defined(VK_HEADER_VERSION) && (VK_HEADER_VERSION >= 24)
 	"VK_LAYER_LUNARG_core_validation",
-#endif
-
+#endif	// Standard Validation
+#endif	// Header < 13
 	//"VK_LAYER_LUNARG_screenshot",
 	//"VK_LAYER_NV_optimus",
 	//"VK_LAYER_NV_nsight",
 	//"VK_LAYER_LUNARG_vktrace",		// Useful for future
+	nullptr
 };
 #endif // VULKAN_HAS_DEBUGGING_ENABLED
 
@@ -100,12 +113,13 @@ static const ANSICHAR* GInstanceExtensions[] =
 	VK_KHR_ANDROID_SURFACE_EXTENSION_NAME,
 #elif PLATFORM_LINUX
 //	VK_KHR_XLIB_SURFACE_EXTENSION_NAME,
-#else
+#elif PLATFORM_WINDOWS
 	VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
 #endif
 #if !VULKAN_DISABLE_DEBUG_CALLBACK
-	VK_EXT_DEBUG_REPORT_EXTENSION_NAME
+	VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
 #endif
+	nullptr
 };
 
 // Device Extensions to enable
@@ -120,10 +134,11 @@ static const ANSICHAR* GDeviceExtensions[] =
 #endif
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 
-#if PLATFORM_WINDOWS
 	//"VK_KHX_device_group",
-	//"VK_KHR_maintenance1",
+#if SUPPORTS_MAINTENANCE_LAYER
+	VK_KHR_MAINTENANCE1_EXTENSION_NAME,
 #endif
+	nullptr
 };
 
 
@@ -245,7 +260,7 @@ void FVulkanDynamicRHI::GetInstanceLayersAndExtensions(TArray<const ANSICHAR*>& 
 	if (GValidationCvar.GetValueOnAnyThread() > 0)
 	{
 		// Verify that all requested debugging device-layers are available
-		for (uint32 LayerIndex = 0; LayerIndex < ARRAY_COUNT(GValidationLayersInstance); ++LayerIndex)
+		for (uint32 LayerIndex = 0; GValidationLayersInstance[LayerIndex] != nullptr; ++LayerIndex)
 		{
 			bool bValidationFound = false;
 			const ANSICHAR* CurrValidationLayer = GValidationLayersInstance[LayerIndex];
@@ -275,10 +290,23 @@ void FVulkanDynamicRHI::GetInstanceLayersAndExtensions(TArray<const ANSICHAR*>& 
 	}
 #endif
 
+	// Check to see if the HMD requires any specific Vulkan extensions to operate
+	if (IHeadMountedDisplayModule::IsAvailable())
+	{
+		IHeadMountedDisplayVulkanExtensions* VulkanExtensions = IHeadMountedDisplayModule::Get().GetVulkanExtensions();
+	
+		if (VulkanExtensions)
+		{
+			if (!VulkanExtensions->GetVulkanInstanceExtensionsRequired(OutInstanceExtensions))
+			{
+				UE_LOG(LogVulkanRHI, Warning, TEXT("Trying to use Vulkan with an HMD, but required extensions aren't supported!"));
+			}
+		}
+	}
+
 	for (int32 i = 0; i < GlobalExtensions.ExtensionProps.Num(); i++)
 	{
-		// ARRAY_COUNT cannot be used with 0-sized arrays
-		for (int32 j = 0; j < sizeof(GInstanceExtensions) / sizeof(GInstanceExtensions[0]); j++)
+		for (int32 j = 0; GInstanceExtensions[j] != nullptr; j++)
 		{
 			if (!FCStringAnsi::Strcmp(GlobalExtensions.ExtensionProps[i].extensionName, GInstanceExtensions[j]))
 			{
@@ -347,7 +375,8 @@ void FVulkanDevice::GetDeviceExtensions(TArray<const ANSICHAR*>& OutDeviceExtens
 	#endif
 
 	// Verify that all required device layers are available
-	for (uint32 LayerIndex = 0; LayerIndex < ARRAY_COUNT(GRequiredLayersDevice); ++LayerIndex)
+	// ARRAY_COUNT is unnecessary, but MSVC analyzer doesn't seem to be happy with just a null check
+	for (uint32 LayerIndex = 0; LayerIndex < ARRAY_COUNT(GRequiredLayersDevice) && GRequiredLayersDevice[LayerIndex] != nullptr; ++LayerIndex)
 	{
 		const ANSICHAR* CurrValidationLayer = GRequiredLayersDevice[LayerIndex];
 		if (CurrValidationLayer)
@@ -373,7 +402,7 @@ void FVulkanDevice::GetDeviceExtensions(TArray<const ANSICHAR*>& OutDeviceExtens
 	// Verify that all requested debugging device-layers are available. Skip validation layers under RenderDoc
 	if (!bRenderDocFound && GValidationCvar.GetValueOnAnyThread() > 0)
 	{
-		for (uint32 LayerIndex = 0; LayerIndex < ARRAY_COUNT(GValidationLayersDevice); ++LayerIndex)
+		for (uint32 LayerIndex = 0; GValidationLayersDevice[LayerIndex] != nullptr; ++LayerIndex)
 		{
 			bool bValidationFound = false;
 			const ANSICHAR* CurrValidationLayer = GValidationLayersDevice[LayerIndex];
@@ -404,7 +433,21 @@ void FVulkanDevice::GetDeviceExtensions(TArray<const ANSICHAR*>& OutDeviceExtens
 		UE_LOG(LogVulkanRHI, Display, TEXT("- Found Device Extension %s"), ANSI_TO_TCHAR(Extensions.ExtensionProps[Index].extensionName));
 	}
 
-	for (uint32 Index = 0; Index < ARRAY_COUNT(GDeviceExtensions); ++Index)
+	// Check to see if the HMD requires any specific Vulkan extensions to operate
+	if (IHeadMountedDisplayModule::IsAvailable())
+	{
+		IHeadMountedDisplayVulkanExtensions* VulkanExtensions = IHeadMountedDisplayModule::Get().GetVulkanExtensions();
+
+		if (VulkanExtensions)
+		{
+			if (!VulkanExtensions->GetVulkanDeviceExtensionsRequired(Gpu, OutDeviceExtensions))
+			{
+				UE_LOG(LogVulkanRHI, Warning, TEXT("Trying to use Vulkan with an HMD, but required extensions aren't supported on the selected device!"));
+			}
+		}
+	}
+
+	for (uint32 Index = 0; Index < ARRAY_COUNT(GDeviceExtensions) && GDeviceExtensions[Index] != nullptr; ++Index)
 	{
 		for (int32 i = 0; i < Extensions.ExtensionProps.Num(); i++)
 		{
@@ -450,4 +493,23 @@ void FVulkanDevice::GetDeviceExtensions(TArray<const ANSICHAR*>& OutDeviceExtens
 			UE_LOG(LogVulkanRHI, Display, TEXT("* %s"), ANSI_TO_TCHAR(Layer));
 		}
 	}
+}
+
+
+void FVulkanDevice::ParseOptionalDeviceExtensions(const TArray<const ANSICHAR *>& DeviceExtensions)
+{
+	FMemory::Memzero(OptionalDeviceExtensions);
+
+	auto HasExtension = [&DeviceExtensions](const ANSICHAR* InName) -> bool
+	{
+		return DeviceExtensions.ContainsByPredicate(
+			[&InName](const ANSICHAR* InExtension) -> bool
+			{
+				return FCStringAnsi::Strcmp(InExtension, InName) == 0;
+			}
+		);
+	};
+#if SUPPORTS_MAINTENANCE_LAYER
+	OptionalDeviceExtensions.HasKHRMaintenance1 = HasExtension(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
+#endif
 }

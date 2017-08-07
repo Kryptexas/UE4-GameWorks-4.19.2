@@ -80,5 +80,5 @@ FORCEINLINE float USphereComponent::GetUnscaledSphereRadius() const
 
 FORCEINLINE float USphereComponent::GetShapeScale() const
 {
-	return ComponentToWorld.GetMinimumAxisScale();
+	return GetComponentTransform().GetMinimumAxisScale();
 }

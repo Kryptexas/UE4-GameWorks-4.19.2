@@ -1,27 +1,16 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3429254
 Availability: Public
 Title:9. 애니메이션 블루프린트 - 엎드리기 상태
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
 Description:캐릭터에 Prone, 엎드리기 상태를 구성하여 마무리합니다.
 Version: 4.9
+Parent:Gameplay/HowTo/CharacterMovement/Blueprints
 SkillLevel:Advanced
+type:how-to
+type:multi-step
+order:9
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[예전 단계](Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jump "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jump:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[캐릭터 무브먼트 개요](Gameplay\HowTo\CharacterMovement\Blueprints)
-	[/PARAM]
-	[PARAM:next]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 이번 최종회에서는 **Prone** 엎드리기 스테이트와 거기서 나가고/들어오는 트랜지션을 추가하는 것으로 **스테이트 머신** 을 마무리하겠습니다.
 
@@ -113,66 +102,4 @@ SkillLevel:Advanced
 
 이 스테이트 머신에 여러가지 (사망, 재장전 등) 상태를 추가할 수도 있고, 기존 모션을 자체 제작한 것으로 바꿀 수도 있습니다. 어느 경우든 이제 **블루프린트** 로 캐릭터 무브먼트를 구성하는 법, **애니메이션 블루프린트** 로 애니메이션 스테이트 정의하는 법, **블렌드 스페이스** 를 통해 애니메이션을 블렌딩하는 법이 이해가 가실 것이라 믿습니다.
 
-%Steps%
-
-
-
-
-	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+[NAV]

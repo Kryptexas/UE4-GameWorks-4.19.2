@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3151855
+﻿INTSourceChangelist:3467293
 Availability:Public
 Title:プログラミング ガイド
 Crumbs: %ROOT%
@@ -7,74 +7,10 @@ version:4.9
 parent:%ROOT%
 order:4
 type:landing
+topic-icon:%ROOT%/prog_icon.png
+Topic-image:ProgrammingGuide_topic.png
 
-[VAR:Params]
-[PARAM:image]
-	![%Programming:title%](%ROOT%/placeholder_topic.png)
-[/PARAM]
-[PARAM:icon]
-	![](%ROOT%/prog_role_icon.png)(convert:false)
-[/PARAM]
-[PARAM:title]
-	%Programming:title%
-[/PARAM]
-[PARAM:description]
-	%Programming:description%
-[/PARAM]
-[PARAM:path]
-	[RELATIVE:Programming]
-[/PARAM]
-[/VAR]
-
-[VAR:HomeParams]
-[PARAM:image]
-	![%Programming:title%](%ROOT%/placeholder_topic.png)
-[/PARAM]
-[PARAM:icon]
-	![](%ROOT%/prog_icon.png)(convert:false)
-[/PARAM]
-[PARAM:title]
-	プログラマー
-[/PARAM]
-[PARAM:description]
-	%Programming:description%
-[/PARAM]
-[PARAM:path]
-	[RELATIVE:Programming]
-[/PARAM]
-[/VAR]
-
-[VAR:Topic]
-[OBJECT:Topic]
-%params%
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-%params%
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicRole]
-[OBJECT:Role]
-%homeparams%
-[PARAMLITERAL:id]
-プログラマー
-[/PARAMLITERAL]
-[/OBJECT]
-[/VAR]
-
-[VAR:Role]
-[OBJECT:Role]
-%params%
-[PARAMLITERAL:id]
-プログラミング
-[/PARAMLITERAL]
-[/OBJECT]
-[/VAR]
-
-UE4 には、開発のスピードを上げるために使用できるプログラミング用のツールセットが 2 種類あります。新しいゲームプレイ クラス、Slate および Canvas のユーザー インターフェース エレメント、編集機能は
+UE4 には、開発のスピードを上げるために使用できるプログラミング用のツールセットが 2 種類あります。新しいゲームプレイ クラス、Slate および Canvas のユーザー インターフェース エレメント、編集機能は 
 C++ で書くことができ、Visual Studio または Xcode でのコンパイル後に変更はすべてアンリアル エンジンに反映されます。ブループリント ビジュアル スクリプティング システムは、関数ブロックとプロパティ リファレンスをまとめて接続することで、
 クラスをエディタ内で作成できるようにするパワフルなツールです。 
 
@@ -82,178 +18,61 @@ C++ クラスはブループリント クラスの基底として使用できま
 
 ## はじめよう
 
-[REGION:features third]
-[OBJECT:Role]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		プログラミングのクイックスタート
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Programming/QuickStart]
-	[/PARAM]
-	[PARAM:description]
-		%Programming/QuickStart:description%
-	[/PARAM]
-	[PARAMLITERAL:id]
-		クイックスタート
-	[/PARAMLITERAL]
-[/OBJECT]
+%Programming/QuickStart:role%
+%Programming/Introduction:role%
 
-[OBJECT:Role]
-	[PARAM:icon]
-		![](%ROOT%/prog_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		UNREAL ENGINE の C++ ガイド
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Programming/Introduction]
-	[/PARAM]
-	[PARAM:description]
-		%Programming/Introduction:description%
-	[/PARAM]
-	[PARAMLITERAL:id]
-		はじめに
-	[/PARAMLITERAL]
-[/OBJECT]
+## 開発設定
 
-[OBJECT:Role]
-	[PARAM:icon]
-		![](%ROOT%/prog_role_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Programming/Tutorials:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Programming/Tutorials]
-	[/PARAM]
-	[PARAM:description]
-		%Programming/Tutorials:description%
-	[/PARAM]
-	[PARAMLITERAL:id]
-		チュートリアル
-	[/PARAMLITERAL]
-[/OBJECT]
+[DIR(output:"role" parent:"Programming/Development" org:"hierarchy" tags:"!BuildGraph")]
+
+## アンリアル エンジンのアーキテクチャ
+
+開発言語が C++ でもブループリントでも、あるいはその両方でも、基盤となるアンリアルのアーキテクチャは一緒です。
+
+[DIR(output:"role" parent:"Programming/UnrealArchitecture/Reference" org:"hierarchy" end:"1")]
+
+## ゲームプレイ アーキテクチャ
+
+[DIR(output:"role" parent:"Programming/UnrealArchitecture" org:"hierarchy" end:"1")]
+
+## ゲームプレイ ガイド
+
+[DIR(output:"fancy" parent:"Programming/Tutorials" org:"hierarchy" end:"1" skilllevel:"Beginner")]
+[DIR(output:"fancy" parent:"Programming/Tutorials" org:"hierarchy" end:"1" skilllevel:"Intermediate")]
+[DIR(output:"fancy" parent:"Programming/Tutorials" org:"hierarchy" end:"1" skilllevel:"Advanced")]
+
+## アンリアル エンジンの API リファレンス
+
+%API:role%
+%API/Runtime/Core:role%
+%API/Runtime/CoreUObject:role%
+%API/Runtime/Engine:role%
+
+## システムガイド
+
+%Programming/Animation/AnimNodes:role%
+%Programming/Automation:role%
+%Engine/Blueprints/TechnicalGuide:role%
+%Programming/Online:role%
+%Programming/Online/Steam:role%
+%Programming/Rendering:role%
+%Programming/Slate:role%
+%Programming/UnrealBuildSystem:role%
+
+## 自動化ビルド
+
+[DIR(output:"role" parent:"Programming/Development" org:"hierarchy" tags:"BuildGraph")]
+
+## アセット処理リファレンス ガイド
+
+[REGION:buttonlist]
+%Programming/Assets/AsyncLoading:role%
+[PUBLISH:Docs]
+%Programming/Assets/CustomImporters:role%
+%Programming/Assets/CustomExporters:role%
+[/PUBLISH:Docs]
+%Programming/Assets/Registry:role%
+[PUBLISH:Docs]
+%Programming/Assets/ThumbnailRendering:role%
+[/PUBLISH:Docs]
 [/REGION]
-
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/prog_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		アンリアル エンジンの開発の設定
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Programming/Development "%Programming/Development:description%")
-	[/PARAM]
-[/OBJECT]
-
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/api_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		アンリアル エンジンの API リファレンス
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [Unreal Engine API](https://docs.unrealengine.com/latest/INT/API/index.html)
-		* [Core API](https://docs.unrealengine.com/latest/INT/API/Runtime/Core/index.html)
-		* [Core UObject API](https://docs.unrealengine.com/latest/INT/API/Runtime/CoreUObject/index.html)
-		* [Engine API](https://docs.unrealengine.com/latest/INT/API/Runtime/Engine/index.html)
-	[/PARAM]
-[/OBJECT]
-
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/prog_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		アンリアル エンジンのアーキテクチャ
-	[/PARAM]
-	[PARAM:description]
-		開発言語が C++ でもブループリントでも、あるいはその両方でも、基盤となるアンリアルのアーキテクチャは一緒です。 
-	[/PARAM]
-	[PARAM:links]
-	* [](Programming/UnrealArchitecture "%Programming/UnrealArchitecture:description%")
-		* [](Programming/UnrealArchitecture/Objects "%Programming/UnrealArchitecture/Objects:description%")
-			* [](Programming/UnrealArchitecture/Objects/Optimizations "%Programming/UnrealArchitecture/Objects/Optimizations:description%")
-			* [](Programming/UnrealArchitecture/Objects/Creation "%Programming/UnrealArchitecture/Objects/Creation:description%")
-		* [](Programming/UnrealArchitecture/Actors "%Programming/UnrealArchitecture/Actors:description%")
-			* [](Programming/UnrealArchitecture/Actors/Components "%Programming/UnrealArchitecture/Actors/Components:description%")
-			* [](Programming/UnrealArchitecture/Actors/Spawning "%Programming/UnrealArchitecture/Actors/Spawning:description%")
-	* [](Programming/UnrealArchitecture/Reference "%Programming/UnrealArchitecture/Reference:description%")
-		* [](Programming/UnrealArchitecture/Reference/Classes "%Programming/UnrealArchitecture/Reference/Classes:Description%")
-			* [](Programming/UnrealArchitecture/Reference/Functions "%Programming/UnrealArchitecture/Reference/Functions:Description%")
-			* [](Programming/UnrealArchitecture/Reference/Properties "%Programming/UnrealArchitecture/Reference/Properties:Description%")
-		* [](Programming/UnrealArchitecture/Reference/Structs "%Programming/UnrealArchitecture/Reference/Structs:Description%")
-		* [](Programming/UnrealArchitecture/TArrays "%Programming/UnrealArchitecture/TArrays:Description%")
-		* [](Programming/UnrealArchitecture/TMap "%Programming/UnrealArchitecture/TMap:Description%")
-		* [](Programming/UnrealArchitecture/TSubclassOf "%Programming/UnrealArchitecture/TSubclassOf:Description%")
-		* [](Programming/UnrealArchitecture/Reference/Interfaces "%Programming/UnrealArchitecture/Reference/Interfaces:Description%")
-	* [](Programming/Modules/Gameplay "%Programming/Modules/Gameplay:description%")
-	* [](Programming/Plugins "%Programming/Plugins:description%")
-	[/PARAM]
-[/OBJECT]
-
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/gameplay_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		アンリアル ゲームプレイ
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Gameplay "%Gameplay:description%")
-	[/PARAM]
-[/OBJECT]
-
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/engine_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		システムガイド
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		* [](Programming/Animation/AnimNodes "%Programming/Animation/AnimNodes:description%")
-		* [](Programming/Automation "%Programming/Automation:description%")
-		* [](Engine/Blueprints/TechnicalGuide "%Engine/Blueprints/TechnicalGuide:description%")
-		* [](Programming/Online "%Programming/Online:description%")
-		* [](Programming/Online/Steam "%Programming/Online/Steam:description%")
-		* [](Programming/Rendering "%Programming/Rendering:description%")
-		* [](Programming/Slate "%Programming/Slate:description%")
-		* [](Programming/UnrealBuildSystem "%Programming/UnrealBuildSystem:description%")
-	[/PARAM]
-[/OBJECT]
-
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		アセット ハンドリング リファレンス ガイド
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		* [](Programming/Assets/AsyncLoading "%Programming/Assets/AsyncLoading:description%")
-		[PUBLISH:Docs]
-		* [](Programming/Assets/CustomImporters "%Programming/Assets/CustomImporters:description%")
-		* [](Programming/Assets/CustomExporters "%Programming/Assets/CustomExporters:description%")
-		[/PUBLISH:Docs]
-		* [](Programming/Assets/Registry "%Programming/Assets/Registry:description%")
-		[PUBLISH:Docs]
-		* [](Programming/Assets/ThumbnailRendering "%Programming/Assets/ThumbnailRendering:description%")
-		[/PUBLISH:Docs]
-	[/PARAM]
-[/OBJECT]

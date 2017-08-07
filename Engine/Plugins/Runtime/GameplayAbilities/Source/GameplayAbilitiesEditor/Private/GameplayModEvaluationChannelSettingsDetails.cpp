@@ -55,7 +55,7 @@ void FGameplayModEvaluationChannelSettingsDetails::CustomizeChildren(TSharedRef<
 		TSharedPtr<IPropertyHandle> ChannelHandle = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FGameplayModEvaluationChannelSettings, Channel));
 		if (ChannelHandle.IsValid() && ChannelHandle->IsValidHandle())
 		{
-			StructBuilder.AddChildProperty(ChannelHandle.ToSharedRef());
+			StructBuilder.AddProperty(ChannelHandle.ToSharedRef());
 		}
 	}
 }

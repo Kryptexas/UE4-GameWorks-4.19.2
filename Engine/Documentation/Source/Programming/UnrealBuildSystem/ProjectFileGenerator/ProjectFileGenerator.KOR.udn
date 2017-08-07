@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:3355414
+﻿INTSourceChangelist:3426963
 Availability:Public
 Title:자동 프로젝트 파일 생성
-Crumbs:
+Crumbs:%ROOT%
 Parent:Programming/UnrealBuildSystem
+Order:
 Description:현재 워크스페이스에서 게임과 모듈에 쓸 프로젝트 파일을 자동으로 생성하는 프로세스입니다.
-Version: 4.9
+Version: 4.16
 prereq:Programming/Development/BuildingUnrealEngine
 topic-image:topic_prjFileGen.png
 tags:Programming
@@ -53,9 +54,8 @@ Visual Studio 용 [](Programming/Development/VisualStudioSetup/UnrealVS) 에는 
 | 옵션 | 설명 ||
  ---- | ---- |
 -CurrentPlatform   |  감지된 타겟 플랫폼 전부가 아닌, 현재 데스크탑 플랫폼용 프로젝트만 생성합니다 (윈도우 또는 맥). |
--2012              |  Visual Studio 2012 네이티브 포맷으로 프로젝트를 생성합니다. 기본적으로는 Visual Studio 2013 프로젝트 파일이 생성됩니다. |
--2013              |  Visual Studio 2013 네이티브 포맷으로 프로젝트를 생성합니다. |
--2015              |  Visual Studio 2015 네이티브 포맷으로 프로젝트를 생성합니다. 이 옵션 사용시 Visual C++ 2015 컴파일러가 사용됩니다. 기본값입니다. |
+-2015              |  Visual Studio 2015 네이티브 포맷으로 프로젝트를 생성합니다. 이 옵션 사용시 Visual C++ 2015 컴파일러가 사용됩니다. |
+-2017              |  VS 2017 원래 포맷으로 프로젝트를 생성합니다. 이 옵션을 설정하면 Visual C++ 2017 컴파일러를 사용합니다. |
 -ThirdParty        |  헤더와 써드 파티 라이브러리의 파일을 프로젝트에 추가합니다. PhysX, Steamworks, Bink 등에 대한 심볼과 파일을 Visual Assist 에서 확인하고자 할 때 좋을 수 있습니다. 그러나 프로젝트 파일 로드 시간이 길어질 수 있습니다! |
 -Game `GameName`   |	 프로젝트 제너레이터에 다른 모든 프로젝트는 제외하고 지정된 프로젝트 이름에 대한 코드와 콘텐츠만 포함된 프로젝트를 생성하라 이릅니다. 프로젝트 이름도 반드시 지정하도록 하세요. 예를 들어 `GenerateProjectFiles.bat ShooterGame.uproject -Game` 이라 치면 ShooterGame 용 소스와 타겟만 들어있는 프로젝트가 생성됩니다. 하나의 게임 프로젝트와 함께 Engine 소스 코드와 프로그램을 포함시키려는 경우, `-Engine` 파라미터를 붙여도 됩니다. |
 -Engine            |  `-Game` 과 함께 사용하면 Engine 코드, 콘텐츠, 프로그램도 생성되는 솔루션에 포함시키도록 합니다. 게임 프로젝트 작업을 하면서 엔진 소스 작업도 많이 할 것 같다 싶은 경우에 좋습니다. |

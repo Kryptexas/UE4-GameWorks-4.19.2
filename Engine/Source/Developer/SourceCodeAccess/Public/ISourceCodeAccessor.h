@@ -11,6 +11,8 @@
 class ISourceCodeAccessor : public IModularFeature
 {
 public:
+	virtual ~ISourceCodeAccessor() {}
+
 	/**
 	 * Not necessary to call unless you know you're changing the state of any installed compilers.
 	 * If that's the case, you should call this before checking the state the installed state of the

@@ -21,6 +21,7 @@ bool FStringClassReference::SerializeFromMismatchedTag(struct FPropertyTag const
 	if (Ar.IsLoading())
 	{
 		SetPath(MoveTemp(Path));
+		PostLoadPath();
 	}
 
 	return bReturn;

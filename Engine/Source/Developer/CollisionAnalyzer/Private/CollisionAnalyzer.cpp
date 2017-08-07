@@ -2,7 +2,6 @@
 
 #include "CollisionAnalyzer.h"
 #include "HAL/FileManager.h"
-#include "Serialization/NameAsStringProxyArchive.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Engine/GameViewportClient.h"
 #include "DrawDebugHelpers.h"
@@ -232,7 +231,7 @@ void FCollisionAnalyzer::SaveCollisionProfileData(FString ProfileFileName)
 
 	if(FileWriter != nullptr)
 	{
-		FNameAsStringProxyArchive Ar(*FileWriter);
+		FCollisionAnalyzerProxyArchive Ar(*FileWriter);
 
 		int32 Magic = COLLISION_ANALYZER_MAGIC;
 		int32 Version = COLLISION_ANALYZER_VERSION;
@@ -262,7 +261,7 @@ void FCollisionAnalyzer::LoadCollisionProfileData(FString ProfileFileName)
 
 	if (FileReader != nullptr)
 	{
-		FNameAsStringProxyArchive Ar(*FileReader);
+		FCollisionAnalyzerProxyArchive Ar(*FileReader);
 
 		int32 Magic;
 		Ar << Magic;

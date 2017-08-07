@@ -11,6 +11,8 @@ typedef struct ovrMatchmakingEnqueueResult *ovrMatchmakingEnqueueResultHandle;
 
 /// If 'IsDebug' is set in ovrMatchmakingOptionsHandle, this will return with
 /// the enqueue results.
+/// This method may return null. This indicates that the value is not present or that the curent
+/// app or user is not permitted to access it.
 OVRP_PUBLIC_FUNCTION(ovrMatchmakingAdminSnapshotHandle) ovr_MatchmakingEnqueueResult_GetAdminSnapshot(const ovrMatchmakingEnqueueResultHandle obj);
 
 /// The average amount of time (mean average) that users in this queue have

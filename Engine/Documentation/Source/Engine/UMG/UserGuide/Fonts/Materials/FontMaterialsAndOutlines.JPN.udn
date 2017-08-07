@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244089
+﻿INTSourceChangelist:3394420
 Availability:Public
 Title:フォントのマテリアルとアウトライン
 Description:色、マテリアル、アウトラインを使って UMG にスタイルを適用する方法例を示します。
@@ -8,9 +8,13 @@ Related:Engine/UMG/UserGuide/Fonts
 Related:Engine/UMG/UserGuide/Styling
 Version:4.14
 Parent:Engine/UMG/UserGuide/Fonts
-order:1
+type:Overview
+Skilllevel:Beginner
+order:2
 tags:User Interface
 tags:UMG UI Designer
+tags:Fonts
+Topic-image:FontMaterials_Topic.png
 
 [TOC]
 

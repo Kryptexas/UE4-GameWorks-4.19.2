@@ -1,28 +1,16 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3429254
 Availability: Public
 Title:6. 애니메이션 블루프린트 - 웅크리기 상태
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
 Description:캐릭터의 애니메이션 블루프린트 구성을 계속해서, 이번에는 웅크리기 상태를 구성합니다.
 Version: 4.9
+Parent:Gameplay/HowTo/CharacterMovement/Blueprints
 SkillLevel:Advanced
+type:how-to
+type:multi-step
+order:6
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[예전 단계](Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Walk "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Walk:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[캐릭터 무브먼트 개요](Gameplay\HowTo\CharacterMovement\Blueprints)
-	[/PARAM]
-	[PARAM:next]
-		[다음 단계](Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jog "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jog:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 여기서는 **애니메이션 블루프린트** 와 **스테이트 머신** 작업을 이어 **Crouch** 웅크리기 상태에 초점을 맞춰보겠습니다.
 
@@ -97,4 +85,4 @@ SkillLevel:Advanced
 
 1.	애니메이션 블루프린트를 **컴파일** 하고 **저장** 합니다.
 
-%Steps%
+[NAV]

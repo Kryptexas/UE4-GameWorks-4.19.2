@@ -36,14 +36,21 @@ ALevelBounds::ALevelBounds(const FObjectInitializer& ObjectInitializer)
 void ALevelBounds::PostLoad()
 {
 	Super::PostLoad();
-	GetLevel()->LevelBoundsActor = this;
+
+	if (!IsTemplate())
+	{
+		if (ULevel* Level = GetLevel())
+		{
+			Level->LevelBoundsActor = this;
+		}
+	}
 }
 
 FBox ALevelBounds::GetComponentsBoundingBox(bool bNonColliding) const
 {
 	checkf(RootComponent != nullptr, TEXT("LevelBounds actor with null root component: %s"), *GetPathNameSafe(this));
 	FVector BoundsCenter = RootComponent->GetComponentLocation();
-	FVector BoundsExtent = RootComponent->ComponentToWorld.GetScale3D() * 0.5f;
+	FVector BoundsExtent = RootComponent->GetComponentTransform().GetScale3D() * 0.5f;
 	return FBox(BoundsCenter - BoundsExtent, 
 				BoundsCenter + BoundsExtent);
 }

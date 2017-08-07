@@ -130,7 +130,7 @@ struct FStreamingWaveData final
 	 *
 	 * @param SoundWave	The SoundWave we are managing
 	 */
-	void Initialize(USoundWave* SoundWave, FAudioStreamingManager* InStreamingManager);
+	bool Initialize(USoundWave* SoundWave, FAudioStreamingManager* InStreamingManager);
 
 	/**
 	 * Updates the streaming status of the sound wave and performs finalization when appropriate. The function returns

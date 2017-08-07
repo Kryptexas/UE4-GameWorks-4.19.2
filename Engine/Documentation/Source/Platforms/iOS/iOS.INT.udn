@@ -9,6 +9,7 @@ type:landing
 parent:Platforms/Mobile
 tags:Mobile
 tags:iOS
+topic-image:iOSGameDevelopment_topic.png
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]

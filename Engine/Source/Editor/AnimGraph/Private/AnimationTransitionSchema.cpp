@@ -40,7 +40,10 @@ void UAnimationTransitionSchema::GetGraphDisplayInformation(const UEdGraph& Grap
 	DisplayInfo.PlainName = FText::FromString( Graph.GetName() );
 
 	const UAnimStateTransitionNode* TransNode = Cast<const UAnimStateTransitionNode>(Graph.GetOuter());
-	if (TransNode == NULL)
+
+	// If we don't have a node we can get it from our blueprint, unless the graph has been deleted
+	// in which case the outer chain will have been broken.
+	if (TransNode == NULL && !Graph.IsPendingKill())
 	{
 		//@TODO: Transition graphs should be created with the transition node as their outer as well!
 		UAnimBlueprint* Blueprint = CastChecked<UAnimBlueprint>(FBlueprintEditorUtils::FindBlueprintForGraph(&Graph));

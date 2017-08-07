@@ -40,6 +40,7 @@ public:
 	{}
 
 protected:
+	virtual ~FMovieSceneObjectBindingIDPicker() { }
 
 	/** Get the sequence to look up object bindings within. Only used when no sequencer is available. */
 	virtual UMovieSceneSequence* GetSequence() const = 0;

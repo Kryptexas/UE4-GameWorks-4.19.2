@@ -130,6 +130,12 @@ namespace FXConsoleVariables
 		TEXT("Allow emitters to be culled."),
 		ECVF_Cheat
 		);
+	int32 bAllowGPUParticles = true;
+	FAutoConsoleVariableRef CVarAllowGPUParticles(
+		TEXT("FX.AllowGPUParticles"),
+		bAllowGPUParticles,
+		TEXT("If true, allow the usage of GPU particles.")
+	);
 }
 
 /*------------------------------------------------------------------------------
@@ -217,7 +223,7 @@ void FFXSystem::AddVectorField( UVectorFieldComponent* VectorFieldComponent )
 				FAddVectorFieldCommand,
 				FFXSystem*, FXSystem, this,
 				FVectorFieldInstance*, Instance, Instance,
-				FMatrix, ComponentToWorld, VectorFieldComponent->ComponentToWorld.ToMatrixWithScale(),
+				FMatrix, ComponentToWorld, VectorFieldComponent->GetComponentTransform().ToMatrixWithScale(),
 			{
 				Instance->UpdateTransforms( ComponentToWorld );
 				Instance->Index = FXSystem->VectorFields.AddUninitialized().Index;
@@ -273,7 +279,7 @@ void FFXSystem::UpdateVectorField( UVectorFieldComponent* VectorFieldComponent )
 
 			FUpdateVectorFieldParams UpdateParams;
 			UpdateParams.Bounds = VectorFieldComponent->Bounds.GetBox();
-			UpdateParams.ComponentToWorld = VectorFieldComponent->ComponentToWorld.ToMatrixWithScale();
+			UpdateParams.ComponentToWorld = VectorFieldComponent->GetComponentTransform().ToMatrixWithScale();
 			UpdateParams.Intensity = VectorFieldComponent->Intensity;
 			UpdateParams.Tightness = VectorFieldComponent->Tightness;
 
@@ -366,11 +372,11 @@ void FFXSystem::PostRenderOpaque(FRHICommandListImmediate& RHICmdList, const FUn
 {
 	if (RHISupportsGPUParticles() && IsParticleCollisionModeSupported(GetShaderPlatform(), PCM_DepthBuffer))
 	{
-		PrepareGPUSimulation(RHICmdList);
-
+		PrepareGPUSimulation(RHICmdList, SceneDepthTexture);
+		
 		SimulateGPUParticles(RHICmdList, EParticleSimulatePhase::CollisionDepthBuffer, ViewUniformBuffer, NULL, SceneDepthTexture, GBufferATexture);
-
-		FinalizeGPUSimulation(RHICmdList);
+		
+		FinalizeGPUSimulation(RHICmdList, SceneDepthTexture);
 
 		SortGPUParticles(RHICmdList);		
 	}

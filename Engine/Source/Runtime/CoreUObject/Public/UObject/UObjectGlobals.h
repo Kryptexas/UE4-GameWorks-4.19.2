@@ -714,10 +714,7 @@ template<class T> struct TIsPODType< TSubobjectPtrDeprecated<T> > { enum { Value
 template<class T> struct TIsZeroConstructType< TSubobjectPtrDeprecated<T> > { enum { Value = true }; };
 template<class T> struct TIsWeakPointerType< TSubobjectPtrDeprecated<T> > { enum { Value = false }; };
 
-#define TSubobjectPtr \
-	EMIT_DEPRECATED_WARNING_MESSAGE("TSubobjectPtr is deprecated and should no longer be used. Please use pointers instead.") \
-	TSubobjectPtrDeprecated
-	
+
 
 /**
  * Internal class to finalize UObject creation (initialize properties) after the real C++ constructor is called.
@@ -937,26 +934,6 @@ private:
 	 */
 	static void InitProperties(UObject* Obj, UClass* DefaultsClass, UObject* DefaultData, bool bCopyTransientsFromClassDefaults);
 
-	/**
-	 * Helper method to assist with initializing object properties from an explicit list.
-	 * 
-	 * @param	InPropertyList		only these properties will be copied from defaults
-	 * @param	InStruct			the current scope for which the given property list applies
-	 * @param	DataPtr				destination address (where to start copying values to)
-	 * @param	DefaultDataPtr		source address (where to start copying the defaults data from)
-	 */
-	static void InitPropertiesFromCustomList(const FCustomPropertyListNode* InPropertyList, UStruct* InStruct, uint8* DataPtr, const uint8* DefaultDataPtr);
-
-	/**
-	* Helper method to assist with initializing from an array property with an explicit item list.
-	*
-	* @param	ArrayProperty		the array property for which the given property list applies
-	* @param	InPropertyList		only these properties (indices) will be copied from defaults
-	* @param	DataPtr				destination address (where to start copying values to)
-	* @param	DefaultDataPtr		source address (where to start copying the defaults data from)
-	*/
-	static void InitArrayPropertyFromCustomList(const UArrayProperty* ArrayProperty, const FCustomPropertyListNode* InPropertyList, uint8* DataPtr, const uint8* DefaultDataPtr);
-
 	bool IsInstancingAllowed() const;
 
 	/**
@@ -1112,9 +1089,6 @@ private:
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 };
 
-#define FPostConstructInitializeProperties \
-	FObjectInitializer \
-	EMIT_DEPRECATED_WARNING_MESSAGE("FPostConstructInitializeProperties is deprecated and was renamed to FObjectInitializer. Please use that type instead.")
 
 /**
 * Helper class for script integrations to access some UObject innards. Needed for script-generated UObject classes
@@ -1701,6 +1675,7 @@ public:
 		}
 	}
 
+	virtual ~FReferenceCollector() { }
 	/**
 	 * If true archetype references should not be added to this collector.
 	 */
@@ -1714,15 +1689,18 @@ public:
 	 */
 	virtual void AllowEliminatingReferences(bool bAllow) {}
 	/**
-	* Sets the property that is currently being serialized
-	*/
+	 * Sets the property that is currently being serialized
+	 */
 	virtual void SetSerializedProperty(class UProperty* Inproperty) {}
 	/**
-	* Gets the property that is currently being serialized
-	*/
+	 * Gets the property that is currently being serialized
+	 */
 	virtual class UProperty* GetSerializedProperty() const { return nullptr; }
-
-	virtual void SetShouldHandleAsWeakRef(bool bWeakRef) {}
+	/** 
+	 * Marks a specific object reference as a weak reference. This does not affect GC but will be freed at a later point
+	 * The default behavior returns false as weak references must be explicitly supported
+	 */
+	virtual bool MarkWeakObjectReferenceForClearing(UObject** WeakReference) { return false; }
 protected:
 	/**
 	 * Handle object reference. Called by AddReferencedObject.
@@ -1847,6 +1825,10 @@ struct COREUOBJECT_API FCoreUObjectDelegates
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPackageReloaded, EPackageReloadPhase, FPackageReloadedEvent*);
 	static FOnPackageReloaded OnPackageReloaded;
 
+	/** Called when a package reload request is received from a network file server */
+	DECLARE_DELEGATE_OneParam(FNetworkFileRequestPackageReload, const TArray<FString>& /*PackageNames*/);
+	static FNetworkFileRequestPackageReload NetworkFileRequestPackageReload;
+
 #if WITH_EDITOR
 	// Callback for all object modifications
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnObjectModified, UObject*);
@@ -1881,11 +1863,7 @@ struct COREUOBJECT_API FCoreUObjectDelegates
 
 #endif	//WITH_EDITOR
 
-	// Delegate type for redirector followed events ( Params: const FString& PackageName, UObject* Redirector )
-	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnRedirectorFollowed, const FString&, UObject*);
 
-	// Sent when a UObjectRedirector was followed to find the destination object
-	static FOnRedirectorFollowed RedirectorFollowed;
 
 	/** Delegate used by SavePackage() to create the package backup */
 	static FAutoPackageBackupDelegate AutoPackageBackupDelegate;
@@ -1941,10 +1919,6 @@ struct COREUOBJECT_API FCoreUObjectDelegates
 	static FOnLoadObjectsOnTop ShouldLoadOnTop;
 
 	/** called when loading a string asset reference */
-	DECLARE_DELEGATE_OneParam(FStringAssetReferenceLoaded, const FString&);
-	static FStringAssetReferenceLoaded StringAssetReferenceLoaded;
-
-	/** called when loading a string asset reference */
 	DECLARE_MULTICAST_DELEGATE_OneParam(FPackageLoadedFromStringAssetReference, const FName&);
 	static FPackageLoadedFromStringAssetReference PackageLoadedFromStringAssetReference;
 
@@ -1952,13 +1926,21 @@ struct COREUOBJECT_API FCoreUObjectDelegates
 	DECLARE_MULTICAST_DELEGATE_OneParam(FPackageCreatedForLoad, class UPackage*);
 	static FPackageCreatedForLoad PackageCreatedForLoad;
 
-	/** called when saving a string asset reference, can replace the value with something else */
-	DECLARE_DELEGATE_RetVal_OneParam(FString, FStringAssetReferenceSaving, FString const& /*SavingAssetLongPathname*/);
-	static FStringAssetReferenceSaving StringAssetReferenceSaving;
-
 	/** Called when trying to figure out if a UObject is a primary asset, if it doesn't know */
 	DECLARE_DELEGATE_RetVal_OneParam(FPrimaryAssetId, FGetPrimaryAssetIdForObject, const UObject*);
 	static FGetPrimaryAssetIdForObject GetPrimaryAssetIdForObject;
+
+	DECLARE_DELEGATE_OneParam(FStringAssetReferenceLoaded, const FString&);
+	DEPRECATED(4.17, "StringAssetReferenceLoaded is deprecated, call FStringAssetReference::PostLoadPath instead")
+	static FStringAssetReferenceLoaded StringAssetReferenceLoaded;
+
+	DECLARE_DELEGATE_RetVal_OneParam(FString, FStringAssetReferenceSaving, FString const& /*SavingAssetLongPathname*/);
+	DEPRECATED(4.17, "StringAssetReferenceSaving is deprecated, call FStringAssetReference::PreSavePath instead")
+	static FStringAssetReferenceSaving StringAssetReferenceSaving;
+
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnRedirectorFollowed, const FString&, UObject*);
+	DEPRECATED(4.17, "RedirectorFollowed is deprecated, FixeupRedirects was replaced with ResavePackages -FixupRedirect")
+	static FOnRedirectorFollowed RedirectorFollowed;
 };
 
 /** Allows release builds to override not verifying GC assumptions. Useful for profiling as it's hitchy. */

@@ -60,9 +60,6 @@ class SYNTHESIS_API UGranularSynth : public USynthComponent
 
 public:
 
-	UPROPERTY(EditAnywhere, Category = "Synth|Preset")
-	USoundWave* SoundWave;
-
 	// This will override the current sound wave if one is set, stop audio, and reload the new sound wave
 	UFUNCTION(BlueprintCallable, Category = "Synth|Components|Audio")
 	void SetSoundWave(USoundWave* InSoundWave);
@@ -126,15 +123,13 @@ public:
 
 protected:
 
-	UPROPERTY(transient)
-	USoundWave* SoundWaveCopy;
-
-	UPROPERTY(transient)
-	USoundWave* PendingSoundWaveSet;
+	TQueue<USoundWave*> PendingStoppingSoundWaves;
 
 	Audio::FGranularSynth GranularSynth;
+	Audio::FSoundWavePCMLoader SoundWaveLoader;
 
-	bool bTransferPendingToSound;
 	bool bIsLoaded;
 	bool bRegistered;
+
+	bool bIsLoading;
 };

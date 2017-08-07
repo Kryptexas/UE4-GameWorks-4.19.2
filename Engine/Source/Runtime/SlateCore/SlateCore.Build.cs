@@ -35,7 +35,9 @@ public class SlateCore : ModuleRules
 			}
 		);
 
-		if (Target.Type != TargetType.Server)
+        Definitions.Add("SLATE_DEFERRED_DESIRED_SIZE=0");
+
+        if (Target.Type != TargetType.Server)
 		{
 			if (UEBuildConfiguration.bCompileFreeType)
 			{

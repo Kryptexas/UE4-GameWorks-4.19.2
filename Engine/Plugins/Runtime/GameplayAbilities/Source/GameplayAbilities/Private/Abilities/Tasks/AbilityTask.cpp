@@ -10,6 +10,7 @@ UAbilityTask::UAbilityTask(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	WaitStateBitMask = (uint8)EAbilityTaskWaitState::WaitingOnGame;
+	bWasSuccessfullyDestroyed = false;
 	SET_DWORD_STAT(STAT_AbilitySystem_TaskCount, ++GlobalAbilityTaskCount);
 	if (!ensure(GlobalAbilityTaskCount < 1000))
 	{
@@ -19,9 +20,23 @@ UAbilityTask::UAbilityTask(const FObjectInitializer& ObjectInitializer)
 
 void UAbilityTask::OnDestroy(bool bInOwnerFinished)
 {
-	
 	SET_DWORD_STAT(STAT_AbilitySystem_TaskCount, --GlobalAbilityTaskCount);
+	bWasSuccessfullyDestroyed = true;
+
 	Super::OnDestroy(bInOwnerFinished);
+}
+
+void UAbilityTask::BeginDestroy()
+{
+	Super::BeginDestroy();
+	
+	if (!bWasSuccessfullyDestroyed)
+	{
+		// this shouldn't happen, it means that ability was destroyed while being active, but we need to keep GlobalAbilityTaskCount in sync anyway
+
+		SET_DWORD_STAT(STAT_AbilitySystem_TaskCount, --GlobalAbilityTaskCount);
+		bWasSuccessfullyDestroyed = true;
+	}
 }
 
 FGameplayAbilitySpecHandle UAbilityTask::GetAbilitySpecHandle() const

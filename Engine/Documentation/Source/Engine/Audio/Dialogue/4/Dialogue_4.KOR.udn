@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3218993
+﻿INTSourceChangelist:3429236
 Availability: Public
 Title:4. 자막 표시
 Crumbs: %ROOT%, Engine, Engine/Audio
@@ -6,13 +6,14 @@ Description:프로젝트에 자막 표시를 켜 봅니다.
 version: 4.13
 parent:Engine/Audio/Dialogue
 order:4
-type:quick start
+type:how-to
 checkpoint:dialogueqs
 prereq: Engine/Blueprints/QuickStart
 related:Engine/Audio
 related:Engine/Audio/Overview
 related:Engine/Audio/SoundCues/Editor
 related:Engine/Audio/SoundCues/NodeReference
+skilllevel:Intermediate
 
 [NAV]
 

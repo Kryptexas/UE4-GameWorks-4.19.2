@@ -7,15 +7,6 @@
 #include "OnlineSubsystemOculus.h"
 #include "OnlineSessionSettings.h"
 
-#if USING_CODE_ANALYSIS
-#pragma warning( push )
-#pragma warning( disable : ALL_CODE_ANALYSIS_WARNINGS )
-#endif	// USING_CODE_ANALYSIS
-#include <string>
-#if USING_CODE_ANALYSIS
-#pragma warning( pop )
-#endif	// USING_CODE_ANALYSIS
-
 FOnlineSessionInfoOculus::FOnlineSessionInfoOculus(ovrID RoomId) :
 	SessionId(FUniqueNetIdOculus(RoomId))
 {
@@ -77,7 +68,7 @@ FOnlineSessionOculus::~FOnlineSessionOculus()
 	Sessions.Empty();
 };
 
-ovrID FOnlineSessionOculus::GetOvrIDFromSession(const FNamedOnlineSession& Session)
+ovrID FOnlineSessionOculus::GetOvrIDFromSession(const FNamedOnlineSession& Session) const
 {
 	// check to see if there is a SessionInfo and if so if the SessionInfo is valid
 	if (!Session.SessionInfo.IsValid() || !Session.SessionInfo.Get()->IsValid())
@@ -167,12 +158,23 @@ bool FOnlineSessionOculus::CreateMatchmakingSession(FNamedOnlineSession& Session
 	{
 		ovr_MatchmakingOptions_SetCreateRoomMaxUsers(MatchmakingOptions, MaxUsers);
 	}
+
+	// Internally ovr_MatchmakingOptions_SetCreateRoomDataStoreString() calls strdup() on the key/value so we can use
+	// the temporary TCHAR_TO_UTF8() without losing the variable with it goes out of scope
+
 	for (auto& KeyValuePair : Session.SessionSettings.Settings)
 	{
-		std::string Key(TCHAR_TO_UTF8(*KeyValuePair.Key.ToString()));
-		std::string Value(TCHAR_TO_UTF8(*KeyValuePair.Value.Data.ToString()));
-		ovr_MatchmakingOptions_SetCreateRoomDataStoreString(MatchmakingOptions, Key.c_str(), Value.c_str());
+		ovr_MatchmakingOptions_SetCreateRoomDataStoreString(MatchmakingOptions,
+			TCHAR_TO_UTF8(*KeyValuePair.Key.ToString()),
+			TCHAR_TO_UTF8(*KeyValuePair.Value.Data.ToString())
+		);
 	};
+	auto BuildUniqueIdString = FString::FromInt(Session.SessionSettings.BuildUniqueId);
+	ovr_MatchmakingOptions_SetCreateRoomDataStoreString(
+		MatchmakingOptions,
+		TCHAR_TO_UTF8(*SETTING_OCULUS_BUILD_UNIQUE_ID.ToString()),
+		TCHAR_TO_UTF8(*BuildUniqueIdString)
+	);
 
 	// bShouldAdvertise controls whether or not this room should be enqueued
 	// or should it be enqueued later through UpdateSession
@@ -191,12 +193,24 @@ bool FOnlineSessionOculus::CreateMatchmakingSession(FNamedOnlineSession& Session
 bool FOnlineSessionOculus::CreateRoomSession(FNamedOnlineSession& Session, ovrRoomJoinPolicy JoinPolicy)
 {
 	ovrRoomOptionsHandle RoomOptions = ovr_RoomOptions_Create();
+
+	// Internally ovr_RoomOptions_SetDataStoreString() calls strdup() on the key/value so we can use
+	// the temporary TCHAR_TO_UTF8() without losing the variable with it goes out of scope
+
 	for (auto& KeyValuePair : Session.SessionSettings.Settings)
 	{
-		std::string Key(TCHAR_TO_UTF8(*KeyValuePair.Key.ToString()));
-		std::string Value(TCHAR_TO_UTF8(*KeyValuePair.Value.Data.ToString()));
-		ovr_RoomOptions_SetDataStoreString(RoomOptions, Key.c_str(), Value.c_str());
+		ovr_RoomOptions_SetDataStoreString(
+			RoomOptions, 
+			TCHAR_TO_UTF8(*KeyValuePair.Key.ToString()),
+			TCHAR_TO_UTF8(*KeyValuePair.Value.Data.ToString())
+		);
 	};
+	auto BuildUniqueIdString = FString::FromInt(Session.SessionSettings.BuildUniqueId);
+	ovr_RoomOptions_SetDataStoreString(
+		RoomOptions,
+		TCHAR_TO_UTF8(*SETTING_OCULUS_BUILD_UNIQUE_ID.ToString()),
+		TCHAR_TO_UTF8(*BuildUniqueIdString)
+	);
 
 	unsigned int MaxUsers = Session.SessionSettings.NumPublicConnections + Session.SessionSettings.NumPrivateConnections;
 
@@ -249,7 +263,6 @@ void FOnlineSessionOculus::OnCreateRoomComplete(ovrMessageHandle Message, bool b
 	}
 	RoomId = ovr_Room_GetID(Room);
 
-	auto MaxUsers = ovr_Room_GetMaxUsers(Room);
 	Session->SessionInfo = MakeShareable(new FOnlineSessionInfoOculus(RoomId));
 
 	UpdateSessionFromRoom(*Session, Room);
@@ -327,6 +340,15 @@ bool FOnlineSessionOculus::UpdateMatchmakingRoom(FName SessionName, FOnlineSessi
 		return false;
 	}
 
+	// Keep a copy of the map of settings in scope for the lambda
+	TSharedPtr<FSessionSettings> UpdatedSettingsPtr = MakeShareable(new FSessionSettings());
+	TSharedRef<FSessionSettings> UpdatedSettingsRef = UpdatedSettingsPtr.ToSharedRef();
+
+	for (auto Setting : UpdatedSessionSettings.Settings)
+	{
+		UpdatedSettingsRef->Add(Setting.Key, Setting.Value);
+	}
+
 	// check if bShouldAdvertise has changed.  If so, then enqueue, or cancel as appropriate
 	if (Session->SessionSettings.bShouldAdvertise != UpdatedSessionSettings.bShouldAdvertise) {
 		// If bShouldAdvertise flipped true then start enqueuing
@@ -337,7 +359,7 @@ bool FOnlineSessionOculus::UpdateMatchmakingRoom(FName SessionName, FOnlineSessi
 
 		OculusSubsystem.AddRequestDelegate(
 			RequestId,
-			FOculusMessageOnCompleteDelegate::CreateLambda([this, SessionName, &UpdatedSessionSettings](ovrMessageHandle Message, bool bIsError)
+			FOculusMessageOnCompleteDelegate::CreateLambda([this, SessionName, UpdatedSettingsRef](ovrMessageHandle Message, bool bIsError)
 		{
 			if (bIsError)
 			{
@@ -359,7 +381,10 @@ bool FOnlineSessionOculus::UpdateMatchmakingRoom(FName SessionName, FOnlineSessi
 			// Update the Session Settings
 			NewSession->SessionSettings.bShouldAdvertise = !NewSession->SessionSettings.bShouldAdvertise;
 
-			UpdateRoomDataStore(SessionName, UpdatedSessionSettings);
+			TSharedPtr<class FOnlineSessionSettings> SessionSettings = MakeShareable(new FOnlineSessionSettings());
+			SessionSettings->Settings = UpdatedSettingsRef.Get();
+
+			UpdateRoomDataStore(SessionName, *SessionSettings);
 		}));
 	}
 	else
@@ -381,8 +406,10 @@ bool FOnlineSessionOculus::UpdateRoomDataStore(FName SessionName, FOnlineSession
 
 	TArray<ovrKeyValuePair> DataStore;
 	// Add the updated settings that changed
-	TArray<std::string> DataStoreKeys;
-	TArray<std::string> DataStoreValues;
+	// We need to keep an array of these in scope because ovrKeyValuePair_makeString() does not call strdup()
+	TArray<FTCHARToUTF8*> DataStoreKeys;
+	TArray<FTCHARToUTF8*> DataStoreValues;
+
 	for (auto& Setting : UpdatedSessionSettings.Settings)
 	{
 		// Oculus matchmaking pool key cannot be added or changed
@@ -393,14 +420,15 @@ bool FOnlineSessionOculus::UpdateRoomDataStore(FName SessionName, FOnlineSession
 		FOnlineSessionSetting* ExistingSetting = Session->SessionSettings.Settings.Find(Setting.Key);
 		if (!ExistingSetting || ExistingSetting->Data != Setting.Value.Data)
 		{
-			std::string Key(TCHAR_TO_UTF8(*Setting.Key.ToString()));
+			auto Key = new FTCHARToUTF8(*Setting.Key.ToString());
 			DataStoreKeys.Add(MoveTemp(Key));
 			// Always convert to a string because that's the only type supported for room data store
-			std::string Value(TCHAR_TO_UTF8(*Setting.Value.Data.ToString()));
+			auto Value = new FTCHARToUTF8(*Setting.Value.Data.ToString());
 			DataStoreValues.Add(MoveTemp(Value));
+
 			DataStore.Add(ovrKeyValuePair_makeString(
-				DataStoreKeys.Last().c_str(), 
-				DataStoreValues.Last().c_str()
+				DataStoreKeys.Last()->Get(),
+				DataStoreValues.Last()->Get()
 			));
 		}
 	}
@@ -417,9 +445,9 @@ bool FOnlineSessionOculus::UpdateRoomDataStore(FName SessionName, FOnlineSession
 		FOnlineSessionSetting* ExistingSetting = UpdatedSessionSettings.Settings.Find(Setting.Key);
 		if (!ExistingSetting)
 		{
-			std::string Key(TCHAR_TO_UTF8(*Setting.Key.ToString()));
+			auto Key = new FTCHARToUTF8(*Setting.Key.ToString());
 			DataStoreKeys.Add(MoveTemp(Key));
-			DataStore.Add(ovrKeyValuePair_makeString(DataStoreKeys.Last().c_str(), ""));
+			DataStore.Add(ovrKeyValuePair_makeString(DataStoreKeys.Last()->Get(), ""));
 		}
 	}
 	auto DataStoreSize = DataStore.Num();
@@ -461,7 +489,7 @@ bool FOnlineSessionOculus::UpdateRoomDataStore(FName SessionName, FOnlineSession
 			TriggerOnUpdateSessionCompleteDelegates(SessionName, true);
 		}));
 
-		// clean up the array
+		// clean up the arrays
 		delete[] DataStoreArray;
 		DataStore.Empty();
 		DataStoreKeys.Empty();
@@ -648,6 +676,10 @@ bool FOnlineSessionOculus::FindSessions(int32 SearchingPlayerNum, const TSharedR
 		return FindMatchmakingSessions(Pool, SearchSettings);
 	}
 
+	// Nothing to find
+	SearchSettings->SearchState = EOnlineAsyncTaskState::Failed;
+	TriggerOnFindSessionsCompleteDelegates(false);
+
 	return false;
 }
 
@@ -688,9 +720,22 @@ bool FOnlineSessionOculus::FindModeratedRoomSessions(const TSharedRef<FOnlineSes
 
 		SearchSettings->SearchResults.Reset(SearchResultsSize);
 
+		// UE4 specific setting.  Sessions with different build unique ids shouldn't be able to see each other
+		// because the builds are not compatible
+		int32 BuildUniqueId = GetBuildUniqueId();
+
 		for (size_t i = 0; i < SearchResultsSize; i++)
 		{
 			auto Room = ovr_RoomArray_GetElement(RoomArray, i);
+
+			int32 ServerBuildId = GetRoomBuildUniqueId(Room);
+			if (ServerBuildId != 0 && ServerBuildId != BuildUniqueId)
+			{
+				UE_LOG_ONLINE(Warning, TEXT("Removed incompatible build: ServerBuildUniqueId = 0x%08x, GetBuildUniqueId() = 0x%08x"),
+					ServerBuildId, BuildUniqueId);
+				continue;
+			}
+
 			auto Session = CreateSessionFromRoom(Room);
 			auto SearchResult = FOnlineSessionSearchResult();
 			SearchResult.Session = Session.Get();
@@ -734,10 +779,23 @@ bool FOnlineSessionOculus::FindMatchmakingSessions(const FString Pool, const TSh
 
 		SearchSettings->SearchResults.Reset(SearchResultsSize);
 
+		// UE4 specific setting.  Sessions with different build unique ids shouldn't be able to see each other
+		// because the builds are not compatible
+		int32 BuildUniqueId = GetBuildUniqueId();
+
 		for (size_t i = 0; i < SearchResultsSize; i++)
 		{
 			auto MatchmakingRoom = ovr_MatchmakingRoomArray_GetElement(RoomArray, i);
 			auto Room = ovr_MatchmakingRoom_GetRoom(MatchmakingRoom);
+
+			int32 ServerBuildId = GetRoomBuildUniqueId(Room);
+			if (ServerBuildId != BuildUniqueId)
+			{
+				UE_LOG_ONLINE(Warning, TEXT("Removed incompatible build: ServerBuildUniqueId = 0x%08x, GetBuildUniqueId() = 0x%08x"),
+					ServerBuildId, BuildUniqueId);
+				continue;
+			}
+
 			auto Session = CreateSessionFromRoom(Room);
 			auto SearchResult = FOnlineSessionSearchResult();
 			SearchResult.Session = Session.Get();
@@ -784,6 +842,20 @@ bool FOnlineSessionOculus::FindSessionById(const FUniqueNetId& SearchingUserId, 
 
 		if (Room == nullptr)
 		{
+			CompletionDelegate.ExecuteIfBound(0, false, SearchResult);
+			return;
+		}
+
+		// UE4 specific setting.  Sessions with different build unique ids shouldn't be able to see each other
+		// because the builds are not compatible
+		int32 BuildUniqueId = GetBuildUniqueId();
+
+		// Session is on a different build
+		int32 ServerBuildId = GetRoomBuildUniqueId(Room);
+		if (ServerBuildId != BuildUniqueId)
+		{
+			UE_LOG_ONLINE(Warning, TEXT("Removed incompatible build: ServerBuildUniqueId = 0x%08x, GetBuildUniqueId() = 0x%08x"),
+				ServerBuildId, BuildUniqueId);
 			CompletionDelegate.ExecuteIfBound(0, false, SearchResult);
 			return;
 		}
@@ -861,7 +933,6 @@ bool FOnlineSessionOculus::JoinSession(int32 PlayerNum, FName SessionName, const
 			TriggerOnJoinSessionCompleteDelegates(SessionName, FailureReason);
 			return;
 		}
-		auto LocalRoomId = ovr_Room_GetID(Room);
 		UpdateSessionFromRoom(*Session, Room);
 
 		TriggerOnJoinSessionCompleteDelegates(SessionName, EOnJoinSessionCompleteResult::Success);
@@ -883,10 +954,12 @@ bool FOnlineSessionOculus::FindFriendSession(int32 LocalUserNum, const FUniqueNe
 		ovr_Room_GetCurrentForUser(OculusId.GetID()),
 		FOculusMessageOnCompleteDelegate::CreateLambda([this, LocalUserNum](ovrMessageHandle Message, bool bIsError)
 	{
+		TArray<FOnlineSessionSearchResult> SearchResult;
+		SearchResult.Add(FOnlineSessionSearchResult());
+
 		if (bIsError)
 		{
-			TArray<FOnlineSessionSearchResult> EmptyResult;
-			TriggerOnFindFriendSessionCompleteDelegates(LocalUserNum, false, EmptyResult);
+			TriggerOnFindFriendSessionCompleteDelegates(LocalUserNum, false, SearchResult);
 			return;
 		}
 
@@ -895,19 +968,29 @@ bool FOnlineSessionOculus::FindFriendSession(int32 LocalUserNum, const FUniqueNe
 		// Friend is not in a room
 		if (Room == nullptr)
 		{
-			TArray<FOnlineSessionSearchResult> EmptyResult;
-			TriggerOnFindFriendSessionCompleteDelegates(LocalUserNum, false, EmptyResult);
+			TriggerOnFindFriendSessionCompleteDelegates(LocalUserNum, false, SearchResult);
+			return;
+		}
+    
+    // UE4 specific setting.  Sessions with different build unique ids shouldn't be able to see each other
+		// because the builds are not compatible
+		int32 BuildUniqueId = GetBuildUniqueId();
+
+		// Friend is on a different build
+		int32 ServerBuildId = GetRoomBuildUniqueId(Room);
+		if (ServerBuildId != BuildUniqueId)
+		{
+			UE_LOG_ONLINE(Warning, TEXT("Removed incompatible build: ServerBuildUniqueId = 0x%08x, GetBuildUniqueId() = 0x%08x"),
+				ServerBuildId, BuildUniqueId);
+			TriggerOnFindFriendSessionCompleteDelegates(LocalUserNum, false, SearchResult);
 			return;
 		}
 
-		auto SearchResult = FOnlineSessionSearchResult();
 		auto Session = CreateSessionFromRoom(Room);
-		SearchResult.Session = Session.Get();
+		SearchResult[0].Session = Session.Get();
 
-		TArray<FOnlineSessionSearchResult> SearchResults;
-		SearchResults.Add(SearchResult);
 		auto RoomJoinability = ovr_Room_GetJoinability(Room);
-		TriggerOnFindFriendSessionCompleteDelegates(LocalUserNum, RoomJoinability == ovrRoom_JoinabilityCanJoin, SearchResults);
+		TriggerOnFindFriendSessionCompleteDelegates(LocalUserNum, RoomJoinability == ovrRoom_JoinabilityCanJoin, SearchResult);
 	}));
 
 	return true;
@@ -920,16 +1003,10 @@ bool FOnlineSessionOculus::FindFriendSession(const FUniqueNetId& LocalUserId, co
 
 bool FOnlineSessionOculus::FindFriendSession(const FUniqueNetId& LocalUserId, const TArray<TSharedRef<const FUniqueNetId>>& FriendList)
 {
-	bool bSuccessfullyJoinedFriendSession = false;
-
 	UE_LOG(LogOnline, Display, TEXT("FOnlineSessionOculus::FindFriendSession(const FUniqueNetId& LocalUserId, const TArray<TSharedRef<const FUniqueNetId>>& FriendList) - not implemented"));
-
-	int32 LocalUserNum = OculusSubsystem.GetIdentityInterface()->GetPlatformUserIdFromUniqueNetId(LocalUserId);
-
 	TArray<FOnlineSessionSearchResult> EmptyResult;
-	TriggerOnFindFriendSessionCompleteDelegates(LocalUserNum, bSuccessfullyJoinedFriendSession, EmptyResult);
-
-	return bSuccessfullyJoinedFriendSession;
+	TriggerOnFindFriendSessionCompleteDelegates(0, false, EmptyResult);
+	return false;
 }
 
 bool FOnlineSessionOculus::SendSessionInviteToFriend(int32 LocalUserNum, FName SessionName, const FUniqueNetId& Friend)
@@ -987,7 +1064,7 @@ bool FOnlineSessionOculus::SendSessionInviteToFriends(int32 LocalUserNum, FName 
 			if (Friend.IsValid())
 			{
 				auto OculusFriend = static_cast<const FOnlineOculusFriend&>(*Friend);
-				ovr_Room_InviteUser(RoomId, OculusFriend.GetInviteToken());
+				ovr_Room_InviteUser(RoomId, TCHAR_TO_UTF8(*OculusFriend.GetInviteToken()));
 			}
 		}
 	}));
@@ -1220,9 +1297,7 @@ void FOnlineSessionOculus::OnRoomInviteAccepted(ovrMessageHandle Message, bool b
 		auto Room = ovr_Message_GetRoom(InMessage);
 		auto Session = CreateSessionFromRoom(Room);
 		LocalSearchResult.Session = Session.Get();
-
-		auto RoomJoinability = ovr_Room_GetJoinability(Room);
-
+		
 		// check if there's a delegate bound, if not save this session for later.
 		if (!OnSessionUserInviteAcceptedDelegates.IsBound())
 		{
@@ -1264,7 +1339,7 @@ void FOnlineSessionOculus::OnMatchmakingNotificationMatchFound(ovrMessageHandle 
 	TriggerOnMatchmakingCompleteDelegates(InProgressMatchmakingSearchName, true);
 }
 
-TSharedRef<FOnlineSession> FOnlineSessionOculus::CreateSessionFromRoom(ovrRoomHandle Room)
+TSharedRef<FOnlineSession> FOnlineSessionOculus::CreateSessionFromRoom(ovrRoomHandle Room) const
 {
 	auto RoomId = ovr_Room_GetID(Room);
 	auto RoomOwner = ovr_Room_GetOwner(Room);
@@ -1292,7 +1367,7 @@ TSharedRef<FOnlineSession> FOnlineSessionOculus::CreateSessionFromRoom(ovrRoomHa
 	return MakeShareable(Session);
 }
 
-void FOnlineSessionOculus::UpdateSessionFromRoom(FNamedOnlineSession& Session, ovrRoomHandle Room)
+void FOnlineSessionOculus::UpdateSessionFromRoom(FNamedOnlineSession& Session, ovrRoomHandle Room) const
 {
 	// update the list of players
 	auto UserArray = ovr_Room_GetUsers(Room);
@@ -1330,33 +1405,37 @@ void FOnlineSessionOculus::UpdateSessionFromRoom(FNamedOnlineSession& Session, o
 	UpdateSessionSettingsFromDataStore(Session.SessionSettings, RoomDataStore);
 }
 
-void FOnlineSessionOculus::UpdateSessionSettingsFromDataStore(FOnlineSessionSettings& SessionSettings, ovrDataStoreHandle DataStore)
+void FOnlineSessionOculus::UpdateSessionSettingsFromDataStore(FOnlineSessionSettings& SessionSettings, ovrDataStoreHandle DataStore) const
 {
 	// Copy everything from the data store to the sessionsettings
 	auto DataStoreSize = ovr_DataStore_GetNumKeys(DataStore);
 	SessionSettings.Settings.Empty(DataStoreSize); // Clear out the existing SessionSettings
 	for (size_t DataStoreIndex = 0; DataStoreIndex < DataStoreSize; DataStoreIndex++)
 	{
-		auto DataStoreKey = ovr_DataStore_GetKey(DataStore, DataStoreIndex);
-		auto DataStoreValue = ovr_DataStore_GetValue(DataStore, DataStoreKey);
+		auto DataStoreKey = FName(ovr_DataStore_GetKey(DataStore, DataStoreIndex));
+		auto DataStoreValue = ovr_DataStore_GetValue(DataStore, TCHAR_TO_UTF8(*DataStoreKey.ToString()));
 		// Preserving the type of the built in settings
 		if (DataStoreKey == SETTING_NUMBOTS
 			|| DataStoreKey == SETTING_BEACONPORT
 			|| DataStoreKey == SETTING_QOS
 			|| DataStoreKey == SETTING_NEEDS
-			|| DataStoreKey == SETTING_NEEDSSORT) 
+			|| DataStoreKey == SETTING_NEEDSSORT)
 		{
 			int32 IntDataStoreValue = FCString::Atoi(UTF8_TO_TCHAR(DataStoreValue));
 			SessionSettings.Set(
-				FName(DataStoreKey),
+				DataStoreKey,
 				IntDataStoreValue,
 				EOnlineDataAdvertisementType::ViaOnlineService
 			);
 		}
+		else if (DataStoreKey == SETTING_OCULUS_BUILD_UNIQUE_ID)
+		{
+			SessionSettings.BuildUniqueId = FCString::Atoi(UTF8_TO_TCHAR(DataStoreValue));
+		}
 		else
 		{
 			SessionSettings.Set(
-				FName(DataStoreKey),
+				DataStoreKey,
 				FString(DataStoreValue),
 				EOnlineDataAdvertisementType::ViaOnlineService
 			);
@@ -1376,4 +1455,17 @@ void FOnlineSessionOculus::TickPendingInvites(float DeltaTime)
 		}
 		PendingInviteAcceptedSessions.Empty();
 	}
+}
+
+int32 FOnlineSessionOculus::GetRoomBuildUniqueId(const ovrRoomHandle Room)
+{
+	auto RoomDataStore = ovr_Room_GetDataStore(Room);
+	auto ServerBuildId = ovr_DataStore_GetValue(RoomDataStore, TCHAR_TO_UTF8(*SETTING_OCULUS_BUILD_UNIQUE_ID.ToString()));
+
+	if (!ServerBuildId)
+	{
+		return 0;
+	}
+
+	return FCString::Atoi(UTF8_TO_TCHAR(ServerBuildId));
 }

@@ -66,9 +66,7 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 	int32 NumErrorsAtStart = CompilerContext.MessageLog.NumErrors;
 
 	// Find the function, starting at the parent class
-	UFunction* Function = FindFunction(Context, Node);
-	
-	if (Function != NULL)
+	if (UFunction* Function = FindFunction(Context, Node))
 	{
 		CheckIfFunctionIsCallable(Function, Context, Node);
 		// Make sure the pin mapping is sound (all pins wire up to a matching function parameter, and all function parameters match a pin)
@@ -77,19 +75,10 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 		TArray<UEdGraphPin*> RemainingPins;
 		RemainingPins.Append(Node->Pins);
 
+		const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
+
 		// Remove expected exec and self pins
-		//@TODO: Check to make sure there is exactly one exec in and one exec out, as well as one self pin
-		for (int32 i = 0; i < RemainingPins.Num(); )
-		{
-			if (CompilerContext.GetSchema()->IsMetaPin(*RemainingPins[i]))
-			{
-				RemainingPins.RemoveAtSwap(i);
-			}
-			else
-			{
-				++i;
-			}
-		}
+		RemainingPins.RemoveAllSwap([Schema](UEdGraphPin* Pin) { return (Pin->bOrphanedPin || Schema->IsMetaPin(*Pin)); }, false);
 
 		// Check for magic pins
 		const bool bIsLatent = Function->HasMetaData(FBlueprintMetadata::MD_Latent);
@@ -98,10 +87,9 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 			CompilerContext.MessageLog.Error(*LOCTEXT("ContainsLatentCall_Error", "@@ contains a latent call, which cannot exist outside of the event graph").ToString(), Node);
 		}
 
-		UEdGraphPin* LatentInfoPin = NULL;
+		UEdGraphPin* LatentInfoPin = nullptr;
 
-		TMap<FName, FString>* MetaData = UMetaData::GetMapForObject(Function);
-		if (MetaData != NULL)
+		if (TMap<FName, FString>* MetaData = UMetaData::GetMapForObject(Function))
 		{
 			for (TMap<FName, FString>::TConstIterator It(*MetaData); It; ++It)
 			{
@@ -110,41 +98,16 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 				if (Key == TEXT("LatentInfo"))
 				{
 					UEdGraphPin* Pin = Node->FindPin(It.Value());
-					if( (Pin != NULL) && (Pin->Direction == EGPD_Input) && (Pin->LinkedTo.Num() == 0))
+					if (Pin && (Pin->Direction == EGPD_Input) && (Pin->LinkedTo.Num() == 0))
 					{
 						LatentInfoPin = Pin;
 
 						UEdGraphPin* PinToTry = FEdGraphUtilities::GetNetFromPin(Pin);
-						FBPTerminal** Term = Context.NetMap.Find(PinToTry);
-						if(Term != NULL)
+						if (FBPTerminal** Term = Context.NetMap.Find(PinToTry))
 						{
 							check((*Term)->bIsLiteral);
 						
-							int32 LatentUUID = INDEX_NONE;
-							UEdGraphNode* AssociatedNode = LatentInfoPin->GetOwningNode();
-							if (AssociatedNode && AssociatedNode->NodeGuid.IsValid())
-							{
-								LatentUUID = GetTypeHash(AssociatedNode->NodeGuid);
-
-								UEdGraphNode* ResultNode = AssociatedNode;
-								UEdGraphNode* SourceNode = Cast<UEdGraphNode>(Context.MessageLog.GetIntermediateTunnelInstance(AssociatedNode));
-								while (SourceNode && SourceNode != ResultNode)
-								{
-									if (SourceNode->NodeGuid.IsValid())
-									{
-										LatentUUID = HashCombine(LatentUUID, GetTypeHash(SourceNode->NodeGuid));
-									}
-									ResultNode = SourceNode;
-									SourceNode = Cast<UEdGraphNode>(Context.MessageLog.GetIntermediateTunnelInstance(ResultNode));
-								}
-							}
-							else
-							{
-								static int32 FallbackUUID = 0;
-								LatentUUID = FallbackUUID++;
-
-								CompilerContext.MessageLog.Warning(*LOCTEXT("UUIDDeterministicCookWarn", "Failed to produce a deterministic UUID for a node's latent action: @@. Cooking this Blueprint (@@) asset will non-deterministic.").ToString(), LatentInfoPin, Context.Blueprint);
-							}							
+							int32 LatentUUID = CompilerContext.MessageLog.CalculateStableIdentifierForLatentActionManager(LatentInfoPin->GetOwningNode());
 
 							const FString ExecutionFunctionName = CompilerContext.GetSchema()->FN_ExecuteUbergraphBase.ToString() + TEXT("_") + Context.Blueprint->GetName();
 							(*Term)->Name = FString::Printf(TEXT("(Linkage=%s,UUID=%s,ExecutionFunction=%s,CallbackTarget=None)"), *FString::FromInt(INDEX_NONE), *FString::FromInt(LatentUUID), *ExecutionFunctionName);
@@ -164,10 +127,10 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 		}
 
 		// Parameter info to be stored, and assigned to all function call statements generated below
-		FBPTerminal* LHSTerm = NULL;
+		FBPTerminal* LHSTerm = nullptr;
 		TArray<FBPTerminal*> RHSTerms;
-		UEdGraphPin* ThenExecPin = NULL;
-		UEdGraphNode* LatentTargetNode = NULL;
+		UEdGraphPin* ThenExecPin = nullptr;
+		UEdGraphNode* LatentTargetNode = nullptr;
 		int32 LatentTargetParamIndex = INDEX_NONE;
 
 		// Grab the special case structs that use their own literal path
@@ -191,9 +154,8 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 					if (FKismetCompilerUtilities::IsTypeCompatibleWithProperty(PinMatch, Property, CompilerContext.MessageLog, CompilerContext.GetSchema(), Context.NewClass))
 					{
 						UEdGraphPin* PinToTry = FEdGraphUtilities::GetNetFromPin(PinMatch);
-						FBPTerminal** Term = Context.NetMap.Find(PinToTry);
 
-						if (Term != NULL)
+						if (FBPTerminal** Term = Context.NetMap.Find(PinToTry))
 						{
 							// For literal structs, we have to verify the default here to make sure that it has valid formatting
 							if( (*Term)->bIsLiteral && (PinMatch != LatentInfoPin))
@@ -269,12 +231,12 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 									// Record the (latent) output impulse from this node
 									ThenExecPin = CompilerContext.GetSchema()->FindExecutionPin(*Node, EGPD_Output);
 
-									if( (ThenExecPin != NULL) && (ThenExecPin->LinkedTo.Num() > 0) )
+									if( ThenExecPin && (ThenExecPin->LinkedTo.Num() > 0) )
 									{
 										LatentTargetNode = ThenExecPin->LinkedTo[0]->GetOwningNode();
 									}
 
-									if( LatentTargetNode != NULL )
+									if (LatentTargetNode)
 									{
 										LatentTargetParamIndex = ParameterIndex;
 									}
@@ -330,7 +292,7 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 		{
 			// Build up a list of contexts that this function will be called on
 			TArray<FBPTerminal*> ContextTerms;
-			if (SelfPin != NULL)
+			if (SelfPin)
 			{
 				const bool bIsConstSelfContext = Context.IsConstFunction();
 				const bool bIsNonConstFunction = !Function->HasAnyFunctionFlags(FUNC_Const|FUNC_Static);
@@ -439,10 +401,8 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 
 			// Iterate over all the contexts this functions needs to be called on, and emit a call function statement for each
 			FBlueprintCompiledStatement* LatentStatement = nullptr;
-			for (auto TargetListIt = ContextTerms.CreateIterator(); TargetListIt; ++TargetListIt)
+			for (FBPTerminal* Target : ContextTerms)
 			{
-				FBPTerminal* Target = *TargetListIt;
-
 				FBlueprintCompiledStatement& Statement = Context.AppendStatementForNode(Node);
 				Statement.FunctionToCall = Function;
 				Statement.FunctionContext = Target;
@@ -456,7 +416,7 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 				if (!bIsLatent)
 				{
 					// Fixup ubergraph calls
-					if (pSrcEventNode != NULL)
+					if (pSrcEventNode)
 					{
 						UEdGraphPin* ExecOut = CompilerContext.GetSchema()->FindExecutionPin(**pSrcEventNode, EGPD_Output);
 
@@ -468,7 +428,7 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 				else
 				{
 					// Fixup latent functions
-					if ((LatentTargetNode != NULL) && (Target == ContextTerms.Last()))
+					if (LatentTargetNode && (Target == ContextTerms.Last()))
 					{
 						check(LatentTargetParamIndex != INDEX_NONE);
 						Statement.UbergraphCallIndex = LatentTargetParamIndex;
@@ -487,7 +447,7 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 				{
 					FBlueprintCompiledStatement& SuspendState = Context.AppendStatementForNode(Node);
 					SuspendState.Type = KCST_InstrumentedStateSuspend;
-					if (LatentTargetNode != NULL)
+					if (LatentTargetNode)
 					{
 						check(LatentTargetParamIndex != INDEX_NONE);
 						SuspendState.UbergraphCallIndex = LatentTargetParamIndex;
@@ -533,7 +493,7 @@ UClass* FKCHandler_CallFunction::GetCallingContext(FKismetFunctionContext& Conte
 	// Find the calling scope
 	UClass* SearchScope = Context.NewClass;
 	UK2Node_CallFunction* CallFuncNode = Cast<UK2Node_CallFunction>(Node);
-	if ((CallFuncNode != NULL) && CallFuncNode->bIsFinalFunction)
+	if (CallFuncNode && CallFuncNode->bIsFinalFunction)
 	{
 		if (UK2Node_CallParentFunction* ParentCall = Cast<UK2Node_CallParentFunction>(Node))
 		{
@@ -541,13 +501,13 @@ UClass* FKCHandler_CallFunction::GetCallingContext(FKismetFunctionContext& Conte
 			const FName FuncName = CallFuncNode->FunctionReference.GetMemberName();
 			UClass* SearchContext = Context.NewClass->GetSuperClass();
 
-			UFunction* ParentFunc = NULL;
-			if (SearchContext != NULL)
+			UFunction* ParentFunc = nullptr;
+			if (SearchContext)
 			{
 				ParentFunc = SearchContext->FindFunctionByName(FuncName);
 			}
 
-			return ParentFunc ? ParentFunc->GetOuterUClass() : NULL;
+			return ParentFunc ? ParentFunc->GetOuterUClass() : nullptr;
 		}
 		else
 		{
@@ -557,8 +517,7 @@ UClass* FKCHandler_CallFunction::GetCallingContext(FKismetFunctionContext& Conte
 	}
 	else
 	{
-		UEdGraphPin* SelfPin = CompilerContext.GetSchema()->FindSelfPin(*Node, EGPD_Input);
-		if (SelfPin != NULL)
+		if (UEdGraphPin* SelfPin = CompilerContext.GetSchema()->FindSelfPin(*Node, EGPD_Input))
 		{
 			SearchScope = Cast<UClass>(Context.GetScopeFromPinType(SelfPin->PinType, Context.NewClass));
 		}
@@ -569,7 +528,7 @@ UClass* FKCHandler_CallFunction::GetCallingContext(FKismetFunctionContext& Conte
 
 UClass* FKCHandler_CallFunction::GetTrueCallingClass(FKismetFunctionContext& Context, UEdGraphPin* SelfPin)
 {
-	if (SelfPin != NULL)
+	if (SelfPin)
 	{
 		UEdGraphSchema_K2 const* K2Schema = CompilerContext.GetSchema();
 
@@ -591,8 +550,7 @@ void FKCHandler_CallFunction::RegisterNets(FKismetFunctionContext& Context, UEdG
 {
 	UEdGraphSchema_K2 const* K2Schema = CompilerContext.GetSchema();
 
-	UFunction* Function = FindFunction(Context, Node);
-	if (Function != NULL)
+	if (UFunction* Function = FindFunction(Context, Node))
 	{
 		TArray<FString> DefaultToSelfParamNames;
 		TArray<FString> RequiresSetValue;
@@ -619,17 +577,16 @@ void FKCHandler_CallFunction::RegisterNets(FKismetFunctionContext& Context, UEdG
 			}
 		}
 
-		for (auto It = Node->Pins.CreateConstIterator(); It; ++It)
+		for (UEdGraphPin* Pin : Node->Pins)
 		{
-			UEdGraphPin* Pin = (*It);
 			const bool bIsConnected = (Pin->LinkedTo.Num() != 0);
 
 			// if this pin could use a default (it doesn't have a connection or default of its own)
-			if (!bIsConnected && (Pin->DefaultObject == NULL))
+			if (!bIsConnected && (Pin->DefaultObject == nullptr))
 			{
 				if (DefaultToSelfParamNames.Contains(Pin->PinName) && FKismetCompilerUtilities::ValidateSelfCompatibility(Pin, Context))
 				{
-					ensure(Pin->PinType.PinSubCategoryObject != NULL);
+					ensure(Pin->PinType.PinSubCategoryObject != nullptr);
 					ensure((Pin->PinType.PinCategory == K2Schema->PC_Object) || (Pin->PinType.PinCategory == K2Schema->PC_Interface));
 
 					FBPTerminal* Term = Context.RegisterLiteral(Pin);

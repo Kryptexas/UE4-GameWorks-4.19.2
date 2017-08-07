@@ -212,7 +212,7 @@ void FNiagaraEmitterPropertiesDetails::OnGenerateEventGeneratorEntry(TSharedRef<
 	NameProperty->GetValue(DisplayName);
 	//IDetailPropertyRow& Row = ChildrenBuilder.AddChildProperty(ElementProperty).DisplayName(FText::FromName(DisplayName));
 
-	IDetailGroup& GenGroup = ChildrenBuilder.AddChildGroup(DisplayName, FText::FromName(DisplayName));
+	IDetailGroup& GenGroup = ChildrenBuilder.AddGroup(DisplayName, FText::FromName(DisplayName));
 	uint32 NumChildren = 0;
 	if (ElementProperty->GetNumChildren(NumChildren) == FPropertyAccess::Success)
 	{
@@ -236,7 +236,7 @@ void FNiagaraEmitterPropertiesDetails::OnGenerateEventReceiverEntry(TSharedRef<I
  	NameProperty->GetValue(DisplayName);
 // 	ChildrenBuilder.AddChildProperty(ElementProperty).DisplayName(FText::FromName(DisplayName));
 
-	IDetailGroup& Group = ChildrenBuilder.AddChildGroup(DisplayName, FText::FromName(DisplayName));
+	IDetailGroup& Group = ChildrenBuilder.AddGroup(DisplayName, FText::FromName(DisplayName));
 	uint32 NumChildren = 0;
 	if (ElementProperty->GetNumChildren(NumChildren) == FPropertyAccess::Success)
 	{

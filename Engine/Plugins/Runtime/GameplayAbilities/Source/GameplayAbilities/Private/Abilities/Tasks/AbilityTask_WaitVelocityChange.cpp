@@ -33,7 +33,7 @@ void UAbilityTask_WaitVelocityChange::TickTask(float DeltaTime)
 
 UAbilityTask_WaitVelocityChange* UAbilityTask_WaitVelocityChange::CreateWaitVelocityChange(UGameplayAbility* OwningAbility, FVector InDirection, float InMinimumMagnitude)
 {
-	auto MyObj = NewAbilityTask<UAbilityTask_WaitVelocityChange>(OwningAbility);
+	UAbilityTask_WaitVelocityChange* MyObj = NewAbilityTask<UAbilityTask_WaitVelocityChange>(OwningAbility);
 
 	MyObj->MinimumMagnitude = InMinimumMagnitude;
 	MyObj->Direction = InDirection.GetSafeNormal();

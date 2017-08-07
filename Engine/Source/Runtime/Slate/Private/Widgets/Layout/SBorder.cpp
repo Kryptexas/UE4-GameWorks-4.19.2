@@ -62,7 +62,7 @@ void SBorder::ClearContent()
 	ChildSlot.DetachWidget();
 }
 
-int32 SBorder::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SBorder::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	const FSlateBrush* BrushResource = BorderImage.Get();
 		
@@ -77,13 +77,12 @@ int32 SBorder::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometr
 			LayerId,
 			AllottedGeometry.ToPaintGeometry(),
 			BrushResource,
-			MyClippingRect,
 			DrawEffects,
 			BrushResource->GetTint( InWidgetStyle ) *InWidgetStyle.GetColorAndOpacityTint() * BorderBackgroundColor.Get().GetColor( InWidgetStyle )
 		);
 	}
 
-	return SCompoundWidget::OnPaint(Args, AllottedGeometry, MyClippingRect.IntersectionWith( AllottedGeometry.GetClippingRect() ), OutDrawElements, LayerId, InWidgetStyle, bEnabled );
+	return SCompoundWidget::OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bEnabled );
 }
 
 FVector2D SBorder::ComputeDesiredSize(float LayoutScaleMultiplier) const

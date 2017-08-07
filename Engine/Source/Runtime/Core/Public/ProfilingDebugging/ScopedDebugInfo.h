@@ -26,7 +26,7 @@ public:
 	FScopedDebugInfo(int32 InNumReplacedOuterCalls);
 
 	/** Destructor. */
-	~FScopedDebugInfo();
+	virtual ~FScopedDebugInfo();
 
 	/** @return The "function name" to display on the call stack for this debug info. */
 	virtual FString GetFunctionName() const = 0;

@@ -103,18 +103,6 @@ AVREditorDockableWindow::AVREditorDockableWindow() :
 	DragOperationComponent->SetDragOperationClass( UDockableWindowDragOperation::StaticClass() );
 }
 
-
-AVREditorDockableWindow::~AVREditorDockableWindow()
-{
-	SelectionBarMeshComponent = nullptr;
-	CloseButtonMeshComponent = nullptr;
-	SelectionBarMID = nullptr;
-	SelectionBarTranslucentMID = nullptr;
-	CloseButtonMID = nullptr;
-	CloseButtonTranslucentMID = nullptr;
-	DragOperationComponent = nullptr;
-}
-
 void AVREditorDockableWindow::SetupWidgetComponent()
 {
 	Super::SetupWidgetComponent();

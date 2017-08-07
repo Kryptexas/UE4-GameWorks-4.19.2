@@ -418,13 +418,6 @@ public:
 	UPROPERTY(transient)
 	float AnimLength;
 
-protected:
-	/**
-	* Define target weight interpolation per bone. This will blend in different speed per each bone setting
-	*/
-	UPROPERTY(EditAnywhere, Category = SampleInterpolation)
-	TArray<FPerBoneInterpolation> PerBoneBlend;
-
 	/** Input interpolation parameter for all 3 axis, for each axis input, decide how you'd like to interpolate input to*/
 	UPROPERTY(EditAnywhere, Category = InputInterpolation)
 	FInterpolationParameter	InterpolationParam[3];
@@ -445,13 +438,21 @@ protected:
 	UPROPERTY(EditAnywhere, Category = AnimationNotifies)
 	TEnumAsByte<ENotifyTriggerMode::Type> NotifyTriggerMode;
 
+protected:
+
+	/**
+	* Define target weight interpolation per bone. This will blend in different speed per each bone setting
+	*/
+	UPROPERTY(EditAnywhere, Category = SampleInterpolation)
+	TArray<FPerBoneInterpolation> PerBoneBlend;
+
 	/** Track index to get marker data from. Samples are tested for the suitability of marker based sync
 	    during load and if we can use marker based sync we cache an index to a representative sample here */
 	UPROPERTY()
 	int32 SampleIndexWithMarkers;
 
 	/** Sample animation data **/
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=BlendSamples)
 	TArray<struct FBlendSample> SampleData;
 
 	/** Grid samples, indexing scheme imposed by subclass **/

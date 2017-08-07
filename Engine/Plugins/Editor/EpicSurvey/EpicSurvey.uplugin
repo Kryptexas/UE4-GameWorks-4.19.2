@@ -21,5 +21,12 @@
 			"Type" : "Editor",
 			"LoadingPhase" : "Default"
 		}
+	],
+	"Plugins": [
+		{
+			"Name": "OnlineSubsystem",
+			"Enabled": true
+		}
 	]
+
 }

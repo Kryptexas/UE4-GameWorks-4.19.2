@@ -6,6 +6,7 @@
 #include "HAL/ThreadSafeCounter.h"
 #include "HAL/Runnable.h"
 #include "HttpPackage.h"
+#include "Misc/SingleThreadRunnable.h"
 
 class IHttpThreadedRequest;
 
@@ -14,7 +15,7 @@ class IHttpThreadedRequest;
  * Assumes any requests entering the system will remain valid (not deleted) until they exit the system
  */
 class FHttpThread
-	: FRunnable
+	: FRunnable, FSingleThreadRunnable
 {
 public:
 
@@ -52,6 +53,10 @@ public:
 	 */
 	void GetCompletedRequests(TArray<IHttpThreadedRequest*>& OutCompletedRequests);
 
+	//~ Begin FSingleThreadRunnable Interface
+	virtual void Tick() override;
+	//~ End FSingleThreadRunnable Interface
+
 protected:
 
 	/**
@@ -80,6 +85,14 @@ protected:
 	virtual void Exit() override;
 	//~ End FRunnable Interface
 
+	/**
+	*  FSingleThreadRunnable accessor for ticking this FRunnable when multi-threading is disabled.
+	*  @return FSingleThreadRunnable Interface for this FRunnable object.
+	*/
+	virtual class FSingleThreadRunnable* GetSingleThreadInterface() override { return this; }
+
+	void Process(TArray<IHttpThreadedRequest*>& RequestsToCancel, TArray<IHttpThreadedRequest*>& RequestsToStart, TArray<IHttpThreadedRequest*>& RequestsToComplete);
+
 	/** signal request to stop and exit thread */
 	FThreadSafeCounter ExitRequest;
 
@@ -91,6 +104,8 @@ protected:
 	double HttpThreadIdleFrameTimeInSeconds;
 	/** Time in seconds to sleep minimally when idle, waiting for requests. */
 	double HttpThreadIdleMinimumSleepTimeInSeconds;
+	/** Last time the thread has been processed. Used in the non-game thread. */
+	double LastTime;
 
 protected:
 	/** Critical section to lock access to PendingThreadedRequests, CancelledThreadedRequests, and CompletedThreadedRequests */

@@ -1,13 +1,16 @@
-﻿INTSourceChangelist:3340402
+﻿INTSourceChangelist:3413921
 Availability: Public
 Title:입력
-Crumbs:%ROOT%, Gameplay
+Crumbs:%ROOT%
 Description:Input 오브젝트는 플레이어로부터의 입력을 액터가 이해하고 활용할 수 있는 형태의 데이터로 변환하는 작업을 담당합니다.
 version: 4.15
 skilllevel:Beginner
 Parent:Engine/Gameplay
+order:
 type:overview
+tags:Input
 
+[TOC (start:2 end:4)]
 
 **PlayerInput** 오브젝트는 플레이어로부터 받은 입력을 PlyaerController 나 Pawn 같은 액터가 이해하고 활용할 수 있는 형태의 데이터로 변환하는 작업을 담당합니다. 
 이는 PlayerInput 매핑과 InputComponent 를 가지고 플레이어의 하드웨어 입력을 게임 이벤트와 동작으로 변환하는 입력 프로세스 흐름의 일부입니다.
@@ -15,8 +18,6 @@ type:overview
 [REGION:note]
 **입력** 셋업 예제는, [](Gameplay\HowTo\SetUpInput) 문서를 참고하세요.
 [/REGION]
-
-[TOC (start:2 end:4)]
 
 ## 하드웨어 입력
 플레이어로부터의 하드웨어 입력은 매우 단순합니다. 가장 흔하게는 키 입력, 마우스 클릭, 마우스 이동, 콘트롤러 버튼 입력이나 조이스틱 이동 등이 포함됩니다. 표준 축 또는 버튼 인덱스가 아니거나 일반적이지 않은 입력 범위를 갖는 특수 입력 디바이스의 경우, [](Gameplay\Input\RawInput) 으로 수동 설정할 수 있습니다.
@@ -45,7 +46,7 @@ $ AxisMappings : 키보드, 콘트롤러, 마우스 입력을 나중에 이동�
 
 ### 입력 매핑 설정
 
-입력 매핑은 환경설정 파일에 저장되나, 레벨 에디터의 프로젝트 세팅 탭을 통해 쉽게 설정 가능합니다.
+입력 매핑은 환경설정 파일에 저장되며, 프로젝트 세팅의 입력(Input) 섹션에서 편집 가능합니다.
 
 1. 레벨 에디터에서 **편집 > 프로젝트 세팅** 을 선택합니다.
 
@@ -72,9 +73,7 @@ InputComponent 는 필요에 따라 다른 액터나 레벨 스크립트에서 �
 
 InputComponent 가 처리하는 입력에 대한 우선권 스택은 다음과 같습니다 (높은 우선권 먼저):
 
-1. 가장 최근 "Accepts input" (입력 받음) 활성화된 액터 - 문에서 픽업 아이템까지 어느것도 가능.
-	1. 가장 최근에서부터 나중까지 "Accepts input" (입력 받음) 활성화된 모든 액터를 대상으로 입력 처리 진행
-
+1. "Accepts input" 활성화된 액터, 가장 최근에서부터 나중 활성화된 순.
 	[REGION:tip]
 	입력 처리에 있어 항상 특정 액터를 가장 처음 고려하도록 만들고 싶은 경우, "Accepts input" (입력 받음) 을 재활성화시키면 스택 최상단으로 올라갈 것입니다.
 	[/REGION:tip]

@@ -14,6 +14,8 @@ class FSlateStyleSet;
 
 namespace SteamAudio
 {
+	class FBakeIndirectWindow;
+
 	class FSteamAudioEditorModule : public ISteamAudioEditorModule
 	{
 	public:
@@ -23,17 +25,14 @@ namespace SteamAudio
 		TSharedRef<FExtender> OnExtendLevelEditorBuildMenu(const TSharedRef<FUICommandList> CommandList);
 		void CreateBuildMenu(FMenuBuilder& Builder);
 
-		void ExportScene();
-		bool IsReadyToExportScene() const;
-
-		void BakeReverb();
-		void CancelBakeReverb();
-		bool IsReadyToBakeReverb() const;
+		void BakeIndirect();
+		bool IsReadyToBakeIndirect() const;
 
 		void RegisterComponentVisualizer(const FName ComponentClassName, TSharedPtr<FComponentVisualizer> Visualizer);
 
 	private:
 		TSharedPtr<FSlateStyleSet> SteamAudioStyleSet;
+		TSharedPtr<FBakeIndirectWindow> BakeIndirectWindow;
 		TArray<FName> RegisteredComponentClassNames;
 	};
 }

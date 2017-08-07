@@ -37,7 +37,7 @@ void FSlateDynamicImageBrush::ReleaseResource()
 
 void FSlateDynamicImageBrush::ReleaseResourceInternal()
 {
-	if( bIsInitalized )
+	if (bIsInitalized)
 	{
 		bIsInitalized = false;
 		if (FSlateApplicationBase::IsInitialized())
@@ -48,11 +48,9 @@ void FSlateDynamicImageBrush::ReleaseResourceInternal()
 				ResourceObject->RemoveFromRoot();
 			}
 
-			TSharedPtr<FSlateRenderer> Renderer = FSlateApplicationBase::Get().GetRenderer();
-
-			if (Renderer.IsValid())
+			if (FSlateRenderer* Renderer = FSlateApplicationBase::Get().GetRenderer())
 			{
-				FSlateApplicationBase::Get().GetRenderer()->ReleaseDynamicResource(*this);
+				Renderer->ReleaseDynamicResource(*this);
 			}
 		}
 	}

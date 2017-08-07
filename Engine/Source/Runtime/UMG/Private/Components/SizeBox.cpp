@@ -35,7 +35,7 @@ TSharedRef<SWidget> USizeBox::RebuildWidget()
 		Cast<USizeBoxSlot>(GetContentSlot())->BuildSlot(MySizeBox.ToSharedRef());
 	}
 
-	return BuildDesignTimeWidget( MySizeBox.ToSharedRef() );
+	return MySizeBox.ToSharedRef();
 }
 
 void USizeBox::SetWidthOverride(float InWidthOverride)

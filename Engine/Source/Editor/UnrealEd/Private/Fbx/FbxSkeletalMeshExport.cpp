@@ -106,7 +106,7 @@ FbxNode* FFbxExporter::CreateMesh(const USkeletalMesh* SkelMesh, const TCHAR* Me
 {
 	const FSkeletalMeshResource* SkelMeshResource = SkelMesh->GetImportedResource();
 	const FStaticLODModel& SourceModel = SkelMeshResource->LODModels[0];
-	const int32 VertexCount = SourceModel.NumVertices;
+	const int32 VertexCount = SourceModel.GetNumNonClothingVertices();
 
 	// Verify the integrity of the mesh.
 	if (VertexCount == 0) return NULL;
@@ -114,7 +114,7 @@ FbxNode* FFbxExporter::CreateMesh(const USkeletalMesh* SkelMesh, const TCHAR* Me
 	// Copy all the vertex data from the various chunks to a single buffer.
 	// Makes the rest of the code in this function cleaner and easier to maintain.  
 	TArray<FSoftSkinVertex> Vertices;
-	SourceModel.GetVertices(Vertices);
+	SourceModel.GetNonClothVertices(Vertices);
 	if (Vertices.Num() != VertexCount) return NULL;
 
 	FbxMesh* Mesh = FbxMesh::Create(Scene, TCHAR_TO_UTF8(MeshName));
@@ -201,7 +201,7 @@ FbxNode* FFbxExporter::CreateMesh(const USkeletalMesh* SkelMesh, const TCHAR* Me
 	TArray<uint32> Indices;
 	SourceModel.MultiSizeIndexContainer.GetIndexBuffer(Indices);
 
-	int32 SectionCount = SourceModel.Sections.Num();
+	int32 SectionCount = SourceModel.NumNonClothingSections();
 	for (int32 SectionIndex = 0; SectionIndex < SectionCount; ++SectionIndex)
 	{
 		const FSkelMeshSection& Section = SourceModel.Sections[SectionIndex];

@@ -16,10 +16,14 @@ enum EKeyboardType
 	Keyboard_AlphaNumeric,
 };
 
-enum class ESetTextType : uint8
+enum class ETextEntryType : uint8
 {
-	Changed,
-	Commited
+	/** The keyboard entry was canceled, some valid text may still be available. */
+	TextEntryCanceled,
+	/** The keyboard entry was accepted, full text is available. */
+	TextEntryAccepted,
+	/** They keyboard is providing a periodic update of the text entered so far. */
+	TextEntryUpdated
 };
 
 class SLATE_API IVirtualKeyboardEntry
@@ -31,11 +35,11 @@ public:
 	/**
 	* Sets the text to that entered by the virtual keyboard
 	*
-	* @param  InNewText  The new text
-	* @param SetTextType Set weather we want to send a TextChanged event after or a TextCommitted event
+	* @param InNewText  The new text
+	* @param TextEntryType What type of text update is being provided
 	* @param CommitType If we are sending a TextCommitted event, what commit type is it
 	*/
-	virtual void SetTextFromVirtualKeyboard(const FText& InNewText, ESetTextType SetTextType, ETextCommit::Type CommitType) = 0;
+	virtual void SetTextFromVirtualKeyboard(const FText& InNewText, ETextEntryType TextEntryType) = 0;
 	
 	/**
 	* Returns the text.

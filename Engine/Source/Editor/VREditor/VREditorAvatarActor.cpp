@@ -40,10 +40,22 @@ namespace VREd
 	static FAutoConsoleVariable ScaleProgressBarRadius( TEXT( "VREd.ScaleProgressBarRadius" ), 1.0f, TEXT( "Radius of the progressbar that appears when scaling" ) );
 }
 
-AVREditorAvatarActor::AVREditorAvatarActor( const FObjectInitializer& ObjectInitializer ) :
-	Super( ObjectInitializer ),
+AVREditorAvatarActor::AVREditorAvatarActor() :
+	Super(),
+	HeadMeshComponent(nullptr),
+	WorldMovementGridMeshComponent(nullptr),
+	WorldMovementGridMID(nullptr),
 	WorldMovementGridOpacity( 0.0f ),
 	bIsDrawingWorldMovementPostProcess( false ),
+	WorldMovementPostProcessMaterial(nullptr),
+	ScaleProgressMeshComponent(nullptr),
+	CurrentScaleProgressMeshComponent(nullptr),
+	UserScaleIndicatorText(nullptr),
+	FixedUserScaleMID(nullptr),
+	TranslucentFixedUserScaleMID(nullptr),
+	CurrentUserScaleMID(nullptr),
+	TranslucentCurrentUserScaleMID(nullptr),
+	PostProcessComponent(nullptr),
 	VRMode( nullptr )
 {
 	if (UNLIKELY(IsRunningDedicatedServer()))   // @todo vreditor: Hack to avoid loading font assets in the cooker on Linux
@@ -51,24 +63,30 @@ AVREditorAvatarActor::AVREditorAvatarActor( const FObjectInitializer& ObjectInit
 		return;
 	}
 
+	// Set root component 
 	{
-		USceneComponent* SceneRootComponent = CreateDefaultSubobject<USceneComponent>( TEXT( "RootComponent" ) );
-		AddOwnedComponent( SceneRootComponent );
-		SetRootComponent( SceneRootComponent );
+		USceneComponent* SceneRootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
+		AddOwnedComponent(SceneRootComponent);
+		SetRootComponent(SceneRootComponent);
 	}
+}
+
+void AVREditorAvatarActor::Init( UVREditorMode* InVRMode  )
+{
+	VRMode = InVRMode;
 
 	// Setup the asset container.
-	UVREditorAssetContainer* AssetContainer = LoadObject<UVREditorAssetContainer>(nullptr, *UVREditorMode::AssetContainerPath);
-	check(AssetContainer != nullptr);
+	const UVREditorAssetContainer& AssetContainer = VRMode->GetAssetContainer();
 
 	// Give us a head mesh
 	{
-		HeadMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>( TEXT( "HeadMeshComponent" ) );
+		HeadMeshComponent = NewObject<UStaticMeshComponent>(this);
 		AddOwnedComponent( HeadMeshComponent );
 		HeadMeshComponent->SetupAttachment( RootComponent );
+		HeadMeshComponent->RegisterComponent();
 
 		// @todo vreditor: This needs to adapt based on the device you're using
-		UStaticMesh* HeadMesh = AssetContainer->GenericHMDMesh;
+		UStaticMesh* HeadMesh = AssetContainer.GenericHMDMesh;
 		check( HeadMesh != nullptr );
 
 		HeadMeshComponent->SetStaticMesh( HeadMesh );
@@ -79,18 +97,19 @@ AVREditorAvatarActor::AVREditorAvatarActor( const FObjectInitializer& ObjectInit
 
 	// World movement grid mesh
 	{
-		WorldMovementGridMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>( TEXT( "WorldMovementGridMeshComponent" ) );
+		WorldMovementGridMeshComponent = NewObject<UStaticMeshComponent>(this);
 		AddOwnedComponent( WorldMovementGridMeshComponent );
 		WorldMovementGridMeshComponent->SetupAttachment( RootComponent );
-	
-		UStaticMesh* GridMesh = AssetContainer->PlaneMesh;
+		WorldMovementGridMeshComponent->RegisterComponent();
+
+		UStaticMesh* GridMesh = AssetContainer.PlaneMesh;
 		check( GridMesh != nullptr );
 		WorldMovementGridMeshComponent->SetStaticMesh( GridMesh );
 		WorldMovementGridMeshComponent->SetMobility( EComponentMobility::Movable );
 		WorldMovementGridMeshComponent->SetCollisionEnabled( ECollisionEnabled::NoCollision );
 		WorldMovementGridMeshComponent->bSelectable = false;
 
-		UMaterialInterface* GridMaterial = AssetContainer->GridMaterial;
+		UMaterialInterface* GridMaterial = AssetContainer.GridMaterial;
 		check( GridMaterial != nullptr );
 
 		WorldMovementGridMID = UMaterialInstanceDynamic::Create( GridMaterial, GetTransientPackage( ) );
@@ -102,101 +121,102 @@ AVREditorAvatarActor::AVREditorAvatarActor( const FObjectInitializer& ObjectInit
 	}
 
 	{
-		{
-			UMaterialInterface* UserScaleIndicatorMaterial = AssetContainer->LaserPointerMaterial;
-			check( UserScaleIndicatorMaterial != nullptr );
+		UMaterialInterface* UserScaleIndicatorMaterial = AssetContainer.LaserPointerMaterial;
+		check( UserScaleIndicatorMaterial != nullptr );
 
-			UMaterialInterface* TranslucentUserScaleIndicatorMaterial = AssetContainer->LaserPointerTranslucentMaterial;
-			check( TranslucentUserScaleIndicatorMaterial != nullptr );
+		UMaterialInterface* TranslucentUserScaleIndicatorMaterial = AssetContainer.LaserPointerTranslucentMaterial;
+		check( TranslucentUserScaleIndicatorMaterial != nullptr );
 
-			FixedUserScaleMID = UMaterialInstanceDynamic::Create( UserScaleIndicatorMaterial, GetTransientPackage() );
-			check( FixedUserScaleMID != nullptr );
+		FixedUserScaleMID = UMaterialInstanceDynamic::Create( UserScaleIndicatorMaterial, GetTransientPackage() );
+		check( FixedUserScaleMID != nullptr );
 
-			TranslucentFixedUserScaleMID = UMaterialInstanceDynamic::Create( TranslucentUserScaleIndicatorMaterial, GetTransientPackage() );
-			check( TranslucentFixedUserScaleMID != nullptr );
+		TranslucentFixedUserScaleMID = UMaterialInstanceDynamic::Create( TranslucentUserScaleIndicatorMaterial, GetTransientPackage() );
+		check( TranslucentFixedUserScaleMID != nullptr );
 			
-			CurrentUserScaleMID = UMaterialInstanceDynamic::Create( UserScaleIndicatorMaterial, GetTransientPackage() );
-			check( CurrentUserScaleMID != nullptr );
+		CurrentUserScaleMID = UMaterialInstanceDynamic::Create( UserScaleIndicatorMaterial, GetTransientPackage() );
+		check( CurrentUserScaleMID != nullptr );
 
-			TranslucentCurrentUserScaleMID = UMaterialInstanceDynamic::Create( TranslucentUserScaleIndicatorMaterial, GetTransientPackage() );
-			check( TranslucentCurrentUserScaleMID != nullptr );
+		TranslucentCurrentUserScaleMID = UMaterialInstanceDynamic::Create( TranslucentUserScaleIndicatorMaterial, GetTransientPackage() );
+		check( TranslucentCurrentUserScaleMID != nullptr );
 
-			UStaticMesh* ScaleLineMesh = AssetContainer->LaserPointerMesh; //@todo VREditor: The laser pointer mesh is not a closed cylinder anymore.
-			check( ScaleLineMesh != nullptr );
+		UStaticMesh* ScaleLineMesh = AssetContainer.LaserPointerMesh; //@todo VREditor: The laser pointer mesh is not a closed cylinder anymore.
+		check( ScaleLineMesh != nullptr );
 
-			// Creating the background bar progress of the scale 
-			{
-				ScaleProgressMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>( TEXT( "ScaleProgressMeshComponent" ) );
-				this->AddOwnedComponent( ScaleProgressMeshComponent );
-				ScaleProgressMeshComponent->SetupAttachment( RootComponent );
-
-				ScaleProgressMeshComponent->SetStaticMesh( ScaleLineMesh );
-				ScaleProgressMeshComponent->SetMobility( EComponentMobility::Movable );
-				ScaleProgressMeshComponent->SetCollisionEnabled( ECollisionEnabled::NoCollision );
-				ScaleProgressMeshComponent->SetMaterial( 0, FixedUserScaleMID );
-				ScaleProgressMeshComponent->SetMaterial( 1, TranslucentFixedUserScaleMID );
-				ScaleProgressMeshComponent->bSelectable = false;
-
-				// The user scale indicator starts invisible
-				ScaleProgressMeshComponent->SetVisibility( false );
-			}
-
-			// Creating the current progress of the scale 
-			{
-				CurrentScaleProgressMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>( TEXT( "CurrentScaleProgressMeshComponent" ) );
-				AddOwnedComponent( CurrentScaleProgressMeshComponent );
-				CurrentScaleProgressMeshComponent->SetupAttachment( RootComponent );
-
-				CurrentScaleProgressMeshComponent->SetStaticMesh( ScaleLineMesh );
-				CurrentScaleProgressMeshComponent->SetMobility( EComponentMobility::Movable );
-				CurrentScaleProgressMeshComponent->SetCollisionEnabled( ECollisionEnabled::NoCollision );
-				CurrentScaleProgressMeshComponent->SetMaterial( 0, CurrentUserScaleMID );
-				CurrentScaleProgressMeshComponent->SetMaterial( 1, TranslucentCurrentUserScaleMID );
-				CurrentScaleProgressMeshComponent->bSelectable = false;
-
-				// The user scale indicator starts invisible
-				CurrentScaleProgressMeshComponent->SetVisibility( false );
-			}
-		}
-
-		// Creating the text for scaling
+		// Creating the background bar progress of the scale 
 		{
-			UFont* TextFont = AssetContainer->TextFont;
-			check( TextFont != nullptr );
+			ScaleProgressMeshComponent = NewObject<UStaticMeshComponent>(this);
+			AddOwnedComponent( ScaleProgressMeshComponent );
+			ScaleProgressMeshComponent->SetupAttachment( RootComponent );
+			ScaleProgressMeshComponent->RegisterComponent();
 
-			UMaterialInterface* UserScaleIndicatorMaterial = AssetContainer->TextMaterial;
-			check( UserScaleIndicatorMaterial != nullptr );
+			ScaleProgressMeshComponent->SetStaticMesh( ScaleLineMesh );
+			ScaleProgressMeshComponent->SetMobility( EComponentMobility::Movable );
+			ScaleProgressMeshComponent->SetCollisionEnabled( ECollisionEnabled::NoCollision );
+			ScaleProgressMeshComponent->SetMaterial( 0, FixedUserScaleMID );
+			ScaleProgressMeshComponent->SetMaterial( 1, TranslucentFixedUserScaleMID );
+			ScaleProgressMeshComponent->bSelectable = false;
 
-			UserScaleIndicatorText = CreateDefaultSubobject<UTextRenderComponent>( TEXT( "UserScaleIndicatorText" ) );
-			AddOwnedComponent( UserScaleIndicatorText );
-			UserScaleIndicatorText->SetupAttachment( RootComponent );
-
-			UserScaleIndicatorText->SetMobility( EComponentMobility::Movable );
-			UserScaleIndicatorText->SetCollisionEnabled( ECollisionEnabled::NoCollision );
-			UserScaleIndicatorText->SetCollisionProfileName( UCollisionProfile::NoCollision_ProfileName );
-			UserScaleIndicatorText->bSelectable = false;
-
-			UserScaleIndicatorText->bGenerateOverlapEvents = false;
-			UserScaleIndicatorText->SetCanEverAffectNavigation( false );
-			UserScaleIndicatorText->bCastDynamicShadow = false;
-			UserScaleIndicatorText->bCastStaticShadow = false;
-			UserScaleIndicatorText->bAffectDistanceFieldLighting = false;
-			UserScaleIndicatorText->bAffectDynamicIndirectLighting = false;
-
-			// Use a custom font.  The text will be visible up close.
-			UserScaleIndicatorText->SetFont( TextFont );
-			UserScaleIndicatorText->SetWorldSize( 8.0f );
-			UserScaleIndicatorText->SetTextMaterial( UserScaleIndicatorMaterial );
-
-			// Center the text horizontally
-			UserScaleIndicatorText->SetHorizontalAlignment( EHTA_Center );
-			UserScaleIndicatorText->SetVisibility( false );
+			// The user scale indicator starts invisible
+			ScaleProgressMeshComponent->SetVisibility( false );
 		}
+
+		// Creating the current progress of the scale 
+		{
+			CurrentScaleProgressMeshComponent = NewObject<UStaticMeshComponent>(this);
+			AddOwnedComponent( CurrentScaleProgressMeshComponent );
+			CurrentScaleProgressMeshComponent->SetupAttachment( RootComponent );
+			CurrentScaleProgressMeshComponent->RegisterComponent();
+
+			CurrentScaleProgressMeshComponent->SetStaticMesh( ScaleLineMesh );
+			CurrentScaleProgressMeshComponent->SetMobility( EComponentMobility::Movable );
+			CurrentScaleProgressMeshComponent->SetCollisionEnabled( ECollisionEnabled::NoCollision );
+			CurrentScaleProgressMeshComponent->SetMaterial( 0, CurrentUserScaleMID );
+			CurrentScaleProgressMeshComponent->SetMaterial( 1, TranslucentCurrentUserScaleMID );
+			CurrentScaleProgressMeshComponent->bSelectable = false;
+
+			// The user scale indicator starts invisible
+			CurrentScaleProgressMeshComponent->SetVisibility( false );
+		}
+	}
+
+	// Creating the text for scaling
+	{
+		UFont* TextFont = AssetContainer.TextFont;
+		check( TextFont != nullptr );
+
+		UMaterialInterface* UserScaleIndicatorMaterial = AssetContainer.TextMaterial;
+		check( UserScaleIndicatorMaterial != nullptr );
+
+		UserScaleIndicatorText = NewObject<UTextRenderComponent>(this);
+		AddOwnedComponent( UserScaleIndicatorText );
+		UserScaleIndicatorText->SetupAttachment( RootComponent );
+		UserScaleIndicatorText->RegisterComponent();
+
+		UserScaleIndicatorText->SetMobility( EComponentMobility::Movable );
+		UserScaleIndicatorText->SetCollisionEnabled( ECollisionEnabled::NoCollision );
+		UserScaleIndicatorText->SetCollisionProfileName( UCollisionProfile::NoCollision_ProfileName );
+		UserScaleIndicatorText->bSelectable = false;
+
+		UserScaleIndicatorText->bGenerateOverlapEvents = false;
+		UserScaleIndicatorText->SetCanEverAffectNavigation( false );
+		UserScaleIndicatorText->bCastDynamicShadow = false;
+		UserScaleIndicatorText->bCastStaticShadow = false;
+		UserScaleIndicatorText->bAffectDistanceFieldLighting = false;
+		UserScaleIndicatorText->bAffectDynamicIndirectLighting = false;
+
+		// Use a custom font.  The text will be visible up close.
+		UserScaleIndicatorText->SetFont( TextFont );
+		UserScaleIndicatorText->SetWorldSize( 8.0f );
+		UserScaleIndicatorText->SetTextMaterial( UserScaleIndicatorMaterial );
+
+		// Center the text horizontally
+		UserScaleIndicatorText->SetHorizontalAlignment( EHTA_Center );
+		UserScaleIndicatorText->SetVisibility( false );
 	}
 
 	// Load our post process material for the world movement grid
 	{
-		UMaterial* Material = AssetContainer->WorldMovementPostProcessMaterial;
+		UMaterial* Material = AssetContainer.WorldMovementPostProcessMaterial;
 		check( Material != nullptr );
 		WorldMovementPostProcessMaterial = UMaterialInstanceDynamic::Create( Material, GetTransientPackage() );
 		check( WorldMovementPostProcessMaterial != nullptr );
@@ -204,32 +224,15 @@ AVREditorAvatarActor::AVREditorAvatarActor( const FObjectInitializer& ObjectInit
 
 	// Post processing
 	{
-		PostProcessComponent = CreateDefaultSubobject<UPostProcessComponent>( TEXT( "PostProcessComponent" ) );
+		PostProcessComponent = NewObject<UPostProcessComponent>(this);
 		AddOwnedComponent( PostProcessComponent );
 		PostProcessComponent->SetupAttachment( this->GetRootComponent( ) );
+		PostProcessComponent->RegisterComponent();
 
 		// Unlimited size
 		PostProcessComponent->bEnabled = GetDefault<UVRModeSettings>()->bShowWorldMovementPostProcess;
 		PostProcessComponent->bUnbound = true;
 	}
-
-}
-
-AVREditorAvatarActor::~AVREditorAvatarActor()
-{
-	WorldMovementGridMID = nullptr;
-	WorldMovementPostProcessMaterial = nullptr;
-	HeadMeshComponent = nullptr;
-	WorldMovementGridMeshComponent = nullptr;
-	PostProcessComponent = nullptr;
-	ScaleProgressMeshComponent = nullptr;
-	CurrentScaleProgressMeshComponent = nullptr;
-	UserScaleIndicatorText = nullptr;
-}
-
-void AVREditorAvatarActor::Init( UVREditorMode* InVRMode  )
-{
-	VRMode = InVRMode;
 
 	// Set the default color for the progress bar
 	{

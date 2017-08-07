@@ -112,7 +112,7 @@ void DebugLeakTest()
 		{
 			DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "LeakTest::NewInt8" ), Stat_LeakTest_NewInt8, STATGROUP_Quick );
 			int8* Leak = new int8[1000 * 1000];
-		}
+		} //-V773
 
 
 		if (GFrameCounter < 250)
@@ -127,7 +127,7 @@ void DebugLeakTest()
 					int8* IntAlloc = new int8[112233];
 					int8* LeakTask = new int8[100000];
 					delete[] IntAlloc;
-				}
+				} //-V773
 			};
 
 			for (int32 Index = 0; Index < 40; ++Index)
@@ -145,7 +145,7 @@ void DebugLeakTest()
 					int8* IntAlloc = new int8[223311];
 					int8* LeakTask = new int8[100000];
 					delete[] IntAlloc;
-				}
+				} //-V773
 
 				TStatId GetStatId() const
 				{
@@ -166,7 +166,7 @@ void DebugLeakTest()
 			int8* IntAlloc = new int8[331122];
 			int8* LeakTask = new int8[100000];
 			delete[] IntAlloc;
-		}
+		} //-V773
 
 		if (GIsRequestingExit)
 		{
@@ -825,6 +825,7 @@ FName FStatNameAndInfo::GetGroupCategoryFrom(FName InLongName)
 
 static TAutoConsoleVariable<int32> CVarDumpStatPackets(	TEXT("DumpStatPackets"),0,	TEXT("If true, dump stat packets."));
 
+
 /** The rendering thread runnable object. */
 class FStatsThread : public FRunnable, FSingleThreadRunnable
 {
@@ -857,6 +858,7 @@ public:
 	/** Attaches to the task graph stats thread, all processing will be handled by the task graph. */
 	virtual uint32 Run() override
 	{
+		FThreadStats::GetThreadStats()->bIsStatsThread = true;
 		FMemory::SetupTLSCachesOnCurrentThread();
 		FTaskGraphInterface::Get().AttachToThread(ENamedThreads::StatsThread);
 		FTaskGraphInterface::Get().ProcessThreadUntilRequestReturn(ENamedThreads::StatsThread);
@@ -878,9 +880,9 @@ public:
 			const int32 MaxIncomingMessages = 24*1024*1024/sizeof(FStatMessage);
 			
 			int32 IncomingDataMessages = 0;
-			for( int32 Index = 0; Index < IncomingData.Packets.Num(); ++Index )
+			for( FStatPacket* Packet : IncomingData.Packets )
 			{
-				IncomingDataMessages += IncomingData.Packets[Index]->StatMessages.Num();
+				IncomingDataMessages += Packet->StatMessages.Num();
 			}
 
 			bShouldProcess = IncomingDataMessages > MaxIncomingMessages || IncomingData.Packets.Num() > MaxIncomingPackets;
@@ -958,6 +960,17 @@ public:
 		State.NumStatMessages.Add(Packet->StatMessages.Num());
 
 		Tick();
+	}
+
+	void SelfStatMessage(FStatPacket* Packet)
+	{
+		if (CVarDumpStatPackets.GetValueOnAnyThread())
+		{
+			UE_LOG(LogStats, Log, TEXT("Self Packet from %x with %d messages"), Packet->ThreadId, Packet->StatMessages.Num());
+		}
+
+		IncomingData.Packets.Add(Packet);
+		State.NumStatMessages.Add(Packet->StatMessages.Num());
 	}
 
 	/** Start a stats runnable thread. */
@@ -1043,11 +1056,12 @@ FThreadStats::FThreadStats():
 	bWaitForExplicitFlush(0),
 	MemoryMessageScope(0),
 	bReentranceGuard(false),
-	bSawExplicitFlush(false)
+	bSawExplicitFlush(false),
+	bIsStatsThread(false)
 {
 	Packet.SetThreadProperties();
 
-	check(FPlatformTLS::IsValidTlsSlot(TlsSlot));
+	check(TlsSlot && FPlatformTLS::IsValidTlsSlot(TlsSlot));
 	FPlatformTLS::SetTlsValue(TlsSlot, this);
 }
 
@@ -1057,7 +1071,8 @@ FThreadStats::FThreadStats( EConstructor ):
 	bWaitForExplicitFlush(0),
 	MemoryMessageScope(0),
 	bReentranceGuard(false),
-	bSawExplicitFlush(false)
+	bSawExplicitFlush(false),
+	bIsStatsThread(false)
 {}
 
 void FThreadStats::CheckEnable()
@@ -1147,8 +1162,14 @@ void FThreadStats::FlushRegularStats( bool bHasBrokenCallstacks, bool bForceFlus
 			}
 			Packet.StatMessages.Empty(MaxPresize);
 		}
-
-		TGraphTask<FStatMessagesTask>::CreateTask().ConstructAndDispatchWhenReady(ToSend);
+		if (bIsStatsThread)
+		{
+			FStatsThread::Get().SelfStatMessage(ToSend);
+		}
+		else
+		{
+			TGraphTask<FStatMessagesTask>::CreateTask().ConstructAndDispatchWhenReady(ToSend);
+		}
 		UpdateExplicitFlush();
 	}
 }
@@ -1184,7 +1205,14 @@ void FThreadStats::FlushRawStats( bool bHasBrokenCallstacks /*= false*/, bool bF
 
 		check(!Packet.StatMessages.Num());
 
-		TGraphTask<FStatMessagesTask>::CreateTask().ConstructAndDispatchWhenReady(ToSend);
+		if (bIsStatsThread)
+		{
+			FStatsThread::Get().SelfStatMessage(ToSend);
+		}
+		else
+		{
+			TGraphTask<FStatMessagesTask>::CreateTask().ConstructAndDispatchWhenReady(ToSend);
+		}
 		UpdateExplicitFlush();
 
 		const float NumMessagesAsMB = NumMessages*sizeof(FStatMessage) / 1024.0f / 1024.0f;
@@ -1283,18 +1311,18 @@ void FThreadStats::StartThread()
 	FThreadStats::FrameDataIsIncomplete(); // make this non-zero
 	check(IsInGameThread());
 	check(!IsThreadingReady());
-	FStatsThreadState::GetLocalState(); // start up the state
-	FStatsThread::Get();
-	FStatsThread::Get().Start();
-
 	// Preallocate a bunch of FThreadStats to avoid dynamic memory allocation.
 	// (Must do this before we expose ourselves to other threads via tls).
 	FThreadStatsPool::Get();
-
+	FStatsThreadState::GetLocalState(); // start up the state
 	if (!TlsSlot)
 	{
 		TlsSlot = FPlatformTLS::AllocTlsSlot();
+                check(TlsSlot);
 	}
+	FStatsThread::Get();
+	FStatsThread::Get().Start();
+
 	check(IsThreadingReady());
 	CheckEnable();
 	

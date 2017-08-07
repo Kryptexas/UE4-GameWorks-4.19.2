@@ -35,7 +35,7 @@ bool UDiffAssetsCommandlet::ExportFilesToTextAndDiff(const FString& InParams)
 
 	const FString AssetPackageExtension = FPackageName::GetAssetPackageExtension();
 	FString DiffCmd;
-	if (!FParse::Value(*Params, TEXT("DiffCmd="), DiffCmd) || Tokens.Num() != 2)
+	if (!FParse::Value(*Params, TEXT("DiffCmd="), DiffCmd) || Tokens.Num() < 2)
 	{
 		UE_LOG(LogDiffAssetsCommandlet, Warning, TEXT("Usage: UDiffAssets File1%s File2%s DiffCmd=\"C:/Program Files/Araxis/Araxis Merge/AraxisP4Diff.exe {1} {2}\""), *AssetPackageExtension, *AssetPackageExtension);
 		return false;
@@ -182,7 +182,7 @@ bool UDiffAssetsCommandlet::ExportFilesToTextAndDiff(const FString& InFilename1,
 
 	FString ReplacedDiffCmd = DiffCommand.Replace(TEXT("{1}"), *TextFilename1).Replace(TEXT("{2}"), *TextFilename2);
 
-	int32 ArgsAt = ReplacedDiffCmd.Find(TEXT(" "));
+	int32 ArgsAt = DiffCommand.Find(TEXT("{1}")) - 1;
 	FString Args;
 	if (ArgsAt > 0)
 	{

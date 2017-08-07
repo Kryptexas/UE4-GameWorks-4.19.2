@@ -6,13 +6,13 @@
 
 #include "ModuleManager.h"
 #include "IHeadMountedDisplayModule.h"
+#include "IHeadMountedDisplay.h"
 #if STEAMVR_SUPPORTED_PLATFORMS
 #include "openvr.h"
 #endif // STEAMVR_SUPPORTED_PLATFORMS
 
 /** Up to 8 motion controller devices supported (two VR motion controllers per Unreal controller, one for either the left or right hand.) */
 #define MAX_STEAMVR_CONTROLLER_PAIRS 4
-
 
 /**
  * The public interface to this module.  In most cases, this interface is only public to sibling modules 
@@ -61,7 +61,7 @@ public:
 	 * Update the Controller to Device mapping.
 	 * The controller passes this to the HMD.
 	 */
-	virtual void SetUnrealControllerIdAndHandToDeviceIdMap(int32 InUnrealControllerIdAndHandToDeviceIdMap[ MAX_STEAMVR_CONTROLLER_PAIRS ][ 2 ] ) = 0;
+	virtual void SetUnrealControllerIdAndHandToDeviceIdMap(int32 InUnrealControllerIdAndHandToDeviceIdMap[ MAX_STEAMVR_CONTROLLER_PAIRS ][ vr::k_unMaxTrackedDeviceCount ] ) = 0;
 #endif // STEAMVR_SUPPORTED_PLATFORMS
 
 private:

@@ -279,7 +279,7 @@ void STutorialContent::GetAnimationValues(float& OutAlphaFactor, float& OutPulse
 	}
 }
 
-int32 STutorialContent::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+int32 STutorialContent::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	CachedContentGeometry = AllottedGeometry;
 	CachedContentGeometry.AppendTransform(FSlateLayoutTransform(OutDrawElements.GetWindow()->GetPositionInScreen()));
@@ -302,10 +302,10 @@ int32 STutorialContent::OnPaint(const FPaintArgs& Args, const FGeometry& Allotte
 		FSlateRect WindowClippingRect(0.0f, 0.0f, WindowSize.X, WindowSize.Y);
 
 		FPaintGeometry ShadowGeometry((WidgetGeometry.AbsolutePosition - FVector2D(ShadowBrush->Margin.Left, ShadowBrush->Margin.Top) * ShadowBrush->ImageSize * WidgetGeometry.Scale * TutorialConstants::ShadowScale),
-										((WidgetGeometry.Size * WidgetGeometry.Scale) + (FVector2D(ShadowBrush->Margin.Right * 2.0f, ShadowBrush->Margin.Bottom * 2.0f) * ShadowBrush->ImageSize * WidgetGeometry.Scale * TutorialConstants::ShadowScale)),
+										((WidgetGeometry.GetLocalSize() * WidgetGeometry.Scale) + (FVector2D(ShadowBrush->Margin.Right * 2.0f, ShadowBrush->Margin.Bottom * 2.0f) * ShadowBrush->ImageSize * WidgetGeometry.Scale * TutorialConstants::ShadowScale)),
 										WidgetGeometry.Scale * TutorialConstants::ShadowScale);
 		// draw highlight shadow
-		FSlateDrawElement::MakeBox(OutDrawElements, LayerId++, ShadowGeometry, ShadowBrush, WindowClippingRect, ESlateDrawEffect::None, ShadowTint);
+		FSlateDrawElement::MakeBox(OutDrawElements, LayerId++, ShadowGeometry, ShadowBrush, ESlateDrawEffect::None, ShadowTint);
 
 		FVector2D PulseOffset = FVector2D(PulseFactor * TutorialConstants::MaxBorderOffset, PulseFactor * TutorialConstants::MaxBorderOffset);
 
@@ -315,10 +315,10 @@ int32 STutorialContent::OnPaint(const FPaintArgs& Args, const FGeometry& Allotte
 		FPaintGeometry BorderGeometry(BorderPosition, BorderSize, WidgetGeometry.Scale);
 
 		// draw highlight border
-		FSlateDrawElement::MakeBox(OutDrawElements, LayerId++, BorderGeometry, BorderBrush, WindowClippingRect, ESlateDrawEffect::None, BorderTint);
+		FSlateDrawElement::MakeBox(OutDrawElements, LayerId++, BorderGeometry, BorderBrush, ESlateDrawEffect::None, BorderTint);
 	}
 
-	return SCompoundWidget::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+	return SCompoundWidget::OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 }
 
 FReply STutorialContent::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
@@ -476,10 +476,10 @@ FVector2D STutorialContent::GetPosition() const
 		default:
 		case HAlign_Fill:
 		case HAlign_Center:
-			XOffset = (CachedGeometry.Size.X * 0.5f) - (ContentWidget->GetDesiredSize().X * 0.5f);
+			XOffset = (CachedGeometry.GetLocalSize().X * 0.5f) - (ContentWidget->GetDesiredSize().X * 0.5f);
 			break;
 		case HAlign_Right:
-			XOffset = CachedGeometry.Size.X - ContentOffset;
+			XOffset = CachedGeometry.GetLocalSize().X - ContentOffset;
 			break;
 		}
 
@@ -494,10 +494,10 @@ FVector2D STutorialContent::GetPosition() const
 		default:
 		case VAlign_Fill:
 		case VAlign_Center:
-			YOffset = (CachedGeometry.Size.Y * 0.5f) - (ContentWidget->GetDesiredSize().Y * 0.5f);
+			YOffset = (CachedGeometry.GetLocalSize().Y * 0.5f) - (ContentWidget->GetDesiredSize().Y * 0.5f);
 			break;
 		case VAlign_Bottom:
-			YOffset = (CachedGeometry.Size.Y - ContentOffset);
+			YOffset = (CachedGeometry.GetLocalSize().Y - ContentOffset);
 			break;
 		}
 

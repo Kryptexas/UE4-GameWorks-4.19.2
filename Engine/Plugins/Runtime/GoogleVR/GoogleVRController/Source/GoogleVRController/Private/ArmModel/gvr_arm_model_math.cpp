@@ -1,42 +1,14 @@
-/* Copyright 2016 Google Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2017 Google Inc.
 
 #include "gvr_arm_model_math.h"
 #include "gvr_arm_model.h"
 #include "GoogleVRController.h"
-
-#include <cmath>
-#include <float.h>
 
 using namespace gvr_arm_model;
 
 /*
 * Definitions for Util class
 */
-
-float Util::Clampf(float value, float min, float max) {
-  if (value < min) {
-    return min;
-  }
-
-  if (value > max) {
-    return max;
-  }
-
-  return value;
-}
 
 float Util::ToDegrees(float radians) {
   return (radians * 180.0f) / PI;
@@ -149,11 +121,11 @@ Vector3 Vector3::Slerp(Vector3 start, Vector3 end, float percent) {
   end = end.Normalized();
 
   float dot = start.Dot(end);
-  dot = Util::Clampf(dot, -1.0f, 1.0f);
-  float theta = acos(dot) * percent;
+  dot = FMath::Clamp(dot, -1.0f, 1.0f);
+  float theta = FMath::Acos(dot) * percent;
   Vector3 relative_vector = end - start * dot;
   relative_vector = relative_vector.Normalized();
-  return ((start * cos(theta)) + (relative_vector * sin(theta)));
+  return ((start * FMath::Cos(theta)) + (relative_vector * FMath::Sin(theta)));
 }
 
 Vector3 Vector3::Scale(const Vector3& a, const Vector3& b) {

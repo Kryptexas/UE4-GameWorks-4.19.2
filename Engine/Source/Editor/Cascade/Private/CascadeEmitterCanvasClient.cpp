@@ -1802,12 +1802,9 @@ TSharedRef<SWidget> FCascadeEmitterCanvasClient::BuildMenuWidgetModule()
 			if (CurrLODLevel > 0)
 			{
 				bool bAddDuplicateOptions = true;
-				if (SelectedModule)
+				if (CascadePtr.Pin()->GetIsModuleShared(SelectedModule) == true)
 				{
-					if (CascadePtr.Pin()->GetIsModuleShared(SelectedModule) == true)
-					{
-						bAddDuplicateOptions = false;
-					}
+					bAddDuplicateOptions = false;
 				}
 
 				if (bAddDuplicateOptions == true)

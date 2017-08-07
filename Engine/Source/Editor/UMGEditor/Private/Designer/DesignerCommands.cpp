@@ -13,6 +13,7 @@ void FDesignerCommands::RegisterCommands()
 	UI_COMMAND( RotationGridSnap, "Rotation Snap", "Enables or disables snapping objects to a rotation grid", EUserInterfaceActionType::ToggleButton, FInputChord() );
 
 	UI_COMMAND( ToggleOutlines, "Show Outlines", "Enables or disables showing the dashed outlines", EUserInterfaceActionType::ToggleButton, FInputChord(EKeys::G) );
+	UI_COMMAND( ToggleRespectLocks, "Respect Locks", "Enables or disables respecting locks placed on widgets.  Normally locked widgets prevent being selected in the designer.", EUserInterfaceActionType::ToggleButton, FInputChord(EKeys::L) );
 }
 
 #undef LOCTEXT_NAMESPACE

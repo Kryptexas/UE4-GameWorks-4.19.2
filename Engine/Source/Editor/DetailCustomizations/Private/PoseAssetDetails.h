@@ -10,7 +10,7 @@
 #include "IDetailCustomization.h"
 #include "Animation/PoseAsset.h"
 
-class FAssetData;
+struct FAssetData;
 class IDetailLayoutBuilder;
 class IPropertyHandle;
 

@@ -382,7 +382,7 @@ DumpBlueprintsInfo commandlet params: \n\
 	 * actions available to that pin (as if you dragged and spawned a context 
 	 * menu from it).
 	 */
-	static void DumpContextualPinTypeActions(uint32 Indent, UEdGraph* Graph, FEdGraphPinType const& PinType, FArchive* FileOutWriter);
+	static void DumpContextualPinTypeActions(uint32 Indent, UEdGraph* Graph, const FEdGraphPinType& PinType, FArchive* FileOutWriter);
 	
 	/**
 	 * Generic function that takes a contextual GraphActionList and calls down 
@@ -1156,45 +1156,48 @@ static bool DumpBlueprintInfoUtils::DumpActionDatabaseInfo(uint32 Indent, FArchi
 
 		for (auto const& DbEntry : ActionRegistry)
 		{
-			UObject const* ActionSetKey = DbEntry.Key;
-			bool const bIsUnknownAssetEntry = ActionSetKey->IsAsset() &&
-				!ActionSetKey->IsA<UBlueprint>() &&
-				!ActionSetKey->IsA<UUserDefinedStruct>() &&
-				!ActionSetKey->IsA<UUserDefinedEnum>();
-
-			for (UBlueprintNodeSpawner* BpAction : DbEntry.Value)
+			UObject const* ActionSetKey = DbEntry.Key.ResolveObjectPtr();
+			if (ActionSetKey)
 			{
-				++DatabaseCount;
-				// @TODO: doesn't account for any allocated memory (for delegates, text strings, etc.)
-				EstimatedDatabaseSize += sizeof(*BpAction);
+				bool const bIsUnknownAssetEntry = ActionSetKey->IsAsset() &&
+					!ActionSetKey->IsA<UBlueprint>() &&
+					!ActionSetKey->IsA<UUserDefinedStruct>() &&
+					!ActionSetKey->IsA<UUserDefinedEnum>();
 
-				FSpawnerInfo& SpawnerInfo = DatabaseBreakdown.FindOrAdd(BpAction->GetClass());
-				SpawnerInfo.Count += 1;
-
-				int32 OldPrimingTime = TotalPrimingTime;
+				for (UBlueprintNodeSpawner* BpAction : DbEntry.Value)
 				{
-					FScopedDurationTimer PrimingTimer(TotalPrimingTime);
-					BpAction->Prime();
-				}
-				SpawnerInfo.TotalPrimingTime += (TotalPrimingTime - OldPrimingTime);
+					++DatabaseCount;
+					// @TODO: doesn't account for any allocated memory (for delegates, text strings, etc.)
+					EstimatedDatabaseSize += sizeof(*BpAction);
 
-				if (UEdGraphNode* TemplateNode = BpAction->GetCachedTemplateNode())
-				{
-					UObject* TemplateOuter = TemplateNode->GetOuter();
-					while ((TemplateOuter != nullptr) && (Cast<UBlueprint>(TemplateOuter) == nullptr))
+					FSpawnerInfo& SpawnerInfo = DatabaseBreakdown.FindOrAdd(BpAction->GetClass());
+					SpawnerInfo.Count += 1;
+
+					int32 OldPrimingTime = TotalPrimingTime;
 					{
-						TemplateOuter = TemplateOuter->GetOuter();
+						FScopedDurationTimer PrimingTimer(TotalPrimingTime);
+						BpAction->Prime();
 					}
-					UBlueprint* OuterBlueprint = CastChecked<UBlueprint>(TemplateOuter);
-					TemplateOuters.Add(OuterBlueprint);
+					SpawnerInfo.TotalPrimingTime += (TotalPrimingTime - OldPrimingTime);
 
-					++TemplateCount;
-					SpawnerInfo.TemplateNodeCount += 1;
-				}
+					if (UEdGraphNode* TemplateNode = BpAction->GetCachedTemplateNode())
+					{
+						UObject* TemplateOuter = TemplateNode->GetOuter();
+						while ((TemplateOuter != nullptr) && (Cast<UBlueprint>(TemplateOuter) == nullptr))
+						{
+							TemplateOuter = TemplateOuter->GetOuter();
+						}
+						UBlueprint* OuterBlueprint = CastChecked<UBlueprint>(TemplateOuter);
+						TemplateOuters.Add(OuterBlueprint);
 
-				if (bIsUnknownAssetEntry)
-				{
-					++UnknownAssetActions;
+						++TemplateCount;
+						SpawnerInfo.TemplateNodeCount += 1;
+					}
+
+					if (bIsUnknownAssetEntry)
+					{
+						++UnknownAssetActions;
+					}
 				}
 			}
 		}
@@ -1946,7 +1949,15 @@ static bool DumpBlueprintInfoUtils::DumpPinContextActions(uint32 Indent, UEdGrap
 			FileOutWriter->Serialize(TCHAR_TO_ANSI(TEXT(",\n")), 2);
 			PinType.bIsReference = false;
 
-			PinType.bIsArray = true;
+			PinType.ContainerType = EPinContainerType::Array;
+			DumpContextualPinTypeActions(Indent, Graph, PinType, FileOutWriter);
+			FileOutWriter->Serialize(TCHAR_TO_ANSI(TEXT(",\n")), 2);
+
+			PinType.ContainerType = EPinContainerType::Set;
+			DumpContextualPinTypeActions(Indent, Graph, PinType, FileOutWriter);
+			FileOutWriter->Serialize(TCHAR_TO_ANSI(TEXT(",\n")), 2);
+
+			PinType.ContainerType = EPinContainerType::Map;
 			DumpContextualPinTypeActions(Indent, Graph, PinType, FileOutWriter);
 
 			bWroteToFile = true;
@@ -1988,7 +1999,15 @@ static bool DumpBlueprintInfoUtils::DumpTypeTreeActions(uint32 Indent, UEdGraph*
 		FileOutWriter->Serialize(TCHAR_TO_ANSI(TEXT(",\n")), 2);
 		PinType.bIsReference = false;
 
-		PinType.bIsArray = true;
+		PinType.ContainerType = EPinContainerType::Array;
+		DumpContextualPinTypeActions(Indent, Graph, PinType, FileOutWriter);
+		FileOutWriter->Serialize(TCHAR_TO_ANSI(TEXT(",\n")), 2);
+
+		PinType.ContainerType = EPinContainerType::Set;
+		DumpContextualPinTypeActions(Indent, Graph, PinType, FileOutWriter);
+		FileOutWriter->Serialize(TCHAR_TO_ANSI(TEXT(",\n")), 2);
+
+		PinType.ContainerType = EPinContainerType::Map;
 		DumpContextualPinTypeActions(Indent, Graph, PinType, FileOutWriter);
 
 		PendingLineEnding = TEXT(",\n");
@@ -2019,7 +2038,7 @@ static bool DumpBlueprintInfoUtils::DumpTypeTreeActions(uint32 Indent, UEdGraph*
 }
 
 //------------------------------------------------------------------------------
-static void DumpBlueprintInfoUtils::DumpContextualPinTypeActions(uint32 Indent, UEdGraph* Graph, FEdGraphPinType const& PinType, FArchive* FileOutWriter)
+static void DumpBlueprintInfoUtils::DumpContextualPinTypeActions(uint32 Indent, UEdGraph* Graph, const FEdGraphPinType& PinType, FArchive* FileOutWriter)
 {
 	FGraphContextMenuBuilder ContextMenuBuilder(Graph);
 

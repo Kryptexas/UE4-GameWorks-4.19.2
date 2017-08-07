@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3237313
+﻿INTSourceChangelist:3429233
 Availability: Public
 Title:애니메이션 툴
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
@@ -14,6 +14,7 @@ tags:Animation
 tags:Skeleton Asset
 tags:Animation Blueprint
 tags:Skeletal Mesh
+tags:Tools
 
 [EXCERPT:Overview]
 언리얼 엔진 4 에서 애니메이션 캐릭터를 만들기 위해서는 여러가지 다양한 애니메이션 툴( 또는 에디터들)을 사용해야 하는데, 애니메이션의 특징에 따라 쓰이는 툴이 다릅니다.

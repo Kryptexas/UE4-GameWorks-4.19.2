@@ -103,7 +103,12 @@ FString FStreamLevelAction::MakeSafeLevelName( const FName& InLevelName, UWorld*
 	// Special case for PIE, the PackageName gets mangled.
 	if (!InWorld->StreamingLevelsPrefix.IsEmpty())
 	{
-		FString PackageName = InWorld->StreamingLevelsPrefix + FPackageName::GetShortName(InLevelName);
+		FString PackageName = FPackageName::GetShortName(InLevelName);
+		if (!PackageName.StartsWith(InWorld->StreamingLevelsPrefix))
+		{
+			PackageName = InWorld->StreamingLevelsPrefix + PackageName;
+		}
+
 		if (!FPackageName::IsShortPackageName(InLevelName))
 		{
 			PackageName = FPackageName::GetLongPackagePath(InLevelName.ToString()) + TEXT("/") + PackageName;
@@ -227,7 +232,7 @@ void ULevelStreaming::PostLoad()
 			// Convert the FName reference to a TAssetPtr, then broadcast that we loaded a reference
 			// so this reference is gathered by the cooker without having to resave the package.
 			SetWorldAssetByPackageName(PackageName_DEPRECATED);
-			FCoreUObjectDelegates::StringAssetReferenceLoaded.ExecuteIfBound(WorldAsset.ToStringReference().ToString());
+			WorldAsset.GetUniqueID().PostLoadPath();
 		}
 		else
 		{
@@ -389,7 +394,8 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 	}
 
 	// Can not load new level now either, we're still processing visibility for this one
-    if (PersistentWorld->IsVisibilityRequestPending() && PersistentWorld->CurrentLevelPendingVisibility == LoadedLevel)
+	ULevel* PendingLevelVisOrInvis = (PersistentWorld->CurrentLevelPendingVisibility) ? PersistentWorld->CurrentLevelPendingVisibility : PersistentWorld->CurrentLevelPendingInvisibility;
+    if (PendingLevelVisOrInvis && PendingLevelVisOrInvis == LoadedLevel)
     {
 		UE_LOG(LogLevelStreaming, Verbose, TEXT("Delaying load of new level %s, because %s still processing visibility request."), *DesiredPackageName.ToString(), *CachedLoadedLevelPackageName.ToString());
 		return false;
@@ -521,7 +527,7 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 			{
 				if (IsAsyncLoading())
 				{
-					UE_LOG(LogStreaming, Log, TEXT("ULevelStreaming::RequestLevel(%s) is flushing async loading"), *DesiredPackageName.ToString());
+					UE_LOG(LogStreaming, Display, TEXT("ULevelStreaming::RequestLevel(%s) is flushing async loading"), *DesiredPackageName.ToString());
 				}
 
 				// Finish all async loading.
@@ -556,21 +562,22 @@ void ULevelStreaming::AsyncLevelLoadComplete(const FName& InPackageName, UPackag
 			if (Level)
 			{
 				UWorld* LevelOwningWorld = Level->OwningWorld;
-
-				if (LevelOwningWorld && 
-					LevelOwningWorld->IsVisibilityRequestPending() && 
-					LevelOwningWorld->CurrentLevelPendingVisibility == LoadedLevel)
- 				{
- 					// We can't change current loaded level if it's still processing visibility request
-					// On next UpdateLevelStreaming call this loaded package will be found in memory by RequestLevel function in case visibility request has finished
- 					UE_LOG(LogLevelStreaming, Verbose, TEXT("Delaying setting result of async load new level %s, because current loaded level still processing visibility request"), *LevelPackage->GetName());
- 				}
-				else
+				if (LevelOwningWorld)
 				{
-					check(PendingUnloadLevel == NULL);
-					SetLoadedLevel(Level);
-					// Broadcast level loaded event to blueprints
-					OnLevelLoaded.Broadcast();
+					ULevel* PendingLevelVisOrInvis = (LevelOwningWorld->CurrentLevelPendingVisibility) ? LevelOwningWorld->CurrentLevelPendingVisibility : LevelOwningWorld->CurrentLevelPendingInvisibility;
+					if (PendingLevelVisOrInvis && PendingLevelVisOrInvis == LoadedLevel)
+					{
+						// We can't change current loaded level if it's still processing visibility request
+						// On next UpdateLevelStreaming call this loaded package will be found in memory by RequestLevel function in case visibility request has finished
+						UE_LOG(LogLevelStreaming, Verbose, TEXT("Delaying setting result of async load new level %s, because current loaded level still processing visibility request"), *LevelPackage->GetName());
+					}
+					else
+					{
+						check(PendingUnloadLevel == NULL);
+						SetLoadedLevel(Level);
+						// Broadcast level loaded event to blueprints
+						OnLevelLoaded.Broadcast();
+					}
 				}
 
 				Level->HandleLegacyMapBuildData();
@@ -899,7 +906,7 @@ FBox ULevelStreaming::GetStreamingVolumeBounds()
 		ALevelStreamingVolume* StreamingVol = EditorStreamingVolumes[VolIdx];
 		if(StreamingVol && StreamingVol->GetBrushComponent())
 		{
-			Bounds += StreamingVol->GetBrushComponent()->BrushBodySetup->AggGeom.CalcAABB(StreamingVol->GetBrushComponent()->ComponentToWorld);
+			Bounds += StreamingVol->GetBrushComponent()->BrushBodySetup->AggGeom.CalcAABB(StreamingVol->GetBrushComponent()->GetComponentTransform());
 		}
 	}
 
@@ -991,6 +998,25 @@ void ULevelStreaming::PostEditUndo()
 #endif // WITH_EDITOR
 
 
+#if WITH_EDITOR
+const FName& ULevelStreaming::GetFolderPath() const
+{
+	return FolderPath;
+}
+
+void ULevelStreaming::SetFolderPath(const FName& InFolderPath)
+{
+	if (FolderPath != InFolderPath)
+	{
+		Modify();
+
+		FolderPath = InFolderPath;
+
+		// @TODO: Should this be broadcasted through the editor, similar to BroadcastLevelActorFolderChanged?
+	}
+}
+#endif	// WITH_EDITOR
+
 /*-----------------------------------------------------------------------------
 	ULevelStreamingPersistent implementation.
 -----------------------------------------------------------------------------*/
@@ -1036,7 +1062,7 @@ ALevelScriptActor* ULevelStreaming::GetLevelScriptActor()
 ULevelStreamingKismet* ULevelStreamingKismet::LoadLevelInstance(UObject* WorldContextObject, const FString& LevelName, const FVector& Location, const FRotator& Rotation, bool& bOutSuccess)
 { 
 	bOutSuccess = false; 
-	UWorld* const World = GEngine->GetWorldFromContextObject(WorldContextObject, false);
+	UWorld* const World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 	if (!World) 
 	{
 		return nullptr;
@@ -1080,11 +1106,18 @@ ULevelStreamingKismet* ULevelStreamingKismet::LoadLevelInstance(UObject* WorldCo
 /*-----------------------------------------------------------------------------
 	ULevelStreamingAlwaysLoaded implementation.
 -----------------------------------------------------------------------------*/
+
 ULevelStreamingAlwaysLoaded::ULevelStreamingAlwaysLoaded(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	bShouldBeVisible = true;
 }
+
+void ULevelStreamingAlwaysLoaded::GetPrestreamPackages(TArray<UObject*>& OutPrestream)
+{
+	OutPrestream.Add(GetLoadedLevel()); // Nulls will be ignored later
+}
+
 
 bool ULevelStreamingAlwaysLoaded::ShouldBeLoaded() const
 {

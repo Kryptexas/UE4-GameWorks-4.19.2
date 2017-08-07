@@ -100,7 +100,7 @@ protected:
 	FOptionalSize GetFrameWidth() const;
 
 	void OpenSpritePickerMenu(class FMenuBuilder& MenuBuilder);
-	void OnAssetSelected(const class FAssetData& AssetData);
+	void OnAssetSelected(const struct FAssetData& AssetData);
 	void CloseMenu();
 	void ShowInContentBrowser();
 	void EditKeyFrame();

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
+#include "EditorObjectVersion.h"
 #include "MovieSceneTrackIdentifier.generated.h"
 
 USTRUCT()
@@ -23,19 +24,47 @@ struct FMovieSceneTrackIdentifier
 		return *this;
 	}
 
-	friend bool operator==(FMovieSceneTrackIdentifier A, FMovieSceneTrackIdentifier B)
+	FORCEINLINE friend bool operator==(FMovieSceneTrackIdentifier A, FMovieSceneTrackIdentifier B)
 	{
 		return A.Value == B.Value;
 	}
 
-	friend bool operator!=(FMovieSceneTrackIdentifier A, FMovieSceneTrackIdentifier B)
+	FORCEINLINE friend bool operator!=(FMovieSceneTrackIdentifier A, FMovieSceneTrackIdentifier B)
 	{
 		return A.Value != B.Value;
 	}
 
-	friend uint32 GetTypeHash(FMovieSceneTrackIdentifier In)
+	FORCEINLINE friend bool operator<(FMovieSceneTrackIdentifier A, FMovieSceneTrackIdentifier B)
+	{
+		return A.Value < B.Value;
+	}
+
+	FORCEINLINE friend bool operator>(FMovieSceneTrackIdentifier A, FMovieSceneTrackIdentifier B)
+	{
+		return A.Value > B.Value;
+	}
+
+	FORCEINLINE friend uint32 GetTypeHash(FMovieSceneTrackIdentifier In)
 	{
 		return In.Value;
+	}
+
+	/** Custom serialized to reduce memory footprint */
+	bool Serialize(FArchive& Ar)
+	{
+		if (Ar.CustomVer(FEditorObjectVersion::GUID) < FEditorObjectVersion::MovieSceneMetaDataSerialization)
+		{
+			return false;
+		}
+
+		Ar << Value;
+		return true;
+	}
+
+	friend FArchive& operator<<(FArchive& Ar, FMovieSceneTrackIdentifier& Identifier)
+	{
+		Identifier.Serialize(Ar);
+		return Ar;
 	}
 
 private:
@@ -44,4 +73,13 @@ private:
 	
 	UPROPERTY()
 	uint32 Value;
+};
+
+template<>
+struct TStructOpsTypeTraits<FMovieSceneTrackIdentifier> : public TStructOpsTypeTraitsBase2<FMovieSceneTrackIdentifier>
+{
+	enum
+	{
+		WithSerializer = true
+	};
 };

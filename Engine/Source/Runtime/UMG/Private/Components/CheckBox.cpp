@@ -57,7 +57,7 @@ void UCheckBox::SynchronizeProperties()
 	Super::SynchronizeProperties();
 
 	MyCheckbox->SetStyle(&WidgetStyle);
-	MyCheckbox->SetIsChecked( OPTIONAL_BINDING(ECheckBoxState, CheckedState) );
+	MyCheckbox->SetIsChecked( PROPERTY_BINDING(ECheckBoxState, CheckedState) );
 }
 
 void UCheckBox::OnSlotAdded(UPanelSlot* InSlot)
@@ -113,7 +113,7 @@ void UCheckBox::SetIsChecked(bool InIsChecked)
 	CheckedState = InIsChecked ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	if ( MyCheckbox.IsValid() )
 	{
-		MyCheckbox->SetIsChecked(OPTIONAL_BINDING(ECheckBoxState, CheckedState));
+		MyCheckbox->SetIsChecked(PROPERTY_BINDING(ECheckBoxState, CheckedState));
 	}
 }
 
@@ -122,7 +122,7 @@ void UCheckBox::SetCheckedState(ECheckBoxState InCheckedState)
 	CheckedState = InCheckedState;
 	if ( MyCheckbox.IsValid() )
 	{
-		MyCheckbox->SetIsChecked(OPTIONAL_BINDING(ECheckBoxState, CheckedState));
+		MyCheckbox->SetIsChecked(PROPERTY_BINDING(ECheckBoxState, CheckedState));
 	}
 }
 

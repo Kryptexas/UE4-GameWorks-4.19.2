@@ -49,6 +49,7 @@ protected:
 	virtual void ProcessOneFunctionGraph(UEdGraph* SourceGraph, bool bInternalFunction = false) override;
 	virtual void CreateFunctionList() override;
 	virtual void SpawnNewClass(const FString& NewClassName) override;
+	virtual void OnNewClassSet(UBlueprintGeneratedClass* ClassToUse) override;
 	virtual void CopyTermDefaultsToDefaultObject(UObject* DefaultObject) override;
 	virtual void PostCompileDiagnostics() override;
 	virtual void EnsureProperGeneratedClass(UClass*& TargetClass) override;
@@ -304,7 +305,7 @@ private:
 	void ProcessUseCachedPose(UAnimGraphNode_UseCachedPose* UseCachedPose);
 
 	// Compiles one sub instance node
-	void ProcessSubInstance(UAnimGraphNode_SubInstance* SubInstance);
+	void ProcessSubInstance(UAnimGraphNode_SubInstance* SubInstance, bool bCheckForCycles);
 
 	// Traverses subinstance links looking for slot names and state machine names, returning their count in a name map
 	typedef TMap<FName, int32> NameToCountMap;

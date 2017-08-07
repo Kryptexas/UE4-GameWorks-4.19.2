@@ -9,6 +9,8 @@
 #include "AI/Navigation/NavigationSystem.h"
 #include "EngineGlobals.h"
 #include "Engine/Engine.h"
+#include "Misc/RuntimeErrors.h"
+
 #if WITH_EDITOR
 
 //----------------------------------------------------------------------//
@@ -62,7 +64,6 @@ UFunctionalTestingManager::UFunctionalTestingManager( const FObjectInitializer& 
 	, bIsRunning(false)
 	, bFinished(false)
 	, bLooped(false)
-	, bWaitForNavigationBuildFinish(false)
 	, bInitialDelayApplied(false)
 	, CurrentIteration(INDEX_NONE)
 {
@@ -85,9 +86,13 @@ struct FSortTestActorsByName
 	}
 };
 
-bool UFunctionalTestingManager::RunAllFunctionalTests(UObject* WorldContext, bool bNewLog, bool bRunLooped, bool bInWaitForNavigationBuildFinish, FString ReproString)
+bool UFunctionalTestingManager::RunAllFunctionalTests(UObject* WorldContextObject, bool bNewLog, bool bRunLooped, bool bInWaitForNavigationBuildFinish, FString ReproString)
 {
-	UFunctionalTestingManager* Manager = GetManager(WorldContext);
+	UFunctionalTestingManager* Manager = GetManager(WorldContextObject);
+	if (!ensureAsRuntimeWarning(Manager != nullptr))
+	{
+		return false;
+	}
 
 	if (Manager->bIsRunning)
 	{
@@ -95,11 +100,11 @@ bool UFunctionalTestingManager::RunAllFunctionalTests(UObject* WorldContext, boo
 		return true;
 	}
 	
-	WorldContext->GetWorld()->ForceGarbageCollection(true);
+	UWorld* World = GEngine->GetWorldFromContextObjectChecked(WorldContextObject);
+	World->ForceGarbageCollection(true);
 
 	Manager->bFinished = false;
 	Manager->bLooped = bRunLooped;
-	Manager->bWaitForNavigationBuildFinish = bInWaitForNavigationBuildFinish;
 	Manager->CurrentIteration = 0;
 	Manager->TestsLeft.Reset();
 	Manager->AllTests.Reset();
@@ -114,14 +119,14 @@ bool UFunctionalTestingManager::RunAllFunctionalTests(UObject* WorldContext, boo
 	}
 	else
 	{
-		for (TActorIterator<APhasedAutomationActorBase> It(WorldContext->GetWorld()); It; ++It)
+		for (TActorIterator<APhasedAutomationActorBase> It(World); It; ++It)
 		{
 			APhasedAutomationActorBase* PAA = (*It);
 			Manager->OnTestsComplete.AddDynamic(PAA, &APhasedAutomationActorBase::OnFunctionalTestingComplete); 
 			Manager->OnTestsBegin.AddDynamic(PAA, &APhasedAutomationActorBase::OnFunctionalTestingBegin); 
 		}
 
-		for (TActorIterator<AFunctionalTest> It(WorldContext->GetWorld()); It; ++It)
+		for (TActorIterator<AFunctionalTest> It(World); It; ++It)
 		{
 			AFunctionalTest* Test = (*It);
 			if (Test != nullptr && Test->IsEnabled() == true)
@@ -157,7 +162,11 @@ void UFunctionalTestingManager::TriggerFirstValidTest()
 	check(World);
 	bIsRunning = World->GetNavigationSystem() != nullptr;
 
-	if (bInitialDelayApplied == true && (bWaitForNavigationBuildFinish == false || UNavigationSystem::IsNavigationBeingBuilt(World) == false) && World->AreActorsInitialized())
+	const bool bIsWorldInitialized =
+		World->AreActorsInitialized() &&
+		!UNavigationSystem::IsNavigationBeingBuilt(World);
+
+	if (bInitialDelayApplied == true && bIsWorldInitialized)
 	{
 		bIsRunning = RunFirstValidTest();
 		if (bIsRunning == false)
@@ -177,15 +186,17 @@ UFunctionalTestingManager* UFunctionalTestingManager::GetManager(UObject* WorldC
 {
 	UFunctionalTestingManager* Manager = FFunctionalTestingModule::Get()->GetCurrentScript();
 
-	if (Manager == NULL)
+	if (Manager == nullptr)
 	{
-		UObject* Outer = WorldContext ? WorldContext : (UObject*)GetTransientPackage();
-		Manager = NewObject<UFunctionalTestingManager>(Outer);
-		FFunctionalTestingModule::Get()->SetScript(Manager);
+		if (UObject* World = GEngine->GetWorldFromContextObject(WorldContext, EGetWorldErrorMode::LogAndReturnNull))
+		{
+			Manager = NewObject<UFunctionalTestingManager>(World);
+			FFunctionalTestingModule::Get()->SetScript(Manager);
 
-		// add to root and get notified on world cleanup to remove from root on map cleanup
-		Manager->AddToRoot();
-		FWorldDelegates::OnWorldCleanup.AddUObject(Manager, &UFunctionalTestingManager::OnWorldCleanedUp);
+			// add to root and get notified on world cleanup to remove from root on map cleanup
+			Manager->AddToRoot();
+			FWorldDelegates::OnWorldCleanup.AddUObject(Manager, &UFunctionalTestingManager::OnWorldCleanedUp);
+		}
 	}
 
 	return Manager;
@@ -193,7 +204,7 @@ UFunctionalTestingManager* UFunctionalTestingManager::GetManager(UObject* WorldC
 
 UWorld* UFunctionalTestingManager::GetWorld() const
 {
-	return GEngine->GetWorldFromContextObject(GetOuter());
+	return GEngine->GetWorldFromContextObjectChecked(GetOuter());
 }
 
 void UFunctionalTestingManager::OnWorldCleanedUp(UWorld* World, bool bSessionEnded, bool bCleanupResources)
@@ -202,6 +213,9 @@ void UFunctionalTestingManager::OnWorldCleanedUp(UWorld* World, bool bSessionEnd
 	if (MyWorld == World)
 	{
 		RemoveFromRoot();
+
+		// Clear the functional test manager once the world is removed.
+		FFunctionalTestingModule::Get()->SetScript(nullptr);
 	}
 }
 
@@ -282,7 +296,12 @@ bool UFunctionalTestingManager::RunFirstValidTest()
 	if (TestReproStrings.Num() > 0)
 	{
 		UWorld* World = GetWorld();
-		UObject* TestsOuter = World ? (UObject*)(World->PersistentLevel) : (UObject*)(ANY_PACKAGE);
+
+		if (World == nullptr)
+		{
+			UE_LOG(LogFunctionalTest, Warning, TEXT("Unable to find testing world!"));
+			return bTestSuccessfullyTriggered;
+		}
 
 		while (TestReproStrings.Num() > 0)
 		{
@@ -301,7 +320,16 @@ bool UFunctionalTestingManager::RunFirstValidTest()
 			// first param is the test name. Look for it		
 			const FString TestName = TestParams[0];
 			TestParams.RemoveAt(0, 1, /*bAllowShrinking=*/false);
-			AFunctionalTest* TestToRun = FindObject<AFunctionalTest>(TestsOuter, *TestName);			
+
+			AFunctionalTest* TestToRun = nullptr;
+			for (TActorIterator<AFunctionalTest> It(World); It; ++It)
+			{
+				if (It->GetName() == TestName)
+				{
+					TestToRun = *It;
+				}
+			}
+			
 			if (TestToRun)
 			{
 				// Add the test we found to the tests left to run, so that if re-runs occur we continue to process this test until
@@ -321,7 +349,13 @@ bool UFunctionalTestingManager::RunFirstValidTest()
 			}
 			else
 			{
-				UE_LOG(LogFunctionalTest, Warning, TEXT("Unable to find test \'%s\'"), *TestName);
+				UE_LOG(LogFunctionalTest, Warning, TEXT("Unable to find test \'%s\' in world %s, the available tests are..."), *TestName, *World->GetFullName());
+
+				// Find Actors by type (needs a UWorld object)
+				for (TActorIterator<AFunctionalTest> It(World); It; ++It)
+				{
+					UE_LOG(LogFunctionalTest, Warning, TEXT("\'%s\'."), *It->GetName());
+				}
 			}
 		}
 	}

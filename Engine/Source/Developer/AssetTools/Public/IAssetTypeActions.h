@@ -94,10 +94,10 @@ public:
 	virtual EThumbnailPrimType GetDefaultThumbnailPrimitiveType(UObject* Asset) const = 0;
 
 	/** Optionally returns a custom widget to overlay on top of this assets' thumbnail */
-	virtual TSharedPtr<class SWidget> GetThumbnailOverlay(const class FAssetData& AssetData) const = 0;
+	virtual TSharedPtr<class SWidget> GetThumbnailOverlay(const struct FAssetData& AssetData) const = 0;
 
 	/** Returns additional tooltip information for the specified asset, if it has any (otherwise return the null widget) */
-	virtual FText GetAssetDescription(const class FAssetData& AssetData) const = 0;
+	virtual FText GetAssetDescription(const struct FAssetData& AssetData) const = 0;
 
 	/** Returns whether the asset was imported from an external source */
 	virtual bool IsImportedAsset() const = 0;

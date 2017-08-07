@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3454520
 Availability:Public
 Title:디렉토리 구조
 Crumbs: %ROOT%, Engine
 Description:엔진과 게임 프로젝트를 구성하는 디렉토리 구조에 대한 개요입니다.
 version: 4.9
+Parent:Engine
+type:overview
+order:25
 
 [TOC(start:2)]
 

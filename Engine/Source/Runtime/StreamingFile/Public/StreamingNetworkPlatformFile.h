@@ -131,7 +131,11 @@ class STREAMINGFILE_API FStreamingNetworkPlatformFile
 public:
 
 	/** Default Constructor */
-	FStreamingNetworkPlatformFile() { };
+	FStreamingNetworkPlatformFile() 
+	{
+		HeartbeatFrequency = -1.0f;
+		ConnectionFlags |= EConnectionFlags::Streaming;
+	}
 
 	/** Virtual destructor */
 	virtual ~FStreamingNetworkPlatformFile();

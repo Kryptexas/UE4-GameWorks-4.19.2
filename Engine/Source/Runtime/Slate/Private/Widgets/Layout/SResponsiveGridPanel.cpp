@@ -53,7 +53,7 @@ void SResponsiveGridPanel::Construct(const FArguments& InArgs, int32 InTotalColu
 	}
 }
 
-int32 SResponsiveGridPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SResponsiveGridPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	FArrangedChildren ArrangedChildren(EVisibility::All);
 	this->ArrangeChildren(AllottedGeometry, ArrangedChildren);
@@ -72,12 +72,10 @@ int32 SResponsiveGridPanel::OnPaint( const FPaintArgs& Args, const FGeometry& Al
 		FArrangedWidget& CurWidget = ArrangedChildren[ChildIndex];
 		if (CurWidget.Widget->GetVisibility().IsVisible())
 		{
-			FSlateRect ChildClipRect = MyClippingRect.IntersectionWith( CurWidget.Geometry.GetClippingRect() );
-
 			const int32 CurWidgetsMaxLayerId = CurWidget.Widget->Paint(
 				NewArgs,
 				CurWidget.Geometry,
-				ChildClipRect,
+				MyCullingRect,
 				OutDrawElements,
 				LayerId,
 				InWidgetStyle,
@@ -89,7 +87,7 @@ int32 SResponsiveGridPanel::OnPaint( const FPaintArgs& Args, const FGeometry& Al
 	}
 
 #ifdef LAYOUT_DEBUG
-	LayerId = LayoutDebugPaint( AllottedGeometry, MyClippingRect, OutDrawElements, LayerId );
+	LayerId = LayoutDebugPaint( AllottedGeometry, MyCullingRect, OutDrawElements, LayerId );
 #endif
 
 	return MaxLayerId;
@@ -456,7 +454,7 @@ void SResponsiveGridPanel::NotifySlotChanged(SResponsiveGridPanel::FSlot* InSlot
 	//Rows.AddZeroed();
 }
 
-int32 SResponsiveGridPanel::LayoutDebugPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId ) const
+int32 SResponsiveGridPanel::LayoutDebugPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId ) const
 {
 	//float XOffset = 0;
 	//for (int32 Column=0; Column<Columns.Num(); ++Column)
@@ -469,7 +467,7 @@ int32 SResponsiveGridPanel::LayoutDebugPaint(const FGeometry& AllottedGeometry, 
 	//			OutDrawElements, 
 	//			LayerId,
 	//			AllottedGeometry.ToPaintGeometry( FVector2D(XOffset, YOffset), FVector2D( Columns[Column], Rows[Row] ) ),
-	//			MyClippingRect
+	//			MyCullingRect
 	//		);
 
 	//		YOffset += Rows[Row];

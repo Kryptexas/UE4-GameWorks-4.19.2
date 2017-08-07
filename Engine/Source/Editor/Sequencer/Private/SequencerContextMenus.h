@@ -6,8 +6,11 @@
 #include "DisplayNodes/SequencerDisplayNode.h"
 #include "Sequencer.h"
 #include "SequencerClipboardReconciler.h"
+#include "ScopedTransaction.h"
 
+struct FEasingAreaHandle;
 class FMenuBuilder;
+class UMovieSceneSection;
 
 /**
  * Class responsible for generating a menu for the currently selected sections.
@@ -42,6 +45,8 @@ private:
 
 	/** Add the Order sub-menu. */
 	void AddOrderMenu(FMenuBuilder& MenuBuilder);
+
+	void AddBlendTypeMenu(FMenuBuilder& MenuBuilder);
 
 	void SelectAllKeys();
 
@@ -88,6 +93,8 @@ private:
 	void BringForward();
 
 	void SendBackward();
+
+	FMovieSceneBlendTypeField GetSupportedBlendTypes() const;
 
 	/** The sequencer */
 	TSharedRef<FSequencer> Sequencer;
@@ -155,7 +162,7 @@ private:
 
 	void PasteInto(int32 DestinationIndex, FName KeyAreaName);
 
-	void GatherPasteDestinationsForNode(FSequencerDisplayNode& InNode, int32 SectionIndex, const FName& CurrentScope, TMap<FName, FSequencerClipboardReconciler>& Map);
+	void GatherPasteDestinationsForNode(FSequencerDisplayNode& InNode, UMovieSceneSection* InSection, const FName& CurrentScope, TMap<FName, FSequencerClipboardReconciler>& Map);
 
 	/** The sequencer */
 	TSharedRef<FSequencer> Sequencer;
@@ -225,4 +232,49 @@ private:
 
 	/** The sequencer */
 	TSharedRef<FSequencer> Sequencer;
+};
+
+
+/**
+ * Class responsible for generating a menu for a set of easing curves.
+ * This is a shared class that's entirely owned by the context menu handlers.
+ * Once the menu is closed, all references to this class are removed, and the 
+ * instance is cleaned up. To ensure no weak references are held, AsShared is hidden
+ */
+struct FEasingContextMenu : TSharedFromThis<FEasingContextMenu>
+{
+	static void BuildMenu(FMenuBuilder& MenuBuilder, const TArray<FEasingAreaHandle>& InEasings, FSequencer& Sequencer, float InMouseDownTime);
+
+private:
+
+	FEasingContextMenu(const TArray<FEasingAreaHandle>& InEasings)
+		: Easings(InEasings)
+	{}
+
+	/** Hidden AsShared() methods to discourage CreateSP delegate use. */
+	using TSharedFromThis::AsShared;
+
+	void PopulateMenu(FMenuBuilder& MenuBuilder);
+
+	FText GetEasingTypeText() const;
+
+	void EasingTypeMenu(FMenuBuilder& MenuBuilder);
+
+	void EasingOptionsMenu(FMenuBuilder& MenuBuilder);
+
+	void OnEasingTypeChanged(UClass* NewClass);
+
+	void OnUpdateLength(float NewLength);
+
+	TOptional<float> GetCurrentLength() const;
+
+	ECheckBoxState GetAutoEasingCheckState() const;
+
+	void SetAutoEasing(bool bAutoEasing);
+
+	/** The sequencer */
+	TArray<FEasingAreaHandle> Easings;
+
+	/** A scoped transaction for a current operation */
+	TUniquePtr<FScopedTransaction> ScopedTransaction;
 };

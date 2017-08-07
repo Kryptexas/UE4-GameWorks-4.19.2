@@ -1,8 +1,15 @@
-Availability:Public
-Title:Scene Fringe
-Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
-Description:Chromatic aberration effect that simulates the color shifts near the edges of real-world camera lenses.
-Version: 4.9
+Availability: Public
+Crumbs: %ROOT%
+Title: Scene Fringe (Chromatic Aberration)
+Description: Chromatic aberration effect that simulates the color shifts near the edges of real-world camera lenses.
+Type: Overview
+SkillLevel:Beginner
+Version:4.16
+Parent:Engine/Rendering/PostProcessEffects
+Order:9
+Tags:Post Process
+Topic-image:SceneFringe_topic.png
+
 
 
 [EXCERPT:SceneFringe_Desc]

@@ -23,8 +23,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FSpawnActorDelegate, AActor*, Spawne
  *	actor down to him. We could potentially also use this to do predictive actor spawning / reconciliation.
  */
 
-UCLASS(MinimalAPI)
-class UAbilityTask_SpawnActor: public UAbilityTask
+UCLASS()
+class GAMEPLAYABILITIES_API UAbilityTask_SpawnActor: public UAbilityTask
 {
 	GENERATED_UCLASS_BODY()
 

@@ -36,7 +36,7 @@ TSharedRef<SWidget> UListView::RebuildWidget()
 		//	);
 		;
 
-	return BuildDesignTimeWidget( MyListView.ToSharedRef() );
+	return MyListView.ToSharedRef();
 }
 
 TSharedRef<ITableRow> UListView::HandleOnGenerateRow(UObject* Item, const TSharedRef< STableViewBase >& OwnerTable) const
@@ -60,6 +60,7 @@ TSharedRef<ITableRow> UListView::HandleOnGenerateRow(UObject* Item, const TShare
 			SNew(STextBlock).Text(Item ? FText::FromString(Item->GetName()) : LOCTEXT("null", "null"))
 		];
 }
+
 
 #if WITH_EDITOR
 

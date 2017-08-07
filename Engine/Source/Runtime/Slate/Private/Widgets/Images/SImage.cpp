@@ -3,11 +3,6 @@
 #include "Widgets/Images/SImage.h"
 #include "Rendering/DrawElements.h"
 
-/**
- * Construct this widget
- *
- * @param	InArgs	The declaration data for this widget
- */
 void SImage::Construct( const FArguments& InArgs )
 {
 	Image = InArgs._Image;
@@ -15,8 +10,7 @@ void SImage::Construct( const FArguments& InArgs )
 	OnMouseButtonDownHandler = InArgs._OnMouseButtonDown;
 }
 
-
-int32 SImage::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SImage::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	const FSlateBrush* ImageBrush = Image.Get();
 
@@ -27,19 +21,11 @@ int32 SImage::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry
 
 		const FLinearColor FinalColorAndOpacity( InWidgetStyle.GetColorAndOpacityTint() * ColorAndOpacity.Get().GetColor(InWidgetStyle) * ImageBrush->GetTint( InWidgetStyle ) );
 
-		FSlateDrawElement::MakeBox(OutDrawElements, LayerId, AllottedGeometry.ToPaintGeometry(), ImageBrush, MyClippingRect, DrawEffects, FinalColorAndOpacity );
+		FSlateDrawElement::MakeBox(OutDrawElements, LayerId, AllottedGeometry.ToPaintGeometry(), ImageBrush, DrawEffects, FinalColorAndOpacity );
 	}
 	return LayerId;
 }
-	
-/**
- * The system calls this method to notify the widget that a mouse button was pressed within it. This event is bubbled.
- *
- * @param MyGeometry The Geometry of the widget receiving the event
- * @param MouseEvent Information about the input event
- *
- * @return Whether the event was handled along with possible requests for the system to take action.
- */
+
 FReply SImage::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
 	if ( OnMouseButtonDownHandler.IsBound() )
@@ -54,9 +40,6 @@ FReply SImage::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEve
 	}	
 }
 
-/**
- * An Image's desired size is whatever the image looks best as. This is decided on a case by case basis via the Width and Height properties.
- */
 FVector2D SImage::ComputeDesiredSize( float ) const
 {
 	const FSlateBrush* ImageBrush = Image.Get();
@@ -87,8 +70,11 @@ void SImage::SetColorAndOpacity( FLinearColor InColorAndOpacity )
 
 void SImage::SetImage(TAttribute<const FSlateBrush*> InImage)
 {
-	Image = InImage;
-	Invalidate(EInvalidateWidget::Layout);
+	if (Image.IsBound() || InImage.IsBound() || (Image.Get() != InImage.Get()))
+	{
+		Image = InImage;
+		Invalidate(EInvalidateWidget::Layout);
+	}
 }
 
 void SImage::SetOnMouseButtonDown(FPointerEventHandler EventHandler)

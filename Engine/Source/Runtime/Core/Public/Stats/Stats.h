@@ -391,6 +391,7 @@ FORCEINLINE void StatsMasterEnableSubtract(int32 Value = 1)
 #define DECLARE_SCOPE_CYCLE_COUNTER(CounterName,StatId,GroupId)
 #define CONDITIONAL_SCOPE_CYCLE_COUNTER(Stat,bCondition)
 #define RETURN_QUICK_DECLARE_CYCLE_STAT(StatId,GroupId) return TStatId();
+#define QUICK_USE_CYCLE_STAT(StatId,GroupId) TStatId()
 #define DECLARE_CYCLE_STAT(CounterName,StatId,GroupId)
 #define DECLARE_FLOAT_COUNTER_STAT(CounterName,StatId,GroupId)
 #define DECLARE_DWORD_COUNTER_STAT(CounterName,StatId,GroupId)
@@ -490,6 +491,38 @@ struct FDynamicStats
 			TStatGroup::GetGroupCategory(),
 			TStatGroup::DefaultEnable,
 			true, EStatDataType::ST_int64, nullptr, true );
+
+		return StatID;
+#endif // STATS
+
+		return TStatId();
+	}
+
+	template< typename TStatGroup >
+	static TStatId CreateMemoryStatId(const FString& StatNameOrDescription, FPlatformMemory::EMemoryCounterRegion MemRegion=FPlatformMemory::MCR_Physical)
+	{
+#if	STATS
+		return CreateMemoryStatId<TStatGroup>(FName(*StatNameOrDescription), MemRegion);
+#endif // STATS
+
+		return TStatId();
+	}
+
+	template< typename TStatGroup >
+	static TStatId CreateMemoryStatId(const FName StatNameOrDescription, FPlatformMemory::EMemoryCounterRegion MemRegion=FPlatformMemory::MCR_Physical)
+	{
+#if	STATS
+		FStartupMessages::Get().AddMetadata(StatNameOrDescription, *StatNameOrDescription.ToString(),
+			TStatGroup::GetGroupName(),
+			TStatGroup::GetGroupCategory(),
+			TStatGroup::GetDescription(),
+			false, EStatDataType::ST_int64, false, MemRegion);
+
+		TStatId StatID = IStatGroupEnableManager::Get().GetHighPerformanceEnableForStat(StatNameOrDescription,
+			TStatGroup::GetGroupName(),
+			TStatGroup::GetGroupCategory(),
+			TStatGroup::DefaultEnable,
+			false, EStatDataType::ST_int64, *StatNameOrDescription.ToString(), false, MemRegion);
 
 		return StatID;
 #endif // STATS

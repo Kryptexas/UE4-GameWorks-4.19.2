@@ -9,6 +9,7 @@ parent:Platforms
 tags:Mobile
 order:0
 type:landing
+topic-image:MobileGameDevelopment_topic.png
 
 [REGION:banner]
 ![](mobile_banner.png)

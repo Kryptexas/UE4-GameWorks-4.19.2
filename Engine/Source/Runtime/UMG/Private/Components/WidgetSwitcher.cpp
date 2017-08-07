@@ -117,7 +117,7 @@ TSharedRef<SWidget> UWidgetSwitcher::RebuildWidget()
 		}
 	}
 
-	return BuildDesignTimeWidget( MyWidgetSwitcher.ToSharedRef() );
+	return MyWidgetSwitcher.ToSharedRef();
 }
 
 void UWidgetSwitcher::SynchronizeProperties()

@@ -47,6 +47,11 @@ struct TCachedOSPageAllocator : private FCachedOSPageAllocator
 		return FreeAllImpl(FreedPageBlocks, FreedPageBlocksNum, CachedTotal);
 	}
 
+	uint32 GetCachedFreeTotal()
+	{
+		return CachedTotal;
+	}
+
 private:
 	FFreePageBlock FreedPageBlocks[NumCacheBlocks];
 	uint32         FreedPageBlocksNum;

@@ -185,17 +185,17 @@ void UK2Node_DoOnceMultiInput::AllocateDefaultPins()
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
 	FText InputPinAName = GetNameForPin(0, true);
-	UEdGraphPin* InputPinA = CreatePin(EGPD_Input, K2Schema->PC_Exec, TEXT(""), NULL, false, false, InputPinAName.BuildSourceString());
+	UEdGraphPin* InputPinA = CreatePin(EGPD_Input, K2Schema->PC_Exec, FString(), nullptr, InputPinAName.BuildSourceString());
 	InputPinA->PinFriendlyName = InputPinAName;
 
 	FText OutputPinAName = GetNameForPin(0, false);
-	UEdGraphPin* OutputPinA = CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, OutputPinAName.BuildSourceString());
+	UEdGraphPin* OutputPinA = CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, OutputPinAName.BuildSourceString());
 	OutputPinA->PinFriendlyName = OutputPinAName;
 
-	UEdGraphPin* DoOnceResetIn = CreatePin(EGPD_Input, K2Schema->PC_Exec, TEXT(""), NULL, false, false, TEXT("Reset In"));
+	UEdGraphPin* DoOnceResetIn = CreatePin(EGPD_Input, K2Schema->PC_Exec, FString(), nullptr, TEXT("Reset In"));
 	DoOnceResetIn->PinFriendlyName = LOCTEXT("DoOnceResetIn", "Reset In");
 
-	UEdGraphPin* DoOnceResetOut = CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, TEXT("Reset Out"));
+	UEdGraphPin* DoOnceResetOut = CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, TEXT("Reset Out"));
 	DoOnceResetOut->PinFriendlyName = LOCTEXT("DoOnceResetOut", "Reset Out");
 
 	for (int32 i = 0; i < NumAdditionalInputs; ++i)
@@ -322,7 +322,7 @@ void UK2Node_DoOnceMultiInput::ExpandNode(FKismetCompilerContext& CompilerContex
 	/////////////////////////////
 
 	// Create the node
-	UK2Node_TemporaryVariable* TempVarNode = SourceGraph->CreateBlankNode<UK2Node_TemporaryVariable>();
+	UK2Node_TemporaryVariable* TempVarNode = SourceGraph->CreateIntermediateNode<UK2Node_TemporaryVariable>();
 	TempVarNode->VariableType.PinCategory = Schema->PC_Boolean;
 	TempVarNode->AllocateDefaultPins();
 	CompilerContext.MessageLog.NotifyIntermediateObjectCreation(TempVarNode, this);
@@ -340,7 +340,7 @@ void UK2Node_DoOnceMultiInput::ExpandNode(FKismetCompilerContext& CompilerContex
 		check(ThenPin);
 
 		// AssignmentNode
-		UK2Node_AssignmentStatement* AssignmentNode = SourceGraph->CreateBlankNode<UK2Node_AssignmentStatement>();
+		UK2Node_AssignmentStatement* AssignmentNode = SourceGraph->CreateIntermediateNode<UK2Node_AssignmentStatement>();
 		AssignmentNode->AllocateDefaultPins();
 		CompilerContext.MessageLog.NotifyIntermediateObjectCreation(AssignmentNode, this);
 		AssignmentNode->GetVariablePin()->PinType = TempVarNode->GetVariablePin()->PinType;
@@ -350,7 +350,7 @@ void UK2Node_DoOnceMultiInput::ExpandNode(FKismetCompilerContext& CompilerContex
 		if (!ExecPin->PinName.Contains(TEXT("Reset"))) // Fixme this wont work for localization
 		{
 			// BranchNode
-			UK2Node_IfThenElse* BranchNode = SourceGraph->CreateBlankNode<UK2Node_IfThenElse>();
+			UK2Node_IfThenElse* BranchNode = SourceGraph->CreateIntermediateNode<UK2Node_IfThenElse>();
 			BranchNode->AllocateDefaultPins();
 			CompilerContext.MessageLog.NotifyIntermediateObjectCreation(BranchNode, this);
 

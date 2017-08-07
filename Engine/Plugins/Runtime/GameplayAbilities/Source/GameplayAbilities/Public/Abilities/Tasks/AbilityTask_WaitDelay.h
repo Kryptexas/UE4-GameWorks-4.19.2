@@ -8,8 +8,8 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FWaitDelayDelegate);
 
-UCLASS(MinimalAPI)
-class UAbilityTask_WaitDelay : public UAbilityTask
+UCLASS()
+class GAMEPLAYABILITIES_API UAbilityTask_WaitDelay : public UAbilityTask
 {
 	GENERATED_UCLASS_BODY()
 

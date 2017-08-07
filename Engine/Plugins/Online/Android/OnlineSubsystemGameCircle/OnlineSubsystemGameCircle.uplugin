@@ -38,5 +38,11 @@
 			"Name": "OnlineSubsystemGameCircle",
 			"LoadingPolicy": "Always"
 		}
-	]	
+	],
+	"Plugins": [
+		{
+			"Name": "OnlineSubsystem",
+			"Enabled": true
+		}
+	]
 }

@@ -9,7 +9,7 @@ FSlateTextHighlightRunRenderer::FSlateTextHighlightRunRenderer()
 
 }
 
-int32 FSlateTextHighlightRunRenderer::OnPaint( const FPaintArgs& Args, const FTextLayout::FLineView& Line, const TSharedRef< ISlateRun >& Run, const TSharedRef< ILayoutBlock >& Block, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const 
+int32 FSlateTextHighlightRunRenderer::OnPaint( const FPaintArgs& Args, const FTextLayout::FLineView& Line, const TSharedRef< ISlateRun >& Run, const TSharedRef< ILayoutBlock >& Block, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const 
 {
 	FVector2D Location( Block->GetLocationOffset() );
 	Location.Y = Line.Offset.Y;
@@ -23,7 +23,6 @@ int32 FSlateTextHighlightRunRenderer::OnPaint( const FPaintArgs& Args, const FTe
 		++LayerId,
 		AllottedGeometry.ToPaintGeometry(TransformVector(InverseScale, FVector2D( Block->GetSize().X, Line.Size.Y )), FSlateLayoutTransform(TransformPoint(InverseScale, Location))), 
 		&DefaultStyle.HighlightShape,
-		MyClippingRect,
 		bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect,
 		InWidgetStyle.GetColorAndOpacityTint() * DefaultStyle.HighlightColor
 		);
@@ -34,7 +33,7 @@ int32 FSlateTextHighlightRunRenderer::OnPaint( const FPaintArgs& Args, const FTe
 	FWidgetStyle WidgetStyle( InWidgetStyle );
 	WidgetStyle.SetForegroundColor( InvertedHighlightColor );
 
-	return Run->OnPaint( Args, Line, Block, DefaultStyle, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, WidgetStyle, bParentEnabled );
+	return Run->OnPaint( Args, Line, Block, DefaultStyle, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, WidgetStyle, bParentEnabled );
 }
 
 TSharedRef< FSlateTextHighlightRunRenderer > FSlateTextHighlightRunRenderer::Create()

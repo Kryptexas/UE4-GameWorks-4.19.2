@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3481084
 Availability:Public
 Title: 레이아웃 커스터마이징
 Crumbs: %ROOT%, Engine, Engine/UI
@@ -137,14 +137,66 @@ Version: 4.9
 탭은 간단히 현재 위치에서 끌어 도킹시키고자 하는 곳에 놓는 것으로 도킹이 가능합니다.
 
 [REGION:raw]
-![](DockingPanels.png)(w:900)
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](DockingAndLayout_Windows.png)
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](DockingAndLayout_Mac.png)
+	[/PARAM]
+[/OBJECT]
 [/REGION]
 
 떠다니는 창을 포함해서 에디터 내 탭의 레이아웃은 다른 세션에서도 유지되며, 에디터가 닫힐 때 
 자동 저장됩니다. 탭을 다시 열 때도 지난 위치를 기억하여 거기서 다시 열립니다.
 
 [REGION:raw]
-![](layout.png)(w:700)
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](TabsLayout_Windows.png)
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](TabsLayout_Mac.png)
+	[/PARAM]
+[/OBJECT]
 [/REGION]
 
 [REGION:tip]

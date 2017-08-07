@@ -335,7 +335,7 @@ public:
 
 	/** Draw the skeleton hierarchy for this skel mesh. */
 	UPROPERTY()
-	uint32 bDisplayBones:1;
+	uint32 bDisplayBones_DEPRECATED:1;
 
 	/** Disable Morphtarget for this component. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = SkeletalMesh)
@@ -771,6 +771,8 @@ public:
 	DEPRECATED(4.13, "SetSpaceBaseDoubleBuffering is now renamed SetComponentSpaceTransformsDoubleBuffering")
 	void SetSpaceBaseDoubleBuffering(bool bInDoubleBufferedBlendSpaces) { SetComponentSpaceTransformsDoubleBuffering(bInDoubleBufferedBlendSpaces);  }
 
+	const FBoxSphereBounds& GetCachedLocalBounds() { return CachedLocalBounds; } 
+
 protected:
 
 	/** Flip the editable space base buffer */
@@ -842,6 +844,14 @@ public:
 	 * @todo: turn this into a console command. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Optimization)
 	bool bDisplayDebugUpdateRateOptimizations;
+
+protected:
+
+	/** Removes update rate params and internal tracker data */
+	void ReleaseUpdateRateParams();
+
+	/** Recreates update rate params and internal tracker data */
+	void RefreshUpdateRateParams();
 
 private:
 	/** Update Rate Optimization ticking. */
@@ -1124,24 +1134,38 @@ public:
 
 class FRenderStateRecreator
 {
-	bool bWasRenderStateCreated;
 	USkinnedMeshComponent* Component;
+	const bool bWasInitiallyRegistered;
+	const bool bWasRenderStateCreated;
 
 public:
 
-	FRenderStateRecreator(USkinnedMeshComponent* InActorComponent)
+	FRenderStateRecreator(USkinnedMeshComponent* InActorComponent) :
+		Component(InActorComponent),
+		bWasInitiallyRegistered(Component->IsRegistered()),
+		bWasRenderStateCreated(Component->IsRenderStateCreated())
 	{
-		Component = InActorComponent;
-		bWasRenderStateCreated = Component->IsRenderStateCreated();
 		if (bWasRenderStateCreated)
 		{
+			if (!bWasInitiallyRegistered)
+			{
+				UE_LOG(LogSkeletalMesh, Warning, TEXT("Created a FRenderStateRecreator with an unregistered component: %s"), *Component->GetPathName());
+			}
+
 			Component->DestroyRenderState_Concurrent();
 		}
 	}
 
 	~FRenderStateRecreator()
 	{
-		if (bWasRenderStateCreated)
+		const bool bIsRegistered = Component->IsRegistered();
+
+		ensureMsgf(bWasInitiallyRegistered == bIsRegistered,
+			TEXT("Component Registered state changed from %s to %s within FRenderStateRecreator scope."),
+			*((bWasInitiallyRegistered ? GTrue : GFalse).ToString()),
+			*((bIsRegistered ? GTrue : GFalse).ToString()));
+
+		if (bWasRenderStateCreated && bIsRegistered)
 		{
 			Component->CreateRenderState_Concurrent();
 		}

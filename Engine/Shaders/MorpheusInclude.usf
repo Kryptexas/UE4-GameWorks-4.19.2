@@ -1,6 +1,0 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
-
-#include "Common.usf"
-#include "PostProcessCommon.usf"
-#include "PS4/PostProcessHMDMorpheus.usf"
-#include "PS4/RGBAToYUV420.usf"

@@ -511,16 +511,20 @@ void FLinkerLoad::PRIVATE_PatchNewObjectIntoExport(UObject* OldObject, UObject* 
 		FObjectExport& ObjExport = OldObjectLinker->ExportMap[CachedLinkerIndex];
 
 		// Detach the old object to make room for the new
+		const EObjectFlags OldObjectFlags = OldObject->GetFlags();
 		OldObject->ClearFlags(RF_NeedLoad|RF_NeedPostLoad);
-		OldObject->SetLinker(NULL, INDEX_NONE, true);
+		OldObject->SetLinker(nullptr, INDEX_NONE, true);
+
+		// Copy flags from the old CDO.
+		NewObject->SetFlags(OldObjectFlags);
 
 		// Move the new object into the old object's slot, so any references to this object will now reference the new
 		NewObject->SetLinker(OldObjectLinker, CachedLinkerIndex);
 		ObjExport.Object = NewObject;
 
-		auto& ObjLoaded = FUObjectThreadContext::Get().ObjLoaded;
+		TArray<UObject*>& ObjLoaded = FUObjectThreadContext::Get().ObjLoaded;
 		// If the object was in the ObjLoaded queue (exported, but not yet serialized), swap out for our new object
-		int32 ObjLoadedIdx = ObjLoaded.Find(OldObject);
+		const int32 ObjLoadedIdx = ObjLoaded.Find(OldObject);
 		if( ObjLoadedIdx != INDEX_NONE )
 		{
 			ObjLoaded[ObjLoadedIdx] = NewObject;
@@ -1149,24 +1153,42 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::SerializePackageFileSummary()
 
 		// Check custom versions.
 		const FCustomVersionContainer& LatestCustomVersions  = FCustomVersionContainer::GetRegistered();
-		const FCustomVersionSet&  PackageCustomVersions = Summary.GetCustomVersionContainer().GetAllVersions();
-		for (auto It = PackageCustomVersions.CreateConstIterator(); It; ++It)
+		bool bCustomVersionIsLatest = false;
+		if (Summary.bUnversioned)
 		{
-			const FCustomVersion& SerializedCustomVersion = *It;
+			// When unversioned, pretend we are the latest version
+			bCustomVersionIsLatest = true;
+		}
+		else
+		{
+			bool bAllSavedVersionsMatch = true;
+			const FCustomVersionSet&  PackageCustomVersions = Summary.GetCustomVersionContainer().GetAllVersions();
+			for (auto It = PackageCustomVersions.CreateConstIterator(); It; ++It)
+			{
+				const FCustomVersion& SerializedCustomVersion = *It;
 
-			const FCustomVersion* LatestVersion = LatestCustomVersions.GetVersion(SerializedCustomVersion.Key);
-			if (!LatestVersion)
-			{
-				// Loading a package with custom integration that we don't know about!
-				// Temporarily just warn and continue. @todo: this needs to be fixed properly
-				UE_LOG(LogLinker, Warning, TEXT("Package %s was saved with a custom integration that is not present. Tag %s  Version %d"), *Filename, *SerializedCustomVersion.Key.ToString(), SerializedCustomVersion.Version);
+				const FCustomVersion* LatestVersion = LatestCustomVersions.GetVersion(SerializedCustomVersion.Key);
+				if (!LatestVersion)
+				{
+					// Loading a package with custom integration that we don't know about!
+					// Temporarily just warn and continue. @todo: this needs to be fixed properly
+					UE_LOG(LogLinker, Warning, TEXT("Package %s was saved with a custom integration that is not present. Tag %s  Version %d"), *Filename, *SerializedCustomVersion.Key.ToString(), SerializedCustomVersion.Version);
+					bAllSavedVersionsMatch = false;
+				}
+				else if (SerializedCustomVersion.Version > LatestVersion->Version)
+				{
+					// Loading a package with a newer custom version than the current one.
+					UE_LOG(LogLinker, Error, TEXT("Package %s was saved with a newer custom version than the current. Tag %s  PackageVersion %d  MaxExpected %d"), *Filename, *SerializedCustomVersion.Key.ToString(), SerializedCustomVersion.Version, LatestVersion->Version);
+					return LINKER_Failed;
+				}
+				else if (SerializedCustomVersion.Version != LatestVersion->Version)
+				{
+					bAllSavedVersionsMatch = false;
+				}
 			}
-			else if (SerializedCustomVersion.Version > LatestVersion->Version)
-			{
-				// Loading a package with a newer custom version than the current one.
-				UE_LOG(LogLinker, Error, TEXT("Package %s was saved with a newer custom version than the current. Tag %s  PackageVersion %d  MaxExpected %d"), *Filename, *SerializedCustomVersion.Key.ToString(), SerializedCustomVersion.Version, LatestVersion->Version);
-				return LINKER_Failed;
-			}
+
+			const bool bSameNumberOfVersions = (PackageCustomVersions.Num() == LatestCustomVersions.GetAllVersions().Num());
+			bCustomVersionIsLatest = bSameNumberOfVersions && bAllSavedVersionsMatch;
 		}
 
 		// Loader needs to be the same version.
@@ -1212,7 +1234,13 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::SerializePackageFileSummary()
 			// Remember the linker versions
 			LinkerRootPackage->LinkerPackageVersion = ArUE4Ver;
 			LinkerRootPackage->LinkerLicenseeVersion = ArLicenseeUE4Ver;
-			LinkerRootPackage->LinkerCustomVersion = SummaryVersions;
+
+			// Only set the custom version if it is not already latest.
+			// If it is latest, we will compare against latest in GetLinkerCustomVersion
+			if (!bCustomVersionIsLatest)
+			{
+				LinkerRootPackage->LinkerCustomVersion = SummaryVersions;
+			}
 
 #if WITH_EDITORONLY_DATA
 			LinkerRootPackage->bIsCookedForEditor = !!(Summary.PackageFlags & PKG_FilterEditorOnly);
@@ -1370,6 +1398,8 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::FixupImportMap()
 		{
 			static const FName NAME_BlueprintGeneratedClass(TEXT("BlueprintGeneratedClass"));
 
+			TArray<int32> PackageIndexesToClear;
+
 			bool bDone = false;
 			while (!bDone)
 			{
@@ -1422,36 +1452,45 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::FixupImportMap()
 
 					if (NewObjectName != OldObjectName)
 					{
-						// If right below package and package has changed, need to swap outer
-						if (NewObjectName.OuterName == NAME_None && NewObjectName.PackageName != OldObjectName.PackageName)
+						if (Import.OuterIndex.IsNull())
 						{
-							FPackageIndex NewPackageIndex;
-
-							if (FindImportPackage(NewObjectName.PackageName, NewPackageIndex))
+							// If this has no outer it's a package and we don't want to rename it, the subobject renames will handle creating the new package import
+							// We do need to clear these at the end so it doesn't try to load nonexistent packages
+							PackageIndexesToClear.Add(i);
+						}
+						else
+						{
+							// If right below package and package has changed, need to swap outer
+							if (NewObjectName.OuterName == NAME_None && NewObjectName.PackageName != OldObjectName.PackageName)
 							{
-								// Already in import table, set it
-								Import.OuterIndex = NewPackageIndex;
+								FPackageIndex NewPackageIndex;
+
+								if (FindImportPackage(NewObjectName.PackageName, NewPackageIndex))
+								{
+									// Already in import table, set it
+									Import.OuterIndex = NewPackageIndex;
+								}
+								else
+								{
+									// Need to add package import and try again
+									NewPackageImports.AddUnique(NewObjectName.PackageName);
+									bDone = false;
+									break;
+								}
 							}
-							else
-							{
-								// Need to add package import and try again
-								NewPackageImports.AddUnique(NewObjectName.PackageName);
-								bDone = false;
-								break;
-							}							
-						}
 #if WITH_EDITOR
-						// If this is a class, set old name here 
-						if (ObjectRedirectFlags == ECoreRedirectFlags::Type_Class)
-						{
-							Import.OldClassName = Import.ObjectName;
-						}
-						
-#endif
-						// Change object name
-						Import.ObjectName = NewObjectName.ObjectName;
+							// If this is a class, set old name here 
+							if (ObjectRedirectFlags == ECoreRedirectFlags::Type_Class)
+							{
+								Import.OldClassName = Import.ObjectName;
+							}
 
-						UE_LOG(LogLinker, Verbose, TEXT("FLinkerLoad::FixupImportMap() - Renamed Object %s -> %s"), *LinkerRoot->GetName(), *OldObjectName.ToString(), *NewObjectName.ToString());
+#endif
+							// Change object name
+							Import.ObjectName = NewObjectName.ObjectName;
+
+							UE_LOG(LogLinker, Verbose, TEXT("FLinkerLoad::FixupImportMap() - Renamed Object %s -> %s"), *LinkerRoot->GetName(), *OldObjectName.ToString(), *NewObjectName.ToString());
+						}
 					}
 
 					if (NewClassName != OldClassName)
@@ -1504,6 +1543,14 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::FixupImportMap()
 					NewImport->SourceLinker = 0;
 					NewImport->SourceIndex = -1;
 				}
+			}
+
+			// Clear any packages that got renamed, once all children have been fixed up
+			for (int32 PackageIndex : PackageIndexesToClear)
+			{
+				FObjectImport& Import = ImportMap[PackageIndex];
+				check(Import.OuterIndex.IsNull());
+				Import.ObjectName = NAME_None;
 			}
 		}
 		// Avoid duplicate work in async case.
@@ -2196,9 +2243,6 @@ FLinkerLoad::EVerifyResult FLinkerLoad::VerifyImport(int32 ImportIndex)
 				{
 					Result = VERIFY_Redirected;
 
-					// send a callback saying we followed a redirector successfully
-					FCoreUObjectDelegates::RedirectorFollowed.Broadcast(Filename, Redir);
-
 					// now, fake our Import to be what the redirector pointed to
 					Import.XObject = Redir->DestinationObject;
 					FUObjectThreadContext::Get().ImportCount++;
@@ -2252,6 +2296,20 @@ FLinkerLoad::EVerifyResult FLinkerLoad::VerifyImport(int32 ImportIndex)
 							FText::FromString(WarningAppend),
 							FText::FromString(LinkerRoot->GetName())))
 							);
+					}
+
+					// Go through the depend map of the linker to find out what exports are referencing this import
+					const FPackageIndex ImportPackageIndex = FPackageIndex::FromImport(ImportIndex);
+					for (int32 CurrentExportIndex = 0; CurrentExportIndex < DependsMap.Num(); ++CurrentExportIndex)
+					{
+						const TArray<FPackageIndex>& DependsList = DependsMap[CurrentExportIndex];
+						if (DependsList.Contains(ImportPackageIndex))
+						{
+							TokenizedMessage->AddToken(FTextToken::Create(
+								FText::Format(LOCTEXT("ImportFailureExportReference", "Referenced by export {0}"),
+									FText::FromName(GetExportClassName(CurrentExportIndex)))));
+							TokenizedMessage->AddToken(FAssetNameToken::Create(GetExportPathName(CurrentExportIndex)));
+						}
 					}
 
 					// try to get a pointer to the class of the original object so that we can display the class name of the missing resource
@@ -2988,8 +3046,6 @@ UObject* FLinkerLoad::Create( UClass* ObjectClass, FName ObjectName, UObject* Ou
 			// if we found what it was point to, then return it
 			if (Redir->DestinationObject && Redir->DestinationObject->IsA(ObjectClass))
 			{
-				// send a callback saying we followed a redirector successfully
-				FCoreUObjectDelegates::RedirectorFollowed.Broadcast(Filename, Redir);
 				// and return the object we are being redirected to
 				return Redir->DestinationObject;
 			}
@@ -3808,8 +3864,10 @@ UObject* FLinkerLoad::CreateExport( int32 Index )
 
 				for (UObject* SubObject : SuperSubObjects)
 				{
-					if (SubObject->HasAnyFlags(RF_NeedLoad))
+					// Matching behavior in UBlueprint::ForceLoad to ensure that the subobject is actually loaded:
+					if (SubObject->HasAnyFlags(RF_NeedLoad) || !SubObject->HasAnyFlags(RF_LoadCompleted))
 					{
+						SubObject->SetFlags(RF_NeedLoad);
 						Preload(SubObject);
 					}
 				}
@@ -3996,7 +4054,8 @@ UObject* FLinkerLoad::CreateImport( int32 Index )
 	DeferPotentialCircularImport(Index); 
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 
-	if( Import.XObject == NULL )
+	// Imports can have no name if they were filtered out due to package redirects, skip in that case
+	if (Import.XObject == nullptr && Import.ObjectName != NAME_None)
 	{
 		if (!GIsEditor && !IsRunningCommandlet())
 		{
@@ -4220,7 +4279,7 @@ void FLinkerLoad::DetachExport( int32 i )
 	{
 		const FLinkerLoad* ActualLinker = E.Object->GetLinker();
 		// TODO: verify the condition
-		const bool DynamicType = !ActualLinker && E.Object 
+		const bool DynamicType = !ActualLinker
 			&& (E.Object->HasAnyFlags(RF_Dynamic)
 			|| (E.Object->GetClass()->HasAnyFlags(RF_Dynamic) && E.Object->HasAnyFlags(RF_ClassDefaultObject) ));
 		if ((ActualLinker != this) && !DynamicType)

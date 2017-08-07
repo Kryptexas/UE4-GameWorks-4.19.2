@@ -24,6 +24,7 @@
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "BlueprintCompilationManager.h"
+#include "Engine/LevelScriptBlueprint.h"
 #endif //WITH_EDITOR
 
 DEFINE_STAT(STAT_PersistentUberGraphFrameMemory);
@@ -42,6 +43,7 @@ UBlueprintGeneratedClass::UBlueprintGeneratedClass(const FObjectInitializer& Obj
 	NumReplicatedProperties = 0;
 	bHasInstrumentation = false;
 	bHasNativizedParent = false;
+	bCustomPropertyListForPostConstructionInitialized = false;
 }
 
 void UBlueprintGeneratedClass::PostInitProperties()
@@ -305,6 +307,17 @@ void UBlueprintGeneratedClass::ConditionalRecompileClass(TArray<UObject*>* ObjLo
 	}
 }
 
+void UBlueprintGeneratedClass::FlushCompilationQueueForLevel()
+{
+	if(GBlueprintUseCompilationManager)
+	{
+		if(Cast<ULevelScriptBlueprint>(ClassGeneratedBy))
+		{
+			FBlueprintCompilationManager::FlushCompilationQueue();
+		}
+	}
+}
+
 UObject* UBlueprintGeneratedClass::GetArchetypeForCDO() const
 {
 	if (OverridenArchetypeForCDO)
@@ -523,6 +536,7 @@ void UBlueprintGeneratedClass::UpdateCustomPropertyListForPostConstruction()
 {
 	// Empty the current list.
 	CustomPropertyListForPostConstruction.Empty();
+	bCustomPropertyListForPostConstructionInitialized = false;
 
 	// Find the first native antecedent. All non-native decendant properties are attached to the PostConstructLink chain (see UStruct::Link), so we only need to worry about properties owned by native super classes here.
 	UClass* SuperClass = GetSuperClass();
@@ -538,6 +552,85 @@ void UBlueprintGeneratedClass::UpdateCustomPropertyListForPostConstruction()
 		// Recursively gather native class-owned property values that differ from defaults.
 		FCustomPropertyListNode* PropertyList = nullptr;
 		BuildCustomPropertyListForPostConstruction(PropertyList, SuperClass, (uint8*)ClassDefaultObject, (uint8*)SuperClass->GetDefaultObject(false));
+	}
+
+	bCustomPropertyListForPostConstructionInitialized = true;
+}
+
+void UBlueprintGeneratedClass::InitPropertiesFromCustomList(uint8* DataPtr, const uint8* DefaultDataPtr)
+{
+	FScopeLock SerializeAndPostLoadLock(&SerializeAndPostLoadCritical);
+	check(bCustomPropertyListForPostConstructionInitialized); // Something went wrong, probably a race condition
+
+	if (const FCustomPropertyListNode* CustomPropertyList = GetCustomPropertyListForPostConstruction())
+	{
+		InitPropertiesFromCustomList(CustomPropertyList, this, DataPtr, DefaultDataPtr);
+	}
+}
+
+void UBlueprintGeneratedClass::InitPropertiesFromCustomList(const FCustomPropertyListNode* InPropertyList, UStruct* InStruct, uint8* DataPtr, const uint8* DefaultDataPtr)
+{
+	for (const FCustomPropertyListNode* CustomPropertyListNode = InPropertyList; CustomPropertyListNode; CustomPropertyListNode = CustomPropertyListNode->PropertyListNext)
+	{
+		uint8* PropertyValue = CustomPropertyListNode->Property->ContainerPtrToValuePtr<uint8>(DataPtr, CustomPropertyListNode->ArrayIndex);
+		const uint8* DefaultPropertyValue = CustomPropertyListNode->Property->ContainerPtrToValuePtr<uint8>(DefaultDataPtr, CustomPropertyListNode->ArrayIndex);
+
+		if (const UStructProperty* StructProperty = Cast<UStructProperty>(CustomPropertyListNode->Property))
+		{
+			// This should never be NULL; we should not be recording the StructProperty without at least one sub property, but we'll verify just to be sure.
+			if (ensure(CustomPropertyListNode->SubPropertyList != nullptr))
+			{
+				InitPropertiesFromCustomList(CustomPropertyListNode->SubPropertyList, StructProperty->Struct, PropertyValue, DefaultPropertyValue);
+			}
+		}
+		else if (const UArrayProperty* ArrayProperty = Cast<UArrayProperty>(CustomPropertyListNode->Property))
+		{
+			// Note: The sub-property list can be NULL here; in that case only the array size will differ from the default value, but the elements themselves will simply be initialized to defaults.
+			InitArrayPropertyFromCustomList(ArrayProperty, CustomPropertyListNode->SubPropertyList, PropertyValue, DefaultPropertyValue);
+		}
+		else
+		{
+			CustomPropertyListNode->Property->CopySingleValue(PropertyValue, DefaultPropertyValue);
+		}
+	}
+}
+
+void UBlueprintGeneratedClass::InitArrayPropertyFromCustomList(const UArrayProperty* ArrayProperty, const FCustomPropertyListNode* InPropertyList, uint8* DataPtr, const uint8* DefaultDataPtr)
+{
+	FScriptArrayHelper DstArrayValueHelper(ArrayProperty, DataPtr);
+	FScriptArrayHelper SrcArrayValueHelper(ArrayProperty, DefaultDataPtr);
+
+	const int32 SrcNum = SrcArrayValueHelper.Num();
+	const int32 DstNum = DstArrayValueHelper.Num();
+
+	if (SrcNum > DstNum)
+	{
+		DstArrayValueHelper.AddValues(SrcNum - DstNum);
+	}
+	else if (SrcNum < DstNum)
+	{
+		DstArrayValueHelper.RemoveValues(SrcNum, DstNum - SrcNum);
+	}
+
+	for (const FCustomPropertyListNode* CustomArrayPropertyListNode = InPropertyList; CustomArrayPropertyListNode; CustomArrayPropertyListNode = CustomArrayPropertyListNode->PropertyListNext)
+	{
+		int32 ArrayIndex = CustomArrayPropertyListNode->ArrayIndex;
+
+		uint8* DstArrayItemValue = DstArrayValueHelper.GetRawPtr(ArrayIndex);
+		const uint8* SrcArrayItemValue = SrcArrayValueHelper.GetRawPtr(ArrayIndex);
+
+		if (const UStructProperty* InnerStructProperty = Cast<UStructProperty>(ArrayProperty->Inner))
+		{
+			InitPropertiesFromCustomList(CustomArrayPropertyListNode->SubPropertyList, InnerStructProperty->Struct, DstArrayItemValue, SrcArrayItemValue);
+		}
+		else if (const UArrayProperty* InnerArrayProperty = Cast<UArrayProperty>(ArrayProperty->Inner))
+		{
+			InitArrayPropertyFromCustomList(InnerArrayProperty, CustomArrayPropertyListNode->SubPropertyList, DstArrayItemValue, SrcArrayItemValue);
+		}
+		else
+		{
+			ArrayProperty->Inner->CopyCompleteValue(DstArrayItemValue, SrcArrayItemValue);
+		}
 	}
 }
 
@@ -1217,7 +1310,12 @@ void UBlueprintGeneratedClass::GetPreloadDependencies(TArray<UObject*>& OutDeps)
 
 bool UBlueprintGeneratedClass::NeedsLoadForServer() const
 {
-	if (!HasAnyFlags(RF_ClassDefaultObject))
+	// This logic can't be used for targets that use editor content because UBlueprint::NeedsLoadForEditorGame
+	// returns true and forces all UBlueprints to be loaded for -game or -server runs. The ideal fix would be
+	// to remove UBlueprint::NeedsLoadForEditorGame, after that it would be nice if we could just implement
+	// UBlueprint::NeedsLoadForEditorGame here, but we can't because then our CDO doesn't get loaded. We *could*
+	// fix that behavior, but instead I'm just abusing IsRunningCommandlet() so that this logic only runs during cook:
+	if (IsRunningCommandlet() && !HasAnyFlags(RF_ClassDefaultObject))
 	{
 		if (ensure(GetSuperClass()) && !GetSuperClass()->NeedsLoadForServer())
 		{
@@ -1233,7 +1331,12 @@ bool UBlueprintGeneratedClass::NeedsLoadForServer() const
 
 bool UBlueprintGeneratedClass::NeedsLoadForClient() const
 {
-	if (!HasAnyFlags(RF_ClassDefaultObject))
+	// This logic can't be used for targets that use editor content because UBlueprint::NeedsLoadForEditorGame
+	// returns true and forces all UBlueprints to be loaded for -game or -server runs. The ideal fix would be
+	// to remove UBlueprint::NeedsLoadForEditorGame, after that it would be nice if we could just implement
+	// UBlueprint::NeedsLoadForEditorGame here, but we can't because then our CDO doesn't get loaded. We *could*
+	// fix that behavior, but instead I'm just abusing IsRunningCommandlet() so that this logic only runs during cook:
+	if (IsRunningCommandlet() && !HasAnyFlags(RF_ClassDefaultObject))
 	{
 		if (ensure(GetSuperClass()) && !GetSuperClass()->NeedsLoadForClient())
 		{
@@ -1272,7 +1375,7 @@ void UBlueprintGeneratedClass::Link(FArchive& Ar, bool bRelinkExistingProperties
 			UFunction* ParentFunction = Function->GetSuperFunction();
 			if(ParentFunction != nullptr)
 			{
-				const uint32 ParentNetFlags = (ParentFunction->FunctionFlags & FUNC_NetFuncFlags);
+				const EFunctionFlags ParentNetFlags = (ParentFunction->FunctionFlags & FUNC_NetFuncFlags);
 				if(ParentNetFlags != (Function->FunctionFlags & FUNC_NetFuncFlags))
 				{
 					Function->FunctionFlags &= ~FUNC_NetFuncFlags;
@@ -1344,15 +1447,38 @@ protected:
 			, SerializingObject ? *SerializingObject->GetFullName() : TEXT("NULL")
 			, GetSerializedProperty() ? *GetSerializedProperty()->GetFullName() : TEXT("NULL") ))
 		{
-			// clear the property value (it's garbage)... the ubergraph-frame 
+			// clear the property value (it's garbage)... the ubergraph-frame
 			// has just lost a reference to whatever it was attempting to hold onto
 			Object = nullptr;
 		}
 #endif
+		if (Object)
+		{
+			bool bWeakRef = false;
 
-		const bool bWeakRef = Object ? !Object->HasAnyFlags(RF_StrongRefOnFrame) : false;
-		Collector.SetShouldHandleAsWeakRef(bWeakRef); 
-		return FSimpleObjectReferenceCollectorArchive::operator<<(Object);
+			// If the property that serialized us is not an object property we are in some native serializer, we have to treat these as strong
+			if (!Object->HasAnyFlags(RF_StrongRefOnFrame))
+			{
+				UObjectProperty* ObjectProperty = Cast<UObjectProperty>(GetSerializedProperty());
+
+				if (ObjectProperty)
+				{
+					// This was a raw UObject* serialized by UObjectProperty, so just save the address
+					bWeakRef = true;
+				}
+			}
+
+			// Try to handle it as a weak ref, if it returns false treat it as a strong ref instead
+			bWeakRef = bWeakRef && Collector.MarkWeakObjectReferenceForClearing(&Object);
+
+			if (!bWeakRef)
+			{
+				// This is a hard reference or we don't know what's serializing it, so serialize it normally
+				return FSimpleObjectReferenceCollectorArchive::operator<<(Object);
+			}
+		}
+
+		return *this;
 	}
 };
 
@@ -1372,9 +1498,6 @@ void UBlueprintGeneratedClass::AddReferencedObjectsInUbergraphFrame(UObject* InT
 					checkSlow(BPGC->UberGraphFunction);
 					FPersistentFrameCollectorArchive ObjectReferenceCollector(InThis, Collector);
 					BPGC->UberGraphFunction->SerializeBin(ObjectReferenceCollector, PointerToUberGraphFrame->RawPointer);
-
-					// Reset the ShouldHandleAsWeakRef state, before the collector is used by a different archive.
-					Collector.SetShouldHandleAsWeakRef(false);
 				}
 			}
 		}

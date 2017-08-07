@@ -256,6 +256,9 @@ protected:
 	/** @return a pointer to the brush to use for the tab icon */
 	virtual const FSlateBrush* GetDefaultTabIcon() const;
 
+	/** @return the color to use for the tab color */
+	virtual FLinearColor GetDefaultTabColor() const;
+
 private:
 	/** Spawns the toolbar tab */
 	TSharedRef<SDockTab> SpawnTab_Toolbar(const FSpawnTabArgs& Args);

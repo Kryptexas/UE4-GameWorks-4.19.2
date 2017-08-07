@@ -471,7 +471,7 @@ void SThemeColorBlocksBar::OnArrangeChildren( const FGeometry& AllottedGeometry,
 	if (NumColorBlocks > 0)
 	{
 		const float ChildPadding = 3.0f;
-		const FVector2D ChildSize = FVector2D(AllottedGeometry.Size.X / NumColorBlocks - ChildPadding, AllottedGeometry.Size.Y);
+		const FVector2D ChildSize = FVector2D(AllottedGeometry.GetLocalSize().X / NumColorBlocks - ChildPadding, AllottedGeometry.GetLocalSize().Y);
 
 		const float CurrentDragCenter = PlaceholderBlockOffset + ChildSize.X * 0.5f;
 

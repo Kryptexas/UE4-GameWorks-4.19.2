@@ -31,7 +31,7 @@ void UBoxComponent::SetBoxExtent(FVector NewBoxExtent, bool bUpdateOverlaps)
 	if (bPhysicsStateCreated)
 	{
 		// Update physics engine collision shapes
-		BodyInstance.UpdateBodyScale(ComponentToWorld.GetScale3D(), true);
+		BodyInstance.UpdateBodyScale(GetComponentTransform().GetScale3D(), true);
 
 		if ( bUpdateOverlaps && IsCollisionEnabled() && GetOwner() )
 		{

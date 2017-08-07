@@ -20,7 +20,7 @@ void SComplexGradient::Construct( const FArguments& InArgs )
 /* SCompoundWidget overrides
  *****************************************************************************/
 
-int32 SComplexGradient::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SComplexGradient::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	ESlateDrawEffect DrawEffects = (bParentEnabled && IsEnabled()) ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 
@@ -33,7 +33,6 @@ int32 SComplexGradient::OnPaint( const FPaintArgs& Args, const FGeometry& Allott
 			LayerId,
 			AllottedGeometry.ToPaintGeometry(),
 			StyleInfo,
-			MyClippingRect,
 			DrawEffects
 		);
 	}
@@ -47,7 +46,7 @@ int32 SComplexGradient::OnPaint( const FPaintArgs& Args, const FGeometry& Allott
 
 		for (int32 ColorIndex = 0; ColorIndex < NumColors; ++ColorIndex)
 		{
-			GradientStops.Add(FSlateGradientStop(AllottedGeometry.Size * (float(ColorIndex) / (NumColors - 1)), Colors[ColorIndex]));
+			GradientStops.Add(FSlateGradientStop(AllottedGeometry.GetLocalSize() * (float(ColorIndex) / (NumColors - 1)), Colors[ColorIndex]));
 		}
 
 		FSlateDrawElement::MakeGradient(
@@ -56,7 +55,6 @@ int32 SComplexGradient::OnPaint( const FPaintArgs& Args, const FGeometry& Allott
 			AllottedGeometry.ToPaintGeometry(),
 			GradientStops,
 			Orientation,
-			MyClippingRect,
 			DrawEffects
 		);
 	}

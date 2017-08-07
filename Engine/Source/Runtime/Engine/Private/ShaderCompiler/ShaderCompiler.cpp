@@ -74,7 +74,7 @@ FString GetMaterialShaderMapDDCKey()
 }
 
 // this is for the protocol, not the data, bump if FShaderCompilerInput or ProcessInputFromArchive changes (also search for the second one with the same name, todo: put into one header file)
-const int32 ShaderCompileWorkerInputVersion = 7;
+const int32 ShaderCompileWorkerInputVersion = 8;
 // this is for the protocol, not the data, bump if FShaderCompilerOutput or WriteToOutputArchive changes (also search for the second one with the same name, todo: put into one header file)
 const int32 ShaderCompileWorkerOutputVersion = 3;
 // this is for the protocol, not the data, bump if FShaderCompilerOutput or WriteToOutputArchive changes (also search for the second one with the same name, todo: put into one header file)
@@ -109,8 +109,9 @@ static int32 GDumpShaderDebugInfo = 0;
 static FAutoConsoleVariableRef CVarDumpShaderDebugInfo(
 	TEXT("r.DumpShaderDebugInfo"),
 	GDumpShaderDebugInfo,
-	TEXT("When set to 1, will cause any shaders that are then compiled to dump debug info to GameName/Saved/ShaderDebugInfo\n")
+	TEXT("When set to 1, will cause any material shaders that are then compiled to dump debug info to GameName/Saved/ShaderDebugInfo\n")
 	TEXT("The debug info is platform dependent, but usually includes a preprocessed version of the shader source.\n")
+	TEXT("Global shaders automatically dump debug info if r.ShaderDevelopmentMode is enabled, this cvar is not necessary.\n")
 	TEXT("On iOS, if the PowerVR graphics SDK is installed to the default path, the PowerVR shader compiler will be called and errors will be reported during the cook.")
 	);
 
@@ -416,6 +417,9 @@ static bool DoWriteTasks(const TArray<FShaderCommonCompileJob*>& QueuedJobs, FAr
 
 	TransferFile << FormatVersionMap;
 
+	TMap<FString, FString> ShaderSourceDirectoryMappings = FPlatformProcess::AllShaderSourceDirectoryMappings();
+	TransferFile << ShaderSourceDirectoryMappings;
+
 	TArray<FShaderCompileJob*> QueuedSingleJobs;
 	TArray<FShaderPipelineCompileJob*> QueuedPipelineJobs;
 	SplitJobsByType(QueuedJobs, QueuedSingleJobs, QueuedPipelineJobs);
@@ -472,31 +476,31 @@ static void ProcessErrors(const FShaderCompileJob& CurrentJob, TArray<FString>& 
 			UniqueErrors.RemoveAt(UniqueError);
 
 			// Remap filenames
-			if (CurrentError.ErrorFile == TEXT("Material.usf"))
+			if (CurrentError.ErrorVirtualFilePath == TEXT("/Engine/Generated/Material.ush"))
 			{
 				// MaterialTemplate.usf is dynamically included as Material.usf
 				// Currently the material translator does not add new lines when filling out MaterialTemplate.usf,
 				// So we don't need the actual filled out version to find the line of a code bug.
-				CurrentError.ErrorFile = TEXT("MaterialTemplate.usf");
+				CurrentError.ErrorVirtualFilePath = TEXT("/Engine/Private/MaterialTemplate.ush");
 			}
-			else if (CurrentError.ErrorFile.Contains(TEXT("memory")))
+			else if (CurrentError.ErrorVirtualFilePath.Contains(TEXT("memory")))
 			{
 				check(CurrentJob.ShaderType);
 
 				// Files passed to the shader compiler through memory will be named memory
 				// Only the shader's main file is passed through memory without a filename
-				CurrentError.ErrorFile = FString(CurrentJob.ShaderType->GetShaderFilename()) + TEXT(".usf");
+				CurrentError.ErrorVirtualFilePath = FString(CurrentJob.ShaderType->GetShaderFilename());
 			}
-			else if (CurrentError.ErrorFile == TEXT("VertexFactory.usf"))
+			else if (CurrentError.ErrorVirtualFilePath == TEXT("/Engine/Generated/VertexFactory.ush"))
 			{
 				// VertexFactory.usf is dynamically included from whichever vertex factory the shader was compiled with.
 				check(CurrentJob.VFType);
-				CurrentError.ErrorFile = FString(CurrentJob.VFType->GetShaderFilename()) + TEXT(".usf");
+				CurrentError.ErrorVirtualFilePath = FString(CurrentJob.VFType->GetShaderFilename());
 			}
-			else if (CurrentError.ErrorFile == TEXT("") && CurrentJob.ShaderType)
+			else if (CurrentError.ErrorVirtualFilePath == TEXT("") && CurrentJob.ShaderType)
 			{
 				// Some shader compiler errors won't have a file and line number, so we just assume the error happened in file containing the entrypoint function.
-				CurrentError.ErrorFile = FString(CurrentJob.ShaderType->GetShaderFilename()) + TEXT(".usf");
+				CurrentError.ErrorVirtualFilePath = FString(CurrentJob.ShaderType->GetShaderFilename());
 			}
 
 			FString UniqueErrorPrefix;
@@ -505,11 +509,10 @@ static void ProcessErrors(const FShaderCompileJob& CurrentJob, TArray<FString>& 
 			{
 				// Construct a path that will enable VS.NET to find the shader file, relative to the solution
 				const FString SolutionPath = FPaths::RootDir();
-				FString ShaderPath = FPlatformProcess::ShaderDir();
-				FPaths::MakePathRelativeTo(ShaderPath, *SolutionPath);
-				CurrentError.ErrorFile = ShaderPath / CurrentError.ErrorFile;
+				FString ShaderFilePath = CurrentError.GetShaderSourceFilePath();
+				FPaths::MakePathRelativeTo(ShaderFilePath, *SolutionPath);
 				UniqueErrorPrefix = FString::Printf(TEXT("%s(%s): Shader %s, VF %s:\n\t"),
-					*CurrentError.ErrorFile,
+					*ShaderFilePath,
 					*CurrentError.ErrorLineString,
 					CurrentJob.ShaderType->GetName(),
 					CurrentJob.VFType ? CurrentJob.VFType->GetName() : TEXT("None"));
@@ -517,7 +520,7 @@ static void ProcessErrors(const FShaderCompileJob& CurrentJob, TArray<FString>& 
 			else
 			{
 				UniqueErrorPrefix = FString::Printf(TEXT("%s(0): "),
-					*CurrentJob.Input.SourceFilename);
+					*CurrentJob.Input.VirtualSourceFilePath);
 			}
 
 			FString UniqueErrorString = UniqueErrorPrefix + CurrentError.StrippedErrorMessage + TEXT("\n");
@@ -611,7 +614,7 @@ static void DoReadTaskResults(const TArray<FShaderCommonCompileJob*>& QueuedJobs
 							String += FString::Printf(TEXT(" VF '%s'"), SingleJob->VFType->GetName());
 						}
 						String += FString::Printf(TEXT(" Type '%s'"), SingleJob->ShaderType->GetName());
-						String += FString::Printf(TEXT(" '%s' Entry '%s'"), *SingleJob->Input.SourceFilename, *SingleJob->Input.EntryPointName);
+						String += FString::Printf(TEXT(" '%s' Entry '%s'"), *SingleJob->Input.VirtualSourceFilePath, *SingleJob->Input.EntryPointName);
 						return String;
 					};
 					UE_LOG(LogShaderCompilers, Error, TEXT("SCW %d Queued Jobs:"), QueuedJobs.Num());
@@ -1533,10 +1536,16 @@ FProcHandle FShaderCompilingManager::LaunchWorker(const FString& WorkingDirector
 	{
 		WorkerParameters += FString(TEXT(" -buildmachine "));
 	}
-	if (PLATFORM_LINUX && UE_BUILD_DEBUG)
+	if (PLATFORM_LINUX) //-V560
 	{
-		// when running a debug build under Linux, make SCW crash with core for easier debugging
-		WorkerParameters += FString(TEXT(" -core "));
+		// suppress log generation as much as possible
+		WorkerParameters += FString(TEXT(" -logcmds=\"Global None\" "));
+
+		if (UE_BUILD_DEBUG)
+		{
+			// when running a debug build under Linux, make SCW crash with core for easier debugging
+			WorkerParameters += FString(TEXT(" -core "));
+		}
 	}
 	WorkerParameters += FCommandLine::GetSubprocessCommandline();
 
@@ -2106,7 +2115,7 @@ bool FShaderCompilingManager::HandlePotentialRetryOnError(TMap<int32, FShaderMap
 					else 
 #endif	//UE_BUILD_DEBUG
 						if (FPlatformMisc::MessageBoxExt( EAppMsgType::YesNo, *FText::Format(NSLOCTEXT("UnrealEd", "Error_RetryShaderCompilation", "{0}\r\n\r\nRetry compilation?"),
-							FText::FromString(ErrorString)).ToString(), TEXT("Error")))
+							FText::FromString(ErrorString)).ToString(), TEXT("Error")) == EAppReturnType::Type::Yes)
 						{
 							bRetryCompile = true;
 						}
@@ -2523,7 +2532,7 @@ void GlobalBeginCompileShader(
 	FShaderCompilerInput& Input = NewJob->Input;
 	Input.Target = Target;
 	Input.ShaderFormat = LegacyShaderPlatformToShaderFormat(EShaderPlatform(Target.Platform));
-	Input.SourceFilename = SourceFilename;
+	Input.VirtualSourceFilePath = SourceFilename;
 	Input.EntryPointName = FunctionName;
 	Input.bCompilingForShaderPipeline = false;
 	Input.bIncludeUsedOutputs = false;
@@ -2531,6 +2540,33 @@ void GlobalBeginCompileShader(
 	Input.DumpDebugInfoRootPath = GShaderCompilingManager->GetAbsoluteShaderDebugInfoDirectory() / Input.ShaderFormat.ToString();
 	// asset material name or "Global"
 	Input.DebugGroupName = DebugGroupName;
+
+	// Verify FShaderCompilerInput's file paths are consistent. 
+	#if DO_CHECK
+		check(CheckVirtualShaderFilePath(Input.VirtualSourceFilePath));
+
+		checkf(FPaths::GetExtension(Input.VirtualSourceFilePath) == TEXT("usf"),
+			TEXT("Incorrect virtual shader path extension for shader file to compile '%s': Only .usf files should be "
+			     "compiled. .ush file are meant to be included only."),
+			*Input.VirtualSourceFilePath);
+
+		for (const auto& Entry : Input.Environment.IncludeVirtualPathToContentsMap)
+		{
+			FString VirtualShaderFilePath = Entry.Key;
+
+			check(CheckVirtualShaderFilePath(VirtualShaderFilePath));
+
+			checkf(VirtualShaderFilePath.Contains(TEXT("/Generated/")),
+				TEXT("Incorrect virtual shader path for generated file '%s': Generated files must be located under an "
+				     "non existing 'Generated' directory, for instance: /Engine/Generated/ or /Plugin/FooBar/Generated/."),
+				*VirtualShaderFilePath);
+
+			checkf(VirtualShaderFilePath == Input.VirtualSourceFilePath || FPaths::GetExtension(VirtualShaderFilePath) == TEXT("ush"),
+				TEXT("Incorrect virtual shader path extension for generated file '%s': Generated file must either be the "
+				     "USF to compile, or a USH file to be included."),
+				*VirtualShaderFilePath);
+		}
+	#endif
 
 	if (ShaderPipelineType)
 	{
@@ -2612,7 +2648,10 @@ void GlobalBeginCompileShader(
 		}
 	}
 	
-	if (GDumpShaderDebugInfo != 0)
+	static const auto CVarShaderDevelopmentMode = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ShaderDevelopmentMode"));
+
+	// Setup the debug info path if requested, or if this is a global shader and shader development mode is enabled
+	if (GDumpShaderDebugInfo != 0 || (ShaderType->GetGlobalShaderType() != NULL && CVarShaderDevelopmentMode->GetInt() != 0))
 	{
 		Input.DumpDebugInfoPath = Input.DumpDebugInfoRootPath / Input.DebugGroupName;
 		
@@ -2686,7 +2725,7 @@ void GlobalBeginCompileShader(
 	// Add generated instanced stereo code
 	FString GeneratedInstancedStereoCode;
 	GenerateInstancedStereoCode(GeneratedInstancedStereoCode);
-	Input.Environment.IncludeFileNameToContentsMap.Add(TEXT("GeneratedInstancedStereo.usf"), StringToArray<ANSICHAR>(*GeneratedInstancedStereoCode, GeneratedInstancedStereoCode.Len() + 1));
+	Input.Environment.IncludeVirtualPathToContentsMap.Add(TEXT("/Engine/Generated/GeneratedInstancedStereo.ush"), StringToArray<ANSICHAR>(*GeneratedInstancedStereoCode, GeneratedInstancedStereoCode.Len() + 1));
 
 
 	{
@@ -2745,7 +2784,7 @@ void GlobalBeginCompileShader(
 		
 		// Shaders built for archiving - for Metal that requires compiling the code in a different way so that we can strip it later
 		bool bArchive = false;
-		GConfig->GetBool(TEXT("/Script/UnrealEd.ProjectPackagingSettings"), TEXT("bShareMaterialShaderCode"), bArchive, GGameIni);
+		GConfig->GetBool(TEXT("/Script/UnrealEd.ProjectPackagingSettings"), TEXT("bSharedMaterialNativeLibraries"), bArchive, GGameIni);
 		if (bArchive)
 		{
 			Input.Environment.CompilerFlags.Add(CFLAG_Archive);

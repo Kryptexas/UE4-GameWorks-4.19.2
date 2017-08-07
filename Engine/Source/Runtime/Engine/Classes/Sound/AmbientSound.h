@@ -13,9 +13,8 @@ class ENGINE_API AAmbientSound : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
-private_subobject:
+private:
 	/** Audio component that handles sound playing */
-	DEPRECATED_FORGAME(4.6, "AudioComponent should not be accessed directly, please use GetAudioComponent() function instead. AudioComponent will soon be private and your code will not compile.")
 	UPROPERTY(Category = Sound, VisibleAnywhere, BlueprintReadOnly, meta = (ExposeFunctionCategories = "Sound,Audio,Audio|Components|Audio", AllowPrivateAccess = "true"))
 	class UAudioComponent* AudioComponent;
 public:
@@ -45,7 +44,7 @@ public:
 
 public:
 	/** Returns AudioComponent subobject **/
-	class UAudioComponent* GetAudioComponent() const;
+	class UAudioComponent* GetAudioComponent() const { return AudioComponent; }
 };
 
 

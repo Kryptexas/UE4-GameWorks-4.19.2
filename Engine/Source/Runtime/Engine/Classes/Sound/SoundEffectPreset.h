@@ -6,7 +6,7 @@
 #include "UObject/Object.h"
 #include "SoundEffectPreset.generated.h"
 
-class FAssetData;
+struct FAssetData;
 class FMenuBuilder;
 class IToolkitHost;
 class FSoundEffectBase;

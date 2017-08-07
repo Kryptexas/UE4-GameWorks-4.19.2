@@ -6,7 +6,7 @@
 #include "Toolkits/IToolkitHost.h"
 #include "AssetTypeActions_Base.h"
 
-class FAssetData;
+struct FAssetData;
 
 //TODO Use base class FAssetTypeActions_Blueprint later
 class FAssetTypeActions_WidgetBlueprint : public FAssetTypeActions_Base

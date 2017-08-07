@@ -414,11 +414,18 @@ void FSignedArchiveReader::Serialize(void* Data, int64 Length)
 				ChunksReadThisLoop++;
 			}
 		}
-		if (ChunksReadThisLoop == 0)
+		if (FPlatformProcess::SupportsMultithreading())
 		{
-			// No chunks read, avoid tight spinning loops and give up some time to the other threads
-			QUICK_SCOPE_CYCLE_COUNTER(STAT_FSignedArchiveReader_Spin);
-			FPlatformProcess::SleepNoStats(0.001f);
+			if (ChunksReadThisLoop == 0)
+			{
+				// No chunks read, avoid tight spinning loops and give up some time to the other threads
+				QUICK_SCOPE_CYCLE_COUNTER(STAT_FSignedArchiveReader_Spin);
+				FPlatformProcess::SleepNoStats(0.001f);
+			}
+		}
+		else
+		{
+			SignatureChecker->ProcessQueue();
 		}
 	}
 	while (ChunksToRead > 0);

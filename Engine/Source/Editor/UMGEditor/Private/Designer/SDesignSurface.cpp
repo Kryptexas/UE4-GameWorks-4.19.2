@@ -31,7 +31,6 @@ struct FFixedZoomLevelsContainerDesignSurface : public FZoomLevelsContainer
 {
 	FFixedZoomLevelsContainerDesignSurface()
 	{
-		ZoomLevels.Reserve(26);
 		ZoomLevels.Add(FZoomLevelEntry(0.150f, FText::FromString("-10"), EGraphRenderingLOD::LowestDetail));
 		ZoomLevels.Add(FZoomLevelEntry(0.175f, FText::FromString("-9"), EGraphRenderingLOD::LowestDetail));
 		ZoomLevels.Add(FZoomLevelEntry(0.200f, FText::FromString("-8"), EGraphRenderingLOD::LowestDetail));
@@ -58,6 +57,11 @@ struct FFixedZoomLevelsContainerDesignSurface : public FZoomLevelsContainer
 		ZoomLevels.Add(FZoomLevelEntry(6.000f, FText::FromString("+13"), EGraphRenderingLOD::FullyZoomedIn));
 		ZoomLevels.Add(FZoomLevelEntry(7.000f, FText::FromString("+14"), EGraphRenderingLOD::FullyZoomedIn));
 		ZoomLevels.Add(FZoomLevelEntry(8.000f, FText::FromString("+15"), EGraphRenderingLOD::FullyZoomedIn));
+		ZoomLevels.Add(FZoomLevelEntry(9.000f, FText::FromString("+16"), EGraphRenderingLOD::FullyZoomedIn));
+		ZoomLevels.Add(FZoomLevelEntry(10.000f, FText::FromString("+17"), EGraphRenderingLOD::FullyZoomedIn));
+		ZoomLevels.Add(FZoomLevelEntry(11.000f, FText::FromString("+18"), EGraphRenderingLOD::FullyZoomedIn));
+		ZoomLevels.Add(FZoomLevelEntry(12.000f, FText::FromString("+19"), EGraphRenderingLOD::FullyZoomedIn));
+		ZoomLevels.Add(FZoomLevelEntry(13.000f, FText::FromString("+20"), EGraphRenderingLOD::FullyZoomedIn));
 	}
 
 	float GetZoomAmount(int32 InZoomLevel) const override
@@ -121,6 +125,7 @@ void SDesignSurface::Construct(const FArguments& InArgs)
 	bIsZoomingWithTrackpad = false;
 
 	ViewOffset = FVector2D::ZeroVector;
+	bDrawGridLines = true;
 
 	ZoomLevelFade = FCurveSequence(0.0f, 1.0f);
 	ZoomLevelFade.Play( this->AsShared() );
@@ -153,13 +158,13 @@ void SDesignSurface::Construct(const FArguments& InArgs)
 EActiveTimerReturnType SDesignSurface::HandleZoomToFit( double InCurrentTime, float InDeltaTime )
 {
 	const FVector2D DesiredViewCenter = ( ZoomTargetTopLeft + ZoomTargetBottomRight ) * 0.5f;
-	const bool bDoneScrolling = ScrollToLocation(CachedGeometry, DesiredViewCenter, bTeleportInsteadOfScrollingWhenZoomingToFit ? 1000.0f : InDeltaTime);
-	const bool bDoneZooming = ZoomToLocation(CachedGeometry.Size, ZoomTargetBottomRight - ZoomTargetTopLeft, bDoneScrolling);
+	const bool bDoneScrolling = ScrollToLocation(GetCachedGeometry(), DesiredViewCenter, bTeleportInsteadOfScrollingWhenZoomingToFit ? 1000.0f : InDeltaTime);
+	const bool bDoneZooming = ZoomToLocation(GetCachedGeometry().GetLocalSize(), ZoomTargetBottomRight - ZoomTargetTopLeft, bDoneScrolling);
 
 	if (bDoneZooming && bDoneScrolling)
 	{
 		// One final push to make sure we're centered in the end
-		ViewOffset = DesiredViewCenter - ( 0.5f * CachedGeometry.Scale * CachedGeometry.Size / GetZoomAmount() );
+		ViewOffset = DesiredViewCenter - ( 0.5f * GetCachedGeometry().Scale * GetCachedGeometry().GetLocalSize() / GetZoomAmount() );
 
 		ZoomTargetTopLeft = FVector2D::ZeroVector;
 		ZoomTargetBottomRight = FVector2D::ZeroVector;
@@ -172,8 +177,6 @@ EActiveTimerReturnType SDesignSurface::HandleZoomToFit( double InCurrentTime, fl
 
 void SDesignSurface::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
-	CachedGeometry = AllottedGeometry;
-	
 	// Zoom to extents
 	FSlateRect Bounds = ComputeAreaBounds();
 	if ( bDeferredZoomToExtents )
@@ -199,21 +202,26 @@ FCursorReply SDesignSurface::OnCursorQuery(const FGeometry& MyGeometry, const FP
 	return SCompoundWidget::OnCursorQuery(MyGeometry, CursorEvent);
 }
 
-int32 SDesignSurface::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+int32 SDesignSurface::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
-	const FSlateBrush* BackgroundImage = FEditorStyle::GetBrush(TEXT("Graph.Panel.SolidBackground"));
-	PaintBackgroundAsLines(BackgroundImage, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId);
+	OnPaintBackground(AllottedGeometry, MyCullingRect, OutDrawElements, LayerId);
 
-	SCompoundWidget::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+	SCompoundWidget::OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 
 	return LayerId;
+}
+
+void SDesignSurface::OnPaintBackground(const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
+{
+	const FSlateBrush* BackgroundImage = FEditorStyle::GetBrush(TEXT("Graph.Panel.SolidBackground"));
+	PaintBackgroundAsLines(BackgroundImage, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId);
 }
 
 FReply SDesignSurface::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	SCompoundWidget::OnMouseButtonDown(MyGeometry, MouseEvent);
 
-	if ( MouseEvent.GetEffectingButton() == EKeys::RightMouseButton )
+	if ( MouseEvent.GetEffectingButton() == EKeys::RightMouseButton || MouseEvent.GetEffectingButton() == EKeys::MiddleMouseButton )
 	{
 		bIsPanning = false;
 
@@ -234,7 +242,7 @@ FReply SDesignSurface::OnMouseButtonUp(const FGeometry& MyGeometry, const FPoint
 {
 	SCompoundWidget::OnMouseButtonUp(MyGeometry, MouseEvent);
 
-	if ( MouseEvent.GetEffectingButton() == EKeys::RightMouseButton )
+	if ( MouseEvent.GetEffectingButton() == EKeys::RightMouseButton || MouseEvent.GetEffectingButton() == EKeys::MiddleMouseButton )
 	{
 		bIsPanning = false;
 		bIsZoomingWithTrackpad = false;
@@ -247,6 +255,7 @@ FReply SDesignSurface::OnMouseMove(const FGeometry& MyGeometry, const FPointerEv
 {
 	const bool bIsRightMouseButtonDown = MouseEvent.IsMouseButtonDown(EKeys::RightMouseButton);
 	const bool bIsLeftMouseButtonDown = MouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton);
+	const bool bIsMiddleMouseButtonDown = MouseEvent.IsMouseButtonDown(EKeys::MiddleMouseButton);
 	const FModifierKeysState ModifierKeysState = FSlateApplication::Get().GetModifierKeys();
 
 	if ( HasMouseCapture() )
@@ -280,7 +289,7 @@ FReply SDesignSurface::OnMouseMove(const FGeometry& MyGeometry, const FPointerEv
 
 			return ReplyState;
 		}
-		else if ( bIsRightMouseButtonDown )
+		else if ( bIsRightMouseButtonDown || bIsMiddleMouseButtonDown )
 		{
 			FReply ReplyState = FReply::Handled();
 
@@ -300,13 +309,14 @@ FReply SDesignSurface::OnMouseWheel(const FGeometry& MyGeometry, const FPointerE
 	const FVector2D WidgetSpaceCursorPos = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
 	const int32 ZoomLevelDelta = FMath::FloorToInt(MouseEvent.GetWheelDelta());
 	ChangeZoomLevel(ZoomLevelDelta, WidgetSpaceCursorPos, !bRequireControlToOverZoom || MouseEvent.IsControlDown());
+	MouseDownPositionAbsolute = MouseEvent.GetScreenSpacePosition();
 
 	return FReply::Handled();
 }
 
 FReply SDesignSurface::OnTouchGesture(const FGeometry& MyGeometry, const FPointerEvent& GestureEvent)
 {
-	const EGestureEvent::Type GestureType = GestureEvent.GetGestureType();
+	const EGestureEvent GestureType = GestureEvent.GetGestureType();
 	const FVector2D& GestureDelta = GestureEvent.GetGestureDelta();
 	if ( GestureType == EGestureEvent::Magnify )
 	{
@@ -317,6 +327,7 @@ FReply SDesignSurface::OnTouchGesture(const FGeometry& MyGeometry, const FPointe
 			const FVector2D WidgetSpaceCursorPos = MyGeometry.AbsoluteToLocal(GestureEvent.GetScreenSpacePosition());
 			const int32 ZoomLevelDelta = TotalGestureMagnify > 0.0f ? 1 : -1;
 			ChangeZoomLevel(ZoomLevelDelta, WidgetSpaceCursorPos, !bRequireControlToOverZoom || GestureEvent.IsControlDown());
+			MouseDownPositionAbsolute = GestureEvent.GetScreenSpacePosition();
 			TotalGestureMagnify = 0.0f;
 		}
 		return FReply::Handled();
@@ -399,7 +410,14 @@ void SDesignSurface::ChangeZoomLevel(int32 ZoomLevelDelta, const FVector2D& Widg
 				FMath::Clamp(PointToMaintainGraphSpace.Y, GraphBounds.Top, GraphBounds.Bottom)
 				);
 
-			this->ViewOffset = ClampedPointToMaintainGraphSpace - WidgetSpaceZoomOrigin / GetZoomAmount();
+			const FVector2D NewViewOffset = ClampedPointToMaintainGraphSpace - WidgetSpaceZoomOrigin / GetZoomAmount();
+
+			// If we're panning while zooming we need to update the viewoffset start.
+			ViewOffsetStart += (NewViewOffset - ViewOffset);
+			// Update view offset to where ever we scrolled towards.
+			ViewOffset = NewViewOffset;
+
+			TotalMouseDeltaY = 0.0f;
 		}
 	}
 }
@@ -424,7 +442,7 @@ void SDesignSurface::PostChangedZoom()
 
 bool SDesignSurface::ScrollToLocation(const FGeometry& MyGeometry, FVector2D DesiredCenterPosition, const float InDeltaTime)
 {
-	const FVector2D HalfOFScreenInGraphSpace = 0.5f * MyGeometry.Size / GetZoomAmount();
+	const FVector2D HalfOFScreenInGraphSpace = 0.5f * MyGeometry.GetLocalSize() / GetZoomAmount();
 	FVector2D CurrentPosition = ViewOffset + HalfOFScreenInGraphSpace;
 
 	FVector2D NewPosition = FMath::Vector2DInterpTo(CurrentPosition, DesiredCenterPosition, InDeltaTime, 10.f);
@@ -541,7 +559,7 @@ float SDesignSurface::GetGridScaleAmount() const
 	return 1;
 }
 
-void SDesignSurface::PaintBackgroundAsLines(const FSlateBrush* BackgroundImage, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32& DrawLayerId) const
+void SDesignSurface::PaintBackgroundAsLines(const FSlateBrush* BackgroundImage, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32& DrawLayerId) const
 {
 	const bool bAntialias = false;
 
@@ -564,82 +582,79 @@ void SDesignSurface::PaintBackgroundAsLines(const FSlateBrush* BackgroundImage, 
 
 	const float GridCellSize = NominalGridSize * ZoomFactor * Inflation;
 
-	const float GraphSpaceGridX0 = FancyMod(ViewOffset.X, Inflation * NominalGridSize * RulePeriod);
-	const float GraphSpaceGridY0 = FancyMod(ViewOffset.Y, Inflation * NominalGridSize * RulePeriod);
+	FVector2D LocalGridOrigin = AllottedGeometry.AbsoluteToLocal(GridOrigin);
 
-	float ImageOffsetX = GraphSpaceGridX0 * -ZoomFactor;
-	float ImageOffsetY = GraphSpaceGridY0 * -ZoomFactor;
-
-	const FVector2D ZeroSpace = GraphCoordToPanelCoord(FVector2D::ZeroVector);
+	float ImageOffsetX = LocalGridOrigin.X - ((GridCellSize*RulePeriod) * FMath::Max(FMath::CeilToInt(LocalGridOrigin.X / (GridCellSize*RulePeriod)), 0));
+	float ImageOffsetY = LocalGridOrigin.Y - ((GridCellSize*RulePeriod) * FMath::Max(FMath::CeilToInt(LocalGridOrigin.Y / (GridCellSize*RulePeriod)), 0));
 
 	// Fill the background
 	FSlateDrawElement::MakeBox(
 		OutDrawElements,
 		DrawLayerId,
 		AllottedGeometry.ToPaintGeometry(),
-		BackgroundImage,
-		MyClippingRect
+		BackgroundImage
 		);
 
-	TArray<FVector2D> LinePoints;
-	new (LinePoints)FVector2D(0.0f, 0.0f);
-	new (LinePoints)FVector2D(0.0f, 0.0f);
-
-	// Horizontal bars
-	for ( int32 GridIndex = 0; ImageOffsetY < AllottedGeometry.Size.Y; ImageOffsetY += GridCellSize, ++GridIndex )
+	if (bDrawGridLines)
 	{
-		if ( ImageOffsetY >= 0.0f )
+		TArray<FVector2D> LinePoints;
+		new (LinePoints)FVector2D(0.0f, 0.0f);
+		new (LinePoints)FVector2D(0.0f, 0.0f);
+
+		// Horizontal bars
+		for (int32 GridIndex = 0; ImageOffsetY < AllottedGeometry.GetLocalSize().Y; ImageOffsetY += GridCellSize, ++GridIndex)
 		{
-			const bool bIsRuleLine = ( GridIndex % RulePeriod ) == 0;
-			const int32 Layer = bIsRuleLine ? ( DrawLayerId + 1 ) : DrawLayerId;
-
-			const FLinearColor* Color = bIsRuleLine ? &RuleColor : &RegularColor;
-			if ( FMath::IsNearlyEqual(ZeroSpace.Y, ImageOffsetY, 1.0f) )
+			if (ImageOffsetY >= 0.0f)
 			{
-				Color = &CenterColor;
+				const bool bIsRuleLine = (GridIndex % RulePeriod) == 0;
+				const int32 Layer = bIsRuleLine ? (DrawLayerId + 1) : DrawLayerId;
+
+				const FLinearColor* Color = bIsRuleLine ? &RuleColor : &RegularColor;
+				if (FMath::IsNearlyEqual(LocalGridOrigin.Y, ImageOffsetY, 1.0f))
+				{
+					Color = &CenterColor;
+				}
+
+				LinePoints[0] = FVector2D(0.0f, ImageOffsetY);
+				LinePoints[1] = FVector2D(AllottedGeometry.GetLocalSize().X, ImageOffsetY);
+
+				FSlateDrawElement::MakeLines(
+					OutDrawElements,
+					Layer,
+					AllottedGeometry.ToPaintGeometry(),
+					LinePoints,
+					ESlateDrawEffect::None,
+					*Color,
+					bAntialias);
 			}
-
-			LinePoints[0] = FVector2D(0.0f, ImageOffsetY);
-			LinePoints[1] = FVector2D(AllottedGeometry.Size.X, ImageOffsetY);
-
-			FSlateDrawElement::MakeLines(
-				OutDrawElements,
-				Layer,
-				AllottedGeometry.ToPaintGeometry(),
-				LinePoints,
-				MyClippingRect,
-				ESlateDrawEffect::None,
-				*Color,
-				bAntialias);
 		}
-	}
 
-	// Vertical bars
-	for ( int32 GridIndex = 0; ImageOffsetX < AllottedGeometry.Size.X; ImageOffsetX += GridCellSize, ++GridIndex )
-	{
-		if ( ImageOffsetX >= 0.0f )
+		// Vertical bars
+		for (int32 GridIndex = 0; ImageOffsetX < AllottedGeometry.GetLocalSize().X; ImageOffsetX += GridCellSize, ++GridIndex)
 		{
-			const bool bIsRuleLine = ( GridIndex % RulePeriod ) == 0;
-			const int32 Layer = bIsRuleLine ? ( DrawLayerId + 1 ) : DrawLayerId;
-
-			const FLinearColor* Color = bIsRuleLine ? &RuleColor : &RegularColor;
-			if ( FMath::IsNearlyEqual(ZeroSpace.X, ImageOffsetX, 1.0f) )
+			if (ImageOffsetX >= 0.0f)
 			{
-				Color = &CenterColor;
+				const bool bIsRuleLine = (GridIndex % RulePeriod) == 0;
+				const int32 Layer = bIsRuleLine ? (DrawLayerId + 1) : DrawLayerId;
+
+				const FLinearColor* Color = bIsRuleLine ? &RuleColor : &RegularColor;
+				if (FMath::IsNearlyEqual(LocalGridOrigin.X, ImageOffsetX, 1.0f))
+				{
+					Color = &CenterColor;
+				}
+
+				LinePoints[0] = FVector2D(ImageOffsetX, 0.0f);
+				LinePoints[1] = FVector2D(ImageOffsetX, AllottedGeometry.GetLocalSize().Y);
+
+				FSlateDrawElement::MakeLines(
+					OutDrawElements,
+					Layer,
+					AllottedGeometry.ToPaintGeometry(),
+					LinePoints,
+					ESlateDrawEffect::None,
+					*Color,
+					bAntialias);
 			}
-
-			LinePoints[0] = FVector2D(ImageOffsetX, 0.0f);
-			LinePoints[1] = FVector2D(ImageOffsetX, AllottedGeometry.Size.Y);
-
-			FSlateDrawElement::MakeLines(
-				OutDrawElements,
-				Layer,
-				AllottedGeometry.ToPaintGeometry(),
-				LinePoints,
-				MyClippingRect,
-				ESlateDrawEffect::None,
-				*Color,
-				bAntialias);
 		}
 	}
 

@@ -170,6 +170,12 @@ DECLARE_DELEGATE_TwoParams(FOnPurchaseRedeemCodeComplete, const FOnlineError& /*
 DECLARE_DELEGATE_OneParam(FOnQueryReceiptsComplete, const FOnlineError& /*Result*/);
 
 /**
+ * Delegate called when we are informed of a new receipt we did not initiate in-game
+ */
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnUnexpectedPurchaseReceipt, const FUniqueNetId& /*UserId*/);
+typedef FOnUnexpectedPurchaseReceipt::FDelegate FOnUnexpectedPurchaseReceiptDelegate;
+
+/**
  *	IOnlinePurchase - Interface for IAP (In App Purchases) services
  */
 class IOnlinePurchase
@@ -229,5 +235,14 @@ public:
 	 * @param OutReceipts [out] list of receipts for the user 
 	 */
 	virtual void GetReceipts(const FUniqueNetId& UserId, TArray<FPurchaseReceipt>& OutReceipts) const = 0;
-	
+
+	/**
+	 * Delegate fired when the local system tells us of a new completed purchase we may not have initiated in-game.
+	 * Use this to know about new pending receipts in instances the local client did not start a purchase,
+	 * such as when the application is in the background.
+	 *
+	 * @param UserId The beneficiary of this new receipt
+	 *
+	 */
+	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnUnexpectedPurchaseReceipt, const FUniqueNetId& /*UserId*/);
 };

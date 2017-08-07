@@ -212,7 +212,7 @@ void FAnimationRecorder::StartRecord(USkeletalMeshComponent* Component, UAnimSeq
 
 	GetBoneTransforms(Component, PreviousSpacesBases);
 	PreviousAnimCurves = Component->GetAnimationCurves();
-	PreviousComponentToWorld = Component->ComponentToWorld;
+	PreviousComponentToWorld = Component->GetComponentTransform();
 
 	LastFrame = 0;
 	AnimationObject->SequenceLength = 0.f;
@@ -484,7 +484,7 @@ void FAnimationRecorder::UpdateRecord(USkeletalMeshComponent* Component, float D
 			}
 
 			FTransform BlendedComponentToWorld;
-			BlendedComponentToWorld.Blend(PreviousComponentToWorld, Component->ComponentToWorld, BlendAlpha);
+			BlendedComponentToWorld.Blend(PreviousComponentToWorld, Component->GetComponentTransform(), BlendAlpha);
 
 			FBlendedHeapCurve BlendedCurve;
 			if (AnimCurves.Elements.Num() > 0 && PreviousAnimCurves.Elements.Num() == AnimCurves.Elements.Num())
@@ -506,7 +506,7 @@ void FAnimationRecorder::UpdateRecord(USkeletalMeshComponent* Component, float D
 	//save to current transform
 	PreviousSpacesBases = SpaceBases;
 	PreviousAnimCurves = Component->GetAnimationCurves();
-	PreviousComponentToWorld = Component->ComponentToWorld;
+	PreviousComponentToWorld = Component->GetComponentTransform();
 
 	// if we passed MaxFrame, just stop it
 	if (MaxFrame != UnBoundedFrameCount && FramesRecorded >= MaxFrame)

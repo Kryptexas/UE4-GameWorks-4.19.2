@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3237313
+﻿INTSourceChangelist:3429233
 Availability: Public
 Title:스켈레톤 에디터
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
@@ -13,6 +13,7 @@ topic-image:skeletonEdtior_topic.png
 tags:Skeleton
 tags:Skeletal Mesh
 tags:Animation
+tags:Tools
 
 [EXCERPT:Overview]
 **스켈레톤 에디터** 는 언리얼 엔진 4 안에서 [](Engine/Animation/Skeleton) 작업을 하는 데 사용되는 툴입니다.

@@ -57,6 +57,11 @@ void USoundNodeModPlayer::LoadAsset(bool bAddToRoot)
 	}
 }
 
+void USoundNodeModPlayer::ClearAssetReferences()
+{
+	SoundMod = nullptr;
+}
+
 void USoundNodeModPlayer::OnSoundModLoaded(const FName& PackageName, UPackage* Package, EAsyncLoadingResult::Type Result, bool bAddToRoot)
 {
 	if (Result == EAsyncLoadingResult::Succeeded)

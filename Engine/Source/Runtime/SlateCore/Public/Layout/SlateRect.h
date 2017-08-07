@@ -172,6 +172,17 @@ public:
 		return FSlateRect( FMath::Min( Left, Other.Left ), FMath::Min( Top, Other.Top ), FMath::Max( Right, Other.Right ), FMath::Max( Bottom, Other.Bottom ) );
 	}
 
+	/**
+	 * Rounds the Left, Top, Right and Bottom fields and returns a new FSlateRect with rounded components.
+	 */
+	FSlateRect Round() const
+	{
+		return FSlateRect(
+			FMath::RoundToFloat(Left),
+			FMath::RoundToFloat(Top),
+			FMath::RoundToFloat(Right),
+			FMath::RoundToFloat(Bottom));
+	}
 
 	/**
 	 * Returns the rectangle that is the intersection of this rectangle and Other.
@@ -180,10 +191,10 @@ public:
 	 *
 	 * @return	Rectangle over intersection.
 	 */
-	FSlateRect IntersectionWith(const FSlateRect& Other) const
+	FORCEINLINE FSlateRect IntersectionWith(const FSlateRect& Other) const
 	{
-		bool DummyOverlapping;
-		return IntersectionWith(Other, DummyOverlapping);
+		bool bOverlapping;
+		return IntersectionWith(Other, bOverlapping);
 	}
 
 	/**

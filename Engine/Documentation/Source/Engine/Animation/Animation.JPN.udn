@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3231087
+﻿INTSourceChangelist:3429229
 Availability:Public
 Title:スケルタルメッシュのアニメーション システム
 Crumbs: %ROOT%, Engine
@@ -52,6 +52,29 @@ order:3
 
 [INCLUDE:Engine/Animation/Overview#Intro]
 
+## はじめよう
+
+[DIR(output:"topic" parent:"Engine/Animation" org:"flat" tags:"Getting Started" type:"!how-to")]
+
+## アセットの種類
+
+[DIR(output:"topic" parent:"Engine/Animation" org:"flat" tags:"Assets" type:"!how-to")]
+
+## ツール
+
+[DIR(output:"topic" parent:"Engine/Animation" end:"3" org:"hierarchy" tags:"!Assets" tags:"Tools" type:"!how-to")]
+
+## 機能
+
+[DIR(output:"topic" parent:"Engine/Animation" end:"1" org:"hierarchy" tags:"!Assets" tags:"!Getting Started" tags:"!Tools" type:"!how-to")]
+
+## ガイド
+
+[DIR(output:"fancy" parent:"Engine/Animation/AnimHowTo" end:"1" org:"hierarchy" tags:"!Assets" tags:"!Getting Started" type:"how-to" skilllevel:"Beginner")]
+[DIR(output:"fancy" parent:"Engine/Animation/AnimHowTo" end:"1" org:"hierarchy" tags:"!Assets" tags:"!Getting Started" type:"how-to" skilllevel:"Intermediate")]
+[DIR(output:"fancy" parent:"Engine/Animation/AnimHowTo" end:"1" org:"hierarchy" tags:"!Assets" tags:"!Getting Started" type:"how-to" skilllevel:"Advanced")]
+
+[PUBLISH:docs]
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/start_icon.png)(convert:false)
@@ -143,8 +166,4 @@ order:3
 			* [](Engine/Animation/UsingMixamoContent "%Engine/Animation/UsingMixamoContent:description%")
 	[/PARAM]
 [/OBJECT]
-
-
-
-
-
+[/PUBLISH:docs]

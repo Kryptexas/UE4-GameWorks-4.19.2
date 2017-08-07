@@ -9,7 +9,6 @@
 
 /** Governs when malloc that poisons the allocations is enabled. */
 #if !defined(UE_USE_MALLOC_FILL_BYTES)
-	// PoisonProxy is dangerous with binned/binned2 at this point (see UE-37243).
 	#define UE_USE_MALLOC_FILL_BYTES ((UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT) && !WITH_EDITORONLY_DATA && !PLATFORM_USES_FIXED_GMalloc_CLASS)
 #endif // !defined(UE_USE_MALLOC_FILL_BYTES)
 
@@ -88,6 +87,16 @@ public:
 		}
 	}
 
+	virtual SIZE_T QuantizeSize(SIZE_T Count, uint32 Alignment) override
+	{
+		return UsedMalloc->QuantizeSize(Count, Alignment);
+	}
+
+	virtual void UpdateStats() override
+	{
+		UsedMalloc->UpdateStats();
+	}
+
 	virtual void GetAllocatorStats( FGenericMemoryStats& out_Stats ) override
 	{
 		UsedMalloc->GetAllocatorStats( out_Stats );
@@ -96,6 +105,11 @@ public:
 	virtual void DumpAllocatorStats( class FOutputDevice& Ar ) override
 	{
 		UsedMalloc->DumpAllocatorStats( Ar );
+	}
+
+	virtual bool IsInternallyThreadSafe() const override
+	{
+		return UsedMalloc->IsInternallyThreadSafe();
 	}
 
 	virtual bool ValidateHeap() override
@@ -122,6 +136,16 @@ public:
 	{
 		UsedMalloc->Trim();
 	}
+
+	virtual void SetupTLSCachesOnCurrentThread() override
+	{
+		UsedMalloc->SetupTLSCachesOnCurrentThread();
+	}
+
+	virtual void ClearAndDisableTLSCachesOnCurrentThread() override
+	{
+		UsedMalloc->ClearAndDisableTLSCachesOnCurrentThread();
+	}
+
 	// FMalloc interface end
 };
-

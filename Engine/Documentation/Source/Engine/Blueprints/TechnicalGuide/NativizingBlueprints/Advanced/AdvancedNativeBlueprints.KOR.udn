@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:3336767
+﻿INTSourceChangelist:3426963
 Availability:Public
 Title:블루프린트 네이티브화 고급
-Crumbs:
+Crumbs:%ROOT%
 Description:블루프린트에 게임플레이 요소를 노출시키는 게임플레이 프로그래머를 위한 기술 안내서입니다.
 Related: Engine/Blueprints/TechnicalGuide/NativizingBlueprints
 Parent: Engine/Blueprints/TechnicalGuide
-Version:4.15
+Version:4.16
 type:reference
 tags:Blueprints
 SkillLevel:Advanced
@@ -41,7 +41,6 @@ prereq:Engine/Blueprints/TechnicalGuide/NativizingBlueprints
 
 ## 기술적 세부사항
 
-블루프린트 네이티브화는 Visual Studio 2013 에서도 Visual Studio 2015 에서도 작동은 하지만, 큰 규모의 프로젝트 처리를 위해 개발된 Visual Studio 2015 를 추천합니다.
 컴파일러 또는 링커 (LNK1000 또는 LNK1248 같은) 오류가 발생하면, `DefaultEngine.ini` 환경설정 파일에서 블루프린트 유형 또는 특정 블루프린트들을 제외시켜 
 프로젝트에서 네이티브화되는 블루프린트 양을 줄여 보시기 바랍니다. 블루프린트를 네이티브화 대상에서 제외시키는 방법 관련 상세 정보는 
 [](Engine/Blueprints/TechnicalGuide/NativizingBlueprints) 문서를 참고하세요.

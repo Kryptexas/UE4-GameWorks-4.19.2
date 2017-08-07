@@ -47,6 +47,9 @@
 #include "EngineAnalytics.h"
 #include "Interfaces/IAnalyticsProvider.h"
 #include "Framework/Application/SlateApplication.h"
+#include "ILauncherPlatform.h"
+#include "LauncherPlatformModule.h"
+#include "IMainFrameModule.h"
 
 #define LOCTEXT_NAMESPACE "ProjectBrowser"
 
@@ -244,7 +247,7 @@ void SProjectBrowser::Construct( const FArguments& InArgs )
 					.AutoWidth()
 					[
 						SNew(SButton)
-						.Visibility( FDesktopPlatformModule::Get()->CanOpenLauncher(true) ? EVisibility::Visible : EVisibility::Collapsed )
+						.Visibility( FLauncherPlatformModule::Get()->CanOpenLauncher(true) ? EVisibility::Visible : EVisibility::Collapsed )
 						.ButtonStyle(FEditorStyle::Get(), "ToggleButton")
 						.OnClicked(this, &SProjectBrowser::HandleMarketplaceTabButtonClicked)
 						.ForegroundColor(FSlateColor::UseForeground())
@@ -1278,8 +1281,17 @@ FReply SProjectBrowser::OnBrowseToProjectClicked()
 	bool bOpened = false;
 	if ( DesktopPlatform )
 	{
+		void* ParentWindowWindowHandle = NULL;
+
+		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
+		const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
+		if ( MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid() )
+		{
+			ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
+		}
+
 		bOpened = DesktopPlatform->OpenFileDialog(
-			FSlateApplication::Get().FindBestParentWindowHandleForDialogs(AsShared()),
+			ParentWindowWindowHandle,
 			LOCTEXT("OpenProjectBrowseTitle", "Open Project").ToString(),
 			DefaultFolder,
 			TEXT(""),
@@ -1334,14 +1346,14 @@ void SProjectBrowser::HandleProjectViewSelectionChanged(TSharedPtr<FProjectItem>
 
 FReply SProjectBrowser::HandleMarketplaceTabButtonClicked()
 {
-	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+	ILauncherPlatform* LauncherPlatform = FLauncherPlatformModule::Get();
 
-	if (DesktopPlatform != nullptr)
+	if (LauncherPlatform != nullptr)
 	{
 		TArray<FAnalyticsEventAttribute> EventAttributes;
 
 		FOpenLauncherOptions OpenOptions(TEXT("ue/marketplace"));
-		if ( DesktopPlatform->OpenLauncher(OpenOptions) )
+		if (LauncherPlatform->OpenLauncher(OpenOptions) )
 		{
 			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OpenSucceeded"), TEXT("TRUE")));
 		}
@@ -1352,7 +1364,7 @@ FReply SProjectBrowser::HandleMarketplaceTabButtonClicked()
 			if (EAppReturnType::Yes == FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("InstallMarketplacePrompt", "The Marketplace requires the Epic Games Launcher, which does not seem to be installed on your computer. Would you like to install it now?")))
 			{
 				FOpenLauncherOptions InstallOptions(true, TEXT("ue/marketplace"));
-				if ( !DesktopPlatform->OpenLauncher(InstallOptions) )
+				if (!LauncherPlatform->OpenLauncher(InstallOptions))
 				{
 					EventAttributes.Add(FAnalyticsEventAttribute(TEXT("InstallSucceeded"), TEXT("FALSE")));
 					FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(TEXT("Sorry, there was a problem installing the Launcher.\nPlease try to install it manually!")));

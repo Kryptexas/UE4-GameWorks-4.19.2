@@ -128,7 +128,7 @@ ActorFactory.cpp:
 #include "LevelSequenceActor.h"
 #include "Factories/ActorFactoryMovieScene.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogActorFactory, Log, All);
+DEFINE_LOG_CATEGORY(LogActorFactory);
 
 #define LOCTEXT_NAMESPACE "ActorFactory"
 

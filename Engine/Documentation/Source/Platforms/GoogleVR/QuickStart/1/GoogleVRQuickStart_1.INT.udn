@@ -4,7 +4,7 @@ Crumbs:%ROOT%, Platforms/GoogleVR
 Description:Creating a UE4 project that can be used with Google VR.
 Navigation:platform
 Skilllevel: Intermediate
-Version: 4.12
+Version: 4.16
 Parent:Platforms/GoogleVR/QuickStart
 order:1
 type:multi-step
@@ -21,15 +21,33 @@ Google has a provided a very detailed document that goes over everything you nee
 
 1. From the UE4 Launcher make sure that you have UE4 version **4.12** or later downloaded and installed then press the **Launch** button to open the **Unreal Project Browser**.
 
-	![](GVRQS_Launcher_00.png)
+	[REGION:lightbox]
+	[![](GVRQS_Launcher_00.png)(w:682)](GVRQS_Launcher_00.png)
+	[/REGION]
+
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
 
 1. In the Unreal Project Browser, go to the **New Project** section and select the **Blueprint** base project option.
 	
-	![](GVRQS_New_Project_Options_00.png)
+	[REGION:lightbox]
+	[![](GVRQS_New_Project_Options_00.png)(w:555)](GVRQS_New_Project_Options_00.png)
+	[/REGION]
+
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
 
 1. Due to the demanding rendering requirements of VR in general, it is best to start out any new UE4 VR project with the following settings to ensure that your project will run at the correct frame rate right from the start. 
 
-	![](GVRQS_New_Project_Options_01.png)
+	[REGION:lightbox]
+	[![](GVRQS_New_Project_Options_01.png)(w:555)](GVRQS_New_Project_Options_01.png)
+	[/REGION]
+
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
 	* **Blank Project**
 	* **Mobile / Tablet**
 	* **Scalable 3D / 2D**
@@ -37,13 +55,25 @@ Google has a provided a very detailed document that goes over everything you nee
 
 1. Set the location where the project will be created and also give the project a name. 
 
-	![](GVRQS_New_Project_Options_02.png)
+	[REGION:lightbox]
+	[![](GVRQS_New_Project_Options_02.png)(w:555)](GVRQS_New_Project_Options_02.png)
+	[/REGION]
+
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
 
 	* For this example the project name will be **GVR_QS**. 
 
 1. Finally, press the **Create Project** button that is located in the lower right-hand corner to create the project.
 
-	![](GVRQS_New_Project_Options_03.png)
+	[REGION:lightbox]
+	[![](GVRQS_New_Project_Options_03.png)(w:555)](GVRQS_New_Project_Options_03.png)
+	[/REGION]
+
+	[REGION:caption]
+	Click for full image.
+	[/REGION]
 
 In the next section of the Google VR Quick Start, we will go over all the needed project settings to ensure that your UE4 project will work with Google VR.
 

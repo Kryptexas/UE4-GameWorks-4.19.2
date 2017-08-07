@@ -252,11 +252,11 @@ FString ADebugCameraController::ConsoleCommand(const FString& Cmd,bool bWriteToL
 	return TEXT("");
 }
 
-void ADebugCameraController::UpdateHiddenComponents(const FVector& ViewLocation,TSet<FPrimitiveComponentId>& HiddenComponents)
+void ADebugCameraController::UpdateHiddenComponents(const FVector& ViewLocation,TSet<FPrimitiveComponentId>& HiddenComponentsOut)
 {
 	if (OriginalControllerRef != NULL)
 	{
-		OriginalControllerRef->UpdateHiddenComponents(ViewLocation,HiddenComponents);
+		OriginalControllerRef->UpdateHiddenComponents(ViewLocation, HiddenComponentsOut);
 	}
 }
 
@@ -447,7 +447,7 @@ void ADebugCameraController::SelectTargetedObject()
 	GetPlayerViewPoint(CamLoc, CamRot);
 
 	FHitResult Hit;
-	FCollisionQueryParams TraceParams(NAME_None, true, this);
+	FCollisionQueryParams TraceParams(NAME_None, FCollisionQueryParams::GetUnknownStatId(), true, this);
 	bool const bHit = GetWorld()->LineTraceSingleByChannel(Hit, CamLoc, CamRot.Vector() * 5000.f * 20.f + CamLoc, ECC_Pawn, TraceParams);
 	if( bHit)
 	{

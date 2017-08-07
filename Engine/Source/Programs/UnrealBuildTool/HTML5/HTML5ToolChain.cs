@@ -18,8 +18,25 @@ namespace UnrealBuildTool
 		static bool enableMultithreading = false;
 		static bool bEnableTracing = false; // Debug option
 
+		// verbose feedback
+		delegate void VerbosePrint(CppConfiguration Configuration, bool bOptimizeForSize);	// proto
+        static VerbosePrint PrintOnce = new VerbosePrint(PrintOnceOn);						// fn ptr
+        static void PrintOnceOff(CppConfiguration Configuration, bool bOptimizeForSize) {}	// noop
+        static void PrintOnceOn(CppConfiguration Configuration, bool bOptimizeForSize)
+        {
+			if (Configuration == CppConfiguration.Debug)
+				Log.TraceInformation("HTML5ToolChain: " + Configuration + " -O0 faster compile time");
+			else if (bOptimizeForSize)
+				Log.TraceInformation("HTML5ToolChain: " + Configuration + " -Oz favor size over speed");
+			else if (Configuration == CppConfiguration.Development)
+				Log.TraceInformation("HTML5ToolChain: " + Configuration + " -O2 aggressive size and speed optimization");
+			else if (Configuration == CppConfiguration.Shipping)
+				Log.TraceInformation("HTML5ToolChain: " + Configuration + " -O3 favor speed over size");
+            PrintOnce = new VerbosePrint(PrintOnceOff); // clear
+		}
+
 		public HTML5ToolChain(FileReference InProjectFile)
-			: base(CppPlatform.HTML5, WindowsCompiler.VisualStudio2015)
+			: base(CppPlatform.HTML5, WindowsCompiler.VisualStudio2015, false)
 		{
 			if (!HTML5SDKInfo.IsSDKInstalled())
 			{
@@ -64,7 +81,8 @@ namespace UnrealBuildTool
 				// TODO: double check Engine/Source/Runtime/Core/Private/HTML5/HTML5PlatformProcess.cpp::SupportsMultithreading()
 				enableMultithreading = false;
 			}
-		}
+            PrintOnce = new VerbosePrint(PrintOnceOn); // reset
+        }
 
 		public static void PreBuildSync()
 		{
@@ -91,6 +109,7 @@ namespace UnrealBuildTool
 
 			Result += " -fno-exceptions";
 
+			Result += " -Wdelete-non-virtual-dtor";
 			Result += " -Wno-unused-value"; // appErrorf triggers this
 			Result += " -Wno-switch"; // many unhandled cases
 			Result += " -Wno-tautological-constant-out-of-range-compare"; // disables some warnings about comparisons from TCHAR being a char
@@ -121,26 +140,31 @@ namespace UnrealBuildTool
 			// --------------------------------------------------------------------------------
 
 			if (Configuration == CppConfiguration.Debug)
-			{
-				Result += " -O0";
-			}
+			{															// WARNING: UEBuildTarget.cs :: GetCppConfiguration()
+				Result += " -O0"; // faster compile time				//          DebugGame is forced to Development
+			}															// i.e. this will never get hit...
+
 			else if (bOptimizeForSize)
-			{
-				Result += " -Oz";
-			}
+			{															// Engine/Source/Programs/UnrealBuildTool/HTML5/UEBuildHTML5.cs
+				Result += " -Oz"; // favor size over speed				// bCompileForSize=true; // set false, to build -O2 or -O3
+			}															// SOURCE BUILD ONLY
+
 			else if (Configuration == CppConfiguration.Development)
 			{
-				Result += " -O2";
+				Result += " -O2"; // aggressive size and speed optimization
 			}
+
 			else if (Configuration == CppConfiguration.Shipping)
 			{
-				Result += " -O3";
+				Result += " -O3"; // favor speed over size
 			}
 
-			// --------------------------------------------------------------------------------
+            PrintOnce(Configuration, bOptimizeForSize);
 
-			// JavaScript option overrides (see src/settings.js)
-			if (enableSIMD)
+            // --------------------------------------------------------------------------------
+
+            // JavaScript option overrides (see src/settings.js)
+            if (enableSIMD)
 			{
 				Result += " -msse2 -s SIMD=1";
 			}
@@ -408,7 +432,14 @@ namespace UnrealBuildTool
 				MatchLineNumber.Length == 0 ||
 				MatchDescription.Length == 0)
 			{
-				Log.TraceWarning(Output);
+				// emscripten output match
+				string RegexEmscriptenInfo = @"^INFO:";
+				Match match = Regex.Match(Output, RegexEmscriptenInfo);
+				if ( match.Success ) {
+					Log.TraceInformation(Output);
+				} else {
+					Log.TraceWarning(Output);
+				}
 				return;
 			}
 
@@ -463,6 +494,9 @@ namespace UnrealBuildTool
 			foreach (FileItem SourceFile in SourceFiles)
 			{
 				Action CompileAction = ActionGraph.Add(ActionType.Compile);
+				CompileAction.CommandDescription = "Compile";
+//				CompileAction.bPrintDebugInfo = true;
+
 				bool bIsPlainCFile = Path.GetExtension(SourceFile.AbsolutePath).ToUpperInvariant() == ".C";
 
 				// Add the C++ source file and its included files to the prerequisite item list.
@@ -595,6 +629,8 @@ namespace UnrealBuildTool
 
 			// Make the final javascript file
 			Action LinkAction = ActionGraph.Add(ActionType.Link);
+			LinkAction.CommandDescription = "Link";
+//			LinkAction.bPrintDebugInfo = true;
 
 			// ResponseFile lines.
 			List<string> ReponseLines = new List<string>();

@@ -203,6 +203,8 @@ void FOnlineSearchSettings::Set(FName Key, const ValueType& Value, EOnlineCompar
 	}
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 /** Explicit instantiation of supported types to Set template above */
 template ONLINESUBSYSTEM_API void FOnlineSearchSettings::Set<int32>(FName Key, const int32& Value, EOnlineComparisonOp::Type InType, int32 InID);
 template ONLINESUBSYSTEM_API void FOnlineSearchSettings::Set<float>(FName Key, const float& Value, EOnlineComparisonOp::Type InType, int32 InID);
@@ -211,6 +213,8 @@ template ONLINESUBSYSTEM_API void FOnlineSearchSettings::Set<double>(FName Key, 
 template ONLINESUBSYSTEM_API void FOnlineSearchSettings::Set<FString>(FName Key, const FString& Value, EOnlineComparisonOp::Type InType, int32 InID);
 template ONLINESUBSYSTEM_API void FOnlineSearchSettings::Set< TArray<uint8> >(FName Key, const TArray<uint8>& Value, EOnlineComparisonOp::Type InType, int32 InID);
 template ONLINESUBSYSTEM_API void FOnlineSearchSettings::Set<bool>(FName Key, const bool& Value, EOnlineComparisonOp::Type InType, int32 InID);
+
+/// @endcond
 
 template<typename ValueType> 
 void FOnlineSearchSettings::Set(FName Key, const ValueType& Value, EOnlineComparisonOp::Type InType)
@@ -227,6 +231,8 @@ void FOnlineSearchSettings::Set(FName Key, const ValueType& Value, EOnlineCompar
 	}
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 /** Explicit instantiation of supported types to Set template above */
 template ONLINESUBSYSTEM_API void FOnlineSearchSettings::Set<int32>(FName Key, const int32& Value, EOnlineComparisonOp::Type InType);
 template ONLINESUBSYSTEM_API void FOnlineSearchSettings::Set<float>(FName Key, const float& Value, EOnlineComparisonOp::Type InType);
@@ -235,6 +241,8 @@ template ONLINESUBSYSTEM_API void FOnlineSearchSettings::Set<double>(FName Key, 
 template ONLINESUBSYSTEM_API void FOnlineSearchSettings::Set<FString>(FName Key, const FString& Value, EOnlineComparisonOp::Type InType);
 template ONLINESUBSYSTEM_API void FOnlineSearchSettings::Set< TArray<uint8> >(FName Key, const TArray<uint8>& Value, EOnlineComparisonOp::Type InType);
 template ONLINESUBSYSTEM_API void FOnlineSearchSettings::Set<bool>(FName Key, const bool& Value, EOnlineComparisonOp::Type InType);
+
+/// @endcond
 
 template<typename ValueType> 
 bool FOnlineSearchSettings::Get(FName Key, ValueType& Value) const
@@ -249,6 +257,8 @@ bool FOnlineSearchSettings::Get(FName Key, ValueType& Value) const
 	return false;
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 /** Explicit instantiation of supported types to Get template above */
 template ONLINESUBSYSTEM_API bool FOnlineSearchSettings::Get<int32>(FName Key, int32& Value) const;
 template ONLINESUBSYSTEM_API bool FOnlineSearchSettings::Get<float>(FName Key, float& Value) const;
@@ -257,6 +267,8 @@ template ONLINESUBSYSTEM_API bool FOnlineSearchSettings::Get<double>(FName Key, 
 template ONLINESUBSYSTEM_API bool FOnlineSearchSettings::Get<FString>(FName Key, FString& Value) const;
 template ONLINESUBSYSTEM_API bool FOnlineSearchSettings::Get< TArray<uint8> >(FName Key, TArray<uint8>& Value) const;
 template ONLINESUBSYSTEM_API bool FOnlineSearchSettings::Get<bool>(FName Key, bool& Value) const;
+
+/// @endcond
 
 EOnlineComparisonOp::Type FOnlineSearchSettings::GetComparisonOp(FName Key) const
 {

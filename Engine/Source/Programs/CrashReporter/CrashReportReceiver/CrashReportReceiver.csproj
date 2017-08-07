@@ -110,10 +110,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\DotNETCommon\DotNETUtilities\DotNETUtilities.csproj">
-      <Project>{5d7d66e8-8c76-4af9-b3ec-2ef03421d730}</Project>
-      <Name>DotNETUtilities</Name>
-    </ProjectReference>
     <ProjectReference Include="..\CrashReportCommon\CrashReportCommon.csproj">
       <Project>{b83de8c9-9429-4765-86bd-8eeea89b138f}</Project>
       <Name>CrashReportCommon</Name>

@@ -493,9 +493,7 @@ bool UProperty::ValidateImportFlags( uint32 PortFlags, FOutputDevice* ErrorHandl
 	// we should not allow config/localized properties to be imported here
 	if ((PortFlags & PPF_RestrictImportTypes) && (PropertyFlags & CPF_Config))
 	{
-		FString PropertyType = (PropertyFlags & CPF_Config) ? TEXT("config") : TEXT("localized");
-
-		FString ErrorMsg = FString::Printf(TEXT("Import failed for '%s': property is %s (Check to see if the property is listed in the DefaultProperties.  It should only be listed in the specific .ini/.int file)"), *GetName(), *PropertyType);
+		FString ErrorMsg = FString::Printf(TEXT("Import failed for '%s': property is config (Check to see if the property is listed in the DefaultProperties.  It should only be listed in the specific .ini file)"), *GetName());
 
 		if (ErrorHandler)
 		{
@@ -1264,7 +1262,7 @@ const TCHAR* UProperty::ImportSingleProperty( const TCHAR* Str, void* DestData, 
 							Warn->Logf(ELogVerbosity::Warning, TEXT("%s"), *ImportErrors[ErrorIndex]);
 						}
 					}
-					else if ((Result == NULL && ArrayProperty == nullptr) || Result == Str)
+					else if (Result == Str)
 					{
 						Warn->Logf(ELogVerbosity::Warning, TEXT("Invalid property value in defaults: %s"), Start);
 					}
@@ -1298,7 +1296,7 @@ const TCHAR* UProperty::ImportSingleProperty( const TCHAR* Str, void* DestData, 
 					}
 					else if ((Result == NULL && ArrayProperty == nullptr) || Result == Str)
 					{
-						Warn->Logf(ELogVerbosity::Warning, TEXT("Invalid property value in defaults: %s"), Start);
+						UE_SUPPRESS(LogExec, Verbose, Warn->Logf(TEXT("Unknown property in %s: %s "), *ObjectStruct->GetName(), Start));
 					}
 					// in the failure case, don't return NULL so the caller can potentially skip less and get values further in the string
 					if (Result != NULL)

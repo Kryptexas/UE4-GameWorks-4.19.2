@@ -12,20 +12,17 @@ class ANiagaraActor : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
-private_subobject:
+private:
 	/** Pointer to effect component */
-	DEPRECATED_FORGAME(4.6, "NiagaraComponent should not be accessed directly, please use GetNiagaraComponent() function instead. NiagaraComponent will soon be private and your code will not compile.")
 	UPROPERTY(VisibleAnywhere, Category=NiagaraActor)
 	class UNiagaraComponent* NiagaraComponent;
 
 #if WITH_EDITORONLY_DATA
 	// Reference to sprite visualization component
-	DEPRECATED_FORGAME(4.6, "SpriteComponent should not be accessed directly, please use GetSpriteComponent() function instead. SpriteComponent will soon be private and your code will not compile.")
 	UPROPERTY()
 	class UBillboardComponent* SpriteComponent;
 
 	// Reference to arrow visualization component
-	DEPRECATED_FORGAME(4.6, "ArrowComponent should not be accessed directly, please use GetArrowComponent() function instead. ArrowComponent will soon be private and your code will not compile.")
 	UPROPERTY()
 	class UArrowComponent* ArrowComponent;
 
@@ -33,12 +30,12 @@ private_subobject:
 
 public:
 	/** Returns NiagaraComponent subobject **/
-	NIAGARA_API class UNiagaraComponent* GetNiagaraComponent() const;
+	NIAGARA_API class UNiagaraComponent* GetNiagaraComponent() const { return NiagaraComponent; }
 #if WITH_EDITORONLY_DATA
 	/** Returns SpriteComponent subobject **/
-	class UBillboardComponent* GetSpriteComponent() const;
+	class UBillboardComponent* GetSpriteComponent() const { return SpriteComponent; }
 	/** Returns ArrowComponent subobject **/
-	class UArrowComponent* GetArrowComponent() const;
+	class UArrowComponent* GetArrowComponent() const { return ArrowComponent; }
 #endif
 
 #if WITH_EDITOR

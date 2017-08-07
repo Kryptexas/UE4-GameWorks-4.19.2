@@ -38,6 +38,8 @@ void SMultiLineEditableText::Construct( const FArguments& InArgs )
 	bAllowContextMenu = InArgs._AllowContextMenu;
 	OnContextMenuOpening = InArgs._OnContextMenuOpening;
 	bRevertTextOnEscape = InArgs._RevertTextOnEscape;
+	VirtualKeyboardTrigger = InArgs._VirtualKeyboardTrigger;
+	VirtualKeyboardDismissAction = InArgs._VirtualKeyboardDismissAction;
 	OnHScrollBarUserScrolled = InArgs._OnHScrollBarUserScrolled;
 	OnVScrollBarUserScrolled = InArgs._OnVScrollBarUserScrolled;
 	OnKeyDownHandler = InArgs._OnKeyDownHandler;
@@ -269,6 +271,16 @@ EKeyboardType SMultiLineEditableText::GetVirtualKeyboardType() const
 	return Keyboard_Default;
 }
 
+EVirtualKeyboardTrigger SMultiLineEditableText::GetVirtualKeyboardTrigger() const
+{
+	return VirtualKeyboardTrigger.Get();
+}
+
+EVirtualKeyboardDismissAction SMultiLineEditableText::GetVirtualKeyboardDismissAction() const
+{
+	return VirtualKeyboardDismissAction.Get();
+}
+
 TSharedRef<SWidget> SMultiLineEditableText::GetSlateWidget()
 {
 	return AsShared();
@@ -442,7 +454,7 @@ void SMultiLineEditableText::Tick( const FGeometry& AllottedGeometry, const doub
 	EditableTextLayout->Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 }
 
-int32 SMultiLineEditableText::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SMultiLineEditableText::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	const FTextBlockStyle& EditableTextStyle = EditableTextLayout->GetTextStyle();
 	const FLinearColor ForegroundColor = EditableTextStyle.ColorAndOpacity.GetColor(InWidgetStyle);
@@ -450,7 +462,7 @@ int32 SMultiLineEditableText::OnPaint( const FPaintArgs& Args, const FGeometry& 
 	FWidgetStyle TextWidgetStyle = FWidgetStyle(InWidgetStyle)
 		.SetForegroundColor(ForegroundColor);
 
-	LayerId = EditableTextLayout->OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, TextWidgetStyle, ShouldBeEnabled(bParentEnabled));
+	LayerId = EditableTextLayout->OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, TextWidgetStyle, ShouldBeEnabled(bParentEnabled));
 
 	if (bIsSoftwareCursor)
 	{
@@ -460,8 +472,7 @@ int32 SMultiLineEditableText::OnPaint( const FPaintArgs& Args, const FGeometry& 
 			OutDrawElements,
 			++LayerId,
 			AllottedGeometry.ToPaintGeometry(SoftwareCursorPosition - (Brush->ImageSize / 2), Brush->ImageSize),
-			Brush,
-			MyClippingRect
+			Brush
 			);
 	}
 
@@ -577,7 +588,7 @@ FReply SMultiLineEditableText::OnMouseMove( const FGeometry& MyGeometry, const F
 
 			if (PreviousScrollOffset.Y != NewScrollOffset.Y)
 			{
-				const float ScrollMax = EditableTextLayout->GetSize().Y - MyGeometry.Size.Y;
+				const float ScrollMax = EditableTextLayout->GetSize().Y - MyGeometry.GetLocalSize().Y;
 				const float ScrollbarOffset = (ScrollMax != 0.0f) ? NewScrollOffset.Y / ScrollMax : 0.0f;
 				OnVScrollBarUserScrolled.ExecuteIfBound(ScrollbarOffset);
 				SoftwareCursorPosition.Y += (PreviousScrollOffset.Y - NewScrollOffset.Y);
@@ -604,7 +615,7 @@ FReply SMultiLineEditableText::OnMouseWheel( const FGeometry& MyGeometry, const 
 
 		if (PreviousScrollOffset.Y != NewScrollOffset.Y)
 		{
-			const float ScrollMax = EditableTextLayout->GetSize().Y - MyGeometry.Size.Y;
+			const float ScrollMax = EditableTextLayout->GetSize().Y - MyGeometry.GetLocalSize().Y;
 			const float ScrollbarOffset = (ScrollMax != 0.0f) ? NewScrollOffset.Y / ScrollMax : 0.0f;
 			OnVScrollBarUserScrolled.ExecuteIfBound(ScrollbarOffset);
 			return FReply::Handled();

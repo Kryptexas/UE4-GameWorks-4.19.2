@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3150518
+﻿INTSourceChangelist:3467293
 Availability:Public
 Title:모바일 게임 개발
 Crumbs:%ROOT%, Platforms
@@ -10,6 +10,7 @@ parent:Platforms
 tags:Mobile
 order:0
 type:landing
+topic-image:MobileGameDevelopment_topic.png
 
 [REGION:banner]
 ![](mobile_banner.png)

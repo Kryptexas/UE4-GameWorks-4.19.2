@@ -64,6 +64,7 @@
 #include "Engine/LocalPlayer.h"
 #include "Slate/SGameLayerManager.h"
 #include "FoliageType.h"
+#include "IVREditorModule.h"
 
 static const FName LevelEditorName("LevelEditor");
 
@@ -722,13 +723,11 @@ bool SLevelViewport::HandlePlaceDraggedObjects(const FGeometry& MyGeometry, cons
 
 		TSharedPtr<FAssetDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>( Operation );
 
-		ActorFactory = DragDropOp->ActorFactory.Get();
+		ActorFactory = DragDropOp->GetActorFactory();
 
 		bAllAssetWereLoaded = true;
-		for (int32 AssetIdx = 0; AssetIdx < DragDropOp->AssetData.Num(); ++AssetIdx)
+		for (const FAssetData& AssetData : DragDropOp->GetAssets())
 		{
-			const FAssetData& AssetData = DragDropOp->AssetData[AssetIdx];
-
 			UObject* Asset = AssetData.GetAsset();
 			if ( Asset != NULL )
 			{
@@ -1385,18 +1384,19 @@ void SLevelViewport::BindShowCommands( FUICommandList& OutCommandList )
 		OutCommandList.MapAction(
 			FLevelViewportCommands::Get().HideAllVolumes,
 			FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleAllVolumeActors, false ) );
-
-		// Get all known volume classes
-		TArray< UClass* > VolumeClasses;
-		UUnrealEdEngine::GetSortedVolumeClasses(&VolumeClasses);
-
-		for( int32 VolumeClassIndex = 0; VolumeClassIndex < VolumeClasses.Num(); ++VolumeClassIndex )
+		
 		{
-			OutCommandList.MapAction(
-				FLevelViewportCommands::Get().ShowVolumeCommands[ VolumeClassIndex ].ShowMenuItem,
-				FExecuteAction::CreateSP( this, &SLevelViewport::ToggleShowVolumeClass, VolumeClassIndex ),
-				FCanExecuteAction(),
-				FIsActionChecked::CreateSP( this, &SLevelViewport::IsVolumeVisible, VolumeClassIndex ) );
+			FLevelViewportCommands& LevelViewportCommands = FLevelViewportCommands::Get();
+			LevelViewportCommands.RegisterShowVolumeCommands();
+			const TArray<FLevelViewportCommands::FShowMenuCommand>& ShowVolumeCommands = LevelViewportCommands.ShowVolumeCommands;
+			for (int32 VolumeCommandIndex = 0; VolumeCommandIndex < ShowVolumeCommands.Num(); ++VolumeCommandIndex)
+			{
+				OutCommandList.MapAction(
+					ShowVolumeCommands[ VolumeCommandIndex ].ShowMenuItem,
+					FExecuteAction::CreateSP( this, &SLevelViewport::ToggleShowVolumeClass, VolumeCommandIndex ),
+					FCanExecuteAction(),
+					FIsActionChecked::CreateSP( this, &SLevelViewport::IsVolumeVisible, VolumeCommandIndex ) );
+			}
 		}
 	}
 
@@ -1714,7 +1714,7 @@ void SLevelViewport::OnCreateCameraActor()
 	ACameraActor* pNewCamera = ViewportClient->GetWorld()->SpawnActor<ACameraActor>();
 	pNewCamera->SetActorLocation( ViewportClient->GetViewLocation(), false );
 	pNewCamera->SetActorRotation( ViewportClient->GetViewRotation() );
-	pNewCamera->CameraComponent->FieldOfView = ViewportClient->ViewFOV;
+	pNewCamera->GetCameraComponent()->FieldOfView = ViewportClient->ViewFOV;
 
 	// Deselect any currently selected actors
 	GUnrealEd->SelectNone( true, true );
@@ -3120,7 +3120,7 @@ void SLevelViewport::PreviewActors( const TArray< AActor* >& ActorsToPreview )
 				// Push actor transform to view.  From here on out, this will happen automatically in FLevelEditorViewportClient::Tick.
 				// The reason we allow the viewport client to update this is to avoid off-by-one-frame issues when dragging actors around.
 				ActorPreviewLevelViewportClient->SetActorLock( CurActor );
-				ActorPreviewLevelViewportClient->UpdateViewForLockedActor();
+				ActorPreviewLevelViewportClient->UpdateViewForLockedActor();			
 			}
 
 			TSharedPtr< SActorPreview > ActorPreviewWidget = SNew(SActorPreview)
@@ -3129,7 +3129,7 @@ void SLevelViewport::PreviewActors( const TArray< AActor* >& ActorsToPreview )
 
 			auto ActorPreviewViewportWidget = ActorPreviewWidget->GetViewportWidget();
 
-			TSharedPtr< FSceneViewport > ActorPreviewSceneViewport = MakeShareable( new FSceneViewport( ActorPreviewLevelViewportClient.Get(), ViewportWidget ) );
+			TSharedPtr< FSceneViewport > ActorPreviewSceneViewport = MakeShareable( new FSceneViewport( ActorPreviewLevelViewportClient.Get(), ActorPreviewViewportWidget) );
 			{
 				ActorPreviewLevelViewportClient->Viewport = ActorPreviewSceneViewport.Get();
 				ActorPreviewViewportWidget->SetViewportInterface( ActorPreviewSceneViewport.ToSharedRef() );
@@ -3144,11 +3144,20 @@ void SLevelViewport::PreviewActors( const TArray< AActor* >& ActorsToPreview )
 
 			// Add our new widget to our viewport's overlay
 			// @todo camerapip: Consider using a canvas instead of an overlay widget -- our viewports get SQUASHED when the view shrinks!
-			ActorPreviewHorizontalBox->AddSlot()
-			.AutoWidth()
-			[
-				ActorPreviewWidget.ToSharedRef()
-			];
+			IVREditorModule& VREditorModule = IVREditorModule::Get();
+			if (VREditorModule.IsVREditorEnabled())
+			{
+				NewActorPreview.SceneViewport->SetGammaOverride(1.0f);
+				VREditorModule.UpdateActorPreview( NewActorPreview.PreviewWidget.ToSharedRef());
+			}
+			else
+			{
+				ActorPreviewHorizontalBox->AddSlot()
+				.AutoWidth()
+				[
+					ActorPreviewWidget.ToSharedRef()
+				];
+			}
 		}
 
 		// OK, at least one new preview viewport was added, so update settings for all views immediately.
@@ -3846,9 +3855,16 @@ UWorld* SLevelViewport::GetWorld() const
 
 void SLevelViewport::RemoveActorPreview( int32 PreviewIndex )
 {
-	// Remove widget from viewport overlay
-	ActorPreviewHorizontalBox->RemoveSlot( ActorPreviews[PreviewIndex].PreviewWidget.ToSharedRef() );
-
+	IVREditorModule& VREditorModule = IVREditorModule::Get();
+	if (VREditorModule.IsVREditorEnabled())
+	{
+		VREditorModule.UpdateActorPreview(SNullWidget::NullWidget);
+	}
+	else
+	{
+		// Remove widget from viewport overlay
+		ActorPreviewHorizontalBox->RemoveSlot(ActorPreviews[PreviewIndex].PreviewWidget.ToSharedRef());
+	}
 	// Clean up our level viewport client
 	if( ActorPreviews[PreviewIndex].LevelViewportClient.IsValid() )
 	{
@@ -3902,34 +3918,16 @@ void SLevelViewport::LockActorInternal(AActor* NewActorToLock)
 
 bool SLevelViewport::GetCameraInformationFromActor(AActor* Actor, FMinimalViewInfo& out_CameraInfo)
 {
-	// @todo camerapip: Could support actors other than cameras too!  (Character views?)
+	//
 	//@TODO: CAMERA: Support richer camera interactions in SIE; this may shake out naturally if everything uses camera components though
-	TArray<UCameraComponent*> CamComps;
-	Actor->GetComponents<UCameraComponent>(CamComps);
-	for (UCameraComponent* CamComp : CamComps)
-	{
-		if (CamComp->bIsActive)
-		{
-			// first active camera, use it and be done
-			CamComp->GetCameraView(0.0f, out_CameraInfo);
-			return true;
-		}
-	}
 
-	// see if any actors are attached to us, directly or indirectly, that have an active camera component we might want to use
-	// #note: assumption here that attachment cannot be circular
-	TArray<AActor*> AttachedActors;
-	Actor->GetAttachedActors(AttachedActors);
-	for (AActor* AttachedActor : AttachedActors)
+	bool bFoundCamInfo = false;
+	if (USceneComponent* ViewComponent = FLevelEditorViewportClient::FindViewComponentForActor(Actor))
 	{
-		if (GetCameraInformationFromActor(AttachedActor, out_CameraInfo))
-		{
-			return true;
-		}
+		bFoundCamInfo = ViewComponent->GetEditorPreviewInfo(/*DeltaTime =*/0.0f, out_CameraInfo);
+		ensure(bFoundCamInfo);
 	}
-
-	// no active cameras
-	return false;
+	return bFoundCamInfo;
 }
 
 bool SLevelViewport::CanGetCameraInformationFromActor(AActor* Actor)
@@ -3951,6 +3949,16 @@ void SLevelViewport::OnFloatingButtonClicked()
 {
 	// if one of the viewports floating buttons has been clicked, update the global viewport ptr
 	LevelViewportClient->SetLastKeyViewport();
+}
+
+void SLevelViewport::RemoveAllPreviews()
+{
+	// Clean up any actor preview viewports
+	for (FViewportActorPreview& ActorPreview : ActorPreviews)
+	{
+		ActorPreview.bIsPinned = false;
+	}
+	PreviewActors(TArray< AActor* >());
 }
 
 #undef LOCTEXT_NAMESPACE

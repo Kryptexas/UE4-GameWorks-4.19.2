@@ -31,7 +31,6 @@ class UK2Node_AddComponent : public UK2Node_CallFunction
 
 	//~ Begin UObject Interface
 	virtual void Serialize(FArchive& Ar) override;
-	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 	//~ End UObject Interface
 
 	//~ Begin UEdGraphNode Interface

@@ -63,8 +63,8 @@ public:
 
 protected:
 
-	/** Virtual constructor. */
-	~IMessageTransport() { }
+	/** Virtual destructor. */
+	virtual ~IMessageTransport() { }
 };
 
 

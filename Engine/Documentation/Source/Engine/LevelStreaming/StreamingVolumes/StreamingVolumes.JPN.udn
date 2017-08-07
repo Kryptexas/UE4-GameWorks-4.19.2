@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3379420
 Availability:Public
 Title:レベル ストリーミング ボリューム
 Crumbs:
@@ -12,6 +12,19 @@ tags:Level Streaming
 [TOC]
 
 [INCLUDE:Engine/Actors/Volumes#lsv]
+
+以下の画像のように、**[Details (詳細)]** パネルからプロパティを調整すれば、Level Streaming Volume のレベル ストリーミング処理方法を調整できます。 
+
+![](levelstreamingvolume.png)
+
+Level Streaming Volumes については [](Engine/LevelStreaming/StreamingVolumes) を参照してください。
+
+| プロパティ | 説明 |
+| ------- | ------------ |
+| **Streaming Levels** | ボリュームの影響を受けるレベルを表示します。 |
+| **Editor Pre Vis Only** | ストリーミング ボリュームをエディタ ストリーミング レベルのプレビズ用にのみ使用するかを判断します。 |
+| **Disabled** | true の場合、ストリーミング ボリュームはストリーミング ボリューム コードで無視されます。<br> レベルから切り離さないで Level Streaming Volume を無効化するか、または Blueprints と Volume Streaming 間でのレベルのストリーミングの切り替えのためにも使用されます。|
+| **Streaming Usage** | ボリュームを何に使うのか、ロードの制御、ロードと可視性または可視性のみなのか (ロード時にブロック) などを判断します。 |
 
 ## Streaming Volume とレベルの関連づけ
 

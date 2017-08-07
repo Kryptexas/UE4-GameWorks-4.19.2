@@ -19,6 +19,7 @@ class UK2Node_StructMemberSet : public UK2Node_StructOperation
 	TArray<FOptionalPinFromProperty> ShowPinForProperties;
 
 	// UObject interface
+	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 	// End of UObject interface
 
@@ -39,5 +40,7 @@ private:
 	/** Constructing FText strings can be costly, so we cache the node's title/tooltip */
 	FNodeTextCache CachedTooltip;
 	FNodeTextCache CachedNodeTitle;
+
+	TArray<FName> OldShownPins;
 };
 

@@ -86,7 +86,7 @@ FReply FScrollyZoomy::OnMouseButtonUp(const TSharedRef<SWidget> MyWidget, const 
 		// If we have mouse capture, snap the mouse back to the closest location that is within the panel's bounds
 		if (MyWidget->HasMouseCapture())
 		{
-			FSlateRect PanelScreenSpaceRect = MyGeometry.GetClippingRect();
+			FSlateRect PanelScreenSpaceRect = MyGeometry.GetLayoutBoundingRect();
 			FVector2D CursorPosition = MyGeometry.LocalToAbsolute(SoftwareCursorPosition);
 
 			FIntPoint BestPositionInPanel(
@@ -204,7 +204,7 @@ const FVector2D& FScrollyZoomy::GetSoftwareCursorPosition() const
 }
 
 
-int32 FScrollyZoomy::PaintSoftwareCursorIfNeeded(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
+int32 FScrollyZoomy::PaintSoftwareCursorIfNeeded(const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
 {
 	if (bShowSoftwareCursor)
 	{
@@ -214,8 +214,7 @@ int32 FScrollyZoomy::PaintSoftwareCursorIfNeeded(const FGeometry& AllottedGeomet
 			OutDrawElements,
 			++LayerId,
 			AllottedGeometry.ToPaintGeometry(SoftwareCursorPosition - (Brush->ImageSize / 2), Brush->ImageSize),
-			Brush,
-			MyClippingRect
+			Brush
 		);
 	}
 

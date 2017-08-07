@@ -43,57 +43,7 @@ void FAttributePropertyDetails::CustomizeHeader( TSharedRef<IPropertyHandle> Str
 	FString FilterMetaStr = StructPropertyHandle->GetProperty()->GetMetaData(TEXT("FilterMetaTag"));
 
 	TArray<UProperty*> PropertiesToAdd;
-	
-	{
-		// Gather all UAttribute classes
-		for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
-		{
-			UClass *Class = *ClassIt;
-			if (Class->IsChildOf(UAttributeSet::StaticClass()) && !Class->ClassGeneratedBy)
-			{
-				// Allow entire classes to be filtered globally
-				if (Class->HasMetaData(TEXT("HideInDetailsView")))
-				{
-					continue;
-				}
-
-				for (TFieldIterator<UProperty> PropertyIt(Class, EFieldIteratorFlags::ExcludeSuper); PropertyIt; ++PropertyIt)
-				{
-					UProperty* Property = *PropertyIt;
-
-					if (!FilterMetaStr.IsEmpty() && Property->HasMetaData(*FilterMetaStr))
-					{
-						continue;
-					}
-
-					// Allow properties to be filtered globally (never show up)
-					if (Property->HasMetaData(TEXT("HideInDetailsView")))
-					{
-						continue;
-					}
-				
-					PropertiesToAdd.Add(Property);
-				}
-			}
-
-			// UAbilitySystemComponent can add 'system' attributes
-			if (Class->IsChildOf(UAbilitySystemComponent::StaticClass()) && !Class->ClassGeneratedBy)
-			{
-				for (TFieldIterator<UProperty> PropertyIt(Class, EFieldIteratorFlags::ExcludeSuper); PropertyIt; ++PropertyIt)
-				{
-					UProperty* Property = *PropertyIt;
-
-					// SystemAttributes have to be explicitly tagged
-					if (Property->HasMetaData(TEXT("SystemGameplayAttribute")) == false)
-					{
-						continue;
-					}
-
-					PropertiesToAdd.Add(Property);
-				}
-			}
-		}
-	}
+	FGameplayAttribute::GetAllAttributeProperties(PropertiesToAdd, FilterMetaStr);
 
 	for ( auto* Property : PropertiesToAdd )
 	{

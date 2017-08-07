@@ -4,7 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "HitProxies.h"
-#include "MovieSceneSection.h"
+#include "MovieScene3DTransformSection.h"
+#include "MovieScene3DTransformTrack.h"
 #include "MovieSceneTrack.h"
 
 struct HMovieSceneKeyProxy : public HHitProxy
@@ -13,16 +14,13 @@ struct HMovieSceneKeyProxy : public HHitProxy
 
 	/** The track that contains the section */
 	TWeakObjectPtr<UMovieSceneTrack> MovieSceneTrack;
-	/** The section that contains the keyframe */
-	TWeakObjectPtr<UMovieSceneSection> MovieSceneSection;
-	/** The time of the key that is selected */
-	float Time;
+	/** The trajectory key data */
+	FTrajectoryKey Key;
 
-	HMovieSceneKeyProxy(class UMovieSceneTrack* InTrack, class UMovieSceneSection* InSection, float InTime) :
+	HMovieSceneKeyProxy(class UMovieSceneTrack* InTrack, const FTrajectoryKey& InKey) :
 		HHitProxy(HPP_UI),
 		MovieSceneTrack(InTrack),
-		MovieSceneSection(InSection),
-		Time(InTime)
+		Key(InKey)
 	{}
 
 	virtual EMouseCursor::Type GetMouseCursor() override

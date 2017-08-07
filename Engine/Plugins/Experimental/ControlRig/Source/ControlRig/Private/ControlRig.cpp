@@ -2,6 +2,7 @@
 
 #include "ControlRig.h"
 #include "GameFramework/Actor.h"
+#include "Misc/RuntimeErrors.h"
 
 #define LOCTEXT_NAMESPACE "ControlRig"
 
@@ -61,18 +62,24 @@ void UControlRig::PostEvaluate()
 
 UControlRig* UControlRig::EvaluateControlRig(UControlRig* Target)
 {
-	Target->PreEvaluate();
-	Target->Evaluate();
-	Target->PostEvaluate();
+	if (ensureAsRuntimeWarning(Target != nullptr))
+	{
+		Target->PreEvaluate();
+		Target->Evaluate();
+		Target->PostEvaluate();
+	}
 	return Target;
 }
 
 UControlRig* UControlRig::EvaluateControlRigWithInputs(UControlRig* Target, FPreEvaluateGatherInputs PreEvaluate)
 {
 	PreEvaluate.ExecuteIfBound();
-	Target->PreEvaluate();
-	Target->Evaluate();
-	Target->PostEvaluate();
+	if (ensureAsRuntimeWarning(Target != nullptr))
+	{
+		Target->PreEvaluate();
+		Target->Evaluate();
+		Target->PostEvaluate();
+	}
 	return Target;
 }
 

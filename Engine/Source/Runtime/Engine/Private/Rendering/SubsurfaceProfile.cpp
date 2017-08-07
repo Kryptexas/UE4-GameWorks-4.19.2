@@ -14,12 +14,6 @@ ENGINE_API TGlobalResource<FSubsurfaceProfileTexture> GSubsurfaceProfileTextureO
 // Texture with one or more SubSurfaceProfiles or 0 if there is no user
 static TRefCountPtr<IPooledRenderTarget> GSSProfiles;
 
-static TAutoConsoleVariable<int32> CVarFastVRamSubsurfaceProfile(
-	TEXT("r.FastVRamSubsurfaceProfile"),
-	0,
-	TEXT("Whether to store subsurfaceprofile in fast VRAM"),
-	ECVF_Scalability | ECVF_RenderThreadSafe);
-
 FSubsurfaceProfileTexture::FSubsurfaceProfileTexture()
 {
 	check(IsInGameThread());
@@ -141,10 +135,6 @@ void FSubsurfaceProfileTexture::CreateTexture(FRHICommandListImmediate& RHICmdLi
 
 	// at minimum 64 lines (less reallocations)
 	FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(Width, FMath::Max(Height, (uint32)64)), PF_B8G8R8A8, FClearValueBinding::None, 0, TexCreate_None, false));
-	if (CVarFastVRamSubsurfaceProfile.GetValueOnRenderThread() >= 1)
-	{
-		Desc.Flags |= TexCreate_FastVRAM;
-	}
 	if (b16Bit)
 	{
 		Desc.Format = PF_A16B16G16R16;

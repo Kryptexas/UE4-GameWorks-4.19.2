@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3273317
+﻿INTSourceChangelist:3481084
 Availability:Public
 Title: 애니메이션 블루프린트
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -12,11 +12,12 @@ Related: Gameplay/AI
 Related: Engine/Content/Tools/MayaRiggingTool
 version: 4.14
 type:landing
-topic-image:animbptopic.png
 tags:Animation
 tags:Animation Blueprint
 tags:Blueprints
 tags:State Machine
+tags:Assets
+topic-image:Engine/Animation/Overview/AnimationBlueprintTopic.png
 
 [REGION:banner]
 ![](AnimationBlueprint.png)

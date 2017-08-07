@@ -102,8 +102,10 @@ APlayerController::APlayerController(const FObjectInitializer& ObjectInitializer
 	bInputEnabled = true;
 	bEnableTouchEvents = true;
 	bForceFeedbackEnabled = true;
+	ForceFeedbackScale = 1.f;
 
 	bAutoManageActiveCameraTarget = true;
+	bRenderPrimitiveComponents = true;
 	SmoothTargetViewRotationSpeed = 20.f;
 	bHidePawnInCinematicMode = false;
 
@@ -207,6 +209,7 @@ void APlayerController::FailedToSpawnPawn()
 	ClientGotoState(NAME_Inactive);
 }
 
+/// @cond DOXYGEN_WARNINGS
 
 void APlayerController::ClientUpdateLevelStreamingStatus_Implementation(FName PackageName, bool bNewShouldBeLoaded, bool bNewShouldBeVisible, bool bNewShouldBlockOnLoad, int32 LODIndex )
 {
@@ -375,6 +378,8 @@ void APlayerController::ClientAddTextureStreamingLoc_Implementation(FVector InLo
 	}
 }
 
+/// @endcond
+
 void APlayerController::SetNetSpeed(int32 NewSpeed)
 {
 	UNetDriver* Driver = GetWorld()->GetNetDriver();
@@ -539,6 +544,8 @@ UInterpTrackInstDirector* APlayerController::GetControllingDirector()
 	return ControllingDirTrackInst;
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 bool APlayerController::ServerNotifyLoadedWorld_Validate(FName WorldPackageName)
 {
 	RPC_VALIDATE( WorldPackageName.IsValid() );
@@ -574,6 +581,8 @@ void APlayerController::ServerNotifyLoadedWorld_Implementation(FName WorldPackag
 		}
 	}
 }
+
+/// @cond DOXYGEN_WARNINGS
 
 bool APlayerController::HasClientLoadedCurrentWorld()
 {
@@ -685,6 +694,8 @@ void APlayerController::SafeRetryClientRestart()
 }
 
 
+/// @cond DOXYGEN_WARNINGS
+
 /** Avoid calling ClientRestart if we have already accepted this pawn */
 void APlayerController::ClientRetryClientRestart_Implementation(APawn* NewPawn)
 {
@@ -745,6 +756,8 @@ void APlayerController::ClientRestart_Implementation(APawn* NewPawn)
 		}
 	}
 }
+
+/// @endcond
 
 void APlayerController::Possess(APawn* PawnToPossess)
 {
@@ -966,6 +979,8 @@ void APlayerController::PostInitializeComponents()
 	StateName = NAME_Spectating; // Don't use ChangeState, because we want to defer spawning the SpectatorPawn until the Player is received
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 bool APlayerController::ServerShortTimeout_Validate()
 {
 	return true;
@@ -1015,6 +1030,8 @@ void APlayerController::ServerShortTimeout_Implementation()
 		}
 	}
 }
+
+/// @cond DOXYGEN_WARNINGS
 
 void APlayerController::AddCheats(bool bForce)
 {
@@ -1113,6 +1130,15 @@ AHUD* APlayerController::GetHUD() const
 	return MyHUD;
 }
 
+void APlayerController::SetMouseCursorWidget(EMouseCursor::Type Cursor, class UUserWidget* CursorWidget)
+{
+	ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player);
+	if (LocalPlayer && LocalPlayer->ViewportClient)
+	{
+		LocalPlayer->ViewportClient->AddCursorWidget(Cursor, CursorWidget);
+	}
+}
+
 void APlayerController::GetViewportSize(int32& SizeX, int32& SizeY) const
 {
 	SizeX = 0;
@@ -1146,6 +1172,8 @@ void APlayerController::Reset()
 	ChangeState(NAME_Spectating);
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 void APlayerController::ClientReset_Implementation()
 {
 	ResetCameraMode();
@@ -1160,12 +1188,17 @@ void APlayerController::ClientGotoState_Implementation(FName NewState)
 	ChangeState(NewState);
 }
 
+/// @endcond
+
+
 void APlayerController::UnFreeze() {}
 
 bool APlayerController::IsFrozen()
 {
 	return GetWorldTimerManager().IsTimerActive(TimerHandle_UnFreeze);
 }
+
+/// @cond DOXYGEN_WARNINGS
 
 void APlayerController::ServerAcknowledgePossession_Implementation(APawn* P)
 {
@@ -1182,6 +1215,8 @@ bool APlayerController::ServerAcknowledgePossession_Validate(APawn* P)
 	}
 	return true;
 }
+
+/// @endcond
 
 void APlayerController::UnPossess()
 {
@@ -1201,6 +1236,8 @@ void APlayerController::UnPossess()
 	SetPawn(NULL);
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 void APlayerController::ClientSetHUD_Implementation(TSubclassOf<AHUD> NewHUDClass)
 {
 	if ( MyHUD != NULL )
@@ -1217,6 +1254,8 @@ void APlayerController::ClientSetHUD_Implementation(TSubclassOf<AHUD> NewHUDClas
 
 	MyHUD = GetWorld()->SpawnActor<AHUD>(NewHUDClass, SpawnInfo );
 }
+
+/// @endcond
 
 void APlayerController::CleanupPlayerState()
 {
@@ -1290,6 +1329,8 @@ void APlayerController::OnNetCleanup(UNetConnection* Connection)
 	Destroy( true );		
 	UNetConnection::GNetConnectionBeingCleanedUp = NULL;
 }
+
+/// @cond DOXYGEN_WARNINGS
 
 void APlayerController::ClientReceiveLocalizedMessage_Implementation( TSubclassOf<ULocalMessage> Message, int32 Switch, APlayerState* RelatedPlayerState_1, APlayerState* RelatedPlayerState_2, UObject* OptionalObject )
 {
@@ -1367,6 +1408,8 @@ void APlayerController::ServerToggleAILogging_Implementation()
 		CheatManager->ServerToggleAILogging();
 	}
 }
+
+/// @endcond
 
 void APlayerController::PawnLeavingGame()
 {
@@ -1497,6 +1540,8 @@ void APlayerController::Camera( FName NewMode )
 	ServerCamera(NewMode);
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 void APlayerController::ServerCamera_Implementation( FName NewMode )
 {
 	SetCameraMode(NewMode);
@@ -1516,6 +1561,7 @@ void APlayerController::ClientSetCameraMode_Implementation( FName NewCamMode )
 	}
 }
 
+/// @endcond
 
 void APlayerController::SetCameraMode( FName NewCamMode )
 {
@@ -1541,6 +1587,8 @@ void APlayerController::ResetCameraMode()
 	SetCameraMode(DefaultMode);
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 void APlayerController::ClientSetCameraFade_Implementation(bool bEnableFading, FColor FadeColor, FVector2D FadeAlpha, float FadeTime, bool bFadeAudio)
 {
 	if (PlayerCameraManager != nullptr)
@@ -1555,6 +1603,8 @@ void APlayerController::ClientSetCameraFade_Implementation(bool bEnableFading, F
 		}
 	}
 }
+
+/// @endcond
 
 void APlayerController::SendClientAdjustment()
 {
@@ -1576,6 +1626,7 @@ void APlayerController::SendClientAdjustment()
 	}
 }
 
+/// @cond DOXYGEN_WARNINGS
 
 void APlayerController::ClientCapBandwidth_Implementation(int32 Cap)
 {
@@ -1586,6 +1637,7 @@ void APlayerController::ClientCapBandwidth_Implementation(int32 Cap)
 	}
 }
 
+/// @endcond
 
 void APlayerController::UpdatePing(float InPing)
 {
@@ -1613,6 +1665,7 @@ void APlayerController::SetInitialLocationAndRotation(const FVector& NewLocation
 	}
 }
 
+/// @cond DOXYGEN_WARNINGS
 
 bool APlayerController::ServerUpdateCamera_Validate(FVector_NetQuantize CamLoc, int32 CamPitchAndYaw)
 {
@@ -1654,6 +1707,8 @@ void APlayerController::ServerUpdateCamera_Implementation(FVector_NetQuantize Ca
 	}
 }
 
+/// @endcond
+
 void APlayerController::RestartLevel()
 {
 	if( GetNetMode()==NM_Standalone )
@@ -1670,6 +1725,8 @@ void APlayerController::LocalTravel( const FString& FURL )
 	}
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 void APlayerController::ClientReturnToMainMenu_Implementation(const FString& ReturnReason)
 {
 	UWorld* World = GetWorld();
@@ -1683,6 +1740,7 @@ void APlayerController::ClientReturnToMainMenu_Implementation(const FString& Ret
 	}
 }
 
+/// @endcond
 
 bool APlayerController::SetPause( bool bPause, FCanUnpause CanUnpauseDelegate)
 {
@@ -1717,6 +1775,8 @@ void APlayerController::Pause()
 	ServerPause();
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 bool APlayerController::ServerPause_Validate()
 {
 #if UE_BUILD_SHIPPING
@@ -1732,6 +1792,8 @@ void APlayerController::ServerPause_Implementation()
 	SetPause(!IsPaused());
 }
 
+/// @endcond
+
 void APlayerController::SetName(const FString& S)
 {
 	if (!S.IsEmpty())
@@ -1740,6 +1802,8 @@ void APlayerController::SetName(const FString& S)
 		ServerChangeName(S);
 	}
 }
+
+/// @cond DOXYGEN_WARNINGS
 
 void APlayerController::ServerChangeName_Implementation( const FString& S )
 {
@@ -1755,6 +1819,8 @@ bool APlayerController::ServerChangeName_Validate( const FString& S )
 	RPC_VALIDATE( !S.IsEmpty() );
 	return true;
 }
+
+/// @endcond
 
 void APlayerController::SwitchLevel(const FString& FURL)
 {
@@ -1788,11 +1854,14 @@ void APlayerController::GameHasEnded(AActor* EndGameFocus, bool bIsWinner)
 	ClientGameEnded(EndGameFocus, bIsWinner);
 }
 
+/// @cond DOXYGEN_WARNINGS
 
 void APlayerController::ClientGameEnded_Implementation(AActor* EndGameFocus, bool bIsWinner)
 {
 	SetViewTarget(EndGameFocus);
 }
+
+/// @endcond
 
 bool APlayerController::GetHitResultUnderCursor(ECollisionChannel TraceChannel, bool bTraceComplex, FHitResult& HitResult) const
 {
@@ -1951,18 +2020,24 @@ bool APlayerController::ProjectWorldLocationToScreen(FVector WorldLocation, FVec
 
 bool APlayerController::ProjectWorldLocationToScreenWithDistance(FVector WorldLocation, FVector& ScreenLocation, bool bPlayerViewportRelative) const
 {
-	FVector2D ScreenLoc2D;
-	if (UGameplayStatics::ProjectWorldToScreen(this, WorldLocation, ScreenLoc2D, bPlayerViewportRelative))
+	// find distance
+	ULocalPlayer const* const LP = GetLocalPlayer();
+	if (LP && LP->ViewportClient)
 	{
-		// find distance
-		ULocalPlayer const* const LP = GetLocalPlayer();
-		if (LP && LP->ViewportClient)
+		// get the projection data
+		FSceneViewProjectionData ProjectionData;
+		if (LP->GetProjectionData(LP->ViewportClient->Viewport, eSSP_FULL, /*out*/ ProjectionData))
 		{
-			// get the projection data
-			FSceneViewProjectionData ProjectionData;
-			if (LP->GetProjectionData(LP->ViewportClient->Viewport, eSSP_FULL, /*out*/ ProjectionData))
+			FVector2D ScreenPosition2D;
+			FMatrix const ViewProjectionMatrix = ProjectionData.ComputeViewProjectionMatrix();
+			if ( FSceneView::ProjectWorldToScreen(WorldLocation, ProjectionData.GetConstrainedViewRect(), ViewProjectionMatrix, ScreenPosition2D) )
 			{
-				ScreenLocation = FVector(ScreenLoc2D.X, ScreenLoc2D.Y, FVector::Dist(ProjectionData.ViewOrigin, WorldLocation));
+				if ( bPlayerViewportRelative )
+				{
+					ScreenPosition2D -= FVector2D(ProjectionData.GetConstrainedViewRect().Min);
+				}
+
+				ScreenLocation = FVector(ScreenPosition2D.X, ScreenPosition2D.Y, FVector::Dist(ProjectionData.ViewOrigin, WorldLocation));
 
 				return true;
 			}
@@ -1990,11 +2065,9 @@ bool APlayerController::GetHitResultAtScreenPosition(const FVector2D ScreenPosit
 	return false;
 }
 
-static const FName NAME_ClickableTrace("ClickableTrace");
-
 bool APlayerController::GetHitResultAtScreenPosition(const FVector2D ScreenPosition, const ECollisionChannel TraceChannel, bool bTraceComplex, FHitResult& HitResult) const
 {
-	FCollisionQueryParams CollisionQueryParams( NAME_ClickableTrace, bTraceComplex );
+	FCollisionQueryParams CollisionQueryParams(SCENE_QUERY_STAT(ClickableTrace), bTraceComplex );
 	return GetHitResultAtScreenPosition( ScreenPosition, TraceChannel, CollisionQueryParams, HitResult );
 }
 
@@ -2016,7 +2089,7 @@ bool APlayerController::GetHitResultAtScreenPosition(const FVector2D ScreenPosit
 	if (UGameplayStatics::DeprojectScreenToWorld(this, ScreenPosition, WorldOrigin, WorldDirection) == true)
 	{
 		FCollisionObjectQueryParams const ObjParam(ObjectTypes);
-		return GetWorld()->LineTraceSingleByObjectType(HitResult, WorldOrigin, WorldOrigin + WorldDirection * HitResultTraceDistance, ObjParam, FCollisionQueryParams("ClickableTrace", bTraceComplex));
+		return GetWorld()->LineTraceSingleByObjectType(HitResult, WorldOrigin, WorldOrigin + WorldDirection * HitResultTraceDistance, ObjParam, FCollisionQueryParams(SCENE_QUERY_STAT(ClickableTrace), bTraceComplex));
 	}
 
 	return false;
@@ -2444,6 +2517,8 @@ void APlayerController::SetViewTargetWithBlend(AActor* NewViewTarget, float Blen
 	SetViewTarget(NewViewTarget, TransitionParams);
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 void APlayerController::ClientSetViewTarget_Implementation( AActor* A, FViewTargetTransitionParams TransitionParams )
 {
 	if (PlayerCameraManager && !PlayerCameraManager->bClientSimulatingViewTarget)
@@ -2476,6 +2551,8 @@ void APlayerController::ServerVerifyViewTarget_Implementation()
 	}
 	ClientSetViewTarget( TheViewTarget );
 }
+
+/// @endcond
 
 void APlayerController::SpawnPlayerCameraManager()
 {
@@ -2549,6 +2626,8 @@ void APlayerController::ClearAudioListenerOverride()
 	AudioListenerComponent = nullptr;
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 bool APlayerController::ServerCheckClientPossession_Validate()
 {
 	return true;
@@ -2574,6 +2653,7 @@ void APlayerController::ServerCheckClientPossessionReliable_Implementation()
 	ServerCheckClientPossession_Implementation();
 }
 
+/// @endcond
 
 void APlayerController::SafeServerCheckClientPossession()
 {
@@ -2598,6 +2678,8 @@ void APlayerController::SafeServerUpdateSpectatorState()
 		}
 	}
 }
+
+/// @cond DOXYGEN_WARNINGS
 
 bool APlayerController::ServerSetSpectatorLocation_Validate(FVector NewLoc, FRotator NewRot)
 {
@@ -2633,7 +2715,6 @@ void APlayerController::ServerSetSpectatorLocation_Implementation(FVector NewLoc
 	}
 }
 
-
 bool APlayerController::ServerSetSpectatorWaiting_Validate(bool bWaiting)
 {
 	return true;
@@ -2654,7 +2735,6 @@ void APlayerController::ClientSetSpectatorWaiting_Implementation(bool bWaiting)
 		bPlayerIsWaiting = true;
 	}
 }
-
 
 bool APlayerController::ServerViewNextPlayer_Validate()
 {
@@ -2682,6 +2762,7 @@ void APlayerController::ServerViewPrevPlayer_Implementation()
 	}
 }
 
+/// @endcond
 
 APlayerState* APlayerController::GetNextViewablePlayer(int32 dir)
 {
@@ -2730,7 +2811,6 @@ APlayerState* APlayerController::GetNextViewablePlayer(int32 dir)
 	return nullptr;
 }
 
-
 void APlayerController::ViewAPlayer(int32 dir)
 {
 	APlayerState* const NextPlayerState = GetNextViewablePlayer(dir);
@@ -2740,6 +2820,8 @@ void APlayerController::ViewAPlayer(int32 dir)
 		SetViewTarget(NextPlayerState);
 	}
 }
+
+/// @cond DOXYGEN_WARNINGS
 
 bool APlayerController::ServerViewSelf_Validate(FViewTargetTransitionParams TransitionParams)
 {
@@ -2755,6 +2837,8 @@ void APlayerController::ServerViewSelf_Implementation(FViewTargetTransitionParam
 		ClientSetViewTarget( this, TransitionParams );
 	}
 }
+
+/// @endcond
 
 void APlayerController::StartFire( uint8 FireModeNum ) 
 {
@@ -2772,7 +2856,6 @@ void APlayerController::StartFire( uint8 FireModeNum )
 	}
 }
 
-
 bool APlayerController::NotifyServerReceivedClientData(APawn* InPawn, float TimeStamp)
 {
 	if (GetPawn() != InPawn || (GetNetMode() == NM_Client))
@@ -2788,6 +2871,8 @@ bool APlayerController::NotifyServerReceivedClientData(APawn* InPawn, float Time
 
 	return true;
 }
+
+/// @cond DOXYGEN_WARNINGS
 
 bool APlayerController::ServerRestartPlayer_Validate()
 {
@@ -2824,10 +2909,14 @@ void APlayerController::ServerRestartPlayer_Implementation()
 	}
 }
 
+/// @endcond
+
 bool APlayerController::CanRestartPlayer()
 {
 	return PlayerState && !PlayerState->bOnlySpectator && HasClientLoadedCurrentWorld() && PendingSwapConnection == NULL;
 }
+
+/// @cond DOXYGEN_WARNINGS
 
 void APlayerController::ClientIgnoreMoveInput_Implementation(bool bIgnore)
 {
@@ -2839,6 +2928,7 @@ void APlayerController::ClientIgnoreLookInput_Implementation(bool bIgnore)
 	SetIgnoreLookInput(bIgnore);
 }
 
+/// @endcond
 
 void APlayerController::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
 {
@@ -2980,6 +3070,8 @@ void APlayerController::SetCinematicMode(bool bInCinematicMode, bool bHidePlayer
 	ClientSetCinematicMode(bCinematicMode, bAffectsMovement, bAffectsTurning, bAffectsHUD);
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 void APlayerController::ClientSetCinematicMode_Implementation(bool bInCinematicMode, bool bAffectsMovement, bool bAffectsTurning, bool bAffectsHUD)
 {
 	bCinematicMode = bInCinematicMode;
@@ -3004,10 +3096,14 @@ void APlayerController::ClientForceGarbageCollection_Implementation()
 	GetWorld()->ForceGarbageCollection();
 }
 
+/// @endcond
+
 void APlayerController::LevelStreamingStatusChanged(ULevelStreaming* LevelObject, bool bNewShouldBeLoaded, bool bNewShouldBeVisible, bool bNewShouldBlockOnLoad, int32 LODIndex )
 {
 	ClientUpdateLevelStreamingStatus(LevelObject->GetWorldAssetPackageFName(),bNewShouldBeLoaded,bNewShouldBeVisible,bNewShouldBlockOnLoad,LODIndex);
 }
+
+/// @cond DOXYGEN_WARNINGS
 
 void APlayerController::ClientPrepareMapChange_Implementation(FName LevelName, bool bFirst, bool bLast)
 {
@@ -3035,6 +3131,8 @@ void APlayerController::ClientPrepareMapChange_Implementation(FName LevelName, b
 	}
 }
 
+/// @endcond
+
 void APlayerController::DelayedPrepareMapChange()
 {
 	if (GetWorld()->IsPreparingMapChange())
@@ -3048,6 +3146,7 @@ void APlayerController::DelayedPrepareMapChange()
 	}
 }
 
+/// @cond DOXYGEN_WARNINGS
 
 void APlayerController::ClientCommitMapChange_Implementation()
 {
@@ -3077,12 +3176,12 @@ void APlayerController::ClientCancelPendingMapChange_Implementation()
 	GetWorld()->CancelPendingMapChange();
 }
 
-
 void APlayerController::ClientSetBlockOnAsyncLoading_Implementation()
 {
 	GetWorld()->bRequestedBlockOnAsyncLoading = true;
 }
 
+/// @endcond
 
 void APlayerController::GetSeamlessTravelActorList(bool bToEntry, TArray<AActor*>& ActorList)
 {
@@ -3129,10 +3228,14 @@ void APlayerController::PostSeamlessTravel()
 
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 void APlayerController::ClientEnableNetworkVoice_Implementation(bool bEnable)
 {
 	ToggleSpeaking(bEnable);
 }
+
+/// @endcond
 
 void APlayerController::StartTalking()
 {
@@ -3161,10 +3264,14 @@ void APlayerController::ToggleSpeaking(bool bSpeaking)
 	}
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 void APlayerController::ClientVoiceHandshakeComplete_Implementation()
 {
 	MuteList.bHasVoiceHandshakeCompleted = true;
 }
+
+/// @endcond
 
 void APlayerController::GameplayMutePlayer(const FUniqueNetIdRepl& PlayerNetId)
 {
@@ -3181,6 +3288,8 @@ void APlayerController::GameplayUnmutePlayer(const FUniqueNetIdRepl& PlayerNetId
 		MuteList.GameplayUnmutePlayer(this, PlayerNetId);
 	}
 }
+
+/// @cond DOXYGEN_WARNINGS
 
 void APlayerController::ServerMutePlayer_Implementation(FUniqueNetIdRepl PlayerId)
 {
@@ -3222,6 +3331,8 @@ void APlayerController::ClientUnmutePlayer_Implementation(FUniqueNetIdRepl Playe
 	MuteList.ClientUnmutePlayer(this, PlayerId);
 }
 
+/// @endcond
+
 bool APlayerController::IsPlayerMuted(const FUniqueNetId& PlayerId)
 {
 	return MuteList.IsPlayerMuted(PlayerId);
@@ -3236,6 +3347,8 @@ void APlayerController::NotifyDirectorControl(bool bNowControlling, AMatineeActo
 		ServerVerifyViewTarget();
 	}
 }
+
+/// @cond DOXYGEN_WARNINGS
 
 void APlayerController::ClientWasKicked_Implementation(const FText& KickReason)
 {
@@ -3256,6 +3369,8 @@ void APlayerController::ClientEndOnlineSession_Implementation()
 		GetGameInstance()->GetOnlineSession()->EndOnlineSession(PlayerState->SessionName);
 	}
 }
+
+/// @endcond
 
 void APlayerController::ConsoleKey(FKey Key)
 {
@@ -3476,6 +3591,7 @@ int32 APlayerController::GetSplitscreenPlayerCount() const
 	return Result;
 }
 
+/// @cond DOXYGEN_WARNINGS
 
 void APlayerController::ClientSetForceMipLevelsToBeResident_Implementation( UMaterialInterface* Material, float ForceDuration, int32 CinematicTextureGroups )
 {
@@ -3484,7 +3600,6 @@ void APlayerController::ClientSetForceMipLevelsToBeResident_Implementation( UMat
 		Material->SetForceMipLevelsToBeResident( false, false, ForceDuration, CinematicTextureGroups );
 	}
 }
-
 
 void APlayerController::ClientPrestreamTextures_Implementation( AActor* ForcedActor, float ForceDuration, bool bEnableStreaming, int32 CinematicTextureGroups)
 {
@@ -3535,6 +3650,8 @@ void APlayerController::ClientStopForceFeedback_Implementation( UForceFeedbackEf
 		}
 	}
 }
+
+/// @endcond
 
 /** Action that interpolates a component over time to a desired position */
 class FDynamicForceFeedbackAction : public FPendingLatentAction
@@ -3789,6 +3906,12 @@ void APlayerController::ProcessForceFeedbackAndHaptics(const float DeltaTime, co
 			ForceFeedbackManager->Update(GetFocalLocation(), ForceFeedbackValues);
 		}
 
+		// Apply ForceFeedbackScale
+		ForceFeedbackValues.LeftLarge  = FMath::Clamp(ForceFeedbackValues.LeftLarge * ForceFeedbackScale, 0.f, 1.f);
+		ForceFeedbackValues.RightLarge = FMath::Clamp(ForceFeedbackValues.RightLarge * ForceFeedbackScale, 0.f, 1.f);
+		ForceFeedbackValues.LeftSmall  = FMath::Clamp(ForceFeedbackValues.LeftSmall * ForceFeedbackScale, 0.f, 1.f);
+		ForceFeedbackValues.RightSmall = FMath::Clamp(ForceFeedbackValues.RightSmall * ForceFeedbackScale, 0.f, 1.f);
+
 		// --- Haptic Feedback -------------------------
 		if (ActiveHapticEffect_Left.IsValid())
 		{
@@ -3827,7 +3950,7 @@ void APlayerController::ProcessForceFeedbackAndHaptics(const float DeltaTime, co
 
 	if (FSlateApplication::IsInitialized())
 	{
-		const int32 ControllerId = CastChecked<ULocalPlayer>(Player)->GetControllerId();
+		const int32 ControllerId = GetInputIndex();
 
 		IInputInterface* InputInterface = FSlateApplication::Get().GetInputInterface();
 		if (InputInterface)
@@ -3856,6 +3979,8 @@ void APlayerController::ProcessForceFeedbackAndHaptics(const float DeltaTime, co
 		}
 	}
 }
+
+/// @cond DOXYGEN_WARNINGS
 
 void APlayerController::ClientPlayCameraShake_Implementation( TSubclassOf<class UCameraShake> Shake, float Scale, ECameraAnimPlaySpace::Type PlaySpace, FRotator UserPlaySpaceRot )
 {
@@ -3891,7 +4016,6 @@ void APlayerController::ClientStopCameraAnim_Implementation(UCameraAnim* AnimToS
 	}
 }
 
-
 void APlayerController::ClientSpawnCameraLensEffect_Implementation( TSubclassOf<AEmitterCameraLensEffectBase> LensEffectEmitterClass )
 {
 	if (PlayerCameraManager != NULL)
@@ -3908,6 +4032,8 @@ void APlayerController::ClientClearCameraLensEffects_Implementation()
 	}
 }
 
+/// @endcond
+
 void APlayerController::ReceivedGameModeClass(TSubclassOf<AGameModeBase> GameModeClass)
 {
 }
@@ -3921,19 +4047,6 @@ void APlayerController::ReceivedSpectatorClass(TSubclassOf<ASpectatorPawn> Spect
 			BeginSpectatingState();
 		}
 	}
-}
-
-void APlayerController::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const
-{
-	Super::GetLifetimeReplicatedProps( OutLifetimeProps );
-
-	// These used to only replicate if PlayerCameraManager->GetViewTargetPawn() != GetPawn()
-	// But, since they also don't update unless that condition is true, these values won't change, thus won't send
-	// This is a little less efficient, but fits into the new condition system well, and shouldn't really add much overhead
-	DOREPLIFETIME_CONDITION( APlayerController, TargetViewRotation,		COND_OwnerOnly );
-
-	// Replicate SpawnLocation for remote spectators
-	DOREPLIFETIME_CONDITION( APlayerController, SpawnLocation, COND_OwnerOnly );
 }
 
 void APlayerController::SetPawn(APawn* InPawn)
@@ -3959,6 +4072,18 @@ void APlayerController::SetPawn(APawn* InPawn)
 	}
 }
 
+void APlayerController::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	// These used to only replicate if PlayerCameraManager->GetViewTargetPawn() != GetPawn()
+	// But, since they also don't update unless that condition is true, these values won't change, thus won't send
+	// This is a little less efficient, but fits into the new condition system well, and shouldn't really add much overhead
+	DOREPLIFETIME_CONDITION(APlayerController, TargetViewRotation, COND_OwnerOnly);
+
+	// Replicate SpawnLocation for remote spectators
+	DOREPLIFETIME_CONDITION(APlayerController, SpawnLocation, COND_OwnerOnly);
+}
 
 void APlayerController::SetPlayer( UPlayer* InPlayer )
 {
@@ -4021,6 +4146,15 @@ ULocalPlayer* APlayerController::GetLocalPlayer() const
 bool APlayerController::IsInViewportClient(UGameViewportClient* ViewportClient) const
 {
 	return ViewportClient && ViewportClient->GetGameViewportWidget().IsValid() && ViewportClient->GetGameViewportWidget()->IsDirectlyHovered();
+}
+
+int32 APlayerController::GetInputIndex() const
+{
+	if (ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player))
+	{
+		return LocalPlayer->GetControllerId();
+	}
+	return INVALID_CONTROLLERID;
 }
 
 void APlayerController::TickPlayerInput(const float DeltaSeconds, const bool bGamePaused)
@@ -4219,6 +4353,8 @@ void APlayerController::ClientTravel(const FString& URL, ETravelType TravelType,
 	ClientTravelInternal(URL, TravelType, bSeamless, MapPackageGuid);
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 void APlayerController::ClientTravelInternal_Implementation(const FString& URL, ETravelType TravelType, bool bSeamless, FGuid MapPackageGuid)
 {
 	UWorld* World = GetWorld();
@@ -4240,6 +4376,8 @@ void APlayerController::ClientTravelInternal_Implementation(const FString& URL, 
 		GEngine->SetClientTravel(World, *URL, (ETravelType)TravelType);
 	}
 }
+
+/// @endcond
 
 FString APlayerController::GetPlayerNetworkAddress()
 {
@@ -4824,8 +4962,11 @@ void APlayerController::UpdateCameraManager(float DeltaSeconds)
 	}
 }
 
-void APlayerController::BuildHiddenComponentList(const FVector& ViewLocation, TSet<FPrimitiveComponentId>& HiddenComponents)
+void APlayerController::BuildHiddenComponentList(const FVector& ViewLocation, TSet<FPrimitiveComponentId>& HiddenComponentsOut)
 {
+	// Makes no sens to build hidden component list if should not render any components.
+	check(bRenderPrimitiveComponents);
+
 	// Translate the hidden actors list to a hidden primitive list.
 	UpdateHiddenActors(ViewLocation);
 
@@ -4842,14 +4983,14 @@ void APlayerController::BuildHiddenComponentList(const FVector& ViewLocation, TS
 				UPrimitiveComponent* PrimitiveComponent = Components[ComponentIndex];
 				if (PrimitiveComponent->IsRegistered())
 				{
-					HiddenComponents.Add(PrimitiveComponent->ComponentId);
+					HiddenComponentsOut.Add(PrimitiveComponent->ComponentId);
 
 					for (USceneComponent* AttachedChild : PrimitiveComponent->GetAttachChildren())
 					{						
 						UPrimitiveComponent* AttachChildPC = Cast<UPrimitiveComponent>(AttachedChild);
 						if (AttachChildPC && AttachChildPC->IsRegistered())
 						{
-							HiddenComponents.Add(AttachChildPC->ComponentId);
+							HiddenComponentsOut.Add(AttachChildPC->ComponentId);
 						}
 					}
 				}
@@ -4862,14 +5003,36 @@ void APlayerController::BuildHiddenComponentList(const FVector& ViewLocation, TS
 		}
 	}
 
+	// iterate backwards to we can remove as we go
+	for (int32 ComponentIndx = HiddenPrimitiveComponents.Num() - 1; ComponentIndx >= 0; --ComponentIndx)
+	{
+		TWeakObjectPtr<UPrimitiveComponent> ComponentPtr = HiddenPrimitiveComponents[ComponentIndx];
+		if (ComponentPtr.IsValid())
+		{
+			UPrimitiveComponent* Component = ComponentPtr.Get();
+			if (Component->IsRegistered())
+			{
+				HiddenComponentsOut.Add(Component->ComponentId);
+			}
+		}
+		else
+		{
+			HiddenPrimitiveComponents.RemoveAt(ComponentIndx);
+		}
+	}
+
 	// Allow a chance to operate on a per primitive basis
-	UpdateHiddenComponents(ViewLocation, HiddenComponents);
+	UpdateHiddenComponents(ViewLocation, HiddenComponentsOut);
 }
+
+/// @cond DOXYGEN_WARNINGS
 
 void APlayerController::ClientRepObjRef_Implementation(UObject *Object)
 {
 	UE_LOG(LogPlayerController, Warning, TEXT("APlayerController::ClientRepObjRef repped: %s"), Object ? *Object->GetName() : TEXT("NULL") );
 }
+
+/// @endcond
 
 void FDynamicForceFeedbackDetails::Update(FForceFeedbackValues& Values) const
 {
@@ -4891,6 +5054,8 @@ void FDynamicForceFeedbackDetails::Update(FForceFeedbackValues& Values) const
 	}
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 void APlayerController::OnServerStartedVisualLogger_Implementation(bool bIsLogging)
 {
 #if ENABLE_VISUAL_LOG
@@ -4898,6 +5063,8 @@ void APlayerController::OnServerStartedVisualLogger_Implementation(bool bIsLoggi
 	ClientMessage(FString::Printf(TEXT("Visual Loggger is %s."), FVisualLogger::Get().IsRecordingOnServer() ? TEXT("now recording") : TEXT("disabled")));
 #endif
 }
+
+/// @endcond
 
 bool APlayerController::ShouldPerformFullTickWhenPaused() const
 {

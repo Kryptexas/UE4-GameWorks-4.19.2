@@ -65,7 +65,7 @@ TSharedRef<SWidget> UCanvasPanel::RebuildWidget()
 		}
 	}
 
-	return BuildDesignTimeWidget( MyCanvas.ToSharedRef() );
+	return MyCanvas.ToSharedRef();
 }
 
 UCanvasPanelSlot* UCanvasPanel::AddChildToCanvas(UWidget* Content)

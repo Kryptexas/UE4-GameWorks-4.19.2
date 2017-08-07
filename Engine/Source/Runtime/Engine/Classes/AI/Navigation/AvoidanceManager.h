@@ -139,11 +139,9 @@ class ENGINE_API UAvoidanceManager : public UObject, public FSelfRegisteringExec
 	FVector GetAvoidanceVelocityForComponent(UMovementComponent* MovementComp);
 
 	/** Only use if you want manual velocity planning. Provide your AvoidanceUID in order to avoid colliding with yourself. */
-	UFUNCTION(BlueprintCallable, Category="AI")
 	FVector GetAvoidanceVelocityIgnoringUID(const FNavAvoidanceData& AvoidanceData, float DeltaTime, int32 IgnoreThisUID);
 
 	/** Only use if you want manual velocity planning. Will not ignore your own volume if you are registered. */
-	UFUNCTION(BlueprintCallable, Category="AI")
 	FVector GetAvoidanceVelocity(const FNavAvoidanceData& AvoidanceData, float DeltaTime);
 
 	/** Update the RVO avoidance data for the participating UMovementComponent */

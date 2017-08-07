@@ -520,7 +520,7 @@ void UVectorFieldComponent::OnRegister()
 		{
 			FVectorFieldInstance* Instance = new FVectorFieldInstance();
 			VectorField->InitInstance(Instance, /*bPreviewInstance=*/ true);
-			Instance->UpdateTransforms(ComponentToWorld.ToMatrixWithScale());
+			Instance->UpdateTransforms(GetComponentTransform().ToMatrixWithScale());
 			VectorFieldInstance = Instance;
 		}
 		else
@@ -747,7 +747,7 @@ private:
 	FShaderResourceParameter OutVolumeTexture;
 	FShaderResourceParameter OutVolumeTextureSampler;
 };
-IMPLEMENT_SHADER_TYPE(,FCompositeAnimatedVectorFieldCS,TEXT("VectorFieldCompositeShaders"),TEXT("CompositeAnimatedVectorField"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FCompositeAnimatedVectorFieldCS,TEXT("/Engine/Private/VectorFieldCompositeShaders.usf"),TEXT("CompositeAnimatedVectorField"),SF_Compute);
 
 /*------------------------------------------------------------------------------
 	Animated vector field asset.

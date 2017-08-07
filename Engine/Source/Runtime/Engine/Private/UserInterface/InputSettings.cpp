@@ -137,13 +137,36 @@ void UInputSettings::SaveKeyMappings()
 	SaveConfig();
 }
 
-void UInputSettings::AddActionMapping(const FInputActionKeyMapping& KeyMapping)
+UInputSettings* UInputSettings::GetInputSettings()
 {
-	ActionMappings.AddUnique(KeyMapping);
-	ForceRebuildKeymaps();
+	return GetMutableDefault<UInputSettings>();
 }
 
-void UInputSettings::RemoveActionMapping(const FInputActionKeyMapping& KeyMapping)
+void UInputSettings::AddActionMapping(const FInputActionKeyMapping& KeyMapping, const bool bForceRebuildKeymaps)
+{
+	ActionMappings.AddUnique(KeyMapping);
+	if (bForceRebuildKeymaps)
+	{
+		ForceRebuildKeymaps();
+	}
+}
+
+void UInputSettings::GetActionMappingByName(const FName InActionName, TArray<FInputActionKeyMapping>& OutMappings) const
+{
+	if (InActionName.IsValid())
+	{
+		for (int32 ActionIndex = ActionMappings.Num() - 1; ActionIndex >= 0; --ActionIndex)
+		{
+			if (ActionMappings[ActionIndex].ActionName == InActionName)
+			{
+				OutMappings.Add(ActionMappings[ActionIndex]);
+				// we don't break because the mapping may have been in the array twice
+			}
+		}
+	}
+}
+
+void UInputSettings::RemoveActionMapping(const FInputActionKeyMapping& KeyMapping, const bool bForceRebuildKeymaps)
 {
 	for (int32 ActionIndex = ActionMappings.Num() - 1; ActionIndex >= 0; --ActionIndex)
 	{
@@ -153,16 +176,37 @@ void UInputSettings::RemoveActionMapping(const FInputActionKeyMapping& KeyMappin
 			// we don't break because the mapping may have been in the array twice
 		}
 	}
-	ForceRebuildKeymaps();
+	if (bForceRebuildKeymaps)
+	{
+		ForceRebuildKeymaps();
+	}
 }
 
-void UInputSettings::AddAxisMapping(const FInputAxisKeyMapping& KeyMapping)
+void UInputSettings::AddAxisMapping(const FInputAxisKeyMapping& KeyMapping, const bool bForceRebuildKeymaps)
 {
 	AxisMappings.AddUnique(KeyMapping);
-	ForceRebuildKeymaps();
+	if (bForceRebuildKeymaps)
+	{
+		ForceRebuildKeymaps();
+	}
 }
 
-void UInputSettings::RemoveAxisMapping(const FInputAxisKeyMapping& InKeyMapping)
+void UInputSettings::GetAxisMappingByName(const FName InAxisName, TArray<FInputAxisKeyMapping>& OutMappings) const
+{
+	if (InAxisName.IsValid())
+	{
+		for (int32 AxisIndex = AxisMappings.Num() - 1; AxisIndex >= 0; --AxisIndex)
+		{
+			if (AxisMappings[AxisIndex].AxisName == InAxisName)
+			{
+				OutMappings.Add(AxisMappings[AxisIndex]);
+				// we don't break because the mapping may have been in the array twice
+			}
+		}
+	}
+}
+
+void UInputSettings::RemoveAxisMapping(const FInputAxisKeyMapping& InKeyMapping, const bool bForceRebuildKeymaps)
 {
 	for (int32 AxisIndex = AxisMappings.Num() - 1; AxisIndex >= 0; --AxisIndex)
 	{
@@ -174,7 +218,10 @@ void UInputSettings::RemoveAxisMapping(const FInputAxisKeyMapping& InKeyMapping)
 			// we don't break because the mapping may have been in the array twice
 		}
 	}
-	ForceRebuildKeymaps();
+	if (bForceRebuildKeymaps)
+	{
+		ForceRebuildKeymaps();
+	}
 }
 
 void UInputSettings::GetActionNames(TArray<FName>& ActionNames) const

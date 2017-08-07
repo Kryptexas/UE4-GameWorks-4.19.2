@@ -53,7 +53,7 @@ struct FVisibilityTrackKey
 	UPROPERTY()
 	float Time;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=VisibilityTrackKey)
+	UPROPERTY(EditAnywhere, Category=VisibilityTrackKey)
 	TEnumAsByte<enum EVisibilityTrackAction> Action;
 
 	/** Condition that must be satisfied for this key event to fire */

@@ -3,25 +3,13 @@ Title:5. Animation Blueprint - Idle and Walk States
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
 Description:Here in this step, we'll create the logic for Idle and Walking states for our character in our Animation Blueprint. 
 Version: 4.9
+Parent:Gameplay/HowTo/CharacterMovement/Blueprints
 SkillLevel:Advanced
+type:how-to
+type:multi-step
+order:5
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[Previous Step](Gameplay\HowTo\CharacterMovement\Blueprints\BlendSpace "%Gameplay\HowTo\CharacterMovement\Blueprints\BlendSpace:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Character Movement Overview](Gameplay\HowTo\CharacterMovement\Blueprints)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Crouch "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Crouch:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
  
 In this section, we will set up the **Animation Blueprint** that will determine what animations to play based on the actions that are taken in game by the player. We will then set up a **State Machine** and create an **Idle** and **Walk** state and set up the transition between each state. 
 
@@ -108,4 +96,4 @@ The steps below will show you how to set up the Animation Blueprint:
 1.	**Compile** and **Save** the Animation Blueprint. 
 
 
-%Steps%
+[NAV]

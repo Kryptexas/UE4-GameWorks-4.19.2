@@ -32,17 +32,9 @@ Below are the properties for the Collision Presets, a sub-category in the Collis
 
 ![](collProp.png)(convert:false)
 
-[OBJECT:modulesectionexpanded]
-	[PARAMLITERAL:id]
-		coll
-	[/PARAMLITERAL]
-	[PARAM:heading]
-		Collision Presets
-	[/PARAM]
-	[PARAM:content]
-		%p2%
-	[/PARAM]
-[/OBJECT]
+### Collision Presets
+	
+%p2%
 
 [VAR:p2]
 

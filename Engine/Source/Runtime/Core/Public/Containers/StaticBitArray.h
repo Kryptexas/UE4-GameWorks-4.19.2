@@ -273,6 +273,73 @@ public:
 	{
 		return !(A == Value);
 	}
+	
+	/**
+	 * Finds the first clear bit in the array and returns the bit index.
+	 * If there isn't one, INDEX_NONE is returned.
+	 */
+	int32 FindFirstClearBit() const
+	{
+		static const int32 NumBitsPerWordLog2 = FMath::FloorLog2(NumBitsPerWord);
+
+		const int32 LocalNumBits = NumBits;
+
+		int32 WordIndex = 0;
+		// Iterate over the array until we see a word with a unset bit.
+		while (WordIndex < NumWords && Words[WordIndex] == WordType(-1))
+		{
+			++WordIndex;
+		}
+
+		if (WordIndex < NumWords)
+		{
+			// Flip the bits, then we only need to find the first one bit -- easy.
+			const WordType Bits = ~(Words[WordIndex]);
+			ASSUME(Bits != 0);
+
+			const uint32 LowestBit = (Bits) & (-WordType(Bits));
+			const int32 LowestBitIndex = FMath::CountTrailingZeros(Bits) + (WordIndex << NumBitsPerWordLog2);
+			if (LowestBitIndex < LocalNumBits)
+			{
+				return LowestBitIndex;
+			}
+		}
+
+		return INDEX_NONE;
+	}
+
+	/**
+	 * Finds the first set bit in the array and returns it's index.
+	 * If there isn't one, INDEX_NONE is returned.
+	 */
+	int32 FindFirstSetBit() const
+	{
+		static const int32 NumBitsPerWordLog2 = FMath::FloorLog2(NumBitsPerWord);
+
+		const int32 LocalNumBits = NumBits;
+
+		int32 WordIndex = 0;
+		// Iterate over the array until we see a word with a set bit.
+		while (WordIndex < NumWords && Words[WordIndex] == WordType(0))
+		{
+			++WordIndex;
+		}
+
+		if (WordIndex < NumWords)
+		{
+			const WordType Bits = Words[WordIndex];
+			ASSUME(Bits != 0);
+
+			const uint32 LowestBit = (Bits) & (-WordType(Bits));
+			const int32 LowestBitIndex = FMath::CountTrailingZeros(Bits) + (WordIndex << NumBitsPerWordLog2);
+			if (LowestBitIndex < LocalNumBits)
+			{
+				return LowestBitIndex;
+			}
+		}
+
+		return INDEX_NONE;
+	}
 
 	/**
 	 * Serializer.

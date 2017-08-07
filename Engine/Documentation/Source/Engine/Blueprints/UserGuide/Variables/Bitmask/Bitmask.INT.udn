@@ -7,6 +7,7 @@ skilllevel:Intermediate
 Parent:Engine/Blueprints
 type:overview
 tags:Blueprints
+Topic-image:BitmaskBlueprintVariables_topic.png
 
 [TOC (start:2)]
 

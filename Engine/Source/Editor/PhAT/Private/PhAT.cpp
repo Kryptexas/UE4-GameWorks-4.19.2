@@ -2231,28 +2231,6 @@ bool FPhAT::ShouldFilterAssetBasedOnSkeleton( const FAssetData& AssetData )
 	return true;
 }
 
-void FPhAT::SnapConstraintToBone(const FPhATSharedData::FSelection* Constraint)
-{
-	UPhysicsConstraintTemplate* ConstraintSetup = SharedData->PhysicsAsset->ConstraintSetup[Constraint->Index];
-	ConstraintSetup->Modify();
-
-	const int32 BoneIndex1 = SharedData->EditorSkelMesh->RefSkeleton.FindBoneIndex(ConstraintSetup->DefaultInstance.ConstraintBone1);
-	const int32 BoneIndex2 = SharedData->EditorSkelMesh->RefSkeleton.FindBoneIndex(ConstraintSetup->DefaultInstance.ConstraintBone2);
-
-	check(BoneIndex1 != INDEX_NONE);
-	check(BoneIndex2 != INDEX_NONE);
-
-	const FTransform BoneTransform1 = SharedData->EditorSkelComp->GetBoneTransform(BoneIndex1);
-	const FTransform BoneTransform2 = SharedData->EditorSkelComp->GetBoneTransform(BoneIndex2);
-
-	// Bone transforms are world space, and frame transforms are local space (local to bones).
-	// Frame 1 is the child frame, and set to identity.
-	// Frame 2 is the parent frame, and needs to be set relative to Frame1.
-	ConstraintSetup->DefaultInstance.SetRefFrame(EConstraintFrame::Frame2, BoneTransform1.GetRelativeTransform(BoneTransform2));
-	ConstraintSetup->DefaultInstance.SetRefFrame(EConstraintFrame::Frame1, FTransform::Identity);
-
-}
-
 void FPhAT::CreateOrConvertConstraint(EPhATConstraintType ConstraintType)
 {
 	//we have to manually call PostEditChange to ensure profiles are updated correctly

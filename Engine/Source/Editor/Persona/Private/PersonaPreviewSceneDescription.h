@@ -11,6 +11,8 @@
 class UAnimationAsset;
 class UPreviewMeshCollection;
 class USkeletalMesh;
+class UDataAsset;
+class UPreviewMeshCollection;
 
 UENUM()
 enum class EPreviewAnimationMode : uint8
@@ -44,7 +46,7 @@ public:
 	TAssetPtr<USkeletalMesh> PreviewMesh;
 
 	UPROPERTY(EditAnywhere, Category = "Additional Meshes")
-	TAssetPtr<UPreviewMeshCollection> AdditionalMeshes;
+	TAssetPtr<UDataAsset> AdditionalMeshes;
 
 	UPROPERTY()
 	UPreviewMeshCollection* DefaultAdditionalMeshes;

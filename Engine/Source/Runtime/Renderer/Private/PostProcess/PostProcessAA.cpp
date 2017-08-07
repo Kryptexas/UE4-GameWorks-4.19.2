@@ -138,7 +138,7 @@ public:
 	
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("FXAAShader");
+		return TEXT("/Engine/Private/FXAAShader.usf");
 	}
 
 	static const TCHAR* GetFunctionName()
@@ -209,7 +209,7 @@ public:
 	FShaderParameter fxaaQualityRcpFrame;
 };
 
-IMPLEMENT_SHADER_TYPE(,FFXAAVS,TEXT("FXAAShader"),TEXT("FxaaVS"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(,FFXAAVS,TEXT("/Engine/Private/FXAAShader.usf"),TEXT("FxaaVS"),SF_Vertex);
 
 
 // @param Quality 1..6

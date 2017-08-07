@@ -463,7 +463,7 @@ void UProceduralFoliageTile::ExtractDesiredInstances(TArray<FDesiredFoliageInsta
 {
 	InstancesToArray();
 
-	const FCollisionQueryParams Params(NAME_None,true);
+	const FCollisionQueryParams Params(NAME_None, FCollisionQueryParams::GetUnknownStatId(), true);
 	FHitResult Hit;
 
 	OutInstances.Reserve(InstancesSet.Num());

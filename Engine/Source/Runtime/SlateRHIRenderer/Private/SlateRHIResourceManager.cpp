@@ -267,7 +267,7 @@ bool FSlateRHIResourceManager::IsAtlasPageResourceAlphaOnly() const
 void FSlateRHIResourceManager::Tick(float DeltaSeconds)
 {
 	// Don't need to do this if there's no RHI thread.
-	if ( GRHIThread )
+	if (IsRunningRHIInSeparateThread())
 	{
 		struct FDeleteCachedRenderDataContext
 		{
@@ -521,9 +521,9 @@ FSlateShaderResourceProxy* FSlateRHIResourceManager::GetShaderResource( const FS
 
 	UObject* ResourceObject = InBrush.GetResourceObject();
 	FSlateShaderResourceProxy* Resource = nullptr;
-	if(ResourceObject != nullptr && ResourceObject->IsPendingKill())
+	if(ResourceObject != nullptr && (ResourceObject->IsPendingKill() || ResourceObject->IsUnreachable() || ResourceObject->HasAnyFlags(RF_BeginDestroyed)))
 	{
-		UE_LOG(LogSlate, Warning, TEXT("Attempted to access resource for %s which is pending kill"), *ResourceObject->GetName());
+		UE_LOG(LogSlate, Warning, TEXT("Attempted to access resource for %s which is pending kill, unreachable or pending destroy"), *ResourceObject->GetName());
 	}
 	else
 	{
@@ -1058,17 +1058,17 @@ void FSlateRHIResourceManager::ReleaseCachedBuffer(FRHICommandListImmediate& RHI
 {
 	check(IsInRenderingThread());
 
-	if ( GRHIThread )
+	if (IsRunningRHIInSeparateThread())
 	{
 		PooledBuffersPendingRelease.Add(PooledBuffer);
 		PooledBuffer->ReleaseResourcesFence = RHICmdList.RHIThreadFence();
 	}
 	else
 	{
-			PooledBuffer->VertexBuffer.Destroy();
-			PooledBuffer->IndexBuffer.Destroy();
-			delete PooledBuffer;
-		}
+		PooledBuffer->VertexBuffer.Destroy();
+		PooledBuffer->IndexBuffer.Destroy();
+		delete PooledBuffer;
+	}
 }
 
 void FSlateRHIResourceManager::ReleaseResources()

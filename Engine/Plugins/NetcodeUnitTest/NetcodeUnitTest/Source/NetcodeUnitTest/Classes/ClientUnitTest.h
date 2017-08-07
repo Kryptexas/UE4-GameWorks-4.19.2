@@ -15,11 +15,11 @@
 // Forward declarations
 class AActor;
 class ANUTActor;
+class UMinimalClient;
 class AOnlineBeaconClient;
 class APlayerController;
 class FInBunch;
 class FFuncReflection;
-class FNetworkNotifyHook;
 class UActorChannel;
 class UChannel;
 class UNetConnection;
@@ -68,23 +68,24 @@ enum class EUnitTestFlags : uint32 // NOTE: If you change from uint32, you need 
 	RequirePing				= 0x00001000,	// Whether or not to wait for a ping round-trip, before triggering ExecuteClientUnitTest
 	RequireNUTActor			= 0x00002000,	// Whether or not to wait for the NUTActor, before triggering ExecuteClientUnitTest
 	RequireBeacon			= 0x00004000,	// Whether or not to wait for beacon replication, before triggering ExecuteClientUnitTest
-	RequireCustom			= 0x00008000,	// Whether or not ExecuteClientUnitTest will be executed manually, within the unit test
+	RequireMCP				= 0x00008000,	// Whether or not an MCP connection is required, before triggering ExecuteClientUnitTest
+	RequireCustom			= 0x00010000,	// Whether or not ExecuteClientUnitTest will be executed manually, within the unit test
 
 	RequirementsMask		= RequirePlayerController | RequirePawn | RequirePlayerState | RequirePing | RequireNUTActor |
-								RequireBeacon | RequireCustom,
+								RequireBeacon | RequireMCP | RequireCustom,
 
 	/** Unit test error/crash detection */
-	ExpectServerCrash		= 0x00010000,	// Whether or not this unit test will intentionally crash the server
-	ExpectDisconnect		= 0x00020000,	// Whether or not this unit test will intentionally trigger a disconnect from the server
+	ExpectServerCrash		= 0x00020000,	// Whether or not this unit test will intentionally crash the server
+	ExpectDisconnect		= 0x00040000,	// Whether or not this unit test will intentionally trigger a disconnect from the server
 
 	/** Unit test error/crash detection debugging (NOTE: Don't use these in finalized unit tests, unit tests must handle all errors) */
-	IgnoreServerCrash		= 0x00040000,	// Whether or not server crashes should be treated as a unit test failure
-	IgnoreClientCrash		= 0x00080000,	// Whether or not client crashes should be treated as a unit test failure
-	IgnoreDisconnect		= 0x00100000,	// Whether or not minimal/fake client disconnects, should be treated as a unit test failure
+	IgnoreServerCrash		= 0x00080000,	// Whether or not server crashes should be treated as a unit test failure
+	IgnoreClientCrash		= 0x00100000,	// Whether or not client crashes should be treated as a unit test failure
+	IgnoreDisconnect		= 0x00200000,	// Whether or not minimal/fake client disconnects, should be treated as a unit test failure
 
 	/** Unit test events */
-	NotifyNetActors			= 0x00200000,	// Whether or not to trigger a 'NotifyNetActor' event, AFTER creation of actor channel actor
-	NotifyProcessEvent		= 0x00400000,	// Whether or not to trigger 'NotifyScriptProcessEvent' for every executed local function
+	NotifyNetActors			= 0x00400000,	// Whether or not to trigger a 'NotifyNetActor' event, AFTER creation of actor channel actor
+	NotifyProcessEvent		= 0x00800000,	// Whether or not to trigger 'NotifyScriptProcessEvent' for every executed local function
 
 	/** Debugging */
 	CaptureReceivedRaw		= 0x01000000,	// Whether or not to capture raw (clientside) packet receives
@@ -123,6 +124,7 @@ inline FString GetUnitTestFlagName(EUnitTestFlags Flag)
 		EUTF_CASE(RequirePing);
 		EUTF_CASE(RequireNUTActor);
 		EUTF_CASE(RequireBeacon);
+		EUTF_CASE(RequireMCP);
 		EUTF_CASE(RequireCustom);
 		EUTF_CASE(ExpectServerCrash);
 		EUTF_CASE(ExpectDisconnect);
@@ -171,6 +173,9 @@ class NETCODEUNITTEST_API UClientUnitTest : public UProcessUnitTest
 	friend class UUnitTestManager;
 	friend class FUnitTestEnvironment;
 
+	// @todo #JohnB: Remove once deprecated ControlBunchSequence is removed
+	friend class UMinimalClient;
+
 
 	/** Variables which should be specified by every subclass (some depending upon flags) */
 protected:
@@ -184,6 +189,7 @@ protected:
 	/** The (non-URL) commandline parameters the server should be launched with */
 	FString BaseServerParameters;
 
+	// @todo #JohnB: There is duplication between this and MinimalClient - deprecate this from here?
 	/** If connecting to a beacon, the beacon type name we are connecting to */
 	FString ServerBeaconType;
 
@@ -227,17 +233,19 @@ protected:
 	double NextBlockingTimeout;
 
 
-	/** Stores a reference to the created fake world, for execution and later cleanup */
-	UWorld* UnitWorld;
+	/** The object which handles implementation of the fake client */
+	UPROPERTY()
+	UMinimalClient* MinClient;
 
-	/** Stores a reference to the created network notify, for later cleanup */
-	FNetworkNotifyHook* UnitNotify;
-
+	// @todo #JohnB: Deprecate this, after migrating to the minimal client code
+	//					(or perhaps keep cached? as it's likely to be used a lot)
+#if 1
 	/** Stores a reference to the created unit test net driver, for execution and later cleanup (always a UUnitTestNetDriver) */
 	UNetDriver* UnitNetDriver;
 
 	/** Stores a reference to the server connection (always a 'UUnitTestNetConnection') */
 	UNetConnection* UnitConn;
+#endif
 
 	/** Whether or not the initial connect of the fake client was triggered */
 	bool bTriggerredInitialConnect;
@@ -254,27 +262,29 @@ protected:
 	/** If EUnitTestFlags::RequireNUTActor is set, stores a reference to the replicated NUTActor */
 	TWeakObjectPtr<ANUTActor> UnitNUTActor;
 
+	/** Whether or not UnitNUTActor is fully setup, i.e. has replicated its Owner */
+	bool bUnitNUTActorSetup;
+
 	/** If EUnitTestFlags::RequireBeacon is set, stores a reference to the replicated beacon */
 	TWeakObjectPtr<class AOnlineBeaconClient> UnitBeacon;
 
 	/** If EUnitTestFlags::RequirePing is true, whether or not we have already received the pong */
 	bool bReceivedPong;
 
+	// @todo #JohnB: Remove after deprecated
+#if 0
 	/** For the unit test control channel, this tracks the current bunch sequence */
 	int32 ControlBunchSequence;
+#endif
 
-	/** If notifying of net actor creation, this keeps track of new actor channel indexes pending notification */
-	TArray<int32> PendingNetActorChans;
+	// @todo #JohnB: Remove once fully migrated to minimal client
+	int32* ControlBunchSequence;
 
 	/** An expected network failure occurred, which will be handled during the next tick instead of immediately */
 	bool bPendingNetworkFailure;
 
-
-#if TARGET_UE4_CL >= CL_DEPRECATEDEL
-private:
-	/** Handle to the registered InternalNotifyNetworkFailure delegate */
-	FDelegateHandle InternalNotifyNetworkFailureDelegateHandle;
-#endif
+	/** Whether or not the MCP online subsystem was detected as being online */
+	bool bDetectedMCPOnline;
 
 
 	/**
@@ -288,6 +298,11 @@ public:
 	 */
 	virtual void ExecuteClientUnitTest() PURE_VIRTUAL(UClientUnitTest::ExecuteClientUnitTest,);
 
+
+	/**
+	 * Notification from the minimal client, that it has fully connected
+	 */
+	virtual void NotifyMinClientConnected();
 
 	/**
 	 * Override this, to receive notification of NMT_NUTControl messages, from the server
@@ -306,15 +321,6 @@ public:
 	 * @param MessageType	The control message type
 	 */
 	virtual void NotifyControlMessage(FInBunch& Bunch, uint8 MessageType);
-
-
-	/**
-	 * Notification, that a new channel is being created and is pending accept/deny
-	 *
-	 * @param Channel		The new channel being created
-	 * @return				Whether or not to accept the new channel
-	 */
-	virtual bool NotifyAcceptingChannel(UChannel* Channel);
 
 	/**
 	 * Notification that the local net connections PlayerController has been replicated and is being setup
@@ -357,7 +363,9 @@ public:
 	 * @param Data		The raw data/packet being received (this data can safely be modified, up to length 'NETWORK_MAX_PACKET')
 	 * @param Count		The amount of data received (if 'Data' is modified, this should be modified to reflect the new length)
 	 */
-	virtual void NotifyReceivedRawPacket(void* Data, int32& Count);
+	virtual void NotifyReceivedRawPacket(void* Data, int32& Count)
+	{
+	}
 
 	/**
 	 * If EUnitTestFlags::CaptureSendRaw is set, this is triggered for every packet sent to the server
@@ -367,7 +375,9 @@ public:
 	 * @param Count			The amount of data being sent
 	 * @param bBlockSend	Whether or not to block the send (defaults to false)
 	 */
-	virtual void NotifySendRawPacket(void* Data, int32 Count, bool& bBlockSend);
+	virtual void NotifySendRawPacket(void* Data, int32 Count, bool& bBlockSend)
+	{
+	}
 
 	/**
 	 * If EUnitTestFlags::CaptureSendRaw is set, this is triggered for every packet sent to the server
@@ -407,16 +417,18 @@ public:
 	/**
 	 * Overridable in subclasses - can be used to control/block sending of RPC's
 	 *
+	 * @param bAllowRPC		Whether or not to allow sending of the RPC
 	 * @param Actor			The actor the RPC will be called in
 	 * @param Function		The RPC to call
 	 * @param Parameters	The parameters data blob
 	 * @param OutParms		Out parameter information (irrelevant for RPC's)
 	 * @param Stack			The script stack
 	 * @param SubObject		The sub-object the RPC is being called in (if applicable)
-	 * @return				Whether or not to allow sending of the RPC
 	 */
-	virtual bool NotifySendRPC(AActor* Actor, UFunction* Function, void* Parameters, FOutParmRec* OutParms, FFrame* Stack,
-								UObject* SubObject);
+	virtual void NotifySendRPC(bool& bAllowwRPC, AActor* Actor, UFunction* Function, void* Parameters, FOutParmRec* OutParms,
+								FFrame* Stack, UObject* SubObject)
+	{
+	}
 
 
 	virtual void NotifyProcessLog(TWeakPtr<FUnitTestProcess> InProcess, const TArray<FString>& InLogLines) override;
@@ -487,12 +499,39 @@ public:
 	 * As above, except executes a static UFunction in the unit test (must be prefixed with UnitTestServer_), on the unit test server,
 	 * allowing unit tests to define and contain their own 'pseudo'-RPC's.
 	 *
+	 * Functions that you want to call, must match this function template:
+	 *	UFUNCTION()
+	 *	static void UnitTestServer_Func(ANUTActor* InNUTActor);
+	 *
 	 * @param RPCName	The name of the pseudo-RPC, which should be executed
 	 * @return			Whether or not the pseudo-RPC was sent successfully
 	 */
-	bool SendUnitRPCChecked(FString RPCName);
+	FORCEINLINE bool SendUnitRPCChecked(FString RPCName)
+	{
+		return SendUnitRPCChecked_Internal(this, RPCName);
+	}
 
+	/**
+	 * As above, except allows 'UnitTestServer' RPC's to be located in an arbitrary class (e.g. if shared between unit tests),
+	 * specified as the delegate parameter.
+	 *
+	 * @param TargetClass	The class which the 'UnitTestServer' function resides in.
+	 * @param RPCName		The name of the pseudo-RPC, which should be executed
+	 * @return				Whether or not the pseudo-RPC was sent successfully
+	 */
+	template<class TargetClass>
+	FORCEINLINE bool SendUnitRPCChecked(FString RPCName)
+	{
+		return SendUnitRPCChecked_Internal(GetMutableDefault<TargetClass>(), RPCName);
+	}
 
+private:
+	/**
+	 * Internal implementation of the above functions
+	 */
+	bool SendUnitRPCChecked_Internal(UObject* Target, FString RPCName);
+
+public:
 	/**
 	 * Internal function, for preparing for a checked RPC call
 	 */
@@ -630,9 +669,6 @@ protected:
 
 	virtual void PrintUnitTestProcessErrors(TSharedPtr<FUnitTestProcess> InHandle) override;
 
-	void InternalNotifyNetworkFailure(UWorld* InWorld, UNetDriver* InNetDriver, ENetworkFailure::Type FailureType,
-										const FString& ErrorString);
-
 
 #if !UE_BUILD_SHIPPING
 	static bool InternalScriptProcessEvent(AActor* Actor, UFunction* Function, void* Parameters, void* HookOrigin);
@@ -642,4 +678,18 @@ protected:
 	virtual void UnitTick(float DeltaTime) override;
 
 	virtual bool IsTickable() const override;
+
+	virtual void LogComplete() override;
+
+
+public:
+	/**
+	 * Accessor for UnitTestFlags
+	 *
+	 * @return	Returns the value of UnitTestFlags
+	 */
+	FORCEINLINE EUnitTestFlags GetUnitTestFlags()
+	{
+		return UnitTestFlags;
+	}
 };

@@ -3,6 +3,7 @@ Title: Using Mixamo Content
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:How to get started using the animations and skeletal meshes in the Mixamo project.
 version: 4.9
+topic-image:UsingMixamoContent_topic.png
 
 The 15 characters provided in the Mixamo Animation Pack can be added to your project, either as a Character Blueprint or as a combination of a Skeletal Mesh and Animation Blueprint.
 The first method is a quick and easy way to drop a third-person character into your project, complete with movement controls and attacking. The second method allows you to change the 

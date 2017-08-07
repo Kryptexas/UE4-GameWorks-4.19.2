@@ -105,7 +105,7 @@ void FPaperGroupedSpriteUtilities::SplitSprites(const TArray<UObject*>& InObject
 				{
 					if (InstanceData.SourceSprite != nullptr)
 					{
-						const FTransform InstanceTransform(FTransform(InstanceData.Transform) * SourceBatchComponent->ComponentToWorld);
+						const FTransform InstanceTransform(FTransform(InstanceData.Transform) * SourceBatchComponent->GetComponentTransform());
 
 						FActorSpawnParameters SpawnParams;
 						SpawnParams.bDeferConstruction = true;
@@ -132,10 +132,7 @@ void FPaperGroupedSpriteUtilities::SplitSprites(const TArray<UObject*>& InObject
 							ActorsCreated.Add(SpawnedActor);
 
 							// Give it a good name
-							if (InstanceData.SourceSprite != nullptr)
-							{
-								FActorLabelUtilities::SetActorLabelUnique(SpawnedActor, InstanceData.SourceSprite->GetName());
-							}
+							FActorLabelUtilities::SetActorLabelUnique(SpawnedActor, InstanceData.SourceSprite->GetName());
 						}
 					}
 				}

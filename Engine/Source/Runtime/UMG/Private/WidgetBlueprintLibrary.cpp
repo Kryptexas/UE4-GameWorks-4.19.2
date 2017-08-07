@@ -42,7 +42,7 @@ UUserWidget* UWidgetBlueprintLibrary::Create(UObject* WorldContextObject, TSubcl
 	UUserWidget* UserWidget = nullptr;
 	if ( OwningPlayer == nullptr )
 	{
-		UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+		UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 		UserWidget = CreateWidget<UUserWidget>(World, WidgetType);
 	}
 	else
@@ -161,7 +161,6 @@ void UWidgetBlueprintLibrary::DrawBox(UPARAM(ref) FPaintContext& Context, FVecto
 			Context.MaxLayer,
 			Context.AllottedGeometry.ToPaintGeometry(Position, Size),
 			&Brush->Brush,
-			Context.MyClippingRect,
 			ESlateDrawEffect::None,
 			Tint);
 	}
@@ -180,7 +179,6 @@ void UWidgetBlueprintLibrary::DrawLine(UPARAM(ref) FPaintContext& Context, FVect
 		Context.MaxLayer,
 		Context.AllottedGeometry.ToPaintGeometry(),
 		Points,
-		Context.MyClippingRect,
 		ESlateDrawEffect::None,
 		Tint,
 		bAntiAlias);
@@ -195,7 +193,6 @@ void UWidgetBlueprintLibrary::DrawLines(UPARAM(ref) FPaintContext& Context, cons
 		Context.MaxLayer,
 		Context.AllottedGeometry.ToPaintGeometry(),
 		Points,
-		Context.MyClippingRect,
 		ESlateDrawEffect::None,
 		Tint,
 		bAntiAlias);
@@ -214,7 +211,6 @@ void UWidgetBlueprintLibrary::DrawText(UPARAM(ref) FPaintContext& Context, const
 		Context.AllottedGeometry.ToOffsetPaintGeometry(Position),
 		InString,
 		FontInfo,
-		Context.MyClippingRect,
 		ESlateDrawEffect::None,
 		Tint);
 }
@@ -234,7 +230,6 @@ void UWidgetBlueprintLibrary::DrawTextFormatted(UPARAM(ref) FPaintContext& Conte
 			Context.AllottedGeometry.ToOffsetPaintGeometry(Position),
 			Text,
 			FontInfo,
-			Context.MyClippingRect,
 			ESlateDrawEffect::None,
 			Tint);
 	}
@@ -507,7 +502,7 @@ void UWidgetBlueprintLibrary::GetAllWidgetsOfClass(UObject* WorldContextObject, 
 		return;
 	}
 	 
-	const UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	const UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 	if ( !World )
 	{
 		return;
@@ -552,7 +547,7 @@ void UWidgetBlueprintLibrary::GetAllWidgetsWithInterface(UObject* WorldContextOb
 		return;
 	}
 
-	const UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	const UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 	if (!World)
 	{
 		return;
@@ -601,11 +596,6 @@ FInputEvent UWidgetBlueprintLibrary::GetInputEventFromPointerEvent(const FPointe
 	return Event;
 }
 
-FInputEvent UWidgetBlueprintLibrary::GetInputEventFromControllerEvent(const FControllerEvent& Event)
-{
-	return Event;
-}
-
 FInputEvent UWidgetBlueprintLibrary::GetInputEventFromNavigationEvent(const FNavigationEvent& Event)
 {
 	return Event;
@@ -625,7 +615,7 @@ void UWidgetBlueprintLibrary::GetSafeZonePadding(UObject* WorldContextObject, FV
 
 bool UWidgetBlueprintLibrary::SetHardwareCursor(UObject* WorldContextObject, EMouseCursor::Type CursorShape, FName CursorName, FVector2D HotSpot)
 {
-	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 	if ( World && World->IsGameWorld() )
 	{
 		if ( UGameViewportClient* ViewportClient = World->GetGameViewport() )

@@ -42,6 +42,26 @@ namespace EScreenOrientation
 	};
 }
 
+// application state when the game receives a notification
+UENUM(BlueprintType)
+namespace EApplicationState
+{
+	enum Type
+	{
+		/** The Application was in an unknown state when receiving the notification */
+		Unknown,
+
+		/** The Application was inactive when receiving the notification */
+		Inactive,
+
+		/** The Application was in the background when receiving the notification */
+		Background,
+
+		/** The Application was active when receiving the notification */
+		Active,
+	};
+}
+
 /** UObject based class for handling mobile events. Having this object as an option gives the app lifetime access to these global delegates. The component UApplicationLifecycleComponent is destroyed at level loads */
 UCLASS(Blueprintable, BlueprintType, ClassGroup=Mobile)
 class ENGINE_API UPlatformGameInstance : public UGameInstance
@@ -54,8 +74,8 @@ public:
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPlatformRegisteredForRemoteNotificationsDelegate, const TArray<uint8>&, inArray);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPlatformRegisteredForUserNotificationsDelegate, int32, inInt);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPlatformFailedToRegisterForRemoteNotificationsDelegate, FString, inString);
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPlatformReceivedRemoteNotificationDelegate, FString, inString);
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FPlatformReceivedLocalNotificationDelegate, FString, inString, int32, inInt);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FPlatformReceivedRemoteNotificationDelegate, FString, inString, EApplicationState::Type, inAppState);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FPlatformReceivedLocalNotificationDelegate, FString, inString, int32, inInt, EApplicationState::Type, inAppState);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPlatformScreenOrientationChangedDelegate, EScreenOrientation::Type, inScreenOrientation);
 
 	// This is called when the application is about to be deactivated (e.g., due to a phone call or SMS or the sleep button). 
@@ -123,8 +143,8 @@ private:
     void ApplicationRegisteredForRemoteNotificationsDelegate_Handler(TArray<uint8> inArray) { ApplicationRegisteredForRemoteNotificationsDelegate.Broadcast(inArray); }
     void ApplicationRegisteredForUserNotificationsDelegate_Handler(int32 inInt) { ApplicationRegisteredForUserNotificationsDelegate.Broadcast(inInt); }
     void ApplicationFailedToRegisterForRemoteNotificationsDelegate_Handler(FString inFString) { ApplicationFailedToRegisterForRemoteNotificationsDelegate.Broadcast(inFString); }
-    void ApplicationReceivedRemoteNotificationDelegate_Handler(FString inFString) { ApplicationReceivedRemoteNotificationDelegate.Broadcast(inFString); }
-    void ApplicationReceivedLocalNotificationDelegate_Handler(FString inFString, int32 inInt) { ApplicationReceivedLocalNotificationDelegate.Broadcast(inFString, inInt); }
+	void ApplicationReceivedRemoteNotificationDelegate_Handler(FString inFString, int32 inAppState);
+	void ApplicationReceivedLocalNotificationDelegate_Handler(FString inFString, int32 inInt, int32 inAppState);
     void ApplicationReceivedScreenOrientationChangedNotificationDelegate_Handler(int32 inScreenOrientation);
 
 };
@@ -141,7 +161,7 @@ public:
 	/** Clear all pending local notifications. Typically this will be done before scheduling new notifications when going into the background */
 	UFUNCTION(BlueprintCallable, Category="Platform|LocalNotification")
 	static void ClearAllLocalNotifications();
-       
+
 	/** Schedule a local notification at a specific time, inLocalTime specifies the current local time or if UTC time should be used 
 	 * @param FireDateTime The time at which to fire the local notification
 	 * @param LocalTime If true the provided time is in the local timezone, if false it is in UTC
@@ -152,7 +172,7 @@ public:
 	*/
 	UFUNCTION(BlueprintCallable, Category="Platform|LocalNotification")
 	static void ScheduleLocalNotificationAtTime(const FDateTime& FireDateTime, bool LocalTime, const FText& Title, const FText& Body, const FText& Action, const FString& ActivationEvent);
-       
+
 	/** Schedule a local notification to fire inSecondsFromNow from now 
 	 * @param inSecondsFromNow The seconds until the notification should fire
 	 * @param LocalTime If true the provided time is in the local timezone, if false it is in UTC
@@ -163,7 +183,22 @@ public:
 	*/
 	UFUNCTION(BlueprintCallable, Category="Platform|LocalNotification")
 	static void ScheduleLocalNotificationFromNow(int32 inSecondsFromNow, const FText& Title, const FText& Body, const FText& Action, const FString& ActivationEvent);
-    
+
+	/** Schedule a local notification badge at a specific time, inLocalTime specifies the current local time or if UTC time should be used
+	 * @param FireDateTime The time at which to fire the local notification
+	 * @param LocalTime If true the provided time is in the local timezone, if false it is in UTC
+	 * @param ActivationEvent A string that is passed in the delegate callback when the app is brought into the foreground from the user activating the notification
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Platform|LocalNotification")
+	static void ScheduleLocalNotificationBadgeAtTime(const FDateTime& FireDateTime, bool LocalTime, const FString& ActivationEvent);
+	
+	/** Schedule a local notification badge to fire inSecondsFromNow from now
+	 * @param inSecondsFromNow The seconds until the notification should fire
+	 * @param ActivationEvent A string that is passed in the delegate callback when the app is brought into the foreground from the user activating the notification
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Platform|LocalNotification")
+	static void ScheduleLocalNotificationBadgeFromNow(int32 inSecondsFromNow, const FString& ActivationEvent);
+
 	/** Cancel a local notification given the ActivationEvent
 	 * @param ActivationEvent The string passed into the Schedule call for the notification to be cancelled
 	*/

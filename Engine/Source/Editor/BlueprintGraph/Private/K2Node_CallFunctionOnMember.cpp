@@ -20,18 +20,18 @@ UEdGraphPin* UK2Node_CallFunctionOnMember::CreateSelfPin(const UFunction* Functi
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
-	UEdGraphPin* SelfPin = NULL;
+	UEdGraphPin* SelfPin = nullptr;
 	if (MemberVariableToCallOn.IsSelfContext())
 	{
 		// This means the function is defined within the blueprint, so the pin should be a true "self" pin
-		SelfPin = CreatePin(EGPD_Input, K2Schema->PC_Object, K2Schema->PSC_Self, NULL, false, false, K2Schema->PN_Self);
+		SelfPin = CreatePin(EGPD_Input, K2Schema->PC_Object, K2Schema->PSC_Self, nullptr, K2Schema->PN_Self);
 	}
 	else
 	{
 		// This means that the function is declared in an external class, and should reference that class
-		SelfPin = CreatePin(EGPD_Input, K2Schema->PC_Object, TEXT(""), MemberVariableToCallOn.GetMemberParentClass(GetBlueprintClassFromNode()), false, false, K2Schema->PN_Self);
+		SelfPin = CreatePin(EGPD_Input, K2Schema->PC_Object, FString(), MemberVariableToCallOn.GetMemberParentClass(GetBlueprintClassFromNode()), K2Schema->PN_Self);
 	}
-	check(SelfPin != NULL);
+	check(SelfPin);
 
 	return SelfPin;
 }

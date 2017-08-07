@@ -24,12 +24,63 @@ To access the Mobile Packaging Wizard, you will need to do the following.
 
 1. From the **Main Toolbar**, locate the **Window** option and click on it. 
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	![](MPW_Location.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](MPW_Location_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 1. From the Windows menu that is displayed, click on the **Project Launcher** option to display the Project Launcher.
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	![](MPW_Project_Launcher.png)
+	[/PARAM]
+	[/OBJECT]
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](MPW_Project_Launcher_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 [OBJECT:ToggleButtonContent]
 	[PARAMLITERAL:category]
@@ -66,29 +117,161 @@ To access the Mobile Packaging Wizard, you will need to do the following.
 Before the Mobile Packaging Wizard can be used, a new profile that is specific to your project's needs has to be created. In the following section, we will take a look at what needs to be done to create a custom launch profile for your UE4 mobile project.
 
 1. Click on the small white triangle next to **Custom Launch Profiles**, selecting the **Minimal Android APK + DLC…** option from the list.
-
+	
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	![](MPW_Select_Android_Option.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](MPW_Select_Option_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 	(#bookmark1)
+
 1. When the **Minimal Android APK + DLC** packaging window is displayed, click on the **Browse** button, and select a location for the packaged content to be placed.
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	![](MPW_Press_Browse.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](MPW_Press_Browse_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 1. Once you have selected a location for the packaged content to be placed, press the **Next** button to continue the packaging process.
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	![](MPW_Press_Next.png)
+	[/PARAM]
+	[/OBJECT]
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](MPW_Press_Next_Mac.png)
+	[/PARAM]
+	[/OBJECT]
+	
 1. In the **Distributable APK** menu, set the **Build Configuration** to **Development** and then select the map you want to use, pressing the **Next** button when finished. 
-
+	
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	![](MPW_Dis_APK.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](MPW_Dis_APK_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 	[region:note]
 	Only the contents referenced by the map(s) you choose will be packaged into the application for upload to the Play Store. Typically, you should choose only a single map that contains a Level Blueprint to kick off the **BuildPatchServices** code with a **UMG** user interface to show the download progress (showing any applicable error conditions).
 	[/region]
 
 1. In the **Downloadable Content** menu, select the Android texture formats your application will support with the maps that will need to be downloaded. When that has been completed, press the **Create Profile** button to create a new Custom Launch Profile.
-
+	
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	![](MPW_Downloadable_Content.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](MPW_Downloadable_Content_Mac.png)
+	[/PARAM]
+	[/OBJECT]
+
 
 ## Building the Application 
 
@@ -96,15 +279,67 @@ Now that all of the options for the Mobile Packing Wizard have been set up and s
 
 1. If the Project Launcher is not already open, open it up and then look at the bottom of the Project Launcher in the **Custom Launch Profile** section. In this section, you should have two profiles that start with your project name and are followed by either **Android APK** or **Android DLC**. 
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	![](MPW_Custom_Launch_Profiles.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](MPW_Custom_Launch_Profiles_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 	[region:note]
 	When you first open up the Project Launcher, the Custom Launch Profiles section could have a few items in it by default. To remove these items, right-click on the item you want to remove, and then select the **Delete** option to remove it.
 	[/region]
 
 1. Locate the **APK** Profile option and then click on the **Launch this Profile** button to begin the packaging process. 
-
+	
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	![](MPW_Launch_APK_Profile.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](MPW_Launch_APK_Profile_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 	[region:warning]
 	You must package your project's files before you build the DLC. <!--Trying to package the DLC first and then packing your project will not.-->
@@ -112,11 +347,63 @@ Now that all of the options for the Mobile Packing Wizard have been set up and s
 
 1. Once the **Launch this Profile** button has been pressed, the Project Launcher will begin the packaging process. You can see the progress of the packaging process in the Project Launcher window.
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	![](MPW_Packaging_Progress.png)
+	[/PARAM]
+	[/OBJECT]
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](MPW_Packaging_Progress_Mac.png)
+	[/PARAM]
+	[/OBJECT]
+	
 1. When the packaging has completed, click on the **Done** button to load the Project Launcher.
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	![](MPW_Packaging_Completed.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](MPW_Packaging_Completed_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 ## Building the DLC
 
@@ -124,17 +411,97 @@ Once your project has finished the cooking process for the initial download from
 
 1. From the Project Launcher, go to the **Custom Launch Profiles** section and look for your project's **DLC** option. When the DLC option for your project has been located, click on the **Launch this Profile** button to begin the DLC packaging process. 
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	![](MPW_Build_DLC.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](MPW_Build_DLC_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 1. After pressing the **Launch this Profile** button, the Project Launcher will begin to build the DLC for your project. When the DLC has finished being built, click on the **Done** button to continue. 
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	![](MPW_DLC_Completed.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](MPW_DLC_Completed_Mac.png)
+	[/PARAM]
+	[/OBJECT]
+
 
 ## Packaging Results 
 
 Once everything has finished building, open up the folder that was specified in the [second step](#bookmark1) of the "Setting Up a Mobile Packaging Wizard Profile" section. You'll see the following two folders:
 
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
 ![](MPW_App_DLC_Location.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](MPW_App_DLC_Location_Mac.png)
+[/PARAM]
+[/OBJECT]
+
 
 Inside of the folders, you will find the various pieces of your project that have been set up to be downloaded after the users have downloaded and installed the application on their mobile device.
 
@@ -148,20 +515,125 @@ Before the Mobile Packaging Wizard can be used, a new profile that is specific t
 
 1. Click on the small white triangle next to **Custom Launch Profiles**, selecting the **Minimal IOS App + DLC…** option from the list.
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	![](MPW_Select_iOS_Option.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](MPW_Select_iOS_Option_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 	(#bookmark1)
+
 1. When the **Minimal IOS App + DLC** packaging window is displayed, click on the **Browse** button and select a location for the packaged content to be placed.
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	![](MPW_iOS_Press_Browse_Button.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](MPW_iOS_Press_Browse_Button_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 1. Once you have selected a location for the packaged content to be placed, press the **Next** button to continue the packaging process.
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	![](MPW_iOS_Press_Next.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](MPW_iOS_Press_Next_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 1. In the **Distributable Application** menu, set the **Build Configuration** to **Development** and then select the map you want to use, pressing the **Next** button when finished. 
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	![](MPW_Dis_iOS.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](MPW_Dis_iOS_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 	[region:note]
 	Only the contents referenced by the map(s) you choose will be packaged into the application for upload to the App Store. Typically, you should choose only a single map that contains a Level Blueprint to kick off the **BuildPatchServices** code with a **UMG** user interface to show the download progress (showing any applicable error conditions).
@@ -169,7 +641,33 @@ Before the Mobile Packaging Wizard can be used, a new profile that is specific t
 
 1. In the **Downloadable Content** menu, select the maps that should be downloaded and then press the **Create Profile** button to create a new Custom Launch Profile.
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	![](MPW_Downloadable_Content_iOS.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](MPW_Downloadable_Content_iOS_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 ## Building the Application 
 
@@ -177,7 +675,33 @@ Now that all of the options for the Mobile Packing Wizard have been set up and s
 
 1. If the Project Launcher is not already open, open it up and then look at the bottom of the Project Launcher in the **Custom Launch Profile** section. In this section, you should have two profiles that start with your project name and are followed by either **IOS App** or **IOS DLC**. 
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	![](MPW_Custom_Launch_Profiles_iOS.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](MPW_Custom_Launch_Profiles_iOS_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 	[region:note]
 	When you first open up the Project Launcher, the Custom Launch Profiles section could have a few items in it by default. To remove these items, right-click on the item you want to remove, and then select the **Delete** option to remove it.
@@ -185,7 +709,33 @@ Now that all of the options for the Mobile Packing Wizard have been set up and s
 
 1. Locate the **IOS App** Profile option and then click on the **Launch this Profile** button to begin the packaging process. 
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	![](MPW_Launch_APK_Profile_iOS.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](MPW_Launch_APK_Profile_iOS_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 	[region:warning]
 	You must package your project's files before you build the DLC. <!--Trying to package the DLC first and then packing your project will not.-->
@@ -193,11 +743,63 @@ Now that all of the options for the Mobile Packing Wizard have been set up and s
 
 1. Once the **Launch this Profile** button has been pressed, the Project Launcher will begin the packaging process. You can see the progress of the packaging process in the Project Launcher window.
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	![](MPW_Packaging_Progress_iOS.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](MPW_Packaging_Progress_iOS_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 1. When the packaging has completed, click on the **Done** button to load the Project Launcher.
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	![](MPW_Packaging_Completed_iOS.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](MPW_Packaging_Completed_iOS_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 ## Building the DLC
 
@@ -205,17 +807,95 @@ Once your project has finished the cooking process for the initial download from
 
 1. From the Project Launcher, go to the **Custom Launch Profiles** section and look for your project's **DLC** option. When the DLC option for your project has been located, click on the **Launch this Profile** button to begin the DLC packaging process. 
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	![](MPW_Build_DLC_iOS.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](MPW_Build_DLC_iOS_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 1. After pressing the **Launch this Profile** button, the Project Launcher will begin to build the DLC for your project. When the DLC has finished being built, click on the **Done** button to continue. 
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	![](MPW_DLC_Completed_iOS.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](MPW_DLC_Completed_iOS_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 ## Packaging Results 
 
 Once everything has finished building, open up the folder that was specified in the [second step](#bookmark1) of the "Setting Up a Mobile Packaging Wizard Profile" section. You'll see the following two folders:
 
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
 ![](MPW_App_DLC_Location.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](MPW_App_DLC_Location_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 Inside of the folders, you will find the various pieces of your project that have been set up to be downloaded after the users have downloaded and installed the application on their mobile device.
 

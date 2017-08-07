@@ -13,14 +13,13 @@
 #include "Misc/App.h"
 #include "Widgets/SWindow.h"
 #include "HeadMountedDisplayTypes.h"
-#include "Kismet/HeadMountedDisplayFunctionLibrary.h"
 #include "UI/VRRadialMenuHandler.h"
 #include "VREditorMode.generated.h"
 
 class AActor;
 class FEditorViewportClient;
 class SLevelViewport;
-enum class EAutoKeyMode : uint8;
+enum class EAutoChangeMode : uint8;
 class UStaticMesh;
 class UStaticMeshComponent;
 class USoundBase;
@@ -55,9 +54,6 @@ public:
 
 	/** Default constructor */
 	UVREditorMode();
-
-	/** Cleans up this mode, called when the editor is shutting down */
-	virtual ~UVREditorMode();
 
 	/** Initialize the VREditor */
 	virtual void Init() override;
@@ -224,7 +220,7 @@ public:
 		float WorldToMetersScale;
 		bool bCinematicPreviewViewport;
 		bool bKeyAllEnabled;
-		EAutoKeyMode AutoKeyMode;
+		EAutoChangeMode AutoChangeMode;
 
 		FSavedEditorState()
 			: ViewportType(LVT_Perspective),
@@ -243,7 +239,7 @@ public:
 			  WorldToMetersScale(100.0f),
 			  bCinematicPreviewViewport(false),
 			  bKeyAllEnabled(false),
-			  AutoKeyMode()
+			  AutoChangeMode()
 		{
 		}
 	};
@@ -255,7 +251,7 @@ public:
 	/** Used to override dockable area restoration behavior */
 	FOnVREditingModeExit OnVREditingModeExit_Handler;
 
-	void SaveSequencerSettings(bool bInKeyAllEnabled, EAutoKeyMode InAutoKeyMode, const class USequencerSettings& InSequencerSettings);
+	void SaveSequencerSettings(bool bInKeyAllEnabled, EAutoChangeMode InAutoChangeMode, const class USequencerSettings& InSequencerSettings);
 
 	/** Start or stop simulate-in-editor mode */
 	void ToggleSIEAndVREditor();
@@ -301,6 +297,16 @@ public:
 
 	/** Return true if currently aiming to teleport. */
 	bool IsAimingTeleport() const;
+
+	/** Toggles the debug mode. */
+	static void ToggleDebugMode();
+
+	/** Returns if the VR Mode is in debug mode. */
+	static bool IsDebugModeEnabled();
+
+	/** Delegate to be called when the debug mode is toggled. */
+	DECLARE_EVENT_OneParam(UVREditorMode, FOnToggleVRModeDebug, bool);
+	FOnToggleVRModeDebug& OnToggleDebugMode() { return OnToggleDebugModeEvent; };
 
 protected:
 
@@ -466,6 +472,9 @@ public:
 	/** Runtime and plugin modules can force VR Editor to refresh using this function */
 	void RefreshVREditorSequencer(class ISequencer* InCurrentSequencer);
 
+	/** Refresh the current actor preview widget on an in-world UI panel */
+	void RefreshActorPreviewWidget(TSharedRef<SWidget> InWidget);
+
 	/** Returns the currently active sequencer */
 	class ISequencer* GetCurrentSequencer();
 
@@ -495,4 +504,10 @@ private:
 	/** Container of assets */
 	UPROPERTY()
 	class UVREditorAssetContainer* AssetContainer;
+
+	/** Whether currently in debug mode or not. */
+	static bool bDebugModeEnabled;
+
+	/** Event that gets broadcasted when debug mode is toggled. */
+	FOnToggleVRModeDebug OnToggleDebugModeEvent;
 };

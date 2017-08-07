@@ -8,6 +8,7 @@ if "%VS140COMNTOOLS%" neq "" (
   set FoundVSInstance=1
   mkdir "%USERPROFILE%\Documents\Visual Studio 2015\Visualizers"
   copy UE4.natvis "%USERPROFILE%\Documents\Visual Studio 2015\Visualizers"
+  copy UE4_Android_Nsight.dat "%VS140COMNTOOLS%\..\IDE\Extensions\NVIDIA\Nsight Tegra\3.4\Debuggers\Visualizers"
   echo Installed visualizers for Visual Studio 2015
 )
 
@@ -25,10 +26,8 @@ if "%VS110COMNTOOLS%" neq "" (
   echo Installed visualizers for Visual Studio 2012
 )
 
-if "%SCE_ORBIS_SDK_DIR%" neq "" (
-  mkdir "%USERPROFILE%\Documents\SCE\orbis-debugger"
-  copy PS4UE4.natvis "%USERPROFILE%\Documents\SCE\orbis-debugger"
-  echo Installed Visualizers for Orbis
+if exist PS4\InstallPS4Visualizer.bat (
+  call PS4\InstallPS4Visualizer.bat
 )
 
 if "%FoundVSInstance%" equ "0" (

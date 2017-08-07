@@ -23,8 +23,8 @@ void UGameplayTagsK2Node_LiteralGameplayTag::AllocateDefaultPins()
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
-	CreatePin(EGPD_Input, K2Schema->PC_String, TEXT("LiteralGameplayTagContainer"), NULL, false, false, TEXT("TagIn"));
-	CreatePin(EGPD_Output, K2Schema->PC_Struct, TEXT(""), FGameplayTagContainer::StaticStruct(), false, false, K2Schema->PN_ReturnValue);
+	CreatePin(EGPD_Input, K2Schema->PC_String, TEXT("LiteralGameplayTagContainer"), nullptr, TEXT("TagIn"));
+	CreatePin(EGPD_Output, K2Schema->PC_Struct, FString(), FGameplayTagContainer::StaticStruct(), K2Schema->PN_ReturnValue);
 }
 
 FLinearColor UGameplayTagsK2Node_LiteralGameplayTag::GetNodeTitleColor() const

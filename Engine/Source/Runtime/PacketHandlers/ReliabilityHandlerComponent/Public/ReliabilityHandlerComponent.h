@@ -13,27 +13,42 @@ public:
 	/* Initializes default data */
 	ReliabilityHandlerComponent();
 
-	/* Initializes the handler component */
 	virtual void Initialize() override;
 
-	/* Whether the handler component is valid */
 	virtual bool IsValid() const override;
 
-	/* Tick every frame */
 	virtual void Tick(float DeltaTime) override;
 
-	/* Handles any incoming packets */
 	virtual void Incoming(FBitReader& Packet) override;
 
-	/* Handles any outgoing packets */
 	virtual void Outgoing(FBitWriter& Packet) override;
 
+	virtual void IncomingConnectionless(FString Address, FBitReader& Packet) override
+	{
+	}
+
 	/* Queues a packet for resending */
-	virtual void QueuePacketForResending(uint8* Packet, int32 CountBits);
+	void QueuePacketForResending(uint8* Packet, int32 CountBits);
+
+	/**
+	 * Queues a packet sent through SendHandlerPacket, for resending
+	 *
+	 * @param InComponent	The HandlerComponent the packet originated from
+	 * @param Packet		The packet to be queued
+	 * @param CountBits		The number of bits in the packet
+	 */
+	FORCEINLINE void QueueHandlerPacketForResending(HandlerComponent* InComponent, uint8* Packet, int32 CountBits)
+	{
+		QueuePacketForResending(Packet, CountBits);
+
+		BufferedPackets[BufferedPackets.Num()-1]->FromComponent = InComponent;
+	}
+
+	virtual int32 GetReservedPacketBits() override;
 
 protected:
 	/* Buffered Packets in case they need to be resent */
-	TQueue<BufferedPacket*> BufferedPackets;
+	TArray<BufferedPacket*> BufferedPackets;
 
 	/* Latest Packet ID */
 	uint32 LocalPacketID;
@@ -43,12 +58,15 @@ protected:
 
 	/* Latest Remote Packet ID */
 	uint32 RemotePacketID;
-	
+
 	/* Latest Remote Packet ID that was ACKED */
 	uint32 RemotePacketIDACKED;
 
 	/* How long to wait before resending an UNACKED packet */
 	float ResendResolutionTime;
+
+	/* Last time we resent UNACKED packets */
+	float LastResendTime;
 };
 
 /* Reliability Module Interface */

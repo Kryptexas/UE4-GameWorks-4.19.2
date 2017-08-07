@@ -266,6 +266,14 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting, meta=(UIMin = "0", UIMax = "1", DisplayName = "Distance Field Indirect Shadow Min Visibility"))
 	float DistanceFieldIndirectShadowMinVisibility;
 
+	/** Whether to override the DistanceFieldSelfShadowBias setting of the static mesh asset with the DistanceFieldSelfShadowBias of this component. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting)
+	bool bOverrideDistanceFieldSelfShadowBias;
+
+	/** Useful for reducing self shadowing from distance field methods when using world position offset to animate the mesh's vertices. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting)
+	float DistanceFieldSelfShadowBias;
+
 	/**
 	 * Allows adjusting the desired streaming distance of streaming textures that uses UV 0.
 	 * 1.0 is the default, whereas a higher value makes the textures stream in sooner from far away.
@@ -310,10 +318,13 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	/** The component has some custom painting on LODs or not. */
 	UPROPERTY()
 	bool bCustomOverrideVertexColorPerLOD;
+
+	UPROPERTY(transient)
+	bool bDisplayVertexColors;
 #endif
 
 	/** The Lightmass settings for this object. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Lighting)
+	UPROPERTY(EditAnywhere, Category=Lighting)
 	struct FLightmassPrimitiveSettings LightmassSettings;
 
 	virtual ~UStaticMeshComponent();
@@ -332,6 +343,10 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 
 	UFUNCTION(BlueprintCallable, Category="Rendering|LOD")
 	void SetForcedLodModel(int32 NewForcedLodModel);
+
+	/** Sets the component's DistanceFieldSelfShadowBias.  bOverrideDistanceFieldSelfShadowBias must be enabled for this to have an effect. */
+	UFUNCTION(BlueprintCallable, Category="Rendering|Lighting")
+	void SetDistanceFieldSelfShadowBias(float NewValue);
 
 	/** 
 	 * Get Local bounds
@@ -374,7 +389,12 @@ public:
 		// return IsCollisionEnabled() && (StaticMesh != NULL);
 		return false;
 	}
+#if WITH_EDITOR
+	virtual bool ShouldRenderSelected() const override;
+#endif
 	//~ End USceneComponent Interface
+
+
 
 	//~ Begin UActorComponent Interface.
 protected: 
@@ -428,7 +448,7 @@ public:
 	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials = false) const override;
 	virtual UMaterialInterface* GetMaterial(int32 MaterialIndex) const override;
 	virtual int32 GetMaterialIndex(FName MaterialSlotName) const override;
-	virtual UMaterialInterface* GetMaterialFromCollisionFaceIndex(int32 FaceIndex) const override;
+	virtual UMaterialInterface* GetMaterialFromCollisionFaceIndex(int32 FaceIndex, int32& SectionIndex) const override;
 	virtual TArray<FName> GetMaterialSlotNames() const override;
 	virtual bool IsMaterialSlotNameValid(FName MaterialSlotName) const override;
 

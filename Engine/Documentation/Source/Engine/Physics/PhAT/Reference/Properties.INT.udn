@@ -116,7 +116,7 @@ When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the 
 | **Linear Damping** | "Drag" force added to reduce linear movement. |
 | **Angular Damping** | "Drag" force added to reduce angular movement.  |
 | **Enable Gravity** | If object should have the force of gravity applied.  |
-| **Physics Type** | If this is set to **Unfixed** it will use physics. If this is set to **Fixed** it will use kinematic. **Default** will inherit from **OwnerComponent**'s behavior. |
+| **Physics Type** | If this is set to **Simulated** it will use physics. If this is set to **Kinematic** it will use kinematic. **Default** will inherit from **OwnerComponent**'s behavior. |
 | **Double Sided Geometry** | If true, the physics triangle mesh will use double sided faces when doing scene queries. Thsi is useful for planes and single sided meshes that need traces to work on both sides. |
 | **Simple Collision Physical Material** | The **Physical Material** to use for simple collision on this body. |
 [/REGION]

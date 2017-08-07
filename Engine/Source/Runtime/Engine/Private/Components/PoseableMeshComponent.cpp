@@ -31,7 +31,7 @@ bool UPoseableMeshComponent::AllocateTransformData()
 				RequiredBoneIndexArray[BoneIndex] = BoneIndex;
 			}
 
-			RequiredBones.InitializeTo(RequiredBoneIndexArray, *SkeletalMesh);
+			RequiredBones.InitializeTo(RequiredBoneIndexArray, true, *SkeletalMesh);
 		}
 
 		FillComponentSpaceTransforms();
@@ -66,6 +66,8 @@ void UPoseableMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 	FinalizeBoneTransform();
 
 	UpdateChildTransforms();
+	UpdateBounds();
+	MarkRenderTransformDirty();
 	MarkRenderDynamicDataDirty();
 }
 
@@ -206,7 +208,7 @@ FTransform GetBoneTransformByNameHelper(FName BoneName, EBoneSpaces::Type BoneSp
 	}
 	else
 	{
-		return CSPose.GetComponentSpaceTransform(BoneIndex) * Component->ComponentToWorld;
+		return CSPose.GetComponentSpaceTransform(BoneIndex) * Component->GetComponentTransform();
 	}
 }
 

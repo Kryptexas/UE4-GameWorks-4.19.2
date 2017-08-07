@@ -6,7 +6,7 @@
 #include "UObject/WeakObjectPtr.h"
 #include "IDetailCustomization.h"
 
-class FAssetData;
+struct FAssetData;
 class IDetailLayoutBuilder;
 class IPropertyHandle;
 class USkeleton;

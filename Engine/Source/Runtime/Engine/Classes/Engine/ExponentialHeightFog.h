@@ -16,9 +16,10 @@ class AExponentialHeightFog
 {
 	GENERATED_UCLASS_BODY()
 
-private_subobject:
+	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const override;
+
+private:
 	/** @todo document */
-	DEPRECATED_FORGAME(4.6, "Component should not be accessed directly, please use GetComponent() function instead. Component will soon be private and your code will not compile.")
 	UPROPERTY(Category = ExponentialHeightFog, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	class UExponentialHeightFogComponent* Component;
 
@@ -38,5 +39,5 @@ public:
 	//End AActor Interface
 
 	/** Returns Component subobject **/
-	ENGINE_API class UExponentialHeightFogComponent* GetComponent() const;
+	ENGINE_API class UExponentialHeightFogComponent* GetComponent() const { return Component; }
 };

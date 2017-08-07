@@ -36,7 +36,7 @@ FText USoundCueGraphNode_Root::GetTooltipText() const
 
 void USoundCueGraphNode_Root::CreateInputPins()
 {
-	CreatePin(EGPD_Input, TEXT("SoundNode"), TEXT("Root"), NULL, /*bIsArray=*/ false, /*bIsReference=*/ false, TEXT(""));
+	CreatePin(EGPD_Input, TEXT("SoundNode"), TEXT("Root"), nullptr, FString());
 }
 
 void USoundCueGraphNode_Root::GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const

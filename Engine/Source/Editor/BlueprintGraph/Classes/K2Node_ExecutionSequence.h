@@ -7,13 +7,14 @@
 #include "UObject/ObjectMacros.h"
 #include "Textures/SlateIcon.h"
 #include "K2Node.h"
+#include "K2Node_AddPinInterface.h"
 #include "K2Node_ExecutionSequence.generated.h"
 
 class FBlueprintActionDatabaseRegistrar;
 class UEdGraphPin;
 
 UCLASS(MinimalAPI)
-class UK2Node_ExecutionSequence : public UK2Node
+class UK2Node_ExecutionSequence : public UK2Node, public IK2Node_AddPinInterface
 {
 	GENERATED_UCLASS_BODY()
 
@@ -33,6 +34,10 @@ class UK2Node_ExecutionSequence : public UK2Node
 	virtual bool CanEverRemoveExecutionPin() const override { return true; }
 	//~ End UK2Node Interface
 
+	// IK2Node_AddPinInterface interface
+	BLUEPRINTGRAPH_API virtual void AddInputPin() override;
+	// End of IK2Node_AddPinInterface interface
+
 	//~ Begin K2Node_ExecutionSequence Interface
 
 	/** Gets a unique pin name, the next in the sequence */
@@ -41,7 +46,8 @@ class UK2Node_ExecutionSequence : public UK2Node
 	/**
 	 * Adds a new execution pin to an execution node
 	 */
-	BLUEPRINTGRAPH_API void AddPinToExecutionNode();
+	DEPRECATED(4.17, "Use AddInputPin instead.")
+	BLUEPRINTGRAPH_API void AddPinToExecutionNode() { AddInputPin(); }
 
 	/**
 	 * Removes the specified execution pin from an execution node
@@ -54,7 +60,7 @@ class UK2Node_ExecutionSequence : public UK2Node
 	BLUEPRINTGRAPH_API bool CanRemoveExecutionPin() const;
 
 	// @todo document
-	BLUEPRINTGRAPH_API UEdGraphPin * GetThenPinGivenIndex(int32 Index);
+	BLUEPRINTGRAPH_API UEdGraphPin* GetThenPinGivenIndex(int32 Index);
 
 private:
 	// Returns the exec output pin name for a given 0-based index

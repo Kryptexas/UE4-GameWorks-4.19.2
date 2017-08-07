@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Components/SceneComponent.h"
+#include "Components/WidgetComponent.h"
 #include "ViewportInteractionTypes.h"
 
 /** Represents a single virtual hand */
@@ -31,7 +32,7 @@ struct FViewportInteractorData
 	//
 
 	/** The widget component we last hovered over.  This is used to detect when the laser pointer moves over or leaves a widget, and is not reset every frame */
-	class UWidgetComponent* LastHoveredWidgetComponent; //@todo: ViewportInteraction: UI should not be in this module
+	TWeakObjectPtr<UWidgetComponent> LastHoveredWidgetComponent; //@todo: ViewportInteraction: UI should not be in this module
 		
 	/** Position the laser pointer impacted an interactive object at (UI, meshes, etc.) */
 	TOptional<FVector> HoverLocation;
@@ -126,7 +127,10 @@ struct FViewportInteractorData
 	FVector GizmoSpaceDragDeltaFromStartOffset;
 
 	/** The gizmo interaction we're doing with this hand */
-	ETransformGizmoInteractionType TransformGizmoInteractionType;
+	TWeakObjectPtr<class UViewportDragOperationComponent> DragOperationComponent;
+	
+	/** The last drag operation. */
+	class UViewportDragOperation* LastDragOperation;
 
 	/** Which handle on the gizmo we're interacting with, if any */
 	TOptional<FTransformGizmoHandlePlacement> OptionalHandlePlacement;
@@ -176,7 +180,8 @@ struct FViewportInteractorData
 		GizmoLastTransform = GizmoTargetTransform = GizmoUnsnappedTargetTransform = GizmoInterpolationSnapshotTransform = GizmoStartTransform;
 		GizmoSpaceFirstDragUpdateOffsetAlongAxis = FVector::ZeroVector;
 		GizmoSpaceDragDeltaFromStartOffset = FVector::ZeroVector;
-		TransformGizmoInteractionType = ETransformGizmoInteractionType::None;
+		DragOperationComponent.Reset();
+		LastDragOperation = nullptr;
 		OptionalHandlePlacement.Reset();
 		DraggingTransformGizmoComponent = nullptr;
 		HoveringOverTransformGizmoComponent = nullptr;

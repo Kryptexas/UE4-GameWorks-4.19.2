@@ -153,6 +153,7 @@ public:
 	*/
 	FMorphVertexBuffer(FSkeletalMeshResource* InSkelMeshResource, int32 InLODIdx)
 		:	bHasBeenUpdated(false)	
+		,	bNeedsInitialClear(true)
 		,	LODIdx(InLODIdx)
 		,	SkelMeshResource(InSkelMeshResource)
 	{
@@ -202,8 +203,30 @@ public:
 		return ResourceSize;
 	}
 
+	/**
+	* Get Resource Size : only get the size of the GPU resource
+	*/
+	SIZE_T GetUAVSize()
+	{
+		SIZE_T ResourceSize = 0;
+
+		if (VertexBufferRHI)
+		{
+			// LOD of the skel mesh is used to find number of vertices in buffer
+			FStaticLODModel& LodModel = SkelMeshResource->LODModels[LODIdx];
+
+			// Create the buffer rendering resource
+			ResourceSize += LodModel.NumVertices * sizeof(FMorphGPUSkinVertex);
+		}
+
+		return ResourceSize;
+	}
+
 	/** Has been updated or not by UpdateMorphVertexBuffer**/
 	bool bHasBeenUpdated;
+
+	/** DX12 cannot clear the buffer in InitDynamicRHI with UAV flag enables, we should really have a Zero initzialized flag instead**/
+	bool bNeedsInitialClear;
 
 	// @param guaranteed only to be valid if the vertex buffer is valid
 	FShaderResourceViewRHIParamRef GetSRV() const
@@ -292,8 +315,6 @@ public:
 		{
 			LODs[I].GetResourceSizeEx(CumulativeResourceSize);
 		}
-
-		CumulativeResourceSize.AddUnknownMemoryBytes(MorphWeightsVertexBuffer.VertexBufferRHI ? MorphWeightsVertexBuffer.VertexBufferRHI->GetSize() : 0);
 	}
 	//~ End FSkeletalMeshObject Interface
 
@@ -486,7 +507,8 @@ private:
 		 * @param ActiveMorphTargets - Morph to accumulate. assumed to be weighted and have valid targets
 		 * @param MorphTargetWeights - All Morph weights
 		 */
-		void UpdateMorphVertexBuffer(FRHICommandListImmediate& RHICmdList, const TArray<FActiveMorphTarget>& ActiveMorphTargets, const TArray<float>& MorphTargetWeights, FShaderResourceViewRHIRef MorphWeightsSRV, int32 NumInfluencedVerticesByMorph, FShaderResourceViewRHIRef MorphPerVertexInfoSRV, FShaderResourceViewRHIRef MorphFlattenedSRV);
+		void UpdateMorphVertexBufferCPU(const TArray<FActiveMorphTarget>& ActiveMorphTargets, const TArray<float>& MorphTargetWeights);
+		void UpdateMorphVertexBufferGPU(FRHICommandListImmediate& RHICmdList, const TArray<float>& MorphTargetWeights, const FMorphTargetVertexInfoBuffers& MorphTargetVertexInfoBuffers);
 
 		/**
 		 * Determine the current vertex buffers valid for this LOD
@@ -496,7 +518,6 @@ private:
 		void GetVertexBuffers(FVertexFactoryBuffers& OutVertexBuffers,FStaticLODModel& LODModel);
 
 		// Temporary arrays used on UpdateMorphVertexBuffer(); these grow to the max and are not thread safe.
-		static TArray<FVector> MorphDeltaTangentZAccumulationArray;
 		static TArray<float> MorphAccumulatedWeightArray;
 	};
 
@@ -531,36 +552,93 @@ private:
 
 	/** true if the morph resources have been initialized */
 	bool bMorphResourcesInitialized;
-
-	/** Vertex buffer that stores the weights for all morph targets (matches USkeletalMesh::MorphTargets). */
-	FVertexBufferAndSRV MorphWeightsVertexBuffer;
 };
 
 
-class FMorphTargetBaseShader : public FGlobalShader
+class FGPUMorphUpdateCS : public FGlobalShader
 {
 public:
-	FMorphTargetBaseShader() {}
+	DECLARE_SHADER_TYPE(FGPUMorphUpdateCS, Global);
 
-	FMorphTargetBaseShader(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+	FGPUMorphUpdateCS() {}
+
+	FGPUMorphUpdateCS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
 		: FGlobalShader(Initializer)
 	{
-		MorphTargetCountsParameter.Bind(Initializer.ParameterMap, TEXT("MorphTargetCounts"));
 		MorphVertexBufferParameter.Bind(Initializer.ParameterMap, TEXT("MorphVertexBuffer"));
-		PerVertexInfoListParameter.Bind(Initializer.ParameterMap, TEXT("PerVertexInfoList"));
-		FlattenedDeltaListParameter.Bind(Initializer.ParameterMap, TEXT("FlattenedDeltaList"));
-		AllWeightsPerMorphsParameter.Bind(Initializer.ParameterMap, TEXT("AllWeightsPerMorphs"));
+
+		MorphTargetWeightParameter.Bind(Initializer.ParameterMap, TEXT("MorphTargetWeight"));
+		OffsetAndSizeParameter.Bind(Initializer.ParameterMap, TEXT("OffsetAndSize"));
+		PositionScaleParameter.Bind(Initializer.ParameterMap, TEXT("PositionScale"));
+
+		VertexIndicesParameter.Bind(Initializer.ParameterMap, TEXT("VertexIndicies"));
+		MorphDeltasParameter.Bind(Initializer.ParameterMap, TEXT("MorphDeltas"));
 	}
 
 	// FShader interface.
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << MorphTargetCountsParameter;
 		Ar << MorphVertexBufferParameter;
-		Ar << PerVertexInfoListParameter;
-		Ar << FlattenedDeltaListParameter;
-		Ar << AllWeightsPerMorphsParameter;
+
+		Ar << MorphTargetWeightParameter;
+		Ar << OffsetAndSizeParameter;
+		Ar << PositionScaleParameter;
+
+		Ar << VertexIndicesParameter;
+		Ar << MorphDeltasParameter;
+		return bShaderHasOutdatedParameters;
+	}
+
+	void SetParameters(FRHICommandList& RHICmdList, const FVector4& LocalScale, const FMorphTargetVertexInfoBuffers& MorphTargetVertexInfoBuffers, FMorphVertexBuffer& MorphVertexBuffer);
+	void SetOffsetAndSize(FRHICommandList& RHICmdList, uint32 Offset, uint32 Size, float Weight);
+
+	void Dispatch(FRHICommandList& RHICmdList, uint32 Size);
+	void EndAllDispatches(FRHICommandList& RHICmdList);
+
+	static bool ShouldCache(EShaderPlatform Platform)
+	{
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+	}
+
+protected:
+	FShaderResourceParameter MorphVertexBufferParameter;
+
+	FShaderParameter MorphTargetWeightParameter;
+	FShaderParameter OffsetAndSizeParameter;
+	FShaderParameter PositionScaleParameter;
+
+	FShaderResourceParameter VertexIndicesParameter;
+	FShaderResourceParameter MorphDeltasParameter;
+};
+
+class FGPUMorphNormalizeCS : public FGlobalShader
+{
+public:
+	DECLARE_SHADER_TYPE(FGPUMorphNormalizeCS, Global);
+
+	FGPUMorphNormalizeCS() {}
+
+	FGPUMorphNormalizeCS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		: FGlobalShader(Initializer)
+	{
+		MorphVertexBufferParameter.Bind(Initializer.ParameterMap, TEXT("MorphVertexBuffer"));
+
+		MorphTargetWeightParameter.Bind(Initializer.ParameterMap, TEXT("MorphTargetWeight"));
+		MorphWorkItemsParameter.Bind(Initializer.ParameterMap, TEXT("MorphWorkItems"));
+		PositionScaleParameter.Bind(Initializer.ParameterMap, TEXT("PositionScale"));
+	}
+
+	// FShader interface.
+	virtual bool Serialize(FArchive& Ar) override
+	{
+		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
+		Ar << MorphVertexBufferParameter;
+
+		Ar << MorphTargetWeightParameter;
+		Ar << MorphWorkItemsParameter;
+		Ar << PositionScaleParameter;
+
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -569,14 +647,14 @@ public:
 		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
 	}
 
-	void SetParameters(FRHICommandList& RHICmdList, int32 NumLODVertices, int32 NumMorphVertices, FShaderResourceViewRHIRef MorphWeightsSRV, FShaderResourceViewRHIRef PerVertexInfoListSRV, FShaderResourceViewRHIRef FlattenedDeltaListSRV, FUnorderedAccessViewRHIParamRef UAV);
-	void Dispatch(FRHICommandList& RHICmdList, int32 NumLODVertices, int32 NumMorphVertices, FShaderResourceViewRHIRef MorphWeightsSRV, FShaderResourceViewRHIRef PerVertexInfoListSRV, FShaderResourceViewRHIRef FlattenedDeltaListSRV, FUnorderedAccessViewRHIParamRef UAV);
+	void SetParameters(FRHICommandList& RHICmdList, uint32 NumVerticies, const FVector4& LocalScale, const float AccumulatedWeight, FMorphVertexBuffer& MorphVertexBuffer);
+
+	void Dispatch(FRHICommandList& RHICmdList, uint32 NumVerticies, const FVector4& LocalScale, const float AccumulatedWeight, FMorphVertexBuffer& MorphVertexBuffer);
 
 protected:
-	FShaderParameter MorphTargetCountsParameter;
 	FShaderResourceParameter MorphVertexBufferParameter;
 
-	FShaderResourceParameter PerVertexInfoListParameter;
-	FShaderResourceParameter FlattenedDeltaListParameter;
-	FShaderResourceParameter AllWeightsPerMorphsParameter;
+	FShaderParameter MorphTargetWeightParameter;
+	FShaderParameter MorphWorkItemsParameter;
+	FShaderParameter PositionScaleParameter;
 };

@@ -195,7 +195,7 @@ void SRigWindow::OnAssetSelected(UObject* Object)
 }
 
 /** Returns true if the asset shouldn't show  */
-bool SRigWindow::ShouldFilterAsset(const class FAssetData& AssetData)
+bool SRigWindow::ShouldFilterAsset(const struct FAssetData& AssetData)
 {
 	return (AssetData.GetAsset() == GetRigObject());
 }
@@ -290,7 +290,7 @@ bool SRigWindow::OnTargetSkeletonSelected(USkeleton* SelectedSkeleton, URig*  Ri
 				}
 			}
 
-			float BoneMatchedPercentage = BoneMatched / RefSkeleton.GetNum();
+			float BoneMatchedPercentage = (float)(BoneMatched) / RefSkeleton.GetNum();
 			if (BoneMatchedPercentage > 0.5f)
 			{
 				Rig->SetSourceReferenceSkeleton(RefSkeleton);

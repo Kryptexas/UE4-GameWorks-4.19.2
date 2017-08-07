@@ -157,7 +157,6 @@ FD3D12Resource::FD3D12Resource(FD3D12Device* ParentDevice,
 	, Desc(InDesc)
 	, PlaneCount(::GetPlaneCount(Desc.Format))
 	, SubresourceCount(0)
-	, pResourceState(nullptr)
 	, DefaultResourceState(D3D12_RESOURCE_STATE_TBD)
 	, bRequiresResourceStateTracking(true)
 	, bDepthStencil(false)
@@ -183,12 +182,6 @@ FD3D12Resource::FD3D12Resource(FD3D12Device* ParentDevice,
 
 FD3D12Resource::~FD3D12Resource()
 {
-	if (pResourceState)
-	{
-		delete pResourceState;
-		pResourceState = nullptr;
-	}
-
 	if (D3DX12Residency::IsInitialized(ResidencyHandle))
 	{
 		D3DX12Residency::EndTrackingObject(GetParentDevice()->GetResidencyManager(), ResidencyHandle);
@@ -277,6 +270,8 @@ HRESULT FD3D12Adapter::CreateCommittedResource(const D3D12_RESOURCE_DESC& InDesc
 	{
 		return E_POINTER;
 	}
+
+	LLM_SCOPED_SINGLE_PLATFORM_STAT_TAG(D3D12CommittedResources);
 
 	TRefCountPtr<ID3D12Resource> pResource;
 	const HRESULT hr = RootDevice->CreateCommittedResource(&HeapProps, D3D12_HEAP_FLAG_NONE, &InDesc, InitialUsage, ClearValue, IID_PPV_ARGS(pResource.GetInitReference()));
@@ -368,6 +363,7 @@ FD3D12ResourceLocation::FD3D12ResourceLocation(FD3D12Device* Parent)
 	, OffsetFromBaseOfResource(0)
 	, Allocator(nullptr)
 	, FD3D12DeviceChild(Parent)
+	, bTransient(false)
 {
 	FMemory::Memzero(AllocatorData);
 }
@@ -438,6 +434,9 @@ void FD3D12ResourceLocation::ReleaseResource()
 	case ResourceLocationType::eStandAlone:
 	{
 		check(UnderlyingResource->GetRefCount() == 1);
+		
+		LLM(FLowLevelMemTracker::Get().OnLowLevelFree(ELLMTracker::RHI, reinterpret_cast<void*>(GPUVirtualAddress), Size));
+
 		if (UnderlyingResource->ShouldDeferDelete())
 		{
 			GetParentDevice()->GetParentAdapter()->GetDeferredDeletionQueue().EnqueueResource(UnderlyingResource);

@@ -105,8 +105,7 @@ class ENGINE_API ABrush
 	UPROPERTY(Instanced)
 	class UModel* Brush;
 
-private_subobject:
-	DEPRECATED_FORGAME(4.6, "BrushComponent should not be accessed directly, please use GetBrushComponent() function instead. BrushComponent will soon be private and your code will not compile.")
+private:
 	UPROPERTY(Category = Collision, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	class UBrushComponent* BrushComponent;
 public:
@@ -276,7 +275,7 @@ public:
 
 public:
 	/** Returns BrushComponent subobject **/
-	class UBrushComponent* GetBrushComponent() const;
+	class UBrushComponent* GetBrushComponent() const { return BrushComponent; }
 
 #if WITH_EDITOR
 	/** Debug purposes only; an attempt to catch the cause of UE-36265 */

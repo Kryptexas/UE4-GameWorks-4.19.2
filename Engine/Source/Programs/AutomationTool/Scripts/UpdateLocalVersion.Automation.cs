@@ -9,6 +9,9 @@ using UnrealBuildTool;
 
 [Help("Updates your local versions based on your P4 sync")]
 [Help("CL", "Overrides the automatically disovered changelist number with the specified one")]
+[Help("CompatibleCL", "Overrides the changelist that the engine is API-compatible with")]
+[Help("Promoted", "Value for whether this is a promoted build (defaults to 1).")]
+[Help("Branch", "Overrides the branch string.")]
 [Help("Licensee", "When updating version files, store the changelist number in licensee format")]
 [RequireP4]
 public class UpdateLocalVersion : BuildCommand

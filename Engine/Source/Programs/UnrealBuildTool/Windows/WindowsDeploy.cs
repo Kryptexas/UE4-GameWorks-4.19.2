@@ -14,8 +14,7 @@ namespace UnrealBuildTool
 	class BaseWindowsDeploy : UEBuildDeploy
 	{
 
-        // public virtual bool PrepForUATPackageOrDeploy(FileReference ProjectFile, string ProjectName, string ProjectDirectory, List<UnrealTargetConfiguration> TargetConfigurations, List<string> ExecutablePaths, string EngineDirectory, bool bForDistribution, string CookFlavor, bool bIsDataDeploy)
-        public bool PrepForUATPackageOrDeploy(FileReference ProjectFile, string ProjectName, string ProjectDirectory, List<UnrealTargetConfiguration> TargetConfigurations, List<string> ExecutablePaths, string EngineDirectory, bool bForDistribution, string CookFlavor, bool bIsDataDeploy)
+        public bool PrepForUATPackageOrDeploy(FileReference ProjectFile, string ProjectName, string ProjectDirectory, List<UnrealTargetConfiguration> TargetConfigurations, List<string> ExecutablePaths, string EngineDirectory)
         {
             string ApplicationIconPath = Path.Combine(ProjectDirectory, "Build/Windows/Application.ico");
             // Does a Project icon exist?
@@ -65,7 +64,7 @@ namespace UnrealBuildTool
                 List<UnrealTargetConfiguration> TargetConfigs = new List<UnrealTargetConfiguration> { InTarget.Configuration };
                 List<string> ExePaths = new List<string> { InTarget.OutputPath.FullName };
 				string RelativeEnginePath = UnrealBuildTool.EngineDirectory.MakeRelativeTo(DirectoryReference.GetCurrentDirectory());
-                PrepForUATPackageOrDeploy(InTarget.ProjectFile, InAppName, InTarget.ProjectDirectory.FullName, TargetConfigs, ExePaths, RelativeEnginePath, false, "", false);
+                PrepForUATPackageOrDeploy(InTarget.ProjectFile, InAppName, InTarget.ProjectDirectory.FullName, TargetConfigs, ExePaths, RelativeEnginePath);
 			}
 			return true;
 		}

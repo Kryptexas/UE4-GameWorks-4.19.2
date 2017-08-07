@@ -39,7 +39,7 @@ void FNiagaraCollisionBatch::KickoffNewBatch(FNiagaraSimulation *Sim, float Delt
 				PosIt.Get(Position);
 				VelIt.Get(Velocity);
 
-				FCollisionQueryParams QueryParams;
+				FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(NiagraAsync));
 				QueryParams.OwnerTag = "Niagara";
 				FTraceHandle Handle = EffectWorld->AsyncLineTraceByChannel(EAsyncTraceType::Single, Position, Position + Velocity*DeltaSeconds, ECollisionChannel::ECC_WorldStatic, QueryParams, FCollisionResponseParams::DefaultResponseParam, nullptr, i);
 				FNiagaraCollisionTrace Trace;

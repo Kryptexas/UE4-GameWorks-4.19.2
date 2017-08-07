@@ -9,5 +9,5 @@ topic-icon:%ROOT%/outline_icon.png
 topic-image:%ROOT%/placeholder_topic.png
 
 
-[DIR(output:"listbutton" order:"descend" parent:"Support/Builds" org:"hierarchy")]
+[DIR(output:"listbutton" order:"descend" parent:"Support/Builds" org:"hierarchy" end:"1")]
 

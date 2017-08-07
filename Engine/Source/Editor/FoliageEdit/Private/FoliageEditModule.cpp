@@ -174,6 +174,15 @@ public:
 		FoliageMode->MoveSelectedFoliageToLevel(InTargetLevel);
 	}
 
+	virtual bool CanMoveSelectedFoliageToLevel(ULevel* InTargetLevel) const override
+	{
+		ensure(GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Foliage));
+
+		FEdModeFoliage* FoliageMode = (FEdModeFoliage*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Foliage);
+
+		return FoliageMode->CanMoveSelectedFoliageToLevel(InTargetLevel);
+	}
+
 	FDelegateHandle OnLevelActorDeletedDelegateHandle;
 	FDelegateHandle OnExperimentalSettingChangedDelegateHandle;
 #endif

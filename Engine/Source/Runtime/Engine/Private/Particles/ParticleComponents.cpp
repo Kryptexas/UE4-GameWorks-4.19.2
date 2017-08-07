@@ -115,8 +115,8 @@ int32 GParticleLODBias = 0;
 FAutoConsoleVariableRef CVarParticleLODBias(
 	TEXT("r.ParticleLODBias"),
 	GParticleLODBias,
-	TEXT("LOD bias for particle systems. Development feature, default is 0"),
-	ECVF_Cheat
+	TEXT("LOD bias for particle systems, default is 0"),
+	ECVF_Scalability
 	);
 
 /** Whether to allow particle systems to perform work. */
@@ -1977,8 +1977,8 @@ UParticleSystem::UParticleSystem(const FObjectInitializer& ObjectInitializer)
 	EditorLODSetting = 0;
 #endif // WITH_EDITORONLY_DATA
 	FixedRelativeBoundingBox.Min = FVector(-1.0f, -1.0f, -1.0f);
-
 	FixedRelativeBoundingBox.Max = FVector(1.0f, 1.0f, 1.0f);
+	FixedRelativeBoundingBox.IsValid = true;
 
 	LODMethod = PARTICLESYSTEMLODMETHOD_Automatic;
 	LODDistanceCheckTime = 0.25f;
@@ -3468,18 +3468,15 @@ void UParticleSystemComponent::GetResourceSizeEx(FResourceSizeEx& CumulativeReso
 bool UParticleSystemComponent::ParticleLineCheck(FHitResult& Hit, AActor* SourceActor, const FVector& End, const FVector& Start, const FVector& HalfExtent, const FCollisionObjectQueryParams& ObjectParams)
 {
 	check(GetWorld());
-	static FName NAME_ParticleCollision = FName(TEXT("ParticleCollision"));
-
 	if ( HalfExtent.IsZero() )
 	{
-		FCollisionQueryParams QueryParams(NAME_ParticleCollision, true, SourceActor);
+		FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(ParticleCollision), true, SourceActor);
 		QueryParams.bReturnPhysicalMaterial = true;
 		return GetWorld()->LineTraceSingleByObjectType(Hit, Start, End, ObjectParams, QueryParams);
 	}
 	else
 	{
-		FCollisionQueryParams BoxParams;
-		BoxParams.TraceTag = NAME_ParticleCollision;
+		FCollisionQueryParams BoxParams(SCENE_QUERY_STAT(ParticleCollision));
 		BoxParams.AddIgnoredActor(SourceActor);
 		BoxParams.bReturnPhysicalMaterial = true;
 		return GetWorld()->SweepSingleByObjectType(Hit, Start, End, FQuat::Identity, ObjectParams, FCollisionShape::MakeBox(HalfExtent), BoxParams);
@@ -3849,7 +3846,7 @@ FParticleDynamicData* UParticleSystemComponent::CreateDynamicData(ERHIFeatureLev
 
 	if (Template)
 	{
-		ParticleDynamicData->SystemPositionForMacroUVs = ComponentToWorld.TransformPosition(Template->MacroUVPosition);
+		ParticleDynamicData->SystemPositionForMacroUVs = GetComponentTransform().TransformPosition(Template->MacroUVPosition);
 		ParticleDynamicData->SystemRadiusForMacroUVs = Template->MacroUVRadius;
 	}
 
@@ -4053,6 +4050,24 @@ void UParticleSystemComponent::SetMaterial(int32 ElementIndex, UMaterialInterfac
 		}
 		EmitterMaterials[ElementIndex] = Material;
 		bIsViewRelevanceDirty = true;
+
+		for (int32 EmitterIndex = 0; EmitterIndex < EmitterInstances.Num(); ++EmitterIndex)
+		{
+			if (FParticleEmitterInstance* Inst = EmitterInstances[EmitterIndex])
+			{
+				if (!Inst->Tick_MaterialOverrides())
+				{
+					if (EmitterMaterials.IsValidIndex(EmitterIndex))
+					{
+						if (EmitterMaterials[EmitterIndex])
+						{
+							Inst->CurrentMaterial = EmitterMaterials[EmitterIndex];
+						}
+					}
+				}
+			}
+		}
+		MarkRenderDynamicDataDirty();
 	}
 }
 
@@ -4166,7 +4181,7 @@ void UParticleSystemComponent::OrientZAxisTowardCamera()
 		DirToCamera.Normalize();
 
 		// Convert the camera direction to local space
-		DirToCamera = ComponentToWorld.InverseTransformVectorNoScale(DirToCamera);
+		DirToCamera = GetComponentTransform().InverseTransformVectorNoScale(DirToCamera);
 		
 		// Local Z axis
 		const FVector LocalZAxis = FVector(0,0,1);
@@ -4513,7 +4528,7 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 			{
 				bool bCalculateLODLevel = 
 					(bOverrideLODMethod == true) ? (LODMethod == PARTICLESYSTEMLODMETHOD_Automatic) : 
-						(Template ? (Template->LODMethod == PARTICLESYSTEMLODMETHOD_Automatic) : false);
+						(Template->LODMethod == PARTICLESYSTEMLODMETHOD_Automatic);
 				if (bCalculateLODLevel == true)
 				{
 					FVector EffectPosition = GetComponentLocation();
@@ -4611,7 +4626,7 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 			SCOPE_CYCLE_COUNTER(STAT_UParticleSystemComponent_Marshall)
 		bAsyncDataCopyIsValid = true;
 		check(!bParallelRenderThreadUpdate);
-		AsyncComponentToWorld = ComponentToWorld;
+		AsyncComponentToWorld = GetComponentTransform();
 		AsyncInstanceParameters.Reset();
 		AsyncInstanceParameters.Append(InstanceParameters);
 			AsyncBounds = Bounds;
@@ -5350,10 +5365,7 @@ void UParticleSystemComponent::ActivateSystem(bool bFlagAsJustAttached)
 		{
 			FVector EffectPosition = GetComponentLocation();
 			int32 DesiredLODLevel = DetermineLODLevelForLocation(EffectPosition);
-			if (DesiredLODLevel != LODLevel)
-			{
-				SetLODLevel(DesiredLODLevel);
-			}
+			SetLODLevel(DesiredLODLevel);
 		}
 		else
 		{
@@ -6217,11 +6229,12 @@ int32 UParticleSystemComponent::DetermineLODLevelForLocation(const FVector& Effe
 		return 0;
 	}
 
-	// Don't bother if we only have 1 LOD level...
-	if (Template->LODDistances.Num() <= 1)
+	// Don't bother if we only have 1 LOD level... Or if we want to ignore distance comparisons.
+	if (Template->LODDistances.Num() <= 1 || Template->LODMethod == PARTICLESYSTEMLODMETHOD_DirectSet)
 	{
 		return 0;
 	}
+
 	check(IsInGameThread());
 	int32 Retval = 0;
 	
@@ -6252,10 +6265,10 @@ int32 UParticleSystemComponent::DetermineLODLevelForLocation(const FVector& Effe
 		// This will now put everything in LODLevel 0 (high detail) by default
 		float LODDistanceSqr = (PlayerViewLocations.Num() ? FMath::Square(WORLD_MAX) : 0.0f);
 		for (const FVector& ViewLocation : PlayerViewLocations)
-			{
+		{
 			const float DistanceToEffectSqr = FVector(ViewLocation - EffectLocation).SizeSquared();
 			if (DistanceToEffectSqr < LODDistanceSqr)
-				{
+			{
 				LODDistanceSqr = DistanceToEffectSqr;
 			}
 		}
@@ -6288,7 +6301,7 @@ void UParticleSystemComponent::SetLODLevel(int32 InLODLevel)
 		return;
 	}
 
-	int32 NewLODLevel = FMath::Clamp(InLODLevel + GParticleLODBias,0,Template->GetLODLevelCount()-1);
+	int32 NewLODLevel = FMath::Clamp(InLODLevel + GParticleLODBias, 0, Template->GetLODLevelCount() - 1);
 	if (LODLevel != NewLODLevel)
 	{
 		MarkRenderStateDirty();
@@ -6730,6 +6743,11 @@ void UParticleSystemComponent::GetUsedMaterials( TArray<UMaterialInterface*>& Ou
 		for (int32 EmitterIdx = 0; EmitterIdx < Template->Emitters.Num(); ++EmitterIdx)
 		{
 			const UParticleEmitter* Emitter = Template->Emitters[EmitterIdx];
+			if (!Emitter)
+			{
+				continue;
+			}
+
 			for (int32 LodIndex = 0; LodIndex < Emitter->LODLevels.Num(); ++LodIndex)
 			{
 				const UParticleLODLevel* LOD = Emitter->LODLevels[LodIndex];
@@ -7047,21 +7065,24 @@ UMaterialInterface* UParticleSystemComponent::GetNamedMaterial(FName Name) const
 		else
 		{
 			//This slot hasn't been overridden so just used the default.
-			return Template->NamedMaterialSlots[Index].Material;
+			return Template ? Template->NamedMaterialSlots[Index].Material : nullptr;
 		}
 	}
 	//Could not find this named materials slot.
-	return NULL;
+	return nullptr;
 }
 
 int32 UParticleSystemComponent::GetNamedMaterialIndex(FName Name) const
 {
-	TArray<FNamedEmitterMaterial>& Slots = Template->NamedMaterialSlots;
-	for (int32 SlotIdx = 0; SlotIdx < Slots.Num(); ++SlotIdx)
+	if (Template != nullptr)
 	{
-		if (Name == Slots[SlotIdx].Name)
+		TArray<FNamedEmitterMaterial>& Slots = Template->NamedMaterialSlots;
+		for (int32 SlotIdx = 0; SlotIdx < Slots.Num(); ++SlotIdx)
 		{
-			return SlotIdx;
+			if (Name == Slots[SlotIdx].Name)
+			{
+				return SlotIdx;
+			}
 		}
 	}
 	return INDEX_NONE;

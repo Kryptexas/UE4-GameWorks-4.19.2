@@ -130,11 +130,15 @@ public:
 	UFUNCTION(exec)
 	virtual void SetConsoleTarget(int32 PlayerIndex);
 
+	/** Sets the widget to use fore the cursor. */
+	void AddCursorWidget(EMouseCursor::Type Cursor, class UUserWidget* CursorWidget);
+
 	/** Returns a relative world context for this viewport.	 */
 	virtual UWorld* GetWorld() const override;
 
 	/* Returns the game viewport */
 	FSceneViewport* GetGameViewport();
+	const FSceneViewport* GetGameViewport() const;
 
 	/* Returns the widget for this viewport */
 	TSharedPtr<SViewport> GetGameViewportWidget();
@@ -250,6 +254,11 @@ public:
 	 * This function removes all widgets from the viewport overlay
 	 */
 	void RemoveAllViewportWidgets();
+
+	/**
+	 * Recreates cursor widgets from UISettings class.
+	 */
+	void RebuildCursors();
 
 	/**
 	 * Cleans up all rooted or referenced objects created or managed by the GameViewportClient.  This method is called
@@ -561,6 +570,10 @@ public:
 
 	bool SetHardwareCursor(EMouseCursor::Type CursorShape, FName GameContentPath, FVector2D HotSpot);
 
+	/** 
+	 * @return @true if this viewport is currently being used for simulate in editors
+	 */
+	bool IsSimulateInEditorViewport() const;
 public:
 	/** The show flags used by the viewport's players. */
 	FEngineShowFlags EngineShowFlags;
@@ -759,6 +772,8 @@ public:
 	{
 		return ToggleFullscreenDelegate;
 	}
+
+	void SetVirtualCursorWidget(EMouseCursor::Type Cursor, class UUserWidget* Widget);
 
 private:
 	/** Resets the platform type shape to nullptr, to restore it to the OS default. */

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3481084
 Availability:Public
 Title:에디터에서 플레이 세팅
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor, Engine/UI/LevelEditor/InEditorTesting
@@ -10,7 +10,37 @@ Version: 4.9
 
 * **편집** > **에디터 개인설정** 을 클릭하여 **플레이** 세팅 패널을 엽니다...
 
-	![](PIE_settings.png) 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	![](PIE_settings.png)
+	[/REGION]
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	![](PIESettings_Mac.png)
+	[/REGION]
+	[/PARAM]
+	[/OBJECT]
 
 	그런 다음 에디터 개인설정 창의 **플레이** 섹션을 선택합니다.
 

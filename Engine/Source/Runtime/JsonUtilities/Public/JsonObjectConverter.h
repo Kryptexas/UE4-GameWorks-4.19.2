@@ -17,6 +17,9 @@ public:
 	/** FName case insensitivity can make the casing of UPROPERTIES unpredictable. Attempt to standardize output. */
 	static FString StandardizeCase(const FString &StringIn);
 
+	/** Parse an FText from a json object (assumed to be of the form where keys are culture codes and values are strings) */
+	static bool GetTextFromObject(const TSharedRef<FJsonObject>& Obj, FText& TextOut);
+
 public: // UStruct -> JSON
 
 	/**
@@ -160,7 +163,7 @@ public: // JSON -> UStruct
 	 *
 	 * @return False if any properties matched but failed to deserialize
 	 */
-	static bool JsonObjectToUStruct(const TSharedRef<FJsonObject>& JsonObject, const UStruct* StructDefinition, void* OutStruct, int64 CheckFlags, int64 SkipFlags);
+	static bool JsonObjectToUStruct(const TSharedRef<FJsonObject>& JsonObject, const UStruct* StructDefinition, void* OutStruct, int64 CheckFlags = 0, int64 SkipFlags = 0);
 	
 	/**
 	 * Templated version of JsonObjectToUStruct
@@ -173,7 +176,7 @@ public: // JSON -> UStruct
 	 * @return False if any properties matched but failed to deserialize
 	 */
 	template<typename OutStructType>
-	static bool JsonObjectToUStruct(const TSharedRef<FJsonObject>& JsonObject, OutStructType* OutStruct, int64 CheckFlags, int64 SkipFlags)
+	static bool JsonObjectToUStruct(const TSharedRef<FJsonObject>& JsonObject, OutStructType* OutStruct, int64 CheckFlags = 0, int64 SkipFlags = 0)
 	{
 		return JsonObjectToUStruct(JsonObject, OutStructType::StaticStruct(), OutStruct, CheckFlags, SkipFlags);
 	}

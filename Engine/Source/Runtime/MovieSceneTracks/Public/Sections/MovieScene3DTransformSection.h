@@ -96,9 +96,13 @@ struct FMovieScene3DLocationKeyStruct
 {
 	GENERATED_BODY()
 
-	/** They key's translation value. */
+	/** The key's translation value. */
 	UPROPERTY(EditAnywhere, Category=Key)
 	FVector Location;
+
+	/** The key's time. */
+	UPROPERTY(EditAnywhere, Category=Key)
+	float Time;
 
 	FRichCurveKey* LocationKeys[3];
 
@@ -115,9 +119,13 @@ struct FMovieScene3DRotationKeyStruct
 {
 	GENERATED_BODY()
 
-	/** They key's rotation value. */
+	/** The key's rotation value. */
 	UPROPERTY(EditAnywhere, Category=Key)
 	FRotator Rotation;
+
+	/** The key's time. */
+	UPROPERTY(EditAnywhere, Category=Key)
+	float Time;
 
 	FRichCurveKey* RotationKeys[3];
 
@@ -134,9 +142,13 @@ struct FMovieScene3DScaleKeyStruct
 {
 	GENERATED_BODY()
 
-	/** They key's scale value. */
+	/** The key's scale value. */
 	UPROPERTY(EditAnywhere, Category=Key)
 	FVector Scale;
+
+	/** The key's time. */
+	UPROPERTY(EditAnywhere, Category=Key)
+	float Time;
 
 	FRichCurveKey* ScaleKeys[3];
 
@@ -153,17 +165,21 @@ struct FMovieScene3DTransformKeyStruct
 {
 	GENERATED_BODY()
 
-	/** They key's translation value. */
+	/** The key's translation value. */
 	UPROPERTY(EditAnywhere, Category=Key)
 	FVector Location;
 
-	/** They key's rotation value. */
+	/** The key's rotation value. */
 	UPROPERTY(EditAnywhere, Category=Key)
 	FRotator Rotation;
 
-	/** They key's scale value. */
+	/** The key's scale value. */
 	UPROPERTY(EditAnywhere, Category=Key)
 	FVector Scale;
+
+	/** The key's time. */
+	UPROPERTY(EditAnywhere, Category=Key)
+	float Time;
 
 	FRichCurveKey* LocationKeys[3];
 	FRichCurveKey* RotationKeys[3];
@@ -172,6 +188,83 @@ struct FMovieScene3DTransformKeyStruct
 	virtual void PropagateChanges(const FPropertyChangedEvent& ChangeEvent) override;
 };
 
+enum class EMovieSceneTransformChannel : uint32
+{
+	None			= 0x000,
+
+	TranslationX 	= 0x001,
+	TranslationY 	= 0x002,
+	TranslationZ 	= 0x004,
+	Translation 	= TranslationX | TranslationY | TranslationZ,
+
+	RotationX 		= 0x008,
+	RotationY 		= 0x010,
+	RotationZ 		= 0x020,
+	Rotation 		= RotationX | RotationY | RotationZ,
+
+	ScaleX 			= 0x040,
+	ScaleY 			= 0x080,
+	ScaleZ 			= 0x100,
+	Scale 			= ScaleX | ScaleY | ScaleZ,
+
+	AllTransform	= Translation | Rotation | Scale,
+
+	Weight 			= 0x200,
+
+	All				= Translation | Rotation | Scale | Weight,
+};
+ENUM_CLASS_FLAGS(EMovieSceneTransformChannel)
+
+USTRUCT()
+struct FMovieSceneTransformMask
+{
+	GENERATED_BODY()
+
+	FMovieSceneTransformMask()
+		: Mask(0)
+	{}
+
+	FMovieSceneTransformMask(EMovieSceneTransformChannel Channel)
+		: Mask((__underlying_type(EMovieSceneTransformChannel))Channel)
+	{}
+
+	EMovieSceneTransformChannel GetChannels() const
+	{
+		return (EMovieSceneTransformChannel)Mask;
+	}
+
+	FVector GetTranslationFactor() const
+	{
+		EMovieSceneTransformChannel Channels = GetChannels();
+		return FVector(
+			EnumHasAllFlags(Channels, EMovieSceneTransformChannel::TranslationX) ? 1.f : 0.f,
+			EnumHasAllFlags(Channels, EMovieSceneTransformChannel::TranslationY) ? 1.f : 0.f,
+			EnumHasAllFlags(Channels, EMovieSceneTransformChannel::TranslationZ) ? 1.f : 0.f);
+	}
+
+	FVector GetRotationFactor() const
+	{
+		EMovieSceneTransformChannel Channels = GetChannels();
+		return FVector(
+			EnumHasAllFlags(Channels, EMovieSceneTransformChannel::RotationX) ? 1.f : 0.f,
+			EnumHasAllFlags(Channels, EMovieSceneTransformChannel::RotationY) ? 1.f : 0.f,
+			EnumHasAllFlags(Channels, EMovieSceneTransformChannel::RotationZ) ? 1.f : 0.f);
+	}
+
+	FVector GetScaleFactor() const
+	{
+		EMovieSceneTransformChannel Channels = GetChannels();
+		return FVector(
+			EnumHasAllFlags(Channels, EMovieSceneTransformChannel::ScaleX) ? 1.f : 0.f,
+			EnumHasAllFlags(Channels, EMovieSceneTransformChannel::ScaleY) ? 1.f : 0.f,
+			EnumHasAllFlags(Channels, EMovieSceneTransformChannel::ScaleZ) ? 1.f : 0.f);
+	}
+
+private:
+
+	UPROPERTY()
+	uint32 Mask;
+};
 
 /**
  * A 3D transform section
@@ -237,6 +330,23 @@ public:
 	MOVIESCENETRACKS_API const FRichCurve& GetScaleCurve( EAxis::Type Axis ) const;
 
 	/**
+	 * Returns the manual weight curve for this section
+	 * @return The manual weight curve
+	 */
+	MOVIESCENETRACKS_API FRichCurve& GetManualWeightCurve();
+	MOVIESCENETRACKS_API const FRichCurve& GetManualWeightCurve() const;
+
+	FMovieSceneTransformMask GetMask() const
+	{
+		return TransformMask;
+	}
+
+	void SetMask(FMovieSceneTransformMask NewMask)
+	{
+		TransformMask = NewMask;
+	}
+
+	/**
 	 * Return the trajectory visibility
 	 */
 #if WITH_EDITORONLY_DATA
@@ -267,6 +377,9 @@ public:
 	
 private:
 
+	UPROPERTY()
+	FMovieSceneTransformMask TransformMask;
+
 	/** Translation curves */
 	UPROPERTY()
 	FRichCurve Translation[3];
@@ -278,6 +391,10 @@ private:
 	/** Scale curves */
 	UPROPERTY()
 	FRichCurve Scale[3];
+
+	/** Manual weight curve */
+	UPROPERTY()
+	FRichCurve ManualWeight;
 
 #if WITH_EDITORONLY_DATA
 	/** Whether to show the 3d trajectory */

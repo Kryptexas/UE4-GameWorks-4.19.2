@@ -21,6 +21,7 @@ void FMovieSceneVectorKeyStructBase::PropagateChanges(const FPropertyChangedEven
 		else
 		{
 			Keys[Index]->Value = GetPropertyChannelByIndex(Index);
+			Keys[Index]->Time = Time;
 		}
 	}
 }
@@ -35,6 +36,7 @@ UMovieSceneVectorSection::UMovieSceneVectorSection(const FObjectInitializer& Obj
 	ChannelsUsed = 0;
 
 	EvalOptions.EnableAndSetCompletionMode(GetLinkerCustomVersion(FSequencerObjectVersion::GUID) < FSequencerObjectVersion::WhenFinishedDefaultsToRestoreState ? EMovieSceneCompletionMode::KeepState : EMovieSceneCompletionMode::RestoreState);
+	BlendType = EMovieSceneBlendType::Absolute;
 }
 
 /* UMovieSceneSection interface
@@ -113,6 +115,7 @@ TSharedPtr<FStructOnScope> UMovieSceneVectorSection::GetKeyStruct(const TArray<F
 			if (Struct->Keys[Index] != nullptr)
 			{
 				FirstValidKeyTime = Struct->Keys[Index]->Time;
+				Struct->Time = FirstValidKeyTime;
 			}
 		}
 
@@ -213,7 +216,7 @@ void UMovieSceneVectorSection::SetDefault(const FVectorKey& Key)
 
 void UMovieSceneVectorSection::ClearDefaults()
 {
-	for (auto Curve : Curves)
+	for (auto& Curve : Curves)
 	{
 		Curve.ClearDefaultValue();
 	}

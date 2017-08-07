@@ -1,40 +1,24 @@
-﻿INTSourceChangelist:3358386
-Availability:Public
+﻿INTSourceChangelist:3477699
+Availability:Docs
+Crumbs: %ROOT%
 Title:Blend Spaces
-Crumbs: %ROOT%, Engine, Engine/Animation
 Description:ブレンドスペースは複数入力値に基づいていくつものアニメーションのブレンドを可能にするアセットです。
-Related:Engine/Animation/AnimBlueprints
-Related:Engine/Content/FBX/Animations
-Related:Engine/Animation/AnimMontage
-Related:Engine\Animation\AnimHowTo\BlendSpace
-Related:Engine/Animation/NodeReference/Blend
-Related:Engine/Animation/StateMachines
-Related:Engine/Animation/AnimBlueprints/AnimGraph
-version:4.15
+Type:Landing
+Version:4.16
+Parent:Engine/Animation
+Order:1
+tags:Blend Space
+tags:Animation Blending
+tags:Animation
+topic-image:BlendTopic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Animation/Blend Spaces:title%](Engine/Animation/animation_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Animation/Blend Spaces:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Animation/Blend Spaces:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Animation/Blend Spaces]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[REGION:banner]
+![](BlendBanner.png)
+[/REGION]
 
 [EXCERPT:Intro]
 **ブレンドスペース** は 2 つの入力値に基づいたアニメーションのブレンドを可能にする 
-AnimGraphs でサンプリングできる特別なアセットです。単一入力に基づいた 2 つのアニメーション間の簡単なブレンドは、 
+**AnimGraphs** でサンプリングできる特別なアセットです。単一入力に基づいた 2 つのアニメーション間の簡単なブレンドは、 
 [Animation ブループリント](Engine/Animation/AnimBlueprints)で利用可能な標準の [Blend ノード](Engine/Animation/NodeReference/Blend) のひとつを使用して 
 行うことができます。ブレンドスペースは多値 (現時点では 2 値に制限) に基づいた複数アニメーションの 
 複雑なブレンドを可能にします。

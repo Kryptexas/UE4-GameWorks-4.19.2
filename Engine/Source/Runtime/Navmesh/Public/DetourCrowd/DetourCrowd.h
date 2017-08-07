@@ -253,6 +253,9 @@ class NAVMESH_API dtCrowd
 	// [UE4] time between attempts to restore agents state
 	float m_agentStateCheckInterval;
 
+	// [UE4] radius multiplier for offseting path around corners
+	float m_pathOffsetRadiusMultiplier;
+
 	// [UE4] separation filter
 	float m_separationDirFilter;
 
@@ -468,7 +471,11 @@ public:
 	/// as soon as offmesh connection anim is triggered (default behavior)
 	void setPruneStartedOffmeshConnections(bool bRemoveFromCorridor);
 
+	/// [UE4]
 	void setEarlyReachTestOptimization(bool bEnable);
+
+	/// [UE4] Set agent radius multiplier for offseting path from corners
+	void setPathOffsetRadiusMultiplier(float RadiusMultiplier);
 
 	/// [UE4] Set separation filter param
 	void setSeparationFilter(float InFilter);

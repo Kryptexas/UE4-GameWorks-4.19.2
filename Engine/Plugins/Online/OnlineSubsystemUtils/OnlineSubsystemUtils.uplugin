@@ -23,9 +23,15 @@
         }
     ],
     "LocalizationTargets": [
-        {
-            "Name": "OnlineSubsystemUtils",
-            "LoadingPolicy": "Always"
-        }
-    ]
+		{
+			"Name": "OnlineSubsystemUtils",
+			"LoadingPolicy": "Always"
+		}
+	],
+	"Plugins": [
+		{
+			"Name": "OnlineSubsystem",
+			"Enabled": true
+		}
+	]
 }

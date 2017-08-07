@@ -206,7 +206,6 @@ MONOLITHIC_HEADER_BOILERPLATE()
 #include "Engine/Blueprint.h"
 #include "Animation/AnimBlueprint.h"
 #include "Sound/DialogueTypes.h"
-#include "Kismet/HeadMountedDisplayFunctionLibrary.h"
 #include "Engine/BlueprintGeneratedClass.h"
 #include "Animation/AnimSequenceBase.h"
 #include "AlphaBlend.h"

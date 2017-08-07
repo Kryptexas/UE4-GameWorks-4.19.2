@@ -4,6 +4,7 @@ Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
 Description:Here we add the Widget Interaction component to our character and create the other assets we will need. 
 SkillLevel: Advanced
 tags:UMG UI Designer
+Order: 1
 
 [VAR:Steps]
 [OBJECT:Navigation]

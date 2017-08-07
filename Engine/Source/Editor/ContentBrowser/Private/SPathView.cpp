@@ -1,6 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "SPathView.h"
+#include "HAL/FileManager.h"
 #include "Misc/ConfigCacheIni.h"
 #include "Layout/WidgetPath.h"
 #include "Framework/Application/SlateApplication.h"
@@ -14,13 +15,14 @@
 #include "ContentBrowserUtils.h"
 #include "HistoryManager.h"
 
-#include "DragAndDrop/AssetPathDragDropOp.h"
+#include "DragAndDrop/AssetDragDropOp.h"
 #include "DragDropHandler.h"
 
 #include "PathViewTypes.h"
 #include "SourcesViewWidgets.h"
 #include "Widgets/Input/SSearchBox.h"
 #include "NativeClassHierarchy.h"
+#include "EmptyFolderVisibilityManager.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -35,6 +37,12 @@ SPathView::~SPathView()
 	{
 		TSharedRef<FNativeClassHierarchy> NativeClassHierarchy = FContentBrowserSingleton::Get().GetNativeClassHierarchy();
 		NativeClassHierarchy->OnClassHierarchyUpdated().RemoveAll( this );
+	}
+
+	// Unsubscribe from folder population events
+	{
+		TSharedRef<FEmptyFolderVisibilityManager> EmptyFolderVisibilityManager = FContentBrowserSingleton::Get().GetEmptyFolderVisibilityManager();
+		EmptyFolderVisibilityManager->OnFolderPopulated().RemoveAll(this);
 	}
 
 	// Load the asset registry module to stop listening for updates
@@ -76,6 +84,12 @@ void SPathView::Construct( const FArguments& InArgs )
 	{
 		TSharedRef<FNativeClassHierarchy> NativeClassHierarchy = FContentBrowserSingleton::Get().GetNativeClassHierarchy();
 		NativeClassHierarchy->OnClassHierarchyUpdated().AddSP( this, &SPathView::OnClassHierarchyUpdated );
+	}
+
+	// Listen to find out when previously empty paths are populated with content
+	{
+		TSharedRef<FEmptyFolderVisibilityManager> EmptyFolderVisibilityManager = FContentBrowserSingleton::Get().GetEmptyFolderVisibilityManager();
+		EmptyFolderVisibilityManager->OnFolderPopulated().AddSP(this, &SPathView::OnFolderPopulated);
 	}
 
 	ChildSlot
@@ -321,8 +335,12 @@ TSharedPtr<FTreeItem> SPathView::AddPath(const FString& Path, bool bUserNamed)
 		// Found or added the root item?
 		if ( CurrentItem.IsValid() )
 		{
+			TSharedRef<FEmptyFolderVisibilityManager> EmptyFolderVisibilityManager = FContentBrowserSingleton::Get().GetEmptyFolderVisibilityManager();
+
 			// Now add children as necessary
+			const bool bDisplayEmpty = GetDefault<UContentBrowserSettings>()->DisplayEmptyFolders;
 			const bool bDisplayDev = GetDefault<UContentBrowserSettings>()->GetDisplayDevelopersFolder();
+			const bool bDisplayL10N = GetDefault<UContentBrowserSettings>()->GetDisplayL10NFolder();
 			for ( int32 PathItemIdx = 1; PathItemIdx < PathItemList.Num(); ++PathItemIdx )
 			{
 				const FString& PathItemName = PathItemList[PathItemIdx];
@@ -334,10 +352,25 @@ TSharedPtr<FTreeItem> SPathView::AddPath(const FString& Path, bool bUserNamed)
 					const FString FolderName = PathItemName;
 					const FString FolderPath = CurrentItem->FolderPath + "/" + PathItemName;
 
-					// If this is a developer folder, and we don't want to show them break out here
-					if ( !bDisplayDev && ContentBrowserUtils::IsDevelopersFolder(FolderPath) )
+					if (!bUserNamed)
 					{
-						break;
+						// If this folder shouldn't be shown, break out here
+						if ( !bDisplayEmpty && !EmptyFolderVisibilityManager->ShouldShowPath(FolderPath) )
+						{
+							break;
+						}
+
+						// If this is a developer folder, and we don't want to show them break out here
+						if ( !bDisplayDev && ContentBrowserUtils::IsDevelopersFolder(FolderPath) )
+						{
+							break;
+						}
+
+						// If this is a localized folder, and we don't want to show them break out here
+						if ( !bDisplayL10N && ContentBrowserUtils::IsLocalizationFolder(FolderPath) )
+						{
+							break;
+						}
 					}
 
 					ChildItem = MakeShareable( new FTreeItem(FText::FromString(FolderName), FolderName, FolderPath, CurrentItem, bUserNamed) );
@@ -446,32 +479,50 @@ void SPathView::RenameFolder(const FString& FolderToRename)
 
 void SPathView::SyncToAssets( const TArray<FAssetData>& AssetDataList, const bool bAllowImplicitSync )
 {
+	SyncToInternal(AssetDataList, TArray<FString>(), bAllowImplicitSync);
+}
+
+void SPathView::SyncToFolders( const TArray<FString>& FolderList, const bool bAllowImplicitSync )
+{
+	SyncToInternal(TArray<FAssetData>(), FolderList, bAllowImplicitSync);
+}
+
+void SPathView::SyncTo( const FContentBrowserSelection& ItemSelection, const bool bAllowImplicitSync )
+{
+	SyncToInternal(ItemSelection.SelectedAssets, ItemSelection.SelectedFolders, bAllowImplicitSync);
+}
+
+void SPathView::SyncToInternal( const TArray<FAssetData>& AssetDataList, const TArray<FString>& FolderPaths, const bool bAllowImplicitSync )
+{
 	TArray<TSharedPtr<FTreeItem>> SyncTreeItems;
 
 	// Clear the filter
 	SearchBoxPtr->SetText(FText::GetEmpty());
 
-	for (auto AssetDataIt = AssetDataList.CreateConstIterator(); AssetDataIt; ++AssetDataIt)
+	TSet<FString> PackagePaths = TSet<FString>(FolderPaths);
+	for (const FAssetData& AssetData : AssetDataList)
 	{
-		FString Path;
-		if ( AssetDataIt->AssetClass == NAME_Class )
+		FString PackagePath;
+		if (AssetData.AssetClass == NAME_Class)
 		{
-			if ( bAllowClassesFolder )
-			{
-				// Classes are found in the /Classes_ roots
-				TSharedRef<FNativeClassHierarchy> NativeClassHierarchy = FContentBrowserSingleton::Get().GetNativeClassHierarchy();
-				NativeClassHierarchy->GetClassPath(Cast<UClass>(AssetDataIt->GetAsset()), Path, false/*bIncludeClassName*/);
-			}
+			// Classes are found in the /Classes_ roots
+			TSharedRef<FNativeClassHierarchy> NativeClassHierarchy = FContentBrowserSingleton::Get().GetNativeClassHierarchy();
+			NativeClassHierarchy->GetClassPath(Cast<UClass>(AssetData.GetAsset()), PackagePath, false/*bIncludeClassName*/);
 		}
 		else
 		{
 			// All other assets are found by their package path
-			Path = AssetDataIt->PackagePath.ToString();
+			PackagePath = AssetData.PackagePath.ToString();
 		}
 
-		if ( !Path.IsEmpty() )
+		PackagePaths.Add(PackagePath);
+	}
+
+	for (const FString& PackagePath : PackagePaths)
+	{
+		if ( !PackagePath.IsEmpty() )
 		{
-			TSharedPtr<FTreeItem> Item = FindItemRecursive(Path);
+			TSharedPtr<FTreeItem> Item = FindItemRecursive(PackagePath);
 			if ( Item.IsValid() )
 			{
 				SyncTreeItems.Add(Item);
@@ -804,8 +855,7 @@ TSharedRef<ITableRow> SPathView::GenerateTreeRow( TSharedPtr<FTreeItem> TreeItem
 			.TreeItem(TreeItem)
 			.OnNameChanged(this, &SPathView::FolderNameChanged)
 			.OnVerifyNameChanged(this, &SPathView::VerifyFolderNameChanged)
-			.OnAssetsDragDropped(this, &SPathView::TreeAssetsDropped)
-			.OnPathsDragDropped(this, &SPathView::TreeFoldersDropped)
+			.OnAssetsOrPathsDragDropped(this, &SPathView::TreeAssetsOrPathsDropped)
 			.OnFilesDragDropped(this, &SPathView::TreeFilesDropped)
 			.IsItemExpanded(this, &SPathView::IsTreeItemExpanded, TreeItem)
 			.HighlightText(this, &SPathView::GetHighlightText)
@@ -1122,7 +1172,7 @@ FReply SPathView::OnFolderDragDetected(const FGeometry& Geometry, const FPointer
 				PathNames.Add((*ItemIt)->FolderPath);
 			}
 
-			return FReply::Handled().BeginDragDrop(FAssetPathDragDropOp::New(PathNames));
+			return FReply::Handled().BeginDragDrop(FAssetDragDropOp::New(PathNames));
 		}
 	}
 
@@ -1134,12 +1184,19 @@ bool SPathView::VerifyFolderNameChanged(const FString& InName, FText& OutErrorMe
 	return ContentBrowserUtils::IsValidFolderPathForCreate(FPaths::GetPath(InFolderPath), InName, OutErrorMessage);
 }
 
-void SPathView::FolderNameChanged( const TSharedPtr< FTreeItem >& TreeItem, const FString& OldPath, const FVector2D& MessageLocation )
+void SPathView::FolderNameChanged( const TSharedPtr< FTreeItem >& TreeItem, const FString& OldPath, const FVector2D& MessageLocation, const ETextCommit::Type CommitType )
 {
 	// Verify the name of the folder
 	FText Reason;
 	if ( ContentBrowserUtils::IsValidFolderName(TreeItem->FolderName, Reason) )
 	{
+		if (CommitType == ETextCommit::OnCleared)
+		{
+			// Clearing the rename box on a newly created folder cancels the entire creation process
+			RemoveFolderItem(TreeItem);
+			return;
+		}
+
 		TSharedPtr< FTreeItem > ExistingItem;
 		if ( FolderAlreadyExists(TreeItem, ExistingItem) )
 		{
@@ -1184,24 +1241,32 @@ void SPathView::FolderNameChanged( const TSharedPtr< FTreeItem >& TreeItem, cons
 		else
 		*/
 		{
-			FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
-			if (AssetRegistryModule.Get().AddPath(TreeItem->FolderPath) && TreeItem->FolderPath != OldPath)
+			// ensure the folder exists on disk
+			FString NewPathOnDisk;
+			if (FPackageName::TryConvertLongPackageNameToFilename(TreeItem->FolderPath, NewPathOnDisk) && IFileManager::Get().MakeDirectory(*NewPathOnDisk, true))
 			{
-				// move any assets in our folder
-				TArray<FAssetData> AssetsInFolder;
-				AssetRegistryModule.Get().GetAssetsByPath(*OldPath, AssetsInFolder, true);
-				TArray<UObject*> ObjectsInFolder;
-				ContentBrowserUtils::GetObjectsInAssetData(AssetsInFolder, ObjectsInFolder);
-				ContentBrowserUtils::MoveAssets(ObjectsInFolder, TreeItem->FolderPath, OldPath);
+				TSharedRef<FEmptyFolderVisibilityManager> EmptyFolderVisibilityManager = FContentBrowserSingleton::Get().GetEmptyFolderVisibilityManager();
+				EmptyFolderVisibilityManager->SetAlwaysShowPath(TreeItem->FolderPath);
 
-				// Now check to see if the original folder is empty, if so we can delete it
-				TArray<FAssetData> AssetsInOriginalFolder;
-				AssetRegistryModule.Get().GetAssetsByPath(*OldPath, AssetsInOriginalFolder, true);
-				if (AssetsInOriginalFolder.Num() == 0)
+				FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+				if (AssetRegistryModule.Get().AddPath(TreeItem->FolderPath) && TreeItem->FolderPath != OldPath)
 				{
-					TArray<FString> FoldersToDelete;
-					FoldersToDelete.Add(OldPath);
-					ContentBrowserUtils::DeleteFolders(FoldersToDelete);
+					// move any assets in our folder
+					TArray<FAssetData> AssetsInFolder;
+					AssetRegistryModule.Get().GetAssetsByPath(*OldPath, AssetsInFolder, true);
+					TArray<UObject*> ObjectsInFolder;
+					ContentBrowserUtils::GetObjectsInAssetData(AssetsInFolder, ObjectsInFolder);
+					ContentBrowserUtils::MoveAssets(ObjectsInFolder, TreeItem->FolderPath, OldPath);
+
+					// Now check to see if the original folder is empty, if so we can delete it
+					TArray<FAssetData> AssetsInOriginalFolder;
+					AssetRegistryModule.Get().GetAssetsByPath(*OldPath, AssetsInOriginalFolder, true);
+					if (AssetsInOriginalFolder.Num() == 0)
+					{
+						TArray<FString> FoldersToDelete;
+						FoldersToDelete.Add(OldPath);
+						ContentBrowserUtils::DeleteFolders(FoldersToDelete);
+					}
 				}
 			}
 		}
@@ -1279,27 +1344,16 @@ void SPathView::RemoveFolderItem(const TSharedPtr< FTreeItem >& TreeItem)
 	}
 }
 
-void SPathView::TreeAssetsDropped(const TArray<FAssetData>& AssetList, const TSharedPtr<FTreeItem>& TreeItem)
+void SPathView::TreeAssetsOrPathsDropped(const TArray<FAssetData>& AssetList, const TArray<FString>& AssetPaths, const TSharedPtr<FTreeItem>& TreeItem)
 {
-	DragDropHandler::HandleAssetsDroppedOnAssetFolder(
+	DragDropHandler::HandleDropOnAssetFolder(
 		SharedThis(this), 
 		AssetList, 
+		AssetPaths, 
 		TreeItem->FolderPath, 
 		TreeItem->DisplayName, 
-		DragDropHandler::FExecuteCopyOrMoveAssets::CreateSP(this, &SPathView::ExecuteTreeDropCopy),
-		DragDropHandler::FExecuteCopyOrMoveAssets::CreateSP(this, &SPathView::ExecuteTreeDropMove)
-		);
-}
-
-void SPathView::TreeFoldersDropped(const TArray<FString>& PathNames, const TSharedPtr<FTreeItem>& TreeItem)
-{
-	DragDropHandler::HandleFoldersDroppedOnAssetFolder(
-		SharedThis(this), 
-		PathNames, 
-		TreeItem->FolderPath, 
-		TreeItem->DisplayName, 
-		DragDropHandler::FExecuteCopyOrMoveFolders::CreateSP(this, &SPathView::ExecuteTreeDropCopyFolder),
-		DragDropHandler::FExecuteCopyOrMoveFolders::CreateSP(this, &SPathView::ExecuteTreeDropMoveFolder)
+		DragDropHandler::FExecuteCopyOrMove::CreateSP(this, &SPathView::ExecuteTreeDropCopy),
+		DragDropHandler::FExecuteCopyOrMove::CreateSP(this, &SPathView::ExecuteTreeDropMove)
 		);
 }
 
@@ -1319,75 +1373,71 @@ bool SPathView::IsTreeItemSelected(TSharedPtr<FTreeItem> TreeItem) const
 	return TreeViewPtr->IsItemSelected(TreeItem);
 }
 
-void SPathView::ExecuteTreeDropCopy(TArray<FAssetData> AssetList, FString DestinationPath)
+void SPathView::ExecuteTreeDropCopy(TArray<FAssetData> AssetList, TArray<FString> AssetPaths, FString DestinationPath)
 {
-	TArray<UObject*> DroppedObjects;
-	ContentBrowserUtils::GetObjectsInAssetData(AssetList, DroppedObjects);
-
-	ContentBrowserUtils::CopyAssets(DroppedObjects, DestinationPath);
-}
-
-void SPathView::ExecuteTreeDropMove(TArray<FAssetData> AssetList, FString DestinationPath)
-{
-	TArray<UObject*> DroppedObjects;
-	ContentBrowserUtils::GetObjectsInAssetData(AssetList, DroppedObjects);
-
-	ContentBrowserUtils::MoveAssets(DroppedObjects, DestinationPath);
-}
-
-void SPathView::ExecuteTreeDropCopyFolder(TArray<FString> PathNames, FString DestinationPath)
-{
-	if (!ContentBrowserUtils::CopyFolders(PathNames, DestinationPath))
+	if (AssetList.Num() > 0)
 	{
-		return;
+		TArray<UObject*> DroppedObjects;
+		ContentBrowserUtils::GetObjectsInAssetData(AssetList, DroppedObjects);
+
+		ContentBrowserUtils::CopyAssets(DroppedObjects, DestinationPath);
 	}
 
-	TSharedPtr<FTreeItem> RootItem = FindItemRecursive(DestinationPath);
-	if (RootItem.IsValid())
+	if (AssetPaths.Num() > 0 && ContentBrowserUtils::CopyFolders(AssetPaths, DestinationPath))
 	{
-		TreeViewPtr->SetItemExpansion(RootItem, true);
-
-		// Select all the new folders
-		TreeViewPtr->ClearSelection();
-		for ( auto PathIt = PathNames.CreateConstIterator(); PathIt; ++PathIt )
+		TSharedPtr<FTreeItem> RootItem = FindItemRecursive(DestinationPath);
+		if (RootItem.IsValid())
 		{
-			const FString SubFolderName = FPackageName::GetLongPackageAssetName(*PathIt);
-			const FString NewPath = DestinationPath + TEXT("/") + SubFolderName;
-		
-			TSharedPtr<FTreeItem> Item = FindItemRecursive(NewPath);
-			if ( Item.IsValid() )
+			TreeViewPtr->SetItemExpansion(RootItem, true);
+
+			// Select all the new folders
+			TreeViewPtr->ClearSelection();
+			for (const FString& AssetPath : AssetPaths)
 			{
-				TreeViewPtr->SetItemSelection(Item, true);
-				TreeViewPtr->RequestScrollIntoView(Item);
+				const FString SubFolderName = FPackageName::GetLongPackageAssetName(AssetPath);
+				const FString NewPath = DestinationPath + TEXT("/") + SubFolderName;
+
+				TSharedPtr<FTreeItem> Item = FindItemRecursive(NewPath);
+				if (Item.IsValid())
+				{
+					TreeViewPtr->SetItemSelection(Item, true);
+					TreeViewPtr->RequestScrollIntoView(Item);
+				}
 			}
 		}
 	}
 }
 
-void SPathView::ExecuteTreeDropMoveFolder(TArray<FString> PathNames, FString DestinationPath)
+void SPathView::ExecuteTreeDropMove(TArray<FAssetData> AssetList, TArray<FString> AssetPaths, FString DestinationPath)
 {
-	if (!ContentBrowserUtils::MoveFolders(PathNames, DestinationPath))
+	if (AssetList.Num() > 0)
 	{
-		return;
+		TArray<UObject*> DroppedObjects;
+		ContentBrowserUtils::GetObjectsInAssetData(AssetList, DroppedObjects);
+
+		ContentBrowserUtils::MoveAssets(DroppedObjects, DestinationPath);
 	}
 
-	TSharedPtr<FTreeItem> RootItem = FindItemRecursive(DestinationPath);
-	if (RootItem.IsValid())
+	if (AssetPaths.Num() > 0 && ContentBrowserUtils::MoveFolders(AssetPaths, DestinationPath))
 	{
-		TreeViewPtr->SetItemExpansion(RootItem, true);
-	
-		// Select all the new folders
-		TreeViewPtr->ClearSelection();
-		for ( auto PathIt = PathNames.CreateConstIterator(); PathIt; ++PathIt )
+		TSharedPtr<FTreeItem> RootItem = FindItemRecursive(DestinationPath);
+		if (RootItem.IsValid())
 		{
-			const FString SubFolderName = FPackageName::GetLongPackageAssetName(*PathIt);
-			const FString NewPath = DestinationPath + TEXT("/") + SubFolderName;
+			TreeViewPtr->SetItemExpansion(RootItem, true);
 
-			TSharedPtr<FTreeItem> Item = FindItemRecursive(NewPath);
-			if ( Item.IsValid() )
+			// Select all the new folders
+			TreeViewPtr->ClearSelection();
+			for (const FString& AssetPath : AssetPaths)
 			{
-				TreeViewPtr->SetItemSelection(Item, true);
-				TreeViewPtr->RequestScrollIntoView(Item);
+				const FString SubFolderName = FPackageName::GetLongPackageAssetName(AssetPath);
+				const FString NewPath = DestinationPath + TEXT("/") + SubFolderName;
+
+				TSharedPtr<FTreeItem> Item = FindItemRecursive(NewPath);
+				if (Item.IsValid())
+				{
+					TreeViewPtr->SetItemSelection(Item, true);
+					TreeViewPtr->RequestScrollIntoView(Item);
+				}
 			}
 		}
 	}
@@ -1419,6 +1469,11 @@ void SPathView::OnAssetRegistrySearchCompleted()
 	PendingInitialPaths.Empty();
 }
 
+void SPathView::OnFolderPopulated(const FString& Path)
+{
+	OnAssetRegistryPathAdded(Path);
+}
+
 void SPathView::OnContentPathMountedOrDismounted( const FString& AssetPath, const FString& FilesystemPath )
 {
 	// A new content path has appeared, so we should refresh out root set of paths
@@ -1433,23 +1488,28 @@ void SPathView::OnClassHierarchyUpdated()
 
 void SPathView::HandleSettingChanged(FName PropertyName)
 {
-	if ((PropertyName == "DisplayDevelopersFolder") ||
+	if ((PropertyName == GET_MEMBER_NAME_CHECKED(UContentBrowserSettings, DisplayEmptyFolders)) ||
+		(PropertyName == "DisplayDevelopersFolder") ||
 		(PropertyName == "DisplayEngineFolder") ||
 		(PropertyName == "DisplayPluginFolders") ||
 		(PropertyName == "DisplayL10NFolder") ||
 		(PropertyName == NAME_None))	// @todo: Needed if PostEditChange was called manually, for now
 	{
+		TSharedRef<FEmptyFolderVisibilityManager> EmptyFolderVisibilityManager = FContentBrowserSingleton::Get().GetEmptyFolderVisibilityManager();
+
 		// If the dev or engine folder is no longer visible but we're inside it...
+		const bool bDisplayEmpty = GetDefault<UContentBrowserSettings>()->DisplayEmptyFolders;
 		const bool bDisplayDev = GetDefault<UContentBrowserSettings>()->GetDisplayDevelopersFolder();
 		const bool bDisplayEngine = GetDefault<UContentBrowserSettings>()->GetDisplayEngineFolder();
 		const bool bDisplayPlugins = GetDefault<UContentBrowserSettings>()->GetDisplayPluginFolders();
 		const bool bDisplayL10N = GetDefault<UContentBrowserSettings>()->GetDisplayL10NFolder();
-		if (!bDisplayDev || !bDisplayEngine || !bDisplayPlugins || !bDisplayL10N)
+		if (!bDisplayEmpty || !bDisplayDev || !bDisplayEngine || !bDisplayPlugins || !bDisplayL10N)
 		{
 			const FString OldSelectedPath = GetSelectedPath();
 			const ContentBrowserUtils::ECBFolderCategory OldFolderCategory = ContentBrowserUtils::GetFolderCategory(OldSelectedPath);
 
-			if ((!bDisplayDev && OldFolderCategory == ContentBrowserUtils::ECBFolderCategory::DeveloperContent) || 
+			if ((!bDisplayEmpty && !EmptyFolderVisibilityManager->ShouldShowPath(OldSelectedPath)) || 
+				(!bDisplayDev && OldFolderCategory == ContentBrowserUtils::ECBFolderCategory::DeveloperContent) || 
 				(!bDisplayEngine && (OldFolderCategory == ContentBrowserUtils::ECBFolderCategory::EngineContent || OldFolderCategory == ContentBrowserUtils::ECBFolderCategory::EngineClasses)) || 
 				(!bDisplayPlugins && (OldFolderCategory == ContentBrowserUtils::ECBFolderCategory::PluginContent || OldFolderCategory == ContentBrowserUtils::ECBFolderCategory::PluginClasses)) ||
 				(!bDisplayL10N && ContentBrowserUtils::IsLocalizationFolder(OldSelectedPath)))
@@ -1476,7 +1536,8 @@ void SPathView::HandleSettingChanged(FName PropertyName)
 			const FString NewSelectedPath = GetSelectedPath();
 			const ContentBrowserUtils::ECBFolderCategory NewFolderCategory = ContentBrowserUtils::GetFolderCategory(NewSelectedPath);
 
-			if ((bDisplayDev && NewFolderCategory == ContentBrowserUtils::ECBFolderCategory::DeveloperContent) || 
+			if ((bDisplayEmpty && EmptyFolderVisibilityManager->ShouldShowPath(NewSelectedPath)) || 
+				(bDisplayDev && NewFolderCategory == ContentBrowserUtils::ECBFolderCategory::DeveloperContent) || 
 				(bDisplayEngine && (NewFolderCategory == ContentBrowserUtils::ECBFolderCategory::EngineContent || NewFolderCategory == ContentBrowserUtils::ECBFolderCategory::EngineClasses)) || 
 				(bDisplayPlugins && (NewFolderCategory == ContentBrowserUtils::ECBFolderCategory::PluginContent || NewFolderCategory == ContentBrowserUtils::ECBFolderCategory::PluginClasses)) ||
 				(bDisplayL10N && ContentBrowserUtils::IsLocalizationFolder(NewSelectedPath)))

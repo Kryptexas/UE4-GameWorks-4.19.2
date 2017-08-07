@@ -28,7 +28,7 @@ enum class ESnapshotSourceMode : uint8
 };
 
 /** Provide a snapshot pose, either from the internal named pose cache or via a supplied snapshot */
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ANIMGRAPHRUNTIME_API FAnimNode_PoseSnapshot : public FAnimNode_Base
 {
 	GENERATED_USTRUCT_BODY()
@@ -40,8 +40,8 @@ public:
 	/** FAnimNode_Base interface */
 	virtual bool HasPreUpdate() const override  { return true; }
 	virtual void PreUpdate(const UAnimInstance* InAnimInstance) override;
-	virtual void Update(const FAnimationUpdateContext& Context) override;
-	virtual void Evaluate(FPoseContext& Output) override;
+	virtual void Update_AnyThread(const FAnimationUpdateContext& Context) override;
+	virtual void Evaluate_AnyThread(FPoseContext& Output) override;
 	virtual void GatherDebugData(FNodeDebugData& DebugData) override;
 
 	/** How to access the snapshot */

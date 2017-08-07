@@ -70,6 +70,30 @@ struct FGatherConvertedClassDependenciesHelperBase : public FReferenceCollector
 			Dependencies.IncludeInBody.Add(InField);
 		}
 	}
+
+	void AddConvertedClassDependency(UBlueprintGeneratedClass* InBPGC)
+	{
+		if (InBPGC && !Dependencies.ConvertedClasses.Contains(InBPGC))
+		{
+			Dependencies.ConvertedClasses.Add(InBPGC);
+		}
+	}
+
+	void AddConvertedStructDependency(UUserDefinedStruct* InUDS)
+	{
+		if (InUDS && !Dependencies.ConvertedStructs.Contains(InUDS))
+		{
+			Dependencies.ConvertedStructs.Add(InUDS);
+		}
+	}
+
+	void AddConvertedEnumDependency(UUserDefinedEnum* InUDE)
+	{
+		if (InUDE && !Dependencies.ConvertedEnum.Contains(InUDE))
+		{
+			Dependencies.ConvertedEnum.Add(InUDE);
+		}
+	}
 };
 
 struct FFindAssetsToInclude : public FGatherConvertedClassDependenciesHelperBase
@@ -78,6 +102,110 @@ struct FFindAssetsToInclude : public FGatherConvertedClassDependenciesHelperBase
 		: FGatherConvertedClassDependenciesHelperBase(InDependencies)
 	{
 		FindReferences(Dependencies.GetActualStruct());
+	}
+
+	void MaybeIncludeObjectAsDependency(UObject* Object, UStruct* CurrentlyConvertedStruct)
+	{
+		if (Object->HasAnyFlags(RF_ClassDefaultObject))
+		{
+			// Static functions from libraries are called on CDO. (The functions is stored as a name not an object).
+			UClass* OwnerClass = Object->GetClass();
+			if (OwnerClass && (OwnerClass != CurrentlyConvertedStruct))
+			{
+				// First, see if we need to add the class as a dependency. The CDO itself will then be added below.
+				MaybeIncludeObjectAsDependency(OwnerClass, CurrentlyConvertedStruct);
+			}
+		}
+
+		const bool bUseZConstructorInGeneratedCode = false;
+		UField* AsField = Cast<UField>(Object);
+		UBlueprintGeneratedClass* ObjAsBPGC = Cast<UBlueprintGeneratedClass>(Object);
+		const bool bWillBeConvetedAsBPGC = ObjAsBPGC && Dependencies.WillClassBeConverted(ObjAsBPGC);
+		if (bWillBeConvetedAsBPGC)
+		{
+			if (ObjAsBPGC != CurrentlyConvertedStruct)
+			{
+				AddConvertedClassDependency(ObjAsBPGC);
+				if (!bUseZConstructorInGeneratedCode)
+				{
+					IncludeTheHeaderInBody(ObjAsBPGC);
+				}
+			}
+			return;
+		}
+		else if (UUserDefinedStruct* UDS = Cast<UUserDefinedStruct>(Object))
+		{
+			if (!UDS->HasAnyFlags(RF_ClassDefaultObject))
+			{
+				AddConvertedStructDependency(UDS);
+				if (!bUseZConstructorInGeneratedCode)
+				{
+					IncludeTheHeaderInBody(UDS);
+				}
+			}
+		}
+		else if (UUserDefinedEnum* UDE = Cast<UUserDefinedEnum>(Object))
+		{
+			if (!UDE->HasAnyFlags(RF_ClassDefaultObject))
+			{
+				AddConvertedEnumDependency(UDE);
+			}
+		}
+		else if ((Object->IsAsset() || AsField) && !Object->IsIn(CurrentlyConvertedStruct))
+		{
+			if (AsField)
+			{
+				if (UClass* OwnerClass = AsField->GetOwnerClass())
+				{
+					if (OwnerClass != AsField)
+					{
+						// This is a field owned by a class, so attempt to add the class as a dependency.
+						MaybeIncludeObjectAsDependency(OwnerClass, CurrentlyConvertedStruct);
+					}
+					else
+					{
+						// Add the class itself as a dependency.
+						Dependencies.Assets.AddUnique(OwnerClass);
+
+						if (ObjAsBPGC)
+						{
+							// For BPGC types, we also include the CDO as a dependency (since it will be serialized).
+							// Note that if we get here, we already know from above that the BPGC is not being converted.
+							Dependencies.Assets.AddUnique(ObjAsBPGC->GetDefaultObject());
+						}
+					}
+				}
+				else if (UStruct* OwnerStruct = AsField->GetOwnerStruct())
+				{
+					if (OwnerStruct != AsField)
+					{
+						// This is a field that's owned by a struct, so attempt to add the struct as a dependency.
+						MaybeIncludeObjectAsDependency(OwnerStruct, CurrentlyConvertedStruct);
+					}
+					else
+					{
+						// Add the struct itself as a dependency.
+						Dependencies.Assets.AddUnique(OwnerStruct);
+					}
+				}
+				else
+				{
+					// UFUNCTION, UENUM, etc.
+					Dependencies.Assets.AddUnique(Object);
+				}
+			}
+			else
+			{
+				// Include the asset as a dependency.
+				Dependencies.Assets.AddUnique(Object);
+			}
+
+			// No need to traverse these objects any further, so we just return.
+			return;
+		}
+
+		// Recursively add references from this object.
+		FindReferencesForNewObject(Object);
 	}
 
 	virtual void HandleObjectReference(UObject*& InObject, const UObject* InReferencingObject, const UProperty* InReferencingProperty) override
@@ -101,82 +229,8 @@ struct FFindAssetsToInclude : public FGatherConvertedClassDependenciesHelperBase
 			return;
 		}
 
-		if (Object->HasAnyFlags(RF_ClassDefaultObject))
-		{
-			// Static functions from libraries are called on CDO. (The functions is stored as a name not an object).
-			UClass* OwnerClass = Object->GetClass();
-			if (OwnerClass && (OwnerClass != CurrentlyConvertedStruct))
-			{
-				UBlueprintGeneratedClass* OwnerAsBPGC = Cast<UBlueprintGeneratedClass>(OwnerClass);
-				if (OwnerAsBPGC && !Dependencies.ConvertedClasses.Contains(OwnerAsBPGC) && Dependencies.WillClassBeConverted(OwnerAsBPGC))
-				{
-					Dependencies.ConvertedClasses.Add(OwnerAsBPGC);
-				}
-			}
-		}
-
-		const bool bUseZConstructorInGeneratedCode = false;
-		//TODO: What About Delegates?
-		UField* AsField = Cast<UField>(Object);
-		UBlueprintGeneratedClass* ObjAsBPGC = Cast<UBlueprintGeneratedClass>(Object);
-		//TODO: update once the BootTimeEDL is ready
-		const bool bWillBeConvetedAsBPGC = ObjAsBPGC && Dependencies.WillClassBeConverted(ObjAsBPGC);
-		if (bWillBeConvetedAsBPGC)
-		{
-			if (ObjAsBPGC != CurrentlyConvertedStruct)
-			{
-				Dependencies.ConvertedClasses.Add(ObjAsBPGC);
-				if(!bUseZConstructorInGeneratedCode)
-				{
-					IncludeTheHeaderInBody(ObjAsBPGC);
-				}
-			}
-			return;
-		}
-		else if (UUserDefinedStruct* UDS = Cast<UUserDefinedStruct>(Object))
-		{
-			if (!UDS->HasAnyFlags(RF_ClassDefaultObject))
-			{
-				Dependencies.ConvertedStructs.Add(UDS);
-				if(!bUseZConstructorInGeneratedCode)
-				{
-					IncludeTheHeaderInBody(UDS);
-				}
-			}
-		}
-		else if (UUserDefinedEnum* UDE = Cast<UUserDefinedEnum>(Object))
-		{
-			if (!UDE->HasAnyFlags(RF_ClassDefaultObject))
-			{
-				Dependencies.ConvertedEnum.Add(UDE);
-			}
-		}
-		else if ((Object->IsAsset() || AsField) && !Object->IsIn(CurrentlyConvertedStruct))
-		{
-			if (AsField)
-			{
-				UClass* OwnerClass = AsField->GetOwnerClass();
-				if (OwnerClass)
-				{
-					Dependencies.Assets.AddUnique(OwnerClass);
-				}
-				else if (UStruct* OwnerStruct = AsField->GetOwnerStruct())
-				{
-					Dependencies.Assets.AddUnique(OwnerStruct);
-				}
-				else
-				{
-					Dependencies.Assets.AddUnique(Object);
-				}
-			}
-			else
-			{
-				Dependencies.Assets.AddUnique(Object);
-			}
-			return;
-		}
-
-		FindReferencesForNewObject(Object);
+		// Attempt to add the referenced object as a dependency.
+		MaybeIncludeObjectAsDependency(Object, CurrentlyConvertedStruct);
 	}
 };
 
@@ -204,7 +258,7 @@ struct FFindHeadersToInclude : public FGatherConvertedClassDependenciesHelperBas
 					{
 						if (UK2Node_EnumLiteral* LiteralEnumNode = Cast<UK2Node_EnumLiteral>(K2Node))
 						{
-							UEnum* Enum = LiteralEnumNode ? LiteralEnumNode->Enum : nullptr;
+							UEnum* Enum = LiteralEnumNode->Enum;
 							IncludeTheHeaderInBody(Enum);
 						}
 						// HACK FOR LITERAL ENUMS:
@@ -290,7 +344,7 @@ struct FFindHeadersToInclude : public FGatherConvertedClassDependenciesHelperBas
 				{
 					IncludeTheHeaderInBody(ObjAsField);
 				}
-				else if (BPGC)
+				else
 				{
 					IncludeTheHeaderInBody(Dependencies.GetFirstNativeOrConvertedClass(BPGC));
 					// Wrappers for unconverted BP will be included only when thay are directly used. See usage of FEmitterLocalContext::MarkUnconvertedClassAsNecessary.
@@ -374,12 +428,12 @@ FGatherConvertedClassDependencies::FGatherConvertedClassDependencies(UStruct* In
 			TSet<UField*> FieldsToAdd;
 			for (auto Iter = FieldSet.CreateIterator(); Iter; ++Iter)
 			{
-				UClass* CurrentClass = (*Iter) ? (*Iter)->GetOwnerClass() : nullptr;
-				UBlueprint* CurrentBP = CurrentClass ? Cast<UBlueprint>(CurrentClass->ClassGeneratedBy) : nullptr;
-				if (CurrentBP && FBlueprintEditorUtils::IsDataOnlyBlueprint(CurrentBP))
+				const UClass* CurrentClass = (*Iter) ? (*Iter)->GetOwnerClass() : nullptr;
+				const UBlueprint* CurrentBP = CurrentClass ? Cast<UBlueprint>(CurrentClass->ClassGeneratedBy) : nullptr;
+				if (CurrentBP && FBlueprintEditorUtils::IsDataOnlyBlueprint(CurrentBP) && !WillClassBeConverted(Cast<const UBlueprintGeneratedClass>(CurrentClass)))
 				{
 					Iter.RemoveCurrent();
-					FieldsToAdd.Add(GetFirstNativeOrConvertedClass(CurrentClass, true));
+					FieldsToAdd.Add(GetFirstNativeOrConvertedClass(CurrentClass->GetSuperClass()));
 				}
 			}
 
@@ -424,7 +478,7 @@ FGatherConvertedClassDependencies::FGatherConvertedClassDependencies(UStruct* In
 	GatherRequiredModules(IncludeInBody);
 }
 
-UClass* FGatherConvertedClassDependencies::GetFirstNativeOrConvertedClass(UClass* InClass, bool bExcludeBPDataOnly) const
+UClass* FGatherConvertedClassDependencies::GetFirstNativeOrConvertedClass(UClass* InClass) const
 {
 	check(InClass);
 	for (UClass* ItClass = InClass; ItClass; ItClass = ItClass->GetSuperClass())
@@ -432,14 +486,6 @@ UClass* FGatherConvertedClassDependencies::GetFirstNativeOrConvertedClass(UClass
 		UBlueprintGeneratedClass* BPGC = Cast<UBlueprintGeneratedClass>(ItClass);
 		if (ItClass->HasAnyClassFlags(CLASS_Native) || WillClassBeConverted(BPGC))
 		{
-			if (bExcludeBPDataOnly)
-			{
-				UBlueprint* BP = BPGC ? Cast<UBlueprint>(BPGC->ClassGeneratedBy) : nullptr;
-				if (BP && FBlueprintEditorUtils::IsDataOnlyBlueprint(BP))
-				{
-					continue;
-				}
-			}
 			return ItClass;
 		}
 	}
@@ -591,9 +637,14 @@ void FGatherConvertedClassDependencies::DependenciesForHeader()
 		for (TFieldIterator<UObjectPropertyBase> PropertyIt(UDS); PropertyIt; ++PropertyIt)
 		{
 			UObject* DefaultValueObject = ((UObjectPropertyBase*)*PropertyIt)->GetObjectPropertyValue_InContainer(StructOnScope.GetStructMemory());
-			UField* ObjAsField = Cast<UField>(DefaultValueObject);
-			UField* FieldForHeader = ObjAsField ? ObjAsField : (DefaultValueObject ? DefaultValueObject->GetClass() : nullptr);
-			IncludeInHeader.Add(FieldForHeader);
+			if (ShouldIncludeHeaderFor(DefaultValueObject))
+			{
+				UField* ObjAsField = Cast<UField>(DefaultValueObject);
+				if (UField* FieldForHeader = ObjAsField ? ObjAsField : (DefaultValueObject ? DefaultValueObject->GetClass() : nullptr))
+				{
+					DeclareInHeader.Add(FieldForHeader);
+				}
+			}
 		}
 	}
 

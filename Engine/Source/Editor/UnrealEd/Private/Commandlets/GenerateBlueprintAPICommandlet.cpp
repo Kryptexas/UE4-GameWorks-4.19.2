@@ -932,9 +932,18 @@ static void GenerateBlueprintAPIUtils::DumpActionMenuItem(uint32 Indent, FGraphA
 						ActionEntry += "," + PinDetailsIndentedNewline + "\"DefaultValue\"         : \"" + MakeJsonString(Pin->DefaultValue) + "\"";
 					}
 
-					if (Pin->PinType.bIsArray)
+					if (Pin->PinType.IsArray())
 					{
 						ActionEntry += "," + PinDetailsIndentedNewline + "\"IsArray\"              : \"true\"";
+					}
+					else if (Pin->PinType.IsSet())
+					{
+						ActionEntry += "," + PinDetailsIndentedNewline + "\"IsSet\"              : \"true\"";
+					}
+					else if (Pin->PinType.IsMap())
+					{
+						ActionEntry += "," + PinDetailsIndentedNewline + "\"IsMap\"              : \"true\"";
+						// TODO: Send the Map value type as well
 					}
 
 					if (Pin->PinType.bIsConst)

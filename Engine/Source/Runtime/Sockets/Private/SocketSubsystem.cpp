@@ -41,7 +41,7 @@ static inline FName GetSocketModuleName(const FString& SubsystemName)
  * @param SubsystemName Name of the requested platform service to load
  * @return The module interface of the requested platform service, NULL if the service doesn't exist
  */
-static TSharedPtr<IModuleInterface> LoadSubsystemModule(const FString& SubsystemName)
+static IModuleInterface* LoadSubsystemModule(const FString& SubsystemName)
 {
 #if !UE_BUILD_SHIPPING && !UE_BUILD_SHIPPING_WITH_EDITOR
 	// Early out if we are overriding the module load
@@ -62,7 +62,7 @@ static TSharedPtr<IModuleInterface> LoadSubsystemModule(const FString& Subsystem
 		return ModuleManager.GetModule(ModuleName);
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 /**
@@ -170,22 +170,23 @@ ISocketSubsystem* FSocketSubsystemModule::GetSocketSubsystem(const FName InSubsy
 	}
 
 	ISocketSubsystem** SocketSubsystemFactory = SocketSubsystems.Find(SubsystemName);
-	if (SocketSubsystemFactory == NULL)
+	if (SocketSubsystemFactory == nullptr)
 	{
 		// Attempt to load the requested factory
-		TSharedPtr<IModuleInterface> NewModule = LoadSubsystemModule(SubsystemName.ToString());
-		if( NewModule.IsValid() )
+		IModuleInterface* NewModule = LoadSubsystemModule(SubsystemName.ToString());
+		if (NewModule)
 		{
 			// If the module loaded successfully this should be non-NULL;
 			SocketSubsystemFactory = SocketSubsystems.Find(SubsystemName);
 		}
-		if (SocketSubsystemFactory == NULL)
+
+		if (SocketSubsystemFactory == nullptr)
 		{
 			UE_LOG(LogSockets, Warning, TEXT("Unable to load SocketSubsystem module %s"), *InSubsystemName.ToString());
 		}
 	}
 
-	return (SocketSubsystemFactory == NULL) ? NULL : *SocketSubsystemFactory;
+	return (SocketSubsystemFactory == nullptr) ? nullptr : *SocketSubsystemFactory;
 }
 
 

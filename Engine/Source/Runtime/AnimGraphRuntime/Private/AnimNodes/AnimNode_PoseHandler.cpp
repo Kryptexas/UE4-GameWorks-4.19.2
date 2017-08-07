@@ -6,16 +6,16 @@
 /////////////////////////////////////////////////////
 // FAnimPoseByNameNode
 
-void FAnimNode_PoseHandler::Initialize(const FAnimationInitializeContext& Context)
+void FAnimNode_PoseHandler::Initialize_AnyThread(const FAnimationInitializeContext& Context)
 {
-	FAnimNode_AssetPlayerBase::Initialize(Context);
+	FAnimNode_AssetPlayerBase::Initialize_AnyThread(Context);
 
 	UpdatePoseAssetProperty(Context.AnimInstanceProxy);
 }
 
-void FAnimNode_PoseHandler::CacheBones(const FAnimationCacheBonesContext& Context) 
+void FAnimNode_PoseHandler::CacheBones_AnyThread(const FAnimationCacheBonesContext& Context) 
 {
-	FAnimNode_AssetPlayerBase::CacheBones(Context);
+	FAnimNode_AssetPlayerBase::CacheBones_AnyThread(Context);
 
 	BoneBlendWeights.Reset();
 	// this has to update bone blending weight
@@ -87,7 +87,7 @@ void FAnimNode_PoseHandler::UpdatePoseAssetProperty(struct FAnimInstanceProxy* I
 				}
 			}
 
-			CacheBones(FAnimationCacheBonesContext(InstanceProxy));
+			CacheBones_AnyThread(FAnimationCacheBonesContext(InstanceProxy));
 		}
 		else
 		{

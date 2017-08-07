@@ -12,6 +12,7 @@
 #include "HAL/PlatformTLS.h"
 #include "HAL/Allocators/CachedOSPageAllocator.h"
 #include "HAL/PlatformMath.h"
+#include "HAL/LowLevelMemTracker.h"
 
 #define BINNED2_MAX_CACHED_OS_FREES (64)
 #if PLATFORM_64BITS
@@ -47,6 +48,21 @@
 	#define GMallocBinned2BundleCount DEFAULT_GMallocBinned2BundleCount
 	#define GMallocBinned2MaxBundlesBeforeRecycle BINNED2_MAX_GMallocBinned2MaxBundlesBeforeRecycle
 	#define GMallocBinned2AllocExtra DEFAULT_GMallocBinned2AllocExtra
+#endif
+
+
+#define BINNED2_ALLOCATOR_STATS 1
+
+
+#if BINNED2_ALLOCATOR_STATS
+extern int64 AllocatedSmallPoolMemory; // memory that's requested to be allocated by the game
+
+
+//////////////////////////////////////////////////////////////////////////
+// the following don't need a critical section because they are covered by the critical section called Mutex
+extern int64 AllocatedOSSmallPoolMemory;
+extern int64 AllocatedLargePoolMemory; // memory requests to the OS which don't fit in the small pool
+extern int64 AllocatedLargePoolMemoryWAlignment; // when we allocate at OS level we need to align to a size
 #endif
 
 
@@ -370,6 +386,8 @@ public:
 	virtual bool IsInternallyThreadSafe() const override;
 	FORCEINLINE virtual void* Malloc(SIZE_T Size, uint32 Alignment) override
 	{
+		void* Result = nullptr;
+
 		// Only allocate from the small pools if the size is small enough and the alignment isn't crazy large.
 		// With large alignments, we'll waste a lot of memory allocating an entire page, but such alignments are highly unlikely in practice.
 		if ((Size <= BINNED2_MAX_SMALL_POOL_SIZE) & (Alignment <= BINNED2_MINIMUM_ALIGNMENT)) // one branch, not two
@@ -377,13 +395,15 @@ public:
 			FPerThreadFreeBlockLists* Lists = GMallocBinned2PerThreadCaches ? FPerThreadFreeBlockLists::Get() : nullptr;
 			if (Lists)
 			{
-				if (void* Result = Lists->Malloc(BoundSizeToPoolIndex(Size)))
-				{
-					return Result;
-				}
+				Result = Lists->Malloc(BoundSizeToPoolIndex(Size));
 			}
 		}
-		return MallocExternal(Size, Alignment);
+		if (Result == nullptr)
+		{
+			Result = MallocExternal(Size, Alignment);
+		}
+
+		return Result;
 	}
 
 	FORCEINLINE virtual void* Realloc(void* Ptr, SIZE_T NewSize, uint32 Alignment) override
@@ -424,12 +444,14 @@ public:
 							bool bDidPush = Lists->Free(Ptr, PoolIndex, BlockSize);
 							checkSlow(bDidPush);
 						}
+
 						return Result;
 					}
 				}
 			}
 		}
-		return ReallocExternal(Ptr, NewSize, Alignment);
+		void* Result = ReallocExternal(Ptr, NewSize, Alignment);
+		return Result;
 	}
 
 	FORCEINLINE virtual void Free(void* Ptr) override
@@ -495,6 +517,10 @@ public:
 	void FreeExternal(void *Ptr);
 	bool GetAllocationSizeExternal(void* Ptr, SIZE_T& SizeOut);
 
+	virtual void GetAllocatorStats( FGenericMemoryStats& out_Stats ) override;
+	/** Dumps current allocator stats to the log. */
+	virtual void DumpAllocatorStats(class FOutputDevice& Ar) override;
+	
 	static uint16 SmallBlockSizesReversed[BINNED2_SMALL_POOL_COUNT]; // this is reversed to get the smallest elements on our main cache line
 	static FMallocBinned2* MallocBinned2;
 	static uint32 Binned2TlsSlot;

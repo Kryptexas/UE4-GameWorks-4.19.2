@@ -1,28 +1,16 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3429254
 Availability: Public
 Title:7. 애니메이션 블루프린트 - 조깅 상태
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
 Description:캐릭터의 조깅 상태 구성에 초점을 맞춥니다.
 Version: 4.9
+Parent:Gameplay/HowTo/CharacterMovement/Blueprints
 SkillLevel:Advanced
+type:how-to
+type:multi-step
+order:7
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[예전 단계](Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Crouch "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Crouch:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[캐릭터 무브먼트 개요](Gameplay\HowTo\CharacterMovement\Blueprints)
-	[/PARAM]
-	[PARAM:next]
-		[다음 단계](Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jump "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jump:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 **애니메이션 블루프린트** 와 **스테이트 머신** 작업을 이어서, 여기서는 **Jog** (조깅) 상태와 거기서 나가고 들어오는 전환을 구성하겠습니다.
 
@@ -99,4 +87,4 @@ SkillLevel:Advanced
 1.	애니메이션 블루프린트를 **컴파일** 하고 **저장** 합니다. 
 
 
-%Steps%
+[NAV]

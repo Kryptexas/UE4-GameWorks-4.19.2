@@ -2,7 +2,7 @@
 Title:5. Package Your Game
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
 Description:Package your game for installation.
-Version:4.12
+Version:4.16
 Skilllevel:Intermediate
 tags:Android
 tags:Mobile
@@ -81,7 +81,7 @@ We are currently packaging in **Development** because we are testing this game, 
 	Different devices support different Texture formats depending on the hardware they run on. See, [](Platforms/Android/Reference) for a detailed breakdown of the various formats.
 	[/REGION]
 
-1.	You will then be prompted for a location to save your packaged game. For now create a new folder on the desk top and select that as the location to save your project to.
+1.	You will then be prompted for a location to save your packaged game. For now create a new folder on the desktop and select that as the location to save your project to.
 
 	![](package_folder.png)
 
@@ -154,9 +154,7 @@ We are currently packaging in **Development** because we are testing this game, 
 [/EXCERPT:MacOSSetup]
 
 [EXCERPT:LinuxSetup]
-We're currently in the process of writing this documentation. Please refer to our [New and Updated Resources](https://docs.unrealengine.com/latest/INT/Updates/index.html) page to see 
-which documentation is being published at this time.
-<!--[INCLUDE:Platforms/Linux/IntermediateLinuxDeveloper/AndroidOnLinux/5#AndroidLinux_5]-->
+[INCLUDE:Platforms/Linux/IntermediateLinuxDeveloper/AndroidOnLinux/5#AndroidLinux_5]
 [/EXCERPT:LinuxSetup]
 -->
 

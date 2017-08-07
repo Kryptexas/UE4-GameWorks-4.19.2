@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:3275202
+﻿INTSourceChangelist:3429227
 Availability: Public
 Title:스태틱 메시 액터
 Crumbs:%ROOT%, Engine, Engine/Actors
 Description:Static Mesh Actor, 스태틱 메시 액터를 배치하고 작업하여 환경에 월드 지오메트리를 만드는 방법 안내서입니다.
 version: 4.9
+Parent:Engine/Actors/Types
+order:2
+type:overview
 
 [TOC(start:2)]
 

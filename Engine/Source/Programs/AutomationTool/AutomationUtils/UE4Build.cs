@@ -49,7 +49,7 @@ namespace AutomationTool
 		public void AddBuildProduct(string InFile)
 		{
 			string File = CommandUtils.CombinePaths(InFile);
-			if (!CommandUtils.FileExists(File))
+			if (!CommandUtils.FileExists(File) && !CommandUtils.DirectoryExists(File))
 			{
 				throw new AutomationException("BUILD FAILED specified file to AddBuildProduct {0} does not exist.", File);
 			}
@@ -116,7 +116,7 @@ namespace AutomationTool
 			UnrealBuildTool.BuildManifest Manifest = CommandUtils.ReadManifest(ManifestName);
 			foreach (string Item in Manifest.BuildProducts)
 			{
-				if (!CommandUtils.FileExists_NoExceptions(Item))
+				if (!CommandUtils.FileExists_NoExceptions(Item) && !CommandUtils.DirectoryExists_NoExceptions(Item))
 				{
 					throw new AutomationException("BUILD FAILED {0} was in manifest but was not produced.", Item);
 				}
@@ -468,10 +468,10 @@ namespace AutomationTool
 		/// <summary>
 		/// Updates the engine version files
 		/// </summary>
-		public List<string> UpdateVersionFiles(bool ActuallyUpdateVersionFiles = true, int? ChangelistNumberOverride = null, int? CompatibleChangelistNumberOverride = null, string Build = null)
+		public List<string> UpdateVersionFiles(bool ActuallyUpdateVersionFiles = true, int? ChangelistNumberOverride = null, int? CompatibleChangelistNumberOverride = null, string Build = null, bool? IsPromotedOverride = null)
 		{
 			bool bIsLicenseeVersion = ParseParam("Licensee");
-			bool bIsPromotedBuild = (ParseParamInt("Promoted", 1) != 0);
+			bool bIsPromotedBuild = IsPromotedOverride.HasValue? IsPromotedOverride.Value : (ParseParamInt("Promoted", 1) != 0);
 			bool bDoUpdateVersionFiles = CommandUtils.P4Enabled && ActuallyUpdateVersionFiles;		
 			int ChangelistNumber = 0;
 			if (bDoUpdateVersionFiles)
@@ -484,7 +484,12 @@ namespace AutomationTool
 				CompatibleChangelistNumber = CompatibleChangelistNumberOverride.Value;
 			}
 
-			string Branch = CommandUtils.P4Enabled ? CommandUtils.P4Env.BuildRootEscaped : "";
+			string Branch = OwnerCommand.ParseParamValue("Branch");
+			if (String.IsNullOrEmpty(Branch))
+			{
+				Branch = CommandUtils.P4Enabled ? CommandUtils.P4Env.BuildRootEscaped : "";
+			}
+
 			return StaticUpdateVersionFiles(ChangelistNumber, CompatibleChangelistNumber, Branch, Build, bIsLicenseeVersion, bIsPromotedBuild, bDoUpdateVersionFiles);
 		}
 
@@ -1446,6 +1451,18 @@ namespace AutomationTool
 						{
 							Args += " /StopOnErrors";
 						}
+
+						// A bug in the UCRT can cause XGE to hang on VS2015 builds. Figure out if this hang is likely to effect this build and workaround it if able.
+						string XGEVersion = Microsoft.Win32.Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Xoreax\IncrediBuild\Builder", "Version", null) as string;
+						if (XGEVersion != null)
+						{
+							// Per Xoreax support, subtract 1001000 from the registry value to get the build number of the installed XGE.
+							int XGEBuildNumber;
+							if (Int32.TryParse(XGEVersion, out XGEBuildNumber) && XGEBuildNumber - 1001000 >= 1659)
+							{
+								Args += " /no_watchdog_thread";
+							}
+						}
 					}
 
 					if (!bCanUseParallelExecutor && String.IsNullOrEmpty(XGETool))
@@ -1511,7 +1528,7 @@ namespace AutomationTool
 				{
 					foreach (var Product in BuildProductFiles)
 					{
-						if (!CommandUtils.FileExists(Product))
+						if (!CommandUtils.FileExists(Product) && !CommandUtils.DirectoryExists(Product))
 						{
 							throw new AutomationException("BUILD FAILED {0} was a build product but no longer exists", Product);
 						}

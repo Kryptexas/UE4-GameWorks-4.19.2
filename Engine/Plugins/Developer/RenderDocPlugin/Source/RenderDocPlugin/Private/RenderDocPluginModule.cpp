@@ -281,7 +281,7 @@ void FRenderDocPluginModule::CaptureCurrentViewport()
 	// infer the intended viewport to intercept/capture:
 	FViewport* Viewport (nullptr);
 	check(GEngine);
-	if (!Viewport && GEngine->GameViewport)
+	if (GEngine->GameViewport)
 	{
 		check(GEngine->GameViewport->Viewport);
 		if (GEngine->GameViewport->Viewport->HasFocus())

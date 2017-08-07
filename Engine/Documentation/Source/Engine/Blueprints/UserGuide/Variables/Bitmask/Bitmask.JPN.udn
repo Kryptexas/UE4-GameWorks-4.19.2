@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244370
+﻿INTSourceChangelist:3467293
 Availability:Public
 Title:Bitmask ブループリント変数
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/Scripting
@@ -8,6 +8,7 @@ skilllevel:Intermediate
 Parent:Engine/Blueprints
 type:overview
 tags:Blueprints
+Topic-image:BitmaskBlueprintVariables_topic.png
 
 [TOC (start:2)]
 
@@ -19,7 +20,7 @@ tags:Blueprints
 **ブループリント エディタ** で _ブループリント クラス_ を使っていれば、すべての Integer 変数を bitmask として作成および宣言することができます。 
 
 1. _ブループリント enum エディタ_ で **[Bitmask Flags]** 属性をオンに切り替えて、
-ビットフラグ enum である_Blueprint Enumeration_ を作成します。`BitmaskEnum=` メタデータを使って C++ で設定された、既存のビットフラグ enum 型も使用できます。メタデータ 
+ビットフラグ enum である _Blueprint Enumeration_ を作成します。`BitmaskEnum=` メタデータを使って C++ で設定された、既存のビットフラグ enum 型も使用できます。 
 
 	![image alt text](image_4.png)
 
@@ -29,7 +30,7 @@ tags:Blueprints
 
 	C++ コードの `Bitmask` メタデータに相当します。 
 
-1. **[Details (詳細)]** パネルの **[Bitmask Enum]** ドロップダウン メニューから_Blueprint Enumeration_ (または既存のビットフラグ enum) を選択します。
+1. **[Details (詳細)]** パネルの **[Bitmask Enum]** ドロップダウン メニューから _Blueprint Enumeration_ (または既存のビットフラグ enum) を選択します。
 
 	![image alt text](image_5.png)
 

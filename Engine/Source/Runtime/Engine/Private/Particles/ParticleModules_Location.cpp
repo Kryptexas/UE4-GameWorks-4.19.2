@@ -232,7 +232,7 @@ void UParticleModuleLocationWorldOffset::SpawnEx(FParticleEmitterInstance* Owner
 	else
 	{
 		// We need to inverse transform the location so that the bUseLocalSpace transform uses the proper value
-		FMatrix InvMat = Owner->Component->ComponentToWorld.ToMatrixWithScale().InverseFast();
+		FMatrix InvMat = Owner->Component->GetComponentTransform().ToMatrixWithScale().InverseFast();
 		FVector StartLoc = StartLocation.GetValue(Owner->EmitterTime, Owner->Component, 0, InRandomStream);
 		Particle.Location += InvMat.TransformVector(StartLoc);
 	}
@@ -339,7 +339,7 @@ void UParticleModuleLocationDirect::Spawn(FParticleEmitterInstance* Owner, int32
 	else
 	{
 		FVector StartLoc	= Location.GetValue(Particle.RelativeTime, Owner->Component);
-		StartLoc = Owner->Component->ComponentToWorld.TransformPosition(StartLoc);
+		StartLoc = Owner->Component->GetComponentTransform().TransformPosition(StartLoc);
 		Particle.Location	= StartLoc;
 	}
 
@@ -509,12 +509,12 @@ void UParticleModuleLocationEmitter::Spawn(FParticleEmitterInstance* Owner, int3
 					else if ((bSourceIsInLocalSpace == true) && (bInLocalSpace == false))
 					{
 						// We need to transform it into world space
-						Particle.Location = LocationEmitterInst->Component->ComponentToWorld.TransformPosition(pkParticle->Location);
+						Particle.Location = LocationEmitterInst->Component->GetComponentTransform().TransformPosition(pkParticle->Location);
 					}
 					else //if ((bSourceIsInLocalSpace == false) && (bInLocalSpace == true))
 					{
 						// We need to transform it into local space
-						Particle.Location = LocationEmitterInst->Component->ComponentToWorld.InverseTransformPosition(pkParticle->Location);
+						Particle.Location = LocationEmitterInst->Component->GetComponentTransform().InverseTransformPosition(pkParticle->Location);
 					}
 				}
 				if (InheritSourceVelocity)
@@ -549,7 +549,7 @@ void UParticleModuleLocationEmitter::Spawn(FParticleEmitterInstance* Owner, int3
 		}
 		ensureMsgf(!Particle.Location.ContainsNaN(), TEXT("NaN in Particle Location. Template: %s, Component: %s"), Owner->Component ? *GetNameSafe(Owner->Component->Template) : TEXT("UNKNOWN"), *GetPathNameSafe(Owner->Component));
 		ensureMsgf(!Particle.Velocity.ContainsNaN(), TEXT("NaN in Particle Velocity. Template: %s, Component: %s"), Owner->Component ? *GetNameSafe(Owner->Component->Template) : TEXT("UNKNOWN"), *GetPathNameSafe(Owner->Component));
-		ensureMsgf(!Particle.BaseVelocity.ContainsNaN(), TEXT("NaN in Particle BaseVelocity. Template: %s, Component: %s"), Owner->Component ? *GetNameSafe(Owner->Component->Template) : TEXT("UNKNOWN"), *GetPathNameSafe(Owner->Component));
+		ensureMsgf(!Particle.BaseVelocity.ContainsNaN(), TEXT("NaN in Particle Base Velocity. Template: %s, Component: %s"), Owner->Component ? *GetNameSafe(Owner->Component->Template) : TEXT("UNKNOWN"), *GetPathNameSafe(Owner->Component));
 }
 
 uint32 UParticleModuleLocationEmitter::RequiredBytesPerInstance()
@@ -892,7 +892,7 @@ void UParticleModuleLocationPrimitiveTriangle::SpawnEx(FParticleEmitterInstance*
 	LocationOffset = Owner->EmitterToSimulation.TransformVector(LocationOffset);
 
 	Particle.Location += LocationOffset;
-	ensureMsgf(!Particle.Location.ContainsNaN(), TEXT("NaN in Particle Velocity. Template: %s, Component: %s"), Owner->Component ? *GetNameSafe(Owner->Component->Template) : TEXT("UNKNOWN"), *GetPathNameSafe(Owner->Component));
+	ensureMsgf(!Particle.Location.ContainsNaN(), TEXT("NaN in Particle Location. Template: %s, Component: %s"), Owner->Component ? *GetNameSafe(Owner->Component->Template) : TEXT("UNKNOWN"), *GetPathNameSafe(Owner->Component));
 }
 
 void UParticleModuleLocationPrimitiveTriangle::Render3DPreview(FParticleEmitterInstance* Owner, const FSceneView* View,FPrimitiveDrawInterface* PDI)
@@ -1131,7 +1131,7 @@ void UParticleModuleLocationPrimitiveCylinder::SpawnEx(FParticleEmitterInstance*
 		Particle.Velocity		+= vVelocity;
 		Particle.BaseVelocity	+= vVelocity;
 	}
-	ensureMsgf(!Particle.Location.ContainsNaN(), TEXT("NaN in Particle Velocity. Template: %s, Component: %s"), Owner->Component ? *GetNameSafe(Owner->Component->Template) : TEXT("UNKNOWN"), *GetPathNameSafe(Owner->Component));
+	ensureMsgf(!Particle.Location.ContainsNaN(), TEXT("NaN in Particle Location. Template: %s, Component: %s"), Owner->Component ? *GetNameSafe(Owner->Component->Template) : TEXT("UNKNOWN"), *GetPathNameSafe(Owner->Component));
 	ensureMsgf(!Particle.Velocity.ContainsNaN(), TEXT("NaN in Particle Velocity. Template: %s, Component: %s"), Owner->Component ? *GetNameSafe(Owner->Component->Template) : TEXT("UNKNOWN"), *GetPathNameSafe(Owner->Component));
 }
 
@@ -1373,7 +1373,7 @@ void UParticleModuleLocationPrimitiveSphere::SpawnEx(FParticleEmitterInstance* O
 		Particle.Velocity		+= vVelocity;
 		Particle.BaseVelocity	+= vVelocity;
 	}
-	ensureMsgf(!Particle.Location.ContainsNaN(), TEXT("NaN in Particle Velocity. Template: %s, Component: %s"), Owner->Component ? *GetNameSafe(Owner->Component->Template) : TEXT("UNKNOWN"), *GetPathNameSafe(Owner->Component));
+	ensureMsgf(!Particle.Location.ContainsNaN(), TEXT("NaN in Particle Location. Template: %s, Component: %s"), Owner->Component ? *GetNameSafe(Owner->Component->Template) : TEXT("UNKNOWN"), *GetPathNameSafe(Owner->Component));
 	ensureMsgf(!Particle.Velocity.ContainsNaN(), TEXT("NaN in Particle Velocity. Template: %s, Component: %s"), Owner->Component ? *GetNameSafe(Owner->Component->Template) : TEXT("UNKNOWN"), *GetPathNameSafe(Owner->Component));
 }
 
@@ -1644,7 +1644,7 @@ void UParticleModuleLocationBoneSocket::Spawn(FParticleEmitterInstance* Owner, i
 			{
 				// Set the base velocity for this particle.
 				Particle.BaseVelocity = FMath::Lerp(Particle.BaseVelocity, InstancePayload->BoneSocketVelocities[SourceIndex], InheritVelocityScale);
-				ensureMsgf(!Particle.BaseVelocity.ContainsNaN(), TEXT("NaN in Particle Velocity. Template: %s, Component: %s"), Owner->Component ? *GetNameSafe(Owner->Component->Template) : TEXT("UNKNOWN"), *GetPathNameSafe(Owner->Component));
+				ensureMsgf(!Particle.BaseVelocity.ContainsNaN(), TEXT("NaN in Particle Base Velocity. Template: %s, Component: %s"), Owner->Component ? *GetNameSafe(Owner->Component->Template) : TEXT("UNKNOWN"), *GetPathNameSafe(Owner->Component));
 			}
 			if (bMeshRotationActive)
 			{
@@ -1652,7 +1652,7 @@ void UParticleModuleLocationBoneSocket::Spawn(FParticleEmitterInstance* Owner, i
 				PayloadData->Rotation = RotationQuat.Euler();
 				if (Owner->CurrentLODLevel->RequiredModule->bUseLocalSpace == true)
 				{
-					PayloadData->Rotation = Owner->Component->ComponentToWorld.InverseTransformVectorNoScale(PayloadData->Rotation);
+					PayloadData->Rotation = Owner->Component->GetComponentTransform().InverseTransformVectorNoScale(PayloadData->Rotation);
 				}
 			}
 		}
@@ -2154,7 +2154,7 @@ bool UParticleModuleLocationBoneSocket::GetParticleLocation(FModuleLocationBoneS
 
 	if (Owner->CurrentLODLevel->RequiredModule->bUseLocalSpace == true)
 	{
-		OutPosition = Owner->Component->ComponentToWorld.InverseTransformPosition(OutPosition);
+		OutPosition = Owner->Component->GetComponentTransform().InverseTransformPosition(OutPosition);
 	}
 
 	return true;
@@ -2445,7 +2445,7 @@ void UParticleModuleLocationSkelVertSurface::Spawn(FParticleEmitterInstance* Own
 				FVector Rot = SourceRotation.Euler();
 				if (Owner->CurrentLODLevel->RequiredModule->bUseLocalSpace == true)
 				{
-					Rot = Owner->Component->ComponentToWorld.InverseTransformVectorNoScale(Rot);
+					Rot = Owner->Component->GetComponentTransform().InverseTransformVectorNoScale(Rot);
 				}
 				PayloadData->Rotation = Rot;
 				PayloadData->InitRotation = Rot;
@@ -2809,7 +2809,7 @@ bool UParticleModuleLocationSkelVertSurface::GetParticleLocation(FParticleEmitte
 		if (SourceType == VERTSURFACESOURCE_Vert)
 		{
 			FVector VertPos = InSkelMeshComponent->GetSkinnedVertexPosition(InPrimaryVertexIndex);
-			OutPosition = InSkelMeshComponent->ComponentToWorld.TransformPosition(VertPos);
+			OutPosition = InSkelMeshComponent->GetComponentTransform().TransformPosition(VertPos);
 			OutRotation = FQuat::Identity;
 		}
 		else if (SourceType == VERTSURFACESOURCE_Surface)
@@ -2821,9 +2821,9 @@ bool UParticleModuleLocationSkelVertSurface::GetParticleLocation(FParticleEmitte
 			VertIndex[0] = LODModel.MultiSizeIndexContainer.GetIndexBuffer()->Get( InPrimaryVertexIndex );
 			VertIndex[1] = LODModel.MultiSizeIndexContainer.GetIndexBuffer()->Get( InPrimaryVertexIndex+1 );
 			VertIndex[2] = LODModel.MultiSizeIndexContainer.GetIndexBuffer()->Get( InPrimaryVertexIndex+2 );
-			Verts[0] = InSkelMeshComponent->ComponentToWorld.TransformPosition(InSkelMeshComponent->GetSkinnedVertexPosition(VertIndex[0]));
-			Verts[1] = InSkelMeshComponent->ComponentToWorld.TransformPosition(InSkelMeshComponent->GetSkinnedVertexPosition(VertIndex[1]));
-			Verts[2] = InSkelMeshComponent->ComponentToWorld.TransformPosition(InSkelMeshComponent->GetSkinnedVertexPosition(VertIndex[2]));
+			Verts[0] = InSkelMeshComponent->GetComponentTransform().TransformPosition(InSkelMeshComponent->GetSkinnedVertexPosition(VertIndex[0]));
+			Verts[1] = InSkelMeshComponent->GetComponentTransform().TransformPosition(InSkelMeshComponent->GetSkinnedVertexPosition(VertIndex[1]));
+			Verts[2] = InSkelMeshComponent->GetComponentTransform().TransformPosition(InSkelMeshComponent->GetSkinnedVertexPosition(VertIndex[2]));
 
 			FVector V0ToV2 = (Verts[2] - Verts[0]);
 			V0ToV2.Normalize();
@@ -2869,7 +2869,7 @@ bool UParticleModuleLocationSkelVertSurface::GetParticleLocation(FParticleEmitte
 
 	if (Owner->CurrentLODLevel->RequiredModule->bUseLocalSpace == true)
 	{
-		OutPosition = Owner->Component->ComponentToWorld.InverseTransformPosition(OutPosition);
+		OutPosition = Owner->Component->GetComponentTransform().InverseTransformPosition(OutPosition);
 	}
 
 	OutPosition += UniversalOffset;

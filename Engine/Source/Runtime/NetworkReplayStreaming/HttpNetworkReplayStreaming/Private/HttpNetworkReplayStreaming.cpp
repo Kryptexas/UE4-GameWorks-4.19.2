@@ -1075,7 +1075,7 @@ void FHttpNetworkReplayStreamer::ConditionallyDownloadNextChunk()
 			return;		// Unless it's critical (i.e. bReallyNeedToDownloadChunk is true), never try faster than MIN_WAIT_FOR_NEXT_CHUNK_IN_SECONDS
 		}
 
-		if ( DownloadElapsedTime < MAX_WAIT_FOR_NEXT_CHUNK_IN_SECONDS && ( StreamTimeRangeEnd - StreamTimeRangeStart ) > 0 && StreamArchive.Buffer.Num() > 0 )
+		if ( DownloadElapsedTime < MAX_WAIT_FOR_NEXT_CHUNK_IN_SECONDS && StreamTimeRangeEnd > StreamTimeRangeStart && StreamArchive.Buffer.Num() > 0 )
 		{
 			// Make a guess on how far we're in
 			const float PercentIn		= StreamArchive.Buffer.Num() > 0 ? ( float )StreamArchive.Pos / ( float )StreamArchive.Buffer.Num() : 0.0f;

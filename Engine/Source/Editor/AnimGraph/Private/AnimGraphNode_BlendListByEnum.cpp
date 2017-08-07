@@ -19,6 +19,8 @@
 UAnimGraphNode_BlendListByEnum::UAnimGraphNode_BlendListByEnum(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	// Make sure we start out with a pin
+	Node.AddPose();
 }
 
 FString UAnimGraphNode_BlendListByEnum::GetNodeCategory() const
@@ -49,12 +51,6 @@ FText UAnimGraphNode_BlendListByEnum::GetNodeTitle(ENodeTitleType::Type TitleTyp
 		CachedNodeTitle.SetCachedText(FText::Format(LOCTEXT("AnimGraphNode_BlendListByEnum_Title", "Blend Poses ({EnumName})"), Args), this);
 	}
 	return CachedNodeTitle;
-}
-
-void UAnimGraphNode_BlendListByEnum::PostPlacedNewNode()
-{
-	// Make sure we start out with a pin
-	Node.AddPose();
 }
 
 void UAnimGraphNode_BlendListByEnum::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
@@ -180,6 +176,7 @@ void UAnimGraphNode_BlendListByEnum::RemovePinFromBlendList(UEdGraphPin* Pin)
 		// setting up removed pins info 
 		RemovedPinArrayIndex = ArrayIndex;
 		Node.RemovePose(ArrayIndex);
+		Pin->bSavePinIfOrphaned = false;
 		ReconstructNode();
 		//@TODO: Just want to invalidate the visual representation currently
 		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetBlueprint());

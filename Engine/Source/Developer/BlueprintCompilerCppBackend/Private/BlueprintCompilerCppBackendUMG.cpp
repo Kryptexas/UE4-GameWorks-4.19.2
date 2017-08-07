@@ -96,7 +96,7 @@ void FBackendHelperUMG::EmitWidgetInitializationFunctions(FEmitterLocalContext& 
 					
 			Context.AddLine(FString::Printf(TEXT("UWidgetBlueprintGeneratedClass::%s(this, GetClass(), %s, %s, %s, %s);")
 				, GET_FUNCTION_NAME_STRING_CHECKED(UWidgetBlueprintGeneratedClass, InitializeWidgetStatic)
-				, WidgetClass->CanTemplate() ? TEXT("true") : TEXT("false")
+				, WidgetClass->HasTemplate() ? TEXT("true") : TEXT("false")
 				, *WidgetTreeStr
 				, *AnimationsArrayNativeName
 				, *BindingsArrayNativeName));

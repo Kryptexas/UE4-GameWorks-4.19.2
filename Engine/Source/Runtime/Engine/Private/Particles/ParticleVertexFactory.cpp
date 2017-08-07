@@ -294,4 +294,4 @@ FVertexFactoryShaderParameters* FParticleSpriteVertexFactory::ConstructShaderPar
 	return NULL;
 }
 
-IMPLEMENT_VERTEX_FACTORY_TYPE(FParticleSpriteVertexFactory,"ParticleSpriteVertexFactory",true,false,true,false,false);
+IMPLEMENT_VERTEX_FACTORY_TYPE(FParticleSpriteVertexFactory,"/Engine/Private/ParticleSpriteVertexFactory.ush",true,false,true,false,false);

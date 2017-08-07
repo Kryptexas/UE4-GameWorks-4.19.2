@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:2849961
+﻿INTSourceChangelist:3426963
 Availability:Public
 Title:UnrealVS 拡張
 Crumbs: %ROOT%, GettingStarted, Programming, Programming/Development/VisualStudioSetup
 Description:Visual Studio に対応する UnrealVS 拡張のインストール、設定、使用方法
-Version:4.9
+Version:4.16
+Parent:Programming/Development/VisualStudioSetup
+Order:
+Type:overview
 
 [EXCERPT:Overview]
 Visual Studio に対応する UnrealVS 拡張により、アンリアル エンジン 4 (UE4) を使った開発では、一般的な操作に簡単にアクセスできるようになりました。
@@ -52,7 +55,7 @@ UnrealVS 拡張は Visual Studio Express 版と連動しません。Visual Studi
 	拡張は **Help->About Microsoft Visual Studio** ダイアログの [Installed Products] リストにも表示されます。
 	[/REGION]
 
-1. **View->Toolbars** に進むか、または Visual Studio のツールバー エリアで右クリックして、**UnrealVS** を選択して拡張のツールバーを表示します。
+1. **View->Toolbars** に進むか、または Visual Studio のツールバー エリアで **右クリック** して、**UnrealVS** を選択して拡張のツールバーを表示します。
 
 	![UnrealVS Toolbar](unrealvs_toolbar_cmd.png)
 
@@ -60,7 +63,7 @@ UnrealVS 拡張は Visual Studio Express 版と連動しません。Visual Studi
 
 	![UnrealVS Customize Toolbar](toolbar_customize.png)
 
-1. **Customize**	のダイアログで、**[Add Command...]** を選択し、**カテゴリ** リストから **UnrealVS** を選択し、ツールバーに追加可能な UnrealVS コマンドのリストを表示します。
+	1. **Customize**	のダイアログで、**[Add Command...]** を選択し、**カテゴリ** リストから **UnrealVS** を選択し、ツールバーに追加可能な UnrealVS コマンドのリストを表示します。
 
 	![UnrealVS Customize Commands](toolbar_customize_commands.png)
 
@@ -73,7 +76,7 @@ UnrealVS 拡張は Visual Studio Express 版と連動しません。Visual Studi
 
 ![](startup_project_menu.png)
 
-UnrealVS オプションに何を一覧表示するかを変更することができます。Game プロジェクトだけを表示するには、 **[ツール] > [オプション]** に進み **UnrealVS** を選択します。 
+UnrealVS オプションにどのプロジェクトをリスト化するかを変更することができます。Game プロジェクトだけを表示するには、 **[ツール] > [オプション]** に進み **UnrealVS** を選択します。 
 
 ![](options_screen.png)
 
@@ -164,7 +167,6 @@ UnrealVS オプションに何を一覧表示するかを変更することが�
 	![Batch Builder Window](batchbuilder_window.png)
 
 	* Project、Config、Platform、ジョブ タイプを設定して **Build Job** を作成します。
-
 	* 矢印ボタンでジョブを追加/削除します。
 	* 矢印ボタンで選択したジョブをリスト内で上下に移動します。
 	* こうしたコントロールでコンボボックスに現在表示されている **ジョブセット** を編集します。
@@ -179,7 +181,6 @@ UnrealVS オプションに何を一覧表示するかを変更することが�
 	![Batch Builder Window running](batchbuilder_window2.png)
 
 	* 実行しているセットの **Build Jobs** が出力リストに表示されます。
-
 		* ![Queued Build Job](buildjob_lightgrey.png) - 待機中のジョブ
 		* ![Succeeded Build Job](buildjob_green.png) - 完了、成功
 		* ![Failed Build Job](buildjob_red.png) - 失敗
@@ -187,15 +188,15 @@ UnrealVS オプションに何を一覧表示するかを変更することが�
 		* 現在、実行中のビルド ジョブが太字で表示されます
 	* バッチ ビルド実行中にビジーのアニメーションと停止ボタンが表示されます。
 
-1. 各 **Build Jobs** から、**Output タブ** のアイテムをダブルクリックするか、または右クリックしてコンテキストメニューから **Show Output** を選択して出力を見ることができます。
+1. 各 **Build Jobs** から、**Output タブ** のアイテムを **ダブルクリック** するか、または **右クリック** してコンテキストメニューから **Show Output** を選択して出力を見ることができます。
 
 	![BatchBuild Output Pane](batchbuilder_outputpane.png)
 
 	[REGION:note]
 		各アイテムに対する **Batch Builder** 出力の表示は、UnrealVS - BatchBuild という名前のペインにある Visual Studio **Output** ウィンドウに表示されます。
 		これを、現在の/最後のビルド ジョブの出力を表示する Build ペインと間違わないようにしてください。
-	[/REGION]
-	
+	[/REGION]	
+
 ## クイックビルドメニュー
 
 **[Quick Build (クイックビルド)]** メニューは、メインのソリューション ビルド config を変更する必要なく、どの config とプラットフォームの組み合わせでもプロジェクトをビルドする簡単な方法を提供します。
@@ -211,11 +212,11 @@ UnrealVS オプションに何を一覧表示するかを変更することが�
 
 [REGION:note]
 	IDE でソリューションの config とプラットフォームを変更するよりも迅速です。
-[/REGION]
-	
+[/REGION]	
+
 ## UnrealVS ソースコードでの作業
 
 UnrealVS のソースコードは [UE4RootLocation]/Engine/Source/Programs/UnrealVS/ フォルダにあります。  
 
-Visual Studio で UnrealVS プロジェクトファイルをロードするためには、UnrealVS をコンパイルする Visual Studio の適切なバージョンの Visual Studio SDK をインストール済である必要があります。例えば、Visual Studio 2013 までをサポートする場合、以下をインストールする必要があります。 [Visual Studio 2013 SDK](http://www.microsoft.com/en-us/download/details.aspx?id=40758)、次に UnrealVS プロジェクト ファイルを Visual Studio 2013 にロードします。
+Visual Studio で UnrealVS プロジェクトファイルをロードするためには、UnrealVS をコンパイルする Visual Studio の適切なバージョンの Visual Studio SDK をインストール済である必要があります。例えば、Visual Studio 2015 までをサポートする場合、[Visual Studio 2015 SDK](https://msdn.microsoft.com/en-us/library/bb166441.aspx) をインストールしてから、UnrealVS プロジェクト ファイルを Visual Studio 2015 にロードする必要があります。
 

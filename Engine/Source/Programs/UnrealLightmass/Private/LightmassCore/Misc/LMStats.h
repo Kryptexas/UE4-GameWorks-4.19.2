@@ -16,7 +16,7 @@ inline unsigned long long __rdtsc()
 	return (High << 32) | Low;
 }
 #endif //!__has_builtin(__rdtsc))
-#endif
+#endif //(PLATFORM_MAC || PLATFORM_LINUX)
 
 namespace Lightmass
 {

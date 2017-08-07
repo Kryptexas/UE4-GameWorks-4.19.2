@@ -59,6 +59,8 @@ APlayerCameraManager::APlayerCameraManager(const FObjectInitializer& ObjectIniti
 	DefaultModifiers.Add(UCameraModifier_CameraShake::StaticClass());
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 void APlayerCameraManager::PhotographyCameraModify_Implementation(const FVector NewCameraLocation, const FVector PreviousCameraLocation, const FVector OriginalCameraLocation, FVector& OutCameraLocation)
 {	// let proposed camera through unmodified by default
 	OutCameraLocation = NewCameraLocation;
@@ -79,6 +81,8 @@ void APlayerCameraManager::OnPhotographyMultiPartCaptureStart_Implementation()
 void APlayerCameraManager::OnPhotographyMultiPartCaptureEnd_Implementation()
 {	// do nothing by default
 }
+
+/// @endcond
 
 
 APlayerController* APlayerCameraManager::GetOwningPlayerController() const
@@ -523,7 +527,7 @@ void APlayerCameraManager::UpdateViewTarget(FTViewTarget& OutVT, float DeltaTime
 			}
 
 			FVector Pos = Loc + ViewTargetOffset + FRotationMatrix(Rotator).TransformVector(FreeCamOffset) - Rotator.Vector() * FreeCamDistance;
-			FCollisionQueryParams BoxParams(NAME_FreeCam, false, this);
+			FCollisionQueryParams BoxParams(SCENE_QUERY_STAT(FreeCam), false, this);
 			BoxParams.AddIgnoredActor(OutVT.Target);
 			FHitResult Result;
 
@@ -1430,6 +1434,3 @@ void FTViewTarget::CheckViewTarget(APlayerController* OwningController)
 		}
 	}
 }
-
-/** Returns TransformComponent subobject **/
-USceneComponent* APlayerCameraManager::GetTransformComponent() const { return TransformComponent; }

@@ -9,7 +9,7 @@
 #include "ActorFactoryProceduralFoliage.generated.h"
 
 class AActor;
-class FAssetData;
+struct FAssetData;
 
 UCLASS(MinimalAPI, config=Editor)
 class UActorFactoryProceduralFoliage : public UActorFactoryBoxVolume

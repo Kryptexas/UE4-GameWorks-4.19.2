@@ -612,7 +612,12 @@ FPrimitiveSceneProxy* UWidgetComponent::CreateSceneProxy()
 		MaterialInstance = nullptr;
 	}
 
-	if ( Space != EWidgetSpace::Screen && WidgetRenderer.IsValid() )
+	if (Space == EWidgetSpace::Screen)
+	{
+		return nullptr;
+	}
+
+	if (WidgetRenderer.IsValid() && CurrentSlateWidget.IsValid())
 	{
 		// Create a new MID for the current base material
 		{
@@ -628,8 +633,64 @@ FPrimitiveSceneProxy* UWidgetComponent::CreateSceneProxy()
 
 		return new FWidget3DSceneProxy(this, *WidgetRenderer->GetSlateRenderer());
 	}
-	
+
+#if WITH_EDITOR
+	// make something so we can see this component in the editor
+	class FWidgetBoxProxy : public FPrimitiveSceneProxy
+	{
+	public:
+		FWidgetBoxProxy(const UWidgetComponent* InComponent)
+			: FPrimitiveSceneProxy(InComponent)
+			, BoxExtents(1.f, InComponent->GetDrawSize().X / 2.0f, InComponent->GetDrawSize().Y / 2.0f)
+		{
+			bWillEverBeLit = false;
+		}
+
+		virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_BoxSceneProxy_GetDynamicMeshElements);
+
+			const FMatrix& LocalToWorld = GetLocalToWorld();
+
+			for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+			{
+				if (VisibilityMap & (1 << ViewIndex))
+				{
+					const FSceneView* View = Views[ViewIndex];
+
+					const FLinearColor DrawColor = GetViewSelectionColor(FColor::White, *View, IsSelected(), IsHovered(), false, IsIndividuallySelected());
+
+					FPrimitiveDrawInterface* PDI = Collector.GetPDI(ViewIndex);
+					DrawOrientedWireBox(PDI, LocalToWorld.GetOrigin(), LocalToWorld.GetScaledAxis(EAxis::X), LocalToWorld.GetScaledAxis(EAxis::Y), LocalToWorld.GetScaledAxis(EAxis::Z), BoxExtents, DrawColor, SDPG_World);
+				}
+			}
+		}
+
+		virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override
+		{
+			FPrimitiveViewRelevance Result;
+			if (!View->bIsGameView)
+			{
+				// Should we draw this because collision drawing is enabled, and we have collision
+				const bool bShowForCollision = View->Family->EngineShowFlags.Collision && IsCollisionEnabled();
+				Result.bDrawRelevance = IsShown(View) || bShowForCollision;
+				Result.bDynamicRelevance = true;
+				Result.bShadowRelevance = IsShadowCast(View);
+				Result.bEditorPrimitiveRelevance = UseEditorCompositing(View);
+			}
+			return Result;
+		}
+		virtual uint32 GetMemoryFootprint(void) const override { return(sizeof(*this) + GetAllocatedSize()); }
+		uint32 GetAllocatedSize(void) const { return(FPrimitiveSceneProxy::GetAllocatedSize()); }
+
+	private:
+		const FVector	BoxExtents;
+	};
+
+	return new FWidgetBoxProxy(this);
+#else
 	return nullptr;
+#endif
 }
 
 FBoxSphereBounds UWidgetComponent::CalcBounds(const FTransform & LocalToWorld) const
@@ -666,7 +727,7 @@ FCollisionShape UWidgetComponent::GetCollisionShape(float Inflation) const
 {
 	if ( Space != EWidgetSpace::Screen )
 	{
-		FVector BoxHalfExtent = ( FVector(0.01f, DrawSize.X * 0.5f, DrawSize.Y * 0.5f) * ComponentToWorld.GetScale3D() ) + Inflation;
+		FVector BoxHalfExtent = ( FVector(0.01f, DrawSize.X * 0.5f, DrawSize.Y * 0.5f) * GetComponentTransform().GetScale3D() ) + Inflation;
 
 		if ( Inflation < 0.0f )
 		{
@@ -970,17 +1031,21 @@ void UWidgetComponent::DrawWidgetToRenderTarget(float DeltaTime)
 
 	UpdateRenderTarget(CurrentDrawSize);
 
-	bRedrawRequested = false;
+	// The render target could be null if the current draw size is zero
+	if(RenderTarget)
+	{
+		bRedrawRequested = false;
 
-	WidgetRenderer->DrawWindow(
-		RenderTarget,
-		SlateWindow->GetHittestGrid(),
-		SlateWindow.ToSharedRef(),
-		DrawScale,
-		CurrentDrawSize,
-		DeltaTime);
+		WidgetRenderer->DrawWindow(
+			RenderTarget,
+			SlateWindow->GetHittestGrid(),
+			SlateWindow.ToSharedRef(),
+			DrawScale,
+			CurrentDrawSize,
+			DeltaTime);
 
-	LastWidgetRenderTime = GetCurrentTime();
+		LastWidgetRenderTime = GetCurrentTime();
+	}
 }
 
 float UWidgetComponent::ComputeComponentWidth() const
@@ -1103,9 +1168,24 @@ bool UWidgetComponent::CanEditChange(const UProperty* InProperty) const
 	{
 		FString PropertyName = InProperty->GetName();
 
+		if ( PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UWidgetComponent, GeometryMode) ||
+			 PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UWidgetComponent, TimingPolicy) ||
+			 PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UWidgetComponent, bWindowFocusable) ||
+			 PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UWidgetComponent, bManuallyRedraw) ||
+			 PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UWidgetComponent, RedrawTime) ||
+			 PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UWidgetComponent, BackgroundColor) ||
+			 PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UWidgetComponent, TintColorAndOpacity) ||
+			 PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UWidgetComponent, OpacityFromTexture) ||
+			 PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UWidgetComponent, BlendMode) ||
+			 PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UWidgetComponent, bIsTwoSided) ||
+			 PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UWidgetComponent, TickWhenOffscreen) )
+		{
+			return Space != EWidgetSpace::Screen;
+		}
+
 		if ( PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UWidgetComponent, bReceiveHardwareInput) )
 		{
-			return GeometryMode == EWidgetGeometryMode::Plane;
+			return Space != EWidgetSpace::Screen && GeometryMode == EWidgetGeometryMode::Plane;
 		}
 
 		if ( PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UWidgetComponent, CylinderArcAngle) )
@@ -1267,12 +1347,14 @@ void UWidgetComponent::UpdateWidget()
 
 			SlateWindow->Resize(DrawSize);
 
+			bool bWidgetChanged = false;
 			if ( NewSlateWidget.IsValid() )
 			{
 				if ( NewSlateWidget != CurrentSlateWidget || bNeededNewWindow )
 				{
 					CurrentSlateWidget = NewSlateWidget;
 					SlateWindow->SetContent(NewSlateWidget.ToSharedRef());
+					bWidgetChanged = true;
 				}
 			}
 			else if( SlateWidget.IsValid() )
@@ -1281,12 +1363,22 @@ void UWidgetComponent::UpdateWidget()
 				{
 					CurrentSlateWidget = SlateWidget;
 					SlateWindow->SetContent(SlateWidget.ToSharedRef());
+					bWidgetChanged = true;
 				}
 			}
 			else
 			{
-				CurrentSlateWidget = SNullWidget::NullWidget;
+				if (CurrentSlateWidget != SNullWidget::NullWidget)
+				{
+					CurrentSlateWidget = SNullWidget::NullWidget;
+					bWidgetChanged = true;
+				}
 				SlateWindow->SetContent( SNullWidget::NullWidget );
+			}
+
+			if (bNeededNewWindow || bWidgetChanged)
+			{
+				MarkRenderStateDirty();
 			}
 		}
 		else
@@ -1306,8 +1398,10 @@ void UWidgetComponent::UpdateRenderTarget(FIntPoint DesiredRenderTargetSize)
 	{
 	case EWidgetBlendMode::Opaque:
 		ActualBackgroundColor.A = 1.0f;
+		break;
 	case EWidgetBlendMode::Masked:
 		ActualBackgroundColor.A = 0.0f;
+		break;
 	}
 
 	if ( DesiredRenderTargetSize.X != 0 && DesiredRenderTargetSize.Y != 0 )
@@ -1332,7 +1426,6 @@ void UWidgetComponent::UpdateRenderTarget(FIntPoint DesiredRenderTargetSize)
 			if ( RenderTarget->SizeX != DesiredRenderTargetSize.X || RenderTarget->SizeY != DesiredRenderTargetSize.Y )
 			{
 				RenderTarget->InitCustomFormat(DesiredRenderTargetSize.X, DesiredRenderTargetSize.Y, PF_B8G8R8A8, false);
-				RenderTarget->UpdateResourceImmediate(false);
 				bWidgetRenderStateDirty = true;
 			}
 
@@ -1345,7 +1438,7 @@ void UWidgetComponent::UpdateRenderTarget(FIntPoint DesiredRenderTargetSize)
 
 			if ( bWidgetRenderStateDirty )
 			{
-				RenderTarget->UpdateResource();
+				RenderTarget->UpdateResourceImmediate();
 			}
 		}
 	}
@@ -1403,7 +1496,7 @@ void UWidgetComponent::GetLocalHitLocation(FVector WorldHitLocation, FVector2D& 
 	ensureMsgf(GeometryMode == EWidgetGeometryMode::Plane, TEXT("Method does not support non-planar widgets."));
 
 	// Find the hit location on the component
-	FVector ComponentHitLocation = ComponentToWorld.InverseTransformPosition(WorldHitLocation);
+	FVector ComponentHitLocation = GetComponentTransform().InverseTransformPosition(WorldHitLocation);
 
 	// Convert the 3D position of component space, into the 2D equivalent
 	OutLocalWidgetHitLocation = FVector2D(-ComponentHitLocation.Y, -ComponentHitLocation.Z);
@@ -1455,8 +1548,8 @@ TTuple<FVector, FVector2D> UWidgetComponent::GetCylinderHitLocation(FVector Worl
 
 	FTransform ToWorld = GetComponentToWorld();
 
-	const FVector HitLocation_ComponentSpace = ComponentToWorld.InverseTransformPosition(WorldHitLocation);
-	const FVector HitDirection_ComponentSpace = ComponentToWorld.InverseTransformVector(WorldHitDirection);
+	const FVector HitLocation_ComponentSpace = GetComponentTransform().InverseTransformPosition(WorldHitLocation);
+	const FVector HitDirection_ComponentSpace = GetComponentTransform().InverseTransformVector(WorldHitDirection);
 
 
 	const float ArcAngleRadians = FMath::DegreesToRadians(GetCylinderArcAngle());
@@ -1525,7 +1618,7 @@ TTuple<FVector, FVector2D> UWidgetComponent::GetCylinderHitLocation(FVector Worl
 
 		const FVector2D WidgetSpaceHitCoord = FVector2D(HitAngleZeroToOne * CurrentDrawSize.X, YHitLocation);
 			
-		return MakeTuple(ComponentToWorld.TransformPosition(CylinderHitLocation_ComponentSpace), WidgetSpaceHitCoord);
+		return MakeTuple(GetComponentTransform().TransformPosition(CylinderHitLocation_ComponentSpace), WidgetSpaceHitCoord);
 	}
 	else
 	{

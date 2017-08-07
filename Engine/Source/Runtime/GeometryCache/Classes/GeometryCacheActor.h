@@ -20,7 +20,7 @@ class GEOMETRYCACHE_API AGeometryCacheActor : public AActor
 	 virtual bool GetReferencedContentObjects(TArray<UObject*>& Objects) const override; 
 #endif // WITH_EDITOR
 	// End AActor overrides.
-private_subobject:
+private:
 	UPROPERTY(Category = GeometryCacheActor, VisibleAnywhere, BlueprintReadOnly, meta = (ExposeFunctionCategories = "Mesh,Rendering,Physics,Components|GeometryCache", AllowPrivateAccess = "true"))
 	UGeometryCacheComponent* GeometryCacheComponent;
 public:

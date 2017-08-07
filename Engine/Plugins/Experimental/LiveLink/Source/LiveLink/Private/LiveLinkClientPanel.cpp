@@ -15,6 +15,9 @@
 #include "LiveLinkClient.h"
 #include "UObjectHash.h"
 #include "EditorStyleSet.h"
+#include "ModuleManager.h"
+#include "PropertyEditorModule.h"
+#include "IStructureDetailsView.h"
 
 #include "LiveLinkSourceFactory.h"
 
@@ -35,6 +38,8 @@ public:
 	FText GetSourceType() { return Client->GetSourceTypeForEntry(EntryGuid); }
 	FText GetMachineName() { return Client->GetMachineNameForEntry(EntryGuid); }
 	FText GetEntryStatus() { return Client->GetEntryStatusForEntry(EntryGuid); }
+	FLiveLinkConnectionSettings* GetConnectionSettings() { return Client->GetConnectionSettingsForEntry(EntryGuid); }
+	void RemoveFromClient() { Client->RemoveSource(EntryGuid); }
 
 private:
 	FGuid EntryGuid;
@@ -113,13 +118,19 @@ private:
 
 SLiveLinkClientPanel::~SLiveLinkClientPanel()
 {
-
+	if (Client)
+	{
+		Client->UnregisterSourcesChangedHandle(OnSourcesChangedHandle);
+		OnSourcesChangedHandle.Reset();
+	}
 }
 
 void SLiveLinkClientPanel::Construct(const FArguments& Args, FLiveLinkClient* InClient)
 {
 	check(InClient);
 	Client = InClient;
+
+	OnSourcesChangedHandle = Client->RegisterSourcesChangedHandle(FLiveLinkSourcesChanged::FDelegate::CreateSP(this, &SLiveLinkClientPanel::OnSourcesChangedHandler));
 
 	RefreshSourceData(false);
 
@@ -147,6 +158,19 @@ void SLiveLinkClientPanel::Construct(const FArguments& Args, FLiveLinkClient* In
 	}
 	ToolBarBuilder.EndSection();
 
+	// Connection Settings
+	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
+
+	FDetailsViewArgs DetailsViewArgs;
+	//DetailsViewArgs.
+	FStructureDetailsViewArgs StructureViewArgs;
+	StructureViewArgs.bShowAssets = true;
+	StructureViewArgs.bShowClasses = true;
+	StructureViewArgs.bShowInterfaces = true;
+	StructureViewArgs.bShowObjects = true;
+
+	StructureDetailsView = PropertyEditorModule.CreateStructureDetailView(DetailsViewArgs, StructureViewArgs, nullptr);
+
 	ChildSlot
 	[
 		SNew(SSplitter)
@@ -162,7 +186,7 @@ void SLiveLinkClientPanel::Construct(const FArguments& Args, FLiveLinkClient* In
 				ToolBarBuilder.MakeWidget()
 			]
 			+ SVerticalBox::Slot()
-			.FillHeight(1.0f)
+			.FillHeight(0.5f)
 			.Padding(FMargin(0.0f, 4.0f, 0.0f, 0.0f))
 			[
 				SNew(SBorder)
@@ -197,6 +221,12 @@ void SLiveLinkClientPanel::Construct(const FArguments& Args, FLiveLinkClient* In
 						]
 					]
 				]
+			]
+			+ SVerticalBox::Slot()
+			.FillHeight(0.5f)
+			.Padding(FMargin(0.0f, 4.0f, 0.0f, 0.0f))
+			[
+				StructureDetailsView->GetWidget().ToSharedRef()
 			]
 		]
 	];
@@ -249,7 +279,15 @@ TSharedRef<ITableRow> SLiveLinkClientPanel::MakeSourceListViewWidget(FLiveLinkSo
 
 void SLiveLinkClientPanel::OnSourceListSelectionChanged(FLiveLinkSourceUIEntryPtr Entry, ESelectInfo::Type SelectionType) const
 {
-	
+	if(Entry.IsValid())
+	{
+		FStructOnScope* Struct = new FStructOnScope(FLiveLinkConnectionSettings::StaticStruct(), (uint8*)Entry->GetConnectionSettings());
+		StructureDetailsView->SetStructureData(MakeShareable(Struct));
+	}
+	else
+	{
+		StructureDetailsView->SetStructureData(nullptr);
+	}
 }
 
 TSharedRef< SWidget > SLiveLinkClientPanel::GenerateSourceMenu()
@@ -320,18 +358,18 @@ void SLiveLinkClientPanel::RetrieveFactorySourcePanel(FMenuBuilder& MenuBuilder,
 
 FReply SLiveLinkClientPanel::OnCloseSourceSelectionPanel(ULiveLinkSourceFactory* FactoryCDO, bool bMakeSource)
 {
-	ILiveLinkSource* Source = FactoryCDO->OnSourceCreationPanelClosed(bMakeSource);
+	TSharedPtr<ILiveLinkSource> Source = FactoryCDO->OnSourceCreationPanelClosed(bMakeSource);
 	// If we want a source we should get one ... if we dont we shouldn't. Make sure source factory does the right thing in both cases
 	if (bMakeSource)
 	{
-		check(Source);
+		check(Source.IsValid());
 		Client->AddSource(Source);
 
 		RefreshSourceData(true);
 	}
 	else
 	{
-		check(!Source);
+		check(!Source.IsValid());
 	}
 	FSlateApplication::Get().DismissAllMenus();
 	return FReply::Handled();
@@ -339,7 +377,12 @@ FReply SLiveLinkClientPanel::OnCloseSourceSelectionPanel(ULiveLinkSourceFactory*
 
 void SLiveLinkClientPanel::HandleRemoveSource()
 {
-
+	TArray<FLiveLinkSourceUIEntryPtr> Selected;
+	ListView->GetSelectedItems(Selected);
+	if (Selected.Num() > 0)
+	{
+		Selected[0]->RemoveFromClient();
+	}
 }
 
 bool SLiveLinkClientPanel::CanRemoveSource()
@@ -349,7 +392,12 @@ bool SLiveLinkClientPanel::CanRemoveSource()
 
 void SLiveLinkClientPanel::HandleRemoveAllSources()
 {
+	Client->RemoveAllSources();
+}
 
+void SLiveLinkClientPanel::OnSourcesChangedHandler()
+{
+	RefreshSourceData(true);
 }
 
 #undef LOCTEXT_NAMESPACE

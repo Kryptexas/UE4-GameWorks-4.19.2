@@ -65,15 +65,16 @@ FVector2D GetJitterOffset(int32 SampleIndex)
 void FAOScreenGridResources::InitDynamicRHI()
 {
 	//@todo - 2d textures
-	ScreenGridConeVisibility.Initialize(sizeof(uint32), NumConeSampleDirections * ScreenGridDimensions.X * ScreenGridDimensions.Y, PF_R32_UINT, BUF_Static);
+	const uint32 FastVRamFlag = IsTransientResourceBufferAliasingEnabled() ? (BUF_FastVRAM | BUF_Transient) : BUF_None;
+	ScreenGridConeVisibility.Initialize(sizeof(uint32), NumConeSampleDirections * ScreenGridDimensions.X * ScreenGridDimensions.Y, PF_R32_UINT, BUF_Static | FastVRamFlag, TEXT("ScreenGridConeVisibility"));
 
 	if (bAllocateResourceForGI)
 	{
 		ConeDepthVisibilityFunction.Initialize(sizeof(float), NumConeSampleDirections * NumVisibilitySteps * ScreenGridDimensions.X * ScreenGridDimensions.Y, PF_R32_FLOAT, BUF_Static);
 		//@todo - fp16
 		StepBentNormal.Initialize(sizeof(float) * 4, NumVisibilitySteps * ScreenGridDimensions.X * ScreenGridDimensions.Y, PF_A32B32G32R32F, BUF_Static);
-		SurfelIrradiance.Initialize(sizeof(FFloat16Color), ScreenGridDimensions.X * ScreenGridDimensions.Y, PF_FloatRGBA, BUF_Static);
-		HeightfieldIrradiance.Initialize(sizeof(FFloat16Color), ScreenGridDimensions.X * ScreenGridDimensions.Y, PF_FloatRGBA, BUF_Static);
+		SurfelIrradiance.Initialize(sizeof(FFloat16Color), ScreenGridDimensions.X * ScreenGridDimensions.Y, PF_FloatRGBA, BUF_Static | FastVRamFlag, TEXT("SurfelIrradiance"));
+		HeightfieldIrradiance.Initialize(sizeof(FFloat16Color), ScreenGridDimensions.X * ScreenGridDimensions.Y, PF_FloatRGBA, BUF_Static | FastVRamFlag, TEXT("HeightfieldIrradiance"));
 	}
 }
 
@@ -141,7 +142,7 @@ public:
 		FAOSampleData2 AOSampleData;
 
 		TArray<FVector, TInlineAllocator<9> > SampleDirections;
-		GetSpacedVectors(SampleDirections);
+		GetSpacedVectors(View.Family->FrameNumber, SampleDirections);
 
 		for (int32 SampleIndex = 0; SampleIndex < NumConeSampleDirections; SampleIndex++)
 		{
@@ -217,7 +218,7 @@ private:
 
 #define IMPLEMENT_CONETRACE_CS_TYPE(bSupportIrradiance, bUseGlobalDistanceField) \
 	typedef TConeTraceScreenGridObjectOcclusionCS<bSupportIrradiance, bUseGlobalDistanceField> TConeTraceScreenGridObjectOcclusionCS##bSupportIrradiance##bUseGlobalDistanceField; \
-	IMPLEMENT_SHADER_TYPE(template<>,TConeTraceScreenGridObjectOcclusionCS##bSupportIrradiance##bUseGlobalDistanceField,TEXT("DistanceFieldScreenGridLighting"),TEXT("ConeTraceObjectOcclusionCS"),SF_Compute);
+	IMPLEMENT_SHADER_TYPE(template<>,TConeTraceScreenGridObjectOcclusionCS##bSupportIrradiance##bUseGlobalDistanceField,TEXT("/Engine/Private/DistanceFieldScreenGridLighting.usf"),TEXT("ConeTraceObjectOcclusionCS"),SF_Compute);
 
 IMPLEMENT_CONETRACE_CS_TYPE(true, true)
 IMPLEMENT_CONETRACE_CS_TYPE(false, true)
@@ -288,7 +289,7 @@ public:
 		FAOSampleData2 AOSampleData;
 
 		TArray<FVector, TInlineAllocator<9> > SampleDirections;
-		GetSpacedVectors(SampleDirections);
+		GetSpacedVectors(View.Family->FrameNumber, SampleDirections);
 
 		for (int32 SampleIndex = 0; SampleIndex < NumConeSampleDirections; SampleIndex++)
 		{
@@ -369,7 +370,7 @@ private:
 
 #define IMPLEMENT_CONETRACE_GLOBAL_CS_TYPE(bSupportIrradiance) \
 	typedef TConeTraceScreenGridGlobalOcclusionCS<bSupportIrradiance> TConeTraceScreenGridGlobalOcclusionCS##bSupportIrradiance; \
-	IMPLEMENT_SHADER_TYPE(template<>,TConeTraceScreenGridGlobalOcclusionCS##bSupportIrradiance,TEXT("DistanceFieldScreenGridLighting"),TEXT("ConeTraceGlobalOcclusionCS"),SF_Compute);
+	IMPLEMENT_SHADER_TYPE(template<>,TConeTraceScreenGridGlobalOcclusionCS##bSupportIrradiance,TEXT("/Engine/Private/DistanceFieldScreenGridLighting.usf"),TEXT("ConeTraceGlobalOcclusionCS"),SF_Compute);
 
 IMPLEMENT_CONETRACE_GLOBAL_CS_TYPE(true)
 IMPLEMENT_CONETRACE_GLOBAL_CS_TYPE(false)
@@ -424,7 +425,7 @@ public:
 		FAOSampleData2 AOSampleData;
 
 		TArray<FVector, TInlineAllocator<9> > SampleDirections;
-		GetSpacedVectors(SampleDirections);
+		GetSpacedVectors(View.Family->FrameNumber, SampleDirections);
 
 		for (int32 SampleIndex = 0; SampleIndex < NumConeSampleDirections; SampleIndex++)
 		{
@@ -475,7 +476,7 @@ private:
 	FRWShaderParameter DistanceFieldBentNormal;
 };
 
-IMPLEMENT_SHADER_TYPE(,FCombineConeVisibilityCS,TEXT("DistanceFieldScreenGridLighting"),TEXT("CombineConeVisibilityCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FCombineConeVisibilityCS,TEXT("/Engine/Private/DistanceFieldScreenGridLighting.usf"),TEXT("CombineConeVisibilityCS"),SF_Compute);
 
 template<bool bSupportIrradiance, bool bHighQuality>
 class TGeometryAwareUpsamplePS : public FGlobalShader
@@ -615,7 +616,7 @@ private:
 
 #define IMPLEMENT_AWARE_UPSAMPLE_PS_TYPE(bSupportIrradiance,bHighQuality) \
 	typedef TGeometryAwareUpsamplePS<bSupportIrradiance, bHighQuality> TGeometryAwareUpsamplePS##bSupportIrradiance##bHighQuality; \
-	IMPLEMENT_SHADER_TYPE(template<>,TGeometryAwareUpsamplePS##bSupportIrradiance##bHighQuality,TEXT("DistanceFieldScreenGridLighting"),TEXT("GeometryAwareUpsamplePS"),SF_Pixel); 
+	IMPLEMENT_SHADER_TYPE(template<>,TGeometryAwareUpsamplePS##bSupportIrradiance##bHighQuality,TEXT("/Engine/Private/DistanceFieldScreenGridLighting.usf"),TEXT("GeometryAwareUpsamplePS"),SF_Pixel); 
 
 IMPLEMENT_AWARE_UPSAMPLE_PS_TYPE(true, true);
 IMPLEMENT_AWARE_UPSAMPLE_PS_TYPE(true, false);
@@ -702,7 +703,7 @@ void PostProcessBentNormalAOScreenGrid(
 
 		RHICmdList.CopyToResolveTarget(DistanceFieldAOBentNormal->GetRenderTargetItem().TargetableTexture, DistanceFieldAOBentNormal->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams());
 		RHICmdList.CopyToResolveTarget(DistanceFieldAOConfidence->GetRenderTargetItem().TargetableTexture, DistanceFieldAOConfidence->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams());
-			
+
 		if (bUseDistanceFieldGI)
 		{
 			RHICmdList.CopyToResolveTarget(DistanceFieldIrradiance->GetRenderTargetItem().TargetableTexture, DistanceFieldIrradiance->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams());
@@ -755,7 +756,8 @@ void FDeferredShadingSceneRenderer::RenderDistanceFieldAOScreenGrid(
 
 	if (!ScreenGridResources 
 		|| ScreenGridResources->ScreenGridDimensions != ConeTraceBufferSize 
-		|| ScreenGridResources->bAllocateResourceForGI != bUseDistanceFieldGI)
+		|| ScreenGridResources->bAllocateResourceForGI != bUseDistanceFieldGI
+		|| !ScreenGridResources->IsInitialized())
 	{
 		if (ScreenGridResources)
 		{
@@ -771,6 +773,7 @@ void FDeferredShadingSceneRenderer::RenderDistanceFieldAOScreenGrid(
 
 		ScreenGridResources->InitResource();
 	}
+	ScreenGridResources->AcquireTransientResource();
 
 	SetRenderTarget(RHICmdList, NULL, NULL);
 
@@ -779,7 +782,7 @@ void FDeferredShadingSceneRenderer::RenderDistanceFieldAOScreenGrid(
 		SCOPED_DRAW_EVENT(RHICmdList, ConeTraceGlobal);
 
 		float ConeVisibilityClearValue = 1.0f;
-		ClearUAV(RHICmdList, GMaxRHIFeatureLevel, ScreenGridResources->ScreenGridConeVisibility, *(uint32*)&ConeVisibilityClearValue);
+		ClearUAV(RHICmdList, ScreenGridResources->ScreenGridConeVisibility, *(uint32*)&ConeVisibilityClearValue);
 
 		const uint32 GroupSizeX = FMath::DivideAndRoundUp(View.ViewRect.Size().X / GAODownsampleFactor / GConeTraceDownsampleFactor, GConeTraceGlobalDFTileSize);
 		const uint32 GroupSizeY = FMath::DivideAndRoundUp(View.ViewRect.Size().Y / GAODownsampleFactor / GConeTraceDownsampleFactor, GConeTraceGlobalDFTileSize);
@@ -886,6 +889,7 @@ void FDeferredShadingSceneRenderer::RenderDistanceFieldAOScreenGrid(
 
 	{
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(ConeTraceBufferSize, PF_FloatRGBA, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable | TexCreate_UAV, false));
+		Desc.Flags |= GetTextureFastVRamFlag_DynamicLayout();
 		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, DownsampledBentNormal, TEXT("DownsampledBentNormal"));
 	}
 
@@ -900,6 +904,11 @@ void FDeferredShadingSceneRenderer::RenderDistanceFieldAOScreenGrid(
 		ComputeShader->SetParameters(RHICmdList, View, DistanceFieldNormal->GetRenderTargetItem(), DownsampledBentNormal->GetRenderTargetItem());
 		DispatchComputeShader(RHICmdList, *ComputeShader, GroupSizeX, GroupSizeY, 1);
 		ComputeShader->UnsetParameters(RHICmdList, DownsampledBentNormal->GetRenderTargetItem());
+	}
+
+	if ( IsTransientResourceBufferAliasingEnabled() )
+	{
+		ScreenGridResources->DiscardTransientResource();
 	}
 
 	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, DownsampledBentNormal);

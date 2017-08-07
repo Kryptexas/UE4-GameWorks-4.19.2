@@ -719,6 +719,10 @@ UBool FICUInternationalization::OpenDataFile(const void* context, void** fileCon
 	// If there's no file context, we might have to load the file.
 	if (!CachedFileData)
 	{
+#if !UE_BUILD_SHIPPING
+		FScopedLoadingState ScopedLoadingState(StringCast<TCHAR>(path).Get());
+#endif
+
 		// Attempt to load the file.
 		FArchive* FileAr = IFileManager::Get().CreateFileReader(StringCast<TCHAR>(path).Get());
 		if (FileAr)

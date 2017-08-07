@@ -36,7 +36,11 @@
 		notificationIntent.putExtra("localNotificationAppLaunched" , true);
 		notificationIntent.putExtra("localNotificationLaunchActivationEvent", activationEvent);
 
-		int notificationIconID = context.getResources().getIdentifier("icon", "drawable", context.getPackageName());
+		int notificationIconID = context.getResources().getIdentifier("ic_notification", "drawable", context.getPackageName());
+		if (notificationIconID == 0)
+		{
+			notificationIconID = context.getResources().getIdentifier("icon", "drawable", context.getPackageName());
+		}
 		PendingIntent pendingNotificationIntent = PendingIntent.getActivity(context, notificationID, notificationIntent, 0);
 
 		NotificationCompat.Builder builder = new NotificationCompat.Builder(context)
@@ -45,6 +49,10 @@
 			.setWhen(System.currentTimeMillis())
 			.setTicker(details)		// note: will not show up on Lollipop up except for accessibility
 			.setContentTitle(title);
+		if (android.os.Build.VERSION.SDK_INT >= 21)
+		{
+			builder.setColor(0xff0e1e43);
+		}
 		Notification notification = builder.build();
 
 		// Stick with the defaults

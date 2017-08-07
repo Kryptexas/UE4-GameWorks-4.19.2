@@ -59,6 +59,8 @@ struct UNREALED_API FDataTableEditorUtils
 
 		class UNREALED_API ListenerType : public InnerListenerType<FDataTableEditorManager>
 		{
+		public:
+			virtual void SelectionChange(const UDataTable* DataTable, FName RowName) { }
 		};
 	};
 
@@ -68,6 +70,7 @@ struct UNREALED_API FDataTableEditorUtils
 	static uint8* AddRow(UDataTable* DataTable, FName RowName);
 	static bool RenameRow(UDataTable* DataTable, FName OldName, FName NewName);
 	static bool MoveRow(UDataTable* DataTable, FName RowName, ERowMoveDirection Direction, int32 NumRowsToMoveBy = 1);
+	static bool SelectRow(UDataTable* DataTable, FName RowName);
 	static bool DiffersFromDefault(UDataTable* DataTable, FName RowName);
 	static bool ResetToDefault(UDataTable* DataTable, FName RowName);
 

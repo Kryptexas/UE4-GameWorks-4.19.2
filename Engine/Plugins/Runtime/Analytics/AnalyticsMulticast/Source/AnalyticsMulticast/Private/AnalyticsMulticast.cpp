@@ -6,8 +6,6 @@
 
 #include "Analytics.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogAnalytics, Display, All);
-
 IMPLEMENT_MODULE( FAnalyticsMulticast, AnalyticsMulticast );
 
 class FAnalyticsProviderMulticast : public IAnalyticsProvider

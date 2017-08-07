@@ -32,7 +32,7 @@ void UNavModifierComponent::CalcAndCacheBounds() const
 				UBodySetup* BodySetup = PrimComp->GetBodySetup();
 				if (BodySetup)
 				{
-					FTransform ParentTM = PrimComp->ComponentToWorld;
+					FTransform ParentTM = PrimComp->GetComponentTransform();
 					const FVector Scale3D = ParentTM.GetScale3D();
 					ParentTM.RemoveScaling();
 					Bounds += PrimComp->Bounds.GetBox();

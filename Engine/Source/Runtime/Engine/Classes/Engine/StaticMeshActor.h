@@ -21,8 +21,7 @@ class ENGINE_API AStaticMeshActor : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
-private_subobject:
-	DEPRECATED_FORGAME(4.6, "StaticMeshComponent should not be accessed directly, please use GetStaticMeshComponent() function instead. StaticMeshComponent will soon be private and your code will not compile.")
+private:
 	UPROPERTY(Category = StaticMeshActor, VisibleAnywhere, BlueprintReadOnly, meta = (ExposeFunctionCategories = "Mesh,Rendering,Physics,Components|StaticMesh", AllowPrivateAccess = "true"))
 	class UStaticMeshComponent* StaticMeshComponent;
 
@@ -64,7 +63,7 @@ protected:
 
 public:
 	/** Returns StaticMeshComponent subobject **/
-	class UStaticMeshComponent* GetStaticMeshComponent() const;
+	class UStaticMeshComponent* GetStaticMeshComponent() const { return StaticMeshComponent; }
 };
 
 

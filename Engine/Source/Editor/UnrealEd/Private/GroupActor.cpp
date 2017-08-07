@@ -11,6 +11,7 @@
 #include "ScopedTransaction.h"
 #include "LevelEditorViewport.h"
 #include "Layers/ILayers.h"
+#include "ActorGroupingUtils.h"
 
 const FLinearColor BOXCOLOR_LOCKEDGROUPS( 0.0f, 1.0f, 0.0f );
 const FLinearColor BOXCOLOR_UNLOCKEDGROUPS( 1.0f, 0.0f, 0.0f );
@@ -151,11 +152,14 @@ void AGroupActor::GroupApplyDelta(const FVector& InDrag, const FRotator& InRot, 
 {
 	for(int32 ActorIndex=0; ActorIndex<GroupActors.Num(); ++ActorIndex)
 	{
-		// Check that we've not got a parent attachment within the group/selection
-		const bool bCanApplyDelta = !ActorHasParentInGroup(GroupActors, GroupActors[ActorIndex]) && !ActorHasParentInSelection(GroupActors[ActorIndex]);
-		if(bCanApplyDelta && GroupActors[ActorIndex] != NULL )
+		if (GroupActors[ActorIndex] != NULL)
 		{
-			GEditor->ApplyDeltaToActor( GroupActors[ActorIndex], true, &InDrag, &InRot, &InScale );
+			// Check that we've not got a parent attachment within the group/selection
+			const bool bCanApplyDelta = !ActorHasParentInGroup(GroupActors, GroupActors[ActorIndex]) && !ActorHasParentInSelection(GroupActors[ActorIndex]);
+			if(bCanApplyDelta)
+			{
+				GEditor->ApplyDeltaToActor(GroupActors[ActorIndex], true, &InDrag, &InRot, &InScale);
+			}
 		}
 	}
 	for(int32 SubGroupIndex=0; SubGroupIndex<SubGroups.Num(); ++SubGroupIndex)
@@ -378,7 +382,7 @@ void AGroupActor::DrawBracketsForGroups( FPrimitiveDrawInterface* PDI, FViewport
 		return;
 	}
 
-	if( GUnrealEd->bGroupingActive )
+	if( UActorGroupingUtils::IsGroupingActive() )
 	{
 		check(PDI);
 		
@@ -673,7 +677,7 @@ void AGroupActor::ToggleGroupMode()
 	// Group mode can only be toggled when not in InterpEdit mode
 	if( !GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_InterpEdit) )
 	{
-		GUnrealEd->bGroupingActive = !GUnrealEd->bGroupingActive;
+		UActorGroupingUtils::SetGroupingActive(!UActorGroupingUtils::IsGroupingActive());
 
 		// Update group selection in the editor to reflect the toggle
 		SelectGroupsInSelection();
@@ -686,7 +690,7 @@ void AGroupActor::ToggleGroupMode()
 
 void AGroupActor::SelectGroupsInSelection()
 {
-	if( GUnrealEd->bGroupingActive )
+	if( UActorGroupingUtils::IsGroupingActive() )
 	{
 		TArray<AGroupActor*> GroupsToSelect;
 		for ( FSelectionIterator It( GEditor->GetSelectedActorIterator() ) ; It ; ++It )

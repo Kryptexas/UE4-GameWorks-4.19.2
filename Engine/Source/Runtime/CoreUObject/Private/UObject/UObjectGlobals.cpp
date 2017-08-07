@@ -46,6 +46,7 @@
 #include "Misc/ExclusiveLoadPackageTimeTracker.h"
 #include "ProfilingDebugging/CookStats.h"
 #include "Modules/ModuleManager.h"
+#include "HAL/LowLevelMemTracker.h"
 
 DEFINE_LOG_CATEGORY(LogUObjectGlobals);
 
@@ -56,7 +57,7 @@ DEFINE_LOG_CATEGORY(LogUObjectGlobals);
 bool						GIsSavingPackage = false;
 
 /** Object annotation used by the engine to keep track of which objects are selected */
-FUObjectAnnotationSparseBool GSelectedAnnotation;
+FUObjectAnnotationSparseBool GSelectedObjectAnnotation;
 
 DEFINE_STAT(STAT_InitProperties);
 DEFINE_STAT(STAT_ConstructObject);
@@ -100,6 +101,7 @@ FCoreUObjectDelegates::FIsPackageOKToSaveDelegate FCoreUObjectDelegates::IsPacka
 FCoreUObjectDelegates::FAutoPackageBackupDelegate FCoreUObjectDelegates::AutoPackageBackupDelegate;
 
 FCoreUObjectDelegates::FOnPackageReloaded FCoreUObjectDelegates::OnPackageReloaded;
+FCoreUObjectDelegates::FNetworkFileRequestPackageReload FCoreUObjectDelegates::NetworkFileRequestPackageReload;
 
 FCoreUObjectDelegates::FOnPreObjectPropertyChanged FCoreUObjectDelegates::OnPreObjectPropertyChanged;
 FCoreUObjectDelegates::FOnObjectPropertyChanged FCoreUObjectDelegates::OnObjectPropertyChanged;
@@ -112,7 +114,7 @@ FCoreUObjectDelegates::FOnAssetLoaded FCoreUObjectDelegates::OnAssetLoaded;
 FCoreUObjectDelegates::FOnObjectSaved FCoreUObjectDelegates::OnObjectSaved;
 #endif // WITH_EDITOR
 
-FCoreUObjectDelegates::FOnRedirectorFollowed FCoreUObjectDelegates::RedirectorFollowed;
+
 
 FSimpleMulticastDelegate FCoreUObjectDelegates::PreGarbageCollect;
 FSimpleMulticastDelegate FCoreUObjectDelegates::PostGarbageCollect;
@@ -124,12 +126,13 @@ FCoreUObjectDelegates::FPreLoadMapDelegate FCoreUObjectDelegates::PreLoadMap;
 FCoreUObjectDelegates::FPostLoadMapDelegate FCoreUObjectDelegates::PostLoadMapWithWorld;
 PRAGMA_DISABLE_DEPRECATION_WARNINGS
 FSimpleMulticastDelegate FCoreUObjectDelegates::PostLoadMap;
+FCoreUObjectDelegates::FStringAssetReferenceLoaded FCoreUObjectDelegates::StringAssetReferenceLoaded;
+FCoreUObjectDelegates::FStringAssetReferenceSaving FCoreUObjectDelegates::StringAssetReferenceSaving;
+FCoreUObjectDelegates::FOnRedirectorFollowed FCoreUObjectDelegates::RedirectorFollowed;
 PRAGMA_ENABLE_DEPRECATION_WARNINGS
 FSimpleMulticastDelegate FCoreUObjectDelegates::PostDemoPlay;
 FCoreUObjectDelegates::FOnLoadObjectsOnTop FCoreUObjectDelegates::ShouldLoadOnTop;
 
-FCoreUObjectDelegates::FStringAssetReferenceLoaded FCoreUObjectDelegates::StringAssetReferenceLoaded;
-FCoreUObjectDelegates::FStringAssetReferenceSaving FCoreUObjectDelegates::StringAssetReferenceSaving;
 FCoreUObjectDelegates::FPackageCreatedForLoad FCoreUObjectDelegates::PackageCreatedForLoad;
 FCoreUObjectDelegates::FPackageLoadedFromStringAssetReference FCoreUObjectDelegates::PackageLoadedFromStringAssetReference;
 FCoreUObjectDelegates::FGetPrimaryAssetIdForObject FCoreUObjectDelegates::GetPrimaryAssetIdForObject;
@@ -856,6 +859,7 @@ UObject* StaticLoadObjectInternal(UClass* ObjectClass, UObject* InOuter, const T
 	check(ObjectClass);
 	check(InName);
 
+	FScopedLoadingState ScopedLoadingState(InName);
 	FString StrName = InName;
 	UObject* Result = nullptr;
 	const bool bContainsObjectName = !!FCString::Strstr(InName, TEXT("."));
@@ -881,8 +885,11 @@ UObject* StaticLoadObjectInternal(UClass* ObjectClass, UObject* InOuter, const T
 
 		if (!Result)
 		{
-			// now that we have one asset per package, we load the entire package whenever a single object is requested
-			LoadPackage(NULL, *InOuter->GetOutermost()->GetName(), LoadFlags & ~LOAD_Verify);
+			if (!InOuter->GetOutermost()->HasAnyPackageFlags(PKG_CompiledIn))
+			{
+				// now that we have one asset per package, we load the entire package whenever a single object is requested
+				LoadPackage(NULL, *InOuter->GetOutermost()->GetName(), LoadFlags & ~LOAD_Verify);
+			}
 
 			// now, find the object in the package
 			Result = StaticFindObjectFast(ObjectClass, InOuter, *StrName);
@@ -1224,12 +1231,28 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageNameO
 		};
 
 #if WITH_EDITORONLY_DATA
-		if (!(LoadFlags & (LOAD_IsVerifying|LOAD_EditorOnly)) &&
-			(!ImportLinker || !ImportLinker->GetSerializedProperty() || !ImportLinker->GetSerializedProperty()->IsEditorOnlyProperty()))
+		if (!(LoadFlags & (LOAD_IsVerifying|LOAD_EditorOnly)))
 		{
-			// If this package hasn't been loaded as part of import verification and there's no import linker or the
-			// currently serialized property is not editor-only mark this package as runtime.
-			Result->SetLoadedByEditorPropertiesOnly(false);
+			bool bIsEditorOnly = false;
+			UProperty* SerializingProperty = ImportLinker ? ImportLinker->GetSerializedProperty() : nullptr;
+			
+			// Check property parent chain
+			while (SerializingProperty)
+			{
+				if (SerializingProperty->IsEditorOnlyProperty())
+				{
+					bIsEditorOnly = true;
+					break;
+				}
+				SerializingProperty = Cast<UProperty>(SerializingProperty->GetOuter());
+			}
+
+			if (!bIsEditorOnly)
+			{
+				// If this package hasn't been loaded as part of import verification and there's no import linker or the
+				// currently serialized property is not editor-only mark this package as runtime.
+				Result->SetLoadedByEditorPropertiesOnly(false);
+			}
 		}
 #endif
 
@@ -1374,6 +1397,9 @@ UPackage* LoadPackage(UPackage* InOuter, const TCHAR* InLongPackageName, uint32 
 	FScopeCycleCounter CycleCounter( StatId );
 #endif // STATS
 
+	// since we are faking the object name, this is basically a duplicate of LLM_SCOPED_TAG_WITH_OBJECT_IN_SET
+	FString FakePackageName = FString(TEXT("Package ")) + InLongPackageName;
+	LLM_SCOPED_TAG_WITH_STAT_NAME_IN_SET(FLowLevelMemTracker::Get().IsTagSetActive(ELLMTagSet::Assets) ? FDynamicStats::CreateMemoryStatId<FStatGroup_STATGROUP_LLMAssets>(FName(*FakePackageName)).GetName() : NAME_None, ELLMTagSet::Assets);
 	return LoadPackageInternal(InOuter, InLongPackageName, LoadFlags, /*ImportLinker =*/ nullptr);
 }
 
@@ -1769,17 +1795,7 @@ FName MakeUniqueObjectName( UObject* Parent, UClass* Class, FName InBaseName/*=N
  */
 FName MakeObjectNameFromDisplayLabel(const FString& DisplayLabel, const FName CurrentObjectName)
 {
-	FString GeneratedName = DisplayLabel;
-
-	// Convert the display label, which may consist of just about any possible character, into a
-	// suitable name for a UObject (remove whitespace, certain symbols, etc.)
-	{
-		for( int32 BadCharacterIndex = 0; BadCharacterIndex < ARRAY_COUNT( INVALID_OBJECTNAME_CHARACTERS ) - 1; ++BadCharacterIndex )
-		{
-			const TCHAR TestChar[2] = { INVALID_OBJECTNAME_CHARACTERS[ BadCharacterIndex ], 0 };
-			const int32 NumReplacedChars = GeneratedName.ReplaceInline( TestChar, TEXT( "" ) );
-		}
-	}
+	FString GeneratedName = SlugStringForValidName(DisplayLabel);
 
 	// If the current object name (without a number) already matches our object's name, then use the existing name
 	if( CurrentObjectName.GetPlainNameString() == GeneratedName )
@@ -3026,76 +3042,7 @@ void FObjectInitializer::InitProperties(UObject* Obj, UClass* DefaultsClass, UOb
 		if (bCanUsePostConstructLink)
 		{
 			// Initialize remaining property values from defaults using an explicit custom post-construction property list returned by the class object.
-			if (const FCustomPropertyListNode* CustomPropertyList = Class->GetCustomPropertyListForPostConstruction())
-			{
-				InitPropertiesFromCustomList(CustomPropertyList, Class, (uint8*)Obj, (uint8*)DefaultData);
-			}
-		}
-	}
-}
-
-void FObjectInitializer::InitPropertiesFromCustomList(const FCustomPropertyListNode* InPropertyList, UStruct* InStruct, uint8* DataPtr, const uint8* DefaultDataPtr)
-{
-	for (const FCustomPropertyListNode* CustomPropertyListNode = InPropertyList; CustomPropertyListNode; CustomPropertyListNode = CustomPropertyListNode->PropertyListNext)
-	{
-		uint8* PropertyValue = CustomPropertyListNode->Property->ContainerPtrToValuePtr<uint8>(DataPtr, CustomPropertyListNode->ArrayIndex);
-		const uint8* DefaultPropertyValue = CustomPropertyListNode->Property->ContainerPtrToValuePtr<uint8>(DefaultDataPtr, CustomPropertyListNode->ArrayIndex);
-
-		if (const UStructProperty* StructProperty = Cast<UStructProperty>(CustomPropertyListNode->Property))
-		{
-			// This should never be NULL; we should not be recording the StructProperty without at least one sub property, but we'll verify just to be sure.
-			if (ensure(CustomPropertyListNode->SubPropertyList != nullptr))
-			{
-				InitPropertiesFromCustomList(CustomPropertyListNode->SubPropertyList, StructProperty->Struct, PropertyValue, DefaultPropertyValue);
-			}
-		}
-		else if (const UArrayProperty* ArrayProperty = Cast<UArrayProperty>(CustomPropertyListNode->Property))
-		{
-			// Note: The sub-property list can be NULL here; in that case only the array size will differ from the default value, but the elements themselves will simply be initialized to defaults.
-			InitArrayPropertyFromCustomList(ArrayProperty, CustomPropertyListNode->SubPropertyList, PropertyValue, DefaultPropertyValue);
-		}
-		else
-		{
-			CustomPropertyListNode->Property->CopySingleValue(PropertyValue, DefaultPropertyValue);
-		}
-	}
-}
-
-void FObjectInitializer::InitArrayPropertyFromCustomList(const UArrayProperty* ArrayProperty, const FCustomPropertyListNode* InPropertyList, uint8* DataPtr, const uint8* DefaultDataPtr)
-{
-	FScriptArrayHelper DstArrayValueHelper(ArrayProperty, DataPtr);
-	FScriptArrayHelper SrcArrayValueHelper(ArrayProperty, DefaultDataPtr);
-
-	const int32 SrcNum = SrcArrayValueHelper.Num();
-	const int32 DstNum = DstArrayValueHelper.Num();
-
-	if (SrcNum > DstNum)
-	{
-		DstArrayValueHelper.AddValues(SrcNum - DstNum);
-	}
-	else if (SrcNum < DstNum)
-	{
-		DstArrayValueHelper.RemoveValues(SrcNum, DstNum - SrcNum);
-	}
-
-	for (const FCustomPropertyListNode* CustomArrayPropertyListNode = InPropertyList; CustomArrayPropertyListNode; CustomArrayPropertyListNode = CustomArrayPropertyListNode->PropertyListNext)
-	{
-		int32 ArrayIndex = CustomArrayPropertyListNode->ArrayIndex;
-
-		uint8* DstArrayItemValue = DstArrayValueHelper.GetRawPtr(ArrayIndex);
-		const uint8* SrcArrayItemValue = SrcArrayValueHelper.GetRawPtr(ArrayIndex);
-
-		if (const UStructProperty* InnerStructProperty = Cast<UStructProperty>(ArrayProperty->Inner))
-		{
-			InitPropertiesFromCustomList(CustomArrayPropertyListNode->SubPropertyList, InnerStructProperty->Struct, DstArrayItemValue, SrcArrayItemValue);
-		}
-		else if (const UArrayProperty* InnerArrayProperty = Cast<UArrayProperty>(ArrayProperty->Inner))
-		{
-			InitArrayPropertyFromCustomList(InnerArrayProperty, CustomArrayPropertyListNode->SubPropertyList, DstArrayItemValue, SrcArrayItemValue);
-		}
-		else
-		{
-			ArrayProperty->Inner->CopyCompleteValue(DstArrayItemValue, SrcArrayItemValue);
+			Class->InitPropertiesFromCustomList((uint8*)Obj, (uint8*)DefaultData);
 		}
 	}
 }
@@ -3648,6 +3595,9 @@ UObject* FObjectInitializer::CreateDefaultSubobject(UObject* Outer, FName Subobj
 				Outer->GetClass()->AddDefaultSubobject(Result, ReturnType);
 			}
 			Result->SetFlags(RF_DefaultSubObject);
+			// Clear PendingKill flag in case we recycled a subobject of a dead object.
+			// @todo: we should not be recycling subobjects unless we're currently loading from a package
+			Result->ClearInternalFlags(EInternalObjectFlags::PendingKill);
 		}
 	}
 	return Result;

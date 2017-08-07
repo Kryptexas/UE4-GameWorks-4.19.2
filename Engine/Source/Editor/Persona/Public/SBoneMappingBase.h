@@ -105,7 +105,7 @@ private:
 	// Bone tree widget delegates
 	void OnBoneSelectionChanged(FName Name);
 	FReply OnClearButtonClicked();
-	FName GetSelectedBone() const;
+	FName GetSelectedBone(bool& bMultipleValues) const;
 	FText GetFilterText() const;
 
 	FOnBoneMappingChanged	OnBoneMappingChanged;

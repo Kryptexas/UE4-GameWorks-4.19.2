@@ -5,15 +5,24 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
+#include "Engine/DeveloperSettings.h"
 #include "WidgetDesignerSettings.generated.h"
 
 /**
  * Implements the settings for the Widget Blueprint Designer.
  */
 UCLASS(config=EditorPerProjectUserSettings)
-class UMGEDITOR_API UWidgetDesignerSettings : public UObject
+class UMGEDITOR_API UWidgetDesignerSettings : public UDeveloperSettings
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+
+public:
+	UWidgetDesignerSettings();
+
+#if WITH_EDITOR
+	virtual FText GetSectionText() const override;
+	virtual FText GetSectionDescription() const override;
+#endif
 
 public:
 
@@ -45,4 +54,11 @@ public:
 	 */
 	UPROPERTY(EditAnywhere, config, Category = Visuals)
 	bool bExecutePreConstructEvent;
+
+	/**
+	 * Should the designer respect locked widgets?  If true, the designer by default
+	 * will not allow you to select locked widgets in the designer view.
+	 */
+	UPROPERTY(EditAnywhere, config, Category = Interaction)
+	bool bRespectLocks;
 };

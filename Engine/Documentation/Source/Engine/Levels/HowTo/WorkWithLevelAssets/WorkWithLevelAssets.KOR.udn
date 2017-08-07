@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3150518
+﻿INTSourceChangelist:3481084
 Availability: Public
 Title:레벨 애셋 작업
 Crumbs: %ROOT%, Engine
@@ -60,18 +60,96 @@ order:1
 
 1. **파일** 메뉴를 엽니다.
 
-	![](Level_File_New_Level.jpg)
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](FileMenu_Windows.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](FileMenu_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 1. **새 레벨** 을 선택합니다.
 
-	![](Level_Create_New_Level.jpg)
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](NewLevel_Windows.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](NewLevel_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 	[Region:tip]
 	키보드 단축키 **Ctrl + N** 으로도 새로운 레벨을 만들 수 있습니다.
 	[/region]
 
 	**새 레벨** 을 선택하면 뜨는 창에서 여러가지 템플릿 중 어느 것을 기반으로 새로운 레벨을 만들 것인지 선택할 수 있습니다.
 
-	![](NewLevel.png)
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](NewLevelWindow_Windows.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](NewLevelWindow_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 	* **Default** (기본): 플레이어 스타트, 라이트, 스카이 돔, 그 외 레벨의 정상 작동을 위해 필요한 여러가지 액터가 들어있는 기본 구성 레벨을 새로 만들 수 있습니다.
 	* **VR-Basic** (VR-기본): VR 에디터 조작법 학습용 액터가 들어있는 새 레벨입니다.
@@ -100,16 +178,94 @@ order:1
 
 1. **파일** 메뉴를 엽니다.
 
-	![](Level_File_New_Level.png)
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](FileMenu_Windows.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](FileMenu_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 1. **저장** 을 선택합니다.
 
-	![](Level_Save_Level.jpg)
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](SaveLevel_Windows.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](SaveLevel_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 1. **다른 이름으로 저장** 창에서 새 레벨을 저장할 위치와 이름을 선택한 뒤 **저장** 을 클릭합니다. 파일 메뉴의 **다른 이름으로 저장...** 또는 키보드 단축키 **Ctrl+Shift+S** 키를 누르면 
 뜨는 것과 같은 메뉴입니다.
 
-	![](SaveLevelAs.png)
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](SaveAs_Windows.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](SaveAs_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 
 
@@ -119,11 +275,63 @@ order:1
 
 1. **파일** 메뉴를 엽니다.
 
-	![](Level_File_New_Level.png)
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](FileMenu_Windows.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](FileMenu_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 1. **레벨 열기** 를 선택합니다.
 
-	![](Level_Open_New_Level.jpg)
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](OpenLevel_Windows.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](OpenLevel_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 	
 	[Region:tip]
 	키보드 단축키 **Ctrl + O** 로도 레벨을 열 수 있습니다. 
@@ -131,7 +339,34 @@ order:1
 
 
 1. 뜨는 **레벨 열기** 창에서 레벨을 선택한 뒤, **열기** 를 클릭합니다.
-	![](AvailableLevels.png)
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](OpenLevelMenu_Windows.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](OpenLevelMenu_Mac.png)
+	[/PARAM]
+	[/OBJECT]
+
 
 
 

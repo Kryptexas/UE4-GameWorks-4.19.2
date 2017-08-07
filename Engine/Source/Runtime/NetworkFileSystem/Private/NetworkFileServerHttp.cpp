@@ -17,9 +17,8 @@ class FNetworkFileServerClientConnectionHTTP : public FNetworkFileServerClientCo
 {
 
 public:
-	FNetworkFileServerClientConnectionHTTP(const FFileRequestDelegate& InFileRequestDelegate,
-		const FRecompileShadersDelegate& InRecompileShadersDelegate, const TArray<ITargetPlatform*>& InActiveTargetPlatforms )
-		:  FNetworkFileServerClientConnection( InFileRequestDelegate,InRecompileShadersDelegate,InActiveTargetPlatforms)
+	FNetworkFileServerClientConnectionHTTP(const FNetworkFileDelegateContainer* NetworkFileDelegates, const TArray<ITargetPlatform*>& InActiveTargetPlatforms )
+		:  FNetworkFileServerClientConnection( NetworkFileDelegates, InActiveTargetPlatforms)
 	{
 	}
 
@@ -81,8 +80,7 @@ static struct lws_protocols Protocols[] = {
 
 FNetworkFileServerHttp::FNetworkFileServerHttp(
 	int32 InPort,
-	const FFileRequestDelegate* InFileRequestDelegate,
-	const FRecompileShadersDelegate* InRecompileShadersDelegate,
+	FNetworkFileDelegateContainer InNetworkFileDelegateContainer,
 	const TArray<ITargetPlatform*>& InActiveTargetPlatforms
 	)
 	:ActiveTargetPlatforms(InActiveTargetPlatforms)
@@ -95,16 +93,7 @@ FNetworkFileServerHttp::FNetworkFileServerHttp(
 
 	UE_LOG(LogFileServer, Warning, TEXT("Unreal Network Http File Server starting up..."));
 
-	if (InFileRequestDelegate && InFileRequestDelegate->IsBound())
-	{
-		FileRequestDelegate = *InFileRequestDelegate;
-	}
-
-	if (InRecompileShadersDelegate && InRecompileShadersDelegate->IsBound())
-	{
-		RecompileShadersDelegate = *InRecompileShadersDelegate;
-	}
-
+	NetworkFileDelegates = InNetworkFileDelegateContainer;
 
 	StopRequested.Reset();
 	Ready.Reset();
@@ -250,7 +239,7 @@ FNetworkFileServerHttp::~FNetworkFileServerHttp()
 
 FNetworkFileServerClientConnectionHTTP* FNetworkFileServerHttp::CreateNewConnection()
 {
-	return new FNetworkFileServerClientConnectionHTTP(FileRequestDelegate,RecompileShadersDelegate,ActiveTargetPlatforms);
+	return new FNetworkFileServerClientConnectionHTTP(&NetworkFileDelegates,ActiveTargetPlatforms);
 }
 
 // Have a similar process function for the normal tcp connection.

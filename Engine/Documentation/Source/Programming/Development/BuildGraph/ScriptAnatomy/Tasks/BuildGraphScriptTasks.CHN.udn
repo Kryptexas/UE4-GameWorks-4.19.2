@@ -1,33 +1,13 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3358550
 Availability:Docs
 Title:BuildGraph 脚本任务
-Crumbs: %ROOT%, Programming, Programming/Development, Programming/Development/BuildGraph, Programming/Development/BuildGraph/ScriptAnatomy
+Crumbs: 
 Description:了解如何利用 BuildGraph 创建自定义任务。
 version:4.13
 parent:Programming/Development/BuildGraph
-type:Reference
-related:Programming/Development/BuildGraph/ScriptAnatomy
+type:overview
+tags:Programming
 tags:BuildGraph
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Programming/Development/BuildGraph/ScriptAnatomy/Tasks%](tasks_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/reference_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Programming/Development/BuildGraph/ScriptAnatomy/Tasks:title%
-	[/PARAM]
-	[PARAM:description]
-		%Programming/Development/BuildGraph/ScriptAnatomy/Tasks:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Programming/Development/BuildGraph/ScriptAnatomy/Tasks]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [TOC(start:1 end:3)]
 

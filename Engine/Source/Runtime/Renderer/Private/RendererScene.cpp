@@ -58,6 +58,8 @@
 #define CHECK_FOR_PIE_PRIMITIVE_ATTACH_SCENE_MISMATCH	0
 
 
+DECLARE_CYCLE_STAT(TEXT("DeferredShadingSceneRenderer MotionBlurStartFrame"), STAT_FDeferredShadingSceneRenderer_MotionBlurStartFrame, STATGROUP_SceneRendering);
+
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FDistanceCullFadeUniformShaderParameters,TEXT("PrimitiveFade"));
 
 /** Global primitive uniform buffer resource containing faded in */
@@ -285,7 +287,7 @@ FDistanceFieldSceneData::FDistanceFieldSceneData(EShaderPlatform ShaderPlatform)
 	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.GenerateMeshDistanceFields"));
 
 	bTrackAllPrimitives = (DoesPlatformSupportDistanceFieldAO(ShaderPlatform) || DoesPlatformSupportDistanceFieldShadowing(ShaderPlatform)) && CVar->GetValueOnGameThread() != 0;
-	
+
 	bCanUse16BitObjectIndices = !IsMetalPlatform(ShaderPlatform);
 }
 
@@ -474,7 +476,9 @@ SIZE_T FScene::GetSizeBytes() const
 
 void FScene::CheckPrimitiveArrays()
 {
+	check(Primitives.Num() == PrimitiveSceneProxies.Num());
 	check(Primitives.Num() == PrimitiveBounds.Num());
+	check(Primitives.Num() == PrimitiveFlagsCompact.Num());
 	check(Primitives.Num() == PrimitiveVisibilityIds.Num());
 	check(Primitives.Num() == PrimitiveOcclusionFlags.Num());
 	check(Primitives.Num() == PrimitiveComponentIds.Num());
@@ -490,7 +494,9 @@ void FScene::AddPrimitiveSceneInfo_RenderThread(FRHICommandListImmediate& RHICmd
 	int32 PrimitiveIndex = Primitives.Add(PrimitiveSceneInfo);
 	PrimitiveSceneInfo->PackedIndex = PrimitiveIndex;
 
+	PrimitiveSceneProxies.AddUninitialized();
 	PrimitiveBounds.AddUninitialized();
+	PrimitiveFlagsCompact.AddUninitialized();
 	PrimitiveVisibilityIds.AddUninitialized();
 	PrimitiveOcclusionFlags.AddUninitialized();
 	PrimitiveComponentIds.AddUninitialized();
@@ -546,7 +552,7 @@ FReadOnlyCVARCache::FReadOnlyCVARCache()
 	static const auto CVarSupportPointLightWholeSceneShadows = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SupportPointLightWholeSceneShadows"));
 	static const auto CVarSupportAllShaderPermutations = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SupportAllShaderPermutations"));	
 	static const auto CVarVertexFoggingForOpaque = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.VertexFoggingForOpaque"));	
-	static const auto CVarForwardShading = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.ForwardShading"));
+	static const auto CVarForwardShading = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ForwardShading"));
 	static const auto CVarAllowStaticLighting = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
 
 	static const auto CVarMobileAllowMovableDirectionalLights = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mobile.AllowMovableDirectionalLights"));
@@ -571,7 +577,7 @@ FReadOnlyCVARCache::FReadOnlyCVARCache()
 	NumMobileMovablePointLights = CVarMobileNumDynamicPointLights->GetValueOnAnyThread();
 
 	// Only enable VertexFoggingForOpaque if ForwardShading is enabled 
-	const bool bForwardShading = CVarForwardShading && CVarForwardShading->GetValueOnAnyThread() != 0;
+	const bool bForwardShading = CVarForwardShading && CVarForwardShading->GetInt() != 0;
 	bEnableVertexFoggingForOpaque = bForwardShading && ( !CVarVertexFoggingForOpaque || CVarVertexFoggingForOpaque->GetValueOnAnyThread() != 0 );
 
 	const bool bShowMissmatchedLowQualityLightmapsWarning = (!bEnableLowQualityLightmaps) && (GEngine->bShouldGenerateLowQualityLightmaps_DEPRECATED);
@@ -614,6 +620,7 @@ FScene::FScene(UWorld* InWorld, bool bInRequiresHitProxies, bool bInIsEditorScen
 ,	NumVisibleLights_GameThread(0)
 ,	NumEnabledSkylights_GameThread(0)
 ,	SceneFrameNumber(0)
+,	CurrentFrameUpdatedMotionBlurCache(false)
 {
 	FMemory::Memzero(MobileDirectionalLights);
 
@@ -956,7 +963,9 @@ void FScene::RemovePrimitiveSceneInfo_RenderThread(FPrimitiveSceneInfo* Primitiv
 
 	int32 PrimitiveIndex = PrimitiveSceneInfo->PackedIndex;
 	Primitives.RemoveAtSwap(PrimitiveIndex);
+	PrimitiveSceneProxies.RemoveAtSwap(PrimitiveIndex);
 	PrimitiveBounds.RemoveAtSwap(PrimitiveIndex);
+	PrimitiveFlagsCompact.RemoveAtSwap(PrimitiveIndex);
 	PrimitiveVisibilityIds.RemoveAtSwap(PrimitiveIndex);
 	PrimitiveOcclusionFlags.RemoveAtSwap(PrimitiveIndex);
 	PrimitiveComponentIds.RemoveAtSwap(PrimitiveIndex);
@@ -1182,7 +1191,7 @@ void FScene::AddLight(ULightComponent* Light)
 		Light->SceneProxy = Proxy;
 
 		// Update the light's transform and position.
-		Proxy->SetTransform(Light->ComponentToWorld.ToMatrixNoScale(),Light->GetLightPosition());
+		Proxy->SetTransform(Light->GetComponentTransform().ToMatrixNoScale(),Light->GetLightPosition());
 
 		// Create the light scene info.
 		Proxy->LightSceneInfo = new FLightSceneInfo(Proxy, true);
@@ -1215,7 +1224,7 @@ void FScene::AddInvisibleLight(ULightComponent* Light)
 		Light->SceneProxy = Proxy;
 
 		// Update the light's transform and position.
-		Proxy->SetTransform(Light->ComponentToWorld.ToMatrixNoScale(),Light->GetLightPosition());
+		Proxy->SetTransform(Light->GetComponentTransform().ToMatrixNoScale(),Light->GetLightPosition());
 
 		// Create the light scene info.
 		Proxy->LightSceneInfo = new FLightSceneInfo(Proxy, false);
@@ -1436,7 +1445,7 @@ void FScene::UpdateReflectionCaptureTransform(UReflectionCaptureComponent* Compo
 		ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(
 			UpdateTransformCommand,
 			FReflectionCaptureProxy*,Proxy,Component->SceneProxy,
-			FMatrix,Transform,Component->ComponentToWorld.ToMatrixWithScale(),
+			FMatrix,Transform,Component->GetComponentTransform().ToMatrixWithScale(),
 			const float*,AverageBrightness,Component->GetAverageBrightnessPtr(),
 			FScene*,Scene,this,
 		{
@@ -1503,7 +1512,7 @@ const FReflectionCaptureProxy* FScene::FindClosestReflectionCapture(FVector Posi
 	return ClosestCaptureIndex != INDEX_NONE ? ReflectionSceneData.RegisteredReflectionCaptures[ClosestCaptureIndex] : NULL;
 }
 
-const FPlanarReflectionSceneProxy* FScene::FindClosestPlanarReflection(const FPrimitiveBounds& Bounds) const
+const FPlanarReflectionSceneProxy* FScene::FindClosestPlanarReflection(const FBoxSphereBounds& Bounds) const
 {
 	checkSlow(IsInParallelRenderingThread());
 	const FPlanarReflectionSceneProxy* ClosestPlanarReflection = NULL;
@@ -1696,7 +1705,7 @@ void FScene::UpdateLightTransform(ULightComponent* Light)
 	if(Light->SceneProxy)
 	{
 		FUpdateLightTransformParameters Parameters;
-		Parameters.LightToWorld = Light->ComponentToWorld.ToMatrixNoScale();
+		Parameters.LightToWorld = Light->GetComponentTransform().ToMatrixNoScale();
 		Parameters.Position = Light->GetLightPosition();
 		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
 			UpdateLightTransform,
@@ -2478,12 +2487,12 @@ void FScene::ConditionalMarkStaticMeshElementsForUpdate()
 	}
 }
 
-void FScene::DumpUnbuiltLightIteractions( FOutputDevice& Ar ) const
+void FScene::DumpUnbuiltLightInteractions( FOutputDevice& Ar ) const
 {
 	FlushRenderingCommands();
 
-	TArray<FString> LightsWithUnbuiltInteractions;
-	TArray<FString> PrimitivesWithUnbuiltInteractions;
+	TSet<FString> LightsWithUnbuiltInteractions;
+	TSet<FString> PrimitivesWithUnbuiltInteractions;
 
 	// if want to print out all of the lights
 	for( TSparseArray<FLightSceneInfoCompact>::TConstIterator It(Lights); It; ++It )
@@ -2500,7 +2509,7 @@ void FScene::DumpUnbuiltLightIteractions( FOutputDevice& Ar ) const
 			if (Interaction->IsUncachedStaticLighting())
 			{
 				bLightHasUnbuiltInteractions = true;
-				PrimitivesWithUnbuiltInteractions.AddUnique(Interaction->GetPrimitiveSceneInfo()->ComponentForDebuggingOnly->GetFullName());
+				PrimitivesWithUnbuiltInteractions.Add(Interaction->GetPrimitiveSceneInfo()->ComponentForDebuggingOnly->GetFullName());
 			}
 		}
 
@@ -2511,28 +2520,28 @@ void FScene::DumpUnbuiltLightIteractions( FOutputDevice& Ar ) const
 			if (Interaction->IsUncachedStaticLighting())
 			{
 				bLightHasUnbuiltInteractions = true;
-				PrimitivesWithUnbuiltInteractions.AddUnique(Interaction->GetPrimitiveSceneInfo()->ComponentForDebuggingOnly->GetFullName());
+				PrimitivesWithUnbuiltInteractions.Add(Interaction->GetPrimitiveSceneInfo()->ComponentForDebuggingOnly->GetFullName());
 			}
 		}
 
 		if (bLightHasUnbuiltInteractions)
 		{
-			LightsWithUnbuiltInteractions.AddUnique(LightSceneInfo->Proxy->GetComponentName().ToString());
+			LightsWithUnbuiltInteractions.Add(LightSceneInfo->Proxy->GetComponentName().ToString());
 		}
 	}
 
 	Ar.Logf( TEXT( "DumpUnbuiltLightIteractions" ) );
 	Ar.Logf( TEXT( "Lights with unbuilt interactions: %d" ), LightsWithUnbuiltInteractions.Num() );
-	for (int Index = 0; Index < LightsWithUnbuiltInteractions.Num(); Index++)
+	for (auto &LightName : LightsWithUnbuiltInteractions)
 	{
-		Ar.Logf(TEXT("    Light %s"), *LightsWithUnbuiltInteractions[Index]);
+		Ar.Logf(TEXT("    Light %s"), *LightName);
 	}
 
 	Ar.Logf( TEXT( "" ) );
 	Ar.Logf( TEXT( "Primitives with unbuilt interactions: %d" ), PrimitivesWithUnbuiltInteractions.Num() );
-	for (int Index = 0; Index < PrimitivesWithUnbuiltInteractions.Num(); Index++)
+	for (auto &PrimitiveName : PrimitivesWithUnbuiltInteractions)
 	{
-		Ar.Logf(TEXT("    Primitive %s"), *PrimitivesWithUnbuiltInteractions[Index]);
+		Ar.Logf(TEXT("    Primitive %s"), *PrimitiveName);
 	}
 }
 
@@ -2711,7 +2720,7 @@ void FScene::ApplyWorldOffset_RenderThread(FVector InOffset)
 	// Primitive bounds
 	for (auto It = PrimitiveBounds.CreateIterator(); It; ++It)
 	{
-		(*It).Origin+= InOffset;
+		(*It).BoxSphereBounds.Origin+= InOffset;
 	}
 
 	// Primitive occlusion bounds
@@ -2785,7 +2794,7 @@ void FScene::OnLevelAddedToWorld(FName LevelAddedName, UWorld* InWorld, bool bIs
 {
 	if (bIsLightingScenario)
 	{
-		InWorld->PropagateLightingScenarioChange();
+		InWorld->PropagateLightingScenarioChange(true);
 	}
 
 	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
@@ -2818,7 +2827,7 @@ void FScene::OnLevelRemovedFromWorld(UWorld* InWorld, bool bIsLightingScenario)
 {
 	if (bIsLightingScenario)
 	{
-		InWorld->PropagateLightingScenarioChange();
+		InWorld->PropagateLightingScenarioChange(false);
 	}
 }
 
@@ -2836,6 +2845,23 @@ bool FScene::AddPixelInspectorRequest(FPixelInspectorRequest *PixelInspectorRequ
 	return PixelInspectorData.AddPixelInspectorRequest(PixelInspectorRequest);
 }
 #endif //WITH_EDITOR
+
+void FScene::EnsureMotionBlurCacheIsUpToDate(bool bWorldIsPaused)
+{
+	if (!CurrentFrameUpdatedMotionBlurCache)
+	{
+		FScene* Scene = this;
+
+		ENQUEUE_RENDER_COMMAND(MotionBlurStartFrame)(
+			[Scene, bWorldIsPaused](FRHICommandList& RHICmdList)
+		{
+			SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_MotionBlurStartFrame);
+			Scene->MotionBlurInfoData.StartFrame(bWorldIsPaused);
+		});
+
+		CurrentFrameUpdatedMotionBlurCache = true;
+	}
+}
 
 /**
  * Dummy NULL scene interface used by dedicated servers.
@@ -3236,7 +3262,7 @@ bool FLatentGPUTimer::Tick(FRHICommandListImmediate& RHICmdList)
 
 	if (StartQueries[QueryIndex] && EndQueries[QueryIndex])
 	{
-		if (GRHIThread)
+		if (IsRunningRHIInSeparateThread())
 		{
 			// Block until the RHI thread has processed the previous query commands, if necessary
 			// Stat disabled since we buffer 2 frames minimum, it won't actually block
@@ -3308,7 +3334,7 @@ void FLatentGPUTimer::End(FRHICommandListImmediate& RHICmdList)
 	// for these query results on some platforms.
 	RHICmdList.SubmitCommandsHint();
 
-	if (GRHIThread)
+	if (IsRunningRHIInSeparateThread())
 	{
 		int32 NumFrames = NumBufferedFrames;
 		for (int32 Dest = 1; Dest < NumFrames; Dest++)

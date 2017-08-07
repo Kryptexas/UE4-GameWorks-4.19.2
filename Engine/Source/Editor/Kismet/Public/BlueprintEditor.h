@@ -573,6 +573,9 @@ public:
 	/* Selects an item in "My Blueprint" by name. */
 	void SelectGraphActionItemByName(const FName& ItemName, ESelectInfo::Type SelectInfo = ESelectInfo::Direct, int32 SectionId = INDEX_NONE, bool bIsCategory = false);
 
+	/** Handle when the debug object is changed in the UI */
+	virtual void HandleSetObjectBeingDebugged(UObject* InObject) {}
+
 protected:
 	virtual void AppendExtraCompilerResults(TSharedPtr<class IMessageLogListing> ResultsListing);
 
@@ -713,6 +716,9 @@ protected:
 
 	void OnRestoreAllStructVarPins();
 	bool CanRestoreAllStructVarPins() const;
+
+	void OnResetPinToDefaultValue();
+	bool CanResetPinToDefaultValue() const;
 
 	void OnAddOptionPin();
 	bool CanAddOptionPin() const;
@@ -1030,6 +1036,9 @@ private:
 
 	/** Attempt to match the given enabled state for currently-selected nodes */
 	ECheckBoxState CheckEnabledStateForSelectedNodes(ENodeEnabledState CheckState);
+
+	/** Handle undo/redo */
+	void HandleUndoTransaction(const class FTransaction* Transaction);
 
 public://@TODO
 	TSharedPtr<FDocumentTracker> DocumentManager;

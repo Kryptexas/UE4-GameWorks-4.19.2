@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "CoreMinimal.h"
+#include "CoreDelegates.h"
 #include "Misc/CommandLine.h"
 #include "Misc/ScopeLock.h"
 #include "Stats/Stats.h"
@@ -499,12 +500,11 @@ void InitDebugContext()
 		}
 	#endif // GL_AMD_debug_output
 #endif // !ENABLE_VERIFY_GL
-#if !PLATFORM_MAC
+
 	if (!bDebugOutputInitialized)
 	{
 		UE_LOG(LogRHI,Warning,TEXT("OpenGL debug output extension not supported!"));
 	}
-#endif
 
 	// this is to suppress feeding back of the debug markers and groups to the log, since those originate in the app anyways...
 #if ENABLE_OPENGL_DEBUG_GROUPS && defined(GL_ARB_debug_output) && GL_ARB_debug_output && GL_KHR_debug && !OPENGL_ESDEFERRED
@@ -808,6 +808,7 @@ static void InitRHICapabilitiesForGL()
 	GSupportsWideMRT = FOpenGL::SupportsWideMRT();
 	GSupportsTexture3D = FOpenGL::SupportsTexture3D();
 	GSupportsMobileMultiView = FOpenGL::SupportsMobileMultiView();
+	GSupportsImageExternal = FOpenGL::SupportsImageExternal();
 	GSupportsResourceView = FOpenGL::SupportsResourceView();
 
 	GSupportsShaderFramebufferFetch = FOpenGL::SupportsShaderFramebufferFetch();
@@ -824,7 +825,7 @@ static void InitRHICapabilitiesForGL()
 
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES2] = (GMaxRHIFeatureLevel == ERHIFeatureLevel::ES2) ? GMaxRHIShaderPlatform : SP_OPENGL_PCES2;
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES3_1] = (GMaxRHIFeatureLevel == ERHIFeatureLevel::ES3_1) ? GMaxRHIShaderPlatform : SP_OPENGL_PCES3_1;
-	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM4] = PLATFORM_MAC ? SP_OPENGL_SM4_MAC : SP_OPENGL_SM4;
+	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM4] = SP_OPENGL_SM4;
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM5] = OPENGL_ESDEFERRED ? SP_OPENGL_ES31_EXT : SP_OPENGL_SM5;
 
 	// Set to same values as in DX11, as for the time being clip space adjustment are done entirely
@@ -934,15 +935,16 @@ static void InitRHICapabilitiesForGL()
 	{
 #if !PLATFORM_DESKTOP
 		// ES2-based cases
-		GLuint BGRA8888 = FOpenGL::SupportsBGRA8888() ? GL_BGRA_EXT : GL_RGBA;
+		GLuint BGRA8888 = (FOpenGL::SupportsBGRA8888() && !FOpenGL::SupportsSRGB()) ? GL_BGRA_EXT : GL_RGBA;
+		const bool bNeedsBGRASwizzle = (BGRA8888 == GL_RGBA);
 		GLuint RGBA8 = FOpenGL::SupportsRGBA8() ? GL_RGBA8_OES : GL_RGBA;
 
 	#if PLATFORM_ANDROID
-		SetupTextureFormat(PF_B8G8R8A8, FOpenGLTextureFormat(BGRA8888, FOpenGL::SupportsSRGB() ? GL_SRGB_ALPHA_EXT : BGRA8888, BGRA8888, GL_UNSIGNED_BYTE, false, false));
+		SetupTextureFormat(PF_B8G8R8A8, FOpenGLTextureFormat(BGRA8888, GL_SRGB8_ALPHA8, BGRA8888, GL_UNSIGNED_BYTE, false, bNeedsBGRASwizzle));
 	#else
-		SetupTextureFormat(PF_B8G8R8A8, FOpenGLTextureFormat(GL_RGBA, FOpenGL::SupportsSRGB() ? GL_SRGB_ALPHA_EXT : GL_RGBA, GL_BGRA8_EXT, FOpenGL::SupportsSRGB() ? GL_SRGB8_ALPHA8_EXT : GL_BGRA8_EXT, BGRA8888, GL_UNSIGNED_BYTE, false, false));
+		SetupTextureFormat(PF_B8G8R8A8, FOpenGLTextureFormat(GL_RGBA, GL_SRGB_ALPHA_EXT, GL_BGRA8_EXT, GL_SRGB8_ALPHA8_EXT, BGRA8888, GL_UNSIGNED_BYTE, false, false));
 	#endif
-		SetupTextureFormat(PF_R8G8B8A8, FOpenGLTextureFormat(RGBA8, FOpenGL::SupportsSRGB() ? GL_SRGB_ALPHA_EXT : RGBA8, GL_RGBA8, FOpenGL::SupportsSRGB() ? GL_SRGB8_ALPHA8_EXT : GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE, false, false));
+		SetupTextureFormat(PF_R8G8B8A8, FOpenGLTextureFormat(RGBA8, GL_SRGB8_ALPHA8, GL_RGBA8, GL_SRGB8_ALPHA8, GL_RGBA, GL_UNSIGNED_BYTE, false, false));
 	#if PLATFORM_IOS
 		SetupTextureFormat(PF_G8, FOpenGLTextureFormat(GL_LUMINANCE, GL_LUMINANCE, GL_LUMINANCE8_EXT, GL_LUMINANCE8_EXT, GL_LUMINANCE, GL_UNSIGNED_BYTE, false, false));
 		SetupTextureFormat(PF_A8, FOpenGLTextureFormat(GL_ALPHA, GL_ALPHA, GL_ALPHA8_EXT, GL_ALPHA8_EXT, GL_ALPHA, GL_UNSIGNED_BYTE, false, false));
@@ -1029,8 +1031,14 @@ static void InitRHICapabilitiesForGL()
 #if PLATFORM_ANDROID
 	if ( FOpenGL::SupportsETC2() )
 	{
-		SetupTextureFormat( PF_ETC2_RGB,	FOpenGLTextureFormat(GL_COMPRESSED_RGB8_ETC2,		FOpenGL::SupportsSRGB() ? GL_COMPRESSED_SRGB8_ETC2 : GL_COMPRESSED_RGB8_ETC2,					GL_RGBA,	GL_UNSIGNED_BYTE,	true,			false));
-		SetupTextureFormat( PF_ETC2_RGBA,	FOpenGLTextureFormat(GL_COMPRESSED_RGBA8_ETC2_EAC,	FOpenGL::SupportsSRGB() ? GL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC : GL_COMPRESSED_RGBA8_ETC2_EAC,	GL_RGBA,	GL_UNSIGNED_BYTE,	true,			false));
+		SetupTextureFormat( PF_ETC2_RGB,	FOpenGLTextureFormat(GL_COMPRESSED_RGB8_ETC2,		GL_COMPRESSED_SRGB8_ETC2,					GL_RGBA,	GL_UNSIGNED_BYTE,	true,		false));
+		SetupTextureFormat( PF_ETC2_RGBA,	FOpenGLTextureFormat(GL_COMPRESSED_RGBA8_ETC2_EAC,	GL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC,		GL_RGBA,	GL_UNSIGNED_BYTE,	true,		false));
+
+		// ETC2 is a superset of ETC1 with sRGB support
+		if (FOpenGL::SupportsSRGB())
+		{
+			SetupTextureFormat( PF_ETC1,	FOpenGLTextureFormat(GL_COMPRESSED_RGB8_ETC2, GL_COMPRESSED_SRGB8_ETC2,	GL_RGBA, GL_UNSIGNED_BYTE, true, false));
+		}
 	}
 #endif
 	if (FOpenGL::SupportsASTC())
@@ -1436,7 +1444,7 @@ void FOpenGLDynamicRHI::Init()
 		ResourceIt->InitDynamicRHI();
 	}
 
-#if PLATFORM_WINDOWS || PLATFORM_MAC || PLATFORM_LINUX
+#if PLATFORM_WINDOWS || PLATFORM_LINUX
 
 	extern int64 GOpenGLDedicatedVideoMemory;
 	extern int64 GOpenGLTotalGraphicsMemory;

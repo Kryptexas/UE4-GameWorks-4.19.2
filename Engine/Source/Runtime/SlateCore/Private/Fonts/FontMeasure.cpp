@@ -19,25 +19,33 @@ struct FSlateFontMeasureCache
 {
 	FSlateFontMeasureCache( const FCompositeFont* const InCompositeFont )
 		: MeasureCache( FontMeasureConstants::MeasureCacheSize )
-		, CompositeFontHistoryRevision( 0 )
+#if WITH_EDITORONLY_DATA
+		, CompositeFontHistoryRevision( INDEX_NONE )
+#endif	// WITH_EDITORONLY_DATA
 	{
+#if WITH_EDITORONLY_DATA
 		if( InCompositeFont )
 		{
 			CompositeFontHistoryRevision = InCompositeFont->HistoryRevision;
 		}
+#endif	// WITH_EDITORONLY_DATA
 	}
 
+#if WITH_EDITORONLY_DATA
 	/** Check to see if our cached measure data is potentially stale for the given font */
 	bool IsStale( const FCompositeFont* const InCompositeFont ) const
 	{
-		return !InCompositeFont || CompositeFontHistoryRevision != InCompositeFont->HistoryRevision;
+		return CompositeFontHistoryRevision != (InCompositeFont ? InCompositeFont->HistoryRevision : INDEX_NONE);
 	}
+#endif	// WITH_EDITORONLY_DATA
 
 	/** Internal measure cache */
 	FMeasureCache MeasureCache;
 
+#if WITH_EDITORONLY_DATA
 	/** The history revision of the cached composite font */
 	int32 CompositeFontHistoryRevision;
+#endif	// WITH_EDITORONLY_DATA
 };
 
 TSharedRef< FSlateFontMeasure > FSlateFontMeasure::Create( const TSharedRef<class FSlateFontCache>& FontCache )
@@ -284,6 +292,7 @@ FMeasureCache* FSlateFontMeasure::FindOrAddMeasureCache( const FSlateFontInfo& I
 	TSharedPtr< FSlateFontMeasureCache > FoundMeasureCache = FontToMeasureCache.FindRef( FontKey );
 	if( FoundMeasureCache.IsValid() )
 	{
+#if WITH_EDITORONLY_DATA
 		// Clear out this entry if it's stale so that we make a new one
 		if( FoundMeasureCache->IsStale( CompositeFont ) )
 		{
@@ -291,6 +300,7 @@ FMeasureCache* FSlateFontMeasure::FindOrAddMeasureCache( const FSlateFontInfo& I
 			FontToMeasureCache.Remove( FontKey );
 		}
 		else
+#endif	// WITH_EDITORONLY_DATA
 		{
 			return &FoundMeasureCache->MeasureCache;
 		}

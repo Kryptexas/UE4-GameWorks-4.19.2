@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 
+class UMovieSceneSection;
 class FSequencerDisplayNode;
 
 enum class EFindKeyDirection
@@ -39,5 +40,5 @@ public:
 	virtual void InitializeRecursive(const TArray<FSequencerDisplayNode*>& InNodes, float DuplicateThreshold = SMALL_NUMBER) = 0;
 
 	/** Initialize this key collection from the specified node and section index. */
-	virtual void InitializeRecursive(FSequencerDisplayNode& InNode, int32 InSectionIndex, float DuplicateThreshold = SMALL_NUMBER) = 0;
+	virtual void InitializeRecursive(FSequencerDisplayNode& InNode, UMovieSceneSection* InSection, float DuplicateThreshold = SMALL_NUMBER) = 0;
 };

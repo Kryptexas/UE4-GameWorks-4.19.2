@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
+#include "Engine/EngineTypes.h"
 #include "EditorPerProjectUserSettings.generated.h"
 
 // Fbx export compatibility
@@ -19,9 +20,7 @@ enum class EFbxExportCompatibility : uint8
 	FBX_2016
 };
 
-UCLASS(minimalapi, autoexpandcategories=(ViewportControls, ViewportLookAndFeel, LevelEditing, SourceControl, Content, Startup),
-	   hidecategories=(Object, Options, Grid, RotationGrid),
-	   config=EditorPerProjectUserSettings)
+UCLASS(minimalapi, autoexpandcategories=(ViewportControls, ViewportLookAndFeel, LevelEditing, SourceControl, Content, Startup), hidecategories=(Object, Options, Grid, RotationGrid), config=EditorPerProjectUserSettings)
 class UEditorPerProjectUserSettings : public UObject
 {
 	GENERATED_UCLASS_BODY()
@@ -75,18 +74,6 @@ class UEditorPerProjectUserSettings : public UObject
 	/** Folder in which Simplygon Swarm will store intermediate texture and mesh data that is uploaded to the Swarm */
 	UPROPERTY(EditAnywhere, config, Category = SimplygonSwarm, meta = (DisplayName = "Simplygon Swarm Intermediate Folder", ConfigRestartRequired = true, editcondition = "bUseSimplygonSwarm"))
 	FString SwarmIntermediateFolder;
-	
-	/** When enabled, the application frame rate, memory and Unreal object count will be displayed in the main editor UI */
-	UPROPERTY(EditAnywhere, config, Category=Performance)
-	uint32 bShowFrameRateAndMemory:1;
-
-	/** Lowers CPU usage when the editor is in the background and not the active application */
-	UPROPERTY(EditAnywhere, config, Category=Performance, meta=(DisplayName="Use Less CPU when in Background") )
-	uint32 bThrottleCPUWhenNotForeground:1;
-
-	/** When turned on, the editor will constantly monitor performance and adjust scalability settings for you when performance drops (disabled in debug) */
-	UPROPERTY(EditAnywhere, config, Category=Performance)
-	uint32 bMonitorEditorPerformance:1;
 
 	/** If enabled, any newly added classes will be automatically compiled and trigger a hot-reload of the module they were added to */
 	UPROPERTY(EditAnywhere, config, Category=HotReload, meta=(DisplayName="Automatically Compile Newly Added C++ Classes"))
@@ -95,6 +82,14 @@ class UEditorPerProjectUserSettings : public UObject
 	/** If enabled, the compile message log window will open if there is a compiler error on Hot Reload */
 	UPROPERTY(EditAnywhere, config, Category=HotReload)
 	uint32 bShowCompilerLogOnCompileError : 1;
+
+	/** If enabled, the fbx option dialog will show when user re-import a fbx */
+	UPROPERTY(EditAnywhere, config, Category = Import)
+	uint32 bShowImportDialogAtReimport : 1;
+
+	/** Specify a project data source folder to store relative source file path to ease the re-import process*/
+	UPROPERTY(EditAnywhere, config, Category = Import)
+	FDirectoryPath DataSourceFolder;
 
 	/** If enabled, export level with attachment hierarchy set */
 	UPROPERTY(EditAnywhere, config, Category=Export)
@@ -185,7 +180,9 @@ public:
 	FUserSettingChangedEvent& OnUserSettingChanged() { return UserSettingChangedEvent; }
 
 	//~ Begin UObject Interface
-	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent ) override;
+#if WITH_EDITOR
+	virtual void PostEditChangeProperty( FPropertyChangedEvent& PropertyChangedEvent ) override;
+#endif
 	virtual void PostInitProperties() override;
 	//~ End UObject Interface
 

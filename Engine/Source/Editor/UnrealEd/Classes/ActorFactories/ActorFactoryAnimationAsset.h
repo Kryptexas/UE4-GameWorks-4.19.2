@@ -9,7 +9,7 @@
 #include "ActorFactoryAnimationAsset.generated.h"
 
 class AActor;
-class FAssetData;
+struct FAssetData;
 class USkeletalMesh;
 
 UCLASS(MinimalAPI, config=Editor, hidecategories=Object)

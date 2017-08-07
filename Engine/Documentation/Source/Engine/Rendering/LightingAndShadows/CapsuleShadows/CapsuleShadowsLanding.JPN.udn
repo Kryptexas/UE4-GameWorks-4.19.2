@@ -1,14 +1,15 @@
-﻿INTSourceChangelist:3348703
-availability:docs
+﻿INTSourceChangelist:3455313
+availability:Public
 title:カプセル シャドウ
 description:アンリアル エンジン 4 のカプセル シャドウのランディング ページです。
 crumbs:
-version:4.15
-parent:Engine/Rendering/LightingAndShadows/
+Version:4.15
+parent:Engine/Rendering/LightingAndShadows
 order:
 related:Engine/Rendering/LightingAndShadows/DistanceFields/HowTo/DFHT_4
 type:landing
 tags:Lighting
+topic-image:CapsuleShadows_Topic.png
 
 [REGION:fullwidth raw]
 ![CapsuleShadowsBanner](CapsuleShadowsBanner.png)

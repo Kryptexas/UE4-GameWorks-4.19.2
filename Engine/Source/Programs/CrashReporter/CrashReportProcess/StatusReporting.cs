@@ -218,7 +218,10 @@ namespace Tools.CrashReporter.CrashReportProcess
 					                        StringBuilder StatusReportMessage = new StringBuilder();
 											// #WRH Hack to disable sending status reports when the queue size is low. A more efficient solution would avoid writing the string values as well. This is just a surgical strike.
 											bool bSendStatusReport = false;
-					                        lock (DataLock)
+											// clamp the min queue waiting time for alert to be 15 sec. But still allow for 0 to mean "never do it"
+											TimeSpan QueueWaitTimeThreshold = (Config.Default.QueueWaitingTimeAlertThreshold > TimeSpan.Zero && Config.Default.QueueWaitingTimeAlertThreshold.TotalSeconds < 15.0) ? TimeSpan.FromSeconds(15.0) : Config.Default.QueueWaitingTimeAlertThreshold;
+
+											lock (DataLock)
 					                        {
 						                        Dictionary<string, int> CountsInPeriod = ThisLoop.GetCountsInPeriod(Counters);
 
@@ -254,8 +257,12 @@ namespace Tools.CrashReporter.CrashReportProcess
 								                        else
 								                        {
 									                        WaitTimeString = string.Format("{0} minutes", WaitMinutes);
-															bSendStatusReport = true;
 								                        }
+
+														if (MeanWaitTime >= QueueWaitTimeThreshold && QueueWaitTimeThreshold > TimeSpan.Zero)
+														{
+															bSendStatusReport = true;
+														}
 								                        StatusReportMessage.AppendLine("Queue waiting time " + WaitTimeString);
 							                        }
 
@@ -283,32 +290,35 @@ namespace Tools.CrashReporter.CrashReportProcess
 					                        }
 					                        return bSendStatusReport ? StatusReportMessage.ToString() : "";
 				                        }));
+			if (Config.Default.DiskSpaceAvailableAlertInterval > TimeSpan.Zero)
+			{
+				// clamp to min 15 sec interval.
+				TimeSpan DiskStatusReportInterval = Config.Default.DiskSpaceAvailableAlertInterval.TotalSeconds < 15.0 ? TimeSpan.FromSeconds(15.0) : Config.Default.DiskSpaceAvailableAlertInterval;
+				StatusReportLoops.Add(
+					new DiskStatusReport(DiskStatusReportInterval, (InLoop, InPeriod) =>
+										 {
+											 StringBuilder DailyReportMessage = new StringBuilder();
+											 lock (DataLock)
+											 {
+												 DailyReportMessage.AppendLine("Disk space available...");
 
-			StatusReportLoops.Add(
-				new DiskStatusReport(TimeSpan.FromDays(1.0), (InLoop, InPeriod) =>
-				                     {
-					                     StringBuilder DailyReportMessage = new StringBuilder();
-					                     lock (DataLock)
-					                     {
-						                     DailyReportMessage.AppendLine("Disk space available...");
+												 foreach (var FolderMonitor in FolderMonitors)
+												 {
+													 string FreeSpaceText = "#Error";
+													 string Drive = FolderMonitor.Key;
+													 Int64 FreeSpace;
+													 float FreePercent;
+													 if (CrashReportCommon.StorageSpaceHelper.TryGetSpaceAvailable(Drive, out FreeSpace, out FreePercent))
+													 {
+														 FreeSpaceText = GetDiskSpaceString(FreeSpace, FreePercent);
+													 }
 
-						                     foreach (var FolderMonitor in FolderMonitors)
-						                     {
-							                     string FreeSpaceText = "#Error";
-							                     string Drive = FolderMonitor.Key;
-							                     Int64 FreeSpace;
-							                     float FreePercent;
-							                     if (CrashReportCommon.StorageSpaceHelper.TryGetSpaceAvailable(Drive, out FreeSpace, out FreePercent))
-							                     {
-								                     FreeSpaceText = GetDiskSpaceString(FreeSpace, FreePercent);
-							                     }
-
-							                     DailyReportMessage.AppendLine("> " + FolderMonitor.Value + " =>> " + FreeSpaceText);
-						                     }
-					                     }
-					                     return DailyReportMessage.ToString();
-				                     }));
-
+													 DailyReportMessage.AppendLine("> " + FolderMonitor.Value + " =>> " + FreeSpaceText);
+												 }
+											 }
+											 return DailyReportMessage.ToString();
+										 }));
+			}
 			if (Config.Default.MonitorPerformance)
 			{
 				StatusReportLoops.Add(

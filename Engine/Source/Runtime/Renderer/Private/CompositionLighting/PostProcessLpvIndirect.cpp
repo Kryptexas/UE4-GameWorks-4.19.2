@@ -21,7 +21,7 @@
 #include "ScenePrivate.h"
 #include "PostProcess/SceneFilterRendering.h"
 #include "PostProcess/PostProcessing.h"
-#include "LightPropagationVolumeBlendable.h"
+#include "LightPropagationVolumeSettings.h"
 #include "PipelineStateCache.h"
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FLpvReadUniformBufferParameters,TEXT("LpvRead"));
@@ -143,8 +143,8 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(template<>,TPostProcessLpvIndirectPS<false>,TEXT("PostProcessLpvIndirect"),TEXT("MainPS"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>,TPostProcessLpvIndirectPS<true>,TEXT("PostProcessLpvIndirect"),TEXT("MainPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,TPostProcessLpvIndirectPS<false>,TEXT("/Engine/Private/PostProcessLpvIndirect.usf"),TEXT("MainPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,TPostProcessLpvIndirectPS<true>,TEXT("/Engine/Private/PostProcessLpvIndirect.usf"),TEXT("MainPS"),SF_Pixel);
 
 class FPostProcessLpvDirectionalOcclusionPS : public FGlobalShader
 {
@@ -205,7 +205,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessLpvDirectionalOcclusionPS,TEXT("PostProcessLpvIndirect"),TEXT("DirectionalOcclusionPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FPostProcessLpvDirectionalOcclusionPS,TEXT("/Engine/Private/PostProcessLpvIndirect.usf"),TEXT("DirectionalOcclusionPS"),SF_Pixel);
 
 void FRCPassPostProcessLpvIndirect::Process(FRenderingCompositePassContext& Context)
 {

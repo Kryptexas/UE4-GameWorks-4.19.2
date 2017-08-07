@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3367470
 Title: 2013년 7월 릴리즈 노트
 Crumbs:%ROOT%, Support/Builds
 Description:
 Availability:Licensee
-Template:ReleaseNotes.html
+Parent:Support/Builds
+Order:-7
 
 [TOC(start:2 end:2)]
 
@@ -136,7 +137,7 @@ Template:ReleaseNotes.html
 ####플랫폼
 * 대부분의 플랫폼에 APEX Clothing 이 지원됩니다.
 * Generic PlatformProperties 에 새 함수가 추가되었습니다:
-	* **SupportsFastVRAMMemory** - 플랫폼이 FastVRAM 패쓰를 지원하면 True, 아니면 False (디폴트)를 반환합니다.
+	* **SupportsFastVRAMMemory** - 플랫폼이 FastVRAM 패스를 지원하면 True, 아니면 False (디폴트)를 반환합니다.
 * TexCreate 와 BUF 힌트 플래그를 새로 추가했습니다: `*_FastVRAM`
 	* 가능하다면 RHI 가 텍스처나 버텍스/콘스턴트 버퍼에 FastVRAM 을 사용하도록 합니다.
 * 기본 FFastVRAMAllocator 클래스를 추가했습니다 (기본적으로 아무것도 하지 않습니다).
@@ -153,7 +154,7 @@ Template:ReleaseNotes.html
 	* z 거리 기반입니다 (전에는 방사형(radial) 이었습니다).
 	* 캐스케이드 이행이 부드럽습니다.
 	* 섀도 바이어스 개선과 아울러 다이내믹 섀도 퀄리티가 약간 향상됩니다.
-* 포워드 셰이딩 (ES2) 패쓰가 이제 HDR, 노출, 블룸을 지원합니다.
+* 포워드 셰이딩 (ES2) 패스가 이제 HDR, 노출, 블룸을 지원합니다.
 * MinRoughness 라이트 파라미터를 추가했습니다 (fill light 에 매우 유용합니다).
 
 
@@ -343,7 +344,7 @@ Template:ReleaseNotes.html
 * 콘텐츠 브라우저에서 애셋 동기화시 필터로 인해 해당 애셋이 표시되지 않게 될 때만 필터가 리셋됩니다.
 * 이제 프로젝트의 기본 위치는 "내 문서" 그 자체가 아니라 그 하위 폴더가 됩니다.
 * UAsset 파일이 퍼포스에 텍스트 포맷으로 추가되는 것을 방지하기 위한 약간의 실패방지 코드를 추가했습니다.
-* 서버 다운일 때 SCC 콜렉션 작업 처리를 위한 콜렉션 오류를 추가했습니다.
+* 서버 다운일 때 SCC 컬렉션 작업 처리를 위한 컬렉션 오류를 추가했습니다.
 * 일반적인 컨테이너 최적화가 있었습니다.
 
 

@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:2697187
+﻿INTSourceChangelist:3429254
 Availability:Public
 Title:ブループリントでプレイヤーをリスポーンするための操作ガイド
 Crumbs: %ROOT%, Gameplay, Gameplay/HowTo/RespawnPlayer
 Description:UE4 のブループリントでプレイヤー キャラクターをリスポーンするための操作ガイド 
 Version:4.9
 SkillLevel:Advanced
+type:how-to
 
 [TOC (start:2)]
 
@@ -60,7 +61,7 @@ _以下の手順は、**Blueprint Third Person Template** プロジェクトの�
 
 	![](GHT3B_6.png)
 
-	 ノードをメニューに表示するために **Context Sensitive** オプションのチェックを再度入れる必要があるかもしれません。 
+	 ノードをメニューに表示するために **Context Sensitive** を再確認する必要があるかもしれません。 
 
 1.	このカスタム イベントを **Cast To ThirdPersonCharacter** ノードに接続します。 
 
@@ -72,7 +73,7 @@ _以下の手順は、**Blueprint Third Person Template** プロジェクトの�
 
 	_画像をクリックしてフルサイズで表示_
 
-1. 	**コンパイル** し **保存** してから、ブループリントを終了します。
+1.	**コンパイル** し **保存** してから、ブループリントを閉じます。
 
 1.	**ThirdPersonCharacter** ブループリントを開き、グラフ内で **右クリック** し、**Event Begin Play** ノードを追加します。 
 

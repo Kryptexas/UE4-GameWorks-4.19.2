@@ -17,7 +17,7 @@ void UAchievementBlueprintLibrary::GetCachedAchievementProgress(UObject* WorldCo
 	bFoundID = false;
 	Progress = 0.0f;
 
-	FOnlineSubsystemBPCallHelper Helper(TEXT("GetCachedAchievementProgress"), GEngine->GetWorldFromContextObject(WorldContextObject));
+	FOnlineSubsystemBPCallHelper Helper(TEXT("GetCachedAchievementProgress"), WorldContextObject);
 	Helper.QueryIDFromPlayerController(PlayerController);
 
 	if (Helper.IsValid())
@@ -47,7 +47,7 @@ void UAchievementBlueprintLibrary::GetCachedAchievementDescription(UObject* Worl
 	UnlockedDescription = FText::GetEmpty();
 	bHidden = false;
 
-	FOnlineSubsystemBPCallHelper Helper(TEXT("GetCachedAchievementDescription"), GEngine->GetWorldFromContextObject(WorldContextObject));
+	FOnlineSubsystemBPCallHelper Helper(TEXT("GetCachedAchievementDescription"), WorldContextObject);
 	Helper.QueryIDFromPlayerController(PlayerController);
 
 	if (Helper.IsValid())

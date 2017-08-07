@@ -31,11 +31,6 @@ public:
 		return &Section;
 	}
 
-	virtual FText GetDisplayName() const override
-	{ 
-		return LOCTEXT("SectionDisplayName", "Attach");
-	}
-	
 	virtual FText GetSectionTitle() const override 
 	{ 
 		UMovieScene3DAttachSection* AttachSection = Cast<UMovieScene3DAttachSection>(&Section);
@@ -200,11 +195,9 @@ void F3DAttachTrackEditor::ActorSocketPicked(const FName SocketName, USceneCompo
 	}
 }
 
-bool F3DAttachTrackEditor::AddKeyInternal( float KeyTime, const TArray<TWeakObjectPtr<UObject>> Objects, const FName SocketName, const FName ComponentName, AActor* ParentActor)
+FKeyPropertyResult F3DAttachTrackEditor::AddKeyInternal( float KeyTime, const TArray<TWeakObjectPtr<UObject>> Objects, const FName SocketName, const FName ComponentName, AActor* ParentActor)
 {
-	bool bHandleCreated = false;
-	bool bTrackCreated = false;
-	bool bTrackModified = false;
+	FKeyPropertyResult KeyPropertyResult;
 
 	FGuid ParentActorId;
 
@@ -212,12 +205,12 @@ bool F3DAttachTrackEditor::AddKeyInternal( float KeyTime, const TArray<TWeakObje
 	{
 		FFindOrCreateHandleResult HandleResult = FindOrCreateHandleToObject(ParentActor);
 		ParentActorId = HandleResult.Handle;
-		bHandleCreated |= HandleResult.bWasCreated;
+		KeyPropertyResult.bHandleCreated |= HandleResult.bWasCreated;
 	}
 
 	if (!ParentActorId.IsValid())
 	{
-		return false;
+		return KeyPropertyResult;
 	}
 
 	for( int32 ObjectIndex = 0; ObjectIndex < Objects.Num(); ++ObjectIndex )
@@ -226,12 +219,12 @@ bool F3DAttachTrackEditor::AddKeyInternal( float KeyTime, const TArray<TWeakObje
 
 		FFindOrCreateHandleResult HandleResult = FindOrCreateHandleToObject( Object );
 		FGuid ObjectHandle = HandleResult.Handle;
-		bHandleCreated |= HandleResult.bWasCreated;
+		KeyPropertyResult.bHandleCreated |= HandleResult.bWasCreated;
 		if (ObjectHandle.IsValid())
 		{
 			FFindOrCreateTrackResult TrackResult = FindOrCreateTrackForObject( ObjectHandle, UMovieScene3DAttachTrack::StaticClass());
 			UMovieSceneTrack* Track = TrackResult.Track;
-			bTrackCreated |= TrackResult.bWasCreated;
+			KeyPropertyResult.bTrackCreated |= TrackResult.bWasCreated;
 
 			if (ensure(Track))
 			{
@@ -252,12 +245,12 @@ bool F3DAttachTrackEditor::AddKeyInternal( float KeyTime, const TArray<TWeakObje
 				}
 
 				Cast<UMovieScene3DAttachTrack>(Track)->AddConstraint( KeyTime, AttachEndTime, SocketName, ComponentName, ParentActorId );
-				bTrackModified = true;
+				KeyPropertyResult.bTrackModified = true;
 			}
 		}
 	}
 
-	return bHandleCreated || bTrackCreated || bTrackModified;
+	return KeyPropertyResult;
 }
 
 

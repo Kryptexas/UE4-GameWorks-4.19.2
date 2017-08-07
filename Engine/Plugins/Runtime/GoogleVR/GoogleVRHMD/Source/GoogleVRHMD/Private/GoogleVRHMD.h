@@ -1,17 +1,4 @@
-/* Copyright 2016 Google Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2017 Google Inc.
 
 #pragma once
 
@@ -28,8 +15,6 @@
 #include "Classes/GoogleVRHMDFunctionLibrary.h"
 #include "GoogleVRSplash.h"
 #include "Containers/Queue.h"
-
-DEFINE_LOG_CATEGORY_STATIC(LogHMD, Log, All);
 
 #define LOG_VIEWER_DATA_FOR_GENERATION 0
 
@@ -100,6 +85,7 @@ public:
 	static FGoogleVRHMDTexture2DSet* CreateTexture2DSet(
 		FOpenGLDynamicRHI* InGLRHI,
 		uint32 SizeX, uint32 SizeY,
+		uint32 InNumLayers,
 		uint32 InNumSamples,
 		uint32 InNumSamplesTileMem,
 		EPixelFormat InFormat,
@@ -138,7 +124,7 @@ public:
 	 * @param Index			(in) index of the buffer, changing from 0 to GetNumberOfBufferedFrames()
 	 * @return				true, if texture was allocated; false, if the default texture allocation should be used.
 	 */
-	bool AllocateRenderTargetTexture(uint32 Index, uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 Flags, uint32 TargetableTextureFlags);
+	bool AllocateRenderTargetTexture(uint32 Index, uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumLayers, uint32 NumMips, uint32 Flags, uint32 TargetableTextureFlags);
 
 	// Frame operations
 	void UpdateRenderingViewportList(const gvr_buffer_viewport_list* BufferViewportList);
@@ -171,6 +157,10 @@ public:
 	//virtual void OnReleaseThreadOwnership() {}
 };
 #endif // GOOGLEVRHMD_SUPPORTED_PLATFORMS
+#if GOOGLEVRHMD_SUPPORTED_INSTANT_PREVIEW_PLATFORMS
+#include "instant_preview_server.h"
+#include "ip_shared.h"
+#endif  // GOOGLEVRHMD_SUPPORTED_INSTANT_PREVIEW_PLATFORMS
 
 /**
  * GoogleVR Head Mounted Display
@@ -266,6 +256,12 @@ public:
 
 	/** Check if the application is running in Daydream mode*/
 	bool IsInDaydreamMode() const;
+
+	/** Check if mobile multi-view direct is enabled */
+	bool IsMobileMultiViewDirect() const
+	{
+		return bIsMobileMultiViewDirect;
+	}
 
 	void SetSPMEnable(bool bEnable) const;
 
@@ -375,6 +371,7 @@ private:
 	bool		bUseOffscreenFramebuffers;
 	bool		bIsInDaydreamMode;
 	bool		bForceStopPresentScene;
+	bool		bIsMobileMultiViewDirect;
 	float		NeckModelScale;
 	FQuat		CurHmdOrientation;
 	FVector		CurHmdPosition;
@@ -405,6 +402,25 @@ private:
 	mutable gvr_buffer_viewport_list* NonDistortedBufferViewportList;
 	mutable gvr_buffer_viewport_list* ActiveViewportList;
 	mutable gvr_buffer_viewport* ScratchViewport;
+#endif
+#if GOOGLEVRHMD_SUPPORTED_INSTANT_PREVIEW_PLATFORMS
+	static const int kReadbackTextureCount = 5;
+	FTexture2DRHIRef ReadbackTextures[kReadbackTextureCount];
+	FRenderQueryRHIRef ReadbackCopyQueries[kReadbackTextureCount];
+	FIntPoint ReadbackTextureSizes[kReadbackTextureCount];
+	int ReadbackTextureCount;
+	instant_preview::ReferencePose ReadbackReferencePoses[kReadbackTextureCount];
+	void* ReadbackBuffers[kReadbackTextureCount];
+	int ReadbackBufferWidths[kReadbackTextureCount];
+	int SentTextureCount;
+	TArray<FColor> ReadbackData;
+
+	ip_static_server_handle IpServerHandle;
+	bool bIsInstantPreviewActive;
+	mutable instant_preview::EyeViews EyeViews;
+	mutable instant_preview::ReferencePose CurrentReferencePose;
+	mutable TQueue<instant_preview::ReferencePose> PendingRenderReferencePoses;
+	mutable instant_preview::ReferencePose RenderReferencePose;
 #endif
 
 	// Simulation data for previewing
@@ -460,6 +476,10 @@ public:
 	 * Called on render thread at the start of rendering, for each view, after PreRenderViewFamily_RenderThread call.
 	 */
 	virtual void PreRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView) override;
+	/**
+	* Called on render thread after rendering.
+	*/
+	virtual void PostRenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& InViewFamily) override;
 
 	///////////////////////////////////////////////////
 	// Begin IStereoRendering Pure-Virtual Interface //
@@ -875,4 +895,9 @@ public:
 	 */
 	virtual FString GetVersionString() const override;
 
+#if GOOGLEVRHMD_SUPPORTED_INSTANT_PREVIEW_PLATFORMS
+	bool GetCurrentReferencePose(FQuat& CurrentOrientation, FVector& CurrentPosition) const;
+	static FVector GetLocalEyePos(const instant_preview::EyeView& EyeView);
+	void PushVideoFrame(const FColor* VideoFrameBuffer, int width, int height, int stride, instant_preview::PixelFormat pixel_format, instant_preview::ReferencePose reference_pose);
+#endif  // GOOGLEVRHMD_SUPPORTED_INSTANT_PREVIEW_PLATFORMS
 };

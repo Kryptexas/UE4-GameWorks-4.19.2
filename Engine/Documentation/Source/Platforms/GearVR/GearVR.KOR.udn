@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3235148
+﻿INTSourceChangelist:3467293
 Title: 삼성 Gear VR 개발
 Description:UE4 에서 삼성 Gear VR 헤드셋을 사용하기 위한 안내입니다.
 Availability:Public
@@ -13,6 +13,7 @@ parent:Platforms/VR
 tags:VR
 tags:GearVR
 tags:Platform
+Topic-image:SamsungGearVRDevelopment_topic.png
 
 ## 시작하기
 

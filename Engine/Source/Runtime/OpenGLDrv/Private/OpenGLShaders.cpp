@@ -13,13 +13,12 @@
 #include "OpenGLDrvPrivate.h"
 #include "Shader.h"
 #include "GlobalShader.h"
+#include "SceneUtils.h"
 
 #define CHECK_FOR_GL_SHADERS_TO_REPLACE 0
 
 #if PLATFORM_WINDOWS
 #include <mmintrin.h>
-#elif PLATFORM_MAC
-#include <xmmintrin.h>
 #endif
 #include "SceneUtils.h"
 
@@ -689,6 +688,9 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 
 	// Whether we need to emit mobile multi-view code or not.
 	const bool bEmitMobileMultiView = (FCStringAnsi::Strstr(GlslCodeOriginal.GetData(), "gl_ViewID_OVR") != nullptr);
+
+	// Whether we need to emit texture external code or not.
+	const bool bEmitTextureExternal = (FCStringAnsi::Strstr(GlslCodeOriginal.GetData(), "samplerExternalOES") != nullptr);
 	
 	if (Capabilities.TargetPlatform == EOpenGLShaderTargetPlatform::OGLSTP_Android || Capabilities.TargetPlatform == EOpenGLShaderTargetPlatform::OGLSTP_HTML5)
 	{
@@ -705,11 +707,6 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 			}
 			ReplaceCString(GlslCodeOriginal, "#version 100", "");
 		}
-	}
-	else if (Capabilities.TargetPlatform == EOpenGLShaderTargetPlatform::OGLSTP_Desktop && PLATFORM_MAC)
-	{
-		AppendCString(GlslCode, "#version 330\n");
-		ReplaceCString(GlslCodeOriginal, "#version 150", "");
 	}
 	else if (Capabilities.TargetPlatform == EOpenGLShaderTargetPlatform::OGLSTP_iOS)
 	{
@@ -731,6 +728,23 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 		{
 			// Strip out multi-view for devices that don't support it.
 			AppendCString(GlslCode, "#define gl_ViewID_OVR 0\n");
+		}
+	}
+
+	if (bEmitTextureExternal)
+	{
+		MoveHashLines(GlslCode, GlslCodeOriginal);
+
+		if (GSupportsImageExternal)
+		{
+			AppendCString(GlslCode, "\n\n");
+			AppendCString(GlslCode, "#extension GL_OES_EGL_image_external_essl3 : require\n");
+			AppendCString(GlslCode, "\n\n");
+		}
+		else
+		{
+			// Strip out texture external for devices that don't support it.
+			AppendCString(GlslCode, "#define samplerExternalOES sampler2D\n");
 		}
 	}
 
@@ -806,22 +820,28 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 
 		if (IsES2Platform(Capabilities.MaxRHIShaderPlatform) && !bES31)
 		{
-			if (Capabilities.bSupportsRenderTargetFormat_PF_FloatRGBA || !IsMobileHDR())
+			const ANSICHAR * EncodeModeDefine = nullptr;
+
+			switch (GetMobileHDRMode())
 			{
-				AppendCString(GlslCode, "#define HDR_32BPP_ENCODE_MODE 0.0\n");
+				case EMobileHDRMode::Disabled:
+				case EMobileHDRMode::EnabledFloat16:
+					EncodeModeDefine = "#define HDR_32BPP_ENCODE_MODE 0.0\n";
+					break;
+				case EMobileHDRMode::EnabledMosaic:
+					EncodeModeDefine = "#define HDR_32BPP_ENCODE_MODE 1.0\n";
+					break;
+				case EMobileHDRMode::EnabledRGBE:
+					EncodeModeDefine = "#define HDR_32BPP_ENCODE_MODE 2.0\n";
+					break;
+				case EMobileHDRMode::EnabledRGBA8:
+					EncodeModeDefine = "#define HDR_32BPP_ENCODE_MODE 3.0\n";
+					break;
+				default:
+					checkNoEntry();
+					break;
 			}
-			else
-			{
-				if (!Capabilities.bSupportsShaderFramebufferFetch)
-				{
-					// mosaic
-					AppendCString(GlslCode, "#define HDR_32BPP_ENCODE_MODE 1.0\n");
-				}
-				else
-				{
-					AppendCString(GlslCode, "#define HDR_32BPP_ENCODE_MODE 2.0\n");
-				}
-			}
+			AppendCString(GlslCode, EncodeModeDefine);
 
 			if (Capabilities.bRequiresARMShaderFramebufferFetchDepthStencilUndef && TypeEnum == GL_FRAGMENT_SHADER)
 			{

@@ -132,8 +132,8 @@ public:
 
 	explicit FAuthTokenGoogle(const FString& InRefreshToken, EGoogleRefreshToken)
 		: AuthType(EGoogleAuthTokenType::RefreshToken)
-		, RefreshToken(InRefreshToken)
 		, ExpiresIn(0)
+		, RefreshToken(InRefreshToken)
 		, ExpiresInUTC(0)
 	{
 	}
@@ -176,6 +176,15 @@ public:
 	 * @return true if parsing was successful, false otherwise
 	 */
 	bool Parse(const FString& InJsonStr);
+
+	/**
+	 * Parse a Google json auth response into an access/refresh token
+	 *
+	 * @param InJsonObject json object containing the token information
+	 *
+	 * @return true if parsing was successful, false otherwise
+	 */
+	bool Parse(TSharedPtr<FJsonObject> InJsonObject);
 
 	/**
 	 * Parse a Google json auth refresh response into an access/refresh token
@@ -339,7 +348,16 @@ public:
 	FErrorGoogle()
 	{
 	}
+	
+	/** Error type */
+	FString Error;
+	/** Description of error */
+	FString Error_Description;
+
+	FString ToDebugString() const { return FString::Printf(TEXT("%s [Desc:%s]"), *Error, *Error_Description); }
 
 	BEGIN_ONLINE_JSON_SERIALIZER
+		ONLINE_JSON_SERIALIZE("error", Error);
+		ONLINE_JSON_SERIALIZE("error_description", Error_Description);
 	END_ONLINE_JSON_SERIALIZER
 };

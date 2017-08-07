@@ -29,7 +29,7 @@ int RunSlateViewer( const TCHAR* CommandLine )
 	// Make sure all UObject classes are registered and default properties have been initialized
 	ProcessNewlyLoadedUObjects();
 	
-	// Tell the module manager is may now process newly-loaded UObjects when new C++ modules are loaded
+	// Tell the module manager it may now process newly-loaded UObjects when new C++ modules are loaded
 	FModuleManager::Get().StartProcessingNewlyLoadedObjects();
 
 	// crank up a normal Slate application using the platform's standalone renderer

@@ -108,7 +108,7 @@ void USoundWave::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 				CumulativeResourceSize.AddDedicatedSystemMemoryBytes(MONO_PCM_BUFFER_SIZE * NumChannels);
 			}
 			
-			if ((!FPlatformProperties::SupportsAudioStreaming() || !IsStreaming()))
+			if (!FPlatformProperties::SupportsAudioStreaming() || !IsStreaming())
 			{
 				CumulativeResourceSize.AddDedicatedSystemMemoryBytes(GetCompressedDataSize(LocalAudioDevice->GetRuntimeFormat(this)));
 			}
@@ -394,8 +394,8 @@ void USoundWave::PostLoad()
 		}
 	}
 
-	// Only add this streaming sound if we're not a dedicated server or if there is an audio device manager
-	if (IsStreaming() && FPlatformProperties::SupportsAudioStreaming()) 
+	// Only add this streaming sound if the platform supports streaming
+	if (IsStreaming() && FPlatformProperties::SupportsAudioStreaming())
 	{
 #if WITH_EDITORONLY_DATA
 		FinishCachePlatformData();
@@ -750,7 +750,7 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 		}
 		else
 		{
-			// Otherwise, we're just goign to use the DefaultMasterReverbSendAmount defined the sound base
+			// Otherwise, we're just going to use the DefaultMasterReverbSendAmount defined the sound base
 			WaveInstance->ReverbWetLevelMin = ParseParams.DefaultMasterReverbSendAmount;
 		}
 
@@ -773,7 +773,11 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 		WaveInstance->ReverbPluginSettings = ParseParams.ReverbPluginSettings;
 
 		bool bAddedWaveInstance = false;
-		if (WaveInstance->GetVolume() > KINDA_SMALL_NUMBER || (bVirtualizeWhenSilent && AudioDevice->VirtualSoundsEnabled()))
+		// For now, we must virtualize sounds if we are supposed to handle subtitles, because otherwise the subtitles never play.
+		// That needs to change in the future, because there are still reasons a sound (and thus its subtitle) may not play.
+		// But for now at least that makes it possible handle virtualizing properly.
+		bool bHasSubtitles = ActiveSound.bHandleSubtitles && (ActiveSound.bHasExternalSubtitles || (Subtitles.Num() > 0));
+		if (WaveInstance->GetVolume() > KINDA_SMALL_NUMBER || ((bVirtualizeWhenSilent || bHasSubtitles) && AudioDevice->VirtualSoundsEnabled()))
 		{
 			bAddedWaveInstance = true;
 			WaveInstances.Add(WaveInstance);
@@ -874,7 +878,7 @@ void USoundWave::UpdatePlatformData()
 	}
 }
 
-void USoundWave::GetChunkData(int32 ChunkIndex, uint8** OutChunkData)
+bool USoundWave::GetChunkData(int32 ChunkIndex, uint8** OutChunkData)
 {
 	if (RunningPlatformData->TryLoadChunk(ChunkIndex, OutChunkData) == false)
 	{
@@ -886,6 +890,13 @@ void USoundWave::GetChunkData(int32 ChunkIndex, uint8** OutChunkData)
 		{
 			UE_LOG(LogAudio, Error, TEXT("Failed to build sound %s."), *GetPathName());
 		}
+		else
+		{
+			// Succeeded after rebuilding platform data
+			return true;
+		}
 #endif // #if WITH_EDITORONLY_DATA
+		return false;
 	}
+	return true;
 }

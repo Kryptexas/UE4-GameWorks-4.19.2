@@ -260,7 +260,7 @@ bool FGraphNodeClassHelper::IsPackageSaved(FName PackageName)
 	return bFound;
 }
 
-void FGraphNodeClassHelper::OnAssetAdded(const class FAssetData& AssetData)
+void FGraphNodeClassHelper::OnAssetAdded(const struct FAssetData& AssetData)
 {
 	TSharedPtr<FGraphNodeClassNode> Node = CreateClassDataNode(AssetData);
 
@@ -298,7 +298,7 @@ void FGraphNodeClassHelper::OnAssetAdded(const class FAssetData& AssetData)
 	}
 }
 
-void FGraphNodeClassHelper::OnAssetRemoved(const class FAssetData& AssetData)
+void FGraphNodeClassHelper::OnAssetRemoved(const struct FAssetData& AssetData)
 {
 	FString AssetClassName;
 	if (AssetData.GetTagValue("GeneratedClass", AssetClassName))
@@ -332,7 +332,7 @@ void FGraphNodeClassHelper::OnHotReload(bool bWasTriggeredAutomatically)
 	InvalidateCache();
 }
 
-TSharedPtr<FGraphNodeClassNode> FGraphNodeClassHelper::CreateClassDataNode(const class FAssetData& AssetData)
+TSharedPtr<FGraphNodeClassNode> FGraphNodeClassHelper::CreateClassDataNode(const struct FAssetData& AssetData)
 {
 	TSharedPtr<FGraphNodeClassNode> Node;
 

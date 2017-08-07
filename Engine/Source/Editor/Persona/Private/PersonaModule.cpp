@@ -67,7 +67,10 @@
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Animation/AnimNotifies/AnimNotify.h"
+#include "Animation/AnimNotifies/AnimNotifyState.h"
 #include "BlueprintEditorUtils.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 IMPLEMENT_MODULE( FPersonaModule, Persona );
 
@@ -130,7 +133,8 @@ void FPersonaModule::StartupModule()
 
 	FPersonaCommonCommands::Register();
 
-	FKismetEditorUtilities::RegisterOnBlueprintCreatedCallback(this, UAnimNotify::StaticClass(), FKismetEditorUtilities::FOnBlueprintCreated::CreateRaw(this, &FPersonaModule::HandleNewBlueprintCreated));
+	FKismetEditorUtilities::RegisterOnBlueprintCreatedCallback(this, UAnimNotify::StaticClass(), FKismetEditorUtilities::FOnBlueprintCreated::CreateRaw(this, &FPersonaModule::HandleNewAnimNotifyBlueprintCreated));
+	FKismetEditorUtilities::RegisterOnBlueprintCreatedCallback(this, UAnimNotifyState::StaticClass(), FKismetEditorUtilities::FOnBlueprintCreated::CreateRaw(this, &FPersonaModule::HandleNewAnimNotifyStateBlueprintCreated));
 }
 
 void FPersonaModule::ShutdownModule()
@@ -367,7 +371,7 @@ TSharedRef<SWidget> FPersonaModule::CreateEditorWidgetForAnimDocument(const TSha
 
 void FPersonaModule::CustomizeMeshDetails(const TSharedRef<IDetailsView>& InDetailsView, const TSharedRef<IPersonaToolkit>& InPersonaToolkit)
 {
-	InDetailsView->SetGenericLayoutDetailsDelegate(FOnGetDetailCustomizationInstance::CreateStatic(&FPersonaMeshDetails::MakeInstance, InPersonaToolkit));
+	InDetailsView->SetGenericLayoutDetailsDelegate(FOnGetDetailCustomizationInstance::CreateStatic(&FPersonaMeshDetails::MakeInstance, TWeakPtr<IPersonaToolkit>(InPersonaToolkit)));
 }
 
 void FPersonaModule::ImportNewAsset(USkeleton* InSkeleton, EFBXImportType DefaultImportType)
@@ -387,7 +391,7 @@ void FPersonaModule::ImportNewAsset(USkeleton* InSkeleton, EFBXImportType Defaul
 
 		// now I have to set skeleton on it. 
 		FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
-		AssetToolsModule.Get().ImportAssets(AssetPath);
+		AssetToolsModule.Get().ImportAssetsWithDialog(AssetPath);
 	}
 }
 
@@ -689,6 +693,22 @@ void FPersonaModule::AddCommonToolbarExtensions(FToolBarBuilder& InToolbarBuilde
 {
 	TWeakPtr<IPersonaToolkit> WeakPersonaToolkit = PersonaToolkit;
 
+	// Handler to hang notifications on
+	struct FNotificationHandler : public TSharedFromThis<FNotificationHandler>
+	{
+		static void HandleApplyPreviewMesh(TSharedPtr<FNotificationHandler> InNotificationHandler, TWeakPtr<IPersonaToolkit> InWeakPersonaToolkit)
+		{
+			TSharedPtr<IPersonaToolkit> PinnedPersonaToolkit = InWeakPersonaToolkit.Pin();
+			PinnedPersonaToolkit->SetPreviewMesh(PinnedPersonaToolkit->GetPreviewScene()->GetPreviewMesh(), true);
+			if(InNotificationHandler->Notification.IsValid())
+			{
+				InNotificationHandler->Notification->Fadeout();
+			}
+		}
+
+		TSharedPtr<SNotificationItem> Notification;
+	};
+
 	auto CreatePreviewMeshComboButtonContents = [WeakPersonaToolkit]()
 	{
 		FMenuBuilder MenuBuilder(true, nullptr);
@@ -700,7 +720,25 @@ void FPersonaModule::AddCommonToolbarExtensions(FToolBarBuilder& InToolbarBuilde
 			{
 				if (WeakPersonaToolkit.IsValid())
 				{
-					WeakPersonaToolkit.Pin()->SetPreviewMesh(Cast<USkeletalMesh>(AssetData.GetAsset()));
+					WeakPersonaToolkit.Pin()->SetPreviewMesh(Cast<USkeletalMesh>(AssetData.GetAsset()), false);
+				}
+
+				TSharedPtr<FNotificationHandler> NotificationHandler = MakeShared<FNotificationHandler>();
+
+				FNotificationInfo Info(LOCTEXT("PreviewMeshSetTemporarily", "Preview mesh set temporarily"));
+				Info.ExpireDuration = 10.0f;
+				Info.bUseLargeFont = true;
+				Info.ButtonDetails.Add(
+					FNotificationButtonInfo(
+						LOCTEXT("ApplyToAsset", "Apply To Asset"), 
+						LOCTEXT("ApplyToAssetToolTip", "The preview mesh has changed, but it will not be able to be saved until it is applied to the asset. Click here to make the change to the preview mesh persistent."),
+						FSimpleDelegate::CreateStatic(&FNotificationHandler::HandleApplyPreviewMesh, NotificationHandler, WeakPersonaToolkit),
+						SNotificationItem::CS_Success));
+
+				NotificationHandler->Notification = FSlateNotificationManager::Get().AddNotification(Info);
+				if (NotificationHandler->Notification.IsValid())
+				{
+					NotificationHandler->Notification->SetCompletionState(SNotificationItem::CS_Success);
 				}
 
 				FSlateApplication::Get().DismissAllMenus();
@@ -751,10 +789,17 @@ void FPersonaModule::AddCommonToolbarExtensions(FToolBarBuilder& InToolbarBuilde
 		);
 }
 
-void FPersonaModule::HandleNewBlueprintCreated(UBlueprint* InBlueprint)
+void FPersonaModule::HandleNewAnimNotifyBlueprintCreated(UBlueprint* InBlueprint)
 {
 	UEdGraph* const NewGraph = FBlueprintEditorUtils::CreateNewGraph(InBlueprint, "Received_Notify", UEdGraph::StaticClass(), UEdGraphSchema_K2::StaticClass());
 	FBlueprintEditorUtils::AddFunctionGraph(InBlueprint, NewGraph, /*bIsUserCreated=*/ false, UAnimNotify::StaticClass());
+	InBlueprint->LastEditedDocuments.Add(NewGraph);
+}
+
+void FPersonaModule::HandleNewAnimNotifyStateBlueprintCreated(UBlueprint* InBlueprint)
+{
+	UEdGraph* const NewGraph = FBlueprintEditorUtils::CreateNewGraph(InBlueprint, "Received_NotifyTick", UEdGraph::StaticClass(), UEdGraphSchema_K2::StaticClass());
+	FBlueprintEditorUtils::AddFunctionGraph(InBlueprint, NewGraph, /*bIsUserCreated=*/ false, UAnimNotifyState::StaticClass());
 	InBlueprint->LastEditedDocuments.Add(NewGraph);
 }
 

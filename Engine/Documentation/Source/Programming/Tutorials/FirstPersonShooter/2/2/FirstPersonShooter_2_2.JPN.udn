@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3069483
-Availability: Public
+﻿INTSourceChangelist:3388665
+Availability:Public
 Title:2.2 - 軸マッピングを設定する
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
 Description:FPS キャラクター用に軸マッピングをセットアップする方法を学びます。
 SkillLevel:Beginner
-Version:4.11
+Version:4.15
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -33,9 +33,9 @@ Version:4.11
 
 ## MoveForward 軸マッピング
 
-1.	**[Edit (編集)]** メニューで、**[Project Settings (プロジェクト設定)]** をクリックします。
+1.	**[Edit (編集)]** メニューで、 **[Project Settings (プロジェクト設定)]** をクリックします。
 
-1.	**[Project Settings]** タブの左側にある **[Engine]** の見出しで、**[Input]** をクリックします。
+1.	**[Project Settings]** タブの左側にある **[Engine]** の見出しで、 **[Input]** をクリックします。
 
 1.	**[Bindings]** の **[Axis Mappings]** の隣にあるプラス記号をクリックします。
 

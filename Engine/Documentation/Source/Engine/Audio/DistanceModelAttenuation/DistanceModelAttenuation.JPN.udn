@@ -1,14 +1,15 @@
-﻿INTSourceChangelist:2674592
+﻿INTSourceChangelist:3429236
 Availability:Public
 Title:サウンドの減衰
 Description:サウンドの減衰制御に使用できる各種 Distance Model に関する情報
 Crumbs: %ROOT%, Engine, Engine/Audio
 version:4.9
+Parent:Engine/Audio
+type:overview
+order:4
+
+
 [TOC (start:2 end:2)]
-
-
-
-
 
 **Sound Attenuation (サウンドの減衰)** は、基本的にプレイヤーがサウンドから離れるにつれて、そのサウンドを小さくする機能です。次の 2 つの半径を使用して動作します。**MinRadius** と **MaxRadius** の 2 つです。サウンドの原点から MinRadius を通して移動すると、サウンドの音量は 100% です。 
 MinRadius と MaxRadius の間を通過すると、ボリュームは 100% と静寂の間で線形にフェードします。 
@@ -76,7 +77,7 @@ NaturalSound 減衰モデルは、サウンドが環境でどのように聞こ�
 
 ### Attenuation Logarithmic の最小 / 最大設定例
 
-MinDistance / MaxDistance 率が ATTENUATION_Logarithmic でグラフをどのように変化させるかという例です。
+MinDistance / MaxDistance 率が Attenuation Logarithmic でグラフをどのように変化させるかという例です。
 
 最小 0 / 最大 1000：
 

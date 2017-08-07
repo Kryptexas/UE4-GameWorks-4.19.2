@@ -34,6 +34,8 @@ void								FLinuxOutputDevices::SetupOutputDevices()
 	check(GLog);
 	check(GLogConsole);
 
+	CachedAbsoluteFilename[0] = 0;
+
 	// add file log
 	GLog->AddOutputDevice(FPlatformOutputDevices::GetLog());
 

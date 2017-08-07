@@ -453,6 +453,8 @@ struct FEditorShaderCodeArchive
 	
 	bool Finalize(FString OutputDir, FString DebugDir, bool bNativeFormat)
 	{
+		bool bSuccess = Shaders.Num() > 0;
+		
 		EShaderPlatform Platform = ShaderFormatToLegacyShaderPlatform(FormatName);
 		FString OutputPath = GetShaderCodeFilename(OutputDir, FormatName);
 		FString DebugPath = GetShaderCodeFilename(DebugDir, FormatName);
@@ -467,7 +469,7 @@ struct FEditorShaderCodeArchive
 			if (FileWriter)
 			{
 				check(Format);
-				if (Format->CanStripShaderCode())
+				if (Format->CanStripShaderCode(bNativeFormat))
 				{
 					uint32 Size = Pair.Value.UncompressedSize;
 					TArray<uint8> Code = Pair.Value.Code;
@@ -475,7 +477,10 @@ struct FEditorShaderCodeArchive
 					TArray<uint8> UCode;
 					TArray<uint8>& UncompressedCode = FShaderLibraryHelperUncompressCode(Platform, Size, Code, UCode);
 					
-					Format->StripShaderCode(UncompressedCode, DebugPath, bNativeFormat);
+					if(!Format->StripShaderCode(UncompressedCode, DebugPath, bNativeFormat))
+					{
+						bSuccess = false;
+					}
 					
 					TArray<uint8> CCode;
 					FShaderLibraryHelperCompressCode(Platform, UncompressedCode, CCode);
@@ -516,13 +521,17 @@ struct FEditorShaderCodeArchive
 			}
 		}
 		
-		return true;
+		return bSuccess;
 	}
 	
 	bool PackageNativeShaderLibrary(const FString& ShaderCodeDir, const FString& DebugShaderCodeDir)
 	{
 		bool bOK = false;
-		FString TempPath = GetShaderCodeFilename(FPaths::GameIntermediateDir(), FormatName) / TEXT("NativeLibrary");
+		
+		FString IntermediateFormatPath = GetShaderCodeFilename(FPaths::GameIntermediateDir(), FormatName);
+		FString IntermediateCookedByteCodePath = IntermediateFormatPath / TEXT("NativeCookedByteCode");
+		FString TempPath = IntermediateFormatPath / TEXT("NativeLibrary");
+		
 		EShaderPlatform Platform = ShaderFormatToLegacyShaderPlatform(FormatName);
 		IShaderFormatArchive* Archive = Format->CreateShaderArchive(FormatName, TempPath);
 		if (Archive)
@@ -531,8 +540,23 @@ struct FEditorShaderCodeArchive
 			FString DebugPath = GetShaderCodeFilename(DebugShaderCodeDir, FormatName);
 			bOK = true;
 			
+			//Collect previous native cooked bytecode files into this shader files processing directory - keep the rest of the code simpler, don't overwrite in case dest file is newer
+			{
+				TArray<FString> NativeShaderFiles;
+				IFileManager::Get().FindFiles(NativeShaderFiles, *IntermediateCookedByteCodePath, TEXT("*.ushaderbytecode"));
+				
+				for (FString const& FileName : NativeShaderFiles)
+				{
+					if (FileName.Len() > 2 && FileName[1] == TEXT('_'))
+					{
+						IFileManager::Get().Move(*(OutputPath / FileName), *(IntermediateCookedByteCodePath / FileName), false);
+					}
+				}
+			}
+			
 			TArray<FString> ShaderFiles;
 			IFileManager::Get().FindFiles(ShaderFiles, *OutputPath, TEXT("*.ushaderbytecode"));
+			
 			for (FString const& FileName : ShaderFiles)
 			{
 				if (FileName.Len() > 2 && FileName[1] == TEXT('_'))
@@ -580,9 +604,21 @@ struct FEditorShaderCodeArchive
 			{
 				bOK = Archive->Finalize(ShaderCodeDir, DebugPath, nullptr);
 				
+				//Always delete debug directory
+				IFileManager::Get().DeleteDirectory(*DebugShaderCodeDir, true, true);
+				
+				//Move files to intermediate dir for next iterative cook with overwwrite Move mode
 				if (bOK)
 				{
-					IFileManager::Get().DeleteDirectory(*DebugPath, true, true);
+					for (FString const& FileName : ShaderFiles)
+					{
+						if (FileName.Len() > 2 && FileName[1] == TEXT('_'))
+						{
+							IFileManager::Get().Move(*(IntermediateCookedByteCodePath / FileName), *(OutputPath / FileName), true);
+						}
+					}
+					
+					//We don't want to keep the shader code library shader files for native cooked content
 					IFileManager::Get().DeleteDirectory(*OutputPath, true, true);
 				}
 			}
@@ -655,6 +691,8 @@ public:
 		if(ShaderCodeArchive.IsValid())
 		{
 			bNativeFormat = true;
+			
+			UE_LOG(LogTemp, Display, TEXT("Cooked Context: Loaded Native Format Shared Shader Library"));
 		}
 		else
 		{
@@ -663,6 +701,8 @@ public:
 			{
 				ShaderCodeArchive = new FShaderCodeArchive(ShaderPlatform, Filename);
 				bSupportsPipelines = (ShaderCodeArchive != nullptr);
+				
+				UE_LOG(LogTemp, Display, TEXT("Cooked Context: Using Shared Shader Library"));
 			}
 		}
 		return IsValidRef(ShaderCodeArchive);
@@ -844,8 +884,10 @@ public:
 		return bAdded;
 	}
 
-	void SaveShaderCode(const FString& ShaderCodeDir, const FString& DebugOutputDir, const TArray<FName>& ShaderFormats)
+	bool SaveShaderCode(const FString& ShaderCodeDir, const FString& DebugOutputDir, const TArray<FName>& ShaderFormats)
 	{
+		bool bOk = ShaderFormats.Num() > 0;
+		
 		for (int32 i = 0; i < ShaderFormats.Num(); ++i)	
 		{
 			FName ShaderFormatName = ShaderFormats[i];
@@ -854,9 +896,11 @@ public:
 
 			if (CodeArchive)
 			{
-				CodeArchive->Finalize(ShaderCodeDir, DebugOutputDir, bNativeFormat);
+				bOk &= CodeArchive->Finalize(ShaderCodeDir, DebugOutputDir, bNativeFormat);
 			}
 		}
+		
+		return bOk;
 	}
 	
 	bool PackageNativeShaderLibrary(const FString& ShaderCodeDir, const FString& DebugShaderCodeDir, const TArray<FName>& ShaderFormats)
@@ -1105,12 +1149,14 @@ EShaderPlatform FShaderCodeLibrary::GetRuntimeShaderPlatform(void)
 }
 
 #if WITH_EDITOR
-void FShaderCodeLibrary::SaveShaderCode(const FString& OutputDir, const FString& DebugDir, const TArray<FName>& ShaderFormats)
+bool FShaderCodeLibrary::SaveShaderCode(const FString& OutputDir, const FString& DebugDir, const TArray<FName>& ShaderFormats)
 {
 	if (Impl)
 	{
-		Impl->SaveShaderCode(OutputDir, DebugDir, ShaderFormats);
+		return Impl->SaveShaderCode(OutputDir, DebugDir, ShaderFormats);
 	}
+	
+	return false;
 }
 
 bool FShaderCodeLibrary::PackageNativeShaderLibrary(const FString& ShaderCodeDir, const FString& DebugShaderCodeDir, const TArray<FName>& ShaderFormats)
@@ -1119,7 +1165,8 @@ bool FShaderCodeLibrary::PackageNativeShaderLibrary(const FString& ShaderCodeDir
 	{
 		return Impl->PackageNativeShaderLibrary(ShaderCodeDir, DebugShaderCodeDir, ShaderFormats);
 	}
-	return true;
+	
+	return false;
 }
 
 void FShaderCodeLibrary::DumpShaderCodeStats()

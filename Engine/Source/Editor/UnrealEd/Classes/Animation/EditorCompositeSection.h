@@ -21,7 +21,7 @@ class UEditorCompositeSection: public UEditorAnimBaseObj
 public:
 
 	/** Default blend in time. */
-	UPROPERTY(EditAnywhere, Category=Montage)
+	UPROPERTY(EditAnywhere, Category=Montage, meta=(ShowOnlyInnerProperties))
 	FCompositeSection CompositeSection;
 
 	int32 SectionIndex;

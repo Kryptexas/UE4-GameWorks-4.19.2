@@ -424,6 +424,9 @@ public:
 	// Built during compression, could be baked additive or original curve data
 	FRawCurveTracks CompressedCurveData;
 
+	// The size of the raw data used to create the compressed data
+	int32 CompressedRawDataSize;
+
 	/** Additive animation type. **/
 	UPROPERTY(EditAnywhere, Category=AdditiveSettings, AssetRegistrySearchable)
 	TEnumAsByte<enum EAdditiveAnimationType> AdditiveAnimType;

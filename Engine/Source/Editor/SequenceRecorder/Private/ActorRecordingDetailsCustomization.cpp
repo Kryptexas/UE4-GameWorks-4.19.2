@@ -28,7 +28,7 @@ void FActorRecordingDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder&
 			for (TFieldIterator<UProperty> PropertyIt(SettingsObject->GetClass()); PropertyIt; ++PropertyIt)
 			{
 				IDetailCategoryBuilder& CategoryBuilder = DetailBuilder.EditCategory(FObjectEditorUtils::GetCategoryFName(*PropertyIt));
-				CategoryBuilder.AddExternalProperty(ObjectArray, PropertyIt->GetFName());
+				CategoryBuilder.AddExternalObjectProperty(ObjectArray, PropertyIt->GetFName());
 			}
 		}
 	}

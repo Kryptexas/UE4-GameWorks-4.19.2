@@ -19,8 +19,10 @@ public:
 	DECLARE_DELEGATE_ThreeParams( FOnGameplayTagAdded, const FString& /*TagName*/, const FString& /*TagComment*/, const FName& /*TagSource*/);
 
 	SLATE_BEGIN_ARGS(SAddNewGameplayTagWidget)
+		: _NewTagName(TEXT(""))
 		{}
 		SLATE_EVENT( FOnGameplayTagAdded, OnGameplayTagAdded )	// Callback for when a new tag is added	
+		SLATE_ARGUMENT( FString, NewTagName ) // String that will initially populate the New Tag Name field
 	SLATE_END_ARGS();
 
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
@@ -86,4 +88,6 @@ private:
 
 	/** Tracks if this widget should get keyboard focus */
 	bool bShouldGetKeyboardFocus;
+
+	FString DefaultNewName;
 };

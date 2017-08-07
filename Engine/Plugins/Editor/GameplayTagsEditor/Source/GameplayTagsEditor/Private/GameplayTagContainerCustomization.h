@@ -72,5 +72,7 @@ private:
 
 	/** The TagList, kept as a member so we can update it later */
 	TSharedPtr<SListView<TSharedPtr<FString>>> TagListView;
+
+	void OnTagDoubleClicked(FString TagName);
 };
 

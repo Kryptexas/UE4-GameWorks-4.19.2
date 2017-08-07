@@ -69,6 +69,12 @@ enum {MAX_VARIABLE_SIZE = 0x0FFF };
 #define P_GET_TARRAY(ElementType,ParamName)			PARAM_PASSED_BY_VAL(ParamName, UArrayProperty, TArray<ElementType>)
 #define P_GET_TARRAY_REF(ElementType,ParamName)		PARAM_PASSED_BY_REF(ParamName, UArrayProperty, TArray<ElementType>)
 
+#define P_GET_TMAP(KeyType,ValueType,ParamName)			PARAM_PASSED_BY_VAL(ParamName, UMapProperty, PREPROCESSOR_COMMA_SEPARATED(TMap<KeyType, ValueType>))
+#define P_GET_TMAP_REF(KeyType,ValueType,ParamName)		PARAM_PASSED_BY_REF(ParamName, UMapProperty, PREPROCESSOR_COMMA_SEPARATED(TMap<KeyType, ValueType>))
+
+#define P_GET_TSET(ElementType,ParamName)			PARAM_PASSED_BY_VAL(ParamName, USetProperty, TSet<ElementType>)
+#define P_GET_TSET_REF(ElementType,ParamName)		PARAM_PASSED_BY_REF(ParamName, USetProperty, TSet<ElementType>)
+
 #define P_GET_TINTERFACE(ObjectType,ParamName)		PARAM_PASSED_BY_VAL(ParamName, UInterfaceProperty, TScriptInterface<ObjectType>)
 #define P_GET_TINTERFACE_REF(ObjectType,ParamName)	PARAM_PASSED_BY_REF(ParamName, UInterfaceProperty, TScriptInterface<ObjectType>)
 

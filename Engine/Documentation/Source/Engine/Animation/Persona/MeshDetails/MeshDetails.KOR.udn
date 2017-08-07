@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3273317
+﻿INTSourceChangelist:3467891
 Availability:Public
 Title:스켈레탈 메시 애셋 디테일
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
@@ -8,14 +8,14 @@ Related: Engine/Rendering/Materials
 Related: Engine/Content/Types/StaticMeshes/HowTo/LODCollision
 Related: Resources/ContentExamples/Cloth
 Related: Engine/Content/FBX/SkeletalMeshes
-version: 4.14
+version: 4.16
 type:reference
 topic-image:SkeletalMeshAssetDetails.png
 tags:Animation
 tags:Skeletal Mesh
 tags:FBX Importing
 
-[TOC (start:2)]
+[TOC (start:2 end:2)]
 
 ![](MeshDetails.png)(w:940)
 
@@ -34,7 +34,7 @@ tags:FBX Importing
 
 ![](MaterialsTable.png)
 
-[REGION:note]
+[REGION:tip]
 **Material Slots** (머티리얼 슬롯) 을 추가하여, (베이스 LOD 를 제외한) LOD 섹션을 덮어쓸 수 있습니다.
 [/REGION]
 
@@ -74,18 +74,48 @@ LOD 프리뷰어를 사용하면 LOD 사이의 시각적 차이를 조사할 수
 	[/PARAM]
 [/OBJECT]
 
-그림자 드리우기를 켜고 끄는 것도 가능합니다.
+그림자 드리우기를 켜고 끄는 것은 엘리먼터 단위로도, LOD 단위로도 가능합니다 (어떤 곳에서는 그림자를 드리울 필요가 없을 수 있기 때문입니다).
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
-	![Cast Shadows On](castshadows1.png)(w:1000)
+	![그림자 드리우기 켜기](castshadows1.png)(w:1000)
 	[/PARAM]
 	[PARAM:after]
-	![Cast Shadows Off](castshadows2.png)(w:1000)
+	![그림자 드리우기 끄기](castshadows2.png)(w:1000)
 	[/PARAM]
 [/OBJECT]
 
-그림자 드리우기를 켜고 끄는 것은 엘리먼터 단위로도, LOD 단위로도 가능합니다 (어떤 곳에서는 그림자를 드리울 필요가 없을 수 있기 때문입니다).
+## 감소 세팅
+
+[REGION:warning]
+이 옵션은 Simplygon 을 사용합니다. LOD 및 감소 세팅 관련 자세한 정보는 [](Engine/Content/Types/StaticMeshes/LOD) 문서를 참고하세요.
+[/REGION]
+
+위 개요의 옵션에 추가로, 생성되는 LOD 마다 최적화용 **Reduction Settings** (감소 세팅) 정의가 가능합니다.
+
+![](ReductionSettings.png)
+
+언리얼 엔진 4.16 이후, **Bake Pose** 감소 세팅으로 포즈를 LOD 에 구워 넣을 수 있습니다. 이 세팅을 단일 프레임 애니메이션 시퀀스로 설정하면 결과 LOD 메시에 적용됩니다.
+아래 비디오와 비슷하게, 본을 제거한 이후에도 여전히 포즈를 유지하고자 할 때 좋습니다.
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	4vcmZwpzV74
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
 
 ## 클로딩
 
@@ -98,7 +128,10 @@ Apex 파일 임포트를 마쳤으면, [피직스 프로퍼티](Engine/Physics/P
 
 ![](OwenApexCloth.png)
 
-_예를 들어 이 캐릭터에는 두 개의 Apex 파일이 연관되어 있는데, 하나는 캐릭터의 타이에, 다른 하나는 코트에 연관되어 있습니다._
+[REGION:caption]
+예를 들어 이 캐릭터에는 두 개의 Apex 파일이 연관되어 있는데, 하나는 캐릭터의 타이에, 다른 하나는 코트에 연관되어 있습니다.
+[/REGION]
+
 
 ## 메시
 
@@ -149,22 +182,31 @@ GPU 비용은 캡슐의 수, 드리워지는 그림자에 영향받는 픽셀 �
 아래 예제 비디오를 통해 스켈레탈 메시에서 게임플레이 도중 포스트 프로세스 애님 블루프린트 실행 방식을 확인할 수 있습니다.
 
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-uroFU3M_-C4
-[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	uroFU3M_-C4
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
 [/OBJECT]
+
 
 다수의 애니메이션 블루프린트를 사용하는 보다 복잡한 애니메이션 구성이 있는 경우, 포스트 프로세스 애님 블루프린트에 **Sub-Graph Input** 노드를 포함시켜 줘야 할 것입니다.
 
 ![](SubGraphInput.png)
 
-_그러면 스켈레탈 메시의 베이스 포즈를 사용하기 보다는 (적용가능한 경우) 부모 애니메이션 블루프린트에서 포즈 정보를 구할 수 있을 것입니다._
+[REGION:caption]
+그러면 스켈레탈 메시의 베이스 포즈를 사용하기 보다는 (적용가능한 경우) 부모 애니메이션 블루프린트에서 포즈 정보를 구할 수 있을 것입니다._
+[/REGION]
 
 ## 트랜스폼
 

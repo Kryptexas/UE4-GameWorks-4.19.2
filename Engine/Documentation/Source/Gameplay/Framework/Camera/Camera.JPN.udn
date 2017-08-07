@@ -1,13 +1,14 @@
-﻿INTSourceChangelist:2735872
+﻿INTSourceChangelist:3429254
 Availability:Public
 Title:カメラ
 Crumbs:%ROOT%, Gameplay, Gameplay/Framework
 Description:カメラは、ワールドを見るプレーヤーの視点を表します。
 Version:4.9
-type:reference
+type:overview
 parent:Gameplay/Framework
-order:6
+order:5
 tags:Gameplay Framework
+topic-image:Gameplay/Framework/camera_lander.png
 
 **Camera (カメラ)** は、プレーヤーがどのようにワールドを見ているのか、プレーヤーの視点を表します。従って 
 カメラは人が制御するプレーヤーのみに関連性をもちます。**PlayerController** は Camera クラスを指定し、 
@@ -34,11 +35,11 @@ CameraComponentで、カメラを [パースペクティブ] モードまたは 
 
 ## PlayerCameraManager
 
-**PlayerCameraManager** クラスは、カメラ マネージャーです。デフォルトでは、ビルトインされている動作により、ペンディングしているビューターゲットとコンソールのコマンドでトリガーされるデバッグカメラがブレンドされます。デフォルトでない場合は、カメラのビューポイントおよび 
+**PlayerCameraManager** クラスは、カメラ マネージャーです。デフォルトでは、ビルトインされている動作は、ペンディングしているビューターゲットとコンソールのコマンドでトリガーされるデバッグ用のカメラがブレンドされます。デフォルトでない場合は、カメラのビューポイントおよび 
 他の全てのカメラ設定をどうするかを ViewTarget にクエリーします。通常は PlayerCameraManager サブクラスは不要です。 
 自動ルールでは不十分な場合、ViewTarget を設定するルールを追加する以外は、PlayerCameraManager への変更はほとんど必要ありません。
 
-PlayerCameraManager のサブクラス化が必要で、これを C++コードではなくブループリントで行う場合、カメラのカスタム実装に `BlueprintUpdateCamera` 関数を使用します。この関数を使用する場合、
+PlayerCameraManager のサブクラス化が必要で、これを C++コードではなくブループリントで行う場合、カメラのカスタム実装に `BlueprintUpdateCamera` 関数を使用します。_絶対的_ トランスフォーム
 戻り値を使用するために _true_ を返し、戻り値を無視するために _false_ を返します。
 
 ### ViewTarget
@@ -54,7 +55,7 @@ PlayerCameraManager はカメラのマネージメント中に 2 つのカメラ
 
 ゲーム固有のカメラ動作は、カメラの「responsibility chain (責任の連鎖) 」に沿ってどの時点でも提供することができます。これは、以下のクラスを通って一番上から下に流れてから、ALocalPlayer へ渡され、レンダリング、シーン表示、そして関連システムで終了します。
 
-### CameraComponent 
+### Camera コンポーネント 
 
 ViewTarget が CameraActor または **CameraComponent** を含み bFindCameraComponentWhenViewTarget が _true_ に設定されているアクタである場合、
 CameraComponent はカメラのプロパティに関する情報を提供します。すべてのポーンに設定することができる関連プロパティは、`bTakeCameraControlWhenPossessed` です。これにより、PlayerController に所有されるとポーンは自動的に ViewTarget になります。

@@ -203,7 +203,3 @@ UPawnMovementComponent* ADefaultPawn::GetMovementComponent() const
 	return MovementComponent;
 }
 
-/** Returns CollisionComponent subobject **/
-USphereComponent* ADefaultPawn::GetCollisionComponent() const { return CollisionComponent; }
-/** Returns MeshComponent subobject **/
-UStaticMeshComponent* ADefaultPawn::GetMeshComponent() const { return MeshComponent; }

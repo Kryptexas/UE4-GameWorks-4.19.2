@@ -76,6 +76,7 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 	PropertyHandle = InArgs._PropertyHandle;
 	OnSetObject = InArgs._OnSetObject;
 	OnShouldFilterAsset = InArgs._OnShouldFilterAsset;
+	bool DisplayCompactedSize = InArgs._DisplayCompactSize;
 
 	UProperty* Property = nullptr;
 	if(PropertyEditor.IsValid())
@@ -273,45 +274,85 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 		ValueContentBox->AddSlot()
 		.Padding( 0.0f, 0.0f, 2.0f, 0.0f )
 		.AutoWidth()
+		.VAlign(VAlign_Center)
 		[
-			SAssignNew( ThumbnailBorder, SBorder )
-			.Padding( 5.0f )
-			.BorderImage( this, &SPropertyEditorAsset::GetThumbnailBorder )
-			.OnMouseDoubleClick( this, &SPropertyEditorAsset::OnAssetThumbnailDoubleClick )
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			.AutoHeight()
 			[
-				SNew( SBox )
-				.ToolTipText(TooltipAttribute)
-				.WidthOverride( InArgs._ThumbnailSize.X ) 
-				.HeightOverride( InArgs._ThumbnailSize.Y )
+				SAssignNew( ThumbnailBorder, SBorder )
+				.Padding( 5.0f )
+				.BorderImage( this, &SPropertyEditorAsset::GetThumbnailBorder )
+				.OnMouseDoubleClick( this, &SPropertyEditorAsset::OnAssetThumbnailDoubleClick )
 				[
-					AssetThumbnail->MakeThumbnailWidget(AssetThumbnailConfig)
-				]
-			]
-		];
-
-
-		ValueContentBox->AddSlot()
-		[
-			SNew( SBox )
-			.VAlign( VAlign_Center )
-			[
-				SAssignNew( CustomContentBox, SVerticalBox )
-				+ SVerticalBox::Slot()
-				.Padding(0.0f, 4.0f, 0.0f, 0.0f)
-				[
-					AssetComboButton.ToSharedRef()
-				]
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				[
-					SAssignNew(ButtonBoxWrapper, SBox)
-					.Padding( FMargin( 0.0f, 2.0f, 4.0f, 2.0f ) )
+					SNew( SBox )
+					.ToolTipText(TooltipAttribute)
+					.WidthOverride( InArgs._ThumbnailSize.X ) 
+					.HeightOverride( InArgs._ThumbnailSize.Y )
 					[
-						ButtonBox
+						AssetThumbnail->MakeThumbnailWidget(AssetThumbnailConfig)
 					]
 				]
 			]
 		];
+
+		if(DisplayCompactedSize)
+		{
+			ValueContentBox->AddSlot()
+			[
+				SNew( SBox )
+				.VAlign( VAlign_Center )
+				[
+					SAssignNew( CustomContentBox, SVerticalBox )
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					.Padding(0.0f, 4.0f, 0.0f, 0.0f)
+					[
+						SNew(SHorizontalBox)
+						+SHorizontalBox::Slot()
+						.FillWidth(1.0f)
+						.VAlign(VAlign_Center)
+						[
+							AssetComboButton.ToSharedRef()
+						]
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						[
+							SAssignNew(ButtonBoxWrapper, SBox)
+							.Padding(FMargin(0.0f, 2.0f, 4.0f, 2.0f))
+							[
+								ButtonBox
+							]
+						]
+					]
+				]
+			];
+		}
+		else
+		{
+			ValueContentBox->AddSlot()
+			[
+				SNew( SBox )
+				.VAlign( VAlign_Center )
+				[
+					SAssignNew( CustomContentBox, SVerticalBox )
+					+ SVerticalBox::Slot()
+					.Padding(0.0f, 4.0f, 0.0f, 0.0f)
+					[
+						AssetComboButton.ToSharedRef()
+					]
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					[
+						SAssignNew(ButtonBoxWrapper, SBox)
+						.Padding( FMargin( 0.0f, 2.0f, 4.0f, 2.0f ) )
+						[
+							ButtonBox
+						]
+					]
+				]
+			];
+		}
 	}
 	else
 	{
@@ -734,7 +775,7 @@ UClass* SPropertyEditorAsset::GetDisplayedClass() const
 	}
 }
 
-void SPropertyEditorAsset::OnAssetSelected( const class FAssetData& AssetData )
+void SPropertyEditorAsset::OnAssetSelected( const struct FAssetData& AssetData )
 {
 	SetValue(AssetData);
 }
@@ -986,7 +1027,10 @@ UClass* SPropertyEditorAsset::GetObjectPropertyClass(const UProperty* Property)
 		Class = Cast<const UInterfaceProperty>(Property)->InterfaceClass;
 	}
 
-	checkf(Class != NULL, TEXT("Property (%s) is not an object or interface class"), Property ? *Property->GetFullName() : TEXT("null"));
+	if (!ensureMsgf(Class != NULL, TEXT("Property (%s) is not an object or interface class"), Property ? *Property->GetFullName() : TEXT("null")))
+	{
+		Class = UObject::StaticClass();
+	}
 	return Class;
 }
 

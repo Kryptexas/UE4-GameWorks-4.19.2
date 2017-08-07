@@ -59,6 +59,9 @@
 #define DEFAULT_TIMEOUT 1
 #endif
 
+/** Max buffer size for receiving libstrophe messages. Default of 4096 has proven too small in practice */
+#define STROPE_MESSAGE_BUFFER_SIZE (1024*16)
+
 /** Run the event loop once.
  *  This function will run send any data that has been queued by
  *  xmpp_send and related functions and run through the Strophe even
@@ -82,7 +85,7 @@ void xmpp_run_once(xmpp_ctx_t *ctx, const unsigned long timeout)
     struct timeval tv;
     xmpp_send_queue_t *sq, *tsq;
     int towrite;
-    char buf[4096];
+    char buf[STROPE_MESSAGE_BUFFER_SIZE];
     uint64_t next;
     uint64_t usec;
     int tls_read_bytes = 0;
@@ -279,27 +282,28 @@ void xmpp_run_once(xmpp_ctx_t *ctx, const unsigned long timeout)
         case XMPP_STATE_CONNECTED:
             if (FD_ISSET(conn->sock, &rfds) || (conn->tls && tls_pending(conn->tls))) {
                 if (conn->tls) {
-                    ret = tls_read(conn->tls, buf, 4096);
+                    ret = tls_read(conn->tls, buf, STROPE_MESSAGE_BUFFER_SIZE);
                 } else {
-                    ret = sock_read(conn->sock, buf, 4096);
+                    ret = sock_read(conn->sock, buf, STROPE_MESSAGE_BUFFER_SIZE);
                 }
 
                 if (ret > 0) {
 #ifdef USE_WEBSOCKETS
 					// Translate WebSocket open/close tags into <stream:stream> and </stream:stream> tags. All other stanzas remain unchanged, but the open
-					// and close tags make a connection as a whole not parse as XML (each stanza would have to be independently interpretted).
-					const char* SocketOpenTag = "<open";
-					const int SocketOpenTagLength = strlen(SocketOpenTag);
-					const char* SocketCloseTag = "<close";
-					const int SocketCloseTagLength = strlen(SocketOpenTag);
-					if (memcmp(buf, SocketOpenTag, SocketOpenTagLength) == 0)
+					// and close tags make a connection as a whole not parse as XML (each stanza would have to be independently interpreted).
+					static const char SocketOpenTag[] = "<open";
+					static const int SocketOpenTagSize = sizeof(SocketOpenTag) - sizeof(char); // Subtract null char
+					static const char SocketCloseTag[] = "<close";
+					static const int SocketCloseTagSize = sizeof(SocketCloseTag) - sizeof(char); // Subtract null char
+
+					if (memcmp(buf, SocketOpenTag, SocketOpenTagSize) == 0)
 					{
-						sprintf_s(buf, 4096, "<?xml version=\"1.0\" encoding=\"utf-8\"?><stream:stream from=\"%s\" xmlns=\"jabber:client\" xmlns:stream=\"http://etherx.jabber.org/streams\" version=\"1.0\">", conn->domain);
+						sprintf_s(buf, STROPE_MESSAGE_BUFFER_SIZE, "<?xml version=\"1.0\" encoding=\"utf-8\"?><stream:stream from=\"%s\" xmlns=\"jabber:client\" xmlns:stream=\"http://etherx.jabber.org/streams\" version=\"1.0\">", conn->domain);
 						ret = strlen(buf);
 					}
-					if (memcmp(buf, SocketCloseTag, SocketCloseTagLength) == 0)
+					if (memcmp(buf, SocketCloseTag, SocketCloseTagSize) == 0)
 					{
-						sprintf_s(buf, 4096, "</stream:stream>");
+						sprintf_s(buf, STROPE_MESSAGE_BUFFER_SIZE, "</stream:stream>");
 						ret = strlen(buf);
 					}
 #endif

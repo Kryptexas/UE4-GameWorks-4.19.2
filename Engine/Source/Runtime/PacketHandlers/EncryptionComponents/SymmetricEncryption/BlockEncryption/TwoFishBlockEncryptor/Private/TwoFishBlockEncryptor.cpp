@@ -11,7 +11,7 @@ BlockEncryptor* FTwoFishBlockEncryptorModuleInterface::CreateBlockEncryptorInsta
 }
 
 // TWOFISH
-void TwoFishBlockEncryptor::Initialize(TArray<byte>* InKey)
+void TwoFishBlockEncryptor::Initialize(TArray<uint8>* InKey)
 {
 	Key = InKey;
 
@@ -26,9 +26,9 @@ void TwoFishBlockEncryptor::Initialize(TArray<byte>* InKey)
 	FixedBlockSize = 16;
 }
 
-void TwoFishBlockEncryptor::EncryptBlock(byte* Block)
+void TwoFishBlockEncryptor::EncryptBlock(uint8* Block)
 {
-	byte* Output = new byte[FixedBlockSize];
+	uint8* Output = new uint8[FixedBlockSize];
 	Encryptor.ProcessBlock(Block, Output);
 	memcpy(Block, Output, FixedBlockSize);
 	delete[] Output;
@@ -36,9 +36,9 @@ void TwoFishBlockEncryptor::EncryptBlock(byte* Block)
 	//UE_LOG(PacketHandlerLog, Log, TEXT("TwoFish Encrypted"));
 }
 
-void TwoFishBlockEncryptor::DecryptBlock(byte* Block)
+void TwoFishBlockEncryptor::DecryptBlock(uint8* Block)
 {
-	byte* Output = new byte[FixedBlockSize];
+	uint8* Output = new uint8[FixedBlockSize];
 	Decryptor.ProcessBlock(Block, Output);
 	memcpy(Block, Output, FixedBlockSize);
 	delete[] Output;

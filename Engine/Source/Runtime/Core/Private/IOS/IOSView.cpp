@@ -8,6 +8,7 @@
 #include "Misc/ConfigCacheIni.h"
 #include "HAL/IConsoleManager.h"
 #include "Misc/CommandLine.h"
+#include "IOSPlatformProcess.h"
 
 #include <OpenGLES/ES2/gl.h>
 #import "IOSAsyncTask.h"
@@ -76,6 +77,10 @@ id<MTLDevice> GMetalDevice = nil;
 
 @implementation FIOSView
 
+@synthesize keyboardType = KeyboardType;
+@synthesize autocorrectionType = AutocorrectionType;
+@synthesize autocapitalizationType = AutocapitalizationType;
+@synthesize secureTextEntry = bSecureTextEntry;
 @synthesize SwapCount, OnScreenColorRenderBuffer, OnScreenColorRenderBufferMSAA, markedTextStyle;
 
 /**
@@ -492,6 +497,16 @@ id<MTLDevice> GMetalDevice = nil;
 		TouchMessage.LastPosition = FVector2D(FMath::Min<float>(self.frame.size.width - 1, PrevLoc.x), FMath::Min<float>(self.frame.size.height - 1, PrevLoc.y)) * Scale;
 		TouchesArray.Add(TouchMessage);
 
+		if (Type == TouchBegan)
+		{
+			TouchInput EmulatedMessage;
+			EmulatedMessage.Handle = TouchMessage.Handle;
+			EmulatedMessage.Type = TouchMoved;
+			EmulatedMessage.Position = TouchMessage.Position;
+			EmulatedMessage.LastPosition = TouchMessage.Position;
+			TouchesArray.Add(EmulatedMessage);
+		}
+		
 		// clear out the touch when it ends
 		if (Type == TouchEnded)
 		{
@@ -527,7 +542,8 @@ id<MTLDevice> GMetalDevice = nil;
 
 		if (bShowConsole)
 		{
-			if (bIsUsingIntegratedKeyboard)
+			// disable the integrated keyboard when launching the console
+/*			if (bIsUsingIntegratedKeyboard)
 			{
 				// press the console key twice to get the big one up
 				// @todo keyboard: Find a direct way to bering this up (it can get into a bad state where two presses won't do it correctly)
@@ -537,7 +553,7 @@ id<MTLDevice> GMetalDevice = nil;
 				
 				[self ActivateKeyboard:true];
 			}
-			else
+			else*/
 			{
 				// Route the command to the main iOS thread (all UI must go to the main thread)
 				[[IOSAppDelegate GetDelegate] performSelectorOnMainThread:@selector(ShowConsole) withObject:nil waitUntilDone:NO];
@@ -617,17 +633,67 @@ id<MTLDevice> GMetalDevice = nil;
 	FIOSInputInterface::QueueKeyInput(KEYCODE_BACKSPACE, '\b');
 }
 
-
 -(void)ActivateKeyboard:(bool)bInSendEscapeOnClose
 {
-	// remember the setting
-	bSendEscapeOnClose = bInSendEscapeOnClose;
-	[self becomeFirstResponder];
+	FKeyboardConfig DefaultConfig;
+	[self ActivateKeyboard:bInSendEscapeOnClose keyboardConfig:DefaultConfig];
+}
+
+-(void)ActivateKeyboard:(bool)bInSendEscapeOnClose keyboardConfig:(FKeyboardConfig)KeyboardConfig
+{
+	FPlatformAtomics::InterlockedIncrement(&KeyboardShowCount);
+	
+	dispatch_async(dispatch_get_main_queue(),^ {
+		volatile int32 ShowCount = KeyboardShowCount;
+		if (ShowCount == 1)
+		{
+			self.keyboardType = KeyboardConfig.KeyboardType;
+			self.autocorrectionType = KeyboardConfig.AutocorrectionType;
+			self.autocapitalizationType = KeyboardConfig.AutocapitalizationType;
+			self.secureTextEntry = KeyboardConfig.bSecureTextEntry;
+		
+			// Remember the setting
+			bSendEscapeOnClose = bInSendEscapeOnClose;
+		
+			// Dismiss the existing keyboard, if one exists, so the style can be overridden.
+			[self endEditing:YES];
+			[self becomeFirstResponder];
+		}
+		
+		FPlatformAtomics::InterlockedDecrement(&KeyboardShowCount);
+	});
+}
+
+-(void)DeactivateKeyboard
+{
+	dispatch_async(dispatch_get_main_queue(),^ {
+		volatile int32 ShowCount = KeyboardShowCount;
+		if (ShowCount == 0)
+		{
+			// Wait briefly, in case a keyboard activation is triggered.
+			FPlatformProcess::Sleep(0.1F);
+			
+			ShowCount = KeyboardShowCount;
+			if (ShowCount == 0)
+			{
+				// Dismiss the existing keyboard, if one exists.
+				[self endEditing:YES];
+			}
+		}
+	});
 }
 
 -(BOOL)becomeFirstResponder
 {
-	return [super becomeFirstResponder];
+	volatile int32 ShowCount = KeyboardShowCount;
+	if (ShowCount >= 1)
+	{
+		return [super becomeFirstResponder];
+	}
+	else
+	{
+		return NO;
+	}
 }
 
 -(BOOL)resignFirstResponder
@@ -888,8 +954,13 @@ id<MTLDevice> GMetalDevice = nil;
 - (void)InitKeyboard
 {
 #if !PLATFORM_TVOS
+	KeyboardShowCount = 0;
+	
+	bool bUseIntegratedKeyboard = false;
+	GConfig->GetBool(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("bUseIntegratedKeyboard"), bUseIntegratedKeyboard, GEngineIni);
+	
 	// get notifications when the keyboard is in view
-	bIsUsingIntegratedKeyboard = FParse::Param(FCommandLine::Get(), TEXT("NewKeyboard"));
+	bIsUsingIntegratedKeyboard = FParse::Param(FCommandLine::Get(), TEXT("NewKeyboard")) || bUseIntegratedKeyboard;
 	if (bIsUsingIntegratedKeyboard)
 	{
 		[[NSNotificationCenter defaultCenter] addObserver:self

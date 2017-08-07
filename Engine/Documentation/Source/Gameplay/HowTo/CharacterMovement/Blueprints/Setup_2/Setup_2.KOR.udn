@@ -1,28 +1,16 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3429254
 Availability: Public
 Title:3. 캐릭터 셋업 마무리
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
 Description:여기서는 캐릭터 이동이 가능하도록 입력 매핑에 대한 반응을 캐릭터 블루프린트의 스크립트로 구현합니다.
 Version: 4.9
+Parent:Gameplay/HowTo/CharacterMovement/Blueprints
 SkillLevel: Advanced
+type:how-to
+type:multi-step
+order:3
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[예전 단계](Gameplay\HowTo\CharacterMovement\Blueprints\Input "%Gameplay\HowTo\CharacterMovement\Blueprints\Input:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[캐릭터 무브먼트 개요](Gameplay\HowTo\CharacterMovement\Blueprints)
-	[/PARAM]
-	[PARAM:next]
-		[다음 단계](Gameplay\HowTo\CharacterMovement\Blueprints\BlendSpace "%Gameplay\HowTo\CharacterMovement\Blueprints\BlendSpace:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 여기서는 플레이어 입력에 따라 캐릭터를 제어하는 스크립트를 구현하여 캐릭터 셋업을 마무리하도록 하겠습니다.
 
@@ -118,4 +106,4 @@ SkillLevel: Advanced
 	
 	그러면 이동중인지 여부에 따라 캐릭터의 점프 높이를 이동중인 경우 **JumpZVelocity** 를 **365** 로, 정지상태인 경우 **340** 으로 설정하면 됩니다. 어느 경우에도 **Jump Pressed** 를 _True_ 로 설정했다가, 점프가 끝나면 **Jump Pressed** 를 _False_ 로 설정합니다.
 
-%Steps%
+[NAV]

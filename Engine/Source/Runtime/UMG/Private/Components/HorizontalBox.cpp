@@ -69,7 +69,7 @@ TSharedRef<SWidget> UHorizontalBox::RebuildWidget()
 		}
 	}
 
-	return BuildDesignTimeWidget( MyHorizontalBox.ToSharedRef() );
+	return MyHorizontalBox.ToSharedRef();
 }
 
 #if WITH_EDITOR

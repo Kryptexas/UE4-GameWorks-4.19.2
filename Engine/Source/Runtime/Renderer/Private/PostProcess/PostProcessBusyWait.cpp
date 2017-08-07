@@ -80,7 +80,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessBusyWaitPS,TEXT("PostProcessBusyWait"),TEXT("MainPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FPostProcessBusyWaitPS,TEXT("/Engine/Private/PostProcessBusyWait.usf"),TEXT("MainPS"),SF_Pixel);
 
 void FRCPassPostProcessBusyWait::Process(FRenderingCompositePassContext& Context)
 {

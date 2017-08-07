@@ -110,6 +110,13 @@ FVertexFactoryType::FVertexFactoryType(
 	SupportsTessellationShadersRef(InSupportsTessellationShaders),
 	GlobalListLink(this)
 {
+	// Make sure the format of the source file path is right.
+	check(CheckVirtualShaderFilePath(InShaderFilename));
+
+	checkf(FPaths::GetExtension(InShaderFilename) == TEXT("ush"),
+		TEXT("Incorrect virtual shader path extension for vertex factory shader header '%s': Only .ush files should be included."),
+		InShaderFilename);
+
 	for (int32 Platform = 0; Platform < SP_NumPlatforms; Platform++)
 	{
 		bCachedUniformBufferStructDeclarations[Platform] = false;

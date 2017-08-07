@@ -16,13 +16,11 @@ class AActor;
 class APhysicsVolume;
 class USceneComponent;
 struct FLevelCollection;
+struct FMinimalViewInfo;
 
 /** Overlap info consisting of the primitive and the body that is overlapping */
-USTRUCT()
 struct ENGINE_API FOverlapInfo
 {
-	GENERATED_USTRUCT_BODY()
-
 	FOverlapInfo()
 	{}
 
@@ -135,18 +133,11 @@ private:
 	UPROPERTY(ReplicatedUsing = OnRep_AttachSocketName)
 	FName AttachSocketName;
 
-public:
-	DEPRECATED(4.11, "SceneComponent no longer supports custom locations.")
-	uint32 bRequiresCustomLocation:1;
-
-protected:
-
 	/** True if we have ever updated ComponentToWorld based on RelativeLocation/Rotation/Scale. Used at startup to make sure it is initialized. */
 	UPROPERTY(Transient)
 	uint32 bWorldToComponentUpdated : 1;
 
 public:
-
 	/** If RelativeLocation should be considered relative to the world, rather than the parent */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, ReplicatedUsing=OnRep_Transform, Category=Transform)
 	uint32 bAbsoluteLocation:1;
@@ -164,7 +155,7 @@ public:
 	uint32 bVisible:1;
 
 	/** Whether to hide the primitive in game, if the primitive is Visible. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Rendering)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Rendering, meta=(SequencerTrackClass = "MovieSceneVisibilityTrack"))
 	uint32 bHiddenInGame:1;
 
 	/**
@@ -210,10 +201,11 @@ public:
 	FBoxSphereBounds Bounds;
 
 	/** Current transform of the component, relative to the world */
+	DEPRECATED(4.17, "ComponentToWorld will be made private, use GetComponentTransform() instead.")
 	FTransform ComponentToWorld;
 
 private:
-	/** Cache that avoids Quat<->Rotator conversions if possible. Only to be used with ComponentToWorld.GetRotation(). */
+	/** Cache that avoids Quat<->Rotator conversions if possible. Only to be used with GetComponentTransform().GetRotation(). */
 	FRotationConversionCache WorldRotationCache;
 
 public:
@@ -225,6 +217,11 @@ public:
 	/** Rotation of the component relative to its parent */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_Transform, Category=Transform)
 	FRotator RelativeRotation;
+
+	/** Sets the RelativeRotationCache. Used to ensure component ends up with the same RelativeRotation after calling SetWorldTransform(). */
+	void SetRelativeRotationCache(const FRotationConversionCache& InCache);
+	/** Get the RelativeRotationCache.  */
+	FORCEINLINE const FRotationConversionCache& GetRelativeRotationCache() const { return RelativeRotationCache; }
 
 private:
 	/** Cache that avoids Quat<->Rotator conversions if possible. Only to be used with RelativeRotation. */
@@ -622,6 +619,7 @@ public:
 	 * @param  bWeldSimulatedBodies Whether to weld together simulated physics bodies.
 	 * @return True if attachment is successful (or already attached to requested parent/socket), false if attachment is rejected and there is no change in AttachParent.
 	*/
+	DEPRECATED(4.17, "This function is deprecated, please use AttachToComponent instead.")
 	UFUNCTION(BlueprintCallable, Category = "Utilities|Transformation", meta = (DisplayName = "AttachTo (Deprecated)", AttachType = "KeepRelativeOffset"))
 	bool K2_AttachTo(USceneComponent* InParent, FName InSocketName = NAME_None, EAttachLocation::Type AttachType = EAttachLocation::KeepRelativeOffset, bool bWeldSimulatedBodies = true);
 
@@ -649,7 +647,8 @@ public:
 	bool K2_AttachToComponent(USceneComponent* Parent, FName SocketName, EAttachmentRule LocationRule, EAttachmentRule RotationRule, EAttachmentRule ScaleRule, bool bWeldSimulatedBodies);
 
 	/** Zeroes out the relative transform of the component, and calls AttachTo(). Useful for attaching directly to a scene component or socket location  */
-	UFUNCTION(BlueprintCallable, meta=(DeprecatedFunction, DeprecationMessage = "Use AttachToComponent instead"), Category="Utilities|Transformation")
+	DEPRECATED(4.17, "Use AttachToComponent instead.")
+	UFUNCTION(BlueprintCallable, meta=(DeprecatedFunction, DeprecationMessage = "Use AttachToComponent instead."), Category="Utilities|Transformation")
 	bool SnapTo(USceneComponent* InParent, FName InSocketName = NAME_None);
 
 	/** 
@@ -948,44 +947,53 @@ public:
 	/** Return location of the component, in world space */
 	FORCEINLINE FVector GetComponentLocation() const
 	{
-		return ComponentToWorld.GetLocation();
-	}
-
-	DEPRECATED(4.11, "Custom locations on SceneComponent are now deprecated.")
-	virtual FVector GetCustomLocation() const
-	{
-		check(0);
-		return ComponentToWorld.GetLocation();
+		return GetComponentTransform().GetLocation();
 	}
 
 	/** Return rotation of the component, in world space */
 	FORCEINLINE FRotator GetComponentRotation() const
 	{
-		return WorldRotationCache.NormalizedQuatToRotator(ComponentToWorld.GetRotation());
+		return WorldRotationCache.NormalizedQuatToRotator(GetComponentTransform().GetRotation());
 	}
 
 	/** Return rotation quaternion of the component, in world space */
 	FORCEINLINE FQuat GetComponentQuat() const
 	{
-		return ComponentToWorld.GetRotation();
+		return GetComponentTransform().GetRotation();
 	}
 
 	/** Return scale of the component, in world space */
 	FORCEINLINE FVector GetComponentScale() const
 	{
-		return ComponentToWorld.GetScale3D();
+		return GetComponentTransform().GetScale3D();
 	}
 
-	/** Get the current component-to-world transform for this component */
-	FORCEINLINE FTransform GetComponentToWorld() const 
-	{ 
-		return ComponentToWorld; // TODO: probably deprecate this in favor of GetComponentTransform
-	}
-
-	/** Get the current component-to-world transform for this component */
-	FORCEINLINE FTransform GetComponentTransform() const
+	/** Sets the cached component to world directly. This should be used very rarely. */
+	FORCEINLINE void SetComponentToWorld(const FTransform& NewComponentToWorld)
 	{
+		bWorldToComponentUpdated = true;
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
+		ComponentToWorld = NewComponentToWorld;
+		PRAGMA_ENABLE_DEPRECATION_WARNINGS
+	}
+
+	/** 
+	 * Get the current component-to-world transform for this component 
+	 * TODO: probably deprecate this in favor of GetComponentTransform
+	 */
+	FORCEINLINE const FTransform& GetComponentToWorld() const 
+	{ 
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
 		return ComponentToWorld;
+		PRAGMA_ENABLE_DEPRECATION_WARNINGS
+	}
+
+	/** Get the current component-to-world transform for this component */
+	FORCEINLINE const FTransform& GetComponentTransform() const
+	{
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
+		return ComponentToWorld;
+		PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	}
 
 	/** Update transforms of any components attached to this one. */
@@ -1058,6 +1066,13 @@ public:
 	virtual const int32 GetNumUncachedStaticLightingInteractions() const;
 
 	virtual void PreFeatureLevelChange(ERHIFeatureLevel::Type PendingFeatureLevel) {}
+
+	/** 
+	 * Supplies the editor with a view specific to this component (think a view 
+	 * from a camera components POV, etc.). Used for PIP preview windows.
+	 * @return True if the component overrides this, and fills out the view info output.
+	 */
+	virtual bool GetEditorPreviewInfo(float DeltaTime, FMinimalViewInfo& ViewOut) { return false; }
 #endif // WITH_EDITOR
 
 protected:

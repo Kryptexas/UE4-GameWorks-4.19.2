@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3379420
 Availability: Public
 Title:레벨 스트리밍 볼륨
 Crumbs:
@@ -12,6 +12,19 @@ tags:Level Streaming
 [TOC]
 
 [INCLUDE:Engine/Actors/Volumes#lsv]
+
+아래 그림처럼 **디테일** 패널에서 프로퍼티를 조절하여 Level Streaming Volume (레벨 스트리밍 볼륨)의 레벨 스트리밍 처리 방식을 조절할 수 있습니다.
+
+![](levelstreamingvolume.png)
+
+레벨 스트리밍 볼륨 관련 자세한 내용은 [](Engine/LevelStreaming/StreamingVolumes) 문서를 참고하세요.
+
+| 프로퍼티 | 설명 |
+| ------- | ------------ |
+| **Streaming Levels** | 스트리밍 레벨 - 볼륨에 영향받는 레벨을 표시합니다. |
+| **Editor Pre Vis Only** | 에디터 미리보기 전용 - 스트리밍 볼륨이 에디터 스트리밍 레벨 미리보기 전용인지 나타냅니다. |
+| **Disabled** | 비활성화 - true 면 이 스트리밍 볼륨은 스트리밍 볼륨 코드에서 무시됩니다. <br> 레벨 스트리밍 볼륨을 레벨에서 연결 해제하지 않고 비활성화시키거나, 레벨의 스트리밍 제어를 블루프린트 / 볼륨 스트리밍 토글 전환할 때도 사용됩니다. |
+| **Streaming Usage** | 스트리밍 용도 - 볼륨을 어디에 사용하는지 결정합니다. 예: 로드 제어, 로드 및 표시여부, 표시여부만 (로드시 블록). |
 
 ## 스트리밍 볼륨에 레벨 연결
 

@@ -279,7 +279,7 @@ namespace DeploymentServer
 						DeviceId = PotentialDevice.DeviceId;
 					}
 
-					if (!Runs.ContainsKey(DeviceId))
+					if (!Runs.ContainsKey(DeviceId) && PotentialDevice.IsConnected)
                     {
                         // New device, do the work on it
 						Runs.Add(DeviceId, PerDeviceWork(PotentialDevice));

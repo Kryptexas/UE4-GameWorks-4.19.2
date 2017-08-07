@@ -28,6 +28,7 @@ public:
 
 	// UMovieSceneTrack interface
 
+	virtual void PostLoad() override;
 	virtual void RemoveAllAnimationData() override;
 	virtual bool HasSection(const UMovieSceneSection& Section) const override;
 	virtual void AddSection(UMovieSceneSection& Section) override;
@@ -37,7 +38,6 @@ public:
 	virtual const TArray<UMovieSceneSection*>& GetAllSections() const override;
 	virtual UMovieSceneSection* CreateNewSection() override;
 	virtual TInlineValue<FMovieSceneSegmentCompilerRules> GetRowCompilerRules() const override;
-	virtual void PostCompile(FMovieSceneEvaluationTrack& Track, const FMovieSceneTrackCompilerArgs& Args) const override;
 	virtual bool SupportsMultipleRows() const override;
 
 #if WITH_EDITORONLY_DATA
@@ -49,4 +49,7 @@ private:
 	/** List of all animation sections */
 	UPROPERTY()
 	TArray<UMovieSceneSection*> AnimationSections;
+
+	UPROPERTY()
+	bool bUseLegacySectionIndexBlend;
 };

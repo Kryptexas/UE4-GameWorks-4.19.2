@@ -9,7 +9,7 @@
 class IDetailLayoutBuilder;
 class UAnimSequenceFactory;
 class IPropertyHandle;
-class FAssetData;
+struct FAssetData;
 
 class FControlRigSequenceExporterSettingsDetailsCustomization : public IDetailCustomization
 {

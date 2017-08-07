@@ -2,7 +2,7 @@ Availability: NoPublish
 Title: BuildGraph Predefined Tasks
 Crumbs: %ROOT%, Programming, Programming/Development, Programming/Development/BuildGraph, Programming/Development/BuildGraph/BuildGraphScriptTasks
 Description: This is a procedurally generated markdown page.
-version: 4.16
+version: 4.17
 parent:Programming/Development/BuildGraph/BuildGraphScriptTasks
 
 ### AgeStore
@@ -44,14 +44,16 @@ Spawns the editor to run a commandlet.
 
 Compiles a target with UnrealBuildTool.
 
-|               |                           |          |                                                                                   |
-| ------------- | ------------------------- | -------- | --------------------------------------------------------------------------------- |
-| Target        | String                    | Required | The target to compile                                                             |
-| Configuration | UnrealTargetConfiguration | Required | The configuration to compile                                                      |
-| Platform      | UnrealTargetPlatform      | Required | The platform to compile for                                                       |
-| Arguments     | String                    | Optional | Additional arguments for UnrealBuildTool                                          |
-| Tag           | Tag List                  | Optional | Tag to be applied to build products of this task                                  |
-| If            | Condition                 | Optional | Whether to execute this task. It is ignored if this condition evaluates to false. |
+|                       |                           |          |                                                                                   |
+| --------------------- | ------------------------- | -------- | --------------------------------------------------------------------------------- |
+| Target                | String                    | Required | The target to compile                                                             |
+| Configuration         | UnrealTargetConfiguration | Required | The configuration to compile                                                      |
+| Platform              | UnrealTargetPlatform      | Required | The platform to compile for                                                       |
+| Arguments             | String                    | Optional | Additional arguments for UnrealBuildTool                                          |
+| AllowXGE              | Boolean                   | Optional | Whether to allow using XGE for compilation                                        |
+| AllowParallelExecutor | Boolean                   | Optional | Whether to allow using the parallel executor for this compile                     |
+| Tag                   | Tag List                  | Optional | Tag to be applied to build products of this task                                  |
+| If                    | Condition                 | Optional | Whether to execute this task. It is ignored if this condition evaluates to false. |
 
 ### Cook
 

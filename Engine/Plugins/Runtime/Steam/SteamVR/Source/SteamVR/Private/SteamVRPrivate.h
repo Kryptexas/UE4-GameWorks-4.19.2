@@ -3,7 +3,7 @@
 #pragma once
 
 /** Name of the current OpenVR SDK version in use (matches directory name) */
-#define OPENVR_SDK_VER TEXT("OpenVRv1_0_6")
+#define OPENVR_SDK_VER TEXT("OpenVRv1_0_7")
 
 // for STEAMVR_SUPPORTED_PLATFORMS, keep at top
 #include "ISteamVRPlugin.h"

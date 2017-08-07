@@ -13,7 +13,7 @@ UAbilityTask_WaitGameplayEffectBlockedImmunity::UAbilityTask_WaitGameplayEffectB
 
 UAbilityTask_WaitGameplayEffectBlockedImmunity* UAbilityTask_WaitGameplayEffectBlockedImmunity::WaitGameplayEffectBlockedByImmunity(UGameplayAbility* OwningAbility, FGameplayTagRequirements InSourceTagRequirements, FGameplayTagRequirements InTargetTagRequirements, AActor* InOptionalExternalTarget, bool InTriggerOnce)
 {
-	auto MyObj = NewAbilityTask<UAbilityTask_WaitGameplayEffectBlockedImmunity>(OwningAbility);
+	UAbilityTask_WaitGameplayEffectBlockedImmunity* MyObj = NewAbilityTask<UAbilityTask_WaitGameplayEffectBlockedImmunity>(OwningAbility);
 	MyObj->SourceTagRequirements = InSourceTagRequirements;
 	MyObj->TargetTagRequirements = InTargetTagRequirements;
 	MyObj->TriggerOnce = InTriggerOnce;

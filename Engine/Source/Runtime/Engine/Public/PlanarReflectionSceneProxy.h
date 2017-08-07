@@ -11,6 +11,10 @@
 #include "RenderResource.h"
 #include "UnrealClient.h"
 
+// Currently we support at most 2 views for each planar reflection, one view per stereo pass
+// Must match shader code
+const int32 GMaxPlanarReflectionViews = 2;
+
 class UPlanarReflectionComponent;
 
 class FPlanarReflectionRenderTarget : public FTexture, public FRenderTarget
@@ -118,8 +122,8 @@ public:
 	FVector4 PlanarReflectionYAxis;
 	FVector PlanarReflectionParameters;
 	FVector2D PlanarReflectionParameters2;
-	FMatrix ProjectionWithExtraFOV[2];
-	FVector4 ScreenScaleBias[2];
+	FMatrix ProjectionWithExtraFOV[GMaxPlanarReflectionViews];
+	FVector4 ScreenScaleBias[GMaxPlanarReflectionViews];
 	FVector4 InverseTransposeMirrorMatrix[3];
 	FName OwnerName;
 	int32 PlanarReflectionId;

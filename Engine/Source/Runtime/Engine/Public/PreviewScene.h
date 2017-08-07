@@ -22,7 +22,7 @@ public:
 	{
 		ConstructionValues()
 			: LightRotation(-40.f,-67.5f,0.f)
-			, SkyBrightness(0.f)
+			, SkyBrightness(1.0f)
 			, LightBrightness(PI)
 			, bAllowAudioPlayback(false)
 			, bForceMipsResident(true)
@@ -61,7 +61,7 @@ public:
 	/**
 	 * Adds a component to the preview scene.  This attaches the component to the scene, and takes ownership of it.
 	 */
-	virtual void AddComponent(class UActorComponent* Component,const FTransform& LocalToWorld);
+	virtual void AddComponent(class UActorComponent* Component,const FTransform& LocalToWorld, bool bAttachToRoot=false);
 
 	/**
 	 * Removes a component from the preview scene.  This detaches the component from the scene, and returns ownership of it.
@@ -86,12 +86,14 @@ public:
 	void SetLightColor(const FColor& LightColor);
 
 	void SetSkyBrightness(float SkyBrightness);
+	void SetSkyCubemap(class UTextureCube* Cubemap);
 
 	/** Load/Save settings to the config, specifying the key */
 	void LoadSettings(const TCHAR* Section);
 	void SaveSettings(const TCHAR* Section);
 
 	class UDirectionalLightComponent* DirectionalLight;
+	class USkyLightComponent* SkyLight;
 
 private:
 

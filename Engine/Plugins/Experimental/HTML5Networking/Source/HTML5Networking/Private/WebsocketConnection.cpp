@@ -160,8 +160,24 @@ void UWebSocketConnection::ReceivedRawPacket(void* Data,int32 Count)
 									Driver->ConnectionlessHandler->IncomingConnectionless(LowLevelGetRemoteAddress(true), DataRef, Count);
 	
 			TSharedPtr<StatelessConnectHandlerComponent> StatelessConnect = Driver->StatelessConnectComponent.Pin();
+
 			if (!UnProcessedPacket.bError && StatelessConnect->HasPassedChallenge(LowLevelGetRemoteAddress(true)))
 			{
+				UE_LOG(LogNet, Log, TEXT("Server accepting post-challenge connection from: %s"), *LowLevelGetRemoteAddress(true));
+				// Set the initial packet sequence from the handshake data
+				if (StatelessConnectComponent.IsValid())
+				{
+					int32 ServerSequence = 0;
+					int32 ClientSequence = 0;
+					StatelessConnect->GetChallengeSequence(ServerSequence, ClientSequence);
+					InitSequence(ClientSequence, ServerSequence);
+				}
+
+				if (Handler.IsValid())
+				{
+					Handler->BeginHandshaking();
+				}
+
 				bChallengeHandshake = false; // i.e. bPassedChallenge
 				UE_LOG(LogNet, Warning, TEXT("UWebSocketConnection::bChallengeHandshake: %s"), *LowLevelDescribe());
 				Count = FMath::DivideAndRoundUp(UnProcessedPacket.CountBits, 8);

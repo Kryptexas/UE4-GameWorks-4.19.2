@@ -17,6 +17,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UCameraComponent
 
+/// @cond DOXYGEN_WARNINGS
+
 UCineCameraComponent::UCineCameraComponent()
 {
 	// Super 35mm 4 Perf
@@ -56,7 +58,6 @@ UCineCameraComponent::UCineCameraComponent()
 	}
 #endif
 }
-
 
 void UCineCameraComponent::PostInitProperties()
 {
@@ -109,6 +110,7 @@ void UCineCameraComponent::TickComponent(float DeltaTime, ELevelTick TickType, F
 }
 
 #if WITH_EDITORONLY_DATA
+
 void UCineCameraComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	RecalcDerivedData();
@@ -146,8 +148,8 @@ void UCineCameraComponent::ResetProxyMeshTransform()
 		ProxyMeshComponent->SetRelativeLocation(FVector(-46.f, 0, -24.f));
 	}
 }
-#endif	// WITH_EDITORONLY_DATA
 
+#endif	// WITH_EDITORONLY_DATA
 
 float UCineCameraComponent::GetHorizontalFieldOfView() const
 {
@@ -200,6 +202,8 @@ void UCineCameraComponent::RecalcDerivedData()
 #endif
 }
 
+/// @endcond
+
 float UCineCameraComponent::GetDesiredFocusDistance(const FVector& InLocation) const
 {
 	float DesiredFocusDistance = 0.f;
@@ -251,9 +255,9 @@ void UCineCameraComponent::UpdateDebugFocusPlane()
 #if WITH_EDITORONLY_DATA
 	if (FocusSettings.bDrawDebugFocusPlane && DebugFocusPlaneMesh && DebugFocusPlaneComponent)
 	{
-		FVector const CamLocation = ComponentToWorld.GetLocation();
-		FVector const CamDir = ComponentToWorld.GetRotation().Vector();
-		FVector const FocusPoint = ComponentToWorld.GetLocation() + CamDir * GetDesiredFocusDistance(CamLocation);
+		FVector const CamLocation = GetComponentTransform().GetLocation();
+		FVector const CamDir = GetComponentTransform().GetRotation().Vector();
+		FVector const FocusPoint = GetComponentTransform().GetLocation() + CamDir * GetDesiredFocusDistance(CamLocation);
 		DebugFocusPlaneComponent->SetWorldLocation(FocusPoint);
 	}
 #endif

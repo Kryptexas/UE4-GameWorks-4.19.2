@@ -51,6 +51,7 @@ namespace Audio
 		//~ Begin FAudioDevice
 		virtual void GetAudioDeviceList(TArray<FString>& OutAudioDeviceNames) const override;
 		virtual bool InitializeHardware() override;
+		virtual void FadeIn() override;
 		virtual void FadeOut() override;
 		virtual void TeardownHardware() override;
 		virtual void UpdateHardware() override;
@@ -69,6 +70,7 @@ namespace Audio
 		virtual void SuspendContext() override;
 		virtual void EnableDebugAudioOutput() override;
 		virtual void InitSoundSubmixes() override;
+		virtual FAudioPlatformSettings GetPlatformSettings() const override;
 		virtual void RegisterSoundSubmix(USoundSubmix* SoundSubmix, bool bInit = true) override;
 		virtual void UnregisterSoundSubmix(USoundSubmix* SoundSubmix) override;
 
@@ -101,7 +103,7 @@ namespace Audio
 
 		int32 GetNumSpatialChannels() const { return NumSpatialChannels; }
 
-		int32 GetNumOutputFrames() const { return PlatformInfo.NumFrames; }
+		int32 GetNumOutputFrames() const { return PlatformSettings.CallbackBufferFrameSize; }
 
 		const TArray<FChannelPositionInfo>& GetCurrentChannelPositions() const { return CurrentChannelAzimuthPositions; }
 

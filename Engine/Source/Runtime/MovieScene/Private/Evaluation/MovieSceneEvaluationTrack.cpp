@@ -145,8 +145,6 @@ void FMovieSceneEvaluationTrack::DefaultInitialize(int32 SegmentIndex, const FMo
 
 void FMovieSceneEvaluationTrack::Evaluate(int32 SegmentIndex, const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const
 {
-	ExecutionTokens.SetCompletionMode(EMovieSceneCompletionMode::KeepState);
-
 	if (!TrackTemplate.IsValid() || !TrackTemplate->HasCustomEvaluate())
 	{
 		DefaultEvaluate(SegmentIndex, Operand, Context, PersistentData, ExecutionTokens);
@@ -180,8 +178,7 @@ void FMovieSceneEvaluationTrack::EvaluateStatic(int32 SegmentIndex, const FMovie
 		Context.ApplySectionPrePostRoll(EvalData.IsPreRoll(), EvalData.IsPostRoll());
 
 		PersistentData.DeriveSectionKey(EvalData.ImplIndex);
-		ExecutionTokens.SetSectionIdentifier(EvalData.ImplIndex);
-		ExecutionTokens.SetCompletionMode(Template.GetCompletionMode());
+		ExecutionTokens.SetCurrentScope(FMovieSceneEvaluationScope(PersistentData.GetSectionKey(), Template.GetCompletionMode()));
 		ExecutionTokens.SetContext(Context);
 
 		Template.Evaluate(Operand, Context, PersistentData, ExecutionTokens);
@@ -247,8 +244,7 @@ void FMovieSceneEvaluationTrack::EvaluateSwept(int32 SegmentIndex, const FMovieS
 		const FMovieSceneEvalTemplate& Template = GetChildTemplate(SectionIndex);
 
 		PersistentData.DeriveSectionKey(SectionIndex);
-		ExecutionTokens.SetSectionIdentifier(SectionIndex);
-		ExecutionTokens.SetCompletionMode(Template.GetCompletionMode());
+		ExecutionTokens.SetCurrentScope(FMovieSceneEvaluationScope(PersistentData.GetSectionKey(), Template.GetCompletionMode()));
 		ExecutionTokens.SetContext(Context);
 		
 		Template.EvaluateSwept(
@@ -259,9 +255,9 @@ void FMovieSceneEvaluationTrack::EvaluateSwept(int32 SegmentIndex, const FMovieS
 	}
 }
 
-void FMovieSceneEvaluationTrack::Interrogate(const FMovieSceneContext& Context, FMovieSceneInterrogationData& Container) const
+void FMovieSceneEvaluationTrack::Interrogate(const FMovieSceneContext& Context, FMovieSceneInterrogationData& Container, UObject* BindingOverride) const
 {
-	if (TrackTemplate.IsValid() && TrackTemplate->Interrogate(Context, Container))
+	if (TrackTemplate.IsValid() && TrackTemplate->Interrogate(Context, Container, BindingOverride))
 	{
 		return;
 	}
@@ -276,7 +272,7 @@ void FMovieSceneEvaluationTrack::Interrogate(const FMovieSceneContext& Context, 
 	{
 		for (const FSectionEvaluationData& EvalData : GetSegment(SegmentIndex).Impls)
 		{
-			GetChildTemplate(EvalData.ImplIndex).Interrogate(Context, Container);
+			GetChildTemplate(EvalData.ImplIndex).Interrogate(Context, Container, BindingOverride);
 		}
 	}
 	else
@@ -287,7 +283,10 @@ void FMovieSceneEvaluationTrack::Interrogate(const FMovieSceneContext& Context, 
 		GatherSweptSegments(Context.GetRange(), SegmentIndex, Segments, ImplToAccumulatedRange);
 		for (auto& Pair : ImplToAccumulatedRange)
 		{
-			GetChildTemplate(Pair.Key).Interrogate(Context, Pair.Value, Container);
+			GetChildTemplate(Pair.Key).Interrogate(Context, Pair.Value, Container, BindingOverride);
 		}
 	}
+
+	// @todo: this should live higher up the callstack when whole template interrogation is supported
+	Container.Finalize(Context, BindingOverride);
 }

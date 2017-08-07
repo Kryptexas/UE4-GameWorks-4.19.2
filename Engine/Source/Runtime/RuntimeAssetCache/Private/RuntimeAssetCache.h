@@ -24,7 +24,7 @@ class FRuntimeAssetCacheBucket;
 /**
  * Concrete class implementing FRuntimeAssetCacheInterface. 
  */
-class FRuntimeAssetCache : public FRuntimeAssetCacheInterface
+class FRuntimeAssetCache final : public FRuntimeAssetCacheInterface
 {
 	/** FRuntimeAssetCacheInterface implementation */
 public:

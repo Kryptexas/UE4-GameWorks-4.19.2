@@ -37,7 +37,6 @@ struct FCrashOverrideParameters
 	FString CrashReportClientMessageText;
 };
 
-
 class CORE_API FCoreDelegates
 {
 public:
@@ -80,11 +79,20 @@ public:
 	// Callback for handling the Controller connection / disconnection
 	// first param is true for a connection, false for a disconnection.
 	// second param is UserID, third is UserIndex / ControllerId.
-	DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnUserControllerConnectionChange, bool, int32, int32);
+	DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnUserControllerConnectionChange, bool, FPlatformUserId, int32);
+
+	// Callback for handling a Controller pairing change
+	// first param is controller index
+	// second param is NewUserPlatformId, third is OldUserPlatformId.
+	DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnUserControllerPairingChange, int32 /*ControllerIndex*/, FPlatformUserId /*NewUserPlatformId*/, FPlatformUserId /*OldUserPlatformId*/);
 
 	// Callback for platform handling when flushing async loads.
 	DECLARE_MULTICAST_DELEGATE(FOnAsyncLoadingFlush);
 	static FOnAsyncLoadingFlush OnAsyncLoadingFlush;
+
+	// Callback for a game thread interruption point when a async load flushing. Used to updating UI during long loads.
+	DECLARE_MULTICAST_DELEGATE(FOnAsyncLoadingFlushUpdate);
+	static FOnAsyncLoadingFlushUpdate OnAsyncLoadingFlushUpdate;
 
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnAsyncLoadPackage, const FString&);
 	static FOnAsyncLoadPackage OnAsyncLoadPackage;
@@ -97,6 +105,9 @@ public:
 
 	// Callback when controllers disconnected / reconnected
 	static FOnUserControllerConnectionChange OnControllerConnectionChange;
+
+	// Callback when a single controller pairing changes
+	static FOnUserControllerPairingChange OnControllerPairingChange;
 
 	// Callback when a user changes the safe frame size
 	static FOnSafeFrameChangedEvent OnSafeFrameChangedEvent;
@@ -129,8 +140,14 @@ public:
 	// Called when an error occurred.
 	static FSimpleMulticastDelegate OnShutdownAfterError;
 
-	// Called when appInit is called.
+	// Called when appInit is called, very early in startup
 	static FSimpleMulticastDelegate OnInit;
+
+	// Called at the end of UEngine::Init, right before loading PostEngineInit modules for both normal execution and commandlets
+	static FSimpleMulticastDelegate OnPostEngineInit;
+
+	// Called at the very end of engine initialization, right before the engine starts ticking. This is not called for commandlets
+	static FSimpleMulticastDelegate OnFEngineLoopInitComplete;
 
 	// Called when the application is about to exit.
 	static FSimpleMulticastDelegate OnExit;
@@ -146,6 +163,13 @@ public:
 
 	/** Called when the user accepts an invitation to the current game */
 	static FOnInviteAccepted OnInviteAccepted;
+
+	// Called at the beginning of a frame
+	static FSimpleMulticastDelegate OnBeginFrame;
+
+	// Called at the end of a frame
+	static FSimpleMulticastDelegate OnEndFrame;
+
 
 	DECLARE_MULTICAST_DELEGATE_ThreeParams(FWorldOriginOffset, class UWorld*, FIntVector, FIntVector);
 	/** called before world origin shifting */
@@ -185,8 +209,8 @@ public:
 	DECLARE_MULTICAST_DELEGATE_OneParam(FApplicationRegisteredForRemoteNotificationsDelegate, TArray<uint8>);
 	DECLARE_MULTICAST_DELEGATE_OneParam(FApplicationRegisteredForUserNotificationsDelegate, int);
 	DECLARE_MULTICAST_DELEGATE_OneParam(FApplicationFailedToRegisterForRemoteNotificationsDelegate, FString);
-	DECLARE_MULTICAST_DELEGATE_OneParam(FApplicationReceivedRemoteNotificationDelegate, FString);
-	DECLARE_MULTICAST_DELEGATE_TwoParams(FApplicationReceivedLocalNotificationDelegate, FString, int);
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FApplicationReceivedRemoteNotificationDelegate, FString, int);
+	DECLARE_MULTICAST_DELEGATE_ThreeParams(FApplicationReceivedLocalNotificationDelegate, FString, int, int);
 
 
 
@@ -313,9 +337,6 @@ public:
 	/* Sent just before the rendering thread is destroyed. */
 	static FRenderingThreadChanged PreRenderingThreadDestroyed;
 
-	// Called when appInit is called.
-	static FSimpleMulticastDelegate OnFEngineLoopInitComplete;
-
 	// Callback to allow custom resolution of package names. Arguments are InRequestedName, OutResolvedName.
 	// Should return True of resolution occured.
 	DECLARE_DELEGATE_RetVal_TwoParams(bool, FResolvePackageNameDelegate, const FString&, FString&);
@@ -327,8 +348,12 @@ public:
 	DECLARE_DELEGATE_RetVal_TwoParams(bool, FImageIntegrityChanged, const TCHAR*, int32);
 	static FImageIntegrityChanged OnImageIntegrityChanged;
 
+	// Called to request that systems free whatever memory they are able to. Called early in LoadMap.
+	// Caller is responsible for flushing rendering etc. See UEngine::TrimMemory
+	static FSimpleMulticastDelegate& GetMemoryTrimDelegate();
+
 	// Called when OOM event occurs, after backup memory has been freed, so there's some hope of being effective
-	static FSimpleMulticastDelegate OnOutOfMemory;
+	static FSimpleMulticastDelegate& GetOutOfMemoryDelegate();
 
 	enum class EOnScreenMessageSeverity : uint8
 	{
@@ -346,6 +371,9 @@ public:
 	// }
 	DECLARE_MULTICAST_DELEGATE_OneParam(FGetOnScreenMessagesDelegate, FSeverityMessageMap&);
 	static FGetOnScreenMessagesDelegate OnGetOnScreenMessages;
+
+	DECLARE_DELEGATE_RetVal(bool, FIsLoadingMovieCurrentlyPlaying)
+	static FIsLoadingMovieCurrentlyPlaying IsLoadingMovieCurrentlyPlaying;
 
 private:
 

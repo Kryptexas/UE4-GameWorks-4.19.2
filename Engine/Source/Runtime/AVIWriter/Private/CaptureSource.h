@@ -25,7 +25,9 @@ typedef TCHAR* PTCHAR;
 #endif
 #include "WindowsHWrapper.h"
 #include "AllowWindowsPlatformTypes.h"
+THIRD_PARTY_INCLUDES_START
 #include <streams.h>
+THIRD_PARTY_INCLUDES_END
 #include "HideWindowsPlatformTypes.h"
 #pragma warning(pop)
 class FCapturePin;

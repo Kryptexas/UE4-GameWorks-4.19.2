@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3467293
 Availability:Public
 Title: IK 셋업
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -10,7 +10,7 @@ Related: Engine/Content/Tools/MayaRiggingTool
 Related: Engine/Animation/AnimBlueprints
 Related: Engine/Animation/AnimBlueprints/EventGraph
 version: 4.9
-
+topic-image:IKSetups_topic.png
 
 [REGION:fullwidth]
 ![](IKWithWithout.png)

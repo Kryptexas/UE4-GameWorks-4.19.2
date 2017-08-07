@@ -121,6 +121,7 @@ void FPaperTileMapDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& D
 			.HAlign(HAlign_Center)
 			.OnClicked(this, &FPaperTileMapDetailsCustomization::EnterTileMapEditingMode)
 			.Visibility(this, &FPaperTileMapDetailsCustomization::GetNonEditModeVisibility)
+			.IsEnabled(this, &FPaperTileMapDetailsCustomization::GetIsEditModeEnabled)
 			.Text(LOCTEXT("EditAsset", "Edit Map"))
 			.ToolTipText(LOCTEXT("EditAssetToolTip", "Edit this tile map"))
 		]
@@ -272,7 +273,7 @@ void FPaperTileMapDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& D
 					const bool bAdvancedDisplay = TestProperty->HasAnyPropertyFlags(CPF_AdvancedDisplay);
 					const EPropertyLocation::Type PropertyLocation = bAdvancedDisplay ? EPropertyLocation::Advanced : EPropertyLocation::Common;
 
-					LayerCategory.AddExternalProperty(ListOfSelectedLayers, TestProperty->GetFName(), PropertyLocation);
+					LayerCategory.AddExternalObjectProperty(ListOfSelectedLayers, TestProperty->GetFName(), PropertyLocation);
 				}
 			}
 		}
@@ -297,7 +298,7 @@ void FPaperTileMapDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& D
 				const FName CategoryName(*TestProperty->GetMetaData(TEXT("Category")));
 				IDetailCategoryBuilder& Category = DetailLayout.EditCategory(CategoryName);
 
-				if (IDetailPropertyRow* ExternalRow = Category.AddExternalProperty(ListOfTileMaps, TestProperty->GetFName(), PropertyLocation))
+				if (IDetailPropertyRow* ExternalRow = Category.AddExternalObjectProperty(ListOfTileMaps, TestProperty->GetFName(), PropertyLocation))
 				{
 					ExternalRow->Visibility(InternalInstanceVis);
 				}
@@ -358,7 +359,7 @@ FReply FPaperTileMapDetailsCustomization::OnPromoteToAssetButtonClicked()
 				PromotionFactory->AssetToRename = TileMapComponent->TileMap;
 
 				FAssetToolsModule& AssetToolsModule = FAssetToolsModule::GetModule();
-				UObject* NewAsset = AssetToolsModule.Get().CreateAsset(PromotionFactory->GetSupportedClass(), PromotionFactory);
+				UObject* NewAsset = AssetToolsModule.Get().CreateAssetWithDialog(PromotionFactory->GetSupportedClass(), PromotionFactory);
 			
 				// Show it in the content browser
 				TArray<UObject*> ObjectsToSync;
@@ -389,6 +390,16 @@ FReply FPaperTileMapDetailsCustomization::OnMakeInstanceFromAssetButtonClicked()
 	MyDetailLayout->ForceRefreshDetails();
 
 	return FReply::Handled();
+}
+
+bool FPaperTileMapDetailsCustomization::GetIsEditModeEnabled() const
+{
+	if (UPaperTileMapComponent* TileMapComponent = TileMapComponentPtr.Get())
+	{
+		return (TileMapComponent->TileMap != nullptr);
+	}
+	
+	return false;
 }
 
 EVisibility FPaperTileMapDetailsCustomization::GetNonEditModeVisibility() const

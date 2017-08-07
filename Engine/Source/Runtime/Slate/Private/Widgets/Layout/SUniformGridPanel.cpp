@@ -28,7 +28,7 @@ void SUniformGridPanel::OnArrangeChildren( const FGeometry& AllottedGeometry, FA
 {
 	if ( Children.Num() > 0 )
 	{
-		const FVector2D CellSize(AllottedGeometry.Size.X / NumColumns, AllottedGeometry.Size.Y / NumRows);
+		const FVector2D CellSize(AllottedGeometry.GetLocalSize().X / NumColumns, AllottedGeometry.GetLocalSize().Y / NumRows);
 		const FMargin& CurrentSlotPadding(SlotPadding.Get());
 		for ( int32 ChildIndex=0; ChildIndex < Children.Num(); ++ChildIndex )
 		{

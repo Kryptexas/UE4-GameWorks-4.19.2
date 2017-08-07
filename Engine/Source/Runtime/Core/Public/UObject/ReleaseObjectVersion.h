@@ -40,6 +40,9 @@ struct CORE_API FReleaseObjectVersion
 		// Remove serialized irradiance map data from skylight.
 		SkyLightRemoveMobileIrradianceMap,
 
+		// rename bNoTwist to bAllowTwist
+		RenameNoTwistToAllowTwistInTwoBoneIK,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

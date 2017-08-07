@@ -50,7 +50,7 @@ struct FGeneratedCodeData
 		ClassName = GeneratedClassName.ToString();
 
 		IBlueprintCompilerCppBackendModule& CodeGenBackend = (IBlueprintCompilerCppBackendModule&)IBlueprintCompilerCppBackendModule::Get();
-		BaseFilename = CodeGenBackend.ConstructBaseFilename(&InBlueprint);
+		BaseFilename = CodeGenBackend.ConstructBaseFilename(&InBlueprint, FCompilerNativizationOptions{});
 
 		GatherUserDefinedDependencies(InBlueprint);
 	}
@@ -159,7 +159,7 @@ struct FGeneratedCodeData
 			FBlueprintNativeCodeGenUtils::GenerateCppCode(Obj, HeaderSource, CppSource, NativizationSummary, FCompilerNativizationOptions{});
 			SlowTask.EnterProgressFrame();
 
-			const FString BackendBaseFilename = CodeGenBackend.ConstructBaseFilename(Obj);
+			const FString BackendBaseFilename = CodeGenBackend.ConstructBaseFilename(Obj, FCompilerNativizationOptions{});
 
 			const FString FullHeaderFilename = FPaths::Combine(*HeaderDirPath, *(BackendBaseFilename + TEXT(".h")));
 			const bool bHeaderSaved = FFileHelper::SaveStringToFile(*HeaderSource, *FullHeaderFilename);

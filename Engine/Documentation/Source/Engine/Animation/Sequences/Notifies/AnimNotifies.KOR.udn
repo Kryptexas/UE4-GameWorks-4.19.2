@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3429233
 Availability:Public
 Title:애니메이션 노티파이
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Sequences
@@ -8,6 +8,7 @@ Related: Engine/Animation/Sequences/Editor
 Related: Engine/Animation/AnimMontage
 Related: Engine/Animation
 Related: Engine/Animation/AnimHowTo
+topic-image:Engine/Animation/Overview/AnimNotifiesTopic.png
 
 [VAR:Topic]
 [OBJECT:Topic]

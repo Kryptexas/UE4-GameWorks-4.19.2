@@ -22,7 +22,31 @@ D3D12_RESOURCE_DESC CreateStructuredBufferResourceDesc(uint32 Size, uint32 InUsa
 		Desc.Flags |= D3D12RHI_RESOURCE_FLAG_ALLOW_INDIRECT_BUFFER;
 	}
 
+
 	return Desc;
+}
+
+FStructuredBufferRHIRef FD3D12DynamicRHI::CreateStructuredBuffer_RenderThread(FRHICommandListImmediate& RHICmdList, uint32 Stride, uint32 Size, uint32 InUsage, FRHIResourceCreateInfo& CreateInfo)
+{
+	// Check for values that will cause D3D calls to fail
+	check(Size / Stride > 0 && Size % Stride == 0);
+
+	const D3D12_RESOURCE_DESC Desc = CreateStructuredBufferResourceDesc(Size, InUsage);
+
+	// Structured buffers, non-byte address buffers, need to be aligned to their stride to ensure that they
+	// can be addressed correctly with element based offsets.
+	const uint32 Alignment = ((InUsage & (BUF_ByteAddressBuffer | BUF_DrawIndirect)) == 0) ? Stride : 4;
+
+	FD3D12StructuredBuffer* NewBuffer = GetAdapter().CreateRHIBuffer<FD3D12StructuredBuffer>(&RHICmdList, Desc, Alignment, Stride, Size, InUsage, CreateInfo, false);
+	if (NewBuffer->ResourceLocation.IsTransient())
+	{
+		// TODO: this should ideally be set in platform-independent code, since this tracking is for the high level
+		NewBuffer->SetCommitted(false);
+	}
+
+	UpdateBufferStats(&NewBuffer->ResourceLocation, true, D3D12_BUFFER_TYPE_STRUCTURED);
+
+	return NewBuffer;
 }
 
 FStructuredBufferRHIRef FD3D12DynamicRHI::RHICreateStructuredBuffer(uint32 Stride, uint32 Size, uint32 InUsage, FRHIResourceCreateInfo& CreateInfo)
@@ -37,6 +61,11 @@ FStructuredBufferRHIRef FD3D12DynamicRHI::RHICreateStructuredBuffer(uint32 Strid
 	const uint32 Alignment = ((InUsage & (BUF_ByteAddressBuffer | BUF_DrawIndirect)) == 0) ? Stride : 4;
 
 	FD3D12StructuredBuffer* NewBuffer = GetAdapter().CreateRHIBuffer<FD3D12StructuredBuffer>(nullptr, Desc, Alignment, Stride, Size, InUsage, CreateInfo, false);
+	if (NewBuffer->ResourceLocation.IsTransient())
+	{
+		// TODO: this should ideally be set in platform-independent code, since this tracking is for the high level
+		NewBuffer->SetCommitted(false);
+	}
 
 	UpdateBufferStats(&NewBuffer->ResourceLocation, true, D3D12_BUFFER_TYPE_STRUCTURED);
 

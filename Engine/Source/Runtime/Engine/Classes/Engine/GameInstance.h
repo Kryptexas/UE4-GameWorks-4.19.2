@@ -199,6 +199,8 @@ public:
 	virtual bool JoinSession(ULocalPlayer* LocalPlayer, int32 SessionIndexInSearchResults) { return false; }
 	virtual bool JoinSession(ULocalPlayer* LocalPlayer, const FOnlineSessionSearchResult& SearchResult) { return false; }
 
+	virtual void LoadComplete(const float LoadTime, const FString& MapName) {}
+
 	/** Local player access */
 
 	/**
@@ -338,6 +340,16 @@ public:
 	bool IsDedicatedServerInstance() const;
 
 	/**
+	 * Retrieves the name of the online subsystem for the platform used by this instance.
+	 * This will be used as the value of the PlayerOnlinePlatformName parameter in
+	 * the NMT_Login message when this client connects to a server.
+	 * Normally this will be the same as the DefaultPlatformService config value,
+	 * but games may override it if they need non-default behavior (for example,
+	 * if they are using multiple online subsystems at the same time).
+	 */
+	virtual FName GetOnlinePlatformName() const;
+
+	/**
 	 * Helper function for traveling to a session that has already been joined via the online platform
 	 * Grabs the URL from the session info and travels
 	 *
@@ -352,4 +364,8 @@ public:
 	void NotifyPreClientTravel(const FString& PendingURL, ETravelType TravelType, bool bIsSeamlessTravel);
 	/** @return delegate fired when client travel occurs */
 	FOnPreClientTravel& OnNotifyPreClientTravel() { return NotifyPreClientTravelDelegates; }
+
+protected:
+	/** Called when the game instance is started either normally or through PIE. */
+	virtual void OnStart();
 };

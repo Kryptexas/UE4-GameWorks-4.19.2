@@ -25,7 +25,7 @@ struct FSceneCaptureViewInfo
 	EStereoscopicPass StereoPass;
 };
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FEngineShowFlagsSetting
 {
 	GENERATED_USTRUCT_BODY()
@@ -35,6 +35,23 @@ struct FEngineShowFlagsSetting
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SceneCapture)
 	bool Enabled;
+
+
+	bool operator == (const FEngineShowFlagsSetting& Other) const
+	{
+		return ShowFlagName == Other.ShowFlagName && Other.Enabled == Enabled;
+	}
+};
+
+UENUM()
+enum ESceneCapturePrimitiveRenderMode
+{
+	/** Legacy */
+	PRM_LegacySceneCapture UMETA(DisplayName = "Render Scene Primitives"),
+	/** Render primitives in the scene, minus HiddenActors. */
+	PRM_RenderScenePrimitives UMETA(DisplayName = "Render Scene Primitives"),
+	/** Render only primitives in the ShowOnlyActors list, or components specified with ShowOnlyComponent(). */
+	PRM_UseShowOnlyList UMETA(DisplayName = "Use ShowOnly List")
 };
 
 	// -> will be exported to EngineDecalClasses.h
@@ -42,6 +59,10 @@ UCLASS(hidecategories=(abstract, Collision, Object, Physics, SceneComponent, Mob
 class ENGINE_API USceneCaptureComponent : public USceneComponent
 {
 	GENERATED_UCLASS_BODY()
+
+	/** Controls what primitives get rendered into the scene capture. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SceneCapture)
+	TEnumAsByte<enum ESceneCapturePrimitiveRenderMode> PrimitiveRenderMode;
 
 	/** The components won't rendered by current component.*/
  	UPROPERTY()
@@ -51,11 +72,11 @@ class ENGINE_API USceneCaptureComponent : public USceneComponent
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SceneCapture)
 	TArray<AActor*> HiddenActors;
 
-	/** The only components to be rendered by this scene capture, if present.*/
+	/** The only components to be rendered by this scene capture, if PrimitiveRenderMode is set to UseShowOnlyList. */
  	UPROPERTY()
  	TArray<TWeakObjectPtr<UPrimitiveComponent> > ShowOnlyComponents;
 
-	/** The only actors to be rendered by this scene capture, if present.*/
+	/** The only actors to be rendered by this scene capture, if PrimitiveRenderMode is set to UseShowOnlyList.*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SceneCapture)
 	TArray<AActor*> ShowOnlyActors;
 
@@ -67,6 +88,10 @@ class ENGINE_API USceneCaptureComponent : public USceneComponent
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SceneCapture)
 	bool bCaptureOnMovement;
 	
+	/** Whether to persist the rendering state even if bCaptureEveryFrame==false.  This allows velocities for Motion Blur and Temporal AA to be computed. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SceneCapture, meta = (editcondition = "!bCaptureEveryFrame"))
+	bool bAlwaysPersistRenderingState;
+
 	/** Scales the distance used by LOD. Set to values greater than 1 to cause the scene capture to use lower LODs than the main view to speed up the scene capture pass. */
 	UPROPERTY(EditAnywhere, Category=PlanarReflection, meta=(UIMin = ".1", UIMax = "10"), AdvancedDisplay)
 	float LODDistanceFactor;
@@ -80,7 +105,7 @@ class ENGINE_API USceneCaptureComponent : public USceneComponent
 	int32 CaptureSortPriority;
 
 	/** ShowFlags for the SceneCapture's ViewFamily, to control rendering settings for this view. Hidden but accessible through details customization */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, interp, Category=SceneComponent)
+	UPROPERTY(EditAnywhere, interp, Category=SceneCapture)
 	TArray<struct FEngineShowFlagsSetting> ShowFlagSettings;
 
 	// TODO: Make this a UStruct to set directly?
@@ -90,6 +115,10 @@ class ENGINE_API USceneCaptureComponent : public USceneComponent
 public:
 	/** Indicates which stereo pass this component is capturing for, if any */
     EStereoscopicPass CaptureStereoPass;
+
+	//~ Begin UActorComponent Interface
+	virtual void OnRegister() override;
+	//~ End UActorComponent Interface
 
 	/** Adds the component to our list of hidden components. */
 	UFUNCTION(BlueprintCallable, Category = "Rendering|SceneCapture")
@@ -119,6 +148,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Rendering|SceneCapture")
 	void ClearShowOnlyComponents(UPrimitiveComponent* InComponent);
 
+	/** Clears the hidden list. */
+	UFUNCTION(BlueprintCallable, Category = "Rendering|SceneCapture")
+	void ClearHiddenComponents();
+
 	/** Changes the value of TranslucentSortPriority. */
 	UFUNCTION(BlueprintCallable, Category = "Rendering|SceneCapture")
 	void SetCaptureSortPriority(int32 NewCaptureSortPriority);
@@ -126,17 +159,17 @@ public:
 	/** Returns the view state, if any, and allocates one if needed. This function can return NULL, e.g. when bCaptureEveryFrame is false. */
 	FSceneViewStateInterface* GetViewState(int32 ViewIndex);
 
-	/** Return a boolean for whether this flag exists in the ShowFlagSettings array, and a pointer to the flag if it does exist  */
-	bool GetSettingForShowFlag(FString FlagName, FEngineShowFlagsSetting** ShowFlagSettingOut);
-
 #if WITH_EDITOR
-	/**
-	* Called when a property on this object has been modified externally
-	*
-	* @param PropertyThatChanged the property that was modified
-	*/
+	virtual bool CanEditChange(const UProperty* InProperty) const override;
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif	
+
+	virtual void Serialize(FArchive& Ar);
+
+	virtual void OnUnregister() override;
+
+	/** To leverage a component's bOwnerNoSee/bOnlyOwnerSee properties, the capture view requires an "owner". Override this to set a "ViewActor" for the scene. */
+	virtual const AActor* GetViewOwner() const { return nullptr; }
 
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 

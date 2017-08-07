@@ -10,6 +10,7 @@
 
 #include "EngineUtils.h"
 #include "Engine/StaticMeshActor.h"
+#include "Engine/StaticMesh.h"
 #include "StaticMeshResources.h"
 #include "SteamAudioSettings.h"
 
@@ -22,6 +23,8 @@
 #include "LandscapeComponent.h"
 #include "LandscapeInfo.h"
 #include "LandscapeDataAccess.h"
+
+#endif // WITH_EDITOR
 
 /*
 
@@ -39,6 +42,9 @@
 
 namespace SteamAudio
 {
+
+#if WITH_EDITOR
+
 	static void LoadBSPGeometry(UWorld* World, IPLhandle PhononScene, TArray<IPLhandle>* PhononStaticMeshes);
 	static void LoadStaticMeshActors(UWorld* World, IPLhandle PhononScene, TArray<IPLhandle>* PhononStaticMeshes);
 	static void LoadLandscapeActors(UWorld* World, IPLhandle PhononScene, TArray<IPLhandle>* PhononStaticMeshes);
@@ -426,6 +432,8 @@ namespace SteamAudio
 		iplSetSceneMaterial(PhononScene, MaterialPresets.Num() + 2, GetDefault<USteamAudioSettings>()->GetDefaultLandscapeMaterial());
 	}
 
+#endif // WITH_EDITOR
+
 	uint32 GetNumTrianglesForStaticMesh(AStaticMeshActor* StaticMeshActor)
 	{
 		auto NumTriangles = 0;
@@ -466,5 +474,3 @@ namespace SteamAudio
 		return NumTriangles;
 	}
 }
-
-#endif

@@ -1,4 +1,5 @@
-﻿INTSourceChangelist:3242329Availability:Public
+﻿INTSourceChangelist:3242329
+Availability:Public
 Title:Atmosphere 表現式
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
 Description:霧やその他の大気レベル効果に影響を与える表現式

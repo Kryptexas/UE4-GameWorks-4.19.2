@@ -6,19 +6,22 @@
 #include "GenericPlatform/GenericPlatformFile.h"
 #include "NetworkMessage.h"
 #include "ServerTOC.h"
+#include "CoreMisc.h" // included for FSelfRegisteringExec
 
 class FScopedEvent;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogNetworkPlatformFile, Log, All);
 
+
 /**
  * Wrapper to redirect the low level file system to a server
  */
-class NETWORKFILE_API FNetworkPlatformFile : public IPlatformFile
+class NETWORKFILE_API FNetworkPlatformFile : public IPlatformFile, public FSelfRegisteringExec
 {
 	friend class FAsyncFileSync;
 	friend void ReadUnsolicitedFile(int32 InNumUnsolictedFiles, FNetworkPlatformFile& InNetworkFile, IPlatformFile& InInnerPlatformFile,  FString& InServerEngineDir, FString& InServerGameDir);
 
+protected:
 	/**
 	 * Initialize network platform file give the specified host IP
 	 *
@@ -28,7 +31,10 @@ class NETWORKFILE_API FNetworkPlatformFile : public IPlatformFile
 	 */
 	virtual bool InitializeInternal(IPlatformFile* Inner, const TCHAR* HostIP);
 
+	virtual void OnFileUpdated(const FString& LocalFilename);
+
 public:
+	
 
 	static const TCHAR* GetTypeName()
 	{
@@ -136,6 +142,7 @@ public:
 	virtual bool SendMessageToServer(const TCHAR* Message, IPlatformFile::IFileServerMessageHandler* Handler) override;
 
 
+	virtual void Tick() override;
 
 
 	
@@ -146,6 +153,16 @@ public:
 	bool SendWriteMessage(const uint8* Source, int64 BytesToWrite);
 
 	static void ConvertServerFilenameToClientFilename(FString& FilenameToConvert, const FString& InServerEngineDir, const FString& InServerGameDir);
+
+
+	virtual FString GetVersionInfo() const;
+
+
+
+	//////////////////////////////////////////////////////////////////////////
+	// FSelfRegisteringExec interface
+	virtual bool Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override;
+
 
 protected:
 
@@ -165,9 +182,10 @@ protected:
 	 */
 	virtual void ConvertServerFilenameToClientFilename(FString& FilenameToConvert);
 
-	virtual void FillGetFileList(FNetworkFileArchive& Payload, bool bInStreamingFileRequest);
+	virtual void FillGetFileList(FNetworkFileArchive& Payload);
 
-	virtual void ProcessServerInitialResponse(FArrayReader& InResponse, int32 OutServerPackageVersion, int32 OutServerPackageLicenseeVersion);
+	virtual void ProcessServerInitialResponse(FArrayReader& InResponse, int32& OutServerPackageVersion, int32& OutServerPackageLicenseeVersion);
+	virtual void ProcessServerCachedFilesResponse(FArrayReader& InReponse, const int32 ServerPackageVersion, const int32 ServerPackageLicenseeVersion );
 
 private:
 
@@ -239,6 +257,26 @@ protected:
 	FCriticalSection	LocalDirectoriesCriticalSection;
 	bool				bIsUsable;
 	int32				FileServerPort;
+
+	// the connection flags are passed to the server during GetFileList
+	// the server may cache them
+	EConnectionFlags	ConnectionFlags;
+	// Frequency to send heartbeats to server in seconds set to negative number to disable
+	float HeartbeatFrequency;
+
+
+	// some stats for messuring network platform file performance
+	double TotalWriteTime; // total non async time spent writing to disk
+	double TotalNetworkSyncTime; // total non async time spent syncing to network
+	int32 TotalFilesSynced; // total number files synced from network
+	int32 TotalUnsolicitedPackages; // total number unsolicited files synced  
+	int32 TotalFilesFoundLocally;
+	int32 UnsolicitedPackagesHits; // total number of hits from waiting on unsolicited packages
+	int32 UnsolicitedPackageWaits; // total number of waits on unsolicited packages
+	double TotalTimeSpentInUnsolicitedPackages; // total time async processing unsolicited packages
+	double TotalWaitForAsyncUnsolicitedPackages; // total time spent waiting for unsolicited packages
+
+
 
 private:
 

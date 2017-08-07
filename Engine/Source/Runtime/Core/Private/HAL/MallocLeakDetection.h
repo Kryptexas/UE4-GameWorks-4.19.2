@@ -15,27 +15,49 @@
 #include "Containers/Set.h"
 #include "Containers/Map.h"
 #include "Misc/ScopeLock.h"
+#include "ThreadSafeBool.h"
 
 #ifndef MALLOC_LEAKDETECTION
 	#define MALLOC_LEAKDETECTION 0
 #endif
 
-#if MALLOC_LEAKDETECTION
-
-
+/**
+ *	Options that can be supplied when calling FMallocLeakDetection::DumpOpenCallstacks
+ */
 struct FMallocLeakReportOptions
 {
+	enum class ESortOption
+	{
+		SortSize,
+		SortRate,
+		SortHash
+	};
+
 	FMallocLeakReportOptions()
 	{
 		FMemory::Memzero(this, sizeof(FMallocLeakReportOptions));
 	}
-	uint32			FilterSize;
-	float			LeakRate;
+
+	/** If >0 only report allocations greater than this size */
+	uint32			SizeFilter;
+
+	/** If >0 only report allocations at a greater bytes/frame than this */
+	float			RateFilter;
+
+	/** Restrict report to allocations that have no history of being deleted */
 	bool			OnlyNonDeleters;
+
+	/** Only show allocations after this frame */
 	uint32			FrameStart;
+
+	/** Only show allocations from before this frame */
 	uint32			FrameEnd;
-	const TCHAR*	OutputFile;
+
+	/** Sort allocations by this (default - size) */
+	ESortOption		SortBy;
 };
+
+#if MALLOC_LEAKDETECTION
 
 /**
  * Maintains a list of all pointers to currently allocated memory.
@@ -55,6 +77,7 @@ class FMallocLeakDetection
 		uint32 LastFrame;
 		uint64 Size;
 		uint32 Count;
+		uint32 CachedHash;
 
 		// least square line fit stuff
 		uint32 NumCheckPoints;
@@ -66,7 +89,6 @@ class FMallocLeakDetection
 		// least square line results
 		float Baseline;
 		float BytesPerFrame;
-
 
 		bool operator==(const FCallstackTrack& Other) const
 		{
@@ -89,9 +111,10 @@ class FMallocLeakDetection
 
 		void GetLinearFit();
 		
-		uint32 GetHash() const 
+		uint32 GetHash() 
 		{
-			return FCrc::MemCrc32(CallStack, sizeof(CallStack), 0);
+			CachedHash = FCrc::MemCrc32(CallStack, sizeof(CallStack), 0);
+			return CachedHash;
 		}
 	};
 
@@ -112,21 +135,24 @@ private:
 	/** List of all unique callstacks with allocated memory */
 	TMap<uint32, FCallstackTrack> UniqueCallstacks;
 
-	/** Set of callstacks that are known to delete memory (never cleared) */
+	/** Set of callstacks that are known to delete memory (not reset on ClearData()) */
 	TSet<uint32>	KnownDeleters;
+
+	/** Set of callstacks that are known to resize memory (not reset on ClearData()) */
+	TSet<uint32>	KnownTrimmers;
 
 	/** Contexts that are associated with allocations */
 	TMap<void*, FString>		PointerContexts;
 
 	/** Stack of contexts */
-	struct ContextString { TCHAR Buffer[128]; };
+	struct ContextString { TCHAR Buffer[64]; };
 	TArray<ContextString>	Contexts;
 		
 	/** Critical section for mutating internal data */
 	FCriticalSection AllocatedPointersCritical;	
 
-	/** Set during mutating operationms to prevent internal allocations from recursing */
-	bool	bRecursive;
+	/** Set during mutating operations to prevent internal allocations from recursing */
+	FThreadSafeBool	bRecursive;
 
 	/** Is allocation capture enabled? */
 	bool	bCaptureAllocs;
@@ -134,7 +160,11 @@ private:
 	/** Minimal size to capture? */
 	int32	MinAllocationSize;
 
+	/** Size of all tracked callstacks */
 	SIZE_T	TotalTracked;
+
+	/** How long since we compacted things? */
+	int32	AllocsWithoutCompact;
 
 public:	
 
@@ -150,35 +180,36 @@ public:
 	/** Clear currently accumulated data */
 	void ClearData();
 
-	/** Dumps callstacks that appear to be leaks based on allocation trends */
-	int32 DumpPotentialLeakers(const FMallocLeakReportOptions& Options = FMallocLeakReportOptions());
-
 	/** Dumps currently open callstacks */
-	int32 DumpOpenCallstacks(const FMallocLeakReportOptions& Options = FMallocLeakReportOptions());
+	int32 DumpOpenCallstacks(const TCHAR* FileName, const FMallocLeakReportOptions& Options = FMallocLeakReportOptions());
 
 	/** Perform a linear fit checkpoint of all open callstacks */
 	void CheckpointLinearFit();
-
-
-	/** Cmd handler */
-	bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar);
 
 	/** Handles new allocated pointer */
 	void Malloc(void* Ptr, SIZE_T Size);
 
 	/** Handles reallocation */
-	void Realloc(void* OldPtr, void* NewPtr, SIZE_T Size);
+	void Realloc(void* OldPtr, SIZE_T OldSize, void* NewPtr, SIZE_T NewSize);
 
 	/** Removes allocated pointer from list */
 	void Free(void* Ptr);	
 
-	/** Push/Pop a context that will be associated with allocations. All open contexts will be displayed alongside
+	/** Disabled allocation tracking for this thread. Used by MALLOCLEAK_WHITELIST_SCOPE macros */
+	void SetDisabledForThisThread(const bool Disabled);
+
+	/** Returns true of allocation tracking for this thread is  */
+	bool IsDisabledForThisThread() const;
+
+	/** Pushes context that will be associated with allocations. All open contexts will be displayed alongside
 	callstacks in a report.  */
 	void PushContext(const FString& Context);
+
+	/** Pops a context from the above */
 	void PopContext();
 
 	/** Returns */
-	void GetOpenCallstacks(TArray<uint32>& OutCallstacks, const FMallocLeakReportOptions& Options = FMallocLeakReportOptions());
+	void GetOpenCallstacks(TArray<uint32>& OutCallstacks, SIZE_T& OutTotalSize, const FMallocLeakReportOptions& Options = FMallocLeakReportOptions());
 };
 
 /**
@@ -209,12 +240,14 @@ public:
 		return Result;
 	}
 
-	virtual void* Realloc(void* Ptr, SIZE_T NewSize, uint32 Alignment) override
+	virtual void* Realloc(void* OldPtr, SIZE_T NewSize, uint32 Alignment) override
 	{
 		FScopeLock SafeLock(&AllocatedPointersCritical);
-		void* Result = UsedMalloc->Realloc(Ptr, NewSize, Alignment);
-		Verify.Realloc(Ptr, Result, NewSize);
-		return Result;
+		SIZE_T OldSize(0);
+		GetAllocationSize(OldPtr, OldSize);
+		void* NewPtr = UsedMalloc->Realloc(OldPtr, NewSize, Alignment);
+		Verify.Realloc(OldPtr, OldSize, NewPtr, NewSize);
+		return NewPtr;
 	}
 
 	virtual void Free(void* Ptr) override
@@ -251,11 +284,6 @@ public:
 
 	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override
 	{
-		FScopeLock Lock(&AllocatedPointersCritical);
-		if (Verify.Exec(InWorld, Cmd, Ar))
-		{
-			return true;
-		}
 		return UsedMalloc->Exec(InWorld, Cmd, Ar);
 	}
 
@@ -298,4 +326,32 @@ public:
 	}
 };
 
-#endif // MALLOC_LEAKDETECTION
+/**
+ *	Helper class that can be used to whitelist allocations from a specific scope. Use this
+ *	carefully and only if you know that a portion of code is throwing up either false
+ *	positives or can be ignored. (e.g. one example is the FName table which never shrinks
+ *	and eventually reaches a max that is relatively inconsequential).
+ */
+class FMallocLeakScopeWhitelist
+{
+public:
+
+	FMallocLeakScopeWhitelist()
+	{
+		FMallocLeakDetection::Get().SetDisabledForThisThread(true);
+	}
+
+	~FMallocLeakScopeWhitelist()
+	{
+		FMallocLeakDetection::Get().SetDisabledForThisThread(false);
+	}
+};
+
+#define MALLOCLEAK_WHITELIST_SCOPE() \
+	FMallocLeakScopeWhitelist ANONYMOUS_VARIABLE(ScopeWhitelist)
+
+#else // MALLOC_LEAKDETECTION 0
+
+#define MALLOCLEAK_WHITELIST_SCOPE()
+
+#endif // MALLOC_LEAKDETECTIONMALLOC_LEAKDETECTION

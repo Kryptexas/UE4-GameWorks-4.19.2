@@ -314,7 +314,6 @@ void FBlueprintProfilerConnectionDrawingPolicy::DrawInterpColorSpline(const FGeo
 			ArrowLayerID,
 			FPaintGeometry(ArrowPoint, ArrowImage->ImageSize * ZoomFactor, ZoomFactor),
 			ArrowImage,
-			ClippingRect,
 			ESlateDrawEffect::None,
 			Params.WireColor
 			);
@@ -403,7 +402,6 @@ void FBlueprintProfilerConnectionDrawingPolicy::DrawPerfConnection(int32 LayerId
 		LayerId,
 		P0, P0Tangent,
 		P1, P1Tangent,
-		ClippingRect,
 		Gradients,
 		WireThickness,
 		ESlateDrawEffect::None);
@@ -444,7 +442,6 @@ void FBlueprintProfilerConnectionDrawingPolicy::DrawPerfConnection(int32 LayerId
 						LayerId,
 						FPaintGeometry( BubblePos, BubbleSize, ZoomFactor  ),
 						BubbleImage,
-						ClippingRect,
 						ESlateDrawEffect::None,
 						ElementColor
 						);
@@ -474,7 +471,6 @@ void FBlueprintProfilerConnectionDrawingPolicy::DrawPerfConnection(int32 LayerId
 				LayerId,
 				FPaintGeometry(MidpointDrawPos, MidpointImage->ImageSize * ZoomFactor, ZoomFactor),
 				MidpointImage,
-				ClippingRect,
 				ESlateDrawEffect::None,
 				AngleInRadians,
 				TOptional<FVector2D>(),

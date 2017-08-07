@@ -40,9 +40,10 @@ OVRP_PUBLIC_FUNCTION(void) ovr_Net_Close(ovrID peerID);
 OVRP_PUBLIC_FUNCTION(void) ovr_Net_CloseForCurrentRoom();
 
 /// Connects to the peer with the specified user ID. This function returns
-/// immediately; once the connection is established, a
-/// ovrNotification_Networking_ConnectionStateChange message is enqueued. Can
-/// be called from any thread.
+/// immediately. Once the connection is established, a
+/// ovrNotification_Networking_ConnectionStateChange message will be enqueued.
+///
+/// Can be called from any thread.
 ///
 /// Note that ovr_Net_SendPacket() implicitly connects. However, it does not
 /// buffer messages in unreliable mode. ovr_Net_Connect() allows the

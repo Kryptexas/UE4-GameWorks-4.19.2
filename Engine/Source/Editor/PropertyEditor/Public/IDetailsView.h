@@ -140,13 +140,6 @@ public:
 	/** @return Whether or not the details view is viewing a CDO */
 	virtual bool HasClassDefaultObject() const = 0;
 
-	/** Gets the base class being viewed */
-	DEPRECATED(4.13, "GetBaseClass should be accessed from IDetailLayoutBuilder.GetBaseClass")
-	virtual const UClass* GetBaseClass() const = 0;
-
-	DEPRECATED(4.13, "GetBaseClass should be accessed from IDetailLayoutBuilder.GetBaseClass")
-	virtual UClass* GetBaseClass() = 0;
-
 	/**
 	 * Registers a custom detail layout delegate for a specific class in this instance of the details view only
 	 *
@@ -228,21 +221,25 @@ public:
 	 * Sets a delegate to call to determine if a specific property should be visible in this instance of the details view
 	 */ 
 	virtual void SetIsPropertyVisibleDelegate( FIsPropertyVisible InIsPropertyVisible ) = 0;
+	virtual FIsPropertyVisible& GetIsPropertyVisibleDelegate() = 0;
 
 	/**
 	 * Sets a delegate to call to determine if a specific property should be read-only in this instance of the details view
 	 */ 
 	virtual void SetIsPropertyReadOnlyDelegate( FIsPropertyReadOnly InIsPropertyReadOnly ) = 0;
+	virtual FIsPropertyReadOnly& GetIsPropertyReadOnlyDelegate() = 0;
 
 	/**
 	 * Sets a delegate to call to layout generic details not specific to an object being viewed
 	 */ 
 	virtual void SetGenericLayoutDetailsDelegate( FOnGetDetailCustomizationInstance OnGetGenericDetails ) = 0;
+	virtual FOnGetDetailCustomizationInstance& GetGenericLayoutDetailsDelegate() = 0;
 
 	/**
 	 * Sets a delegate to call to determine if the properties  editing is enabled
 	 */ 
 	virtual void SetIsPropertyEditingEnabledDelegate( FIsPropertyEditingEnabled IsPropertyEditingEnabled ) = 0;
+	virtual FIsPropertyEditingEnabled& GetIsPropertyEditingEnabledDelegate() = 0;
 
 	virtual void SetKeyframeHandler( TSharedPtr<class IDetailKeyframeHandler> InKeyframeHandler ) = 0;
 
@@ -291,6 +288,7 @@ public:
 	 * Assigns delegate called when view is filtered, useful for updating external control logic:
 	 */
 	virtual void SetOnDisplayedPropertiesChanged(FOnDisplayedPropertiesChanged InOnDisplayedPropertiesChangedDelegate) = 0;
+	virtual FOnDisplayedPropertiesChanged& GetOnDisplayedPropertiesChanged() = 0;
 
 	/**
 	 * Disables or enables customization of the details view:
@@ -316,4 +314,7 @@ public:
 
 	/** Sets the tab manager of the hosting toolkit (can be nullptr if the details panel is not hosted within a tab) */
 	virtual void SetHostTabManager(TSharedPtr<FTabManager> InTabManager) = 0;
+
+	/** Force refresh */
+	virtual void ForceRefresh() = 0;
 };

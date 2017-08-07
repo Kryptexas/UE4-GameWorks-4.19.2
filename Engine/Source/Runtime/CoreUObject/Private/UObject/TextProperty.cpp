@@ -3,6 +3,8 @@
 #include "UObject/TextProperty.h"
 #include "Internationalization/ITextData.h"
 #include "UObject/PropertyPortFlags.h"
+#include "UObject/Package.h"
+#include "Internationalization/TextNamespaceUtil.h"
 #include "Internationalization/TextPackageNamespaceUtil.h"
 #include "Internationalization/StringTableRegistry.h"
 
@@ -120,6 +122,32 @@ const TCHAR* UTextProperty::ImportText_Internal( const TCHAR* Buffer, void* Data
 {
 	FText* TextPtr = GetPropertyValuePtr(Data);
 
+	FString TextNamespace;
+	if (Parent && HasAnyPropertyFlags(CPF_Config))
+	{
+		const bool bPerObject = UsesPerObjectConfig(Parent);
+		if (bPerObject)
+		{
+			FString PathNameString;
+			UPackage* ParentOutermost = Parent->GetOutermost();
+			if (ParentOutermost == GetTransientPackage())
+			{
+				PathNameString = Parent->GetName();
+			}
+			else
+			{
+				PathNameString = Parent->GetPathName(ParentOutermost);
+			}
+			TextNamespace = PathNameString + TEXT(" ") + Parent->GetClass()->GetName();
+		}
+		else
+		{
+			const bool bGlobalConfig = HasAnyPropertyFlags(CPF_GlobalConfig);
+			UClass* ConfigClass = bGlobalConfig ? GetOwnerClass() : Parent->GetClass();
+			TextNamespace = ConfigClass->GetPathName();
+		}
+	}
+
 	FString PackageNamespace;
 #if USE_STABLE_LOCALIZATION_KEYS
 	if (GIsEditor && !(PortFlags & (PPF_DuplicateVerbatim | PPF_DuplicateForPIE)))
@@ -129,7 +157,7 @@ const TCHAR* UTextProperty::ImportText_Internal( const TCHAR* Buffer, void* Data
 #endif // USE_STABLE_LOCALIZATION_KEYS
 
 	int32 NumCharsRead = 0;
-	if (FTextStringHelper::ReadFromString(Buffer, *TextPtr, nullptr, *PackageNamespace, &NumCharsRead, !!(PortFlags & PPF_Delimited)))
+	if (FTextStringHelper::ReadFromString(Buffer, *TextPtr, *TextNamespace, *PackageNamespace, &NumCharsRead, !!(PortFlags & PPF_Delimited)))
 	{
 		Buffer += NumCharsRead;
 		return Buffer;
@@ -187,6 +215,9 @@ FString UTextProperty::GenerateCppCodeForTextValue(const FText& InValue, const F
 		if (SourceString && InValue.ShouldGatherForLocalization())
 		{
 			bIsLocalized = FTextLocalizationManager::Get().FindNamespaceAndKeyFromDisplayString(FTextInspector::GetSharedDisplayString(InValue), Namespace, Key);
+
+			// Nativized BPs always removes the package localization ID to match how text works at runtime (and to match BP bytecode generation)
+			Namespace = TextNamespaceUtil::StripPackageNamespace(Namespace);
 		}
 
 		if (bIsLocalized)

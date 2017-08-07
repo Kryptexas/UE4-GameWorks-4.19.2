@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3481084
 Availability:Public
 Title:플레이 & 시뮬레이트
 Crumbs: %ROOT%, Gameplay, GettingStarted\HowTo
@@ -28,7 +28,37 @@ version: 4.9
 
 	**플레이** 버튼을 클릭하면 게임이 시작되고, 레벨 에디터 뷰포트에서 캐릭터를 확인할 수 있습니다.
 
-	![](PIE2b.png)(w:800)
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	![](PIE_Windows.png)
+	[/REGION]
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	![](PIE_Mac.png)
+	[/REGION]
+	[/PARAM]
+	[/OBJECT]
 
 	레벨 에디터 뷰포트 좌상단 구석에 텍스트가 나타나는 것도 보일 것입니다.
 

@@ -262,6 +262,14 @@ void FLevelSequenceEditorToolkit::Initialize(const EToolkitMode::Type Mode, cons
 
 	LevelEditorModule.AttachSequencer(Sequencer->GetSequencerWidget(), SharedThis(this));
 
+	// @todo reopen the scene outliner so that is refreshed with the sequencer info column
+	TSharedPtr<FTabManager> LevelEditorTabManager = LevelEditorModule.GetLevelEditorTabManager();
+	if (LevelEditorTabManager->FindExistingLiveTab(FName("LevelEditorSceneOutliner")).IsValid())
+	{
+		LevelEditorTabManager->InvokeTab(FName("LevelEditorSceneOutliner"))->RequestCloseTab();
+		LevelEditorTabManager->InvokeTab(FName("LevelEditorSceneOutliner"));
+	}
+
 	// We need to find out when the user loads a new map, because we might need to re-create puppet actors
 	// when previewing a MovieScene
 	LevelEditorModule.OnMapChanged().AddRaw(this, &FLevelSequenceEditorToolkit::HandleMapChanged);
@@ -278,9 +286,9 @@ void FLevelSequenceEditorToolkit::Initialize(const EToolkitMode::Type Mode, cons
 		{
 			VRMode->OnVREditingModeExit_Handler.BindSP(this, &FLevelSequenceEditorToolkit::HandleVREditorModeExit);
 			USequencerSettings& SavedSequencerSettings = *Sequencer->GetSequencerSettings();
-			VRMode->SaveSequencerSettings(Sequencer->GetKeyAllEnabled(), Sequencer->GetAutoKeyMode(), SavedSequencerSettings);
-			// Override currently set autokey behavior to always autokey all
-			Sequencer->SetAutoKeyMode(EAutoKeyMode::KeyAll);
+			VRMode->SaveSequencerSettings(Sequencer->GetKeyAllEnabled(), Sequencer->GetAutoChangeMode(), SavedSequencerSettings);
+			// Override currently set auto-change behavior to always autokey
+			Sequencer->SetAutoChangeMode(EAutoChangeMode::All);
 			Sequencer->SetKeyAllEnabled(true);
 			// Tell the VR Editor mode that Sequencer has refreshed
 			VRMode->RefreshVREditorSequencer(Sequencer.Get());
@@ -626,7 +634,7 @@ void FLevelSequenceEditorToolkit::HandleVREditorModeExit()
 	UVREditorMode* VRMode = CastChecked<UVREditorMode>( GEditor->GetEditorWorldExtensionsManager()->GetEditorWorldExtensions( World )->FindExtension( UVREditorMode::StaticClass() ) );
 
 	// Reset sequencer settings
-	Sequencer->SetAutoKeyMode(VRMode->GetSavedEditorState().AutoKeyMode);
+	Sequencer->SetAutoChangeMode(VRMode->GetSavedEditorState().AutoChangeMode);
 	Sequencer->SetKeyAllEnabled(VRMode->GetSavedEditorState().bKeyAllEnabled);
 	VRMode->OnVREditingModeExit_Handler.Unbind();
 }
@@ -905,6 +913,7 @@ bool FLevelSequenceEditorToolkit::OnRequestClose()
 		VRMode->RefreshVREditorSequencer(nullptr);
 	}
 	OpenToolkits.Remove(this);
+
 	OnClosedEvent.Broadcast();
 	return true;
 }

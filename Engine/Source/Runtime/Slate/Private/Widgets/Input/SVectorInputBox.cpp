@@ -179,7 +179,7 @@ void SVectorInputBox::OnArrangeChildren(const FGeometry& AllottedGeometry, FArra
 
 	if (bFoop)
 	{
-		const float AlottedWidth = AllottedGeometry.Size.X;
+		const float AlottedWidth = AllottedGeometry.GetLocalSize().X;
 
 		const float CrushBelow = CVarStartCrushWhenBelow.GetValueOnAnyThread();
 		const float StopCrushing = CVarStopCrushWhenAbove.GetValueOnAnyThread();

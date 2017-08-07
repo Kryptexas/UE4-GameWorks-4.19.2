@@ -8,7 +8,7 @@
 #include "PropertyEditorModule.h"
 #include "UObject/PropertyPortFlags.h"
 
-class FAssetData;
+struct FAssetData;
 class IPropertyHandleArray;
 class IPropertyHandleMap;
 class IPropertyHandleSet;
@@ -30,7 +30,7 @@ namespace EPropertyValueSetFlags
  * A handle to a property which is used to read and write the value without needing to handle Pre/PostEditChange, transactions, package modification
  * A handle also is used to identify the property in detail customization interfaces
  */
-class IPropertyHandle
+class IPropertyHandle : public TSharedFromThis<IPropertyHandle>
 {
 public:
 	virtual ~IPropertyHandle(){}
@@ -450,9 +450,24 @@ public:
 	virtual void MarkHiddenByCustomization() = 0;
 
 	/**
-	 * @return True if this property is customized                                                              
+	 * Marks this property has having a custom reset to default (reset to default will not show up in the default place)
+	 */
+	virtual void MarkResetToDefaultCustomized() = 0;
+
+	/**
+	 * Marks this property as not having a custom reset to default (useful when a widget customizing reset to default goes away)
+	 */
+	virtual void ClearResetToDefaultCustomized() = 0;
+
+	/**
+	 * @return True if this property's UI is customized                                                              
 	 */
 	virtual bool IsCustomized() const = 0;
+
+	/**
+	 * @return True if this property's reset to default UI is customized (but not necessarialy the property UI itself)
+	 */
+	virtual bool IsResetToDefaultCustomized() const = 0;
 
 	/**
 	 * Generates a path from the parent UObject class to this property
@@ -551,6 +566,30 @@ public:
 	 * @return An array of interfaces to the properties that were added
 	 */
 	virtual TArray<TSharedPtr<IPropertyHandle>> AddChildStructure( TSharedRef<FStructOnScope> ChildStructure ) = 0;
+
+	/**
+	 * Returns whether or not the property can be set to default
+	 * 
+	 * @return If this property can be reset to default
+	 */
+	virtual bool CanResetToDefault() const = 0;
+	
+	/**
+	 * Sets an override for this property's reset to default behavior
+	 */
+	virtual void ExecuteCustomResetToDefault(const class FResetToDefaultOverride& OnCustomResetToDefault) = 0;
+
+	DEPRECATED(4.17, "IsResetToDefaultAvailable has been deprecated.  Use CanResetToDefault instead")
+	bool IsResetToDefaultAvailable() const
+	{
+		return CanResetToDefault();
+	}
+
+	DEPRECATED(4.17, "CustomResetToDefault has been deprecated.  Use ExecuteCustomResetToDefault instead")
+	void CustomResetToDefault(const class FResetToDefaultOverride& OnCustomResetToDefault)
+	{
+		ExecuteCustomResetToDefault(OnCustomResetToDefault);
+	}
 };
 
 /**

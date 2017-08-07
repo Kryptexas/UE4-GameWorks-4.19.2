@@ -78,24 +78,6 @@ public:
 		MarginTrackEditorCreateTrackEditorHandle          = SequencerModule.RegisterPropertyTrackEditor<FMarginTrackEditor>();
 		TransformTrackEditorCreateTrackEditorHandle       = SequencerModule.RegisterPropertyTrackEditor<F2DTransformTrackEditor>();
 		WidgetMaterialTrackEditorCreateTrackEditorHandle  = SequencerModule.RegisterTrackEditor(FOnCreateTrackEditor::CreateStatic(&FWidgetMaterialTrackEditor::CreateTrackEditor));
-
-		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
-		if ( SettingsModule != nullptr )
-		{
-			// Designer settings
-			SettingsModule->RegisterSettings("Editor", "ContentEditors", "WidgetDesigner",
-				LOCTEXT("WidgetDesignerSettingsName", "Widget Designer"),
-				LOCTEXT("WidgetDesignerSettingsDescription", "Configure options for the Widget Designer."),
-				GetMutableDefault<UWidgetDesignerSettings>()
-				);
-
-			// UMG Editor Settings
-			SettingsModule->RegisterSettings("Project", "Editor", "UMGEditor",
-				LOCTEXT("UMGEditorSettingsName", "UMG Editor"),
-				LOCTEXT("UMGEditorSettingsDescription", "Configure options for UMG Editor."),
-				GetMutableDefault<UUMGEditorProjectSettings>()
-				);
-		}
 	}
 
 	/** Called before the module is unloaded, right before the module object is destroyed. */
@@ -124,14 +106,14 @@ public:
 			SequencerModule->UnRegisterTrackEditor( WidgetMaterialTrackEditorCreateTrackEditorHandle );
 		}
 
-		// Unregister the setting
-		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
+		//// Unregister the setting
+		//ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 
-		if ( SettingsModule != nullptr )
-		{
-			SettingsModule->UnregisterSettings("Editor", "ContentEditors", "WidgetDesigner");
-			SettingsModule->UnregisterSettings("Project", "Editor", "UMGEditor");
-		}
+		//if ( SettingsModule != nullptr )
+		//{
+		//	SettingsModule->UnregisterSettings("Editor", "ContentEditors", "WidgetDesigner");
+		//	SettingsModule->UnregisterSettings("Project", "Editor", "UMGEditor");
+		//}
 	}
 
 	bool CanCompile(const UBlueprint* Blueprint) override

@@ -14,7 +14,7 @@
 <string name="dialog_title_vr_core_not_installed" msgid="6322165810291059770">"Wajib dipasang"</string>
 <string name="dialog_title_warning" msgid="455961049302726493">"Peringatan"</string>
 <string name="dialog_vr_core_not_enabled" msgid="1966424794507569244">"Aplikasi ini mungkin tidak bekerja dengan benar tanpa mengaktifkan Layanan Google VR. Aktifkan Layanan Google VR di Setelan ponsel sebelum melanjutkan."</string>
-<string name="dialog_vr_core_not_installed" msgid="7122144659930752678">"Aplikasi ini mungkin tidak bekerja dengan benar tanpa Layanan Google VR. Pasang Layanan Google VR dari Play Store sebelum melanjutkan."</string>
+<string name="dialog_vr_core_not_installed" msgid="7122144659930752678">"Aplikasi ini mungkin tidak bekerja dengan benar tanpa Layanan Google VR. Instal Layanan Google VR dari Play Store sebelum melanjutkan."</string>
 <string name="go_to_playstore_button" msgid="6145412853379876634">"Buka Play Store"</string>
 <string name="go_to_vr_listeners_settings_button" msgid="6878752668266068283">"Buka Setelan"</string>
 <string name="no_browser_text" msgid="5324772199357788720">"Tidak ada browser untuk membuka situs web"</string>

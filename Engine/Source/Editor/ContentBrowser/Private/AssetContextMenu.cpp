@@ -2038,7 +2038,9 @@ void FAssetContextMenu::ExecuteExport()
 
 	if ( ObjectsToExport.Num() > 0 )
 	{
-		ObjectTools::ExportObjects(ObjectsToExport, /*bPromptForEachFileName=*/true);
+		FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
+
+		AssetToolsModule.Get().ExportAssetsWithDialog(ObjectsToExport, true);
 	}
 }
 
@@ -2050,7 +2052,9 @@ void FAssetContextMenu::ExecuteBulkExport()
 
 	if ( ObjectsToExport.Num() > 0 )
 	{
-		ObjectTools::ExportObjects(ObjectsToExport, /*bPromptForEachFileName=*/false);
+		FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
+
+		AssetToolsModule.Get().ExportAssetsWithDialog(ObjectsToExport, false);
 	}
 }
 
@@ -2668,7 +2672,7 @@ void FAssetContextMenu::ExecuteAssignChunkID()
 		const FVector2D CursorPos = FSlateApplication::Get().GetCursorPos();
 		FSlateRect Anchor(CursorPos.X, CursorPos.Y, CursorPos.X, CursorPos.Y);
 
-		FVector2D AdjustedSummonLocation = FSlateApplication::Get().CalculatePopupWindowPosition(Anchor, SColorPicker::DEFAULT_WINDOW_SIZE, Orient_Horizontal);
+		FVector2D AdjustedSummonLocation = FSlateApplication::Get().CalculatePopupWindowPosition(Anchor, SColorPicker::DEFAULT_WINDOW_SIZE, FVector2D::ZeroVector, Orient_Horizontal);
 
 		TSharedPtr<SWindow> Window = SNew(SWindow)
 			.AutoCenter(EAutoCenter::None)

@@ -172,16 +172,25 @@ DEFINE_STAT(STAT_RenderWholeSceneReflectiveShadowMapsTime);
 DEFINE_STAT(STAT_ShadowmapAtlasMemory);
 DEFINE_STAT(STAT_CachedShadowmapMemory);
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#define EXPOSE_FORCE_LOD !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+
+#if EXPOSE_FORCE_LOD
 
 static TAutoConsoleVariable<int32> CVarForceLOD(
 	TEXT("r.ForceLOD"),
 	-1,
 	TEXT("LOD level to force, -1 is off."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_Scalability | ECVF_Default | ECVF_RenderThreadSafe
 	);
 
-#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+static TAutoConsoleVariable<int32> CVarForceLODShadow(
+	TEXT("r.ForceLODShadow"),
+	-1,
+	TEXT("LOD level to force for the shadow map generation only, -1 is off."),
+	ECVF_Scalability | ECVF_Default | ECVF_RenderThreadSafe
+);
+
+#endif // EXPOSE_FORCE_LOD
 
 /** Whether to pause the global realtime clock for the rendering thread (read and write only on main thread). */
 bool GPauseRenderingRealtimeClock;
@@ -242,11 +251,24 @@ RENDERCORE_API int32 GetCVarForceLOD()
 {
 	int32 Ret = -1;
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if EXPOSE_FORCE_LOD
 	{
 		Ret = CVarForceLOD.GetValueOnRenderThread();
 	}
-#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#endif // EXPOSE_FORCE_LOD
+
+	return Ret;
+}
+
+RENDERCORE_API int32 GetCVarForceLODShadow()
+{
+	int32 Ret = -1;
+
+#if EXPOSE_FORCE_LOD
+	{
+		Ret = CVarForceLODShadow.GetValueOnRenderThread();
+	}
+#endif // EXPOSE_FORCE_LOD
 
 	return Ret;
 }

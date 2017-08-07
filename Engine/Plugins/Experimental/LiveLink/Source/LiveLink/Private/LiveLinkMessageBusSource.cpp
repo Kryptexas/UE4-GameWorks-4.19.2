@@ -6,21 +6,50 @@
 
 #include "MessageEndpointBuilder.h"
 
-void FLiveLinkMessageBusSource::ReceiveClient(ILiveLinkClient* InClient)
+void FLiveLinkMessageBusSource::ReceiveClient(ILiveLinkClient* InClient, FGuid InSourceGuid)
 {
 	Client = InClient;
+	SourceGuid = InSourceGuid;
 
-	MessageEndpoint =	FMessageEndpoint::Builder(TEXT("LiveLinkMessageBusSource"))
-						.Handling<FLiveLinkSubjectData>(this, &FLiveLinkMessageBusSource::HandleSubjectData)
-						.Handling<FLiveLinkSubjectFrame>(this, &FLiveLinkMessageBusSource::HandleSubjectFrame);
+	MessageEndpoint = FMessageEndpoint::Builder(TEXT("LiveLinkMessageBusSource"))
+					  .Handling<FLiveLinkSubjectDataMessage>(this, &FLiveLinkMessageBusSource::HandleSubjectData)
+					  .Handling<FLiveLinkSubjectFrameMessage>(this, &FLiveLinkMessageBusSource::HandleSubjectFrame)
+					  .Handling<FLiveLinkHeartbeatMessage>(this, &FLiveLinkMessageBusSource::HandleHeartbeat)
+					  .Handling<FLiveLinkClearSubject>(this, &FLiveLinkMessageBusSource::HandleClearSubject);
 
 
-	MessageEndpoint->Send(new FLiveLinkConnect(), ConnectionAddress);
+	MessageEndpoint->Send(new FLiveLinkConnectMessage(), ConnectionAddress);
 }
+
+const double LL_CONNECTION_TIMEOUT = 15.0;
+const double LL_HALF_CONNECTION_TIMEOUT = LL_CONNECTION_TIMEOUT / 2.0;
 
 bool FLiveLinkMessageBusSource::IsSourceStillValid()
 {
+	const double CurrentTime = FPlatformTime::Seconds();
+
+	if (HeartbeatLastSent > (CurrentTime - LL_HALF_CONNECTION_TIMEOUT) &&
+		ConnectionLastActive < (CurrentTime - LL_CONNECTION_TIMEOUT) )
+	{
+		//We have recently tried to heartbeat and not received anything back
+		return false;
+	}
+	MessageEndpoint->Send(new FLiveLinkHeartbeatMessage(), ConnectionAddress);
+	HeartbeatLastSent = CurrentTime;
+	
+	//Don't know that connection is dead yet
 	return true;
+}
+
+void FLiveLinkMessageBusSource::HandleHeartbeat(const FLiveLinkHeartbeatMessage& Message, const IMessageContextRef& Context)
+{
+	ConnectionLastActive = FPlatformTime::Seconds();
+}
+
+void FLiveLinkMessageBusSource::HandleClearSubject(const FLiveLinkClearSubject& Message, const IMessageContextRef& Context)
+{
+	ConnectionLastActive = FPlatformTime::Seconds();
+	Client->ClearSubject(Message.SubjectName);
 }
 
 bool FLiveLinkMessageBusSource::RequestSourceShutdown()
@@ -29,8 +58,10 @@ bool FLiveLinkMessageBusSource::RequestSourceShutdown()
 	return true;
 }
 
-void FLiveLinkMessageBusSource::HandleSubjectData(const FLiveLinkSubjectData& Message, const IMessageContextRef& Context)
+void FLiveLinkMessageBusSource::HandleSubjectData(const FLiveLinkSubjectDataMessage& Message, const IMessageContextRef& Context)
 {
+	ConnectionLastActive = FPlatformTime::Seconds();
+
 	//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("HandleSubjectData %s\n"), *Message.SubjectName);
 	/*for (const FString& Name : Message.BoneNames)
 	{
@@ -57,12 +88,13 @@ void FLiveLinkMessageBusSource::HandleSubjectData(const FLiveLinkSubjectData& Me
 	UE_LOG(LogTemp, Warning, TEXT("INVALID BONE NAMES RECIEVED %i != existing %i"), Message.BoneNames.Num(), BoneNames.Num());
 	}*/
 
-	static FName SubjectName(TEXT("Maya"));
-	Client->PushSubjectSkeleton(SubjectName, Message.RefSkeleton);
+	Client->PushSubjectSkeleton(Message.SubjectName, Message.RefSkeleton);
 }
 
-void FLiveLinkMessageBusSource::HandleSubjectFrame(const FLiveLinkSubjectFrame& Message, const IMessageContextRef& Context)
+void FLiveLinkMessageBusSource::HandleSubjectFrame(const FLiveLinkSubjectFrameMessage& Message, const IMessageContextRef& Context)
 {
+	ConnectionLastActive = FPlatformTime::Seconds();
+
 	//FPlatformMisc::LowLevelOutputDebugString(TEXT("HandleSubjectFrame\n"));
 	/*if (BoneID != Message.BoneID)
 	{
@@ -73,6 +105,6 @@ void FLiveLinkMessageBusSource::HandleSubjectFrame(const FLiveLinkSubjectFrame& 
 	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("\tTransform: %s\n"), *T.ToString());
 	}*/
 
-	static FName SubjectName(TEXT("Maya"));
-	Client->PushSubjectData(SubjectName, Message.Transforms);
+	FLiveLinkTimeCode TC = Client->MakeTimeCode(Message.Time, Message.FrameNum);
+	Client->PushSubjectData(SourceGuid, Message.SubjectName, Message.Transforms, Message.Curves, TC);
 }

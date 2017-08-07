@@ -25,11 +25,12 @@ public abstract class BaseLinuxPlatform : Platform
 	{
 		if (SC.bStageCrashReporter)
 		{
-			string ReceiptFileName = TargetReceipt.GetDefaultPath(CommandUtils.EngineDirectory.FullName, "CrashReportClient", SC.StageTargetPlatform.PlatformType, UnrealTargetConfiguration.Shipping, null);
-			if (File.Exists(ReceiptFileName))
+			FileReference ReceiptFileName = TargetReceipt.GetDefaultPath(CommandUtils.EngineDirectory, "CrashReportClient", SC.StageTargetPlatform.PlatformType, UnrealTargetConfiguration.Shipping, null);
+			if (FileReference.Exists(ReceiptFileName))
 			{
-				TargetReceipt Receipt = TargetReceipt.Read(ReceiptFileName);
-				Receipt.ExpandPathVariables(CommandUtils.EngineDirectory, (Params.RawProjectPath == null) ? CommandUtils.EngineDirectory : Params.RawProjectPath.Directory);
+				DirectoryReference EngineDir = CommandUtils.EngineDirectory;
+				DirectoryReference ProjectDir = DirectoryReference.FromFile(Params.RawProjectPath);
+				TargetReceipt Receipt = TargetReceipt.Read(ReceiptFileName, EngineDir, ProjectDir);
 				SC.StageBuildProductsFromReceipt(Receipt, true, false);
 			}
 		}
@@ -44,7 +45,7 @@ public abstract class BaseLinuxPlatform : Platform
 			++BuildProductIdx;
         }
 
-		SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Content/Splash"), "Splash.bmp", false, null, null, true);
+		SC.StageFiles(StagedFileType.NonUFS, DirectoryReference.Combine(SC.ProjectRoot, "Content/Splash"), "Splash.bmp", false, null, null, true);
 
 		// Stage the bootstrap executable
 		if (!Params.NoBootstrapExe)
@@ -55,8 +56,8 @@ public abstract class BaseLinuxPlatform : Platform
 				if (Executable != null)
 				{
 					// only create bootstraps for executables
-					string FullExecutablePath = Path.GetFullPath(Executable.Path);
-					if (Executable.Path.Replace("\\", "/").Contains("/" + TargetPlatformType.ToString() + "/"))
+					string FullExecutablePath = Path.GetFullPath(Executable.Path.FullName);
+					if (Executable.Path.FullName.Replace("\\", "/").Contains("/" + TargetPlatformType.ToString() + "/"))
 					{
 						string BootstrapArguments = "";
 						if (!ShouldStageCommandLine(Params, SC))
@@ -74,7 +75,7 @@ public abstract class BaseLinuxPlatform : Platform
 						string BootstrapExeName;
 						if (SC.StageTargetConfigurations.Count > 1)
 						{
-							BootstrapExeName = Path.GetFileName(Executable.Path);
+							BootstrapExeName = Path.GetFileName(Executable.Path.FullName);
 						}
 						else if (Params.IsCodeBasedProject)
 						{
@@ -85,9 +86,10 @@ public abstract class BaseLinuxPlatform : Platform
 							BootstrapExeName = SC.ShortProjectName;
 						}
 
-						foreach (string StagePath in SC.NonUFSStagingFiles[FullExecutablePath])
+						List<StagedFileReference> StagePaths = SC.FilesToStage.NonUFSStagingFiles.Where(x => x.Value == Executable.Path).Select(x => x.Key).ToList();
+						foreach (StagedFileReference StagePath in StagePaths)
 						{
-							StageBootstrapExecutable(SC, BootstrapExeName + ".sh", FullExecutablePath, StagePath, BootstrapArguments);
+							StageBootstrapExecutable(SC, BootstrapExeName + ".sh", FullExecutablePath, StagePath.Name, BootstrapArguments);
 						}
 					}
 				}
@@ -103,9 +105,9 @@ public abstract class BaseLinuxPlatform : Platform
 	void StageBootstrapExecutable(DeploymentContext SC, string ExeName, string TargetFile, string StagedRelativeTargetPath, string StagedArguments)
 	{
 		// create a temp script file location
-		string IntermediateDir = CombinePaths(SC.ProjectRoot, "Intermediate", "Staging");
-		string IntermediateFile = CombinePaths(IntermediateDir, ExeName);
-		InternalUtils.SafeCreateDirectory(IntermediateDir);
+		DirectoryReference IntermediateDir = DirectoryReference.Combine(SC.ProjectRoot, "Intermediate", "Staging");
+		string IntermediateFile = CombinePaths(IntermediateDir.FullName, ExeName);
+		InternalUtils.SafeCreateDirectory(IntermediateDir.FullName);
 
 		// make sure slashes are good
 		StagedRelativeTargetPath = StagedRelativeTargetPath.Replace("\\", "/");
@@ -132,7 +134,7 @@ public abstract class BaseLinuxPlatform : Platform
 			}
 		}
 
-		SC.StageFiles(StagedFileType.NonUFS, IntermediateDir, ExeName, false, null, "");
+		SC.StageFiles(StagedFileType.NonUFS, IntermediateDir, ExeName, false, null, StagedDirectoryReference.Root);
 	}
 
 	public override string GetCookPlatform(bool bDedicatedServer, bool bIsClientOnly)
@@ -188,7 +190,7 @@ public abstract class BaseLinuxPlatform : Platform
 				}
 
 				string DestPath = "./" + Params.ShortProjectName;
-				List<string> Exes = GetExecutableNames(SC);
+				List<FileReference> Exes = GetExecutableNames(SC);
 				string BinaryName = "";
 				if (Exes.Count > 0)
 				{
@@ -198,7 +200,7 @@ public abstract class BaseLinuxPlatform : Platform
 					{
 						Separator = "/";
 					}
-					BinaryName = Exes[0].Replace(Params.BaseStageDirectory, DestPath + Separator);
+					BinaryName = Exes[0].FullName.Replace(Params.BaseStageDirectory, DestPath + Separator);
 					BinaryName = BinaryName.Replace("\\", "/");
 				}
 

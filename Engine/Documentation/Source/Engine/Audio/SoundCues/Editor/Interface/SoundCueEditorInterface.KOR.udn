@@ -1,15 +1,16 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3429236
 Availability: Public
 Title:사운드 큐 에디터 UI
 Crumbs: %ROOT%, Engine, Engine/Audio, Engine/Audio/SoundCues/Editor
 Description:사운드 큐 노드기반 오디오 애셋의 구성 및 편집을 위한 툴 사용 안내서입니다.
 version: 4.9
+parent:Engine/Audio/SoundCues/Editor
+type:reference
+order:1
+
 [TOC(start:2)]
 
-
-
-
-사운드 큐 에디터는 다음과 같은 구역으로 나뉘어 있습니다:
+**사운드 큐 에디터** 는 다음과 같은 구역으로 나뉘어 있습니다:
 
 ![soundcueeditor.png](soundcueeditor.png)(w:900)
 

@@ -8,44 +8,6 @@ parent:Platforms/VR
 type:overview
 tags:VR
 
-[VAR:Params]
-[PARAM:image]
-	![%Platforms:title%](%ROOT%/placeholder_topic.png)
-[/PARAM]
-[PARAM:icon]
-	![](%ROOT%/platform_icon.png)(convert:false)
-[/PARAM]
-[PARAM:title]
-	%Platforms:title%
-[/PARAM]
-[PARAM:description]
-	%Platforms:description%
-[/PARAM]
-[PARAM:path]
-	[RELATIVE:Platforms]
-[/PARAM]
-[/VAR]
-
-[VAR:Topic]
-[OBJECT:Topic]
-%params%
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-%params%
-[/OBJECT]
-[/VAR]
-
-[VAR:Role]
-[OBJECT:Role]
-%params%
-[PARAMLITERAL:id]
-platforms
-[/PARAMLITERAL]
-[/OBJECT]
-[/VAR]
 
 [TOC(start:2)]
 
@@ -65,7 +27,6 @@ The following .INI settings were taken from the UE4 powered, VR demo, Showdown.
 These . INIsettings, if used, should be added to your project's **Config\DefaultEngine.INI** file, under **SystemSettings**. 
 
 	[SystemSettings]
-	r.VolumeMultiplier=1.0
 	r.screenpercentage=130
 	r.SeparateTranslucency=0
 	r.HZBOcclusion=0
@@ -77,7 +38,6 @@ These . INIsettings, if used, should be added to your project's **Config\Default
 	r.SSR.Quality=1
 	r.DepthOfFieldQuality=0
 	r.SceneColorFormat=2
-	r.SSSSS=0
 	r.TranslucencyVolumeBlur=0
 	r.TranslucencyLightingVolumeDim=4
 	r.MaxAnisotropy=8
@@ -86,7 +46,6 @@ These . INIsettings, if used, should be added to your project's **Config\Default
 	r.FastBlurThreshold=0
 	r.SSR.MaxRoughness=0.1
 	r.rhicmdbypass=0
-	r.TiledReflectionEnvironmentMinimumCount=10
 	sg.EffectsQuality=2
 	sg.PostProcessQuality=0
 
@@ -306,7 +265,7 @@ To fix this, fake blob shadows were introduced that could dynamically adjust the
 This helped give the illusion that a character was casting shadows when they came close to the ground (or other objects).
 
 	[region:lightbox]
-	[![](VR_Fake_Shadow_Material.png)](VR_Fake_Shadow_Material.png)
+	[![](VR_Fake_Shadow_Material.png)(w:1000)](VR_Fake_Shadow_Material.png)
 	[/region]
 
 	[region:caption]
@@ -352,9 +311,8 @@ Set World to Meters Scale| Sets the World to Meters scale, which changes the sca
 Due to the manner in which HMD's work, some art techniques that are staples of Video Game development, no longer have the impact that they once did. 
 Below, you will find a list of features that might not work as expected in VR, with possible workarounds to address this. 
 
-|Know Issues| Workaround | 
-|---| --- |
-| Screen Space Reflections (SSR)|While SSR will still work in VR the reflections that they produce could have issues matching up to what it is reflecting in the world. Instead of using SSR use [Reflection Probes](Resources/Showcases/Reflections#reflectionenvironment) as they are much cheaper and do suffer less from reflection alignment issues.|
+
+* **Screen Space Reflections(SSR):** While SSR will still work in VR the reflections that they produce could have issues matching up to what it is reflecting in the world. Instead of using SSR use [Reflection Probes](Resources/Showcases/Reflections#reflectionenvironment) as they are much cheaper and do suffer less from reflection alignment issues.
 
 **Normal Mapping Issues**
 
@@ -365,7 +323,5 @@ However, that does not mean that you should not, or will not, need to use Normal
 it just means that you need to more closely evaluate if the data you are trying to convey in the Normal map would be better off being made out of geometry. 
 Below, you will find some different techniques that can be used in place of Normal maps. 
 
-|Shader Type | Description|
-|---|---|
-|[Parallax Mapping](http://en.wikipedia.org/wiki/Parallax_mapping)| Parallax mapping takes Normal mapping to the next level, by accounting for depth cues that Normal mapping does not. A Parallax mapping shader can better display depth information, making objects appear to have more detail than they do. This is due to the fact that no matter what angle you look at, a Parallax map will always correct itself to show you the correct depth information from your view point. The best use of a Parallax map would be for cobblestone pathways and fine detail on surfaces. 
+* **[Parallax Mapping](http://en.wikipedia.org/wiki/Parallax_mapping):** Parallax mapping takes Normal mapping to the next level, by accounting for depth cues that Normal mapping does not. A Parallax mapping shader can better display depth information, making objects appear to have more detail than they do. This is due to the fact that no matter what angle you look at, a Parallax map will always correct itself to show you the correct depth information from your view point. The best use of a Parallax map would be for cobblestone pathways and fine detail on surfaces. 
 

@@ -5,6 +5,7 @@
 #include "Sections/MovieSceneSpawnSection.h"
 #include "MovieSceneEvaluation.h"
 #include "IMovieScenePlayer.h"
+#include "MovieSceneBindingOverridesInterface.h"
 
 DECLARE_CYCLE_STAT(TEXT("Spawn Track Evaluate"), MovieSceneEval_SpawnTrack_Evaluate, STATGROUP_MovieSceneEval);
 DECLARE_CYCLE_STAT(TEXT("Spawn Track Token Execute"), MovieSceneEval_SpawnTrack_TokenExecute, STATGROUP_MovieSceneEval);
@@ -12,17 +13,27 @@ DECLARE_CYCLE_STAT(TEXT("Spawn Track Token Execute"), MovieSceneEval_SpawnTrack_
 /** A movie scene pre-animated token that stores a pre-animated transform */
 struct FSpawnTrackPreAnimatedTokenProducer : IMovieScenePreAnimatedTokenProducer
 {
+	FMovieSceneEvaluationOperand Operand;
+	FSpawnTrackPreAnimatedTokenProducer(FMovieSceneEvaluationOperand InOperand) : Operand(InOperand) {}
+
 	virtual IMovieScenePreAnimatedTokenPtr CacheExistingState(UObject& Object) const
 	{
 		struct FToken : IMovieScenePreAnimatedToken
 		{
+			FMovieSceneEvaluationOperand OperandToDestroy;
+			FToken(FMovieSceneEvaluationOperand InOperand) : OperandToDestroy(InOperand) {}
+
 			virtual void RestoreState(UObject& InObject, IMovieScenePlayer& Player) override
 			{
-				Player.GetSpawnRegister().DestroyObjectDirectly(InObject);
+				bool bDestroyed = Player.GetSpawnRegister().DestroySpawnedObject(OperandToDestroy.ObjectBindingID, OperandToDestroy.SequenceID, Player);
+				if (!bDestroyed)
+				{
+					Player.GetSpawnRegister().DestroyObjectDirectly(InObject);
+				}
 			}
 		};
 		
-		return FToken();
+		return FToken(Operand);
 	}
 };
 
@@ -35,8 +46,21 @@ struct FSpawnObjectToken : IMovieSceneExecutionToken
 	virtual void Execute(const FMovieSceneContext& Context, const FMovieSceneEvaluationOperand& Operand, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) override
 	{
 		MOVIESCENE_DETAILED_SCOPE_CYCLE_COUNTER(MovieSceneEval_SpawnTrack_TokenExecute)
-		
+
 		bool bHasSpawnedObject = Player.GetSpawnRegister().FindSpawnedObject(Operand.ObjectBindingID, Operand.SequenceID) != nullptr;
+		
+		// Check binding overrides to see if this spawnable has been overridden, and whether it allows the default spawnable to exist
+		const IMovieSceneBindingOverridesInterface* Overrides = Player.GetBindingOverrides();
+		if (Overrides)
+		{
+			TArray<UObject*, TInlineAllocator<1>> FoundObjects;
+			bool bUseDefaultBinding = Overrides->LocateBoundObjects(Operand.ObjectBindingID, Operand.SequenceID, FoundObjects);
+			if (!bUseDefaultBinding)
+			{
+				bHasSpawnedObject = true;
+			}
+		}
+
 		if (bSpawned)
 		{
 			// If it's not spawned, spawn it
@@ -54,7 +78,7 @@ struct FSpawnObjectToken : IMovieSceneExecutionToken
 			{
 				if (UObject* ObjectPtr = Object.Get())
 				{
-					Player.SavePreAnimatedState(*ObjectPtr, FMovieSceneSpawnSectionTemplate::GetAnimTypeID(), FSpawnTrackPreAnimatedTokenProducer());
+					Player.SavePreAnimatedState(*ObjectPtr, FMovieSceneSpawnSectionTemplate::GetAnimTypeID(), FSpawnTrackPreAnimatedTokenProducer(Operand));
 				}
 			}
 		}

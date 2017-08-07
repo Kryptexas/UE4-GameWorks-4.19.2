@@ -1,37 +1,24 @@
 Availability:Public
+Crumbs:
 Title:Anim Curves
-Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
-Description:Describes actions available within the Anim Curves window
-version: 4.14
-Related:Engine/Animation/Sequences/Curves/
+Description:Describes actions available within the Anim Curves window.
+Type:overview
+SkillLevel:Intermediate
+Version:4.16
+Parent:Engine/Animation/Sequences/Curves
+Order:
+Tags:Animation
+Tags:Morph Target
+Topic-image:AnimCurves_Topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Animation/Persona/Toolbar:title%](Engine/Animation/animation_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Animation/Persona/Toolbar:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Animation/Persona/Toolbar:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Animation/Persona/Toolbar]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
+[TOC(start:2)]
 
 ![](AnimCurvesAlone.png)
 
-The **Anim Curves** panel displays curve values for **Morph Target**, **Attribute**, and **Material** curves for your project. 
+The **Anim Curves** panel displays curve values for **Morph Target**, **Attribute**, and **Material** curves for the selected skeleton. 
 You can delete and rename curves here, as well as preview curve data.
 You can filter the visible curves to show only active curves by clicking on **All Curves** to deselect it, which also enables you to filter by **Morph Target**, **Attribute**, and **Material** curves with checkboxes.
-In addition, you can define [Material Curves](Engine/Animation/Sequences/Curves) which allow you to drive Material Parameters or Morph Curves (if Morph Targets exist within the associated animation). 
+In addition, you can define [Material Curves](Engine/Animation/Sequences/Curves) which enable you to drive Material Parameters or Morph Curves. 
 
 To open the **Anim Curves** panel in either the **Skeleton Editor** or **Animation Editor**: 
 
@@ -88,3 +75,47 @@ This adds a curve to the current skeleton, but you will need to then add the cur
 	If the curve is currently being used by any assets in your project, a confirmation window will appear warning you that the curves will be removed from those assets. 
 
 1. Click **Yes** to continue with the deletion, or **No** to cancel.
+
+
+## Linking Curves to Bones
+
+You can link your Animation Curves to a specific bone in the Skeleton so that they can be culled out with the bone when changing Levels of Detail (LOD) for the Skeletal Mesh, which is
+useful when setting up facial animations that aren't needed for lower LODs. This feature can also be used in conjunction with layer blending to prevent overriding curve values from the
+incorrect layer. 
+
+1. In the **Anim Curves** viewer window, select the curve that you want to link to a particular bone in your Skeleton.
+
+	![](AnimCurveViewer_CurveSelected.png)(w:400)
+
+1. With the curve selected, in the **Details** panel, click the **add** (**+**) button to add Connected Bone(s) elements.
+
+	![](DetailsPanel_AddConnectedBone.png)(w:400)
+
+	Then use the dropdown next to the added bone, to select the bone you want to link to the curve. The list here will be populated based on the Skeleton's bone heirarchy. 
+
+	![](DP_SelectBones.png)(w:400)
+
+1. Now that your curve is assigned to the bone(s) you've added to the Connected Bones, you can move the camera towards or away from the mesh to see the linked curves cull from view when the LOD of the mesh changes.
+
+	[OBJECT:EmbeddedVideo]
+		[PARAMLITERAL:videoid]
+		V1SLxdRI8-4
+		[/PARAMLITERAL]
+		[PARAMLITERAL:width]
+		100
+		[/PARAMLITERAL]
+		[PARAMLITERAL:height]
+		56.25
+		[/PARAMLITERAL]
+		[PARAMLITERAL:units]
+		%
+		[/PARAMLITERAL]
+		[PARAMLITERAL:type]
+		simple
+		[/PARAMLITERAL]
+	[/OBJECT]
+
+
+
+
+

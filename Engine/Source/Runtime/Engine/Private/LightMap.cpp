@@ -9,6 +9,7 @@
 #include "Interfaces/ITargetPlatform.h"
 #include "StaticLighting.h"
 #include "Components/InstancedStaticMeshComponent.h"
+#include "InstancedStaticMesh.h"
 #include "UObject/UObjectHash.h"
 #include "UObject/UObjectIterator.h"
 #include "Misc/FeedbackContext.h"
@@ -111,11 +112,11 @@ void FLightMap::FinishCleanup()
 ULightMapTexture2D::ULightMapTexture2D(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	LODGroup = TEXTUREGROUP_Lightmap;
 }
+
 void ULightMapTexture2D::Serialize(FArchive& Ar)
 {
-	LODGroup = TEXTUREGROUP_Lightmap;
-
 	Super::Serialize(Ar);
 
 	uint32 Flags = LightmapFlags;
@@ -139,7 +140,7 @@ static void DumpLightmapSizeOnDisk()
 	for (TObjectIterator<ULightMapTexture2D> It; It; ++It)
 	{
 		ULightMapTexture2D* Lightmap = *It;
-		UE_LOG(LogLightMap,Log,TEXT("%f,%d,%d,%f,%s"),
+		UE_LOG(LogLightMap,Log,TEXT("%f,%d,%f,%s"),
 			Lightmap->Source.GetSizeOnDisk() / 1024.0f,
 			Lightmap->Source.IsPNGCompressed(),
 			Lightmap->CalcTextureMemorySizeEnum(TMC_AllMips) / 1024.0f,
@@ -270,6 +271,8 @@ struct FLightMapAllocation
 			FMeshMapBuildData* MeshBuildData = Registry->GetMeshBuildData(MapBuildDataId);
 			check(MeshBuildData);
 
+			UInstancedStaticMeshComponent* Component = CastChecked<UInstancedStaticMeshComponent>(Primitive);
+
 			// Instances may have been removed since LM allocation.
 			// Instances may have also been shuffled from removes. We do not handle this case.
 			if( InstanceIndex < MeshBuildData->PerInstanceLightmapData.Num() )
@@ -277,12 +280,10 @@ struct FLightMapAllocation
 				// TODO: We currently only support one LOD of static lighting in foliage
 				// Need to create per-LOD instance data to fix that
 				MeshBuildData->PerInstanceLightmapData[InstanceIndex].LightmapUVBias = LightMap->GetCoordinateBias();
+
+				Component->PerInstanceRenderData->UpdateInstanceData(Component, InstanceIndex);
+				Component->MarkRenderStateDirty();
 			}
-
-			UInstancedStaticMeshComponent* Component = CastChecked<UInstancedStaticMeshComponent>(Primitive);
-
-			Component->ReleasePerInstanceRenderData();
-			Component->MarkRenderStateDirty();
 		}
 	}
 
@@ -380,7 +381,7 @@ struct FLightMapPendingTexture : public FTextureLayout
 	ULightMapTexture2D*				SkyOcclusionTexture;
 	ULightMapTexture2D*				AOMaterialMaskTexture;
 
-	TArray<FLightMapAllocation*>	Allocations;
+	TArray<TUniquePtr<FLightMapAllocation>> Allocations;
 	UObject*						Outer;
 	TWeakObjectPtr<UWorld>			OwningWorld;
 	/** Bounding volume for all mappings within this texture.							*/
@@ -568,7 +569,7 @@ void FLightMapPendingTexture::PostEncode()
 
 	for (int32 AllocationIndex = 0; AllocationIndex < Allocations.Num(); AllocationIndex++)
 	{
-		FLightMapAllocation* Allocation = Allocations[AllocationIndex];
+		auto& Allocation = Allocations[AllocationIndex];
 
 		int32 PaddedSizeX = Allocation->TotalSizeX;
 		int32 PaddedSizeY = Allocation->TotalSizeY;
@@ -1142,7 +1143,7 @@ bool FLightMapPendingTexture::NeedsSkyOcclusionTexture() const
 
 	for (int32 AllocationIndex = 0; AllocationIndex < Allocations.Num(); AllocationIndex++)
 	{
-		FLightMapAllocation* Allocation = Allocations[AllocationIndex];
+		auto& Allocation = Allocations[AllocationIndex];
 
 		if (Allocation->bHasSkyShadowing)
 		{
@@ -1222,7 +1223,7 @@ void FLightMapPendingTexture::StartEncoding(ULevel* Unused, ITextureCompressorMo
 		FIntRect TextureRect( MAX_int32, MAX_int32, MIN_int32, MIN_int32 );
 		for(int32 AllocationIndex = 0;AllocationIndex < Allocations.Num();AllocationIndex++)
 		{
-			FLightMapAllocation* Allocation = Allocations[AllocationIndex];
+			auto& Allocation = Allocations[AllocationIndex];
 			// Link the light-map to the texture.
 			Allocation->LightMap->SkyOcclusionTexture = Texture;
 			
@@ -1310,7 +1311,7 @@ void FLightMapPendingTexture::StartEncoding(ULevel* Unused, ITextureCompressorMo
 		FIntRect TextureRect( MAX_int32, MAX_int32, MIN_int32, MIN_int32 );
 		for(int32 AllocationIndex = 0;AllocationIndex < Allocations.Num();AllocationIndex++)
 		{
-			FLightMapAllocation* Allocation = Allocations[AllocationIndex];
+			auto& Allocation = Allocations[AllocationIndex];
 			// Link the light-map to the texture.
 			Allocation->LightMap->AOMaterialMaskTexture = Texture;
 			
@@ -1400,7 +1401,7 @@ void FLightMapPendingTexture::StartEncoding(ULevel* Unused, ITextureCompressorMo
 		
 		for(int32 AllocationIndex = 0;AllocationIndex < Allocations.Num();AllocationIndex++)
 		{
-			FLightMapAllocation* Allocation = Allocations[AllocationIndex];
+			auto& Allocation = Allocations[AllocationIndex];
 			// Link the light-map to the texture.
 			Allocation->LightMap->Textures[ CoefficientIndex / 2 ] = Texture;
 			for( int k = 0; k < 2; k++ )
@@ -1970,7 +1971,7 @@ void FLightMap2D::EncodeTextures( UWorld* InWorld, bool bLightingSuccessful, boo
 			// Give the texture ownership of the allocations
 			for (auto& Allocation : PendingGroup.Allocations)
 			{
-				Texture->Allocations.Add(Allocation.Release());
+				Texture->Allocations.Add(MoveTemp(Allocation));
 			}
 		}
 		PendingLightMaps.Empty();

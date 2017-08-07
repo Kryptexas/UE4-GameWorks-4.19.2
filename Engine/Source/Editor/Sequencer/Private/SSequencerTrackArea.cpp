@@ -47,6 +47,9 @@ void SSequencerTrackArea::Construct(const FArguments& InArgs, TSharedRef<FSequen
 	InputStack.AddHandler(nullptr);
 	// The time slider controller
 	InputStack.AddHandler(TimeSliderController.Get());
+
+	EditTools.Add(MakeShared<FSequencerEditTool_Selection>(*InSequencer));
+	EditTools.Add(MakeShared<FSequencerEditTool_Movement>(*InSequencer));
 }
 
 
@@ -88,8 +91,8 @@ void SSequencerTrackArea::OnArrangeChildren( const FGeometry& AllottedGeometry, 
 
 		const FMargin Padding(0, CurChild.GetVerticalOffset(), 0, 0);
 
-		AlignmentArrangeResult XResult = AlignChild<Orient_Horizontal>(AllottedGeometry.Size.X, CurChild, Padding, 1.0f, false);
-		AlignmentArrangeResult YResult = AlignChild<Orient_Vertical>(AllottedGeometry.Size.Y, CurChild, Padding, 1.0f, false);
+		AlignmentArrangeResult XResult = AlignChild<Orient_Horizontal>(AllottedGeometry.GetLocalSize().X, CurChild, Padding, 1.0f, false);
+		AlignmentArrangeResult YResult = AlignChild<Orient_Vertical>(AllottedGeometry.GetLocalSize().Y, CurChild, Padding, 1.0f, false);
 
 		ArrangedChildren.AddWidget(ChildVisibility,
 			AllottedGeometry.MakeChild(
@@ -128,7 +131,7 @@ FChildren* SSequencerTrackArea::GetChildren()
 }
 
 
-int32 SSequencerTrackArea::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SSequencerTrackArea::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	if ( Sequencer.IsValid() )
 	{
@@ -137,7 +140,7 @@ int32 SSequencerTrackArea::OnPaint(const FPaintArgs& Args, const FGeometry& Allo
 
 		for (const auto& TrackEditor : TrackEditors)
 		{
-			LayerId = TrackEditor->PaintTrackArea(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId + 1, InWidgetStyle);
+			LayerId = TrackEditor->PaintTrackArea(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId + 1, InWidgetStyle);
 		}
 
 		// paint the child widgets
@@ -149,7 +152,7 @@ int32 SSequencerTrackArea::OnPaint(const FPaintArgs& Args, const FGeometry& Allo
 		for (int32 ChildIndex = 0; ChildIndex < ArrangedChildren.Num(); ++ChildIndex)
 		{
 			FArrangedWidget& CurWidget = ArrangedChildren[ChildIndex];
-			FSlateRect ChildClipRect = MyClippingRect.IntersectionWith( CurWidget.Geometry.GetClippingRect() );
+			FSlateRect ChildClipRect = MyCullingRect.IntersectionWith( CurWidget.Geometry.GetLayoutBoundingRect() );
 			const int32 ThisWidgetLayerId = CurWidget.Widget->Paint( NewArgs, CurWidget.Geometry, ChildClipRect, OutDrawElements, LayerId + 2, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
 
 			LayerId = FMath::Max(LayerId, ThisWidgetLayerId);
@@ -157,7 +160,7 @@ int32 SSequencerTrackArea::OnPaint(const FPaintArgs& Args, const FGeometry& Allo
 
 		if (EditTool.IsValid())
 		{
-			LayerId = EditTool->OnPaint(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId + 1);
+			LayerId = EditTool->OnPaint(AllottedGeometry, MyCullingRect, OutDrawElements, LayerId + 1);
 		}
 
 		TOptional<FHighlightRegion> HighlightRegion = TreeView.Pin()->GetHighlightRegion();
@@ -166,9 +169,8 @@ int32 SSequencerTrackArea::OnPaint(const FPaintArgs& Args, const FGeometry& Allo
 			FSlateDrawElement::MakeBox(
 				OutDrawElements,
 				LayerId+1,
-				AllottedGeometry.ToPaintGeometry(FVector2D(0.f, HighlightRegion->Top - 4.f), FVector2D(AllottedGeometry.Size.X, 4.f)),
+				AllottedGeometry.ToPaintGeometry(FVector2D(0.f, HighlightRegion->Top - 4.f), FVector2D(AllottedGeometry.GetLocalSize().X, 4.f)),
 				FEditorStyle::GetBrush("Sequencer.TrackHoverHighlight_Top"),
-				MyClippingRect,
 				ESlateDrawEffect::None,
 				FLinearColor::Black
 			);
@@ -176,9 +178,8 @@ int32 SSequencerTrackArea::OnPaint(const FPaintArgs& Args, const FGeometry& Allo
 			FSlateDrawElement::MakeBox(
 				OutDrawElements,
 				LayerId+1,
-				AllottedGeometry.ToPaintGeometry(FVector2D(0.f, HighlightRegion->Bottom), FVector2D(AllottedGeometry.Size.X, 4.f)),
+				AllottedGeometry.ToPaintGeometry(FVector2D(0.f, HighlightRegion->Bottom), FVector2D(AllottedGeometry.GetLocalSize().X, 4.f)),
 				FEditorStyle::GetBrush("Sequencer.TrackHoverHighlight_Bottom"),
-				MyClippingRect,
 				ESlateDrawEffect::None,
 				FLinearColor::Black
 			);
@@ -216,13 +217,14 @@ FReply SSequencerTrackArea::OnMouseButtonUp( const FGeometry& MyGeometry, const 
 
 bool SSequencerTrackArea::CanActivateEditTool(FName Identifier) const
 {
+	auto IdentifierIsFound = [=](TSharedPtr<ISequencerEditTool> InEditTool){ return InEditTool->GetIdentifier() == Identifier; };
 	if (InputStack.GetCapturedIndex() != INDEX_NONE)
 	{
 		return false;
 	}
 	else if (!EditTool.IsValid())
 	{
-		return true;
+		return EditTools.ContainsByPredicate(IdentifierIsFound);
 	}
 	// Can't activate a tool that's already active
 	else if (EditTool->GetIdentifier() == Identifier)
@@ -232,20 +234,16 @@ bool SSequencerTrackArea::CanActivateEditTool(FName Identifier) const
 	// Can only activate a new tool if the current one will let us
 	else
 	{
-		return EditTool->CanDeactivate();
+		return EditTool->CanDeactivate() && EditTools.ContainsByPredicate(IdentifierIsFound);
 	}
 }
 
-template<typename EditToolType>
-bool SSequencerTrackArea::AttemptToActivateTool()
+bool SSequencerTrackArea::AttemptToActivateTool(FName Identifier)
 {
-	if ( Sequencer.IsValid() )
+	if ( Sequencer.IsValid() && CanActivateEditTool(Identifier) )
 	{
-		if (CanActivateEditTool(EditToolType::Identifier))
-		{
-			EditTool.Reset(new EditToolType(*Sequencer.Pin()));
-			return true;
-		}
+		EditTool = *EditTools.FindByPredicate([=](TSharedPtr<ISequencerEditTool> InEditTool){ return InEditTool->GetIdentifier() == Identifier; });
+		return true;
 	}
 
 	return false;
@@ -264,50 +262,13 @@ void SSequencerTrackArea::UpdateHoverStates( const FGeometry& MyGeometry, const 
 		TSharedPtr<ISequencerHotspot> Hotspot = Sequencer.Pin()->GetHotspot();
 		if (Hotspot.IsValid())
 		{
-			const ESequencerHotspot Type = Hotspot->GetType();
-
-			// Activate the move tool if we're over a key or section resize handle
-			if (Type == ESequencerHotspot::Key || Type == ESequencerHotspot::SectionResize_L || Type == ESequencerHotspot::SectionResize_R)
-			{
-				AttemptToActivateTool<FSequencerEditTool_Movement>();
-			}
-			else if (Type == ESequencerHotspot::Section)
-			{
-				UMovieSceneSection* Section = StaticCastSharedPtr<FSectionHotspot>(Hotspot)->Section.GetSectionObject();
-
-				// Move sections if they are selected
-				if (Sequencer.Pin()->GetSelection().IsSelected(Section))
-				{
-					AttemptToActivateTool<FSequencerEditTool_Movement>();
-				}
-				else
-				{
-					// Activate selection mode if the section has keys or is infinite, otherwise just move it
-					TSet<FKeyHandle> KeyHandles;
-					Section->GetKeyHandles(KeyHandles, Section->GetRange());
-
-					if (KeyHandles.Num() || Section->IsInfinite())
-					{
-						AttemptToActivateTool<FSequencerEditTool_Selection>();
-					}
-					else
-					{
-						AttemptToActivateTool<FSequencerEditTool_Movement>();
-					}
-				}
-			}
-			else
-			{
-				// Any other region implies selection mode
-				AttemptToActivateTool<FSequencerEditTool_Selection>();
-			}
-		}
-		else
-		{
-			// Any other region implies selection mode
-			AttemptToActivateTool<FSequencerEditTool_Selection>();
+			Hotspot->UpdateOnHover(*this, *Sequencer.Pin());
+			return;
 		}
 	}
+
+	// Any other region implies selection mode
+	AttemptToActivateTool(FSequencerEditTool_Selection::Identifier);
 }
 
 FReply SSequencerTrackArea::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )

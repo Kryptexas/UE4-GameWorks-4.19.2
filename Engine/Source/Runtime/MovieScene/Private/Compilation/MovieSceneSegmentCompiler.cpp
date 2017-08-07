@@ -2,22 +2,29 @@
 
 #include "Compilation/MovieSceneSegmentCompiler.h"
 
-FMovieSceneSectionData::FMovieSceneSectionData(const TRange<float>& InBounds, FSectionEvaluationData InEvalData, int32 InPriority)
+FMovieSceneSectionData::FMovieSceneSectionData(const TRange<float>& InBounds, FSectionEvaluationData InEvalData, FOptionalMovieSceneBlendType InBlendType, int32 InPriority)
 	: Bounds(InBounds)
 	, EvalData(InEvalData)
+	, BlendType(InBlendType)
 	, Priority(InPriority)
 {}
 
 void FMovieSceneSegmentCompilerRules::ProcessSegments(TArray<FMovieSceneSegment>& Segments, const TArrayView<const FMovieSceneSectionData>& SourceData) const
 {
+	for (int32 Index = 0; Index < Segments.Num(); ++Index)
+	{
+		FMovieSceneSegment& Segment = Segments[Index];
+
+		BlendSegment(Segment, SourceData);
+		if (!bAllowEmptySegments && Segment.Impls.Num() == 0)
+		{
+			Segments.RemoveAt(Index, 1, false);
+		}
+	}
+
 	if (!Segments.Num())
 	{
 		return;
-	}
-
-	for (FMovieSceneSegment& Segment : Segments)
-	{
-		BlendSegment(Segment, SourceData);
 	}
 
 	int32 Index = 0;
@@ -182,7 +189,7 @@ TArray<FMovieSceneSegment> FMovieSceneSegmentCompiler::Compile(TArrayView<const 
 				{
 					PreviousSegment.Range = FFloatRange::Hull(PreviousSegment.Range, CompiledSegment.Range);
 					
-					CompiledSegments.RemoveAtSwap(Index, 1, false);
+					CompiledSegments.RemoveAt(Index, 1, false);
 					// continue immediately to avoid incrementing the index
 					continue;
 				}
@@ -296,7 +303,7 @@ FMovieSceneTrackCompiler::FRows::FRows(const TArray<UMovieSceneSection*>& Sectio
 		FSectionEvaluationData EvalData(Index);
 
 		Rows[RowIndex].Sections.Add(
-			FMovieSceneSectionData(Range, EvalData, Section->GetOverlapPriority())
+			FMovieSceneSectionData(Range, EvalData, Section->GetBlendType(), Section->GetOverlapPriority())
 			);
 
 		if (!Range.GetLowerBound().IsOpen() && Section->GetPreRollTime() > 0)
@@ -304,7 +311,7 @@ FMovieSceneTrackCompiler::FRows::FRows(const TArray<UMovieSceneSection*>& Sectio
 			EvalData.Flags = ESectionEvaluationFlags::PreRoll;
 			TRange<float> PreRollRange(Range.GetLowerBoundValue() - Section->GetPreRollTime(), TRangeBound<float>::FlipInclusion(Range.GetLowerBoundValue()));
 			Rows[RowIndex].Sections.Add(
-				FMovieSceneSectionData(PreRollRange, EvalData, Section->GetOverlapPriority())
+				FMovieSceneSectionData(PreRollRange, EvalData, Section->GetBlendType(), Section->GetOverlapPriority())
 				);
 		}
 		if (!Range.GetUpperBound().IsOpen() && Section->GetPostRollTime() > 0)
@@ -312,7 +319,7 @@ FMovieSceneTrackCompiler::FRows::FRows(const TArray<UMovieSceneSection*>& Sectio
 			EvalData.Flags = ESectionEvaluationFlags::PostRoll;
 			TRange<float> PostRollRange(TRangeBound<float>::FlipInclusion(Range.GetUpperBoundValue()), Range.GetUpperBoundValue() + Section->GetPostRollTime());
 			Rows[RowIndex].Sections.Add(
-				FMovieSceneSectionData(PostRollRange, EvalData, Section->GetOverlapPriority())
+				FMovieSceneSectionData(PostRollRange, EvalData, Section->GetBlendType(), Section->GetOverlapPriority())
 				);
 		}
 	}
@@ -357,7 +364,7 @@ FMovieSceneTrackEvaluationField FMovieSceneTrackCompiler::Compile(TArrayView<FRo
 		TArray<FMovieSceneSegment> RowSegments = Compiler.Compile(
 			TArray<FMovieSceneSectionData>(Row.Sections),
 			Row.CompileRules,
-			EMovieSceneSegmentIndexSpace::ActualImplIndex);
+			EMovieSceneSegmentIndexSpace::SourceDataIndex);
 
 		const int32 Priority = Rows.Num() - RowIndex;
 		for (FMovieSceneSegment& Segment : RowSegments)
@@ -365,7 +372,10 @@ FMovieSceneTrackEvaluationField FMovieSceneTrackCompiler::Compile(TArrayView<FRo
 			// Add each implementation in this segment as a separate entry in the source data to ensure that the correct evaluation flags are compiled
 			for (FSectionEvaluationData& EvalData : Segment.Impls)
 			{
-				TrackCompileData.Add(FMovieSceneSectionData(Segment.Range, EvalData, Priority));
+				const FMovieSceneSectionData& SectionData = Row.Sections[EvalData.ImplIndex];
+				// Remap to the actual section index
+				EvalData.ImplIndex = SectionData.EvalData.ImplIndex;
+				TrackCompileData.Add(FMovieSceneSectionData(Segment.Range, EvalData, SectionData.BlendType, Priority));
 			}
 		}
 	}

@@ -1,9 +1,11 @@
-﻿INTSourceChangelist:2713187
+﻿INTSourceChangelist:3429254
 Availability:Public
 Title:ブループリントでタイマーを使用する
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\UseTimers
 Description:ブループリントでタイマーを使用するための操作ガイド 
 version:4.9
+type:how-to
+skilllevel:Intermediate
 
 [TOC (start:2 end:2)]
 
@@ -79,7 +81,7 @@ version:4.9
 
 	![](GHT6B_8b.png)
 
-1. 	**コンパイル** し **保存** してから、ブループリントを閉じます 
+1. 	**コンパイル** し **保存** してから、ブループリントを終了します 
 
 1.	**コンテンツ ブラウザ** で **Blueprint_Effect_Fire** ブループリントをレベルへドラッグします。 
 

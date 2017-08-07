@@ -78,9 +78,6 @@ public:
 	virtual void UpdateGizmoHandleGroup( const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, const bool bAllHandlesVisible, class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles, 
 		float AnimationAlpha, float GizmoScale, const float GizmoHoverScale, const float GizmoHoverAnimationDuration, bool& bOutIsHoveringOrDraggingThisHandleGroup ) override;
 
-	/** Gets the InteractionType for this Gizmo handle */
-	virtual ETransformGizmoInteractionType GetInteractionType() const override;
-
 	/** Gets the GizmoType for this Gizmo handle */
 	virtual EGizmoHandleTypes GetHandleType() const override;
 };
@@ -101,9 +98,6 @@ public:
 	/** Updates the gizmo handles */
 	virtual void UpdateGizmoHandleGroup( const FTransform& LocalToWorld, const FBox& LocalBounds,  const FVector ViewLocation, const bool bAllHandlesVisible, class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles, 
 		float AnimationAlpha, float GizmoScale, const float GizmoHoverScale, const float GizmoHoverAnimationDuration, bool& bOutIsHoveringOrDraggingThisHandleGroup ) override;
-
-	/** Gets the InteractionType for this Gizmo handle */
-	virtual ETransformGizmoInteractionType GetInteractionType() const override;
 
 	/** Gets the GizmoType for this Gizmo handle */
 	virtual EGizmoHandleTypes GetHandleType() const override;
@@ -129,9 +123,6 @@ public:
 	virtual void UpdateGizmoHandleGroup( const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, const bool bAllHandlesVisible, class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles, 
 		float AnimationAlpha, float GizmoScale, const float GizmoHoverScale, const float GizmoHoverAnimationDuration, bool& bOutIsHoveringOrDraggingThisHandleGroup ) override;
 
-	/** Gets the InteractionType for this Gizmo handle */
-	virtual ETransformGizmoInteractionType GetInteractionType() const override;
-
 	/** Gets the GizmoType for this Gizmo handle */
 	virtual EGizmoHandleTypes GetHandleType() const override;
 };
@@ -154,9 +145,6 @@ public:
 	virtual void UpdateGizmoHandleGroup(const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, const bool bAllHandlesVisible, class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles, 
 		float AnimationAlpha, float GizmoScale, const float GizmoHoverScale, const float GizmoHoverAnimationDuration, bool& bOutIsHoveringOrDraggingThisHandleGroup ) override;
 
-	/** Gets the InteractionType for this Gizmo handle */
-	virtual ETransformGizmoInteractionType GetInteractionType() const override;
-
 	/** Gets the GizmoType for this Gizmo handle */
 	virtual EGizmoHandleTypes GetHandleType() const override;
 
@@ -168,7 +156,7 @@ private:
 	/** Make the components visible when dragging rotation */
 	void ShowRotationVisuals(const bool bInShow);
 
-	void SetupIndicator(USceneComponent* RootComponent, UStaticMeshComponent* IndicatorMeshComponent, UStaticMesh* Mesh);
+	void SetupIndicator(USceneComponent* RootComponent, UGizmoHandleMeshComponent* IndicatorMeshComponent, UStaticMesh* Mesh);
 	
 	void SetIndicatorColor(UStaticMeshComponent* InMeshComponent, const FLinearColor& InHandleColor);
 
@@ -178,11 +166,11 @@ private:
 
 	/** When dragging a rotation handle the full rotation circle appears */
 	UPROPERTY()
-	UStaticMeshComponent* FullRotationHandleMeshComponent;
+	class UGizmoHandleMeshComponent* FullRotationHandleMeshComponent;
 
 	/** The mesh that indicated the start rotation */
 	UPROPERTY()
-	UStaticMeshComponent* StartRotationIndicatorMeshComponent;
+	class UGizmoHandleMeshComponent* StartRotationIndicatorMeshComponent;
 
 	/** The root component of the start rotation indicator */
 	UPROPERTY()
@@ -190,7 +178,7 @@ private:
 
 	/** The mesh that indicated the delta rotation */
 	UPROPERTY()
-	UStaticMeshComponent* DeltaRotationIndicatorMeshComponent;
+	class UGizmoHandleMeshComponent* DeltaRotationIndicatorMeshComponent;
 
 	/** The root component of the delta rotation indicator */
 	UPROPERTY()

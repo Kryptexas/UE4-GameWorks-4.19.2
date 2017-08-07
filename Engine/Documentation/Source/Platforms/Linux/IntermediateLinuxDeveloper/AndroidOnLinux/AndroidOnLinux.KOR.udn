@@ -1,7 +1,7 @@
-﻿INTSourceChangelist:3351873
-Availability: Docs
+﻿INTSourceChangelist:0
+Availability: Public
 Title: Android On Linux Quick Start
-Crumbs:
+Crumbs:%ROOT%
 Description:Learn how to create, deploy, and package games to Android from Linux.
 Platform:Linux
 Version: 4.14

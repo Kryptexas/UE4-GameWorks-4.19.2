@@ -6,21 +6,21 @@
 /////////////////////////////////////////////////////
 // FAnimNode_ApplyAdditive
 
-void FAnimNode_ApplyAdditive::Initialize(const FAnimationInitializeContext& Context)
+void FAnimNode_ApplyAdditive::Initialize_AnyThread(const FAnimationInitializeContext& Context)
 {
-	FAnimNode_Base::Initialize(Context);
+	FAnimNode_Base::Initialize_AnyThread(Context);
 
 	Base.Initialize(Context);
 	Additive.Initialize(Context);
 }
 
-void FAnimNode_ApplyAdditive::CacheBones(const FAnimationCacheBonesContext& Context) 
+void FAnimNode_ApplyAdditive::CacheBones_AnyThread(const FAnimationCacheBonesContext& Context) 
 {
 	Base.CacheBones(Context);
 	Additive.CacheBones(Context);
 }
 
-void FAnimNode_ApplyAdditive::Update(const FAnimationUpdateContext& Context)
+void FAnimNode_ApplyAdditive::Update_AnyThread(const FAnimationUpdateContext& Context)
 {
 	Base.Update(Context);
 
@@ -38,7 +38,7 @@ void FAnimNode_ApplyAdditive::Update(const FAnimationUpdateContext& Context)
 	}
 }
 
-void FAnimNode_ApplyAdditive::Evaluate(FPoseContext& Output)
+void FAnimNode_ApplyAdditive::Evaluate_AnyThread(FPoseContext& Output)
 {
 	//@TODO: Could evaluate Base into Output and save a copy
 	if (FAnimWeight::IsRelevant(ActualAlpha))

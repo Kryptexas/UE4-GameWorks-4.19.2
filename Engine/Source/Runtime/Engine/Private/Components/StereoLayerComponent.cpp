@@ -103,7 +103,8 @@ void UStereoLayerComponent::TickComponent(float DeltaTime, enum ELevelTick TickT
 			{
 				LayerDsec.LeftTexture = LeftTexture->Resource->TextureRHI;
 			}
-			LayerDsec.CylinderSize = FVector2D(CylinderRadius, CylinderOverlayArc);
+			LayerDsec.CylinderRadius = CylinderRadius; 
+			LayerDsec.CylinderOverlayArc = CylinderOverlayArc;
 			LayerDsec.CylinderHeight = CylinderHeight;
 			
 			LayerDsec.Flags |= (bLiveTexture) ? IStereoLayers::LAYER_FLAG_TEX_CONTINUOUS_UPDATE : 0;

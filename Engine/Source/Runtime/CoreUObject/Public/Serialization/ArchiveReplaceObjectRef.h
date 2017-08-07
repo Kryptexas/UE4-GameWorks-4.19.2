@@ -9,11 +9,54 @@
 /** Base class for object replacement archives */ 
 class COREUOBJECT_API FArchiveReplaceObjectRefBase : public FArchiveUObject
 {
+public:
+
+	/**
+	* Returns the number of times the object was referenced
+	*/
+	int64 GetCount() const { return Count; }
+
+	/**
+	* Returns a reference to the object this archive is operating on
+	*/
+	const UObject* GetSearchObject() const { return SearchObject; }
+
+	/**
+	* Returns a reference to the replaced references map
+	*/
+	const TMap<UObject*, TArray<UProperty*>>& GetReplacedReferences() const { return ReplacedReferences; }
+
+	/**
+	* Returns the name of this archive.
+	**/
+	virtual FString GetArchiveName() const { return TEXT("ReplaceObjectRef"); }
+	
 protected:
 	/**
 	* Serializes a single object
 	*/
 	void SerializeObject(UObject* ObjectToSerialize);
+
+	/** Initial object to start the reference search from */
+	UObject* SearchObject;
+
+	/** The number of times encountered */
+	int32 Count;
+
+	/** List of objects that have already been serialized */
+	TSet<UObject*> SerializedObjects;
+
+	/** Object that will be serialized */
+	TArray<UObject*> PendingSerializationObjects;
+
+	/** Map of referencing objects to referencing properties */
+	TMap<UObject*, TArray<UProperty*>> ReplacedReferences;
+
+	/**
+	* Whether references to non-public objects not contained within the SearchObject
+	* should be set to null
+	*/
+	bool bNullPrivateReferences;
 };
 
 /*----------------------------------------------------------------------------
@@ -52,9 +95,12 @@ public:
 		bool bDelayStart = false,
 		bool bIgnoreClassGeneratedByRef = true
 	)
-	: SearchObject(InSearchObject), ReplacementMap(inReplacementMap)
-	, Count(0), bNullPrivateReferences(bNullPrivateRefs)
+	: ReplacementMap(inReplacementMap)
 	{
+		SearchObject = InSearchObject;
+		Count = 0;
+		bNullPrivateReferences = bNullPrivateRefs;
+
 		ArIsObjectReferenceCollector = true;
 		ArIsModifyingWeakAndStrongReferences = true;		// Also replace weak references too!
 		ArIgnoreArchetypeRef = bIgnoreArchetypeRef;
@@ -87,24 +133,6 @@ public:
 			PendingSerializationObjects.Reset();
 		}
 	}
-
-	/**
-	 * Returns the number of times the object was referenced
-	 */
-	int64 GetCount() const
-	{
-		return Count;
-	}
-
-	/**
-	 * Returns a reference to the object this archive is operating on
-	 */
-	const UObject* GetSearchObject() const { return SearchObject; }
-
-	/**
-	 * Returns a reference to the replaced references map
-	 */
-	const TMap<UObject*, TArray<UProperty*>>& GetReplacedReferences() const { return ReplacedReferences; }
 
 	/**
 	 * Serializes the reference to the object
@@ -148,33 +176,8 @@ public:
 		return *this;
 	}
 
-	/**
-	 * Returns the name of this archive.
-	 **/
-	virtual FString GetArchiveName() const { return TEXT("ReplaceObjectRef"); }
-
 protected:
-	/** Initial object to start the reference search from */
-	UObject* SearchObject;
-
 	/** Map of objects to find references to -> object to replace references with */
 	const TMap<T*,T*>& ReplacementMap;
 	
-	/** The number of times encountered */
-	int32 Count;
-
-	/** List of objects that have already been serialized */
-	TSet<UObject*> SerializedObjects;
-
-	/** Object that will be serialized */
-	TArray<UObject*> PendingSerializationObjects;
-
-	/** Map of referencing objects to referencing properties */
-	TMap<UObject*, TArray<UProperty*>> ReplacedReferences;
-
-	/**
-	 * Whether references to non-public objects not contained within the SearchObject
-	 * should be set to null
-	 */
-	bool bNullPrivateReferences;
 };

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3237313
+﻿INTSourceChangelist:3481084
 Availability:Public
 Title:アニメーション エディタ
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -15,13 +15,42 @@ tags:Animation
 tags:Skeleton Asset
 tags:Animation Blueprint
 tags:Skeletal Mesh
+tags:Tools
 type:landing
 
 [VAR:ModeSize]w:450 convert:false[/VAR]
-
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
 [REGION:asyncgif]
 ![](UpdatedPersonaWindowAnim.gif)
 [/REGION]
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+[REGION:asyncgif]
+![](UpdatedPersonaWindowAnim_Mac.gif)
+[/REGION]
+[/PARAM]
+[/OBJECT]
+
 
 [EXCERPT:Intro]
 UE4 にはスケルタル アニメーションと **スケルタルメッシュ** で作業する場合に使う以下の 4 種類の主要ツールがあります。スケルトン エディタ、スケルタルメッシュ エディタ、アニメーション エディタ、アニメーション ブループリント エディタの 4 つです。各エディタにアクセスするには、関連するアセットを編集するか、各アニメーション エディタの上部にある 4 つのナビゲーション ボタンを使います。
@@ -44,9 +73,33 @@ UE4 にはスケルタル アニメーションと **スケルタルメッシュ
 
 ## 特定のアニメーション エディタを開く
 
-[REGION:raw]
-![](OpeningPersona.png)
-[/REGION]
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](OpenPersona_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](OpenPersona_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 
 各アニメーション エディタは、**コンテンツ ブラウザ** でエディタと関連するアセットを **ダブルクリック** して開くことができます。

@@ -8,7 +8,6 @@
 #include "Math/IntPoint.h"
 #include "Math/Vector2D.h"
 
-struct Rect;
 
 /**
  * Structure for integer rectangles in 2-d space.

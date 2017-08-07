@@ -1,14 +1,15 @@
-﻿INTSourceChangelist:3225556
+﻿INTSourceChangelist:3429254
 Availability:Public
 Title:Game Mode と Game State
 Crumbs:%ROOT%, Gameplay/Framework
 Description:Game Mode と Game State の概要
 Version:4.14
-type:reference
+type:overview
 parent:Gameplay/Framework
-order:5
+order:2
 tags:Gameplay Framework
 Related:Gameplay/Framework/Controller/PlayerController
+topic-image:Gameplay/Framework/gamemode_lander.png
 
 [TOC (start:2 end:2)]
 
@@ -93,6 +94,7 @@ Game Mode から派生したブループリントに以下のデフォルト値�
 * 個別マップのプロジェクト設定をオーバーライドするには、エディタの **[World Settings]** タブで **[GameMode Override]** を設定します。
 
 	![](WorldSettings_GameMode.png)
+
 
 * ゲーム起動時にある特定のオプションを強制的に読み込ませるために URL を実行ファイルへ渡すことができます。ゲームモードの設定は `game` オプションを使用します。詳細は [](Programming/Basics/CommandLineArguments) を参照してください。
 

@@ -21,7 +21,7 @@
 #include "Widgets/Layout/SScrollBox.h"
 #include "Tickable.h"
 
-class FAssetData;
+struct FAssetData;
 class FCanvas;
 class FMaterialCompiler;
 class FScopedTransaction;
@@ -332,6 +332,12 @@ public:
 	{
 		return true;
 	}
+
+	virtual bool IsTickableInEditor() const override
+	{
+		return true;
+	}
+
 	virtual TStatId GetStatId() const override;
 
 	/** Pushes the PreviewMesh assigned the the material instance to the thumbnail info */
@@ -515,12 +521,7 @@ private:
 	/** Copies all the HLSL Code View code to the clipboard */
 	FReply CopyCodeViewTextToClipboard();
 
-	/**
-	* Rebuilds dependant Material Instance Editors
-	* @param		MatInst	Material Instance to search dependent editors and force refresh of them.
-	*/
-	void RebuildMaterialInstanceEditors(UMaterialInstance * MatInst);
-	
+
 	/**
 	 * Binds our UI commands to delegates
 	 */

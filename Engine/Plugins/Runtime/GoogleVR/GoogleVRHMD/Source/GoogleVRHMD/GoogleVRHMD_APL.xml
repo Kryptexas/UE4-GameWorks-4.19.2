@@ -519,6 +519,13 @@
 		</insert>
 	</gameActivityOnDestroyAdditions>
 
+	<iosPListUpdates>
+		<addElements tag="dict">
+			<key>NSCameraUsageDescription</key>
+			<string>$(PRODUCT_NAME) camera use.</string>
+		</addElements>
+	</iosPListUpdates>
+
 	<!-- optional libraries to load in GameActivity.java before libUE4.so -->
 	<soLoadLibrary>
 		<loadLibrary name="gvr" failmsg="GoogleVR library not loaded and required!" />

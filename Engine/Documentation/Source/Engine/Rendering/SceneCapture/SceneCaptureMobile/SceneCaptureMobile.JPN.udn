@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3348720
+﻿INTSourceChangelist:3350143
 availability:Docs
 title:モバイル用 Scene Capture アクタ
 description:Scene Captures アクタをモバイル デバイスで使用する際の注意点
@@ -12,6 +12,20 @@ Navigation:topic
 topic-image:Scene_Capture_Mobile.png
 related:Resources/ContentExamples/Reflections/1_6
 related:Resources/ContentExamples/Reflections/1_7
+tags:mobile
+tags:rendering
+tags:Daydream
+tags:iOS
+tags:Android
+tags:User Interface
+tags:UMG UI Designer
+tags:Materials
+prereq:Gameplay/HowTo/UsingCameras
+prereq:Engine/Rendering/RenderTargets
+prereq:Engine/UMG
+
+
+
 
 モバイル デバイス向けプロジェクトで Scene Capture アクタを使用する場合、以下の点に注意して、モバイル デバイス上で Scene Capture アクタが最善のパフォーマンスで使用できることを確認してください。
 

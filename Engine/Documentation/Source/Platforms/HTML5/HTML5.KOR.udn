@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3150518
+﻿INTSourceChangelist:3467293
 Availability: Public
 Title: HTML5 게임 개발
 Crumbs:%ROOT%, Platforms
@@ -9,6 +9,8 @@ Version: 4.9
 type:landing
 parent:Platforms
 tags:HTML5
+tags:Desktop
+Topic-image:HTML5Development_topic.png
 
 HTML5 는 [Mozilla](https://www.mozilla.org/en-US/) 의 emscripten 툴 체인을 사용하여 C++ 를 Javascript 로 크로스 컴파일합니다.
 

@@ -118,12 +118,9 @@ FWidgetDesignerApplicationMode::FWidgetDesignerApplicationMode(TSharedPtr<FWidge
 	//@TODO: Keep this in sync with BlueprintEditorModes.cpp
 	ToolbarExtender = MakeShareable(new FExtender);
 	InWidgetEditor->GetWidgetToolbarBuilder()->AddWidgetBlueprintEditorModesToolbar(ToolbarExtender);
+	InWidgetEditor->GetWidgetToolbarBuilder()->AddWidgetReflector(ToolbarExtender);
 	InWidgetEditor->GetToolbarBuilder()->AddCompileToolbar(ToolbarExtender);
-	//InWidgetEditor->GetToolbarBuilder()->AddComponentsToolbar(ToolbarExtender);
 	InWidgetEditor->GetToolbarBuilder()->AddDebuggingToolbar(ToolbarExtender);
-
-	//InWidgetEditor->GetToolbarBuilder()->AddScriptingToolbar(ToolbarExtender);
-	//InWidgetEditor->GetToolbarBuilder()->AddBlueprintGlobalOptionsToolbar(ToolbarExtender);
 }
 
 void FWidgetDesignerApplicationMode::RegisterTabFactories(TSharedPtr<FTabManager> InTabManager)

@@ -3,6 +3,10 @@ Title:Actor Mobility
 Crumbs: %ROOT%, Engine, Engine/Actors
 Description:Setting that controls whether an Actor will be allowed to move or change in some way during gameplay.
 version: 4.9
+parent:Engine/Actors
+type:overview
+order:4
+
 
 [EXCERPT:Intro]
 ![](TransformMobility.png)

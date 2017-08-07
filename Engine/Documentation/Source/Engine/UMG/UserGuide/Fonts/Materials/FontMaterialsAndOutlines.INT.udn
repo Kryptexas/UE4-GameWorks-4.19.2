@@ -7,9 +7,13 @@ Related: Engine/UMG/UserGuide/Fonts
 Related: Engine/UMG/UserGuide/Styling
 Version: 4.14
 Parent: Engine/UMG/UserGuide/Fonts
-order: 1
+type: Overview
+Skilllevel:Beginner
+order: 2
 tags: User Interface
 tags:UMG UI Designer
+tags: Fonts
+Topic-image:FontMaterials_Topic.png
 
 [TOC]
 

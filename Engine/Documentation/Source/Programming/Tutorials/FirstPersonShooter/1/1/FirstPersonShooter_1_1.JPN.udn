@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3069483
+﻿INTSourceChangelist:3388665
 Availability:Public
 Title:1.1 - プロジェクトの設定
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/1
 Description:First Person Shooter プロジェクトの設定方法を学びます。
 SkillLevel:Beginner
-Version:4.11
+Version:4.15
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -47,7 +47,7 @@ Version:4.11
 
 	_マウスを使ってカメラを向けながら、WASD キーを使ってレベルを移動します。_
 
-1.	[PIE (Play In Editor)] モードを終了するには、レベル エディタで Escape キーを押すか、**[Stop]** ボタンをクリックします。
+1.	[PIE] モードを終了するには、レベル エディタで Escape キーを押すか、**[Stop]** ボタンをクリックします。
 
 	![](ClickStopButton.png)
 
@@ -59,7 +59,7 @@ Version:4.11
 
 	![](SaveLevelAs.png)
 
-1.	**[Edit (編集)]** メニューで、[Project Settings (プロジェクト設定)] を **クリック** します。
+1.	**[Edit (編集)]** メニューで、 **[Project Settings (プロジェクト設定)]** をクリックします。
 
 	![](EditProjectSettings.png)
 

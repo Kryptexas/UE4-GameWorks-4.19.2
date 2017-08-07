@@ -15,18 +15,17 @@
 
 UEdGraphPin* FKCHandler_MakeStruct::FindStructPinChecked(UEdGraphNode* Node) const
 {
-	check(NULL != Node);
-	UEdGraphPin* OutputPin = NULL;
-	for (int32 PinIndex = 0; PinIndex < Node->Pins.Num(); ++PinIndex)
+	check(Node);
+	UEdGraphPin* OutputPin = nullptr;
+	for (UEdGraphPin* Pin : Node->Pins)
 	{
-		UEdGraphPin* Pin = Node->Pins[PinIndex];
 		if (Pin && (EGPD_Output == Pin->Direction) && !CompilerContext.GetSchema()->IsMetaPin(*Pin))
 		{
 			OutputPin = Pin;
 			break;
 		}
 	}
-	check(NULL != OutputPin);
+	check(OutputPin);
 	return OutputPin;
 }
 
@@ -39,24 +38,25 @@ FKCHandler_MakeStruct::FKCHandler_MakeStruct(FKismetCompilerContext& InCompilerC
 void FKCHandler_MakeStruct::RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* InNode)
 {
 	UK2Node_MakeStruct* Node = CastChecked<UK2Node_MakeStruct>(InNode);
-	if (NULL == Node->StructType)
+	if (nullptr == Node->StructType)
 	{
 		CompilerContext.MessageLog.Error(*LOCTEXT("MakeStruct_UnknownStructure_Error", "Unknown structure to break for @@").ToString(), Node);
 		return;
 	}
 
-	if (!UK2Node_MakeStruct::CanBeMade(Node->StructType))
+	if (!UK2Node_MakeStruct::CanBeMade(Node->StructType, Node->IsIntermediateNode()))
 	{
-		CompilerContext.MessageLog.Warning(*LOCTEXT("MakeStruct_Error", "The structure contains read-only members @@. Try use specialized 'make' function if available. ").ToString(), Node);
+		CompilerContext.MessageLog.Error(*LOCTEXT("MakeStruct_Error", "The structure @@ is not a BlueprintType. ").ToString(), Node);
+		return;
 	}
 
 	FNodeHandlingFunctor::RegisterNets(Context, Node);
 
 	UEdGraphPin* OutputPin = FindStructPinChecked(Node);
 	UEdGraphPin* Net = FEdGraphUtilities::GetNetFromPin(OutputPin);
-	check(NULL != Net);
+	check(Net);
 	FBPTerminal** FoundTerm = Context.NetMap.Find(Net);
-	FBPTerminal* Term = FoundTerm ? *FoundTerm : NULL;
+	FBPTerminal* Term = FoundTerm ? *FoundTerm : nullptr;
 
 	if (Term == nullptr)
 	{
@@ -65,7 +65,7 @@ void FKCHandler_MakeStruct::RegisterNets(FKismetFunctionContext& Context, UEdGra
 	else
 	{
 		UStruct* StructInTerm = Cast<UStruct>(Term->Type.PinSubCategoryObject.Get());
-		if (NULL == StructInTerm || !StructInTerm->IsChildOf(Node->StructType))
+		if (nullptr == StructInTerm || !StructInTerm->IsChildOf(Node->StructType))
 		{
 			CompilerContext.MessageLog.Error(*LOCTEXT("MakeStruct_NoMatch_Error", "Structures don't match for @@").ToString(), Node);
 		}
@@ -105,23 +105,22 @@ void FKCHandler_MakeStruct::Compile(FKismetFunctionContext& Context, UEdGraphNod
 	UEdGraphPin* OutputStructNet = FEdGraphUtilities::GetNetFromPin(StructPin);
 	FBPTerminal** FoundTerm = Context.NetMap.Find(OutputStructNet);
 	FBPTerminal* OutputStructTerm = FoundTerm ? *FoundTerm : NULL;
-	check(NULL != OutputStructTerm);
+	check(OutputStructTerm);
 
-	for (int32 PinIndex = 0; PinIndex < Node->Pins.Num(); ++PinIndex)
+	for (UEdGraphPin* Pin : Node->Pins)
 	{
-		UEdGraphPin* Pin = Node->Pins[PinIndex];
 		if (Pin && (Pin != StructPin) && !CompilerContext.GetSchema()->IsMetaPin(*Pin) && (Pin->Direction == EGPD_Input))
 		{
 			UProperty* BoundProperty = FindField<UProperty>(Node->StructType, *(Pin->PinName));
-			check(NULL != BoundProperty);
+			check(BoundProperty);
 
-			// If the pin is not connectable, do not forward the net
+			// If the pin is not connectible, do not forward the net
 			if (!Pin->bNotConnectable)
 			{
 				if (FBPTerminal** FoundSrcTerm = Context.NetMap.Find(FEdGraphUtilities::GetNetFromPin(Pin)))
 				{
-					FBPTerminal* SrcTerm = FoundSrcTerm ? *FoundSrcTerm : NULL;
-					check(NULL != SrcTerm);
+					FBPTerminal* SrcTerm = FoundSrcTerm ? *FoundSrcTerm : nullptr;
+					check(SrcTerm);
 
 					FBPTerminal* DstTerm = Context.CreateLocalTerminal();
 					DstTerm->CopyFromPin(Pin, Context.NetNameMap->MakeValidName(Pin));

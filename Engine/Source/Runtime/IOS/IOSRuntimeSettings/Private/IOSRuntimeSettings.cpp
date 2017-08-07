@@ -3,6 +3,7 @@
 #include "IOSRuntimeSettings.h"
 #include "HAL/FileManager.h"
 #include "Misc/Paths.h"
+#include "Misc/EngineBuildSettings.h"
 
 
 UIOSRuntimeSettings::UIOSRuntimeSettings(const FObjectInitializer& ObjectInitializer)
@@ -39,6 +40,8 @@ UIOSRuntimeSettings::UIOSRuntimeSettings(const FObjectInitializer& ObjectInitial
 	bUseRemoteAsVirtualJoystick = true;
 	bUseRemoteAbsoluteDpadValues = false;
     bEnableRemoteNotificationsSupport = false;
+	bSupportsOpenGLES2 = false;
+	bSupportsMetal = true;
 }
 
 #if WITH_EDITOR
@@ -54,7 +57,7 @@ void UIOSRuntimeSettings::PostEditChangeProperty(struct FPropertyChangedEvent& P
 	}
 
 	// Ensure that at least one API is supported
-	if (!bSupportsMetal && !bSupportsOpenGLES2 && !bSupportsMetalMRT)
+	if (!bSupportsMetal && !bSupportsOpenGLES2 /*&& !bSupportsMetalMRT*/)
 	{
 		bSupportsOpenGLES2 = true;
 		UpdateSinglePropertyInConfigFile(GetClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bSupportsOpenGLES2)), GetDefaultConfigFilename());
@@ -113,6 +116,21 @@ void UIOSRuntimeSettings::PostInitProperties()
 	if (MinimumiOSVersion < EIOSVersion::IOS_8)
 	{
 		MinimumiOSVersion = EIOSVersion::IOS_8;
+	}
+
+	// disable 32-bit support if in binary release and update the ini file
+	if (!FEngineBuildSettings::IsSourceDistribution())
+	{
+		if (bDevForArmV7)
+		{
+			bDevForArmV7 = false;
+			UpdateSinglePropertyInConfigFile(GetClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bDevForArmV7)), GetDefaultConfigFilename());
+		}
+		if (bShipForArmV7)
+		{
+			bShipForArmV7 = false;
+			UpdateSinglePropertyInConfigFile(GetClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bShipForArmV7)), GetDefaultConfigFilename());
+		}
 	}
 }
 #endif

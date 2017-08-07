@@ -17,7 +17,7 @@ DECLARE_DELEGATE_OneParam(FOnSetPrimaryAssetId, FPrimaryAssetId);
 
 class SToolTip;
 class SWidget;
-class FAssetData;
+struct FAssetData;
 
 /**
  * The Asset Manager Editor module handles creating UI for asset management and exposes several commands

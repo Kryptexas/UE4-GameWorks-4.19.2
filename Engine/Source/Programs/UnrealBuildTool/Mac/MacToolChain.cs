@@ -134,6 +134,7 @@ namespace UnrealBuildTool
 			}
 
 			Result += " -Wall -Werror";
+			Result += " -Wdelete-non-virtual-dtor";
 			//Result += " -Wsign-compare"; // fed up of not seeing the signed/unsigned warnings we get on Windows - lets enable them here too.
 
 			Result += " -Wno-unused-variable";
@@ -845,7 +846,7 @@ namespace UnrealBuildTool
 				else
 				{
 					string EnginePath = ConvertPath(Path.GetDirectoryName(Directory.GetCurrentDirectory()));
-					string InputFileRelativePath = InputFile.AbsolutePath.Replace(EnginePath, "..");
+					string InputFileRelativePath = InputFile.AbsolutePath.Replace(EnginePath + "/", "../");
 					InputFileNames.Add(string.Format("\"{0}\"", InputFileRelativePath));
 				}
 				LinkAction.PrerequisiteItems.Add(InputFile);
@@ -1041,15 +1042,20 @@ namespace UnrealBuildTool
 					bool bIsLauncherProduct = ExeName.StartsWith("EpicGamesLauncher") || ExeName.StartsWith("EpicGamesBootstrapLauncher");
 					string[] ExeNameParts = ExeName.Split('-');
 					string GameName = ExeNameParts[0];
-					FileReference UProjectFilePath = null;
+					string ProjectName = GameName;
+					FileReference UProjectFilePath = ProjectFile;
+
+					if (UProjectFilePath != null)
+					{
+						ProjectName = UProjectFilePath.GetFileNameWithoutAnyExtensions();
+					}
 
 					if (GameName == "EpicGamesBootstrapLauncher")
 					{
 						GameName = "EpicGamesLauncher";
 					}
-					else if (GameName == "UE4" && ProjectFile != null)
+					else if (GameName == "UE4" && UProjectFilePath != null)
 					{
-						UProjectFilePath = ProjectFile;
 						GameName = UProjectFilePath.GetFileNameWithoutAnyExtensions();
 					}
 
@@ -1080,6 +1086,10 @@ namespace UnrealBuildTool
 					{
 						string ResourceParentFolderName = bIsLauncherProduct ? "Application" : GameName;
 						CustomResourcesPath = Path.GetDirectoryName(UProjectFilePath.FullName) + "/Source/" + ResourceParentFolderName + "/Resources/Mac";
+						if (!Directory.Exists(CustomResourcesPath))
+						{
+							CustomResourcesPath = Path.GetDirectoryName(UProjectFilePath.FullName) + "/Source/" + ProjectName + "/Resources/Mac";
+						}
 						CustomBuildPath = Path.GetDirectoryName(UProjectFilePath.FullName) + "/Build/Mac";
 					}
 
@@ -1117,7 +1127,7 @@ namespace UnrealBuildTool
 						AppendMacLine(FinalizeAppBundleScript, FormatCopyCommand(String.Format("{0}/Runtime/Launch/Resources/Mac/UProject.icns", EngineSourcePath), String.Format("{0}.app/Contents/Resources/UProject.icns", ExeName)));
 					}
 
-					string InfoPlistFile = CustomResourcesPath + "/Info.plist";
+					string InfoPlistFile = CustomResourcesPath + (bBuildingEditor ? "Info-Editor.plist" : "Info.plist");
 					if (!File.Exists(InfoPlistFile))
 					{
 						InfoPlistFile = EngineSourcePath + "/Runtime/Launch/Resources/Mac/" + (bBuildingEditor ? "Info-Editor.plist" : "Info.plist");
@@ -1323,14 +1333,14 @@ namespace UnrealBuildTool
 			return RemoteDestFile;
 		}
 
-		FileItem CopyBundleResource(UEBuildBundleResource Resource, FileItem Executable, ActionGraph ActionGraph)
+		FileItem CopyBundleResource(UEBuildBundleResource Resource, FileItem Executable, DirectoryReference BundleDirectory, ActionGraph ActionGraph)
 		{
 			Action CopyAction = ActionGraph.Add(ActionType.CreateAppBundle);
 			CopyAction.WorkingDirectory = GetMacDevSrcRoot(); // Path.GetFullPath(".");
 			CopyAction.CommandPath = "/bin/sh";
 			CopyAction.CommandDescription = "";
 
-			string BundlePath = Executable.AbsolutePath.Substring(0, Executable.AbsolutePath.IndexOf(".app") + 4);
+			string BundlePath = BundleDirectory.FullName;
 			string SourcePath = Path.Combine(Path.GetFullPath("."), Resource.ResourcePath);
 			string TargetPath = Path.Combine(BundlePath, "Contents", Resource.BundleContentsSubdir, Path.GetFileName(Resource.ResourcePath));
 
@@ -1735,11 +1745,11 @@ namespace UnrealBuildTool
 				return OutputFiles;
 			}
 
-			if(Executable.AbsolutePath.Contains(".app"))
+			if(BinaryLinkEnvironment.BundleDirectory != null)
 			{
 				foreach (UEBuildBundleResource Resource in BinaryLinkEnvironment.AdditionalBundleResources)
 				{
-					OutputFiles.Add(CopyBundleResource(Resource, Executable, ActionGraph));
+					OutputFiles.Add(CopyBundleResource(Resource, Executable, BinaryLinkEnvironment.BundleDirectory, ActionGraph));
 				}
 			}
 

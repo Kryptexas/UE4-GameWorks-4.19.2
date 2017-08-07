@@ -40,12 +40,17 @@ private:
 	FText GetUserName() const;
 	FText GetUserEmail() const;
 
-	/** Delegate to initialize a new Git repository */
 	EVisibility CanInitializeGitRepository() const;
+	bool CanInitializeGitLfs() const;
+
+	/** Delegate to initialize a new Git repository */
 	FReply OnClickedInitializeGitRepository();
 
 	void OnCheckedCreateGitIgnore(ECheckBoxState NewCheckedState);
 	bool bAutoCreateGitIgnore;
+
+	void OnCheckedCreateGitAttributes(ECheckBoxState NewCheckedState);
+	bool bAutoCreateGitAttributes;
 
 	void OnCheckedInitialCommit(ECheckBoxState NewCheckedState);
 	bool bAutoInitialCommit;

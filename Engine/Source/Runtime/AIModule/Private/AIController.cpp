@@ -324,10 +324,9 @@ bool AAIController::LineOfSightTo(const AActor* Other, FVector ViewPoint, bool b
 		}
 	}
 
-	static FName NAME_LineOfSight = FName(TEXT("LineOfSight"));
 	FVector TargetLocation = Other->GetTargetLocation(GetPawn());
 
-	FCollisionQueryParams CollisionParams(NAME_LineOfSight, true, this->GetPawn());
+	FCollisionQueryParams CollisionParams(SCENE_QUERY_STAT(LineOfSight), true, this->GetPawn());
 	CollisionParams.AddIgnoredActor(Other);
 
 	bool bHit = GetWorld()->LineTraceTestByChannel(ViewPoint, TargetLocation, ECC_Visibility, CollisionParams);
@@ -1061,22 +1060,6 @@ FString AAIController::GetDebugIcon() const
 	}
 
 	return TEXT("/Engine/EngineResources/AICON-Green.AICON-Green");
-}
-
-
-/** Returns PathFollowingComponent subobject **/
-UPathFollowingComponent* AAIController::GetPathFollowingComponent() const { return PathFollowingComponent; }
-/** Returns ActionsComp subobject **/
-UPawnActionsComponent* AAIController::GetActionsComp() const { return ActionsComp; }
-
-UAIPerceptionComponent* AAIController::GetAIPerceptionComponent()
-{
-	return PerceptionComponent;
-}
-
-const UAIPerceptionComponent* AAIController::GetAIPerceptionComponent() const 
-{
-	return PerceptionComponent;
 }
 
 void AAIController::OnGameplayTaskResourcesClaimed(FGameplayResourceSet NewlyClaimed, FGameplayResourceSet FreshlyReleased)

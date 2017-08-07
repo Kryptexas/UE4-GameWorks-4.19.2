@@ -66,6 +66,11 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 	/** Global callback that can handle game-specific code that needs to run before applying a gameplay effect spec */
 	virtual void GlobalPreGameplayEffectSpecApply(FGameplayEffectSpec& Spec, UAbilitySystemComponent* AbilitySystemComponent);
 
+	// Stubs for WIP feature that will come to engine
+	virtual void PushCurrentAppliedGE(const FGameplayEffectSpec* Spec, UAbilitySystemComponent* AbilitySystemComponent) { }
+	virtual void SetCurrentAppliedGE(const FGameplayEffectSpec* Spec) { }
+	virtual void PopCurrentAppliedGE() { }
+
 	/** Returns true if the ability system should try to predict gameplay effects applied to non local targets */
 	bool ShouldPredictTargetGameplayEffects() const
 	{
@@ -108,6 +113,11 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 		UAbilitySystemGlobals::DeriveGameplayCueTagFromAssetName(CDO->GetName(), CDO->GameplayCueTag, CDO->GameplayCueName);
 #endif
 	}
+
+#if WITH_EDITOR
+	// Allows projects to override PostEditChangeProeprty on GEs without having to subclass Gameplayeffect. Intended for validation/auto populating based on changed data.
+	virtual void GameplayEffectPostEditChangeProperty(class UGameplayEffect* GE, FPropertyChangedEvent& PropertyChangedEvent) { }
+#endif
 
 	/** The class to instantiate as the globals object. Defaults to this class but can be overridden */
 	UPROPERTY(config)
@@ -342,4 +352,17 @@ public:
 	//...for finding assets directly from the game.
 	void Notify_FindAssetInEditor(FString AssetName, int AssetType);
 	FOnAbilitySystemAssetFoundDelegate AbilityFindAssetInEditorCallbacks;
+};
+
+
+struct FScopeCurrentGameplayEffectBeingApplied
+{
+	FScopeCurrentGameplayEffectBeingApplied(const FGameplayEffectSpec* Spec, UAbilitySystemComponent* AbilitySystemComponent)
+	{
+		UAbilitySystemGlobals::Get().PushCurrentAppliedGE(Spec, AbilitySystemComponent);
+	}
+	~FScopeCurrentGameplayEffectBeingApplied()
+	{
+		UAbilitySystemGlobals::Get().PopCurrentAppliedGE();
+	}
 };

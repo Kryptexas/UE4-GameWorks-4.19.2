@@ -13,10 +13,9 @@
 #include "HttpModule.h"
 #include "Misc/EngineVersion.h"
 #include "Interfaces/IAnalyticsProvider.h"
+#include "Analytics.h"
 
 #if PLATFORM_DESKTOP
-
-DEFINE_LOG_CATEGORY_STATIC(LogAnalytics, Display, All);
 
 IMPLEMENT_MODULE( FAnalyticsSwrve, AnalyticsSwrve );
 

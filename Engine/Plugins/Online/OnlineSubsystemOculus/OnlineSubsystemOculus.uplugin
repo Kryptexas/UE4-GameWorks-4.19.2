@@ -3,7 +3,7 @@
 	
 	"FriendlyName" : "Online Subsystem Oculus",
 	"Version" : 1,
-	"VersionName" : "1.12",
+	"VersionName" : "1.15",
 	"Description" : "Access to Oculus Platform",
 	"Category" : "Online Platform",
 	"CreatedBy" : "Oculus",
@@ -24,10 +24,14 @@
 			]
         }
     ],
-	"LocalizationTargets": [
+	"Plugins": [
 		{
-			"Name": "OnlineSubsystemOculus",
-			"LoadingPolicy": "Always"
+			"Name": "OnlineSubsystem",
+			"Enabled": true
+		},
+		{
+			"Name": "OnlineSubsystemUtils",
+			"Enabled": true
 		}
 	]
 }

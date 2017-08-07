@@ -1,10 +1,16 @@
-﻿INTSourceChangelist:2735872
+﻿INTSourceChangelist:3429245
 Availability:Public
 Title:カスケード パーティクル システム
-Crumbs: %ROOT%, Engine, Engine/Rendering 
-Description:ワールドでエフェクトの作成に使用するエミッタを格納したアセット
+crumbs:%ROOT%, Engine, Engine/Rendering 
+Description:ワールドでエフェクトの作成に使用するエミッタを含んだアセット
 Version:4.9
 SkillLevel:Beginner
+parent:Engine/Rendering
+order:4
+type:landing
+tags:Particles
+related:Engine/Basics/Distributions
+related:Engine/Rendering/Materials/Editor
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -54,95 +60,23 @@ SkillLevel:Beginner
 アンリアルエンジンは非常にパワフルでロバストなパーティクルシステムを搭載しています。アーティストは、煙、スパーク、炎など多岐に渡る衝撃的なビジュアルエフェクトで、はるかに複雑で異世界の例を作成することができます。 
 [/EXCERPT:Intro]
 
-アンリアルのパーティクルシステムは **カスケード** で編集します。カスケードは完全統合型の、モジュラー パーティクルエフェクト エディタです。カスケードは、最も複雑なエフェクトさえも迅速かつ簡単に作成して、リアルタイムなフィードバックとモジュラーエフェクト編集を提供します。
+アンリアルのパーティクルシステムは **カスケード** で編集します。カスケードは完全統合型の、モジュラー パーティクルエフェクト エディタです。カスケード は、最も複雑なエフェクトさえも迅速かつ簡単に作成して、リアルタイムなフィードバックとモジュラーエフェクト編集を提供します。
 
 パーティクルシステムは、各パーティクルに適用したさまざまなマテリアルやテクスチャとも密接に関係しています。パーティクルシステムの主な機能は、全体のパーティクルシステムのある固有の外観や印象をしばしマテリアルでコントロールする一方で、パーティクルの挙動をコントロールすることです。例として、マテリアルに関するドキュメントへのショートカットを以下に示します。
 
-[REGION:topics third]
-[OBJECT:Topic]
-	[PARAM:image]
-		![](Engine/Rendering/ParticleSystems/particles_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/ParticleSystems/Overview:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/ParticleSystems/Overview:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/ParticleSystems/Overview]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/ParticleSystems/Cascade:title%](Engine/Rendering/ParticleSystems/Cascade/cascade_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/ParticleSystems/Cascade:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/ParticleSystems/Cascade:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/ParticleSystems/Cascade]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/ParticleSystems/Reference:title%](Engine/Rendering/ParticleSystems/Reference/particlereference_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/reference_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/ParticleSystems/Reference:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/ParticleSystems/Reference:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/ParticleSystems/Reference]
-	[/PARAM]
-[/OBJECT]
-[/REGION]
+## はじめよう
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/tech_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		パーティクル関連トピック
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Engine/Rendering/ParticleSystems/UserGuide "%Engine/Rendering/ParticleSystems/UserGuide:Description%")
-	* [](Engine/Rendering/ParticleSystems/LODs "%Engine/Rendering/ParticleSystems/LODs:Description%")
-	* [](Engine/Rendering/ParticleSystems/ParticleLights "%Engine/Rendering/ParticleSystems/ParticleLights:Description%")
-	[/PARAM]
-[/OBJECT]
+[DIR(output:"topic" parent:"Engine/Rendering/ParticleSystems" end:"1" org:"hierarchy" tags:"Getting Started")]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/tech_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Related Topics
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Engine/Basics/Distributions "%Engine/Basics/Distributions:Description%")
-	* [](Engine/Rendering/Materials/Editor "%Engine/Rendering/Materials/Editor:Description%")
-	* [](Engine/Rendering/ParticleSystems/Optimization "%Engine/Rendering/ParticleSystems/Optimization:Description%")
-	[/PARAM]
-[/OBJECT]
+## ガイド
+
+[DIR(output:"topic" parent:"Engine/Rendering/ParticleSystems" end:"1" org:"hierarchy" type:"!reference" tags:"!Getting Started")]
+
+## リファレンス
+
+[DIR(output:"topic" parent:"Engine/Rendering/ParticleSystems" end:"1" org:"hierarchy" type:"reference")]
+
+
 
 
 

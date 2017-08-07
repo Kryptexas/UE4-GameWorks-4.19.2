@@ -18,15 +18,15 @@ class FMovieSceneTracksModule
 		
 		MovieSceneModule.RegisterEvaluationGroupParameters(
 			IMovieSceneTracksModule::GetEvaluationGroupName(EBuiltInEvaluationGroup::PreEvaluation),
-			FMovieSceneEvaluationGroupParameters(0x8FFF, true));
+			FMovieSceneEvaluationGroupParameters(0x8FFF));
 
 		MovieSceneModule.RegisterEvaluationGroupParameters(
 			IMovieSceneTracksModule::GetEvaluationGroupName(EBuiltInEvaluationGroup::SpawnObjects),
-			FMovieSceneEvaluationGroupParameters(0x0FFF, true));
+			FMovieSceneEvaluationGroupParameters(0x0FFF));
 
 		MovieSceneModule.RegisterEvaluationGroupParameters(
 			IMovieSceneTracksModule::GetEvaluationGroupName(EBuiltInEvaluationGroup::PostEvaluation),
-			FMovieSceneEvaluationGroupParameters(0x0008, false));
+			FMovieSceneEvaluationGroupParameters(0x0008));
 	}
 };
 

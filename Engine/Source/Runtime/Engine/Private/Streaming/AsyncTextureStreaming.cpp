@@ -163,6 +163,8 @@ void FAsyncTextureStreamingTask::UpdateBudgetedMips_Async(int64& MemoryUsed, int
 	// Update Effective Budget
 	//*************************************
 
+	bool bResetMipBias = false;
+
 	int64 PraticalPoolSize = PoolSize;
 	if (Settings.bLimitPoolSizeToVRAM && GPoolSizeVRAMPercentage > 0 && TotalGraphicsMemory > 0)
 	{
@@ -184,6 +186,7 @@ void FAsyncTextureStreamingTask::UpdateBudgetedMips_Async(int64& MemoryUsed, int
 		// Increase size considering that the variation does not come from temp memory or allocator overhead (or other recurring cause).
 		// It's unclear how much temp memory is actually in there, but the value will decrease if temp memory increases.
 		MemoryBudget = AvailableMemoryForStreaming;
+		bResetMipBias = true;
 	}
 
 	//*******************************************
@@ -198,7 +201,7 @@ void FAsyncTextureStreamingTask::UpdateBudgetedMips_Async(int64& MemoryUsed, int
 		{
 			if (IsAborted()) break;
 
-			if (FMath::Max<int32>(StreamingTexture.VisibleWantedMips, StreamingTexture.HiddenWantedMips + StreamingTexture.NumMissingMips) < StreamingTexture.MaxAllowedMips && StreamingTexture.BudgetMipBias > 0)
+			if ((bResetMipBias || FMath::Max<int32>(StreamingTexture.VisibleWantedMips, StreamingTexture.HiddenWantedMips + StreamingTexture.NumMissingMips) < StreamingTexture.MaxAllowedMips) && StreamingTexture.BudgetMipBias > 0)
 			{
 				StreamingTexture.BudgetMipBias = 0;
 			}
@@ -498,6 +501,7 @@ void FAsyncTextureStreamingTask::UpdatePendingStreamingStatus_Async()
 
 void FAsyncTextureStreamingTask::DoWork()
 {
+	SCOPED_NAMED_EVENT(FAsyncTextureStreamingTask_DoWork, FColor::Turquoise);
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("FAsyncTextureStreamingTask::DoWork"), STAT_AsyncTextureStreaming_DoWork, STATGROUP_StreamingDetails);
 
 	// While the async task is runnning, the StreamingTextures are guarantied not to be reallocated.

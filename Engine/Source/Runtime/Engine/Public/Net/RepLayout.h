@@ -10,6 +10,7 @@
 #include "Misc/NetworkGuid.h"
 #include "UObject/CoreNet.h"
 #include "Engine/EngineTypes.h"
+#include "GCObject.h"
 
 class FGuidReferences;
 class FNetFieldExportGroup;
@@ -20,6 +21,7 @@ class UPackageMapClient;
 
 // Properties will be copied in here so memory needs aligned to largest type
 typedef TArray< uint8, TAlignedHeapAllocator<16> > FRepStateStaticBuffer;
+
 
 class FRepChangedParent
 {
@@ -359,7 +361,7 @@ public:
  *  This class holds all replicated properties for a parent property, and all its children
  *	Helpers functions exist to read/write and compare property state.
 */
-class FRepLayout
+class FRepLayout : public FGCObject
 {
 	friend class FRepState;
 	friend class FRepChangelistState;
@@ -464,12 +466,12 @@ public:
 		const uint8* RESTRICT			Data,
 		const FReplicationFlags&		RepFlags ) const;
 
-	void AddReferencedObjects(FReferenceCollector& Collector);
+	ENGINE_API virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 
 private:
 	void RebuildConditionalProperties( FRepState * RESTRICT	RepState, const FRepChangedPropertyTracker& ChangedTracker, const FReplicationFlags& RepFlags ) const;
 
-	void UpdateChangelistHistory( FRepState * RepState, UClass * ObjectClass, const uint8* RESTRICT Data, const int32 AckPacketId, TArray< uint16 > * OutMerged ) const;
+	void UpdateChangelistHistory( FRepState * RepState, UClass * ObjectClass, const uint8* RESTRICT Data, UNetConnection* Connection, TArray< uint16 > * OutMerged ) const;
 
 	void SendProperties_BackwardsCompatible_r(
 		FRepState* RESTRICT					RepState,

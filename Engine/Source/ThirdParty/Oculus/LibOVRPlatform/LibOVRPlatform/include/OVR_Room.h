@@ -16,17 +16,32 @@
 
 typedef struct ovrRoom *ovrRoomHandle;
 
+/// This method may return null. This indicates that the value is not present or that the curent
+/// app or user is not permitted to access it.
+OVRP_PUBLIC_FUNCTION(ovrDataStoreHandle) ovr_Room_GetDataStore(const ovrRoomHandle obj);
+
 /// A list of users that have been invited to the room, but have not joined the
 /// room yet.
+/// This method may return null. This indicates that the value is not present or that the curent
+/// app or user is not permitted to access it.
 OVRP_PUBLIC_FUNCTION(ovrUserArrayHandle) ovr_Room_GetInvitedUsers(const ovrRoomHandle obj);
 
 /// If this is a matchmaking room, it contains all users matched into the room,
 /// including the host as well as users enqueued by someone else. Also includes
 /// additional per-user matchmaking metadata.
+/// This method may return null. This indicates that the value is not present or that the curent
+/// app or user is not permitted to access it.
 OVRP_PUBLIC_FUNCTION(ovrMatchmakingEnqueuedUserArrayHandle) ovr_Room_GetMatchedUsers(const ovrRoomHandle obj);
 
+/// This method may return null. This indicates that the value is not present or that the curent
+/// app or user is not permitted to access it.
+OVRP_PUBLIC_FUNCTION(ovrUserHandle) ovr_Room_GetOwner(const ovrRoomHandle obj);
+
+/// This method may return null. This indicates that the value is not present or that the curent
+/// app or user is not permitted to access it.
+OVRP_PUBLIC_FUNCTION(ovrUserArrayHandle) ovr_Room_GetUsers(const ovrRoomHandle obj);
+
 OVRP_PUBLIC_FUNCTION(ovrID)              ovr_Room_GetApplicationID(const ovrRoomHandle obj);
-OVRP_PUBLIC_FUNCTION(ovrDataStoreHandle) ovr_Room_GetDataStore(const ovrRoomHandle obj);
 OVRP_PUBLIC_FUNCTION(const char *)       ovr_Room_GetDescription(const ovrRoomHandle obj);
 OVRP_PUBLIC_FUNCTION(ovrID)              ovr_Room_GetID(const ovrRoomHandle obj);
 OVRP_PUBLIC_FUNCTION(bool)               ovr_Room_GetIsMembershipLocked(const ovrRoomHandle obj);
@@ -34,9 +49,7 @@ OVRP_PUBLIC_FUNCTION(ovrRoomJoinPolicy)  ovr_Room_GetJoinPolicy(const ovrRoomHan
 OVRP_PUBLIC_FUNCTION(ovrRoomJoinability) ovr_Room_GetJoinability(const ovrRoomHandle obj);
 OVRP_PUBLIC_FUNCTION(unsigned int)       ovr_Room_GetMaxUsers(const ovrRoomHandle obj);
 OVRP_PUBLIC_FUNCTION(const char *)       ovr_Room_GetName(const ovrRoomHandle obj);
-OVRP_PUBLIC_FUNCTION(ovrUserHandle)      ovr_Room_GetOwner(const ovrRoomHandle obj);
 OVRP_PUBLIC_FUNCTION(ovrRoomType)        ovr_Room_GetType(const ovrRoomHandle obj);
-OVRP_PUBLIC_FUNCTION(ovrUserArrayHandle) ovr_Room_GetUsers(const ovrRoomHandle obj);
 OVRP_PUBLIC_FUNCTION(unsigned int)       ovr_Room_GetVersion(const ovrRoomHandle obj);
 
 #endif

@@ -38,9 +38,9 @@ namespace UnrealGameSync
 			// OkBtn
 			// 
 			this.OkBtn.DialogResult = System.Windows.Forms.DialogResult.OK;
-			this.OkBtn.Location = new System.Drawing.Point(422, 39);
+			this.OkBtn.Location = new System.Drawing.Point(496, 46);
 			this.OkBtn.Name = "OkBtn";
-			this.OkBtn.Size = new System.Drawing.Size(75, 23);
+			this.OkBtn.Size = new System.Drawing.Size(87, 26);
 			this.OkBtn.TabIndex = 3;
 			this.OkBtn.Text = "Ok";
 			this.OkBtn.UseVisualStyleBackColor = true;
@@ -48,30 +48,31 @@ namespace UnrealGameSync
 			// CancelBtn
 			// 
 			this.CancelBtn.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-			this.CancelBtn.Location = new System.Drawing.Point(341, 39);
+			this.CancelBtn.Location = new System.Drawing.Point(403, 46);
 			this.CancelBtn.Name = "CancelBtn";
-			this.CancelBtn.Size = new System.Drawing.Size(75, 23);
+			this.CancelBtn.Size = new System.Drawing.Size(87, 26);
 			this.CancelBtn.TabIndex = 2;
 			this.CancelBtn.Text = "Cancel";
 			this.CancelBtn.UseVisualStyleBackColor = true;
 			// 
 			// CommentTextBox
 			// 
-			this.CommentTextBox.Location = new System.Drawing.Point(13, 13);
+			this.CommentTextBox.Location = new System.Drawing.Point(12, 15);
 			this.CommentTextBox.Name = "CommentTextBox";
-			this.CommentTextBox.Size = new System.Drawing.Size(484, 20);
+			this.CommentTextBox.Size = new System.Drawing.Size(571, 23);
 			this.CommentTextBox.TabIndex = 1;
 			// 
 			// LeaveCommentWindow
 			// 
 			this.AcceptButton = this.OkBtn;
-			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+			this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
 			this.CancelButton = this.CancelBtn;
-			this.ClientSize = new System.Drawing.Size(510, 73);
+			this.ClientSize = new System.Drawing.Size(595, 84);
 			this.Controls.Add(this.CommentTextBox);
 			this.Controls.Add(this.CancelBtn);
 			this.Controls.Add(this.OkBtn);
+			this.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
 			this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
 			this.Name = "LeaveCommentWindow";
 			this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;

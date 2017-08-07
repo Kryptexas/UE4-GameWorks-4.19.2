@@ -857,6 +857,10 @@ void FArchiveFileWriterGeneric::Flush()
 		}
 		BufferCount = 0;
 	}
+	if (Handle.IsValid())
+	{
+		Handle->Flush();
+	}
 }
 
 void FArchiveFileWriterGeneric::LogWriteError(const TCHAR* Message)

@@ -201,7 +201,7 @@ public:
 // Typedef is necessary because the C preprocessor thinks the comma in the template parameter list is a comma in the macro parameter list.
 #define IMPLEMENT_TEMPORALAA_PIXELSHADER_TYPE(A, B, EntryName) \
 	typedef FPostProcessTemporalAAPS<A,B> FPostProcessTemporalAAPS##A##B; \
-	IMPLEMENT_SHADER_TYPE(template<>,FPostProcessTemporalAAPS##A##B,TEXT("PostProcessTemporalAA"),EntryName,SF_Pixel);
+	IMPLEMENT_SHADER_TYPE(template<>,FPostProcessTemporalAAPS##A##B,TEXT("/Engine/Private/PostProcessTemporalAA.usf"),EntryName,SF_Pixel);
 
 IMPLEMENT_TEMPORALAA_PIXELSHADER_TYPE(0, 0, TEXT("DOFTemporalAAPS"));
 IMPLEMENT_TEMPORALAA_PIXELSHADER_TYPE(1, 0, TEXT("MainTemporalAAPS"));
@@ -395,7 +395,7 @@ public:
 
 #define IMPLEMENT_TEMPORALAA_COMPUTESHADER_TYPE(A, EntryName) \
 	typedef FPostProcessTemporalAACS<A> FPostProcessTemporalAACS##A; \
-	IMPLEMENT_SHADER_TYPE(template<>,FPostProcessTemporalAACS##A,TEXT("PostProcessTemporalAA"),EntryName,SF_Compute);
+	IMPLEMENT_SHADER_TYPE(template<>,FPostProcessTemporalAACS##A,TEXT("/Engine/Private/PostProcessTemporalAA.usf"),EntryName,SF_Compute);
 
 IMPLEMENT_TEMPORALAA_COMPUTESHADER_TYPE(0, TEXT("DOFTemporalAACS"));
 IMPLEMENT_TEMPORALAA_COMPUTESHADER_TYPE(1, TEXT("MainTemporalAACS"));
@@ -451,7 +451,7 @@ void FRCPassPostProcessSSRTemporalAA::Process(FRenderingCompositePassContext& Co
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 
 	// is optimized away if possible (RT size=view size, )
-	DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor::Black, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, SrcRect);
+	DrawClearQuad(Context.RHICmdList, true, FLinearColor::Black, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, SrcRect);
 
 	Context.SetViewportAndCallRHI(SrcRect);
 
@@ -584,7 +584,7 @@ void FRCPassPostProcessDOFTemporalAA::Process(FRenderingCompositePassContext& Co
 		SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 
 		// is optimized away if possible (RT size=view size, )
-		DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor::Black, false, 0, false, 0, DestSize, SrcRect);
+		DrawClearQuad(Context.RHICmdList, true, FLinearColor::Black, false, 0, false, 0, DestSize, SrcRect);
 
 		Context.SetViewportAndCallRHI(SrcRect);
 
@@ -685,7 +685,7 @@ void FRCPassPostProcessDOFTemporalAANear::Process(FRenderingCompositePassContext
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 
 	// is optimized away if possible (RT size=view size, )
-	DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor::Black, false, 0, false, 0, DestSize, SrcRect);
+	DrawClearQuad(Context.RHICmdList, true, FLinearColor::Black, false, 0, false, 0, DestSize, SrcRect);
 
 	Context.SetViewportAndCallRHI(SrcRect);
 
@@ -773,7 +773,7 @@ void FRCPassPostProcessLightShaftTemporalAA::Process(FRenderingCompositePassCont
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 
 	// is optimized away if possible (RT size=view size, )
-	DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor::Black, false, 0, false, 0, DestSize, SrcRect);
+	DrawClearQuad(Context.RHICmdList, true, FLinearColor::Black, false, 0, false, 0, DestSize, SrcRect);
 
 	Context.SetViewportAndCallRHI(SrcRect);
 
@@ -915,7 +915,7 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 		SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, SceneContext.GetSceneDepthTexture(), ESimpleRenderTargetMode::EUninitializedColorExistingDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
 
 		// is optimized away if possible (RT size=view size, )
-		DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor::Black, false, 0, false, 0, DestSize, SrcRect);
+		DrawClearQuad(Context.RHICmdList, true, FLinearColor::Black, false, 0, false, 0, DestSize, SrcRect);
 
 		Context.SetViewportAndCallRHI(SrcRect);
 
@@ -1121,6 +1121,7 @@ void FRCPassPostProcessTemporalAA::DispatchCS(TRHICmdList& RHICmdList, FRenderin
 FPooledRenderTargetDesc FRCPassPostProcessTemporalAA::ComputeOutputDesc(EPassOutputId InPassOutputId) const
 {
 	FPooledRenderTargetDesc Ret = GetInput(ePId_Input0)->GetOutput()->RenderTargetDesc;
+	Ret.Flags &= ~(TexCreate_FastVRAM | TexCreate_Transient);
 	Ret.Reset();
 	//regardless of input type, PF_FloatRGBA is required to properly accumulate between frames for a good result.
 	Ret.Format = PF_FloatRGBA;

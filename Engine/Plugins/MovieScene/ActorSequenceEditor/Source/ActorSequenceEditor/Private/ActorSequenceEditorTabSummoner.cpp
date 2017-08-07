@@ -407,7 +407,7 @@ public:
 			return;
 		}
 
-		Sequencer->State.ClearObjectCaches();
+		Sequencer->State.ClearObjectCaches(*Sequencer);
 		TSet<UObject*> AllBoundObjects;
 
 		AllBoundObjects.Add(GetOwnerComponent());

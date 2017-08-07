@@ -29,10 +29,9 @@ public:
 	 * Function that renames all FStringAssetReference object with the old asset path to the new one.
 	 *
 	 * @param PackagesToCheck Packages to check for referencing FStringAssetReference.
-	 * @param OldAssetPath Old path.
-	 * @param NewAssetPath New path.
+	 * @param AssetRedirectorMap Map from old asset path to new asset path
 	 */
-	static void RenameReferencingStringAssetReferences(const TArray<UPackage *> PackagesToCheck, const FString& OldAssetPath, const FString& NewAssetPath);
+	static void RenameReferencingStringAssetReferences(const TArray<UPackage *> PackagesToCheck, const TMap<FString, FString>& AssetRedirectorMap);
 
 private:
 	/** Attempts to load and fix redirector references for the supplied assets */

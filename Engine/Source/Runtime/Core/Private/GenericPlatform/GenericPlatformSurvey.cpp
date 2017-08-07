@@ -3,6 +3,8 @@
 #include "GenericPlatform/GenericPlatformSurvey.h"
 #include "Containers/Array.h"
 
+DEFINE_LOG_CATEGORY(LogSynthBenchmark);
+
 // 100: avg good CPU, <100:slower, >100:faster
 float FSynthBenchmarkResults::ComputeCPUPerfIndex(TArray<float>* OutIndividualResults) const
 {

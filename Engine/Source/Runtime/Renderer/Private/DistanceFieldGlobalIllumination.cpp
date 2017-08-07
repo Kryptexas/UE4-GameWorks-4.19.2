@@ -209,7 +209,7 @@ private:
 	FShaderParameter VPLPlacementCameraRadius;
 };
 
-IMPLEMENT_SHADER_TYPE(,FVPLPlacementCS,TEXT("DistanceFieldGlobalIllumination"),TEXT("VPLPlacementCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FVPLPlacementCS,TEXT("/Engine/Private/DistanceFieldGlobalIllumination.usf"),TEXT("VPLPlacementCS"),SF_Compute);
 
 
 
@@ -271,7 +271,7 @@ private:
 	FShaderResourceParameter VPLParameterBuffer;
 };
 
-IMPLEMENT_SHADER_TYPE(,FSetupVPLCullndirectArgumentsCS,TEXT("DistanceFieldGlobalIllumination"),TEXT("SetupVPLCullndirectArgumentsCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FSetupVPLCullndirectArgumentsCS,TEXT("/Engine/Private/DistanceFieldGlobalIllumination.usf"),TEXT("SetupVPLCullndirectArgumentsCS"),SF_Compute);
 
 class FCullVPLsForViewCS : public FGlobalShader
 {
@@ -359,7 +359,7 @@ private:
 	FShaderParameter ViewFrustumConvexHull;
 };
 
-IMPLEMENT_SHADER_TYPE(,FCullVPLsForViewCS,TEXT("DistanceFieldGlobalIllumination"),TEXT("CullVPLsForViewCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FCullVPLsForViewCS,TEXT("/Engine/Private/DistanceFieldGlobalIllumination.usf"),TEXT("CullVPLsForViewCS"),SF_Compute);
 
 TUniquePtr<FLightTileIntersectionResources> GVPLPlacementTileIntersectionResources;
 
@@ -372,7 +372,7 @@ void PlaceVPLs(
 	GVPLResources.AllocateFor(GVPLGridDimension * GVPLGridDimension);
 
 	{
-		ClearUAV(RHICmdList, GMaxRHIFeatureLevel, GVPLResources.VPLParameterBuffer, 0);
+		ClearUAV(RHICmdList, GVPLResources.VPLParameterBuffer, 0);
 	}
 
 	const FLightSceneProxy* DirectionalLightProxy = NULL;
@@ -530,7 +530,7 @@ void PlaceVPLs(
 			{
 				GCulledVPLResources.AllocateFor(GVPLGridDimension * GVPLGridDimension);
 
-				ClearUAV(RHICmdList, GMaxRHIFeatureLevel, GCulledVPLResources.VPLParameterBuffer, 0);
+				ClearUAV(RHICmdList, GCulledVPLResources.VPLParameterBuffer, 0);
 
 				TShaderMapRef<FCullVPLsForViewCS> ComputeShader(GetGlobalShaderMap(Scene->GetFeatureLevel()));
 				RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
@@ -610,7 +610,7 @@ private:
 	FShaderParameter ObjectProcessStride;
 };
 
-IMPLEMENT_SHADER_TYPE(,FSetupLightVPLsIndirectArgumentsCS,TEXT("DistanceFieldGlobalIllumination"),TEXT("SetupLightVPLsIndirectArgumentsCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FSetupLightVPLsIndirectArgumentsCS,TEXT("/Engine/Private/DistanceFieldGlobalIllumination.usf"),TEXT("SetupLightVPLsIndirectArgumentsCS"),SF_Compute);
 
 class FLightVPLsCS : public FGlobalShader
 {
@@ -753,7 +753,7 @@ private:
 	FShaderParameter ObjectProcessStartIndex;
 };
 
-IMPLEMENT_SHADER_TYPE(,FLightVPLsCS,TEXT("DistanceFieldGlobalIllumination"),TEXT("LightVPLsCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FLightVPLsCS,TEXT("/Engine/Private/DistanceFieldGlobalIllumination.usf"),TEXT("LightVPLsCS"),SF_Compute);
 
 void UpdateVPLs(
 	FRHICommandListImmediate& RHICmdList,
@@ -863,7 +863,7 @@ void UpdateVPLs(
 			}
 			else
 			{
-				ClearUAV(RHICmdList, GMaxRHIFeatureLevel, Scene->DistanceFieldSceneData.InstancedSurfelBuffers->VPLFlux, 0);
+				ClearUAV(RHICmdList, Scene->DistanceFieldSceneData.InstancedSurfelBuffers->VPLFlux, 0);
 			}
 		}
 		else
@@ -922,7 +922,7 @@ public:
 		FAOSampleData2 AOSampleData;
 
 		TArray<FVector, TInlineAllocator<9> > SampleDirections;
-		GetSpacedVectors(SampleDirections);
+		GetSpacedVectors(View.Family->FrameNumber, SampleDirections);
 
 		for (int32 SampleIndex = 0; SampleIndex < NumConeSampleDirections; SampleIndex++)
 		{
@@ -971,7 +971,7 @@ private:
 	FRWShaderParameter StepBentNormal;
 };
 
-IMPLEMENT_SHADER_TYPE(,FComputeStepBentNormalScreenGridCS,TEXT("DistanceFieldGlobalIllumination"),TEXT("ComputeStepBentNormalScreenGridCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FComputeStepBentNormalScreenGridCS,TEXT("/Engine/Private/DistanceFieldGlobalIllumination.usf"),TEXT("ComputeStepBentNormalScreenGridCS"),SF_Compute);
 
 
 class FComputeIrradianceScreenGridCS : public FGlobalShader
@@ -1092,7 +1092,7 @@ private:
 	FRWShaderParameter SurfelIrradiance;
 };
 
-IMPLEMENT_SHADER_TYPE(,FComputeIrradianceScreenGridCS,TEXT("DistanceFieldGlobalIllumination"),TEXT("ComputeIrradianceScreenGridCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FComputeIrradianceScreenGridCS,TEXT("/Engine/Private/DistanceFieldGlobalIllumination.usf"),TEXT("ComputeIrradianceScreenGridCS"),SF_Compute);
 
 
 class FCombineIrradianceScreenGridCS : public FGlobalShader
@@ -1166,7 +1166,7 @@ private:
 	FShaderParameter ScreenGridConeVisibilitySize;
 };
 
-IMPLEMENT_SHADER_TYPE(,FCombineIrradianceScreenGridCS,TEXT("DistanceFieldGlobalIllumination"),TEXT("CombineIrradianceScreenGridCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FCombineIrradianceScreenGridCS,TEXT("/Engine/Private/DistanceFieldGlobalIllumination.usf"),TEXT("CombineIrradianceScreenGridCS"),SF_Compute);
 
 
 void ComputeIrradianceForScreenGrid(
@@ -1181,8 +1181,8 @@ void ComputeIrradianceForScreenGrid(
 	const uint32 GroupSizeX = FMath::DivideAndRoundUp(View.ViewRect.Size().X / GAODownsampleFactor, GScreenGridIrradianceThreadGroupSizeX);
 	const uint32 GroupSizeY = FMath::DivideAndRoundUp(View.ViewRect.Size().Y / GAODownsampleFactor, GScreenGridIrradianceThreadGroupSizeX);
 
-	ClearUAV(RHICmdList, GMaxRHIFeatureLevel, ScreenGridResources.HeightfieldIrradiance, 0);
-	ClearUAV(RHICmdList, GMaxRHIFeatureLevel, ScreenGridResources.SurfelIrradiance, 0);
+	ClearUAV(RHICmdList, ScreenGridResources.HeightfieldIrradiance, 0);
+	ClearUAV(RHICmdList, ScreenGridResources.SurfelIrradiance, 0);
 
 	View.HeightfieldLightingViewInfo.
 		ComputeIrradianceForScreenGrid(View, RHICmdList, DistanceFieldNormal, ScreenGridResources, Parameters);

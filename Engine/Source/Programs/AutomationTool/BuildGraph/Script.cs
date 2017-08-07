@@ -798,7 +798,6 @@ namespace AutomationTool
 				foreach (Node ReferencedNode in ResolveReferences(Element, RequiredNames))
 				{
 					NewBadge.Nodes.Add(ReferencedNode);
-					NewBadge.Nodes.UnionWith(ReferencedNode.OrderDependencies);
 				}
 				Graph.Badges.Add(NewBadge);
 			}

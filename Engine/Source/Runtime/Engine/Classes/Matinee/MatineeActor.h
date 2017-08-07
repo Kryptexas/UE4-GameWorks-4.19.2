@@ -47,10 +47,10 @@ struct FInterpGroupActorInfo
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpGroupActorInfo)
+	UPROPERTY(EditAnywhere, Category=InterpGroupActorInfo)
 	FName ObjectName;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpGroupActorInfo)
+	UPROPERTY(EditAnywhere, Category=InterpGroupActorInfo)
 	TArray<class AActor*> Actors;
 
 };
@@ -59,6 +59,8 @@ UCLASS(NotBlueprintable, hidecategories=(Collision, Game, Input), showcategories
 class ENGINE_API AMatineeActor : public AActor
 {
 	GENERATED_UCLASS_BODY()
+
+	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const override;
 
 	/** The matinee data used by this actor*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MatineeActor, replicated, meta=(ForceRebuildProperty = "GroupActorInfos"))
@@ -169,8 +171,7 @@ class ENGINE_API AMatineeActor : public AActor
 #if WITH_EDITORONLY_DATA
 
 	// Reference to the actor sprite
-private_subobject:
-	DEPRECATED_FORGAME(4.6, "SpriteComponent should not be accessed directly, please use GetSpriteComponent() function instead. SpriteComponent will soon be private and your code will not compile.")
+private:
 	UPROPERTY()
 	class UBillboardComponent* SpriteComponent;
 public:

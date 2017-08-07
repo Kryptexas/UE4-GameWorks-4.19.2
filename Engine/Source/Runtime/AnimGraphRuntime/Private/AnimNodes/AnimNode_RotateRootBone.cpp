@@ -5,25 +5,25 @@
 /////////////////////////////////////////////////////
 // FAnimNode_RotateRootBone
 
-void FAnimNode_RotateRootBone::Initialize(const FAnimationInitializeContext& Context)
+void FAnimNode_RotateRootBone::Initialize_AnyThread(const FAnimationInitializeContext& Context)
 {
-	FAnimNode_Base::Initialize(Context);
+	FAnimNode_Base::Initialize_AnyThread(Context);
 
 	BasePose.Initialize(Context);
 }
 
-void FAnimNode_RotateRootBone::CacheBones(const FAnimationCacheBonesContext& Context) 
+void FAnimNode_RotateRootBone::CacheBones_AnyThread(const FAnimationCacheBonesContext& Context) 
 {
 	BasePose.CacheBones(Context);
 }
 
-void FAnimNode_RotateRootBone::Update(const FAnimationUpdateContext& Context)
+void FAnimNode_RotateRootBone::Update_AnyThread(const FAnimationUpdateContext& Context)
 {
 	EvaluateGraphExposedInputs.Execute(Context);
 	BasePose.Update(Context);
 }
 
-void FAnimNode_RotateRootBone::Evaluate(FPoseContext& Output)
+void FAnimNode_RotateRootBone::Evaluate_AnyThread(FPoseContext& Output)
 {
 	// Evaluate the input
 	BasePose.Evaluate(Output);

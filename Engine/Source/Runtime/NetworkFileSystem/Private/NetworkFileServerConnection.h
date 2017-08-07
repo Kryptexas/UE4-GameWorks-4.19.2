@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Interfaces/INetworkFileSystemModule.h"
+#include "CoreMisc.h"
 
 class FSandboxPlatformFile;
 class ITargetPlatform;
@@ -11,7 +12,7 @@ class ITargetPlatform;
 /**
  * This class processes all incoming messages from the client.
  */
-class FNetworkFileServerClientConnection
+class FNetworkFileServerClientConnection : public FSelfRegisteringExec
 {
 public:
 
@@ -19,10 +20,9 @@ public:
 	 * Creates and initializes a new instance.
 	 *
 	 * @param InSocket - The client socket to use.
-	 * @param InFileRequestDelegate - A delegate to be invoked when the client requests a file.
+	 * @param NetworkFileDelegates- delegates the client calls when events from the client happen
 	 */
-	FNetworkFileServerClientConnection(const FFileRequestDelegate& InFileRequestDelegate, 
-		const FRecompileShadersDelegate& InRecompileShadersDelegate, const TArray<ITargetPlatform*>& InActiveTargetPlatforms );
+	FNetworkFileServerClientConnection( const FNetworkFileDelegateContainer* NetworkFileDelegates , const TArray<ITargetPlatform*>& InActiveTargetPlatforms );
 
 	/**
 	 * Destructor.
@@ -62,7 +62,7 @@ protected:
 	 *
 	 *	@param	FilenameToConvert		Upon input, the server version of the filename. After the call, the client version
 	 */
-	void ConvertServerFilenameToClientFilename(FString& FilenameToConvert);
+	// void ConvertServerFilenameToClientFilename(FString& FilenameToConvert);
 	
 	/** Opens a file for reading or writing. */
 	void ProcessOpenFile(FArchive& In, FArchive& Out, bool bIsWriting);
@@ -154,6 +154,36 @@ protected:
 
 
 	virtual bool SendPayload( TArray<uint8> &Out ) = 0; 
+
+	/**
+	 * When a file is modified this callback is triggered
+	 *  cleans up any cached information about the file and notifies client
+	 * 
+	 * @param Filename of the file which has been modified
+	 */
+	void FileModifiedCallback( const FString& Filename );
+	
+	
+	virtual bool Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
+
+
+	/**
+	 * Convert a path to a sandbox path and translate so the client can understand it 
+	 *
+	 * @param Filename to convert
+	 * @param bLowerCaseFiles conver the file name to all lower case
+	 * @return Resulting fixed up path
+	 */
+	FString FixupSandboxPathForClient(const FString& Filename);
+
+	/**
+	* Convert a path to a sandbox path and translate so the client can understand it
+	*
+	* @param Filename to convert
+	* @param bLowerCaseFiles conver the file name to all lower case
+	* @return Resulting fixed up path
+	*/
+	TMap<FString,FDateTime> FixupSandboxPathsForClient(const TMap<FString, FDateTime>& SandboxPaths);
 	
 private:
 
@@ -165,6 +195,15 @@ private:
 
 	// Hold the game directory from the connected platform.
 	FString ConnectedGameDir;
+
+	// Hold the sandbox engine directory for the connected platform
+	FString SandboxEngine;
+
+	// hold the sandbox game directory for the connected platform
+	FString SandboxGame;
+
+	// Should we send the filenames in lowercase
+	bool bSendLowerCase;
 
 	// Holds the last assigned handle id (0 = invalid).
 	uint64 LastHandleId;
@@ -187,12 +226,28 @@ private:
 	// Holds the list of directories being watched.
 	TArray<FString> WatchedDirectories;
 
-	// Holds a delegate to be invoked on every sync request.
-	FFileRequestDelegate FileRequestDelegate;
+	// Local path to the engine directory
+	FString LocalEngineDir;
 
-	// Holds a delegate to be invoked when a client requests a shader recompile.
-	FRecompileShadersDelegate RecompileShadersDelegate;
+	// Local path to the game directory
+	FString LocalGameDir;
+
+	const FNetworkFileDelegateContainer* NetworkFileDelegates;
 
 	// cached copy of the active target platforms (if any)
 	const TArray<ITargetPlatform*>& ActiveTargetPlatforms;
+
+
+	//////////////////////////////////////////////////////////////////////////
+	//stats
+	double FileRequestDelegateTime;
+	double PackageFileTime;
+	double UnsolicitedFilesTime;
+
+	int32 FileRequestCount;
+	int32 UnsolicitedFilesCount;
+	int32 PackageRequestsSucceeded;
+	int32 PackageRequestsFailed;
+	int32 FileBytesSent;
+	
 };

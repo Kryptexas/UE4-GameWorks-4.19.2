@@ -61,7 +61,7 @@ public:
 	 * @param  AssetObj    The asset you want a source-file name for.
 	 * @return The filename (without an extension) for the target asset.
 	 */
-	virtual FString ConstructBaseFilename(const UObject* AssetObj) = 0;
+	virtual FString ConstructBaseFilename(const UObject* AssetObj, const FCompilerNativizationOptions& NativizationOptions) = 0;
 
 
 	DECLARE_DELEGATE_RetVal(FString, FPCHFilenameQuery);

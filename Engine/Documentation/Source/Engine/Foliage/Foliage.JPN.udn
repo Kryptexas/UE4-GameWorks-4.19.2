@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3260884
+﻿INTSourceChangelist:3481084
 Availability:Public
 Title:フォリッジ インスタンス化メッシュ
 Crumbs:%ROOT%, Engine
@@ -56,7 +56,7 @@ order:11
 
 [EXCERPT:Intro]
 
-フォリッジ システムによって、ランドスケープ アクタ、他のスタティックメッシュ アクタ、BSP ジオメトリ上でスタティックメッシュをすばやくペイントまたは消去することができるようになります。 
+フォリッジ システムは、ランドスケープ アクタ、他のスタティックメッシュ アクタ、BSP ジオメトリ上でスタティックメッシュの迅速なペイントまたは消去を可能にします。 
 これらのメッシュは、ハードウェア インスタンシングを使用してレンダリングされるバッチに自動的に統合されます。つまり、1 回のドローコールで多数のインスタンスのレンダリングが可能になります。
 
 [/EXCERPT:Intro]
@@ -104,11 +104,11 @@ Foliage ツールを使用するには、アンリアル エディタの左上�
 
 ###メッシュ リストでフォリッジ メッシュを選択する
 
-メッシュ リストのフォリッジ メッシュは、リストのメッシュにマウスを当てて四角の左上のチェックマーク ボックスにチェックを入れる、または外すことで、有効と無効の切り替えができます。 
+メッシュ リストにあるフォリッジ メッシュは、リストのメッシュにマウスを当てて左上のチェックマーク ボックスのチェックによって、有効と無効の切り替えができます。 
 
 ![](Foliage_Selecting_Meshes.png)
 
-メッシュ リストでそれらをクリックしても、フォリッジ メッシュを選択することができます。 
+メッシュ リストでクリックしても、フォリッジ メッシュを選択することができます。 
 選択するとボックスがオレンジで囲まれて、以下のオプション パネルで各種プロパティの調整が可能になります。 
 
 [REGION:lightbox]
@@ -337,21 +337,105 @@ Foliage Painting モードを使用するには、レベルにコリジョンが
 
 1. FT_Box が開いたら、**[Mesh]** セクションと **[Scalability]** セクションを展開します。
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	[REGION:lightbox]
-	[![](Foliage_Scalability_02.png)(w:405 h:223)](Foliage_Scalability_02.png)
+	[![](Foliage_Scalability_02_Windows.png)(w:405)](Foliage_Scalability_02_Windows.png)
 	[/REGION]
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](Foliage_Scalability_02_Mac.png)(w:405)](Foliage_Scalability_02_Mac.png)
+	[/REGION]
+	[/PARAM]
+	[/OBJECT]
 
 1. **[コンテンツ ブラウザ]** からスタティック メッシュを選びます (このサンプルではスターター コンテンツに入っている **Shape_Cube** を使います)。次に [FT_Box Foliage Type] の **[Mesh]** セクションで、コンテンツ ブラウザから **[Shape_Cube]** を **[Mesh]** オプションへドラッグします。
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	[REGION:lightbox]
-	[![](Foliage_Scalability_03.png)(w:405 h:223)](Foliage_Scalability_03.png)
+	[![](Foliage_Scalability_03_Windows.png)(w:405)](Foliage_Scalability_03_Windows.png)
 	[/REGION]
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](Foliage_Scalability_03_Mac.png)(w:405)](Foliage_Scalability_03_Mac.png)
+	[/REGION]
+	[/PARAM]
+	[/OBJECT]
 
 1. [FT_Box] フォリッジ タイプの **[Scalability]** セクションで、**[Enable Density Scaling (密度のスケールを有効にする)]** の横のボックスをクリックすると、Scalability System がこのスタティックメッシュにアクセスすることができます。
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	[REGION:lightbox]
-	[![](Foliage_Scalability_04.png)(w:405 h:223)](Foliage_Scalability_04.png)
+	[![](Foliage_Scalability_04_Windows.png)(w:405)](Foliage_Scalability_04_Windows.png)
 	[/REGION]
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](Foliage_Scalability_04_Mac.png)(w:405)](Foliage_Scalability_04_Mac.png)
+	[/REGION]
+	[/PARAM]
+	[/OBJECT]
 
 	[region:note]
 	**[Enable Density Scaling (密度のスケールを有効にする)]** オプションは、通常は岩や低木などのコリジョンを持たない「詳細な」フォリッジに対してのみ **有効** にされます。インスタンスを除去してもコリジョンはゲーム中ずっと有効のままなので、コリジョンをもつ木などのフォリッジには **無効** にしておきます。

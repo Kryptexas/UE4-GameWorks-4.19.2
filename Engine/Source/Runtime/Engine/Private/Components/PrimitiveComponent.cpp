@@ -42,8 +42,6 @@
 namespace PrimitiveComponentStatics
 {
 	static const FText MobilityWarnText = LOCTEXT("InvalidMove", "move");
-	static const FName MoveComponentName(TEXT("MoveComponent"));
-	static const FName UpdateOverlapsName(TEXT("UpdateOverlaps"));
 }
 
 typedef TArray<FOverlapInfo, TInlineAllocator<3>> TInlineOverlapInfoArray;
@@ -614,7 +612,7 @@ void UPrimitiveComponent::OnCreatePhysicsState()
 		if(BodySetup)
 		{
 			// Create new BodyInstance at given location.
-			FTransform BodyTransform = ComponentToWorld;
+			FTransform BodyTransform = GetComponentTransform();
 
 			// Here we make sure we don't have zero scale. This still results in a body being made and placed in
 			// world (very small) but is consistent with a body scaled to zero.
@@ -687,8 +685,8 @@ void UPrimitiveComponent::OnUpdateTransform(EUpdateTransformFlags UpdateTransfor
 
 void UPrimitiveComponent::SendPhysicsTransform(ETeleportType Teleport)
 {
-	BodyInstance.SetBodyTransform(ComponentToWorld, Teleport);
-	BodyInstance.UpdateBodyScale(ComponentToWorld.GetScale3D());
+	BodyInstance.SetBodyTransform(GetComponentTransform(), Teleport);
+	BodyInstance.UpdateBodyScale(GetComponentTransform().GetScale3D());
 }
 
 void UPrimitiveComponent::OnDestroyPhysicsState()
@@ -728,8 +726,8 @@ void UPrimitiveComponent::SendRenderDebugPhysics(FPrimitiveSceneProxy* OverrideS
 					FPrimitiveSceneProxy::FDebugMassData& RootMassData = DebugMassData[0];
 					const FTransform MassToWorld = BI->GetMassSpaceToWorldSpace();
 
-					RootMassData.LocalCenterOfMass = ComponentToWorld.InverseTransformPosition(MassToWorld.GetLocation());
-					RootMassData.LocalTensorOrientation = MassToWorld.GetRotation() * ComponentToWorld.GetRotation().Inverse();
+					RootMassData.LocalCenterOfMass = GetComponentTransform().InverseTransformPosition(MassToWorld.GetLocation());
+					RootMassData.LocalTensorOrientation = MassToWorld.GetRotation() * GetComponentTransform().GetRotation().Inverse();
 					RootMassData.MassSpaceInertiaTensor = BI->GetBodyInertiaTensor();
 					RootMassData.BoneIndex = INDEX_NONE;
 				}
@@ -747,7 +745,7 @@ void UPrimitiveComponent::SendRenderDebugPhysics(FPrimitiveSceneProxy* OverrideS
 
 FMatrix UPrimitiveComponent::GetRenderMatrix() const
 {
-	return ComponentToWorld.ToMatrixWithScale();
+	return GetComponentTransform().ToMatrixWithScale();
 }
 
 void UPrimitiveComponent::Serialize(FArchive& Ar)
@@ -1228,6 +1226,15 @@ void UPrimitiveComponent::SetCastShadow(bool NewCastShadow)
 	}
 }
 
+void UPrimitiveComponent::SetSingleSampleShadowFromStationaryLights(bool bNewSingleSampleShadowFromStationaryLights)
+{
+	if (bNewSingleSampleShadowFromStationaryLights != bSingleSampleShadowFromStationaryLights)
+	{
+		bSingleSampleShadowFromStationaryLights = bNewSingleSampleShadowFromStationaryLights;
+		MarkRenderStateDirty();
+	}
+}
+
 void UPrimitiveComponent::SetTranslucentSortPriority(int32 NewTranslucentSortPriority)
 {
 	if (NewTranslucentSortPriority != TranslucencySortPriority)
@@ -1236,6 +1243,16 @@ void UPrimitiveComponent::SetTranslucentSortPriority(int32 NewTranslucentSortPri
 		MarkRenderStateDirty();
 	}
 }
+
+void UPrimitiveComponent::SetReceivesDecals(bool bNewReceivesDecals)
+{
+	if (bNewReceivesDecals != bReceivesDecals)
+	{
+		bReceivesDecals = bNewReceivesDecals;
+		MarkRenderStateDirty();
+	}
+}
+
 
 void UPrimitiveComponent::PushSelectionToProxy()
 {
@@ -1424,9 +1441,10 @@ UMaterialInstanceDynamic* UPrimitiveComponent::CreateDynamicMaterialInstance(int
 	return MID;
 }
 
-UMaterialInterface* UPrimitiveComponent::GetMaterialFromCollisionFaceIndex(int32 FaceIndex) const
+UMaterialInterface* UPrimitiveComponent::GetMaterialFromCollisionFaceIndex(int32 FaceIndex, int32& SectionIndex) const
 {
 	//This function should be overriden
+	SectionIndex = 0;
 	return nullptr;
 }
 
@@ -1674,7 +1692,7 @@ void UPrimitiveComponent::InitSweepCollisionParams(FCollisionQueryParams &OutPar
 
 void UPrimitiveComponent::SetMoveIgnoreMask(FMaskFilter InMoveIgnoreMask)
 {
-	if (ensure(InMoveIgnoreMask < 16)) // TODO: don't assert, and make this a nicer exposed value.
+	if (ensure(InMoveIgnoreMask < (1 << NumExtraFilterBits))) // We only have a limited nubmer of bits for the mask. TODO: don't assert, and make this a nicer exposed value.
 	{
 		MoveIgnoreMask = InMoveIgnoreMask;
 	}
@@ -1723,7 +1741,7 @@ bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& 
 	const FVector TraceStart = GetComponentLocation();
 	const FVector TraceEnd = TraceStart + Delta;
 	float DeltaSizeSq = (TraceEnd - TraceStart).SizeSquared();				// Recalc here to account for precision loss of float addition
-	const FQuat InitialRotationQuat = ComponentToWorld.GetRotation();
+	const FQuat InitialRotationQuat = GetComponentTransform().GetRotation();
 
 	// ComponentSweepMulti does nothing if moving < KINDA_SMALL_NUMBER in distance, so it's important to not try to sweep distances smaller than that. 
 	const float MinMovementDistSq = (bSweep ? FMath::Square(4.f*KINDA_SMALL_NUMBER) : 0.f);
@@ -1779,7 +1797,7 @@ bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& 
 					ensureMsgf(IsRegistered(), TEXT("%s MovedComponent %s not initialized deleteme %d"),*Actor->GetName(), *GetName(), Actor->IsPendingKill());
 				}
 				else
-				{
+				{ //-V523
 					ensureMsgf(IsRegistered(), TEXT("MovedComponent %s not initialized"), *GetFullName());
 				}
 			}
@@ -1791,7 +1809,7 @@ bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& 
 			UWorld* const MyWorld = GetWorld();
 
 			const bool bForceGatherOverlaps = !ShouldCheckOverlapFlagToQueueOverlaps(*this);
-			FComponentQueryParams Params(PrimitiveComponentStatics::MoveComponentName, Actor);
+			FComponentQueryParams Params(SCENE_QUERY_STAT(MoveComponent), Actor);
 			FCollisionResponseParams ResponseParam;
 			InitSweepCollisionParams(Params, ResponseParam);
 			Params.bIgnoreTouches |= !(bGenerateOverlapEvents || bForceGatherOverlaps);
@@ -2113,7 +2131,7 @@ bool UPrimitiveComponent::LineTraceComponent(struct FHitResult& OutHit, const FV
 	bool bHaveHit = BodyInstance.LineTrace(OutHit, Start, End, Params.bTraceComplex, Params.bReturnPhysicalMaterial); 
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if((GetWorld()->DebugDrawTraceTag != NAME_None) && (GetWorld()->DebugDrawTraceTag == Params.TraceTag))
+	if (GetWorld()->DebugDrawSceneQueries(Params.TraceTag))
 	{
 		TArray<FHitResult> Hits;
 		if (bHaveHit)
@@ -2166,7 +2184,7 @@ bool UPrimitiveComponent::ComputePenetration(FMTDResult& OutMTD, const FCollisio
 	return false;
 }
 
-bool UPrimitiveComponent::IsOverlappingComponent(UPrimitiveComponent const* OtherComp) const
+bool UPrimitiveComponent::IsOverlappingComponent(const UPrimitiveComponent* OtherComp) const
 {
 	for (int32 i=0; i < OverlappingComponents.Num(); ++i)
 	{
@@ -2178,7 +2196,7 @@ bool UPrimitiveComponent::IsOverlappingComponent(UPrimitiveComponent const* Othe
 	return false;
 }
 
-bool UPrimitiveComponent::IsOverlappingComponent( const FOverlapInfo& Overlap ) const
+bool UPrimitiveComponent::IsOverlappingComponent(const FOverlapInfo& Overlap) const
 {
 	return OverlappingComponents.Find(Overlap) != INDEX_NONE;
 }
@@ -2461,7 +2479,7 @@ const TArray<FOverlapInfo>* UPrimitiveComponent::ConvertSweptOverlapsToCurrentOv
 				SCOPE_CYCLE_COUNTER(STAT_MoveComponent_FastOverlap);
 
 				// Check components we hit during the sweep, keep only those still overlapping
-				const FCollisionQueryParams UnusedQueryParams;
+				const FCollisionQueryParams UnusedQueryParams(NAME_None, FCollisionQueryParams::GetUnknownStatId());
 				for (int32 Index = SweptOverlapsIndex; Index < SweptOverlaps.Num(); ++Index)
 				{
 					const FOverlapInfo& OtherOverlap = SweptOverlaps[Index];
@@ -2721,7 +2739,7 @@ void UPrimitiveComponent::UpdateOverlaps(const TArray<FOverlapInfo>* NewPendingO
 					UWorld* const MyWorld = MyActor->GetWorld();
 					TArray<FOverlapResult> Overlaps;
 					// note this will optionally include overlaps with components in the same actor (depending on bIgnoreChildren). 
-					FComponentQueryParams Params(PrimitiveComponentStatics::UpdateOverlapsName, bIgnoreChildren ? MyActor : nullptr);
+					FComponentQueryParams Params(SCENE_QUERY_STAT(UpdateOverlaps), bIgnoreChildren ? MyActor : nullptr);
 					Params.bIgnoreBlocks = true;	//We don't care about blockers since we only route overlap events to real overlaps
 					FCollisionResponseParams ResponseParam;
 					InitSweepCollisionParams(Params, ResponseParam);
@@ -3126,7 +3144,14 @@ void UPrimitiveComponent::SetRenderCustomDepth(bool bValue)
 	if( bRenderCustomDepth != bValue )
 	{
 		bRenderCustomDepth = bValue;
-		MarkRenderStateDirty();
+		if ( SceneProxy )
+		{
+			SceneProxy->SetCustomDepthEnabled_GameThread(bRenderCustomDepth);
+		}
+		else
+		{
+			MarkRenderStateDirty();
+		}
 	}
 }
 
@@ -3138,7 +3163,14 @@ void UPrimitiveComponent::SetCustomDepthStencilValue(int32 Value)
 	if (CustomDepthStencilValue != ClampedValue)
 	{
 		CustomDepthStencilValue = ClampedValue;
-		MarkRenderStateDirty();
+		if ( SceneProxy )
+		{
+			SceneProxy->SetCustomDepthStencilValue_GameThread(CustomDepthStencilValue);
+		}
+		else
+		{
+			MarkRenderStateDirty();
+		}
 	}
 }
 

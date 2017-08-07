@@ -51,58 +51,7 @@ public:
 	}
 
 	//--------------------------------------------------------------------------
-	UObject* Resolve(const UObject* Container) const
-	{
-		UStruct* CurrentContainerType = Container->GetClass();
-
-		const TArray<FPropertyLink>& PropChainRef = PropertyChain;
-		auto GetProperty = [&CurrentContainerType, &PropChainRef](int32 ChainIndex)->UProperty*
-		{
-			const UProperty* SrcProperty = PropChainRef[ChainIndex].PropertyPtr;
-			return FindField<UProperty>(CurrentContainerType, SrcProperty->GetFName());
-		};
-
-		UProperty* CurrentProp = GetProperty(0);
-		const uint8* ValuePtr = (CurrentProp) ? CurrentProp->ContainerPtrToValuePtr<uint8>(Container) : nullptr;
-
-		for (int32 ChainIndex = 1; CurrentProp && ChainIndex < PropertyChain.Num(); ++ChainIndex)
-		{
-			if (const UArrayProperty* ArrayProperty = Cast<UArrayProperty>(CurrentProp))
-			{
-				check(PropertyChain[ChainIndex].PropertyPtr == ArrayProperty->Inner);
-
-				int32 TargetIndex = PropertyChain[ChainIndex].ArrayIndex;
-				check(TargetIndex != INDEX_NONE);
-
-				FScriptArrayHelper ArrayHelper(ArrayProperty, ValuePtr);
-				if (TargetIndex >= ArrayHelper.Num())
-				{
-					CurrentProp = nullptr;
-					break;
-				}
-
-				CurrentProp = ArrayProperty->Inner;
-				ValuePtr    = ArrayHelper.GetRawPtr(TargetIndex);
-			}
-			else if (ensure(PropertyChain[ChainIndex].ArrayIndex <= 0))
-			{
-				if (const UStructProperty* StructProperty = Cast<UStructProperty>(CurrentProp))
-				{
-					CurrentContainerType = StructProperty->Struct;
-				}
-
-				CurrentProp = GetProperty(ChainIndex);
-				ValuePtr    = (CurrentProp) ? CurrentProp->ContainerPtrToValuePtr<uint8>(ValuePtr) : nullptr;
-			}
-		}
-
-		const UObjectProperty* TargetPropety = Cast<UObjectProperty>(CurrentProp);
-		if (TargetPropety && TargetPropety->HasAnyPropertyFlags(CPF_InstancedReference))
-		{ 
-			return TargetPropety->GetObjectPropertyValue(ValuePtr);
-		}
-		return nullptr;
-	}
+	ENGINE_API UObject* Resolve(const UObject* Container) const;
 
 private:
 	TArray<FPropertyLink> PropertyChain;

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3218993
+﻿INTSourceChangelist:3429236
 Availability: Public
 Title:1. 다이얼로그 보이스 생성
 Crumbs: %ROOT%, Engine, Engine/Audio
@@ -6,9 +6,10 @@ Description:각 캐릭터별 보이스를 구성하는 방법입니다.
 version: 4.13
 parent:Engine/Audio/Dialogue
 order:1
-type:quick start
+type:how-to
 checkpoint:dialogueqs
 prereq: Engine/Blueprints/QuickStart
+skilllevel:Intermediate
 related:Engine/Audio
 related:Engine/Audio/Overview
 related:Engine/Audio/SoundCues/Editor

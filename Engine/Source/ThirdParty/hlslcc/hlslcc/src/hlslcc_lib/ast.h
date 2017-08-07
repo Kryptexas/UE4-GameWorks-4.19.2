@@ -536,6 +536,14 @@ public:
 		/* empty */
 	}
 
+	/** Construct a type specifier from a type name with an internal sampler type. */
+	ast_type_specifier(const char *name, ast_struct_specifier* inner_type)
+		: type_name(name), inner_type(nullptr), structure(NULL), InnerStructure(inner_type), texture_ms_num_samples(1), patch_size(0),
+		is_array(false), is_unsized_array(0), array_size(NULL),
+		is_precision_statement(false), precision(ast_precision_none)
+	{
+		/* empty */
+	}
 
 	/** Construct a type specifier from a structure definition */
 	ast_type_specifier(ast_struct_specifier *s)
@@ -557,6 +565,9 @@ public:
 	const char *type_name;
 	const char *inner_type;
 	ast_struct_specifier *structure;
+
+	// For [RW]StructuredBuffer<>
+	ast_struct_specifier* InnerStructure = nullptr;
 
 	int texture_ms_num_samples;
 

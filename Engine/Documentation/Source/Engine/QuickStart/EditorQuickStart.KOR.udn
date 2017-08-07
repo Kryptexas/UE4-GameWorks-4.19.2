@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3367473
 Availability:Public
 Title: 레벨 디자이너 퀵스타트 가이드
 Crumbs: %ROOT%, GettingStarted
@@ -10,6 +10,7 @@ Version: 4.9
 parent:Engine/Editor
 order:1
 checkpoint: editorqs
+type:quick start
 
 [VAR:Topic]
 [OBJECT:Topic]

@@ -23,7 +23,7 @@
 #if defined __cplusplus
 extern "C" {
 #endif
-typedef uintptr_t sock_t;
+typedef int sock_t;
 #elif !defined(_WIN32)
 typedef int sock_t;
 #else

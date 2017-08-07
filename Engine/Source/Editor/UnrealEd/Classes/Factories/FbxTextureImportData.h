@@ -6,23 +6,8 @@
 #include "UObject/ObjectMacros.h"
 #include "Misc/StringAssetReference.h"
 #include "Factories/FbxAssetImportData.h"
+#include "MaterialImportHelpers.h"
 #include "FbxTextureImportData.generated.h"
-
-UENUM()
-namespace EMaterialSearchLocation
-{
-	enum Type
-	{
-		/** Search for matching material in local import folder only. */
-		Local,
-		/** Search for matching material recursively from parent folder. */
-		UnderParent,
-		/** Search for matching material recursively from root folder. */
-		UnderRoot,
-		/** Search for matching material in all assets folders. */
-		AllAssets
-	};
-}
 
 /**
  * Import data and options used when importing any mesh from FBX
@@ -38,7 +23,7 @@ class UNREALED_API UFbxTextureImportData : public UFbxAssetImportData
 
 	/** Specify where we should search for matching materials when importing */
 	UPROPERTY(EditAnywhere, config, Category = ImportSettings, meta = (DisplayName="Search Location", OBJRestrict = "true", ImportType = "Mesh"))
-	TEnumAsByte<EMaterialSearchLocation::Type> MaterialSearchLocation;
+	EMaterialSearchLocation MaterialSearchLocation;
 
 	/** Base material to instance from when importing materials. */
 	UPROPERTY(EditAnywhere, config, Category = Material, meta = (ImportType = "Mesh", AllowedClasses = "MaterialInterface"))

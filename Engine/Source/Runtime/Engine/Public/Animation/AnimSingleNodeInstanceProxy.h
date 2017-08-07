@@ -16,7 +16,7 @@ struct FAnimSingleNodeInstanceProxy;
  * Local anim node for extensible processing. 
  * Cant be used outside of this context as it has no graph node counterpart 
  */
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ENGINE_API FAnimNode_SingleNode : public FAnimNode_Base
 {
 	friend struct FAnimSingleNodeInstanceProxy;
@@ -30,8 +30,8 @@ struct ENGINE_API FAnimNode_SingleNode : public FAnimNode_Base
 	FName ActiveMontageSlot;
 
 	// FAnimNode_Base interface
-	virtual void Evaluate(FPoseContext& Output) override;
-	virtual void Update(const FAnimationUpdateContext& Context) override;
+	virtual void Evaluate_AnyThread(FPoseContext& Output) override;
+	virtual void Update_AnyThread(const FAnimationUpdateContext& Context) override;
 	// End of FAnimNode_Base interface
 
 private:

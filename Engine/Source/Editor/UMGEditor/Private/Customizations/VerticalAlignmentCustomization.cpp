@@ -105,7 +105,7 @@ void FVerticalAlignmentCustomization::HandleCheckStateChanged(ECheckBoxState InC
 ECheckBoxState FVerticalAlignmentCustomization::GetCheckState(TSharedRef<IPropertyHandle> PropertyHandle, EVerticalAlignment ForAlignment) const
 {
 	uint8 Value;
-	if ( PropertyHandle->GetValue(Value) )
+	if ( PropertyHandle->GetValue(Value) == FPropertyAccess::Result::Success)
 	{
 		return Value == ForAlignment ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}

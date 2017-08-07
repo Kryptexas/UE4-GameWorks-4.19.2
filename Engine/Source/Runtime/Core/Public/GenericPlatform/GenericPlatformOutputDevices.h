@@ -30,4 +30,7 @@ struct CORE_API FGenericPlatformOutputDevices
 
 	static FOutputDeviceError*			GetError();
 	static FFeedbackContext*			GetWarn();
+
+protected:
+	static TCHAR CachedAbsoluteFilename[1024];
 };

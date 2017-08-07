@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3481084
 Availability:Public
 Title:프로퍼티 매트릭스
 Crumbs:%ROOT%, Engine, Engine/UI
@@ -45,7 +45,33 @@ Version: 4.9
 [/VAR]
 
 [REGION:fullwidth]
-![](property_matrix.png)
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](PropertyMatrix_Windows.png)
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](PropertyMatrix_Mac.png)
+	[/PARAM]
+[/OBJECT]
 [/REGION]
 
 [EXCERPT:Intro]

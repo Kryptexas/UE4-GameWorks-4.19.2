@@ -1,46 +1,39 @@
-﻿INTSourceChangelist:3209790
-Availability:Public
-Title:リターゲット マネージャ
+﻿INTSourceChangelist:3484694
+Availability:Docs
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
+Title:リターゲット マネージャ
 Description:スケルトン エディタ内のリターゲット マネージャ オプションの内容について説明します。
-version:4.14
-related:Engine\Animation\AnimationRetargeting
-related:Engine/Animation/Skeleton
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Animation/Persona/AssetBrowser:title%](Engine/Animation/animation_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Animation/Persona/BasePoseManager:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Animation/Persona/BasePoseManager:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Animation/Persona/BasePoseManager]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-**スケルトン エディタ** 内の **リターゲット マネージャ** では、リターゲット ソースの管理、リグの設定、同じ [スケルトン](Engine/Animation/Skeleton) アセットを共有しないキャラクターの [アニメーションのリターゲット](Engine\Animation\AnimHowTo\Retargeting) で使用するためのリターゲットのベース ポーズを定義します。スケルトン エディタのツールバーからリターゲット マネージャを開くことができます。 
+Type:Overview
+SkillLevel: intermediate
+Version:4.16
+Parent:Engine/Animation/Persona
+Order:1
+Tags:Animation
+Tags:Skeleton
+Tags:Retargeting
+topic-image:RetargetTopic.png
+Related:Engine\Animation\AnimationRetargeting
+Related:Engine/Animation/Skeleton
+Related:Engine/Animation/Persona/Modes/Skeleton
+Related:Engine/Animation/AnimPose
+Related:Engine/Animation/Sequences
 
 [TOC(start:2 end:2)]
 
+**スケルトン エディタ** 内の **リターゲット マネージャ** では、リターゲット ソースの管理、リグの設定、[アニメーションのリターゲット](Engine\Animation\AnimHowTo\Retargeting) で使用するためのリターゲットのベース ポーズを定義します。
 
 ## リターゲット ソースの管理
 
-リターゲットではスケルトン アセットを使用し、そのスケルトンに対して作成されたスケルタルメッシュによって定義されたオリジナルの比率を持ちます。そのため、ほとんどの場合、一方向のリターゲットはスムーズに機能します。ただし、その変更版のためだけに特別なアニメーションをビルドする場合がよくあります。 
+リターゲットでは[Skeleton](Engine/Animation/Skeleton) アセットを使用し、そのスケルトンに対して作成されたスケルタルメッシュによって定義されたオリジナルの比率を持ちます。そのため、ほとんどの場合、一方向のリターゲットはスムーズに機能します。 
+ただし、その変更版のためだけに特別なアニメーションをビルドする場合がよくあります。 
 例えば、同じスケルトン アセットを共有する複数のキャラクターがあるとします (ベース キャラクター、背の低いキャラクター、背の高いキャラクターなど)。ここでは、背の高いキャラクターに対して特別なアニメーションを作成したとします。
 
-新規に作成したこの「背が高い版限定」アニメーションをインポートする場合でも、ベースとなるキャラクターから作成された元のものと同じ Skeleton アセットを使用する必要があります。これにより、新規アニメーションの比率に歪みが生じます。 
-この解決策としては、**[Retarget Manager]** 内の **[Manage Retarget Source (リターゲットのソース管理)]** オプションを使います。これにより、アニメーション シーケンスをそのためにデザインした実際のスケルタル メッシュに関連付けることができます。こうすることで、特別なアニメーションのリターゲットで発生する問題が解消されます。
+新規に作成したこの背が高い版限定アニメーションをインポートする場合でも、ベースとなるキャラクターから作成された元のものと同じ Skeleton アセットを使用する必要があります。 
+これにより、新規アニメーションの比率に歪みが生じます。 
+この解決策としては、**[Retarget Manager]** 内の **[Manage Retarget Source (リターゲットのソース管理)]** オプションを使います。これにより、アニメーション シーケンスをそのためにデザインした実際のスケルタル メッシュに関連付けることができます。 
+こうすることで、特別なアニメーションのリターゲットで発生する問題が解消されます。
 
-**[Manage Retarget Source]** は、比率を指定するために使うスケルタル メッシュのリストだと考えてみてください。リターゲットしたスケルタル メッシュに特別なアニメーションが必要な場合は、そのメッシュがリターゲット ソースとしてリスト化されていることを確認する必要があります。以下はその手順です。 
+### リターゲット ソースを追加する
 
 1. **スケルトン エディタ** 内の **ツールバー** から **[Retarget Source Manager]** ボタンをクリックします。 
 
@@ -50,7 +43,7 @@ related:Engine/Animation/Skeleton
 
 	![](AddSource.png)
 
-1. 特別なアニメーションを作成したスケルタル メッシュを選びます。
+1. 特別なアニメーションを作成した **スケルタル メッシュ** を選びます。
 
 	![](SelectSkeletalMesh.png)
 
@@ -58,7 +51,7 @@ related:Engine/Animation/Skeleton
 
 	![](Created.png)
 
-1. 特定のスケルタルメッシュ用の特別なアニメーション シーケンスを開きます。 
+1. ご自分の特定の **スケルタルメッシュ** 用の特別な **アニメーション シーケンス** を開きます。 
 
 1. **[Asset Details (アセットの詳細)]** パネルで、 **[アニメーション]** カテゴリ、そして **[Retarget Source]** プロパティの順に見て、ドロップダウン メニューからスケルタルメッシュを選択します。
 
@@ -69,11 +62,12 @@ related:Engine/Animation/Skeleton
 
 ## リグのセットアップ
 
+Retarget Manager の真ん中のセクションでは、スケルトンに **リグ** を割り当ててアニメーション データを同じリグを使う別のスケルトンに渡すことができます。 
+
 ![](SetUpRig.png)
 
-Retarget Manager の真ん中のセクションでは、スケルトンに **リグ** を割り当ててアニメーション データを同じリグを使う別のスケルトンに渡すことができます。 
 このプロセスは異なるスケルトン アセットを使うキャラクターのアニメーションのリターゲットを行うために必要です。 
-**[Select Rig]** ドロップダウン オプションから使用するリグを選択することができます。このオプションにある **Humanoid** はほとんどのキャラクターで選択できます (エンジンの将来のアップデートでは、リグ作成機能を含む可能性があります)。 
+**[Select Rig]** ドロップダウン オプションから使用するリグを選択することができます。このオプションにある **Humanoid** はほとんどのキャラクターで選択できます。 
 
 ![](HumanoidRig.png)
 
@@ -106,14 +100,32 @@ Humanoid Rig を割り当てたら、リグのノードと同じ (または類�
 上の図ではショットガンを持っているキャラクターの横にターゲット アニメーションがあります。しかし、右側の新しいキャラクターにアニメーションをリターゲットする場合、(この 2 つは異なるベース ポーズを使用しているため) アームの位置決めが正しくありません。 
 これは **Retarget Manager** 内でベース ポーズをリターゲットすることで修正することができます。こうすることで、キャラクターの通常のベース ポーズを使用するのではなく、リターゲットしたベースポーズをアニメーションのリターゲット目的で使用することができます。 
 
-キャラクターのボーンを選択し回転させて (この場合、左右の肩)、キャラクターを A-Pose にして **Save Pose** をクリックすることができます。 
+キャラクターのボーンを選択し回転させて (この場合、左右の肩)、キャラクターを A-Pose にして **Modify Pose** をクリックします。 
 
 ![](RetargetedBasePose.png)
 
-アニメーションのリターゲットに進むと、リターゲットされたベースポーズが更新されているのがわかります。 
+コンテキスト メニューで **[Use Current Pose (現在のポーズを使用)]** を選択します。 
+
+![](UseCurrentPose.png)
+
+これで、定義したポーズを Retargeted Base Pose として設定し、アニメーションのリターゲットを行う場合に使用するようにします。 
+
+アニメーションのリターゲットに進むと、更新された Retargeted Base Pose になっているのがわかります。 
 
 ![](NewBasePose.png)(w:840)
 
-さらに多くの類似のベース ポーズを持つスケルトンのアニメーションをリターゲットすると、リターゲットしたアニメーションの結果の見た目がよくなります。 
+さらに多くの類似のベース ポーズを持つスケルトンのアニメーションをリターゲットすると、結果の見た目がよくなります。 
 
 ![](HoldingShotGun.png)
+
+### Pose アセットから Retarget Base Pose をインポートする
+
+**Modify** コンテキスト メニューから、Retargeted Base Pose として使うアニメーションの [Pose アセット](Engine/Animation/AnimPose) のインポートを選択することもできます。 
+
+![](ImportPose.png)
+
+上の画像では、どの Pose アセットを使用するかを選択すると (1)、利用可能なポーズが選択ドロップダウン メニューに表示されるようになります (2)。 
+使用する Pose アセットを選んだ後、**Import** ボタンをクリックすると (3)、選択したポーズを Retargeted Base Pose として使うようにビューポートでメッシュが更新されます。 
+以下では、デフォルト ポーズと、Pose アセット内のポーズから選択された Retargeted Base Pose が表示されています。 
+
+![](DefaultPose.png)(w:540)![](NewRetargetPose.png)(w:540)

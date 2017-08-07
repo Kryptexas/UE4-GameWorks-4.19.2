@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:3264165
+﻿INTSourceChangelist:3467293
 availability:Public
-title:Render Targets
+title:レンダー ターゲット
 description:アンリアル エンジン 4 でのレンダー ターゲットの使用方法
 crumbs:%ROOT%, Engine, Engine/Rendering
 version:4.13
@@ -9,6 +9,7 @@ parent:Engine/Rendering
 order:7
 Navigation:topic
 tags:Render Targets
+topic-image:RenderTargets_topic.png
 
 ![](BlueprintRenderTarget.png)
 

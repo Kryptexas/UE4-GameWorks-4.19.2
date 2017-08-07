@@ -35,6 +35,7 @@ void FAnimGroupInstance::TestTickRecordForLeadership(EAnimGroupRole::Type Member
 		break;
 	default:
 	case EAnimGroupRole::AlwaysFollower:
+	case EAnimGroupRole::TransitionFollower:
 		// Never set the leader index; the actual tick code will handle the case of no leader by using the first element in the array
 		break;
 	}
@@ -299,7 +300,7 @@ bool UAnimationAsset::ReplaceSkeleton(USkeleton* NewSkeleton, bool bConvertSpace
 			}
 		}
 
-		SetSkeleton(NewSkeleton);
+		RemapTracksToNewSkeleton(NewSkeleton, bConvertSpaces);
 
 		PostEditChange();
 		MarkPackageDirty();

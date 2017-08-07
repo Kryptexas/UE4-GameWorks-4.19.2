@@ -38,7 +38,7 @@ static FWidgetStyle NullStyle;
 
 FPaintContext::FPaintContext()
 	: AllottedGeometry(NullGeometry)
-	, MyClippingRect(NullRect)
+	, MyCullingRect(NullRect)
 	, OutDrawElements(NullElementList)
 	, LayerId(0)
 	, WidgetStyle(NullStyle)
@@ -134,15 +134,18 @@ void UUserWidget::TemplateInitInner()
 	{
 		for ( UWidgetAnimation* Animation : WidgetClass->Animations )
 		{
-			UWidgetAnimation* Anim = DuplicateObject<UWidgetAnimation>(Animation, this);
+			//UWidgetAnimation* DuplicatedAnimation = NewObject<UWidgetAnimation>(this, Animation->GetFName());
+			//DuplicatedAnimation->MovieScene = Animation->MovieScene;
+			//DuplicatedAnimation->AnimationBindings = Animation->AnimationBindings;
+			UWidgetAnimation* DuplicatedAnimation = DuplicateObject<UWidgetAnimation>(Animation, this);
 
-			if ( Anim->GetMovieScene() )
+			if ( DuplicatedAnimation->GetMovieScene() )
 			{
 				// Find property with the same name as the template and assign the new widget to it.
-				UObjectPropertyBase* Prop = FindField<UObjectPropertyBase>(WidgetClass, Anim->GetMovieScene()->GetFName());
+				UObjectPropertyBase* Prop = FindField<UObjectPropertyBase>(WidgetClass, DuplicatedAnimation->GetMovieScene()->GetFName());
 				if ( Prop )
 				{
-					Prop->SetObjectPropertyValue_InContainer(this, Anim);
+					Prop->SetObjectPropertyValue_InContainer(this, DuplicatedAnimation);
 				}
 			}
 		}
@@ -456,8 +459,8 @@ void UUserWidget::SynchronizeProperties()
 	TSharedPtr<SObjectWidget> SafeGCWidget = MyGCWidget.Pin();
 	if ( SafeGCWidget.IsValid() )
 	{
-		TAttribute<FLinearColor> ColorBinding = OPTIONAL_BINDING(FLinearColor, ColorAndOpacity);
-		TAttribute<FSlateColor> ForegroundColorBinding = OPTIONAL_BINDING(FSlateColor, ForegroundColor);
+		TAttribute<FLinearColor> ColorBinding = PROPERTY_BINDING(FLinearColor, ColorAndOpacity);
+		TAttribute<FSlateColor> ForegroundColorBinding = PROPERTY_BINDING(FSlateColor, ForegroundColor);
 
 		SafeGCWidget->SetColorAndOpacity(ColorBinding);
 		SafeGCWidget->SetForegroundColor(ForegroundColorBinding);
@@ -546,11 +549,17 @@ UUMGSequencePlayer* UUserWidget::GetOrAddPlayer(UWidgetAnimation* InAnimation)
 	if (InAnimation)
 	{
 		// @todo UMG sequencer - Restart animations which have had Play called on them?
-		UUMGSequencePlayer** FoundPlayer = ActiveSequencePlayers.FindByPredicate(
-			[&](const UUMGSequencePlayer* Player)
+		UUMGSequencePlayer** FoundPlayer = nullptr;
+		for ( UUMGSequencePlayer * Player : ActiveSequencePlayers )
 		{
-			return Player->GetAnimation() == InAnimation;
-		});
+			// We need to make sure we haven't stopped the animation, otherwise it'll get cancelled on the next frame.
+			if (Player->GetAnimation() == InAnimation
+			 && !StoppedSequencePlayers.Contains(Player))
+			{
+				FoundPlayer = &Player;
+				break;
+			}
+		}
 
 		if (!FoundPlayer)
 		{
@@ -721,6 +730,21 @@ void UUserWidget::ReverseAnimation(const UWidgetAnimation* InAnimation)
 			(*FoundPlayer)->Reverse();
 		}
 	}
+}
+
+bool UUserWidget::IsAnimationPlayingForward(const UWidgetAnimation* InAnimation)
+{
+	if (InAnimation)
+	{
+		UUMGSequencePlayer** FoundPlayer = ActiveSequencePlayers.FindByPredicate([&](const UUMGSequencePlayer* Player) { return Player->GetAnimation() == InAnimation; });
+
+		if (FoundPlayer)
+		{
+			return (*FoundPlayer)->IsPlayingForward();
+		}
+	}
+
+	return true;
 }
 
 void UUserWidget::OnAnimationFinishedPlaying(UUMGSequencePlayer& Player)
@@ -1460,7 +1484,33 @@ void UUserWidget::NativeOnFocusLost( const FFocusEvent& InFocusEvent )
 
 void UUserWidget::NativeOnFocusChanging(const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath, const FFocusEvent& InFocusEvent)
 {
-	// No Blueprint Support At This Time
+	TSharedPtr<SObjectWidget> SafeGCWidget = MyGCWidget.Pin();
+	if ( SafeGCWidget.IsValid() )
+	{
+		const bool bDecendantNewlyFocused = NewWidgetPath.ContainsWidget(SafeGCWidget.ToSharedRef());
+		if ( bDecendantNewlyFocused )
+		{
+			const bool bDecendantPreviouslyFocused = PreviousFocusPath.ContainsWidget(SafeGCWidget.ToSharedRef());
+			if ( !bDecendantPreviouslyFocused )
+			{
+				NativeOnAddedToFocusPath( InFocusEvent );
+			}
+		}
+		else
+		{
+			NativeOnRemovedFromFocusPath( InFocusEvent );
+		}
+	}
+}
+
+void UUserWidget::NativeOnAddedToFocusPath(const FFocusEvent& InFocusEvent)
+{
+	OnAddedToFocusPath(InFocusEvent);
+}
+
+void UUserWidget::NativeOnRemovedFromFocusPath(const FFocusEvent& InFocusEvent)
+{
+	OnRemovedFromFocusPath(InFocusEvent);
 }
 
 FNavigationReply UUserWidget::NativeOnNavigation(const FGeometry& MyGeometry, const FNavigationEvent& InNavigationEvent, const FNavigationReply& InDefaultReply)
@@ -1595,12 +1645,17 @@ FCursorReply UUserWidget::NativeOnCursorQuery( const FGeometry& InGeometry, cons
 	return FCursorReply::Unhandled();
 }
 
+void UUserWidget::NativeOnMouseCaptureLost()
+{
+	OnMouseCaptureLost();
+}
+
 bool UUserWidget::ShouldSerializeWidgetTree(const ITargetPlatform* TargetPlatform) const
 {
 	if ( UWidgetBlueprintGeneratedClass* BGClass = Cast<UWidgetBlueprintGeneratedClass>(GetClass()) )
 	{
 		// Non-templateable user widgets can not preserve their hierarchy.
-		if ( !BGClass->CanTemplate() )
+		if ( !BGClass->HasTemplate() )
 		{
 			return false;
 		}
@@ -1723,7 +1778,7 @@ void UUserWidget::Serialize(FArchive& Ar)
 UUserWidget* UUserWidget::NewWidgetObject(UObject* Outer, UClass* UserWidgetClass, FName WidgetName, EObjectFlags Flags)
 {
 	UWidgetBlueprintGeneratedClass* WBGC = Cast<UWidgetBlueprintGeneratedClass>(UserWidgetClass);
-	if ( WBGC && WBGC->CanTemplate() )
+	if ( WBGC && WBGC->HasTemplate() )
 	{
 		if ( UUserWidget* Template = WBGC->GetTemplate() )
 		{
@@ -1736,11 +1791,19 @@ UUserWidget* UUserWidget::NewWidgetObject(UObject* Outer, UClass* UserWidgetClas
 
 			return NewUserWidget;
 		}
-	}
-
+		else
+		{
 #if !WITH_EDITOR && (UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT)
-	UE_LOG(LogUMG, Warning, TEXT("Widget Class %s - Using Slow CreateWidget Path."), *UserWidgetClass->GetName());
+			UE_LOG(LogUMG, Error, TEXT("Widget Class %s - Using Slow CreateWidget path because no template found."), *UserWidgetClass->GetName());
 #endif
+		}
+	}
+	else
+	{
+#if !WITH_EDITOR && (UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT)
+		UE_LOG(LogUMG, Warning, TEXT("Widget Class %s - Using Slow CreateWidget path because this class could not be templated."), *UserWidgetClass->GetName());
+#endif
+	}
 
 	return NewObject<UUserWidget>(Outer, UserWidgetClass, WidgetName, Flags);
 }

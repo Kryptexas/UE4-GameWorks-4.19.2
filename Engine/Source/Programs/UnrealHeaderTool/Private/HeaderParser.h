@@ -410,9 +410,9 @@ protected:
 
 protected:
 	// Constructor.
-	FHeaderParser(FFeedbackContext* InWarn, FUHTMakefile& InUHTMakefile);
+	FHeaderParser(FFeedbackContext* InWarn, FUHTMakefile& InUHTMakefile, const FManifestModule& InModule);
 
-	~FHeaderParser()
+	virtual ~FHeaderParser()
 	{
 		if ( FScriptLocation::Compiler == this )
 		{
@@ -690,13 +690,6 @@ protected:
 	 */
 	void FixupDelegateProperties(FClasses& AllClasses, UStruct* ValidationScope, FScope& Scope, TMap<FName, UFunction*>& DelegateCache);
 
-	/**
-	 * Verifies that all specified class's UProperties with CFG_RepNotify have valid callback targets with no parameters nor return values
-	 *
-	 * @param	TargetClass			class to verify rep notify properties for
-	 */
-	void VerifyRepNotifyCallbacks( UClass* TargetClass );
-
 	// Retry functions.
 	void InitScriptLocation( FScriptLocation& Retry );
 	void ReturnToLocation( const FScriptLocation& Retry, bool Binary=1, bool Text=1 );
@@ -720,6 +713,9 @@ private:
 	// Module currently parsed by UHT.
 	const FManifestModule* CurrentlyParsedModule;
 
+	// True if the module currently being parsed is part of the engine, as opposed to being part of a game
+	bool bIsCurrentModulePartOfEngine;
+
 	/**
 	 * Tries to match constructor parameter list. Assumes that constructor
 	 * name is already matched.
@@ -735,6 +731,18 @@ private:
 
 	// Parses possible version declaration in generated code, e.g. GENERATED_BODY(<some_version>).
 	void CompileVersionDeclaration(UStruct* Struct);
+
+	// Verifies that all specified class's UProperties with function associations have valid targets
+	void VerifyPropertyMarkups( UClass* TargetClass );
+
+	// Verifies the target function meets the criteria for a blueprint property getter
+	void VerifyBlueprintPropertyGetter(UProperty* Property, UFunction* TargetFunction);
+
+	// Verifies the target function meets the criteria for a blueprint property setter
+	void VerifyBlueprintPropertySetter(UProperty* Property, UFunction* TargetFunction);
+
+	// Verifies the target function meets the criteria for a replication notify callback
+	void VerifyRepNotifyCallback(UProperty* Property, UFunction* TargetFunction);
 };
 
 /////////////////////////////////////////////////////

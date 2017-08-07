@@ -14,7 +14,7 @@ class FMaterialCompiler;
 struct FPropertyChangedEvent;
 
 /** Supported input types */
-UENUM()
+UENUM(BlueprintType)
 enum EFunctionInputType
 {
 	FunctionInput_Scalar,
@@ -38,7 +38,7 @@ class UMaterialExpressionFunctionInput : public UMaterialExpression
 	FExpressionInput Preview;
 
 	/** The input's name, which will be drawn on the connector in function call expressions that use this function. */
-	UPROPERTY(EditAnywhere, Category=MaterialExpressionFunctionInput)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MaterialExpressionFunctionInput)
 	FString InputName;
 
 	/** The input's description, which will be used as a tooltip on the connector in function call expressions that use this function. */
@@ -53,19 +53,19 @@ class UMaterialExpressionFunctionInput : public UMaterialExpression
 	 * Type of this input.  
 	 * Input code chunks will be cast to this type, and a compiler error will be emitted if the cast fails.
 	 */
-	UPROPERTY(EditAnywhere, Category=MaterialExpressionFunctionInput)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MaterialExpressionFunctionInput)
 	TEnumAsByte<enum EFunctionInputType> InputType;
 
 	/** Value used to preview this input when editing the material function. */
-	UPROPERTY(EditAnywhere, Category=MaterialExpressionFunctionInput, meta=(OverridingInputProperty = "Preview"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MaterialExpressionFunctionInput, meta=(OverridingInputProperty = "Preview"))
 	FVector4 PreviewValue;
 
 	/** Whether to use the preview value or texture as the default value for this input. */
-	UPROPERTY(EditAnywhere, Category=MaterialExpressionFunctionInput)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MaterialExpressionFunctionInput)
 	uint32 bUsePreviewValueAsDefault:1;
 
 	/** Controls where the input is displayed relative to the other inputs. */
-	UPROPERTY(EditAnywhere, Category=MaterialExpressionFunctionInput)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MaterialExpressionFunctionInput)
 	int32 SortPriority;
 
 	/** 

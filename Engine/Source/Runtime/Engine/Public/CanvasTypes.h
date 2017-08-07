@@ -398,6 +398,12 @@ public:
 	ENGINE_API void SetRenderTargetRect( const FIntRect& ViewRect );
 
 	/**
+	 * The clipping rectangle used when rendering this canvas
+	 * @param ScissorRect The rect to use
+	 */
+	ENGINE_API void SetRenderTargetScissorRect( const FIntRect& ScissorRect );
+
+	/**
 	* Marks render target as dirty so that it will be resolved to texture
 	*/
 	void SetRenderTargetDirty(bool bDirty) 
@@ -574,6 +580,8 @@ private:
 	TArray<FTransformEntry> TransformStack;	
 	/** View rect for the render target */
 	FIntRect ViewRect;
+	/** Scissor rect for the render target */
+	FIntRect ScissorRect;
 	/** Current render target used by the canvas */
 	FRenderTarget* RenderTarget;
 	/** Current hit proxy consumer */

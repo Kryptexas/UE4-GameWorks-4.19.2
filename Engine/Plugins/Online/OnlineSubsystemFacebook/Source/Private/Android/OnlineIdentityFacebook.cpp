@@ -165,7 +165,7 @@ void FOnlineIdentityFacebook::OnLoginAttemptComplete(int32 LocalUserNum, const F
 
 bool FOnlineIdentityFacebook::Logout(int32 LocalUserNum)
 {
-	bool bTriggeredLogin = false;
+	bool bTriggeredLogout = false;
 	bool bPendingOp = LoginCompletionDelegate.IsBound() || LogoutCompletionDelegate.IsBound();
 	if (!bPendingOp)
 	{
@@ -197,8 +197,8 @@ bool FOnlineIdentityFacebook::Logout(int32 LocalUserNum)
 			});
 
 			extern bool AndroidThunkCpp_Facebook_Logout();
-			bTriggeredLogin = AndroidThunkCpp_Facebook_Logout();
-			if (!ensure(bTriggeredLogin))
+			bTriggeredLogout = AndroidThunkCpp_Facebook_Logout();
+			if (!ensure(bTriggeredLogout))
 			{
 				// Only if JEnv is wrong
 				OnLogoutComplete(EFacebookLoginResponse::RESPONSE_ERROR);
@@ -214,7 +214,7 @@ bool FOnlineIdentityFacebook::Logout(int32 LocalUserNum)
 		UE_LOG_ONLINE(Warning, TEXT("Operation already in progress"));
 	}
 
-	if (!bTriggeredLogin)
+	if (!bTriggeredLogout)
 	{
 		FacebookSubsystem->ExecuteNextTick([this, LocalUserNum]()
 		{
@@ -222,7 +222,7 @@ bool FOnlineIdentityFacebook::Logout(int32 LocalUserNum)
 		});
 	}
 
-	return bTriggeredLogin;
+	return bTriggeredLogout;
 }
 
 void FOnlineIdentityFacebook::OnLoginComplete(EFacebookLoginResponse InResponseCode, const FString& InAccessToken)
@@ -343,7 +343,7 @@ bool AndroidThunkCpp_Facebook_Logout()
 JNI_METHOD void Java_com_epicgames_ue4_FacebookLogin_nativeLogoutComplete(JNIEnv* jenv, jobject thiz, jsize responseCode)
 {
 	EFacebookLoginResponse LogoutResponse = (EFacebookLoginResponse)responseCode;
-	UE_LOG_ONLINE(Verbose, TEXT("nativeLogoutComplete %s"), ToString(LogoutResponse));
+	UE_LOG_ONLINE(VeryVerbose, TEXT("nativeLogoutComplete %s"), ToString(LogoutResponse));
 
 	DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.ProcessFacebookLogout"), STAT_FSimpleDelegateGraphTask_ProcessFacebookLogout, STATGROUP_TaskGraphTasks);
 	FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(

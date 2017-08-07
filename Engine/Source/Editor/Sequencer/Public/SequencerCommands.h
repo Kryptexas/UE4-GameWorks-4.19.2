@@ -58,6 +58,12 @@ public:
 	/** Step to previous camera key */
 	TSharedPtr< FUICommandInfo > StepToPreviousCameraKey;
 
+	/** Step to next shot */
+	TSharedPtr< FUICommandInfo > StepToNextShot;
+
+	/** Step to previous shot */
+	TSharedPtr< FUICommandInfo > StepToPreviousShot;
+
 	/** Set start playback range */
 	TSharedPtr< FUICommandInfo > SetStartPlaybackRange;
 
@@ -88,7 +94,10 @@ public:
 	/** Forces playback both in editor and at runtime to be evaluated at fixed frame intervals. */
 	TSharedPtr< FUICommandInfo > ToggleForceFixedFrameIntervalPlayback;
 
-	/** Toggle constraining the time cursor to the playback range */
+	/** Toggle constraining the time cursor to the playback range while scrubbing */
+	TSharedPtr< FUICommandInfo > ToggleKeepCursorInPlaybackRangeWhileScrubbing;
+
+	/** Toggle constraining the time cursor to the playback range during playback */
 	TSharedPtr< FUICommandInfo > ToggleKeepCursorInPlaybackRange;
 
 	/** Toggle constraining the playback range to the section bounds */
@@ -157,14 +166,29 @@ public:
 	/** Split section */
 	TSharedPtr< FUICommandInfo > SplitSection;
 
-	/** Set the auto key mode to Key All. */
-	TSharedPtr< FUICommandInfo > SetAutoKeyModeAll;
+	/** Set the auto change mode to Key. */
+	TSharedPtr< FUICommandInfo > SetAutoKey;
 
-	/** Set the auto key mode to Key Animated. */
-	TSharedPtr< FUICommandInfo > SetAutoKeyModeAnimated;
+	/** Set the auto change mode to Track. */
+	TSharedPtr< FUICommandInfo > SetAutoTrack;
 
-	/** Set the auto key mode to Key None. */
-	TSharedPtr< FUICommandInfo > SetAutoKeyModeNone;
+	/** Set the auto change mode to None. */
+	TSharedPtr< FUICommandInfo > SetAutoChangeAll;
+
+	/** Set the auto change mode to None. */
+	TSharedPtr< FUICommandInfo > SetAutoChangeNone;
+
+	/** Set allow edits to all. */
+	TSharedPtr< FUICommandInfo > AllowAllEdits;
+
+	/** Set allow edits to sequencer only. */
+	TSharedPtr< FUICommandInfo > AllowSequencerEditsOnly;
+
+	/** Set allow edits to levels only. */
+	TSharedPtr< FUICommandInfo > AllowLevelEditsOnly;
+
+	/** Turns autokey on and off. */
+	TSharedPtr< FUICommandInfo > ToggleAutoKeyEnabled;
 
 	/** Turns key all on and off. */
 	TSharedPtr< FUICommandInfo > ToggleKeyAllEnabled;

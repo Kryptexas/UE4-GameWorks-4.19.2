@@ -69,7 +69,7 @@ TSharedRef<SWidget> UVerticalBox::RebuildWidget()
 		}
 	}
 
-	return BuildDesignTimeWidget( MyVerticalBox.ToSharedRef() );
+	return MyVerticalBox.ToSharedRef();
 }
 
 #if WITH_EDITOR

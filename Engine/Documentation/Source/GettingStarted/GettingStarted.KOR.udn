@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3351664
+﻿INTSourceChangelist:3429256
 Availability:Public
 Title: UE4 시작하기
 Crumbs: %ROOT%
@@ -100,221 +100,125 @@ gettingstarted
 	[/PARAM]
 [/OBJECT]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		에디터 기본
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Shared/Glossary/P/#Glossary_project]
+## 에디터 기본
 
-		[INCLUDE:Engine/UI/LevelEditor#levels]
-	[/PARAM]
-	[PARAM:links]
-		* [](Engine/QuickStart "%Engine/QuickStart:description%")
-		* [레벨 에디터 길잡이](Engine/UI/LevelEditor "%Engine/UI/LevelEditor:description%")
-		* [](Engine/UI/LevelEditor/Toolbar "%Engine/UI/LevelEditor/Toolbar:description%")
+[INCLUDE:Shared/Glossary/P/#Glossary_project]
 
-		[REGION:gallery]
-		[REGION:normaltitle]
-		관련 비디오
-		[/REGION]
-		[VideoLink(videoid:"w4XlBKeE46E" playlistid:"PLZlv_N0_O1gasd4IcOe9Cx9wHoBB7rxFl" width:"180")]
-		[/REGION]
-	[/PARAM]
-[/OBJECT]
+[INCLUDE:Engine/UI/LevelEditor#levels]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/viewport_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		에디터 뷰포트
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/UI/LevelEditor/Viewports#intro]
-	[/PARAM]
-	[PARAM:links]
-		* [](Engine/UI/LevelEditor/Viewports/Basics "%Engine/UI/LevelEditor/Viewports/Basics:description%")
-		* [](Engine/UI/LevelEditor/Viewports/ViewportControls "%Engine/UI/LevelEditor/Viewports/ViewportControls:description%")
-	[/PARAM]
-[/OBJECT]
+%Engine/QuickStart:topic%
+%Engine/UI/LevelEditor:topic%
+%Engine/UI/LevelEditor/Toolbar:topic%
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/profile_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		에디터 모드
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Shared/Glossary/M#glossary_modes_panel]
-	[/PARAM]
-	[PARAM:links]
-		* [](Engine/UI/LevelEditor/Modes "%Engine/UI/LevelEditor/Modes:description%")
-	[/PARAM]
-[/OBJECT]
+[REGION:section]
+[REGION:normaltitle]
+관련 비디오
+[/REGION]
+[DIR(playlist_id:"PLZlv_N0_O1gasd4IcOe9Cx9wHoBB7rxFl" type:"playlist" output:"playlist")]
+[/REGION]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/levels_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		액터 & 지오메트리
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/UI/LevelEditor#actors]
-	[/PARAM]
-	[PARAM:links]
-	* [](Engine/Actors/Placement "%Engine/Actors/Placement:description%")
-	* [지오메트리 액터](Engine/Actors/Brushes "%Engine/Actors/Brushes:description%")
-	* [](Engine/Actors/Transform "%Engine/Actors/Transform:description%")
-
-	[REGION:gallery]
-	[REGION:normaltitle]
-	관련 비디오
-	[/REGION]
-	[VideoLink(videoid:"cl_eoVfNDKU" playlistid:"PLZlv_N0_O1gak1_FoAJVrEGiLIploeF3F" width:"180")]
-	[/REGION]
-	[/PARAM]
-[/OBJECT]
-
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/cb_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		콘텐츠 브라우저
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Shared/Glossary/C/#Glossary_Content_Browser]
-	[/PARAM]
-	[PARAM:links]
-		* [](Engine/Content/QuickStart "%Engine/Content/QuickStart:description%")
-		* [](Engine/Basics/AssetsAndPackages "%Engine/Basics/AssetsAndPackages:description%")
-		* [](Engine/Content/Browser "%Engine/Content/Browser:description%")	
-	[/PARAM]
-[/OBJECT]
-
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/light_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		라이팅
-	[/PARAM]
-	[PARAM:description]
-		씬의 라이팅은 광원 역할을 하면서 다음과 같은 빛의 특성을 결정하는 프로퍼티가 들어있는 라이트 액터를 통해 이루어집니다.
-		
-		* 라이트가 얼마나 밝은가
-		* 라이트의 색은 어떠한가
-		
-		여러가지 방식으로 빛을 내뿜는 라이트 종류도 여러가지 있습니다. 예를 들어 일반적인 전구는 모든 방향으로 빛을 내뿜습니다. 언리얼 엔진에서,
-		이러한 것은 _포인트 라이트_ 라고 합니다. 한편 투광 조명등처럼 전구 뒷부분을 불투명하게 만들어 빛의 방출을 물리적으로 제한시키는 경우도 있습니다.
-		그런 것은 _스포트 라이트_ 라고 합니다. 태양에서 오는 야외의 빛은, 태양이 정말 먼 거리에 있기 때문에, 한 지점이 아닌 한 방향에서 오는 것처럼 보입니다.
-		이러한 라이팅 유형의 시뮬레이션으로, _디렉셔널 라이트_ 가 있습니다.
-	[/PARAM]
-	[PARAM:links]
-		* [](Engine/Rendering/LightingAndShadows/QuickStart "%Engine/Rendering/LightingAndShadows/QuickStart:description%")
-		* [](Engine/Rendering/LightingAndShadows/Basics "%Engine/Rendering/LightingAndShadows/Basics:description%")
-	[/PARAM]
-[/OBJECT]
-
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/rendering_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		머티리얼 & 셰이딩
-	[/PARAM]
-	[PARAM:description]	
-
-		[INCLUDE:Shared/Glossary/M/#Glossary_Material]
-	[/PARAM]
-	[PARAM:links]
-		* [](Engine/Rendering/Materials/IntroductionToMaterials "%Engine/Rendering/Materials/IntroductionToMaterials:description%")
-
-		[REGION:gallery]
-		[REGION:normaltitle]
-		관련 비디오
-		[/REGION]
-		[VideoLink(videoid:"lngF4VVNER4" playlistid:"PLZlv_N0_O1gbQjgY0nDwZNYe_N8IcYWS-" width:"180" image:"https://img.youtube.com/vi/lngF4VVNER4/hqdefault.jpg")]
-		[/REGION]
-	[/PARAM]
-[/OBJECT]
-
-
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/blueprint_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		블루프린트 비주얼 스크립팅
-	[/PARAM]
-	[PARAM:description]	
-		[INCLUDE:Engine/Blueprints#intro]	
-	[/PARAM]
-	[PARAM:links]
-		* [](Engine/Blueprints/GettingStarted "%Engine/Blueprints/GettingStarted:description%")
-
-		[REGION:gallery]
-		[REGION:normaltitle]
-		관련 비디오
-		[/REGION]
-		[VideoLink(videoid:"EFXMW_UEDco" playlistid:"PLZlv_N0_O1gY35ezlSQn1sWOGfh4C7ewO" width:"180")]
-		[/REGION]
-	[/PARAM]
-[/OBJECT]
-
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/prog_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		프로그래밍
-	[/PARAM]
-	[PARAM:description]
-		게임플레이 구현과 엔진 변경은 어느 게임 프로젝트에 있어서도 핵심적인 부분입니다. 언리얼 엔진은 게임플레이 구현시
-		코드를 통한 방식 말고도 블루프린트를 사용한 비주얼 방식으로도 가능하며, 심지어 엔진이나 에디터를 변경 및 
-		확장시키는 플러그인을 제작하여 디자이너나 아티스트가 마음대로 커스텀 함수성을 
-		추가할 수도 있습니다.
-	[/PARAM]
-	[PARAM:links]
-		* [](Programming "%Programming:description%")
-		* [](Programming/Development/VisualStudioSetup "%Programming/Development/VisualStudioSetup:description%")
-		* [](Programming/QuickStart "%Programming/QuickStart:description%")
-		* [](Programming/Basics "%Programming/Basics:description%")
-		* [](Gameplay/Framework/QuickReference "%Gameplay/Framework/QuickReference:description%")
+## 에디터 뷰포트
 	
-		[REGION:gallery]
-		[REGION:normaltitle]
-		관련 비디오
-		[/REGION]
-		[VideoLink(videoid:"mSRov77hNR4" playlistid:"PLZlv_N0_O1gYup-gvJtMsgJqnEB_dGiM4" width:"180")]
-		[/REGION]
-	[/PARAM]
-[/OBJECT]
+[INCLUDE:Engine/UI/LevelEditor/Viewports#intro]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/gameplay_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		게임 플레이 테스트
-	[/PARAM]
-	[PARAM:description]
-		언리얼 엔진 내장 기능을 사용하여 레벨과 게임플레이를 테스트하고 버그를 잡습니다. 
-  **에디터에서 플레이**	(PIE) 모드로 에디터에서 바로 실시간 피드백을 구하고, 
-  **에디터에서 시뮬레이트** (SIE) 모드로는 실행중인 게임에서도 오브젝트를 확인하고 수정할 수 있습니다.
-  이를 통해 플레이 도중에도 코드 변경, 리컴파일, 바로 적용이 가능합니다.
-	[/PARAM]
-	[PARAM:links]
-		* [](Engine/UI/LevelEditor/InEditorTesting "%Engine/UI/LevelEditor/InEditorTesting:description%")
-		* **플랫폼**
-			* [](Platforms/iOS/QuickStart "%Platforms/iOS/QuickStart:description%")	
-			* [](Platforms/Android/GettingStarted "%Platforms/Android/GettingStarted:description%")
-			* [](Platforms/Oculus/QuickStart "%Platforms/Oculus/QuickStart:description%")	
-	[/PARAM]
-[/OBJECT]
+%Engine/UI/LevelEditor/Viewports/Basics:topic%
+%Engine/UI/LevelEditor/Viewports/ViewportControls:topic%
+
+## 에디터 모드
+	
+[INCLUDE:Shared/Glossary/M#glossary_modes_panel]
+
+%Engine/UI/LevelEditor/Modes:topic%
+
+## 액터 & 지오메트리
+	
+[INCLUDE:Engine/UI/LevelEditor#actors]
+
+%Engine/Actors/Placement:topic%
+%Engine/Actors/Brushes:topic%
+%Engine/Actors/Transform:topic%
+
+[REGION:section]
+[REGION:normaltitle]
+관련 비디오
+[/REGION]
+[DIR(playlist_id:"PLZlv_N0_O1gak1_FoAJVrEGiLIploeF3F" type:"playlist" output:"playlist")]
+[/REGION]
+
+## 콘텐츠 브라우저
+	
+[INCLUDE:Shared/Glossary/C/#Glossary_Content_Browser]
+
+%Engine/Content/QuickStart:topic%
+%Engine/Basics/AssetsAndPackages:topic%
+%Engine/Content/Browser:topic%
+
+## 라이팅
+
+씬의 라이팅은 광원 역할을 하면서 다음과 같은 빛의 특성을 결정하는 프로퍼티가 들어있는 라이트 액터를 통해 이루어집니다.
+		
+* 라이트가 얼마나 밝은가
+* 라이트의 색은 어떠한가
+		
+여러가지 방식으로 빛을 내뿜는 라이트 종류도 여러가지 있습니다. 예를 들어 일반적인 전구는 모든 방향으로 빛을 내뿜습니다. 언리얼 엔진에서,
+이러한 것은 _포인트 라이트_ 라고 합니다. 한편 투광 조명등처럼 전구 뒷부분을 불투명하게 만들어 빛의 방출을 물리적으로 제한시키는 경우도 있습니다.
+그런 것은 _스포트 라이트_ 라고 합니다. 태양에서 오는 야외의 빛은, 태양이 정말 먼 거리에 있기 때문에, 한 지점이 아닌 한 방향에서 오는 것처럼 보입니다.
+이러한 라이팅 유형의 시뮬레이션으로, _디렉셔널 라이트_ 가 있습니다.
+
+%Engine/Rendering/LightingAndShadows/QuickStart:description%
+%Engine/Rendering/LightingAndShadows/Basics:description%
+
+## 머티리얼 & 셰이딩
+
+[INCLUDE:Shared/Glossary/M/#Glossary_Material]
+
+%Engine/Rendering/Materials/IntroductionToMaterials:topic%
+
+[REGION:section]
+[REGION:normaltitle]
+관련 비디오
+[/REGION]
+[DIR(playlist_id:"PLZlv_N0_O1gbQjgY0nDwZNYe_N8IcYWS-" type:"playlist" output:"playlist")]
+[/REGION]
+
+## 블루프린트 비주얼 스크립팅
+
+[INCLUDE:Engine/Blueprints#intro]	
+
+%Engine/Blueprints/GettingStarted:topic%
+
+[REGION:gallery]
+[REGION:normaltitle]
+관련 비디오
+[/REGION]
+[DIR(playlist_id:"PLZlv_N0_O1gY35ezlSQn1sWOGfh4C7ewO" type:"playlist" output:"playlist")]
+[/REGION]
+
+## 프로그래밍
+
+게임플레이 구현과 엔진 변경은 어느 게임 프로젝트에 있어서도 핵심적인 부분입니다. 언리얼 엔진은 게임플레이 구현시
+코드를 통한 방식 말고도 블루프린트를 사용한 비주얼 방식으로도 가능하며, 심지어 엔진이나 에디터를 변경 및 
+확장시키는 플러그인을 제작하여 디자이너나 아티스트가 마음대로 커스텀 함수성을 
+추가할 수도 있습니다.
+
+%Programming:topic%
+%Programming/Development/VisualStudioSetup:topic%
+%Programming/QuickStart:topic%
+%Programming/Basics:topic%
+%Gameplay/Framework/QuickReference:topic%
+	
+[REGION:gallery]
+[REGION:normaltitle]
+관련 비디오
+[/REGION]
+[DIR(playlist_id:"PLZlv_N0_O1gYup-gvJtMsgJqnEB_dGiM4" type:"playlist" output:"playlist")]
+[/REGION]
+
+## 게임 플레이 테스트
+
+언리얼 엔진 내장 기능을 사용하여 레벨과 게임플레이를 테스트하고 버그를 잡습니다. 
+**에디터에서 플레이** (PIE) 모드로 에디터에서 바로 실시간 피드백을 구하고, 
+**에디터에서 시뮬레이트** (SIE) 모드로는 실행중인 게임에서도 오브젝트를 확인하고 수정할 수 있습니다.
+이를 통해 플레이 도중에도 코드 변경, 리컴파일, 바로 적용이 가능합니다.
+
+%Engine/UI/LevelEditor/InEditorTesting:topic%

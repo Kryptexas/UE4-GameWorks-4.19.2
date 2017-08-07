@@ -7,6 +7,8 @@
 #include "DisplayNodes/SequencerDisplayNode.h"
 
 class IKeyArea;
+class SKeyAreaEditorSwitcher;
+class UMovieSceneSection;
 
 /**
  * Represents an area inside a section where keys are displayed.
@@ -27,11 +29,7 @@ public:
 	 * @param InParentTree The tree this node is in.
 	 * @param bInTopLevel If true the node is part of the section itself instead of taking up extra height in the section.
 	 */
-	FSequencerSectionKeyAreaNode(FName NodeName, const FText& InDisplayName, TSharedPtr<FSequencerDisplayNode> InParentNode, FSequencerNodeTree& InParentTree, bool bInTopLevel = false)
-		: FSequencerDisplayNode(NodeName, InParentNode, InParentTree)
-		, DisplayName(InDisplayName)
-		, bTopLevel(bInTopLevel)
-	{ }
+	FSequencerSectionKeyAreaNode(FName NodeName, const FText& InDisplayName, TSharedPtr<FSequencerDisplayNode> InParentNode, FSequencerNodeTree& InParentTree, bool bInTopLevel = false);
 
 public:
 
@@ -43,15 +41,12 @@ public:
 	void AddKeyArea(TSharedRef<IKeyArea> KeyArea);
 
 	/**
-	 * Returns a key area at the given index.
+	 * Returns a key area that corresponds to the specified section
 	 * 
-	 * @param Index	The index of the key area to get.
+	 * @param Section	The section to find a key area for
 	 * @return the key area at the index.
 	 */
-	TSharedRef<IKeyArea> GetKeyArea(uint32 Index) const
-	{
-		return KeyAreas[Index];
-	}
+	TSharedPtr<IKeyArea> GetKeyArea(UMovieSceneSection* Section) const;
 
 	/**
 	 * Returns all key area for this node
@@ -88,6 +83,9 @@ private:
 
 	/** All key areas on this node (one per section). */
 	TArray<TSharedRef<IKeyArea>> KeyAreas;
+
+	/** The outliner key editor switcher widget. */
+	TSharedPtr<SKeyAreaEditorSwitcher> KeyEditorSwitcher;
 
 	/** If true the node is part of the section itself instead of taking up extra height in the section. */
 	bool bTopLevel;

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3150518
+﻿INTSourceChangelist:3467293
 Availability: Public
 Title: iOS 게임 개발
 Crumbs:%ROOT%, Platforms
@@ -10,6 +10,7 @@ type:landing
 parent:Platforms/Mobile
 tags:Mobile
 tags:iOS
+topic-image:iOSGameDevelopment_topic.png
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]

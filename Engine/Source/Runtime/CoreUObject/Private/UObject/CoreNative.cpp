@@ -6,6 +6,8 @@
 #include "UObject/Class.h"
 #include "UObject/UnrealType.h"
 #include "Misc/PackageName.h"
+#include "Misc/RuntimeErrors.h"
+#include "UObject/Stack.h"
 
 void UClassRegisterAllCompiledInClasses();
 bool IsInAsyncLoadingThreadCoreUObjectInternal();
@@ -18,6 +20,15 @@ bool IsAsyncLoadingMultithreadedCoreUObjectInternal();
 class FCoreUObjectModule : public FDefaultModuleImpl
 {
 public:
+	static void RouteRuntimeMessageToBP(ELogVerbosity::Type Verbosity, const ANSICHAR* FileName, int32 LineNumber, const FText& Message)
+	{
+#if UE_RAISE_RUNTIME_ERRORS && !NO_LOGGING
+		check((Verbosity == ELogVerbosity::Error) || (Verbosity == ELogVerbosity::Warning));
+		FMsg::Logf_Internal(FileName, LineNumber, LogScript.GetCategoryName(), Verbosity, TEXT("%s(%d): Runtime %s: \"%s\""), ANSI_TO_TCHAR(FileName), LineNumber, (Verbosity == ELogVerbosity::Error) ? TEXT("Error") : TEXT("Warning"), *Message.ToString());
+#endif
+		FFrame::KismetExecutionMessage(*Message.ToString(), Verbosity);
+	}
+
 	virtual void StartupModule() override
 	{
 		// Register all classes that have been loaded so far. This is required for CVars to work.		
@@ -33,6 +44,11 @@ public:
 		ResumeAsyncLoading = &ResumeAsyncLoadingInternal;
 		IsAsyncLoadingMultithreaded = &IsAsyncLoadingMultithreadedCoreUObjectInternal;
 
+		// Register the script callstack callback to the runtime error logging
+#if UE_RAISE_RUNTIME_ERRORS
+		FRuntimeErrors::OnRuntimeIssueLogged.BindStatic(&FCoreUObjectModule::RouteRuntimeMessageToBP);
+#endif
+
 		// Make sure that additional content mount points can be registered after CoreUObject loads
 		FPackageName::EnsureContentPathsAreRegistered();		
 	}
@@ -45,7 +61,7 @@ IMPLEMENT_CLASS(UObject, 0);
 COREUOBJECT_API class UClass* Z_Construct_UClass_UObject();
 UClass* Z_Construct_UClass_UObject()
 {
-	static UClass* OuterClass = NULL;
+	static UClass* OuterClass = nullptr;
 	if (!OuterClass)
 	{
 		OuterClass = UObject::StaticClass();
@@ -63,8 +79,8 @@ UClass* Z_Construct_UClass_UObject()
 -----------------------------------------------------------------------------*/
 
 FObjectInstancingGraph::FObjectInstancingGraph(bool bDisableInstancing)
-	: SourceRoot(NULL)
-	, DestinationRoot(NULL)
+	: SourceRoot(nullptr)
+	, DestinationRoot(nullptr)
 	, bCreatingArchetype(false)
 	, bEnableSubobjectInstancing(!bDisableInstancing)
 	, bLoadingObject(false)
@@ -72,8 +88,8 @@ FObjectInstancingGraph::FObjectInstancingGraph(bool bDisableInstancing)
 }
 
 FObjectInstancingGraph::FObjectInstancingGraph( UObject* DestinationSubobjectRoot )
-	: SourceRoot(NULL)
-	, DestinationRoot(NULL)
+	: SourceRoot(nullptr)
+	, DestinationRoot(nullptr)
 	, bCreatingArchetype(false)
 	, bEnableSubobjectInstancing(true)
 	, bLoadingObject(false)
@@ -107,7 +123,7 @@ UObject* FObjectInstancingGraph::GetInstancedSubobject( UObject* SourceSubobject
 
 	UObject* InstancedSubobject = INVALID_OBJECT;
 
-	if ( SourceSubobject != NULL && CurrentValue != NULL )
+	if ( SourceSubobject != nullptr && CurrentValue != nullptr )
 	{
 		bool bAllowedSelfReference = bAllowSelfReference && SourceSubobject == SourceRoot;
 
@@ -127,7 +143,7 @@ UObject* FObjectInstancingGraph::GetInstancedSubobject( UObject* SourceSubobject
 		{
 			// search for the unique component instance that corresponds to this component template
 			InstancedSubobject = GetDestinationObject(SourceSubobject);
-			if ( InstancedSubobject == NULL )
+			if ( InstancedSubobject == nullptr )
 			{
 				if (bDoNotCreateNewInstance)
 				{
@@ -177,20 +193,20 @@ UObject* FObjectInstancingGraph::GetInstancedSubobject( UObject* SourceSubobject
 							// final archetype archetype will be the archetype of the template
 							UObject* FinalSubobjectArchetype = CurrentValue->GetArchetype();
 
-							// Don't seach for the existing subobjects on Blueprint-generated classes. What we'll find is a subobject
+							// Don't search for the existing subobjects on Blueprint-generated classes. What we'll find is a subobject
 							// created by the constructor which may not have all of its fields initialized to the correct value (which
 							// should be coming from a blueprint).
 							// NOTE: Since this function is called ONLY for Blueprint-generated classes, we may as well delete this 'if'.
 							if (!SubobjectOuter->GetClass()->HasAnyClassFlags(CLASS_CompiledFromBlueprint))
 							{
-								InstancedSubobject = StaticFindObjectFast(NULL, SubobjectOuter, SubobjectName);
+								InstancedSubobject = StaticFindObjectFast(nullptr, SubobjectOuter, SubobjectName);
 							}
 
 							if (InstancedSubobject && IsCreatingArchetype())
 							{
 								// since we are updating an archetype, this needs to reconstruct as that is the mechanism used to copy properties
 								// it will destroy the existing object and overwrite it
-								InstancedSubobject = NULL;
+								InstancedSubobject = nullptr;
 							}
 
 							if (!InstancedSubobject)
@@ -253,16 +269,16 @@ UObject* FObjectInstancingGraph::InstancePropertyValue( class UObject* Component
 		return NewValue; // not instancing
 	}
 
-	// if the object we're instancing the components for (Owner) has the current component's outer in its archetype chain, and its archetype has a NULL value
+	// if the object we're instancing the components for (Owner) has the current component's outer in its archetype chain, and its archetype has a nullptr value
 	// for this component property it means that the archetype didn't instance its component, so we shouldn't either.
 
-	if (ComponentTemplate == NULL && CurrentValue != NULL && (Owner && Owner->IsBasedOnArchetype(CurrentValue->GetOuter())))
+	if (ComponentTemplate == nullptr && CurrentValue != nullptr && (Owner && Owner->IsBasedOnArchetype(CurrentValue->GetOuter())))
 	{
-		NewValue = NULL;
+		NewValue = nullptr;
 	}
 	else
 	{
-		if ( ComponentTemplate == NULL )
+		if ( ComponentTemplate == nullptr )
 		{
 			// should only be here if our archetype doesn't contain this component property
 			ComponentTemplate = CurrentValue;
@@ -272,6 +288,7 @@ UObject* FObjectInstancingGraph::InstancePropertyValue( class UObject* Component
 		if ( MaybeNewValue != INVALID_OBJECT )
 		{
 			NewValue = MaybeNewValue;
+			ReplaceMap.Add(CurrentValue, NewValue);
 		}
 	}
 	return NewValue;
@@ -307,7 +324,7 @@ void FObjectInstancingGraph::AddNewInstance(UObject* ObjectInstance, UObject* In
 
 void FObjectInstancingGraph::RetrieveObjectInstances( UObject* SearchOuter, TArray<UObject*>& out_Objects )
 {
-	if ( HasDestinationRoot() && SearchOuter != NULL && (SearchOuter == DestinationRoot || SearchOuter->IsIn(DestinationRoot)) )
+	if ( HasDestinationRoot() && SearchOuter != nullptr && (SearchOuter == DestinationRoot || SearchOuter->IsIn(DestinationRoot)) )
 	{
 		for ( TMap<UObject*,UObject*>::TIterator It(SourceToDestinationMap); It; ++It )
 		{

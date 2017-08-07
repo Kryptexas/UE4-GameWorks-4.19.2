@@ -9,6 +9,7 @@
 #include "ClassViewerModule.h"
 #include "ClassViewerFilter.h"
 #include "ScopedTransaction.h"
+#include "AssetRegistryModule.h"
 
 #define LOCTEXT_NAMESPACE "SGraphPinClass"
 
@@ -134,6 +135,56 @@ void SGraphPinClass::OnPickedNewClass(UClass* ChosenClass)
 FText SGraphPinClass::GetDefaultComboText() const
 { 
 	return LOCTEXT( "DefaultComboText", "Select Class" );
+}
+
+const FAssetData& SGraphPinClass::GetAssetData(bool bRuntimePath) const
+{
+	if (bRuntimePath)
+	{
+		// For runtime use the default path
+		return SGraphPinObject::GetAssetData(bRuntimePath);
+	}
+
+	FString CachedRuntimePath = CachedEditorAssetData.ObjectPath.ToString() + TEXT("_C");
+
+	if (GraphPinObj->DefaultObject)
+	{
+		if (!GraphPinObj->DefaultObject->GetPathName().Equals(CachedRuntimePath, ESearchCase::CaseSensitive))
+		{
+			// This will cause it to use the UBlueprint
+			CachedEditorAssetData = FAssetData(GraphPinObj->DefaultObject, false);
+		}
+	}
+	else if (!GraphPinObj->DefaultValue.IsEmpty())
+	{
+		if (!GraphPinObj->DefaultValue.Equals(CachedRuntimePath, ESearchCase::CaseSensitive))
+		{
+			FString EditorPath = GraphPinObj->DefaultValue;
+			EditorPath.RemoveFromEnd(TEXT("_C"));
+			const FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+
+			CachedEditorAssetData = AssetRegistryModule.Get().GetAssetByObjectPath(FName(*EditorPath));
+
+			if (!CachedEditorAssetData.IsValid())
+			{
+				FString PackageName = FPackageName::ObjectPathToPackageName(EditorPath);
+				FString PackagePath = FPackageName::GetLongPackagePath(PackageName);
+				FString ObjectName = FPackageName::ObjectPathToObjectName(EditorPath);
+
+				// Fake one
+				CachedEditorAssetData = FAssetData(FName(*PackageName), FName(*PackagePath), FName(*ObjectName), UObject::StaticClass()->GetFName());
+			}
+		}
+	}
+	else
+	{
+		if (CachedEditorAssetData.IsValid())
+		{
+			CachedEditorAssetData = FAssetData();
+		}
+	}
+
+	return CachedEditorAssetData;
 }
 
 #undef LOCTEXT_NAMESPACE

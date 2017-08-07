@@ -1,12 +1,13 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "GameplayDebugger/GameplayDebuggerCategory_BehaviorTree.h"
+
+#if WITH_GAMEPLAY_DEBUGGER
+
 #include "GameFramework/Pawn.h"
 #include "BrainComponent.h"
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
-
-#if WITH_GAMEPLAY_DEBUGGER
 
 FGameplayDebuggerCategory_BehaviorTree::FGameplayDebuggerCategory_BehaviorTree()
 {

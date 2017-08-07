@@ -37,7 +37,7 @@ public:
 	 * @param	PropertyHandle	The property handle to retrieve the text from
 	 * returns a string representation of the properties data, or an empty string if the property is unsupported
 	 */
-	static FText GetPropertyAsText( const TSharedPtr< IPropertyHandle > PropertyHandle );
+	static FText GetPropertyAsText( const TSharedPtr< IPropertyHandle > PropertyHandle, bool bGetRawValue = false);
 
 public:
 

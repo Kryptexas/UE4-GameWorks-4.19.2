@@ -6,132 +6,49 @@ version: 4.9
 parent:%ROOT%
 order:6
 type:landing
+topic-icon:%ROOT%/gameplay_icon.png
 
-[VAR:Params]
-[PARAM:image]
-	![](%ROOT%/placeholder_topic.png)
-[/PARAM]
-[PARAM:icon]
-	![](%ROOT%/gameplay_icon.png)(convert:false)
-[/PARAM]
-[PARAM:title]
-	%Gameplay:title%
-[/PARAM]
-[PARAM:description]
-	%Gameplay:description%
-[/PARAM]
-[PARAM:path]
-	[RELATIVE:Gameplay]
-[/PARAM]
-[/VAR]
+## Basic Gameplay Concepts
 
-[VAR:Topic]
-[OBJECT:Topic]
-%params%
-[/OBJECT]
-[/VAR]
+These pages will introduce you to key Unreal terms. To add new types of gameplay objects, you will generally create a new class. 
+A class is a template, or collection of rules, for your new object, so that you can create as many copies as you need, each containing 
+properties and behavior that you set in the template.
 
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-%params%
-[/OBJECT]
-[/VAR]
+%Gameplay/UnrealTerminology:role%
+%Gameplay/ClassCreation:role%
 
-[VAR:Role]
-[OBJECT:Role]
-%params%
-[PARAMLITERAL:id]
-gameplay
-[/PARAMLITERAL]
-[/OBJECT]
-[/VAR]
+## Framework
+	
+In Unreal Engine 4, there are a number of classes that come with preset behavior to help you get started with your game. Read more 
+about these building blocks and how they work together in the framework overview or quick reference, or jump straight to a particular 
+class page for more information.
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/gameplay_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Basic Gameplay Concepts
-	[/PARAM]
-	[PARAM:description]
-		These pages will introduce you to key Unreal terms. To add new types of gameplay objects, you will generally create a new class. 
-		A class is a template, or collection of rules, for your new object, so that you can create as many copies as you need, each containing 
-		properties and behavior that you set in the template.
-	[/PARAM]
-	[PARAM:links]
-		* [](Gameplay/UnrealTerminology "%Gameplay/UnrealTerminology:description%")
-		* [](Gameplay/ClassCreation "%Gameplay/ClassCreation:description%")
-	[/PARAM]
-[/OBJECT]
+[DIR(output:"role" path:"Gameplay/Framework" org:"flat" orderby:"parent,position")]
 
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/gameplay_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Framework
-	[/PARAM]
-	[PARAM:description]
-		In Unreal Engine 4, there are a number of classes that come with preset behavior to help you get started with your game. Read more 
-		about these building blocks and how they work together in the framework overview or quick reference, or jump straight to a particular 
-		class page for more information.
-	[/PARAM]
-	[PARAM:links]
-	[DIR(output:"listbutton" type:"reference" tags:"Gameplay Framework" parent:"Gameplay" org:"hierarchy")]
-	[/PARAM]
-[/OBJECT]
+## Gameplay Elements
+	
+Although each game may have different characters, rules, and visual styles, there are some core elements that are more universal. 
+From input to saving, find overviews of these topics and example setups in C++ and/or Blueprints here.
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/gameplay_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Gameplay Elements
-	[/PARAM]
-	[PARAM:description]
-		Although each game may have different characters, rules, and visual styles, there are some core elements that are more universal. 
-		From input to saving, find overviews of these topics and example setups in C++ and/or Blueprints here.
-	[/PARAM]
-	[PARAM:links]
-		* [](Gameplay/Input "%Gameplay/Input:description%")
-		* [](Gameplay/Networking "%Gameplay/Networking:description%")
-		* [](Gameplay/SaveGame "%Gameplay/SaveGame:description%")
-		* [](Gameplay/DataDriven "%Gameplay/DataDriven:description%")
-		* [](Gameplay/AI "%Gameplay/AI:description%")
-		* [](Gameplay/Localization "%Gameplay/Localization:description%")
-		* [](Gameplay/Analytics "%Gameplay/Analytics:description%")
-	[/PARAM]
-[/OBJECT]
+%Gameplay/Input:role%
+%Gameplay/Networking:role%
+%Gameplay/SaveGame:role%
+%Gameplay/DataDriven:role%
+%Gameplay/AI:role%
+%Gameplay/Localization:role%
+%Gameplay/Analytics:role%
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/profile_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Gameplay Tools
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		* [](Gameplay/Tools/GameplayDebugger "%Gameplay/Tools/GameplayDebugger:description%")
-		* [](Gameplay/Tools/NetworkProfiler "%Gameplay/Tools/NetworkProfiler:description%")
-		* [](Gameplay/Tools/VisualLogger "%Gameplay/Tools/VisualLogger:description%")
-	[/PARAM]
-[/OBJECT]
+## Gameplay Tools
+	
+%Gameplay/Tools/GameplayDebugger:role%
+%Gameplay/Tools/NetworkProfiler:role%
+%Gameplay/Tools/VisualLogger:role%
 
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/gameplay_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Gameplay How To's
-	[/PARAM]
-	[PARAM:description]
-		This section provides step-by-step instructions on how to generate some of the most common gameplay scenarios. 
-		Whether it is how to spawn enemies or pick-ups in your game, change camera angles, or set up player inputs; these pages provide example setups for you in both Blueprints and C++.
-	[/PARAM]
-	[PARAM:links]
-	[DIR(end:"3" type:"how-to" output:"listbutton" parent:"Gameplay" org:"hierarchy")]
-	[/PARAM]
-[/OBJECT]
+## Gameplay How To's
+	
+This section provides step-by-step instructions on how to generate some of the most common gameplay scenarios. 
+Whether it is how to spawn enemies or pick-ups in your game, change camera angles, or set up player inputs; these pages provide example setups for you in both Blueprints and C++.
 
+[DIR(type:"overview" output:"fancy" parent:"Gameplay" org:"flat" skilllevel:"Beginner")]
+[DIR(type:"overview" output:"fancy" parent:"Gameplay" org:"flat" skilllevel:"Intermediate")]
+[DIR(type:"overview" output:"fancy" parent:"Gameplay" org:"flat" skilllevel:"Advanced")]

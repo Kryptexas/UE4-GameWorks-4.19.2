@@ -34,9 +34,9 @@ void FBlackboardEntryDetails::CustomizeChildren( TSharedRef<class IPropertyHandl
 {
 	if (StructPropertyHandle->IsValidHandle())
 	{
-		StructBuilder.AddChildProperty(MyNameProperty.ToSharedRef());
-		StructBuilder.AddChildProperty(MyDescriptionProperty.ToSharedRef());
-		StructBuilder.AddChildProperty(MyValueProperty.ToSharedRef());
+		StructBuilder.AddProperty(MyNameProperty.ToSharedRef());
+		StructBuilder.AddProperty(MyDescriptionProperty.ToSharedRef());
+		StructBuilder.AddProperty(MyValueProperty.ToSharedRef());
 	}
 }
 

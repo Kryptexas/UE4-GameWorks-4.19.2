@@ -33,37 +33,37 @@ class UFbxStaticMeshImportData : public UFbxMeshImportData
 	GENERATED_UCLASS_BODY()
 
 	/** The LODGroup to associate with this mesh when it is imported */
-	UPROPERTY(EditAnywhere, config, AdvancedDisplay, Category= ImportSettings, meta=(ImportType="StaticMesh"))
+	UPROPERTY(EditAnywhere, config, AdvancedDisplay, Category=Mesh, meta=(ImportType="StaticMesh"))
 	FName StaticMeshLODGroup;
 
 	/** Specify how vertex colors should be imported */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category=ImportSettings, meta=(OBJRestrict="true", ImportType="StaticMesh"))
+	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category= Mesh, meta=(OBJRestrict="true", ImportType="StaticMesh"))
 	TEnumAsByte<EVertexColorImportOption::Type> VertexColorImportOption;
 
 	/** Specify override color in the case that VertexColorImportOption is set to Override */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category=ImportSettings, meta=(OBJRestrict="true", ImportType="StaticMesh"))
+	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category= Mesh, meta=(OBJRestrict="true", ImportType="StaticMesh"))
 	FColor VertexOverrideColor;
 
 	/** Disabling this option will keep degenerate triangles found.  In general you should leave this option on. */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = ImportSettings, meta = (ImportType = "StaticMesh"))
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = Mesh, meta = (ImportType = "StaticMesh"))
 	uint32 bRemoveDegenerates:1;
 
 	/** Required for PNT tessellation but can be slow. Recommend disabling for larger meshes. */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = ImportSettings, meta = (ImportType = "StaticMesh"))
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = Mesh, meta = (ImportType = "StaticMesh"))
 	uint32 bBuildAdjacencyBuffer:1;
 
-	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = ImportSettings, meta = (ImportType = "StaticMesh"))
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = Mesh, meta = (ImportType = "StaticMesh"))
 	uint32 bBuildReversedIndexBuffer:1;
 
-	UPROPERTY(EditAnywhere, config, AdvancedDisplay, Category=ImportSettings, meta=(ImportType="StaticMesh"))
+	UPROPERTY(EditAnywhere, config, AdvancedDisplay, Category= Mesh, meta=(ImportType="StaticMesh"))
 	uint32 bGenerateLightmapUVs:1;
 
 	/** If checked, one convex hull per UCX_ prefixed collision mesh will be generated instead of decomposing into multiple hulls */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category=ImportSettings, meta=(OBJRestrict="true", ImportType="StaticMesh"))
+	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category= Mesh, meta=(OBJRestrict="true", ImportType="StaticMesh"))
 	uint32 bOneConvexHullPerUCX:1;
 
 	/** If checked, collision will automatically be generated (ignored if custom collision is imported or used). */
-	UPROPERTY(EditAnywhere, config, Category = ImportSettings, meta=(OBJRestrict="true", ImportType="StaticMesh"))
+	UPROPERTY(EditAnywhere, config, Category = Mesh, meta=(OBJRestrict="true", ImportType="StaticMesh"))
 	uint32 bAutoGenerateCollision : 1;
 
 	/** For static meshes, enabling this option will combine all meshes in the FBX into a single monolithic mesh in Unreal */

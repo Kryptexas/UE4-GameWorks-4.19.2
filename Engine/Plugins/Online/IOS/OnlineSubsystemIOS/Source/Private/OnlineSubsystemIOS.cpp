@@ -5,12 +5,16 @@
 #import "OnlineAppStoreUtils.h"
 
 FOnlineSubsystemIOS::FOnlineSubsystemIOS()
+	: StoreHelper(nil)
+	, AppStoreHelper(nil)
 {
 	StoreHelper = nil;
 }
 
 FOnlineSubsystemIOS::FOnlineSubsystemIOS(FName InInstanceName)
 	: FOnlineSubsystemImpl(IOS_SUBSYSTEM, InInstanceName)
+	, StoreHelper(nil)
+	, AppStoreHelper(nil)
 {
 	StoreHelper = nil;
 }
@@ -199,6 +203,7 @@ void FOnlineSubsystemIOS::InitStoreKitHelper()
 void FOnlineSubsystemIOS::CleanupStoreKitHelper()
 {
 	[StoreHelper release];
+	StoreHelper = nil;
 }
 
 void FOnlineSubsystemIOS::InitAppStoreHelper()
@@ -210,6 +215,7 @@ void FOnlineSubsystemIOS::InitAppStoreHelper()
 void FOnlineSubsystemIOS::CleanupAppStoreHelper()
 {
 	[AppStoreHelper release];
+	AppStoreHelper = nil;
 }
 
 FAppStoreUtils* FOnlineSubsystemIOS::GetAppStoreUtils()
@@ -229,6 +235,11 @@ bool FOnlineSubsystemIOS::Tick(float DeltaTime)
 		SessionInterface->Tick(DeltaTime);
 	}
 	return true;
+}
+
+FText FOnlineSubsystemIOS::GetOnlineServiceName() const
+{
+	return NSLOCTEXT("OnlineSubsystemIOS", "OnlineServiceName", "Game Center");
 }
 
 bool FOnlineSubsystemIOS::Shutdown() 

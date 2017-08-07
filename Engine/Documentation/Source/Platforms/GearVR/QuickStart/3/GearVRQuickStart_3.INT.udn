@@ -2,7 +2,7 @@ Availability:Public
 Title:3. Gear VR Project Packaging & Deployment
 Crumbs:%ROOT%, Platforms/GearVR
 Description:Instructions on how to deploy projects form UE4 to use with the Samsung Gear VR Headset.
-Version: 4.9
+Version: 4.16
 Skilllevel: Intermediate
 tags:VR
 tags:GearVR

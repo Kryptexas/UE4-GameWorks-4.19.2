@@ -69,13 +69,14 @@ public:
 	///  @param[in]		maxCorners		The maximum number of corners the buffers can hold.
 	///  @param[in]		navquery		The query object used to build the corridor.
 	///  @param[in]		filter			The filter to apply to the operation.
-	///  @param[in]		radius			[UE4] Agent radius for path offsetting
+	///  @param[in]		pathOffsetDistance	[UE4] Radius for path offsetting
+	///  @param[in]		earlyReachDistance	[UE4] Radius for early reach detection
 	///  @param[in]		bAllowEarlyReach [UE4] Check if corner skipping for EarlyReachTest is available now
 	/// @return The number of corners returned in the corner buffers. [0 <= value <= @p maxCorners]
 	int findCorners(float* cornerVerts, unsigned char* cornerFlags,
 					dtPolyRef* cornerPolys, const int maxCorners,
 					dtNavMeshQuery* navquery, const dtQueryFilter* filter,
-					float radius, bool bAllowEarlyReach = true);
+					float pathOffsetDistance, float earlyReachDistance, bool bAllowEarlyReach = true);
 	
 	/// Attempts to optimize the path if the specified point is visible from the current position.
 	///  @param[in]		next					The point to search toward. [(x, y, z])

@@ -398,7 +398,7 @@ private:
 	void OnShowOnlyCompatibleSkeletonsCheckChanged(ECheckBoxState InNewRadioState);
 
 	/** should filter asset */
-	bool OnShouldFilterAsset(const class FAssetData& AssetData);
+	bool OnShouldFilterAsset(const struct FAssetData& AssetData);
 
 	/**
 	 * return true if it can apply 

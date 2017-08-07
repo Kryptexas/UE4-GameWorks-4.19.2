@@ -31,6 +31,9 @@ struct FEditorParameterGroup
 	UPROPERTY(EditAnywhere, editfixedsize, Instanced, Category=EditorParameterGroup)
 	TArray<class UDEditorParameterValue*> Parameters;
 
+	UPROPERTY()
+	int32 GroupSortPriority;
+
 };
 
 USTRUCT()

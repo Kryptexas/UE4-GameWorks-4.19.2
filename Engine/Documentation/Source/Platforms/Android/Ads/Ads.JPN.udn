@@ -1,13 +1,13 @@
-﻿INTSourceChangelist:2945303
-Title:Android で Ad Mob（アプリ内広告）を使用する
-Description:Android で Ad Mob（アプリ内広告）を使用する
+﻿INTSourceChangelist:3150518
+Title:Android での Ad Mob (アプリ内広告) の使用方法
+Description:Android で Ad Mob (アプリ内広告) を使用する
 Crumbs:
 Availability:Public
 version:4.10
 Parent:Platforms/Android
 tags:Mobile
 tags:Android
-type:howto
+type:how-to
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -55,11 +55,11 @@ type:howto
 
 1. **[Google Play Services]** セクションで、**[Enable Google Play Support (Google Play Support を有効にする)]** オプションにチェックをいれます。
 
-1. **Games App ID** 入力欄にゲームの App ID を入力します。
+1. **[Games App ID]** 入力欄にゲームの App ID を入力します。
 
 1. 関連させたい各 AdMob ID の **[Ad Mob Ad Unit IDs]** 配列にエレメントを追加して、テキスト ボックスに ID を入力します。
 
-1. **Google Play License Key** 入力フィールドに Google Play License Key を入力します。
+1. **[Google Play License Key]** 入力フィールドに Google Play 用のライセンスキーを入力します。
 
 	![image alt text](image_0.png)
 
@@ -69,7 +69,7 @@ type:howto
 
 	![](extraPermissions.png)
 
-###C++ プロジェクト:
+###C++ プロジェクト
 
 プロジェクトが C++ の場合、適切なモジュールを Target.cs ファイルに追加することも必要になります。例えば、
 
@@ -81,7 +81,7 @@ type:howto
             ModuleNames.Add("AndroidAdvertising");
 		}
 
-Unreal Match 3 Target.cs ファイルの `Match3\Source\Match3.Target.cs` がファイル全体に対してどのようになっているか見てみましょう。
+Unreal Match 3 Target.cs ファイルの `Match3\Source\Match3.Target.cs` がファイル全体に対してどのようになっているか見てください。
 
 
 [INCLUDE:Platforms/Mobile/Ads#usage]

@@ -19,13 +19,14 @@ public class SimplygonMeshReduction : ModuleRules
                 "MaterialUtilities",
                 "MeshBoneReduction",
                 "RHI",
-                "AnimationModifiers"
-			}
+                "AnimationModifiers",
+            }
         );
 
         PrivateIncludePathModuleNames.AddRange(
             new string[] { 
-                "MeshUtilities"                
+                "MeshUtilities",
+                "MeshReductionInterface",
             }
         );
 

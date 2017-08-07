@@ -106,6 +106,12 @@ public:
 #endif
 	// End of UActorComponent interface
 
+	// USceneComponent interface
+#if WITH_EDITOR
+	virtual bool GetEditorPreviewInfo(float DeltaTime, FMinimalViewInfo& ViewOut) override;
+#endif 
+	// End of USceneComponent interface
+
 	// UObject interface
 #if WITH_EDITORONLY_DATA
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
@@ -124,6 +130,10 @@ public:
 	/** Adds an Blendable (implements IBlendableInterface) to the array of Blendables (if it doesn't exist) and update the weight */
 	UFUNCTION(BlueprintCallable, Category = "Rendering")
 	void AddOrUpdateBlendable(TScriptInterface<IBlendableInterface> InBlendableObject, float InWeight = 1.0f) { PostProcessSettings.AddBlendable(InBlendableObject, InWeight); }
+
+	/** Removes a blendable. */
+	UFUNCTION(BlueprintCallable, Category = "Rendering")
+	void RemoveBlendable(TScriptInterface<IBlendableInterface> InBlendableObject) { PostProcessSettings.RemoveBlendable(InBlendableObject); }
 
 #if WITH_EDITORONLY_DATA
 	virtual void SetCameraMesh(UStaticMesh* Mesh);

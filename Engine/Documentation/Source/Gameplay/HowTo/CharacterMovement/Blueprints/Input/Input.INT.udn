@@ -3,25 +3,13 @@ Title:2. Input and the Game Mode
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
 Description:In this step we will set up the input to control our character as well as set our default pawn which is the playable character.
 Version: 4.9
+Parent:Gameplay/HowTo/CharacterMovement/Blueprints
 SkillLevel:Advanced
+type:how-to
+type:multi-step
+order:2
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[Previous Step](Gameplay\HowTo\CharacterMovement\Blueprints\Setup_1 "%Gameplay\HowTo\CharacterMovement\Blueprints\Setup_1:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Character Movement Overview](Gameplay\HowTo\CharacterMovement\Blueprints)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Gameplay\HowTo\CharacterMovement\Blueprints\Setup_2 "%Gameplay\HowTo\CharacterMovement\Blueprints\Setup_2:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 Here we will set up the **Input** (Game Controls) to control the character and create a **Game Mode** which will use our character. 
 
@@ -71,5 +59,4 @@ Here we will set up the **Input** (Game Controls) to control the character and c
 
 1.	After setting both the Input and Game Mode settings, close the Project Settings Window. 
 
-
-%Steps%
+[NAV]

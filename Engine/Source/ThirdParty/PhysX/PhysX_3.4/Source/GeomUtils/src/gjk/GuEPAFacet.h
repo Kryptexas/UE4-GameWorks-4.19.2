@@ -103,8 +103,8 @@ namespace Gu
 		PX_FORCE_INLINE Ps::aos::FloatV getPlaneDist(const Ps::aos::Vec3VArg p, const Ps::aos::Vec3V* PX_RESTRICT aBuf, const Ps::aos::Vec3V* PX_RESTRICT bBuf) const; 
 
 		//check to see whether the triangle is a valid triangle, calculate plane normal and plane distance at the same time
-		PX_EPA_FORCE_INLINE Ps::aos::BoolV isValid2(const PxU32 i0, const PxU32 i1, const PxU32 i2, const Ps::aos::Vec3V* PX_RESTRICT aBuf, const Ps::aos::Vec3V* PX_RESTRICT bBuf, 
-		const Ps::aos::FloatVArg lower, const Ps::aos::FloatVArg upper);
+		Ps::aos::BoolV isValid2(const PxU32 i0, const PxU32 i1, const PxU32 i2, const Ps::aos::Vec3V* PX_RESTRICT aBuf, const Ps::aos::Vec3V* PX_RESTRICT bBuf, 
+		const Ps::aos::FloatVArg upper);
 
 		//return the absolute value for the plane distance from origin 
 		PX_FORCE_INLINE Ps::aos::FloatV getPlaneDist() const 
@@ -261,7 +261,7 @@ namespace Gu
 		const FloatV p0dv2 = V3Dot(p0, v2);
 
 		const FloatV det = FNegScaleSub(v1dv2, v1dv2, FMul(v1dv1, v2dv2));//FSub( FMul(v1dv1, v2dv2), FMul(v1dv2, v1dv2) ); // non-negative
-		const FloatV recip = FRecip(det);
+		const FloatV recip = FSel(FIsGrtr(det, FEps()), FRecip(det), FZero());
 
 		const FloatV lambda1 = FMul(FNegScaleSub(p0dv1, v2dv2, FMul(p0dv2, v1dv2)), recip);
 		const FloatV lambda2 = FMul(FNegScaleSub(p0dv2, v1dv1, FMul(p0dv1, v1dv2)), recip);

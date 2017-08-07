@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3150518
+﻿INTSourceChangelist:3452142
 Availability:Public
 Title:プロパティ ベースのブレンド
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
@@ -10,6 +10,14 @@ checkpoint: animpropertyblend
 type:how-to
 
 
+[OBJECT:Redirect]
+[PARAM:link]
+[](Engine/Animation/AnimHowTo/BlendSpace)
+[/PARAM]
+[/OBJECT]
+
+
+<!--
 [ブレンドスペース](Engine/Animation/Blendspaces) は 2 つの入力値に基づいたアニメーションのブレンドを可能にする **AnimGraph** でサンプリングできる特殊なアセットです。単一の入力に基づいた 2 つのアニメーションの単純なブレンドは、Animation ブループリントで利用可能な標準の [ブレンド ノード](Engine/Animation/NodeReference/Blend) の一つを使用して行うことができます。ブレンドスペースは、複数の値 (現在は 2 に限定) に基づいた複数のアニメーション間で一段と複雑なブレンドを可能にします。
 
 [OBJECT:EmbeddedVideo]
@@ -42,3 +50,4 @@ _このガイドの最後まで進むと、ジョギングとウォーキング�
 [REGION:call_to_action]
 	[前のステップ](Engine\Animation\AnimHowTo\PropertyBasedBlending\Setup "%Engine\Animation\AnimHowTo\PropertyBasedBlending\Setup:title%")
 [/REGION]
+-->

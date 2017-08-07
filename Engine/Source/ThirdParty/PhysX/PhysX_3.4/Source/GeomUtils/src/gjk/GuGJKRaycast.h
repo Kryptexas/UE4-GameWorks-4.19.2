@@ -96,7 +96,6 @@ namespace Gu
 		const FloatV eps1 = FMul(minMargin, FLoad(0.1f));
 		const FloatV inflationPlusEps(FAdd(eps1, inflation));
 		const FloatV eps2 = FMul(eps1, eps1);
-		const FloatV maxLambdaDecrement = FLoad(-1e-4f);
 
 		const FloatV inflation2 = FMul(inflationPlusEps, inflationPlusEps);
 
@@ -140,7 +139,7 @@ namespace Gu
 				else
 				{
 					const FloatV _oldLambda = _lambda;
-					_lambda = FSub(_lambda, FMin(FDiv(vw, vr), maxLambdaDecrement));
+					_lambda = FSub(_lambda, FDiv(vw, vr));
 					if(FAllGrtr(_lambda, _oldLambda))
 					{
 						if(FAllGrtr(_lambda, one))

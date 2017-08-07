@@ -1,13 +1,14 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3429254
 Availability:Public
 Title:게임 흐름 개요
 Crumbs:%ROOT%, Gameplay/Framework
 Description:엔진 시작 및 게임이나 에디터에서 플레이 세션을 실행시키는 프로세스입니다.
 Version: 4.12
-type:reference
+type:overview
 parent:Gameplay/Framework
-order:5
+order:1
 tags:Gameplay Framework
+topic-image:Gameplay/Framework/gameflow_lander.png
 
 엔진 시작 및 게임 실행 프로세스에 대한 설명 문서입니다. 여기서 보여드리는 방법은 크게 두 가지, 에디터 방법과 독립형 방법입니다. 일반적인 이벤트 순서는, 엔진을 초기화시키고, **GameInstance** 를 생성 및 초기화한 뒤, 레벨을 로드하고, 마지막으로 플레이를 시작합니다. 하지만 독립형 모드와 에디터 모드 사이의 차이점이 있는데, 일부 함수가 호출되는 정확한 순서와, 어떤 함수가 호출되는지가 다릅니다. 아래 플로우 차트는 두 방법으로 병렬 실행했을 때 게임 시작 전 수렴할 때까지의 흐름을 보여줍니다.
 

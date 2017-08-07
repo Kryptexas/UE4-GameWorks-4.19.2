@@ -32,7 +32,7 @@ public:
 
 	/** IGameMoviePlayer Interface */
 	virtual void RegisterMovieStreamer(TSharedPtr<IMovieStreamer> InMovieStreamer) override {}
-	virtual void Initialize(TSharedPtr<class FSlateRenderer> InSlateRenderer) override {}
+	virtual void Initialize(class FSlateRenderer& InSlateRenderer) override {}
 	virtual void Shutdown() override {}
 	virtual void PassLoadingScreenWindowBackToGame() const override {}
 	virtual void SetupLoadingScreen(const FLoadingScreenAttributes& InLoadingScreenAttributes) override {}

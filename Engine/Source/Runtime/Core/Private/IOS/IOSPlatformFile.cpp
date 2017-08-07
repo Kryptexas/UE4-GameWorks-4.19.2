@@ -390,6 +390,27 @@ FString FIOSPlatformFile::NormalizeDirectory(const TCHAR* Directory)
 	return Result;
 }
 
+
+FString FIOSPlatformFile::ConvertToAbsolutePathForExternalAppForRead( const TCHAR* Filename )
+{
+    struct stat FileInfo;
+    FString NormalizedFilename = NormalizeFilename(Filename);
+    if (stat(TCHAR_TO_UTF8(*ConvertToIOSPath(NormalizedFilename, false)), &FileInfo) == -1)
+    {
+        return ConvertToAbsolutePathForExternalAppForWrite(Filename);
+    }
+    else
+    {
+        return ConvertToIOSPath(NormalizedFilename, false);
+    }
+}
+
+FString FIOSPlatformFile::ConvertToAbsolutePathForExternalAppForWrite( const TCHAR* Filename )
+{
+    FString NormalizedFilename = NormalizeFilename(Filename);
+    return ConvertToIOSPath(NormalizedFilename, true);
+}
+
 bool FIOSPlatformFile::FileExists(const TCHAR* Filename)
 {
 	struct stat FileInfo;
@@ -602,7 +623,7 @@ IFileHandle* FIOSPlatformFile::OpenWrite(const TCHAR* Filename, bool bAppend, bo
 		Flags |= O_WRONLY;
 	}
 	FString IOSFilename = ConvertToIOSPath(NormalizeFilename(Filename), true);
-	int32 Handle = open(TCHAR_TO_UTF8(*IOSFilename), Flags, S_IRUSR | S_IWUSR);
+	int32 Handle = open(TCHAR_TO_UTF8(*IOSFilename), Flags, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 	if (Handle != -1)
 	{
 		FIOSFileHandle* FileHandleIOS = new FIOSFileHandle(Handle, IOSFilename, false);
@@ -761,8 +782,9 @@ FString FIOSPlatformFile::ConvertToIOSPath(const FString& Filename, bool bForWri
 		}
 		else
 		{
-			static FString ReadPathBase = FString([[NSBundle mainBundle] bundlePath]) + TEXT("/cookeddata/");
-			return ReadPathBase + Result.ToLower();
+			FString ReadPathBase = FString([[NSBundle mainBundle] bundlePath]) + TEXT("/cookeddata/");
+            FString OutString = ReadPathBase + Result.ToLower();
+            return OutString;
 		}
 	}
 

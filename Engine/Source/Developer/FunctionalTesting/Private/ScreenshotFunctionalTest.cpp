@@ -32,7 +32,7 @@ void AScreenshotFunctionalTest::PrepareTest()
 
 bool AScreenshotFunctionalTest::IsReady_Implementation()
 {
-	if ( (GetWorld()->GetTimeSeconds() - StartTime) > ScreenshotOptions.Delay )
+	if ( (GetWorld()->GetTimeSeconds() - RunTime) > ScreenshotOptions.Delay )
 	{
 		return ( GFrameNumber - RunFrame ) > 5;
 	}

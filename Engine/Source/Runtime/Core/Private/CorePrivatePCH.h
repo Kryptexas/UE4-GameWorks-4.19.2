@@ -30,7 +30,6 @@
 #include "Templates/IsArithmetic.h"
 #include "Templates/UnrealTypeTraits.h"
 #include "Templates/RemoveCV.h"
-#include "Templates/AlignOf.h"
 #include "Templates/ChooseClass.h"
 #include "Templates/IntegralConstant.h"
 #include "Templates/IsClass.h"

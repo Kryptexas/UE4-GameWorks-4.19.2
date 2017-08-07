@@ -30,6 +30,8 @@ enum class EInternalCompilerFlags
 	None = 0x0,
 
 	PostponeLocalsGenerationUntilPhaseTwo = 0x1,
+	PostponeDefaultObjectAssignmentUntilReinstancing = 0x2,
+	SkipRefreshExternalBlueprintDependencyNodes = 0x4,
 };
 ENUM_CLASS_FLAGS(EInternalCompilerFlags)
 
@@ -127,6 +129,10 @@ public:
 
 	// Flag to trigger ProcessSubInstance in CreateClassVariablesFromBlueprint:
 	bool bGenerateSubInstanceVariables;
+
+	static FSimpleMulticastDelegate OnPreCompile;
+	static FSimpleMulticastDelegate OnPostCompile;
+
 public:
 	FKismetCompilerContext(UBlueprint* SourceSketch, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompilerOptions, TArray<UObject*>* InObjLoaded);
 	virtual ~FKismetCompilerContext();
@@ -140,6 +146,9 @@ public:
 	/** Compile a blueprint into a class and a set of functions */
 	void Compile();
 
+	/** Function used to assign the new class that will be used by the compiler */
+	void SetNewClass(UBlueprintGeneratedClass* ClassToUse);
+
 	const UEdGraphSchema_K2* GetSchema() const { return Schema; }
 
 	// Spawns an intermediate node associated with the source node (for error purposes)
@@ -151,7 +160,7 @@ public:
 			ParentGraph = SourceNode->GetGraph();
 		}
 
-		NodeType* Result = ParentGraph->CreateBlankNode<NodeType>();
+		NodeType* Result = ParentGraph->CreateIntermediateNode<NodeType>();
 		//check (Cast<UK2Node_Event>(Result) == nullptr); -- Removed to avoid any fallout, will replace with care later
 		MessageLog.NotifyIntermediateObjectCreation(Result, SourceNode); // this might be useful to track back function entry nodes to events.
 		Result->CreateNewGuid();
@@ -165,12 +174,12 @@ public:
 	template <typename NodeType>
 	NodeType* SpawnIntermediateEventNode(UEdGraphNode* SourceNode, UEdGraphPin* SourcePin = nullptr, UEdGraph* ParentGraph = nullptr)
 	{
-		if (ParentGraph == nullptr)
+		if (ParentGraph == nullptr && SourceNode != nullptr)
 		{
 			ParentGraph = SourceNode->GetGraph();
 		}
 
-		NodeType* Result = ParentGraph->CreateBlankNode<NodeType>();
+		NodeType* Result = ParentGraph->CreateIntermediateNode<NodeType>();
 		//check (Cast<UK2Node_Event>(Result) != nullptr); -- Removed to avoid any fallout, will replace with care later
 		MessageLog.NotifyIntermediateObjectCreation(Result, SourceNode); // this might be useful to track back function entry nodes to events.
 		Result->CreateNewGuid();
@@ -216,13 +225,16 @@ public:
 	 */
 	FPinConnectionResponse CopyPinLinksToIntermediate(UEdGraphPin& SourcePin, UEdGraphPin& IntermediatePin);
 
-	UK2Node_TemporaryVariable* SpawnInternalVariable(UEdGraphNode* SourceNode, FString Category, FString SubCategory = TEXT(""), UObject* SubcategoryObject = NULL, bool bIsArray = false, bool bIsSet = false, bool bIsMap = false, const FEdGraphTerminalType& ValueTerminalType = FEdGraphTerminalType());
+	DEPRECATED(4.17, "Use version that takes PinContainerType instead of separate booleans for array, set, and map")
+	UK2Node_TemporaryVariable* SpawnInternalVariable(UEdGraphNode* SourceNode, FString Category, FString SubCategory, UObject* SubcategoryObject, bool bIsArray, bool bIsSet = false, bool bIsMap = false, const FEdGraphTerminalType& ValueTerminalType = FEdGraphTerminalType());
+
+	UK2Node_TemporaryVariable* SpawnInternalVariable(UEdGraphNode* SourceNode, FString Category, FString SubCategory = FString(), UObject* SubcategoryObject = nullptr, EPinContainerType PinContainerType = EPinContainerType::None, const FEdGraphTerminalType& ValueTerminalType = FEdGraphTerminalType());
 
 	bool UsePersistentUberGraphFrame() const;
 
 	FString GetGuid(const UEdGraphNode* Node) const;
 
-	static TUniquePtr<FKismetCompilerContext> GetCompilerForBP(UBlueprint* BP, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompileOptions);
+	static TSharedPtr<FKismetCompilerContext> GetCompilerForBP(UBlueprint* BP, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompileOptions);
 	
 	/** Ensures that all variables have valid names for compilation/replication */
 	void ValidateVariableNames();
@@ -238,6 +250,7 @@ protected:
 	virtual UEdGraphSchema_K2* CreateSchema();
 	virtual void PostCreateSchema();
 	virtual void SpawnNewClass(const FString& NewClassName);
+	virtual void OnNewClassSet(UBlueprintGeneratedClass* ClassToUse) {}
 
 	/**
 	 * Backwards Compatability:  Ensures that the passed in TargetClass is of the proper type (e.g. BlueprintGeneratedClass, AnimBlueprintGeneratedClass), and NULLs the reference if it is not 
@@ -314,8 +327,8 @@ protected:
 	virtual void PostCompileDiagnostics() {}
 
 	// Gives derived classes a chance to hook up any custom logic
-	virtual void PreCompile() {}
-	virtual void PostCompile() {}
+	virtual void PreCompile() { OnPreCompile.Broadcast(); }
+	virtual void PostCompile() { OnPostCompile.Broadcast(); }
 
 	/** Determines if a node is pure */
 	virtual bool IsNodePure(const UEdGraphNode* Node) const;
@@ -332,11 +345,17 @@ protected:
 	/** Creates user defined local variables for function */
 	void CreateUserDefinedLocalVariablesForFunction(FKismetFunctionContext& Context, UField**& FunctionPropertyStorageLocation);
 
+	/** Helper function for CreateUserDefinedLocalVariablesForFunction and compilation manager's FastGenerateSkeletonClass: */
+	static UProperty* CreateUserDefinedLocalVariableForFunction(const FBPVariableDescription& Variable, UFunction* Function, UBlueprintGeneratedClass* OwningClass, UField**& FunctionPropertyStorageLocation, const UEdGraphSchema_K2* Schema, FCompilerResultsLog& MessageLog);
+
 	/** Adds a default value entry into the DefaultPropertyValueMap for the property specified */
 	void SetPropertyDefaultValue(const UProperty* PropertyToSet, FString& Value);
 
 	/** Copies default values cached for the terms in the DefaultPropertyValueMap to the final CDO */
 	virtual void CopyTermDefaultsToDefaultObject(UObject* DefaultObject);
+
+	/** Non virtual wrapper to encapsulate functions that occur when the CDO is ready for values: */
+	void PropagateValuesToCDO(UObject* NewCDO, UObject* OldCDO);
 
 	/** 
 	 * Function works only if subclass of AActor or UActorComponent.
@@ -427,6 +446,8 @@ protected:
 	 * Handles final post-compilation setup, flags, creates cached values that would normally be set during deserialization, etc...
 	 */
 	void FinishCompilingFunction(FKismetFunctionContext& Context);
+
+	static void SetCalculatedMetaDataAndFlags(UFunction* Function, UK2Node_FunctionEntry* EntryNode, const UEdGraphSchema_K2* Schema );
 
 	/**
 	 * Handles adding the implemented interface information to the class

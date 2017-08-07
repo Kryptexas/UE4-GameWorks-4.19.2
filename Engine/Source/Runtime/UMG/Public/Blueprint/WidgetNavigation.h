@@ -15,7 +15,7 @@ class UWidget;
 /**
  *
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct UMG_API FWidgetNavigationData
 {
 	GENERATED_USTRUCT_BODY()

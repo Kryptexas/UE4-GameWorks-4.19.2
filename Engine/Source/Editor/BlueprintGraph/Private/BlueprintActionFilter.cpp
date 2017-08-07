@@ -172,6 +172,16 @@ namespace BlueprintActionFilterImpl
 	static bool IsDeprecated(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction);
 	
 	/**
+	* Rejection test that checks to see if the supplied node-spawner would 
+	* produce a node (or comes from an associated class) that is deprecated.
+	* 
+	* @param  Filter			Filter context (unused) for this test.
+	* @param  BlueprintAction	The action you wish to query.
+	* @return True if the action would spawn a node that is deprecated.
+	*/
+	static bool IsPropertyAccessorNode(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction);
+
+	/**
 	 * Rejection test that checks to see if the supplied node-spawner would 
 	 * produce an impure node, incompatible with the specified graphs.
 	 * 
@@ -798,8 +808,8 @@ static bool BlueprintActionFilterImpl::IsPermissionNotGranted(FBlueprintActionFi
 		UClass const* const NodeClass = BlueprintAction.GetNodeClass();
 		for (UBlueprint const* Blueprint : FilterContext.Blueprints)
 		{
-			bool const bIsReadOnly = FBlueprintEditorUtils::IsPropertyReadOnlyInCurrentBlueprint(Blueprint, Property);
-			if (bIsReadOnly && NodeClass && NodeClass->IsChildOf<UK2Node_VariableSet>())
+			bool const bIsWritable = (FBlueprintEditorUtils::IsPropertyWritableInBlueprint(Blueprint, Property) == FBlueprintEditorUtils::EPropertyWritableState::Writable);
+			if (!bIsWritable && NodeClass && NodeClass->IsChildOf<UK2Node_VariableSet>())
 			{
 				bIsFilteredOut = true;
 			}
@@ -944,6 +954,19 @@ static bool BlueprintActionFilterImpl::IsActionHiddenByConfig(FBlueprintActionFi
 	}
 
 	return bIsFilteredOut;
+}
+
+//------------------------------------------------------------------------------
+static bool BlueprintActionFilterImpl::IsPropertyAccessorNode(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction)
+{
+	bool bIsAccessor = false;
+
+	if (UFunction const* Function = BlueprintAction.GetAssociatedFunction())
+	{
+		bIsAccessor = (Function->HasMetaData(FBlueprintMetadata::MD_PropertySetFunction) || Function->HasMetaData(FBlueprintMetadata::MD_PropertyGetFunction));
+	}
+
+	return bIsAccessor;
 }
 
 //------------------------------------------------------------------------------
@@ -1260,7 +1283,7 @@ static bool BlueprintActionFilterImpl::IsPinCompatibleWithTargetSelf(UEdGraphPin
 			if (IsClassOfType(PinObjClass, TargetClass))
 			{
 				bIsCompatible = true;
-				if (PinType.bIsArray)
+				if (PinType.IsArray())
 				{
 					if (UFunction const* Function = BlueprintAction.GetAssociatedFunction())
 					{
@@ -1276,7 +1299,7 @@ static bool BlueprintActionFilterImpl::IsPinCompatibleWithTargetSelf(UEdGraphPin
 					}
 				}
 			}
-			else if (!PinType.bIsArray && (BlueprintAction.GetNodeClass() == UK2Node_CallFunction::StaticClass()))
+			else if (!PinType.IsArray() && (BlueprintAction.GetNodeClass() == UK2Node_CallFunction::StaticClass()))
 			{
 				// if this is a bound CallFunction action, then we make the 
 				// assumption that it will be turned into a UK2Node_CallFunctionOnMember
@@ -1359,7 +1382,7 @@ static bool BlueprintActionFilterImpl::ArrayFunctionHasParamOfType(const UFuncti
 	FBlueprintEditorUtils::GetHiddenPinsForFunction(InGraph, ArrayFunction, HiddenPins);
 
 	FName ParamTag = FBlueprintMetadata::MD_ArrayDependentParam;
-	if (DesiredPinType.bIsArray)
+	if (DesiredPinType.IsArray())
 	{
 		ParamTag = FBlueprintMetadata::MD_ArrayParam;
 	}
@@ -1761,7 +1784,7 @@ FBlueprintActionInfo::FBlueprintActionInfo(FBlueprintActionInfo const& Rhs, IBlu
 //------------------------------------------------------------------------------
 UObject const* FBlueprintActionInfo::GetActionOwner()
 {
-	return ActionOwner;
+	return ActionOwner.Get();
 }
 
 //------------------------------------------------------------------------------
@@ -1775,24 +1798,27 @@ UClass const* FBlueprintActionInfo::GetOwnerClass()
 {
 	if ((CacheFlags & EBlueprintActionInfoFlags::CachedClass) == 0)
 	{
-		CachedOwnerClass = Cast<UClass>(ActionOwner);
+		CachedOwnerClass = Cast<UClass>(ActionOwner.Get());
 		if (CachedOwnerClass == GetNodeClass())
 		{
 			CachedOwnerClass = nullptr;
 		}
-		else if (const UBlueprint* AsBlueprint = Cast<UBlueprint>(ActionOwner))
+		else if (const UBlueprint* AsBlueprint = Cast<UBlueprint>(ActionOwner.Get()))
 		{
-			CachedOwnerClass = AsBlueprint->SkeletonGeneratedClass;
+			CachedOwnerClass = AsBlueprint->SkeletonGeneratedClass.Get();
 		}
 
 		if (CachedOwnerClass == nullptr)
 		{
-			CachedOwnerClass = GetAssociatedMemberField()->GetOwnerClass();
+			if (UField const* AssociatedMemberField = GetAssociatedMemberField())
+			{
+				CachedOwnerClass = AssociatedMemberField->GetOwnerClass();
+			}
 		}
 
 		CacheFlags |= EBlueprintActionInfoFlags::CachedClass;
 	}
-	return CachedOwnerClass;
+	return CachedOwnerClass.Get();
 }
 
 //------------------------------------------------------------------------------
@@ -1889,6 +1915,7 @@ FBlueprintActionFilter::FBlueprintActionFilter(uint32 Flags/*= 0x00*/)
 	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsFunctionMissingPinParam));
 	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsIncompatibleLatentNode));
 	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsIncompatibleImpureNode));
+	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsPropertyAccessorNode));
 	
 	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsActionHiddenByConfig));
 	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsFieldCategoryHidden));

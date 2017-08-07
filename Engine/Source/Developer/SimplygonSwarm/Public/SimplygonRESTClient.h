@@ -20,8 +20,6 @@
 #include "Runtime/Online/HTTP/Public/Interfaces/IHttpRequest.h"
 #include "Runtime/Online/HTTP/Public/HttpModule.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogSimplygonRESTClient, Verbose, All);
-
 /** Enum representing state used by Simplygon Grid Server */
 enum SimplygonRESTState
 {

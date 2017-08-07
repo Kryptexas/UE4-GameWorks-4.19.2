@@ -130,6 +130,14 @@ public:
 #endif
 	}
 
+	/** Resets the data. */
+	FORCEINLINE static void ResetReport()
+	{
+#if WITH_LOADPACKAGE_TIME_TRACKER
+		Get().InternalResetReport();
+#endif
+	}
+
 	/** Returns the load time for the specified package, excluding its dependencies */
 	FORCEINLINE static double GetExclusiveLoadTime(FName PackageName)
 	{
@@ -190,6 +198,9 @@ private:
 	/** Displays the data gathered in various ways. */
 	COREUOBJECT_API void InternalDumpReport() const;
 
+	/** Resets the data */
+	COREUOBJECT_API void InternalResetReport();
+
 	/** Returns the load time for the specified package, excluding its dependencies */
 	COREUOBJECT_API double InternalGetExclusiveLoadTime(FName PackageName) const;
 
@@ -202,6 +213,9 @@ private:
 	/** Handler for the DumpReportCommand */
 	void DumpReportCommandHandler(const TArray<FString>& Args);
 
+	/** Handler for the ResetReportCommand */
+	void ResetReportCommandHandler(const TArray<FString>& Args);
+	
 	/** Time stack for tracked code sections. Does not have inclusive time set. That is done in the LoadTimes map. */
 	TArray<FLoadTime> TimeStack;
 
@@ -220,6 +234,9 @@ private:
 
 	/** Auto-registered console command to call DumpReport() */
 	const FAutoConsoleCommand DumpReportCommand;
+
+	/** Auto-registered console command to call ResetReport() */
+	const FAutoConsoleCommand ResetReportCommand;
 
 #endif // WITH_LOADPACKAGE_TIME_TRACKER
 };

@@ -73,7 +73,10 @@ void FSlateTexture2DRHIRef::InitDynamicRHI()
 			}
 			else
 			{
-				checkf(GPixelFormats[PixelFormat].BlockSizeX == GPixelFormats[PixelFormat].BlockSizeY == GPixelFormats[PixelFormat].BlockSizeZ == 1, TEXT("Tried to use compressed format?"));
+				checkf(GPixelFormats[PixelFormat].BlockSizeX == 1 
+					&& GPixelFormats[PixelFormat].BlockSizeY == 1 
+					&& GPixelFormats[PixelFormat].BlockSizeZ == 1,
+					TEXT("Tried to use compressed format?"));
 				for (uint32 i = 0; i < Height; i++)
 				{
 					FMemory::Memcpy(DestTextureData, SourceTextureData, DataStride);

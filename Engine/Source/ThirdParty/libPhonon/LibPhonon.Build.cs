@@ -1,4 +1,5 @@
 ﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
 using UnrealBuildTool;
 
 public class libPhonon : ModuleRules
@@ -22,6 +23,19 @@ public class libPhonon : ModuleRules
             PublicDelayLoadDLLs.Add(DllName);
 
             BinaryPath += "Win64/";
+
+            RuntimeDependencies.Add(new RuntimeDependency(BinaryPath + DllName));
+        }
+        else if (Target.Platform == UnrealTargetPlatform.Win32)
+        {
+            PublicLibraryPaths.Add(LibraryPath + "/lib/Win32");
+            PublicAdditionalLibraries.Add("phonon.lib");
+
+            string DllName = "phonon.dll";
+
+            PublicDelayLoadDLLs.Add(DllName);
+
+            BinaryPath += "Win32/";
 
             RuntimeDependencies.Add(new RuntimeDependency(BinaryPath + DllName));
         }

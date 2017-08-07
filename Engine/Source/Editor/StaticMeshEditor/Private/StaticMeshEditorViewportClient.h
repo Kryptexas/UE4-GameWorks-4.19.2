@@ -73,65 +73,66 @@ public:
 	void DrawUVsForMesh(FViewport* InViewport, FCanvas* InCanvas, int32 InTextYPos );
 
 	/** Callback for toggling the UV overlay show flag. */
-	void SetDrawUVOverlay();
-	
-	/** Callback for checking the UV overlay show flag. */
-	bool IsSetDrawUVOverlayChecked() const;
+	void ToggleDrawUVOverlay();
 
+	void SetDrawUVOverlay(bool bShouldDraw);
+
+	/** Callback for checking the UV overlay show flag. */
+	bool IsDrawUVOverlayChecked() const;
 
 	/** Callback for toggling the normals show flag. */
-	void SetShowNormals();
+	void ToggleShowNormals();
 	
 	/** Callback for checking the normals show flag. */
-	bool IsSetShowNormalsChecked() const;
+	bool IsShowNormalsChecked() const;
 
 	/** Callback for toggling the tangents show flag. */
-	void SetShowTangents();
+	void ToggleShowTangents();
 	
 	/** Callback for checking the tangents show flag. */
-	bool IsSetShowTangentsChecked() const;
+	bool IsShowTangentsChecked() const;
 
 	/** Callback for toggling the binormals show flag. */
-	void SetShowBinormals();
+	void ToggleShowBinormals();
 	
 	/** Callback for checking the binormals show flag. */
-	bool IsSetShowBinormalsChecked() const;
+	bool IsShowBinormalsChecked() const;
 
 	/** Callback for toggling simple collision drawing. */
-	void SetShowSimpleCollision();
+	void ToggleShowSimpleCollision();
 
 	/** Callback for checking simple collision drawing. */
-	bool IsSetShowSimpleCollisionChecked() const;
+	bool IsShowSimpleCollisionChecked() const;
 
 	/** Callback for toggling complex collision drawing. */
-	void SetShowComplexCollision();
+	void ToggleShowComplexCollision();
 
 	/** Callback for checking complex collision drawing. */
-	bool IsSetShowComplexCollisionChecked() const;
+	bool IsShowComplexCollisionChecked() const;
 
 	/** Callback for toggling the socket show flag. */
-	void SetShowSockets();
+	void ToggleShowSockets();
 
 	/** Callback for checking the socket show flag. */
-	bool IsSetShowSocketsChecked() const;
+	bool IsShowSocketsChecked() const;
 
 	/** Callback for toggling the pivot show flag. */
-	void SetShowPivot();
+	void ToggleShowPivot();
 
 	/** Callback for checking the pivot show flag. */
-	bool IsSetShowPivotChecked() const;
+	bool IsShowPivotChecked() const;
 
 	/** Callback for toggling the additional data drawing flag. */
-	void SetDrawAdditionalData();
+	void ToggleDrawAdditionalData();
 
 	/** Callback for checking the additional data drawing flag. */
-	bool IsSetDrawAdditionalData() const;
+	bool IsDrawAdditionalDataChecked() const;
 
 	/** Callback for toggling the vertices drawing flag. */
-	void SetDrawVertices();
+	void ToggleDrawVertices();
 
 	/** Callback for checking the vertices drawing flag. */
-	bool IsSetDrawVerticesChecked() const;
+	bool IsDrawVerticesChecked() const;
 
 	/** Used to toggle the floor when vertex colours should be shown */
 	void SetFloorAndEnvironmentVisibility(const bool bVisible);

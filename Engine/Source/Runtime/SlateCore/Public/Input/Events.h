@@ -59,7 +59,7 @@ namespace EKeyboardFocusCause
  * FFocusEvent is used when notifying widgets about keyboard focus changes
  * It is passed to event handlers dealing with keyboard focus
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FFocusEvent
 {
 	GENERATED_USTRUCT_BODY()
@@ -461,23 +461,6 @@ struct TStructOpsTypeTraits<FKeyEvent> : public TStructOpsTypeTraitsBase2<FKeyEv
 	};
 };
 
-/** DEPRECATED 4.6 - Do not use */
-//@Todo slate: Remove this as soon as the 4.6 deprecated API is Removed.
-#define FKeyboardEvent \
-	FKeyEvent \
-	EMIT_DEPRECATED_WARNING_MESSAGE("FKeyboardEvent is deprecated in 4.6 and was renamed to FKeyEvent. Please use that type instead.")
-/*
-USTRUCT(BlueprintType)
-struct FKeyboardEvent : public FKeyEvent
-//struct DEPRECATED(4.6, "Use FKeyEvent") FKeyboardEvent : public FKeyEvent
-{
-	GENERATED_USTRUCT_BODY()
-public:
-	FKeyEvent() {}
-
-	FKeyEvent(const FKey InKey, const FModifierKeysState& InModifierKeys, const uint32 InUserIndex, const bool bInIsRepeat, const uint32 InCharacterCode, const uint32 InKeyCode)
-		: FKeyEvent(InKey, InModifierKeys, InUserIndex, bInIsRepeat, InCharacterCode, InKeyCode) {}
-}*/
 
 /**
  * FAnalogEvent describes a analog key value.
@@ -546,7 +529,7 @@ struct TStructOpsTypeTraits<FAnalogInputEvent> : public TStructOpsTypeTraitsBase
 /**
  * FCharacterEvent describes a keyboard action where the utf-16 code is given.  Used for OnKeyChar messages
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FCharacterEvent
 	: public FInputEvent
 {
@@ -752,7 +735,7 @@ public:
 		const FVector2D& InLastScreenSpacePosition,
 		const TSet<FKey>& InPressedButtons,
 		const FModifierKeysState& InModifierKeys,
-		EGestureEvent::Type InGestureType,
+		EGestureEvent InGestureType,
 		const FVector2D& InGestureDelta,
 		bool bInIsDirectionInvertedFromDevice
 	)
@@ -801,7 +784,7 @@ public:
 	bool IsTouchEvent() const { return bIsTouchEvent; }
 
 	/** @return The type of touch gesture */
-	EGestureEvent::Type GetGestureType() const { return GestureType; }
+	EGestureEvent GetGestureType() const { return GestureType; }
 
 	/** @return The change in gesture value since the last gesture event of the same type. */
 	const FVector2D& GetGestureDelta() const { return WheelOrGestureDelta; }
@@ -853,7 +836,7 @@ private:
 	uint32 PointerIndex;
 	uint32 TouchpadIndex;
 	bool bIsTouchEvent;
-	EGestureEvent::Type GestureType;
+	EGestureEvent GestureType;
 	FVector2D WheelOrGestureDelta;
 	bool bIsDirectionInvertedFromDevice;
 	// NOTE: If you add a new member, make sure you add it to the assignment operator.
@@ -862,46 +845,6 @@ private:
 
 template<>
 struct TStructOpsTypeTraits<FPointerEvent> : public TStructOpsTypeTraitsBase2<FPointerEvent>
-{
-	enum
-	{
-		WithCopy = true,
-	};
-};
-
-/** DEPRECATED 4.6 - Do not use */
-//@Todo slate: Remove this as soon as the 4.6 deprecated API is Removed.
-USTRUCT(BlueprintType)
-struct FControllerEvent
-	: public FInputEvent
-{
-	GENERATED_USTRUCT_BODY()
-public:
-
-	FControllerEvent()
-		: EffectingButton(EKeys::Gamepad_RightTrigger)
-		, AnalogValue(0)
-	{ }
-
-	FControllerEvent( FKey InEffectingButton, int32 InUserIndex, float InAnalogValue, bool bIsRepeat )
-		: FInputEvent(FModifierKeysState(), InUserIndex, bIsRepeat)
-		, EffectingButton(InEffectingButton)
-		, AnalogValue(InAnalogValue)
-	{ }
-
-public:
-	FKey GetEffectingButton() const { return EffectingButton; }
-	float GetAnalogValue() const { return AnalogValue; }
-
-	SLATECORE_API virtual FText ToText() const override;
-
-private:
-	FKey EffectingButton;
-	float AnalogValue;
-};
-
-template<>
-struct TStructOpsTypeTraits<FControllerEvent> : public TStructOpsTypeTraitsBase2<FControllerEvent>
 {
 	enum
 	{

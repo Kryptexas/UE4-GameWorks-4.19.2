@@ -128,7 +128,18 @@ float UUserInterfaceSettings::GetDPIScaleBasedOnSize(FIntPoint Size) const
 
 void UUserInterfaceSettings::ForceLoadResources()
 {
-	if (bLoadWidgetsOnDedicatedServer || !IsRunningDedicatedServer())
+	bool bShouldLoadCurors = true;
+
+	if (IsRunningCommandlet())
+	{
+		bShouldLoadCurors = false;
+	}
+	else if (IsRunningDedicatedServer())
+	{
+		bShouldLoadCurors = bLoadWidgetsOnDedicatedServer;
+	}
+
+	if (bShouldLoadCurors)
 	{
 		TArray<UObject*> LoadedClasses;
 		for ( auto& Entry : SoftwareCursors )
@@ -136,11 +147,16 @@ void UUserInterfaceSettings::ForceLoadResources()
 			LoadedClasses.Add(Entry.Value.TryLoad());
 		}
 
-		for (UObject* Cursor : LoadedClasses)
+		for (int32 i = 0; i < LoadedClasses.Num(); ++i)
 		{
+			UObject* Cursor = LoadedClasses[i];
 			if (Cursor)
 			{
 				CursorClasses.Add(Cursor);
+			}
+			else
+			{
+				UE_LOG(LogLoad, Warning, TEXT("UUserInterfaceSettings::ForceLoadResources: Failed to load cursor resource %d."), i);
 			}
 		}
 

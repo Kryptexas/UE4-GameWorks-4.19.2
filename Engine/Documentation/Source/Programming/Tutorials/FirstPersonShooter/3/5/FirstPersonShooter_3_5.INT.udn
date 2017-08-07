@@ -3,7 +3,7 @@ Title: 3.5 - Adding Crosshairs to your Viewport
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/3
 Description: Learn how to add crosshairs to the viewport for your First Person Shooter project.
 SkillLevel: Beginner
-Version: 4.11
+Version: 4.15
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -194,7 +194,7 @@ C++ classes to Blueprints.
 				void FireInDirection(const FVector& ShootDirection);
 			
 				// Function that is called when the projectile hits something.
-				void OnHit(class AActor* OtherActor, class UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit);
+				void OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit);
 			
 			};
 
@@ -287,7 +287,7 @@ C++ classes to Blueprints.
 				virtual void Tick( float DeltaSeconds ) override;
 			
 				// Called to bind functionality to input.
-				virtual void SetupPlayerInputComponent(UInputComponent* InputComponent) override;
+				virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 			
 				// Handles input for moving forward and backward.
 				UFUNCTION()
@@ -342,7 +342,7 @@ C++ classes to Blueprints.
 				// Create a first person camera component.
 				FPSCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
 				// Attach the camera component to our capsule component.
-				FPSCameraComponent->AttachTo(GetCapsuleComponent());
+				FPSCameraComponent->SetupAttachment(GetCapsuleComponent());
 				// Position the camera slightly above the eyes.
 				FPSCameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 50.0f + BaseEyeHeight));
 				// Allow the pawn to control camera rotation.
@@ -353,7 +353,7 @@ C++ classes to Blueprints.
 				// Only the owning player sees this mesh.
 				FPSMesh->SetOnlyOwnerSee(true);
 				// Attach the FPS mesh to the FPS camera.
-				FPSMesh->AttachTo(FPSCameraComponent);
+				FPSMesh->SetupAttachment(FPSCameraComponent);
 				// Disable some environmental shadowing to preserve the illusion of having a single mesh.
 				FPSMesh->bCastDynamicShadow = false;
 				FPSMesh->CastShadow = false;
@@ -382,22 +382,22 @@ C++ classes to Blueprints.
 			}
 			
 			// Called to bind functionality to input.
-			void AFPSCharacter::SetupPlayerInputComponent(UInputComponent* InputComponent)
+			void AFPSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 			{
-				Super::SetupPlayerInputComponent(InputComponent);
+				Super::SetupPlayerInputComponent(PlayerInputComponent);
 			
 				// Set up "movement" bindings.
-				InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
-				InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
+				PlayerInputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
+				PlayerInputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
 			
 				// Set up "look" bindings.
-				InputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
-				InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
+				PlayerInputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
+				PlayerInputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
 			
 				// Set up "action" bindings.
-				InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
-				InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::StopJump);
-				InputComponent->BindAction("Fire", IE_Pressed, this, &AFPSCharacter::Fire);
+				PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
+				PlayerInputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::StopJump);
+				PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AFPSCharacter::Fire);
 			}
 			
 			void AFPSCharacter::MoveForward(float Value)

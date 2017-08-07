@@ -1,11 +1,13 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3401080
 Availability:Public
 Title: 데이터 주도형 게임플레이 요소
-Crumbs:%ROOT%, Gameplay
+Crumbs:%ROOT%
 Description:외부 저장 데이터를 사용하여 게임플레이 요소를 구동시키는 법입니다.
 version: 4.9
+type:reference
+tags:Gameplay
 
-[TOC(start:2)]
+[toc(start:2 end:2)]
 
 데이터 주도형 게임플레이는 전형적인 패키지 게임보다 훨씬 수명이 긴 게임이나, 
 플레이어 피드백에 따라 데이터의 지속적인 트윅 및 밸런싱 작업이 필요한 게임에 관련된 

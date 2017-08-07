@@ -1,11 +1,12 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3429254
 Availability: Public
 Title:폰 빙의
 Crumbs: %ROOT%, Gameplay
 Description:언리얼 엔진 4 에서 다양한 폰을 빙의하는 비법 안내입니다.
 Version: 4.9
 Parent:Gameplay
-type:how-to
+SkillLevel: Intermediate
+type:overview
 order:3
 
 게임의 여러 플레이가능 캐릭터를 전환하거나, 캐릭터가 (차량, 비행기, 탱크 등의) 비히클에 탑승하도록 하거나, 별도로 제어되는 다른 폰(플레이어가 제어할 수 있는 일체형 기관총같은 것)을 제어하도록 하려는 경우, 거기에 입력 정보를 전달하기 위해서는 그 **캐릭터** 또는 **폰** 을 **빙의** (Possess)하는 것이 좋을 것입니다.
@@ -14,16 +15,9 @@ order:3
 
 아래 **구성** 부분의 링크를 통해 블루프린트를 사용한 **폰 빙의** 예제를 참고할 수 있습니다.
 
-## 구성
+## 구현 안내
 
-블루프린트를 사용한 **폰 빙의** 관련 상세 정보는, 아래 링크를 참고하세요:
-
-[REGION:buttonlist]
-* [](Gameplay\HowTo\PossessPawns\Blueprints)
-[PUBLISH:Docs]
-* [](Gameplay\HowTo\PossessPawns\Code)
-[/PUBLISH:Docs]
-[/REGION]
+[DIR(output:"role" parent:"Gameplay/HowTo/PossessPawns" org:"hierarchy" end:"1")]
 
 
 

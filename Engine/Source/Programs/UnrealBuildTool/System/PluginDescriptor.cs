@@ -114,11 +114,6 @@ namespace UnrealBuildTool
 		public string EngineVersion;
 
 		/// <summary>
-		/// For packaged plugins, contains the changelist that this plugin is compatible with
-		/// </summary>
-		public int CompatibleChangelist;
-
-		/// <summary>
 		/// List of all modules associated with this plugin
 		/// </summary>
 		public ModuleDescriptor[] Modules;
@@ -172,6 +167,11 @@ namespace UnrealBuildTool
 		/// Set of post-build steps to execute, keyed by host platform name.
 		/// </summary>
 		public CustomBuildSteps PostBuildSteps;
+
+		/// <summary>
+		/// Additional plugins that this plugin depends on
+		/// </summary>
+		public PluginReferenceDescriptor[] Plugins;
 
 		/// <summary>
 		/// Private constructor. This object should not be created directly; read it from disk using FromFile() instead.
@@ -235,7 +235,6 @@ namespace UnrealBuildTool
 				RawObject.TryGetStringField("MarketplaceURL", out Descriptor.MarketplaceURL);
 				RawObject.TryGetStringField("SupportURL", out Descriptor.SupportURL);
 				RawObject.TryGetStringField("EngineVersion", out Descriptor.EngineVersion);
-				RawObject.TryGetIntegerField("CompatibleChangelist", out Descriptor.CompatibleChangelist);
 
 				JsonObject[] ModulesArray;
 				if (RawObject.TryGetObjectArrayField("Modules", out ModulesArray))
@@ -263,6 +262,12 @@ namespace UnrealBuildTool
 
 				CustomBuildSteps.TryRead(RawObject, "PreBuildSteps", out Descriptor.PreBuildSteps);
 				CustomBuildSteps.TryRead(RawObject, "PostBuildSteps", out Descriptor.PostBuildSteps);
+
+				JsonObject[] PluginsArray;
+				if(RawObject.TryGetObjectArrayField("Plugins", out PluginsArray))
+				{
+					Descriptor.Plugins = Array.ConvertAll(PluginsArray, x => PluginReferenceDescriptor.FromJsonObject(x));
+				}
 
 				return Descriptor;
 			}
@@ -298,10 +303,6 @@ namespace UnrealBuildTool
 				{
 					Writer.WriteValue("EngineVersion", EngineVersion);
 				}
-				if(CompatibleChangelist != 0)
-				{
-					Writer.WriteValue("CompatibleChangelist", CompatibleChangelist);
-				}
 				if(bEnabledByDefault != bPluginTypeEnabledByDefault)
 				{
 					Writer.WriteValue("EnabledByDefault", bEnabledByDefault);
@@ -326,6 +327,8 @@ namespace UnrealBuildTool
 				{
 					PostBuildSteps.Write(Writer, "PostBuildSteps");
 				}
+
+				PluginReferenceDescriptor.WriteArray(Writer, "Plugins", Plugins);
 
 				Writer.WriteObjectEnd();
 			}
@@ -394,6 +397,65 @@ namespace UnrealBuildTool
 			Name = InName;
 			MarketplaceURL = InMarketplaceURL;
 			bEnabled = bInEnabled;
+		}
+
+		/// <summary>
+		/// Construct a PluginReferenceDescriptor from a Json object
+		/// </summary>
+		/// <param name="Writer">The writer for output fields</param>
+		public void Write(JsonWriter Writer)
+		{
+			Writer.WriteObjectStart();
+			Writer.WriteValue("Name", Name);
+			Writer.WriteValue("Enabled", bEnabled);
+			if(bEnabled && bOptional)
+			{
+				Writer.WriteValue("Optional", bOptional);
+			}
+			if(!String.IsNullOrEmpty(Description))
+			{
+				Writer.WriteValue("Description", Description);
+			}
+			if(!String.IsNullOrEmpty(MarketplaceURL))
+			{
+				Writer.WriteValue("MarketplaceURL", MarketplaceURL);
+			}
+			if(WhitelistPlatforms != null && WhitelistPlatforms.Length > 0)
+			{
+				Writer.WriteEnumArrayField("WhitelistPlatforms", WhitelistPlatforms);
+			}
+			if(BlacklistPlatforms != null && BlacklistPlatforms.Length > 0)
+			{
+				Writer.WriteEnumArrayField("BlacklistPlatforms", BlacklistPlatforms);
+			}
+			if(WhitelistTargets != null && WhitelistTargets.Length > 0)
+			{
+				Writer.WriteEnumArrayField("WhitelistTargets", WhitelistTargets);
+			}
+			if(BlacklistTargets != null && BlacklistTargets.Length > 0)
+			{
+				Writer.WriteEnumArrayField("BlacklistTargets", BlacklistTargets);
+			}
+			Writer.WriteObjectEnd();
+		}
+
+		/// <summary>
+		/// Write an array of module descriptors
+		/// </summary>
+		/// <param name="Writer">The Json writer to output to</param>
+		/// <param name="Name">Name of the array</param>
+		/// <param name="Plugins">Array of plugins</param>
+		public static void WriteArray(JsonWriter Writer, string Name, PluginReferenceDescriptor[] Plugins)
+		{
+			if (Plugins != null && Plugins.Length > 0)
+			{
+				Writer.WriteArrayStart(Name);
+				foreach (PluginReferenceDescriptor Plugin in Plugins)
+				{
+					Plugin.Write(Writer);
+				}
+				Writer.WriteArrayEnd();
+			}
 		}
 
 		/// <summary>

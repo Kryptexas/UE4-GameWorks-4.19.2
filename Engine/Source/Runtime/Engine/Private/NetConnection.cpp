@@ -94,10 +94,13 @@ UNetConnection::UNetConnection(const FObjectInitializer& ObjectInitializer)
 ,	OutPacketId			( 0 ) // must be initialized as OutAckPacketId + 1 so loss of first packet can be detected
 ,	OutAckPacketId		( -1 )
 ,	bLastHasServerFrameTime( false )
+,	InitOutReliable		( 0 )
+,	InitInReliable		( 0 )
 ,	EngineNetworkProtocolVersion( FNetworkVersion::GetEngineNetworkProtocolVersion() )
 ,	GameNetworkProtocolVersion( FNetworkVersion::GetGameNetworkProtocolVersion() )
 ,	ClientWorldPackageName( NAME_None )
 ,	bResendAllDataSinceOpen( false )
+,	PlayerOnlinePlatformName( NAME_None )
 {
 }
 
@@ -237,6 +240,7 @@ void UNetConnection::InitHandler()
 		{
 			Handler::Mode Mode = Driver->ServerConnection != nullptr ? Handler::Mode::Client : Handler::Mode::Server;
 
+			Handler->InitializeDelegates(FPacketHandlerLowLevelSend::CreateUObject(this, &UNetConnection::LowLevelSend));
 			Handler->Initialize(Mode, MaxPacket * 8);
 
 
@@ -269,6 +273,33 @@ void UNetConnection::InitHandler()
 	SET_DWORD_STAT(STAT_PacketReservedNetConnection, MAX_PACKET_HEADER_BITS + MAX_PACKET_TRAILER_BITS);
 	SET_DWORD_STAT(STAT_PacketReservedPacketHandler, MaxPacketHandlerBits);
 #endif
+}
+
+void UNetConnection::InitSequence(int32 IncomingSequence, int32 OutgoingSequence)
+{
+	// Make sure the sequence hasn't already been initialized
+	check(InPacketId == -1);
+
+	// Initialize the base UNetConnection packet sequence (not very useful/effective at preventing attacks)
+	InPacketId = IncomingSequence - 1;
+	OutPacketId = OutgoingSequence;
+	OutAckPacketId = OutgoingSequence - 1;
+
+	// Initialize the reliable packet sequence (more useful/effective at preventing attacks)
+	InitInReliable = IncomingSequence & (MAX_CHSEQUENCE - 1);
+	InitOutReliable = OutgoingSequence & (MAX_CHSEQUENCE - 1);
+
+	UE_LOG(LogNet, Verbose, TEXT("InitSequence: IncomingSequence: %i, OutgoingSequence: %i, InitInReliable: %i, InitOutReliable: %i"), IncomingSequence, OutgoingSequence, InitInReliable, InitOutReliable);
+
+	for (int32 i=0; i<ARRAY_COUNT(InReliable); i++)
+	{
+		InReliable[i] = InitInReliable;
+	}
+
+	for (int32 i=0; i<ARRAY_COUNT(OutReliable); i++)
+	{
+		OutReliable[i] = InitOutReliable;
+	}
 }
 
 void UNetConnection::Serialize( FArchive& Ar )
@@ -304,7 +335,11 @@ void UNetConnection::Close()
 			Channels[0]->Close();
 		}
 		State = USOCK_Closed;
-		FlushNet();
+
+		if ((Handler == nullptr || Handler->IsFullyInitialized()) && HasReceivedClientPacket())
+		{
+			FlushNet();
+		}
 	}
 
 	LogCallLastTime		= 0;
@@ -644,6 +679,10 @@ void UNetConnection::FlushNet(bool bIgnoreSimulation)
 {
 	check(Driver);
 
+	// Due to the PacketHandler handshake code, servers must never send the client data,
+	// before first receiving a client control packet (which is taken as an indication of a complete handshake).
+	check(HasReceivedClientPacket())
+
 	// Update info.
 	ValidateSendBuffer();
 	LastEnd = FBitWriterMark();
@@ -805,6 +844,7 @@ void UNetConnection::ReceivedNak( int32 NakPacketId )
 
 void UNetConnection::ReceivedPacket( FBitReader& Reader )
 {
+	SCOPED_NAMED_EVENT(UNetConnection_ReceivedPacket, FColor::Green);
 	AssertValid();
 
 	// Handle PacketId.
@@ -1176,7 +1216,7 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 				}
 
 				// Reliable (either open or later), so create new channel.
-				UE_LOG(LogNetTraffic, Log, TEXT("      Bunch Create %i: ChType %i, bReliable: %i, bPartial: %i, bPartialInitial: %i, bPartialFinal: %i"), Bunch.ChIndex, Bunch.ChType, (int)Bunch.bReliable, (int)Bunch.bPartial, (int)Bunch.bPartialInitial, (int)Bunch.bPartialFinal );
+				UE_LOG(LogNetTraffic, Log, TEXT("      Bunch Create %i: ChType %i, ChSequence: %i, bReliable: %i, bPartial: %i, bPartialInitial: %i, bPartialFinal: %i"), Bunch.ChIndex, Bunch.ChType, Bunch.ChSequence, (int)Bunch.bReliable, (int)Bunch.bPartial, (int)Bunch.bPartialInitial, (int)Bunch.bPartialFinal );
 				Channel = CreateChannel( (EChannelType)Bunch.ChType, false, Bunch.ChIndex );
 
 				// Notify the server of the new channel.
@@ -1239,6 +1279,12 @@ int32 UNetConnection::WriteBitsToSendBuffer(
 	EWriteBitsDataType DataType)
 {
 	ValidateSendBuffer();
+
+#if !UE_BUILD_SHIPPING
+	// Now that the stateless handshake is responsible for initializing the packet sequence numbers,
+	//	we can't allow any packets to be written to the send buffer until after this has completed
+	check(!Handler.IsValid() || Handler->IsFullyInitialized());
+#endif
 
 	const int32 TotalSizeInBits = SizeInBits + ExtraSizeInBits;
 
@@ -1554,6 +1600,13 @@ float UNetConnection::GetTimeoutValue()
 		Timeout = bPendingDestroy ? 2.f : ConnectionTimeout;
 	}
 
+#if WITH_EDITOR || UE_BUILD_DEBUG
+	if (Driver->TimeoutMultiplierForUnoptimizedBuilds > 0)
+	{
+		Timeout *= Driver->TimeoutMultiplierForUnoptimizedBuilds;
+	}
+#endif
+
 	return Timeout;
 }
 
@@ -1754,7 +1807,7 @@ void UNetConnection::Tick()
 		}
 
 		// If channel 0 has closed, mark the connection as closed.
-		if( Channels[0]==NULL && (OutReliable[0]!=0 || InReliable[0]!=0) )
+		if (Channels[0] == nullptr && (OutReliable[0] != InitOutReliable || InReliable[0] != InitInReliable))
 		{
 			State = USOCK_Closed;
 		}
@@ -1762,15 +1815,39 @@ void UNetConnection::Tick()
 
 	// Flush.
 	PurgeAcks();
-	if( TimeSensitive || Driver->Time-LastSendTime>Driver->KeepAliveTime )
+
+	if ( TimeSensitive || (Driver->Time - LastSendTime) > Driver->KeepAliveTime)
 	{
-		FlushNet();
+		bool bHandlerHandshakeComplete = !Handler.IsValid() || Handler->IsFullyInitialized();
+
+		// Delay any packet sends on the server, until we've verified that a packet has been received from the client.
+		if (bHandlerHandshakeComplete && HasReceivedClientPacket())
+		{
+			FlushNet();
+		}
 	}
 
 	// Tick Handler
 	if (Handler.IsValid())
 	{
 		Handler->Tick(FrameTime);
+
+		// Resend any queued up raw packets (these come from the reliability handler)
+		BufferedPacket* ResendPacket = Handler->GetQueuedRawPacket();
+
+		if (ResendPacket && Driver->IsNetResourceValid())
+		{
+			Handler->SetRawSend(true);
+
+			while (ResendPacket != nullptr)
+			{
+				LowLevelSend(ResendPacket->Data, FMath::DivideAndRoundUp(ResendPacket->CountBits, 8u), ResendPacket->CountBits);
+				ResendPacket = Handler->GetQueuedRawPacket();
+			}
+
+			Handler->SetRawSend(false);
+		}
+
 		BufferedPacket* QueuedPacket = Handler->GetQueuedPacket();
 
 		/* Send all queued packets */
@@ -2214,4 +2291,9 @@ void UNetConnection::ResetPacketBitCounts()
 	NumBunchBits = 0;
 	NumAckBits = 0;
 	NumPaddingBits = 0;
+}
+
+void UNetConnection::SetPlayerOnlinePlatformName(const FName InPlayerOnlinePlatformName)
+{
+	PlayerOnlinePlatformName = InPlayerOnlinePlatformName;
 }

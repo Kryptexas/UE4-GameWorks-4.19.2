@@ -8,6 +8,8 @@
 #include "RawMesh.h"
 #include "MeshSimplify.h"
 #include "UniquePtr.h"
+#include "Features/IModularFeatures.h"
+#include "IMeshReductionInterfaces.h"
 
 class FQuadricSimplifierMeshReductionModule : public IMeshReductionModule
 {
@@ -22,6 +24,8 @@ public:
 	virtual class IMeshReduction* GetStaticMeshReductionInterface() override;
 	virtual class IMeshReduction* GetSkeletalMeshReductionInterface() override;
 	virtual class IMeshMerging* GetMeshMergingInterface() override;
+	virtual class IMeshMerging* GetDistributedMeshMergingInterface() override;	
+	virtual FString GetName() override;
 };
 
 
@@ -49,9 +53,10 @@ public:
 	void			Correct()
 	{
 		Normal.Normalize();
-		Tangents[0] = Tangents[0] - ( Tangents[0] * Normal ) * Normal;
-		Tangents[1] = Tangents[1] - ( Tangents[1] * Normal ) * Normal;
+		Tangents[0] -= ( Tangents[0] * Normal ) * Normal;
 		Tangents[0].Normalize();
+		Tangents[1] -= ( Tangents[1] * Normal ) * Normal;
+		Tangents[1] -= ( Tangents[1] * Tangents[0] ) * Tangents[0];
 		Tangents[1].Normalize();
 		Color = Color.GetClamped();
 	}
@@ -221,6 +226,8 @@ public:
 					}
 				}
 
+				// Make sure this vertex is valid from the start
+				NewVert.Correct();
 
 				DupVerts.Reset();
 				InOverlappingCorners.MultiFind( WedgeIndex, DupVerts );
@@ -453,11 +460,13 @@ TUniquePtr<FQuadricSimplifierMeshReduction> GQuadricSimplifierMeshReduction;
 void FQuadricSimplifierMeshReductionModule::StartupModule()
 {
 	GQuadricSimplifierMeshReduction.Reset(FQuadricSimplifierMeshReduction::Create());
+	IModularFeatures::Get().RegisterModularFeature(IMeshReductionModule::GetModularFeatureName(), this);
 }
 
 void FQuadricSimplifierMeshReductionModule::ShutdownModule()
 {
 	GQuadricSimplifierMeshReduction = nullptr;
+	IModularFeatures::Get().UnregisterModularFeature(IMeshReductionModule::GetModularFeatureName(), this);
 }
 
 IMeshReduction* FQuadricSimplifierMeshReductionModule::GetStaticMeshReductionInterface()
@@ -473,4 +482,14 @@ IMeshReduction* FQuadricSimplifierMeshReductionModule::GetSkeletalMeshReductionI
 IMeshMerging* FQuadricSimplifierMeshReductionModule::GetMeshMergingInterface()
 {
 	return nullptr;
+}
+
+class IMeshMerging* FQuadricSimplifierMeshReductionModule::GetDistributedMeshMergingInterface()
+{
+	return nullptr;
+}
+
+FString FQuadricSimplifierMeshReductionModule::GetName()
+{
+	return FString("QuadricMeshReduction");	
 }

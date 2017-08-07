@@ -105,11 +105,7 @@ void FDynamicParameter::Update(float DeltaTime)
 -----------------------------------------------------------------------------*/
 
 FAudioDevice::FAudioDevice()
-	: MaxChannels(0)
-	, NumSourceWorkers(0)
-	, SampleRate(AUDIO_SAMPLE_RATE)
-	, DeviceOutputBufferLength(0)
-	, CommonAudioPool(nullptr)
+	: CommonAudioPool(nullptr)
 	, CommonAudioPoolFreeBytes(0)
 	, DeviceHandle(INDEX_NONE)
 	, AudioPlugin(nullptr)
@@ -146,6 +142,7 @@ FAudioDevice::FAudioDevice()
 	, bAllowCenterChannel3DPanning(false)
 	, bHasActivatedReverb(false)
 	, bAllowVirtualizedSounds(true)
+	, bUseAttenuationForNonGameWorlds(false)
 #if !UE_BUILD_SHIPPING
 	, RequestedAudioStats(0)
 #endif
@@ -174,31 +171,17 @@ bool FAudioDevice::Init(int32 InMaxChannels)
 
 	bool bDeferStartupPrecache = false;
 
-	// initialize config variables
-	MaxChannels = InMaxChannels;
+	// initialize max channels taking into account platform configurations
+	// Get a copy of the platform-specific settings (overriden by platforms)
+	PlatformSettings = GetPlatformSettings();
 
-	// Setup the desired sample rate and buffer length
-	DeviceOutputBufferLength = 1024;
+	// MaxChannels is the min of the platform-specific value and the max value in the quality settings (InMaxChannels)
+	MaxChannels = PlatformSettings.MaxChannels > 0 ? FMath::Min(PlatformSettings.MaxChannels, InMaxChannels) : InMaxChannels;
 
-	int32 ConfigBufferLength = 0;
-	if (GConfig->GetInt(TEXT("Audio"), TEXT("AudioMixerBufferLength"), ConfigBufferLength, GEngineIni))
-	{
-		// only allow power of 2 buffer size
-		ConfigBufferLength = FMath::RoundUpToPowerOfTwo(ConfigBufferLength);
+	// Mixed sample rate is set by the platform
+	SampleRate = PlatformSettings.SampleRate;
 
-		// use a min buffer length of 128
-		DeviceOutputBufferLength = FMath::Max(128, ConfigBufferLength);
-	}
-
-	// Setup the number of desired source workers
-	NumSourceWorkers = 4;
-
-	int32 ConfigSourceWorkers = 0;
-	if (GConfig->GetInt(TEXT("Audio"), TEXT("AudioMixerSourceWorkers"), ConfigSourceWorkers, GEngineIni))
-	{
-		// Only allow workers in the range of our channels...
-		NumSourceWorkers = FMath::Clamp(ConfigSourceWorkers, 0, MaxChannels);
-	}
+	check(MaxChannels != 0);
 
 	verify(GConfig->GetInt(TEXT("Audio"), TEXT("CommonAudioPoolSize"), CommonAudioPoolSize, GEngineIni));
 
@@ -229,7 +212,7 @@ bool FAudioDevice::Init(int32 InMaxChannels)
 	InitSoundClasses();
 	InitSoundEffectPresets();
 
-// 	// Audio mixer needs to create effects manager before initing the plugins
+	// Audio mixer needs to create effects manager before initializing the plugins.
 	if (IsAudioMixerEnabled())
 	{
 		// create a platform specific effects manager
@@ -254,7 +237,6 @@ bool FAudioDevice::Init(int32 InMaxChannels)
 
 		// Initialize the plugin
 		Plugin->Initialize();
-
 
 		// Create feature override interfaces. Note these can be null if the audio plugin is not creating an override for the feature.
 		SpatializationPluginInterface = Plugin->CreateSpatializationInterface(this);
@@ -334,7 +316,7 @@ void FAudioDevice::PrecacheStartupSounds()
 
 void FAudioDevice::SetMaxChannels(int32 InMaxChannels)
 {
-	if (InMaxChannels >= Sources.Num())
+	if (InMaxChannels > Sources.Num())
 	{
 		UE_LOG(LogAudio, Warning, TEXT("Can't increase channels past starting number!"));
 		return;
@@ -951,27 +933,14 @@ bool FAudioDevice::HandleResetSoundStateCommand(const TCHAR* Cmd, FOutputDevice&
 
 bool FAudioDevice::HandleToggleSpatializationExtensionCommand(const TCHAR* Cmd, FOutputDevice& Ar)
 {
-	FAudioThread::SuspendAudioThread();
-
-	bSpatializationInterfaceEnabled = !bSpatializationInterfaceEnabled;
-
-	FAudioThread::ResumeAudioThread();
+	SetSpatializationInterfaceEnabled(!bSpatializationInterfaceEnabled);
 
 	return true;
 }
 
 bool FAudioDevice::HandleEnableHRTFForAllCommand(const TCHAR* Cmd, FOutputDevice& Ar)
 {
-	const bool bNewHRTFEnabledForAll = !bHRTFEnabledForAll_OnGameThread;
-
-	bHRTFEnabledForAll_OnGameThread = bNewHRTFEnabledForAll;
-
-	FAudioDevice* AudioDevice = this;
-	FAudioThread::RunCommandOnAudioThread([AudioDevice, bNewHRTFEnabledForAll]()
-	{
-		AudioDevice->bHRTFEnabledForAll = bNewHRTFEnabledForAll;
-
-	});
+	SetHRTFEnabledForAll(!bHRTFEnabledForAll_OnGameThread);
 
 	return true;
 }
@@ -2912,16 +2881,32 @@ int32 FAudioDevice::GetSortedActiveWaveInstances(TArray<FWaveInstance*>& WaveIns
 	return(FirstActiveIndex);
 }
 
-void FAudioDevice::UpdateActiveSoundPlaybackTime()
+void FAudioDevice::UpdateActiveSoundPlaybackTime(bool bIsGameTicking)
 {
-	for (int32 i = 0; i < ActiveSounds.Num(); ++i)
+	if (bIsGameTicking)
 	{
-		ActiveSounds[i]->PlaybackTime += DeviceDeltaTime;
+		for (FActiveSound* ActiveSound : ActiveSounds)
+		{
+			ActiveSound->PlaybackTime += DeviceDeltaTime;
+		}
 	}
+	else if (GIsEditor)
+	{
+		for (FActiveSound* ActiveSound : ActiveSounds)
+		{
+			if (ActiveSound->bIsPreviewSound)
+			{
+				ActiveSound->PlaybackTime += DeviceDeltaTime;
+			}
+		}
+	}
+
 }
 
 void FAudioDevice::StopSources(TArray<FWaveInstance*>& WaveInstances, int32 FirstActiveIndex)
 {
+	SCOPED_NAMED_EVENT(FAudioDevice_StopSources, FColor::Blue);
+
 	// Touch sources that are high enough priority to play
 	for (int32 InstanceIndex = FirstActiveIndex; InstanceIndex < WaveInstances.Num(); InstanceIndex++)
 	{
@@ -3095,7 +3080,7 @@ void FAudioDevice::StartSources(TArray<FWaveInstance*>& WaveInstances, int32 Fir
 					}
 				}
 			}
-			else if (!Source)
+			else
 			{
 				// This can happen if the streaming manager determines that this sound should not be started.
 				// We stop the wave instance to prevent it from attempting to initialize every frame
@@ -3107,6 +3092,7 @@ void FAudioDevice::StartSources(TArray<FWaveInstance*>& WaveInstances, int32 Fir
 
 void FAudioDevice::Update(bool bGameTicking)
 {
+	SCOPED_NAMED_EVENT(FAudioDevice_Update, FColor::Blue);
 	if (!IsInAudioThread())
 	{
 
@@ -3217,11 +3203,12 @@ void FAudioDevice::Update(bool bGameTicking)
 		StartSources(ActiveWaveInstances, FirstActiveIndex, bGameTicking);
 
 		// Check which sounds are active from these wave instances and update passive SoundMixes
-
 		UpdatePassiveSoundMixModifiers(ActiveWaveInstances, FirstActiveIndex);
 
-		// Update the playback time of the active sounds after we've processed passive mix modifiers
-		UpdateActiveSoundPlaybackTime();
+		// If not paused, update the playback time of the active sounds after we've processed passive mix modifiers 
+		// Note that for sounds which play while paused, this will result in longer active sound playback times, which will be ok. If we update the 
+		// active sound is updated while paused (for a long time), most sounds will be stopped when unpaused.
+		UpdateActiveSoundPlaybackTime(bGameTicking);
 
 		const int32 Channels = GetMaxChannels();
 		INC_DWORD_STAT_BY(STAT_WaveInstances, ActiveWaveInstances.Num());
@@ -3440,6 +3427,15 @@ void FAudioDevice::AddNewActiveSound(const FActiveSound& NewActiveSound)
 		return;
 	}
 
+	if (GIsEditor)
+	{
+		// If the sound played on an editor preview world, treat it as a preview sound (unpausable and ignoring the realtime volume slider)
+		if (const UWorld* World = NewActiveSound.GetWorld())
+		{
+			ActiveSound->bIsPreviewSound = (World->WorldType == EWorldType::EditorPreview);
+		}
+	}
+
 	++NewActiveSound.Sound->CurrentPlayCount;
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -3645,8 +3641,7 @@ void FAudioDevice::GetMaxDistanceAndFocusFactor(USoundBase* Sound, const UWorld*
 	check(IsInGameThread());
 	check(Sound);
 
-	bool bIsInGameWorld = World ? World->IsGameWorld() : true;
-	bool bHasAttenuationSettings = (bIsInGameWorld && AttenuationSettingsToApply);
+	const bool bHasAttenuationSettings = ShouldUseAttenuation(World) && AttenuationSettingsToApply;
 
 	if (bHasAttenuationSettings)
 	{
@@ -3684,8 +3679,7 @@ bool FAudioDevice::SoundIsAudible(USoundBase* Sound, const UWorld* World, const 
 {
 	check(IsInGameThread());
 
-	const bool bIsInGameWorld = World ? World->IsGameWorld() : true;
-	const bool bHasAttenuationSettings = (bIsInGameWorld && AttenuationSettingsToApply);
+	const bool bHasAttenuationSettings = ShouldUseAttenuation(World) && AttenuationSettingsToApply;
 	float DistanceScale = 1.0f;
 	if (bHasAttenuationSettings)
 	{
@@ -4055,7 +4049,7 @@ void FAudioDevice::PlaySoundAtLocation(USoundBase* Sound, UWorld* World, float V
 		NewActiveSound.bIsUISound = !bIsInGameWorld;
 		NewActiveSound.SubtitlePriority = Sound->GetSubtitlePriority();
 
-		NewActiveSound.bHasAttenuationSettings = (bIsInGameWorld && AttenuationSettingsToApply);
+		NewActiveSound.bHasAttenuationSettings = (ShouldUseAttenuation(World) && AttenuationSettingsToApply);
 		if (NewActiveSound.bHasAttenuationSettings)
 		{
 			const FGlobalFocusSettings& FocusSettings = GetGlobalFocusSettings();
@@ -4302,6 +4296,8 @@ void FAudioDevice::Precache(USoundWave* SoundWave, bool bSynchronous, bool bTrac
 
 void FAudioDevice::StopSourcesUsingBuffer(FSoundBuffer* SoundBuffer)
 {
+	SCOPED_NAMED_EVENT(FAudioDevice_StopSourcesUsingBuffer, FColor::Blue);
+
 	check(IsInAudioThread());
 
 	if (SoundBuffer)
@@ -4670,3 +4666,13 @@ void FAudioDevice::DumpActiveSounds() const
 
 }
 #endif
+
+bool FAudioDevice::ShouldUseAttenuation(const UWorld* World) const
+{
+	// We use attenuation settings:
+	// - if we don't have a world, or
+	// - we have a game world, or
+	// - we are forcing the use of attenuation (e.g. for some editors)
+	const bool bIsInGameWorld = World ? World->IsGameWorld() : true;
+	return (bIsInGameWorld || bUseAttenuationForNonGameWorlds);
+}

@@ -160,8 +160,8 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(template<>,FPostProcessCircleDOFSetupPS<0>,TEXT("PostProcessCircleDOF"),TEXT("CircleSetupPS"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>,FPostProcessCircleDOFSetupPS<1>,TEXT("PostProcessCircleDOF"),TEXT("CircleSetupPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,FPostProcessCircleDOFSetupPS<0>,TEXT("/Engine/Private/PostProcessCircleDOF.usf"),TEXT("CircleSetupPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,FPostProcessCircleDOFSetupPS<1>,TEXT("/Engine/Private/PostProcessCircleDOF.usf"),TEXT("CircleSetupPS"),SF_Pixel);
 
 void FRCPassPostProcessCircleDOFSetup::Process(FRenderingCompositePassContext& Context)
 {
@@ -208,7 +208,7 @@ void FRCPassPostProcessCircleDOFSetup::Process(FRenderingCompositePassContext& C
 		FLinearColor(0, 0, 0, 0)
 	};
 	// is optimized away if possible (RT size=view size, )
-	DrawClearQuadMRT(Context.RHICmdList, Context.GetFeatureLevel(), true, NumRenderTargets, ClearColors, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, DestRect);
+	DrawClearQuadMRT(Context.RHICmdList, true, NumRenderTargets, ClearColors, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, DestRect);
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f );
 
@@ -280,6 +280,8 @@ FPooledRenderTargetDesc FRCPassPostProcessCircleDOFSetup::ComputeOutputDesc(EPas
 	Ret.TargetableFlags &= ~(uint32)TexCreate_UAV;
 	Ret.TargetableFlags |= TexCreate_RenderTargetable;
 	Ret.AutoWritable = false;
+	Ret.Flags |= GetTextureFastVRamFlag_DynamicLayout();
+
 	if (FPostProcessing::HasAlphaChannelSupport())
 	{
 		if (InPassOutputId == ePId_Output0)
@@ -368,8 +370,8 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(template<>,FPostProcessCircleDOFDilatePS<0>,TEXT("PostProcessCircleDOF"),TEXT("CircleDilatePS"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>,FPostProcessCircleDOFDilatePS<1>,TEXT("PostProcessCircleDOF"),TEXT("CircleDilatePS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,FPostProcessCircleDOFDilatePS<0>,TEXT("/Engine/Private/PostProcessCircleDOF.usf"),TEXT("CircleDilatePS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,FPostProcessCircleDOFDilatePS<1>,TEXT("/Engine/Private/PostProcessCircleDOF.usf"),TEXT("CircleDilatePS"),SF_Pixel);
 
 void FRCPassPostProcessCircleDOFDilate::Process(FRenderingCompositePassContext& Context)
 {
@@ -417,7 +419,7 @@ void FRCPassPostProcessCircleDOFDilate::Process(FRenderingCompositePassContext& 
 		FLinearColor(0, 0, 0, 0)
 	};
 	// is optimized away if possible (RT size=view size, )
-	DrawClearQuadMRT(Context.RHICmdList, Context.GetFeatureLevel(), true, NumRenderTargets, ClearColors, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, DestRect);
+	DrawClearQuadMRT(Context.RHICmdList, true, NumRenderTargets, ClearColors, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, DestRect);
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f );
 
@@ -494,6 +496,7 @@ FPooledRenderTargetDesc FRCPassPostProcessCircleDOFDilate::ComputeOutputDesc(EPa
 //	Ret.Format = PF_FloatRGBA;
 	// we only use one channel, maybe using 4 channels would save memory as we reuse
 	Ret.Format = PF_R16F;
+	Ret.Flags |= GetTextureFastVRamFlag_DynamicLayout();
 
 	return Ret;
 }
@@ -607,7 +610,7 @@ public:
 	
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("PostProcessCircleDOF");
+		return TEXT("/Engine/Private/PostProcessCircleDOF.usf");
 	}
 
 	static const TCHAR* GetFunctionName()
@@ -698,7 +701,7 @@ void FRCPassPostProcessCircleDOF::Process(FRenderingCompositePassContext& Contex
 	};
 
 	// is optimized away if possible (RT size=view size, )
-	DrawClearQuadMRT(Context.RHICmdList, Context.GetFeatureLevel(), true, NumRenderTargets, ClearColors, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, DestRect);
+	DrawClearQuadMRT(Context.RHICmdList, true, NumRenderTargets, ClearColors, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, DestRect);
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f );
 		
@@ -748,6 +751,7 @@ FPooledRenderTargetDesc FRCPassPostProcessCircleDOF::ComputeOutputDesc(EPassOutp
 	Ret.Reset();
 	Ret.TargetableFlags &= ~(uint32)TexCreate_UAV;
 	Ret.TargetableFlags |= TexCreate_RenderTargetable;
+	Ret.Flags |= GetTextureFastVRamFlag_DynamicLayout();
 
 	if (FPostProcessing::HasAlphaChannelSupport())
 	{
@@ -843,7 +847,7 @@ public:
 	
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("PostProcessCircleDOF");
+		return TEXT("/Engine/Private/PostProcessCircleDOF.usf");
 	}
 
 	static const TCHAR* GetFunctionName()
@@ -916,7 +920,7 @@ void FRCPassPostProcessCircleDOFRecombine::Process(FRenderingCompositePassContex
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 
 	// is optimized away if possible (RT size=view size, )
-	DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor::Black, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, View.ViewRect);
+	DrawClearQuad(Context.RHICmdList, true, FLinearColor::Black, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, View.ViewRect);
 
 	Context.SetViewportAndCallRHI(View.ViewRect);
 

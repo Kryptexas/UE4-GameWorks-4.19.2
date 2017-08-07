@@ -37,12 +37,6 @@ static TAutoConsoleVariable<int32> CVarDisableDistortion(
 														 TEXT("Prevents distortion effects from rendering.  Saves a full-screen framebuffer's worth of memory."),
 														 ECVF_Default);
 
-static TAutoConsoleVariable<int32> CVarFastVRamDistortion(
-	TEXT("r.FastVRamDistortion"),
-	0,
-	TEXT("Whether to store distortion in fast VRAM"),
-	ECVF_Scalability | ECVF_RenderThreadSafe);
-
 /**
 * A pixel shader for rendering the full screen refraction pass
 */
@@ -123,7 +117,7 @@ public:
 
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("DistortApplyScreenPS");
+		return TEXT("/Engine/Private/DistortApplyScreenPS.usf");
 	}
 
 	static const TCHAR* GetFunctionName()
@@ -209,7 +203,7 @@ public:
 	
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("DistortApplyScreenPS");
+		return TEXT("/Engine/Private/DistortApplyScreenPS.usf");
 	}
 
 	static const TCHAR* GetFunctionName()
@@ -333,9 +327,9 @@ protected:
 };
 
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TDistortionMeshVS<FDistortMeshAccumulatePolicy>,TEXT("DistortAccumulateVS"),TEXT("Main"),SF_Vertex); 
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TDistortionMeshHS<FDistortMeshAccumulatePolicy>,TEXT("DistortAccumulateVS"),TEXT("MainHull"),SF_Hull); 
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TDistortionMeshDS<FDistortMeshAccumulatePolicy>,TEXT("DistortAccumulateVS"),TEXT("MainDomain"),SF_Domain);
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TDistortionMeshVS<FDistortMeshAccumulatePolicy>,TEXT("/Engine/Private/DistortAccumulateVS.usf"),TEXT("Main"),SF_Vertex); 
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TDistortionMeshHS<FDistortMeshAccumulatePolicy>,TEXT("/Engine/Private/DistortAccumulateVS.usf"),TEXT("MainHull"),SF_Hull); 
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TDistortionMeshDS<FDistortMeshAccumulatePolicy>,TEXT("/Engine/Private/DistortAccumulateVS.usf"),TEXT("MainDomain"),SF_Domain);
 
 
 /**
@@ -399,7 +393,7 @@ private:
 };
 
 //** distortion accumulate pixel shader type implementation */
-IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TDistortionMeshPS<FDistortMeshAccumulatePolicy>,TEXT("DistortAccumulatePS"),TEXT("Main"),SF_Pixel);
+IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TDistortionMeshPS<FDistortMeshAccumulatePolicy>,TEXT("/Engine/Private/DistortAccumulatePS.usf"),TEXT("Main"),SF_Pixel);
 
 /*-----------------------------------------------------------------------------
 TDistortionMeshDrawingPolicy
@@ -906,7 +900,7 @@ bool FDistortionPrimSet::DrawAccumulatedOffsets(FRHICommandListImmediate& RHICmd
 							&View,
 							bInitializeOffsets,
 							StaticMesh,
-							StaticMesh.bRequiresPerElementVisibility ? View.StaticMeshBatchVisibility[StaticMesh.Id] : ((1ull << StaticMesh.Elements.Num()) - 1),
+							StaticMesh.bRequiresPerElementVisibility ? View.StaticMeshBatchVisibility[StaticMesh.BatchVisibilityId] : ((1ull << StaticMesh.Elements.Num()) - 1),
 							DrawRenderState,
 							PrimitiveSceneProxy,
 							StaticMesh.BatchHitProxyId
@@ -1062,10 +1056,7 @@ void FSceneRenderer::RenderDistortion(FRHICommandListImmediate& RHICmdList)
 		// Create a texture to store the resolved light attenuation values, and a render-targetable surface to hold the unresolved light attenuation values.
 		{
 			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(SceneContext.GetBufferSizeXY(), PF_B8G8R8A8, FClearValueBinding::Transparent, TexCreate_None, TexCreate_RenderTargetable, false));
-		    if (CVarFastVRamDistortion.GetValueOnRenderThread() >= 1)
-		    {
-			    Desc.Flags |= TexCreate_FastVRAM;
-		    }
+			Desc.Flags |= GetTextureFastVRamFlag_DynamicLayout();
 			Desc.NumSamples = MSAACount;
 			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, DistortionRT, TEXT("Distortion"));
 
@@ -1127,12 +1118,11 @@ void FSceneRenderer::RenderDistortion(FRHICommandListImmediate& RHICmdList)
 
 		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, SceneContext.GetSceneColor()->GetRenderTargetItem().TargetableTexture);
 		
-// OCULUS BEGIN: select ONE render target for all views (eyes)
 		TRefCountPtr<IPooledRenderTarget> NewSceneColor;
-		// we don't create a new name to make it easier to use "vis SceneColor" and get the last HDRSceneColor
-		GRenderTargetPool.FindFreeElement(RHICmdList, SceneContext.GetSceneColor()->GetDesc(), NewSceneColor, TEXT("SceneColor"));
+		FPooledRenderTargetDesc Desc = SceneContext.GetSceneColor()->GetDesc();
+		Desc.Flags &= ~(TexCreate_FastVRAM | TexCreate_Transient);
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, NewSceneColor, TEXT("DistortedSceneColor"));
 		const FSceneRenderTargetItem& DestRenderTarget = NewSceneColor->GetRenderTargetItem();
-// OCULUS END
 
 		// Apply distortion and store off-screen
 		SetRenderTarget(RHICmdList, DestRenderTarget.TargetableTexture, SceneContext.GetSceneDepthSurface(), ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
@@ -1179,10 +1169,12 @@ void FSceneRenderer::RenderDistortion(FRHICommandListImmediate& RHICmdList)
 void FSceneRenderer::RenderDistortionES2(FRHICommandListImmediate& RHICmdList)
 {
 	// We need access to HDR scene color
+#ifndef UE4_HTML5_TARGET_WEBGL2
 	if (!IsMobileHDR() || IsMobileHDRMosaic())
 	{
 		return;
 	}
+#endif
 
 	// do we need to render the distortion pass?
 	bool bRender=false;
@@ -1209,7 +1201,9 @@ void FSceneRenderer::RenderDistortionES2(FRHICommandListImmediate& RHICmdList)
 		RHICmdList.CopyToResolveTarget(SceneContext.GetSceneColorSurface(), SceneContext.GetSceneColorTexture(), true, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
 
 		TRefCountPtr<IPooledRenderTarget> SceneColorDistorted;
-		GRenderTargetPool.FindFreeElement(RHICmdList, SceneContext.GetSceneColor()->GetDesc(), SceneColorDistorted, TEXT("SceneColorDistorted"));
+		FPooledRenderTargetDesc Desc = SceneContext.GetSceneColor()->GetDesc();
+		Desc.Flags &= ~(TexCreate_FastVRAM | TexCreate_Transient);
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SceneColorDistorted, TEXT("SceneColorDistorted"));
 		const FSceneRenderTargetItem& DistortedRenderTarget = SceneColorDistorted->GetRenderTargetItem();
 
 		FGraphicsPipelineStateInitializer GraphicsPSOInit;

@@ -10,21 +10,13 @@
 #include "VulkanMemory.h"
 #include "VulkanGlobalUniformBuffer.h"
 
-//#todo-rco: Split into Creator & Data
-class FVulkanDescriptorSetsLayout
+// Information for the layout of descriptor sets; does not hold runtime objects
+class FVulkanDescriptorSetsLayoutInfo
 {
 public:
-	FVulkanDescriptorSetsLayout(FVulkanDevice* InDevice);
-	~FVulkanDescriptorSetsLayout();
-
-	void AddDescriptor(int32 DescriptorSetIndex, const VkDescriptorSetLayoutBinding& Descriptor, int32 BindingIndex);
-
-	// Can be called only once, the idea is that the Layout remains fixed.
-	void Compile();
-
-	inline const TArray<VkDescriptorSetLayout>& GetHandles() const
+	FVulkanDescriptorSetsLayoutInfo()
 	{
-		return LayoutHandles;
+		FMemory::Memzero(LayoutTypes);
 	}
 
 	inline uint32 GetTypesUsed(VkDescriptorType Type) const
@@ -42,12 +34,72 @@ public:
 		return SetLayouts;
 	}
 
+	void AddBindingsForStage(VkShaderStageFlagBits StageFlags, EDescriptorSetStage DescSet, const FVulkanCodeHeader& CodeHeader);
+	void AddDescriptor(int32 DescriptorSetIndex, const VkDescriptorSetLayoutBinding& Descriptor, int32 BindingIndex);
+
+	friend uint32 GetTypeHash(const FVulkanDescriptorSetsLayoutInfo& In)
+	{
+		return In.Hash;
+	}
+
+	inline bool operator == (const FVulkanDescriptorSetsLayoutInfo& In) const
+	{
+		if (In.SetLayouts.Num() != SetLayouts.Num())
+		{
+			return false;
+		}
+
+		for (int32 Index = 0; Index < In.SetLayouts.Num(); ++Index)
+		{
+			int32 NumBindings = SetLayouts[Index].LayoutBindings.Num();
+			if (In.SetLayouts[Index].LayoutBindings.Num() != NumBindings)
+			{
+				return false;
+			}
+
+			if (NumBindings != 0 && FMemory::Memcmp(&In.SetLayouts[Index].LayoutBindings[0], &SetLayouts[Index].LayoutBindings[0], NumBindings * sizeof(VkDescriptorSetLayoutBinding)))
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	void CopyFrom(const FVulkanDescriptorSetsLayoutInfo& Info)
+	{
+		FMemory::Memcpy(LayoutTypes, Info.LayoutTypes, sizeof(LayoutTypes));
+		Hash = Info.Hash;
+		SetLayouts = Info.SetLayouts;
+	}
+
+protected:
+	uint32 LayoutTypes[VK_DESCRIPTOR_TYPE_RANGE_SIZE];
+	TArray<FSetLayout> SetLayouts;
+
+	uint32 Hash = 0;
+
+	friend class FVulkanPipelineStateCache;
+};
+
+// The actual run-time descriptor set layouts
+class FVulkanDescriptorSetsLayout : public FVulkanDescriptorSetsLayoutInfo
+{
+public:
+	FVulkanDescriptorSetsLayout(FVulkanDevice* InDevice);
+	~FVulkanDescriptorSetsLayout();
+
+	// Can be called only once, the idea is that the Layout remains fixed.
+	void Compile();
+
+	inline const TArray<VkDescriptorSetLayout>& GetHandles() const
+	{
+		return LayoutHandles;
+	}
+
 private:
 	FVulkanDevice* Device;
 
-	uint32 LayoutTypes[VK_DESCRIPTOR_TYPE_RANGE_SIZE];
-
-	TArray<FSetLayout> SetLayouts;
 	TArray<VkDescriptorSetLayout> LayoutHandles;
 };
 
@@ -165,16 +217,22 @@ public:
 	}
 
 protected:
-	//#todo-rco: Make non-ptr once headers are straightened up
 	FVulkanDescriptorSetsLayout DescriptorSetLayout;
 	VkPipelineLayout PipelineLayout;
 
-	void AddBindingsForStage(VkShaderStageFlagBits StageFlags, EDescriptorSetStage DescSet, const FVulkanCodeHeader& CodeHeader);
+	inline void AddBindingsForStage(VkShaderStageFlagBits StageFlags, EDescriptorSetStage DescSet, const FVulkanCodeHeader& CodeHeader)
+	{
+		// Setting descriptor is only allowed prior to compiling the layout
+		check(DescriptorSetLayout.GetHandles().Num() == 0);
+
+		DescriptorSetLayout.AddBindingsForStage(StageFlags, DescSet, CodeHeader);
+	}
 
 	void Compile();
 
 	friend class FVulkanComputePipeline;
-	friend class FVulkanBoundShaderState;
+	friend class FVulkanGfxPipeline;
+	friend class FVulkanPipelineStateCache;
 };
 
 // This class handles allocating/reusing descriptor sets per command list for a specific pipeline layout (each context holds one of this)
@@ -227,6 +285,7 @@ protected:
 	FVulkanDescriptorSets* RequestDescriptorSets(FVulkanCommandListContext* Context, FVulkanCmdBuffer* CmdBuffer, const FVulkanLayout& Layout);
 
 	friend class FVulkanComputePipelineState;
+	friend class FVulkanGfxPipelineState;
 };
 
 // This class encapsulates updating VkWriteDescriptorSet structures (but doesn't own them), and their flags for dirty ranges; it is intended
@@ -305,6 +364,15 @@ public:
 		BufferViewReferences[DescriptorIndex] = View;
 	}
 
+	void WriteStorageBuffer(uint32 DescriptorIndex, FVulkanBufferView* View)
+	{
+		check(DescriptorIndex < NumWrites);
+		check(WriteDescriptors[DescriptorIndex].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+		WriteDescriptors[DescriptorIndex].pTexelBufferView = &View->View;
+		DirtyMask = DirtyMask | ((uint64)1 << DescriptorIndex);
+		BufferViewReferences[DescriptorIndex] = View;
+	}
+
 	void WriteUniformTexelBuffer(uint32 DescriptorIndex, FVulkanBufferView* View)
 	{
 		check(DescriptorIndex < NumWrites);
@@ -338,6 +406,6 @@ protected:
 
 	void SetupDescriptorWrites(const FNEWVulkanShaderDescriptorInfo& Info, VkWriteDescriptorSet* InWriteDescriptors, VkDescriptorImageInfo* InImageInfo, VkDescriptorBufferInfo* InBufferInfo);
 
-	friend class FVulkanBoundShaderState;
 	friend class FVulkanComputePipelineState;
+	friend class FVulkanGfxPipelineState;
 };

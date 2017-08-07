@@ -28,7 +28,7 @@ struct FFunctionArchiveProxy : public FStructArchiveProxy
 		FStructArchiveProxy::AddReferencedNames(Function, UHTMakefile);
 	}
 
-	uint32 FunctionFlags;
+	EFunctionFlags FunctionFlags;
 	uint16 RepOffset;
 	uint8 NumParms;
 	uint16 ParmsSize;

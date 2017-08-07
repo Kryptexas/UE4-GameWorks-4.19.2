@@ -13,7 +13,7 @@ namespace Audio
 	{
 	public:
 		FEnvelope();
-		~FEnvelope();
+		virtual ~FEnvelope();
 
 		// Initialize the envelope with the given sample rate
 		void Init(const float InSampleRate, const int32 InVoiceId = 0, FModulationMatrix* InModMatrix = nullptr, const bool bInSimulateAnalog = true);

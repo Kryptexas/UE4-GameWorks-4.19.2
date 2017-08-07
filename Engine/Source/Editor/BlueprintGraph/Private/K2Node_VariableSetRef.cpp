@@ -93,11 +93,11 @@ void UK2Node_VariableSetRef::AllocateDefaultPins()
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
-	CreatePin(EGPD_Input, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_Execute);
-	CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_Then);
+	CreatePin(EGPD_Input, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_Execute);
+	CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_Then);
 
-	CreatePin(EGPD_Input, K2Schema->PC_Wildcard, TEXT(""), NULL, false, true, TargetVarPinName);
-	UEdGraphPin* ValuePin = CreatePin(EGPD_Input, K2Schema->PC_Wildcard, TEXT(""), NULL, false, false, VarValuePinName);
+	CreatePin(EGPD_Input, K2Schema->PC_Wildcard, FString(), nullptr, TargetVarPinName, EPinContainerType::None, true);
+	UEdGraphPin* ValuePin = CreatePin(EGPD_Input, K2Schema->PC_Wildcard, FString(), nullptr, VarValuePinName);
 }
 
 void UK2Node_VariableSetRef::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins)
@@ -192,7 +192,7 @@ void UK2Node_VariableSetRef::CoerceTypeFromPin(const UEdGraphPin* Pin)
 
 	if( Pin )
 	{
-		check((Pin != TargetPin) || (Pin->PinType.bIsReference && !Pin->PinType.bIsArray));
+		check((Pin != TargetPin) || (Pin->PinType.bIsReference && !Pin->PinType.IsContainer()));
 
 		TargetPin->PinType = Pin->PinType;
 		TargetPin->PinType.bIsReference = true;
@@ -204,13 +204,13 @@ void UK2Node_VariableSetRef::CoerceTypeFromPin(const UEdGraphPin* Pin)
 	{
 		// Pin disconnected...revert to wildcard
 		TargetPin->PinType.PinCategory = K2Schema->PC_Wildcard;
-		TargetPin->PinType.PinSubCategory = TEXT("");
-		TargetPin->PinType.PinSubCategoryObject = NULL;
+		TargetPin->PinType.PinSubCategory.Reset();
+		TargetPin->PinType.PinSubCategoryObject = nullptr;
 		TargetPin->BreakAllPinLinks();
 
 		ValuePin->PinType.PinCategory = K2Schema->PC_Wildcard;
-		ValuePin->PinType.PinSubCategory = TEXT("");
-		ValuePin->PinType.PinSubCategoryObject = NULL;
+		ValuePin->PinType.PinSubCategory.Reset();
+		ValuePin->PinType.PinSubCategoryObject = nullptr;
 		ValuePin->BreakAllPinLinks();
 
 		CachedNodeTitle.MarkDirty();

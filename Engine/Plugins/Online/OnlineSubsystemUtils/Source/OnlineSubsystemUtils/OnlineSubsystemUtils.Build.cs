@@ -5,7 +5,7 @@ using UnrealBuildTool;
 public class OnlineSubsystemUtils : ModuleRules
 {
 	public OnlineSubsystemUtils(ReadOnlyTargetRules Target) : base(Target)
-	{
+    {
 		Definitions.Add("ONLINESUBSYSTEMUTILS_PACKAGE=1");
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 

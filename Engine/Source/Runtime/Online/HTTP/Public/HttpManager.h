@@ -13,7 +13,7 @@ class FHttpThread;
 /**
  * Manages Http request that are currently being processed
  */
-class FHttpManager
+class HTTP_API FHttpManager
 	: public FTickerObjectBase
 {
 public:

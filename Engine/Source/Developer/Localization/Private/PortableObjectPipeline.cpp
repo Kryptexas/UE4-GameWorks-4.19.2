@@ -739,10 +739,11 @@ bool PortableObjectPipeline::ExportAll(FLocTextHelper& InLocTextHelper, const FS
 		return false;
 	}
 
-	// Warn about the using deprecating 4.14 export mode
+	// The 4.14 export mode was removed in 4.17
 	if (InTextCollapseMode == ELocalizedTextCollapseMode::IdenticalPackageIdTextIdAndSource)
 	{
-		UE_LOG(LogPortableObjectPipeline, Warning, TEXT("The export mode 'ELocalizedTextCollapseMode::IdenticalPackageIdTextIdAndSource' is deprecated, and will be removed in a future version. Please consider using 'ELocalizedTextCollapseMode::IdenticalTextIdAndSource' instead."));
+		UE_LOG(LogPortableObjectPipeline, Error, TEXT("The export mode 'ELocalizedTextCollapseMode::IdenticalPackageIdTextIdAndSource' is no longer supported (it was deprecated in 4.15 and removed in 4.17). Please use 'ELocalizedTextCollapseMode::IdenticalTextIdAndSource' instead."));
+		return false;
 	}
 
 	// Build the collapsed manifest data to export

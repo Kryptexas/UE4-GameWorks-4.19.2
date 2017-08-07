@@ -13,6 +13,9 @@ class UMovieScene;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnWidgetAnimationPlaybackStatusChanged);
 
+/**
+ * 
+ */
 UCLASS(BlueprintType, MinimalAPI, DefaultToInstanced)
 class UWidgetAnimation : public UMovieSceneSequence
 {
@@ -58,13 +61,13 @@ public:
 public:
 
 	// UMovieSceneAnimation overrides
-
 	virtual void BindPossessableObject(const FGuid& ObjectId, UObject& PossessedObject, UObject* Context) override;
 	virtual bool CanPossessObject(UObject& Object, UObject* InPlaybackContext) const override;
 	virtual UMovieScene* GetMovieScene() const override;
 	virtual UObject* GetParentObject(UObject* Object) const override;
 	virtual void UnbindPossessableObjects(const FGuid& ObjectId) override;
 	virtual void LocateBoundObjects(const FGuid& ObjectId, UObject* Context, TArray<UObject*, TInlineAllocator<1>>& OutObjects) const override;
+	// ~UMovieSceneAnimation overrides
 
 	/** Get Animation bindings of the animation */
 	const TArray<FWidgetAnimationBinding>& GetBindings() const { return AnimationBindings; }
@@ -75,6 +78,7 @@ public:
 	UPROPERTY()
 	UMovieScene* MovieScene;
 
+	/**  */
 	UPROPERTY()
 	TArray<FWidgetAnimationBinding> AnimationBindings;
 };

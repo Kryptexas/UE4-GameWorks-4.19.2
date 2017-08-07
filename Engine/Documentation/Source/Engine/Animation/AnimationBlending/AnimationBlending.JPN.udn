@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3467293
 Availability:Public
 Title:アニメーション ブレンディング
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:単一のスケルタルメッシュで 2 つのアニメーション間を滑らかに遷移させます。
 version:4.9
+topic-image:BlendingAnimations_topic.png
 
 
 アニメーションのブレンドとは、単一のキャラクターもしくはスケルタルメッシュ上の 2 つ以上のアニメーション間を滑らかに遷移させる、ということです。UE4 には、こうしたブレンドを適用できる様々な方法があります。このページはそれぞれの概要を示し、その適用方法を説明します。

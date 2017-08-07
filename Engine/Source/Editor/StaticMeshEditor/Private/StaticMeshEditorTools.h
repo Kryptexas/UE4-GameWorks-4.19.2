@@ -17,7 +17,7 @@
 #include "Widgets/Input/SSpinBox.h"
 #include "IDetailCustomNodeBuilder.h"
 
-class FAssetData;
+struct FAssetData;
 class FAssetThumbnailPool;
 class FDetailWidgetRow;
 class FLevelOfDetailSettingsLayout;
@@ -252,9 +252,10 @@ private:
 class FMeshSectionSettingsLayout : public TSharedFromThis<FMeshSectionSettingsLayout>
 {
 public:
-	FMeshSectionSettingsLayout( IStaticMeshEditor& InStaticMeshEditor, int32 InLODIndex )
+	FMeshSectionSettingsLayout( IStaticMeshEditor& InStaticMeshEditor, int32 InLODIndex, TArray<class IDetailCategoryBuilder*> &InLodCategories)
 		: StaticMeshEditor( InStaticMeshEditor )
 		, LODIndex( InLODIndex )
+		, LodCategoriesPtr(&InLodCategories)
 	{}
 
 	virtual ~FMeshSectionSettingsLayout();
@@ -319,9 +320,22 @@ private:
 	void OnSectionIsolatedChanged(ECheckBoxState NewState, int32 SectionIndex);
 
 	void CallPostEditChange(UProperty* PropertyChanged=nullptr);
+
+	TSharedRef<SWidget> OnGenerateLodComboBoxForSectionList(int32 LodIndex);
+	/*
+	* Generate the context menu to choose the LOD we will display the section list
+	*/
+	TSharedRef<SWidget> OnGenerateLodMenuForSectionList(int32 LodIndex);
+	void UpdateLODCategoryVisibility();
+	FText GetCurrentLodName() const;
+	FText GetCurrentLodTooltip() const;
+
+	void SetCurrentLOD(int32 NewLodIndex);
 	
 	IStaticMeshEditor& StaticMeshEditor;
 	int32 LODIndex;
+
+	TArray<class IDetailCategoryBuilder*> *LodCategoriesPtr;
 };
 
 struct FSectionLocalizer
@@ -376,7 +390,6 @@ private:
 	FText GetOriginalImportMaterialNameText(int32 MaterialIndex) const;
 	FText GetMaterialNameText(int32 MaterialIndex) const;
 	void OnMaterialNameCommitted(const FText& InValue, ETextCommit::Type CommitType, int32 MaterialIndex);
-	void OnMaterialNameChanged(const FText& InValue, int32 MaterialIndex);
 	bool CanDeleteMaterialSlot(int32 MaterialIndex) const;
 	void OnDeleteMaterialSlot(int32 MaterialIndex);
 	TSharedRef<SWidget> OnGetMaterialSlotUsedByMenuContent(int32 MaterialIndex);
@@ -503,4 +516,6 @@ private:
 	bool bBuildSettingsExpanded[MAX_STATIC_MESH_LODS];
 	bool bReductionSettingsExpanded[MAX_STATIC_MESH_LODS];
 	bool bSectionSettingsExpanded[MAX_STATIC_MESH_LODS];
+
+	TArray<class IDetailCategoryBuilder*> LodCategories;
 };

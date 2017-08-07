@@ -432,32 +432,38 @@ public:
 	/**
 	 * Creates a new group from the current selection removing any existing groups.
 	 */
+	DEPRECATED(4.17, "edactRegroupFromSelected is deprecated, use UActorGroupingUtils::GroupSelected")
 	virtual void edactRegroupFromSelected();
 
 	/**
 	 * Disbands any groups in the current selection, does not attempt to maintain any hierarchy
 	 */
+	DEPRECATED(4.17, "edactUngroupFromSelected is deprecated, use UActorGroupingUtils::UngroupSelected")
 	virtual void edactUngroupFromSelected();
 
 	/**
 	 * Locks any groups in the current selection
 	 */
+	DEPRECATED(4.17, "edactLockSelectedGroups is deprecated, use UActorGroupingUtils::LockSelectedGroups")
 	virtual void edactLockSelectedGroups();
 
 	/**
 	 * Unlocks any groups in the current selection
 	 */
+	DEPRECATED(4.17, "edactUnlockSelectedGroups is deprecated, use UActorGroupingUtils::UnlockSelectedGroups")
 	virtual void edactUnlockSelectedGroups();
 
 	/**
 	 * Activates "Add to Group" mode which allows the user to select a group to append current selection
 	 */
+	DEPRECATED(4.17, "edactAddToGroup is deprecated, use UActorGroupingUtils::AddSelectedToGroup")
 	virtual void edactAddToGroup();
 
 	/**
 	 * Removes any groups or actors in the current selection from their immediate parent.
 	 * If all actors/subgroups are removed, the parent group will be destroyed.
 	 */
+	DEPRECATED(4.17, "edactRemoveFromGroup is deprecated, use UActorGroupingUtils::RemoveSelectedFromGroup")
 	virtual void edactRemoveFromGroup();
 	
 	/**

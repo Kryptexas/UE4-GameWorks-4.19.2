@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3213718
+﻿INTSourceChangelist:3238697
 Availability:Public
 Title:2.ゲーム モードの拡張
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/UMG
@@ -27,19 +27,19 @@ version:4.14
 1. これから作成するメニューは **User Widgets (ユーザー ウィジェット)** から作成します。新規の User Widget を作成したら表示する関数を記述して、ゲームが開始したらこの関数を呼び出します。作成したものを把握して、後で取り除くことができるようにします。それぞれのプロジェクトはカスタム **Game Mode** クラスと一緒に提供されるため、 "HowTo_UMGGameMode.h" に定義されているこのクラスを開きます。以下の関数とプロパティをこのクラスの下部に追加する必要があります。
 
 		public:
-			/** ゲーム開始時に呼び出されます */
-			virtual void BeginPlay() override;
-
-			/** 現在のメニューウィジェットを取り除き、指定されたクラスがあればそこから新しいものを作成します */
+			/** Remove the current menu widget and create a new one from the specified class, if provided. (現在のメニューウィジェットを取り除き、指定されたクラスがあればそこから新しいものを作成します) */
 			UFUNCTION(BlueprintCallable, Category = "UMG Game")
 			void ChangeMenuWidget(TSubclassOf<UUserWidget> NewWidgetClass);
 
 		protected:
-			/** ゲーム開始時にメニューとして使用するウィジェット クラスです */
+			/** Called when the game starts. (ゲーム開始時に呼び出されます) */
+			virtual void BeginPlay() override;
+
+			/** The widget class we will use as our menu when the game starts. (ゲーム開始時にメニューとして使用するウィジェット クラスです) */
 			UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UMG Game")
 			TSubclassOf<UUserWidget> StartingWidgetClass;
 
-			/** メニューとして使用するウィジェット インスタンスです */
+			/** The widget instance that we are using as our menu. (メニューとして使用するウィジェット インスタンスです) */
 			UPROPERTY()
 			UUserWidget* CurrentWidget;
 
@@ -110,7 +110,7 @@ version:4.14
     [/PARAM]
     [PARAM:content]
 		**HowTo_UMG.Build.cs**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			using UnrealBuildTool;
 
@@ -138,7 +138,7 @@ version:4.14
 			}
 
 		**HowTo_UMGGameMode.h**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -155,25 +155,25 @@ version:4.14
 				GENERATED_BODY()
 
 			public:
-				/** ゲーム開始時に呼び出されます */
-				virtual void BeginPlay() override;
-
-				/** 現在のメニューウィジェットを取り除き、指定されたクラスがあればそこから新しいものを作成します */
+				/** Remove the current menu widget and create a new one from the specified class, if provided. (現在のメニューウィジェットを取り除き、指定されたクラスがあればそこから新しいものを作成します) */
 				UFUNCTION(BlueprintCallable, Category = "UMG Game")
 				void ChangeMenuWidget(TSubclassOf<UUserWidget> NewWidgetClass);
 
 			protected:
-				/** ゲーム開始時にメニューとして使用するウィジェット クラスです */
+				/** Called when the game starts. (ゲーム開始時に呼び出されます) */
+				virtual void BeginPlay() override;
+
+				/** The widget class we will use as our menu when the game starts. (ゲーム開始時にメニューとして使用するウィジェット クラスです) */
 				UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UMG Game")
 				TSubclassOf<UUserWidget> StartingWidgetClass;
 
-				/** メニューとして使用するウィジェット インスタンスです */
+				/** The widget instance that we are using as our menu. (メニューとして使用するウィジェット インスタンスです) */
 				UPROPERTY()
 				UUserWidget* CurrentWidget;
 			};
 
 		**HowTo_UMGGameMode.cpp**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_UMG.h"
 			#include "HowTo_UMGGameMode.h"

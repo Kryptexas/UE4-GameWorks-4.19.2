@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3426963
 Availability: NoPublish
 Title: 소스 브랜치 참고서
 Crumbs: %ROOT%, GettingStarted, GettingStarted/DownloadingUnrealEngine
@@ -8,7 +8,10 @@ Related: GettingStarted/DownloadingUnrealEngine
 Related: Programming/Development/BuildingUnrealEngine
 Related: Programming/Development/CompilingProjects
 Related: Support/Builds
-Version: 4.8
+Version: 4.16
+type:reference
+Parent:GettingStarted/DownloadingUnrealEngine
+Order:
 
 ## 소스 코드 브랜치
 

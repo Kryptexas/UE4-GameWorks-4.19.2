@@ -21,7 +21,7 @@ public:
 	/** End IModuleInterface interface */
 
 	/** 
-	 * Registers a log listing with the message log widget. This log will be displayed in the global Message Log window.
+	 * Registers a log listing with the message log widget. This log is displayed in the global Message Log window by default, but this can be disabled in InitializationOptions.
 	 * It is not necessary to call this function before outputting to a log via AddMessage etc. This call simply
 	 * registers a UI to view the log data.
 	 *
@@ -91,4 +91,7 @@ private:
 
 	/** Delegate used to determine whether the message log can be displayed */
 	bool bCanDisplayMessageLog;
+
+	/** Handle to delegate called when module state changes */
+	FDelegateHandle ModulesChangedHandle;
 };

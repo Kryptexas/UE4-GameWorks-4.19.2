@@ -13,15 +13,15 @@ FAnimNode_AssetPlayerBase::FAnimNode_AssetPlayerBase()
 
 }
 
-void FAnimNode_AssetPlayerBase::Initialize(const FAnimationInitializeContext& Context)
+void FAnimNode_AssetPlayerBase::Initialize_AnyThread(const FAnimationInitializeContext& Context)
 {
-	FAnimNode_Base::Initialize(Context);
+	FAnimNode_Base::Initialize_AnyThread(Context);
 
 	MarkerTickRecord.Reset();
 	bHasBeenFullWeight = false;
 }
 
-void FAnimNode_AssetPlayerBase::Update(const FAnimationUpdateContext& Context)
+void FAnimNode_AssetPlayerBase::Update_AnyThread(const FAnimationUpdateContext& Context)
 {
 	// Cache the current weight and update the node
 	BlendWeight = Context.GetFinalBlendWeight();
@@ -36,7 +36,7 @@ void FAnimNode_AssetPlayerBase::CreateTickRecordForNode(const FAnimationUpdateCo
 	const float FinalBlendWeight = Context.GetFinalBlendWeight();
 
 	FAnimGroupInstance* SyncGroup;
-	const int32 GroupIndexToUse = ((GroupRole != EAnimGroupRole::TransitionLeader) || bHasBeenFullWeight) ? GroupIndex : INDEX_NONE;
+	const int32 GroupIndexToUse = ((GroupRole < EAnimGroupRole::TransitionLeader) || bHasBeenFullWeight) ? GroupIndex : INDEX_NONE;
 
 	FAnimTickRecord& TickRecord = Context.AnimInstanceProxy->CreateUninitializedTickRecord(GroupIndexToUse, /*out*/ SyncGroup);
 

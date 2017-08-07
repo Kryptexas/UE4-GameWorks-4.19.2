@@ -80,12 +80,14 @@ type:landing
 %Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion:Topic%
 %Engine/Rendering/LightingAndShadows/RayTracedDistanceFieldShadowing:Topic%
 %Engine/Rendering/LightingAndShadows/ContactShadows:Topic%
+%Engine/Rendering/LightingAndShadows/CapsuleShadows:Topic%
 [/REGION]
 
 ## General
 
 [REGION:topics third]
 
+%Engine/Rendering/LightingAndShadows/VolumetricFog:Topic%
 %Engine/Rendering/LightingAndShadows/AmbientOcclusion:Topic%
 %Engine/Rendering/LightingAndShadows/LightShafts:Topic%
 %Engine/Rendering/LightingAndShadows/AmbientCubemap:Topic%

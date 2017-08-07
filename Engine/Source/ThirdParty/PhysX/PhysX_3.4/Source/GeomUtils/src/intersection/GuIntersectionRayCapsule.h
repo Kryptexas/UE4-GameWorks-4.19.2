@@ -43,6 +43,8 @@ namespace Gu
 
 	PX_FORCE_INLINE bool intersectRayCapsule(const PxVec3& origin, const PxVec3& dir, const PxVec3& p0, const PxVec3& p1, float radius, PxReal& t)
 	{
+		t = 0.0f;
+
 		// PT: move ray origin close to capsule, to solve accuracy issues.
 		// We compute the distance D between the ray origin and the capsule's segment.
 		// Then E = D - radius = distance between the ray origin and the capsule.
@@ -53,7 +55,6 @@ namespace Gu
 		// PT: if this becomes negative or null, the ray starts inside the capsule and we can early exit
 		if(l<=0.0f)
 		{
-			t = 0.0f;
 			return true;
 		}
 

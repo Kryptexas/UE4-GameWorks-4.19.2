@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3213718
+﻿INTSourceChangelist:3238697
 Availability:Public
 Title:1.UMG のモジュールの従属関係を設定する
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/UMG
@@ -12,7 +12,7 @@ version:4.14
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[](Programming\Tutorials\UMG)
+		[UMG チュートリアルのホームページ](Programming\Tutorials\UMG)
 	[/PARAM]
 	[PARAM:next]
 		[次のステップ](Programming\Tutorials\UMG\2 "%Programming\Tutorials\UMG\2:title%")
@@ -64,7 +64,7 @@ UMG を設定したら、ゲームのメニューを作成および表示する�
     [/PARAM]
     [PARAM:content]
 		**HowTo_UMG.Build.cs**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			using UnrealBuildTool;
 
@@ -79,7 +79,7 @@ UMG を設定したら、ゲームのメニューを作成および表示する�
 					// Uncomment if you are using Slate UI (スレート UI を使用している場合はコメント行を外します)
 					PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
 
-					//  Uncomment if you are using online features (オンライン機能を使用している場合はコメント行を外します)
+					// Uncomment if you are using online features (オンライン機能を使用している場合はコメント行を外します)
 					// PrivateDependencyModuleNames.Add("OnlineSubsystem");
 					// if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64))
 					// {

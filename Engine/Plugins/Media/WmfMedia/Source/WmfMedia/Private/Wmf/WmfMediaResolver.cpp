@@ -23,6 +23,9 @@ FWmfMediaResolver::FWmfMediaResolver()
 	}
 }
 
+FWmfMediaResolver::~FWmfMediaResolver()
+{
+}
 
 /* WmfMediaUrlResolver interface
  *****************************************************************************/

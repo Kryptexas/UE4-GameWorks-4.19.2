@@ -259,7 +259,7 @@ public:
 		];
 	}
 	
-	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override
+	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override
 	{
 		const bool bActiveFeedback = IsHovered() || bDragging;
 
@@ -281,7 +281,6 @@ public:
 			BackgroundLayer,
 			AllottedGeometry.ToPaintGeometry(),
 			BackgroundImage,
-			MyClippingRect,
 			DrawEffects,
 			BackgroundImage->GetTint(InWidgetStyle) * InWidgetStyle.GetColorAndOpacityTint()
 			);
@@ -313,7 +312,7 @@ public:
 					FractionFilled = 1.0f - FMath::Pow( 1.0f - FractionFilled, CachedSliderExponent);
 				}
 			}
-			const FVector2D FillSize( AllottedGeometry.Size.X * FractionFilled, AllottedGeometry.Size.Y );
+			const FVector2D FillSize( AllottedGeometry.GetLocalSize().X * FractionFilled, AllottedGeometry.GetLocalSize().Y );
 
 			if ( ! IsInTextMode() )
 			{
@@ -322,14 +321,13 @@ public:
 					FilledLayer,
 					AllottedGeometry.ToPaintGeometry(FVector2D(0,0), FillSize),
 					FillImage,
-					MyClippingRect,
 					DrawEffects,
 					FillImage->GetTint(InWidgetStyle) * InWidgetStyle.GetColorAndOpacityTint()
 					);
 			}
 		}
 
-		return FMath::Max( FilledLayer, SCompoundWidget::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, FilledLayer, InWidgetStyle, bEnabled ) );
+		return FMath::Max( FilledLayer, SCompoundWidget::OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, FilledLayer, InWidgetStyle, bEnabled ) );
 	}
 
 	/**

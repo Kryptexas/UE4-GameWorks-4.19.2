@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:3275566
+﻿INTSourceChangelist:3477690
 Availability:Public
 Title:2. 구글 VR 프로젝트 구성
 Crumbs:%ROOT%, Platforms/GoogleVR
 Description:구글 VR 작업용 UE4 프로젝트 구성법입니다.
 Navigation:platform
 Skilllevel: Intermediate
-Version: 4.12
+Version: 4.16
 Parent:Platforms/GoogleVR/QuickStart
 order:2
 type:multi-step
@@ -26,7 +26,13 @@ Google 에서는 Daydream 을 최대한 활용하기 위해 알아야하는 것�
 
 1. Plugins 메뉴에서 **Virtual Reality** (가상 현실) 섹션으로 가 **Google VR** (구글 VR)이 활성화되어 있는지 확인합니다.
 
-    ![](GVRQS_Pligin_GVR_Enabled_00.png)
+    [REGION:lightbox]
+    [![](GVRQS_Pligin_GVR_Enabled_00.png)(w:500)](GVRQS_Pligin_GVR_Enabled_00.png)
+    [/REGION]
+
+    [REGION:caption]
+    클릭하면 이미지 원본을 확인합니다.
+    [/REGION]
 
     [region:note]
     구글 VR 플러그인은 기본적으로 활성화되어 있을 것입니다. 그렇지 않은 경우, 그 옆의 체크박스를 클릭하면 **Enabled** (활성화)됩니다. 그러면 변경사항 적용을 위해 UE4 에디터를 재시작하라는 창이 뜹니다. 구글 VR 플러그인 활성화 후 UE4 에디터를 재시작하지 않으면 플러그인이 정상 작동하지 않을 수 있습니다.
@@ -63,21 +69,32 @@ Google 에서는 Daydream 을 최대한 활용하기 위해 알아야하는 것�
 
 1. **Input** (입력) 섹션 아래 **Mobile** 카테고리에서, **Default Touch Interface** (기본 터치 인터페이스)의 **DefaultVirtualJoysticks** 옆 작은 하양 삼각형을 클릭하면 뜨는 드롭다운 목록에서 **Clear** (비우기) 옵션을 눌러 제거합니다.
 
-    [OBJECT:EmbeddedVideo]
-    [PARAMLITERAL:width]
-    640
-    [/PARAMLITERAL]
-    [PARAMLITERAL:height]
-    360
-    [/PARAMLITERAL]
-    [PARAMLITERAL:videoid]
-    -Ylbi1TCKZs
-    [/PARAMLITERAL]
-    [/OBJECT]
+	[OBJECT:EmbeddedVideo]
+		[PARAMLITERAL:videoid]
+		-Ylbi1TCKZs
+		[/PARAMLITERAL]
+		[PARAMLITERAL:width]
+		50
+		[/PARAMLITERAL]
+		[PARAMLITERAL:height]
+		56.25
+		[/PARAMLITERAL]
+		[PARAMLITERAL:units]
+		%
+		[/PARAMLITERAL]
+		[PARAMLITERAL:type]
+		simple
+		[/PARAMLITERAL]
 
 1. **Android** (안드로이드) 섹션 아래 **Platforms** (플랫폼) 부분에서 **APKPackaging** (APK 패키징)과 **Google Play Services** (구글 플레이 서비스) 섹션의 **Configure Now** (지금 환경설정) 버튼을 눌러 프로젝트가 패키징을 제대로 할 수 있도록 합니다.
 
-    ![](GVRQS_Config_Now_00.png)
+    [REGION:lightbox]
+    [![](GVRQS_Config_Now_00.png)(w:500)](GVRQS_Config_Now_00.png)
+    [/REGION]
+
+    [REGION:caption]
+    클릭하면 이미지 원본을 확인합니다.
+    [/REGION]
 
 1. **APKPackaging** 섹션에서 다음 옵션이 설정되었는지 확인합니다:
 
@@ -85,19 +102,40 @@ Google 에서는 Daydream 을 최대한 활용하기 위해 알아야하는 것�
      * **Disable verify OBB on first start/update:** (첫 시작/업데이트시 OBB 검증 끄기 - 체크
      * **Enable FullScreen Immersive on KitKat and above devices:** (KitKat 이상 디바이스에서 전체화면 몰입 모드 켜기) - 체크
 
-    ![](GVRQS_SDK_Version_00.png)
+    [REGION:lightbox]
+    [![](GVRQS_SDK_Version_00.png)(w:500)](GVRQS_SDK_Version_00.png)
+    [/REGION]
 
-1. **Build** 섹션을 찾아 **Support armv7 [aka armeabi-v7a]** 옵션 체크를 해제하고 **Support arm64[aka arm64-v8a]** 와 **Support OpenGL ES2** 둘 다 체크되었는지 확인합니다.
+    [REGION:caption]
+    클릭하면 이미지 원본을 확인합니다.
+    [/REGION]
 
-	![](GVRQS_Build_arm64_Support_00.png)
+1. **Build** 섹션을 찾아 다음과 같이 설정합니다:
+
+	* **Support armv7 (aka armeabi-v7a):** 꺼짐
+	* **Support arm64 (aka arm64-v8a):** 켜짐
+	* **Support OpenGL ES2:** 켜짐
+
+    [REGION:lightbox]
+    [![](GVRQS_Build_arm64_Support_00.png)(w:500)](GVRQS_Build_arm64_Support_00.png)
+    [/REGION]
+
+    [REGION:caption]
+    클릭하면 이미지 원본을 확인합니다.
+    [/REGION]
 
 1. 다음, **Advanced APKPackaging** 섹션에서 다음 옵션을 켜줍니다:
 
-    * **Configure for deployment to Daydream:** (Daydream 으로 설치를 위한 환경설정) 체크
     * **Configure GoogleVR Deployment Mode:** (GoogleVR 디플로이 모드 환경설정) Daydream & Cardboard
-    * **Configure GoogleVR for sustained performance mode:** (GoogleVR 지속 퍼포먼스 모드 환경설정) 체크
+    * **Configure GoogleVR for sustained-performance mode:** (GoogleVR 지속 퍼포먼스 모드 환경설정) 체크
 
-    ![](GVRQS_GoogleVR_Options_00.png)
+    [REGION:lightbox]
+    [![](GVRQS_GoogleVR_Options_00.png)(w:500)](GVRQS_GoogleVR_Options_00.png)
+    [/REGION]
+
+    [REGION:caption]
+    클릭하면 이미지 원본을 확인합니다.
+    [/REGION]
 
     [region:note]
     Configure GoogleVR Deployment Mode 에는 여러가지 옵션이 있으며, 하는 일은 다음과 같습니다.
@@ -107,7 +145,7 @@ Google 에서는 Daydream 을 최대한 활용하기 위해 알아야하는 것�
 
     [/region]
 
-1. **Android SDK** (안드로이드 SDK) 섹션의 **SDKConfig** (SDK 환경설정) 섹션 아래 **SDK API Level** 과 **NDK API Level** 둘 다 기본값이 아닌 **android-24** 로 설정하여 프로젝트가 가장 최신의 안드로이드 SDK 로 컴파일되도록 합니다.
+1. **Android SDK** (안드로이드 SDK) 섹션의 **SDKConfig** (SDK 환경설정) 섹션 아래 **SDK API Level** 을 **matchndk** 로 설정합니다. 그리고 **NDK API Level** 을 **android-24** 로 설정하여 프로젝트가 가장 최신의 안드로이드 SDK 로 컴파일되도록 합니다.
 
     ![](GVRQS_Android_SDK_Options_00.png)
 

@@ -8,6 +8,8 @@ prereq:Engine/Basics/Projects/Browser
 SkillLevel: Beginner
 Version: 4.9
 type:quick start
+tags:Getting Started
+tags:Programming
 
 [VAR:Topic]
 [OBJECT:Topic]

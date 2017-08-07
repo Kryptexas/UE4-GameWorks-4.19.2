@@ -42,6 +42,6 @@ void FNavLinkStructCustomization::CustomizeChildren(TSharedRef<class IPropertyHa
 	for (uint32 Idx = 0; Idx < NumChildProps; Idx++)
 	{
 		TSharedPtr<IPropertyHandle> PropHandle = StructPropertyHandle->GetChildHandle(Idx);
-		StructBuilder.AddChildProperty(PropHandle.ToSharedRef());
+		StructBuilder.AddProperty(PropHandle.ToSharedRef());
 	}
 }

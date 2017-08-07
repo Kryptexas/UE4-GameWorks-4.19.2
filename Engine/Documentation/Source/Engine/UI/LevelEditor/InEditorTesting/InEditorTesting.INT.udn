@@ -96,9 +96,37 @@ $ Viewport : Gameplay will be shown in the active Level Editor viewport.
 
 	**Click to see full-size image:**
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	[REGION:lightbox]
-	[![](PIE_viewport.png)(w:300)](PIE_viewport.png)
-	[/REGION:lightbox]
+	[![](PIEViewport_Windows.png)(w:500)](PIEViewport_Windows.png)
+	[/REGION]
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](PIEViewport_Mac.png)(w:500)](PIEViewport_Mac.png)
+	[/REGION]
+	[/PARAM]
+	[/OBJECT]
 	
 	This is the only display type that allows toggling between _Play In Editor_ and _Simulate in Editor_ by using the Possess and Eject buttons. In the **Viewport** modes, you can also use the Pause and Stop buttons to interrupt gameplay.
 
@@ -123,9 +151,37 @@ $ New Window : Gameplay will be shown in a new window. To change the default new
 
 	**Click to see full-size image:**
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	[REGION:lightbox]
-	[![](PIE_newwindow.png)(w:300)](PIE_newwindow.png)
-	[/REGION:lightbox]
+	[![](NewWindow_Windows.png)(w:500)](NewWindow_Windows.png)
+	[/REGION]
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](NewWindows_Mac.png)(w:500)](NewWindows_Mac.png)
+	[/REGION]
+	[/PARAM]
+	[/OBJECT]
 	
 	When playing a game preview in a new window, you cannot switch to a _Simulate In Editor_ session.  However, you can still pause and stop gameplay with the toolbar buttons that appear.
 
@@ -137,9 +193,37 @@ $ Standalone Game : Gameplay will be shown in a new window that runs in its own 
 
 	**Click to see full-size image:**
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	[REGION:lightbox]
-	[![](PIE_standalone.png)(w:300)](PIE_standalone.png)
-	[/REGION:lightbox]
+	[![](Standalone_Windows.png)(w:500)](Standalone_Windows.png)
+	[/REGION]
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](Standalone_Mac.png)(w:500)](Standalone_Mac.png)
+	[/REGION]
+	[/PARAM]
+	[/OBJECT]
 
 	Because this display type lets you play the game in its own process, you cannot pause or stop the game. You also cannot switch to _Simulate In Editor_.  As a result, the toolbar buttons do not change when playing a standalone game preview.
 

@@ -1,10 +1,19 @@
-﻿INTSourceChangelist:3355771
-Availability:Docs
+﻿INTSourceChangelist:3478014
+Availability:Public
 Title:1.プロジェクト設定
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
 Description:必要なアセットと DragAndDropOperation クラスを作成します。 
 SkillLevel:Intermediate
+Version:4.15
+parent:Engine/UMG/HowTo/DragAndDrop
+order:1
+checkpoint: editorqs
+Related:Engine/UMG
+Related:Engine/UMG/UserGuide
 tags:UMG UI Designer
+tags:UI
+type:how-to
+
 
 [VAR:Steps]
 [OBJECT:Navigation]

@@ -1552,8 +1552,10 @@ void FObjectReplicator::UpdateUnmappedObjects( bool & bOutHasMoreUnmapped )
 		return;
 	}
 
-	checkf( RepState->RepNotifies.Num() == 0, TEXT("Failed RepState RepNotifies check. Num=%d. Object=%s"), RepState->RepNotifies.Num(), *Object->GetFullName() );
-	checkf( RepNotifies.Num() == 0, TEXT("Failed replicator RepNotifies check. Num=%d. Object=%s."), RepNotifies.Num(), *Object->GetFullName() );
+	// Since RepNotifies aren't processed while a channel has queued bunches, don't assert in that case.
+	const bool bHasQueuedBunches = OwningChannel && OwningChannel->QueuedBunches.Num() > 0;
+	checkf( bHasQueuedBunches || RepState->RepNotifies.Num() == 0, TEXT("Failed RepState RepNotifies check. Num=%d. Object=%s. Channel QueuedBunches=%d"), RepState->RepNotifies.Num(), *Object->GetFullName(), OwningChannel ? OwningChannel->QueuedBunches.Num() : 0 );
+	checkf( bHasQueuedBunches || RepNotifies.Num() == 0, TEXT("Failed replicator RepNotifies check. Num=%d. Object=%s. Channel QueuedBunches=%d"), RepNotifies.Num(), *Object->GetFullName(), OwningChannel ? OwningChannel->QueuedBunches.Num() : 0 );
 
 	bool bSomeObjectsWereMapped = false;
 

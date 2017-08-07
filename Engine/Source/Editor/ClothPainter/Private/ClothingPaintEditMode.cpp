@@ -12,10 +12,20 @@
 #include "ClothingAssetInterface.h"
 #include "ComponentRecreateRenderStateContext.h"
 #include "IPersonaToolkit.h"
+#include "ClothingAsset.h"
 
 FClothingPaintEditMode::FClothingPaintEditMode()
 {
 	
+}
+
+FClothingPaintEditMode::~FClothingPaintEditMode()
+{
+	if(ClothPainter.IsValid())
+	{
+		// Drop the reference
+		ClothPainter = nullptr;
+	}
 }
 
 class IPersonaPreviewScene* FClothingPaintEditMode::GetAnimPreviewScene() const
@@ -25,7 +35,10 @@ class IPersonaPreviewScene* FClothingPaintEditMode::GetAnimPreviewScene() const
 
 void FClothingPaintEditMode::Initialize()
 {
-	MeshPainter = ClothPainter = new FClothPainter();
+	ClothPainter = MakeShared<FClothPainter>();
+	MeshPainter = ClothPainter.Get();
+
+	ClothPainter->Init();
 }
 
 TSharedPtr<class FModeToolkit> FClothingPaintEditMode::GetToolkit()
@@ -47,6 +60,7 @@ void FClothingPaintEditMode::Enter()
 		ClothPainter->SetSkeletalMeshComponent(Scene->GetPreviewMeshComponent());
 	}
 	
+	ClothPainter->Reset();
 }
 
 void FClothingPaintEditMode::Exit()
@@ -64,13 +78,16 @@ void FClothingPaintEditMode::Exit()
 			{
 				for(UClothingAssetBase* AssetBase : SkelMesh->MeshClothingAssets)
 				{
-					AssetBase->InvalidateCachedData();
+					UClothingAsset* ConcreteAsset = CastChecked<UClothingAsset>(AssetBase);
+					ConcreteAsset->ApplyParameterMasks();
 				}
 			}
 
 			MeshComponent->RebuildClothingSectionsFixedVerts();
 			MeshComponent->ResetMeshSectionVisibility();
 			MeshComponent->SelectedClothingGuidForPainting = FGuid();
+			MeshComponent->SelectedClothingLodForPainting = INDEX_NONE;
+			MeshComponent->SelectedClothingLodMaskForPainting = INDEX_NONE;
 		}
 	}
 

@@ -26,11 +26,6 @@ UMovieSceneSection* FPropertySection::GetSectionObject()
 	return &SectionObject;
 }
 
-FText FPropertySection::GetDisplayName() const
-{
-	return DisplayName;
-}
-	
 FText FPropertySection::GetSectionTitle() const
 {
 	return FText::GetEmpty();

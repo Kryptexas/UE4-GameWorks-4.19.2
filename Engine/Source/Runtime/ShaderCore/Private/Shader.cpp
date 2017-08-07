@@ -14,6 +14,7 @@
 #include "Interfaces/ITargetPlatformManagerModule.h"
 #include "ShaderCache.h"
 #include "ShaderCodeLibrary.h"
+#include "ShaderCore.h"
 #include "Misc/ConfigCacheIni.h"
 #include "RenderingObjectVersion.h"
 
@@ -151,6 +152,9 @@ FShaderType::FShaderType(
 
 	//make sure the name is shorter than the maximum serializable length
 	check(FCString::Strlen(InName) < NAME_SIZE);
+
+	// Make sure the format of the source file path is right.
+	check(CheckVirtualShaderFilePath(InSourceFilename));
 
 	// register this shader type
 	GlobalListLink.LinkHead(GetTypeList());
@@ -488,9 +492,12 @@ void FShaderResource::Serialize(FArchive& Ar)
 	{
 		INC_DWORD_STAT_BY_FName(GetMemoryStatType((EShaderFrequency)Target.Frequency).GetName(), (int64)Code.Num());
 		INC_DWORD_STAT_BY(STAT_Shaders_ShaderResourceMemory, GetSizeBytes());
-		
-		FShaderCache::LogShader((EShaderPlatform)Target.Platform, (EShaderFrequency)Target.Frequency, OutputHash, UncompressedCodeSize, Code);
 
+		if (FShaderCache::GetShaderCache())
+		{
+			FShaderCache::LogShader((EShaderPlatform)Target.Platform, (EShaderFrequency)Target.Frequency, OutputHash, UncompressedCodeSize, Code);
+		}
+		
 		// The shader resource has been serialized in, so this shader resource is now initialized.
 		check(Canary != FShader::ShaderMagic_CleaningUp);
 		Canary = FShader::ShaderMagic_Initialized;
@@ -587,19 +594,8 @@ bool FShaderResource::ArePlatformsCompatible(EShaderPlatform CurrentPlatform, ES
 	
 	if (!bFeatureLevelCompatible && IsPCPlatform(CurrentPlatform) && IsPCPlatform(TargetPlatform) )
 	{
-		if (CurrentPlatform == SP_OPENGL_SM4_MAC || TargetPlatform == SP_OPENGL_SM4_MAC)
-		{
-			// prevent SP_OPENGL_SM4 == SP_OPENGL_SM4_MAC, allow SP_OPENGL_SM4_MAC == SP_OPENGL_SM4_MAC,
-			// allow lesser feature levels on SP_OPENGL_SM4_MAC device.
-			// do not allow MAC targets to work on non MAC devices.
-			bFeatureLevelCompatible = CurrentPlatform == SP_OPENGL_SM4_MAC && 
-				GetMaxSupportedFeatureLevel(CurrentPlatform) >= GetMaxSupportedFeatureLevel(TargetPlatform);
-		}
-		else
-		{
-			bFeatureLevelCompatible = GetMaxSupportedFeatureLevel(CurrentPlatform) >= GetMaxSupportedFeatureLevel(TargetPlatform);
-		}
-
+		bFeatureLevelCompatible = GetMaxSupportedFeatureLevel(CurrentPlatform) >= GetMaxSupportedFeatureLevel(TargetPlatform);
+		
 		bool const bIsTargetD3D = TargetPlatform == SP_PCD3D_SM5 ||
 		TargetPlatform == SP_PCD3D_SM4 ||
 		TargetPlatform == SP_PCD3D_ES3_1 ||
@@ -610,13 +606,19 @@ bool FShaderResource::ArePlatformsCompatible(EShaderPlatform CurrentPlatform, ES
 		TargetPlatform == SP_PCD3D_ES3_1 ||
 		CurrentPlatform == SP_PCD3D_ES2;
 		
+		// For Metal in Editor we can switch feature-levels, but not in cooked projects when using Metal shader librariss.
 		bool const bIsCurrentMetal = IsMetalPlatform(CurrentPlatform);
 		bool const bIsTargetMetal = IsMetalPlatform(TargetPlatform);
+		bool const bIsMetalCompatible = (bIsCurrentMetal == bIsTargetMetal) 
+#if !WITH_EDITOR	// Static analysis doesn't like (|| WITH_EDITOR)
+			&& (!IsMetalPlatform(CurrentPlatform) || (CurrentPlatform == TargetPlatform))
+#endif
+			;
 		
 		bool const bIsCurrentOpenGL = IsOpenGLPlatform(CurrentPlatform);
 		bool const bIsTargetOpenGL = IsOpenGLPlatform(TargetPlatform);
 		
-		bFeatureLevelCompatible = bFeatureLevelCompatible && (bIsCurrentPlatformD3D == bIsTargetD3D && bIsCurrentMetal == bIsTargetMetal && bIsCurrentOpenGL == bIsTargetOpenGL);
+		bFeatureLevelCompatible = bFeatureLevelCompatible && (bIsCurrentPlatformD3D == bIsTargetD3D && bIsMetalCompatible && bIsCurrentOpenGL == bIsTargetOpenGL);
 	}
 
 	return bFeatureLevelCompatible;
@@ -636,14 +638,14 @@ void FShaderResource::InitRHI()
 
 	// we can't have this called on the wrong platform's shaders
 	if (!ArePlatformsCompatible(GMaxRHIShaderPlatform, (EShaderPlatform)Target.Platform))
- 	{
- 		if (FPlatformProperties::RequiresCookedData())
- 		{
- 			UE_LOG(LogShaders, Fatal, TEXT("FShaderResource::InitRHI got platform %s but it is not compatible with %s"), 
+	{
+		if (FPlatformProperties::RequiresCookedData())
+		{
+			UE_LOG(LogShaders, Fatal, TEXT("FShaderResource::InitRHI got platform %s but it is not compatible with %s"), 
 				*LegacyShaderPlatformToShaderFormat((EShaderPlatform)Target.Platform).ToString(), *LegacyShaderPlatformToShaderFormat(GMaxRHIShaderPlatform).ToString());
- 		}
- 		return;
- 	}
+		}
+		return;
+	}
 
 	TArray<uint8> UncompressedCode;
 	if (!bCodeInSharedLocation)
@@ -1847,13 +1849,13 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 			}
 		}
 	}
-    
-    // Encode the Metal standard into the shader compile options so that they recompile if the settings change.
-    if (IsMetalPlatform(Platform))
-    {
-        uint32 ShaderVersion = RHIGetShaderLanguageVersion(Platform);
-        KeyString += FString::Printf(TEXT("_MTLSTD%u_"), ShaderVersion);
-    }
+	
+	// Encode the Metal standard into the shader compile options so that they recompile if the settings change.
+	if (IsMetalPlatform(Platform))
+	{
+		uint32 ShaderVersion = RHIGetShaderLanguageVersion(Platform);
+		KeyString += FString::Printf(TEXT("_MTLSTD%u_"), ShaderVersion);
+	}
 
 	{
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.StencilForLODDither"));
@@ -1864,8 +1866,8 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 	}
 
 	{
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.ForwardShading"));
-		if (CVar && CVar->GetValueOnAnyThread() > 0)
+		static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ForwardShading"));
+		if (CVar && CVar->GetInt() > 0)
 		{
 			KeyString += TEXT("_FS");
 		}
@@ -1901,16 +1903,24 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 		{
 			KeyString += TEXT("_8u");
 		}
-    }
-    
-    if (IsMetalPlatform(Platform))
-    {
-        // Shaders built for archiving - for Metal that requires compiling the code in a different way so that we can strip it later
-        bool bArchive = false;
-        GConfig->GetBool(TEXT("/Script/UnrealEd.ProjectPackagingSettings"), TEXT("bShareMaterialShaderCode"), bArchive, GGameIni);
-        if (bArchive)
-        {
-            KeyString += TEXT("_ARCHIVE");
-        }
-    }
+	}
+	
+	{
+		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.GPUSkin.Limit2BoneInfluences"));
+		if (CVar && CVar->GetValueOnAnyThread() != 0)
+		{
+			KeyString += TEXT("_2bi");
+		}
+	}
+	
+	if (IsMetalPlatform(Platform))
+	{
+		// Shaders built for archiving - for Metal that requires compiling the code in a different way so that we can strip it later
+		bool bArchive = false;
+		GConfig->GetBool(TEXT("/Script/UnrealEd.ProjectPackagingSettings"), TEXT("bSharedMaterialNativeLibraries"), bArchive, GGameIni);
+		if (bArchive)
+		{
+			KeyString += TEXT("_ARCHIVE");
+		}
+	}
 }

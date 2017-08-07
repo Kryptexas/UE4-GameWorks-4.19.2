@@ -116,10 +116,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AI)
 	uint32 bSetControlRotationFromPawnOrientation:1;
 
-private_subobject:
+private:
 
 	/** Component used for moving along a path. */
-	DEPRECATED_FORGAME(4.6, "PathFollowingComponent should not be accessed directly, please use GetPathFollowingComponent() function instead. PathFollowingComponent will soon be private and your code will not compile.")
 	UPROPERTY(VisibleDefaultsOnly, Category = AI)
 	UPathFollowingComponent* PathFollowingComponent;
 
@@ -129,12 +128,10 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = AI)
 	UBrainComponent* BrainComponent;
 
-	DEPRECATED_FORGAME(4.8, "PerceptionComponent should not be accessed directly, please use GetAIPerceptionComponent() function instead. PerceptionComponent will soon be private and your code will not compile.")
 	UPROPERTY(VisibleDefaultsOnly, Category = AI)
 	UAIPerceptionComponent* PerceptionComponent;
 
-private_subobject:
-	DEPRECATED_FORGAME(4.6, "ActionsComp should not be accessed directly, please use GetActionsComp() function instead. ActionsComp will soon be private and your code will not compile.")
+private:
 	UPROPERTY(BlueprintReadOnly, Category = AI, meta = (AllowPrivateAccess = "true"))
 	UPawnActionsComponent* ActionsComp;
 
@@ -435,13 +432,13 @@ public:
 public:
 	/** Returns PathFollowingComponent subobject **/
 	UFUNCTION(BlueprintCallable, Category="AI|Navigation")
-	UPathFollowingComponent* GetPathFollowingComponent() const;
+	UPathFollowingComponent* GetPathFollowingComponent() const { return PathFollowingComponent; }
 	/** Returns ActionsComp subobject **/
-	UPawnActionsComponent* GetActionsComp() const;
+	UPawnActionsComponent* GetActionsComp() const { return ActionsComp; }
 	UFUNCTION(BlueprintPure, Category = "AI|Perception")
-	UAIPerceptionComponent* GetAIPerceptionComponent();
+	UAIPerceptionComponent* GetAIPerceptionComponent() { return PerceptionComponent; }
 
-	const UAIPerceptionComponent* GetAIPerceptionComponent() const;
+	const UAIPerceptionComponent* GetAIPerceptionComponent() const { return PerceptionComponent; }
 
 	UBrainComponent* GetBrainComponent() const { return BrainComponent; }
 	const UBlackboardComponent* GetBlackboardComponent() const { return Blackboard; }

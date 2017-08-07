@@ -26,17 +26,20 @@ UFont::UFont(const FObjectInitializer& ObjectInitializer)
 	LegacyFontSize = 9;
 }
 
-UFont::~UFont()
+void UFont::BeginDestroy()
 {
-	if(FontCacheType == EFontCacheType::Runtime && FSlateApplication::IsInitialized())
+	if (FontCacheType == EFontCacheType::Runtime && FSlateApplication::IsInitialized())
 	{
-		TSharedPtr<FSlateRenderer> SlateRenderer = FSlateApplication::Get().GetRenderer();
-		if(SlateRenderer.IsValid())
+		FSlateRenderer* SlateRenderer = FSlateApplication::Get().GetRenderer();
+		if (SlateRenderer)
 		{
 			TSharedRef<FSlateFontCache> FontCache = SlateRenderer->GetFontCache();
+			FontCache->FlushCompositeFont(CompositeFont);
 			FontCache->FlushObject(this);
 		}
 	}
+
+	Super::BeginDestroy();
 }
 
 void UFont::Serialize( FArchive& Ar )

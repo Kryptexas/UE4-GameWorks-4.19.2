@@ -1,9 +1,17 @@
-﻿INTSourceChangelist:3108692
-Availability:Public
+﻿INTSourceChangelist:3474032
+Availability: Public
+Crumbs: %ROOT%
 Title:컬러 그레이딩
-Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
 Description:씬 컬러 조절을 위한 톤매핑과 색보정 이펙트입니다.
-Version: 4.9
+Type: Overview
+SkillLevel:Beginner
+Version:4.16
+Parent:Engine/Rendering/PostProcessEffects
+Order:4
+Tags:Post Process
+Topic-image:ColorGrading_Topic.png
+
+
 
 언리얼 엔진에서 용어 **컬러 그레이딩** (Color Grading) 은 *톤 매핑* (HDR to LDR 변형) 및 그에 따른 *색 보정* (LDR color to color 변형) 기능을 포함합니다. (HDR/LDR = High/Low Dynamic Range)
 

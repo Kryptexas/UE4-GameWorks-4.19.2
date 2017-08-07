@@ -16,13 +16,13 @@ float FAnimNode_SequenceEvaluator::GetCurrentAssetLength()
 /////////////////////////////////////////////////////
 // FAnimSequenceEvaluatorNode
 
-void FAnimNode_SequenceEvaluator::Initialize(const FAnimationInitializeContext& Context)
+void FAnimNode_SequenceEvaluator::Initialize_AnyThread(const FAnimationInitializeContext& Context)
 {
-	FAnimNode_AssetPlayerBase::Initialize(Context);
+	FAnimNode_AssetPlayerBase::Initialize_AnyThread(Context);
 	bReinitialized = true;
 }
 
-void FAnimNode_SequenceEvaluator::CacheBones(const FAnimationCacheBonesContext& Context) 
+void FAnimNode_SequenceEvaluator::CacheBones_AnyThread(const FAnimationCacheBonesContext& Context) 
 {
 }
 
@@ -77,9 +77,10 @@ void FAnimNode_SequenceEvaluator::UpdateAssetPlayer(const FAnimationUpdateContex
 	bReinitialized = false;
 }
 
-void FAnimNode_SequenceEvaluator::Evaluate(FPoseContext& Output)
+void FAnimNode_SequenceEvaluator::Evaluate_AnyThread(FPoseContext& Output)
 {
-	if ((Sequence != NULL) && (Output.AnimInstanceProxy->IsSkeletonCompatible(Sequence->GetSkeleton())))
+	check(Output.AnimInstanceProxy != nullptr);
+	if ((Sequence != nullptr) && (Output.AnimInstanceProxy->IsSkeletonCompatible(Sequence->GetSkeleton())))
 	{
 		Sequence->GetAnimationPose(Output.Pose, Output.Curve, FAnimExtractContext(InternalTimeAccumulator, Output.AnimInstanceProxy->ShouldExtractRootMotion()));
 	}

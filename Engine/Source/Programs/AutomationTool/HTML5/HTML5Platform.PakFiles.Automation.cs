@@ -37,7 +37,7 @@ public class HTMLPakAutomation
 		Params = InParam;
 		SC = InSC;
 
-		var PakOrderFileLocationBase = CommandUtils.CombinePaths(SC.ProjectRoot, "Build", SC.FinalCookPlatform, "FileOpenOrder");
+		var PakOrderFileLocationBase = CommandUtils.CombinePaths(SC.ProjectRoot.FullName, "Build", SC.FinalCookPlatform, "FileOpenOrder");
 		PakOrderFileLocation = CommandUtils.CombinePaths(PakOrderFileLocationBase, "GameOpenOrder.log");
 		if (!CommandUtils.FileExists_NoExceptions(PakOrderFileLocation))
 		{
@@ -52,7 +52,7 @@ public class HTMLPakAutomation
 		}
 
 		// read in the json file. 
-		string JsonFile = CommandUtils.CombinePaths(new string[] { SC.ProjectRoot, "Saved", "Cooked", "HTML5", Params.ShortProjectName, "MapDependencyGraph.json" });
+		string JsonFile = CommandUtils.CombinePaths(new string[] { SC.ProjectRoot.FullName, "Saved", "Cooked", "HTML5", Params.ShortProjectName, "MapDependencyGraph.json" });
 		string text = File.ReadAllText(JsonFile);
 
 		DependencyJson = fastJSON.JSON.Instance.ToObject<Dictionary<string, object>>(text);

@@ -192,7 +192,6 @@ FString FSoundSource::Describe(bool bUseLongName)
 
 void FSoundSource::Stop()
 {
-	IStreamingManager::Get().GetAudioStreamingManager().RemoveStreamingSoundSource(this);
 	if (WaveInstance)
 	{
 		check(AudioDevice);
@@ -703,7 +702,6 @@ FWaveInstance::FWaveInstance( FActiveSound* InActiveSound )
 	, AmbientZoneFilterFrequency(MAX_FILTER_FREQUENCY)
 	, AttenuationFilterFrequency(MAX_FILTER_FREQUENCY)
 	, Pitch(0.0f)
-	, Velocity(FVector::ZeroVector)
 	, Location(FVector::ZeroVector)
 	, OmniRadius(0.0f)
 	, StereoSpread(0.0f)

@@ -384,6 +384,23 @@ struct CORE_API FGenericPlatformProcess
 	 */
 	static void TerminateProc( FProcHandle & ProcessHandle, bool KillTree = false );
 
+	enum class EWaitAndForkResult : uint8
+	{
+		Error,
+		Parent,
+		Child
+	};
+
+	/**
+	 * Waits for process signals and forks child processes.
+	 *
+	 * WaitAndFork stalls the invoking process and forks child processes when signals are sent to it from an external source.
+	 * Forked child processes will provide a return value of EWaitAndForkResult::Child, while the parent process
+	 * will not return until GIsRequestingExit is true (EWaitAndForkResult::Parent) or there was an error (EWaitAndForkResult::Error)
+	 * The signal the parent process expects is platform-specific (i.e. SIGRTMIN+1 on Linux). 
+	 */
+	static EWaitAndForkResult WaitAndFork();
+
 	/** Retrieves the termination status of the specified process. **/
 	static bool GetProcReturnCode( FProcHandle & ProcHandle, int32* ReturnCode );
 
@@ -577,6 +594,23 @@ struct CORE_API FGenericPlatformProcess
 	 * Checks if we're the first instance. An instance can become first if the previous first instance quits before it.
 	 */
 	static bool IsFirstInstance();
+
+	/**
+	 * Returns the map virtual shader directory path -> real shader directory path.
+	 */
+	static const TMap<FString, FString>& AllShaderSourceDirectoryMappings();
+	
+	/**
+	 * Clears all shader source directory mappings.
+	 */
+	static void ResetAllShaderSourceDirectoryMappings();
+
+	/**
+	 * Maps a real shader directory existing on disk to a virtual shader directory.
+	 * @param VirtualShaderDirectory Unique absolute path of the virtual shader directory (ex: /Project).
+	 * @param RealShaderDirectory FPlatformProcess::BaseDir() relative path of the directory map.
+	 */
+	static void AddShaderSourceDirectoryMapping(const FString& VirtualShaderDirectory, const FString& RealShaderDirectory);
 };
 
 

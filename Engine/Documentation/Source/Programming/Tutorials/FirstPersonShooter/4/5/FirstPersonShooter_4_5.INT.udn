@@ -3,7 +3,7 @@ Title: 4.5 - Associating Animation & Character Blueprints
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/4
 Description: Learn how to associate the Animation Blueprint with the Character Blueprint for your First Person Shooter project.
 SkillLevel: Beginner
-Version: 4.11
+Version: 4.15
 
 [VAR:Steps]
 [OBJECT:Navigation]

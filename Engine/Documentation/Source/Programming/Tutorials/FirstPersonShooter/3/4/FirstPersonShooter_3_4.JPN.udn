@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3069483
-Availability: Public
+﻿INTSourceChangelist:3388666
+Availability:Public
 Title:3.4 - 発射物をワールドと相互作用させる
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/3
 Description:FPS プロジェクトで発射物をワールドと相互作用させる方法を学びます。
 SkillLevel:Beginner
-Version:4.11
+Version:4.15
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -34,46 +34,47 @@ Version:4.11
 
 		// Function that is called when the projectile hits something. (発射物が何かにぶつかると呼び出される関数)
 		UFUNCTION()
-		void OnHit(class AActor* OtherActor, class UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit);
+		void OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit);
 
 1.	`FPSProjectile.h` は以下のようになります。
 
-		// Fill out your copyright notice in the Description page of Project Settings. (Project Settings の Description ページに著作権情報を入力してください)
+		// Fill out your copyright notice in the Description page of Project Settings. (Project Settings の Description ページに著作権情報を入力してください) 
 		#pragma once
 
 		#include "GameFramework/Actor.h"
-		#include "FPSProjectile.generated.h"
 
+		#include "FPSProjectile.generated.h"
 		UCLASS()
 
 		class FPSPROJECT_API AFPSProjectile : public AActor
 		{
 			GENERATED_BODY()
+			public:
 
-		public:
-			// Sets default values for this actor's properties (このアクタのプロパティのデフォルト値を設定します)
+			// Sets default values for this actor's properties (このアクタのプロパティのデフォルト値を設定)
 			AFPSProjectile();
-		// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼ばれます) 
+		protected:
+
+			// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼び出される)
 			virtual void BeginPlay() override;
+			public:
 
-			// Called every frame (フレームごとに呼ばれます)
+			// Called every frame (フレームごとに呼び出される)
 			virtual void Tick( float DeltaSeconds ) override;
-
 		// Sphere collision component (Sphere collision コンポーネント)
+
 			UPROPERTY(VisibleDefaultsOnly, Category = Projectile)
 			USphereComponent* CollisionComponent;
-
 		//Projectile movement component. (Projectile Movement コンポーネント)
 
 			UPROPERTY(VisibleAnywhere, Category = Movement)
 			UProjectileMovementComponent* ProjectileMovementComponent;
-
 		// Function that initializes the projectile's velocity in the shoot direction. (発射方向に発射物のべロシティを初期化する関数)
-			void FireInDirection(const FVector& ShootDirection);
 
+			void FireInDirection(const FVector& ShootDirection);
 		// Function that is called when the projectile hits something. (発射物が何かにぶつかると呼び出される関数)
 
-			void OnHit(class AActor* OtherActor, class UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit);
+			void OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit);
 		};
 
 1.	**Solution Explorer** で、`FPSProjectile` class CPP ファイルを探して、`FPSProjectile.cpp` を開いて以下のコードを追加します。
@@ -91,24 +92,23 @@ Version:4.11
 
 		CollisionComponent->OnComponentHit.AddDynamic(this, &AFPSProjectile::OnHit);
 
-1.	`FPSProjectile.cpp` は以下のようになります。
+1.	 `FPSProjectile.cpp` は以下のようになります。
 
-		// Fill out your copyright notice in the Description page of Project Settings. (Project Settings の Description ページに著作権情報を入力してください)
-
+		// Fill out your copyright notice in the Description page of Project Settings. (Project Settings の Description ページに著作権情報を入力してください) 
 		#include "FPSProject.h"
-		#include "FPSProjectile.h"
 
-		// Sets default values (デフォルト値を設定)
+		#include "FPSProjectile.h"
+		// Sets default values (デフォルト値を設定) 
+
 		AFPSProjectile::AFPSProjectile()
 		{
-		 	// Set this actor to call Tick() every frame  (フレームごとに Tick() を呼び出すようにこのアクタを設定)必要がなければパフォーマンスを向上させるためにオフにすることができます。
+		 	// Set this actor to call Tick() every frame. (フレーム毎に Tick() を呼び出すようにこのアクタを設定) You can turn this off to improve performance if you don't need it. (必要がなければパフォーマンスを向上させるためにオフにすることができます) 
 			PrimaryActorTick.bCanEverTick = true;
+		// Use a sphere as a simple collision representation (簡易なコリジョン表現に球体を使用)
 
-		// Use a sphere as a simple collision representation. (簡易なコリジョン表現に球体を使用)
 			CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComponent"));
 			CollisionComponent->BodyInstance.SetCollisionProfileName(TEXT("Projectile"));
 			CollisionComponent->OnComponentHit.AddDynamic(this, &AFPSProjectile::OnHit);
-
 		// Set the sphere's collision radius. (球体のコリジョン半径を設定します)
 
 			CollisionComponent->InitSphereRadius(15.0f);
@@ -127,15 +127,14 @@ Version:4.11
 
 			InitialLifeSpan = 3.0f;
 		}
-
-		// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼ばれます) 
+		// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼び出される)
 
 		void AFPSProjectile::BeginPlay()
 		{
 			Super::BeginPlay();
 			}
 
-		// Called every frame (フレームごとに呼ばれます)
+		// Called every frame (フレームごとに呼び出される)
 
 		void AFPSProjectile::Tick( float DeltaTime )
 		{
@@ -194,7 +193,7 @@ Version:4.11
 
 1.	**Class Defaults モード** を開いて、 **[Components]** タブで **[ProjectileMeshComponent]** をクリックします。
 
-1.	**[Collision]** の **[Collision Presets]** プロパティを探して、**[Projectile]** に設定します。
+1.	**[Collision]** の **[Collision Presets]** プロパティを探して、**[ProjectileMeshComponent]** に設定します。
 
 	![](SetCollisionPresets.png)
 

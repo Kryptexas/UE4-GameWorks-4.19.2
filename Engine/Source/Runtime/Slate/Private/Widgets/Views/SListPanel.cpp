@@ -7,7 +7,7 @@
 FNoChildren SListPanel::NoChildren = FNoChildren();
 
 SListPanel::SListPanel()
-: Children()
+	: Children()
 {
 }
 
@@ -60,15 +60,14 @@ void SListPanel::OnArrangeChildren( const FGeometry& AllottedGeometry, FArranged
 		const EListItemAlignment ListItemAlignment = ItemAlignment.Get();
 
 		// This is a tile view list, arrange items horizontally until there is no more room then create a new row.
-		const float AllottedWidth = AllottedGeometry.Size.X;
+		const float AllottedWidth = AllottedGeometry.GetLocalSize().X;
 		const float ItemPadding = GetItemPadding(AllottedGeometry, ListItemAlignment);
 		const float HalfItemPadding = ItemPadding * 0.5;
 
-		const float LocalItemWidth = GetItemWidth(AllottedGeometry, ListItemAlignment);
-		const float LocalItemHeight = GetItemHeight();
+		const FVector2D LocalItemSize = GetItemSize(AllottedGeometry, ListItemAlignment);
 
 		float WidthSoFar = 0;
-		float HeightSoFar = -FMath::FloorToInt(SmoothScrollOffsetInItems * LocalItemHeight) - OverscrollAmount;
+		float HeightSoFar = -FMath::FloorToInt(SmoothScrollOffsetInItems * LocalItemSize.Y) - OverscrollAmount;
 
 		bool bIsNewLine = true;
 		for( int32 ItemIndex = 0; ItemIndex < Children.Num(); ++ItemIndex )
@@ -93,15 +92,15 @@ void SListPanel::OnArrangeChildren( const FGeometry& AllottedGeometry, FArranged
 			}
 
 			ArrangedChildren.AddWidget(
-				AllottedGeometry.MakeChild(Children[ItemIndex].GetWidget(), FVector2D(WidthSoFar + HalfItemPadding, HeightSoFar), FVector2D(LocalItemWidth, LocalItemHeight))
+				AllottedGeometry.MakeChild(Children[ItemIndex].GetWidget(), FVector2D(WidthSoFar + HalfItemPadding, HeightSoFar), LocalItemSize)
 				);
 		
-			WidthSoFar += LocalItemWidth + ItemPadding;
+			WidthSoFar += LocalItemSize.X + ItemPadding;
 
-			if ( WidthSoFar + LocalItemWidth + ItemPadding > AllottedWidth )
+			if ( WidthSoFar + LocalItemSize.X + ItemPadding > AllottedWidth )
 			{
 				WidthSoFar = 0;
-				HeightSoFar += LocalItemHeight;
+				HeightSoFar += LocalItemSize.Y;
 				bIsNewLine = true;
 			}
 		}
@@ -111,16 +110,16 @@ void SListPanel::OnArrangeChildren( const FGeometry& AllottedGeometry, FArranged
 		if (Children.Num() > 0)
 		{
 			// This is a normal list, arrange items vertically
-			float HeightSoFar = -FMath::FloorToInt(SmoothScrollOffsetInItems * Children[0].GetWidget()->GetDesiredSize().Y)-OverscrollAmount;
+			float HeightSoFar = -FMath::FloorToInt(SmoothScrollOffsetInItems * Children[0].GetWidget()->GetDesiredSize().Y) - OverscrollAmount;
 			for( int32 ItemIndex = 0; ItemIndex < Children.Num(); ++ItemIndex )
 			{
-					const FVector2D ItemDesiredSize = Children[ItemIndex].GetWidget()->GetDesiredSize();
-					const float LocalItemHeight = ItemDesiredSize.Y;
+				const FVector2D ItemDesiredSize = Children[ItemIndex].GetWidget()->GetDesiredSize();
+				const float LocalItemHeight = ItemDesiredSize.Y;
 
 				// Note that ListPanel does not respect child Visibility.
 				// It is simply not useful for ListPanels.
 				ArrangedChildren.AddWidget(
-					AllottedGeometry.MakeChild( Children[ItemIndex].GetWidget(), FVector2D(0, HeightSoFar), FVector2D(AllottedGeometry.Size.X, LocalItemHeight) )
+					AllottedGeometry.MakeChild( Children[ItemIndex].GetWidget(), FVector2D(0, HeightSoFar), FVector2D(AllottedGeometry.GetLocalSize().X, LocalItemHeight) )
 					);
 
 				HeightSoFar += LocalItemHeight;
@@ -134,15 +133,15 @@ void SListPanel::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 	if (ShouldArrangeHorizontally())
 	{
 		const EListItemAlignment ListItemAlignment = ItemAlignment.Get();
-		const float AllottedWidth = AllottedGeometry.Size.X;
+		const float AllottedWidth = AllottedGeometry.GetLocalSize().X;
 		const float ItemPadding = GetItemPadding(AllottedGeometry, ListItemAlignment);
-		const float LocalItemWidth = GetItemWidth(AllottedGeometry, ListItemAlignment);
-		const float TotalItemSize = LocalItemWidth + ItemPadding;
+		const FVector2D LocalItemSize = GetItemSize(AllottedGeometry, ListItemAlignment);
+		const float TotalItemWidth = LocalItemSize.X + ItemPadding;
 		const int32 NumChildren = NumDesiredItems.Get();
 
-		if (TotalItemSize > 0.0f && NumChildren > 0)
+		if ( TotalItemWidth > 0.0f && NumChildren > 0)
 		{
-			int32 NumColumns = FMath::Clamp(FMath::CeilToInt(AllottedWidth / TotalItemSize) - 1, 1, NumChildren);
+			int32 NumColumns = FMath::Clamp(FMath::CeilToInt(AllottedWidth / TotalItemWidth) - 1, 1, NumChildren);
 			PreferredRowNum = FMath::CeilToInt(NumChildren / (float)NumColumns);
 		}
 		else
@@ -154,7 +153,6 @@ void SListPanel::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 	{
 		PreferredRowNum = NumDesiredItems.Get();
 	}
-
 }
 	
 /**
@@ -183,7 +181,6 @@ FVector2D SListPanel::ComputeDesiredSize( float ) const
 			? FVector2D( MaxWidth, TotalHeight/Children.Num()*PreferredRowNum )
 			: FVector2D::ZeroVector;
 	}
-	
 }
 
 /**
@@ -227,6 +224,11 @@ float SListPanel::GetDesiredItemWidth() const
 	return ItemWidth.Get();
 }
 
+float SListPanel::GetDesiredItemHeight() const
+{
+	return ItemHeight.Get();
+}
+
 float SListPanel::GetItemPadding(const FGeometry& AllottedGeometry) const
 {
 	return GetItemPadding(AllottedGeometry, ItemAlignment.Get());
@@ -234,45 +236,78 @@ float SListPanel::GetItemPadding(const FGeometry& AllottedGeometry) const
 
 float SListPanel::GetItemPadding(const FGeometry& AllottedGeometry, const EListItemAlignment ListItemAlignment) const
 {
-	const float LocalItemWidth = GetDesiredItemWidth();
-	const int32 NumItemsWide = LocalItemWidth > 0 ? FMath::FloorToInt(AllottedGeometry.Size.X / LocalItemWidth) : 0;
-	const bool IsEvenlyDistributedAlignment = ListItemAlignment == EListItemAlignment::EvenlyDistributed;
+	// Subtract a tiny amount from the available width to avoid floating point precision problems when arranging children
+	static const float FloatingPointPrecisionOffset = 0.001f;
+
+	const float DesiredWidth = GetDesiredItemWidth();
 
 	// Only add padding between items if we have more total items that we can fit on a single row.  Otherwise,
 	// the padding around items would continue to change proportionately with the (ample) free horizontal space
 	float Padding = 0.0f;
-	if (IsEvenlyDistributedAlignment && NumItemsWide > 0 && Children.Num() > NumItemsWide)
+	switch ( ListItemAlignment )
 	{
-		// Subtract a tiny amount from the available width to avoid floating point precision problems when arranging children
-		static const float FloatingPointPrecisionOffset = 0.001f;
-
-		Padding = (AllottedGeometry.Size.X - FloatingPointPrecisionOffset - NumItemsWide * LocalItemWidth) / NumItemsWide;
+		case EListItemAlignment::EvenlyDistributed:
+		{
+			const int32 NumItemsWide = DesiredWidth > 0 ? FMath::FloorToInt(AllottedGeometry.Size.X / DesiredWidth) : 0;
+			if ( NumItemsWide > 0 && Children.Num() > NumItemsWide )
+			{
+				Padding = ( AllottedGeometry.Size.X - FloatingPointPrecisionOffset - NumItemsWide * DesiredWidth ) / NumItemsWide;
+			}
+			break;
+		}
 	}
 
 	return Padding;
 }
 
-float SListPanel::GetItemWidth(const FGeometry& AllottedGeometry) const
+FVector2D SListPanel::GetItemSize(const FGeometry& AllottedGeometry) const
 {
-	return GetItemWidth(AllottedGeometry, ItemAlignment.Get());
+	return GetItemSize(AllottedGeometry, ItemAlignment.Get());
 }
 
-float SListPanel::GetItemWidth(const FGeometry& AllottedGeometry, const EListItemAlignment ListItemAlignment) const
+FVector2D SListPanel::GetItemSize(const FGeometry& AllottedGeometry, const EListItemAlignment ListItemAlignment) const
 {
+	// Subtract a tiny amount from the available width to avoid floating point precision problems when arranging children
+	static const float FloatingPointPrecisionOffset = 0.001f;
+
 	const float DesiredWidth = GetDesiredItemWidth();
-	const int32 NumItemsWide = DesiredWidth > 0 ? FMath::Min(Children.Num(), FMath::FloorToInt(AllottedGeometry.Size.X / DesiredWidth)) : 0;
-	const bool IsFillAlignment = ListItemAlignment == EListItemAlignment::Fill;
+	const float DesiredHeight = GetDesiredItemHeight();
 
 	float ExtraWidth = 0.0f;
-	if (IsFillAlignment && NumItemsWide > 0)
+	float ExtraHeight = 0.0f;
+	switch ( ListItemAlignment )
 	{
-		// Subtract a tiny amount from the available width to avoid floating point precision problems when arranging children
-		static const float FloatingPointPrecisionOffset = 0.001f;
-
-		ExtraWidth = (AllottedGeometry.Size.X - FloatingPointPrecisionOffset - NumItemsWide * DesiredWidth) / NumItemsWide;
+		case EListItemAlignment::Fill:
+		{
+			const int32 NumItemsWide = DesiredWidth > 0 ? FMath::Min(Children.Num(), FMath::FloorToInt(AllottedGeometry.Size.X / DesiredWidth)) : 0;
+			if ( NumItemsWide > 0 )
+			{
+				ExtraWidth = ( AllottedGeometry.Size.X - FloatingPointPrecisionOffset - NumItemsWide * DesiredWidth ) / NumItemsWide;
+			}
+			break;
+		}
+		case EListItemAlignment::EvenlySize:
+		{
+			const int32 NumItemsWide = DesiredWidth > 0 ? FMath::FloorToInt(AllottedGeometry.Size.X / DesiredWidth) : 0;
+			if ( NumItemsWide > 0 )
+			{
+				ExtraWidth = ( AllottedGeometry.Size.X - FloatingPointPrecisionOffset - NumItemsWide * DesiredWidth ) / NumItemsWide;
+				ExtraHeight = DesiredHeight * ( ExtraWidth / ( DesiredWidth + ExtraWidth ) );
+			}
+			break;
+		}
+		case EListItemAlignment::EvenlyWide:
+		{
+			const int32 NumItemsWide = DesiredWidth > 0 ? FMath::FloorToInt(AllottedGeometry.Size.X / DesiredWidth) : 0;
+			if ( NumItemsWide > 0 )
+			{
+				ExtraWidth = ( AllottedGeometry.Size.X - FloatingPointPrecisionOffset - NumItemsWide * DesiredWidth ) / NumItemsWide;
+			}
+			break;
+		}
 	}
 
-	return DesiredWidth + ExtraWidth;
+	return FVector2D(DesiredWidth + ExtraWidth, DesiredHeight + ExtraHeight);
 }
 
 float SListPanel::GetLinePadding(const FGeometry& AllottedGeometry, const int32 LineStartIndex) const
@@ -283,20 +318,14 @@ float SListPanel::GetLinePadding(const FGeometry& AllottedGeometry, const int32 
 		return 0.0f;
 	}
 
-	const float LocalItemWidth = GetItemWidth(AllottedGeometry);
-	const int32 NumItemsWide = LocalItemWidth > 0 ? FMath::FloorToInt(AllottedGeometry.Size.X / LocalItemWidth) : 0;
+	const FVector2D LocalItemSize = GetItemSize(AllottedGeometry);
+	const int32 NumItemsWide = LocalItemSize.X > 0 ? FMath::FloorToInt(AllottedGeometry.Size.X / LocalItemSize.X) : 0;
 	const int32 NumItemsOnLine = FMath::Min(NumItemsLeft, NumItemsWide);
 
 	// Subtract a tiny amount from the available width to avoid floating point precision problems when arranging children
 	static const float FloatingPointPrecisionOffset = 0.001f;
 
-	return (AllottedGeometry.Size.X - FloatingPointPrecisionOffset - NumItemsOnLine * LocalItemWidth);
-}
-
-/** @return the uniform item height used when arranging children. */
-float SListPanel::GetItemHeight() const
-{
-	return ItemHeight.Get();
+	return (AllottedGeometry.Size.X - FloatingPointPrecisionOffset - NumItemsOnLine * LocalItemSize.X);
 }
 
 void SListPanel::SetRefreshPending( bool IsPendingRefresh )

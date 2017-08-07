@@ -459,10 +459,3 @@ FPathFindingQuery ANavigationTestingActor::BuildPathFindingQuery(const ANavigati
 	return FPathFindingQuery();
 }
 
-
-/** Returns CapsuleComponent subobject **/
-UCapsuleComponent* ANavigationTestingActor::GetCapsuleComponent() const { return CapsuleComponent; }
-#if WITH_EDITORONLY_DATA
-/** Returns EdRenderComp subobject **/
-UNavTestRenderingComponent* ANavigationTestingActor::GetEdRenderComp() const { return EdRenderComp; }
-#endif

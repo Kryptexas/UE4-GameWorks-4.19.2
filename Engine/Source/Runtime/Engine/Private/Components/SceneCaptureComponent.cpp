@@ -171,6 +171,7 @@ USceneCaptureComponent::USceneCaptureComponent(const FObjectInitializer& ObjectI
 {
 	bCaptureEveryFrame = true;
 	bCaptureOnMovement = true;
+	bAlwaysPersistRenderingState = false;
 	LODDistanceFactor = 1.0f;
 	MaxViewDistanceOverride = -1;
 	CaptureSortPriority = 0;
@@ -181,6 +182,14 @@ USceneCaptureComponent::USceneCaptureComponent(const FObjectInitializer& ObjectI
 	ShowFlags.SetHMDDistortion(0);
 
     CaptureStereoPass = EStereoscopicPass::eSSP_FULL;
+}
+
+void USceneCaptureComponent::OnRegister()
+{
+	Super::OnRegister();
+
+	// Make sure any loaded saved flag settings are reflected in our FEngineShowFlags
+	UpdateShowFlags();
 }
 
 void USceneCaptureComponent::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
@@ -224,6 +233,8 @@ void USceneCaptureComponent::ShowOnlyComponent(UPrimitiveComponent* InComponent)
 {
 	if (InComponent)
 	{
+		// Backward compatibility - set PrimitiveRenderMode to PRM_UseShowOnlyList if BP / game code tries to add a ShowOnlyComponent
+		PrimitiveRenderMode = PRM_UseShowOnlyList;
 		ShowOnlyComponents.Add(InComponent);
 	}
 }
@@ -232,6 +243,9 @@ void USceneCaptureComponent::ShowOnlyActorComponents(AActor* InActor)
 {
 	if (InActor)
 	{
+		// Backward compatibility - set PrimitiveRenderMode to PRM_UseShowOnlyList if BP / game code tries to add a ShowOnlyComponent
+		PrimitiveRenderMode = PRM_UseShowOnlyList;
+
 		TInlineComponentArray<UPrimitiveComponent*> PrimitiveComponents;
 		InActor->GetComponents(PrimitiveComponents);
 		for (int32 ComponentIndex = 0, NumComponents = PrimitiveComponents.Num(); ComponentIndex < NumComponents; ++ComponentIndex)
@@ -264,6 +278,11 @@ void USceneCaptureComponent::ClearShowOnlyComponents(UPrimitiveComponent* InComp
 	ShowOnlyComponents.Reset();
 }
 
+void USceneCaptureComponent::ClearHiddenComponents()
+{
+	HiddenComponents.Reset();
+}
+
 void USceneCaptureComponent::SetCaptureSortPriority(int32 NewCaptureSortPriority)
 {
 	CaptureSortPriority = NewCaptureSortPriority;
@@ -277,12 +296,12 @@ FSceneViewStateInterface* USceneCaptureComponent::GetViewState(int32 ViewIndex)
 	}
 
 	FSceneViewStateInterface* ViewStateInterface = ViewStates[ViewIndex].GetReference();
-	if (bCaptureEveryFrame && ViewStateInterface == NULL)
+	if ((bCaptureEveryFrame || bAlwaysPersistRenderingState) && ViewStateInterface == NULL)
 	{
 		ViewStates[ViewIndex].Allocate();
 		ViewStateInterface = ViewStates[ViewIndex].GetReference();
 	}
-	else if (!bCaptureEveryFrame && ViewStateInterface)
+	else if (!bCaptureEveryFrame && ViewStateInterface && !bAlwaysPersistRenderingState)
 	{
 		ViewStates[ViewIndex].Destroy();
 		ViewStateInterface = NULL;
@@ -292,6 +311,12 @@ FSceneViewStateInterface* USceneCaptureComponent::GetViewState(int32 ViewIndex)
 
 void USceneCaptureComponent::UpdateShowFlags()
 {
+	USceneCaptureComponent* Archetype = Cast<USceneCaptureComponent>(GetArchetype());
+	if (Archetype)
+	{
+		ShowFlags = Archetype->ShowFlags;
+	}
+
 	for (FEngineShowFlagsSetting ShowFlagSetting : ShowFlagSettings)
 	{
 		int32 SettingIndex = ShowFlags.FindIndexByName(*(ShowFlagSetting.ShowFlagName));
@@ -303,6 +328,27 @@ void USceneCaptureComponent::UpdateShowFlags()
 }
 
 #if WITH_EDITOR
+
+bool USceneCaptureComponent::CanEditChange(const UProperty* InProperty) const
+{
+	if (InProperty)
+	{
+		FString PropertyName = InProperty->GetName();
+
+		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(USceneCaptureComponent, HiddenActors))
+		{
+			return PrimitiveRenderMode == PRM_RenderScenePrimitives;
+		}
+
+		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(USceneCaptureComponent, ShowOnlyActors))
+		{
+			return PrimitiveRenderMode == PRM_UseShowOnlyList;
+		}
+	}
+
+	return true;
+}
+
 void USceneCaptureComponent::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
@@ -318,19 +364,19 @@ void USceneCaptureComponent::PostEditChangeProperty(struct FPropertyChangedEvent
 }
 #endif
 
-bool USceneCaptureComponent::GetSettingForShowFlag(FString FlagName, FEngineShowFlagsSetting** ShowFlagSettingOut)
+void USceneCaptureComponent::Serialize(FArchive& Ar)
 {
-	bool HasSetting = false;
-	for (int32 ShowFlagSettingsIndex = 0; ShowFlagSettingsIndex < ShowFlagSettings.Num(); ++ShowFlagSettingsIndex)
+	Super::Serialize(Ar);
+
+	Ar.UsingCustomVersion(FRenderingObjectVersion::GUID);
+
+	if (Ar.CustomVer(FRenderingObjectVersion::GUID) < FRenderingObjectVersion::AddedbUseShowOnlyList)
 	{
-		if (ShowFlagSettings[ShowFlagSettingsIndex].ShowFlagName.Equals(FlagName))
+		if (ShowOnlyActors.Num() > 0 || ShowOnlyComponents.Num() > 0)
 		{
-			HasSetting = true;
-			*ShowFlagSettingOut = &(ShowFlagSettings[ShowFlagSettingsIndex]);
-			break;
+			PrimitiveRenderMode = PRM_UseShowOnlyList;
 		}
-	}	
-	return HasSetting;
+	}
 }
 
 void USceneCaptureComponent::UpdateDeferredCaptures(FSceneInterface* Scene)
@@ -370,6 +416,16 @@ void USceneCaptureComponent::UpdateDeferredCaptures(FSceneInterface* Scene)
 	SceneCapturesToUpdateMap.Remove(World);
 }
 
+void USceneCaptureComponent::OnUnregister()
+{
+	for (int32 ViewIndex = 0; ViewIndex < ViewStates.Num(); ViewIndex++)
+	{
+		ViewStates[ViewIndex].Destroy();
+	}
+
+	Super::OnUnregister();
+}
+
 // -----------------------------------------------
 
 
@@ -391,16 +447,22 @@ USceneCaptureComponent2D::USceneCaptureComponent2D(const FObjectInitializer& Obj
 	CaptureStereoPass = EStereoscopicPass::eSSP_FULL;
 	CustomProjectionMatrix.SetIdentity();
 	ClipPlaneNormal = FVector(0, 0, 1);
-	// previous behavior was to capture 2d scene captures before cube scene captures.
-	CaptureSortPriority = 1;
+	bCameraCutThisFrame = false;
+	
+	// Legacy initialization.
+	{
+		// previous behavior was to capture 2d scene captures before cube scene captures.
+		CaptureSortPriority = 1;
+
+		// previous behavior was not exposing MotionBlur and Temporal AA in scene capture 2d.
+		ShowFlags.TemporalAA = false;
+		ShowFlags.MotionBlur = false;
+	}
 }
 
 void USceneCaptureComponent2D::OnRegister()
 {
 	Super::OnRegister();
-
-	// Make sure any loaded saved flag settings are reflected in our FEngineShowFlags
-	UpdateShowFlags();
 
 #if WITH_EDITOR
 	// Update content on register to have at least one frames worth of good data.
@@ -506,7 +568,7 @@ bool USceneCaptureComponent2D::CanEditChange(const UProperty* InProperty) const
 		}
 	}
 
-	return true;
+	return Super::CanEditChange(InProperty);
 }
 
 void USceneCaptureComponent2D::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
@@ -522,9 +584,15 @@ void USceneCaptureComponent2D::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
 
-	if(Ar.IsLoading())
+	if (Ar.IsLoading())
 	{
 		PostProcessSettings.OnAfterLoad();
+
+		if (Ar.CustomVer(FRenderingObjectVersion::GUID) < FRenderingObjectVersion::MotionBlurAndTAASupportInSceneCapture2d)
+		{
+			ShowFlags.TemporalAA = false;
+			ShowFlags.MotionBlur = false;
+		}
 	}
 }
 
@@ -866,16 +934,5 @@ void USceneCaptureComponentCube::PostEditChangeProperty(FPropertyChangedEvent& P
 	CaptureSceneDeferred();
 }
 #endif // WITH_EDITOR
-
-/** Returns MeshComp subobject **/
-UStaticMeshComponent* ASceneCapture::GetMeshComp() const { return MeshComp; }
-/** Returns CaptureComponent2D subobject **/
-USceneCaptureComponent2D* ASceneCapture2D::GetCaptureComponent2D() const { return CaptureComponent2D; }
-/** Returns DrawFrustum subobject **/
-UDrawFrustumComponent* ASceneCapture2D::GetDrawFrustum() const { return DrawFrustum; }
-/** Returns CaptureComponentCube subobject **/
-USceneCaptureComponentCube* ASceneCaptureCube::GetCaptureComponentCube() const { return CaptureComponentCube; }
-/** Returns DrawFrustum subobject **/
-UDrawFrustumComponent* ASceneCaptureCube::GetDrawFrustum() const { return DrawFrustum; }
 
 #undef LOCTEXT_NAMESPACE

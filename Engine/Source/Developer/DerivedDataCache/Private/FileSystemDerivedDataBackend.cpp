@@ -155,9 +155,7 @@ public:
 			{
 				IFileManager::Get().SetTimeStamp(*Filename, FDateTime::UtcNow());
 			}
-		}
-		if (bExists)
-		{
+
 			COOK_STAT(Timer.AddHit(0));
 		}
 		return bExists;

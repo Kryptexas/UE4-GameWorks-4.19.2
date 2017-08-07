@@ -92,7 +92,9 @@ public:
 		: PhysicsSettings(InPhysicsSettings)
 		, PhysicalSurfaceEnum(InPhysicalSurfaceEnum)
 		, PhysicalSurfacesProperty(InPhysicalSurfacesProperty)
-	{}
+	{
+		PhysicalSurfacesProperty->MarkHiddenByCustomization();
+	}
 
 	void RefreshPhysicalSurfaceList()
 	{
@@ -182,7 +184,7 @@ public:
 
 		for(TSharedPtr<FPhysicalSurfaceListItem>& Item : PhysicalSurfaceList)
 		{
-			FDetailWidgetRow& Row = ChildrenBuilder.AddChildContent(SearchString);
+			FDetailWidgetRow& Row = ChildrenBuilder.AddCustomRow(SearchString);
 
 			FString TypeString = PhysicalSurfaceEnum->GetNameStringByValue((int64)Item->PhysicalSurface->Type);
 

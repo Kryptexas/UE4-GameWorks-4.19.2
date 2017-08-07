@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3429264
 Availability: Public
 Title:플레이어 제어 카메라
 Crumbs:%ROOT%, GettingStarted, Programming/Tutorials
 Description:플레이어 입력을 사용해서 카메라와 폰을 동시에 조작하는 법을 배웁니다.
 version:4.9
+type:how-to
+type:landing
+skilllevel:Intermediate
 
 [VAR:Topic]
 [OBJECT:Topic]

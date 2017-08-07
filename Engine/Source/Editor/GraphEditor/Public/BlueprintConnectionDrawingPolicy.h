@@ -51,6 +51,8 @@ protected:
 	float AttackWireThickness;
 	float SustainWireThickness;
 	float ReleaseWireThickness;
+	float DefaultDataWireThickness;
+	float DefaultExecutionWireThickness;
 
 	float TracePositionBonusPeriod;
 	float TracePositionExponent;

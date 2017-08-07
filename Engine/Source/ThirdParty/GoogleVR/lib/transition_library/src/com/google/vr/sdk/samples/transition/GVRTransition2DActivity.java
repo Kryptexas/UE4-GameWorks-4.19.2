@@ -22,6 +22,8 @@ import android.view.WindowManager;
 import android.widget.Button;
 import android.content.Intent;
 import com.google.vr.ndk.base.DaydreamApi;
+import java.lang.Runnable;
+
 
 public class GVRTransition2DActivity extends Activity
 {
@@ -38,6 +40,7 @@ public class GVRTransition2DActivity extends Activity
 		setContentView(R.layout.dialog);
 		Button returnButton = (Button)findViewById(R.id.return_button);
 		returnButton.setVisibility(View.GONE);
+		returnButton.invalidate();
 		GVRTransition2DActivity.activity = this;
 	}
 
@@ -47,8 +50,13 @@ public class GVRTransition2DActivity extends Activity
 	}
 
 	public void showReturnButton() {
-		Button returnButton = (Button)findViewById(R.id.return_button);
-		returnButton.setVisibility(View.VISIBLE);
+		runOnUiThread(new Runnable() {
+		    public void run() {
+						Button returnButton = (Button)GVRTransition2DActivity.activity.findViewById(R.id.return_button);
+						returnButton.setVisibility(View.VISIBLE);
+						returnButton.invalidate();
+		    }
+		});
 	}
 
 	public void returnToVR(View view) {

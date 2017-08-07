@@ -47,7 +47,7 @@ namespace SteamAudio
 		ReverbInputAudioFormat.ambisonicsNormalization = IPL_AMBISONICSNORMALIZATION_N3D;
 		ReverbInputAudioFormat.ambisonicsOrdering = IPL_AMBISONICSORDERING_ACN;
 
-		IndirectOutputAudioFormat.channelLayout = IPL_CHANNELLAYOUT_STEREO;
+		IndirectOutputAudioFormat.channelLayout = IPL_CHANNELLAYOUT_MONO;
 		IndirectOutputAudioFormat.channelLayoutType = IPL_CHANNELLAYOUTTYPE_AMBISONICS;
 		IndirectOutputAudioFormat.channelOrder = IPL_CHANNELORDER_DEINTERLEAVED;
 		IndirectOutputAudioFormat.numSpeakers = (IndirectImpulseResponseOrder + 1) * (IndirectImpulseResponseOrder + 1);
@@ -56,6 +56,7 @@ namespace SteamAudio
 		IndirectOutputAudioFormat.ambisonicsNormalization = IPL_AMBISONICSNORMALIZATION_N3D;
 		IndirectOutputAudioFormat.ambisonicsOrdering = IPL_AMBISONICSORDERING_ACN;
 
+		// Assume stereo output - if wrong, will be dynamically changed in the mixer processing
 		BinauralOutputAudioFormat.channelLayout = IPL_CHANNELLAYOUT_STEREO;
 		BinauralOutputAudioFormat.channelLayoutType = IPL_CHANNELLAYOUTTYPE_SPEAKERS;
 		BinauralOutputAudioFormat.channelOrder = IPL_CHANNELORDER_INTERLEAVED;
@@ -115,7 +116,15 @@ namespace SteamAudio
 		RenderingSettings.frameSize = FrameSize;
 		RenderingSettings.samplingRate = SampleRate;
 
-		iplCreateBinauralRenderer(SteamAudio::GlobalContext, RenderingSettings, nullptr, &BinauralRenderer);
+		IPLHrtfParams HrtfParams;
+		HrtfParams.hrtfData = nullptr;
+		HrtfParams.loadCallback = nullptr;
+		HrtfParams.lookupCallback = nullptr;
+		HrtfParams.unloadCallback = nullptr;
+		HrtfParams.numHrirSamples = 0;
+		HrtfParams.type = IPL_HRTFDATABASETYPE_DEFAULT;
+
+		iplCreateBinauralRenderer(SteamAudio::GlobalContext, RenderingSettings, HrtfParams, &BinauralRenderer);
 		iplCreateAmbisonicsBinauralEffect(BinauralRenderer, IndirectOutputAudioFormat, BinauralOutputAudioFormat, &IndirectBinauralEffect);
 		iplCreateAmbisonicsPanningEffect(BinauralRenderer, IndirectOutputAudioFormat, BinauralOutputAudioFormat, &IndirectPanningEffect);
 
@@ -137,7 +146,7 @@ namespace SteamAudio
 		DryBuffer.interleavedBuffer = nullptr;
 		DryBuffer.deinterleavedBuffer = nullptr;
 
-		IndirectOutArray.SetNumZeroed(FrameSize * 2);
+		IndirectOutArray.SetNumZeroed(FrameSize * BinauralOutputAudioFormat.numSpeakers);
 		IndirectOutBuffer.format = BinauralOutputAudioFormat;
 		IndirectOutBuffer.numSamples = FrameSize;
 		IndirectOutBuffer.interleavedBuffer = IndirectOutArray.GetData();
@@ -153,7 +162,7 @@ namespace SteamAudio
 		ReverbIndirectContribution = 1.0f;
 	}
 
-	void FPhononReverb::OnInitSource(const uint32 SourceId, const FName& AudioComponentUserId, UReverbPluginSourceSettingsBase* InSettings)
+	void FPhononReverb::OnInitSource(const uint32 SourceId, const FName& AudioComponentUserId, const uint32 NumChannels, UReverbPluginSourceSettingsBase* InSettings)
 	{
 		if (!EnvironmentalRenderer)
 		{
@@ -161,21 +170,33 @@ namespace SteamAudio
 			return;
 		}
 
-		UE_LOG(LogSteamAudio, Log, TEXT("Creating reverb effect."));
+		UE_LOG(LogSteamAudio, Log, TEXT("Creating reverb effect for %s"), *AudioComponentUserId.ToString().ToLower());
 
 		auto Settings = static_cast<UPhononReverbSourceSettings*>(InSettings);
 		auto& ReverbSource = ReverbSources[SourceId];
 
 		ReverbSource.IndirectContribution = Settings->IndirectContribution;
 
+		InputAudioFormat.numSpeakers = NumChannels;
+		switch (NumChannels)
+		{
+			case 1: InputAudioFormat.channelLayout = IPL_CHANNELLAYOUT_MONO; break;
+			case 2: InputAudioFormat.channelLayout = IPL_CHANNELLAYOUT_STEREO; break;
+			case 4: InputAudioFormat.channelLayout = IPL_CHANNELLAYOUT_QUADRAPHONIC; break;
+			case 6: InputAudioFormat.channelLayout = IPL_CHANNELLAYOUT_FIVEPOINTONE; break;
+			case 8: InputAudioFormat.channelLayout = IPL_CHANNELLAYOUT_SEVENPOINTONE; break;
+		}
+
+		ReverbSource.InBuffer.format = InputAudioFormat;
+
 		switch (Settings->IndirectSimulationType)
 		{
 		case EIplSimulationType::BAKED:
-			iplCreateConvolutionEffect(EnvironmentalRenderer, TCHAR_TO_ANSI(*AudioComponentUserId.ToString()), IPL_SIMTYPE_BAKED, InputAudioFormat,
-				IndirectOutputAudioFormat, &ReverbSource.ConvolutionEffect);
+			iplCreateConvolutionEffect(EnvironmentalRenderer, TCHAR_TO_ANSI(*AudioComponentUserId.ToString().ToLower()), IPL_SIMTYPE_BAKED,
+				InputAudioFormat, IndirectOutputAudioFormat, &ReverbSource.ConvolutionEffect);
 			break;
 		case EIplSimulationType::REALTIME:
-			iplCreateConvolutionEffect(EnvironmentalRenderer, TCHAR_TO_ANSI(*AudioComponentUserId.ToString()), IPL_SIMTYPE_REALTIME, 
+			iplCreateConvolutionEffect(EnvironmentalRenderer, TCHAR_TO_ANSI(*AudioComponentUserId.ToString().ToLower()), IPL_SIMTYPE_REALTIME,
 				InputAudioFormat, IndirectOutputAudioFormat, &ReverbSource.ConvolutionEffect);
 			break;
 		case EIplSimulationType::DISABLED:
@@ -225,7 +246,28 @@ namespace SteamAudio
 		}
 
 		FScopeLock EnvironmentLock(&SteamAudioModule->GetEnvironmentCriticalSection());
-		//FScopeLock ListenerLock(&ListenerCriticalSection);
+
+		if (IndirectOutBuffer.format.numSpeakers != OutData.NumChannels)
+		{
+			iplDestroyAmbisonicsBinauralEffect(&IndirectBinauralEffect);
+			iplDestroyAmbisonicsPanningEffect(&IndirectPanningEffect);
+
+			IndirectOutBuffer.format.numSpeakers = OutData.NumChannels;
+			switch (OutData.NumChannels)
+			{
+				case 1: IndirectOutBuffer.format.channelLayout = IPL_CHANNELLAYOUT_MONO; break;
+				case 2: IndirectOutBuffer.format.channelLayout = IPL_CHANNELLAYOUT_STEREO; break;
+				case 4: IndirectOutBuffer.format.channelLayout = IPL_CHANNELLAYOUT_QUADRAPHONIC; break;
+				case 6: IndirectOutBuffer.format.channelLayout = IPL_CHANNELLAYOUT_FIVEPOINTONE; break;
+				case 8: IndirectOutBuffer.format.channelLayout = IPL_CHANNELLAYOUT_SEVENPOINTONE; break;
+			}
+
+			IndirectOutArray.SetNumZeroed(OutData.AudioBuffer->Num());
+			IndirectOutBuffer.interleavedBuffer = IndirectOutArray.GetData();
+
+			iplCreateAmbisonicsBinauralEffect(BinauralRenderer, IndirectOutputAudioFormat, IndirectOutBuffer.format, &IndirectBinauralEffect);
+			iplCreateAmbisonicsPanningEffect(BinauralRenderer, IndirectOutputAudioFormat, IndirectOutBuffer.format, &IndirectPanningEffect);
+		}
 
 		if (ReverbConvolutionEffect)
 		{
@@ -264,11 +306,11 @@ namespace SteamAudio
 		switch (GetDefault<USteamAudioSettings>()->ReverbSimulationType)
 		{
 		case EIplSimulationType::BAKED:
-			iplCreateConvolutionEffect(EnvironmentalRenderer, "__reverb__", IPL_SIMTYPE_BAKED, ReverbInputAudioFormat, IndirectOutputAudioFormat,
+			iplCreateConvolutionEffect(EnvironmentalRenderer, (IPLstring)"__reverb__", IPL_SIMTYPE_BAKED, ReverbInputAudioFormat, IndirectOutputAudioFormat,
 				&ReverbConvolutionEffect);
 			break;
 		case EIplSimulationType::REALTIME:
-			iplCreateConvolutionEffect(EnvironmentalRenderer, "__reverb__", IPL_SIMTYPE_REALTIME, ReverbInputAudioFormat, IndirectOutputAudioFormat,
+			iplCreateConvolutionEffect(EnvironmentalRenderer, (IPLstring)"__reverb__", IPL_SIMTYPE_REALTIME, ReverbInputAudioFormat, IndirectOutputAudioFormat,
 				&ReverbConvolutionEffect);
 			break;
 		case EIplSimulationType::DISABLED:
@@ -279,7 +321,6 @@ namespace SteamAudio
 
 	void FPhononReverb::UpdateListener(const FVector& Position, const FVector& Forward, const FVector& Up)
 	{
-		//FScopeLock Lock(&ListenerCriticalSection);
 		ListenerPosition = SteamAudio::UnrealToPhononIPLVector3(Position);
 		ListenerForward = SteamAudio::UnrealToPhononIPLVector3(Forward, false);
 		ListenerUp = SteamAudio::UnrealToPhononIPLVector3(Up, false);

@@ -24,6 +24,28 @@ class FPaintArgs;
 class FSlateWindowElementList;
 class SScrollPanel;
 
+/** Where to scroll the descendant to */
+UENUM(BlueprintType)
+enum class EDescendantScrollDestination : uint8
+{
+	/**
+	* Scroll the widget into view using the least amount of energy possible.  So if the new item
+	* is above the visible set, it will stop as soon as it's in view at the top.  If it's below the
+	* visible set, it stop it comes into view at the bottom.
+	*/
+	IntoView,
+
+	/** Always scroll the widget so it appears at the top/Left of the scrollable area. */
+	TopOrLeft,
+
+	/**
+	* Always scroll the widget so it appears at the center of the scrollable area, if possible.
+	* This won't be possible for the first few items and the last few items, as there's not enough
+	* slack.
+	*/
+	Center,
+};
+
 /** SScrollBox can scroll through an arbitrary number of widgets. */
 class SLATE_API SScrollBox : public SCompoundWidget
 {
@@ -67,9 +89,13 @@ public:
 		, _ScrollBarAlwaysVisible(false)
 		, _ScrollBarThickness(FVector2D(5, 5))
 		, _AllowOverscroll(EAllowOverscroll::Yes)
+		, _NavigationDestination(EDescendantScrollDestination::IntoView)
+		, _NavigationScrollPadding(0.0f)
 		, _OnUserScrolled()
 		, _ConsumeMouseWheel(EConsumeMouseWheel::WhenScrollingPossible)
-		{}
+		{
+			_Clipping = EWidgetClipping::ClipToBounds;
+		}
 		
 		SLATE_SUPPORTS_SLOT( FSlot )
 
@@ -93,6 +119,14 @@ public:
 
 		SLATE_ARGUMENT(EAllowOverscroll, AllowOverscroll);
 
+		SLATE_ARGUMENT(EDescendantScrollDestination, NavigationDestination);
+
+		/**
+		 * The amount of padding to ensure exists between the item being navigated to, at the edge of the
+		 * scrollbox.  Use this if you want to ensure there's a preview of the next item the user could scroll to.
+		 */
+		SLATE_ARGUMENT(float, NavigationScrollPadding);
+
 		/** Called when the button is clicked */
 		SLATE_EVENT(FOnUserScrolled, OnUserScrolled)
 
@@ -100,6 +134,7 @@ public:
 
 	SLATE_END_ARGS()
 
+	SScrollBox();
 
 	/** @return a new slot. Slots contain children for SScrollBox */
 	static FSlot& Slot();
@@ -119,23 +154,17 @@ public:
 		        the right mouse button and dragging. */
 	bool IsRightClickScrolling() const;
 
-	float GetScrollOffset();
+	EAllowOverscroll GetAllowOverscroll() const;
+
+	void SetAllowOverscroll( EAllowOverscroll NewAllowOverscroll );
+
+	float GetScrollOffset() const;
 
 	void SetScrollOffset( float NewScrollOffset );
 
 	void ScrollToStart();
 
 	void ScrollToEnd();
-
-	/** Where to scroll the descendant to */
-	enum EDescendantScrollDestination
-	{
-		/** Scroll the widget into view */
-		IntoView,
-
-		/** Always scroll the widget so it appears at the top/Left of the scrollable area */
-		TopOrLeft,
-	};
 
 	/** 
 	 * Attempt to scroll a widget into view, will safely handle non-descendant widgets 
@@ -144,7 +173,7 @@ public:
 	 * @param InAnimateScroll	Whether or not to animate the scroll
 	 * @param InDestination		Where we want the child widget to stop.
 	 */
-	void ScrollDescendantIntoView(const TSharedPtr<SWidget>& WidgetToFind, bool InAnimateScroll = true, EDescendantScrollDestination InDestination = EDescendantScrollDestination::IntoView);
+	void ScrollDescendantIntoView(const TSharedPtr<SWidget>& WidgetToFind, bool InAnimateScroll = true, EDescendantScrollDestination InDestination = EDescendantScrollDestination::IntoView, float Padding = 0);
 
 	/** Get the current orientation of the scrollbox. */
 	EOrientation GetOrientation();
@@ -169,14 +198,15 @@ public:
 	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual void OnMouseLeave( const FPointerEvent& MouseEvent ) override;
 	virtual FReply OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
-	virtual FReply OnDragDetected( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const override;
-	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
-	virtual FReply OnTouchStarted(const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent) override;
-	virtual FReply OnTouchMoved(const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent) override;
+	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
 	virtual FReply OnTouchEnded(const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent) override;
-	virtual FNavigationReply OnNavigation(const FGeometry& MyGeometry, const FNavigationEvent& InNavigationEvent);
+	virtual void OnMouseCaptureLost() override;
+	virtual FNavigationReply OnNavigation(const FGeometry& MyGeometry, const FNavigationEvent& InNavigationEvent) override;
 	// End of SWidget interface
+
+protected:
+	void OnClippingChanged();
 
 private:
 
@@ -190,7 +220,7 @@ private:
 	void ConstructHorizontalLayout();
 
 	/** Gets the component of a vector in the direction of scrolling based on the Orientation property. */
-	inline float GetScrollComponentFromVector(FVector2D Vector) const
+	FORCEINLINE float GetScrollComponentFromVector(FVector2D Vector) const
 	{
 		return Orientation == Orient_Vertical ? Vector.Y : Vector.X;
 	}
@@ -212,7 +242,7 @@ private:
 	float DesiredScrollOffset;
 
 	/** Scrolls or begins scrolling a widget into view, only valid to call when we have layout geometry. */
-	bool ScrollDescendantIntoView(const FGeometry& MyGeometry, const TSharedPtr<SWidget>& WidgetToFind, bool InAnimateScroll = true, EDescendantScrollDestination InDestination = EDescendantScrollDestination::IntoView);
+	bool InternalScrollDescendantIntoView(const FGeometry& MyGeometry, const TSharedPtr<SWidget>& WidgetToFind, bool InAnimateScroll = true, EDescendantScrollDestination InDestination = EDescendantScrollDestination::IntoView, float Padding = 0);
 
 	/**
 	 * Scroll the view by ScrollAmount given its currently AllottedGeometry.
@@ -222,7 +252,7 @@ private:
 	 * @param InAnimateScroll	Whether or not to animate the scroll
 	 * @return Whether or not the scroll was fully handled
 	 */
-	bool ScrollBy(const FGeometry& AllottedGeometry, float ScrollAmount, EAllowOverscroll Overscroll, bool InAnimateScroll = true);
+	bool ScrollBy(const FGeometry& AllottedGeometry, float LocalScrollAmount, EAllowOverscroll Overscroll, bool InAnimateScroll);
 
 	/** Invoked when the user scroll via the scrollbar */
 	void ScrollBar_OnUserScrolled( float InScrollOffsetFraction );
@@ -239,6 +269,10 @@ private:
 	/** Check whether the current state of the table warrants inertial scroll by the specified amount */
 	bool CanUseInertialScroll(float ScrollAmount) const;
 
+	void BeginInertialScrolling();
+
+	void EndInertialScrolling();
+
 private:
 
 	/** The panel which stacks the child slots */
@@ -251,10 +285,13 @@ private:
 	float TickScrollDelta;
 
 	/** Did the user start an interaction in this list? */
-	bool bStartedTouchInteraction;
+	TOptional<int32> bFingerOwningTouchInteraction;
 
 	/** How much we scrolled while the rmb has been held */
 	float AmountScrolledWhileRightMouseDown;
+
+	/** The current deviation we've accumulated on scrol, once it passes the trigger amount, we're going to begin scrolling. */
+	float PendingScrollTriggerAmount;
 
 	/** Helper object to manage inertial scrolling */
 	FInertialScrollManager InertialScrollManager;
@@ -264,6 +301,17 @@ private:
 
 	/** Whether to permit overscroll on this scroll box */
 	EAllowOverscroll AllowOverscroll;
+
+	/**
+	 * The amount of padding to ensure exists between the item being navigated to, at the edge of the
+	 * scrollbox.  Use this if you want to ensure there's a preview of the next item the user could scroll to.
+	 */
+	float NavigationScrollPadding;
+
+	/**
+	 * 
+	 */
+	EDescendantScrollDestination NavigationDestination;
 
 	/**	The current position of the software cursor */
 	FVector2D SoftwareCursorPosition;
@@ -286,14 +334,12 @@ private:
 	/** Cached geometry for use with the active timer */
 	FGeometry CachedGeometry;
 
-	/** The widget to scroll into view next frame. */
-	TSharedPtr<SWidget> WidgetToScrollIntoView;
+	/** Scroll into view request. */
+	TFunction<void(FGeometry)> ScrollIntoViewRequest;
 
-	/** Where we should scroll the descendant to */
-	EDescendantScrollDestination DestinationScrollingWidgetIntoView;
+	TSharedPtr<FActiveTimerHandle> UpdateInertialScrollHandle;
 
-	/** Whether we should scroll the widget into view over time. */
-	bool bAnimateScrollingWidgetIntoView : 1;
+	double LastScrollTime;
 
 	/**	Whether the software cursor should be drawn in the viewport */
 	bool bShowSoftwareCursor : 1;
@@ -312,4 +358,7 @@ private:
 
 	/** Whether the active timer to update the inertial scroll is registered */
 	bool bIsScrollingActiveTimerRegistered : 1;
+
+	/**  */
+	bool bTouchPanningCapture : 1;
 };

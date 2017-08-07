@@ -81,6 +81,7 @@ TSharedRef<SWidget> FColorStructCustomization::CreateColorWidget()
 	return SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
 		.VAlign(VAlign_Center)
+		.Padding(0.0f, 2.0f)
 		[
 			SNew(SOverlay)
 			+SOverlay::Slot()
@@ -106,6 +107,7 @@ TSharedRef<SWidget> FColorStructCustomization::CreateColorWidget()
 		]
 		+ SHorizontalBox::Slot()
 		.VAlign(VAlign_Center)
+		.Padding(0.0f, 2.0f)
 		[
 			// Displays the color without alpha
 			SNew(SColorBlock)
@@ -406,7 +408,7 @@ FReply FColorStructCustomization::OnMouseButtonDownColorBlock(const FGeometry& M
 	bool CanShowColorPicker = true;
 	if (StructPropertyHandle.IsValid() && StructPropertyHandle->GetProperty() != nullptr)
 	{
-		CanShowColorPicker = !(StructPropertyHandle->GetProperty()->HasAllPropertyFlags(CPF_EditConst));
+		CanShowColorPicker = !StructPropertyHandle->IsEditConst();
 	}
 	if (CanShowColorPicker)
 	{

@@ -370,7 +370,7 @@ TSharedRef<ITableRow> SMessageLogListing::MakeShowWidget(TSharedRef<FMessageFilt
 				+SHorizontalBox::Slot().AutoWidth()
 				[
 					SNew(SImage)
-					.Image(Selection->GetIcon())
+					.Image(Selection->GetIcon().GetIcon())
 				]
 				+SHorizontalBox::Slot().AutoWidth()
 				[

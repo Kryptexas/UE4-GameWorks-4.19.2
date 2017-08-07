@@ -23,7 +23,7 @@ public:
 
 	// INetworkFileSystemModule interface
 
-	virtual INetworkFileServer* CreateNetworkFileServer( bool bLoadTargetPlatforms, int32 Port, const FFileRequestDelegate* InFileRequestDelegate, const FRecompileShadersDelegate* InRecompileShadersDelegate, const ENetworkFileServerProtocol Protocol ) const override
+	virtual INetworkFileServer* CreateNetworkFileServer( bool bLoadTargetPlatforms, int32 Port, FNetworkFileDelegateContainer NetworkFileDelegateContainer, const ENetworkFileServerProtocol Protocol ) const override
 	{
 		TArray<ITargetPlatform*> ActiveTargetPlatforms;
 		if (bLoadTargetPlatforms)
@@ -46,10 +46,10 @@ public:
 		{
 #if ENABLE_HTTP_FOR_NFS
 		case NFSP_Http: 
-			return new FNetworkFileServerHttp(Port, InFileRequestDelegate, InRecompileShadersDelegate, ActiveTargetPlatforms);
+			return new FNetworkFileServerHttp(Port, NetworkFileDelegateContainer, ActiveTargetPlatforms);
 #endif
 		case NFSP_Tcp:
-			return new FNetworkFileServer(Port, InFileRequestDelegate, InRecompileShadersDelegate, ActiveTargetPlatforms);
+			return new FNetworkFileServer(Port, NetworkFileDelegateContainer, ActiveTargetPlatforms);
 		}
  
 		return NULL;

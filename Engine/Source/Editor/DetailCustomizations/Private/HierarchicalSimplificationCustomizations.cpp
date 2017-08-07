@@ -8,6 +8,7 @@
 #include "IDetailGroup.h"
 #include "IDetailPropertyRow.h"
 #include "MeshUtilities.h"
+#include "IMeshReductionManagerModule.h"
 
 #define LOCTEXT_NAMESPACE "HierarchicalSimplificationCustomizations"
 
@@ -48,8 +49,8 @@ void FHierarchicalSimplificationCustomizations::CustomizeChildren( TSharedRef<IP
 	}
 	
 	// Create two sub-settings groups for clean overview
-	IDetailGroup& ClusterGroup = ChildBuilder.AddChildGroup(NAME_None, FText::FromString("Cluster generation settings"));
-	IDetailGroup& MergeGroup = ChildBuilder.AddChildGroup(NAME_None, FText::FromString("Mesh generation settings"));
+	IDetailGroup& ClusterGroup = ChildBuilder.AddGroup(NAME_None, FText::FromString("Cluster generation settings"));
+	IDetailGroup& MergeGroup = ChildBuilder.AddGroup(NAME_None, FText::FromString("Mesh generation settings"));
 
 	// Retrieve special case properties
 	SimplifyMeshPropertyHandle = PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FHierarchicalSimplification, bSimplifyMesh));
@@ -89,8 +90,8 @@ void FHierarchicalSimplificationCustomizations::CustomizeChildren( TSharedRef<IP
 EVisibility FHierarchicalSimplificationCustomizations::IsSimplifyMeshVisible() const
 {
 	// Determine whether or not there is a mesh merging interface available (SimplygonMeshReduction/SimplygonSwarm)
-	IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
-	if (MeshUtilities.GetMeshMergingInterface() != nullptr)
+	IMeshReductionModule& ReductionModule = FModuleManager::Get().LoadModuleChecked<IMeshReductionModule>("MeshReductionInterface");
+	if (ReductionModule.GetMeshMergingInterface() != nullptr)
 	{
 		return EVisibility::Visible;
 	}

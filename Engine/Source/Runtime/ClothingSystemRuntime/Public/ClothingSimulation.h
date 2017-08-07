@@ -77,7 +77,7 @@ public:
 protected:
 
 	/** Fills in the base data for a clothing simulation */
-	virtual void FillContext(USkeletalMeshComponent* InComponent, IClothingSimulationContext* InOutContext) override;
+	virtual void FillContext(USkeletalMeshComponent* InComponent, float InDeltaTime, IClothingSimulationContext* InOutContext) override;
 
 	/** Maximum physics time, incoming deltas will be clamped down to this value on long frames */
 	float MaxPhysicsDelta;

@@ -21,7 +21,7 @@ struct FLightmassParameterValue
 	GENERATED_USTRUCT_BODY()
 
 	/** If true, override the given parameter with the given settings */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=LightmassParameterValue)
+	UPROPERTY(EditAnywhere, Category=LightmassParameterValue)
 	uint32 bOverride:1;
 
 
@@ -39,7 +39,7 @@ struct FLightmassBooleanParameterValue : public FLightmassParameterValue
 	GENERATED_USTRUCT_BODY()
 
 	/** The boolean value to override the parent value with */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=LightmassBooleanParameterValue)
+	UPROPERTY(EditAnywhere, Category=LightmassBooleanParameterValue)
 	uint32 ParameterValue:1;
 
 
@@ -57,7 +57,7 @@ struct FLightmassScalarParameterValue : public FLightmassParameterValue
 	GENERATED_USTRUCT_BODY()
 
 	/** The scalar value to override the parent value with */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=LightmassScalarParameterValue)
+	UPROPERTY(EditAnywhere, Category=LightmassScalarParameterValue)
 	float ParameterValue;
 
 
@@ -78,22 +78,22 @@ struct FLightmassParameterizedMaterialSettings
 	GENERATED_USTRUCT_BODY()
 
 	/** If true, forces translucency to cast static shadows as if the material were masked. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=LightmassParameterizedMaterialSettings)
+	UPROPERTY(EditAnywhere, Category=LightmassParameterizedMaterialSettings)
 	struct FLightmassBooleanParameterValue CastShadowAsMasked;
 
 	/** Scales the emissive contribution of this material to static lighting. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=LightmassParameterizedMaterialSettings)
+	UPROPERTY(EditAnywhere, Category=LightmassParameterizedMaterialSettings)
 	struct FLightmassScalarParameterValue EmissiveBoost;
 
 	/** Scales the diffuse contribution of this material to static lighting. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=LightmassParameterizedMaterialSettings)
+	UPROPERTY(EditAnywhere, Category=LightmassParameterizedMaterialSettings)
 	struct FLightmassScalarParameterValue DiffuseBoost;
 
 	/** 
 	 * Scales the resolution that this material's attributes were exported at. 
 	 * This is useful for increasing material resolution when details are needed.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=LightmassParameterizedMaterialSettings)
+	UPROPERTY(EditAnywhere, Category=LightmassParameterizedMaterialSettings)
 	struct FLightmassScalarParameterValue ExportResolutionScale;
 
 	FLightmassParameterizedMaterialSettings()

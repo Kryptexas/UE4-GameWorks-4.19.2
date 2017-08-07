@@ -17,6 +17,7 @@ class IKeyArea;
 class ISequencerTrackEditor;
 class SSequencerTreeViewRow;
 class UMovieSceneTrack;
+class UMovieSceneSection;
 struct FSlateBrush;
 enum class EItemDropZone;
 
@@ -104,14 +105,6 @@ public:
 	 * @param DisplayName	Localized label to display in the animation outliner
 	 */
 	TSharedRef<class FSequencerSectionCategoryNode> AddCategoryNode( FName CategoryName, const FText& DisplayLabel );
-
-	/**
-	 * Adds a new track for this node.
-	 * 
-	 * @param AssociatedTrack	The track associated with sections in this node
-	 * @param AssociatedEditor	The track editor for the associated track
-	 */
-	TSharedRef<class FSequencerTrackNode> AddTrackNode(UMovieSceneTrack& AssociatedTrack, ISequencerTrackEditor& AssociatedEditor );
 
 	/**
 	 * Adds a key area to this node
@@ -398,13 +391,13 @@ public:
 	}
 
 	/** Get the key grouping for the specified section index, ensuring it is fully up to date */
-	TSharedRef<FGroupedKeyArea> UpdateKeyGrouping(int32 InSectionIndex);
+	TSharedRef<FGroupedKeyArea> UpdateKeyGrouping(UMovieSceneSection* InSection);
 
 	/** Get the key grouping for the specified section index */
-	TSharedRef<FGroupedKeyArea> GetKeyGrouping(int32 InSectionIndex);
+	TSharedRef<FGroupedKeyArea> GetKeyGrouping(UMovieSceneSection* InSection);
 
-	/** Get the number of key groupings */
-	int32 GetNumKeyGroupings() { return KeyGroupings.Num(); }
+	/** Get key groupings array */
+	const TArray<TSharedRef<FGroupedKeyArea>> GetKeyGroupings() const { return KeyGroupings; }
 
 	DECLARE_EVENT(FSequencerDisplayNode, FRequestRenameEvent);
 	FRequestRenameEvent& OnRenameRequested() { return RenameRequestedEvent; }
@@ -471,7 +464,7 @@ protected:
 	bool bExpanded;
 
 	/** Transient grouped keys for this node */
-	TArray<TSharedPtr<FGroupedKeyArea>> KeyGroupings;
+	TArray<TSharedRef<FGroupedKeyArea>> KeyGroupings;
 
 	/** Event that is triggered when rename is requested */
 	FRequestRenameEvent RenameRequestedEvent;

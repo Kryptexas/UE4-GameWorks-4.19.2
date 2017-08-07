@@ -3,6 +3,9 @@
 #include "HeadMountedDisplayTypes.h"
 #include "RendererInterface.h"
 
+DEFINE_LOG_CATEGORY(LogHMD);
+DEFINE_LOG_CATEGORY(LogLoadingSplash);
+
 FHMDViewMesh::FHMDViewMesh() :
 	pVertices(nullptr),
 	pIndices(nullptr),

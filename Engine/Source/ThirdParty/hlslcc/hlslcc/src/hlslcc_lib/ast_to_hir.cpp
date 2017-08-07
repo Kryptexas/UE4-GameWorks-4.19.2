@@ -1252,16 +1252,23 @@ ir_rvalue* ast_expression::hir(exec_list *instructions, struct _mesa_glsl_parse_
 	case ast_mul:
 	case ast_div:
 	{
-					op[0] = this->subexpressions[0]->hir(instructions, state);
-					op[1] = this->subexpressions[1]->hir(instructions, state);
-
-					type = arithmetic_result_type(op[0], op[1], instructions, state, &loc, false);
-
-					ir_expression* expr = new(ctx)ir_expression(operations[this->oper], type,
-						op[0], op[1]);
-					result = check_expr_for_nan(&loc, state, expr);
-					error_emitted = result->type->is_error();
-					break;
+		op[0] = this->subexpressions[0]->hir(instructions, state);
+		op[1] = this->subexpressions[1]->hir(instructions, state);
+		
+		bool const bNativeMatrixIntrinsics = state->LanguageSpec->SupportsMatrixIntrinsics();
+		if (bNativeMatrixIntrinsics && (this->oper == ast_mul && op[0]->type->is_vector() && op[1]->type->is_matrix()))
+		{
+			type = op[1]->type->column_type();
+		}
+		else
+		{
+			type = arithmetic_result_type(op[0], op[1], instructions, state, &loc, false);
+		}
+		ir_expression* expr = new(ctx)ir_expression(operations[this->oper], type,
+			op[0], op[1]);
+		result = check_expr_for_nan(&loc, state, expr);
+		error_emitted = result->type->is_error();
+		break;
 	}
 
 	case ast_mod:
@@ -2279,9 +2286,23 @@ static const glsl_type * process_array_type(YYLTYPE *loc, const glsl_type *base,
 
 const glsl_type* ast_type_specifier::glsl_type(const char **name, _mesa_glsl_parse_state *state) const
 {
-	const struct glsl_type *type;
+	const struct glsl_type *type = nullptr;
 
-	if (this->inner_type)
+	if (!strcmp(this->type_name, "StructuredBuffer") || !strcmp(this->type_name + 2, "StructuredBuffer"))
+	{
+		const struct glsl_type* InnerType = nullptr;
+		if (this->InnerStructure)
+		{
+			InnerType = state->symbols->get_type(this->InnerStructure->name);
+		}
+		else
+		{
+			InnerType = state->symbols->get_type(this->inner_type);
+		}
+		type = glsl_type::GetStructuredBufferInstance(this->type_name, InnerType);
+		*name = type->name;
+	}
+	else if (this->inner_type)
 	{
 		// Lazily create sampler or outputstream types with specified return types.
 		const struct glsl_type* inner_type = NULL;
@@ -4461,15 +4482,15 @@ ir_rvalue * ast_switch_statement::hir(exec_list *instructions, struct _mesa_glsl
 	* The checks are separated so that higher quality diagnostics can be
 	* generated for cases where the rule is violated.
 	*/
-    if (!test_expression->type->is_scalar())
-    {
-        YYLTYPE loc = this->test_expression->get_location();
-        
-        _mesa_glsl_error(&loc,
-                         state,
-                         "switch-statement expression must be scalar type");
-    }
-    
+	if (!test_expression->type->is_scalar())
+	{
+		YYLTYPE loc = this->test_expression->get_location();
+		
+		_mesa_glsl_error(&loc,
+						 state,
+						 "switch-statement expression must be scalar type");
+	}
+	
 	if (!test_expression->type->is_integer())
 	{
 		YYLTYPE loc = this->test_expression->get_location();
@@ -4478,24 +4499,24 @@ ir_rvalue * ast_switch_statement::hir(exec_list *instructions, struct _mesa_glsl
 			state,
 			"switch-statement expression should be scalar "
 			"integer - casts may not function correctly on non-HLSL platforms");
-        
-        switch(test_expression->type->base_type)
-        {
-            case GLSL_TYPE_FLOAT:
-                test_expression = new(ctx)ir_expression(ir_unop_f2i, test_expression);
-                break;
-            case GLSL_TYPE_HALF:
-                test_expression = new(ctx)ir_expression(ir_unop_h2i, test_expression);
-                break;
-            case GLSL_TYPE_BOOL:
-                test_expression = new(ctx)ir_expression(ir_unop_b2i, test_expression);
-                break;
-            default:
-                _mesa_glsl_error(&loc,
-                                   state,
-                                   "switch-statement expression must be numeric type");
-                break;
-        }
+		
+		switch(test_expression->type->base_type)
+		{
+			case GLSL_TYPE_FLOAT:
+				test_expression = new(ctx)ir_expression(ir_unop_f2i, test_expression);
+				break;
+			case GLSL_TYPE_HALF:
+				test_expression = new(ctx)ir_expression(ir_unop_h2i, test_expression);
+				break;
+			case GLSL_TYPE_BOOL:
+				test_expression = new(ctx)ir_expression(ir_unop_b2i, test_expression);
+				break;
+			default:
+				_mesa_glsl_error(&loc,
+								   state,
+								   "switch-statement expression must be numeric type");
+				break;
+		}
 	}
 
 	/* Track the switch-statement nesting in a stack-like manner.

@@ -1000,7 +1000,7 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 				}
 
 				FTouchContext NewTouch;
-				NewTouch.TouchIndex = Touches.Num() + 1;	// +1 to mimic Windows behavior (arguably wrong)
+				NewTouch.TouchIndex = Touches.Num();
 				NewTouch.Location = GetTouchEventLocation(Event) + Offset;
 				NewTouch.DeviceId = Event.tfinger.touchId;
 				Touches.Add(FingerId, NewTouch);
@@ -1510,12 +1510,6 @@ void FLinuxApplication::OnMouseCursorLock( bool bLockEnabled )
 	{
 		CurrentClipWindow = nullptr;
 	}
-}
-
-
-bool FLinuxApplication::TryCalculatePopupWindowPosition( const FPlatformRect& InAnchor, const FVector2D& InSize, const EPopUpOrientation::Type Orientation, /*OUT*/ FVector2D* const CalculatedPopUpPosition ) const
-{
-	return false;
 }
 
 void FDisplayMetrics::GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics)

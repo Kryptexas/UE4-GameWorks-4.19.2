@@ -39,6 +39,7 @@
 #include "ShaderCompiler.h"
 #include "HAL/MemoryMisc.h"
 #include "ProfilingDebugging/CookStats.h"
+#include "AssetRegistryModule.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCookCommandlet, Log, All);
 
@@ -346,16 +347,6 @@ bool UCookCommandlet::CookOnTheFly( FGuid InstanceId, int32 Timeout, bool bForce
 	UCookerSettings const* CookerSettings = GetDefault<UCookerSettings>();
 	ECookInitializationFlags IterateFlags = ECookInitializationFlags::Iterative;
 
-	if (CookerSettings->bUseAssetRegistryForIteration || Switches.Contains(TEXT("iterateregistry")))
-	{
-		// Asset registry overwrites other options
-		IterateFlags = ECookInitializationFlags::Iterative | ECookInitializationFlags::IterateOnAssetRegistry;
-	}
-	else if (Switches.Contains(TEXT("iteratehash")))
-	{
-		IterateFlags = ECookInitializationFlags::Iterative | ECookInitializationFlags::IterateOnHash;
-	}
-
 	ECookInitializationFlags CookFlags = ECookInitializationFlags::None;
 	CookFlags |= bIterativeCooking ? IterateFlags : ECookInitializationFlags::None;
 	CookFlags |= bSkipEditorContent ? ECookInitializationFlags::SkipEditorContent : ECookInitializationFlags::None;
@@ -475,13 +466,15 @@ bool UCookCommandlet::CookOnTheFly( FGuid InstanceId, int32 Timeout, bool bForce
 		uint32 CookedPkgCount = 0;
 		uint32 TickResults = CookOnTheFlyServer->TickCookOnTheSide(/*TimeSlice =*/10.f, CookedPkgCount);
 
+		// Flush the asset registry before GC
+		FAssetRegistryModule::TickAssetRegistry(-1.0f);
+
 		CookOnTheFlyGCController.Update(CookedPkgCount, (UCookOnTheFlyServer::ECookOnTheSideResult)TickResults);
 		CookOnTheFlyGCController.ConditionallyCollectGarbage(CookOnTheFlyServer);
 
 		// force at least a tick shader compilation even if we are requesting stuff
 		CookOnTheFlyServer->TickRecompileShaderRequests();
 		GShaderCompilingManager->ProcessAsyncResults(true, false);
-
 
 		while ( (CookOnTheFlyServer->HasCookRequests() == false) && !GIsRequestingExit)
 		{
@@ -623,25 +616,11 @@ bool UCookCommandlet::CookByTheBook( const TArray<ITargetPlatform*>& Platforms, 
 	UCookerSettings const* CookerSettings = GetDefault<UCookerSettings>();
 	ECookInitializationFlags IterateFlags = ECookInitializationFlags::Iterative;
 
-	if (CookerSettings->bUseAssetRegistryForIteration || Switches.Contains(TEXT("iterateregistry")))
-	{
-		// Asset registry overwrites other options
-		IterateFlags = ECookInitializationFlags::Iterative | ECookInitializationFlags::IterateOnAssetRegistry;
-	}
-	else if (Switches.Contains(TEXT("iteratehash")))
-	{
-		IterateFlags = ECookInitializationFlags::Iterative | ECookInitializationFlags::IterateOnHash;
-	}
-
-	if (Switches.Contains(TEXT("iteratesharedcookedbuild")))
+	if (Switches.Contains(TEXT("IterateSharedCookedbuild")))
 	{
 		// Add shared build flag to method flag, and enable iterative
 		IterateFlags |= ECookInitializationFlags::IterateSharedBuild;
-		if (!(IterateFlags | ECookInitializationFlags::IterateOnAssetRegistry))
-		{
-			IterateFlags |= ECookInitializationFlags::IterateOnHash;
-		}
-
+		
 		bIterativeCooking = true;
 	}
 	
@@ -652,10 +631,11 @@ bool UCookCommandlet::CookByTheBook( const TArray<ITargetPlatform*>& Platforms, 
 	CookFlags |= bUnversioned ? ECookInitializationFlags::Unversioned : ECookInitializationFlags::None;
 	CookFlags |= bVerboseCookerWarnings ? ECookInitializationFlags::OutputVerboseCookerWarnings : ECookInitializationFlags::None;
 	CookFlags |= bPartialGC ? ECookInitializationFlags::EnablePartialGC : ECookInitializationFlags::None;
-	bool bTestCook = Switches.Contains(TEXT("Testcook"));
+	bool bTestCook = Switches.Contains(TEXT("TestCook"));
 	CookFlags |= bTestCook ? ECookInitializationFlags::TestCook : ECookInitializationFlags::None;
-	CookFlags |= Switches.Contains(TEXT("logdebuginfo")) ? ECookInitializationFlags::LogDebugInfo : ECookInitializationFlags::None;
-	CookFlags |= Switches.Contains(TEXT("Ignoreinisettingsoutofdate")) ? ECookInitializationFlags::IgnoreIniSettingsOutOfDate : ECookInitializationFlags::None;
+	CookFlags |= Switches.Contains(TEXT("LogDebugInfo")) ? ECookInitializationFlags::LogDebugInfo : ECookInitializationFlags::None;
+	CookFlags |= Switches.Contains(TEXT("IgnoreIniSettingsOutOfDate")) || CookerSettings->bIgnoreIniSettingsOutOfDateForIteration ? ECookInitializationFlags::IgnoreIniSettingsOutOfDate : ECookInitializationFlags::None;
+	CookFlags |= Switches.Contains(TEXT("IgnoreScriptPackagesOutOfDate")) || CookerSettings->bIgnoreScriptPackagesOutOfDateForIteration ? ECookInitializationFlags::IgnoreScriptPackagesOutOfDate : ECookInitializationFlags::None;
 
 	TArray<UClass*> FullGCAssetClasses;
 	if (FullGCAssetClassNames.Num())
@@ -930,6 +910,9 @@ bool UCookCommandlet::CookByTheBook( const TArray<ITargetPlatform*>& Platforms, 
 					GShaderCompilingManager->ProcessAsyncResults(true, false);
 				}
 				
+				// Flush the asset registry before GC
+				FAssetRegistryModule::TickAssetRegistry(-1.0f);
+
 				auto DumpMemStats = []()
 				{
 					FGenericMemoryStats MemStats;

@@ -26,6 +26,7 @@ enum class EViewRangeInterpolation
 DECLARE_DELEGATE_TwoParams( FOnScrubPositionChanged, float, bool )
 DECLARE_DELEGATE_TwoParams( FOnViewRangeChanged, TRange<float>, EViewRangeInterpolation )
 DECLARE_DELEGATE_OneParam( FOnRangeChanged, TRange<float> )
+DECLARE_DELEGATE_RetVal_OneParam( float, FOnGetNearestKey, float )
 
 /** Structure used to wrap up a range, and an optional animation target */
 struct FAnimatedRange : public TRange<float>
@@ -72,6 +73,7 @@ struct FTimeSliderArgs
 		, OnEndScrubberMovement()
 		, OnViewRangeChanged()
 		, OnClampRangeChanged()
+		, OnGetNearestKey()
 		, AllowZoom(true)
 		, Settings(nullptr)
 	{}
@@ -99,6 +101,9 @@ struct FTimeSliderArgs
 
 	/** Called when the clamp range changes */
 	FOnRangeChanged OnClampRangeChanged;
+
+	/** Delegate that is called when getting the nearest key */
+	FOnGetNearestKey OnGetNearestKey;
 
 	/** Attribute defining the active sub-sequence range for this controller */
 	TAttribute<TOptional<TRange<float>>> SubSequenceRange;
@@ -149,7 +154,7 @@ class ITimeSliderController : public ISequencerInputHandler
 {
 public:
 	virtual ~ITimeSliderController(){}
-	virtual int32 OnPaintTimeSlider( bool bMirrorLabels, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const = 0;
+	virtual int32 OnPaintTimeSlider( bool bMirrorLabels, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const = 0;
 	virtual FCursorReply OnCursorQuery( TSharedRef<const SWidget> WidgetOwner, const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const = 0;
 
 	/** Get the current view range for this controller */

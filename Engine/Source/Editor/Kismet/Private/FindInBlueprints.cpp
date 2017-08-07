@@ -92,7 +92,7 @@ bool FindInBlueprintsHelpers::ParsePinType(FText InKey, FText InValue, FEdGraphP
 	}
 	else if(InKey.CompareTo(FFindInBlueprintSearchTags::FiB_IsArray) == 0)
 	{
-		InOutPinType.bIsArray = InValue.ToString().ToBool();
+		InOutPinType.ContainerType = (InValue.ToString().ToBool() ? EPinContainerType::Array : EPinContainerType::None);
 	}
 	else if(InKey.CompareTo(FFindInBlueprintSearchTags::FiB_IsReference) == 0)
 	{
@@ -332,9 +332,9 @@ FFindInBlueprintsPin::FFindInBlueprintsPin(const FText& InValue, TSharedPtr<FFin
 
 TSharedRef<SWidget> FFindInBlueprintsPin::CreateIcon() const
 {
-	const FSlateBrush* Brush = NULL;
+	const FSlateBrush* Brush = nullptr;
 
-	if( PinType.bIsArray )
+	if( PinType.IsArray() )
 	{
 		Brush = FEditorStyle::GetBrush( TEXT("GraphEditor.ArrayPinIcon") );
 	}

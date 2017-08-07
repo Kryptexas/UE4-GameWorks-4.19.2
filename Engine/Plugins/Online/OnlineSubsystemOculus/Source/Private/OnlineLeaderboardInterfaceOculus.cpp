@@ -35,12 +35,13 @@ bool FOnlineLeaderboardOculus::ReadLeaderboardsForFriends(int32 LocalUserNum, FO
 
 bool FOnlineLeaderboardOculus::ReadLeaderboardsAroundRank(int32 Rank, uint32 Range, FOnlineLeaderboardReadRef& ReadObject)
 {
-	UE_LOG_ONLINE(Warning, TEXT("FOnlineLeaderboardOculus::ReadLeaderboardsAroundRank is currently not supported."));
+	// UNDONE
 	return false;
 }
+
 bool FOnlineLeaderboardOculus::ReadLeaderboardsAroundUser(TSharedRef<const FUniqueNetId> Player, uint32 Range, FOnlineLeaderboardReadRef& ReadObject)
 {
-	UE_LOG_ONLINE(Warning, TEXT("FOnlineLeaderboardOculus::ReadLeaderboardsAroundUser is currently not supported."));
+	// UNDONE
 	return false;
 }
 
@@ -110,15 +111,15 @@ void FOnlineLeaderboardOculus::OnReadLeaderboardsComplete(ovrMessageHandle Messa
 					// order of the score
 					if (Score > INT32_MAX)
 					{
-						return FVariantData((int32)INT32_MAX);
+						return FVariantData(INT32_MAX);
 					}
 					else if (Score < INT32_MIN)
 					{
-						return FVariantData((int32)INT32_MIN);
+						return FVariantData(INT32_MIN);
 					}
 					else
 					{
-						return FVariantData((int32)Score);
+						return FVariantData(static_cast<int32>(Score));
 					}
 					break;
 				case EOnlineKeyValuePairDataType::UInt32:
@@ -126,15 +127,15 @@ void FOnlineLeaderboardOculus::OnReadLeaderboardsComplete(ovrMessageHandle Messa
 					// order of the score
 					if (Score > UINT32_MAX)
 					{
-						return FVariantData((uint32)UINT32_MAX);
+						return FVariantData(UINT32_MAX);
 					}
 					else if (Score < 0)
 					{
-						return FVariantData((uint32)0);
+						return FVariantData(static_cast<uint32>(0));
 					}
 					else
 					{
-						return FVariantData((uint32)Score);
+						return FVariantData(static_cast<uint32>(Score));
 					}
 					break;
 				default:

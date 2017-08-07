@@ -6,42 +6,51 @@
 /////////////////////////////////////////////////////
 // FAnimNode_RotationOffsetBlendSpace
 
-void FAnimNode_RotationOffsetBlendSpace::Initialize(const FAnimationInitializeContext& Context)
+FAnimNode_RotationOffsetBlendSpace::FAnimNode_RotationOffsetBlendSpace()
+	: LODThreshold(INDEX_NONE)
+	, Alpha(1.f)
 {
-	FAnimNode_BlendSpacePlayer::Initialize(Context);
+}
+
+void FAnimNode_RotationOffsetBlendSpace::Initialize_AnyThread(const FAnimationInitializeContext& Context)
+{
+	FAnimNode_BlendSpacePlayer::Initialize_AnyThread(Context);
 	BasePose.Initialize(Context);
 }
 
-void FAnimNode_RotationOffsetBlendSpace::CacheBones(const FAnimationCacheBonesContext& Context) 
+void FAnimNode_RotationOffsetBlendSpace::CacheBones_AnyThread(const FAnimationCacheBonesContext& Context) 
 {
-	FAnimNode_BlendSpacePlayer::CacheBones(Context);
+	FAnimNode_BlendSpacePlayer::CacheBones_AnyThread(Context);
 	BasePose.CacheBones(Context);
 }
 
 void FAnimNode_RotationOffsetBlendSpace::UpdateAssetPlayer(const FAnimationUpdateContext& Context)
 {
+	EvaluateGraphExposedInputs.Execute(Context);
+
+	ActualAlpha = AlphaScaleBias.ApplyTo(Alpha);
 	bIsLODEnabled = IsLODEnabled(Context.AnimInstanceProxy, LODThreshold);
-	if (bIsLODEnabled)
+	if (bIsLODEnabled && FAnimWeight::IsRelevant(ActualAlpha))
 	{
-		FAnimNode_BlendSpacePlayer::UpdateAssetPlayer(Context);
+		UpdateInternal(Context);
 	}
 
 	BasePose.Update(Context);
 }
 
-void FAnimNode_RotationOffsetBlendSpace::Evaluate(FPoseContext& Context)
+void FAnimNode_RotationOffsetBlendSpace::Evaluate_AnyThread(FPoseContext& Context)
 {
 	// Evaluate base pose
 	BasePose.Evaluate(Context);
 
-	if (bIsLODEnabled)
+	if (bIsLODEnabled && FAnimWeight::IsRelevant(ActualAlpha))
 	{
 		// Evaluate MeshSpaceRotation additive blendspace
 		FPoseContext MeshSpaceRotationAdditivePoseContext(Context);
-		FAnimNode_BlendSpacePlayer::Evaluate(MeshSpaceRotationAdditivePoseContext);
+		FAnimNode_BlendSpacePlayer::Evaluate_AnyThread(MeshSpaceRotationAdditivePoseContext);
 
 		// Accumulate poses together
-		FAnimationRuntime::AccumulateMeshSpaceRotationAdditiveToLocalPose(Context.Pose, MeshSpaceRotationAdditivePoseContext.Pose, Context.Curve, MeshSpaceRotationAdditivePoseContext.Curve, 1.f);
+		FAnimationRuntime::AccumulateMeshSpaceRotationAdditiveToLocalPose(Context.Pose, MeshSpaceRotationAdditivePoseContext.Pose, Context.Curve, MeshSpaceRotationAdditivePoseContext.Curve, ActualAlpha);
 
 		// Resulting rotations are not normalized, so normalize here.
 		Context.Pose.NormalizeRotations();
@@ -52,13 +61,10 @@ void FAnimNode_RotationOffsetBlendSpace::GatherDebugData(FNodeDebugData& DebugDa
 {
 	FString DebugLine = DebugData.GetNodeName(this);
 	
-	DebugLine += FString::Printf(TEXT("(Play Time: %.3f)"), InternalTimeAccumulator);
+	DebugLine += FString::Printf(TEXT("Alpha (%.1f%%) PlayTime (%.3f)"), ActualAlpha * 100.f, InternalTimeAccumulator);
 	DebugData.AddDebugItem(DebugLine);
 	
 	BasePose.GatherDebugData(DebugData);
 }
 
-FAnimNode_RotationOffsetBlendSpace::FAnimNode_RotationOffsetBlendSpace()
-	: LODThreshold(INDEX_NONE)
-{
-}
+

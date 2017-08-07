@@ -146,10 +146,6 @@ struct SLATECORE_API FFontData
 	/** Construct the raw data from a filename and the font data attributes */
 	FFontData(FString InFontFilename, const EFontHinting InHinting, const EFontLoadingPolicy InLoadingPolicy);
 
-	/** Construct the raw font data from a filename, and the data associated with that file */
-	DEPRECATED(4.15, "FFontData no longer uses UFontBulkData. Update your code to provide just the filename.")
-	FFontData(FString InFontFilename, const UFontBulkData* const InBulkData, const EFontHinting InHinting);
-
 	/** Is this font data set to a font? (either by filename or by inline data) */
 	bool HasFont() const;
 
@@ -297,16 +293,6 @@ struct SLATECORE_API FTypefaceEntry
 	{
 	}
 
-	PRAGMA_DISABLE_DEPRECATION_WARNINGS
-	/** Construct the entry from a filename, and the data associated with that file */
-	DEPRECATED(4.15, "FTypefaceEntry no longer uses UFontBulkData. Update your code to provide just the filename.")
-	FTypefaceEntry(const FName& InFontName, FString InFontFilename, const UFontBulkData* const InBulkData, const EFontHinting InHinting)
-		: Name(InFontName)
-		, Font(MoveTemp(InFontFilename), InBulkData, InHinting)
-	{
-	}
-	PRAGMA_ENABLE_DEPRECATION_WARNINGS
-
 	/** Name used to identify this font within its typeface */
 	UPROPERTY()
 	FName Name;
@@ -333,29 +319,10 @@ struct SLATECORE_API FTypeface
 		Fonts.Emplace(InFontName, MoveTemp(InFontFilename), InHinting, InLoadingPolicy);
 	}
 
-	/** Convenience constructor for when your font family only contains a single font */
-	DEPRECATED(4.15, "FTypeface no longer uses UFontBulkData. Update your code to provide just the filename.")
-	FTypeface(const FName& InFontName, FString InFontFilename, const UFontBulkData* const InBulkData, const EFontHinting InHinting)
-	{
-		PRAGMA_DISABLE_DEPRECATION_WARNINGS
-		Fonts.Emplace(FTypefaceEntry(InFontName, MoveTemp(InFontFilename), InBulkData, InHinting));
-		PRAGMA_ENABLE_DEPRECATION_WARNINGS
-	}
-
 	/** Append a new font into this family */
 	FTypeface& AppendFont(const FName& InFontName, FString InFontFilename, const EFontHinting InHinting, const EFontLoadingPolicy InLoadingPolicy)
 	{
 		Fonts.Emplace(InFontName, MoveTemp(InFontFilename), InHinting, InLoadingPolicy);
-		return *this;
-	}
-
-	/** Append a new font into this family */
-	DEPRECATED(4.15, "FTypeface no longer uses UFontBulkData. Update your code to provide just the filename.")
-	FTypeface& AppendFont(const FName& InFontName, FString InFontFilename, const UFontBulkData* const InBulkData, const EFontHinting InHinting = EFontHinting::Default)
-	{
-		PRAGMA_DISABLE_DEPRECATION_WARNINGS
-		Fonts.Emplace(FTypefaceEntry(InFontName, MoveTemp(InFontFilename), InBulkData, InHinting));
-		PRAGMA_ENABLE_DEPRECATION_WARNINGS
 		return *this;
 	}
 
@@ -405,7 +372,9 @@ struct SLATECORE_API FCompositeFont
 	FCompositeFont()
 		: DefaultTypeface()
 		, SubTypefaces()
+#if WITH_EDITORONLY_DATA
 		, HistoryRevision(0)
+#endif	// WITH_EDITORONLY_DATA
 	{
 	}
 
@@ -413,26 +382,19 @@ struct SLATECORE_API FCompositeFont
 	FCompositeFont(const FName& InFontName, FString InFontFilename, const EFontHinting InHinting, const EFontLoadingPolicy InLoadingPolicy)
 		: DefaultTypeface(InFontName, MoveTemp(InFontFilename), InHinting, InLoadingPolicy)
 		, SubTypefaces()
+#if WITH_EDITORONLY_DATA
 		, HistoryRevision(0)
+#endif	// WITH_EDITORONLY_DATA
 	{
 	}
 
-	PRAGMA_DISABLE_DEPRECATION_WARNINGS
-	/** Convenience constructor for when your composite font only contains a single font */
-	DEPRECATED(4.15, "FCompositeFont no longer uses UFontBulkData. Update your code to provide just the filename.")
-	FCompositeFont(const FName& InFontName, FString InFontFilename, const UFontBulkData* const InBulkData, const EFontHinting InHinting = EFontHinting::Default)
-		: DefaultTypeface(InFontName, MoveTemp(InFontFilename), InBulkData, InHinting)
-		, SubTypefaces()
-		, HistoryRevision(0)
-	{
-	}
-	PRAGMA_ENABLE_DEPRECATION_WARNINGS; /** Do not remove this semi-colon; it exists to stop UHT failing to parse any properties that may follow this macro */
-
+#if WITH_EDITORONLY_DATA
 	/** Call this when the composite font is changed after its initial setup - this allows various caches to update as required */
 	void MakeDirty()
 	{
 		++HistoryRevision;
 	}
+#endif	// WITH_EDITORONLY_DATA
 
 	/** The default typeface that will be used when not overridden by a sub-typeface */
 	UPROPERTY()
@@ -442,11 +404,13 @@ struct SLATECORE_API FCompositeFont
 	UPROPERTY()
 	TArray<FCompositeSubFont> SubTypefaces;
 
+#if WITH_EDITORONLY_DATA
 	/** 
 	 * Transient value containing the current history ID of this composite font
 	 * This should be updated when the composite font is changed (which should happen infrequently as composite fonts are assumed to be mostly immutable) once they've been setup
 	 */
 	int32 HistoryRevision;
+#endif	// WITH_EDITORONLY_DATA
 };
 
 /**
@@ -465,15 +429,6 @@ struct SLATECORE_API FStandaloneCompositeFont : public FCompositeFont, public FG
 		: FCompositeFont(InFontName, MoveTemp(InFontFilename), InHinting, InLoadingPolicy)
 	{
 	}
-
-	PRAGMA_DISABLE_DEPRECATION_WARNINGS
-	/** Convenience constructor for when your composite font only contains a single font */
-	DEPRECATED(4.15, "FStandaloneCompositeFont no longer uses UFontBulkData. Update your code to provide just the filename.")
-	FStandaloneCompositeFont(const FName& InFontName, FString InFontFilename, const UFontBulkData* const InBulkData, const EFontHinting InHinting = EFontHinting::Default)
-		: FCompositeFont(InFontName, MoveTemp(InFontFilename), InBulkData, InHinting)
-	{
-	}
-	PRAGMA_ENABLE_DEPRECATION_WARNINGS; /** Do not remove this semi-colon; it exists to stop UHT failing to parse any properties that may follow this macro */
 
 	// FGCObject interface
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;

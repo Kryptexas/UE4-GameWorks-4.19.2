@@ -15,6 +15,7 @@ template<typename ItemType> class STableRow;
 class ISceneOutlinerColumn : public TSharedFromThis< ISceneOutlinerColumn >
 {
 public:
+	virtual ~ISceneOutlinerColumn() {}
 
 	virtual FName GetColumnID() = 0;
 

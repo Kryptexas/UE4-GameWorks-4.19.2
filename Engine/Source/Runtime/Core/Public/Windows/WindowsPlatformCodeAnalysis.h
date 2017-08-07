@@ -95,9 +95,13 @@
 	#pragma warning(disable : 6320) // warning C6320: Exception-filter expression is the constant EXCEPTION_EXECUTE_HANDLER. This might mask exceptions that were not intended to be handled.
 
 	//PVS-Studio settings:
-	//-V::505,668,677,688,690,703,704,720
+	//-V::505,542,581,601,668,677,686,688,690,703,704,711,719,720,728,730,735,751
 	//-V:TRYCOMPRESSION:519,547
-	//-V:check(:501,547,560
+	//-V:check(:501,547,560,605
+	//-V:checkf(:510
+	//-V:dtAssert(:568
+	//-V:rcAssert(:568
+	//-V:GET_FUNCTION_NAME_CHECKED:521
 	//-V:ENABLE_TEXT_ERROR_CHECKING_RESULTS:560
 	//-V:ENABLE_LOC_TESTING:560,617
 	//-V:WITH_EDITOR:560
@@ -106,13 +110,17 @@
 	//-V:%n:609
 	//-V:UE_BUILD_SHIPPING:501
 	//-V:WITH_EDITOR:501
+	//-V:TestTrueExpr:501
 	//-V:PLATFORM_:517,547
 	//-V:ensureMsgf:562
-	//-V:WindowsMinorVersion:547 
+	//-V:WindowsMinorVersion:547
+	//-V:Import.XObject:547,560
+	//-V:MotionControllerComponent:547,560
 	//-V:AddUninitialized(sizeof(void*)/:514
 	//-V:TestTrue:678
 	//-V:SetViewTarget:678
 	//-V:Slot:607
+	//-V:RESIDENCY_CHECK_RESULT:607
 	//-V:bHitTesting:581
 	//-V:OptionalType:580 
 	//-V:GetNextNode:681
@@ -125,17 +133,32 @@
 	//-V:bIsRealTime:560
 	//-V:Position:519
 	//-V:DynamicParameterValue[ParameterIndex]:557
+	//-V:ViewIndex:557
+	//-V:DeviceIndex:557
 	//-V:Interpolation:560
 	//-V:storePortals:560
 	//-V:bDefaultShouldBeMaximized:560
 	//-V:bAllowPerfHUD:560
 	//-V:bUseClientStorage:560
+	//-V:bCalculateThisMapping:560
+	//-V:bDebugSelectedTaskOnly:560
+	//-V:bDebugSelectedTaskOnly:560
+	//-V:bIsPreview:560
+	//-V:bSupportsFastClear:560
+	//-V:bUseAPILibaries:560
+	//-V:bUseCachedBlobs:560
+	//-V:bWireframe:560
+	//-V:Num():560
+	//-V:PLATFORM_MAC:560
 	//-V:Particle->Size.Z:570
 	//-V:ComponentMaskParameter:601
+	//-V:Format(:601
 	//-V:SelectedEmitter:519
 	//-V:MAX_VERTS_PER_POLY:512
 	//-V:127:547
 	//-V:0x7F:547
+	//-V:WARN_COLOR:547
+	//-V:<<:614
 	//-V:FT_LOAD_TARGET_NORMAL:616
 	//-V:OPENGL_PERFORMANCE_DATA_INVALID:564
 	//-V:HLSLCC_VersionMajor:616
@@ -159,18 +182,47 @@
 	//-V:bTryPerTrackBitwiseCompression:581
 	//-V:DataStripped:581
 	//-V:FromInt:601
-	//-V:UE_CLOG(:501
-	//-V:UE_LOG(:501
+	//-V:UE_CLOG(:501,560
+	//-V:UE_LOG(:501, 560
 	//-V:UGL_REQUIRED_VOID:501
 	//-V:ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER:601
 	//-V:AnimScriptInstance:595
 	//-V:Driver:595
 	//-V:PSceneAsync->lockWrite:595
 	//-V:Context.World():595
+	//-V:UNIT_LOG:595
+	//-V:ensure(:595
 	//-V:ALLOCATE_VERTEX_DATA_TEMPLATE:501
 	//-V:UGL_REQUIRED:501
 	//-V:DEBUG_LOG_HTTP:523
 	//-V:GIsEditor:560
 	//-V:bHasEditorToken:560
+	//-V:GEventDrivenLoaderEnabled:501
+	//-V:WALK_TO_CHARACTER:519
+	//-V:IMPLEMENT_AI_INSTANT_TEST:773
+	//-V:ENABLE_VERIFY_GL:564
+	//-V:INC_MEMORY_STAT_BY:568
+	//-V:DEC_MEMORY_STAT_BY:568
+	//-V:Key():568
+	//-V:Modify:762
+	//-V:GetTransitionList:762
+	//-V:Execute:768
+	//-V:LAUNCHERSERVICES_SHAREABLEPROJECTPATHS:768
+	//-V:SELECT_STATIC_MESH_VERTEX_TYPE:622
+	//-V:GET_FUNCTION_NAME_CHECKED:685
+	//-V:This(:678
+	//-V:state->error:649
+	//-V:ProjModifiers:616
+	//-V:PERF_DETAILED_PER_CLASS_GC_STATS:686
+	//-V:FMath:656
+	//-V:->*:607
+	//-V:GENERATED_UCLASS_BODY:764
+	//-V:CalcSegmentCostOnPoly:764
+	//-V:DrawLine:764
+	//-V:vrapi_SubmitFrame:641
+	//-V:VertexData:773
+	//-V:Linker:678
+	//-V:self:678
+	//-V:AccumulateParentID:678
 
 #endif

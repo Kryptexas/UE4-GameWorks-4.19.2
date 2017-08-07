@@ -16,10 +16,11 @@
 #include "IContentBrowserSingleton.h"
 #include "ContentBrowserModule.h"
 #include "AssetRegistryModule.h"
-
+#include "IMeshReductionInterfaces.h"
+#include "IMeshMergeUtilities.h"
+#include "MeshMergeModule.h"
 
 #define LOCTEXT_NAMESPACE "MeshProxyTool"
-
 
 TSharedRef<SWidget> FMeshProxyTool::GetWidget()
 {
@@ -80,8 +81,8 @@ bool FMeshProxyTool::RunMerge(const FString& PackageName)
 	TArray<AActor*> Actors;
 	TArray<UObject*> AssetsToSync;
 
-	//Get the module for the proxy mesh utilities
-	IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
+	// Get the module for the mesh merge utilities
+	const IMeshMergeUtilities& MeshMergeUtilities = FModuleManager::Get().LoadModuleChecked<IMeshMergeModule>("MeshMergeUtilities").GetUtilities();
 
 	USelection* SelectedActors = GEditor->GetSelectedActors();
 	for (FSelectionIterator Iter(*SelectedActors); Iter; ++Iter)
@@ -122,7 +123,7 @@ bool FMeshProxyTool::RunMerge(const FString& PackageName)
 		});		
 
 		FGuid JobGuid = FGuid::NewGuid();
-		MeshUtilities.CreateProxyMesh(Actors, ProxySettings, NULL, PackageName, JobGuid, ProxyDelegate);	
+		MeshMergeUtilities.CreateProxyMesh(Actors, ProxySettings, nullptr, PackageName, JobGuid, ProxyDelegate);	
 
 		GEditor->EndTransaction();
 		GWarn->EndSlowTask();
@@ -130,7 +131,6 @@ bool FMeshProxyTool::RunMerge(const FString& PackageName)
 
 	return true;
 }
-
 
 bool FMeshProxyTool::CanMerge() const
 {

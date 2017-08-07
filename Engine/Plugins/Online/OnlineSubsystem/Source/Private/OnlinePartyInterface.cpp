@@ -115,8 +115,6 @@ bool FPartyConfiguration::operator==(const FPartyConfiguration& Other) const
 {
 	return JoinRequestAction == Other.JoinRequestAction &&
 		PresencePermissions == Other.PresencePermissions && 
-		JoinRequestAction == Other.JoinRequestAction &&
-		PresencePermissions == Other.PresencePermissions &&
 		InvitePermissions == Other.InvitePermissions &&
 		bChatEnabled == Other.bChatEnabled &&
 		bIsAcceptingMembers == Other.bIsAcceptingMembers &&

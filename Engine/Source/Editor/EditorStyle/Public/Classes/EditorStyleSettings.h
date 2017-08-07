@@ -187,6 +187,10 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=UserInterface)
 	EAssetEditorOpenLocation AssetEditorOpenLocation;
 
+	/** Should editor tabs be colorized according to the asset type */
+	UPROPERTY(EditAnywhere, config, Category=UserInterface)
+	uint32 bEnableColorizedEditorTabs : 1;
+
 public:
 
 	/**

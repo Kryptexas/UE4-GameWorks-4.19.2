@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3426963
 Availability:Public
 Title:ゲーム プロジェクトのコンパイル
 Crumbs: %ROOT%, Programming, Programming/Development
 Description:Windows 上で Visual Studio を使用、または Mac 上でXcodeを使用した個々のゲームプロジェクトのコンパイル
-Version:4.9
+Version:4.16
+Parent:Programming/Development
+Order:
+type:overview
 
 [TOC (start:2 end:3)]
 
@@ -81,7 +84,7 @@ UE4 で作業をする場合、通常 **Win64** プラットフォームを使�
 ### プロジェクトのビルド
 
 [REGION:note]
-作業を開始する前に、インストールされている Visual Studio 2013 Express for Windows Desktop の Community 版、または Professional 版を実行していることを確認してください。Mac を使用している場合、Xcode 6.1 以降をインストール済みであることを確認してください。
+作業を開始する前に、インストールされている Visual Studio 2015 (以降) for Windows Desktop を実行していることを確認してください。Mac を使用している場合、Xcode 8 以降をインストール済みであることを確認してください。
 [/REGION]
 
 <!--

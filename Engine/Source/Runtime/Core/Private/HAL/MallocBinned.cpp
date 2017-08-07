@@ -1214,7 +1214,7 @@ void FMallocBinned::DumpAllocatorStats( class FOutputDevice& Ar )
 			Table = MemSizeToPoolTable[i];
 
 #ifdef USE_FINE_GRAIN_LOCKS
-			FScopeLock TableLock(&Table->CriticalSection);
+			Table->CriticalSection.Lock();
 #endif
 
 			uint32 TableAllocSize = (Table->BlockSize > BinnedSizeLimit ? (((3 * (i - BinnedSizeLimit)) + 3)*Private::BINNED_ALLOC_POOL_SIZE) : Private::BINNED_ALLOC_POOL_SIZE);
@@ -1228,15 +1228,27 @@ void FMallocBinned::DumpAllocatorStats( class FOutputDevice& Ar )
 			uint32 MemWaste = (uint32)(((double)Table->TotalWaste / (double)Table->TotalRequests) * (double)Table->ActiveRequests) / 1024 + PoolMemWaste;
 			// Memory that is reserved in active pools and ready for future use
 			uint32 MemSlack = MemAllocated - MemUsed - PoolMemWaste;
+			// Copy the other stats before releasing the lock and calling CategorizedLogf
+			uint32 TableBlockSize = Table->BlockSize;
+			uint32 TableNumActivePools = Table->NumActivePools;
+			uint32 TableMaxActivePools = Table->MaxActivePools;
+			uint32 TableActiveRequests = Table->ActiveRequests;
+			uint32 TableTotalRequests = (uint32)Table->TotalRequests;
+			uint32 TableMinRequest = Table->MinRequest;
+			uint32 TableMaxRequest = Table->MaxRequest;
+
+#ifdef USE_FINE_GRAIN_LOCKS
+			Table->CriticalSection.Unlock();
+#endif
 
 			BufferedOutput.CategorizedLogf( LogMemory.GetCategoryName(), ELogVerbosity::Log, TEXT( "% 10i % 9i % 9i % 10i % 12i % 7i % 7i % 7iK % 8iK % 8iK % 9.2f%%" ),
-										  Table->BlockSize,
-										  Table->NumActivePools,
-										  Table->MaxActivePools,
-										  Table->ActiveRequests,
-										  (uint32)Table->TotalRequests,
-										  Table->MinRequest,
-										  Table->MaxRequest,
+										  TableBlockSize,
+										  TableNumActivePools,
+										  TableMaxActivePools,
+										  TableActiveRequests,
+										  TableTotalRequests,
+										  TableMinRequest,
+										  TableMaxRequest,
 										  MemUsed,
 										  MemSlack,
 										  MemWaste,
@@ -1245,9 +1257,9 @@ void FMallocBinned::DumpAllocatorStats( class FOutputDevice& Ar )
 			TotalMemory += MemAllocated;
 			TotalWaste += MemWaste;
 			TotalSlack += MemSlack;
-			TotalActiveRequests += Table->ActiveRequests;
-			TotalTotalRequests += Table->TotalRequests;
-			TotalPools += Table->NumActivePools;
+			TotalActiveRequests += TableActiveRequests;
+			TotalTotalRequests += TableTotalRequests;
+			TotalPools += TableNumActivePools;
 		}
 
 		BufferedOutput.CategorizedLogf( LogMemory.GetCategoryName(), ELogVerbosity::Log, TEXT( "" ) );

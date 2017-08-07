@@ -1,28 +1,16 @@
-﻿INTSourceChangelist:2740691
+﻿INTSourceChangelist:3429254
 Availability:Public
 Title:5.Animation ブループリント - Idle ステートと Walk ステート
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
 Description:このステップでは、Animation ブループリントでキャラクターの Idle ステートおよび Walking ステートのロジックを作成します。 
 Version:4.9
+Parent:Gameplay/HowTo/CharacterMovement/Blueprints
 SkillLevel:Advanced
+type:how-to
+type:multi-step
+order:5
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[前のステップ](Gameplay\HowTo\CharacterMovement\Blueprints\BlendSpace "%Gameplay\HowTo\CharacterMovement\Blueprints\BlendSpace:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[キャラクターの移動の概要](Gameplay\HowTo\CharacterMovement\Blueprints)
-	[/PARAM]
-	[PARAM:next]
-		[次のステップ](Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Crouch "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Crouch:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
  
 このセクションでは、プレイヤーがゲーム内で取るアクションに合わせて、どのアニメーションを再生するかを判断する **Animation ブループリント** を設定します。その後で **ステートマシン** を設定し、 **Idle** と **Walk** ステートを作成し、両ステート間の遷移を設定します。 
 
@@ -63,7 +51,6 @@ Animation ブループリントは以下の方法で設定します。
 1.	State Machine を **ダブルクリック** して開きます。 
 
 1.	**Asset Browser** ウィンドウで、 **Idle** を探して **Idle_Rifle_Hip** アセットをグラフにドラッグします。 
-
 	![](AnimBP_AnimGraph4.png)
 
 1.	**Entry** ノードを **Idle_Rifle_Hip** ノードに接続して、 **[Compile]** をクリックします。 
@@ -109,4 +96,4 @@ Animation ブループリントは以下の方法で設定します。
 1.	Animation ブループリントを **コンパイル** し **保存** します。 
 
 
-%Steps%
+[NAV]

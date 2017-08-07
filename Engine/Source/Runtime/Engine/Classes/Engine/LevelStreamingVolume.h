@@ -51,12 +51,12 @@ class ALevelStreamingVolume : public AVolume
 	TEnumAsByte<enum EStreamingVolumeUsage> StreamingUsage;
 
 	//~ Begin UObject Interface.
-	void PostLoad() override;
+	virtual ENGINE_API void PostLoad() override;
 	//~ End UObject Interface.
 	
 #if WITH_EDITOR
 	//~ Begin AActor Interface.
-	virtual void CheckForErrors() override;
+	virtual ENGINE_API void CheckForErrors() override;
 	//~ End AActor Interface.
 	
 	/** Updates list of streaming levels that are referenced by this streaming volume */

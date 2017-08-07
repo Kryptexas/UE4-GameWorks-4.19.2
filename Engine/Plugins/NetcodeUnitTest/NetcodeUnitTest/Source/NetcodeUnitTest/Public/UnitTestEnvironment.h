@@ -7,6 +7,7 @@
 class APlayerController;
 class FUnitTestEnvironment;
 enum class EUnitTestFlags : uint32;
+class UUnitTest;
 
 /** The list of registered unit test environments, mapped to game name (unit test modules should add to this, within StartupModule) */
 extern TMap<FString, FUnitTestEnvironment*> UnitTestEnvironments;
@@ -18,8 +19,14 @@ extern TMap<FString, FUnitTestEnvironment*> UnitTestEnvironments;
 class NETCODEUNITTEST_API FUnitTestEnvironment
 {
 	friend class FNetcodeUnitTest;
+	friend class UUnitTestManager;
 
 public:
+	FUnitTestEnvironment()
+		: UnitTest(nullptr)
+	{
+	}
+
 	/**
 	 * Registers the unit test environment, with the environment list
 	 * IMPORTANT: This MUST be implemented in every subclass, and the subclass version MUST called, within your modules 'StartupModule'
@@ -64,6 +71,15 @@ private:
 	}
 
 public:
+	/**
+	 * Returns the default/minimum timeout that unit tests should use, for the current game
+	 *
+	 * @return	The default unit test timeout for the current game
+	 */
+	virtual uint32 GetDefaultUnitTestTimeout()
+	{
+		return 60;
+	}
 
 	/**
 	 * Returns the default map name, that should be used with unit tests, for the current game
@@ -183,4 +199,11 @@ public:
 	virtual void HandleClientPlayer(EUnitTestFlags UnitTestFlags, APlayerController* PC)
 	{
 	}
+
+
+protected:
+	// @todo #JohnB: Replace references to UnitTestFlags in above functions, with usage of the UnitTest value below, instead
+
+	/** The unit test being initialized using the current environment (WARNING: Will be nullptr for legacy unit tests) */
+	UUnitTest* UnitTest;
 };

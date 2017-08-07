@@ -28,7 +28,7 @@ class UMG_API UExpandableArea : public UWidget, public INamedSlotInterface
 
 public:
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Style")
+	UPROPERTY(EditAnywhere, Category = "Style")
 	FExpandableAreaStyle Style;
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Style" )

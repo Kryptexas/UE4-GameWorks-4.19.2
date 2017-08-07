@@ -31,8 +31,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FWaitAttributeChangeDelegate);
 /**
  *	Waits for the actor to activate another ability
  */
-UCLASS(MinimalAPI)
-class UAbilityTask_WaitAttributeChange : public UAbilityTask
+UCLASS()
+class GAMEPLAYABILITIES_API UAbilityTask_WaitAttributeChange : public UAbilityTask
 {
 	GENERATED_UCLASS_BODY()
 
@@ -41,7 +41,7 @@ class UAbilityTask_WaitAttributeChange : public UAbilityTask
 
 	virtual void Activate() override;
 
-	void OnAttributeChange(float NewValue, const FGameplayEffectModCallbackData*);
+	void OnAttributeChange(const FOnAttributeChangeData& CallbackData);
 
 	/** Wait until an attribute changes. */
 	UFUNCTION(BlueprintCallable, Category="Ability|Tasks", meta = (HidePin = "OwningAbility", DefaultToSelf = "OwningAbility", BlueprintInternalUseOnly = "TRUE"))

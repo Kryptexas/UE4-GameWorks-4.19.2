@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3231203
+﻿INTSourceChangelist:3429233
 Availability:Public
 Title:アニメーション システムの概要
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -10,6 +10,7 @@ version:4.14
 type:overview
 topic-image:AnimationToolsTopic.png
 tags:Animation
+tags:Getting Started
 
 
 [TOC(start:2 end:2)]
@@ -28,113 +29,60 @@ UE4 のアニメーション システムは、いくつかのアニメーショ
 まず、 UE4 のアニメーション システムの主な用語と概念について説明します (詳しい情報を見るには各ヘッダーをクリックします)。
 
 (#Skeleton)
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![](AnimationToolsTopic.png)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Animation/Persona/Modes)
-	[/PARAM]
-	[PARAM:description]
-	[INCLUDE:Engine/Animation/Persona/Modes#overview]
-	[/PARAM]
-[/OBJECT]
+### %Engine/Animation/Persona/Modes:title%
 
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![](SkeletonTopic.png)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Animation/Skeleton)
-	[/PARAM]
-	[PARAM:description]
-		**スケルトン** は、スケルタルメッシュを変形するために使用するボーンの位置と回転の階層です。UE4 では、スケルトンはその独自のアセットにあるスケルタルメッシュから抽出されます。つまり、アニメーションは、スケルタルメッシュではなくスケルトンに適用されます。同じスケルトンを使用することで、複数のスケルタルメッシュがアニメーションを共有できます。
-	[/PARAM]
-[/OBJECT]
+%Engine/Animation/Persona/Modes:topiccompact%
 
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![](AnimationSeqTopic.png)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Animation/Sequences)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Animation/Sequences#Intro]
-	[/PARAM]
-[/OBJECT]
+[INCLUDE:Engine/Animation/Persona/Modes#overview]
 
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![](AnimNotifiesTopic.png)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Animation/Sequences/Notifies)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Animation/Sequences/Notifies#Intro]
-	[/PARAM]
-[/OBJECT]
+### %Engine/Animation/Skeleton:title%
 
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![](AnimationBlueprintTopic.png)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Animation/AnimBlueprints)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Animation/AnimBlueprints#Intro]
-	[/PARAM]
-[/OBJECT]
+%Engine/Animation/Skeleton:topiccompact%
 
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![](BlendSpaceTopic.png)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Animation/Blendspaces)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Animation/Blendspaces#Intro]
-	[/PARAM]
-[/OBJECT]
+**スケルトン** は、スケルタルメッシュを変形するために使用するボーンの位置と回転の階層です。UE4 では、スケルトンはその独自のアセットにあるスケルタルメッシュから抽出されます。つまり、アニメーションは、スケルタルメッシュではなくスケルトンに適用されます。同じスケルトンを使用することで、複数のスケルタルメッシュがアニメーションを共有できます。
 
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![](MontageTopic.png)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Animation/AnimMontage)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Animation/AnimMontage#Intro]
-	[/PARAM]
-[/OBJECT]
+### %Engine/Animation/Sequences:title%
 
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![](SkeletonControlTopic.png)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Animation/NodeReference/SkeletalControls)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Animation/NodeReference/SkeletalControls#Intro]
-	[/PARAM]
-[/OBJECT]
+%Engine/Animation/Sequences:topiccompact%
 
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![](StateMachineTopic.png)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Animation/StateMachines)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Animation/StateMachines#overview]
-	[/PARAM]
-[/OBJECT]
+[INCLUDE:Engine/Animation/Sequences#Intro]
+
+### %Engine/Animation/Sequences/Notifies:title%
+
+%Engine/Animation/Sequences/Notifies:topiccompact%
+
+[INCLUDE:Engine/Animation/Sequences/Notifies#Intro]
+
+### %Engine/Animation/AnimBlueprints:title%
+
+%Engine/Animation/AnimBlueprints:topiccompact%
+
+[INCLUDE:Engine/Animation/AnimBlueprints#Intro]
+
+### %Engine/Animation/Blendspaces:title%
+
+%Engine/Animation/Blendspaces:topiccompact%
+
+[INCLUDE:Engine/Animation/Blendspaces#Intro]
+
+### %Engine/Animation/AnimMontage:title%
+
+%Engine/Animation/AnimMontage:topiccompact%
+
+[INCLUDE:Engine/Animation/AnimMontage#Intro]
+
+### %Engine/Animation/NodeReference/SkeletalControls:title%
+
+%Engine/Animation/NodeReference/SkeletalControls:topiccompact%
+
+[INCLUDE:Engine/Animation/NodeReference/SkeletalControls#Intro]
+
+### %Engine/Animation/StateMachines:title%
+
+%Engine/Animation/StateMachines:topiccompact%
+
+[INCLUDE:Engine/Animation/StateMachines#Intro]
+
 
 [REGION:note]
 一部のアニメーション機能は、エピック ゲームズのランチャーの **[Learn (ラーニング)] タブ** から無料で利用できる [コンテンツ サンプル](https://docs.unrealengine.com/latest/INT/Resources/ContentExamples/) プロジェクトにもあります。 

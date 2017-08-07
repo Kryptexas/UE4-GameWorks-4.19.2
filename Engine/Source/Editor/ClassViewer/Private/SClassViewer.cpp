@@ -1648,12 +1648,18 @@ FClassHierarchy::~FClassHierarchy()
 		AssetRegistryModule.Get().OnAssetRemoved().RemoveAll( this );
 
 		// Unregister to have Populate called when doing a Hot Reload.
-		IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
-		HotReloadSupport.OnHotReload().RemoveAll( this );
+		if(FModuleManager::Get().IsModuleLoaded("HotReload"))
+		{
+			IHotReloadInterface& HotReloadSupport = FModuleManager::GetModuleChecked<IHotReloadInterface>("HotReload");
+			HotReloadSupport.OnHotReload().RemoveAll(this);
+		}
 
-		// Unregister to have Populate called when a Blueprint is compiled.
-		GEditor->OnBlueprintCompiled().Remove(OnBlueprintCompiledRequestPopulateClassHierarchyDelegateHandle);
-		GEditor->OnClassPackageLoadedOrUnloaded().Remove(OnClassPackageLoadedOrUnloadedRequestPopulateClassHierarchyDelegateHandle);
+		if(GEditor)
+		{
+			// Unregister to have Populate called when a Blueprint is compiled.
+			GEditor->OnBlueprintCompiled().Remove(OnBlueprintCompiledRequestPopulateClassHierarchyDelegateHandle);
+			GEditor->OnClassPackageLoadedOrUnloaded().Remove(OnClassPackageLoadedOrUnloadedRequestPopulateClassHierarchyDelegateHandle);
+		}
 	}
 
 	FModuleManager::Get().OnModulesChanged().RemoveAll(this);
@@ -2662,8 +2668,7 @@ FText SClassViewer::GetClassCountText() const
 	const int32 NumAssets = GetNumItems();
 	const int32 NumSelectedAssets = GetSelectedItems().Num();
 
-	FText AssetCount = FText::GetEmpty();
-	AssetCount = LOCTEXT("AssetCountLabelSingular", "1 item");
+	FText AssetCount = LOCTEXT("AssetCountLabelSingular", "1 item");
 
 	if (NumSelectedAssets == 0)
 	{

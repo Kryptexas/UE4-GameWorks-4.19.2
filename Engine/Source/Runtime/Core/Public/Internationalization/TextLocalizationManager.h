@@ -160,7 +160,7 @@ private:
 	void OnCultureChanged();
 
 	/** Loads localization resources for the specified culture, optionally loading localization resources that are editor-specific or game-specific. */
-	void LoadLocalizationResourcesForCulture(const FString& CultureName, const bool ShouldLoadEditor, const bool ShouldLoadGame);
+	void LoadLocalizationResourcesForCulture(const FString& CultureName, const bool ShouldLoadEditor, const bool ShouldLoadGame, const bool ShouldLoadNative);
 
 	/** Updates display string entries and adds new display string entries based on provided native text. */
 	void UpdateFromNative(const TArray<FTextLocalizationResource>& TextLocalizationResources);

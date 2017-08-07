@@ -1,17 +1,22 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#pragma once
-
 #include "OculusNetConnection.h"
 #include "OnlineSubsystemOculusPrivate.h"
 
 
 #include "IPAddressOculus.h"
+#include "Net/DataChannel.h"
 
 void UOculusNetConnection::InitBase(UNetDriver* InDriver, class FSocket* InSocket, const FURL& InURL, EConnectionState InState, int32 InMaxPacket, int32 InPacketOverhead)
 {
+	if (bIsPassThrough)
+	{
+		UIpConnection::InitBase(InDriver, InSocket, InURL, InState, InMaxPacket, InPacketOverhead);
+		return;
+	}
+
 	// Pass the call up the chain
-	Super::InitBase(InDriver, InSocket, InURL, InState,
+	UNetConnection::InitBase(InDriver, InSocket, InURL, InState,
 		// Use the default packet size/overhead unless overridden by a child class
 		InMaxPacket == 0 ? MAX_PACKET_SIZE : InMaxPacket,
 		/* PacketOverhead */ 1);
@@ -21,40 +26,18 @@ void UOculusNetConnection::InitBase(UNetDriver* InDriver, class FSocket* InSocke
 
 	// Initalize the send buffer
 	InitSendBuffer();
-
-	if (Driver->InitialConnectTimeout == 0.0)
-	{
-		UE_LOG(LogNet, Warning, TEXT("InitalConnectTimeout was set to %f"), Driver->InitialConnectTimeout);
-		Driver->InitialConnectTimeout = 120.0;
-	}
-
-	if (Driver->ConnectionTimeout == 0.0)
-	{
-		UE_LOG(LogNet, Warning, TEXT("ConnectionTimeout was set to %f"), Driver->ConnectionTimeout);
-		Driver->ConnectionTimeout = 120.0;
-	}
-
-	if (Driver->KeepAliveTime == 0.0)
-	{
-		UE_LOG(LogNet, Warning, TEXT("KeepAliveTime was set to %f"), Driver->KeepAliveTime);
-		Driver->KeepAliveTime = 0.2;
-	}
-
-	if (Driver->SpawnPrioritySeconds == 0.0)
-	{
-		UE_LOG(LogNet, Warning, TEXT("SpawnPrioritySeconds was set to %f"), Driver->SpawnPrioritySeconds);
-		Driver->SpawnPrioritySeconds = 1.0;
-	}
-
-	if (Driver->RelevantTimeout == 0.0)
-	{
-		UE_LOG(LogNet, Warning, TEXT("RelevantTimeout was set to %f"), Driver->RelevantTimeout);
-		Driver->RelevantTimeout = 5.0;
-	}
 }
 
 void UOculusNetConnection::InitLocalConnection(UNetDriver* InDriver, class FSocket* InSocket, const FURL& InURL, EConnectionState InState, int32 InMaxPacket, int32 InPacketOverhead)
 {
+	if (InDriver->GetSocketSubsystem() != nullptr)
+	{
+		bIsPassThrough = true;
+		UIpConnection::InitLocalConnection(InDriver, InSocket, InURL, InState, InMaxPacket, InPacketOverhead);
+		return;
+	}
+
+	bIsPassThrough = false;
 	InitBase(InDriver, InSocket, InURL, InState,
 		// Use the default packet size/overhead unless overridden by a child class
 		InMaxPacket == 0 ? MAX_PACKET_SIZE : InMaxPacket,
@@ -63,6 +46,14 @@ void UOculusNetConnection::InitLocalConnection(UNetDriver* InDriver, class FSock
 
 void UOculusNetConnection::InitRemoteConnection(UNetDriver* InDriver, class FSocket* InSocket, const FURL& InURL, const class FInternetAddr& InRemoteAddr, EConnectionState InState, int32 InMaxPacket, int32 InPacketOverhead)
 {
+	if (InDriver->GetSocketSubsystem() != nullptr)
+	{
+		bIsPassThrough = true;
+		UIpConnection::InitRemoteConnection(InDriver, InSocket, InURL, InRemoteAddr, InState, InMaxPacket, InPacketOverhead);
+		return;
+	}
+
+	bIsPassThrough = false;
 	InitBase(InDriver, InSocket, InURL, InState,
 		// Use the default packet size/overhead unless overridden by a child class
 		InMaxPacket == 0 ? MAX_PACKET_SIZE : InMaxPacket,
@@ -70,11 +61,29 @@ void UOculusNetConnection::InitRemoteConnection(UNetDriver* InDriver, class FSoc
 
 	auto OculusAddr = static_cast<const FInternetAddrOculus&>(InRemoteAddr);
 	PeerID = OculusAddr.GetID();
+
+	// This is for a client that needs to log in, setup ClientLoginState and ExpectedClientLoginMsgType to reflect that
+	SetClientLoginState(EClientLoginState::LoggingIn);
+	SetExpectedClientLoginMsgType(NMT_Hello);
 }
 
 void UOculusNetConnection::LowLevelSend(void* Data, int32 CountBytes, int32 CountBits)
 {
+	if (bIsPassThrough)
+	{
+		UIpConnection::LowLevelSend(Data, CountBytes, CountBits);
+		return;
+	}
+
 	check(PeerID);
+
+	// Do not send packets over a closed connection
+	// This can unintentionally re-open the connection
+	if (State == EConnectionState::USOCK_Closed && ovr_Net_IsConnected(PeerID))
+	{
+		return;
+	}
+
 	const uint8* DataToSend = reinterpret_cast<uint8*>(Data);
 
 	UE_LOG(LogNetTraffic, VeryVerbose, TEXT("Low level send to: %llu Count: %d"), PeerID, CountBytes);
@@ -88,45 +97,61 @@ void UOculusNetConnection::LowLevelSend(void* Data, int32 CountBytes, int32 Coun
 		{
 			DataToSend = ProcessedData.Data;
 			CountBytes = FMath::DivideAndRoundUp(ProcessedData.CountBits, 8);
-			CountBits = ProcessedData.CountBits;
 		}
 		else
 		{
 			CountBytes = 0;
-			CountBits = 0;
 		}
 	}
 
 	if (CountBytes > 0)
 	{
-		ovr_Net_SendPacket(PeerID, (size_t)CountBytes, DataToSend, (InternalAck) ? ovrSend_Reliable : ovrSend_Unreliable);
+		ovr_Net_SendPacket(PeerID, static_cast<size_t>(CountBytes), DataToSend, (InternalAck) ? ovrSend_Reliable : ovrSend_Unreliable);
 	}
 }
 
 FString UOculusNetConnection::LowLevelGetRemoteAddress(bool bAppendPort)
 {
+	if (bIsPassThrough)
+	{
+		return UIpConnection::LowLevelGetRemoteAddress(bAppendPort);
+	}
 	return FString::Printf(TEXT("%llu.oculus"), PeerID);
 }
 
 FString UOculusNetConnection::LowLevelDescribe()
 {
+	if (bIsPassThrough)
+	{
+		return UIpConnection::LowLevelDescribe();
+	}
 	return FString::Printf(TEXT("PeerId=%llu"), PeerID);
 }
 
 void UOculusNetConnection::FinishDestroy()
 {
-  // Keep track if it's this call that is closing the connection before cleanup is called
-  const bool bIsClosingOpenConnection = State != EConnectionState::USOCK_Closed;
-	Super::FinishDestroy();
+	if (bIsPassThrough)
+	{
+		UIpConnection::FinishDestroy();
+		return;
+	}
+	// Keep track if it's this call that is closing the connection before cleanup is called
+	const bool bIsClosingOpenConnection = State != EConnectionState::USOCK_Closed;
+	UNetConnection::FinishDestroy();
 
-  // If this connection was open, then close it
+	// If this connection was open, then close it
 	if (PeerID != 0 && bIsClosingOpenConnection)
 	{
+		UE_LOG(LogNet, Verbose, TEXT("Oculus Net Connection closed to %llu"), PeerID);
 		ovr_Net_Close(PeerID);
 	}
 }
 
 FString UOculusNetConnection::RemoteAddressToString()
 {
+	if (bIsPassThrough)
+	{
+		return UIpConnection::RemoteAddressToString();
+	}
 	return LowLevelGetRemoteAddress(/* bAppendPort */ false);
 }

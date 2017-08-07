@@ -18,9 +18,9 @@ FAnimNode_PoseDriver::FAnimNode_PoseDriver()
 	RBFParams.DistanceMethod = ERBFDistanceMethod::SwingAngle;
 }
 
-void FAnimNode_PoseDriver::Initialize(const FAnimationInitializeContext& Context)
+void FAnimNode_PoseDriver::Initialize_AnyThread(const FAnimationInitializeContext& Context)
 {
-	FAnimNode_PoseHandler::Initialize(Context);
+	FAnimNode_PoseHandler::Initialize_AnyThread(Context);
 
 	SourcePose.Initialize(Context);
 
@@ -47,9 +47,9 @@ void FAnimNode_PoseDriver::CacheDrivenIDs(USkeleton* Skeleton)
 	}
 }
 
-void FAnimNode_PoseDriver::CacheBones(const FAnimationCacheBonesContext& Context)
+void FAnimNode_PoseDriver::CacheBones_AnyThread(const FAnimationCacheBonesContext& Context)
 {
-	FAnimNode_PoseHandler::CacheBones(Context);
+	FAnimNode_PoseHandler::CacheBones_AnyThread(Context);
 	// Init pose input
 	SourcePose.CacheBones(Context);
 
@@ -178,7 +178,7 @@ void FAnimNode_PoseDriver::GetRBFTargets(TArray<FRBFTarget>& OutTargets) const
 }
 
 
-void FAnimNode_PoseDriver::Evaluate(FPoseContext& Output)
+void FAnimNode_PoseDriver::Evaluate_AnyThread(FPoseContext& Output)
 {
 	// Udpate DrivenIDs if needed
 	if (bCachedDrivenIDsAreDirty)
@@ -204,7 +204,7 @@ void FAnimNode_PoseDriver::Evaluate(FPoseContext& Output)
 		if (SourceCompactIndex.GetInt() != INDEX_NONE)
 		{
 			// If evaluating in alternative bone space, have to build component space pose
-			if (EvalSpaceBone.IsValid(BoneContainer))
+			if (EvalSpaceBone.IsValidToEvaluate(BoneContainer))
 			{
 				FCSPose<FCompactPose> CSPose;
 				CSPose.InitPose(SourceData.Pose);

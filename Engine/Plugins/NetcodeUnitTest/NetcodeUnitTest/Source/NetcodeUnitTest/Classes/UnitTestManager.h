@@ -6,6 +6,7 @@
 #include "Stats/Stats.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
+#include "Misc/OutputDeviceFile.h"
 #include "Styling/SlateColor.h"
 #include "UnrealClient.h"
 #include "Tickable.h"
@@ -56,6 +57,11 @@ public:
 	uint8 MaxAutoCloseCount;
 
 
+	/** The number of recorded session where UE4 has run unit tests (max one per each run of the UE4 process) */
+	UPROPERTY(config)
+	uint32 UnitTestSessionCount;
+
+
 	/** Holds a list of unit tests pending execution */
 	UPROPERTY()
 	TArray<UClass*> PendingUnitTests;
@@ -97,7 +103,14 @@ public:
 	TSharedPtr<SWindow> AbortAllDialog;
 
 
+	/** The log file for outputting overall unit test status */
+	TUniquePtr<FOutputDeviceFile> StatusLog;
+
+
 private:
+	/** The base log directory used by unit tests, for this session */
+	FString BaseUnitLogDir;
+
 	/** The time at which the memory limit was last hit */
 	double LastMemoryLimitHit;
 
@@ -119,6 +132,19 @@ public:
 	 * Initialize the unit test manager
 	 */
 	void Initialize();
+
+	/**
+	 * Initialize unit test log output
+	 */
+	void InitializeLogs();
+
+	/**
+	 * Returns the base log directory used by unit tests
+	 */
+	FORCEINLINE const FString GetBaseUnitLogDir()
+	{
+		return BaseUnitLogDir;
+	}
 
 	/**
 	 * Destructor for handling removal of log registration

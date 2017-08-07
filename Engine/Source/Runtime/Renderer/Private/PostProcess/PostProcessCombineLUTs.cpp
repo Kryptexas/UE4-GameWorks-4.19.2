@@ -577,11 +577,11 @@ private: // ---------------------------------------------------
 };
 
 
-IMPLEMENT_SHADER_TYPE(template<>,FLUTBlenderPS<1>,TEXT("PostProcessCombineLUTs"),TEXT("MainPS"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>,FLUTBlenderPS<2>,TEXT("PostProcessCombineLUTs"),TEXT("MainPS"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>,FLUTBlenderPS<3>,TEXT("PostProcessCombineLUTs"),TEXT("MainPS"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>,FLUTBlenderPS<4>,TEXT("PostProcessCombineLUTs"),TEXT("MainPS"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>,FLUTBlenderPS<5>,TEXT("PostProcessCombineLUTs"),TEXT("MainPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,FLUTBlenderPS<1>,TEXT("/Engine/Private/PostProcessCombineLUTs.usf"),TEXT("MainPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,FLUTBlenderPS<2>,TEXT("/Engine/Private/PostProcessCombineLUTs.usf"),TEXT("MainPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,FLUTBlenderPS<3>,TEXT("/Engine/Private/PostProcessCombineLUTs.usf"),TEXT("MainPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,FLUTBlenderPS<4>,TEXT("/Engine/Private/PostProcessCombineLUTs.usf"),TEXT("MainPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,FLUTBlenderPS<5>,TEXT("/Engine/Private/PostProcessCombineLUTs.usf"),TEXT("MainPS"),SF_Pixel);
 
 /**
 * A compute shader for blending multiple LUTs together
@@ -662,11 +662,11 @@ private: // ---------------------------------------------------
 	FCombineLUTsShaderParameters<BlendCount> CombineLUTsShaderParameters;
 };
 
-IMPLEMENT_SHADER_TYPE(template<>,FLUTBlenderCS<1>,TEXT("PostProcessCombineLUTs"),TEXT("MainCS"),SF_Compute);
-IMPLEMENT_SHADER_TYPE(template<>,FLUTBlenderCS<2>,TEXT("PostProcessCombineLUTs"),TEXT("MainCS"),SF_Compute);
-IMPLEMENT_SHADER_TYPE(template<>,FLUTBlenderCS<3>,TEXT("PostProcessCombineLUTs"),TEXT("MainCS"),SF_Compute);
-IMPLEMENT_SHADER_TYPE(template<>,FLUTBlenderCS<4>,TEXT("PostProcessCombineLUTs"),TEXT("MainCS"),SF_Compute);
-IMPLEMENT_SHADER_TYPE(template<>,FLUTBlenderCS<5>,TEXT("PostProcessCombineLUTs"),TEXT("MainCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>,FLUTBlenderCS<1>,TEXT("/Engine/Private/PostProcessCombineLUTs.usf"),TEXT("MainCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>,FLUTBlenderCS<2>,TEXT("/Engine/Private/PostProcessCombineLUTs.usf"),TEXT("MainCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>,FLUTBlenderCS<3>,TEXT("/Engine/Private/PostProcessCombineLUTs.usf"),TEXT("MainCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>,FLUTBlenderCS<4>,TEXT("/Engine/Private/PostProcessCombineLUTs.usf"),TEXT("MainCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>,FLUTBlenderCS<5>,TEXT("/Engine/Private/PostProcessCombineLUTs.usf"),TEXT("MainCS"),SF_Compute);
 
 
 static void SetLUTBlenderShader(FRenderingCompositePassContext& Context, uint32 BlendCount, FTexture* Texture[], float Weights[], const FVolumeBounds& VolumeBounds)
@@ -936,7 +936,16 @@ void FRCPassPostProcessCombineLUTs::Process(FRenderingCompositePassContext& Cont
 	else
 	{
 		// Set the view family's render target/viewport.
-		SetRenderTarget(Context.RHICmdList, DestRenderTarget->TargetableTexture, FTextureRHIRef(), ESimpleRenderTargetMode::EUninitializedColorAndDepth);
+		if (IsMobilePlatform(ShaderPlatform))
+		{
+			// Full clear to avoid restore
+			SetRenderTarget(Context.RHICmdList, DestRenderTarget->TargetableTexture, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorAndDepth);
+		}
+		else
+		{
+			SetRenderTarget(Context.RHICmdList, DestRenderTarget->TargetableTexture, FTextureRHIRef(), ESimpleRenderTargetMode::EUninitializedColorAndDepth);
+		}
+		
 		Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f );
 
 		const FVolumeBounds VolumeBounds(GLUTSize);
@@ -1025,16 +1034,17 @@ FPooledRenderTargetDesc FRCPassPostProcessCombineLUTs::ComputeOutputDesc(EPassOu
 			LUTPixelFormat = PF_R8G8B8A8;
 		}
 		
-		Ret = FPooledRenderTargetDesc::Create2DDesc(FIntPoint(GLUTSize * GLUTSize, GLUTSize), LUTPixelFormat, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable | TexCreate_ShaderResource, false);
+		Ret = FPooledRenderTargetDesc::Create2DDesc(FIntPoint(GLUTSize * GLUTSize, GLUTSize), LUTPixelFormat, FClearValueBinding::Transparent, TexCreate_None, TexCreate_RenderTargetable | TexCreate_ShaderResource, false);
 		
 		if(UseVolumeTextureLUT(ShaderPlatform))
 		{
 			Ret.Extent = FIntPoint(GLUTSize, GLUTSize);
 			Ret.Depth = GLUTSize;
 		}
-		
+		Ret.Flags |= GetTextureFastVRamFlag_DynamicLayout();
 		Ret.DebugName = TEXT("CombineLUTs");
 	}
+	Ret.ClearValue = FClearValueBinding::Transparent;
 
 	return Ret;
 }

@@ -14,11 +14,13 @@ namespace UnrealBuildTool
 	class VCToolChain : UEToolChain
 	{
 		WindowsCompiler Compiler;
+		bool bWithStaticAnalyzer;
 
-		public VCToolChain(CppPlatform CppPlatform, WindowsCompiler Compiler)
+		public VCToolChain(CppPlatform CppPlatform, WindowsCompiler Compiler, bool bWithStaticAnalyzer)
 			: base(CppPlatform)
 		{
 			this.Compiler = Compiler;
+			this.bWithStaticAnalyzer = bWithStaticAnalyzer;
 		}
 
 		static void AddDefinition(List<string> Arguments, string Definition)
@@ -169,7 +171,7 @@ namespace UnrealBuildTool
 			// NOTE re: clang: the arguments for clang-cl can be found at http://llvm.org/viewvc/llvm-project/cfe/trunk/include/clang/Driver/CLCompatOptions.td?view=markup
 			// This will show the cl.exe options that map to clang.exe ones, which ones are ignored and which ones are unsupported.
 
-			if (CompileEnvironment.bEnableCodeAnalysis)
+			if (bWithStaticAnalyzer)
 			{
 				Arguments.Add("/analyze");
 
@@ -227,11 +229,25 @@ namespace UnrealBuildTool
 				// Separate functions for linker.
 				Arguments.Add("/Gy");
 
-				// Allow 1000% of the default memory allocation limit.
-				Arguments.Add("/Zm850");
+				// Allow 750% of the default memory allocation limit when using the static analyzer, and 850% at other times.
+				if (bWithStaticAnalyzer)
+				{
+					Arguments.Add("/Zm750");
+				}
+				else
+				{
+					Arguments.Add("/Zm850");
+				}
 
 				// Disable "The file contains a character that cannot be represented in the current code page" warning for non-US windows.
 				Arguments.Add("/wd4819");
+			}
+
+			// Disable Microsoft extensions on VS2017+ for improved standards compliance.
+			if (Compiler >= WindowsCompiler.VisualStudio2017)
+			{
+				Arguments.Add("/permissive-");
+				Arguments.Add("/Zc:strictStrings-"); // Have to disable strict const char* semantics due to Windows headers not being compliant.
 			}
 
 			// @todo UWP: UE4 is non-compliant when it comes to use of %s and %S
@@ -255,6 +271,11 @@ namespace UnrealBuildTool
 				AddDefinition(Arguments, "_WINDLL");
 			}
 
+            // Fix Incredibuild errors with helpers using heterogeneous character sets
+            if (Compiler >= WindowsCompiler.VisualStudio2015)
+            {
+                Arguments.Add("/source-charset:utf-8 /execution-charset:utf-8");
+            }
 
 			//
 			//	Debug
@@ -1437,13 +1458,18 @@ namespace UnrealBuildTool
 			}
 
 
-			// Add delay loaded DLLs.
 			if (!bIsBuildingLibrary)
 			{
 				// Delay-load these DLLs.
 				foreach (string DelayLoadDLL in LinkEnvironment.DelayLoadDLLs.Distinct())
 				{
 					Arguments.Add(String.Format("/DELAYLOAD:\"{0}\"", DelayLoadDLL));
+				}
+
+				// Pass the module definition file to the linker if we have one
+				if (LinkEnvironment.ModuleDefinitionFile != null && LinkEnvironment.ModuleDefinitionFile.Length > 0)
+				{
+					Arguments.Add(String.Format("/DEF:\"{0}\"", LinkEnvironment.ModuleDefinitionFile));
 				}
 			}
 

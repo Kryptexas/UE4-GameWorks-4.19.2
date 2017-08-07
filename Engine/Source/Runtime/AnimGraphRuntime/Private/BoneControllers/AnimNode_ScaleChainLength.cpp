@@ -9,22 +9,26 @@
 // FAnimNode_ScaleChainLength
 
 FAnimNode_ScaleChainLength::FAnimNode_ScaleChainLength()
+	: Alpha(1.f)
 {
+	ChainInitialLength = EScaleChainInitialLength::FixedDefaultLengthValue;
 }
 
-void FAnimNode_ScaleChainLength::Initialize(const FAnimationInitializeContext& Context)
+void FAnimNode_ScaleChainLength::Initialize_AnyThread(const FAnimationInitializeContext& Context)
 {
-	FAnimNode_Base::Initialize(Context);
+	FAnimNode_Base::Initialize_AnyThread(Context);
 	InputPose.Initialize(Context);
 }
 
-void FAnimNode_ScaleChainLength::Update(const FAnimationUpdateContext& Context)
+void FAnimNode_ScaleChainLength::Update_AnyThread(const FAnimationUpdateContext& Context)
 {
 	EvaluateGraphExposedInputs.Execute(Context);
 	InputPose.Update(Context);
+
+	ActualAlpha = AlphaScaleBias.ApplyTo(Alpha);
 }
 
-void FAnimNode_ScaleChainLength::CacheBones(const FAnimationCacheBonesContext& Context)
+void FAnimNode_ScaleChainLength::CacheBones_AnyThread(const FAnimationCacheBonesContext& Context)
 {
 	InputPose.CacheBones(Context);
 
@@ -32,13 +36,12 @@ void FAnimNode_ScaleChainLength::CacheBones(const FAnimationCacheBonesContext& C
 	bBoneIndicesCached = false;
 }
 
-void FAnimNode_ScaleChainLength::Evaluate(FPoseContext& Output)
+void FAnimNode_ScaleChainLength::Evaluate_AnyThread(FPoseContext& Output)
 {
 	// Evaluate incoming pose into our output buffer.
 	InputPose.Evaluate(Output);
 
-	const float FinalAlpha = AlphaScaleBias.ApplyTo(Alpha);
-	if (!FAnimWeight::IsRelevant(FinalAlpha))
+	if (!FAnimWeight::IsRelevant(ActualAlpha))
 	{
 		return;
 	}
@@ -55,12 +58,12 @@ void FAnimNode_ScaleChainLength::Evaluate(FPoseContext& Output)
 
 		// Make sure we have valid start/end bones, and that end is a child of start.
 		// Cache this, so we only evaluate on init and LOD changes.
-		const bool bBoneSetupIsValid = ChainStartBone.IsValid(BoneContainer) && ChainEndBone.IsValid(BoneContainer) &&
+		const bool bBoneSetupIsValid = ChainStartBone.IsValidToEvaluate(BoneContainer) && ChainEndBone.IsValidToEvaluate(BoneContainer) &&
 			BoneContainer.BoneIsChildOf(ChainEndBone.GetCompactPoseIndex(BoneContainer), ChainStartBone.GetCompactPoseIndex(BoneContainer));
 
 		if (bBoneSetupIsValid)
 		{
-			FCompactPoseBoneIndex StartBoneIndex = ChainStartBone.GetCompactPoseIndex(BoneContainer);
+			const FCompactPoseBoneIndex StartBoneIndex = ChainStartBone.GetCompactPoseIndex(BoneContainer);
 			FCompactPoseBoneIndex BoneIndex = ChainEndBone.GetCompactPoseIndex(BoneContainer);
 			ChainBoneIndices.Add(BoneIndex);
 			if (BoneIndex != INDEX_NONE)
@@ -92,8 +95,9 @@ void FAnimNode_ScaleChainLength::Evaluate(FPoseContext& Output)
 	const FTransform StartTransformCompSpace = CSPose.GetComponentSpaceTransform(ChainBoneIndices[0]);
 
 	const float DesiredChainLength = (TargetLocationCompSpace - StartTransformCompSpace.GetLocation()).Size();
-	const float ChainLengthScale = !FMath::IsNearlyZero(DefaultChainLength) ? (DesiredChainLength / DefaultChainLength) : 1.f;
-	const float ChainLengthScaleWithAlpha = FMath::LerpStable(1.f, ChainLengthScale, FinalAlpha);
+	const float InitialChainLength = GetInitialChainLength(Output.Pose, CSPose);
+	const float ChainLengthScale = !FMath::IsNearlyZero(InitialChainLength) ? (DesiredChainLength / InitialChainLength) : 1.f;
+	const float ChainLengthScaleWithAlpha = FMath::LerpStable(1.f, ChainLengthScale, ActualAlpha);
 
 	// If we're not going to scale anything, early out.
 	if (FMath::IsNearlyEqual(ChainLengthScaleWithAlpha, 1.f))
@@ -101,19 +105,46 @@ void FAnimNode_ScaleChainLength::Evaluate(FPoseContext& Output)
 		return;
 	}
 
-	// Scale translation of all bones.
-	FCompactPose& BSPose = Output.Pose;
+	// Scale translation of all bones in local space.
+	FCompactPose& LSPose = Output.Pose;
 	for (const FCompactPoseBoneIndex& BoneIndex : ChainBoneIndices)
 	{
 		// Get bone space transform, scale transition.
-		BSPose[BoneIndex].ScaleTranslation(ChainLengthScaleWithAlpha);
+		LSPose[BoneIndex].ScaleTranslation(ChainLengthScaleWithAlpha);
 	}
+}
+
+float FAnimNode_ScaleChainLength::GetInitialChainLength(FCompactPose& InLSPose, FCSPose<FCompactPose>& InCSPose) const
+{
+	switch (ChainInitialLength)
+	{
+	case EScaleChainInitialLength::Distance : 
+	{
+		const FVector ChainStartLocation = InCSPose.GetComponentSpaceTransform(ChainBoneIndices[0]).GetLocation();
+		const FVector ChainEndLocation = InCSPose.GetComponentSpaceTransform(ChainBoneIndices.Last()).GetLocation();
+		return (ChainEndLocation - ChainStartLocation).Size();
+	}
+
+	case EScaleChainInitialLength::ChainLength :
+	{
+		float ChainLength = 0.f;
+		for (const FCompactPoseBoneIndex& BoneIndex : ChainBoneIndices)
+		{
+			ChainLength += InLSPose[BoneIndex].GetTranslation().Size();
+		}
+		return ChainLength;
+	}
+	};
+
+	// Fallback is using fixed value DefaultChainLength.
+	return DefaultChainLength;
 }
 
 void FAnimNode_ScaleChainLength::GatherDebugData(FNodeDebugData& DebugData)
 {
 	FString DebugLine = DebugData.GetNodeName(this);
-
+	DebugLine += FString::Printf(TEXT("Alpha (%.1f%%)"), ActualAlpha * 100.f);
 	DebugData.AddDebugItem(DebugLine);
+
 	InputPose.GatherDebugData(DebugData);
 }

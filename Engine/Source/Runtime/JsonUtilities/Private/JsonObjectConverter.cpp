@@ -125,7 +125,18 @@ TSharedPtr<FJsonValue> ConvertScalarUPropertyToJsonValue(UProperty* Property, co
 				TSharedPtr<FJsonValue> ValueElement = FJsonObjectConverter::UPropertyToJsonValue(MapProperty->ValueProp, Helper.GetValuePtr(i), CheckFlags & ( ~CPF_ParmFlags ), SkipFlags, ExportCb);
 				if ( KeyElement.IsValid() && ValueElement.IsValid() )
 				{
-					Out->SetField(KeyElement->AsString(), ValueElement);
+					FString KeyString = KeyElement->AsString();
+					if (KeyString.IsEmpty())
+					{
+						MapProperty->KeyProp->ExportTextItem(KeyString, Helper.GetKeyPtr(i), nullptr, nullptr, 0);
+						if (KeyString.IsEmpty())
+						{
+							UE_LOG(LogJson, Error, TEXT("Unable to convert key to string for property %s."), *MapProperty->GetName())
+							KeyString = FString::Printf(TEXT("Unparsed Key %d"), i);
+						}
+					}
+
+					Out->SetField(KeyString, ValueElement);
 				}
 			}
 		}
@@ -272,13 +283,8 @@ bool FJsonObjectConverter::UStructToJsonObjectString(const UStruct* StructDefini
 	return false;
 }
 
-//template bool FJsonObjectConverter::UStructToJsonObjectString<TCHAR, TCondensedJsonPrintPolicy>(const UStruct* StructDefinition, const void* Struct, FString& OutJsonString, int64 CheckFlags, int64 SkipFlags, int32 Indent, const CustomExportCallback* ExportCb);
-
-namespace
-{
-
-/** Convert a JSON object into a culture invariant string based on current locale */
-bool GetTextFromObject(const TSharedRef<FJsonObject>& Obj, FText& TextOut)
+//static
+bool FJsonObjectConverter::GetTextFromObject(const TSharedRef<FJsonObject>& Obj, FText& TextOut)
 {
 	// get the prioritized culture name list
 	FCultureRef CurrentCulture = FInternationalization::Get().GetCurrentCulture();
@@ -298,6 +304,11 @@ bool GetTextFromObject(const TSharedRef<FJsonObject>& Obj, FText& TextOut)
 	// no luck, is this possibly an unrelated json object?
 	return false;
 }
+
+//template bool FJsonObjectConverter::UStructToJsonObjectString<TCHAR, TCondensedJsonPrintPolicy>(const UStruct* StructDefinition, const void* Struct, FString& OutJsonString, int64 CheckFlags, int64 SkipFlags, int32 Indent, const CustomExportCallback* ExportCb);
+
+namespace
+{
 
 /** Convert JSON to property, assuming either the property is not an array or the value is an individual array element */
 bool ConvertScalarJsonValueToUProperty(TSharedPtr<FJsonValue> JsonValue, UProperty* Property, void* OutValue, int64 CheckFlags, int64 SkipFlags)
@@ -473,7 +484,7 @@ bool ConvertScalarJsonValueToUProperty(TSharedPtr<FJsonValue> JsonValue, UProper
 			return false;
 		}
 	}
-	else if (UTextProperty *TextProperty = Cast<UTextProperty>(Property))
+	else if (UTextProperty* TextProperty = Cast<UTextProperty>(Property))
 	{
 		if (JsonValue->Type == EJson::String)
 		{
@@ -487,7 +498,7 @@ bool ConvertScalarJsonValueToUProperty(TSharedPtr<FJsonValue> JsonValue, UProper
 
 			// import the subvalue as a culture invariant string
 			FText Text;
-			if (!GetTextFromObject(Obj.ToSharedRef(), Text))
+			if (!FJsonObjectConverter::GetTextFromObject(Obj.ToSharedRef(), Text))
 			{
 				UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Attempted to import FText from JSON object with invalid keys for property %s"), *Property->GetNameCPP());
 				return false;
@@ -571,7 +582,17 @@ bool ConvertScalarJsonValueToUProperty(TSharedPtr<FJsonValue> JsonValue, UProper
 			
 			FString ImportTextString = JsonValue->AsString();
 			const TCHAR* ImportTextPtr = *ImportTextString;
-			TheCppStructOps->ImportTextItem(ImportTextPtr, OutValue, PPF_None, nullptr, (FOutputDevice*)GWarn);
+			if (!TheCppStructOps->ImportTextItem(ImportTextPtr, OutValue, PPF_None, nullptr, (FOutputDevice*)GWarn))
+			{
+				// Fall back to trying the tagged property approach if custom ImportTextItem couldn't get it done
+				Property->ImportText(ImportTextPtr, OutValue, PPF_None, nullptr);
+			}
+		}
+		else if (JsonValue->Type == EJson::String)
+		{
+			FString ImportTextString = JsonValue->AsString();
+			const TCHAR* ImportTextPtr = *ImportTextString;
+			Property->ImportText(ImportTextPtr, OutValue, PPF_None, nullptr);
 		}
 		else
 		{

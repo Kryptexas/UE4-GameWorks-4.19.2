@@ -1,10 +1,13 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3429227
 Availability: Public
 Title:타겟 포인트 액터
 Crumbs: %ROOT%, Engine, Engine/Actors
 Description:타겟 액터 생성 및 사용법 안내서입니다.
 Related: Gameplay/HowTo/SpawnAndDestroyActors/Blueprints
 version: 4.9
+Parent:Engine/Actors/Types
+order:9
+type:overview
 
 ![](Target_Point_Actors.png)
 

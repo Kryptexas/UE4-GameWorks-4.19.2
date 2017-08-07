@@ -145,4 +145,6 @@ protected:
 	void HandleOnMouseCaptureEnd();
 	void HandleOnControllerCaptureBegin();
 	void HandleOnControllerCaptureEnd();
+
+	PROPERTY_BINDING_IMPLEMENTATION(float, Value);
 };

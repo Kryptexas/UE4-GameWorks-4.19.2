@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3426963
 Availability:Public
 Title:게임 프로젝트 컴파일하기
 Crumbs: %ROOT%, Programming, Programming/Development
 Description:윈도우에서는 Visual Studio, 맥에서는 Xcode 를 사용하여 개별 게임 프로젝트 컴파일하기 입니다.
-Version: 4.9
+Version: 4.16
+Parent:Programming/Development
+Order:
+type:overview
 
 [TOC (start:2 end:3)]
 
@@ -81,7 +84,7 @@ UE4 에서 지원하는 플랫폼은 다음과 같습니다:
 ### 프로젝트 빌드하기
 
 [REGION:note]
-계속하기 전, 윈도우에서는 Visual Studio 2013 Professional or Visual Studio Express 2013 for Windows Desktop, 맥에서는 Xcode 가 설치되었는지 확인해 주시기 바랍니다.
+윈도우에서는 Visual Studio 2015 이상, 맥에서는 Xcode 8 이상 버전이 설치되었는지 확인해 주시기 바랍니다.
 [/REGION]
 
 <!--

@@ -4,7 +4,8 @@ Crumbs: %ROOT%, Gameplay
 Description:A How To Guide for Setting Up Inputs in Unreal Engine 4. 
 Version: 4.9
 Parent:Gameplay
-type:how-to
+SkillLevel: Intermediate
+type:overview
 order:8
 
 
@@ -12,16 +13,9 @@ After you have imported or created your Character, Vehicle, or Flying Spaceship 
 
 Once you have defined your Mappings, you can then bind them to behaviors in Blueprints or C++ (see the Setup section below). 
 
-## Setup
+## Implementation Guides
 
-To learn more about Setting Up Input using Blueprints, follow the link below:
-
-[REGION:buttonlist]
-* [](Gameplay\HowTo\SetUpInput\Blueprints)
-[PUBLISH:Docs]
-* [](Gameplay\HowTo\SetUpInput\Code)
-[/PUBLISH:Docs]
-[/REGION]
+[DIR(output:"role" parent:"Gameplay/HowTo/SetUpInput" org:"hierarchy" end:"1")]
 
 
 

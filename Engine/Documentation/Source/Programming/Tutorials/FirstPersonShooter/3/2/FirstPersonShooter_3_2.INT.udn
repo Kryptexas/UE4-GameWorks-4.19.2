@@ -3,7 +3,7 @@ Title: 3.2 - Implementing Shooting
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/3
 Description: Learn how to shooting for your First Person Shooter character.
 SkillLevel: Beginner
-Version: 4.11
+Version: 4.15
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -85,7 +85,7 @@ During this step, we're going to implement the `OnFire` function so that our cha
 			// Create a first person camera component.
 			FPSCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
 			// Attach the camera component to our capsule component.
-			FPSCameraComponent->AttachTo(GetCapsuleComponent());
+			FPSCameraComponent->SetupAttachment(GetCapsuleComponent());
 			// Position the camera slightly above the eyes.
 			FPSCameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 50.0f + BaseEyeHeight));
 			// Allow the pawn to control camera rotation.
@@ -96,7 +96,7 @@ During this step, we're going to implement the `OnFire` function so that our cha
 			// Only the owning player sees this mesh.
 			FPSMesh->SetOnlyOwnerSee(true);
 			// Attach the FPS mesh to the FPS camera.
-			FPSMesh->AttachTo(FPSCameraComponent);
+			FPSMesh->SetupAttachment(FPSCameraComponent);
 			// Disable some environmental shadowing to preserve the illusion of having a single mesh.
 			FPSMesh->bCastDynamicShadow = false;
 			FPSMesh->CastShadow = false;
@@ -125,22 +125,22 @@ During this step, we're going to implement the `OnFire` function so that our cha
 		}
 		
 		// Called to bind functionality to input
-		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
+		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 		{
-			Super::SetupPlayerInputComponent(InputComponent);
+			Super::SetupPlayerInputComponent(PlayerInputComponent);
 		
 			// Set up "movement" bindings.
-			InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
-			InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
+			PlayerInputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
+			PlayerInputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
 		
 			// Set up "look" bindings.
-			InputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
-			InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
+			PlayerInputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
+			PlayerInputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
 		
 			// Set up "action" bindings.
-			InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
-			InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::StopJump);
-			InputComponent->BindAction("Fire", IE_Pressed, this, &AFPSCharacter::Fire);
+			PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
+			PlayerInputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::StopJump);
+			PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AFPSCharacter::Fire);
 		}
 		
 		void AFPSCharacter::MoveForward(float Value)
@@ -229,8 +229,10 @@ Before continuing, download and extract our sample mesh from the following link:
 
 	[REGION:warning]
 	Disregard the following error regarding smoothing groups:
-	![](FBXWarning.png)  
-	This mesh still illustrates the first person mesh set-up and it will work with the animations you'll set-up in a later section.
+	
+	![](FBXWarning.png)
+	
+	This mesh still illustrates the first person mesh setup and it will work with the animations you'll set-up in a later section.
 	[/REGION]
 
 1.	Click the **Save** button to save your imported static mesh.

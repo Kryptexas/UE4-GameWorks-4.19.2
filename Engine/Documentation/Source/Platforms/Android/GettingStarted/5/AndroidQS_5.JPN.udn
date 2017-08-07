@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:3298293
+﻿INTSourceChangelist:3477690
 Availability:Public
 Title:5.ゲームのパッケージ化
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
 Description:ゲームをインストール用にパッケージ化する
-Version:4.12
+Version:4.16
 Skilllevel:Intermediate
 tags:Android
 tags:Mobile
@@ -155,9 +155,7 @@ Checkpoint:AndroidQS
 [/EXCERPT:MacOSSetup]
 
 [EXCERPT:LinuxSetup]
-本文書は現在作成中です。現在公開されている文書については、 
-[新規および更新リソース](https://docs.unrealengine.com/latest/INT/Updates/index.html) を参照してください。
-<!--[INCLUDE:Platforms/Linux/IntermediateLinuxDeveloper/AndroidOnLinux/5#AndroidLinux_5]-->
+[INCLUDE:Platforms/Linux/IntermediateLinuxDeveloper/AndroidOnLinux/5#AndroidLinux_5]
 [/EXCERPT:LinuxSetup]
 -->
 

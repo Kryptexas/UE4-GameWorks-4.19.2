@@ -1,17 +1,4 @@
-/* Copyright 2016 Google Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2017 Google Inc.
 
 #pragma once
 
@@ -24,11 +11,14 @@
 #include "Classes/GoogleVRControllerEventManager.h"
 #include "Classes/GoogleVRControllerFunctionLibrary.h"
 
+#if GOOGLEVRCONTROLLER_SUPPORTED_INSTANT_PREVIEW_PLATFORMS
+#include "instant_preview_server.h"
+#include "ip_shared.h"
+#endif  // GOOGLEVRCONTROLLER_SUPPORTED_INSTANT_PREVIEW_PLATFORMS
+
 #if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
 using namespace gvr;
 #endif
-
-DEFINE_LOG_CATEGORY_STATIC(LogGoogleVRController, Log, All);
 
 /** Total number of controllers in a set */
 #define CONTROLLERS_PER_PLAYER	2
@@ -148,6 +138,13 @@ public:	// IInputDevice
 	virtual void SetChannelValues(int32 ControllerId, const FForceFeedbackValues &values);
 
 public: // IMotionController
+
+	static FName DeviceTypeName;
+	virtual FName GetMotionControllerDeviceTypeName() const override
+	{
+		return DeviceTypeName;
+	}
+
 	/**
 	* Returns the calibration-space orientation of the requested controller's hand.
 	*
@@ -201,6 +198,10 @@ private:
 
 #if GOOGLEVRCONTROLLER_SUPPORTED_EMULATOR_PLATFORMS
 	FRotator BaseEmulatorOrientation;
+#endif
+#if GOOGLEVRCONTROLLER_SUPPORTED_INSTANT_PREVIEW_PLATFORMS
+	instant_preview::ControllerState InstantPreviewControllerState;
+	ip_static_server_handle IpServerHandle;
 #endif
 
 	/** Last Orientation used */

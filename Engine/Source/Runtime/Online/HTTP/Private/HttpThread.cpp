@@ -63,27 +63,12 @@ void FHttpThread::GetCompletedRequests(TArray<IHttpThreadedRequest*>& OutComplet
 
 bool FHttpThread::Init()
 {
+	LastTime = FPlatformTime::Seconds();
 	return true;
-}
-
-void FHttpThread::HttpThreadTick(float DeltaSeconds)
-{
-	// empty
-}
-
-bool FHttpThread::StartThreadedRequest(IHttpThreadedRequest* Request)
-{
-	return Request->StartThreadedRequest();
-}
-
-void FHttpThread::CompleteThreadedRequest(IHttpThreadedRequest* Request)
-{
-	// empty
 }
 
 uint32 FHttpThread::Run()
 {
-	double LastTime = FPlatformTime::Seconds();
 	TArray<IHttpThreadedRequest*> RequestsToCancel;
 	TArray<IHttpThreadedRequest*> RequestsToStart;
 	TArray<IHttpThreadedRequest*> RequestsToComplete;
@@ -95,79 +80,9 @@ uint32 FHttpThread::Run()
 		while (bKeepProcessing)
 		{
 			double InnerLoopBegin = FPlatformTime::Seconds();
-
-			// cache all cancelled and pending requests
-			{
-				FScopeLock ScopeLock(&RequestArraysLock);
-
-				RequestsToCancel = CancelledThreadedRequests;
-				CancelledThreadedRequests.Reset();
-
-				RequestsToStart = PendingThreadedRequests;
-				PendingThreadedRequests.Reset();
-			}
-
-			// Cancel any pending cancel requests
-			for (IHttpThreadedRequest* Request : RequestsToCancel)
-			{
-				if (RunningThreadedRequests.Remove(Request) > 0)
-				{
-					RequestsToComplete.Add(Request);
-				}
-			}
-
-			// Start any pending requests
-			for (IHttpThreadedRequest* Request : RequestsToStart)
-			{
-				if (StartThreadedRequest(Request))
-				{
-					RunningThreadedRequests.Add(Request);
-				}
-				else
-				{
-					RequestsToComplete.Add(Request);
-				}
-			}
-
-			const double AppTime = FPlatformTime::Seconds();
-			const double ElapsedTime = AppTime - LastTime;
-			LastTime = AppTime;
-
-			// Tick any running requests
-			for (int32 Index = 0; Index < RunningThreadedRequests.Num(); ++Index)
-			{
-				IHttpThreadedRequest* Request = RunningThreadedRequests[Index];
-				Request->TickThreadedRequest(ElapsedTime);
-			}
-
-			HttpThreadTick(ElapsedTime);
-
-			// Move any completed requests
-			for (int32 Index = 0; Index < RunningThreadedRequests.Num(); ++Index)
-			{
-				IHttpThreadedRequest* Request = RunningThreadedRequests[Index];
-				if (Request->IsThreadedRequestComplete())
-				{
-					RequestsToComplete.Add(Request);
-					RunningThreadedRequests.RemoveAtSwap(Index);
-					--Index;
-				}
-			}
-
-			if (RequestsToComplete.Num() > 0)
-			{
-				for (IHttpThreadedRequest* Request : RequestsToComplete)
-				{
-					CompleteThreadedRequest(Request);
-				}
-
-				{
-					FScopeLock ScopeLock(&RequestArraysLock);
-					CompletedThreadedRequests.Append(RequestsToComplete);
-				}
-				RequestsToComplete.Reset();
-			}
-
+			
+			Process(RequestsToCancel, RequestsToStart, RequestsToComplete);
+			
 			if (RunningThreadedRequests.Num() == 0)
 			{
 				bKeepProcessing = false;
@@ -185,12 +100,109 @@ uint32 FHttpThread::Run()
 				OuterLoopEnd = InnerLoopEnd;
 			}
 		}
-
 		double OuterLoopTime = OuterLoopEnd - OuterLoopBegin;
 		double OuterSleep = FMath::Max(HttpThreadIdleFrameTimeInSeconds - OuterLoopTime, HttpThreadIdleMinimumSleepTimeInSeconds);
 		FPlatformProcess::SleepNoStats(OuterSleep);
 	}
 	return 0;
+}
+
+void FHttpThread::Tick()
+{
+	TArray<IHttpThreadedRequest*> RequestsToCancel;
+	TArray<IHttpThreadedRequest*> RequestsToStart;
+	TArray<IHttpThreadedRequest*> RequestsToComplete;
+	Process(RequestsToCancel, RequestsToStart, RequestsToComplete);
+}
+
+void FHttpThread::HttpThreadTick(float DeltaSeconds)
+{
+	// empty
+}
+
+bool FHttpThread::StartThreadedRequest(IHttpThreadedRequest* Request)
+{
+	return Request->StartThreadedRequest();
+}
+
+void FHttpThread::CompleteThreadedRequest(IHttpThreadedRequest* Request)
+{
+	// empty
+}
+
+void FHttpThread::Process(TArray<IHttpThreadedRequest*>& RequestsToCancel, TArray<IHttpThreadedRequest*>& RequestsToStart, TArray<IHttpThreadedRequest*>& RequestsToComplete)
+{
+	// cache all cancelled and pending requests
+	{
+		FScopeLock ScopeLock(&RequestArraysLock);
+
+		RequestsToCancel = CancelledThreadedRequests;
+		CancelledThreadedRequests.Reset();
+
+		RequestsToStart = PendingThreadedRequests;
+		PendingThreadedRequests.Reset();
+	}
+
+	// Cancel any pending cancel requests
+	for (IHttpThreadedRequest* Request : RequestsToCancel)
+	{
+		if (RunningThreadedRequests.Remove(Request) > 0)
+		{
+			RequestsToComplete.Add(Request);
+		}
+	}
+
+	// Start any pending requests
+	for (IHttpThreadedRequest* Request : RequestsToStart)
+	{
+		if (StartThreadedRequest(Request))
+		{
+			RunningThreadedRequests.Add(Request);
+		}
+		else
+		{
+			RequestsToComplete.Add(Request);
+		}
+	}
+
+	const double AppTime = FPlatformTime::Seconds();
+	const double ElapsedTime = AppTime - LastTime;
+	LastTime = AppTime;
+
+	// Tick any running requests
+	for (int32 Index = 0; Index < RunningThreadedRequests.Num(); ++Index)
+	{
+		IHttpThreadedRequest* Request = RunningThreadedRequests[Index];
+		Request->TickThreadedRequest(ElapsedTime);
+	}
+
+	HttpThreadTick(ElapsedTime);
+
+	// Move any completed requests
+	for (int32 Index = 0; Index < RunningThreadedRequests.Num(); ++Index)
+	{
+		IHttpThreadedRequest* Request = RunningThreadedRequests[Index];
+		if (Request->IsThreadedRequestComplete())
+		{
+			RequestsToComplete.Add(Request);
+			RunningThreadedRequests.RemoveAtSwap(Index);
+			--Index;
+		}
+	}
+
+	if (RequestsToComplete.Num() > 0)
+	{
+		for (IHttpThreadedRequest* Request : RequestsToComplete)
+		{
+			CompleteThreadedRequest(Request);
+		}
+
+		{
+			FScopeLock ScopeLock(&RequestArraysLock);
+			CompletedThreadedRequests.Append(RequestsToComplete);
+		}
+		RequestsToComplete.Reset();
+	}
 }
 
 void FHttpThread::Stop()

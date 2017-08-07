@@ -98,7 +98,7 @@ void UBlueprintGameplayTagLibrary::GetAllActorsOfClassMatchingTagQuery(UObject* 
 {
 	OutActors.Empty();
 
-	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 
 	// We do nothing if not class provided, rather than giving ALL actors!
 	if (ActorClass && World)

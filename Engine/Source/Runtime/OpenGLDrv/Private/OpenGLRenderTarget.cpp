@@ -197,12 +197,15 @@ GLuint FOpenGLDynamicRHI::GetOpenGLFramebuffer(uint32 NumSimultaneousRenderTarge
 			switch (RenderTarget->Target)
 			{
 			case GL_TEXTURE_2D:
+#if PLATFORM_ANDROID
+			case GL_TEXTURE_EXTERNAL_OES:
+#endif
 			case GL_TEXTURE_2D_MULTISAMPLE:
 			{
 #if PLATFORM_ANDROID
 				FOpenGLTexture2D* RenderTarget2D = (FOpenGLTexture2D*)RenderTarget;
 				const uint32 NumSamplesTileMem = RenderTarget2D->GetNumSamplesTileMem();
-				if (NumSamplesTileMem > 1)
+				if (NumSamplesTileMem > 1 && glFramebufferTexture2DMultisampleEXT)
 				{
 					// GL_EXT_multisampled_render_to_texture requires GL_COLOR_ATTACHMENT0
 					check(RenderTargetIndex == 0);
@@ -233,13 +236,16 @@ GLuint FOpenGLDynamicRHI::GetOpenGLFramebuffer(uint32 NumSimultaneousRenderTarge
 			switch( RenderTarget->Target )
 			{
 			case GL_TEXTURE_2D:
+#if PLATFORM_ANDROID
+			case GL_TEXTURE_EXTERNAL_OES:
+#endif
 			case GL_TEXTURE_2D_MULTISAMPLE:
 			{
 				check(ArrayIndices[RenderTargetIndex] == 0);
 #if PLATFORM_ANDROID
 				FOpenGLTexture2D* RenderTarget2D = (FOpenGLTexture2D*)RenderTarget;
 				const uint32 NumSamplesTileMem = RenderTarget2D->GetNumSamplesTileMem();
-				if (NumSamplesTileMem > 1)
+				if (NumSamplesTileMem > 1 && glFramebufferTexture2DMultisampleEXT)
 				{
 					// GL_EXT_multisampled_render_to_texture requires GL_COLOR_ATTACHMENT0
 					check(RenderTargetIndex == 0);
@@ -278,6 +284,9 @@ GLuint FOpenGLDynamicRHI::GetOpenGLFramebuffer(uint32 NumSimultaneousRenderTarge
 		switch (DepthStencilTarget->Target)
 		{
 		case GL_TEXTURE_2D:
+#if PLATFORM_ANDROID
+		case GL_TEXTURE_EXTERNAL_OES:
+#endif
 		case GL_TEXTURE_2D_MULTISAMPLE:
 		{
 #if PLATFORM_ANDROID

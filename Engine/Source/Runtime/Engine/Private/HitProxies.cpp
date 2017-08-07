@@ -7,8 +7,12 @@
 #include "HitProxies.h"
 #include "Misc/ScopeLock.h"
 
+/// @cond DOXYGEN_WARNINGS
+
 IMPLEMENT_HIT_PROXY_BASE( HHitProxy, NULL );
 IMPLEMENT_HIT_PROXY(HObject,HHitProxy);
+
+/// @endcond
 
 const FHitProxyId FHitProxyId::InvisibleHitProxyId( INDEX_NONE - 1 );
 

@@ -7,15 +7,40 @@
 #include "SSequencer.h"
 #include "IKeyArea.h"
 #include "SKeyNavigationButtons.h"
+#include "SKeyAreaEditorSwitcher.h"
+
 
 /* FSectionKeyAreaNode interface
  *****************************************************************************/
 
+FSequencerSectionKeyAreaNode::FSequencerSectionKeyAreaNode(FName NodeName, const FText& InDisplayName, TSharedPtr<FSequencerDisplayNode> InParentNode, FSequencerNodeTree& InParentTree, bool bInTopLevel)
+	: FSequencerDisplayNode(NodeName, InParentNode, InParentTree)
+	, DisplayName(InDisplayName)
+	, bTopLevel(bInTopLevel)
+{
+}
+
 void FSequencerSectionKeyAreaNode::AddKeyArea(TSharedRef<IKeyArea> KeyArea)
 {
 	KeyAreas.Add(KeyArea);
+
+	if (KeyEditorSwitcher.IsValid())
+	{
+		KeyEditorSwitcher->Rebuild();
+	}
 }
 
+TSharedPtr<IKeyArea> FSequencerSectionKeyAreaNode::GetKeyArea(UMovieSceneSection* Section) const
+{
+	for (const TSharedRef<IKeyArea>& KeyArea : KeyAreas)
+	{
+		if (KeyArea->GetOwningSection() == Section)
+		{
+			return KeyArea;
+		}
+	}
+	return nullptr;
+}
 
 /* FSequencerDisplayNode interface
  *****************************************************************************/
@@ -28,40 +53,13 @@ bool FSequencerSectionKeyAreaNode::CanRenameNode() const
 
 TSharedRef<SWidget> FSequencerSectionKeyAreaNode::GetCustomOutlinerContent()
 {
-	// @todo sequencer: support multiple sections/key areas?
-	TArray<TSharedRef<IKeyArea>> AllKeyAreas = GetAllKeyAreas();
-
-	if (AllKeyAreas.Num() > 0)
+	if (GetAllKeyAreas().Num() > 0)
 	{
-		if (AllKeyAreas[0]->CanCreateKeyEditor())
+		if (!KeyEditorSwitcher.IsValid())
 		{
-			return SNew(SBox)
-			.HAlign(HAlign_Right)
-			.VAlign(VAlign_Center)
-			[
-				SNew(SHorizontalBox)
-
-				+ SHorizontalBox::Slot()
-				.HAlign(HAlign_Right)
-				.VAlign(VAlign_Center)
-				[
-					SNew(SBox)
-					.IsEnabled(!GetSequencer().IsReadOnly())
-					.WidthOverride(100)
-					.HAlign(HAlign_Left)
-					[
-						AllKeyAreas[0]->CreateKeyEditor(&GetSequencer())
-					]
-				]
-
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.VAlign(VAlign_Center)
-				[
-					SNew(SKeyNavigationButtons, AsShared())
-				]
-			];
+			KeyEditorSwitcher = SNew(SKeyAreaEditorSwitcher, SharedThis(this));
 		}
+		return KeyEditorSwitcher.ToSharedRef();
 	}
 
 	return FSequencerDisplayNode::GetCustomOutlinerContent();

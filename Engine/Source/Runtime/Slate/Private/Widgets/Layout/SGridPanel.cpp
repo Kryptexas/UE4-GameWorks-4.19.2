@@ -52,7 +52,7 @@ void SGridPanel::Construct( const FArguments& InArgs )
 }
 
 
-int32 SGridPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SGridPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	FArrangedChildren ArrangedChildren(EVisibility::All);
 	this->ArrangeChildren(AllottedGeometry, ArrangedChildren);
@@ -62,6 +62,7 @@ int32 SGridPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeom
 	int32 MaxLayerId = LayerId;
 
 	const FPaintArgs NewArgs = Args.WithNewParent(this);
+	const bool bShouldBeEnabled = ShouldBeEnabled(bParentEnabled);
 
 	// We need to iterate over slots, because slots know the GridLayers. This isn't available in the arranged children.
 	// Some slots do not show up (they are hidden/collapsed). We need a 2nd index to skip over them.
@@ -76,10 +77,7 @@ int32 SGridPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeom
 		{
 			const FSlot& CurSlot = Slots[ChildIndex];
 
-			bool bWereOverlapping;
-			FSlateRect ChildClipRect = MyClippingRect.IntersectionWith(CurWidget.Geometry.GetClippingRect(), bWereOverlapping);
-
-			if ( bWereOverlapping )
+			if (!IsChildWidgetCulled(MyCullingRect, CurWidget))
 			{
 				if ( LastGridLayer != CurSlot.LayerParam )
 				{
@@ -93,11 +91,11 @@ int32 SGridPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeom
 				const int32 CurWidgetsMaxLayerId = CurWidget.Widget->Paint(
 					NewArgs,
 					CurWidget.Geometry,
-					ChildClipRect,
+					MyCullingRect,
 					OutDrawElements,
 					LayerId,
 					InWidgetStyle,
-					ShouldBeEnabled(bParentEnabled)
+					bShouldBeEnabled
 					);
 
 				MaxLayerId = FMath::Max(MaxLayerId, CurWidgetsMaxLayerId);
@@ -108,7 +106,7 @@ int32 SGridPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeom
 //#define LAYOUT_DEBUG
 
 #ifdef LAYOUT_DEBUG
-	LayerId = LayoutDebugPaint( AllottedGeometry, MyClippingRect, OutDrawElements, LayerId );
+	LayerId = LayoutDebugPaint( AllottedGeometry, MyCullingRect, OutDrawElements, LayerId );
 #endif
 
 	return MaxLayerId;
@@ -170,8 +168,8 @@ void SGridPanel::OnArrangeChildren( const FGeometry& AllottedGeometry, FArranged
 		FinalRows[FinalRows.Num()-1] = 0.0f;
 	}
 	
-	CalculateStretchedCellSizes(FinalColumns, AllottedGeometry.Size.X, Columns, ColFillCoefficients);
-	CalculateStretchedCellSizes(FinalRows, AllottedGeometry.Size.Y, Rows, RowFillCoefficients);
+	CalculateStretchedCellSizes(FinalColumns, AllottedGeometry.GetLocalSize().X, Columns, ColFillCoefficients);
+	CalculateStretchedCellSizes(FinalRows, AllottedGeometry.GetLocalSize().Y, Rows, RowFillCoefficients);
 	
 	// Build up partial sums for row and column sizes so that we can handle column and row spans conveniently.
 	ComputePartialSums(FinalColumns);
@@ -382,7 +380,7 @@ void SGridPanel::ComputeDesiredCellSizes( TArray<float>& OutColumns, TArray<floa
 }
 
 
-int32 SGridPanel::LayoutDebugPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId ) const
+int32 SGridPanel::LayoutDebugPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId ) const
 {
 	float XOffset = 0;
 	for (int32 Column=0; Column<Columns.Num(); ++Column)
@@ -394,8 +392,7 @@ int32 SGridPanel::LayoutDebugPaint(const FGeometry& AllottedGeometry, const FSla
 			(
 				OutDrawElements, 
 				LayerId,
-				AllottedGeometry.ToPaintGeometry( FVector2D(XOffset, YOffset), FVector2D( Columns[Column], Rows[Row] ) ),
-				MyClippingRect
+				AllottedGeometry.ToPaintGeometry( FVector2D(XOffset, YOffset), FVector2D( Columns[Column], Rows[Row] ) )
 			);
 
 			YOffset += Rows[Row];

@@ -200,6 +200,7 @@ UStaticMeshComponent::UStaticMeshComponent(const FObjectInitializer& ObjectIniti
 	MaterialIndexPreview = INDEX_NONE;
 	StaticMeshImportVersion = BeforeImportStaticMeshVersionWasAdded;
 	bCustomOverrideVertexColorPerLOD = false;
+	bDisplayVertexColors = false;
 #endif
 }
 
@@ -207,6 +208,8 @@ UStaticMeshComponent::~UStaticMeshComponent()
 {
 	// Empty, but required because we don't want to have to include LightMap.h and ShadowMap.h in StaticMeshComponent.h, and they are required to compile FLightMapRef and FShadowMapRef
 }
+
+/// @cond DOXYGEN_WARNINGS
 
 void UStaticMeshComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
 {
@@ -216,6 +219,8 @@ void UStaticMeshComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProperty 
 	DOREPLIFETIME( UStaticMeshComponent, StaticMesh );
 	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
+
+/// @endcond
 
 void UStaticMeshComponent::OnRep_StaticMesh(class UStaticMesh *OldStaticMesh)
 {
@@ -730,7 +735,7 @@ bool UStaticMeshComponent::BuildTextureStreamingData(ETextureStreamingBuildType 
 				MaterialStreamingRelativeBoxes.Empty(NumMaterials);
 				for (int32 MaterialIndex = 0; MaterialIndex < NumMaterials; ++MaterialIndex)
 				{
-					MaterialStreamingRelativeBoxes.Add(PackRelativeBox(Bounds.GetBox(), GetStaticMesh()->GetMaterialBox(MaterialIndex, ComponentToWorld)));
+					MaterialStreamingRelativeBoxes.Add(PackRelativeBox(Bounds.GetBox(), GetStaticMesh()->GetMaterialBox(MaterialIndex, GetComponentTransform())));
 				}
 
 				// Update since proxy has a copy of the material bounds.
@@ -821,7 +826,7 @@ bool UStaticMeshComponent::BuildTextureStreamingData(ETextureStreamingBuildType 
 
 float UStaticMeshComponent::GetTextureStreamingTransformScale() const
 {
-	return ComponentToWorld.GetMaximumAxisScale();
+	return GetComponentTransform().GetMaximumAxisScale();
 }
 
 void UStaticMeshComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const
@@ -928,6 +933,14 @@ bool UStaticMeshComponent::DoesSocketExist(FName InSocketName) const
 	return (GetSocketByName(InSocketName)  != NULL);
 }
 
+#if WITH_EDITOR
+bool UStaticMeshComponent::ShouldRenderSelected() const
+{
+	const bool bShouldRenderSelected = UMeshComponent::ShouldRenderSelected();
+	return bShouldRenderSelected || bDisplayVertexColors;
+}
+#endif // WITH_EDITOR
+
 class UStaticMeshSocket const* UStaticMeshComponent::GetSocketByName(FName InSocketName) const
 {
 	UStaticMeshSocket const* Socket = NULL;
@@ -966,7 +979,7 @@ FTransform UStaticMeshComponent::GetSocketTransform(FName InSocketName, ERelativ
 					}
 					case RTS_Component:
 					{
-						return SocketWorldTransform.GetRelativeTransform(ComponentToWorld);
+						return SocketWorldTransform.GetRelativeTransform(GetComponentTransform());
 					}
 				}
 			}
@@ -1069,35 +1082,41 @@ void UStaticMeshComponent::CopyInstanceVertexColorsIfCompatible( UStaticMeshComp
 		for ( int32 CurrentLOD = 0; CurrentLOD != NumSourceLODs; CurrentLOD++ )
 		{
 			FStaticMeshLODResources& SourceLODModel = SourceComponent->GetStaticMesh()->RenderData->LODResources[CurrentLOD];
-			FStaticMeshComponentLODInfo& SourceLODInfo = SourceComponent->LODData[CurrentLOD];
-
-			FStaticMeshLODResources& TargetLODModel = GetStaticMesh()->RenderData->LODResources[CurrentLOD];
-			FStaticMeshComponentLODInfo& TargetLODInfo = LODData[CurrentLOD];
-
-			if ( SourceLODInfo.OverrideVertexColors != NULL )
+			if (SourceComponent->LODData.IsValidIndex(CurrentLOD))
 			{
-				// Copy vertex colors from source to target.
-				FColorVertexBuffer* SourceColorBuffer = SourceLODInfo.OverrideVertexColors;
+				FStaticMeshComponentLODInfo& SourceLODInfo = SourceComponent->LODData[CurrentLOD];
 
-				TArray< FColor > CopiedColors;
-				for ( uint32 ColorVertexIndex = 0; ColorVertexIndex < SourceColorBuffer->GetNumVertices(); ColorVertexIndex++ )
-				{
-					CopiedColors.Add( SourceColorBuffer->VertexColor( ColorVertexIndex ) );
-				}
+				FStaticMeshLODResources& TargetLODModel = GetStaticMesh()->RenderData->LODResources[CurrentLOD];
+				FStaticMeshComponentLODInfo& TargetLODInfo = LODData[CurrentLOD];
 
-				FColorVertexBuffer* TargetColorBuffer = &TargetLODModel.ColorVertexBuffer;
+				if ( SourceLODInfo.OverrideVertexColors != NULL )
+				{
+					// Copy vertex colors from source to target.
+					FColorVertexBuffer* SourceColorBuffer = SourceLODInfo.OverrideVertexColors;
 
-				if ( TargetLODInfo.OverrideVertexColors != NULL )
-				{
-					TargetLODInfo.BeginReleaseOverrideVertexColors();
-					FlushRenderingCommands();
+					TArray< FColor > CopiedColors;
+					for ( uint32 ColorVertexIndex = 0; ColorVertexIndex < SourceColorBuffer->GetNumVertices(); ColorVertexIndex++ )
+					{
+						CopiedColors.Add( SourceColorBuffer->VertexColor( ColorVertexIndex ) );
+					}
+
+					if (TargetLODInfo.OverrideVertexColors != NULL || CopiedColors.Num() > 0)
+					{
+						FColorVertexBuffer* TargetColorBuffer = &TargetLODModel.ColorVertexBuffer;
+
+						if ( TargetLODInfo.OverrideVertexColors != NULL )
+						{
+							TargetLODInfo.BeginReleaseOverrideVertexColors();
+							FlushRenderingCommands();
+						}
+						else
+						{
+							TargetLODInfo.OverrideVertexColors = new FColorVertexBuffer;
+							TargetLODInfo.OverrideVertexColors->InitFromColorArray( CopiedColors );
+						}
+						BeginInitResource( TargetLODInfo.OverrideVertexColors );
+					}
 				}
-				else
-				{
-					TargetLODInfo.OverrideVertexColors = new FColorVertexBuffer;
-					TargetLODInfo.OverrideVertexColors->InitFromColorArray( CopiedColors );
-				}
-				BeginInitResource( TargetLODInfo.OverrideVertexColors );
 			}
 		}
 
@@ -1282,7 +1301,7 @@ void UStaticMeshComponent::PrivateFixupOverrideColors()
 			const int32 NumVerts = CurRenderData.GetNumVertices();
 			check(NumVerts == NewOverrideColors.Num());
 
-			LODInfo.PaintedVertices.Reserve(NumVerts);
+			LODInfo.PaintedVertices.Empty(NumVerts);
 			for (int32 VertIndex = 0; VertIndex < NumVerts; ++VertIndex)
 			{
 				FPaintedVertex* Vertex = new(LODInfo.PaintedVertices) FPaintedVertex;
@@ -1586,6 +1605,16 @@ bool UStaticMeshComponent::CanEditChange(const UProperty* InProperty) const
 		{
 			return Mobility != EComponentMobility::Static && bCastDistanceFieldIndirectShadow && CastShadow && bCastDynamicShadow;
 		}
+
+		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UStaticMeshComponent, bOverrideDistanceFieldSelfShadowBias))
+		{
+			return bAffectDistanceFieldLighting;
+		}
+
+		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UStaticMeshComponent, DistanceFieldSelfShadowBias))
+		{
+			return bOverrideDistanceFieldSelfShadowBias && bAffectDistanceFieldLighting;
+		}
 	}
 
 	return Super::CanEditChange(InProperty);
@@ -1673,7 +1702,6 @@ void UStaticMeshComponent::PostLoad()
 	// Remap the materials array if the static mesh materials may have been remapped to remove zero triangle sections.
 	if (GetStaticMesh() && GetLinkerUE4Version() < VER_UE4_REMOVE_ZERO_TRIANGLE_SECTIONS && OverrideMaterials.Num())
 	{
-		GetStaticMesh()->ConditionalPostLoad();
 		if (GetStaticMesh()->HasValidRenderData()
 			&& GetStaticMesh()->RenderData->MaterialIndexToImportIndex.Num())
 		{
@@ -1777,6 +1805,15 @@ void UStaticMeshComponent::SetForcedLodModel(int32 NewForcedLodModel)
 	if (ForcedLodModel != NewForcedLodModel)
 	{
 		ForcedLodModel = NewForcedLodModel;
+		MarkRenderStateDirty();
+	}
+}
+
+void UStaticMeshComponent::SetDistanceFieldSelfShadowBias(float NewValue)
+{
+	if (DistanceFieldSelfShadowBias != NewValue)
+	{
+		DistanceFieldSelfShadowBias = NewValue;
 		MarkRenderStateDirty();
 	}
 }
@@ -2054,10 +2091,13 @@ int32 UStaticMeshComponent::GetMaterialIndex(FName MaterialSlotName) const
 TArray<FName> UStaticMeshComponent::GetMaterialSlotNames() const
 {
 	TArray<FName> MaterialNames;
-	for (int32 MaterialIndex = 0; MaterialIndex < GetStaticMesh()->StaticMaterials.Num(); ++MaterialIndex)
+	if (UStaticMesh* Mesh = GetStaticMesh())
 	{
-		const FStaticMaterial &StaticMaterial = GetStaticMesh()->StaticMaterials[MaterialIndex];
-		MaterialNames.Add(StaticMaterial.MaterialSlotName);
+		for (int32 MaterialIndex = 0; MaterialIndex < Mesh->StaticMaterials.Num(); ++MaterialIndex)
+		{
+			const FStaticMaterial &StaticMaterial = Mesh->StaticMaterials[MaterialIndex];
+			MaterialNames.Add(StaticMaterial.MaterialSlotName);
+		}
 	}
 	return MaterialNames;
 }
@@ -2100,7 +2140,7 @@ void UStaticMeshComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMate
 int32 UStaticMeshComponent::GetBlueprintCreatedComponentIndex() const
 {
 	int32 ComponentIndex = 0;
-	for(const auto& Component : GetOwner()->BlueprintCreatedComponents)
+	for (const UActorComponent* Component : GetOwner()->BlueprintCreatedComponents)
 	{
 		if(Component == this)
 		{
@@ -2121,7 +2161,7 @@ FActorComponentInstanceData* UStaticMeshComponent::GetComponentInstanceData() co
 
 	// Fill in info
 	const_cast<UStaticMeshComponent*>(this)->ConditionalUpdateComponentToWorld(); // sadness
-	StaticMeshInstanceData->CachedStaticLighting.Transform = ComponentToWorld;
+	StaticMeshInstanceData->CachedStaticLighting.Transform = GetComponentTransform();
 
 	for (const FStaticMeshComponentLODInfo& LODDataEntry : LODData)
 	{
@@ -2170,7 +2210,7 @@ void UStaticMeshComponent::ApplyComponentInstanceData(FStaticMeshComponentInstan
 	if (HasStaticLighting() && NumLODLightMaps > 0)
 	{
 		// See if data matches current state
-		if (StaticMeshInstanceData->CachedStaticLighting.Transform.Equals(ComponentToWorld, 1.e-3f))
+		if (StaticMeshInstanceData->CachedStaticLighting.Transform.Equals(GetComponentTransform(), 1.e-3f))
 		{
 			SetLODDataCount(NumLODLightMaps, NumLODLightMaps);
 
@@ -2183,7 +2223,7 @@ void UStaticMeshComponent::ApplyComponentInstanceData(FStaticMeshComponentInstan
 		{
 			UE_LOG(LogStaticMesh, Warning, TEXT("Cached component instance data transform did not match!  Discarding cached lighting data which will cause lighting to be unbuilt.\n%s\nCurrent: %s Cached: %s"), 
 				*GetPathName(),
-				*ComponentToWorld.ToString(),
+				*GetComponentTransform().ToString(),
 				*StaticMeshInstanceData->CachedStaticLighting.Transform.ToString());
 		}
 	}
@@ -2215,15 +2255,15 @@ bool UStaticMeshComponent::DoCustomNavigableGeometryExport(FNavigableGeometryExp
 		
 		if (NavCollision->bHasConvexGeometry)
 		{
-			const FVector Scale3D = ComponentToWorld.GetScale3D();
+			const FVector Scale3D = GetComponentTransform().GetScale3D();
 			// if any of scales is 0 there's no point in exporting it
 			if (!Scale3D.IsZero())
 			{
 				GeomExport.ExportCustomMesh(NavCollision->ConvexCollision.VertexBuffer.GetData(), NavCollision->ConvexCollision.VertexBuffer.Num(),
-					NavCollision->ConvexCollision.IndexBuffer.GetData(), NavCollision->ConvexCollision.IndexBuffer.Num(), ComponentToWorld);
+					NavCollision->ConvexCollision.IndexBuffer.GetData(), NavCollision->ConvexCollision.IndexBuffer.Num(), GetComponentTransform());
 
 				GeomExport.ExportCustomMesh(NavCollision->TriMeshCollision.VertexBuffer.GetData(), NavCollision->TriMeshCollision.VertexBuffer.Num(),
-					NavCollision->TriMeshCollision.IndexBuffer.GetData(), NavCollision->TriMeshCollision.IndexBuffer.Num(), ComponentToWorld);
+					NavCollision->TriMeshCollision.IndexBuffer.GetData(), NavCollision->TriMeshCollision.IndexBuffer.Num(), GetComponentTransform());
 			}
 
 			// regardless of above we don't want "regular" collision export for this mesh instance
@@ -2234,9 +2274,11 @@ bool UStaticMeshComponent::DoCustomNavigableGeometryExport(FNavigableGeometryExp
 	return true;
 }
 
-UMaterialInterface* UStaticMeshComponent::GetMaterialFromCollisionFaceIndex(int32 FaceIndex) const
+UMaterialInterface* UStaticMeshComponent::GetMaterialFromCollisionFaceIndex(int32 FaceIndex, int32& SectionIndex) const
 {
 	UMaterialInterface* Result = nullptr;
+	SectionIndex = 0;
+
 	UStaticMesh* Mesh = GetStaticMesh();
 	if (Mesh && Mesh->RenderData.IsValid())
 	{
@@ -2249,9 +2291,9 @@ UMaterialInterface* UStaticMeshComponent::GetMaterialFromCollisionFaceIndex(int3
 
 			// Look for section that corresponds to the supplied face
 			int32 TotalFaceCount = 0;
-			for (int32 SectionIndex = 0; SectionIndex < LODResource.Sections.Num(); SectionIndex++)
+			for (int32 SectionIdx = 0; SectionIdx < LODResource.Sections.Num(); SectionIdx++)
 			{
-				const FStaticMeshSection& Section = LODResource.Sections[SectionIndex];
+				const FStaticMeshSection& Section = LODResource.Sections[SectionIdx];
 				// Only count faces if collision is enabled
 				if (Section.bEnableCollision)
 				{
@@ -2261,6 +2303,7 @@ UMaterialInterface* UStaticMeshComponent::GetMaterialFromCollisionFaceIndex(int3
 					{
 						// Get the current material for it, from this component
 						Result = GetMaterial(Section.MaterialIndex);
+						SectionIndex = SectionIdx;
 						break;
 					}
 				}
@@ -2288,7 +2331,7 @@ void UStaticMeshComponent::GetNavigationData(FNavigationRelevantData& Data) cons
 
 		if (bExportAsObstacle)
 		{
-			NavCollision->GetNavigationModifier(Data.Modifiers, ComponentToWorld);
+			NavCollision->GetNavigationModifier(Data.Modifiers, GetComponentTransform());
 		}
 	}
 }
@@ -2318,7 +2361,7 @@ bool UStaticMeshComponent::ComponentIsTouchingSelectionBox(const FBox& InSelBBox
 					{
 						int32 VertexIndex = Indices[FirstIndex + i];
 						FVector LocalPosition = LODModel.PositionVertexBuffer.VertexPosition(VertexIndex);
-						Vertex.Emplace(ComponentToWorld.TransformPosition(LocalPosition));
+						Vertex.Emplace(GetComponentTransform().TransformPosition(LocalPosition));
 					}
 
 					// Check if the triangle is colliding with the bounding box.
@@ -2362,7 +2405,7 @@ bool UStaticMeshComponent::ComponentIsTouchingSelectionFrustum(const FConvexVolu
 			for (uint32 VertexIndex = 0; VertexIndex < NumVertices; ++VertexIndex)
 			{
 				const FVector& LocalPosition = LODModel.PositionVertexBuffer.VertexPosition(VertexIndex);
-				const FVector WorldPosition = ComponentToWorld.TransformPosition(LocalPosition);
+				const FVector WorldPosition = GetComponentTransform().TransformPosition(LocalPosition);
 				bool bLocationIntersected = InFrustum.IntersectSphere(WorldPosition, 0.0f);
 				if (bLocationIntersected && !bMustEncompassEntireComponent)
 				{

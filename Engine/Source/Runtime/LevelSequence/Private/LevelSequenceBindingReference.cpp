@@ -6,12 +6,13 @@
 #include "UObject/ObjectMacros.h"
 #include "MovieSceneFwd.h"
 #include "PackageName.h"
+#include "Engine/World.h"
 
 FLevelSequenceBindingReference::FLevelSequenceBindingReference(UObject* InObject, UObject* InContext)
 {
 	check(InContext && InObject);
 
-	if (InObject->IsIn(InContext))
+	if (!InContext->IsA<UWorld>() && InObject->IsIn(InContext))
 	{
 		ObjectPath = InObject->GetPathName(InContext);
 	}

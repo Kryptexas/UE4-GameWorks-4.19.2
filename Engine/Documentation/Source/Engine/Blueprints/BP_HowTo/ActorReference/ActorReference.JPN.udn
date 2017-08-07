@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3035989
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title:アクタ リファレンスの設定と取得
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
@@ -6,10 +6,11 @@ Description:アクタ リファレンスを使って、様々なアクタをレ�
 Related:Gameplay/HowTo/ReferenceAssets/Blueprints
 version:4.9
 skilllevel:Intermediate
-type:howto
+type:how-to
 parent:Engine/Blueprints/BP_HowTo
 order:1
 tags:Data Types
+tags:Blueprints
 
 [INCLUDE:Gameplay\HowTo\ReferenceAssets#referenceoverview]
 
@@ -42,7 +43,7 @@ tags:Data Types
 
 	ここで、リファレンスはレベル内の **アクタ** タイプと **オブジェクト** になるように指定します。 
 
-1. 変数に「**TargetActor**」と名前を付けて、 **[Editable (編集可能)]** にチェックを入れます。 
+1. 変数に「**TargetActor**」と名前を付けて、**[Editable (編集可能)]** にチェックを入れます。 
 
 	![](5NameVariable.png)
 
@@ -100,7 +101,7 @@ tags:Data Types
 
 	![](11ActorSelected.png)
 
-1. アクタを選ぶと、 **Target Actor** 変数が **[Details (詳細)]** パネルで選択されたアクタに更新されます。 
+1. アクタを選ぶと、**Target Actor** 変数が **[Details (詳細)]** パネルで選択されたアクタに更新されます。 
 
 	![](13ActorSelected.png)
 

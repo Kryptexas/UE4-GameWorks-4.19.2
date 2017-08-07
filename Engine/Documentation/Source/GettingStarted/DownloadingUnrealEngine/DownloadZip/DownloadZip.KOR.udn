@@ -1,11 +1,13 @@
-﻿INTSourceChangelist:3108692
-Availability:Public
+﻿INTSourceChangelist:3452211
+Availability:NoPublish
 Title:Zip 파일로 언리얼 엔진 다운로드
 Crumbs:%ROOT%, GettingStarted, GettingStarted/DownloadingUnrealEngine
 Description:언리얼 엔진 소스 코드를 Zip 파일로 다운로드합니다.
 Prereq: GettingStarted/DownloadingUnrealEngine
 Related: Programming/Development/BuildingUnrealEngine
-Version: 4.8
+Parent:GettingStarted
+Order:
+Version: 4.16
 SkillLevel: Advanced
 
 소스 코드를 GitHub 에서 ZIP 파일로 다운로드하는 방법이 편하신 분들을 위한 글입니다.
@@ -41,7 +43,7 @@ SkillLevel: Advanced
 	1.	'UnrealEngine-(branch_name).zip' 파일 압축을 하드 디스크에 풉니다.
 	1.	Visual Studio 2013 이 설치되어 있지 않은 경우, 설치합니다. MFC 라이브러리가 Visual Studio 기본 설치 세팅에 포함되어 있기는 하지만, ATL 지원을 위해 MFC 라이브러리가 포함되어 있는지 다시 한 번 확인합니다.
 		[REGION:note]
-		UE4 빌드는 Visual Studio 모든 데스크톱 에디션으로 가능한데, 무료 버전도 포함됩니다 ([Visual Studio Community 2013](https://www.visualstudio.com/products/visual-studio-community-vs)).
+		UE4 빌드는 Visual Studio 모든 데스크톱 버전으로 가능합니다: [Microsoft's Visual Studio](https://www.visualstudio.com/).
 		[/REGION]
 	1.	탐색기에서 소스 폴더를 열고 **run Setup.bat** 를 실행합니다.
 		[REGION:note]

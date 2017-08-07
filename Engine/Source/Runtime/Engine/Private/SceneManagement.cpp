@@ -546,6 +546,8 @@ FViewUniformShaderParameters::FViewUniformShaderParameters()
 	PerlinNoise3DTexture = BlackVolume;
 	PerlinNoise3DTextureSampler = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
 
+	SobolSamplingTexture = GWhiteTexture->TextureRHI;
+
 	GlobalDistanceFieldTexture0_UB = BlackVolume;
 	GlobalDistanceFieldSampler0_UB = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
 	GlobalDistanceFieldTexture1_UB = BlackVolume;

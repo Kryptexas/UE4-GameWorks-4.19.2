@@ -148,8 +148,9 @@
 #include "Interfaces/IProjectManager.h"
 #include "Misc/RemoteConfigIni.h"
 
-#include "IDesktopPlatform.h"
-#include "DesktopPlatformModule.h"
+#include "AssetToolsModule.h"
+#include "ObjectTools.h"
+#include "MessageLogModule.h"
 
 #include "ActorEditorUtils.h"
 #include "SnappingUtils.h"
@@ -184,6 +185,16 @@
 
 #include "SourceCodeNavigation.h"
 #include "GameProjectUtils.h"
+#include "ActorGroupingUtils.h"
+
+#include "DesktopPlatformModule.h"
+
+#include "ILauncherPlatform.h"
+#include "LauncherPlatformModule.h"
+#include "Editor/EditorPerformanceSettings.h"
+
+#include "ILauncherPlatform.h"
+#include "LauncherPlatformModule.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditor, Log, All);
 
@@ -241,14 +252,17 @@ static void PrivateInitSelectedSets()
 {
 	PrivateGetSelectedActors() = NewObject<USelection>(GetTransientPackage(), TEXT("SelectedActors"), RF_Transactional);
 	PrivateGetSelectedActors()->AddToRoot();
+	PrivateGetSelectedActors()->Initialize(&GSelectedActorAnnotation);
 
 	PrivateGetSelectedActors()->SelectObjectEvent.AddStatic(&OnObjectSelected);
 
 	PrivateGetSelectedComponents() = NewObject<USelection>(GetTransientPackage(), TEXT("SelectedComponents"), RF_Transactional);
 	PrivateGetSelectedComponents()->AddToRoot();
+	PrivateGetSelectedComponents()->Initialize(&GSelectedComponentAnnotation);
 
 	PrivateGetSelectedObjects() = NewObject<USelection>(GetTransientPackage(), TEXT("SelectedObjects"), RF_Transactional);
 	PrivateGetSelectedObjects()->AddToRoot();
+	PrivateGetSelectedObjects()->Initialize(&GSelectedObjectAnnotation);
 }
 
 static void PrivateDestroySelectedSets()
@@ -318,6 +332,8 @@ UEditorEngine::UEditorEngine(const FObjectInitializer& ObjectInitializer)
 	DefaultWorldFeatureLevel = GMaxRHIFeatureLevel;
 
 	EditorWorldExtensionsManager = nullptr;
+
+	ActorGroupingUtilsClassName = UActorGroupingUtils::StaticClass();
 
 #if !UE_BUILD_SHIPPING
 	if (!AutomationCommon::OnEditorAutomationMapLoadDelegate().IsBound())
@@ -569,11 +585,11 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 		!FPlatformProcess::IsApplicationRunning(TEXT("EpicGamesLauncher-Mac-Shipping"))
 		))
 	{
-		IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
-		if ( DesktopPlatform != NULL )
+		ILauncherPlatform* LauncherPlatform = FLauncherPlatformModule::Get();
+		if (LauncherPlatform != NULL )
 		{
 			FOpenLauncherOptions SilentOpen;
-			DesktopPlatform->OpenLauncher(SilentOpen);
+			LauncherPlatform->OpenLauncher(SilentOpen);
 		}
 	}
 
@@ -893,7 +909,6 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 			TEXT("ProjectSettingsViewer"),
 			TEXT("Blutility"),
 			TEXT("XmlParser"),
-			TEXT("UserFeedback"),
 			TEXT("UndoHistory"),
 			TEXT("DeviceProfileEditor"),
 			TEXT("SourceCodeAccess"),
@@ -943,7 +958,6 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 
 		if (!IsRunningCommandlet())
 		{
-			FModuleManager::Get().LoadModule(TEXT("EditorLiveStreaming"));
 			FModuleManager::Get().LoadModule(TEXT("IntroTutorials"));
 		}
 
@@ -1156,9 +1170,12 @@ void UEditorEngine::FinishDestroy()
 		FLevelStreamingGCHelper::OnGCStreamedOutLevels.RemoveAll(this);
 		GetMutableDefault<UEditorStyleSettings>()->OnSettingChanged().RemoveAll(this);
 
-		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
-		AssetRegistryModule.Get().OnInMemoryAssetCreated().RemoveAll(this);
-		
+		FAssetRegistryModule* AssetRegistryModule = FModuleManager::GetModulePtr<FAssetRegistryModule>("AssetRegistry");
+		if (AssetRegistryModule)
+		{
+			AssetRegistryModule->Get().OnInMemoryAssetCreated().RemoveAll(this);
+		}
+
 		UWorld* World = GWorld;
 		if( World != NULL )
 		{
@@ -1184,6 +1201,13 @@ void UEditorEngine::FinishDestroy()
 
 		// Remove editor array from root.
 		UE_LOG(LogExit, Log, TEXT("Editor shut down") );
+
+		// Any access of GEditor after finish destroy is invalid
+		// Null out GEditor so that potential module shutdown that happens after can check for nullptr
+		if (GEditor == this)
+		{
+			GEditor = nullptr;
+		}
 	}
 
 	Super::FinishDestroy();
@@ -1583,14 +1607,7 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 			{
 				// Decide whether to drop high detail because of frame rate
 				GameViewport->SetDropDetail(DeltaSeconds);
-			}
-
-			if (!bFirstTick)
-			{
-				// Update sky light first because sky diffuse will be visible in reflection capture indirect specular
-				USkyLightComponent::UpdateSkyCaptureContents(PlayWorld);
-				UReflectionCaptureComponent::UpdateReflectionCaptureContents(PlayWorld);
-			}
+			}			
 
 			// Update the level.
 			GameCycles=0;
@@ -1632,6 +1649,13 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 				PieContext.World()->Tick( LEVELTICK_All, DeltaSeconds );
 				bAWorldTicked = true;
 				TickType = LEVELTICK_All;
+
+				if (!bFirstTick)
+				{
+					// Update sky light first because sky diffuse will be visible in reflection capture indirect specular
+					USkyLightComponent::UpdateSkyCaptureContents(PlayWorld);
+					UReflectionCaptureComponent::UpdateReflectionCaptureContents(PlayWorld);
+				}
 
 				if( bIsRecordingActive )
 				{
@@ -1744,10 +1768,10 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	bool bAllWindowsHidden = !bHasFocus && GEditor->AreAllWindowsHidden();
 	if( !bAllWindowsHidden )
 	{
-		FPixelInspectorModule* PixelInspectorModule = &FModuleManager::LoadModuleChecked<FPixelInspectorModule>(TEXT("PixelInspectorModule"));
-		if (PixelInspectorModule != nullptr && PixelInspectorModule->IsPixelInspectorEnable())
+		FPixelInspectorModule& PixelInspectorModule = FModuleManager::LoadModuleChecked<FPixelInspectorModule>(TEXT("PixelInspectorModule"));
+		if (PixelInspectorModule.IsPixelInspectorEnable())
 		{
-			PixelInspectorModule->ReadBackSync();
+			PixelInspectorModule.ReadBackSync();
 		}
 
 		// Render view parents, then view children.
@@ -2854,7 +2878,7 @@ void UEditorEngine::SyncBrowserToObjects( TArray<UObject*>& InObjectsToSync, boo
 
 }
 
-void UEditorEngine::SyncBrowserToObjects( TArray<class FAssetData>& InAssetsToSync, bool bFocusContentBrowser )
+void UEditorEngine::SyncBrowserToObjects( TArray<struct FAssetData>& InAssetsToSync, bool bFocusContentBrowser )
 {
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
 	ContentBrowserModule.Get().SyncBrowserToAssets( InAssetsToSync, false, bFocusContentBrowser );
@@ -3318,6 +3342,7 @@ struct FConvertStaticMeshActorInfo
 	UStaticMesh*						StaticMesh;
 	USkeletalMesh*						SkeletalMesh;
 	TArray<UMaterialInterface*>			OverrideMaterials;
+	TArray<FGuid>						IrrelevantLights;
 	float								CachedMaxDrawDistance;
 	bool								CastShadow;
 
@@ -3340,7 +3365,7 @@ struct FConvertStaticMeshActorInfo
 	 * We don't want to simply copy all properties, because classes with different defaults will have
 	 * their defaults hosed by other types.
 	 */
-	bool bComponentPropsDifferFromDefaults[6];
+	bool bComponentPropsDifferFromDefaults[7];
 
 	AGroupActor* ActorGroup;
 
@@ -4520,6 +4545,22 @@ FString UEditorEngine::GetFriendlyName( const UProperty* Property, UStruct* Owne
 	return FoundText.ToString();
 }
 
+UActorGroupingUtils* UEditorEngine::GetActorGroupingUtils()
+{
+	if (ActorGroupingUtils == nullptr)
+	{
+		UClass* ActorGroupingUtilsClass = ActorGroupingUtilsClassName.ResolveClass();
+		if (!ActorGroupingUtilsClass)
+		{
+			ActorGroupingUtilsClass = UActorGroupingUtils::StaticClass();
+		}
+
+		ActorGroupingUtils = NewObject<UActorGroupingUtils>(this, ActorGroupingUtilsClass);
+	}
+
+	return ActorGroupingUtils;
+}
+
 AActor* UEditorEngine::UseActorFactoryOnCurrentSelection( UActorFactory* Factory, const FTransform* InActorTransform, EObjectFlags InObjectFlags )
 {
 	// ensure that all selected assets are loaded
@@ -4679,12 +4720,12 @@ namespace ReattachActorsHelper
 
 				AActor* ChildActor = CurrentAttachmentInfo.AttachedActors[AttachedActorIdx].Actor;
 				ChildActor->Modify();
-				ChildActor->DetachRootComponentFromParent(true);
+				ChildActor->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 			}
 
 			// Modify the actor so undo will reattach it.
 			ActorToReattach->Modify();
-			ActorToReattach->DetachRootComponentFromParent(true);
+			ActorToReattach->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 		}
 	}
 
@@ -5589,7 +5630,7 @@ void UEditorEngine::DoConvertActors( const TArray<AActor*>& ActorsToConvert, UCl
 		for( int32 ActorIdx = 0; ActorIdx < ActorsToConvert.Num(); ++ActorIdx )
 		{
 			AActor* ActorToConvert = ActorsToConvert[ActorIdx];
-			if (ActorToConvert->GetClass()->IsChildOf(ABrush::StaticClass()) && ConvertToClass == AStaticMeshActor::StaticClass())
+			if (!ActorToConvert->IsPendingKill() && ActorToConvert->GetClass()->IsChildOf(ABrush::StaticClass()) && ConvertToClass == AStaticMeshActor::StaticClass())
 			{
 				GEditor->SelectActor(ActorToConvert, true, true);
 				BrushList.Add(Cast<ABrush>(ActorToConvert));
@@ -5617,6 +5658,14 @@ void UEditorEngine::DoConvertActors( const TArray<AActor*>& ActorsToConvert, UCl
 		for( int32 ActorIdx = 0; ActorIdx < ActorsToConvert.Num(); ++ActorIdx )
 		{
 			AActor* ActorToConvert = ActorsToConvert[ ActorIdx ];
+
+
+			if (ActorToConvert->IsPendingKill())
+			{
+				UE_LOG(LogEditor, Error, TEXT("Actor '%s' is marked pending kill and cannot be converted"), *ActorToConvert->GetFullName());
+				continue;
+			}
+
 			// Source actor display label
 			FString ActorLabel = ActorToConvert->GetActorLabel();
 			// Low level source actor object name
@@ -5638,9 +5687,10 @@ void UEditorEngine::DoConvertActors( const TArray<AActor*>& ActorsToConvert, UCl
 			if (bUseSpecialCases)
 			{
 				// Disable grouping temporarily as the following code assumes only one actor will be selected at any given time
-				const bool bGroupingActiveSaved = GEditor->bGroupingActive;
+				const bool bGroupingActiveSaved = UActorGroupingUtils::IsGroupingActive();
 
-				GEditor->bGroupingActive = false;
+				UActorGroupingUtils::SetGroupingActive(false);
+
 				GEditor->SelectNone(true, true);
 				GEditor->SelectActor(ActorToConvert, true, true);
 
@@ -5674,7 +5724,7 @@ void UEditorEngine::DoConvertActors( const TArray<AActor*>& ActorsToConvert, UCl
 				}
 
 				// Restore previous grouping setting
-				GEditor->bGroupingActive = bGroupingActiveSaved;
+				UActorGroupingUtils::SetGroupingActive(bGroupingActiveSaved);
 			}
 
 
@@ -5886,7 +5936,7 @@ bool UEditorEngine::ShouldThrottleCPUUsage() const
 
 	if( !bIsForeground )
 	{
-		const UEditorPerProjectUserSettings* Settings = GetDefault<UEditorPerProjectUserSettings>();
+		const UEditorPerformanceSettings* Settings = GetDefault<UEditorPerformanceSettings>();
 		bShouldThrottle = Settings->bThrottleCPUWhenNotForeground;
 
 		// Check if we should throttle due to all windows being minimized
@@ -6211,8 +6261,7 @@ void UEditorEngine::UpdatePreviewMesh()
 
 		// Perform a line check from the camera eye to the surface to place the preview mesh. 
 		FHitResult Hit(ForceInit);
-		static FName UpdatePreviewMeshTrace = FName(TEXT("UpdatePreviewMeshTrace"));
-		FCollisionQueryParams LineParams(UpdatePreviewMeshTrace, true);
+		FCollisionQueryParams LineParams(SCENE_QUERY_STAT(UpdatePreviewMeshTrace), true);
 		LineParams.bTraceComplex = false;
 		if ( GWorld->LineTraceSingleByObjectType(Hit, LineCheckStart, LineCheckEnd, FCollisionObjectQueryParams(ECC_WorldStatic), LineParams) ) 
 		{
@@ -6435,7 +6484,7 @@ void UEditorEngine::UpdateAutoLoadProject()
 		{
 			if(FSlateApplication::IsInitialized())
 			{
-				FSuppressableWarningDialog::FSetupInfo Info( LOCTEXT("UpdateMacOSX_Body","Please update to the latest version of macOS for best performance."), LOCTEXT("UpdateMacOSX_Title","Update macOS"), TEXT("UpdateMacOSX"), GEditorSettingsIni );
+				FSuppressableWarningDialog::FSetupInfo Info( LOCTEXT("UpdateMacOSX_Body","Please update to the latest version of macOS for best performance and stability."), LOCTEXT("UpdateMacOSX_Title","Update macOS"), TEXT("UpdateMacOSX"), GEditorSettingsIni );
 				Info.ConfirmText = LOCTEXT( "OK", "OK");
 				Info.bDefaultToSuppressInTheFuture = true;
 				FSuppressableWarningDialog OSUpdateWarning( Info );
@@ -6443,117 +6492,7 @@ void UEditorEngine::UpdateAutoLoadProject()
 			}
 			else
 			{
-				UE_LOG(LogEditor, Warning, TEXT("Please update to the latest version of macOS for best performance."));
-			}
-		}
-		
-		if(!FPlatformMisc::HasPlatformFeature(TEXT("Metal")))
-		{
-			if(FSlateApplication::IsInitialized())
-			{
-				FSuppressableWarningDialog::FSetupInfo Info(NSLOCTEXT("MessageDialog", "MessageMacOpenGLDeprecated","Support for running Unreal Engine 4 using OpenGL on macOS is deprecated and will be removed in a future release. Unreal Engine 4 may not render correctly and may run at substantially reduced performance."), NSLOCTEXT("MessageDialog", "TitleMacOpenGLDeprecated", "WARNING: OpenGL on macOS Deprecated"), TEXT("MacOpenGLDeprecated"), GEditorSettingsIni );
-				Info.ConfirmText = LOCTEXT( "OK", "OK");
-				Info.bDefaultToSuppressInTheFuture = true;
-				FSuppressableWarningDialog OSUpdateWarning( Info );
-				OSUpdateWarning.ShowModal();
-			}
-			else
-			{
-				UE_LOG(LogEditor, Warning, TEXT("Support for running Unreal Engine 4 using OpenGL on macOS is deprecated and will be removed in a future release. Unreal Engine 4 may not render correctly and may run at substantially reduced performance."));
-			}
-		}
-		
-		NSOpenGLContext* Context = [NSOpenGLContext currentContext];
-		const bool bTemporaryContext = (!Context);
-		if(bTemporaryContext)
-		{
-			NSOpenGLPixelFormatAttribute Attribs[] = {NSOpenGLPFAOpenGLProfile, (NSOpenGLPixelFormatAttribute)NSOpenGLProfileVersion3_2Core, (NSOpenGLPixelFormatAttribute)0};
-			NSOpenGLPixelFormat* PixelFormat = [[NSOpenGLPixelFormat alloc] initWithAttributes:Attribs];
-			if(PixelFormat)
-			{
-				Context = [[NSOpenGLContext alloc] initWithFormat:PixelFormat shareContext:nil];
-				[PixelFormat release];
-				if(Context)
-				{
-					[Context makeCurrentContext];
-				}
-			}
-		}
-		
-		GLint RendererID = 0;
-		if(Context)
-		{
-			[Context getValues:&RendererID forParameter:NSOpenGLCPCurrentRendererID];
-		}
-		
-		if(bTemporaryContext && Context)
-		{
-			[Context release];
-		}
-		
-		// This is quite a coarse test, alerting users who are running on GPUs which run on older drivers only - this is what we want to tell people running the only barely working OpenGL 3.3 cards.
-		// They can run, but they are largely on their own in terms of rendering performance and bugs as Apple/vendors won't fix OpenGL drivers for them.
-		const bool bOldGpuDriver = ((RendererID & 0x00022000 && RendererID < kCGLRendererGeForceID) || (RendererID & 0x00021000 && RendererID < kCGLRendererATIRadeonX3000ID) || (RendererID & 0x00024000 && RendererID < kCGLRendererIntelHD4000ID));
-		if(bOldGpuDriver)
-		{
-			if(FSlateApplication::IsInitialized())
-			{
-				FSuppressableWarningDialog::FSetupInfo Info( LOCTEXT("UnsupportedGPUWarning_Body","The current graphics card does not meet the minimum specification, for best performance an NVIDIA GeForce 470 GTX or AMD Radeon 6870 HD series card or higher is recommended. Rendering performance and compatibility are not guaranteed with this graphics card."), LOCTEXT("UnsupportedGPUWarning_Title","Unsupported Graphics Card"), TEXT("UnsupportedGPUWarning"), GEditorSettingsIni );
-				Info.ConfirmText = LOCTEXT( "OK", "OK");
-				Info.bDefaultToSuppressInTheFuture = true;
-				FSuppressableWarningDialog OSUpdateWarning( Info );
-				OSUpdateWarning.ShowModal();
-			}
-			else
-			{
-				UE_LOG(LogEditor, Warning, TEXT("The current graphics card does not meet the minimum specification, for best performance an NVIDIA GeForce 470 GTX or AMD Radeon 6870 HD series card or higher is recommended. Rendering performance and compatibility are not guaranteed with this graphics card."));
-			}
-		}
-		
-		// The editor is much more demanding than people realise, so warn them when they are beneath the official recommended specs.
-		// Any GPU slower than the Nvidia 470 GTX or AMD 6870 will receive a warning so that it is clear that the performance will not be stellar.
-		// This will affect all MacBooks, MacBook Pros and Mac Minis, none of which have shipped with a powerful GPU.
-		// Low-end or older iMacs and some older Mac Pros will also see this warning, though Mac Pro owners can upgrade their GPUs to something better if they choose.
-		// Newer, high-end iMacs and the new Mac Pros, or old Mac Pros with top-end/aftermarket GPUs shouldn't see this at all.
-
-		bool bSlowGpu = false;
-		// The 6970 and the 5870 were the only Apple supplied cards that are fast enough for the Editor supported by the kCGLRendererATIRadeonX3000ID driver
-		// All the kCGLRendererATIRadeonX4000ID supported cards should be more than sufficiently fast AFAICT
-		if(RendererID & 0x00021000 && RendererID == kCGLRendererATIRadeonX3000ID) // AMD
-		{
-			if(!GRHIAdapterName.Contains(TEXT("6970")) && !GRHIAdapterName.Contains(TEXT("5870")))
-			{
-				bSlowGpu = true;
-			}
-		}
-		else if(RendererID & 0x00022000 && RendererID == kCGLRendererGeForceID) // Nvidia
-		{
-			// Most of the 600 & 700 series Nvidia or later cards Apple use in iMacs should be fast enough
-			// but the ones in MacBook Pros are not.
-			if(GRHIAdapterName.Contains(TEXT("640")) || GRHIAdapterName.Contains(TEXT("650")) || GRHIAdapterName.Contains(TEXT("660")) || GRHIAdapterName.Contains(TEXT("750")) || GRHIAdapterName.Contains(TEXT("755")))
-			{
-				bSlowGpu = true;
-			}
-		}
-		else if(RendererID & 0x00024000 && RendererID == kCGLRendererIntelHD5000ID) // Intel
-		{
-			// Only the Iris Pro is even approaching fast enough - but even that is slower than our recommended specs by a wide margin
-			bSlowGpu = true;
-		}
-		
-		if(bSlowGpu)
-		{
-			if(FSlateApplication::IsInitialized())
-			{
-				FSuppressableWarningDialog::FSetupInfo Info( LOCTEXT("SlowGPUWarning_Body","The current graphics card is slower than the recommanded specification of an NVIDIA GeForce 470 GTX or AMD Radeon 6870 HD series card or higher, performance may be low."), LOCTEXT("SlowGPUWarning_Title","Slow Graphics Card"), TEXT("SlowGPUWarning"), GEditorSettingsIni );
-				Info.ConfirmText = LOCTEXT( "OK", "OK");
-				Info.bDefaultToSuppressInTheFuture = true;
-				FSuppressableWarningDialog OSUpdateWarning( Info );
-				OSUpdateWarning.ShowModal();
-			}
-			else
-			{
-				UE_LOG(LogEditor, Warning, TEXT("The current graphics card is slower than the recommanded specification of an NVIDIA GeForce 470 GTX or AMD Radeon 6870 HD series card or higher, performance may be low."));
+				UE_LOG(LogEditor, Warning, TEXT("Please update to the latest version of macOS for best performance and stability."));
 			}
 		}
 		
@@ -6590,68 +6529,67 @@ void UEditorEngine::UpdateAutoLoadProject()
 				UE_LOG(LogEditor, Warning, TEXT("For best performance a Quad-core Intel or AMD processor, 2.5 GHz or faster is recommended."));
 			}
 		}
+	}
 
-		extern bool IsSupportedXcodeVersionInstalled();
-		if (FSlateApplication::IsInitialized() && !IsSupportedXcodeVersionInstalled())
+	if (FSlateApplication::IsInitialized() && !FPlatformMisc::IsSupportedXcodeVersionInstalled())
+	{
+		/** Utility functions for the notification */
+		struct Local
 		{
-			/** Utility functions for the notification */
-			struct Local
+			static ECheckBoxState GetDontAskAgainCheckBoxState()
 			{
-				static ECheckBoxState GetDontAskAgainCheckBoxState()
-				{
-					bool bSuppressNotification = false;
-					GConfig->GetBool(TEXT("MacEditor"), TEXT("SuppressXcodeVersionWarningNotification"), bSuppressNotification, GEditorPerProjectIni);
-					return bSuppressNotification ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-				}
-
-				static void OnDontAskAgainCheckBoxStateChanged(ECheckBoxState NewState)
-				{
-					const bool bSuppressNotification = (NewState == ECheckBoxState::Checked);
-					GConfig->SetBool(TEXT("MacEditor"), TEXT("SuppressXcodeVersionWarningNotification"), bSuppressNotification, GEditorPerProjectIni);
-				}
-
-				static void OnXcodeWarningNotificationDismissed()
-				{
-					TSharedPtr<SNotificationItem> NotificationItem = GXcodeWarningNotificationPtr.Pin();
-
-					if (NotificationItem.IsValid())
-					{
-						NotificationItem->SetCompletionState(SNotificationItem::CS_Success);
-						NotificationItem->Fadeout();
-
-						GXcodeWarningNotificationPtr.Reset();
-					}
-				}
-			};
-
-			const bool bIsXcodeInstalled = FPlatformMisc::GetXcodePath().Len() > 0;
-
-			const ECheckBoxState DontAskAgainCheckBoxState = Local::GetDontAskAgainCheckBoxState();
-			if (DontAskAgainCheckBoxState == ECheckBoxState::Unchecked)
-			{
-				const FText NoXcodeMessageText = LOCTEXT("XcodeNotInstalledWarningNotification", "Xcode is not installed on this Mac.\nMetal shader compilation will fall back to runtime compiled text shaders, which are slower.\nPlease install latest version of Xcode for best performance.");
-				const FText OldXcodeMessageText = LOCTEXT("OldXcodeVersionWarningNotification", "Xcode installed on this Mac is too old to be used for Metal shader compilation.\nFalling back to runtime compiled text shaders, which are slower.\nPlease update to latest version of Xcode for best performance.");
-
-				FNotificationInfo Info(bIsXcodeInstalled ? OldXcodeMessageText : NoXcodeMessageText);
-				Info.bFireAndForget = false;
-				Info.FadeOutDuration = 3.0f;
-				Info.ExpireDuration = 0.0f;
-				Info.bUseLargeFont = false;
-				Info.bUseThrobber = false;
-
-				Info.ButtonDetails.Add(FNotificationButtonInfo(LOCTEXT("OK", "OK"), FText::GetEmpty(), FSimpleDelegate::CreateStatic(&Local::OnXcodeWarningNotificationDismissed)));
-
-				Info.CheckBoxState = TAttribute<ECheckBoxState>::Create(&Local::GetDontAskAgainCheckBoxState);
-				Info.CheckBoxStateChanged = FOnCheckStateChanged::CreateStatic(&Local::OnDontAskAgainCheckBoxStateChanged);
-				Info.CheckBoxText = NSLOCTEXT("ModalDialogs", "DefaultCheckBoxMessage", "Don't show this again");
-
-				GXcodeWarningNotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
-				GXcodeWarningNotificationPtr.Pin()->SetCompletionState(SNotificationItem::CS_Pending);
+				bool bSuppressNotification = false;
+				GConfig->GetBool(TEXT("MacEditor"), TEXT("SuppressXcodeVersionWarningNotification"), bSuppressNotification, GEditorPerProjectIni);
+				return bSuppressNotification ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 			}
+
+			static void OnDontAskAgainCheckBoxStateChanged(ECheckBoxState NewState)
+			{
+				const bool bSuppressNotification = (NewState == ECheckBoxState::Checked);
+				GConfig->SetBool(TEXT("MacEditor"), TEXT("SuppressXcodeVersionWarningNotification"), bSuppressNotification, GEditorPerProjectIni);
+			}
+
+			static void OnXcodeWarningNotificationDismissed()
+			{
+				TSharedPtr<SNotificationItem> NotificationItem = GXcodeWarningNotificationPtr.Pin();
+
+				if (NotificationItem.IsValid())
+				{
+					NotificationItem->SetCompletionState(SNotificationItem::CS_Success);
+					NotificationItem->Fadeout();
+
+					GXcodeWarningNotificationPtr.Reset();
+				}
+			}
+		};
+
+		const bool bIsXcodeInstalled = FPlatformMisc::GetXcodePath().Len() > 0;
+
+		const ECheckBoxState DontAskAgainCheckBoxState = Local::GetDontAskAgainCheckBoxState();
+		if (DontAskAgainCheckBoxState == ECheckBoxState::Unchecked)
+		{
+			const FText NoXcodeMessageText = LOCTEXT("XcodeNotInstalledWarningNotification", "Xcode is not installed on this Mac.\nMetal shader compilation will fall back to runtime compiled text shaders, which are slower.\nPlease install latest version of Xcode for best performance.");
+			const FText OldXcodeMessageText = LOCTEXT("OldXcodeVersionWarningNotification", "Xcode installed on this Mac is too old to be used for Metal shader compilation.\nFalling back to runtime compiled text shaders, which are slower.\nPlease update to latest version of Xcode for best performance.");
+
+			FNotificationInfo Info(bIsXcodeInstalled ? OldXcodeMessageText : NoXcodeMessageText);
+			Info.bFireAndForget = false;
+			Info.FadeOutDuration = 3.0f;
+			Info.ExpireDuration = 0.0f;
+			Info.bUseLargeFont = false;
+			Info.bUseThrobber = false;
+
+			Info.ButtonDetails.Add(FNotificationButtonInfo(LOCTEXT("OK", "OK"), FText::GetEmpty(), FSimpleDelegate::CreateStatic(&Local::OnXcodeWarningNotificationDismissed)));
+
+			Info.CheckBoxState = TAttribute<ECheckBoxState>::Create(&Local::GetDontAskAgainCheckBoxState);
+			Info.CheckBoxStateChanged = FOnCheckStateChanged::CreateStatic(&Local::OnDontAskAgainCheckBoxStateChanged);
+			Info.CheckBoxText = NSLOCTEXT("ModalDialogs", "DefaultCheckBoxMessage", "Don't show this again");
+
+			GXcodeWarningNotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
+			GXcodeWarningNotificationPtr.Pin()->SetCompletionState(SNotificationItem::CS_Pending);
 		}
 	}
 #endif
-	
+
 	// Clean up the auto-load-in-progress file, if it exists. This file prevents auto-loading of projects and must be deleted here to indicate the load was successful
 	const FString AutoLoadInProgressFilename = AutoLoadProjectFileName + TEXT(".InProgress");
 	const bool bRequireExists = false;
@@ -6837,11 +6775,6 @@ FWorldContext* UEditorEngine::GetPIEWorldContext()
 	}
 
 	return nullptr;
-}
-
-bool UEditorEngine::IsUsingWorldAssets()
-{
-	return !FParse::Param(FCommandLine::Get(), TEXT("DisableWorldAssets"));
 }
 
 void UEditorEngine::OnAssetLoaded(UObject* Asset)
@@ -7033,16 +6966,18 @@ void UEditorEngine::AutomationLoadMap(const FString& MapName, FString* OutError)
 	{
 		if (Context.World())
 		{
+			FString WorldPackage = Context.World()->GetOutermost()->GetName();
+
 			if (Context.WorldType == EWorldType::PIE)
 			{
 				//don't quit!  This was triggered while pie was already running!
-				bNeedPieStart = !MapName.Contains(Context.World()->GetName());
+				bNeedPieStart = MapName != UWorld::StripPIEPrefixFromPackageName(WorldPackage, Context.World()->StreamingLevelsPrefix);
 				bPieRunning = true;
 				break;
 			}
 			else if (Context.WorldType == EWorldType::Editor)
 			{
-				bNeedLoadEditorMap = !MapName.Contains(Context.World()->GetName());
+				bNeedLoadEditorMap = MapName != WorldPackage;
 			}
 		}
 	}
@@ -7066,10 +7001,7 @@ void UEditorEngine::AutomationLoadMap(const FString& MapName, FString* OutError)
 		{
 			*OutError = TEXT("Error encountered.");
 		}
-	}
 
-	if (bNeedPieStart)
-	{
 		ADD_LATENT_AUTOMATION_COMMAND(FWaitForMapToLoadCommand);
 	}
 #endif

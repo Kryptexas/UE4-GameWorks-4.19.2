@@ -10,6 +10,7 @@
 #include "Components/PrimitiveComponent.h"
 #include "Engine/Engine.h"
 #include "IHeadMountedDisplayModule.h"
+#include "IHeadMountedDisplayVulkanExtensions.h"
 #include "IHeadMountedDisplay.h"
 #include "PrimitiveSceneInfo.h"
 

@@ -4,7 +4,8 @@ Crumbs: %ROOT%, Gameplay
 Description:A How To Guide for Finding Actors in your Scenes in Unreal Engine 4. 
 Version: 4.9
 Parent:Gameplay
-type:how-to
+SkillLevel: Intermediate
+type:overview
 order:11
 
 Once you start constructing your game and its levels, you may find that locating an individual Actor in your scene may be difficult. It is not uncommon to have hundreds of Actors in your scene ranging from level set pieces or geometry, to NPCs or enemies, to interactable objects or pick-ups and locating one Actor out of all those is like the old saying of "looking for a needle in a haystack". 
@@ -23,17 +24,9 @@ Refer to the [](Engine/UI/LevelEditor/SceneOutliner) documentation for more info
 
 While finding an Actor in the Editor can be accomplished with the help of the World Outliner, how do you go about finding an Actor through Blueprints so that you may modify it in some way? This "How To" series will show you some ways in which you can search your scene for an Actor based on varying criteria at which point you can then access and modify it if you wish. 
 
+## Implementation Guides
 
-## Setup
-
-To learn more about Finding Actors using Blueprints, use the link below:
-
-[REGION:buttonlist]
-* [](Gameplay\HowTo\FindingActors\Blueprints)
-<!-- When Code is Ready we will re-enable this link.
-* [](Gameplay\HowTo\FindingActors\Code)
--->
-[/REGION]
+[DIR(output:"role" parent:"Gameplay/HowTo/FindingActors" org:"hierarchy" end:"1")]
 
 
 

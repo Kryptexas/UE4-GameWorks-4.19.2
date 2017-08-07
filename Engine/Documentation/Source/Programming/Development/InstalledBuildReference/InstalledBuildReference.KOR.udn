@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3356804
+﻿INTSourceChangelist:3429264
 Availability: Public
 Title: Installed Build 참고서
 Crumbs: %ROOT%, Programming, Programming/Development
 Description:Installed Build 프로세스 설명 및 Installed Build 스크립트 작성법에 대한 개요입니다.
 version: 4.13
-parent:Programming/Development
+parent:Programming/Development/BuildGraph
 type:Reference
 related:Programming/Development/BuildGraph
 related:Programming/UnrealBuildSystem

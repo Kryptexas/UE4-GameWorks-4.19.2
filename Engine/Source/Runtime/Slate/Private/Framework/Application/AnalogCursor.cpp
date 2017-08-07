@@ -136,7 +136,8 @@ bool FAnalogCursor::HandleKeyDownEvent(FSlateApplication& SlateApp, const FKeyEv
 		if ( !InKeyEvent.IsRepeat() )
 		{
 			FPointerEvent MouseEvent(
-				0,
+				InKeyEvent.GetUserIndex(),
+				SlateApp.CursorPointerIndex,
 				SlateApp.GetCursorPos(),
 				SlateApp.GetLastCursorPos(),
 				SlateApp.PressedMouseButtons,
@@ -172,7 +173,8 @@ bool FAnalogCursor::HandleKeyUpEvent(FSlateApplication& SlateApp, const FKeyEven
 	if (Key == EKeys::Virtual_Accept && !InKeyEvent.IsRepeat())
 	{
 		FPointerEvent MouseEvent(
-			0,
+			InKeyEvent.GetUserIndex(),
+			SlateApp.CursorPointerIndex,
 			SlateApp.GetCursorPos(),
 			SlateApp.GetLastCursorPos(),
 			SlateApp.PressedMouseButtons,

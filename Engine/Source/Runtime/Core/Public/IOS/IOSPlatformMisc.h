@@ -42,6 +42,7 @@ private:
 **/
 struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 {
+    static void PlatformPreInit();
 	static void PlatformInit();
     static void PlatformHandleSplashScreen(bool ShowSplashScreen = false);
 	static class GenericApplication* CreateApplication();
@@ -112,9 +113,7 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 
 	FORCEINLINE static void MemoryBarrier()
 	{
-PRAGMA_DISABLE_DEPRECATION_WARNINGS
-		OSMemoryBarrier();
-PRAGMA_ENABLE_DEPRECATION_WARNINGS
+		__sync_synchronize();
 	}
 
 	static void LowLevelOutputDebugString(const TCHAR *Message);
@@ -140,6 +139,7 @@ PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	static FString GetLocalCurrencySymbol();
 	static void GetValidTargetPlatforms(class TArray<class FString>& TargetPlatformNames);
 	static bool HasActiveWiFiConnection();
+	static EScreenPhysicalAccuracy ComputePhysicalScreenDensity(int32& ScreenDensity);
 
 	static void ResetGamepadAssignments();
 	static void ResetGamepadAssignmentToController(int32 ControllerId);
@@ -148,6 +148,7 @@ PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	static int GetAudioVolume();
 	static bool AreHeadphonesPluggedIn();
 	static int GetBatteryLevel();
+	static bool IsRunningOnBattery();
 
 	static void RegisterForRemoteNotifications();
 
@@ -172,6 +173,7 @@ PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	 */
 	static FString GetDeviceId();
 	static FString GetOSVersion();
+	static FString GetUniqueAdvertisingId();
 
 	// Possible iOS devices
 	enum EIOSDevice
@@ -243,7 +245,14 @@ PRAGMA_ENABLE_DEPRECATION_WARNINGS
 		// look up into the string array by the enum
 		return IOSDeviceNames[(int32)GetIOSDeviceType()];
 	}
+
+	static FString GetCPUVendor();
+	static FString GetCPUBrand();
+	static void GetOSVersions(FString& out_OSVersionLabel, FString& out_OSSubVersionLabel);
+	static int32 IOSVersionCompare(uint8 Major, uint8 Minor, uint8 Revision);
 	
+    static void SetGracefulTerminationHandler();
+    static void SetCrashHandler(void(*CrashHandler)(const FGenericCrashContext& Context));
 private:
 	static class FIOSApplication* CachedApplication;
 };

@@ -44,6 +44,8 @@
 #include <notify.h>
 #include <uuid/uuid.h>
 
+extern CORE_API bool GIsGPUCrashed;
+
 /*------------------------------------------------------------------------------
  Console variables.
  ------------------------------------------------------------------------------*/
@@ -1685,7 +1687,7 @@ bool FMacPlatformMisc::GetDiskTotalAndFreeSpace(const FString& InPath, uint64& T
 
 bool FMacPlatformMisc::HasSeparateChannelForDebugOutput()
 {
-	return true;
+	return FPlatformMisc::IsDebuggerPresent() || isatty(STDOUT_FILENO) || isatty(STDERR_FILENO);
 }
 
 #include "ModuleManager.h"
@@ -1693,7 +1695,7 @@ bool FMacPlatformMisc::HasSeparateChannelForDebugOutput()
 void FMacPlatformMisc::LoadPreInitModules()
 {
 	FModuleManager::Get().LoadModule(TEXT("CoreAudio"));
-	FModuleManager::Get().LoadModule(TEXT("AudioMixerCoreAudio"));
+	FModuleManager::Get().LoadModule(TEXT("AudioMixerAudioUnit"));
 }
 
 void* FMacPlatformMisc::CreateAutoreleasePool()
@@ -1838,8 +1840,7 @@ FString FMacPlatformMisc::GetXcodePath()
 	return GMacAppInfo.XcodePath;
 }
 
-// @todo: It's not a member of FMacPlatformMisc to avoid changing public headers in 4.16.1, but ideally we should add FMacPlatformMisc::XcodeVersionCompare that will replace this
-bool IsSupportedXcodeVersionInstalled()
+bool FMacPlatformMisc::IsSupportedXcodeVersionInstalled()
 {
 	// We need Xcode 8.2 or newer to be able to compile Metal shaders correctly
 	return GMacAppInfo.XcodeVersion.majorVersion > 8 || (GMacAppInfo.XcodeVersion.majorVersion == 8 && GMacAppInfo.XcodeVersion.minorVersion >= 2);
@@ -2169,7 +2170,7 @@ void FMacCrashContext::GenerateWindowsErrorReport(char const* WERPath, bool bIsE
 		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<DeploymentName>%s</DeploymentName>"), FApp::GetDeploymentName()));
 		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<IsEnsure>%s</IsEnsure>"), bIsEnsure ? TEXT("1") : TEXT("0")));
 		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<IsAssert>%s</IsAssert>"), FDebug::bHasAsserted ? TEXT("1") : TEXT("0")));
-		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<CrashType>%s</CrashType>"), FGenericCrashContext::GetCrashTypeString(bIsEnsure, FDebug::bHasAsserted)));
+		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<CrashType>%s</CrashType>"), FGenericCrashContext::GetCrashTypeString(bIsEnsure, FDebug::bHasAsserted, GIsGPUCrashed)));
 		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<BuildVersion>%s</BuildVersion>"), FApp::GetBuildVersion()));
 		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<EngineModeEx>%s</EngineModeEx>"), FGenericCrashContext::EngineModeExString()));
 

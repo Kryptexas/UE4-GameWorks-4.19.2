@@ -39,7 +39,7 @@ void FAttributeBasedFloatDetails::CustomizeChildren(TSharedRef<IPropertyHandle> 
 			TSharedPtr<IPropertyHandle> ChildHandle = StructPropertyHandle->GetChildHandle(ChildIdx);
 			if (ChildHandle.IsValid() && ChildHandle->IsValidHandle())
 			{
-				IDetailPropertyRow& NewPropRow = StructBuilder.AddChildProperty(ChildHandle.ToSharedRef());
+				IDetailPropertyRow& NewPropRow = StructBuilder.AddProperty(ChildHandle.ToSharedRef());
 				if (ChildHandle->GetProperty() == FinalChannelHandle->GetProperty())
 				{
 					NewPropRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FAttributeBasedFloatDetails::GetFinalChannelVisibility)));

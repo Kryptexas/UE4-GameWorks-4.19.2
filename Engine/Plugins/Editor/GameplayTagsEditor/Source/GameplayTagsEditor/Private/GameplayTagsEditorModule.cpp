@@ -46,12 +46,13 @@ public:
 		{
 			FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 			PropertyModule.RegisterCustomPropertyTypeLayout("GameplayTagContainer", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FGameplayTagContainerCustomization::MakeInstance));
-			PropertyModule.RegisterCustomPropertyTypeLayout("GameplayTag", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FGameplayTagCustomization::MakeInstance));
+			PropertyModule.RegisterCustomPropertyTypeLayout("GameplayTag", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FGameplayTagCustomizationPublic::MakeInstance));
 			PropertyModule.RegisterCustomPropertyTypeLayout("GameplayTagQuery", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FGameplayTagQueryCustomization::MakeInstance));
 
 			PropertyModule.RegisterCustomClassLayout(UGameplayTagsList::StaticClass()->GetFName(), FOnGetDetailCustomizationInstance::CreateStatic(&FGameplayTagsSettingsCustomization::MakeInstance));
 
 			PropertyModule.RegisterCustomPropertyTypeLayout("GameplayTagReferenceHelper", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FGameplayTagReferenceHelperDetails::MakeInstance));
+			PropertyModule.RegisterCustomPropertyTypeLayout("GameplayTagCreationWidgetHelper", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FGameplayTagCreationWidgetHelperDetails::MakeInstance));
 
 			PropertyModule.NotifyCustomizationModuleChanged();
 		}
@@ -496,6 +497,7 @@ public:
 
 		// Delete existing redirector
 		DeleteTagRedirector(TagToRenameTo);
+		DeleteTagRedirector(TagToRename);
 
 		if (Manager.GetTagEditorData(OldTagName, OldComment, OldTagSourceName))
 		{
@@ -529,6 +531,10 @@ public:
 						break;
 					}
 				}
+			}
+			else
+			{
+				ShowNotification(FText::Format(LOCTEXT("RenameFailure", "Tag {0} redirector was created but original tag was not destroyed as it has children"), FText::FromString(TagToRename)), 10.0f);
 			}
 		}
 

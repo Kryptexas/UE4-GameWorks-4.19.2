@@ -71,16 +71,15 @@ UEdGraphNode::UEdGraphNode(const FObjectInitializer& ObjectInitializer)
 	, AdvancedPinDisplay(ENodeAdvancedPins::NoPins)
 	, EnabledState(ENodeEnabledState::Enabled)
 	, bUserSetEnabledState(false)
-	, bIsNodeEnabled_DEPRECATED(true)
 	, bAllowSplitPins_DEPRECATED(false)
-{
-
+	, bIsNodeEnabled_DEPRECATED(true)
 #if WITH_EDITORONLY_DATA
-	bCommentBubblePinned = false;
-	bCommentBubbleVisible = false;
-	bCommentBubbleMakeVisible = false;
-	bCanResizeNode = false;
+	, bCanResizeNode(false)
 #endif // WITH_EDITORONLY_DATA
+	, bCommentBubblePinned(false)
+	, bCommentBubbleVisible(false)
+	, bCommentBubbleMakeVisible(false)
+{
 }
 
 #if WITH_EDITOR
@@ -163,7 +162,12 @@ UEdGraphPin* UEdGraphNode::CreatePin(EEdGraphPinDirection Dir, const FEdGraphPin
 
 UEdGraphPin* UEdGraphNode::CreatePin(EEdGraphPinDirection Dir, const FString& PinCategory, const FString& PinSubCategory, UObject* PinSubCategoryObject, bool bIsArray, bool bIsReference, const FString& PinName, bool bIsConst /*= false*/, int32 Index /*= INDEX_NONE*/, bool bIsSet /*= false*/, bool bIsMap /*= false*/, const FEdGraphTerminalType& ValueTerminalType /*= FEdGraphTerminalType()*/)
 {
-	FEdGraphPinType PinType(PinCategory, PinSubCategory, PinSubCategoryObject, bIsArray, bIsReference, bIsSet, bIsMap, ValueTerminalType);
+	return CreatePin(Dir, PinCategory, PinSubCategory, PinSubCategoryObject, PinName, FEdGraphPinType::ToPinContainerType(bIsArray, bIsSet, bIsMap), bIsReference, bIsConst, Index, ValueTerminalType);
+}
+
+UEdGraphPin* UEdGraphNode::CreatePin(EEdGraphPinDirection Dir, const FString& PinCategory, const FString& PinSubCategory, UObject* PinSubCategoryObject, const FString& PinName, EPinContainerType PinContainerType /* EPinContainerType::None */, bool bIsReference /* = false */, bool bIsConst /*= false*/, int32 Index /*= INDEX_NONE*/, const FEdGraphTerminalType& ValueTerminalType /*= FEdGraphTerminalType()*/)
+{
+	FEdGraphPinType PinType(PinCategory, PinSubCategory, PinSubCategoryObject, PinContainerType, bIsReference, ValueTerminalType);
 	PinType.bIsConst = bIsConst;
 
 	return CreatePin(Dir, PinType, PinName, Index);
@@ -246,9 +250,8 @@ void UEdGraphNode::BreakAllNodeLinks()
 	}
 
 	// Send all nodes that received a new pin connection a notification
-	for (auto It = NodeList.CreateConstIterator(); It; ++It)
+	for (UEdGraphNode* Node : NodeList)
 	{
-		UEdGraphNode* Node = (*It);
 		Node->NodeConnectionListChanged();
 	}
 }
@@ -268,7 +271,7 @@ void UEdGraphNode::SnapToGrid(float GridSnapSize)
 class UEdGraph* UEdGraphNode::GetGraph() const
 {
 	UEdGraph* Graph = Cast<UEdGraph>(GetOuter());
-	if (Graph == NULL && !IsPendingKill())
+	if (Graph == nullptr && !IsPendingKill())
 	{
 		ensureMsgf(false, TEXT("EdGraphNode::GetGraph : '%s' does not have a UEdGraph as an Outer."), *GetPathName());
 	}

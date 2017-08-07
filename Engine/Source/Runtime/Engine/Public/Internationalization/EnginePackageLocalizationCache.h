@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Internationalization/PackageLocalizationCache.h"
 
-class FAssetData;
+struct FAssetData;
 
 /** Implementation of a package localization cache that takes advantage of the asset registry. */
 class ENGINE_API FEnginePackageLocalizationCache : public FPackageLocalizationCache

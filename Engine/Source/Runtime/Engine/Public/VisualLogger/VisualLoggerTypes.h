@@ -247,11 +247,12 @@ public:
 		FVisualLogEntry Entry;
 	};
 
-
+	virtual ~FVisualLogDevice() { }
 	virtual void Serialize(const UObject* LogOwner, FName OwnerName, FName InOwnerClassName, const FVisualLogEntry& LogEntry) = 0;
 	virtual void Cleanup(bool bReleaseMemory = false) { /* Empty */ }
 	virtual void StartRecordingToFile(float TImeStamp) { /* Empty */ }
 	virtual void StopRecordingToFile(float TImeStamp) { /* Empty */ }
+	virtual void DiscardRecordingToFile() { /* Empty */ }
 	virtual void SetFileName(const FString& InFileName) { /* Empty */ }
 	virtual void GetRecordedLogs(TArray<FVisualLogDevice::FVisualLogEntryItem>& OutLogs)  const { /* Empty */ }
 	virtual bool HasFlags(int32 InFlags) const { return false; }
@@ -300,6 +301,8 @@ struct IVisualLoggerEditorInterface
 class FVisualLogExtensionInterface
 {
 public:
+	virtual ~FVisualLogExtensionInterface() { }
+
 	virtual void ResetData(IVisualLoggerEditorInterface* EdInterface) = 0;
 	virtual void DrawData(IVisualLoggerEditorInterface* EdInterface, UCanvas* Canvas) = 0;
 

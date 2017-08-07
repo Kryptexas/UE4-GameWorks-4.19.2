@@ -463,30 +463,6 @@ void FRHICommandWaitComputeFence<CmdListType>::Execute(FRHICommandListBase& CmdL
 template struct FRHICommandWaitComputeFence<ECmdList::EGfx>;
 template struct FRHICommandWaitComputeFence<ECmdList::ECompute>;
 
-void FRHICommandBuildLocalBoundShaderState::Execute(FRHICommandListBase& CmdList)
-{
-	RHISTAT(BuildLocalBoundShaderState);
-	check(!IsValidRef(WorkArea.ComputedBSS->BSS)); // should not already have been created
-	if (WorkArea.ComputedBSS->UseCount)
-	{
-		WorkArea.ComputedBSS->BSS = 	
-			RHICreateBoundShaderState(WorkArea.Args.VertexDeclarationRHI, WorkArea.Args.VertexShaderRHI, WorkArea.Args.HullShaderRHI, WorkArea.Args.DomainShaderRHI, WorkArea.Args.PixelShaderRHI, WorkArea.Args.GeometryShaderRHI);
-	}
-}
-
-void FRHICommandSetLocalBoundShaderState::Execute(FRHICommandListBase& CmdList)
-{
-	RHISTAT(SetLocalBoundShaderState);
-	check(LocalBoundShaderState.WorkArea->ComputedBSS->UseCount > 0 && IsValidRef(LocalBoundShaderState.WorkArea->ComputedBSS->BSS)); // this should have been created and should have uses outstanding
-
-	INTERNAL_DECORATOR(RHISetBoundShaderState)(LocalBoundShaderState.WorkArea->ComputedBSS->BSS);
-
-	if (--LocalBoundShaderState.WorkArea->ComputedBSS->UseCount == 0)
-	{
-		LocalBoundShaderState.WorkArea->ComputedBSS->~FComputedBSS();
-	}
-}
-
 void FRHICommandBuildLocalGraphicsPipelineState::Execute(FRHICommandListBase& CmdList)
 {
 	RHISTAT(BuildLocalGraphicsPipelineState);

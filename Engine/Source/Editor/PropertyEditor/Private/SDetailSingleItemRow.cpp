@@ -227,7 +227,9 @@ void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCus
 
 			bool const bEnableFavoriteSystem = GIsRequestingExit ? false : (GetDefault<UEditorExperimentalSettings>()->bEnableFavoriteSystem && bAllowFavoriteSystem);
 
-			TSharedRef<SHorizontalBox> InternalLeftColumnRowBox = SNew(SHorizontalBox);
+			TSharedRef<SHorizontalBox> InternalLeftColumnRowBox =
+				SNew(SHorizontalBox)
+				.Clipping(EWidgetClipping::OnDemand);
 
 			if(bEnableFavoriteSystem)
 			{
@@ -285,12 +287,14 @@ void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCus
 					.Style(FEditorStyle::Get(), "DetailsView.Splitter")
 					.PhysicalSplitterHandleSize(1.0f)
 					.HitDetectionSplitterHandleSize(5.0f)
+
 					+ SSplitter::Slot()
 					.Value(ColumnSizeData.LeftColumnWidth)
 					.OnSlotResized(SSplitter::FOnSlotResized::CreateSP(this, &SDetailSingleItemRow::OnLeftColumnResized))
 					[
 						InternalLeftColumnRowBox
 					]
+
 					+ SSplitter::Slot()
 					.Value(ColumnSizeData.RightColumnWidth)
 					.OnSlotResized(ColumnSizeData.OnWidthChanged)
@@ -490,6 +494,12 @@ bool SDetailSingleItemRow::CanPasteProperty() const
 
 const FSlateBrush* SDetailSingleItemRow::GetBorderImage() const
 {
+	/*bool UseDarkTheme = false;
+	if (Customization->GetWidgetRow().IsDarkThemeAttr.IsSet())
+	{
+		UseDarkTheme = Customization->GetWidgetRow().IsDarkThemeAttr.Get();
+	}*/
+
 	if( IsHighlighted() )
 	{
 		return FEditorStyle::GetBrush("DetailsView.CategoryMiddle_Highlighted");

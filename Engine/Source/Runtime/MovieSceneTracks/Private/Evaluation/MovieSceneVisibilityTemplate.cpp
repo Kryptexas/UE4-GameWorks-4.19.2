@@ -6,6 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "Engine/World.h"
 #include "MovieSceneEvaluation.h"
+#include "Components/SceneComponent.h"
 
 
 DECLARE_CYCLE_STAT(TEXT("Visibility Track Evaluate"), MovieSceneEval_VisibilityTrack_Evaluate, STATGROUP_MovieSceneEval);
@@ -22,12 +23,22 @@ struct FTemporarilyHiddenInGamePreAnimatedToken : IMovieScenePreAnimatedToken
 
 	virtual void RestoreState(UObject& InObject, IMovieScenePlayer& Player) override
 	{
-		AActor* Actor = CastChecked<AActor>(&InObject);
-		Actor->SetActorHiddenInGame(bHidden);
+		if (InObject.IsA(AActor::StaticClass()))
+		{
+			AActor* Actor = CastChecked<AActor>(&InObject);
+			
+			Actor->SetActorHiddenInGame(bHidden);
 
 #if WITH_EDITOR
-		Actor->SetIsTemporarilyHiddenInEditor(bTemporarilyHiddenInGame);
+			Actor->SetIsTemporarilyHiddenInEditor(bTemporarilyHiddenInGame);
 #endif // WITH_EDITOR
+		}
+		else if (InObject.IsA(USceneComponent::StaticClass()))
+		{
+			USceneComponent* SceneComponent = CastChecked<USceneComponent>(&InObject);
+			
+			SceneComponent->SetHiddenInGame(bHidden);
+		}
 	}
 
 	bool bHidden;
@@ -39,14 +50,27 @@ struct FTemporarilyHiddenInGameTokenProducer : IMovieScenePreAnimatedTokenProduc
 	/** Cache the existing state of an object before moving it */
 	virtual IMovieScenePreAnimatedTokenPtr CacheExistingState(UObject& InObject) const override
 	{
-		AActor* Actor = CastChecked<AActor>(&InObject);
-		bool bInTemporarilyHiddenInGame = 
+		if (InObject.IsA(AActor::StaticClass()))
+		{
+			AActor* Actor = CastChecked<AActor>(&InObject);
+	
+			bool bInTemporarilyHiddenInGame = 
 #if WITH_EDITOR
-			Actor->IsTemporarilyHiddenInEditor();
+				Actor->IsTemporarilyHiddenInEditor();
 #else
-			false;
+				false;
 #endif
-		return FTemporarilyHiddenInGamePreAnimatedToken(Actor->bHidden, bInTemporarilyHiddenInGame);
+			return FTemporarilyHiddenInGamePreAnimatedToken(Actor->bHidden, bInTemporarilyHiddenInGame);
+		}
+		else if (InObject.IsA(USceneComponent::StaticClass()))
+		{
+			USceneComponent* SceneComponent = CastChecked<USceneComponent>(&InObject);
+
+			const bool bUnused = false;
+			return FTemporarilyHiddenInGamePreAnimatedToken(SceneComponent->bHiddenInGame, bUnused);
+		}
+
+		return FTemporarilyHiddenInGamePreAnimatedToken(false, false);
 	}
 };
 
@@ -54,6 +78,9 @@ struct FTemporarilyHiddenInGameTokenProducer : IMovieScenePreAnimatedTokenProduc
 struct FTemporarilyHiddenInGameExecutionToken
 	: IMovieSceneExecutionToken
 {
+	bool bIsHidden;
+	FTemporarilyHiddenInGameExecutionToken(bool bInIsHidden) : bIsHidden(bInIsHidden) {}
+
 	static FMovieSceneAnimTypeID GetAnimTypeID()
 	{
 		return TMovieSceneAnimTypeID<FTemporarilyHiddenInGameExecutionToken>();
@@ -64,25 +91,31 @@ struct FTemporarilyHiddenInGameExecutionToken
 	{
 		MOVIESCENE_DETAILED_SCOPE_CYCLE_COUNTER(MovieSceneEval_VisibilityTrack_TokenExecute);
 
-		PropertyTemplate::TCachedSectionData<bool>& PropertyTrackData = PersistentData.GetSectionData<PropertyTemplate::TCachedSectionData<bool>>();
-
-		for (PropertyTemplate::TCachedValue<bool>& ObjectAndValue : PropertyTrackData.ObjectsAndValues)
+		for (TWeakObjectPtr<> WeakObject : Player.FindBoundObjects(Operand))
 		{
-			if (UObject* ObjectPtr = ObjectAndValue.WeakObject.Get())
+			if (UObject* ObjectPtr = WeakObject.Get())
 			{
-				AActor* Actor = Cast<AActor>(ObjectPtr);
-				if (Actor)
+				if (ObjectPtr->IsA(AActor::StaticClass()))
 				{
+					AActor* Actor = Cast<AActor>(ObjectPtr);
+
 					Player.SavePreAnimatedState(*Actor, GetAnimTypeID(), FTemporarilyHiddenInGameTokenProducer());
 
-					Actor->SetActorHiddenInGame(ObjectAndValue.Value);
+					Actor->SetActorHiddenInGame(bIsHidden);
 
 #if WITH_EDITOR
 					if (GIsEditor && Actor->GetWorld() != nullptr && !Actor->GetWorld()->IsPlayInEditor())
 					{
-						Actor->SetIsTemporarilyHiddenInEditor(ObjectAndValue.Value);
+						Actor->SetIsTemporarilyHiddenInEditor(bIsHidden);
 					}
 #endif // WITH_EDITOR
+				}
+				else if (ObjectPtr->IsA(USceneComponent::StaticClass()))
+				{
+					USceneComponent* SceneComponent = Cast<USceneComponent>(ObjectPtr);
+					
+					Player.SavePreAnimatedState(*SceneComponent, GetAnimTypeID(), FTemporarilyHiddenInGameTokenProducer());
+					SceneComponent->SetHiddenInGame(bIsHidden);
 				}
 			}
 		}
@@ -97,19 +130,11 @@ void FMovieSceneVisibilitySectionTemplate::Evaluate(const FMovieSceneEvaluationO
 {
 	MOVIESCENE_DETAILED_SCOPE_CYCLE_COUNTER(MovieSceneEval_VisibilityTrack_Evaluate);
 
-	using namespace PropertyTemplate;
-
-	for (TCachedValue<bool>& ObjectAndValue : PersistentData.GetSectionData<TCachedSectionData<bool>>().ObjectsAndValues)
+	if (BoolCurve.HasAnyData())
 	{
-		bool& bIsHidden = ObjectAndValue.Value;
-
-		// Pass the inverse of our current visibility since we negate the result of the curve evaluation.
-		uint8 InverseCurrentVisibility = bIsHidden ? 1 : 0;
-
 		// Invert this evaluation since the property is "bHiddenInGame" and we want the visualization to be the inverse of that. Green means visible.
-		bIsHidden = !BoolCurve.Evaluate(Context.GetTime(), InverseCurrentVisibility);
+		bool bIsHidden = !BoolCurve.Evaluate(Context.GetTime());
+		ExecutionTokens.Add(FTemporarilyHiddenInGameExecutionToken(bIsHidden));
 	}
-	
-	ExecutionTokens.Add(FTemporarilyHiddenInGameExecutionToken());
 }
 

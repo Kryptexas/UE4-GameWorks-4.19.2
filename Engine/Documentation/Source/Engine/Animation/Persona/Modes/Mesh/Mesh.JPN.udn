@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3237313
+﻿INTSourceChangelist:3481084
 Availability:Public
 Title:スケルタルメッシュ エディタ
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona, Engine/Animation/Persona/Modes
@@ -13,6 +13,7 @@ topic-image:skelMeshEditor_topic.png
 tags:Animation
 tags:Skeletal Mesh
 tags:FBX Importing
+tags:Tools
 
 [EXCERPT:Overview]
 **コンテンツ ブラウザ** 内で (または **エディタ ツールバー** から) **Skeletal Mesh** アセットを開くと 、**スケルタルメッシュ エディタ** が開きます。 

@@ -15,17 +15,17 @@ class USkeletalMeshComponent;
  *	Simple controller that multiplies scalar value to the translation/rotation/scale of a single bone.
  */
 
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ANIMGRAPHRUNTIME_API FAnimNode_RotationMultiplier : public FAnimNode_SkeletalControlBase
 {
 	GENERATED_USTRUCT_BODY()
 
 	/** Name of bone to control. This is the main bone chain to modify from. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Multiplier) 
+	UPROPERTY(EditAnywhere, Category=Multiplier) 
 	FBoneReference	TargetBone;
 
 	/** Source to get transform from */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Multiplier)
+	UPROPERTY(EditAnywhere, Category=Multiplier)
 	FBoneReference	SourceBone;
 
 	// To make these to be easily pin-hookable, I'm not making it struct, but each variable
@@ -33,10 +33,10 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_RotationMultiplier : public FAnimNode_Skel
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Multiplier, meta=(PinShownByDefault))
 	float	Multiplier;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Multiplier)
+	UPROPERTY(EditAnywhere, Category=Multiplier)
 	TEnumAsByte<EBoneAxis> RotationAxisToRefer;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Multiplier)
+	UPROPERTY(EditAnywhere, Category = Multiplier)
 	bool bIsAdditive;	
 
 	FAnimNode_RotationMultiplier();

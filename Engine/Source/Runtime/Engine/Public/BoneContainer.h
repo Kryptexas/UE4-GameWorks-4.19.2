@@ -93,10 +93,10 @@ public:
 
 	FBoneContainer();
 
-	FBoneContainer(const TArray<FBoneIndexType>& InRequiredBoneIndexArray, UObject& InAsset);
+	FBoneContainer(const TArray<FBoneIndexType>& InRequiredBoneIndexArray, bool bDisableAnimCurves, UObject& InAsset);
 
 	/** Initialize BoneContainer to a new Asset, RequiredBonesArray and RefPoseArray. */
-	void InitializeTo(const TArray<FBoneIndexType>& InRequiredBoneIndexArray, UObject& InAsset);
+	void InitializeTo(const TArray<FBoneIndexType>& InRequiredBoneIndexArray, bool bDisableAnimCurves, UObject& InAsset);
 
 	/** Returns true if FBoneContainer is Valid. Needs an Asset, a RefPoseArray, and a RequiredBonesArray. */
 	const bool IsValid() const
@@ -264,6 +264,7 @@ public:
 			<< B.bUseRAWData
 			<< B.bUseSourceData
 			;
+
 		return Ar;
 	}
 
@@ -308,11 +309,11 @@ public:
 	}
 
 	/** Cache required Anim Curve Uids */
-	void CacheRequiredAnimCurveUids();
+	void CacheRequiredAnimCurveUids(bool bDisableAnimCurves);
 
 private:
 	/** Initialize FBoneContainer. */
-	void Initialize();
+	void Initialize(bool bDisableAnimCurves);
 
 	/** Cache remapping data if current Asset is a SkeletalMesh, with all compatible Skeletons. */
 	void RemapFromSkelMesh(USkeletalMesh const & SourceSkeletalMesh, USkeleton& TargetSkeleton);
@@ -367,8 +368,18 @@ struct FBoneReference
 	// it triggers ensure in those functions
 	ENGINE_API bool Initialize(const USkeleton* Skeleton);
 
-	/** return true if valid. Otherwise return false **/
+	/** Deprecated functions */
+	DEPRECATED(4.17, "Please use IsValidToEvaluate instead")
 	ENGINE_API bool IsValid(const FBoneContainer& RequiredBones) const;
+	
+	/** return true if it has valid set up */
+	bool HasValidSetup() const
+	{
+		return (BoneIndex != INDEX_NONE);
+	}
+
+	/** return true if has valid index, and required bones contain it **/
+	ENGINE_API bool IsValidToEvaluate(const FBoneContainer& RequiredBones) const;
 
 	FMeshPoseBoneIndex GetMeshPoseIndex(const FBoneContainer& RequiredBones) const
 	{ 

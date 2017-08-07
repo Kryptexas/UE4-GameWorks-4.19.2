@@ -3685,6 +3685,9 @@ void ALandscapeProxy::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 	// Remove null layer infos
 	EditorLayerSettings.RemoveAll([](const FLandscapeEditorLayerSettings& Entry) { return Entry.LayerInfoObj == nullptr; });
 
+	// Remove any null landscape components
+	LandscapeComponents.RemoveAll([](const ULandscapeComponent* Component) { return Component == nullptr; });
+
 	ULandscapeInfo* Info = GetLandscapeInfo();
 	bool bRemovedAnyLayers = false;
 	for (ULandscapeComponent* Component : LandscapeComponents)

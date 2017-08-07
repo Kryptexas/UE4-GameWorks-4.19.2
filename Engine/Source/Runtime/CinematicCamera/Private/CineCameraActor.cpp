@@ -36,7 +36,7 @@ FVector ACineCameraActor::GetLookatLocation() const
 	FVector FinalLookat;
 	if (LookatTrackingSettings.ActorToTrack)
 	{
-		FTransform const BaseTransform = LookatTrackingSettings.ActorToTrack ? LookatTrackingSettings.ActorToTrack->GetActorTransform() : FTransform::Identity;
+		FTransform const BaseTransform = LookatTrackingSettings.ActorToTrack->GetActorTransform();
 		FinalLookat = BaseTransform.TransformPosition(LookatTrackingSettings.RelativeOffset);
 	}
 	else
@@ -57,7 +57,7 @@ void ACineCameraActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (CameraComponent && ShouldTickForTracking())
+	if (GetCameraComponent() && ShouldTickForTracking())
 	{
 		if (LookatTrackingSettings.bEnableLookAtTracking)
 		{

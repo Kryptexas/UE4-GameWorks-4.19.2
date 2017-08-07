@@ -586,7 +586,8 @@ bool FBlueprintEditor::OnRequestClose()
 
 bool FBlueprintEditor::InEditingMode() const
 {
-	return !InDebuggingMode();
+	UBlueprint* Blueprint = GetBlueprintObj();
+	return !FSlateApplication::Get().InKismetDebuggingMode() && (!InDebuggingMode() || (Blueprint && Blueprint->CanRecompileWhilePlayingInEditor()));
 }
 
 bool FBlueprintEditor::IsCompilingEnabled() const
@@ -995,6 +996,11 @@ TSharedRef<SGraphEditor> FBlueprintEditor::CreateGraphEditorWidget(TSharedRef<FT
 				FExecuteAction::CreateSP(this, &FBlueprintEditor::OnRestoreAllStructVarPins),
 				FCanExecuteAction::CreateSP(this, &FBlueprintEditor::CanRestoreAllStructVarPins)
 				);
+
+			GraphEditorCommands->MapAction(FGraphEditorCommands::Get().ResetPinToDefaultValue,
+				FExecuteAction::CreateSP(this, &FBlueprintEditor::OnResetPinToDefaultValue),
+				FCanExecuteAction::CreateSP(this, &FBlueprintEditor::CanResetPinToDefaultValue)
+			);
 
 			GraphEditorCommands->MapAction( FGraphEditorCommands::Get().AddOptionPin,
 				FExecuteAction::CreateSP( this, &FBlueprintEditor::OnAddOptionPin ),
@@ -1612,6 +1618,7 @@ void FBlueprintEditor::CommonInitialization(const TArray<UBlueprint*>& InitBluep
 		// When the blueprint that we are observing changes, it will notify this wrapper widget.
 		InitBlueprint->OnChanged().AddSP(this, &FBlueprintEditor::OnBlueprintChanged);
 		InitBlueprint->OnCompiled().AddSP(this, &FBlueprintEditor::OnBlueprintCompiled);
+		InitBlueprint->OnSetObjectBeingDebugged().AddSP(this, &FBlueprintEditor::HandleSetObjectBeingDebugged);
 	}
 
 	CreateDefaultCommands();
@@ -2108,7 +2115,7 @@ FReply FBlueprintEditor::OnEditParentClassClicked()
 
 void FBlueprintEditor::PostLayoutBlueprintEditorInitialization()
 {
-	if (GetBlueprintObj() != NULL)
+	if (UBlueprint* Blueprint = GetBlueprintObj())
 	{
 		// Refresh the graphs
 		RefreshEditors();
@@ -2131,11 +2138,17 @@ void FBlueprintEditor::PostLayoutBlueprintEditorInitialization()
 
 			// Fire log message
 			FString BlueprintName;
-			GetBlueprintObj()->GetName(BlueprintName);
+			Blueprint->GetName(BlueprintName);
 
 			FFormatNamedArguments Args;
 			Args.Add( TEXT("BlueprintName"), FText::FromString( BlueprintName ) );
 			LogSimpleMessage( FText::Format( LOCTEXT("Blueprint Modified Long", "Blueprint \"{BlueprintName}\" was updated to fix issues detected on load. Please resave."), Args ) );
+		}
+
+		// If we have a warning/error, open output log.
+		if (!Blueprint->IsUpToDate() || (Blueprint->Status == BS_UpToDateWithWarnings))
+		{
+			TabManager->InvokeTab(FBlueprintEditorTabs::CompilerResultsID);
 		}
 	}
 }
@@ -2180,6 +2193,8 @@ FBlueprintEditor::~FBlueprintEditor()
 	if (GetBlueprintObj())
 	{
 		GetBlueprintObj()->OnChanged().RemoveAll( this );
+		GetBlueprintObj()->OnCompiled().RemoveAll( this );
+		GetBlueprintObj()->OnSetObjectBeingDebugged().RemoveAll( this );
 	}
 
 	FGlobalTabmanager::Get()->OnActiveTabChanged_Unsubscribe( OnActiveTabChangedDelegateHandle );
@@ -2267,10 +2282,10 @@ void FBlueprintEditor::CreateDefaultTabContents(const TArray<UBlueprint*>& InBlu
 		this->ReplaceReferencesWidget = SNew(SReplaceNodeReferences, SharedThis(this));
 	}
 	
-	FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
-	CompilerResultsListing = MessageLogModule.CreateLogListing( "BlueprintEditorCompileResults" );
+	CompilerResultsListing = FCompilerResultsLog::GetBlueprintMessageLog(InBlueprint);
 	CompilerResultsListing->OnMessageTokenClicked().AddSP(this, &FBlueprintEditor::OnLogTokenClicked);
 
+	FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
 	CompilerResults = MessageLogModule.CreateLogListingWidget( CompilerResultsListing.ToSharedRef() );
 	FindResults = SNew(SFindInBlueprints, SharedThis(this));
 	
@@ -2921,7 +2936,7 @@ void FBlueprintEditor::NavigateToChildGraph_Clicked()
 	{
 		UEdGraph* CurrentGraph = FocusedGraphEdPtr.Pin()->GetCurrentGraph();
 
-		if (CurrentGraph->SubGraphs.Num() > 0)
+		if (CurrentGraph->SubGraphs.Num() > 1)
 		{
 			// Display a child jump list
 			FSlateApplication::Get().PushMenu( 
@@ -2946,27 +2961,23 @@ bool FBlueprintEditor::CanNavigateToChildGraph() const
 	return FocusedGraphEdPtr.IsValid() && (FocusedGraphEdPtr.Pin()->GetCurrentGraph()->SubGraphs.Num() > 0);
 }
 
-void FBlueprintEditor::PostUndo(bool bSuccess)
-{	
-	// Clear selection, to avoid holding refs to nodes that go away
-	if (bSuccess && GetBlueprintObj())
+void FBlueprintEditor::HandleUndoTransaction(const FTransaction* Transaction)
+{
+	UBlueprint* BlueprintObj = GetBlueprintObj();
+	if (BlueprintObj && Transaction)
 	{
 		bool bAffectsBlueprint = false;
-		const UPackage* BlueprintOutermost = GetBlueprintObj()->GetOutermost();
+		const UPackage* BlueprintOutermost = BlueprintObj->GetOutermost();
 
 		// Look at the transaction this function is responding to, see if any object in it has an outermost of the Blueprint
-		const FTransaction* Transaction = GEditor->Trans->GetTransaction(GEditor->Trans->GetQueueLength() - GEditor->Trans->GetUndoCount());
-		if( Transaction != nullptr )
+		TArray<UObject*> TransactionObjects;
+		Transaction->GetTransactionObjects(TransactionObjects);
+		for (UObject* Object : TransactionObjects)
 		{
-			TArray<UObject*> TransactionObjects;
-			Transaction->GetTransactionObjects(TransactionObjects);
-			for (UObject* Object : TransactionObjects)
+			if (Object->GetOutermost() == BlueprintOutermost)
 			{
-				if (Object->GetOutermost() == BlueprintOutermost)
-				{
-					bAffectsBlueprint = true;
-					break;
-				}
+				bAffectsBlueprint = true;
+				break;
 			}
 		}
 
@@ -2982,34 +2993,21 @@ void FBlueprintEditor::PostUndo(bool bSuccess)
 	}
 }
 
+void FBlueprintEditor::PostUndo(bool bSuccess)
+{	
+	if (bSuccess)
+	{
+		const FTransaction* Transaction = GEditor->Trans->GetTransaction(GEditor->Trans->GetQueueLength() - GEditor->Trans->GetUndoCount());
+		HandleUndoTransaction(Transaction);
+	}
+}
+
 void FBlueprintEditor::PostRedo(bool bSuccess)
 {
-	UBlueprint* BlueprintObj = GetBlueprintObj();
-	if (BlueprintObj && bSuccess)
+	if (bSuccess)
 	{
-		bool bAffectsBlueprint = false;
-		const UPackage* BlueprintOutermost = GetBlueprintObj()->GetOutermost();
-
-		// Look at the transaction this function is responding to, see if any object in it has an outermost of the Blueprint
 		const FTransaction* Transaction = GEditor->Trans->GetTransaction(GEditor->Trans->GetQueueLength() - GEditor->Trans->GetUndoCount() - 1);
-		TArray<UObject*> TransactionObjects;
-		Transaction->GetTransactionObjects(TransactionObjects);
-		for (UObject* Object : TransactionObjects)
-		{
-			if (Object->GetOutermost() == BlueprintOutermost)
-			{
-				bAffectsBlueprint = true;
-				break;
-			}
-		}
-
-		// Transaction affects the Blueprint this editor handles, so react as necessary
-		if (bAffectsBlueprint)
-		{
-			RefreshEditors();
-
-			FSlateApplication::Get().DismissAllMenus();
-		}
+		HandleUndoTransaction(Transaction);
 	}
 }
 
@@ -3275,6 +3273,7 @@ void FBlueprintEditor::Compile()
 		}
 
 		FCompilerResultsLog LogResults;
+		LogResults.SetSourcePath(BlueprintObj->GetPathName());
 		LogResults.BeginEvent(TEXT("Compile"));
 		LogResults.bLogDetailedResults = GetDefault<UBlueprintEditorSettings>()->bShowDetailedCompileResults;
 		LogResults.EventDisplayThresholdMs = GetDefault<UBlueprintEditorSettings>()->CompileEventDisplayThresholdMs;
@@ -3289,7 +3288,9 @@ void FBlueprintEditor::Compile()
 		}
 		FKismetEditorUtilities::CompileBlueprint(BlueprintObj, CompileOptions, &LogResults);
 
-		bool bForceMessageDisplay = ((LogResults.NumWarnings > 0) || (LogResults.NumErrors > 0)) && !BlueprintObj->bIsRegeneratingOnLoad;
+		LogResults.EndEvent();
+
+		const bool bForceMessageDisplay = ((LogResults.NumWarnings > 0) || (LogResults.NumErrors > 0)) && !BlueprintObj->bIsRegeneratingOnLoad;
 		DumpMessagesToCompilerLog(LogResults.Messages, bForceMessageDisplay);
 
 		UBlueprintEditorSettings const* BpEditorSettings = GetDefault<UBlueprintEditorSettings>();
@@ -3308,9 +3309,7 @@ void FBlueprintEditor::Compile()
 
 		AppendExtraCompilerResults(CompilerResultsListing);
 
-		LogResults.EndEvent();
-
-	    // Update the blueprint instrumenation state and show the profiler window if required
+	    // Update the blueprint instrumentation state and show the profiler window if required
 	    if (bProfilerAvailable)
 	    {
 		    bBlueprintHasInstrumentation = BlueprintObj && BlueprintObj->GeneratedClass ? BlueprintObj->GeneratedClass->HasInstrumentation() : false;
@@ -3556,9 +3555,13 @@ void FBlueprintEditor::JumpToHyperlink(const UObject* ObjectReference, bool bReq
 			OpenDocument(const_cast<UEdGraph*>(FunctionGraph), FDocumentTracker::OpenNewDocument);
 		}
 	}
+	else if ((ObjectReference != nullptr) && ObjectReference->IsAsset())
+	{
+		FAssetEditorManager::Get().OpenEditorForAsset(const_cast<UObject*>(ObjectReference));
+	}
 	else
 	{
-		UE_LOG(LogBlueprint, Warning, TEXT("Unknown type of hyperlinked object"));
+		UE_LOG(LogBlueprint, Warning, TEXT("Unknown type of hyperlinked object (%s)"), *GetNameSafe(ObjectReference));
 	}
 
 	//@TODO: Hacky way to ensure a message is seen when hitting an exception and doing intraframe debugging
@@ -3719,7 +3722,9 @@ void FBlueprintEditor::LogSimpleMessage(const FText& MessageText)
 void FBlueprintEditor::DumpMessagesToCompilerLog(const TArray<TSharedRef<FTokenizedMessage>>& Messages, bool bForceMessageDisplay)
 {
 	CompilerResultsListing->ClearMessages();
-	CompilerResultsListing->AddMessages(Messages);
+
+	// Note we dont mirror to the output log here as the compiler already does that
+	CompilerResultsListing->AddMessages(Messages, false);
 	
 	if (!bEditorMarkedAsClosed && bForceMessageDisplay && GetCurrentMode() == FBlueprintEditorApplicationModes::StandardBlueprintEditorMode)
 	{
@@ -3827,7 +3832,7 @@ bool FBlueprintEditor::CanPromoteToVariable(bool bInToMemberVariable) const
 	{
 		if (UEdGraphPin* Pin = FocusedGraphEd->GetGraphPinForMenu())
 		{
-			if (bInToMemberVariable || (!bInToMemberVariable && FBlueprintEditorUtils::DoesSupportLocalVariables(FocusedGraphEd->GetCurrentGraph())))
+			if (!Pin->bOrphanedPin && (bInToMemberVariable || (!bInToMemberVariable && FBlueprintEditorUtils::DoesSupportLocalVariables(FocusedGraphEd->GetCurrentGraph()))))
 			{
 				bCanPromote = K2Schema->CanPromotePinToVariable(*Pin);
 			}
@@ -3920,7 +3925,7 @@ void FBlueprintEditor::OnAddExecutionPin()
 			const FScopedTransaction Transaction( LOCTEXT("AddExecutionPin", "Add Execution Pin") );
 			SeqNode->Modify();
 
-			SeqNode->AddPinToExecutionNode();
+			SeqNode->AddInputPin();
 
 			const UEdGraphSchema* Schema = SeqNode->GetSchema();
 			Schema->ReconstructNode(*SeqNode);
@@ -3983,25 +3988,24 @@ void  FBlueprintEditor::OnRemoveExecutionPin()
 
 bool FBlueprintEditor::CanRemoveExecutionPin() const
 {
-	bool bReturnValue = true;
-
-	const FGraphPanelSelectionSet& SelectedNodes = GetSelectedNodes();
-
-	// Iterate over all nodes, and make sure all execution sequence nodes will always have at least 2 outs
-	for (FGraphPanelSelectionSet::TConstIterator It(SelectedNodes); It; ++It)
+	TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
+	if (FocusedGraphEd.IsValid())
 	{
-		UK2Node_ExecutionSequence* SeqNode = Cast<UK2Node_ExecutionSequence>(*It);
-		if (SeqNode != NULL)
+		if (UEdGraphPin* SelectedPin = FocusedGraphEd->GetGraphPinForMenu())
 		{
-			bReturnValue = SeqNode->CanRemoveExecutionPin();
-			if (!bReturnValue)
+			UEdGraphNode* OwningNode = SelectedPin->GetOwningNode();
+
+			if (UK2Node_ExecutionSequence* SeqNode = Cast<UK2Node_ExecutionSequence>(OwningNode))
 			{
-				break;
+				return SeqNode->CanRemoveExecutionPin();
+			}
+			else if (UK2Node_Switch* SwitchNode = Cast<UK2Node_Switch>(OwningNode))
+			{
+				return SwitchNode->CanRemoveExecutionPin(SelectedPin);
 			}
 		}
 	}
-
-	return bReturnValue;
+	return false;
 }
 
 void  FBlueprintEditor::OnRemoveThisStructVarPin()
@@ -4092,6 +4096,39 @@ bool FBlueprintEditor::CanRestoreAllStructVarPins() const
 	FGraphPanelSelectionSet::TConstIterator It(SelectedNodes);
 	UK2Node_SetFieldsInStruct* Node = (!!It) ? Cast<UK2Node_SetFieldsInStruct>(*It) : NULL;
 	return Node && !Node->AllPinsAreShown();
+}
+
+void FBlueprintEditor::OnResetPinToDefaultValue()
+{
+	TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
+	if (FocusedGraphEd.IsValid())
+	{
+		UEdGraphPin* TargetPin = FocusedGraphEd->GetGraphPinForMenu();
+
+		check(TargetPin);
+
+		const FScopedTransaction Transaction(LOCTEXT("ResetPinToDefaultValue", "Reset Pin To Default Value"));
+
+		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+		K2Schema->ResetPinToAutogeneratedDefaultValue(TargetPin);
+	}
+}
+
+bool FBlueprintEditor::CanResetPinToDefaultValue() const
+{
+	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+
+	bool bCanRecombine = false;
+	TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
+	if (FocusedGraphEd.IsValid())
+	{
+		if (UEdGraphPin* Pin = FocusedGraphEd->GetGraphPinForMenu())
+		{
+			return !Pin->DoesDefaultValueMatchAutogenerated();
+		}
+	}
+
+	return false;
 }
 
 void FBlueprintEditor::OnAddOptionPin()
@@ -6207,11 +6244,11 @@ void FBlueprintEditor::OnDisallowedPinConnection(const UEdGraphPin* PinA, const 
 {
 	FDisallowedPinConnection NewRecord;
 	NewRecord.PinTypeCategoryA = PinA->PinType.PinCategory;
-	NewRecord.bPinIsArrayA = PinA->PinType.bIsArray;
+	NewRecord.bPinIsArrayA = PinA->PinType.IsArray();
 	NewRecord.bPinIsReferenceA = PinA->PinType.bIsReference;
 	NewRecord.bPinIsWeakPointerA = PinA->PinType.bIsWeakPointer;
 	NewRecord.PinTypeCategoryB = PinB->PinType.PinCategory;
-	NewRecord.bPinIsArrayB = PinB->PinType.bIsArray;
+	NewRecord.bPinIsArrayB = PinB->PinType.IsArray();
 	NewRecord.bPinIsReferenceB = PinB->PinType.bIsReference;
 	NewRecord.bPinIsWeakPointerB = PinB->PinType.bIsWeakPointer;
 	AnalyticsStats.GraphDisallowedPinConnections.Add(NewRecord);
@@ -7250,7 +7287,7 @@ void FBlueprintEditor::RefreshStandAloneDefaultsEditor()
 		}
 	}
 
-	if ( DefaultObjects.Num() )
+	if ( DefaultObjects.Num() && DefaultEditor.IsValid() )
 	{
 		DefaultEditor->ShowDetailsForObjects(DefaultObjects);
 	}
@@ -7273,12 +7310,6 @@ void FBlueprintEditor::RenameNewlyAddedAction(FName InActionName)
 void FBlueprintEditor::OnAddNewVariable()
 {
 	const FScopedTransaction Transaction( LOCTEXT("AddVariable", "Add Variable") );
-
-	// Reset MyBlueprint item filter so new variable is visible
-	if (MyBlueprintWidget.IsValid())
-	{
-		MyBlueprintWidget->OnResetItemFilter();
-	}
 
 	FName VarName = FBlueprintEditorUtils::FindUniqueKismetName(GetBlueprintObj(), TEXT("NewVar"));
 
@@ -7331,12 +7362,6 @@ void FBlueprintEditor::OnAddNewDelegate()
 	check(NULL != K2Schema);
 	UBlueprint* const Blueprint = GetBlueprintObj();
 	check(NULL != Blueprint);
-
-	// Reset MyBlueprint item filter so new variable is visible
-	if (MyBlueprintWidget.IsValid())
-	{
-		MyBlueprintWidget->OnResetItemFilter();
-	}
 
 	FName Name = FBlueprintEditorUtils::FindUniqueKismetName(GetBlueprintObj(), TEXT("NewEventDispatcher"));
 
@@ -7400,12 +7425,6 @@ void FBlueprintEditor::NewDocument_OnClicked(ECreatedDocumentType GraphType)
 	default:
 		DocumentNameText = LOCTEXT("NewDocNewName", "NewDocument");
 		break;
-	}
-	
-	// Reset MyBlueprint item filter so new variable is visible
-	if( bResetMyBlueprintFilter )
-	{
-		MyBlueprintWidget->OnResetItemFilter();
 	}
 
 	FName DocumentName = FName(*DocumentNameText.ToString());

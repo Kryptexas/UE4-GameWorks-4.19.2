@@ -13,12 +13,11 @@
 
 namespace AssetDataGathererConstants
 {
-	static const int32 CacheSerializationVersion = 9;
+	static const int32 CacheSerializationVersion = 11;
 	static const int32 MaxFilesToDiscoverBeforeFlush = 2500;
 	static const int32 MaxFilesToGatherBeforeFlush = 250;
 	static const int32 MaxFilesToProcessBeforeCacheWrite = 50000;
 }
-
 
 namespace
 {
@@ -387,7 +386,7 @@ FAssetDataGatherer::FAssetDataGatherer(const TArray<FString>& InPaths, const TAr
 	, bFinishedInitialDiscovery( false )
 	, Thread(nullptr)
 {
-	bGatherDependsData = GIsEditor && !FParse::Param( FCommandLine::Get(), TEXT("NoDependsGathering") );
+	bGatherDependsData = (GIsEditor && !FParse::Param( FCommandLine::Get(), TEXT("NoDependsGathering") )) || FParse::Param(FCommandLine::Get(),TEXT("ForceDependsGathering")) ;
 
 	if (FParse::Param(FCommandLine::Get(), TEXT("NoAssetRegistryCache")) || FParse::Param(FCommandLine::Get(), TEXT("multiprocess")))
 	{
@@ -453,21 +452,20 @@ uint32 FAssetDataGatherer::Run()
 {
 	int32 CacheSerializationVersion = AssetDataGathererConstants::CacheSerializationVersion;
 	
-	static const bool bUsingWorldAssets = FAssetRegistry::IsUsingWorldAssets();
-	if ( bUsingWorldAssets )
-	{
-		// Bump the serialization version to refresh the cache when switching between -WorldAssets and without.
-		// This is a temporary hack just while WorldAssets are under development
-		CacheSerializationVersion++;
-	}
-
 	if ( bLoadAndSaveCache )
 	{
 		// load the cached data
 		FNameTableArchiveReader CachedAssetDataReader(CacheSerializationVersion, CacheFilename);
 		if (!CachedAssetDataReader.IsError())
 		{
-			SerializeCache(CachedAssetDataReader);
+			FAssetRegistryVersion::Type Version = FAssetRegistryVersion::LatestVersion;
+			if (FAssetRegistryVersion::SerializeVersion(CachedAssetDataReader, Version))
+			{
+				SerializeCache(CachedAssetDataReader);
+
+				DependencyResults.Reserve(DiskCachedAssetDataMap.Num());
+				AssetResults.Reserve(DiskCachedAssetDataMap.Num());
+			}
 		}
 	}
 
@@ -484,6 +482,10 @@ uint32 FAssetDataGatherer::Run()
 	auto WriteAssetCacheFile = [&]()
 	{
 		FNameTableArchiveWriter CachedAssetDataWriter(CacheSerializationVersion, CacheFilename);
+
+		FAssetRegistryVersion::Type Version = FAssetRegistryVersion::LatestVersion;
+		FAssetRegistryVersion::SerializeVersion(CachedAssetDataWriter, Version);
+
 		SerializeCache(CachedAssetDataWriter);
 
 		NumFilesProcessedSinceLastCacheSave = 0;
@@ -558,7 +560,7 @@ uint32 FAssetDataGatherer::Run()
 
 					if (DiskCachedAssetData)
 					{
-						if (DiskCachedAssetData->DependencyData.PackageName != PackageName)
+						if (DiskCachedAssetData->DependencyData.PackageName != PackageName && DiskCachedAssetData->DependencyData.PackageName != NAME_None)
 						{
 							UE_LOG(LogAssetRegistry, Display, TEXT("Cached dependency data for package '%s' is invalid. Discarding cached data."), *PackageName.ToString());
 							DiskCachedAssetData = nullptr;
@@ -727,7 +729,7 @@ void FAssetDataGatherer::EnsureCompletion()
 	}
 }
 
-bool FAssetDataGatherer::GetAndTrimSearchResults(TArray<FAssetData*>& OutAssetResults, TArray<FString>& OutPathResults, TArray<FPackageDependencyData>& OutDependencyResults, TArray<FString>& OutCookedPackageNamesWithoutAssetDataResults, TArray<double>& OutSearchTimes, int32& OutNumFilesToSearch, int32& OutNumPathsToSearch, bool& OutIsDiscoveringFiles)
+bool FAssetDataGatherer::GetAndTrimSearchResults(TBackgroundGatherResults<FAssetData*>& OutAssetResults, TBackgroundGatherResults<FString>& OutPathResults, TBackgroundGatherResults<FPackageDependencyData>& OutDependencyResults, TBackgroundGatherResults<FString>& OutCookedPackageNamesWithoutAssetDataResults, TArray<double>& OutSearchTimes, int32& OutNumFilesToSearch, int32& OutNumPathsToSearch, bool& OutIsDiscoveringFiles)
 {
 	FScopeLock CritSectionLock(&WorkerThreadCriticalSection);
 
@@ -880,11 +882,10 @@ void FAssetDataGatherer::SerializeCache(FArchive& Ar)
 	if (Ar.IsSaving())
 	{
 		// save out by walking the TMap
-		for (auto CacheIt = NewCachedAssetDataMap.CreateConstIterator(); CacheIt; ++CacheIt)
+		for (TPair<FName, FDiskCachedAssetData*>& Pair : NewCachedAssetDataMap)
 		{
-			FName PackageName = CacheIt.Key();
-			Ar << PackageName;
-			Ar << *CacheIt.Value();
+			Ar << Pair.Key;
+			Pair.Value->SerializeForCache(Ar);
 		}
 	}
 	else
@@ -907,7 +908,7 @@ void FAssetDataGatherer::SerializeCache(FArchive& Ar)
 			FDiskCachedAssetData& CachedAssetData = DiskCachedAssetDataMap.Add(PackageName);
 
 			// Now load the data
-			Ar << CachedAssetData;
+			CachedAssetData.SerializeForCache(Ar);
 
 			if (Ar.IsError())
 			{

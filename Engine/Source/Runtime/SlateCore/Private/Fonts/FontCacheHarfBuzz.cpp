@@ -344,11 +344,18 @@ hb_font_t* FHarfBuzzFontFactory::CreateFont(const FFreeTypeFace& InFace, const u
 
 	FreeTypeUtils::ApplySizeAndScale(FreeTypeFace, InFontSize, InFontScale);
 
+	// Create a sub-font from the default FreeType implementation so we can override some font functions to provide low-level caching
 	{
-		// Create a sub-font from the default FreeType implementation so we can override some font functions to provide low-level caching
 		hb_font_t* HarfBuzzFTFont = hb_ft_font_create(FreeTypeFace, nullptr);
 		hb_ft_font_set_load_flags(HarfBuzzFTFont, InGlyphFlags);
+
+		// The default FreeType implementation doesn't apply the font scale, so we have to do that ourselves (in 16.16 space for maximum precision)
+		const FT_Long FixedFontScale = FreeTypeUtils::ConvertPixelTo16Dot16<FT_Long>(InFontScale);
+		HarfBuzzFTFont->x_scale = FT_MulFix(HarfBuzzFTFont->x_scale, FixedFontScale);
+		HarfBuzzFTFont->y_scale = FT_MulFix(HarfBuzzFTFont->y_scale, FixedFontScale);
+
 		HarfBuzzFont = hb_font_create_sub_font(HarfBuzzFTFont);
+		
 		hb_font_destroy(HarfBuzzFTFont);
 	}
 

@@ -340,6 +340,7 @@ dtCrowd::dtCrowd() :
 	m_maxPathResult(0),
 	m_maxAgentRadius(0),
 	m_agentStateCheckInterval(1.0f),
+	m_pathOffsetRadiusMultiplier(1.0f),
 	m_velocitySampleCount(0),
 	m_navquery(0),
 	m_raycastSingleArea(0),
@@ -1327,7 +1328,8 @@ void dtCrowd::updateStepNextMovePoint(const float dt, dtCrowdAgentDebugInfo* deb
 		// Find corners for steering
 		m_navquery->updateLinkFilter(ag->params.linkFilter.Get());
 		ag->ncorners = ag->corridor.findCorners(ag->cornerVerts, ag->cornerFlags, ag->cornerPolys,
-			DT_CROWDAGENT_MAX_CORNERS, m_navquery, &m_filters[ag->params.filter], ag->params.radius, bAllowCuttingCorners);
+			DT_CROWDAGENT_MAX_CORNERS, m_navquery, &m_filters[ag->params.filter],
+			ag->params.radius * m_pathOffsetRadiusMultiplier, ag->params.radius * 4.0f, bAllowCuttingCorners);
 
 		const int agIndex = getAgentIndex(ag);
 		if (debugIdx == agIndex)
@@ -1870,4 +1872,9 @@ dtQueryFilter* dtCrowd::getEditableFilter(const int idx)
 void dtCrowd::setSeparationFilter(float InFilter)
 {
 	m_separationDirFilter = InFilter;
+}
+
+void dtCrowd::setPathOffsetRadiusMultiplier(float RadiusMultiplier)
+{
+	m_pathOffsetRadiusMultiplier = RadiusMultiplier;
 }

@@ -118,7 +118,7 @@ UEdGraphNode* FMaterialGraphSchemaAction_NewFunctionCall::PerformAction(class UE
 	{
 		UMaterialFunction* MaterialFunction = LoadObject<UMaterialFunction>(NULL, *FunctionPath, NULL, 0, NULL);
 		UMaterialGraph* MaterialGraph = CastChecked<UMaterialGraph>(ParentGraph);
-		if(FunctionNode->SetMaterialFunction(MaterialGraph->MaterialFunction, NULL, MaterialFunction))
+		if(FunctionNode->SetMaterialFunction(MaterialFunction))
 		{
 			FunctionNode->PostEditChange();
 			FMaterialEditorUtilities::UpdateSearchResults(ParentGraph);
@@ -657,7 +657,7 @@ void UMaterialGraphSchema::BreakSinglePinLink(UEdGraphPin* SourcePin, UEdGraphPi
 	}
 }
 
-void UMaterialGraphSchema::DroppedAssetsOnGraph(const TArray<class FAssetData>& Assets, const FVector2D& GraphPosition, UEdGraph* Graph) const
+void UMaterialGraphSchema::DroppedAssetsOnGraph(const TArray<struct FAssetData>& Assets, const FVector2D& GraphPosition, UEdGraph* Graph) const
 {
 	UMaterialGraph* MaterialGraph = CastChecked<UMaterialGraph>(Graph);
 	const int32 LocOffsetBetweenNodes = 32;
@@ -685,7 +685,7 @@ void UMaterialGraphSchema::DroppedAssetsOnGraph(const TArray<class FAssetData>& 
 
 			if (!FunctionNode->MaterialFunction)
 			{
-				if(FunctionNode->SetMaterialFunction(MaterialGraph->MaterialFunction, NULL, Func))
+				if(FunctionNode->SetMaterialFunction(Func))
 				{
 					FunctionNode->PostEditChange();
 					FMaterialEditorUtilities::UpdateSearchResults(Graph);

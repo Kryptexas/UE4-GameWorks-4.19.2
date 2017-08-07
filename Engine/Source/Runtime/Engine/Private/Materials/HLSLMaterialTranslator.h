@@ -227,6 +227,9 @@ protected:
 	/** true if the material reads mesh particle transform in the pixel shader. */
 	uint32 bUsesParticleTransform : 1;
 
+	/** true if the material uses any type of vertex position */
+	uint32 bUsesVertexPosition : 1;
+
 	uint32 bUsesTransformVector : 1;
 	// True if the current property requires last frame's information
 	uint32 bCompilingPreviousFrame : 1;
@@ -279,6 +282,7 @@ public:
 	,	bUsesVertexColor(false)
 	,	bUsesParticleColor(false)
 	,	bUsesParticleTransform(false)
+	,	bUsesVertexPosition(false)
 	,	bUsesTransformVector(false)
 	,	bCompilingPreviousFrame(false)
 	,	bOutputsBasePassVelocities(true)
@@ -514,9 +518,9 @@ public:
 
 			if (Domain == MD_Surface)
 			{
-				if (Material->GetBlendMode() == BLEND_Modulate && Material->IsSeparateTranslucencyEnabled())
+				if (Material->GetBlendMode() == BLEND_Modulate && Material->IsTranslucencyAfterDOFEnabled())
 				{
-					Errorf(TEXT("Separate translucency with BLEND_Modulate is not supported. Consider using BLEND_Translucent with black emissive"));
+					Errorf(TEXT("Translucency after DOF with BLEND_Modulate is not supported. Consider using BLEND_Translucent with black emissive"));
 				}
 			}
 
@@ -825,7 +829,7 @@ public:
 				ResourcesString += CustomOutputImplementations[ExpressionIndex] + "\r\n\r\n";
 			}
 
-			LoadShaderSourceFileChecked(TEXT("MaterialTemplate"), MaterialTemplate);
+			LoadShaderSourceFileChecked(TEXT("/Engine/Private/MaterialTemplate.ush"), MaterialTemplate);
 
 			// Find the string index of the '#line' statement in MaterialTemplate.usf
 			const int32 LineIndex = MaterialTemplate.Find(TEXT("#line"), ESearchCase::CaseSensitive);
@@ -1012,7 +1016,7 @@ public:
 
 	FString GetMaterialShaderCode()
 	{	
-		// use "MaterialTemplate.usf" to create the functions to get data (e.g. material attributes) and code (e.g. material expressions to create specular color) from C++
+		// use "/Engine/Private/MaterialTemplate.ush" to create the functions to get data (e.g. material attributes) and code (e.g. material expressions to create specular color) from C++
 		FLazyPrintf LazyPrintf(*MaterialTemplate);
 
 		const uint32 NumCustomVectors = FMath::DivideAndRoundUp((uint32)CurrentCustomVertexInterpolatorOffset, 2u);
@@ -1455,7 +1459,7 @@ protected:
 		check(UniformExpression);
 
 		// Only a texture uniform expression can have MCT_Texture type
-		if ((Type & MCT_Texture) && !UniformExpression->GetTextureUniformExpression())
+		if ((Type & MCT_Texture) && !UniformExpression->GetTextureUniformExpression() && !UniformExpression->GetExternalTextureUniformExpression())
 		{
 			return Errorf(TEXT("Operation not supported on a Texture"));
 		}
@@ -1535,9 +1539,11 @@ protected:
 		check(CodeChunk.UniformExpression && !CodeChunk.UniformExpression->IsConstant());
 
 		FMaterialUniformExpressionTexture* TextureUniformExpression = CodeChunk.UniformExpression->GetTextureUniformExpression();
+		FMaterialUniformExpressionExternalTexture* ExternalTextureUniformExpression = CodeChunk.UniformExpression->GetExternalTextureUniformExpression();
+
 		// Any code chunk can have a texture uniform expression (eg FMaterialUniformExpressionFlipBookTextureParameter),
 		// But a texture code chunk must have a texture uniform expression
-		check(!(CodeChunk.Type & MCT_Texture) || TextureUniformExpression);
+		check(!(CodeChunk.Type & MCT_Texture) || TextureUniformExpression || ExternalTextureUniformExpression);
 
 		TCHAR FormattedCode[MAX_SPRINTF]=TEXT("");
 		if(CodeChunk.Type == MCT_Float)
@@ -1608,6 +1614,10 @@ protected:
 			case MCT_TextureCube:
 				TextureInputIndex = MaterialCompilationOutput.UniformExpressionSet.UniformCubeTextureExpressions.AddUnique(TextureUniformExpression);
 				BaseName = TEXT("TextureCube");
+				break;
+			case MCT_TextureExternal:
+				TextureInputIndex = MaterialCompilationOutput.UniformExpressionSet.UniformExternalTextureExpressions.AddUnique(ExternalTextureUniformExpression);
+				BaseName = TEXT("ExternalTexture");
 				break;
 			default: UE_LOG(LogMaterial, Fatal,TEXT("Unrecognized texture material value type: %u"),(int32)CodeChunk.Type);
 			};
@@ -2879,6 +2889,8 @@ protected:
 			FunctionNamePattern.ReplaceInline(TEXT("<NO_MATERIAL_OFFSETS>"), TEXT(""));
 		}
 
+		bUsesVertexPosition = true;
+
 		return AddInlinedCodeChunk(MCT_Float3, TEXT("%s(Parameters)"), *FunctionNamePattern);
 	}
 
@@ -2986,7 +2998,8 @@ protected:
 	{
 		// For WebGL 1 which is essentially GLES2.0, we can safely assume a higher number of supported vertex attributes
 		// even when we are compiling ES 2 feature level shaders.
-		const uint32 MaxNumCoordinates = ((Platform == SP_OPENGL_ES2_WEBGL) || (FeatureLevel != ERHIFeatureLevel::ES2)) ? 8 : 3;
+		// For UI materials can safely use more texture coordinates due to how they are packed in the slate material shader
+		const uint32 MaxNumCoordinates = ((Platform == SP_OPENGL_ES2_WEBGL) || (FeatureLevel != ERHIFeatureLevel::ES2) || Material->IsUIMaterial()) ? 8 : 3;
 
 		if (CoordinateIndex >= MaxNumCoordinates)
 		{
@@ -3061,7 +3074,7 @@ protected:
 
 		EMaterialValueType TextureType = GetParameterType(TextureIndex);
 
-		if(TextureType != MCT_Texture2D && TextureType != MCT_TextureCube)
+		if(TextureType != MCT_Texture2D && TextureType != MCT_TextureCube && TextureType != MCT_TextureExternal)
 		{
 			Errorf(TEXT("Sampling unknown texture type: %s"),DescribeType(TextureType));
 			return INDEX_NONE;
@@ -3104,16 +3117,18 @@ protected:
 			SamplerStateCode = TEXT("GetMaterialSharedSampler(%sSampler,Material.Clamp_WorldGroupSettings)");
 		}
 
-		FString SampleCode = 
-			(TextureType == MCT_TextureCube)
-			? TEXT("TextureCubeSample")
-			: TEXT("Texture2DSample");
+		FString SampleCode =
+			(TextureType == MCT_TextureCube) ?
+			TEXT("TextureCubeSample") :
+			(TextureType == MCT_TextureExternal) ?
+			TEXT("TextureExternalSample") :
+			TEXT("Texture2DSample");
 		
 		EMaterialValueType UVsType = (TextureType == MCT_TextureCube) ? MCT_Float3 : MCT_Float2;
 	
 		if(MipValueMode == TMVM_None)
 		{
-			SampleCode += FString(TEXT("(%s,")) + SamplerStateCode + TEXT(",%s)");
+			SampleCode += TEXT("(%s,") + SamplerStateCode + TEXT(",%s)");
 		}
 		else if(MipValueMode == TMVM_MipLevel)
 		{
@@ -3126,11 +3141,11 @@ protected:
 				return INDEX_NONE;
 			}
 
-			SampleCode += TEXT("Level(%s,%sSampler,%s,%s)");
+			SampleCode += TEXT("Level(%s,") + SamplerStateCode + TEXT(",%s,%s)");
 		}
 		else if(MipValueMode == TMVM_MipBias)
 		{
-			SampleCode += TEXT("Bias(%s,%sSampler,%s,%s)");
+			SampleCode += TEXT("Bias(%s,") + SamplerStateCode + TEXT(",%s,%s)");
 		}
 		else if(MipValueMode == TMVM_Derivative)
 		{
@@ -3143,7 +3158,7 @@ protected:
 				return Errorf(TEXT("Missing DDY(UVs) parameter"));
 			}
 
-			SampleCode += TEXT("Grad(%s,%sSampler,%s,%s,%s)");
+			SampleCode += TEXT("Grad(%s,") + SamplerStateCode + TEXT(",%s,%s,%s)");
 
 			MipValue0Code = CoerceParameter(MipValue0Index, UVsType);
 			MipValue1Code = CoerceParameter(MipValue1Index, UVsType);
@@ -3194,9 +3209,11 @@ protected:
 		}
 
 		FString TextureName =
-			(TextureType == MCT_TextureCube)
-			? CoerceParameter(TextureIndex, MCT_TextureCube)
-			: CoerceParameter(TextureIndex, MCT_Texture2D);
+			(TextureType == MCT_TextureCube) ?
+			CoerceParameter(TextureIndex, MCT_TextureCube) :
+			(TextureType == MCT_Texture2D) ?
+			CoerceParameter(TextureIndex, MCT_Texture2D) :
+			CoerceParameter(TextureIndex, MCT_TextureExternal);
 
 		FString UVs = CoerceParameter(CoordinateIndex, UVsType);
 
@@ -3367,9 +3384,10 @@ protected:
 
 		UseSceneTextureId(SceneTextureId, true);
 
+		FString DefaultScreenAligned(TEXT("ScreenAlignedPosition(GetScreenPosition(Parameters))"));
+
 		if (FeatureLevel >= ERHIFeatureLevel::SM4)
 		{
-			FString DefaultScreenAligned(TEXT("ScreenAlignedPosition(GetScreenPosition(Parameters))"));
 			FString TexCoordCode((UV != INDEX_NONE) ? CoerceParameter(UV, MCT_Float2) : DefaultScreenAligned);
 			
 			return AddCodeChunk(
@@ -3378,14 +3396,16 @@ protected:
 				*TexCoordCode, (int)SceneTextureId, bFiltered ? TEXT("true") : TEXT("false")
 				);
 		}
-		else
+		else // mobile
 		{
-			if (UV == INDEX_NONE)
+			if (UV == INDEX_NONE && Material->GetMaterialDomain() == MD_PostProcess)
 			{
-				// Avoid UV computation in a pixel shader
+				// Avoid UV computation in a PP pixel shader
 				UV = TextureCoordinate(0, false, false);
 			}
-			FString TexCoordCode = CoerceParameter(UV, MCT_Float2);
+			
+			FString TexCoordCode = ((UV != INDEX_NONE) ? CoerceParameter(UV, MCT_Float2) : DefaultScreenAligned);
+			
 			return AddCodeChunk(MCT_Float4,	TEXT("MobileSceneTextureLookup(Parameters, %d, %s)"), (int32)SceneTextureId, *TexCoordCode);
 		}
 	}
@@ -3634,7 +3654,7 @@ protected:
 	virtual int32 TextureParameter(FName ParameterName,UTexture* DefaultValue,int32& TextureReferenceIndex,ESamplerSourceMode SamplerSource=SSM_FromTextureAsset) override
 	{
 		if (ShaderFrequency != SF_Pixel
-			&& ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
+			&& ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::ES3_1) == INDEX_NONE)
 		{
 			return INDEX_NONE;
 		}
@@ -3643,6 +3663,16 @@ protected:
 		TextureReferenceIndex = Material->GetReferencedTextures().Find(DefaultValue);
 		checkf(TextureReferenceIndex != INDEX_NONE, TEXT("Material expression called Compiler->TextureParameter() without implementing UMaterialExpression::GetReferencedTexture properly"));
 		return AddUniformExpression(new FMaterialUniformExpressionTextureParameter(ParameterName, TextureReferenceIndex, SamplerSource),ShaderType,TEXT(""));
+	}
+
+	virtual int32 ExternalTexture(const FGuid& ExternalTextureGuid) override
+	{
+		if (ShaderFrequency != SF_Pixel)
+		{
+			return INDEX_NONE;
+		}
+
+		return AddUniformExpression(new FMaterialUniformExpressionExternalTexture(ExternalTextureGuid), MCT_TextureExternal, TEXT(""));
 	}
 
 	virtual int32 GetTextureReferenceIndex(UTexture* TextureValue)
@@ -4001,6 +4031,21 @@ protected:
 		}
 
 		return AddCodeChunk(GetParameterType(X),TEXT("log2(%s)"),*GetParameterCode(X));
+	}
+
+	virtual int32 Logarithm10(int32 X) override
+	{
+		if(X == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+		
+		if(GetParameterUniformExpression(X))
+		{
+			return AddUniformExpression(new FMaterialUniformExpressionLogarithm10(GetParameterUniformExpression(X)),GetParameterType(X),TEXT("log10(%s)"),*GetParameterCode(X));
+		}
+
+		return AddCodeChunk(GetParameterType(X),TEXT("log10(%s)"),*GetParameterCode(X));
 	}
 
 	virtual int32 SquareRoot(int32 X) override
@@ -4468,6 +4513,11 @@ protected:
 		
 		CodeStr.ReplaceInline(TEXT("<A>"), *GetParameterCode(A));
 
+		if (ShaderFrequency != SF_Vertex && (DestCoordBasis == MCB_Tangent || SourceCoordBasis == MCB_Tangent))
+		{
+			bUsesTransformVector = true;
+		}
+
 		return AddCodeChunk(
 			MCT_Float3,
 			*CodeStr
@@ -4716,6 +4766,34 @@ protected:
 		return AddCodeChunk(MCT_Float, 
 			TEXT("MaterialExpressionDepthOfFieldFunction(%s, %d)"), 
 			*GetParameterCode(Depth), FunctionValueIndex);
+	}
+
+	virtual int32 Sobol(int32 Cell, int32 Index, int32 Seed) override
+	{
+		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::ES3_1) == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
+		return AddCodeChunk(MCT_Float2,
+			TEXT("floor(%s) + float2(SobolIndex(SobolPixel(uint2(%s)), uint(%s)) ^ uint2(%s * 0x10000) & 0xffff) / 0x10000"),
+			*GetParameterCode(Cell),
+			*GetParameterCode(Cell),
+			*GetParameterCode(Index),
+			*GetParameterCode(Seed));
+	}
+
+	virtual int32 TemporalSobol(int32 Index, int32 Seed) override
+	{
+		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::ES3_1) == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
+		return AddCodeChunk(MCT_Float2,
+			TEXT("float2(SobolIndex(SobolPixel(uint2(Parameters.SvPosition.xy)), uint(View.StateFrameIndexMod8 + 8 * %s)) ^ uint2(%s * 0x10000) & 0xffff) / 0x10000"),
+			*GetParameterCode(Index),
+			*GetParameterCode(Seed));
 	}
 
 	virtual int32 Noise(int32 Position, float Scale, int32 Quality, uint8 NoiseFunction, bool bTurbulence, int32 Levels, float OutputMin, float OutputMax, float LevelScale, int32 FilterWidth, bool bTiling, uint32 RepeatSize) override

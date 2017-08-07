@@ -15,9 +15,12 @@ class UVREditorMode;
 UCLASS()
 class UVREditorAutoScaler: public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
 
 public:
+
+	/** Default constructor */
+	UVREditorAutoScaler();
 
 	/** Initializes the automatic scaler */
 	void Init( class UVREditorMode* InVRMode );
@@ -37,8 +40,4 @@ private:
 	/** Owning mode */
 	UPROPERTY()
 	UVREditorMode* VRMode;
-
-	/** Teleport sound */
-	UPROPERTY()
-	class USoundCue* ScaleSound;
 };

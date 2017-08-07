@@ -1,10 +1,19 @@
-Availability:Docs
+Availability:Public
 Title:Creating Drag and Drop UI
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
 Description:Shows how you can create drag and droppable UI widgets with UMG. 
 Version: 4.15
 SkillLevel: Intermediate
+parent:Engine/UMG/HowTo
+order:1
+checkpoint: editorqs
+Related: Engine/UMG
+Related: Engine/UMG/UserGuide
 tags:UMG UI Designer
+tags:UI
+type:how-to
+
+
 
 There may be instances in your project where you want your players to be able to interact with UI elements by dragging and dropping them onscreen. 
 This could be to customize interface layouts (positioning health bars or unit frames) or interacting with gameplay systems like inventory screens (adding/removing items around). 
@@ -13,15 +22,21 @@ With UMG you can create these types of interactions with the **DragAndDropOperat
 In this example, we take a look at how a player can drag and reposition a health bar on screen with the Left Mouse Button.
 
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-kYkhxuJsVs4
-[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	kYkhxuJsVs4
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
 [/OBJECT]
 
 _At the end of this guide, you will have a UI widget that you can drag around inside the viewport and drop at a new location._

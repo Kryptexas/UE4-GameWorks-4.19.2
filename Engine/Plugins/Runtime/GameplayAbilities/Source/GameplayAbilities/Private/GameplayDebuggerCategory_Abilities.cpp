@@ -1,12 +1,14 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
 #include "GameplayDebuggerCategory_Abilities.h"
+
+#if WITH_GAMEPLAY_DEBUGGER
+
 #include "GameplayTagContainer.h"
 #include "GameplayAbilitySpec.h"
 #include "GameplayEffect.h"
 #include "AbilitySystemGlobals.h"
 #include "AbilitySystemComponent.h"
-
-#if WITH_GAMEPLAY_DEBUGGER
 
 FGameplayDebuggerCategory_Abilities::FGameplayDebuggerCategory_Abilities()
 {

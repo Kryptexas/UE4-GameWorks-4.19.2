@@ -1,8 +1,14 @@
-Availability:Public
-Title:Panini projection
-Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
-Description:3D projection that fixes the perspective projection's geometric distortion on sides of the view having a wide FOV.
-
+Availability: Public
+Crumbs: %ROOT%
+Title: Panini Projection
+Description: 3D projection that fixes the perspective projection's geometric distortion on sides of the view having a wide FOV.
+Type: Overview
+SkillLevel:Beginner
+Version:4.16
+Parent:Engine/Rendering/PostProcessEffects
+Order:7
+Tags:Post Process
+Topic-image:PaniniProjection_Topic.png
 
 ## Configuration
 

@@ -50,6 +50,7 @@
 #include "Misc/ExclusiveLoadPackageTimeTracker.h"
 #include "Serialization/DeferredMessageLog.h"
 #include "UObject/CoreRedirects.h"
+#include "HAL/LowLevelMemTracker.h"
 
 DEFINE_LOG_CATEGORY(LogObj);
 
@@ -533,6 +534,12 @@ void UObject::PostEditUndo(TSharedPtr<ITransactionObjectAnnotation> TransactionA
 	UObject::PostEditUndo();
 }
 
+
+bool UObject::IsSelectedInEditor() const
+{
+	return !IsPendingKill() && GSelectedObjectAnnotation.Get(this);
+}
+
 #endif // WITH_EDITOR
 
 
@@ -755,22 +762,38 @@ FString UObject::GetDetailedInfo() const
 }
 
 #if WITH_ENGINE
+
+#if DO_CHECK
+// Used to check to see if a derived class actually implemented GetWorld() or not, but only on the game thread
 bool bGetWorldOverridden = false;
+#endif
 
 class UWorld* UObject::GetWorld() const
 {
-	bGetWorldOverridden = false;
-	return NULL;
+#if DO_CHECK
+	if (IsInGameThread())
+	{
+		bGetWorldOverridden = false;
+	}
+#endif
+	return nullptr;
 }
 
 class UWorld* UObject::GetWorldChecked(bool& bSupported) const
 {
-	bGetWorldOverridden = true;
+#if DO_CHECK
+	const bool bGameThread = IsInGameThread();
+	if (bGameThread)
+	{
+		bGetWorldOverridden = true;
+	}
+#endif
+
 	UWorld* World = GetWorld();
 
-	if (!bGetWorldOverridden)
-	{
 #if DO_CHECK
+	if (bGameThread && !bGetWorldOverridden)
+	{
 		static TSet<UClass*> ReportedClasses;
 
 		UClass* UnsupportedClass = GetClass();
@@ -784,23 +807,33 @@ class UWorld* UObject::GetWorldChecked(bool& bSupported) const
 				ParentHierarchy += FString::Printf(TEXT(", %s"), *SuperClass->GetName());
 			}
 
-			ensureMsgf(false, TEXT("Unsupported context object of class %s (SuperClass(es) - %s). You must add a way to retrieve a UWorld context for this class."), *UnsupportedClass->GetName(), *ParentHierarchy);
+			ensureAlwaysMsgf(false, TEXT("Unsupported context object of class %s (SuperClass(es) - %s). You must add a way to retrieve a UWorld context for this class."), *UnsupportedClass->GetName(), *ParentHierarchy);
 
 			ReportedClasses.Add(UnsupportedClass);
 		}
-#endif
 	}
 
-	bSupported = bGetWorldOverridden;
+	bSupported = bGameThread ? bGetWorldOverridden : (World != nullptr);
+	check(World && bSupported);
+#else
+	bSupported = World != nullptr;
+#endif
+
 	return World;
 }
 
 bool UObject::ImplementsGetWorld() const
 {
+#if DO_CHECK
+	check(IsInGameThread());
 	bGetWorldOverridden = true;
 	GetWorld();
 	return bGetWorldOverridden;
+#else
+	return true;
+#endif	
 }
+
 #endif
 
 #define PROFILE_ConditionalBeginDestroy (0)
@@ -857,14 +890,14 @@ bool UObject::ConditionalBeginDestroy()
 		TotalTime += ThisTime;
 		if ((++TotalCnt) % 1000 == 0)
 		{
-			UE_LOG(LogTemp, Log, TEXT("ConditionalBeginDestroy %d cnt %fus"), TotalCnt, 1000.0f * 1000.0f * TotalTime / float(TotalCnt));
+			UE_LOG(LogObj, Log, TEXT("ConditionalBeginDestroy %d cnt %fus"), TotalCnt, 1000.0f * 1000.0f * TotalTime / float(TotalCnt));
 
 			MyProfile.ValueSort(TLess<FTimeCnt>());
 
 			int32 NumPrint = 0;
 			for (auto& Item : MyProfile)
 			{
-				UE_LOG(LogTemp, Log, TEXT("    %6d cnt %6.2fus per   %6.2fms total  %s"), Item.Value.Count, 1000.0f * 1000.0f * Item.Value.TotalTime / float(Item.Value.Count), 1000.0f * Item.Value.TotalTime, *Item.Key.ToString());
+				UE_LOG(LogObj, Log, TEXT("    %6d cnt %6.2fus per   %6.2fms total  %s"), Item.Value.Count, 1000.0f * 1000.0f * Item.Value.TotalTime / float(Item.Value.Count), 1000.0f * Item.Value.TotalTime, *Item.Key.ToString());
 				if (NumPrint++ > 30)
 				{
 					break;
@@ -949,7 +982,13 @@ void UObject::ConditionalPostLoad()
 			}
 			else
 			{
+				LLM_SCOPED_SINGLE_MALLOC_STAT_TAG(PostLoadMemory);
+				LLM_SCOPED_TAG_WITH_OBJECT_IN_SET(GetOutermost(), ELLMTagSet::Assets);
+				LLM_SCOPED_TAG_WITH_OBJECT_IN_SET(GetClass()->IsChildOf(UDynamicClass::StaticClass()) ? UDynamicClass::StaticClass() : GetClass(), ELLMTagSet::AssetClasses);
+
 				PostLoad();
+
+				LLM_PUSH_STATS_FOR_ASSET_TAGS();
 			}
 		}
 
@@ -1084,7 +1123,11 @@ bool UObject::Modify( bool bAlwaysMarkDirty/*=true*/ )
 
 bool UObject::IsSelected() const
 {
-	return !IsPendingKill() && GSelectedAnnotation.Get(this);
+#if WITH_EDITOR
+	return IsSelectedInEditor();
+#else
+	return false;
+#endif
 }
 
 void UObject::GetPreloadDependencies(TArray<UObject*>& OutDeps)
@@ -1558,9 +1601,10 @@ void UObject::FAssetRegistryTag::GetAssetRegistryTagsFromSearchableProperties(co
 				// enums are alphabetical
 				TagType = FAssetRegistryTag::TT_Alphabetical;
 			}
-			else if ( Class->IsChildOf(UArrayProperty::StaticClass()) )
+			else if (Class->IsChildOf(UArrayProperty::StaticClass()) || Class->IsChildOf(UMapProperty::StaticClass()) || Class->IsChildOf(USetProperty::StaticClass())
+				|| Class->IsChildOf(UStructProperty::StaticClass()) || Class->IsChildOf(UObjectPropertyBase::StaticClass()))
 			{
-				// arrays are hidden, it is often too much information to display and sort
+				// Arrays/maps/sets/structs/objects are hidden, it is often too much information to display and sort
 				TagType = FAssetRegistryTag::TT_Hidden;
 			}
 			else
@@ -1639,7 +1683,7 @@ void UObject::GetAssetRegistryTagMetadata(TMap<FName, FAssetRegistryTagMetadata>
 bool UObject::IsAsset() const
 {
 	// Assets are not transient or CDOs. They must be public.
-	const bool bHasValidObjectFlags = !HasAnyFlags(RF_Transient | RF_ClassDefaultObject) && HasAnyFlags(RF_Public);
+	const bool bHasValidObjectFlags = !HasAnyFlags(RF_Transient | RF_ClassDefaultObject) && HasAnyFlags(RF_Public) && !IsPendingKill();
 
 	if ( bHasValidObjectFlags )
 	{
@@ -3303,7 +3347,7 @@ bool StaticExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 
 			if (Class != NULL)
 			{
-				Ar.Logf(TEXT("Listing functions introduced in class %s (class flags = %d)"), ClassName, Class->GetClassFlags());
+				Ar.Logf(TEXT("Listing functions introduced in class %s (class flags = 0x%08X)"), ClassName, (uint32)Class->GetClassFlags());
 				for (TFieldIterator<UFunction> It(Class); It; ++It)
 				{
 					UFunction* Function = *It;
@@ -4031,17 +4075,11 @@ void InitUObject()
 	
 
 
-#if WITH_EDITORONLY_DATA
-	const FString CommandLine = FCommandLine::Get();
-
-	// this is a hack to give fixup redirects insight into the startup packages
-	if (CommandLine.Contains(TEXT("fixupredirects")) )
-	{
-		FCoreUObjectDelegates::RedirectorFollowed.AddRaw(&GRedirectCollector, &FRedirectCollector::OnRedirectorFollowed);
-	}
-
+#if WITH_EDITOR
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	FCoreUObjectDelegates::StringAssetReferenceLoaded.BindRaw(&GRedirectCollector, &FRedirectCollector::OnStringAssetReferenceLoaded);
 	FCoreUObjectDelegates::StringAssetReferenceSaving.BindRaw(&GRedirectCollector, &FRedirectCollector::OnStringAssetReferenceSaved);
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 #endif
 
 	// Object initialization.

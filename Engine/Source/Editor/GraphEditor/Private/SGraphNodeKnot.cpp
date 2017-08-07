@@ -126,21 +126,14 @@ void FAmbivalentDirectionDragConnection::ValidateGraphPinList(TArray<UEdGraphPin
 
 		if (UEdGraphPin* TargetPinObj = GetHoveredPin())
 		{
-// 			if (UK2Node_Knot* TargetKnot = Cast<UK2Node_Knot>(TargetPinObj->GetOwningNode()))
-// 			{
-// 				// The visible pin on a knot is always an output, so Rely on the direction matching; since the visible pin on another knot is always an output
-// 			}
-// 			else
+			// Dragging to another pin, pick the opposite direction as a source to maximize connection chances
+			if (TargetPinObj->Direction == EGPD_Input)
 			{
-				// Dragging to another pin, pick the opposite direction as a source to maximize connection chances
-				if (TargetPinObj->Direction == EGPD_Input)
-				{
-					bUseOutput = true;
-				}
-				else
-				{
-					bUseOutput = false;
-				}
+				bUseOutput = true;
+			}
+			else
+			{
+				bUseOutput = false;
 			}
 		}
 

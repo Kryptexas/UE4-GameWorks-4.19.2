@@ -37,6 +37,15 @@ struct FLoginFlowResult
 		const bool bError = !Error.bSucceeded && Error.NumericErrorCode;
 		return bSuccess || bError;
 	}
+
+	FString ToDebugString() const
+	{
+#if UE_BUILD_SHIPPING
+		return FString::Printf(TEXT("Token: [REDACTED] Error: %s"), Error.ToLogString());
+#else
+		return FString::Printf(TEXT("Token: %s Error: %s"), *Token, Error.ToLogString());
+#endif
+	}
 };
 
 /**
@@ -157,10 +166,15 @@ struct FShowWebUrlParams
 	{}
 };
 
+typedef FString FUniqueOfferId;
+
 struct FShowStoreParams
 {
 	/** Category filter for products to browse */
 	FString Category;
+
+	/** Product to show directly instead of the whole store */
+	FUniqueOfferId ProductId;
 
 	/**
 	 * Constructor

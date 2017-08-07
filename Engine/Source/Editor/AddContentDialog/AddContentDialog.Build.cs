@@ -9,8 +9,7 @@ public class AddContentDialog : ModuleRules
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {
 				"AssetTools",
-				"ContentBrowser",
-				"SuperSearch"
+				"ContentBrowser"
 			}
 		);
 
@@ -30,17 +29,6 @@ public class AddContentDialog : ModuleRules
 				"CoreUObject",				
 				"WidgetCarousel",				
 			
-			}
-		);
-
-		DynamicallyLoadedModuleNames.AddRange(
-			new string[] {
-				"SuperSearch",
-			}
-		);
-		
-		PublicIncludePathModuleNames.AddRange(
-			new string[] {
 			}
 		);
 

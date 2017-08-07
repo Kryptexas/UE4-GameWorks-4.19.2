@@ -16,5 +16,5 @@ public:
 	virtual UClass* GetSupportedClass() const = 0;
 
 	/** Optionally returns a custom widget to overlay on top of this assets' thumbnail */
-	virtual TSharedPtr<class SWidget> GetThumbnailOverlay(const class FAssetData& AssetData) const = 0;
+	virtual TSharedPtr<class SWidget> GetThumbnailOverlay(const struct FAssetData& AssetData) const = 0;
 };

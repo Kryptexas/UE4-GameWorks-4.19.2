@@ -6,6 +6,7 @@
 
 #include "Async/TaskGraphInterfaces.h"
 #include "Misc/CoreDelegates.h"
+#include "Misc/ConfigCacheIni.h"
 
 #include "Android/AndroidJNI.h"
 #include "Android/AndroidApplication.h"
@@ -13,21 +14,14 @@
 
 DEFINE_LOG_CATEGORY( LogGoogleCloudMessaging );
 
-class FAndroigGoogleCloudMessaging : public IGoogleCloudMessagingModuleInterface
+class FAndroidGoogleCloudMessaging : public IGoogleCloudMessagingModuleInterface
 {
-	virtual void RegisterForRemoteNotifications() override;
 };
 
-IMPLEMENT_MODULE( FAndroigGoogleCloudMessaging, GoogleCloudMessaging )
+IMPLEMENT_MODULE(FAndroidGoogleCloudMessaging, GoogleCloudMessaging)
 
-void FAndroigGoogleCloudMessaging::RegisterForRemoteNotifications()
-{
-	if( JNIEnv* Env = FAndroidApplication::GetJavaEnv() )
-	{
-		jmethodID jRegisterForRemoteNotifications = FJavaWrapper::FindMethod( Env, FJavaWrapper::GameActivityClassID, "AndroidThunkJava_RegisterForRemoteNotifications", "()V", false );
-		FJavaWrapper::CallVoidMethod( Env, FJavaWrapper::GameActivityThis, jRegisterForRemoteNotifications, false );
-	}
-}
+static TArray<uint8> GCMTokenBytes;
+static FString GCMErrorMessage = TEXT("");
 
 // registered for remote notifications
 JNI_METHOD void Java_com_epicgames_ue4_GameActivity_nativeGCMRegisteredForRemoteNotifications( JNIEnv* jenv, jobject thiz, jstring jGCMToken )
@@ -35,9 +29,9 @@ JNI_METHOD void Java_com_epicgames_ue4_GameActivity_nativeGCMRegisteredForRemote
 	auto GCMTokenLength = jenv->GetStringUTFLength( jGCMToken );
 	const char* GCMTokenChars = jenv->GetStringUTFChars( jGCMToken, 0 );
 
-	TArray<uint8> GCMTokenBytes;
-	GCMTokenBytes.AddUninitialized( GCMTokenLength );
-	FMemory::Memcpy( GCMTokenBytes.GetData(), GCMTokenChars, GCMTokenLength * sizeof( uint8 ) );
+	TArray<uint8> TokenBytes;
+	TokenBytes.AddUninitialized( GCMTokenLength );
+	FMemory::Memcpy( TokenBytes.GetData(), GCMTokenChars, GCMTokenLength * sizeof( uint8 ) );
 
 	FString GCMToken;
 	GCMToken = FString( UTF8_TO_TCHAR( GCMTokenChars ) );
@@ -47,6 +41,7 @@ JNI_METHOD void Java_com_epicgames_ue4_GameActivity_nativeGCMRegisteredForRemote
 	FSimpleDelegateGraphTask::CreateAndDispatchWhenReady( FSimpleDelegateGraphTask::FDelegate::CreateLambda( [=]() {
 		UE_LOG(LogGoogleCloudMessaging, Display, TEXT("GCM Registration Token: %s"), *GCMToken);
 
+		GCMTokenBytes = TokenBytes;
 		FCoreDelegates::ApplicationRegisteredForRemoteNotificationsDelegate.Broadcast( GCMTokenBytes );
 	}), TStatId(), nullptr, ENamedThreads::GameThread );
 }
@@ -54,14 +49,15 @@ JNI_METHOD void Java_com_epicgames_ue4_GameActivity_nativeGCMRegisteredForRemote
 // failed to register for remote notifications
 JNI_METHOD void Java_com_epicgames_ue4_GameActivity_nativeGCMFailedToRegisterForRemoteNotifications( JNIEnv* jenv, jobject thiz, jstring jErrorMessage )
 {
-	FString GCMErrorMessage;
+	FString ErrorMessage;
 	const char* GCMErrorMessageChars = jenv->GetStringUTFChars( jErrorMessage, 0 );
 	GCMErrorMessage = FString( UTF8_TO_TCHAR( GCMErrorMessageChars ) );
 	jenv->ReleaseStringUTFChars( jErrorMessage, GCMErrorMessageChars );
 
 	FSimpleDelegateGraphTask::CreateAndDispatchWhenReady( FSimpleDelegateGraphTask::FDelegate::CreateLambda( [=]() {
-		UE_LOG(LogGoogleCloudMessaging, Display, TEXT("GCM Registration Error: %s"), *GCMErrorMessage);
+		UE_LOG(LogGoogleCloudMessaging, Display, TEXT("GCM Registration Error: %s"), *ErrorMessage);
 
+		GCMErrorMessage = ErrorMessage;
 		FCoreDelegates::ApplicationFailedToRegisterForRemoteNotificationsDelegate.Broadcast( GCMErrorMessage );
 	}), TStatId(), nullptr, ENamedThreads::GameThread );
 }
@@ -90,7 +86,7 @@ JNI_METHOD void Java_com_epicgames_ue4_GameActivity_nativeGCMReceivedRemoteNotif
 	FSimpleDelegateGraphTask::CreateAndDispatchWhenReady( FSimpleDelegateGraphTask::FDelegate::CreateLambda( [=]() {
 		UE_LOG(LogGoogleCloudMessaging, Display, TEXT("GCM AppState = %d, Message : %s"), AppState, *Message);
 
-		FCoreDelegates::ApplicationReceivedRemoteNotificationDelegate.Broadcast( Message /* , AppState */ );
+		FCoreDelegates::ApplicationReceivedRemoteNotificationDelegate.Broadcast( Message, AppState );
 	}), TStatId(), nullptr, ENamedThreads::GameThread );
 }
 

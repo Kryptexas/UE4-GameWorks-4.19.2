@@ -82,6 +82,7 @@ class ENGINE_API AGameStateBase : public AInfo
 	UFUNCTION(BlueprintCallable, Category=GameState)
 	virtual float GetPlayerRespawnDelay(AController* Controller) const;
 
+	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty > &OutLifetimeProps) const;
 
 	//~=============================================================================
 	// Interaction with GameModeBase

@@ -334,7 +334,7 @@ FIntPoint FSceneViewport::ViewportToVirtualDesktopPixel(FVector2D ViewportCoordi
 	return FIntPoint( FMath::TruncToInt(TransformedPoint.X), FMath::TruncToInt(TransformedPoint.Y) );
 }
 
-void FSceneViewport::OnDrawViewport( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled )
+void FSceneViewport::OnDrawViewport( const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled )
 {
 	// Switch to the viewport clients world before resizing
 	FScopedConditionalWorldSwitcher WorldSwitcher( ViewportClient );
@@ -374,8 +374,8 @@ void FSceneViewport::OnDrawViewport( const FGeometry& AllottedGeometry, const FS
 	FIntRect CanvasRect(
 		FMath::RoundToInt( CanvasMinX ),
 		FMath::RoundToInt( CanvasMinY ),
-		FMath::RoundToInt( CanvasMinX + AllottedGeometry.Size.X * AllottedGeometry.Scale ), 
-		FMath::RoundToInt( CanvasMinY + AllottedGeometry.Size.Y * AllottedGeometry.Scale ) );
+		FMath::RoundToInt( CanvasMinX + AllottedGeometry.GetLocalSize().X * AllottedGeometry.Scale ),
+		FMath::RoundToInt( CanvasMinY + AllottedGeometry.GetLocalSize().Y * AllottedGeometry.Scale ) );
 
 
 	DebugCanvasDrawer->BeginRenderingCanvas( CanvasRect );
@@ -1167,7 +1167,10 @@ void FSceneViewport::ResizeFrame(uint32 NewWindowSizeX, uint32 NewWindowSizeY, E
 			const FSlateRect BestWorkArea = FSlateApplication::Get().GetWorkArea(FSlateRect::FromPointAndExtent(OldWindowPos, OldWindowSize));
 
 			// A switch to window mode should position the window to be in the center of the work-area (we don't do this if we were already in window mode to allow the user to move the window)
-			// Fullscreen modes should position the window to the top-left of the work-area
+			// Fullscreen modes should position the window to the top-left of the monitor.
+			// If we're going into windowed fullscreen mode, we always want the window to fill the entire screen.
+			// When we calculate the scene view, we'll check the fullscreen mode and configure the screen percentage
+			// scaling so we actual render to the resolution we've been asked for.
 			if (NewWindowMode == EWindowMode::Windowed)
 			{
 				if (OldWindowMode == EWindowMode::Windowed && NewWindowSize == OldWindowSize)
@@ -1197,21 +1200,13 @@ void FSceneViewport::ResizeFrame(uint32 NewWindowSizeX, uint32 NewWindowSizeY, E
 			}
 			else
 			{
-				NewWindowPos = BestWorkArea.GetTopLeft();
-			}
-
-			// If we're going into windowed fullscreen mode, we always want the window to fill the entire screen.
-			// When we calculate the scene view, we'll check the fullscreen mode and configure the screen percentage
-			// scaling so we actual render to the resolution we've been asked for.
-			if (NewWindowMode == EWindowMode::WindowedFullscreen)
-			{
 				FDisplayMetrics DisplayMetrics;
 				FSlateApplication::Get().GetInitialDisplayMetrics(DisplayMetrics);
 
 				if (DisplayMetrics.MonitorInfo.Num() > 0)
 				{
 					// Try to find the monitor that the viewport belongs to based on BestWorkArea.
-					// For widowed fullscreen mode it should be top left position of one of monitors.
+					// For widowed fullscreen and fullscreen modes it should be top left position of one of monitors.
 					FPlatformRect DisplayRect = DisplayMetrics.MonitorInfo[0].DisplayRect;
 					for (int32 Index = 1; Index < DisplayMetrics.MonitorInfo.Num(); ++Index)
 					{
@@ -1223,14 +1218,22 @@ void FSceneViewport::ResizeFrame(uint32 NewWindowSizeX, uint32 NewWindowSizeY, E
 					}
 
 					NewWindowPos = FVector2D(DisplayRect.Left, DisplayRect.Top);
-					NewWindowSize.X = DisplayRect.Right - DisplayRect.Left;
-					NewWindowSize.Y = DisplayRect.Bottom - DisplayRect.Top;
+
+					if (NewWindowMode == EWindowMode::WindowedFullscreen)
+					{
+						NewWindowSize.X = DisplayRect.Right - DisplayRect.Left;
+						NewWindowSize.Y = DisplayRect.Bottom - DisplayRect.Top;
+					}
 				}
 				else
 				{
 					NewWindowPos = FVector2D(0.0f, 0.0f);
-					NewWindowSize.X = DisplayMetrics.PrimaryDisplayWidth;
-					NewWindowSize.Y = DisplayMetrics.PrimaryDisplayHeight;
+
+					if (NewWindowMode == EWindowMode::WindowedFullscreen)
+					{
+						NewWindowSize.X = DisplayMetrics.PrimaryDisplayWidth;
+						NewWindowSize.Y = DisplayMetrics.PrimaryDisplayHeight;
+					}
 				}
 			}
 
@@ -1367,6 +1370,15 @@ FCanvas* FSceneViewport::GetDebugCanvas()
 	return DebugCanvasDrawer->GetGameThreadDebugCanvas();
 }
 
+float FSceneViewport::GetDisplayGamma() const
+{
+	if (ViewportGammaOverride.IsSet())
+	{
+		return ViewportGammaOverride.GetValue();
+	}
+	return	FViewport::GetDisplayGamma();
+}
+
 const FTexture2DRHIRef& FSceneViewport::GetRenderTargetTexture() const
 {
 	if (IsInRenderingThread())
@@ -1420,7 +1432,7 @@ void FSceneViewport::UpdateViewportRHI(bool bDestroyed, uint32 NewSizeX, uint32 
 			if( !UseSeparateRenderTarget() )
 			{
 				// Get the viewport for this window from the renderer so we can render directly to the backbuffer
-				TSharedPtr<FSlateRenderer> Renderer = FSlateApplication::Get().GetRenderer();
+				FSlateRenderer* Renderer = FSlateApplication::Get().GetRenderer();
 				FWidgetPath WidgetPath;
 				void* ViewportResource = Renderer->GetViewportResource( *FSlateApplication::Get().FindWidgetWindow( ViewportWidget.Pin().ToSharedRef(), WidgetPath ) );
 				if( ViewportResource )
@@ -1482,10 +1494,10 @@ void FSceneViewport::EnqueueBeginRenderFrame()
 	// If we dont have the ViewportRHI then we need to get it before rendering
 	// Note, we need ViewportRHI even if UseSeparateRenderTarget() is true when stereo rendering
 	// is enabled.
-	if (!IsValidRef(ViewportRHI) && (!UseSeparateRenderTarget() || (GEngine->StereoRenderingDevice.IsValid() && GEngine->StereoRenderingDevice->IsStereoEnabled())) )
+	if (!IsValidRef(ViewportRHI) && (!UseSeparateRenderTarget() || (GEngine->StereoRenderingDevice.IsValid() && GEngine->StereoRenderingDevice->IsStereoEnabled() && IsStereoRenderingAllowed())) )
 	{
 		// Get the viewport for this window from the renderer so we can render directly to the backbuffer
-		TSharedPtr<FSlateRenderer> Renderer = FSlateApplication::Get().GetRenderer();
+		FSlateRenderer* Renderer = FSlateApplication::Get().GetRenderer();
 		FWidgetPath WidgetPath;
 		if (ViewportWidget.IsValid())
 		{
@@ -1515,7 +1527,7 @@ void FSceneViewport::EnqueueBeginRenderFrame()
 
 	FViewport::EnqueueBeginRenderFrame();
 
-	if (GEngine->StereoRenderingDevice.IsValid())
+	if (GEngine->StereoRenderingDevice.IsValid() && IsStereoRenderingAllowed())
 	{
 		GEngine->StereoRenderingDevice->UpdateViewport(UseSeparateRenderTarget(), *this, ViewportWidget.Pin().Get());	
 	}
@@ -1576,12 +1588,12 @@ void FSceneViewport::OnPlayWorldViewportSwapped( const FSceneViewport& OtherView
 	TSharedPtr<SWidget> PinnedViewport = ViewportWidget.Pin();
 	if( PinnedViewport.IsValid() )
 	{
-		TSharedPtr<FSlateRenderer> Renderer = FSlateApplication::Get().GetRenderer();
+		FSlateRenderer* Renderer = FSlateApplication::Get().GetRenderer();
 
 		FWidgetPath WidgetPath;
 		TSharedPtr<SWindow> Window = FSlateApplication::Get().FindWidgetWindow( PinnedViewport.ToSharedRef(), WidgetPath );
 
-		WindowRenderTargetUpdate( Renderer.Get(), Window.Get() );
+		WindowRenderTargetUpdate( Renderer, Window.Get() );
 	}
 
 	// Play world viewports should always be the same size.  Resize to other viewports size
@@ -1672,12 +1684,20 @@ void FSceneViewport::OnPostResizeWindowBackbuffer(void* Backbuffer)
 
 	if(!UseSeparateRenderTarget() && !IsValidRef(ViewportRHI) && ViewportWidget.IsValid())
 	{
-		TSharedPtr<FSlateRenderer> Renderer = FSlateApplication::Get().GetRenderer();
+		FSlateRenderer* Renderer = FSlateApplication::Get().GetRenderer();
 		FWidgetPath WidgetPath;
-		void* ViewportResource = Renderer->GetViewportResource(*FSlateApplication::Get().FindWidgetWindow(ViewportWidget.Pin().ToSharedRef(), WidgetPath));
-		if(ViewportResource)
+
+		TSharedPtr<SWindow> Window = FSlateApplication::Get().FindWidgetWindow(ViewportWidget.Pin().ToSharedRef(), WidgetPath);
+
+		// If the window is not valid then we are likely in a loading movie and the viewport is not attached to the window.  
+		// We'll have to wait until safe
+		if(Window.IsValid())
 		{
-			ViewportRHI = *((FViewportRHIRef*)ViewportResource);
+			void* ViewportResource = Renderer->GetViewportResource(*Window);
+			if (ViewportResource)
+			{
+				ViewportRHI = *((FViewportRHIRef*)ViewportResource);
+			}
 		}
 	}
 }
@@ -1691,7 +1711,7 @@ void FSceneViewport::InitDynamicRHI()
 	}
 	RTTSize = FIntPoint(0, 0);
 
-	TSharedPtr<FSlateRenderer> Renderer = FSlateApplication::Get().GetRenderer();
+	FSlateRenderer* Renderer = FSlateApplication::Get().GetRenderer();
 	uint32 TexSizeX = SizeX, TexSizeY = SizeY;
 	if (UseSeparateRenderTarget())
 	{
@@ -1797,7 +1817,7 @@ void FSceneViewport::InitDynamicRHI()
 		FWidgetPath WidgetPath;
 		TSharedPtr<SWindow> Window = FSlateApplication::Get().FindWidgetWindow(PinnedViewport.ToSharedRef(), WidgetPath);
 		
-		WindowRenderTargetUpdate(Renderer.Get(), Window.Get());
+		WindowRenderTargetUpdate(Renderer, Window.Get());
 		if (UseSeparateRenderTarget())
 		{
 			RTTSize = FIntPoint(TexSizeX, TexSizeY);

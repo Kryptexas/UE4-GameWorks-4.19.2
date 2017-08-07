@@ -5,7 +5,9 @@
 #include "pxr/usd/usd/usdFileFormat.h"
 #include "pxr/usd/usd/common.h"
 #include "pxr/usd/usd/stage.h"
-#include "pxr/usd/usd/treeIterator.h"
+#if PXR_VERSION < 075   // this file seems to have been removed in recent versions
+    #include "pxr/usd/usd/treeIterator.h"
+#endif // PXR_VERSION < 075
 #include "pxr/base/tf/errorMark.h"
 #include "pxr/base/plug/registry.h"
 #include "pxr/base/plug/plugin.h"
@@ -29,10 +31,18 @@
 using std::vector;
 using std::string;
 
-static UsdGeomXformCache XFormCache;
-
-#if _WINDOWS
+#ifdef _WINDOWS
 #pragma warning(disable:4267)
+#define PXR_NAMESPACE
+#define USDWRAPPER_USE_XFORMACHE	1
+#else
+#define PXR_NAMESPACE		pxr
+#define USDWRAPPER_USE_XFORMACHE	0
+#endif
+
+#if USDWRAPPER_USE_XFORMACHE
+static UsdGeomXformCache XFormCache;
+#endif // USDWRAPPER_USE_XFORMACHE
 
 void Log(const char* Format, ...)
 {
@@ -42,27 +52,29 @@ void Log(const char* Format, ...)
 
 	va_start(args, Format);
 
+#if _WINDOWS
 	vsprintf_s(Buffer, Format, args);
 
 	OutputDebugString(Buffer);
+#else
+	vsprintf(Buffer, Format, args);
+	printf("%s", Buffer);
+#endif
 
 	va_end(args);
 }
-#endif
-
-
 
 class USDHelpers
 {
 
 public:
-	static void LogPrimTree(const UsdPrim& Root)
+	static void LogPrimTree(const PXR_NAMESPACE::UsdPrim& Root)
 	{
 		LogPrimTreeHelper("", Root);
 	}
 
 private:
-	static void LogPrimTreeHelper(const string& Concat, const UsdPrim& Prim)
+	static void LogPrimTreeHelper(const string& Concat, const PXR_NAMESPACE::UsdPrim& Prim)
 	{
 		string TypeName = Prim.GetTypeName().GetString();
 		bool bIsModel = Prim.IsModel();
@@ -124,7 +136,7 @@ private:
 		}
 
 
-		for(UsdPrim& Child : Prim.GetChildren())
+		for(const PXR_NAMESPACE::UsdPrim& Child : Prim.GetChildren())
 		{
 			LogPrimTreeHelper(Concat+"\t", Child);
 		}
@@ -140,10 +152,10 @@ void InitWrapper()
 
 struct FPrimAndData
 {
-	UsdPrim Prim;
+	PXR_NAMESPACE::UsdPrim Prim;
 	class FUsdPrim* PrimData;
 
-	FPrimAndData(const UsdPrim& InPrim)
+	FPrimAndData(const PXR_NAMESPACE::UsdPrim& InPrim)
 		: Prim(InPrim)
 		, PrimData(nullptr)
 	{}
@@ -152,21 +164,21 @@ struct FPrimAndData
 class FUsdPrim : public IUsdPrim
 {
 public:
-	FUsdPrim(UsdPrim& InPrim)
+	FUsdPrim(const PXR_NAMESPACE::UsdPrim& InPrim)
 		: Prim(InPrim)
 		, GeomData(nullptr)
 	{
 		PrimName = Prim.GetName().GetString();
 		PrimPath = Prim.GetPath().GetString();
 
-		static const TfToken AssetPathToken = TfToken(UnrealIdentifiers::AssetPath);
-		UsdAttribute UnrealAssetPathAttr = Prim.GetAttribute(AssetPathToken);
+		static const PXR_NAMESPACE::TfToken AssetPathToken = PXR_NAMESPACE::TfToken(UnrealIdentifiers::AssetPath);
+		PXR_NAMESPACE::UsdAttribute UnrealAssetPathAttr = Prim.GetAttribute(AssetPathToken);
 		if (UnrealAssetPathAttr.HasValue())
 		{
 			UnrealAssetPathAttr.Get(&UnrealAssetPath);
 		}
 
-		for (UsdPrim& Child : Prim.GetChildren())
+		for (const PXR_NAMESPACE::UsdPrim& Child : Prim.GetChildren())
 		{
 			Children.push_back(FPrimAndData(Child));
 		}
@@ -219,19 +231,56 @@ public:
 
 	virtual bool HasTransform() const override
 	{
-		return UsdGeomXformable(Prim);
+		return PXR_NAMESPACE::UsdGeomXformable(Prim);
 	}
 
 	virtual FUsdMatrixData GetLocalToWorldTransform() const override
 	{
-		return GetLocalToWorldTransform(UsdTimeCode::Default().GetValue());
+		return GetLocalToWorldTransform(PXR_NAMESPACE::UsdTimeCode::Default().GetValue());
 	}
+
+#if !USDWRAPPER_USE_XFORMACHE
+	static PXR_NAMESPACE::GfMatrix4d GetLocalToWorldTransform(const PXR_NAMESPACE::UsdPrim& Prim, double Time, const PXR_NAMESPACE::SdfPath& AbsoluteRootPath)
+	{
+		PXR_NAMESPACE::SdfPath PrimPath = Prim.GetPath();
+		if (!Prim || PrimPath == AbsoluteRootPath)
+		{
+			return PXR_NAMESPACE::GfMatrix4d(1);
+		}
+
+		PXR_NAMESPACE::GfMatrix4d AccumulatedTransform(1.);
+		bool bResetsXFormStack = false;
+		PXR_NAMESPACE::UsdGeomXformable XFormable(Prim);
+		// silently ignoring errors
+		XFormable.GetLocalTransformation(&AccumulatedTransform, &bResetsXFormStack, Time);
+
+		if (!bResetsXFormStack)
+		{
+			AccumulatedTransform = AccumulatedTransform * GetLocalToWorldTransform(Prim.GetParent(), Time, AbsoluteRootPath);
+		}
+
+		return AccumulatedTransform;
+	}
+#endif // !USDWRAPPER_USE_XFORMACHE
 	
 	virtual FUsdMatrixData GetLocalToWorldTransform(double Time) const override
 	{
+#if USDWRAPPER_USE_XFORMACHE
 		XFormCache.SetTime(Time);
-
-		GfMatrix4d LocalToWorld = XFormCache.GetLocalToWorldTransform(Prim);
+		PXR_NAMESPACE::GfMatrix4d LocalToWorld = XFormCache.GetLocalToWorldTransform(Prim);
+#else
+		PXR_NAMESPACE::UsdGeomXformable XFormable(Prim);
+		PXR_NAMESPACE::SdfPath WorldPath = PXR_NAMESPACE::SdfPath::AbsoluteRootPath();
+		PXR_NAMESPACE::GfMatrix4d LocalToWorld;
+		if (!Prim.GetPath().HasPrefix(WorldPath))
+		{
+			LocalToWorld = PXR_NAMESPACE::GfMatrix4d(1);
+		}
+		else
+		{
+			LocalToWorld = GetLocalToWorldTransform(Prim, Time, WorldPath);
+		}
+#endif
 
 		FUsdMatrixData Ret;
 		memcpy(Ret.Data, LocalToWorld.GetArray(), sizeof(double) * 16);
@@ -242,16 +291,21 @@ public:
 
 	virtual FUsdMatrixData GetLocalToParentTransform() const override
 	{
-		return GetLocalToParentTransform(UsdTimeCode::Default().GetValue());
+		return GetLocalToParentTransform(PXR_NAMESPACE::UsdTimeCode::Default().GetValue());
 	}
 
 	virtual FUsdMatrixData GetLocalToParentTransform(double Time) const override
 	{
-		XFormCache.SetTime(Time);
-
 		bool bResetsXFormStack = false;
-		GfMatrix4d LocalToParent = XFormCache.GetLocalTransformation(Prim, &bResetsXFormStack);
-
+#if USDWRAPPER_USE_XFORMACHE
+		XFormCache.SetTime(Time);
+		PXR_NAMESPACE::GfMatrix4d LocalToParent = XFormCache.GetLocalTransformation(Prim, &bResetsXFormStack);
+#else
+		PXR_NAMESPACE::UsdGeomXformable XFormable(Prim);
+		PXR_NAMESPACE::GfMatrix4d LocalToParent;
+		// silently ignoring errors
+		XFormable.GetLocalTransformation(&LocalToParent, &bResetsXFormStack, Time);
+#endif
 		FUsdMatrixData Ret;
 		memcpy(Ret.Data, LocalToParent.GetArray(), sizeof(double) * 16);
 		
@@ -281,20 +335,20 @@ public:
 
 	bool HasGeometryData() const override
 	{
-		UsdGeomMesh Mesh(Prim);
+		PXR_NAMESPACE::UsdGeomMesh Mesh(Prim);
 
 		return Mesh;
 	}
 
-	virtual const FUsdGeomData* GetGeometryData()
+	virtual const FUsdGeomData* GetGeometryData() override
 	{
-		return GetGeometryData(UsdTimeCode::Default().GetValue());
+		return GetGeometryData(PXR_NAMESPACE::UsdTimeCode::Default().GetValue());
 	}
 
 	virtual const FUsdGeomData* GetGeometryData(double Time) override
 	{
 		bool bValid = false;
-		UsdGeomMesh Mesh(Prim);
+		PXR_NAMESPACE::UsdGeomMesh Mesh(Prim);
 		if (Mesh)
 		{
 			if (GeomData)
@@ -306,78 +360,78 @@ public:
 
 			// Faces and points
 			{
-				UsdAttribute FaceCounts = Mesh.GetFaceVertexCountsAttr();
+				PXR_NAMESPACE::UsdAttribute FaceCounts = Mesh.GetFaceVertexCountsAttr();
 				if (FaceCounts)
 				{
 					GeomData->FaceVertexCounts.clear();
 
-					VtArray<int> FaceCountArray;
+					PXR_NAMESPACE::VtArray<int> FaceCountArray;
 					FaceCounts.Get(&FaceCountArray, Time);
 					GeomData->FaceVertexCounts.assign(FaceCountArray.begin(), FaceCountArray.end());
 				}
 
-				UsdAttribute FaceIndices = Mesh.GetFaceVertexIndicesAttr();
+				PXR_NAMESPACE::UsdAttribute FaceIndices = Mesh.GetFaceVertexIndicesAttr();
 				if (FaceIndices)
 				{
 					GeomData->FaceIndices.clear();
 
-					VtArray<int> FaceIndicesArray;
+					PXR_NAMESPACE::VtArray<int> FaceIndicesArray;
 					FaceIndices.Get(&FaceIndicesArray, Time);
 					GeomData->FaceIndices.assign(FaceIndicesArray.begin(), FaceIndicesArray.end());
 				}
 
-				UsdAttribute Points = Mesh.GetPointsAttr();
+				PXR_NAMESPACE::UsdAttribute Points = Mesh.GetPointsAttr();
 				if (Points)
 				{
 					GeomData->Points.clear();
 
-					VtArray<GfVec3f> PointsArray;
+					PXR_NAMESPACE::VtArray<PXR_NAMESPACE::GfVec3f> PointsArray;
 					Points.Get(&PointsArray, Time);
 
 					// Bug??  Usd returns nothing for UsdTimeCode::Default if there are animated points
-					if (PointsArray.size() == 0 && Time == UsdTimeCode::Default())
+					if (PointsArray.size() == 0 && Time == PXR_NAMESPACE::UsdTimeCode::Default())
 					{
 						// Try to get at time = 0
-						Points.Get(&PointsArray, UsdTimeCode(0));
+						Points.Get(&PointsArray, PXR_NAMESPACE::UsdTimeCode(0));
 					}
 					
 					GeomData->Points.resize(PointsArray.size());
-					memcpy(&GeomData->Points[0], &PointsArray[0], PointsArray.size() * sizeof(GfVec3f));
+					memcpy(&GeomData->Points[0], &PointsArray[0], PointsArray.size() * sizeof(PXR_NAMESPACE::GfVec3f));
 				}
 
-				UsdAttribute Normals = Mesh.GetNormalsAttr();
+				PXR_NAMESPACE::UsdAttribute Normals = Mesh.GetNormalsAttr();
 				if (Normals)
 				{
 					GeomData->Normals.clear();
 
-					VtArray<GfVec3f> NormalsArray;
+					PXR_NAMESPACE::VtArray<PXR_NAMESPACE::GfVec3f> NormalsArray;
 					Normals.Get(&NormalsArray, Time);
 
 					GeomData->Normals.resize(NormalsArray.size());
-					memcpy(&GeomData->Normals[0], &NormalsArray[0], NormalsArray.size() * sizeof(GfVec3f));
+					memcpy(&GeomData->Normals[0], &NormalsArray[0], NormalsArray.size() * sizeof(PXR_NAMESPACE::GfVec3f));
 				} 
 
-				UsdGeomPrimvar DisplayColorPrimVar = Mesh.GetDisplayColorPrimvar();
+				PXR_NAMESPACE::UsdGeomPrimvar DisplayColorPrimVar = Mesh.GetDisplayColorPrimvar();
 				if (DisplayColorPrimVar)
 				{
 					GeomData->VertexColors.clear();
 
-					TfToken Interpolation = DisplayColorPrimVar.GetInterpolation();
+					PXR_NAMESPACE::TfToken Interpolation = DisplayColorPrimVar.GetInterpolation();
 
-					if (Interpolation == UsdGeomTokens->faceVarying || Interpolation == UsdGeomTokens->uniform)
+					if (Interpolation == PXR_NAMESPACE::UsdGeomTokens->faceVarying || Interpolation == PXR_NAMESPACE::UsdGeomTokens->uniform)
 					{
-						GeomData->VertexColorInterpMethod = Interpolation == UsdGeomTokens->faceVarying ? EUsdInterpolationMethod::FaceVarying : EUsdInterpolationMethod::Uniform;
-						VtArray<GfVec3f> DisplayColorArray;
+						GeomData->VertexColorInterpMethod = Interpolation == PXR_NAMESPACE::UsdGeomTokens->faceVarying ? EUsdInterpolationMethod::FaceVarying : EUsdInterpolationMethod::Uniform;
+						PXR_NAMESPACE::VtArray<PXR_NAMESPACE::GfVec3f> DisplayColorArray;
 						DisplayColorPrimVar.ComputeFlattened(&DisplayColorArray, Time);
 		
 						GeomData->VertexColors.resize(DisplayColorArray.size());
-						memcpy(&GeomData->VertexColors[0], &DisplayColorArray[0], DisplayColorArray.size() * sizeof(GfVec3f));
+						memcpy(&GeomData->VertexColors[0], &DisplayColorArray[0], DisplayColorArray.size() * sizeof(PXR_NAMESPACE::GfVec3f));
 					}
-					else if (Interpolation == UsdGeomTokens->vertex)
+					else if (Interpolation == PXR_NAMESPACE::UsdGeomTokens->vertex)
 					{
 						GeomData->VertexColorInterpMethod = EUsdInterpolationMethod::Vertex;
-						VtIntArray VertexColorIndices;
-						VtArray<GfVec3f> DisplayColorArray;
+						PXR_NAMESPACE::VtIntArray VertexColorIndices;
+						PXR_NAMESPACE::VtArray<PXR_NAMESPACE::GfVec3f> DisplayColorArray;
 						DisplayColorPrimVar.GetIndices(&VertexColorIndices, Time);
 						DisplayColorPrimVar.Get(&DisplayColorArray, Time);
 
@@ -386,7 +440,7 @@ public:
 							GeomData->VertexColors.resize(VertexColorIndices.size());
 							for (int PointIdx = 0; PointIdx < GeomData->Points.size(); ++PointIdx)
 							{
-								GfVec3f Color = DisplayColorArray[VertexColorIndices[PointIdx]];
+								PXR_NAMESPACE::GfVec3f Color = DisplayColorArray[VertexColorIndices[PointIdx]];
 								GeomData->VertexColors[PointIdx] = FUsdVectorData(Color[0], Color[1], Color[2]);
 							}
 						}
@@ -394,30 +448,30 @@ public:
 						{
 							// Assume mapping is identical
 							GeomData->VertexColors.resize(DisplayColorArray.size());
-							memcpy(&GeomData->VertexColors[0], &DisplayColorArray[0], DisplayColorArray.size() * sizeof(GfVec3f));
+							memcpy(&GeomData->VertexColors[0], &DisplayColorArray[0], DisplayColorArray.size() * sizeof(PXR_NAMESPACE::GfVec3f));
 						}
 					}
-					else if (Interpolation == UsdGeomTokens->constant)
+					else if (Interpolation == PXR_NAMESPACE::UsdGeomTokens->constant)
 					{
-						VtArray<GfVec3f> DisplayColorArray;
+						PXR_NAMESPACE::VtArray<PXR_NAMESPACE::GfVec3f> DisplayColorArray;
 						DisplayColorPrimVar.Get(&DisplayColorArray, Time);
 
 						if(DisplayColorArray.size() > 0)
 						{
-							GfVec3f Color = DisplayColorArray[0];
+							PXR_NAMESPACE::GfVec3f Color = DisplayColorArray[0];
 							GeomData->VertexColors.push_back(FUsdVectorData(Color[0], Color[1], Color[2]));
 						}
 					}
 				}
 
 				GeomData->Orientation = EUsdGeomOrientation::RightHanded;
-				UsdAttribute Orientation = Mesh.GetOrientationAttr();
+				PXR_NAMESPACE::UsdAttribute Orientation = Mesh.GetOrientationAttr();
 				if(Orientation)
 				{ 
-					static TfToken RightHanded("rightHanded");
-					static TfToken LeftHanded("leftHanded");
+					static PXR_NAMESPACE::TfToken RightHanded("rightHanded");
+					static PXR_NAMESPACE::TfToken LeftHanded("leftHanded");
 
-					TfToken OrientationValue;
+					PXR_NAMESPACE::TfToken OrientationValue;
 					Orientation.Get(&OrientationValue, Time);
 
 					GeomData->Orientation = OrientationValue == RightHanded ? EUsdGeomOrientation::RightHanded : EUsdGeomOrientation::LeftHanded;
@@ -427,9 +481,9 @@ public:
 
 			// UVs
 			{
-				static TfToken UVSetName("primvars:st");
+				static PXR_NAMESPACE::TfToken UVSetName("primvars:st");
 
-				UsdGeomPrimvar STPrimvar = Mesh.GetPrimvar(UVSetName);
+				PXR_NAMESPACE::UsdGeomPrimvar STPrimvar = Mesh.GetPrimvar(UVSetName);
 
 				int UVIndex = GeomData->NumUVs;
 				if(STPrimvar)
@@ -439,22 +493,22 @@ public:
 
 					GeomData->UVs[UVIndex].Coords.clear();
 
-					if (STPrimvar.GetInterpolation() == UsdGeomTokens->faceVarying)
+					if (STPrimvar.GetInterpolation() == PXR_NAMESPACE::UsdGeomTokens->faceVarying)
 					{
 						GeomData->UVs[UVIndex].UVInterpMethod = EUsdInterpolationMethod::FaceVarying;
-						VtVec2fArray UVs;
+						PXR_NAMESPACE::VtVec2fArray UVs;
 						STPrimvar.ComputeFlattened(&UVs, Time);
 						if (UVs.size() == GeomData->FaceIndices.size())
 						{
 							GeomData->UVs[UVIndex].Coords.resize(UVs.size());
-							memcpy(&GeomData->UVs[UVIndex].Coords[0], &UVs[0], UVs.size() * sizeof(GfVec2f));
+							memcpy(&GeomData->UVs[UVIndex].Coords[0], &UVs[0], UVs.size() * sizeof(PXR_NAMESPACE::GfVec2f));
 						}
 					}
-					else if (STPrimvar.GetInterpolation() == UsdGeomTokens->vertex)
+					else if (STPrimvar.GetInterpolation() == PXR_NAMESPACE::UsdGeomTokens->vertex)
 					{
 						GeomData->UVs[UVIndex].UVInterpMethod = EUsdInterpolationMethod::Vertex;
-						VtIntArray UVIndices;
-						VtVec2fArray UVs;
+						PXR_NAMESPACE::VtIntArray UVIndices;
+						PXR_NAMESPACE::VtVec2fArray UVs;
 						STPrimvar.GetIndices(&UVIndices, Time);
 						STPrimvar.Get(&UVs, Time);
 
@@ -463,7 +517,7 @@ public:
 							GeomData->UVs[UVIndex].Coords.resize(UVIndices.size());
 							for (int PointIdx = 0; PointIdx < GeomData->Points.size(); ++PointIdx)
 							{
-								GfVec2f UV = UVs[UVIndices[PointIdx]];
+								PXR_NAMESPACE::GfVec2f UV = UVs[UVIndices[PointIdx]];
 								GeomData->UVs[UVIndex].Coords[PointIdx] = FUsdVector2Data(UV[0], UV[1]);
 
 							}
@@ -476,31 +530,56 @@ public:
 			// @todo time not supported yet
 			if(GeomData->FaceMaterialIndices.size() == 0)
 			{
-				vector<UsdGeomFaceSetAPI> FaceSets = UsdGeomFaceSetAPI::GetFaceSets(Prim);
+				vector<PXR_NAMESPACE::UsdGeomFaceSetAPI> FaceSets = PXR_NAMESPACE::UsdGeomFaceSetAPI::GetFaceSets(Prim);
 
 				GeomData->FaceMaterialIndices.resize(GeomData->FaceVertexCounts.size());
 				memset(&GeomData->FaceMaterialIndices[0], 0, sizeof(int)*GeomData->FaceMaterialIndices.size());
-				// There is always at least one material
-				GeomData->NumMaterials = 1;
-
+			
 				// Figure out a zero based mateiral index for each face.  The mapping is FaceMaterialIndices[FaceIndex] = MaterialIndex;
 				// This is done by walking the face sets and for each face set getting the number number of unique groups of faces in the set
 				// Each one of these groups represents a material index for that face set.  If there are multiple face sets the material index is offset by the face set index
 				// Once the groups of faces are determined, walk the indices for the total number of faces in each group.  Each element in the face indices array represents a single global face index
 				// Assign the current material index to it
 
+				// @todo USD/Unreal.  This is probably wrong for multiple face sets.  They don't make a ton of sense for unreal as there can only be one "set" of materials at once and there is no construct in the engine for material sets
+			
+				//GeomData->MaterialNames.resize(FaceSets)
 				for (int FaceSetIdx = 0; FaceSetIdx < FaceSets.size(); ++FaceSetIdx)
 				{
-					const UsdGeomFaceSetAPI& FaceSet = FaceSets[FaceSetIdx];
+					const PXR_NAMESPACE::UsdGeomFaceSetAPI& FaceSet = FaceSets[FaceSetIdx];
+					
+					PXR_NAMESPACE::SdfPathVector BindingTargets;
+					FaceSet.GetBindingTargets(&BindingTargets);
+
+					
+					PXR_NAMESPACE::UsdStageWeakPtr Stage = Prim.GetStage();
+					for(const PXR_NAMESPACE::SdfPath& Path : BindingTargets)
+					{
+						// load each material at the material path; 
+						PXR_NAMESPACE::UsdPrim MaterialPrim = Stage->Load(Path);
+
+						// Default to using the prim path name as the path for this material in Unreal
+						std::string MaterialName = MaterialPrim.GetName().GetString();
+
+						// See if the material has an "unrealAssetPath" attribute.  This should be the full name of the material
+						static const PXR_NAMESPACE::TfToken AssetPathToken = PXR_NAMESPACE::TfToken(UnrealIdentifiers::AssetPath);
+						PXR_NAMESPACE::UsdAttribute UnrealAssetPathAttr = MaterialPrim.GetAttribute(AssetPathToken);
+						if (UnrealAssetPathAttr.HasValue())
+						{
+							UnrealAssetPathAttr.Get(&MaterialName);
+						}
+
+						GeomData->MaterialNames.push_back(MaterialName);
+					}
 					// Faces must be mutually exclusive
 					if (FaceSet.GetIsPartition())
 					{
 						// Get the list of faces in the face set.  The size of this list determines the number of materials in this set
-						VtIntArray FaceCounts;
+						PXR_NAMESPACE::VtIntArray FaceCounts;
 						FaceSet.GetFaceCounts(&FaceCounts, Time);
 
 						// Get the list of global face indices mapped in this set
-						VtIntArray FaceIndices;
+						PXR_NAMESPACE::VtIntArray FaceIndices;
 						FaceSet.GetFaceIndices(&FaceIndices, Time);
 
 						// How far we are into the face indices list
@@ -511,7 +590,6 @@ public:
 						{
 							int MaterialIdx = FaceSetIdx * FaceSets.size() + FaceCountIdx;
 
-							GeomData->NumMaterials = MaterialIdx + 1;
 
 							// Number of faces with the material index
 							int FaceCount = FaceCounts[FaceCountIdx];
@@ -531,14 +609,14 @@ public:
 			// SubD
 			{
 				GeomData->SubdivisionScheme = EUsdSubdivisionScheme::CatmullClark;
-				UsdAttribute SubDivScheme = Mesh.GetSubdivisionSchemeAttr();
+				PXR_NAMESPACE::UsdAttribute SubDivScheme = Mesh.GetSubdivisionSchemeAttr();
 				if (SubDivScheme)
 				{
-					static const TfToken CatmullClark("catmullClark");
-					static const TfToken Loop("loop");
-					static const TfToken Bilinear("bilinear");
-					static const TfToken None("none");
-					TfToken SchemeName;
+					static const PXR_NAMESPACE::TfToken CatmullClark("catmullClark");
+					static const PXR_NAMESPACE::TfToken Loop("loop");
+					static const PXR_NAMESPACE::TfToken Bilinear("bilinear");
+					static const PXR_NAMESPACE::TfToken None("none");
+					PXR_NAMESPACE::TfToken SchemeName;
 					SubDivScheme.Get(&SchemeName, Time);
 
 					if (SchemeName == CatmullClark)
@@ -559,52 +637,52 @@ public:
 					}
 
 				}
-				UsdAttribute CreaseIndices = Mesh.GetCreaseIndicesAttr();
+				PXR_NAMESPACE::UsdAttribute CreaseIndices = Mesh.GetCreaseIndicesAttr();
 				if (CreaseIndices)
 				{
 					GeomData->CreaseIndices.clear();
 
-					VtIntArray CreaseIndicesArray;
+					PXR_NAMESPACE::VtIntArray CreaseIndicesArray;
 					CreaseIndices.Get(&CreaseIndicesArray, Time);
 					GeomData->CreaseIndices.assign(CreaseIndicesArray.begin(), CreaseIndicesArray.end());
 				}
 
-				UsdAttribute CreaseLengths = Mesh.GetCreaseLengthsAttr();
+				PXR_NAMESPACE::UsdAttribute CreaseLengths = Mesh.GetCreaseLengthsAttr();
 				if (CreaseLengths)
 				{
 					GeomData->CreaseLengths.clear();
 
-					VtIntArray CreaseLengthsArray;
+					PXR_NAMESPACE::VtIntArray CreaseLengthsArray;
 					CreaseLengths.Get(&CreaseLengthsArray);
 					GeomData->CreaseLengths.assign(CreaseLengthsArray.begin(), CreaseLengthsArray.end());
 				}
 
-				UsdAttribute CreaseSharpnesses = Mesh.GetCreaseSharpnessesAttr();
+				PXR_NAMESPACE::UsdAttribute CreaseSharpnesses = Mesh.GetCreaseSharpnessesAttr();
 				if (CreaseSharpnesses)
 				{
 					GeomData->CreaseSharpnesses.clear();
 
-					VtFloatArray CreaseSharpnessesArray;
+					PXR_NAMESPACE::VtFloatArray CreaseSharpnessesArray;
 					CreaseSharpnesses.Get(&CreaseSharpnessesArray);
 					GeomData->CreaseSharpnesses.assign(CreaseSharpnessesArray.begin(), CreaseSharpnessesArray.end());
 				}
 
-				UsdAttribute CornerCreaseIndices = Mesh.GetCornerIndicesAttr();
+				PXR_NAMESPACE::UsdAttribute CornerCreaseIndices = Mesh.GetCornerIndicesAttr();
 				if (CornerCreaseIndices)
 				{
 					GeomData->CornerCreaseIndices.clear();
 
-					VtIntArray CornerCreaseIndicesArray;
+					PXR_NAMESPACE::VtIntArray CornerCreaseIndicesArray;
 					CornerCreaseIndices.Get(&CornerCreaseIndicesArray);
 					GeomData->CornerCreaseIndices.assign(CornerCreaseIndicesArray.begin(), CornerCreaseIndicesArray.end());
 				}
 				
-				UsdAttribute CornerSharpnesses = Mesh.GetCornerSharpnessesAttr();
+				PXR_NAMESPACE::UsdAttribute CornerSharpnesses = Mesh.GetCornerSharpnessesAttr();
 				if (CornerSharpnesses)
 				{
 					GeomData->CornerSharpnesses.clear();
 
-					VtFloatArray CornerSharpnessesArray;
+					PXR_NAMESPACE::VtFloatArray CornerSharpnessesArray;
 					CornerSharpnesses.Get(&CornerSharpnessesArray);
 					GeomData->CornerSharpnesses.assign(CornerSharpnessesArray.begin(), CornerSharpnessesArray.end());
 				}
@@ -616,13 +694,13 @@ public:
 		return GeomData;
 	}
 
-	virtual int GetNumLODs() const
+	virtual int GetNumLODs() const override
 	{
 		// 0 indicates no variant or no lods in variant. 
 		int NumLODs = 0;
 		if (Prim.HasVariantSets())
 		{
-			UsdVariantSet LODVariantSet = Prim.GetVariantSet(UnrealIdentifiers::LOD);
+			PXR_NAMESPACE::UsdVariantSet LODVariantSet = Prim.GetVariantSet(UnrealIdentifiers::LOD);
 			if(LODVariantSet.IsValid())
 			{
 				vector<string> VariantNames = LODVariantSet.GetVariantNames();
@@ -633,18 +711,22 @@ public:
 		return NumLODs;
 	}
 
-	virtual IUsdPrim* GetLODChild(int LODIndex)
+	virtual IUsdPrim* GetLODChild(int LODIndex) override
 	{
 		if (Prim.HasVariantSets())
 		{
-			UsdVariantSet LODVariantSet = Prim.GetVariantSet(UnrealIdentifiers::LOD);
+			PXR_NAMESPACE::UsdVariantSet LODVariantSet = Prim.GetVariantSet(UnrealIdentifiers::LOD);
 			if (LODVariantSet.IsValid())
 			{
 				char LODName[10];
+#if _WINDOWS
 				sprintf_s(LODName, "LOD%d", LODIndex);
+#else
+				sprintf(LODName, "LOD%d", LODIndex);
+#endif
 				LODVariantSet.SetVariantSelection(string(LODName));
 
-				UsdPrim LODChild = Prim.GetChild(TfToken(LODName));
+				PXR_NAMESPACE::UsdPrim LODChild = Prim.GetChild(PXR_NAMESPACE::TfToken(LODName));
 				if (LODChild)
 				{
 					
@@ -677,7 +759,7 @@ public:
 		return nullptr;
 	}
 private:
-	UsdPrim Prim;
+	PXR_NAMESPACE::UsdPrim Prim;
 	vector<FPrimAndData> Children;
 	vector<FPrimAndData> VariantData;
 	string PrimName;
@@ -689,7 +771,7 @@ private:
 class FUsdStage : public IUsdStage
 {
 public:
-	FUsdStage(UsdStageRefPtr& InStage)
+	FUsdStage(PXR_NAMESPACE::UsdStageRefPtr& InStage)
 		: Stage(InStage)
 		, RootPrim(nullptr)
 	{
@@ -706,7 +788,7 @@ public:
 	EUsdUpAxis GetUpAxis() const override
 	{
 		// note USD does not support X up
-		return UsdGeomGetStageUpAxis(Stage) == UsdGeomTokens->y ? EUsdUpAxis::YAxis : EUsdUpAxis::ZAxis;
+		return UsdGeomGetStageUpAxis(Stage) == PXR_NAMESPACE::UsdGeomTokens->y ? EUsdUpAxis::YAxis : EUsdUpAxis::ZAxis;
 	}
 
 	IUsdPrim* GetRootPrim() override
@@ -745,7 +827,7 @@ public:
 	}
 
 private:
-	UsdStageRefPtr Stage;
+	PXR_NAMESPACE::UsdStageRefPtr Stage;
 	FUsdPrim* RootPrim;
 };
 
@@ -759,17 +841,21 @@ void UnrealUSDWrapper::Initialize(const char* PathToModule)
 	bInitialized = true;
 
 	string PluginPath = PathToModule;
+#ifdef _WINDOWS
 	PluginPath += "/Resources/UsdResources/plugins";
+#elif defined(__linux__)
+	PluginPath += "/Resources/UsdResources/Linux/plugins";
+#endif
 
 	// Needed to find plugins in non-standard places
-	PlugRegistry::GetInstance().RegisterPlugins(PluginPath);
+	PXR_NAMESPACE::PlugRegistry::GetInstance().RegisterPlugins(PluginPath);
 }
 
 IUsdStage* UnrealUSDWrapper::ImportUSDFile(const char* Path, const char* Filename)
 {
 	if (!bInitialized)
 	{
-		return false;
+		return nullptr;
 	}
 
 	bool bImportedSuccessfully = false;
@@ -777,13 +863,13 @@ IUsdStage* UnrealUSDWrapper::ImportUSDFile(const char* Path, const char* Filenam
 	// Clean up any old data
 	CleanUp();
 
-	TfErrorMark ErrorMark;
+	PXR_NAMESPACE::TfErrorMark ErrorMark;
 
 	string PathAndFilename = string(Path) + string(Filename);
 
-	bool bIsSupported = UsdStage::IsSupportedFile(PathAndFilename);
+	bool bIsSupported = PXR_NAMESPACE::UsdStage::IsSupportedFile(PathAndFilename);
 
-	UsdStageRefPtr Stage = UsdStage::Open(PathAndFilename);
+	PXR_NAMESPACE::UsdStageRefPtr Stage = PXR_NAMESPACE::UsdStage::Open(PathAndFilename);
 
 	if(Stage)
 	{
@@ -796,7 +882,7 @@ IUsdStage* UnrealUSDWrapper::ImportUSDFile(const char* Path, const char* Filenam
 
 	if (!ErrorMark.IsClean())
 	{
-		TfErrorMark::Iterator i;
+		PXR_NAMESPACE::TfErrorMark::Iterator i;
 		for (i = ErrorMark.GetBegin(); i != ErrorMark.GetEnd(); ++i)
 		{
 			Log("%s %s\n", i->GetErrorCodeAsString().c_str(), i->GetCommentary().c_str());
@@ -808,10 +894,12 @@ IUsdStage* UnrealUSDWrapper::ImportUSDFile(const char* Path, const char* Filenam
 
 void UnrealUSDWrapper::CleanUp()
 {
-	XFormCache.Clear();
-
 	if (CurrentStage)
 	{
+#if USDWRAPPER_USE_XFORMACHE
+		XFormCache.Clear();
+#endif // USDWRAPPER_USE_XFORMACHE
+
 		delete CurrentStage;
 		CurrentStage = nullptr;
 	}
@@ -819,5 +907,5 @@ void UnrealUSDWrapper::CleanUp()
 
 double UnrealUSDWrapper::GetDefaultTimeCode()
 {
-	return UsdTimeCode::Default().GetValue();
+	return PXR_NAMESPACE::UsdTimeCode::Default().GetValue();
 }

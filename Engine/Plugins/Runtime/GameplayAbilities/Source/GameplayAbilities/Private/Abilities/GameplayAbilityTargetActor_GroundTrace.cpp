@@ -140,10 +140,9 @@ bool AGameplayAbilityTargetActor_GroundTrace::AdjustCollisionResultForShape(cons
 
 FHitResult AGameplayAbilityTargetActor_GroundTrace::PerformTrace(AActor* InSourceActor)
 {
-	static const FName LineTraceSingleName(TEXT("AGameplayAbilityTargetActor_GroundTrace"));
 	bool bTraceComplex = false;
 
-	FCollisionQueryParams Params(LineTraceSingleName, bTraceComplex);
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(AGameplayAbilityTargetActor_GroundTrace), bTraceComplex);
 	Params.bReturnPhysicalMaterial = true;
 	Params.bTraceAsyncScene = true;
 	Params.AddIgnoredActor(InSourceActor);

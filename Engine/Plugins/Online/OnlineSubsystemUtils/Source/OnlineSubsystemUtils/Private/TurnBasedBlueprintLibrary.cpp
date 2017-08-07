@@ -16,7 +16,7 @@ void UTurnBasedBlueprintLibrary::GetIsMyTurn(UObject* WorldContextObject, APlaye
 {
 	bIsMyTurn = false;
 
-	FOnlineSubsystemBPCallHelper Helper(TEXT("GetIsMyTurn"), GEngine->GetWorldFromContextObject(WorldContextObject));
+	FOnlineSubsystemBPCallHelper Helper(TEXT("GetIsMyTurn"), WorldContextObject);
 	Helper.QueryIDFromPlayerController(PlayerController);
 
 	if (Helper.IsValid())
@@ -46,7 +46,7 @@ void UTurnBasedBlueprintLibrary::GetMyPlayerIndex(UObject* WorldContextObject, A
 {
 	PlayerIndex = -1;
 
-	FOnlineSubsystemBPCallHelper Helper(TEXT("GetMyPlayerIndex"), GEngine->GetWorldFromContextObject(WorldContextObject));
+	FOnlineSubsystemBPCallHelper Helper(TEXT("GetMyPlayerIndex"), WorldContextObject);
 	Helper.QueryIDFromPlayerController(PlayerController);
 
 	if (Helper.IsValid())
@@ -74,7 +74,7 @@ void UTurnBasedBlueprintLibrary::GetMyPlayerIndex(UObject* WorldContextObject, A
 
 void UTurnBasedBlueprintLibrary::RegisterTurnBasedMatchInterfaceObject(UObject* WorldContextObject, APlayerController* PlayerController, UObject* Object)
 {
-	FOnlineSubsystemBPCallHelper Helper(TEXT("GetIsMyTurn"), GEngine->GetWorldFromContextObject(WorldContextObject));
+	FOnlineSubsystemBPCallHelper Helper(TEXT("GetIsMyTurn"), WorldContextObject);
 	Helper.QueryIDFromPlayerController(PlayerController);
 
 	if (Helper.IsValid())
@@ -89,7 +89,7 @@ void UTurnBasedBlueprintLibrary::RegisterTurnBasedMatchInterfaceObject(UObject* 
 
 void UTurnBasedBlueprintLibrary::GetPlayerDisplayName(UObject* WorldContextObject, APlayerController* PlayerController, FString MatchID, int32 PlayerIndex, /*out*/ FString& PlayerDisplayName)
 {
-	FOnlineSubsystemBPCallHelper Helper(TEXT("GetMyPlayerIndex"), GEngine->GetWorldFromContextObject(WorldContextObject));
+	FOnlineSubsystemBPCallHelper Helper(TEXT("GetMyPlayerIndex"), WorldContextObject);
 	Helper.QueryIDFromPlayerController(PlayerController);
 
 	if (Helper.IsValid())

@@ -15,7 +15,7 @@ UBehaviorTreeDecoratorGraphNode_Decorator::UBehaviorTreeDecoratorGraphNode_Decor
 
 void UBehaviorTreeDecoratorGraphNode_Decorator::AllocateDefaultPins()
 {
-	CreatePin(EGPD_Output, TEXT("Transition"), TEXT(""), NULL, false, false, TEXT("Out"));
+	CreatePin(EGPD_Output, TEXT("Transition"), FString(), nullptr, TEXT("Out"));
 }
 
 void UBehaviorTreeDecoratorGraphNode_Decorator::PostPlacedNewNode()

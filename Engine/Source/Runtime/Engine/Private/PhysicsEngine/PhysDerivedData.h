@@ -6,17 +6,16 @@
 #include "Misc/Guid.h"
 #include "EngineDefines.h"
 #include "PhysXIncludes.h"
+#include "Stats/Stats.h"
 
-#if WITH_PHYSX && (WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR)
+#if WITH_PHYSX && WITH_EDITOR
 #include "DerivedDataPluginInterface.h"
-#include "IPhysXFormat.h"
-#endif
+#include "IPhysXCooking.h"
 
 class UBodySetup;
 struct FBodyInstance;
 struct FBodySetupUVInfo;
-
-#if WITH_PHYSX && (WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR)
+struct FTriMeshCollisionData;
 
 //////////////////////////////////////////////////////////////////////////
 // PhysX Cooker
@@ -30,13 +29,15 @@ private:
 	bool bGenerateNormalMesh;
 	bool bGenerateMirroredMesh;
 	bool bGenerateUVInfo;
+	int32 BodyComplexity;
 	EPhysXMeshCookFlags RuntimeCookFlags;
-	const class IPhysXFormat* Cooker;
+	const class IPhysXCooking* Cooker;
 	FGuid DataGuid;
 	FString MeshId;
+	bool bIsRuntime;
 
 public:
-	FDerivedDataPhysXCooker(FName InFormat, EPhysXMeshCookFlags InRuntimeCookFlags, UBodySetup* InBodySetup);
+	FDerivedDataPhysXCooker(FName InFormat, EPhysXMeshCookFlags InRuntimeCookFlags, UBodySetup* InBodySetup, bool InIsRuntime);
 
 	virtual const TCHAR* GetPluginName() const override
 	{
@@ -48,7 +49,7 @@ public:
 		// This is a version string that mimics the old versioning scheme. If you
 		// want to bump this version, generate a new guid using VS->Tools->Create GUID and
 		// return it here. Ex.
-		return TEXT("68E961F5D7B04A1C84A67D46CA8B36E3");	
+		return TEXT("48A34D3CEFD54C709592943289228CCF");	
 	}
 
 	virtual FString GetPluginSpecificCacheKeySuffix() const override
@@ -63,7 +64,7 @@ public:
 				((PX_PHYSICS_VERSION_BUGFIX & 0xF) << 4) |
 				((UE_PHYSX_DERIVEDDATA_VER	& 0xF));
 
-		return FString::Printf( TEXT("%s_%s_%s_%d_%d_%d_%d_%hu_%hu"),
+		return FString::Printf( TEXT("%s_%s_%s_%d_%d_%d_%d_%d_%hu_%hu"),
 			*Format.ToString(),
 			*DataGuid.ToString(),
 			*MeshId,
@@ -71,6 +72,7 @@ public:
 			(int32)bGenerateMirroredMesh,
 			(int32)bGenerateUVInfo,
 			(int32)RuntimeCookFlags,
+			(int32)BodyComplexity,
 			PhysXVersion,
 			Cooker ? Cooker->GetVersion( Format ) : 0xffff
 			);
@@ -92,8 +94,8 @@ public:
 private:
 
 	void InitCooker();
-	bool BuildConvex( TArray<uint8>& OutData, bool InMirrored, int32& NumConvexCooked );
-	bool BuildTriMesh( TArray<uint8>& OutData, bool InUseAllTriData, FBodySetupUVInfo* UVInfo, int32& NumTriMeshCooked);
+	bool BuildConvex( TArray<uint8>& OutData, bool bDeformableMesh, bool InMirrored, const TArray<TArray<FVector>>& Elements, EPhysXMeshCookFlags CookFlags, int32& NumConvexCooked);
+	bool BuildTriMesh( TArray<uint8>& OutData, const FTriMeshCollisionData& TriangleMeshDesc, EPhysXMeshCookFlags CookFlags, FBodySetupUVInfo* UVInfo, int32& NumTriMeshCooked);
 	bool ShouldGenerateTriMeshData(bool InUseAllTriData);
 };
 
@@ -108,7 +110,7 @@ private:
 	const TArray<class UPhysicalMaterial*>& PhysicalMaterials;
 	FName Format;
 	FGuid DataGuid;
-	const class IPhysXFormat* Serializer;
+	const class IPhysXCooking* Serializer;
 	int64 PhysXDataStart;	//important to keep track of this for alignment requirements
 	
 public:

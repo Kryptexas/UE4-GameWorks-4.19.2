@@ -796,6 +796,13 @@ FMargin SWindow::GetWindowBorderSize( bool bIncTitleBar ) const
 
 		return BorderSize;
 	}
+
+	return GetNonMaximizedWindowBorderSize();
+}
+
+
+FMargin SWindow::GetNonMaximizedWindowBorderSize() const
+{
 #if PLATFORM_WINDOWS || PLATFORM_LINUX
 	return LayoutBorder;
 #else
@@ -831,7 +838,7 @@ void SWindow::ReshapeWindow( FVector2D NewPosition, FVector2D NewSize )
 	const FVector2D CurrentSize = GetSizeInScreen();
 
 	const FVector2D NewPositionTruncated = FVector2D(FMath::TruncToInt(NewPosition.X), FMath::TruncToInt(NewPosition.Y));
-	const FVector2D NewSizeRounded = FVector2D(FMath::RoundToInt(NewSize.X), FMath::RoundToInt(NewSize.Y));
+	const FVector2D NewSizeRounded = FVector2D(FMath::CeilToInt(NewSize.X), FMath::CeilToInt(NewSize.Y));
 
 	if ( CurrentPosition != NewPositionTruncated || CurrentSize != NewSizeRounded )
 	{
@@ -876,7 +883,7 @@ void SWindow::Resize( FVector2D NewSize )
 		
 		if (NativeWindow.IsValid())
 		{
-			NativeWindow->ReshapeWindow( FMath::TruncToInt(ScreenPosition.X), FMath::TruncToInt(ScreenPosition.Y), FMath::RoundToInt(NewSize.X), FMath::RoundToInt(NewSize.Y) );
+			NativeWindow->ReshapeWindow( FMath::TruncToInt(ScreenPosition.X), FMath::TruncToInt(ScreenPosition.Y), FMath::CeilToInt(NewSize.X), FMath::CeilToInt(NewSize.Y) );
 		}
 		else
 		{
@@ -1228,7 +1235,7 @@ void SWindow::ShowWindow()
 		// Repositioning the window on show with the new size solves this.
 		if ( SizingRule == ESizingRule::Autosized && AutoCenterRule != EAutoCenter::None )
 		{
-			SlatePrepass( FSlateApplicationBase::Get().GetApplicationScale()*NativeWindow->GetDPIScaleFactor() );
+			SlatePrepass( FSlateApplicationBase::Get().GetApplicationScale() * NativeWindow->GetDPIScaleFactor() );
 			const FVector2D WindowDesiredSizePixels = GetDesiredSizeDesktopPixels();
 			ReshapeWindow( InitialDesiredScreenPosition - (WindowDesiredSizePixels * 0.5f), WindowDesiredSizePixels);
 		}
@@ -1821,17 +1828,17 @@ SWindow::SWindow()
 }
 
 
-int32 SWindow::PaintWindow( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SWindow::PaintWindow( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
-	LayerId = Paint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+	LayerId = Paint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 	//LayerId = OutDrawElements.PaintDeferred( LayerId );
 	return LayerId;
 }
 
-int32 SWindow::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+int32 SWindow::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	OutDrawElements.BeginDeferredGroup();
-	int32 MaxLayer = SCompoundWidget::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+	int32 MaxLayer = SCompoundWidget::OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 	OutDrawElements.EndDeferredGroup();
 
 	return MaxLayer;

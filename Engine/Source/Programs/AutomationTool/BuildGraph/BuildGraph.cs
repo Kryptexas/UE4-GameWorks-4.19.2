@@ -493,7 +493,14 @@ namespace AutomationTool
 			}
 
 			// Make sure the directory exists
-			DirectoryReference.CreateDirectory(Location.Directory);
+			try
+			{
+				DirectoryReference.CreateDirectory(Location.Directory);
+			}
+			catch (Exception Ex)
+			{
+				throw new AutomationException(Ex, "Unable to create '{0}'", Location.Directory);
+			}
 
 			// Create a temp file containing the owner name
 			string TempFileName;

@@ -1,8 +1,16 @@
-Availability:Public
-Title:Color Grading
-Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
-Description:Tonemapping and color correction effects for adjusting scene colors.
-Version: 4.9
+Availability: Public
+Crumbs: %ROOT%
+Title: Color Grading
+Description: Tonemapping and color correction effects for adjusting scene colors.
+Type: Overview
+SkillLevel:Beginner
+Version:4.16
+Parent:Engine/Rendering/PostProcessEffects
+Order:4
+Tags:Post Process
+Topic-image:ColorGrading_Topic.png
+
+
 
 Within the Unreal engine, the term **Color Grading** covers the Tone Mapping function (HDR to LDR transformation) and the further Color Correction (LDR color to screen color transformation).
 

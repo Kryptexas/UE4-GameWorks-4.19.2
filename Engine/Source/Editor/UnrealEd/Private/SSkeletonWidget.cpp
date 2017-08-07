@@ -346,7 +346,7 @@ void SSkeletonSelectorWindow::ConstructWindow()
 
 TSharedPtr<SWindow> SAnimationRemapSkeleton::DialogWindow;
 
-bool SAnimationRemapSkeleton::OnShouldFilterAsset(const class FAssetData& AssetData)
+bool SAnimationRemapSkeleton::OnShouldFilterAsset(const struct FAssetData& AssetData)
 {
 	USkeleton* AssetSkeleton = nullptr;
 	if (AssetData.IsAssetLoaded())
@@ -1398,10 +1398,7 @@ void SBasePoseViewport::SetSkeleton(USkeleton* Skeleton)
 				//Place the camera at a good viewer position
 				FVector NewPosition = Client->GetViewLocation();
 				NewPosition.Normalize();
-				if(PreviewSkeletalMesh)
-				{
-					NewPosition *= (PreviewSkeletalMesh->GetImportedBounds().SphereRadius*1.5f);
-				}
+				NewPosition *= (PreviewSkeletalMesh->GetImportedBounds().SphereRadius*1.5f);
 				Client->SetViewLocation(NewPosition);
 			}
 			else

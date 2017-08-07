@@ -3,7 +3,7 @@ Title: 2.7 - Changing the Camera View
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
 Description: Learn how to change the camera view for your First Person Shooter character.
 SkillLevel: Beginner
-Version: 4.11
+Version: 4.15
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -60,7 +60,7 @@ At the end of the previous step, the default camera was positioned inside the me
 			virtual void Tick( float DeltaSeconds ) override;
 		
 			// Called to bind functionality to input
-			virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
+			virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 		
 			// Handles input for moving forward and backward.
 			UFUNCTION()
@@ -88,7 +88,7 @@ At the end of the previous step, the default camera was positioned inside the me
 		// Create a first person camera component.
 		FPSCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
 		// Attach the camera component to our capsule component.
-		FPSCameraComponent->AttachTo(GetCapsuleComponent());
+		FPSCameraComponent->SetupAttachment(GetCapsuleComponent());
 
 	This code creates a `UCameraComponent` and attaches it to the character's `CapsuleComponent`.
 
@@ -117,7 +117,7 @@ At the end of the previous step, the default camera was positioned inside the me
 			// Create a first person camera component.
 			FPSCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
 			// Attach the camera component to our capsule component.
-			FPSCameraComponent->AttachTo(GetCapsuleComponent());
+			FPSCameraComponent->SetupAttachment(GetCapsuleComponent());
 			// Position the camera slightly above the eyes.
 			FPSCameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 50.0f + BaseEyeHeight));
 			// Allow the pawn to control camera rotation.
@@ -144,21 +144,21 @@ At the end of the previous step, the default camera was positioned inside the me
 		}
 		
 		// Called to bind functionality to input
-		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
+		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 		{
-			Super::SetupPlayerInputComponent(InputComponent);
+			Super::SetupPlayerInputComponent(PlayerInputComponent);
 		
 			// Set up "movement" bindings.
-			InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
-			InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
+			PlayerInputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
+			PlayerInputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
 		
 			// Set up "look" bindings.
-			InputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
-			InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
+			PlayerInputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
+			PlayerInputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
 		
 			// Set up "action" bindings.
-			InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
-			InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::StopJump);
+			PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
+			PlayerInputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::StopJump);
 		}
 		
 		void AFPSCharacter::MoveForward(float Value)

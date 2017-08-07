@@ -325,7 +325,7 @@ bool FStreamingNetworkPlatformFile::InitializeInternal(IPlatformFile* Inner, con
 
 	// Send the filenames and timestamps to the server.
 	FNetworkFileArchive Payload(NFS_Messages::GetFileList);
-	FillGetFileList(Payload, true);
+	FillGetFileList(Payload);
 
 	// Send the directories over, and wait for a response.
 	FArrayReader Response;

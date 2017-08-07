@@ -3,6 +3,9 @@ Title:Static Mesh Actors
 Crumbs:%ROOT%, Engine, Engine/Actors
 Description:Guide to placing and working with StaticMeshActors for creating world geometry in your environments.
 version: 4.9
+Parent:Engine/Actors/Types
+order:2
+type:overview
 
 [TOC(start:2)]
 

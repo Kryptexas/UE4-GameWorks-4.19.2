@@ -15,6 +15,7 @@
 #include "HAL/MallocJemalloc.h"
 #include "HAL/MallocBinned.h"
 #include "HAL/MallocBinned2.h"
+#include "HAL/MallocReplayProxy.h"
 #if PLATFORM_FREEBSD
 	#include <kvm.h>
 #else
@@ -61,6 +62,10 @@ class FMalloc* FLinuxPlatformMemory::BaseAllocator()
 		return nullptr;
 	}
 #endif // UE4_DO_ROOT_PRIVILEGE_CHECK
+
+#if UE_USE_MALLOC_REPLAY_PROXY
+	bool bAddReplayProxy = false;
+#endif // UE_USE_MALLOC_REPLAY_PROXY
 
 	if (USE_MALLOC_BINNED2)
 	{
@@ -109,6 +114,14 @@ class FMalloc* FLinuxPlatformMemory::BaseAllocator()
 					AllocatorToUse = EMemoryAllocatorToUse::Binned2;
 					break;
 				}
+
+#if UE_USE_MALLOC_REPLAY_PROXY
+				if (FCStringAnsi::Stricmp(Arg, "-mallocsavereplay") == 0)
+				{
+					bAddReplayProxy = true;
+				}
+#endif // UE_USE_MALLOC_REPLAY_PROXY
+
 			}
 			free(Arg);
 			fclose(CmdLineFile);
@@ -139,7 +152,16 @@ class FMalloc* FLinuxPlatformMemory::BaseAllocator()
 		break;
 	}
 
+#if UE_BUILD_DEBUG
 	printf("Using %ls.\n", Allocator ? Allocator->GetDescriptiveName() : TEXT("NULL allocator! We will probably crash right away"));
+#endif // UE_BUILD_DEBUG
+
+#if UE_USE_MALLOC_REPLAY_PROXY
+	if (bAddReplayProxy)
+	{
+		Allocator = new FMallocReplayProxy(Allocator);
+	}
+#endif // UE_USE_MALLOC_REPLAY_PROXY
 
 	return Allocator;
 }
@@ -294,7 +316,9 @@ namespace LinuxMemoryPool
 			}
 		}
 
+#if UE_BUILD_DEBUG
 		printf("Pooling OS allocations (pool size: %llu MB, maximum allocations: %llu).\n", PoolSize / (1024ULL * 1024ULL), MaxPooledAllocs);
+#endif // UE_BUILD_DEBUG
 
 		return InOutPoolTable;
 	}
@@ -457,7 +481,7 @@ FPlatformMemoryStats FLinuxPlatformMemory::GetStats()
 	if (FILE* FileGlobalMemStats = fopen("/proc/meminfo", "r"))
 	{
 		int FieldsSetSuccessfully = 0;
-		SIZE_T MemFree = 0, Cached = 0;
+		uint64 MemFree = 0, Cached = 0;
 		do
 		{
 			char LineBuffer[256] = {0};
@@ -544,6 +568,50 @@ FPlatformMemoryStats FLinuxPlatformMemory::GetStats()
 	// sanitize stats as sometimes peak < used for some reason
 	MemoryStats.PeakUsedVirtual = FMath::Max(MemoryStats.PeakUsedVirtual, MemoryStats.UsedVirtual);
 	MemoryStats.PeakUsedPhysical = FMath::Max(MemoryStats.PeakUsedPhysical, MemoryStats.UsedPhysical);
+
+	return MemoryStats;
+}
+
+FExtendedPlatformMemoryStats FLinuxPlatformMemory::GetExtendedStats()
+{
+	FExtendedPlatformMemoryStats MemoryStats;
+
+	// More /proc "API" :/
+	MemoryStats.Shared_Clean = 0;
+	MemoryStats.Shared_Dirty = 0;
+	MemoryStats.Private_Clean = 0;
+	MemoryStats.Private_Dirty = 0;
+	if (FILE* ProcSMaps = fopen("/proc/self/smaps", "r"))
+	{
+		do
+		{
+			char LineBuffer[256] = { 0 };
+			char *Line = fgets(LineBuffer, ARRAY_COUNT(LineBuffer), ProcSMaps);
+			if (Line == nullptr)
+			{
+				break;	// eof or an error
+			}
+
+			if (strstr(Line, "Shared_Clean:") == Line)
+			{
+				MemoryStats.Shared_Clean += LinuxPlatformMemory::GetBytesFromStatusLine(Line);
+			}
+			else if (strstr(Line, "Shared_Dirty:") == Line)
+			{
+				MemoryStats.Shared_Dirty += LinuxPlatformMemory::GetBytesFromStatusLine(Line);
+			}
+			if (strstr(Line, "Private_Clean:") == Line)
+			{
+				MemoryStats.Private_Clean += LinuxPlatformMemory::GetBytesFromStatusLine(Line);
+			}
+			else if (strstr(Line, "Private_Dirty:") == Line)
+			{
+				MemoryStats.Private_Dirty += LinuxPlatformMemory::GetBytesFromStatusLine(Line);
+			}
+		} while (!feof(ProcSMaps));
+
+		fclose(ProcSMaps);
+	}
 
 	return MemoryStats;
 }

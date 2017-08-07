@@ -139,7 +139,7 @@ public:
 	{
 		OutValue.R = OutValue.G = OutValue.B = OutValue.A = 0;
 
-		if(!Context.MaterialRenderProxy->GetVectorValue(ParameterName, &OutValue, Context))
+		if(!Context.MaterialRenderProxy || !Context.MaterialRenderProxy->GetVectorValue(ParameterName, &OutValue, Context))
 		{
 			GetDefaultValue(OutValue);
 		}
@@ -212,7 +212,7 @@ public:
 	// inefficient compared to GetGameThreadNumberValue(), for editor purpose
 	virtual void GetNumberValue(const FMaterialRenderContext& Context,FLinearColor& OutValue) const
 	{
-		if(Context.MaterialRenderProxy->GetScalarValue(ParameterName, &OutValue.R, Context))
+		if(Context.MaterialRenderProxy && Context.MaterialRenderProxy->GetScalarValue(ParameterName, &OutValue.R, Context))
 		{
 			OutValue.G = OutValue.B = OutValue.A = OutValue.R;
 		}
@@ -319,7 +319,7 @@ public:
 		else
 		{
 			OutValue = NULL;
-			if(!Context.MaterialRenderProxy->GetTextureValue(ParameterName,&OutValue,Context))
+			if(!Context.MaterialRenderProxy || !Context.MaterialRenderProxy->GetTextureValue(ParameterName,&OutValue,Context))
 			{
 				OutValue = GetIndexedTexture(Material, TextureIndex);
 			}
@@ -678,6 +678,57 @@ public:
 		}
 
 		auto OtherLog = static_cast<const FMaterialUniformExpressionLogarithm2 *>(OtherExpression);
+		return X->IsIdentical(OtherLog->X);
+	}
+
+private:
+	TRefCountPtr<FMaterialUniformExpression> X;
+};
+
+/**
+ */
+class FMaterialUniformExpressionLogarithm10: public FMaterialUniformExpression
+{
+	DECLARE_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionLogarithm10);
+public:
+
+	FMaterialUniformExpressionLogarithm10() {}
+	FMaterialUniformExpressionLogarithm10(FMaterialUniformExpression* InX):
+		X(InX)
+	{}
+
+	// FMaterialUniformExpression interface.
+	void Serialize(FArchive& Ar) override
+	{
+		Ar << X;
+	}
+	void GetNumberValue(const FMaterialRenderContext& Context,FLinearColor& OutValue) const override
+	{
+		FLinearColor ValueX = FLinearColor::Black;
+		X->GetNumberValue(Context,ValueX);
+
+		static const float LogToLog10 = 1.0f / FMath::Loge(10.f);
+		OutValue.R = FMath::Loge(ValueX.R) * LogToLog10;
+		OutValue.G = FMath::Loge(ValueX.G) * LogToLog10;
+		OutValue.B = FMath::Loge(ValueX.B) * LogToLog10;
+		OutValue.A = FMath::Loge(ValueX.A) * LogToLog10;
+	}
+	bool IsConstant() const override
+	{
+		return X->IsConstant();
+	}
+	bool IsChangingPerFrame() const override
+	{
+		return X->IsChangingPerFrame();
+	}
+	bool IsIdentical(const FMaterialUniformExpression* OtherExpression) const override
+	{
+		if (GetType() != OtherExpression->GetType())
+		{
+			return false;
+		}
+
+		auto OtherLog = static_cast<const FMaterialUniformExpressionLogarithm10*>(OtherExpression);
 		return X->IsIdentical(OtherLog->X);
 	}
 

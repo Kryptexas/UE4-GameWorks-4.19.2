@@ -22,8 +22,8 @@ void UK2Node_GetEnumeratorName::AllocateDefaultPins()
 {
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 
-	CreatePin(EGPD_Input, Schema->PC_Byte, TEXT(""), NULL, false, false, EnumeratorPinName);
-	CreatePin(EGPD_Output, Schema->PC_Name, TEXT(""), NULL, false, false, Schema->PN_ReturnValue);
+	CreatePin(EGPD_Input, Schema->PC_Byte, FString(), nullptr, EnumeratorPinName);
+	CreatePin(EGPD_Output, Schema->PC_Name, FString(), nullptr, Schema->PN_ReturnValue);
 }
 
 FText UK2Node_GetEnumeratorName::GetTooltipText() const
@@ -45,11 +45,13 @@ UEnum* UK2Node_GetEnumeratorName::GetEnum() const
 {
 	const UEdGraphPin* InputPin = FindPinChecked(EnumeratorPinName);
 	const UEdGraphPin* EnumPin = InputPin->LinkedTo.Num() ? InputPin->LinkedTo[0] : InputPin;
-	return EnumPin ? Cast<UEnum>(EnumPin->PinType.PinSubCategoryObject.Get()) : NULL;
+	return EnumPin ? Cast<UEnum>(EnumPin->PinType.PinSubCategoryObject.Get()) : nullptr;
 }
 
 void UK2Node_GetEnumeratorName::ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const
 {
+	Super::ValidateNodeDuringCompilation(MessageLog);
+
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 	const UEdGraphPin* OutputPin = FindPinChecked(Schema->PN_ReturnValue); 
 	/*Don't validate isolated nodes */
@@ -67,8 +69,10 @@ FSlateIcon UK2Node_GetEnumeratorName::GetIconAndTint(FLinearColor& OutColor) con
 
 void UK2Node_GetEnumeratorName::EarlyValidation(class FCompilerResultsLog& MessageLog) const
 {
+	Super::EarlyValidation(MessageLog);
+
 	const UEnum* Enum = GetEnum();
-	if (NULL == Enum)
+	if (nullptr == Enum)
 	{
 		MessageLog.Error(*NSLOCTEXT("K2Node", "GetNumEnumEntries_NoIntput_Error", "@@ Must have non-default Enum input").ToString(), this);
 	}

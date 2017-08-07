@@ -265,6 +265,8 @@ protected:
 			, HitWidgetComponent(nullptr)
 			, HitWidgetPath()
 			, bWasHit(false)
+			, LineStartLocation(FVector::ZeroVector)
+			, LineEndLocation(FVector::ZeroVector)
 		{
 		}
 
@@ -273,6 +275,8 @@ protected:
 		UWidgetComponent* HitWidgetComponent;
 		FWidgetPath HitWidgetPath;
 		bool bWasHit;
+		FVector LineStartLocation;
+		FVector LineEndLocation;
 	};
 
 	/** Gets the WidgetPath for the widget being hovered over based on the hit result. */
@@ -338,7 +342,7 @@ private:
 	/** Returns the path to the widget that is currently beneath the pointer */
 	FWidgetPath DetermineWidgetUnderPointer();
 
-private_subobject:
+private:
 #if WITH_EDITORONLY_DATA
 
 	/** The arrow component we show at editor time. */

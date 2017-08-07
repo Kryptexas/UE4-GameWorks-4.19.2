@@ -1,11 +1,14 @@
-﻿INTSourceChangelist:3243860
+﻿INTSourceChangelist:3429247
 Availability: Public
 Title:파티클 시스템 참고서
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems
 Description:전체 파티클 시스템과 모듈에 대한 참고서입니다.
 Version: 4.9
 tags:Particles
-
+parent:Engine/Rendering/ParticleSystems
+order:3
+type:reference
+topic-image:particlereference_topic.png
 
 
 ## 베이스 클래스

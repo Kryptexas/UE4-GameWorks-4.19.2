@@ -7,7 +7,7 @@
 #include "Styling/SlateIconFinder.h"
 
 class AActor;
-class FAssetData;
+struct FAssetData;
 class ISlateStyle;
 class UBlueprint;
 struct FSlateBrush;

@@ -11,6 +11,7 @@ Related: Engine/Animation/AnimBlueprints/EventGraph
 Related: Engine/Animation/StateMachines
 Related: Gameplay/AI
 version: 4.9
+topic-image:SettingUpACharacter_topic.png
 
 [REGION:fullwidth]
 ![](Character.png)

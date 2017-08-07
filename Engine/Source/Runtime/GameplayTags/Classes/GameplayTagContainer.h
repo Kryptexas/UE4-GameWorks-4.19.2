@@ -234,7 +234,7 @@ PRAGMA_DISABLE_DEPRECATION_WARNINGS
 
 PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
-private:
+protected:
 
 	/** Intentionally private so only the tag manager can use */
 	explicit FGameplayTag(FName InTagName);
@@ -485,16 +485,24 @@ struct GAMEPLAYTAGS_API FGameplayTagContainer
 
 	/** 
 	 * Adds all the tags from one container to this container 
+	 * NOTE: From set theory, this effectively is the union of the container this is called on with Other.
 	 *
 	 * @param Other TagContainer that has the tags you want to add to this container 
 	 */
 	void AppendTags(FGameplayTagContainer const& Other);
 
 	/** 
-	 * Adds all the tags that match between the two specified containers to this container 
+	 * Adds all the tags that match between the two specified containers to this container.  WARNING: This matches any
+	 * parent tag in A, not just exact matches!  So while this should be the union of the container this is called on with
+	 * the intersection of OtherA and OtherB, it's not exactly that.  Since OtherB matches against its parents, any tag
+	 * in OtherA which has a parent match with a parent of OtherB will count.  For example, if OtherA has Color.Green
+	 * and OtherB has Color.Red, that will count as a match due to the Color parent match!
+	 * If you want an exact match, you need to call A.FilterExact(B) (above) to get the intersection of A with B.
+	 * If you need the disjunctive union (the union of two sets minus their intersection), use AppendTags to create
+	 * Union, FilterExact to create Intersection, and then call Union.RemoveTags(Intersection).
 	 *
 	 * @param OtherA TagContainer that has the matching tags you want to add to this container, these tags have their parents expanded
-	 * @param OtherB TagContainer used to check for matching tags
+	 * @param OtherB TagContainer used to check for matching tags.  If the tag matches on any parent, it counts as a match.
 	 */
 	void AppendMatchingTags(FGameplayTagContainer const& OtherA, FGameplayTagContainer const& OtherB);
 
@@ -855,6 +863,13 @@ struct TStructOpsTypeTraits<FGameplayTagContainer> : public TStructOpsTypeTraits
 	};
 };
 
+struct GAMEPLAYTAGS_API FGameplayTagNativeAdder
+{
+	FGameplayTagNativeAdder();
+
+	virtual void AddTags() = 0;
+};
+
 /**
  *	Helper struct for viewing tag references (assets that reference a tag). Drop this into a struct and set the OnGetgameplayStatName. A details customization
  *	will display a tree view of assets referencing the tag
@@ -879,6 +894,13 @@ struct FGameplayTagReferenceHelper
 	*/
 	DECLARE_DELEGATE_RetVal_OneParam(FName, FOnGetGameplayTagName, void* /**RawOuterStructData*/);
 	FOnGetGameplayTagName OnGetGameplayTagName;
+};
+
+/** Helper struct: drop this in another struct to get an embedded create new tag widget. */
+USTRUCT()
+struct FGameplayTagCreationWidgetHelper
+{
+	GENERATED_USTRUCT_BODY()
 };
 
 /** Enumerates the list of supported query expression types. */

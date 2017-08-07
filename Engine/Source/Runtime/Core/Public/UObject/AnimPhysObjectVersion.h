@@ -10,13 +10,21 @@ struct CORE_API FAnimPhysObjectVersion
 	enum Type
 	{
 		// Before any version changes were made
-		BeforeCustomVersionWasAdded = 0,
+		BeforeCustomVersionWasAdded,
 		// convert animnode look at to use just default axis instead of enum, which doesn't do much
-		ConvertAnimNodeLookAtAxis = 1,
+		ConvertAnimNodeLookAtAxis,
 		// Change FKSphylElem and FKBoxElem to use Rotators not Quats for easier editing
-		BoxSphylElemsUseRotators = 2,
+		BoxSphylElemsUseRotators,
 		// Change thumbnail scene info and asset import data to be transactional
-		ThumbnailSceneInfoAndAssetImportDataAreTransactional = 3,
+		ThumbnailSceneInfoAndAssetImportDataAreTransactional,
+		// Enabled clothing masks rather than painting parameters directly
+		AddedClothingMaskWorkflow,
+		// Remove UID from smart name serialize, it just breaks determinism 
+		RemoveUIDFromSmartNameSerialize,
+		// Convert FName Socket to FSocketReference and added TargetReference that support bone and socket
+		CreateTargetReference,
+		// Tune soft limit stiffness and damping coefficients
+		TuneSoftLimitStiffnessAndDamping,
 
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,

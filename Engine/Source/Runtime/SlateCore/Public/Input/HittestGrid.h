@@ -4,8 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "Layout/SlateRect.h"
-#include "Input/Events.h"
 #include "Layout/ArrangedWidget.h"
+#include "Layout/Clipping.h"
+#include "Input/Events.h"
 #include "Widgets/SWidget.h"
 
 class FArrangedChildren;
@@ -44,8 +45,12 @@ public:
 	 */
 	void ClearGridForNewFrame(const FSlateRect& HittestArea);
 
+	void PushClip(const FSlateClippingZone& ClippingZone); 
+
+	void PopClip();
+
 	/** Add Widget into the hittest data structure so that we can later make queries about it. */
-	int32 InsertWidget(const int32 ParentHittestIndex, const EVisibility& Visibility, const FArrangedWidget& Widget, const FVector2D InWindowOffset, const FSlateRect& InClippingRect, int32 LayerId);
+	int32 InsertWidget(const int32 ParentHittestIndex, const EVisibility& Visibility, const FArrangedWidget& Widget, const FVector2D InWindowOffset, int32 LayerId);
 
 	void InsertCustomHitTestPath( TSharedRef<ICustomHitTestPath> CustomHitTestPath, int32 WidgetIndex );
 
@@ -170,6 +175,9 @@ private:
 
 	/** The size of the grid in cells. */
 	FIntPoint NumCells;
+
+	/** The clipping manager that manages any clipping for hit testable widgets. */
+	FSlateClippingManager ClippingManager;
 
 	void LogGrid() const;
 

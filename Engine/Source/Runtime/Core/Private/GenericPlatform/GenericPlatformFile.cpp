@@ -9,7 +9,6 @@
 #include "Async/AsyncWork.h"
 #include "UniquePtr.h"
 #include "ScopeLock.h"
-
 #include "AsyncFileHandle.h"
 
 class FGenericBaseRequest;
@@ -273,9 +272,9 @@ public:
 		if (bDisableHandleCaching)
 		{
 #if DISABLE_BUFFERING_ON_GENERIC_ASYNC_FILE_HANDLE
-			return LowerLevel->OpenRead(*Filename);
-#else
 			return LowerLevel->OpenReadNoBuffering(*Filename);
+#else
+			return LowerLevel->OpenRead(*Filename);
 #endif
 		}
 		IFileHandle* Result = nullptr;
@@ -286,9 +285,9 @@ public:
 			if (!HandleCache[0] && !bOpenFailed)
 			{
 #if DISABLE_BUFFERING_ON_GENERIC_ASYNC_FILE_HANDLE
-				HandleCache[0] = LowerLevel->OpenRead(*Filename);
-#else
 				HandleCache[0] = LowerLevel->OpenReadNoBuffering(*Filename);
+#else
+				HandleCache[0] = LowerLevel->OpenRead(*Filename);
 #endif
 				bOpenFailed = (HandleCache[0] == nullptr);
 			}
@@ -313,9 +312,9 @@ public:
 			if (!Result && !bOpenFailed)
 			{
 #if DISABLE_BUFFERING_ON_GENERIC_ASYNC_FILE_HANDLE
-				Result = LowerLevel->OpenRead(*Filename);
-#else
 				Result = LowerLevel->OpenReadNoBuffering(*Filename);
+#else
+				Result = LowerLevel->OpenRead(*Filename);
 #endif
 				bOpenFailed = (Result == nullptr);
 			}

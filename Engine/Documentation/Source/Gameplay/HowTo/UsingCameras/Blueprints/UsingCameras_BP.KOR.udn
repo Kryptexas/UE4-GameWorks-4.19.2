@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3429254
 Availability: Public
 Title:고정 카메라 사용법
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\UsingCameras
@@ -9,6 +9,7 @@ Related: Engine/Matinee
 Related: Engine/Blueprints
 SkillLevel: Beginner
 Version: 4.9
+type:how-to
 
 이번에는 게임플레이 도중 플레이어의 시점에 사용되는 스태틱 (고정) 카메라 앵글을 만드는 법을 살펴보겠습니다. 이 튜토리얼을 마치고나서는, 여기 사용된 프로세스를 가져다가 직접 제작중인 게임에 옮기는 것으로 플레이어에 고정 시야 구성을 해줄 수 있을 것입니다.
 

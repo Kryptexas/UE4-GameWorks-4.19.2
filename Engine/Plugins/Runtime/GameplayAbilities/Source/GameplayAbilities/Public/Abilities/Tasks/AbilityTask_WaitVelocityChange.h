@@ -10,8 +10,8 @@ class UMovementComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FWaitVelocityChangeDelegate);
 
-UCLASS(MinimalAPI)
-class UAbilityTask_WaitVelocityChange: public UAbilityTask
+UCLASS()
+class GAMEPLAYABILITIES_API UAbilityTask_WaitVelocityChange: public UAbilityTask
 {
 	GENERATED_UCLASS_BODY()
 

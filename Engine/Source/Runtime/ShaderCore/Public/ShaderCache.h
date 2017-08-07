@@ -709,10 +709,10 @@ private:
 	bool bBatchingPaused;
 	
 	//Thread access mutual exclusion
-	mutable FRWMutex ShaderCacheGlobalStateMutex;
-	mutable FRWMutex PipelineStateMutex;
-	mutable FRWMutex DrawLogMutex;
-	mutable FRWMutex ContextCacheStatesMutex;
+	mutable FRWLock ShaderCacheGlobalStateMutex;
+	mutable FRWLock PipelineStateMutex;
+	mutable FRWLock DrawLogMutex;
+	mutable FRWLock ContextCacheStatesMutex;
 	
 	//List of states per RHI context with a default state
 	FShaderCacheState* DefaultCacheState;
@@ -721,6 +721,7 @@ private:
 	static FShaderCache* Cache;
 	static int32 GameVersion;
 	static int32 bUseShaderCaching;
+	static int32 bUseUserShaderCache;
 	static int32 bUseShaderPredraw;
 	static int32 bUseShaderDrawLog;
 	static int32 PredrawBatchTime;
@@ -733,6 +734,7 @@ private:
 	static uint32 MaxTextureSamplers;
 	static uint8 MaxResources;
 	static FAutoConsoleVariableRef CVarUseShaderCaching;
+	static FAutoConsoleVariableRef CVarUseUserShaderCache;
 	static FAutoConsoleVariableRef CVarUseShaderPredraw;
 	static FAutoConsoleVariableRef CVarUseShaderDrawLog;
 	static FAutoConsoleVariableRef CVarPredrawBatchTime;

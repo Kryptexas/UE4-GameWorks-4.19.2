@@ -21,6 +21,7 @@ struct ENGINE_API RootMotionSourceDebug
 {
 	static TAutoConsoleVariable<int32> CVarDebugRootMotionSources;
 	static void PrintOnScreen(const ACharacter& InCharacter, const FString& InString);
+	static void PrintOnScreenServerMsg(const FString& InString);
 };
 #endif
 

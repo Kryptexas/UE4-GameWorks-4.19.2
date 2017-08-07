@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3429254
 Availability: Public
 Title:블루프린트에서 변수 리플리케이트
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\Networking\ReplicateVariable
@@ -7,6 +7,7 @@ Related: Engine/Blueprints
 Related: Resources/ContentExamples/Networking
 Version: 4.9
 SkillLevel: Advanced
+type:how-to
 
 
 [TOC (start:2 end:2)]

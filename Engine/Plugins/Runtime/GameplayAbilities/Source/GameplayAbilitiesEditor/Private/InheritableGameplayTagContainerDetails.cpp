@@ -33,9 +33,9 @@ void FInheritableGameplayTagContainerDetails::CustomizeChildren(TSharedRef<IProp
 	AddedTagContainerPropertyHandle->SetOnPropertyValueChanged(OnTagValueChangedDelegate);
 	RemovedTagContainerPropertyHandle->SetOnPropertyValueChanged(OnTagValueChangedDelegate);
 
-	StructBuilder.AddChildProperty(CombinedTagContainerPropertyHandle.ToSharedRef());
-	StructBuilder.AddChildProperty(AddedTagContainerPropertyHandle.ToSharedRef());
-	StructBuilder.AddChildProperty(RemovedTagContainerPropertyHandle.ToSharedRef());
+	StructBuilder.AddProperty(CombinedTagContainerPropertyHandle.ToSharedRef());
+	StructBuilder.AddProperty(AddedTagContainerPropertyHandle.ToSharedRef());
+	StructBuilder.AddProperty(RemovedTagContainerPropertyHandle.ToSharedRef());
 }
 
 void FInheritableGameplayTagContainerDetails::OnTagsChanged()

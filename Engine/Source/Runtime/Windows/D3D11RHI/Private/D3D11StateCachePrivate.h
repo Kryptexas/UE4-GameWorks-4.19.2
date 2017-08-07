@@ -904,7 +904,7 @@ public:
 #endif
 	}
 
-	~FD3D11StateCacheBase()
+	virtual ~FD3D11StateCacheBase()
 	{
 	}
 

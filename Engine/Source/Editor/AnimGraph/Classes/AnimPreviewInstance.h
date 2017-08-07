@@ -10,6 +10,7 @@
 #include "Animation/AnimSingleNodeInstanceProxy.h"
 #include "AnimNodes/AnimNode_CurveSource.h"
 #include "AnimNodes/AnimNode_PoseBlendNode.h"
+#include "AnimNodes/AnimNode_CopyPoseFromMesh.h"
 #include "AnimPreviewInstance.generated.h"
 
 /** Enum to know how montage is being played */
@@ -115,6 +116,12 @@ public:
 		return CurveBoneControllers;
 	}
 
+	/** Sets an external debug skeletal mesh component to use to debug */
+	void SetDebugSkeletalMeshComponent(USkeletalMeshComponent* InSkeletalMeshComponent);
+
+	/** Gets the external debug skeletal mesh component we are debugging */
+	USkeletalMeshComponent* GetDebugSkeletalMeshComponent() const;
+
 private:
 	void UpdateCurveController();
 
@@ -136,6 +143,9 @@ private:
 
 	/** Pose blend node for evaluating pose assets (for previewing curve sources) */
 	FAnimNode_PoseBlendNode PoseBlendNode;
+
+	/** Allows us to copy a pose from the mesh being debugged */
+	FAnimNode_CopyPoseFromMesh CopyPoseNode;
 
 	/**
 	 * Delegate to call after Key is set
@@ -284,6 +294,12 @@ class ANIMGRAPH_API UAnimPreviewInstance : public UAnimSingleNodeInstance
 	 * This is used by when editing, when controller has to be disabled
 	 */
 	void EnableControllers(bool bEnable);
+
+	/** Sets an external debug skeletal mesh component to use to debug */
+	void SetDebugSkeletalMeshComponent(USkeletalMeshComponent* InSkeletalMeshComponent);
+
+	/** Gets the external debug skeletal mesh component we are debugging */
+	USkeletalMeshComponent* GetDebugSkeletalMeshComponent() const;
 };
 
 

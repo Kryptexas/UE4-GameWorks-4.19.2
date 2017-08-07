@@ -407,7 +407,9 @@ public:
 		, _PeakValueLeftLimit(-0.05f)
 		, _PeakValueRightLimit(0.05f)
 		, _FadeRate( 1.0f )
-	{ }
+	{
+		this->_Clipping = EWidgetClipping::ClipToBounds;
+	}
 
 	/** Called when we change a widget */
 	SLATE_EVENT( FOnGenerateWidget, OnGenerateWidget )

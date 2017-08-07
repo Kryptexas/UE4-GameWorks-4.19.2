@@ -17,6 +17,7 @@
 #include "PaintModeSettings.h"
 
 #include "Modules/ModuleManager.h"
+#include "PaintModeCommands.h"
 
 #define LOCTEXT_NAMESPACE "PaintModePainter"
 
@@ -35,51 +36,38 @@ void SPaintModeWidget::Construct(const FArguments& InArgs, FPaintModePainter* In
 		+ SScrollBox::Slot()
 		.Padding(0.0f)
 		[
-			SNew(SBorder)
-			.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
-			.Content()
+			SNew(SVerticalBox)
+			/** Toolbar containing buttons to switch between different paint modes */
+			+ SVerticalBox::Slot()
+			.AutoHeight()
 			[
-				SNew(SVerticalBox)
-
-				/** Toolbar containing buttons to switch between different paint modes */
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				.Padding(0)
+				SNew(SBorder)
+				.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+				.HAlign(HAlign_Center)
 				[
-					SNew(SOverlay)
-					+ SOverlay::Slot()
-					[
-						SNew(SBorder)
-						.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
-						.HAlign(HAlign_Center)
-						[
-							CreateToolBarWidget()->AsShared()
-						]
-					]
+					CreateToolBarWidget()->AsShared()
 				]
+			]
 				
-				/** (Instance) Vertex paint action buttons widget */
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				.Padding(StandardPadding)
-				[
-					CreateVertexPaintWidget()->AsShared()
-				]
+			/** (Instance) Vertex paint action buttons widget */
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				CreateVertexPaintWidget()->AsShared()
+			]
 				
-				/** Texture paint action buttons widget */
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				.Padding(StandardPadding)
-				[
-					CreateTexturePaintWidget()->AsShared()
-				]
+			/** Texture paint action buttons widget */
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				CreateTexturePaintWidget()->AsShared()
+			]
 
-				/** DetailsView containing brush and paint settings */
-				+ SVerticalBox::Slot()
-				.AutoHeight()				
-				[
-					SettingsDetailsView->AsShared()
-				]
+			/** DetailsView containing brush and paint settings */
+			+ SVerticalBox::Slot()
+			.AutoHeight()				
+			[
+				SettingsDetailsView->AsShared()
 			]
 		]
 	];
@@ -112,143 +100,120 @@ TSharedPtr<SWidget> SPaintModeWidget::CreateVertexPaintWidget()
 	FMargin StandardPadding(0.0f, 4.0f, 0.0f, 4.0f);
 
 	TSharedPtr<SWidget> VertexColorWidget;
-	TSharedPtr<SWrapBox> VertexColorActionWrapbox;
-	TSharedPtr<SWrapBox> InstanceColorActionWrapbox;
-
+	TSharedPtr<SHorizontalBox> VertexColorActionBox;
+	TSharedPtr<SHorizontalBox> InstanceColorActionBox;
+		
 	SAssignNew(VertexColorWidget, SVerticalBox)
 	.Visibility(this, &SPaintModeWidget::IsVertexPaintModeVisible)
-		
 	+ SVerticalBox::Slot()
 	.AutoHeight()
 	.Padding(StandardPadding)
+	.HAlign(HAlign_Center)
+	[	
+		SAssignNew(VertexColorActionBox, SHorizontalBox)
+	]
+	
+	+SVerticalBox::Slot()
+	.AutoHeight()
+	.Padding(StandardPadding)	
+	.HAlign(HAlign_Center)
 	[
-		SNew(SHorizontalBox)
-		+ SHorizontalBox::Slot()
-		.FillWidth(1)
-		[
-			SAssignNew(VertexColorActionWrapbox, SWrapBox)
-			.UseAllottedWidth(true)				
-		]
-	]		 
+		SAssignNew(InstanceColorActionBox, SHorizontalBox)
+	]
 
 	+SVerticalBox::Slot()
 	.AutoHeight()
 	.Padding(StandardPadding)
+	.VAlign(VAlign_Center)
+	.HAlign(HAlign_Center)
 	[
-		SNew(SHorizontalBox)
-		+ SHorizontalBox::Slot()
-		.FillWidth(1)
+		SNew(SBorder)
+		.BorderImage(FEditorStyle::GetBrush("SettingsEditor.CheckoutWarningBorder"))
+		.BorderBackgroundColor(FColor(166,137,0))				
 		[
-			SAssignNew(InstanceColorActionWrapbox, SWrapBox)
-			.UseAllottedWidth(true)
-		]
-	];
-
-	/** Populates the vertex color action widget with buttons for each individual EVertexColorAction enum entry */
-	const UEnum* VertexColorActionEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EVertexColorAction"));	
-	auto CanApplyVertexAction = [this](int32 Action) -> bool { return MeshPainter->CanApplyVertexColorAction((EVertexColorAction)Action); };
-	auto ApplyVertexAction = [this](int32 Action) -> FReply { MeshPainter->ApplyVertexColorAction((EVertexColorAction)Action); return FReply::Handled(); };
-	CreateActionEnumButtons(VertexColorActionWrapbox, VertexColorActionEnum, CanApplyVertexAction, ApplyVertexAction);
-
-	/** Populates the instance vertex color action widget with buttons for each individual EInstanceColorAction enum entry */
-	const UEnum* InstanceColorActionEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EInstanceColorAction"));
-	auto CanApplyInstanceAction = [this](int32 Action) -> bool { return MeshPainter->CanApplyInstanceColorAction((EInstanceColorAction)Action); };
-	auto ApplyInstanceAction = [this](int32 Action) -> FReply { MeshPainter->ApplyInstanceColorAction((EInstanceColorAction)Action); return FReply::Handled(); };
-	CreateActionEnumButtons(InstanceColorActionWrapbox, InstanceColorActionEnum, CanApplyInstanceAction, ApplyInstanceAction);
-
-	return VertexColorWidget->AsShared();
-}
-
-void SPaintModeWidget::CreateActionEnumButtons(TSharedPtr<SWrapBox> WrapBox, const UEnum* Enum, TFunction<bool(int32)> EnabledFunc, TFunction<FReply (int32)> ClickFunc)
-{
-	FMargin StandardPadding(0.0f, 0.0f, 4.0f, 0.0f);
-
-	const int32 NumEntries = Enum->GetMaxEnumValue();
-
-	/** Add a button for each enum entry */
-	for (int32 Index = 0; Index < NumEntries; ++Index)
-	{
-		/** Retrieve label, tooltip and icon path from enum entry meta-data */
-		const FText ButtonLabel = Enum->GetDisplayNameTextByIndex(Index);
-		const FText ButtonToolTip = Enum->GetToolTipTextByIndex(Index);
-		const FString& IconPathMetaData = Enum->GetMetaData(TEXT("Icon"), Index);
-
-		/** Create horizontal box with button using the function-ptrs */
-		TSharedPtr<SHorizontalBox> ButtonContentBox;
-		WrapBox->AddSlot()
-		.Padding(2.0f, 0.0f)
-		[
-			SNew(SBox)
-			.WidthOverride(90.f)
-			.HeightOverride(25.f)
-			[
-				SNew(SButton)			
-				.ToolTipText(ButtonToolTip)			
-				.HAlign(HAlign_Left)
-				.VAlign(VAlign_Center)
-				.IsEnabled_Lambda([EnabledFunc, Index]() -> bool { return EnabledFunc(Index); })
-				.OnClicked_Lambda([ClickFunc, Index]() -> FReply { return ClickFunc(Index); })
-				[
-					SAssignNew(ButtonContentBox, SHorizontalBox)					
-				]
-			]
-		];
-
-		/** If there is an icon path retrieve it and add it to the button content, otherwise just add the label */
-		if (!IconPathMetaData.IsEmpty())
-		{
-			const FSlateBrush* Brush = FCoreStyle::Get().GetBrush(*IconPathMetaData);
-			if (Brush == FCoreStyle::Get().GetDefaultBrush())
+			SNew(SHorizontalBox)
+			.Visibility_Lambda([this]() -> EVisibility 
 			{
-				Brush = FEditorStyle::GetBrush(*IconPathMetaData);
-			}
-
-			ButtonContentBox->AddSlot()
+				const bool bVisible = MeshPainter && MeshPainter->GetSelectedComponents<USkeletalMeshComponent>().Num();
+				return bVisible ? EVisibility::Visible : EVisibility::Collapsed;
+			})
+		
+			+ SHorizontalBox::Slot()
+			.VAlign(VAlign_Center)
 			.AutoWidth()
-			.Padding(StandardPadding)
+			.Padding(6.0f, 0.0f)
 			[
 				SNew(SImage)
-				.Image(Brush)
-			];
-		}
+				.Image(FEditorStyle::GetBrush("ClassIcon.SkeletalMeshComponent"))
+			]
+		
+			+SHorizontalBox::Slot()
+			.VAlign(VAlign_Center)
+			.FillWidth(.8f)
+			.Padding(StandardPadding)
+			[
+				SNew(STextBlock)
+				.AutoWrapText(true)
+				.Text(LOCTEXT("SkelMeshAssetPaintInfo", "Paint is directly propagated to Skeletal Mesh Asset(s)"))
+			]
+		]
+	];
+	
+	FToolBarBuilder ColorToolbarBuilder(MeshPainter->GetUICommandList(), FMultiBoxCustomization::None);
+	ColorToolbarBuilder.SetLabelVisibility(EVisibility::Collapsed);
+	ColorToolbarBuilder.AddToolBarButton(FPaintModeCommands::Get().Fill, NAME_None, FText::GetEmpty(), TAttribute<FText>(), FSlateIcon(FEditorStyle::GetStyleSetName(), "MeshPaint.Fill"));
+	ColorToolbarBuilder.AddToolBarButton(FPaintModeCommands::Get().Propagate, NAME_None, FText::GetEmpty(), TAttribute<FText>(), FSlateIcon(FEditorStyle::GetStyleSetName(), "MeshPaint.Propagate"));
+	ColorToolbarBuilder.AddToolBarButton(FPaintModeCommands::Get().Import, NAME_None, FText::GetEmpty(), TAttribute<FText>(), FSlateIcon(FEditorStyle::GetStyleSetName(), "MeshPaint.Import"));
+	ColorToolbarBuilder.AddToolBarButton(FPaintModeCommands::Get().Save, NAME_None, FText::GetEmpty(), TAttribute<FText>(), FSlateIcon(FEditorStyle::GetStyleSetName(), "MeshPaint.Save"));
 
-		ButtonContentBox->AddSlot()
-		.HAlign(HAlign_Center)
-		[
-			SNew(STextBlock)
-			.Text(ButtonLabel)
-			.Justification(ETextJustify::Center)
-		];
-	}
+	VertexColorActionBox->AddSlot()
+	.FillWidth(1.0f)
+	[
+		ColorToolbarBuilder.MakeWidget()
+	];
+
+	FToolBarBuilder InstanceToolbarBuilder(MeshPainter->GetUICommandList(), FMultiBoxCustomization::None);
+	InstanceToolbarBuilder.SetLabelVisibility(EVisibility::Collapsed);
+	InstanceToolbarBuilder.AddToolBarButton(FPaintModeCommands::Get().Copy, NAME_None, FText::GetEmpty(), TAttribute<FText>(), FSlateIcon(FEditorStyle::GetStyleSetName(), "MeshPaint.Copy"));
+	InstanceToolbarBuilder.AddToolBarButton(FPaintModeCommands::Get().Paste, NAME_None, FText::GetEmpty(), TAttribute<FText>(), FSlateIcon(FEditorStyle::GetStyleSetName(), "MeshPaint.Paste"));
+	InstanceToolbarBuilder.AddToolBarButton(FPaintModeCommands::Get().Remove, NAME_None, FText::GetEmpty(), TAttribute<FText>(), FSlateIcon(FEditorStyle::GetStyleSetName(), "MeshPaint.Remove"));
+	InstanceToolbarBuilder.AddToolBarButton(FPaintModeCommands::Get().Fix, NAME_None, FText::GetEmpty(), TAttribute<FText>(), FSlateIcon(FEditorStyle::GetStyleSetName(), "MeshPaint.Fix"));
+
+	InstanceColorActionBox->AddSlot()
+	.FillWidth(1.0f)
+	[
+		InstanceToolbarBuilder.MakeWidget()
+	];
+
+	return VertexColorWidget->AsShared();
 }
  
 TSharedPtr<SWidget> SPaintModeWidget::CreateTexturePaintWidget()
 {
 	FMargin StandardPadding(0.0f, 4.0f, 0.0f, 4.0f);
-
 	TSharedPtr<SWidget> TexturePaintWidget;
-	TSharedPtr<SWrapBox> TexturePaintActionWrapbox;
-	TSharedPtr<SWrapBox> InstanceColorActionWrapbox;
+	TSharedPtr<SHorizontalBox> ActionBox;
 
 	SAssignNew(TexturePaintWidget, SVerticalBox)
 	.Visibility(this, &SPaintModeWidget::IsTexturePaintModeVisible)
 	+ SVerticalBox::Slot()
 	.AutoHeight()
 	.Padding(StandardPadding)
+	.HAlign(HAlign_Center)
 	[
-		SNew(SHorizontalBox)
-		+ SHorizontalBox::Slot()
-		.FillWidth(1)
-		.Padding(2.0f, 0.0f)
-		[
-			SAssignNew(TexturePaintActionWrapbox, SWrapBox)
-			.UseAllottedWidth(true)
-		]
+		SAssignNew(ActionBox, SHorizontalBox)
 	];
 	 
-	/** Populates the instance vertex color action widget with buttons for each individual ETexturePaintAction enum entry */
-	const UEnum* TexturePaintActionEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("ETexturePaintAction"));
-	CreateActionEnumButtons(TexturePaintActionWrapbox, TexturePaintActionEnum, [this](int32 Action) -> bool { return MeshPainter->CanApplyTexturePaintAction((ETexturePaintAction)Action); }, [this](int32 Action) -> FReply { MeshPainter->ApplyTexturePaintAction((ETexturePaintAction)Action); return FReply::Handled(); });
+	FToolBarBuilder TexturePaintToolbarBuilder(MeshPainter->GetUICommandList(), FMultiBoxCustomization::None);
+	TexturePaintToolbarBuilder.SetLabelVisibility(EVisibility::Collapsed);
+	TexturePaintToolbarBuilder.AddToolBarButton(FPaintModeCommands::Get().PropagateTexturePaint, NAME_None, FText::GetEmpty(), TAttribute<FText>(), FSlateIcon(FEditorStyle::GetStyleSetName(), "MeshPaint.Propagate"));
+	TexturePaintToolbarBuilder.AddToolBarButton(FPaintModeCommands::Get().SaveTexturePaint, NAME_None, FText::GetEmpty(), TAttribute<FText>(), FSlateIcon(FEditorStyle::GetStyleSetName(), "MeshPaint.Save"));
+
+	ActionBox->AddSlot()
+	.FillWidth(1.0f)
+	[
+		TexturePaintToolbarBuilder.MakeWidget()
+	];
 
 	return TexturePaintWidget->AsShared();
 }
@@ -263,7 +228,7 @@ TSharedPtr<SWidget> SPaintModeWidget::CreateToolBarWidget()
 			PaintModeSettings->PaintMode = EPaintMode::Vertices;
 			PaintModeSettings->VertexPaintSettings.MeshPaintMode = EMeshPaintMode::PaintColors;
 			SettingsDetailsView->SetObjects(SettingsObjects, true);
-		}), FCanExecuteAction(), FIsActionChecked::CreateLambda([=]() -> bool { return PaintModeSettings->PaintMode == EPaintMode::Vertices && PaintModeSettings->VertexPaintSettings.MeshPaintMode == EMeshPaintMode::PaintColors; })), NAME_None, LOCTEXT("Mode.VertexColorPainting", "Vertex Color Painting"), LOCTEXT("Mode.VertexColor.Tooltip", "Vertex Color Painting mode allows painting of Vertex Colors"), ColorPaintIcon, EUserInterfaceActionType::ToggleButton);
+		}), FCanExecuteAction(), FIsActionChecked::CreateLambda([=]() -> bool { return PaintModeSettings->PaintMode == EPaintMode::Vertices && PaintModeSettings->VertexPaintSettings.MeshPaintMode == EMeshPaintMode::PaintColors; })), NAME_None, LOCTEXT("Mode.VertexColorPainting", "Colors"), LOCTEXT("Mode.VertexColor.Tooltip", "Vertex Color Painting mode allows painting of Vertex Colors"), ColorPaintIcon, EUserInterfaceActionType::ToggleButton);
 
 		FSlateIcon WeightPaintIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.MeshPaintMode.WeightPaint");
 		ModeSwitchButtons.AddToolBarButton(FUIAction(FExecuteAction::CreateLambda([=]()
@@ -271,14 +236,14 @@ TSharedPtr<SWidget> SPaintModeWidget::CreateToolBarWidget()
 			PaintModeSettings->PaintMode = EPaintMode::Vertices;
 			PaintModeSettings->VertexPaintSettings.MeshPaintMode = EMeshPaintMode::PaintWeights;
 			SettingsDetailsView->SetObjects(SettingsObjects, true);
-		}), FCanExecuteAction(), FIsActionChecked::CreateLambda([=]() -> bool { return PaintModeSettings->PaintMode == EPaintMode::Vertices && PaintModeSettings->VertexPaintSettings.MeshPaintMode == EMeshPaintMode::PaintWeights; })), NAME_None, LOCTEXT("Mode.VertexWeightPainting", "Vertex Weight Painting"), LOCTEXT("Mode.VertexWeight.Tooltip", "Vertex Weight Painting mode allows painting of Vertex Weights"), WeightPaintIcon, EUserInterfaceActionType::ToggleButton);
+		}), FCanExecuteAction(), FIsActionChecked::CreateLambda([=]() -> bool { return PaintModeSettings->PaintMode == EPaintMode::Vertices && PaintModeSettings->VertexPaintSettings.MeshPaintMode == EMeshPaintMode::PaintWeights; })), NAME_None, LOCTEXT("Mode.VertexWeightPainting", " Weights"), LOCTEXT("Mode.VertexWeight.Tooltip", "Vertex Weight Painting mode allows painting of Vertex Weights"), WeightPaintIcon, EUserInterfaceActionType::ToggleButton);
 
 		FSlateIcon TexturePaintIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.MeshPaintMode.TexturePaint");
 		ModeSwitchButtons.AddToolBarButton(FUIAction(FExecuteAction::CreateLambda([=]()
 		{
 			PaintModeSettings->PaintMode = EPaintMode::Textures;
 			SettingsDetailsView->SetObjects(SettingsObjects, true);
-		}), FCanExecuteAction(), FIsActionChecked::CreateLambda([=]() -> bool { return PaintModeSettings->PaintMode == EPaintMode::Textures; })), NAME_None, LOCTEXT("Mode.TexturePainting", "Texture Painting"), LOCTEXT("Mode.Texture.Tooltip", "Texture Weight Painting mode allows painting on Textures"), TexturePaintIcon, EUserInterfaceActionType::ToggleButton);
+		}), FCanExecuteAction(), FIsActionChecked::CreateLambda([=]() -> bool { return PaintModeSettings->PaintMode == EPaintMode::Textures; })), NAME_None, LOCTEXT("Mode.TexturePainting", "Textures"), LOCTEXT("Mode.Texture.Tooltip", "Texture Weight Painting mode allows painting on Textures"), TexturePaintIcon, EUserInterfaceActionType::ToggleButton);
 	}
 
 	return ModeSwitchButtons.MakeWidget();

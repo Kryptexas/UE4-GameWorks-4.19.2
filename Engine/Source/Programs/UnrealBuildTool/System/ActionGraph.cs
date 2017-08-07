@@ -471,6 +471,10 @@ namespace UnrealBuildTool
 				{
 					Executor = new RemoteExecutor();
 				}
+				else if(ActionsToExecute.Any(x => x.ActionHandler != null))
+				{
+					Executor = new LocalExecutor();
+				}
 				else if ((XGE.IsAvailable() && BuildConfiguration.bAllowXGE) || BuildConfiguration.bXGEExport)
 				{
 					Executor = new XGE();

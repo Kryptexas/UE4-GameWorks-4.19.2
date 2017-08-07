@@ -18,6 +18,7 @@
 #include "DeferredShadingRenderer.h"
 #include "ClearQuad.h"
 #include "PipelineStateCache.h"
+#include "SpriteIndexBuffer.h"
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 static TAutoConsoleVariable<int32> CVarMotionBlurFiltering(
@@ -129,7 +130,7 @@ private:
 	FShaderParameter			MotionBlurParameters;
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessVelocityFlattenCS,TEXT("PostProcessVelocityFlatten"),TEXT("VelocityFlattenMain"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FPostProcessVelocityFlattenCS,TEXT("/Engine/Private/PostProcessVelocityFlatten.usf"),TEXT("VelocityFlattenMain"),SF_Compute);
 
 
 FRCPassPostProcessVelocityFlatten::FRCPassPostProcessVelocityFlatten()
@@ -190,6 +191,7 @@ FPooledRenderTargetDesc FRCPassPostProcessVelocityFlatten::ComputeOutputDesc(EPa
 		Ret.Format = PF_FloatR11G11B10;
 		Ret.TargetableFlags |= TexCreate_UAV;
 		Ret.TargetableFlags |= TexCreate_RenderTargetable;
+		Ret.Flags |= GetTextureFastVRamFlag_DynamicLayout();
 		Ret.DebugName = TEXT("VelocityFlat");
 
 		return Ret;
@@ -204,7 +206,7 @@ FPooledRenderTargetDesc FRCPassPostProcessVelocityFlatten::ComputeOutputDesc(EPa
 		FIntPoint TileCount = GetNumTiles16x16(PixelExtent);
 
 		FPooledRenderTargetDesc Ret(FPooledRenderTargetDesc::Create2DDesc(TileCount, PF_FloatRGBA, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable | TexCreate_UAV, false));
-
+		Ret.Flags |= GetTextureFastVRamFlag_DynamicLayout();
 		Ret.DebugName = TEXT("MaxVelocity");
 
 		return Ret;
@@ -212,32 +214,7 @@ FPooledRenderTargetDesc FRCPassPostProcessVelocityFlatten::ComputeOutputDesc(EPa
 }
 
 
-class FScatterQuadIndexBuffer : public FIndexBuffer
-{
-public:
-	virtual void InitRHI() override
-	{
-		const uint32 Size = sizeof(uint16) * 6 * 8;
-		const uint32 Stride = sizeof(uint16);
-		FRHIResourceCreateInfo CreateInfo;
-		void* Buffer = nullptr;
-		IndexBufferRHI = RHICreateAndLockIndexBuffer( Stride, Size, BUF_Static, CreateInfo, Buffer );
-		uint16* Indices = (uint16*)Buffer;
-		for (uint32 SpriteIndex = 0; SpriteIndex < 8; ++SpriteIndex)
-		{
-			Indices[SpriteIndex*6 + 0] = SpriteIndex*4 + 0;
-			Indices[SpriteIndex*6 + 1] = SpriteIndex*4 + 3;
-			Indices[SpriteIndex*6 + 2] = SpriteIndex*4 + 2;
-			Indices[SpriteIndex*6 + 3] = SpriteIndex*4 + 0;
-			Indices[SpriteIndex*6 + 4] = SpriteIndex*4 + 1;
-			Indices[SpriteIndex*6 + 5] = SpriteIndex*4 + 3;
-		}
-		RHIUnlockIndexBuffer( IndexBufferRHI );
-	}
-};
-
-TGlobalResource< FScatterQuadIndexBuffer > GScatterQuadIndexBuffer;
-
+TGlobalResource< FSpriteIndexBuffer<8> > GScatterQuadIndexBuffer;
 
 class FPostProcessVelocityScatterVS : public FGlobalShader
 {
@@ -287,7 +264,7 @@ public:
 
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("PostProcessMotionBlur");
+		return TEXT("/Engine/Private/PostProcessMotionBlur.usf");
 	}
 
 	static const TCHAR* GetFunctionName()
@@ -322,8 +299,8 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessVelocityScatterVS,TEXT("PostProcessMotionBlur"),TEXT("VelocityScatterVS"),SF_Vertex);
-IMPLEMENT_SHADER_TYPE(,FPostProcessVelocityScatterPS,TEXT("PostProcessMotionBlur"),TEXT("VelocityScatterPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FPostProcessVelocityScatterVS,TEXT("/Engine/Private/PostProcessMotionBlur.usf"),TEXT("VelocityScatterVS"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(,FPostProcessVelocityScatterPS,TEXT("/Engine/Private/PostProcessMotionBlur.usf"),TEXT("VelocityScatterPS"),SF_Pixel);
 
 
 void FRCPassPostProcessVelocityScatter::Process(FRenderingCompositePassContext& Context)
@@ -470,7 +447,7 @@ private:
 	FShaderParameter			MotionBlurParameters;
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessVelocityGatherCS,TEXT("PostProcessVelocityFlatten"),TEXT("VelocityGatherCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FPostProcessVelocityGatherCS,TEXT("/Engine/Private/PostProcessVelocityFlatten.usf"),TEXT("VelocityGatherCS"),SF_Compute);
 
 void FRCPassPostProcessVelocityGather::Process(FRenderingCompositePassContext& Context)
 {
@@ -517,6 +494,7 @@ FPooledRenderTargetDesc FRCPassPostProcessVelocityGather::ComputeOutputDesc(EPas
 
 	Ret.TargetableFlags |= TexCreate_UAV;
 	Ret.TargetableFlags |= TexCreate_RenderTargetable;
+	Ret.Flags |= GetTextureFastVRamFlag_DynamicLayout();
 	Ret.DebugName = TEXT("ScatteredMaxVelocity");
 
 	return Ret;
@@ -607,7 +585,7 @@ public:
 
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("PostProcessMotionBlur");
+		return TEXT("/Engine/Private/PostProcessMotionBlur.usf");
 	}
 
 	static const TCHAR* GetFunctionName()
@@ -737,7 +715,7 @@ public:
 
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("PostProcessMotionBlur");
+		return TEXT("/Engine/Private/PostProcessMotionBlur.usf");
 	}
 
 	static const TCHAR* GetFunctionName()
@@ -862,7 +840,7 @@ void FRCPassPostProcessMotionBlur::Process(FRenderingCompositePassContext& Conte
 		SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 
 		// Is optimized away if possible (RT size=view size, )
-		DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor::Black, false, 0, false, 0, DestSize, SrcRect);
+		DrawClearQuad(Context.RHICmdList, true, FLinearColor::Black, false, 0, false, 0, DestSize, SrcRect);
 
 		Context.SetViewportAndCallRHI(SrcRect);
 	
@@ -953,6 +931,7 @@ FPooledRenderTargetDesc FRCPassPostProcessMotionBlur::ComputeOutputDesc(EPassOut
 	{
 		Ret.Format = PF_FloatRGB;
 	}
+	Ret.Flags |= GetTextureFastVRamFlag_DynamicLayout();
 	Ret.DebugName = TEXT("MotionBlur");
 	Ret.AutoWritable = false;
 
@@ -1039,7 +1018,7 @@ public:
 
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("PostProcessMotionBlur");
+		return TEXT("/Engine/Private/PostProcessMotionBlur.usf");
 	}
 
 	static const TCHAR* GetFunctionName()
@@ -1084,7 +1063,7 @@ void FRCPassPostProcessVisualizeMotionBlur::Process(FRenderingCompositePassConte
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 	
 	// is optimized away if possible (RT size=view size, )
-	DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor::Black, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, SrcRect);
+	DrawClearQuad(Context.RHICmdList, true, FLinearColor::Black, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, SrcRect);
 
 	Context.SetViewportAndCallRHI(SrcRect);
 

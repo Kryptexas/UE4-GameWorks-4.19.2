@@ -1,8 +1,11 @@
-﻿INTSourceChangelist:3275202
+﻿INTSourceChangelist:3429227
 Availability:Public
 Title: 흔한 액터 유형
 Crumbs: %ROOT%, Engine, Engine/Actors
 Description:레벨에 자주 사용되는 액터 유형에 대한 목록과 설명입니다.
+parent:Engine/Actors
+type:overview
+order:0
 
 아래는 언리얼 엔진으로 게임을 개발할 때 가장 자주 사용 또는 접하게 되는 액터는 무엇인지, 왜 사용해야 하는지, 
 이해를 돕기 위한 간략 소개입니다.

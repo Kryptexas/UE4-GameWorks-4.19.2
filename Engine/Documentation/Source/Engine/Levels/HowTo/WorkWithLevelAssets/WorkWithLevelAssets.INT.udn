@@ -59,18 +59,96 @@ like Blueprint Classes, Materials, or Particle Systems. However, because Levels 
 
 1. Open the **File** menu. 
 
-	![](Level_File_New_Level.jpg)
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](FileMenu_Windows.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](FileMenu_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 1. Select **New Level**.
 
-	![](Level_Create_New_Level.jpg)
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](NewLevel_Windows.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](NewLevel_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 	[Region:tip]
 	You can also create new levels by using the keyboard shortcut  **Ctrl + N**. 
 	[/region]
 
 	When **New Level** is selected, you will be presented with a pop-up box displaying the different templates you can base your new Level on.
 
-	![](NewLevel.png)
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](NewLevelWindow_Windows.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](NewLevelWindow_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 	* **Default:** This will give you a new level with a basic setup that includes a player start, a light, a sky dome, and other various Actors you need for a level to work correctly.
 	* **VR-Basic:**  This will give you a new level with Actors to interact with designed to guide you in learning the VR Editor controls. 
@@ -99,16 +177,94 @@ You can also save your current persistent level and/or sublevels through the [Le
 
 1. Open the **File** menu. 
 
-	![](Level_File_New_Level.png)
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](FileMenu_Windows.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](FileMenu_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 1. Select **Save**.
 
-	![](Level_Save_Level.jpg)
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](SaveLevel_Windows.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](SaveLevel_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 1. Pick a location and name for the new Level and click **Save** in the **Save Level As** window that appears. This is the same menu you would see if you selected **Save As...** from the 
 file menu or used the **Ctrl+Shift+S** keyboard shortcut. 
 
-	![](SaveLevelAs.png)
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](SaveAs_Windows.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](SaveAs_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 
 
@@ -118,11 +274,63 @@ You can open Levels by double-clicking on the Level asset in the **Content Brows
 
 1. Open the **File** menu. 
 
-	![](Level_File_New_Level.png)
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](FileMenu_Windows.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](FileMenu_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 1. Select **Open Level**.
 
-	![](Level_Open_New_Level.jpg)
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](OpenLevel_Windows.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](OpenLevel_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 	
 	[Region:tip]
 	You can also open levels by using the keyboard shortcut  **Ctrl + O**. 
@@ -130,7 +338,33 @@ You can open Levels by double-clicking on the Level asset in the **Content Brows
 
 
 1. Select a level from the **Open Level** window that appears, then click on **Open**.  
-	![](AvailableLevels.png)
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](OpenLevelMenu_Windows.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](OpenLevelMenu_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 
 

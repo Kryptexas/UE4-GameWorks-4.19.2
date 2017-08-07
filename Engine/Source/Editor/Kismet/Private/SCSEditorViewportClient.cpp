@@ -150,6 +150,8 @@ FSCSEditorViewportClient::FSCSEditorViewportClient(TWeakPtr<FBlueprintEditor>& I
 
 	// Turn off so that actors added to the world do not have a lifespan (so they will not auto-destroy themselves).
 	PreviewScene->GetWorld()->bBegunPlay = false;
+
+	PreviewScene->SetSkyCubemap(GUnrealEd->GetThumbnailManager()->AmbientCubemap);
 }
 
 FSCSEditorViewportClient::~FSCSEditorViewportClient()
@@ -202,17 +204,6 @@ void FSCSEditorViewportClient::Tick(float DeltaSeconds)
 			PreviewScene->GetWorld()->Tick(IsRealtime() ? LEVELTICK_ViewportsOnly : LEVELTICK_TimeOnly, DeltaSeconds);
 		}
 	}
-}
-
-FSceneView* FSCSEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily, const EStereoscopicPass StereoPass)
-{
-	FSceneView* SceneView = FEditorViewportClient::CalcSceneView(ViewFamily, StereoPass);
-
-	FFinalPostProcessSettings::FCubemapEntry& CubemapEntry = *new(SceneView->FinalPostProcessSettings.ContributingCubemaps) FFinalPostProcessSettings::FCubemapEntry;
-	CubemapEntry.AmbientCubemap = GUnrealEd->GetThumbnailManager()->AmbientCubemap;
-	CubemapEntry.AmbientCubemapTintMulScaleValue = FLinearColor::White;
-
-	return SceneView;
 }
 
 void FSCSEditorViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInterface* PDI)

@@ -1,22 +1,25 @@
-Availability:Public
-Title: Editing Blend Spaces
+Availability: Docs
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Blendspaces
+Title: Editing Blend Spaces
 Description:Outlines how you can edit and set up the parameters that drive your Blend Space asset.
+Type: Reference
+version: 4.16
+Parent: Engine/Animation/Blendspaces
+Order: 1
+tags:Animation
+tags:Animation Blueprint
+tags:Blend Space
+topic-image:editblendspacetopic.png
 Related: Engine\Animation\AnimHowTo\BlendSpace
 Related: Engine\Animation\Blendspaces\Creation
 Related: Engine/Animation/StateMachines
 Related: Engine/Animation/AnimBlueprints
 Related: Engine/Animation/AnimBlueprints/AnimGraph
-version: 4.15
-type:reference
-topic-image:editblendspacetopic.png
-tags:Animation
-tags:Animation Blueprint
-tags:Blend Space
-
-After [Creating a Blend Space](Engine\Animation\Blendspaces\Creation) and opening the asset, you will need to define the properties that drive the blending as well as specify what animations you want to sample from. 
 
 [TOC(start:2 end:2)]
+
+After [Creating a Blend Space](Engine\Animation\Blendspaces\Creation) and opening the asset, you will need to define the **Axis Settings** (or properties that drive the blending) as well as specify what animations to use as **Sample Poses**. 
+With those two elements defined, you can further adjust your Blend Space by altering properties within the **Blend Space Asset Details** panel. 
 
 ## Axis Settings
 
@@ -24,7 +27,7 @@ The first thing you will want to do is set up your grid by defining the **Axis S
 
 ![](AxisSettings.png)
 
-For the normal Blend Space asset, you can define the **Horizontal Axis** and **Vertical Axis** as your inputs while Blend Space 1D assets use the horizontal axis only. 
+For a normal [Blend Space](Engine\Animation\AnimHowTo\BlendSpace) asset, you can define the **Horizontal Axis** and **Vertical Axis** as your inputs while Blend Space 1D assets use the Horizontal Axis only. 
 
 For either axis, the properties that can be defined are the same: 
 
@@ -55,11 +58,15 @@ With your Axis Settings defined, the next thing you will want to do is add some 
 
 In the example above, we have dragged an Idle animation from the **Asset Browser** into the grid at the point where Direction/Speed values are 0, or the character is not moving. 
 
-You can **Right-click** on a sample point to expand a roll-out menu with adjustable options for the sample.
+You can right-click on a sample point to expand a roll-out menu with adjustable options for the sample.
 
 ![](RightClickSamplePoint.png)
 
-You can change the location of the sample by adjusting either Axis Value, change the Animation or adjust the **Rate Scale** (or playback speed of the animation). 
+You can change the location of the sample by adjusting either Axis Value (in the case above, Direction or Speed), change the Animation or adjust the **Rate Scale**. 
+
+[REGION:tip]
+You can also edit sample values using the numeric entry boxes for the sample located in the upper-left section of the Blendspace Grid.
+[/REGION]
 
 In addition to using the roll-out menu to move the sample by changing the Axis Value properties, you can drag-and-drop the sample to a new location on the grid. 
 
@@ -67,48 +74,67 @@ In addition to using the roll-out menu to move the sample by changing the Axis V
 
 To remove a sample from the grid, select your sample and press the **Delete** key. 
 
+You can also replace samples by drag-and-dropping a new sample on top of an existing sample. 
+
+![](ChangeSample.png)
+
 ### Previewing Blend Spaces
 
 Once you have a few sample poses placed on the grid, you can hold the **Shift** key and drag the green diamond around to view the blend between poses. 
 
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-Kh3EubQ1IWM
-[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	G46ZWMJHkDA
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
 [/OBJECT]
+
+While holding **Shift**, you can also hold the **Ctrl** key to show actual sample values while previewing. 
+
+![](ControlDownPreview.png)
 
 When you release the **Shift** key, the green diamond will remain in its location enabling you to freely move the camera in the viewport to view the pose from different angles. 
 
 ![](StickyKey.png)
 
+
+
 ### Grid Options
 
-Inside the Blend Space Editor grid, you can also **Show Triangulation** or adjust **Stretch** settings. 
+Inside the Blend Space Editor grid, you can also **Show Triangulation**, **Show Animation Names** or adjust **Stretch** settings. 
 
 ![](GridOptionsImage.png)
 
-The video below illustrates the effects of both options and you can experiment to reach your desired effect. 
+The video below illustrates the effects of each option and you can experiment with each option to reach your desired effect. 
 
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-rmTo7dcN6k4
-[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	eeiHXdHuZTo
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
 [/OBJECT]
-
-
-
 
 ## Blend Space Asset Details
 
@@ -158,11 +184,10 @@ This section enables you to smooth out interpolation between sample poses on a p
 
 This section defines the mode used by the Blend Space to determine which [Animation Notifiy](Engine/Animation/Sequences/Notifies) to fire. 
 
-Notify Trigger Modes include: 
-
-* **All Animations** - All notify events will fire. 
-* **Highest Weighted Animation** - Notify events will only fire from the highest weight animation. 
-* **None** - No notify events will fire from any animations. 
+|---|---|
+|**All Animations**| All notify events will fire. |
+|**Highest Weighted Animation**| Notify events will only fire from the highest weight animation.  |
+|**None**| No notify events will fire from any animations.  |
 
 ### Meta Data
 
@@ -172,5 +197,6 @@ This section enables you to associate any custom metadata with the animation ass
 
 This section enables
  you to adjust the view perspective inside the asset thumbnail that appears in the **Content Browser**.
+
 
 

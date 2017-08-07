@@ -219,7 +219,7 @@ void USoundClassGraphSchema::BreakSinglePinLink(UEdGraphPin* SourcePin, UEdGraph
 	CastChecked<USoundClassGraph>(SourcePin->GetOwningNode()->GetGraph())->LinkSoundClasses();
 }
 
-void USoundClassGraphSchema::DroppedAssetsOnGraph(const TArray<class FAssetData>& Assets, const FVector2D& GraphPosition, UEdGraph* Graph) const
+void USoundClassGraphSchema::DroppedAssetsOnGraph(const TArray<struct FAssetData>& Assets, const FVector2D& GraphPosition, UEdGraph* Graph) const
 {
 	USoundClassGraph* SoundClassGraph = CastChecked<USoundClassGraph>(Graph);
 

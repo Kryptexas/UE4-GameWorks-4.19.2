@@ -379,7 +379,6 @@ bool UDemoNetDriver::InitBase( bool bInitAsClient, FNetworkNotify* InNotify, con
 		ViewerOverride					= nullptr;
 		bPrioritizeActors				= false;
 		bPauseRecording					= false;
-		CheckpointSaveMaxMSPerFrame		= 0.0f;
 
 		if ( RelevantTimeout == 0.0f )
 		{
@@ -1050,42 +1049,39 @@ static bool DemoReplicateActor( AActor* Actor, UNetConnection* Connection, APlay
 	
 	bool bDidReplicateActor = false;
 
-	if ( Actor != NULL )
+	// Handle role swapping if this is a client-recorded replay.
+	FScopedActorRoleSwap RoleSwap(Actor);
+
+	if ((Actor->GetRemoteRole() != ROLE_None || Actor->bTearOff) && (Actor == Connection->PlayerController || Cast< APlayerController >(Actor) == NULL))
 	{
-		// Handle role swapping if this is a client-recorded replay.
-		FScopedActorRoleSwap RoleSwap(Actor);
+		const bool bShouldHaveChannel =
+			Actor->bRelevantForNetworkReplays &&
+			!Actor->bTearOff &&
+			(!Actor->IsNetStartupActor() || Connection->ClientHasInitializedLevelFor(Actor));
 
-		if ( (Actor->GetRemoteRole() != ROLE_None || Actor->bTearOff) && ( Actor == Connection->PlayerController || Cast< APlayerController >( Actor ) == NULL ) )
+		UActorChannel* Channel = Connection->ActorChannels.FindRef(Actor);
+
+		if (bShouldHaveChannel && Channel == NULL)
 		{
-			const bool bShouldHaveChannel =
-				Actor->bRelevantForNetworkReplays &&
-				!Actor->bTearOff &&
-				(!Actor->IsNetStartupActor() || Connection->ClientHasInitializedLevelFor(Actor));
-
-			UActorChannel* Channel = Connection->ActorChannels.FindRef(Actor);
-
-			if (bShouldHaveChannel && Channel == NULL)
+			// Create a new channel for this actor.
+			Channel = (UActorChannel*)Connection->CreateChannel(CHTYPE_Actor, 1);
+			if (Channel != NULL)
 			{
-				// Create a new channel for this actor.
-				Channel = (UActorChannel*)Connection->CreateChannel(CHTYPE_Actor, 1);
-				if (Channel != NULL)
-				{
-					Channel->SetChannelActor(Actor);
-				}
+				Channel->SetChannelActor(Actor);
 			}
+		}
 
-			if (Channel != NULL && !Channel->Closing)
+		if (Channel != NULL && !Channel->Closing)
+		{
+			// Send it out!
+			bDidReplicateActor = Channel->ReplicateActor();
+
+			// Close the channel if this actor shouldn't have one
+			if (!bShouldHaveChannel)
 			{
-				// Send it out!
-				bDidReplicateActor = Channel->ReplicateActor();
-
-				// Close the channel if this actor shouldn't have one
-				if (!bShouldHaveChannel)
+				if (!Connection->bResendAllDataSinceOpen)		// Don't close the channel if we're forcing them to re-open for checkpoints
 				{
-					if (!Connection->bResendAllDataSinceOpen)		// Don't close the channel if we're forcing them to re-open for checkpoints
-					{
-						Channel->Close();
-					}
+					Channel->Close();
 				}
 			}
 		}
@@ -1594,18 +1590,19 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 					continue;
 				}
 
-				const bool bWasRecentlyRelevant = ActorInfo->LastNetUpdateTime > 0.0f && ( Time - ActorInfo->LastNetUpdateTime ) < RelevantTimeout;
+				// We check ActorInfo->LastNetUpdateTime < KINDA_SMALL_NUMBER to force at least one update for each actor
+				const bool bWasRecentlyRelevant = (ActorInfo->LastNetUpdateTime < KINDA_SMALL_NUMBER) || ((Time - ActorInfo->LastNetUpdateTime) < RelevantTimeout);
 
-				bool bIsRelevant = !bUseNetRelevancy || Actor->bAlwaysRelevant || Actor == ClientConnections[0]->PlayerController;
+				bool bIsRelevant = !bUseNetRelevancy || Actor->bAlwaysRelevant || Actor == ClientConnections[0]->PlayerController || ActorInfo->bForceRelevantNextUpdate;
+
+				ActorInfo->bForceRelevantNextUpdate = false;
 
 				if ( !bIsRelevant )
 				{
 					// Assume this actor is relevant as long as *any* viewer says so
-					const float CullDistanceSq = CullDistanceOverrideSq > 0.0f ? CullDistanceOverrideSq : Actor->NetCullDistanceSquared;
-
 					for ( const FReplayViewer& ReplayViewer : ReplayViewers )
 					{
-						if ( Actor->IsReplayRelevantFor( ReplayViewer.Viewer, ReplayViewer.ViewTarget, ReplayViewer.Location, CullDistanceSq ) )
+						if (Actor->IsReplayRelevantFor(ReplayViewer.Viewer, ReplayViewer.ViewTarget, ReplayViewer.Location, CullDistanceOverrideSq))
 						{
 							bIsRelevant = true;
 							break;
@@ -1829,6 +1826,7 @@ void UDemoNetDriver::PauseChannels( const bool bPause )
 
 bool UDemoNetDriver::ReadDemoFrameIntoPlaybackPackets( FArchive& Ar )
 {
+	SCOPED_NAMED_EVENT(UDemoNetDriver_ReadDemoFrameIntoPlaybackPackets, FColor::Purple);
 	if ( Ar.IsError() )
 	{
 		StopDemo();
@@ -2292,6 +2290,7 @@ void UDemoNetDriver::AddUserToReplay( const FString& UserString )
 
 void UDemoNetDriver::TickDemoPlayback( float DeltaSeconds )
 {
+	SCOPED_NAMED_EVENT(UDemoNetDriver_TickDemoPlayback, FColor::Purple);
 	if ( World && World->IsInSeamlessTravel() )
 	{
 		return;
@@ -2401,7 +2400,7 @@ void UDemoNetDriver::FinalizeFastForward( const float StartTime )
 		GameState->OnRep_ReplicatedWorldTimeSeconds();
 	}
 
-	if (bIsFastForwardingForCheckpoint)
+	if ( ServerConnection != nullptr && bIsFastForwardingForCheckpoint )
 	{
 		// Make a pass at OnReps for startup actors, since they were skipped during checkpoint loading.
 		// At this point the shadow state of these actors should be the actual state from before the checkpoint,

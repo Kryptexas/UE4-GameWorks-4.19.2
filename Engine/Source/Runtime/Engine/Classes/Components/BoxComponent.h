@@ -63,7 +63,7 @@ public:
 
 FORCEINLINE FVector UBoxComponent::GetScaledBoxExtent() const
 {
-	return BoxExtent * ComponentToWorld.GetScale3D();
+	return BoxExtent * GetComponentTransform().GetScale3D();
 }
 
 FORCEINLINE FVector UBoxComponent::GetUnscaledBoxExtent() const

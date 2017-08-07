@@ -101,14 +101,7 @@ static FString GetVarType(UStruct* VarScope, FName VarName, bool bUseObjToolTip,
 				FEdGraphPinType PinType;
 				if (K2Schema->ConvertPropertyToPinType(Property, PinType)) // use schema to get the color
 				{
-					if (bDetailed && PinType.PinSubCategoryObject.IsValid())
-					{
-						VarDesc = FString::Printf(TEXT("%s '%s'"), *PinType.PinCategory, *PinType.PinSubCategoryObject->GetName());
-					}
-					else
-					{
-						VarDesc = UEdGraphSchema_K2::TypeToText(PinType).ToString();
-					}
+					VarDesc = UEdGraphSchema_K2::TypeToText(PinType).ToString();
 				}
 			}
 		}
@@ -272,7 +265,7 @@ static void GetSubGraphIcon(FEdGraphSchemaAction_K2Graph const* const ActionIn, 
 					if ( OverrideFunc == NULL )
 					{
 						IconOut = FEditorStyle::GetBrush(TEXT("GraphEditor.Function_16x"));
-						if ( ActionIn->EdGraph != NULL && ActionIn->EdGraph->IsA(UAnimationGraph::StaticClass()) )
+						if ( ActionIn->EdGraph->IsA(UAnimationGraph::StaticClass()) )
 						{
 							ToolTipOut = LOCTEXT("AnimationGraph_Tooltip", "Animation Graph");
 						}
@@ -737,15 +730,15 @@ private:
 	{
 		if (FBlueprintEditorUtils::IsPinTypeValid(InNewPinType))
 		{
-			FName VarName = VariableProperty->GetFName();
-
-			if (VarName != NAME_None)
+			if (VariableProperty)
 			{
-				// Set the MyBP tab's last pin type used as this, for adding lots of variables of the same type
-				BlueprintEditorPtr.Pin()->GetMyBlueprintWidget()->GetLastPinTypeUsed() = InNewPinType;
+				FName VarName = VariableProperty->GetFName();
 
-				if (VariableProperty)
+				if (VarName != NAME_None)
 				{
+					// Set the MyBP tab's last pin type used as this, for adding lots of variables of the same type
+					BlueprintEditorPtr.Pin()->GetMyBlueprintWidget()->GetLastPinTypeUsed() = InNewPinType;
+
 					if (UFunction* LocalVariableScope = Cast<UFunction>(VariableProperty->GetOuter()))
 					{
 						FBlueprintEditorUtils::ChangeLocalVariableType(BlueprintObj, LocalVariableScope, VarName, InNewPinType);
@@ -1004,8 +997,34 @@ void SBlueprintPaletteItem::Construct(const FArguments& InArgs, FCreateWidgetFor
 	ActionPtr = InCreateData->Action;
 	BlueprintEditorPtr = InBlueprintEditor;
 
-	const bool bIsFullyReadOnly = !InBlueprintEditor.IsValid();
+	const bool bIsFullyReadOnly = !InBlueprintEditor.IsValid() || InCreateData->bIsReadOnly;
 	
+	TWeakPtr<FEdGraphSchemaAction> WeakGraphAction = GraphAction;
+	auto IsReadOnlyLambda = [WeakGraphAction, InBlueprintEditor, bIsFullyReadOnly]()
+	{ 
+		if(WeakGraphAction.IsValid() && InBlueprintEditor.IsValid())
+		{
+			return bIsFullyReadOnly || FBlueprintEditorUtils::IsPaletteActionReadOnly(WeakGraphAction.Pin(), InBlueprintEditor.Pin());
+		}
+
+		return bIsFullyReadOnly;
+	};
+	
+	// We differentiate enabled/read-only state here to not dim icons out unnecessarily, which in some situations
+	// (like the right-click palette menu) is confusing to users.
+	auto IsEditingEnabledLambda = [InBlueprintEditor]()
+	{ 
+		if(InBlueprintEditor.IsValid())
+		{
+			return InBlueprintEditor.Pin()->InEditingMode();
+		}
+
+		return true;
+	};
+
+	TAttribute<bool> bIsReadOnly = TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateLambda(IsReadOnlyLambda));
+	TAttribute<bool> bIsEditingEnabled = TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateLambda(IsEditingEnabledLambda));
+
 	// construct the icon widget
 	FSlateBrush const* IconBrush   = FEditorStyle::GetBrush(TEXT("NoBrush"));
 	FSlateBrush const* SecondaryBrush = FEditorStyle::GetBrush(TEXT("NoBrush"));
@@ -1015,7 +1034,7 @@ void SBlueprintPaletteItem::Construct(const FArguments& InArgs, FCreateWidgetFor
 	FString			   IconDocLink, IconDocExcerpt;
 	GetPaletteItemIcon(GraphAction, Blueprint, IconBrush, IconColor, IconToolTip, IconDocLink, IconDocExcerpt, SecondaryBrush, SecondaryIconColor);
 	TSharedRef<SWidget> IconWidget = CreateIconWidget(IconToolTip, IconBrush, IconColor, IconDocLink, IconDocExcerpt, SecondaryBrush, SecondaryIconColor);
-	IconWidget->SetEnabled(!bIsFullyReadOnly);
+	IconWidget->SetEnabled(bIsEditingEnabled);
 
 	// Setup a meta tag for this node
 	FTutorialMetaData TagMeta("PaletteItem"); 
@@ -1026,7 +1045,6 @@ void SBlueprintPaletteItem::Construct(const FArguments& InArgs, FCreateWidgetFor
 	}
 	// construct the text widget
 	FSlateFontInfo NameFont = FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 10);
-	const bool bIsReadOnly = bIsFullyReadOnly || FBlueprintEditorUtils::IsPaletteActionReadOnly(GraphAction, InBlueprintEditor.Pin());
 	TSharedRef<SWidget> NameSlotWidget = CreateTextSlotWidget( NameFont, InCreateData, bIsReadOnly );
 	
 	// For Variables and Local Variables, we will convert the icon widget into a pin type selector.
@@ -1050,7 +1068,7 @@ void SBlueprintPaletteItem::Construct(const FArguments& InArgs, FCreateWidgetFor
 			{
 				const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 				IconWidget = SNew(SPinTypeSelectorHelper, VariableProp, Blueprint, BlueprintEditorPtr)
-					.IsEnabled(!bIsFullyReadOnly);
+					.IsEnabled(bIsEditingEnabled);
 			}
 		}
 	}
@@ -1081,7 +1099,7 @@ void SBlueprintPaletteItem::Construct(const FArguments& InArgs, FCreateWidgetFor
 			.VAlign(VAlign_Center)
 		[
 			SNew(SPaletteItemVisibilityToggle, ActionPtr, InBlueprintEditor, InBlueprint)
-			.IsEnabled(!bIsFullyReadOnly)
+			.IsEnabled(bIsEditingEnabled)
 		]
 	];
 }
@@ -1101,7 +1119,7 @@ void SBlueprintPaletteItem::OnDragEnter(const FGeometry& MyGeometry, const FDrag
 *******************************************************************************/
 
 //------------------------------------------------------------------------------
-TSharedRef<SWidget> SBlueprintPaletteItem::CreateTextSlotWidget(const FSlateFontInfo& NameFont, FCreateWidgetForActionData* const InCreateData, bool const bIsReadOnlyIn)
+TSharedRef<SWidget> SBlueprintPaletteItem::CreateTextSlotWidget(const FSlateFontInfo& NameFont, FCreateWidgetForActionData* const InCreateData, TAttribute<bool> bIsReadOnlyIn)
 {
 	FName const ActionTypeId = InCreateData->Action->GetTypeId();
 
@@ -1143,8 +1161,6 @@ TSharedRef<SWidget> SBlueprintPaletteItem::CreateTextSlotWidget(const FSlateFont
 	}
 
 	TSharedPtr<SToolTip> ToolTipWidget = ConstructToolTipWidget();
-	// If the creation data says read only, then it must be read only
-	bool bIsReadOnly = (bIsReadOnlyIn || InCreateData->bIsReadOnly);
 
 	TSharedPtr<SOverlay> DisplayWidget;
 	TSharedPtr<SInlineEditableTextBlock> EditableTextElement;
@@ -1159,14 +1175,11 @@ TSharedRef<SWidget> SBlueprintPaletteItem::CreateTextSlotWidget(const FSlateFont
 				.OnVerifyTextChanged(OnVerifyTextChanged)
 				.OnTextCommitted(OnTextCommitted)
 				.IsSelected(InCreateData->IsRowSelectedDelegate)
-				.IsReadOnly(bIsReadOnly)
+				.IsReadOnly(bIsReadOnlyIn)
 		];
 	InlineRenameWidget = EditableTextElement.ToSharedRef();
 
-	if(!bIsReadOnly)
-	{
-		InCreateData->OnRenameRequest->BindSP(InlineRenameWidget.Get(), &SInlineEditableTextBlock::EnterEditingMode);
-	}
+	InCreateData->OnRenameRequest->BindSP(InlineRenameWidget.Get(), &SInlineEditableTextBlock::EnterEditingMode);
 
 	if (GetDefault<UBlueprintEditorSettings>()->bShowActionMenuItemSignatures && ActionPtr.IsValid())
 	{
@@ -1273,29 +1286,18 @@ bool SBlueprintPaletteItem::OnNameTextVerifyChanged(const FText& InNewText, FTex
 	TSharedPtr<INameValidatorInterface> NameValidator = MakeShareable(new FKismetNameValidator(BlueprintObj, OriginalName, ValidationScope));
 
 	EValidatorResult ValidatorResult = NameValidator->IsValid(TextAsString);
-	if(ValidatorResult == EValidatorResult::AlreadyInUse)
+	switch (ValidatorResult)
 	{
-		OutErrorMessage = FText::Format(LOCTEXT("RenameFailed_InUse", "{0} is in use by another variable or function!"), InNewText);
-	}
-	else if(ValidatorResult == EValidatorResult::EmptyName)
-	{
-		OutErrorMessage = LOCTEXT("RenameFailed_LeftBlank", "Names cannot be left blank!");
-	}
-	else if(ValidatorResult == EValidatorResult::TooLong)
-	{
-		OutErrorMessage = LOCTEXT("RenameFailed_NameTooLong", "Names must have fewer than 100 characters!");
-	}
-	else if(ValidatorResult == EValidatorResult::LocallyInUse)
-	{
-		OutErrorMessage = LOCTEXT("ConflictsWithProperty", "Conflicts with another another local variable or function parameter!");
+	case EValidatorResult::Ok:
+	case EValidatorResult::ExistingName:
+		// These are fine, don't need to surface to the user, the rename can 'proceed' even if the name is the existing one
+		break;
+	default:
+		OutErrorMessage = INameValidatorInterface::GetErrorText(TextAsString, ValidatorResult);
+		break;
 	}
 
-	if(OutErrorMessage.IsEmpty())
-	{
-		return true;
-	}
-
-	return false;
+	return OutErrorMessage.IsEmpty();
 }
 
 //------------------------------------------------------------------------------
@@ -1332,6 +1334,11 @@ void SBlueprintPaletteItem::OnNameTextCommitted(const FText& NewText, ETextCommi
 				// Search through all function entry nodes for local variables to update their scope name
 				TArray<UK2Node_Variable*> VariableNodes;
 				Graph->GetNodesOfClass<UK2Node_Variable>(VariableNodes);
+				for (const UEdGraph* SubGraph : Graph->SubGraphs)
+				{
+					check(SubGraph != nullptr);
+					SubGraph->GetNodesOfClass<UK2Node_Variable>(VariableNodes);
+				}
 
 				for (UK2Node_Variable* const VariableNode : VariableNodes)
 				{
@@ -1353,16 +1360,13 @@ void SBlueprintPaletteItem::OnNameTextCommitted(const FText& NewText, ETextCommi
 		UEdGraph* Graph = DelegateAction->EdGraph;
 		if ((Graph != NULL) && (Graph->bAllowDeletion || Graph->bAllowRenaming))
 		{
-			if (Graph)
-			{
-				FGraphDisplayInfo DisplayInfo;
-				Graph->GetSchema()->GetGraphDisplayInformation(*Graph, DisplayInfo);
+			FGraphDisplayInfo DisplayInfo;
+			Graph->GetSchema()->GetGraphDisplayInformation(*Graph, DisplayInfo);
 
-				// Check if the name is unchanged
-				if( NewText.EqualTo( DisplayInfo.PlainName ) )
-				{
-					return;
-				}
+			// Check if the name is unchanged
+			if( NewText.EqualTo( DisplayInfo.PlainName ) )
+			{
+				return;
 			}
 
 			// Make sure we aren't renaming the graph into something that already exists

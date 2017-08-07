@@ -21,6 +21,7 @@
 #include "Misc/CommandLine.h"
 #include "Misc/Paths.h"
 #include "Misc/OutputDeviceHelper.h"
+#include "Math/Color.h"
 
 /** Used by tools which include only core to disable log file creation. */
 #ifndef ALLOW_LOG_FILE
@@ -80,6 +81,7 @@ class CORE_API FAsyncWriter : public FRunnable, public FArchive
 	/** [WRITER THREAD] Serialize the contents of the ring buffer to disk */
 	void SerializeBufferToArchive()
 	{
+		SCOPED_NAMED_EVENT(FAsyncWriter_SerializeBufferToArchive, FColor::Cyan);
 		while (SerializeRequestCounter.GetValue() > 0)
 		{
 			// Grab a local copy of the end pos. It's ok if it changes on the client thread later on.
@@ -329,6 +331,8 @@ void FOutputDeviceFile::TearDown()
 	}
 	delete WriterArchive;
 	WriterArchive = nullptr;
+
+	Filename[0] = 0;
 }
 
 /**

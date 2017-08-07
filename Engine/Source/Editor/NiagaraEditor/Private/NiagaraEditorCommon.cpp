@@ -309,17 +309,6 @@ void FNiagaraOpInfo::Init()
 		Idx = OpInfos.AddDefaulted();
 		Op = &OpInfos[Idx];
 		Op->Category = CategoryText;
-		Op->FriendlyName = NSLOCTEXT("NiagaraOpInfo", "ATan2 Name", "ATan2");
-		Op->Description = NSLOCTEXT("NiagaraOpInfo", "ATan2 Desc", "Result = atan2(A, B)");
-		Op->Inputs.Add(FNiagaraOpInOutInfo(A, Type, AText, AText, DefaultStr_One));
-		Op->Inputs.Add(FNiagaraOpInOutInfo(B, Type, BText, BText, DefaultStr_One));
-		Op->Outputs.Add(FNiagaraOpInOutInfo(Result, Type, ResultText, ResultText, DefaultStr_One, TEXT("atan2({0},{1})")));
-		Op->BuildName(TEXT("ATan2"), CategoryName);
-		OpInfoMap.Add(Op->Name) = Idx;
-
-		Idx = OpInfos.AddDefaulted();
-		Op = &OpInfos[Idx];
-		Op->Category = CategoryText;
 		Op->FriendlyName = NSLOCTEXT("NiagaraOpInfo", "Ceil Name", "Ceil");
 		Op->Description = NSLOCTEXT("NiagaraOpInfo", "Ceil Desc", "Rounds A to the nearest integer higher than A.");
 		Op->Inputs.Add(FNiagaraOpInOutInfo(A, Type, AText, AText, DefaultStr_One));

@@ -322,8 +322,8 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
-    <DeployExtension>False</DeployExtension>
-    <CopyVsixExtensionFiles>True</CopyVsixExtensionFiles>
+    <DeployExtension>True</DeployExtension>
+    <CopyVsixExtensionFiles>False</CopyVsixExtensionFiles>
     <CopyVsixExtensionLocation>C:\Users\Ben.Marsh\AppData\Local\Microsoft\VisualStudio\15.0_12f23ee0Exp\Extensions\Epic Games, Inc\UnrealVS\1.45</CopyVsixExtensionLocation>
   </PropertyGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />

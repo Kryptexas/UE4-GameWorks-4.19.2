@@ -4,23 +4,12 @@ Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\Chara
 Description:Here we will set up our character and create some assets that we will need later in this guide. 
 Version: 4.9
 SkillLevel: Advanced
+Parent:Gameplay/HowTo/CharacterMovement/Blueprints
+type:how-to
+type:multi-step
+order:1
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Character Movement Overview](Gameplay\HowTo\CharacterMovement\Blueprints\)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Gameplay\HowTo\CharacterMovement\Blueprints\Input "%Gameplay\HowTo\CharacterMovement\Blueprints\Input\:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 To get started, we will create some assets that will be used by our character. First we will create an **Animation Blueprint** (we will populate it later in this series) which will be used to drive the animations of the character, then we will create our **Character Blueprint** which will hold the logic behind our character's actions and how it responds to input. 
 
@@ -96,5 +85,4 @@ For this project, we are using the **Blank** Project Template in order to start 
 
 1.	**Compile** and **Save** then close the Blueprint. 
 
-%Steps%
-
+[NAV]

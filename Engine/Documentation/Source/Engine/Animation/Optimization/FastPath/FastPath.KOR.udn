@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3467293
 Availability:Public
 Title: 애니메이션 빠른 경로 최적화
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:애니메이션 그래프 구조에 적용시켜 퍼포먼스를 향상시킬 수 있는 최적화입니다.
 version: 4.11
+topic-image:AnimationFastPathOptimization_topic.png
 
 [EXCERPT:Intro]
 애니메이션 블루프린트는 매우 유연하게 애니메이션 시스템을 제작할 수 있는 도구입니다. 하지만 그래프가 

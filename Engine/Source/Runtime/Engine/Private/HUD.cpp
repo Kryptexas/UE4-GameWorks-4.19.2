@@ -423,7 +423,7 @@ void AHUD::ShowDebugInfo(float& YL, float& YPos)
 		{
 			FRotator CamRot; FVector CamLoc; PlayerOwner->GetPlayerViewPoint(CamLoc, CamRot);
 
-			FCollisionQueryParams TraceParams(NAME_None, true, PlayerOwner->PlayerCameraManager->ViewTarget.Target);
+			FCollisionQueryParams TraceParams(NAME_None, FCollisionQueryParams::GetUnknownStatId(), true, PlayerOwner->PlayerCameraManager->ViewTarget.Target);
 			FHitResult Hit;
 			bool bHit = GetWorld()->LineTraceSingleByChannel(Hit, CamLoc, CamRot.Vector() * 100000.f + CamLoc, ECC_WorldDynamic, TraceParams);
 			if (bHit)
@@ -590,6 +590,8 @@ void AHUD::DrawDebugTextList()
 	}
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 void AHUD::AddDebugText_Implementation(const FString& DebugText,
 										 AActor* SrcActor,
 										 float Duration,
@@ -681,6 +683,8 @@ void AHUD::RemoveAllDebugStrings_Implementation()
 {
 	DebugTextList.Reset();
 }
+
+/// @endcond
 
 void AHUD::NotifyHitBoxClick(FName BoxName)
 {

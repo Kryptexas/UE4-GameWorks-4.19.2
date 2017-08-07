@@ -3,6 +3,7 @@ Title:Setting Up Input on an Actor in Blueprints
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\ActorInput
 Description:A How To Guide for setting up input on an Actor in Blueprints. 
 Version: 4.9
+type:how-to
 SkillLevel: Intermediate
 
 [TOC (start:2 end:2)]

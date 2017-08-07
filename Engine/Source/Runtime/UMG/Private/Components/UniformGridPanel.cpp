@@ -66,7 +66,7 @@ TSharedRef<SWidget> UUniformGridPanel::RebuildWidget()
 		}
 	}
 
-	return BuildDesignTimeWidget( MyUniformGridPanel.ToSharedRef() );
+	return MyUniformGridPanel.ToSharedRef();
 }
 
 UUniformGridSlot* UUniformGridPanel::AddChildToUniformGrid(UWidget* Content)

@@ -7,7 +7,6 @@ MONOLITHIC_HEADER_BOILERPLATE()
 
 // All the different platform-specific includes
 #include "HAL/PlatformCrt.h"
-#include "HAL/PlatformCodeAnalysis.h"
 #include "HAL/PlatformMemory.h"
 #include "HAL/PlatformString.h"
 #include "HAL/PlatformMisc.h"

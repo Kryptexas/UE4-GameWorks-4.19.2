@@ -19,7 +19,7 @@ public:
 	virtual FText GetSourceTooltip() const;
 
 	virtual TSharedPtr<SWidget> CreateSourceCreationPanel();
-	virtual ILiveLinkSource*	OnSourceCreationPanelClosed(bool bMakeSource);
+	virtual TSharedPtr<ILiveLinkSource> OnSourceCreationPanelClosed(bool bMakeSource);
 
 	TSharedPtr<SLiveLinkMessageBusSourceEditor> ActiveSourceEditor;
 };

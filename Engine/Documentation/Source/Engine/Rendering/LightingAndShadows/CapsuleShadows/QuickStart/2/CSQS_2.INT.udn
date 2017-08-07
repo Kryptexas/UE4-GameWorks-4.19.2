@@ -1,4 +1,4 @@
-Availability:Docs
+Availability:public
 Title:2 - Your Character - Creating a Shadow Physics Asset
 Crumbs:
 Description:In this step we will create a new Physics Asset for our Skeletal Mesh that will be used for shadow representation of our character. 

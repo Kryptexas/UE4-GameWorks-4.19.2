@@ -186,7 +186,7 @@ namespace UnrealBuildTool
         /// 
         /// </summary>
         /// <returns></returns>
-        public static string HTML5Intermediatory
+		public static string HTML5Intermediatory
 		{
 			get
 			{
@@ -259,7 +259,7 @@ namespace UnrealBuildTool
         /// 
         /// </summary>
         /// <returns></returns>
-        public static string PLATFORM_USER_HOME
+		public static string PLATFORM_USER_HOME
 		{
 			get
 			{
@@ -445,21 +445,11 @@ namespace UnrealBuildTool
 		/// <returns></returns>
 		public static int HeapSize(ConfigHierarchy ConfigCache, string BuildType)
 		{
-			int ConfigHeapSize = 0;
+            // defaults for this script
+			int ConfigHeapSize = BuildType == "Development" ? 1024 : 512;
 
-			// Valuer set by Editor UI
+            // values set by editor
 			var bGotHeapSize = ConfigCache.GetInt32("/Script/HTML5PlatformEditor.HTML5TargetSettings", "HeapSize" + BuildType, out ConfigHeapSize);
-	
-			// Fallback if the previous method failed
-			if (!bGotHeapSize && !ConfigCache.GetInt32("/Script/BuildSettings.BuildSettings", "HeapSize" + BuildType, out ConfigHeapSize))
-			{
-				// we couldn't find a per config heap size, look for a common one.
-				if (!ConfigCache.GetInt32("/Script/BuildSettings.BuildSettings", "HeapSize", out ConfigHeapSize))
-				{
-					ConfigHeapSize = BuildType == "Development" ? 1024 : 512;
-					Log.TraceInformation("Could not find Heap Size setting in .ini for Client config {0}", BuildType);
-				}
-			}
 	
 			Log.TraceInformation("Setting Heap size to {0} Mb ", ConfigHeapSize);
 			return ConfigHeapSize;

@@ -36,6 +36,8 @@ typedef TInlineValue<IMovieScenePreAnimatedToken, 32> IMovieScenePreAnimatedToke
  */
 struct IMovieScenePreAnimatedTokenProducer
 {
+	virtual ~IMovieScenePreAnimatedTokenProducer(){}
+
 	/**
 	 * Perform any initial set up required to animate the specified object
 	 * @note Only ever called when Object is in an unanimated state, as according to the AnimTypeID that this producer is operating on.
@@ -78,6 +80,8 @@ typedef TInlineValue<IMovieScenePreAnimatedGlobalToken, 32> IMovieScenePreAnimat
  */
 struct IMovieScenePreAnimatedGlobalTokenProducer
 {
+	virtual ~IMovieScenePreAnimatedGlobalTokenProducer() { }
+
 	/**
 	 * Perform any initial set up required to animate the playback environment
 	 * @note Only ever called when environment is in an unanimated state, as according to the AnimTypeID that this producer is operating on.

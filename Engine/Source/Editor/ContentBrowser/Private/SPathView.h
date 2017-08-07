@@ -12,6 +12,7 @@
 #include "Widgets/Views/STableRow.h"
 #include "Widgets/Views/STreeView.h"
 #include "Misc/TextFilter.h"
+#include "IContentBrowserSingleton.h"
 #include "ContentBrowserDelegates.h"
 
 struct FHistoryData;
@@ -100,7 +101,8 @@ public:
 	/** Sets up an inline rename for the specified folder */
 	void RenameFolder(const FString& FolderToRename);
 
-	/** Selects the paths containing the specified assets.
+	/**
+	 * Selects the paths containing the specified assets.
 	 *
 	 *	@param AssetDataList		- A list of assets to sync the view to
 	 * 
@@ -109,11 +111,31 @@ public:
 	 */
 	void SyncToAssets( const TArray<FAssetData>& AssetDataList, const bool bAllowImplicitSync = false );
 
+	/**
+	 * Selects the given paths.
+	 *
+	 *	@param FolderList			- A list of folders to sync the view to
+	 * 
+	 *	@param bAllowImplicitSync	- true to allow the view to sync to parent folders if they are already selected,
+	 *								  false to force the view to select the explicit Parent folders of each asset 
+	 */
+	void SyncToFolders( const TArray<FString>& FolderList, const bool bAllowImplicitSync = false );
+
+	/**
+	 * Selects the given items.
+	 *
+	 *	@param ItemSelection		- A list of assets and folders to sync the view to
+	 * 
+	 *	@param bAllowImplicitSync	- true to allow the view to sync to parent folders if they are already selected,
+	 *								  false to force the view to select the explicit Parent folders of each asset 
+	 */
+	void SyncTo( const FContentBrowserSelection& ItemSelection, const bool bAllowImplicitSync = false );
+
 	/** Finds the item that represents the specified path, if it exists. */
 	TSharedPtr<FTreeItem> FindItemRecursive(const FString& Path) const;
 
 	/** Sets the state of the path view to the one described by the history data */
-	void ApplyHistoryData ( const FHistoryData& History );
+	void ApplyHistoryData( const FHistoryData& History );
 
 	/** Saves any settings to config that should be persistent between editor sessions */
 	void SaveSettings(const FString& IniFilename, const FString& IniSection, const FString& SettingsString) const;
@@ -125,6 +147,9 @@ public:
 	void Populate();
 
 private:
+	/** Internal sync implementation, syncs to the tree to the given array of items */
+	void SyncToInternal( const TArray<FAssetData>& AssetDataList, const TArray<FString>& FolderPaths, const bool bAllowImplicitSync );
+
 	/** Sort the root items into the correct order */
 	void SortRootItems();
 
@@ -183,7 +208,7 @@ private:
 	bool VerifyFolderNameChanged(const FString& InName, FText& OutErrorMessage, const FString& InFolderPath) const;
 
 	/** Handler for when a name was given to a new folder */
-	void FolderNameChanged( const TSharedPtr< FTreeItem >& TreeItem, const FString& OldPath, const FVector2D& MessageLocation );
+	void FolderNameChanged( const TSharedPtr< FTreeItem >& TreeItem, const FString& OldPath, const FVector2D& MessageLocation, const ETextCommit::Type CommitType );
 
 	/** Returns true if the supplied folder item already exists in the tree. If so, ExistingItem will be set to the found item. */
 	bool FolderAlreadyExists(const TSharedPtr< FTreeItem >& TreeItem, TSharedPtr< FTreeItem >& ExistingItem);
@@ -191,11 +216,8 @@ private:
 	/** Removes the supplied folder from the tree. */
 	void RemoveFolderItem(const TSharedPtr< FTreeItem >& TreeItem);
 
-	/** Handler for when assets are dropped on a tree item */
-	void TreeAssetsDropped(const TArray<FAssetData>& AssetList, const TSharedPtr<FTreeItem>& TreeItem);
-
-	/** Handler for when asset paths are dropped on a tree item */
-	void TreeFoldersDropped(const TArray<FString>& PathNames, const TSharedPtr<FTreeItem>& TreeItem);
+	/** Handler for when assets or asset paths are dropped on a tree item */
+	void TreeAssetsOrPathsDropped(const TArray<FAssetData>& AssetList, const TArray<FString>& AssetPaths, const TSharedPtr<FTreeItem>& TreeItem);
 
 	/** Handler for when asset paths are dropped on a tree item */
 	void TreeFilesDropped(const TArray<FString>& FileNames, const TSharedPtr<FTreeItem>& TreeItem);
@@ -209,17 +231,11 @@ private:
 	/** Gets all the UObjects represented by assets in the AssetList */
 	void GetDroppedObjects(const TArray<FAssetData>& AssetList, TArray<UObject*>& OutDroppedObjects);
 
-	/** Handler for the user selecting to copy assets to the specified folder */
-	void ExecuteTreeDropCopy(TArray<FAssetData> AssetList, FString DestinationPath);
+	/** Handler for the user selecting to copy assets or asset paths to the specified folder */
+	void ExecuteTreeDropCopy(TArray<FAssetData> AssetList, TArray<FString> AssetPaths, FString DestinationPath);
 
-	/** Handler for the user selecting to move assets to the specified folder */
-	void ExecuteTreeDropMove(TArray<FAssetData> AssetList, FString DestinationPath);
-
-	/** Handler for the user selecting to copy folders to the specified folder */
-	void ExecuteTreeDropCopyFolder(TArray<FString> PathNames, FString DestinationPath);
-
-	/** Handler for the user selecting to move folders to the specified folder */
-	void ExecuteTreeDropMoveFolder(TArray<FString> PathNames, FString DestinationPath);
+	/** Handler for the user selecting to move assets or asset paths to the specified folder */
+	void ExecuteTreeDropMove(TArray<FAssetData> AssetList, TArray<FString> AssetPaths, FString DestinationPath);
 
 	/** Handles updating the content browser when an asset path is added to the asset registry */
 	void OnAssetRegistryPathAdded(const FString& Path);
@@ -229,6 +245,9 @@ private:
 
 	/** Notification for when the Asset Registry has completed it's initial search */
 	void OnAssetRegistrySearchCompleted();
+
+	/** Handles updating the content browser when a path is populated with an asset for the first time */
+	void OnFolderPopulated(const FString& Path);
 
 	/** Called from an engine core event when a new content path has been added or removed, so that we can refresh our root set of paths */
 	void OnContentPathMountedOrDismounted( const FString& AssetPath, const FString& FileSystemPath );

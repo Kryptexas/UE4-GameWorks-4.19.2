@@ -1,30 +1,12 @@
-﻿Availability:Public
+﻿INTSourceChangelist:3429233
+Availability:Public
 Title:ステートマシン
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:ステートマシンは、ステートの変化過程で発生するブレンドを完全制御しながら、スケルタル アニメーションをさまざまなステートへ分割します
 version:4.12
+tags:Assets
+topic-image:Engine/Animation/Overview/StateMachineTopic.png
 
-<!--
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Animation/StateMachines:title%](Rigging_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Animation/StateMachines:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Animation/StateMachines:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Animation/StateMachines]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
--->
 
 [REGION:banner]
 ![](StateMachineImage.png)

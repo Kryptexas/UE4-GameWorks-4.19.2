@@ -48,7 +48,15 @@ namespace SteamAudio
 		RenderingSettings.frameSize = OutputBufferLength;
 		RenderingSettings.samplingRate = SampleRate;
 
-		iplCreateBinauralRenderer(SteamAudio::GlobalContext, RenderingSettings, nullptr, &BinauralRenderer);
+		IPLHrtfParams HrtfParams;
+		HrtfParams.hrtfData = nullptr;
+		HrtfParams.loadCallback = nullptr;
+		HrtfParams.lookupCallback = nullptr;
+		HrtfParams.unloadCallback = nullptr;
+		HrtfParams.numHrirSamples = 0;
+		HrtfParams.type = IPL_HRTFDATABASETYPE_DEFAULT;
+
+		iplCreateBinauralRenderer(SteamAudio::GlobalContext, RenderingSettings, HrtfParams, &BinauralRenderer);
 
 		BinauralSources.AddDefaulted(NumSources);
 		for (auto& BinauralSource : BinauralSources)

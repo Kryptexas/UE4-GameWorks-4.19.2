@@ -3,7 +3,9 @@
 #include "Animation/AnimBlueprint.h"
 #include "UObject/FrameworkObjectVersion.h"
 #include "Animation/AnimBlueprintGeneratedClass.h"
-
+#if WITH_EDITOR
+#include "Settings/EditorExperimentalSettings.h"
+#endif
 #if WITH_EDITORONLY_DATA
 #include "AnimationEditorUtils.h"
 #endif
@@ -200,4 +202,10 @@ void UAnimBlueprint::SetPreviewMesh(USkeletalMesh* PreviewMesh)
 	Modify();
 	PreviewSkeletalMesh = PreviewMesh;
 }
+
+bool UAnimBlueprint::CanRecompileWhilePlayingInEditor() const
+{
+	return GetDefault<UEditorExperimentalSettings>()->bEnableLiveRecompilationOfAnimationBlueprints;
+}
+
 #endif

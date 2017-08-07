@@ -30,9 +30,9 @@ FD3D12Device::FD3D12Device(GPUNodeMask Node, FD3D12Adapter* InAdapter) :
 	OcclusionQueryHeap(this, D3D12_QUERY_HEAP_TYPE_OCCLUSION, 32768),
 	DefaultBufferAllocator(this, Node), //Note: Cross node buffers are possible 
 	PendingCommandListsTotalWorkCommands(0),
-	CommandListManager(this, D3D12_COMMAND_LIST_TYPE_DIRECT),
-	CopyCommandListManager(this, D3D12_COMMAND_LIST_TYPE_COPY),
-	AsyncCommandListManager(this, D3D12_COMMAND_LIST_TYPE_COMPUTE),
+	CommandListManager(nullptr),
+	CopyCommandListManager(nullptr),
+	AsyncCommandListManager(nullptr),
 	TextureStreamingCommandAllocatorManager(this, D3D12_COMMAND_LIST_TYPE_COPY),
 	GlobalSamplerHeap(this, Node),
 	GlobalViewHeap(this, Node),
@@ -41,6 +41,7 @@ FD3D12Device::FD3D12Device(GPUNodeMask Node, FD3D12Adapter* InAdapter) :
 	FD3D12SingleNodeGPUObject(Node),
 	FD3D12AdapterChild(InAdapter)
 {
+	InitPlatformSpecific();
 }
 
 ID3D12Device* FD3D12Device::GetDevice()
@@ -111,7 +112,7 @@ void FD3D12Device::CreateCommandContexts()
 
 bool FD3D12Device::IsGPUIdle()
 {
-	FD3D12Fence& Fence = CommandListManager.GetFence();
+	FD3D12Fence& Fence = CommandListManager->GetFence();
 	return Fence.GetLastCompletedFence() >= (Fence.GetCurrentFence() - 1);
 }
 
@@ -158,9 +159,9 @@ void FD3D12Device::SetupAfterDeviceCreation()
 	// Init the occlusion query heap
 	OcclusionQueryHeap.Init();
 
-	CommandListManager.Create(L"3D Queue");
-	CopyCommandListManager.Create(L"Copy Queue");
-	AsyncCommandListManager.Create(L"Async Compute Queue", 0, AsyncComputePriority_Default);
+	CommandListManager->Create(L"3D Queue");
+	CopyCommandListManager->Create(L"Copy Queue");
+	AsyncCommandListManager->Create(L"Async Compute Queue", 0, AsyncComputePriority_Default);
 
 	// Needs to be called before creating command contexts
 	UpdateConstantBufferPageProperties();
@@ -207,9 +208,9 @@ void FD3D12Device::UpdateMSAASettings()
 void FD3D12Device::Cleanup()
 {
 	// Wait for the command queues to flush
-	CommandListManager.WaitForCommandQueueFlush();
-	CopyCommandListManager.WaitForCommandQueueFlush();
-	AsyncCommandListManager.WaitForCommandQueueFlush();
+	CommandListManager->WaitForCommandQueueFlush();
+	CopyCommandListManager->WaitForCommandQueueFlush();
+	AsyncCommandListManager->WaitForCommandQueueFlush();
 
 	check(!GIsCriticalError);
 
@@ -244,9 +245,9 @@ void FD3D12Device::Cleanup()
 	}
 	*/
 
-	CommandListManager.Destroy();
-	CopyCommandListManager.Destroy();
-	AsyncCommandListManager.Destroy();
+	CommandListManager->Destroy();
+	CopyCommandListManager->Destroy();
+	AsyncCommandListManager->Destroy();
 
 	OcclusionQueryHeap.Destroy();
 

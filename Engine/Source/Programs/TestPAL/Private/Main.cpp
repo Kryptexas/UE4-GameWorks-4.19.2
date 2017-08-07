@@ -27,6 +27,7 @@ IMPLEMENT_APPLICATION(TestPAL, "TestPAL");
 #define ARG_DSO_TEST						"dso"
 #define ARG_GET_ALLOCATION_SIZE_TEST		"getallocationsize"
 #define ARG_MALLOC_THREADING_TEST			"mallocthreadtest"
+#define ARG_MALLOC_REPLAY					"mallocreplay"
 
 namespace TestPAL
 {
@@ -560,6 +561,8 @@ int32 MallocThreadingTest(const TCHAR* CommandLine)
 	TArray<FRunnable*> RunnableArray;
 	TArray<FRunnableThread*> ThreadArray;
 
+	FString Test(CommandLine);
+
 	bool bUseSystemMalloc = FParse::Param(CommandLine, TEXT("systemmalloc"));
 	int32 NumTestThreads = 32, InNumTestThreads = 0, InNumAllocs = 0;
 	if (FParse::Value(CommandLine, TEXT("numthreads="), InNumTestThreads))
@@ -607,6 +610,161 @@ int32 MallocThreadingTest(const TCHAR* CommandLine)
 	FEngineLoop::AppExit();
 	return 0;
 }
+
+/**
+ * Replays a malloc save file, streaming it from the disk. Waits for Ctrl-C until exiting.
+ * 
+ * @param ReplayFileName file name to read. Must be reachable from cwd (current working directory) or absolute
+ * @param OperationToStopAfter number of operation to stop on - no further reads will be done. Useful to compare peak usage in the middle of file.
+ * @param bSuppressErrors Whether to print errors
+ */
+void ReplayMallocFile(const FString& ReplayFileName, uint64 OperationToStopAfter, bool bSuppressErrors)
+{
+#if PLATFORM_WINDOWS
+	FILE* ReplayFile = nullptr;
+	if (fopen_s(&ReplayFile, TCHAR_TO_UTF8(*ReplayFileName), "rb") != 0 || ReplayFile == nullptr)
+#else
+	FILE* ReplayFile = fopen(TCHAR_TO_UTF8(*ReplayFileName), "rb");
+	if (ReplayFile == nullptr)
+#endif // PLATFORM_WINDOWS
+	{
+		return;
+	}
+
+	// For file format, see FMallocReplayProxy
+
+	// skip the first line since it contains column headers
+	{
+		char DummyBuffer[4096];
+		fgets(DummyBuffer, sizeof(DummyBuffer), ReplayFile);
+	}
+
+	double WallTimeDuration = 0.0;
+
+	uint64 OperationNumber = 0;
+	TMap<uint64, void *> FilePointerToRamPointers;
+	for(;;)
+	{
+		FSimpleScopeSecondsCounter Duration(WallTimeDuration);
+
+		char OpBuffer[128] = {0};
+		uint64 PtrOut, PtrIn, Size, Ordinal;
+		uint32 Alignment;
+#if PLATFORM_WINDOWS
+		if (fscanf_s(ReplayFile, "%s %llu %llu %llu %u\t# %llu\n", OpBuffer, static_cast<unsigned int>(sizeof(OpBuffer)), &PtrOut, &PtrIn, &Size, &Alignment, &Ordinal) != 6)
+#else
+		if (fscanf(ReplayFile, "%s %llu %llu %llu %u\t# %llu\n", OpBuffer, &PtrOut, &PtrIn, &Size, &Alignment, &Ordinal) != 6)
+#endif // PLATFORM_WINDOWS
+		{
+			UE_LOG(LogTestPAL, Display, TEXT("Hit end of the replay file on %llu-th operation."), OperationNumber);
+			break;
+		}
+
+		if (!FCStringAnsi::Strcmp(OpBuffer, "Malloc"))
+		{
+			if (FilePointerToRamPointers.Find(PtrOut) == nullptr)
+			{
+				void* Result = FMemory::Malloc(Size, Alignment);
+				FilePointerToRamPointers.Add(PtrOut, Result);
+			}
+			else if (!bSuppressErrors)
+			{
+				UE_LOG(LogTestPAL, Error, TEXT("Replay file contains operation # %llu that returned pointer %llu, which was already allocated at that moment. Skipping."), Ordinal, PtrOut);
+			}
+		}
+		else if (!FCStringAnsi::Strcmp(OpBuffer, "Realloc"))
+		{
+			void* PtrToRealloc = nullptr;
+			if (PtrIn != 0)
+			{
+				void** RamPointer = FilePointerToRamPointers.Find(PtrIn);
+				if (RamPointer != nullptr)
+				{
+					PtrToRealloc = *RamPointer;
+				}
+				else if (!bSuppressErrors)
+				{
+					UE_LOG(LogTestPAL, Error, TEXT("Replay file contains operation # %llu to reallocate pointer %llu, which was not allocated at that moment. Substituting with nullptr."), Ordinal, PtrIn);
+				}
+			}
+
+			void* Result = FMemory::Realloc(PtrToRealloc, Size, Alignment);
+			FilePointerToRamPointers.Remove(PtrIn);
+			FilePointerToRamPointers.Add(PtrOut, Result);
+		}
+		else if (!FCStringAnsi::Strcmp(OpBuffer, "Free"))
+		{
+			void* PtrToFree = nullptr;
+			if (PtrIn != 0)
+			{
+				void** RamPointer = FilePointerToRamPointers.Find(PtrIn);
+				if (RamPointer != nullptr)
+				{
+					PtrToFree = *RamPointer;
+				}
+				else if (!bSuppressErrors)
+				{
+					UE_LOG(LogTestPAL, Error, TEXT("Replay file contains operation # %llu to free pointer %llu, which was not allocated at that moment. Substituting with nullptr."), Ordinal, PtrIn);
+				}
+			}
+
+			FMemory::Free(PtrToFree);
+			FilePointerToRamPointers.Remove(PtrIn);
+		}
+		else if (!bSuppressErrors)
+		{
+			UE_LOG(LogTestPAL, Error, TEXT("Replay file contains unknown operation '%s', skipping."), ANSI_TO_TCHAR(OpBuffer));
+		}
+
+		++OperationNumber;
+		if (OperationNumber >= OperationToStopAfter)
+		{
+			UE_LOG(LogTestPAL, Display, TEXT("Stopping after %llu-th operation."), OperationNumber);
+			break;
+		}
+	}
+
+	UE_LOG(LogTestPAL, Display, TEXT("Replayed %llu operations in %f seconds, waiting for Ctrl-C to proceed further. You can now examine heap/process state."), OperationNumber, WallTimeDuration);
+
+	while(!GIsRequestingExit)
+	{
+		FPlatformProcess::Sleep(1.0);
+	}
+}
+
+/**
+ * Malloc replaying test
+ */
+int32 MallocReplayTest(const TCHAR* CommandLine)
+{
+	FPlatformMisc::SetCrashHandler(NULL);
+	FPlatformMisc::SetGracefulTerminationHandler();
+
+	GEngineLoop.PreInit(CommandLine);
+
+	FString ReplayFileName;
+	if (FParse::Value(CommandLine, TEXT("replayfile="), ReplayFileName))
+	{
+		uint64 OperationToStopAfter = (uint64)(-1);
+		if (!FParse::Value(CommandLine, TEXT("stopafter="), OperationToStopAfter))
+		{
+			UE_LOG(LogTestPAL, Display, TEXT("You can pass -stopafter=N to stop after Nth operation."));
+		}
+		
+		bool bSuppressErrors = FParse::Param(CommandLine, TEXT("suppresserrors"));
+
+		ReplayMallocFile(ReplayFileName, OperationToStopAfter, bSuppressErrors);
+	}
+	else
+	{
+		UE_LOG(LogTestPAL, Error, TEXT("No file to replay. Pass -replayfile=PathToFile.txt"));
+	}
+
+	FEngineLoop::AppPreExit();
+	FEngineLoop::AppExit();
+	return 0;
+}
+
 
 /**
  * Selects and runs one of test cases.
@@ -667,6 +825,10 @@ int32 MultiplexedMain(int32 ArgC, char* ArgV[])
 		{
 			return MallocThreadingTest(*TestPAL::CommandLine);
 		}
+		else if (!FCStringAnsi::Strcmp(ArgV[IdxArg], ARG_MALLOC_REPLAY))
+		{
+			return MallocReplayTest(*TestPAL::CommandLine);
+		}
 	}
 
 	FPlatformMisc::SetCrashHandler(NULL);
@@ -688,6 +850,7 @@ int32 MultiplexedMain(int32 ArgC, char* ArgV[])
 	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test APIs for dealing with dynamic libraries"), ANSI_TO_TCHAR( ARG_DSO_TEST ));
 	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test GMalloc->GetAllocationSize()"), UTF8_TO_TCHAR(ARG_GET_ALLOCATION_SIZE_TEST));
 	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test malloc for thread-safety and performance. Pass -systemmalloc to use system malloc, -numthreads=N and -numallocs=M (in thousands)."), UTF8_TO_TCHAR(ARG_MALLOC_THREADING_TEST));
+	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test by replaying a saved malloc history saved by -mallocsavereplay. Possible options: -replayfile=File, -stopafter=N (operation), -suppresserrors"), UTF8_TO_TCHAR(ARG_MALLOC_REPLAY));
 	UE_LOG(LogTestPAL, Warning, TEXT(""));
 	UE_LOG(LogTestPAL, Warning, TEXT("Pass one of those to run an appropriate test."));
 

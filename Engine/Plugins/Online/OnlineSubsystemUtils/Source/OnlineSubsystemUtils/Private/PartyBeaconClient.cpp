@@ -317,6 +317,8 @@ void APartyBeaconClient::OnFailure()
 	Super::OnFailure();
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 bool APartyBeaconClient::ServerReservationRequest_Validate(const FString& SessionId, const FPartyReservation& Reservation)
 {
 	return !SessionId.IsEmpty() && Reservation.PartyLeader.IsValid() && Reservation.PartyMembers.Num() > 0;
@@ -397,6 +399,8 @@ void APartyBeaconClient::ClientReservationResponse_Implementation(EPartyReservat
 	}
 }
 
+/// @endcond
+
 void APartyBeaconClient::ProcessReservationResponse(EPartyReservationResult::Type ReservationResponse)
 {
 	if (!bCancelReservation)
@@ -411,6 +415,8 @@ void APartyBeaconClient::ProcessReservationResponse(EPartyReservationResult::Typ
 		// Cancel RPC or failsafe timer will trigger the cancel
 	}
 }
+
+/// @cond DOXYGEN_WARNINGS
 
 void APartyBeaconClient::ClientCancelReservationResponse_Implementation(EPartyReservationResult::Type ReservationResponse)
 {
@@ -441,12 +447,16 @@ void APartyBeaconClient::ClientCancelReservationResponse_Implementation(EPartyRe
 	}
 }
 
+/// @endcond
+
 void APartyBeaconClient::ProcessCancelReservationResponse(EPartyReservationResult::Type ReservationResponse)
 {
 	ensure(ReservationResponse == EPartyReservationResult::ReservationRequestCanceled || ReservationResponse == EPartyReservationResult::ReservationNotFound);
 	ensure(bCancelReservation);
 	OnCancelledComplete();
 }
+
+/// @cond DOXYGEN_WARNINGS
 
 void APartyBeaconClient::ClientSendReservationUpdates_Implementation(int32 NumRemainingReservations)
 {
@@ -476,11 +486,15 @@ void APartyBeaconClient::ClientSendReservationUpdates_Implementation(int32 NumRe
 	}
 }
 
+/// @endcond
+
 void APartyBeaconClient::ProcessReservationUpdate(int32 NumRemainingReservations)
 {
 	UE_LOG(LogBeacon, Verbose, TEXT("Party beacon reservations remaining %d"), NumRemainingReservations);
 	ReservationCountUpdate.ExecuteIfBound(NumRemainingReservations);
 }
+
+/// @cond DOXYGEN_WARNINGS
 
 void APartyBeaconClient::ClientSendReservationFull_Implementation()
 {
@@ -509,6 +523,8 @@ void APartyBeaconClient::ClientSendReservationFull_Implementation()
 		}
 	}
 }
+
+/// @endcond
 
 void APartyBeaconClient::ProcessReservationFull()
 {

@@ -170,6 +170,11 @@ bool FOnlineSubsystemGameCircle::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutput
 	return false;
 }
 
+FText FOnlineSubsystemGameCircle::GetOnlineServiceName() const
+{
+	return NSLOCTEXT("OnlineSubsystemGameCircle", "OnlineServiceName", "Amazon GameCircle");
+}
+
 bool FOnlineSubsystemGameCircle::IsEnabled(void)
 {
 	bool bEnabled = true;

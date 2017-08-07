@@ -100,17 +100,25 @@ FVector FModifyBoneEditMode::GetWidgetLocation() const
 
 EBoneModificationMode FModifyBoneEditMode::GetBoneModificationMode(FWidget::EWidgetMode InWidgetMode) const
 {
-	FWidget::EWidgetMode InMode = InWidgetMode;
-	switch (InMode)
+	switch (InWidgetMode)
 	{
 	case FWidget::WM_Translate:
-		return GraphNode->Node.TranslationMode;
+		if(!GraphNode->IsPinExposedAndLinked(GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_ModifyBone, Translation)))
+		{
+			return GraphNode->Node.TranslationMode;
+		}
 		break;
 	case FWidget::WM_Rotate:
-		return GraphNode->Node.RotationMode;
+		if(!GraphNode->IsPinExposedAndLinked(GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_ModifyBone, Rotation)))
+		{
+			return GraphNode->Node.RotationMode;
+		}
 		break;
 	case FWidget::WM_Scale:
-		return GraphNode->Node.ScaleMode;
+		if(!GraphNode->IsPinExposedAndLinked(GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_ModifyBone, Scale)))
+		{
+			return GraphNode->Node.ScaleMode;
+		}
 		break;
 	case FWidget::WM_TranslateRotateZ:
 	case FWidget::WM_2D:
@@ -241,4 +249,25 @@ void FModifyBoneEditMode::DoScale(FVector& InScale)
 		GraphNode->Node.Scale = RuntimeNode->Scale;
 		GraphNode->SetDefaultValue(GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_ModifyBone, Scale), RuntimeNode->Scale);
 	}
+}
+
+bool FModifyBoneEditMode::ShouldDrawWidget() const
+{
+	// Prevent us from using widgets if pins are linked
+	if(CurWidgetMode == FWidget::WM_Translate && GraphNode->IsPinExposedAndLinked(GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_ModifyBone, Translation)))
+	{
+		return false;
+	}
+
+	if(CurWidgetMode == FWidget::WM_Rotate && GraphNode->IsPinExposedAndLinked(GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_ModifyBone, Rotation)))
+	{
+		return false;
+	}
+
+	if(CurWidgetMode == FWidget::WM_Scale && GraphNode->IsPinExposedAndLinked(GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_ModifyBone, Scale)))
+	{
+		return false;
+	}
+
+	return true;
 }

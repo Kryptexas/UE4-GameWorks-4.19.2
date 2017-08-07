@@ -571,7 +571,7 @@ void UEdGraphSchema_Niagara::GetGraphContextActions(FGraphContextMenuBuilder& Co
 					}
 				};
 
-				GenSwizzles(TEXT(""));
+				GenSwizzles(FString());
 
 				for (FString Swiz : Swizzles)
 				{
@@ -773,7 +773,7 @@ const FPinConnectionResponse UEdGraphSchema_Niagara::CanCreateConnection(const U
 	}
 	else
 	{
-		return FPinConnectionResponse(CONNECT_RESPONSE_MAKE, TEXT(""));
+		return FPinConnectionResponse(CONNECT_RESPONSE_MAKE, FString());
 	}
 }
 
@@ -939,25 +939,22 @@ FNiagaraVariable UEdGraphSchema_Niagara::PinToNiagaraVariable(const UEdGraphPin*
 		if (!Pin->DefaultValue.IsEmpty())
 		{
 			//Having to do some very hacky and fragile messing with the default value. TODO: Our own pin type in which we can control the default value formatting so that we can just shove it right into hlsl.
-			if (!Pin->DefaultValue.IsEmpty())
+			// The subsequent logic for alphanumeric constant testing won't work for bools, as we explicitly look for the string "true" below.
+			if (Var.GetType() == FNiagaraTypeDefinition::GetBoolDef())
 			{
-				// The subsequent logic for alphanumeric constant testing won't work for bools, as we explicitly look for the string "true" below.
-				if (Var.GetType() == FNiagaraTypeDefinition::GetBoolDef())
+				if (Pin->DefaultValue.Equals(TEXT("true")))
 				{
-					if (Pin->DefaultValue.Equals(TEXT("true")))
-					{
-						Default = Pin->DefaultValue;
-					}
+					Default = Pin->DefaultValue;
 				}
-				else
+			}
+			else
+			{
+				Default.Reserve(Pin->DefaultValue.Len());
+				for (int Pos = 0; Pos < Pin->DefaultValue.Len(); ++Pos)
 				{
-					Default.Reserve(Pin->DefaultValue.Len());
-					for (int Pos = 0; Pos < Pin->DefaultValue.Len(); ++Pos)
+					if ((FChar::IsAlnum(Pin->DefaultValue[Pos]) && !FChar::IsAlpha(Pin->DefaultValue[Pos])) || Pin->DefaultValue[Pos] == TEXT(',') || Pin->DefaultValue[Pos] == TEXT('.') || Pin->DefaultValue[Pos] == TEXT('-'))
 					{
-						if ((FChar::IsAlnum(Pin->DefaultValue[Pos]) && !FChar::IsAlpha(Pin->DefaultValue[Pos])) || Pin->DefaultValue[Pos] == TEXT(',') || Pin->DefaultValue[Pos] == TEXT('.') || Pin->DefaultValue[Pos] == TEXT('-'))
-						{
-							Default.AppendChar(Pin->DefaultValue[Pos]);
-						}
+						Default.AppendChar(Pin->DefaultValue[Pos]);
 					}
 				}
 			}
@@ -1054,12 +1051,12 @@ FEdGraphPinType UEdGraphSchema_Niagara::TypeDefinitionToPinType(FNiagaraTypeDefi
 {
 	if (TypeDef.GetClass())
 	{
-		return FEdGraphPinType(PinCategoryClass, TEXT(""), const_cast<UClass*>(TypeDef.GetClass()), false, false, false, false, FEdGraphTerminalType());
+		return FEdGraphPinType(PinCategoryClass, FString(), const_cast<UClass*>(TypeDef.GetClass()), EPinContainerType::None, false, FEdGraphTerminalType());
 	}
 	else
 	{
 		//TODO: Are base types better as structs or done like BPS as a special name?
-		return FEdGraphPinType(PinCategoryType, TEXT(""), const_cast<UScriptStruct*>(TypeDef.GetScriptStruct()), false, false, false, false, FEdGraphTerminalType());
+		return FEdGraphPinType(PinCategoryType, FString(), const_cast<UScriptStruct*>(TypeDef.GetScriptStruct()), EPinContainerType::None, false, FEdGraphTerminalType());
 	}
 }
 
@@ -1102,7 +1099,7 @@ void UEdGraphSchema_Niagara::GetBreakLinkToSubMenuActions(class FMenuBuilder& Me
 		UEdGraphPin* Pin = *Links;
 		FString TitleString = Pin->GetOwningNode()->GetNodeTitle(ENodeTitleType::ListView).ToString();
 		FText Title = FText::FromString(TitleString);
-		if (Pin->PinName != TEXT(""))
+		if (!Pin->PinName.IsEmpty())
 		{
 			TitleString = FString::Printf(TEXT("%s (%s)"), *TitleString, *Pin->PinName);
 

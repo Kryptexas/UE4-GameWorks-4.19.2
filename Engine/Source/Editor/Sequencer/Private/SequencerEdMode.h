@@ -16,6 +16,8 @@ class FViewport;
 struct HMovieSceneKeyProxy;
 class UMovieScene3DTransformSection;
 class UMovieScene3DTransformTrack;
+struct FMovieSceneEvaluationTrack;
+struct FMovieSceneInterrogationData;
 
 /** Stores the transform track and associated mesh trail for each drawn track */
 struct FMeshTrailData
@@ -71,7 +73,7 @@ protected:
 	void DrawTransformTrack(const TSharedPtr<FSequencer>& Sequencer, FPrimitiveDrawInterface* PDI, UMovieScene3DTransformTrack* TransformTrack, const TArray<TWeakObjectPtr<UObject>>& BoundObjects, const bool bIsSelected);
 
 protected:
-	static void GetLocationAtTime(const UMovieScene3DTransformSection* TransformSection, float KeyTime, FVector& KeyPos, FRotator& KeyRot);
+	static void GetLocationAtTime(const FMovieSceneEvaluationTrack* Track, UObject* BoundObject, float KeyTime, FVector& KeyPos, FRotator& KeyRot, const TSharedPtr<FSequencer>& Sequencer);
 	static FTransform GetRefFrame(const TSharedPtr<FSequencer>& Sequencer, const UObject* InObject, float KeyTime);
 	static FTransform GetRefFrame(const TSharedPtr<FSequencer>& Sequencer, const AActor* Actor, float KeyTime);
 	static FTransform GetRefFrame(const TSharedPtr<FSequencer>& Sequencer, const USceneComponent* SceneComponent, float KeyTime);
@@ -81,6 +83,9 @@ private:
 
 	/**Array of the transform tracks and their associated mesh trails */
 	TArray<FMeshTrailData> MeshTrails;
+
+	/** Interrogation data for extracting transforms */
+	TSharedPtr<FMovieSceneInterrogationData> InterrogationData;
 
 	/** If true, draw mesh trails instead of debug lines*/
 	bool bDrawMeshTrails;

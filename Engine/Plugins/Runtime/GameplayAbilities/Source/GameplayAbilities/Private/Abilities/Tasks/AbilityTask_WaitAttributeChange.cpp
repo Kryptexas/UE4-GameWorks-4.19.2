@@ -14,7 +14,7 @@ UAbilityTask_WaitAttributeChange::UAbilityTask_WaitAttributeChange(const FObject
 
 UAbilityTask_WaitAttributeChange* UAbilityTask_WaitAttributeChange::WaitForAttributeChange(UGameplayAbility* OwningAbility, FGameplayAttribute InAttribute, FGameplayTag InWithTag, FGameplayTag InWithoutTag, bool TriggerOnce)
 {
-	auto MyObj = NewAbilityTask<UAbilityTask_WaitAttributeChange>(OwningAbility);
+	UAbilityTask_WaitAttributeChange* MyObj = NewAbilityTask<UAbilityTask_WaitAttributeChange>(OwningAbility);
 	MyObj->WithTag = InWithTag;
 	MyObj->WithoutTag = InWithoutTag;
 	MyObj->Attribute = InAttribute;
@@ -26,7 +26,7 @@ UAbilityTask_WaitAttributeChange* UAbilityTask_WaitAttributeChange::WaitForAttri
 
 UAbilityTask_WaitAttributeChange* UAbilityTask_WaitAttributeChange::WaitForAttributeChangeWithComparison(UGameplayAbility* OwningAbility, FGameplayAttribute InAttribute, FGameplayTag InWithTag, FGameplayTag InWithoutTag, TEnumAsByte<EWaitAttributeChangeComparison::Type> InComparisonType, float InComparisonValue, bool TriggerOnce)
 {
-	auto MyObj = NewAbilityTask<UAbilityTask_WaitAttributeChange>(OwningAbility);
+	UAbilityTask_WaitAttributeChange* MyObj = NewAbilityTask<UAbilityTask_WaitAttributeChange>(OwningAbility);
 	MyObj->WithTag = InWithTag;
 	MyObj->WithoutTag = InWithoutTag;
 	MyObj->Attribute = InAttribute;
@@ -41,12 +41,15 @@ void UAbilityTask_WaitAttributeChange::Activate()
 {
 	if (AbilitySystemComponent)
 	{
-		OnAttributeChangeDelegateHandle = AbilitySystemComponent->RegisterGameplayAttributeEvent(Attribute).AddUObject(this, &UAbilityTask_WaitAttributeChange::OnAttributeChange);
+		OnAttributeChangeDelegateHandle = AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(Attribute).AddUObject(this, &UAbilityTask_WaitAttributeChange::OnAttributeChange);
 	}
 }
 
-void UAbilityTask_WaitAttributeChange::OnAttributeChange(float NewValue, const FGameplayEffectModCallbackData* Data)
+void UAbilityTask_WaitAttributeChange::OnAttributeChange(const FOnAttributeChangeData& CallbackData)
 {
+	float NewValue = CallbackData.NewValue;
+	const FGameplayEffectModCallbackData* Data = CallbackData.GEModData;
+
 	if (Data == nullptr)
 	{
 		// There may be no execution data associated with this change, for example a GE being removed. 
@@ -107,7 +110,7 @@ void UAbilityTask_WaitAttributeChange::OnDestroy(bool AbilityEnded)
 {
 	if (AbilitySystemComponent)
 	{
-		AbilitySystemComponent->RegisterGameplayAttributeEvent(Attribute).Remove(OnAttributeChangeDelegateHandle);
+		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(Attribute).Remove(OnAttributeChangeDelegateHandle);
 	}
 
 	Super::OnDestroy(AbilityEnded);

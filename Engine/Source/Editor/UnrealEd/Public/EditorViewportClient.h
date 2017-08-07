@@ -18,7 +18,7 @@
 #include "EditorComponents.h"
 #include "Framework/Commands/Commands.h"
 
-class FAssetData;
+struct FAssetData;
 class FCachedJoystickState;
 class FCameraControllerConfig;
 class FCameraControllerUserImpulseData;
@@ -126,6 +126,7 @@ struct FViewportCursorLocation
 {
 public:
 	UNREALED_API FViewportCursorLocation( const FSceneView* View, FEditorViewportClient* InViewportClient, int32 X, int32 Y );
+	UNREALED_API virtual ~FViewportCursorLocation();
 
 	const FVector&		GetOrigin()			const	{ return Origin; }
 	const FVector&		GetDirection()		const	{ return Direction; }
@@ -144,6 +145,7 @@ struct FViewportClick : public FViewportCursorLocation
 {
 public:
 	UNREALED_API FViewportClick( const FSceneView* View, FEditorViewportClient* ViewportClient, FKey InKey, EInputEvent InEvent, int32 X, int32 Y );
+	UNREALED_API virtual ~FViewportClick();
 
 	/** @return The 2D screenspace cursor position of the mouse when it was clicked. */
 	const FIntPoint&	GetClickPos()	const	{ return GetCursorPos(); }
@@ -454,7 +456,7 @@ public:
 	virtual void RequestInvalidateHitProxy(FViewport* Viewport) override;
 	virtual bool InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed = 1.f, bool bGamepad=false) override;
 	virtual bool InputAxis(FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime, int32 NumSamples=1, bool bGamepad=false) override;
-	virtual bool InputGesture(FViewport* Viewport, EGestureEvent::Type GestureType, const FVector2D& GestureDelta, bool bIsDirectionInvertedFromDevice) override;
+	virtual bool InputGesture(FViewport* Viewport, EGestureEvent GestureType, const FVector2D& GestureDelta, bool bIsDirectionInvertedFromDevice) override;
 	virtual void ReceivedFocus(FViewport* Viewport) override;
 	virtual void MouseEnter(FViewport* Viewport,int32 x, int32 y) override;
 	virtual void MouseMove(FViewport* Viewport,int32 x, int32 y) override;
@@ -1052,6 +1054,9 @@ public:
 	/** Returns the map allowing to convert from the viewmode param to a name. */
 	TMap<int32, FName>& GetViewModeParamNameMap() { return ViewModeParamNameMap; }
 
+	/** Show or hide the widget. */
+	void ShowWidget(const bool bShow);
+
 protected:
 	/** Invalidates the viewport widget (if valid) to register its active timer */
 	void InvalidateViewportWidget();
@@ -1080,7 +1085,7 @@ protected:
 		/** Should the software cursor be visible */
 		bool	bSoftwareCursorVisible;
 
-		/** Should the hardware be visible */
+		/** Should the hardware cursor be visible */
 		bool	bHardwareCursorVisible;
 
 		/** Should the software cursor position be reset to pre-drag */
@@ -1367,6 +1372,9 @@ protected:
 	FEditorModeTools*		ModeTools;
 
 	FWidget*				Widget;
+
+	/** Whether the widget should be drawn. */
+	bool bShowWidget;
 
 	FMouseDeltaTracker*		MouseDeltaTracker;
 		

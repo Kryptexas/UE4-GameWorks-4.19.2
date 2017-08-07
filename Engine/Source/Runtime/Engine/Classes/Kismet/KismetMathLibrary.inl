@@ -1095,6 +1095,19 @@ FVector2D UKismetMathLibrary::Divide_Vector2DFloat(FVector2D A, float B)
 }
 
 KISMET_MATH_FORCEINLINE
+FVector2D UKismetMathLibrary::Divide_Vector2DVector2D(FVector2D A, FVector2D B)
+{
+	if (B.X == 0.f || B.Y == 0.f)
+	{
+		ReportError_Divide_Vector2DVector2D();
+		return FVector2D::ZeroVector;
+	}
+
+	return A / B;
+}
+
+
+KISMET_MATH_FORCEINLINE
 FVector2D UKismetMathLibrary::Add_Vector2DFloat(FVector2D A, float B)
 {
 	return A+B;
@@ -1476,36 +1489,6 @@ KISMET_MATH_FORCEINLINE
 float UKismetMathLibrary::GetTotalSeconds( FTimespan A )
 {
 	return A.GetTotalSeconds();
-}
-
-KISMET_MATH_FORCEINLINE
-FTimespan UKismetMathLibrary::FromDays( float Days )
-{
-	return FTimespan::FromDays(Days);
-}
-
-KISMET_MATH_FORCEINLINE
-FTimespan UKismetMathLibrary::FromHours( float Hours )
-{
-	return FTimespan::FromHours(Hours);
-}
-
-KISMET_MATH_FORCEINLINE
-FTimespan UKismetMathLibrary::FromMilliseconds( float Milliseconds )
-{
-	return FTimespan::FromMilliseconds(Milliseconds);
-}
-
-KISMET_MATH_FORCEINLINE
-FTimespan UKismetMathLibrary::FromMinutes( float Minutes )
-{
-	return FTimespan::FromMinutes(Minutes);
-}
-
-KISMET_MATH_FORCEINLINE
-FTimespan UKismetMathLibrary::FromSeconds( float Seconds )
-{
-	return FTimespan::FromSeconds(Seconds);
 }
 
 KISMET_MATH_FORCEINLINE

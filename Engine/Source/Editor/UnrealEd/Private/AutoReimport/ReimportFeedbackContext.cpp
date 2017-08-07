@@ -564,8 +564,6 @@ void FReimportFeedbackContext::ProgressReported(const float TotalProgressInterp,
 
 void FReimportFeedbackContext::FinalizeSlowTask()
 {
-	FFeedbackContext::FinalizeSlowTask();
-
 	if (SlowTaskText.IsValid())
 	{
 		SlowTaskText->SetVisibility(EVisibility::Collapsed);

@@ -22,5 +22,8 @@ public:
 #if WITH_EDITORONLY_DATA
 	/** Returns StaticMeshComponent subobject **/
 	class UDrawSphereComponent* GetDrawSphereComponent() const { return DrawSphereComponent; }
+
+	/** LOD actor this is representing */
+	TWeakObjectPtr<AActor> RepresentedActor;
 #endif // WITH_EDITORONLY_DATA
 };

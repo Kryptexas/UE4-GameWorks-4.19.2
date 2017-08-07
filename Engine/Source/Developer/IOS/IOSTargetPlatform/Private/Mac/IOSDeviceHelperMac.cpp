@@ -308,9 +308,30 @@ void FIOSDeviceHelper::DoDeviceConnect(void* deviceHandle)
         TCHAR idBuffer[128];
 		TCHAR nameBuffer[256];
 		TCHAR productBuffer[128];
-		FPlatformString::CFStringToTCHAR(deviceId, idBuffer);
-		FPlatformString::CFStringToTCHAR(deviceName, nameBuffer);
-		FPlatformString::CFStringToTCHAR(productType, productBuffer);
+		if (deviceId != NULL)
+		{
+			FPlatformString::CFStringToTCHAR(deviceId, idBuffer);
+		}
+		else
+		{
+			idBuffer[0] = 0;
+		}
+		if (deviceName != NULL)
+		{
+			FPlatformString::CFStringToTCHAR(deviceName, nameBuffer);
+		}
+		else
+		{
+			nameBuffer[0] = 0;
+		}
+		if (productType != NULL)
+		{
+			FPlatformString::CFStringToTCHAR(productType, productBuffer);
+		}
+		else
+		{
+			productBuffer[0] = 0;
+		}
 		FIOSLaunchDaemonPong Event;
         Event.DeviceID = FString::Printf(TEXT("%s@%s"), (FString(productBuffer).Contains("AppleTV") ? TEXT("TVOS") : TEXT("IOS")), idBuffer);
 		Event.DeviceName = FString::Printf(TEXT("%s"), nameBuffer);

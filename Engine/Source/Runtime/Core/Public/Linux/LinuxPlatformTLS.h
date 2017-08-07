@@ -30,7 +30,6 @@ struct CORE_API FLinuxTLS : public FGenericPlatformTLS
 
 	#if IS_MONOLITHIC
 		// syscall() is relatively heavy and shows up in the profiler, given that IsInGameThread() is used quite often. Cache thread id in TLS.
-		static __thread uint32 ThreadIdTLS = 0;
 		if (ThreadIdTLS == 0)
 		{
 	#else
@@ -48,6 +47,13 @@ struct CORE_API FLinuxTLS : public FGenericPlatformTLS
 		// better than nothing...
 		static_assert(sizeof(uint32) == sizeof(pthread_t), "pthread_t cannot be converted to uint32 one to one - different number of bits. Review FLinuxTLS::GetCurrentThreadId() implementation.");
 		return static_cast< uint32 >(pthread_self());
+#endif
+	}
+
+	static void ClearThreadIdTLS(void)
+	{
+#if IS_MONOLITHIC
+		ThreadIdTLS = 0;
 #endif
 	}
 
@@ -117,6 +123,11 @@ struct CORE_API FLinuxTLS : public FGenericPlatformTLS
 	{
 		pthread_key_delete((pthread_key_t)SlotIndex);
 	}
+
+private:
+#if IS_MONOLITHIC
+	static __thread uint32 ThreadIdTLS;
+#endif
 };
 
 typedef FLinuxTLS FPlatformTLS;

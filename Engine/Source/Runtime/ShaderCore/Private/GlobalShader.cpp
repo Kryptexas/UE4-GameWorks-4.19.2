@@ -19,7 +19,7 @@
 /** The global shader map. */
 TShaderMap<FGlobalShaderType>* GGlobalShaderMap[SP_NumPlatforms] = {};
 
-IMPLEMENT_SHADER_TYPE(,FNULLPS,TEXT("NullPixelShader"),TEXT("Main"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FNULLPS,TEXT("/Engine/Private/NullPixelShader.usf"),TEXT("Main"),SF_Pixel);
 
 /** Used to identify the global shader map in compile queues. */
 const int32 GlobalShaderMapId = 0;

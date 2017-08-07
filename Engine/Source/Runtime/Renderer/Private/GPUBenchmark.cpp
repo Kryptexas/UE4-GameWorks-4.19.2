@@ -25,8 +25,6 @@ static const uint32 GBenchmarkResolution = 512;
 static const uint32 GBenchmarkPrimitives = 200000;
 static const uint32 GBenchmarkVertices = GBenchmarkPrimitives * 3;
 
-DEFINE_LOG_CATEGORY_STATIC(LogSynthBenchmark, Log, All);
-
 /** Encapsulates the post processing down sample pixel shader. */
 template <uint32 PsMethod>
 class FPostProcessBenchmarkPS : public FGlobalShader
@@ -78,7 +76,7 @@ public:
 
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("GPUBenchmark");
+		return TEXT("/Engine/Private/GPUBenchmark.usf");
 	}
 
 	static const TCHAR* GetFunctionName()
@@ -142,9 +140,9 @@ typedef FPostProcessBenchmarkVS<0> FPostProcessBenchmarkVS0;
 typedef FPostProcessBenchmarkVS<1> FPostProcessBenchmarkVS1;
 typedef FPostProcessBenchmarkVS<2> FPostProcessBenchmarkVS2;
 
-IMPLEMENT_SHADER_TYPE(template<>,FPostProcessBenchmarkVS0,TEXT("GPUBenchmark"),TEXT("MainBenchmarkVS"),SF_Vertex);
-IMPLEMENT_SHADER_TYPE(template<>,FPostProcessBenchmarkVS1,TEXT("GPUBenchmark"),TEXT("MainBenchmarkVS"),SF_Vertex);
-IMPLEMENT_SHADER_TYPE(template<>,FPostProcessBenchmarkVS2,TEXT("GPUBenchmark"),TEXT("MainBenchmarkVS"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(template<>,FPostProcessBenchmarkVS0,TEXT("/Engine/Private/GPUBenchmark.usf"),TEXT("MainBenchmarkVS"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(template<>,FPostProcessBenchmarkVS1,TEXT("/Engine/Private/GPUBenchmark.usf"),TEXT("MainBenchmarkVS"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(template<>,FPostProcessBenchmarkVS2,TEXT("/Engine/Private/GPUBenchmark.usf"),TEXT("MainBenchmarkVS"),SF_Vertex);
 
 struct FBenchmarkVertex
 {

@@ -11,7 +11,7 @@ using namespace BuildPatchTool;
 class FEnumerationToolMode : public IToolMode
 {
 public:
-	FEnumerationToolMode(const TSharedRef<IBuildPatchServicesModule>& InBpsInterface)
+	FEnumerationToolMode(IBuildPatchServicesModule& InBpsInterface)
 		: BpsInterface(InBpsInterface)
 	{}
 
@@ -44,7 +44,7 @@ public:
 		}
 
 		// Run the enumeration routine
-		bool bSuccess = BpsInterface->EnumerateManifestData(ManifestFile, OutputFile, bIncludeSizes);
+		bool bSuccess = BpsInterface.EnumerateManifestData(ManifestFile, OutputFile, bIncludeSizes);
 		return bSuccess ? EReturnCode::OK : EReturnCode::ToolFailure;
 	}
 
@@ -80,14 +80,14 @@ private:
 	}
 
 private:
-	TSharedRef<IBuildPatchServicesModule> BpsInterface;
+	IBuildPatchServicesModule& BpsInterface;
 	bool bHelp;
 	FString ManifestFile;
 	FString OutputFile;
 	bool bIncludeSizes;
 };
 
-BuildPatchTool::IToolModeRef BuildPatchTool::FEnumerationToolModeFactory::Create(const TSharedRef<IBuildPatchServicesModule>& BpsInterface)
+BuildPatchTool::IToolModeRef BuildPatchTool::FEnumerationToolModeFactory::Create(IBuildPatchServicesModule& BpsInterface)
 {
 	return MakeShareable(new FEnumerationToolMode(BpsInterface));
 }

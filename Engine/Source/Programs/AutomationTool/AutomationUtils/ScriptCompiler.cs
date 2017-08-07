@@ -10,7 +10,6 @@ using Microsoft.Win32;
 using System.Reflection;
 using System.Diagnostics;
 using UnrealBuildTool;
-using Tools.DotNETCommon.CaselessDictionary;
 
 namespace AutomationTool
 {
@@ -33,7 +32,7 @@ namespace AutomationTool
 	{
 		#region Fields
 				
-		private CaselessDictionary<Type> ScriptCommands;
+		private Dictionary<string, Type> ScriptCommands;
 #if DEBUG
 		const string BuildConfig = "Debug";
 #else
@@ -88,7 +87,7 @@ namespace AutomationTool
 
 			// Instantiate all the automation classes for interrogation
 			Log.TraceVerbose("Creating commands.");
-			ScriptCommands = new CaselessDictionary<Type>();
+			ScriptCommands = new Dictionary<string, Type>(StringComparer.InvariantCultureIgnoreCase);
 			foreach (var CompiledScripts in ScriptAssemblies)
 			{
 				try
@@ -322,6 +321,17 @@ namespace AutomationTool
 		{
 			CommandUtils.LogVerbose("Cleaning up script DLL folder");
 			CommandUtils.DeleteDirectory(GetScriptAssemblyFolder());
+
+			// Bug in PortalPublishingTool caused these DLLs to be copied into Engine/Binaries/DotNET. Delete any files left over.
+			DirectoryReference BinariesDir = DirectoryReference.Combine(CommandUtils.RootDirectory, "Engine", "Binaries", "DotNET");
+			foreach (FileReference FileToDelete in DirectoryReference.EnumerateFiles(BinariesDir, "*.automation.dll"))
+			{
+				CommandUtils.DeleteFile(FileToDelete.FullName);
+			}
+			foreach (FileReference FileToDelete in DirectoryReference.EnumerateFiles(BinariesDir, "*.automation.pdb"))
+			{
+				CommandUtils.DeleteFile(FileToDelete.FullName);
+			}
 		}
 
 		private static string GetScriptAssemblyFolder()
@@ -333,7 +343,7 @@ namespace AutomationTool
 
 		#region Properties
 
-		public CaselessDictionary<Type> Commands
+		public Dictionary<string, Type> Commands
 		{
 			get { return ScriptCommands; }
 		}

@@ -457,8 +457,10 @@ void android_main(struct android_app* state)
 
 	FPlatformMisc::LowLevelOutputDebugString(L"Created event thread");
 
-	// Make sure glue isn't stripped.
+	// Make sure glue isn't stripped. (not needed in ndk-15)
+#if PLATFORM_ANDROID_NDK_VERSION < 150000
 	app_dummy();
+#endif
 
 	//@todo android: replace with native activity, main loop off of UI thread, etc.
 	AndroidMain(state);

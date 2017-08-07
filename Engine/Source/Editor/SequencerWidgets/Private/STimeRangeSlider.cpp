@@ -76,7 +76,7 @@ FVector2D STimeRangeSlider::ComputeDesiredSize(float) const
 }
 
 
-int32 STimeRangeSlider::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 STimeRangeSlider::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	const int32 BackgroundLayer = LayerId+1;
 	const int32 SliderBoxLayer = BackgroundLayer+1;
@@ -89,7 +89,7 @@ int32 STimeRangeSlider::OnPaint( const FPaintArgs& Args, const FGeometry& Allott
 	float LeftHandleOffset = 0.f;
 	float HandleOffset = 0.f;
 	float RightHandleOffset = 0.f;
-	ComputeHandleOffsets(LeftHandleOffset, HandleOffset, RightHandleOffset, AllottedGeometry.Size.X);
+	ComputeHandleOffsets(LeftHandleOffset, HandleOffset, RightHandleOffset, AllottedGeometry.GetLocalSize().X);
 
 	static const FName SelectionColorName("SelectionColor");
 	FLinearColor SelectionColor = FEditorStyle::GetSlateColor(SelectionColorName).GetColor(FWidgetStyle());
@@ -100,7 +100,6 @@ int32 STimeRangeSlider::OnPaint( const FPaintArgs& Args, const FGeometry& Allott
 		LayerId, 
 		AllottedGeometry.ToPaintGeometry(FVector2D(HandleOffset, 0.0f), FVector2D(RightHandleOffset-LeftHandleOffset-TimeRangeSliderConstants::HandleSize, TimeRangeSliderConstants::HandleSize)),
 		RangeHandle,
-		MyClippingRect,
 		ESlateDrawEffect::None,
 		(bHandleDragged || bHandleHovered) ? SelectionColor : FLinearColor::Gray);
 
@@ -110,7 +109,6 @@ int32 STimeRangeSlider::OnPaint( const FPaintArgs& Args, const FGeometry& Allott
 		LayerId, 
 		AllottedGeometry.ToPaintGeometry(FVector2D(LeftHandleOffset, 0.0f), FVector2D(TimeRangeSliderConstants::HandleSize, TimeRangeSliderConstants::HandleSize)),
 		RangeHandleLeft,
-		MyClippingRect,
 		ESlateDrawEffect::None,
 		(bLeftHandleDragged || bLeftHandleHovered) ? SelectionColor : FLinearColor::Gray);
 
@@ -120,11 +118,10 @@ int32 STimeRangeSlider::OnPaint( const FPaintArgs& Args, const FGeometry& Allott
 		LayerId, 
 		AllottedGeometry.ToPaintGeometry(FVector2D(RightHandleOffset, 0.0f), FVector2D(TimeRangeSliderConstants::HandleSize, TimeRangeSliderConstants::HandleSize)),
 		RangeHandleRight,
-		MyClippingRect,
 		ESlateDrawEffect::None,
 		(bRightHandleDragged || bRightHandleHovered) ? SelectionColor : FLinearColor::Gray);
 
-	SCompoundWidget::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ));
+	SCompoundWidget::OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ));
 
 	return LayerId;
 }
@@ -167,7 +164,7 @@ FReply STimeRangeSlider::OnMouseMove( const FGeometry& MyGeometry, const FPointe
 {
 	if (HasMouseCapture())
 	{
-		float DragDelta = ComputeDragDelta(MouseEvent, MyGeometry.Size.X);
+		float DragDelta = ComputeDragDelta(MouseEvent, MyGeometry.GetLocalSize().X);
 
 		const float SnapInterval = TimeSnapInterval.Get(1.f);
 
@@ -234,7 +231,7 @@ FReply STimeRangeSlider::OnMouseMove( const FGeometry& MyGeometry, const FPointe
 		float LeftHandleOffset = 0.f;
 		float HandleOffset = 0.f;
 		float RightHandleOffset = 0.f;
-		ComputeHandleOffsets(LeftHandleOffset, HandleOffset, RightHandleOffset, MyGeometry.Size.X);
+		ComputeHandleOffsets(LeftHandleOffset, HandleOffset, RightHandleOffset, MyGeometry.GetLocalSize().X);
 		
 		FGeometry LeftHandleRect = MyGeometry.MakeChild(FVector2D(LeftHandleOffset, 0.f), FVector2D(TimeRangeSliderConstants::HandleSize, TimeRangeSliderConstants::HandleSize));
 		FGeometry RightHandleRect = MyGeometry.MakeChild(FVector2D(RightHandleOffset, 0.f), FVector2D(TimeRangeSliderConstants::HandleSize, TimeRangeSliderConstants::HandleSize));

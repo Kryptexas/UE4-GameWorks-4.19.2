@@ -5,16 +5,19 @@
 #include "CoreMinimal.h"
 #include "Evaluation/MovieSceneSegment.h"
 #include "MovieSceneSection.h"
+#include "MovieSceneBlendType.h"
 
-/** Data structure supplied to the segment compiler that represents a section range, evaluation data (including the section's index), and a priority */
+/** Data structure supplied to the segment compiler that represents a section range, evaluation data (including the section's index), blend type and a priority */
 struct FMovieSceneSectionData
 {
-	MOVIESCENE_API FMovieSceneSectionData(const TRange<float>& InBounds, FSectionEvaluationData InEvalData, int32 InPriority = 0);
+	MOVIESCENE_API FMovieSceneSectionData(const TRange<float>& InBounds, FSectionEvaluationData InEvalData, FOptionalMovieSceneBlendType InBlendType = FOptionalMovieSceneBlendType(), int32 InPriority = 0);
 
 	/** The time range in which this section is considered active */
 	TRange<float> Bounds;
 	/** Evaluation data with which the section is to be evaluated */
 	FSectionEvaluationData EvalData;
+	/** Optional blend type for the section */
+	FOptionalMovieSceneBlendType BlendType;
 	/** Priority for the data (ie OverlapPriority where this represents sections in a row, or row index in the case of rows in a track) */
 	int32 Priority;
 };

@@ -1,9 +1,11 @@
-﻿INTSourceChangelist:3238697
+﻿INTSourceChangelist:3429264
 Title:UE4 C++ 프로그래밍 입문
 Crumbs:
 Description:언리얼 엔진이 처음이신 C++ 프로그래머를 위한 입문 안내서입니다.
 Availability:Public
 Version:4.9
+tags:Getting Started
+tags:Programming
 
 ![image alt text](image_0.png)
 
@@ -44,7 +46,7 @@ Version:4.9
 	{
 		GENERATED_BODY()
 		
-	public:	
+	public:
 		// 이 액터의 프로퍼티에 기본값을 설정합니다.
 		AMyActor();
 	
@@ -76,7 +78,8 @@ Version:4.9
 	class AMyActor : public AActor
 	{
 		GENERATED_BODY()
-
+	public:
+	
 		UPROPERTY(EditAnywhere)
 		int32 TotalDamage;
 
@@ -103,7 +106,8 @@ Version:4.9
 	class AMyActor : public AActor
 	{
 		GENERATED_BODY()
-
+	public:
+	
 		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Damage")
 		int32 TotalDamage;
 
@@ -280,9 +284,9 @@ AActor 에는 별도의 작동방식이 있는데 (상속을 통한 전문화), 
 
 AActor 에는 AActor 수명 도중 호출할 수 있는 이벤트 시리즈가 있습니다. 아래 목록은 단순화시킨 이벤트 세트로 그 수명을 나타낸 것입니다.
 
-* BeginPlay - 오브젝트가 게임플레이에 처음 등장했을 때 호출됩니다.
-* Tick - 지속적으로 이루어지는 작업을 하기 위해 프레임 당 한 번 호출됩니다.
-* EndPlay - 오브젝트가 게임플레이 공간을 떠날 때 호출됩니다.
+* `BeginPlay` - 오브젝트가 게임플레이에 처음 등장했을 때 호출됩니다.
+* `Tick` - 지속적으로 이루어지는 작업을 하기 위해 프레임 당 한 번 호출됩니다.
+* `EndPlay` - 오브젝트가 게임플레이 공간을 떠날 때 호출됩니다.
 
 AActor 관련 보다 자세한 논의는 [](Programming/UnrealArchitecture/Actors) 문서를 참고하세요.
 
@@ -331,11 +335,11 @@ UStruct (구조체)를 사용하기 위해서는, 특정 클래스를 확장할 
 
 게임플레이 클래스는 특수한 마크업을 활용하므로, 자세히 들어가기 전 언리얼 프로퍼티 시스템의 기초를 약간 살펴보도록 합시다. UE4 는 별도의 리플렉션 구현을 통해 가비지 컬렉션, 시리얼라이제이션, 네트워크 리플리케이션, 블루프린트/C++ 통신과 같은 동적인 기능을 활용합니다. 이러한 기능들은 선택적으로 넣을 수 있는 것들이라, 자신의 유형에 올바른 마크업을 추가해 주지 않으면 언리얼에서는 무시하고 그에 대한 리플렉션 데이터를 생성하지 않는다는 뜻입니다. 기본 마크업에 대한 간단 개요는 다음과 같습니다:
 
-* **UCLASS() **- 언리얼에게 클래스의 리플렉션 데이터를 생성하라 할 때 씁니다. UObject 파생 클래스여야 합니다. 
-* **USTRUCT() **- 언리얼에게 구조체의 리플렉션 데이터를 생성하라 할 때 씁니다.
+* **UCLASS()** - 언리얼에게 클래스의 리플렉션 데이터를 생성하라 할 때 씁니다. UObject 파생 클래스여야 합니다. 
+* **USTRUCT()** - 언리얼에게 구조체의 리플렉션 데이터를 생성하라 할 때 씁니다.
 * **GENERATED_BODY()** - UE4 에서는 이 부분을 해당 유형에 대해 생성되는 전체 필수 표준(boilerplate) 코드로 대체합니다.
-* **UPROPERTY() **- UCLASS 또는 USTRUCT 의 멤버 변수를 UPROPERTY 로 사용할 수 있도록 해줍니다. UPROPERTY 에는 여러가지 용도가 있습니다. 변수가 리플리케이트, 시리얼라이즈 되도록 하거나, 블루프린트에서의 접근할 수 있도록 할 수도 있습니다. UObject 로의 레퍼런스가 몇 개나 되는지 가비지 컬렉터가 추적하는 데도 사용됩니다.
-* **UFUNCTION() **- UCLASS 또는 USTRUCT 의 클래스 메소드를 UFUNCTION 으로 사용할 수 있도록 해줍니다. UFUNCTION 은 블루프린트에서 클래스 메소드를 호출할 수 있도록, 다른 것 보다도 RPC 로 사용할 수 있도록 해줍니다.
+* **UPROPERTY()** - UCLASS 또는 USTRUCT 의 멤버 변수를 UPROPERTY 로 사용할 수 있도록 해줍니다. UPROPERTY 에는 여러가지 용도가 있습니다. 변수가 리플리케이트, 시리얼라이즈 되도록 하거나, 블루프린트에서의 접근할 수 있도록 할 수도 있습니다. UObject 로의 레퍼런스가 몇 개나 되는지 가비지 컬렉터가 추적하는 데도 사용됩니다.
+* **UFUNCTION()** - UCLASS 또는 USTRUCT 의 클래스 메소드를 UFUNCTION 으로 사용할 수 있도록 해줍니다. UFUNCTION 은 블루프린트에서 클래스 메소드를 호출할 수 있도록, 다른 것 보다도 RPC 로 사용할 수 있도록 해줍니다.
 
 UCLASS 선언 예제는 다음과 같습니다:
 
@@ -358,12 +362,12 @@ UCLASS 선언 예제는 다음과 같습니다:
 
 먼저 "MyClass.generated.h" 를 include 한 것이 보일 것입니다. 언리얼에서는 모든 리플렉션 데이터를 생성하여 이 파일 안에 넣습니다. 이 파일 include 는 유형을 선언하는 헤더 파일에서 마지막 include 로 넣어줘야 합니다.
 
-마크업에 부가 지정자를 추가할 수도 있음을 알 수 있습니다. 데모를 위해 보다 일반적인 것들을 조금 추가해 뒀습니다. 이를 통해 우리 유형에 특정한 작동방식을 지정할 수 있습니다.
+이 예제의 UCLASS, UPROPERTY, UFUNCTION 마크업에는 부가 지정자를 포함합니다. 필수는 아니지만, 데모 목적 상 몇 가지 흔한 지정자를 추가했습니다. 이를 통해 특정 작동방식이나 프로퍼티를 지정할 수 있습니다.
 
 * **Blueprintable** - 이 클래스는 블루프린트로 확장시킬 수 있습니다.
-* **BlueprintReadOnly **- 이 프로퍼티는 블루프린트에서 읽을 수만 있으며, 쓰기는 불가능합니다.
+* **BlueprintReadOnly** - 이 프로퍼티는 블루프린트에서 읽을 수는 있지만, 쓰기는 불가능합니다.
 * **Category** - 이 프로퍼티가 에디터의 디테일 뷰에서 어느 섹션 아래 나타나도록 할지를 정의합니다. 정리용입니다.
-* **BlueprintCallable **- 이 함수는 블루프린트에서 호출할 수 있습니다.
+* **BlueprintCallable** - 이 함수는 블루프린트에서 호출할 수 있습니다.
 
 지정자는 여기 전부 나열할 수 없을 만큼 많으니, 다음 링크에서 참고해 보실 수 있습니다:
 
@@ -383,7 +387,7 @@ UCLASS 선언 예제는 다음과 같습니다:
 	for (TObjectIterator<UObject> It; It; ++It)
 	{
 		UObject* CurrentObject = *It;
-		UE_LOG(LogTemp, Log, TEXT("Found UObject named: %s"), *CurrentObject.GetName());
+		UE_LOG(LogTemp, Log, TEXT("Found UObject named: %s"), *CurrentObject->GetName());
 	}
 
 이터레이터에 보다 구체적인 유형을 제공해 주는 것으로 검색 범위를 제한시킬 수 있습니다. UObject 에서 파생된 UMyClass 라는 클래스가 있다 칩시다. 그 클래스(와 거기서 파생된 것들)의 모든 인스턴스는 다음과 같이 찾을 수 있습니다:

@@ -446,7 +446,7 @@ void FLandscapeEditorCustomNodeBuilder_TargetLayers::GenerateChildContent(IDetai
 		TargetLayerList->SetDropIndicator_Above(*FEditorStyle::GetBrush("LandscapeEditor.TargetList.DropZone.Above"));
 		TargetLayerList->SetDropIndicator_Below(*FEditorStyle::GetBrush("LandscapeEditor.TargetList.DropZone.Below"));
 
-		ChildrenBuilder.AddChildContent(FText::FromString(FString(TEXT("Layers"))))
+		ChildrenBuilder.AddCustomRow(FText::FromString(FString(TEXT("Layers"))))
 			.Visibility(EVisibility::Visible)
 			[
 				TargetLayerList.ToSharedRef()
@@ -774,7 +774,12 @@ FReply FLandscapeEditorCustomNodeBuilder_TargetLayers::HandleDragDetected(const 
 					{
 						if (TargetInfo->LayerName == (*TargetDisplayOrderList)[DisplayOrderLayerIndex])
 						{
-							return FReply::Handled().BeginDragDrop(FTargetLayerDragDropOp::New(SlotIndex, Slot, GenerateRow(TargetInfo)));
+							TSharedPtr<SWidget> Row = GenerateRow(TargetInfo);
+
+							if (Row.IsValid())
+							{
+								return FReply::Handled().BeginDragDrop(FTargetLayerDragDropOp::New(SlotIndex, Slot, Row));
+							}
 						}
 					}
 				}
@@ -813,7 +818,7 @@ FReply FLandscapeEditorCustomNodeBuilder_TargetLayers::HandleAcceptDrop(FDragDro
 			{
 				const TArray<FName>* TargetDisplayOrderList = LandscapeEdMode->GetTargetDisplayOrderList();
 
-				if (TargetDisplayOrderList != nullptr)
+				if (TargetDisplayOrderList != nullptr && TargetShownList.IsValidIndex(DragDropOperation->SlotIndexBeingDragged + LandscapeEdMode->GetTargetLayerStartingIndex()) && TargetShownList.IsValidIndex(SlotIndex + LandscapeEdMode->GetTargetLayerStartingIndex()))
 				{
 					int32 StartingLayerIndex = TargetDisplayOrderList->Find(LandscapeEdMode->UISettings->ShowUnusedLayers ? TargetShownList[DragDropOperation->SlotIndexBeingDragged + LandscapeEdMode->GetTargetLayerStartingIndex()] : TargetShownList[DragDropOperation->SlotIndexBeingDragged]);
 					int32 DestinationLayerIndex = TargetDisplayOrderList->Find(LandscapeEdMode->UISettings->ShowUnusedLayers ? TargetShownList[SlotIndex + LandscapeEdMode->GetTargetLayerStartingIndex()] : TargetShownList[SlotIndex]);

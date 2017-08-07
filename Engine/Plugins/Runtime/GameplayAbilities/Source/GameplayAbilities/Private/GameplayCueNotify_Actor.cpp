@@ -55,7 +55,7 @@ void AGameplayCueNotify_Actor::PostEditChangeProperty(FPropertyChangedEvent& Pro
 	const UProperty* PropertyThatChanged = PropertyChangedEvent.Property;
 	UBlueprint* Blueprint = UBlueprint::GetBlueprintFromClass(GetClass());
 
-	if (PropertyThatChanged && PropertyThatChanged->GetFName() == FName(TEXT("GameplayCueTag")))
+	if (PropertyThatChanged && PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED(AGameplayCueNotify_Actor, GameplayCueTag))
 	{
 		DeriveGameplayCueTagFromAssetName();
 		UAbilitySystemGlobals::Get().GetGameplayCueManager()->HandleAssetDeleted(Blueprint);
@@ -344,7 +344,7 @@ bool AGameplayCueNotify_Actor::Recycle()
 	// Clear owner, hide, detach from parent
 	SetOwner(nullptr);
 	SetActorHiddenInGame(true);
-	DetachRootComponentFromParent();
+	DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 
 	return true;
 }

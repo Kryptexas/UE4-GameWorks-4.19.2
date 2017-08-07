@@ -1,9 +1,13 @@
-﻿INTSourceChangelist:3275202
+﻿INTSourceChangelist:3429227
 Availability:Public
 Title:アクタの可動性
 Crumbs: %ROOT%, Engine, Engine/Actors
 Description:ゲームプレイ中のアクタの移動や変更を制御します。
 version:4.9
+parent:Engine/Actors
+type:overview
+order:4
+
 
 [EXCERPT:Intro]
 ![](TransformMobility.png)

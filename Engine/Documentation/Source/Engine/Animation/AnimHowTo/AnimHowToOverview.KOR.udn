@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:3231230
+﻿INTSourceChangelist:3462657
 Availability: Public
 Title:애니메이션 비법
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
 Description:여러가지 단계별 비법 안내를 통해 알아보는 언리얼 엔진 4 의 애니메이션 시스템 다양한 부분에 대한 예제입니다.
+type:how-to
+type:landing
 
 **애니메이션 비법** 페이지에는 언리얼 엔진 4 의 다양한 [](Engine\Animation\Persona\Modes) 사용법 및 작업 방법 관련 단계별 예제가 여럿 제공됩니다. 
 UE4 의 애니메이션이 처음이거나 다양한 툴 사용법을 배우고자 하는 분들의 지식을 넓히기 위한 출발점이 될 것입니다.
@@ -18,8 +20,8 @@ UE4 의 애니메이션이 처음이거나 다양한 툴 사용법을 배우고�
 ## 중급
 |비법 | 설명 |
 | ------- | ------------ |
-| [](Engine\Animation\AnimHowTo\PropertyBasedBlending) | %Engine\Animation\AnimHowTo\PropertyBasedBlending:description% |
 | [](Engine\Animation\AnimHowTo\AimOffset) | %Engine\Animation\AnimHowTo\AimOffset:description% |
+| [](Engine\Animation\AnimHowTo\Blendspace) | %Engine\Animation\AnimHowTo\Blendspace:description% |
 | [](Engine\Animation\AnimHowTo\Retargeting) | %Engine\Animation\AnimHowTo\Retargeting:description% |
 | [](Engine\Animation\AnimHowTo\CreatePoseAsset) | %Engine\Animation\AnimHowTo\CreatePoseAsset:description% |
 | [](Engine\Animation\AnimHowTo\SubAnimInstance) | %Engine\Animation\AnimHowTo\SubAnimInstance:description% |
@@ -30,6 +32,7 @@ UE4 의 애니메이션이 처음이거나 다양한 툴 사용법을 배우고�
 | ------- | ------------ |
 | [](Engine\Animation\AnimHowTo\AdditiveAnimations) | %Engine\Animation\AnimHowTo\AdditiveAnimations:description% |
 | [](Engine\Animation\AnimHowTo\AnimDynamics) | %Engine\Animation\AnimHowTo\AnimDynamics:description% |
+| [](Engine\Animation\AnimHowTo\CurveDrivenAnimation) | %Engine\Animation\AnimHowTo\CurveDrivenAnimation:description% |
 | [](Engine\Animation\AnimHowTo\LayerEditing) | %Engine\Animation\AnimHowTo\LayerEditing:description% |
 | [](Engine\Animation\AnimHowTo\AnimBPOverride) | %Engine\Animation\AnimHowTo\AnimBPOverride:description% |
 

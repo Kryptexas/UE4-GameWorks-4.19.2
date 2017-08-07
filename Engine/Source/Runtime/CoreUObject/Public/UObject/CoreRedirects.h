@@ -24,7 +24,6 @@ enum class ECoreRedirectFlags : int32
 	Type_Function =			0x00000010, // UFunction
 	Type_Property =			0x00000020, // UProperty
 	Type_Package =			0x00000040, // UPackage
-	Type_Delegate =			0x00000080, // Dynamic delegate, special type of UFunction
 
 	// Option flags, specify rules for this redirect
 	Option_InstanceOnly =	0x00010000, // Only redirect instances of this type, not the type itself

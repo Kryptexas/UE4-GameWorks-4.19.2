@@ -3,6 +3,9 @@ Title: Trigger Actors
 Crumbs: %ROOT%, Engine, Engine/Actors
 Description:Actor that can be activated and cause events to occur in the level.
 version: 4.9
+Parent:Engine/Actors/Types
+order:7
+type:overview
 
 [TOC(start:2)]
 

@@ -5,46 +5,7 @@ Description:Landscape system for creating terrain for large, open, outdoor envir
 version: 4.9
 parent:Engine
 order:10
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Landscape:title%](Engine/Landscape/landscape_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/landscape_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Landscape:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Landscape:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Landscape]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Landscape:title%](Engine/Landscape/landscape_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/landscape_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Landscape:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Landscape:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Landscape]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:landscape_topic.png
 
 [REGION:banner]
 ![Landscape](landscape_landing_banner.png)
@@ -52,7 +13,7 @@ order:10
 
 [EXCERPT:landscape002]
 
-[DIR(output:"topiccompact" parent:"Engine/Landscape")]
+[DIR(output:"topiccompact" parent:"Engine/Landscape" org:"hierarchy" end:"1")]
 
 [/EXCERPT:landscape002]
 

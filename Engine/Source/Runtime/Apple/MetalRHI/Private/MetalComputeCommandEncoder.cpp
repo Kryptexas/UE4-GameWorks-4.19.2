@@ -15,6 +15,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 @implementation FMetalDebugComputeCommandEncoder
 
+APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugComputeCommandEncoder)
+
 @synthesize Inner;
 @synthesize Buffer;
 @synthesize Pipeline;
@@ -235,7 +237,11 @@ NS_ASSUME_NONNULL_BEGIN
     [Inner setTexture:texture atIndex:index];
 }
 
+#if METAL_NEW_NONNULL_DECL
+- (void)setTextures:(const id <MTLTexture> __nullable [__nonnull])textures withRange:(NSRange)range
+#else
 - (void)setTextures:(const id <MTLTexture> __nullable [__nullable])textures withRange:(NSRange)range
+#endif
 {
 #if METAL_DEBUG_OPTIONS
     for (uint32 i = 0; i < range.length; i++)
@@ -291,7 +297,11 @@ NS_ASSUME_NONNULL_BEGIN
     [Inner setSamplerState:sampler atIndex:index];
 }
 
+#if METAL_NEW_NONNULL_DECL
+- (void)setSamplerStates:(const id <MTLSamplerState> __nullable [__nonnull])samplers withRange:(NSRange)range
+#else
 - (void)setSamplerStates:(const id <MTLSamplerState> __nullable [__nullable])samplers withRange:(NSRange)range
+#endif
 {
 #if METAL_DEBUG_OPTIONS
     for(uint32 i = 0; i < range.length; i++)
@@ -347,7 +357,11 @@ NS_ASSUME_NONNULL_BEGIN
     [Inner setSamplerState:sampler lodMinClamp:lodMinClamp lodMaxClamp:lodMaxClamp atIndex:index];
 }
 
+#if METAL_NEW_NONNULL_DECL
+- (void)setSamplerStates:(const id <MTLSamplerState> __nullable [__nonnull])samplers lodMinClamps:(const float [__nonnull])lodMinClamps lodMaxClamps:(const float [__nonnull])lodMaxClamps withRange:(NSRange)range
+#else
 - (void)setSamplerStates:(const id <MTLSamplerState> __nullable [__nullable])samplers lodMinClamps:(const float [__nullable])lodMinClamps lodMaxClamps:(const float [__nullable])lodMaxClamps withRange:(NSRange)range
+#endif
 {
 #if METAL_DEBUG_OPTIONS
     for(uint32 i = 0; i < range.length; i++)
@@ -607,6 +621,30 @@ NS_ASSUME_NONNULL_BEGIN
 {
 	return self;
 }
+
+#if (METAL_NEW_NONNULL_DECL && !PLATFORM_MAC)
+// Null implementations of these functions to support iOS 11 beta.  To be filled out later
+- (void)useResource:(id <MTLResource>)resource usage:(MTLResourceUsage)usage
+{
+	[Inner useResource:resource usage:usage];
+}
+
+- (void)useResources:(const id <MTLResource> __nonnull[__nonnull])resources count:(NSUInteger)count usage:(MTLResourceUsage)usage
+{
+	[Inner useResources:resources count:count usage:usage];
+}
+
+- (void)useHeap:(id <MTLHeap>)heap
+{
+	[Inner useHeap:heap];
+}
+
+- (void)useHeaps:(const id <MTLHeap> __nonnull[__nonnull])heaps count:(NSUInteger)count
+{
+	[Inner useHeaps:heaps count:count];
+}
+#endif //(METAL_NEW_NONNULL_DECL && !PLATFORM_MAC)
+
 
 @end
 

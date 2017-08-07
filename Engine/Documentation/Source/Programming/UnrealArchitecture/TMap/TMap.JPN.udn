@@ -1,29 +1,30 @@
-﻿INTSourceChangelist:3160899
+﻿INTSourceChangelist:3180166
 Title:TMap
 Crumbs:
-Description:TMaps は主に key 型と value 型の 2 つのタイプによって定義され、それが連想ペアとしてマップ内に格納されます。 
+Description:TMap は主に key 型と value 型の 2 つの型によって定義され、それが連想ペアとしてマップ内に格納されます。 
 Availability:Public
 Version:4.14
+Related:Engine/UI/LevelEditor/Details/Properties/Map
 
 [TOC]
 
 TArray の次に **Unreal Engine 4** (UE4) でよく使われるコンテナは **TMap** です。このコンテナは連想コンテナです。つまり、すべてのキーに関連した値があり、このキーで効率的に値オブジェクトを参照することができます。
 
-マップは 2 種類あります。TMap と **TMultiMap** です。TMap のキーは一意なので、キーが既存する場合に新規のキー / 値のペアを挿入すると、存在しているペアが置き換えられてしまいます。TMultiMap のキーは一意ではないので、新規ペアが追加されても既存するペアは置き換えられません。
+マップは 2 種類あります。TMap と **TMultiMap** です。TMap のキーは一意なので、キーが既に存在する場合に新規のキー / 値のペアを挿入すると、存在しているペアが置き換えられてしまいます。TMultiMap のキーは一意ではないので、新規ペアが追加されても既存するペアは置き換えられません。
 
 ## TMap
 
-TMaps は主に key 型と value 型の 2 つのタイプによって定義され、それが連想ペアとしてマップ内に格納されます。これらのペアを個々のオブジェクトのようにマップの element 型と呼ぶと便利です。このページでは、個々のコンポーネントはエレメントのキーまたはエレメントの値と読んでいますが、'エレメント' はキー / 値のペアを意味します。Element 型は実際は **TPair**<KeyType, ElementType> です。 TPair タイプを直接参照する必要は滅多にありません。
+TMap は主に key 型と value 型の 2 つの型によって定義され、それが連想ペアとしてマップ内に格納されます。これらのペアを個々のオブジェクトのようにマップの element 型と呼ぶと便利です。このページでは、個々のコンポーネントはエレメントのキーまたはエレメントの値と読んでいますが、エレメントはキー / 値のペアを意味します。element 型は実際は **TPair**<KeyType, ElementType> です。 TPair 型を直接参照する必要は滅多にありません。
 
-TSet は TMap と同じ、均一なコンテナです。つまり、すべてのエレメントが完全に同じタイプです。TMap も value 型で、通常のコピー、アサイメント、デストラクタ操作をサポートします。エレメントの強力なオーナーシップを持つのでマップが破棄されると破棄されます。Key 型と value 型が value 型である必要もあります。
+TSet は TMap と同じ、均一なコンテナです。つまり、すべてのエレメントが完全に同じ型です。TMap も value 型で、通常のコピー、アサイメント、デストラクタ操作をサポートします。エレメントの強力なオーナーシップを持つのでマップが破棄されると破棄されます。Key 型と value 型が value 型である必要もあります。
 
-TMap はハッシュ コンテナです。つまり、デフォルトでキー型が `GetTypeHash` 関数をサポートし、キーの等価比較のために `演算子==` が与えられていなければなりません。ハッシングについては後ほど説明します。
+TMap はハッシュ コンテナです。つまり、デフォルトで key 型が `GetTypeHash` 関数をサポートし、キーの等価比較のために `演算子==` が与えられていなければなりません。ハッシングについては後ほど説明します。
 
 TMap は、メモリの割り当て動作を制御するオプションのアロケータを受け取ります。標準の UE4 のアロケータ (`FHeapAllocator`、`TInlineAllocator` など) は TMap のアロケータとしては使用できません。代わりに、マップが使用すべきハッシュ バケット数や、ハッシュおよびエレメント格納に使う標準 UE4 アロケータを定義します。詳細は `TSetAllocator` をご覧ください。
 
-最後の TMap テンプレート パラメータは **KeyFuncs** です。エレメント タイプからのキーの取り出し方、2 つのキーの等価の比較方法、キーのハッシュ方法をマップに伝えます。これらには、演算子 == を等価比較に、ハッシングには非メンバ関数を使って、リファレンスをキーに戻すデフォルトがついています。Key 型がこれらの関数をサポートしている場合、カスタム仕様の KeyFuncs を与えなくてもマップキーとして使用できます。
+最後の TMap テンプレート パラメータは **KeyFuncs** です。element 型からのキーの取り出し方、2 つのキーの等価の比較方法、キーのハッシュ方法をマップに伝えます。これらには、演算子 == を等価比較に、ハッシングには非メンバ関数を使って、リファレンスをキーに戻すデフォルトがついています。Key 型がこれらの関数をサポートしている場合、カスタム仕様の KeyFuncs を与えなくてもマップキーとして使用できます。
 
-TArray とは異なり、メモリ内の TMap エレメントの相対順序を信頼することはできず、エレメントをイタレートすると追加時とは異なる順序で返される可能性が高くなります。エレメントもメモリ内にぴったり並ばなくなります。マップの補助データ構造は疎行列、つまり配列に穴があります。マップからエレメントが削除されると、疎行列内に穴があき、その穴は後から追加されたエレメントによって埋められます。TMap は穴を埋めるためにエレメントをシャッフルすることはありませんが、一杯になったストレージに新たにエレメントが追加されると、ストレージ全体を再割り当てすることができるため、マップ エレメントへのポインタは無効にされます。
+TArray とは異なり、メモリ内の TMap エレメントの相対順序を信頼することはできず、エレメントをイタレートすると追加時とは異なる順序で返される可能性が高くなります。エレメントもメモリ内にぴったり並ばなくなります。マップの補助データ構造は疎配列、つまり配列に穴があります。マップからエレメントが削除されると、疎配列内に穴があき、その穴は後から追加されたエレメントによって埋められます。TMap は穴を埋めるためにエレメントをシャッフルすることはありませんが、一杯になったストレージに新たにエレメントが追加されると、ストレージ全体を再割り当てすることができるため、マップ エレメントへのポインタは無効にされます。
 
 ## マップの作成と追加
 
@@ -46,7 +47,7 @@ TMap の作成は以下の手順で行います。
 
 ここには挿入された順序でエレメントがリスト化されていますが、これらのエレメントの順序は保証されません。新規マップの場合は挿入順序が維持される可能性が高いですが、挿入と削除を繰り返すうちに、新規エレメントが末尾に現れなくなってきます。
 
-これは TMultiMap ではないので、キーがユニークであることが保証されます。複製キーを追加しようとすると何が起こるか分かります。
+これは TMultiMap ではないので、キーが一意であることが保証されます。複製キーを追加しようとすると何が起こるか分かります。
 
 	FruitMap.Add(2, TEXT("Pear"));
 	// FruitMap == [
@@ -78,7 +79,7 @@ TArray と同様に、マップへ挿入する時にはエレメントが一時�
 	// 	{ Key:3, Value:"Orange"    }
 	// ]
 
-ここでは 2 つの引数がそれぞれ key 型と value 型のコンストラクタに直接渡されています。ここでは int32 は実際に何も影響は受けませんが、一時的な Fstring が作成されないようにしています。TArray とは異なり、単一の引数付きコンストラクタへのみエレメントのマップが可能です。
+ここでは 2 つの引数がそれぞれ key 型と value 型のコンストラクタに直接渡されています。ここでは int32 は実際に何も影響は受けませんが、一時的な Fstring が作成されないようにしています。TArray とは異なり、単一の引数付きコンストラクタでのみエレメントをマップに配置可能です。
 
 Append 関数を使って、別のマップからすべてのエレメントを挿入してマージすることも可能です。
 
@@ -96,37 +97,17 @@ Append 関数を使って、別のマップからすべてのエレメントを�
 	// 	{ Key:9, Value:"Melon"     }
 	// ]
 
-上の例では、マップは、個々に追加するために Add/Emplace を使う場合と同等となり、ソースマップから複製したキーはターゲット内のものに置き換わります。
+上の例では、マップは、個々に追加するために Add/Emplace を使う場合と同等となり、ソースマップから複製したキーはターゲット内のものと置き換わります。
 
-### UPROPERTY TMaps の編集
 
-TMap を `UPROPERTY()` マクロと編集可能なキーワード (`EditAnywhere`、`EditDefaultsOnly`、`EditInstanceOnly`) のいずれかでマークすると、アンリアル エディタでエレメントの追加および編集が可能になります。
+TMap を `UPROPERTY()` マクロと編集可能なキーワード (`EditAnywhere`、`EditDefaultsOnly`、`EditInstanceOnly`) のいずれかでマークすると、 [アンリアル エディタでエレメントの追加および編集](Engine/UI/LevelEditor/Details/Properties/Map) が可能になります。
 
 	UPROPERTY(Category = MapsAndSets, EditAnywhere)
 	TMap<int32, FString> FruitMap;
 
-
-![](MapExampleEmpty.png)
-
-エディタで TArrays を使う場合と同じ要領で、TMap 名の横のプラス アイコンをクリックするとエレメントを追加することができます。 
-
-![](AddElements.png)
-
-マップ キーと値は **[Details (詳細)]** パネルの他のプロパティと同じ要領で入力します。例えば、色は **カラー ピッカー**、数字はスライダで入力することができます。
-
-![](TMapFull.png)
-
-複製キーを入力すると、そのアクションは不可能であることを示す警告がエディタから出されて、複製キーが保存されないようにします。
-
-![](DuplicateKeyWarning.png)
-
-TMap 内のエントリを削除するには、削除したいエレメントの隣のドロップダウンの **[Delete (削除)]** を選択します。
-
-![](TMapDelete.png)
-
 ## イタレーション
 
-TMaps のイタレーションは TArrays と似ています。エレメント タイプが TPair であることを覚えていれば、C++ の ranged-for 機能を使うことができます。
+TMaps のイタレーションは TArrays と似ています。element 型が TPair であることを覚えていれば、C++ の ranged-for 機能を使うことができます。
 
 	for (auto& Elem :FruitMap)
 	{
@@ -188,7 +169,7 @@ TMaps のイタレーションは TArrays と似ています。エレメント �
 
 Const マップ上で呼ばれると、返されるポインタも const になります。
 
-**FindOrAdd** メソッドは所定のキーを検索し、関連する値へリファレンスを返します。キーが存在しなければ、リファレンスを返す前にデフォルトで設定された値でそれを追加します。追加が必要な場合もあるので、この関数は non-const マップ上で呼び出すことはできません。
+**FindOrAdd** 関数は所定のキーを検索し、関連する値へリファレンスを返します。キーが存在しなければ、リファレンスを返す前にデフォルトで設定された値でそれを追加します。追加が必要な場合もあるので、この関数は const マップ上で呼び出すことはできません。
 
 	FString& Ref7 = FruitMap.FindOrAdd(7);
 	// Ref7     == "Pineapple"
@@ -266,7 +247,7 @@ Const マップ上で呼ばれると、返されるポインタも const にな�
 	// ]
 
 [REGION:note]
-Visual Studio の [Watch] ウィンドウでマップを視覚化すると分かりますが、エレメントを削除するとデータ構造中に「穴」があいたままになってしまいます。今ここでは分かりやすいように穴をあけています。
+Visual Studio の [Watch] ウィンドウでマップを視覚化すると分かりますが、エレメントを削除するとデータ構造中に「穴」があいたままになってしまいます。今ここでは分かりやすいように穴をなくしています。
 [/REGION]
 
 **FindAndRemoveChecked** 関数は、エレメントを削除し、値を返します。関数名の「Checked」という部分は、キーの存在を確認し、存在していなければアサートするという意味です。
@@ -283,7 +264,7 @@ Visual Studio の [Watch] ウィンドウでマップを視覚化すると分か
 
 	FString Removed8 = FruitMap.FindAndRemoveChecked(8); // assert!
 
-**RemoveAndCopyValue** 関数も同じような機能します。渡される value 型へのリファレンスを受け取り、キーが存在するかどうかを伝えるために bool を返します。これにより、存在しないキーがあってもランタイム エラーを起こさずに使うことができます。キーが存在しない場合、false が返され、渡されたオブジェクトとマップはそのまま変更されません。
+**RemoveAndCopyValue** 関数も同じように機能します。渡される value 型への参照を受け取り、キーが存在するかどうかを伝えるために bool を返します。これにより、存在しないキーがあってもランタイム エラーを起こさずに使うことができます。キーが存在しない場合、false が返され、渡されたオブジェクトとマップはそのまま変更されません。
 
 	FString Removed;
 	bool bFound2 = FruitMap.RemoveAndCopyValue(2, Removed);
@@ -314,17 +295,17 @@ Visual Studio の [Watch] ウィンドウでマップを視覚化すると分か
 	// 	{ Key:3, Value:"Orange" },
 	// 	{ Key:9, Value:"Melon"  }
 	// ]
-
 	FruitMapCopy.Empty();
+
 	// FruitMapCopy == []
 
 TArray と同様に、Empty はマップに一定のエレメント数を再追加する時の最適化をするスラック値をオプションで受け取ります。
 
 ## Sorting
 
-TMaps は一時的にソートすることができます。やがてソート順ではなくなりますが、次回マップをイタレーションする時にマップがソート順序でエレメントを表示します。ソートは不安定なので、同等であればエレメントはどんな順序でも表示できます。
+TMaps は一時的にソートすることができます。さらに修正を加えるとソート順ではなくなりますが、次回マップをイタレーションする時にマップがソート順序でエレメントを表示します。ソートは不安定なので、同等のエレメントがどんな順序でも表示される可能性があります。
 
-**KeySort** 関数および **ValueSort** 関数は、それぞれキーと値をソートします。そして両方ともソート順序を指定するバイナリ述語を受け取ります。
+**KeySort** 関数および **ValueSort** 関数は、それぞれキーと値の順にソートします。そして両方ともソート順序を指定するバイナリ述語を受け取ります。
 
 	FruitMap.KeySort([](int32 A, int32 B) {
 		return A > B; // sort keys in reverse
@@ -335,8 +316,8 @@ TMaps は一時的にソートすることができます。やがてソート�
 	// 	{ Key:4, Value:"Kiwi"   },
 	// 	{ Key:3, Value:"Orange" }
 	// ]
-
 	FruitMap.ValueSort([](const FString& A, const FString& B) {
+
 		return A.Len() < B.Len(); // sort strings by length
 	});
 	// FruitMap == [
@@ -346,7 +327,7 @@ TMaps は一時的にソートすることができます。やがてソート�
 	// 	{ Key:3, Value:"Orange" }
 	// ]
 
-## Operators
+## 演算子
 
 TArray と同様に、TMap は一般的な value 型です。標準のコピー コンストラクタもしくは代入演算子でコピーすることができます。マップは必ずエレメントを所有しているため、マップは「深いコピー」が行われ、新規のマップにはそのエレメントの個々のコピーが作られます。
 
@@ -400,10 +381,10 @@ TMap は TArray::Max() のように事前割り当てされているエレメン
 	// ]
 
 [REGION:note]
-スラックは、エレメントを逆の順序で追加してしまうことがあることに注意してください。マップにおけるエレメントの順序を信用すべきでない例です。
+スラックは、新規エレメントを逆の順序で追加してしまうことがあることに注意してください。マップにおけるエレメントの順序を信用すべきでない例です。
 [/REGION]
 
-**Shrink** 関数は、コンテナの終わりから必要のないスラックを削除する点で TArray と同じです。ただし、TMap はデータ構造に穴を持つことができるので、構造体の終わりに残された穴からスラックのみを削除します。
+**Shrink** 関数は、コンテナの終わりから必要のないスラックを削除する点で TArray と同じです。ただし、TMap はデータ構造に穴を持つことができるので、構造の終わりに残された穴からスラックのみを削除します。
 
 	for (int32 i = 0; i < 10; i += 2)
 	{
@@ -459,7 +440,7 @@ TMap は TArray::Max() のように事前割り当てされているエレメン
 
 ## KeyFuncs
 
-タイプに演算子 == があって非メンバ GetTypeHash がオーバーロードする限り、何も変更せずに TMap 用の KeyType として使用できます。ただし、これらの関数をオーバーロードしたくない場合はタイプをキーとして使うと便利かもしれません。このようなケースでは、**KeyFuncs** を自分でカスタム化することができます。
+型に演算子 == があって非メンバ GetTypeHash がオーバーロードする限り、何も変更せずに TMap 用の KeyType として使用できます。ただし、これらの関数をオーバーロードしたくない場合は型をキーとして使うと便利かもしれません。このようなケースでは、**KeyFuncs** を自分でカスタム化することができます。
 
 KeyFuncs には、2 つの typedef と 3 つの静的関数が必要です。
 
@@ -469,18 +450,18 @@ KeyFuncs には、2 つの typedef と 3 つの静的関数が必要です。
 * **bool Matches(KeyInitType A, KeyInitType B)** - A と B が等しい場合に返します。
 * **uint32 GetKeyHash(KeyInitType Key)** - キーのハッシュ値を返します。
 
-KeyInitType と ElementInitType は key 型と element 型の通常の渡し方の規則に対する typedefs です。通常これらは、瑣末なタイプの値と重要なタイプの const リファレンスになります。マップのエレメント タイプは TPair であることを覚えておいてください。
+KeyInitType と ElementInitType は key 型と element 型の通常の渡し方の規則に対する typedef です。通常これらは、trivial 型の値と non-trivial 型の const 参照になります。マップの element 型は TPair であることを覚えておいてください。
 
 カスタム仕様にした KeyFuncs はこのような感じです。
 
 	struct FMyStruct
 	{
-		// String which identifies our key
+		// String which identifies our key (キーを特定する文字列) 
 		FString UniqueID;
 
-	// Some state which doesn't affect struct identity
-		float SomeFloat;
+	// Some state which doesn't affect struct identity (構造体の恒等式に影響を及ぼさない一部のステート) 
 
+		float SomeFloat;
 	explicit FMyStruct(float InFloat)
 			:UniqueID (FGuid::NewGuid().ToString())
 			, SomeFloat(InFloat)
@@ -513,18 +494,17 @@ KeyInitType と ElementInitType は key 型と element 型の通常の渡し方�
 		{
 			return A.Compare(B, ESearchCase::CaseSensitive) == 0;
 		}
-
 	static uint32 GetKeyHash(KeyInitType Key)
 		{
 			return FCrc::StrCrc32(*Key);
 		}
 	};
 
-ステートの一部に一意の識別子を持つタイプがありますが、恒等式に影響しないステートも他にあります。GetTypeHash と 演算子 == はここでは適切ではありません。ステートの一部を無視することは演算子 == に嘘をつくことになりますし、GetTypeHash は演算子 == と一致する必要がありますが、演算子 == を正しく定義すると一致しません。ただ、マップ内でこのタイプを認識するためには、ステートの UniqueID の部分だけが使えれば良いのです。
+ステートの一部に一意の識別子を持つ型がありますが、恒等式に影響しないステートも他にあります。GetTypeHash と 演算子 == はここでは適切ではありません。ステートの一部を無視することは演算子 == に嘘をつくことになりますし、GetTypeHash は演算子 == と一致する必要がありますが、演算子 == を正しく定義すると一致しません。ただ、マップ内でこの型を認識するためには、ステートの UniqueID の部分だけが使えれば良いのです。
 
-1. まず、KeyInitType と ElementInitType を含むいくつかのタイプを定義するために **BaseKeyFuncs** を継承します。他のすべてのインプリメンテーションで使用できるように、これらを直接 Super から派生クラスに引き継ぎます。
+1. まず、KeyInitType と ElementInitType を含むいくつかの型を定義するために **BaseKeyFuncs** を継承します。他のすべてのインプリメンテーションで使用できるように、これらを直接 Super から派生クラスに引き継ぎます。
 
-	BaseKeyFuncs は 2 つのテンプレート パラメータを受け取ります。 GetSetKey から返されるオブジェクトであるマップの elememt 型および key 型です。すべてのマップと同様で、エレメント タイプは TPair です。KeyType として FMyStruct を、そして ValueTypeとして TMyStructMapKeyFuncs のテンプレート パラメータを受け取ります。差し替えの KeyFuncs をテンプレートにして、 ValueType がマップごとに指定されるようにします。FMyStruct 上にキーをつけた TMap を作成するたびに新規に KeyFuncs を定義する必要がなくなります。2 つ目の BaseKeyFuncs 引数はキーのタイプです。エレメントのキーフィールドに格納されているTPair の 'KeyType' と混乱しないようにしてください。FMyStruct::UniqueID をキーとして使いたいので、ここで FString を指定します。
+	BaseKeyFuncs は 2 つのテンプレート パラメータを受け取ります。 GetSetKey から返されるオブジェクトであるマップの element 型および key 型です。すべてのマップと同様で、element 型は TPair です。KeyType として FMyStruct を、そして ValueTypeとして TMyStructMapKeyFuncs のテンプレート パラメータを受け取ります。差し替えの KeyFuncs をテンプレートにして、 ValueType がマップごとに指定されるようにします。FMyStruct 上にキーをつけた TMap を作成するたびに新規に KeyFuncs を定義する必要がなくなります。2 つ目の BaseKeyFuncs 引数はキーの型です。エレメントのキーフィールドに格納されているTPair の 'KeyType' と混乱しないようにしてください。FMyStruct::UniqueID をキーとして使いたいので、ここで FString を指定します。
 
 1. 次に、必要とされる 3 つの KeyFuncs 静的関数を定義します。1 つ目は GetSetKey です。Element 型を与えるとキーを返します。Element 型は TPair でキーは UniqueID なので、それをそのまま単純に返します。
 
@@ -541,11 +521,11 @@ KeyInitType と ElementInitType は key 型と element 型の通常の渡し方�
 			TMyStructMapKeyFuncs<int32>
 		> MyMapToInt32;
 
-	// Add some elements
+		// Add some elements
 		MyMapToInt32.Add(FMyStruct(3.14f), 5);
 		MyMapToInt32.Add(FMyStruct(1.23f), 2);
 
-	// MyMapToInt32 == [
+		// MyMapToInt32 == [
 		// 	{
 		// 		Key: {
 		// 			UniqueID:"D06AABBA466CAA4EB62D2F97936274E4",
@@ -562,7 +542,7 @@ KeyInitType と ElementInitType は key 型と element 型の通常の渡し方�
 		//	}
 		// ]
 
-KeyFuncs を自分で設定する際に注意する点は、 TMap は、KeyFuncs::Matches を使って等価を比較する 2 つのアイテムが KeyFuncs::GetKeyHash から同じ値を返すことを前提としていることです。さらに、これにより TMap の内部ハッシュが無効にすなるので、これらの関数のいずれかの結果が変更されるように既存マップ エレメントのキーを修正すると未定義の動作とみなされます。これらの規則は、デフォルトの KeyFuncs を使うと、演算子 == と GetKeyHash のオーバーロードにも適用されます。
+KeyFuncs を自分で設定する際に注意する点は、 TMap は、KeyFuncs::Matches を使って等価を比較する 2 つのアイテムが KeyFuncs::GetKeyHash から同じ値を返すことを前提としていることです。さらに、これにより TMap の内部ハッシュが無効になるので、これらの関数のいずれかの結果が変更されるように既存マップ エレメントのキーを修正すると未定義の動作とみなされます。これらの規則は、デフォルトの KeyFuncs を使うと、演算子 == と GetKeyHash のオーバーロードにも適用されます。
 
 ## その他
 

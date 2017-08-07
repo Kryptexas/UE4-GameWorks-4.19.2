@@ -10,6 +10,7 @@
 #include "AI/Navigation/NavAreas/NavAreaMeta.h"
 #include "PhysicsEngine/BodySetup.h"
 #include "AI/Navigation/NavigationSystem.h"
+#include "AI/Navigation/NavAreas/NavArea_LowHeight.h"
 
 // if square distance between two points is less than this the those points
 // will be considered identical when calculating convex hull
@@ -21,7 +22,9 @@ static const float CONVEX_HULL_POINTS_MIN_DISTANCE_SQ = 4.0f * 4.0f;
 //----------------------------------------------------------------------//
 FNavigationLinkBase::FNavigationLinkBase() 
 	: LeftProjectHeight(0.0f), MaxFallDownLength(1000.0f), Direction(ENavLinkDirection::BothWays), UserId(0),
-	  SnapRadius(30.f), SnapHeight(50.0f), bUseSnapHeight(false), bSnapToCheapestArea(true), bAreaClassInitialized(false)
+	  SnapRadius(30.f), SnapHeight(50.0f), bUseSnapHeight(false), bSnapToCheapestArea(true),
+	  bCustomFlag0(false), bCustomFlag1(false), bCustomFlag2(false), bCustomFlag3(false), bCustomFlag4(false),
+	  bCustomFlag5(false), bCustomFlag6(false), bCustomFlag7(false), bAreaClassInitialized(false)
 {
 	AreaClass = NULL;
 	SupportedAgentsBits = 0xFFFFFFFF;
@@ -355,7 +358,7 @@ FAreaNavModifier::FAreaNavModifier(const UBrushComponent* BrushComponent, const 
 	}
 
 	Init(InAreaClass);
-	SetConvex(Verts.GetData(), 0, Verts.Num(), ENavigationCoordSystem::Unreal, BrushComponent->ComponentToWorld);
+	SetConvex(Verts.GetData(), 0, Verts.Num(), ENavigationCoordSystem::Unreal, BrushComponent->GetComponentTransform());
 }
 
 void FAreaNavModifier::GetCylinder(FCylinderNavAreaData& Data) const
@@ -385,8 +388,10 @@ void FAreaNavModifier::GetConvex(FConvexNavAreaData& Data) const
 void FAreaNavModifier::Init(const TSubclassOf<UNavArea> InAreaClass)
 {
 	bIncludeAgentHeight = false;
+	ApplyMode = ENavigationAreaMode::Apply;
 	Cost = 0.0f;
 	FixedCost = 0.0f;
+	Bounds = FBox(ForceInitToZero);
 	SetAreaClass(InAreaClass);
 }
 
@@ -406,6 +411,14 @@ void FAreaNavModifier::SetAreaClassToReplace(const TSubclassOf<UNavArea> InAreaC
 	const UClass* AreaClass1 = AreaClassOb.Get();
 	const UClass* AreaClass2 = ReplaceAreaClassOb.Get();
 	bHasMetaAreas = (AreaClass1 && AreaClass1->IsChildOf(UNavAreaMeta::StaticClass())) || (AreaClass2 && AreaClass2->IsChildOf(UNavAreaMeta::StaticClass()));
+
+	ApplyMode = (AreaClass2 == UNavArea_LowHeight::StaticClass()) ? ENavigationAreaMode::ReplaceInLowPass :
+		AreaClass2 ? ENavigationAreaMode::Replace : ENavigationAreaMode::Apply;
+}
+
+void FAreaNavModifier::SetApplyMode(ENavigationAreaMode::Type InApplyMode)
+{
+	ApplyMode = InApplyMode;
 }
 
 bool IsAngleMatching(float Angle)
@@ -789,17 +802,16 @@ void FCompositeNavModifier::CreateAreaModifiers(const UPrimitiveComponent* PrimC
 		const FKBoxElem& BoxElem = BodySetup->AggGeom.BoxElems[Idx];
 		const FBox BoxSize = BoxElem.CalcAABB(FTransform::Identity, 1.0f);
 
-		FAreaNavModifier AreaMod(BoxSize, PrimComp->ComponentToWorld, AreaClass);
+		FAreaNavModifier AreaMod(BoxSize, PrimComp->GetComponentTransform(), AreaClass);
 		Add(AreaMod);
 	}
 
 	for (int32 Idx = 0; Idx < BodySetup->AggGeom.SphylElems.Num(); Idx++)
 	{
 		const FKSphylElem& SphylElem = BodySetup->AggGeom.SphylElems[Idx];
-		const float CapsuleHeight = SphylElem.Length + SphylElem.Radius;
-		const FTransform AreaOffset(FVector(0, 0, -CapsuleHeight));
+		const FTransform AreaOffset(FVector(0, 0, -SphylElem.Length));
 
-		FAreaNavModifier AreaMod(SphylElem.Radius, CapsuleHeight, AreaOffset * PrimComp->ComponentToWorld, AreaClass);
+		FAreaNavModifier AreaMod(SphylElem.Radius, SphylElem.Length * 2.0f, AreaOffset * PrimComp->GetComponentTransform(), AreaClass);
 		Add(AreaMod);
 	}
 
@@ -807,15 +819,16 @@ void FCompositeNavModifier::CreateAreaModifiers(const UPrimitiveComponent* PrimC
 	{
 		const FKConvexElem& ConvexElem = BodySetup->AggGeom.ConvexElems[Idx];
 		
-		FAreaNavModifier AreaMod(ConvexElem.VertexData, 0, ConvexElem.VertexData.Num(), ENavigationCoordSystem::Unreal, PrimComp->ComponentToWorld, AreaClass);
+		FAreaNavModifier AreaMod(ConvexElem.VertexData, 0, ConvexElem.VertexData.Num(), ENavigationCoordSystem::Unreal, PrimComp->GetComponentTransform(), AreaClass);
 		Add(AreaMod);
 	}
 	
 	for (int32 Idx = 0; Idx < BodySetup->AggGeom.SphereElems.Num(); Idx++)
 	{
 		const FKSphereElem& SphereElem = BodySetup->AggGeom.SphereElems[Idx];
-		
-		FAreaNavModifier AreaMod(SphereElem.Radius, SphereElem.Radius, PrimComp->ComponentToWorld, AreaClass);
+		const FTransform AreaOffset(FVector(0, 0, -SphereElem.Radius));
+
+		FAreaNavModifier AreaMod(SphereElem.Radius, SphereElem.Radius * 2.0f, AreaOffset * PrimComp->GetComponentTransform(), AreaClass);
 		Add(AreaMod);
 	}
 }

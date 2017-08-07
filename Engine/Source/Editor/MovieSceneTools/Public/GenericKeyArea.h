@@ -300,7 +300,7 @@ private:
 				];
 
 			TSharedRef<FStructOnScope> KeyValue = MakeShared<FStructOnScope>(KeyValueType::StaticStruct(), (uint8*)&Key->Value);
-			GeneralCategory.AddExternalProperties(KeyValue);
+			GeneralCategory.AddAllExternalStructureProperties(KeyValue);
 		}
 	}
 

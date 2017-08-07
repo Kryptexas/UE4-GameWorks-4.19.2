@@ -271,15 +271,11 @@ void FAvfMediaTracks::Initialize(AVPlayerItem* InPlayerItem, FString& OutInfo)
 		AVAssetTrack* AssetTrack = PlayerTrack.assetTrack;
 		NSString* MediaType = AssetTrack.mediaType;
 
-		OutInfo += FString::Printf(TEXT("Stream %i\n"), StreamIndex++);
+		OutInfo += FString::Printf(TEXT("Stream %i\n"), StreamIndex);
 		OutInfo += FString::Printf(TEXT("    Type: %s\n"), *MediaTypeToString(MediaType));
 
 		if ([MediaType isEqualToString:AVMediaTypeAudio])
 		{
-#if WITH_EDITOR
-			PlayerTrack.enabled = false;
-#endif
-
 			int32 TrackIndex = AudioTracks.AddDefaulted();
 			Track = &AudioTracks[TrackIndex];
 			
@@ -416,6 +412,10 @@ void FAvfMediaTracks::Initialize(AVPlayerItem* InPlayerItem, FString& OutInfo)
 		}
 
 		OutInfo += TEXT("\n");
+		
+		PlayerTrack.enabled = NO;
+
+		int32 TrackStreamIndex = StreamIndex++;
 
 		if (Track == nullptr)
 		{
@@ -424,6 +424,7 @@ void FAvfMediaTracks::Initialize(AVPlayerItem* InPlayerItem, FString& OutInfo)
 
 		Track->AssetTrack = AssetTrack;
 		Track->DisplayName = FText::FromString(Track->Name);
+		Track->StreamIndex = TrackStreamIndex;
 	}
 }
 
@@ -1065,7 +1066,11 @@ bool FAvfMediaTracks::SelectTrack(EMediaTrackType TrackType, int32 TrackIndex)
 			{
 				if (SelectedCaptionTrack != INDEX_NONE)
 				{
-					[PlayerItem removeOutput:(AVPlayerItemOutput*)CaptionTracks[SelectedCaptionTrack].Output];
+					const FTrack& CurrTrack = CaptionTracks[SelectedCaptionTrack];
+					
+					[PlayerItem removeOutput:(AVPlayerItemOutput*)CurrTrack.Output];
+					PlayerItem.tracks[CurrTrack.StreamIndex].enabled = NO;
+					
 					SelectedCaptionTrack = INDEX_NONE;
 				}
 
@@ -1076,6 +1081,9 @@ bool FAvfMediaTracks::SelectTrack(EMediaTrackType TrackType, int32 TrackIndex)
 
 				if (SelectedCaptionTrack == TrackIndex)
 				{
+					const FTrack& SelectedTrack = CaptionTracks[SelectedCaptionTrack];
+					PlayerItem.tracks[SelectedTrack.StreamIndex].enabled = YES;
+					
 					InitializeOverlaySink();
 				}
 			}
@@ -1091,7 +1099,11 @@ bool FAvfMediaTracks::SelectTrack(EMediaTrackType TrackType, int32 TrackIndex)
 			{
 				if (SelectedVideoTrack != INDEX_NONE)
 				{
-					[PlayerItem removeOutput:(AVPlayerItemOutput*)VideoTracks[SelectedVideoTrack].Output];
+					const FTrack& CurrTrack = VideoTracks[SelectedVideoTrack];
+					
+					[PlayerItem removeOutput:(AVPlayerItemOutput*)CurrTrack.Output];
+					PlayerItem.tracks[CurrTrack.StreamIndex].enabled = NO;
+					
 					SelectedVideoTrack = INDEX_NONE;
 				}
 
@@ -1102,6 +1114,9 @@ bool FAvfMediaTracks::SelectTrack(EMediaTrackType TrackType, int32 TrackIndex)
 
 				if (SelectedVideoTrack == TrackIndex)
 				{
+					const FTrack& SelectedTrack = VideoTracks[SelectedVideoTrack];
+					PlayerItem.tracks[SelectedTrack.StreamIndex].enabled = YES;
+					
 					InitializeVideoSink();
 				}
 			}
@@ -1151,6 +1166,8 @@ void FAvfMediaTracks::InitializeAudioSink()
 		GetAudioTrackChannels(SelectedAudioTrack),
 		GetAudioTrackSampleRate(SelectedAudioTrack)
 	);
+	
+	AudioSink->FlushAudioSink();
 }
 
 

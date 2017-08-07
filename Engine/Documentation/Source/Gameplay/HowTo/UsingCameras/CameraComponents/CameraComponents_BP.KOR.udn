@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3429254
 Availability: Public
 Title:카메라 컴포넌트 작업
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\UsingCameras
@@ -10,6 +10,7 @@ Related: Engine/Matinee
 Related: Engine/Blueprints
 SkillLevel: Beginner
 Version: 4.8
+type:how-to
 
 이번 비법에서는 **블루프린트** 에 **카메라** 컴포넌트를 추가, 삼인칭 캐릭터나 레벨의 플레이 불가 캐릭터의 시야를 만드는 법을 살펴보겠습니다. 이 튜토리얼이 끝날 무렵에는 캐릭터 블루프린트에 카메라 컴포넌트를 추가하는 방법과 캐릭터에 두 가지 시야 토글 기능을 구성하는 법을 살펴보도록 하겠습니다.
 

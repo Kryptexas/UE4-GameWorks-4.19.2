@@ -399,6 +399,10 @@ public:
 		, bBenchmarkMode(false)
 	{}
 
+	virtual ~FGPUDefragAllocator()
+	{
+	}
+
 	/**
 	* Initialize this allocator with a preallocated block of memory.
 	*
@@ -938,7 +942,7 @@ protected:
 
 		// Resize base chunk.
 		BaseChunk->Size = FirstSize;
-	}
+	} //-V773
 
 	/**
 	* Marks the specified chunk as 'allocated' and updates tracking variables.

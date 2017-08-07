@@ -10,6 +10,7 @@
 #include "PropertyHandle.h"
 #include "DetailWidgetRow.h"
 #include "ScopedTransaction.h"
+#include "SHyperlink.h"
 
 #define LOCTEXT_NAMESPACE "GameplayTagContainerCustomization"
 
@@ -53,7 +54,7 @@ void FGameplayTagContainerCustomization::CustomizeHeader(TSharedRef<class IPrope
 				.AutoHeight()
 				[
 					SNew(SButton)
-					.IsEnabled(!StructPropertyHandle->GetProperty()->HasAnyPropertyFlags(CPF_EditConst))
+					.IsEnabled(!StructPropertyHandle->IsEditConst())
 					.Text(LOCTEXT("GameplayTagContainerCustomization_Clear", "Clear All"))
 					.OnClicked(this, &FGameplayTagContainerCustomization::OnClearAllButtonClicked)
 					.Visibility(this, &FGameplayTagContainerCustomization::GetClearAllVisibility)
@@ -116,10 +117,27 @@ void FGameplayTagContainerCustomization::RefreshTagList()
 
 TSharedRef<ITableRow> FGameplayTagContainerCustomization::MakeListViewWidget(TSharedPtr<FString> Item, const TSharedRef<STableViewBase>& OwnerTable)
 {
+	if (UGameplayTagsManager::Get().ShowGameplayTagAsHyperLinkEditor(*Item.Get()))
+	{
+		return SNew( STableRow< TSharedPtr<FString> >, OwnerTable )
+		[
+			SNew(SHyperlink)
+			.Text( FText::FromString(*Item.Get()) )
+			.OnNavigate( this, &FGameplayTagContainerCustomization::OnTagDoubleClicked, *Item.Get() )
+		];
+
+	}
+
+
 	return SNew( STableRow< TSharedPtr<FString> >, OwnerTable )
-			[
-				SNew(STextBlock) .Text( FText::FromString(*Item.Get()) )
-			];
+	[
+		SNew(STextBlock) .Text( FText::FromString(*Item.Get()) )
+	];
+}
+
+void FGameplayTagContainerCustomization::OnTagDoubleClicked(FString TagName)
+{
+	UGameplayTagsManager::Get().NotifyGameplayTagDoubleClickedEditor(TagName);
 }
 
 TSharedRef<SWidget> FGameplayTagContainerCustomization::GetListContent()
@@ -129,27 +147,12 @@ TSharedRef<SWidget> FGameplayTagContainerCustomization::GetListContent()
 		return SNullWidget::NullWidget;
 	}
 
-	FString Categories;
-	{
-		TSharedPtr<IPropertyHandle> PropertyHandle = StructPropertyHandle;
-		while(PropertyHandle.IsValid())
-		{
-			if (PropertyHandle->GetProperty() != nullptr)
-			{
-				if (PropertyHandle->GetProperty()->HasMetaData( TEXT("Categories") ))
-				{
-					Categories = PropertyHandle->GetProperty()->GetMetaData( TEXT("Categories") );
-					break;
-				}
-			}
-			PropertyHandle = PropertyHandle->GetParentHandle();
-		}
-	}
+	FString Categories = UGameplayTagsManager::Get().GetCategoriesMetaFromPropertyHandle(StructPropertyHandle);
 
 	TArray<UObject*> OuterObjects;
 	StructPropertyHandle->GetOuterObjects(OuterObjects);
 
-	bool bReadOnly = StructPropertyHandle->GetProperty()->HasAnyPropertyFlags(CPF_EditConst);
+	bool bReadOnly = StructPropertyHandle->IsEditConst();
 
 	return SNew(SVerticalBox)
 		+ SVerticalBox::Slot()

@@ -137,8 +137,8 @@ FTransform UPhysicsConstraintComponent::GetBodyTransformInternal(EConstraintFram
 		return FTransform::Identity;
 	}
 	  
-	//Use ComponentToWorld by default for all components
-	FTransform ResultTM = PrimComp->ComponentToWorld;
+	//Use GetComponentTransform() by default for all components
+	FTransform ResultTM = PrimComp->GetComponentTransform();
 		
 	// Skeletal case
 	if(const USkeletalMeshComponent* SkelComp = Cast<USkeletalMeshComponent>(PrimComp))
@@ -253,7 +253,10 @@ void UPhysicsConstraintComponent::InitComponentConstraint()
 	FBodyInstance* Body1 = GetBodyInstance(EConstraintFrame::Frame1);
 	FBodyInstance* Body2 = GetBodyInstance(EConstraintFrame::Frame2);
 
-	ConstraintInstance.InitConstraint(Body1, Body2, GetConstraintScale(), this, FOnConstraintBroken::CreateUObject(this, &UPhysicsConstraintComponent::OnConstraintBrokenWrapper));
+	if (Body1 != nullptr || Body2 != nullptr)
+	{
+		ConstraintInstance.InitConstraint(Body1, Body2, GetConstraintScale(), this, FOnConstraintBroken::CreateUObject(this, &UPhysicsConstraintComponent::OnConstraintBrokenWrapper));
+	}
 }
 
 void UPhysicsConstraintComponent::TermComponentConstraint()
@@ -467,8 +470,8 @@ void UPhysicsConstraintComponent::UpdateConstraintFrames()
 
 	// World ref frame
 	const FVector WPos = GetComponentLocation();
-	const FVector WPri = ComponentToWorld.GetUnitAxis( EAxis::X );
-	const FVector WOrth = ComponentToWorld.GetUnitAxis( EAxis::Y );
+	const FVector WPri = GetComponentTransform().GetUnitAxis( EAxis::X );
+	const FVector WOrth = GetComponentTransform().GetUnitAxis( EAxis::Y );
 
 	ConstraintInstance.Pos1 = A1Transform.InverseTransformPosition(WPos);
 	ConstraintInstance.PriAxis1 = A1Transform.InverseTransformVectorNoScale(WPri);
@@ -476,8 +479,8 @@ void UPhysicsConstraintComponent::UpdateConstraintFrames()
 
 	const FVector RotatedX = ConstraintInstance.AngularRotationOffset.RotateVector(FVector(1,0,0));
 	const FVector RotatedY = ConstraintInstance.AngularRotationOffset.RotateVector(FVector(0,1,0));
-	const FVector WPri2 = ComponentToWorld.TransformVectorNoScale(RotatedX);
-	const FVector WOrth2 = ComponentToWorld.TransformVectorNoScale(RotatedY);
+	const FVector WPri2 = GetComponentTransform().TransformVectorNoScale(RotatedX);
+	const FVector WOrth2 = GetComponentTransform().TransformVectorNoScale(RotatedY);
 	
 	
 	ConstraintInstance.Pos2 = A2Transform.InverseTransformPosition(WPos);
@@ -518,6 +521,11 @@ void UPhysicsConstraintComponent::SetConstraintReferenceOrientation(EConstraintF
 void UPhysicsConstraintComponent::GetConstraintForce(FVector& OutLinearForce, FVector& OutAngularForce)
 {
 	ConstraintInstance.GetConstraintForce(OutLinearForce, OutAngularForce);
+}
+
+bool UPhysicsConstraintComponent::IsBroken()
+{
+	return ConstraintInstance.IsBroken();
 }
 
 void UPhysicsConstraintComponent::SetDisableCollision(bool bDisableCollision)
@@ -642,6 +650,16 @@ void UPhysicsConstraintComponent::SetAngularSwing2Limit(EAngularConstraintMotion
 void UPhysicsConstraintComponent::SetAngularTwistLimit(EAngularConstraintMotion Motion, float TwistLimitAngle)
 {
 	ConstraintInstance.SetAngularTwistLimit(Motion, TwistLimitAngle);
+}
+
+void UPhysicsConstraintComponent::SetLinearBreakable(bool bLinearBreakable, float LinearBreakThreshold)
+{
+	ConstraintInstance.SetLinearBreakable(bLinearBreakable, LinearBreakThreshold);
+}
+
+void UPhysicsConstraintComponent::SetAngularBreakable(bool bAngularBreakable, float AngularBreakThreshold)
+{
+	ConstraintInstance.SetAngularBreakable(bAngularBreakable, AngularBreakThreshold);
 }
 
 float UPhysicsConstraintComponent::GetCurrentTwist() const

@@ -5,13 +5,14 @@ Description:Building the Dialogue Waves to store dialogue data
 version: 4.13
 parent:Engine/Audio/Dialogue
 order:2
-type:quick start
+type:how-to
 checkpoint:dialogueqs
 prereq: Engine/Blueprints/QuickStart
 related:Engine/Audio
 related:Engine/Audio/Overview
 related:Engine/Audio/SoundCues/Editor
 related:Engine/Audio/SoundCues/NodeReference
+skilllevel:Intermediate
 
 [NAV]
 

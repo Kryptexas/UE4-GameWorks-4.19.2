@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:3348703
-Availability:Docs
+﻿INTSourceChangelist:3454749
+Availability:Public
 Title:カプセル シャドウの概要
 Crumbs:  
 Description:アンリアル エンジン 4 のカプセルシャドウの概要を説明します。
@@ -136,7 +136,7 @@ Capsule Indirect Shadow を有効にすると、キャラクターは領域に�
 
 #### Source Radius
 
-指向性ライトの Light Source Angle の機能と同様、Stationary のスポットライトおよびポイントライトの **Source Radius** もキャラクターにソフト シャドウを付けるために使用します。Source Radius を大きくすると、投影元から遠いサーフェスになるほどライトが柔らかくなります。
+指向性ライトの Light Source Angle の機能と同様、Stationary (固定) のスポットライトおよびポイントライトの **Source Radius** もキャラクターにソフト シャドウを付けるために使用します。Source Radius を大きくすると、投影元から遠いサーフェスになるほどライトが柔らかくなります。
 
 [REGION:imagetable]
 | ![](CS_SR1.png)(w:400) | ![](CS_SR2.png)(w:400) |
@@ -166,10 +166,10 @@ Capsule Indirect Shadow を有効にすると、キャラクターは領域に�
 
 ## 制限事項
 
-* 演算シェーターによるタイル処理ディファード処理を実行するため DirectX 11 が必要です。
+* 演算シェーダーによるタイル処理ディファード処理を実行するため DirectX 11 が必要です。
 * 自己シャドウイングによるアーティファクトが任意のメッシュ形状に対して発生する可能性があります。
 * Spheres と Sphylls のみカプセル描写を使用できます。
-* カプセルシャドウがソフトになりすぎてアンビエント オクルージョンになった場合、シャドウイングの中にアーティファクトがハードラインの原因になっています。 
+* カプセルシャドウがソフトすぎてアンビエント オクルージョンになってしまう場合、ハードラインの原因となるアーティファクトがシャドウイングの中にあります。 
 
 
 

@@ -49,23 +49,23 @@ class UFbxMeshImportData : public UFbxAssetImportData
 	GENERATED_UCLASS_BODY()
 
 	/** If this option is true the node absolute transform (transform, offset and pivot) will be apply to the mesh vertices. */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category = ImportSettings, meta = (ImportType = "StaticMesh"))
+	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category = Mesh, meta = (ImportType = "StaticMesh"))
 	bool bTransformVertexToAbsolute;
 
 	/** - Experimental - If this option is true the inverse node rotation pivot will be apply to the mesh vertices. The pivot from the DCC will then be the origin of the mesh. Note: "TransformVertexToAbsolute" must be false.*/
-	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category = ImportSettings, meta = (EditCondition = "!bTransformVertexToAbsolute", ImportType = "StaticMesh"))
+	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category = Mesh, meta = (EditCondition = "!bTransformVertexToAbsolute", ImportType = "StaticMesh"))
 	bool bBakePivotInVertex;
 
 	/** Enables importing of mesh LODs from FBX LOD groups, if present in the FBX file */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category=ImportSettings, meta=(OBJRestrict="true", ImportType="Mesh", ToolTip="If enabled, creates LOD models for Unreal meshes from LODs in the import file; If not enabled, only the base mesh from the LOD group is imported"))
+	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category= Mesh, meta=(OBJRestrict="true", ImportType="Mesh", ToolTip="If enabled, creates LOD models for Unreal meshes from LODs in the import file; If not enabled, only the base mesh from the LOD group is imported"))
 	uint32 bImportMeshLODs:1;
 
 	/** Enabling this option will read the tangents(tangent,binormal,normal) from FBX file instead of generating them automatically. */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category=ImportSettings, meta=(ImportType="Mesh"))
+	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category= Mesh, meta=(ImportType="Mesh"))
 	TEnumAsByte<enum EFBXNormalImportMethod> NormalImportMethod;
 
 	/** Use the MikkTSpace tangent space generator for generating normals and tangents on the mesh */
-	UPROPERTY(EditAnywhere, config, AdvancedDisplay, Category = ImportSettings, meta=(ImportType="Mesh"))
+	UPROPERTY(EditAnywhere, config, AdvancedDisplay, Category = Mesh, meta=(ImportType="Mesh"))
 	TEnumAsByte<enum EFBXNormalGenerationMethod::Type> NormalGenerationMethod;
 
 	bool CanEditChange( const UProperty* InProperty ) const override;

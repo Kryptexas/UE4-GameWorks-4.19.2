@@ -6,45 +6,7 @@ Navigation:topic
 version: 4.9
 parent:Engine
 order:5
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Audio:title%](Engine/Audio/audio_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/audio_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Audio:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Audio:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Audio]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Audio:title%](Engine/Audio/audio_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/audio_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Audio:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Audio:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Audio]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:audio_topic.png
 
 [REGION:banner]
 ![Audio](audio_landing_banner.png)
@@ -58,22 +20,17 @@ spoken dialog from the characters, the audio in the game can make or break the u
  appropriate result.
 [/EXCERPT:Intro]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/audio_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Audio/Overview "%Engine/Audio/Overview:description%")
-	[/PARAM]
-	[PARAM:links]
-		* [](Engine/Audio/WAV "%Engine/Audio/WAV:description%")
-		* [](Engine/Audio/SoundCues/Editor "%Engine/Audio/SoundCues/Editor:description%")
-		* [](Engine/Audio/SoundCues/NodeReference "%Engine/Audio/SoundCues/NodeReference:description%")
-		* [](Engine/Audio/SoundActors "%Engine/Audio/SoundActors:description%")
-		* [](Engine/Audio/DistanceModelAttenuation "%Engine/Audio/DistanceModelAttenuation:description%")
-		* [](Engine/Audio/Dialogue "%Engine/Audio/Dialogue:description%")
-	[/PARAM]
-[/OBJECT]
+## Starting Out
+
+[DIR(output:"role" parent:Engine/Audio" type:"!reference" type:"!how-to" org:"hierarchy" end:"1")]
+
+## Reference
+
+[DIR(output:"role" parent:Engine/Audio" type:"reference" org:"flat")]
+
+## Guides
+
+[DIR(output:"fancy" parent:Engine/Audio" type:"how-to" org:"hierarchy" end:"1")]
 
 
 

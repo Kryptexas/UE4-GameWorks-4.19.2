@@ -15,6 +15,7 @@ class IPropertyHandle;
 class FPoseDriverDetails;
 class SExpandableArea;
 class SCurveEditor;
+class SComboButton;
 struct FPoseDriverTarget;
 
 /** Entry in backing list for target list widget */
@@ -129,15 +130,20 @@ public:
 	virtual void CustomizeDetails(IDetailLayoutBuilder& DetailBuilder) override;
 	// End IDetailCustomization interface
 
-	FReply ClickedOnCopyFromPoseAsset();
+	void ClickedOnCopyFromPoseAsset();
 	bool CopyFromPoseAssetIsEnabled() const;
-	FReply ClickedOnAutoScaleFactors();
+	void ClickedOnAutoScaleFactors();
 	bool AutoScaleFactorsIsEnabled() const;
 	FReply ClickedAddTarget();
 	TSharedRef<ITableRow> GenerateTargetRow(TSharedPtr<FPDD_TargetInfo> InInfo, const TSharedRef<STableViewBase>& OwnerTable);
 	void OnTargetSelectionChanged(TSharedPtr<FPDD_TargetInfo> InInfo, ESelectInfo::Type SelectInfo);
 	void OnPoseAssetChanged();
+	void OnSourceBonesChanged();
 	void SelectedTargetChanged();
+
+	/** Get tools popup menu content */
+	TSharedRef<SWidget> GetToolsMenuContent();
+	FSlateColor GetToolsForegroundColor() const;
 
 	/** Remove a target from node */
 	void RemoveTarget(int32 TargetIndex);
@@ -165,4 +171,6 @@ public:
 	TSharedPtr<SPDD_TargetListType> TargetListWidget;
 	/** Property handle to node */
 	TSharedPtr<IPropertyHandle> NodePropHandle;
+	/** Pointer to Tools menu button */
+	TSharedPtr<SComboButton> ToolsButton;
 };

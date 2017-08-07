@@ -1,14 +1,15 @@
-﻿INTSourceChangelist:3225556
+﻿INTSourceChangelist:3429254
 Availability:Public
 Title:게임 모드와 게임 스테이트
 Crumbs:%ROOT%, Gameplay/Framework
 Description: Game Mode, 게임 모드와 Game State, 게임 스테이트에 대한 개요입니다.
 Version: 4.14
-type:reference
+type:overview
 parent:Gameplay/Framework
-order:5
+order:2
 tags:Gameplay Framework
 Related:Gameplay/Framework/Controller/PlayerController
+topic-image:Gameplay/Framework/gamemode_lander.png
 
 [TOC (start:2 end:2)]
 

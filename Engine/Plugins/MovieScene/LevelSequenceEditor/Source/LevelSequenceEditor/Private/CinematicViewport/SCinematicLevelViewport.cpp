@@ -526,8 +526,6 @@ void SCinematicLevelViewport::Setup(FLevelSequenceEditorToolkit& NewToolkit)
 	ISequencer* Sequencer = GetSequencer();
 	if (Sequencer)
 	{
-		FLevelEditorSequencerIntegration::Get().SetViewportTransportControlsVisibility(false);
-
 		TypeInterfaceProxy->Impl = Sequencer->GetZeroPadNumericTypeInterface();
 
 		if (TransportRange.IsValid())

@@ -78,6 +78,7 @@ extern bool GShowSplashScreen;
 	else
 #endif
 	{
+#if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_9_0
 		self.ConsoleAlert = [[UIAlertView alloc] initWithTitle:@"Type a console command"
 								message:@""
 								delegate:self
@@ -107,6 +108,7 @@ extern bool GShowSplashScreen;
 		[TextField addGestureRecognizer : SwipeRightGesture];
 
 		[self.ConsoleAlert show];
+#endif
 	}
 }
 
@@ -188,6 +190,7 @@ extern bool GShowSplashScreen;
 	else
 #endif
 	{
+#if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_9_0
 		// set up the alert message and buttons
 		UIAlertView* Alert = [[[UIAlertView alloc] initWithTitle:[StringArray objectAtIndex : 0]
 									message : [StringArray objectAtIndex : 1]
@@ -205,13 +208,16 @@ extern bool GShowSplashScreen;
 
 		// show it!
 		[Alert show];
+#endif
 	}
 }
 
 - (BOOL)textFieldShouldReturn:(UITextField *)alertTextField
 {
 	[alertTextField resignFirstResponder];// to dismiss the keyboard.
+#if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_9_0
 	[self.ConsoleAlert dismissWithClickedButtonIndex:1 animated:YES];//this is called on alertview to dismiss it.
+#endif
 
 	return YES;
 }
@@ -220,6 +226,7 @@ extern bool GShowSplashScreen;
 /**
  * An alert button was pressed
  */
+#if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_9_0
 - (void)alertView:(UIAlertView*)AlertView didDismissWithButtonIndex:(NSInteger)ButtonIndex
 {
 	// just set our AlertResponse property, all we need to do
@@ -235,6 +242,7 @@ extern bool GShowSplashScreen;
 		}
 	}
 }
+#endif
 
 - (void)SwipeLeftAction:(id)Ignored
 {
@@ -248,13 +256,16 @@ extern bool GShowSplashScreen;
         if ([UIAlertController class])
         {
             TextField = self.ConsoleAlertController.textFields.firstObject;
-        }
+			TextField.text = [self.ConsoleHistoryValues objectAtIndex : self.ConsoleHistoryValuesIndex];
+		}
         else
 #endif
         {
-            TextField = [self.ConsoleAlert textFieldAtIndex:0];
+#if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_9_0
+			TextField = [self.ConsoleAlert textFieldAtIndex : 0];
+			TextField.text = [self.ConsoleHistoryValues objectAtIndex : self.ConsoleHistoryValuesIndex];
+#endif
         }
-		TextField.text = [self.ConsoleHistoryValues objectAtIndex:self.ConsoleHistoryValuesIndex];
 	}
 }
 
@@ -270,13 +281,16 @@ extern bool GShowSplashScreen;
         if ([UIAlertController class])
         {
             TextField = self.ConsoleAlertController.textFields.firstObject;
-        }
+			TextField.text = [self.ConsoleHistoryValues objectAtIndex : self.ConsoleHistoryValuesIndex];
+	}
         else
 #endif
         {
-            TextField = [self.ConsoleAlert textFieldAtIndex:0];
+#if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_9_0
+			TextField = [self.ConsoleAlert textFieldAtIndex : 0];
+			TextField.text = [self.ConsoleHistoryValues objectAtIndex : self.ConsoleHistoryValuesIndex];
+#endif
         }
-		TextField.text = [self.ConsoleHistoryValues objectAtIndex:self.ConsoleHistoryValuesIndex];
 	}
 }
 

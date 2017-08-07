@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Misc/Attribute.h"
 #include "Layout/Visibility.h"
+#include "Layout/Clipping.h"
 #include "Rendering/SlateRenderTransform.h"
 #include "GenericPlatform/ICursor.h"
 #include "Types/ISlateMetaData.h"
@@ -771,6 +772,7 @@ struct TSlateBaseNamedArgs
 	, _RenderTransform( )
 	, _RenderTransformPivot( FVector2D::ZeroVector )
 	, _ForceVolatile( false )
+	, _Clipping( EWidgetClipping::Inherit )
 	{
 	}
 
@@ -812,6 +814,7 @@ struct TSlateBaseNamedArgs
 	SLATE_ATTRIBUTE( FVector2D, RenderTransformPivot )
 	SLATE_ARGUMENT( FName, Tag )
 	SLATE_ARGUMENT( bool, ForceVolatile )
+	SLATE_ARGUMENT( EWidgetClipping, Clipping )
 
 	TArray<TSharedRef<ISlateMetaData>> MetaData;
 };
@@ -1082,6 +1085,7 @@ struct TDecl
 			InArgs._RenderTransformPivot,
 			InArgs._Tag,
 			InArgs._ForceVolatile,
+			InArgs._Clipping,
 			InArgs.MetaData );
 
 		_RequiredArgs.CallConstruct(_Widget, InArgs);

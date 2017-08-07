@@ -90,7 +90,6 @@ struct CORE_API FWindowsPlatformAtomics
 		return (int32)::_InterlockedExchange((long*)Value, (long)Exchange);
 	}
 
-#if PLATFORM_HAS_64BIT_ATOMICS
 	static FORCEINLINE int64 InterlockedExchange( volatile int64* Value, int64 Exchange )
 	{
 		#if PLATFORM_64BITS
@@ -107,7 +106,6 @@ struct CORE_API FWindowsPlatformAtomics
 			}
 		#endif
 	}
-#endif
 
 	static FORCEINLINE void* InterlockedExchangePtr( void** Dest, void* Exchange )
 	{
@@ -142,6 +140,11 @@ struct CORE_API FWindowsPlatformAtomics
 
 		return (int64)::_InterlockedCompareExchange64(Dest, Exchange, Comparand);
 	}
+	static FORCEINLINE int64 AtomicRead64(volatile const int64* Src)
+	{
+		return InterlockedCompareExchange((volatile int64*)Src, 0, 0);
+	}
+
 #endif
 
 	/**
@@ -170,6 +173,18 @@ struct CORE_API FWindowsPlatformAtomics
 
 		return ::InterlockedCompareExchange128((int64 volatile *)Dest, Exchange.High, Exchange.Low, (int64*)Comparand) == 1;
 	}
+	/**
+	* Atomic read of 128 bit value with a memory barrier
+	*/
+	static FORCEINLINE void AtomicRead128(const volatile FInt128* Src, FInt128* OutResult)
+	{
+		FInt128 Zero;
+		Zero.High = 0;
+		Zero.Low = 0;
+		*OutResult = Zero;
+		InterlockedCompareExchange128((volatile FInt128*)Src, Zero, OutResult);
+	}
+
 #endif // PLATFORM_HAS_128BIT_ATOMICS
 
 	static FORCEINLINE void* InterlockedCompareExchangePointer( void** Dest, void* Exchange, void* Comparand )
@@ -207,6 +222,7 @@ protected:
 	 */
 	static void HandleAtomicsFailure( const TCHAR* InFormat, ... );
 };
+
 
 
 typedef FWindowsPlatformAtomics FPlatformAtomics;

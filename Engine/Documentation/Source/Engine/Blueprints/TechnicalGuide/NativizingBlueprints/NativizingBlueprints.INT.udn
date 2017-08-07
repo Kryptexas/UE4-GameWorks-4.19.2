@@ -9,13 +9,14 @@ tags:Blueprints
 Skilllevel:Intermediate
 Related: Engine/Blueprints/TechnicalGuide/NativizingBlueprints/Advanced
 social-image:social_bp_nativization.png
+topic-image:NativizingBlueprints_topic.png
 
 [TOC(start:1 end:4)]
 
-When teams script gameplay with Blueprints, they're creating new UClasses without having to write or compile native C++ (CPP) code. As a result, Blueprints work well for game teams 
-that don't have the technical expertise of native CPP programmers. The reason that non-programmers can work strictly with Blueprints, is because Blueprint nodes run in 
-a virtual machine (VM), enabling them to call native CPP functions. Unfortunately, relying on a VM that translates Blueprints into native CPP code comes at a cost; and as you can imagine, 
-translating Blueprint nodes into native CPP functions can potentially slow your game's performance per frame. 
+When teams script gameplay with Blueprints, they're creating new UClasses without having to write or compile native C++ code. As a result, Blueprints work well for game teams 
+that don't have the technical expertise of native C++ programmers. The reason that non-programmers can work strictly with Blueprints, is because Blueprint nodes run in 
+a virtual machine (VM), enabling them to call native C++ functions. Unfortunately, relying on a VM that translates Blueprints into native C++ code comes at a cost; and as you can imagine, 
+translating Blueprint nodes into native C++ functions can potentially slow your game's performance per frame. 
 
 When the cost of running Blueprints in a VM isn't noticeable, the VM overhead can be an acceptable cost to bear; however, there are times when you'll want your game to run as fast as 
 possible (especially, when you're shipping to devices that have limited hardware capabilities). This is where Unreal Engine's Blueprint Nativization tool can help. 
@@ -26,9 +27,9 @@ Here at Epic, we've successfully used Blueprint Nativization while developing ou
 
 ##Reducing VM Overhead
 
-The main goal of Blueprint Nativization is to reduce VM overhead in the runtime version of your project by generating native CPP code from your project's Blueprints. In general, all 
-of the Blueprint Classes are replaced by the newly generated native CPP classes that will then be compiled with the project during the [cooking process](Engine/Deployment/Cooking). 
-Although you'll be able to read the translated CPP code from a text editor, you'll notice that the code isn't formatted to be reusable (or generated to be "reader friendly").
+The main goal of Blueprint Nativization is to reduce VM overhead in the runtime version of your project by generating native C++ code from your project's Blueprints. In general, all 
+of the Blueprint Classes are replaced by the newly generated native C++ classes that will then be compiled with the project during the [cooking process](Engine/Deployment/Cooking). 
+Although you'll be able to read the translated C++ code from a text editor, you'll notice that the code isn't formatted to be reusable (or generated to be "reader friendly").
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -84,12 +85,12 @@ Unreal Automation Tool (UAT) will nativize the following supported Blueprint ass
 * User Defined Enums
 
 [REGION:note]
-At this time, Level Blueprints and Blueprint Macros aren't supported by the Blueprint Nativization tool, and won't be converted into native CPP code. 
+At this time, Level Blueprints and Blueprint Macros aren't supported by the Blueprint Nativization tool, and won't be converted into native C++ code. 
 [/REGION]
 
 ###Excluding Blueprints from Conversion
 
-When the Blueprint Nativization tool converts Blueprint nodes to native CPP code, the resulting executable is compiled with additional machine instructions, 
+When the Blueprint Nativization tool converts Blueprint nodes to native C++ code, the resulting executable is compiled with additional machine instructions, 
 dependencies, and embedded metadata to support the conversion. 
 
 [REGION:warning]

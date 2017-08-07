@@ -28,6 +28,11 @@ namespace UnrealBuildTool
 		public readonly string Architecture;
 
 		/// <summary>
+		/// On Mac, indicates the path to the target's application bundle
+		/// </summary>
+		public DirectoryReference BundleDirectory;
+
+		/// <summary>
 		/// The directory to put the non-executable files in (PDBs, import library, etc)
 		/// </summary>
 		public DirectoryReference OutputDirectory;
@@ -124,7 +129,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// True if debug symbols that are cached for some platforms should not be created.
 		/// </summary>
-		public bool bDisableSymbolCache = true;
+		public bool bDisableSymbolCache = false;
 
 		/// <summary>
 		/// True if we're compiling .cpp files that will go into a library (.lib file)
@@ -266,6 +271,12 @@ namespace UnrealBuildTool
 		public List<FileItem> CommonResourceFiles = new List<FileItem>();
 
 		/// <summary>
+		/// Provides a Module Definition File (.def) to the linker to describe various attributes of a DLL.
+		/// Necessary when exporting functions by ordinal values instead of by name.
+		/// </summary>
+		public string ModuleDefinitionFile;
+
+		/// <summary>
 		/// Default constructor.
 		/// </summary>
 		public LinkEnvironment(CppPlatform Platform, CppConfiguration Configuration, string Architecture)
@@ -283,6 +294,7 @@ namespace UnrealBuildTool
 			Platform = Other.Platform;
 			Configuration = Other.Configuration;
 			Architecture = Other.Architecture;
+			BundleDirectory = Other.BundleDirectory;
 			OutputDirectory = Other.OutputDirectory;
 			IntermediateDirectory = Other.IntermediateDirectory;
 			LocalShadowDirectory = Other.LocalShadowDirectory;
@@ -307,6 +319,8 @@ namespace UnrealBuildTool
 			bIsCrossReferenced = Other.bIsCrossReferenced;
 			bHasExports = Other.bHasExports;
 			bIsBuildingDotNetAssembly = Other.bIsBuildingDotNetAssembly;
+			DefaultStackSize = Other.DefaultStackSize;
+			DefaultStackSizeCommit = Other.DefaultStackSizeCommit;
 			bOptimizeForSize = Other.bOptimizeForSize;
 			bOmitFramePointers = Other.bOmitFramePointers;
 			bSupportEditAndContinue = Other.bSupportEditAndContinue;
@@ -322,6 +336,7 @@ namespace UnrealBuildTool
 			InputLibraries.AddRange(Other.InputLibraries);
 			DefaultResourceFiles.AddRange(Other.DefaultResourceFiles);
 			CommonResourceFiles.AddRange(Other.CommonResourceFiles);
-		}
+			ModuleDefinitionFile = Other.ModuleDefinitionFile;
+        }
 	}
 }

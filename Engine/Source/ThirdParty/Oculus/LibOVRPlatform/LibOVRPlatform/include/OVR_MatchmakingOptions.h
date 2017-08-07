@@ -4,9 +4,9 @@
 #define OVR_MATCHMAKING_OPTIONS_H
 
 #include "OVR_Platform_Defs.h"
+#include "OVR_Types.h"
 #include <stddef.h>
 #include <stdbool.h>
-#include <OVR_Types.h>
 
 #include "OVR_RoomJoinPolicy.h"
 

@@ -166,7 +166,7 @@ TSharedRef<SWindow> FMenuStack::PushMenu( const TSharedRef<SWindow>& ParentWindo
 
 	FSlateRect Anchor(SummonLocation, SummonLocation + SummonLocationSize);
 	FVector2D ExpectedSize(300, 200);
-	FVector2D AdjustedSummonLocation = FSlateApplication::Get().CalculatePopupWindowPosition(Anchor, ExpectedSize, Orient_Vertical);
+	FVector2D AdjustedSummonLocation = FSlateApplication::Get().CalculatePopupWindowPosition(Anchor, ExpectedSize, FVector2D::ZeroVector, Orient_Vertical);
 
 	TSharedRef<SWindow> NewMenuWindow =
 		SNew(SWindow)
@@ -347,9 +347,10 @@ FMenuStack::FPrePushResults FMenuStack::PrePush(const FPrePushArgs& InArgs)
 
 	OutResults.WrappedContent = WrapContent(TempContent, OptionalMinWidth, OptionalMinHeight);
 
-	OutResults.WrappedContent->SlatePrepass(FSlateApplication::Get().GetApplicationScale() * HostWindow->GetNativeWindow()->GetDPIScaleFactor());
+	const float ApplicationScale = FSlateApplication::Get().GetApplicationScale() * HostWindow->GetNativeWindow()->GetDPIScaleFactor();
+	OutResults.WrappedContent->SlatePrepass(ApplicationScale);
 	// @todo slate: Doesn't take into account potential window border size
-	OutResults.ExpectedSize = OutResults.WrappedContent->GetDesiredSize();
+	OutResults.ExpectedSize = OutResults.WrappedContent->GetDesiredSize() * ApplicationScale;
 
 	EOrientation Orientation = (InArgs.TransitionEffect.SlideDirection == FPopupTransitionEffect::SubMenu) ? Orient_Horizontal : Orient_Vertical;
 
@@ -357,7 +358,7 @@ FMenuStack::FPrePushResults FMenuStack::PrePush(const FPrePushArgs& InArgs)
 	if (ActiveMethod.GetPopupMethod() == EPopupMethod::CreateNewWindow)
 	{
 		// Places the menu's window in the work area
-		OutResults.AnimStartLocation = OutResults.AnimFinalLocation = FSlateApplication::Get().CalculatePopupWindowPosition(InArgs.Anchor, OutResults.ExpectedSize, Orientation);
+		OutResults.AnimStartLocation = OutResults.AnimFinalLocation = FSlateApplication::Get().CalculatePopupWindowPosition(InArgs.Anchor, OutResults.ExpectedSize, FVector2D::ZeroVector, Orientation);
 	}
 	else
 	{
@@ -824,7 +825,7 @@ FSlateRect FMenuStack::GetToolTipForceFieldRect(TSharedRef<IMenu> InMenu, const 
 				if (WidgetPath.IsValid())
 				{
 					const FGeometry& ContentGeometry = WidgetPath.Widgets.Last().Geometry;
-					ForceFieldRect = ForceFieldRect.Expand(ContentGeometry.GetClippingRect());
+					ForceFieldRect = ForceFieldRect.Expand(ContentGeometry.GetLayoutBoundingRect());
 				}
 			}
 		}

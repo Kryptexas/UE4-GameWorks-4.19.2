@@ -324,6 +324,7 @@ namespace Bp
 		BoundsIndex		destroyAggregate(AggregateHandle aggregateHandle);
 
 		bool			addBounds(BoundsIndex index, PxReal contactDistance, PxU32 group, void* userdata, AggregateHandle aggregateHandle, PxU8 volumeType);
+		void			reserveSpaceForBounds(BoundsIndex index);
 		void			removeBounds(BoundsIndex index);
 
 		void			setContactOffset(BoundsIndex handle, PxReal offset)
@@ -403,11 +404,13 @@ namespace Bp
 		PX_FORCE_INLINE void*						getUserData(const BoundsIndex index) const { if (index < mVolumeData.size()) return mVolumeData[index].getUserData(); return NULL; }
 		PX_FORCE_INLINE	PxU64						getContextId()				const	{ return mContextID;				}
 
+		void postBroadPhase(PxBaseTask*, PxBaseTask* narrowPhaseUnlockTask);
+
 	private:
 		void reserveShapeSpace(PxU32 nbShapes);
-		void postBroadPhase(PxBaseTask*);
+		
 
-		Cm::DelegateTask<SimpleAABBManager, &SimpleAABBManager::postBroadPhase>			mPostBroadPhase;
+		//Cm::DelegateTask<SimpleAABBManager, &SimpleAABBManager::postBroadPhase>			mPostBroadPhase;
 
 		FinalizeUpdateTask				mFinalizeUpdateTask;
 

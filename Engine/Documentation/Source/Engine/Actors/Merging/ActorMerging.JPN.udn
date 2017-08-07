@@ -1,12 +1,13 @@
-﻿INTSourceChangelist:3122737
-Availability: Public
+﻿INTSourceChangelist:3481084
+Availability:Public
 Title:アクタのマージ
 Crumbs: %ROOT%, Engine, Engine/Actors, Engine/Actors/Merging
 Description:Actor の Merge ツールを使って、UE4 で複数のスタティックメッシュをひとつに結合します。
 Related:Engine/Actors/StaticMeshActor
 Version:4.12
-
-
+parent:Engine/Actors
+type:overview
+order:6
 
 [TOC(start:2 end:2)]
 
@@ -16,7 +17,33 @@ Merge Actors ツールを使用すると、複数のスタティックメッシ�
 この Merge Actor 機能は 4.12 以降、公式にサポートされるようになりました。4.8 から 4.11 では、エディタ設定の [Experimental] タブからアクティベートしなければなりません。4.12 よりも前のバージョンのエンジンを使用している場合、この機能は実験的なものとみなされ、公式にはサポートされていません。
 [/REGION]
 
-![](MergeActorsWindow.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](MergeActors_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](MergeActors_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 ## アクタのマージのワークフロー
 

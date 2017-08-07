@@ -8,7 +8,7 @@
 #include "Engine/Blueprint.h"
 #include "BlueprintNativeCodeGenManifest.generated.h"
 
-class FAssetData;
+struct FAssetData;
 struct FBlueprintNativeCodeGenPaths;
 
 /*******************************************************************************
@@ -22,7 +22,7 @@ struct FConvertedAssetRecord
 
 public:
 	FConvertedAssetRecord() {}
-	FConvertedAssetRecord(const FAssetData& AssetInfo, const FBlueprintNativeCodeGenPaths& TargetPaths);
+	FConvertedAssetRecord(const FAssetData& AssetInfo, const FBlueprintNativeCodeGenPaths& TargetPaths, const FCompilerNativizationOptions& NativizationOptions);
 
 	/**
 	 * @return 

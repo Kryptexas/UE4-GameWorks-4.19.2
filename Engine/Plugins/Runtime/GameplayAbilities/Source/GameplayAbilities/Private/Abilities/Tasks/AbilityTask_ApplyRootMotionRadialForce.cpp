@@ -19,7 +19,7 @@ UAbilityTask_ApplyRootMotionRadialForce* UAbilityTask_ApplyRootMotionRadialForce
 {
 	UAbilitySystemGlobals::NonShipping_ApplyGlobalAbilityScaler_Duration(Duration);
 
-	auto MyTask = NewAbilityTask<UAbilityTask_ApplyRootMotionRadialForce>(OwningAbility, TaskInstanceName);
+	UAbilityTask_ApplyRootMotionRadialForce* MyTask = NewAbilityTask<UAbilityTask_ApplyRootMotionRadialForce>(OwningAbility, TaskInstanceName);
 
 	MyTask->ForceName = TaskInstanceName;
 	MyTask->Location = Location;

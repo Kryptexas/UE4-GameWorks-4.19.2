@@ -31,6 +31,12 @@ float FAnimNode_BlendSpacePlayer::GetCurrentAssetTime()
 	return 0.0f;
 }
 
+float FAnimNode_BlendSpacePlayer::GetCurrentAssetTimePlayRateAdjusted()
+{
+	float Length = GetCurrentAssetLength();
+	return PlayRate < 0.0f ? Length - InternalTimeAccumulator * Length : Length * InternalTimeAccumulator;
+}
+
 float FAnimNode_BlendSpacePlayer::GetCurrentAssetLength()
 {
 	if(const FBlendSampleData* HighestWeightedSample = GetHighestWeightedSample())
@@ -46,9 +52,9 @@ float FAnimNode_BlendSpacePlayer::GetCurrentAssetLength()
 	return 0.0f;
 }
 
-void FAnimNode_BlendSpacePlayer::Initialize(const FAnimationInitializeContext& Context)
+void FAnimNode_BlendSpacePlayer::Initialize_AnyThread(const FAnimationInitializeContext& Context)
 {
-	FAnimNode_AssetPlayerBase::Initialize(Context);
+	FAnimNode_AssetPlayerBase::Initialize_AnyThread(Context);
 
 	EvaluateGraphExposedInputs.Execute(Context);
 
@@ -57,7 +63,7 @@ void FAnimNode_BlendSpacePlayer::Initialize(const FAnimationInitializeContext& C
 	PreviousBlendSpace = BlendSpace;
 }
 
-void FAnimNode_BlendSpacePlayer::CacheBones(const FAnimationCacheBonesContext& Context) 
+void FAnimNode_BlendSpacePlayer::CacheBones_AnyThread(const FAnimationCacheBonesContext& Context) 
 {
 }
 
@@ -95,7 +101,7 @@ void FAnimNode_BlendSpacePlayer::UpdateInternal(const FAnimationUpdateContext& C
 	}
 }
 
-void FAnimNode_BlendSpacePlayer::Evaluate(FPoseContext& Output)
+void FAnimNode_BlendSpacePlayer::Evaluate_AnyThread(FPoseContext& Output)
 {
 	if ((BlendSpace != NULL) && (Output.AnimInstanceProxy->IsSkeletonCompatible(BlendSpace->GetSkeleton())))
 	{

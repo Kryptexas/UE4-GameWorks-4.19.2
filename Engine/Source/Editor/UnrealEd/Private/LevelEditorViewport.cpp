@@ -72,6 +72,7 @@
 #include "IContentBrowserSingleton.h"
 #include "ContentStreaming.h"
 #include "IHeadMountedDisplay.h"
+#include "ActorGroupingUtils.h"
 
 DEFINE_LOG_CATEGORY(LogEditorViewport);
 
@@ -120,6 +121,10 @@ FViewportCursorLocation::FViewportCursorLocation( const FSceneView* View, FEdito
 	}
 }
 
+FViewportCursorLocation::~FViewportCursorLocation()
+{
+}
+
 ELevelViewportType FViewportCursorLocation::GetViewportType() const
 {
 	return ViewportClient->GetViewportType();
@@ -137,6 +142,10 @@ FViewportClick::FViewportClick(const FSceneView* View,FEditorViewportClient* Vie
 	ControlDown = ViewportClient->IsCtrlPressed();
 	ShiftDown = ViewportClient->IsShiftPressed();
 	AltDown = ViewportClient->IsAltPressed();
+}
+
+FViewportClick::~FViewportClick()
+{
 }
 
 /** Helper function to compute a new location that is snapped to the origin plane given the users cursor location and camera angle */
@@ -598,12 +607,7 @@ static bool AttemptApplyObjToComponent(UObject* ObjToUse, USceneComponent* Compo
 			UAnimSequenceBase* DroppedObjAsAnimSequence = Cast<UAnimSequenceBase>(ObjToUse);
 			if (DroppedObjAsAnimSequence)
 			{
-				USkeleton* AnimSkeleton = nullptr;
-
-				if (DroppedObjAsAnimSequence)
-				{
-					AnimSkeleton = DroppedObjAsAnimSequence->GetSkeleton();
-				}
+				USkeleton* AnimSkeleton = DroppedObjAsAnimSequence->GetSkeleton();
 
 				if (AnimSkeleton)
 				{
@@ -624,16 +628,13 @@ static bool AttemptApplyObjToComponent(UObject* ObjToUse, USceneComponent* Compo
 							SkeletalMeshComponent->SetSkeletalMesh(AnimSkeleton->GetAssetPreviewMesh(DroppedObjAsAnimSequence));
 						}
 
-						if (DroppedObjAsAnimSequence)
-						{
-							SkeletalMeshComponent->SetAnimationMode(EAnimationMode::Type::AnimationSingleNode);
-							SkeletalMeshComponent->AnimationData.AnimToPlay = DroppedObjAsAnimSequence;
+						SkeletalMeshComponent->SetAnimationMode(EAnimationMode::Type::AnimationSingleNode);
+						SkeletalMeshComponent->AnimationData.AnimToPlay = DroppedObjAsAnimSequence;
 
-							// set runtime data
-							SkeletalMeshComponent->SetAnimation(DroppedObjAsAnimSequence);
-						}
+						// set runtime data
+						SkeletalMeshComponent->SetAnimation(DroppedObjAsAnimSequence);
 
-						if (SkeletalMeshComponent && SkeletalMeshComponent->SkeletalMesh)
+						if (SkeletalMeshComponent->SkeletalMesh)
 						{
 							bResult = true;
 							SkeletalMeshComponent->InitAnim(true);
@@ -1456,7 +1457,7 @@ void FTrackingTransaction::Begin(const FText& Description)
 
 		Actor->Modify();
 
-		if (GEditor->bGroupingActive)
+		if (UActorGroupingUtils::IsGroupingActive())
 		{
 			// if this actor is in a group, add the GroupActor into a list to be modified shortly
 			AGroupActor* ActorLockedRootGroup = AGroupActor::GetRootForActor(Actor, true);
@@ -1671,6 +1672,7 @@ FSceneView* FLevelEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFami
 
 	FSceneView* View = FEditorViewportClient::CalcSceneView(ViewFamily, StereoPass);
 
+	View->ViewActor = ActorLockedByMatinee.IsValid() ? ActorLockedByMatinee.Get() : ActorLockedToCamera.Get();
 	View->SpriteCategoryVisibility = SpriteCategoryVisibility;
 	View->bCameraCut = bEditorCameraCut;
 	View->bHasSelectedComponents = GEditor->GetSelectedComponentCount() > 0;
@@ -1875,7 +1877,6 @@ void FLevelEditorViewportClient::ReceivedFocus(FViewport* InViewport)
 //
 void FLevelEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitProxy, FKey Key, EInputEvent Event, uint32 HitX, uint32 HitY)
 {
-	static FName ProcessClickTrace = FName(TEXT("ProcessClickTrace"));
 
 	const FViewportClick Click(&View,this,Key,Event,HitX,HitY);
 	if (Click.GetKey() == EKeys::MiddleMouseButton && !Click.IsAltDown() && !Click.IsShiftDown())
@@ -1986,7 +1987,7 @@ void FLevelEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitPr
 			if( GeomHitProxy->GetGeomObject() )
 			{
 				FHitResult CheckResult(ForceInit);
-				FCollisionQueryParams BoxParams(ProcessClickTrace, false, GeomHitProxy->GetGeomObject()->ActualBrush);
+				FCollisionQueryParams BoxParams(SCENE_QUERY_STAT(ProcessClickTrace), false, GeomHitProxy->GetGeomObject()->ActualBrush);
 				bool bHit = GWorld->SweepSingleByObjectType(CheckResult, Click.GetOrigin(), Click.GetOrigin() + Click.GetDirection() * HALF_WORLD_MAX, FQuat::Identity, FCollisionObjectQueryParams(ECC_WorldStatic), FCollisionShape::MakeBox(FVector(1.f)), BoxParams);
 
 				if(bHit)
@@ -2093,6 +2094,8 @@ void FLevelEditorViewportClient::UpdateViewForLockedActor(float DeltaTime)
 
 	bUseControllingActorViewInfo = false;
 	ControllingActorViewInfo = FMinimalViewInfo();
+	ControllingActorExtraPostProcessBlends.Empty();
+	ControllingActorExtraPostProcessBlendWeights.Empty();
 
 	AActor* Actor = ActorLockedByMatinee.IsValid() ? ActorLockedByMatinee.Get() : ActorLockedToCamera.Get();
 	if( Actor != NULL )
@@ -2119,18 +2122,23 @@ void FLevelEditorViewportClient::UpdateViewForLockedActor(float DeltaTime)
 			if (bLockedCameraView)
 			{
 				// If this is a camera actor, then inherit some other settings
-				UCameraComponent* const CameraComponent = GetCameraComponentForLockedActor(Actor);
-				if (CameraComponent != nullptr)
+				USceneComponent* const ViewComponent = FindViewComponentForActor(Actor);
+				if (ViewComponent != nullptr)
 				{
-					bUseControllingActorViewInfo = true;
-					CameraComponent->GetCameraView(DeltaTime, ControllingActorViewInfo);
-					CameraComponent->GetExtraPostProcessBlends(ControllingActorExtraPostProcessBlends, ControllingActorExtraPostProcessBlendWeights);
-
-					// Post processing is handled by OverridePostProcessingSettings
-					ViewFOV = ControllingActorViewInfo.FOV;
-					AspectRatio = ControllingActorViewInfo.AspectRatio;
-					SetViewLocation(ControllingActorViewInfo.Location);
-					SetViewRotation(ControllingActorViewInfo.Rotation);
+					if ( ensure(ViewComponent->GetEditorPreviewInfo(DeltaTime, ControllingActorViewInfo)) )
+					{
+						bUseControllingActorViewInfo = true;
+						if (UCameraComponent* CameraComponent = Cast<UCameraComponent>(ViewComponent))
+						{
+							CameraComponent->GetExtraPostProcessBlends(ControllingActorExtraPostProcessBlends, ControllingActorExtraPostProcessBlendWeights);
+						}
+						
+						// Post processing is handled by OverridePostProcessingSettings
+						ViewFOV = ControllingActorViewInfo.FOV;
+						AspectRatio = ControllingActorViewInfo.AspectRatio;
+						SetViewLocation(ControllingActorViewInfo.Location);
+						SetViewRotation(ControllingActorViewInfo.Rotation);
+					}
 				}
 			}
 		}
@@ -3143,6 +3151,67 @@ void FLevelEditorViewportClient::MoveCameraToLockedActor()
 	}
 }
 
+USceneComponent* FLevelEditorViewportClient::FindViewComponentForActor(AActor const* Actor)
+{
+	USceneComponent* PreviewComponent = nullptr;
+	if (Actor)
+	{
+		
+		// see if actor has a component with preview capabilities (prioritize camera components)
+		TArray<USceneComponent*> SceneComps;
+		Actor->GetComponents<USceneComponent>(SceneComps);
+
+		bool bChoseCamComponent = false;
+		for (USceneComponent* Comp : SceneComps)
+		{
+			FMinimalViewInfo DummyViewInfo;
+			if (Comp->bIsActive && Comp->GetEditorPreviewInfo(/*DeltaTime =*/0.0f, DummyViewInfo))
+			{
+				if (Comp->IsSelected())
+				{
+					PreviewComponent = Comp;
+					break;
+				}
+				else if (PreviewComponent)
+				{
+					if (bChoseCamComponent)
+					{
+						continue;
+					}
+
+					UCameraComponent* AsCamComp = Cast<UCameraComponent>(Comp);
+					if (AsCamComp != nullptr)
+					{
+						PreviewComponent = AsCamComp;
+					}
+					continue;
+				}
+				PreviewComponent = Comp;
+			}
+		}
+
+		// now see if any actors are attached to us, directly or indirectly, that have an active camera component we might want to use
+		// we will just return the first one.
+		// #note: assumption here that attachment cannot be circular
+		if (PreviewComponent == nullptr)
+		{
+			TArray<AActor*> AttachedActors;
+			Actor->GetAttachedActors(AttachedActors);
+			for (AActor* AttachedActor : AttachedActors)
+			{
+				USceneComponent* const Comp = FindViewComponentForActor(AttachedActor);
+				if (Comp)
+				{
+					PreviewComponent = Comp;
+					break;
+				}
+			}
+		}
+	}
+
+	return PreviewComponent;
+}
+
 void FLevelEditorViewportClient::SetActorLock(AActor* Actor)
 {
 	if (ActorLockedToCamera != Actor)
@@ -3313,7 +3382,7 @@ void FLevelEditorViewportClient::ApplyDeltaToActors(const FVector& InDrag,
 			else
 			{
 				AGroupActor* ParentGroup = AGroupActor::GetRootForActor(Actor, true, true);
-				if (ParentGroup && GEditor->bGroupingActive)
+				if (ParentGroup && UActorGroupingUtils::IsGroupingActive())
 				{
 					ActorGroups.AddUnique(ParentGroup);
 				}
@@ -3533,8 +3602,7 @@ static bool ApplyScalingOptions(const FVector& InOriginalPreDragScale, const boo
 			SnapScaleAfter = false;
 		}
 
-		float ScaleRatioMax = 1.0f;
-		ScaleRatioMax = AbsoluteScaleValue / InOriginalPreDragScale[MaxAxisIndex];
+		float ScaleRatioMax = AbsoluteScaleValue / InOriginalPreDragScale[MaxAxisIndex];
 		for (int Axis = 0; Axis < 3; ++Axis)
 		{
 			if (bActiveAxes[Axis])
@@ -3748,7 +3816,7 @@ void FLevelEditorViewportClient::CheckHoveredHitProxy( HHitProxy* HoveredHitProx
 				// Check to see if the actor under the cursor is part of a group.  If so, we will how a hover cue the whole group
 				AGroupActor* GroupActor = AGroupActor::GetRootForActor( ActorUnderCursor, true, false );
 
-				if( GroupActor && GEditor->bGroupingActive)
+				if(GroupActor && UActorGroupingUtils::IsGroupingActive())
 				{
 					// Get all the actors in the group and add them to the list of objects to show a hover cue for.
 					TArray<AActor*> ActorsInGroup;

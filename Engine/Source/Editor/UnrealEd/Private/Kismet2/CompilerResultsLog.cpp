@@ -1,6 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Kismet2/CompilerResultsLog.h"
+#include "Engine/Blueprint.h"
 #include "Modules/ModuleManager.h"
 #include "Misc/PackageName.h"
 #include "Editor/EditorPerProjectUserSettings.h"
@@ -11,6 +12,8 @@
 #include "Developer/HotReload/Public/IHotReload.h"
 #include "EngineLogs.h"
 #include "K2Node_MacroInstance.h"
+#include "Engine/Blueprint.h"
+#include "IMessageLogListing.h"
 
 #if WITH_EDITOR
 
@@ -238,6 +241,13 @@ void FCompilerResultsLog::InternalLogSummary()
 /** Update the source backtrack map to note that NewObject was most closely generated/caused by the SourceObject */
 void FCompilerResultsLog::NotifyIntermediateObjectCreation(UObject* NewObject, UObject* SourceObject)
 {
+	if(UEdGraphNode* NewNode = Cast<UEdGraphNode>(NewObject))
+	{
+		if(UEdGraphNode* OldNode = Cast<UEdGraphNode>(SourceObject))
+		{
+			FullSourceBacktrackMap.Add(NewNode, OldNode);
+		}
+	}
 	SourceBacktrackMap.NotifyIntermediateObjectCreation(NewObject, SourceObject);
 }
 
@@ -255,6 +265,83 @@ UObject* FCompilerResultsLog::FindSourceObject(UObject* PossiblyDuplicatedObject
 UObject const* FCompilerResultsLog::FindSourceObject(UObject const* PossiblyDuplicatedObject) const
 {
 	return SourceBacktrackMap.FindSourceObject(PossiblyDuplicatedObject);
+}
+
+int32 FCompilerResultsLog::CalculateStableIdentifierForLatentActionManager( const UEdGraphNode* Node )
+{
+	/* 
+		The name of this function is meant to instill a bit of caution:
+		1. The Latent Action Manager uses uint32s to identify actions, so there
+			is some risk of collision, increasing if we aren't able to distribute
+			keys across the whole range of uint32
+		2. We need these identifiers to be stable across blueprint compiles, meaning
+			we can't just create a GUID and hash it
+
+		Meeting these two requirements has proved difficult. The edge cases involve
+		macros and nodes that implement UK2Node::ExpandNode, e.g. LoadAsset/LoadAssetClass
+		nodes in Macros. In order to handle that case we use the full source backtrack map.
+		Typically an intermediate node has a dynamic GUID, which is useless, but source 
+		nodes that came from macros have stable GUIDs, and can be used 
+	*/
+
+	const UEdGraphNode* OriginalNode = Node;
+
+	// first search for a node with a stable GUID (e.g., not a node that was created via SpawnIntermediateNode, 
+	// but we want to include nodes that are created via macro instantiation):
+	bool bNodeHasStableGUID = false;
+	while(!bNodeHasStableGUID)
+	{
+		if(!Node->HasAnyFlags(RF_Transient) || 
+			GetIntermediateTunnelInstance(Node))
+		{
+			bNodeHasStableGUID = true;
+		}
+		else
+		{
+			UEdGraphNode* const* PreviousNode = FullSourceBacktrackMap.Find(Node);
+			if(PreviousNode && *PreviousNode)
+			{
+				Node = *PreviousNode;
+			}
+			else
+			{
+				// we failed to find a source node, bail
+				bNodeHasStableGUID = true;
+				Node = nullptr;
+			}
+		}
+	}
+
+	int32 LatentUUID = 0;
+	
+	if(Node)
+	{
+		LatentUUID = GetTypeHash(Node->NodeGuid);
+
+		const UEdGraphNode* ResultNode = Node;
+		const UEdGraphNode* SourceNode = Cast<UEdGraphNode>(GetIntermediateTunnelInstance(Node));
+		while (SourceNode && SourceNode != ResultNode)
+		{
+			if (SourceNode->NodeGuid.IsValid())
+			{
+				LatentUUID = HashCombine(LatentUUID, GetTypeHash(SourceNode->NodeGuid));
+			}
+			ResultNode = SourceNode;
+			SourceNode = Cast<UEdGraphNode>(GetIntermediateTunnelInstance(ResultNode));
+		}
+	}
+	else
+	{
+		Warning(
+			*LOCTEXT("UUIDDeterministicCookWarn", "Failed to produce a deterministic UUID for a node's latent action: @@").ToString(),
+			OriginalNode
+		);
+
+		static int32 FallbackUUID = 0;
+		LatentUUID = FallbackUUID++;
+	}
+
+	return LatentUUID;
 }
 
 UEdGraphPin* FCompilerResultsLog::FindSourcePin(UEdGraphPin* PossiblyDuplicatedPin)
@@ -458,6 +545,11 @@ void FCompilerResultsLog::Append(FCompilerResultsLog const& Other)
 {
 	for (TSharedRef<FTokenizedMessage> const& Message : Other.Messages)
 	{
+		if (Messages.Contains(Message))
+		{
+			continue;
+		}
+
 		switch (Message->GetSeverity())
 		{
 		case EMessageSeverity::Warning:
@@ -636,10 +728,10 @@ UEdGraphNode* FCompilerResultsLog::GetSourceNode(const UEdGraphNode* Intermediat
 	return Result;
 }
 
-UEdGraphNode* FCompilerResultsLog::GetIntermediateTunnelInstance(const UEdGraphNode* IntermediateNode)
+UEdGraphNode* FCompilerResultsLog::GetIntermediateTunnelInstance(const UEdGraphNode* IntermediateNode) const
 {
 	TWeakObjectPtr<UEdGraphNode> Result;
-	if (TWeakObjectPtr<UEdGraphNode>* IntermediateTunnelInstanceNode = IntermediateTunnelNodeToTunnelInstanceMap.Find(IntermediateNode))
+	if (const TWeakObjectPtr<UEdGraphNode>* IntermediateTunnelInstanceNode = IntermediateTunnelNodeToTunnelInstanceMap.Find(IntermediateNode))
 	{
 		Result = *IntermediateTunnelInstanceNode;
 	}
@@ -676,6 +768,67 @@ UEdGraphNode* FCompilerResultsLog::GetSourceTunnelInstance(const UEdGraphNode* I
 void FCompilerResultsLog::GetTunnelsActiveForNode(const UEdGraphNode* IntermediateNode, TArray<TWeakObjectPtr<UEdGraphNode>>& ActiveTunnelsOut)
 {
 	IntermediateTunnelInstanceHierarchyMap.MultiFind(IntermediateNode, ActiveTunnelsOut, true);
+}
+
+static FName GetBlueprintMessageLogName(UBlueprint* InBlueprint)
+{
+	FName LogListingName;
+	if (InBlueprint != nullptr)
+	{
+		LogListingName = *FString::Printf(TEXT("%s_%s_CompilerResultsLog"), *InBlueprint->GetBlueprintGuid().ToString(), *InBlueprint->GetName());
+	}
+	else
+	{
+		LogListingName = "BlueprintCompiler";
+	}
+	return LogListingName;
+}
+
+static TSharedRef<IMessageLogListing> RegisterBlueprintMessageLog(UBlueprint* InBlueprint)
+{
+	FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
+
+	const FName LogName = GetBlueprintMessageLogName(InBlueprint);
+
+	// Register the log (this will return an existing log if it has been used before)
+	FMessageLogInitializationOptions LogInitOptions;
+	LogInitOptions.bShowInLogWindow = false;
+	MessageLogModule.RegisterLogListing(LogName, LOCTEXT("BlueprintCompilerLogLabel", "BlueprintCompiler"), LogInitOptions);
+	return MessageLogModule.GetLogListing(LogName);
+}
+
+TSharedRef<IMessageLogListing> FCompilerResultsLog::GetBlueprintMessageLog(UBlueprint* InBlueprint)
+{
+	FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
+
+	const FName LogName = GetBlueprintMessageLogName(InBlueprint);
+
+	// Reuse any existing log, or create a new one (that is not held onto bey the message log system)
+	if(MessageLogModule.IsRegisteredLogListing(LogName))
+	{
+		return MessageLogModule.GetLogListing(LogName);
+	}
+	else
+	{
+		FMessageLogInitializationOptions LogInitOptions;
+		LogInitOptions.bShowInLogWindow = false;
+		return MessageLogModule.CreateLogListing(LogName, LogInitOptions);
+	}
+}
+
+FScopedBlueprintMessageLog::FScopedBlueprintMessageLog(UBlueprint* InBlueprint)
+	: Log(RegisterBlueprintMessageLog(InBlueprint))
+{
+}
+
+FScopedBlueprintMessageLog::~FScopedBlueprintMessageLog()
+{
+	// Unregister the log so it will be ref-counted to zero if it has no messages
+	if(Log->NumMessages(EMessageSeverity::Info) == 0)
+	{
+		FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
+		MessageLogModule.UnregisterLogListing(Log->GetName());
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -25,7 +25,9 @@ class UVREditorInteractor;
 class FMenuBuilder;
 class FUICommandList;
 class UVREditorWidgetComponent;
+class UWidgetComponent;
 
+typedef FName VREditorPanelID;
 
 /** Stores the animation playback state of a VR UI element */
 enum class EVREditorAnimationState : uint8
@@ -97,22 +99,6 @@ class UVREditorUISystem : public UObject
 
 public:
 
-	enum class EEditorUIPanel
-	{
-		ContentBrowser,
-		WorldOutliner,
-		ActorDetails,
-		Modes,
-		Tutorial,
-		AssetEditor,
-		WorldSettings,
-		ColorPicker,
-		SequencerUI,
-		// ...
-
-		TotalCount,
-	};
-
 	/** Default constructor */
 	UVREditorUISystem();
 
@@ -141,12 +127,12 @@ public:
 	}
 
 	/** Returns true if the specified editor UI panel is currently visible */
-	bool IsShowingEditorUIPanel( const EEditorUIPanel EditorUIPanel ) const;
+	bool IsShowingEditorUIPanel(const VREditorPanelID& InPanelID) const;
 
 	/** Sets whether the specified editor UI panel should be visible.  Any other UI floating off this hand will be dismissed when showing it. */
-	void ShowEditorUIPanel(const class UWidgetComponent* WidgetComponent, UVREditorInteractor* Interactor, const bool bShouldShow, const bool bSpawnInFront = false, const bool bDragFromOpen = false, const bool bPlaySound = true);
-	void ShowEditorUIPanel(const EEditorUIPanel EditorUIPanel, UVREditorInteractor* Interactor, const bool bShouldShow, const bool bSpawnInFront = false, const bool bDragFromOpen = false, const bool bPlaySound = true);
-	void ShowEditorUIPanel(class AVREditorFloatingUI* Panel, UVREditorInteractor* Interactor, const bool bShouldShow, const bool bSpawnInFront = false, const bool bDragFromOpen = false, const bool bPlaySound = true);
+	void ShowEditorUIPanel(const UWidgetComponent* WidgetComponent, UVREditorInteractor* Interactor, const bool bShouldShow, const bool bSpawnInFront = false, const bool bDragFromOpen = false, const bool bPlaySound = true);
+	void ShowEditorUIPanel(const VREditorPanelID& InPanelID, UVREditorInteractor* Interactor, const bool bShouldShow, const bool bSpawnInFront = false, const bool bDragFromOpen = false, const bool bPlaySound = true);
+	void ShowEditorUIPanel(AVREditorFloatingUI* Panel, UVREditorInteractor* Interactor, const bool bShouldShow, const bool bSpawnInFront = false, const bool bDragFromOpen = false, const bool bPlaySound = true);
 
 	/** Returns true if the radial menu is visible on this hand */
 	bool IsShowingRadialMenu(const UVREditorInteractor* Interactor ) const;
@@ -190,7 +176,7 @@ public:
 	float GetMinDockWindowSize() const;
 
 	/** Toggles the visibility of the panel, if the panel is in room space it will be hidden and docked to nothing */
-	void TogglePanelVisibility( const EEditorUIPanel EditorUIPanel );
+	void TogglePanelVisibility(const VREditorPanelID& InPanelID);
 
 	/** Returns the radial widget so other classes, like the interactors, can access its functionality */
 	class AVREditorRadialFloatingUI* GetRadialMenuFloatingUI() const;
@@ -211,6 +197,9 @@ public:
 
 	/** Function to force an update of the Sequencer UI based on a change */
 	void UpdateSequencerUI();
+
+	/** Function to force an update of the Actor Preview UI based on a change */
+	void UpdateActorPreviewUI(TSharedRef<SWidget> InWidget);
 
 	/** Transition the user widgets to a new world */
 	void TransitionWorld(UWorld* NewWorld);
@@ -233,6 +222,22 @@ public:
 
 	/** Get the interactor that holds the radial menu */
 	class UVREditorMotionControllerInteractor* GetUIInteractor();
+
+	static const VREditorPanelID ContentBrowserPanelID;
+	static const VREditorPanelID WorldOutlinerPanelID;
+	static const VREditorPanelID DetailsPanelID;
+	static const VREditorPanelID ModesPanelID;
+	static const VREditorPanelID TutorialPanelID;
+	static const VREditorPanelID WorldSettingsPanelID;
+	static const VREditorPanelID ColorPickerPanelID;
+	static const VREditorPanelID SequencerPanelID;
+	static const VREditorPanelID InfoDisplayPanelID;
+	static const VREditorPanelID RadialMenuPanelID;
+	static const VREditorPanelID TabManagerPanelID;
+	static const VREditorPanelID ActorPreviewUIID;
+
+	/** Get UI panel Actor from the passed ID */
+	AVREditorFloatingUI* GetPanel(const VREditorPanelID& InPanelID) const;
 
 protected:
 
@@ -287,8 +292,6 @@ protected:
 	/** Sets the text wrap size of the text block element nested in a BlockWidget */
 	TSharedRef<SWidget> SetButtonFormatting(TSharedRef<SWidget>& BlockWidget, float WrapSize);
 	
-	/** Builds the quick menu Slate widget */
-	TSharedRef<SWidget> BuildQuickMenuWidget();
 	/** Builds the radial menu Slate widget */
 	void BuildRadialMenuWidget();
 	/** Builds the numpad Slate widget */
@@ -315,6 +318,9 @@ protected:
 	/** Preview the UI panel's location if spawning with the UI interactor, else spawn immediately */
 	bool ShouldPreviewPanel();
 
+	/** When VR Mode debug was toggled. */
+	void ToggledDebugMode(bool bDebugModeEnabled);
+
 protected:
 
 	/** Owning object */
@@ -323,15 +329,17 @@ protected:
 
 	/** All of the floating UIs.  These may or may not be visible (spawned) */
 	UPROPERTY()
-	TArray< class AVREditorFloatingUI* > FloatingUIs;
+	TMap<FName, class AVREditorFloatingUI*> FloatingUIs;
 
 	/** Our Quick Menu UI */
 	UPROPERTY()
-	AVREditorFloatingUI* QuickMenuUI;
+	class AVREditorFloatingUI* InfoDisplayPanel;
 
-	/** Editor UI panels */
-	UPROPERTY()
-	TArray<AVREditorFloatingUI*> EditorUIPanels;
+	/** 
+	 * The current widget used on the info display. Often we wrap a widget in a widget to configure the settings (e.g. DPI). 
+	 * To check the info display widget with other widgets we need that wrapper widget.
+	 */
+	TWeakPtr<SWidget> CurrentWidgetOnInfoDisplay;
 
 	/** The Radial Menu UI */
 	UPROPERTY()

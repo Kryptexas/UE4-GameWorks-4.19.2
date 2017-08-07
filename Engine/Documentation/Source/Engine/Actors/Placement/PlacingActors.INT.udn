@@ -5,47 +5,12 @@ Description:Shows how you can place Actors such as props, lights, cameras, etc. 
 Related: Engine/UI/ClassViewer
 Related: GettingStarted\HowTo
 version: 4.9
+Parent:Engine/Actors
+type:overview
+order:1
+topic-image:actorplacement_topic.png
 track:LevelDesign_Beginner|8
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Actors/Placement:title%](Engine/Actors/Placement/actorplacement_topic.png)(convert:false)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Actors/Placement:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors/Placement:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Actors/Placement]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Actors/Placement:title%](Engine/Actors/Placement/actorplacement_topic.png)(convert:false)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Actors/Placement:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors/Placement:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Actors/Placement]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 At the most fundamental level, an **Actor** is any Object that you can place in a level and this page will show you the various methods in which you can place those Actors inside your levels. 
 

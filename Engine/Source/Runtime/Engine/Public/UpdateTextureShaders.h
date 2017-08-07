@@ -95,13 +95,14 @@ public:
 	{
 		SrcTexture.Bind(Initializer.ParameterMap, TEXT("SrcTexture"), SPF_Mandatory);
 		DestTexture.Bind(Initializer.ParameterMap, TEXT("DestTexture"), SPF_Mandatory);
+		DestPosSize.Bind(Initializer.ParameterMap, TEXT("DestPosSize"), SPF_Mandatory);
 	}
 
 	// FShader interface.
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << SrcTexture << DestTexture;
+		Ar << SrcTexture << DestTexture << DestPosSize;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -113,6 +114,7 @@ public:
 //protected:
 	FShaderResourceParameter SrcTexture;
 	FShaderResourceParameter DestTexture;
+	FShaderParameter DestPosSize;
 };
 
 template<uint32 ElementsPerThread>

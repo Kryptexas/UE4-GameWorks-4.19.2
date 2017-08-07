@@ -360,6 +360,34 @@ public:
 	 */
 	void SetCollisionEnabled_RenderThread(const bool bNewEnabled);
 
+	/**
+	* Set the custom depth enabled flag
+	*
+	* @param the new value
+	*/
+	void SetCustomDepthEnabled_GameThread(const bool bInRenderCustomDepth);
+
+	/**
+	* Set the custom depth enabled flag (RENDER THREAD)
+	*
+	* @param the new value
+	*/
+	void SetCustomDepthEnabled_RenderThread(const bool bInRenderCustomDepth);
+
+	/**
+	* Set the custom depth stencil value
+	*
+	* @param the new value
+	*/
+	void SetCustomDepthStencilValue_GameThread(const int32 InCustomDepthStencilValue );
+
+	/**
+	* Set the custom depth stencil value (RENDER THREAD)
+	*
+	* @param the new value
+	*/
+	void SetCustomDepthStencilValue_RenderThread(const int32 InCustomDepthStencilValue);
+
 	// Accessors.
 	inline FSceneInterface& GetScene() const { return *Scene; }
 	inline FPrimitiveComponentId GetPrimitiveComponentId() const { return PrimitiveComponentId; }
@@ -819,6 +847,8 @@ protected:
 
 	/** Min visibility for capsule shadows. */
 	float DynamicIndirectShadowMinVisibility;
+
+	float DistanceFieldSelfShadowBias;
 
 private:
 	/** The primitive's local to world transform. */

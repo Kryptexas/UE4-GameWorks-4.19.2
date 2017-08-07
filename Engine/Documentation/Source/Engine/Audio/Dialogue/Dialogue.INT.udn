@@ -1,12 +1,14 @@
 Availability: Public
-Title:Dialogue Voices and Waves
+Title:Using Dialogue Voices and Waves
 Crumbs: %ROOT%, Engine, Engine/Audio
 Description:Example of a dialogue setup with different listeners and dialogue contexts
 version: 4.13
 checkpoint:dialogueqs
 prereq: Engine/Blueprints/QuickStart
-type:quick start
+type:how-to
+type:landing
 parent:Engine/Audio
+skilllevel:Intermediate
 related:Engine/Audio/Overview
 related:Engine/Audio/SoundCues/Editor
 related:Engine/Audio/SoundCues/NodeReference

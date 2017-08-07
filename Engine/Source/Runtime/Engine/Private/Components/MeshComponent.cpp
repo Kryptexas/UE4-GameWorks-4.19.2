@@ -47,11 +47,11 @@ void UMeshComponent::SetMaterial(int32 ElementIndex, UMaterialInterface* Materia
 				OverrideMaterials.AddZeroed(ElementIndex + 1 - OverrideMaterials.Num());
 			}
 			
-			// Check if we are setting a dynamic instance of the original material (if not we should dirty the material parameter name cache)
-			if (Material != nullptr && OverrideMaterials[ElementIndex] != nullptr)
+			// Check if we are setting a dynamic instance of the original material, or replacing a nullptr material  (if not we should dirty the material parameter name cache)
+			if (Material != nullptr)
 			{
 				UMaterialInstanceDynamic* DynamicMaterial = Cast<UMaterialInstanceDynamic>(Material);
-				if ( DynamicMaterial != nullptr && DynamicMaterial->Parent != OverrideMaterials[ElementIndex])
+				if ( (DynamicMaterial != nullptr && DynamicMaterial->Parent != OverrideMaterials[ElementIndex]) || OverrideMaterials[ElementIndex] == nullptr)
 				{
 					// Mark cached material parameter names dirty
 					MarkCachedMaterialParameterNameIndicesDirty();
@@ -63,7 +63,7 @@ void UMeshComponent::SetMaterial(int32 ElementIndex, UMaterialInterface* Materia
 			MarkRenderStateDirty();			
 			if (Material)
 			{
-				Material->AddToCluster(this);
+				Material->AddToCluster(this, true);
 			}
 
 			FBodyInstance* BodyInst = GetBodyInstance();
@@ -127,17 +127,6 @@ void UMeshComponent::CleanUpOverrideMaterials()
 		//Remove the override material id that are superior to the static mesh materials number
 		int32 RemoveCount = GetNumOverrideMaterials() - GetNumMaterials();
 		OverrideMaterials.RemoveAt(GetNumMaterials(), RemoveCount);
-	}
-	//Remove override at the end of the array until there is a valid material
-	for (int32 i = GetNumOverrideMaterials() - 1; i >= 0; --i)
-	{
-		UMaterialInterface *OverrideMaterial = OverrideMaterials[i];
-		if (OverrideMaterial == nullptr)
-		{
-			OverrideMaterials.RemoveAt(i);
-			continue;
-		}
-		break;
 	}
 }
 void UMeshComponent::EmptyOverrideMaterials()
@@ -267,9 +256,6 @@ void UMeshComponent::SetScalarParameterValueOnMaterials(const FName ParameterNam
 	{
 		UE_LOG(LogMaterialParameter, Log, TEXT("%s material parameter hasn't found on the component %s"), *ParameterName.ToString(), *GetPathName());
 	}
-
-	// CreateAndSetMaterialInstanceDynamic should not flag the cached data as dirty, since only the type of material changes not the contents (UMaterialInstanceDynamic)
-	check(bCachedMaterialParameterIndicesAreDirty == false);
 }
 
 void UMeshComponent::SetVectorParameterValueOnMaterials(const FName ParameterName, const FVector ParameterValue)
@@ -299,9 +285,6 @@ void UMeshComponent::SetVectorParameterValueOnMaterials(const FName ParameterNam
 			}
 		}
 	}
-
-	// CreateAndSetMaterialInstanceDynamic should not flag the cached data as dirty, since only the type of material changes not the contents (UMaterialInstanceDynamic)
-	check(bCachedMaterialParameterIndicesAreDirty == false);
 }
 
 void UMeshComponent::MarkCachedMaterialParameterNameIndicesDirty()

@@ -29,11 +29,7 @@ namespace Audio
 	// Clamps floats to 0 if they are in sub-normal range
 	static FORCEINLINE float UnderflowClamp(const float InValue)
 	{
-		if (InValue > 0.0f && InValue < FLT_MIN)
-		{
-			return 0.0f;
-		}
-		if (InValue < 0.0f && InValue > -FLT_MIN)
+		if (InValue > -FLT_MIN && InValue < FLT_MIN)
 		{
 			return 0.0f;
 		}

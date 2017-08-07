@@ -15,6 +15,51 @@ struct FPropertyChangedEvent;
 extern ENGINE_API int32 GTextureRenderTarget2DMaxSizeX;
 extern ENGINE_API int32 GTextureRenderTarget2DMaxSizeY;
 
+/** Subset of EPixelFormat exposed to UTextureRenderTarget2D */
+UENUM()
+enum ETextureRenderTargetFormat
+{
+	/** R channel, 8 bit per channel fixed point, range [0, 1]. */
+	RTF_R8,
+	/** RG channels, 8 bit per channel fixed point, range [0, 1]. */
+	RTF_RG8,
+	/** RGBA channels, 8 bit per channel fixed point, range [0, 1]. */
+	RTF_RGBA8,
+	/** R channel, 16 bit per channel floating point, range [-65504, 65504] */
+	RTF_R16f,
+	/** RG channels, 16 bit per channel floating point, range [-65504, 65504] */
+	RTF_RG16f,
+	/** RGBA channels, 16 bit per channel floating point, range [-65504, 65504] */
+	RTF_RGBA16f,
+	/** R channel, 32 bit per channel floating point, range [-3.402823 x 10^38, 3.402823 x 10^38] */
+	RTF_R32f,
+	/** RG channels, 32 bit per channel floating point, range [-3.402823 x 10^38, 3.402823 x 10^38] */
+	RTF_RG32f,
+	/** RGBA channels, 32 bit per channel floating point, range [-3.402823 x 10^38, 3.402823 x 10^38] */
+	RTF_RGBA32f
+};
+
+inline EPixelFormat GetPixelFormatFromRenderTargetFormat(ETextureRenderTargetFormat RTFormat)
+{
+	switch (RTFormat)
+	{
+	case RTF_R8: return PF_G8; break;
+	case RTF_RG8: return PF_R8G8; break;
+	case RTF_RGBA8: return PF_B8G8R8A8; break;
+
+	case RTF_R16f: return PF_R16F; break;
+	case RTF_RG16f: return PF_G16R16F; break;
+	case RTF_RGBA16f: return PF_FloatRGBA; break;
+
+	case RTF_R32f: return PF_R32_FLOAT; break;
+	case RTF_RG32f: return PF_G32R32F; break;
+	case RTF_RGBA32f: return PF_A32B32G32R32F; break;
+	}
+
+	ensureMsgf(false, TEXT("Unhandled ETextureRenderTargetFormat entry %u"), (uint32)RTFormat);
+	return PF_Unknown;
+}
+
 /**
  * TextureRenderTarget2D
  *
@@ -22,7 +67,7 @@ extern ENGINE_API int32 GTextureRenderTarget2DMaxSizeY;
  * for rendering as well as rendered as a regular 2D texture resource.
  *
  */
-UCLASS(hidecategories=Object, hidecategories=Texture, MinimalAPI)
+UCLASS(hidecategories=Object, hidecategories=Texture, hidecategories=Compression, hidecategories=Adjustments, hidecategories=Compositing, MinimalAPI)
 class UTextureRenderTarget2D : public UTextureRenderTarget
 {
 	GENERATED_UCLASS_BODY()
@@ -52,8 +97,17 @@ class UTextureRenderTarget2D : public UTextureRenderTarget
 	uint32 bForceLinearGamma:1;
 
 	/** Whether to support storing HDR values, which requires more memory. */
+	UPROPERTY()
+	uint32 bHDR_DEPRECATED:1;
+
+	/** 
+	 * Format of the texture render target. 
+	 * Data written to the render target will be quantized to this format, which can limit the range and precision.
+	 * The largest format (RTF_RGBA32f) uses 16x more memory and bandwidth than the smallest (RTF_R8) and can greatly affect performance.  
+	 * Use the smallest format that has enough precision and range for what you are doing.
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=TextureRenderTarget2D, AssetRegistrySearchable)
-	uint32 bHDR:1;
+	TEnumAsByte<enum ETextureRenderTargetFormat> RenderTargetFormat;
 
 	/** Whether to support GPU sharing of the underlying native texture resource. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = TextureRenderTarget2D, meta=(DisplayName = "Shared"), AssetRegistrySearchable, AdvancedDisplay)
@@ -63,7 +117,7 @@ class UTextureRenderTarget2D : public UTextureRenderTarget
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=TextureRenderTarget2D, AssetRegistrySearchable)
 	uint32 bAutoGenerateMips:1;
 
-	/** Normally the format is derived from bHDR, this allows code to set the format explicitly. */
+	/** Normally the format is derived from RenderTargetFormat, this allows code to set the format explicitly. */
 	UPROPERTY()
 	TEnumAsByte<enum EPixelFormat> OverrideFormat;
 
@@ -109,6 +163,7 @@ class UTextureRenderTarget2D : public UTextureRenderTarget
 #if WITH_EDITOR
 	ENGINE_API virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
+	ENGINE_API virtual void Serialize(FArchive& Ar) override;
 	ENGINE_API virtual void PostLoad() override;
 	ENGINE_API virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
 	ENGINE_API virtual FString GetDesc() override;
@@ -124,7 +179,7 @@ class UTextureRenderTarget2D : public UTextureRenderTarget
 	{
 		if (OverrideFormat == PF_Unknown)
 		{
-			return bHDR ? PF_FloatRGBA : PF_B8G8R8A8;
+			return GetPixelFormatFromRenderTargetFormat(RenderTargetFormat);
 		}
 		else
 		{

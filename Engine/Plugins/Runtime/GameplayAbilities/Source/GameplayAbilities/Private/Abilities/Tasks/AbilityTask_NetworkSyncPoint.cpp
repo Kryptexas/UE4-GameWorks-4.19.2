@@ -20,7 +20,7 @@ void UAbilityTask_NetworkSyncPoint::OnSignalCallback()
 
 UAbilityTask_NetworkSyncPoint* UAbilityTask_NetworkSyncPoint::WaitNetSync(class UGameplayAbility* OwningAbility, EAbilityTaskNetSyncType InSyncType)
 {
-	auto MyObj = NewAbilityTask<UAbilityTask_NetworkSyncPoint>(OwningAbility);
+	UAbilityTask_NetworkSyncPoint* MyObj = NewAbilityTask<UAbilityTask_NetworkSyncPoint>(OwningAbility);
 	MyObj->SyncType = InSyncType;
 	return MyObj;
 }

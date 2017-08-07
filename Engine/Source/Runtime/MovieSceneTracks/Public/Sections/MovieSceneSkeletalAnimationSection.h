@@ -77,7 +77,6 @@ public:
 	virtual TOptional<float> GetKeyTime( FKeyHandle KeyHandle ) const override { return TOptional<float>(); }
 	virtual void SetKeyTime( FKeyHandle KeyHandle, float Time ) override { }
 	virtual FMovieSceneEvalTemplatePtr GenerateTemplate() const override;
-	virtual void PostLoadUpgradeTrackRow(const TRange<float>& InEvaluationRange) override;
 
 	/** ~UObject interface */
 	virtual void PostLoad() override;

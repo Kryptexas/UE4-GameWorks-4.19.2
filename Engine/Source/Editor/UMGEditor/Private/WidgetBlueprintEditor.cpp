@@ -105,6 +105,7 @@ FWidgetBlueprintEditor::~FWidgetBlueprintEditor()
 void FWidgetBlueprintEditor::InitWidgetBlueprintEditor(const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode)
 {
 	bShowDashedOutlines = GetDefault<UWidgetDesignerSettings>()->bShowOutlines;
+	bRespectLocks = GetDefault<UWidgetDesignerSettings>()->bRespectLocks;
 
 	TSharedPtr<FWidgetBlueprintEditor> ThisPtr(SharedThis(this));
 	WidgetToolbar = MakeShareable(new FWidgetBlueprintEditorToolbar(ThisPtr));
@@ -725,7 +726,7 @@ void FWidgetBlueprintEditor::ChangeViewedAnimation( UWidgetAnimation& InAnimatio
 		{
 			// Disable sequencer from interaction
 			Sequencer->GetSequencerWidget()->SetEnabled(false);
-			Sequencer->SetAutoKeyMode(EAutoKeyMode::KeyNone);
+			Sequencer->SetAutoChangeMode(EAutoChangeMode::None);
 			NoAnimationTextBlockPin->SetVisibility(EVisibility::Visible);
 			SequencerOverlayPin->SetVisibility( EVisibility::HitTestInvisible );
 		}
@@ -885,7 +886,7 @@ void FWidgetBlueprintEditor::UpdatePreview(UBlueprint* InBlueprint, bool bInForc
 
 	if (Sequencer.IsValid())
 	{
-		Sequencer->State.ClearObjectCaches();
+		Sequencer->State.ClearObjectCaches(*Sequencer);
 		Sequencer->ForceEvaluate();
 	}
 }
@@ -972,6 +973,16 @@ void FWidgetBlueprintEditor::SetShowDashedOutlines(bool Value)
 	bShowDashedOutlines = Value;
 }
 
+bool FWidgetBlueprintEditor::GetIsRespectingLocks() const
+{
+	return bRespectLocks;
+}
+
+void FWidgetBlueprintEditor::SetIsRespectingLocks(bool Value)
+{
+	bRespectLocks = Value;
+}
+
 class FObjectAndDisplayName
 {
 public:
@@ -994,41 +1005,71 @@ public:
 void GetBindableObjects(UWidgetTree* WidgetTree, TArray<FObjectAndDisplayName>& BindableObjects)
 {
 	WidgetTree->ForEachWidget([&BindableObjects] (UWidget* Widget) {
-		BindableObjects.Add(FObjectAndDisplayName(FText::FromString(Widget->GetName()), Widget));
-
-		UPanelWidget* PanelWidget = Cast<UPanelWidget>(Widget);
-		if ( PanelWidget != nullptr )
+		
+		// if the widget has a generated name this is just some unimportant widget, don't show it in the list?
+		if (Widget->IsGeneratedName() && !Widget->bIsVariable)
 		{
-			for ( UPanelSlot* Slot : PanelWidget->GetSlots() )
-			{
-				if ( Slot->Content != nullptr )
-				{
-					FText SlotDisplayName = FText::Format(LOCTEXT("AddMenuSlotFormat", "{0} ({1} Slot)"), FText::FromString(Slot->Content->GetName()), FText::FromString(PanelWidget->GetName()));
-					BindableObjects.Add(FObjectAndDisplayName(SlotDisplayName, Slot));
-				}
-			}
+			return;
+		}
+		
+		BindableObjects.Add(FObjectAndDisplayName(Widget->GetLabelText(), Widget));
+
+		if (Widget->Slot && Widget->Slot->Parent)
+		{
+			FText SlotDisplayName = FText::Format(LOCTEXT("AddMenuSlotFormat", "{0} ({1})"), Widget->GetLabelText(), Widget->Slot->GetClass()->GetDisplayNameText());
+			BindableObjects.Add(FObjectAndDisplayName(SlotDisplayName, Widget->Slot));
 		}
 	});
 }
 
 void FWidgetBlueprintEditor::OnGetAnimationAddMenuContent(FMenuBuilder& MenuBuilder, TSharedRef<ISequencer> InSequencer)
 {
+	if (CurrentAnimation.IsValid())
+	{
+		const TSet<FWidgetReference>& Selection = GetSelectedWidgets();
+		for (const FWidgetReference& SelectedWidget : Selection)
+		{
+			if (UWidget* Widget = SelectedWidget.GetPreview())
+			{
+				FUIAction AddWidgetTrackAction(FExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::AddObjectToAnimation, (UObject*)Widget));
+				MenuBuilder.AddMenuEntry(Widget->GetLabelText(), FText(), FSlateIcon(), AddWidgetTrackAction);
+
+				if (Widget->Slot && Widget->Slot->Parent)
+				{
+					FText SlotDisplayName = FText::Format(LOCTEXT("AddMenuSlotFormat", "{0} ({1})"), Widget->GetLabelText(), Widget->Slot->GetClass()->GetDisplayNameText());
+					FUIAction AddSlotTrackAction(FExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::AddObjectToAnimation, (UObject*)Widget->Slot));
+					MenuBuilder.AddMenuEntry(SlotDisplayName, FText(), FSlateIcon(), AddSlotTrackAction);
+				}
+			}
+		}
+
+		MenuBuilder.AddSubMenu(
+			LOCTEXT("AllNamedWidgets", "All Named Widgets"),
+			LOCTEXT("AllNamedWidgetsTooltip", "Select a widget or slot to create an animation track for"),
+			FNewMenuDelegate::CreateRaw(this, &FWidgetBlueprintEditor::OnGetAnimationAddMenuContentAllWidgets),
+			false,
+			FSlateIcon()
+		);
+	}
+}
+
+void FWidgetBlueprintEditor::OnGetAnimationAddMenuContentAllWidgets(FMenuBuilder& MenuBuilder)
+{
+	MenuBuilder.AddSearchWidget();
+
 	TArray<FObjectAndDisplayName> BindableObjects;
 	{
 		GetBindableObjects(GetPreview()->WidgetTree, BindableObjects);
 		BindableObjects.Sort();
 	}
 
-	if (CurrentAnimation.IsValid())
+	for (FObjectAndDisplayName& BindableObject : BindableObjects)
 	{
-		for (FObjectAndDisplayName& BindableObject : BindableObjects)
+		FGuid BoundObjectGuid = Sequencer->FindObjectId(*BindableObject.Object, Sequencer->GetFocusedTemplateID());
+		if (BoundObjectGuid.IsValid() == false)
 		{
-			FGuid BoundObjectGuid = Sequencer->FindObjectId(*BindableObject.Object, Sequencer->GetFocusedTemplateID());
-			if (BoundObjectGuid.IsValid() == false)
-			{
-				FUIAction AddMenuAction(FExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::AddObjectToAnimation, BindableObject.Object));
-				MenuBuilder.AddMenuEntry(BindableObject.DisplayName, FText(), FSlateIcon(), AddMenuAction);
-			}
+			FUIAction AddMenuAction(FExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::AddObjectToAnimation, BindableObject.Object));
+			MenuBuilder.AddMenuEntry(BindableObject.DisplayName, FText(), FSlateIcon(), AddMenuAction);
 		}
 	}
 }
@@ -1070,7 +1111,8 @@ void FWidgetBlueprintEditor::ExtendSequencerAddTrackMenu( FMenuBuilder& AddTrack
 	if ( ContextObjects.Num() == 1 )
 	{
 		UWidget* Widget = Cast<UWidget>( ContextObjects[0] );
-		if ( Widget != nullptr )
+
+		if ( Widget != nullptr && Widget->GetTypedOuter<UUserWidget>() == GetPreview() )
 		{
 			if( Widget->GetParent() != nullptr && Widget->Slot != nullptr )
 			{
@@ -1222,7 +1264,7 @@ void FWidgetBlueprintEditor::ExtendSequencerObjectBindingMenu(FMenuBuilder& Obje
 	if (SelectedWidget.IsValid())
 	{
 		UWidget* BoundWidget = Cast<UWidget>(ContextObjects[0]);
-		if (BoundWidget)
+		if (BoundWidget && SelectedWidget.GetPreview()->GetTypedOuter<UWidgetTree>() == BoundWidget->GetTypedOuter<UWidgetTree>() )
 		{
 			FUIAction ReplaceWithMenuAction(FExecuteAction::CreateRaw(this, &FWidgetBlueprintEditor::ReplaceTrackWithSelectedWidget, SelectedWidget, BoundWidget));
 
@@ -1267,7 +1309,7 @@ void FWidgetBlueprintEditor::AddMaterialTrack( UWidget* Widget, TArray<UProperty
 	}
 }
 
-void FWidgetBlueprintEditor::OnMovieSceneDataChanged()
+void FWidgetBlueprintEditor::OnMovieSceneDataChanged(EMovieSceneDataChangeType DataChangeType)
 {
 	bRefreshGeneratedClassAnimations = true;
 }

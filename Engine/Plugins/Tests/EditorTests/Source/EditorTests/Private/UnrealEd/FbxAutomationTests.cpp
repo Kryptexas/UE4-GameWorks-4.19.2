@@ -161,6 +161,9 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 				//Create a factory and set the options
 				UFbxFactory* FbxFactory = NewObject<UFbxFactory>(UFbxFactory::StaticClass());
 				FbxFactory->AddToRoot();
+				
+				TestPlan->ImportUI->bResetMaterialSlots = false;
+
 				FbxFactory->ImportUI = TestPlan->ImportUI;
 				//Skip the auto detect type on import, the test set a specific value
 				FbxFactory->SetDetectImportTypeOnImport(false);
@@ -259,6 +262,9 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 				{
 					UReimportFbxStaticMeshFactory* FbxStaticMeshReimportFactory = NewObject<UReimportFbxStaticMeshFactory>(UReimportFbxStaticMeshFactory::StaticClass());
 					FbxStaticMeshReimportFactory->AddToRoot();
+					
+					TestPlan->ImportUI->bResetMaterialSlots = false;
+
 					FbxStaticMeshReimportFactory->ImportUI = TestPlan->ImportUI;
 
 					UStaticMesh *ReimportStaticMesh = Cast<UStaticMesh>(GlobalImportedObjects[0]);
@@ -297,6 +303,9 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 				{
 					UReimportFbxSkeletalMeshFactory* FbxSkeletalMeshReimportFactory = NewObject<UReimportFbxSkeletalMeshFactory>(UReimportFbxSkeletalMeshFactory::StaticClass());
 					FbxSkeletalMeshReimportFactory->AddToRoot();
+					
+					TestPlan->ImportUI->bResetMaterialSlots = false;
+					
 					FbxSkeletalMeshReimportFactory->ImportUI = TestPlan->ImportUI;
 
 					USkeletalMesh *ReimportSkeletalMesh = Cast<USkeletalMesh>(GlobalImportedObjects[0]);
@@ -387,7 +396,6 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 					ImportData->ImportUniformScale = TestPlan->ImportUI->StaticMeshImportData->ImportUniformScale;
 					ImportData->bImportAsScene = TestPlan->ImportUI->StaticMeshImportData->bImportAsScene;
 
-					
 					FbxMeshUtils::ImportStaticMeshLOD(ExistingStaticMesh, LodFile, TestPlan->LodIndex);
 				}
 				else if (GlobalImportedObjects[0]->IsA(USkeletalMesh::StaticClass()))

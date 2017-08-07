@@ -13,7 +13,7 @@ void FPointLightComponentVisualizer::DrawVisualization( const UActorComponent* C
 		const UPointLightComponent* PointLightComp = Cast<const UPointLightComponent>(Component);
 		if(PointLightComp != NULL)
 		{
-			FTransform LightTM = PointLightComp->ComponentToWorld;
+			FTransform LightTM = PointLightComp->GetComponentTransform();
 			LightTM.RemoveScaling();
 
 			// Draw light radius

@@ -6,15 +6,15 @@ Related: Engine/Animation/Persona/Modes/Skeleton
 Related: Engine/Animation/Persona/Modes/Mesh
 Related: Engine/Animation/Persona/Modes/Animation
 Related: Engine/Animation/Persona/Modes/Graph
-version: 4.14
+version: 4.16
 type:reference
 topic-image:Engine/Animation/animation_topic.png
 tags:animation
 
 
 [EXCERPT:Overview]
-Regardless of what Animation Tool you are working in, each Editor will feature a **Toolbar** which can be located at the top, however, the options on the Toolbar will vary based on the type of Editor you are currently working in.
-The Toolbar is comprised of two main areas, the **Asset Toolbar** which contains several options related to the Editor you are working with and the **Editor Toolbar** which allows you to quickly switch between the different Animation Tool Editors. 
+Regardless of what Animation Tool you are working in, each Editor will feature a **Toolbar** which can be located at the top. However, the options on the Toolbar will vary based on the type of Editor you are currently working in.
+The Toolbar is comprised of two main areas, the **Asset Toolbar** which contains several options related to the Editor you are working with and the **Editor Toolbar** which enables you to quickly switch between the different Animation Tool Editors. 
 [/EXCERPT:Overview]
 
 
@@ -36,9 +36,10 @@ The Skeleton Editor Toolbar is shown whenever you open [](Engine/Animation/Skele
 | ![](saveIcon.png) | Saves any changes made to the current Skeleton asset.  |
 | ![](findincbIcon.png) | Opens the **Content Browser** and automatically navigates to the current Skeleton asset. |
 | ![](animnotifiesIcon.png) | Opens the [Anim Notifies](Engine/Animation/Persona/AnimationNotifies) window that displays all the custom Animation Notifies for the current Skeleton. |
-| ![](retargetmanagerIcon.png) | Opens the [](Engine/Animation/Persona/BasePoseManager) which allows you to manage your retarget sources, set up rigs and define retarged base poses for use with Animation Retargeting. |
-| ![](importmeshIcon.png) | Begins the [](Engine/Content/FBX/SkeletalMeshes) and allows you to import a new Skeletal Mesh for the current Skeleton.  |
-| ![](makestaticmeshIcon.png) | Allows you to create a **Static Mesh** out of the current preview pose. |
+| ![](retargetmanagerIcon.png) | Opens the [](Engine/Animation/Persona/BasePoseManager) which enables you to manage your retarget sources, set up rigs and define retarged base poses for use with Animation Retargeting. |
+| ![](importmeshIcon.png) | Begins the [](Engine/Content/FBX/SkeletalMeshes) and enables you to import a new Skeletal Mesh for the current Skeleton.  |
+| ![](PreviewMesh.png) | Set a new preview Skeletal Mesh for the current asset (stored per-animation or per-skeleton). |
+| ![](makestaticmeshIcon.png) | Enables you to create a **Static Mesh** out of the current preview pose. |
 
 ### Skeletal Mesh Editor Toolbar
 
@@ -50,8 +51,9 @@ The Skeletal Mesh Editor Toolbar is shown whenever you open a [Skeletal Mesh](En
 | ------- | ------------ |
 | ![](saveIcon.png) | Saves any changes made to the current Skeletal Mesh asset.  |
 | ![](findincbIcon.png) | Opens the **Content Browser** and automatically navigates to the current Skeletal Mesh asset. |
-| ![](reimportmeshIcon.png) | Allows you to reimport the current Skeletal Mesh and starts the FBX Import Process.  |
-| ![](makestaticmeshIcon.png) | Allows you to create a **Static Mesh** out of the current preview pose. |
+| ![](reimportmeshIcon.png) | Enables you to reimport the current Skeletal Mesh and starts the FBX Import Process.  |
+| ![](SectionSelection.png) | Enables selecting Mesh Sections in the viewport (disables selecting bones using their physics shape). |
+| ![](makestaticmeshIcon.png) | Enables you to create a **Static Mesh** out of the current preview pose. |
 
 ### Animation Editor Toolbar
 
@@ -63,17 +65,20 @@ The Animation Editor Toolbar is shown whenever you open any animation assets (An
 | ------- | ------------ |
 | ![](saveIcon.png) | Saves any changes made to the current animation asset.  |
 | ![](findincbIcon.png) | Opens the **Content Browser** and automatically navigates to the current animation asset. |
-| ![](createassetIcon.png) | Allows you to create new animation assets based on the current Skeleton asset. |
-| ![](compressionIcon.png) | Allows you to apply different [Compression](Engine/Animation/Sequences) settings to the animation (available for Animation Sequences). |
-| ![](keyIcon.png) | Allows you to add the current Bone Transform of a selected Bone to an [Additive Layer Track.](Engine/Animation/AnimHowTo/LayerEditing)  |
+| ![](createassetIcon.png) | Create new animation assets (animations, anim assets, Blend Spaces or Aim Offsets). When creating animation, this can be based on the **Reference Pose**, **Current Pose** or Current Animation's **Animation Data** or **Preview Mesh**. When using the Preview Mesh, the created animation will include any additional animation data generated from a post-process graph assigned tot he Skeletal Mesh, such as Anim Dynamics for Physics Simulation.   |
+| ![](ReimportAnimation.png) | Reimport the current animation. |
+| ![](compressionIcon.png) | Enables you to apply different [Compression](Engine/Animation/Sequences) settings to the animation (available for Animation Sequences). |
+| ![](ExportAsset.png) | Export current animation source data or current animation playing on the current preview mesh (includes retargeting, post process graph or other settings applied to the preview mesh).   |
+| ![](keyIcon.png) | Enables you to add the current Bone Transform of a selected Bone to an [Additive Layer Track.](Engine/Animation/AnimHowTo/LayerEditing)  |
 | ![](applyIcon.png) | Applies [Additive Layer Tracks](Engine/Animation/AnimHowTo/LayerEditing) to Runtime Animation Data. |
-| ![](makestaticmeshIcon.png) | Allows you to create a **Static Mesh** out of the current preview pose. |
+| ![](PreviewMesh.png) | Set a new preview Skeletal Mesh for the current asset (stored per-animation or per-skeleton). |
+| ![](makestaticmeshIcon.png) | Enables you to create a **Static Mesh** out of the current preview pose. |
 
 ### Animation Blueprint Editor Toolbar
 
 ![](AnimBPToolbar.png)
 
-The Animation Blueprint Editor Toolbar is shown whenever you open any [](Engine/Animation/AnimBlueprints) and allows you to Save, Find the Animation Blueprint in the Content Browser or create a Static Mesh from the current preview pose. 
+The Animation Blueprint Editor Toolbar is shown whenever you open any [](Engine/Animation/AnimBlueprints) and enables you to Save, Find the Animation Blueprint in the Content Browser or create a Static Mesh from the current preview pose. 
 The rest of the options utilize the same functionality found in the normal **Blueprint Editor Toolbar**. 
 
 [REGION:note]
@@ -83,21 +88,21 @@ Please see the [Blueprint Editor Toolbar](Engine/Blueprints/Editor/UIComponents/
 
 ## Editor Toolbar
 
-Located along the right side of each editor toolbar is the **Editor Toolbar** which allows you to switch between each of the Animation Tool Editors. 
+Located along the right side of each editor toolbar is the **Editor Toolbar** which enables you to switch between each of the Animation Tool Editors. 
 
 The currently open editor will be highlighted: 
   
- ![](skeletoneditoropen.png)
+ ![](SkeletonToolbar.png)
  
- When clicking one of the other Editors, the new tab will open and the new editor will be highlighted: 
+ When clicking one of the other Editors, the new tab will open, and the new editor will be highlighted: 
 
- ![](mesheditoropen.png)
+ ![](MeshToolbar.png)
 
  The **Animation Editor** includes an animation selection drop-down button next to the icon to quickly change the preview animation: 
 
 ![](animationdropdownmenu.png)
 
-An ** * ** symbol in the lower left corner of the icon indicates that the asset has changes that have not been saved. 
+A ** * (Asterisk) ** symbol in the lower left corner of the icon indicates that the asset has changes that have not been saved. 
 
 ![](unsavedasset.png)
 
@@ -108,3 +113,4 @@ For example, if you have imported a Skeletal Mesh and created a Skeleton, but ha
 ![](limitedtoolbar.png)
 
 Creating an Animation Blueprint with the associated Skeleton and importing animations linked to the Skeleton will allow you to access the other editors for that asset. 
+

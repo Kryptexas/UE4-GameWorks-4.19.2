@@ -3,40 +3,7 @@ Title:Tools and Editors
 Crumbs: %ROOT%, Gameplay, GettingStarted
 Description:There are several different types of Editors contained within Unreal Engine 4, this page highlights each of them. 
 version: 4.9
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![](editortypes_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%GettingStarted\SubEditors:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:GettingStarted\SubEditors]
-	[/PARAM]
-	[PARAM:description]
-	%GettingStarted\SubEditors:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![](editortypes_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%GettingStarted\SubEditors:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:GettingStarted\SubEditors]
-	[/PARAM]
-	[PARAM:description]
-	%GettingStarted\SubEditors:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:editortypes_topic.png
 
 
 This page is intended to give you an overview of each of the different types of Editors that you will be working with inside Unreal Engine 4. Whether you are inside the **Level Editor** building your game's level, working with the **Blueprint Editor** to script behaviors for the Actors in your level, creating particle effects with the **Cascade Editor** or setting up animations for characters inside the **Persona Editor**; a good understanding of what each Editor can do and how to navigate it can improve your workflow and help prevent any stumbling blocks during development. 
@@ -45,23 +12,56 @@ Refer to each of the sections below for an overview along with links to more det
 
 
 | ------- | ------------ |
-|![](LevelEditorImage.png)(w:400 h:240)|[INCLUDE:GettingStarted\SubEditors#leveleditor]| 
-|![](MaterialEditorImage.png)(w:400 h:240)|[INCLUDE:GettingStarted\SubEditors#materialeditor]| 
-|![](BlueprintEditorImage.png)(w:400 h:240)|[INCLUDE:GettingStarted\SubEditors#blueprinteditor]| 
-|![](BehaviorTreeImage.png)(w:400 h:240)|[INCLUDE:GettingStarted\SubEditors#behavioreditor]| 
-|![](PersonaEditorImage.png)(w:400 h:240)|[INCLUDE:GettingStarted\SubEditors#personaeditor]| 
-|![](CascadeEditorImage.png)(w:400 h:240)|[INCLUDE:GettingStarted\SubEditors#cascadeeditor]| 
-|![](UMGUIEditorImage.png)(w:400 h:240)|[INCLUDE:GettingStarted\SubEditors#umguieditor]| 
-|![](MatineeEditorImage.png)(w:400 h:240)|[INCLUDE:GettingStarted\SubEditors#matineeeditor]| 
-|![](SoundCueEditorImage.png)(w:400 h:240)|[INCLUDE:GettingStarted\SubEditors#soundcueeditor]| 
-|![](SpriteEditorImage.png)(w:400 h:240)|[INCLUDE:GettingStarted\SubEditors#spriteeditor]| 
-|![](FlipbookEditorImage.png)(w:400 h:240)|[INCLUDE:GettingStarted\SubEditors#flipbookeditor]| 
-|![](PhatEditorImage.png)(w:400 h:240)|[INCLUDE:GettingStarted\SubEditors#phateditor]| 
-|![](StaticMeshEditorImage.png)(w:400 h:240)|[INCLUDE:GettingStarted\SubEditors#staticmesheditor]| 
-|![](MediaFrameworkImage.png)(w:400 h:240)|[INCLUDE:GettingStarted\SubEditors#mediaeditor]| 
+|[INCLUDE:GettingStarted\SubEditors#leveleditorimage]|[INCLUDE:GettingStarted\SubEditors#leveleditor]| 
+|[INCLUDE:GettingStarted\SubEditors#materialeditorimage]|[INCLUDE:GettingStarted\SubEditors#materialeditor]| 
+|[INCLUDE:GettingStarted\SubEditors#blueprinteditorimage]|[INCLUDE:GettingStarted\SubEditors#blueprinteditor]| 
+|[INCLUDE:GettingStarted\SubEditors#behavioreditorimage]|[INCLUDE:GettingStarted\SubEditors#behavioreditor]| 
+|[INCLUDE:GettingStarted\SubEditors#personaeditorimage]|[INCLUDE:GettingStarted\SubEditors#personaeditor]| 
+|[INCLUDE:GettingStarted\SubEditors#cascadeeditorimage]|[INCLUDE:GettingStarted\SubEditors#cascadeeditor]| 
+|[INCLUDE:GettingStarted\SubEditors#umguieditorimage]|[INCLUDE:GettingStarted\SubEditors#umguieditor]| 
+|[INCLUDE:GettingStarted\SubEditors#matineeeditorimage]|[INCLUDE:GettingStarted\SubEditors#matineeeditor]| 
+|[INCLUDE:GettingStarted\SubEditors#soundcueeditorimage]|[INCLUDE:GettingStarted\SubEditors#soundcueeditor]| 
+|[INCLUDE:GettingStarted\SubEditors#spriteeditorimage]|[INCLUDE:GettingStarted\SubEditors#spriteeditor]| 
+|[INCLUDE:GettingStarted\SubEditors#flipbookeditorimage]|[INCLUDE:GettingStarted\SubEditors#flipbookeditor]| 
+|[INCLUDE:GettingStarted\SubEditors#phateditorimage]|[INCLUDE:GettingStarted\SubEditors#phateditor]| 
+|[INCLUDE:GettingStarted\SubEditors#staticmesheditorimage]|[INCLUDE:GettingStarted\SubEditors#staticmesheditor]| 
+|[INCLUDE:GettingStarted\SubEditors#mediaeditorimage]|[INCLUDE:GettingStarted\SubEditors#mediaeditor]| 
 
 
 <!---
+[EXCERPT:leveleditorimage]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](LevelEditor_Windows.png)(w:400 h:240)](LevelEditor_Windows.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](LevelEditor_Mac.png)(w:400 h:240)](LevelEditor_Mac.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:leveleditorimage]
 [EXCERPT:leveleditor]
 **Level Editor**
 
@@ -71,7 +71,39 @@ For more information, see: [](Engine/UI/LevelEditor)
 [/EXCERPT:leveleditor]
 
 ---
-
+[EXCERPT:materialeditorimage]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](MaterialEditor_Windows.png)(w:400 h:240)](MaterialEditor_Windows.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](MaterialEditor_Mac.png)(w:400 h:240)](MaterialEditor_Mac.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:materialeditorimage]
 [EXCERPT:materialeditor]
 **Material Editor**
 
@@ -81,7 +113,39 @@ For more information, see: [](Engine/Rendering/Materials/Editor)
 [/EXCERPT:materialeditor]
 
 ---
-
+[EXCERPT:blueprinteditorimage]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](BlueprintEditor_Windows.png)(w:400 h:240)](BlueprintEditor_Windows.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](BlueprintEditor_Mac.png)(w:400 h:240)](BlueprintEditor_Mac.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:blueprinteditorimage]
 [EXCERPT:blueprinteditor]
 **Blueprint Editor**
 
@@ -91,7 +155,39 @@ For more information, see: [](Engine/Blueprints/Editor)
 [/EXCERPT:blueprinteditor]
 
 ---
-
+[EXCERPT:behavioreditorimage]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](BehaviorTree_Windows.png)(w:400 h:240)](BehaviorTree_Windows.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](BehaviorTree_Mac.png)(w:400 h:240)](BehaviorTree_Mac.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:behavioreditorimage]
 [EXCERPT:behavioreditor]
 **Behavior Tree Editor**
 
@@ -102,6 +198,39 @@ For more information, see: [](Engine/AI/BehaviorTrees/UserGuide)
 
 ---
 
+[EXCERPT:personaeditorimage]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](AnimEditors_Windows.png)(w:400 h:240)](AnimEditors_Windows.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](AnimEditors_Mac.png)(w:400 h:240)](AnimEditors_Mac.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:personaeditorimage]
 [EXCERPT:personaeditor]
 **Persona Editor**
 
@@ -112,7 +241,39 @@ For more information, see: [](Engine/Animation/Persona)
 [/EXCERPT:personaeditor]
 
 ---
-
+[EXCERPT:cascadeeditorimage]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](CascadeEditor_Windows.png)(w:400 h:240)](CascadeEditor_Windows.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](CascadeEditor_Mac.png)(w:400 h:240)](CascadeEditor_Mac.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:cascadeeditorimage]
 [EXCERPT:cascadeeditor]
 **Cascade Editor**
 
@@ -122,7 +283,39 @@ For more information, see: [](Engine/Rendering/ParticleSystems/Cascade)
 [/EXCERPT:cascadeeditor]
 
 ---
-
+[EXCERPT:umguieditorimage]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](UMGEditor_Windows.png)(w:400 h:240)](UMGEditor_Windows.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](UMGEditor_Mac.png)(w:400 h:240)](UMGEditor_Mac.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:umguieditorimage]
 [EXCERPT:umguieditor]
 **UMG UI Editor**
 
@@ -133,7 +326,39 @@ For more information, see: [](Engine/UMG/UserGuide)
 [/EXCERPT:umguieditor]
 
 ---
-
+[EXCERPT:matineeeditorimage]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](MatineeEditor_Windows.png)(w:400 h:240)](MatineeEditor_Windows.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](MatineeEditor_Mac.png)(w:400 h:240)](MatineeEditor_Mac.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:matineeeditorimage]
 [EXCERPT:matineeeditor]
 **Matinee Editor**
 
@@ -143,7 +368,39 @@ For more information, see: [](Engine/Matinee/UserGuide)
 [/EXCERPT:matineeeditor]
 
 ---
-
+[EXCERPT:soundcueeditorimage]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](SoundCueEditor_Windows.png)(w:400 h:240)](SoundCueEditor_Windows.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](SoundCueEditor_Mac.png)(w:400 h:240)](SoundCueEditor_Mac.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:soundcueeditorimage]
 [EXCERPT:soundcueeditor]
 **Sound Cue Editor**
 
@@ -153,7 +410,40 @@ The behavior of audio playback in Unreal Engine 4 is defined within Sound Cues w
 For more information, see: [](Engine/Audio/SoundCues/Editor)
 [/EXCERPT:soundcueeditor]
 
-
+---
+[EXCERPT:spriteeditorimage]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](SpriteEditor_Windows.png)(w:400 h:240)](SpriteEditor_Windows.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](SpriteEditor_Mac.png)(w:400 h:240)](SpriteEditor_Mac.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:spriteeditorimage]
 [EXCERPT:spriteeditor]
 **Paper2D Sprite Editor**
 
@@ -164,7 +454,39 @@ For more information, see: [](Engine/Paper2D/Sprites/Editor)
 [/EXCERPT:spriteeditor]
 
 ---
-
+[EXCERPT:flipbookeditorimage]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](FlipbookEditor_Windows.png)(w:400 h:240)](FlipbookEditor_Windows.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](FlipbookEditor_Mac.png)(w:400 h:240)](FlipbookEditor_Mac.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:flipbookeditorimage]
 [EXCERPT:flipbookeditor]
 **Paper2D Flipbook Editor**
 
@@ -174,7 +496,39 @@ For more information, see: [](Engine/Paper2D/Flipbooks/Editor)
 [/EXCERPT:flipbookeditor]
 
 ---
-
+[EXCERPT:phateditorimage]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](PhysicsAssetEditor_Windows.png)(w:400 h:240)](PhysicsAssetEditor_Windows.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](PhysicsAssetEditor_Mac.png)(w:400 h:240)](PhysicsAssetEditor_Mac.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:phateditorimage]
 [EXCERPT:phateditor]
 **Physics Asset Tool Editor**
 
@@ -186,7 +540,39 @@ For more information, see: [](Engine/Physics/PhAT)
 [/EXCERPT:phateditor]
 
 ---
-
+[EXCERPT:staticmesheditorimage]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](StaticMeshEditor_Windows.png)(w:400 h:240)](StaticMeshEditor_Windows.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](StaticMeshEditor_Mac.png)(w:400 h:240)](StaticMeshEditor_Mac.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:staticmesheditorimage]
 [EXCERPT:staticmesheditor]
 **Static Mesh Editor**
 
@@ -196,7 +582,39 @@ For more information, see: [](Engine/Content/Types/StaticMeshes/Editor)
 [/EXCERPT:staticmesheditor]
 
 ---
-
+[EXCERPT:mediaeditorimage]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](MediaPlayerEditor_Windows.png)(w:400 h:240)](MediaPlayerEditor_Windows.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](MediaPlayerEditor_Mac.png)(w:400 h:240)](MediaPlayerEditor_Mac.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:mediaeditorimage]
 [EXCERPT:mediaeditor]
 **Media Player Editor**
 

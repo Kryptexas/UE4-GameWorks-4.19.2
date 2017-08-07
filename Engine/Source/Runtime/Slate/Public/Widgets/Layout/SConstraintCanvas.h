@@ -143,22 +143,18 @@ public:
 	 */
 	void ClearChildren();
 
-	/** Get the cached geometry of the canvas. */
-	const FGeometry& GetCachedGeometry() const { return CachedGeometry; }
-
 public:
 
 	// Begin SWidget overrides
-
 	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override;
-	
-	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
-
-	virtual FVector2D ComputeDesiredSize(float) const override;
-
+	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
 	virtual FChildren* GetChildren() override;
-
 	// End SWidget overrides
+
+protected:
+	// Begin SWidget overrides.
+	virtual FVector2D ComputeDesiredSize(float) const override;
+	// End SWidget overrides.
 
 private:
 
@@ -172,6 +168,4 @@ protected:
 
 	/** The ConstraintCanvas widget's children. */
 	TPanelChildren< FSlot > Children;
-
-	mutable FGeometry CachedGeometry;
 };

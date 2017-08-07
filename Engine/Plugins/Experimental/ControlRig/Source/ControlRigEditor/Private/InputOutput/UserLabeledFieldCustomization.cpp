@@ -88,7 +88,7 @@ void FUserLabeledFieldCustomization::CustomizeChildren(TSharedRef<IPropertyHandl
 				}
 			}
 
-			ChildBuilder.AddChildContent(LOCTEXT("Node", "Node"))
+			ChildBuilder.AddCustomRow(LOCTEXT("Node", "Node"))
 			.NameContent()
 			[
 				SNew(SHorizontalBox)

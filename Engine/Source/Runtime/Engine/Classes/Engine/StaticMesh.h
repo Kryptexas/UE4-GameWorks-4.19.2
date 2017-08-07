@@ -310,7 +310,7 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FOnPostMeshBuild, class UStaticMesh*);
 #endif
 
 //~ Begin Material Interface for UStaticMesh - contains a material and other stuff
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FStaticMaterial
 {
 	GENERATED_USTRUCT_BODY()
@@ -347,7 +347,7 @@ struct FStaticMaterial
 	ENGINE_API friend bool operator==(const FStaticMaterial& LHS, const UMaterialInterface& RHS);
 	ENGINE_API friend bool operator==(const UMaterialInterface& LHS, const FStaticMaterial& RHS);
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, transient, Category = StaticMesh)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = StaticMesh)
 	class UMaterialInterface* MaterialInterface;
 
 	/*This name should be use by the gameplay to avoid error if the skeletal mesh Materials array topology change*/
@@ -408,7 +408,7 @@ struct FMaterialRemapIndex
  * @see https://docs.unrealengine.com/latest/INT/Engine/Content/Types/StaticMeshes/
  * @see AStaticMeshActor, UStaticMeshComponent
  */
-UCLASS(collapsecategories, hidecategories=Object, customconstructor, MinimalAPI, BlueprintType, config=Engine)
+UCLASS(hidecategories=Object, customconstructor, MinimalAPI, BlueprintType, config=Engine)
 class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, public IInterface_AssetUserData
 {
 	GENERATED_UCLASS_BODY()
@@ -433,7 +433,7 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	FMeshSectionInfoMap SectionInfoMap;
 
 	/** The LOD group to which this mesh belongs. */
-	UPROPERTY(EditAnywhere, AssetRegistrySearchable, Category=StaticMesh)
+	UPROPERTY(EditAnywhere, AssetRegistrySearchable, Category=LodSettings)
 	FName LODGroup;
 
 	/** If true, the screen sizees at which LODs swap are computed automatically. */
@@ -519,9 +519,13 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Navigation)
 	uint32 bHasNavigationData:1;
 
-	/** If true, mesh will calculate data for fast uniform random sampling. This is approx 8 bytes per triangle so should not be enabled unless needed. */
+	/**	
+		Mesh supports uniformly distributed sampling in constant time.
+		Memory cost is 8 bytes per triangle.
+		Example usage is uniform spawning of particles.
+	*/
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = StaticMesh)
-	uint32 bRequiresAreaWeightedSampling : 1;
+	uint32 bSupportUniformlyDistributedSampling : 1;
 
 	/** Bias multiplier for Light Propagation Volume lighting */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=StaticMesh, meta=(UIMin = "0.0", UIMax = "3.0"))
@@ -545,7 +549,7 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 
 #if WITH_EDITORONLY_DATA
 	/** Importing data and options used for this mesh */
-	UPROPERTY(VisibleAnywhere, Instanced, Category=ImportSettings)
+	UPROPERTY(EditAnywhere, Instanced, Category=ImportSettings)
 	class UAssetImportData* AssetImportData;
 
 	/** Path to the resource used to construct this static mesh */
@@ -557,7 +561,7 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	FString SourceFileTimestamp_DEPRECATED;
 
 	/** Information for thumbnail rendering */
-	UPROPERTY(VisibleAnywhere, Instanced, Category=Thumbnail)
+	UPROPERTY(VisibleAnywhere, Instanced, AdvancedDisplay, Category=StaticMesh)
 	class UThumbnailInfo* ThumbnailInfo;
 
 	/** The stored camera position to use as a default for the static mesh editor */
@@ -723,6 +727,7 @@ public:
 	 *
 	 * @return Requested material
 	 */
+	UFUNCTION(BlueprintCallable, Category = "StaticMesh")
 	ENGINE_API UMaterialInterface* GetMaterial(int32 MaterialIndex) const;
 
 	/**
@@ -730,6 +735,7 @@ public:
 	*
 	* @return Requested material
 	*/
+	UFUNCTION(BlueprintCallable, Category = "StaticMesh")
 	ENGINE_API int32 GetMaterialIndex(FName MaterialSlotName) const;
 
 	/**

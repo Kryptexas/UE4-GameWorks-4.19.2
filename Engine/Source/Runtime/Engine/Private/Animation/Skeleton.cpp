@@ -116,9 +116,6 @@ void USkeleton::PostLoad()
 	// Cache smart name uids for animation curve names
 	IncreaseAnimCurveUidVersion();
 
-	const bool bRebuildNameMap = false;
-	ReferenceSkeleton.RebuildRefSkeleton(this, bRebuildNameMap);
-
 	// refresh linked bone indices
 	SmartNames.InitializeCurveMetaData(this);
 }
@@ -218,16 +215,24 @@ void USkeleton::Serialize( FArchive& Ar )
 		PreviewAttachedAssetContainer.SaveAttachedObjectsFromDeprecatedProperties();
 	}
 #endif
+
+	const bool bRebuildNameMap = false;
+	ReferenceSkeleton.RebuildRefSkeleton(this, bRebuildNameMap);
 }
 
 #if WITH_EDITOR
+void USkeleton::PreEditUndo()
+{
+	// Undoing so clear cached data as it will now be stale
+	ClearCacheData();
+}
+
 void USkeleton::PostEditUndo()
 {
 	Super::PostEditUndo();
 
-	//if we were undoing virtual bone changes then we need to handle stale cache data
-	SkelMesh2LinkupCache.Empty();
-	LinkupCache.Empty();
+	//If we were undoing virtual bone changes then we need to handle stale cache data
+	// Cached data is cleared in PreEditUndo to make sure it is done before any object hits their PostEditUndo
 	HandleVirtualBoneChanges();
 }
 #endif // WITH_EDITOR
@@ -341,7 +346,7 @@ bool USkeleton::IsCompatibleMesh(const USkeletalMesh* InSkelMesh) const
 			// follow the parent chain to verify the chain is same
 			if(!DoesParentChainMatch(SkeletonBoneIndex, InSkelMesh))
 			{
-				UE_LOG(LogAnimation, Warning, TEXT("%s : Hierarchy does not match."), *MeshBoneName.ToString());
+				UE_LOG(LogAnimation, Verbose, TEXT("%s : Hierarchy does not match."), *MeshBoneName.ToString());
 				return false;
 			}
 		}
@@ -374,14 +379,14 @@ bool USkeleton::IsCompatibleMesh(const USkeletalMesh* InSkelMesh) const
 			// still no match, return false, no parent to look for
 			if( SkeletonBoneIndex == INDEX_NONE )
 			{
-				UE_LOG(LogAnimation, Warning, TEXT("%s : Missing joint on skeleton.  Make sure to assign to the skeleton."), *MeshBoneName.ToString());
+				UE_LOG(LogAnimation, Verbose, TEXT("%s : Missing joint on skeleton.  Make sure to assign to the skeleton."), *MeshBoneName.ToString());
 				return false;
 			}
 
 			// second follow the parent chain to verify the chain is same
 			if( !DoesParentChainMatch(SkeletonBoneIndex, InSkelMesh) )
 			{
-				UE_LOG(LogAnimation, Warning, TEXT("%s : Hierarchy does not match."), *MeshBoneName.ToString());
+				UE_LOG(LogAnimation, Verbose, TEXT("%s : Hierarchy does not match."), *MeshBoneName.ToString());
 				return false;
 			}
 		}
@@ -457,7 +462,7 @@ int32 USkeleton::BuildLinkup(const USkeletalMesh* InSkelMesh)
 		// not currently supported in-game.
 		if (SkeletonBoneIndex == INDEX_NONE)
 		{
-			if(!bDismissedMessage)
+			if(!bDismissedMessage && !IsRunningCommandlet())
 			{
 				FMessageDialog::Open(EAppMsgType::Ok, FText::Format(LOCTEXT("SkeletonBuildLinkupMissingBones", "The Skeleton {0}, is missing bones that SkeletalMesh {1} needs. They will be added now. Please save the Skeleton!"), FText::FromString(GetNameSafe(this)), FText::FromString(GetNameSafe(InSkelMesh))));
 				bDismissedMessage = true;
@@ -936,16 +941,16 @@ void USkeleton::LoadAdditionalPreviewSkeletalMeshes()
 	AdditionalPreviewSkeletalMeshes.LoadSynchronous();
 }
 
-UPreviewMeshCollection* USkeleton::GetAdditionalPreviewSkeletalMeshes() const
+UDataAsset* USkeleton::GetAdditionalPreviewSkeletalMeshes() const
 {
 	return AdditionalPreviewSkeletalMeshes.Get();
 }
 
-void USkeleton::SetAdditionalPreviewSkeletalMeshes(UPreviewMeshCollection* PreviewMeshCollection)
+void USkeleton::SetAdditionalPreviewSkeletalMeshes(UDataAsset* InPreviewCollectionAsset)
 {
 	Modify();
 
-	AdditionalPreviewSkeletalMeshes = PreviewMeshCollection;
+	AdditionalPreviewSkeletalMeshes = InPreviewCollectionAsset;
 }
 
 int32 USkeleton::ValidatePreviewAttachedObjects()
@@ -1201,11 +1206,19 @@ bool USkeleton::AddSmartNameAndModify(FName ContainerName, FName NewDisplayName,
 	FSmartNameMapping* RequestedMapping = GetOrAddSmartNameContainer(ContainerName);
 	if (RequestedMapping)
 	{
-		if (RequestedMapping->FindOrAddSmartName(NewDisplayName, NewName))
+		if (RequestedMapping->FindSmartName(NewDisplayName, NewName))
 		{
-			Modify(true);
 			Successful = true;
-			IncreaseAnimCurveUidVersion();
+		}
+		else
+		{
+			// if it didn't find, mark modify
+			Modify(true);
+			if (RequestedMapping->FindOrAddSmartName(NewDisplayName, NewName))
+			{
+				Successful = true;
+				IncreaseAnimCurveUidVersion();
+			}
 		}
 	}
 	return Successful;

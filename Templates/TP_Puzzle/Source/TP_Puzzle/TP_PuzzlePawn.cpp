@@ -2,7 +2,7 @@
 
 #include "TP_PuzzlePawn.h"
 #include "TP_PuzzleBlock.h"
-#include "Kismet/HeadMountedDisplayFunctionLibrary.h"
+#include "HeadMountedDisplayFunctionLibrary.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "Engine/World.h"

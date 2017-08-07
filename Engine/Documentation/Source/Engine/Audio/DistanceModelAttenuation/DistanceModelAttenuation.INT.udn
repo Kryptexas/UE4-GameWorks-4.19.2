@@ -3,11 +3,12 @@ Title:Sound Attenuation
 Description:Reference for the various distance models available for controlling the attenuation of sounds.
 Crumbs: %ROOT%, Engine, Engine/Audio
 version: 4.9
+Parent:Engine/Audio
+type:overview
+order:4
+
+
 [TOC (start:2 end:2)]
-
-
-
-
 
 **Sound Attenuation** is essentially the ability of a sound to lower in volume as the player moves away from it. It works using two radii: **MinRadius** and **MaxRadius**. As you move from the sound's origin through the MinRadius, volume of the sound is at 100%. 
 As you pass between the MinRadius and the MaxRadius, the volume linearly fades between 100% and silence. 

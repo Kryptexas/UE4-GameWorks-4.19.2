@@ -160,6 +160,7 @@ void UArrayProperty::SerializeItem( FArchive& Ar, void* Value, void const* Defau
 
 		const FCustomPropertyListNode* CustomPropertyList = Ar.ArCustomPropertyList;
 		const FCustomPropertyListNode* PropertyNode = CustomPropertyList;
+		FSerializedPropertyScope SerializedProperty(Ar, Inner, this);
 		while (PropertyNode && i < n && !bSerializeRemainingItems)
 		{
 			if (PropertyNode->Property != Inner)
@@ -197,6 +198,7 @@ void UArrayProperty::SerializeItem( FArchive& Ar, void* Value, void const* Defau
 		Ar.ArUseCustomPropertyList = false;
 
 		// Serialize each item until we get to the end of the array
+		FSerializedPropertyScope SerializedProperty(Ar, Inner, this);
 		while (i < n)
 		{
 #if WITH_EDITOR
@@ -375,7 +377,7 @@ const TCHAR* UArrayProperty::ImportText_Internal( const TCHAR* Buffer, void* Dat
 	if (*Buffer == TCHAR('\0') || *Buffer == TCHAR(')') || *Buffer == TCHAR(','))
 	{
 		ArrayHelper.EmptyValues();
-		return NULL;
+		return Buffer;
 	}
 
 	if ( *Buffer++ != TCHAR('(') )

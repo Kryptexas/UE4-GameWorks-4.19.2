@@ -49,7 +49,7 @@ protected:
 	/** Generate asset picker window */
 	virtual TSharedRef<SWidget> GenerateAssetPicker();
 	/** Called to validate selection from picker window */
-	virtual void OnAssetSelectedFromPicker(const class FAssetData& AssetData);
+	virtual void OnAssetSelectedFromPicker(const struct FAssetData& AssetData);
 
 	/** Used to update the combo button text */
 	FText OnGetComboTextValue() const;
@@ -60,6 +60,9 @@ protected:
 	/** Button Color and Opacity delegate */
 	FSlateColor OnGetWidgetBackground() const;
 
+	/** Returns asset data of currently selected object, if bRuntimePath is true this will include _C for blueprint classes, for false it will point to UBlueprint instead */
+	virtual const FAssetData& GetAssetData(bool bRuntimePath) const;
+
 protected:
 	/** Object manipulator buttons. */
 	TSharedPtr<SButton> UseButton;
@@ -67,4 +70,7 @@ protected:
 
 	/** Menu anchor for opening and closing the asset picker */
 	TSharedPtr<class SMenuAnchor> AssetPickerAnchor;
+
+	/** Cached AssetData of object selected */
+	mutable FAssetData CachedAssetData;
 };

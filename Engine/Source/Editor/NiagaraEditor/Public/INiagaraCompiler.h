@@ -39,6 +39,7 @@ struct FNiagaraCompileResults
 class INiagaraCompiler
 {
 public:
+	virtual ~INiagaraCompiler() { }
 
 	/** Compiles a script. */
 	virtual const FNiagaraCompileResults& CompileScript(class UNiagaraScript* InScript) = 0;

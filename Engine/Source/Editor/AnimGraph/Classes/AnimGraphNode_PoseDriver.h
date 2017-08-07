@@ -30,8 +30,15 @@ public:
 
 	/** Util to replace current contents of PoseTargets with info from assigned PoseAsset */
 	void CopyTargetsFromPoseAsset();
+
 	/** Automatically modify TargetScale for each PoseTarget, based on distance to nearest neighbor */
 	void AutoSetTargetScales(float& OutMaxDistance);
+
+	/** Adds a new target, reallocating transforms array appropriately */
+	void AddNewTarget();
+
+	/** Reallocates transforms arrays as necessary to accommodate source bones */
+	void ReserveTargetTransforms();
 
 	/** Used to refer back to preview instance in anim tools */
 	UPROPERTY(Transient)

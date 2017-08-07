@@ -136,7 +136,7 @@ void RecompileRendererModule()
 		} 
 		while (!bCompiledSuccessfully);
 
-		verify(FModuleManager::Get().LoadModule(RendererModuleName, true).IsValid());
+		verify(FModuleManager::Get().LoadModule(RendererModuleName, true) != nullptr);
 	}
 }
 

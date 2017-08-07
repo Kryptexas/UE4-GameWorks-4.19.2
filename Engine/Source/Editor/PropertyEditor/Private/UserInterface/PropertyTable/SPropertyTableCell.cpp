@@ -136,7 +136,7 @@ EActiveTimerReturnType SPropertyTableCell::TriggerEnterEditingMode(double InCurr
 	return EActiveTimerReturnType::Stop;
 }
 
-int32 SPropertyTableCell::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SPropertyTableCell::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	if ( CellBackground && CellBackground->DrawAs != ESlateBrushDrawType::NoDrawType )
 	{
@@ -156,13 +156,12 @@ int32 SPropertyTableCell::OnPaint( const FPaintArgs& Args, const FGeometry& Allo
 			LayerId,
 			AllottedGeometry.ToPaintGeometry(),
 			Background,
-			MyClippingRect,
 			ESlateDrawEffect::None,
 			Background->GetTint( InWidgetStyle ) * InWidgetStyle.GetColorAndOpacityTint() 
 			);
 	}
 
-	return SCompoundWidget::OnPaint( Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled );
+	return SCompoundWidget::OnPaint( Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled );
 }
 
 FReply SPropertyTableCell::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )

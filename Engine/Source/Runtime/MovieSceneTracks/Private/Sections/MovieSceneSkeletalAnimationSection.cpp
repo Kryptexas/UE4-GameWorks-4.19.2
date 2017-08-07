@@ -36,8 +36,8 @@ UMovieSceneSkeletalAnimationSection::UMovieSceneSkeletalAnimationSection( const 
 	bReverse_DEPRECATED = false;
 	SlotName_DEPRECATED = DefaultSlotName;
 
-	// Section template relies on always restoring state for objects when they are no longer animating. This is how it releases animation control.
-	EvalOptions.CompletionMode = EMovieSceneCompletionMode::RestoreState;
+	BlendType = EMovieSceneBlendType::Absolute;
+	EvalOptions.EnableAndSetCompletionMode(EMovieSceneCompletionMode::RestoreState);
 
 #if WITH_EDITOR
 	PreviousPlayRate = Params.PlayRate;
@@ -91,7 +91,7 @@ void UMovieSceneSkeletalAnimationSection::PostLoad()
 	if (GetLinkerCustomVersion(FSequencerObjectVersion::GUID) < FSequencerObjectVersion::ConvertEnableRootMotionToForceRootLock)
 	{
 		UAnimSequence* AnimSeq = Cast<UAnimSequence>(Params.Animation);
-		if (AnimSeq && AnimSeq->bEnableRootMotion)
+		if (AnimSeq && AnimSeq->bEnableRootMotion && !AnimSeq->bForceRootLock)
 		{
 			// this is not ideal, but previously single player node was using this flag to whether or not to extract root motion
 			// with new anim sequencer instance, this would break because we use the instance flag to extract root motion or not
@@ -126,27 +126,6 @@ void UMovieSceneSkeletalAnimationSection::PostLoad()
 FMovieSceneEvalTemplatePtr UMovieSceneSkeletalAnimationSection::GenerateTemplate() const
 {
 	return FMovieSceneSkeletalAnimationSectionTemplate(*this);
-}
-
-void UMovieSceneSkeletalAnimationSection::PostLoadUpgradeTrackRow(const TRange<float>& InEvaluationRange)
-{
-	if (!Params.Weight.IsKeyHandleValid(Params.Weight.FindKey(GetStartTime())))
-	{
-		FKeyHandle StartKeyHandle = Params.Weight.UpdateOrAddKey(GetStartTime(), 1.f);
-		Params.Weight.SetKeyInterpMode(StartKeyHandle, RCIM_Constant);
-	}
-
-	if (InEvaluationRange.HasLowerBound())
-	{
-		FKeyHandle EvalInKeyHandle = Params.Weight.UpdateOrAddKey(InEvaluationRange.GetLowerBoundValue(), 1.f);
-		Params.Weight.SetKeyInterpMode(EvalInKeyHandle, RCIM_Constant);
-	}
-
-	if (InEvaluationRange.HasUpperBound())
-	{
-		FKeyHandle EvalOutKeyHandle = Params.Weight.UpdateOrAddKey(InEvaluationRange.GetUpperBoundValue(), 0.f);
-		Params.Weight.SetKeyInterpMode(EvalOutKeyHandle, RCIM_Constant);
-	}
 }
 
 void UMovieSceneSkeletalAnimationSection::MoveSection( float DeltaTime, TSet<FKeyHandle>& KeyHandles )

@@ -106,7 +106,7 @@ private:
 	FShaderParameter NumSamples;
 };
 
-IMPLEMENT_SHADER_TYPE(,FCopyDiffuseIrradiancePS,TEXT("ReflectionEnvironmentShaders"),TEXT("DiffuseIrradianceCopyPS"),SF_Pixel)
+IMPLEMENT_SHADER_TYPE(,FCopyDiffuseIrradiancePS,TEXT("/Engine/Private/ReflectionEnvironmentShaders.usf"),TEXT("DiffuseIrradianceCopyPS"),SF_Pixel)
 
 /**  */
 class FAccumulateDiffuseIrradiancePS : public FGlobalShader
@@ -178,7 +178,7 @@ private:
 	FShaderParameter Sample23;
 };
 
-IMPLEMENT_SHADER_TYPE(,FAccumulateDiffuseIrradiancePS,TEXT("ReflectionEnvironmentShaders"),TEXT("DiffuseIrradianceAccumulatePS"),SF_Pixel)
+IMPLEMENT_SHADER_TYPE(,FAccumulateDiffuseIrradiancePS,TEXT("/Engine/Private/ReflectionEnvironmentShaders.usf"),TEXT("DiffuseIrradianceAccumulatePS"),SF_Pixel)
 
 /**  */
 class FAccumulateCubeFacesPS : public FGlobalShader
@@ -228,7 +228,7 @@ private:
 	FShaderResourceParameter SourceTextureSampler;
 };
 
-IMPLEMENT_SHADER_TYPE(,FAccumulateCubeFacesPS,TEXT("ReflectionEnvironmentShaders"),TEXT("AccumulateCubeFacesPS"),SF_Pixel)
+IMPLEMENT_SHADER_TYPE(,FAccumulateCubeFacesPS,TEXT("/Engine/Private/ReflectionEnvironmentShaders.usf"),TEXT("AccumulateCubeFacesPS"),SF_Pixel)
 
 void ComputeDiffuseIrradiance(FRHICommandListImmediate& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, FTextureRHIRef LightingSource, int32 LightingSourceMipIndex, FSHVectorRGB3* OutIrradianceEnvironmentMap)
 {

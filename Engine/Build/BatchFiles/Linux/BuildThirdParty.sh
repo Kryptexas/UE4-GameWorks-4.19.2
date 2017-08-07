@@ -231,22 +231,6 @@ BuildICU()
   set +x
 }
 
-BuildLND()
-{
-  echo "building LinuxNativeDialogs"
-  set -x
-  cd Source/ThirdParty/LinuxNativeDialogs/UELinuxNativeDialogs
-  rm -rf build
-  mkdir build
-  cd build
-  cmake ..
-  make $MAKE_ARGS
-  local LIB_DIR=../lib/Linux/$TARGET_ARCH/
-  mv *.so $LIB_DIR
-  cp -P --remove-destination $LIB_DIR/*.so ${TOP_DIR}/Binaries/ThirdParty/LinuxNativeDialogs/Linux/$TARGET_ARCH/
-  set +x
-}
-
 BuildForsythTriOO()
 {
   echo "building ForsythTriOO"
@@ -397,7 +381,6 @@ build_all() {
    Run BuildHLSLCC
    Run BuildMcpp
    Run BuildFreeType
-   Run BuildLND
    Run BuildForsythTriOO
    Run BuildnvTriStrip
    Run BuildnvTextureTools
@@ -426,7 +409,6 @@ print_valid_build_opts() {
   echo "    HLSLCC"
   echo "    Mcpp"
   echo "    FreeType"
-  echo "    LND"
   echo "    ForsythTriOO"
   echo "    nvTriStrip"
   echo "    nvTextureTools"

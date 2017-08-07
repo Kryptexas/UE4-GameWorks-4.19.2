@@ -706,7 +706,14 @@ int32 FLinuxWindow::GetWindowBorderSize() const
 
 bool FLinuxWindow::IsForegroundWindow() const
 {
-	return (HWnd == SDL_GetMouseFocus() || HWnd == SDL_GetKeyboardFocus());
+	if (OwningApplication->GetCurrentActiveWindow().IsValid())
+	{
+		return OwningApplication->GetCurrentActiveWindow()->GetHWnd() == HWnd;
+	}
+	else
+	{
+		return false;
+	}
 }
 
 void FLinuxWindow::SetText( const TCHAR* const Text )

@@ -23,7 +23,7 @@ public:
 	virtual void CustomizeChildren( TSharedRef<class IPropertyHandle> InStructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
 
 private:
-	bool OnShouldFilterAsset( const class FAssetData& InAssetData ) const;
+	bool OnShouldFilterAsset( const struct FAssetData& InAssetData ) const;
 
 private:
 	/** Handle to the struct property being customized */

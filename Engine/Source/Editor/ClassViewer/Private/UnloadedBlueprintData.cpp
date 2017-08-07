@@ -75,6 +75,8 @@ const UClass* FUnloadedBlueprintData::GetClassWithin() const
 		{
 			return CurrentNode->Class->ClassWithin;
 		}
+
+		CurrentNode = CurrentNode->ParentNode.Pin();
 	}
 
 	return nullptr;

@@ -12,6 +12,9 @@ tags:Google VR
 tags:Platform
 prereq: Platforms/Android/GettingStarted/
 social-image:googlevr_social.png
+topic-image:GoogleVR_Topic_Image.png
+
+![](googlevr_social.png)
 
 [region:note]
 Google has a provided a very detailed document that goes over everything you need to know to get the most out of Daydream. You can find the documents by going to the [Offical Google Daydream Unreal](https://developers.google.com/vr/unreal/) help site.
@@ -21,13 +24,13 @@ Google has a provided a very detailed document that goes over everything you nee
 
 The GoogleVR Quick Start will walk you through getting your PC and Android-based smartphone to work with UE4 and Google VR.
 
-[DIR(output:"listbutton" type:"quick start" parent:"Platforms/GoogleVR")]
+[DIR(output:"topic" type:"quick start" parent:"Platforms/GoogleVR")]
 
 ## Google VR Daydream
 
-Daydream is a part of Google VR that adds specific support for rendering optimizations and the use of Motion Controllers.
+Google Daydream allows you to enable certain rendering optimizations and use Motion Controllers when targeting Daydream devices through the Google VR SDK.
 
-[DIR(output:"listbutton" type:"overview" parent:"Platforms/GoogleVR")]
+[DIR(output:"topic" type:"overview" parent:"Platforms/GoogleVR")]
 
 
-
+ 

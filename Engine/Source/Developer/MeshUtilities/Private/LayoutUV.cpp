@@ -3,6 +3,8 @@
 #include "LayoutUV.h"
 #include "DisjointSet.h"
 
+#include "Algo/IntroSort.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogLayoutUV, Warning, All);
 
 #define CHART_JOINING	1
@@ -147,7 +149,8 @@ void FLayoutUV::FindCharts( const TMultiMap<int32,int32>& OverlappingCorners )
 			return (*DisjointSet)[A] < (*DisjointSet)[B];
 		}
 	};
-	SortedTris.Sort( FCompareTris( &DisjointSet ) );
+
+	Algo::IntroSort( SortedTris, FCompareTris( &DisjointSet ) );
 
 	TMap< uint32, int32 > DisjointSetToChartMap;
 
@@ -205,16 +208,21 @@ void FLayoutUV::FindCharts( const TMultiMap<int32,int32>& OverlappingCorners )
 		Chart.LastTri = Tri;
 
 #if !CHART_JOINING
-		if( Chart.UVArea > 1e-4f )
+		if (LayoutVersion >= ELightmapUVVersion::SmallChartPacking)
 		{
-			Chart.WorldScale /= Chart.UVArea;
+			Chart.WorldScale /= FMath::Max(Chart.UVArea, 1e-8f);
 		}
 		else
 		{
-			Chart.WorldScale = FVector2D::ZeroVector;
-		}
-
-		//Chart.WorldScale.Set(1,1);
+			if (Chart.UVArea > 1e-4f)
+			{
+				Chart.WorldScale /= Chart.UVArea;
+			}
+			else
+			{
+				Chart.WorldScale = FVector2D::ZeroVector;
+			}
+		}		
 
 		TotalUVArea += Chart.UVArea * Chart.WorldScale.X * Chart.WorldScale.Y;
 #endif
@@ -519,13 +527,20 @@ void FLayoutUV::FindCharts( const TMultiMap<int32,int32>& OverlappingCorners )
 	{
 		FMeshChart& Chart = Charts[i];
 
-		if( Chart.UVArea > 1e-4f )
+		if (LayoutVersion >= ELightmapUVVersion::SmallChartPacking)
 		{
-			Chart.WorldScale /= Chart.UVArea;
+			Chart.WorldScale /= FMath::Max(Chart.UVArea, 1e-8f);
 		}
 		else
 		{
-			Chart.WorldScale = FVector2D::ZeroVector;
+			if (Chart.UVArea > 1e-4f)
+			{
+				Chart.WorldScale /= Chart.UVArea;
+			}
+			else
+			{
+				Chart.WorldScale = FVector2D::ZeroVector;
+			}
 		}
 
 		TotalUVArea += Chart.UVArea * Chart.WorldScale.X * Chart.WorldScale.Y;
@@ -724,7 +739,7 @@ void FLayoutUV::ScaleCharts( float UVScale )
 			return ChartRectA.X * ChartRectA.Y > ChartRectB.X * ChartRectB.Y;
 		}
 	};
-	Charts.Sort( FCompareCharts() );
+	Algo::IntroSort( Charts, FCompareCharts() );
 }
 
 bool FLayoutUV::PackCharts()
@@ -784,11 +799,11 @@ bool FLayoutUV::PackCharts()
 			}
 			else
 			{
-				if ( LayoutVersion == ELightmapUVVersion::Segments && Orientation % 4 == 1 )
+				if ( LayoutVersion >= ELightmapUVVersion::Segments && Orientation % 4 == 1 )
 				{
 					ChartRaster.FlipX( Rect );
 				}
-				else if ( LayoutVersion == ELightmapUVVersion::Segments && Orientation % 4 == 3 )
+				else if ( LayoutVersion >= ELightmapUVVersion::Segments && Orientation % 4 == 3 )
 				{
 					ChartRaster.FlipY( Rect );
 				}
@@ -806,7 +821,7 @@ bool FLayoutUV::PackCharts()
 				{
 					bFound = LayoutRaster.FindBitByBit( Rect, ChartRaster );
 				}
-				else if ( LayoutVersion == ELightmapUVVersion::Segments )
+				else if ( LayoutVersion >= ELightmapUVVersion::Segments )
 				{
 					bFound = LayoutRaster.FindWithSegments( Rect, BestRect, ChartRaster );
 				}
@@ -1019,7 +1034,7 @@ void FLayoutUV::RasterizeChart( const FMeshChart& Chart, uint32 RectW, uint32 Re
 		RasterizeTriangle< FAllocator2DShader, 16 >( ChartShader, Points, RectW, RectH );
 	}
 
-	if ( LayoutVersion == ELightmapUVVersion::Segments )
+	if ( LayoutVersion >= ELightmapUVVersion::Segments )
 	{
 		ChartRaster.CreateUsedSegments();
 	}

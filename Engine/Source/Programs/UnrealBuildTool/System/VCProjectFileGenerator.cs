@@ -220,7 +220,7 @@ namespace UnrealBuildTool
 		public const string DefaultPlatformName = "Win32";
 
 		/// The platform name that must be used for .NET projects
-		public const string DotNetPlatformName = "AnyCPU";
+		public const string DotNetPlatformName = "Any CPU";
 
 
 		/// <summary>

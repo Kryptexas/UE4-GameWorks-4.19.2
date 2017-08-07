@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:3148741
+﻿INTSourceChangelist:3429236
 Availability: Public
 Title:오디오 시스템 개요
 Crumbs: %ROOT%, Engine, Engine/Audio
 Description:사운드 큐 노드 기반 오디오 애셋 사용법을 포함해서, 게임내 사운드 재생에 사용되는 오디오 시스템에 대한 개요서입니다.
 version: 4.12
+parent:Engine/Audio
+type:overview
+order:1
 
 [VAR:Topic]
 [OBJECT:Topic]

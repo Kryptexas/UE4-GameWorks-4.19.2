@@ -48,6 +48,7 @@ public:
 #if WITH_EDITOR
 	virtual bool SupportsOnlinePIE() const override
 	{
+		check(UObjectInitialized());
 		const UOnlinePIESettings* OnlinePIESettings = GetDefault<UOnlinePIESettings>();
 		if (OnlinePIESettings->bOnlinePIEEnabled && GetNumPIELogins() > 0)
 		{
@@ -72,12 +73,15 @@ public:
 
 	virtual bool IsOnlinePIEEnabled() const override
 	{
+		check(UObjectInitialized());
 		const UOnlinePIESettings* OnlinePIESettings = GetDefault<UOnlinePIESettings>();
 		return bShouldTryOnlinePIE && OnlinePIESettings->bOnlinePIEEnabled;
 	}
 
 	virtual int32 GetNumPIELogins() const override
 	{
+		check(UObjectInitialized());
+
 		int32 NumValidLogins = 0;
 		const UOnlinePIESettings* OnlinePIESettings = GetDefault<UOnlinePIESettings>();
 		for (const FPIELoginSettingsInternal& Login : OnlinePIESettings->Logins)
@@ -93,6 +97,7 @@ public:
 
 	virtual void GetPIELogins(TArray<FOnlineAccountCredentials>& Logins) override
 	{
+		check(UObjectInitialized());
 		const UOnlinePIESettings* OnlinePIESettings = GetDefault<UOnlinePIESettings>();
 		if (OnlinePIESettings->Logins.Num() > 0)
 		{

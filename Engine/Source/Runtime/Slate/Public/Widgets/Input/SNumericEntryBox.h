@@ -60,6 +60,7 @@ public:
 
 	SLATE_BEGIN_ARGS( SNumericEntryBox<NumericType> )
 		: _EditableTextBoxStyle( &FCoreStyle::Get().GetWidgetStyle<FEditableTextBoxStyle>("NormalEditableTextBox") )
+		, _SpinBoxStyle(&FCoreStyle::Get().GetWidgetStyle<FSpinBoxStyle>("NumericEntrySpinBox") )
 		, _Label()
 		, _LabelVAlign( VAlign_Fill )
 		, _LabelPadding( FMargin(3,0) )
@@ -67,7 +68,6 @@ public:
 		, _BorderBackgroundColor(FLinearColor::White)
 		, _UndeterminedString( SNumericEntryBox<NumericType>::DefaultUndeterminedString )
 		, _AllowSpin(false)
-		, _UseDarkStyle(false)
 		, _ShiftMouseMovePixelPerDelta(1)
 		, _SupportDynamicSliderMaxValue(false)
 		, _SupportDynamicSliderMinValue(false)
@@ -82,6 +82,9 @@ public:
 
 		/** Style to use for the editable text box within this widget */
 		SLATE_STYLE_ARGUMENT( FEditableTextBoxStyle, EditableTextBoxStyle )
+
+		/** Style to use for the spin box within this widget */
+		SLATE_STYLE_ARGUMENT( FSpinBoxStyle, SpinBoxStyle )
 
 		/** Slot for this button's content (optional) */
 		SLATE_NAMED_SLOT( FArguments, Label )
@@ -101,8 +104,6 @@ public:
 		SLATE_ATTRIBUTE( FSlateFontInfo, Font )
 		/** Whether or not the user should be able to change the value by dragging with the mouse cursor */
 		SLATE_ARGUMENT( bool, AllowSpin )
-		/** Whether or not the user should be able to change the value by dragging with the mouse cursor */
-		SLATE_ARGUMENT(bool, UseDarkStyle)
 		/** How many pixel the mouse must move to change the value of the delta step (only use if there is a spinbox allow) */
 		SLATE_ARGUMENT( int32, ShiftMouseMovePixelPerDelta )
 		/** Tell us if we want to support dynamically changing of the max value using ctrl  (only use if there is a spinbox allow) */
@@ -176,7 +177,7 @@ public:
 		if( bAllowSpin )
 		{
 			SAssignNew( SpinBox, SSpinBox<NumericType> )
-				.Style( FCoreStyle::Get(), InArgs._UseDarkStyle ? "NumericEntrySpinBox_Dark" : "NumericEntrySpinBox" )
+				.Style( InArgs._SpinBoxStyle )
 				.Font( InArgs._Font.IsSet() ? InArgs._Font : InArgs._EditableTextBoxStyle->Font )
 				.ContentPadding( TextMargin )
 				.Value( this, &SNumericEntryBox<NumericType>::OnGetValueForSpinBox )

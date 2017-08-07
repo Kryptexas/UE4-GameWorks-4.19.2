@@ -70,7 +70,7 @@ const TCHAR* HandleLegacyCommandline(const TCHAR* CommandLine)
 EReturnCode RunBuildPatchTool()
 {
 	// Load the BuildPatchServices Module
-	TSharedRef<IBuildPatchServicesModule> BuildPatchServicesModule = StaticCastSharedPtr<IBuildPatchServicesModule>(FModuleManager::Get().LoadModule(TEXT("BuildPatchServices"))).ToSharedRef();
+	IBuildPatchServicesModule& BuildPatchServicesModule = FModuleManager::LoadModuleChecked<IBuildPatchServicesModule>(TEXT("BuildPatchServices"));
 
 	// Initialise the UObject system and process our uobject classes
 	FModuleManager::Get().LoadModule(TEXT("CoreUObject"));

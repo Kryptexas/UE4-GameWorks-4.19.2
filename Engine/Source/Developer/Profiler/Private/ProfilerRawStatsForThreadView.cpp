@@ -70,16 +70,12 @@ static double GetSecondsPerCycle( const FStatPacketArray& Frame )
 	const FName SecondsPerCycleRawName = FStatConstants::RAW_SecondsPerCycle;
 	double Result = 0;
 
-	for( int32 PacketIndex = 0; PacketIndex < Frame.Packets.Num(); PacketIndex++ )
+	for( const FStatPacket* Packet : Frame.Packets )
 	{
-		const FStatPacket& Packet = *Frame.Packets[PacketIndex];
-		const FStatMessagesArray& Data = Packet.StatMessages;
-
-		if( Packet.ThreadType == EThreadType::Game )
+		if( Packet->ThreadType == EThreadType::Game )
 		{
-			for( int32 Index = 0; Index < Data.Num(); Index++ )
+			for( const FStatMessage& Item : Packet->StatMessages )
 			{
-				const FStatMessage& Item = Data[Index];
 				check( Item.NameAndInfo.GetFlag( EStatMetaFlags::DummyAlwaysOne ) ); 
 
 				const FName LongName = Item.NameAndInfo.GetEncodedName();
@@ -89,13 +85,13 @@ static double GetSecondsPerCycle( const FStatPacketArray& Frame )
 					Result = Item.GetValue_double();
 					UE_LOG( LogStats, Log, TEXT( "STAT_SecondsPerCycle is %f [ns]" ), Result*1000*1000 );
 
-					PacketIndex = Frame.Packets.Num();
-					break;
+					goto BreakPacketLoop;
 				}
-			}	
+			}
 		}
-			
 	}
+BreakPacketLoop:;
+
 	return Result;
 }
 
@@ -103,16 +99,13 @@ static int64 GetFastThreadFrameTimeInternal( const FStatPacketArray& Frame, EThr
 {
 	int64 Result = 0;
 
-	for( int32 PacketIndex = 0; PacketIndex < Frame.Packets.Num(); PacketIndex++ )
+	for( const FStatPacket* Packet : Frame.Packets )
 	{
-		const FStatPacket& Packet = *Frame.Packets[PacketIndex];
-
-		if( Packet.ThreadType == ThreadType )
+		if( Packet->ThreadType == ThreadType )
 		{
-			const FStatMessagesArray& Data = Packet.StatMessages;
-			for (int32 Index = 0; Index < Data.Num(); Index++)
+			const FStatMessagesArray& Data = Packet->StatMessages;
+			for (FStatMessage const& Item : Data)
 			{
-				FStatMessage const& Item = Data[Index];
 				EStatOperation::Type Op = Item.NameAndInfo.GetField<EStatOperation>();
 				FName LongName = Item.NameAndInfo.GetRawName();
 				if (Op == EStatOperation::CycleScopeStart)
@@ -441,11 +434,8 @@ void FRawProfilerSession::ProcessStatPacketArray( const FStatPacketArray& StatPa
 		Stack.Add( ThreadNode );
 		FProfilerStackNode* Current = Stack.Last();
 
-		const FStatMessagesArray& Data = StatPacket.StatMessages;
-		for (int32 Index = 0; Index < Data.Num(); Index++)
+		for (const FStatMessage& Item : StatPacket.StatMessages)
 		{
-			const FStatMessage& Item = Data[Index];
-
 			const EStatOperation::Type Op = Item.NameAndInfo.GetField<EStatOperation>();
 			const FName LongName = Item.NameAndInfo.GetRawName();
 			const FName ShortName = Item.NameAndInfo.GetShortName();

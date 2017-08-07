@@ -81,7 +81,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessLensBlurVS,TEXT("PostProcessLensBlur"),TEXT("MainVS"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(,FPostProcessLensBlurVS,TEXT("/Engine/Private/PostProcessLensBlur.usf"),TEXT("MainVS"),SF_Vertex);
 
 /** Encapsulates a simple copy pixel shader. */
 class FPostProcessLensBlurPS : public FGlobalShader
@@ -154,7 +154,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessLensBlurPS,TEXT("PostProcessLensBlur"),TEXT("MainPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FPostProcessLensBlurPS,TEXT("/Engine/Private/PostProcessLensBlur.usf"),TEXT("MainPS"),SF_Pixel);
 
 
 FRCPassPostProcessLensBlur::FRCPassPostProcessLensBlur(float InPercentKernelSize, float InThreshold)

@@ -119,7 +119,7 @@ class BuildPlugin : BuildCommand
 
 	FileReference[] CompilePlugin(FileReference HostProjectFile, FileReference HostProjectPluginFile, PluginDescriptor Plugin, List<UnrealTargetPlatform> HostPlatforms, List<UnrealTargetPlatform> TargetPlatforms, string AdditionalArgs)
 	{
-		List<string> ReceiptFileNames = new List<string>();
+		List<FileReference> ReceiptFileNames = new List<FileReference>();
 
 		// Build the host platforms
 		if(HostPlatforms.Count > 0)
@@ -148,10 +148,10 @@ class BuildPlugin : BuildCommand
 
 		// Package the plugin to the output folder
 		List<BuildProduct> BuildProducts = GetBuildProductsFromReceipts(CommandUtils.EngineDirectory, HostProjectFile.Directory, ReceiptFileNames);
-		return BuildProducts.Select(x => new FileReference(x.Path)).ToArray();
+		return BuildProducts.Select(x => x.Path).ToArray();
 	}
 
-	void CompilePluginWithUBT(FileReference HostProjectFile, FileReference HostProjectPluginFile, PluginDescriptor Plugin, string TargetName, TargetType TargetType, UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration, List<string> ReceiptFileNames, string InAdditionalArgs)
+	void CompilePluginWithUBT(FileReference HostProjectFile, FileReference HostProjectPluginFile, PluginDescriptor Plugin, string TargetName, TargetType TargetType, UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration, List<FileReference> ReceiptFileNames, string InAdditionalArgs)
 	{
 		// Find a list of modules that need to be built for this plugin
 		List<string> ModuleNames = new List<string>();
@@ -180,8 +180,8 @@ class BuildPlugin : BuildCommand
 
 			string Architecture = PlatformExports.GetDefaultArchitecture(Platform, HostProjectFile);
 
-			string ReceiptFileName = TargetReceipt.GetDefaultPath(HostProjectPluginFile.Directory.FullName, TargetName, Platform, Configuration, Architecture);
-			Arguments += String.Format(" -receipt {0}", CommandUtils.MakePathSafeToUseWithCommandLine(ReceiptFileName));
+			FileReference ReceiptFileName = TargetReceipt.GetDefaultPath(HostProjectPluginFile.Directory, TargetName, Platform, Configuration, Architecture);
+			Arguments += String.Format(" -receipt {0}", CommandUtils.MakePathSafeToUseWithCommandLine(ReceiptFileName.FullName));
 			ReceiptFileNames.Add(ReceiptFileName);
 			
 			if(!String.IsNullOrEmpty(InAdditionalArgs))
@@ -193,17 +193,16 @@ class BuildPlugin : BuildCommand
 		}
 	}
 
-	static List<BuildProduct> GetBuildProductsFromReceipts(DirectoryReference EngineDir, DirectoryReference ProjectDir, List<string> ReceiptFileNames)
+	static List<BuildProduct> GetBuildProductsFromReceipts(DirectoryReference EngineDir, DirectoryReference ProjectDir, List<FileReference> ReceiptFileNames)
 	{
 		List<BuildProduct> BuildProducts = new List<BuildProduct>();
-		foreach(string ReceiptFileName in ReceiptFileNames)
+		foreach(FileReference ReceiptFileName in ReceiptFileNames)
 		{
 			TargetReceipt Receipt;
-			if(!TargetReceipt.TryRead(ReceiptFileName, out Receipt))
+			if(!TargetReceipt.TryRead(ReceiptFileName, EngineDir, ProjectDir, out Receipt))
 			{
 				throw new AutomationException("Missing or invalid target receipt ({0})", ReceiptFileName);
 			}
-			Receipt.ExpandPathVariables(EngineDir, ProjectDir);
 			BuildProducts.AddRange(Receipt.BuildProducts);
 		}
 		return BuildProducts;

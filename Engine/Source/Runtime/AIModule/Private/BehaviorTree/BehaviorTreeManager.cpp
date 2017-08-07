@@ -508,12 +508,12 @@ void UBehaviorTreeManager::RemoveActiveComponent(UBehaviorTreeComponent& Compone
 UBehaviorTreeManager* UBehaviorTreeManager::GetCurrent(UWorld* World)
 {
 	UAISystem* AISys = UAISystem::GetCurrentSafe(World);
-	return AISys ? AISys->GetBehaviorTreeManager() : NULL;
+	return AISys ? AISys->GetBehaviorTreeManager() : nullptr;
 }
 
 UBehaviorTreeManager* UBehaviorTreeManager::GetCurrent(UObject* WorldContextObject)
 {
-	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, false);
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::ReturnNull);
 	UAISystem* AISys = UAISystem::GetCurrentSafe(World);
-	return AISys ? AISys->GetBehaviorTreeManager() : NULL;
+	return AISys ? AISys->GetBehaviorTreeManager() : nullptr;
 }

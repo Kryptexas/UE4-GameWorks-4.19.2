@@ -65,6 +65,11 @@ static void on_canvas_size_changed()
 {
 	canvas_size_changed = true;
 }
+static EM_BOOL canvas_resized_on_fullscreen_change(int eventType, const void *reserved, void *userData)
+{
+	on_canvas_size_changed();
+	return 0;
+}
 
 // callback from javascript.
 EM_BOOL request_fullscreen_callback(int eventType, const EmscriptenMouseEvent* evt, void* user)
@@ -88,6 +93,13 @@ EM_BOOL request_fullscreen_callback(int eventType, const EmscriptenMouseEvent* e
 	FSStrat.scaleMode = EM_ASM_INT_V({ return Module['UE4_fullscreenScaleMode']; });
 	FSStrat.canvasResolutionScaleMode = EM_ASM_INT_V({ return Module['UE4_fullscreenCanvasResizeMode']; });
 	FSStrat.filteringMode = EM_ASM_INT_V({ return Module['UE4_fullscreenFilteringMode']; });
+
+	// If the WebGL render target size is going to change when entering & exiting fullscreen mode, track those changes
+	// to be able to resize the viewport accordingly.
+	if (FSStrat.canvasResolutionScaleMode != EMSCRIPTEN_FULLSCREEN_CANVAS_SCALE_NONE)
+	{
+		FSStrat.canvasResizedCallback = canvas_resized_on_fullscreen_change;
+	}
 
 	// TODO: UE4_useSoftFullscreenMode does not quite work right now because the "mainarea" div on the main page
 	// has margins, which cause it to not align up, so this parameter is not exposed to the main html page

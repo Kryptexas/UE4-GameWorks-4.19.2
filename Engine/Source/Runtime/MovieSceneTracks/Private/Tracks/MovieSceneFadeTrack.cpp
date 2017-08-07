@@ -14,8 +14,7 @@
 UMovieSceneFadeTrack::UMovieSceneFadeTrack(const FObjectInitializer& Init)
 	: Super(Init)
 {
-	EvalOptions.bCanEvaluateNearestSection = true;
-	EvalOptions.bEvaluateNearestSection = false;
+	EvalOptions.bEvaluateNearestSection_DEPRECATED = EvalOptions.bCanEvaluateNearestSection = true;
 }
 
 UMovieSceneSection* UMovieSceneFadeTrack::CreateNewSection()

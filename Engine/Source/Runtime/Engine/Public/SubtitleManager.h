@@ -9,6 +9,9 @@
 
 class FCanvas;
 
+/** HACK: Delegate for allowing displays to hijack subtitle text from the subtitle manager and get around the Canvas display */
+DECLARE_MULTICAST_DELEGATE_OneParam(FSubtitleManagerSetSubtitleText, const FText& /* SubtitleText */)
+
 /**
  * A collection of subtitles, rendered at a certain priority.
  */
@@ -152,11 +155,36 @@ public:
 	 */
 	ENGINE_API static FSubtitleManager* GetSubtitleManager();
 
+	/** HACK: Returns the delegate for setting subtitle text */
+	ENGINE_API FSubtitleManagerSetSubtitleText&  OnSetSubtitleText() { return OnSetSubtitleTextDelegate; }
+
+	/**
+	 * HACK: Accept a movie subtitle and display it to all currently registered displays. This will not
+	 * work with the old Canvas drawing system.
+	 *
+	 * @param SubtitleOwner		The owner of the movie subtitle. If this is null, the subtitle will not be set
+	 * @param MovieSubtitles	The subtitle text to display to all currently active displays
+	 */
+	void ENGINE_API SetMovieSubtitle(UObject* SubtitleOwner, const TArray<FString>& Subtitles);
+
 private:
+
+	/** HACK: Displays a subtitle through objects that are bound to the delegate */
+	void DisplaySubtitle_ToDisplays(FActiveSubtitle* Subtitle);
+
+	/** HACK: Builds a subtitle string from all cues in the supplied subtitle */
+	FString SubtitleCuesToString(FActiveSubtitle* Subtitle);
+
+private:
+
+	FSubtitleManagerSetSubtitleText OnSetSubtitleTextDelegate;
 
 	/** The set of active, prioritized subtitles. */
 	TMap<PTRINT, FActiveSubtitle> ActiveSubtitles;
 
 	/** The current height of the subtitles. */
 	float CurrentSubtitleHeight;
+
+	/** HACK: The currently active movie subtitle for given object owners. Each owner can have one movie subtitle at a time */
+	TMap<UObject*, TSharedPtr<FActiveSubtitle>> ActiveMovieSubtitles;
 };

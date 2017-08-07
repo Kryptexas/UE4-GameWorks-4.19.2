@@ -23,6 +23,11 @@ struct FWindowsPlatformProperties
 		return "Windows";
 	}
 
+	static FORCEINLINE const char* GetPhysicsFormat()
+	{
+		return "PhysXPC";
+	}
+
 	static FORCEINLINE bool IsGameOnly()
 	{
 		return UE_GAME;

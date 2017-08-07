@@ -8,7 +8,9 @@
 
 UMovieSceneFloatTrack::UMovieSceneFloatTrack( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
-{ }
+{
+	SupportedBlendTypes = FMovieSceneBlendTypeField::All();
+}
 
 
 UMovieSceneSection* UMovieSceneFloatTrack::CreateNewSection()

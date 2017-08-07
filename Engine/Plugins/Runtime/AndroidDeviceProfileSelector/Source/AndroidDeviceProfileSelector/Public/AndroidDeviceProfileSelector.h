@@ -2,9 +2,11 @@
 
 #pragma once
 
-/* Dependencies
-*****************************************************************************/
-#include "ModuleManager.h"
-#include "IDeviceProfileSelectorModule.h"
-#include "AndroidDeviceProfileMatchingRules.h"
-#include "AndroidJavaSurfaceViewDevices.h"
+#include "CoreMinimal.h"
+
+class ANDROIDDEVICEPROFILESELECTOR_API FAndroidDeviceProfileSelector
+{
+public:
+	static FString FindMatchingProfile(FString GPUFamily, FString GLVersion, FString AndroidVersion, FString DeviceMake, FString DeviceModel, FString VulkanVersion, FString UsingHoudini, FString ProfileName);
+	static int32 GetNumProfiles();
+};

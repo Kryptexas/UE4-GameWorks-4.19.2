@@ -465,6 +465,7 @@ TSharedRef<SWidget> SAnimViewportToolBar::GenerateShowMenu() const
 			ShowMenuBuilder.BeginSection("AnimViewportAudio", LOCTEXT("Viewport_AudioLabel", "Audio"));
 			{
 				ShowMenuBuilder.AddMenuEntry(Actions.MuteAudio);
+				ShowMenuBuilder.AddMenuEntry(Actions.UseAudioAttenuation);
 			}
 			ShowMenuBuilder.EndSection();
 
@@ -481,6 +482,7 @@ TSharedRef<SWidget> SAnimViewportToolBar::GenerateShowMenu() const
 				ShowMenuBuilder.AddMenuEntry( Actions.UseInGameBound );
 				ShowMenuBuilder.AddMenuEntry( Actions.ShowPreviewMesh );
 				ShowMenuBuilder.AddMenuEntry( Actions.ShowMorphTargets );
+				ShowMenuBuilder.AddMenuEntry( Actions.ShowVertexColors );
 			}
 			ShowMenuBuilder.EndSection();
 

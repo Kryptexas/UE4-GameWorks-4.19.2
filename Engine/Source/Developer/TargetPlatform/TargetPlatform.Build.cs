@@ -9,8 +9,9 @@ public class TargetPlatform : ModuleRules
 	{
 		PrivateDependencyModuleNames.Add("Core");		
         PublicDependencyModuleNames.Add("DesktopPlatform");
+        PublicDependencyModuleNames.Add("LauncherPlatform");
 
-        PrivateIncludePathModuleNames.Add("PhysXFormats");
+        PrivateIncludePathModuleNames.Add("Engine");
 
 		// no need for all these modules if the program doesn't want developer tools at all (like UnrealFileServer)
 		if (!UEBuildConfiguration.bBuildRequiresCookedData && UEBuildConfiguration.bBuildDeveloperTools)
@@ -98,7 +99,6 @@ public class TargetPlatform : ModuleRules
 					DynamicallyLoadedModuleNames.Add("Android_DXTTargetPlatform");
 					DynamicallyLoadedModuleNames.Add("Android_ETC1TargetPlatform");
 					DynamicallyLoadedModuleNames.Add("Android_ETC2TargetPlatform");
-					DynamicallyLoadedModuleNames.Add("Android_ASTCTargetPlatform");
 					DynamicallyLoadedModuleNames.Add("IOSTargetPlatform");
 					DynamicallyLoadedModuleNames.Add("TVOSTargetPlatform");
 					DynamicallyLoadedModuleNames.Add("HTML5TargetPlatform");
@@ -113,7 +113,7 @@ public class TargetPlatform : ModuleRules
 					DynamicallyLoadedModuleNames.Add("TextureFormatASTC");
                 }
 
-				DynamicallyLoadedModuleNames.Add("TextureFormatUncompressed");
+                DynamicallyLoadedModuleNames.Add("TextureFormatUncompressed");
 
 				if (UEBuildConfiguration.bCompileAgainstEngine)
 				{
@@ -136,9 +136,9 @@ public class TargetPlatform : ModuleRules
             }
 		}
         
-        if (UEBuildConfiguration.bBuildDeveloperTools == true && (UEBuildConfiguration.bBuildRequiresCookedData || UEBuildConfiguration.bRuntimePhysicsCooking) && UEBuildConfiguration.bCompileAgainstEngine && UEBuildConfiguration.bCompilePhysX)
+        if (UEBuildConfiguration.bBuildDeveloperTools == true && UEBuildConfiguration.bBuildRequiresCookedData && UEBuildConfiguration.bCompileAgainstEngine && UEBuildConfiguration.bCompilePhysX)
         {
-            DynamicallyLoadedModuleNames.Add("PhysXFormats");
+            DynamicallyLoadedModuleNames.Add("PhysXCooking");
         }
 	}
 }

@@ -23,16 +23,6 @@ void UAnimGraphNode_AssetPlayerBase::PinConnectionListChanged(UEdGraphPin* Pin)
 
 	if (Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Object)
 	{
-		// if pin has no connections, we may need to restore the default
-		if (Pin->LinkedTo.Num() == 0)
-		{
-			UObject* Asset = GetAssetReferenceForPinRestoration();
-			if (Asset != nullptr)
-			{
-				Pin->DefaultObject = Asset;
-			}
-		}
-
 		// recache visualization now an asset pin's connection is changed
 		if (const UEdGraphSchema* Schema = GetSchema())
 		{
@@ -54,18 +44,6 @@ void UAnimGraphNode_AssetPlayerBase::PinDefaultValueChanged(UEdGraphPin* Pin)
 		}
 	}
 }
-
-void UAnimGraphNode_AssetPlayerBase::SetAssetReferenceForPinRestoration(UObject* InAsset)
-{
-	AssetReferenceForPinRestoration = InAsset;
-}
-
-UObject* UAnimGraphNode_AssetPlayerBase::GetAssetReferenceForPinRestoration()
-{
-	return AssetReferenceForPinRestoration.TryLoad();
-}
-
-
 
 UClass* GetNodeClassForAsset(const UClass* AssetClass)
 {

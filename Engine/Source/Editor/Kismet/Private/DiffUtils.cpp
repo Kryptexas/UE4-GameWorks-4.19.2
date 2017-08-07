@@ -501,8 +501,8 @@ static void IdenticalHelper(const UProperty* AProperty, const UProperty* BProper
 			}
 
 			// note any differences in contained elements:
-			int32 SetSizeA = SetHelperA.Num();
-			int32 SetSizeB = SetHelperA.Num();
+			const int32 SetSizeA = SetHelperA.Num();
+			const int32 SetSizeB = SetHelperB.Num();
 			
 			int32 SetIndexA = 0;
 			int32 SetIndexB = 0;

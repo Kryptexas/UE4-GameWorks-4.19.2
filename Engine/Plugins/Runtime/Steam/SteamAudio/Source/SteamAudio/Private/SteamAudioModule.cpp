@@ -24,6 +24,8 @@
 #include "ScopeLock.h"
 #include "Misc/Paths.h"
 #include "HAL/PlatformProcess.h"
+#include "Engine/StreamableManager.h"
+#include "AudioDevice.h"
 
 IMPLEMENT_MODULE(SteamAudio::FSteamAudioModule, SteamAudio)
 
@@ -38,7 +40,6 @@ namespace SteamAudio
 		, OcclusionInstance(nullptr)
 		, ReverbInstance(nullptr)
 		, ListenerObserverInstance(nullptr)
-		, SampleRate(0.0f)
 		, OwningAudioDevice(nullptr)
 		, ComputeDevice(nullptr)
 		, PhononScene(nullptr)
@@ -64,8 +65,8 @@ namespace SteamAudio
 		bModuleStartedUp = true;
 
 		UE_LOG(LogSteamAudio, Log, TEXT("FSteamAudioModule Startup"));
-		OwningAudioDevice = nullptr;
 
+		OwningAudioDevice = nullptr;
 		SpatializationInstance = nullptr;
 		OcclusionInstance = nullptr;
 		ReverbInstance = nullptr;
@@ -74,7 +75,6 @@ namespace SteamAudio
 		PhononEnvironment = nullptr;
 		EnvironmentalRenderer = nullptr;
 		ProbeManager = nullptr;
-		SampleRate = 0;
 
 		// We're overriding the IAudioSpatializationPlugin StartupModule, so we must be sure to register
 		// the modular features. Without this line, we will not see SPATIALIZATION HRTF in the editor UI.
@@ -82,8 +82,11 @@ namespace SteamAudio
 
 		if (!FSteamAudioModule::PhononDllHandle)
 		{
-			// TODO: do platform code to get the DLL location for the platform
+#if PLATFORM_32BITS
+			FString PathToDll = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/Phonon/Win32/");
+#else
 			FString PathToDll = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/Phonon/Win64/");
+#endif
 
 			FString DLLToLoad = PathToDll + TEXT("phonon.dll");
 			FSteamAudioModule::PhononDllHandle = LoadDll(DLLToLoad);
@@ -122,25 +125,25 @@ namespace SteamAudio
 		check(OwningAudioDevice == nullptr);
 		OwningAudioDevice = InAudioDevice;
 
-		FString MapName = World->GetMapName();
+		TArray<AActor*> PhononSceneActors;
+		UGameplayStatics::GetAllActorsOfClass(World, APhononScene::StaticClass(), PhononSceneActors);
 
-		// Strip out the PIE prefix for the map name before looking for the phononscene.
-		const FRegexPattern PieMapPattern(TEXT("UEDPIE_\\d_"));
-		FRegexMatcher Matcher(PieMapPattern, MapName);
-
-		// Look for the PIE pattern
-		if (Matcher.FindNext())
+		if (PhononSceneActors.Num() == 0)
 		{
-			int32 Beginning = Matcher.GetMatchBeginning();
-			int32 Ending = Matcher.GetMatchEnding();
-			MapName = MapName.Mid(Ending, MapName.Len());
+			UE_LOG(LogSteamAudio, Error, TEXT("Unable to create Phonon environment: PhononScene not found. Be sure to add a PhononScene actor to your level and export the scene."));
+			return;
+		}
+		else if (PhononSceneActors.Num() > 1)
+		{
+			UE_LOG(LogSteamAudio, Warning, TEXT("More than one PhononScene actor found in level. Arbitrarily choosing one. Ensure only one exists to avoid unexpected behavior."));
 		}
 
-		FString SceneFile = FPaths::GameDir() + "Content/" + MapName + ".phononscene";
+		APhononScene* PhononSceneActor = Cast<APhononScene>(PhononSceneActors[0]);
+		check(PhononSceneActor);
 
-		if (!FPaths::FileExists(SceneFile))
+		if (PhononSceneActor->SceneData.Num() == 0)
 		{
-			UE_LOG(LogSteamAudio, Error, TEXT("Unable to create Phonon environment: Phonon scene not found. Be sure to export the scene."));
+			UE_LOG(LogSteamAudio, Error, TEXT("Unable to create Phonon environment: PhononScene actor does not have scene data. Be sure to export the scene."));
 			return;
 		}
 
@@ -156,8 +159,8 @@ namespace SteamAudio
 		SimulationSettings.sceneType = IPL_SCENETYPE_PHONON;
 
 		RenderingSettings.convolutionType = IPL_CONVOLUTIONTYPE_PHONON;
-		RenderingSettings.frameSize = 1024; // FIXME
-		RenderingSettings.samplingRate = AUDIO_SAMPLE_RATE;
+		RenderingSettings.frameSize = OwningAudioDevice->GetBufferLength();
+		RenderingSettings.samplingRate = OwningAudioDevice->GetSampleRate();
 
 		EnvironmentalOutputAudioFormat.channelLayout = IPL_CHANNELLAYOUT_STEREO;
 		EnvironmentalOutputAudioFormat.channelLayoutType = IPL_CHANNELLAYOUTTYPE_AMBISONICS;
@@ -170,7 +173,8 @@ namespace SteamAudio
 
 		IPLerror Error = IPLerror::IPL_STATUS_SUCCESS;
 
-		Error = iplLoadFinalizedScene(GlobalContext, SimulationSettings, TCHAR_TO_ANSI(*SceneFile), ComputeDevice, nullptr, &PhononScene);
+		iplLoadFinalizedScene(GlobalContext, SimulationSettings, PhononSceneActor->SceneData.GetData(), PhononSceneActor->SceneData.Num(), 
+			ComputeDevice, nullptr, &PhononScene);
 		LogSteamAudioStatus(Error);
 
 		Error = iplCreateProbeManager(&ProbeManager);
@@ -194,7 +198,8 @@ namespace SteamAudio
 		Error = iplCreateEnvironment(GlobalContext, ComputeDevice, SimulationSettings, PhononScene, ProbeManager, &PhononEnvironment);
 		LogSteamAudioStatus(Error);
 
-		Error = iplCreateEnvironmentalRenderer(GlobalContext, PhononEnvironment, RenderingSettings, EnvironmentalOutputAudioFormat, &EnvironmentalRenderer);
+		Error = iplCreateEnvironmentalRenderer(GlobalContext, PhononEnvironment, RenderingSettings, EnvironmentalOutputAudioFormat,
+			nullptr, nullptr, &EnvironmentalRenderer);
 		LogSteamAudioStatus(Error);
 
 		FPhononOcclusion* PhononOcclusion = static_cast<FPhononOcclusion*>(OcclusionInstance.Get());
@@ -286,11 +291,6 @@ namespace SteamAudio
 	TSharedPtr<IAudioListenerObserver> FSteamAudioModule::CreateListenerObserverInterface(class FAudioDevice* AudioDevice)
 	{
 		return ListenerObserverInstance = TSharedPtr<IAudioListenerObserver>(new FPhononListenerObserver());
-	}
-
-	void FSteamAudioModule::SetSampleRate(const int32 InSampleRate)
-	{
-		SampleRate = InSampleRate;
 	}
 
 	FPhononSpatialization* FSteamAudioModule::GetSpatializationInstance() const

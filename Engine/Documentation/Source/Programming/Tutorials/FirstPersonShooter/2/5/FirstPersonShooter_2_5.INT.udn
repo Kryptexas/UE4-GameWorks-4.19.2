@@ -3,7 +3,7 @@ Title: 2.5 - Implementing Character Jumping
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
 Description: Learn how to implement jumping for your First Person Shooter character.
 SkillLevel: Beginner
-Version: 4.11
+Version: 4.15
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -96,7 +96,7 @@ Go back to Visual Studio to add code to your FPSCharacter class.
 			virtual void Tick( float DeltaSeconds ) override;
 		
 			// Called to bind functionality to input
-			virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
+			virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 		
 			// Handles input for moving forward and backward.
 			UFUNCTION()
@@ -130,8 +130,8 @@ Go back to Visual Studio to add code to your FPSCharacter class.
 1.	Now, add the following code to `SetupPlayerInputComponent` to bind your Jump action to the newly written functions:
 
 		// Set up "action" bindings.
-		InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
-		InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::StopJump);
+		PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
+		PlayerInputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::StopJump);
 
 1.	`FPSCharacter.cpp` should now look like the following:
 
@@ -168,21 +168,21 @@ Go back to Visual Studio to add code to your FPSCharacter class.
 		}
 		
 		// Called to bind functionality to input
-		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
+		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 		{
-			Super::SetupPlayerInputComponent(InputComponent);
+			Super::SetupPlayerInputComponent(PlayerInputComponent);
 		
 			// Set up "movement" bindings.
-			InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
-			InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
+			PlayerInputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
+			PlayerInputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
 		
 			// Set up "look" bindings.
-			InputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
-			InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
+			PlayerInputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
+			PlayerInputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
 		
 			// Set up "action" bindings.
-			InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
-			InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::StopJump);
+			PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
+			PlayerInputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::StopJump);
 		}
 		
 		void AFPSCharacter::MoveForward(float Value)

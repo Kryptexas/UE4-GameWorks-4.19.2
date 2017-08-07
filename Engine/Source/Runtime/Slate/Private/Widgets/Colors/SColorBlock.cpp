@@ -21,7 +21,7 @@ void SColorBlock::Construct( const FArguments& InArgs )
 	ColorBlockSize = InArgs._Size;
 }
 
-int32 SColorBlock::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SColorBlock::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	const FSlateBrush* GenericBrush = FCoreStyle::Get().GetBrush( "GenericWhiteBox" );
 
@@ -42,7 +42,7 @@ int32 SColorBlock::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 	{
 		// If we are showing a background pattern and the colors is transparent, draw a checker pattern
 		const FSlateBrush* CheckerBrush = FCoreStyle::Get().GetBrush("ColorPicker.AlphaBackground");
-		FSlateDrawElement::MakeBox( OutDrawElements, LayerId, AllottedGeometry.ToPaintGeometry(), CheckerBrush, MyClippingRect, DrawEffects );
+		FSlateDrawElement::MakeBox( OutDrawElements, LayerId, AllottedGeometry.ToPaintGeometry(), CheckerBrush, DrawEffects );
 	}
 	
 	// determine if it is HDR
@@ -60,22 +60,21 @@ int32 SColorBlock::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 		TArray<FSlateGradientStop> GradientStops;
 		
 		GradientStops.Add( FSlateGradientStop( FVector2D::ZeroVector, DrawNormalizedColor ) );
-		GradientStops.Add( FSlateGradientStop( AllottedGeometry.Size * 0.5f, DrawClampedColor ) );
-		GradientStops.Add( FSlateGradientStop( AllottedGeometry.Size, DrawNormalizedColor ) );
+		GradientStops.Add( FSlateGradientStop( AllottedGeometry.GetLocalSize() * 0.5f, DrawClampedColor ) );
+		GradientStops.Add( FSlateGradientStop( AllottedGeometry.GetLocalSize(), DrawNormalizedColor ) );
 
 		FSlateDrawElement::MakeGradient(
 			OutDrawElements,
 			LayerId + 1,
 			AllottedGeometry.ToPaintGeometry(),
 			GradientStops,
-			(AllottedGeometry.Size.X > AllottedGeometry.Size.Y) ? Orient_Vertical : Orient_Horizontal,
-			MyClippingRect,
+			(AllottedGeometry.GetLocalSize().X > AllottedGeometry.GetLocalSize().Y) ? Orient_Vertical : Orient_Horizontal,
 			DrawEffects
 		);
 	}
 	else
 	{
-		FSlateDrawElement::MakeBox( OutDrawElements, LayerId + 1, AllottedGeometry.ToPaintGeometry(), GenericBrush, MyClippingRect, DrawEffects, InWidgetStyle.GetColorAndOpacityTint() * DrawColor );
+		FSlateDrawElement::MakeBox( OutDrawElements, LayerId + 1, AllottedGeometry.ToPaintGeometry(), GenericBrush, DrawEffects, InWidgetStyle.GetColorAndOpacityTint() * DrawColor );
 	}
 
 	return LayerId + 1;

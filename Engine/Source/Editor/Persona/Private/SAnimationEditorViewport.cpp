@@ -308,7 +308,6 @@ void SAnimationEditorViewportTabBody::Construct(const FArguments& InArgs, const 
 	BlueprintEditorPtr = InArgs._BlueprintEditor;
 	bShowTimeline = InArgs._ShowTimeline;
 	OnInvokeTab = InArgs._OnInvokeTab;
-	LODSelection = 0;
 
 	// register delegates for change notifications
 	InPreviewScene->RegisterOnAnimChanged(FOnAnimChanged::CreateSP(this, &SAnimationEditorViewportTabBody::AnimChanged));
@@ -581,6 +580,12 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingOverlayMorphTargetVerts));
 
+	CommandList.MapAction(
+		ViewportShowMenuCommands.ShowVertexColors,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnShowVertexColorsChanged),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingVertexColors));
+
 	// Show sockets
 	CommandList.MapAction( 
 		ViewportShowMenuCommands.ShowSockets,
@@ -680,6 +685,7 @@ void SAnimationEditorViewportTabBody::BindCommands()
 
 #endif// #if WITH_APEX_CLOTHING		
 
+	GetPreviewScene()->RegisterOnSelectedLODChanged(FOnSelectedLODChanged::CreateSP(this, &SAnimationEditorViewportTabBody::OnLODModelChanged));
 	//Bind LOD preview menu commands
 	const FAnimViewportLODCommands& ViewportLODMenuCommands = FAnimViewportLODCommands::Get();
 
@@ -726,9 +732,15 @@ void SAnimationEditorViewportTabBody::BindCommands()
 
 	CommandList.MapAction(
 		ViewportShowMenuCommands.MuteAudio,
-		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnMuteAudio),
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnToggleMuteAudio),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsAudioMuted));
+
+	CommandList.MapAction(
+		ViewportShowMenuCommands.UseAudioAttenuation,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnToggleUseAudioAttenuation),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsAudioAttenuationEnabled));
 
 	CommandList.MapAction(
 		ViewportShowMenuCommands.ProcessRootMotion,
@@ -1325,19 +1337,48 @@ void SAnimationEditorViewportTabBody::UpdateShowFlagForMeshEdges()
 	LevelViewportClient->EngineShowFlags.SetMeshEdges(bUseOverlayMaterial || bShowMeshEdgesViewMode);
 }
 
+int32 SAnimationEditorViewportTabBody::GetLODSelection() const
+{
+	UDebugSkelMeshComponent* PreviewComponent = GetPreviewScene()->GetPreviewMeshComponent();
+
+	if (PreviewComponent)
+	{
+		return PreviewComponent->ForcedLodModel;
+	}
+	return 0;
+}
+
 bool SAnimationEditorViewportTabBody::IsLODModelSelected(int32 LODSelectionType) const
 {
-	return (LODSelection == LODSelectionType) ? true : false;
+	UDebugSkelMeshComponent* PreviewComponent = GetPreviewScene()->GetPreviewMeshComponent();
+
+	if (PreviewComponent)
+	{
+		return (PreviewComponent->ForcedLodModel == LODSelectionType) ? true : false;
+	}
+	return false;
 }
 
 void SAnimationEditorViewportTabBody::OnSetLODModel(int32 LODSelectionType)
 {
-	LODSelection = LODSelectionType;
-
 	UDebugSkelMeshComponent* PreviewComponent = GetPreviewScene()->GetPreviewMeshComponent();
+	
 	if( PreviewComponent )
 	{
-		PreviewComponent->ForcedLodModel = LODSelection;
+		LODSelection = LODSelectionType;
+		PreviewComponent->ForcedLodModel = LODSelectionType;
+		PopulateUVChoices();
+		GetPreviewScene()->BroadcastOnSelectedLODChanged();
+	}
+}
+
+void SAnimationEditorViewportTabBody::OnLODModelChanged()
+{
+	UDebugSkelMeshComponent* PreviewComponent = GetPreviewScene()->GetPreviewMeshComponent();
+
+	if (PreviewComponent && LODSelection != PreviewComponent->ForcedLodModel)
+	{
+		LODSelection = PreviewComponent->ForcedLodModel;
 		PopulateUVChoices();
 	}
 }
@@ -1421,14 +1462,24 @@ bool SAnimationEditorViewportTabBody::CanChangeCameraMode() const
 	return !LevelViewportClient->IsOrtho();
 }
 
-void SAnimationEditorViewportTabBody::OnMuteAudio()
+void SAnimationEditorViewportTabBody::OnToggleMuteAudio()
 {
 	GetAnimationViewportClient()->OnToggleMuteAudio();
 }
 
-bool SAnimationEditorViewportTabBody::IsAudioMuted()
+bool SAnimationEditorViewportTabBody::IsAudioMuted() const
 {
 	return GetAnimationViewportClient()->IsAudioMuted();
+}
+
+void SAnimationEditorViewportTabBody::OnToggleUseAudioAttenuation()
+{
+	GetAnimationViewportClient()->OnToggleUseAudioAttenuation();
+}
+
+bool SAnimationEditorViewportTabBody::IsAudioAttenuationEnabled() const
+{
+	return GetAnimationViewportClient()->IsUsingAudioAttenuation();
 }
 
 void SAnimationEditorViewportTabBody::OnTogglePreviewRootMotion()
@@ -1450,6 +1501,38 @@ bool SAnimationEditorViewportTabBody::IsPreviewingRootMotion() const
 		return PreviewComponent->bPreviewRootMotion;
 	}
 	return false;
+}
+
+bool SAnimationEditorViewportTabBody::IsShowingVertexColors() const
+{
+	return GetAnimationViewportClient()->EngineShowFlags.VertexColors;
+}
+
+void SAnimationEditorViewportTabBody::OnShowVertexColorsChanged()
+{
+	FEngineShowFlags& ShowFlags = GetAnimationViewportClient()->EngineShowFlags;
+
+	if(UDebugSkelMeshComponent* PreviewComponent = GetPreviewScene()->GetPreviewMeshComponent())
+	{
+		if(!ShowFlags.VertexColors)
+		{
+			ShowFlags.SetVertexColors(true);
+			ShowFlags.SetLighting(false);
+			ShowFlags.SetIndirectLightingCache(false);
+			PreviewComponent->bDisplayVertexColors = true;
+		}
+		else
+		{
+			ShowFlags.SetVertexColors(false);
+			ShowFlags.SetLighting(true);
+			ShowFlags.SetIndirectLightingCache(true);
+			PreviewComponent->bDisplayVertexColors = false;
+		}
+
+		PreviewComponent->RecreateRenderState_Concurrent();
+	}
+
+	RefreshViewport();
 }
 
 #if WITH_APEX_CLOTHING

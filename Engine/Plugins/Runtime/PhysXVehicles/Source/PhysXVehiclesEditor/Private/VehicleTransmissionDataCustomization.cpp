@@ -168,7 +168,7 @@ void FVehicleTransmissionDataCustomization::BuildColumnsHeaderHelper(TSharedRef<
 void FVehicleTransmissionDataCustomization::CreateGearUIDelegate(TSharedRef<IPropertyHandle> GearProperty, int32 GearIdx, IDetailChildrenBuilder& ChildrenBuilder)
 {
 	FText Label = FText::Format(LOCTEXT("TransmissionGear", "Gear {0}"), FText::AsNumber(GearIdx + 1));
-	CreateGearUIHelper(ChildrenBuilder.AddChildContent(Label), Label, GearProperty, ForwardGear);
+	CreateGearUIHelper(ChildrenBuilder.AddCustomRow(Label), Label, GearProperty, ForwardGear);
 }
 
 void FVehicleTransmissionDataCustomization::CustomizeChildren(TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
@@ -203,8 +203,8 @@ void FVehicleTransmissionDataCustomization::CustomizeChildren(TSharedRef<class I
 		{
 			if (GearSetupGroup == NULL)
 			{
-				GearSetupGroup = &StructBuilder.AddChildGroup(GearsSetupGroupName, GearsSetupGroupLabel);
-				BuildColumnsHeaderHelper(StructPropertyHandle, StructBuilder.AddChildContent(GearsSetupGroupLabel));
+				GearSetupGroup = &StructBuilder.AddGroup(GearsSetupGroupName, GearsSetupGroupLabel);
+				BuildColumnsHeaderHelper(StructPropertyHandle, StructBuilder.AddCustomRow(GearsSetupGroupLabel));
 			}
 
 			//determine which gear we're showing
@@ -223,19 +223,19 @@ void FVehicleTransmissionDataCustomization::CustomizeChildren(TSharedRef<class I
 			{
 				TSharedRef<FDetailArrayBuilder> GearsArrayBuilder = MakeShareable(new FDetailArrayBuilder(ChildProperty, false));
 				GearsArrayBuilder->OnGenerateArrayElementWidget(FOnGenerateArrayElementWidget::CreateSP(this, &FVehicleTransmissionDataCustomization::CreateGearUIDelegate));
-				StructBuilder.AddChildCustomBuilder(GearsArrayBuilder);
+				StructBuilder.AddCustomBuilder(GearsArrayBuilder);
 			}
 			else
 			{
 				const FText PropertyNameText = FText::FromString(PropertyName);
-				CreateGearUIHelper(StructBuilder.AddChildContent(PropertyNameText), PropertyNameText, ChildProperty, GearType);
+				CreateGearUIHelper(StructBuilder.AddCustomRow(PropertyNameText), PropertyNameText, ChildProperty, GearType);
 			}
 
 
 		}
 		else
 		{	//Add all other properties
-			StructBuilder.AddChildProperty(ChildProperty);
+			StructBuilder.AddProperty(ChildProperty);
 		}
 	}
 

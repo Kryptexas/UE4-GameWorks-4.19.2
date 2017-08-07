@@ -107,8 +107,7 @@ void FWeakObjectPtr::Serialize(FArchive& Ar)
 	// However, when modifying both kinds of references we want to serialize and writeback the updated value.
 	if (!Ar.IsObjectReferenceCollector() || Ar.IsModifyingWeakAndStrongReferences())
 	{
-		// Downcast from UObjectBase to UObject
-		UObject* Object = static_cast<UObject*>(Get(true));
+		UObject* Object = Get(true);
 
 		Ar << Object;
 

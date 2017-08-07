@@ -7,7 +7,6 @@ set -x
 ZLIB_VERSION=v1.2.8
 SSL_VERSION=OpenSSL_1_0_2h
 CURL_VERSION=curl-7_48_0
-WS_VERSION=v1.7.4
 WEBRTC_HASH=f2eae333a2e42d20e92e7606bfca087fddcaaaa0
 
 # jump down to build_environment() if this is your first time reading this script
@@ -711,122 +710,6 @@ deadcode_libcurl_graveyard()
 
 # ================================================================================
 # libCurl }}}
-# libWebsockets {{{
-# ================================================================================
-
-get_libwebsockets()
-{
-	mkdir -p libWebSockets
-	cd libWebSockets
-		git clone https://github.com/warmcat/libwebsockets.git $WS_VERSION
-		cd $WS_VERSION
-		git checkout $WS_VERSION -b $WS_VERSION
-	cd ../..
-}
-path_libwebsockets()
-{
-	cd libWebSockets/$WS_VERSION
-	# ----------------------------------------
-	CUR_PATH=$(pwd)
-	CMAKE_PATH="$CUR_PATH/"
-	BUILD_PATH="$CUR_PATH/Intermediate/$PLATFORM"
-	WS_ROOT_PATH="$CUR_PATH/INSTALL.$WS_VERSION/$PLATFORM"
-	# ----------------------------------------
-	cd -
-}
-build_libwebsockets()
-{
-	path_zlib
-	path_zlib_fPIC
-	path_openssl
-	path_libwebsockets
-
-	cd libWebSockets/$WS_VERSION
-	# ----------------------------------------
-	# reset
-	rm -f "$CMAKE_PATH"/CMakeCache.txt
-	rm -rf "$WS_ROOT_PATH"
-	rm -rf "$BUILD_PATH"
-	mkdir -p "$BUILD_PATH"
-	cd "$BUILD_PATH"
-
-	# ----------------------------------------
-	echo 'Generating libwebsockets makefiles'
-	case $SYSTEM in
-		# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-		*_NT-*)
-			if $UE4_BUILD_WIN32; then
-				# seems, libWebsockets for Win32 need to drop the [Arch] from the CMake generator
-				CMAKE_GEN=${CMAKE_GEN/ Win32/}
-			fi
-			if $USE_VS_2013; then
-				# TODO: deprecate this when visual studio 2013 is no longer supported
-				# https://connect.microsoft.com/VisualStudio/feedback/details/809403/error-c3861-snprintf-identifier-not-found-in-visual-studio-2013
-				# - when using VS 2013: test code does not have snprintf (nor LWS_HAVE__SNPRINTF) defined
-				FILES=(test-fraggle.c test-ping.c test-server.h)
-				for f in ${FILES[@]}; do
-					git checkout -- $CUR_PATH/test-server/${f}
-					perl -pi -e 's/(libwebsockets.h")/\1\n#define snprintf _snprintf/' $CUR_PATH/test-server/${f}
-				done
-			fi
-	
-			# NOTE: windows only: tell cmake to not use bundled zlib
-			"$CMAKE" -G "$CMAKE_GEN" \
-				-DCMAKE_INSTALL_PREFIX:PATH="$WS_ROOT_PATH" \
-				-DOPENSSL_ROOT_DIR:PATH="$SSL_ROOT_PATH" \
-				-DLWS_USE_BUNDLED_ZLIB:BOOL=OFF \
-				-DLWS_ZLIB_INCLUDE_DIRS:PATH="$ZLIB_ROOT_PATH"/include \
-				-DLWS_ZLIB_LIBRARIES:PATH="$ZLIB_ROOT_PATH"/lib/$ZLIB_ZLIB \
-				"$CMAKE_PATH"
-			"$CMAKE" --build . --config RelWithDebInfo
-			"$CMAKE" --build . --config RelWithDebInfo --target install
-			;;
-		# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-		*)
-			# NOTE: https://github.com/warmcat/libwebsockets/blob/master/README.build.md
-			#       unix only: need: -DCMAKE_INCLUDE_DIRECTORIES_PROJECT_BEFORE
-			#
-			# note: shared libs are for test programs
-			#
-			# $PKG_CONFIG_PATH: ensure libs from $ZLIB_ROOT_PATH and $SSL_ROOT_PATH are actually used
-			#
-			# OSX needs OPENSSL_ROOT_DIR...
-			PKG_CONFIG_PATH="$SSL_ROOT_PATH"/lib/pkgconfig:$PKG_CONFIG_PATH \
-			CXXFLAGS=-fPIC CFLAGS=-fPIC "$CMAKE" -G "$CMAKE_GEN" \
-				-DCMAKE_INSTALL_PREFIX:PATH="$WS_ROOT_PATH" \
-				-DCMAKE_INCLUDE_DIRECTORIES_PROJECT_BEFORE:PATH="$SSL_ROOT_PATH" \
-				-DOPENSSL_ROOT_DIR:PATH="$SSL_ROOT_PATH" \
-				-DCMAKE_OSX_DEPLOYMENT_TARGET=$OSX_MIN_TARGET \
-				-DLWS_ZLIB_INCLUDE_DIRS:PATH="$ZLIB_ROOT_PATH"/include \
-				-DLWS_ZLIB_LIBRARIES:PATH="$ZLIB_ROOT_PATH"/lib/$ZLIB_ZLIB_SO \
-				"$CMAKE_PATH"
-			make
-			make install
-			;;
-	esac
-	# ----------------------------------------
-	cd "$CUR_PATH/../.."
-}
-deadcode_libwebsockets_graveyard()
-{
-			# following disabled test programs...
-			"$CMAKE" -G "$CMAKE_GEN" \
-				-DCMAKE_INSTALL_PREFIX:PATH="$WS_ROOT_PATH" \
-				-DCMAKE_INCLUDE_DIRECTORIES_PROJECT_BEFORE:PATH="$SSL_ROOT_PATH" \
-				-DLWS_OPENSSL_INCLUDE_DIRS:PATH="$SSL_ROOT_PATH"/include \
-				-DLWS_OPENSSL_LIBRARIES:PATH="$SSL_ROOT_PATH"/lib/ssl.so \
-				-DLWS_WITHOUT_TEST_CLIENT:BOOL=ON \
-				-DLWS_WITHOUT_TESTAPPS:BOOL=ON \
-				-DLWS_WITHOUT_TEST_SERVER:BOOL=ON \
-				-DLWS_WITHOUT_TEST_SERVER_EXTPOLL:BOOL=ON \
-				-DLWS_ZLIB_INCLUDE_DIRS:PATH="$ZLIB_ROOT_PATH"/include \
-				-DLWS_ZLIB_LIBRARIES:PATH="$ZLIB_ROOT_PATH"/lib/$ZLIB_ZLIB_SO \
-				"$CMAKE_PATH"
-			env LDFLAGS="-L\"$SSL_ROOT_PATH\"/lib -lssl -lcrypto" make VERBOSE=1
-}
-
-# ================================================================================
-# libWebsockets }}}
 # webRTC {{{
 # ================================================================================
 
@@ -1096,11 +979,6 @@ reset_hard()
 		git clean -fd
 	cd ../..
 	# ........................................
-	cd libWebSockets/$WS_VERSION
-		git reset --hard HEAD
-		git clean -fd
-	cd ../..
-	# ........................................
 	cd WebRTC/src
 		git reset --hard HEAD
 		git clean -fd
@@ -1208,7 +1086,6 @@ get_google_depot_tools
 get_zlib
 get_openssl
 get_libcurl
-get_libwebsockets
 get_webrtc
 	#reset_hard
 
@@ -1219,7 +1096,6 @@ build_zlib
 build_zlib_fPIC
 build_openssl
 build_libcurl
-build_libwebsockets
 build_webrtc
 
 if [[ $SYSTEM == *'_NT-'* ]]; then
@@ -1240,7 +1116,6 @@ if [[ $SYSTEM == *'_NT-'* ]]; then
 	build_zlib
 	build_openssl
 	build_libcurl
-	build_libwebsockets
 	build_webrtc            ## NOTE: SPECIAL BUILD !!!
 	USE_VS_2013=false
 
@@ -1253,7 +1128,6 @@ if [[ $SYSTEM == *'_NT-'* ]]; then
 	build_zlib
 	build_openssl
 	build_libcurl
-	build_libwebsockets
 	build_webrtc
 
 	# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1265,7 +1139,6 @@ if [[ $SYSTEM == *'_NT-'* ]]; then
 	build_zlib
 	build_openssl
 	build_libcurl
-	build_libwebsockets
 	build_webrtc            ## NOTE: SPECIAL BUILD !!!
 
 	# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

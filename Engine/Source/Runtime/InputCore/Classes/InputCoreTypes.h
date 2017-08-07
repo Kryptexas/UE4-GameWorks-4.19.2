@@ -18,6 +18,7 @@ enum class EControllerHand : uint8
 {
 	Left,
 	Right,
+	AnyHand,
 	Pad,
 	ExternalCamera,
 	Gun,
@@ -124,16 +125,16 @@ struct INPUTCORE_API FKeyDetails
 
 	FKeyDetails(const FKey InKey, const TAttribute<FText>& InDisplayName, const uint8 InKeyFlags = 0, const FName InMenuCategory = NAME_None);
 
-	bool IsModifierKey() const { return bIsModifierKey != 0; }
-	bool IsGamepadKey() const { return bIsGamepadKey != 0; }
-	bool IsMouseButton() const { return bIsMouseButton != 0; }
-	bool IsFloatAxis() const { return AxisType == EInputAxisType::Float; }
-	bool IsVectorAxis() const { return AxisType == EInputAxisType::Vector; }
-	bool IsBindableInBlueprints() const { return bIsBindableInBlueprints != 0; }
-	bool ShouldUpdateAxisWithoutSamples() const { return bShouldUpdateAxisWithoutSamples != 0; }
-	FName GetMenuCategory() const { return MenuCategory; }
+	FORCEINLINE bool IsModifierKey() const { return bIsModifierKey != 0; }
+	FORCEINLINE bool IsGamepadKey() const { return bIsGamepadKey != 0; }
+	FORCEINLINE bool IsMouseButton() const { return bIsMouseButton != 0; }
+	FORCEINLINE bool IsFloatAxis() const { return AxisType == EInputAxisType::Float; }
+	FORCEINLINE bool IsVectorAxis() const { return AxisType == EInputAxisType::Vector; }
+	FORCEINLINE bool IsBindableInBlueprints() const { return bIsBindableInBlueprints != 0; }
+	FORCEINLINE bool ShouldUpdateAxisWithoutSamples() const { return bShouldUpdateAxisWithoutSamples != 0; }
+	FORCEINLINE FName GetMenuCategory() const { return MenuCategory; }
 	FText GetDisplayName() const;
-	const FKey& GetKey() const { return Key; }
+	FORCEINLINE const FKey& GetKey() const { return Key; }
 
 private:
 
@@ -174,7 +175,13 @@ namespace ETouchIndex
 		Touch7,
 		Touch8,
 		Touch9,
-		Touch10
+		Touch10,
+		/**
+		 * This entry is special.  NUM_TOUCH_KEYS - 1, is used for the cursor so that it's represented 
+		 * as another finger index, but doesn't overlap with touch input indexes.
+		 */
+		CursorPointerIndex UMETA(Hidden),
+		MAX_TOUCHES UMETA(Hidden)
 	};
 }
 

@@ -179,6 +179,16 @@ private:
 	// Callback for determining the checked state of the 'GeneratePatch' check box.
 	ECheckBoxState HandleGeneratePatchCheckBoxIsChecked( ) const;
 
+	// Callback for check state changes of the 'AddPatchLevel' check box.
+	void HandleAddPatchLevelCheckBoxCheckStateChanged( ECheckBoxState NewState );
+	// Callback for determining the checked state of the 'AddPatchLevel' check box.
+	ECheckBoxState HandleAddPatchLevelCheckBoxIsChecked( ) const;
+
+	// Callback for check state changes of the 'StageBaseReleasePaks' check box.
+	void HandleStageBaseReleasePaksCheckBoxCheckStateChanged( ECheckBoxState NewState );
+	// Callback for determining the checked state of the 'StageBaseReleasePaks' check box.
+	ECheckBoxState HandleStageBaseReleasePaksCheckBoxIsChecked( ) const;
+
 	// Callback for changing patchSourceContent path (should be the path of a pak file)
 	FText HandlePatchSourceContentPathTextBlockText() const;
 	// Callback for getting the PatchSourceContentPath

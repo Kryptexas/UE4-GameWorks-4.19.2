@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Modules/ModuleInterface.h"
 #include "Modules/ModuleManager.h"
+#include "IPropertyTypeCustomization.h"
 
 
 /**
@@ -47,3 +48,8 @@ public:
 
 };
 
+/** This is public so that child structs of FGameplayTag can use the details customization */
+struct GAMEPLAYTAGSEDITOR_API FGameplayTagCustomizationPublic
+{
+	static TSharedRef<IPropertyTypeCustomization> MakeInstance();
+};

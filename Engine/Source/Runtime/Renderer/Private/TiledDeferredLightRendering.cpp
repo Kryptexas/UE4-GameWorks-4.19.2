@@ -160,8 +160,7 @@ public:
 			if (StartIndex + LightIndex < NumLightsToRenderInSortedLights)
 			{
 				const FSortedLightSceneInfo& SortedLightInfo = SortedLights[StartIndex + LightIndex];
-				const FLightSceneInfoCompact& LightSceneInfoCompact = SortedLightInfo.SceneInfo;
-				const FLightSceneInfo* const LightSceneInfo = LightSceneInfoCompact.LightSceneInfo;
+				const FLightSceneInfo* const LightSceneInfo = SortedLightInfo.LightSceneInfo;
 
 				FVector NormalizedLightDirection;
 				FVector2D SpotAngles;
@@ -265,7 +264,7 @@ public:
 
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("TiledDeferredLightShaders");
+		return TEXT("/Engine/Private/TiledDeferredLightShaders.usf");
 	}
 
 	static const TCHAR* GetFunctionName()

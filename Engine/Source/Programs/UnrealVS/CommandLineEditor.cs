@@ -23,7 +23,6 @@ namespace UnrealVS
 
 		private const int ComboID = 0x1030;
 		private const int ComboListID = 0x1040;
-		private const string InvalidProjectString = "<No Command-line>";
 		private const int ComboListCountMax = 32;
 
 		/** methods */
@@ -161,7 +160,7 @@ namespace UnrealVS
 							{
 								if (PropertyStorage.GetPropertyValue("StartArguments", ConfigurationName, (uint)_PersistStorageType.PST_USER_FILE, out Text) != VSConstants.S_OK)
 								{
-									Text = InvalidProjectString;
+									Text = "";
 								}
 							}
 
@@ -275,18 +274,36 @@ namespace UnrealVS
 								}
 							}
 
+							// Get the project platform name.
+							string ProjectPlatformName = SelectedConfiguration.PlatformName;
+							if(ProjectPlatformName == "Any CPU")
+							{
+								ProjectPlatformName = "AnyCPU";
+							}
+
 							// Get the project kind. C++ projects store the debugger arguments differently to other project types.
 							string ProjectKind = SelectedStartupProject.Kind;
 
 							// Update the property
-							string ProjectConfigurationName = String.Format("{0}|{1}", SelectedConfiguration.ConfigurationName, SelectedConfiguration.PlatformName);
+							string ProjectConfigurationName = String.Format("{0}|{1}", SelectedConfiguration.ConfigurationName, ProjectPlatformName);
 							if (String.Equals(ProjectKind, "{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}", StringComparison.InvariantCultureIgnoreCase))
 							{
 								PropertyStorage.SetPropertyValue("LocalDebuggerCommandArguments", ProjectConfigurationName, (uint)_PersistStorageType.PST_USER_FILE, FullCommandLine);
 							}
 							else
 							{
-								PropertyStorage.SetPropertyValue("StartArguments", ProjectConfigurationName, (uint)_PersistStorageType.PST_USER_FILE, FullCommandLine);
+								// For some reason, have to update C# projects this way, otherwise the properties page doesn't update. Conversely, SelectedConfiguration.Properties is always null for C++ projects in VS2017.
+								if (SelectedConfiguration.Properties != null)
+								{
+									foreach (Property Property in SelectedConfiguration.Properties)
+									{
+										if (Property.Name.Equals("StartArguments", StringComparison.InvariantCultureIgnoreCase))
+										{
+											Property.Value = FullCommandLine;
+											break;
+										}
+									}
+								}
 							}
 						}
 					}

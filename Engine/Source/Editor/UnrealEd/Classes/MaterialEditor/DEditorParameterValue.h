@@ -23,5 +23,10 @@ class UNREALED_API UDEditorParameterValue : public UObject
 	UPROPERTY()
 	FGuid ExpressionId;
 
+#if WITH_EDITORONLY_DATA
+	/** Controls where this parameter is displayed in a material instance parameter list.  The lower the number the higher up in the parameter list. */
+	UPROPERTY()
+	int32 SortPriority;
+#endif
 };
 

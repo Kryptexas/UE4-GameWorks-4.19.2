@@ -167,7 +167,7 @@ public:
 	UNREALED_API static void RefreshCompilerAvailability();
 
 	/** Returns true if the compiler for the current platform is available for use */
-	UNREALED_API static bool IsCompilerAvailable();
+	UNREALED_API static bool IsCompilerAvailable() { return bCachedIsCompilerAvailable; }
 
 	/** Finds the base directory for a given module name. Does not rely on symbols; finds matching .build.cs files. */
 	UNREALED_API static bool FindModulePath( const FString& ModuleName, FString &OutModulePath );
@@ -211,4 +211,7 @@ private:
 
 	/** Source file database instance. */
 	static FSourceFileDatabase Instance;
+
+	/** Cached result of check for compiler availability. Speeds up performance greatly since BlueprintEditor is checking this on draw. */
+	static bool bCachedIsCompilerAvailable;
 };

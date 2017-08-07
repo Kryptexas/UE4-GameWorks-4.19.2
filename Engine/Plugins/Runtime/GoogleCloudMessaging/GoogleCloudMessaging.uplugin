@@ -8,7 +8,7 @@
 	"CreatedBy" : "Epic Games, Inc.",
 	"CreatedByURL" : "http://epicgames.com",
 	"EnabledByDefault" : true,
-    "Installed" : false,
+  "Installed" : false,
 	"Modules" :
 	[
         {

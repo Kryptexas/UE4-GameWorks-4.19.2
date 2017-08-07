@@ -17,15 +17,12 @@
 #include "SceneOutlinerStandaloneTypes.h"
 #include "SceneOutlinerDragDrop.h"
 #include "Widgets/Views/SListView.h"
-
-
 #include "SortHelper.h"
-
 #include "EditorActorFolders.h"
-
 #include "Widgets/Text/SInlineEditableTextBlock.h"
 #include "Widgets/SToolTip.h"
 #include "IDocumentation.h"
+#include "ActorEditorUtils.h"
 
 #define LOCTEXT_NAMESPACE "SceneOutlinerItemLabelColumn"
 
@@ -122,7 +119,16 @@ struct SActorTreeLabel : FCommonLabelData, public SCompoundWidget
 				SNew(SImage)
 				.Image(this, &SActorTreeLabel::GetIcon)
 				.ToolTipText(this, &SActorTreeLabel::GetIconTooltip)
+			]
+
+			+ SOverlay::Slot()
+			.HAlign(HAlign_Right)
+			.VAlign(VAlign_Center)
+			[
+				SNew(SImage)
+				.Image(this, &SActorTreeLabel::GetIconOverlay)
 			];
+
 
 		if (ActorItem.GetSharedData().Mode == ESceneOutlinerMode::ActorBrowsing)
 		{
@@ -220,6 +226,20 @@ private:
 		}
 	}
 
+	const FSlateBrush* GetIconOverlay() const
+	{
+		static const FName SequencerActorTag(TEXT("SequencerActor"));
+
+		if (const AActor* Actor = ActorPtr.Get())
+		{
+			if (Actor->ActorHasTag(SequencerActorTag))
+			{
+				return FEditorStyle::GetBrush("Sequencer.SpawnableIconOverlay");
+			}
+		}
+		return nullptr;
+	}
+
 	FText GetIconTooltip() const
 	{
 		auto TreeItem = TreeItemPtr.Pin();
@@ -293,23 +313,7 @@ private:
 
 	bool OnVerifyItemLabelChanged(const FText& InLabel, FText& OutErrorMessage)
 	{
-		FText TrimmedLabel = FText::TrimPrecedingAndTrailing(InLabel);
-
-		if (TrimmedLabel.IsEmpty())
-		{
-			OutErrorMessage = LOCTEXT( "RenameFailed_LeftBlank", "Names cannot be left blank" );
-			return false;
-		}
-
-		if (TrimmedLabel.ToString().Len() >= NAME_SIZE)
-		{
-			FFormatNamedArguments Arguments;
-			Arguments.Add( TEXT("CharCount"), NAME_SIZE );
-			OutErrorMessage = FText::Format(LOCTEXT("RenameFailed_TooLong", "Names must be less than {CharCount} characters long."), Arguments);
-			return false;
-		}
-
-		return true;
+		return FActorEditorUtils::ValidateActorName(InLabel, OutErrorMessage);
 	}
 
 	void OnLabelCommitted(const FText& InLabel, ETextCommit::Type InCommitInfo)

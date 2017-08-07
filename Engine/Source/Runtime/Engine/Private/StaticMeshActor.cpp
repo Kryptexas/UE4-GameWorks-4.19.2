@@ -34,8 +34,8 @@ AStaticMeshActor::AStaticMeshActor(const FObjectInitializer& ObjectInitializer)
 
 	RootComponent = StaticMeshComponent;
 
-	// By default all static mesh actors can be put inside of a GC cluster (see ULevelActorContainer and ULevel::CreateCluster())
-	bCanBeInCluster = true;
+	// Only actors that are literally static mesh actors can be placed in clusters, native subclasses or BP subclasses are not safe by default
+	bCanBeInCluster = (GetClass() == AStaticMeshActor::StaticClass());
 }
 
 void AStaticMeshActor::BeginPlay()
@@ -181,7 +181,7 @@ void AStaticMeshActor::CheckForErrors()
 	}
 	else
 	{
-		FCollisionQueryParams SphereParams(FName(TEXT("CheckForErrors")), false, this);
+		FCollisionQueryParams SphereParams(SCENE_QUERY_STAT(CheckForErrors), false, this);
 
 		TArray<FOverlapResult> Overlaps;
 		GetWorld()->OverlapMultiByChannel(Overlaps, GetActorLocation(), FQuat::Identity, ECC_Pawn, FCollisionShape::MakeSphere(1.f), SphereParams);
@@ -246,5 +246,3 @@ void AStaticMeshActor::CheckForErrors()
 
 #undef LOCTEXT_NAMESPACE
 
-/** Returns StaticMeshComponent subobject **/
-UStaticMeshComponent* AStaticMeshActor::GetStaticMeshComponent() const { return StaticMeshComponent; }

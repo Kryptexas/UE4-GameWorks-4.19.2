@@ -8,6 +8,7 @@
 
 class FOnlineSubsystemFacebook;
 class IHttpRequest;
+struct FFacebookLoginURL;
 
 /** 
  * Implementation for the Facebook external UIs
@@ -22,8 +23,8 @@ PACKAGE_SCOPE:
 	 * Constructor
 	 * @param InSubsystem The owner of this external UI interface.
 	 */
-	FOnlineExternalUIFacebook(FOnlineSubsystemFacebook* InSubsystem) :
-		FOnlineExternalUIFacebookCommon(InSubsystem)
+	FOnlineExternalUIFacebook(FOnlineSubsystemFacebook* InSubsystem)
+		: FOnlineExternalUIFacebookCommon(InSubsystem)
 	{
 	}
 
@@ -40,6 +41,14 @@ public:
 	virtual bool ShowLoginUI(const int ControllerIndex, bool bShowOnlineOnly, bool bShowSkipButton, const FOnLoginUIClosedDelegate& Delegate = FOnLoginUIClosedDelegate()) override;
 
 private: 
+
+	/**
+	 * Parse a successful URL redirect from Facebook
+	 *
+	 * @param URLDetails URL config settings
+	 * @param RedirectURL an URL knowns to start with the redirect URI
+	 */
+	FLoginFlowResult ParseRedirectResult(const FFacebookLoginURL& URLDetails, const FString& RedirectURL);
 
 	/**
 	 * Delegate fired when redirect URLs from the login flow are passed back for parsing

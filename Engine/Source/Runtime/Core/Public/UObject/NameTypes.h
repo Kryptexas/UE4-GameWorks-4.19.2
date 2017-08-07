@@ -26,6 +26,8 @@
 	#define WITH_CASE_PRESERVING_NAME WITH_EDITORONLY_DATA
 #endif
 
+class FText;
+
 /** Maximum size of name. */
 enum {NAME_SIZE	= 1024};
 
@@ -59,8 +61,8 @@ typedef int32 NAME_INDEX;
 /** These characters cannot be used in object names */
 #define INVALID_OBJECTNAME_CHARACTERS	TEXT("\"' ,/.:|&!~\n\r\t@#(){}[]=;^%$`")
 
-/** These characters cannot be used in textboxes which take group names (i.e. Group1.Group2) */
-#define INVALID_GROUPNAME_CHARACTERS	TEXT("\"' ,/:|&!~\n\r\t@#")
+/** These characters cannot be used in ObjectPaths, which includes both the package path and part after the first . */
+#define INVALID_OBJECTPATH_CHARACTERS	TEXT("\"' ,|&!~\n\r\t@#(){}[]=;^%$`")
 
 /** These characters cannot be used in long package names */
 #define INVALID_LONGPACKAGE_CHARACTERS	TEXT("\\:*?\"<>|' ,.&!~\n\r\t@#")
@@ -351,7 +353,9 @@ class TStaticIndirectArrayThreadSafeRead
 	{
 		int32 ChunkIndex = Index / ElementsPerChunk;
 		int32 WithinChunkIndex = Index % ElementsPerChunk;
-		check(IsValidIndex(Index) && ChunkIndex < NumChunks && Index < MaxTotalElements);
+		checkf(IsValidIndex(Index), TEXT("IsValidIndex(%d)"), Index);
+		checkf(ChunkIndex < NumChunks, TEXT("ChunkIndex (%d) < NumChunks (%d)"), ChunkIndex, NumChunks);
+		checkf(Index < MaxTotalElements, TEXT("Index (%d) < MaxTotalElements (%d)"), Index, MaxTotalElements);
 		ElementType** Chunk = Chunks[ChunkIndex];
 		check(Chunk);
 		return Chunk + WithinChunkIndex;
@@ -664,7 +668,7 @@ public:
 	 *
 	 * @return	true if the name is valid
 	 */
-	static bool IsValidXName( const FString& InName, const FString& InInvalidChars, class FText* OutReason = nullptr, const class FText* InErrorCtx = nullptr );
+	static bool IsValidXName( const FString& InName, const FString& InInvalidChars, FText* OutReason = nullptr, const FText* InErrorCtx = nullptr );
 
 	/**
 	 * Checks to see that a FName follows the rules that Unreal requires.
@@ -675,7 +679,7 @@ public:
 	 *
 	 * @return	true if the name is valid
 	 */
-	bool IsValidXName( const FString& InInvalidChars = INVALID_NAME_CHARACTERS, class FText* OutReason = nullptr, const class FText* InErrorCtx = nullptr ) const
+	bool IsValidXName( const FString& InInvalidChars = INVALID_NAME_CHARACTERS, FText* OutReason = nullptr, const FText* InErrorCtx = nullptr ) const
 	{
 		return IsValidXName(ToString(), InInvalidChars, OutReason, InErrorCtx);
 	}
@@ -688,7 +692,7 @@ public:
 	 *
 	 * @return	true if the name is valid
 	 */
-	bool IsValidXName( class FText& OutReason, const FString& InInvalidChars = INVALID_NAME_CHARACTERS ) const
+	bool IsValidXName( FText& OutReason, const FString& InInvalidChars = INVALID_NAME_CHARACTERS ) const
 	{
 		return IsValidXName(ToString(), InInvalidChars, &OutReason);
 	}
@@ -700,7 +704,7 @@ public:
 	 *
 	 * @return	true if the name is valid
 	 */
-	bool IsValidObjectName( class FText& OutReason ) const
+	bool IsValidObjectName( FText& OutReason ) const
 	{
 		return IsValidXName(ToString(), INVALID_OBJECTNAME_CHARACTERS, &OutReason);
 	}
@@ -713,7 +717,7 @@ public:
 	 *
 	 * @return	true if the name is valid
 	 */
-	bool IsValidGroupName( class FText& OutReason, bool bIsGroupName=false ) const
+	bool IsValidGroupName( FText& OutReason, bool bIsGroupName=false ) const
 	{
 		return IsValidXName(ToString(), INVALID_LONGPACKAGE_CHARACTERS, &OutReason);
 	}
@@ -739,6 +743,23 @@ public:
 	 * @return	< 0 is this < Other, 0 if this == Other, > 0 if this > Other
 	 */
 	int32 Compare( const FName& Other ) const;
+
+	/**
+	 * Fast compares name to passed in one using indexes. Sort is allocation order ascending.
+	 *
+	 * @param	Other	Name to compare this against
+	 * @return	< 0 is this < Other, 0 if this == Other, > 0 if this > Other
+	 */
+	FORCEINLINE int32 CompareIndexes(const FName& Other) const
+	{
+		int32 ComparisonDiff = GetComparisonIndexFast() - Other.GetComparisonIndexFast();
+
+		if (ComparisonDiff == 0)
+		{
+			return GetNumber() - Other.GetNumber();
+		}
+		return ComparisonDiff;
+	}
 
 	/**
 	 * Create an FName with a hardcoded string index.
@@ -1179,3 +1200,11 @@ inline bool operator!=(const CharType *LHS, const FName &RHS)
 template <> struct TIsPODType<FName> { enum { Value = true }; };
 
 
+/** Sort predicate to sort FName by index instead of alphabetically, pass to anything that wants TLess */
+struct FNameSortIndexes
+{
+	FORCEINLINE bool operator()(const FName& A, const FName& B) const
+	{
+		return A.CompareIndexes(B) < 0;
+	}
+};

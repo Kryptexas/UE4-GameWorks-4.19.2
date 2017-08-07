@@ -40,12 +40,23 @@ enum class EIplHrtfInterpolationMethod : uint8
 UENUM(BlueprintType)
 enum class EIplDirectOcclusionMethod : uint8
 {
-	// Do not perform any occlusion test.
-	NONE			UMETA(DisplayName = "None"),
 	// Binary visible or not test. Adjusts direct volume accordingly.
 	RAYCAST			UMETA(DisplayName = "Raycast"),
 	// Treats the source as a sphere instead of a point. Smoothly ramps up volume as source becomes visible to listener.
 	VOLUMETRIC		UMETA(DisplayName = "Partial")
+};
+
+UENUM(BlueprintType)
+enum class EIplDirectOcclusionMode : uint8
+{
+	// Do not perform any occlusion checks.
+	NONE										UMETA(DisplayName = "None"),
+	// Perform occlusion checks but do not model transmission.
+	DIRECTOCCLUSION_NOTRANSMISSION				UMETA(DisplayName = "Direct Occlusion, No Transmission"),
+	// Perform occlusion checks and model transmission; occluded sound will be scaled by a frequency-independent attenuation value.
+	DIRECTOCCLUSION_TRANSMISSIONBYVOLUME		UMETA(DisplayName = "Direct Occlusion, Frequency-Independent Transmission"),
+	// Perform occlusion checks and model transmission; occluded sound will be rendered with a frequency-dependent transmission filter.
+	DIRECTOCCLUSION_TRANSMISSIONBYFREQUENCY		UMETA(DisplayName = "Direct Occlusion, Frequency-Dependent Transmission")
 };
 
 UENUM(BlueprintType)
@@ -89,6 +100,10 @@ namespace SteamAudio
 	IPLVector3 STEAMAUDIO_API UnrealToPhononIPLVector3(const FVector& Coords, const bool bScale = true);
 	FVector STEAMAUDIO_API PhononToUnrealFVector(const FVector& Coords, const bool bScale = true);
 	IPLVector3 STEAMAUDIO_API PhononToUnrealIPLVector3(const FVector& Coords, const bool bScale = true);
+
+	void STEAMAUDIO_API GetMatrixForTransform(const FTransform& Transform, float* OutMatrix);
+
+	FText STEAMAUDIO_API GetKBTextFromByte(const int32 NumBytes);
 
 	/** Attempts to loads the specified DLL, performing some basic error checking. Returns handle to DLL or nullptr on error.*/
 	void* LoadDll(const FString& DllFile);

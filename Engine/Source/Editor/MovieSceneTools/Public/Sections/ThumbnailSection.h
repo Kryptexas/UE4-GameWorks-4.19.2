@@ -68,7 +68,6 @@ public:
 
 	//~ ISequencerSection interface
 
-	virtual bool AreSectionsConnected() const override;
 	virtual void GenerateSectionLayout(ISectionLayoutBuilder& LayoutBuilder) const override { }
 	virtual void BuildSectionContextMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding) override;
 	virtual TSharedRef<SWidget> GenerateSectionWidget() override;

@@ -60,7 +60,6 @@
 #include "AssetSelection.h"
 #include "IDocumentation.h"
 #include "SourceCodeNavigation.h"
-#include "DesktopPlatformModule.h"
 #include "EngineAnalytics.h"
 #include "Interfaces/IAnalyticsProvider.h"
 #include "ReferenceViewer.h"
@@ -84,9 +83,13 @@
 #include "MaterialShaderQualitySettings.h"
 #include "IVREditorModule.h"
 #include "ComponentRecreateRenderStateContext.h"
+#include "ILauncherPlatform.h"
+#include "LauncherPlatformModule.h"
 #include "Engine/LevelStreaming.h"
 #include "Engine/LevelStreamingKismet.h"
 #include "EditorLevelUtils.h"
+#include "ActorGroupingUtils.h"
+#include "LevelUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LevelEditorActions, Log, All);
 
@@ -421,10 +424,10 @@ void FLevelEditorActionCallbacks::SaveCurrentAs()
 			FString PackageName;
 			if (FPackageName::TryConvertFilenameToLongPackageName(SavedFilename, PackageName))
 			{
-				ULevel* Level = EditorLevelUtils::AddLevelToWorld(World, *PackageName, CurrentStreamingLevelClass);
+				ULevelStreaming* StreamingLevel = UEditorLevelUtils::AddLevelToWorld(World, *PackageName, CurrentStreamingLevelClass);
 
 				// Make the level we just added current because the expectation is that the new level replaces the existing current level
-				EditorLevelUtils::MakeLevelCurrent(Level);
+				EditorLevelUtils::MakeLevelCurrent(StreamingLevel->GetLoadedLevel());
 			}
 
 			FEditorDelegates::RefreshLevelBrowser.Broadcast();
@@ -1282,8 +1285,7 @@ void FLevelEditorActionCallbacks::GoHere_Clicked( const FVector* Point )
 
 				FHitResult HitResult;
 
-				static FName FocusOnPoint = FName(TEXT("FocusOnPoint"));
-				FCollisionQueryParams LineParams(FocusOnPoint, true);
+				FCollisionQueryParams LineParams(SCENE_QUERY_STAT(FocusOnPoint), true);
 
 				if(GCurrentLevelEditingViewportClient->GetWorld()->LineTraceSingleByObjectType(HitResult, WorldOrigin, WorldOrigin + WorldDirection * HALF_WORLD_MAX, FCollisionObjectQueryParams(ECC_WorldStatic), LineParams))
 				{
@@ -1658,9 +1660,11 @@ bool FLevelEditorActionCallbacks::Paste_CanExecute()
 	bool bCanPaste = false;
 	if (GEditor->GetSelectedComponentCount() > 0)
 	{
-		check(GEditor->GetSelectedActorCount() == 1);
-		auto SelectedActor = CastChecked<AActor>(*GEditor->GetSelectedActorIterator());
-		bCanPaste = FComponentEditorUtils::CanPasteComponents(SelectedActor->GetRootComponent());
+		if(ensureMsgf(GEditor->GetSelectedActorCount() == 1, TEXT("Expected SelectedActorCount to be 1 but was %d"), GEditor->GetSelectedActorCount()))
+		{
+			auto SelectedActor = CastChecked<AActor>(*GEditor->GetSelectedActorIterator());
+			bCanPaste = FComponentEditorUtils::CanPasteComponents(SelectedActor->GetRootComponent());
+		}
 	}
 	else
 	{
@@ -1815,32 +1819,32 @@ void FLevelEditorActionCallbacks::OnSurfaceAlignment( ETexAlign AlignmentMode )
 
 void FLevelEditorActionCallbacks::RegroupActor_Clicked()
 {
-	GUnrealEd->edactRegroupFromSelected();
+	UActorGroupingUtils::Get()->GroupSelected();
 }
 
 void FLevelEditorActionCallbacks::UngroupActor_Clicked()
 {
-	GUnrealEd->edactUngroupFromSelected();
+	UActorGroupingUtils::Get()->UngroupSelected();
 }
 
 void FLevelEditorActionCallbacks::LockGroup_Clicked()
 {
-	GUnrealEd->edactLockSelectedGroups();
+	UActorGroupingUtils::Get()->LockSelectedGroups();
 }
 
 void FLevelEditorActionCallbacks::UnlockGroup_Clicked()
 {
-	GUnrealEd->edactUnlockSelectedGroups();
+	UActorGroupingUtils::Get()->UnlockSelectedGroups();
 }
 
 void FLevelEditorActionCallbacks::AddActorsToGroup_Clicked()
 {
-	GUnrealEd->edactAddToGroup();
+	UActorGroupingUtils::Get()->AddSelectedToGroup();
 }
 
 void FLevelEditorActionCallbacks::RemoveActorsFromGroup_Clicked()
 {
-	GUnrealEd->edactRemoveFromGroup();
+	UActorGroupingUtils::Get()->RemoveSelectedFromGroup();
 }
 
 
@@ -2063,7 +2067,7 @@ void FLevelEditorActionCallbacks::OnMakeSelectedActorLevelCurrent()
 
 void FLevelEditorActionCallbacks::OnMoveSelectedToCurrentLevel()
 {
-	GEditor->MoveSelectedActorsToLevel( GetWorld()->GetCurrentLevel() );
+	UEditorLevelUtils::MoveSelectedActorsToLevel(GetWorld()->GetCurrentLevel());
 }
 
 void FLevelEditorActionCallbacks::OnFindActorLevelInContentBrowser()
@@ -2286,7 +2290,7 @@ void FLevelEditorActionCallbacks::OnAllowGroupSelection()
 
 bool FLevelEditorActionCallbacks::OnIsAllowGroupSelectionEnabled() 
 {
-	return GUnrealEd->bGroupingActive;
+	return UActorGroupingUtils::IsGroupingActive();
 }
 
 void FLevelEditorActionCallbacks::OnToggleStrictBoxSelect()
@@ -2372,10 +2376,10 @@ void FLevelEditorActionCallbacks::OnToggleFreezeParticleSimulation()
 bool FLevelEditorActionCallbacks::OnIsParticleSimulationFrozen()
 {
 	IConsoleManager& ConsoleManager = IConsoleManager::Get();
-	static const auto* CVar = ConsoleManager.FindTConsoleVariableDataInt(TEXT("FX.FreezeParticleSimulation"));
+	static const auto* CVar = ConsoleManager.FindConsoleVariable(TEXT("FX.FreezeParticleSimulation"));
 	if (CVar)
 	{
-		return CVar->GetValueOnGameThread() != 0;
+		return CVar->GetInt() != 0;
 	}
 	return false;
 }
@@ -2881,7 +2885,7 @@ void FLevelEditorActionCallbacks::SnapTo_Clicked( const bool InAlign, const bool
 		{
 			GEditor->SetPivot(Actor->GetActorLocation(), false, true);
 
-			if(GEditor->bGroupingActive)
+			if(UActorGroupingUtils::IsGroupingActive())
 			{
 				// set group pivot for the root-most group
 				AGroupActor* ActorGroupRoot = AGroupActor::GetRootForActor(Actor, true, true);
@@ -2955,7 +2959,7 @@ void FLevelEditorCommands::RegisterCommands()
 	UI_COMMAND( LightingBuildOptions_UseErrorColoring, "Use Error Coloring", "When enabled, errors during lighting precomputation will be baked as colors into light map data", EUserInterfaceActionType::ToggleButton, FInputChord() );
 	UI_COMMAND( LightingBuildOptions_ShowLightingStats, "Show Lighting Stats", "When enabled, a window containing metrics about lighting performance and memory will be displayed after a successful build.", EUserInterfaceActionType::ToggleButton, FInputChord() );
 	UI_COMMAND( BuildGeometryOnly, "Build Geometry", "Only builds geometry (all levels.)", EUserInterfaceActionType::Button, FInputChord() );
-	UI_COMMAND( BuildGeometryOnly_OnlyCurrentLevel, "Build Geometry (Current Level)", "Builds geometry, only for the current level", EUserInterfaceActionType::Button, FInputChord(EModifierKey::Control | EModifierKey::Shift, EKeys::B) );
+	UI_COMMAND( BuildGeometryOnly_OnlyCurrentLevel, "Build Geometry (Current Level)", "Builds geometry, only for the current level", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( BuildPathsOnly, "Build Paths", "Only builds paths (all levels.)", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( BuildLODsOnly, "Build LODs", "Only builds LODs (all levels.)", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( BuildTextureStreamingOnly, "Build Texture Streaming", "Build texture streaming data", EUserInterfaceActionType::Button, FInputChord() );
@@ -3140,7 +3144,7 @@ void FLevelEditorCommands::RegisterCommands()
 	UI_COMMAND( AddMatinee, "Add Matinee [Legacy]", "Creates a new matinee actor to edit", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( EditMatinee, "Edit Matinee", "Selects a Matinee to edit", EUserInterfaceActionType::Button, FInputChord() );
 
-	UI_COMMAND( ToggleVR, "Toggle VR", "Toggles VR (Virtual Reality) mode", EUserInterfaceActionType::ToggleButton, FInputChord( EModifierKey::Alt, EKeys::Tilde ) );
+	UI_COMMAND( ToggleVR, "Toggle VR", "Toggles VR (Virtual Reality) mode", EUserInterfaceActionType::ToggleButton, FInputChord( EModifierKey::Alt, EKeys::V ) );
 
 	UI_COMMAND( OpenLevelBlueprint, "Open Level Blueprint", "Edit the Level Blueprint for the current level", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( CheckOutProjectSettingsConfig, "Check Out", "Checks out the project settings config file so the game mode can be set.", EUserInterfaceActionType::Button, FInputChord() );

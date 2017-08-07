@@ -15,6 +15,11 @@ FOnlineSubsystemGoogleCommon::FOnlineSubsystemGoogleCommon()
 	{
 		UE_LOG(LogOnline, Warning, TEXT("Missing ClientId= in [OnlineSubsystemGoogle] of DefaultEngine.ini"));
 	}
+
+	if (!GConfig->GetString(TEXT("OnlineSubsystemGoogle"), TEXT("ServerClientId"), ServerClientId, GEngineIni))
+	{
+		UE_LOG(LogOnline, Warning, TEXT("Missing ServerClientId= in [OnlineSubsystemGoogle] of DefaultEngine.ini"));
+	}
 }
 
 FOnlineSubsystemGoogleCommon::FOnlineSubsystemGoogleCommon(FName InInstanceName)
@@ -23,6 +28,11 @@ FOnlineSubsystemGoogleCommon::FOnlineSubsystemGoogleCommon(FName InInstanceName)
 	if (!GConfig->GetString(TEXT("OnlineSubsystemGoogle"), TEXT("ClientId"), ClientId, GEngineIni))
 	{
 		UE_LOG(LogOnline, Warning, TEXT("Missing ClientId= in [OnlineSubsystemGoogle] of DefaultEngine.ini"));
+	}
+
+	if (!GConfig->GetString(TEXT("OnlineSubsystemGoogle"), TEXT("ServerClientId"), ServerClientId, GEngineIni))
+	{
+		UE_LOG(LogOnline, Warning, TEXT("Missing ServerClientId= in [OnlineSubsystemGoogle] of DefaultEngine.ini"));
 	}
 }
 
@@ -200,5 +210,10 @@ IOnlineChatPtr FOnlineSubsystemGoogleCommon::GetChatInterface() const
 IOnlineTurnBasedPtr FOnlineSubsystemGoogleCommon::GetTurnBasedInterface() const
 {
 	return nullptr;
+}
+
+FText FOnlineSubsystemGoogleCommon::GetOnlineServiceName() const
+{
+	return NSLOCTEXT("OnlineSubsystemGoogleCommon", "OnlineServiceName", "Google");
 }
 

@@ -83,6 +83,7 @@ bool FAudioDeviceManager::CreateAudioDevice(bool bCreateNewDevice, FCreateAudioD
 			{
 				OutResults.Handle = MainAudioDevice->DeviceHandle;
 				OutResults.AudioDevice = MainAudioDevice;
+				OutResults.AudioDevice->FadeIn();
 				return true;
 			}
 			return false;
@@ -144,10 +145,20 @@ bool FAudioDeviceManager::CreateAudioDevice(bool bCreateNewDevice, FCreateAudioD
 	++NumActiveAudioDevices;
 
 	const UAudioSettings* AudioSettings = GetDefault<UAudioSettings>();
-	if (!OutResults.AudioDevice->Init(AudioSettings->GetQualityLevelSettings(GEngine->GetGameUserSettings()->GetAudioQualityLevel()).MaxChannels))
+	if (OutResults.AudioDevice->Init(AudioSettings->GetHighestMaxChannels())) //-V595
+	{
+		OutResults.AudioDevice->SetMaxChannels(AudioSettings->GetQualityLevelSettings(GEngine->GetGameUserSettings()->GetAudioQualityLevel()).MaxChannels); //-V595
+	}
+	else
 	{
 		ShutdownAudioDevice(OutResults.Handle);
 		OutResults = FCreateAudioDeviceResults();
+	}
+
+	// We need to call fade in, in case we're reusing audio devices
+	if (OutResults.AudioDevice)
+	{
+		OutResults.AudioDevice->FadeIn();
 	}
 
 	return (OutResults.AudioDevice != nullptr);

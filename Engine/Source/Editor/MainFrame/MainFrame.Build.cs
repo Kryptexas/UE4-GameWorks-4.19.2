@@ -18,7 +18,6 @@ public class MainFrame : ModuleRules
 			new string[] {
 				"Core",
 				"CoreUObject",
-				"CrashTracker",
 				"Engine",
 				"EngineSettings",
                 "InputCore",
@@ -34,7 +33,6 @@ public class MainFrame : ModuleRules
 				"UnrealEd",
 				"WorkspaceMenuStructure",
 				"MessageLog",
-//				"SearchUI",
 				"UATHelper",
 				"TranslationEditor",
 				"Projects",
@@ -52,7 +50,6 @@ public class MainFrame : ModuleRules
 				"ProjectTargetPlatformEditor",
 				"LevelEditor",
                 "OutputLog",
-				"SuperSearch",
 				"Settings",
 				"SourceCodeAccess",
                 "Toolbox",
@@ -75,9 +72,7 @@ public class MainFrame : ModuleRules
 				"ProjectTargetPlatformEditor",
 				"LevelEditor",
                 "OutputLog",
-				"SuperSearch",
 				"SourceCodeAccess",
-				"EditorLiveStreaming",
 				"HotReload",
                 "LocalizationDashboard",
 			}

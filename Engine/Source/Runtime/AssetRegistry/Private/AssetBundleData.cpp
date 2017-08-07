@@ -8,6 +8,9 @@ bool FAssetBundleData::SetFromAssetData(const FAssetData& AssetData)
 {
 	FString TagValue;
 
+	// Register that we're reading string assets for a specific package
+	FStringAssetReferenceSerializationScope SerializationScope(AssetData.PackageName, FAssetBundleData::StaticStruct()->GetFName(), EStringAssetReferenceCollectType::AlwaysCollect);
+
 	if (AssetData.GetTagValue(FAssetBundleData::StaticStruct()->GetFName(), TagValue))
 	{
 		if (FAssetBundleData::StaticStruct()->ImportText(*TagValue, this, nullptr, PPF_None, (FOutputDevice*)GWarn, AssetData.AssetName.ToString()))
@@ -77,7 +80,41 @@ void FAssetBundleData::AddBundleAssets(FName BundleName, const TArray<FStringAss
 	}
 }
 
+void FAssetBundleData::SetBundleAssets(FName BundleName, TArray<FStringAssetReference>&& AssetPaths)
+{
+	FAssetBundleEntry* FoundEntry = FindEntry(FPrimaryAssetId(), BundleName);
+
+	if (!FoundEntry)
+	{
+		FoundEntry = new(Bundles) FAssetBundleEntry(FPrimaryAssetId(), BundleName);
+	}
+
+	FoundEntry->BundleAssets = AssetPaths;
+}
+
 void FAssetBundleData::Reset()
 {
 	Bundles.Reset();
+}
+
+bool FAssetBundleData::ExportTextItem(FString& ValueStr, FAssetBundleData const& DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope) const
+{
+	if (Bundles.Num() == 0)
+	{
+		// Empty, don't write anything to avoid it cluttering the asset registry tags
+		return true;
+	}
+	// Not empty, do normal export
+	return false;
+}
+
+bool FAssetBundleData::ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText)
+{
+	if (*Buffer != TEXT('('))
+	{
+		// Empty, don't read/write anything
+		return true;
+	}
+	// Full structure, do normal parse
+	return false;
 }

@@ -11,6 +11,7 @@
 #include "Widgets/Views/STableViewBase.h"
 #include "Widgets/Views/STableRow.h"
 #include "WidgetReference.h"
+#include "WidgetBlueprintEditor.h"
 
 class FWidgetBlueprintEditor;
 
@@ -18,6 +19,7 @@ class FHierarchyModel : public TSharedFromThis < FHierarchyModel >
 {
 public:
 	FHierarchyModel(TSharedPtr<FWidgetBlueprintEditor> InBlueprintEditor);
+	virtual ~FHierarchyModel() { }
 
 	/** Gets the unique name of the item used to restore item expansion. */
 	virtual FName GetUniqueName() const = 0;
@@ -56,17 +58,38 @@ public:
 	void RefreshSelection();
 	bool ContainsSelection();
 	bool IsSelected() const;
-	
+
 	virtual bool IsHovered() const { return false; }
 	virtual bool IsVisible() const { return true; }
 	virtual bool CanControlVisibility() const { return false; }
 	virtual void SetIsVisible(bool IsVisible) { }
 
+	virtual bool CanControlLockedInDesigner() const { return false; }
+	virtual bool IsLockedInDesigner() { return false; }
+	virtual void SetIsLockedInDesigner(bool NewIsLocked, bool bRecursive)
+	{
+		if (bRecursive)
+		{
+			TArray< TSharedPtr<FHierarchyModel> > Children;
+			GetChildren(Children);
+			for (TSharedPtr<FHierarchyModel>& child : Children)
+			{
+				if (child.IsValid())
+				{
+					child->SetIsLockedInDesigner(NewIsLocked, bRecursive);
+				}
+			}
+		}
+	}
+
 	virtual bool IsExpanded() const { return true; }
 	virtual void SetExpanded(bool bIsExpanded) { }
 
 	virtual bool CanRename() const { return false; }
-	virtual void BeginRename() { }
+	virtual void RequestBeginRename() { }
+
+	virtual void OnBeginEditing() { }
+	virtual void OnEndEditing() { }
 
 	virtual bool IsRoot() const { return false; }
 
@@ -213,6 +236,33 @@ public:
 		}
 	}
 
+	virtual bool CanControlLockedInDesigner() const override
+	{
+		return true;
+	}
+
+	virtual bool IsLockedInDesigner() override
+	{
+		UWidget* TemplateWidget = Item.GetTemplate();
+		if (TemplateWidget)
+		{
+			return TemplateWidget->IsLockedInDesigner();
+		}
+
+		return false;
+	}
+
+	virtual void SetIsLockedInDesigner(bool NewIsLocked, bool bRecursive) override
+	{
+		FHierarchyModel::SetIsLockedInDesigner(NewIsLocked, bRecursive);
+
+		if(Item.GetTemplate() && Item.GetPreview())
+		{
+			Item.GetTemplate()->SetLockedInDesigner(NewIsLocked);
+			Item.GetPreview()->SetLockedInDesigner(NewIsLocked);
+		}
+	}
+
 	virtual bool IsExpanded() const override
 	{
 		return Item.GetTemplate()->bExpandedInDesigner;
@@ -224,7 +274,10 @@ public:
 	}
 
 	virtual bool CanRename() const override;
-	virtual void BeginRename() override;
+	virtual void RequestBeginRename() override;
+
+	virtual void OnBeginEditing() override;
+	virtual void OnEndEditing() override;
 
 protected:
 	virtual void GetChildren(TArray< TSharedPtr<FHierarchyModel> >& Children) override;
@@ -233,6 +286,7 @@ protected:
 
 private:
 	FWidgetReference Item;
+	bool bEditing;
 };
 
 /**
@@ -265,16 +319,19 @@ public:
 	TOptional<EItemDropZone> HandleCanAcceptDrop(const FDragDropEvent& DragDropEvent, EItemDropZone DropZone, TSharedPtr<FHierarchyModel> TargetItem);
 	FReply HandleAcceptDrop(const FDragDropEvent& DragDropEvent, EItemDropZone DropZone, TSharedPtr<FHierarchyModel> TargetItem);
 
+private:
+
+	void OnBeginNameTextEdit();
+	void OnEndNameTextEdit();
+
 	/** Called when text is being committed to check for validity */
 	bool OnVerifyNameTextChanged(const FText& InText, FText& OutErrorMessage);
 
 	/** Called when text is committed on the node */
 	void OnNameTextCommited(const FText& InText, ETextCommit::Type CommitInfo);
 
-	bool CanRename() const;
-	void BeginRename();
-
-private:
+	bool IsReadOnly() const;
+	void OnRequestBeginRename();
 
 	/** Gets the font to use for the text item, bold for customized named items */
 	FSlateFontInfo GetItemFont() const;
@@ -284,6 +341,12 @@ private:
 
 	/** Handles clicking the visibility toggle */
 	FReply OnToggleVisibility();
+
+	/** Handles clicking the locked toggle */
+	FReply OnToggleLockedInDesigner();
+
+	/** Returns a brush representing the lock item of the widget's lock button */
+	FText GetLockBrushForWidget() const;
 
 	/** Returns a brush representing the visibility item of the widget's visibility button */
 	FText GetVisibilityBrushForWidget() const;
@@ -295,4 +358,7 @@ private:
 
 	/* The mode that this tree item represents */
 	TSharedPtr<FHierarchyModel> Model;
+
+	/** Text when we start editing. */
+	FText InitialText;
 };

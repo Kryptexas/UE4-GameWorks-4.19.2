@@ -19,7 +19,7 @@ void AddPropertiesRecursive(TSharedRef<IPropertyHandle> Property, IDetailChildre
 		TSharedRef<IPropertyHandle> Child = Property->GetChildHandle(Index).ToSharedRef();
 		if (Child->GetProperty())
 		{
-			ChildBuilder.AddChildProperty(Child);
+			ChildBuilder.AddProperty(Child);
 		}
 		else
 		{

@@ -17,6 +17,7 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogPaths, Log, All);
 
+FString FPaths::GameProjectFilePath;
 
 /*-----------------------------------------------------------------------------
 	Path helpers for retrieving game dir, engine dir, etc.
@@ -147,6 +148,16 @@ FString FPaths::EngineSavedDir()
 FString FPaths::EnginePluginsDir()
 {
 	return FPaths::EngineDir() + TEXT("Plugins/");
+}
+
+FString FPaths::EnterpriseDir()
+{
+	return FPaths::RootDir() + TEXT("Enterprise/");
+}
+
+FString FPaths::EnterprisePluginsDir()
+{
+	return EnterpriseDir() + TEXT("Plugins/");
 }
 
 FString FPaths::RootDir()
@@ -564,6 +575,16 @@ FString FPaths::ChangeExtension(const FString& InPath, const FString& InNewExten
 	int32 Pos = INDEX_NONE;
 	if (InPath.FindLastChar('.', Pos))
 	{
+		const int32 PathEndPos = InPath.FindLastCharByPredicate(UE4Paths_Private::IsSlashOrBackslash);
+		if (PathEndPos != INDEX_NONE && PathEndPos > Pos)
+		{
+			// The dot found was part of the path rather than the name
+			Pos = INDEX_NONE;
+		}
+	}
+
+	if (Pos != INDEX_NONE)
+	{
 		FString Result = InPath.Left(Pos);
 
 		if (InNewExtension.Len() && InNewExtension[0] != '.')
@@ -582,7 +603,15 @@ FString FPaths::ChangeExtension(const FString& InPath, const FString& InNewExten
 FString FPaths::SetExtension(const FString& InPath, const FString& InNewExtension)
 {
 	int32 Pos = INDEX_NONE;
-	InPath.FindLastChar('.', Pos);
+	if (InPath.FindLastChar('.', Pos))
+	{
+		const int32 PathEndPos = InPath.FindLastCharByPredicate(UE4Paths_Private::IsSlashOrBackslash);
+		if (PathEndPos != INDEX_NONE && PathEndPos > Pos)
+		{
+			// The dot found was part of the path rather than the name
+			Pos = INDEX_NONE;
+		}
+	}
 
 	FString Result = Pos == INDEX_NONE ? InPath : InPath.Left(Pos);
 
@@ -805,6 +834,9 @@ void FPaths::MakeStandardFilename(FString& InPath)
 	{
 #if !PLATFORM_HTML5
 		InPath = FPlatformProcess::BaseDir();
+		// if the base directory is nothing then this function will recurse infinitely instead of returning nothing. 
+		if (InPath.Len() == 0)
+			return;
 		FPaths::MakeStandardFilename(InPath);
 #else
 		// @todo: revisit this as needed
@@ -1120,7 +1152,7 @@ bool FPaths::IsSamePath(const FString& PathA, const FString& PathB)
 	MakeStandardFilename(TmpA);
 	MakeStandardFilename(TmpB);
 
-#if defined(PLATFORM_WINDOWS) || defined(PLATFORM_XBOXONE)
+#if PLATFORM_WINDOWS || PLATFORM_XBOXONE
 	return FCString::Stricmp(*TmpA, *TmpB) == 0;
 #else
 	return FCString::Strcmp(*TmpA, *TmpB) == 0;

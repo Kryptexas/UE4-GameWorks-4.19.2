@@ -163,6 +163,10 @@ public:
 	{
 	}
 
+	virtual ~FJsonSerializerWriter()
+	{
+	}
+
     /** Is the JSON being read from */
 	virtual bool IsLoading() const override { return false; }
     /** Is the JSON being written to */
@@ -378,6 +382,10 @@ public:
 	 */
 	FJsonSerializerReader(TSharedPtr<FJsonObject> InJsonObject) :
 		JsonObject(InJsonObject)
+	{
+	}
+
+	virtual ~FJsonSerializerReader()
 	{
 	}
 

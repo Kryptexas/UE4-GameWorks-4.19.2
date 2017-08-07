@@ -95,6 +95,11 @@ void FAndroidLocalNotificationService::ScheduleLocalNotificationAtTime(const FDa
 	#endif
 }
 
+void FAndroidLocalNotificationService::ScheduleLocalNotificationBadgeAtTime(const FDateTime& FireDateTime, bool LocalTime, const FString& ActivationEvent)
+{
+	// Do nothing...
+}
+
 void FAndroidLocalNotificationService::GetLaunchNotification(bool& NotificationLaunchedApp, FString& ActivationEvent, int32& FireDate)
 {
 	#if PLATFORM_ANDROID

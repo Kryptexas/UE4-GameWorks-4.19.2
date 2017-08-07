@@ -33,6 +33,26 @@ namespace ENavigationShapeType
 	};
 }
 
+namespace ENavigationAreaMode
+{
+	enum Type
+	{
+		// apply area modifier on all voxels in bounds 
+		Apply,
+		
+		// apply area modifier only on those voxels in bounds that are matching replace area Id
+		Replace,
+
+		// apply area modifier on all voxels in bounds, performed during low area prepass (see: ARecastNavMesh.bMarkLowHeightAreas)
+		// (ReplaceInLowPass: mark ONLY "low" voxels that will be removed after prepass, ApplyInLowPass: mark all voxels, including "low" ones)
+		ApplyInLowPass,
+
+		// apply area modifier only on those voxels in bounds that are matching replace area Id, performed during low area prepass (see: ARecastNavMesh.bMarkLowHeightAreas)
+		// (ReplaceInLowPass: mark ONLY "low" voxels that will be removed after prepass, ApplyInLowPass: mark all voxels, including "low" ones)
+		ReplaceInLowPass,
+	};
+}
+
 namespace ENavigationCoordSystem
 {
 	enum Type
@@ -71,7 +91,7 @@ struct ENGINE_API FAreaNavModifier : public FNavigationModifier
 	float Cost;
 	float FixedCost;
 
-	FAreaNavModifier() : Cost(0.0f), FixedCost(0.0f), ShapeType(ENavigationShapeType::Unknown), bIncludeAgentHeight(false) {}
+	FAreaNavModifier() : Cost(0.0f), FixedCost(0.0f), Bounds(ForceInitToZero), ShapeType(ENavigationShapeType::Unknown), ApplyMode(ENavigationAreaMode::Apply), bIncludeAgentHeight(false) {}
 	FAreaNavModifier(float Radius, float Height, const FTransform& LocalToWorld, const TSubclassOf<UNavArea> AreaClass);
 	FAreaNavModifier(const FVector& Extent, const FTransform& LocalToWorld, const TSubclassOf<UNavArea> AreaClass);
 	FAreaNavModifier(const FBox& Box, const FTransform& LocalToWorld, const TSubclassOf<UNavArea> AreaClass);
@@ -82,11 +102,19 @@ struct ENGINE_API FAreaNavModifier : public FNavigationModifier
 
 	FORCEINLINE const FBox& GetBounds() const { return Bounds; }
 	FORCEINLINE ENavigationShapeType::Type GetShapeType() const { return ShapeType; }
+	FORCEINLINE ENavigationAreaMode::Type GetApplyMode() const { return ApplyMode; }
 	FORCEINLINE bool ShouldIncludeAgentHeight() const { return bIncludeAgentHeight; }
 	FORCEINLINE void SetIncludeAgentHeight(bool bInclude) { bIncludeAgentHeight = bInclude; }
 	FORCEINLINE const TSubclassOf<UNavArea> GetAreaClass() const { return TSubclassOf<UNavArea>(AreaClassOb.Get()); }
 	FORCEINLINE const TSubclassOf<UNavArea> GetAreaClassToReplace() const { return TSubclassOf<UNavArea>(ReplaceAreaClassOb.Get()); }
+
+	/** navigation area applied by this modifier */
 	void SetAreaClass(const TSubclassOf<UNavArea> AreaClass);
+
+	/** operation mode, ReplaceInLowPass will always automatically use UNavArea_LowHeight as ReplaceAreaClass! */
+	void SetApplyMode(ENavigationAreaMode::Type InApplyMode);
+	
+	/** additional class for used by some ApplyModes, setting it will automatically change ApplyMode to keep backwards compatibility! */
 	void SetAreaClassToReplace(const TSubclassOf<UNavArea> AreaClass);
 
 	void GetCylinder(FCylinderNavAreaData& Data) const;
@@ -101,6 +129,7 @@ protected:
 	
 	TArray<FVector> Points;
 	TEnumAsByte<ENavigationShapeType::Type> ShapeType;
+	TEnumAsByte<ENavigationAreaMode::Type> ApplyMode;
 
 	/** if set, area shape will be extended by agent's height to cover area underneath like regular colliding geometry */
 	uint8 bIncludeAgentHeight : 1;

@@ -271,6 +271,12 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ToolTip = "Whether the custom depth pass has the TemporalAA jitter enabled. Disabling this can be useful when the result of the CustomDepth Pass is used after TAA (e.g. after Tonemapping)"))
 	uint32 bCustomDepthTaaJitter : 1;
 
+	UPROPERTY(config, EditAnywhere, Category = Postprocessing, meta = (
+		ConsoleVariable = "r.PostProcessing.PropagateAlpha", DisplayName = "Enable alpha channel support in post processing (experimental).",
+		ToolTip = "Whether alpha channel should be supported in post processing chain. Still experimental: works only with Temporal AA, Motion Blur, Circle Depth Of Field. This option also force disable the separate translucency.",
+		ConfigRestartRequired = true))
+	uint32 bEnableAlphaChannelInPostProcessing : 1;
+
 	UPROPERTY(config, EditAnywhere, Category = DefaultSettings, meta = (
 		ConsoleVariable = "r.DefaultFeature.Bloom", DisplayName = "Bloom",
 		ToolTip = "Whether the default for Bloom is enabled or not (postprocess volume/camera/game setting can still override and enable or disable it independently)"))
@@ -406,7 +412,7 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 	UPROPERTY(config, EditAnywhere, Category = VR, meta = (
 		EditCondition = "bMobileMultiView",
 		ConsoleVariable = "vr.MobileMultiView.Direct", DisplayName = "Mobile Multi-View Direct",
-		ToolTip = "Enable direct mobile multi-view rendering (only available on multi-view enabled GearVR Android devices).",
+		ToolTip = "Enable direct mobile multi-view rendering (only available on multi-view enabled GearVR and Daydream Android devices).",
 		ConfigRestartRequired = true))
 		uint32 bMobileMultiViewDirect : 1;
 
@@ -497,6 +503,12 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ConsoleVariable = "r.SkinCache.SceneMemoryLimitInMB", DisplayName = "Maximum memory for Compute Skincache per world (MB)",
 		ToolTip = "Maximum amount of memory (in MB) per world/scene allowed for the Compute Skincache to generate output vertex data and recompute tangents."))
 		float SkinCacheSceneMemoryLimitInMB;
+
+	UPROPERTY(config, EditAnywhere, Category = Optimizations, meta = (
+		ConsoleVariable = "r.GPUSkin.Limit2BoneInfluences", DisplayName = "Limit GPU skinning to 2 bones influence",
+		ToolTip = "Whether to use 2 bone influences instead of the default of 4 for GPU skinning. This does not change skeletal mesh assets but reduces the number of instructions required by the GPU skin vertex shaders. Changing this setting requires restarting the editor.",
+		ConfigRestartRequired = true))
+		uint32 bGPUSkinLimit2BoneInfluences : 1;
 
 public:
 

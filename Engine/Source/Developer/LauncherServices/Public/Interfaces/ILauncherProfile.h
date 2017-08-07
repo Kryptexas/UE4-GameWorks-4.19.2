@@ -172,6 +172,12 @@ namespace ELauncherProfileValidationErrors
 		/** generating patch requires cook by the book mode*/
 		GeneratingPatchesCanOnlyRunFromByTheBookCookMode,
 
+		/** generating multilevel patch requires generating patch */
+		GeneratingMultiLevelPatchesRequiresGeneratePatch,
+
+		/** staging base release pak files requires a base release version to be specified */
+		StagingBaseReleasePaksWithoutABaseReleaseVersion,
+
 		/** Generating Chunks requires cook by the book mode */
 		GeneratingChunksRequiresCookByTheBook,
 
@@ -685,6 +691,16 @@ public:
 	 * @Seealso GetPatchSourceContentPath	 * @Seealso SetPatchSourceContentPath
 	 */
 	virtual bool IsGeneratingPatch() const = 0;
+	
+	/**
+	 * Are we going to generate a new patch tier
+	 */
+	virtual bool ShouldAddPatchLevel() const = 0;
+
+	/**
+	 * Should we stage the pak files from the base release version this patch is built on
+	 */
+	virtual bool ShouldStageBaseReleasePaks() const = 0;
 
 	/**
 	 * Checks whether the game should be built.
@@ -1043,7 +1059,8 @@ public:
 	 * @seealso IsGeneratingPatch
 	 */
 	virtual void SetGeneratePatch( bool InShouldGeneratePatch ) = 0;
-
+	virtual void SetAddPatchLevel( bool InAddPatchLevel) = 0;
+	virtual void SetStageBaseReleasePaks(bool InStageBaseReleasePaks) = 0;
 
 	virtual bool IsCreatingDLC() const = 0;
 	virtual void SetCreateDLC(bool InBuildDLC) = 0;

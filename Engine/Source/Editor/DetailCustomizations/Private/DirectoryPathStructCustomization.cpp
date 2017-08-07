@@ -30,8 +30,7 @@ void FDirectoryPathStructCustomization::CustomizeHeader( TSharedRef<IPropertyHan
 
 	const bool bRelativeToGameContentDir = StructPropertyHandle->HasMetaData( TEXT("RelativeToGameContentDir") );
 	const bool bUseRelativePath = StructPropertyHandle->HasMetaData( TEXT("RelativePath") );
-	const bool bLongPackageName = StructPropertyHandle->HasMetaData( TEXT("LongPackageName") );
-	const bool bContentDir = StructPropertyHandle->HasMetaData( TEXT("ContentDir") );
+	const bool bContentDir = StructPropertyHandle->HasMetaData( TEXT("ContentDir") ) || StructPropertyHandle->HasMetaData(TEXT("LongPackageName"));
 
 	AbsoluteGameContentDir = FPaths::ConvertRelativePathToFull(FPaths::GameContentDir());
 
@@ -60,7 +59,7 @@ void FDirectoryPathStructCustomization::CustomizeHeader( TSharedRef<IPropertyHan
 			PickerWidget = SAssignNew(BrowseButton, SButton)
 			.ButtonStyle( FEditorStyle::Get(), "HoverHintOnly" )
 			.ToolTipText( LOCTEXT( "FolderButtonToolTipText", "Choose a directory from this computer") )
-			.OnClicked( FOnClicked::CreateSP(this, &FDirectoryPathStructCustomization::OnPickDirectory, PathProperty.ToSharedRef(), bRelativeToGameContentDir, bUseRelativePath,bLongPackageName) )
+			.OnClicked( FOnClicked::CreateSP(this, &FDirectoryPathStructCustomization::OnPickDirectory, PathProperty.ToSharedRef(), bRelativeToGameContentDir, bUseRelativePath) )
 			.ContentPadding( 2.0f )
 			.ForegroundColor( FSlateColor::UseForeground() )
 			.IsFocusable( false )
@@ -127,7 +126,7 @@ FReply FDirectoryPathStructCustomization::OnPickContent(TSharedRef<IPropertyHand
 	return FReply::Handled();
 }
 
-FReply FDirectoryPathStructCustomization::OnPickDirectory(TSharedRef<IPropertyHandle> PropertyHandle, const bool bRelativeToGameContentDir, const bool bUseRelativePath, const bool bLongPackageName) const
+FReply FDirectoryPathStructCustomization::OnPickDirectory(TSharedRef<IPropertyHandle> PropertyHandle, const bool bRelativeToGameContentDir, const bool bUseRelativePath) const
 {
 	FString Directory;
 	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
@@ -153,25 +152,11 @@ FReply FDirectoryPathStructCustomization::OnPickDirectory(TSharedRef<IPropertyHa
 				{
 					FEditorDirectories::Get().SetLastDirectory(ELastDirectory::GENERIC_IMPORT, Directory);
 
-					if (bLongPackageName)
-					{
-						FString LongPackageName;
-						FString StringFailureReason;
-						if (FPackageName::TryConvertFilenameToLongPackageName(Directory, LongPackageName, &StringFailureReason) == false)
-						{
-							StartDirectory = Directory;
-							FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(StringFailureReason));
-							continue;
-						}
-						Directory = LongPackageName;
-					}
-
 					if (bRelativeToGameContentDir)
 					{
 						Directory = Directory.RightChop(AbsoluteGameContentDir.Len());
 					}
-
-					if (bUseRelativePath)
+					else if (bUseRelativePath)
 					{
 						Directory = IFileManager::Get().ConvertToRelativePath(*Directory);
 					}

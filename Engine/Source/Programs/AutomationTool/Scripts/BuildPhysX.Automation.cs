@@ -15,7 +15,7 @@ using UnrealBuildTool;
 [Help("TargetLibs", "Specify a list of target libraries to build, separated by '+' characters (eg. -TargetLibs=PhysX+APEX). Default is PhysX+APEX.")]
 [Help("TargetPlatforms", "Specify a list of target platforms to build, separated by '+' characters (eg. -TargetPlatforms=Win32+Win64). Architectures are specified with '-'. Default is Win32+Win64+PS4.")]
 [Help("TargetConfigs", "Specify a list of configurations to build, separated by '+' characters (eg. -TargetConfigs=profile+debug). Default is profile+release+checked.")]
-[Help("TargetWindowsCompilers", "Specify a list of target compilers to use when building for Windows, separated by '+' characters (eg. -TargetCompilers=VisualStudio2012+VisualStudio2015). Default is VisualStudio2013+VisualStudio2015.")]
+[Help("TargetWindowsCompilers", "Specify a list of target compilers to use when building for Windows, separated by '+' characters (eg. -TargetCompilers=VisualStudio2012+VisualStudio2015). Default is VisualStudio2015.")]
 [Help("SkipBuild", "Do not perform build step. If this argument is not supplied libraries will be built (in accordance with TargetLibs, TargetPlatforms and TargetWindowsCompilers).")]
 [Help("SkipDeployLibs", "Do not perform library deployment to the engine. If this argument is not supplied libraries will be copied into the engine.")]
 [Help("SkipDeploySource", "Do not perform source deployment to the engine. If this argument is not supplied source will be copied into the engine.")]
@@ -250,7 +250,6 @@ class BuildPhysX : BuildCommand
 						return "\"" + DirectoryReference.Combine(PhysXCMakeFiles, "HTML5").ToString() + "\"" +
 							" -G \"Unix Makefiles\" -DTARGET_BUILD_PLATFORM=HTML5" +
 							" -DPXSHARED_ROOT_DIR=\"" + SharedSourceRootDirectory.ToString() + "\"" +
-							" -DNVSIMD_INCLUDE_DIR=\"" + SharedSourceRootDirectory.ToString() + "/src/NvSimd\"" +
 							" -DNVTOOLSEXT_INCLUDE_DIRS=\"" + PhysX34SourceRootDirectory + "/externals/nvToolsExt/include\"" +
 							" -DEMSCRIPTEN_GENERATE_BITCODE_STATIC_LIBRARIES=ON " +
 							" -DCMAKE_BUILD_TYPE=\"Release\" -DCMAKE_TOOLCHAIN_FILE=\"" + CmakeToolchainFile + "\"" +
@@ -677,7 +676,7 @@ class BuildPhysX : BuildCommand
 						Environment.SetEnvironmentVariable("LIB_SUFFIX", GetConfigurationSuffix(BuildConfig, TargetData)); // only used in HTML5's CMakefiles
 
 						string orig = File.ReadAllText(HTML5SDKInfo.EmscriptenCMakeToolChainFile);
-						string txt = Regex.Replace(orig, "(EPIC_BUILD_FLAGS}) .*-O2" , "$1 " + BuildMap[BuildConfig] );
+						string txt = Regex.Replace(orig, "-O2" , BuildMap[BuildConfig] );
 						string CmakeToolchainFile = FileReference.Combine(HTML5CMakeModules, "Emscripten." + BuildConfig + ".cmake").ToString();
 						File.WriteAllText(CmakeToolchainFile, txt);
 

@@ -908,29 +908,10 @@ void FPhATSharedData::InitConstraintSetup(UPhysicsConstraintTemplate* Constraint
 	UBodySetup* ParentBodySetup = PhysicsAsset->SkeletalBodySetups[ ParentBodyIndex ];
 	check(ChildBodySetup && ParentBodySetup);
 
-	const int32 ChildBoneIndex = EditorSkelMesh->RefSkeleton.FindBoneIndex(ChildBodySetup->BoneName);
-	const int32 ParentBoneIndex = EditorSkelMesh->RefSkeleton.FindBoneIndex(ParentBodySetup->BoneName);
-	check(ChildBoneIndex != INDEX_NONE && ParentBoneIndex != INDEX_NONE);
-
-	// Transform of child from parent is just child ref-pose entry.
-	FMatrix ChildBoneTM = EditorSkelComp->GetBoneMatrix(ChildBoneIndex);
-	ChildBoneTM.RemoveScaling();
-
-	FMatrix ParentBoneTM = EditorSkelComp->GetBoneMatrix(ParentBoneIndex);
-	ParentBoneTM.RemoveScaling();
-
-	FMatrix RelTM = ChildBoneTM * ParentBoneTM.Inverse();
-
 	// Place joint at origin of child
 	ConstraintSetup->DefaultInstance.ConstraintBone1 = ChildBodySetup->BoneName;
-	ConstraintSetup->DefaultInstance.Pos1 = FVector::ZeroVector;
-	ConstraintSetup->DefaultInstance.PriAxis1 = FVector(1.f, 0.f, 0.f);
-	ConstraintSetup->DefaultInstance.SecAxis1 = FVector(0.f, 1.f, 0.f);
-
 	ConstraintSetup->DefaultInstance.ConstraintBone2 = ParentBodySetup->BoneName;
-	ConstraintSetup->DefaultInstance.Pos2 = RelTM.GetOrigin();
-	ConstraintSetup->DefaultInstance.PriAxis2 = RelTM.GetUnitAxis( EAxis::X );
-	ConstraintSetup->DefaultInstance.SecAxis2 = RelTM.GetUnitAxis( EAxis::Y );
+	SnapConstraintToBone(ConstraintSetup->DefaultInstance);
 
 	ConstraintSetup->SetDefaultProfile(ConstraintSetup->DefaultInstance);
 
@@ -1073,6 +1054,31 @@ void FPhATSharedData::SetConstraintRelTM(const FPhATSharedData::FSelection* Cons
 
 		ConstraintSetup->DefaultInstance.SetRefFrame(EConstraintFrame::Frame1, WNewChildFrame.GetRelativeTransform(BoneTM));
 	}
+}
+
+void FPhATSharedData::SnapConstraintToBone(int32 ConstraintIndex)
+{
+	UPhysicsConstraintTemplate* ConstraintSetup = PhysicsAsset->ConstraintSetup[ConstraintIndex];
+	ConstraintSetup->Modify();
+	SnapConstraintToBone(ConstraintSetup->DefaultInstance);
+}
+
+void FPhATSharedData::SnapConstraintToBone(FConstraintInstance& ConstraintInstance)
+{
+	const int32 BoneIndex1 = EditorSkelMesh->RefSkeleton.FindBoneIndex(ConstraintInstance.ConstraintBone1);
+	const int32 BoneIndex2 = EditorSkelMesh->RefSkeleton.FindBoneIndex(ConstraintInstance.ConstraintBone2);
+
+	check(BoneIndex1 != INDEX_NONE);
+	check(BoneIndex2 != INDEX_NONE);
+
+	const FTransform BoneTransform1 = EditorSkelComp->GetBoneTransform(BoneIndex1);
+	const FTransform BoneTransform2 = EditorSkelComp->GetBoneTransform(BoneIndex2);
+
+	// Bone transforms are world space, and frame transforms are local space (local to bones).
+	// Frame 1 is the child frame, and set to identity.
+	// Frame 2 is the parent frame, and needs to be set relative to Frame1.
+	ConstraintInstance.SetRefFrame(EConstraintFrame::Frame2, BoneTransform1.GetRelativeTransform(BoneTransform2));
+	ConstraintInstance.SetRefFrame(EConstraintFrame::Frame1, FTransform::Identity);
 }
 
 void FPhATSharedData::CopyConstraint()

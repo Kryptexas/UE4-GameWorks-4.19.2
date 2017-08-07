@@ -52,7 +52,7 @@ TSharedRef<SWidget> UNamedSlot::RebuildWidget()
 		}
 	}
 
-	return BuildDesignTimeWidget( MyBox.ToSharedRef() );
+	return MyBox.ToSharedRef();
 }
 
 void UNamedSlot::OnSlotAdded(UPanelSlot* InSlot)

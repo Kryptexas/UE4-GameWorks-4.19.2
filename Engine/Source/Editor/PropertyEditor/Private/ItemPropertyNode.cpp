@@ -112,16 +112,6 @@ uint8* FItemPropertyNode::GetValueAddress( uint8* StartAddress )
 		FScriptArrayHelper ArrayHelper(ArrayProperty,Result);
 		Result = ArrayHelper.GetRawPtr();
 	}
-	else if (Result && SetProperty)
-	{
-		FScriptSetHelper SetHelper(SetProperty, Result);
-		Result = SetHelper.GetElementPtr(0);
-	}
-	else if (Result && MapProperty)
-	{
-		FScriptMapHelper MapHelper(MapProperty, Result);
-		Result = MapHelper.GetPairPtr(0);
-	}
 
 	return Result;
 }

@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3069483
+﻿INTSourceChangelist:3388666
 Availability:Public
 Title:2.1- キャラクターを新規作成する
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
 Description:FPS プロジェクト用にキャラクターを新規作成する方法を学びます。
 SkillLevel:Beginner
-Version:4.11
+Version:4.15
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -64,43 +64,43 @@ Version:4.11
 1.	`FPSCharacter.cpp` は以下のようになります。
 
 		// Fill out your copyright notice in the Description page of Project Settings. (Project Settings の Description ページに著作権情報を入力してください) 
-
 		#include "FPSProject.h"
+
 		#include "FPSCharacter.h"
 				// Sets default values (デフォルト値を設定) 
 
 		AFPSCharacter::AFPSCharacter()
 		{
-		 	//Set this character to call Tick() every frame. (このポーンがフレーム毎に Tick() を呼び出すように設定します) You can turn this off to improve performance if you don't need it. (必要がなければパフォーマンスを向上させるためにオフにすることができます) 
+		 	// Set this character to call Tick() every frame. (このキャラクターがフレーム毎に Tick() を呼び出すように設定します) You can turn this off to improve performance if you don't need it. (必要がなければパフォーマンスを向上させるためにオフにすることができます) 
 			PrimaryActorTick.bCanEverTick = true;
 		}
 
-		// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼ばれます)
+		// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼び出される)
 
 		void AFPSCharacter::BeginPlay()
 		{
 			Super::BeginPlay();
-
 			if (GEngine)
+
 			{
 				// Put up a debug message for five seconds. (デバッグ メッセージを 5 秒間表示) The -1 "Key" value (first argument) indicates that we will never need to update or refresh this message. ( -1 のキー値 (最初の引数) は、このメッセージを更新、リフレッシュする必要がないことを示しています) 
 				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("We are using FPSCharacter."));
 			}
 		}
+		// Called every frame (フレームごとに呼び出される)
 
-		// Called every frame (フレームごとに呼ばれます) 
 		void AFPSCharacter::Tick( float DeltaTime )
 		{
 			Super::Tick( DeltaTime );
-
 		}
 
-		// Called to bind functionality to input (機能と入力をバインドするために呼ばれます) 
-		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
+		// Called to bind functionality to input (機能と入力をバインドするために呼ばれます)
+
+		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 		{
-			Super::SetupPlayerInputComponent(InputComponent);
-
+			Super::SetupPlayerInputComponent(PlayerInputComponent);
 		}
+
 
 1.	Visual Studio に `FPSCharacter` CPP ファイルを保存します。
 
@@ -151,7 +151,7 @@ CPP FPS Character クラスをブループリントに拡張します。C++ ク�
 
 1.	**[Project Settings]** メニューを閉じます。
 
-1.	レベル エディタのツールバーで、**[Play (再生)]** ボタンをクリックします。ビューポートの左上隅に "Hello World, this is FPSGameMode!" と表示される黄色のテキストの下に "We are using FPSCharacter." が赤色のテキストで 5 秒間表示されるようになります。
+1.	レベル エディタのツールバー で、**[Play (プレイ)]** ボタンをクリックします。ビューポートの左上隅に "Hello World, this is FPSGameMode!" と表示される黄色のテキストの下に "We are using FPSCharacter." が赤色のテキストで 5 秒間表示されるようになります。
 
 	![](VerifyingFPSCharacterResult.png)
 

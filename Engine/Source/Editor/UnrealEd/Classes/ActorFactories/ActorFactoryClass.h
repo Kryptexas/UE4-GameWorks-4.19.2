@@ -9,7 +9,7 @@
 #include "ActorFactoryClass.generated.h"
 
 class AActor;
-class FAssetData;
+struct FAssetData;
 class ULevel;
 
 UCLASS(MinimalAPI, config=Editor, collapsecategories, hidecategories=Object)

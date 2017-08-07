@@ -179,7 +179,7 @@ private:
 	FShaderParameter ShadowConvexHull;
 };
 
-IMPLEMENT_SHADER_TYPE(,FCullObjectsForShadowCS,TEXT("DistanceFieldShadowing"),TEXT("CullObjectsForShadowCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FCullObjectsForShadowCS,TEXT("/Engine/Private/DistanceFieldShadowing.usf"),TEXT("CullObjectsForShadowCS"),SF_Compute);
 
 
 /**  */
@@ -245,7 +245,7 @@ private:
 	FLightTileIntersectionParameters LightTileIntersectionParameters;
 };
 
-IMPLEMENT_SHADER_TYPE(,FClearTilesCS,TEXT("DistanceFieldShadowing"),TEXT("ClearTilesCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FClearTilesCS,TEXT("/Engine/Private/DistanceFieldShadowing.usf"),TEXT("ClearTilesCS"),SF_Compute);
 
 
 /**  */
@@ -313,7 +313,7 @@ private:
 	FShaderParameter MinRadius;
 };
 
-IMPLEMENT_SHADER_TYPE(,FShadowObjectCullVS,TEXT("DistanceFieldShadowing"),TEXT("ShadowObjectCullVS"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(,FShadowObjectCullVS,TEXT("/Engine/Private/DistanceFieldShadowing.usf"),TEXT("ShadowObjectCullVS"),SF_Vertex);
 
 class FShadowObjectCullPS : public FGlobalShader
 {
@@ -373,7 +373,7 @@ private:
 	FLightTileIntersectionParameters LightTileIntersectionParameters;
 };
 
-IMPLEMENT_SHADER_TYPE(,FShadowObjectCullPS,TEXT("DistanceFieldShadowing"),TEXT("ShadowObjectCullPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FShadowObjectCullPS,TEXT("/Engine/Private/DistanceFieldShadowing.usf"),TEXT("ShadowObjectCullPS"),SF_Pixel);
 
 enum EDistanceFieldShadowingType
 {
@@ -551,9 +551,9 @@ private:
 	FShaderParameter DownsampleFactor;
 };
 
-IMPLEMENT_SHADER_TYPE(template<>,TDistanceFieldShadowingCS<DFS_DirectionalLightScatterTileCulling>,TEXT("DistanceFieldShadowing"),TEXT("DistanceFieldShadowingCS"),SF_Compute);
-IMPLEMENT_SHADER_TYPE(template<>,TDistanceFieldShadowingCS<DFS_DirectionalLightTiledCulling>,TEXT("DistanceFieldShadowing"),TEXT("DistanceFieldShadowingCS"),SF_Compute);
-IMPLEMENT_SHADER_TYPE(template<>,TDistanceFieldShadowingCS<DFS_PointLightTiledCulling>,TEXT("DistanceFieldShadowing"),TEXT("DistanceFieldShadowingCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>,TDistanceFieldShadowingCS<DFS_DirectionalLightScatterTileCulling>,TEXT("/Engine/Private/DistanceFieldShadowing.usf"),TEXT("DistanceFieldShadowingCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>,TDistanceFieldShadowingCS<DFS_DirectionalLightTiledCulling>,TEXT("/Engine/Private/DistanceFieldShadowing.usf"),TEXT("DistanceFieldShadowingCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>,TDistanceFieldShadowingCS<DFS_PointLightTiledCulling>,TEXT("/Engine/Private/DistanceFieldShadowing.usf"),TEXT("DistanceFieldShadowingCS"),SF_Compute);
 
 template<bool bUpsampleRequired>
 class TDistanceFieldShadowingUpsamplePS : public FGlobalShader
@@ -650,8 +650,8 @@ private:
 	FShaderParameter InvNearFadePlaneLength;
 };
 
-IMPLEMENT_SHADER_TYPE(template<>,TDistanceFieldShadowingUpsamplePS<true>,TEXT("DistanceFieldShadowing"),TEXT("DistanceFieldShadowingUpsamplePS"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>,TDistanceFieldShadowingUpsamplePS<false>,TEXT("DistanceFieldShadowing"),TEXT("DistanceFieldShadowingUpsamplePS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,TDistanceFieldShadowingUpsamplePS<true>,TEXT("/Engine/Private/DistanceFieldShadowing.usf"),TEXT("DistanceFieldShadowingUpsamplePS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,TDistanceFieldShadowingUpsamplePS<false>,TEXT("/Engine/Private/DistanceFieldShadowing.usf"),TEXT("DistanceFieldShadowingUpsamplePS"),SF_Pixel);
 
 void CullDistanceFieldObjectsForLight(
 	FRHICommandListImmediate& RHICmdList,
@@ -669,17 +669,19 @@ void CullDistanceFieldObjectsForLight(
 	SCOPED_DRAW_EVENT(RHICmdList, CullObjectsForLight);
 
 	{
-		if (GShadowCulledObjectBuffers.Buffers.MaxObjects < Scene->DistanceFieldSceneData.NumObjectsInBuffer
+		if (!GShadowCulledObjectBuffers.IsInitialized()
+			|| GShadowCulledObjectBuffers.Buffers.MaxObjects < Scene->DistanceFieldSceneData.NumObjectsInBuffer
 			|| GShadowCulledObjectBuffers.Buffers.MaxObjects > 3 * Scene->DistanceFieldSceneData.NumObjectsInBuffer)
 		{
 			GShadowCulledObjectBuffers.Buffers.bWantBoxBounds = true;
 			GShadowCulledObjectBuffers.Buffers.MaxObjects = Scene->DistanceFieldSceneData.NumObjectsInBuffer * 5 / 4;
-			GShadowCulledObjectBuffers.Buffers.Release();
-			GShadowCulledObjectBuffers.Buffers.Initialize();
+			GShadowCulledObjectBuffers.ReleaseResource();
+			GShadowCulledObjectBuffers.InitResource();
 		}
+		GShadowCulledObjectBuffers.Buffers.AcquireTransientResource();
 
 		{
-			ClearUAV(RHICmdList, GMaxRHIFeatureLevel, GShadowCulledObjectBuffers.Buffers.ObjectIndirectArguments, 0);
+			ClearUAV(RHICmdList, GShadowCulledObjectBuffers.Buffers.ObjectIndirectArguments, 0);
 
 			TShaderMapRef<FCullObjectsForShadowCS> ComputeShader(GetGlobalShaderMap(Scene->GetFeatureLevel()));
 			RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
@@ -906,18 +908,19 @@ void FProjectedShadowInfo::BeginRenderRayTracedDistanceFieldProjection(FRHIComma
 			{
 				const FIntPoint BufferSize = GetBufferSizeForDFShadows();
 				FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_G16R16F, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable | TexCreate_UAV, false));
+				Desc.Flags |= GetTextureFastVRamFlag_DynamicLayout();
 				GRenderTargetPool.FindFreeElement(RHICmdList, Desc, RayTracedShadowsRT, TEXT("RayTracedShadows"));
 			}
 
 			SCOPED_DRAW_EVENT(RHICmdList, RayTraceShadows);
 			SetRenderTarget(RHICmdList, NULL, NULL);
 
-			RayTraceShadows(RHICmdList, View, this, TileIntersectionResources);
+				RayTraceShadows(RHICmdList, View, this, TileIntersectionResources);
+			}
 		}
-	}
 }
 
-void FProjectedShadowInfo::RenderRayTracedDistanceFieldProjection(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, bool bProjectingForForwardShading) 
+void FProjectedShadowInfo::RenderRayTracedDistanceFieldProjection(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, IPooledRenderTarget* ScreenShadowMaskTexture, bool bProjectingForForwardShading) 
 {
 	BeginRenderRayTracedDistanceFieldProjection(RHICmdList, View);
 
@@ -933,14 +936,19 @@ void FProjectedShadowInfo::RenderRayTracedDistanceFieldProjection(FRHICommandLis
 			ScissorRect = View.ViewRect;
 		}
 
+		if ( IsTransientResourceBufferAliasingEnabled() )
 		{
-			FSceneRenderTargets::Get(RHICmdList).BeginRenderingLightAttenuation(RHICmdList);
+			GShadowCulledObjectBuffers.Buffers.DiscardTransientResource();
+		}
+
+		{
+			SetRenderTarget(RHICmdList, ScreenShadowMaskTexture->GetRenderTargetItem().TargetableTexture, FSceneRenderTargets::Get(RHICmdList).GetSceneDepthSurface(), ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilWrite, true);
 
 			SCOPED_DRAW_EVENT(RHICmdList, Upsample);
 
 			FGraphicsPipelineStateInitializer GraphicsPSOInit;
 			RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
-
+    
 			RHICmdList.SetViewport(ScissorRect.Min.X, ScissorRect.Min.Y, 0.0f, ScissorRect.Max.X, ScissorRect.Max.Y, 1.0f);
 			GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
 			GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();

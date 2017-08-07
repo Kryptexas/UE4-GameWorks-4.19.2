@@ -78,7 +78,13 @@ FMetalCommandQueue::FMetalCommandQueue(id<MTLDevice> Device, uint32 const MaxNum
 		
 		if(!FParse::Param(FCommandLine::Get(),TEXT("nometalv2")) && ([Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily3_v2] || [Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily2_v3] || [Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily1_v3]))
 		{
-			Features |= EMetalFeaturesStencilView | EMetalFeaturesGraphicsUAVs | EMetalFeaturesMemoryLessResources /* | EMetalFeaturesHeaps | EMetalFeaturesFences*/ | EMetalFeaturesDeferredStoreActions;
+			Features |= EMetalFeaturesStencilView | EMetalFeaturesGraphicsUAVs | EMetalFeaturesMemoryLessResources /* | EMetalFeaturesHeaps | EMetalFeaturesFences*/;
+			
+			// this causes cmdbuffer errors for MTLFeatureSet_iOS_GPUFamily2_v3 at the moment
+			if ([Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily3_v2])
+			{
+				Features |= EMetalFeaturesDeferredStoreActions; 
+			}
 		}
 		
 		if(!FParse::Param(FCommandLine::Get(),TEXT("nometalv2")) && [Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily3_v2])
@@ -152,9 +158,13 @@ id<MTLCommandBuffer> FMetalCommandQueue::CreateCommandBuffer(void)
 	@autoreleasepool
 	{
 		CmdBuffer = bUnretainedRefs ? [[CommandQueue commandBufferWithUnretainedReferences] retain] : [[CommandQueue commandBuffer] retain];
-		if (RuntimeDebuggingLevel >= EMetalDebugLevelLogDebugGroups)
+		if (RuntimeDebuggingLevel > EMetalDebugLevelLogDebugGroups)
 		{
 			CmdBuffer = [[FMetalDebugCommandBuffer alloc] initWithCommandBuffer:CmdBuffer];
+		}
+		else if (RuntimeDebuggingLevel == EMetalDebugLevelLogDebugGroups)
+		{
+			((NSObject<MTLCommandBuffer>*)CmdBuffer).debugGroups = [NSMutableArray new];
 		}
 	}
 	INC_DWORD_STAT(STAT_MetalCommandBufferCreatedPerFrame);

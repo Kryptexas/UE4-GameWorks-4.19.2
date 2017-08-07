@@ -248,20 +248,23 @@ bool FVulkanDynamicRHIModule::IsSupported()
 
 FDynamicRHI* FVulkanDynamicRHIModule::CreateRHI(ERHIFeatureLevel::Type InRequestedFeatureLevel)
 {
-	if (FParse::Param(FCommandLine::Get(), TEXT("SM5")))
+	if (!GIsEditor &&
+		(PLATFORM_ANDROID ||
+			InRequestedFeatureLevel == ERHIFeatureLevel::ES3_1 || InRequestedFeatureLevel == ERHIFeatureLevel::ES2 ||
+			FParse::Param(FCommandLine::Get(), TEXT("featureleveles31")) || FParse::Param(FCommandLine::Get(), TEXT("featureleveles2"))))
 	{
-		GMaxRHIFeatureLevel = ERHIFeatureLevel::SM5;
-		GMaxRHIShaderPlatform = SP_VULKAN_SM5;
+		GMaxRHIFeatureLevel = ERHIFeatureLevel::ES3_1;
+		GMaxRHIShaderPlatform = PLATFORM_ANDROID ? SP_VULKAN_ES3_1_ANDROID : SP_VULKAN_PCES3_1;
 	}
-	else if (FParse::Param(FCommandLine::Get(), TEXT("SM4")))
+	else if (InRequestedFeatureLevel == ERHIFeatureLevel::SM4)
 	{
 		GMaxRHIFeatureLevel = ERHIFeatureLevel::SM4;
 		GMaxRHIShaderPlatform = SP_VULKAN_SM4;
 	}
 	else
 	{
-		GMaxRHIFeatureLevel = ERHIFeatureLevel::ES3_1;
-		GMaxRHIShaderPlatform = PLATFORM_ANDROID ? SP_VULKAN_ES3_1_ANDROID : SP_VULKAN_PCES3_1;
+		GMaxRHIFeatureLevel = ERHIFeatureLevel::SM5;
+		GMaxRHIShaderPlatform = SP_VULKAN_SM5;
 	}
 
 	// VULKAN_USE_MSAA_RESOLVE_ATTACHMENTS=0 requires separate MSAA and resolve textures
@@ -287,7 +290,7 @@ FVulkanCommandListContext::FVulkanCommandListContext(FVulkanDynamicRHI* InRHI, F
 	, PendingNumPrimitives(0)
 	, PendingMinVertexIndex(0)
 	, PendingIndexDataStride(0)
-	, TempFrameAllocationBuffer(InDevice, VULKAN_TEMP_FRAME_ALLOCATOR_SIZE)
+	, TempFrameAllocationBuffer(InDevice)
 	, CommandBufferManager(nullptr)
 	, PendingGfxState(nullptr)
 	, PendingComputeState(nullptr)
@@ -297,7 +300,7 @@ FVulkanCommandListContext::FVulkanCommandListContext(FVulkanDynamicRHI* InRHI, F
 	CommandBufferManager = new FVulkanCommandBufferManager(InDevice, this);
 
 	// Create Pending state, contains pipeline states such as current shader and etc..
-	PendingGfxState = new FOLDVulkanPendingGfxState(Device);
+	PendingGfxState = new FVulkanPendingGfxState(Device);
 	PendingComputeState = new FVulkanPendingComputeState(Device);
 
 	// Add an initial pool
@@ -348,9 +351,6 @@ FVulkanDynamicRHI::FVulkanDynamicRHI()
 	check(!GIsThreadedRendering);
 
 	GRHIRequiresEarlyBackBufferRenderTarget = false;
-#if PLATFORM_ANDROID
-	GHardwareHiddenSurfaceRemoval = true;
-#endif
 	GPoolSizeVRAMPercentage = 0;
 	GTexturePoolSize = 0;
 	GConfig->GetInt(TEXT("TextureStreaming"), TEXT("PoolSizeVRAMPercentage"), GPoolSizeVRAMPercentage, GEngineIni);
@@ -614,6 +614,7 @@ void FVulkanDynamicRHI::InitInstance()
 		GRHISupportsTextureStreaming = true;
 		GSupportsTimestampRenderQueries = false;	// #todo-rco
 		GRHIRequiresEarlyBackBufferRenderTarget = false;
+		GSupportsGenerateMips = true;
 #if VULKAN_ENABLE_DUMP_LAYER
 		// Disable RHI thread by default if the dump layer is enabled
 		GRHISupportsRHIThread = false;
@@ -635,14 +636,12 @@ void FVulkanDynamicRHI::InitInstance()
 		GMaxTextureArrayLayers = Props.limits.maxImageArrayLayers;
 		GMaxVulkanTextureFilterAnisotropic = Props.limits.maxSamplerAnisotropy;
 		GRHISupportsBaseVertexIndex = true;
+		GSupportsSeparateRenderTargetBlendState = true;
 
 		GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES2] = GMaxRHIFeatureLevel == ERHIFeatureLevel::ES2 ? GMaxRHIShaderPlatform : SP_NumPlatforms;
 		GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES3_1] = GMaxRHIFeatureLevel == ERHIFeatureLevel::ES3_1 ? GMaxRHIShaderPlatform : SP_NumPlatforms;
 		GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM4] = (GMaxRHIFeatureLevel == ERHIFeatureLevel::SM4 && bDeviceSupportsGeometryShaders) ? GMaxRHIShaderPlatform : SP_NumPlatforms;
 		GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM5] = (GMaxRHIFeatureLevel == ERHIFeatureLevel::SM5 && bDeviceSupportsTessellation) ? GMaxRHIShaderPlatform : SP_NumPlatforms;
-
-		// without that the first RHIClear would get a scissor rect of (0,0)-(0,0) which means we get a draw call clear 
-		Device->GetImmediateContext().RHISetScissorRect(false, 0, 0, 0, 0);
 
 		GDynamicRHI = this;
 
@@ -727,7 +726,6 @@ void FVulkanCommandListContext::RHIEndDrawingViewport(FViewportRHIParamRef Viewp
 	check(IsImmediate());
 	FVulkanViewport* Viewport = ResourceCast(ViewportRHI);
 	check(Viewport == RHI->DrawingViewport);
-	RHI->DrawingViewport = nullptr;
 
 	//#todo-rco: Unbind all pending state
 /*
@@ -748,7 +746,12 @@ void FVulkanCommandListContext::RHIEndDrawingViewport(FViewportRHIParamRef Viewp
 	{
 		//#todo-rco: Check for r.FinishCurrentFrame
 	}
-	PendingGfxState->InitFrame();
+#if VULKAN_USE_NEW_GFX_STATE
+#else
+	OLDPendingGfxState->InitFrame();
+#endif
+
+	RHI->DrawingViewport = nullptr;
 
 	WriteBeginTimestamp(CommandBufferManager->GetActiveCmdBuffer());
 }
@@ -777,10 +780,10 @@ void FVulkanCommandListContext::RHIPushEvent(const TCHAR* Name, FColor Color)
 	if (IsImmediate())
 	{
 		//FRCLog::Printf(FString::Printf(TEXT("RHIPushEvent(%s)"), Name));
-#if VULKAN_ENABLE_DRAW_MARKERS
 #if VULKAN_ENABLE_DUMP_LAYER
 		VulkanRHI::PrintfBegin(FString::Printf(TEXT("vkCmdDbgMarkerBeginEXT(%s)"), Name));
 #endif
+#if VULKAN_ENABLE_DRAW_MARKERS
 		if (auto CmdDbgMarkerBegin = Device->GetCmdDbgMarkerBegin())
 		{
 			VkDebugMarkerMarkerInfoEXT Info;
@@ -807,10 +810,10 @@ void FVulkanCommandListContext::RHIPopEvent()
 	if (IsImmediate())
 	{
 		//FRCLog::Printf(TEXT("RHIPopEvent"));
-#if VULKAN_ENABLE_DRAW_MARKERS
 #if VULKAN_ENABLE_DUMP_LAYER
 		VulkanRHI::PrintfBegin(TEXT("vkCmdDbgMarkerEndEXT()"));
 #endif
+#if VULKAN_ENABLE_DRAW_MARKERS
 		if (auto CmdDbgMarkerEnd = Device->GetCmdDbgMarkerEnd())
 		{
 			CmdDbgMarkerEnd(GetCommandBufferManager()->GetActiveCmdBuffer()->GetHandle());
@@ -865,6 +868,22 @@ IRHICommandContextContainer* FVulkanDynamicRHI::RHIGetCommandContextContainer(in
 void FVulkanDynamicRHI::RHISubmitCommandsAndFlushGPU()
 {
 	Device->SubmitCommandsAndFlushGPU();
+}
+
+FTexture2DRHIRef FVulkanDynamicRHI::RHICreateTexture2DFromVkImage(uint8 Format, uint32 SizeX, uint32 SizeY, VkImage Image, uint32 Flags)
+{
+	return new FVulkanBackBuffer(*Device, (EPixelFormat)Format, SizeX, SizeY, Image, Flags);
+}
+
+void FVulkanDynamicRHI::RHIAliasTexture2DResources(FTexture2DRHIParamRef DestTexture2DRHI, FTexture2DRHIParamRef SrcTexture2DRHI)
+{
+	FVulkanTexture2D* DestTexture2D = static_cast<FVulkanTexture2D*>(DestTexture2DRHI);
+	FVulkanTexture2D* SrcTexture2D = static_cast<FVulkanTexture2D*>(SrcTexture2DRHI);
+
+	if (DestTexture2D && SrcTexture2D)
+	{
+		// UNDONE DestTexture2D->AliasResources(SrcTexture2D);
+	}
 }
 
 
@@ -952,12 +971,10 @@ void FVulkanBuffer::Unlock()
 FVulkanDescriptorSetsLayout::FVulkanDescriptorSetsLayout(FVulkanDevice* InDevice) :
 	Device(InDevice)
 {
-	FMemory::Memzero(LayoutTypes);
 }
 
 FVulkanDescriptorSetsLayout::~FVulkanDescriptorSetsLayout()
 {
-	check(Device);
 	VulkanRHI::FDeferredDeletionQueue& DeletionQueue = Device->GetDeferredDeletionQueue();
 	for (VkDescriptorSetLayout& Handle : LayoutHandles)
 	{
@@ -967,11 +984,8 @@ FVulkanDescriptorSetsLayout::~FVulkanDescriptorSetsLayout()
 	LayoutHandles.Reset(0);
 }
 
-void FVulkanDescriptorSetsLayout::AddDescriptor(int32 DescriptorSetIndex, const VkDescriptorSetLayoutBinding& Descriptor, int32 BindingIndex)
+void FVulkanDescriptorSetsLayoutInfo::AddDescriptor(int32 DescriptorSetIndex, const VkDescriptorSetLayoutBinding& Descriptor, int32 BindingIndex)
 {
-	// Setting descriptor is only allowed prior to compiling the layout
-	check(LayoutHandles.Num() == 0);
-
 	// Increment type usage
 	LayoutTypes[Descriptor.descriptorType]++;
 
@@ -983,13 +997,18 @@ void FVulkanDescriptorSetsLayout::AddDescriptor(int32 DescriptorSetIndex, const 
 	FSetLayout& DescSetLayout = SetLayouts[DescriptorSetIndex];
 
 	VkDescriptorSetLayoutBinding* Binding = new(DescSetLayout.LayoutBindings) VkDescriptorSetLayoutBinding;
-	FMemory::Memzero(*Binding);
 	*Binding = Descriptor;
 
+	// Verify this descriptor doesn't already exist
 	for (int32 Index = 0; Index < BindingIndex; ++Index)
 	{
 		ensure(DescSetLayout.LayoutBindings[Index].binding != BindingIndex || &DescSetLayout.LayoutBindings[Index] != Binding);
 	}
+
+	//#todo-rco: Needs a change for the hashing!
+	ensure(!Descriptor.pImmutableSamplers);
+
+	Hash = FCrc::MemCrc32(&Binding, sizeof(Binding), Hash);
 }
 
 void FVulkanDescriptorSetsLayout::Compile()
@@ -1326,19 +1345,22 @@ void FVulkanDynamicRHI::RecreateSwapChain(void* NewNativeWindow)
 	{
 		FlushRenderingCommands();
 		FVulkanDynamicRHI* RHI = (FVulkanDynamicRHI*)GDynamicRHI;
-
-		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-			FVulkanRecreateSwapChain,
-			TArray<FVulkanViewport*>, Viewports, RHI->Viewports,
-			void*, InNewNativeWindow, NewNativeWindow,
+		TArray<FVulkanViewport*> Viewports = RHI->Viewports;
+		ENQUEUE_RENDER_COMMAND(VulkanRecreateSwapChain)(
+			[Viewports, NewNativeWindow](FRHICommandListImmediate& RHICmdList)
 			{
 				for (auto& Viewport : Viewports)
 				{
-					Viewport->RecreateSwapchain(InNewNativeWindow);
+					Viewport->RecreateSwapchain(NewNativeWindow);
 				}
 			});
 		FlushRenderingCommands();
 	}
+}
+
+void FVulkanDynamicRHI::VulkanSetImageLayout( VkCommandBuffer CmdBuffer, VkImage Image, VkImageLayout OldLayout, VkImageLayout NewLayout, const VkImageSubresourceRange& SubresourceRange )
+{
+	::VulkanSetImageLayout( CmdBuffer, Image, OldLayout, NewLayout, SubresourceRange );
 }
 
 #undef LOCTEXT_NAMESPACE

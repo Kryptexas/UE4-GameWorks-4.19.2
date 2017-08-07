@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -75,6 +75,17 @@ namespace UnrealBuildTool
 				List<string> PreprocessorDefines = new List<string>();
 				PreprocessorDefines.Add("WITH_FORWARDED_MODULE_RULES_CTOR");
 				PreprocessorDefines.Add("WITH_FORWARDED_TARGET_RULES_CTOR");
+
+				// Define macros for the UE4 version, starting with 4.17
+				BuildVersion Version;
+				if (BuildVersion.TryRead(out Version))
+				{
+					for(int MinorVersion = 17; MinorVersion <= Version.MinorVersion; MinorVersion++)
+					{
+						PreprocessorDefines.Add(String.Format("UE_4_{0}_OR_LATER", MinorVersion));
+					}
+				}
+
 				CompiledAssembly = DynamicCompilation.CompileAndLoadAssembly(AssemblyFileName, AssemblySourceFiles, PreprocessorDefines: PreprocessorDefines);
 			}
 
@@ -302,20 +313,6 @@ namespace UnrealBuildTool
 				throw new BuildException(Ex, "Unable to instantiate instance of '{0}' object type from compiled assembly '{1}'.  Unreal Build Tool creates an instance of your module's 'Rules' object in order to find out about your module's requirements.  The CLR exception details may provide more information:  {2}", ModuleTypeName, CompiledAssembly.FullName, Ex.ToString());
 			}
 
-			// Update the run-time dependencies path to remove $(PluginDir) and replace with a full path. When the receipt is saved it'll be converted to a $(ProjectDir) or $(EngineDir) equivalent.
-			foreach (RuntimeDependency Dependency in RulesObject.RuntimeDependencies)
-			{
-				const string PluginDirVariable = "$(PluginDir)";
-				if (Dependency.Path.StartsWith(PluginDirVariable, StringComparison.InvariantCultureIgnoreCase))
-				{
-					PluginInfo Plugin;
-					if (ModuleFileToPluginInfo.TryGetValue(ModuleFileName, out Plugin))
-					{
-						Dependency.Path = Plugin.Directory + Dependency.Path.Substring(PluginDirVariable.Length);
-					}
-				}
-			}
-
 			return RulesObject;
 		}
 
@@ -325,7 +322,7 @@ namespace UnrealBuildTool
 		public bool IsGameModule(string InModuleName)
 		{
 			FileReference ModuleFileName = GetModuleFileName(InModuleName);
-			return (ModuleFileName != null && !ModuleFileName.IsUnderDirectory(UnrealBuildTool.EngineDirectory));
+			return (ModuleFileName != null && !UnrealBuildTool.IsUnderAnEngineDirectory(ModuleFileName.Directory));
 		}
 
 		/// <summary>

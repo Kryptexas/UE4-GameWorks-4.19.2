@@ -1,9 +1,18 @@
-﻿INTSourceChangelist:3108692
-Availability:Public
+﻿INTSourceChangelist:3474032
+Availability: Public
+Crumbs: %ROOT%
 Title:뎁스 오브 필드
-Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
 Description:깊이에 따라 씬을 흐리게 만드는 초점 효과 시뮬레이션입니다.
-Version: 4.9
+Type: Overview
+SkillLevel:Beginner
+Version:4.16
+Parent:Engine/Rendering/PostProcessEffects
+Order:5
+Tags:Post Process
+Topic-image:DoF_topic.png
+
+
+
 
 [REGION:fullwidth]
 ![Depth of Field](dof.png)

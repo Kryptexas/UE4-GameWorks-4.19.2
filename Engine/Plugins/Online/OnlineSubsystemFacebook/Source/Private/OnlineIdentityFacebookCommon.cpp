@@ -131,8 +131,13 @@ void FOnlineIdentityFacebookCommon::MeUser_HttpRequestComplete(FHttpRequestPtr H
 		ResponseStr = HttpResponse->GetContentAsString();
 		if (EHttpResponseCodes::IsOk(HttpResponse->GetResponseCode()))
 		{
+#if UE_BUILD_SHIPPING
+			static const FString URL = TEXT("[REDACTED]");
+#else
+			const FString URL = HttpRequest->GetURL();
+#endif
 			UE_LOG(LogOnline, Verbose, TEXT("RegisterUser request complete. url=%s code=%d response=%s"),
-				*HttpRequest->GetURL(), HttpResponse->GetResponseCode(), *ResponseStr);
+				*URL, HttpResponse->GetResponseCode(), *ResponseStr);
 
 			TSharedRef<FUserOnlineAccountFacebook> User = MakeShared<FUserOnlineAccountFacebook>();
 			if (User->Parse(PendingRegisterUser.AccessToken, ResponseStr))

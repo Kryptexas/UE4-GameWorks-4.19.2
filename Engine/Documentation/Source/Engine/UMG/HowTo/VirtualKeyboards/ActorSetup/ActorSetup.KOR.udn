@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3343902
+﻿INTSourceChangelist:3376720
 Availability: Public
 Title:3. 액터 구성 및 테스트
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
@@ -8,6 +8,7 @@ Related: Engine/UMG
 Related: Engine/UMG/UserGuide
 SkillLevel: Advanced
 tags:UMG UI Designer
+Order: 3
 
 [VAR:Steps]
 [OBJECT:Navigation]

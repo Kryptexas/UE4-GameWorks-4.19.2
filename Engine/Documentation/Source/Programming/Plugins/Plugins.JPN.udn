@@ -1,9 +1,10 @@
-﻿INTSourceChangeList:3108692
+﻿INTSourceChangelist:3429264
 Availability:Public
 Title:プラグイン
-Crumbs:%ROOT%, Programming
+Crumbs:
 Description:アンリアルエンジンのプラグインの作り方
 Version:4.9
+Parent:Programming/UnrealArchitecture/Reference
 
 [TOC(start:2)]
 
@@ -72,12 +73,12 @@ Version:4.9
 有効な検索パスの 1 つに配置されなければなりません。 
 
 | プラグイン タイプ      | 検索パス                                        |
-| ------ | ------ |
-| エンジンのプラグイン    | /UE4 root/Engine/Plugins/My Engine Plugin/ |
-| ゲームのプラグイン      | /My project/Plugins/My Game Plugin/        |
+| -------------------- | -------------------------------------------------- |
+| **Engine**           | /UE4 Root/Engine/Plugins/My Engine Plugin/         |
+| **Game**             | /My Project/Plugins/My Game Plugin/                |
 
 基準となる Plugins フォルダ配下でプラグインをサブディレクトリに構成することもできます。エンジンはプラグインをロードするために基準となるプラグイン フォルダ配下のすべてのサブフォルダをスキャンします。 
-しかし、プラグインが既に見つかった場所よりも下のサブディレクトリは決してスキャンしません。
+しかし、プラグインが既に見つかった場所よりも下のサブディレクトリのスキャンは行いません。
 
 アンリアル エンジンは、ディスクの .uplugin ファイルを検索してプラグインを見つけます。こうしたファイルをプラグイン記述子と呼びます。これらはテキスト ファイルであり、 
 プラグインに関する基本情報を提供します。アンリアル エンジン、アンリアル エディタ、アンリアル ビルド ツールなどこうしたプログラムが実行される場所で、 
@@ -202,8 +203,8 @@ Public ソース フォルダにあるヘッダー ファイルでパブリッ�
 		"FriendlyVersion" :"1.0",
 		"Description" :"An example of a plugin which declares its own UObject type.This can be used as a starting point when creating your own plugin.",
 		"Category" :"Programming Examples.Plugins",
-	"Modules" :
 
+		"Modules" :
 		[
 			{
 				"Name" :"UObjectPlugin",

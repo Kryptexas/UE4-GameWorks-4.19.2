@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2685246
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title:シャドウ キャスティング
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
@@ -69,7 +69,7 @@ _Stationary Lights (固定ライト) に照らされた右のキャラクター�
 
 [INCLUDE:Engine/Rendering/LightingAndShadows/LightMobility/StationaryLights#CascadedShadowMaps]
 
-## 固定ライトシャドウ
+## Stationary Light (固定ライト) Shadows
 
 [INCLUDE:Engine/Rendering/LightingAndShadows/LightMobility/StationaryLights#StationaryShadows]
 
@@ -80,8 +80,8 @@ _Stationary Lights (固定ライト) に照らされた右のキャラクター�
 平均すると可動の動的シャドウ キャスティング ライトは最も負荷がかかります。
 
 
-## シャドウのプレビュー
-ライティングをアンビルドするような方法で静的ライトや固定ライトを編集する場合、**[Preview Shadowing (シャドウイングをプレビュー)]** を有効にして、ライティングを再ビルドした場合にシャドウがどのように見えるかを把握することができます。 
+## Preview Shadows
+ライティングをアンビルドするような方法で Static Lithg (静的ライト) やStationary Light (固定ライト) を編集する場合、**[Preview Shadowing (シャドウイングをプレビュー)]** を有効にして、ライティングを再ビルドした場合にシャドウがどのように見えるかを把握することができます。 
 
 こうしたシャドウは事前に存在していたシャドウと区別するために、以下のようにエディタで「Preview」というテキスト付きで表示されます。 
 
@@ -95,11 +95,11 @@ _Stationary Lights (固定ライト) に照らされた右のキャラクター�
 
 ![](BuiltShadows.png)(w:480)
 
-ビューポートの **Show/Visualize** メニューで **[Preview Shadows Indicator (シャドウ インジケータのプレビュー)]** オプションのチェックを外すことでプレビュー シャドウを無効にすることができます。 
+ビューポートの **[Show/Visualize]** メニューで **[Preview Shadows Indicator (シャドウ インジケータのプレビュー)]** オプションのチェックを外すことでプレビュー シャドウを無効にすることができます。 
 
 
 [REGION:note]
-テキスト投影のライト関数マテリアルの微調整は、_Engine/EditorMaterials/PreviewShadowIndicator_ をご覧ください。
+このテキストを投影するためのライト関数マテリアルの調整方法については、 _Engine/EditorMaterials/PreviewShadowIndicator_ をご覧ください。
 [/REGION]
 
 ## 全シャドウの融合

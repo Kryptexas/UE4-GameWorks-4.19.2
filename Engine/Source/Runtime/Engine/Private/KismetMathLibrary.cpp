@@ -8,6 +8,8 @@
 #include "Blueprint/BlueprintSupport.h"
 #include "Math/DualQuat.h"
 
+#include "Misc/RuntimeErrors.h"
+
 #define LOCTEXT_NAMESPACE "UKismetMathLibrary"
 
 /** Interpolate a linear alpha value using an ease mode and function. */
@@ -104,6 +106,11 @@ void UKismetMathLibrary::ReportError_Divide_VectorInt()
 void UKismetMathLibrary::ReportError_Divide_VectorVector()
 {
 	FFrame::KismetExecutionMessage(TEXT("Divide by zero: Divide_VectorVector"), ELogVerbosity::Warning, DivideByZeroWarning);
+}
+
+void UKismetMathLibrary::ReportError_Divide_Vector2DVector2D()
+{
+	FFrame::KismetExecutionMessage(TEXT("Divide by zero: Divide_Vector2DVector2D"), ELogVerbosity::Warning, DivideByZeroWarning);
 }
 
 void UKismetMathLibrary::ReportError_ProjectVectorOnToVector()
@@ -618,6 +625,106 @@ void UKismetMathLibrary::BreakTimespan(FTimespan InTimespan, int32& Days, int32&
 	Milliseconds = InTimespan.GetMilliseconds();
 }
 
+FTimespan UKismetMathLibrary::FromDays(float Days)
+{
+	if (Days < FTimespan::MinValue().GetTotalDays())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("DaysValue"), Days);
+		LogRuntimeError(FText::Format(LOCTEXT("ClampDaysToMinTimespan", "Days value {DaysValue} is less than minimum days TimeSpan can represent. Clamping to MinValue."), Args));
+		return FTimespan::MinValue();
+	}
+	else if (Days > FTimespan::MaxValue().GetTotalDays())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("DaysValue"), Days);
+		LogRuntimeError(FText::Format(LOCTEXT("ClampDaysToMaxTimespan", "Days value {DaysValue} is greater than maximum days TimeSpan can represent. Clamping to MaxValue."), Args));
+		return FTimespan::MaxValue();
+	}
+
+	return FTimespan::FromDays(Days);
+}
+
+FTimespan UKismetMathLibrary::FromHours(float Hours)
+{
+	if (Hours < FTimespan::MinValue().GetTotalHours())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("HoursValue"), Hours);
+		LogRuntimeError(FText::Format(LOCTEXT("ClampHoursToMinTimespan", "Hours value {HoursValue} is less than minimum hours TimeSpan can represent. Clamping to MinValue."), Args));
+		return FTimespan::MinValue();
+	}
+	else if (Hours > FTimespan::MaxValue().GetTotalHours())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("HoursValue"), Hours);
+		LogRuntimeError(FText::Format(LOCTEXT("ClampHoursToMaxTimespan", "Hours value {HoursValue} is greater than maximum hours TimeSpan can represent. Clamping to MaxValue."), Args));
+		return FTimespan::MaxValue();
+	}
+
+	return FTimespan::FromHours(Hours);
+}
+
+FTimespan UKismetMathLibrary::FromMinutes(float Minutes)
+{
+	if (Minutes < FTimespan::MinValue().GetTotalMinutes())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("MinutesValue"), Minutes);
+		LogRuntimeError(FText::Format(LOCTEXT("ClampMinutesToMinTimespan", "Minutes value {MinutesValue} is less than minimum minutes TimeSpan can represent. Clamping to MinValue."), Args));
+		return FTimespan::MinValue();
+	}
+	else if (Minutes > FTimespan::MaxValue().GetTotalMinutes())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("MinutesValue"), Minutes);
+		LogRuntimeError(FText::Format(LOCTEXT("ClampMinutesToMaxTimespan", "Minutes value {MinutesValue} is greater than maximum minutes TimeSpan can represent. Clamping to MaxValue."), Args));
+		return FTimespan::MaxValue();
+	}
+
+	return FTimespan::FromMinutes(Minutes);
+}
+
+FTimespan UKismetMathLibrary::FromSeconds(float Seconds)
+{
+	if (Seconds < FTimespan::MinValue().GetTotalSeconds())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("SecondsValue"), Seconds);
+		LogRuntimeError(FText::Format(LOCTEXT("ClampSecondsToMinTimespan", "Seconds value {SecondsValue} is less than minimum seconds TimeSpan can represent. Clamping to MinValue."), Args));
+		return FTimespan::MinValue();
+	}
+	else if (Seconds > FTimespan::MaxValue().GetTotalSeconds())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("SecondsValue"), Seconds);
+		LogRuntimeError(FText::Format(LOCTEXT("ClampSecondsToMaxTimespan", "Seconds value {SecondsValue} is greater than maximum seconds TimeSpan can represent. Clamping to MaxValue."), Args));
+		return FTimespan::MaxValue();
+	}
+
+	return FTimespan::FromSeconds(Seconds);
+}
+
+FTimespan UKismetMathLibrary::FromMilliseconds(float Milliseconds)
+{
+	if (Milliseconds < FTimespan::MinValue().GetTotalMilliseconds())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("MillisecondsValue"), Milliseconds);
+		LogRuntimeError(FText::Format(LOCTEXT("ClampMillisecondsToMinTimespan", "Milliseconds value {MillisecondsValue} is less than minimum milliseconds TimeSpan can represent. Clamping to MinValue."), Args));
+		return FTimespan::MinValue();
+	}
+	else if (Milliseconds > FTimespan::MaxValue().GetTotalMilliseconds())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("MillisecondsValue"), Milliseconds);
+		LogRuntimeError(FText::Format(LOCTEXT("ClampMillisecondsToMaxTimespan", "Milliseconds value {MillisecondsValue} is greater than maximum milliseconds TimeSpan can represent. Clamping to MaxValue."), Args));
+		return FTimespan::MaxValue();
+	}
+
+	return FTimespan::FromMilliseconds(Milliseconds);
+}
+
 /* END Timespan functions */
 
 
@@ -826,19 +933,14 @@ void UKismetMathLibrary::MinimumAreaRectangle(class UObject* WorldContextObject,
 	OutSideLengthY = RectSideB.Size();
 
 #if ENABLE_DRAW_DEBUG
-	if( bDebugDraw )
+	if (bDebugDraw)
 	{
-		UWorld* World = (WorldContextObject) ? GEngine->GetWorldFromContextObject(WorldContextObject) : nullptr;
-		if (World != nullptr)
+		if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull))
 		{
 			DrawDebugSphere(World, OutRectCenter, 10.f, 12, FColor::Yellow, true);
 			DrawDebugCoordinateSystem(World, OutRectCenter, SurfaceNormalMatrix.Rotator(), 100.f, true);
 			DrawDebugLine(World, OutRectCenter - RectSideA * 0.5f + FVector(0, 0, 10.f), OutRectCenter + RectSideA * 0.5f + FVector(0, 0, 10.f), FColor::Green, true, -1, 0, 5.f);
 			DrawDebugLine(World, OutRectCenter - RectSideB * 0.5f + FVector(0, 0, 10.f), OutRectCenter + RectSideB * 0.5f + FVector(0, 0, 10.f), FColor::Blue, true, -1, 0, 5.f);
-		}
-		else
-		{
-			FFrame::KismetExecutionMessage(TEXT("WorldContext required for MinimumAreaRectangle to draw a debug visualization."), ELogVerbosity::Warning);
 		}
 	}
 #endif

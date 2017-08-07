@@ -64,11 +64,11 @@ namespace Gu
 	public:
 		EPA(){}	
 		GjkStatus PenetrationDepth(const GjkConvex& a, const GjkConvex& b, const Ps::aos::Vec3V* PX_RESTRICT Q, const Ps::aos::Vec3V* PX_RESTRICT A, const Ps::aos::Vec3V* PX_RESTRICT B, const PxI32 size, Ps::aos::Vec3V& pa, Ps::aos::Vec3V& pb, Ps::aos::Vec3V& normal, Ps::aos::FloatV& penDepth, const bool takeCoreShape = false);
-		bool expandPoint(const GjkConvex& a, const GjkConvex& b, PxI32& numVerts, const FloatVArg lowerBound, const FloatVArg upperBound);
-		bool expandSegment(const GjkConvex& a, const GjkConvex& b, PxI32& numVerts, const FloatVArg lowerBound, const FloatVArg upperBound);
-		bool expandTriangle(PxI32& numVerts, const FloatVArg lowerBound, const FloatVArg upperBound);
+		bool expandPoint(const GjkConvex& a, const GjkConvex& b, PxI32& numVerts, const FloatVArg upperBound);
+		bool expandSegment(const GjkConvex& a, const GjkConvex& b, PxI32& numVerts, const FloatVArg upperBound);
+		bool expandTriangle(PxI32& numVerts, const FloatVArg upperBound);
 
-		Facet* addFacet(const PxU32 i0, const PxU32 i1, const PxU32 i2, const Ps::aos::FloatVArg lower2, const Ps::aos::FloatVArg upper2);
+		Facet* addFacet(const PxU32 i0, const PxU32 i1, const PxU32 i2, const Ps::aos::FloatVArg upper);
 	
 		bool originInTetrahedron(const Ps::aos::Vec3VArg p1, const Ps::aos::Vec3VArg p2, const Ps::aos::Vec3VArg p3, const Ps::aos::Vec3VArg p4);
 
@@ -102,32 +102,6 @@ namespace Gu
 		supportB = tSupportB;
 		support = V3Sub(tSupportA, tSupportB);
 	}
-
-	static FloatV calculatePlaneDist(const PxU32 i0, const PxU32 i1, const PxU32 i2, const Ps::aos::Vec3V* PX_RESTRICT aBuf, const Ps::aos::Vec3V* PX_RESTRICT bBuf)
-	{
-		const Vec3V pa0(aBuf[i0]);
-		const Vec3V pa1(aBuf[i1]);
-		const Vec3V pa2(aBuf[i2]);
-
-		const Vec3V pb0(bBuf[i0]);
-		const Vec3V pb1(bBuf[i1]);
-		const Vec3V pb2(bBuf[i2]);
-
-		const Vec3V p0 = V3Sub(pa0, pb0);
-		const Vec3V p1 = V3Sub(pa1, pb1);
-		const Vec3V p2 = V3Sub(pa2, pb2);
-		const Vec3V v1 = V3Sub(p1, p0);
-		const Vec3V v2 = V3Sub(p2, p0);
-		const Vec3V v3 = V3Sub(p2, p1);
-
-		const FloatV v1v1 = V3Dot(v1, v1);
-		const FloatV v2v2 = V3Dot(v2, v2);
-		const Vec3V v = V3Sel(FIsGrtr(v1v1, v2v2), v2, v1);
-		
-		const Vec3V planeNormal = V3Normalize(V3Cross(v, v3));
-		return  V3Dot(planeNormal, p0);
-	}
-
 
 	GjkStatus epaPenetration(const GjkConvex& a, const GjkConvex& b, PxU8* PX_RESTRICT aInd, PxU8* PX_RESTRICT bInd, PxU8 _size, Ps::aos::Vec3V& contactA, Ps::aos::Vec3V& contactB, Ps::aos::Vec3V& normal, Ps::aos::FloatV& penetrationDepth, const bool takeCoreShape)
 	{
@@ -223,9 +197,9 @@ namespace Gu
 	//ML: This function:
 	// (1)calculates the distance from orign((0, 0, 0)) to a triangle plane 
 	// (2) rejects triangle if the triangle is degenerate (two points are identical)
-	// (3) rejects triangle to be added into the heap if the plane distance is outside of the boundary[lower, upper]
-	PX_EPA_FORCE_INLINE Ps::aos::BoolV Facet::isValid2(const PxU32 i0, const PxU32 i1, const PxU32 i2, const Ps::aos::Vec3V* PX_RESTRICT aBuf, const Ps::aos::Vec3V* PX_RESTRICT bBuf, 
-		const Ps::aos::FloatVArg lower, const Ps::aos::FloatVArg upper)
+	// (3) rejects triangle to be added into the heap if the plane distance is large than upper
+	Ps::aos::BoolV Facet::isValid2(const PxU32 i0, const PxU32 i1, const PxU32 i2, const Ps::aos::Vec3V* PX_RESTRICT aBuf, const Ps::aos::Vec3V* PX_RESTRICT bBuf, 
+		const Ps::aos::FloatVArg upper)
 	{
 		using namespace Ps::aos;
 		const FloatV eps = FEps();
@@ -244,13 +218,8 @@ namespace Gu
 
 		const Vec3V v1 = V3Sub(p1, p0);
 		const Vec3V v2 = V3Sub(p2, p0);
-		const Vec3V v3 = V3Sub(p2, p1);
 
-		const FloatV v1v1 = V3Dot(v1, v1);
-		const FloatV v2v2 = V3Dot(v2, v2);
-		
-		const Vec3V v = V3Sel(FIsGrtr(v1v1, v2v2), v2, v1);
-		const Vec3V denormalizedNormal = V3Cross(v, v3);
+		const Vec3V denormalizedNormal = V3Cross(v1, v2);
 		FloatV norValue = V3Dot(denormalizedNormal, denormalizedNormal);
 		//if norValue < eps, this triangle is degenerate
 		const BoolV con = FIsGrtr(norValue, eps);
@@ -262,12 +231,13 @@ namespace Gu
 		
 		FStore(planeDist, &m_planeDist);
 
-		return BAnd(con, BAnd(FIsGrtrOrEq(planeDist, lower), FIsGrtrOrEq(upper, planeDist)));
+		return BAnd(con, FIsGrtrOrEq(upper, planeDist));
+		//return BAnd(con, BAnd(FIsGrtrOrEq(planeDist, lower), FIsGrtrOrEq(upper, planeDist)));
 	}
 
 	//ML: if the triangle is valid(not degenerate and within lower and upper bound), we need to add it into the heap. Otherwise, we just return
 	//the triangle so that the facet can be linked to other facets in the expanded polytope.
-	Facet* EPA::addFacet(const PxU32 i0, const PxU32 i1, const PxU32 i2, const Ps::aos::FloatVArg lower2, const Ps::aos::FloatVArg upper2)
+	Facet* EPA::addFacet(const PxU32 i0, const PxU32 i1, const PxU32 i2, const Ps::aos::FloatVArg upper)
 	{
 		using namespace Ps::aos;
 		PX_ASSERT(i0 != i1 && i0 != i2 && i1 != i2);
@@ -280,7 +250,7 @@ namespace Gu
 		Facet * facet = PX_PLACEMENT_NEW(&facetBuf[facetId],Facet(i0, i1, i2));
 		facet->m_FacetId = PxU8(facetId);
 
-		const  BoolV validTriangle = facet->isValid2(i0, i1, i2, aBuf, bBuf, lower2, upper2);
+		const  BoolV validTriangle = facet->isValid2(i0, i1, i2, aBuf, bBuf, upper);
 
 		if(BAllEqTTTT(validTriangle))
 		{
@@ -350,7 +320,7 @@ namespace Gu
 		}
 	}
 
-	bool EPA::expandPoint(const GjkConvex& a, const GjkConvex& b, PxI32& numVerts, const FloatVArg lowerBound, const FloatVArg upperBound)
+	bool EPA::expandPoint(const GjkConvex& a, const GjkConvex& b, PxI32& numVerts, const FloatVArg upperBound)
 	{
 		const Vec3V x = V3UnitX();
 		Vec3V q0 = V3Sub(aBuf[0], bBuf[0]);
@@ -358,11 +328,11 @@ namespace Gu
 		doSupport(a, b, x, aBuf[1], bBuf[1], q1);
 		if (V3AllEq(q0, q1))
 			return false;
-		return expandSegment(a, b, numVerts, lowerBound, upperBound);
+		return expandSegment(a, b, numVerts, upperBound);
 	}
 
 	//ML: this function use the segement to create a triangle
-	bool EPA::expandSegment(const GjkConvex& a, const GjkConvex& b, PxI32& numVerts, const FloatVArg lowerBound, const FloatVArg upperBound)
+	bool EPA::expandSegment(const GjkConvex& a, const GjkConvex& b, PxI32& numVerts, const FloatVArg upperBound)
 	{
 		const Vec3V q0 = V3Sub(aBuf[0], bBuf[0]);
 		const Vec3V q1 = V3Sub(aBuf[1], bBuf[1]);
@@ -388,23 +358,23 @@ namespace Gu
 		Vec3V q2;
 		doSupport(a, b, n, aBuf[2], bBuf[2], q2);
 
-		return expandTriangle(numVerts, lowerBound, upperBound);
+		return expandTriangle(numVerts, upperBound);
 	}
 
-	bool EPA::expandTriangle(PxI32& numVerts, const FloatVArg lowerBound, const FloatVArg upperBound)
+	bool EPA::expandTriangle(PxI32& numVerts, const FloatVArg upperBound)
 	{
 		numVerts = 3;
 
-		Facet * PX_RESTRICT f0 = addFacet(0, 1, 2, lowerBound, upperBound);
-		Facet * PX_RESTRICT f1 = addFacet(1, 0, 2, lowerBound, upperBound);
+		Facet * PX_RESTRICT f0 = addFacet(0, 1, 2, upperBound);
+		Facet * PX_RESTRICT f1 = addFacet(1, 0, 2, upperBound);
 
-		if(f0 == NULL || f1 == NULL || heap.empty())
+		if(heap.empty())
 			return false;
 
 		f0->link(0, f1, 0);
 		f0->link(1, f1, 2);
 		f0->link(2, f1, 1);
-		
+
 		return true;
 	}
 
@@ -422,13 +392,17 @@ namespace Gu
 		const FloatV dist = facet->getPlaneDist();
 		//planeNormal is pointing from B to A, however, the normal we are expecting is from A to B which match the GJK margin intersect case, therefore,
 		//we need to flip the normal
-		const Vec3V n =V3Neg(facet->getPlaneNormal());
+		Vec3V planeNormal = facet->getPlaneNormal();
+
+		const Vec3V normalDir = V3Sub(a.getCenter(), b.getCenter());
+		if (FAllGrtr(zero, V3Dot(normalDir, planeNormal)))
+			planeNormal = V3Neg(planeNormal);
 		
 		if(takeCoreShape)
 		{
 			pa = _pa;
 			pb = _pb;
-			normal = n;
+			normal = planeNormal;
 			penDepth = FNeg(dist);
 		}
 		else
@@ -440,12 +414,27 @@ namespace Gu
 			const FloatV marginA = FSel(aQuadratic, a.getMargin(), zero);
 			const FloatV marginB = FSel(bQuadratic, b.getMargin(), zero);
 			const FloatV sumMargin = FAdd(marginA, marginB);
-			pa = V3NegScaleSub(n, marginA, _pa);
-			pb = V3ScaleAdd(n, marginB, _pb);
-			normal = n;
+			pa = V3NegScaleSub(planeNormal, marginA, _pa);
+			pb = V3ScaleAdd(planeNormal, marginB, _pb);
+			normal = planeNormal;
 			penDepth = FNeg(FAdd(dist, sumMargin));
-			
+
 #if	EPA_DEBUG
+
+			PxVec3 tempA, tempB;
+
+			V3StoreU(pa, tempA);
+			V3StoreU(pb, tempB);
+
+			if (!tempA.isFinite())
+			{
+				Ps::debugBreak();
+			}
+
+			if (!tempB.isFinite())
+			{
+				Ps::debugBreak();
+			}
 			const Vec3V v = V3Sub(_pb, _pa);
 			const FloatV length = V3Length(v);
 			const Vec3V cn = V3ScaleInv(v, length); 
@@ -476,7 +465,6 @@ namespace Gu
 	
 		const FloatV _max = FMax();
 		FloatV upper_bound(_max);
-		FloatV lower_bound(FNeg(_max));
 	
 		aBuf[0]=A[0]; aBuf[1]=A[1]; aBuf[2]=A[2]; aBuf[3]=A[3];
 		bBuf[0]=B[0]; bBuf[1]=B[1]; bBuf[2]=B[2]; bBuf[3]=B[3];
@@ -491,7 +479,7 @@ namespace Gu
 		case 1:
 			{
 				// Touching contact. Yes, we have a collision and the penetration will be zero
-				if(!expandPoint(a, b, numVertsLocal, lower_bound, upper_bound))
+				if(!expandPoint(a, b, numVertsLocal, upper_bound))
 					return EPA_FAIL;
 				break;
 			}
@@ -499,7 +487,7 @@ namespace Gu
 			{
 				// We have a line segment inside the Minkowski sum containing the
 				// origin. we need to construct two back to back triangles which link to each other
-				if(!expandSegment(a, b, numVertsLocal, lower_bound, upper_bound))
+				if(!expandSegment(a, b, numVertsLocal, upper_bound))
 					return EPA_FAIL;
 				break;
 			}
@@ -507,7 +495,7 @@ namespace Gu
 			{
 				// We have a triangle inside the Minkowski sum containing
 				// the origin. We need to construct two back to back triangles which link to each other
-				if(!expandTriangle(numVertsLocal, lower_bound, upper_bound))
+				if(!expandTriangle(numVertsLocal, upper_bound))
 					return EPA_FAIL;
 
 				break;
@@ -517,9 +505,29 @@ namespace Gu
 			{
 				//check for input face normal. All face normals in this tetrahedron should be all pointing either inwards or outwards. If all face normals are pointing outward, we are good to go. Otherwise, we need to 
 				//shuffle the input vertexes and make sure all face normals are pointing outward
-				const FloatV planeDistf0 = calculatePlaneDist(0, 1, 2, aBuf, bBuf);
-				
-				if(FAllGrtr(zero, planeDistf0))
+				const Vec3V pa0(aBuf[0]);
+				const Vec3V pa1(aBuf[1]);
+				const Vec3V pa2(aBuf[2]);
+				const Vec3V pa3(aBuf[3]);
+
+				const Vec3V pb0(bBuf[0]);
+				const Vec3V pb1(bBuf[1]);
+				const Vec3V pb2(bBuf[2]);
+				const Vec3V pb3(bBuf[3]);
+
+				const Vec3V p0 = V3Sub(pa0, pb0);
+				const Vec3V p1 = V3Sub(pa1, pb1);
+				const Vec3V p2 = V3Sub(pa2, pb2);
+				const Vec3V p3 = V3Sub(pa3, pb3);
+
+				const Vec3V v1 = V3Sub(p1, p0);
+				const Vec3V v2 = V3Sub(p2, p0);
+
+				const Vec3V planeNormal = V3Normalize(V3Cross(v1, v2));
+
+				const FloatV signDist = V3Dot(planeNormal, V3Sub(p3, p0));
+
+				if (FAllGrtr(signDist, zero))
 				{
 					//shuffle the input vertexes
 					const Vec3V tempA0 = aBuf[2];
@@ -529,19 +537,20 @@ namespace Gu
 					aBuf[1] = tempA0;
 					bBuf[1] = tempB0;
 				}
-				Facet * PX_RESTRICT f0 = addFacet(0, 1, 2, lower_bound, upper_bound);
-				Facet * PX_RESTRICT f1 = addFacet(0, 3, 1, lower_bound, upper_bound);
-				Facet * PX_RESTRICT f2 = addFacet(0, 2, 3, lower_bound, upper_bound);
-				Facet * PX_RESTRICT f3 = addFacet(1, 3, 2, lower_bound, upper_bound);
-				PX_ASSERT(f0->m_planeDist >= 0.f);
-				PX_ASSERT(f1->m_planeDist >= 0.f);
-				PX_ASSERT(f2->m_planeDist >= 0.f);
-				PX_ASSERT(f3->m_planeDist >= 0.f);
 
-				if((f0==NULL) || (f1==NULL) || (f2==NULL) || (f3==NULL) || heap.empty())
+				Facet * PX_RESTRICT f0 = addFacet(0, 1, 2, upper_bound);
+				Facet * PX_RESTRICT f1 = addFacet(0, 3, 1, upper_bound);
+				Facet * PX_RESTRICT f2 = addFacet(0, 2, 3, upper_bound);
+				Facet * PX_RESTRICT f3 = addFacet(1, 3, 2, upper_bound);
+			
+				if (heap.empty())
 					return EPA_FAIL;
 
-			
+				PX_ASSERT(f0->m_planeDist >= -1e-2f);
+				PX_ASSERT(f1->m_planeDist >= -1e-2f);
+				PX_ASSERT(f2->m_planeDist >= -1e-2f);
+				PX_ASSERT(f3->m_planeDist >= -1e-2f);
+
 				f0->link(0, f1, 2);
 				f0->link(1, f3, 2);
 				f0->link(2, f2, 0);
@@ -554,15 +563,13 @@ namespace Gu
 			}
 		}
 
-		const FloatV eps = FEps();
+	
 		const FloatV tenPerc = FLoad(0.1f);
 		const FloatV minMargin = FMin(a.getMinMargin(), b.getMinMargin());
 		const FloatV eps2 = FMul(minMargin, tenPerc);
 
 		Facet* PX_RESTRICT facet = NULL;
-		Facet* PX_RESTRICT bestFacet = NULL;
 
-		bool hasMoreFacets = false;
 		Vec3V tempa, tempb, q;
 
 		do 
@@ -574,7 +581,6 @@ namespace Gu
 			
 			if (!facet->isObsolete()) 
 			{
-				bestFacet = facet;
 				Ps::prefetchLine(edgeBuffer.m_pEdges);
 				Ps::prefetchLine(edgeBuffer.m_pEdges,128);
 				Ps::prefetchLine(edgeBuffer.m_pEdges,256);
@@ -594,28 +600,17 @@ namespace Gu
 				//the plane normal, which means the distance should be positive. However, if the origin isn't contained in the polytope, dist
 				//might be negative
 				const FloatV dist = V3Dot(q, planeNormal);
-				//update the upper bound to the minimum between exisiting upper bound and the distance if distance is positive
-				upper_bound = FSel(FIsGrtrOrEq(dist, zero), FMin(upper_bound, dist), upper_bound);
-				//lower bound is the plane distance, which will be the smallest among all the facets in the prority queue
-				lower_bound = planeDist;
-				//if the plane distance and the upper bound is within a small tolerance, which means we found the MTD
-				const BoolV con0 = FIsGrtrOrEq(eps2, FAbs(FSub(upper_bound, lower_bound)));
 
-				if(BAllEqTTTT(con0))
+				const BoolV con0 = FIsGrtrOrEq(eps2, FAbs(FSub(dist, planeDist)));
+
+				if (BAllEqTTTT(con0))
 				{
 					calculateContactInformation(aBuf, bBuf, facet, a, b, pa, pb, normal, penDepth, takeCoreShape);
 					return EPA_CONTACT;
 				}
 
-				//if planeDist is the same as dist, which means the support point we get out from the Mincowsky sum is one of the point
-				//in the triangle facet, we should exist because we can't progress further.
-				const FloatV dif = FSub(dist, planeDist);
-				const BoolV degeneratedCondition = FIsGrtr(eps, dif);
-				if(BAllEqTTTT(degeneratedCondition))
-				{
-					calculateContactInformation(aBuf, bBuf, facet, a, b, pa, pb, normal, penDepth, takeCoreShape);
-					return EPA_DEGENERATE;
-				}
+				//update the upper bound to the minimum between existing upper bound and the distance
+				upper_bound = FMin(upper_bound, dist);
 
 				aBuf[numVertsLocal]=tempa;
 				bBuf[numVertsLocal]=tempb;
@@ -649,17 +644,18 @@ namespace Gu
 					return EPA_DEGENERATE;
 				}
 
-				Facet *firstFacet = addFacet(edge->getTarget(), edge->getSource(),index, lower_bound, upper_bound);
+				Facet *firstFacet = addFacet(edge->getTarget(), edge->getSource(),index, upper_bound);
 				PX_ASSERT(firstFacet);
 				firstFacet->link(0, edge->getFacet(), edge->getIndex());
 
 				Facet * PX_RESTRICT lastFacet = firstFacet;
 
+#if EPA_DEBUG
 				bool degenerate = false;
 				for(PxU32 i=1; (i<bufferSize) && (!degenerate); ++i)
 				{
 					edge=edgeBuffer.Get(i);
-					Facet* PX_RESTRICT newFacet = addFacet(edge->getTarget(), edge->getSource(),index, lower_bound, upper_bound);
+					Facet* PX_RESTRICT newFacet = addFacet(edge->getTarget(), edge->getSource(),index, upper_bound);
 					PX_ASSERT(newFacet);
 					const bool b0 = newFacet->link(0, edge->getFacet(), edge->getIndex());
 					const bool b1 = newFacet->link(2, lastFacet, 1);
@@ -667,31 +663,29 @@ namespace Gu
 					lastFacet = newFacet;
 				}
 
-				if(degenerate)
+				if (degenerate)
+					Ps::debugBreak();
+#else
+				for (PxU32 i = 1; i<bufferSize; ++i)
 				{
-					calculateContactInformation(aBuf, bBuf, facet, a, b, pa, pb, normal, penDepth, takeCoreShape);
-					return EPA_DEGENERATE;
+					edge = edgeBuffer.Get(i);
+					Facet* PX_RESTRICT newFacet = addFacet(edge->getTarget(), edge->getSource(), index, upper_bound);
+					newFacet->link(0, edge->getFacet(), edge->getIndex());
+					newFacet->link(2, lastFacet, 1);
+					lastFacet = newFacet;
 				}
+#endif
 
 				firstFacet->link(2, lastFacet, 1);
 			}
 			facetManager.freeID(facet->m_FacetId);
 
-			hasMoreFacets = (heap.size() > 0);
-			//after polytope expansion, we don't have a better facet to work with so that we should process the best facet
-			//this sometime won't produce the MTD but the result seems close enough so we accept it as contact.
-			//test case in BenchMark_GJKEPABoxConvex
-			if(hasMoreFacets && FAllGrtr( heap.top()->getPlaneDist(), upper_bound))
-			{
-				calculateContactInformation(aBuf, bBuf, bestFacet, a, b, pa, pb, normal, penDepth, takeCoreShape);
-				return EPA_CONTACT;
-			}
 		}
-		while(hasMoreFacets && numVertsLocal != MaxSupportPoints);
+		while((heap.size() > 0) && FAllGrtr(upper_bound, heap.top()->getPlaneDist()) && numVertsLocal != MaxSupportPoints);
 
 		calculateContactInformation(aBuf, bBuf, facet, a, b, pa, pb, normal, penDepth, takeCoreShape);
 
-		return EPA_DEGENERATE;
+		return EPA_CONTACT;
 	}
 }
 

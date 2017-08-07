@@ -5,6 +5,8 @@
 #include "Framework/Application/SlateApplication.h"
 #include "Misc/CoreDelegates.h"
 
+float SSafeZone::SafeZoneScale = 1.0f;
+
 void SSafeZone::Construct( const FArguments& InArgs )
 {
 	SBox::Construct(SBox::FArguments()
@@ -30,7 +32,25 @@ void SSafeZone::Construct( const FArguments& InArgs )
 
 	SetTitleSafe(bIsTitleSafe);
 
-	FCoreDelegates::OnSafeFrameChangedEvent.AddSP(this, &SSafeZone::SafeAreaUpdated);
+	OnSafeFrameChangedHandle = FCoreDelegates::OnSafeFrameChangedEvent.AddSP(this, &SSafeZone::SafeAreaUpdated);
+}
+
+SSafeZone::~SSafeZone()
+{
+	FCoreDelegates::OnSafeFrameChangedEvent.Remove(OnSafeFrameChangedHandle);
+}
+
+
+void SSafeZone::SetSafeZoneScale(float InScale)
+{
+	SafeZoneScale = InScale;
+
+	FCoreDelegates::OnSafeFrameChangedEvent.Broadcast();
+}
+
+float SSafeZone::GetSafeZoneScale()
+{
+	return SafeZoneScale;
 }
 
 void SSafeZone::SafeAreaUpdated()
@@ -61,6 +81,10 @@ void SSafeZone::SetTitleSafe( bool InIsTitleSafe )
 	{
 		SafeMargin = DeviceSafeMargin;
 	}
+
+#if PLATFORM_XBOXONE
+	SafeMargin = SafeMargin * SafeZoneScale;
+#endif
 
 	SafeMargin = FMargin(bPadLeft ? SafeMargin.Left : 0.0f, bPadTop ? SafeMargin.Top : 0.0f, bPadRight ? SafeMargin.Right : 0.0f, bPadBottom ? SafeMargin.Bottom : 0.0f);
 }
@@ -114,8 +138,8 @@ void SSafeZone::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedC
 	if ( ArrangedChildren.Accepts( MyCurrentVisibility ) )
 	{
 		const FMargin SlotPadding               = Padding.Get() + (ComputeScaledSafeMargin(AllottedGeometry.Scale) * SafeAreaScale);
-		AlignmentArrangeResult XAlignmentResult = AlignChild<Orient_Horizontal>( AllottedGeometry.Size.X, ChildSlot, SlotPadding );
-		AlignmentArrangeResult YAlignmentResult = AlignChild<Orient_Vertical>( AllottedGeometry.Size.Y, ChildSlot, SlotPadding );
+		AlignmentArrangeResult XAlignmentResult = AlignChild<Orient_Horizontal>( AllottedGeometry.GetLocalSize().X, ChildSlot, SlotPadding );
+		AlignmentArrangeResult YAlignmentResult = AlignChild<Orient_Vertical>( AllottedGeometry.GetLocalSize().Y, ChildSlot, SlotPadding );
 
 		ArrangedChildren.AddWidget(
 			AllottedGeometry.MakeChild(

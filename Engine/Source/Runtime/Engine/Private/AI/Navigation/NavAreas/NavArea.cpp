@@ -12,7 +12,7 @@ UNavArea::UNavArea(const FObjectInitializer& ObjectInitializer) : Super(ObjectIn
 	DrawColor = FColor::Magenta;
 	SupportedAgentsBits = 0xffffffff;
 	// NOTE! AreaFlags == 0 means UNWALKABLE!
-	AreaFlags = 1;  
+	AreaFlags = 1;
 }
 
 void UNavArea::FinishDestroy()
@@ -32,7 +32,17 @@ void UNavArea::FinishDestroy()
 void UNavArea::PostLoad()
 {
 	Super::PostLoad();
+	RegisterArea();
+}
 
+void UNavArea::PostInitProperties()
+{
+	Super::PostInitProperties();
+	RegisterArea();
+}
+
+void UNavArea::RegisterArea()
+{
 	if (HasAnyFlags(RF_ClassDefaultObject)
 #if WITH_HOT_RELOAD
 		&& !GIsHotReload

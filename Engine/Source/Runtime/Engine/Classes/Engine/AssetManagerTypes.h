@@ -85,7 +85,7 @@ struct FPrimaryAssetTypeInfo
 
 private:
 	/** Base Class of all assets of this type */
-	UPROPERTY(EditAnywhere, Category = AssetType)
+	UPROPERTY(EditAnywhere, Category = AssetType, meta = (AllowAbstract))
 	TAssetSubclassOf<UObject> AssetBaseClass;
 public:
 
@@ -103,7 +103,7 @@ public:
 
 private:
 	/** Directories to search for this asset type */
-	UPROPERTY(EditAnywhere, Category = AssetType, meta = (RelativeToGameContentDir))
+	UPROPERTY(EditAnywhere, Category = AssetType, meta = (RelativeToGameContentDir, LongPackageName))
 	TArray<FDirectoryPath> Directories;
 
 	/** Individual assets to scan */

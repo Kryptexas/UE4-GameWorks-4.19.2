@@ -85,7 +85,7 @@ bool FSubversionConnectWorker::Execute(FSubversionSourceControlCommand& InComman
 
 bool FSubversionConnectWorker::UpdateStates() const
 {
-	FSubversionSourceControlModule& SubversionSourceControl = FModuleManager::LoadModuleChecked<FSubversionSourceControlModule>( "SubversionSourceControl" );
+	FSubversionSourceControlModule& SubversionSourceControl = FModuleManager::GetModuleChecked<FSubversionSourceControlModule>( "SubversionSourceControl" );
 	FSubversionSourceControlProvider& Provider = SubversionSourceControl.GetProvider();
 	Provider.SetWorkingCopyRoot(WorkingCopyRoot);
 	Provider.SetRepositoryRoot(RepositoryRoot);
@@ -364,7 +364,7 @@ bool FSubversionCheckInWorker::Execute(FSubversionSourceControlCommand& InComman
 				if(InCommand.bCommandSuccessful)
 				{
 					// Remove any deleted files from status cache
-					FSubversionSourceControlModule& SubversionSourceControl = FModuleManager::LoadModuleChecked<FSubversionSourceControlModule>("SubversionSourceControl");
+					FSubversionSourceControlModule& SubversionSourceControl = FModuleManager::GetModuleChecked<FSubversionSourceControlModule>("SubversionSourceControl");
 					FSubversionSourceControlProvider& Provider = SubversionSourceControl.GetProvider();
 
 					TArray<TSharedRef<ISourceControlState, ESPMode::ThreadSafe>> States;
@@ -634,7 +634,7 @@ bool FSubversionUpdateStatusWorker::UpdateStates() const
 {
 	bool bUpdated = false;
 
-	FSubversionSourceControlModule& SubversionSourceControl = FModuleManager::LoadModuleChecked<FSubversionSourceControlModule>( "SubversionSourceControl" );
+	FSubversionSourceControlModule& SubversionSourceControl = FModuleManager::GetModuleChecked<FSubversionSourceControlModule>( "SubversionSourceControl" );
 	FSubversionSourceControlProvider& Provider = SubversionSourceControl.GetProvider();
 
 	bUpdated |= SubversionSourceControlUtils::UpdateCachedStates(OutStates);

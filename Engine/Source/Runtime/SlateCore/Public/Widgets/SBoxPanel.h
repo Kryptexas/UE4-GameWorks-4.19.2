@@ -85,16 +85,15 @@ public:
 public:
 
 	// Begin SWidget overrides.
-
-	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const;
-	
-	virtual FVector2D ComputeDesiredSize(float) const;
-
-	virtual FChildren* GetChildren();
-
+	virtual void OnArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const override;
+	virtual FChildren* GetChildren() override;
 	// End SWidget overrides.
 
 protected:
+	// Begin SWidget overrides.
+	virtual FVector2D ComputeDesiredSize(float) const override;
+	// End SWidget overrides.
+
 	/**
 	 * A Box Panel's orientation cannot be changed once it is constructed..
 	 *
@@ -138,13 +137,6 @@ public:
 			SizeParam = FStretch( StretchCoefficient );
 			return *this;
 		}
-
-		DEPRECATED( 4.5, "AspectRatio() property is no longer supported; it did not behave correctly to begin with and was rarely used." )
-		FSlot& AspectRatio()
-		{
-			return *this;
-		}
-		
 		FSlot& Padding( float Uniform )
 		{
 			SlotPadding = FMargin(Uniform);
@@ -280,12 +272,6 @@ public:
 		FSlot& FillHeight( const TAttribute< float >& StretchCoefficient )
 		{
 			SizeParam = FStretch( StretchCoefficient );
-			return *this;
-		}
-
-		DEPRECATED( 4.5, "AspectRatio() property is no longer supported; it did not behave correctly to begin with and was rarely used." )
-		FSlot& AspectRatio()
-		{
 			return *this;
 		}
 
@@ -483,7 +469,7 @@ public:
 	virtual FReply OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
 	virtual FReply OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
 
-	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
+	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 
 private:
 	/** @see SDragAndDropVerticalBox's OnCanAcceptDrop event */

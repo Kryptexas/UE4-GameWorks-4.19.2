@@ -1,12 +1,19 @@
-﻿INTSourceChangelist:3343774
-Availability: Docs
+﻿INTSourceChangelist:3478014
+Availability: Public
 Title:5. 마무리
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
 Description:드래그 위젯 환경설정, 메인 HUD 에 표시 및 테스트용 Health Bar 를 추가하여 마무리하도록 합니다.
+SkillLevel: Intermediate
+Version: 4.15
+parent:Engine/UMG/HowTo/DragAndDrop
+order:5
+checkpoint: editorqs
 Related: Engine/UMG
 Related: Engine/UMG/UserGuide
-SkillLevel: Intermediate
 tags:UMG UI Designer
+tags:UI
+type:how-to
+
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -72,16 +79,23 @@ tags:UMG UI Designer
 에디터에서 플레이 후, 화면에서 Health Bar 를 **좌클릭** 드래그 후 새 위치에 드롭합니다.
 
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-kYkhxuJsVs4
-[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	kYkhxuJsVs4
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
 [/OBJECT]
+
 
 이는 드래그 앤 드롭 프로세스를 시작하는 데 필요한 엘리먼트 예제일 뿐입니다.
 플레이어가 위젯을 세이프 존 외부 혹은 다른 위젯 위에 드래그하지는 않았나 추가적인 확인이 필요할 수 있습니다.

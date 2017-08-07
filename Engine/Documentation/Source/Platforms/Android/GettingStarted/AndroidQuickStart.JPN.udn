@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:3298293
+﻿INTSourceChangelist:3451711
 Availability:Public
 Title:Android クイックスタート
 Crumbs:%ROOT%, Platforms, Platforms/Android
 Description:Android プラットフォーム開発の設定
-Version:4.12
+Version:4.16
 Skilllevel:Intermediate
 tags:Android
 tags:Mobile
@@ -49,9 +49,9 @@ Checkpoint:AndroidQS
 
 ![](AndroidTopic.jpg)
 
-アンリアル エンジン (UE4) は **CodeWorks for Android 1R4** という Android ソフトウェア開発キット (SDK) の特別バージョンを採用しています。 
+アンリアル エンジン (UE4) は **CodeWorks for Android 1R6** という Android ソフトウェア開発キット (SDK) の 
 CodeWorks for Android  の特別バージョンを使うと、 
-UE4 での Android プロジェクト開発に必要な SDK および Native Development Kit (NDK) の設定が最も楽になります。現在使用しているバージョンは 1R4 ですが、CodeWorks の次のバージョンを使用する予定です。 
+UE4 での Android プロジェクト開発に必要な SDK および Native Development Kit (NDK) の設定が最も楽になります。現在使用しているバージョンは 1R6 ですが、CodeWorks の次のバージョンを使用する予定です。 
 違うバージョンの Android SDK (あるいは、CodeWorks for Android の古いバージョン) をインストールしている場合は、 
 一旦それをアンインストールして、UE4 が配布している CodeWorks for Android インストーラーを使って CodeWorks for Android をインストールすることを推奨します。 
 
@@ -62,7 +62,7 @@ UE4 に付いている CodeWorks for Android インストーラーを使うこ�
 ## 目標
 
 Android クイックスタートでは、UE4 で Android を開発するための PC もしくは Mac の基本的な設定を一通り説明します。
-さらに、アンリアル エディタの起動およびパッケージ化機能を使って、Android デバイスにテンプレート ゲームを入れる方法も説明します。
+さらに、アンリアル エディタの起動およびパッケージ化機能を使って、Android デバイスにテンプレート ゲームを取り込む方法も説明します。
 
 ## 目的
 

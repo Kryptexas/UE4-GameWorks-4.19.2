@@ -7,6 +7,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "UObjectGlobals.h"
+#include "Templates/Casts.h"
 
 /**
  * FScriptInterface
@@ -102,7 +104,14 @@ public:
 	{
 		return GetInterface() != Other.GetInterface() || ObjectPointer != Other.GetObject();
 	}
+
+	void AddReferencedObjects(FReferenceCollector& Collector)
+	{
+		Collector.AddReferencedObject(ObjectPointer);
+	}
 };
+
+
 
 template<> struct TIsPODType<class FScriptInterface> { enum { Value = true }; };
 template<> struct TIsZeroConstructType<class FScriptInterface> { enum { Value = true }; };
@@ -150,7 +159,7 @@ public:
 	{
 		SetObject(SourceObject);
 		
-		InterfaceType* SourceInterface = SourceObject;
+		InterfaceType* SourceInterface = Cast<InterfaceType>(SourceObject);
 		SetInterface( SourceInterface );
 
 		return *((InterfaceType*)GetInterface());

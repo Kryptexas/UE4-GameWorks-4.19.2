@@ -89,10 +89,11 @@ enum EMaterialValueType
 	MCT_Float		= 8|4|2|1,
 	MCT_Texture2D	= 16,
 	MCT_TextureCube	= 32,
-	MCT_Texture		= 16|32,
+	MCT_Texture		= 16|32|512,
 	MCT_StaticBool	= 64,
 	MCT_Unknown		= 128,
-	MCT_MaterialAttributes	= 256
+	MCT_MaterialAttributes	= 256,
+	MCT_TextureExternal = 512,
 };
 
 /**
@@ -194,6 +195,7 @@ public:
 	 */
 	friend FArchive& operator<<(FArchive& Ar,class FMaterialUniformExpression*& Ref);
 	friend FArchive& operator<<(FArchive& Ar,class FMaterialUniformExpressionTexture*& Ref);
+	friend FArchive& operator<<(FArchive& Ar, class FMaterialUniformExpressionExternalTexture*& Ref);
 
 	const TCHAR* GetName() const { return Name; }
 
@@ -224,7 +226,8 @@ public:
 	virtual FMaterialUniformExpressionType* GetType() const = 0;
 	virtual void Serialize(FArchive& Ar) = 0;
 	virtual void GetNumberValue(const struct FMaterialRenderContext& Context,FLinearColor& OutValue) const {}
-	virtual class FMaterialUniformExpressionTexture* GetTextureUniformExpression() { return NULL; }
+	virtual class FMaterialUniformExpressionTexture* GetTextureUniformExpression() { return nullptr; }
+	virtual class FMaterialUniformExpressionExternalTexture* GetExternalTextureUniformExpression() { return nullptr; }
 	virtual bool IsConstant() const { return false; }
 	virtual bool IsChangingPerFrame() const { return false; }
 	virtual bool IsIdentical(const FMaterialUniformExpression* OtherExpression) const { return false; }
@@ -272,6 +275,41 @@ protected:
 	UTexture* TransientOverrideValue_RenderThread;
 };
 
+
+/**
+* An external texture expression.
+*/
+class FMaterialUniformExpressionExternalTexture : public FMaterialUniformExpression
+{
+	DECLARE_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionExternalTexture);
+public:
+
+	FMaterialUniformExpressionExternalTexture();
+
+	FMaterialUniformExpressionExternalTexture(const FGuid& InGuid);
+
+	// FMaterialUniformExpression interface.
+	virtual void Serialize(FArchive& Ar);
+	virtual class FMaterialUniformExpressionExternalTexture* GetExternalTextureUniformExpression() override { return this; }
+
+	// Lookup the external texture if it is set
+	bool GetExternalTexture(const FMaterialRenderProxy* MaterialRenderProxy, FTextureRHIRef& OutTextureRHI, FSamplerStateRHIRef& OutSamplerStateRHI);
+
+	virtual bool IsConstant() const
+	{
+		return false;
+	}
+	virtual bool IsIdentical(const FMaterialUniformExpression* OtherExpression) const;
+
+	friend FArchive& operator<<(FArchive& Ar, class FMaterialUniformExpressionExternalTexture*& Ref);
+
+	FGuid GetTextureExternalTextureGuid() const { return ExternalTextureGuid; }
+
+protected:
+	/** GUID is key for the ExternalTextures map */
+	FGuid ExternalTextureGuid;
+};
+
 /** Stores all uniform expressions for a material generated from a material translation. */
 class FUniformExpressionSet : public FRefCountedObject
 {
@@ -309,6 +347,8 @@ protected:
 	TArray<TRefCountPtr<FMaterialUniformExpression> > UniformScalarExpressions;
 	TArray<TRefCountPtr<FMaterialUniformExpressionTexture> > Uniform2DTextureExpressions;
 	TArray<TRefCountPtr<FMaterialUniformExpressionTexture> > UniformCubeTextureExpressions;
+	TArray<TRefCountPtr<FMaterialUniformExpressionExternalTexture> > UniformExternalTextureExpressions;
+
 	TArray<TRefCountPtr<FMaterialUniformExpression> > PerFrameUniformScalarExpressions;
 	TArray<TRefCountPtr<FMaterialUniformExpression> > PerFrameUniformVectorExpressions;
 	TArray<TRefCountPtr<FMaterialUniformExpression> > PerFramePrevUniformScalarExpressions;
@@ -1065,7 +1105,7 @@ public:
 	virtual float GetTranslucentSelfShadowSecondDensityScale() const { return 1.0f; }
 	virtual float GetTranslucentSelfShadowSecondOpacity() const { return 1.0f; }
 	virtual float GetTranslucentBackscatteringExponent() const { return 1.0f; }
-	virtual bool IsSeparateTranslucencyEnabled() const { return false; }
+	virtual bool IsTranslucencyAfterDOFEnabled() const { return false; }
 	virtual bool IsMobileSeparateTranslucencyEnabled() const { return false; }
 	virtual FLinearColor GetTranslucentMultipleScatteringExtinction() const { return FLinearColor::White; }
 	virtual float GetTranslucentShadowStartOffset() const { return 0.0f; }
@@ -1498,6 +1538,7 @@ public:
 
 	ENGINE_API static const TSet<FMaterialRenderProxy*>& GetMaterialRenderProxyMap() 
 	{
+		check(!FPlatformProperties::RequiresCookedData());
 		return MaterialRenderProxyMap;
 	}
 
@@ -1527,6 +1568,13 @@ public:
 #endif
 	}
 
+	ENGINE_API static void UpdateDeferredCachedUniformExpressions();
+
+	static inline bool HasDeferredUniformExpressionCacheRequests() 
+	{
+		return DeferredUniformExpressionCacheRequests.Num() > 0;
+	}
+
 private:
 
 	/** true if the material is selected. */
@@ -1547,6 +1595,8 @@ private:
 	 * This is used to propagate new shader maps to materials being used for rendering.
 	 */
 	ENGINE_API static TSet<FMaterialRenderProxy*> MaterialRenderProxyMap;
+
+	ENGINE_API static TSet<FMaterialRenderProxy*> DeferredUniformExpressionCacheRequests;
 };
 
 /**
@@ -1715,7 +1765,7 @@ public:
 	ENGINE_API virtual float GetTranslucentSelfShadowSecondDensityScale() const override;
 	ENGINE_API virtual float GetTranslucentSelfShadowSecondOpacity() const override;
 	ENGINE_API virtual float GetTranslucentBackscatteringExponent() const override;
-	ENGINE_API virtual bool IsSeparateTranslucencyEnabled() const override;
+	ENGINE_API virtual bool IsTranslucencyAfterDOFEnabled() const override;
 	ENGINE_API virtual bool IsMobileSeparateTranslucencyEnabled() const override;
 	ENGINE_API virtual FLinearColor GetTranslucentMultipleScatteringExtinction() const override;
 	ENGINE_API virtual float GetTranslucentShadowStartOffset() const override;

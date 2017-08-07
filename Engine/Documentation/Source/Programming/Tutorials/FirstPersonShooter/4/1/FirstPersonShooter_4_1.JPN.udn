@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3069483
-Availability: Public
+﻿INTSourceChangelist:3388665
+Availability:Public
 Title:4.1 - キャラクターをアニメートする
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/4
 Description:FPS キャラクターをアニメートする方法を学びます。
-SkillLevel: Beginner
-Version: 4.11
+SkillLevel:Beginner
+Version:4.15
 
 [VAR:Steps]
 [OBJECT:Navigation]

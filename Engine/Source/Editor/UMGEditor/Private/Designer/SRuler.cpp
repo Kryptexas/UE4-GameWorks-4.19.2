@@ -155,6 +155,9 @@ int32 SRuler::DrawTicks( FSlateWindowElementList& OutDrawElements, const struct 
 	TArray<FVector2D> LinePoints;
 	LinePoints.AddUninitialized(2);
 
+	// lines should not need anti-aliasing
+	const bool bAntiAliasLines = false;
+
 	float Number = 0;
 	while ( ( Number = OffsetNum*Spacing ) < RangeToScreen.ViewInput.GetUpperBoundValue() )
 	{
@@ -170,19 +173,15 @@ int32 SRuler::DrawTicks( FSlateWindowElementList& OutDrawElements, const struct 
 			LinePoints[0] = FVector2D(1.0f, 1.0f);
 			LinePoints[1] = TickSize;
 
-			// lines should not need anti-aliasing
-			const bool bAntiAliasLines = false;
-
 			// Draw each tick mark
 			FSlateDrawElement::MakeLines(
 				OutDrawElements,
 				InArgs.StartLayer,
 				InArgs.AllottedGeometry.ToPaintGeometry( Offset, TickSize ),
 				LinePoints,
-				InArgs.ClippingRect,
 				InArgs.DrawEffects,
 				InArgs.TickColor,
-				false
+				bAntiAliasLines
 				);
 
 			if( !InArgs.bOnlyDrawMajorTicks )
@@ -204,17 +203,16 @@ int32 SRuler::DrawTicks( FSlateWindowElementList& OutDrawElements, const struct 
 				const TSharedRef< FSlateFontMeasure > FontMeasureService = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
 				FVector2D TextSize = FontMeasureService->Measure(FrameString, SmallLayoutFont);
 				FVector2D TextOffset = Orientation == Orient_Horizontal ? 
-					FVector2D(XPos - ( TextSize.X*0.5f ), FMath::Abs(InArgs.AllottedGeometry.Size.Y - ( InArgs.MajorTickHeight + TextSize.Y )))
+					FVector2D(XPos - ( TextSize.X*0.5f ), FMath::Abs(InArgs.AllottedGeometry.GetLocalSize().Y - ( InArgs.MajorTickHeight + TextSize.Y )))
 					:
-					FVector2D(FMath::Abs(InArgs.AllottedGeometry.Size.X - ( InArgs.MajorTickHeight + TextSize.X )), XPos - ( TextSize.Y*0.5f ));
+					FVector2D(FMath::Abs(InArgs.AllottedGeometry.GetLocalSize().X - ( InArgs.MajorTickHeight + TextSize.X )), XPos - ( TextSize.Y*0.5f ));
 
 				FSlateDrawElement::MakeText(
 					OutDrawElements,
-					InArgs.StartLayer+1, 
+					InArgs.StartLayer, 
 					InArgs.AllottedGeometry.ToPaintGeometry( TextOffset, TextSize ), 
 					FrameString, 
-					SmallLayoutFont, 
-					InArgs.ClippingRect, 
+					SmallLayoutFont,
 					InArgs.DrawEffects,
 					InArgs.TextColor
 				);
@@ -225,23 +223,21 @@ int32 SRuler::DrawTicks( FSlateWindowElementList& OutDrawElements, const struct 
 			// Compute the size of each tick mark.  If we are half way between to visible values display a slightly larger tick mark
 			const float MinorTickHeight = AbsOffsetNum % HalfDivider == 0 ? 7.0f : 4.0f;
 
-			FVector2D Offset = Orientation == Orient_Horizontal ? FVector2D(XPos, FMath::Abs(InArgs.AllottedGeometry.Size.Y - MinorTickHeight)) : FVector2D(FMath::Abs(InArgs.AllottedGeometry.Size.X - MinorTickHeight), XPos);
+			FVector2D Offset = Orientation == Orient_Horizontal ? FVector2D(XPos, FMath::Abs(InArgs.AllottedGeometry.GetLocalSize().Y - MinorTickHeight)) : FVector2D(FMath::Abs(InArgs.AllottedGeometry.GetLocalSize().X - MinorTickHeight), XPos);
 			FVector2D TickSize = Orientation == Orient_Horizontal ? FVector2D(1, MinorTickHeight) : FVector2D(MinorTickHeight, 1);
 
 			LinePoints[0] = FVector2D(1.0f,1.0f);
 			LinePoints[1] = TickSize;
 
-			const bool bAntiAlias = false;
 			// Draw each sub mark
 			FSlateDrawElement::MakeLines(
 				OutDrawElements,
 				InArgs.StartLayer,
 				InArgs.AllottedGeometry.ToPaintGeometry( Offset, TickSize ),
 				LinePoints,
-				InArgs.ClippingRect,
 				InArgs.DrawEffects,
 				InArgs.TickColor,
-				bAntiAlias
+				bAntiAliasLines
 			);
 		}
 		// Advance to next tick mark
@@ -253,17 +249,15 @@ int32 SRuler::DrawTicks( FSlateWindowElementList& OutDrawElements, const struct 
 		LinePoints[0] = Orientation == Orient_Horizontal ? FVector2D(0, InArgs.AllottedGeometry.Size.Y) : FVector2D(InArgs.AllottedGeometry.Size.X, 0);
 		LinePoints[1] = FVector2D(InArgs.AllottedGeometry.Size.X, InArgs.AllottedGeometry.Size.Y);
 
-		const bool bAntiAlias = false;
 		// Draw each sub mark
 		FSlateDrawElement::MakeLines(
 			OutDrawElements,
 			InArgs.StartLayer,
 			InArgs.AllottedGeometry.ToPaintGeometry(),
 			LinePoints,
-			InArgs.ClippingRect.ExtendBy(FMargin(1, 1, 1, 1)),
 			InArgs.DrawEffects,
 			InArgs.TickColor,
-			bAntiAlias
+			bAntiAliasLines
 		);
 	}
 
@@ -275,24 +269,22 @@ int32 SRuler::DrawTicks( FSlateWindowElementList& OutDrawElements, const struct 
 		LinePoints[0] = Orientation == Orient_Horizontal ? FVector2D(LocalCursor.X, 0) : FVector2D(0, LocalCursor.Y);
 		LinePoints[1] = Orientation == Orient_Horizontal ? FVector2D(LocalCursor.X, InArgs.AllottedGeometry.Size.Y) : FVector2D(InArgs.AllottedGeometry.Size.X, LocalCursor.Y);
 
-		const bool bAntiAlias = false;
 		// Draw each sub mark
 		FSlateDrawElement::MakeLines(
 			OutDrawElements,
 			++InArgs.StartLayer,
 			InArgs.AllottedGeometry.ToPaintGeometry(),
 			LinePoints,
-			InArgs.ClippingRect,
 			InArgs.DrawEffects,
 			FLinearColor(FColor(0x19, 0xD1, 0x19)),
-			bAntiAlias
+			bAntiAliasLines
 		);
 	}
 
 	return InArgs.StartLayer;
 }
 
-int32 SRuler::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+int32 SRuler::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	const bool bEnabled = bParentEnabled;
 	const ESlateDrawEffect DrawEffects = bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
@@ -305,7 +297,6 @@ int32 SRuler::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry,
 		LayerId,
 		AllottedGeometry.ToPaintGeometry(),
 		WhiteBrush,
-		MyClippingRect, 
 		DrawEffects,
 		FLinearColor(FColor(48,48,48))
 	);
@@ -320,7 +311,7 @@ int32 SRuler::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry,
 	Max = (Max - Origin) * SlateToUnitScale;
 
 	TRange<float> LocalViewRange(Min, Max);
-	FScrubRangeToScreen RangeToScreen(LocalViewRange, Orientation == Orient_Horizontal ? AllottedGeometry.Size.X : AllottedGeometry.Size.Y);
+	FScrubRangeToScreen RangeToScreen(LocalViewRange, Orientation == Orient_Horizontal ? AllottedGeometry.GetLocalSize().X : AllottedGeometry.GetLocalSize().Y);
 
 	const float MajorTickHeight = 9.0f;
 
@@ -329,10 +320,10 @@ int32 SRuler::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry,
 	TickArgs.bOnlyDrawMajorTicks = false;
 	TickArgs.TickColor = FLinearColor(FColor(97, 97, 97));
 	TickArgs.TextColor = FLinearColor(FColor(165, 165, 165));
-	TickArgs.ClippingRect = MyClippingRect;
+	TickArgs.ClippingRect = MyCullingRect;
 	TickArgs.DrawEffects = DrawEffects;
-	TickArgs.StartLayer = LayerId;
-	TickArgs.TickOffset = Orientation == Orient_Horizontal ? FMath::Abs(AllottedGeometry.Size.Y - MajorTickHeight) : FMath::Abs(AllottedGeometry.Size.X - MajorTickHeight);
+	TickArgs.StartLayer = LayerId + 1;
+	TickArgs.TickOffset = Orientation == Orient_Horizontal ? FMath::Abs(AllottedGeometry.GetLocalSize().Y - MajorTickHeight) : FMath::Abs(AllottedGeometry.GetLocalSize().X - MajorTickHeight);
 	TickArgs.MajorTickHeight = MajorTickHeight;
 
 	LayerId = DrawTicks(OutDrawElements, RangeToScreen, TickArgs);

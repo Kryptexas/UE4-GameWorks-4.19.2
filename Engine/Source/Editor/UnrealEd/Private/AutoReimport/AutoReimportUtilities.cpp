@@ -4,6 +4,8 @@
 #include "EditorFramework/AssetImportData.h"
 #include "AutoReimport/AssetSourceFilenameCache.h"
 
+DEFINE_LOG_CATEGORY(LogAutoReimportManager);
+
 namespace Utils
 {
 	TArray<FAssetData> FindAssetsPertainingToFile(const IAssetRegistry& Registry, const FString& AbsoluteFilename)

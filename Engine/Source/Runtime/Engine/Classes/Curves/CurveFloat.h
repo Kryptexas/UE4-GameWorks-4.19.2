@@ -8,7 +8,7 @@
 #include "Curves/CurveBase.h"
 #include "CurveFloat.generated.h"
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct ENGINE_API FRuntimeFloatCurve
 {
 	GENERATED_USTRUCT_BODY()

@@ -74,6 +74,20 @@ Arrays and structures are collections of multiple data types. They are available
 [DIR(output:"listbutton" parent:"Engine/Blueprints/Scripting" tags:"Arrays and Structures")]
 
 <!--
-Structs
+
+## Advanced Containers
+
+As of Unreal Engine, version 4.15, Blueprint Sets and Maps have both been added to the Blueprint Application Programming Interface (API). Although these containers offer some exciting opportunities for developers to get creative with how they store and access data, these
+containers are meant for those users who have an advanced level of expertise with Blueprints. Oftentimes, the container of choice will be Blueprint Arrays, but there are times when associative containers (such as Maps and Sets) can help you do some fun and exciting things 
+with your in-game data.
+
+### Blueprint Maps
+
+[DIR(output:"listbutton" parent:"Engine/Blueprints/Scripting" tags:"Blueprint Map")]
+
+### Blueprint Sets
+
+[DIR(output:"listbutton" parent:"Engine/Blueprints/Scripting" tags:"Blueprint Set")]
+
 -->
 

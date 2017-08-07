@@ -75,7 +75,7 @@ FReply SColorSpectrum::OnMouseMove( const FGeometry& MyGeometry, const FPointerE
 }
 
 
-int32 SColorSpectrum::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SColorSpectrum::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	const bool bIsEnabled = ShouldBeEnabled(bParentEnabled);
 	const ESlateDrawEffect DrawEffects = bIsEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
@@ -86,7 +86,6 @@ int32 SColorSpectrum::OnPaint( const FPaintArgs& Args, const FGeometry& Allotted
 		LayerId,
 		AllottedGeometry.ToPaintGeometry(),
 		Image,
-		MyClippingRect,
 		DrawEffects,
 		InWidgetStyle.GetColorAndOpacityTint() * Image->GetTint(InWidgetStyle));
 
@@ -104,7 +103,6 @@ int32 SColorSpectrum::OnPaint( const FPaintArgs& Args, const FGeometry& Allotted
 		LayerId + 1,
 		AllottedGeometry.ToPaintGeometry(CalcRelativeSelectedPosition() * AllottedGeometry.Size - SelectorImage->ImageSize * 0.5f, SelectorImage->ImageSize),
 		SelectorImage,
-		MyClippingRect,
 		DrawEffects,
 		InWidgetStyle.GetColorAndOpacityTint() * SelectorImage->GetTint(InWidgetStyle));
 
@@ -130,7 +128,7 @@ FVector2D SColorSpectrum::CalcRelativeSelectedPosition( ) const
 
 void SColorSpectrum::ProcessMouseAction(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	FVector2D NormalizedMousePosition = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition()) / MyGeometry.Size;
+	FVector2D NormalizedMousePosition = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition()) / MyGeometry.GetLocalSize();
 	NormalizedMousePosition = NormalizedMousePosition.ClampAxes(0.0f, 1.0f);
 
 	FLinearColor NewColor = SelectedColor.Get();

@@ -10,6 +10,7 @@
 
 #include "CoreAudioDevice.h"
 #include "CoreAudioEffects.h"
+#include "ContentStreaming.h"
 
 #define AUDIO_DISTANCE_FACTOR ( 0.0127f )
 
@@ -104,6 +105,9 @@ void FCoreAudioSoundSource::FreeResources( void )
 			check( CoreAudioBuffer->ResourceID == 0 );
 			delete CoreAudioBuffer;
 			CoreAudioBuffer = nullptr;
+
+			// Null out the base-class ptr
+			Buffer = nullptr;
 		}
 		
 		bStreamedSound = false;
@@ -241,7 +245,8 @@ bool FCoreAudioSoundSource::Init( FWaveInstance* InWaveInstance )
 	{
 		// Find matching buffer.
 		CoreAudioBuffer = FCoreAudioSoundBuffer::Init( AudioDevice, InWaveInstance->WaveData, InWaveInstance->StartTime > 0.f );
-	
+		Buffer = nullptr;
+
 		if( CoreAudioBuffer && CoreAudioBuffer->NumChannels > 0 )
 		{
 			SCOPE_CYCLE_COUNTER( STAT_AudioSourceInitTime );
@@ -421,6 +426,8 @@ void FCoreAudioSoundSource::Play( void )
 void FCoreAudioSoundSource::Stop( void )
 {
 	FScopeLock Lock(&CriticalSection);
+
+	IStreamingManager::Get().GetAudioStreamingManager().RemoveStreamingSoundSource(this);
 
 	if( WaveInstance )
 	{

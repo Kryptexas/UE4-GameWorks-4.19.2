@@ -32,6 +32,7 @@ public:
 	FRHIResource(bool InbDoNotDeferDelete = false)
 		: MarkedForDelete(0)
 		, bDoNotDeferDelete(InbDoNotDeferDelete)
+		, bCommitted(true)
 	{
 	}
 	virtual ~FRHIResource() 
@@ -87,10 +88,25 @@ public:
 
 	static bool Bypass();
 
+	// Transient resource tracking
+	// We do this at a high level so we can catch errors even when transient resources are not supported
+	void SetCommitted(bool bInCommitted) 
+	{ 
+		check(IsInRenderingThread()); 
+		bCommitted = bInCommitted;
+	}
+	bool IsCommitted() const 
+	{ 
+		check(IsInRenderingThread());
+		return bCommitted;
+	}
+
 private:
 	mutable FThreadSafeCounter NumRefs;
 	mutable int32 MarkedForDelete;
 	bool bDoNotDeferDelete;
+	bool bCommitted;
+
 	static TLockFreePointerListUnordered<FRHIResource, PLATFORM_CACHE_LINE_SIZE> PendingDeletes;
 	static FRHIResource* CurrentlyDeleting;
 
@@ -146,8 +162,6 @@ class FRHIBoundShaderState : public FRHIResource {};
 class FRHIShader : public FRHIResource
 {
 public:
-	FRHIShader(bool InbDoNotDeferDelete = false) : FRHIResource(InbDoNotDeferDelete) {}
-	
 	void SetHash(FSHAHash InHash) { Hash = InHash; }
 	FSHAHash GetHash() const { return Hash; }
 
@@ -726,10 +740,6 @@ private:
 class FRHIViewport : public FRHIResource 
 {
 public:
-	FRHIViewport()
-		: FRHIResource(true)
-	{
-	}
 	/**
 	 * Returns access to the platform-specific native resource pointer.  This is designed to be used to provide plugins with access
 	 * to the underlying resource and should be used very carefully or not at all.
@@ -1284,8 +1294,7 @@ class FRHICustomPresent : public FRHIResource
 {
 public:
 	explicit FRHICustomPresent(FRHIViewport* InViewport) 
-		: FRHIResource(true)
-		, ViewportRHI(InViewport) 
+		: ViewportRHI(InViewport) 
 	{
 	}
 	

@@ -101,6 +101,8 @@ void FRendererModule::DrawTileMesh(FRHICommandListImmediate& RHICmdList, FDrawin
 			GMinimalDummyForwardLightingResources = new TGlobalResource<FMinimalDummyForwardLightingResources>();
 		}
 
+		FMaterialRenderProxy::UpdateDeferredCachedUniformExpressions();
+
 		//Apply the minimal forward lighting resources
 		View.ForwardLightingResources = &GMinimalDummyForwardLightingResources->ForwardLightingResources;
 		
@@ -128,7 +130,7 @@ void FRendererModule::DrawTileMesh(FRHICommandListImmediate& RHICmdList, FDrawin
 			}
 			else
 			{
-				FMobileTranslucencyDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FMobileTranslucencyDrawingPolicyFactory::ContextType(ESceneRenderTargetsMode::InvalidScene, false), Mesh, false, DrawRenderState, NULL, HitProxyId);
+				FMobileTranslucencyDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FMobileTranslucencyDrawingPolicyFactory::ContextType(ESceneRenderTargetsMode::InvalidScene, ETranslucencyPass::TPT_AllTranslucency), Mesh, false, DrawRenderState, NULL, HitProxyId);
 			}
 		}
 		// handle opaque materials
@@ -490,7 +492,7 @@ static bool RendererExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	}
 	else if(FParse::Command(&Cmd,TEXT("DumpUnbuiltLightInteractions")))
 	{
-		InWorld->Scene->DumpUnbuiltLightIteractions(Ar);
+		InWorld->Scene->DumpUnbuiltLightInteractions(Ar);
 		return true;
 	}
 #endif

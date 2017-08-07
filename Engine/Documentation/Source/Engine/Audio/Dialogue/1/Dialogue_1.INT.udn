@@ -5,9 +5,10 @@ Description:Setting up the voices for each of our characters
 version: 4.13
 parent:Engine/Audio/Dialogue
 order:1
-type:quick start
+type:how-to
 checkpoint:dialogueqs
 prereq: Engine/Blueprints/QuickStart
+skilllevel:Intermediate
 related:Engine/Audio
 related:Engine/Audio/Overview
 related:Engine/Audio/SoundCues/Editor

@@ -121,7 +121,6 @@ public:
 	/** SWidget interface */
 	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
 
-
 	void RefreshViewport();
 
 	/**
@@ -137,7 +136,7 @@ public:
 
 	/** LOD model selection checking function*/
 	bool IsLODModelSelected( int32 LODSelectionType ) const;
-	int32 GetLODSelection() const { return LODSelection; };
+	int32 GetLODSelection() const;
 
 	/** Function to set the current playback speed*/
 	void OnSetPlaybackSpeed(int32 PlaybackSpeedMode);
@@ -198,6 +197,7 @@ public:
 
 	/** Function to set LOD model selection*/
 	void OnSetLODModel(int32 LODSelectionType);
+	void OnLODModelChanged();
 
 	/** Get the skeleton tree we are bound to */
 	TSharedRef<class ISkeletonTree> GetSkeletonTree() const { return SkeletonTreePtr.Pin().ToSharedRef(); }
@@ -359,16 +359,28 @@ private:
 	EVisibility GetBoneMoveModeButtonVisibility() const;
 
 	/** Function to mute/unmute viewport audio */
-	void OnMuteAudio();
+	void OnToggleMuteAudio();
 
 	/** Whether audio from the viewport is muted */
-	bool IsAudioMuted();
+	bool IsAudioMuted() const;
+
+	/** Function to enable/disable viewport audio attenuation */
+	void OnToggleUseAudioAttenuation();
+
+	/** Whether audio from the viewport is attenuated */
+	bool IsAudioAttenuationEnabled() const;
 
 	/** Function to set whether we are previewing root motion */
 	void OnTogglePreviewRootMotion();
 	
 	/** Whether or not we are previewing root motion */
 	bool IsPreviewingRootMotion() const;
+
+	/** Callback when user checks the vertex colors box in the show menu */
+	void OnShowVertexColorsChanged();
+
+	/** Whether or not vertex color display is enabled */
+	bool IsShowingVertexColors() const;
 
 private:
 	/** Selected Turn Table speed  */

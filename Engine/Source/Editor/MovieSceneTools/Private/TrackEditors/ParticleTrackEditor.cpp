@@ -53,12 +53,6 @@ UMovieSceneSection* FParticleSection::GetSectionObject()
 	return &Section;
 }
 
-
-FText FParticleSection::GetDisplayName() const
-{
-	return LOCTEXT("Emitter", "Emitter");
-}
-
 float FParticleSection::GetSectionHeight() const
 {
 	return (float)AnimatableParticleEditorConstants::ParticleTrackHeight;
@@ -202,7 +196,6 @@ int32 FParticleSection::OnPaintSection( FSequencerSectionPainter& InPainter ) co
 			InPainter.LayerId,
 			InPainter.SectionGeometry.ToPaintGeometry( FVector2D( XOffset, (InPainter.SectionGeometry.GetLocalSize().Y - SequencerSectionConstants::KeySize.Y) / 2 ), FVector2D( XSize, SequencerSectionConstants::KeySize.Y ) ),
 			FEditorStyle::GetBrush( "Sequencer.Section.Background" ),
-			InPainter.SectionClippingRect,
 			DrawEffects
 			);
 		FSlateDrawElement::MakeBox(
@@ -210,7 +203,6 @@ int32 FParticleSection::OnPaintSection( FSequencerSectionPainter& InPainter ) co
 			InPainter.LayerId,
 			InPainter.SectionGeometry.ToPaintGeometry( FVector2D( XOffset, (InPainter.SectionGeometry.GetLocalSize().Y - SequencerSectionConstants::KeySize.Y) / 2 ), FVector2D( XSize, SequencerSectionConstants::KeySize.Y ) ),
 			FEditorStyle::GetBrush( "Sequencer.Section.BackgroundTint" ),
-			InPainter.SectionClippingRect,
 			DrawEffects,
 			TrackColor
 			);
@@ -311,30 +303,30 @@ void FParticleTrackEditor::AddParticleKey( const FGuid ObjectGuid )
 }
 
 
-bool FParticleTrackEditor::AddKeyInternal( float KeyTime, UObject* Object )
+FKeyPropertyResult FParticleTrackEditor::AddKeyInternal( float KeyTime, UObject* Object )
 {
-	bool bHandleCreated = false;
-	bool bTrackCreated = false;
+	FKeyPropertyResult KeyPropertyResult;
 
 	FFindOrCreateHandleResult HandleResult = FindOrCreateHandleToObject( Object );
 	FGuid ObjectHandle = HandleResult.Handle;
-	bHandleCreated |= HandleResult.bWasCreated;
+	KeyPropertyResult.bHandleCreated |= HandleResult.bWasCreated;
 
 	if (ObjectHandle.IsValid())
 	{
 		FFindOrCreateTrackResult TrackResult = FindOrCreateTrackForObject(ObjectHandle, UMovieSceneParticleTrack::StaticClass());
 		UMovieSceneTrack* Track = TrackResult.Track;
-		bTrackCreated |= TrackResult.bWasCreated;
+		KeyPropertyResult.bTrackCreated |= TrackResult.bWasCreated;
 
-		if (bTrackCreated && ensure(Track))
+		if (KeyPropertyResult.bTrackCreated && ensure(Track))
 		{
 			UMovieSceneParticleTrack* ParticleTrack = Cast<UMovieSceneParticleTrack>(Track);
 			ParticleTrack->AddNewSection(KeyTime);
 			ParticleTrack->SetDisplayName(LOCTEXT("TrackName", "Particle System"));
+			KeyPropertyResult.bTrackModified = true;
 		}
 	}
 
-	return bHandleCreated || bTrackCreated;
+	return KeyPropertyResult;
 }
 
 

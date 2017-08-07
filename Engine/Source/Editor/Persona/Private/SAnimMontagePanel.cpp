@@ -17,6 +17,7 @@
 #include "Widgets/Input/STextComboBox.h"
 #include "SAnimTimingPanel.h"
 #include "TabSpawners.h"
+#include "SNumericEntryBox.h"
 
 #define LOCTEXT_NAMESPACE "AnimMontagePanel"
 
@@ -357,6 +358,67 @@ void SAnimMontagePanel::SummonTrackContextMenu( FMenuBuilder& MenuBuilder, float
 		{
 			UIAction.ExecuteAction.BindRaw(MontageEditor.Pin().Get(), &SMontageEditor::RemoveSection, SectionIndex);
 			MenuBuilder.AddMenuEntry(LOCTEXT("DeleteMontageSection", "Delete Montage Section"), LOCTEXT("DeleteMontageSectionToolTip", "Deletes Montage Section"), FSlateIcon(), UIAction);
+
+			FCompositeSection& Section = Montage->CompositeSections[SectionIndex];
+
+			// Add item to directly set section time
+			TSharedRef<SWidget> TimeWidget = 
+				SNew( SBox )
+				.HAlign( HAlign_Right )
+				.ToolTipText(LOCTEXT("SetSectionTimeToolTip", "Set the time of this section directly"))
+				[
+					SNew(SBox)
+					.Padding(FMargin(4.0f, 0.0f, 0.0f, 0.0f))
+					.WidthOverride(100.0f)
+					[
+						SNew(SNumericEntryBox<float>)
+						.Font(FEditorStyle::GetFontStyle(TEXT("MenuItem.Font")))
+						.MinValue(0.0f)
+						.MaxValue(Montage->SequenceLength)
+						.Value(Section.GetTime())
+						.OnValueCommitted_Lambda([this, SectionIndex](float InValue, ETextCommit::Type InCommitType)
+						{
+							if (Montage->CompositeSections.IsValidIndex(SectionIndex))
+							{
+								MontageEditor.Pin()->SetSectionTime(SectionIndex, InValue);
+							}
+
+							FSlateApplication::Get().DismissAllMenus();
+						})
+					]
+				];
+
+			MenuBuilder.AddWidget(TimeWidget, LOCTEXT("SectionTimeMenuText", "Section Time"));
+
+			// Add item to directly set section frame
+			TSharedRef<SWidget> FrameWidget = 
+				SNew( SBox )
+				.HAlign( HAlign_Right )
+				.ToolTipText(LOCTEXT("SetFrameToolTip", "Set the frame of this section directly"))
+				[
+					SNew(SBox)
+					.Padding(FMargin(4.0f, 0.0f, 0.0f, 0.0f))
+					.WidthOverride(100.0f)
+					[
+						SNew(SNumericEntryBox<int32>)
+						.Font(FEditorStyle::GetFontStyle(TEXT("MenuItem.Font")))
+						.MinValue(0)
+						.MaxValue(Montage->GetNumberOfFrames())
+						.Value(Montage->GetFrameAtTime(Section.GetTime()))
+						.OnValueCommitted_Lambda([this, SectionIndex](int32 InValue, ETextCommit::Type InCommitType)
+						{
+							if (Montage->CompositeSections.IsValidIndex(SectionIndex))
+							{
+								float NewTime = FMath::Clamp(Montage->GetTimeAtFrame(InValue), 0.0f, Montage->SequenceLength);
+								MontageEditor.Pin()->SetSectionTime(SectionIndex, NewTime);
+							}
+
+							FSlateApplication::Get().DismissAllMenus();
+						})
+					]
+				];
+
+			MenuBuilder.AddWidget(FrameWidget, LOCTEXT("SectionFrameMenuText", "Section Frame"));
 		}
 	}
 	MenuBuilder.EndSection();
@@ -370,7 +432,10 @@ void SAnimMontagePanel::SummonTrackContextMenu( FMenuBuilder& MenuBuilder, float
 		if(AnimSlotIndex != INDEX_NONE)
 		{
 			UIAction.ExecuteAction.BindRaw(MontageEditor.Pin().Get(), &SMontageEditor::RemoveMontageSlot, AnimSlotIndex);
+			UIAction.CanExecuteAction.BindRaw(MontageEditor.Pin().Get(), &SMontageEditor::CanRemoveMontageSlot, AnimSlotIndex);
 			MenuBuilder.AddMenuEntry(LOCTEXT("DeleteSlot", "Delete Slot"), LOCTEXT("DeleteSlotToolTip", "Deletes Slot"), FSlateIcon(), UIAction);
+			UIAction.CanExecuteAction.Unbind();
+
 			UIAction.ExecuteAction.BindRaw(MontageEditor.Pin().Get(), &SMontageEditor::DuplicateMontageSlot, AnimSlotIndex);
 			MenuBuilder.AddMenuEntry(LOCTEXT("DuplicateSlot", "Duplicate Slot"), LOCTEXT("DuplicateSlotToolTip", "Duplicates the slected slot"), FSlateIcon(), UIAction);
 		}
@@ -410,14 +475,14 @@ void SAnimMontagePanel::FillSlotSubMenu(FMenuBuilder& Menubuilder)
 /** Slots */
 void SAnimMontagePanel::OnNewSlotClicked()
 {
-	MontageEditor.Pin()->AddNewMontageSlot(FAnimSlotGroup::DefaultSlotName.ToString());
+	MontageEditor.Pin()->AddNewMontageSlot(FAnimSlotGroup::DefaultSlotName);
 }
 
 void SAnimMontagePanel::CreateNewSlot(const FText& NewSlotName, ETextCommit::Type CommitInfo)
 {
 	if (CommitInfo == ETextCommit::OnEnter)
 	{
-		MontageEditor.Pin()->AddNewMontageSlot(NewSlotName.ToString());
+		MontageEditor.Pin()->AddNewMontageSlot(*NewSlotName.ToString());
 	}
 
 	FSlateApplication::Get().DismissAllMenus();

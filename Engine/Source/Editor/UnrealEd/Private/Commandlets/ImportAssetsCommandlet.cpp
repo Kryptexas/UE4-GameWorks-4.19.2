@@ -191,7 +191,7 @@ bool UImportAssetsCommandlet::ImportAndSave(const TArray<UAutomatedAssetImportDa
 			UE_LOG(LogAutomatedImport, Warning, TEXT("A vaild factory name must be specfied in order to specify settings"));
 		}
 
-		TArray<UObject*> ImportedAssets = AssetToolsModule.Get().ImportAssetsAutomated(*ImportData);
+		TArray<UObject*> ImportedAssets = AssetToolsModule.Get().ImportAssetsAutomated(ImportData);
 		if(ImportedAssets.Num() > 0)
 		{
 			TArray<UPackage*> DirtyPackages;

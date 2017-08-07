@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:3356804
+﻿INTSourceChangelist:3372845
 Availability:Public
 Title: 언리얼 빌드 시스템
 Crumbs:
 Description:엔진 및 게임 프로젝트를 컴파일하는 데 사용되는 언리얼 엔진의 커스텀 빌드 시스템입니다.
-version:4.9
+version:4.15
 parent:Programming
 tags:Programming
 tags:Unreal Build System
@@ -63,4 +63,5 @@ UE4 는 다수의 모듈로 나뉘어 있습니다. 각 모듈에는 .build.cs �
 
 ## 고급 토픽
 
-%Programming/UnrealBuildSystem/IWYUReferenceGuide:topic%%Programming/Development/BuildGraph:topic%
+%Programming/UnrealBuildSystem/IWYUReferenceGuide:topic%
+%Programming/Development/BuildGraph:topic%

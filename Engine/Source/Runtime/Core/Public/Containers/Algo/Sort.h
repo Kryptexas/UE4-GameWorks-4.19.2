@@ -5,6 +5,7 @@
 #include "Templates/IdentityFunctor.h"
 #include "Templates/Invoke.h"
 #include "Templates/Less.h"
+#include "Templates/UnrealTemplate.h" // For GetData, GetNum
 
 
 namespace AlgoImpl
@@ -116,7 +117,7 @@ namespace Algo
 	template <typename RangeType>
 	FORCEINLINE void Sort(RangeType& Range)
 	{
-		AlgoImpl::SortInternal(Range.GetData(), Range.Num(), FIdentityFunctor(), TLess<>());
+		AlgoImpl::SortInternal(GetData(Range), GetNum(Range), FIdentityFunctor(), TLess<>());
 	}
 
 	/**
@@ -129,7 +130,7 @@ namespace Algo
 	template <typename RangeType, typename PredicateType>
 	FORCEINLINE void Sort(RangeType& Range, PredicateType Pred)
 	{
-		AlgoImpl::SortInternal(Range.GetData(), Range.Num(), FIdentityFunctor(), MoveTemp(Pred));
+		AlgoImpl::SortInternal(GetData(Range), GetNum(Range), FIdentityFunctor(), MoveTemp(Pred));
 	}
 
 	/**
@@ -141,7 +142,7 @@ namespace Algo
 	template <typename RangeType, typename ProjectionType>
 	FORCEINLINE void SortBy(RangeType& Range, ProjectionType Proj)
 	{
-		AlgoImpl::SortInternal(Range.GetData(), Range.Num(), MoveTemp(Proj), TLess<>());
+		AlgoImpl::SortInternal(GetData(Range), GetNum(Range), MoveTemp(Proj), TLess<>());
 	}
 
 	/**
@@ -155,6 +156,6 @@ namespace Algo
 	template <typename RangeType, typename ProjectionType, typename PredicateType>
 	FORCEINLINE void SortBy(RangeType& Range, ProjectionType Proj, PredicateType Pred)
 	{
-		AlgoImpl::SortInternal(Range.GetData(), Range.Num(), MoveTemp(Proj), MoveTemp(Pred));
+		AlgoImpl::SortInternal(GetData(Range), GetNum(Range), MoveTemp(Proj), MoveTemp(Pred));
 	}
 }

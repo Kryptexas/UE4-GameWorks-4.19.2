@@ -8,7 +8,7 @@
 #include "ActorFactories/ActorFactoryEmptyActor.h"
 #include "ActorFactoryPawn.generated.h"
 
-class FAssetData;
+struct FAssetData;
 
 UCLASS(MinimalAPI,config=Editor)
 class UActorFactoryPawn : public UActorFactoryEmptyActor

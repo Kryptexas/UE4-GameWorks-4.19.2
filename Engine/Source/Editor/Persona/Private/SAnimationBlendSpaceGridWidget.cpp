@@ -253,30 +253,30 @@ TSharedPtr<SWidget> SBlendSpaceGridWidget::CreateGridEntryBox(const int32 BoxInd
 		];
 }
 
-int32 SBlendSpaceGridWidget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+int32 SBlendSpaceGridWidget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
-	SCompoundWidget::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled && IsEnabled());
+	SCompoundWidget::OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled && IsEnabled());
 	
-	PaintBackgroundAndGrid(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId);
+	PaintBackgroundAndGrid(AllottedGeometry, MyCullingRect, OutDrawElements, LayerId);
 	if (bShowTriangulation)
 	{
-		PaintTriangulation(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId);
+		PaintTriangulation(AllottedGeometry, MyCullingRect, OutDrawElements, LayerId);
 	}	
-	PaintSampleKeys(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId);
-	PaintAxisText(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId);
+	PaintSampleKeys(AllottedGeometry, MyCullingRect, OutDrawElements, LayerId);
+	PaintAxisText(AllottedGeometry, MyCullingRect, OutDrawElements, LayerId);
 
 	if (bShowAnimationNames)
 	{
-		PaintAnimationNames(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId);
+		PaintAnimationNames(AllottedGeometry, MyCullingRect, OutDrawElements, LayerId);
 	}
 
 	return LayerId;
 }
 
-void SBlendSpaceGridWidget::PaintBackgroundAndGrid(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32& DrawLayerId) const
+void SBlendSpaceGridWidget::PaintBackgroundAndGrid(const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32& DrawLayerId) const
 {
 	// Fill the background
-	FSlateDrawElement::MakeBox( OutDrawElements, DrawLayerId, AllottedGeometry.ToPaintGeometry(), BackgroundImage, MyClippingRect );
+	FSlateDrawElement::MakeBox( OutDrawElements, DrawLayerId, AllottedGeometry.ToPaintGeometry(), BackgroundImage );
 
 	// Create the grid
 	const FVector2D GridSize = CachedGridRectangle.GetSize();
@@ -301,7 +301,7 @@ void SBlendSpaceGridWidget::PaintBackgroundAndGrid(const FGeometry& AllottedGeom
 
 	LinePoints[4] = GridOffset;
 
-	FSlateDrawElement::MakeLines( OutDrawElements, DrawLayerId + 1, AllottedGeometry.ToPaintGeometry(),	LinePoints, MyClippingRect, ESlateDrawEffect::None,	GridOutlineColor, true);
+	FSlateDrawElement::MakeLines( OutDrawElements, DrawLayerId + 1, AllottedGeometry.ToPaintGeometry(),	LinePoints, ESlateDrawEffect::None, GridOutlineColor, true);
 	
 	// Draw grid lines
 	LinePoints.SetNumZeroed(2);
@@ -318,14 +318,14 @@ void SBlendSpaceGridWidget::PaintBackgroundAndGrid(const FGeometry& AllottedGeom
 			LinePoints[0] = ((Index * Steps) * StartVectors[ParameterIndex]) + GridOffset;
 			LinePoints[1] = LinePoints[0] + OffsetVectors[ParameterIndex];
 
-			FSlateDrawElement::MakeLines( OutDrawElements, DrawLayerId, AllottedGeometry.ToPaintGeometry(), LinePoints,	MyClippingRect,	ESlateDrawEffect::None,	GridLinesColor,	true);
+			FSlateDrawElement::MakeLines( OutDrawElements, DrawLayerId, AllottedGeometry.ToPaintGeometry(), LinePoints, ESlateDrawEffect::None, GridLinesColor,	true);
 		}
 	}	
 	
 	DrawLayerId += 2;
 }
 
-void SBlendSpaceGridWidget::PaintSampleKeys(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32& DrawLayerId) const
+void SBlendSpaceGridWidget::PaintSampleKeys(const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32& DrawLayerId) const
 {
 	// Draw keys
 	const TArray<FBlendSample>& Samples = BlendSpace->GetBlendSamples();
@@ -350,24 +350,24 @@ void SBlendSpaceGridWidget::PaintSampleKeys(const FGeometry& AllottedGeometry, c
 		DrawColor = Sample.bIsValid ? DrawColor : InvalidColor.GetSpecifiedColor();
 
 		const FVector2D GridPosition = SampleValueToGridPosition(Sample.SampleValue) - (KeySize * 0.5f);
-		FSlateDrawElement::MakeBox( OutDrawElements, DrawLayerId + 1, AllottedGeometry.ToPaintGeometry(GridPosition, KeySize), KeyBrush, MyClippingRect, ESlateDrawEffect::None, DrawColor );
+		FSlateDrawElement::MakeBox( OutDrawElements, DrawLayerId + 1, AllottedGeometry.ToPaintGeometry(GridPosition, KeySize), KeyBrush, ESlateDrawEffect::None, DrawColor );
 	}
 
 	if (bPreviewPositionSet)
 	{
 		const FVector2D MouseGridPosition = SampleValueToGridPosition(LastPreviewingSampleValue) - (KeySize * .5f);
-		FSlateDrawElement::MakeBox( OutDrawElements, DrawLayerId + 1, AllottedGeometry.ToPaintGeometry(MouseGridPosition, KeySize), KeyBrush, MyClippingRect, ESlateDrawEffect::None, PreviewKeyColor.GetSpecifiedColor() );
+		FSlateDrawElement::MakeBox( OutDrawElements, DrawLayerId + 1, AllottedGeometry.ToPaintGeometry(MouseGridPosition, KeySize), KeyBrush, ESlateDrawEffect::None, PreviewKeyColor.GetSpecifiedColor() );
 	}
 
 	if (DragState == EDragState::DragDrop || DragState == EDragState::InvalidDragDrop)
 	{
 		const FVector2D GridPoint = SnapToClosestGridPoint(LocalMousePosition) - (KeySize * .5f);
-		FSlateDrawElement::MakeBox( OutDrawElements, DrawLayerId + 1, AllottedGeometry.ToPaintGeometry(GridPoint, KeySize), KeyBrush, MyClippingRect, ESlateDrawEffect::None,
+		FSlateDrawElement::MakeBox( OutDrawElements, DrawLayerId + 1, AllottedGeometry.ToPaintGeometry(GridPoint, KeySize), KeyBrush, ESlateDrawEffect::None,
 			(DragState == EDragState::DragDrop) ? DropKeyColor.GetSpecifiedColor() : InvalidColor.GetSpecifiedColor() );
 	}
 }
 
-void SBlendSpaceGridWidget::PaintAxisText(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32& DrawLayerId) const
+void SBlendSpaceGridWidget::PaintAxisText(const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32& DrawLayerId) const
 {
 	const TSharedRef< FSlateFontMeasure > FontMeasure = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
 	const FVector2D GridCenter = CachedGridRectangle.GetCenter();
@@ -377,19 +377,19 @@ void SBlendSpaceGridWidget::PaintAxisText(const FGeometry& AllottedGeometry, con
 	FVector2D TextSize = FontMeasure->Measure(Text, FontInfo);
 
 	// Label
-	FSlateDrawElement::MakeText(OutDrawElements, DrawLayerId + 1, AllottedGeometry.MakeChild(FVector2D(GridCenter.X - (TextSize.X * .5f), CachedGridRectangle.Bottom + TextMargin + (KeySize.Y * .25f)), FVector2D(1.0f, 1.0f)).ToPaintGeometry(), Text, FontInfo, MyClippingRect, ESlateDrawEffect::None, FLinearColor::White);
+	FSlateDrawElement::MakeText(OutDrawElements, DrawLayerId + 1, AllottedGeometry.MakeChild(FVector2D(GridCenter.X - (TextSize.X * .5f), CachedGridRectangle.Bottom + TextMargin + (KeySize.Y * .25f)), FVector2D(1.0f, 1.0f)).ToPaintGeometry(), Text, FontInfo, ESlateDrawEffect::None, FLinearColor::White);
 
 	Text = FString::SanitizeFloat(SampleValueMin.X);
 	TextSize = FontMeasure->Measure(Text, FontInfo);
 
 	// Minimum value
-	FSlateDrawElement::MakeText(OutDrawElements, DrawLayerId + 1, AllottedGeometry.MakeChild(FVector2D(CachedGridRectangle.Left - (TextSize.X * .5f), CachedGridRectangle.Bottom + TextMargin + (KeySize.Y * .25f)), FVector2D(1.0f, 1.0f)).ToPaintGeometry(), Text, FontInfo, MyClippingRect, ESlateDrawEffect::None, FLinearColor::White);
+	FSlateDrawElement::MakeText(OutDrawElements, DrawLayerId + 1, AllottedGeometry.MakeChild(FVector2D(CachedGridRectangle.Left - (TextSize.X * .5f), CachedGridRectangle.Bottom + TextMargin + (KeySize.Y * .25f)), FVector2D(1.0f, 1.0f)).ToPaintGeometry(), Text, FontInfo, ESlateDrawEffect::None, FLinearColor::White);
 
 	Text = FString::SanitizeFloat(SampleValueMax.X);
 	TextSize = FontMeasure->Measure(Text, FontInfo);
 
 	// Maximum value
-	FSlateDrawElement::MakeText(OutDrawElements, DrawLayerId + 1, AllottedGeometry.MakeChild(FVector2D(CachedGridRectangle.Right - (TextSize.X * .5f), CachedGridRectangle.Bottom + TextMargin + (KeySize.Y * .25f)), FVector2D(1.0f, 1.0f)).ToPaintGeometry(), Text, FontInfo, MyClippingRect, ESlateDrawEffect::None, FLinearColor::White);
+	FSlateDrawElement::MakeText(OutDrawElements, DrawLayerId + 1, AllottedGeometry.MakeChild(FVector2D(CachedGridRectangle.Right - (TextSize.X * .5f), CachedGridRectangle.Bottom + TextMargin + (KeySize.Y * .25f)), FVector2D(1.0f, 1.0f)).ToPaintGeometry(), Text, FontInfo, ESlateDrawEffect::None, FLinearColor::White);
 
 	// Only draw Y axis labels if this is a 2D grid
 	if (GridType == EGridType::TwoAxis)
@@ -399,23 +399,23 @@ void SBlendSpaceGridWidget::PaintAxisText(const FGeometry& AllottedGeometry, con
 		TextSize = FontMeasure->Measure(Text, FontInfo);
 
 		// Label
-		FSlateDrawElement::MakeText(OutDrawElements, DrawLayerId + 1, AllottedGeometry.MakeChild(FVector2D(((GridMargin.Left - TextSize.X) * 0.5f - (KeySize.X * .25f)) + GridRatioMargin.Left, GridCenter.Y - (TextSize.Y * .5f)), FVector2D(1.0f, 1.0f)).ToPaintGeometry(), Text,	FontInfo, MyClippingRect, ESlateDrawEffect::None, FLinearColor::White);
+		FSlateDrawElement::MakeText(OutDrawElements, DrawLayerId + 1, AllottedGeometry.MakeChild(FVector2D(((GridMargin.Left - TextSize.X) * 0.5f - (KeySize.X * .25f)) + GridRatioMargin.Left, GridCenter.Y - (TextSize.Y * .5f)), FVector2D(1.0f, 1.0f)).ToPaintGeometry(), Text,	FontInfo, ESlateDrawEffect::None, FLinearColor::White);
 
 		Text = FString::SanitizeFloat(SampleValueMin.Y);
 		TextSize = FontMeasure->Measure(Text, FontInfo);
 
 		// Minimum value
-		FSlateDrawElement::MakeText(OutDrawElements, DrawLayerId + 1, AllottedGeometry.MakeChild(FVector2D(((GridMargin.Left - TextSize.X) * 0.5f - (KeySize.X * .25f)) + GridRatioMargin.Left, CachedGridRectangle.Bottom - (TextSize.Y * .5f)), FVector2D(1.0f, 1.0f)).ToPaintGeometry(), Text, FontInfo, MyClippingRect, ESlateDrawEffect::None, FLinearColor::White);
+		FSlateDrawElement::MakeText(OutDrawElements, DrawLayerId + 1, AllottedGeometry.MakeChild(FVector2D(((GridMargin.Left - TextSize.X) * 0.5f - (KeySize.X * .25f)) + GridRatioMargin.Left, CachedGridRectangle.Bottom - (TextSize.Y * .5f)), FVector2D(1.0f, 1.0f)).ToPaintGeometry(), Text, FontInfo, ESlateDrawEffect::None, FLinearColor::White);
 
 		Text = FString::SanitizeFloat(SampleValueMax.Y);
 		TextSize = FontMeasure->Measure(Text, FontInfo);
 
 		// Maximum value
-		FSlateDrawElement::MakeText(OutDrawElements, DrawLayerId + 1, AllottedGeometry.MakeChild(FVector2D(((GridMargin.Left - TextSize.X) * 0.5f - (KeySize.X * .25f) ) + GridRatioMargin.Left, ( GridMargin.Top + GridRatioMargin.Top) - (TextSize.Y * .5f)), FVector2D(1.0f, 1.0f)).ToPaintGeometry(), Text, FontInfo, MyClippingRect, ESlateDrawEffect::None, FLinearColor::White);
+		FSlateDrawElement::MakeText(OutDrawElements, DrawLayerId + 1, AllottedGeometry.MakeChild(FVector2D(((GridMargin.Left - TextSize.X) * 0.5f - (KeySize.X * .25f) ) + GridRatioMargin.Left, ( GridMargin.Top + GridRatioMargin.Top) - (TextSize.Y * .5f)), FVector2D(1.0f, 1.0f)).ToPaintGeometry(), Text, FontInfo, ESlateDrawEffect::None, FLinearColor::White);
 	}
 }
 
-void SBlendSpaceGridWidget::PaintTriangulation(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32& DrawLayerId) const
+void SBlendSpaceGridWidget::PaintTriangulation(const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32& DrawLayerId) const
 {
 	const TArray<FBlendSample>& Samples = BlendSpace->GetBlendSamples();
 	const TArray<FEditorElement>& EditorElements = BlendSpace->GetGridSamples();
@@ -440,7 +440,7 @@ void SBlendSpaceGridWidget::PaintTriangulation(const FGeometry& AllottedGeometry
 							Points.Add(SampleValueToGridPosition(TargetSample.SampleValue));
 
 							// Draw line from and to element
-							FSlateDrawElement::MakeLines(OutDrawElements, DrawLayerId, AllottedGeometry.ToPaintGeometry(), Points, MyClippingRect, ESlateDrawEffect::None, bShowAnimationNames ? GridLinesColor : FLinearColor::White, true, 0.1f);
+							FSlateDrawElement::MakeLines(OutDrawElements, DrawLayerId, AllottedGeometry.ToPaintGeometry(), Points, ESlateDrawEffect::None, bShowAnimationNames ? GridLinesColor : FLinearColor::White, true, 0.1f);
 						}
 					}
 				}
@@ -449,7 +449,7 @@ void SBlendSpaceGridWidget::PaintTriangulation(const FGeometry& AllottedGeometry
 	}
 }
 
-void SBlendSpaceGridWidget::PaintAnimationNames(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32& DrawLayerId) const
+void SBlendSpaceGridWidget::PaintAnimationNames(const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32& DrawLayerId) const
 {
 	const TSharedRef< FSlateFontMeasure > FontMeasure = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
 	const FVector2D GridCenter = CachedGridRectangle.GetCenter();
@@ -472,7 +472,7 @@ void SBlendSpaceGridWidget::PaintAnimationNames(const FGeometry& AllottedGeometr
 				GridPosition += FVector2D(KeySize.X, -KeySize.X * .5f);
 			}
 
-			FSlateDrawElement::MakeText(OutDrawElements, DrawLayerId + 1, AllottedGeometry.MakeChild(FVector2D(GridPosition.X, GridPosition.Y), FVector2D(1.0f, 1.0f)).ToPaintGeometry(), Name, FontInfo, MyClippingRect, ESlateDrawEffect::None, FLinearColor::White);
+			FSlateDrawElement::MakeText(OutDrawElements, DrawLayerId + 1, AllottedGeometry.MakeChild(FVector2D(GridPosition.X, GridPosition.Y), FVector2D(1.0f, 1.0f)).ToPaintGeometry(), Name, FontInfo, ESlateDrawEffect::None, FLinearColor::White);
 		}
 	}
 }
@@ -488,7 +488,7 @@ FReply SBlendSpaceGridWidget::OnDrop(const FGeometry& MyGeometry, const FDragDro
 			TSharedPtr<FAssetDragDropOp> DragDropOperation = DragDropEvent.GetOperationAs<FAssetDragDropOp>();
 			if (DragDropOperation.IsValid())
 			{
-				UAnimSequence* Animation = FAssetData::GetFirstAsset<UAnimSequence>(DragDropOperation->AssetData);
+				UAnimSequence* Animation = FAssetData::GetFirstAsset<UAnimSequence>(DragDropOperation->GetAssets());
 				OnSampleAdded.ExecuteIfBound(Animation, SampleValue);
 			}	
 		}
@@ -498,7 +498,7 @@ FReply SBlendSpaceGridWidget::OnDrop(const FGeometry& MyGeometry, const FDragDro
 			TSharedPtr<FAssetDragDropOp> DragDropOperation = DragDropEvent.GetOperationAs<FAssetDragDropOp>();
 			if (DragDropOperation.IsValid())
 			{
-				UAnimSequence* Animation = FAssetData::GetFirstAsset<UAnimSequence>(DragDropOperation->AssetData);
+				UAnimSequence* Animation = FAssetData::GetFirstAsset<UAnimSequence>(DragDropOperation->GetAssets());
 				OnSampleAnimationChanged.ExecuteIfBound(Animation, SampleValue);
 			}
 		}
@@ -625,6 +625,29 @@ FReply SBlendSpaceGridWidget::OnMouseMove(const FGeometry& MyGeometry, const FPo
 				HighlightedSampleIndex = INDEX_NONE;
 				ShowToolTip();
 			}
+		}
+	}
+
+	if (IsHovered() && !HasAnyUserFocus() && bMouseIsOverGeometry)
+	{
+		if (MouseEvent.IsLeftShiftDown() || MouseEvent.IsRightShiftDown())
+		{
+			StartPreviewing();
+			DragState = EDragState::Preview;
+			// Make tool tip visible (this will display the current preview sample value)
+			ShowToolTip();			
+
+			// Set flag for showing advanced preview info in tooltip
+			if (MouseEvent.IsLeftControlDown() || MouseEvent.IsRightControlDown())
+			{
+				bAdvancedPreview = true;
+			}
+		}
+		else if (bSamplePreviewing)
+		{
+			StopPreviewing();
+			DragState = EDragState::None;
+			ResetToolTip();
 		}
 	}
 
@@ -851,7 +874,7 @@ int32 SBlendSpaceGridWidget::FindClosestGridPointIndex(const FVector2D& InPositi
 {
 	// Clamp the screen position to the grid
 	const FVector2D GridPosition(FMath::Clamp(InPosition.X, CachedGridRectangle.Left, CachedGridRectangle.Right),
-		FMath::Clamp(InPosition.Y, CachedGridRectangle.Top, CachedGridRectangle.Bottom));
+								  FMath::Clamp(InPosition.Y, CachedGridRectangle.Top, CachedGridRectangle.Bottom));
 	// Find the closest grid point
 	float Distance = FLT_MAX;
 	int32 GridPointIndex = INDEX_NONE;
@@ -905,7 +928,7 @@ const FVector SBlendSpaceGridWidget::GridPositionToSampleValue(const FVector2D& 
 
 const FSlateRect SBlendSpaceGridWidget::GetGridRectangleFromGeometry(const FGeometry& MyGeometry)
 {
-	FSlateRect WindowRect = FSlateRect(0, 0, MyGeometry.Size.X, MyGeometry.Size.Y);
+	FSlateRect WindowRect = FSlateRect(0, 0, MyGeometry.GetLocalSize().X, MyGeometry.GetLocalSize().Y);
 	if (!bStretchToFit)
 	{
 		UpdateGridRationMargin(WindowRect.GetSize());
@@ -1319,17 +1342,23 @@ void SBlendSpaceGridWidget::UpdateCachedBlendParameterData()
 }
 
 void SBlendSpaceGridWidget::OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
-{
+{	
+	SCompoundWidget::OnMouseEnter(MyGeometry, MouseEvent);
 	bMouseIsOverGeometry = true;
 }
 
 void SBlendSpaceGridWidget::OnMouseLeave(const FPointerEvent& MouseEvent)
 {
+	SCompoundWidget::OnMouseLeave(MouseEvent);
+	StopPreviewing();
+	DragState = EDragState::None;
+	ResetToolTip();
 	bMouseIsOverGeometry = false;
 }
 
 void SBlendSpaceGridWidget::OnFocusLost(const FFocusEvent& InFocusEvent)
 {
+	SCompoundWidget::OnFocusLost(InFocusEvent);
 	HighlightedSampleIndex = DraggedSampleIndex = INDEX_NONE;
 	DragState = EDragState::None;
 	bSamplePreviewing = false;
@@ -1502,7 +1531,7 @@ const bool SBlendSpaceGridWidget::IsValidDragDropOperation(const FDragDropEvent&
 	if (DragDropOperation.IsValid())
 	{
 		// Check whether or not this animation is compatible with the blend space
-		DragDropAnimationSequence = FAssetData::GetFirstAsset<UAnimSequence>(DragDropOperation->AssetData);
+		DragDropAnimationSequence = FAssetData::GetFirstAsset<UAnimSequence>(DragDropOperation->GetAssets());
 		if (DragDropAnimationSequence)
 		{
 			bResult = ValidateAnimationSequence(DragDropAnimationSequence, InvalidOperationText);

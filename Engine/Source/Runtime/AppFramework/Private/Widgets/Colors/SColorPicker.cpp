@@ -1464,10 +1464,7 @@ FReply SColorPicker::HandleOkButtonClicked()
 {
 	bClosedViaOkOrCancel = true;
 
-	if (bOnlyRefreshOnOk)
-	{
-		UpdateColorPick();
-	}
+	UpdateColorPick();
 
 	if (SColorPicker::OnColorPickerDestroyOverride.IsBound())
 	{
@@ -1664,7 +1661,7 @@ bool OpenColorPicker(const FColorPickerArgs& Args)
 	const FVector2D CursorPos = FSlateApplication::Get().GetCursorPos();
 	FSlateRect Anchor(CursorPos.X, CursorPos.Y, CursorPos.X, CursorPos.Y);
 
-	FVector2D AdjustedSummonLocation = FSlateApplication::Get().CalculatePopupWindowPosition( Anchor, SColorPicker::DEFAULT_WINDOW_SIZE, Orient_Horizontal );
+	FVector2D AdjustedSummonLocation = FSlateApplication::Get().CalculatePopupWindowPosition( Anchor, SColorPicker::DEFAULT_WINDOW_SIZE, FVector2D::ZeroVector, Orient_Horizontal );
 
 	// Only override the color picker window creation behavior if we are not creating a modal color picker
 	const bool bOverrideNonModalCreation = (SColorPicker::OnColorPickerNonModalCreateOverride.IsBound() && !Args.bIsModal);

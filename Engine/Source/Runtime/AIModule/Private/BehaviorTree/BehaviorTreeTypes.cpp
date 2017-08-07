@@ -277,6 +277,15 @@ void FBehaviorTreeSearchData::AssignSearchId()
 	NextSearchId++;
 }
 
+void FBehaviorTreeSearchData::Reset()
+{
+	PendingUpdates.Reset();
+	SearchStart = FBTNodeIndex();
+	SearchEnd = FBTNodeIndex();
+	bSearchInProgress = false;
+	bPostponeSearch = false;
+}
+
 //----------------------------------------------------------------------//
 // FBlackboardKeySelector
 //----------------------------------------------------------------------//
@@ -434,7 +443,7 @@ FString UBehaviorTreeTypes::DescribeTaskStatus(EBTTaskStatus::Type TaskStatus)
 
 FString UBehaviorTreeTypes::DescribeNodeUpdateMode(EBTNodeUpdateMode::Type UpdateMode)
 {
-	static FString UpdateModeDesc[] = { TEXT("Add"), TEXT("Remove") };
+	static FString UpdateModeDesc[] = { TEXT("Unknown"), TEXT("Add"), TEXT("Remove") };
 	return (UpdateMode < ARRAY_COUNT(UpdateModeDesc)) ? UpdateModeDesc[UpdateMode] : FString();
 }
 

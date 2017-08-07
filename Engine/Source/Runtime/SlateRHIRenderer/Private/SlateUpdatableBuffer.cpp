@@ -90,7 +90,7 @@ void FSlateUpdatableInstanceBuffer::UpdateRenderingData_RenderThread(FRHICommand
 	const TArray<FVector4>& RenderThreadBufferData = BufferData[BufferIndex];
 	InstanceBufferResource.PreFillBuffer( RenderThreadBufferData.Num(), false );
 
-	if(!GRHIThread || RHICmdList.Bypass())
+	if(!IsRunningRHIInSeparateThread() || RHICmdList.Bypass())
 	{
 		uint8* InstanceBufferData = (uint8*)InstanceBufferResource.LockBuffer_RenderThread(RenderThreadBufferData.Num());
 

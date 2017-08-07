@@ -1,49 +1,13 @@
-﻿INTSourceChangelist:3275202
+﻿INTSourceChangelist:3429227
 Availability:Public
 Title:アクタのグループ化
 Crumbs:%ROOT%, Engine, Engine/Actors
 Description:アンリアル エディタ内でアクタのグループを作成および操作するためのガイド
 version:4.9
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Actors/Grouping:title%](Engine/Actors/Grouping/actorgrouping_topic.png)(convert:false)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Actors/Grouping:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors/Grouping:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Actors/Grouping]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Actors/Grouping:title%](Engine/Actors/Grouping/actorgrouping_topic.png)(convert:false)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Actors/Grouping:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors/Grouping:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Actors/Grouping]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+parent:Engine/Actors
+type:overview
+order:5
+topic-image:actorgrouping_topic.png
 
 
 [TOC(start:2)]
@@ -52,7 +16,7 @@ version:4.9
 アクタをグループ化することで、同時に複数アクタを容易に管理できます。グループ化されたアクタは、回転、平行移動、スケーリングで、まとめて変形できます。グループのロックを解除して、個々のアクタを一時的に操作することができます。再びグループをロックすると、グループ内のアクタをグループ化して、個々のアクタが変形されないようにすることができます。アクタをグループへ追加またはグループから削除することができます。別のグループのメンバーとして 1 つのグループを持つことでグループをネストする事も可能です。
 
 [REGION:note]
-アクタが 1 度に属することのできるグループは 1 つだけです。ただし、大きなグループ内にグループそのものがネストしている場合はこの限りではありません。
+アクタが一度に属することのできるグループは 1 つだけです。ただし、大きなグループ内にグループそのものがネストしている場合はこの限りではありません。
 [/REGION]
 
 ## アクタのグループ化

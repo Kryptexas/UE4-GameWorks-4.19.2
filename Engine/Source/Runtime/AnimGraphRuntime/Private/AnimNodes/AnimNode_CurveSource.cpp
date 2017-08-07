@@ -70,7 +70,7 @@ public:
 	TArray<FNamedCurveValue> NamedCurveValues;
 };
 
-void FAnimNode_CurveSource::Evaluate(FPoseContext& Output)
+void FAnimNode_CurveSource::Evaluate_AnyThread(FPoseContext& Output)
 {
 	SourcePose.Evaluate(Output);
 
@@ -95,7 +95,7 @@ void FAnimNode_CurveSource::Evaluate(FPoseContext& Output)
 	}
 }
 
-void FAnimNode_CurveSource::Update(const FAnimationUpdateContext& Context)
+void FAnimNode_CurveSource::Update_AnyThread(const FAnimationUpdateContext& Context)
 {
 	// Evaluate any BP logic plugged into this node
 	EvaluateGraphExposedInputs.Execute(Context);

@@ -1,10 +1,22 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3372845
 Availability: NoPublish
 Title: BuildGraph 미리정의된 태스크
-Crumbs: %ROOT%, Programming, Programming/Development, Programming/Development/BuildGraph, Programming/Development/BuildGraph/ScriptAnatomy, Programming/Development/BuildGraph/ScriptAnatomy/Tasks
+Crumbs: %ROOT%, Programming, Programming/Development, Programming/Development/BuildGraph, Programming/Development/BuildGraph/BuildGraphScriptTasks
 Description: 절차적 생성되는 마크다운 페이지입니다.
-version: 4.13
-parent:Programming/Development/BuildGraph/ScriptAnatomy/Tasks
+version: 4.16
+parent:Programming/Development/BuildGraph/BuildGraphScriptTasks
+
+### AgeStore
+
+파일 세트에서 심볼을 벗겨내는 태스크입니다. 이 태스크 이름은 Microsoft 디버거 툴 SDK 인 AGESTORE 유틸리티에서 따온 것이지만, 실제로는 별도 구현입니다. 주요 차이점은 삭제할 파일을 결정하는 데 마지막 접근 시간이 아닌 마지막 변경 시간을 사용한다는 점입니다.
+
+|          |                      |          |                                                                                                                                                                                                                                                                                                                                      |
+| -------- | -------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Platform | UnrealTargetPlatform | 필수 | 심볼 에이징 대상 타겟 플랫폼입니다. |
+| StoreDir | String               | 필수 | 심볼 서버 디렉토리입니다. |
+| Days     | Int32                | 필수 | 심볼을 며칠이자 유지할지 입니다. |
+| Filter   | String               | 옵션 | 디렉토리 파일명에 이 하위 스트링이 일치하면 심볼을 지웁니다. 다수의 빌드가 같은 심볼 서버를 공유하는 상황에서 "age store" 태스크가 다른 빌드의 심볼을 지우지 못하도록 할 수 있습니다. 필터 값의 구체적인 용도는 플랫폼 툴 체인에 정의된 심볼 서버 구조체로 결정됩니다. |
+| If       | Condition            | 옵션 | 이 태스크 실행 여부입니다. 이 조건 평가 결과 false 이면 무시됩니다. |
 
 ### Command
 
@@ -62,18 +74,18 @@ parent:Programming/Development/BuildGraph/ScriptAnatomy/Tasks
 
 | | | | |
 | ------- | -------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Files | File Spec | 필수 | 세미콜론으로 구분되는 지정 파일 목록 (예: *.cpp;Engine/.../*.bat), 또는 태그 세트 이름입니다. 상대 경로는 기준은 FromDir 입니다. |
-| FromDir | Directory Name | 필수 | 복사할 원본 디렉토리입니다. |
-| ToDir | Directory Name | 필수 | 복사할 대상 디렉토리입니다. |
-| Tag | Tag List | 옵션 | 이 태스크의 빌드 제품에 적용할 태그입니다. 
+| Files | File Spec | 옵션 | 입력 파일 목록에 적용시킬 필터입니다. 옵션입니다. |
+| From  | File Spec | 필수 | 복사해 올 패턴입니다. (예: Engine/*.txt) |
+| To    | File Spec | 필수 | 복사 대상 디렉토리입니다. |
+| Tag | Tag List | 옵션 | 이 태스크의 빌드 제품에 적용할 태그입니다. |
 | If | Condition | 옵션 | 이 태스크 실행 여부입니다. 이 조건이 false 로 평가되는 경우 무시됩니다. |
 
 ### CsCompile
 
 C# 프로젝트 파일과 그 종속성을 컴파일합니다.
 
-| | | | |
-| ------------- | --------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+|               |           |          |                                                                                                                                     |
+| ------------- | --------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | Project | String | 필수 | 컴파일할 C# 프로젝트 파일입니다. 세미콜론으로 구분해서 프로젝트 파일을 둘 이상 지정할 수 있습니다. |
 | Configuration | String | 옵션 | 컴파일할 환경설정입니다. |
 | Platform | String | 옵션 | 컴파일할 플랫폼입니다. |
@@ -103,6 +115,18 @@ C# 프로젝트 파일과 그 종속성을 컴파일합니다.
 | Files | File Spec | 옵션 | 지정하면 지정한 파일 목록을 지정한 메시지 이후에 출력합니다. |
 | IncludeContents | Boolean | 옵션 | 지정하면 지정한 파일의 내용을 출력합니다. |
 | If | Condition | 옵션 | 이 태스크 실행 여부입니다. 이 조건이 false 로 평가되는 경우 무시됩니다. |
+
+### Move
+
+한 디렉토리에서 다른 디렉토리로 파일을 이동합니다.
+
+|       |           |          |                                                                                   |
+| ----- | --------- | -------- | --------------------------------------------------------------------------------- |
+| Files | File Spec | 옵션 | 입력 파일 목록에 적용할 필터입니다. 옵션입니다. |
+| From  | File Spec | 필수 | 복사해 올 패턴입니다. (예: Engine/*.txt)                                    |
+| To    | File Spec | 필수 | 복사 대상 디렉토리입니다. |
+| Tag   | Tag List  | 옵션 | 이 태스크의 빌드 제품에 적용할 태그입니다. |
+| If    | Condition | 옵션 | 이 태스크 실행 여부입니다. 이 조건 평가 결과 false 인 경우 무시됩니다. |
 
 ### PakFile
 
@@ -144,6 +168,7 @@ C# 프로젝트 파일과 그 종속성을 컴파일합니다.
 | Branch | String | 필수 | 브랜치 문자열입니다. |
 | Build | String | 옵션 | 빌드 버전 문자열입니다. |
 | Licensee | Boolean | 옵션 | IS_LICENSEE_VERSION 플래그 true 설정 여부입니다. |
+| Promoted         | Boolean   | 옵션 | ENGINE_IS_PROMOTED_BUILD 플래그의 true 설정 여부입니다. |
 | SkipWrite | Boolean | 옵션 | 설정하면 실제로 파일에 쓰지 않고, 업데이트할 버전 파일만 반환합니다. 로컬 빌드에 좋습니다. |
 | Tag | Tag List | 옵션 | 이 태스크의 빌드 제품에 적용할 태그입니다. 
 | If | Condition | 옵션 | 이 태스크 실행 여부입니다. 이 조건이 false 로 평가되는 경우 무시됩니다. |
@@ -194,7 +219,7 @@ C# 프로젝트 파일과 그 종속성을 컴파일합니다.
 | Platform | UnrealTargetPlatform | 필수 | 바이너리를 벗겨낼 플랫폼 툴체인입니다. |
 | BaseDir | Directory Name | 옵션 | 파일을 검색할 디렉토리입니다. |
 | Files | File Spec | 필수 | 세미콜론으로 구분되는 파일 지정 목록 (예: Engine/.../*.pdb), 또는 태그 세트 이름입니다. |
-| OutputDir | Directory Name | 필수 | 벗겨낸 파일의 출력 디렉토리입니다. 기본값은 입력 경로입니다 (입력 파일을 덮어씁니다). |
+| OutputDir | Directory Name | 옵션 | 벗겨낸 파일의 출력 디렉토리입니다. 기본값은 입력 경로입니다 (입력 파일을 덮어씁니다). |
 | Tag | Tag List | 옵션 | 이 태스크의 빌드 제품에 적용할 태그입니다. 
 | If | Condition | 옵션 | 이 태스크 실행 여부입니다. 이 조건이 false 로 평가되는 경우 무시됩니다. |
 
@@ -210,7 +235,20 @@ C# 프로젝트 파일과 그 종속성을 컴파일합니다.
 | Workspace | String | 옵션 | 워크스페이스 이름입니다. 지정하면 지정된 스트림과 파일을 제출한 루트 디렉토리를 사용하여 새로운 워크스페이스를 만듭니다. 지정하지 않으면, 현재 워크스페이스를 사용합니다. |
 | Stream | String | 옵션 | 워크스페이스의 스트림입니다. 기본값은 현재 스트림입니다. Workspace 어트리뷰트 역시 지정되지 않는 한 무시됩니다. |
 | RootDir | Directory Name | 옵션 | 스트림에 대한 루트 디렉토리입니다. 지정하지 않으면, 기본값은 현재 루트 디렉토리입니다. |
+| RevertUnchanged | Boolean        | 옵션 | submit 시도 전 변경되지 않은 파일을 revert 시킬지 여부입니다. |
 | If | Condition | 옵션 | 이 태스크 실행 여부입니다. 이 조건이 false 로 평가되는 경우 무시됩니다. |
+
+### SymStore
+
+파일 세트에서 심볼을 벗겨내는 태스크입니다.
+
+|          |                      |          |                                                                                   |
+| -------- | -------------------- | -------- | --------------------------------------------------------------------------------- |
+| Platform | UnrealTargetPlatform | 필수 | 심보ㅓㄹ 파일 처리에 필요한 플랫폼 툴체인입니다. |
+| Files    | String               | 필수 | 출력 파일 목록입니다. PDB 는 이 목록에서 추출합니다. |
+| StoreDir | String               | 필수 | 압축된 심볼에 대한 출력 디렉토리입니다. |
+| Product  | String               | 필수 | 심볼 스토어 레코드에 대한 제품 이름입니다. |
+| If       | Condition            | 옵션 | 이 태스크 실행 여부입니다. 이 조건 평가 결과 false 인 경우 무시됩니다. |
 
 ### Tag
 

@@ -10,7 +10,7 @@ UBehaviorTreeGraphNode_Task::UBehaviorTreeGraphNode_Task(const FObjectInitialize
 
 void UBehaviorTreeGraphNode_Task::AllocateDefaultPins()
 {
-	CreatePin(EGPD_Input, UBehaviorTreeEditorTypes::PinCategory_SingleComposite, TEXT(""), NULL, false, false, TEXT("In"));
+	CreatePin(EGPD_Input, UBehaviorTreeEditorTypes::PinCategory_SingleComposite, FString(), nullptr, TEXT("In"));
 }
 
 FText UBehaviorTreeGraphNode_Task::GetNodeTitle(ENodeTitleType::Type TitleType) const

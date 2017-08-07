@@ -192,6 +192,20 @@ private:
 	/** The media texture that owns this resource. */
 	UMediaTexture& Owner;
 
+	/**
+	 * Texture resources for buffered mode or pixel conversions.
+	 *
+	 * In Buffered mode, all three resources are used for triple buffering.
+	 * If no pixel format conversion is required, the triple buffer's Read
+	 * buffer is used as the output resource. Otherwise the Read buffer is
+	 * converted into a separate output resource.
+	 *
+	 * In Unbuffered mode when pixel format conversion is required, only the
+	 * third buffer (index = 2) is used. Otherwise data is written directly
+	 * to a separate output resource.
+	 */
+	FResource BufferResources[3];
+
 	/** Triple-buffer for texture resources. */
 	TTripleBuffer<FResource> TripleBuffer;
 
@@ -212,20 +226,6 @@ private:
 
 	/** Number of bytes per row in buffer resources. */
 	SIZE_T BufferPitch;
-
-	/**
-	 * Texture resources for buffered mode or pixel conversions.
-	 *
-	 * In Buffered mode, all three resources are used for triple buffering.
-	 * If no pixel format conversion is required, the triple buffer's Read
-	 * buffer is used as the output resource. Otherwise the Read buffer is
-	 * converted into a separate output resource.
-	 *
-	 * In Unbuffered mode when pixel format conversion is required, only the
-	 * third buffer (index = 2) is used. Otherwise data is written directly
-	 * to a separate output resource.
-	 */
-	FResource BufferResources[3];
 
 	/** Total size of this resource.*/
 	SIZE_T CachedResourceSizeBytes;

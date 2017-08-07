@@ -118,7 +118,7 @@ bool SInvalidationPanel::IsCachingNeeded() const
 }
 #endif
 
-bool SInvalidationPanel::IsCachingNeeded(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect) const
+bool SInvalidationPanel::IsCachingNeeded(FSlateWindowElementList& OutDrawElements, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect) const
 {
 	if (bCacheRelativeTransforms)
 	{
@@ -145,8 +145,25 @@ bool SInvalidationPanel::IsCachingNeeded(const FGeometry& AllottedGeometry, cons
 	}
 
 	// If our clip rect changes size, we've definitely got to invalidate.
-	const FVector2D ClipRectSize = MyClippingRect.GetSize().RoundToVector();
+	const FVector2D ClipRectSize = MyCullingRect.GetSize().RoundToVector();
 	if ( ClipRectSize != LastClipRectSize )
+	{
+		return true;
+	}
+
+	if (LastClippingIndex != OutDrawElements.GetClippingIndex())
+	{
+		return true;
+	}
+
+	TOptional<FSlateClippingState> ClippingState = OutDrawElements.GetClippingState();
+	if (LastClippingState != ClippingState)
+	{
+		return true;
+	}
+
+	int32 ClippingStateCount = OutDrawElements.GetClippingManager().GetClippingStates().Num();
+	if (LastClippingStateOffset != ClippingStateCount)
 	{
 		return true;
 	}
@@ -240,7 +257,7 @@ void SInvalidationPanel::OnGlobalInvalidate()
 	InvalidateCache();
 }
 
-int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_SlateInvalidationPaint);
 
@@ -250,7 +267,7 @@ int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& Allo
 
 		//FPlatformMisc::BeginNamedEvent(FColor::Magenta, "Slate::InvalidationPanel::Paint");
 
-		const bool bWasCachingNeeded = IsCachingNeeded() || IsCachingNeeded(AllottedGeometry, MyClippingRect);
+		const bool bWasCachingNeeded = IsCachingNeeded() || IsCachingNeeded(OutDrawElements, AllottedGeometry, MyCullingRect);
 
 		if ( bWasCachingNeeded )
 		{
@@ -275,13 +292,13 @@ int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& Allo
 			LastUsedCachedNodeIndex = 0;
 
 			RootCacheNode = CreateCacheNode();
-			RootCacheNode->Initialize(Args, SharedMutableThis, AllottedGeometry, MyClippingRect);
+			RootCacheNode->Initialize(Args, SharedMutableThis, AllottedGeometry);
 
 			//TODO: When SWidget::Paint is called don't drag self if volatile, and we're doing a cache pass.
 			CachedMaxChildLayer = SCompoundWidget::OnPaint(
 				Args.EnableCaching(SharedMutableThis, RootCacheNode, true, false),
 				AllottedGeometry,
-				MyClippingRect,
+				MyCullingRect,
 				*CachedWindowElements.Get(),
 				LayerId,
 				InWidgetStyle,
@@ -308,6 +325,26 @@ int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& Allo
 				CachedAbsolutePosition = AllottedGeometry.GetAccumulatedRenderTransform().GetTranslation();
 			}
 
+			LastClippingStateOffset = OutDrawElements.GetClippingManager().GetClippingStates().Num();
+			LastClippingIndex = OutDrawElements.GetClippingIndex();
+			LastClippingState = OutDrawElements.GetClippingState();
+
+			const int32 ClippingStateOffset = OutDrawElements.GetClippingManager().MergeClippingStates(CachedWindowElements->GetClippingManager().GetClippingStates());
+
+			TArray<FSlateDrawElement>& CachedElements = CachedWindowElements->GetDrawElements();
+			for (int32 Index = 0; Index < CachedElements.Num(); Index++)
+			{
+				FSlateDrawElement& CachedElement = CachedElements[Index];
+				if (CachedElement.GetClippingIndex() == -1)
+				{
+					CachedElement.SetClippingIndex(LastClippingIndex);
+				}
+				else
+				{
+					CachedElement.SetClippingIndex(ClippingStateOffset + CachedElement.GetClippingIndex());
+				}
+			}
+
 			if (bCacheRenderData)
 			{
 				CachedRenderData = CachedWindowElements->CacheRenderData(this);
@@ -316,11 +353,15 @@ int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& Allo
 			LastHitTestIndex = Args.GetLastHitTestIndex();
 
 			LastAllottedGeometry = AllottedGeometry;
-			LastClipRectSize = MyClippingRect.GetSize().RoundToVector();
+			LastClipRectSize = MyCullingRect.GetSize().RoundToVector();
 
 			bIsInvalidating = false;
 
 			//FPlatformMisc::EndNamedEvent();
+		}
+		else
+		{
+			OutDrawElements.GetClippingManager().MergeClippingStates(CachedWindowElements->GetClippingManager().GetClippingStates());
 		}
 
 		FVector2D AbsoluteDeltaPosition = FVector2D::ZeroVector;
@@ -330,6 +371,7 @@ int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& Allo
 		}
 
 		//FPlatformMisc::BeginNamedEvent(FColor::Yellow, "Slate::RecordHitTestGeometry");
+		
 
 
 		// The hit test grid is actually populated during the initial cache phase, so don't bother
@@ -338,7 +380,7 @@ int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& Allo
 		{
 			INC_DWORD_STAT_BY(STAT_SlateNumCachedElements, CachedWindowElements->GetDrawElements().Num());
 
-			RootCacheNode->RecordHittestGeometry(Args.GetGrid(), Args.GetLastHitTestIndex(), LayerId);
+			RootCacheNode->RecordHittestGeometry(Args.GetGrid(), Args.GetLastHitTestIndex(), LayerId, AbsoluteDeltaPosition);
 		}
 		else
 		{
@@ -350,26 +392,11 @@ int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& Allo
 
 		if (bCacheRenderData)
 		{
-			FSlateDrawElement::MakeCachedBuffer(OutDrawElements, LayerId, CachedRenderData, AbsoluteDeltaPosition * AllottedGeometry.Scale);
+			FSlateDrawElement::MakeCachedBuffer(OutDrawElements, LayerId, CachedRenderData, AbsoluteDeltaPosition);
 		}
 		else
 		{
-			if (!bCacheRelativeTransforms || AbsoluteDeltaPosition.IsZero())
-			{
-				OutDrawElements.AppendDrawElements(CachedWindowElements->GetDrawElements());
-			}
-			else
-			{
-				const TArray<FSlateDrawElement>& CachedElements = CachedWindowElements->GetDrawElements();
-				const int32 CachedElementCount = CachedElements.Num();
-				for ( int32 Index = 0; Index < CachedElementCount; Index++ )
-				{
-					const FSlateDrawElement& LocalElement = CachedElements[Index];
-					FSlateDrawElement AbsElement = LocalElement;
-					FSlateDrawElement::ApplyPositionOffset(AbsElement, AbsoluteDeltaPosition);
-					OutDrawElements.AddItem(AbsElement);
-				}
-			}
+			OutDrawElements.MergeElementList(CachedWindowElements.Get(), AbsoluteDeltaPosition);
 		}
 
 		// Paint the volatile elements
@@ -380,7 +407,7 @@ int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& Allo
 			const TArray<TSharedPtr<FSlateWindowElementList::FVolatilePaint>>& VolatileElements = CachedWindowElements->GetVolatileElements();
 			INC_DWORD_STAT_BY(STAT_SlateNumVolatileWidgets, VolatileElements.Num());
 
-			int32 VolatileLayerId = CachedWindowElements->PaintVolatile(OutDrawElements, Args.GetCurrentTime(), Args.GetDeltaTime(), AbsoluteDeltaPosition);
+			int32 VolatileLayerId = CachedWindowElements->PaintVolatile(OutDrawElements, Args.GetCurrentTime(), Args.GetDeltaTime(), AbsoluteDeltaPosition * AllottedGeometry.Scale);
 			OutMaxChildLayer = FMath::Max(OutMaxChildLayer, VolatileLayerId);
 
 			//FPlatformMisc::EndNamedEvent();
@@ -403,7 +430,6 @@ int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& Allo
 					++OutMaxChildLayer,
 					ScaledOutline.ToPaintGeometry(),
 					FCoreStyle::Get().GetBrush(TEXT("Debug.Border")),
-					MyClippingRect,
 					ESlateDrawEffect::None,
 					DebugTint
 				);
@@ -439,7 +465,6 @@ int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& Allo
 					++OutMaxChildLayer,
 					VolatileGeometry.ToPaintGeometry(),
 					VolatileBrush,
-					MyClippingRect,
 					ESlateDrawEffect::None,
 					FLinearColor::Yellow
 				);
@@ -463,7 +488,6 @@ int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& Allo
 							++OutMaxChildLayer,
 							ArrangedWidget.Geometry.ToPaintGeometry(),
 							FCoreStyle::Get().GetBrush(TEXT("WhiteBrush")),
-							MyClippingRect,
 							ESlateDrawEffect::None,
 							FLinearColor::Red.CopyWithNewOpacity(0.75f * It.Value())
 						);
@@ -491,7 +515,7 @@ int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& Allo
 	}
 	else
 	{
-		return SCompoundWidget::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+		return SCompoundWidget::OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 	}
 }
 

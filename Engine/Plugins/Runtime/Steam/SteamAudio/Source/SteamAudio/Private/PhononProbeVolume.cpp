@@ -8,6 +8,8 @@
 #include "PhononScene.h"
 #include "PhononCommon.h"
 
+#include "Components/PrimitiveComponent.h"
+
 #if WITH_EDITOR
 #include "Editor.h"
 #include "LevelEditorViewport.h"
@@ -17,10 +19,15 @@
 
 APhononProbeVolume::APhononProbeVolume(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, PlacementStrategy(EPhononProbePlacementStrategy::UNIFORM_FLOOR)
 	, HorizontalSpacing(400.0f)
 	, HeightAboveFloor(150.0f)
 	, NumProbes(0)
 {
+	auto RootPrimitiveComponent = Cast<UPrimitiveComponent>(this->GetRootComponent());
+	RootPrimitiveComponent->BodyInstance.SetCollisionProfileName("NoCollision");
+	RootPrimitiveComponent->bGenerateOverlapEvents = false;
+
 	FRotator DefaultRotation(0, 0, 0);
 	PhononProbeComponent = CreateDefaultSubobject<UPhononProbeComponent>(TEXT("PhononProbeComponent0"));
 	PhononProbeComponent->SetWorldLocation(this->GetActorLocation());
@@ -36,27 +43,13 @@ void APhononProbeVolume::PlaceProbes(IPLhandle PhononScene, IPLProbePlacementPro
 	ProbeBoxData.Empty();
 	ProbeBatchData.Empty();
 
-	// Compute bounding box in Phonon coords
 	IPLhandle ProbeBox = nullptr;
-	FVector BoxCenter, BoxExtents;
-	this->Brush->Bounds.GetBox().GetCenterAndExtents(BoxCenter, BoxExtents);
-	BoxExtents *= this->GetTransform().GetScale3D();
-	FVector Center = this->GetTransform().GetLocation();
-	IPLVector3 MinExtent = SteamAudio::UnrealToPhononIPLVector3(Center - BoxExtents);
-	IPLVector3 MaxExtent = SteamAudio::UnrealToPhononIPLVector3(Center + BoxExtents);
-	
-	if (MinExtent.x > MaxExtent.x)
-		std::swap(MinExtent.x, MaxExtent.x);
 
-	if (MinExtent.y > MaxExtent.y)
-		std::swap(MinExtent.y, MaxExtent.y);
-
-	if (MinExtent.z > MaxExtent.z)
-		std::swap(MinExtent.z, MaxExtent.z);
-
-	IPLBox ProbeBoxExtents;
-	ProbeBoxExtents.minCoordinates = MinExtent;
-	ProbeBoxExtents.maxCoordinates = MaxExtent;
+	// Compute box transform
+	float ProbeBoxTransformMatrix[16];
+	auto VolumeTransform = this->GetTransform();
+	VolumeTransform.MultiplyScale3D(FVector(200));
+	SteamAudio::GetMatrixForTransform(VolumeTransform, ProbeBoxTransformMatrix);
 
 	// Configure placement parameters
 	IPLProbePlacementParams ProbePlacementParameters;
@@ -67,7 +60,7 @@ void APhononProbeVolume::PlaceProbes(IPLhandle PhononScene, IPLProbePlacementPro
 	ProbePlacementParameters.maxOctreeTriangles = 0;
 
 	// Create probe box, generate probes
-	iplCreateProbeBox(PhononScene, ProbeBoxExtents, ProbePlacementParameters, ProbePlacementCallback, &ProbeBox);
+	iplCreateProbeBox(PhononScene, ProbeBoxTransformMatrix, ProbePlacementParameters, ProbePlacementCallback, &ProbeBox);
 
 	// Get probe locations/radii
 	NumProbes = iplGetProbeSpheres(ProbeBox, nullptr);
@@ -77,7 +70,7 @@ void APhononProbeVolume::PlaceProbes(IPLhandle PhononScene, IPLProbePlacementPro
 	IPLhandle ProbeBatch = nullptr;
 	iplCreateProbeBatch(&ProbeBatch);
 
-	for (IPLint32 i = 0; i < NumProbes; ++i)
+	for (int32 i = 0; i < NumProbes; ++i)
 	{ 
 		iplAddProbeToBatch(ProbeBatch, ProbeBox, i);
 	}
@@ -96,6 +89,8 @@ void APhononProbeVolume::PlaceProbes(IPLhandle PhononScene, IPLProbePlacementPro
 	// Clean up
 	iplDestroyProbeBox(&ProbeBox);
 	iplDestroyProbeBatch(&ProbeBatch);
+
+	MarkPackageDirty();
 }
 
 bool APhononProbeVolume::CanEditChange(const UProperty* InProperty) const
@@ -124,7 +119,7 @@ void APhononProbeVolume::UpdateProbeBoxData(IPLhandle ProbeBox)
 	iplCreateProbeBatch(&ProbeBatch);
 
 	NumProbes = iplGetProbeSpheres(ProbeBox, nullptr);
-	for (auto i = 0; i < NumProbes; ++i)
+	for (int32 i = 0; i < NumProbes; ++i)
 	{
 		iplAddProbeToBatch(ProbeBatch, ProbeBox, i);
 	}
@@ -134,6 +129,8 @@ void APhononProbeVolume::UpdateProbeBoxData(IPLhandle ProbeBox)
 	ProbeBatchData.SetNumUninitialized(ProbeBatchDataSize);
 	iplSaveProbeBatch(ProbeBatch, ProbeBatchData.GetData());
 	iplDestroyProbeBatch(&ProbeBatch);
+
+	MarkPackageDirty();
 }
 
 uint8* APhononProbeVolume::GetProbeBoxData()
@@ -141,7 +138,7 @@ uint8* APhononProbeVolume::GetProbeBoxData()
 	return ProbeBoxData.GetData();
 }
 
-const int32 APhononProbeVolume::GetProbeBoxDataSize() const
+int32 APhononProbeVolume::GetProbeBoxDataSize() const
 {
 	return ProbeBoxData.Num();
 }
@@ -151,7 +148,20 @@ uint8* APhononProbeVolume::GetProbeBatchData()
 	return ProbeBatchData.GetData();
 }
 
-const int32 APhononProbeVolume::GetProbeBatchDataSize() const
+int32 APhononProbeVolume::GetProbeBatchDataSize() const
 {
 	return ProbeBatchData.Num();
+}
+
+int32 APhononProbeVolume::GetDataSizeForSource(const FName& UniqueIdentifier) const
+{
+	int32 SourceDataSize = 0;
+	for (const auto& BakedSourceInfo : BakedDataInfo)
+	{
+		if (BakedSourceInfo.Name == UniqueIdentifier)
+		{
+			SourceDataSize += BakedSourceInfo.Size;
+		}
+	}
+	return SourceDataSize;
 }

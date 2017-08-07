@@ -27,6 +27,21 @@ void FSlate3DRenderer::Cleanup()
 		RenderTargetPolicy->ReleaseResources();
 	}
 
+	if (IsInGameThread())
+	{
+		// Enqueue a command to unlock the draw buffer after all windows have been drawn
+		ENQUEUE_RENDER_COMMAND(FSlate3DRenderer_Cleanup)(
+			[this](FRHICommandListImmediate& RHICmdList)
+			{
+				DepthStencil.SafeRelease();
+			}
+		);
+	}
+	else
+	{
+		DepthStencil.SafeRelease();
+	}
+
 	BeginCleanup(this);
 }
 
@@ -136,23 +151,44 @@ void FSlate3DRenderer::DrawWindowToTarget_RenderThread( FRHICommandListImmediate
 
 		RenderTargetPolicy->UpdateVertexAndIndexBuffers(InRHICmdList, BatchData);
 		
+		FVector2D DrawOffset = WindowDrawBuffer.ViewOffset;
+
 		FMatrix ProjectionMatrix = FSlateRHIRenderer::CreateProjectionMatrix(RTResource->GetSizeX(), RTResource->GetSizeY());
-		FMatrix ViewOffset = FTranslationMatrix::Make(FVector(WindowDrawBuffer.ViewOffset.X, WindowDrawBuffer.ViewOffset.Y, 0));
+		FMatrix ViewOffset = FTranslationMatrix::Make(FVector(DrawOffset, 0));
 		ProjectionMatrix = ViewOffset * ProjectionMatrix;
 
 		if ( BatchData.GetRenderBatches().Num() > 0 )
 		{
 			FSlateBackBuffer BackBufferTarget(RenderTargetResource->GetTextureRHI(), FIntPoint(RTResource->GetSizeX(), RTResource->GetSizeY()));
 
+			FSlateRenderingOptions DrawOptions(ProjectionMatrix);
 			// The scene renderer will handle it in this case
-			const bool bAllowSwitchVerticalAxis = false;
+			DrawOptions.bAllowSwitchVerticalAxis = false;
+			DrawOptions.ViewOffset = DrawOffset;
+
+			FTexture2DRHIRef ColorTarget = RenderTargetResource->GetTextureRHI();
+
+			if (BatchData.IsStencilClippingRequired())
+			{
+				if (!DepthStencil.IsValid() || ColorTarget->GetSizeXY() != DepthStencil->GetSizeXY())
+				{
+					DepthStencil.SafeRelease();
+
+					FTexture2DRHIRef ShaderResourceUnused;
+					FRHIResourceCreateInfo CreateInfo(FClearValueBinding::DepthZero);
+					RHICreateTargetableShaderResource2D(ColorTarget->GetSizeX(), ColorTarget->GetSizeY(), PF_DepthStencil, 1, TexCreate_None, TexCreate_DepthStencilTargetable, false, CreateInfo, DepthStencil, ShaderResourceUnused);
+					check(IsValidRef(DepthStencil));
+				}
+			}
 
 			RenderTargetPolicy->DrawElements(
 				InRHICmdList,
 				BackBufferTarget,
-				ProjectionMatrix,
+				ColorTarget,
+				DepthStencil,
 				BatchData.GetRenderBatches(),
-				bAllowSwitchVerticalAxis
+				BatchData.GetRenderClipStates(),
+				DrawOptions
 			);
 		}
 	}

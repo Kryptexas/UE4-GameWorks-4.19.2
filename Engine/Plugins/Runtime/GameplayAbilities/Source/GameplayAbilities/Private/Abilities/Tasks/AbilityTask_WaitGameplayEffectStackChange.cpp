@@ -13,7 +13,7 @@ UAbilityTask_WaitGameplayEffectStackChange::UAbilityTask_WaitGameplayEffectStack
 
 UAbilityTask_WaitGameplayEffectStackChange* UAbilityTask_WaitGameplayEffectStackChange::WaitForGameplayEffectStackChange(UGameplayAbility* OwningAbility, FActiveGameplayEffectHandle InHandle)
 {
-	auto MyObj = NewAbilityTask<UAbilityTask_WaitGameplayEffectStackChange>(OwningAbility);
+	UAbilityTask_WaitGameplayEffectStackChange* MyObj = NewAbilityTask<UAbilityTask_WaitGameplayEffectStackChange>(OwningAbility);
 	MyObj->Handle = InHandle;
 	return MyObj;
 }

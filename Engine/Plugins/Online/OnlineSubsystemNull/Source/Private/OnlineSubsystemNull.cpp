@@ -241,6 +241,11 @@ bool FOnlineSubsystemNull::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice
 	return false;
 }
 
+FText FOnlineSubsystemNull::GetOnlineServiceName() const
+{
+	return NSLOCTEXT("OnlineSubsystemNull", "OnlineServiceName", "Null");
+}
+
 bool FOnlineSubsystemNull::IsEnabled()
 {
 	return true;

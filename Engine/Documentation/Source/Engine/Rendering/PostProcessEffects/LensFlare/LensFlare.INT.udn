@@ -1,8 +1,16 @@
-Availability:Public
-Title:Lens Flare
-Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
-Description:Simulating scattered light from bright objects due to imperfections in camera lenses.
-Version: 4.9
+Availability: Public
+Crumbs: %ROOT%
+Title: Lens Flare
+Description: Simulating scattered light from bright objects due to imperfections in camera lenses.
+Type: Overview
+SkillLevel:Beginner
+Version:4.16
+Parent:Engine/Rendering/PostProcessEffects
+Order:6
+Tags:Post Process
+Topic-image:LensFlare_Topic.png
+
+
 
 [REGION:fullwidth]
 ![Lens Flare](lens_flare.png)(w:1182)

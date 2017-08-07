@@ -3,25 +3,13 @@ Title:3. Finishing Character Setup
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
 Description:Here we will implement the script in our Character Blueprint to respond to our Input Mappings so the character moves. 
 Version: 4.9
+Parent:Gameplay/HowTo/CharacterMovement/Blueprints
 SkillLevel: Advanced
+type:how-to
+type:multi-step
+order:3
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[Previous Step](Gameplay\HowTo\CharacterMovement\Blueprints\Input "%Gameplay\HowTo\CharacterMovement\Blueprints\Input:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Character Movement Overview](Gameplay\HowTo\CharacterMovement\Blueprints)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Gameplay\HowTo\CharacterMovement\Blueprints\BlendSpace "%Gameplay\HowTo\CharacterMovement\Blueprints\BlendSpace:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 In this section, we will finish setting up the Character by implementing the scripts that control our Character based on Player Input. 
 
@@ -117,4 +105,4 @@ In this section, we will finish setting up the Character by implementing the scr
 	
 	We then set how high the character can jump based on whether or not they are moving by setting the **JumpZVelocity** to **365** (for a moving character) or **340** while we are stationary. In either case, we set **Jump Pressed** to _True_ and set **Jump Pressed** to _False_ when Jump is released. 
 
-%Steps%
+[NAV]

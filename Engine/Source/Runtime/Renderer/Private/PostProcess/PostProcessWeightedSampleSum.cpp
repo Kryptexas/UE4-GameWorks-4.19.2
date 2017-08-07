@@ -167,7 +167,7 @@ public:
 
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("FilterPixelShader");
+		return TEXT("/Engine/Private/FilterPixelShader.usf");
 	}
 
 	static const TCHAR* GetFunctionName()
@@ -280,7 +280,7 @@ private:
 
 /** A macro to declaring a filter shader type for a specific number of samples. */
 #define IMPLEMENT_FILTER_SHADER_TYPE(NumSamples) \
-	IMPLEMENT_SHADER_TYPE(template<>,TFilterVS<NumSamples>,TEXT("FilterVertexShader"),TEXT("Main"),SF_Vertex);
+	IMPLEMENT_SHADER_TYPE(template<>,TFilterVS<NumSamples>,TEXT("/Engine/Private/FilterVertexShader.usf"),TEXT("Main"),SF_Vertex);
 	/** The filter shader types for 1-MAX_FILTER_SAMPLES samples. */
 	IMPLEMENT_FILTER_SHADER_TYPE(1);
 	IMPLEMENT_FILTER_SHADER_TYPE(2);
@@ -447,7 +447,7 @@ public:
 
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("FilterPixelShader");
+		return TEXT("/Engine/Private/FilterPixelShader.usf");
 	}
 
 	static const TCHAR* GetFunctionName()
@@ -791,7 +791,7 @@ void FRCPassPostProcessWeightedSampleSum::Process(FRenderingCompositePassContext
 	}
 
 	// in texel (input resolution), /2 as we use the diameter, 100 as we use percent
-	float EffectiveBlurRadius = SizeScale * SrcSizeForThisAxis / 2 / 100.0f;
+	float EffectiveBlurRadius = SizeScale * SrcSizeForThisAxis  / 2 / 100.0f;
 
 	// compute 1D filtered samples
 	FVector2D BlurOffsets[MAX_FILTER_SAMPLES];
@@ -815,7 +815,7 @@ void FRCPassPostProcessWeightedSampleSum::Process(FRenderingCompositePassContext
 	{
 		float YOffset = bDoFastBlur ? (InvSrcSize.Y * 0.5f) : 0.0f;
 		for (uint32 i = 0; i < NumSamples; ++i)
-		{
+	{
 			BlurOffsets[i] = FVector2D(InvSrcSize.X * OffsetAndWeight[i].X, YOffset);
 		}
 	}
@@ -825,7 +825,7 @@ void FRCPassPostProcessWeightedSampleSum::Process(FRenderingCompositePassContext
 		for (uint32 i = 0; i < NumSamples; ++i)
 		{
 			BlurOffsets[i] = FVector2D(0, InvSrcSize.Y * OffsetAndWeight[i].X + YOffset);
-		}
+	}
 	}
 
 	uint32 CombineMethodInt = (CombineMethod == EFCM_MaxMagnitude) ? 2 : 0;
@@ -862,7 +862,7 @@ void FRCPassPostProcessWeightedSampleSum::Process(FRenderingCompositePassContext
 		{
 			// Async path
 			FRHIAsyncComputeCommandListImmediate& RHICmdListComputeImmediate = FRHICommandListExecutor::GetImmediateAsyncComputeCommandList();
-			{
+	{
  				SCOPED_COMPUTE_EVENT(RHICmdListComputeImmediate, AsyncWeightedSampleSum);
 				WaitForInputPassComputeFences(RHICmdListComputeImmediate);
 				
@@ -899,7 +899,7 @@ void FRCPassPostProcessWeightedSampleSum::Process(FRenderingCompositePassContext
 		else
 		{
 			SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef(), ESimpleRenderTargetMode::EExistingColorAndDepth);	
-		}
+	}
 
 		Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f);
 
@@ -910,23 +910,23 @@ void FRCPassPostProcessWeightedSampleSum::Process(FRenderingCompositePassContext
 		}
 
 
-		FShader* VertexShader = nullptr;
-		SetFilterShaders(
-			Context.RHICmdList,
-			FeatureLevel,
-			TStaticSamplerState<SF_Bilinear,AM_Border,AM_Border,AM_Clamp>::GetRHI(),
-			FilterTexture,
-			AdditiveTexture,
-			CombineMethodInt,
-			BlurOffsets,
-			BlurWeights,
-			NumSamples,
-			&VertexShader
-			);	
+	FShader* VertexShader = nullptr;
+	SetFilterShaders(
+		Context.RHICmdList,
+		FeatureLevel,
+		TStaticSamplerState<SF_Bilinear,AM_Border,AM_Border,AM_Clamp>::GetRHI(),
+		FilterTexture,
+		AdditiveTexture,
+		CombineMethodInt,
+		BlurOffsets,
+		BlurWeights,
+		NumSamples,
+		&VertexShader
+		);	
 
-		DrawQuad(Context.RHICmdList, FeatureLevel, bDoFastBlur, SrcRect, DestRect, DestSize, SrcSize, VertexShader);
+	DrawQuad(Context.RHICmdList, FeatureLevel, bDoFastBlur, SrcRect, DestRect, DestSize, SrcSize, VertexShader);
 
-		Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 	}
 }
 
@@ -1043,7 +1043,7 @@ FPooledRenderTargetDesc FRCPassPostProcessWeightedSampleSum::ComputeOutputDesc(E
 	Ret.AutoWritable = false;
 	Ret.TargetableFlags &= ~(TexCreate_RenderTargetable | TexCreate_UAV);
 	Ret.TargetableFlags |= bIsComputePass ? TexCreate_UAV : TexCreate_RenderTargetable;
-
+	Ret.Flags &= ~TexCreate_FastVRAM;
 	Ret.ClearValue = FClearValueBinding(FLinearColor(0, 0, 0, 0));
 
 	return Ret;
@@ -1129,7 +1129,7 @@ void FRCPassPostProcessWeightedSampleSum::DrawClear(FRHICommandListImmediate& RH
 		AdjustRectsForFastBlur(SrcRect, DestRect);
 	}
 
-	DrawClearQuad(RHICmdList, FeatureLevel, true, FLinearColor(0, 0, 0, 0), false, 1.0f, false, 0, DestSize, DestRect);	
+	DrawClearQuad(RHICmdList, true, FLinearColor(0, 0, 0, 0), false, 1.0f, false, 0, DestSize, DestRect);	
 }
 
 void FRCPassPostProcessWeightedSampleSum::DrawQuad(FRHICommandListImmediate& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, bool bDoFastBlur, FIntRect SrcRect, FIntRect DestRect, FIntPoint DestSize, FIntPoint SrcSize, FShader* VertexShader) const

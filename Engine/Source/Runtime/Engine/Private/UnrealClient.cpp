@@ -334,7 +334,8 @@ void FScreenshotRequest::CreateViewportScreenShotFilename(FString& InOutFilename
 	}
 	else if(GIsHighResScreenshot)
 	{
-		TypeName = TEXT("HighresScreenshot");
+		FString FilenameOverride = GetHighResScreenshotConfig().FilenameOverride;
+		TypeName = FilenameOverride.IsEmpty() ? TEXT("HighresScreenshot") : FilenameOverride;
 	}
 	else
 	{
@@ -346,7 +347,7 @@ void FScreenshotRequest::CreateViewportScreenShotFilename(FString& InOutFilename
 	InOutFilename = TypeName;
 	if (!TypeName.Contains(TEXT("/")))
 	{
-		InOutFilename = FPaths::ScreenShotDir() / TypeName;
+		InOutFilename = GetDefault<UEngine>()->GameScreenshotSaveDirectory.Path / TypeName;
 	}
 }
 
@@ -896,15 +897,20 @@ void FViewport::HighResScreenshot()
 	// Forcing 128-bit rendering pipeline
 	static auto CVarSceneColorFormat = IConsoleManager::Get().FindConsoleVariable(TEXT("r.SceneColorFormat"));
 	static auto CVarPostColorFormat = IConsoleManager::Get().FindConsoleVariable(TEXT("r.PostProcessingColorFormat"));
+	static auto CVarForceLOD = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ForceLOD"));
+
 	check(CVarSceneColorFormat && CVarPostColorFormat);
 	const int32 OldSceneColorFormat = CVarSceneColorFormat->GetInt();
 	const int32 OldPostColorFormat = CVarPostColorFormat->GetInt();
-
+	const int32 OldForceLOD = CVarForceLOD->GetInt();
 	if (GetHighResScreenshotConfig().bForce128BitRendering)
 	{
 		CVarSceneColorFormat->Set(5, ECVF_SetByCode);
 		CVarPostColorFormat->Set(1, ECVF_SetByCode);
 	}
+
+	// Force highest LOD
+	CVarForceLOD->Set(0, ECVF_SetByCode);
 
 	// Render the requested number of frames (at least once)
 	static const auto HighResScreenshotDelay = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HighResScreenshotDelay"));
@@ -934,6 +940,7 @@ void FViewport::HighResScreenshot()
 
 	CVarSceneColorFormat->Set(OldSceneColorFormat, ECVF_SetByCode);
 	CVarPostColorFormat->Set(OldPostColorFormat, ECVF_SetByCode);
+	CVarForceLOD->Set(OldForceLOD, ECVF_SetByCode);
 
 	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
 		EndDrawingCommand,
@@ -1103,6 +1110,7 @@ bool GCaptureCompositionNextFrame = false;
 
 void FViewport::Draw( bool bShouldPresent /*= true */)
 {
+	SCOPED_NAMED_EVENT(FViewport_Draw, FColor::Red);
 	UWorld* World = GetClient()->GetWorld();
 	static TUniquePtr<FSuspendRenderingThread> GRenderingThreadSuspension;
 
@@ -1135,7 +1143,7 @@ void FViewport::Draw( bool bShouldPresent /*= true */)
 			if( GIsHighResScreenshot )
 			{
 				const bool bShowUI = false;
-				const bool bAddFilenameSuffix = true;
+				const bool bAddFilenameSuffix = GetHighResScreenshotConfig().FilenameOverride.IsEmpty();
 				FScreenshotRequest::RequestScreenshot( FString(), bShowUI, bAddFilenameSuffix );
 				HighResScreenshot();
 			}
@@ -1727,12 +1735,25 @@ ENGINE_API bool GetViewportScreenShot(FViewport* Viewport, TArray<FColor>& Bitma
 	return false;
 }
 
-ENGINE_API bool GetHighResScreenShotInput(const TCHAR* Cmd, FOutputDevice& Ar, uint32& OutXRes, uint32& OutYRes, float& OutResMult, FIntRect& OutCaptureRegion, bool& OutShouldEnableMask, bool& OutDumpBufferVisualizationTargets, bool& OutCaptureHDR)
+ENGINE_API bool GetHighResScreenShotInput(const TCHAR* Cmd, FOutputDevice& Ar, uint32& OutXRes, uint32& OutYRes, float& OutResMult, FIntRect& OutCaptureRegion, bool& OutShouldEnableMask, bool& OutDumpBufferVisualizationTargets, bool& OutCaptureHDR, FString& OutFilenameOverride)
 {
 	FString CmdString = Cmd;
 	int32 SeperatorPos = -1;
 	int32 LastSeperatorPos = 0;
 	TArray<FString> Arguments;
+
+	// Look for an optional filename to override from the default filename and strip it if found.
+	FString FilenameSearchString = TEXT("filename=");
+	int32 FilenamePos = CmdString.Find(FilenameSearchString, ESearchCase::IgnoreCase);
+	if (FilenamePos != INDEX_NONE)
+	{
+		FString FilenameOverride;
+		FParse::Value(Cmd, TEXT("filename="), FilenameOverride);
+		OutFilenameOverride = FilenameOverride;
+		CmdString.RemoveAt(FilenamePos, FilenameSearchString.Len() + FilenameOverride.Len());
+		CmdString.Trim(); 
+		CmdString.TrimTrailing();
+	}
 
 	while (CmdString.FindChar(TCHAR(' '), SeperatorPos))
 	{

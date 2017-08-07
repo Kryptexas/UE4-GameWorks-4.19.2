@@ -883,7 +883,7 @@ protected:
 	{
 		if (&Other != this)
 		{
-			Clear();
+			Super::Clear();
 
 			for (const FDelegateBase& OtherDelegateRef : Other.GetInvocationList())
 			{
@@ -891,7 +891,7 @@ protected:
 				{
 					FDelegate TempDelegate;
 					((TDelegateInstanceInterface*)OtherInstance)->CreateCopy(TempDelegate);
-					AddInternal(MoveTemp(TempDelegate));
+					Super::AddInternal(MoveTemp(TempDelegate));
 				}
 			}
 		}
@@ -910,7 +910,7 @@ protected:
 	 */
 	FDelegateHandle AddDelegateInstance(FDelegate&& InNewDelegate)
 	{
-		return AddInternal(MoveTemp(InNewDelegate));
+		return Super::AddInternal(MoveTemp(InNewDelegate));
 	}
 
 public:
@@ -923,9 +923,9 @@ public:
 	{
 		bool NeedsCompaction = false;
 
-		LockInvocationList();
+		Super::LockInvocationList();
 		{
-			const TInvocationList& LocalInvocationList = GetInvocationList();
+			const TInvocationList& LocalInvocationList = Super::GetInvocationList();
 
 			// call bound functions in reverse order, so we ignore any instances that may be added by callees
 			for (int32 InvocationListIndex = LocalInvocationList.Num() - 1; InvocationListIndex >= 0; --InvocationListIndex)
@@ -940,7 +940,7 @@ public:
 				}
 			}
 		}
-		UnlockInvocationList();
+		Super::UnlockInvocationList();
 
 		if (NeedsCompaction)
 		{
@@ -959,7 +959,7 @@ protected:
 	 */
 	void RemoveDelegateInstance( FDelegateHandle Handle )
 	{
-		const TInvocationList& LocalInvocationList = GetInvocationList();
+		const TInvocationList& LocalInvocationList = Super::GetInvocationList();
 
 		for (int32 InvocationListIndex = 0; InvocationListIndex < LocalInvocationList.Num(); ++InvocationListIndex)
 		{
@@ -976,7 +976,7 @@ protected:
 			}
 		}
 
-		CompactInvocationList();
+		Super::CompactInvocationList();
 	}
 };
 

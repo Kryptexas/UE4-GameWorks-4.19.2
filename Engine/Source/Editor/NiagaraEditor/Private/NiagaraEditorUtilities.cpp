@@ -67,7 +67,7 @@ void FNiagaraEditorUtilities::ResetVariableToDefaultValue(FNiagaraVariable& Vari
 	}
 }
 
-void FNiagaraEditorUtilities::InitializeParameterInputNode(UNiagaraNodeInput& InputNode, const FNiagaraTypeDefinition& Type, const class UNiagaraGraph* InGraph, FName InputName)
+void FNiagaraEditorUtilities::InitializeParameterInputNode(UNiagaraNodeInput& InputNode, const FNiagaraTypeDefinition& Type, const UNiagaraGraph* InGraph, FName InputName)
 {
 	InputNode.Usage = ENiagaraInputNodeUsage::Parameter;
 	InputNode.bCanRenameNode = true;

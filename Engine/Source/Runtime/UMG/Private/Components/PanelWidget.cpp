@@ -123,10 +123,7 @@ UPanelSlot* UPanelWidget::AddChild(UWidget* Content)
 	PanelSlot->Content = Content;
 	PanelSlot->Parent = this;
 
-	if ( Content )
-	{
-		Content->Slot = PanelSlot;
-	}
+	Content->Slot = PanelSlot;
 
 	Slots.Add(PanelSlot);
 
@@ -225,6 +222,15 @@ void UPanelWidget::ClearChildren()
 		RemoveChildAt(0);
 	}
 }
+
+#if WITH_EDITOR
+
+TSharedRef<SWidget> UPanelWidget::RebuildDesignWidget(TSharedRef<SWidget> Content)
+{
+	return CreateDesignerOutline(Content);
+}
+
+#endif
 
 void UPanelWidget::PostLoad()
 {

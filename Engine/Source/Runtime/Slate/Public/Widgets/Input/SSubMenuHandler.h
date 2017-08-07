@@ -16,10 +16,12 @@ class SLATE_API SSubMenuHandler : public SCompoundWidget
 {
 public:
 	SLATE_BEGIN_ARGS( SSubMenuHandler )
+		: _Placement( EMenuPlacement::MenuPlacement_MenuRight )
 	{}
 		SLATE_DEFAULT_SLOT( FArguments, Content )
 		SLATE_ARGUMENT( TSharedPtr<SMenuAnchor>, MenuAnchor )
 		SLATE_ARGUMENT( TSharedPtr<SWidget>, MenuContent )
+		SLATE_ATTRIBUTE( EMenuPlacement, Placement )
 		SLATE_EVENT( FOnGetContent, OnGetMenuContent )
 	SLATE_END_ARGS()
 

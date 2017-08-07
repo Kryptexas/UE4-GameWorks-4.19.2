@@ -43,6 +43,8 @@ UENUM()
 	/** iOS 10 */
 	IOS_10 = 10 UMETA(DisplayName = "10.0"),
 
+    /** iOS 11 */
+    IOS_11 = 11 UMETA(DisplayName = "11 Beta"),
 };
 
 UENUM()
@@ -186,11 +188,13 @@ public:
     uint32 bEnableRemoteNotificationsSupport : 1;
     
 	// Whether or not to add support for Metal API (requires IOS8 and A7 processors).
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = Rendering, meta = (DisplayName = "Support Forward Rendering with Metal (A7 and up devices)"))
+	UPROPERTY(GlobalConfig)
 	bool bSupportsMetal;
 
+	// This feature is no longer supported and will be replaced by a Metal 2-based renderer. The setting UI is disabled for 4.17.
+	//
 	// Whether or not to add support for deferred rendering Metal API (requires IOS8 and A8 processors)
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = Rendering, meta = (DisplayName = "[Work in Progress] Support Deferred Rendering with Metal (A8 and up devices)"))
+	UPROPERTY(GlobalConfig)
 	bool bSupportsMetalMRT;
 	
 	// Whether or not to add support for PVRTC textures
@@ -202,7 +206,7 @@ public:
 	bool bCookASTCTextures;
 	
 	// Whether or not to add support for OpenGL ES2 (if this is false, then your game should specify minimum IOS8 version)
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = Rendering)
+	UPROPERTY(GlobalConfig)
 	bool bSupportsOpenGLES2;
 	
 	// Remotely compile shaders offline
@@ -222,27 +226,27 @@ public:
 	bool bGenerateXCArchive;	
 	
 	// Enable ArmV7 support? (this will be used if all type are unchecked)
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support armv7 in Development"))
+	UPROPERTY(GlobalConfig)
 	bool bDevForArmV7;
 
 	// Enable Arm64 support?
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support arm64 in Development"))
+	UPROPERTY(GlobalConfig)
 	bool bDevForArm64;
 
 	// Enable ArmV7s support?
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support armv7s in Development"))
+	UPROPERTY(GlobalConfig)
 	bool bDevForArmV7S;
 
 	// Enable ArmV7 support? (this will be used if all type are unchecked)
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support armv7 in Shipping"))
+	UPROPERTY(GlobalConfig)
 	bool bShipForArmV7;
 
 	// Enable Arm64 support?
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support arm64 in Shipping"))
+	UPROPERTY(GlobalConfig)
 	bool bShipForArm64;
 
 	// Enable ArmV7s support?
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support armv7s in Shipping"))
+	UPROPERTY(GlobalConfig)
 	bool bShipForArmV7S;
 
 	// Enable bitcode compiling?
@@ -372,7 +376,31 @@ public:
     // The maximum supported Metal shader langauge version.
     // This defines what features may be used and OS versions supported.
     UPROPERTY(EditAnywhere, config, Category=Rendering, meta = (DisplayName = "Max. Metal Shader Standard To Target", ConfigRestartRequired = true))
-	uint8 MaxShaderLanguageVersion;
+    uint8 MaxShaderLanguageVersion;
+	
+	// Whether or not the keyboard should be usable on it's own without a UITextField
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Input)
+	bool bUseIntegratedKeyboard;
+
+	/** Sample rate to run the audio mixer with. */
+	UPROPERTY(config, EditAnywhere, Category = "Audio", Meta = (DisplayName = "Audio Mixer Sample Rate"))
+	int32 AudioSampleRate;
+
+	/** The amount of audio to compute each callback block. Lower values decrease latency but may increase CPU cost. */
+	UPROPERTY(config, EditAnywhere, Category = "Audio", meta = (ClampMin = "512", ClampMax = "4096", DisplayName = "Callback Buffer Size"))
+	int32 AudioCallbackBufferFrameSize;
+
+	/** The number of buffers to keep enqueued. More buffers increases latency, but can compensate for variable compute availability in audio callbacks on some platforms. */
+	UPROPERTY(config, EditAnywhere, Category = "Audio", meta = (ClampMin = "1", UIMin = "1", DisplayName = "Number of Buffers To Enqueue"))
+	int32 AudioNumBuffersToEnqueue;
+
+	/** The max number of channels (voices) to limit for this platform. The max channels used will be the minimum of this value and the global audio quality settings. A value of 0 will not apply a platform channel count max. */
+	UPROPERTY(config, EditAnywhere, Category = "Audio", meta = (ClampMin = "0", UIMin = "0", DisplayName = "Max Channels"))
+	int32 AudioMaxChannels;
+
+	/** The number of workers to use to compute source audio. Will only use up to the max number of sources. Will evenly divide sources to each source worker. */
+	UPROPERTY(config, EditAnywhere, Category = "Audio", meta = (ClampMin = "0", UIMin = "0", DisplayName = "Number of Source Workers"))
+	int32 AudioNumSourceWorkers;
 
 #if WITH_EDITOR
 	// UObject interface

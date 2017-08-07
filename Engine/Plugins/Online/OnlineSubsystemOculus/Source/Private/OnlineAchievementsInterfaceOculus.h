@@ -6,8 +6,6 @@
 #include "OnlineIdentityOculus.h"
 #include "OnlineSubsystemOculusPackage.h"
 
-#include "OVR_AchievementDefinitionArray.h"
-
 /**
 * Enum that signifies how an achievement is to be unlocked
 */
@@ -92,7 +90,7 @@ private:
 	TMap<FString, FOnlineAchievementDescOculus> AchievementDescriptions;
 
 	void GetWriteAchievementCountValue(FVariantData VariantData, uint64& OutData) const;
-	void GetWriteAchievementBitfieldValue(FVariantData VariantData, FString& OutData, uint32 BitfieldLength);
+	void GetWriteAchievementBitfieldValue(FVariantData VariantData, FString& OutData, uint32 BitfieldLength) const;
 	double CalculatePlayerAchievementProgress(const FOnlineAchievementOculus Achievement);
 
 public:

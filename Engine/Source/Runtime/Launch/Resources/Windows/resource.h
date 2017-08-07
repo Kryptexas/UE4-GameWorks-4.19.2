@@ -6,6 +6,7 @@
 //
 #define IDD_YESNO2ALL                   101
 #define IDD_YESNO2ALLCANCEL             102
+#define IDD_YESNOYESTOALL               103
 // If IDICON_UE4Game is modified, please also modify IconResourceId in Engine\Source\Programs\UnrealBuildTool\Windows\WindowsDeploy.cs
 #define IDICON_UE4Game                  123
 #define IDC_YESTOALL                    1000
@@ -20,7 +21,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        103
+#define _APS_NEXT_RESOURCE_VALUE        104
 #define _APS_NEXT_COMMAND_VALUE         40001
 #define _APS_NEXT_CONTROL_VALUE         1010
 #define _APS_NEXT_SYMED_VALUE           101

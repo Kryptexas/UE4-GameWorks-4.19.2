@@ -49,7 +49,7 @@ bool FHitResult::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSu
 	}
 
 	// pack bitfield with flags
-	uint8 Flags = (bBlockingHit << 0) | (bStartPenetrating << 1) | (bImpactPointEqualsLocation << 2) | (bImpactNormalEqualsNormal << 3) | (bInvalidItem << 4) | (bInvalidFaceIndex << 5) | (bInvalidFaceIndex << 6);
+	uint8 Flags = (bBlockingHit << 0) | (bStartPenetrating << 1) | (bImpactPointEqualsLocation << 2) | (bImpactNormalEqualsNormal << 3) | (bInvalidItem << 4) | (bInvalidFaceIndex << 5) | (bNoPenetrationDepth << 6);
 	Ar.SerializeBits(&Flags, 7); 
 	bBlockingHit = (Flags & (1 << 0)) ? 1 : 0;
 	bStartPenetrating = (Flags & (1 << 1)) ? 1 : 0;
@@ -146,11 +146,12 @@ UPrimitiveComponent* FOverlapResult::GetComponent() const
 //////////////////////////////////////////////////////////////////////////
 // FCollisionQueryParams
 
-FCollisionQueryParams::FCollisionQueryParams(FName InTraceTag, bool bInTraceComplex, const AActor* InIgnoreActor)
+FCollisionQueryParams::FCollisionQueryParams(FName InTraceTag, const TStatId& InStatId, bool bInTraceComplex, const AActor* InIgnoreActor)
 {
 	bTraceComplex = bInTraceComplex;
 	MobilityType = EQueryMobilityType::Any;
 	TraceTag = InTraceTag;
+	StatId = InStatId;
 	bTraceAsyncScene = false;
 	bFindInitialOverlaps = true;
 	bReturnFaceIndex = false;

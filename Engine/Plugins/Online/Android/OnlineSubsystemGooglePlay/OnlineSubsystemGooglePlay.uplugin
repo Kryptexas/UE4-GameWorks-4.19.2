@@ -26,5 +26,15 @@
 			"Name": "OnlineSubsystemGooglePlay",
 			"LoadingPolicy": "Always"
 		}
+	],
+	"Plugins": [
+		{
+			"Name": "OnlineSubsystem",
+			"Enabled": true
+		},
+		{
+			"Name": "AndroidPermission",
+			"Enabled": true
+		}
 	]
 }

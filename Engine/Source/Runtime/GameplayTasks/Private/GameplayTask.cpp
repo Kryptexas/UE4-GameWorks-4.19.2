@@ -143,10 +143,18 @@ void UGameplayTask::TaskOwnerEnded()
 		, TEXT("%s TaskOwnerEnded called, current State: %s")
 		, *GetName(), *GetTaskStateName());
 
-	if (TaskState != EGameplayTaskState::Finished && !IsPendingKill())
+	if (TaskState != EGameplayTaskState::Finished)
 	{
 		bOwnerFinished = true;
-		OnDestroy(true);
+		if (IsPendingKill() == false)
+		{
+			OnDestroy(true);
+		}
+		else
+		{
+			// mark as finished, just to be on the safe side 
+			TaskState = EGameplayTaskState::Finished;
+		}
 	}
 }
 
@@ -156,9 +164,17 @@ void UGameplayTask::EndTask()
 		, TEXT("%s EndTask called, current State: %s")
 		, *GetName(), *GetTaskStateName());
 
-	if (TaskState != EGameplayTaskState::Finished && !IsPendingKill())
+	if (TaskState != EGameplayTaskState::Finished)
 	{
-		OnDestroy(false);
+		if (IsPendingKill() == false)
+		{
+			OnDestroy(false);
+		}
+		else
+		{
+			// mark as finished, just to be on the safe side 
+			TaskState = EGameplayTaskState::Finished;
+		}
 	}
 }
 

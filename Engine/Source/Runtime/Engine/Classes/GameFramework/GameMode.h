@@ -185,8 +185,9 @@ public:
 	virtual void Say(const FString& Msg);
 
 	/** Alters the synthetic bandwidth limit for a running game. */
-	UFUNCTION(exec)
-	virtual void SetBandwidthLimit(float AsyncIOBandwidthLimit);
+	DEPRECATED(4.17, "AsyncIOBandwidthLimit is no longer configurable")
+	UFUNCTION(exec)	
+	virtual void SetBandwidthLimit(float AsyncIOBandwidthLimit) {}
 
 	/** Broadcast a string to all players. */
 	virtual void Broadcast( AActor* Sender, const FString& Msg, FName Type = NAME_None );

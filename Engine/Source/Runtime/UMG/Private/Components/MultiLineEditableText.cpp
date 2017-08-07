@@ -18,6 +18,7 @@ UMultiLineEditableText::UMultiLineEditableText(const FObjectInitializer& ObjectI
 	WidgetStyle = *Defaults._TextStyle;
 	bIsReadOnly = Defaults._IsReadOnly.Get();
 	AllowContextMenu = Defaults._AllowContextMenu.Get();
+	Clipping = Defaults._Clipping;
 	AutoWrapText = true;
 	
 	if (!IsRunningDedicatedServer())
@@ -56,14 +57,14 @@ TSharedRef<SWidget> UMultiLineEditableText::RebuildWidget()
 	.OnTextCommitted(BIND_UOBJECT_DELEGATE(FOnTextCommitted, HandleOnTextCommitted))
 	;
 	
-	return BuildDesignTimeWidget( MyMultiLineEditableText.ToSharedRef() );
+	return MyMultiLineEditableText.ToSharedRef();
 }
 
 void UMultiLineEditableText::SynchronizeProperties()
 {
 	Super::SynchronizeProperties();
 
-	TAttribute<FText> HintTextBinding = OPTIONAL_BINDING(FText, HintText);
+	TAttribute<FText> HintTextBinding = PROPERTY_BINDING(FText, HintText);
 
 	MyMultiLineEditableText->SetTextStyle(&WidgetStyle);
 	MyMultiLineEditableText->SetText(Text);

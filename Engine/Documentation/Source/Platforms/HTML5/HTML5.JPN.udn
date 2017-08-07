@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3150518
+﻿INTSourceChangelist:3467293
 Availability:Public
 Title:HTML5 ゲームの開発
 Crumbs:%ROOT%, Platforms
@@ -9,6 +9,8 @@ Version:4.9
 type:landing
 parent:Platforms
 tags:HTML5
+tags:Desktop
+Topic-image:HTML5Development_topic.png
 
 HTML5 は、[Mozilla](https://www.mozilla.org/en-US/) から Emscripten ツールチェーンを使用して、C++ を Javascript にクロスコンパイルします。 
 

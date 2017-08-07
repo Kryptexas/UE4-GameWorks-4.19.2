@@ -26,6 +26,8 @@
 #include "BufferVisualizationData.h"
 #include "Engine/LocalPlayer.h"
 #include "ContentStreaming.h"
+#include "Stats/StatsData.h"
+#include "HAL/PlatformProperties.h"
 
 #define LOCTEXT_NAMESPACE "Automation"
 
@@ -43,18 +45,6 @@ static TAutoConsoleVariable<int32> CVarAutomationScreenshotResolutionHeight(
 	0,
 	TEXT("The height of automation screenshots."),
 	ECVF_Default);
-
-
-void FinishLoadingBeforeScreenshot()
-{
-	// Force all shader compiling to finish.
-	GShaderCompilingManager->FinishAllCompilation();
-
-	// Force all mip maps to load before taking the screenshot.
-	UTexture::ForceUpdateTextureStreaming();
-
-	IStreamingManager::Get().StreamAllResources(0.0f);
-}
 
 
 #if (WITH_DEV_AUTOMATION_TESTS || WITH_PERF_AUTOMATION_TESTS)
@@ -272,9 +262,23 @@ UAutomationBlueprintFunctionLibrary::UAutomationBlueprintFunctionLibrary(const c
 {
 }
 
+void UAutomationBlueprintFunctionLibrary::FinishLoadingBeforeScreenshot()
+{
+	// Finish compiling the shaders if the platform doesn't require cooked data.
+	if (!FPlatformProperties::RequiresCookedData())
+	{
+		GShaderCompilingManager->FinishAllCompilation();
+	}
+
+	// Force all mip maps to load before taking the screenshot.
+	UTexture::ForceUpdateTextureStreaming();
+
+	IStreamingManager::Get().StreamAllResources(0.0f);
+}
+
 bool UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotInternal(UObject* WorldContextObject, const FString& Name, FAutomationScreenshotOptions Options)
 {
-	FinishLoadingBeforeScreenshot();
+	UAutomationBlueprintFunctionLibrary::FinishLoadingBeforeScreenshot();
 
 	// Fallback resolution if all else fails for screenshots.
 	uint32 ResolutionX = 1280;
@@ -340,7 +344,7 @@ bool UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotInternal(UObje
 				return false;
 			}
 
-			return true;
+			return true; //-V773
 		}
 	}
 
@@ -351,7 +355,7 @@ void UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshot(UObject* Worl
 {
 	if ( GIsAutomationTesting )
 	{
-		if ( UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject) )
+		if ( UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull) )
 		{
 			FLatentActionManager& LatentActionManager = World->GetLatentActionManager();
 			if ( LatentActionManager.FindExistingAction<FTakeScreenshotAfterTimeLatentAction>(LatentInfo.CallbackTarget, LatentInfo.UUID) == nullptr )
@@ -392,7 +396,7 @@ void UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotAtCamera(UObje
 		ScreenshotName = NameOverride;
 	}
 
-	if ( UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject) )
+	if ( UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull) )
 	{
 		ScreenshotName = FString::Printf(TEXT("%s_%s"), *World->GetName(), *ScreenshotName);
 
@@ -404,25 +408,26 @@ void UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotAtCamera(UObje
 	}
 }
 
-void UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotOfUI(UObject* WorldContextObject, FLatentActionInfo LatentInfo, const FString& Name, const FAutomationScreenshotOptions& Options)
+bool UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotOfUI_Immediate(UObject* WorldContextObject, const FString& Name, const FAutomationScreenshotOptions& Options)
 {
-	FinishLoadingBeforeScreenshot();
+	UAutomationBlueprintFunctionLibrary::FinishLoadingBeforeScreenshot();
 
-	if ( UWorld* World = WorldContextObject->GetWorld() )
+	if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull))
 	{
-		if ( UGameViewportClient* GameViewport = WorldContextObject->GetWorld()->GetGameViewport() )
+		if (UGameViewportClient* GameViewport = WorldContextObject->GetWorld()->GetGameViewport())
 		{
 			TSharedPtr<SViewport> Viewport = GameViewport->GetGameViewportWidget();
-			if ( Viewport.IsValid() )
+			if (Viewport.IsValid())
 			{
 				TArray<FColor> OutColorData;
 				FIntVector OutSize;
-				if ( FSlateApplication::Get().TakeScreenshot(Viewport.ToSharedRef(), OutColorData, OutSize) )
+				if (FSlateApplication::Get().TakeScreenshot(Viewport.ToSharedRef(), OutColorData, OutSize))
 				{
 #if (WITH_DEV_AUTOMATION_TESTS || WITH_PERF_AUTOMATION_TESTS)
-					FAutomationScreenshotTaker* TempObject = new FAutomationScreenshotTaker(GEngine->GetWorldFromContextObject(WorldContextObject), Name, Options);
+					// The screenshot taker deletes itself later.
+					FAutomationScreenshotTaker* TempObject = new FAutomationScreenshotTaker(World, Name, Options);
 
-					FAutomationScreenshotData Data = AutomationCommon::BuildScreenshotData(GWorld->GetName(), Name, OutSize.X, OutSize.Y);
+					FAutomationScreenshotData Data = AutomationCommon::BuildScreenshotData(World->GetName(), Name, OutSize.X, OutSize.Y);
 
 					// Copy the relevant data into the metadata for the screenshot.
 					Data.bHasComparisonRules = true;
@@ -439,36 +444,152 @@ void UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotOfUI(UObject* 
 
 					GEngine->GameViewport->OnScreenshotCaptured().Broadcast(OutSize.X, OutSize.Y, OutColorData);
 #endif
-				}
 
-				FLatentActionManager& LatentActionManager = World->GetLatentActionManager();
-				if ( LatentActionManager.FindExistingAction<FTakeScreenshotAfterTimeLatentAction>(LatentInfo.CallbackTarget, LatentInfo.UUID) == nullptr )
-				{
-					LatentActionManager.AddNewAction(LatentInfo.CallbackTarget, LatentInfo.UUID, new FWaitForScreenshotComparisonLatentAction(LatentInfo));
+					return true; //-V773
 				}
 			}
 		}
 	}
+
+	return false;
 }
 
-//void UAutomationBlueprintFunctionLibrary::BeginPerformanceCapture()
-//{
-//    //::BeginPerformanceCapture();
-//}
-//
-//void UAutomationBlueprintFunctionLibrary::EndPerformanceCapture()
-//{
-//    //::EndPerformanceCapture();
-//}
+void UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotOfUI(UObject* WorldContextObject, FLatentActionInfo LatentInfo, const FString& Name, const FAutomationScreenshotOptions& Options)
+{
+	if (TakeAutomationScreenshotOfUI_Immediate(WorldContextObject, Name, Options))
+	{
+		FLatentActionManager& LatentActionManager = WorldContextObject->GetWorld()->GetLatentActionManager();
+		if ( LatentActionManager.FindExistingAction<FTakeScreenshotAfterTimeLatentAction>(LatentInfo.CallbackTarget, LatentInfo.UUID) == nullptr )
+		{
+			LatentActionManager.AddNewAction(LatentInfo.CallbackTarget, LatentInfo.UUID, new FWaitForScreenshotComparisonLatentAction(LatentInfo));
+		}
+	}
+}
+
+void UAutomationBlueprintFunctionLibrary::EnableStatGroup(UObject* WorldContextObject, FName GroupName)
+{
+#if STATS
+	if (FGameThreadStatsData* StatsData = FLatestGameThreadStatsData::Get().Latest)
+	{
+		const FString GroupNameString = FString(TEXT("STATGROUP_")) + GroupName.ToString();
+		const FName GroupNameFull = FName(*GroupNameString, EFindName::FNAME_Find);
+		if(StatsData->GroupNames.Contains(GroupNameFull))
+		{
+			return;
+		}
+	}
+
+	if (APlayerController* TargetPC = UGameplayStatics::GetPlayerController(WorldContextObject, 0))
+	{
+		TargetPC->ConsoleCommand( FString(TEXT("stat ")) + GroupName.ToString() + FString(TEXT(" -nodisplay")), /*bWriteToLog=*/false);
+	}
+#endif
+}
+
+void UAutomationBlueprintFunctionLibrary::DisableStatGroup(UObject* WorldContextObject, FName GroupName)
+{
+#if STATS
+	if (FGameThreadStatsData* StatsData = FLatestGameThreadStatsData::Get().Latest)
+	{
+		const FString GroupNameString = FString(TEXT("STATGROUP_")) + GroupName.ToString();
+		const FName GroupNameFull = FName(*GroupNameString, EFindName::FNAME_Find);
+
+		if (!StatsData->GroupNames.Contains(GroupNameFull))
+		{
+			return;
+		}
+	}
+
+	if (APlayerController* TargetPC = UGameplayStatics::GetPlayerController(WorldContextObject, 0))
+	{
+		TargetPC->ConsoleCommand(FString(TEXT("stat ")) + GroupName.ToString() + FString(TEXT(" -nodisplay")), /*bWriteToLog=*/false);
+	}
+#endif
+}
+
+#if STATS
+template <EComplexStatField::Type ValueType, bool bCallCount = false>
+float HelperGetStat(FName StatName)
+{
+	if (FGameThreadStatsData* StatsData = FLatestGameThreadStatsData::Get().Latest)
+	{
+		if (const FComplexStatMessage* StatMessage = StatsData->GetStatData(StatName))
+		{
+			if(bCallCount)
+			{
+				return StatMessage->GetValue_CallCount(ValueType);	
+			}
+			else
+			{
+				return FPlatformTime::ToMilliseconds(StatMessage->GetValue_Duration(ValueType));
+			}
+		}
+	}
+
+#if WITH_EDITOR
+	FText WarningOut = FText::Format(LOCTEXT("StatNotFound", "Could not find stat data for {0}, did you call ToggleStatGroup with enough time to capture data?"), FText::FromName(StatName));
+	FMessageLog("PIE").Warning(WarningOut);
+	UE_LOG(AutomationFunctionLibrary, Warning, TEXT("%s"), *WarningOut.ToString());
+#endif
+
+	return 0.f;
+}
+#endif
+
+float UAutomationBlueprintFunctionLibrary::GetStatIncAverage(FName StatName)
+{
+#if STATS
+	return HelperGetStat<EComplexStatField::IncAve>(StatName);
+#else
+	return 0.0f;
+#endif
+}
+
+float UAutomationBlueprintFunctionLibrary::GetStatIncMax(FName StatName)
+{
+#if STATS
+	return HelperGetStat<EComplexStatField::IncMax>(StatName);
+#else
+	return 0.0f;
+#endif
+}
+
+float UAutomationBlueprintFunctionLibrary::GetStatExcAverage(FName StatName)
+{
+#if STATS
+	return HelperGetStat<EComplexStatField::ExcAve>(StatName);
+#else
+	return 0.0f;
+#endif
+}
+
+float UAutomationBlueprintFunctionLibrary::GetStatExcMax(FName StatName)
+{
+#if STATS
+	return HelperGetStat<EComplexStatField::ExcMax>(StatName);
+#else
+	return 0.0f;
+#endif
+}
+
+float UAutomationBlueprintFunctionLibrary::GetStatCallCount(FName StatName)
+{
+#if STATS
+	return HelperGetStat<EComplexStatField::IncAve, /*bCallCount=*/true>(StatName);
+#else
+	return 0.0f;
+#endif
+}
 
 bool UAutomationBlueprintFunctionLibrary::AreAutomatedTestsRunning()
 {
 	return GIsAutomationTesting;
 }
 
-FAutomationScreenshotOptions UAutomationBlueprintFunctionLibrary::GetDefaultScreenshotOptionsForGameplay(EComparisonTolerance Tolerance)
+FAutomationScreenshotOptions UAutomationBlueprintFunctionLibrary::GetDefaultScreenshotOptionsForGameplay(EComparisonTolerance Tolerance, float Delay)
 {
 	FAutomationScreenshotOptions Options;
+	Options.Delay = Delay;
 	Options.Tolerance = Tolerance;
 	Options.bDisableNoisyRenderingFeatures = true;
 	Options.bIgnoreAntiAliasing = true;
@@ -477,9 +598,10 @@ FAutomationScreenshotOptions UAutomationBlueprintFunctionLibrary::GetDefaultScre
 	return Options;
 }
 
-FAutomationScreenshotOptions UAutomationBlueprintFunctionLibrary::GetDefaultScreenshotOptionsForRendering(EComparisonTolerance Tolerance)
+FAutomationScreenshotOptions UAutomationBlueprintFunctionLibrary::GetDefaultScreenshotOptionsForRendering(EComparisonTolerance Tolerance, float Delay)
 {
 	FAutomationScreenshotOptions Options;
+	Options.Delay = Delay;
 	Options.Tolerance = Tolerance;
 	Options.bDisableNoisyRenderingFeatures = true;
 	Options.bIgnoreAntiAliasing = true;

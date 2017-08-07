@@ -11,14 +11,14 @@ void FAnimSequencerInstanceProxy::Initialize(UAnimInstance* InAnimInstance)
 
 bool FAnimSequencerInstanceProxy::Evaluate(FPoseContext& Output)
 {
-	SequencerRootNode.Evaluate(Output);
+	SequencerRootNode.Evaluate_AnyThread(Output);
 
 	return true;
 }
 
 void FAnimSequencerInstanceProxy::UpdateAnimationNode(float DeltaSeconds)
 {
-	SequencerRootNode.Update(FAnimationUpdateContext(this, DeltaSeconds));
+	SequencerRootNode.Update_AnyThread(FAnimationUpdateContext(this, DeltaSeconds));
 }
 
 void FAnimSequencerInstanceProxy::ConstructNodes()
@@ -102,7 +102,7 @@ void FAnimSequencerInstanceProxy::InitAnimTrack(UAnimSequenceBase* InAnimSequenc
 		PlayerState->PlayerNode.ExplicitTime = 0.f;
 
 		// initialize player
-		PlayerState->PlayerNode.Initialize(FAnimationInitializeContext(this));
+		PlayerState->PlayerNode.Initialize_AnyThread(FAnimationInitializeContext(this));
 	}
 }
 

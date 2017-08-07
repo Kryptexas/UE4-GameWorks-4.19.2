@@ -1,13 +1,15 @@
-﻿INTSourceChangelist:3218993
+﻿INTSourceChangelist:3429236
 Availability: Public
-Title:다이얼로그 보이스 및 웨이브
+Title:다이얼로그 보이스 및 웨이브 사용법
 Crumbs: %ROOT%, Engine, Engine/Audio
 Description:청자 및 대화의 맥락이 여럿인 대화의 구성 예입니다.
 version: 4.13
 checkpoint:dialogueqs
 prereq: Engine/Blueprints/QuickStart
-type:quick start
+type:how-to
+type:landing
 parent:Engine/Audio
+skilllevel:Intermediate
 related:Engine/Audio/Overview
 related:Engine/Audio/SoundCues/Editor
 related:Engine/Audio/SoundCues/NodeReference

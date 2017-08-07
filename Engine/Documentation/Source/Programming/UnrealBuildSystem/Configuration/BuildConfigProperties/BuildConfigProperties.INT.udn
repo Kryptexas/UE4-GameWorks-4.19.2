@@ -2,7 +2,7 @@ Availability: NoPublish
 Title: Build Configuration Properties Page
 Crumbs:
 Description: This is a procedurally generated markdown page.
-Version: 4.16
+Version: 4.17
 
 ### BuildConfiguration
 
@@ -75,8 +75,6 @@ $ bBreakBuildOnLicenseViolation : Tells the UBT to break build if module current
 $ bUseFastPDBLinking : Whether to use the :FASTLINK option when building with /DEBUG to create local PDBs on Windows. Fast, but currently seems to have problems finding symbols in the debugger.
 
 $ bCreateMapFile : Outputs a map file as part of the build.
-
-$ bEnableCodeAnalysis : Enables code analysis mode.  Currently, this has specific requirements.  It only works on Windows platform with the MSVC compiler.  Also, it requires a version of the compiler that supports the /analyze option, such as Visual Studio 2013.
 
 $ bCheckSystemHeadersForModification : Whether headers in system paths should be checked for modification when determining outdated actions.
 
@@ -184,6 +182,8 @@ $ ProcessorCountMultiplier : Processor count multiplier for local execution. Can
 
 $ MaxProcessorCount : Maximum processor count for local execution.
 
+### ProjectFileGenerator
+
 ### VCProjectFileGenerator
 
 $ Version : The version of Visual Studio to generate project files for.
@@ -209,4 +209,6 @@ $ RSyncUsername : Username on the remote machine to connect to with RSync
 ### WindowsPlatform
 
 $ Compiler : Version of the compiler toolchain to use on Windows platform. A value of "default" will be changed to a specific version at UBT startup.
+
+$ StaticAnalyzer : The static analyzer to use
 

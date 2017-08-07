@@ -47,7 +47,7 @@ protected:
 private:
 
 	/** Callback for double-clicking an asset in the asset picker. */
-	void HandleAssetPickerAssetDoubleClicked(const class FAssetData& AssetData);
+	void HandleAssetPickerAssetDoubleClicked(const struct FAssetData& AssetData);
 
 	/** Callback for pressing Enter on a selected asset in the asset picker. */
 	void HandleAssetPickerAssetEnterPressed(const TArray<FAssetData>& SelectedAssets);

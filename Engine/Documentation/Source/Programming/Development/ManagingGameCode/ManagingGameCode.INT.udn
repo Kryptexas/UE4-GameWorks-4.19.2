@@ -2,7 +2,10 @@ Availability:Public
 Title:Managing Game Code
 Crumbs: %ROOT%, Programming, Programming\Development
 Description:Adding code and generating project files. 
-Version: 4.9
+Version: 4.16
+Parent:Programming/Development
+Order:
+type:overview
 
 %Globals:OSSelect%
 
@@ -130,7 +133,7 @@ Version: 4.9
 1. Run the GenerateProjectFiles.bat batch file located in the root `UE4` directory.
 1. Open the UE4.sln Visual Studio solution located in the root `UE4` directory.
 
-There are advanced options available for [](Programming/UnrealBuildSystem/ProjectFileGenerator), which can be used to generate project files for shipping, additional platforms, or Visual Studio 2013. 
+There are advanced options available for [](Programming/UnrealBuildSystem/ProjectFileGenerator), which can be used to generate project files for shipping (or additional platforms).
 
 [/PUBLISH:Licensee]
 

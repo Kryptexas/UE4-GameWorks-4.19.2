@@ -15,6 +15,8 @@ static int32 GSurfaceViewHeight = -1;
 static bool WindowInit = false;
 static float ContentScaleFactor = -1.0f;
 static ANativeWindow* LastWindow = NULL;
+static bool bLastMosaicState = false;
+
 
 FAndroidWindow::~FAndroidWindow()
 {
@@ -123,25 +125,68 @@ FPlatformRect FAndroidWindow::GetScreenRect()
 			Window = (ANativeWindow*)FPlatformMisc::GetHardwareWindow();
 		}
 	}
-	check(Window != NULL);
+//	check(Window != NULL);
+	if (Window == NULL)
+	{
+		FPlatformRect ScreenRect;
+		ScreenRect.Left = 0;
+		ScreenRect.Top = 0;
+		ScreenRect.Right = GAndroidIsPortrait ? 720 : 1280;
+		ScreenRect.Bottom = GAndroidIsPortrait ? 1280 : 720;
 
+		UE_LOG(LogAndroid, Log, TEXT("FAndroidWindow::GetScreenRect: Window was NULL, returned default resolution: %d x %d"), ScreenRect.Right, ScreenRect.Bottom);
+
+		return ScreenRect;
+	}
+
+	// determine mosaic requirements:
+	static auto* MobileHDRCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR"));
+	const bool bMobileHDR = (MobileHDRCvar && MobileHDRCvar->GetValueOnAnyThread() == 1);
+
+	static auto* MobileHDR32bppModeCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR32bppMode"));
+	const int32 MobileHDR32Mode = MobileHDR32bppModeCvar->GetValueOnAnyThread();
+
+	bool bMosaicEnabled = false;
+	bool bHDR32ModeOverridden = false;
+	bool bDeviceRequiresHDR32bpp = false;
+	bool bDeviceRequiresMosaic = false;
+	if (!bIsGearVRApp && !bIsDaydreamApp)
+	{
+		bDeviceRequiresHDR32bpp = !FAndroidMisc::SupportsFloatingPointRenderTargets();
+		bDeviceRequiresMosaic = bDeviceRequiresHDR32bpp && !FAndroidMisc::SupportsShaderFramebufferFetch();
+
+		bHDR32ModeOverridden = MobileHDR32Mode != 0;
+		bMosaicEnabled = bDeviceRequiresMosaic && (!bHDR32ModeOverridden || MobileHDR32Mode == 1);
+	}
+
+	bool bUseResCache = WindowInit;
+
+	if (bLastMosaicState != bMosaicEnabled)
+	{
+		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("***** Mosaic State change (to %s), not using res cache"), bMosaicEnabled ? TEXT("enabled") : TEXT("disabled"));
+		bUseResCache = false;
+	}
+	
 	if (RequestedContentScaleFactor != ContentScaleFactor)
 	{
 		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("***** RequestedContentScaleFactor different %f != %f, not using res cache"), RequestedContentScaleFactor, ContentScaleFactor);
+		bUseResCache = false;
 	}
 
 	if (Window != LastWindow)
 	{
 		FPlatformMisc::LowLevelOutputDebugString(TEXT("***** Window different, not using res cache"));
+		bUseResCache = false;
 	}
 
 	if (WindowWidth <= 8)
 	{
 		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("***** WindowWidth is %d, not using res cache"), WindowWidth);
+		bUseResCache = false;
 	}
 
 	// since orientation won't change on Android, use cached results if still valid
-	if (WindowInit && RequestedContentScaleFactor == ContentScaleFactor && Window == LastWindow && WindowWidth > 8)
+	if (bUseResCache)
 	{
 		FPlatformRect ScreenRect;
 		ScreenRect.Left = 0;
@@ -162,21 +207,22 @@ FPlatformRect FAndroidWindow::GetScreenRect()
 	int32 MaxWidth = ScreenWidth; 
 	int32 MaxHeight = ScreenHeight;
 
-	static auto* MobileHDRCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR"));
-	static auto* MobileHDR32bppModeCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR32bppMode"));
-	
-	const bool bMobileHDR = (MobileHDRCvar && MobileHDRCvar->GetValueOnAnyThread() == 1);
-	
+
 	UE_LOG(LogAndroid, Log, TEXT("Mobile HDR: %s"), bMobileHDR ? TEXT("YES") : TEXT("no"));
 	if (bMobileHDR && !bIsGearVRApp)
 	{
-		const bool bMobileHDR32bpp = (!FAndroidMisc::SupportsFloatingPointRenderTargets() || (MobileHDR32bppModeCvar && MobileHDR32bppModeCvar->GetValueOnAnyThread() != 0));
-		const bool bRequiresMosaic = bMobileHDR32bpp && (!FAndroidMisc::SupportsShaderFramebufferFetch() || (MobileHDR32bppModeCvar && MobileHDR32bppModeCvar->GetValueOnAnyThread() == 1));
+		UE_LOG(LogAndroid, Log, TEXT("Device requires 32BPP mode : %s"), bDeviceRequiresHDR32bpp ? TEXT("YES") : TEXT("no"));
+		UE_LOG(LogAndroid, Log, TEXT("Device requires mosaic: %s"), bDeviceRequiresMosaic ? TEXT("YES") : TEXT("no"));
 
-		UE_LOG(LogAndroid, Log, TEXT("Requires 32BPP Encoding: %s"), bMobileHDR32bpp ? TEXT("YES") : TEXT("no"));
-		UE_LOG(LogAndroid, Log, TEXT("Requires Mosaic: %s"), bRequiresMosaic ? TEXT("YES") : TEXT("no"));
+		if(bHDR32ModeOverridden)
+		{
+			UE_LOG(LogAndroid, Log, TEXT("--- Enabling 32 BPP override with 'r.MobileHDR32bppMode' = %d"), MobileHDR32Mode);
+			UE_LOG(LogAndroid, Log, TEXT("  32BPP mode : YES"));
+			UE_LOG(LogAndroid, Log, TEXT("  32BPP mode requires mosaic: %s"), bMosaicEnabled ? TEXT("YES") : TEXT("no"));
+			UE_LOG(LogAndroid, Log, TEXT("  32BPP mode requires RGBE: %s"), MobileHDR32Mode == 2 ? TEXT("YES") : TEXT("no"));
+		}
 
-		if (bRequiresMosaic)
+		if(bMosaicEnabled)
 		{
 			UE_LOG(LogAndroid, Log, TEXT("Using mosaic rendering due to lack of Framebuffer Fetch support."));
 			if (!FAndroidMisc::SupportsES30())
@@ -187,13 +233,17 @@ FPlatformRect FAndroidWindow::GetScreenRect()
 				if (GAndroidIsPortrait)
 				{
 					MaxHeight = FPlatformMath::Min(MaxHeight, 1024);
-					MaxWidth = MaxHeight * AspectRatio;
+					MaxWidth = (MaxHeight * AspectRatio + 0.5f);
 				}
 				else
 				{
 					MaxWidth = FPlatformMath::Min(MaxWidth, 1024);
-					MaxHeight = MaxWidth / AspectRatio;
+					MaxHeight = (MaxWidth / AspectRatio + 0.5f);
 				}
+
+				// ensure Width and Height is multiple of 8
+				MaxWidth = (MaxWidth / 8) * 8; 
+				MaxHeight = (MaxHeight / 8) * 8;
 
 				UE_LOG(LogAndroid, Log, TEXT("Limiting MaxWidth=%d and MaxHeight=%d due to mosaic rendering on ES2 device (was %dx%d)"), MaxWidth, MaxHeight, OldMaxWidth, OldMaxHeight);
 			}
@@ -220,7 +270,10 @@ FPlatformRect FAndroidWindow::GetScreenRect()
 		}
 
 		// apply the aspect ration to get the width
-		Width = Height * AspectRatio;
+		Width = (Height * AspectRatio + 0.5f);
+		// ensure Width and Height is multiple of 8
+		Width = (Width / 8) * 8; 
+		Height = (Height / 8) * 8;
 
 		// clamp to native resolution
 		Width = FPlatformMath::Min(Width, MaxWidth);
@@ -241,6 +294,7 @@ FPlatformRect FAndroidWindow::GetScreenRect()
 	WindowInit = true;
 	ContentScaleFactor = RequestedContentScaleFactor;
 	LastWindow = Window;
+	bLastMosaicState = bMosaicEnabled;
 
 	return ScreenRect;
 }

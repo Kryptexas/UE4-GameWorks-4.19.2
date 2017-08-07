@@ -249,7 +249,7 @@ namespace FAnimUpdateRateManager
 			MaxDistanceFactor = FMath::Max(MaxDistanceFactor, Component->MaxDistanceFactor);
 			bPlayingNetworkedRootMotionMontage |= Component->IsPlayingNetworkedRootMotionMontage();
 			bUsingRootMotionFromEverything &= Component->IsPlayingRootMotionFromEverything();
-			MinLod = FMath::Min(MinLod, Component->PredictedLODLevel);
+			MinLod = FMath::Min(MinLod, Tracker->UpdateRateParameters.bShouldUseMinLod ? Component->MinLodModel : Component->PredictedLODLevel);
 		}
 
 		bNeedsValidRootMotion &= bPlayingNetworkedRootMotionMontage;
@@ -411,14 +411,21 @@ void USkinnedMeshComponent::OnUnregister()
 {
 	DeallocateTransformData();
 	Super::OnUnregister();
-	FAnimUpdateRateManager::CleanupUpdateRateParametersRef(this);
-	AnimUpdateRateParams = NULL;
+
+	if (AnimUpdateRateParams)
+	{
+		FAnimUpdateRateManager::CleanupUpdateRateParametersRef(this);
+		AnimUpdateRateParams = nullptr;
+	}
 }
 
 void USkinnedMeshComponent::CreateRenderState_Concurrent()
 {
 	if( SkeletalMesh )
 	{
+		// Attempting to track down UE-45505, where it looks as if somehow a skeletal mesh component's mesh has only been partially loaded, causing a mismatch in the LOD arrays
+		checkf(!SkeletalMesh->HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad | RF_NeedPostLoadSubobjects | RF_WillBeLoaded), TEXT("Attempting to create render state for a skeletal mesh that is is not fully loaded. Mesh: %s"), *SkeletalMesh->GetName());
+
 		// Initialize the alternate weight tracks if present BEFORE creating the new mesh object
 		InitLODInfos();
 
@@ -479,6 +486,10 @@ void USkinnedMeshComponent::CreateRenderState_Concurrent()
 void USkinnedMeshComponent::DestroyRenderState_Concurrent()
 {
 	Super::DestroyRenderState_Concurrent();
+
+	// clear morphtarget array info while rendering state is destroyed
+	ActiveMorphTargets.Empty();
+	MorphTargetWeights.Empty();
 
 	if(MeshObject)
 	{
@@ -633,6 +644,7 @@ void USkinnedMeshComponent::TickUpdateRate(float DeltaTime, bool bNeedsValidRoot
 
 void USkinnedMeshComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
+	SCOPED_NAMED_EVENT(USkinnedMeshComponent_TickComponent, FColor::Yellow);
 	SCOPE_CYCLE_COUNTER(STAT_SkinnedMeshCompTick);
 
 	// Tick ActorComponent first.
@@ -715,12 +727,15 @@ UMaterialInterface* USkinnedMeshComponent::GetMaterial(int32 MaterialIndex) cons
 
 int32 USkinnedMeshComponent::GetMaterialIndex(FName MaterialSlotName) const
 {
-	for (int32 MaterialIndex = 0; MaterialIndex < SkeletalMesh->Materials.Num(); ++MaterialIndex)
+	if (SkeletalMesh != nullptr)
 	{
-		const FSkeletalMaterial &SkeletalMaterial = SkeletalMesh->Materials[MaterialIndex];
-		if (SkeletalMaterial.MaterialSlotName == MaterialSlotName)
+		for (int32 MaterialIndex = 0; MaterialIndex < SkeletalMesh->Materials.Num(); ++MaterialIndex)
 		{
-			return MaterialIndex;
+			const FSkeletalMaterial &SkeletalMaterial = SkeletalMesh->Materials[MaterialIndex];
+			if (SkeletalMaterial.MaterialSlotName == MaterialSlotName)
+			{
+				return MaterialIndex;
+			}
 		}
 	}
 	return INDEX_NONE;
@@ -729,10 +744,13 @@ int32 USkinnedMeshComponent::GetMaterialIndex(FName MaterialSlotName) const
 TArray<FName> USkinnedMeshComponent::GetMaterialSlotNames() const
 {
 	TArray<FName> MaterialNames;
-	for (int32 MaterialIndex = 0; MaterialIndex < SkeletalMesh->Materials.Num(); ++MaterialIndex)
+	if (SkeletalMesh != nullptr)
 	{
-		const FSkeletalMaterial &SkeletalMaterial = SkeletalMesh->Materials[MaterialIndex];
-		MaterialNames.Add(SkeletalMaterial.MaterialSlotName);
+		for (int32 MaterialIndex = 0; MaterialIndex < SkeletalMesh->Materials.Num(); ++MaterialIndex)
+		{
+			const FSkeletalMaterial &SkeletalMaterial = SkeletalMesh->Materials[MaterialIndex];
+			MaterialNames.Add(SkeletalMaterial.MaterialSlotName);
+		}
 	}
 	return MaterialNames;
 }
@@ -760,7 +778,7 @@ bool USkinnedMeshComponent::GetMaterialStreamingData(int32 MaterialIndex, FPrimi
 
 void USkinnedMeshComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const
 {
-	GetStreamingTextureInfoInner(LevelContext, nullptr, ComponentToWorld.GetMaximumAxisScale(), OutStreamingTextures);
+	GetStreamingTextureInfoInner(LevelContext, nullptr, GetComponentTransform().GetMaximumAxisScale() * StreamingDistanceMultiplier, OutStreamingTextures);
 }
 
 bool USkinnedMeshComponent::ShouldUpdateBoneVisibility() const
@@ -871,7 +889,7 @@ FBoxSphereBounds USkinnedMeshComponent::CalcMeshBound(const FVector& RootOffset,
 	}
 #if WITH_EDITOR
 	// For AnimSet Viewer, use 'bounds preview' physics asset if present.
-	else if(SkeletalMesh && bHasPhysBodies && bCanUsePhysicsAsset)
+	else if(SkeletalMesh && bHasPhysBodies && bCanUsePhysicsAsset && PhysicsAsset->CanCalculateValidAABB(this, LocalToWorld))
 	{
 		NewBounds = FBoxSphereBounds(PhysicsAsset->CalcAABB(this, LocalToWorld));
 	}
@@ -915,7 +933,7 @@ FMatrix USkinnedMeshComponent::GetBoneMatrix(int32 BoneIdx) const
 	if ( !IsRegistered() )
 	{
 		// if not registered, we don't have SpaceBases yet. 
-		// also ComponentToWorld isn't set yet (They're set from relativetranslation, relativerotation, relativescale)
+		// also GetComponentTransform() isn't set yet (They're set from relativetranslation, relativerotation, relativescale)
 		return FMatrix::Identity;
 	}
 
@@ -931,7 +949,7 @@ FMatrix USkinnedMeshComponent::GetBoneMatrix(int32 BoneIdx) const
 			if(	ParentBoneIndex != INDEX_NONE && 
 				ParentBoneIndex < MasterPoseComponentInst->GetNumComponentSpaceTransforms())
 			{
-				return MasterPoseComponentInst->GetComponentSpaceTransforms()[ParentBoneIndex].ToMatrixWithScale() * ComponentToWorld.ToMatrixWithScale();
+				return MasterPoseComponentInst->GetComponentSpaceTransforms()[ParentBoneIndex].ToMatrixWithScale() * GetComponentTransform().ToMatrixWithScale();
 			}
 			else
 			{
@@ -949,7 +967,7 @@ FMatrix USkinnedMeshComponent::GetBoneMatrix(int32 BoneIdx) const
 	{
 		if(GetNumComponentSpaceTransforms() && BoneIdx < GetNumComponentSpaceTransforms() )
 		{
-			return GetComponentSpaceTransforms()[BoneIdx].ToMatrixWithScale() * ComponentToWorld.ToMatrixWithScale();
+			return GetComponentSpaceTransforms()[BoneIdx].ToMatrixWithScale() * GetComponentTransform().ToMatrixWithScale();
 		}
 		else
 		{
@@ -964,11 +982,11 @@ FTransform USkinnedMeshComponent::GetBoneTransform(int32 BoneIdx) const
 	if (!IsRegistered())
 	{
 		// if not registered, we don't have SpaceBases yet. 
-		// also ComponentToWorld isn't set yet (They're set from relativelocation, relativerotation, relativescale)
+		// also GetComponentTransform() isn't set yet (They're set from relativelocation, relativerotation, relativescale)
 		return FTransform::Identity;
 	}
 
-	return GetBoneTransform(BoneIdx, ComponentToWorld);
+	return GetBoneTransform(BoneIdx, GetComponentTransform());
 }
 
 FTransform USkinnedMeshComponent::GetBoneTransform(int32 BoneIdx, const FTransform& LocalToWorld) const
@@ -1389,7 +1407,7 @@ void USkinnedMeshComponent::UpdateMasterBoneMap()
 
 FTransform USkinnedMeshComponent::GetSocketTransform(FName InSocketName, ERelativeTransformSpace TransformSpace) const
 {
-	FTransform OutSocketTransform = ComponentToWorld;
+	FTransform OutSocketTransform = GetComponentTransform();
 
 	if (InSocketName != NAME_None)
 	{
@@ -1427,7 +1445,7 @@ FTransform USkinnedMeshComponent::GetSocketTransform(FName InSocketName, ERelati
 					{
 						return OutSocketTransform.GetRelativeTransform(GetBoneTransform(ParentIndex));
 					}
-					return OutSocketTransform.GetRelativeTransform(ComponentToWorld);
+					return OutSocketTransform.GetRelativeTransform(GetComponentTransform());
 				}
 			}
 		}
@@ -1445,7 +1463,7 @@ FTransform USkinnedMeshComponent::GetSocketTransform(FName InSocketName, ERelati
 		}
 		case RTS_Component:
 		{
-			return OutSocketTransform.GetRelativeTransform( ComponentToWorld );
+			return OutSocketTransform.GetRelativeTransform( GetComponentTransform() );
 		}
 	}
 
@@ -1710,7 +1728,7 @@ FName USkinnedMeshComponent::FindClosestBone(FVector TestLocation, FVector* Bone
 		}
 
 		// transform the TestLocation into mesh local space so we don't have to transform the (mesh local) bone locations
-		TestLocation = ComponentToWorld.InverseTransformPosition(TestLocation);
+		TestLocation = GetComponentTransform().InverseTransformPosition(TestLocation);
 		
 		float IgnoreScaleSquared = FMath::Square(IgnoreScale);
 		float BestDistSquared = BIG_NUMBER;
@@ -1749,7 +1767,7 @@ FName USkinnedMeshComponent::FindClosestBone(FVector TestLocation, FVector* Bone
 			// transform the bone location into world space
 			if (BoneLocation != NULL)
 			{
-				*BoneLocation = (GetComponentSpaceTransforms()[BestIndex] * ComponentToWorld).GetLocation();
+				*BoneLocation = (GetComponentSpaceTransforms()[BestIndex] * GetComponentTransform()).GetLocation();
 			}
 			return SkeletalMesh->RefSkeleton.GetBoneName(BestIndex);
 		}
@@ -2820,6 +2838,22 @@ void USkinnedMeshComponent::ClearSkinWeightOverride(int32 LODIndex)
 			MarkRenderStateDirty();
 		}
 	}
+}
+
+void USkinnedMeshComponent::ReleaseUpdateRateParams()
+{
+	FAnimUpdateRateManager::CleanupUpdateRateParametersRef(this);
+	AnimUpdateRateParams = nullptr;
+}
+
+void USkinnedMeshComponent::RefreshUpdateRateParams()
+{
+	if (AnimUpdateRateParams)
+	{
+		ReleaseUpdateRateParams();
+	}
+
+	AnimUpdateRateParams = FAnimUpdateRateManager::GetUpdateRateParameters(this);
 }
 
 void FAnimUpdateRateParameters::SetTrailMode(float DeltaTime, uint8 UpdateRateShift, int32 NewUpdateRate, int32 NewEvaluationRate, bool bNewInterpSkippedFrames)

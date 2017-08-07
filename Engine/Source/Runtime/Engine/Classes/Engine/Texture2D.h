@@ -265,7 +265,7 @@ public:
 	/**
 	 * Returns the number of mips in this texture that are not able to be streamed.
 	 */
-	int32 GetNumNonStreamingMips() const;
+	ENGINE_API int32 GetNumNonStreamingMips() const;
 
 	/**
 	 * Computes the minimum and maximum allowed mips for a texture.

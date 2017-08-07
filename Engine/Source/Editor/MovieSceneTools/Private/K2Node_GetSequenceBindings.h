@@ -9,7 +9,7 @@
 #include "K2Node_GetSequenceBindings.generated.h"
 
 
-class FAssetData;
+struct FAssetData;
 class UEdGraphPin;
 class UMovieSceneSequence;
 

@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:3231230
+﻿INTSourceChangelist:3462657
 Availability:Public
 Title:アニメーションの基本操作方法
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
 Description:アンリアル エンジン 4 のアニメーション システムの様々な側面の例を段階的操作ガイドで説明します。
+type:how-to
+type:landing
 
 アニメーションの操作ガイドでは、アンリアル エンジン 4 (UE4) 内の様々な [](Engine\Animation\Persona\Modes) を使用して作業する手順の例を説明します。 
 UE4 でのアニメーションの操作が初めての場合、または様々なツールで作業する方法を学習したい場合のいずれであっても、以下の操作ガイドでは幅広いトピックを扱い、学習の開始点、または知識を拡げる場所を提供します。 
@@ -18,8 +20,8 @@ UE4 でのアニメーションの操作が初めての場合、または様々�
 ## Intermediate
 |操作ガイド | 説明 |
 | ------- | ------------ |
-| [](Engine\Animation\AnimHowTo\PropertyBasedBlending) | %Engine\Animation\AnimHowTo\PropertyBasedBlending:description% |
 | [](Engine\Animation\AnimHowTo\AimOffset) | %Engine\Animation\AnimHowTo\AimOffset:description% |
+| [](Engine\Animation\AnimHowTo\Blendspace) | %Engine\Animation\AnimHowTo\Blendspace:description% |
 | [](Engine\Animation\AnimHowTo\Retargeting) | %Engine\Animation\AnimHowTo\Retargeting:description% |
 | [](Engine\Animation\AnimHowTo\CreatePoseAsset) | %Engine\Animation\AnimHowTo\CreatePoseAsset:description% |
 | [](Engine\Animation\AnimHowTo\SubAnimInstance) | %Engine\Animation\AnimHowTo\SubAnimInstance:description% |
@@ -30,6 +32,7 @@ UE4 でのアニメーションの操作が初めての場合、または様々�
 | ------- | ------------ |
 | [](Engine\Animation\AnimHowTo\AdditiveAnimations) | %Engine\Animation\AnimHowTo\AdditiveAnimations:description% |
 | [](Engine\Animation\AnimHowTo\AnimDynamics) | %Engine\Animation\AnimHowTo\AnimDynamics:description% |
+| [](Engine\Animation\AnimHowTo\CurveDrivenAnimation) | %Engine\Animation\AnimHowTo\CurveDrivenAnimation:description% |
 | [](Engine\Animation\AnimHowTo\LayerEditing) | %Engine\Animation\AnimHowTo\LayerEditing:description% |
 | [](Engine\Animation\AnimHowTo\AnimBPOverride) | %Engine\Animation\AnimHowTo\AnimBPOverride:description% |
 

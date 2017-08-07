@@ -66,7 +66,7 @@ public:
 
 	virtual void PostLoad() override;
 
-	FReply ResetButtonClicked();
+	static FReply ResetButtonClicked(IDetailLayoutBuilder* DetailLayoutBuilder);
 	void ResetSim();
 
 	// UObject

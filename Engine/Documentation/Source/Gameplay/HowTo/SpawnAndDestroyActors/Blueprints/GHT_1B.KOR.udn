@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3429254
 Availability: Public
 Title:블루프린트에서 액터 스폰/소멸
 Crumbs: %ROOT%, Gameplay, Gameplay/HowTo/SpawnAndDestroyActors
 Description:언리얼 엔진 4 에서 블루프린트를 통해 액터를 스폰/소멸시키는 법에 대한 비법입니다.
 Version: 4.9
 SkillLevel:Intermediate
+type:how-to
 
 [TOC (start:2)]
 

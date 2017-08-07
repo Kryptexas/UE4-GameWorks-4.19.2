@@ -22,7 +22,7 @@ inline bool FAndroidTargetDevice::Deploy( const FString& SourceFolder, FString& 
 	// run the packager to create and install the .apk
 	// @todo android: install separately?
 	FString RepackageCommand(FString(TEXT("AndroidPackager ")) + OutAppId + FString(TEXT(" AndroidARMv7 ")) + FString(TEXT("Debug")));
-	FProcHandle RunningProc = FPlatformProcess::CreateProc(TEXT("../DotNet/Android/AndroidPackager"), *RepackageCommand, true, false, false, NULL, 0, TEXT("../DotNET/"), NULL);
+	FProcHandle RunningProc = FPlatformProcess::CreateProc(TEXT("../DotNET/Android/AndroidPackager"), *RepackageCommand, true, false, false, NULL, 0, TEXT("../DotNET/"), NULL);
 	FPlatformProcess::WaitForProc(RunningProc);
 	FPlatformProcess::GetProcReturnCode(RunningProc, &ReturnCode);
 	FPlatformProcess::CloseProc(RunningProc);

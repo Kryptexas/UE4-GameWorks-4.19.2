@@ -23,7 +23,7 @@ class UMovieSceneSequence;
 /**
  * Class responsible for generating up-to-date evaluation template data
  */
-class FMovieSceneEvaluationTemplateGenerator : IMovieSceneTemplateGenerator
+class FMovieSceneEvaluationTemplateGenerator final : IMovieSceneTemplateGenerator
 {
 public:
 
@@ -62,6 +62,15 @@ private:
 	 * @param Impls 			Array of implementation pointers that each segment refers to
 	 */
 	void UpdateEvaluationField(const TArray<FMovieSceneSegment>& Segments, const TArray<FMovieSceneEvaluationFieldSegmentPtr>& Impls, const TMap<FMovieSceneSequenceID, FMovieSceneEvaluationTemplate*>& Templates);
+
+	/**
+	 * Initialize segment meta-data for the specified group
+	 *
+	 * @param MetaData			Meta-data container for the group
+	 * @param Group				The evaluation group to determine meta data for
+	 * @param Templates			Template store for locating tracks
+	 */
+	void InitializeMetaData(FMovieSceneEvaluationMetaData& MetaData, FMovieSceneEvaluationGroup& Group, const TMap<FMovieSceneSequenceID, FMovieSceneEvaluationTemplate*>& Templates);
 
 private:
 

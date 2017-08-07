@@ -71,13 +71,13 @@ TSharedRef<SWidget> UWebBrowser::RebuildWidget()
 {
 	if ( IsDesignTime() )
 	{
-		return BuildDesignTimeWidget(SNew(SBox)
+		return SNew(SBox)
 			.HAlign(HAlign_Center)
 			.VAlign(VAlign_Center)
 			[
 				SNew(STextBlock)
 				.Text(LOCTEXT("Web Browser", "Web Browser"))
-			]);
+			];
 	}
 	else
 	{

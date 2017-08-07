@@ -27,6 +27,7 @@ public class AndroidPlatformEditor : ModuleRules
                 "TargetPlatform",
                 "RenderCore",
                 "MaterialShaderQualitySettings",
+				"MainFrame",
 			}
 		);
 

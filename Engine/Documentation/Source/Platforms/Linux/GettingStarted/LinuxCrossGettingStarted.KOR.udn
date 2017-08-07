@@ -1,7 +1,7 @@
-﻿INTSourceChangelist:3343972
+﻿INTSourceChangelist:3470080
 Availability:Public
 Title: 리눅스용 크로스 컴파일
-Crumbs:
+Crumbs:%ROOT%
 Description:윈도우에서 리눅스 플랫폼을 타겟으로 하는 크로스 컴파일 툴체인 셋업 방법을 알아봅니다.
 Version: 4.15
 SkillLevel: Advanced
@@ -14,10 +14,11 @@ related:Engine/Basics/Projects/Packaging
 related:Platforms/Linux/AdvancedLinuxDeveloper/LinuxCrossCompileLegacy
 related:Programming/Basics/ConfigurationFiles
 topic-image:GettingStarted_Topic.png
+prereq:Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow
 
 <!--- %Globals:BinarySourceSelectVar% --->
 
-[TOC(start:2 end:4)]
+[TOC(start:2 end:3)]
 
 ![](LinuxXC_Banner.png)(w:1200)
 
@@ -46,7 +47,7 @@ Visual Studio for Linux 에서 엔진을 빌드하기도 해야 합니다. 다�
 
 ### 툴체인 다운로드
 
-1.	[이 링크](http://cdn.unrealengine.com/qfe/v8_clang-3.9.0-centos7.zip) 를 클릭하여 Clang 3.9.0 기반 툴체인을 다운로드합니다.
+1.	엔진 버전에 적합한 크로스 툴체인을 다운로드해 주세요.
 	
 1.	이제 폴더를 생성한 후, 이름을 `Linux_CrossCompileToolChain` 이라 합니다.
 
@@ -82,14 +83,14 @@ Visual Studio for Linux 에서 엔진을 빌드하기도 해야 합니다. 다�
 
 	#### 지원 플랫폼
 
-	다음 표에서 UE4 버전별 타겟을 삼을 수 있는 플랫폼을 참고할 수 있습니다:
+	다음 표에서 UE4 버전별 적합한 툴체인을 다운로드할 수 있습니다:
 
-	| **아키텍처**                                                    | **하위 아키텍처** | **벤더** | **시스템** | **어플리케이션 바이너리 인터페이스 (abi)** | UE 4.14 지원 | UE. 4.15 지원 |
-	| ------------------------------------------------------------------- | -------------------- | ---------- | ---------- | -------------------------------------- | --------------- | ----------------  |
-	| **[AArch64](https://fedoraproject.org/wiki/Architectures/AArch64)** | 사용불가                  | 알 수 없음    | 리눅스      | gnueabi                                | &#x2717; | &#x2713; |
-	| **[ARM](https://developer.arm.com/)**                               | 사용불가                  | 알 수 없음    | 리눅스      | gnueabihf                              | &#x2717; | &#x2713; |
-	| **[i686](https://software.intel.com/en-us/)**                       | 사용불가                  | 알 수 없음    | 리눅스      | gnu                                    | &#x2717; | &#x2717; |
-	| **[x86_64](http://developer.amd.com/)**                             | 사용불가                  | 알 수 없음    | 리눅스      | gnu                                    | &#x2713; | &#x2713; |
+	| **아키텍처**                                                    | **하위 아키텍처** | **벤더** | **시스템** | **어플리케이션 바이너리 인터페이스 (abi)** |
+	| ------------------------------------------------------------------- | -------------------- | ---------- | ---------- | -------------------------------------- |
+	| **[AArch64](https://fedoraproject.org/wiki/Architectures/AArch64)** | 사용불가                  | 알 수 없음    | 리눅스      | gnueabi                                |
+	| **[ARM](https://developer.arm.com/)**                               | 사용불가                  | 알 수 없음    | 리눅스      | gnueabihf                              |
+	| **[i686](https://software.intel.com/en-us/)**                       | 사용불가                  | 알 수 없음    | 리눅스      | gnu                                    |
+	| **[x86_64](http://developer.amd.com/)**                             | 사용불가                  | 알 수 없음    | 리눅스      | gnu                                    |
 	
 	[REGION:note]
 	참고로 i686 플랫폼용 Engine 라이브러리는 아직 추가하지 않았습니다.
@@ -183,11 +184,11 @@ Visual Studio for Linux 에서 엔진을 빌드하기도 해야 합니다. 다�
 
 전에 리눅스용 프로젝트 패키징을 한 적이 없다면 다음 단계를 밟는 것이 좋습니다.
 
-1.	**cmd** 창을 열고 `Setup.bat` 를 실행시키면 **Visual Studio** 에서 UE4 를 빌드하는 데 필요한 필수 종속성을 확인, 업데이트, 설치해 줍니다.
+1.	**cmd** 창을 열고 `[UE4 ROOT]/Setup.bat` 를 실행시키면 **Visual Studio** 에서 UE4 를 빌드하는 데 필요한 필수 종속성을 확인, 업데이트, 설치해 줍니다.
 
 	![](LinuxXC_Step17.png)
 
-1.	`GenerateProjectFiles.bat` 를 실행하여 UE4 프로젝트 파일을 셋업합니다.
+1.	`[UE4 ROOT]/GenerateProjectFiles.bat` 를 실행하여 UE4 프로젝트 파일을 셋업합니다.
 
 	![](LinuxXC_Step18.png)
 

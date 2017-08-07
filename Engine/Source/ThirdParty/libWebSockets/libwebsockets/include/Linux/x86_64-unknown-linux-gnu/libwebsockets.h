@@ -241,8 +241,9 @@ LWS_VISIBLE LWS_EXTERN void _lws_logv(int filter, const char *format, va_list vl
  *  that gets rid of the overhead of checking while keeping _warn and _err
  *  active
  */
-#ifdef _DEBUG
-
+//@UE4 BEGIN - Enable all log levels in release builds
+#if 1 // def _DEBUG
+//@UE4 END - Enable all log levels in release builds
 #define lwsl_info(...) _lws_log(LLL_INFO, __VA_ARGS__)
 #define lwsl_debug(...) _lws_log(LLL_DEBUG, __VA_ARGS__)
 #define lwsl_parser(...) _lws_log(LLL_PARSER, __VA_ARGS__)

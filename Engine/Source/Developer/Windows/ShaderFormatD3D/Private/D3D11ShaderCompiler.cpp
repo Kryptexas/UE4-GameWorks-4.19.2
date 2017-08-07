@@ -167,7 +167,7 @@ static FString D3D11CreateShaderCompileCommandLine(
 	)
 {
 	// fxc is our command line compiler
-	FString FXCCommandline = FString(TEXT("\"%DXSDK_DIR%\\Utilities\\bin\\x86\\fxc\" ")) + ShaderPath;
+	FString FXCCommandline = FString(TEXT("%FXC% ")) + ShaderPath;
 
 	// add the entry point reference
 	FXCCommandline += FString(TEXT(" /E ")) + EntryFunction;
@@ -258,7 +258,29 @@ static FString D3D11CreateShaderCompileCommandLine(
 
 	// add a pause on a newline
 	FXCCommandline += FString(TEXT(" \r\n pause"));
-	return FXCCommandline;
+
+	// Batch file header:
+	/*
+	@ECHO OFF
+		SET FXC="C:\Program Files (x86)\Windows Kits\8.1\bin\x64\fxc.exe"
+		IF EXIST %FXC% (
+			REM
+			) ELSE (
+				ECHO Couldn't find Windows 8.1 SDK, falling back to DXSDK...
+				SET FXC="%DXSDK_DIR%\Utilities\bin\x86\fxc.exe"
+				IF EXIST %FXC% (
+					REM
+					) ELSE (
+						ECHO Couldn't find DXSDK! Exiting...
+						GOTO END
+					)
+			)
+	*/
+	FString BatchFileHeader = TEXT("@ECHO OFF\nSET FXC=\"C:\\Program Files (x86)\\Windows Kits\\8.1\\bin\\x64\\fxc.exe\"\n"\
+		"IF EXIST %FXC% (\nREM\n) ELSE (\nECHO Couldn't find Windows 8.1 SDK, falling back to DXSDK...\n"\
+		"SET FXC=\"%DXSDK_DIR%\\Utilities\\bin\\x86\\fxc.exe\"\nIF EXIST %FXC% (\nREM\n) ELSE (\nECHO Couldn't find DXSDK! Exiting...\n"\
+		"GOTO END\n)\n)\n");
+	return BatchFileHeader + FXCCommandline + TEXT("\n:END\nREM\n");
 }
 
 /** Creates a batch file string to call the AMD shader analyzer. */
@@ -284,8 +306,37 @@ static FString CreateAMDCodeXLCommandLine(
 	return Commandline;
 }
 
-// @return pointer to the D3DCompile function
-pD3DCompile GetD3DCompileFunc(const FString& NewCompilerPath)
+// D3Dcompiler.h has function pointer typedefs for some functions, but not all
+typedef HRESULT(WINAPI *pD3DReflect)
+	(__in_bcount(SrcDataSize) LPCVOID pSrcData,
+	 __in SIZE_T  SrcDataSize,
+	 __in  REFIID pInterface,
+	 __out void** ppReflector);
+
+typedef HRESULT(WINAPI *pD3DStripShader)
+	(__in_bcount(BytecodeLength) LPCVOID pShaderBytecode,
+	 __in SIZE_T     BytecodeLength,
+	 __in UINT       uStripFlags,
+	__out ID3DBlob** ppStrippedBlob);
+
+#define DEFINE_GUID_FOR_CURRENT_COMPILER(name, l, w1, w2, b1, b2, b3, b4, b5, b6, b7, b8) \
+	static const GUID name = { l, w1, w2, { b1, b2,  b3,  b4,  b5,  b6,  b7,  b8 } }
+
+// ShaderReflection IIDs may change between SDK versions if the reflection API changes.
+// Define a GUID below that matches the desired IID for the DLL in CompilerPath. For example,
+// look for IID_ID3D11ShaderReflection in d3d11shader.h for the SDK matching the compiler DLL.
+DEFINE_GUID_FOR_CURRENT_COMPILER(IID_ID3D11ShaderReflectionForCurrentCompiler, 0x8d536ca1, 0x0cca, 0x4956, 0xa8, 0x37, 0x78, 0x69, 0x63, 0x75, 0x55, 0x84);
+
+/**
+ * GetD3DCompilerFuncs - gets function pointers from the dll at NewCompilerPath
+ * @param OutD3DCompile - function pointer for D3DCompile (0 if not found)
+ * @param OutD3DReflect - function pointer for D3DReflect (0 if not found)
+ * @param OutD3DDisassemble - function pointer for D3DDisassemble (0 if not found)
+ * @param OutD3DStripShader - function pointer for D3DStripShader (0 if not found)
+ * @return bool - true if functions were retrieved from NewCompilerPath
+ */
+static bool GetD3DCompilerFuncs(const FString& NewCompilerPath, pD3DCompile* OutD3DCompile,
+	pD3DReflect* OutD3DReflect, pD3DDisassemble* OutD3DDisassemble, pD3DStripShader* OutD3DStripShader)
 {
 	static FString CurrentCompiler;
 	static HMODULE CompilerDLL = 0;
@@ -308,21 +359,33 @@ pD3DCompile GetD3DCompileFunc(const FString& NewCompilerPath)
 		if(!CompilerDLL && NewCompilerPath.Len())
 		{
 			// Couldn't find HLSL compiler in specified path. We fail the first compile.
-			return 0;
-		}	
+			*OutD3DCompile = 0;
+			*OutD3DReflect = 0;
+			*OutD3DDisassemble = 0;
+			*OutD3DStripShader = 0;
+			return false;
+		}
 	}
 
 	if(CompilerDLL)
 	{
 		// from custom folder e.g. "C:/DXWin8/D3DCompiler_44.dll"
-		return (pD3DCompile)(void*)GetProcAddress(CompilerDLL, "D3DCompile");
+		*OutD3DCompile = (pD3DCompile)(void*)GetProcAddress(CompilerDLL, "D3DCompile");
+		*OutD3DReflect = (pD3DReflect)(void*)GetProcAddress(CompilerDLL, "D3DReflect");
+		*OutD3DDisassemble = (pD3DDisassemble)(void*)GetProcAddress(CompilerDLL, "D3DDisassemble");
+		*OutD3DStripShader = (pD3DStripShader)(void*)GetProcAddress(CompilerDLL, "D3DStripShader");
+		return true;
 	}
 
 	// D3D SDK we compiled with (usually D3DCompiler_43.dll from windows folder)
-	return &D3DCompile;
+	*OutD3DCompile = &D3DCompile;
+	*OutD3DReflect = &D3DReflect;
+	*OutD3DDisassemble = &D3DDisassemble;
+	*OutD3DStripShader = &D3DStripShader;
+	return false;
 }
 
-HRESULT D3DCompileWrapper(
+static HRESULT D3DCompileWrapper(
 	pD3DCompile				D3DCompileFunc,
 	bool&					bException,
 	LPCVOID					pSrcData,
@@ -378,7 +441,8 @@ static bool CompileAndProcessD3DShader(FString& PreprocessedShaderSource, const 
 	// Write out the preprocessed file and a batch file to compile it if requested (DumpDebugInfoPath is valid)
 	if (Input.DumpDebugInfoPath.Len() > 0 && IFileManager::Get().DirectoryExists(*Input.DumpDebugInfoPath))
 	{
-		FArchive* FileWriter = IFileManager::Get().CreateFileWriter(*(Input.DumpDebugInfoPath / Input.SourceFilename + TEXT(".usf")));
+		FString Filename = Input.GetSourceFilename();
+		FArchive* FileWriter = IFileManager::Get().CreateFileWriter(*(Input.DumpDebugInfoPath / Filename));
 		if (FileWriter)
 		{
 			FileWriter->Serialize((ANSICHAR*)AnsiSourceFile.Get(), AnsiSourceFile.Length());
@@ -386,12 +450,12 @@ static bool CompileAndProcessD3DShader(FString& PreprocessedShaderSource, const 
 			delete FileWriter;
 		}
 
-		const FString BatchFileContents = D3D11CreateShaderCompileCommandLine((Input.SourceFilename + TEXT(".usf")), *EntryPointName, ShaderProfile, CompileFlags, Output);
+		const FString BatchFileContents = D3D11CreateShaderCompileCommandLine(Filename, *EntryPointName, ShaderProfile, CompileFlags, Output);
 		FFileHelper::SaveStringToFile(BatchFileContents, *(Input.DumpDebugInfoPath / TEXT("CompileD3D.bat")));
 
 		if (GD3DDumpAMDCodeXLFile)
 		{
-			const FString BatchFileContents2 = CreateAMDCodeXLCommandLine((Input.SourceFilename + TEXT(".usf")), *EntryPointName, ShaderProfile, CompileFlags);
+			const FString BatchFileContents2 = CreateAMDCodeXLCommandLine(Filename, *EntryPointName, ShaderProfile, CompileFlags);
 			FFileHelper::SaveStringToFile(BatchFileContents2, *(Input.DumpDebugInfoPath / TEXT("CompileAMD.bat")));
 		}
 
@@ -405,7 +469,11 @@ static bool CompileAndProcessD3DShader(FString& PreprocessedShaderSource, const 
 	TRefCountPtr<ID3DBlob> Errors;
 
 	HRESULT Result;
-	pD3DCompile D3DCompileFunc = GetD3DCompileFunc(CompilerPath);
+	pD3DCompile D3DCompileFunc;
+	pD3DReflect D3DReflectFunc;
+	pD3DDisassemble D3DDisassembleFunc;
+	pD3DStripShader D3DStripShaderFunc;
+	const bool bCompilerPathFunctionsUsed = GetD3DCompilerFuncs(CompilerPath, &D3DCompileFunc, &D3DReflectFunc, &D3DDisassembleFunc, &D3DStripShaderFunc);
 
 	if (D3DCompileFunc)
 	{
@@ -416,7 +484,7 @@ static bool CompileAndProcessD3DShader(FString& PreprocessedShaderSource, const 
 			bException,
 			AnsiSourceFile.Get(),
 			AnsiSourceFile.Length(),
-			TCHAR_TO_ANSI(*Input.SourceFilename),
+			TCHAR_TO_ANSI(*Input.VirtualSourceFilePath),
 			/*pDefines=*/ NULL,
 			/*pInclude=*/ NULL,
 			TCHAR_TO_ANSI(*EntryPointName),
@@ -448,10 +516,10 @@ static bool CompileAndProcessD3DShader(FString& PreprocessedShaderSource, const 
 	// Fail the compilation if double operations are being used, since those are not supported on all D3D11 cards
 	if (SUCCEEDED(Result))
 	{
-		if (GD3DCheckForDoubles || GD3DDumpD3DAsmFile)
+		if (D3DDisassembleFunc && (GD3DCheckForDoubles || GD3DDumpD3DAsmFile))
 		{
 			TRefCountPtr<ID3DBlob> Dissasembly;
-			if (SUCCEEDED(D3DDisassemble(Shader->GetBufferPointer(), Shader->GetBufferSize(), 0, "", Dissasembly.GetInitReference())))
+			if (SUCCEEDED(D3DDisassembleFunc(Shader->GetBufferPointer(), Shader->GetBufferSize(), 0, "", Dissasembly.GetInitReference())))
 			{
 				ANSICHAR* DissasemblyString = new ANSICHAR[Dissasembly->GetBufferSize() + 1];
 				FMemory::Memcpy(DissasemblyString, Dissasembly->GetBufferPointer(), Dissasembly->GetBufferSize());
@@ -474,17 +542,23 @@ static bool CompileAndProcessD3DShader(FString& PreprocessedShaderSource, const 
 				}
 			}
 		}
+	}
 
-		// Gather reflection information
-		int32 NumInterpolants = 0;
-		TIndirectArray<FString> InterpolantNames;
-		TArray<FString> ShaderInputs;
-		if (SUCCEEDED(Result))
+	// Gather reflection information
+	int32 NumInterpolants = 0;
+	TIndirectArray<FString> InterpolantNames;
+	TArray<FString> ShaderInputs;
+	if (SUCCEEDED(Result))
+	{
+		if (D3DReflectFunc)
 		{
 			Output.bSucceeded = true;
-
 			ID3D11ShaderReflection* Reflector = NULL;
-			Result = D3DReflect(Shader->GetBufferPointer(), Shader->GetBufferSize(), IID_ID3D11ShaderReflection, (void**)&Reflector);
+
+			// IID_ID3D11ShaderReflectionForCurrentCompiler is defined in this file and needs to match the IID from the dll in CompilerPath
+			// if the function pointers from that dll are being used
+			const IID ShaderReflectionInterfaceID = bCompilerPathFunctionsUsed ? IID_ID3D11ShaderReflectionForCurrentCompiler : IID_ID3D11ShaderReflection;
+			Result = D3DReflectFunc(Shader->GetBufferPointer(), Shader->GetBufferSize(), ShaderReflectionInterfaceID, (void**)&Reflector);
 			if (FAILED(Result))
 			{
 				UE_LOG(LogD3D11ShaderCompiler, Fatal, TEXT("D3DReflect failed: Result=%08x"), Result);
@@ -738,13 +812,13 @@ static bool CompileAndProcessD3DShader(FString& PreprocessedShaderSource, const 
 			{
 				CompressedData = Shader;
 			}
-			else
+			else if (D3DStripShaderFunc)
 			{
 				// Strip shader reflection and debug info
 				D3D_SHADER_DATA ShaderData;
 				ShaderData.pBytecode = Shader->GetBufferPointer();
 				ShaderData.BytecodeLength = Shader->GetBufferSize();
-				Result = D3DStripShader(Shader->GetBufferPointer(),
+				Result = D3DStripShaderFunc(Shader->GetBufferPointer(),
 					Shader->GetBufferSize(),
 					D3DCOMPILER_STRIP_REFLECTION_DATA | D3DCOMPILER_STRIP_DEBUG_INFO | D3DCOMPILER_STRIP_TEST_BLOBS,
 					CompressedData.GetInitReference());
@@ -753,6 +827,12 @@ static bool CompileAndProcessD3DShader(FString& PreprocessedShaderSource, const 
 				{
 					UE_LOG(LogD3D11ShaderCompiler, Fatal, TEXT("D3DStripShader failed: Result=%08x"), Result);
 				}
+			}
+			else
+			{
+				// D3DStripShader is not guaranteed to exist
+				// e.g. the open-source DXIL shader compiler does not currently implement it
+				CompressedData = Shader;
 			}
 
 			// Build the SRT for this shader.
@@ -833,7 +913,16 @@ static bool CompileAndProcessD3DShader(FString& PreprocessedShaderSource, const 
 			// Pass the target through to the output.
 			Output.Target = Input.Target;
 		}
+		else
+		{
+			FilteredErrors.Add(FString::Printf(TEXT("Couldn't find shader reflection function in %s"), *CompilerPath));
+			Result = E_FAIL;
+			Output.bSucceeded = false;
+		}
+	}
 
+	if (SUCCEEDED(Result))
+	{
 		if (Input.Target.Platform == SP_PCD3D_ES2)
 		{
 			if (Output.NumTextureSamplers > 8)
@@ -858,7 +947,8 @@ static bool CompileAndProcessD3DShader(FString& PreprocessedShaderSource, const 
 			}
 		}
 	}
-	else
+
+	if (FAILED(Result))
 	{
 		++GBreakpoint;
 	}
@@ -883,7 +973,7 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 
 	if (Input.bSkipPreprocessedCache)
 	{
-		FFileHelper::LoadFileToString(PreprocessedShaderSource, *Input.SourceFilename);
+		FFileHelper::LoadFileToString(PreprocessedShaderSource, *Input.VirtualSourceFilePath);
 	}
 	else
 	{
@@ -1007,16 +1097,7 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 			&& LastParenIndex != INDEX_NONE
 			&& LastParenIndex > FirstParenIndex)
 		{
-			FString ErrorFileAndPath = CurrentError.Left(FirstParenIndex);
-			if (FPaths::GetExtension(ErrorFileAndPath).ToUpper() == TEXT("USF"))
-			{
-				NewError.ErrorFile = FPaths::GetCleanFilename(ErrorFileAndPath);
-			}
-			else
-			{
-				NewError.ErrorFile = FPaths::GetCleanFilename(ErrorFileAndPath) + TEXT(".usf");
-			}
-
+			NewError.ErrorVirtualFilePath = CurrentError.Left(FirstParenIndex);
 			NewError.ErrorLineString = CurrentError.Mid(FirstParenIndex + 1, LastParenIndex - FirstParenIndex - FCString::Strlen(TEXT("(")));
 			NewError.StrippedErrorMessage = CurrentError.Right(CurrentError.Len() - LastParenIndex - FCString::Strlen(TEXT("):")));
 		}

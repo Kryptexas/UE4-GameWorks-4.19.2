@@ -27,6 +27,8 @@ SET(LLCLOTH_SOURCE_FILES
 	${LL_SOURCE_DIR}/PhaseConfig.cpp
 	${LL_SOURCE_DIR}/PointInterpolator.h
 	${LL_SOURCE_DIR}/Simd.h
+	${LL_SOURCE_DIR}/Simd4f.h
+	${LL_SOURCE_DIR}/Simd4i.h
 	${LL_SOURCE_DIR}/StackAllocator.h
 	${LL_SOURCE_DIR}/SwCloth.cpp
 	${LL_SOURCE_DIR}/SwCloth.h
@@ -78,8 +80,6 @@ TARGET_INCLUDE_DIRECTORIES(LowLevelCloth
 
 	PRIVATE ${PHYSX_SOURCE_DIR}/LowLevelCloth/include
 	PRIVATE ${PHYSX_SOURCE_DIR}/LowLevelCloth/src
-	
-	PRIVATE ${NVSIMD_INCLUDE_DIR}/include
 	
 	PRIVATE ${PHYSX_SOURCE_DIR}/LowLevel/API/include
 	PRIVATE ${PHYSX_SOURCE_DIR}/LowLevel/common/include/utils

@@ -10,6 +10,8 @@ public class NetworkFile : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Sockets" });
         PublicIncludePaths.Add("Runtime/CoreUObject/Public/Interfaces");
+		PublicIncludePaths.Add("Runtime/CoreUObject/Public/UObject");
+		PublicIncludePaths.Add("Runtime/CoreUObject/Public");
 
 		if (!UEBuildConfiguration.bBuildRequiresCookedData)
 		{
@@ -17,14 +19,13 @@ public class NetworkFile : ModuleRules
 				new string[]
 				{ 
 					"DerivedDataCache",
-					"PackageDependencyInfo",
 				}
 				);
 		}
 
 		if (Target.Platform == UnrealTargetPlatform.HTML5)
         { 
-			Definitions.Add("ENABLE_HTTP_FOR_NFS=1");
+			Definitions.Add("ENABLE_HTTP_FOR_NF=1");
 			if (Target.Architecture == "-win32")
 			{
 				PrivateDependencyModuleNames.Add("HTML5Win32");
@@ -36,7 +37,7 @@ public class NetworkFile : ModuleRules
 		}
 		else
 		{
-			Definitions.Add("ENABLE_HTTP_FOR_NFS=0");
+			Definitions.Add("ENABLE_HTTP_FOR_NF=0");
 		}
 	}
 }

@@ -28,11 +28,14 @@ struct FSlateMaterialBrush : public FSlateBrush
 	}
 
 	/** Virtual destructor. */
-	virtual ~FSlateMaterialBrush( )
+	virtual ~FSlateMaterialBrush()
 	{
-		if(FSlateApplication::IsInitialized() && FSlateApplication::Get().GetRenderer().IsValid())
+		if (FSlateApplication::IsInitialized())
 		{
-			FSlateApplication::Get().GetRenderer()->ReleaseDynamicResource( *this );
+			if (FSlateRenderer* Renderer = FSlateApplication::Get().GetRenderer())
+			{
+				Renderer->ReleaseDynamicResource(*this);
+			}
 		}
 	}
 }; 

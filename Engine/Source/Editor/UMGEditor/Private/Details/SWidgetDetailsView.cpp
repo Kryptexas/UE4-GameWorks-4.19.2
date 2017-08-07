@@ -501,7 +501,7 @@ void SWidgetDetailsView::HandleIsVariableChanged(ECheckBoxState CheckState)
 void SWidgetDetailsView::NotifyPreChange(FEditPropertyChain* PropertyAboutToChange)
 {
 	// During auto-key do not migrate values
-	if( BlueprintEditor.Pin()->GetSequencer()->GetAutoKeyMode() == EAutoKeyMode::KeyNone )
+	if( BlueprintEditor.Pin()->GetSequencer()->GetAutoChangeMode() == EAutoChangeMode::None )
 	{
 		TSharedPtr<FWidgetBlueprintEditor> Editor = BlueprintEditor.Pin();
 
@@ -514,7 +514,7 @@ void SWidgetDetailsView::NotifyPostChange(const FPropertyChangedEvent& PropertyC
 {
 	const static FName DesignerRebuildName("DesignerRebuild");
 
-	if ( PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive && BlueprintEditor.Pin()->GetSequencer()->GetAutoKeyMode() == EAutoKeyMode::KeyNone )
+	if ( PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive && BlueprintEditor.Pin()->GetSequencer()->GetAutoChangeMode() == EAutoChangeMode::None )
 	{
 		TSharedPtr<FWidgetBlueprintEditor> Editor = BlueprintEditor.Pin();
 

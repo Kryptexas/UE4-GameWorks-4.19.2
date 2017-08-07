@@ -4,24 +4,17 @@ Crumbs: %ROOT%, Gameplay
 Description:A How To Guide for Using Timers for Gameplay in Unreal Engine 4. 
 version: 4.9
 Parent:Gameplay
-type:how-to
+skilllevel:Intermediate
+type:overview
 order:6
 
 **Timers** in Unreal Engine 4 are a useful tool that can be used to perform an action once (or repeatedly) at specified intervals. Timers can be used to set actions to happen on a delay or over a period of time. For example, you may want to make the player invincible after obtaining a certain item and then revert after 10 seconds. Or, you may want to apply damage every second to a player that is standing in fire. Each of these scenarios can be accomplished with the use of Timers. 
 
 The link below in the Setup section will give you examples on How to Use Timers using Blueprints.
 
-## Setup
+## Implementation Guides
 
-To learn more about Using Timers using Blueprints, follow the link below:
-
-[REGION:buttonlist]
-* [](Gameplay\HowTo\UseTimers\Blueprints)
-[PUBLISH:Docs]
-* [](Gameplay\HowTo\UseTimers\Code)
-[/PUBLISH:Docs]
-[/REGION]
-
+[DIR(output:"role" parent:"Gameplay/HowTo/UseTimers" org:"hierarchy" end:"1")]
 
 
 

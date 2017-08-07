@@ -22,7 +22,8 @@ public class ImageWrapper : ModuleRules
         // Add openEXR lib for windows builds.
         if (Target.Platform == UnrealTargetPlatform.Win64 ||
 			Target.Platform == UnrealTargetPlatform.Win32 ||
-			Target.Platform == UnrealTargetPlatform.Mac)
+			Target.Platform == UnrealTargetPlatform.Mac ||
+			Target.Platform == UnrealTargetPlatform.Linux)
         {
             Definitions.Add("WITH_UNREALEXR=1");
             AddEngineThirdPartyPrivateStaticDependencies(Target, "UEOpenExr");

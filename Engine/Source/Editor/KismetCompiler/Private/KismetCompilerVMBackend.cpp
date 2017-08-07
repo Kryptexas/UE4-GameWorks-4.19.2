@@ -581,39 +581,40 @@ public:
 			check(!Term->Type.IsContainer() || CoerceProperty);
 
 			// Additional Validation, since we cannot trust custom k2nodes
-			const bool bSecialCaseSelf = (Term->Type.PinSubCategory == Schema->PN_Self);
-			if (CoerceProperty && ensure(Schema) && ensure(CurrentCompilerContext) && !bSecialCaseSelf)
+			if (CoerceProperty && ensure(Schema) && ensure(CurrentCompilerContext))
 			{
-				FEdGraphPinType TrueType;
-				const bool bValidProperty = Schema->ConvertPropertyToPinType(CoerceProperty, TrueType);
-
-				auto AreTypesBinaryCompatible = [](const FEdGraphPinType& TypeA, const FEdGraphPinType& TypeB) -> bool
-				{
-					if (TypeA.PinCategory != TypeB.PinCategory)
-					{
-						return false;
-					}
-					if ((TypeA.bIsMap != TypeB.bIsMap)
-						|| (TypeA.bIsSet != TypeB.bIsSet)
-						|| (TypeA.bIsArray != TypeB.bIsArray)
-						|| (TypeA.bIsWeakPointer != TypeB.bIsWeakPointer))
-					{
-						return false;
-					}
-					if (TypeA.PinCategory == UEdGraphSchema_K2::PC_Struct)
-					{
-						if (TypeA.PinSubCategoryObject != TypeB.PinSubCategoryObject)
-						{
-							return false;
-						}
-					}
-					return true;
-				};
-
-				if (!bValidProperty || !AreTypesBinaryCompatible(Term->Type, TrueType))
-				{
-					const FString ErrorMessage = FString::Printf(TEXT("ICE: The type of property %s doesn't match a term. @@"), *CoerceProperty->GetPathName());
-					CurrentCompilerContext->MessageLog.Error(*ErrorMessage, Term->SourcePin);
+			    const bool bSecialCaseSelf = (Term->Type.PinSubCategory == Schema->PN_Self);
+				if(!bSecialCaseSelf)
+			    {
+				    FEdGraphPinType TrueType;
+				    const bool bValidProperty = Schema->ConvertPropertyToPinType(CoerceProperty, TrueType);
+    
+				    auto AreTypesBinaryCompatible = [](const FEdGraphPinType& TypeA, const FEdGraphPinType& TypeB) -> bool
+				    {
+					    if (TypeA.PinCategory != TypeB.PinCategory)
+					    {
+						    return false;
+					    }
+					    if ((TypeA.ContainerType != TypeB.ContainerType)
+						    || (TypeA.bIsWeakPointer != TypeB.bIsWeakPointer))
+					    {
+						    return false;
+					    }
+					    if (TypeA.PinCategory == UEdGraphSchema_K2::PC_Struct)
+					    {
+						    if (TypeA.PinSubCategoryObject != TypeB.PinSubCategoryObject)
+						    {
+							    return false;
+						    }
+					    }
+					    return true;
+				    };
+    
+				    if (!bValidProperty || !AreTypesBinaryCompatible(Term->Type, TrueType))
+				    {
+					    const FString ErrorMessage = FString::Printf(TEXT("ICE: The type of property %s doesn't match a term. @@"), *CoerceProperty->GetPathName());
+					    CurrentCompilerContext->MessageLog.Error(*ErrorMessage, Term->SourcePin);
+				    }
 				}
 			}
 
@@ -664,15 +665,9 @@ public:
 
 					if (bIsLocalized)
 					{
-#if USE_STABLE_LOCALIZATION_KEYS
-						// We need to make sure the package namespace is correct at this point
-						// Note: We don't test GIsEditor here as we need to mimic using compile-on-load what the compile during cook would have done when running with -game
-						{
-							checkf(Term->SourcePin || Term->Source, TEXT("EmitTermExpr needs a valid source to correctly emit localized text"));
-							const FString PackageNamespace = TextNamespaceUtil::GetPackageNamespace(Term->SourcePin ? Term->SourcePin->GetOwningNode() : Term->Source);
-							Namespace = TextNamespaceUtil::BuildFullNamespace(Namespace, PackageNamespace);
-						}
-#endif // USE_STABLE_LOCALIZATION_KEYS
+						// BP bytecode always removes the package localization ID to match how text works at runtime
+						// If we're gathering editor-only text then we'll pick up the version with the package localization ID from the property/pin rather than the bytecode
+						Namespace = TextNamespaceUtil::StripPackageNamespace(Namespace);
 
 						Writer << EBlueprintTextLiteralType::LocalizedText;
 						EmitStringLiteral(*SourceString);
@@ -788,10 +783,13 @@ public:
 				if (Struct == VectorStruct)
 				{
 					FVector V = FVector::ZeroVector;
-					const bool bParsedUsingCustomFormat = FDefaultValueHelper::ParseVector(Term->Name, /*out*/ V);
-					if (!bParsedUsingCustomFormat)
+					if (!Term->Name.IsEmpty())
 					{
-						Struct->ImportText(*Term->Name, &V, nullptr, PPF_None, GWarn, GetPathNameSafe(StructProperty));
+						const bool bParsedUsingCustomFormat = FDefaultValueHelper::ParseVector(Term->Name, /*out*/ V);
+						if (!bParsedUsingCustomFormat)
+						{
+							Struct->ImportText(*Term->Name, &V, nullptr, PPF_None, GWarn, GetPathNameSafe(StructProperty));
+						}
 					}
 					Writer << EX_VectorConst;
 					Writer << V;
@@ -799,10 +797,13 @@ public:
 				else if (Struct == RotatorStruct)
 				{
 					FRotator R = FRotator::ZeroRotator;
-					const bool bParsedUsingCustomFormat = FDefaultValueHelper::ParseRotator(Term->Name, /*out*/ R);
-					if (!bParsedUsingCustomFormat)
+					if (!Term->Name.IsEmpty())
 					{
-						Struct->ImportText(*Term->Name, &R, nullptr, PPF_None, GWarn, GetPathNameSafe(StructProperty));
+						const bool bParsedUsingCustomFormat = FDefaultValueHelper::ParseRotator(Term->Name, /*out*/ R);
+						if (!bParsedUsingCustomFormat)
+						{
+							Struct->ImportText(*Term->Name, &R, nullptr, PPF_None, GWarn, GetPathNameSafe(StructProperty));
+						}
 					}
 					Writer << EX_RotationConst;
 					Writer << R;
@@ -843,9 +844,18 @@ public:
 					Writer << Struct;
 					Writer << StructSize;
 
+					// TODO: Change this once structs/classes can be declared as explicitly editor only
+					bool bIsEditorOnlyStruct = false; 
+
 					checkSlow(Schema);
 					for( UProperty* Prop = Struct->PropertyLink; Prop; Prop = Prop->PropertyLinkNext )
 					{
+						// Skip transient and editor only properties, this needs to be synched with ScriptCore
+						if (Prop->PropertyFlags & CPF_Transient || (!bIsEditorOnlyStruct && Prop->PropertyFlags & CPF_EditorOnly))
+						{
+							continue;
+						}
+
 						for (int32 ArrayIter = 0; ArrayIter < Prop->ArrayDim; ++ArrayIter)
 						{
 							// Create a new term for each property, and serialize it out
@@ -965,8 +975,7 @@ public:
 			else if (FLiteralTypeHelper::IsAsset(&Term->Type, CoerceProperty))
 			{
 				Writer << EX_AssetConst;
-				FAssetPtr AssetPtr(Term->ObjectLiteral);
-				EmitStringLiteral(AssetPtr.GetUniqueID().ToString());
+				EmitStringLiteral(Term->Name);
 			}
 			else if (FLiteralTypeHelper::IsObject(&Term->Type, CoerceProperty) || FLiteralTypeHelper::IsClass(&Term->Type, CoerceProperty))
 			{
@@ -1340,7 +1349,7 @@ public:
 	{
 		check(Schema && DestinationExpression && !DestinationExpression->Type.PinCategory.IsEmpty());
 
-		const bool bIsContainer = DestinationExpression->Type.bIsArray || DestinationExpression->Type.bIsSet || DestinationExpression->Type.bIsMap;
+		const bool bIsContainer = DestinationExpression->Type.IsContainer();
 		const bool bIsDelegate = Schema->PC_Delegate == DestinationExpression->Type.PinCategory;
 		const bool bIsMulticastDelegate = Schema->PC_MCDelegate == DestinationExpression->Type.PinCategory;
 		const bool bIsBoolean = Schema->PC_Boolean == DestinationExpression->Type.PinCategory;
@@ -1814,7 +1823,7 @@ public:
 				{
 					CodeSkipSizeType PatchUpNeededAtOffset = Writer.EmitPlaceholderSkip();
 					FCodeSkipInfo CodeSkipInfo(FCodeSkipInfo::InstrumentedDelegateFixup, Statement.TargetLabel->TargetLabel, &Statement);
-					if (Statement.TargetLabel && Statement.TargetLabel->FunctionToCall)
+					if (Statement.TargetLabel->FunctionToCall)
 					{
 						CodeSkipInfo.DelegateName = Statement.TargetLabel->FunctionToCall->GetFName();
 					}

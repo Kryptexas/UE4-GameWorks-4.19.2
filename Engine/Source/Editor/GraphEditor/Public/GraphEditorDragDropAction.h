@@ -15,6 +15,9 @@ class SGraphPanel;
 class SWidget;
 class UEdGraph;
 struct FSlateBrush;
+class UEdGraphPin;
+class UEdGraphNode;
+class UEdGraphSchema;
 
 // Base class for drag-drop actions that pass into the graph editor and perform an action when dropped
 class GRAPHEDITOR_API FGraphEditorDragDropAction : public FDragDropOperation
@@ -22,9 +25,10 @@ class GRAPHEDITOR_API FGraphEditorDragDropAction : public FDragDropOperation
 public:
 	DRAG_DROP_OPERATOR_TYPE(FGraphEditorDragDropAction, FDragDropOperation)
 
-	void SetHoveredPin(class UEdGraphPin* InPin);
-	void SetHoveredNode(const TSharedPtr<class SGraphNode>& InNode);
-	void SetHoveredGraph(const TSharedPtr<class SGraphPanel>& InGraph);
+	void SetHoveredPin(UEdGraphPin* InPin);
+	void SetHoveredNode(const TSharedPtr<SGraphNode>& InNode);
+	void SetHoveredNode(UEdGraphNode* InNode);
+	void SetHoveredGraph(const TSharedPtr<SGraphPanel>& InGraph);
 	void SetHoveredCategoryName(const FText& InHoverCategoryName);
 	void SetHoveredAction(TSharedPtr<struct FEdGraphSchemaAction> Action);
 	void SetDropTargetValid( bool bValid ) { bDropTargetValid = bValid; }
@@ -33,12 +37,12 @@ public:
 	virtual void HoverTargetChanged() {}
 	virtual FReply DroppedOnPin(FVector2D ScreenPosition, FVector2D GraphPosition) { return FReply::Unhandled(); }
 	virtual FReply DroppedOnNode(FVector2D ScreenPosition, FVector2D GraphPosition) { return FReply::Unhandled(); }
-	virtual FReply DroppedOnPanel( const TSharedRef< class SWidget >& Panel, FVector2D ScreenPosition, FVector2D GraphPosition, UEdGraph& Graph) { return FReply::Unhandled(); }
+	virtual FReply DroppedOnPanel( const TSharedRef< SWidget >& Panel, FVector2D ScreenPosition, FVector2D GraphPosition, UEdGraph& Graph) { return FReply::Unhandled(); }
 	virtual FReply DroppedOnAction(TSharedRef<struct FEdGraphSchemaAction> Action) { return FReply::Unhandled(); }
 	virtual FReply DroppedOnCategory(FText Category) { return FReply::Unhandled(); }
 	// End of interface to override
 	
-	virtual bool IsSupportedBySchema(const class UEdGraphSchema* Schema) const { return true; }
+	virtual bool IsSupportedBySchema(const UEdGraphSchema* Schema) const { return true; }
 
 	bool HasFeedbackMessage();
 	void SetFeedbackMessage(const TSharedPtr<SWidget>& Message);
@@ -61,10 +65,10 @@ private:
 	FEdGraphPinReference HoveredPin;
 
 	// The node that the drag action is currently hovering over
-	TSharedPtr<class SGraphNode> HoveredNode;
+	TWeakObjectPtr<UEdGraphNode> HoveredNode;
 
 	// The graph that the drag action is currently hovering over
-	TSharedPtr<class SGraphPanel> HoveredGraph;
+	TSharedPtr<SGraphPanel> HoveredGraph;
 
 protected:
 
@@ -87,7 +91,8 @@ public:
 
 	// FGraphEditorDragDropAction interface
 	virtual void HoverTargetChanged() override;
-	virtual FReply DroppedOnPanel( const TSharedRef< class SWidget >& Panel, FVector2D ScreenPosition, FVector2D GraphPosition, UEdGraph& Graph) override;
+	virtual FReply DroppedOnPanel(const TSharedRef< SWidget >& Panel, FVector2D ScreenPosition, FVector2D GraphPosition, UEdGraph& Graph) override;
+	virtual FReply DroppedOnPin(FVector2D ScreenPosition, FVector2D GraphPosition) override;
 	// End of FGraphEditorDragDropAction
 
 	static TSharedRef<FGraphSchemaActionDragDropAction> New(TSharedPtr<FEdGraphSchemaAction> InActionNode )

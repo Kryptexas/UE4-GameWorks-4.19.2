@@ -48,6 +48,8 @@
 #include "AnimGraphNode_Slot.h"
 #include "AnimationEditorUtils.h"
 
+#include "AnimBlueprintPostCompileValidation.h" 
+
 #define LOCTEXT_NAMESPACE "AnimBlueprintCompiler"
 
 //
@@ -82,7 +84,7 @@ bool FAnimBlueprintCompiler::FEffectiveConstantRecord::Apply(UObject* Object)
 
 		if (ArrayHelper.IsValidIndex(ArrayIndex))
 		{
-			FBlueprintEditorUtils::ImportKismetDefaultValueToProperty(LiteralSourcePin, ArrayProperty->Inner, ArrayHelper.GetRawPtr(ArrayIndex), Object);
+			FBlueprintEditorUtils::PropertyValueFromString_Direct(ArrayProperty->Inner, LiteralSourcePin->GetDefaultAsString(), ArrayHelper.GetRawPtr(ArrayIndex));
 		}
 		else
 		{
@@ -91,7 +93,7 @@ bool FAnimBlueprintCompiler::FEffectiveConstantRecord::Apply(UObject* Object)
 	}
 	else
 	{
-		FBlueprintEditorUtils::ImportKismetDefaultValueToProperty(LiteralSourcePin, ConstantProperty, PropertyPtr, Object);
+		FBlueprintEditorUtils::PropertyValueFromString_Direct(ConstantProperty, LiteralSourcePin->GetDefaultAsString(), PropertyPtr);
 	}
 
 	return true;
@@ -134,7 +136,7 @@ void FAnimBlueprintCompiler::CreateClassVariablesFromBlueprint()
 			It->GetNodesOfClass(SubInstanceNodes);
 			for( UAnimGraphNode_SubInstance* SubInstance : SubInstanceNodes )
 			{
-				ProcessSubInstance(SubInstance);
+				ProcessSubInstance(SubInstance, false);
 			}
 		}
 		
@@ -146,7 +148,7 @@ void FAnimBlueprintCompiler::CreateClassVariablesFromBlueprint()
 				It->GetNodesOfClass(SubInstanceNodes);
 				for( UAnimGraphNode_SubInstance* SubInstance : SubInstanceNodes )
 				{
-					ProcessSubInstance(SubInstance);
+					ProcessSubInstance(SubInstance, false);
 				}
 			}
 		}
@@ -225,7 +227,7 @@ void FAnimBlueprintCompiler::CreateEvaluationHandlerStruct(UAnimGraphNode_Base* 
 		// Does it get serviced by this handler?
 		if (FAnimNodeSinglePropertyHandler* SourceInfo = Record.ServicedProperties.Find(PropertyName))
 		{
-			if (TargetPin->PinType.bIsArray)
+			if (TargetPin->PinType.IsArray())
 			{
 				// Grab the array that we need to set members for
 				UK2Node_StructMemberGet* FetchArrayNode = SpawnIntermediateNode<UK2Node_StructMemberGet>(VisualAnimNode, ConsolidatedEventGraph);
@@ -271,6 +273,7 @@ void FAnimBlueprintCompiler::CreateEvaluationHandlerStruct(UAnimGraphNode_Base* 
 			}
 			else
 			{
+				check(!TargetPin->PinType.IsContainer())
 				// Single property
 				if (SourceInfo->CopyRecords.Num() > 0 && SourceInfo->CopyRecords[0].DestPin != nullptr)
 				{
@@ -351,7 +354,7 @@ void FAnimBlueprintCompiler::CreateEvaluationHandlerInstance(UAnimGraphNode_Base
 			// Find the property pin on the set node and configure
 			for(UEdGraphPin* TargetPin : VarAssignNode->Pins)
 			{
-				if(TargetPin->PinType.bIsArray)
+				if(TargetPin->PinType.IsContainer())
 				{
 					// Currently unsupported
 					continue;
@@ -452,7 +455,7 @@ void FAnimBlueprintCompiler::ProcessAnimationNode(UAnimGraphNode_Base* VisualAni
 	}
 	else if(UAnimGraphNode_SubInstance* SubInstanceNode = Cast<UAnimGraphNode_SubInstance>(VisualAnimNode))
 	{
-		ProcessSubInstance(SubInstanceNode);
+		ProcessSubInstance(SubInstanceNode, true);
 	}
 
 	// Record pose pins for later patchup and gather pins that have an associated evaluation handler
@@ -641,7 +644,7 @@ void FAnimBlueprintCompiler::ProcessUseCachedPose(UAnimGraphNode_UseCachedPose* 
 	}
 }
 
-void FAnimBlueprintCompiler::ProcessSubInstance(UAnimGraphNode_SubInstance* SubInstance)
+void FAnimBlueprintCompiler::ProcessSubInstance(UAnimGraphNode_SubInstance* SubInstance, bool bCheckForCycles)
 {
 	if(!SubInstance)
 	{
@@ -650,7 +653,7 @@ void FAnimBlueprintCompiler::ProcessSubInstance(UAnimGraphNode_SubInstance* SubI
 
 	for(UEdGraphPin* Pin : SubInstance->Pins)
 	{
-		if(Pin->PinName == TEXT("InPose") || Pin->PinName == TEXT("Pose"))
+		if (Pin->bOrphanedPin || Pin->PinName == TEXT("InPose") || Pin->PinName == TEXT("Pose"))
 		{
 			continue;
 		}
@@ -666,43 +669,49 @@ void FAnimBlueprintCompiler::ProcessSubInstance(UAnimGraphNode_SubInstance* SubI
 			FKismetCompilerUtilities::LinkAddedProperty(NewAnimBlueprintClass, NewProperty);
 
 			// Add mappings to the node
-			FAnimNode_SubInstance& RuntimeNode = SubInstance->Node;
-
-			RuntimeNode.SourcePropertyNames.Add(NewProperty->GetFName());
-			
-			// Find the property on the internal instance
-			if(UProperty* FoundProperty = FindField<UProperty>(*RuntimeNode.InstanceClass, *Pin->PinName))
+			if(!bGenerateSubInstanceVariables)
 			{
-				RuntimeNode.DestPropertyNames.Add(FoundProperty->GetFName());
+				FAnimNode_SubInstance& RuntimeNode = SubInstance->Node;
+				
+				if(UProperty* FoundProperty = FindField<UProperty>(*RuntimeNode.InstanceClass, *Pin->PinName))
+				{
+					RuntimeNode.SourcePropertyNames.Add(NewProperty->GetFName());
+			
+					// Find the property on the internal instance
+					RuntimeNode.DestPropertyNames.Add(FoundProperty->GetFName());
+				}
 			}
 		}
 	}
-
-	// Check for duplicated slot and state machine names to warn the user about how these 
-	// are boxed
-	NameToCountMap SlotNameToCountMap;
-	NameToCountMap StateMachineNameToCountMap;
-
-	GetDuplicatedSlotAndStateNames(SubInstance, StateMachineNameToCountMap, SlotNameToCountMap);
-
-
-	for(TPair<FName, int32>& Pair : SlotNameToCountMap)
+	
+	if(bCheckForCycles)
 	{
-		if(Pair.Value > 1)
+		// Check for duplicated slot and state machine names to warn the user about how these 
+		// are boxed
+		NameToCountMap SlotNameToCountMap;
+		NameToCountMap StateMachineNameToCountMap;
+
+		GetDuplicatedSlotAndStateNames(SubInstance, StateMachineNameToCountMap, SlotNameToCountMap);
+
+
+		for(TPair<FName, int32>& Pair : SlotNameToCountMap)
 		{
-			// Duplicated slot node
-			FString CompilerMessage = FString::Printf(TEXT("Slot name \"%s\" found across multiple instances. Slots are not visible outside of instances so duplicates or subinstances may not perform as expected."), *Pair.Key.ToString());
-			MessageLog.Warning(*CompilerMessage);
+			if(Pair.Value > 1)
+			{
+				// Duplicated slot node
+				FString CompilerMessage = FString::Printf(TEXT("Slot name \"%s\" found across multiple instances. Slots are not visible outside of instances so duplicates or subinstances may not perform as expected."), *Pair.Key.ToString());
+				MessageLog.Warning(*CompilerMessage);
+			}
 		}
-	}
 
-	for(TPair<FName, int32>& Pair : StateMachineNameToCountMap)
-	{
-		if(Pair.Value > 1)
+		for(TPair<FName, int32>& Pair : StateMachineNameToCountMap)
 		{
-			// Duplicated slot node
-			FString CompilerMessage = FString::Printf(TEXT("State machine \"%s\" found across multiple instances. States are not visible outside of instances so duplicates or subinstances may not perform as expected."), *Pair.Key.ToString());
-			MessageLog.Warning(*CompilerMessage);
+			if(Pair.Value > 1)
+			{
+				// Duplicated slot node
+				FString CompilerMessage = FString::Printf(TEXT("State machine \"%s\" found across multiple instances. States are not visible outside of instances so duplicates or subinstances may not perform as expected."), *Pair.Key.ToString());
+				MessageLog.Warning(*CompilerMessage);
+			}
 		}
 	}
 }
@@ -1791,13 +1800,17 @@ void FAnimBlueprintCompiler::SpawnNewClass(const FString& NewClassName)
 	NewClass = NewAnimBlueprintClass;
 }
 
+void FAnimBlueprintCompiler::OnNewClassSet(UBlueprintGeneratedClass* ClassToUse)
+{
+	NewAnimBlueprintClass = CastChecked<UAnimBlueprintGeneratedClass>(ClassToUse);
+}
+
 void FAnimBlueprintCompiler::CleanAndSanitizeClass(UBlueprintGeneratedClass* ClassToClean, UObject*& InOldCDO)
 {
 	Super::CleanAndSanitizeClass(ClassToClean, InOldCDO);
 
 	// Make sure our typed pointer is set
-	check(ClassToClean == NewClass);
-	NewAnimBlueprintClass = CastChecked<UAnimBlueprintGeneratedClass>((UObject*)NewClass);
+	check(ClassToClean == NewClass && NewAnimBlueprintClass == NewClass);
 
 	NewAnimBlueprintClass->AnimBlueprintDebugData = FAnimBlueprintDebugData();
 
@@ -1846,6 +1859,8 @@ void FAnimBlueprintCompiler::FinishCompilingClass(UClass* Class)
 
 void FAnimBlueprintCompiler::PostCompile()
 {
+	Super::PostCompile();
+
 	UAnimBlueprintGeneratedClass* AnimBlueprintGeneratedClass = CastChecked<UAnimBlueprintGeneratedClass>(NewClass);
 
 	UAnimInstance* DefaultAnimInstance = CastChecked<UAnimInstance>(AnimBlueprintGeneratedClass->GetDefaultObject());
@@ -1995,7 +2010,12 @@ void FAnimBlueprintCompiler::PostCompile()
 			FExposedValueHandler* HandlerPtr = EvaluationHandler.EvaluationHandlerProperty->ContainerPtrToValuePtr<FExposedValueHandler>(EvaluationHandler.NodeVariableProperty->ContainerPtrToValuePtr<void>(DefaultAnimInstance));
 			TrueNode->BlueprintUsage = HandlerPtr->BoundFunction != NAME_None ? EBlueprintUsage::UsesBlueprint : EBlueprintUsage::DoesNotUseBlueprint;
 
-			if(TrueNode->BlueprintUsage == EBlueprintUsage::UsesBlueprint && AnimBlueprint->bWarnAboutBlueprintUsage)
+#if WITH_EDITORONLY_DATA // ANIMINST_PostCompileValidation
+			const bool bWarnAboutBlueprintUsage = AnimBlueprint->bWarnAboutBlueprintUsage || DefaultAnimInstance->PCV_ShouldWarnAboutNodesNotUsingFastPath();
+#else
+			const bool bWarnAboutBlueprintUsage = AnimBlueprint->bWarnAboutBlueprintUsage;
+#endif
+			if (bWarnAboutBlueprintUsage && (TrueNode->BlueprintUsage == EBlueprintUsage::UsesBlueprint))
 			{
 				MessageLog.Warning(*LOCTEXT("BlueprintUsageWarning", "Node @@ uses Blueprint to update its values, access member variables directly or use a constant value for better performance.").ToString(), Node);
 			}
@@ -2113,13 +2133,8 @@ void FAnimBlueprintCompiler::ProcessTransitionGetter(UK2Node_TransitionRuleGette
 	case ETransitionGetter::AnimationAsset_GetCurrentTime:
 		if ((AnimAsset != NULL) && (SourceTimePin != NULL))
 		{
-			// Move all the connections over
-			for (int32 LinkIndex = 0; LinkIndex < OutputPin->LinkedTo.Num(); ++LinkIndex)
-			{
-				UEdGraphPin* TimeConsumerPin = OutputPin->LinkedTo[LinkIndex];
-				TimeConsumerPin->MakeLinkTo(SourceTimePin);
-			}
-			OutputPin->BreakAllPinLinks();
+			GetterHelper = SpawnCallAnimInstanceFunction(Getter, TEXT("GetInstanceAssetPlayerTime"));
+			GetterHelper->FindPinChecked(TEXT("AssetPlayerIndex"))->DefaultValue = FString::FromInt(PlayerNodeIndex);
 		}
 		else
 		{
@@ -2136,8 +2151,8 @@ void FAnimBlueprintCompiler::ProcessTransitionGetter(UK2Node_TransitionRuleGette
 	case ETransitionGetter::AnimationAsset_GetLength:
 		if (AnimAsset != NULL)
 		{
-			GetterHelper = SpawnCallAnimInstanceFunction(Getter, TEXT("GetAnimAssetPlayerLength"));
-			GetterHelper->FindPinChecked(TEXT("AnimAsset"))->DefaultObject = AnimAsset;
+			GetterHelper = SpawnCallAnimInstanceFunction(Getter, TEXT("GetInstanceAssetPlayerLength"));
+			GetterHelper->FindPinChecked(TEXT("AssetPlayerIndex"))->DefaultValue = FString::FromInt(PlayerNodeIndex);
 		}
 		else
 		{
@@ -2154,9 +2169,8 @@ void FAnimBlueprintCompiler::ProcessTransitionGetter(UK2Node_TransitionRuleGette
 	case ETransitionGetter::AnimationAsset_GetCurrentTimeFraction:
 		if ((AnimAsset != NULL) && (SourceTimePin != NULL))
 		{
-			GetterHelper = SpawnCallAnimInstanceFunction(Getter, TEXT("GetAnimAssetPlayerTimeFraction"));
-			GetterHelper->FindPinChecked(TEXT("AnimAsset"))->DefaultObject = AnimAsset;
-			GetterHelper->FindPinChecked(TEXT("CurrentTime"))->MakeLinkTo(SourceTimePin);
+			GetterHelper = SpawnCallAnimInstanceFunction(Getter, TEXT("GetInstanceAssetPlayerTimeFraction"));
+			GetterHelper->FindPinChecked(TEXT("AssetPlayerIndex"))->DefaultValue = FString::FromInt(PlayerNodeIndex);
 		}
 		else
 		{
@@ -2173,9 +2187,8 @@ void FAnimBlueprintCompiler::ProcessTransitionGetter(UK2Node_TransitionRuleGette
 	case ETransitionGetter::AnimationAsset_GetTimeFromEnd:
 		if ((AnimAsset != NULL) && (SourceTimePin != NULL))
 		{
-			GetterHelper = SpawnCallAnimInstanceFunction(Getter, TEXT("GetAnimAssetPlayerTimeFromEnd"));
-			GetterHelper->FindPinChecked(TEXT("AnimAsset"))->DefaultObject = AnimAsset;
-			GetterHelper->FindPinChecked(TEXT("CurrentTime"))->MakeLinkTo(SourceTimePin);
+			GetterHelper = SpawnCallAnimInstanceFunction(Getter, TEXT("GetInstanceAssetPlayerTimeFromEnd"));
+			GetterHelper->FindPinChecked(TEXT("AssetPlayerIndex"))->DefaultValue = FString::FromInt(PlayerNodeIndex);
 		}
 		else
 		{
@@ -2192,9 +2205,8 @@ void FAnimBlueprintCompiler::ProcessTransitionGetter(UK2Node_TransitionRuleGette
 	case ETransitionGetter::AnimationAsset_GetTimeFromEndFraction:
 		if ((AnimAsset != NULL) && (SourceTimePin != NULL))
 		{
-			GetterHelper = SpawnCallAnimInstanceFunction(Getter, TEXT("GetAnimAssetPlayerTimeFromEndFraction"));
-			GetterHelper->FindPinChecked(TEXT("AnimAsset"))->DefaultObject = AnimAsset;
-			GetterHelper->FindPinChecked(TEXT("CurrentTime"))->MakeLinkTo(SourceTimePin);
+			GetterHelper = SpawnCallAnimInstanceFunction(Getter, TEXT("GetInstanceAssetPlayerTimeFromEndFraction"));
+			GetterHelper->FindPinChecked(TEXT("AssetPlayerIndex"))->DefaultValue = FString::FromInt(PlayerNodeIndex);
 		}
 		else
 		{
@@ -2212,16 +2224,42 @@ void FAnimBlueprintCompiler::ProcessTransitionGetter(UK2Node_TransitionRuleGette
 	case ETransitionGetter::CurrentTransitionDuration:
 		{
 			check(TransitionNode);
-			const FString TransitionDurationStr = FString::Printf(TEXT("%f"), TransitionNode->CrossfadeDuration);
-
-			// Move all the connections over to the literal value
-			//@TODO: Hovering over the output pin won't display any value in the debugger
-			for (int32 LinkIndex = 0; LinkIndex < OutputPin->LinkedTo.Num(); ++LinkIndex)
+			if(UAnimStateNode* SourceStateNode = MessageLog.FindSourceObjectTypeChecked<UAnimStateNode>(TransitionNode->GetPreviousState()))
 			{
-				UEdGraphPin* ConsumerPin = OutputPin->LinkedTo[LinkIndex];
-				ConsumerPin->DefaultValue = TransitionDurationStr;
+				if(UObject* SourceTransitionNode = MessageLog.FindSourceObject(TransitionNode))
+				{
+					if(FStateMachineDebugData* DebugData = NewAnimBlueprintClass->GetAnimBlueprintDebugData().StateMachineDebugData.Find(SourceStateNode->GetGraph()))
+					{
+						if(int32* pStateIndex = DebugData->NodeToStateIndex.Find(SourceStateNode))
+						{
+							const int32 StateIndex = *pStateIndex;
+							
+							// This check should never fail as all animation nodes should be processed before getters are
+							UAnimGraphNode_Base* CompiledMachineInstanceNode = SourceNodeToProcessedNodeMap.FindChecked(DebugData->MachineInstanceNode.Get());
+							const int32 MachinePropertyIndex = AllocatedAnimNodeIndices.FindChecked(CompiledMachineInstanceNode);
+							int32 TransitionPropertyIndex = INDEX_NONE;
+
+							for(TMap<TWeakObjectPtr<UEdGraphNode>, int32>::TIterator TransIt(DebugData->NodeToTransitionIndex); TransIt; ++TransIt)
+							{
+								UEdGraphNode* CurrTransNode = TransIt.Key().Get();
+								
+								if(CurrTransNode == SourceTransitionNode)
+								{
+									TransitionPropertyIndex = TransIt.Value();
+									break;
+								}
+							}
+
+							if(TransitionPropertyIndex != INDEX_NONE)
+							{
+								GetterHelper = SpawnCallAnimInstanceFunction(Getter, TEXT("GetInstanceTransitionCrossfadeDuration"));
+								GetterHelper->FindPinChecked(TEXT("MachineIndex"))->DefaultValue = FString::FromInt(MachinePropertyIndex);
+								GetterHelper->FindPinChecked(TEXT("TransitionIndex"))->DefaultValue = FString::FromInt(TransitionPropertyIndex);
+							}
+						}
+					}
+				}
 			}
-			OutputPin->BreakAllPinLinks();
 		}
 		break;
 
@@ -2242,7 +2280,7 @@ void FAnimBlueprintCompiler::ProcessTransitionGetter(UK2Node_TransitionRuleGette
 							UAnimGraphNode_Base* CompiledMachineInstanceNode = SourceNodeToProcessedNodeMap.FindChecked(DebugData->MachineInstanceNode.Get());
 							const int32 MachinePropertyIndex = AllocatedAnimNodeIndices.FindChecked(CompiledMachineInstanceNode);
 
-							GetterHelper = SpawnCallAnimInstanceFunction(Getter, TEXT("GetStateWeight"));
+							GetterHelper = SpawnCallAnimInstanceFunction(Getter, TEXT("GetInstanceStateWeight"));
 							GetterHelper->FindPinChecked(TEXT("MachineIndex"))->DefaultValue = FString::FromInt(MachinePropertyIndex);
 							GetterHelper->FindPinChecked(TEXT("StateIndex"))->DefaultValue = FString::FromInt(StateIndex);
 						}
@@ -2268,7 +2306,7 @@ void FAnimBlueprintCompiler::ProcessTransitionGetter(UK2Node_TransitionRuleGette
 					UAnimGraphNode_Base* CompiledMachineInstanceNode = SourceNodeToProcessedNodeMap.FindChecked(DebugData->MachineInstanceNode.Get());
 					const int32 MachinePropertyIndex = AllocatedAnimNodeIndices.FindChecked(CompiledMachineInstanceNode);
 
-					GetterHelper = SpawnCallAnimInstanceFunction(Getter, TEXT("GetCurrentStateElapsedTime"));
+					GetterHelper = SpawnCallAnimInstanceFunction(Getter, TEXT("GetInstanceCurrentStateElapsedTime"));
 					GetterHelper->FindPinChecked(TEXT("MachineIndex"))->DefaultValue = FString::FromInt(MachinePropertyIndex);
 				}
 			}
@@ -2296,7 +2334,7 @@ void FAnimBlueprintCompiler::ProcessTransitionGetter(UK2Node_TransitionRuleGette
 							UAnimGraphNode_Base* CompiledMachineInstanceNode = SourceNodeToProcessedNodeMap.FindChecked(DebugData->MachineInstanceNode.Get());
 							const int32 MachinePropertyIndex = AllocatedAnimNodeIndices.FindChecked(CompiledMachineInstanceNode);
 
-							GetterHelper = SpawnCallAnimInstanceFunction(Getter, TEXT("GetStateWeight"));
+							GetterHelper = SpawnCallAnimInstanceFunction(Getter, TEXT("GetInstanceStateWeight"));
 							GetterHelper->FindPinChecked(TEXT("MachineIndex"))->DefaultValue = FString::FromInt(MachinePropertyIndex);
 							GetterHelper->FindPinChecked(TEXT("StateIndex"))->DefaultValue = FString::FromInt(StateIndex);
 						}
@@ -2361,6 +2399,27 @@ int32 FAnimBlueprintCompiler::FindOrAddNotify(FAnimNotifyEvent& Notify)
 void FAnimBlueprintCompiler::PostCompileDiagnostics()
 {
 	FKismetCompilerContext::PostCompileDiagnostics();
+
+#if WITH_EDITORONLY_DATA // ANIMINST_PostCompileValidation
+	// See if AnimInstance implements a PostCompileValidation Class. 
+	// If so, instantiate it, and let it perform Validation of our newly compiled AnimBlueprint.
+	if (const UAnimInstance* const DefaultAnimInstance = CastChecked<UAnimInstance>(NewAnimBlueprintClass->GetDefaultObject()))
+	{
+		if (DefaultAnimInstance->PostCompileValidationClassName.IsValid())
+		{
+			UClass* PostCompileValidationClass = LoadClass<UObject>(nullptr, *DefaultAnimInstance->PostCompileValidationClassName.ToString());
+			if (PostCompileValidationClass)
+			{
+				UAnimBlueprintPostCompileValidation* PostCompileValidation = NewObject<UAnimBlueprintPostCompileValidation>(GetTransientPackage(), PostCompileValidationClass);
+				if (PostCompileValidation)
+				{
+					FAnimBPCompileValidationParams PCV_Params(DefaultAnimInstance, NewAnimBlueprintClass, MessageLog, AllocatedNodePropertiesToNodes);
+					PostCompileValidation->DoPostCompileValidation(PCV_Params);
+				}
+			}
+		}
+	}
+#endif // WITH_EDITORONLY_DATA
 
 	if (!bIsDerivedAnimBlueprint)
 	{

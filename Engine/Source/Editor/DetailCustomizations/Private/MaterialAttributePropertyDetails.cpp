@@ -55,7 +55,7 @@ void FMaterialAttributePropertyDetails::CustomizeDetails(IDetailLayoutBuilder& D
 void FMaterialAttributePropertyDetails::OnBuildChild(TSharedRef<IPropertyHandle> ChildHandle, int32 ElementIndex, IDetailChildrenBuilder& ChildrenBuilder)
 {
 	// Add an overridden combo box
-	IDetailPropertyRow& PropertyArrayRow = ChildrenBuilder.AddChildProperty(ChildHandle);
+	IDetailPropertyRow& PropertyArrayRow = ChildrenBuilder.AddProperty(ChildHandle);
 
 	PropertyArrayRow.CustomWidget()
 	.NameContent()

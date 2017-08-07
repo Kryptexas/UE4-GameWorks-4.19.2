@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "ModuleDescriptor.h"
 #include "CustomBuildSteps.h"
-#include "PluginDescriptor.h"
+#include "PluginReferenceDescriptor.h"
 
 class FJsonObject;
 
@@ -90,6 +90,9 @@ struct PROJECTS_API FProjectDescriptor
 
 	/** Custom steps to execute after building targets in this project */
 	FCustomBuildSteps PostBuildSteps;
+
+	/** Indicates if this project is an Enterprise project */
+	bool bIsEnterpriseProject;
 
 	/** Constructor. */
 	FProjectDescriptor();

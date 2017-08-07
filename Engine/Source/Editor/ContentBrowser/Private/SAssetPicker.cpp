@@ -384,7 +384,10 @@ void SAssetPicker::OnSearchBoxCommitted(const FText& InSearchText, ETextCommit::
 void SAssetPicker::SetNewBackendFilter(const FARFilter& NewFilter)
 {
 	CurrentSourcesData.PackagePaths = NewFilter.PackagePaths;
-	AssetViewPtr->SetSourcesData(CurrentSourcesData);
+	if(AssetViewPtr.IsValid())
+	{
+		AssetViewPtr->SetSourcesData(CurrentSourcesData);
+	}
 
 	CurrentBackendFilter = NewFilter;
 	CurrentBackendFilter.PackagePaths.Reset();
@@ -410,7 +413,10 @@ void SAssetPicker::OnFilterChanged()
 	}
 
 	Filter.Append(CurrentBackendFilter);
-	AssetViewPtr->SetBackendFilter( Filter );
+	if (AssetViewPtr.IsValid())
+	{
+		AssetViewPtr->SetBackendFilter( Filter );
+	}
 }
 
 FReply SAssetPicker::OnNoneButtonClicked()

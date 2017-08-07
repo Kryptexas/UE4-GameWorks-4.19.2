@@ -19,6 +19,13 @@ class SLATEREFLECTOR_API SReflectorTreeWidgetItem
 {
 public:
 
+	static FName NAME_WidgetName;
+	static FName NAME_WidgetInfo;
+	static FName NAME_Visibility;
+	static FName NAME_Clipping;
+	static FName NAME_ForegroundColor;
+	static FName NAME_Address;
+
 	SLATE_BEGIN_ARGS(SReflectorTreeWidgetItem)
 		: _WidgetInfoToVisualize()
 		, _SourceCodeAccessor()
@@ -47,6 +54,7 @@ public:
 		check(WidgetInfo.IsValid());
 		CachedWidgetType = WidgetInfo->GetWidgetType();
 		CachedWidgetVisibility = WidgetInfo->GetWidgetVisibilityText();
+		CachedWidgetClipping = WidgetInfo->GetWidgetClippingText();
 		CachedReadableLocation = WidgetInfo->GetWidgetReadableLocation();
 		CachedWidgetFile = WidgetInfo->GetWidgetFile();
 		CachedWidgetLineNumber = WidgetInfo->GetWidgetLineNumber();
@@ -93,6 +101,11 @@ protected:
 		return CachedWidgetVisibility;
 	}
 
+	FText GetClippingAsString() const
+	{
+		return CachedWidgetClipping;
+	}
+
 	/** @return The tint of the reflector node */
 	FSlateColor GetTint() const
 	{
@@ -108,6 +121,7 @@ private:
 
 	FText CachedWidgetType;
 	FText CachedWidgetVisibility;
+	FText CachedWidgetClipping;
 	FText CachedReadableLocation;
 	FString CachedWidgetFile;
 	int32 CachedWidgetLineNumber;

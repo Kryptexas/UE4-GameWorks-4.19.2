@@ -62,12 +62,13 @@ public:
 	virtual IOnlineMessagePtr GetMessageInterface() const override;
 	virtual IOnlinePresencePtr GetPresenceInterface() const override;
 	virtual IOnlineChatPtr GetChatInterface() const override;
-    virtual IOnlineTurnBasedPtr GetTurnBasedInterface() const override;
+	virtual IOnlineTurnBasedPtr GetTurnBasedInterface() const override;
 	
 	virtual bool Init() override;
 	virtual bool Shutdown() override;
 	virtual FString GetAppId() const override;
 	virtual bool Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
+	virtual FText GetOnlineServiceName() const override;
 
 	// FTickerObjectBase
 	

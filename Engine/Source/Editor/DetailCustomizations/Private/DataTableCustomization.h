@@ -64,7 +64,7 @@ public:
 			DataTablePropertyHandle->SetOnPropertyValueChanged( OnDataTableChangedDelegate );
 
 			/** Construct a asset picker widget with a custom filter */
-			StructBuilder.AddChildContent(LOCTEXT("DataTable_TableName", "Data Table"))
+			StructBuilder.AddCustomRow(LOCTEXT("DataTable_TableName", "Data Table"))
 			.NameContent()
 				[
 					SNew(STextBlock)
@@ -81,7 +81,7 @@ public:
 				];
 
 			/** Construct a combo box widget to select from a list of valid options */
-			StructBuilder.AddChildContent( LOCTEXT( "DataTable_RowName", "Row Name" ) )
+			StructBuilder.AddCustomRow( LOCTEXT( "DataTable_RowName", "Row Name" ) )
 			.NameContent()
 				[
 					SNew( STextBlock )
@@ -106,7 +106,7 @@ public:
 
 private:
 
-	bool ShouldFilterAsset(const class FAssetData& AssetData)
+	bool ShouldFilterAsset(const struct FAssetData& AssetData)
 	{
 		if (!RowTypeFilter.IsNone())
 		{

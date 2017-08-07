@@ -37,6 +37,9 @@ struct FOnlineEntitlement
 		, ConsumedCount(0)
 	{}
 
+	virtual ~FOnlineEntitlement()
+	{}
+
 	/**
 	 * @return Any additional data associated with the entitlement
  	 */
@@ -72,6 +75,8 @@ typedef FOnQueryEntitlementsComplete::FDelegate FOnQueryEntitlementsCompleteDele
 class IOnlineEntitlements
 {
 public:
+	virtual ~IOnlineEntitlements() { }
+
 	/**
 	 * Checks for and retrieves a single cached entitlement for a user
 	 *

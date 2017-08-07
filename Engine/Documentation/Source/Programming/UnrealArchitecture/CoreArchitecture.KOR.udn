@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3388780
 Availability:Public
 Title: 게임플레이 프로그래밍
 Crumbs:%ROOT%, Programming
@@ -24,8 +24,4 @@ version: 4.9
 
 [INCLUDE:Gameplay/Framework/QuickReference]
 
-
-
-
-
-
+UE4 프로그래밍 시작을 위해서는 [](Programming/QuickStart) 및 다른 [](Programming\Tutorials) 문서를 참고하세요.

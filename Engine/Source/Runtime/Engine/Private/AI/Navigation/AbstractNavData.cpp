@@ -14,7 +14,8 @@ INavigationQueryFilterInterface* FAbstractQueryFilter::CreateCopy() const
 	return new FAbstractQueryFilter();
 }
 
-AAbstractNavData::AAbstractNavData(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
+AAbstractNavData::AAbstractNavData(const FObjectInitializer& ObjectInitializer) 
+	: Super(ObjectInitializer)
 {
 #if WITH_EDITORONLY_DATA
 	bEditable = false;
@@ -36,6 +37,16 @@ AAbstractNavData::AAbstractNavData(const FObjectInitializer& ObjectInitializer) 
 
 		DefaultQueryFilter->SetFilterType<FAbstractQueryFilter>();
 	}
+}
+
+void AAbstractNavData::PostLoad()
+{
+	Super::PostLoad();
+	SetFlags(RF_Transient);
+	// marking as pending kill might seem an overkill, but one of the things 
+	// this changes aims to achieve is to get rig of the excess number of 
+	// AAbstractNavData instances. "There should be only one!"
+	MarkPendingKill();
 }
 
 FPathFindingResult AAbstractNavData::FindPathAbstract(const FNavAgentProperties& AgentProperties, const FPathFindingQuery& Query)

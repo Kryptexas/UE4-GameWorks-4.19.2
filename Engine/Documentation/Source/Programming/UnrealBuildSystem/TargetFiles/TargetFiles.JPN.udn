@@ -1,122 +1,43 @@
-﻿INTSourceChangelist:2711147
+﻿INTSourceChangelist:3392479
 Availability:Public
 Title:アンリアルビルド システムのターゲット ファイル
 Crumbs: %ROOT%, Programming, Programming\UnrealBuildSystem
-Description:モジュールをビルドする際にアンリアル ビルド システムが使用するターゲット ファイルのリファレンス
-Version:4.9
+Description:ターゲットのビルド時にアンリアル ビルド システムが使用するターゲット ファイルのリファレンス
+Version:4.16
+Parent:Programming/UnrealBuildSystem
+Order:
+Type:reference
+Tags:Unreal Build System
 
 [TOC (start:2 end:3)]
 
+### 概要
 
+UnrealBuildTool は、2 タイプのターゲットのビルドをサポートしています。
 
-アンリアル ビルド システムは、それぞれのアプリケーション UnrealBuildtool ビルドに対し **Target** ファイルを使用します。このビルドは、動的な Rules モジュールへコンパイルされます。これらのファイルは、かつては UnrealBuildTool へ直接コンパイルされた `UEBuild*.cs` ファイルを置き換えるものです。各ターゲットファイルは、UnrealBuildTool がゲームやプログラムのビルド方法の決定に使用するクラスを定義します。
+  * **Game** - クック済みデータの実行を要求するスタンドアロン ゲームです。
+  * **Client** - Game と同じですが、サーバー コードは含まれません。ネットワーク ゲームに役立ちます。
+  * **Client** - Game と同じですが、クライアント コードは含まれません。ネットワーク ゲームのデディケイテッド サーバーに役立ちます。
+  * **Editor** - アンリアル エディタを拡張するターゲットです。
+  * **Program** - アンリアル エンジンに加えてビルドされているスタンドアロン ユーティリティ プログラムです。
 
-現在の UnrealBuildTool は、 RulesModule.dll ファイルからビルドされるプロジェクトの適切なターゲットファイルを読み出します。
+ターゲットは、.target.cs 拡張子のついた C# ソース ファイルで宣言され、プロジェクトの *Source* ディレクトリに格納されます。それぞれの .target.cs ファイルは、TargetRules 基本クラスから派生したクラスを宣言し、コンストラクタからのビルド方法を調節するプロパティを設定します。ターゲットをビルドするように指示すると、UnrealBuildTool は target.cs ファイルをコンパイルし、その設定を定義するために中にクラスを構築します。
 
-2 タイプのターゲットファイルがあります。
+クラス名は、'Target' の前に宣言されたファイル名 と一致しなければなりません (MyProject.target.cs であれば、クラス 'MyProjectTarget' を定義します)。 
 
-* **Game** - 共通の UE4 実行ファイルを利用するターゲットファイルです。
-* **Program** - スタンドアローン実行ファイルのターゲットです。ShaderCompileWorker、SlateViewer、UnrealHeaderTool はこのターゲットタイプです。
+以下が、代表的な target.cs ファイルの構造体です。 
 
+    using UnrealBuildTool;
+    using System.Collections.Generic;
 
-## ターゲットファイルの命名と保存場所
+    public class MyProjectTarget :TargetRules
+    {
+    	public MyProjectTarget(TargetInfo Target) : base(Target)
+    	{
+    		Type = TargetType.Game;
 
-ターゲットファイルはプログラムのルート ディレクトリ、またはゲームの「Source」ディレクトリに格納する必要があり、[APPNAME].Target.cs の命名規則を使用しなくてはいけません。
+    		// Other properties go here (その他のプロパティはここにくる)
+    	}
+    }
 
-例として、\UE4\Engine\Source\Programs\ShaderCompileWorker の「ShaderCompileWorker プログラム」ディレクトリには「ShaderCompileWorker.Target.cs」ファイルが格納されます。
-
-同様に、ExampleGame の「Source」ディレクトリは UE4\ExampleGame|Source に位置し、「ExampleGame.Target.cs」ファイルを格納します。
-
-## ターゲットファイルのコンテンツ
-
-各ゲームやプログラムのターゲットファイルで定義されるクラスは、TargetRules (「RulesCompiler.cs」にあります) から派生します。 
-
-クラス名は、ターゲットの前にツール名やゲーム名、その後にターゲットとなります。例えば、 ShaderCompileWorker ツールのターゲット ファイルで定義されるクラスは、「ShaderCompileWorkerTarget」と命名します。最後に必ず Target を入れてください。既存の *.Build.cs モジュールのルールクラスは全て同一クラスにコンパイルされるため、このクラスとの衝突を避けるために追加します。
-
-UnrealBuildTool は、Rules DLL からビルドターゲットの要求時に [APPNAME] を受け取り Target を付け足します。 上記の例に沿って UnrealBuildTool が ShaderCompileWorker Win64 Development を渡すと、 TargetRules クラス名として ShaderCompileWorkerTarget を要求します。
-
-### コンストラクタ
-
-コンストラクタはアプリケーション名と生成するターゲットタイプを設定します。以下は比較のための ExampleGameTarget のコンストラクタです。
-
-	public ExampleGameTarget(TargetInfo Target)
-	{
-		Type = TargetType.Game;
-		Name = "ExampleGame";
-	}
-
-### バイナリ設定
-
-**TargetRules::SetupBinaries()** は UEBuildBinaryConfiguration インスタンスのリストの生成に使用します。このインスタンスは UnrealBuildTool が AppBinaries 配列を埋める際に使用します。
-
-### グローバル環境の設定
-
-**TargetRules::SetupGlobalEnvironment()** は、UnrealBuildTool のターゲットのさまざまなコンフィギュレーション設定に加え、グローバルな Compile および Link 環境の設定に使用します。
-
-[REGION:note]
-UEBuildGame クラスがデフォルトでこれらのニーズをカバーするため、現在のゲームには含まれません。ゲームによってこの設定を無効にする必要がある場合、問題なく対応が可能です。
-[/REGION]
-
-## ターゲットファイルの例
-
-以下は「ShaderCompileWorker.Target.cs」ファイルの完全実例です。
-
-	// Copyright 1998-2017 Epic Games, Inc.All rights reserved.
-
-	using UnrealBuildTool;
-	using System.Collections.Generic;
-
-	public class ShaderCompileWorkerTarget :TargetRules
-	{
-		public ShaderCompileWorkerTarget(TargetInfo Target)
-		{
-			Type = TargetType.Program;
-			Name = "ShaderCompileWorker";
-		}
-
-		//
-		// TargetRules interface.
-		//
-
-		public override void SetupBinaries(
-			TargetInfo Target,
-			ref List<UEBuildBinaryConfiguration> OutBuildBinaryConfigurations,
-			ref List<string> OutExtraModuleNames
-			)
-		{
-			List<string> LinkModules = new List<string>() { "Core", "ShaderCore", "RenderCore", "RHI", "WindowsTools", "ShaderCompileWorker" };
-			OutBuildBinaryConfigurations.Add(
-				new UEBuildBinaryConfiguration(	InType:UEBuildBinaryType.Executable,
-												InModuleNames:LinkModules )
-				);
-		}
-
-		public override void SetupGlobalEnvironment(
-			TargetInfo Target,
-			ref LinkEnvironmentConfiguration OutLinkEnvironmentConfiguration,
-			ref CPPEnvironmentConfiguration OutCPPEnvironmentConfiguration
-			)
-		{
-			// Turn off various third party features we don't need (必要のない各種第三者機能をオフにします)
-			UEBuildConfiguration.bAllowSteamworks = false;
-			UEBuildConfiguration.bAllowLive = false;
-			UEBuildConfiguration.bCompilePerforce = false;
-
-			// Currently we force Lean and Mean mode (現在、Lean モードと Mean モードを強制します)
-			UEBuildConfiguration.bCompileLeanAndMeanUE = true;
-
-			// Currently this app is not linking against the engine, so we'll compile out references from Core to the rest of the engine (現在、この app はエンジンにリンクしていません。従って、リファレンスを Core からエンジンの残りの部分にコンパイルしていきます)
-			UEBuildConfiguration.bCompileAgainstEngine = false;
-
-			// ShaderCompileWorker はコンソール アプリケーションです。Windows アプリケーションではありません (エントリーポイントは WinMain() ではなく main() に設定してください )
-			OutLinkEnvironmentConfiguration.bIsBuildingConsoleApplication = true;
-
-			// Disable logging, as the workers are spawned often and logging will just slow them down (ワーカーはたびたびスポーンされますが、ロギングが遅れの原因になるので、ロギングは無効にしてください)
-			OutCPPEnvironmentConfiguration.Definitions.Add("ALLOW_LOG_FILE=0");
-			OutCPPEnvironmentConfiguration.Definitions.Add("HACK_HEADER_GENERATOR=1");
-			OutCPPEnvironmentConfiguration.Definitions.Add("HACK_SHADER_COMPILER_WORKER=1");
-		}
-	}
-
-
-
+[INCLUDE:Programming/UnrealBuildSystem/TargetFiles/TargetFilesProperties]

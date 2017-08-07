@@ -1,28 +1,16 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3429254
 Availability: Public
 Title:5. 애니메이션 블루프린트 - 대기 및 걷기 상태
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
 Description:이번 단계에서는 애니메이션 블루프린트에 캐릭터의 빈둥, 걷기 상태에 대한 로직을 만들어 주겠습니다.
 Version: 4.9
+Parent:Gameplay/HowTo/CharacterMovement/Blueprints
 SkillLevel:Advanced
+type:how-to
+type:multi-step
+order:5
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[예전 단계](Gameplay\HowTo\CharacterMovement\Blueprints\BlendSpace "%Gameplay\HowTo\CharacterMovement\Blueprints\BlendSpace:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[캐릭터 무브먼트 개요](Gameplay\HowTo\CharacterMovement\Blueprints)
-	[/PARAM]
-	[PARAM:next]
-		[다음 단계](Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Crouch "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Crouch:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
  
 여기서는 게임에서 플레이어가 취하는 동작에 따라 재생할 애니메이션을 결정하는 **애니메이션 블루프린트** 를 구성해 주겠습니다. 그런 다음 **스테이트 머신** 구성 후 **Idle** (대기) 및 **Walk** (걷기) 상태를 만든 다음 각 상태 트랜지션(전환) 구성을 해 주겠습니다.
 
@@ -109,4 +97,4 @@ SkillLevel:Advanced
 1.	애니메이션 블루프린트를 **컴파일** 및 **저장** 합니다.
 
 
-%Steps%
+[NAV]

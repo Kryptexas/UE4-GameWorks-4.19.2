@@ -50,7 +50,7 @@ void FMoviePlayerSettingsDetails::CustomizeDetails( IDetailLayoutBuilder& Detail
 
 void FMoviePlayerSettingsDetails::GenerateArrayElementWidget(TSharedRef<IPropertyHandle> PropertyHandle, int32 ArrayIndex, IDetailChildrenBuilder& ChildrenBuilder)
 {
-	IDetailPropertyRow& FilePathRow = ChildrenBuilder.AddChildProperty( PropertyHandle );
+	IDetailPropertyRow& FilePathRow = ChildrenBuilder.AddProperty( PropertyHandle );
 	{
 		FilePathRow.CustomWidget(false)
 			.NameContent()

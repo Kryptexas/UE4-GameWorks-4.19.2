@@ -9,7 +9,7 @@
 #include "ActorFactoryBoxVolume.generated.h"
 
 class AActor;
-class FAssetData;
+struct FAssetData;
 
 UCLASS(MinimalAPI, config=Editor, collapsecategories, hidecategories=Object)
 class UActorFactoryBoxVolume : public UActorFactoryVolume

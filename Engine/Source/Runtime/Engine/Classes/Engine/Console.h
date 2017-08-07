@@ -183,6 +183,9 @@ class ENGINE_API UConsole
 	
 	/** Build the list of auto complete console commands */
 	virtual void BuildRuntimeAutoCompleteList(bool bForce = false);
+
+	/** Virtual function to allow subclasses of UConsole to add additional commands */
+	virtual void AugmentRuntimeAutoCompleteList(TArray<FAutoCompleteCommand>& List);
 	
 	/** Update the auto complete indices from the typed string */
 	virtual void UpdateCompleteIndices();

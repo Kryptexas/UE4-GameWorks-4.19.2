@@ -186,7 +186,7 @@ void FParticleTrailsEmitterInstance_Base::UpdateBoundingBox(float DeltaTime)
 		ParticleBoundingBox.IsValid = true;
 
 		// Take scale into account
-		FVector Scale = Component->ComponentToWorld.GetScale3D();
+		FVector Scale = Component->GetComponentTransform().GetScale3D();
 
 		// As well as each particle
 		int32 LocalActiveParticles = ActiveParticles;
@@ -240,7 +240,7 @@ void FParticleTrailsEmitterInstance_Base::UpdateBoundingBox(float DeltaTime)
 		{
 			if (LODLevel->RequiredModule->bUseLocalSpace) 
 			{
-				ParticleBoundingBox = ParticleBoundingBox.TransformBy(Component->ComponentToWorld);
+				ParticleBoundingBox = ParticleBoundingBox.TransformBy(Component->GetComponentTransform());
 			}
 		}
 	}
@@ -272,7 +272,7 @@ void FParticleTrailsEmitterInstance_Base::ForceUpdateBoundingBox()
 		ParticleBoundingBox.IsValid = true;
 
 		// Take scale into account
-		FVector Scale = Component->ComponentToWorld.GetScale3D();
+		FVector Scale = Component->GetComponentTransform().GetScale3D();
 
 		// As well as each particle
 		int32 LocalActiveParticles = ActiveParticles;
@@ -299,7 +299,7 @@ void FParticleTrailsEmitterInstance_Base::ForceUpdateBoundingBox()
 		// Transform bounding box into world space if the emitter uses a local space coordinate system.
 		if (LODLevel->RequiredModule->bUseLocalSpace) 
 		{
-			ParticleBoundingBox = ParticleBoundingBox.TransformBy(Component->ComponentToWorld);
+			ParticleBoundingBox = ParticleBoundingBox.TransformBy(Component->GetComponentTransform());
 		}
 	}
 }
@@ -1294,7 +1294,7 @@ float FParticleRibbonEmitterInstance::Spawn(float DeltaTime)
 		FVector CurrentUp;
 		if (TrailTypeData->RenderAxis == Trails_SourceUp)
 		{
-			CurrentUp = Component->ComponentToWorld.GetScaledAxis( EAxis::Z );
+			CurrentUp = Component->GetComponentTransform().GetScaledAxis( EAxis::Z );
 		}
 		else
 		{
@@ -1432,7 +1432,7 @@ float FParticleRibbonEmitterInstance::Spawn(float DeltaTime)
 						FString ErrorMessage = 
 							FString::Printf(TEXT("Ribbon with too many particles: %5d vs. %5d, %s"), 
 								ActiveParticles, LocalMaxParticleInTrailCount,
-								Component ? Component->Template ? *(Component->Template->GetName()) : TEXT("No template") : TEXT("No component"));
+								Component->Template ? *Component->Template->GetName() : TEXT("No template"));
 						FColor ErrorColor(255,0,0);
 						GEngine->AddOnScreenDebugMessage((uint64)((PTRINT)this), 5.0f, ErrorColor,ErrorMessage);
 						UE_LOG(LogParticles, Log, TEXT("%s"), *ErrorMessage);
@@ -1768,7 +1768,7 @@ bool FParticleRibbonEmitterInstance::Spawn_Source(float DeltaTime)
 			float InvCount = 1.0f / MovementSpawnCount;
 			float Increment = DeltaTime / MovementSpawnCount;
 
-			FTransform SavedComponentToWorld = Component->ComponentToWorld;
+			FTransform SavedComponentToWorld = Component->GetComponentTransform();
 
 			// Spawn the given number of particles, interpolating between the current and last position/tangent
 			float CurrTimeStep = InvCount;
@@ -1805,7 +1805,7 @@ bool FParticleRibbonEmitterInstance::Spawn_Source(float DeltaTime)
 				float SpawnTime = DeltaTime - (SpawnIdx * Increment);
 				float TrueSpawnTime = Diff * TimeStep;
 
-				Component->ComponentToWorld = FTransform(CurrRotation, CurrPosition);
+				Component->SetComponentToWorld(FTransform(CurrRotation, CurrPosition));
 
 				// Standard spawn setup
 				PreSpawn(Particle, CurrPosition, FVector::ZeroVector);
@@ -1835,7 +1835,7 @@ bool FParticleRibbonEmitterInstance::Spawn_Source(float DeltaTime)
 				Particle->Size.Z = Particle->Size.Z;
 				Particle->BaseSize = Particle->Size;
 
-				Component->ComponentToWorld = SavedComponentToWorld;
+				Component->SetComponentToWorld(SavedComponentToWorld);
 
 				// Trail specific...
 				// Clear the next and previous - just to be safe
@@ -2326,7 +2326,7 @@ bool FParticleRibbonEmitterInstance::ResolveSourcePoint(int32 InTrailIdx,
 					}
 					OutTangentStrength = OutTangent.SizeSquared();
 					//@todo. Allow particle rotation to define up??
-					OutUp = SourceEmitter->Component->ComponentToWorld.GetScaledAxis(EAxis::Z);
+					OutUp = SourceEmitter->Component->GetComponentTransform().GetScaledAxis(EAxis::Z);
 
 					//@todo. Where to get rotation from????
 					OutRotation = FQuat(0,0,0,1);
@@ -2374,7 +2374,7 @@ bool FParticleRibbonEmitterInstance::ResolveSourcePoint(int32 InTrailIdx,
 				if (CurrentLODLevel && (CurrentLODLevel->RequiredModule->bUseLocalSpace == false))
 				{
 					// Transform it
-					SourceOffsetValue = Component->ComponentToWorld.TransformVector(SourceOffsetValue);
+					SourceOffsetValue = Component->GetComponentTransform().TransformVector(SourceOffsetValue);
 				}
 				OutPosition += SourceOffsetValue;
 			}
@@ -2382,7 +2382,7 @@ bool FParticleRibbonEmitterInstance::ResolveSourcePoint(int32 InTrailIdx,
 		OutRotation = Component->GetComponentQuat();
 		OutTangent = Component->PartSysVelocity;
 		OutTangentStrength = OutTangent.SizeSquared();
-		OutUp = Component->ComponentToWorld.GetScaledAxis(EAxis::Z);
+		OutUp = Component->GetComponentTransform().GetScaledAxis(EAxis::Z);
 
 		bSourceWasSet = true;
 	}
@@ -2776,8 +2776,7 @@ bool FParticleRibbonEmitterInstance::FillReplayData(FDynamicEmitterReplayDataBas
 					FString ErrorMessage = 
 						FString::Printf(TEXT("RIBBON: GetDynamicData -- TriangleCount == %d (APC = %4d) for PSys %s"),
 							TriangleCount, ActiveParticles, 
-							Component ? (Component->Template ? *Component->Template->GetName() : 
-							TEXT("No Template")) : TEXT("No Component"));
+							Component->Template ? *Component->Template->GetName() : TEXT("No Template"));
 					FColor ErrorColor(255,0,0);
 					GEngine->AddOnScreenDebugMessage((uint64)((PTRINT)this), 5.0f, ErrorColor,ErrorMessage);
 					UE_LOG(LogParticles, Log, TEXT("%s"), *ErrorMessage);
@@ -3009,7 +3008,7 @@ struct FAnimTrailParticleSpawnParams
 	
 	
 	//TODO - These params are for interpolated spawn particles which are currently disabled.
-	///** The ComponentToWorld transform of the particle component before spawning began. */
+	///** The GetComponentTransform() transform of the particle component before spawning began. */
 	//FTransform SavedComponentToWorld;
 	///** True if this particle is interpolated. False otherwise. */
 	//bool bInterpolated;
@@ -3038,7 +3037,7 @@ void FParticleAnimTrailEmitterInstance::SpawnParticle( int32& StartParticleIndex
 //		FVector InterpSourcePos = FMath::Lerp<FVector>(PreviousComponentTransform.GetLocation(), Params.SavedComponentToWorld.GetLocation(), InterpFactor);
 //		FQuat InterpSourceRot = FQuat::Slerp(PreviousComponentTransform.GetRotation(), Params.SavedComponentToWorld.GetRotation(), InterpFactor);
 //		FTransform InterpSourceTransform = FTransform(InterpSourceRot, InterpSourcePos);
-//		Component->ComponentToWorld = InterpSourceTransform;
+//		Component->GetComponentTransform() = InterpSourceTransform;
 //	}
 
 	//TODO - Multiple trails.
@@ -3419,8 +3418,8 @@ float FParticleAnimTrailEmitterInstance::Spawn(float DeltaTime)
 	TrailSpawnTimes[TrailIdx] = RunningTime;
 
 	//TODO - If I enable interpolated spawning then the component transform needs restoring and storing.
-	//Component->ComponentToWorld = SpawnParams.SavedComponentToWorld;
-	//PreviousComponentTransform = Component->ComponentToWorld;
+	//Component->GetComponentTransform() = SpawnParams.SavedComponentToWorld;
+	//PreviousComponentTransform = Component->GetComponentTransform();
 
 	if (bTagTrailAsDead == true)
 	{
@@ -3523,7 +3522,7 @@ void FParticleAnimTrailEmitterInstance::UpdateBoundingBox(float DeltaTime)
 		ParticleBoundingBox.IsValid = true;
 
 		// Take scale into account
-		FVector Scale = Component->ComponentToWorld.GetScale3D();
+		FVector Scale = Component->GetComponentTransform().GetScale3D();
 
 		// As well as each particle
 		int32 LocalActiveParticles = ActiveParticles;
@@ -3594,7 +3593,7 @@ void FParticleAnimTrailEmitterInstance::UpdateBoundingBox(float DeltaTime)
 		{
 			if (LODLevel->RequiredModule->bUseLocalSpace) 
 			{
-				ParticleBoundingBox = ParticleBoundingBox.TransformBy(Component->ComponentToWorld);
+				ParticleBoundingBox = ParticleBoundingBox.TransformBy(Component->GetComponentTransform());
 			}
 		}
 	}
@@ -3626,7 +3625,7 @@ void FParticleAnimTrailEmitterInstance::ForceUpdateBoundingBox()
 		ParticleBoundingBox.IsValid = true;
 
 		// Take scale into account
-		FVector Scale = Component->ComponentToWorld.GetScale3D();
+		FVector Scale = Component->GetComponentTransform().GetScale3D();
 
 		// As well as each particle
 		int32 LocalActiveParticles = ActiveParticles;
@@ -3678,7 +3677,7 @@ void FParticleAnimTrailEmitterInstance::ForceUpdateBoundingBox()
 		// Transform bounding box into world space if the emitter uses a local space coordinate system.
 		if (LODLevel->RequiredModule->bUseLocalSpace) 
 		{
-			ParticleBoundingBox = ParticleBoundingBox.TransformBy(Component->ComponentToWorld);
+			ParticleBoundingBox = ParticleBoundingBox.TransformBy(Component->GetComponentTransform());
 		}
 	}
 }
@@ -4126,8 +4125,7 @@ bool FParticleAnimTrailEmitterInstance::FillReplayData( FDynamicEmitterReplayDat
 				FString ErrorMessage = 
 					FString::Printf(TEXT("ANIMTRAIL: GetDynamicData -- TriangleCount == 0 (APC = %4d) for PSys %s"),
 					ActiveParticles, 
-					Component ? (Component->Template ? *Component->Template->GetName() : 
-					TEXT("No Template")) : TEXT("No Component"));
+					Component->Template ? *Component->Template->GetName() : TEXT("No Template"));
 				FColor ErrorColor(255,0,0);
 				GEngine->AddOnScreenDebugMessage((uint64)((PTRINT)this), 5.0f, ErrorColor,ErrorMessage);
 				UE_LOG(LogParticles, Log, TEXT("%s"), *ErrorMessage);

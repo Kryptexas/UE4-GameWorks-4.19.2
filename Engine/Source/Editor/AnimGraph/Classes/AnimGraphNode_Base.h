@@ -124,7 +124,7 @@ class ANIMGRAPH_API UAnimGraphNode_Base : public UK2Node
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PinOptions, EditFixedSize)
+	UPROPERTY(EditAnywhere, Category=PinOptions, EditFixedSize)
 	TArray<FOptionalPinFromProperty> ShowPinForProperties;
 
 	UPROPERTY(Transient)
@@ -132,6 +132,7 @@ class ANIMGRAPH_API UAnimGraphNode_Base : public UK2Node
 
 	// UObject interface
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
 	// End of UObject interface
 
 	// UEdGraphNode interface
@@ -181,7 +182,7 @@ class ANIMGRAPH_API UAnimGraphNode_Base : public UK2Node
 	virtual void BakeDataDuringCompilation(FCompilerResultsLog& MessageLog) {}
 
 	// preload asset required for this node in this function
-	virtual void PreloadRequiredAssets() {}
+	virtual void PreloadRequiredAssets() override {}
 
 	// Give the node a chance to change the display name of a pin
 	virtual void PostProcessPinName(const UEdGraphPin* Pin, FString& DisplayName) const;
@@ -275,6 +276,14 @@ class ANIMGRAPH_API UAnimGraphNode_Base : public UK2Node
 	DECLARE_EVENT_OneParam(UAnimGraphNode_Base, FOnNodePropertyChangedEvent, FPropertyChangedEvent&);
 	FOnNodePropertyChangedEvent& OnNodePropertyChanged() { return PropertyChangeEvent;	}
 
+	/**
+	 * Helper function to check whether a pin is valid and linked to something else in the graph
+	 * @param	InPinName		The name of the pin @see UEdGraphNode::FindPin
+	 * @param	InPinDirection	The direction of the pin we are looking for. If this is EGPD_MAX, all directions are considered
+	 * @return true if the pin is present and connected
+	 */
+	bool IsPinExposedAndLinked(const FString& InPinName, const EEdGraphPinDirection Direction = EGPD_MAX) const;
+
 protected:
 	friend FAnimBlueprintCompiler;
 	friend FAnimGraphNodeDetails;
@@ -300,6 +309,9 @@ protected:
 	void InternalPinCreation(TArray<UEdGraphPin*>* OldPins);
 
 	FOnNodePropertyChangedEvent PropertyChangeEvent;
+
+private:
+	TArray<FName> OldShownPins;
 };
 
 template<class AssetType>

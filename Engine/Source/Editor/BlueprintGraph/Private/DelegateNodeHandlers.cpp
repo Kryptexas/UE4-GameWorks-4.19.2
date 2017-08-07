@@ -109,25 +109,28 @@ struct FKCHandlerDelegateHelper
 	static void RegisterMultipleSelfAndMCDelegateProperty(FKismetFunctionContext& Context, UK2Node_BaseMCDelegate * DelegateNode, FCompilerResultsLog& MessageLog, 
 		const UEdGraphSchema_K2* Schema, FDelegateOwnerId::FInnerTermMap& InnerTermMap)
 	{
-		UMulticastDelegateProperty* BoundProperty = FindAndCheckDelegateProperty(Context, DelegateNode, MessageLog, Schema);
-		if(BoundProperty && DelegateNode && Schema)
+		if (DelegateNode && Schema)
 		{
-			UEdGraphPin* SelfPin = Schema->FindSelfPin(*DelegateNode, EEdGraphPinDirection::EGPD_Input);
-			check(SelfPin);
-
-			if(0 == SelfPin->LinkedTo.Num())
+			UMulticastDelegateProperty* BoundProperty = FindAndCheckDelegateProperty(Context, DelegateNode, MessageLog, Schema);
+			if (BoundProperty)
 			{
-				FBPTerminal* Term = CreateInnerTerm(Context, SelfPin, FEdGraphUtilities::GetNetFromPin(SelfPin), BoundProperty, DelegateNode, MessageLog);
-				Context.NetMap.Add(SelfPin, Term);
-				InnerTermMap.Add(FDelegateOwnerId(SelfPin, DelegateNode), Term);
-				return;
-			}
+				UEdGraphPin* SelfPin = Schema->FindSelfPin(*DelegateNode, EEdGraphPinDirection::EGPD_Input);
+				check(SelfPin);
 
-			for(int32 LinkIndex = 0; LinkIndex < SelfPin->LinkedTo.Num(); ++LinkIndex)
-			{
-				UEdGraphPin* NetPin = SelfPin->LinkedTo[LinkIndex];
-				FBPTerminal* Term = CreateInnerTerm(Context, SelfPin, NetPin, BoundProperty, DelegateNode, MessageLog);
-				InnerTermMap.Add(FDelegateOwnerId(NetPin, DelegateNode), Term);
+				if (0 == SelfPin->LinkedTo.Num())
+				{
+					FBPTerminal* Term = CreateInnerTerm(Context, SelfPin, FEdGraphUtilities::GetNetFromPin(SelfPin), BoundProperty, DelegateNode, MessageLog);
+					Context.NetMap.Add(SelfPin, Term);
+					InnerTermMap.Add(FDelegateOwnerId(SelfPin, DelegateNode), Term);
+					return;
+				}
+
+				for (int32 LinkIndex = 0; LinkIndex < SelfPin->LinkedTo.Num(); ++LinkIndex)
+				{
+					UEdGraphPin* NetPin = SelfPin->LinkedTo[LinkIndex];
+					FBPTerminal* Term = CreateInnerTerm(Context, SelfPin, NetPin, BoundProperty, DelegateNode, MessageLog);
+					InnerTermMap.Add(FDelegateOwnerId(NetPin, DelegateNode), Term);
+				}
 			}
 		}
 	}

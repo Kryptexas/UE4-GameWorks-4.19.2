@@ -1,6 +1,6 @@
 Availability: Public
-Title:Animation and Animation Blending
-Crumbs: 
+Title:Animation & Animation Blending
+Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
 Description:Illustrates how you can apply animation to a Skeletal Mesh Actor in Sequencer and blend animations. 
 Version: 4.15
 SkillLevel: Intermediate
@@ -8,25 +8,22 @@ parent:Engine/Sequencer/HowTo
 order:1
 checkpoint: editorqs
 Related: Engine/Sequencer/Overview
-Related: Engine/Sequencer/ReferenceEditor
+Related: Engine\Sequencer\ReferenceEditor\
 tags:Sequencer
-type:how-to
 
-When creating cinematic sequences, there may be times where you want to have a character in your scene move around or perform some kind of animation. 
-In **Sequencer**, this can be done by adding a Skeletal Mesh Actor to a Level Sequence, then adding an Animation sub-track, and then specifying the animation that you want the Actor to perform. 
-Repeating this process and adding different kinds of animations for your Actor to perform is what can bring your characters to life in your cinematic sequences! 
+When creating cinematic sequences, there may be times where you want to have a character in your scene move around or perform some kind of animation.
+In **Sequencer**, this can be done by adding a Skeletal Mesh Actor to a Level Sequence then adding an Animation sub-track and specifying the animation that you want the Actor to perform.
+Repeating this process and adding different kinds of animations for your Actor to perform is what can bring your characters to life in your cinematic sequences!
 
-In the following guide, you will create a small scene that starts with a character walking, then blending from walking into a jumping animation. 
-
-<!--Add Hero Image here, showing users what they will create during the activity (an End Result picture is fine)-->
+Here in this guide, we will create a small scene that has a character start out walking and blend from a walk into a jump animation. 
 
 ## Steps
 
 [REGION:note]
-For this guide, we are using the **Blueprint Third Person Template** project with **Starter Content Enabled**. 
+For this how-to, we are using the **Blueprint Third Person Template** project with **Starter Content Enabled**. 
 [/REGION]
 
-1.	Inside your project, from the Main Toolbar, click the **Cinematics** button, and then click the **Add Level Sequence** button. 
+1.	Inside your project, from the Main Toolbar, click the **Cinematics** button and **Add Level Sequence**. 
 
 	![](CharacterAnim_01.png)
 
@@ -38,7 +35,7 @@ For this guide, we are using the **Blueprint Third Person Template** project wit
 
 	![](CharacterAnim_03.png)
 
-1.	Click the **Animation** button on the new Skeletal Mesh Track and assign the **ThirdPersonWalk** Animation Sequence. 
+1.	Click the **Animation** button on the new Skeletal Mesh Track and assign the **ThirdPersonWalk** animation. 
 
 	![](CharacterAnim_04.png)
 
@@ -64,9 +61,7 @@ For this guide, we are using the **Blueprint Third Person Template** project wit
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-	[REGION:tip]
 	When adding animations, you can use the weight value to blend between multiple animations, which is how we will address the pop between animations. 
-	[/REGION]
 
 1.	Drag the **ThirdPersonJump_Start** animation below and under the walk animation, back to frame **25** of the sequence. 
 
@@ -76,23 +71,20 @@ For this guide, we are using the **Blueprint Third Person Template** project wit
 
 	![](CharacterAnim_08.png)
 
-	[REGION:note]
-	This will turn off the playback of the jump start animation since it's weighted value is `0.0`. 
-	[/REGION]
+	This will effectively turn off the playback of the jump start animation since its weighted value is 0.0. 
 
-1.	Scrub to frame **30** and add keys for both animations of **0.0** and **1.0** for the walk and jump animations respectively. 
+1.	Scrub to frame **30** and add keys for both animations of **0.0** and **1.0** for the walk and jump animations, respectively. 
 
 	![](CharacterAnim_09.png)
 
-	[REGION:note]
-	This will blend in the jump start animation and blend out the walk animation. 
-	[/REGION]
+	This will effectively blend in the jump start animation and blend out the walk animation. 
 
-1.	Finally, click the **Preview Play** button to see the animation blending. 
+1.	Click the **Preview Play** button to see the animation blending. 
+
 
 ## End Result
 
-Your sequence now includes a Skeletal Mesh with multiple animations of which blend together smoothly instead of popping between animations. 
+Your sequence now includes a Skeletal Mesh with multiple animations which blend together smoothly instead of popping between animations. 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -106,33 +98,4 @@ kVotxriT1Y4
 [/PARAMLITERAL]
 [/OBJECT]
 
-If you want to continue working on this example, you can add the jump loop and jump end animations, blending them in so that the character jumps and lands. 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+You could continue with this example by adding in the jump loop and jump end animations and blend them in so the character jumps and lands. 

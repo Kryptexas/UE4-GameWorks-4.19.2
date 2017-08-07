@@ -3,6 +3,9 @@ Title:Derived Data Cache
 Crumbs:%ROOT%, Engine
 Description: Overview of the Derived Data Cache and the storage of assets in formats used by UE4 and its target platforms. 
 version: 4.9
+Parent:Engine
+type:overview
+order:24
 
 The **Derived Data Cache** (DDC) stores versions of assets in the formats used by the engine and its 
 target platforms, as opposed to the source formats artists create that are imported into the editor 

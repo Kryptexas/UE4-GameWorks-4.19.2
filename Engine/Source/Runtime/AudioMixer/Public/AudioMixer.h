@@ -9,6 +9,7 @@
 #include "AudioMixerTypes.h"
 #include "HAL/Runnable.h"
 #include "Stats/Stats.h"
+#include "Classes/Sound/AudioSettings.h"
 
 // defines used for AudioMixer.h
 #define AUDIO_PLATFORM_ERROR(INFO)			(OnAudioMixerPlatformError(INFO, FString(__FILE__), __LINE__))
@@ -96,23 +97,11 @@ namespace Audio
 		/** The sample rate of the audio device */
 		int32 SampleRate;
 
-		/** The default sample of the audio device */
-		int32 DefaultSampleRate;
-
-		/** The number of frames processed by audio device */
-		int32 NumFrames;
-
-		/** The number of samples processed by the audio device (NumChannels * NumFrames) */
-		int32 NumSamples;
-
 		/** The data format of the audio stream */
 		EAudioMixerStreamDataFormat::Type Format;
 
 		/** The output channel array of the audio device */
 		TArray<EAudioMixerChannel::Type> OutputChannelArray;
-
-		/** The estimated latency of the audio device */
-		uint32 Latency;
 
 		/** Whether or not this device is the system default */
 		uint8 bIsSystemDefault : 1;
@@ -128,12 +117,8 @@ namespace Audio
 			DeviceId = TEXT("Unknown");
 			NumChannels = 0;
 			SampleRate = 0;
-			DefaultSampleRate = 0;
-			NumFrames = 0;
-			NumSamples = 0;
 			Format = EAudioMixerStreamDataFormat::Unknown;
 			OutputChannelArray.Reset();
-			Latency = 0;
 			bIsSystemDefault = false;
 		}
 
@@ -152,6 +137,16 @@ namespace Audio
 		virtual void OnDefaultDeviceOutputChanged(const FString& DeviceId) {}
 
 		virtual void OnDefaultInputOutputChanged(const FString& DeviceId) {}
+
+		bool IsMainAudioMixer() const { return bIsMainAudioMixer; }
+
+	protected:
+
+		IAudioMixer() 
+		: bIsMainAudioMixer(false) 
+		{}
+
+		bool bIsMainAudioMixer;
 	};
 
 
@@ -164,6 +159,9 @@ namespace Audio
 		/** The number of desired audio frames in audio callback. */
 		uint32 NumFrames;
 		
+		/** The number of queued buffers to use for the strea. */
+		int32 NumBuffers;
+
 		/** Owning platform independent audio mixer ptr.*/
 		IAudioMixer* AudioMixer;
 		
@@ -176,6 +174,7 @@ namespace Audio
 		FAudioMixerOpenStreamParams()
 			: OutputDeviceIndex(INDEX_NONE)
 			, NumFrames(1024)
+			, NumBuffers(1)
 			, AudioMixer(nullptr)
 			, SampleRate(44100)
 			, bRestoreIfRemoved(false)
@@ -195,14 +194,11 @@ namespace Audio
 		/** The callback to use for platform-independent layer. */
 		IAudioMixer* AudioMixer;
 
-		/** The number of frames used in each audio callback. */
-		uint32 NumOutputFrames;
+		/** The number of queued buffers to use. */
+		uint32 NumBuffers;
 
-		/** Whether or not we need to perform a format conversion of the audio for this output device. */
-		uint8 bPerformFormatConversion : 1;
-
-		/** Whether or not we need to perform a byte swap for this output device. */
-		uint8 bPerformByteSwap : 1;
+		/** Number of output frames */
+		int32 NumOutputFrames;
 
 		FAudioOutputStreamInfo()
 		{
@@ -220,9 +216,8 @@ namespace Audio
 			DeviceInfo.Reset();
 			StreamState = EAudioOutputStreamState::Closed;
 			AudioMixer = nullptr;
+			NumBuffers = 2;
 			NumOutputFrames = 0;
-			bPerformFormatConversion = false;
-			bPerformByteSwap = false;
 		}
 	};
 
@@ -240,6 +235,63 @@ namespace Audio
 		NotPresent,
 		Unplugged,
 	};
+
+	/** Struct used to store render time analysis data. */
+	struct FAudioRenderTimeAnalysis
+	{
+		double AvgRenderTime;
+		double MaxRenderTime;
+		double TotalRenderTime;
+		double RenderTimeSinceLastLog;
+		uint32 StartTime;
+		double MaxSinceTick;
+		uint64 RenderTimeCount;
+		int32 RenderInstanceId;
+
+		FAudioRenderTimeAnalysis();
+		void Start();
+		void End();
+	};
+
+	/** Class which wraps an output float buffer and handles conversion to device stream formats. */
+	class AUDIOMIXER_API FOutputBuffer
+	{
+	public:
+		FOutputBuffer()
+			: AudioMixer(nullptr)
+			, DataFormat(EAudioMixerStreamDataFormat::Unknown)
+		{}
+ 
+		/** Initialize the buffer with the given samples and output format. */
+		void Init(IAudioMixer* InAudioMixer, const int32 InNumSamples, const EAudioMixerStreamDataFormat::Type InDataFormat);
+
+		/** Gets the next mixed buffer from the audio mixer. */
+		void MixNextBuffer();
+
+		/** Returns the float buffer. */
+		TArray<float>& GetBuffer() { return Buffer; }
+
+		/** Submits the buffer to the audio mixer. */
+		const uint8* GetBufferData();
+
+		/** Returns if ready. */
+		bool IsReady() const { return bIsReady; }
+
+		/** Resets the buffer ready state. */
+		void ResetReadyState() { bIsReady = false; }
+
+		/** Resets the internal buffers to the new sample count. Used when device is changed. */
+		void Reset(const int32 InNewNumSamples);
+
+	private:
+		IAudioMixer* AudioMixer;
+		// TODO: Audio SIMD
+		//typedef TArray<float, TAlignedHeapAllocator<16>> AlignedFloatBuffer;
+		TArray<float> Buffer;
+		TArray<uint8> FormattedBuffer;
+ 		EAudioMixerStreamDataFormat::Type DataFormat;
+ 		FThreadSafeBool bIsReady;
+ 	};
 
 	/** Abstract interface for receiving audio device changed notifications */
 	class AUDIOMIXER_API IAudioMixerDeviceChangedLister
@@ -262,7 +314,7 @@ namespace Audio
 	{
 
 	public: // Virtual functions
-
+		
 		/** Virtual destructor. */
 		virtual ~IAudioMixerPlatformInterface();
 
@@ -275,6 +327,9 @@ namespace Audio
 		/** Check if audio device changed if applicable. Return true if audio device changed. */
 		virtual bool CheckAudioDeviceChange() { return false; };
 
+		/** Resumes playback on new audio device after device change. */
+		virtual void ResumePlaybackOnNewDevice() {}
+
 		/** Teardown the hardware. */
 		virtual bool TeardownHardware() = 0;
 		
@@ -282,10 +337,13 @@ namespace Audio
 		virtual bool IsInitialized() const = 0;
 
 		/** Returns the number of output devices. */
-		virtual bool GetNumOutputDevices(uint32& OutNumOutputDevices) = 0;
+		virtual bool GetNumOutputDevices(uint32& OutNumOutputDevices) { OutNumOutputDevices = 1; return true; }
 
 		/** Gets the device information of the given device index. */
 		virtual bool GetOutputDeviceInfo(const uint32 InDeviceIndex, FAudioPlatformDeviceInfo& OutInfo) = 0;
+
+		/** Gets the platform specific audio settings. */
+		virtual FAudioPlatformSettings GetPlatformSettings() const = 0;
 
 		/** Returns the default device index. */
 		virtual bool GetDefaultOutputDeviceIndex(uint32& OutDefaultDeviceIndex) const = 0;
@@ -309,13 +367,22 @@ namespace Audio
 		virtual FAudioPlatformDeviceInfo GetPlatformDeviceInfo() const = 0;
 
 		/** Submit the given buffer to the platform's output audio device. */
-		virtual void SubmitBuffer(const TArray<float>& Buffer) = 0;
+		virtual void SubmitBuffer(const uint8* Buffer) {};
 
 		/** Returns the name of the format of the input sound wave. */
 		virtual FName GetRuntimeFormat(USoundWave* InSoundWave) = 0;
 
+		/** Allows platforms to filter the requested number of frames to render. Some platforms only support specific frame counts. */
+		virtual int32 GetNumFrames(const int32 InNumReqestedFrames) { return InNumReqestedFrames; }
+
 		/** Checks if the platform has a compressed audio format for sound waves. */
 		virtual bool HasCompressedAudioInfoClass(USoundWave* InSoundWave) = 0;
+
+		/** Whether or not the platform supports realtime decompression. */
+		virtual bool SupportsRealtimeDecompression() const { return false; }
+
+		/** Whether or not this platform has hardware decompression. */
+		virtual bool SupportsHardwareDecompression() const { return false; }
 
 		/** Creates a Compressed audio info class suitable for decompressing this SoundWave. */
 		virtual ICompressedAudioInfo* CreateCompressedAudioInfo(USoundWave* SoundWave) = 0;
@@ -326,6 +393,12 @@ namespace Audio
 		// Helper function to gets the channel map type at the given index.
 		static bool GetChannelTypeAtIndex(const int32 Index, EAudioMixerChannel::Type& OutType);
 
+        // Function to stop all audio from rendering. Used on mobile platforms which can suspend the application.
+        virtual void SuspendContext() {}
+        
+        // Function to resume audio rendering. Used on mobile platforms which can suspend the application.
+        virtual void ResumeContext() {}
+        
 	public: // Public Functions
 		//~ Begin FRunnable
 		uint32 Run() override;
@@ -337,6 +410,9 @@ namespace Audio
 		/** Retrieves the next generated buffer and feeds it to the platform mixer output stream. */
 		void ReadNextBuffer();
 
+		/** Reset the fade state (use if reusing audio platform interface, e.g. in main audio device. */
+		void FadeIn();
+
 		/** Start a fadeout. Prevents pops during shutdown. */
 		void FadeOut();
 
@@ -344,6 +420,12 @@ namespace Audio
 		FString GetLastError() const { return LastError; }
 
 	protected:
+		
+		// Run the "main" audio device
+		uint32 MainAudioDeviceRun();
+		
+		// Wrapper around the thread Run. This is virtualized so a platform can fundamentally override the render function.
+		virtual uint32 RunInternal();
 
 		/** Is called when an error is generated. */
 		inline void OnAudioMixerPlatformError(const FString& ErrorDetails, const FString& FileName, int32 LineNumber)
@@ -352,43 +434,56 @@ namespace Audio
 			UE_LOG(LogAudioMixer, Error, TEXT("%s"), *LastError);
 		}
 
-		/** Returns the number of bytes for the given audio stream format. */
-		uint32 GetNumBytesForFormat(const EAudioMixerStreamDataFormat::Type DataFormat);
-
 		/** Start generating audio from our mixer. */
 		void BeginGeneratingAudio();
 
 		/** Stops the render thread from generating audio. */
 		void StopGeneratingAudio();
 
+		/** Performs buffer fades for shutdown/startup of audio mixer. */
 		void PerformFades();
 
 	protected:
 
 		/** The audio device stream info. */
 		FAudioOutputStreamInfo AudioStreamInfo;
-
-		/** The number of mixer buffers. */
-		static const int32 NumMixerBuffers = 2;
+		FAudioMixerOpenStreamParams OpenStreamParams;
 
 		/** List of generated output buffers. */
-		TArray<float>	OutputBuffers[NumMixerBuffers];
-		bool			OutputBufferReady[NumMixerBuffers];
-		bool			WarnedBufferUnderrun;
+		TArray<FOutputBuffer> OutputBuffers;
+
+		/** Special empty buffer for buffer underruns. */
+		FOutputBuffer UnderrunBuffer;
+
+		/** Whether or not we warned of buffer underrun. */
+		bool bWarnedBufferUnderrun;
 
 		/** The audio render thread. */
 		FRunnableThread* AudioRenderThread;
+
 		/** The render thread sync event. */
 		FEvent* AudioRenderEvent;
+
+		/** Event for a single buffer render. */
+		FEvent* AudioBufferEvent;
 
 		/** Event allows you to block until fadeout is complete. */
 		FEvent* AudioFadeEvent;
 
-		/** The current buffer index. */
-		int32 CurrentBufferIndex;
+		/** The buffer which is currently submitted to the output device (and is being read from). */
+		int32 CurrentBufferReadIndex;
+
+		/** The buffer which is currently being rendered to (or about to be rendered to). */
+		int32 CurrentBufferWriteIndex;
+
+		/** The number of mixer buffers to queue on the output source voice. */
+		int32 NumOutputBuffers;
 
 		/** String containing the last generated error. */
 		FString LastError;
+
+		/** Struct used to store render time analysis data. */
+		FAudioRenderTimeAnalysis RenderTimeAnalysis;
 
 		/** Flag if the audio device is in the process of changing. Prevents more buffers from being submitted to platform. */
 		FThreadSafeBool bAudioDeviceChanging;
@@ -397,6 +492,7 @@ namespace Audio
 		FThreadSafeBool bFadingOut;
 		FThreadSafeBool bFadedOut;
 		float FadeEnvelopeValue;
+
 	};
 
 

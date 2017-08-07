@@ -37,7 +37,8 @@ void UEnvQueryGenerator_PathingGrid::ProjectAndFilterNavPoints(TArray<FNavLocati
 	bool bPathToItem = PathToItem.GetValue();
 	float RangeMultiplierValue = ScanRangeMultiplier.GetValue();
 
-	ARecastNavMesh* NavMeshData = const_cast<ARecastNavMesh*>(static_cast<const ARecastNavMesh*>(FEQSHelpers::FindNavigationDataForQuery(QueryInstance)));
+	const ANavigationData* QueryNavData = FEQSHelpers::FindNavigationDataForQuery(QueryInstance);
+	const ARecastNavMesh* NavMeshData = Cast<const ARecastNavMesh>(QueryNavData);
 	if (NavMeshData == nullptr || DataOwner == nullptr)
 	{
 		return;
@@ -46,11 +47,17 @@ void UEnvQueryGenerator_PathingGrid::ProjectAndFilterNavPoints(TArray<FNavLocati
 	TArray<FVector> ContextLocations;
 	QueryInstance.PrepareContext(GenerateAround, ContextLocations);
 
-	FSharedNavQueryFilter NavigationFilterCopy = NavigationFilter ?
-		UNavigationQueryFilter::GetQueryFilter(*NavMeshData, DataOwner, NavigationFilter)->GetCopy() :
-		NavMeshData->GetDefaultQueryFilter()->GetCopy();
-	NavigationFilterCopy->SetBacktrackingEnabled(!bPathToItem);
-	
+	FSharedConstNavQueryFilter NavQueryFilter = NavigationFilter ? UNavigationQueryFilter::GetQueryFilter(*NavMeshData, DataOwner, NavigationFilter) : NavMeshData->GetDefaultQueryFilter();
+	if (!NavQueryFilter.IsValid())
+	{
+		UE_LOG(LogEQS, Error, TEXT("%s (%d:%s) can't obtain navigation filter! NavData:%s FilterClass:%s"),
+			*QueryInstance.QueryName, QueryInstance.OptionIndex, *OptionName,
+			*GetNameSafe(NavMeshData), *GetNameSafe(NavigationFilter.Get()));
+		return;
+	}
+
+	FSharedNavQueryFilter NavigationFilterCopy = NavQueryFilter->GetCopy();
+	if (NavigationFilterCopy.IsValid())
 	{
 		TArray<NavNodeRef> Polys;
 		TArray<FNavLocation> HitLocations;

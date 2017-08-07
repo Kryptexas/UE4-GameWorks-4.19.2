@@ -16,8 +16,8 @@ class UPrimitiveComponent;
  *		-Only actually activates on Blocking hits
  *		-Uses first PrimitiveComponent instead of being able to specify arbitrary component.
  */
-UCLASS(MinimalAPI)
-class UAbilityTask_WaitOverlap : public UAbilityTask
+UCLASS()
+class GAMEPLAYABILITIES_API UAbilityTask_WaitOverlap : public UAbilityTask
 {
 	GENERATED_UCLASS_BODY()
 

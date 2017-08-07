@@ -103,7 +103,21 @@ const FSlateBrush* SProgressBar::GetMarqueeImage() const
 	return MarqueeImage ? MarqueeImage : &Style->MarqueeImage;
 }
 
-int32 SProgressBar::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+void PushTransformedClip(FSlateWindowElementList& OutDrawElements, const FGeometry& AllottedGeometry, FVector2D InsetPadding, FVector2D ProgressOrigin, FSlateRect Progress)
+{
+	const FSlateRenderTransform& Transform = AllottedGeometry.GetAccumulatedRenderTransform();
+
+	const FVector2D MaxSize = AllottedGeometry.GetLocalSize() - ( InsetPadding * 2.0f );
+
+	OutDrawElements.PushClip(FSlateClippingZone(
+		Transform.TransformPoint(InsetPadding + (ProgressOrigin - FVector2D(Progress.Left, Progress.Top)) * MaxSize),
+		Transform.TransformPoint(InsetPadding + FVector2D(ProgressOrigin.X + Progress.Right, ProgressOrigin.Y - Progress.Top) * MaxSize),
+		Transform.TransformPoint(InsetPadding + FVector2D(ProgressOrigin.X - Progress.Left, ProgressOrigin.Y + Progress.Bottom) * MaxSize),
+		Transform.TransformPoint(InsetPadding + (ProgressOrigin + FVector2D(Progress.Right, Progress.Bottom)) * MaxSize)
+	));
+}
+
+int32 SProgressBar::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	// Used to track the layer ID we will return.
 	int32 RetLayerId = LayerId;
@@ -117,12 +131,8 @@ int32 SProgressBar::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGe
 	const FLinearColor ColorAndOpacitySRGB = InWidgetStyle.GetColorAndOpacityTint();
 
 	TOptional<float> ProgressFraction = Percent.Get();	
+	FVector2D BorderPaddingRef = BorderPadding.Get();
 
-	// Paint inside the border only. 
-	// Pre-snap the clipping rect to try and reduce common jitter, since the padding is typically only a single pixel.
-	FSlateRect SnappedClippingRect = FSlateRect(FMath::RoundToInt(MyClippingRect.Left), FMath::RoundToInt(MyClippingRect.Top), FMath::RoundToInt(MyClippingRect.Right), FMath::RoundToInt(MyClippingRect.Bottom));
-	const FSlateRect ForegroundClippingRect = SnappedClippingRect.InsetBy(FMargin(BorderPadding.Get().X, BorderPadding.Get().Y));
-	
 	const FSlateBrush* CurrentBackgroundImage = GetBackgroundImage();
 
 	FSlateDrawElement::MakeBox(
@@ -130,7 +140,6 @@ int32 SProgressBar::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGe
 		RetLayerId++,
 		AllottedGeometry.ToPaintGeometry(),
 		CurrentBackgroundImage,
-		SnappedClippingRect,
 		DrawEffects,
 		InWidgetStyle.GetColorAndOpacityTint() * CurrentBackgroundImage->GetTint( InWidgetStyle )
 	);	
@@ -143,8 +152,7 @@ int32 SProgressBar::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGe
 		{
 			case EProgressBarFillType::RightToLeft:
 			{
-				FSlateRect ClippedAllotedGeometry = FSlateRect(AllottedGeometry.AbsolutePosition, AllottedGeometry.AbsolutePosition + AllottedGeometry.Size * AllottedGeometry.Scale);
-				ClippedAllotedGeometry.Left = ClippedAllotedGeometry.Right - ClippedAllotedGeometry.GetSize().X * ClampedFraction;
+				PushTransformedClip(OutDrawElements, AllottedGeometry, BorderPaddingRef, FVector2D(1, 0), FSlateRect(ClampedFraction, 0, 0, 1));
 
 				// Draw Fill
 				FSlateDrawElement::MakeBox(
@@ -152,34 +160,38 @@ int32 SProgressBar::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGe
 					RetLayerId++,
 					AllottedGeometry.ToPaintGeometry(
 						FVector2D::ZeroVector,
-						FVector2D( AllottedGeometry.Size.X, AllottedGeometry.Size.Y )),
+						FVector2D( AllottedGeometry.GetLocalSize().X, AllottedGeometry.GetLocalSize().Y )),
 					CurrentFillImage,
-					ForegroundClippingRect.IntersectionWith(ClippedAllotedGeometry),
 					DrawEffects,
 					FillColorAndOpacitySRGB
 					);
+
+				OutDrawElements.PopClip();
 				break;
 			}
 			case EProgressBarFillType::FillFromCenter:
 			{
+				float HalfFrac = ClampedFraction / 2.0f;
+				PushTransformedClip(OutDrawElements, AllottedGeometry, BorderPaddingRef, FVector2D(0.5, 0.5), FSlateRect(HalfFrac, HalfFrac, HalfFrac, HalfFrac));
+
 				// Draw Fill
 				FSlateDrawElement::MakeBox(
 					OutDrawElements,
 					RetLayerId++,
 					AllottedGeometry.ToPaintGeometry(
-						FVector2D( (AllottedGeometry.Size.X * 0.5f) - ((AllottedGeometry.Size.X * ( ClampedFraction ))*0.5), 0.0f),
-						FVector2D( AllottedGeometry.Size.X * ( ClampedFraction ) , AllottedGeometry.Size.Y )),
+						FVector2D( (AllottedGeometry.GetLocalSize().X * 0.5f) - ((AllottedGeometry.GetLocalSize().X * ( ClampedFraction ))*0.5), 0.0f),
+						FVector2D( AllottedGeometry.GetLocalSize().X * ( ClampedFraction ) , AllottedGeometry.GetLocalSize().Y )),
 					CurrentFillImage,
-					ForegroundClippingRect,
 					DrawEffects,
 					FillColorAndOpacitySRGB
 					);
+
+				OutDrawElements.PopClip();
 				break;
 			}
 			case EProgressBarFillType::TopToBottom:
 			{
-				FSlateRect ClippedAllotedGeometry = FSlateRect(AllottedGeometry.AbsolutePosition, AllottedGeometry.AbsolutePosition + AllottedGeometry.Size * AllottedGeometry.Scale);
-				ClippedAllotedGeometry.Bottom = ClippedAllotedGeometry.Top + ClippedAllotedGeometry.GetSize().Y * ClampedFraction;
+				PushTransformedClip(OutDrawElements, AllottedGeometry, BorderPaddingRef, FVector2D(0, 0), FSlateRect(0, 0, 1, ClampedFraction));
 
 				// Draw Fill
 				FSlateDrawElement::MakeBox(
@@ -187,17 +199,20 @@ int32 SProgressBar::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGe
 					RetLayerId++,
 					AllottedGeometry.ToPaintGeometry(
 						FVector2D::ZeroVector,
-						FVector2D( AllottedGeometry.Size.X, AllottedGeometry.Size.Y )),
+						FVector2D( AllottedGeometry.GetLocalSize().X, AllottedGeometry.GetLocalSize().Y )),
 					CurrentFillImage,
-					ForegroundClippingRect.IntersectionWith(ClippedAllotedGeometry),
 					DrawEffects,
 					FillColorAndOpacitySRGB
 					);
+
+				OutDrawElements.PopClip();
 				break;
 			}
 			case EProgressBarFillType::BottomToTop:
 			{
-				FSlateRect ClippedAllotedGeometry = FSlateRect(AllottedGeometry.AbsolutePosition, AllottedGeometry.AbsolutePosition + AllottedGeometry.Size * AllottedGeometry.Scale);
+				PushTransformedClip(OutDrawElements, AllottedGeometry, BorderPaddingRef, FVector2D(0, 1), FSlateRect(0, ClampedFraction, 1, 0));
+
+				FSlateRect ClippedAllotedGeometry = FSlateRect(AllottedGeometry.AbsolutePosition, AllottedGeometry.AbsolutePosition + AllottedGeometry.GetLocalSize() * AllottedGeometry.Scale);
 				ClippedAllotedGeometry.Top = ClippedAllotedGeometry.Bottom - ClippedAllotedGeometry.GetSize().Y * ClampedFraction;
 
 				// Draw Fill
@@ -206,19 +221,19 @@ int32 SProgressBar::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGe
 					RetLayerId++,
 					AllottedGeometry.ToPaintGeometry(
 						FVector2D::ZeroVector,
-						FVector2D( AllottedGeometry.Size.X, AllottedGeometry.Size.Y )),
+						FVector2D( AllottedGeometry.GetLocalSize().X, AllottedGeometry.GetLocalSize().Y )),
 					CurrentFillImage,
-					ForegroundClippingRect.IntersectionWith(ClippedAllotedGeometry),
 					DrawEffects,
 					FillColorAndOpacitySRGB
 					);
+
+				OutDrawElements.PopClip();
 				break;
 			}
 			case EProgressBarFillType::LeftToRight:
 			default:
 			{
-				FSlateRect ClippedAllotedGeometry = FSlateRect(AllottedGeometry.AbsolutePosition, AllottedGeometry.AbsolutePosition + AllottedGeometry.Size * AllottedGeometry.Scale);
-				ClippedAllotedGeometry.Right = ClippedAllotedGeometry.Left + ClippedAllotedGeometry.GetSize().X * ClampedFraction;
+				PushTransformedClip(OutDrawElements, AllottedGeometry, BorderPaddingRef, FVector2D(0, 0), FSlateRect(0, 0, ClampedFraction, 1));
 
 				// Draw Fill
 				FSlateDrawElement::MakeBox(
@@ -226,12 +241,13 @@ int32 SProgressBar::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGe
 					RetLayerId++,
 					AllottedGeometry.ToPaintGeometry(
 						FVector2D::ZeroVector,
-						FVector2D( AllottedGeometry.Size.X, AllottedGeometry.Size.Y )),
+						FVector2D( AllottedGeometry.GetLocalSize().X, AllottedGeometry.GetLocalSize().Y )),
 					CurrentFillImage,
-					ForegroundClippingRect.IntersectionWith(ClippedAllotedGeometry),
 					DrawEffects,
 					FillColorAndOpacitySRGB
 					);
+
+				OutDrawElements.PopClip();
 				break;
 			}
 		}
@@ -244,18 +260,20 @@ int32 SProgressBar::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGe
 		const float MarqueeAnimOffset = CurrentMarqueeImage->ImageSize.X * MarqueeOffset;
 		const float MarqueeImageSize = CurrentMarqueeImage->ImageSize.X;
 
+		PushTransformedClip(OutDrawElements, AllottedGeometry, BorderPaddingRef, FVector2D(0, 0), FSlateRect(0, 0, 1, 1));
+
 		FSlateDrawElement::MakeBox(
 			OutDrawElements,
 			RetLayerId++,
 			AllottedGeometry.ToPaintGeometry(
 				FVector2D( MarqueeAnimOffset - MarqueeImageSize, 0.0f ),
-				FVector2D( AllottedGeometry.Size.X + MarqueeImageSize, AllottedGeometry.Size.Y )),
+				FVector2D( AllottedGeometry.GetLocalSize().X + MarqueeImageSize, AllottedGeometry.GetLocalSize().Y )),
 			CurrentMarqueeImage,
-			ForegroundClippingRect,
 			DrawEffects,
 			CurrentMarqueeImage->TintColor.GetSpecifiedColor() * ColorAndOpacitySRGB
 			);
 
+		OutDrawElements.PopClip();
 	}
 
 	return RetLayerId - 1;

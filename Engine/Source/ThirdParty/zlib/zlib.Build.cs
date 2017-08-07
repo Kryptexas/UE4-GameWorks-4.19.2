@@ -40,13 +40,13 @@ public class zlib : ModuleRules
 		else if (Target.Platform == UnrealTargetPlatform.IOS||
 				 Target.Platform == UnrealTargetPlatform.TVOS)
 		{
-			PublicIncludePaths.Add(OldzlibPath + "inc");
+			PublicIncludePaths.Add(OldzlibPath + "Inc");
 			PublicAdditionalLibraries.Add("z");
 		}
 
 		else if (Target.Platform == UnrealTargetPlatform.Android)
 		{
-			PublicIncludePaths.Add(OldzlibPath + "inc");
+			PublicIncludePaths.Add(OldzlibPath + "Inc");
 			PublicAdditionalLibraries.Add("z");
 		}
 

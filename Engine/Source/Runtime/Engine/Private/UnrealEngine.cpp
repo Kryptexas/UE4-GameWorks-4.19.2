@@ -119,6 +119,7 @@
 #include "Engine/WorldComposition.h"
 #include "Engine/LevelScriptActor.h"
 #include "IHardwareSurveyModule.h"
+#include "HAL/LowLevelMemTracker.h"
 
 #include "Particles/Spawn/ParticleModuleSpawn.h"
 #include "Particles/TypeData/ParticleModuleTypeDataMesh.h"
@@ -191,11 +192,18 @@
 
 #include "GeneralProjectSettings.h"
 #include "ProfilingDebugging/LoadTimeTracker.h"
+#include "ObjectKey.h"
+#include "AssetRegistryModule.h"
+
+#if !UE_BUILD_SHIPPING
+#include "IPluginManager.h"
+#include "GenericPlatformCrashContext.h"
+#include "EngineBuildSettings.h"
+#endif
+
 
 DEFINE_LOG_CATEGORY(LogEngine);
 IMPLEMENT_MODULE( FEngineModule, Engine );
-
-#define DEBUGGING_VIEWPORT_SIZES 0
 
 #define LOCTEXT_NAMESPACE "UnrealEngine"
 
@@ -271,6 +279,15 @@ static TAutoConsoleVariable<float> CVarSetOverrideFPS(
 	ECVF_Cheat);
 #endif // !UE_BUILD_SHIPPING
 
+// Should we show errors and warnings (when DurationOfErrorsAndWarningsOnHUD is greater than zero), or only errors?
+int32 GSupressWarningsInOnScreenDisplay = 0;
+static FAutoConsoleVariableRef GSupressWarningsInOnScreenDisplayCVar(
+	TEXT("Engine.SupressWarningsInOnScreenDisplay"),
+	GSupressWarningsInOnScreenDisplay,
+	TEXT("0: Show both errors and warnings on screen, 1: Show only errors on screen (in either case only when DurationOfErrorsAndWarningsOnHUD is greater than zero)"),
+	ECVF_Default
+);
+
 /** Whether texture memory has been corrupted because we ran out of memory in the pool. */
 bool GIsTextureMemoryCorrupted = false;
 
@@ -279,7 +296,9 @@ bool GIsTextureMemoryCorrupted = false;
 	bool GIsPrepareMapChangeBroken = false;
 #endif
 
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 FSimpleMulticastDelegate UEngine::OnPostEngineInit;
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 // We expose these variables to everyone as we need to access them in other files via an extern
 ENGINE_API float GAverageFPS = 0.0f;
@@ -725,7 +744,7 @@ public:
 	FWorldContext
 -----------------------------------------------------------------------------*/
 
-void FWorldContext::SetCurrentWorld(UWorld *World)
+void FWorldContext::SetCurrentWorld(UWorld* World)
 {
 	if (World != nullptr)
 	{
@@ -850,6 +869,22 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 	// Start capturing errors and warnings
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	ErrorsAndWarningsCollector.Initialize();
+#endif
+
+#if !UE_BUILD_SHIPPING
+	if(!FEngineBuildSettings::IsInternalBuild())
+	{
+		TArray<TSharedRef<IPlugin>> EnabledPlugins = IPluginManager::Get().GetEnabledPlugins();
+
+		for (auto Plugin : EnabledPlugins)
+		{
+			const FPluginDescriptor& Desc = Plugin->GetDescriptor();
+
+			FString DescStr;
+			Desc.Write(DescStr, Desc.bEnabledByDefault);
+			FGenericCrashContext::AddPlugin(DescStr);
+		}
+	}
 #endif
 
 	// Set the memory warning handler
@@ -1369,6 +1404,9 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 		double ActualWaitTime = 0.f;
 		if( WaitTime > 0 )
 		{
+			// track all this waiting so that Game Thread is correct
+			FThreadIdleStats::FScopeIdle Scope;
+			
 			FSimpleScopeSecondsCounter ActualWaitTimeCounter(ActualWaitTime);
 			double WaitEndTime = FApp::GetCurrentTime() + WaitTime;
 
@@ -1395,7 +1433,18 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 					FPlatformProcess::SleepNoStats( 0 );
 				}
 			}
-			FApp::SetCurrentTime(FPlatformTime::Seconds());
+
+			if(bUseFixedFrameRate)
+			{
+				const float FrameRate = 1.f / FixedFrameRate;
+				FApp::SetDeltaTime(FrameRate);
+				FApp::SetCurrentTime(LastTime + FApp::GetDeltaTime());
+				bTimeWasManipulated = true;
+			}
+			else
+			{
+				FApp::SetCurrentTime(FPlatformTime::Seconds());
+			}
 		}
 		else if(bUseFixedFrameRate && MaxTickRate == FixedFrameRate)
 		{
@@ -1626,6 +1675,11 @@ void UEngine::InitializeObjectReferences()
 		LoadSpecialMaterial(EditorBrushMaterialName.ToString(), EditorBrushMaterial, false);
 		LoadSpecialMaterial(BoneWeightMaterialName.ToString(), BoneWeightMaterial, false);
 		LoadSpecialMaterial(ClothPaintMaterialName.ToString(), ClothPaintMaterial, false);
+		LoadSpecialMaterial(ClothPaintMaterialWireframeName.ToString(), ClothPaintMaterialWireframe, false);
+		LoadSpecialMaterial(DebugEditorMaterialName.ToString(), DebugEditorMaterial, false);
+
+		ClothPaintMaterialInstance = UMaterialInstanceDynamic::Create(ClothPaintMaterial, nullptr);
+		ClothPaintMaterialWireframeInstance = UMaterialInstanceDynamic::Create(ClothPaintMaterialWireframe, nullptr);
 #endif
 
 		LoadSpecialMaterial(PreviewShadowsIndicatorMaterialName.ToString(), PreviewShadowsIndicatorMaterial, false);
@@ -1772,19 +1826,19 @@ void UEngine::InitializeObjectReferences()
 
 void UEngine::InitializePortalServices()
 {
-	TSharedPtr<IMessagingRpcModule> MessagingRpcModule;
-	TSharedPtr<IPortalRpcModule> PortalRpcModule;
-	TSharedPtr<IPortalServicesModule> PortalServicesModule;
+	IMessagingRpcModule* MessagingRpcModule = nullptr;
+	IPortalRpcModule* PortalRpcModule = nullptr;
+	IPortalServicesModule* PortalServicesModule = nullptr;
 
 #if WITH_PORTAL_SERVICES && UE_EDITOR
-	MessagingRpcModule = StaticCastSharedPtr<IMessagingRpcModule>(FModuleManager::Get().LoadModule("MessagingRpc"));
-	PortalRpcModule = StaticCastSharedPtr<IPortalRpcModule>(FModuleManager::Get().LoadModule("PortalRpc"));
-	PortalServicesModule = StaticCastSharedPtr<IPortalServicesModule>(FModuleManager::Get().LoadModule("PortalServices"));
+	MessagingRpcModule = static_cast<IMessagingRpcModule*>(FModuleManager::Get().LoadModule("MessagingRpc"));
+	PortalRpcModule = static_cast<IPortalRpcModule*>(FModuleManager::Get().LoadModule("PortalRpc"));
+	PortalServicesModule = static_cast<IPortalServicesModule*>(FModuleManager::Get().LoadModule("PortalServices"));
 #endif
 
-	if (MessagingRpcModule.IsValid() &&
-		PortalRpcModule.IsValid() &&
-		PortalServicesModule.IsValid())
+	if (MessagingRpcModule &&
+		PortalRpcModule &&
+		PortalServicesModule)
 	{
 		// Initialize Portal services
 		PortalRpcClient = MessagingRpcModule->CreateRpcClient();
@@ -2221,9 +2275,26 @@ bool UEngine::InitializeHMDDevice()
 				IHeadMountedDisplayModule* HMDModule = *HMDModuleIt;
 
 				// Skip all non-matching modules when an explicit module name has been specified on the command line
-				if (bUseExplicitHMDDevice && !ExplicitHMDName.Equals(HMDModule->GetModuleKeyName(), ESearchCase::IgnoreCase))
+				if (bUseExplicitHMDDevice)
 				{
-					continue;
+					TArray<FString> HMDAliases;
+					HMDModule->GetModuleAliases(HMDAliases);
+					HMDAliases.Add(HMDModule->GetModuleKeyName());
+
+					bool bMatchesExplicitDevice = false;
+					for (const FString& HMDModuleName : HMDAliases)
+					{
+						if (ExplicitHMDName.Equals(HMDModule->GetModuleKeyName(), ESearchCase::IgnoreCase))
+						{
+							bMatchesExplicitDevice = true;
+							break;
+						}
+					}
+
+					if (!bMatchesExplicitDevice)
+					{
+						continue;
+					}
 				}
 
 				if(HMDModule->IsHMDConnected())
@@ -2720,7 +2791,13 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 		return true;
 	}
 
-#if ENABLE_LOC_TESTING
+#if ENABLE_LOW_LEVEL_MEM_TRACKER
+	if (FLowLevelMemTracker::Get().Exec(Cmd, Ar))
+	{
+		return true;
+	}
+#endif
+
 	{
 		FString CultureName;
 		if (FParse::Value(Cmd, TEXT("CULTURE="), CultureName))
@@ -2745,6 +2822,7 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 		}
 	}
 
+#if ENABLE_LOC_TESTING
 	{
 		FString ConfigFilePath;
 		if (FParse::Value(Cmd, TEXT("REGENLOC="), ConfigFilePath))
@@ -3183,7 +3261,7 @@ bool UEngine::HandleDeferCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 
 bool UEngine::HandleCeCommand( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 {
-	const TCHAR* ErrorMessage = TEXT( "No level found for CE processing" );
+	FString ErrorMessage = TEXT("No level found for CE processing");
 	bool bResult = false;
 
 	// Try to execute the command on all level script actors
@@ -3195,7 +3273,7 @@ bool UEngine::HandleCeCommand( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice&
 
 			if (CurrentLevel->GetLevelScriptActor())
 			{
-				ErrorMessage = 0;
+				ErrorMessage.Empty();
 
 				// return true if at least one level handles the command
 				bResult |= CurrentLevel->GetLevelScriptActor()->CallFunctionByNameWithArguments( Cmd, Ar, NULL, true );
@@ -3205,12 +3283,12 @@ bool UEngine::HandleCeCommand( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice&
 
 	if (!bResult)
 	{
-		ErrorMessage = TEXT( "CE command wasn't processed" );
+		ErrorMessage = FString::Printf(TEXT("CE command '%s' wasn't processed for levels from world '%s'."), Cmd, *InWorld->GetPathName());
 	}
 
-	if (ErrorMessage)
+	if (!ErrorMessage.IsEmpty())
 	{
-		UE_LOG( LogEngine, Error, TEXT( "%s" ), ErrorMessage );
+		UE_LOG( LogEngine, Error, TEXT( "%s" ), *ErrorMessage );
 	}
 
 	// the command was processed (resulted in executing the command or an error message) - no other spot handles "CE"
@@ -3804,6 +3882,7 @@ bool UEngine::HandleListTexturesCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 	const bool bShouldOnlyListNonStreaming = FParse::Command(&Cmd, TEXT("NONSTREAMING")) && !bShouldOnlyListStreaming;
 	const bool bShouldOnlyListForced = FParse::Command(&Cmd, TEXT("FORCED")) && !bShouldOnlyListStreaming && !bShouldOnlyListNonStreaming;
 	const bool bAlphaSort = FParse::Param( Cmd, TEXT("ALPHASORT") );
+	const bool bCSV = FParse::Param( Cmd, TEXT("CSV") );
 
 	Ar.Logf( TEXT("Listing %s textures."), bShouldOnlyListForced ? TEXT("forced") : bShouldOnlyListNonStreaming ? TEXT("non streaming") : bShouldOnlyListStreaming ? TEXT("streaming") : TEXT("all")  );
 
@@ -3897,13 +3976,17 @@ bool UEngine::HandleListTexturesCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 	int32 TotalMaxAllowedSize = 0;
 	int32 TotalCurrentSize	= 0;
 
-	if (!FPlatformProperties::RequiresCookedData())
+	if (bCSV)
 	{
-		Ar.Logf(TEXT("MaxAllowedSize: Width x Height (Size in KB, Bias from Authored), Current/InMem: Width x Height (Size in KB), Format, LODGroup, Name, Streaming, Usage Count"));
+		Ar.Logf(TEXT(",Max Width,Max Height,Max Size (KB),Bias Authored,Current Width,Current Height,Current Size (KB),Format,LODGroup,Name,Streaming,Usage Count"));
+	}
+	else if (!FPlatformProperties::RequiresCookedData())
+	{
+		Ar.Logf(TEXT("MaxAllowedSize: Width x Height (Size in KB, Authored Bias), Current/InMem: Width x Height (Size in KB), Format, LODGroup, Name, Streaming, Usage Count"));
 	}
 	else
 	{
-		Ar.Logf(TEXT("Cooked/OnDisk: Width x Height (Size in KB), Current/InMem: Width x Height (Size in KB), Format, LODGroup, Name, Streaming, Usage Count"));
+		Ar.Logf(TEXT("Cooked/OnDisk: Width x Height (Size in KB, Authored Bias), Current/InMem: Width x Height (Size in KB), Format, LODGroup, Name, Streaming, Usage Count"));
 	}
 
 	for( int32 TextureIndex=0; TextureIndex<SortedTextures.Num(); TextureIndex++ )
@@ -3911,28 +3994,22 @@ bool UEngine::HandleListTexturesCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 		const FSortedTexture& SortedTexture = SortedTextures[TextureIndex];
 		const bool bValidTextureGroup = TextureGroupNames.IsValidIndex(SortedTexture.LODGroup);
 
+		FString AuthoredBiasString(TEXT("?"));
 		if (!FPlatformProperties::RequiresCookedData())
 		{
-			Ar.Logf(TEXT("%ix%i (%i KB, %i), %ix%i (%i KB), %s, %s, %s, %s, %i"),
-				SortedTexture.MaxAllowedSizeX, SortedTexture.MaxAllowedSizeY, SortedTexture.MaxAllowedSize / 1024, SortedTexture.LODBias,
-				SortedTexture.CurSizeX, SortedTexture.CurSizeY, SortedTexture.CurrentSize / 1024,
-				GetPixelFormatString(SortedTexture.Format),
-				bValidTextureGroup ? *TextureGroupNames[SortedTexture.LODGroup] : TEXT("INVALID"),
-				*SortedTexture.Name,
-				SortedTexture.bIsStreaming ? TEXT("YES") : TEXT("NO"),
-				SortedTexture.UsageCount);
+			AuthoredBiasString.Empty();
+			AuthoredBiasString.AppendInt(SortedTexture.LODBias);
 		}
-		else
-		{
-			Ar.Logf(TEXT("%ix%i (%i KB), %ix%i (%i KB), %s, %s, %s, %s, %i"),
-				SortedTexture.MaxAllowedSizeX, SortedTexture.MaxAllowedSizeY, SortedTexture.MaxAllowedSize / 1024,
-				SortedTexture.CurSizeX, SortedTexture.CurSizeY, SortedTexture.CurrentSize / 1024,
-				GetPixelFormatString(SortedTexture.Format),
-				bValidTextureGroup ? *TextureGroupNames[SortedTexture.LODGroup] : TEXT("INVALID"),
-				*SortedTexture.Name,
-				SortedTexture.bIsStreaming ? TEXT("YES") : TEXT("NO"),
-				SortedTexture.UsageCount);
-		}
+
+		Ar.Logf(bCSV ? TEXT(",%i, %i, %i, %s, %i, %i, %i, %s, %s, %s, %s, %i") : TEXT("%ix%i (%i KB, %s), %ix%i (%i KB), %s, %s, %s, %s, %i"),
+			SortedTexture.MaxAllowedSizeX, SortedTexture.MaxAllowedSizeY, SortedTexture.MaxAllowedSize / 1024, 
+			*AuthoredBiasString,
+			SortedTexture.CurSizeX, SortedTexture.CurSizeY, SortedTexture.CurrentSize / 1024,
+			GetPixelFormatString(SortedTexture.Format),
+			bValidTextureGroup ? *TextureGroupNames[SortedTexture.LODGroup] : TEXT("INVALID"),
+			*SortedTexture.Name,
+			SortedTexture.bIsStreaming ? TEXT("YES") : TEXT("NO"),
+			SortedTexture.UsageCount);
 
 		if (bValidTextureGroup)
 		{
@@ -4314,7 +4391,8 @@ bool UEngine::HandleMemReportDeferredCommand( const TCHAR* Cmd, FOutputDevice& A
 		UE_LOG(LogEngine, Log, TEXT("MemReportDeferred: saving to %s"), *FilenameFull);		
 	}
 
-	ReportAr->Logf( TEXT( "CommandLine Options: %s" ) LINE_TERMINATOR, FCommandLine::Get() );
+	ReportAr->Logf(TEXT( "CommandLine Options: %s" ),  FCommandLine::Get() );
+	ReportAr->Logf(TEXT("Time Since Boot: %.02f Seconds") LINE_TERMINATOR, FPlatformTime::Seconds() - GStartTime);
 
 	// Run commands from the ini
 	FConfigSection* CommandsToRun = GConfig->GetSectionPrivate(TEXT("MemReportCommands"), 0, 1, GEngineIni);
@@ -4736,10 +4814,16 @@ bool UEngine::HandleMemCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 
 	if( bDetailed || bReport)
 	{
-		Ar.CategorizedLogf( CategoryName, ELogVerbosity::Log, TEXT("Memory Stats:") );
-		Ar.CategorizedLogf( CategoryName, ELogVerbosity::Log, TEXT("FMemStack (gamethread) current size = %.2f MB"), FMemStack::Get().GetByteCount() / (1024.0f * 1024.0f));
+		Ar.CategorizedLogf(CategoryName, ELogVerbosity::Log, TEXT("Memory Stats:") );
+		Ar.CategorizedLogf(CategoryName, ELogVerbosity::Log, TEXT("FMemStack (gamethread) current size = %.2f MB"), FMemStack::Get().GetByteCount() / (1024.0f * 1024.0f));
 		Ar.CategorizedLogf(CategoryName, ELogVerbosity::Log, TEXT("FPageAllocator (all threads) allocation size [used/ unused] = [%.2f / %.2f] MB"), (FPageAllocator::BytesUsed()) / (1024.0f * 1024.0f), (FPageAllocator::BytesFree()) / (1024.0f * 1024.0f));
 		Ar.CategorizedLogf(CategoryName, ELogVerbosity::Log, TEXT("Nametable memory usage = %.2f MB"), FName::GetNameTableMemorySize() / (1024.0f * 1024.0f));
+
+		FAssetRegistryModule* AssetRegistryModule = FModuleManager::LoadModulePtr<FAssetRegistryModule>(AssetRegistryConstants::ModuleName);
+		if (AssetRegistryModule)
+		{
+			Ar.CategorizedLogf(CategoryName, ELogVerbosity::Log, TEXT("AssetRegistry memory usage = %.2f MB"), AssetRegistryModule->Get().GetAllocatedSize() / (1024.0f * 1024.0f));
+		}
 
 #if STATS
 		TArray<FStatMessage> Stats;
@@ -5404,6 +5488,24 @@ bool UEngine::HandleObjCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 	}
 	else if( FParse::Command(&Cmd,TEXT("LIST")) )
 	{
+		static TSet<FObjectKey> ForgottenObjects;
+
+		// "obj list forget" will prevent all current objects from being reported in future "obj list" commands.
+		// "obj list remember" clears that list
+		if (FParse::Command(&Cmd, TEXT("FORGET")))
+		{
+			for (FObjectIterator It; It; ++It)
+			{
+				ForgottenObjects.Add(FObjectKey(*It));
+			}
+			return true;
+		}
+		else if (FParse::Command(&Cmd, TEXT("REMEMBER")))
+		{
+			ForgottenObjects.Empty();
+			return true;
+		}
+
 		FString CmdLineOut = FString::Printf(TEXT("Obj List: %s"), Cmd);
 		Ar.Log( *CmdLineOut );
 		Ar.Log( TEXT("Objects:") );
@@ -5461,6 +5563,10 @@ bool UEngine::HandleObjCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 
 			for( FObjectIterator It; It; ++It )
 			{
+				if (ForgottenObjects.Contains(FObjectKey(*It)))
+				{
+					continue;
+				}
 				if (It->IsTemplate(RF_ClassDefaultObject))
 				{
 					if( !bShouldIncludeDefaultObjects )
@@ -7037,7 +7143,11 @@ float UEngine::GetMaxFPS() const
 void UEngine::SetMaxFPS(const float MaxFPS)
 {
 	IConsoleVariable* ConsoleVariable = CVarMaxFPS.AsVariable();
-	ConsoleVariable->Set(MaxFPS);
+
+	const EConsoleVariableFlags LastSetReason = (EConsoleVariableFlags)(ConsoleVariable->GetFlags() & ECVF_SetByMask);
+	const EConsoleVariableFlags ThisSetReason = (LastSetReason == ECVF_SetByConstructor) ? ECVF_SetByScalability : LastSetReason;
+
+	ConsoleVariable->Set(MaxFPS, ThisSetReason);
 }
 
 /**
@@ -7127,12 +7237,17 @@ FGuid UEngine::GetPackageGuid(FName PackageName, bool bForPIE)
 	{
 		LoadFlags |= LOAD_PackageForPIE;
 	}
+	UPackage* PackageToReset = nullptr;
 	FLinkerLoad* Linker = GetPackageLinker(NULL, *PackageName.ToString(), LoadFlags, NULL, NULL);
 	if (Linker != NULL && Linker->LinkerRoot != NULL)
 	{
 		Result = Linker->LinkerRoot->GetGuid();
+		PackageToReset = Linker->LinkerRoot;
 	}
 	EndLoad();
+	
+	ResetLoaders(PackageToReset);
+	Linker = nullptr;
 
 	return Result;
 }
@@ -7233,12 +7348,12 @@ UEngine::FErrorsAndWarningsCollector::FErrorsAndWarningsCollector()
 
 void UEngine::FErrorsAndWarningsCollector::Initialize()
 {
-	DisplayTime = 0;
+	DisplayTime = 0.0f;
 	GConfig->GetFloat(TEXT("/Script/Engine.Engine"), TEXT("DurationOfErrorsAndWarningsOnHUD"), DisplayTime, GEngineIni);
 
-	if (DisplayTime > 0)
+	if (DisplayTime > 0.0f)
 	{
-		SetVerbosity(ELogVerbosity::Warning);
+		SetVerbosity((GSupressWarningsInOnScreenDisplay != 0) ? ELogVerbosity::Error : ELogVerbosity::Warning);
 		TickerHandle = FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &UEngine::FErrorsAndWarningsCollector::Tick), DisplayTime);
 		FOutputDeviceRedirector::Get()->AddOutputDevice(this);
 	}
@@ -7255,6 +7370,9 @@ UEngine::FErrorsAndWarningsCollector::~FErrorsAndWarningsCollector()
 
 bool UEngine::FErrorsAndWarningsCollector::Tick(float Seconds)
 {
+	// Set this each tick, in case the cvar is changed at runtime
+	SetVerbosity((GSupressWarningsInOnScreenDisplay != 0) ? ELogVerbosity::Error : ELogVerbosity::Warning);
+
 	if (BufferedLines.Num())
 	{
 		int DupeCount = 0;
@@ -7295,9 +7413,8 @@ bool UEngine::FErrorsAndWarningsCollector::Tick(float Seconds)
 		{
 			Msg = FString::Printf(TEXT("%s (x%d)"), *Msg, DupeCount);
 		}
-	
-		FColor LineColor = Verbosity <= ELogVerbosity::Error ? FColor::Red : FColor::Yellow;
 
+		const FColor LineColor = Verbosity <= ELogVerbosity::Error ? FColor::Red : FColor::Yellow;
 		GEngine->AddOnScreenDebugMessage(-1, DisplayTime, LineColor, Msg);
 	}
 
@@ -7393,7 +7510,6 @@ void UEngine::LogPerformanceCapture(UWorld* World, const FString& MapName, const
 	if ((World != nullptr) && (World->GetGameViewport() != nullptr))
 	{
 		const FStatUnitData* StatUnitData = World->GetGameViewport()->GetStatUnitData();
-		//	const FStatHitchesData* StatHitchesData = World->GetGameViewport->GetStatHitchesData();
 
 		FAutomationPerformanceSnapshot PerfSnapshot;
 		PerfSnapshot.Changelist = FString::FromInt(ChangeList);
@@ -7434,7 +7550,7 @@ static void DrawVolumeOnCanvas(const AVolume* Volume, FCanvas* Canvas, const FVe
 {
 	if(Volume && Volume->GetBrushComponent() && Volume->GetBrushComponent()->BrushBodySetup)
 	{
-		FTransform BrushTM = Volume->GetBrushComponent()->ComponentToWorld;
+		FTransform BrushTM = Volume->GetBrushComponent()->GetComponentTransform();
 
 		// Iterate over each piece
 		for(int32 ConIdx=0; ConIdx<Volume->GetBrushComponent()->BrushBodySetup->AggGeom.ConvexElems.Num(); ConIdx++)
@@ -8284,26 +8400,8 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 		int32 X = (CanvasObject) ? CanvasObject->SizeX - FPSXOffset : Viewport->GetSizeXY().X - FPSXOffset; //??
 		int32 Y = (GEngine->IsStereoscopic3D(Viewport)) ? FMath::TruncToInt(Viewport->GetSizeXY().Y * 0.40f) : FMath::TruncToInt(Viewport->GetSizeXY().Y * 0.20f);
 
-		//give the viewport first shot at drawing stats
+		// give the viewport first shot at drawing stats
 		Y = Viewport->DrawStatsHUD(Canvas, X, Y);
-
-#if DEBUGGING_VIEWPORT_SIZES
-		// Useful for debugging viewport sizing/resizing, especially on external displays
-
-		FCanvasTextItem ViewportTextItem( FVector2D( 0,0 ), FText::GetEmpty(), GEngine->GetSmallFont(), FLinearColor::Blue );
-		ViewportTextItem.EnableShadow( FLinearColor::Black );
-		FString CurrentRes = FString::Printf(TEXT("W = %d, H = %d"), Viewport->GetSizeXY().X,Viewport->GetSizeXY().Y);
-		ViewportTextItem.Text = FText::FromString( CurrentRes );
-		Canvas->DrawItem( ViewportTextItem, 5, Y );
-		ViewportTextItem.Text =  LOCTEXT("00", "00" );
-		Canvas->DrawItem( ViewportTextItem, 5, 5 );
-		ViewportTextItem.Text =  LOCTEXT("0M", "0M" );
-		Canvas->DrawItem( ViewportTextItem, 5,  Viewport->GetSizeXY().Y - 2 );
-		ViewportTextItem.Text =  LOCTEXT("M0", "M0" );
-		Canvas->DrawItem( ViewportTextItem, Viewport->GetSizeXY().X - 25, 5 );
-		ViewportTextItem.Text =  LOCTEXT("MM", "MM" );
-		Canvas->DrawItem( ViewportTextItem, Viewport->GetSizeXY().X - 25, Viewport->GetSizeXY().Y - 25 );
-#endif
 
 		// Render all the simple stats
 		GEngine->RenderEngineStats(World, Viewport, Canvas, StatsXOffset, MessageY, X, Y, &ViewLocation, &ViewRotation);
@@ -8611,22 +8709,31 @@ void UEngine::WorldDestroyed( UWorld* InWorld )
 	WorldDestroyedEvent.Broadcast( InWorld );
 }
 
-UWorld* UEngine::GetWorldFromContextObject(const UObject* Object, const bool bChecked) const
+UWorld* UEngine::GetWorldFromContextObject(const UObject* Object, EGetWorldErrorMode ErrorMode) const
 {
-	if (!bChecked && Object == NULL)
+	if (Object == nullptr)
 	{
-		return NULL;
+		switch (ErrorMode)
+		{
+		case EGetWorldErrorMode::Assert:
+			check(Object);
+			break;
+		case EGetWorldErrorMode::LogAndReturnNull:
+			FFrame::KismetExecutionMessage(TEXT("A null object was passed as a world context object to UEngine::GetWorldFromContextObject()."), ELogVerbosity::Error);
+			//UE_LOG(LogEngine, Warning, TEXT("UEngine::GetWorldFromContextObject() passed a nullptr"));
+			break;
+		case EGetWorldErrorMode::ReturnNull:
+			break;
+		}
+		return nullptr;
 	}
 
-	check(Object);
-
-	// @note : GetWorldChecked is not thread safe, so we can't call if called by another thread
 	bool bSupported = true;
-	UWorld* World = ((bChecked && IsInGameThread() )? Object->GetWorldChecked(bSupported) : Object->GetWorld());
+	UWorld* World = (ErrorMode == EGetWorldErrorMode::Assert) ? Object->GetWorldChecked(/*out*/ bSupported) : Object->GetWorld();
 	return (bSupported ? World : GWorld);
 }
 
-TArray<class ULocalPlayer*>::TConstIterator	UEngine::GetLocalPlayerIterator(UWorld *World)
+TArray<class ULocalPlayer*>::TConstIterator	UEngine::GetLocalPlayerIterator(UWorld* World)
 {
 	return GetGamePlayers(World).CreateConstIterator();
 }
@@ -9278,8 +9385,17 @@ bool UEngine::HandleStreamMapCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorl
 	if (TestURL.IsLocalInternal())
 	{
 		// make sure the file exists if we are opening a local file
-		if (MakeSureMapNameIsValid(WorldContext.LastURL.Map))
+		if (MakeSureMapNameIsValid(TestURL.Map) && TestURL.Valid)
 		{
+			for (const ULevel* const Level : InWorld->GetLevels())
+			{
+				if (Level->URL.Map == TestURL.Map)
+				{
+					Ar.Logf(TEXT("ERROR: The map '%s' is already loaded."), *TestURL.Map);
+					return true;
+				}
+			}
+
 			TArray<FName> LevelNames;
 			LevelNames.Add(*TestURL.Map);
 
@@ -9809,6 +9925,9 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("UEngine::LoadMap"), STAT_LoadMap, STATGROUP_LoadTime);
 
+	// example of a high level scoped tag
+	LLM_SCOPED_SINGLE_MALLOC_STAT_TAG(LoadMapMemory);
+
 	NETWORK_PROFILER(GNetworkProfiler.TrackSessionChange(true,URL));
 	MALLOC_PROFILER( FMallocProfiler::SnapshotMemoryLoadMapStart( URL.Map ) );
 	Error = TEXT("");
@@ -9880,8 +9999,7 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	// Unload the current world
 	if( WorldContext.World() )
 	{
-		// Display loading screen.
-		if( !URL.HasOption(TEXT("quiet")) )
+		if(!URL.HasOption(TEXT("quiet")) )
 		{
 			TransitionType = TT_Loading;
 			TransitionDescription = URL.Map;
@@ -9892,8 +10010,16 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 			else
 			{
 				TransitionGameMode = TEXT("");
-			}			
-			LoadMapRedrawViewports();			
+			}
+			
+			// Display loading screen.		
+			// Check if a loading movie is playing.  If so it is not safe to redraw the viewport due to potential race conditions with font rendering
+			bool bIsLoadingMovieCurrentlyPlaying = FCoreDelegates::IsLoadingMovieCurrentlyPlaying.IsBound() ? FCoreDelegates::IsLoadingMovieCurrentlyPlaying.Execute() : false;
+			if(!bIsLoadingMovieCurrentlyPlaying)
+			{
+				LoadMapRedrawViewports();
+			}
+			
 			TransitionType = TT_None;
 		}
 
@@ -9980,20 +10106,8 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 		WorldContext.SetCurrentWorld(nullptr);
 	}
 
-	// Clean up the previous level out of memory.
-	CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS, true );
-	
-	// For platforms which manage GPU memory directly we must Enqueue a flush, and wait for it to be processed
-	// so that any pending frees that depend on the GPU will be processed.  Otherwise a whole map's worth of GPU memory
-	// may be unavailable to load the next one.
-	ENQUEUE_UNIQUE_RENDER_COMMAND(FlushCommand, 
-		{
-			GRHICommandList.GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThreadFlushResources);
-			RHIFlushResources();
-			GRHICommandList.GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThreadFlushResources);
-		}
-	);
-	FlushRenderingCommands();	  
+	// trim memory to clear up allocations from the previous level (also flushes rendering)
+	TrimMemory();
 
 	// Cancels the Forced StreamType for textures using a timer.
 	if (!IStreamingManager::HasShutdown())
@@ -10330,9 +10444,31 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 
 	UE_LOG(LogLoad, Log, TEXT("Took %f seconds to LoadMap(%s)"), StopTime - StartTime, *URL.Map);
 	FLoadTimeTracker::Get().DumpRawLoadTimes();
+	WorldContext.OwningGameInstance->LoadComplete(StopTime - StartTime, *URL.Map);
 
 	// Successfully started local level.
 	return true;
+}
+
+void UEngine::TrimMemory()
+{
+	// Clean up the previous level out of memory.
+	CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS, true);
+
+	// For platforms which manage GPU memory directly we must Enqueue a flush, and wait for it to be processed
+	// so that any pending frees that depend on the GPU will be processed.  Otherwise a whole map's worth of GPU memory
+	// may be unavailable to load the next one.
+	ENQUEUE_UNIQUE_RENDER_COMMAND(FlushCommand,
+	{
+		GRHICommandList.GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThreadFlushResources);
+		RHIFlushResources();
+		GRHICommandList.GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThreadFlushResources);
+	}
+	);
+	FlushRenderingCommands();
+
+	// Ask systems to trim memory where possible
+	FCoreDelegates::GetMemoryTrimDelegate().Broadcast();
 }
 
 void UEngine::BlockTillLevelStreamingCompleted(UWorld* InWorld)
@@ -11615,14 +11751,13 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 		TArray<UObject*> Components;
 		OldObject->CollectDefaultSubobjects(Components, true);
 
-		for (int32 Index = 0; Index < Components.Num(); Index++)
+		for (UObject* OldInstance : Components)
 		{
 			FInstancedObjectRecord* pRecord = new(SavedInstances) FInstancedObjectRecord();
-			UObject* OldInstance = Components[Index];
 			pRecord->OldInstance = OldInstance;
 			OldInstanceMap.Add(OldInstance->GetPathName(OldObject), SavedInstances.Num() - 1);
 			const uint32 AdditionalPortFlags = Params.bCopyDeprecatedProperties ? PPF_UseDeprecatedProperties : PPF_None;
-			FObjectWriter SubObjWriter(OldInstance, pRecord->SavedProperties, true, true, true, AdditionalPortFlags);
+			FObjectWriter SubObjWriter(OldInstance, pRecord->SavedProperties, true, true, Params.bDoDelta, AdditionalPortFlags);
 		}
 	}
 
@@ -11724,15 +11859,18 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 		}
 	});
 
-	// Replace references to old classes and instances on this object with the corresponding new ones
-	UPackage* NewPackage = NewObject->GetOutermost();
-	FArchiveReplaceOrClearExternalReferences<UObject> ReplaceInCDOAr(NewObject, ReferenceReplacementMap, NewPackage);
-
-	// Replace references inside each individual component. This is always required because if something is in ReferenceReplacementMap, the above replace code will skip fixing child properties
-	for (int32 ComponentIndex = 0; ComponentIndex < ComponentsOnNewObject.Num(); ++ComponentIndex)
+	if(Params.bClearReferences)
 	{
-		UObject* NewComponent = ComponentsOnNewObject[ComponentIndex];
-		FArchiveReplaceOrClearExternalReferences<UObject> ReplaceInComponentAr(NewComponent, ReferenceReplacementMap, NewPackage);
+		UPackage* NewPackage = NewObject->GetOutermost();
+		// Replace references to old classes and instances on this object with the corresponding new ones
+		FArchiveReplaceOrClearExternalReferences<UObject> ReplaceInCDOAr(NewObject, ReferenceReplacementMap, NewPackage);
+
+		// Replace references inside each individual component. This is always required because if something is in ReferenceReplacementMap, the above replace code will skip fixing child properties
+		for (int32 ComponentIndex = 0; ComponentIndex < ComponentsOnNewObject.Num(); ++ComponentIndex)
+		{
+			UObject* NewComponent = ComponentsOnNewObject[ComponentIndex];
+			FArchiveReplaceOrClearExternalReferences<UObject> ReplaceInComponentAr(NewComponent, ReferenceReplacementMap, NewPackage);
+		}
 	}
 
 	// Restore the root component reference
@@ -11894,7 +12032,7 @@ FColor GetColorForLevelStatus(int32 Status)
 	switch (Status)
 	{
 	case LEVEL_Visible:
-		Color = FColor::Red;		// red  loaded and visible
+		Color = FColor::Green;		// green  loaded and visible
 		break;
 	case LEVEL_MakingVisible:
 		Color = FColorList::Orange;	// orange, in process of being made visible
@@ -11909,7 +12047,7 @@ FColor GetColorForLevelStatus(int32 Status)
 		Color = FColor::Blue;		// blue  (GC needs to occur to remove this)
 		break;
 	case LEVEL_Unloaded:
-		Color = FColor::Green;		// green
+		Color = FColor::Red;		// Red   unloaded
 		break;
 	case LEVEL_Preloading:
 		Color = FColor::Magenta;	// purple (preloading)
@@ -12619,7 +12757,7 @@ static void SetupThreadAffinity(const TArray<FString>& Args)
 	FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
 		FSimpleDelegateGraphTask::FDelegate::CreateStatic(&SetAffinityOnThread),
 		TStatId(), NULL, ENamedThreads::RenderThread);
-	if (GRHIThread)
+	if (GRHIThread_InternalUseOnly)
 	{
 		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
 			FSimpleDelegateGraphTask::FDelegate::CreateStatic(&SetAffinityOnThread),

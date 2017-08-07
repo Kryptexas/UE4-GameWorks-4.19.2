@@ -137,17 +137,11 @@ public:
 	/** @return whether this pin is a map value */
 	bool IsMap() const;
 
-	/** @return whether this pin is passed by ref */
-	bool IsByRef() const;
-
 	/** @return whether this pin is passed by mutable ref */
 	bool IsByMutableRef() const;
 
 	/** @return whether this pin is passed by mutable ref */
 	bool IsDelegate() const;
-
-	/** @return whether this pin is passed by const ref */
-	bool IsByConstRef() const;
 
 	/** @return whether this pin is connected to another pin */
 	bool IsConnected() const;
@@ -172,6 +166,9 @@ public:
 		PinColorModifier = InColor;
 	}
 
+	/** Set this pin to only be used to display default value */
+	void SetOnlyShowDefaultValue(bool bNewOnlyShowDefaultValue);
+
 	/** If pin in node is visible at all */
 	EVisibility IsPinVisibleAsAdvanced() const;
 
@@ -181,6 +178,9 @@ public:
 	/** Returns whether or not this pin is currently connectable */
 	bool GetIsConnectable() const;
 
+	/** Get the widget we should put into the 'default value' space, shown when nothing connected */
+	virtual TSharedRef<SWidget>	GetDefaultValueWidget();
+
 protected:
 	FText GetPinLabel() const;
 
@@ -189,9 +189,6 @@ protected:
 	{
 		return bShowLabel ? EVisibility::Visible : EVisibility::Collapsed;
 	}
-
-	/** Get the widget we should put into the 'default value' space, shown when nothing connected */
-	virtual TSharedRef<SWidget>	GetDefaultValueWidget();
 
 	/** @return The brush with which to paint this graph pin's incoming/outgoing bullet point */
 	virtual const FSlateBrush* GetPinIcon() const;
@@ -254,6 +251,9 @@ protected:
 
 	/** If we should draw the label on this pin */
 	bool bShowLabel;
+
+	/** If we should draw the label on this pin */
+	bool bOnlyShowDefaultValue;
 
 	/** true when we're moving links between pins. */
 	bool bIsMovingLinks;

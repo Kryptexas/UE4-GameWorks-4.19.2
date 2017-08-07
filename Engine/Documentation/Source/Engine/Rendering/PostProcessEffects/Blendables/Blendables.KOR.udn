@@ -1,8 +1,15 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3474032
 Availability:Public
+Crumbs: %ROOT%
 Title:블렌더블 (Blendable)
-Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
 Description:블렌더블은 부드러운 보간에 사용되는 애셋으로, 포스트 프로세싱, 포그, 앰비언트 큐브맵, 앰비언트 오클루전 등 렌더링에 영향을 끼치는 데 사용됩니다.
+Type: Overview
+SkillLevel:Beginner
+Version:4.16
+Parent:Engine/Rendering/PostProcessEffects
+Order:3
+Tags:Post Process
+Topic-image:Blendables_topic.png
 
 [EXCERPT:Blendables_Desc]
 **블렌더블** 은 다른 블렌더블과 부드럽게 보간(블렌딩)시킬 수 있는 프로퍼티를 가진 애셋입니다. 블렌더블은 거의 포스트프로세스 머티리얼에 사용하지만, 

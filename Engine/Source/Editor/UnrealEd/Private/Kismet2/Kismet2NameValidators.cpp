@@ -25,28 +25,38 @@ TSharedPtr<INameValidatorInterface> FNameValidatorFactory::MakeValidator(UEdGrap
 }
 
 
-FString INameValidatorInterface::GetErrorString(const FString& Name, EValidatorResult ErrorCode)
+FText INameValidatorInterface::GetErrorText(const FString& Name, EValidatorResult ErrorCode)
 {
-	FString ErrorText;
-
+	FText ErrorText;
 	switch (ErrorCode)
 	{
-		case EmptyName:
-			ErrorText = LOCTEXT("EmptyName_Error", "Name cannot be empty.").ToString();
-			break;
-
-		case AlreadyInUse:
-			ErrorText = FString::Printf( *LOCTEXT("AlreadyInUse_Error", "\"%s\" is already in use.").ToString(), *Name);
-			break;
-
-		case ExistingName:
-			ErrorText = LOCTEXT("ExistingName_Error", "Name cannot be the same as the existing name.").ToString();
-			break;
-		case LocallyInUse:
-		case TooLong:
-		case Ok:
-			break;
+	case EValidatorResult::EmptyName:
+		ErrorText = LOCTEXT("EmptyName_Error", "Name cannot be empty.");
+		break;
+	case EValidatorResult::AlreadyInUse:
+		ErrorText = LOCTEXT("AlreadyInUse_Error", "Name is already in use.");
+		break;
+	case EValidatorResult::ExistingName:
+		ErrorText = LOCTEXT("ExistingName_Error", "Name cannot be the same as the existing name.");
+		break;
+	case EValidatorResult::ContainsInvalidCharacters:
+		ErrorText = LOCTEXT("ContainsInvalidCharacters_Error", "Name cannot contain invalid characters.");
+		FName::IsValidXName(Name, UE_BLUEPRINT_INVALID_NAME_CHARACTERS, /*out*/ &ErrorText);
+		break;
+	case EValidatorResult::TooLong:
+		ErrorText = LOCTEXT("NameTooLong_Error", "Names must have fewer than 100 characters!");
+		break;
+	case EValidatorResult::LocallyInUse:
+		ErrorText  = LOCTEXT("LocallyInUse_Error", "Conflicts with another another object in the same scope!");
+		break;
+	case EValidatorResult::Ok:
+		break;
+	default:
+		ErrorText = LOCTEXT("UnknownError", "Unknown error");
+		check(false);
+		break;
 	}
+
 	return ErrorText;
 }
 
@@ -111,6 +121,10 @@ EValidatorResult FKismetNameValidator::IsValid(const FString& Name, bool /*bOrig
 	if(Name.Len() >= NAME_SIZE)
 	{
 		return EValidatorResult::TooLong;
+	}
+	else if (!FName::IsValidXName(Name, UE_BLUEPRINT_INVALID_NAME_CHARACTERS))
+	{
+		return EValidatorResult::ContainsInvalidCharacters;
 	}
 
 	// If not defined in name table, not current graph name

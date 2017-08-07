@@ -80,21 +80,23 @@ void UUserDefinedEnum::PostLoad()
 		FEnumEditorUtils::UpgradeDisplayNamesFromMetaData(this);
 	}
 	FEnumEditorUtils::EnsureAllDisplayNamesExist(this);
+
+	// Apply the transactional flag to user defined enums that were not created with it
+	SetFlags(RF_Transactional);
 }
 
 void UUserDefinedEnum::PostEditUndo()
 {
 	Super::PostEditUndo();
-	FEnumEditorUtils::UpdateAfterPathChanged(this);
+	FEnumEditorUtils::PostEditUndo(this);
 }
 
 FString UUserDefinedEnum::GenerateNewEnumeratorName()
 {
-	const TCHAR* EnumNameBase = TEXT("NewEnumerator");
 	FString EnumNameString;
 	do 
 	{
-		EnumNameString = FString::Printf(TEXT("%s%u"), EnumNameBase, UniqueNameIndex);
+		EnumNameString = FString::Printf(TEXT("NewEnumerator%u"), UniqueNameIndex);
 		++UniqueNameIndex;
 	} 
 	while (!FEnumEditorUtils::IsProperNameForUserDefinedEnumerator(this, EnumNameString));

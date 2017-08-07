@@ -633,7 +633,20 @@ namespace UnrealBuildTool
 			}
 		}
 
-		private static List<string> RsyncDirs = new List<string>();
+        protected string GetMacDevEngineRoot()
+        {
+            if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
+            {
+                // figure out the remote version of Engine/Source
+                return ConvertPath(Path.GetFullPath(Path.Combine(BranchDirectory, "Engine/")));
+            }
+            else
+            {
+                return UnrealBuildTool.EngineDirectory.FullName;
+            }
+        }
+
+        private static List<string> RsyncDirs = new List<string>();
 		private static List<string> RsyncExtensions = new List<string>();
 
 		public static void QueueFileForBatchUpload(FileItem LocalFileItem)
@@ -656,6 +669,23 @@ namespace UnrealBuildTool
 				RsyncExtensions.Add(Ext);
 			}
 		}
+
+        public static void QueueDirectoryForBatchUpload(DirectoryReference LocalDirectory, bool bRecursive = true)
+        {
+            string Entry = LocalDirectory.FullName;
+            if (!RsyncDirs.Contains(Entry))
+            {
+                RsyncDirs.Add(Entry);
+            }
+
+            if (bRecursive)
+            {
+                foreach(var dir in DirectoryReference.EnumerateDirectories(LocalDirectory))
+                {
+                    QueueDirectoryForBatchUpload(dir);
+                }
+            }
+        }
 
 		public FileItem LocalToRemoteFileItem(FileItem LocalFileItem, bool bShouldUpload)
 		{

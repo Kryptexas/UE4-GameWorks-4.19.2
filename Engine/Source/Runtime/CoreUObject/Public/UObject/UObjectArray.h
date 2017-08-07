@@ -16,7 +16,9 @@
 * Controls whether the number of available elements is being tracked in the ObjObjects array.
 * By default it is only tracked in WITH_EDITOR builds as it adds a small amount of tracking overhead
 */
+#if !defined(UE_GC_TRACK_OBJ_AVAILABLE)
 #define UE_GC_TRACK_OBJ_AVAILABLE (WITH_EDITOR)
+#endif
 
 /**
 * Single item in the UObject array.
@@ -182,18 +184,6 @@ struct FUObjectItem
 		return !!(Flags & int32(EInternalObjectFlags::RootSet));
 	}
 
-	FORCEINLINE void SetNoStrongReference()
-	{
-		Flags |= int32(EInternalObjectFlags::NoStrongReference);
-	}
-	FORCEINLINE void ClearNoStrongReference()
-	{
-		Flags &= ~int32(EInternalObjectFlags::NoStrongReference);
-	}
-	FORCEINLINE bool IsNoStrongReference() const
-	{
-		return !!(Flags & int32(EInternalObjectFlags::NoStrongReference));
-	}
 	FORCEINLINE void ResetSerialNumberAndFlags()
 	{
 		Flags = 0;
@@ -843,6 +833,19 @@ public:
 
 	/** Frees the cluster at the specified index */
 	void FreeCluster(int32 InClusterIndex);
+
+	/**
+	* Gets the cluster the specified object is a root of or belongs to.
+	* @Param ClusterRootOrObjectFromCluster Root cluster object or object that belongs to a cluster
+	*/
+	FUObjectCluster* GetObjectCluster(UObjectBaseUtility* ClusterRootOrObjectFromCluster);
+
+
+	/** 
+	 * Dissolves a cluster and all clusters that reference it 
+	 * @Param ClusterRootOrObjectFromCluster Root cluster object or object that belongs to a cluster
+	 */
+	void DissolveCluster(UObjectBaseUtility* ClusterRootOrObjectFromCluster);
 
 	/** Dissolve all clusters marked for dissolving */
 	void DissolveClusters();

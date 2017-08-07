@@ -322,6 +322,9 @@ public:
 	int32				PendingOutRec	[ MAX_CHANNELS ];	// Outgoing reliable unacked data from previous (now destroyed) channel in this slot.  This contains the first chsequence not acked
 	TArray<int32> QueuedAcks, ResendAcks;
 
+	int32				InitOutReliable;
+	int32				InitInReliable;
+
 	// Network version
 	uint32				EngineNetworkProtocolVersion;
 	uint32				GameNetworkProtocolVersion;
@@ -560,6 +563,14 @@ public:
 	 */
 	ENGINE_API virtual void InitHandler();
 
+	/**
+	 * Initializes the sequence numbers for the connection, usually from shared randomized data
+	 *
+	 * @param IncomingSequence	The initial sequence number for incoming packets
+	 * @param OutgoingSequence	The initial sequence number for outgoing packets
+	 */
+	ENGINE_API virtual void InitSequence(int32 IncomingSequence, int32 OutgoingSequence);
+
 
 	/** 
 	* Gets a unique ID for the connection, this ID depends on the underlying connection
@@ -680,7 +691,7 @@ public:
 	/**
 	* Return current timeout value that should be used
 	*/
-	float GetTimeoutValue();
+	ENGINE_API float GetTimeoutValue();
 
 	/** Adds the channel to the ticking channels list. USed to selectively tick channels that have queued bunches or are pending dormancy. */
 	void StartTickingChannel(UChannel* Channel) { ChannelsToTick.AddUnique(Channel); }
@@ -689,6 +700,21 @@ public:
 	void StopTickingChannel(UChannel* Channel) { ChannelsToTick.Remove(Channel); }
 
 	FORCEINLINE FHistogram GetNetHistogram() const { return NetConnectionHistogram; }
+
+	/** Whether or not a client packet has been received - used serverside, to delay any packet sends */
+	FORCEINLINE bool HasReceivedClientPacket()
+	{
+		return !!InternalAck || Driver->ServerConnection != nullptr || InReliable[0] != InitInReliable;
+	}
+
+	/**
+	 * Sets the PlayerOnlinePlatformName member.
+	 * Called by the engine during the login process with the NMT_Login message parameter.
+	 */
+	void SetPlayerOnlinePlatformName(const FName InPlayerOnlinePlatformName);
+
+	/** Returns the online platform name for the player on this connection. Only valid for client connections on servers. */
+	ENGINE_API FName GetPlayerOnlinePlatformName() const { return PlayerOnlinePlatformName; }
 
 protected:
 
@@ -706,6 +732,9 @@ private:
 
 	/** Histogram of the received packet time */
 	FHistogram NetConnectionHistogram;
+
+	/** Online platform ID of remote player on this connection. Only valid on client connections (server side).*/
+	FName PlayerOnlinePlatformName;
 };
 
 

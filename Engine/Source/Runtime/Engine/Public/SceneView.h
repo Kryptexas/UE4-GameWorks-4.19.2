@@ -24,7 +24,6 @@ class FSceneViewStateInterface;
 class FViewElementDrawer;
 class ISceneViewExtension;
 class FSceneViewFamily;
-class FForwardLightingViewResources;
 class FVolumetricFogViewResources;
 
 // Projection data for a FSceneView
@@ -158,7 +157,7 @@ struct FSceneViewInitOptions : public FSceneViewProjectionData
 	TSet<FPrimitiveComponentId> HiddenPrimitives;
 
 	/** The primitives which are visible for this view. If the array is not empty, all other primitives will be hidden. */
-	TSet<FPrimitiveComponentId> ShowOnlyPrimitives;
+	TOptional<TSet<FPrimitiveComponentId>> ShowOnlyPrimitives;
 
 	// -1,-1 if not setup
 	FIntPoint CursorPos;
@@ -713,6 +712,7 @@ BEGIN_UNIFORM_BUFFER_STRUCT_WITH_CONSTRUCTOR(FViewUniformShaderParameters, ENGIN
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, PerlinNoiseGradientTextureSampler)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(Texture3D, PerlinNoise3DTexture)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, PerlinNoise3DTextureSampler)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(Texture2D<uint>, SobolSamplingTexture)
 
 END_UNIFORM_BUFFER_STRUCT(FViewUniformShaderParameters)
 
@@ -859,7 +859,7 @@ public:
 	TSet<FPrimitiveComponentId> HiddenPrimitives;
 
 	/** The primitives which are visible for this view. If the array is not empty, all other primitives will be hidden. */
-	TSet<FPrimitiveComponentId> ShowOnlyPrimitives;
+	TOptional<TSet<FPrimitiveComponentId>> ShowOnlyPrimitives;
 
 	// Derived members.
 
@@ -990,6 +990,9 @@ public:
 
 	/** Feature level for this scene */
 	ERHIFeatureLevel::Type FeatureLevel;
+
+	static const int32 NumBufferedSubIsOccludedArrays = 2;
+	TArray<bool> FrameSubIsOccluded[NumBufferedSubIsOccludedArrays];
 
 	/** Initialization constructor. */
 	FSceneView(const FSceneViewInitOptions& InitOptions);
@@ -1297,6 +1300,9 @@ public:
 	/** The views which make up the family. */
 	TArray<const FSceneView*> Views;
 
+	/** View mode of the family. */
+	EViewModeIndex ViewMode;
+
 	/** The width in screen pixels of the view family being rendered (maximum x of all viewports). */
 	uint32 FamilySizeX;
 
@@ -1427,6 +1433,8 @@ public:
 	{
 		return MonoParameters.bEnabled && MonoParameters.Mode != EMonoscopicFarFieldMode::Off;
 	}
+
+	bool AllowTranslucencyAfterDOF() const;
 };
 
 /**

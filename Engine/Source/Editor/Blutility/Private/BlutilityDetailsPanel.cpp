@@ -150,6 +150,8 @@ FReply FEditorUtilityInstanceDetails::OnExecuteAction(TWeakObjectPtr<UFunction> 
 {
 	if (UFunction* Function = WeakFunctionPtr.Get())
 	{
+		// @todo Editor Scripting - This should not be called here.  Internal operations may have transactions created and this prevents them from being created.  
+		// Also if the blutility opens a level or similar, the transaction buffer gets reset because there is an active transaction on level load.
 		FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "BlutilityAction", "Blutility Action") );
 		FEditorScriptExecutionGuard ScriptGuard;
 

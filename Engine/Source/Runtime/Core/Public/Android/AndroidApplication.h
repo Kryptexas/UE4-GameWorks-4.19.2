@@ -42,6 +42,7 @@ public:
 	// Returns the java environment
 	static void InitializeJavaEnv(JavaVM* VM, jint Version, jobject GlobalThis);
 	static jobject GetGameActivityThis();
+	static jobject GetClassLoader();
 	static JNIEnv* GetJavaEnv(bool bRequireGlobalThis = true);
 	static jclass FindJavaClass(const char* name);
 	static void DetachJavaEnv();

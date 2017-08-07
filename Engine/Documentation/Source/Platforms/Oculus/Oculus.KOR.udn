@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3235148
+﻿INTSourceChangelist:3467293
 Title:오큘러스 리프트 개발
 Crumbs:%ROOT%, Platforms
 Description:
@@ -11,6 +11,7 @@ parent:Platforms/VR
 tags:VR
 tags:Oculus Rift
 tags:Platform
+Topic-image:OculusRiftDevelopment_topic.png
 
 
 ## 시작하기

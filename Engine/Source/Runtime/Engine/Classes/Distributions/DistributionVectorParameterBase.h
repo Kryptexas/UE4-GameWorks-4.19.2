@@ -9,7 +9,7 @@
 #include "DistributionVectorParameterBase.generated.h"
 
 UCLASS(abstract, collapsecategories, hidecategories=Object, editinlinenew)
-class UDistributionVectorParameterBase : public UDistributionVectorConstant
+class ENGINE_API UDistributionVectorParameterBase : public UDistributionVectorConstant
 {
 	GENERATED_UCLASS_BODY()
 

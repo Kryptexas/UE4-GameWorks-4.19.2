@@ -1,50 +1,11 @@
-﻿INTSourceChangelist:2735872
+﻿INTSourceChangelist:3429250
 Availability:Public
 Title:カラーピッカー
 Crumbs:%ROOT%, Engine, Engine/UI
 Description:アクタのカラー プロパティに割り当てる色をインタラクティブに選択するツール
 Version:4.9
+topic-image:Engine/UI/colorPicker_topic.png
 
-
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/UI/ColorPicker:title%](Engine/UI/colorPicker_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/ColorPicker:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/ColorPicker:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/ColorPicker]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/UI/ColorPicker:title%](Engine/UI/colorPicker_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/ColorPicker:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/ColorPicker:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/ColorPicker]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [EXCERPT:Intro]
 **カラーピッカー** を使うと、アンリアル エディタのカラー プロパティの値を簡単に調整できます。RGBA (レッド、グリーン、ブルー、アルファ) 、 HSV (色相、彩度、値) および Hex (ARGB) によるカラー調整が可能です。別の方法としては、カラー ホイールの任意の場所をクリックして、またはモニタの任意の場所にマウスを移動してその下にある色をキャプチャして色を選択することができます。

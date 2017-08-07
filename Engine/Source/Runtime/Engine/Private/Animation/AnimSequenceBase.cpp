@@ -83,8 +83,6 @@ void UAnimSequenceBase::PostLoad()
 				}
 			}
 		}
-
-		RawCurveData.SortFloatCurvesByUID();
 	}
 }
 

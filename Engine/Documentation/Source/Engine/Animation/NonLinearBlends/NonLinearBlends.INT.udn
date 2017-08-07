@@ -8,7 +8,7 @@ Related: Engine\Animation\StateMachines
 Related: Engine/UI/CurveEditor
 Related: Engine/Basics/Distributions
 Related: Engine/Animation/AnimMontage
-
+Topic-image:AnimationgBlendModes_topic.png
 
 **Animation Blend Modes** enable you to control the way meshes blend between Poses when transitioning from one State to another within a [**State Machine**](Engine\Animation\StateMachines). 
 There are several different Blend Modes that you can choose from which can be set from the **Blend Settings** section of a **Transition Rule** in a State Machine (pictured below). 

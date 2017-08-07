@@ -12,9 +12,9 @@ DebugViewModeRendering.cpp: Contains definitions for rendering debug viewmodes.
 #include "MaterialTexCoordScalesRendering.h"
 #include "RequiredTextureResolutionRendering.h"
 
-IMPLEMENT_MATERIAL_SHADER_TYPE(,FDebugViewModeVS,TEXT("DebugViewModeVertexShader"),TEXT("Main"),SF_Vertex);	
-IMPLEMENT_MATERIAL_SHADER_TYPE(,FDebugViewModeHS,TEXT("DebugViewModeVertexShader"),TEXT("MainHull"),SF_Hull);	
-IMPLEMENT_MATERIAL_SHADER_TYPE(,FDebugViewModeDS,TEXT("DebugviewModeVertexShader"),TEXT("MainDomain"),SF_Domain);
+IMPLEMENT_MATERIAL_SHADER_TYPE(,FDebugViewModeVS,TEXT("/Engine/Private/DebugViewModeVertexShader.usf"),TEXT("Main"),SF_Vertex);	
+IMPLEMENT_MATERIAL_SHADER_TYPE(,FDebugViewModeHS,TEXT("/Engine/Private/DebugViewModeVertexShader.usf"),TEXT("MainHull"),SF_Hull);	
+IMPLEMENT_MATERIAL_SHADER_TYPE(,FDebugViewModeDS,TEXT("/Engine/Private/DebugViewModeVertexShader.usf"),TEXT("MainDomain"),SF_Domain);
 
 /**
 * Pixel shader that renders texture streamer wanted mips accuracy.
@@ -61,7 +61,7 @@ public:
 	virtual FShader* GetShader() override { return static_cast<FShader*>(this); }
 };
 
-IMPLEMENT_SHADER_TYPE(,FMissingShaderPS,TEXT("MissingShaderPixelShader"),TEXT("Main"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FMissingShaderPS,TEXT("/Engine/Private/MissingShaderPixelShader.usf"),TEXT("Main"),SF_Pixel);
 
 
 void FDebugViewMode::GetMaterialForVSHSDS(const FMaterialRenderProxy** MaterialRenderProxy, const FMaterial** Material, ERHIFeatureLevel::Type FeatureLevel)

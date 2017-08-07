@@ -49,7 +49,7 @@ void FEnvTraceDataCustomization::CustomizeChildren( TSharedRef<class IPropertyHa
 {
 	if (TraceModes.Num() > 1)
 	{
-		StructBuilder.AddChildContent(LOCTEXT("TraceMode", "Trace Mode"))
+		StructBuilder.AddCustomRow(LOCTEXT("TraceMode", "Trace Mode"))
 		.NameContent()
 		[
 			PropTraceMode->CreatePropertyNameWidget()
@@ -70,50 +70,50 @@ void FEnvTraceDataCustomization::CustomizeChildren( TSharedRef<class IPropertyHa
 
 	// navmesh props
 	TSharedPtr<IPropertyHandle> PropNavFilter = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FEnvTraceData,NavigationFilter));
-	StructBuilder.AddChildProperty(PropNavFilter.ToSharedRef())
+	StructBuilder.AddProperty(PropNavFilter.ToSharedRef())
 		.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvTraceDataCustomization::GetNavigationVisibility)));
 
 	// geometry props
 	PropTraceChannel->SetOnPropertyValueChanged(FSimpleDelegate::CreateSP(this, &FEnvTraceDataCustomization::OnTraceChannelChanged));
-	StructBuilder.AddChildProperty(PropTraceChannel.ToSharedRef())
+	StructBuilder.AddProperty(PropTraceChannel.ToSharedRef())
 		.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvTraceDataCustomization::GetGeometryVisibility)));
 
-	StructBuilder.AddChildProperty(PropTraceShape.ToSharedRef())
+	StructBuilder.AddProperty(PropTraceShape.ToSharedRef())
 		.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvTraceDataCustomization::GetGeometryVisibility)));
 
 	// common props
 	TSharedPtr<IPropertyHandle> PropExtX = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FEnvTraceData,ExtentX));
-	StructBuilder.AddChildProperty(PropExtX.ToSharedRef())
+	StructBuilder.AddProperty(PropExtX.ToSharedRef())
 		.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvTraceDataCustomization::GetExtentX)));
 
 	TSharedPtr<IPropertyHandle> PropExtY = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FEnvTraceData,ExtentY));
-	StructBuilder.AddChildProperty(PropExtY.ToSharedRef())
+	StructBuilder.AddProperty(PropExtY.ToSharedRef())
 		.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvTraceDataCustomization::GetExtentY)));
 
 	TSharedPtr<IPropertyHandle> PropExtZ = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FEnvTraceData,ExtentZ));
-	StructBuilder.AddChildProperty(PropExtZ.ToSharedRef())
+	StructBuilder.AddProperty(PropExtZ.ToSharedRef())
 		.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvTraceDataCustomization::GetExtentZ)));
 
 	// projection props
 	TSharedPtr<IPropertyHandle> PropHeightDown = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FEnvTraceData,ProjectDown));
-	StructBuilder.AddChildProperty(PropHeightDown.ToSharedRef())
+	StructBuilder.AddProperty(PropHeightDown.ToSharedRef())
 		.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvTraceDataCustomization::GetProjectionVisibility)));
 
 	TSharedPtr<IPropertyHandle> PropHeightUp = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FEnvTraceData,ProjectUp));
-	StructBuilder.AddChildProperty(PropHeightUp.ToSharedRef())
+	StructBuilder.AddProperty(PropHeightUp.ToSharedRef())
 		.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvTraceDataCustomization::GetProjectionVisibility)));
 
 	// advanced props
 	TSharedPtr<IPropertyHandle> PropPostProjectionVerticalOffset = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FEnvTraceData, PostProjectionVerticalOffset));
-	StructBuilder.AddChildProperty(PropPostProjectionVerticalOffset.ToSharedRef())
+	StructBuilder.AddProperty(PropPostProjectionVerticalOffset.ToSharedRef())
 		.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvTraceDataCustomization::GetProjectionVisibility)));
 
 	TSharedPtr<IPropertyHandle> PropTraceComplex = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FEnvTraceData,bTraceComplex));
-	StructBuilder.AddChildProperty(PropTraceComplex.ToSharedRef())
+	StructBuilder.AddProperty(PropTraceComplex.ToSharedRef())
 		.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvTraceDataCustomization::GetGeometryVisibility)));
 
 	TSharedPtr<IPropertyHandle> PropOnlyBlocking = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FEnvTraceData,bOnlyBlockingHits));
-	StructBuilder.AddChildProperty(PropOnlyBlocking.ToSharedRef())
+	StructBuilder.AddProperty(PropOnlyBlocking.ToSharedRef())
 		.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvTraceDataCustomization::GetGeometryVisibility)));
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION

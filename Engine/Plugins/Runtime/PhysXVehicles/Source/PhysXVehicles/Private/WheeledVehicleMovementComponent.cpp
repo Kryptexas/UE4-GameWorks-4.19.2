@@ -307,6 +307,16 @@ void UWheeledVehicleMovementComponent::SetupVehicleShapes()
 			PxFilterData PWheelQueryFilterData, PDummySimData;
 			CreateShapeFilterData(ECC_Vehicle, FMaskFilter(0), UpdatedComponent->GetOwner()->GetUniqueID(), CollisionResponse, UpdatedComponent->GetUniqueID(), 0, PWheelQueryFilterData, PDummySimData, false, false, false);
 
+			if (Wheel->SweepType != EWheelSweepType::Complex)
+			{
+				PWheelQueryFilterData.word3 |= EPDF_SimpleCollision;
+			}
+
+			if (Wheel->SweepType != EWheelSweepType::Simple)
+			{
+				PWheelQueryFilterData.word3 |= EPDF_ComplexCollision;
+			}
+
 			//// Give suspension raycasts the same group ID as the chassis so that they don't hit each other
 			PWheelShape->setQueryFilterData(PWheelQueryFilterData);
 		}
@@ -1024,6 +1034,8 @@ void UWheeledVehicleMovementComponent::UpdateState( float DeltaTime )
 	}
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 bool UWheeledVehicleMovementComponent::ServerUpdateState_Validate(float InSteeringInput, float InThrottleInput, float InBrakeInput, float InHandbrakeInput, int32 InCurrentGear)
 {
 	return true;
@@ -1048,6 +1060,8 @@ void UWheeledVehicleMovementComponent::ServerUpdateState_Implementation(float In
 	ReplicatedState.HandbrakeInput = InHandbrakeInput;
 	ReplicatedState.CurrentGear = InCurrentGear;
 }
+
+/// @endcond
 
 float UWheeledVehicleMovementComponent::CalcSteeringInput()
 {
@@ -1718,6 +1732,7 @@ void UWheeledVehicleMovementComponent::PostEditChangeProperty( FPropertyChangedE
 
 #endif // WITH_EDITOR
 
+/// @cond DOXYGEN_WARNINGS
 
 void UWheeledVehicleMovementComponent::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const
 {
@@ -1725,6 +1740,8 @@ void UWheeledVehicleMovementComponent::GetLifetimeReplicatedProps( TArray< FLife
 
 	DOREPLIFETIME( UWheeledVehicleMovementComponent, ReplicatedState );
 }
+
+/// @endcond
 
 void UWheeledVehicleMovementComponent::ComputeConstants()
 {

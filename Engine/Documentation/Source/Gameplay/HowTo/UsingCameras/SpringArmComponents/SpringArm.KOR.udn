@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3429254
 Availability: Public
 Title:스프링 암 컴포넌트 사용법
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\UsingCameras
@@ -9,6 +9,7 @@ Related: Engine/Matinee
 Related: Engine/Blueprints
 SkillLevel: Beginner
 Version: 4.8
+type:how-to
 
 [REGION:warning]
 이 튜토리얼에는 **카메라** 컴포넌트가 할당된 것이면 어떤 캐릭터든 사용해도 좋습니다. 캐릭터가 없는 경우, 여기서 사용되는 기본 캐릭터 생성을 위해 [](Gameplay\HowTo\UsingCameras\CameraComponents) 튜토리얼 먼저 떼고 오실 것을 추천합니다.

@@ -282,6 +282,8 @@ struct glsl_type
 	static const glsl_type *get_templated_instance(const glsl_type *base,
 		const char *name, int num_samples, int patch_size);
 
+	static const glsl_type* GetStructuredBufferInstance(const char* TypeName, const glsl_type* InnerType);
+
 	/**
 	* Get the instance of an array type
 	*/
@@ -637,6 +639,9 @@ private:
 
 	/** Hash table containing the known sampler types. */
 	static struct hash_table *sampler_types;
+
+	/** Hash table containing the known [RW]StructuredBuffer types. */
+	static hash_table* StructuredBufferTypes;
 
 	/** Hash table containing the known outputstream types. */
 	static struct hash_table *outputstream_types;

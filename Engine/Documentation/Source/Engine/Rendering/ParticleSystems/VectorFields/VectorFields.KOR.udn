@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:3243860
+﻿INTSourceChangelist:3467293
 Availability: Public
 Title:벡터 필드
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference, Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
 Description:벡터 필드에 대한 개요, GPU 스프라이트와 어떻게 작동하는가에 대한 문서입니다.
 Version: 4.9
 tags:Particles
+topic-image:VectorFields_topic.png
 
 
 

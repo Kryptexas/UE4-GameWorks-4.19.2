@@ -15,7 +15,6 @@
 class AActor;
 class IDetailRootObjectCustomization;
 
-PRAGMA_DISABLE_DEPRECATION_WARNINGS
 class SDetailsView : public SDetailsViewBase
 {
 	friend class FPropertyDetailsUtilities;
@@ -31,7 +30,7 @@ public:
 	virtual ~SDetailsView();
 
 	/** Causes the details view to be refreshed (new widgets generated) with the current set of objects */
-	void ForceRefresh() override;
+	virtual void ForceRefresh() override;
 
 	/** Move the scrolling offset (by item), but do not refresh the tree*/
 	void MoveScrollOffset(int32 DeltaOffset) override;
@@ -91,18 +90,10 @@ public:
 		return bViewingClassDefaultObject;
 	}
 
-	/** Gets the base class being viewed */
-	/** These methods is deprecated.  When it is removed, also remove the PRAGMA_DISABLE_DEPRECATION_WARNINGS/PRAGMA_ENABLE_DEPRECATION_WARNINGS at the top and bottom of this file */
-	const UClass* GetBaseClass() const override;
-	UClass* GetBaseClass() override;
+	/** IDetailsViewPrivate interface */
+	virtual void AddExternalRootPropertyNode(TSharedRef<FComplexPropertyNode> ExternalRootNode) override;
+	virtual bool IsExternalRootPropertyNode(TSharedRef<FComplexPropertyNode> RootNode) const override;
 
-	/**
-	 * Adds an external property root node to the list of root nodes that the details new needs to manage
-	 *
-	 * @param InExternalRootNode	The node to add
-	 */
-	void AddExternalRootPropertyNode( TSharedRef<FPropertyNode> ExternalRootNode ) override;
-	
 	/**
 	 * Whether or not a category is hidden by a given root object
 	 * @param InRootNode	The root node that for the objects we are customizing
@@ -201,4 +192,3 @@ private:
 	/** True if at least one viewed object is a CDO (blueprint editing) */
 	bool bViewingClassDefaultObject;
 };
-PRAGMA_ENABLE_DEPRECATION_WARNINGS

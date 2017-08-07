@@ -14,21 +14,26 @@ struct FAnimInstanceProxy;
  *	Simple controller to copy a bone's transform to another one.
  */
 
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ANIMGRAPHRUNTIME_API FAnimNode_CopyPoseFromMesh : public FAnimNode_Base
 {
 	GENERATED_USTRUCT_BODY()
 
+	/*  This is used by default if it's valid */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Copy, meta=(PinShownByDefault))
-	USkeletalMeshComponent* SourceMeshComponent;
+	TWeakObjectPtr<USkeletalMeshComponent> SourceMeshComponent;
+
+	/* If SourceMeshComponent is not valid, and if this is true, it will look for attahced parent as a source */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Copy, meta = (NeverAsPin))
+	bool bUseAttachedParent;
 
 	FAnimNode_CopyPoseFromMesh();
 
 	// FAnimNode_Base interface
-	virtual void Initialize(const FAnimationInitializeContext& Context) override;
-	virtual void CacheBones(const FAnimationCacheBonesContext& Context) override;
-	virtual void Update(const FAnimationUpdateContext& Context) override;
-	virtual void Evaluate(FPoseContext& Output) override;
+	virtual void Initialize_AnyThread(const FAnimationInitializeContext& Context) override;
+	virtual void CacheBones_AnyThread(const FAnimationCacheBonesContext& Context) override;
+	virtual void Update_AnyThread(const FAnimationUpdateContext& Context) override;
+	virtual void Evaluate_AnyThread(FPoseContext& Output) override;
 	virtual void GatherDebugData(FNodeDebugData& DebugData) override;
 	// End of FAnimNode_Base interface
 
@@ -38,5 +43,6 @@ private:
 	TMap<int32, int32> BoneMapToSource;
 
 	// reinitialize mesh component 
-	void ReinitializeMeshComponent(FAnimInstanceProxy* AnimInstanceProxy);
+	void ReinitializeMeshComponent(USkeletalMeshComponent* NewSkeletalMeshComponent, FAnimInstanceProxy* AnimInstanceProxy);
+	void RefreshMeshComponent(FAnimInstanceProxy* AnimInstanceProxy);
 };

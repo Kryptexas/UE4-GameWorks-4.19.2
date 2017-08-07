@@ -28,6 +28,8 @@
 #include "Framework/Application/MenuStack.h"
 #include "Framework/SlateDelegates.h"
 
+#include "GestureDetector.h"
+
 class FNavigationConfig;
 class IInputInterface;
 class IInputProcessor;
@@ -49,8 +51,6 @@ DECLARE_DELEGATE(FModalWindowStackEnded)
 DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnWindowAction, const TSharedRef<FGenericWindow>&, EWindowAction::Type);
 
 DECLARE_DELEGATE_RetVal(bool, FDragDropCheckingOverride);
-
-extern SLATE_API const FName NAME_UnrealOS;
 
 
 /** Allow widgets to find out when someone clicked outside them. Currently needed by MenuAnchros. */
@@ -122,6 +122,36 @@ public:
 
 	TSharedPtr<SWidget> GetFocusedWidget() const;
 
+	FORCEINLINE uint64 GetFocusVersion() const { return FocusVersion; }
+	FORCEINLINE void UpdateFocusVersion() { FocusVersion++; }
+
+	FGestureDetector GestureDetector;
+
+private:
+	FORCEINLINE bool HasValidFocusPath() const
+	{
+		return FocusWidgetPathWeak.IsValid();
+	}
+
+	FORCEINLINE const FWeakWidgetPath& GetWeakFocusPath() const
+	{
+		return FocusWidgetPathWeak;
+	}
+
+	FORCEINLINE TSharedRef<FWidgetPath> GetFocusPath() const
+	{
+		if ( !FocusWidgetPathStrong.IsValid() )
+		{
+			FocusWidgetPathStrong = FocusWidgetPathWeak.ToWidgetPathRef();
+		}
+
+		return FocusWidgetPathStrong.ToSharedRef();
+	}
+
+	void SetFocusPath(const FWidgetPath& InWidgetPath, EFocusCause InCause, bool InShowFocus);
+
+	void FinishFrame();
+
 private:
 	/** The index the user was assigned. */
 	int32 UserIndex;
@@ -129,17 +159,23 @@ private:
 	/** Is this a virtual user?  Virtual users are generally ignored in most operations that affect all users. */
 	bool bVirtualUser;
 
-	struct FUserFocusEntry
-	{
-		/** A weak path to the widget currently focused by a user, if any. */
-		FWeakWidgetPath WidgetPath;
-		/** Reason a widget was focused by a user, if any. */
-		EFocusCause FocusCause;
-		/** If we should show this focus */
-		bool ShowFocus;
-	};
+	/** A weak path to the widget currently focused by a user, if any. */
+	FWeakWidgetPath FocusWidgetPathWeak;
 
-	FUserFocusEntry Focus;
+	/** A strong widget path to a widget, this is cleared after the end of pumping messages. */
+	mutable TSharedPtr<FWidgetPath> FocusWidgetPathStrong;
+
+	/** Reason a widget was focused by a user, if any. */
+	EFocusCause FocusCause;
+
+	/** If we should show this focus */
+	bool ShowFocus;
+
+	/**
+	 * The FocusVersion is used to know if the focus state is modified for a user while processing focus
+	 * events, that way upon returning from focus calls, we know if we should abandon the remainder of the event.
+	 */
+	int32 FocusVersion;
 
 	friend class FSlateApplication;
 };
@@ -154,14 +190,14 @@ public:
 	virtual ~FSlateVirtualUser();
 
 	FORCEINLINE int32 GetUserIndex() const { return UserIndex; }
-	FORCEINLINE int32 GetVirtualUserIndex() const { return UserIndex; }
+	FORCEINLINE int32 GetVirtualUserIndex() const { return VirtualUserIndex; }
 
 private:
 
 	/** The index the user was assigned. */
 	int32 UserIndex;
 
-	/** The index the user was assigned. */
+	/** The virtual index the user was assigned. */
 	int32 VirtualUserIndex;
 };
 
@@ -453,11 +489,11 @@ public:
 	 */
 	void ExternalModalStop();
 
-	/** Delegate for retainer widgets to know when they should update */
+	/** Event before slate application ticks. */
 	DECLARE_EVENT_OneParam(FSlateApplication, FSlateTickEvent, float);
 	FSlateTickEvent& OnPreTick()  { return PreTickEvent; }
 
-	/** Delegate for after slate application ticks. */
+	/** Event after slate application ticks. */
 	FSlateTickEvent& OnPostTick()  { return PostTickEvent; }
 
 	/** 
@@ -755,15 +791,15 @@ public:
 	 * Calculates the popup window position from the passed in window position and size. 
 	 * Adjusts position for popup windows which are outside of the work area of the monitor where they reside
 	 *
-	 * @param InAnchor	The current(suggseted) window position and size of an area which may not be covered by the popup.
-	 * @param InSize		The size of the window
-	 * @param Orientation	The direction of the popup.
-	 *						If vertical it will attempt to open below the anchor but will open above if there is no room.
-	 *						If horizontal it will attempt to open below the anchor but will open above if there is no room.
+	 * @param InAnchor				The current(suggseted) window position and size of an area which may not be covered by the popup.
+	 * @param InSize				The size of the window
+	 * @param InProposedPlacement	The location on screen where the popup should go if allowed. If zero this will be determined from Orientation and Anchor
+	 * @param Orientation			The direction of the popup.
+	 *								If vertical it will attempt to open below the anchor but will open above if there is no room.
+	 *								If horizontal it will attempt to open below the anchor but will open above if there is no room.
 	 * @return The adjusted position
 	 */
-	virtual FVector2D CalculatePopupWindowPosition( const FSlateRect& InAnchor, const FVector2D& InSize, const EOrientation Orientation = Orient_Vertical ) const;
-
+	virtual FVector2D CalculatePopupWindowPosition( const FSlateRect& InAnchor, const FVector2D& InSize, const FVector2D& InProposedPlacement = FVector2D::ZeroVector, const EOrientation Orientation = Orient_Vertical) const;
 
 	/**
 	 * Is the window in the app's destroy queue? If so it will be destroyed next tick.
@@ -966,11 +1002,16 @@ protected:
 	 */
 	void GetAllVisibleChildWindows(TArray< TSharedRef<SWindow> >& OutWindows, TSharedRef<SWindow> CurrentWindow);
 
-
 	/** Engages or disengages application throttling based on user behavior */
 	void ThrottleApplicationBasedOnMouseMovement();
 
 	virtual FWidgetPath LocateWidgetInWindow(FVector2D ScreenspaceMouseCoordinate, const TSharedRef<SWindow>& Window, bool bIgnoreEnabledStatus) const override;
+
+	/**
+	 * Sets up any values that need to be based on the physical dimensions of the device.  
+	 * Such as dead zones associated with precise tapping...etc
+	 */
+	void SetupPhysicalSensitivities();
 
 public:
 
@@ -1179,8 +1220,12 @@ public:
 	/** @return true if mouse events are being turned into touch events, and touch UI should be forced on */
 	bool IsFakingTouchEvents() const;
 
+#if PLATFORM_DESKTOP || PLATFORM_HTML5
+	
 	/** Sets whether the application is treating mouse events as imitating touch events.  Optional CursorLocation can be supplied to override the platform's belief of where the cursor is */
 	void SetGameIsFakingTouchEvents(const bool bIsFaking, FVector2D* CursorLocation = nullptr);
+
+#endif
 
 	/** Sets the handler for otherwise unhandled key down events. This is used by the editor to provide a global action list, if the key was not consumed by any widget. */
 	void SetUnhandledKeyDownEventHandler( const FOnKeyEvent& NewHandler );
@@ -1195,17 +1240,46 @@ public:
 	/** @return the deadzone size for dragging in screen pixels (aka virtual desktop pixels) */
 	float GetDragTriggerDistance() const;
 
+	/** @return the deadzone size squared for dragging in screen pixels (aka virtual desktop pixels) */
+	float GetDragTriggerDistanceSquared() const;
+
+	/** @return true if the difference between the ScreenSpaceOrigin and the ScreenSpacePosition is larger than the trigger distance for dragging in Slate. */
+	bool HasTraveledFarEnoughToTriggerDrag(const FPointerEvent& PointerEvent, const FVector2D ScreenSpaceOrigin) const;
+
 	/** Set the size of the deadzone for dragging in screen pixels */
 	void SetDragTriggerDistance( float ScreenPixels );
 	
-	/** Set the analog cursor to be enabled or disabled. */
-	void SetInputPreProcessor(bool bEnable, TSharedPtr<class IInputProcessor> NewInputProcessor = nullptr);
+	/** [Deprecated] Adds or removes input pre-processor. */
+	DEPRECATED(4.17, "SetInputPreProcessor(...) is deprecated. Use RegisterInputPreProcessor(...) and/or UnregisterInputPreProcessor(...) / UnregisterAllInputPreProcessors(...) instead.")
+	void SetInputPreProcessor(bool bEnable, TSharedPtr<class IInputProcessor> InputProcessor = nullptr);
+
+	/** 
+	 * Adds input pre-processor if unique. 
+	 * @param InputProcessor	The input pre-processor to add.
+	 * @param Index				Where to insert the InputProcessor, when sorting is needed. Default index will add at the end.
+	 * @return True if added to list of input pre-processors, false if not
+	 */
+	bool RegisterInputPreProcessor(TSharedPtr<class IInputProcessor> InputProcessor, const int32 Index = INDEX_NONE);
+
+	/**
+	 * Removes an input pre-processor.
+	 * @param InputProcessor	The input pre-processor to Remove.
+	 */
+	void UnregisterInputPreProcessor(TSharedPtr<class IInputProcessor> InputProcessor);
+
+	/** 
+	 * Removes all input pre-processor from list of input pre-processors.
+	 */
+	void UnregisterAllInputPreProcessors();
 
 	/** Sets the hit detection radius of the cursor */
 	void SetCursorRadius(float NewRadius);
 
 	/** Getter for the cursor radius */
 	float GetCursorRadius() const;
+
+	void SetAllowTooltips(bool bCanShow);
+	bool GetAllowTooltips() const;
 	
 public:
 
@@ -1248,7 +1322,7 @@ public:
 
 	virtual FVector2D GetCursorPos() const override;
 	virtual FVector2D GetLastCursorPos() const override;
-	virtual FVector2D GetCursorSize() const override;	
+	virtual FVector2D GetCursorSize() const override;
 
 	virtual bool GetSoftwareCursorAvailable() const override
 	{
@@ -1315,10 +1389,11 @@ public:
 	virtual bool OnControllerAnalog( FGamepadKeyNames::Type KeyName, int32 ControllerId, float AnalogValue ) override;
 	virtual bool OnControllerButtonPressed( FGamepadKeyNames::Type KeyName, int32 ControllerId, bool IsRepeat ) override;
 	virtual bool OnControllerButtonReleased( FGamepadKeyNames::Type KeyName, int32 ControllerId, bool IsRepeat ) override;
-	virtual bool OnTouchGesture( EGestureEvent::Type GestureType, const FVector2D& Delta, float WheelDelta, bool bIsDirectionInvertedFromDevice ) override;
+	virtual bool OnTouchGesture( EGestureEvent GestureType, const FVector2D& Delta, float WheelDelta, bool bIsDirectionInvertedFromDevice ) override;
 	virtual bool OnTouchStarted( const TSharedPtr< FGenericWindow >& PlatformWindow, const FVector2D& Location, int32 TouchIndex, int32 ControllerId ) override;
 	virtual bool OnTouchMoved( const FVector2D& Location, int32 TouchIndex, int32 ControllerId ) override;
 	virtual bool OnTouchEnded( const FVector2D& Location, int32 TouchIndex, int32 ControllerId ) override;
+	virtual void ShouldSimulateGesture(EGestureEvent Gesture, bool bEnable) override;
 	virtual bool OnMotionDetected(const FVector& Tilt, const FVector& RotationRate, const FVector& Gravity, const FVector& Acceleration, int32 ControllerId) override;
 	virtual bool OnSizeChanged( const TSharedRef< FGenericWindow >& PlatformWindow, const int32 Width, const int32 Height, bool bWasMinimized = false ) override;
 	virtual void OnOSPaint( const TSharedRef< FGenericWindow >& PlatformWindow ) override;
@@ -1327,7 +1402,7 @@ public:
 	virtual bool BeginReshapingWindow( const TSharedRef< FGenericWindow >& PlatformWindow ) override;
 	virtual void FinishedReshapingWindow( const TSharedRef< FGenericWindow >& PlatformWindow ) override;
 	virtual void OnMovedWindow( const TSharedRef< FGenericWindow >& PlatformWindow, const int32 X, const int32 Y ) override;
-	virtual bool OnWindowActivationChanged( const TSharedRef< FGenericWindow >& PlatformWindow, const EWindowActivation::Type ActivationType ) override;
+	virtual bool OnWindowActivationChanged( const TSharedRef< FGenericWindow >& PlatformWindow, const EWindowActivation ActivationType ) override;
 	virtual bool OnApplicationActivationChanged( const bool IsActive ) override;
 	virtual bool OnConvertibleLaptopModeChanged() override;
 	virtual EWindowZone::Type GetWindowZoneForPoint( const TSharedRef< FGenericWindow >& PlatformWindow, const int32 X, const int32 Y ) override;
@@ -1459,7 +1534,9 @@ public:
 	const void* FindBestParentWindowHandleForDialogs(const TSharedPtr<SWidget>& InWidget);
 
 public:
+#if WITH_EDITORONLY_DATA
 	FDragDropCheckingOverride OnDragDropCheckOverride;
+#endif
 
 private:
 
@@ -1606,6 +1683,12 @@ private:
 	/** A vertical slice through the tree of widgets on screen; it represents widgets that were under the cursor last time an event was processed */
 	TMap<FUserAndPointer, FWeakWidgetPath> WidgetsUnderCursorLastEvent;
 
+	/** Stores the position for the pointer position. */
+	TMap<FUserAndPointer, FVector2D> PointerIndexPositionMap;
+
+	/** Stores the position for the last pointer position. */
+	TMap<FUserAndPointer, FVector2D> PointerIndexLastPositionMap;
+
 	/**
 	 * A helper class to wrap the weak path functionality. The advantage of using this
 	 * class is that the path can be validated and the current mouse captor (if any) can
@@ -1641,7 +1724,7 @@ private:
 		 * @param EventPath		The path to the event.
 		 * @param Widget		The widget that wants to capture the mouse.
 		 */
-		void SetMouseCaptor(uint32 UserIndex, uint32 PointerIndex, const FWidgetPath& EventPath, TSharedPtr< SWidget > Widget );
+		bool SetMouseCaptor(uint32 UserIndex, uint32 PointerIndex, const FWidgetPath& EventPath, TSharedPtr< SWidget > Widget );
 
 		/** Invalidates all current mouse captors. Calls OnMouseCaptureLost() on the current mouse captor if one exists */
 		void InvalidateCaptureForAllPointers();
@@ -1694,9 +1777,6 @@ private:
 	/** The current mouse captor for the application, if any. */
 	MouseCaptorHelper MouseCaptor;
 
-	/** An input preprocessor, gets an opportunity to parse input before anything else. */
-	TSharedPtr<IInputProcessor> InputPreProcessor;
-	
 	/** The cursor widget and window to render that cursor for the current software cursor.*/
 	TWeakPtr<SWindow> CursorWindowPtr;
 	TWeakPtr<SWidget> CursorWidgetPtr;
@@ -1715,8 +1795,6 @@ private:
 	 * Weak pointers to the allocated virtual users.
 	 */
 	TArray<TWeakPtr<FSlateVirtualUser>> VirtualUsers;
-
-	typedef FSlateUser::FUserFocusEntry FUserFocusEntry;
 
 	/**
 	 * Application throttling
@@ -1875,14 +1953,13 @@ private:
 
 	/** Direction that tool-tip is being repelled from a force field in.  We cache this to avoid tool-tips
 	    teleporting between different offset directions as the user moves the mouse cursor around. */
-	struct EToolTipOffsetDirection
+	enum class EToolTipOffsetDirection : uint8
 	{
-		enum Type
-		{
-			Undetermined, Down, Right
-		};
+		Undetermined,
+		Down,
+		Right
 	};
-	EToolTipOffsetDirection::Type ToolTipOffsetDirection;
+	EToolTipOffsetDirection ToolTipOffsetDirection;
 
 	/** The top of the Style tree. */
 	const class FStyleNode* RootStyleNode;
@@ -1930,8 +2007,6 @@ private:
 
 	/** When an drag and drop is happening, we keep track of whether slate knew what to do with the payload on last mouse move */
 	bool DragIsHandled;
-
-	TMap<uint32, FVector2D> PointerIndexLastPositionMap;
 
 	/**
 	 * Virtual keyboard text field
@@ -2001,6 +2076,9 @@ private:
 	/** Configured fkeys to control navigation */
 	TSharedRef<FNavigationConfig> NavigationConfig;
 
+	/**  */
+	TBitArray<FDefaultBitArrayAllocator> SimulateGestures;
+
 	/** Delegate for pre slate tick */
 	FSlateTickEvent PreTickEvent;
 
@@ -2015,6 +2093,51 @@ private:
 
 	/** Are we currently processing input in slate?  If so this value will be greater than 0. */
 	int32 ProcessingInput;
+
+		
+	/**
+	 * A helper class to wrap the list of input pre-processors. 
+	 */
+	class InputPreProcessorsHelper
+	{
+	public:
+
+		// Wrapper functions that call the corresponding function of IInputProcessor for each InputProcessor in the list.
+		void Tick(const float DeltaTime, FSlateApplication& SlateApp, TSharedRef<ICursor> Cursor);
+		bool HandleKeyDownEvent(FSlateApplication& SlateApp, const FKeyEvent& InKeyEvent);
+		bool HandleKeyUpEvent(FSlateApplication& SlateApp, const FKeyEvent& InKeyEvent);
+		bool HandleAnalogInputEvent(FSlateApplication& SlateApp, const FAnalogInputEvent& InAnalogInputEvent);
+		bool HandleMouseMoveEvent(FSlateApplication& SlateApp, const FPointerEvent& MouseEvent);
+		bool HandleMouseButtonDownEvent(FSlateApplication& SlateApp, const FPointerEvent& MouseEvent);
+		bool HandleMouseButtonUpEvent(FSlateApplication& SlateApp, const FPointerEvent& MouseEvent);
+		bool HandleMotionDetectedEvent(FSlateApplication& SlateApp, const FMotionEvent& MotionEvent);
+
+		/**
+		 * Adds or inserts an unique input pre-processor. 
+		 * @param InputProcessor	The InputProcessor to add.
+		 * @param Index				When this is set the index will be used to insert the InputProcessor. Defaults to INDEX_NONE, resulting in AddUnique.
+		 */
+		bool Add(TSharedPtr<IInputProcessor> InputProcessor, const int32 Index = INDEX_NONE);
+
+		/**
+		 * Remove an input pre-processor. 
+		 * @param InputProcessor	The InputProcessor to remove.
+		 */
+		void Remove(TSharedPtr<IInputProcessor> InputProcessor);
+
+		/**
+		 * Remove all registered input pre-processors.
+		 */
+		void RemoveAll();
+
+	private:
+
+		/** The list of input pre-processors. */
+		TArray<TSharedPtr<IInputProcessor>> InputPreProcessorList;
+	};
+
+	/** A list of input pre-processors, gets an opportunity to parse input before anything else. */
+	InputPreProcessorsHelper InputPreProcessors;
 
 #if WITH_EDITOR
 	/**

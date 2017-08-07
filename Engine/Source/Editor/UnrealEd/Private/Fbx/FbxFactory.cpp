@@ -13,6 +13,9 @@
 #include "Factories/FbxImportUI.h"
 #include "Engine/StaticMesh.h"
 #include "Editor.h"
+#include "SkelImport.h"
+
+#include "EditorReimportHandler.h"
 
 #include "Logging/TokenizedMessage.h"
 #include "FbxImporter.h"
@@ -155,6 +158,8 @@ UObject* UFbxFactory::FactoryCreateBinary
  bool&				bOutOperationCanceled
  )
 {
+	CA_ASSUME(InParent);
+
 	if( bOperationCanceled )
 	{
 		bOutOperationCanceled = true;
@@ -165,8 +170,47 @@ UObject* UFbxFactory::FactoryCreateBinary
 	FEditorDelegates::OnAssetPreImport.Broadcast(this, Class, InParent, Name, Type);
 
 	UObject* NewObject = NULL;
+	
+	//Look if its a re-import, in that cazse we must call the re-import factory
+	UObject *ExistingObject = nullptr;
+	UFbxStaticMeshImportData* ExistingStaticMeshImportData = nullptr;
+	UFbxSkeletalMeshImportData* ExistingSkeletalMeshImportData = nullptr;
+	if (InParent != nullptr)
+	{
+		ExistingObject = StaticFindObject(UObject::StaticClass(), InParent, *(Name.ToString()));
+		if (ExistingObject)
+		{
+			UStaticMesh *ExistingStaticMesh = Cast<UStaticMesh>(ExistingObject);
+			USkeletalMesh *ExistingSkeletalMesh = Cast<USkeletalMesh>(ExistingObject);
+			UObject *ObjectToReimport = nullptr;
+			if (ExistingStaticMesh)
+			{
+				ObjectToReimport = ExistingStaticMesh;
+			}
+			else if (ExistingSkeletalMesh)
+			{
+				ObjectToReimport = ExistingSkeletalMesh;
+			}
 
-	if ( bDetectImportTypeOnImport )
+			if (ObjectToReimport != nullptr)
+			{
+				TArray<UObject*> ToReimportObjects;
+				ToReimportObjects.Add(ObjectToReimport);
+				TArray<FString> Filenames;
+				Filenames.Add(UFactory::CurrentFilename);
+				//Set the new fbx source path before starting the re-import
+				FReimportManager::Instance()->UpdateReimportPaths(ObjectToReimport, Filenames);
+				//Do the re-import and exit
+				FReimportManager::Instance()->ValidateAllSourceFileAndReimport(ToReimportObjects);
+				return ObjectToReimport;
+			}
+		}
+	}
+
+	//We are not re-importing
+	ImportUI->bIsReimport = false;
+
+	if ( bDetectImportTypeOnImport)
 	{
 		if ( !DetectImportType(UFactory::CurrentFilename) )
 		{
@@ -200,7 +244,7 @@ UObject* UFbxFactory::FactoryCreateBinary
 	bool bIsAutomated = IsAutomatedImport();
 	bool bShowImportDialog = bShowOption && !bIsAutomated;
 	bool bImportAll = false;
-	ImportOptions = GetImportOptions(FbxImporter, ImportUI, bShowImportDialog, bIsAutomated, InParent->GetPathName(), bOperationCanceled, bImportAll, bIsObjFormat, bIsObjFormat, ForcedImportType );
+	ImportOptions = GetImportOptions(FbxImporter, ImportUI, bShowImportDialog, bIsAutomated, InParent->GetPathName(), bOperationCanceled, bImportAll, bIsObjFormat, bIsObjFormat, ForcedImportType, ExistingObject);
 	bOutOperationCanceled = bOperationCanceled;
 	
 	if( bImportAll )
@@ -463,7 +507,7 @@ UObject* UFbxFactory::FactoryCreateBinary
 									SkelMeshNodeArray.Add(Node);
 								}
 							}
-						
+							FSkeletalMeshImportData OutData;
 							if (LODIndex == 0 && SkelMeshNodeArray.Num() != 0)
 							{
 								FName OutputName = FbxImporter->MakeNameForMesh(Name.ToString(), SkelMeshNodeArray[0]);
@@ -476,6 +520,7 @@ UObject* UFbxFactory::FactoryCreateBinary
 								ImportSkeletalMeshArgs.TemplateImportData = ImportUI->SkeletalMeshImportData;
 								ImportSkeletalMeshArgs.LodIndex = LODIndex;
 								ImportSkeletalMeshArgs.bCancelOperation = &bOperationCanceled;
+								ImportSkeletalMeshArgs.OutData = &OutData;
 
 								USkeletalMesh* NewMesh = FbxImporter->ImportSkeletalMesh( ImportSkeletalMeshArgs );
 								NewObject = NewMesh;
@@ -518,6 +563,7 @@ UObject* UFbxFactory::FactoryCreateBinary
 								ImportSkeletalMeshArgs.TemplateImportData = ImportUI->SkeletalMeshImportData;
 								ImportSkeletalMeshArgs.LodIndex = SuccessfulLodIndex;
 								ImportSkeletalMeshArgs.bCancelOperation = &bOperationCanceled;
+								ImportSkeletalMeshArgs.OutData = &OutData;
 
 								USkeletalMesh *LODObject = FbxImporter->ImportSkeletalMesh( ImportSkeletalMeshArgs );
 								bool bImportSucceeded = !bOperationCanceled && FbxImporter->ImportSkeletalMeshLOD(LODObject, BaseSkeletalMesh, SuccessfulLodIndex, false);
@@ -543,7 +589,7 @@ UObject* UFbxFactory::FactoryCreateBinary
 								uint32 bImportTextures = ImportOptions->bImportTextures;
 								ImportOptions->bImportTextures = 0;
 
-								FbxImporter->ImportFbxMorphTarget(SkelMeshNodeArray, Cast<USkeletalMesh>(NewObject), InParent, ImportedSuccessfulLodIndex);
+								FbxImporter->ImportFbxMorphTarget(SkelMeshNodeArray, Cast<USkeletalMesh>(NewObject), InParent, ImportedSuccessfulLodIndex, OutData);
 							
 								ImportOptions->bImportMaterials = !!bImportMaterials;
 								ImportOptions->bImportTextures = !!bImportTextures;
@@ -763,6 +809,7 @@ IImportSettingsParser* UFbxFactory::GetImportSettingsParser()
 UFbxImportUI::UFbxImportUI(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	bIsReimport = false;
 	bAutomatedImportShouldDetectType = true;
 	
 	StaticMeshImportData = CreateDefaultSubobject<UFbxStaticMeshImportData>(TEXT("StaticMeshImportData"));
@@ -846,5 +893,13 @@ void UFbxImportUI::ParseFromJson(TSharedRef<class FJsonObject> ImportSettingsJso
 	}
 }
 
+void UFbxImportUI::ResetToDefault()
+{
+	ReloadConfig();
+	AnimSequenceImportData->ReloadConfig();
+	StaticMeshImportData->ReloadConfig();
+	SkeletalMeshImportData->ReloadConfig();
+	TextureImportData->ReloadConfig();
+}
 
 #undef LOCTEXT_NAMESPACE

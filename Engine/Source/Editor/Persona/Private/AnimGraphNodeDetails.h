@@ -13,7 +13,7 @@
 #include "Widgets/Views/STableViewBase.h"
 #include "Widgets/Views/STableRow.h"
 
-class FAssetData;
+struct FAssetData;
 class FBlueprintEditor;
 class UAnimationAsset;
 class UAnimGraphNode_Base;
@@ -36,9 +36,6 @@ public:
 	// End of IDetailCustomization interface
 
 protected:
-	// Hide any anim graph node properties; used when multiple are selected
-	void AbortDisplayOfAllNodes(TArray< TWeakObjectPtr<UObject> >& SelectedObjectsList, class IDetailLayoutBuilder& DetailBuilder);
-
 	// Creates a widget for the supplied property
 	TSharedRef<SWidget> CreatePropertyWidget(UProperty* TargetProperty, TSharedRef<IPropertyHandle> TargetPropertyHandle, UClass* NodeClass);
 
@@ -92,7 +89,7 @@ private:
 
 	// Bone tree widget delegates
 	void OnBoneSelectionChanged(FName Name);
-	FName GetSelectedBone() const;
+	FName GetSelectedBone(bool& bMultipleValues) const;
 	const struct FReferenceSkeleton&  GetReferenceSkeleton() const;
 
 	// Property to change after bone has been picked

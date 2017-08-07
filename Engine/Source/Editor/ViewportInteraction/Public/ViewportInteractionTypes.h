@@ -66,38 +66,6 @@ enum class EViewportInteractionDraggingMode : uint8
 	Material
 };
 
-/**
-* Things the transform gizmo can do to objects
-*/
-UENUM()
-enum class ETransformGizmoInteractionType : uint8
-{
-	/** No interaction */
-	None,
-
-	/** Translate the object(s), either in any direction or confined to one axis.  No rotation. */
-	Translate,
-
-	/** Translate the object, constrained to a plane.  No rotation. */
-	TranslateOnPlane,
-
-	/** Stretch the object non-uniformly while simultaneously repositioning it so account for it's new size */
-	StretchAndReposition,
-
-	/** Scaling the object non-uniformly while	 */
-	Scale,
-
-	/** Rotate the object(s) around a specific axis relative to the gizmo's pivot, translating as needed */
-	Rotate,
-
-	/** Rotate the object(s) around the pivot based on start angle */
-	RotateOnAngle,
-
-	/** Uniform scale the object(s) */
-	UniformScale,
-};
-
-
 /* Directions that a transform handle can face along any given axis */
 enum class ETransformGizmoHandleDirection
 {

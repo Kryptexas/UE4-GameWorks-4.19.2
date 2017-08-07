@@ -26,10 +26,12 @@ struct FPrimitiveViewRelevance
 	uint32 bDistortionRelevance : 1;
 	/** The primitive has one or more elements that have SeparateTranslucency. */
 	uint32 bSeparateTranslucencyRelevance : 1;
-	/** The primitive has one or more elements that have MobileSeparateTranslucency. */
-	uint32 bMobileSeparateTranslucencyRelevance : 1;
 	/** The primitive has one or more elements that have normal translucency. */
 	uint32 bNormalTranslucencyRelevance : 1;
+	/** For translucent primitives reading the scene color. */
+	uint32 bUsesSceneColorCopy : 1;
+	/** For primitive that can't render in offscreen buffers (blend modulate). */
+	uint32 bDisableOffscreenRendering : 1;
 	/** */
 	uint32 bUsesGlobalDistanceField : 1;
 
@@ -77,7 +79,7 @@ struct FPrimitiveViewRelevance
 
 	bool HasTranslucency() const 
 	{
-		return bSeparateTranslucencyRelevance || bNormalTranslucencyRelevance || bMobileSeparateTranslucencyRelevance;
+		return bSeparateTranslucencyRelevance || bNormalTranslucencyRelevance;
 	}
 
 	/** Default constructor */

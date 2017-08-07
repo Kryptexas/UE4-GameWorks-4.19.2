@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3235148
+﻿INTSourceChangelist:3467293
 Title: SteamVR 개발
 Crumbs:%ROOT%, Platforms
 Description:SteamVR 개발 시작을 위한 안내서입니다.
@@ -10,6 +10,7 @@ parent:Platforms/VR
 tags:VR
 tags:SteamVR
 tags:Platform
+Topic-image:SteamVRDevelopment_topic.png
 
 ![](T_Vive_HMD.png)
 

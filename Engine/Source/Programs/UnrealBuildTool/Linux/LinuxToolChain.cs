@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -314,13 +314,12 @@ namespace UnrealBuildTool
 		{
 			// set UE4_LINUX_USE_LIBCXX to either 0 or 1. If unset, defaults to 1.
 			string UseLibcxxEnvVarOverride = Environment.GetEnvironmentVariable("UE4_LINUX_USE_LIBCXX");
-			if (UseLibcxxEnvVarOverride != null && (UseLibcxxEnvVarOverride == "1"))
+			if (string.IsNullOrEmpty(UseLibcxxEnvVarOverride) || UseLibcxxEnvVarOverride == "1")
 			{
-				return true;
+				// at the moment ARM32 libc++ remains missing
+				return Architecture.StartsWith("x86_64") || Architecture.StartsWith("aarch64") || Architecture.StartsWith("i686");
 			}
-
-			// at the moment ARM32 libc++ remains missing
-			return Architecture.StartsWith("x86_64") || Architecture.StartsWith("aarch64") || Architecture.StartsWith("i686");
+			return false;
 		}
 
 		static string GetCLArguments_Global(CppCompileEnvironment CompileEnvironment)
@@ -344,6 +343,7 @@ namespace UnrealBuildTool
 			Result += " -Wsequence-point";              // additional warning not normally included in Wall: warns if order of operations is ambigious
 			//Result += " -Wunreachable-code";            // additional warning not normally included in Wall: warns if there is code that will never be executed - not helpful due to bIsGCC and similar
 			//Result += " -Wshadow";                      // additional warning not normally included in Wall: warns if there variable/typedef shadows some other variable - not helpful because we have gobs of code that shadows variables
+			Result += " -Wdelete-non-virtual-dtor";
 
 			Result += ArchitectureSpecificSwitches(CompileEnvironment.Architecture);
 
@@ -356,8 +356,8 @@ namespace UnrealBuildTool
 				// GCC only option
 				Result += " -fno-strict-aliasing";
 				Result += " -Wno-sign-compare"; // needed to suppress: comparison between signed and unsigned integer expressions
-				Result += " -Wno-enum-compare"; // Stats2.h triggers this (ALIGNOF(int64) <= DATA_ALIGN)
-				Result += " -Wno-return-type"; // Variant.h triggers this
+				Result += " -Wno-enum-compare"; // Stats2.h triggers this (alignof(int64) <= DATA_ALIGN)
+                Result += " -Wno-return-type"; // Variant.h triggers this
 				Result += " -Wno-unused-local-typedefs";
 				Result += " -Wno-multichar";
 				Result += " -Wno-unused-but-set-variable";
@@ -608,8 +608,7 @@ namespace UnrealBuildTool
 				Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/ThirdParty/ICU/icu4c-53_1/Linux/" + LinkEnvironment.Architecture;
 			}
 			Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/ThirdParty/OpenAL/Linux/" + LinkEnvironment.Architecture;
-			Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/ThirdParty/CEF3/Linux";
-			Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/ThirdParty/OpenVR/OpenVRv1_0_6/linux64";
+			Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/ThirdParty/OpenVR/OpenVRv1_0_7/linux64";
 
 			// Some OS ship ld with new ELF dynamic tags, which use DT_RUNPATH vs DT_RPATH. Since DT_RUNPATH do not propagate to dlopen()ed DSOs,
 			// this breaks the editor on such systems. See https://kenai.com/projects/maxine/lists/users/archive/2011-01/message/12 for details
@@ -1114,7 +1113,7 @@ namespace UnrealBuildTool
 
 				if ((AdditionalLibrary.Contains("Plugins") || AdditionalLibrary.Contains("Binaries/ThirdParty") || AdditionalLibrary.Contains("Binaries\\ThirdParty")) && Path.GetDirectoryName(AdditionalLibrary) != Path.GetDirectoryName(OutputFile.AbsolutePath))
 				{
-					string RelativePath = Utils.MakePathRelativeTo(Path.GetDirectoryName(AdditionalLibrary), Path.GetDirectoryName(OutputFile.AbsolutePath));
+					string RelativePath = new FileReference(AdditionalLibrary).Directory.MakeRelativeTo(OutputFile.Reference.Directory);
 					if (!RPaths.Contains(RelativePath))
 					{
 						RPaths.Add(RelativePath);
@@ -1238,6 +1237,13 @@ namespace UnrealBuildTool
 			LinkAction.CommandArguments = LinkAction.CommandArguments.Replace("\\\\", "/");
 			LinkAction.CommandArguments = LinkAction.CommandArguments.Replace("\\", "/");
 
+			/* The linker script that hid global constructor signatures was needed to work around problems like third party libraries
+				alloctating classes through a custom new overload but deleting through global delete. This in particular was needed for Steam.
+				Right now we are not aware of third party libs behaving that way, and hiding global new/delete introduces other problems, particularly
+				when linking to libs that use STL. Hence the script is unnecessary and should not be used, unless you understand what it is doing
+				and you are sure you are running into a similar problem like above. The proper solution though is to always ask the library author
+				to use matching new/delete signatures.
+			*//*
 			// prepare a linker script
 			FileReference LinkerScriptPath = FileReference.Combine(LinkEnvironment.LocalShadowDirectory, "remove-sym.ldscript");
 			if (!DirectoryReference.Exists(LinkEnvironment.LocalShadowDirectory))
@@ -1269,6 +1275,7 @@ namespace UnrealBuildTool
 			};
 
 			LinkAction.CommandArguments += string.Format(" -Wl,--version-script=\"{0}\"", LinkerScriptPath);
+			*/
 
 			// Only execute linking on the local PC.
 			LinkAction.bCanExecuteRemotely = false;

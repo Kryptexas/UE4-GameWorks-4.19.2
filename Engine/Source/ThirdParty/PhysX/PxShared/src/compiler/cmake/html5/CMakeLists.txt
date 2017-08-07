@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.3)
+PROJECT(PxShared CXX)
 #set(CMAKE_VERBOSE_MAKEFILE ON)
 include(../common/CMakeLists.txt)
 

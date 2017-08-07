@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3150518
+﻿INTSourceChangelist:3429260
 Availability:Public
 Title:삼성 기어 VR UE4 퀵스타트
 Crumbs:%ROOT%, Platforms/GearVR
@@ -8,6 +8,7 @@ Platform:Gear VR
 Skilllevel: Intermediate
 Version:4.9
 type:quick start
+type:landing
 parent:Platforms/GearVR
 tags:VR
 tags:GearVR

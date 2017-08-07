@@ -185,6 +185,13 @@ namespace UnrealGameSync
 
 		public StatusLine()
 		{
+			LineHeight = 1.0f;
+		}
+
+		public float LineHeight
+		{
+			get;
+			set;
 		}
 
 		public Rectangle Bounds
@@ -411,12 +418,16 @@ namespace UnrealGameSync
 			// Set the logo rectangle
 			ProjectLogoBounds = new Rectangle(DividerX - LogoWidth, (Height - LogoHeight) / 2, LogoWidth, LogoHeight);
 
+			// Measure up all the line height
+			float TotalLineHeight = Lines.Sum(x => x.LineHeight);
+
 			// Space out all the lines
-			int LineY = (Height - (Lines.Count - 1) * (int)(Font.Height * LineSpacing)) / 2;
+			float LineY = (Height - TotalLineHeight * (int)(Font.Height * LineSpacing)) / 2;
 			foreach(StatusLine Line in Lines)
 			{
-				Line.Layout(Graphics, new Point(DividerX + 5, LineY), FontCache);
-				LineY += (int)(Font.Height * LineSpacing);
+				LineY += (int)(Font.Height * LineSpacing * Line.LineHeight * 0.5f);
+				Line.Layout(Graphics, new Point(DividerX + 5, (int)LineY), FontCache);
+				LineY += (int)(Font.Height * LineSpacing * Line.LineHeight * 0.5f);
 			}
 		}
 

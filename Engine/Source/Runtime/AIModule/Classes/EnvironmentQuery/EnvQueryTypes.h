@@ -44,6 +44,9 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("Load Time"),STAT_AI_EQS_LoadTime,STATGROUP_AI_EQ
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Execute One Step Time"),STAT_AI_EQS_ExecuteOneStep,STATGROUP_AI_EQS, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Generator Time"),STAT_AI_EQS_GeneratorTime,STATGROUP_AI_EQS, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Test Time"),STAT_AI_EQS_TestTime,STATGROUP_AI_EQS, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("EQS Debug StoreQuery"), STAT_AI_EQS_Debug_StoreQuery, STATGROUP_AI_EQS, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("EQS Debug StoreTickTime"), STAT_AI_EQS_Debug_StoreTickTime, STATGROUP_AI_EQS, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("EQS Debug StoreStats"), STAT_AI_EQS_Debug_StoreStats, STATGROUP_AI_EQS, );
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Num Instances"),STAT_AI_EQS_NumInstances,STATGROUP_AI_EQS, );
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Num Items"),STAT_AI_EQS_NumItems,STATGROUP_AI_EQS, );
 DECLARE_MEMORY_STAT_EXTERN(TEXT("Instance memory"),STAT_AI_EQS_InstanceMemory,STATGROUP_AI_EQS, AIMODULE_API);
@@ -485,7 +488,7 @@ struct AIMODULE_API FEnvQueryItem
 
 template <> struct TIsZeroConstructType<FEnvQueryItem> { enum { Value = true }; };
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct AIMODULE_API FEnvQueryResult
 {
 	GENERATED_USTRUCT_BODY()
@@ -702,7 +705,7 @@ class AIMODULE_API UEnvQueryTypes : public UObject
 
 public:
 	/** special test value assigned to items skipped by condition check */
-	static float SkippedItemValue;
+	static const float SkippedItemValue;
 
 	/** special value used for executing query steps to prevent them from being time sliced */
 	static float UnlimitedStepTime;
@@ -816,9 +819,12 @@ struct AIMODULE_API FEnvQueryInstance : public FEnvQueryResult
 	{
 		DEC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, RawData.GetAllocatedSize() + Items.GetAllocatedSize());
 
+		// ItemValue's size must match what is expected by class doing memory write
 		check(GetDefault<TypeItem>()->GetValueSize() == sizeof(typename TypeItem::FValueType));
-		check(GetDefault<TypeItem>()->GetValueSize() == ValueSize);
-		const int32 DataOffset = RawData.AddUninitialized(ValueSize);
+		// writer must fit into block allocated for single item (not 'equal' on purpose, check UEnvQueryGenerator_Composite.bAllowDifferentItemTypes)
+		check(GetDefault<TypeItem>()->GetValueSize() <= ValueSize);
+
+		const int32 DataOffset = RawData.AddZeroed(ValueSize);
 		TypeItem::SetValue(RawData.GetData() + DataOffset, ItemValue);
 		Items.Add(FEnvQueryItem(DataOffset));
 
@@ -833,9 +839,12 @@ struct AIMODULE_API FEnvQueryInstance : public FEnvQueryResult
 		{
 			DEC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, RawData.GetAllocatedSize() + Items.GetAllocatedSize());
 
+			// ItemValue's size must match what is expected by class doing memory write
 			check(GetDefault<TypeItem>()->GetValueSize() == sizeof(typename TypeItem::FValueType));
-			check(GetDefault<TypeItem>()->GetValueSize() == ValueSize);
-			int32 DataOffset = RawData.AddUninitialized(ValueSize * ItemCollection.Num());
+			// writer must fit into block allocated for single item (not 'equal' on purpose, check UEnvQueryGenerator_Composite.bAllowDifferentItemTypes)
+			check(GetDefault<TypeItem>()->GetValueSize() <= ValueSize);
+
+			int32 DataOffset = RawData.AddZeroed(ValueSize * ItemCollection.Num());
 			Items.Reserve(Items.Num() + ItemCollection.Num());
 
 			for (typename TypeItem::FValueType& Item : ItemCollection)

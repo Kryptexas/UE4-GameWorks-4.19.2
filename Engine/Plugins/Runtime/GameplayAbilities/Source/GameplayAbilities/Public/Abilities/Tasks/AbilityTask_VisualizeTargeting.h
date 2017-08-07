@@ -11,8 +11,8 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FVisualizeTargetingDelegate);
 
-UCLASS(MinimalAPI)
-class UAbilityTask_VisualizeTargeting: public UAbilityTask
+UCLASS()
+class GAMEPLAYABILITIES_API UAbilityTask_VisualizeTargeting: public UAbilityTask
 {
 	GENERATED_UCLASS_BODY()
 

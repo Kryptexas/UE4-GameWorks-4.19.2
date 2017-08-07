@@ -237,6 +237,20 @@ int32 FNetworkObjectList::GetNumDormantActorsForConnection(UNetConnection* const
 	return (Count != nullptr) ? *Count : 0;
 }
 
+void FNetworkObjectList::ForceActorRelevantNextUpdate(AActor* const Actor, const FName NetDriverName)
+{
+	TSharedPtr<FNetworkObjectInfo>* NetworkObjectInfoPtr = Add(Actor, NetDriverName);
+
+	if (NetworkObjectInfoPtr == nullptr)
+	{
+		return;		// Actor doesn't belong to this net driver name
+	}
+
+	FNetworkObjectInfo* NetworkObjectInfo = NetworkObjectInfoPtr->Get();
+	
+	NetworkObjectInfo->bForceRelevantNextUpdate = true;
+}
+
 void FNetworkObjectList::Reset()
 {
 	// Reset all state

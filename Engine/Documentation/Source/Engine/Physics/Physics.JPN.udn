@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:3317470
+﻿INTSourceChangelist:3454591
 Availability:Public
 Title:物理のシミュレーション
 Crumbs: %ROOT%, Engine
 Description:コリジョンを計算し、物理アクタをシミュレートするために使用するシステム
-Version:4.9
+Version:4.16
 parent:Engine
 order:8
 
@@ -83,8 +83,9 @@ order:8
 	[PARAM:links]
 		* [ビークル ユーザー ガイド](Engine/Physics/Vehicles/VehicleUserGuide "%Engine/Physics/Vehicles/VehicleUserGuide:description%")
 		* [ビークル コンテンツ作成ガイド](Engine/Physics/Vehicles/VehcileContentCreation "%Engine/Physics/Vehicles/VehcileContentCreation:description%")
+		* [シンプルな車輪付きビークルの移動コンポーネント](Engine/Physics/Vehicles/SimpleWheeledVehicleMovementComponent "%Engine/Physics/Vehicles/SimpleWheeledVehicleMovementComponent:description%")
 		* [高度なビークル テンプレート](Engine/Physics/Vehicles/DoubleWishboneVehicle "%Engine/Physics/Vehicles/DoubleWishboneVehicle:description%")
-		* [Vehicle API Reference](API:AWheeledVehicle)
+		*  [ビークルの API リファレンス](API:AWheeledVehicle)
 	[/PARAM]
 [/OBJECT]
 

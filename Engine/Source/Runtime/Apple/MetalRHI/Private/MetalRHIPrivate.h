@@ -29,7 +29,7 @@ const uint32 MaxMetalStreams = 31;
 #define BUFFER_MANAGED_MEM 0
 #define BUFFER_STORAGE_MODE MTLStorageModeShared
 #define BUFFER_RESOURCE_STORAGE_MANAGED MTLResourceStorageModeShared
-#define BUFFER_DYNAMIC_REALLOC BUF_Volatile
+#define BUFFER_DYNAMIC_REALLOC BUF_AnyDynamic
 // How many possible vertex streams are allowed
 const uint32 MaxMetalStreams = 30;
 #endif
@@ -55,6 +55,8 @@ const uint32 MaxMetalStreams = 30;
 
 #define UNREAL_TO_METAL_BUFFER_INDEX(Index) ((MaxMetalStreams - 1) - Index)
 #define METAL_TO_UNREAL_BUFFER_INDEX(Index) ((MaxMetalStreams - 1) - Index)
+
+#define METAL_NEW_NONNULL_DECL (__clang_major__ >= 9)
 
 // Dependencies
 #include "MetalRHI.h"

@@ -16,15 +16,6 @@ struct FNetworkObjectInfo
 	/** Pointer to the replicated actor. */
 	AActor* Actor;
 
-	/** List of connections that this actor is dormant on */
-	TSet<TWeakObjectPtr<UNetConnection>> DormantConnections;
-
-	/** A list of connections that this actor has recently been dormant on, but the actor doesn't have a channel open yet.
-	*  These need to be differentiated from actors that the client doesn't know about, but there's no explicit list for just those actors.
-	*  (this list will be very transient, with connections being moved off the DormantConnections list, onto this list, and then off once the actor has a channel again)
-	*/
-	TSet<TWeakObjectPtr<UNetConnection>> RecentlyDormantConnections;
-
 	/** Next time to consider replicating the actor. Based on FPlatformTime::Seconds(). */
 	double NextUpdateTime;
 
@@ -39,7 +30,19 @@ struct FNetworkObjectInfo
 	float LastNetUpdateTime;
 
 	/** Is this object still pending a full net update due to clients that weren't able to replicate the actor at the time of LastNetUpdateTime */
-	bool bPendingNetUpdate;
+	uint32 bPendingNetUpdate : 1;
+
+	/** Force this object to be considered relevant for at least one update */
+	uint32 bForceRelevantNextUpdate : 1;
+
+	/** List of connections that this actor is dormant on */
+	TSet<TWeakObjectPtr<UNetConnection>> DormantConnections;
+
+	/** A list of connections that this actor has recently been dormant on, but the actor doesn't have a channel open yet.
+	*  These need to be differentiated from actors that the client doesn't know about, but there's no explicit list for just those actors.
+	*  (this list will be very transient, with connections being moved off the DormantConnections list, onto this list, and then off once the actor has a channel again)
+	*/
+	TSet<TWeakObjectPtr<UNetConnection>> RecentlyDormantConnections;
 
 	FNetworkObjectInfo()
 		: Actor(nullptr)
@@ -47,7 +50,8 @@ struct FNetworkObjectInfo
 		, LastNetReplicateTime(0.0)
 		, OptimalNetUpdateDelta(0.0f)
 		, LastNetUpdateTime(0.0f)
-		, bPendingNetUpdate(false) {}
+		, bPendingNetUpdate(false)
+		, bForceRelevantNextUpdate(false) {}
 
 	FNetworkObjectInfo(AActor* InActor)
 		: Actor(InActor)
@@ -55,7 +59,8 @@ struct FNetworkObjectInfo
 		, LastNetReplicateTime(0.0)
 		, OptimalNetUpdateDelta(0.0f) 
 		, LastNetUpdateTime(0.0f)
-		, bPendingNetUpdate(false) {}
+		, bPendingNetUpdate(false)
+		, bForceRelevantNextUpdate(false) {}
 };
 
 /**
@@ -137,6 +142,9 @@ public:
 
 	int32 GetNumDormantActorsForConnection( UNetConnection* const Connection ) const;
 
+	/** Force this actor to be relevant for at least one update */
+	void ForceActorRelevantNextUpdate(AActor* const Actor, const FName NetDriverName);
+		
 	void Reset();
 
 private:

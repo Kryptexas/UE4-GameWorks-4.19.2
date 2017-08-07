@@ -6,6 +6,7 @@
 #include "Stats/Stats.h"
 #include "MovieSceneSequenceID.h"
 
+UENUM()
 namespace EMovieScenePlayerStatus
 {
 	enum Type

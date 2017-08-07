@@ -30,7 +30,7 @@
 ///     to show your users information about the health of the queue.
 /// (Success path)
 /// 2. Success case: Handle ovrMessage_Notification_Matchmaking_MatchFound notification.
-/// 3. In your notification handler, call ovr_Matchmaking_JoinRoom to place the user into the room.
+/// 3. In your notification handler, call ovr_Room_Join2 to place the user into the room.
 /// 4. (for skill matching only) When the match begins, call ovr_Matchmaking_StartMatch. All people in the match should call this.
 /// 5. (for skill matching only) When the match ends, call ovr_Matchmaking_ReportResultInsecure. All people in the match should call this.
 /// (Failure path)
@@ -89,7 +89,7 @@
 /// 1a. You may wish to periodically poll this endpoint to refresh the list.
 /// 2. Handle ovrMessage_Matchmaking_Browse2; show a list of rooms from returned list.
 /// (Success)
-/// 3. Call ovr_Matchmaking_JoinRoom when the user has chosen a room.
+/// 3. Call ovr_Room_Join2 when the user has chosen a room.
 /// 4. (for skill matching only) ovr_Matchmaking_StartMatch
 /// 5. (for skill matching only) ovr_Matchmaking_ReportResultInsecure
 /// (Failure)
@@ -318,7 +318,6 @@
 /// ovr_MatchmakingOptions_SetEnqueueDataSettingsString - Set a string Data setting. See "Data Settings" section above.
 /// ovr_MatchmakingOptions_SetEnqueueIsDebug - If true, debug information is returned with the response payload. See "Debugging" section above.
 /// ovr_MatchmakingOptions_SetEnqueueQueryKey - Specify a Matchmaking Query for filtering potential matches. See the "Matchmaking Queries" section above.
-///
 
 /// DEPRECATED. Use Browse2.
 /// \param pool A BROWSE type matchmaking pool.
@@ -574,6 +573,9 @@ OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Matchmaking_JoinRoom(ovrID roomID, bool sub
 /// update the skills of all players involved, based on the results. This
 /// method is insecure because, as a client API, it is susceptible to tampering
 /// and therefore cheating to manipulate skill ratings.
+/// \param roomID The room ID
+/// \param data key value pairs
+/// \param numItems The length of data
 ///
 /// A message with type ::ovrMessage_Matchmaking_ReportResultInsecure will be generated in response.
 ///

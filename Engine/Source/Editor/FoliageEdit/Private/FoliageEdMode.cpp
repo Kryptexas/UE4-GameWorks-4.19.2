@@ -51,11 +51,16 @@
 #include "SNotificationList.h"
 #include "NotificationManager.h"
 
+#include "FoliageEditUtility.h"
 
 #define LOCTEXT_NAMESPACE "FoliageEdMode"
 #define FOLIAGE_SNAP_TRACE (10000.f)
 
 DEFINE_LOG_CATEGORY_STATIC(LogFoliage, Log, Warning);
+
+DECLARE_CYCLE_STAT(TEXT("Calculate Potential Instance"), STAT_FoliageCalculatePotentialInstance, STATGROUP_Foliage);
+DECLARE_CYCLE_STAT(TEXT("Add Instance Imp"), STAT_FoliageAddInstanceImp, STATGROUP_Foliage);
+DECLARE_CYCLE_STAT(TEXT("Spawn Instance"), STAT_FoliageSpawnInstance, STATGROUP_Foliage);
 
 namespace VREd
 {
@@ -386,7 +391,7 @@ void FEdModeFoliage::Enter()
 			{
 				MeshInfo->Component->GetStaticMesh()->GetOnExtendedBoundsChanged().AddRaw(MeshInfo, &FFoliageMeshInfo::HandleComponentMeshBoundsChanged);
 
-				MeshInfo->Component->BuildTreeIfOutdated(true, true);
+				MeshInfo->Component->BuildTreeIfOutdated(true, false);
 			}
 		}
 	}
@@ -1273,6 +1278,8 @@ void FEdModeFoliage::CalculatePotentialInstances_ThreadSafe(const UWorld* InWorl
 
 void FEdModeFoliage::CalculatePotentialInstances(const UWorld* InWorld, const UFoliageType* Settings, const TArray<FDesiredFoliageInstance>& DesiredInstances, TArray<FPotentialInstance> OutPotentialInstances[NUM_INSTANCE_BUCKETS], LandscapeLayerCacheData* LandscapeLayerCachesPtr, const FFoliageUISettings* UISettings, const FFoliagePaintingGeometryFilter* OverrideGeometryFilter)
 {
+	SCOPE_CYCLE_COUNTER(STAT_FoliageCalculatePotentialInstance);
+	
 	LandscapeLayerCacheData LocalCache;
 	LandscapeLayerCachesPtr = LandscapeLayerCachesPtr ? LandscapeLayerCachesPtr : &LocalCache;
 
@@ -1350,6 +1357,8 @@ void FEdModeFoliage::AddInstances(UWorld* InWorld, const TArray<FDesiredFoliageI
 
 static void SpawnFoliageInstance(UWorld* InWorld, const UFoliageType* Settings, const FFoliageUISettings* UISettings, const FFoliageInstance& Instance, UActorComponent* BaseComponent)
 {
+	SCOPE_CYCLE_COUNTER(STAT_FoliageSpawnInstance);
+	
 	// We always spawn instances in base component level
 	ULevel* TargetLevel = (UISettings != nullptr && UISettings->GetIsInSpawnInCurrentLevelMode()) ? InWorld->GetCurrentLevel() : BaseComponent->GetComponentLevel();
 	CurrentFoliageTraceBrushAffectedLevels.AddUnique(TargetLevel);
@@ -1382,6 +1391,8 @@ void FEdModeFoliage::RebuildFoliageTree(const UFoliageType* Settings)
 
 void FEdModeFoliage::AddInstancesImp(UWorld* InWorld, const UFoliageType* Settings, const TArray<FDesiredFoliageInstance>& DesiredInstances, const TArray<int32>& ExistingInstanceBuckets, const float Pressure, LandscapeLayerCacheData* LandscapeLayerCachesPtr, const FFoliageUISettings* UISettings, const FFoliagePaintingGeometryFilter* OverrideGeometryFilter)
 {
+	SCOPE_CYCLE_COUNTER(STAT_FoliageAddInstanceImp);
+	
 	if (DesiredInstances.Num() == 0)
 	{
 		return;
@@ -1778,7 +1789,8 @@ void FEdModeFoliage::RemoveSelectedInstances(UWorld* InWorld)
 					if (Mesh.SelectedIndices.Num() > 0)
 					{
 						TArray<int32> InstancesToDelete = Mesh.SelectedIndices.Array();
-						Mesh.RemoveInstances(IFA, InstancesToDelete, true);
+						Mesh.RemoveInstances(IFA, InstancesToDelete, false);
+						Mesh.Component->BuildTreeIfOutdated(true, true);
 
 						OnInstanceCountUpdated(MeshPair.Key);
 					}
@@ -1799,8 +1811,7 @@ void FEdModeFoliage::SelectInvalidInstances(const UFoliageType* Settings)
 {
 	UWorld* InWorld = GetWorld();
 
-	static FName NAME_FoliageGroundCheck = FName("FoliageGroundCheck");
-	FCollisionQueryParams QueryParams(NAME_FoliageGroundCheck, true);
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(FoliageGroundCheck), true);
 	QueryParams.bReturnFaceIndex = false;
 	FCollisionShape SphereShape;
 	SphereShape.SetSphere(0.f);
@@ -2459,7 +2470,7 @@ void FEdModeFoliage::ApplyPaintBucket_Add(AActor* Actor)
 			const bool bHasColorData = bHasInstancedColorData || LODModel.ColorVertexBuffer.GetNumVertices();
 
 			// Get the raw triangle data for this static mesh
-			FTransform LocalToWorld = StaticMeshComponent->ComponentToWorld;
+			FTransform LocalToWorld = StaticMeshComponent->GetComponentTransform();
 			FIndexArrayView Indices = LODModel.IndexBuffer.GetArrayView();
 			const FPositionVertexBuffer& PositionVertexBuffer = LODModel.PositionVertexBuffer;
 			const FColorVertexBuffer& ColorVertexBuffer = LODModel.ColorVertexBuffer;
@@ -2630,9 +2641,9 @@ bool FEdModeFoliage::GetStaticMeshVertexColorForHit(const UStaticMeshComponent* 
 				int32 Index2 = Indices[IndexBufferIdx + 2];
 
 				// Lookup the triangle world positions and colors.
-				FVector WorldVert0 = InStaticMeshComponent->ComponentToWorld.TransformPosition(PositionVertexBuffer.VertexPosition(Index0));
-				FVector WorldVert1 = InStaticMeshComponent->ComponentToWorld.TransformPosition(PositionVertexBuffer.VertexPosition(Index1));
-				FVector WorldVert2 = InStaticMeshComponent->ComponentToWorld.TransformPosition(PositionVertexBuffer.VertexPosition(Index2));
+				FVector WorldVert0 = InStaticMeshComponent->GetComponentTransform().TransformPosition(PositionVertexBuffer.VertexPosition(Index0));
+				FVector WorldVert1 = InStaticMeshComponent->GetComponentTransform().TransformPosition(PositionVertexBuffer.VertexPosition(Index1));
+				FVector WorldVert2 = InStaticMeshComponent->GetComponentTransform().TransformPosition(PositionVertexBuffer.VertexPosition(Index2));
 
 				FLinearColor Color0;
 				FLinearColor Color1;
@@ -2975,6 +2986,28 @@ bool FEdModeFoliage::IsModifierButtonPressed(const FEditorViewportClient* Viewpo
 	return IsShiftDown(ViewportClient->Viewport) || bIsModifierPressed;
 }
 
+bool FEdModeFoliage::CanMoveSelectedFoliageToLevel(ULevel* InTargetLevel) const
+{
+	UWorld* World = InTargetLevel->OwningWorld;
+	const int32 NumLevels = World->GetNumLevels();
+
+	for (int32 LevelIdx = 0; LevelIdx < NumLevels; ++LevelIdx)
+	{
+		ULevel* Level = World->GetLevel(LevelIdx);
+		if (Level != InTargetLevel)
+		{
+			AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(Level, /*bCreateIfNone*/ false);
+
+			if (IFA && IFA->HasSelectedInstances())
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
 void FEdModeFoliage::MoveSelectedFoliageToLevel(ULevel* InTargetLevel)
 {
 	// Can't move into a locked level
@@ -3206,95 +3239,18 @@ UFoliageType* FEdModeFoliage::CopySettingsObject(UFoliageType* Settings)
 /** Replace the settings object for this static mesh with the one specified */
 void FEdModeFoliage::ReplaceSettingsObject(UFoliageType* OldSettings, UFoliageType* NewSettings)
 {
-	FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "FoliageMode_ReplaceSettingsObject", "Foliage Editing: Replace Settings Object"));
-
-	UWorld* World = GetWorld();
-	for (FFoliageMeshInfoIterator It(World, OldSettings); It; ++It)
-	{
-		AInstancedFoliageActor* IFA = It.GetActor();
-
-		IFA->Modify();
-		TUniqueObj<FFoliageMeshInfo> OldMeshInfo;
-		IFA->FoliageMeshes.RemoveAndCopyValue(OldSettings, OldMeshInfo);
-
-		// Old component needs to go
-		if (OldMeshInfo->Component != nullptr)
-		{
-			OldMeshInfo->Component->ClearInstances();
-			OldMeshInfo->Component->SetFlags(RF_Transactional);
-			OldMeshInfo->Component->Modify();
-			OldMeshInfo->Component->DestroyComponent();
-			OldMeshInfo->Component = nullptr;
-		}
-
-		// Append instances if new foliage type is already exists in this actor
-		// Otherwise just replace key entry for instances
-		TUniqueObj<FFoliageMeshInfo>* NewMeshInfo = IFA->FoliageMeshes.Find(NewSettings);
-		if (NewMeshInfo)
-		{
-			(*NewMeshInfo)->Instances.Append(OldMeshInfo->Instances);
-			(*NewMeshInfo)->ReallocateClusters(IFA, NewSettings);
-		}
-		else
-		{
-			IFA->FoliageMeshes.Add(NewSettings, MoveTemp(OldMeshInfo))->ReallocateClusters(IFA, NewSettings);
-		}
-	}
+	FFoliageEditUtility::ReplaceFoliageTypeObject(GetWorld(), OldSettings, NewSettings);
 
 	PopulateFoliageMeshList();
 }
 
 UFoliageType* FEdModeFoliage::SaveFoliageTypeObject(UFoliageType* InFoliageType)
 {
-	UFoliageType* TypeToSave = nullptr;
+	UFoliageType* TypeToSave = FFoliageEditUtility::SaveFoliageTypeObject(InFoliageType);
 
-	if (!InFoliageType->IsAsset())
+	if (TypeToSave != nullptr && TypeToSave != InFoliageType)
 	{
-		FString PackageName;
-		UStaticMesh* StaticMesh = InFoliageType->GetStaticMesh();
-		if (StaticMesh)
-		{
-			// Build default settings asset name and path
-			PackageName = FPackageName::GetLongPackagePath(StaticMesh->GetOutermost()->GetName()) + TEXT("/") + StaticMesh->GetName() + TEXT("_FoliageType");
-		}
-
-		TSharedRef<SDlgPickAssetPath> SaveFoliageTypeDialog =
-			SNew(SDlgPickAssetPath)
-			.Title(LOCTEXT("SaveFoliageTypeDialogTitle", "Choose Location for Foliage Type Asset"))
-			.DefaultAssetPath(FText::FromString(PackageName));
-
-		if (SaveFoliageTypeDialog->ShowModal() != EAppReturnType::Cancel)
-		{
-			PackageName = SaveFoliageTypeDialog->GetFullAssetPath().ToString();
-			UPackage* Package = CreatePackage(nullptr, *PackageName);
-
-			// We should not save a copy of this duplicate into the transaction buffer as it's an asset
-			InFoliageType->ClearFlags(RF_Transactional);
-			TypeToSave = Cast<UFoliageType>(StaticDuplicateObject(InFoliageType, Package, *FPackageName::GetLongPackageAssetName(PackageName)));
-			InFoliageType->SetFlags(RF_Transactional);
-
-			TypeToSave->SetFlags(RF_Standalone | RF_Public | RF_Transactional);
-			TypeToSave->Modify();
-
-			// Notify the asset registry
-			FAssetRegistryModule::AssetCreated(TypeToSave);
-
-			ReplaceSettingsObject(InFoliageType, TypeToSave);
-		}
-	}
-	else
-	{
-		TypeToSave = InFoliageType;
-	}
-
-	// Save to disk
-	if (TypeToSave)
-	{
-		TArray<UPackage*> PackagesToSave;
-		PackagesToSave.Add(TypeToSave->GetOutermost());
-		const bool bCheckDirty = false;
-		const bool bPromptToSave = false;
-		FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, bCheckDirty, bPromptToSave);
+		ReplaceSettingsObject(InFoliageType, TypeToSave);
 	}
 
 	return TypeToSave;

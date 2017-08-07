@@ -14,13 +14,42 @@ tags:Animation
 tags:Skeleton Asset
 tags:Animation Blueprint
 tags:Skeletal Mesh
+tags:Tools
 type:landing
 
 [VAR:ModeSize]w:450 convert:false[/VAR]
-
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
 [REGION:asyncgif]
 ![](UpdatedPersonaWindowAnim.gif)
 [/REGION]
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+[REGION:asyncgif]
+![](UpdatedPersonaWindowAnim_Mac.gif)
+[/REGION]
+[/PARAM]
+[/OBJECT]
+
 
 [EXCERPT:Intro]
 Unreal Engine 4 contains a four major tools for working with skeletal animations and **Skeletal Meshes**: The Skeleton Editor, the Skeletal Mesh Editor, the Animation Editor, and the Animation Blueprint Editor. Each of these are accessed by editing an associated asset or by using the four navigation buttons at the top of each animation editor.
@@ -43,9 +72,33 @@ Before Unreal Engine version 4.14, the combined animation editor was known as **
 
 ## Opening a Specific Animation Editor
 
-[REGION:raw]
-![](OpeningPersona.png)
-[/REGION]
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](OpenPersona_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](OpenPersona_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 
 Each animation editor can be opened from the **Content Browser** by **Double-clicking** on an asset that is associated with that editor:

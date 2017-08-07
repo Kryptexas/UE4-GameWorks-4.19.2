@@ -56,8 +56,10 @@ public:
 	 * @param BindingId		ID of the object to destroy
 	 * @param TemplateID 	Identifier for the current template we're evaluating
 	 * @param Player 		Movie scene player that is ultimately responsible for destroying the object
+	 *
+	 * @return True if an object was destroyed, false otherwise
 	 */
-	MOVIESCENE_API void DestroySpawnedObject(const FGuid& BindingId, FMovieSceneSequenceIDRef TemplateID, IMovieScenePlayer& Player);
+	MOVIESCENE_API bool DestroySpawnedObject(const FGuid& BindingId, FMovieSceneSequenceIDRef TemplateID, IMovieScenePlayer& Player);
 
 	/**
 	 * Destroy a specific previously spawned object, where its binding ID and sequence ID is not known.

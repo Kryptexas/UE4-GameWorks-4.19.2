@@ -12,6 +12,7 @@
 #include "Sound/AudioVolume.h"
 #include "Sound/SoundConcurrency.h"
 #include "Sound/SoundMix.h"
+#include "Sound/AudioSettings.h"
 #include "AudioDeviceManager.h"
 #include "EngineGlobals.h"
 
@@ -545,10 +546,11 @@ public:
 	int32 GetSortedActiveWaveInstances(TArray<FWaveInstance*>& WaveInstances, const ESortedActiveWaveGetType::Type GetType);
 
 	/** Update the active sound playback time. This is done here to do after all audio is updated. */
-	void UpdateActiveSoundPlaybackTime();
+	void UpdateActiveSoundPlaybackTime(bool bIsTimeTicking);
 
-	/** Optional fadeout of audio to avoid clicks when closing audio device. */
+	/** Optional fadeout and fade in of audio to avoid clicks when closing or opening/reusing audio device. */
 	virtual void FadeOut() {}
+	virtual void FadeIn() {}
 
 	/**
 	 * Stop all the audio components and sources attached to the world. nullptr world means all components.
@@ -919,6 +921,29 @@ public:
 	/** Whether or not HRTF spatialization is enabled for all. */
 	bool IsHRTFEnabledForAll() const;
 
+	void SetHRTFEnabledForAll(bool InbHRTFEnabledForAll)
+	{
+		const bool bNewHRTFEnabledForAll = InbHRTFEnabledForAll;
+
+		bHRTFEnabledForAll_OnGameThread = bNewHRTFEnabledForAll;
+
+		FAudioDevice* AudioDevice = this;
+		FAudioThread::RunCommandOnAudioThread([AudioDevice, bNewHRTFEnabledForAll]()
+		{
+			AudioDevice->bHRTFEnabledForAll = bNewHRTFEnabledForAll;
+
+		});
+	}
+
+	void SetSpatializationInterfaceEnabled(bool InbSpatializationInterfaceEnabled)
+	{
+		FAudioThread::SuspendAudioThread();
+
+		bSpatializationInterfaceEnabled = InbSpatializationInterfaceEnabled;
+
+		FAudioThread::ResumeAudioThread();
+	}
+
 	bool IsAudioDeviceMuted() const;
 
 	void SetDeviceMuted(bool bMuted);
@@ -994,7 +1019,7 @@ public:
 	float GetSampleRate() const { return SampleRate; }
 
 	/** Returns the buffer length of the audio device. */
-	int32 GetBufferLength() const { return DeviceOutputBufferLength; }
+	int32 GetBufferLength() const { return PlatformSettings.CallbackBufferFrameSize; }
 
 	/** Whether or not there's a spatialization plugin enabled. */
 	bool IsSpatializationPluginEnabled() const
@@ -1167,6 +1192,9 @@ private:
 		return Adjuster * InterpValue + 1.0f - InterpValue;
 	}
 
+	/** Allow platforms to optionally specify low-level audio platform settings. */
+	virtual FAudioPlatformSettings GetPlatformSettings() const { return FAudioPlatformSettings(); }
+
 public:
 
 	/**
@@ -1270,6 +1298,9 @@ private:
 	/** Processes the set of pending sounds that need to be stopped */ 
 	void ProcessingPendingActiveSoundStops(bool bForceDelete = false);
 
+	/** Check whether we should use attenuation settings */
+	bool ShouldUseAttenuation(const UWorld* World) const;
+
 public:
 
 	/** Query if the editor is in VR Preview for the current play world. Returns false for non-editor builds */
@@ -1326,19 +1357,22 @@ public:
 		return (MainAudioDevice == nullptr || MainAudioDevice == this);
 	}
 
+	/** Set whether or not we force the use of attenuation for non-game worlds (as by default we only care about game worlds) */
+	void SetUseAttenuationForNonGameWorlds(bool bInUseAttenuationForNonGameWorlds)
+	{
+		bUseAttenuationForNonGameWorlds = bInUseAttenuationForNonGameWorlds;
+	}
+
 public:
 
 	/** The maximum number of concurrent audible sounds */
 	int32 MaxChannels;
 
-	/** The number of worker threads to use to process sources. (audio mixer feature) */
-	int32 NumSourceWorkers;
-
-	/** The sample rate of the audio device */
+	/** The sample rate of all the audio devices */
 	int32 SampleRate;
 
-	/** The length of output callback buffer */
-	int32 DeviceOutputBufferLength;
+	/** The platform specific audio settings. */
+	FAudioPlatformSettings PlatformSettings;
 
 	/** The length of output callback buffer */
 
@@ -1488,6 +1522,9 @@ private:
 
 	/** Whether or not we're supporting zero volume wave instances */
 	uint8 bAllowVirtualizedSounds:1;
+
+	/** Whether or not we force the use of attenuation for non-game worlds (as by default we only care about game worlds) */
+	uint8 bUseAttenuationForNonGameWorlds:1;
 
 #if !UE_BUILD_SHIPPING
 	uint8 RequestedAudioStats;

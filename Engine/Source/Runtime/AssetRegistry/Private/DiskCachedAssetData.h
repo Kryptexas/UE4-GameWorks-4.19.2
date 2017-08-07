@@ -20,23 +20,27 @@ public:
 		: Timestamp(InTimestamp)
 	{}
 
-	/** Operator for serialization */
-	friend FArchive& operator<<(FArchive& Ar, FDiskCachedAssetData& DiskCachedAssetData)
+	/**
+	 * Serialize as part of the registry cache. This is not meant to be serialized as part of a package so  it does not handle versions normally
+	 * To version this data change FAssetRegistryVersion or CacheSerializationVersion
+	 */
+	void SerializeForCache(FArchive& Ar)
 	{
-		Ar << DiskCachedAssetData.Timestamp;
-		if (Ar.IsError())
+		Ar << Timestamp;
+	
+		int32 AssetDataCount = AssetDataList.Num();
+		Ar << AssetDataCount;
+
+		if (Ar.IsLoading())
 		{
-			return Ar;
+			AssetDataList.SetNum(AssetDataCount);
 		}
 
-		Ar << DiskCachedAssetData.AssetDataList;
-		if (Ar.IsError())
+		for (int32 i = 0; i < AssetDataCount; i++)
 		{
-			return Ar;
+			AssetDataList[i].SerializeForCache(Ar);
 		}
 
-		Ar << DiskCachedAssetData.DependencyData;
-		
-		return Ar;
+		DependencyData.SerializeForCache(Ar);
 	}
 };

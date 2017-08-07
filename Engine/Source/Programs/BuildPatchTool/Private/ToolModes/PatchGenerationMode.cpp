@@ -21,7 +21,7 @@ namespace Constants
 class FPatchGenerationToolMode : public IToolMode
 {
 public:
-	FPatchGenerationToolMode(const TSharedRef<IBuildPatchServicesModule>& InBpsInterface)
+	FPatchGenerationToolMode(IBuildPatchServicesModule& InBpsInterface)
 		: BpsInterface(InBpsInterface)
 	{}
 
@@ -104,7 +104,7 @@ public:
 		}
 
 		// Setup the module
-		BpsInterface->SetCloudDirectory(CloudDir);
+		BpsInterface.SetCloudDirectory(CloudDir);
 
 		// Setup and run
 		BuildPatchServices::FGenerationConfiguration Settings;
@@ -125,7 +125,7 @@ public:
 		Settings.OutputFilename = OutputFilename;
 
 		// Run the build generation
-		bool bSuccess = BpsInterface->GenerateChunksManifestFromDirectory(Settings);
+		bool bSuccess = BpsInterface.GenerateChunksManifestFromDirectory(Settings);
 		return bSuccess ? EReturnCode::OK : EReturnCode::ToolFailure;
 	}
 
@@ -234,7 +234,7 @@ private:
 	}
 
 private:
-	TSharedRef<IBuildPatchServicesModule> BpsInterface;
+	IBuildPatchServicesModule& BpsInterface;
 	bool bHelp;
 	FString CloudDir;
 	FString BuildRoot;
@@ -253,7 +253,7 @@ private:
 	FString OutputFilename;
 };
 
-BuildPatchTool::IToolModeRef BuildPatchTool::FPatchGenerationToolModeFactory::Create(const TSharedRef<IBuildPatchServicesModule>& BpsInterface)
+BuildPatchTool::IToolModeRef BuildPatchTool::FPatchGenerationToolModeFactory::Create(IBuildPatchServicesModule& BpsInterface)
 {
 	return MakeShareable(new FPatchGenerationToolMode(BpsInterface));
 }

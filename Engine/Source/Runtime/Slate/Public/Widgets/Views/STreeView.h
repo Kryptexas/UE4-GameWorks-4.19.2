@@ -112,8 +112,10 @@ public:
 		, _OnEnteredBadState()
 		, _HandleGamepadEvents(true)
 		, _HandleDirectionalNavigation(true)
-		, _NavigateOnScrollIntoView(false)
-		{}
+		, _AllowInvisibleItemSelection(false)
+		{
+			//_Clipping = EWidgetClipping::ClipToBounds;
+		}
 
 		SLATE_EVENT( FOnGenerateRow, OnGenerateRow )
 
@@ -164,7 +166,8 @@ public:
 
 		SLATE_ARGUMENT(bool, HandleDirectionalNavigation);
 
-		SLATE_ARGUMENT(bool, NavigateOnScrollIntoView);
+		SLATE_ARGUMENT(bool, AllowInvisibleItemSelection);
+
 
 	SLATE_END_ARGS()
 
@@ -203,7 +206,7 @@ public:
 
 		this->bHandleGamepadEvents = InArgs._HandleGamepadEvents;
 		this->bHandleDirectionalNavigation = InArgs._HandleDirectionalNavigation;
-		this->bNavigateOnScrollIntoView = InArgs._NavigateOnScrollIntoView;
+		this->bAllowInvisibleItemSelection = InArgs._AllowInvisibleItemSelection;
 
 		// Check for any parameters that the coder forgot to specify.
 		FString ErrorString;
@@ -425,9 +428,10 @@ public:
 					LinearizedItems.Empty();
 					PopulateLinearizedItems( *TreeItemsSource, LinearizedItems, TempDenseItemInfos, 0, TempSelectedItemsMap, TempSparseItemInfo, true );
 
-					if(	this->SelectedItems.Num() != TempSelectedItemsMap.Num() || 
+					if( !bAllowInvisibleItemSelection &&
+						(this->SelectedItems.Num() != TempSelectedItemsMap.Num() ||
 						this->SelectedItems.Difference(TempSelectedItemsMap).Num() > 0 || 
-						TempSelectedItemsMap.Difference(this->SelectedItems).Num() > 0 )
+						TempSelectedItemsMap.Difference(this->SelectedItems).Num() > 0 ))
 					{
 						this->SelectedItems = TempSelectedItemsMap;
 
@@ -681,4 +685,7 @@ private:
 
 	/** true when the LinearizedItems need to be regenerated. */
 	bool bTreeItemsAreDirty;
+
+	/** true if we allow invisible items to stay selected. */
+	bool bAllowInvisibleItemSelection;
 };

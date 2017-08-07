@@ -7,8 +7,17 @@
 #include "Kismet2/StructureEditorUtils.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Blueprint/BlueprintSupport.h"
+#include "Editor.h"
 
 #define LOCTEXT_NAMESPACE "UserDefinedStructEditorData"
+
+void FStructVariableDescription::PostSerialize(const FArchive& Ar)
+{
+	if (ContainerType == EPinContainerType::None)
+	{
+		ContainerType = FEdGraphPinType::ToPinContainerType(bIsArray_DEPRECATED, bIsSet_DEPRECATED, bIsMap_DEPRECATED);
+	}
+}
 
 bool FStructVariableDescription::SetPinType(const FEdGraphPinType& VarType)
 {
@@ -16,16 +25,14 @@ bool FStructVariableDescription::SetPinType(const FEdGraphPinType& VarType)
 	SubCategory = VarType.PinSubCategory;
 	SubCategoryObject = VarType.PinSubCategoryObject.Get();
 	PinValueType = VarType.PinValueType;
-	bIsArray = VarType.bIsArray;
-	bIsSet = VarType.bIsSet;
-	bIsMap = VarType.bIsMap;
+	ContainerType = VarType.ContainerType;
 
 	return !VarType.bIsReference && !VarType.bIsWeakPointer;
 }
 
 FEdGraphPinType FStructVariableDescription::ToPinType() const
 {
-	return FEdGraphPinType(Category, SubCategory, SubCategoryObject.LoadSynchronous(), bIsArray, false, bIsSet, bIsMap, PinValueType);
+	return FEdGraphPinType(Category, SubCategory, SubCategoryObject.LoadSynchronous(), ContainerType, false, PinValueType);
 }
 
 UUserDefinedStructEditorData::UUserDefinedStructEditorData(const FObjectInitializer& ObjectInitializer)
@@ -50,10 +57,25 @@ UUserDefinedStruct* UUserDefinedStructEditorData::GetOwnerStruct() const
 	return Cast<UUserDefinedStruct>(GetOuter());
 }
 
+void UUserDefinedStructEditorData::PostUndo(bool bSuccess)
+{
+	GEditor->UnregisterForUndo(this);
+	// TODO: In the undo case we might want to flip the change type since an add is now a remove and vice versa
+	FStructureEditorUtils::OnStructureChanged(GetOwnerStruct(), CachedStructureChange);
+	CachedStructureChange = FStructureEditorUtils::Unknown;
+}
+
+void UUserDefinedStructEditorData::ConsolidatedPostEditUndo(const FStructureEditorUtils::EStructureEditorChangeInfo TransactedStructureChange)
+{
+	ensure(CachedStructureChange == FStructureEditorUtils::Unknown);
+	CachedStructureChange = TransactedStructureChange;
+	GEditor->RegisterForUndo(this);
+}
+
 void UUserDefinedStructEditorData::PostEditUndo()
 {
 	Super::PostEditUndo();
-	FStructureEditorUtils::OnStructureChanged(GetOwnerStruct());
+	ConsolidatedPostEditUndo(FStructureEditorUtils::Unknown);
 }
 
 class FStructureTransactionAnnotation : public ITransactionObjectAnnotation
@@ -83,24 +105,24 @@ TSharedPtr<ITransactionObjectAnnotation> UUserDefinedStructEditorData::GetTransa
 void UUserDefinedStructEditorData::PostEditUndo(TSharedPtr<ITransactionObjectAnnotation> TransactionAnnotation)
 {
 	Super::PostEditUndo();
-	FStructureEditorUtils::EStructureEditorChangeInfo ActiveChange = FStructureEditorUtils::Unknown;
+	FStructureEditorUtils::EStructureEditorChangeInfo TransactedStructureChange = FStructureEditorUtils::Unknown;
 
 	if (TransactionAnnotation.IsValid())
 	{
 		TSharedPtr<FStructureTransactionAnnotation> StructAnnotation = StaticCastSharedPtr<FStructureTransactionAnnotation>(TransactionAnnotation);
 		if (StructAnnotation.IsValid())
 		{
-			ActiveChange = StructAnnotation->GetActiveChange();
+			TransactedStructureChange = StructAnnotation->GetActiveChange();
 		}
 	}
-	FStructureEditorUtils::OnStructureChanged(GetOwnerStruct(), ActiveChange);
+	ConsolidatedPostEditUndo(TransactedStructureChange);
 }
 
 void UUserDefinedStructEditorData::PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph)
 {
 	Super::PostLoadSubobjects(OuterInstanceGraph);
 
-	for (auto& VarDesc : VariablesDescriptions)
+	for (FStructVariableDescription& VarDesc : VariablesDescriptions)
 	{
 		VarDesc.bInvalidMember = !FStructureEditorUtils::CanHaveAMemberVariableOfType(GetOwnerStruct(), VarDesc.ToPinType());
 	}
@@ -132,13 +154,13 @@ void UUserDefinedStructEditorData::RecreateDefaultInstance(FString* OutLog)
 			UProperty* Property = *It;
 			if (Property)
 			{
-				auto VarDesc = VariablesDescriptions.FindByPredicate(FStructureEditorUtils::FFindByNameHelper<FStructVariableDescription>(Property->GetFName()));
+				FStructVariableDescription* VarDesc = VariablesDescriptions.FindByPredicate(FStructureEditorUtils::FFindByNameHelper<FStructVariableDescription>(Property->GetFName()));
 				if (VarDesc && !VarDesc->CurrentDefaultValue.IsEmpty())
 				{
 					if (!FBlueprintEditorUtils::PropertyValueFromString(Property, VarDesc->CurrentDefaultValue, StructData))
 					{
 						const FString Message = FString::Printf(TEXT("Cannot parse value. Property: %s String: \"%s\" ")
-							, (Property ? *Property->GetDisplayNameText().ToString() : TEXT("None"))
+							, *Property->GetDisplayNameText().ToString()
 							, *VarDesc->CurrentDefaultValue);
 						UE_LOG(LogClass, Warning, TEXT("UUserDefinedStructEditorData::RecreateDefaultInstance %s Struct: %s "), *Message, *GetPathNameSafe(ScriptStruct));
 						if (OutLog)

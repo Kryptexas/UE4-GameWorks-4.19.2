@@ -23,6 +23,7 @@
 #include "Engine/PendingNetGame.h"
 #include "Engine/LatentActionManager.h"
 #include "Engine/GameInstance.h"
+#include "Engine/DemoNetDriver.h"
 
 #include "World.generated.h"
 
@@ -43,7 +44,6 @@ class FWorldInGamePerformanceTrackers;
 class IInterface_PostProcessVolume;
 class UAISystemBase;
 class UCanvas;
-class UDemoNetDriver;
 class UGameViewportClient;
 class ULevelStreaming;
 class ULocalPlayer;
@@ -1152,6 +1152,16 @@ public:
 	/** When non-'None', all line traces where the TraceTag match this will be drawn */
 	FName    DebugDrawTraceTag;
 
+	/** When set to true, all scene queries will be drawn */
+	bool bDebugDrawAllTraceTags;
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	bool DebugDrawSceneQueries(const FName& UsedTraceTag) const
+	{
+		return (bDebugDrawAllTraceTags || ((DebugDrawTraceTag != NAME_None) && (DebugDrawTraceTag == UsedTraceTag))) && IsInGameThread();
+	}
+#endif
+
 	/** An array of post processing volumes, sorted in ascending order of priority.					*/
 	TArray< IInterface_PostProcessVolume * > PostProcessVolumes;
 
@@ -2113,7 +2123,7 @@ public:
 	virtual void Serialize( FArchive& Ar ) override;
 	virtual void FinishDestroy() override;
 	virtual void PostLoad() override;
-	virtual bool PreSaveRoot(const TCHAR* Filename, TArray<FString>& AdditionalPackagesToCook) override;
+	virtual bool PreSaveRoot(const TCHAR* Filename) override;
 	virtual void PostSaveRoot( bool bCleanupIsRequired ) override;
 	virtual UWorld* GetWorld() const override;
 	virtual FPrimaryAssetId GetPrimaryAssetId() const override;
@@ -2182,7 +2192,7 @@ public:
 	ULevel* GetActiveLightingScenario() const;
 
 	/** Propagates a change to the active lighting scenario. */
-	void PropagateLightingScenarioChange();
+	void PropagateLightingScenarioChange(bool bLevelWasMadeVisible);
 
 	/**
 	 * Associates the passed in level with the world. The work to make the level visible is spread across several frames and this
@@ -2607,6 +2617,9 @@ public:
 	// Destroys the current demo net driver
 	void DestroyDemoNetDriver();
 
+	/** Returns true if we are currently playing a replay */
+	bool IsPlayingReplay() const { return (DemoNetDriver ? DemoNetDriver->IsPlaying() : false); }
+
 	// Start listening for connections.
 	bool Listen( FURL& InURL );
 
@@ -3019,7 +3032,10 @@ public:
 	/** Returns true if this world is any kind of game world (including PIE worlds) */
 	bool IsGameWorld() const;
 
-	/** Returns true if this world is a preview game world (blueprint editor) */
+	/** Returns true if this world is any kind of editor world (including editor preview worlds) */
+	bool IsEditorWorld() const;
+
+	/** Returns true if this world is a preview game world (editor or game) */
 	bool IsPreviewWorld() const;
 
 	/** Returns true if this world should look at game hidden flags instead of editor hidden flags for the purposes of rendering */
@@ -3155,6 +3171,20 @@ public:
 	inline UGameInstance* GetGameInstance() const
 	{
 		return OwningGameInstance;
+	}
+
+	/** Returns the OwningGameInstance cast to the template type. */
+	template<class T>
+	T* GetGameInstance() const
+	{
+		return Cast<T>(OwningGameInstance);
+	}
+
+	/** Returns the OwningGameInstance cast to the template type, asserting that it is of the correct type. */
+	template<class T>
+	T* GetGameInstanceChecked() const
+	{
+		return CastChecked<T>(OwningGameInstance);
 	}
 
 	/** Retrieves information whether all navigation with this world has been rebuilt */

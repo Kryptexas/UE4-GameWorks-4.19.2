@@ -75,7 +75,7 @@ void FSkeletalMeshObject::UpdateMinDesiredLODLevel(const FSceneView* View, const
 
 	const float ScreenRadiusSquared = ComputeBoundsScreenRadiusSquared(Bounds.Origin, Bounds.SphereRadius, *View) * LODScale * LODScale;
 
-	check( SkeletalMeshLODInfo.Num() == SkeletalMeshResource->LODModels.Num() );
+	checkf( SkeletalMeshLODInfo.Num() == SkeletalMeshResource->LODModels.Num(), TEXT("Mismatched LOD arrays. SkeletalMeshLODInfo.Num() = %d, SkeletalMeshResource->LODModels.Num() = %d"), SkeletalMeshLODInfo.Num(), SkeletalMeshResource->LODModels.Num());
 
 	// Need the current LOD
 	const int32 CurrentLODLevel = GetLOD();
@@ -84,7 +84,7 @@ void FSkeletalMeshObject::UpdateMinDesiredLODLevel(const FSceneView* View, const
 	int32 NewLODLevel = 0;
 
 	// Look for a lower LOD if the EngineShowFlags is enabled - Thumbnail rendering disables LODs
-	if( View && View->Family && 1==View->Family->EngineShowFlags.LOD )
+	if( View->Family && 1==View->Family->EngineShowFlags.LOD )
 	{
 		// Iterate from worst to best LOD
 		for(int32 LODLevel = SkeletalMeshResource->LODModels.Num()-1; LODLevel > 0; LODLevel--) 

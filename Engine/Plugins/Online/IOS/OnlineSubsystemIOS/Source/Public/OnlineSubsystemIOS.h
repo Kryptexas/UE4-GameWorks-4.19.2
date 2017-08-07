@@ -51,6 +51,7 @@ public:
 	virtual FString GetAppId() const override;
 	virtual bool Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
 	virtual bool Tick(float DeltaTime) override;
+	virtual FText GetOnlineServiceName() const override;
 	//~ End IOnlineSubsystem Interface
 
 PACKAGE_SCOPE:

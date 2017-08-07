@@ -236,8 +236,6 @@ void UChatroom::OnChatRoomLeft(const FUniqueNetId& LocalUserId, const FChatRoomI
 
 void UChatroom::ChatRoomLeftInternal(const FChatRoomId& RoomId, const FOnChatRoomLeft& CompletionDelegate)
 {
-	ensure(CurrentChatRoomId.IsEmpty());
-
 	GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateLambda([CompletionDelegate, RoomId]()
 	{
 		// Announce that chat is available

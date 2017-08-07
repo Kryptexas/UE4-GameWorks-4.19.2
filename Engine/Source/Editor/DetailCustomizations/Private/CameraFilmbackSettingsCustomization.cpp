@@ -79,7 +79,7 @@ void FCameraFilmbackSettingsCustomization::CustomizeChildren(TSharedRef<IPropert
 
 	for( auto Iter(PropertyHandles.CreateConstIterator()); Iter; ++Iter  )
 	{
-		IDetailPropertyRow& SettingsRow = ChildBuilder.AddChildProperty(Iter.Value().ToSharedRef());
+		IDetailPropertyRow& SettingsRow = ChildBuilder.AddProperty(Iter.Value().ToSharedRef());
 	}	
 }
 

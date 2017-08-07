@@ -6,7 +6,9 @@
 #include "ViewportInteractionAssetContainer.generated.h"
 
 // Forward declarations
+class UMaterialInterface;
 class USoundBase;
+class UStaticMesh;
 
 /**
  * Asset container for viewport interaction.
@@ -80,6 +82,8 @@ public:
 	UPROPERTY(EditAnywhere, Category = Mesh)
 	UStaticMesh* CurrentRotationIndicatorMesh;
 
+	UPROPERTY(EditAnywhere, Category = Mesh)
+	UStaticMesh* FreeRotationHandleMesh;
 
 	//
 	// Materials

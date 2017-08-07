@@ -66,7 +66,7 @@ TSharedRef<SWidget> UGridPanel::RebuildWidget()
 		}
 	}
 
-	return BuildDesignTimeWidget( MyGridPanel.ToSharedRef() );
+	return MyGridPanel.ToSharedRef();
 }
 
 UGridSlot* UGridPanel::AddChildToGrid(UWidget* Content)

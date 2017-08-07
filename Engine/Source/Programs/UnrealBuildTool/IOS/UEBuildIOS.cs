@@ -32,10 +32,16 @@ namespace UnrealBuildTool
 		[ConfigFile(ConfigHierarchyType.Engine, "/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bGeneratedSYMBundle")]
 		public readonly bool bGeneratedSYMBundle = false;
 
-		/// <summary>
-		/// The minimum supported version
-		/// </summary>
-		[ConfigFile(ConfigHierarchyType.Engine, "/Script/IOSRuntimeSettings.IOSRuntimeSettings", "MinimumiOSVersion")]
+        /// <summary>
+        /// Whether to generate a dSYM file or not.
+        /// </summary>
+        [ConfigFile(ConfigHierarchyType.Engine, "/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bGenerateCrashReportSymbols")]
+        public readonly bool bGenerateCrashReportSymbols = false;
+
+        /// <summary>
+        /// The minimum supported version
+        /// </summary>
+        [ConfigFile(ConfigHierarchyType.Engine, "/Script/IOSRuntimeSettings.IOSRuntimeSettings", "MinimumiOSVersion")]
 		private readonly string MinimumIOSVersion = null;
 
 		/// <summary>
@@ -109,6 +115,7 @@ namespace UnrealBuildTool
         /// </summary>
 		[ConfigFile(ConfigHierarchyType.Engine, "/Script/IOSRuntimeSettings.IOSRuntimeSettings", "SigningCertificate")]
         public readonly string SigningCertificate = "";
+
 
 		/// <summary>
 		/// true if bit code should be embedded
@@ -191,6 +198,8 @@ namespace UnrealBuildTool
 						return "9.0";
 					case "IOS_10":
 						return "10.0";
+					case "IOS_11":
+						return "11.0";
 					default:
 						return "8.0";
 				}
@@ -461,7 +470,6 @@ namespace UnrealBuildTool
 			Target.bBuildEditor = false;
 			Target.bBuildDeveloperTools = false;
 			Target.bCompileAPEX = false;
-			Target.bRuntimePhysicsCooking = false;
 			Target.bCompileSimplygon = false;
             Target.bCompileSimplygonSSF = false;
 			Target.bBuildDeveloperTools = false;
@@ -552,17 +560,16 @@ namespace UnrealBuildTool
 		{
 			IOSProjectSettings ProjectSettings = ReadProjectSettings(InTarget.ProjectFile);
 
-			if(ProjectSettings.bGeneratedSYMFile)
-			{
-				return ".dSYM";
-			}
-
 			if(ProjectSettings.bGeneratedSYMBundle)
 			{
 				return ".dSYM.zip";
 			}
+			else if (ProjectSettings.bGeneratedSYMFile)
+            {
+                return ".dSYM";
+            }
 
-			return "";
+            return "";
 		}
 
 		public override bool CanUseXGE()
@@ -599,8 +606,9 @@ namespace UnrealBuildTool
 			string[] BoolKeys = new string[] {
 				"bDevForArmV7", "bDevForArm64", "bDevForArmV7S", "bShipForArmV7", 
 				"bShipForArm64", "bShipForArmV7S", "bShipForBitcode", "bGeneratedSYMFile",
-				"bGeneratedSYMBundle", "bEnableRemoteNotificationsSupport", "bEnableCloudKitSupport"
-			};
+				"bGeneratedSYMBundle", "bEnableRemoteNotificationsSupport", "bEnableCloudKitSupport",
+                "bGenerateCrashReportSymbols"
+            };
 			string[] StringKeys = new string[] {
 				"MinimumiOSVersion", 
 				"AdditionalLinkerFlags",

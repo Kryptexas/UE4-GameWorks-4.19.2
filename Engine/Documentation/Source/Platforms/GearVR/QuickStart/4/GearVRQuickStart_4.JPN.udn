@@ -1,10 +1,10 @@
-﻿INTSourceChangeList:3150518
+﻿INTSourceChangelist:3451711
 Availability:Public
 Title:4.応用編
 Crumbs:%ROOT%, Platforms/GearVR
 Description:このガイドで説明した方法を使って、追加のコンテンツでレベルにさらに磨きをかけます。関連トピックスのドキュメントも紹介します。 
 Navigation:platform
-Version:4.9
+Version:4.16
 Skilllevel:Intermediate
 tags:VR
 tags:GearVR
@@ -17,7 +17,7 @@ Checkpoint:GearVRQS
 
 Android のスマートフォンに UE4 プロジェクトをデプロイし、Gear VR HMD を使って表示したら、以下の項目を追加してみましょう。
 
-* [Migrate ツール](Engine/Content/Browser/UserGuide/Migrate/) を使って、コンテンツをモバイル コンテンツ サンプルから使用するプロジェクトに移動することができます。
+* [Migrate ツール](Engine/Content/Browser/UserGuide/Migrate/) を使って、コンテンツをモバイル コンテンツ サンプルから使用するプロジェクトに移動します。
 
 * Android スマートフォンへデプロイした時に、プロジェクトができるだけ速く実行するように [Default Device Profiles](Platforms/Mobile/Performance/TipsAndTricks) の設定を変更します。
 

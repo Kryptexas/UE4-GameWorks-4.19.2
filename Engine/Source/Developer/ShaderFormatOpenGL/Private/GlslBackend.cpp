@@ -108,6 +108,7 @@ static inline FCustomStdString FixHlslName(const glsl_type* Type, bool bIsES2)
 	{
 		return "mat4";
 	}
+#ifndef UE4_HTML5_TARGET_WEBGL2
 	else if (bIsES2 && Type->base_type == GLSL_TYPE_UINT)
 	{
 		// uint does not exist with GLSL 1.00 (ES2)
@@ -129,6 +130,7 @@ static inline FCustomStdString FixHlslName(const glsl_type* Type, bool bIsES2)
 			return "ivec4";
 		}
 	}
+#endif
 	return Name;
 }
 
@@ -1055,52 +1057,62 @@ class ir_gen_glsl_visitor : public ir_visitor
 			}
 			else if (var->type->is_image())
 			{
-				const bool bSingleComp = (var->type->inner_type->vector_elements == 1);
-				const char * const coherent_str[] = { "", "coherent " };
-				const char * const writeonly_str[] = { "", "writeonly " };
-				const char * const type_str[] = { "32ui", "32i", "16f", (bIsES31 && !bSingleComp) ? "16f" : "32f" };
-				const char * const comp_str = bSingleComp ? "r" : "rgba";
-				const int writeonly = var->image_write && !(var->image_read);
-
-				check( var->type->inner_type->base_type >= GLSL_TYPE_UINT &&
-						var->type->inner_type->base_type <= GLSL_TYPE_FLOAT );
-
-				ralloc_asprintf_append(
-					buffer,
-					"%s%s%s%s",
-					invariant_str[var->invariant],
-					mode_str[var->mode],
-					coherent_str[var->coherent],
-					writeonly_str[writeonly]
-					);
-
-				if (bGenerateLayoutLocations && var->explicit_location)
+				if (!strncmp(var->type->name, "RWStructuredBuffer<", 19) || !strncmp(var->type->name, "StructuredBuffer<", 17))
 				{
-					//should check here on base type
 					ralloc_asprintf_append(
 						buffer,
-						"layout(%s%s,binding=%d) ",
-						comp_str,
-						type_str[var->type->inner_type->base_type],
-						var->location
-						);
+						"buffer "
+					);
 				}
 				else
 				{
-					//should check here on base type
+					const bool bSingleComp = (var->type->inner_type->vector_elements == 1);
+					const char * const coherent_str[] = { "", "coherent " };
+					const char * const writeonly_str[] = { "", "writeonly " };
+					const char * const type_str[] = { "32ui", "32i", "16f", (bIsES31 && !bSingleComp) ? "16f" : "32f" };
+					const char * const comp_str = bSingleComp ? "r" : "rgba";
+					const int writeonly = var->image_write && !(var->image_read);
+
+					check( var->type->inner_type->base_type >= GLSL_TYPE_UINT &&
+							var->type->inner_type->base_type <= GLSL_TYPE_FLOAT );
+
 					ralloc_asprintf_append(
 						buffer,
-						"layout(%s%s) ",
-						comp_str,
-						type_str[var->type->inner_type->base_type]
+						"%s%s%s%s",
+						invariant_str[var->invariant],
+						mode_str[var->mode],
+						coherent_str[var->coherent],
+						writeonly_str[writeonly]
 						);
-				}
 
-				if (bEmitPrecision)
-				{
-					AppendPrecisionModifier(buffer, GetPrecisionModifier(var->type));
+					if (bGenerateLayoutLocations && var->explicit_location)
+					{
+						//should check here on base type
+						ralloc_asprintf_append(
+							buffer,
+							"layout(%s%s,binding=%d) ",
+							comp_str,
+							type_str[var->type->inner_type->base_type],
+							var->location
+							);
+					}
+					else
+					{
+						//should check here on base type
+						ralloc_asprintf_append(
+							buffer,
+							"layout(%s%s) ",
+							comp_str,
+							type_str[var->type->inner_type->base_type]
+							);
+					}
+
+					if (bEmitPrecision)
+					{
+						AppendPrecisionModifier(buffer, GetPrecisionModifier(var->type));
+					}
+					print_type_pre(var->type);
 				}
-				print_type_pre(var->type);
 			}
 			else
 			{
@@ -1145,9 +1157,18 @@ class ir_gen_glsl_visitor : public ir_visitor
 
 				print_type_pre(var->type);
 			}
-			ralloc_asprintf_append(buffer, " %s", unique_name(var));
-			const bool bUnsizedArray = var->mode == ir_var_in && ((ShaderTarget == tessellation_evaluation_shader) || (ShaderTarget == tessellation_control_shader));
-			print_type_post(var->type, bUnsizedArray );
+
+			if (var->type->is_image() && (!strncmp(var->type->name, "RWStructuredBuffer<", 19) || !strncmp(var->type->name, "StructuredBuffer<", 17)))
+			{
+				AddTypeToUsedStructs(var->type->inner_type);
+				ralloc_asprintf_append(buffer, " %s_VAR { %s %s[]; }", unique_name(var), var->type->inner_type->name, unique_name(var));
+			}
+			else
+			{
+				ralloc_asprintf_append(buffer, " %s", unique_name(var));
+				const bool bUnsizedArray = var->mode == ir_var_in && ((ShaderTarget == tessellation_evaluation_shader) || (ShaderTarget == tessellation_control_shader));
+				print_type_post(var->type, bUnsizedArray );
+			}
 
 			if (bUseGlobalUniformBufferWrapper)
 			{
@@ -1604,38 +1625,54 @@ class ir_gen_glsl_visitor : public ir_visitor
 		const int dst_elements = deref->type->vector_elements;
 		const int src_elements = (src) ? src->type->vector_elements : 1;
 		
-		check( 1 <= dst_elements && dst_elements <= 4);
-		check( 1 <= src_elements && src_elements <= 4);
+		bool bIsStructured = deref->type->is_record() || (!strncmp(deref->image->type->name, "RWStructuredBuffer<", 19) || !strncmp(deref->image->type->name, "StructuredBuffer<", 17));
+
+		//!strncmp(var->type->name, "RWStructuredBuffer<")
+		check(bIsStructured || (1 <= dst_elements && dst_elements <= 4));
+		check(bIsStructured || (1 <= src_elements && src_elements <= 4));
 
 		if ( deref->op == ir_image_access)
 		{
-			if ( src == NULL )
+			if (bIsStructured)
 			{
-				ralloc_asprintf_append( buffer, "imageLoad( " );
+				check(src == nullptr);
 				deref->image->accept(this);
-				ralloc_asprintf_append(buffer, ", ");
+				ralloc_asprintf_append(buffer, "[");
 				deref->image_index->accept(this);
-				ralloc_asprintf_append(buffer, ").%s", swizzle[dst_elements-1]);
+				ralloc_asprintf_append(buffer, "]");
 			}
 			else
 			{
-				ralloc_asprintf_append( buffer, "imageStore( " );
-				deref->image->accept(this);
-				ralloc_asprintf_append(buffer, ", ");
-				deref->image_index->accept(this);
-				ralloc_asprintf_append(buffer, ", ");
-				src->accept(this);
-				ralloc_asprintf_append(buffer, ".%s)", expand[src_elements-1]);
+				if (src == NULL)
+				{
+					ralloc_asprintf_append( buffer, "imageLoad( " );
+					deref->image->accept(this);
+					ralloc_asprintf_append(buffer, ", ");
+					deref->image_index->accept(this);
+					ralloc_asprintf_append(buffer, ").%s", swizzle[dst_elements-1]);
+				}
+				else
+				{
+					ralloc_asprintf_append( buffer, "imageStore( " );
+					deref->image->accept(this);
+					ralloc_asprintf_append(buffer, ", ");
+					deref->image_index->accept(this);
+					ralloc_asprintf_append(buffer, ", ");
+					src->accept(this);
+					ralloc_asprintf_append(buffer, ".%s)", expand[src_elements-1]);
+				}
 			}
 		}
 		else if ( deref->op == ir_image_dimensions)
 		{
+			check(!bIsStructured);
 			ralloc_asprintf_append( buffer, "imageSize( " );
 			deref->image->accept(this);
 			ralloc_asprintf_append(buffer, ")");
 		}
 		else
 		{
+			check(!bIsStructured);
 			check( !"Unknown image operation");
 		}
 	}
@@ -3431,7 +3468,7 @@ struct SPromoteSampleLevelES2 : public ir_hierarchical_visitor
 
 
 // Converts an array index expression using an integer input attribute, to a float input attribute using a conversion to int
-struct SConvertIntVertexAttributeES2 : public ir_hierarchical_visitor
+struct SConvertIntVertexAttributeES2 final : public ir_hierarchical_visitor
 {
 	_mesa_glsl_parse_state* ParseState;
 	exec_list* FunctionBody;
@@ -3439,6 +3476,10 @@ struct SConvertIntVertexAttributeES2 : public ir_hierarchical_visitor
 	std::map<ir_variable*, ir_variable*> ConvertedVarMap;
 
 	SConvertIntVertexAttributeES2(_mesa_glsl_parse_state* InParseState, exec_list* InFunctionBody) : ParseState(InParseState), FunctionBody(InFunctionBody), InsideArrayDeref(0)
+	{
+	}
+
+	virtual ~SConvertIntVertexAttributeES2()
 	{
 	}
 

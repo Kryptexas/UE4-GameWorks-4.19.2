@@ -6,8 +6,10 @@
 #include "Misc/CommandLine.h"
 #include "Containers/Ticker.h"
 #include "HAL/IConsoleManager.h"
+#include "HAL/PlatformTime.h"
 #include "GenericPlatform/GenericApplication.h"
 #include "Misc/App.h"
+#include "Misc/ScopeLock.h"
 
 /** For FConfigFile in appInit							*/
 #include "Misc/ConfigCacheIni.h"
@@ -366,6 +368,64 @@ void EnsureRetrievingVTablePtrDuringCtor(const TCHAR* CtorSignature)
 {
 	UE_CLOG(!GIsRetrievingVTablePtr, LogCore, Fatal, TEXT("The %s constructor is for internal usage only for hot-reload purposes. Please do NOT use it."), CtorSignature);
 }
+
+/*----------------------------------------------------------------------------
+Boot timing
+----------------------------------------------------------------------------*/
+
+#if !UE_BUILD_SHIPPING
+
+void NotifyLoadingStateChanged(bool bState, const TCHAR *Message)
+{
+	static bool bEnabled = FParse::Param(FCommandLine::Get(), TEXT("TrackBootLoading"));
+	if (!bEnabled)
+	{
+		return;
+	}
+
+	static FCriticalSection Crit;
+	FScopeLock Lock(&Crit);
+	static double GLastTimeForNotifyAsyncLoadingStateHasMaybeChanged = FPlatformTime::Seconds();
+
+	static double TotalActiveTime = 0.0;
+	static double TotalInactiveTime = 0.0;
+	static int32 LoadCount = 0;
+	static int32 RecursiveCount = 0;
+
+	double Now = FPlatformTime::Seconds();
+	double Diff = Now - GLastTimeForNotifyAsyncLoadingStateHasMaybeChanged;
+
+	if (bState)
+	{
+		RecursiveCount++;
+		UE_LOG(LogStreaming, Display, TEXT("Loading Interval Starting %s"), Message);
+	}
+	else
+	{
+		RecursiveCount--;
+		check(RecursiveCount >= 0);
+		UE_LOG(LogStreaming, Display, TEXT("Loading Interval Ending   %s"), Message);
+	}
+
+	if (RecursiveCount == 1 && bState)
+	{
+		TotalInactiveTime += Diff;
+	}
+	else
+	{
+		TotalActiveTime += Diff;
+	}
+
+	if (!RecursiveCount)
+	{
+		LoadCount++;
+		UE_LOG(LogStreaming, Display, TEXT("Loading Interval  %5d loading time intervals   %7.2fs spent loading    %7.2fs spent not loading"), LoadCount, TotalActiveTime, TotalInactiveTime);
+	}
+	GLastTimeForNotifyAsyncLoadingStateHasMaybeChanged = Now;
+}
+
+#endif
+
 
 /*----------------------------------------------------------------------------
 NAN Diagnostic Failure

@@ -22,15 +22,15 @@ UAnimStateConduitNode::UAnimStateConduitNode(const FObjectInitializer& ObjectIni
 
 void UAnimStateConduitNode::AllocateDefaultPins()
 {
-	CreatePin(EGPD_Input, TEXT("Transition"), TEXT(""), NULL, false, false, TEXT("In"));
-	CreatePin(EGPD_Output, TEXT("Transition"), TEXT(""), NULL, false, false, TEXT("Out"));
+	CreatePin(EGPD_Input, TEXT("Transition"), FString(), nullptr, TEXT("In"));
+	CreatePin(EGPD_Output, TEXT("Transition"), FString(), nullptr, TEXT("Out"));
 }
 
 void UAnimStateConduitNode::AutowireNewNode(UEdGraphPin* FromPin)
 {
 	Super::AutowireNewNode(FromPin);
 
-	if (FromPin != NULL)
+	if (FromPin)
 	{
 		if (GetSchema()->TryCreateConnection(FromPin, GetInputPin()))
 		{
@@ -135,6 +135,8 @@ void UAnimStateConduitNode::DestroyNode()
 
 void UAnimStateConduitNode::ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const
 {
+	Super::ValidateNodeDuringCompilation(MessageLog);
+
 	UAnimationTransitionGraph* TransGraph = CastChecked<UAnimationTransitionGraph>(BoundGraph);
 	UAnimGraphNode_TransitionResult* ResultNode = TransGraph->GetResultNode();
 	check(ResultNode);

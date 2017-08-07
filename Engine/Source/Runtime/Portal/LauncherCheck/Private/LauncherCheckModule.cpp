@@ -13,8 +13,8 @@
 #if defined(WITH_LAUNCHERCHECK) && WITH_LAUNCHERCHECK
 
 #include "GenericPlatformHttp.h"
-#include "IDesktopPlatform.h"
-#include "DesktopPlatformModule.h"
+#include "ILauncherPlatform.h"
+#include "LauncherPlatformModule.h"
 
 /**
  * Log categories for LauncherCheck module
@@ -49,8 +49,8 @@ public:
 
 	virtual bool RunLauncher(ELauncherAction Action, FString Payload = FString()) const override
 	{
-		IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
-		if (DesktopPlatform != nullptr)
+		ILauncherPlatform* LauncherPlatform = FLauncherPlatformModule::Get();
+		if (LauncherPlatform != nullptr)
 		{
 			// Construct a url to tell the launcher of this app and what we want to do with it
 			FOpenLauncherOptions LauncherOptions;
@@ -74,7 +74,7 @@ public:
 			{
 				LauncherOptions.LauncherRelativeUrl.Append(MoveTemp(Payload));
 			}
-			return DesktopPlatform->OpenLauncher(LauncherOptions);
+			return LauncherPlatform->OpenLauncher(LauncherOptions);
 		}
 		return false;
 	}

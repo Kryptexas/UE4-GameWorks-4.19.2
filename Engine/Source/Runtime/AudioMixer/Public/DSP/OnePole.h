@@ -38,21 +38,18 @@ namespace Audio
 		/** Sets the filter frequency using normalized frequency (between 0.0 and 1.0f or 0.0 hz and Nyquist Frequency in Hz) */
 		FORCEINLINE void SetFrequency(const float InFrequency)
 		{
-			CutoffFrequency = InFrequency;
-			B1 = FMath::Exp(-PI * CutoffFrequency);
-			A0 = 1.0f - B1;
+			if (InFrequency != CutoffFrequency)
+			{
+				CutoffFrequency = InFrequency;
+				B1 = FMath::Exp(-PI * CutoffFrequency);
+				A0 = 1.0f - B1;
+			}
 		}
 
 		float ProcessAudio(const float InputSample)
 		{
-			// read the delay line to get w(n-D); call base class
-			// read
 			float Yn = InputSample*A0 + B1*Z1;
-
-			// Underflow check
 			Yn = UnderflowClamp(Yn);
-
-			// Write to z1 delayed sample
 			Z1 = Yn;
 			return Yn;
 		}

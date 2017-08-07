@@ -51,7 +51,7 @@ void SWrapBox::Tick( const FGeometry& AllottedGeometry, const double InCurrentTi
 {
 	if (bUseAllottedWidth)
 	{
-		PreferredWidth = AllottedGeometry.Size.X;
+		PreferredWidth = AllottedGeometry.GetLocalSize().X;
 	}
 }
 

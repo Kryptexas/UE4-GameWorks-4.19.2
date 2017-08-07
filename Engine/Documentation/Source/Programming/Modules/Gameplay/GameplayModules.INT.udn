@@ -3,6 +3,7 @@ Title:Gameplay Modules
 Crumbs:%ROOT%, Programming
 Description:Collections of gameplay classes belonging to a game project compiled into DLLs.
 Version: 4.9
+Parent:Programming/UnrealArchitecture/Reference
 
 [TOC(start:2)]
 

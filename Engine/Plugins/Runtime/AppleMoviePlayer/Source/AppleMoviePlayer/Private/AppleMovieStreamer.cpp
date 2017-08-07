@@ -179,12 +179,15 @@ bool FAVPlayerMovieStreamer::Tick(float DeltaTime)
             break;
         case AVAssetReaderStatusFailed:
             UE_LOG(LogMoviePlayer, Error, TEXT("Movie reader entered Failure status.") );
+			bVideoTracksLoaded = false;
             break;
         case AVAssetReaderStatusCancelled:
             UE_LOG(LogMoviePlayer, Error, TEXT("Movie reader entered Cancelled status.") );
+			bVideoTracksLoaded = false;
             break;
         default:
             UE_LOG(LogMoviePlayer, Error, TEXT("Movie reader encountered unknown error.") );
+			bVideoTracksLoaded = false;
             break;
         }
     }
@@ -193,6 +196,9 @@ bool FAVPlayerMovieStreamer::Tick(float DeltaTime)
         // We aren't active any longer, so stop the player
         if (bWasActive)
         {
+			// Not active - has to try to reload tracks to become active again - keeps 2nd/3rd..etc.. videos same behaviour as 1st
+			bWasActive = false;
+			
             // The previous playback is complete, so shutdown.
             // NOTE: The texture resources are not freed here.
             TeardownPlayback();
@@ -212,12 +218,12 @@ bool FAVPlayerMovieStreamer::Tick(float DeltaTime)
                 return true;
             }
         }
-		// remove this because bVideoTracksLoaded is set when [AVMovie loadValuesAsynchronouslyForKeys:] is completed, so when loadValuesAsynchronouslyForKeys is not completed before next ticking, it returns true even a movie isn't played yet.
-		/*        else
+		else
 		{
-			return MovieQueue.Num() == 0;
+			// No movie object and nothing left in queue - it's done - probably an error case - movie does not exist or failed to load
+			// Otherwise waiting for load operation
+			return AVMovie == nil && MovieQueue.Num() == 0;
 		}
-		 */
     }
 
     // Not completed.

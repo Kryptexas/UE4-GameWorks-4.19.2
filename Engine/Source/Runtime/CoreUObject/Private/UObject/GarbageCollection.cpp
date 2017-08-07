@@ -65,7 +65,7 @@ static bool GObjCurrentPurgeObjectIndexResetPastPermanent = false;
 static bool GIsPurgingObject = false;
 
 /** Helpful constant for determining how many token slots we need to store a pointer **/
-static const uint32 GNumTokensPerPointer = sizeof(void*) / sizeof(uint32);
+static const uint32 GNumTokensPerPointer = sizeof(void*) / sizeof(uint32); //-V514
 
 FThreadSafeBool& FGCScopeLock::GetGarbageCollectingFlag()
 {
@@ -94,106 +94,10 @@ bool IsGarbageCollectionLocked()
 	return GGarbageCollectionGuardCritical.IsAsyncLocked();
 }
 
-/**
- * Pool for reducing GC allocations
- */
-class FGCArrayPool
-{
-public:
-
-	/**
-	* Gets the singleton instance of the FObjectArrayPool
-	* @return Pool singleton.
-	*/
-	FORCEINLINE static FGCArrayPool& Get()
-	{
-		static FGCArrayPool Singleton;
-		return Singleton;
-	}
-
-	/**
-	* Gets an event from the pool or creates one if necessary.
-	*
-	* @return The array.
-	* @see ReturnToPool
-	*/
-	FORCEINLINE TArray<UObject*>* GetArrayFromPool()
-	{
-		TArray<UObject*>* Result = Pool.Pop();
-		if (!Result)
-		{
-			Result = new TArray<UObject*>();
-		}
-		check(Result);
-#if UE_BUILD_DEBUG
-		NumberOfUsedArrays.Increment();
-#endif // UE_BUILD_DEBUG
-		return Result;
-	}
-
-	/**
-	* Returns an array to the pool.
-	*
-	* @param Array The array to return.
-	* @see GetArrayFromPool
-	*/
-	FORCEINLINE void ReturnToPool(TArray<UObject*>* Array)
-	{
-#if UE_BUILD_DEBUG
-		const int32 CheckUsedArrays = NumberOfUsedArrays.Decrement();
-		checkSlow(CheckUsedArrays >= 0);
-#endif // UE_BUILD_DEBUG
-		check(Array);
-		Array->Reset();
-		Pool.Push(Array);
-	}
-
-	/** Performs memory cleanup */
-	void Cleanup()
-	{
-#if UE_BUILD_DEBUG
-		const int32 CheckUsedArrays = NumberOfUsedArrays.GetValue();
-		checkSlow(CheckUsedArrays == 0);
-#endif // UE_BUILD_DEBUG
-
-		uint32 FreedMemory = 0;
-		TArray< TArray<UObject*>* > AllArrays;
-		Pool.PopAll(AllArrays);
-		for (TArray<UObject*>* Array : AllArrays)
-		{
-			FreedMemory += Array->GetAllocatedSize();
-			delete Array;
-		}
-		UE_LOG(LogGarbage, Log, TEXT("Freed %ub from %d GC array pools."), FreedMemory, AllArrays.Num());
-	}
-
-#if UE_BUILD_DEBUG
-	void CheckLeaks()
-	{
-		// This function is called after GC has finished so at this point there should be no
-		// arrays used by GC and all should be returned to the pool
-		const int32 LeakedGCPoolArrays = NumberOfUsedArrays.GetValue();
-		checkSlow(LeakedGCPoolArrays == 0);
-	}
-#endif
-
-private:
-
-	/** Holds the collection of recycled arrays. */
-	TLockFreePointerListLIFO< TArray<UObject*> > Pool;
-
-#if UE_BUILD_DEBUG
-	/** Number of arrays currently acquired from the pool by GC */
-	FThreadSafeCounter NumberOfUsedArrays;
-#endif // UE_BUILD_DEBUG
-};
-
-void CleanupClusterArrayPools();
 /** Called on shutdown to free GC memory */
 void CleanupGCArrayPools()
 {
 	FGCArrayPool::Get().Cleanup();
-	CleanupClusterArrayPools();
 }
 
 /**
@@ -357,7 +261,6 @@ public:
 							if (ReferencedMutableObjectItem->ThisThreadAtomicallyClearedRFUnreachable())
 							{
 								// Needs doing because this is either a normal unclustered object (clustered objects are never unreachable) or a cluster root
-								ReferencedMutableObjectItem->ThisThreadAtomicallyClearedFlag(EInternalObjectFlags::NoStrongReference);
 								ObjectsToSerialize.Add(static_cast<UObject*>(ReferencedMutableObjectItem->Object));
 
 								// So is this a cluster root maybe?
@@ -379,7 +282,6 @@ public:
 									// The root is also maybe unreachable so process it and all the referenced clusters
 									if (ReferencedMutableObjectsClusterRootItem->ThisThreadAtomicallyClearedRFUnreachable())
 									{
-										ReferencedMutableObjectsClusterRootItem->ThisThreadAtomicallyClearedFlag(EInternalObjectFlags::NoStrongReference);
 										MarkReferencedClustersAsReachable(ReferencedMutableObjectsClusterRootItem->GetClusterIndex(), ObjectsToSerialize);
 									}
 								}
@@ -398,7 +300,7 @@ public:
 					if (ReferencedMutableObjectItem->IsUnreachable())
 					{
 						// Needs doing because this is either a normal unclustered object (clustered objects are never unreachable) or a cluster root
-						ReferencedMutableObjectItem->ClearFlags(EInternalObjectFlags::NoStrongReference | EInternalObjectFlags::Unreachable);
+						ReferencedMutableObjectItem->ClearFlags(EInternalObjectFlags::Unreachable);
 						ObjectsToSerialize.Add(static_cast<UObject*>(ReferencedMutableObjectItem->Object));
 
 						// So is this a cluster root?
@@ -416,7 +318,7 @@ public:
 						FUObjectItem* ReferencedMutableObjectsClusterRootItem = GUObjectArray.IndexToObjectUnsafeForGC(ReferencedMutableObjectItem->GetOwnerIndex());
 						if (ReferencedMutableObjectsClusterRootItem->IsUnreachable())
 						{
-							ReferencedMutableObjectsClusterRootItem->ClearFlags(EInternalObjectFlags::NoStrongReference | EInternalObjectFlags::Unreachable);
+							ReferencedMutableObjectsClusterRootItem->ClearFlags(EInternalObjectFlags::Unreachable);
 							MarkReferencedClustersAsReachable(ReferencedMutableObjectsClusterRootItem->GetClusterIndex(), ObjectsToSerialize);
 						}
 					}
@@ -454,12 +356,12 @@ public:
 					{
 						if (ReferencedClusterRootObjectItem->IsUnreachable())
 						{
-							ReferencedClusterRootObjectItem->ThisThreadAtomicallyClearedFlag(EInternalObjectFlags::NoStrongReference | EInternalObjectFlags::Unreachable);
+							ReferencedClusterRootObjectItem->ThisThreadAtomicallyClearedFlag( EInternalObjectFlags::Unreachable);
 						}
 					}
 					else
 					{
-						ReferencedClusterRootObjectItem->ClearFlags(EInternalObjectFlags::NoStrongReference | EInternalObjectFlags::Unreachable);
+						ReferencedClusterRootObjectItem->ClearFlags(EInternalObjectFlags::Unreachable);
 					}
 				}
 				else
@@ -495,7 +397,7 @@ public:
 	 * @param ReferencingObject UObject which owns the reference (can be NULL)
 	 * @param bAllowReferenceElimination	Whether to allow NULL'ing the reference if RF_PendingKill is set
 	*/
-	FORCEINLINE void HandleObjectReference(TArray<UObject*>& ObjectsToSerialize, const UObject * const ReferencingObject, UObject*& Object, const bool bAllowReferenceElimination, const bool bStrongReference = true)
+	FORCEINLINE void HandleObjectReference(TArray<UObject*>& ObjectsToSerialize, const UObject * const ReferencingObject, UObject*& Object, const bool bAllowReferenceElimination)
 	{
 		// Disregard NULL objects and perform very fast check to see whether object is part of permanent
 		// object pool and should therefore be disregarded. The check doesn't touch the object and is
@@ -595,13 +497,8 @@ public:
 				checkSlow(RootObjectItem->HasAnyFlags(EInternalObjectFlags::ClusterRoot));
 				if (bParallel)
 				{
-					if (RootObjectItem->ThisThreadAtomicallyClearedRFUnreachable() || 
-						(bStrongReference && RootObjectItem->ThisThreadAtomicallyClearedFlag(EInternalObjectFlags::NoStrongReference)))
+					if (RootObjectItem->ThisThreadAtomicallyClearedRFUnreachable())
 					{
-						if (bStrongReference)
-						{
-							RootObjectItem->ThisThreadAtomicallyClearedFlag(EInternalObjectFlags::NoStrongReference);
-						}
 						// Make sure all referenced clusters are marked as reachable too
 						MarkReferencedClustersAsReachable(RootObjectItem->GetClusterIndex(), ObjectsToSerialize);
 					}
@@ -609,20 +506,10 @@ public:
 				else if (RootObjectItem->IsUnreachable())
 				{
 					RootObjectItem->ClearFlags(EInternalObjectFlags::Unreachable);
-					if (bStrongReference)
-					{
-						RootObjectItem->ClearFlags(EInternalObjectFlags::NoStrongReference);
-					}
 					// Make sure all referenced clusters are marked as reachable too
 					MarkReferencedClustersAsReachable(RootObjectItem->GetClusterIndex(), ObjectsToSerialize);
 				}
 			}
-		}
-
-		// The second condition seems to improve perf for multithreaded GC
-		if (bStrongReference && ObjectItem->HasAnyFlags(EInternalObjectFlags::NoStrongReference))
-		{
-			ObjectItem->ThisThreadAtomicallyClearedFlag(EInternalObjectFlags::NoStrongReference);
 		}
 #if PERF_DETAILED_PER_CLASS_GC_STATS
 		GCurrentObjectRegularObjectRefs++;
@@ -682,17 +569,15 @@ template <bool bParallel>
 class FGCCollector : public FReferenceCollector
 {
 	FGCReferenceProcessor<bParallel>& ReferenceProcessor;
-	TArray<UObject*>& ObjectArray;
+	FGCArrayStruct& ObjectArrayStruct;
 	bool bAllowEliminatingReferences;
-	bool bShouldHandleAsWeakRef;
 
 public:
 
-	FGCCollector(FGCReferenceProcessor<bParallel>& InProcessor, TArray<UObject*>& InObjectArray)
+	FGCCollector(FGCReferenceProcessor<bParallel>& InProcessor, FGCArrayStruct& InObjectArrayStruct)
 		: ReferenceProcessor(InProcessor)
-		, ObjectArray(InObjectArray)
+		, ObjectArrayStruct(InObjectArrayStruct)
 		, bAllowEliminatingReferences(true)
-		, bShouldHandleAsWeakRef(false)
 	{
 	}
 
@@ -707,7 +592,7 @@ public:
 				ReferencingProperty ? *ReferencingProperty->GetFullName() : TEXT("NULL"));
 		}
 #endif
-		ReferenceProcessor.HandleObjectReference(ObjectArray, const_cast<UObject*>(ReferencingObject), Object, bAllowEliminatingReferences, !bShouldHandleAsWeakRef);
+		ReferenceProcessor.HandleObjectReference(ObjectArrayStruct.ObjectsToSerialize, const_cast<UObject*>(ReferencingObject), Object, bAllowEliminatingReferences);
 	}
 
 	virtual void HandleObjectReference(UObject*& Object, const UObject* ReferencingObject, const UProperty* ReferencingProperty) override
@@ -736,9 +621,11 @@ public:
 		bAllowEliminatingReferences = bAllow;
 	}
 
-	virtual void SetShouldHandleAsWeakRef(bool bWeakRef) override
+	virtual bool MarkWeakObjectReferenceForClearing(UObject** WeakReference) override
 	{
-		bShouldHandleAsWeakRef = bWeakRef;
+		// Track this references for later destruction if necessary. These should be relatively rare
+		ObjectArrayStruct.WeakReferences.Add(WeakReference);
+		return true;
 	}
 };
 
@@ -901,7 +788,7 @@ public:
 				}
 				else
 				{
-					ObjectItem->SetFlags(EInternalObjectFlags::Unreachable | EInternalObjectFlags::NoStrongReference);
+					ObjectItem->SetFlags(EInternalObjectFlags::Unreachable);
 				}
 			}
 		}
@@ -922,7 +809,7 @@ public:
 					// if it is reachable via keep flags we will do this below (or maybe already have)
 					if (RootObjectItem->IsUnreachable()) 
 					{
-						RootObjectItem->ClearFlags(EInternalObjectFlags::Unreachable | EInternalObjectFlags::NoStrongReference);
+						RootObjectItem->ClearFlags(EInternalObjectFlags::Unreachable);
 						// Make sure all referenced clusters are marked as reachable too
 						FGCReferenceProcessorSinglethreaded::MarkReferencedClustersAsReachable(RootObjectItem->GetClusterIndex(), ObjectsToSerialize);
 					}
@@ -944,11 +831,13 @@ public:
 	 * @param KeepFlags		Objects with these flags will be kept regardless of being referenced or not
 	 */
 	void PerformReachabilityAnalysis(EObjectFlags KeepFlags, bool bForceSingleThreaded = false)
-	{		
+	{
+		SCOPED_NAMED_EVENT(FRealtimeGC_PerformReachabilityAnalysis, FColor::Red);
 		DECLARE_SCOPE_CYCLE_COUNTER(TEXT("FRealtimeGC::PerformReachabilityAnalysis"), STAT_FArchiveRealtimeGC_PerformReachabilityAnalysis, STATGROUP_GC);
 
 		/** Growing array of objects that require serialization */
-		TArray<UObject*>& ObjectsToSerialize = *FGCArrayPool::Get().GetArrayFromPool();
+		FGCArrayStruct* ArrayStruct = FGCArrayPool::Get().GetArrayStructFromPool();
+		TArray<UObject*>& ObjectsToSerialize = ArrayStruct->ObjectsToSerialize;
 
 		// Reset object count.
 		GObjectCountDuringLastMarkPhase = 0;
@@ -967,15 +856,15 @@ public:
 		{
 			FGCReferenceProcessorMultithreaded ReferenceProcessor;
 			TFastReferenceCollector<true, FGCReferenceProcessorMultithreaded, FGCCollectorMultithreaded, FGCArrayPool> ReferenceCollector(ReferenceProcessor, FGCArrayPool::Get());
-			ReferenceCollector.CollectReferences(ObjectsToSerialize);
+			ReferenceCollector.CollectReferences(*ArrayStruct);
 		}
 		else
 		{
 			FGCReferenceProcessorSinglethreaded ReferenceProcessor;
 			TFastReferenceCollector<false, FGCReferenceProcessorSinglethreaded, FGCCollectorSinglethreaded, FGCArrayPool> ReferenceCollector(ReferenceProcessor, FGCArrayPool::Get());
-			ReferenceCollector.CollectReferences(ObjectsToSerialize);
+			ReferenceCollector.CollectReferences(*ArrayStruct);
 		}
-		FGCArrayPool::Get().ReturnToPool(&ObjectsToSerialize);
+		FGCArrayPool::Get().ReturnToPool(ArrayStruct);
 
 #if UE_BUILD_DEBUG
 		FGCArrayPool::Get().CheckLeaks();
@@ -994,6 +883,7 @@ public:
  */
 void IncrementalPurgeGarbage( bool bUseTimeLimit, float TimeLimit )
 {
+	SCOPED_NAMED_EVENT(IncrementalPurgeGarbage, FColor::Red);
 	DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "IncrementalPurgeGarbage" ), STAT_IncrementalPurgeGarbage, STATGROUP_GC );
 
 	if (GExitPurge)
@@ -1368,7 +1258,7 @@ struct FScopedCBDProfile
 		int32 NumPrint = 0;
 		for (auto& Item : CBDTimings)
 		{
-			UE_LOG(LogTemp, Log, TEXT("    %6d cnt %6.2fus per   %6.2fms total  %s"), Item.Value.Items, 1000.0f * 1000.0f * Item.Value.TotalTime / float(Item.Value.Items), 1000.0f * Item.Value.TotalTime, *Item.Key.ToString());
+			UE_LOG(LogGarbage, Log, TEXT("    %6d cnt %6.2fus per   %6.2fms total  %s"), Item.Value.Items, 1000.0f * 1000.0f * Item.Value.TotalTime / float(Item.Value.Items), 1000.0f * Item.Value.TotalTime, *Item.Key.ToString());
 			if (NumPrint++ > 3000000000)
 			{
 				break;
@@ -1402,6 +1292,7 @@ struct FScopedCBDProfile
 void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 {
 	SCOPE_TIME_GUARD(TEXT("Collect Garbage"));
+	SCOPED_NAMED_EVENT(CollectGarbageInternal, FColor::Red);
 
 	CheckImageIntegrityAtRuntime();
 
@@ -1518,8 +1409,8 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 		{
 			const double StartTime = FPlatformTime::Seconds();
 			FRealtimeGC TagUsedRealtimeGC;
-			TagUsedRealtimeGC.PerformReachabilityAnalysis(KeepFlags, bForceSingleThreadedGC);
-			UE_LOG(LogGarbage, Log, TEXT("%f ms for GC"), (FPlatformTime::Seconds() - StartTime) * 1000);
+			TagUsedRealtimeGC.PerformReachabilityAnalysis( KeepFlags, bForceSingleThreadedGC );
+			UE_LOG(LogGarbage, Log, TEXT("%f ms for GC"), (FPlatformTime::Seconds() - StartTime) * 1000 );
 		}
 
 		// Reconstruct clusters if needed
@@ -1544,6 +1435,9 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 
 			FCoreUObjectDelegates::PreGarbageCollectConditionalBeginDestroy.Broadcast();
 
+			// This nulls all weak references to unreachable objects, and may clear the pools
+			FGCArrayPool::Get().ClearWeakReferences(bPerformFullPurge);
+
 			// Unhash all unreachable objects.
 			const double StartTime = FPlatformTime::Seconds();
 			int32 ClustersRemoved = 0;
@@ -1567,13 +1461,12 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 						UE_LOG(LogGarbage, Log, TEXT("Destroying cluster (%d) %s"), ObjectItem->GetClusterIndex(), *Object->GetFullName());
 #endif
 						// Nuke the entire cluster
-						ObjectItem->ClearFlags(EInternalObjectFlags::ClusterRoot | EInternalObjectFlags::NoStrongReference);
+						ObjectItem->ClearFlags(EInternalObjectFlags::ClusterRoot);
 						const int32 ClusterRootIndex = It.GetIndex();
 						FUObjectCluster& Cluster = GUObjectClusters[ObjectItem->GetClusterIndex()];
 						for (int32 ClusterObjectIndex : Cluster.Objects)
 						{
 							FUObjectItem* ClusterObjectItem = GUObjectArray.IndexToObjectUnsafeForGC(ClusterObjectIndex);
-							ClusterObjectItem->ClearFlags(EInternalObjectFlags::NoStrongReference);
 							ClusterObjectItem->SetOwnerIndex(0);
 
 							if (!ClusterObjectItem->HasAnyFlags(EInternalObjectFlags::ReachableInCluster))
@@ -1599,22 +1492,8 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 					FScopedCBDProfile Profile(Object);
 					Object->ConditionalBeginDestroy();
 				}
-				else if (ObjectItem->IsNoStrongReference())
-				{
-					ObjectItem->ClearNoStrongReference();
-					ObjectItem->SetPendingKill();
-					if (ObjectItem->HasAnyFlags(EInternalObjectFlags::ClusterRoot))
-					{
-						// If a cluster root has no strong reference then none of its object had a strong reference either, mark all as pending kill
-						FUObjectCluster& Cluster = GUObjectClusters[ObjectItem->GetClusterIndex()];
-						for (int32 ClusterObjectIndex : Cluster.Objects)
-						{
-							FUObjectItem* ClusterObjectItem = GUObjectArray.IndexToObjectUnsafeForGC(ClusterObjectIndex);
-							ClusterObjectItem->SetPendingKill();
-						}
-					}
-				}
 			}
+
 			UE_LOG(LogGarbage, Log, TEXT("%f ms for unhashing unreachable objects. Clusters removed: %d.   Items %d Cluster Items %d"), (FPlatformTime::Seconds() - StartTime) * 1000, ClustersRemoved, Items, ClusterItems);
 			FCoreUObjectDelegates::PostGarbageCollectConditionalBeginDestroy.Broadcast();
 		}
@@ -2133,32 +2012,30 @@ void UClass::EmitFixedArrayEnd()
 	ReferenceTokenStream.EmitReturn();
 }
 
-struct FScopeLockIfNotNative
-{
-	FCriticalSection& ScopeCritical;
-	const bool bNotNative;
-	FScopeLockIfNotNative(FCriticalSection& InScopeCritical, bool bIsNotNative)
-		: ScopeCritical(InScopeCritical)
-		, bNotNative(bIsNotNative)
-	{
-		if (bNotNative)
-		{
-			ScopeCritical.Lock();
-		}
-	}
-	~FScopeLockIfNotNative()
-	{
-		if (bNotNative)
-		{
-			ScopeCritical.Unlock();
-		}
-	}
-};
-
 void UClass::AssembleReferenceTokenStream(bool bForce)
 {
 	// Lock for non-native classes
-	FScopeLockIfNotNative ReferenceTokenStreamLock(ReferenceTokenStreamCritical, !(ClassFlags & CLASS_Native));
+	struct FScopeLockIfNotNative
+	{
+		FCriticalSection& ScopeCritical;
+		const bool bNotNative;
+		FScopeLockIfNotNative(FCriticalSection& InScopeCritical, bool bIsNotNative)
+			: ScopeCritical(InScopeCritical)
+			, bNotNative(bIsNotNative)
+		{
+			if (bNotNative)
+			{
+				ScopeCritical.Lock();
+			}
+		}
+		~FScopeLockIfNotNative()
+		{
+			if (bNotNative)
+			{
+				ScopeCritical.Unlock();
+			}
+		}
+	} ReferenceTokenStreamLock(ReferenceTokenStreamCritical, !(ClassFlags & CLASS_Native));
 
 	UE_CLOG(!IsInGameThread() && !IsGarbageCollectionLocked(), LogGarbage, Fatal, TEXT("AssembleReferenceTokenStream for %s called on a non-game thread while GC is not locked."), *GetFullName());
 
@@ -2181,17 +2058,14 @@ void UClass::AssembleReferenceTokenStream(bool bForce)
 			Property->EmitReferenceInfo(*this, 0, EncounteredStructProps);
 		}
 
-		if (UClass* SuperClass = GetSuperClass())
+		if (GetSuperClass())
 		{
-			// We also need to lock the super class stream too in case something (like PostLoad) wants to reconstruct in on GameThread
-			FScopeLockIfNotNative SuperClassReferenceTokenStreamLock(SuperClass->ReferenceTokenStreamCritical, !(SuperClass->ClassFlags & CLASS_Native));
-			
 			// Make sure super class has valid token stream.
-			SuperClass->AssembleReferenceTokenStream();
-			if (!SuperClass->ReferenceTokenStream.IsEmpty())
+			GetSuperClass()->AssembleReferenceTokenStream();
+			if (!GetSuperClass()->ReferenceTokenStream.IsEmpty())
 			{
 				// Prepend super's stream. This automatically handles removing the EOS token.
-				PrependStreamWithSuperClass(*SuperClass);
+				PrependStreamWithSuperClass(*GetSuperClass());
 			}
 		}
 		else

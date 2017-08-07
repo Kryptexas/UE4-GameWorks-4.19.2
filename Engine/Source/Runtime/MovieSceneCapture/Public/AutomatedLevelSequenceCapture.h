@@ -68,6 +68,9 @@ public:
 
 	virtual void Close() override;
 
+	/** Override the render frames with the given start/end frames. Restore the values when done rendering. */
+	void SetFrameOverrides(int32 InStartFrame, int32 InEndFrame);
+
 protected:
 
 	virtual void AddFormatMappings(TMap<FString, FStringFormatArg>& OutFormatMappings, const FFrameMetrics& FrameMetrics) const override;
@@ -107,6 +110,9 @@ private:
 
 	/** Restore any modification to shots */
 	void RestoreShots();
+
+	/** Restore frame settings from overridden shot frames */
+	bool RestoreFrameOverrides();
 
 	/** A level sequence asset to playback at runtime - used where the level sequence does not already exist in the world. */
 	UPROPERTY()
@@ -158,6 +164,11 @@ private:
 
 	TArray<FCinematicShotCache> CachedShotStates;
 	TRange<float> CachedPlaybackRange;
+
+	TOptional<int32> CachedStartFrame;
+	TOptional<int32> CachedEndFrame;
+	TOptional<bool> bCachedUseCustomStartFrame;
+	TOptional<bool> bCachedUseCustomEndFrame;
 #endif
 };
 

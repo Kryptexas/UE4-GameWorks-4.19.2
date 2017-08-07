@@ -113,6 +113,11 @@ bool FOnlineSubsystemAmazon::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevi
 	return false;
 }
 
+FText FOnlineSubsystemAmazon::GetOnlineServiceName() const
+{
+	return NSLOCTEXT("OnlineSubsystemAmazon", "OnlineServiceName", "Amazon");
+}
+
 bool FOnlineSubsystemAmazon::IsEnabled(void)
 {
 	// Check the ini for disabling Amazon

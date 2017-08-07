@@ -49,7 +49,7 @@ void FAnimNode_HandIKRetargeting::EvaluateSkeletalControl_AnyThread(FComponentSp
 		// Move desired bones
 		for (const FBoneReference& BoneReference : IKBonesToMove)
 		{
-			if (BoneReference.IsValid(BoneContainer))
+			if (BoneReference.IsValidToEvaluate(BoneContainer))
 			{
 				FCompactPoseBoneIndex BoneIndex = BoneReference.GetCompactPoseIndex(BoneContainer);
 				FTransform BoneTransform = Output.Pose.GetComponentSpaceTransform(BoneIndex);
@@ -68,15 +68,15 @@ void FAnimNode_HandIKRetargeting::EvaluateSkeletalControl_AnyThread(FComponentSp
 
 bool FAnimNode_HandIKRetargeting::IsValidToEvaluate(const USkeleton* Skeleton, const FBoneContainer& RequiredBones)
 {
-	if (RightHandFK.IsValid(RequiredBones)
-		&& LeftHandFK.IsValid(RequiredBones)
-		&& RightHandIK.IsValid(RequiredBones)
-		&& LeftHandIK.IsValid(RequiredBones))
+	if (RightHandFK.IsValidToEvaluate(RequiredBones)
+		&& LeftHandFK.IsValidToEvaluate(RequiredBones)
+		&& RightHandIK.IsValidToEvaluate(RequiredBones)
+		&& LeftHandIK.IsValidToEvaluate(RequiredBones))
 	{
 		// we need at least one bone to move valid.
 		for (int32 BoneIndex = 0; BoneIndex < IKBonesToMove.Num(); BoneIndex++)
 		{
-			if (IKBonesToMove[BoneIndex].IsValid(RequiredBones))
+			if (IKBonesToMove[BoneIndex].IsValidToEvaluate(RequiredBones))
 			{
 				return true;
 			}

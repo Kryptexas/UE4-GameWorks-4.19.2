@@ -136,14 +136,66 @@ Menus will be located at the top of any appropriate editor window. Some of the m
 Tabs can be docked simply by dragging the tab from its current location to where it is to be docked.
 
 [REGION:raw]
-![](DockingPanels.png)(w:900)
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](DockingAndLayout_Windows.png)
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](DockingAndLayout_Mac.png)
+	[/PARAM]
+[/OBJECT]
 [/REGION]
 
 The layout of tabs in the editor, including floating windows, is persistent between sessions and is saved automatically when 
 closing the editor. Tabs also remember their last location and will reopen there.
 
 [REGION:raw]
-![](layout.png)(w:700)
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](TabsLayout_Windows.png)
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](TabsLayout_Mac.png)
+	[/PARAM]
+[/OBJECT]
 [/REGION]
 
 [REGION:tip]

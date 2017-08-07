@@ -3,7 +3,7 @@ Title: Sequencer - How To's
 Crumbs: %ROOT%, Engine, Engine\Sequencer
 Description:A How To Guide for creating cinematic sequences with the Sequencer Editor. 
 Related: Engine\Sequencer
-version: 4.11
+version: 4.15
 tags:Sequencer
 
 
@@ -27,6 +27,7 @@ Refer to the table below for more information and click each link to view its co
 [](FANCY:Engine\Sequencer\HowTo\TracksEvent "%Engine\Sequencer\HowTo\TracksEvent:description%")
 [](FANCY:Engine\Sequencer\HowTo\TracksShot "%Engine\Sequencer\HowTo\TracksShot:description%")
 [](FANCY:Engine\Sequencer\HowTo\TracksCameraCut "%Engine\Sequencer\HowTo\TracksCameraCut:description%")
+[](FANCY:Engine\Sequencer\HowTo\TracksMaterialParameter "%Engine\Sequencer\HowTo\TracksMaterialParameter:description%")
 [](FANCY:Engine\Sequencer\HowTo\CameraRigCrane "%Engine\Sequencer\HowTo\CameraRigCrane:description%")
 [](FANCY:Engine\Sequencer\HowTo\CameraRigRail "%Engine\Sequencer\HowTo\CameraRigRail:description%")
 [](FANCY:Engine\Sequencer\HowTo\CineCameraActors "%Engine\Sequencer\HowTo\CineCameraActors:description%")
@@ -39,6 +40,7 @@ Refer to the table below for more information and click each link to view its co
 ## Advanced
 [REGION:wrapper transparent]
 [](FANCY:Engine\Sequencer\HowTo\AnimateDynamicObjects "%Engine\Sequencer\HowTo\AnimateDynamicObjects:description%")
+[](FANCY:Engine\Sequencer\HowTo\ActorSequence "%Engine\Sequencer\HowTo\ActorSequence:description%")
 [](FANCY:Engine\Sequencer\HowTo\TracksSub "%Engine\Sequencer\HowTo\TracksSub:description%")
 [](FANCY:Engine\Sequencer\HowTo\Spawnables "%Engine\Sequencer\HowTo\Spawnables:description%")
 [](FANCY:Engine\Sequencer\HowTo\SequenceRecorder "%Engine\Sequencer\HowTo\SequenceRecorder:description%")

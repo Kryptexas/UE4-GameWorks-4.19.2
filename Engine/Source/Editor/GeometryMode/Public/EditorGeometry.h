@@ -19,6 +19,7 @@ class FGeomBase
 {
 public:
 	FGeomBase();
+	virtual ~FGeomBase() {}
 
 	/** Does nothing if not in geometry mode.*/
 	virtual void Select( bool InSelect = 1 );

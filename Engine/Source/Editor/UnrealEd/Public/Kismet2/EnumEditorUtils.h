@@ -8,7 +8,7 @@
 
 class UNREALED_API FEnumEditorUtils
 {
-	static void PrepareForChange(const UUserDefinedEnum* Enum);
+	static void PrepareForChange(UUserDefinedEnum* Enum);
 	static void BroadcastChanges(const UUserDefinedEnum* Enum, const TArray<TPair<FName, int64>>& OldNames, bool bResolveData = true);
 
 	/** copy full enumeratos names from given enum to OutEnumNames, the last '_MAX' enumerator is skipped */
@@ -62,6 +62,9 @@ public:
 
 	/** check if NewName is a short name and is acceptable as name in given enum */
 	static bool IsProperNameForUserDefinedEnumerator(const UEnum* Enum, FString NewName);
+
+	/** Handles necessary notifications when the Enum has had a transaction undone or redone on it. */
+	static void PostEditUndo(UUserDefinedEnum* Enum);
 
 	/*
 	 *	Try to update an out-of-date enum index after an enum's change

@@ -15,13 +15,66 @@ This guide provides an overview of UE4 from the viewpoint of a Unity user, and a
 
 Below are pictures of the Unity Editor and Unreal Editor, color-coded to indicate common functionality. Each block is labeled to show the equivalent UE4 terminology.  Unreal Editor's layout is fully customizable by dragging and dropping tabs around.
 
-![](image_1.png)
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](EditorCompare_Windows.png)
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](EditorCompare_Mac.png)
+	[/PARAM]
+[/OBJECT]
+
 
 ### Editing Assets
 
 In Unity, the Inspector tab is used to edit selected assets in your Project.  In UE4, the **Details** panel exposes properties of selected objects, while larger editing tasks lead to a dedicated window or tab.  New tabbed windows will open for each edited asset, similar to a web browser.  Of course, you can freely drag the tabs around or float them as standalone windows.
 
-![](image_2.png)
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](TabbedWindows_Windows.png)
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](TabbedWindows_Mac.png)
+	[/PARAM]
+[/OBJECT]
 
 ## Quick Glossary
 
@@ -63,7 +116,33 @@ Just like Unity projects, Unreal projects always exist in their own directory an
 
 In UE4, each project has a **Content **folder.  Similar to a Unity project's Assets folder, this is where your game assets are stored.  To import assets into your game, simply drop files into your project's Content directory and they will be automatically imported and appear in the **Content Browser**.  The assets in the editor will update automatically as you make changes to the files using an external program.
 
-![image alt text](image_3.png)
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](ProjectOnDisk_Windows.png)
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](ProjectOnDisk_Mac.png)
+	[/PARAM]
+[/OBJECT]
 
 ### What common file formats are supported?
 

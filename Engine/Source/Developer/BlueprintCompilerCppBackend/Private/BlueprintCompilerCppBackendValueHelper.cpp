@@ -145,8 +145,16 @@ void FEmitDefaultValueHelper::OuterGenerate(FEmitterLocalContext& Context
 			const UObject* DefaultSubobjectInstance = nullptr;
 			if (IsInstancedSubobjectLambda(ArrayIndex, SubobjectInstance, DefaultSubobjectInstance))
 			{
+				// Emit code to create subobjects that were not originally instanced with CreateDefaultSubobject() (e.g. - 'EditInlineNew' instances).
+				if (!SubobjectInstance->HasAnyFlags(RF_DefaultSubObject) && SubobjectInstance->HasAnyFlags(RF_ArchetypeObject))
+				{
+					const uint8* ValuePtr = Property->ContainerPtrToValuePtr<uint8>(DataContainer, ArrayIndex);
+					const uint8* DefaultValuePtr = OptionalDefaultDataContainer ? Property->ContainerPtrToValuePtr<uint8>(OptionalDefaultDataContainer, ArrayIndex) : nullptr;
+					InnerGenerate(Context, Property, PathToMember, ValuePtr, DefaultValuePtr);
+				}
+
 				// Recursively emit property values for nested default subobjects.
-				if (SubobjectInstance->HasAnyFlags(RF_DefaultSubObject) && !SubobjectInstance->GetOuter()->HasAnyFlags(RF_ClassDefaultObject))
+				if (SubobjectInstance->HasAnyFlags(RF_DefaultSubObject|RF_ArchetypeObject) && !SubobjectInstance->GetOuter()->HasAnyFlags(RF_ClassDefaultObject))
 				{
 					check(SubobjectInstance != nullptr);
 
@@ -179,14 +187,19 @@ void FEmitDefaultValueHelper::GenerateGetDefaultValue(const UUserDefinedStruct* 
 {
 	check(Struct);
 	const FString StructName = FEmitHelper::GetCppName(Struct);
-	Context.Header.AddLine(FString::Printf(TEXT("static %s GetDefaultValue()"), *StructName));
-	Context.Header.AddLine(TEXT("{"));
 
-	Context.Header.IncreaseIndent();
-	Context.Header.AddLine(FString::Printf(TEXT("FStructOnScope StructOnScope(%s::StaticStruct());"), *StructName));
-	Context.Header.AddLine(FString::Printf(TEXT("%s& DefaultData__ = *((%s*)StructOnScope.GetStructMemory());"), *StructName, *StructName));
+	// Declaration
+	Context.Header.AddLine(FString::Printf(TEXT("static %s GetDefaultValue();"), *StructName));
+
+	// Definition
+	Context.Body.AddLine(FString::Printf(TEXT("%s %s::GetDefaultValue()"), *StructName, *StructName));
+	Context.Body.AddLine(TEXT("{"));
+
+	Context.Body.IncreaseIndent();
+	Context.Body.AddLine(FString::Printf(TEXT("FStructOnScope StructOnScope(%s::StaticStruct());"), *StructName));
+	Context.Body.AddLine(FString::Printf(TEXT("%s& DefaultData__ = *((%s*)StructOnScope.GetStructMemory());"), *StructName, *StructName));
 	{
-		TGuardValue<FCodeText*> OriginalDefaultTarget(Context.DefaultTarget, &Context.Header);
+		TGuardValue<FCodeText*> OriginalDefaultTarget(Context.DefaultTarget, &Context.Body);
 		FStructOnScope StructData(Struct);
 		FStructureEditorUtils::Fill_MakeStructureDefaultValue(Struct, StructData.GetStructMemory());
 		FStructOnScope RawDefaultStructOnScope(Struct);
@@ -195,10 +208,10 @@ void FEmitDefaultValueHelper::GenerateGetDefaultValue(const UUserDefinedStruct* 
 			OuterGenerate(Context, Property, TEXT("DefaultData__"), StructData.GetStructMemory(), RawDefaultStructOnScope.GetStructMemory(), EPropertyAccessOperator::Dot);
 		}
 	}
-	Context.Header.AddLine(TEXT("return DefaultData__;"));
-	Context.Header.DecreaseIndent();
+	Context.Body.AddLine(TEXT("return DefaultData__;"));
+	Context.Body.DecreaseIndent();
 
-	Context.Header.AddLine(TEXT("}"));
+	Context.Body.AddLine(TEXT("}"));
 }
 
 void FEmitDefaultValueHelper::InnerGenerate(FEmitterLocalContext& Context, const UProperty* Property, const FString& PathToMember, const uint8* ValuePtr, const uint8* DefaultValuePtr, bool bWithoutFirstConstructionLine)
@@ -752,13 +765,17 @@ FString FEmitDefaultValueHelper::HandleSpecialTypes(FEmitterLocalContext& Contex
 				}
 			}
 
-			auto BPGC = Context.GetCurrentlyGeneratedClass();
+			UClass* BPGC = Context.GetCurrentlyGeneratedClass();
+
+			UChildActorComponent* OuterCAC = Cast<UChildActorComponent>(Object->GetOuter());
+			const bool bObjectIsCACTemplate = OuterCAC && OuterCAC->IsIn(BPGC) && OuterCAC->GetChildActorTemplate() == Object;
+
 			const bool bCreatingSubObjectsOfClass = (Context.CurrentCodeType == FEmitterLocalContext::EGeneratedCodeType::SubobjectsOfClass);
 			{
 				auto CDO = BPGC ? BPGC->GetDefaultObject(false) : nullptr;
 				if (BPGC && Object && CDO && Object->IsIn(BPGC) && !Object->IsIn(CDO) && bCreatingSubObjectsOfClass)
 				{
-					return HandleClassSubobject(Context, Object, FEmitterLocalContext::EClassSubobjectList::MiscConvertedSubobjects, true, true);
+					return HandleClassSubobject(Context, Object, FEmitterLocalContext::EClassSubobjectList::MiscConvertedSubobjects, true, true, bObjectIsCACTemplate);
 				}
 			}
 
@@ -771,17 +788,13 @@ FString FEmitDefaultValueHelper::HandleSpecialTypes(FEmitterLocalContext& Contex
 				}
 			}
 
-			if (!bCreatingSubObjectsOfClass && Object->IsIn(BPGC))
+			if (!bCreatingSubObjectsOfClass && bObjectIsCACTemplate)
 			{
-				UChildActorComponent* OuterCAC = Cast<UChildActorComponent>(Object->GetOuter());
-				if (OuterCAC && OuterCAC->IsIn(BPGC) && OuterCAC->GetChildActorTemplate() == Object)
+				Context.TemplateFromSubobjectsOfClass.AddUnique(Object);
+				const FString MappedObject = Context.FindGloballyMappedObject(Object, ObjectClassToUse);
+				if (!MappedObject.IsEmpty())
 				{
-					Context.TemplateFromSubobjectsOfClass.AddUnique(Object);
-					const FString MappedObject = Context.FindGloballyMappedObject(Object, ObjectClassToUse);
-					if (!MappedObject.IsEmpty())
-					{
-						return MappedObject;
-					}
+					return MappedObject;
 				}
 			}
 		}
@@ -1124,6 +1137,7 @@ struct FFakeImportTableHelper
 					if (Subobject)
 					{
 						SerializeBeforeCreateCDODependencies.Add(Subobject->GetClass());
+						SerializeBeforeCreateCDODependencies.Add(Subobject->GetClass()->GetDefaultObject());
 					}
 				}
 			};
@@ -1545,12 +1559,6 @@ void FEmitDefaultValueHelper::GenerateCustomDynamicClassInitialization(FEmitterL
 		Context.AddLine(FString::Printf(TEXT("InDynamicClass->%s.Add(%s);"), GET_MEMBER_NAME_STRING_CHECKED(UDynamicClass, ReferencedConvertedFields), *StructConstructor));
 	}
 
-	ensure(0 == Context.MiscConvertedSubobjects.Num());
-	for (UObject* LocalTemplate : Context.TemplateFromSubobjectsOfClass)
-	{
-		HandleClassSubobject(Context, LocalTemplate, FEmitterLocalContext::EClassSubobjectList::MiscConvertedSubobjects, true, true, true);
-	}
-
 	TArray<UActorComponent*> ActorComponentTempatesOwnedByClass = BPGC->ComponentTemplates;
 	// Gather all CT from SCS and IH, the remaining ones are generated for class..
 	if (auto SCS = BPGC->SimpleConstructionScript)
@@ -1580,6 +1588,12 @@ void FEmitDefaultValueHelper::GenerateCustomDynamicClassInitialization(FEmitterL
 	}
 
 	Context.AddLine(TEXT("FConvertedBlueprintsDependencies::FillUsedAssetsInDynamicClass(InDynamicClass, &__StaticDependencies_DirectlyUsedAssets);"));
+
+	ensure(0 == Context.MiscConvertedSubobjects.Num());
+	for (UObject* LocalTemplate : Context.TemplateFromSubobjectsOfClass)
+	{
+		HandleClassSubobject(Context, LocalTemplate, FEmitterLocalContext::EClassSubobjectList::MiscConvertedSubobjects, true, true, true);
+	}
 
 	auto CreateAndInitializeClassSubobjects = [&](bool bCreate, bool bInitialize)
 	{
@@ -1939,8 +1953,18 @@ FString FEmitDefaultValueHelper::HandleInstancedSubobject(FEmitterLocalContext& 
 	{
 		if (bCreateInstance)
 		{
-			Context.AddLine(FString::Printf(TEXT("auto %s = CreateDefaultSubobject<%s>(TEXT(\"%s\"));")
-				, *LocalNativeName, *FEmitHelper::GetCppName(ObjectClass), *Object->GetName()));
+			if (Object->HasAnyFlags(RF_DefaultSubObject))
+			{
+				Context.AddLine(FString::Printf(TEXT("auto %s = CreateDefaultSubobject<%s>(TEXT(\"%s\"));")
+					, *LocalNativeName, *FEmitHelper::GetCppName(ObjectClass), *Object->GetName()));
+			}
+			else
+			{
+				check(Object->HasAnyFlags(RF_ArchetypeObject));
+
+				Context.AddLine(FString::Printf(TEXT("auto %s = NewObject<%s>(this, TEXT(\"%s\"), GetMaskedFlags(RF_PropagateToSubObjects) | RF_ArchetypeObject);")
+					, *LocalNativeName, *FEmitHelper::GetCppName(ObjectClass), *Object->GetName()));
+			}
 		}
 		else
 		{

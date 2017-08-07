@@ -17,8 +17,10 @@ namespace UnrealBuildTool
 		private IReadOnlyList<string> AdditionalArches;
 		private IReadOnlyList<string> AdditionalGPUArches;
 
-		// the number of the clang version being used to compile 
-		private float ClangVersionFloat = 0;
+		// the Clang version being used to compile
+		static int ClangVersionMajor = -1;
+		static int ClangVersionMinor = -1;
+		static int ClangVersionPatch = -1;
 
 		// the list of architectures we will compile for
 		private List<string> Arches = null;
@@ -36,9 +38,9 @@ namespace UnrealBuildTool
 
 		static private Dictionary<string, string[]> LibrariesToSkip = new Dictionary<string, string[]> {
 			{ "-armv7", new string[] { } }, 
-			{ "-arm64", new string[] { "nvToolsExt", "nvToolsExtStub", "oculus", "vrapi", "ovrkernel", "systemutils", "openglloader", } },
-			{ "-x86",   new string[] { "nvToolsExt", "nvToolsExtStub", "oculus", "vrapi", "ovrkernel", "systemutils", "openglloader", "opus", "speex_resampler", } }, 
-			{ "-x64",   new string[] { "nvToolsExt", "nvToolsExtStub", "oculus", "vrapi", "ovrkernel", "systemutils", "openglloader", "gpg", } }, 
+			{ "-arm64", new string[] { "nvToolsExt", "nvToolsExtStub", "oculus", "OVRPlugin", "vrapi", "ovrkernel", "systemutils", "openglloader", } },
+			{ "-x86",   new string[] { "nvToolsExt", "nvToolsExtStub", "oculus", "OVRPlugin", "vrapi", "ovrkernel", "systemutils", "openglloader", "opus", "speex_resampler", } }, 
+			{ "-x64",   new string[] { "nvToolsExt", "nvToolsExtStub", "oculus", "OVRPlugin", "vrapi", "ovrkernel", "systemutils", "openglloader", "gpg", } }, 
 		};
 
 		static private Dictionary<string, string[]> ModulesToSkip = new Dictionary<string, string[]> {
@@ -47,6 +49,39 @@ namespace UnrealBuildTool
 			{ "-x86",   new string[] {  } }, 
 			{ "-x64",   new string[] { "OnlineSubsystemGooglePlay", } }, 
 		};
+
+		private void SetClangVersion(int Major, int Minor, int Patch)
+		{
+			ClangVersionMajor = Major;
+			ClangVersionMinor = Minor;
+			ClangVersionPatch = Patch;
+		}
+
+		public string GetClangVersionString()
+		{
+			return string.Format("{0}.{1}.{2}", ClangVersionMajor, ClangVersionMinor, ClangVersionPatch);
+		}
+
+		/// <summary>
+		/// Checks if compiler version matches the requirements
+		/// </summary>
+		private static bool CompilerVersionGreaterOrEqual(int Major, int Minor, int Patch)
+		{
+			return ClangVersionMajor > Major ||
+				(ClangVersionMajor == Major && ClangVersionMinor > Minor) ||
+				(ClangVersionMajor == Major && ClangVersionMinor == Minor && ClangVersionPatch >= Patch);
+		}
+
+		/// <summary>
+		/// Checks if compiler version matches the requirements
+		/// </summary>
+		private static bool CompilerVersionLessThan(int Major, int Minor, int Patch)
+		{
+			return ClangVersionMajor < Major ||
+				(ClangVersionMajor == Major && ClangVersionMinor < Minor) ||
+				(ClangVersionMajor == Major && ClangVersionMinor == Minor && ClangVersionPatch < Patch);
+		}
+
 
 		public AndroidToolChain(FileReference InProjectFile, bool bInUseLdGold, IReadOnlyList<string> InAdditionalArches, IReadOnlyList<string> InAdditionalGPUArches)
 			: base(CppPlatform.Android)
@@ -106,25 +141,25 @@ namespace UnrealBuildTool
 			// prefer clang 3.6, but fall back if needed for now
             if (Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.6")))
 			{
-				ClangVersionFloat = 3.6f;
+				SetClangVersion(3, 6, 0);
 				ClangVersion = "-3.6";
 				GccVersion = "4.9";
 			}
 			else if (Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.5")))
 			{
-				ClangVersionFloat = 3.5f;
+				SetClangVersion(3, 5, 0);
 				ClangVersion = "-3.5";
 				GccVersion = "4.9";
 			}
 			else if (Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.3")))
 			{
-				ClangVersionFloat = 3.3f;
+				SetClangVersion(3, 3, 0);
 				ClangVersion = "-3.3";
 				GccVersion = "4.8";
 			}
 			else if (Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.1")))
 			{
-				ClangVersionFloat = 3.1f;
+				SetClangVersion(3, 1, 0);
 				ClangVersion = "-3.1";
 				GccVersion = "4.6";
 			}
@@ -138,7 +173,7 @@ namespace UnrealBuildTool
 				}
 				string[] VersionFile = File.ReadAllLines(VersionFilename);
 				string[] VersionParts = VersionFile[0].Split('.');
-				ClangVersionFloat = float.Parse(VersionParts[0] + "." + VersionParts[1], System.Globalization.CultureInfo.InvariantCulture);
+				SetClangVersion(int.Parse(VersionParts[0]), (VersionParts.Length > 1) ? int.Parse(VersionParts[1]) : 0, (VersionParts.Length > 2) ? int.Parse(VersionParts[2]) : 0);
 				ClangVersion = "";
 				GccVersion = "4.9";
 			}
@@ -379,6 +414,7 @@ namespace UnrealBuildTool
 			Result += " -c";
 			Result += " -fdiagnostics-format=msvc";
 			Result += " -Wall";
+			Result += " -Wdelete-non-virtual-dtor";
 
 			Result += " -Wno-unused-variable";
 			// this will hide the warnings about static functions in headers that aren't used in every single .cpp file
@@ -411,7 +447,7 @@ namespace UnrealBuildTool
 			}
 
 			// new for clang4.5 warnings:
-			if (ClangVersionFloat >= 3.5f)
+			if (CompilerVersionGreaterOrEqual(3, 5, 0))
 			{
 				Result += " -Wno-undefined-bool-conversion"; // 'this' pointer cannot be null in well-defined C++ code; pointer may be assumed to always convert to true (if (this))
 
@@ -419,10 +455,21 @@ namespace UnrealBuildTool
 				Result += " -Wno-gnu-string-literal-operator-template";
 			}
 
-			if (ClangVersionFloat >= 3.6f)
+			if (CompilerVersionGreaterOrEqual(3, 6, 0))
 			{
 				Result += " -Wno-unused-local-typedef";				// clang is being overly strict here? PhysX headers trigger this.
 				Result += " -Wno-inconsistent-missing-override";	// these have to be suppressed for UE 4.8, should be fixed later.
+			}
+
+			if (CompilerVersionGreaterOrEqual(3, 8, 275480))
+			{
+				Result += " -Wno-undefined-var-template";			// not really a good warning to disable
+			}
+
+			if (CompilerVersionGreaterOrEqual(4, 0, 0))
+			{
+				Result += " -Wno-unused-lambda-capture";            // probably should fix the code
+				Result += " -Wno-nonportable-include-path";         // not all of these are real
 			}
 
 			// shipping builds will cause this warning with "ensure", so disable only in those case
@@ -497,8 +544,8 @@ namespace UnrealBuildTool
 				// Add flags for on-device debugging	
 				if (CompileEnvironment.Configuration == CppConfiguration.Debug)
 				{
-					Result += " -fno-omit-frame-pointer";	// Disable removing the save/restore frame pointer for better debugging
-					if (ClangVersionFloat >= 3.6f)
+					Result += " -fno-omit-frame-pointer";   // Disable removing the save/restore frame pointer for better debugging
+					if (CompilerVersionGreaterOrEqual(3, 6, 0))
 					{
 						Result += " -fno-function-sections";	// Improve breakpoint location
 					}
@@ -641,10 +688,16 @@ namespace UnrealBuildTool
 			{
 				Result += ToolchainParamsArm;
 				Result += " -march=armv7-a";
-				Result += " -Wl,--fix-cortex-a8";		// required to route around a CPU bug in some Cortex-A8 implementations
+				Result += " -Wl,--fix-cortex-a8";       // required to route around a CPU bug in some Cortex-A8 implementations
+
+				if (LinkEnvironment.Configuration == CppConfiguration.Shipping)
+				{
+					Result += " -Wl,--icf=all"; // Enables ICF (Identical Code Folding). [all, safe] safe == fold functions that can be proven not to have their address taken.
+					Result += " -Wl,--icf-iterations=3";
+				}
 			}
 
-			if (bUseLdGold && ClangVersionFloat >= 3.6f && ClangVersionFloat < 3.8f)
+			if (bUseLdGold && CompilerVersionGreaterOrEqual(3, 6, 0) && CompilerVersionLessThan(3, 8, 0))
 			{
 				Result += " -fuse-ld=gold";				// ld.gold is available in r10e (clang 3.6)
 			}
@@ -1127,7 +1180,7 @@ namespace UnrealBuildTool
 						}
 
 						// Create the response file
-						FileReference ResponseFileName = CompileAction.ProducedItems[0].Reference + "_" + AllArguments.GetHashCode().ToString("X") + ".response";
+						FileReference ResponseFileName = CompileAction.ProducedItems[0].Reference + "_" + AllArguments.GetHashCode().ToString("X") + ".rsp";
 						string ResponseArgument = string.Format("@\"{0}\"", ResponseFile.Create(ResponseFileName, new List<string> { AllArguments }).FullName);
 
 						CompileAction.WorkingDirectory = UnrealBuildTool.EngineSourceDirectory.FullName;
@@ -1327,7 +1380,7 @@ namespace UnrealBuildTool
 						{
 							FileReference MAPFilePath = FileReference.Combine(LinkEnvironment.OutputDirectory, Path.GetFileNameWithoutExtension(OutputFile.AbsolutePath) + ".map");
 							FileItem MAPFile = FileItem.GetItemByFileReference(MAPFilePath);
-							LinkAction.CommandArguments += String.Format(" -Wl,-Map,{0}", MAPFilePath);
+							LinkAction.CommandArguments += String.Format(" -Wl,--cref -Wl,-Map,{0}", MAPFilePath);
 							LinkAction.ProducedItems.Add(MAPFile);
 
 							// Export a list of object file paths, so we can locate the object files referenced by the map file
@@ -1378,12 +1431,12 @@ namespace UnrealBuildTool
 		public override void ModifyBuildProducts(ReadOnlyTargetRules Target, UEBuildBinary Binary, List<string> Libraries, List<UEBuildBundleResource> BundleResources, Dictionary<FileReference, BuildProductType> BuildProducts)
 		{
 			// the binary will have all of the .so's in the output files, we need to trim down to the shared apk (which is what needs to go into the manifest)
-			if (Binary.Config.Type != UEBuildBinaryType.StaticLibrary)
+			if (Target.bDeployAfterCompile && Binary.Config.Type != UEBuildBinaryType.StaticLibrary)
 			{
 				foreach (FileReference BinaryPath in Binary.Config.OutputFilePaths)
 				{
 					FileReference ApkFile = BinaryPath.ChangeExtension(".apk");
-					BuildProducts.Add(ApkFile, BuildProductType.Executable);
+					BuildProducts.Add(ApkFile, BuildProductType.Package);
 				}
 			}
 		}

@@ -17,11 +17,19 @@ public:
 	FD3D12Device();
 	FD3D12Device(GPUNodeMask Node, FD3D12Adapter* InAdapter);
 
+	virtual ~FD3D12Device()
+	{
+		delete CommandListManager;
+		delete CopyCommandListManager;
+		delete AsyncCommandListManager;
+	}
+
 	/** Intialized members*/
 	void Initialize();
 
 	void CreateCommandContexts();
 
+	void InitPlatformSpecific();
 	/**
 	* Cleanup the device.
 	* This function must be called from the main game thread.
@@ -53,9 +61,9 @@ public:
 #endif
 
 	inline FD3D12OfflineDescriptorManager& GetSamplerDescriptorAllocator() { return SamplerAllocator; }
-	inline FD3D12CommandListManager& GetCommandListManager() { return CommandListManager; }
-	inline FD3D12CommandListManager& GetCopyCommandListManager() { return CopyCommandListManager; }
-	inline FD3D12CommandListManager& GetAsyncCommandListManager() { return AsyncCommandListManager; }
+	inline FD3D12CommandListManager& GetCommandListManager() { return *CommandListManager; }
+	inline FD3D12CommandListManager& GetCopyCommandListManager() { return *CopyCommandListManager; }
+	inline FD3D12CommandListManager& GetAsyncCommandListManager() { return *AsyncCommandListManager; }
 	inline FD3D12CommandAllocatorManager& GetTextureStreamingCommandAllocatorManager() { return TextureStreamingCommandAllocatorManager; }
 	inline FD3D12DefaultBufferAllocator& GetDefaultBufferAllocator() { return DefaultBufferAllocator; }
 	inline FD3D12GlobalOnlineHeap& GetGlobalSamplerHeap() { return GlobalSamplerHeap; }
@@ -101,9 +109,9 @@ public:
 protected:
 
 	/** A pool of command lists we can cycle through for the global D3D device */
-	FD3D12CommandListManager CommandListManager;
-	FD3D12CommandListManager CopyCommandListManager;
-	FD3D12CommandListManager AsyncCommandListManager;
+	FD3D12CommandListManager* CommandListManager;
+	FD3D12CommandListManager* CopyCommandListManager;
+	FD3D12CommandListManager* AsyncCommandListManager;
 
 	/** A pool of command allocators that texture streaming threads share */
 	FD3D12CommandAllocatorManager TextureStreamingCommandAllocatorManager;

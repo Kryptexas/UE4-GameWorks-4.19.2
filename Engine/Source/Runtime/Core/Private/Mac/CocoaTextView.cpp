@@ -49,7 +49,7 @@
 	{
 		[[self inputContext] handleEvent:theEvent];
 	}
-	
+
 	FCocoaWindow* CocoaWindow = [[self window] isKindOfClass:[FCocoaWindow class]] ? (FCocoaWindow*)[self window] : nil;
 	if (CocoaWindow)
 	{
@@ -75,7 +75,7 @@
 	{
 		[[self inputContext] handleEvent:theEvent];
 	}
-	
+
 	FCocoaWindow* CocoaWindow = [[self window] isKindOfClass:[FCocoaWindow class]] ? (FCocoaWindow*)[self window] : nil;
 	if (CocoaWindow)
 	{
@@ -210,7 +210,7 @@
 			SelectionLocation = replacementRange.location;
 			SelectionLength = replacementRange.length;
 		}
-		
+
 		NSString* TheString;
 		if ([aString isKindOfClass:[NSAttributedString class]])
 		{
@@ -220,7 +220,7 @@
 		{
 			TheString = (NSString*)aString;
 		}
-		
+
 		GameThreadCall(^{
 			SCOPED_AUTORELEASE_POOL;
 			if (IMMContext.IsValid())
@@ -230,7 +230,7 @@
 				IMMContext->SetSelectionRange(SelectionLocation+TheFString.Len(), 0, ITextInputMethodContext::ECaretPosition::Ending);
 			}
 		}, @[ NSDefaultRunLoopMode, UE4IMEEventMode ]);
-		
+
 		[self unmarkText];
 		[[self inputContext] invalidateCharacterCoordinates]; // recentering
 	}
@@ -279,7 +279,7 @@
 			SelectionLocation = replacementRange.location;
 			SelectionLength = replacementRange.length;
 		}
-		
+
 		if ([aString length] == 0)
 		{
 			GameThreadCall(^{
@@ -302,9 +302,9 @@
 				}, @[ NSDefaultRunLoopMode, UE4IMEEventMode ]);
 			}
 			markedRange = NSMakeRange(SelectionLocation, [aString length]);
-			
+
 			__block NSRange CompositionRange = markedRange;
-			
+
 			NSString* TheString;
 			if ([aString isKindOfClass:[NSAttributedString class]])
 			{
@@ -314,27 +314,27 @@
 				// The subrange being edited by the pop-up glyph selection window will set NSUnderlineStyleAttributeName to a value >1, while all other ranges will be set NSUnderlineStyleAttributeName to 1.
 				NSAttributedString* AttributedString = (NSAttributedString*)aString;
 				[AttributedString enumerateAttribute:NSUnderlineStyleAttributeName inRange:NSMakeRange(0, [aString length]) options:0 usingBlock:^(id Value, NSRange Range, BOOL* bStop) {
-					 if(Value && [Value isKindOfClass:[NSNumber class]])
-					 {
-						 NSNumber* NumberValue = (NSNumber*)Value;
-						 const int UnderlineValue = [NumberValue intValue];
-						 if(UnderlineValue > 1)
-						 {
-							 // Found the active range, stop enumeration.
-							 *bStop = YES;
-							 CompositionRange.location += Range.location;
-							 CompositionRange.length = Range.length;
-						 }
-					 }
-				 }];
-				
+					if(Value && [Value isKindOfClass:[NSNumber class]])
+					{
+						NSNumber* NumberValue = (NSNumber*)Value;
+						const int UnderlineValue = [NumberValue intValue];
+						if(UnderlineValue > 1)
+						{
+							// Found the active range, stop enumeration.
+							*bStop = YES;
+							CompositionRange.location += Range.location;
+							CompositionRange.length = Range.length;
+						}
+					}
+				}];
+
 				TheString = [AttributedString string];
 			}
 			else
 			{
 				TheString = (NSString*)aString;
 			}
-			
+
 			GameThreadCall(^{
 				SCOPED_AUTORELEASE_POOL;
 				if (IMMContext.IsValid())
@@ -473,16 +473,16 @@
 				IMMContext->GetTextBounds(aRange.location, aRange.length, Position, Size);
 			}
 		}, @[ NSDefaultRunLoopMode, UE4IMEEventMode ]);
-		
+
 		if(actualRange)
 		{
 			*actualRange = aRange;
 		}
-		
+
 		NSScreen* PrimaryScreen = [[self window] screen];
 		const float PrimaryScreenHeight = [PrimaryScreen visibleFrame].size.height;
 		Position.Y = -(Position.Y - PrimaryScreenHeight + 1);
-		
+
 		NSRect GlyphBox = {{Position.X,Position.Y},{Size.X,Size.Y}};
 		return GlyphBox;
 	}

@@ -327,14 +327,18 @@ bool FIntroTutorials::MaybeOpenWelcomeTutorial()
 		}
 
 		// Try project startup tutorial
-		TSubclassOf<UEditorTutorial> ProjectStartupTutorialClass = LoadClass<UEditorTutorial>(NULL, *GetDefault<UTutorialSettings>()->StartupTutorial.ToString(), NULL, LOAD_None, NULL);
-		if(ProjectStartupTutorialClass != nullptr)
+		const FString ProjectStartupTutorialPathStr = GetDefault<UTutorialSettings>()->StartupTutorial.ToString();
+		if (!ProjectStartupTutorialPathStr.IsEmpty())
 		{
-			UEditorTutorial* Tutorial = ProjectStartupTutorialClass->GetDefaultObject<UEditorTutorial>();
-			if (!GetDefault<UTutorialStateSettings>()->HaveSeenTutorial(Tutorial))
+			TSubclassOf<UEditorTutorial> ProjectStartupTutorialClass = LoadClass<UEditorTutorial>(NULL, *ProjectStartupTutorialPathStr, NULL, LOAD_None, NULL);
+			if (ProjectStartupTutorialClass != nullptr)
 			{
-				LaunchTutorial(Tutorial);
-				return true;
+				UEditorTutorial* Tutorial = ProjectStartupTutorialClass->GetDefaultObject<UEditorTutorial>();
+				if (!GetDefault<UTutorialStateSettings>()->HaveSeenTutorial(Tutorial))
+				{
+					LaunchTutorial(Tutorial);
+					return true;
+				}
 			}
 		}
 	}
@@ -456,6 +460,8 @@ void FIntroTutorials::LaunchTutorial(UEditorTutorial* InTutorial, ETutorialStart
 			IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
 			InNavigationWindow = MainFrameModule.GetParentWindow();
 		}
+		// TODO We will want to protect against this on rewrite.
+		// check(!InTutorial->HasAnyFlags(EObjectFlags::RF_ClassDefaultObject));
 		TutorialRoot->LaunchTutorial(InTutorial, InStartType, InNavigationWindow, OnTutorialClosed, OnTutorialExited);
 	}
 }

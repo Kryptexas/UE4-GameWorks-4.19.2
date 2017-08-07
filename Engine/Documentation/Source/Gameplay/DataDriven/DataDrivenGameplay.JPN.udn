@@ -1,11 +1,13 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3401080
 Availability:Public
 Title:データ駆動型のゲームプレイエレメント
-Crumbs:%ROOT%, Gameplay
+Crumbs:%ROOT%
 Description:外部に保存されたデータを使用するゲームプレイ エレメントの操作
 version:4.9
+type:reference
+tags:Gameplay
 
-[TOC(start:2)]
+[toc(start:2 end:2)]
 
 データ駆動型ゲームプレイは、一般的なボックス型ゲームの寿命をはるかに上回るゲームで、 
 プレイヤーのフィードバックに基づきデータの微調整やバランスを取る必要がある場合、 

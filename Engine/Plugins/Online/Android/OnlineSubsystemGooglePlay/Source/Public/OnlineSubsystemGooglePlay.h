@@ -16,6 +16,8 @@ THIRD_PARTY_INCLUDES_START
 #include "gpg/android_platform_configuration.h"
 THIRD_PARTY_INCLUDES_END
 
+#include <string>
+
 /** Forward declarations of all interface classes */
 typedef TSharedPtr<class FOnlineIdentityGooglePlay,  ESPMode::ThreadSafe> FOnlineIdentityGooglePlayPtr;
 typedef TSharedPtr<class FOnlineStoreGooglePlay, ESPMode::ThreadSafe> FOnlineStoreGooglePlayPtr;
@@ -77,6 +79,8 @@ public:
 	virtual bool Shutdown() override;
 	virtual FString GetAppId() const override;
 	virtual bool Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
+
+	virtual FText GetOnlineServiceName() const override;
 	//~ End IOnlineSubsystem Interface
 
 	virtual bool Tick(float DeltaTime) override;

@@ -359,7 +359,7 @@ OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Room_SetDescription(ovrID roomID, const cha
 /// double values, this returns an error.
 /// \param roomID The room that you currently own (check ovr_Room_GetOwner()).
 /// \param data The key/value pairs to add or update; null values clear a given key.
-/// \param numItems The length of the data.
+/// \param numItems The length of data
 ///
 /// A message with type ::ovrMessage_Room_UpdateDataStore will be generated in response.
 ///

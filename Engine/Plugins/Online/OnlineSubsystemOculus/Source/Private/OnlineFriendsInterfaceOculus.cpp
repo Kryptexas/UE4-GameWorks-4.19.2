@@ -66,8 +66,9 @@ void FOnlineFriendsOculus::OnQueryFriendsComplete(ovrMessageHandle Message, bool
 		auto FriendDisplayName = ovr_User_GetOculusID(Friend);
 		auto FriendPresenceStatus = ovr_User_GetPresenceStatus(Friend);
 		auto FriendInviteToken = ovr_User_GetInviteToken(Friend);
+		FString FriendInviteTokenString(UTF8_TO_TCHAR((FriendInviteToken != nullptr) ? FriendInviteToken : ""));
 
-		TSharedRef<FOnlineOculusFriend> OnlineFriend(new FOnlineOculusFriend(FriendId, FriendDisplayName, FriendPresenceStatus, FriendInviteToken));
+		TSharedRef<FOnlineOculusFriend> OnlineFriend(new FOnlineOculusFriend(FriendId, FriendDisplayName, FriendPresenceStatus, FriendInviteTokenString));
 
 		OutList.Add(FriendId, OnlineFriend);
 	}

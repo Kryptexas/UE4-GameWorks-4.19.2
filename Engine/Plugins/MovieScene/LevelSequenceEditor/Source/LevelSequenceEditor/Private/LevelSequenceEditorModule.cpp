@@ -208,8 +208,8 @@ protected:
 		{
 			IAssetTools& AssetTools = AssetToolsModule->Get();
 
-			for (auto Action : RegisteredAssetTypeActions)
-			{
+				for (auto Action : RegisteredAssetTypeActions)
+				{
 				AssetTools.UnregisterAssetTypeActions(Action);
 			}
 		}
@@ -279,7 +279,7 @@ protected:
 				UFactory* Factory = Cast<UFactory>(CurrentClass->GetDefaultObject());
 				if (Factory->CanCreateNew() && Factory->ImportPriority >= 0 && Factory->SupportedClass == ULevelSequence::StaticClass())
 				{
-					NewAsset = AssetTools.CreateAsset(ULevelSequence::StaticClass(), Factory);
+					NewAsset = AssetTools.CreateAssetWithDialog(ULevelSequence::StaticClass(), Factory);
 					break;
 				}
 			}

@@ -27,6 +27,7 @@ protected:
 	// FKismetCompilerContext
 	virtual void PreCompile() override;
 	virtual void SpawnNewClass(const FString& NewClassName) override;
+	virtual void OnNewClassSet(UBlueprintGeneratedClass* ClassToUse) override;
 	virtual void CleanAndSanitizeClass(UBlueprintGeneratedClass* ClassToClean, UObject*& InOldCDO) override;
 	virtual void EnsureProperGeneratedClass(UClass*& TargetClass) override;
 	virtual void CreateClassVariablesFromBlueprint() override;

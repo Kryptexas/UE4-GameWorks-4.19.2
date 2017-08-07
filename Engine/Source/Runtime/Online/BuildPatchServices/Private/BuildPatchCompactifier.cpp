@@ -114,7 +114,7 @@ bool FBuildDataCompactifier::Compactify(float DataAgeThreshold, const FString& D
 	uint64 BytesSkipped = 0;
 	uint64 NonPatchBytesProcessed = 0;
 	uint64 BytesDeleted = 0;
-	uint64 CurrentFileSize;
+	int64 CurrentFileSize;
 	FGuid FileGuid;
 	TArray<FString> DeletedChunks;
 

@@ -12,16 +12,16 @@ FAnimNode_PoseBlendNode::FAnimNode_PoseBlendNode()
 	BlendOption = EAlphaBlendOption::Linear;
 }
 
-void FAnimNode_PoseBlendNode::Initialize(const FAnimationInitializeContext& Context)
+void FAnimNode_PoseBlendNode::Initialize_AnyThread(const FAnimationInitializeContext& Context)
 {
-	FAnimNode_PoseHandler::Initialize(Context);
+	FAnimNode_PoseHandler::Initialize_AnyThread(Context);
 
 	SourcePose.Initialize(Context);
 }
 
-void FAnimNode_PoseBlendNode::CacheBones(const FAnimationCacheBonesContext& Context) 
+void FAnimNode_PoseBlendNode::CacheBones_AnyThread(const FAnimationCacheBonesContext& Context) 
 {
-	FAnimNode_PoseHandler::CacheBones(Context);
+	FAnimNode_PoseHandler::CacheBones_AnyThread(Context);
 	SourcePose.CacheBones(Context);
 }
 
@@ -31,7 +31,7 @@ void FAnimNode_PoseBlendNode::UpdateAssetPlayer(const FAnimationUpdateContext& C
 	SourcePose.Update(Context);
 }
 
-void FAnimNode_PoseBlendNode::Evaluate(FPoseContext& Output)
+void FAnimNode_PoseBlendNode::Evaluate_AnyThread(FPoseContext& Output)
 {
 	FPoseContext SourceData(Output);
 	SourcePose.Evaluate(SourceData);

@@ -1,9 +1,11 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3467293
 Availability:Public
 Title: 애니메이션 컴포짓
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:Animation Composite, 애니메이션 컴포짓은 다수의 애니메이션을 합쳐 하나의 단위로 취급할 수 있도록 해 주는 역할을 합니다.
 version: 4.9
+tags:Assets
+topic-image:AnimationgComposite_topic.png
 
 [REGION:fullwidth]
 ![](AnimationCompositeHeader.png)

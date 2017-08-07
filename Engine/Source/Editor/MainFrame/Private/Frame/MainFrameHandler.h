@@ -81,9 +81,9 @@ public:
 			// Cannot exit right now.
 			return false;
 		}
-		else if (GIsSavingPackage || IsGarbageCollecting() || IsLoading() || GIsSlowTask)
+		else if (GIsSavingPackage || IsGarbageCollecting())
 		{
-			// Saving / Loading / GC / Slow Task path.  It is all unsafe to do that here.
+			// SAVING/GC PATH
 
 			// We're currently saving or garbage collecting and can't close the editor just yet.
 			// We will have to wait and try to request to close the editor on the next frame.

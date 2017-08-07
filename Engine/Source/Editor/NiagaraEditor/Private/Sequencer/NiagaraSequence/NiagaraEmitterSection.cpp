@@ -33,7 +33,6 @@ int32 FNiagaraEmitterSection::OnPaintSection(FSequencerSectionPainter& InPainter
 		InPainter.LayerId,
 		InPainter.SectionGeometry.ToPaintGeometry(),
 		FEditorStyle::GetBrush("CurveEd.TimelineArea"),
-		InPainter.SectionClippingRect,
 		ESlateDrawEffect::None,
 		FLinearColor(0.3f, 0.3f, 0.6f)
 	);
@@ -41,33 +40,21 @@ int32 FNiagaraEmitterSection::OnPaintSection(FSequencerSectionPainter& InPainter
 	// draw all loops of the emitter as 'ghosts' of the original section
 	float X = InPainter.SectionGeometry.AbsolutePosition.X;
 	float GeomW = InPainter.SectionGeometry.GetDrawSize().X;
-	float ClipW = InPainter.SectionClippingRect.Right - InPainter.SectionClippingRect.Left;
-	FSlateRect NewClipRect = InPainter.SectionClippingRect;
-	NewClipRect.Left += 2;
-	NewClipRect.Right -= 2;
 	int32 NumLoops = EmitterSection->GetEmitterHandle()->GetEmitterViewModel()->GetNumLoops() - 1;
 	for (int32 Loop = 0; Loop < NumLoops; Loop++)
 	{
-		NewClipRect.Left += (GeomW)-FMath::Max(0.0f, GeomW - ClipW);
-		NewClipRect.Right += GeomW;
 		FSlateDrawElement::MakeBox
 		(
 			InPainter.DrawElements,
 			InPainter.LayerId,
 			InPainter.SectionGeometry.ToPaintGeometry(FVector2D(GeomW*(Loop + 1), 0.0f), InPainter.SectionGeometry.GetDrawSize(), 1.0f),
 			FEditorStyle::GetBrush("CurveEd.TimelineArea"),
-			NewClipRect,
 			ESlateDrawEffect::None,
 			FLinearColor(0.3f, 0.3f, 0.6f, 0.25f)
 		);
 	}
 
 	return InPainter.LayerId;
-}
-
-FText FNiagaraEmitterSection::GetDisplayName(void) const
-{
-	return EmitterSection->GetEmitterHandle()->GetNameText();
 }
 
 FText FNiagaraEmitterSection::GetSectionTitle(void) const

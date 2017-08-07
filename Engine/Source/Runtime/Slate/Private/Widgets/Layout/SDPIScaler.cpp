@@ -30,7 +30,7 @@ void SDPIScaler::OnArrangeChildren( const FGeometry& AllottedGeometry, FArranged
 		ArrangedChildren.AddWidget( AllottedGeometry.MakeChild(
 			this->ChildSlot.GetWidget(),
 			FVector2D::ZeroVector,
-			AllottedGeometry.Size / MyDPIScale,
+			AllottedGeometry.GetLocalSize() / MyDPIScale,
 			MyDPIScale
 		));
 

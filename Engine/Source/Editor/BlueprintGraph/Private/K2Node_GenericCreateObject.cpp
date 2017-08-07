@@ -8,6 +8,61 @@
 
 #define LOCTEXT_NAMESPACE "K2Node_GenericCreateObject"
 
+struct FK2Node_GenericCreateObject_Utils
+{
+	static bool CanSpawnObjectOfClass(TSubclassOf<UObject> ObjectClass, bool bAllowAbstract)
+	{
+		// Initially include types that meet the basic requirements.
+		// Note: CLASS_Deprecated is an inherited class flag, so any subclass of an explicitly-deprecated class also cannot be spawned.
+		bool bCanSpawnObject = (nullptr != *ObjectClass)
+			&& (bAllowAbstract || !ObjectClass->HasAnyClassFlags(CLASS_Abstract))
+			&& !ObjectClass->HasAnyClassFlags(CLASS_Deprecated | CLASS_NewerVersionExists);
+
+		if (bCanSpawnObject)
+		{
+			static const FName BlueprintTypeName(TEXT("BlueprintType"));
+			static const FName NotBlueprintTypeName(TEXT("NotBlueprintType"));
+			static const FName DontUseGenericSpawnObjectName(TEXT("DontUseGenericSpawnObject"));
+
+			auto IsClassAllowedLambda = [](const UClass* InClass)
+			{
+				return InClass != AActor::StaticClass()
+					&& InClass != UActorComponent::StaticClass();
+			};
+
+			// Exclude all types in the initial set by default.
+			bCanSpawnObject = false;
+			const UClass* CurrentClass = ObjectClass;
+
+			// Climb up the class hierarchy and look for "BlueprintType." If "NotBlueprintType" is seen first, or if the class is not allowed, then stop searching.
+			while (!bCanSpawnObject && CurrentClass != nullptr && !CurrentClass->GetBoolMetaData(NotBlueprintTypeName) && IsClassAllowedLambda(CurrentClass))
+			{
+				// Include any type that either includes or inherits 'BlueprintType'
+				bCanSpawnObject = CurrentClass->GetBoolMetaData(BlueprintTypeName);
+
+				// Stop searching if we encounter 'BlueprintType' with 'DontUseGenericSpawnObject'
+				if (bCanSpawnObject && CurrentClass->GetBoolMetaData(DontUseGenericSpawnObjectName))
+				{
+					bCanSpawnObject = false;
+					break;
+				}
+
+				CurrentClass = CurrentClass->GetSuperClass();
+			}
+
+			// If we validated the given class, continue walking up the hierarchy to make sure we exclude it if it's an Actor or ActorComponent derivative.
+			while (bCanSpawnObject && CurrentClass != nullptr)
+			{
+				bCanSpawnObject &= IsClassAllowedLambda(CurrentClass);
+
+				CurrentClass = CurrentClass->GetSuperClass();
+			}
+		}
+
+		return bCanSpawnObject;
+	}
+};
+
 void UK2Node_GenericCreateObject::ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph)
 {
 	UK2Node_CallFunction* CallCreateNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this, SourceGraph);
@@ -17,29 +72,29 @@ void UK2Node_GenericCreateObject::ExpandNode(class FKismetCompilerContext& Compi
 	bool bSucceeded = true;
 	//connect exe
 	{
-		auto SpawnExecPin = GetExecPin();
-		auto CallExecPin = CallCreateNode->GetExecPin();
+		UEdGraphPin* SpawnExecPin = GetExecPin();
+		UEdGraphPin* CallExecPin = CallCreateNode->GetExecPin();
 		bSucceeded &= SpawnExecPin && CallExecPin && CompilerContext.MovePinLinksToIntermediate(*SpawnExecPin, *CallExecPin).CanSafeConnect();
 	}
 
 	//connect class
 	{
-		auto SpawnClassPin = GetClassPin();
-		auto CallClassPin = CallCreateNode->FindPin(TEXT("ObjectClass"));
+		UEdGraphPin* SpawnClassPin = GetClassPin();
+		UEdGraphPin* CallClassPin = CallCreateNode->FindPin(TEXT("ObjectClass"));
 		bSucceeded &= SpawnClassPin && CallClassPin && CompilerContext.MovePinLinksToIntermediate(*SpawnClassPin, *CallClassPin).CanSafeConnect();
 	}
 		
 	//connect outer
 	{
-		auto SpawnOuterPin = GetOuterPin();
-		auto CallOuterPin = CallCreateNode->FindPin(TEXT("Outer"));
+		UEdGraphPin* SpawnOuterPin = GetOuterPin();
+		UEdGraphPin* CallOuterPin = CallCreateNode->FindPin(TEXT("Outer"));
 		bSucceeded &= SpawnOuterPin && CallOuterPin && CompilerContext.MovePinLinksToIntermediate(*SpawnOuterPin, *CallOuterPin).CanSafeConnect();
 	}
 
 	UEdGraphPin* CallResultPin = nullptr;
 	//connect result
 	{
-		auto SpawnResultPin = GetResultPin();
+		UEdGraphPin* SpawnResultPin = GetResultPin();
 		CallResultPin = CallCreateNode->GetReturnValuePin();
 
 		// cast HACK. It should be safe. The only problem is native code generation.
@@ -52,8 +107,8 @@ void UK2Node_GenericCreateObject::ExpandNode(class FKismetCompilerContext& Compi
 
 	//assign exposed values and connect then
 	{
-		auto LastThen = FKismetCompilerUtilities::GenerateAssignmentNodes(CompilerContext, SourceGraph, CallCreateNode, this, CallResultPin, GetClassToSpawn());
-		auto SpawnNodeThen = GetThenPin();
+		UEdGraphPin* LastThen = FKismetCompilerUtilities::GenerateAssignmentNodes(CompilerContext, SourceGraph, CallCreateNode, this, CallResultPin, GetClassToSpawn());
+		UEdGraphPin* SpawnNodeThen = GetThenPin();
 		bSucceeded &= SpawnNodeThen && LastThen && CompilerContext.MovePinLinksToIntermediate(*SpawnNodeThen, *LastThen).CanSafeConnect();
 	}
 
@@ -65,23 +120,18 @@ void UK2Node_GenericCreateObject::ExpandNode(class FKismetCompilerContext& Compi
 	}
 }
 
-void UK2Node_GenericCreateObject::ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const
-{
-	Super::ValidateNodeDuringCompilation(MessageLog);
-}
-
 void UK2Node_GenericCreateObject::EarlyValidation(class FCompilerResultsLog& MessageLog) const
 {
 	Super::EarlyValidation(MessageLog);
-	auto ClassPin = GetClassPin(&Pins);
+	UEdGraphPin* ClassPin = GetClassPin(&Pins);
 	const bool bAllowAbstract = ClassPin && ClassPin->LinkedTo.Num();
-	auto ClassToSpawn = GetClassToSpawn();
-	if (!UGameplayStatics::CanSpawnObjectOfClass(ClassToSpawn, bAllowAbstract))
+	UClass* ClassToSpawn = GetClassToSpawn();
+	if (!FK2Node_GenericCreateObject_Utils::CanSpawnObjectOfClass(ClassToSpawn, bAllowAbstract))
 	{
-		MessageLog.Error(*FString::Printf(*LOCTEXT("GenericCreateObject_WrongClass", "Wrong class to spawn '%s' in @@").ToString(), *GetPathNameSafe(ClassToSpawn)), this);
+		MessageLog.Error(*FString::Printf(*LOCTEXT("GenericCreateObject_WrongClass", "Cannot construct objects of type '%s' in @@").ToString(), *GetPathNameSafe(ClassToSpawn)), this);
 	}
 
-	auto OuterPin = GetOuterPin();
+	UEdGraphPin* OuterPin = GetOuterPin();
 	if (!OuterPin || (!OuterPin->DefaultObject && !OuterPin->LinkedTo.Num()))
 	{
 		MessageLog.Error(*LOCTEXT("GenericCreateObject_NoOuter", "Outer object is required in @@").ToString(), this);

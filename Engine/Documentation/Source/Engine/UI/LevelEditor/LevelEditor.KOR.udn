@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3275202
+﻿INTSourceChangelist:3481084
 Availability:Public
 Title:레벨 에디터
 Crumbs:%ROOT%, Engine, Engine/UI
@@ -6,71 +6,42 @@ Description:게임 레벨과 배경 디자인 및 조성에 대한 개요서입�
 Version: 4.9
 parent:Engine/Editor
 order:3
-
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/UI/LevelEditor:title%](Engine/UI/LevelEditor/Editor_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/LevelEditor:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/LevelEditor:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/LevelEditor]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/UI/LevelEditor:title%](Engine/UI/LevelEditor/Editor_Topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/LevelEditor:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/LevelEditor:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/LevelEditor]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:Feature]
-[OBJECT:Feature]
-	[PARAM:image]
-		![%Engine/UI/LevelEditor:title%](Engine/UI/LevelEditor/Editor.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/LevelEditor:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/LevelEditor:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/LevelEditor]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Editor_Topic.png
+topic-icon:%ROOT%/editor_icon.png
 
 
 [REGION:fullwidth]
-![](UE4Interface_5.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+[REGION:lightbox]
+![](LevelEditor_Windows.png)
+[/REGION]
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+[REGION:lightbox]
+![](LevelEditor_Mac.png)
+[/REGION]
+[/PARAM]
+[/OBJECT]
 [/REGION]
 
 
@@ -93,7 +64,37 @@ order:3
 언리얼 에디터의 인터페이스는 고도의 커스터마이징이 가능하기에, 실행시 보이는 화면이 다음과 다를 수 있습니다. 아래는 기본 인터페이스 레이아웃입니다:
 
 [REGION:raw]
-![](UEDInterface.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+[REGION:lightbox]
+![](DefaultInterface_Windows.png)
+[/REGION]
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+[REGION:lightbox]
+![](DefaultInterface_Mac.png)
+[/REGION]
+[/PARAM]
+[/OBJECT]
 [/REGION]
 
 
@@ -110,7 +111,37 @@ order:3
 
 레벨 에디터 상단에는 현재 편집중인 레벨의 이름이 표시되는 탭이 있습니다. 마치 웹 브라우저처럼, 다른 에디터 창의 탭을 이 탭에 붙여 빠르고 쉽게 둘러볼 수도 있습니다.
 
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+[REGION:lightbox]
 ![](TabBar.png)
+[/REGION]
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+[REGION:lightbox]
+![](TabBar_Mac.png)
+[/REGION]
+[/PARAM]
+[/OBJECT]
 
 탭 자체의 이름에는 현재 편집중인 레벨의 이름이 반영됩니다. 이 패턴은 에디터 전반적으로 일관된 것으로, 에디터 탭의 이름은 현재 편집중인 애셋의 이름을 따게 됩니다.
 
@@ -123,7 +154,38 @@ order:3
 
 [INCLUDE:Engine/UI/LevelEditor/MenuBar#Intro]
 
-![Main Menu Bar](Engine/UI/LevelEditor/MenuBar/MainMenubar.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+[REGION:lightbox]
+![Main Menu Bar](Engine/UI/LevelEditor/MenuBar/MenuBar_Windows.png)
+[/REGION]
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+[REGION:lightbox]
+![Main Menu Bar](Engine/UI/LevelEditor/MenuBar/Menubar_Mac.png)
+[/REGION]
+[/PARAM]
+[/OBJECT]
+
 
 각 메뉴와 그 내용에 대한 설명은 [메뉴 바](Engine/UI/LevelEditor/MenuBar) 문서를 참고해 주시기 바랍니다.
 

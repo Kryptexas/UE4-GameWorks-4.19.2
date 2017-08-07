@@ -19,6 +19,13 @@ void FD3D12CommandListHandle::AddUAVBarrier()
 	CommandListData->CurrentOwningContext->numBarriers++;
 }
 
+void FD3D12CommandListHandle::AddAliasingBarrier(FD3D12Resource* pResource)
+{
+	check(CommandListData);
+	CommandListData->ResourceBarrierBatcher.AddAliasingBarrier(pResource->GetResource());
+	CommandListData->CurrentOwningContext->numBarriers++;
+}
+
 void FD3D12CommandListHandle::Create(FD3D12Device* ParentDevice, D3D12_COMMAND_LIST_TYPE CommandListType, FD3D12CommandAllocator& CommandAllocator, FD3D12CommandListManager* InCommandListManager)
 {
 	check(!CommandListData);

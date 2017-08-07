@@ -70,10 +70,14 @@ private:
 	 * @param MousePosition		The current screen space position of the mouse
 	 * @param SectionGeometry	The geometry of the section
 	 */
-	void CheckForEdgeInteraction( const FPointerEvent& MousePosition, const FGeometry& SectionGeometry );
+	bool CheckForEdgeInteraction( const FPointerEvent& MousePosition, const FGeometry& SectionGeometry );
+
+	bool CheckForEasingHandleInteraction( const FPointerEvent& MousePosition, const FGeometry& SectionGeometry );
+
+	bool CheckForEasingAreaInteraction( const FPointerEvent& MousePosition, const FGeometry& SectionGeometry );
 
 	/** SWidget interface */
-	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
+	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FReply OnMouseButtonDoubleClick( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
@@ -86,12 +90,17 @@ private:
 	 *
 	 * @param InPainter			Section painter
 	 */
-	void PaintKeys( FSequencerSectionPainter& InPainter, const FWidgetStyle& InWidgetStyle, const FSlateRect& KeyClippingRect ) const;
+	void PaintKeys( FSequencerSectionPainter& InPainter, const FWidgetStyle& InWidgetStyle ) const;
+
+	/**
+	 * Paint the easing handles for this section
+	 */
+	void PaintEasingHandles( FSequencerSectionPainter& InPainter, FLinearColor SelectionColor, const ISequencerHotspot* Hotspot ) const;
 
 	/**
 	 * Draw the section resize handles.
 	 */
-	void DrawSectionHandles( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, ESlateDrawEffect DrawEffects, FLinearColor SelectionColor, const ISequencerHotspot* Hotspot ) const;
+	void DrawSectionHandles( const FGeometry& AllottedGeometry, FSlateWindowElementList& OutDrawElements, int32 LayerId, ESlateDrawEffect DrawEffects, FLinearColor SelectionColor, const ISequencerHotspot* Hotspot ) const;
 
 	/** @return the sequencer interface */
 	FSequencer& GetSequencer() const;
@@ -101,6 +110,10 @@ private:
 	 */
 	FGeometry MakeSectionGeometryWithoutHandles( const FGeometry& AllottedGeometry, const TSharedPtr<ISequencerSection>& InSectionInterface ) const;
 
+	/**
+	 * Ensure that the cached array of underlapping sections is up to date
+	 */
+	void UpdateUnderlappingSegments();
 
 public:
 
@@ -109,6 +122,11 @@ public:
 
 	/** Get a value between 0 and 1 that indicicates the amount of throb-scale to apply to the currently selected keys */
 	static float GetSelectionThrobValue();
+
+	/**
+	 * Check to see whether the specified section is highlighted
+	 */
+	static bool IsSectionHighlighted(FSectionHandle InSectionHandle, const ISequencerHotspot* Hotspot);
 
 private:
 	/** Interface to section data */
@@ -125,4 +143,12 @@ private:
 	static double SelectionThrobEndTime;
 	/** Handle offset amount in pixels */
 	float HandleOffsetPx;
+	/** Array of segments that define other sections that reside below this one */
+	TArray<FSequencerOverlapRange> UnderlappingSegments;
+	/** Array of segments that define other sections that reside below this one */
+	TArray<FSequencerOverlapRange> UnderlappingEasingSegments;
+	/** The signature of the track last time the overlapping segments were updated */
+	FGuid CachedTrackSignature;
+
+	friend struct FSequencerSectionPainterImpl;
 };

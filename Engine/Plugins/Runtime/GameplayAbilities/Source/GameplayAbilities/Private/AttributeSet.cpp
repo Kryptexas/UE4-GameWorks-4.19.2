@@ -226,6 +226,64 @@ void FGameplayAttribute::PostSerialize(const FArchive& Ar)
 	}
 }
 
+void FGameplayAttribute::GetAllAttributeProperties(TArray<UProperty*>& OutProperties, FString FilterMetaStr)
+{
+	// Gather all UAttribute classes
+	for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
+	{
+		UClass *Class = *ClassIt;
+		if (Class->IsChildOf(UAttributeSet::StaticClass()) && !Class->ClassGeneratedBy)
+		{
+#if WITH_EDITOR
+			// Allow entire classes to be filtered globally
+			if (Class->HasMetaData(TEXT("HideInDetailsView")))
+			{
+				continue;
+			}
+#endif
+
+			for (TFieldIterator<UProperty> PropertyIt(Class, EFieldIteratorFlags::ExcludeSuper); PropertyIt; ++PropertyIt)
+			{
+				UProperty* Property = *PropertyIt;
+
+#if WITH_EDITOR
+				if (!FilterMetaStr.IsEmpty() && Property->HasMetaData(*FilterMetaStr))
+				{
+					continue;
+				}
+
+				// Allow properties to be filtered globally (never show up)
+				if (Property->HasMetaData(TEXT("HideInDetailsView")))
+				{
+					continue;
+				}
+#endif
+				
+				OutProperties.Add(Property);
+			}
+		}
+
+#if WITH_EDITOR
+		// UAbilitySystemComponent can add 'system' attributes
+		if (Class->IsChildOf(UAbilitySystemComponent::StaticClass()) && !Class->ClassGeneratedBy)
+		{
+			for (TFieldIterator<UProperty> PropertyIt(Class, EFieldIteratorFlags::ExcludeSuper); PropertyIt; ++PropertyIt)
+			{
+				UProperty* Property = *PropertyIt;
+
+
+				// SystemAttributes have to be explicitly tagged
+				if (Property->HasMetaData(TEXT("SystemGameplayAttribute")) == false)
+				{
+					continue;
+				}
+				OutProperties.Add(Property);
+			}
+		}
+#endif
+	}
+}
+
 UAttributeSet::UAttributeSet(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {

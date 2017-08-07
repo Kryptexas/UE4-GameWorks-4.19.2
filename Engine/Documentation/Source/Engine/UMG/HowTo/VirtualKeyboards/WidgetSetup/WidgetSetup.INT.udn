@@ -4,6 +4,7 @@ Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
 Description:Here we create the keypad and keypad display widgets that will appear in the level. 
 SkillLevel: Advanced
 tags:UMG UI Designer
+Order: 2
 
 [VAR:Steps]
 [OBJECT:Navigation]

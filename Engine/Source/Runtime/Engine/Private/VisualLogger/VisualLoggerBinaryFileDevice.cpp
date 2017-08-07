@@ -77,6 +77,19 @@ void FVisualLoggerBinaryFileDevice::StopRecordingToFile(float TimeStamp)
 	}
 }
 
+void FVisualLoggerBinaryFileDevice::DiscardRecordingToFile()
+{
+	if (FileArchive)
+	{
+		FileArchive->Close();
+		delete FileArchive;
+		FileArchive = nullptr;
+
+		const FString TempFullFilename = FPaths::Combine(*FPaths::GameLogDir(), *TempFileName);
+		IFileManager::Get().Delete(*TempFullFilename, false, true, true);
+	}
+}
+
 void FVisualLoggerBinaryFileDevice::SetFileName(const FString& InFileName)
 {
 	FileName = InFileName;

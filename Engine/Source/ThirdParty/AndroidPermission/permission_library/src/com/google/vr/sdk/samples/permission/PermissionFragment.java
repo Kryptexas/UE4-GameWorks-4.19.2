@@ -48,10 +48,6 @@ public class PermissionFragment extends Fragment
 
 	@Override
 	public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-		if (Build.VERSION.SDK_INT >= 23) //Only in Marshmallow(23) and above needs runtime permission checking
-		{
-			super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-		}
 		
 		if (requestCode==PERMISSION_REQUEST_CODE &&
 			permissions.length>0) 

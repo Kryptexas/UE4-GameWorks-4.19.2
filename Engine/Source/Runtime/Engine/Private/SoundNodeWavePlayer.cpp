@@ -65,6 +65,11 @@ void USoundNodeWavePlayer::LoadAsset(bool bAddToRoot)
 	}
 }
 
+void USoundNodeWavePlayer::ClearAssetReferences()
+{
+	SoundWave = nullptr;
+}
+
 void USoundNodeWavePlayer::OnSoundWaveLoaded(const FName& PackageName, UPackage* Package, EAsyncLoadingResult::Type Result, bool bAddToRoot)
 {
 	if (Result == EAsyncLoadingResult::Succeeded)

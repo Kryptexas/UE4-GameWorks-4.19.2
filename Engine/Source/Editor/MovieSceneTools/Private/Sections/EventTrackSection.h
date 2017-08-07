@@ -33,11 +33,8 @@ public:
 //	virtual TSharedRef<SWidget> GenerateSectionWidget() override;
 	virtual int32 OnPaintSection( FSequencerSectionPainter& InPainter ) const override;
 //	virtual void Tick( const FGeometry& AllottedGeometry, const FGeometry& ParentGeometry, const double InCurrentTime, const float InDeltaTime ) override;
-	virtual FText GetDisplayName() const override;
-	virtual FText GetSectionTitle() const override;
 //	virtual float GetSectionHeight() const override;
 //	virtual float GetSectionGripSize() const override;
-//	virtual bool AreSectionsConnected() const override { return true; }
 	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override;
 //	virtual FReply OnSectionDoubleClicked( const FGeometry& SectionGeometry, const FPointerEvent& MouseEvent ) override;
 //	virtual void BuildSectionContextMenu(FMenuBuilder& MenuBuilder) override;

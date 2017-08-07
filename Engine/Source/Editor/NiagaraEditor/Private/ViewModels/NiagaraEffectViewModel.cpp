@@ -689,7 +689,7 @@ void FNiagaraEffectViewModel::SynchronizeEffectDrivenParametersUI()
 	}
 }
 
-void FNiagaraEffectViewModel::SequencerDataChanged()
+void FNiagaraEffectViewModel::SequencerDataChanged(EMovieSceneDataChangeType DataChangeType)
 {
 	bUpdatingFromSequencerDataChange = true;
 	TSet<FGuid> VaildTrackEmitterHandleIds;

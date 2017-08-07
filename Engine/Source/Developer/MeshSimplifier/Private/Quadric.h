@@ -72,7 +72,7 @@ inline FQuadric::FQuadric( const FVector& p0, const FVector& p1, const FVector& 
 {
 	FVector n = ( p2 - p0 ) ^ ( p1 - p0 );
 	float Length = NormalizeSelf(n);
-	if( Length == 0.0f )
+	if( Length < SMALL_NUMBER )
 	{
 		Zero();
 		return;
@@ -136,7 +136,7 @@ inline FQuadric::FQuadric( const FVector& p0, const FVector& p1, const FVector& 
 
 	FVector n = edge ^ faceNormal;
 	float Length = NormalizeSelf(n);
-	if( Length == 0.0f )
+	if( Length < SMALL_NUMBER )
 	{
 		Zero();
 		return;
@@ -316,7 +316,7 @@ inline TQuadricAttr< NumAttributes >::TQuadricAttr(
 {
 	FVector n = ( p2 - p0 ) ^ ( p1 - p0 );
 	float Length = NormalizeSelf(n);
-	if( Length == 0.0f )
+	if( Length < SMALL_NUMBER )
 	{
 		Zero();
 		return;

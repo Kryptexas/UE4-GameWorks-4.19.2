@@ -91,10 +91,11 @@
 
 FText UVRRadialMenuHandler::ActionMenuLabel = LOCTEXT("DefaultActions", "Actions");
 
-UVRRadialMenuHandler::UVRRadialMenuHandler(const FObjectInitializer& Initializer) :
-	Super(Initializer)
+UVRRadialMenuHandler::UVRRadialMenuHandler() : 
+	Super(),
+	UIOwner(nullptr)
 {
-	
+
 }
 
 void UVRRadialMenuHandler::BackOutMenu()
@@ -478,9 +479,9 @@ void UVRRadialMenuHandler::UIMenuGenerator(FMenuBuilder& MenuBuilder, TSharedPtr
 		FSlateIcon(FVREditorStyle::GetStyleSetName(), "VREditorStyle.Details"),
 		FUIAction
 		(
-			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::OnUIToggleButtonClicked, VRMode, UVREditorUISystem::EEditorUIPanel::ActorDetails),
+			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::OnUIToggleButtonClicked, VRMode, UVREditorUISystem::DetailsPanelID),
 			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::DefaultCanExecuteAction),
-			FGetActionCheckState::CreateStatic(&FVREditorActionCallbacks::GetUIToggledState, VRMode, UVREditorUISystem::EEditorUIPanel::ActorDetails)
+			FGetActionCheckState::CreateStatic(&FVREditorActionCallbacks::GetUIToggledState, VRMode, UVREditorUISystem::DetailsPanelID)
 			),
 		NAME_None,
 		EUserInterfaceActionType::ToggleButton
@@ -491,9 +492,9 @@ void UVRRadialMenuHandler::UIMenuGenerator(FMenuBuilder& MenuBuilder, TSharedPtr
 		FSlateIcon(FVREditorStyle::GetStyleSetName(), "VREditorStyle.ContentBrowser"),
 		FUIAction
 		(
-			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::OnUIToggleButtonClicked, VRMode, UVREditorUISystem::EEditorUIPanel::ContentBrowser),
+			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::OnUIToggleButtonClicked, VRMode, UVREditorUISystem::ContentBrowserPanelID),
 			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::DefaultCanExecuteAction),
-			FGetActionCheckState::CreateStatic(&FVREditorActionCallbacks::GetUIToggledState, VRMode, UVREditorUISystem::EEditorUIPanel::ContentBrowser)
+			FGetActionCheckState::CreateStatic(&FVREditorActionCallbacks::GetUIToggledState, VRMode, UVREditorUISystem::ContentBrowserPanelID)
 			),
 		NAME_None,
 		EUserInterfaceActionType::ToggleButton
@@ -504,9 +505,9 @@ void UVRRadialMenuHandler::UIMenuGenerator(FMenuBuilder& MenuBuilder, TSharedPtr
 		FSlateIcon(FVREditorStyle::GetStyleSetName(), "VREditorStyle.ModesPanel"),
 		FUIAction
 		(
-			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::OnUIToggleButtonClicked, VRMode, UVREditorUISystem::EEditorUIPanel::Modes),
+			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::OnUIToggleButtonClicked, VRMode, UVREditorUISystem::ModesPanelID),
 			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::DefaultCanExecuteAction),
-			FGetActionCheckState::CreateStatic(&FVREditorActionCallbacks::GetUIToggledState, VRMode, UVREditorUISystem::EEditorUIPanel::Modes)
+			FGetActionCheckState::CreateStatic(&FVREditorActionCallbacks::GetUIToggledState, VRMode, UVREditorUISystem::ModesPanelID)
 			),
 		NAME_None,
 		EUserInterfaceActionType::ToggleButton
@@ -517,9 +518,9 @@ void UVRRadialMenuHandler::UIMenuGenerator(FMenuBuilder& MenuBuilder, TSharedPtr
 		FSlateIcon(FVREditorStyle::GetStyleSetName(), "VREditorStyle.WorldOutliner"),
 		FUIAction
 		(
-			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::OnUIToggleButtonClicked, VRMode, UVREditorUISystem::EEditorUIPanel::WorldOutliner),
+			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::OnUIToggleButtonClicked, VRMode, UVREditorUISystem::WorldOutlinerPanelID),
 			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::DefaultCanExecuteAction),
-			FGetActionCheckState::CreateStatic(&FVREditorActionCallbacks::GetUIToggledState, VRMode, UVREditorUISystem::EEditorUIPanel::WorldOutliner)
+			FGetActionCheckState::CreateStatic(&FVREditorActionCallbacks::GetUIToggledState, VRMode, UVREditorUISystem::WorldOutlinerPanelID)
 			),
 		NAME_None,
 		EUserInterfaceActionType::ToggleButton
@@ -530,9 +531,9 @@ void UVRRadialMenuHandler::UIMenuGenerator(FMenuBuilder& MenuBuilder, TSharedPtr
 		FSlateIcon(FVREditorStyle::GetStyleSetName(), "VREditorStyle.WorldSettings"),
 		FUIAction
 		(
-			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::OnUIToggleButtonClicked, VRMode, UVREditorUISystem::EEditorUIPanel::WorldSettings),
+			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::OnUIToggleButtonClicked, VRMode, UVREditorUISystem::WorldSettingsPanelID),
 			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::DefaultCanExecuteAction),
-			FGetActionCheckState::CreateStatic(&FVREditorActionCallbacks::GetUIToggledState, VRMode, UVREditorUISystem::EEditorUIPanel::WorldSettings)
+			FGetActionCheckState::CreateStatic(&FVREditorActionCallbacks::GetUIToggledState, VRMode, UVREditorUISystem::WorldSettingsPanelID)
 			),
 		NAME_None,
 		EUserInterfaceActionType::ToggleButton

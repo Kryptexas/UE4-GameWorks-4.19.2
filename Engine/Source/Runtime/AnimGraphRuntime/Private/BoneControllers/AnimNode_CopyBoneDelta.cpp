@@ -99,7 +99,7 @@ void FAnimNode_CopyBoneDelta::EvaluateSkeletalControl_AnyThread(FComponentSpaceP
 
 bool FAnimNode_CopyBoneDelta::IsValidToEvaluate(const USkeleton* Skeleton, const FBoneContainer& RequiredBones)
 {
-	return (TargetBone.IsValid(RequiredBones) && (TargetBone == SourceBone || SourceBone.IsValid(RequiredBones)));
+	return (TargetBone.IsValidToEvaluate(RequiredBones) && (TargetBone == SourceBone || SourceBone.IsValidToEvaluate(RequiredBones)));
 }
 
 void FAnimNode_CopyBoneDelta::InitializeBoneReferences(const FBoneContainer& RequiredBones)

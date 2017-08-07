@@ -10,6 +10,7 @@
 
 UGraphEditorSettings::UGraphEditorSettings( const FObjectInitializer& ObjectInitializer )
 	: Super(ObjectInitializer)
+	, PanningMouseButton(EGraphPanningMouseButton::Right)
 	, PaddingAbovePin(4.0f)
 	, PaddingBelowPin(4.0f)
 	, PaddingRightOfInput(10.0f)
@@ -50,6 +51,9 @@ UGraphEditorSettings::UGraphEditorSettings( const FObjectInitializer& ObjectInit
 	RotatorPinTypeColor = FLinearColor(0.353393f, 0.454175f, 1.0f, 1.0f);		// periwinkle 
 	TransformPinTypeColor = FLinearColor(1.0f, 0.172585f, 0.0f, 1.0f);			// orange
 	IndexPinTypeColor = FLinearColor(0.013575f, 0.770000f, 0.429609f, 1.0f);	// green-blue
+
+	DefaultDataWireThickness = 1.0f;
+	DefaultExecutionWireThickness = 3.0f;
 
 	// graph debugging visuals
 	TraceAttackColor = FLinearColor(1.0f, 0.05f, 0.0f, 1.0f);

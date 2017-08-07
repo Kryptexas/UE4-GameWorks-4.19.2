@@ -58,6 +58,12 @@ type:landing
 		[PARAMLITERAL:terms]
 			UMG UI
 		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
+			Sequencer
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
+			VR
+		[/PARAMLITERAL]
 	[/OBJECT]
 [/REGION]
 

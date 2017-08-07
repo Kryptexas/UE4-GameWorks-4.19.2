@@ -138,34 +138,43 @@ void FEdGraphUtilities::PostProcessPastedNodes(TSet<UEdGraphNode*>& SpawnedNodes
 		{
 			UEdGraphPin* ThisPin = Node->Pins[PinIndex];
 
-			for (int32 LinkIndex = 0; LinkIndex < ThisPin->LinkedTo.Num(); )
+			// Ensure on any NULL entry, as it means there was a problem importing the pin from text, and we should be alerted to that.
+			if (ensure(ThisPin))
 			{
-				UEdGraphPin* OtherPin = ThisPin->LinkedTo[LinkIndex];
+				for (int32 LinkIndex = 0; LinkIndex < ThisPin->LinkedTo.Num(); )
+				{
+					UEdGraphPin* OtherPin = ThisPin->LinkedTo[LinkIndex];
 
-				if (OtherPin == NULL)
-				{
-					// Totally bogus link
-					ThisPin->LinkedTo.RemoveAtSwap(LinkIndex);
+					if (OtherPin == nullptr)
+					{
+						// Totally bogus link
+						ThisPin->LinkedTo.RemoveAtSwap(LinkIndex);
+					}
+					else if (!SpawnedNodes.Contains(OtherPin->GetOwningNode()))
+					{
+						// It's a link across the selection set, so it should be broken
+						OtherPin->LinkedTo.RemoveSwap(ThisPin);
+						ThisPin->LinkedTo.RemoveAtSwap(LinkIndex);
+					}
+					else if (!OtherPin->LinkedTo.Contains(ThisPin))
+					{
+						// The link needs to be reciprocal
+						check(OtherPin->GetOwningNode()->GetGraph() == CurrentGraph);
+						OtherPin->LinkedTo.Add(ThisPin);
+						++LinkIndex;
+					}
+					else
+					{
+						// Everything seems fine but sanity check the graph
+						check(OtherPin->GetOwningNode()->GetGraph() == CurrentGraph);
+						++LinkIndex;
+					}
 				}
-				else if (!SpawnedNodes.Contains(OtherPin->GetOwningNode()))
-				{
-					// It's a link across the selection set, so it should be broken
-					OtherPin->LinkedTo.RemoveSwap(ThisPin);
-					ThisPin->LinkedTo.RemoveAtSwap(LinkIndex);
-				}
-				else if (!OtherPin->LinkedTo.Contains(ThisPin))
-				{
-					// The link needs to be reciprocal
-					check(OtherPin->GetOwningNode()->GetGraph() == CurrentGraph);
-					OtherPin->LinkedTo.Add(ThisPin);
-					++LinkIndex;
-				}
-				else
-				{
-					// Everything seems fine but sanity check the graph
-					check(OtherPin->GetOwningNode()->GetGraph() == CurrentGraph);
-					++LinkIndex;
-				}
+			}
+			else
+			{
+				// Remove NULL entries; these will be replaced with a default value when the node is reconstructed below.
+				Node->Pins.RemoveAt(PinIndex--);
 			}
 		}
 	}

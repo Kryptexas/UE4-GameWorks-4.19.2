@@ -18,6 +18,7 @@
 #include "FbxImporter.h"
 #include "StaticMeshResources.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "SkelImport.h"
 
 #include "DesktopPlatformModule.h"
 
@@ -39,12 +40,12 @@ DEFINE_LOG_CATEGORY_STATIC(LogExportMeshUtils, Log, All);
 struct ExistingStaticMeshData;
 extern ExistingStaticMeshData* SaveExistingStaticMeshData(UStaticMesh* ExistingMesh, UnFbx::FBXImportOptions* ImportOptions, int32 LodIndex);
 extern void RestoreExistingMeshSettings(struct ExistingStaticMeshData* ExistingMesh, UStaticMesh* NewMesh, int32 LODIndex);
-extern void RestoreExistingMeshData(struct ExistingStaticMeshData* ExistingMeshDataPtr, UStaticMesh* NewMesh, int32 LodLevel);
+extern void RestoreExistingMeshData(struct ExistingStaticMeshData* ExistingMeshDataPtr, UStaticMesh* NewMesh, int32 LodLevel, bool bResetMaterialSlots);
 extern void UpdateSomeLodsImportMeshData(UStaticMesh* NewMesh, TArray<int32> *ReimportLodList);
 
 struct ExistingSkelMeshData;
 extern ExistingSkelMeshData* SaveExistingSkelMeshData(USkeletalMesh* ExistingSkelMesh, bool bSaveMaterials, int32 ReimportLODIndex);
-extern void RestoreExistingSkelMeshData(ExistingSkelMeshData* MeshData, USkeletalMesh* SkeletalMesh, int32 ReimportLODIndex);
+extern void RestoreExistingSkelMeshData(ExistingSkelMeshData* MeshData, USkeletalMesh* SkeletalMesh, int32 ReimportLODIndex, bool bResetMaterialSlots, bool bIsReimportPreview);
 
 namespace FbxMeshUtils
 {
@@ -196,7 +197,7 @@ namespace FbxMeshUtils
 					UpdateSomeLodsImportMeshData(BaseStaticMesh, &ReimportLodList);
 					if(IsReimport)
 					{
-						RestoreExistingMeshData(ExistMeshDataPtr, BaseStaticMesh, LODLevel);
+						RestoreExistingMeshData(ExistMeshDataPtr, BaseStaticMesh, LODLevel, false);
 					}
 
 					// Update mesh component
@@ -435,6 +436,7 @@ namespace FbxMeshUtils
 					TArray<FName> ImportMaterialOriginalNameData;
 					TArray<FImportMeshLodSectionsData> ImportMeshLodData;
 					ImportMeshLodData.AddZeroed();
+					FSkeletalMeshImportData OutData;
 
 					UnFbx::FFbxImporter::FImportSkeletalMeshArgs ImportSkeletalMeshArgs;
 					ImportSkeletalMeshArgs.InParent = SelectedSkelMesh->GetOutermost();
@@ -446,6 +448,7 @@ namespace FbxMeshUtils
 					ImportSkeletalMeshArgs.OrderedMaterialNames = OrderedMaterialNames.Num() > 0 ? &OrderedMaterialNames : nullptr;
 					ImportSkeletalMeshArgs.ImportMaterialOriginalNameData = &ImportMaterialOriginalNameData;
 					ImportSkeletalMeshArgs.ImportMeshSectionsData = &ImportMeshLodData[0];
+					ImportSkeletalMeshArgs.OutData = &OutData;
 
 					TempSkelMesh = (USkeletalMesh*)FFbxImporter->ImportSkeletalMesh( ImportSkeletalMeshArgs );
 
@@ -460,7 +463,7 @@ namespace FbxMeshUtils
 
 						if (SkelMeshDataPtr != nullptr)
 						{
-							RestoreExistingSkelMeshData(SkelMeshDataPtr, SelectedSkelMesh, SelectedLOD);
+							RestoreExistingSkelMeshData(SkelMeshDataPtr, SelectedSkelMesh, SelectedLOD, false, ImportOptions->bIsReimportPreview);
 						}
 						SelectedSkelMesh->PostEditChange();
 						// Mark package containing skeletal mesh as dirty.
@@ -479,7 +482,7 @@ namespace FbxMeshUtils
 
 					if(ImportOptions->bImportMorph)
 					{
-						FFbxImporter->ImportFbxMorphTarget(SkelMeshNodeArray, SelectedSkelMesh, SelectedSkelMesh->GetOutermost(), SelectedLOD);
+						FFbxImporter->ImportFbxMorphTarget(SkelMeshNodeArray, SelectedSkelMesh, SelectedSkelMesh->GetOutermost(), SelectedLOD, OutData);
 					}
 
 					if (bMeshImportSuccess)

@@ -78,6 +78,7 @@ public:
 	void Set(RHICommandListType& RHICmdList, const ShaderRHIParamRef& ShaderRHI, const FViewInfo& View, const bool bIsInstancedStereo = false)
 	{
 		//@todo - put all of these in a shader resource table
+		check(View.ForwardLightingResources->ForwardGlobalLightData.IsValid() || !ForwardGlobalLightData.IsBound());
 		SetUniformBufferParameter(RHICmdList, ShaderRHI, ForwardGlobalLightData, View.ForwardLightingResources->ForwardGlobalLightData);
 		SetSRVParameter(RHICmdList, ShaderRHI, ForwardLocalLightBuffer, View.ForwardLightingResources->ForwardLocalLightBuffer.SRV);
 		NumCulledLightsGrid.SetBuffer(RHICmdList, ShaderRHI, View.ForwardLightingResources->NumCulledLightsGrid);
@@ -87,6 +88,7 @@ public:
 		{
 			// Bind right eye uniforms to instanced parameters
 			const FSceneView& InstancedView = *View.Family->Views[1];
+			check(View.ForwardLightingResources->ForwardGlobalLightData.IsValid() || !InstancedForwardGlobalLightData.IsBound());
 			SetUniformBufferParameter(RHICmdList, ShaderRHI, InstancedForwardGlobalLightData, InstancedView.ForwardLightingResources->ForwardGlobalLightData);
 			SetSRVParameter(RHICmdList, ShaderRHI, InstancedForwardLocalLightBuffer, InstancedView.ForwardLightingResources->ForwardLocalLightBuffer.SRV);
 			InstancedNumCulledLightsGrid.SetBuffer(RHICmdList, ShaderRHI, InstancedView.ForwardLightingResources->NumCulledLightsGrid);
@@ -94,6 +96,7 @@ public:
 		}
 		else if (InstancedForwardGlobalLightData.IsBound())
 		{
+			check(View.ForwardLightingResources->ForwardGlobalLightData.IsValid());
 			SetUniformBufferParameter(RHICmdList, ShaderRHI, InstancedForwardGlobalLightData, View.ForwardLightingResources->ForwardGlobalLightData);
 		}
 
@@ -781,7 +784,7 @@ public:
 		Ar << ReflectionParameters;
 		Ar << TranslucentLightingParameters;
 		Ar << HeightFogParameters;
- 		Ar << EditorCompositeParams;
+		Ar << EditorCompositeParams;
 		Ar << ForwardLightingParameters;
 		return bShaderHasOutdatedParameters;
 	}
@@ -828,7 +831,7 @@ class TBasePassPS : public TBasePassPixelShaderBaseType<LightMapPolicyType>
 {
 	DECLARE_SHADER_TYPE(TBasePassPS,MeshMaterial);
 public:
-	
+
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		// Only compile skylight version for lit materials, and if the project allows them.
@@ -839,9 +842,12 @@ public:
 		const bool bForceAllPermutations = SupportAllShaderPermutations && SupportAllShaderPermutations->GetValueOnAnyThread() != 0;
 		const bool bProjectSupportsStationarySkylight = !SupportStationarySkylight || SupportStationarySkylight->GetValueOnAnyThread() != 0 || bForceAllPermutations;
 
-		//translucent materials need to compile skylight support to support MOVABLE skylights also.
-		const bool bCacheShaders = !bEnableSkyLight || (bProjectSupportsStationarySkylight && (Material->GetShadingModel() != MSM_Unlit)) || bTranslucent;
-
+		const bool bCacheShaders = !bEnableSkyLight
+			//translucent materials need to compile skylight support to support MOVABLE skylights also.
+			|| bTranslucent
+			// Some lightmap policies (eg Simple Forward) always require skylight support
+			|| LightMapPolicyType::RequiresSkylight()
+			|| (bProjectSupportsStationarySkylight && (Material->GetShadingModel() != MSM_Unlit));
 		return bCacheShaders
 			&& (IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4))
 			&& TBasePassPixelShaderBaseType<LightMapPolicyType>::ShouldCache(Platform, Material, VertexFactoryType);
@@ -1443,7 +1449,7 @@ void ProcessBasePassMesh(
 	)
 {
 	// Check for a cached light-map.
-	const bool bIsLitMaterial = Parameters.ShadingModel != MSM_Unlit;	
+	const bool bIsLitMaterial = (Parameters.ShadingModel != MSM_Unlit);
 	static const auto AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
 	const bool bAllowStaticLighting = (!AllowStaticLightingVar || AllowStaticLightingVar->GetValueOnRenderThread() != 0);
 	

@@ -49,6 +49,9 @@ public:
 	UPROPERTY()
 	TSet<int32> TestSet;
 
+	UPROPERTY()
+	UObject* const ConstPointerProperty;
+
 	UFUNCTION()
 	void CodeGenTestForEnumClasses(ECppEnum Val);
 
@@ -85,6 +88,11 @@ public:
 	{
 		return FString("Hello").Len();
 	}
+#endif
+
+#if WITH_EDITOR
+	UFUNCTION(BlueprintCallable, Category = "MyEditorOnlyFunction")
+	void MyEditorOnlyFunction();
 #endif
 
 	UFUNCTION(BlueprintNativeEvent, Category="Game")

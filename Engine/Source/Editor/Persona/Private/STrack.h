@@ -150,8 +150,7 @@ public:
 	bool HitTest(const FGeometry& AllottedGeometry, FVector2D MouseLocalPose) const;
 
 	virtual FVector2D GetSize() const;
-	virtual FVector2D ComputeDesiredSize(float) const override;
-
+	
 	float GetDataStartPos() const;
 
 	/** Return whether this node should snap to the tracks draggable bars when being dragged */
@@ -168,6 +167,9 @@ public:
 	bool IsBeingDragged() const {return bBeingDragged;}
 
 protected:
+	// Begin SWidget overrides.
+	virtual FVector2D ComputeDesiredSize(float) const override;
+	// End SWidget overrides.
 	
 	FSlateColor GetNodeColor() const;
 
@@ -263,7 +265,7 @@ public:
 	void			Construct( const FArguments& InArgs );
 
 	virtual void	OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override;
-	virtual int32	OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
+	virtual int32	OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
 
 	virtual FReply	OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;	
 	virtual FReply	OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;

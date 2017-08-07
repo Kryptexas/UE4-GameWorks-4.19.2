@@ -83,7 +83,6 @@ struct CORE_API FHTML5PlatformAtomics	: public FGenericPlatformAtomics
 		return Result;
 	}
 
-#if PLATFORM_64BITS
 	static FORCEINLINE int64 InterlockedCompareExchange( volatile int64* Dest, int64 Exchange, int64 Comperand )
 	{
 		int64 Result = *Dest;
@@ -93,7 +92,11 @@ struct CORE_API FHTML5PlatformAtomics	: public FGenericPlatformAtomics
 		}
 		return Result;
 	}
-#endif
+
+	static FORCEINLINE int64 AtomicRead64(volatile const int64* Src)
+	{
+		return *Src;
+	}
 
 	static FORCEINLINE void* InterlockedCompareExchangePointer( void** Dest, void* Exchange, void* Comperand )
 	{

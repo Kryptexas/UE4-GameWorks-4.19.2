@@ -161,7 +161,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessEyeAdaptationPS,TEXT("PostProcessEyeAdaptation"),TEXT("MainPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FPostProcessEyeAdaptationPS,TEXT("/Engine/Private/PostProcessEyeAdaptation.usf"),TEXT("MainPS"),SF_Pixel);
 
 /** Encapsulates the histogram-based post processing eye adaptation compute shader. */
 class FPostProcessEyeAdaptationCS : public FGlobalShader
@@ -228,7 +228,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessEyeAdaptationCS,TEXT("PostProcessEyeAdaptation"),TEXT("MainCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FPostProcessEyeAdaptationCS,TEXT("/Engine/Private/PostProcessEyeAdaptation.usf"),TEXT("MainCS"),SF_Compute);
 
 void FRCPassPostProcessEyeAdaptation::Process(FRenderingCompositePassContext& Context)
 {
@@ -429,7 +429,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(, FPostProcessBasicEyeAdaptationSetupPS, TEXT("PostProcessEyeAdaptation"), TEXT("MainBasicEyeAdaptationSetupPS"), SF_Pixel);
+IMPLEMENT_SHADER_TYPE(, FPostProcessBasicEyeAdaptationSetupPS, TEXT("/Engine/Private/PostProcessEyeAdaptation.usf"), TEXT("MainBasicEyeAdaptationSetupPS"), SF_Pixel);
 
 void FRCPassPostProcessBasicEyeAdaptationSetUp::Process(FRenderingCompositePassContext& Context)
 {
@@ -461,7 +461,7 @@ void FRCPassPostProcessBasicEyeAdaptationSetUp::Process(FRenderingCompositePassC
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 
 	// is optimized away if possible (RT size=view size, )
-	DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor::Black, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, DestRect);
+	DrawClearQuad(Context.RHICmdList, true, FLinearColor::Black, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, DestRect);
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f);
 
@@ -507,6 +507,7 @@ FPooledRenderTargetDesc FRCPassPostProcessBasicEyeAdaptationSetUp::ComputeOutput
 	Ret.DebugName = TEXT("EyeAdaptationBasicSetup");
 	// Require alpha channel for log2 information.
 	Ret.Format = PF_FloatRGBA;
+	Ret.Flags |= GetTextureFastVRamFlag_DynamicLayout();
 	return Ret;
 }
 
@@ -601,7 +602,7 @@ private:
 	FShaderParameter EyeAdaptationSrcRect;
 };
 
-IMPLEMENT_SHADER_TYPE(, FPostProcessLogLuminance2ExposureScalePS, TEXT("PostProcessEyeAdaptation"), TEXT("MainLogLuminance2ExposureScalePS"), SF_Pixel);
+IMPLEMENT_SHADER_TYPE(, FPostProcessLogLuminance2ExposureScalePS, TEXT("/Engine/Private/PostProcessEyeAdaptation.usf"), TEXT("MainLogLuminance2ExposureScalePS"), SF_Pixel);
 
 void FRCPassPostProcessBasicEyeAdaptation::Process(FRenderingCompositePassContext& Context)
 {
@@ -685,6 +686,6 @@ FPooledRenderTargetDesc FRCPassPostProcessBasicEyeAdaptation::ComputeOutputDesc(
 	FPooledRenderTargetDesc Ret;
 
 	Ret.DebugName = TEXT("EyeAdaptationBasic");
-
+	Ret.Flags |= GetTextureFastVRamFlag_DynamicLayout();
 	return Ret;
 }

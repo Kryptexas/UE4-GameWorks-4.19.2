@@ -70,6 +70,8 @@ public:
 			&& (NULL != Cast<UEdGraph>(Node->GetOuter()));
 	}
 
+	virtual ~FBasePinChangeHelper() { }
+
 	virtual void EditCompositeTunnelNode(class UK2Node_Tunnel* TunnelNode) {}
 
 	virtual void EditMacroInstance(class UK2Node_MacroInstance* MacroInstance, UBlueprint* Blueprint) {}
@@ -184,6 +186,9 @@ public:
 	 */
 	static void RefreshVariables(UBlueprint* Blueprint);
 
+	/** Helper function to punch through and honor UAnimGraphNode_Base::PreloadRequiredAssets, which formerly relied on loading assets during compile */
+	static void PreloadBlueprintSpecificData(UBlueprint* Blueprint);
+
 	/**
 	 * Regenerates the class at class load time, and refreshes the blueprint
 	 */
@@ -245,6 +250,12 @@ public:
 	 */
 	static UBlueprint* FindBlueprintForGraphChecked(const UEdGraph* Graph);
 
+	static UClass* GetSkeletonClass(UClass* FromClass);
+	static UClass* GetMostUpToDateClass(UClass* FromClass);
+
+	/** Looks at the most up to data class and returns whether the given property exists in it as well */
+	static bool PropertyStillExists(UProperty* Property);
+
 	/**
 	 * Updates sources of delegates.
 	 */
@@ -254,6 +265,9 @@ public:
 	 * Whether or not the blueprint should regenerate its class on load or not.  This prevents macros and other BP types not marked for reconstruction from being recompiled all the time
 	 */
 	static bool ShouldRegenerateBlueprint(UBlueprint* Blueprint);
+
+	/** Returns true if compilation for the given blueprint has been disabled */
+	static bool IsCompileOnLoadDisabled(UBlueprint* Blueprint);
 
 	/**
 	 * Blueprint has structurally changed (added/removed functions, graphs, etc...). Performs the following actions:
@@ -1078,21 +1092,47 @@ public:
 	/** Indicates if the variable is used on any graphs in this Blueprint*/
 	static bool IsVariableUsed(const UBlueprint* Blueprint, const FName& Name, UEdGraph* LocalGraphScope = nullptr);
 
-	static void ImportKismetDefaultValueToProperty(UEdGraphPin* SourcePin, UProperty* DestinationProperty, uint8* DestinationAddress, UObject* OwnerObject);
-	
-	static void ExportPropertyToKismetDefaultValue(UEdGraphPin* TargetPin, UProperty* SourceProperty, uint8* SourceAddress, UObject* OwnerObject);
+	/** Copies the value from the passed in string into a property. ContainerMem points to the Struct or Class containing Property */
+	static bool PropertyValueFromString(const UProperty* Property, const FString& StrValue, uint8* Container);
 
-	static bool PropertyValueFromString(const UProperty* Property, const FString& StrValue, uint8* ContainerMem);
+	/** Copies the value from the passed in string into a property. DirectValue is the raw memory address of the property value */
+	static bool PropertyValueFromString_Direct(const UProperty* Property, const FString& StrValue, uint8* DirectValue);
 
+	/** Copies the value from a property into the string OutForm. ContainerMem points to the Struct or Class containing Property */
 	static bool PropertyValueToString(const UProperty* Property, const uint8* Container, FString& OutForm);
 
+	/** Copies the value from a property into the string OutForm. DirectValue is the raw memory address of the property value */
 	static bool PropertyValueToString_Direct(const UProperty* Property, const uint8* DirectValue, FString& OutForm);
 
 	/** Call PostEditChange() on all Actors based on the given Blueprint */
 	static void PostEditChangeBlueprintActors(UBlueprint* Blueprint, bool bComponentEditChange = false);
 
 	/** Checks if the property can be modified in given blueprint */
+	DEPRECATED(4.17, "Use IsPropertyWritableInBlueprint instead.")
 	static bool IsPropertyReadOnlyInCurrentBlueprint(const UBlueprint* Blueprint, const UProperty* Property);
+
+	/** Enumeration of whether a property is writable or if not, why. */
+	enum class EPropertyWritableState : uint8
+	{
+		Writable,
+		Private,
+		NotBlueprintVisible,
+		BlueprintReadOnly
+	};
+
+	/** Returns an enumeration indicating if the property can be written to by the given Blueprint */
+	static EPropertyWritableState IsPropertyWritableInBlueprint(const UBlueprint* Blueprint, const UProperty* Property);
+
+	/** Enumeration of whether a property is readable or if not, why. */
+	enum class EPropertyReadableState : uint8
+	{
+		Readable,
+		Private,
+		NotBlueprintVisible
+	};
+
+	/** Returns an enumeration indicating if the property can be read by the given Blueprint */
+	static EPropertyReadableState IsPropertyReadableInBlueprint(const UBlueprint* Blueprint, const UProperty* Property);
 
 	/** Ensures that the CDO root component reference is valid for Actor-based Blueprints */
 	static void UpdateRootComponentReference(UBlueprint* Blueprint);

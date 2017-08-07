@@ -47,6 +47,7 @@ UPersonaOptions::UPersonaOptions(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, DefaultLocalAxesSelection(2)
 	, DefaultBoneDrawSelection(1)
+	, bAllowPreviewMeshCollectionsToSelectFromDifferentSkeletons(true)
 {
 	ViewModeIndex = VMI_Lit;
 
@@ -55,6 +56,10 @@ UPersonaOptions::UPersonaOptions(const FObjectInitializer& ObjectInitializer)
 	BranchingPointTimingNodeColor = FLinearColor(0.5f, 1.0f, 1.0f);
 
 	bAutoAlignFloorToMesh = true;
+
+	NumFolderFiltersInAssetBrowser = 2;
+
+	bUseAudioAttenuation = true;
 }
 
 void UPersonaOptions::SetViewportBackgroundColor( const FLinearColor& InViewportBackgroundColor)
@@ -108,6 +113,12 @@ void UPersonaOptions::SetShowSky( bool bInShowSky )
 void UPersonaOptions::SetMuteAudio( bool bInMuteAudio )
 {
 	bMuteAudio = bInMuteAudio;
+	SaveConfig();
+}
+
+void UPersonaOptions::SetUseAudioAttenuation( bool bInUseAudioAttenuation )
+{
+	bUseAudioAttenuation = bInUseAudioAttenuation;
 	SaveConfig();
 }
 

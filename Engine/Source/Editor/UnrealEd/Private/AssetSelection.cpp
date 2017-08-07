@@ -552,7 +552,7 @@ namespace AssetUtil
 		else if (Operation->IsOfType<FAssetDragDropOp>())
 		{
 			TSharedPtr<FAssetDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>( Operation );
-			DroppedAssetData.Append( DragDropOp->AssetData );
+			DroppedAssetData.Append( DragDropOp->GetAssets() );
 		}
 
 		return DroppedAssetData;

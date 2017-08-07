@@ -95,7 +95,7 @@ private:
 	FShaderParameter			RTWriteMaskDimensions;
 };
 
-IMPLEMENT_SHADER_TYPE(, FRTWriteMaskDecodeCS, TEXT("RTWriteMaskDecode"), TEXT("RTWriteMaskCombineMain"), SF_Compute);
+IMPLEMENT_SHADER_TYPE(, FRTWriteMaskDecodeCS, TEXT("/Engine/Private/RTWriteMaskDecode.usf"), TEXT("RTWriteMaskCombineMain"), SF_Compute);
 
 static TAutoConsoleVariable<float> CVarStencilSizeThreshold(
 	TEXT("r.Decal.StencilSizeThreshold"),
@@ -857,22 +857,29 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 
 				// we don't modify stencil but if out input was having stencil for us (after base pass - we need to clear)
 				// Clear stencil to 0, which is the assumed default by other passes
-				DrawClearQuad(RHICmdList, SMFeatureLevel, false, FLinearColor(), false, 0, true, 0, SceneContext.GetSceneDepthSurface()->GetSizeXY(), FIntRect());
+				DrawClearQuad(RHICmdList, false, FLinearColor(), false, 0, true, 0, SceneContext.GetSceneDepthSurface()->GetSizeXY(), FIntRect());
 			}
 
+			// This stops the targets from being resolved and decoded until the last view is rendered.
+			// This is done so as to not run eliminate fast clear on the views before the end.
+			bool bLastView = Context.View.Family->Views.Last() == &Context.View;
 			if (CurrentStage == DRS_BeforeBasePass)
 			{
 				// combine DBuffer RTWriteMasks; will end up in one texture we can load from in the base pass PS and decide whether to do the actual work or not
 				RenderTargetManager.FlushMetaData();
 
-				if (GSupportsRenderTargetWriteMask)
+				if (GSupportsRenderTargetWriteMask && bLastView)
 				{
 					DecodeRTWriteMask(Context);
+					GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, SceneContext.DBufferMask);
 					bHasValidDBufferMask = true;
 				}
 			}
 
-			RenderTargetManager.ResolveTargets();
+			if (bLastView || !GSupportsRenderTargetWriteMask)
+			{
+				RenderTargetManager.ResolveTargets();
+			}
 		}
 
 		if (CurrentStage == DRS_BeforeBasePass && bNeedsDBufferTargets)
@@ -915,6 +922,11 @@ void FDecalRenderTargetManager::ResolveTargets()
 	{
 		TargetsToResolve[FDecalRenderTargetManager::GBufferAIndex] = SceneContext.GBufferA->GetRenderTargetItem().TargetableTexture;
 	}
+
+	//those have been cleared or rendered to and need to be resolved
+	TargetsToResolve[FDecalRenderTargetManager::DBufferAIndex] = SceneContext.DBufferA ? SceneContext.DBufferA->GetRenderTargetItem().TargetableTexture : nullptr;
+	TargetsToResolve[FDecalRenderTargetManager::DBufferBIndex] = SceneContext.DBufferB ? SceneContext.DBufferB->GetRenderTargetItem().TargetableTexture : nullptr;
+	TargetsToResolve[FDecalRenderTargetManager::DBufferCIndex] = SceneContext.DBufferC ? SceneContext.DBufferC->GetRenderTargetItem().TargetableTexture : nullptr;
 
 	// resolve the targets we wrote to.
 	FResolveParams ResolveParams;
@@ -973,12 +985,17 @@ void FDecalRenderTargetManager::SetRenderTargetMode(FDecalRenderingCommon::ERend
 		// Which is not needed here since no more read will be done at this point (at least not before any other CopyToResolvedTarget).
 		RHICmdList.TransitionResource(EResourceTransitionAccess::EWritable, SceneContext.GBufferA->GetRenderTargetItem().TargetableTexture);
 	}
+
+	// @todo Workaround Vulkan (always) or Mac with NV/Intel graphics driver bug requires we pointlessly bind into RT1 even though we don't write to it,
+	// otherwise the writes to RT2 and RT3 go haywire. This isn't really possible to fix lower down the stack.
+	const bool bRequiresDummyRenderTarget = PLATFORM_MAC || IsVulkanPlatform(GMaxRHIShaderPlatform);
+
 	switch (CurrentRenderTargetMode)
 	{
 	case FDecalRenderingCommon::RTM_SceneColorAndGBufferWithNormal:
 	case FDecalRenderingCommon::RTM_SceneColorAndGBufferNoNormal:
 		TargetsToResolve[SceneColorIndex] = SceneContext.GetSceneColor()->GetRenderTargetItem().TargetableTexture;
-		TargetsToResolve[GBufferAIndex] = bHasNormal ? SceneContext.GBufferA->GetRenderTargetItem().TargetableTexture : (PLATFORM_MAC ? SceneContext.GBufferB->GetRenderTargetItem().TargetableTexture : nullptr); // @todo Workaround a Mac NV/Intel graphics driver bug that requires we pointlessly bind into RT1 even though we don't write to it, otherwise the writes to RT2 and RT3 go haywire. This isn't really possible to fix lower down the stack.
+		TargetsToResolve[GBufferAIndex] = bHasNormal ? SceneContext.GBufferA->GetRenderTargetItem().TargetableTexture : (bRequiresDummyRenderTarget ? SceneContext.GBufferB->GetRenderTargetItem().TargetableTexture : nullptr);
 		TargetsToResolve[GBufferBIndex] = SceneContext.GBufferB->GetRenderTargetItem().TargetableTexture;
 		TargetsToResolve[GBufferCIndex] = SceneContext.GBufferC->GetRenderTargetItem().TargetableTexture;
 		SetRenderTargets(RHICmdList, 4, TargetsToResolve, SceneContext.GetSceneDepthSurface(), ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilWrite, TargetsToTransitionWritable[CurrentRenderTargetMode]);
@@ -987,7 +1004,7 @@ void FDecalRenderTargetManager::SetRenderTargetMode(FDecalRenderingCommon::ERend
 	case FDecalRenderingCommon::RTM_SceneColorAndGBufferDepthWriteWithNormal:
 	case FDecalRenderingCommon::RTM_SceneColorAndGBufferDepthWriteNoNormal:
 		TargetsToResolve[SceneColorIndex] = SceneContext.GetSceneColor()->GetRenderTargetItem().TargetableTexture;
-		TargetsToResolve[GBufferAIndex] = bHasNormal ? SceneContext.GBufferA->GetRenderTargetItem().TargetableTexture : (PLATFORM_MAC ? SceneContext.GBufferB->GetRenderTargetItem().TargetableTexture : nullptr); // @todo Workaround a Mac NV/Intel graphics driver bug that requires we pointlessly bind into RT1 even though we don't write to it, otherwise the writes to RT2 and RT3 go haywire. This isn't really possible to fix lower down the stack.
+		TargetsToResolve[GBufferAIndex] = bHasNormal ? SceneContext.GBufferA->GetRenderTargetItem().TargetableTexture : (bRequiresDummyRenderTarget ? SceneContext.GBufferB->GetRenderTargetItem().TargetableTexture : nullptr);
 		TargetsToResolve[GBufferBIndex] = SceneContext.GBufferB->GetRenderTargetItem().TargetableTexture;
 		TargetsToResolve[GBufferCIndex] = SceneContext.GBufferC->GetRenderTargetItem().TargetableTexture;
 		TargetsToResolve[GBufferEIndex] = SceneContext.GBufferE->GetRenderTargetItem().TargetableTexture;

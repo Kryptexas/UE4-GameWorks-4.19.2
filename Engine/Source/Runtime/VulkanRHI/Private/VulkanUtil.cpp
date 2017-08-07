@@ -11,6 +11,8 @@
 #include "VulkanMemory.h"
 #include "PipelineStateCache.h"
 
+extern CORE_API bool GIsGPUCrashed;
+
 static FVulkanTimestampQueryPool* GTimestampQueryPool = nullptr;
 
 /**
@@ -482,6 +484,7 @@ DEFINE_STAT(STAT_VulkanQueuePresent);
 DEFINE_STAT(STAT_VulkanWaitQuery);
 DEFINE_STAT(STAT_VulkanResetQuery);
 DEFINE_STAT(STAT_VulkanWaitSwapchain);
+DEFINE_STAT(STAT_VulkanAcquireBackBuffer);
 #if VULKAN_ENABLE_AGGRESSIVE_STATS
 DEFINE_STAT(STAT_VulkanApplyDSResources);
 DEFINE_STAT(STAT_VulkanUpdateDescriptorSets);

@@ -11,7 +11,7 @@
 class UCineCameraComponent;
 
 /** Settings to control the camera's lookat feature */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FCameraLookatTrackingSettings
 {
 	GENERATED_USTRUCT_BODY()

@@ -168,7 +168,7 @@ void UAnimGraphNode_SubInstance::ReallocatePinsDuringReconstruction(TArray<UEdGr
 			KnownExposableProperties.Add(PropertyName);
 		}
 
-		if(ExposedPropertyNames.Contains(PropertyName))
+		if(ExposedPropertyNames.Contains(PropertyName) && FBlueprintEditorUtils::PropertyStillExists(Property))
 		{
 			FEdGraphPinType PinType;
 
@@ -245,6 +245,12 @@ FString UAnimGraphNode_SubInstance::GetPinTargetVariableName(const UEdGraphPin* 
 void UAnimGraphNode_SubInstance::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 {
 	Super::CustomizeDetails(DetailBuilder);
+
+	// We dont allow multi-select here
+	if(DetailBuilder.GetDetailsView().GetSelectedObjects().Num() > 1)
+	{
+		return;
+	}
 
 	TArray<UProperty*> ExposableProperties;
 	GetExposableProperties(ExposableProperties);

@@ -15,6 +15,7 @@ UMovieSceneAudioSection::UMovieSceneAudioSection( const FObjectInitializer& Obje
 	SoundVolume.SetDefaultValue(1.f);
 	PitchMultiplier.SetDefaultValue(1.f);
 	bSuppressSubtitles = false;
+	bOverrideAttenuation = false;
 
 	EvalOptions.EnableAndSetCompletionMode(EMovieSceneCompletionMode::RestoreState);
 }

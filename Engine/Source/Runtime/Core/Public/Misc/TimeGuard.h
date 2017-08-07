@@ -78,7 +78,6 @@ protected:
 	static CORE_API void						ReportHitch(const TCHAR* InName, float TimeMS);
 	static TMap<const TCHAR*, FGuardInfo>		HitchData;
 	static FCriticalSection						ReportMutex;
-	static CORE_API double						LastHitchTime;
 	static CORE_API bool						bEnabled;
 	static CORE_API float						FrameTimeThresholdMS;
 

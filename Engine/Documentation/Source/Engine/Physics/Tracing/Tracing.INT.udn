@@ -1,7 +1,7 @@
 Availability: Public
-Title:Traces (Raycasts)
+Title:Traces with Raycasts
 Crumbs:
-Description:The landing page for Physics Traces (Raycasts).
+Description:The landing page for Physics Traces.
 version: 4.14
 Parent:Engine/Physics
 type:landing

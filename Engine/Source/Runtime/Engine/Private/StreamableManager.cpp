@@ -242,24 +242,9 @@ void FStreamableHandle::GetLoadedAssets(TArray<UObject *>& LoadedAssets) const
 
 void FStreamableHandle::GetLoadedCount(int32& LoadedCount, int32& RequestedCount) const
 {
-	LoadedCount = 0;
 	RequestedCount = RequestedAssets.Num();
-
-	if (HasLoadCompleted())
-	{
-		LoadedCount = RequestedAssets.Num();
-	}
-	else if (IsActive())
-	{
-		for (const FStringAssetReference& Ref : RequestedAssets)
-		{
-			if (OwningManager->IsAsyncLoadComplete(Ref))
-			{
-				LoadedCount++;
-			}
-		}
-	}
-
+	LoadedCount = RequestedCount - StreamablesLoading;
+	
 	// Check child handles
 	for (TSharedPtr<FStreamableHandle> ChildHandle : ChildHandles)
 	{
@@ -437,13 +422,13 @@ void FStreamableHandle::UpdateCombinedHandle()
 	}
 
 	// Check all our children, complete if done
-	bool bAllInactive = true;
+	bool bAllCompleted = true;
 	bool bAllCanceled = true;
 	for (TSharedPtr<FStreamableHandle> ChildHandle : ChildHandles)
 	{
-		if (ChildHandle->IsActive())
+		if (ChildHandle->IsLoadingInProgress())
 		{
-			bAllInactive = false;
+			bAllCompleted = false;
 		}
 		if (!ChildHandle->WasCanceled())
 		{
@@ -451,12 +436,12 @@ void FStreamableHandle::UpdateCombinedHandle()
 		}
 	}
 
-	// If all our sub handles were canceled, cancel us. Otherwise complete us if at least one was completed and there are no active
+	// If all our sub handles were canceled, cancel us. Otherwise complete us if at least one was completed and there are none in progress
 	if (bAllCanceled)
 	{
 		CancelHandle();
 	}
-	else if (bAllInactive)
+	else if (bAllCompleted)
 	{
 		CompleteLoad();
 
@@ -584,13 +569,13 @@ struct FStreamable
 
 FStreamableManager::FStreamableManager()
 {
-	FCoreUObjectDelegates::PostGarbageCollect.AddRaw(this, &FStreamableManager::OnPostGarbageCollect);
+	FCoreUObjectDelegates::PreGarbageCollect.AddRaw(this, &FStreamableManager::OnPreGarbageCollect);
 	bForceSynchronousLoads = false;
 }
 
 FStreamableManager::~FStreamableManager()
 {
-	FCoreUObjectDelegates::PostGarbageCollect.RemoveAll(this);
+	FCoreUObjectDelegates::PreGarbageCollect.RemoveAll(this);
 
 	for (TStreamableMap::TIterator It(StreamableItems); It; ++It)
 	{
@@ -599,7 +584,7 @@ FStreamableManager::~FStreamableManager()
 	}
 }
 
-void FStreamableManager::OnPostGarbageCollect()
+void FStreamableManager::OnPreGarbageCollect()
 {
 	TSet<FStringAssetReference> RedirectsToRemove;
 
@@ -766,6 +751,7 @@ FStreamable* FStreamableManager::StreamInternal(const FStringAssetReference& InT
 			}
 
 			Existing->bAsyncLoadRequestOutstanding = true;
+			Existing->bLoadFailed = false;
 			LoadPackageAsync(Package, FLoadPackageAsyncDelegate::CreateSP(Handle, &FStreamableHandle::AsyncLoadCallbackWrapper, TargetName), Priority);
 		}
 	}
@@ -1178,7 +1164,7 @@ bool FStreamableManager::GetActiveHandles(const FStringAssetReference& Target, T
 {
 	check(IsInGameThread());
 	FStreamable* Existing = FindStreamable(Target);
-	if (Existing)
+	if (Existing && Existing->ActiveHandles.Num() > 0)
 	{
 		for (TWeakPtr<FStreamableHandle> WeakHandle : Existing->ActiveHandles)
 		{

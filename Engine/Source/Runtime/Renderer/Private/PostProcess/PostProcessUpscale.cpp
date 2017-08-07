@@ -133,7 +133,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessUpscaleVS,TEXT("PostProcessUpscale"),TEXT("MainVS"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(,FPostProcessUpscaleVS,TEXT("/Engine/Private/PostProcessUpscale.usf"),TEXT("MainVS"),SF_Vertex);
 
 /** Encapsulates the post processing upscale pixel shader. */
 template <uint32 Method>
@@ -205,7 +205,7 @@ public:
 
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("PostProcessUpscale");
+		return TEXT("/Engine/Private/PostProcessUpscale.usf");
 	}
 
 	static const TCHAR* GetFunctionName()
@@ -327,7 +327,7 @@ void FRCPassPostProcessUpscale::Process(FRenderingCompositePassContext& Context)
 	Context.SetViewportAndCallRHI(DestRect);
 	if (View.StereoPass == eSSP_FULL || View.StereoPass == eSSP_LEFT_EYE)
 	{
-		DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor::Black, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, ExcludeRect);
+		DrawClearQuad(Context.RHICmdList, true, FLinearColor::Black, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, ExcludeRect);
 	}
 
 	FShader* VertexShader = 0;
@@ -385,6 +385,7 @@ FPooledRenderTargetDesc FRCPassPostProcessUpscale::ComputeOutputDesc(EPassOutput
 	Ret.Reset();
 	Ret.DebugName = TEXT("Upscale");
 	Ret.Extent = OutputExtent;
+	Ret.Flags |= GetTextureFastVRamFlag_DynamicLayout();
 
 	return Ret;
 }

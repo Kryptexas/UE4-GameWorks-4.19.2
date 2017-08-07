@@ -32,6 +32,7 @@ void SGraphPinIndex::OnTypeChanged(const FEdGraphPinType& PinType)
 {
 	if (GraphPinObj)
 	{
+		GraphPinObj->Modify();
 		GraphPinObj->PinType = PinType;
 		// Let the node know that one of its' pins had their pin type changed
 		if (GraphPinObj->GetOwningNode())

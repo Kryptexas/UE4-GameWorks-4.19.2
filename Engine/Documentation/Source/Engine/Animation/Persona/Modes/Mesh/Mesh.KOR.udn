@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3237313
+﻿INTSourceChangelist:3481084
 Availability: Public
 Title: 스켈레탈 메시 에디터
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona, Engine/Animation/Persona/Modes
@@ -13,6 +13,7 @@ topic-image:skelMeshEditor_topic.png
 tags:Animation
 tags:Skeletal Mesh
 tags:FBX Importing
+tags:Tools
 
 [EXCERPT:Overview]
 **콘텐츠 브라우저** (또는 **에디터 툴바**) 안에서 **스켈레탈 메시** 애셋을 열 때마다, **스켈레탈 메시 에디터** 가 열립니다.

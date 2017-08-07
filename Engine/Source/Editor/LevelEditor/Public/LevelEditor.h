@@ -167,6 +167,10 @@ public:
 	DECLARE_EVENT(FLevelEditorModule, FTabManagerChangedEvent);
 	virtual FTabManagerChangedEvent& OnTabManagerChanged() { return TabManagerChangedEvent; }
 
+	/** Called when the tab content is changed */
+	DECLARE_EVENT(FLevelEditorModule, FTabContentChangedEvent);
+	virtual FTabContentChangedEvent& OnTabContentChanged() { return TabContentChangedEvent; }
+
 
 	/**
 	 * Called when actor selection changes
@@ -343,6 +347,9 @@ private:
 
 	/** Multicast delegate executed when the tab manager is changed */
 	FTabManagerChangedEvent TabManagerChangedEvent;
+
+	/** Multicast delegate executed when the tab content is changed */
+	FTabContentChangedEvent TabContentChangedEvent;
 
 	/** Multicast delegate executed when actor selection changes */
 	FActorSelectionChangedEvent ActorSelectionChangedEvent;

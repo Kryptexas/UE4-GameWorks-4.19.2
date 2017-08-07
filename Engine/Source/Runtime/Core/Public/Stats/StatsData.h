@@ -480,8 +480,10 @@ struct FEventData
 /**
 * Some of the FStatsThreadState data methods allow filtering. Derive your filter from this class
 */
-struct IItemFiler
+struct IItemFilter
 {
+	virtual ~IItemFilter() { }
+
 	/** return true if you want to keep the item for the purposes of collecting stats **/
 	virtual bool Keep(FStatMessage const& Item) = 0;
 };
@@ -541,11 +543,11 @@ private:
 	/** Reset the state of the regular stats. */
 	void ResetRegularStats();
 
-	/** Prepares fake FGameThreadHudData to display the raw stats memory overhead. */
+	/** Prepares fake FGameThreadStatsData to display the raw stats memory overhead. */
 	void UpdateStatMessagesMemoryUsage();
 
 	/** Generates a list of most memory expensive stats and dump to the log. */
-	void FindAndDumpMemoryExtensiveStats( FStatPacketArray &Frame );
+	void FindAndDumpMemoryExtensiveStats( const FStatPacketArray& Frame );
 
 protected:
 	/** Called in response to SetLongName messages to update ShortNameToLongName and NotClearedEveryFrame **/
@@ -662,22 +664,22 @@ public:
 	}
 
 	/** Gets the old-skool flat grouped inclusive stats. These ignore recursion, merge threads, etc and so generally the condensed callstack is less confusing. **/
-	void GetInclusiveAggregateStackStats( const TArray<FStatMessage>& CondensedMessages, TArray<FStatMessage>& OutStats, IItemFiler* Filter = nullptr, bool bAddNonStackStats = true, TMap<FName, TArray<FStatMessage>>* OptionalOutThreadBreakdownMap = nullptr ) const;
+	void GetInclusiveAggregateStackStats( const TArray<FStatMessage>& CondensedMessages, TArray<FStatMessage>& OutStats, IItemFilter* Filter = nullptr, bool bAddNonStackStats = true, TMap<FName, TArray<FStatMessage>>* OptionalOutThreadBreakdownMap = nullptr ) const;
 
 	/** Gets the old-skool flat grouped inclusive stats. These ignore recursion, merge threads, etc and so generally the condensed callstack is less confusing. **/
-	void GetInclusiveAggregateStackStats(int64 TargetFrame, TArray<FStatMessage>& OutStats, IItemFiler* Filter = nullptr, bool bAddNonStackStats = true, TMap<FName, TArray<FStatMessage>>* OptionalOutThreadBreakdownMap = nullptr) const;
+	void GetInclusiveAggregateStackStats(int64 TargetFrame, TArray<FStatMessage>& OutStats, IItemFilter* Filter = nullptr, bool bAddNonStackStats = true, TMap<FName, TArray<FStatMessage>>* OptionalOutThreadBreakdownMap = nullptr) const;
 
 	/** Gets the old-skool flat grouped exclusive stats. These merge threads, etc and so generally the condensed callstack is less confusing. **/
-	void GetExclusiveAggregateStackStats( const TArray<FStatMessage>& CondensedMessages, TArray<FStatMessage>& OutStats, IItemFiler* Filter = nullptr, bool bAddNonStackStats = true ) const;
+	void GetExclusiveAggregateStackStats( const TArray<FStatMessage>& CondensedMessages, TArray<FStatMessage>& OutStats, IItemFilter* Filter = nullptr, bool bAddNonStackStats = true ) const;
 
 	/** Gets the old-skool flat grouped exclusive stats. These merge threads, etc and so generally the condensed callstack is less confusing. **/
-	void GetExclusiveAggregateStackStats(int64 TargetFrame, TArray<FStatMessage>& OutStats, IItemFiler* Filter = nullptr, bool bAddNonStackStats = true) const;
+	void GetExclusiveAggregateStackStats(int64 TargetFrame, TArray<FStatMessage>& OutStats, IItemFilter* Filter = nullptr, bool bAddNonStackStats = true) const;
 
 	/** Used to turn the condensed version of stack stats back into a tree for easier handling. **/
-	void UncondenseStackStats( const TArray<FStatMessage>& CondensedMessages, FRawStatStackNode& Root, IItemFiler* Filter = nullptr, TArray<FStatMessage>* OutNonStackStats = nullptr ) const;
+	void UncondenseStackStats( const TArray<FStatMessage>& CondensedMessages, FRawStatStackNode& Root, IItemFilter* Filter = nullptr, TArray<FStatMessage>* OutNonStackStats = nullptr ) const;
 
 	/** Used to turn the condensed version of stack stats back into a tree for easier handling. **/
-	void UncondenseStackStats(int64 TargetFrame, FRawStatStackNode& Root, IItemFiler* Filter = nullptr, TArray<FStatMessage>* OutNonStackStats = nullptr) const;
+	void UncondenseStackStats(int64 TargetFrame, FRawStatStackNode& Root, IItemFilter* Filter = nullptr, TArray<FStatMessage>* OutNonStackStats = nullptr) const;
 
 	/** Adds missing stats to the group so it doesn't jitter. **/
 	void AddMissingStats(TArray<FStatMessage>& Dest, TSet<FName> const& EnabledItems) const;
@@ -819,54 +821,8 @@ struct FComplexStatUtils
 
 //@todo split header
 
-/**
-* Predicate to sort stats into reverse order of definition, which historically is how people specified a preferred order.
-*/
-struct FGroupSort
-{
-	FORCEINLINE bool operator()( FStatMessage const& A, FStatMessage const& B ) const 
-	{ 
-		FName GroupA = A.NameAndInfo.GetGroupName();
-		FName GroupB = B.NameAndInfo.GetGroupName();
-		// first sort by group
-		if (GroupA == GroupB)
-		{
-			// cycle stats come first
-			if (A.NameAndInfo.GetFlag(EStatMetaFlags::IsCycle) && !B.NameAndInfo.GetFlag(EStatMetaFlags::IsCycle))
-			{
-				return true;
-			}
-			if (!A.NameAndInfo.GetFlag(EStatMetaFlags::IsCycle) && B.NameAndInfo.GetFlag(EStatMetaFlags::IsCycle))
-			{
-				return false;
-			}
-			// then memory
-			if (A.NameAndInfo.GetFlag(EStatMetaFlags::IsMemory) && !B.NameAndInfo.GetFlag(EStatMetaFlags::IsMemory))
-			{
-				return true;
-			}
-			if (!A.NameAndInfo.GetFlag(EStatMetaFlags::IsMemory) && B.NameAndInfo.GetFlag(EStatMetaFlags::IsMemory))
-			{
-				return false;
-			}
-			// otherwise, reverse order of definition
-			return A.NameAndInfo.GetRawName().GetComparisonIndex() > B.NameAndInfo.GetRawName().GetComparisonIndex();
-		}
-		if (GroupA == NAME_None)
-		{
-			return false;
-		}
-		if (GroupB == NAME_None)
-		{
-			return true;
-		}
-		return GroupA.GetComparisonIndex() > GroupB.GetComparisonIndex();
-	}
-};
-
-
-/** Holds stats data used for displayed on the hud. */
-struct FHudGroup
+/** Holds stats data used by various systems like the HUD stats*/
+struct FActiveStatGroupInfo
 {
 	/** Array of all flat aggregates for the last n frames. */
 	TArray<FComplexStatMessage> FlatAggregate;
@@ -894,47 +850,59 @@ struct FHudGroup
 };
 
 /**
-* Information sent from the stats thread to the game thread to render on the HUD
+* Information sent from the stats thread to the game thread to render and be used by other systems
 */
-struct FGameThreadHudData
+struct FGameThreadStatsData
 {
 	/** Initialization constructor. */
-	FGameThreadHudData( bool bInDrawOnlyRawStats )
+	FGameThreadStatsData( bool bInDrawOnlyRawStats, bool bInRenderStats )
 		: bDrawOnlyRawStats(bInDrawOnlyRawStats)
+		, bRenderStats(bInRenderStats)
 	{}
 
-	TIndirectArray<FHudGroup> HudGroups;
+	/** NOTE: the returned pointer is only valid for this frame - do not hold on to it! */
+	const FComplexStatMessage* GetStatData(const FName& StatName ) const
+	{
+		return NameToStatMap.FindRef(StatName);
+	}
+
+	TIndirectArray<FActiveStatGroupInfo> ActiveStatGroups;
 	TArray<FName> GroupNames;
 	TArray<FString> GroupDescriptions;
 	TMap<FPlatformMemory::EMemoryCounterRegion, int64> PoolCapacity;
 	TMap<FPlatformMemory::EMemoryCounterRegion, FString> PoolAbbreviation;
 	FString RootFilter;
 
+	TMap<FName, const FComplexStatMessage*> NameToStatMap;
+
 	/** Whether to display minimal stats for the raw stats mode. */
 	const bool bDrawOnlyRawStats;
+
+	/** Whether to render the stats to HUD */
+	const bool bRenderStats;
 };
 
 /**
-* Singleton that holds the last data sent from the stats thread to the game thread for HUD stats
+* Singleton that holds the last data sent from the stats thread to the game thread for systems to use and display
 */
-struct FHUDGroupGameThreadRenderer 
+struct FLatestGameThreadStatsData 
 {
-	FGameThreadHudData* Latest;
+	FGameThreadStatsData* Latest;
 
-	FHUDGroupGameThreadRenderer()
+	FLatestGameThreadStatsData()
 		: Latest(nullptr)
 	{
 	}
 
-	~FHUDGroupGameThreadRenderer()
+	~FLatestGameThreadStatsData()
 	{
 		delete Latest;
 		Latest = nullptr;
 	}
 
-	void NewData(FGameThreadHudData* Data);
+	void NewData(FGameThreadStatsData* Data);
 
-	CORE_API static FHUDGroupGameThreadRenderer& Get();
+	CORE_API static FLatestGameThreadStatsData& Get();
 };
 
 /**

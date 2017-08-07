@@ -190,7 +190,7 @@ bool FHlslCrossCompilerContext::RunFrontend(const char** InOutShaderSource)
 		}
 	}
 
-	// Enable to debug the parser state machine (Flex & Bison)
+	// Enable to debug the parser state machine (Flex & Bison), enable #define YYDEBUG 1 on hlsl_parser.yy
 	//_mesa_hlsl_debug = 1;
 
 	_mesa_hlsl_lexer_ctor(ParseState, *InOutShaderSource);

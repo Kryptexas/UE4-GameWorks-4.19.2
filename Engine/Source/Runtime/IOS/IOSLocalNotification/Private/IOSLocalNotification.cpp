@@ -33,6 +33,48 @@ public:
 		
 		return oneTrueLocalNotificationService;
 	}
+
+#if !PLATFORM_TVOS
+	static UILocalNotification* CreateLocalNotification(const FDateTime& FireDateTime, bool bLocalTime, const FString& ActivationEvent)
+	{
+		UIApplication* application = [UIApplication sharedApplication];
+
+		NSCalendar *calendar = [NSCalendar autoupdatingCurrentCalendar];
+		NSDateComponents *dateComps = [[NSDateComponents alloc] init];
+		[dateComps setDay : FireDateTime.GetDay()];
+		[dateComps setMonth : FireDateTime.GetMonth()];
+		[dateComps setYear : FireDateTime.GetYear()];
+		[dateComps setHour : FireDateTime.GetHour()];
+		[dateComps setMinute : FireDateTime.GetMinute()];
+		[dateComps setSecond : FireDateTime.GetSecond()];
+		NSDate *itemDate = [calendar dateFromComponents : dateComps];
+
+		UILocalNotification *localNotif = [[UILocalNotification alloc] init];
+		if (localNotif != nil)
+		{
+			localNotif.fireDate = itemDate;
+			if (bLocalTime)
+			{
+				localNotif.timeZone = [NSTimeZone defaultTimeZone];
+			}
+			else
+			{
+				localNotif.timeZone = nil;
+			}
+
+			NSString* activateEventNSString = [NSString stringWithFString:ActivationEvent];
+			if (activateEventNSString != nil)
+			{
+				NSDictionary* infoDict = [NSDictionary dictionaryWithObject:activateEventNSString forKey:@"ActivationEvent"];
+				if (infoDict != nil)
+				{
+					localNotif.userInfo = infoDict;
+				}
+			}
+		}
+		return localNotif;
+	}
+#endif
 };
 
 IMPLEMENT_MODULE(FIOSLocalNotificationModule, IOSLocalNotification);
@@ -58,34 +100,12 @@ void FIOSLocalNotificationService::ClearAllLocalNotifications()
 void FIOSLocalNotificationService::ScheduleLocalNotificationAtTime(const FDateTime& FireDateTime, bool LocalTime, const FText& Title, const FText& Body, const FText& Action, const FString& ActivationEvent)
 {
 #if !PLATFORM_TVOS
-	UIApplication* application = [UIApplication sharedApplication];
-	
-	NSCalendar *calendar = [NSCalendar autoupdatingCurrentCalendar];
-	NSDateComponents *dateComps = [[NSDateComponents alloc] init];
-	[dateComps setDay:FireDateTime.GetDay()];
-	[dateComps setMonth:FireDateTime.GetMonth()];
-	[dateComps setYear:FireDateTime.GetYear()];
-	[dateComps setHour:FireDateTime.GetHour()];
-	[dateComps setMinute:FireDateTime.GetMinute()];
-	[dateComps setSecond:FireDateTime.GetSecond()];
-	NSDate *itemDate = [calendar dateFromComponents:dateComps];
-
-	UILocalNotification *localNotif = [[UILocalNotification alloc] init];
+	UILocalNotification *localNotif = FIOSLocalNotificationModule::CreateLocalNotification(FireDateTime, LocalTime, ActivationEvent);
 	if (localNotif == nil)
 		return;
-	localNotif.fireDate = itemDate;
-	
-	if(LocalTime)
-	{
-		localNotif.timeZone = [NSTimeZone defaultTimeZone];
-	}
-	else
-	{
-		localNotif.timeZone = nil;
-	}
-	
-	NSString*	alertBody = [NSString stringWithFString:Body.ToString()];
-	if(alertBody != nil)
+
+	NSString*	alertBody = [NSString stringWithFString : Body.ToString()];
+	if (alertBody != nil)
 	{
 		localNotif.alertBody = alertBody;
 	}
@@ -108,16 +128,21 @@ void FIOSLocalNotificationService::ScheduleLocalNotificationAtTime(const FDateTi
 	localNotif.soundName = UILocalNotificationDefaultSoundName;
 	localNotif.applicationIconBadgeNumber = 1;
 
-	NSString*	activateEventNSString = [NSString stringWithFString:ActivationEvent];
-	if(activateEventNSString != nil)
-	{
-		NSDictionary*	infoDict = [NSDictionary dictionaryWithObject:activateEventNSString forKey:@"ActivationEvent"];
+	[[UIApplication sharedApplication] scheduleLocalNotification:localNotif];
+#endif
+}
 
-		if(infoDict != nil)
-		{
-			localNotif.userInfo = infoDict;
-		}
-	}
+void FIOSLocalNotificationService::ScheduleLocalNotificationBadgeAtTime(const FDateTime& FireDateTime, bool LocalTime, const FString& ActivationEvent)
+{
+#if !PLATFORM_TVOS
+	UILocalNotification *localNotif = FIOSLocalNotificationModule::CreateLocalNotification(FireDateTime, LocalTime, ActivationEvent);
+	if (localNotif == nil)
+		return;
+
+	// As per Apple documentation, a nil 'alertBody' results in 'no alert'
+	// https://developer.apple.com/reference/uikit/uilocalnotification/1616646-alertbody?language=objc
+	localNotif.alertBody = nil;
+	localNotif.applicationIconBadgeNumber = 1;
 
 	[[UIApplication sharedApplication] scheduleLocalNotification:localNotif];
 #endif

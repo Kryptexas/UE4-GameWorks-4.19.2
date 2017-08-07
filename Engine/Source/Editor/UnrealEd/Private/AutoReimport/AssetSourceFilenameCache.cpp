@@ -7,6 +7,12 @@
 
 FAssetSourceFilenameCache::FAssetSourceFilenameCache()
 {
+	if (GIsRequestingExit)
+	{
+		// This can get created for the first timeon shutdown, if so don't do anything
+		return;
+	}
+
 	IAssetRegistry& AssetRegistry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry").Get();
 
 	AssetRegistry.OnAssetAdded().AddRaw(this, &FAssetSourceFilenameCache::HandleOnAssetAdded);
@@ -46,41 +52,15 @@ void FAssetSourceFilenameCache::Shutdown()
 	UAssetImportData::OnImportDataChanged.RemoveAll(this);
 }
 
-TOptional<FAssetImportInfo> FAssetSourceFilenameCache::ExtractAssetImportInfo(const TArray<UObject::FAssetRegistryTag>& InTags)
+TOptional<FAssetImportInfo> FAssetSourceFilenameCache::ExtractAssetImportInfo(const FAssetData& AssetData)
 {
 	static const FName LegacySourceFilePathName("SourceFile");
 
-	TOptional<FAssetImportInfo> Info;
-
-	for (const auto& Tag : InTags)
-	{
-		if (Tag.Name == UObject::SourceFileTagName())
-		{
-			Info = FAssetImportInfo::FromJson(*Tag.Value);
-			// We're done
-			break;
-		}
-		else if (Tag.Name == LegacySourceFilePathName)
-		{
-			FAssetImportInfo Legacy;
-			Legacy.Insert(Tag.Value);
-			Info = Legacy;
-			// Keep looking for a newer json version
-		}
-	}
-
-	return Info;
-}
-
-TOptional<FAssetImportInfo> FAssetSourceFilenameCache::ExtractAssetImportInfo(const TSharedMapView<FName, FString>& InTags)
-{
-	static const FName LegacySourceFilePathName("SourceFile");
-
-	if (const FString* ImportDataString = InTags.Find(UObject::SourceFileTagName()))
+	if (const FString* ImportDataString = AssetData.TagsAndValues.Find(UObject::SourceFileTagName()))
 	{
 		return FAssetImportInfo::FromJson(*ImportDataString);
 	}
-	else if (const FString* LegacyFilename = InTags.Find(LegacySourceFilePathName))
+	else if (const FString* LegacyFilename = AssetData.TagsAndValues.Find(LegacySourceFilePathName))
 	{
 		FAssetImportInfo Legacy;
 		Legacy.Insert(*LegacyFilename);
@@ -94,7 +74,7 @@ TOptional<FAssetImportInfo> FAssetSourceFilenameCache::ExtractAssetImportInfo(co
 
 void FAssetSourceFilenameCache::HandleOnAssetAdded(const FAssetData& AssetData)
 {
-	TOptional<FAssetImportInfo> ImportData = ExtractAssetImportInfo(AssetData.TagsAndValues);
+	TOptional<FAssetImportInfo> ImportData = ExtractAssetImportInfo(AssetData);
 	if (ImportData.IsSet())
 	{
 		for (const auto& SourceFile : ImportData->SourceFiles)
@@ -106,7 +86,7 @@ void FAssetSourceFilenameCache::HandleOnAssetAdded(const FAssetData& AssetData)
 
 void FAssetSourceFilenameCache::HandleOnAssetRemoved(const FAssetData& AssetData)
 {
-	TOptional<FAssetImportInfo> ImportData = ExtractAssetImportInfo(AssetData.TagsAndValues);
+	TOptional<FAssetImportInfo> ImportData = ExtractAssetImportInfo(AssetData);
 	if (ImportData.IsSet())
 	{
 		for (auto& SourceFile : ImportData->SourceFiles)
@@ -126,7 +106,7 @@ void FAssetSourceFilenameCache::HandleOnAssetRemoved(const FAssetData& AssetData
 
 void FAssetSourceFilenameCache::HandleOnAssetRenamed(const FAssetData& AssetData, const FString& OldPath)
 {
-	TOptional<FAssetImportInfo> ImportData = ExtractAssetImportInfo(AssetData.TagsAndValues);
+	TOptional<FAssetImportInfo> ImportData = ExtractAssetImportInfo(AssetData);
 	if (ImportData.IsSet())
 	{
 		FName OldPathName = *OldPath;
@@ -183,7 +163,7 @@ TArray<FAssetData> FAssetSourceFilenameCache::GetAssetsPertainingToFile(const IA
 		for (const FName& Path : *ObjectPaths)
 		{
 			FAssetData Asset = Registry.GetAssetByObjectPath(Path);
-			TOptional<FAssetImportInfo> ImportInfo = ExtractAssetImportInfo(Asset.TagsAndValues);
+			TOptional<FAssetImportInfo> ImportInfo = ExtractAssetImportInfo(Asset);
 			if (ImportInfo.IsSet())
 			{
 				auto AssetPackagePath = FPackageName::LongPackageNameToFilename(Asset.PackagePath.ToString() / TEXT(""));

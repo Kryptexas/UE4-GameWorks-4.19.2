@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3481084
 Availability:Public
 Title:프로젝트 세팅
 Crumbs:%ROOT%, Engine, Engine/UI
@@ -45,7 +45,33 @@ Version: 4.9
 [/VAR]
 
 [REGION:fullwidth]
-![](project_settings.png)
+	[OBJECT:ToggleButtonContent]
+		[PARAMLITERAL:category]
+		OS
+		[/PARAMLITERAL]
+		[PARAMLITERAL:id]
+		windows
+		[/PARAMLITERAL]
+		[PARAMLITERAL:active]
+		[/PARAMLITERAL]
+		[PARAM:content]
+		![](project_settings.png)
+		[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+		[PARAMLITERAL:category]
+		OS
+		[/PARAMLITERAL]
+		[PARAMLITERAL:id]
+		mac
+		[/PARAMLITERAL]
+		[PARAMLITERAL:active]
+		[/PARAMLITERAL]
+		[PARAM:content]
+		![](project_settings_Mac.png)
+		[/PARAM]
+	[/OBJECT]
 [/REGION]
 
 [TOC (start:2)]

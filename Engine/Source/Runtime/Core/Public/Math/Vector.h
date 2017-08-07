@@ -481,7 +481,7 @@ public:
 	bool IsZero() const;
 
 	/**
-	 * Normalize this vector in-place if it is large enough, set it to (0,0,0) otherwise.
+	 * Normalize this vector in-place if it is larger than a given tolerance. Leaves it unchanged if not.
 	 *
 	 * @param Tolerance Minimum squared length of vector for normalization.
 	 * @return true if the vector was normalized correctly, false otherwise.

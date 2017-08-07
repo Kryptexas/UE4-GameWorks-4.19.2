@@ -30,7 +30,7 @@ namespace SteamAudio
 		~FPhononReverb();
 
 		virtual void Initialize(const int32 SampleRate, const int32 NumSources, const int32 FrameSize) override;
-		virtual void OnInitSource(const uint32 SourceId, const FName& AudioComponentUserId, UReverbPluginSourceSettingsBase* InSettings) override;
+		virtual void OnInitSource(const uint32 SourceId, const FName& AudioComponentUserId, const uint32 NumChannels, UReverbPluginSourceSettingsBase* InSettings) override;
 		virtual void OnReleaseSource(const uint32 SourceId) override;
 		virtual class FSoundEffectSubmix* GetEffectSubmix(class USoundSubmix* Submix) override;
 		virtual void ProcessSourceAudio(const FAudioPluginSourceInputData& InputData, FAudioPluginSourceOutputData& OutputData) override;
@@ -107,6 +107,6 @@ class USubmixEffectReverbPluginPreset : public USoundEffectSubmixPreset
 public:
 	EFFECT_PRESET_METHODS_NO_ASSET_ACTIONS(SubmixEffectReverbPlugin)
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SubmixEffectPreset)
+	UPROPERTY(EditAnywhere, Category = SubmixEffectPreset)
 	FSubmixEffectReverbPluginSettings Settings;
 };

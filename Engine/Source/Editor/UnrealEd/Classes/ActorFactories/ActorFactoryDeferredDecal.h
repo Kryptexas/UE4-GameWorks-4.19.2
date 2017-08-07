@@ -9,7 +9,7 @@
 #include "ActorFactoryDeferredDecal.generated.h"
 
 class AActor;
-class FAssetData;
+struct FAssetData;
 class UMaterialInterface;
 
 UCLASS(MinimalAPI, config=Editor)

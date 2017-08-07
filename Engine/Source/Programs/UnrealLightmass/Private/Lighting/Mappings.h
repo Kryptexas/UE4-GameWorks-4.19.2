@@ -10,6 +10,9 @@
 namespace Lightmass
 {
 
+	class FCacheIndirectTaskDescription;
+	class FInterpolateIndirectTaskDescription;
+
 /** A mapping between world-space surfaces and a static lighting cache. */
 class FStaticLightingMapping : public virtual FRefCountedObject, public FStaticLightingMappingData
 {
@@ -135,13 +138,13 @@ public:
 	volatile int32 NumOutstandingCacheTasks;
 
 	/** List of completed cache tasks for this mapping. */
-	FLockFreeVoidPointerListBase CompletedCacheIndirectLightingTasks;
+	TLockFreePointerListLIFO<FCacheIndirectTaskDescription> CompletedCacheIndirectLightingTasks;
 
 	/** Counts how many interpolation tasks this mapping needs completed. */
 	volatile int32 NumOutstandingInterpolationTasks;
 
 	/** List of completed interpolation tasks for this mapping. */
-	FLockFreeVoidPointerListBase CompletedInterpolationTasks;
+	TLockFreePointerListLIFO<FInterpolateIndirectTaskDescription> CompletedInterpolationTasks;
 };
  
 } //namespace Lightmass

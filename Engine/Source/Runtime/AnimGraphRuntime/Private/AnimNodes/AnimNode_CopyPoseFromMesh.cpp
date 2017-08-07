@@ -7,34 +7,73 @@
 // FAnimNode_CopyPoseFromMesh
 
 FAnimNode_CopyPoseFromMesh::FAnimNode_CopyPoseFromMesh()
+	: SourceMeshComponent(nullptr)
+	, bUseAttachedParent (false)
 {
 }
 
-void FAnimNode_CopyPoseFromMesh::Initialize(const FAnimationInitializeContext& Context)
+void FAnimNode_CopyPoseFromMesh::Initialize_AnyThread(const FAnimationInitializeContext& Context)
 {
-	FAnimNode_Base::Initialize(Context);
-	ReinitializeMeshComponent(Context.AnimInstanceProxy);
+	FAnimNode_Base::Initialize_AnyThread(Context);
+	RefreshMeshComponent(Context.AnimInstanceProxy);
 }
 
-void FAnimNode_CopyPoseFromMesh::CacheBones(const FAnimationCacheBonesContext& Context)
+void FAnimNode_CopyPoseFromMesh::CacheBones_AnyThread(const FAnimationCacheBonesContext& Context)
 {
 }
 
-void FAnimNode_CopyPoseFromMesh::Update(const FAnimationUpdateContext& Context)
+void FAnimNode_CopyPoseFromMesh::RefreshMeshComponent(FAnimInstanceProxy* AnimInstanceProxy)
+{
+	auto ResetMeshComponent = [this](USkeletalMeshComponent* InMeshComponent, FAnimInstanceProxy* InAnimInstanceProxy)
+	{
+		if (CurrentlyUsedSourceMeshComponent.IsValid() && CurrentlyUsedSourceMeshComponent.Get() != InMeshComponent)
+		{
+			ReinitializeMeshComponent(InMeshComponent, InAnimInstanceProxy);
+		}
+		else if (!CurrentlyUsedSourceMeshComponent.IsValid() && InMeshComponent)
+		{
+			ReinitializeMeshComponent(InMeshComponent, InAnimInstanceProxy);
+		}
+	};
+
+	if (SourceMeshComponent.IsValid())
+	{
+		ResetMeshComponent(SourceMeshComponent.Get(), AnimInstanceProxy);
+	}
+	else if (bUseAttachedParent)
+	{
+		USkeletalMeshComponent* Component = AnimInstanceProxy->GetSkelMeshComponent();
+		if (Component)
+		{
+			USkeletalMeshComponent* ParentComponent = Cast<USkeletalMeshComponent>(Component->GetAttachParent());
+			if (ParentComponent)
+			{
+				ResetMeshComponent(ParentComponent, AnimInstanceProxy);
+			}
+			else
+			{
+				CurrentlyUsedSourceMeshComponent.Reset();
+			}
+		}
+		else
+		{
+			CurrentlyUsedSourceMeshComponent.Reset();
+		}
+	}
+	else
+	{
+		CurrentlyUsedSourceMeshComponent.Reset();
+	}
+}
+
+void FAnimNode_CopyPoseFromMesh::Update_AnyThread(const FAnimationUpdateContext& Context)
 {
 	EvaluateGraphExposedInputs.Execute(Context);
 
-	if (CurrentlyUsedSourceMeshComponent.IsValid() && CurrentlyUsedSourceMeshComponent.Get() != SourceMeshComponent)
-	{
-		ReinitializeMeshComponent(Context.AnimInstanceProxy);
-	}
-	else if (!CurrentlyUsedSourceMeshComponent.IsValid() && SourceMeshComponent)
-	{
-		ReinitializeMeshComponent(Context.AnimInstanceProxy);
-	}
+	RefreshMeshComponent(Context.AnimInstanceProxy);
 }
 
-void FAnimNode_CopyPoseFromMesh::Evaluate(FPoseContext& Output)
+void FAnimNode_CopyPoseFromMesh::Evaluate_AnyThread(FPoseContext& Output)
 {
 	FCompactPose& OutPose = Output.Pose;
 	OutPose.ResetToRefPose();
@@ -74,16 +113,16 @@ void FAnimNode_CopyPoseFromMesh::GatherDebugData(FNodeDebugData& DebugData)
 {
 }
 
-void FAnimNode_CopyPoseFromMesh::ReinitializeMeshComponent(FAnimInstanceProxy* AnimInstanceProxy)
+void FAnimNode_CopyPoseFromMesh::ReinitializeMeshComponent(USkeletalMeshComponent* NewSourceMeshComponent, FAnimInstanceProxy* AnimInstanceProxy)
 {
-	CurrentlyUsedSourceMeshComponent = SourceMeshComponent;
+	CurrentlyUsedSourceMeshComponent = NewSourceMeshComponent;
 	BoneMapToSource.Reset();
-	if (SourceMeshComponent && SourceMeshComponent->SkeletalMesh && !SourceMeshComponent->IsPendingKill())
+	if (NewSourceMeshComponent && NewSourceMeshComponent->SkeletalMesh && !NewSourceMeshComponent->IsPendingKill())
 	{
 		USkeletalMeshComponent* TargetMeshComponent = AnimInstanceProxy->GetSkelMeshComponent();
 		if (TargetMeshComponent)
 		{
-			USkeletalMesh* SourceSkelMesh = SourceMeshComponent->SkeletalMesh;
+			USkeletalMesh* SourceSkelMesh = NewSourceMeshComponent->SkeletalMesh;
 			USkeletalMesh* TargetSkelMesh = TargetMeshComponent->SkeletalMesh;
 
 			if (SourceSkelMesh == TargetSkelMesh)

@@ -70,7 +70,18 @@ dtQueryFilterData::dtQueryFilterData() : heuristicScale(0.999f), lowestAreaCost(
 
 bool dtQueryFilterData::equals(const dtQueryFilterData* other) const
 {
-	return memcmp(this, other, sizeof(dtQueryFilterData)) == 0;
+	bool bEqual =	(heuristicScale == other->heuristicScale) &&
+					(lowestAreaCost == other->lowestAreaCost) &&
+					(m_includeFlags == other->m_includeFlags) &&
+					(m_excludeFlags == other->m_excludeFlags) &&
+					(m_isBacktracking == other->m_isBacktracking) &&
+					(memcmp(&m_areaCost, &other->m_areaCost, sizeof(m_areaCost)) == 0);
+
+#if WITH_FIXED_AREA_ENTERING_COST
+	bEqual = bEqual && (memcmp(&m_areaFixedCost, &other->m_areaFixedCost, sizeof(m_areaFixedCost)) == 0);
+#endif // WITH_FIXED_AREA_ENTERING_COST
+
+	return bEqual;
 }
 
 void dtQueryFilterData::copyFrom(const dtQueryFilterData* source)

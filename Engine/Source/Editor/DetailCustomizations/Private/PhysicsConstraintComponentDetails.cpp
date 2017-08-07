@@ -36,7 +36,7 @@ namespace ConstraintDetails
 	{
 		bool bIsEnabled = false;
 
-		if (Prop->GetValue(bIsEnabled))
+		if (Prop->GetValue(bIsEnabled) == FPropertyAccess::Result::Success)
 		{
 			return bIsEnabled;
 		}
@@ -51,7 +51,7 @@ namespace ConstraintDetails
 		TargetWidget->SetEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateLambda([StoreCheckProperty]()
 		{
 			bool bSet;
-			if (StoreCheckProperty->GetValue(bSet))
+			if (StoreCheckProperty->GetValue(bSet) == FPropertyAccess::Result::Success)
 			{
 				return bSet;
 			}
@@ -105,7 +105,7 @@ namespace ConstraintDetails
 				// This prevents an issue where multiple sets fail when using BlueprintComponents
 				// due to RerunConstructionScripts destroying the edit list.
 				FScopedTransaction Transaction(TransactionName);
-				ensure(Prop1->SetValue(NewValue));
+				ensure(Prop1->SetValue(NewValue) == FPropertyAccess::Result::Success);
 			}
 		};
 
@@ -146,7 +146,7 @@ namespace ConstraintDetails
 	bool IsAngularPropertyEqual(TSharedPtr<IPropertyHandle> Prop, EAngularConstraintMotion CheckMotion)
 	{
 		uint8 Val;
-		if (Prop->GetValue(Val))
+		if (Prop->GetValue(Val) == FPropertyAccess::Result::Success)
 		{
 			return Val == CheckMotion;
 		}
@@ -287,7 +287,9 @@ void FPhysicsConstraintComponentDetails::AddLinearLimits(IDetailLayoutBuilder& D
 	auto IsLinearMotionLimited = [LinearXMotionProperty, LinearYMotionProperty, LinearZMotionProperty]()
 	{
 		uint8 XMotion, YMotion, ZMotion;
-		if (LinearXMotionProperty->GetValue(XMotion) && LinearYMotionProperty->GetValue(YMotion) && LinearZMotionProperty->GetValue(ZMotion))
+		if (LinearXMotionProperty->GetValue(XMotion) == FPropertyAccess::Result::Success && 
+			LinearYMotionProperty->GetValue(YMotion) == FPropertyAccess::Result::Success && 
+			LinearZMotionProperty->GetValue(ZMotion) == FPropertyAccess::Result::Success)
 		{
 			return XMotion == LCM_Limited || YMotion == LCM_Limited || ZMotion == LCM_Limited;
 		}
@@ -616,7 +618,7 @@ void FPhysicsConstraintComponentDetails::AddAngularDrive(IDetailLayoutBuilder& D
 	auto IsAngularMode = [AngularDriveModeProperty](EAngularDriveMode::Type CheckMode)
 	{
 		uint8 DriveMode;
-		if (AngularDriveModeProperty->GetValue(DriveMode))
+		if (AngularDriveModeProperty->GetValue(DriveMode) == FPropertyAccess::Result::Success)
 		{
 			return DriveMode == CheckMode;
 		}
@@ -910,7 +912,7 @@ bool FPhysicsConstraintComponentDetails::IsPropertyEnabled( EPropertyType::Type 
 ECheckBoxState FPhysicsConstraintComponentDetails::IsLimitRadioChecked( TSharedPtr<IPropertyHandle> Property, uint8 Value ) const
 {
 	uint8 PropertyEnumValue = 0;
-	if (Property.IsValid() && Property->GetValue(PropertyEnumValue))
+	if (Property.IsValid() && Property->GetValue(PropertyEnumValue) == FPropertyAccess::Result::Success)
 	{
 		return PropertyEnumValue == Value ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}

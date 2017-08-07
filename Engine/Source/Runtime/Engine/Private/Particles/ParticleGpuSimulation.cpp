@@ -43,6 +43,7 @@
 #include "Particles/ParticleLODLevel.h"
 #include "Particles/ParticleModuleRequired.h"
 #include "VectorField/VectorField.h"
+#include "CoreDelegates.h"
 #include "PipelineStateCache.h"
 
 DECLARE_CYCLE_STAT(TEXT("GPUSpriteEmitterInstance Init"), STAT_GPUSpriteEmitterInstance_Init, STATGROUP_Particles);
@@ -763,7 +764,7 @@ void FGPUSpriteVertexFactoryShaderParametersPS::SetMesh(FRHICommandList& RHICmdL
 	SetUniformBufferParameter(RHICmdList, PixelShader, Shader->GetUniformBufferParameter<FGPUSpriteEmitterDynamicUniformParameters>(), GPUVF->EmitterDynamicUniformBuffer );
 }
 
-IMPLEMENT_VERTEX_FACTORY_TYPE(FGPUSpriteVertexFactory,"ParticleGPUSpriteVertexFactory",true,false,true,false,false);
+IMPLEMENT_VERTEX_FACTORY_TYPE(FGPUSpriteVertexFactory,"/Engine/Private/ParticleGPUSpriteVertexFactory.ush",true,false,true,false,false);
 
 /*-----------------------------------------------------------------------------
 	Shaders used for simulation.
@@ -1257,11 +1258,11 @@ public:
 };
 
 /** Implementation for all shaders used for simulation. */
-IMPLEMENT_SHADER_TYPE(,FParticleTileVS,TEXT("ParticleSimulationShader"),TEXT("VertexMain"),SF_Vertex);
-IMPLEMENT_SHADER_TYPE(template<>,TParticleSimulationPS<PCM_None>,TEXT("ParticleSimulationShader"),TEXT("PixelMain"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>,TParticleSimulationPS<PCM_DepthBuffer>,TEXT("ParticleSimulationShader"),TEXT("PixelMain"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>,TParticleSimulationPS<PCM_DistanceField>,TEXT("ParticleSimulationShader"),TEXT("PixelMain"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(,FParticleSimulationClearPS,TEXT("ParticleSimulationShader"),TEXT("PixelMain"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FParticleTileVS,TEXT("/Engine/Private/ParticleSimulationShader.usf"),TEXT("VertexMain"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(template<>,TParticleSimulationPS<PCM_None>,TEXT("/Engine/Private/ParticleSimulationShader.usf"),TEXT("PixelMain"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,TParticleSimulationPS<PCM_DepthBuffer>,TEXT("/Engine/Private/ParticleSimulationShader.usf"),TEXT("PixelMain"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,TParticleSimulationPS<PCM_DistanceField>,TEXT("/Engine/Private/ParticleSimulationShader.usf"),TEXT("PixelMain"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FParticleSimulationClearPS,TEXT("/Engine/Private/ParticleSimulationShader.usf"),TEXT("PixelMain"),SF_Pixel);
 
 /**
  * Vertex declaration for drawing particle tiles.
@@ -1682,9 +1683,9 @@ public:
 };
 
 /** Implementation for all shaders used for particle injection. */
-IMPLEMENT_SHADER_TYPE(,FParticleInjectionVS,TEXT("ParticleInjectionShader"),TEXT("VertexMain"),SF_Vertex);
-IMPLEMENT_SHADER_TYPE(template<>, TParticleInjectionPS<false>, TEXT("ParticleInjectionShader"), TEXT("PixelMain"), SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>, TParticleInjectionPS<true>, TEXT("ParticleInjectionShader"), TEXT("PixelMain"), SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FParticleInjectionVS,TEXT("/Engine/Private/ParticleInjectionShader.usf"),TEXT("VertexMain"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(template<>, TParticleInjectionPS<false>, TEXT("/Engine/Private/ParticleInjectionShader.usf"), TEXT("PixelMain"), SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>, TParticleInjectionPS<true>, TEXT("/Engine/Private/ParticleInjectionShader.usf"), TEXT("PixelMain"), SF_Pixel);
 
 
 /**
@@ -1929,8 +1930,8 @@ private:
 };
 
 /** Implementation for all shaders used for visualization. */
-IMPLEMENT_SHADER_TYPE(,FParticleSimVisualizeVS,TEXT("ParticleSimVisualizeShader"),TEXT("VertexMain"),SF_Vertex);
-IMPLEMENT_SHADER_TYPE(,FParticleSimVisualizePS,TEXT("ParticleSimVisualizeShader"),TEXT("PixelMain"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FParticleSimVisualizeVS,TEXT("/Engine/Private/ParticleSimVisualizeShader.usf"),TEXT("VertexMain"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(,FParticleSimVisualizePS,TEXT("/Engine/Private/ParticleSimVisualizeShader.usf"),TEXT("PixelMain"),SF_Pixel);
 
 /**
  * Vertex declaration for particle simulation visualization.
@@ -2204,7 +2205,7 @@ private:
 	/** Output key buffer. */
 	FShaderResourceParameter OutBounds;
 };
-IMPLEMENT_SHADER_TYPE(,FParticleBoundsCS,TEXT("ParticleBoundsShader"),TEXT("ComputeParticleBounds"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FParticleBoundsCS,TEXT("/Engine/Private/ParticleBoundsShader.usf"),TEXT("ComputeParticleBounds"),SF_Compute);
 
 /**
  * Returns true if the Mins and Maxs consistutue valid bounds, i.e. Mins <= Maxs.
@@ -2456,6 +2457,8 @@ public:
 
 	/** The vertex buffer used to access tiles in the simulation. */
 	FParticleTileVertexBuffer TileVertexBuffer;
+	/** Reference to the GPU sprite resources. */
+	TRefCountPtr<FGPUSpriteResources> GPUSpriteResources;
 	/** The per-emitter simulation resources. */
 	const FParticleEmitterSimulationResources* EmitterSimulationResources;
 	/** The per-frame simulation uniform buffer. */
@@ -2524,40 +2527,7 @@ public:
 	 * @param Tiles							The list of tiles to include in the simulation.
 	 * @param InEmitterSimulationResources	The emitter resources used by this simulation.
 	 */
-	void InitResources(const TArray<uint32>& Tiles, const FParticleEmitterSimulationResources* InEmitterSimulationResources)
-	{
-		ensure(InEmitterSimulationResources);
-
-		if (InEmitterSimulationResources)
-		{
-			ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
-				FInitParticleSimulationGPUCommand,
-				FParticleSimulationGPU*, Simulation, this,
-				TArray<uint32>, Tiles, Tiles,
-				const FParticleEmitterSimulationResources*, InEmitterSimulationResources, InEmitterSimulationResources,
-				{
-					// Release vertex buffers.
-					Simulation->VertexBuffer.ReleaseResource();
-					Simulation->TileVertexBuffer.ReleaseResource();
-
-					// Initialize new buffers with list of tiles.
-					Simulation->VertexBuffer.Init(Tiles);
-					Simulation->TileVertexBuffer.Init(Tiles);
-
-					// Store simulation resources for this emitter.
-					Simulation->EmitterSimulationResources = InEmitterSimulationResources;
-
-					// If a visualization vertex factory has been created, initialize it.
-					if (Simulation->VectorFieldVisualizationVertexFactory)
-					{
-						Simulation->VectorFieldVisualizationVertexFactory->InitResource();
-					}
-				});
-		}
-
-		bDirty_GameThread = false;
-		bReleased_GameThread = false;
-	}
+	void InitResources(const TArray<uint32>& Tiles, FGPUSpriteResources* InGPUSpriteResources);
 
 	/**
 	 * Create and initializes a visualization vertex factory if needed.
@@ -2672,7 +2642,71 @@ public:
 		UniformBuffer.SafeRelease();
 		EmitterSimulationResources.SimulationUniformBuffer.SafeRelease();
 	}
+
+	inline uint32 AddRef()
+	{
+		return NumRefs.Increment();
+	}
+
+	inline uint32 Release()
+	{
+		int32 Refs = NumRefs.Decrement();
+		check(Refs >= 0);
+
+		if (Refs == 0)
+		{
+			// When all references are released, we need the render thread
+			// to release RHI resources and delete this instance.
+			ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+				ReleaseCommand,
+				FRenderResource*, Resource, this,
+				{
+					Resource->ReleaseResource();
+					delete Resource;
+				});
+		}
+		return Refs;
+	}
+
+private:
+	FThreadSafeCounter NumRefs;
 };
+
+void FParticleSimulationGPU::InitResources(const TArray<uint32>& Tiles, FGPUSpriteResources* InGPUSpriteResources)
+{
+	ensure(InGPUSpriteResources);
+
+	if (InGPUSpriteResources)
+	{
+		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
+			FInitParticleSimulationGPUCommand,
+			FParticleSimulationGPU*, Simulation, this,
+			TArray<uint32>, Tiles, Tiles,
+			TRefCountPtr<FGPUSpriteResources>, InGPUSpriteResources, InGPUSpriteResources, // TRefCountPtr to take reference for lifetime of this render command
+			{
+				// Release vertex buffers.
+				Simulation->VertexBuffer.ReleaseResource();
+				Simulation->TileVertexBuffer.ReleaseResource();
+
+				// Initialize new buffers with list of tiles.
+				Simulation->VertexBuffer.Init(Tiles);
+				Simulation->TileVertexBuffer.Init(Tiles);
+
+				// Store simulation resources for this emitter.
+				Simulation->GPUSpriteResources = InGPUSpriteResources;
+				Simulation->EmitterSimulationResources = &InGPUSpriteResources->EmitterSimulationResources;
+
+				// If a visualization vertex factory has been created, initialize it.
+				if (Simulation->VectorFieldVisualizationVertexFactory)
+				{
+					Simulation->VectorFieldVisualizationVertexFactory->InitResource();
+				}
+		});
+	}
+
+	bDirty_GameThread = false;
+	bReleased_GameThread = false;
+}
 
 class FGPUSpriteCollectorResources : public FOneFrameResource
 {
@@ -3154,7 +3188,7 @@ public:
 		UParticleSystem *Template = Component->Template;
 
 		const bool bLocalSpace = EmitterInfo.RequiredModule->bUseLocalSpace;
-		const FMatrix ComponentToWorldMatrix = Component->ComponentToWorld.ToMatrixWithScale();
+		const FMatrix ComponentToWorldMatrix = Component->GetComponentTransform().ToMatrixWithScale();
 		const FMatrix ComponentToWorld = (bLocalSpace || EmitterInfo.LocalVectorField.bIgnoreComponentTransform) ? FMatrix::Identity : ComponentToWorldMatrix;
 
 		const FRotationMatrix VectorFieldTransform(LocalVectorFieldRotation);
@@ -3177,7 +3211,7 @@ public:
 		DynamicData->bUseLocalSpace = EmitterInfo.RequiredModule->bUseLocalSpace;
 
 		// Account for LocalToWorld scaling
-		FVector ComponentScale = Component->ComponentToWorld.GetScale3D();
+		FVector ComponentScale = Component->GetComponentTransform().GetScale3D();
 		// Figure out if we need to replicate the X channel of size to Y.
 		const bool bSquare = (EmitterInfo.ScreenAlignment == PSA_Square)
 			|| (EmitterInfo.ScreenAlignment == PSA_FacingCameraPosition)
@@ -3336,7 +3370,7 @@ public:
 
 		if (Simulation->bDirty_GameThread)
 		{
-			Simulation->InitResources(AllocatedTiles, &EmitterInfo.Resources->EmitterSimulationResources);
+			Simulation->InitResources(AllocatedTiles, EmitterInfo.Resources);
 		}
 		check(!Simulation->bReleased_GameThread);
 		check(!Simulation->bDestroyed_GameThread);
@@ -3596,7 +3630,7 @@ public:
 			// Queue an update to the GPU simulation if needed.
 			if (Simulation->bDirty_GameThread)
 			{
-				Simulation->InitResources(AllocatedTiles, &EmitterInfo.Resources->EmitterSimulationResources);
+				Simulation->InitResources(AllocatedTiles, EmitterInfo.Resources);
 			}
 
 			CheckEmitterFinished();
@@ -4451,7 +4485,7 @@ bool FFXSystem::UsesGlobalDistanceFieldInternal() const
 	return false;
 }
 
-void FFXSystem::PrepareGPUSimulation(FRHICommandListImmediate& RHICmdList)
+void FFXSystem::PrepareGPUSimulation(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef SceneDepthTexture)
 {
 	// Grab resources.
 	FParticleStateTextures& CurrentStateTextures = ParticleSimulationResources->GetCurrentStateTextures();
@@ -4464,9 +4498,13 @@ void FFXSystem::PrepareGPUSimulation(FRHICommandListImmediate& RHICmdList)
 	};
 
 	RHICmdList.TransitionResources(EResourceTransitionAccess::EWritable, RenderTargets, 2);
+	if (SceneDepthTexture)
+	{
+		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, SceneDepthTexture);
+	}
 }
 
-void FFXSystem::FinalizeGPUSimulation(FRHICommandListImmediate& RHICmdList)
+void FFXSystem::FinalizeGPUSimulation(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef SceneDepthTexture)
 {
 	// Grab resources.
 	FParticleStateTextures& CurrentStateTextures = ParticleSimulationResources->GetVisualizeStateTextures();
@@ -4478,7 +4516,11 @@ void FFXSystem::FinalizeGPUSimulation(FRHICommandListImmediate& RHICmdList)
 		CurrentStateTextures.VelocityTextureTargetRHI,
 	};
 	
-	RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, RenderTargets, 2);	
+	RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, RenderTargets, 2);
+	if (SceneDepthTexture)
+	{
+		RHICmdList.TransitionResource(EResourceTransitionAccess::EWritable, SceneDepthTexture);
+	}
 }
 
 void FFXSystem::SimulateGPUParticles(
@@ -4529,8 +4571,8 @@ void FFXSystem::SimulateGPUParticles(
 			RHICmdList.BeginUpdateMultiFrameResource(PreviousStateRenderTargets[1]);
 
 			SetRenderTarget(RHICmdList, PrevStateTextures.PositionTextureTargetRHI, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorAndDepth);
-			SetRenderTarget(RHICmdList, PrevStateTextures.VelocityTextureTargetRHI, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorAndDepth);
 			RHICmdList.CopyToResolveTarget(PrevStateTextures.PositionTextureTargetRHI, PrevStateTextures.PositionTextureTargetRHI, true, FResolveParams());
+			SetRenderTarget(RHICmdList, PrevStateTextures.VelocityTextureTargetRHI, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorAndDepth);
 			RHICmdList.CopyToResolveTarget(PrevStateTextures.VelocityTextureTargetRHI, PrevStateTextures.VelocityTextureTargetRHI, true, FResolveParams());
 		
 			PrevStateTextures.bTexturesCleared = true;
@@ -4573,6 +4615,15 @@ void FFXSystem::SimulateGPUParticles(
 	static TArray<FSimulationCommandGPU> SimulationCommands;
 	static TArray<uint32> TilesToClear;
 	static TArray<FNewParticle> NewParticles;
+
+	// One-time register delegate with Trim() so the data above can be freed on demand
+	static FDelegateHandle Clear = FCoreDelegates::GetMemoryTrimDelegate().AddLambda([]()
+	{
+		SimulationCommands.Empty();
+		TilesToClear.Empty();
+		NewParticles.Empty();
+	});
+
 	for (TSparseArray<FParticleSimulationGPU*>::TIterator It(GPUSimulations); It; ++It)
 	{
 		//SCOPE_CYCLE_COUNTER(STAT_GPUParticleBuildSimCmdsTime);
@@ -4995,6 +5046,9 @@ FGPUSpriteResources* BeginCreateGPUSpriteResources( const FGPUSpriteResourceData
 	if (RHISupportsGPUParticles())
 	{
 		Resources = new FGPUSpriteResources;
+		//@TODO Ideally FGPUSpriteEmitterInfo::Resources would be a TRefCountPtr<FGPUSpriteResources>, but
+		//since that class is defined in this file, we can't do that, so we just addref here instead
+		Resources->AddRef();
 		SetGPUSpriteResourceData( Resources, InResourceData );
 		BeginInitResource( Resources );
 	}
@@ -5014,12 +5068,8 @@ void BeginReleaseGPUSpriteResources( FGPUSpriteResources* Resources )
 	if ( Resources )
 	{
 		ClearGPUSpriteResourceData( Resources );
-		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-			FReleaseGPUSpriteResourcesCommand,
-			FGPUSpriteResources*, Resources, Resources,
-		{
-			Resources->ReleaseResource();
-			delete Resources;
-		});
+		// Deletion of this resource is deferred until all particle
+		// systems on the render thread have finished with it.
+		Resources->Release();
 	}
 }

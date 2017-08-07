@@ -8,7 +8,7 @@
 #import "Apsalar.h"
 #endif
 
-DEFINE_LOG_CATEGORY_STATIC(LogAnalytics, Display, All);
+#include "Analytics.h"
 
 IMPLEMENT_MODULE( FAnalyticsIOSApsalar, IOSApsalar )
 

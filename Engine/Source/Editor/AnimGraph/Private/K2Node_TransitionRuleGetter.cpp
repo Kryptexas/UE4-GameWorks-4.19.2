@@ -28,13 +28,20 @@ void UK2Node_TransitionRuleGetter::AllocateDefaultPins()
 {
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 
-	UEdGraphPin* OutputPin = CreatePin(EGPD_Output, Schema->PC_Float, /*PSC=*/ TEXT(""), /*PSC object=*/ NULL, /*bIsArray=*/ false, /*bIsReference=*/ false, TEXT("Output"));
+	UEdGraphPin* OutputPin = CreatePin(EGPD_Output, Schema->PC_Float, /*PSC=*/ FString(), /*PSC object=*/ nullptr, TEXT("Output"));
 	OutputPin->PinFriendlyName = GetFriendlyName(GetterType);
 
 	PreloadObject(AssociatedAnimAssetPlayerNode);
 	PreloadObject(AssociatedStateNode);
 
 	Super::AllocateDefaultPins();
+}
+
+void UK2Node_TransitionRuleGetter::PreloadRequiredAssets()
+{
+	PreloadObject(AssociatedAnimAssetPlayerNode);
+	PreloadObject(AssociatedStateNode);
+	Super::PreloadRequiredAssets();
 }
 
 FText UK2Node_TransitionRuleGetter::GetFriendlyName(ETransitionGetter::Type TypeID)

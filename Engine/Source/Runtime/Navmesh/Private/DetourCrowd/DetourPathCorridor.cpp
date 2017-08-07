@@ -252,7 +252,7 @@ If the target is within range, it will be the last corner and have a polygon ref
 int dtPathCorridor::findCorners(float* cornerVerts, unsigned char* cornerFlags,
 							  dtPolyRef* cornerPolys, const int maxCorners,
 							  dtNavMeshQuery* navquery, const dtQueryFilter* filter,
-							  float radius, bool bAllowEarlyReach)
+							  float pathOffsetDistance, float earlyReachDistance, bool bAllowEarlyReach)
 {
 	dtAssert(m_path);
 	dtAssert(m_npath);
@@ -301,7 +301,7 @@ int dtPathCorridor::findCorners(float* cornerVerts, unsigned char* cornerFlags,
 		{
 			// can't use equal here, expected coords are offset from corner
 			const float dist = dtVdistSqr(m_nextExpectedCorner, &cornerVerts[i * 3]);
-			if (dist <= dtSqr(radius))
+			if (dist <= dtSqr(pathOffsetDistance))
 			{
 				foundIdx = i;
 				break;
@@ -318,7 +318,7 @@ int dtPathCorridor::findCorners(float* cornerVerts, unsigned char* cornerFlags,
 			{
 				// can't use equal here, expected coords are offset from corner
 				const float dist = dtVdistSqr(m_nextExpectedCorner, &cornerVerts[i * 3]);
-				if (dist <= dtSqr(radius))
+				if (dist <= dtSqr(pathOffsetDistance))
 				{
 					foundIdx = i;
 					break;
@@ -378,7 +378,7 @@ int dtPathCorridor::findCorners(float* cornerVerts, unsigned char* cornerFlags,
 		const float edgeLen = dtVdist(v1, v2);
 		if (edgeLen > 0.001f)
 		{
-			const float edgeOffset = dtMin(radius, edgeLen * 0.75f) / edgeLen;
+			const float edgeOffset = dtMin(pathOffsetDistance, edgeLen * 0.75f) / edgeLen;
 
 			if (dtVequal(corner, v1))
 			{
@@ -431,7 +431,7 @@ int dtPathCorridor::findCorners(float* cornerVerts, unsigned char* cornerFlags,
 			dtVsub(seg, &cornerVerts[0], m_pos);
 			const float distToFirstVert = dtVlenSqr(seg);
 
-			const float skipThreshold = dtSqr(radius * 4.0f);
+			const float skipThreshold = dtSqr(earlyReachDistance);
 			if (distToFirstVert < skipThreshold)
 			{
 				// skip to known corner (in next tick)

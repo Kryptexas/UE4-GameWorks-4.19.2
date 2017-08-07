@@ -37,6 +37,22 @@ void UAbilityTask_WaitGameplayEffectApplied::OnApplyGameplayEffectCallback(UAbil
 		return;
 	}
 
+	if (SourceTagQuery.IsEmpty() == false)
+	{
+		if (!SourceTagQuery.Matches(*SpecApplied.CapturedSourceTags.GetAggregatedTags()))
+		{
+			return;
+		}
+	}
+
+	if (TargetTagQuery.IsEmpty() == false)
+	{
+		if (!TargetTagQuery.Matches(*SpecApplied.CapturedTargetTags.GetAggregatedTags()))
+		{
+			return;
+		}
+	}
+
 	if (Locked)
 	{
 		ABILITY_LOG(Error, TEXT("WaitGameplayEffectApplied recursion detected. Ability: %s. Applied Spec: %s. This could cause an infinite loop! Ignoring"), *GetNameSafe(Ability), *SpecApplied.ToSimpleString());

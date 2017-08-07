@@ -344,6 +344,7 @@ private:
 	 * Maximum time allowed each frame to spend on saving a checkpoint. If 0, it will save the checkpoint in a single frame, regardless of how long it takes.
 	 * See also demo.CheckpointSaveMaxMSPerFrameOverride.
 	 */
+	UPROPERTY(Config)
 	float CheckpointSaveMaxMSPerFrame;
 
 	/** A player controller that this driver should consider its viewpoint for actor prioritization purposes. */

@@ -51,6 +51,7 @@ class IGameLayerManager
 {
 public:
 	virtual const FGeometry& GetViewportWidgetHostGeometry() const = 0;
+	virtual const FGeometry& GetPlayerWidgetHostGeometry(ULocalPlayer* Player) const = 0;
 
 	virtual void NotifyPlayerAdded(int32 PlayerIndex, ULocalPlayer* AddedPlayer) = 0;
 	virtual void NotifyPlayerRemoved(int32 PlayerIndex, ULocalPlayer* RemovedPlayer) = 0;
@@ -79,15 +80,15 @@ class ENGINE_API SGameLayerManager : public SCompoundWidget, public IGameLayerMa
 public:
 
 	SLATE_BEGIN_ARGS(SGameLayerManager)
-		: _UseScissor(true)
 	{
 		_Visibility = EVisibility::SelfHitTestInvisible;
+		_Clipping = EWidgetClipping::ClipToBoundsAlways;
 	}
+
 		/** Slot for this content (optional) */
 		SLATE_DEFAULT_SLOT(FArguments, Content)
 
 		SLATE_ATTRIBUTE(const FSceneViewport*, SceneViewport)
-		SLATE_ARGUMENT(bool, UseScissor)
 
 	SLATE_END_ARGS()
 
@@ -102,6 +103,7 @@ public:
 
 	// Begin IGameLayerManager
 	virtual const FGeometry& GetViewportWidgetHostGeometry() const override;
+	virtual const FGeometry& GetPlayerWidgetHostGeometry(ULocalPlayer* Player) const override;
 
 	virtual void NotifyPlayerAdded(int32 PlayerIndex, ULocalPlayer* AddedPlayer) override;
 	virtual void NotifyPlayerRemoved(int32 PlayerIndex, ULocalPlayer* RemovedPlayer) override;
@@ -126,7 +128,7 @@ public:
 
 	// Begin SWidget overrides
 	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
-	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
+	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 	virtual bool OnVisualizeTooltip(const TSharedPtr<SWidget>& TooltipContent) override;
 	// End SWidget overrides
 

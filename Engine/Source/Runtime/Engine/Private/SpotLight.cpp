@@ -139,7 +139,3 @@ void ASpotLight::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 }
 #endif
 
-#if WITH_EDITORONLY_DATA
-/** Returns ArrowComponent subobject **/
-UArrowComponent* ASpotLight::GetArrowComponent() const { return ArrowComponent; }
-#endif

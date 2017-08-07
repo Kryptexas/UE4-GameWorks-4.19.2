@@ -7,8 +7,8 @@
 #include "Editor.h"
 
 
-UMouseCursorInteractor::UMouseCursorInteractor( const FObjectInitializer& Initializer ) 
-	: UViewportInteractor( Initializer )
+UMouseCursorInteractor::UMouseCursorInteractor()
+	: UViewportInteractor()
 {
 	// Grabber spheres don't really work well with mouse cursor interactors, because the origin of the
 	// interactor is right on the near view plane.

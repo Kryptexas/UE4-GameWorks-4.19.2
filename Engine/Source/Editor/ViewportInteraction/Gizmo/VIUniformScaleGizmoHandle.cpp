@@ -2,11 +2,12 @@
 
 #include "VIUniformScaleGizmoHandle.h"
 #include "UObject/ConstructorHelpers.h"
-#include "Components/StaticMeshComponent.h"
+#include "VIGizmoHandleMeshComponent.h"
 #include "Engine/StaticMesh.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "VIBaseTransformGizmo.h"
 #include "ViewportWorldInteraction.h"
+#include "ViewportInteractionDragOperations.h"
 
 UUniformScaleGizmoHandleGroup::UUniformScaleGizmoHandleGroup()
 	: Super(),
@@ -20,11 +21,13 @@ UUniformScaleGizmoHandleGroup::UUniformScaleGizmoHandleGroup()
 		check( UniformScaleMesh != nullptr );
 	}
 
-	UStaticMeshComponent* UniformScaleHandle = CreateMeshHandle( UniformScaleMesh, FString( "UniformScaleHandle" ) );
+	UGizmoHandleMeshComponent* UniformScaleHandle = CreateMeshHandle( UniformScaleMesh, FString( "UniformScaleHandle" ) );
 	check( UniformScaleHandle != nullptr );
 
 	FGizmoHandle& NewHandle = *new( Handles ) FGizmoHandle();
 	NewHandle.HandleMesh = UniformScaleHandle;
+
+	DragOperationComponent->SetDragOperationClass(UUniformScaleDragOperation::StaticClass());
 }
 
 void UUniformScaleGizmoHandleGroup::UpdateGizmoHandleGroup( const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, const bool bAllHandlesVisible, class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles, 
@@ -88,11 +91,6 @@ void UUniformScaleGizmoHandleGroup::UpdateGizmoHandleGroup( const FTransform& Lo
 			}
 		}
 	}
-}
-
-ETransformGizmoInteractionType UUniformScaleGizmoHandleGroup::GetInteractionType() const
-{
-	return ETransformGizmoInteractionType::UniformScale;
 }
 
 EGizmoHandleTypes UUniformScaleGizmoHandleGroup::GetHandleType() const

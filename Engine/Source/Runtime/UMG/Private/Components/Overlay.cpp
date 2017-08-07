@@ -69,7 +69,7 @@ TSharedRef<SWidget> UOverlay::RebuildWidget()
 		}
 	}
 
-	return BuildDesignTimeWidget( MyOverlay.ToSharedRef() );
+	return MyOverlay.ToSharedRef();
 }
 
 #if WITH_EDITOR

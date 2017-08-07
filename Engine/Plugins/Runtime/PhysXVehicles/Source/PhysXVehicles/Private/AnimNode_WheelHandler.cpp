@@ -53,7 +53,7 @@ void FAnimNode_WheelHandler::EvaluateSkeletalControl_AnyThread(FComponentSpacePo
 	const FBoneContainer& BoneContainer = Output.Pose.GetPose().GetBoneContainer();
 	for(const FWheelLookupData& Wheel : Wheels)
 	{
-		if (Wheel.BoneReference.IsValid(BoneContainer))
+		if (Wheel.BoneReference.IsValidToEvaluate(BoneContainer))
 		{
 			FCompactPoseBoneIndex WheelSimBoneIndex = Wheel.BoneReference.GetCompactPoseIndex(BoneContainer);
 
@@ -86,7 +86,7 @@ bool FAnimNode_WheelHandler::IsValidToEvaluate(const USkeleton* Skeleton, const 
 	for (const FWheelLookupData& Wheel : Wheels)
 	{
 		// if one of them is valid
-		if (Wheel.BoneReference.IsValid(RequiredBones) == true)
+		if (Wheel.BoneReference.IsValidToEvaluate(RequiredBones) == true)
 		{
 			return true;
 		}
@@ -113,7 +113,7 @@ void FAnimNode_WheelHandler::InitializeBoneReferences(const FBoneContainer& Requ
 	Wheels.Sort([](const FWheelLookupData& L, const FWheelLookupData& R) { return L.BoneReference.BoneIndex < R.BoneReference.BoneIndex; });
 }
 
-void FAnimNode_WheelHandler::Initialize(const FAnimationInitializeContext& Context)
+void FAnimNode_WheelHandler::Initialize_AnyThread(const FAnimationInitializeContext& Context)
 {
 	AnimInstanceProxy = (FVehicleAnimInstanceProxy*)Context.AnimInstanceProxy;	//TODO: This is cached for now because we need it in eval bone transforms.
 }

@@ -13,6 +13,7 @@ namespace D3D12ShaderUtils
 	// Simple base class to help write out a root signature (subclass to generate either to a binary struct or a #define)
 	struct FRootSignatureCreator
 	{
+		virtual ~FRootSignatureCreator() { }
 		virtual void AddRootFlag(D3D12_ROOT_SIGNATURE_FLAGS Flag) = 0;
 		enum EType
 		{

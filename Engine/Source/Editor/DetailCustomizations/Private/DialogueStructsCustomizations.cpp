@@ -55,10 +55,10 @@ void FDialogueContextStructCustomization::CustomizeChildren( TSharedRef<IPropert
 	if( StructPropertyHandle->IsValidHandle() )
 	{
 		const TSharedPtr<IPropertyHandle> SpeakerPropertyHandle = StructPropertyHandle->GetChildHandle("Speaker");
-		ChildBuilder.AddChildProperty(SpeakerPropertyHandle.ToSharedRef());
+		ChildBuilder.AddProperty(SpeakerPropertyHandle.ToSharedRef());
 
 		const TSharedPtr<IPropertyHandle> TargetsPropertyHandle = StructPropertyHandle->GetChildHandle("Targets");
-		ChildBuilder.AddChildProperty(TargetsPropertyHandle.ToSharedRef());
+		ChildBuilder.AddProperty(TargetsPropertyHandle.ToSharedRef());
 	}
 }
 
@@ -1024,10 +1024,10 @@ void FDialogueWaveParameterStructCustomization::CustomizeChildren( TSharedRef<IP
 	if( StructPropertyHandle->IsValidHandle() )
 	{
 		const TSharedPtr<IPropertyHandle> DialogueWavePropertyHandle = StructPropertyHandle->GetChildHandle("DialogueWave");
-		ChildBuilder.AddChildProperty(DialogueWavePropertyHandle.ToSharedRef());
+		ChildBuilder.AddProperty(DialogueWavePropertyHandle.ToSharedRef());
 
 		const TSharedPtr<IPropertyHandle> ContextPropertyHandle = StructPropertyHandle->GetChildHandle("Context");
-		ChildBuilder.AddChildContent( ContextPropertyHandle->GetPropertyDisplayName() )
+		ChildBuilder.AddCustomRow( ContextPropertyHandle->GetPropertyDisplayName() )
 		[
 			SNew( SValidatedDialogueContextHeaderWidget, StructPropertyHandle, StructCustomizationUtils.GetThumbnailPool().ToSharedRef() )
 		];

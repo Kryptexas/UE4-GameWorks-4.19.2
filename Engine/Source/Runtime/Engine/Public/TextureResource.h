@@ -249,7 +249,7 @@ public:
 	 * Called from the game thread to kick off a change in ResidentMips after modifying RequestedMips.
 	 * @param bShouldPrioritizeAsyncIORequest	- Whether the Async I/O request should have higher priority
 	 */
-	void BeginUpdateMipCount( bool bShouldPrioritizeAsyncIORequest );
+	ENGINE_API void BeginUpdateMipCount( bool bShouldPrioritizeAsyncIORequest );
 	/**
 	 * Called from the game thread to kick off async I/O to load in new mips.
 	 */

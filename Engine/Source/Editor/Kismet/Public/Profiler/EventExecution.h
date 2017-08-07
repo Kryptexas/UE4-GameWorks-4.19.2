@@ -147,6 +147,10 @@ public:
 	{
 	}
 
+	virtual ~FScriptNodePerfData() 
+	{ 
+	}
+
 	/** Returns a TSet containing all valid instance names */
 	void GetValidInstanceNames(TSet<FName>& ValidInstances) const;
 

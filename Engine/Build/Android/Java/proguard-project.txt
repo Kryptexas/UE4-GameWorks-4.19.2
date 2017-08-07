@@ -66,6 +66,12 @@
 -keep class com.epicgames.ue4.WebViewControl {
 	public *;
 }
+-keep class com.epicgames.ue4.WebViewControl$ViewClient {
+	public *;
+}
+-keep class com.epicgames.ue4.WebViewControl$ChromeClient {
+	public *;
+}
 
 -keep class com.epicgames.ue4.WebViewControl$ViewClient {
 	public *;

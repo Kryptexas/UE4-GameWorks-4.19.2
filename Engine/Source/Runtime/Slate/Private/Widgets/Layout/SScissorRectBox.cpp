@@ -48,13 +48,11 @@ FChildren* SScissorRectBox::GetChildren()
 	return &ChildSlot;
 }
 
-int32 SScissorRectBox::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+int32 SScissorRectBox::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	// just draw the only child
 	FArrangedChildren ArrangedChildren(EVisibility::Visible);
-	{
-		this->ArrangeChildren(AllottedGeometry, ArrangedChildren);
-	}
+	ArrangeChildren(AllottedGeometry, ArrangedChildren);
 
 	// Maybe none of our children are visible
 	if( ArrangedChildren.Num() > 0 )
@@ -62,26 +60,7 @@ int32 SScissorRectBox::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 		check( ArrangedChildren.Num() == 1 );
 		FArrangedWidget& TheChild = ArrangedChildren[0];
 
-		// set the hacky, back door global scissor rect settings.
-		// This will get picked up by the element batcher and added to the draw element.
-		// We do it this way because this scissor rect is a real hack until better solution is made available.
-		// In the meantime, we don't want to modify the public interface of all element drawing to ensure all widgets pick up this scissor rect.
-		extern SLATECORE_API TOptional<FShortRect> GSlateScissorRect;
-		TOptional<FShortRect> OldRect = GSlateScissorRect;
-		const bool bOverrideScissorRect = Slate::OverrideScissorRect->GetInt() != 0;
-		if( bOverrideScissorRect )
-		{
-			// Child clipping rect is made effectively infinite to ensure that any rotated children do not get prematurely cut off. We let the scissor rect do all the work.
-			const FSlateRect ChildClippingRect = AllottedGeometry.GetClippingRect().IntersectionWith( MyClippingRect );
-			GSlateScissorRect = FShortRect(ChildClippingRect);
-		}
-		int32 Result = TheChild.Widget->Paint( Args.WithNewParent(this), TheChild.Geometry, FSlateRect(FVector2D(-FLT_MAX, -FLT_MAX), FVector2D(FLT_MAX, FLT_MAX)), OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
-
-		if( bOverrideScissorRect )
-		{
-			// We've added all the draw elements, so put the scissor rect back
-			GSlateScissorRect = OldRect;
-		}
+		int32 Result = TheChild.Widget->Paint( Args.WithNewParent(this), TheChild.Geometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
 		
 		return Result;
 	}

@@ -13,6 +13,7 @@
 #include "CanvasItem.h"
 #include "Engine/Canvas.h"
 #include "Settings/LevelEditorViewportSettings.h"
+#include "Settings/LevelEditorMiscSettings.h"
 #include "Components/DirectionalLightComponent.h"
 #include "Components/BillboardComponent.h"
 #include "Debug/DebugDrawService.h"
@@ -77,15 +78,12 @@ float ComputeOrthoZoomFactor(const float ViewportWidth)
 
 void PixelInspectorRealtimeManagement(FEditorViewportClient *CurrentViewport, bool bMouseEnter)
 {
-	FPixelInspectorModule* PixelInspectorModule = &FModuleManager::LoadModuleChecked<FPixelInspectorModule>(TEXT("PixelInspectorModule"));
-	if (PixelInspectorModule != nullptr)
+	FPixelInspectorModule& PixelInspectorModule = FModuleManager::LoadModuleChecked<FPixelInspectorModule>(TEXT("PixelInspectorModule"));
+	bool bViewportIsRealtime = CurrentViewport->IsRealtime();
+	bool bViewportShouldBeRealtime = PixelInspectorModule.GetViewportRealtime(CurrentViewport->ViewIndex, bViewportIsRealtime, bMouseEnter);
+	if (bViewportIsRealtime != bViewportShouldBeRealtime)
 	{
-		bool bViewportIsRealtime = CurrentViewport->IsRealtime();
-		bool bViewportShouldBeRealtime = PixelInspectorModule->GetViewportRealtime(CurrentViewport->ViewIndex, bViewportIsRealtime, bMouseEnter);
-		if (bViewportIsRealtime != bViewportShouldBeRealtime)
-		{
-			CurrentViewport->SetRealtime(bViewportShouldBeRealtime);
-		}
+		CurrentViewport->SetRealtime(bViewportShouldBeRealtime);
 	}
 }
 
@@ -299,6 +297,7 @@ FEditorViewportClient::FEditorViewportClient(FEditorModeTools* InModeTools, FPre
 	, bOwnsModeTools(false)
 	, ModeTools(InModeTools)
 	, Widget(new FWidget)
+	, bShowWidget(true)
 	, MouseDeltaTracker(new FMouseDeltaTracker)
 	, RecordingInterpEd(NULL)
 	, bHasMouseMovedSinceClick(false)
@@ -3191,9 +3190,9 @@ void FEditorViewportClient::DrawCanvas(FViewport& InViewport, FSceneView& View, 
 	ModeTools->DrawHUD(this, &InViewport, &View, &Canvas);
 }
 
-void FEditorViewportClient::SetupViewForRendering( FSceneViewFamily& ViewFamily, FSceneView& View )
+void FEditorViewportClient::SetupViewForRendering(FSceneViewFamily& ViewFamily, FSceneView& View)
 {
-	if(ViewFamily.EngineShowFlags.Wireframe)
+	if (ViewFamily.EngineShowFlags.Wireframe)
 	{
 		// Wireframe color is emissive-only, and mesh-modifying materials do not use material substitution, hence...
 		View.DiffuseOverrideParameter = FVector4(0.f, 0.f, 0.f, 0.f);
@@ -3204,7 +3203,7 @@ void FEditorViewportClient::SetupViewForRendering( FSceneViewFamily& ViewFamily,
 		View.DiffuseOverrideParameter = FVector4(GEngine->LightingOnlyBrightness.R, GEngine->LightingOnlyBrightness.G, GEngine->LightingOnlyBrightness.B, 0.0f);
 		View.SpecularOverrideParameter = FVector4(.1f, .1f, .1f, 0.0f);
 	}
-	else if( ViewFamily.EngineShowFlags.ReflectionOverride)
+	else if (ViewFamily.EngineShowFlags.ReflectionOverride)
 	{
 		View.DiffuseOverrideParameter = FVector4(0.f, 0.f, 0.f, 0.f);
 		View.SpecularOverrideParameter = FVector4(1, 1, 1, 0.0f);
@@ -3226,44 +3225,41 @@ void FEditorViewportClient::SetupViewForRendering( FSceneViewFamily& ViewFamily,
 
 	//Look if the pixel inspector tool is on
 	View.bUsePixelInspector = false;
-	FPixelInspectorModule* PixelInspectorModule = &FModuleManager::LoadModuleChecked<FPixelInspectorModule>(TEXT("PixelInspectorModule"));
-	if (PixelInspectorModule != nullptr)
+	FPixelInspectorModule& PixelInspectorModule = FModuleManager::LoadModuleChecked<FPixelInspectorModule>(TEXT("PixelInspectorModule"));
+	bool IsInspectorActive = PixelInspectorModule.IsPixelInspectorEnable();
+	View.bUsePixelInspector = IsInspectorActive;
+	FIntPoint InspectViewportPos = FIntPoint(-1, -1);
+	if (IsInspectorActive)
 	{
-		bool IsInspectorActive = PixelInspectorModule->IsPixelInspectorEnable();
-		View.bUsePixelInspector = IsInspectorActive;
-		FIntPoint InspectViewportPos = FIntPoint(-1, -1);
-		if (IsInspectorActive)
+		if (CurrentMousePos == FIntPoint(-1, -1))
 		{
-			if (CurrentMousePos == FIntPoint(-1, -1))
+			uint32 CoordinateViewportId = 0;
+			PixelInspectorModule.GetCoordinatePosition(InspectViewportPos, CoordinateViewportId);
+			bool IsCoordinateInViewport = InspectViewportPos.X <= Viewport->GetSizeXY().X && InspectViewportPos.Y <= Viewport->GetSizeXY().Y;
+			IsInspectorActive = IsCoordinateInViewport && (CoordinateViewportId == View.State->GetViewKey());
+			if (IsInspectorActive)
 			{
-				uint32 CoordinateViewportId = 0;
-				PixelInspectorModule->GetCoordinatePosition(InspectViewportPos, CoordinateViewportId);
-				bool IsCoordinateInViewport = InspectViewportPos.X <= Viewport->GetSizeXY().X && InspectViewportPos.Y <= Viewport->GetSizeXY().Y;
-				IsInspectorActive = IsCoordinateInViewport && (CoordinateViewportId == View.State->GetViewKey());
-				if (IsInspectorActive)
-				{
-					PixelInspectorModule->SetViewportInformation(View.State->GetViewKey(), Viewport->GetSizeXY());
-				}
-			}
-			else
-			{
-				InspectViewportPos = CurrentMousePos;
-				PixelInspectorModule->SetViewportInformation(View.State->GetViewKey(), Viewport->GetSizeXY());
-				PixelInspectorModule->SetCoordinatePosition(CurrentMousePos, false);
+				PixelInspectorModule.SetViewportInformation(View.State->GetViewKey(), Viewport->GetSizeXY());
 			}
 		}
+		else
+		{
+			InspectViewportPos = CurrentMousePos;
+			PixelInspectorModule.SetViewportInformation(View.State->GetViewKey(), Viewport->GetSizeXY());
+			PixelInspectorModule.SetCoordinatePosition(CurrentMousePos, false);
+		}
+	}
 
-		if (IsInspectorActive)
-		{
-			// Ready to send a request
-			FSceneInterface *SceneInterface = GetScene();
-			PixelInspectorModule->CreatePixelInspectorRequest(InspectViewportPos, View.State->GetViewKey(), SceneInterface);
-		}
-		else if (!View.bUsePixelInspector && CurrentMousePos != FIntPoint(-1, -1))
-		{
-			//Track in case the user hit esc key to stop inspecting pixel
-			PixelInspectorRealtimeManagement(this, true);
-		}
+	if (IsInspectorActive)
+	{
+		// Ready to send a request
+		FSceneInterface *SceneInterface = GetScene();
+		PixelInspectorModule.CreatePixelInspectorRequest(InspectViewportPos, View.State->GetViewKey(), SceneInterface);
+	}
+	else if (!View.bUsePixelInspector && CurrentMousePos != FIntPoint(-1, -1))
+	{
+		//Track in case the user hit esc key to stop inspecting pixel
+		PixelInspectorRealtimeManagement(this, true);
 	}
 }
 
@@ -3315,7 +3311,7 @@ void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 		GetScene(),
 		EngineShowFlags)
 		.SetWorldTimes( TimeSeconds, DeltaTimeSeconds, RealTimeSeconds )
-		.SetRealtimeUpdate( IsRealtime() )
+		.SetRealtimeUpdate( IsRealtime() && FSlateThrottleManager::Get().IsAllowingExpensiveTasks() )
 		.SetViewModeParam( ViewModeParam, ViewModeParamName ) );
 
 	ViewFamily.EngineShowFlags = EngineShowFlags;
@@ -3358,7 +3354,8 @@ void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 		ViewExt->SetupViewFamily(ViewFamily);
 	}
 
-	EngineShowFlagOverride(ESFIM_Editor, GetViewMode(), ViewFamily.EngineShowFlags, CurrentBufferVisualizationMode);
+	ViewFamily.ViewMode = GetViewMode();
+	EngineShowFlagOverride(ESFIM_Editor, ViewFamily.ViewMode, ViewFamily.EngineShowFlags, CurrentBufferVisualizationMode);
 	EngineShowFlagOrthographicOverride(IsPerspective(), ViewFamily.EngineShowFlags);
 
 	UpdateLightingShowFlags( ViewFamily.EngineShowFlags );
@@ -3414,7 +3411,7 @@ void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 
 	
 	// Draw the widget.
-	if (Widget)
+	if (Widget && bShowWidget)
 	{
 		Widget->DrawHUD( Canvas );
 	}
@@ -3511,7 +3508,10 @@ void FEditorViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInterface
 	MouseDeltaTracker->Render3DDragTool( View, PDI );
 
 	// Draw the widget.
-	Widget->Render( View, PDI, this );
+	if (Widget && bShowWidget)
+	{
+		Widget->Render( View, PDI, this );
+	}
 
 	if( bUsesDrawHelper )
 	{
@@ -3804,7 +3804,7 @@ static float AdjustGestureCameraRotation(float Delta, float AdjustLimit, float D
 	return bIsUsingTrackpad ? Delta : FMath::Clamp(Delta, -DeltaCutoff, DeltaCutoff);
 }
 
-bool FEditorViewportClient::InputGesture(FViewport* InViewport, EGestureEvent::Type GestureType, const FVector2D& GestureDelta, bool bIsDirectionInvertedFromDevice)
+bool FEditorViewportClient::InputGesture(FViewport* InViewport, EGestureEvent GestureType, const FVector2D& GestureDelta, bool bIsDirectionInvertedFromDevice)
 {
 	if (bDisableInput)
 	{
@@ -4392,6 +4392,11 @@ FVector FEditorViewportClient::GetHitProxyObjectLocation(int32 X, int32 Y)
 }
 
 
+void FEditorViewportClient::ShowWidget(const bool bShow)
+{
+	bShowWidget = bShow;
+}
+
 void FEditorViewportClient::MoveViewportCamera(const FVector& InDrag, const FRotator& InRot, bool bDollyCamera)
 {
 	switch( GetViewportType() )
@@ -4898,14 +4903,15 @@ void FEditorViewportClient::TakeScreenshot(FViewport* InViewport, bool bInValida
 		}
 
 		// Create screenshot folder if not already present.
-		if ( IFileManager::Get().MakeDirectory( *FPaths::ScreenShotDir(), true ) )
+		
+		if ( IFileManager::Get().MakeDirectory(*(GetDefault<ULevelEditorMiscSettings>()->EditorScreenshotSaveDirectory.Path), true ) )
 		{
 			// Save the contents of the array to a bitmap file.
 			FHighResScreenshotConfig& HighResScreenshotConfig = GetHighResScreenshotConfig();
 			HighResScreenshotConfig.SetHDRCapture(false);
 
 			FString ScreenshotSaveName;
-			if (FFileHelper::GenerateNextBitmapFilename(FPaths::ScreenShotDir() / TEXT("ScreenShot"), TEXT("png"), ScreenshotSaveName) &&
+			if (FFileHelper::GenerateNextBitmapFilename(GetDefault<ULevelEditorMiscSettings>()->EditorScreenshotSaveDirectory.Path / TEXT("ScreenShot"), TEXT("png"), ScreenshotSaveName) &&
 				HighResScreenshotConfig.SaveImage(ScreenshotSaveName, Bitmap, InViewport->GetSizeXY()))
 			{
 				// Setup the string with the path and name of the file
@@ -4924,7 +4930,7 @@ void FEditorViewportClient::TakeScreenshot(FViewport* InViewport, bool bInValida
 		{
 			// Failed to make save directory
 			ScreenshotSaveResultText = NSLOCTEXT( "UnrealEd", "ScreenshotFailedFolder", "Screenshot capture failed, unable to create save directory (see log)" );					
-			UE_LOG(LogEditorViewport, Warning, TEXT("Failed to create directory %s"), *FPaths::ConvertRelativePathToFull(FPaths::ScreenShotDir()));
+			UE_LOG(LogEditorViewport, Warning, TEXT("Failed to create directory %s"), *FPaths::ConvertRelativePathToFull(GetDefault<ULevelEditorMiscSettings>()->EditorScreenshotSaveDirectory.Path));
 		}
 	}
 	else

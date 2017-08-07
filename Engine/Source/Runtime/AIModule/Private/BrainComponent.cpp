@@ -67,7 +67,7 @@ void FAIMessage::Send(UBrainComponent* BrainComp, const FAIMessage& Message)
 
 void FAIMessage::Broadcast(UObject* WorldContextObject, const FAIMessage& Message)
 {
-	UWorld* MyWorld = GEngine->GetWorldFromContextObject(WorldContextObject);
+	UWorld* MyWorld = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 	if (MyWorld)
 	{
 		for (FConstControllerIterator It = MyWorld->GetControllerIterator(); It; ++It)

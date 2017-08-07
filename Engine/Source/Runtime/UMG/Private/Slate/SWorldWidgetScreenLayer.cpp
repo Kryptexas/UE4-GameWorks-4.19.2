@@ -133,7 +133,7 @@ void SWorldWidgetScreenLayer::Tick(const FGeometry& AllottedGeometry, const doub
 	}
 
 	// Normally components should be removed by someone calling remove component, but just in case it was 
-	// deleted in a way where they didn't happen, this is our backup solution to enure we remove stale widgets.
+	// deleted in a way where they didn't happen, this is our backup solution to ensure we remove stale widgets.
 	for ( int32 Index = 0; Index < DeadComponents.Num(); Index++ )
 	{
 		RemoveComponent(DeadComponents[Index]);

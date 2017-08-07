@@ -9,8 +9,10 @@
 #include "Templates/SubclassOf.h"
 #include "ActorFactory.generated.h"
 
+UNREALED_API DECLARE_LOG_CATEGORY_EXTERN(LogActorFactory, Log, All);
+
 class AActor;
-class FAssetData;
+struct FAssetData;
 class UBlueprint;
 class ULevel;
 

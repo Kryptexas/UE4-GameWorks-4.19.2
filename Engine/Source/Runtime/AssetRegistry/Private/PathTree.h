@@ -19,6 +19,11 @@ public:
 	/** Recursively gathers all child paths from the specified base path relative to this node */
 	bool GetSubPaths(FName BasePath, TSet<FName>& OutPaths, bool bRecurse = true) const;
 
+	uint32 GetAllocatedSize(void) const
+	{
+		return ParentPathToChildPaths.GetAllocatedSize() + ChildPathToParentPath.GetAllocatedSize();
+	}
+
 private:
 	/** A one-to-many mapping between a parent path and its child paths. */
 	TMap<FName, TSet<FName>> ParentPathToChildPaths;

@@ -136,7 +136,7 @@ namespace CrossCompiler
 				{
 					// Allocate memory from the stack.
 					Data = (ElementType*)LinearAllocator->Alloc(NumElements * NumBytesPerElement,
-						FMath::Max((uint32)sizeof(void*), (uint32)ALIGNOF(ElementType))
+						FMath::Max((uint32)sizeof(void*), (uint32)alignof(ElementType))
 						);
 
 					// If the container previously held elements, copy them into the new allocation.

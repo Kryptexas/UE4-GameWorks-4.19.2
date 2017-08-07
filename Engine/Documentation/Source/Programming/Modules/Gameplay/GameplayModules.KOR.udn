@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3429264
 Availability:Public
 Title:게임플레이 모듈
 Crumbs:%ROOT%, Programming
 Description:DLL 에 컴파일되는 게임 프로젝트에 속하는 게임플레이 클래스 모음입니다.
 Version: 4.9
+Parent:Programming/UnrealArchitecture/Reference
 
 [TOC(start:2)]
 

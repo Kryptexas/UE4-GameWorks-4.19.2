@@ -5,6 +5,7 @@
 #include "UnrealEdGlobals.h"
 #include "Classes/Editor/UnrealEdEngine.h"
 #include "Sections/TransformPropertySection.h"
+#include "SequencerUtilities.h"
 
 TSharedRef<ISequencerTrackEditor> FTransformPropertyTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> InSequencer )
 {
@@ -16,8 +17,34 @@ TSharedRef<ISequencerSection> FTransformPropertyTrackEditor::MakeSectionInterfac
 {
 	UMovieScenePropertyTrack* PropertyTrack = Cast<UMovieScenePropertyTrack>(&Track);
 	checkf(PropertyTrack != nullptr, TEXT("Incompatible track in FTransformPropertyTrackEditor"));
-	return MakeShareable(new FTransformPropertySection(GetSequencer().Get(), ObjectBinding, PropertyTrack->GetPropertyName(), PropertyTrack->GetPropertyPath(), SectionObject, Track.GetDisplayName()));
+
+	TSharedRef<FTransformSection> NewSection = MakeShared<FTransformSection>(&SectionObject, GetSequencer(), ObjectBinding);
+	NewSection->AssignProperty(PropertyTrack->GetPropertyName(), PropertyTrack->GetPropertyPath());
+	return NewSection;
 }
+
+
+TSharedPtr<SWidget> FTransformPropertyTrackEditor::BuildOutlinerEditWidget(const FGuid& ObjectBinding, UMovieSceneTrack* Track, const FBuildEditWidgetParams& Params)
+{
+	TSharedPtr<ISequencer> SequencerPtr = GetSequencer();
+
+	const int32 RowIndex = Params.TrackInsertRowIndex;
+	auto SubMenuCallback = [=]() -> TSharedRef<SWidget>
+	{
+		FMenuBuilder MenuBuilder(true, nullptr);
+		FSequencerUtilities::PopulateMenu_CreateNewSection(MenuBuilder, RowIndex, Track, SequencerPtr);
+		return MenuBuilder.MakeWidget();
+	};
+
+	return SNew(SHorizontalBox)
+	+ SHorizontalBox::Slot()
+	.AutoWidth()
+	.VAlign(VAlign_Center)
+	[
+		FSequencerUtilities::MakeAddButton(NSLOCTEXT("FTransformPropertyTrackEditor", "AddSection", "Section"), FOnGetContent::CreateLambda(SubMenuCallback), Params.NodeIsHovered)
+	];
+}
+
 
 void FTransformPropertyTrackEditor::GenerateKeysFromPropertyChanged( const FPropertyChangedParams& PropertyChangedParams, TArray<FTransformKey>& NewGeneratedKeys, TArray<FTransformKey>& DefaultGeneratedKeys )
 {

@@ -14,14 +14,6 @@ class SLATE_API USlateSettings : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-	/** Whether or not to send the TextChanged event instead of TextCommitted for the virtual keyboard */
-	UPROPERTY(config, EditAnywhere, Category="VirtualKeyboard")
-	bool bVirtualKeyboardSendsTextChanged;
-
-	/** Display the virtual keyboard when it receives non-mouse focus. */
-	UPROPERTY(config, EditAnywhere, Category="VirtualKeyboard")
-	bool bVirtualKeyboardDisplayOnFocus;
-
 	/** 
 	 * Allow children of SConstraintCanvas to share render layers. Children must set explicit ZOrder on their slots to control render order. 
 	 * Recommendation: Enable for mobile platforms.

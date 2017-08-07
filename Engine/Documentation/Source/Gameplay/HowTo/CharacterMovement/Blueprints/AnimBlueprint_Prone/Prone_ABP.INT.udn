@@ -3,24 +3,13 @@ Title:9. Animation Blueprint - Prone State
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
 Description:The final state to set up for our character is the Prone State which will complete our character. 
 Version: 4.9
+Parent:Gameplay/HowTo/CharacterMovement/Blueprints
 SkillLevel:Advanced
+type:how-to
+type:multi-step
+order:9
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[Previous Step](Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jump "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jump:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Character Movement Overview](Gameplay\HowTo\CharacterMovement\Blueprints)
-	[/PARAM]
-	[PARAM:next]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 In this final section, we finish our **State Machine** by adding a **Prone** state along with the transition to/from it. 
 
@@ -112,66 +101,4 @@ You should now have a fully animated character that can move around your level i
 
 There are several other states that can be added to this State Machine (Death, Reload, etc.) or you could swap out the existing motions with your own. In either case, you should now have an understanding of how to set up Character Movement in **Blueprints**, define animation states with an **Animation Blueprint**, and how to blend animations through **Blend Spaces**. 
 
-%Steps%
-
-
-
-
-	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+[NAV]

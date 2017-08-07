@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3322543
+﻿INTSourceChangelist:3429260
 Availability:Public
 Title:가상 현실 실전 사례
 Crumbs:
@@ -9,44 +9,6 @@ parent:Platforms/VR
 type:overview
 tags:VR
 
-[VAR:Params]
-[PARAM:image]
-	![%Platforms:title%](%ROOT%/placeholder_topic.png)
-[/PARAM]
-[PARAM:icon]
-	![](%ROOT%/platform_icon.png)(convert:false)
-[/PARAM]
-[PARAM:title]
-	%Platforms:title%
-[/PARAM]
-[PARAM:description]
-	%Platforms:description%
-[/PARAM]
-[PARAM:path]
-	[RELATIVE:Platforms]
-[/PARAM]
-[/VAR]
-
-[VAR:Topic]
-[OBJECT:Topic]
-%params%
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-%params%
-[/OBJECT]
-[/VAR]
-
-[VAR:Role]
-[OBJECT:Role]
-%params%
-[PARAMLITERAL:id]
-platforms
-[/PARAMLITERAL]
-[/OBJECT]
-[/VAR]
 
 [TOC(start:2)]
 
@@ -66,7 +28,6 @@ VR 프로젝트를 새로 만들 때, 프로젝트가 블루프린트 기반이�
 이러한 .INI 세팅을 사용하려는 경우, **Config\ DefaultEngine.INI** 파일의 **SystemSettings** 아래 추가해 줘야 합니다.
 
 	[SystemSettings]
-	r.VolumeMultiplier=1.0
 	r.screenpercentage=130
 	r.SeparateTranslucency=0
 	r.HZBOcclusion=0
@@ -78,7 +39,6 @@ VR 프로젝트를 새로 만들 때, 프로젝트가 블루프린트 기반이�
 	r.SSR.Quality=1
 	r.DepthOfFieldQuality=0
 	r.SceneColorFormat=2
-	r.SSSSS=0
 	r.TranslucencyVolumeBlur=0
 	r.TranslucencyLightingVolumeDim=4
 	r.MaxAnisotropy=8
@@ -87,7 +47,6 @@ VR 프로젝트를 새로 만들 때, 프로젝트가 블루프린트 기반이�
 	r.FastBlurThreshold=0
 	r.SSR.MaxRoughness=0.1
 	r.rhicmdbypass=0
-	r.TiledReflectionEnvironmentMinimumCount=10
 	sg.EffectsQuality=2
 	sg.PostProcessQuality=0
 
@@ -99,7 +58,7 @@ UE 4.11 릴리즈에는 UE4 에서의 VR 퍼포먼스 저하를 개선시키는 
 ![](VR_ISR.png)
 
 인스턴스드 스테레오 렌더링을 켠 이후에는 엔진 재시작과 셰이더 리컴파일이 필요할 것입니다.
- 베이스 패스와 얼리-z 패스는 (직렬 및 병렬 렌더링 패쓰 양쪽에서) 이 기능이 켜진 스태틱 메시, 스켈레탈 메시, 스프라이트 파티클, 메시 파티클과 함께 작동합니다.
+ 베이스 패스와 얼리-z 패스(pass)는 (직렬 및 병렬 렌더링 패스 양쪽에서) 이 기능이 켜진 스태틱 메시, 스켈레탈 메시, 스프라이트 파티클, 메시 파티클과 함께 작동합니다.
  인스턴스드 스테레오는 현재 PC (DirectX) 와 PS4 에서 작동하며, 다른 플랫폼은 초기 4.11 릴리즈 이후 지원될 것입니다.
  VR 렌더링을 스탠다드 스테레오로 할 때와 인스턴스드 스테레오로 할 때를 보여주는 비디오입니다.
 
@@ -307,7 +266,7 @@ Showdown 에서 캐릭터가 다이내믹 섀도를 드리우게 했더니 매 �
 이런 식으로 캐릭터가 바닥이나 다른 오브젝트 가까이 갈 때 그림자를 드리우는 것과 같은 효과를 내는 데 도움이 되었습니다.
 
 	[region:lightbox]
-	[![](VR_Fake_Shadow_Material.png)](VR_Fake_Shadow_Material.png)
+	[![](VR_Fake_Shadow_Material.png)(w:1000)](VR_Fake_Shadow_Material.png)
 	[/region]
 
 	[region:caption]
@@ -353,9 +312,7 @@ Set World to Meters Scale| 월드대 미터 스케일 설정 - 월드대 미터 
 HMD 작동 방식으로 인하여 기존 비디오 게임 개발에 자주 쓰이던 아트 기법 몇 가지는 더이상 전과 같은 효과를 내지 못하게 되었습니다.
 여기서는 VR 에서 예상대로 작동하지 않는 기능과, 그에 대한 우회법을 살펴봅니다.
 
-|알려진 문제점| 우회법 | 
-|---| --- |
-| Screen Space Reflections(SSR)| 스크린 스페이스 리플렉션 - SSR 이 VR 에서 작동은 합니다만, 거기서 만들어지는 반사면이 월드의 실제 내용과 일치하지 않는 문제가 있을 수 있습니다. SSR 대신 [리플렉션 프로브](Resources/Showcases/Reflections) 를 사용하면, 비용도 절감되고 리플렉션 일치 문제도 덜합니다.|
+* **Screen Space Reflections(SSR):** 스크린 스페이스 리플렉션 - SSR 이 VR 에서 작동은 합니다만, 거기서 만들어지는 반사면이 월드의 실제 내용과 일치하지 않는 문제가 있을 수 있습니다. SSR 대신 [리플렉션 프로브](Resources/Showcases/Reflections) 를 사용하면, 비용도 절감되고 리플렉션 일치 문제도 덜합니다.
 
 **노멀 매핑 문제**
 
@@ -366,7 +323,5 @@ VR 에서 오브젝트의 노멀 맵을 볼 때, 그 임팩트가 예전만 못�
 데이터를 면밀히 조사하여 노멀 맵으로 내고자 했던 효과를 그냥 지오메트리에 만들어 버리는 것이 낫지 않을지 판단을 해야 한다는 것입니다.
 노멀 맵 대신 사용할 수 있는 기법 몇 가지는 다음과 같습니다.
 
-|셰이더 유형 | 설명 |
-|---|---|
-|[패럴랙스 매핑](http://en.wikipedia.org/wiki/Parallax_mapping)| 패럴랙스 매핑은 노멀 매핑이 고려하지 않는 뎁스 큐를 고려하여 한 단계 발전된 것입니다. 패럴랙스 매핑 셰이더는 오브젝트의 디테일을 원래보다 살려 주어 깊이 정보를 더욱 잘 표시해 줍니다. 그 이유는 어느 각도에서 보든, 패럴랙스 맵은 그 시점에서 올바른 깊이 정보를 표시하는 데 그 자체적으로는 항상 맞기 때문입니다. 패럴랙스 맵을 사용하기 가장 좋은 곳은, 자갈밭 길이나 디테일이 세밀한 표면입니다.
+* **[패럴랙스 매핑](http://en.wikipedia.org/wiki/Parallax_mapping):** 패럴랙스 매핑은 노멀 매핑이 고려하지 않는 뎁스 큐를 고려하여 한 단계 발전된 것입니다. 패럴랙스 매핑 셰이더는 오브젝트의 디테일을 원래보다 살려 주어 깊이 정보를 더욱 잘 표시해 줍니다. 그 이유는 어느 각도에서 보든, 패럴랙스 맵은 그 시점에서 올바른 깊이 정보를 표시하는 데 그 자체적으로는 항상 맞기 때문입니다. 패럴랙스 맵을 사용하기 가장 좋은 곳은, 자갈밭 길이나 디테일이 세밀한 표면입니다.
 

@@ -187,7 +187,7 @@ void UMapProperty::LinkInternal(FArchive& Ar)
 {
 	check(KeyProp && ValueProp);
 
-	if (auto* MyLinker = GetLinker())
+	if (FLinkerLoad* MyLinker = GetLinker())
 	{
 		MyLinker->Preload(this);
 	}
@@ -279,6 +279,7 @@ void UMapProperty::SerializeItem(FArchive& Ar, void* Value, const void* Defaults
 			TempKeyStorage = (uint8*)FMemory::Malloc(MapLayout.SetLayout.Size);
 			KeyProp->InitializeValue(TempKeyStorage);
 
+			FSerializedPropertyScope SerializedProperty(Ar, KeyProp, this);
 			for (; NumKeysToRemove; --NumKeysToRemove)
 			{
 				// Read key into temporary storage
@@ -307,8 +308,11 @@ void UMapProperty::SerializeItem(FArchive& Ar, void* Value, const void* Defaults
 		for (; NumEntries; --NumEntries)
 		{
 			// Read key into temporary storage
-			KeyProp->SerializeItem(Ar, TempKeyStorage);
-
+			{
+				FSerializedPropertyScope SerializedProperty(Ar, KeyProp, this);
+				KeyProp->SerializeItem(Ar, TempKeyStorage);
+			}
+			
 			// Add a new default value if the key doesn't currently exist in the map
 			int32 NextPairIndex = MapHelper.FindMapIndexWithKey(TempKeyStorage);
 			if (NextPairIndex == INDEX_NONE)
@@ -322,7 +326,10 @@ void UMapProperty::SerializeItem(FArchive& Ar, void* Value, const void* Defaults
 			KeyProp->CopyCompleteValue_InContainer(NextPairPtr, TempKeyStorage);
 
 			// Deserialize value
-			ValueProp->SerializeItem(Ar, NextPairPtr + MapLayout.ValueOffset);
+			{
+				FSerializedPropertyScope SerializedProperty(Ar, ValueProp, this);
+				ValueProp->SerializeItem(Ar, NextPairPtr + MapLayout.ValueOffset);
+			}
 		}
 
 		MapHelper.Rehash();
@@ -356,9 +363,12 @@ void UMapProperty::SerializeItem(FArchive& Ar, void* Value, const void* Defaults
 		// Write out the missing keys
 		int32 MissingKeysNum = Indices.Num();
 		Ar << MissingKeysNum;
-		for (int32 Index : Indices)
 		{
-			KeyProp->SerializeItem(Ar, DefaultsHelper.GetPairPtr(Index));
+			FSerializedPropertyScope SerializedProperty(Ar, KeyProp, this);
+			for (int32 Index : Indices)
+			{
+				KeyProp->SerializeItem(Ar, DefaultsHelper.GetPairPtr(Index));
+			}
 		}
 
 		// Write out differences from defaults
@@ -388,8 +398,14 @@ void UMapProperty::SerializeItem(FArchive& Ar, void* Value, const void* Defaults
 			{
 				uint8* ValuePairPtr = MapHelper.GetPairPtrWithoutCheck(Index);
 
-				KeyProp  ->SerializeItem(Ar, ValuePairPtr);
-				ValueProp->SerializeItem(Ar, ValuePairPtr + MapLayout.ValueOffset);
+				{
+					FSerializedPropertyScope SerializedProperty(Ar, KeyProp, this);
+					KeyProp->SerializeItem(Ar, ValuePairPtr);
+				}
+				{
+					FSerializedPropertyScope SerializedProperty(Ar, ValueProp, this);
+					ValueProp->SerializeItem(Ar, ValuePairPtr + MapLayout.ValueOffset);
+				}
 			}
 		}
 		else
@@ -402,8 +418,14 @@ void UMapProperty::SerializeItem(FArchive& Ar, void* Value, const void* Defaults
 				{
 					uint8* ValuePairPtr = MapHelper.GetPairPtrWithoutCheck(Index);
 
-					KeyProp  ->SerializeItem(Ar, ValuePairPtr);
-					ValueProp->SerializeItem(Ar, ValuePairPtr + MapLayout.ValueOffset);
+					{
+						FSerializedPropertyScope SerializedProperty(Ar, KeyProp, this);
+						KeyProp->SerializeItem(Ar, ValuePairPtr);
+					}
+					{
+						FSerializedPropertyScope SerializedProperty(Ar, ValueProp, this);
+						ValueProp->SerializeItem(Ar, ValuePairPtr + MapLayout.ValueOffset);
+					}
 
 					--Num;
 				}
@@ -490,7 +512,7 @@ void UMapProperty::ExportTextItem(FString& ValueStr, const void* PropertyValue, 
 	}
 
 	uint8* StructDefaults = nullptr;
-	if (auto* StructValueProp = dynamic_cast<UStructProperty*>(ValueProp))
+	if (UStructProperty* StructValueProp = dynamic_cast<UStructProperty*>(ValueProp))
 	{
 		checkSlow(StructValueProp->Struct);
 
@@ -805,7 +827,7 @@ void UMapProperty::InstanceSubobjects(void* Data, void const* DefaultData, UObje
 
 bool UMapProperty::SameType(const UProperty* Other) const
 {
-	auto* MapProp = (UMapProperty*)Other;
+	UMapProperty* MapProp = (UMapProperty*)Other;
 	return Super::SameType(Other) && KeyProp && ValueProp && KeyProp->SameType(MapProp->KeyProp) && ValueProp->SameType(MapProp->ValueProp);
 }
 
@@ -821,10 +843,12 @@ bool UMapProperty::ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8*
 
 	const auto SerializeOrConvert = [](UProperty* CurrentType, const FPropertyTag& InTag, FArchive& InAr, uint8* InData, UStruct* InDefaultsStruct) -> bool
 	{
+		// Serialize wants the property address, while convert wants the container address. InData is the container address
 		bool bDummyAdvance = false;
-		if(CurrentType->GetID() == InTag.Type)
+		if (CurrentType->GetID() == InTag.Type)
 		{
-			CurrentType->SerializeItem(InAr, InData, InDefaultsStruct);
+			uint8* DestAddress = CurrentType->ContainerPtrToValuePtr<uint8>(InData, InTag.ArrayIndex);
+			CurrentType->SerializeItem(InAr, DestAddress, nullptr);
 			return true;
 		}
 		else if( CurrentType->ConvertFromType(InTag, InAr, InData, InDefaultsStruct, bDummyAdvance) )
@@ -926,7 +950,7 @@ bool UMapProperty::ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8*
 						KeyProp->CopyCompleteValue_InContainer(NextPairPtr, TempKeyStorage);
 
 						// Deserialize value
-						if( SerializeOrConvert( ValueProp, ValuePropertyTag, Ar, NextPairPtr + MapLayout.ValueOffset, DefaultsStruct ) )
+						if( SerializeOrConvert( ValueProp, ValuePropertyTag, Ar, NextPairPtr, DefaultsStruct ) )
 						{
 							// first entry went fine, convert the rest:
 							for(int32 I = 1; I < NumEntries; ++I)
@@ -941,7 +965,7 @@ bool UMapProperty::ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8*
 								NextPairPtr = MapHelper.GetPairPtrWithoutCheck(NextPairIndex);
 								// This copy is unnecessary when the key was already in the map:
 								KeyProp->CopyCompleteValue_InContainer(NextPairPtr, TempKeyStorage);
-								verify( SerializeOrConvert( ValueProp, ValuePropertyTag, Ar, NextPairPtr + MapLayout.ValueOffset, DefaultsStruct ) );
+								verify( SerializeOrConvert( ValueProp, ValuePropertyTag, Ar, NextPairPtr, DefaultsStruct ) );
 							}
 						}
 						else

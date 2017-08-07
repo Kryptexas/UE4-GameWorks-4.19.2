@@ -87,13 +87,13 @@ FReply SColorGradingWheel::OnMouseMove(const FGeometry& MyGeometry, const FPoint
 }
 
 
-int32 SColorGradingWheel::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+int32 SColorGradingWheel::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	const bool bIsEnabled = ShouldBeEnabled(bParentEnabled);
 	const ESlateDrawEffect DrawEffects = bIsEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 	const FVector2D& SelectorSize = SelectorImage->ImageSize;
-	FVector2D CircleSize = AllottedGeometry.Size - SelectorSize;
-	FVector2D AllottedGeometrySize = AllottedGeometry.Size;
+	FVector2D CircleSize = AllottedGeometry.GetLocalSize() - SelectorSize;
+	FVector2D AllottedGeometrySize = AllottedGeometry.GetLocalSize();
 	if (DesiredWheelSize.IsSet())
 	{
 		int32 CachedDesiredWheelSize = DesiredWheelSize.Get();
@@ -108,7 +108,6 @@ int32 SColorGradingWheel::OnPaint(const FPaintArgs& Args, const FGeometry& Allot
 		LayerId,
 		AllottedGeometry.ToPaintGeometry(0.5 * SelectorSize, CircleSize),
 		Image,
-		MyClippingRect,
 		DrawEffects,
 		InWidgetStyle.GetColorAndOpacityTint() * Image->GetTint(InWidgetStyle)
 	);
@@ -118,7 +117,6 @@ int32 SColorGradingWheel::OnPaint(const FPaintArgs& Args, const FGeometry& Allot
 		LayerId + 1,
 		AllottedGeometry.ToPaintGeometry(0.5f * (AllottedGeometrySize + CalcRelativePositionFromCenter() * CircleSize - SelectorSize), SelectorSize),
 		SelectorImage,
-		MyClippingRect,
 		DrawEffects,
 		InWidgetStyle.GetColorAndOpacityTint() * SelectorImage->GetTint(InWidgetStyle)
 	);
@@ -148,7 +146,7 @@ FVector2D SColorGradingWheel::CalcRelativePositionFromCenter() const
 
 bool SColorGradingWheel::ProcessMouseAction(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, bool bProcessWhenOutsideColorWheel)
 {
-	FVector2D GeometrySize = MyGeometry.Size;
+	FVector2D GeometrySize = MyGeometry.GetLocalSize();
 	if (DesiredWheelSize.IsSet())
 	{
 		int32 CachedDesiredWheelSize = DesiredWheelSize.Get();

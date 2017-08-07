@@ -38,6 +38,7 @@
 #include "Editor.h"
 #include "FileHelpers.h"
 #include "CineCameraComponent.h"
+#include "SkelImport.h"
 
 #include "AssetSelection.h"
 
@@ -1085,9 +1086,7 @@ FFeedbackContext*	Warn
 	AnimSequenceImportData->FbxSceneImportDataReference = ReimportData;
 
 	//Get the scene root node
-	FbxNode* RootNodeToImport = nullptr;
-	RootNodeToImport = FbxImporter->Scene->GetRootNode();
-
+	FbxNode* RootNodeToImport = FbxImporter->Scene->GetRootNode();
 	
 	// For animation and static mesh we assume there is at lease one interesting node by default
 	int32 InterestingNodeCount = 1;
@@ -1880,7 +1879,7 @@ UObject* UFbxSceneImportFactory::ImportOneSkeletalMesh(void* VoidRootNodeToImpor
 				SkelMeshNodePivotArray.Add(SkelMeshNode);
 			}
 		}
-
+		FSkeletalMeshImportData OutData;
 		if (LODIndex == 0 && SkelMeshNodeArray.Num() != 0)
 		{
 			FName OutputName = FbxImporter->MakeNameForMesh(SkelMeshNodeArray[0]->GetName(), SkelMeshNodeArray[0]);
@@ -1899,6 +1898,7 @@ UObject* UFbxSceneImportFactory::ImportOneSkeletalMesh(void* VoidRootNodeToImpor
 			ImportSkeletalMeshArgs.Flags = Flags;
 			ImportSkeletalMeshArgs.TemplateImportData = SkeletalMeshImportData;
 			ImportSkeletalMeshArgs.LodIndex = LODIndex;
+			ImportSkeletalMeshArgs.OutData = &OutData;
 
 			USkeletalMesh* NewMesh = FbxImporter->ImportSkeletalMesh( ImportSkeletalMeshArgs );
 			NewObject = NewMesh;
@@ -1937,6 +1937,7 @@ UObject* UFbxSceneImportFactory::ImportOneSkeletalMesh(void* VoidRootNodeToImpor
 			ImportSkeletalMeshArgs.Flags = RF_Transient;
 			ImportSkeletalMeshArgs.TemplateImportData = SkeletalMeshImportData;
 			ImportSkeletalMeshArgs.LodIndex = LODIndex;
+			ImportSkeletalMeshArgs.OutData = &OutData;
 
 			USkeletalMesh *LODObject = FbxImporter->ImportSkeletalMesh(ImportSkeletalMeshArgs);
 			bool bImportSucceeded = FbxImporter->ImportSkeletalMeshLOD(LODObject, BaseSkeletalMesh, LODIndex);
@@ -1958,12 +1959,13 @@ UObject* UFbxSceneImportFactory::ImportOneSkeletalMesh(void* VoidRootNodeToImpor
 			
 			USkeletalMesh *NewSkelMesh = Cast<USkeletalMesh>(NewObject);
 			if ((GlobalImportSettings->bImportSkeletalMeshLODs || LODIndex == 0) &&
+				GlobalImportSettings->bImportMorph &&
 				NewSkelMesh &&
 				NewSkelMesh->GetImportedResource() &&
 				NewSkelMesh->GetImportedResource()->LODModels.IsValidIndex(LODIndex))
 			{
 				// TODO: Disable material importing when importing morph targets
-				FbxImporter->ImportFbxMorphTarget(SkelMeshNodeArray, NewSkelMesh, Pkg, LODIndex);
+				FbxImporter->ImportFbxMorphTarget(SkelMeshNodeArray, NewSkelMesh, Pkg, LODIndex, OutData);
 			}
 		}
 	}
@@ -2234,17 +2236,18 @@ UObject* UFbxSceneImportFactory::ImportANode(void* VoidFbxImporter, TArray<void*
 	NewObject = FFbxImporter->ImportStaticMeshAsSingle(Pkg, Nodes, StaticMeshFName, Flags, StaticMeshImportData, Cast<UStaticMesh>(InMesh), LODIndex);
 
 	OutNodeInfo->AttributeInfo->SetOriginalImportPath(PackageName);
-	OutNodeInfo->AttributeInfo->SetOriginalFullImportName(NewObject->GetPathName());
 
 	if (NewObject)
 	{
+		OutNodeInfo->AttributeInfo->SetOriginalFullImportName(NewObject->GetPathName());
+
 		NodeIndex++;
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("NodeIndex"), NodeIndex);
 		Args.Add(TEXT("ArrayLength"), Total);
 		GWarn->StatusUpdate(NodeIndex, Total, FText::Format(NSLOCTEXT("UnrealEd", "Importingf", "Importing ({NodeIndex} of {ArrayLength})"), Args));
 	}
-	else if(Pkg != nullptr)
+	else
 	{
 		Pkg->RemoveFromRoot();
 		Pkg->ConditionalBeginDestroy();

@@ -1,11 +1,12 @@
-﻿INTSourceChangelist:3150518
+﻿INTSourceChangelist:3429260
 Title:SteamVR クイック スタート
 Crumbs:%ROOT%, Platforms
-Description:SteamVR を UE4 で使うために設定する操作手順
+Description:SteamVR を UE4 で使用するための設定方法
 Availability:public
 Navigation:platform
 Platform:SteamVR
 type:quick start
+type:landing
 parent:Platforms/SteamVR
 tags:VR
 tags:SteamVR
@@ -13,7 +14,7 @@ tags:SteamVR
 ![](Platforms\SteamVR\T_Vive_HMD.png)
 
 このガイドでは、アンリアル エンジン 4 で SteamVR が使えるようにする手順を説明します。
-最後まで完了すると、SteamVR が使用できるプロジェクトを新規に作成することができるようになります。
+最後まで完了すると、SteamVR が使用できるプロジェクトの新規作成が可能になります。
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]

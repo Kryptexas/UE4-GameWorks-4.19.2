@@ -2,6 +2,7 @@
 
 
 #include "ContentBrowserUtils.h"
+#include "ContentBrowserSingleton.h"
 #include "HAL/IConsoleManager.h"
 #include "Misc/MessageDialog.h"
 #include "HAL/FileManager.h"
@@ -36,6 +37,8 @@
 #include "AssetRegistryModule.h"
 #include "IAssetTools.h"
 #include "AssetToolsModule.h"
+#include "NativeClassHierarchy.h"
+#include "EmptyFolderVisibilityManager.h"
 
 #include "Toolkits/AssetEditorManager.h"
 #include "PackagesDialog.h"
@@ -49,6 +52,7 @@
 #include "Interfaces/IPluginManager.h"
 #include "SAssetView.h"
 #include "SPathView.h"
+#include "ContentBrowserLog.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -346,9 +350,6 @@ bool ContentBrowserUtils::LoadAssetsIfNeeded(const TArray<FString>& ObjectPaths,
 			}
 		}
 	}
- 
-	// prompt and load assets
-	GetUnloadedAssets(ObjectPaths, UnloadedObjectPaths);
 
 	// Make sure all selected objects are loaded, where possible
 	if ( UnloadedObjectPaths.Num() > 0 )
@@ -796,6 +797,10 @@ bool ContentBrowserUtils::CopyFolders(const TArray<FString>& InSourcePathNames, 
 		FString Destination = DestPath + TEXT("/") + SubFolderName;
 
 		// Add the new path to notify sources views
+		{
+			TSharedRef<FEmptyFolderVisibilityManager> EmptyFolderVisibilityManager = FContentBrowserSingleton::Get().GetEmptyFolderVisibilityManager();
+			EmptyFolderVisibilityManager->SetAlwaysShowPath(Destination);
+		}
 		AssetRegistryModule.Get().AddPath(Destination);
 
 		// If any assets were in this path...
@@ -847,6 +852,10 @@ bool ContentBrowserUtils::MoveFolders(const TArray<FString>& InSourcePathNames, 
 		const FString Destination = DestPathWithTrailingSlash + SubFolderName;
 
 		// Add the new path to notify sources views
+		{
+			TSharedRef<FEmptyFolderVisibilityManager> EmptyFolderVisibilityManager = FContentBrowserSingleton::Get().GetEmptyFolderVisibilityManager();
+			EmptyFolderVisibilityManager->SetAlwaysShowPath(Destination);
+		}
 		AssetRegistryModule.Get().AddPath(Destination);
 
 		// If any assets were in this path...
@@ -888,9 +897,6 @@ bool ContentBrowserUtils::PrepareFoldersForDragDrop(const TArray<FString>& Sourc
 		}
 	}
 
-	TArray<FString> UnloadedObjects;
-	GetUnloadedAssets(ObjectPathsToWarnAbout, UnloadedObjects);
-
 	GWarn->BeginSlowTask(LOCTEXT("FolderDragDrop_Loading", "Loading folders"), true);
 
 	// For every source path, load every package in the path (if necessary) and keep track of the assets that were loaded
@@ -925,7 +931,6 @@ bool ContentBrowserUtils::PrepareFoldersForDragDrop(const TArray<FString>& Sourc
 		{
 			UObject* Asset = *AssetIt;
 			if ( (Asset->GetClass() != UObjectRedirector::StaticClass() &&				// Skip object redirectors
-				 !Asset->GetOutermost()->ContainsMap() &&								// Skip assets in maps
 				 !AllFoundObjects.Contains(Asset)										// Skip assets we have already found to avoid processing them twice
 				) )
 			{
@@ -1244,13 +1249,6 @@ bool ContentBrowserUtils::IsValidFolderName(const FString& FolderName, FText& Re
 		Reason = LOCTEXT( "InvalidFolderName_IsTooShort", "Please provide a name for this folder." );
 		return false;
 	}
-		
-	// Make sure the new name doesn't start with an underscore
-	if ( FolderName[0] == TEXT('_') )
-	{
-		Reason = LOCTEXT("InvalidFolderName_StartsWithUnderscore", "The folder name cannot start with an underscore.");
-		return false;
-	}
 
 	if ( FolderName.Len() > MAX_UNREAL_FILENAME_LENGTH )
 	{
@@ -1296,6 +1294,22 @@ bool ContentBrowserUtils::DoesFolderExist(const FString& FolderPath)
 		{
 			return true;
 		}
+	}
+
+	return false;
+}
+
+bool ContentBrowserUtils::IsEmptyFolder(const FString& FolderPath, const bool bRecursive)
+{
+	if (ContentBrowserUtils::IsClassPath(FolderPath))
+	{
+		TSharedRef<FNativeClassHierarchy> NativeClassHierarchy = FContentBrowserSingleton::Get().GetNativeClassHierarchy();
+		return !NativeClassHierarchy->HasClasses(*FolderPath, bRecursive);
+	}
+	else
+	{
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+		return !AssetRegistryModule.Get().HasAssets(*FolderPath, bRecursive);
 	}
 
 	return false;
@@ -1655,14 +1669,6 @@ bool ContentBrowserUtils::IsValidObjectPathForCreate(const FString& ObjectPath, 
 		return false;
 	}
 
-	// Make sure the new name doesn't start with an underscore
-	if (ObjectName.Len() > 0 && ObjectName[0] == TEXT('_'))
-	{
-		OutErrorMessage = LOCTEXT("AssetNameMustNotStartWithUnderscore", "The asset name cannot start with an underscore.");
-		// Return false to indicate that the user should enter a new name
-		return false;
-	}
-
 	// Make sure we are not creating an FName that is too large
 	if ( ObjectPath.Len() > NAME_SIZE )
 	{
@@ -1761,43 +1767,50 @@ int32 ContentBrowserUtils::GetPackageLengthForCooking(const FString& PackageName
 	const FString AbsoluteGamePath = FPaths::ConvertRelativePathToFull(FPaths::GameDir());
 	const FString AbsoluteCookPath = AbsoluteGamePath / TEXT("Saved") / TEXT("Cooked") / TEXT("WindowsNoEditor") / GameName;
 
-	const FString RelativePathToAsset = FPackageName::LongPackageNameToFilename(PackageName, FPackageName::GetAssetPackageExtension());
-	const FString AbsolutePathToAsset = FPaths::ConvertRelativePathToFull(RelativePathToAsset);
-
-	FString AssetPathWithinCookDir = AbsolutePathToAsset;
-	FPaths::RemoveDuplicateSlashes(AssetPathWithinCookDir);
-	AssetPathWithinCookDir.RemoveFromStart(AbsoluteGamePath, ESearchCase::CaseSensitive);
-
 	int32 AbsoluteCookPathToAssetLength = 0;
 
-	if (IsInternalBuild)
+	FString RelativePathToAsset;
+
+	if(FPackageName::TryConvertLongPackageNameToFilename(PackageName, RelativePathToAsset, FPackageName::GetAssetPackageExtension()))
 	{
-		// We assume a constant size for the build machine base path, so strip either the root or game path from the start
-		// (depending on whether the project is part of the main UE4 source tree or located elsewhere)
-		FString CookDirWithoutBasePath = AbsoluteCookPath;
-		if (CookDirWithoutBasePath.StartsWith(AbsoluteRootPath, ESearchCase::CaseSensitive))
+		const FString AbsolutePathToAsset = FPaths::ConvertRelativePathToFull(RelativePathToAsset);
+
+		FString AssetPathWithinCookDir = AbsolutePathToAsset;
+		FPaths::RemoveDuplicateSlashes(AssetPathWithinCookDir);
+		AssetPathWithinCookDir.RemoveFromStart(AbsoluteGamePath, ESearchCase::CaseSensitive);
+
+		if (IsInternalBuild)
 		{
-			CookDirWithoutBasePath.RemoveFromStart(AbsoluteRootPath, ESearchCase::CaseSensitive);
+			// We assume a constant size for the build machine base path, so strip either the root or game path from the start
+			// (depending on whether the project is part of the main UE4 source tree or located elsewhere)
+			FString CookDirWithoutBasePath = AbsoluteCookPath;
+			if (CookDirWithoutBasePath.StartsWith(AbsoluteRootPath, ESearchCase::CaseSensitive))
+			{
+				CookDirWithoutBasePath.RemoveFromStart(AbsoluteRootPath, ESearchCase::CaseSensitive);
+			}
+			else
+			{
+				CookDirWithoutBasePath.RemoveFromStart(AbsoluteGamePath, ESearchCase::CaseSensitive);
+			}
+
+			FString AbsoluteBuildMachineCookPathToAsset = FString(TEXT("D:/BuildFarm/buildmachine_++depot+UE4-Releases+4.10")) / CookDirWithoutBasePath / AssetPathWithinCookDir;
+			AbsoluteBuildMachineCookPathToAsset.ReplaceInline(*GameName, *GameNamePadded, ESearchCase::CaseSensitive);
+
+			AbsoluteCookPathToAssetLength = AbsoluteBuildMachineCookPathToAsset.Len();
 		}
 		else
 		{
-			CookDirWithoutBasePath.RemoveFromStart(AbsoluteGamePath, ESearchCase::CaseSensitive);
+			// Test that the package can be cooked based on the current project path
+			FString AbsoluteCookPathToAsset = AbsoluteCookPath / AssetPathWithinCookDir;
+			AbsoluteCookPathToAsset.ReplaceInline(*GameName, *GameNamePadded, ESearchCase::CaseSensitive);
+
+			AbsoluteCookPathToAssetLength = AbsoluteCookPathToAsset.Len();
 		}
-
-		FString AbsoluteBuildMachineCookPathToAsset = FString(TEXT("D:/BuildFarm/buildmachine_++depot+UE4-Releases+4.10")) / CookDirWithoutBasePath / AssetPathWithinCookDir;
-		AbsoluteBuildMachineCookPathToAsset.ReplaceInline(*GameName, *GameNamePadded, ESearchCase::CaseSensitive);
-
-		AbsoluteCookPathToAssetLength = AbsoluteBuildMachineCookPathToAsset.Len();
 	}
-	else	
-	{ 
-		// Test that the package can be cooked based on the current project path
-		FString AbsoluteCookPathToAsset = AbsoluteCookPath / AssetPathWithinCookDir;
-		AbsoluteCookPathToAsset.ReplaceInline(*GameName, *GameNamePadded, ESearchCase::CaseSensitive);
-
-		AbsoluteCookPathToAssetLength = AbsoluteCookPathToAsset.Len();
+	else
+	{
+		UE_LOG(LogContentBrowser, Error, TEXT("Package Name '%' is not a valid path and cannot be converted to a filename"), *PackageName);
 	}
-
 	return AbsoluteCookPathToAssetLength;
 }
 

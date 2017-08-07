@@ -94,49 +94,56 @@ private:
 		return Curve->Evaluate(CurrentTime);
 	}
 
+	void SetValue(IntegralType Value)
+	{
+		if (!OwningSection->TryModify())
+		{
+			return;
+		}
+
+		float CurrentTime = Sequencer->GetLocalTime();
+		bool bAutoSetTrackDefaults = Sequencer->GetAutoSetTrackDefaults();
+
+		FKeyHandle CurrentKeyHandle = Curve->FindKey(CurrentTime);
+		if (Curve->IsKeyHandleValid(CurrentKeyHandle))
+		{
+			Curve->SetKeyValue(CurrentKeyHandle, Value);
+		}
+		else
+		{
+			if (Curve->GetNumKeys() != 0 || bAutoSetTrackDefaults == false)
+			{
+				// When auto setting track defaults are disabled, add a key even when it's empty so that the changed
+				// value is saved and is propagated to the property.
+				Curve->AddKey(CurrentTime, Value,  CurrentKeyHandle);
+			}
+
+			if (Curve->GetNumKeys() != 0)
+			{
+				if (OwningSection->GetStartTime() > CurrentTime)
+				{
+					OwningSection->SetStartTime(CurrentTime);
+				}
+				if (OwningSection->GetEndTime() < CurrentTime)
+				{
+					OwningSection->SetEndTime(CurrentTime);
+				}
+			}
+		}
+
+		// Always update the default value when auto-set default values is enabled so that the last changes
+		// are always saved to the track.
+		if (bAutoSetTrackDefaults)
+		{
+			Curve->SetDefaultValue(Value);
+		}
+	}
+
 	void OnValueChanged(IntegralType Value)
 	{
-		if (OwningSection->TryModify())
-		{
-			float CurrentTime = Sequencer->GetLocalTime();
-			bool bAutoSetTrackDefaults = Sequencer->GetAutoSetTrackDefaults();
+		SetValue(Value);
 
-			FKeyHandle CurrentKeyHandle = Curve->FindKey(CurrentTime);
-			if (Curve->IsKeyHandleValid(CurrentKeyHandle))
-			{
-				Curve->SetKeyValue(CurrentKeyHandle, Value);
-			}
-			else
-			{
-				if (Curve->GetNumKeys() != 0 || bAutoSetTrackDefaults == false)
-				{
-					// When auto setting track defaults are disabled, add a key even when it's empty so that the changed
-					// value is saved and is propagated to the property.
-					Curve->AddKey(CurrentTime, Value,  CurrentKeyHandle);
-				}
-
-				if (Curve->GetNumKeys() != 0)
-				{
-					if (OwningSection->GetStartTime() > CurrentTime)
-					{
-						OwningSection->SetStartTime(CurrentTime);
-					}
-					if (OwningSection->GetEndTime() < CurrentTime)
-					{
-						OwningSection->SetEndTime(CurrentTime);
-					}
-				}
-			}
-
-			// Always update the default value when auto-set default values is enabled so that the last changes
-			// are always saved to the track.
-			if (bAutoSetTrackDefaults)
-			{
-				Curve->SetDefaultValue(Value);
-			}
-
-			Sequencer->NotifyMovieSceneDataChanged(EMovieSceneDataChangeType::TrackValueChangedRefreshImmediately);
-		}
+		Sequencer->NotifyMovieSceneDataChanged(EMovieSceneDataChangeType::TrackValueChanged);
 	}
 
 	void OnValueCommitted(IntegralType Value, ETextCommit::Type CommitInfo)
@@ -144,8 +151,11 @@ private:
 		if (CommitInfo == ETextCommit::OnEnter || CommitInfo == ETextCommit::OnUserMovedFocus)
 		{
 			const FScopedTransaction Transaction(LOCTEXT("SetIntegralKey", "Set Integral Key Value"));
+			OwningSection->SetFlags(RF_Transactional);
 
-			OnValueChanged(Value);
+			SetValue(Value);
+
+			Sequencer->NotifyMovieSceneDataChanged(EMovieSceneDataChangeType::TrackValueChangedRefreshImmediately);
 		}
 	}
 

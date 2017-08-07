@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:3275566
-Title:Google VR 開発	
+﻿INTSourceChangelist:3432707
+Title:Google VR の開発	
 Crumbs:%ROOT%, Platforms
 Description:
 Availability:Public
@@ -13,6 +13,9 @@ tags:Google VR
 tags:Platform
 prereq:Platforms/Android/GettingStarted/
 social-image:googlevr_social.png
+topic-image:GoogleVR_Topic_Image.png
+
+![](googlevr_social.png)
 
 [region:note]
 Google では、Daydream の使用方法を詳しく説明しているマニュアルを提供しています。[Offical Google Daydream Unreal](https://developers.google.com/vr/unreal/) のヘルプサイトをご覧ください。
@@ -20,15 +23,15 @@ Google では、Daydream の使用方法を詳しく説明しているマニュ�
 
 ## はじめよう
 
-PC および Android ベースのスマートフォンを使って UE4 と Google VR を使う方法を説明します。
+GoogleVR クイックスタートでは、PC および Android ベースのスマートフォンでの UE4 および Google VR の使用方法を説明します。
 
-[DIR(output:"listbutton" type:"quick start" parent:"Platforms/GoogleVR")]
+[DIR(output:"topic" type:"quick start" parent:"Platforms/GoogleVR")]
 
 ## Google VR Daydream
 
-Daydream は、レンダリングの最適化とモーション コントロールの使用に特別に対応した Google VR の一部です。
+Daydream はレンダリングの最適化とモーション コントロールの使用に対応するために Google VR に追加されました。
 
-[DIR(output:"listbutton" type:"overview" parent:"Platforms/GoogleVR")]
+[DIR(output:"topic" type:"overview" parent:"Platforms/GoogleVR")]
 
 
-
+ 

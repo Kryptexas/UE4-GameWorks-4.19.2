@@ -392,23 +392,25 @@ TSharedPtr<FSlateDynamicImageBrush> FUDNParser::GetDynamicBrushFromImagePath(FSt
 	if (FPaths::GetExtension(Filename) == TEXT("png"))
 	{
 		FArchive* ImageArchive = IFileManager::Get().CreateFileReader(*Filename);
-		if (ImageArchive &&
-			FSlateApplication::IsInitialized() && FSlateApplication::Get().GetRenderer().IsValid())
+		if (ImageArchive && FSlateApplication::IsInitialized())
 		{
-			TSharedPtr<FSlateDynamicImageBrush> AlreadyExistingImageBrush;
-			for (int32 i = 0; i < DynamicBrushesUsed.Num(); ++i)
+			if (FSlateRenderer* Renderer = FSlateApplicationBase::Get().GetRenderer())
 			{
-				if (DynamicBrushesUsed[i]->GetResourceName() == BrushName) {AlreadyExistingImageBrush = DynamicBrushesUsed[i]; break;}
-			}
+				TSharedPtr<FSlateDynamicImageBrush> AlreadyExistingImageBrush;
+				for (int32 i = 0; i < DynamicBrushesUsed.Num(); ++i)
+				{
+					if (DynamicBrushesUsed[i]->GetResourceName() == BrushName) { AlreadyExistingImageBrush = DynamicBrushesUsed[i]; break; }
+				}
 
-			if (AlreadyExistingImageBrush.IsValid())
-			{
-				return AlreadyExistingImageBrush;
-			}
-			else
-			{
-				FIntPoint Size = FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource(BrushName);
-				return MakeShareable(new FSlateDynamicImageBrush(BrushName, FVector2D(Size.X, Size.Y)));
+				if (AlreadyExistingImageBrush.IsValid())
+				{
+					return AlreadyExistingImageBrush;
+				}
+				else
+				{
+					FIntPoint Size = Renderer->GenerateDynamicImageResource(BrushName);
+					return MakeShareable(new FSlateDynamicImageBrush(BrushName, FVector2D(Size.X, Size.Y)));
+				}
 			}
 		}
 	}

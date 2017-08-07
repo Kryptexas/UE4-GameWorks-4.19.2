@@ -2,7 +2,10 @@ Availability:Public
 Title:UnrealVS Extension
 Crumbs: %ROOT%, GettingStarted, Programming, Programming/Development/VisualStudioSetup
 Description:Guide to installing, setting up, and using the UnrealVS extension for Visual Studio.
-Version: 4.9
+Version: 4.16
+Parent:Programming/Development/VisualStudioSetup
+Order:
+Type:overview
 
 [EXCERPT:Overview]
 The UnrealVS extension for Visual Studio provides easy access to common actions when developing with Unreal Engine 4.
@@ -215,5 +218,5 @@ the config and platform back again.
 
 UnrealVS source code is located in the [UE4RootLocation]/Engine/Source/Programs/UnrealVS/ folder.  
 
-In order to load the UnrealVS project files with Visual Studio, you will need to have the Visual Studio SDK installed for the appropriate version of Visual Studio that UnrealVS is to be compiled with.  For example, when supporting up to Visual Studio 2013, you will need to install the [Visual Studio 2013 SDK](http://www.microsoft.com/en-us/download/details.aspx?id=40758), then load UnrealVS project files into Visual Studio 2013.
+In order to load the UnrealVS project files with Visual Studio, you will need to have the Visual Studio SDK installed for the appropriate version of Visual Studio that UnrealVS is to be compiled with.  For example, when supporting up to Visual Studio 2015, you will need to install the [Visual Studio 2015 SDK](https://msdn.microsoft.com/en-us/library/bb166441.aspx), then load UnrealVS project files into Visual Studio 2015.
 

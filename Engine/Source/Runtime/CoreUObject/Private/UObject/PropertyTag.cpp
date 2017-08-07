@@ -49,11 +49,14 @@ FPropertyTag::FPropertyTag( FArchive& InSaveAr, UProperty* Property, int32 InInd
 		}
 		else if (UEnumProperty* EnumProp = Cast<UEnumProperty>(Property))
 		{
-			EnumName = EnumProp->GetEnum()->GetFName();
+			if (UEnum* Enum = EnumProp->GetEnum())
+			{
+				EnumName = Enum->GetFName();
+			}
 		}
 		else if (UByteProperty* ByteProp = Cast<UByteProperty>(Property))
 		{
-			if (ByteProp->Enum != NULL)
+			if (ByteProp->Enum != nullptr)
 			{
 				EnumName = ByteProp->Enum->GetFName();
 			}

@@ -3,6 +3,8 @@
 #ifndef OVR_MESSAGETYPE_H
 #define OVR_MESSAGETYPE_H
 
+#include <stdbool.h>
+
 #include "OVR_Platform_Defs.h"
 
 typedef enum ovrMessageType_ {
@@ -101,6 +103,9 @@ typedef enum ovrMessageType_ {
   ovrMessage_Voip_SetSystemVoipSuppressed                        = 0x453FC9AA, ///< Generated in response to ovr_Voip_SetSystemVoipSuppressed()
 
   /// Sent to indicate that more data has been read or an error occured.
+  ///
+  /// The message will contain a payload of type ::ovrHttpTransferUpdateHandle.
+  /// Extract the payload from the message handle with ::ovr_Message_GetHttpTransferUpdate().
   ovrMessage_Notification_HTTP_Transfer = 0x7DD46E2F,
 
   /// Indicates that the livestreaming session has been updated. You can use this
@@ -120,14 +125,23 @@ typedef enum ovrMessageType_ {
   /// Indicates that a connection has been established or there's been an error.
   /// Use ovr_NetworkingPeer_GetState() to get the result; as above,
   /// ovr_NetworkingPeer_GetID() returns the ID of the peer this message is for.
+  ///
+  /// The message will contain a payload of type ::ovrNetworkingPeerHandle.
+  /// Extract the payload from the message handle with ::ovr_Message_GetNetworkingPeer().
   ovrMessage_Notification_Networking_ConnectionStateChange = 0x5E02D49A,
 
   /// Indicates that another user is attempting to establish a P2P connection
   /// with us. Use ovr_NetworkingPeer_GetID() to extract the ID of the peer.
+  ///
+  /// The message will contain a payload of type ::ovrNetworkingPeerHandle.
+  /// Extract the payload from the message handle with ::ovr_Message_GetNetworkingPeer().
   ovrMessage_Notification_Networking_PeerConnectRequest = 0x4D31E2CF,
 
   /// Generated in response to ovr_Net_Ping(). Either contains ping time in
   /// microseconds or indicates that there was a timeout.
+  ///
+  /// The message will contain a payload of type ::ovrPingResultHandle.
+  /// Extract the payload from the message handle with ::ovr_Message_GetPingResult().
   ovrMessage_Notification_Networking_PingResult = 0x51153012,
 
   /// Indicates that the user has accepted an invitation, for example in Oculus
@@ -152,11 +166,17 @@ typedef enum ovrMessageType_ {
   /// Sent when another user is attempting to establish a VoIP connection. Use
   /// ovr_Message_GetNetworkingPeer() to extract information about the user, and
   /// ovr_Voip_Accept() to accept the connection.
+  ///
+  /// The message will contain a payload of type ::ovrNetworkingPeerHandle.
+  /// Extract the payload from the message handle with ::ovr_Message_GetNetworkingPeer().
   ovrMessage_Notification_Voip_ConnectRequest = 0x36243816,
 
   /// Sent to indicate that the state of the VoIP connection changed. Use
   /// ovr_Message_GetNetworkingPeer() and ovr_NetworkingPeer_GetState() to
   /// extract the current state.
+  ///
+  /// The message will contain a payload of type ::ovrNetworkingPeerHandle.
+  /// Extract the payload from the message handle with ::ovr_Message_GetNetworkingPeer().
   ovrMessage_Notification_Voip_StateChange = 0x34EFA660,
 
   /// Sent to indicate that some part of the overall state of SystemVoip has
@@ -167,12 +187,22 @@ typedef enum ovrMessageType_ {
   /// Note that the state may have changed further since the notification was
   /// generated, and that you may call the `GetSystemVoip...()` family of
   /// functions at any time to get the current state directly.
+  ///
+  /// The message will contain a payload of type ::ovrSystemVoipStateHandle.
+  /// Extract the payload from the message handle with ::ovr_Message_GetSystemVoipState().
   ovrMessage_Notification_Voip_SystemVoipState = 0x58D254A5,
 
+  ovrMessage_Platform_InitializeStandaloneOculus = 0x51F8CE0C,
+  ovrMessage_PlatformInitializeAndroidAsynchronous = 0x1AD307B4,
+  ovrMessage_PlatformInitializeWindowsAsynchronous = 0x6DA7BA8F,
 } ovrMessageType;
 
 /// Convert an ovrMessageType to a human readable string
 ///
 OVRPL_PUBLIC_FUNCTION(const char*) ovrMessageType_ToString(ovrMessageType value);
+
+/// Return true if an ovrMessageType is a notification
+///
+OVRPL_PUBLIC_FUNCTION(bool) ovrMessageType_IsNotification(ovrMessageType value);
 
 #endif

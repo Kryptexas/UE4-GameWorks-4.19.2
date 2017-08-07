@@ -161,9 +161,18 @@ void UPacketLimitTest::ExecuteClientUnitTest()
 				int32 DummyControlBunchSequence = 0;
 				FOutBunch* TestBunch = NUTNet::CreateChannelBunch(DummyControlBunchSequence, UnitConn, CHTYPE_Control, 0);
 
-				TestBunch->Serialize(PacketData.GetData(), PacketData.Num());
+				if (TestBunch != nullptr)
+				{
+					TestBunch->Serialize(PacketData.GetData(), PacketData.Num());
 
-				UnitConn->SendRawBunch(*TestBunch, false);
+					UnitConn->SendRawBunch(*TestBunch, false);
+				}
+				else
+				{
+					UNIT_LOG(ELogType::StatusFailure, TEXT("CreateChannelBunch failed - marking unit test as needing update."));
+
+					VerificationState = EUnitTestVerification::VerifiedNeedsUpdate;
+				}
 
 
 				if (bBunchOverLimit)

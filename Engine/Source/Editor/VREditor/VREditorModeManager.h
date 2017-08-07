@@ -6,7 +6,7 @@
 #include "UObject/ObjectMacros.h"
 #include "UObject/GCObject.h"
 #include "TickableEditorObject.h"
-#include "Kismet/HeadMountedDisplayFunctionLibrary.h"
+#include "HeadMountedDisplayTypes.h"
 
 class UVREditorMode;
 enum class EMapChangeType : uint8;
@@ -66,10 +66,6 @@ private:
 	/** The current mode, nullptr if none */
 	UPROPERTY()
 	UVREditorMode* CurrentVREditorMode;
-
-	/** The previous mode, nullptr if none */
-	UPROPERTY()
-	UVREditorMode* PreviousVREditorMode;
 
 	/** If the VR Editor mode needs to be enabled next tick */
 	bool bEnableVRRequest;

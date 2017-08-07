@@ -779,7 +779,7 @@ void FPropertyEditor::SyncToObjectsInNode( const TWeakPtr< FPropertyNode >& Weak
 			uint8* Address = ReadAddresses.GetAddress(AddrIndex);
 			if( Address )
 			{
-				NodeProperty->ExportText_Direct(ObjectNames[AddrIndex], Address, Address, NULL, PPF_Localized );
+				NodeProperty->ExportText_Direct(ObjectNames[AddrIndex], Address, Address, NULL, PPF_None );
 			}
 		}
 

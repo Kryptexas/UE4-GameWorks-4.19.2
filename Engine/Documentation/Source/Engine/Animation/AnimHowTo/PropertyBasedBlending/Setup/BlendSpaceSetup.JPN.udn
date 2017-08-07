@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:3150518
-Availability:Public
+﻿INTSourceChangelist:3452142
+Availability: docs
 Title:1.ブレンドスペースを設定する
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo, Engine\Animation\AnimHowTo\PropertyBasedBlending
 Description:この最初のステップでは、キャラクターのアニメーションをブレンドするために使うブレンドスペースを作成します。

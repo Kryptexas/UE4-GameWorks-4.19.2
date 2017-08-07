@@ -137,17 +137,20 @@ FCascade::~FCascade()
 		WindowPtr->RequestDestroyWindow();
 	}
 
-	
-	// Reset the detail mode values
-	for (TObjectIterator<UParticleSystemComponent> It;It;++It)
+	if (ParticleSystemComponent)
 	{
-		if (It->Template == ParticleSystemComponent->Template)
+		ParticleSystemComponent->ResetParticles(/*bEmptyInstances=*/ true);
+		ParticleSystemComponent->CascadePreviewViewportPtr = nullptr;
+
+		// Reset the detail mode values
+		for (TObjectIterator<UParticleSystemComponent> It; It; ++It)
 		{
-			It->EditorDetailMode = -1;
+			if (It->Template == ParticleSystemComponent->Template)
+			{
+				It->EditorDetailMode = -1;
+			}
 		}
 	}
-
-	ParticleSystemComponent->ResetParticles(/*bEmptyInstances=*/ true);
 
 	if (ParticleSystem != NULL)
 	{
@@ -204,7 +207,9 @@ void FCascade::OnComponentActivationChange(UParticleSystemComponent* PSC, bool b
 {
 	check(PSC);
 
-	if (UCascadeParticleSystemComponent* CPSC = Cast<UCascadeParticleSystemComponent>(PSC))
+	UCascadeParticleSystemComponent* CPSC = Cast<UCascadeParticleSystemComponent>(PSC);
+
+	if (CPSC && CPSC->CascadePreviewViewportPtr)
 	{
 		if (FCascade* Cascade = CPSC->CascadePreviewViewportPtr->GetCascade())
 		{
@@ -1588,7 +1593,7 @@ void FCascade::Tick(float DeltaTime)
 			Position.X = MotionModeRadius * FMath::Sin(AccumulatedMotionTime);
 			Position.Y = MotionModeRadius * FMath::Cos(AccumulatedMotionTime);
 			Position.Z = 0.0f;
-			ParticleSystemComponent->ComponentToWorld = FTransform(Position);
+			ParticleSystemComponent->SetComponentToWorld(FTransform(Position));
 		}
 
 		if (ParticleSystemComponent->IsComponentTickEnabled())
@@ -2435,6 +2440,22 @@ void FCascade::BindCommands()
 	ToolkitCommands->MapAction(
 		Commands.DeleteLOD,
 		FExecuteAction::CreateSP(this, &FCascade::OnDeleteLOD));
+
+	ToolkitCommands->MapAction(
+		Commands.JumpToLOD0,
+		FExecuteAction::CreateSP(this, &FCascade::OnJumpToLODIndex, 0));
+
+	ToolkitCommands->MapAction(
+		Commands.JumpToLOD1,
+		FExecuteAction::CreateSP(this, &FCascade::OnJumpToLODIndex, 1));
+
+	ToolkitCommands->MapAction(
+		Commands.JumpToLOD2,
+		FExecuteAction::CreateSP(this, &FCascade::OnJumpToLODIndex, 2));
+
+	ToolkitCommands->MapAction(
+		Commands.JumpToLOD3,
+		FExecuteAction::CreateSP(this, &FCascade::OnJumpToLODIndex, 3));
 
 	ToolkitCommands->MapAction(
 		Commands.DeleteModule,
@@ -3445,6 +3466,9 @@ void FCascade::AddLOD(bool bBeforeCurrent)
 			}
 		}
 
+		//This should probably have fixed size and behave like LODDistances but for now just avoid the crash.
+		ParticleSystem->LODSettings.SetNumZeroed(FMath::Max(CurrentLODIndex, ParticleSystem->LODSettings.Num()));
+
 		ParticleSystem->LODDistances.InsertZeroed(CurrentLODIndex, 1);
 		if (CurrentLODIndex == 0)
 		{
@@ -4289,7 +4313,30 @@ void FCascade::OnJumpToHighestLOD()
 
 	SetLODValue(Value);
 	SetSelectedModule(SelectedEmitter, SelectedModule);
-	
+
+	if (PreviewViewport.IsValid())
+	{
+		PreviewViewport->RefreshViewport();
+	}
+
+	if (EmitterCanvas.IsValid())
+	{
+		EmitterCanvas->RefreshViewport();
+	}
+}
+
+void FCascade::OnJumpToLODIndex(int32 LODLevel)
+{
+	if (ParticleSystem->Emitters.Num() == 0)
+	{
+		return;
+	}
+
+	int32 Value = FMath::Clamp(LODLevel, 0, ParticleSystem->Emitters[0]->LODLevels.Num() - 1);
+
+	SetLODValue(Value);
+	SetSelectedModule(SelectedEmitter, SelectedModule);
+
 	if (PreviewViewport.IsValid())
 	{
 		PreviewViewport->RefreshViewport();

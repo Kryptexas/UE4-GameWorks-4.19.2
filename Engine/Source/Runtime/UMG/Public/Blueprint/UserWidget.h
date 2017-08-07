@@ -51,9 +51,9 @@ public:
 	/** Don't ever use this constructor.  Needed for code generation. */
 	FPaintContext();
 
-	FPaintContext(const FGeometry& InAllottedGeometry, const FSlateRect& InMyClippingRect, FSlateWindowElementList& InOutDrawElements, const int32 InLayerId, const FWidgetStyle& InWidgetStyle, const bool bInParentEnabled)
+	FPaintContext(const FGeometry& InAllottedGeometry, const FSlateRect& InMyCullingRect, FSlateWindowElementList& InOutDrawElements, const int32 InLayerId, const FWidgetStyle& InWidgetStyle, const bool bInParentEnabled)
 		: AllottedGeometry(InAllottedGeometry)
-		, MyClippingRect(InMyClippingRect)
+		, MyCullingRect(InMyCullingRect)
 		, OutDrawElements(InOutDrawElements)
 		, LayerId(InLayerId)
 		, WidgetStyle(InWidgetStyle)
@@ -67,14 +67,14 @@ public:
 	{
 		FPaintContext* Ptr = this;
 		Ptr->~FPaintContext();
-		new(Ptr) FPaintContext(Other.AllottedGeometry, Other.MyClippingRect, Other.OutDrawElements, Other.LayerId, Other.WidgetStyle, Other.bParentEnabled);
+		new(Ptr) FPaintContext(Other.AllottedGeometry, Other.MyCullingRect, Other.OutDrawElements, Other.LayerId, Other.WidgetStyle, Other.bParentEnabled);
 		Ptr->MaxLayer = Other.MaxLayer;
 	}
 
 public:
 
 	const FGeometry& AllottedGeometry;
-	const FSlateRect& MyClippingRect;
+	const FSlateRect& MyCullingRect;
 	FSlateWindowElementList& OutDrawElements;
 	int32 LayerId;
 	const FWidgetStyle& WidgetStyle;
@@ -344,6 +344,9 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic, Category="User Interface")
 	void Tick(FGeometry MyGeometry, float InDeltaTime);
 
+	/**
+	 * 
+	 */
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic, Category="User Interface | Painting")
 	void OnPaint(UPARAM(ref) FPaintContext& Context) const;
 
@@ -370,6 +373,24 @@ public:
 	 */
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic, Category="Input")
 	void OnFocusLost(FFocusEvent InFocusEvent);
+
+	/**
+	 * If focus is gained on on this widget or on a child widget and this widget is added
+	 * to the focus path, and wasn't previously part of it, this event is called.
+	 *
+	 * @param  InFocusEvent  FocusEvent
+	 */
+	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic, Category="Input")
+	void OnAddedToFocusPath(FFocusEvent InFocusEvent);
+
+	/**
+	 * If focus is lost on on this widget or on a child widget and this widget is
+	 * no longer part of the focus path.
+	 *
+	 * @param  InFocusEvent  FocusEvent
+	 */
+	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic, Category="Input")
+	void OnRemovedFromFocusPath(FFocusEvent InFocusEvent);
 
 	/**
 	 * Called after a character is entered while this widget has focus
@@ -575,15 +596,6 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic, Category="Drag and Drop")
 	bool OnDrop(FGeometry MyGeometry, FPointerEvent PointerEvent, UDragDropOperation* Operation);
 
-	UFUNCTION(BlueprintImplementableEvent, meta = ( DeprecatedFunction, DeprecationMessage = "Use OnKeyDown() instead" ), Category = "Gamepad Input")
-	FEventReply OnControllerButtonPressed(FGeometry MyGeometry, FControllerEvent ControllerEvent);
-
-	UFUNCTION(BlueprintImplementableEvent, meta = ( DeprecatedFunction, DeprecationMessage = "Use OnKeyUp() instead" ), Category = "Gamepad Input")
-	FEventReply OnControllerButtonReleased(FGeometry MyGeometry, FControllerEvent ControllerEvent);
-
-	UFUNCTION(BlueprintImplementableEvent, meta = ( DeprecatedFunction, DeprecationMessage = "Use OnAnalogValueChanged() instead" ), Category = "Gamepad Input")
-	FEventReply OnControllerAnalogValueChanged(FGeometry MyGeometry, FControllerEvent ControllerEvent);
-
 	/**
 	 * Called when the user performs a gesture on trackpad. This event is bubbled.
 	 *
@@ -630,6 +642,12 @@ public:
 	 */
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic, Category="Touch Input")
 	FEventReply OnMotionDetected(FGeometry MyGeometry, FMotionEvent InMotionEvent);
+
+	/**
+	 * Called when mouse capture is lost if it was owned by this widget.
+	 */
+	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic, Category="Touch Input")
+	void OnMouseCaptureLost();
 
 public:
 
@@ -766,6 +784,14 @@ public:
 	*/
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "User Interface|Animation")
 	void ReverseAnimation(const UWidgetAnimation* InAnimation);
+
+	/**
+	 * returns true if the animation is currently playing forward, false otherwise.
+	 *
+	 * @param InAnimation The playing animation that we want to know about
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "User Interface|Animation")
+	bool IsAnimationPlayingForward(const UWidgetAnimation* InAnimation);
 
 	/** Called when a sequence player is finished playing an animation */
 	void OnAnimationFinishedPlaying(UUMGSequencePlayer& Player );
@@ -945,6 +971,8 @@ protected:
 	virtual FReply NativeOnFocusReceived( const FGeometry& InGeometry, const FFocusEvent& InFocusEvent );
 	virtual void NativeOnFocusLost( const FFocusEvent& InFocusEvent );
 	virtual void NativeOnFocusChanging(const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath, const FFocusEvent& InFocusEvent);
+	virtual void NativeOnAddedToFocusPath(const FFocusEvent& InFocusEvent);
+	virtual void NativeOnRemovedFromFocusPath(const FFocusEvent& InFocusEvent);
 	virtual FNavigationReply NativeOnNavigation(const FGeometry& MyGeometry, const FNavigationEvent& InNavigationEvent, const FNavigationReply& InDefaultReply);
 	virtual FReply NativeOnKeyChar( const FGeometry& InGeometry, const FCharacterEvent& InCharEvent );
 	virtual FReply NativeOnPreviewKeyDown( const FGeometry& InGeometry, const FKeyEvent& InKeyEvent );
@@ -971,6 +999,7 @@ protected:
 	virtual FReply NativeOnTouchEnded( const FGeometry& InGeometry, const FPointerEvent& InGestureEvent );
 	virtual FReply NativeOnMotionDetected( const FGeometry& InGeometry, const FMotionEvent& InMotionEvent );
 	virtual FCursorReply NativeOnCursorQuery( const FGeometry& InGeometry, const FPointerEvent& InCursorEvent );
+	virtual void NativeOnMouseCaptureLost();
 
 protected:
 	bool ShouldSerializeWidgetTree(const class ITargetPlatform* TargetPlatform) const;
@@ -1053,6 +1082,11 @@ private:
 
 	static bool bTemplateInitializing;
 	static uint32 bInitializingFromWidgetTree;
+
+protected:
+
+	PROPERTY_BINDING_IMPLEMENTATION(FLinearColor, ColorAndOpacity);
+	PROPERTY_BINDING_IMPLEMENTATION(FSlateColor, ForegroundColor);
 };
 
 #define LOCTEXT_NAMESPACE "UMG"

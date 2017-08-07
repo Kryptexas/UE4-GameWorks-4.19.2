@@ -45,18 +45,18 @@ void FEnvDirectionCustomization::CustomizeHeader( TSharedRef<class IPropertyHand
 
 void FEnvDirectionCustomization::CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
-	StructBuilder.AddChildProperty(ModeProp.ToSharedRef());
+	StructBuilder.AddProperty(ModeProp.ToSharedRef());
 
 	TSharedPtr<IPropertyHandle> PropFrom = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FEnvDirection,LineFrom));
-	StructBuilder.AddChildProperty(PropFrom.ToSharedRef())
+	StructBuilder.AddProperty(PropFrom.ToSharedRef())
 	.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvDirectionCustomization::GetTwoPointsVisibility)));
 
 	TSharedPtr<IPropertyHandle> PropTo = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FEnvDirection,LineTo));
-	StructBuilder.AddChildProperty(PropTo.ToSharedRef())
+	StructBuilder.AddProperty(PropTo.ToSharedRef())
 	.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvDirectionCustomization::GetTwoPointsVisibility)));
 
 	TSharedPtr<IPropertyHandle> PropRot = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FEnvDirection,Rotation));
-	StructBuilder.AddChildProperty(PropRot.ToSharedRef())
+	StructBuilder.AddProperty(PropRot.ToSharedRef())
 	.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvDirectionCustomization::GetRotationVisibility)));
 }
 

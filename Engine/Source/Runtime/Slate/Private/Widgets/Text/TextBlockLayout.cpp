@@ -88,7 +88,7 @@ FVector2D FTextBlockLayout::ComputeDesiredSize(const FWidgetArgs& InWidgetArgs, 
 
 int32 FTextBlockLayout::OnPaint(const FPaintArgs& InPaintArgs, const FGeometry& InAllottedGeometry, const FSlateRect& InClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled)
 {
-	CachedSize = InAllottedGeometry.Size;
+	CachedSize = InAllottedGeometry.GetLocalSize();
 
 	// Text blocks don't have scroll bars, so when the visible region is smaller than the desired size, 
 	// we attempt to auto-scroll to keep the view of the text aligned with the current justification method
@@ -96,7 +96,7 @@ int32 FTextBlockLayout::OnPaint(const FPaintArgs& InPaintArgs, const FGeometry& 
 	if(TextLayout->GetJustification() != ETextJustify::Left)
 	{
 		const float ActualWidth = TextLayout->GetSize().X;
-		const float VisibleWidth = InAllottedGeometry.Size.X;
+		const float VisibleWidth = InAllottedGeometry.GetLocalSize().X;
 		if(VisibleWidth < ActualWidth)
 		{
 			switch(TextLayout->GetJustification())
@@ -115,7 +115,7 @@ int32 FTextBlockLayout::OnPaint(const FPaintArgs& InPaintArgs, const FGeometry& 
 		}
 	}
 
-	TextLayout->SetVisibleRegion(InAllottedGeometry.Size, AutoScrollValue);
+	TextLayout->SetVisibleRegion(InAllottedGeometry.GetLocalSize(), AutoScrollValue);
 
 	TextLayout->UpdateIfNeeded();
 

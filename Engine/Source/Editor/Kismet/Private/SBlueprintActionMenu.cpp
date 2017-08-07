@@ -228,7 +228,7 @@ void SBlueprintActionMenu::Construct( const FArguments& InArgs, TSharedPtr<FBlue
 	//@TODO: Should probably be somewhere more schema-sensitive than the graph panel!
 	FSlateColor TypeColor;
 	FString TypeOfDisplay;
-	const FSlateBrush* ContextIcon = NULL;
+	const FSlateBrush* ContextIcon = nullptr;
 
 	if (DraggedFromPins.Num() == 1)
 	{
@@ -241,7 +241,7 @@ void SBlueprintActionMenu::Construct( const FArguments& InArgs, TSharedPtr<FBlue
 		{
 			// Get the type color and icon
 			TypeColor = Schema->GetPinTypeColor(OnePin->PinType);
-			ContextIcon = FEditorStyle::GetBrush( OnePin->PinType.bIsArray ? TEXT("Graph.ArrayPin.Connected") : TEXT("Graph.Pin.Connected") );
+			ContextIcon = FEditorStyle::GetBrush( OnePin->PinType.IsArray() ? TEXT("Graph.ArrayPin.Connected") : TEXT("Graph.Pin.Connected") );
 		}
 	}
 

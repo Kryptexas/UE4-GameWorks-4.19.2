@@ -1,11 +1,10 @@
-﻿INTSourceChangelist:3275878
+﻿INTSourceChangelist:3480676
 Availability:Public
 Title:뷰포트 기본
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor/Viewports
 Description:언리얼 에디터의 뷰포트에 대한 기본 개념 및 기능에 대한 글입니다.
 Version: 4.9
 SkillLevel: Beginner
-track:LevelDesign_Beginner|6
 
 
 [VAR:Topic]
@@ -168,24 +167,71 @@ track:LevelDesign_Beginner|6
 뷰포트를 원래대로 되돌리는 방법은, 위와 같은 방법을 사용하거나, 몰입 모드에 있을 때 뷰포트 우상단에 있는 
 ![Restore Viewport](button_restore.png) 버튼을 누르면 됩니다.
 
-[OBJECT:SliderSequence]
-	[PARAMLITERAL:max]
-	5
-	[/PARAMLITERAL]
-	[PARAMLITERAL:ext]
-	jpg
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
 	[/PARAMLITERAL]
 	[PARAMLITERAL:id]
-	immersive
+	windows
 	[/PARAMLITERAL]
-	[PARAM:caption]
-	**슬라이더를 끌면 몰입 모드 작동 상태를 확인할 수 있습니다!**
+	[PARAM:content]
+	[OBJECT:SliderSequence]
+		[PARAMLITERAL:max]
+		5
+		[/PARAMLITERAL]
+		[PARAMLITERAL:ext]
+		jpg
+		[/PARAMLITERAL]
+		[PARAMLITERAL:id]
+		immersive
+		[/PARAMLITERAL]
+		[PARAM:caption]
+		**슬라이더를 끌면 실제 몰입 모드를 확인할 수 있습니다!**
+		[/PARAM]
+		[PARAM:image_list]
+		![](immersive_1.png)
+		![](immersive_2.png)
+		![](immersive_3.png)
+		![](immersive_4.png)
+		![](immersive_5.png)
+		[/PARAM]
+	[/OBJECT]
 	[/PARAM]
-	[PARAM:image_list]
-	![](immersive_1.png)
-	![](immersive_2.png)
-	![](immersive_3.png)
-	![](immersive_4.png)
-	![](immersive_5.png)
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[OBJECT:SliderSequence]
+		[PARAMLITERAL:max]
+		5
+		[/PARAMLITERAL]
+		[PARAMLITERAL:ext]
+		jpg
+		[/PARAMLITERAL]
+		[PARAMLITERAL:id]
+		mac_immersive
+		[/PARAMLITERAL]
+		[PARAM:caption]
+		**슬라이더를 끌면 몰입 모드 실제 모습을 확인할 수 있습니다!**
+		[/PARAM]
+		[PARAM:image_list]
+		![](mac_immersive_1.png)
+		![](mac_immersive_2.png)
+		![](mac_immersive_3.png)
+		![](mac_immersive_4.png)
+		![](mac_immersive_5.png)
+		[/PARAM]
+	[/OBJECT]
 	[/PARAM]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
 [/OBJECT]

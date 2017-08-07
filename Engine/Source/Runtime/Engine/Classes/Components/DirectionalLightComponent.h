@@ -127,7 +127,7 @@ class ENGINE_API UDirectionalLightComponent : public ULightComponent
 	float TraceDistance;
 
 	/** The Lightmass settings for this object. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Light, meta=(ShowOnlyInnerProperties))
+	UPROPERTY(EditAnywhere, Category=Light, meta=(ShowOnlyInnerProperties))
 	struct FLightmassDirectionalLightSettings LightmassSettings;
 
 	/**

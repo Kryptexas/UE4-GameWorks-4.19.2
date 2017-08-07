@@ -13,6 +13,7 @@ FProjectDescriptor::FProjectDescriptor()
 {
 	FileVersion = EProjectDescriptorVersion::Latest;
 	EpicSampleNameHash = 0;
+	bIsEnterpriseProject = false;
 }
 
 void FProjectDescriptor::Sign(const FString& FilePath)
@@ -104,6 +105,7 @@ bool FProjectDescriptor::Read(const FJsonObject& Object, const FString& PathToPr
 	Object.TryGetStringField(TEXT("EngineAssociation"), EngineAssociation);
 	Object.TryGetStringField(TEXT("Category"), Category);
 	Object.TryGetStringField(TEXT("Description"), Description);
+	Object.TryGetBoolField(TEXT("Enterprise"), bIsEnterpriseProject);
 
 	// Read the modules
 	if(!FModuleDescriptor::ReadArray(Object, TEXT("Modules"), Modules, OutFailReason))
@@ -121,6 +123,7 @@ bool FProjectDescriptor::Read(const FJsonObject& Object, const FString& PathToPr
 	const TArray< TSharedPtr<FJsonValue> >* AdditionalPluginDirectoriesValue;
 	if (Object.TryGetArrayField(TEXT("AdditionalPluginDirectories"), AdditionalPluginDirectoriesValue))
 	{
+#if WITH_EDITOR
 		for (int32 Idx = 0; Idx < AdditionalPluginDirectoriesValue->Num(); Idx++)
 		{
 			FString AdditionalDir;
@@ -137,15 +140,12 @@ bool FProjectDescriptor::Read(const FJsonObject& Object, const FString& PathToPr
 				}
 			}
 		}
+#endif
 		// If this is a packaged build and there are additional directories, they need to be remapped to the packaged location
-		if (FPlatformProperties::RequiresCookedData() && AdditionalPluginDirectories.Num() > 0)
+		if (FPlatformProperties::RequiresCookedData() && AdditionalPluginDirectoriesValue->Num() > 0)
 		{
 			AdditionalPluginDirectories.Empty();
-			FString RemappedDir = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*(PathToProject / TEXT("../RemappedPlugins/")));
-			if (!IsRootedPath(RemappedDir))
-			{
-				RemappedDir = FPaths::ConvertRelativePathToFull(RemappedDir);
-			}
+			FString RemappedDir = FPaths::GameDir() + TEXT("../RemappedPlugins/");
 			AddPluginDirectory(RemappedDir);
 		}
 	}
@@ -203,6 +203,12 @@ void FProjectDescriptor::Write(TJsonWriter<>& Writer, const FString& PathToProje
 	Writer.WriteValue(TEXT("EngineAssociation"), EngineAssociation);
 	Writer.WriteValue(TEXT("Category"), Category);
 	Writer.WriteValue(TEXT("Description"), Description);
+
+	// Write the enterprise flag
+	if (bIsEnterpriseProject)
+	{
+		Writer.WriteValue(TEXT("Enterprise"), bIsEnterpriseProject);
+	}
 
 	// Write the module list
 	FModuleDescriptor::WriteArray(Writer, TEXT("Modules"), Modules);
@@ -274,14 +280,17 @@ void FProjectDescriptor::AddPluginDirectory(const FString& AdditionalDir)
 	check(!AdditionalDir.StartsWith(IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*FPaths::EnginePluginsDir())));
 
 	// Detect calls where the path is not absolute
-	check(IsRootedPath(AdditionalDir));
+#if WITH_EDITOR
+	checkf(IsRootedPath(AdditionalDir), TEXT("%s is not rooted"), *AdditionalDir);
+#endif
+	
 	AdditionalPluginDirectories.AddUnique(AdditionalDir);
 }
 
 void FProjectDescriptor::RemovePluginDirectory(const FString& Dir)
 {
 	// Detect calls where the path is not absolute
-	check(IsRootedPath(Dir));
+	checkf(IsRootedPath(Dir), TEXT("%s is not rooted"), *Dir);
 	AdditionalPluginDirectories.RemoveSingle(Dir);
 }
 

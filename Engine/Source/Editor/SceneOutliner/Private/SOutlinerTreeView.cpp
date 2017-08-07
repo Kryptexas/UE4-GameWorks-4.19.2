@@ -310,7 +310,7 @@ namespace SceneOutliner
 		// Update highlight 'target' effect
 		{
 			const float HighlightLeftX = HighlightRectLeftOffset;
-			const float HighlightRightX = HighlightRectRightOffset + AllottedGeometry.Size.X;
+			const float HighlightRightX = HighlightRectRightOffset + AllottedGeometry.GetLocalSize().X;
 
 			HighlightTargetLeftSpring.SetTarget( HighlightLeftX );
 			HighlightTargetRightSpring.SetTarget( HighlightRightX );
@@ -324,9 +324,9 @@ namespace SceneOutliner
 		}
 	}
 
-	int32 SSceneOutlinerTreeRow::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+	int32 SSceneOutlinerTreeRow::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 	{
-		int32 StartLayer = SMultiColumnTableRow::OnPaint( Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled );
+		int32 StartLayer = SMultiColumnTableRow::OnPaint( Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled );
 
 		const int32 TextLayer = 1;	
 
@@ -357,7 +357,7 @@ namespace SceneOutliner
 
 			// Compute the bounds offset of the highlight target from where the highlight target spring
 			// extents currently lie.  This is used to "grow" or "shrink" the highlight as needed.
-			const float LabelChangedAnimOffset = LabelChangedAnimOffsetPercent * AllottedGeometry.Size.Y;
+			const float LabelChangedAnimOffset = LabelChangedAnimOffsetPercent * AllottedGeometry.GetLocalSize().Y;
 
 			// Choose an offset amount depending on whether we're highlighting, or clearing highlight
 			const float EffectOffset = EffectAlpha * LabelChangedAnimOffset;
@@ -365,7 +365,7 @@ namespace SceneOutliner
 			const float HighlightLeftX = HighlightTargetLeftSpring.GetPosition() - EffectOffset;
 			const float HighlightRightX = HighlightTargetRightSpring.GetPosition() + EffectOffset;
 			const float HighlightTopY = 0.0f - LabelChangedAnimOffset;
-			const float HighlightBottomY = AllottedGeometry.Size.Y + EffectOffset;
+			const float HighlightBottomY = AllottedGeometry.GetLocalSize().Y + EffectOffset;
 
 			const FVector2D DrawPosition = FVector2D( HighlightLeftX, HighlightTopY );
 			const FVector2D DrawSize = FVector2D( HighlightRightX - HighlightLeftX, HighlightBottomY - HighlightTopY );
@@ -378,7 +378,6 @@ namespace SceneOutliner
 				LayerId + TextLayer,
 				AllottedGeometry.ToPaintGeometry( DrawPosition, DrawSize ),	// Position, Size, Scale
 				StyleInfo,													// Style
-				MyClippingRect,												// Clipping rect
 				DrawEffects,												// Effects to use
 				HighlightTargetColorAndOpacity );							// Color
 		}

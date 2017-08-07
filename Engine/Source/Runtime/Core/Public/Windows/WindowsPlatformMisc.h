@@ -262,6 +262,15 @@ struct CORE_API FWindowsPlatformMisc
 	static FText GetFileManagerName();
 
 	/**
+	* Returns whether WiFi connection is currently active
+	*/
+	static bool HasActiveWiFiConnection()
+	{
+		// for now return true
+		return true;
+	}
+
+	/**
 	 * Returns whether the platform is running on battery power or not.
 	 */
 	static bool IsRunningOnBattery();

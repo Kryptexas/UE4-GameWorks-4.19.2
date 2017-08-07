@@ -4,8 +4,10 @@
 
 #include "ModuleManager.h"
 
+#if WITH_WEBSOCKETS
 class IWebSocket;
 class IWebSocketsManager;
+#endif // #if WITH_WEBSOCKETS
 
 /**
  * Module for web socket implementations
@@ -18,7 +20,9 @@ public:
 
 	// FWebSocketModule
 	FWebSocketsModule()
+#if WITH_WEBSOCKETS
 		: WebSocketsManager(nullptr)
+#endif // #if WITH_WEBSOCKETS
 	{
 	}
 
@@ -38,7 +42,7 @@ public:
 	 * @param Protocols a list of protocols the client will handle.
 	 * @return new IWebSocket instance
 	 */
-	virtual TSharedRef<IWebSocket> CreateWebSocket(const FString& Url, const TArray<FString>& Protocols, const TMap<FString, FString>& UpgradeHeaders = TMap<FString, FString>());
+	TSharedRef<IWebSocket> CreateWebSocket(const FString& Url, const TArray<FString>& Protocols, const TMap<FString, FString>& UpgradeHeaders = TMap<FString, FString>());
 
 
 	/**
@@ -48,7 +52,7 @@ public:
 	 * @param Protocol an optional sub-protocol. If missing, an empty string is assumed.
 	 * @return new IWebSocket instance
 	 */
-	virtual TSharedRef<IWebSocket> CreateWebSocket(const FString& Url, const FString& Protocol = FString(), const TMap<FString, FString>& UpgradeHeaders = TMap<FString, FString>());
+	TSharedRef<IWebSocket> CreateWebSocket(const FString& Url, const FString& Protocol = FString(), const TMap<FString, FString>& UpgradeHeaders = TMap<FString, FString>());
 #endif // #if WITH_WEBSOCKETS
 
 private:
@@ -69,8 +73,12 @@ private:
 	 */
 	virtual void ShutdownModule() override;
 
-	/** Keeps track of Http requests while they are being processed */
+#if WITH_WEBSOCKETS
+	/** Manages active web sockets */
 	IWebSocketsManager* WebSocketsManager;
+	friend class FLwsWebSocketsManager;
+	friend class FLwsWebSocket;
+#endif // #if WITH_WEBSOCKETS
 
 	/** singleton for the module while loaded and available */
 	static FWebSocketsModule* Singleton;

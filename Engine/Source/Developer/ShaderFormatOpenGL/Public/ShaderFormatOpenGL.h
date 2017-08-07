@@ -23,7 +23,6 @@ enum GLSLVersion
 	GLSL_150_ES2_NOUB,	// ES2 Emulation with NoUBs
 	GLSL_150_ES3_1,	// ES3.1 Emulation
 	GLSL_ES2_IOS,
-	GLSL_150_MAC, // Apple only
 	GLSL_310_ES_EXT,
 	GLSL_ES3_1_ANDROID,
 	GLSL_SWITCH,
@@ -76,7 +75,8 @@ protected:
 
 	// Allow a subclass to perform additional work on the cross compiled source code
 	virtual bool PostProcessShaderSource(GLSLVersion Version, EShaderFrequency Frequency, const ANSICHAR* ShaderSource,
-		uint32 SourceLen, class FShaderParameterMap& ParameterMap, TMap<FString, FString>& BindingNameMap, TArray<struct FShaderCompilerError>& Errors)
+		uint32 SourceLen, class FShaderParameterMap& ParameterMap, TMap<FString, FString>& BindingNameMap, TArray<struct FShaderCompilerError>& Errors,
+		const FShaderCompilerInput& ShaderInput)
 	{
 		return true;
 	}

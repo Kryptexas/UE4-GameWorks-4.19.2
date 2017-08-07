@@ -541,6 +541,11 @@ public:
 	* @param UserIdList - list of other users in the PS4 party to send invites to
 	*/
 	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnPlayTogetherEventReceived, int32, TArray<TSharedPtr<const FUniqueNetId>>);
+
+	/**
+	 * @return The name of the online service this platform uses
+	 */
+	virtual FText GetOnlineServiceName() const = 0;
 };
 
 /** Public references to the online subsystem pointer should use this */
@@ -592,3 +597,6 @@ ONLINESUBSYSTEM_API bool IsPlayerInSessionImpl(class IOnlineSession* SessionInt,
  * @return the port if found, otherwise DEFAULT_BEACON_PORT
  */
 ONLINESUBSYSTEM_API int32 GetBeaconPortFromSessionSettings(const class FOnlineSessionSettings& SessionSettings);
+
+/** Temp solution for some hardcoded access to logged in user 0, please avoid using this */
+ONLINESUBSYSTEM_API TSharedPtr<const FUniqueNetId> GetFirstSignedInUser(IOnlineIdentityPtr IdentityInt);

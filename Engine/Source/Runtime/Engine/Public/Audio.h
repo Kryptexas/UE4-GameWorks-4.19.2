@@ -57,8 +57,6 @@ ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogAudioDebug, Display, All);
 
 #define DEFAULT_SUBTITLE_PRIORITY		10000.0f
 
-#define AUDIO_SAMPLE_RATE				48000
-
 /**
  * Some filters don't work properly with extreme values, so these are the limits 
  */
@@ -346,8 +344,6 @@ struct ENGINE_API FWaveInstance
 	float				AttenuationFilterFrequency;
 	/** Current pitch */
 	float				Pitch;
-	/** Current velocity */
-	FVector				Velocity;
 	/** Current location */
 	FVector				Location;
 	/** At what distance we start transforming into omnidirectional soundsource */

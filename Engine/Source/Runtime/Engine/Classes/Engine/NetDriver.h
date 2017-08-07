@@ -40,18 +40,54 @@ struct ENGINE_API FPacketSimulationSettings
 {
 	GENERATED_USTRUCT_BODY()
 
+	/**
+	 * When set, will cause calls to FlushNet to drop packets.
+	 * Value is treated as % of packets dropped (i.e. 0 = None, 100 = All).
+	 * No general pattern / ordering is guaranteed.
+	 * Clamped between 0 and 100.
+	 *
+	 * Works with all other settings.
+	 */
 	UPROPERTY(EditAnywhere, Category="Simulation Settings")
 	int32	PktLoss;
 
+	/**
+	 * When set, will cause calls to FlushNet to change ordering of packets at random.
+	 * Value is treated as a bool (i.e. 0 = False, anything else = True).
+	 * This works by randomly selecting packets to be delayed until a subsequent call to FlushNet.
+	 *
+	 * Takes precedence over PktDup and PktLag.
+	 */
 	UPROPERTY(EditAnywhere, Category="Simulation Settings")
 	int32	PktOrder;
 
+	/**
+	 * When set, will cause calls to FlushNet to duplicate packets.
+	 * Value is treated as % of packets duplicated (i.e. 0 = None, 100 = All).
+	 * No general pattern / ordering is guaranteed.
+	 * Clamped between 0 and 100.
+	 *
+	 * Cannot be used with PktOrder or PktLag.
+	 */
 	UPROPERTY(EditAnywhere, Category="Simulation Settings")
 	int32	PktDup;
 	
+	/**
+	 * When set, will cause calls to FlushNet to delay packets.
+	 * Value is treated as millisecond lag.
+	 *
+	 * Cannot be used with PktOrder.
+	 */
 	UPROPERTY(EditAnywhere, Category="Simulation Settings")
 	int32	PktLag;
 	
+	/**
+	 * When set, will cause PktLag to use variable lag instead of constant.
+	 * Value is treated as millisecond lag range (e.g. -GivenVariance <= 0 <= GivenVariance).
+	 * Clamped between 0 and 100.
+	 *
+	 * Can only be used when PktLag is enabled.
+	 */
 	UPROPERTY(EditAnywhere, Category="Simulation Settings")
 	int32	PktLagVariance;
 
@@ -195,6 +231,14 @@ public:
 	 */
 	UPROPERTY(Config)
 	float ConnectionTimeout;
+
+	/**
+	* A multiplier that is applied to the above values when we are running with unoptimized builds (debug)
+	* or data (uncooked). This allows us to retain normal timeout behavior while debugging without resorting
+	* to the nuclear 'notimeouts' option or bumping the values above. If ==0 multiplier = 1
+	*/
+	UPROPERTY(Config)
+	float TimeoutMultiplierForUnoptimizedBuilds;
 
 	/**
 	 * If true, ignore timeouts completely.  Should be used only in development
@@ -586,6 +630,9 @@ public:
 
 	/** Forces properties on this actor to do a compare for one frame (rather than share shadow state) */
 	ENGINE_API void ForcePropertyCompare( AActor* Actor );
+
+	/** Force this actor to be relevant for at least one update */
+	ENGINE_API void ForceActorRelevantNextUpdate(AActor* Actor);
 
 	/** Called when a spawned actor is destroyed. */
 	ENGINE_API virtual void NotifyActorDestroyed( AActor* Actor, bool IsSeamlessTravel=false );

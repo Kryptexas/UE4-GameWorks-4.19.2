@@ -7,6 +7,7 @@
 #include "BaseMeshPaintGeometryAdapter.h"
 #include "IMeshPaintGeometryAdapterFactory.h"
 
+struct FClothParameterMask_PhysMesh;
 class FReferenceCollector;
 class UMeshComponent;
 class UClothingAssetBase;
@@ -20,11 +21,18 @@ class FClothMeshPaintAdapter : public FBaseMeshPaintGeometryAdapter
 protected:
 	struct FClothAssetInfo
 	{
+		/** Begin/End for this asset's verts in the provided buffer. */
 		int32 VertexStart;
 		int32 VertexEnd;
+
+		/** Begin/End for this asset's indices in the provided buffer. */
 		int32 IndexStart;
 		int32 IndexEnd;
 
+		/** Map of index to neigbor indices */
+		TArray<TArray<int32>> NeighborMap;
+
+		/** The actual clothing asset relating to this data */
 		UClothingAsset* Asset;
 	};
 public:
@@ -70,9 +78,22 @@ public:
 	virtual void SetMaxDistanceValue(int32 VertexIndex, float Value);
 
 	/** Sets the represented clothing asset to the UClothingAssetBase retrieved from the AssetGUID */
-	virtual void SetSelectedClothingAsset(const FGuid& InAssetGuid, int32 InAssetLod);
+	virtual void SetSelectedClothingAsset(const FGuid& InAssetGuid, int32 InAssetLod, int32 InMaskIndex);
+
+	/** Gets a list of the neighbors of the specified vertex */
+	const TArray<int32>* GetVertexNeighbors(int32 InVertexIndex) const;
+
+	/** Get the current mask we're editing */
+	FClothParameterMask_PhysMesh* GetCurrentMask() const;
+
 protected:
+
+	/** Initialize adapter data ready for painting */
 	virtual bool InitializeVertexData();
+
+	/** Whether or not our current asset/lod/mask selection has a valid paintable surface */
+	bool HasValidSelection() const;
+
 protected:
 	/** (Debug) Skeletal Mesh Component this adapter represents */
 	USkeletalMeshComponent* SkeletalMeshComponent;
@@ -81,6 +102,9 @@ protected:
 
 	/** LOD index to paint to (cloth LOD data) */
 	int32 PaintingClothLODIndex;
+
+	/** Mask inside the current LOD to paint */
+	int32 PaintingClothMaskIndex;
 
 	/** Currently selected clothing asset object to paint to */
 	UClothingAssetBase* SelectedAsset;

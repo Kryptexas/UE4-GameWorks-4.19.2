@@ -103,7 +103,17 @@ namespace EpicGames.MCP.Automation
 		/// <summary>
 		/// Linux platform.
 		/// </summary>
-		Linux
+		Linux,
+
+        /// <summary>
+        /// Linux platform.
+        /// </summary>
+        IOS,
+
+        /// <summary>
+        /// Linux platform.
+        /// </summary>
+        Android
     }
 
     /// <summary>
@@ -1002,7 +1012,7 @@ namespace EpicGames.MCP.Automation
 		/// Initializes the provider.
 		/// <param name="Config">Configuration data to initialize the provider. The exact format of the data is provider specific. It might, for example, contain an API key.</param>
 		/// </summary>
-		abstract public void Init(Dictionary<string,object> Config);
+		abstract public void Init(Dictionary<string,object> Config, bool bForce = false);
 
 		/// <summary>
 		/// Retrieves a file from the cloud storage provider

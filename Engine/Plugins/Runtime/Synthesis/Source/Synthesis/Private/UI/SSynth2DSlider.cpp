@@ -25,7 +25,7 @@ void SSynth2DSlider::Construct(const SSynth2DSlider::FArguments& InDeclaration)
 	bControllerInputCaptured = false;
 }
 
-int32 SSynth2DSlider::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+int32 SSynth2DSlider::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	const float AllottedWidth = AllottedGeometry.GetLocalSize().X;
 	const float AllottedHeight = AllottedGeometry.GetLocalSize().Y;
@@ -53,7 +53,7 @@ int32 SSynth2DSlider::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedG
 	const ESlateDrawEffect DrawEffects = bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 
 	const FLinearColor FinalColorAndOpacity(InWidgetStyle.GetColorAndOpacityTint() * Style->BackgroundImage.GetTint(InWidgetStyle));
-	FSlateDrawElement::MakeBox(OutDrawElements, LayerId++, AllottedGeometry.ToPaintGeometry(), &Style->BackgroundImage, MyClippingRect, DrawEffects, FinalColorAndOpacity);
+	FSlateDrawElement::MakeBox(OutDrawElements, LayerId++, AllottedGeometry.ToPaintGeometry(), &Style->BackgroundImage, DrawEffects, FinalColorAndOpacity);
 
 	HandleTopLeftPoint = FVector2D(SliderHandleOffsetX - (HandleSize.X * SliderPercentX) + 0.5f * IndentationX,
 		SliderHandleOffsetY - (HandleSize.Y * SliderPercentY) + 0.5f * IndentationY);
@@ -64,7 +64,6 @@ int32 SSynth2DSlider::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedG
 		LayerId++,
 		SliderGeometry.ToPaintGeometry(HandleTopLeftPoint, Style->NormalThumbImage.ImageSize),
 		LockedAttribute.Get() ? &Style->DisabledThumbImage : &Style->NormalThumbImage,
-		MyClippingRect,
 		DrawEffects,
 		SliderHandleColor.Get().GetColor(InWidgetStyle) * InWidgetStyle.GetColorAndOpacityTint()
 		);

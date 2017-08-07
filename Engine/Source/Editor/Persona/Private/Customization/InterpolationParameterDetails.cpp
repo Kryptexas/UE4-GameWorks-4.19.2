@@ -16,7 +16,7 @@ void FInterpolationParameterDetails::CustomizeChildren(TSharedRef<IPropertyHandl
 	for (uint32 ChildIndex = 0; ChildIndex < NumChildren; ++ChildIndex)
 	{
 		TSharedRef<IPropertyHandle> ChildHandle = StructPropertyHandle->GetChildHandle(ChildIndex).ToSharedRef();
-		IDetailPropertyRow& Property = ChildBuilder.AddChildProperty(ChildHandle);
+		IDetailPropertyRow& Property = ChildBuilder.AddProperty(ChildHandle);
 	}
 }
 

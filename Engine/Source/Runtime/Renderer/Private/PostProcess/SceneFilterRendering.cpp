@@ -53,9 +53,9 @@ public:
 	/** Initialize the RHI for this rendering resource */
 	void InitRHI() override
 	{
-		// Indices 0 - 5 are used for rendering a quad. Indices 6 - 8 are used for triangle optimization. 
+		// Indices 0 - 5 are used for rendering a quad. Indices 6 - 8 are used for triangle optimization.
 		const uint16 Indices[] = { 0, 1, 2, 2, 1, 3, 0, 4, 5 };
-		
+
 		TResourceArray<uint16, INDEXBUFFER_ALIGNMENT> IndexBuffer;
 		uint32 NumIndices = ARRAY_COUNT(Indices);
 		IndexBuffer.AddUninitialized(NumIndices);
@@ -77,7 +77,7 @@ void FTesselatedScreenRectangleIndexBuffer::InitRHI()
 
 	uint32 NumIndices = NumPrimitives() * 3;
 	IndexBuffer.AddUninitialized(NumIndices);
-		
+
 	uint16* Out = (uint16*)IndexBuffer.GetData();
 
 	for(uint32 y = 0; y < Height; ++y)
@@ -125,13 +125,6 @@ static TGlobalResource<FTesselatedScreenRectangleIndexBuffer> GTesselatedScreenR
 TGlobalResource<FFilterVertexDeclaration> GFilterVertexDeclaration;
 /** Vertex declaration for vertex shaders that don't require any inputs (eg. generated via vertex ID). */
 TGlobalResource<FEmptyVertexDeclaration> GEmptyVertexDeclaration;
-
-/** Uniform buffer for computing the vertex positional and UV adjustments in the vertex shader. */
-BEGIN_UNIFORM_BUFFER_STRUCT( FDrawRectangleParameters,)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER( FVector4, PosScaleBias )
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER( FVector4, UVScaleBias )
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER( FVector4, InvTargetSizeAndTextureSize )
-END_UNIFORM_BUFFER_STRUCT( FDrawRectangleParameters )
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FDrawRectangleParameters,TEXT("DrawRectangleParameters"));
 
@@ -196,8 +189,8 @@ void DrawRectangle(
 	Parameters.PosScaleBias = FVector4(SizeX, SizeY, X, Y);
 	Parameters.UVScaleBias = FVector4(SizeU, SizeV, U, V);
 
-	Parameters.InvTargetSizeAndTextureSize = FVector4( 
-		1.0f / TargetSize.X, 1.0f / TargetSize.Y, 
+	Parameters.InvTargetSizeAndTextureSize = FVector4(
+		1.0f / TargetSize.X, 1.0f / TargetSize.Y,
 		1.0f / TextureSize.X, 1.0f / TextureSize.Y);
 
 	SetUniformBufferParameterImmediate(RHICmdList, VertexShader->GetVertexShader(), VertexShader->GetUniformBufferParameter<FDrawRectangleParameters>(), Parameters);

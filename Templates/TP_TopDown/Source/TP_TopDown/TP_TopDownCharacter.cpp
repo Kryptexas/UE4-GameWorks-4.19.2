@@ -8,7 +8,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
-#include "Kismet/HeadMountedDisplayFunctionLibrary.h"
+#include "HeadMountedDisplayFunctionLibrary.h"
 #include "Materials/Material.h"
 
 ATP_TopDownCharacter::ATP_TopDownCharacter()
@@ -67,7 +67,7 @@ void ATP_TopDownCharacter::Tick(float DeltaSeconds)
 			if (UWorld* World = GetWorld())
 			{
 				FHitResult HitResult;
-				FCollisionQueryParams Params;
+				FCollisionQueryParams Params(NAME_None, FCollisionQueryParams::GetUnknownStatId());
 				FVector StartLocation = TopDownCameraComponent->GetComponentLocation();
 				FVector EndLocation = TopDownCameraComponent->GetComponentRotation().Vector() * 2000.0f;
 				Params.AddIgnoredActor(this);

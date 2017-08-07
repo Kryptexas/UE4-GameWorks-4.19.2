@@ -877,14 +877,24 @@ void UPathFollowingComponent::UpdatePathSegment()
 	{
 		if (!Path->IsWaitingForRepath())
 		{
-			UE_VLOG(this, LogPathFollowing, Log, TEXT("Aborting move due to path being invelid and not waiting for repath"));
+			UE_VLOG(this, LogPathFollowing, Log, TEXT("Aborting move due to path being invalid and not waiting for repath"));
 			OnPathFinished(EPathFollowingResult::Aborted, FPathFollowingResultFlags::InvalidPath);
+			return;
 		}
-
-		return;
+		else
+		{
+			// continue with execution, if navigation is being rebuild constantly AI will get stuck with current waypoint
+			// path updates should be still coming in, even though they get invalidated right away
+			UE_VLOG(this, LogPathFollowing, Log, TEXT("Updating path points in invalid & pending path!"));
+		}
 	}
 
 	FMetaNavMeshPath* MetaNavPath = bIsUsingMetaPath ? Path->CastPath<FMetaNavMeshPath>() : nullptr;
+
+	/** it's possible that finishing this move request will result in another request
+	 *	which won't be easily detectable from this function. This simple local
+	 *	variable gives us this knowledge. */
+	const FAIRequestID MoveRequestId = GetCurrentRequestId();
 
 	// if agent has control over its movement, check finish conditions
 	const FVector CurrentLocation = MovementComp->GetActorFeetLocation();
@@ -933,10 +943,13 @@ void UPathFollowingComponent::UpdatePathSegment()
 		}
 	}
 
-	if (bCanUpdateState && Status == EPathFollowingStatus::Moving)
+	if (bCanUpdateState 
+		&& Status == EPathFollowingStatus::Moving
+		// still the same move request
+		&& MoveRequestId == GetCurrentRequestId())
 	{
 		// check waypoint switch condition in meta paths
-		if (MetaNavPath && Status == EPathFollowingStatus::Moving)
+		if (MetaNavPath)
 		{
 			MetaNavPath->ConditionalMoveToNextSection(CurrentLocation, EMetaPathUpdateReason::MoveTick);
 		}

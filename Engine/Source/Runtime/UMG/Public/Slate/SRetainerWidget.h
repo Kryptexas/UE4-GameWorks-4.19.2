@@ -87,7 +87,7 @@ public:
 
 protected:
 	// BEGIN SLeafWidget interface
-	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
+	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 	virtual FVector2D ComputeDesiredSize(float Scale) const override;
 	// END SLeafWidget interface
 
@@ -103,7 +103,6 @@ private:
 
 	mutable FGeometry CachedAllottedGeometry;
 	mutable FVector2D CachedWindowToDesktopTransform;
-	mutable FSlateRect CachedClippingRect;
 
 	FSimpleSlot EmptyChildSlot;
 

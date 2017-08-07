@@ -9,7 +9,10 @@ topic-image:Engine/Rendering/rendering_topic.png
 topic-icon:%ROOT%/docs_icon.png
 type:landing
 
+## Unreal Engine Basics
 
-## Browse Topics
+[DIR(end:"1" output:"topiccompact" parent:"Engine" path:"Engine/Basics")]
 
-[DIR(end:"1" output:"topiccompact" parent:"Engine")]
+## Systems and Features
+
+[DIR(end:"1" output:"topiccompact" parent:"Engine" path:"!Engine/Basics")]

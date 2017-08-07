@@ -11,7 +11,7 @@
 #include "Factories/Factory.h"
 #include "BlendSpaceFactoryNew.generated.h"
 
-class FAssetData;
+struct FAssetData;
 class SWindow;
 
 UCLASS(hidecategories=Object, MinimalAPI)

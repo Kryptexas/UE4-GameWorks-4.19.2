@@ -1,8 +1,12 @@
-﻿Availability:Public
+﻿INTSourceChangelist:3429227
+Availability:Public
 Title:Player Start
 Crumbs: %ROOT%, Engine, Engine/Actors
 Description:Player Start 使用のガイド
 version:4.9
+Parent:Engine/Actors/Types
+order:5
+type:overview
 
 ![](Player_Start_Actor.png)
 

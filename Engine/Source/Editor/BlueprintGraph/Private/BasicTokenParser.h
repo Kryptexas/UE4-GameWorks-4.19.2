@@ -44,7 +44,7 @@ public:
 	bool Matches(const TCHAR* Str, ESearchCase::Type SearchCase = ESearchCase::IgnoreCase) const;
 
 	/** Determines if this token has the specified string as a prefix. */
-	bool StartsWith( TCHAR const* Str, bool bCaseSensitive = false) const;
+	bool StartsWith(const TCHAR* Str, bool bCaseSensitive = false) const;
 
 	/** Determines if this token has a boolean ConstantType.*/
 	bool IsBool() const;
@@ -211,7 +211,7 @@ protected:
 	 *
 	 * @return True if a int was successfully processed, false otherwise.
 	 */
-	bool GetConstInt(int32& Result, TCHAR const* ErrorContext = NULL);
+	bool GetConstInt(int32& Result, const TCHAR* ErrorContext = NULL);
 
 	/** 
 	 * Rolls back the line number and moves the parsing pointer back to where 
@@ -262,7 +262,7 @@ protected:
 	 * Determines if the next token in the stream is an identifier that matches 
 	 * the specified string (and consumes it if it does).
 	 */
-	bool MatchIdentifier(TCHAR const* Match);
+	bool MatchIdentifier(const TCHAR* Match);
 
 	/**
 	 * Determines if the next token in the stream is an identifier that matches 
@@ -274,19 +274,19 @@ protected:
 	 * Determines if the next token in the stream is an identifier that matches 
 	 * the specified string (does NOT consume it).
 	 */
-	bool PeekIdentifier(TCHAR const* Match);
+	bool PeekIdentifier(const TCHAR* Match);
 
 	/**
 	 * Determines if the next token in the stream is a symbol that matches 
 	 * the specified string (and consumes it if it does).
 	 */
-	bool MatchSymbol(TCHAR const* Match);
+	bool MatchSymbol(const TCHAR* Match);
 
 	/**
 	 * Determines if the next token in the stream is a symbol that matches 
 	 * the specified string (does NOT consume it).
 	 */
-	bool PeekSymbol(TCHAR const* Match);
+	bool PeekSymbol(const TCHAR* Match);
 
 	//--------------------------------------
 	// Requiring checks
@@ -296,19 +296,19 @@ protected:
 	 * Ensures that the next token in the stream is an identifier that matches 
 	 * the specified name (and errors out if it isn't).
 	 */
-	bool RequireIdentifier(FName Match, TCHAR const* ErrorContext);
+	bool RequireIdentifier(FName Match, const TCHAR* ErrorContext);
 
 	/**
 	 * Ensures that the next token in the stream is an identifier that matches 
 	 * the specified string (and errors out if it isn't).
 	 */
-	bool RequireIdentifier(TCHAR const* Match, TCHAR const* ErrorContext);
+	bool RequireIdentifier(const TCHAR* Match, const TCHAR* ErrorContext);
 
 	/**
 	 * Ensures that the next token in the stream is a symbol that matches 
 	 * the specified string (and errors out if it isn't).
 	 */
-	bool RequireSymbol(TCHAR const* Match, TCHAR const* ErrorContext);
+	bool RequireSymbol(const TCHAR* Match, const TCHAR* ErrorContext);
 
 	/**
 	 * Ensures that the next token in the stream is a semi-colon character (and 
@@ -381,7 +381,7 @@ protected:
 	
 protected:
 	/** Input text */
-	TCHAR const* Input;
+	const TCHAR* Input;
 
 	/** Length of input text */
 	int32 InputLen;

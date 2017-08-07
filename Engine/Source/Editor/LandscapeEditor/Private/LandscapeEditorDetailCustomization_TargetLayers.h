@@ -76,7 +76,7 @@ protected:
 	static void OnFillLayer(const TSharedRef<FLandscapeTargetListInfo> Target);
 	static void FillEmptyLayers(ULandscapeInfo* LandscapeInfo, ULandscapeLayerInfoObject* LandscapeInfoObject);
 	static void OnClearLayer(const TSharedRef<FLandscapeTargetListInfo> Target);
-	static bool ShouldFilterLayerInfo(const class FAssetData& AssetData, FName LayerName);
+	static bool ShouldFilterLayerInfo(const struct FAssetData& AssetData, FName LayerName);
 	static void OnTargetLayerSetObject(const FAssetData& AssetData, const TSharedRef<FLandscapeTargetListInfo> Target);
 	static EVisibility GetTargetLayerInfoSelectorVisibility(const TSharedRef<FLandscapeTargetListInfo> Target);
 	static bool GetTargetLayerCreateEnabled(const TSharedRef<FLandscapeTargetListInfo> Target);

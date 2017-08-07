@@ -22,8 +22,8 @@ enum class EAbilityTaskNetSyncType : uint8
 };
 
 /** Task for providing a generic sync point for client server (one can wait for a signal from the other) */
-UCLASS(MinimalAPI)
-class UAbilityTask_NetworkSyncPoint : public UAbilityTask
+UCLASS()
+class GAMEPLAYABILITIES_API UAbilityTask_NetworkSyncPoint : public UAbilityTask
 {
 	GENERATED_UCLASS_BODY()
 

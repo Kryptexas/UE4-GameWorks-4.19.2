@@ -43,8 +43,14 @@ struct CORE_API FEditorObjectVersion
 		UPropertryForMeshSectionSerialize,
 		// Adding a version bump for the new fast widget construction in case of problems.
 		FastWidgetTemplates,
-		// Update material thumbnails to be more intelligent on default primitive shape for certian material types
+		// Update material thumbnails to be more intelligent on default primitive shape for certain material types
 		MaterialThumbnailRenderingChanges,
+		// Introducing a new clipping system for Slate/UMG
+		NewSlateClippingSystem,
+		// MovieScene Meta Data added as native Serialization
+		MovieSceneMetaDataSerialization,
+		// Text gathered from properties now adds two variants: a version without the package localization ID (for use at runtime), and a version with it (which is editor-only)
+		GatheredTextEditorOnlyPackageLocId,
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3169600
+﻿INTSourceChangelist:3454520
 Availability: Public
 Title: 온라인 비컨
 Crumbs: %ROOT%, Engine
 Description:Online Beacon, 온라인 비컨 시스템 개요입니다.
 Version: 4.13
-parent:Engine
+parent:Gameplay/Networking
 Related: Gameplay/Networking/Actors/RPCs
 Related: Gameplay/Networking/Actors/Properties
 

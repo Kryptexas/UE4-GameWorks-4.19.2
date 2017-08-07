@@ -154,7 +154,7 @@ EVisibility FWidgetNavigationCustomization::GetExplictWidgetFieldVisibility(TWea
 
 void FWidgetNavigationCustomization::MakeNavRow(TWeakPtr<IPropertyHandle> PropertyHandle, IDetailChildrenBuilder& ChildBuilder, EUINavigation Nav, FText NavName)
 {
-	ChildBuilder.AddChildContent(NavName)
+	ChildBuilder.AddCustomRow(NavName)
 		.NameContent()
 		[
 			SNew(STextBlock)

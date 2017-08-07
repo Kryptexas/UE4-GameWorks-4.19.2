@@ -37,10 +37,7 @@ namespace ETransformBlendMode
 }
 
 template<int32>
-void BlendTransform(const FTransform& Source, FTransform& Dest, const float BlendWeight)
-{
-	check(false); /// should never call this
-}
+FORCEINLINE void BlendTransform(const FTransform& Source, FTransform& Dest, const float BlendWeight);
 
 template<>
 FORCEINLINE void BlendTransform<ETransformBlendMode::Overwrite>(const FTransform& Source, FTransform& Dest, const float BlendWeight)
@@ -347,7 +344,7 @@ public:
 	 *	(ie. all bones between those in the array and the root are present). 
 	 *	Note that this must ensure the invariant that parent occur before children in BoneIndices.
 	 */
-	static void EnsureParentsPresent(TArray<FBoneIndexType>& BoneIndices, const USkeletalMesh* SkelMesh);
+	static void EnsureParentsPresent(TArray<FBoneIndexType>& BoneIndices, const FReferenceSkeleton& RefSkeleton);
 
 	static void ExcludeBonesWithNoParents(const TArray<int32>& BoneIndices, const FReferenceSkeleton& RefSkeleton, TArray<int32>& FilteredRequiredBones);
 

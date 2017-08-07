@@ -76,16 +76,22 @@ TGlobalResource<FDistanceFieldObjectBufferResource> GAOCulledObjectBuffers;
 
 void FTileIntersectionResources::InitDynamicRHI()
 {
-	TileConeAxisAndCos.Initialize(sizeof(float)* 4, TileDimensions.X * TileDimensions.Y, PF_A32B32G32R32F, BUF_Static);
-	TileConeDepthRanges.Initialize(sizeof(float)* 4, TileDimensions.X * TileDimensions.Y, PF_A32B32G32R32F, BUF_Static);
+	const uint32 FastVRamFlag = IsTransientResourceBufferAliasingEnabled() ? (BUF_FastVRAM | BUF_Transient) : BUF_None;
+	TileConeAxisAndCos.Initialize(sizeof(FVector4), TileDimensions.X * TileDimensions.Y, PF_A32B32G32R32F, BUF_Static | FastVRamFlag, TEXT("TileConeAxisAndCos"));
+	TileConeDepthRanges.Initialize(sizeof(FVector4), TileDimensions.X * TileDimensions.Y, PF_A32B32G32R32F, BUF_Static | FastVRamFlag, TEXT("TileConeDepthRanges"));
 
-	NumCulledTilesArray.Initialize(sizeof(uint32), MaxSceneObjects, PF_R32_UINT, BUF_Static);
-	CulledTilesStartOffsetArray.Initialize(sizeof(uint32), MaxSceneObjects, PF_R32_UINT, BUF_Static);
+	NumCulledTilesArray.Initialize(sizeof(uint32), MaxSceneObjects, PF_R32_UINT, BUF_Static | FastVRamFlag, TEXT("NumCulledTilesArray"));
+	CulledTilesStartOffsetArray.Initialize(sizeof(uint32), MaxSceneObjects, PF_R32_UINT, BUF_Static | FastVRamFlag, TEXT("CulledTilesStartOffsetArray"));
 
 	// Can only use 16 bit for CulledTileDataArray if few enough objects and tiles
 	const bool b16BitObjectIndices = MaxSceneObjects < (1 << 16);
 	const bool b16BitCulledTileIndexBuffer = bAllow16BitIndices && b16BitObjectIndices && TileDimensions.X * TileDimensions.Y < (1 << 16);
-	CulledTileDataArray.Initialize(b16BitCulledTileIndexBuffer ? sizeof(uint16) : sizeof(uint32), GMaxDistanceFieldObjectsPerCullTile * TileDimensions.X * TileDimensions.Y * CulledTileDataStride, b16BitCulledTileIndexBuffer ? PF_R16_UINT : PF_R32_UINT);
+	CulledTileDataArray.Initialize(
+		b16BitCulledTileIndexBuffer ? sizeof(uint16) : sizeof(uint32), 
+		GMaxDistanceFieldObjectsPerCullTile * TileDimensions.X * TileDimensions.Y * CulledTileDataStride, 
+		b16BitCulledTileIndexBuffer ? PF_R16_UINT : PF_R32_UINT, 
+		BUF_Static | FastVRamFlag, 
+		TEXT("CulledTileDataArray"));
 	ObjectTilesIndirectArguments.Initialize(sizeof(uint32), 3, PF_R32_UINT, BUF_Static | BUF_DrawIndirect);
 }
 
@@ -181,22 +187,24 @@ private:
 	FShaderParameter ObjectBoundingGeometryIndexCount;
 };
 
-IMPLEMENT_SHADER_TYPE(,FCullObjectsForViewCS,TEXT("DistanceFieldObjectCulling"),TEXT("CullObjectsForViewCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FCullObjectsForViewCS,TEXT("/Engine/Private/DistanceFieldObjectCulling.usf"),TEXT("CullObjectsForViewCS"),SF_Compute);
 
 void CullObjectsToView(FRHICommandListImmediate& RHICmdList, FScene* Scene, const FViewInfo& View, const FDistanceFieldAOParameters& Parameters, FDistanceFieldObjectBufferResource& CulledObjectBuffers)
 {
 	SCOPED_DRAW_EVENT(RHICmdList, ObjectFrustumCulling);
 
-	if (CulledObjectBuffers.Buffers.MaxObjects < Scene->DistanceFieldSceneData.NumObjectsInBuffer
+	if (!CulledObjectBuffers.IsInitialized()
+		|| CulledObjectBuffers.Buffers.MaxObjects < Scene->DistanceFieldSceneData.NumObjectsInBuffer
 		|| CulledObjectBuffers.Buffers.MaxObjects > 3 * Scene->DistanceFieldSceneData.NumObjectsInBuffer)
 	{
 		CulledObjectBuffers.Buffers.MaxObjects = Scene->DistanceFieldSceneData.NumObjectsInBuffer * 5 / 4;
-		CulledObjectBuffers.Buffers.Release();
-		CulledObjectBuffers.Buffers.Initialize();
+		CulledObjectBuffers.ReleaseResource();
+		CulledObjectBuffers.InitResource();
 	}
+	CulledObjectBuffers.Buffers.AcquireTransientResource();
 
 	{
-		ClearUAV(RHICmdList, GMaxRHIFeatureLevel, CulledObjectBuffers.Buffers.ObjectIndirectArguments, 0);
+		ClearUAV(RHICmdList, CulledObjectBuffers.Buffers.ObjectIndirectArguments, 0);
 
 		TShaderMapRef<FCullObjectsForViewCS> ComputeShader(GetGlobalShaderMap(Scene->GetFeatureLevel()));
 		RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
@@ -316,7 +324,7 @@ private:
 	FShaderResourceParameter DistanceFieldNormalSampler;
 };
 
-IMPLEMENT_SHADER_TYPE(,FBuildTileConesCS,TEXT("DistanceFieldObjectCulling"),TEXT("BuildTileConesMain"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FBuildTileConesCS,TEXT("/Engine/Private/DistanceFieldObjectCulling.usf"),TEXT("BuildTileConesMain"),SF_Compute);
 
 /**  */
 class FObjectCullVS : public FGlobalShader
@@ -376,7 +384,7 @@ private:
 	FShaderParameter ConservativeRadiusScale;
 };
 
-IMPLEMENT_SHADER_TYPE(,FObjectCullVS,TEXT("DistanceFieldObjectCulling"),TEXT("ObjectCullVS"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(,FObjectCullVS,TEXT("/Engine/Private/DistanceFieldObjectCulling.usf"),TEXT("ObjectCullVS"),SF_Vertex);
 
 template <bool bCountingPass>
 class TObjectCullPS : public FGlobalShader
@@ -458,8 +466,8 @@ private:
 	FShaderParameter NumGroups;
 };
 
-IMPLEMENT_SHADER_TYPE(template<>,TObjectCullPS<true>,TEXT("DistanceFieldObjectCulling"),TEXT("ObjectCullPS"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>,TObjectCullPS<false>,TEXT("DistanceFieldObjectCulling"),TEXT("ObjectCullPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,TObjectCullPS<true>,TEXT("/Engine/Private/DistanceFieldObjectCulling.usf"),TEXT("ObjectCullPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,TObjectCullPS<false>,TEXT("/Engine/Private/DistanceFieldObjectCulling.usf"),TEXT("ObjectCullPS"),SF_Pixel);
 
 const uint32 ComputeStartOffsetGroupSize = 64;
 
@@ -536,7 +544,7 @@ private:
 	FTileIntersectionParameters TileIntersectionParameters;
 };
 
-IMPLEMENT_SHADER_TYPE(,FComputeCulledTilesStartOffsetCS,TEXT("DistanceFieldObjectCulling"),TEXT("ComputeCulledTilesStartOffsetCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FComputeCulledTilesStartOffsetCS,TEXT("/Engine/Private/DistanceFieldObjectCulling.usf"),TEXT("ComputeCulledTilesStartOffsetCS"),SF_Compute);
 
 template<bool bCountingPass>
 void ScatterTilesToObjects(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, FIntPoint TileListGroupSize, const FDistanceFieldAOParameters& Parameters)
@@ -598,7 +606,9 @@ FIntPoint BuildTileObjectLists(FRHICommandListImmediate& RHICmdList, FScene* Sce
 
 		FTileIntersectionResources*& TileIntersectionResources = ((FSceneViewState*)View.State)->AOTileIntersectionResources;
 
-		if (!TileIntersectionResources || !TileIntersectionResources->HasAllocatedEnoughFor(TileListGroupSize, Scene->DistanceFieldSceneData.NumObjectsInBuffer))
+		if (!TileIntersectionResources 
+			|| !TileIntersectionResources->IsInitialized() 
+			|| !TileIntersectionResources->HasAllocatedEnoughFor(TileListGroupSize, Scene->DistanceFieldSceneData.NumObjectsInBuffer))
 		{
 			if (TileIntersectionResources)
 			{
@@ -608,10 +618,11 @@ FIntPoint BuildTileObjectLists(FRHICommandListImmediate& RHICmdList, FScene* Sce
 			{
 				TileIntersectionResources = new FTileIntersectionResources(!IsMetalPlatform(GShaderPlatformForFeatureLevel[View.FeatureLevel]));
 			}
-
+			
 			TileIntersectionResources->SetupParameters(TileListGroupSize, Scene->DistanceFieldSceneData.NumObjectsInBuffer);
 			TileIntersectionResources->InitResource();
 		}
+		TileIntersectionResources->AcquireTransientResource();
 
 		if (GAOScatterTileCulling)
 		{
@@ -630,7 +641,7 @@ FIntPoint BuildTileObjectLists(FRHICommandListImmediate& RHICmdList, FScene* Sce
 				SCOPED_DRAW_EVENT(RHICmdList, CountTileObjectIntersections);
 
 				// Start at 0 tiles per object
-				ClearUAV(RHICmdList, GMaxRHIFeatureLevel, TileIntersectionResources->NumCulledTilesArray, 0);
+				ClearUAV(RHICmdList, TileIntersectionResources->NumCulledTilesArray, 0);
 
 				// Rasterize object bounding shapes and intersect with screen tiles to compute how many tiles intersect each object
 				ScatterTilesToObjects<true>(RHICmdList, View, TileListGroupSize, Parameters);
@@ -639,7 +650,7 @@ FIntPoint BuildTileObjectLists(FRHICommandListImmediate& RHICmdList, FScene* Sce
 			{
 				SCOPED_DRAW_EVENT(RHICmdList, ComputeStartOffsets);
 				// Start at 0 threadgroups
-				ClearUAV(RHICmdList, GMaxRHIFeatureLevel, TileIntersectionResources->ObjectTilesIndirectArguments, 0);
+				ClearUAV(RHICmdList, TileIntersectionResources->ObjectTilesIndirectArguments, 0);
 
 				// Accumulate how many cone trace threadgroups we should dispatch, and also compute the start offset for each object's culled tile data
 				TShaderMapRef<FComputeCulledTilesStartOffsetCS> ComputeShader(View.ShaderMap);
@@ -657,7 +668,7 @@ FIntPoint BuildTileObjectLists(FRHICommandListImmediate& RHICmdList, FScene* Sce
 				SCOPED_DRAW_EVENT(RHICmdList, CullTilesToObjects);
 
 				// Start at 0 tiles per object
-				ClearUAV(RHICmdList, GMaxRHIFeatureLevel, TileIntersectionResources->NumCulledTilesArray, 0);
+				ClearUAV(RHICmdList, TileIntersectionResources->NumCulledTilesArray, 0);
 
 				// Rasterize object bounding shapes and intersect with screen tiles, and write out intersecting tile indices for the cone tracing pass
 				ScatterTilesToObjects<false>(RHICmdList, View, TileListGroupSize, Parameters);

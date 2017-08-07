@@ -20,6 +20,8 @@
 #include "DetailLayoutBuilder.h"
 #include "IContentBrowserSingleton.h"
 #include "ContentBrowserModule.h"
+#include "SlateApplication.h"
+
 
 #include "DesktopPlatformModule.h"
 
@@ -111,9 +113,10 @@ void FAutoReimportDirectoryCustomization::CustomizeHeader(TSharedRef<IPropertyHa
 	MountPointProperty = PropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FAutoReimportDirectoryConfig, MountPoint));
 	WildcardsProperty = PropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FAutoReimportDirectoryConfig, Wildcards));
 
-	FString ExistingMountPath;
-	MountPointProperty->GetValueAsFormattedString(ExistingMountPath);
-	MountPathVisibility = ExistingMountPath.IsEmpty() ? EVisibility::Collapsed : EVisibility::Visible;
+	//We do not show the MountPoint for the default /Game/ entry
+	FString SourceDirectory;
+	SourceDirProperty->GetValueAsFormattedString(SourceDirectory);
+	MountPathVisibility = SourceDirectory.Compare(TEXT("/Game/")) != 0 ? EVisibility::Visible : EVisibility::Collapsed;
 	
 	InHeaderRow
 	.NameContent()
@@ -152,7 +155,7 @@ void FAutoReimportDirectoryCustomization::CustomizeHeader(TSharedRef<IPropertyHa
 void FAutoReimportDirectoryCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> InStructPropertyHandle, IDetailChildrenBuilder& InStructBuilder, IPropertyTypeCustomizationUtils& InStructCustomizationUtils)
 {
 	{
-		FDetailWidgetRow& DetailRow = InStructBuilder.AddChildContent(LOCTEXT("MountPathName", "Mount Path"));
+		FDetailWidgetRow& DetailRow = InStructBuilder.AddCustomRow(LOCTEXT("MountPathName", "Mount Path"));
 
 		DetailRow.Visibility(TAttribute<EVisibility>(this, &FAutoReimportDirectoryCustomization::GetMountPathVisibility));
 
@@ -197,7 +200,7 @@ void FAutoReimportDirectoryCustomization::CustomizeChildren(TSharedRef<IProperty
 		];
 	}
 
-	InStructBuilder.AddChildProperty(WildcardsProperty.ToSharedRef());
+	InStructBuilder.AddProperty(WildcardsProperty.ToSharedRef());
 }
 
 TSharedRef<SWidget> FAutoReimportDirectoryCustomization::GetPathPickerContent()
@@ -232,9 +235,26 @@ TSharedRef<SWidget> FAutoReimportDirectoryCustomization::GetPathPickerContent()
 
 void FAutoReimportDirectoryCustomization::PathPickerPathSelected(const FString& FolderPath)
 {
+	//When user choose a root mount point we have to add a / at the end of the path
+	FString ApplyFolderPath = FolderPath;
+	if (FPackageName::GetPackageMountPoint(FolderPath).IsNone())
+	{
+		TArray<FString> OutRootContentPaths;
+		FPackageName::QueryRootContentPaths(OutRootContentPaths);
+		for (const FString &RootMount : OutRootContentPaths)
+		{
+			if (RootMount.Len() - FolderPath.Len() == 1 && RootMount.StartsWith(FolderPath))
+			{
+				if (RootMount.EndsWith(TEXT("/")))
+				{
+					ApplyFolderPath = RootMount;
+					break;
+				}
+			}
+		}
+	}
 	PathPickerButton->SetIsOpen(false);
-
-	MountPointProperty->SetValue(FolderPath);
+	MountPointProperty->SetValue(ApplyFolderPath);
 }
 
 EVisibility FAutoReimportDirectoryCustomization::GetMountPathVisibility() const
@@ -283,18 +303,9 @@ FReply FAutoReimportDirectoryCustomization::BrowseForFolder()
 	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 	if ( DesktopPlatform )
 	{
-		void* Window = nullptr;
-
-		// IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-		// const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-		// if ( MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid() )
-		// {
-		// 	ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
-		// }
-
 		FString FolderName;
 		const FString Title = LOCTEXT("BrowseForFolderTitle", "Choose a directory to monitor").ToString();
-		const bool bFolderSelected = DesktopPlatform->OpenDirectoryDialog(Window, Title, InitialDir, FolderName);
+		const bool bFolderSelected = DesktopPlatform->OpenDirectoryDialog(FSlateApplication::Get().FindBestParentWindowHandleForDialogs(nullptr), Title, InitialDir, FolderName);
 		if (bFolderSelected)
 		{
 			FolderName /= TEXT("");

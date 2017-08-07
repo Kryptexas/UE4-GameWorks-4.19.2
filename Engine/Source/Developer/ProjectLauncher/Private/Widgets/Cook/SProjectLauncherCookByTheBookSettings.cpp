@@ -426,6 +426,23 @@ TSharedRef<SWidget> SProjectLauncherCookByTheBookSettings::MakeComplexWidget()
 							]
 						]
 
+					+ SVerticalBox::Slot()
+						.AutoHeight()
+						.Padding(0.0f, 4.0f, 0.0f, 0.0f)
+						[
+							// stage base release pak files check box
+							SNew(SCheckBox)
+							.IsChecked(this, &SProjectLauncherCookByTheBookSettings::HandleStageBaseReleasePaksCheckBoxIsChecked)
+							.OnCheckStateChanged(this, &SProjectLauncherCookByTheBookSettings::HandleStageBaseReleasePaksCheckBoxCheckStateChanged)
+							.Padding(FMargin(4.0f, 0.0f))
+							.ToolTipText(LOCTEXT("StageBaseReleasePaksCheckBoxTooltip", "If checked, unchanged pak files present in the base release version will be staged."))
+							.Content()
+							[
+								SNew(STextBlock)
+								.Text(LOCTEXT("StageBaseReleasePaksCheckBoxText", "Stage base release pak files"))
+							]
+						]
+
 
 					// end create release version
 					//////////////////////////////////////////////////////////////////////////
@@ -448,6 +465,25 @@ TSharedRef<SWidget> SProjectLauncherCookByTheBookSettings::MakeComplexWidget()
 						]
 
 					// end generate patch options
+					//////////////////////////////////////////////////////////////////////////
+					// generate new patch level params
+					+ SVerticalBox::Slot()
+						.AutoHeight()
+						.Padding(0.0f, 4.0f, 0.0f, 0.0f)
+						[
+							SNew(SCheckBox)
+							.IsChecked(this, &SProjectLauncherCookByTheBookSettings::HandleAddPatchLevelCheckBoxIsChecked)
+							.OnCheckStateChanged(this, &SProjectLauncherCookByTheBookSettings::HandleAddPatchLevelCheckBoxCheckStateChanged)
+							.Padding(FMargin(4.0f, 0.0f))
+							.ToolTipText(LOCTEXT("AddPatchLevelCheckBoxTooltip", "If checked, a new numbered pak will be generated with patch content"))
+							.Content()
+							[
+								SNew(STextBlock)
+								.Text(LOCTEXT("AddPatchLevelCheckBoxText", "Add a new patch tier"))
+							]
+						]
+
+					// end generate new patch level options
 					//////////////////////////////////////////////////////////////////////////
 					// generate dlc options
 					+ SVerticalBox::Slot()
@@ -1622,6 +1658,28 @@ void SProjectLauncherCookByTheBookSettings::HandleGeneratePatchCheckBoxCheckStat
 	}
 }
 
+// Callback for check state changes of the 'AddPatchLevel' check box.
+void SProjectLauncherCookByTheBookSettings::HandleAddPatchLevelCheckBoxCheckStateChanged( ECheckBoxState NewState )
+{
+	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
+
+	if (SelectedProfile.IsValid())
+	{
+		SelectedProfile->SetAddPatchLevel(NewState == ECheckBoxState::Checked);
+	}
+}
+
+// Callback for check state changes of the 'StageBaseReleasePaks' check box.
+void SProjectLauncherCookByTheBookSettings::HandleStageBaseReleasePaksCheckBoxCheckStateChanged( ECheckBoxState NewState )
+{
+	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
+
+	if (SelectedProfile.IsValid())
+	{
+		SelectedProfile->SetStageBaseReleasePaks(NewState == ECheckBoxState::Checked);
+	}
+}
+
 // Callback for determining the checked state of the 'UnrealPak' check box.
 ECheckBoxState SProjectLauncherCookByTheBookSettings::HandleGeneratePatchCheckBoxIsChecked( ) const
 {
@@ -1630,6 +1688,38 @@ ECheckBoxState SProjectLauncherCookByTheBookSettings::HandleGeneratePatchCheckBo
 	if (SelectedProfile.IsValid())
 	{
 		if (SelectedProfile->IsGeneratingPatch())
+		{
+			return ECheckBoxState::Checked;
+		}
+	}
+
+	return ECheckBoxState::Unchecked;
+}
+
+// Callback for determining the checked state of the 'AddPatchLevel' check box.
+ECheckBoxState SProjectLauncherCookByTheBookSettings::HandleAddPatchLevelCheckBoxIsChecked( ) const
+{
+	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
+
+	if (SelectedProfile.IsValid())
+	{
+		if (SelectedProfile->ShouldAddPatchLevel())
+		{
+			return ECheckBoxState::Checked;
+		}
+	}
+
+	return ECheckBoxState::Unchecked;
+}
+
+// Callback for determining the checked state of the 'StageBaseReleasePaks' check box.
+ECheckBoxState SProjectLauncherCookByTheBookSettings::HandleStageBaseReleasePaksCheckBoxIsChecked( ) const
+{
+	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
+
+	if (SelectedProfile.IsValid())
+	{
+		if (SelectedProfile->ShouldStageBaseReleasePaks())
 		{
 			return ECheckBoxState::Checked;
 		}

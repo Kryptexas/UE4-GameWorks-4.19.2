@@ -1,5 +1,5 @@
-﻿INTSourceChangeList:3216146
-availability:docs
+﻿INTSourceChangeList:3259022
+availability:Public
 title:3.ブループリントの設定
 description:Height Map Painter ブループリントの作成と設定方法の説明
 crumbs:%ROOT%, Engine, Engine\Rendering\RenderTargets

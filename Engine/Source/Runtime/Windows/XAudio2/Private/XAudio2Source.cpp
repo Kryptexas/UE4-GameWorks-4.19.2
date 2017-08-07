@@ -17,6 +17,7 @@
 #include "IAudioExtensionPlugin.h"
 #include "ActiveSound.h"
 #include "Sound/AudioSettings.h"
+#include "ContentStreaming.h"
 
 /*------------------------------------------------------------------------------------
 	For muting user soundtracks during cinematics
@@ -97,7 +98,7 @@ void FXAudio2SoundSource::FreeResources( void )
 	// Release voice. Note that this will stop calling OnBufferEnd
 	if (Source)
 	{
-		AudioDevice->DeviceProperties->ReleaseSourceVoice(Source, XAudio2Buffer->PCM, MaxEffectChainChannels);
+		AudioDevice->DeviceProperties->ReleaseSourceVoice(Source, XAudio2Buffer->PCM, MaxEffectChainChannels); //-V595
 		Source = nullptr;
 	}
 
@@ -514,9 +515,6 @@ bool FXAudio2SoundSource::PrepareForInitialization(FWaveInstance* InWaveInstance
 		LPFFrequency = MAX_FILTER_FREQUENCY;
 		LastLPFFrequency = FLT_MAX;
 
-		// Reset the LPFFrequency values
-		LPFFrequency = MAX_FILTER_FREQUENCY;
-		LastLPFFrequency = FLT_MAX;
 		bIsFinished = false;
 
 		// We succeeded in preparing our xaudio2 buffer for initialization. We are technically not initialized yet.
@@ -559,6 +557,7 @@ bool FXAudio2SoundSource::Init(FWaveInstance* InWaveInstance)
 		if (CreateSource())
 		{
 			check(WaveInstance);
+
 			if (WaveInstance->StartTime > 0.0f)
 			{
 				if (WaveInstance->WaveData->bStreaming)
@@ -643,7 +642,10 @@ bool FXAudio2SoundSource::Init(FWaveInstance* InWaveInstance)
  */
 void FXAudio2SoundSource::GetChannelVolumes(float ChannelVolumes[CHANNEL_MATRIX_COUNT], float AttenuatedVolume)
 {
-	check(!bIsVirtual);
+	if (bIsVirtual)
+	{
+		return;
+	}
 
 	if (AudioDevice->IsAudioDeviceMuted())
 	{
@@ -1465,7 +1467,8 @@ void FXAudio2SoundSource::Play()
 void FXAudio2SoundSource::Stop()
 {
 	bInitialized = false;
-	
+	IStreamingManager::Get().GetAudioStreamingManager().RemoveStreamingSoundSource(this);
+
 	if( WaveInstance )
 	{	
 		Paused = false;

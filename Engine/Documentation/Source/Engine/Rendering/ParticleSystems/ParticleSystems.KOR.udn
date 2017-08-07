@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3243860
+﻿INTSourceChangelist:3429245
 Availability:Public
 Title: 파티클 시스템
 Crumbs: %ROOT%, Engine, Engine/Rendering 
@@ -9,6 +9,8 @@ parent:Engine/Rendering
 order:4
 type:landing
 tags:Particles
+related:Engine/Basics/Distributions
+related:Engine/Rendering/Materials/Editor
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -62,91 +64,19 @@ tags:Particles
 
 파티클 시스템은 각 파티클에 적용되는 여러가지 머티리얼이나 텍스처에도 밀접한 관련이 있습니다. 파티클 시스템 자체의 주요 임무는 파티클의 동작을 조절하는 것이고, 파티클 시스템 전체적인 외양과 느낌은 종종 머티리얼을 통해 조절됩니다. 그렇기에 머티리얼 관련 문서 링크도 포함시켜 뒀습니다.
 
-[REGION:topics third]
-[OBJECT:Topic]
-	[PARAM:image]
-		![](Engine/Rendering/ParticleSystems/particles_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/ParticleSystems/Overview:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/ParticleSystems/Overview:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/ParticleSystems/Overview]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/ParticleSystems/Cascade:title%](Engine/Rendering/ParticleSystems/Cascade/cascade_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/ParticleSystems/Cascade:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/ParticleSystems/Cascade:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/ParticleSystems/Cascade]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/ParticleSystems/Reference:title%](Engine/Rendering/ParticleSystems/Reference/particlereference_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/reference_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/ParticleSystems/Reference:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/ParticleSystems/Reference:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/ParticleSystems/Reference]
-	[/PARAM]
-[/OBJECT]
-[/REGION]
+## 시작하기
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/tech_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		파티클 관련
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Engine/Rendering/ParticleSystems/UserGuide "%Engine/Rendering/ParticleSystems/UserGuide:Description%")
-	* [](Engine/Rendering/ParticleSystems/LODs "%Engine/Rendering/ParticleSystems/LODs:Description%")
-	* [](Engine/Rendering/ParticleSystems/ParticleLights "%Engine/Rendering/ParticleSystems/ParticleLights:Description%")
-	[/PARAM]
-[/OBJECT]
+[DIR(output:"topic" parent:"Engine/Rendering/ParticleSystems" end:"1" org:"hierarchy" tags:"Getting Started")]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/tech_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		관련 글타래
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Engine/Basics/Distributions "%Engine/Basics/Distributions:Description%")
-	* [](Engine/Rendering/Materials/Editor "%Engine/Rendering/Materials/Editor:Description%")
-	* [](Engine/Rendering/ParticleSystems/Optimization "%Engine/Rendering/ParticleSystems/Optimization:Description%")
-	[/PARAM]
-[/OBJECT]
+## 안내서
+
+[DIR(output:"topic" parent:"Engine/Rendering/ParticleSystems" end:"1" org:"hierarchy" type:"!reference" tags:"!Getting Started")]
+
+## 참고서
+
+[DIR(output:"topic" parent:"Engine/Rendering/ParticleSystems" end:"1" org:"hierarchy" type:"reference")]
+
+
 
 
 

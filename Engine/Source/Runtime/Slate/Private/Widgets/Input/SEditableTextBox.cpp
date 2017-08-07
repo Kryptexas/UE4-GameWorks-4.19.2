@@ -57,7 +57,9 @@ void SEditableTextBox::Construct( const FArguments& InArgs )
 					.SelectAllTextOnCommit( InArgs._SelectAllTextOnCommit )
 					.OnKeyDownHandler( InArgs._OnKeyDownHandler )
 					.VirtualKeyboardType( InArgs._VirtualKeyboardType )
-					.TextShapingMethod( InArgs._TextShapingMethod )
+					.VirtualKeyboardTrigger( InArgs._VirtualKeyboardTrigger )
+					.VirtualKeyboardDismissAction( InArgs._VirtualKeyboardDismissAction )
+					.TextShapingMethod(InArgs._TextShapingMethod)
 					.TextFlowDirection( InArgs._TextFlowDirection )
 				]
 			]
@@ -168,6 +170,16 @@ void SEditableTextBox::ClearSelection()
 FText SEditableTextBox::GetSelectedText() const
 {
 	return EditableText->GetSelectedText();
+}
+
+void SEditableTextBox::GoTo(const FTextLocation& NewLocation)
+{
+	EditableText->GoTo(NewLocation);
+}
+
+void SEditableTextBox::ScrollTo(const FTextLocation& NewLocation)
+{
+	EditableText->ScrollTo(NewLocation);
 }
 
 bool SEditableTextBox::HasError() const

@@ -42,15 +42,12 @@ FMeshPaintGeometryAdapterForSkeletalMeshes::~FMeshPaintGeometryAdapterForSkeleta
 
 void FMeshPaintGeometryAdapterForSkeletalMeshes::OnSkeletalMeshChanged()
 {
+	OnRemoved();
+	ReferencedSkeletalMesh = SkeletalMeshComponent->SkeletalMesh;
 	if (SkeletalMeshComponent->SkeletalMesh != nullptr)
-	{
-		OnRemoved();
-		ReferencedSkeletalMesh = SkeletalMeshComponent->SkeletalMesh;
-		if (ReferencedSkeletalMesh)
-		{
-			Initialize();
-			OnAdded();
-		}
+	{	
+		Initialize();
+		OnAdded();
 	}	
 }
 

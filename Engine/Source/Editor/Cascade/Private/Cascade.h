@@ -370,6 +370,7 @@ private:
 	void OnAddLODBeforeCurrent();
 	void OnJumpToLowestLOD();
 	void OnDeleteLOD();
+	void OnJumpToLODIndex(int32 LODLevel);
 	void OnRefreshModule();
 	void OnSyncMaterial();
 	void OnUseMaterial();

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3467293
 Availability:Public
 Title:애니메이션 블렌드 모드
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -9,7 +9,7 @@ Related: Engine\Animation\StateMachines
 Related: Engine/UI/CurveEditor
 Related: Engine/Basics/Distributions
 Related: Engine/Animation/AnimMontage
-
+Topic-image:AnimationgBlendModes_topic.png
 
 **Animation Blend Modes** (애니메이션 블렌드 모드)로 [**스테이트 머신**](Engine\Animation\StateMachines) 내 한 상태에서 다른 상태로 전환할 때 메시의 포즈간 블렌딩 방식을 조절할 수 있습니다.
 선택할 수 있는 블렌드 모드가 여러가지 있는데, 스테이트 머신 내 **Transition Rule** (트랜지션 룰)의 **Blend Settings** (블렌드 세팅) 섹션에서 설정할 수 있습니다.

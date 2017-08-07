@@ -43,6 +43,8 @@ public:
 	virtual bool NeedsAtomicLoadStore() const override { return true; }
 	
 	virtual bool SplitInputVariableStructs() const { return false; }
+	
+	virtual bool SupportsMatrixIntrinsics() const { return true; }
 };
 
 struct FBuffers;

@@ -1,7 +1,7 @@
-﻿INTSourceChangelist:3293293
-Availability:Docs
+﻿INTSourceChangelist:3457813
+Availability:Public
 Title:3 - プロジェクトを作成する
-Crumbs:
+Crumbs:%ROOT%
 Description: UE4 で Android モバイル ゲーム プロジェクトの作成方法を説明します。
 Version:4.14
 type:quick start
@@ -10,10 +10,11 @@ order:3
 tags:Linux
 SkillLevel:Intermediate
 Checkpoint:AndroidOnLinuxQS
+Contributor:yaakuro
 
 [nav]
 
-ここまでのステップで、Android SDK のインストールto設定、Android の開発環境のセットアップ、そして Android Debug Bridge が Linux コンピューターに接続中のデバイス一覧を表示できるようになりました。 
+ここまでのステップで、Android SDK のインストールおよび設定、Android の開発環境のセットアップが完了し、Android Debug Bridge が Linux コンピューターに接続中のデバイス一覧を表示できるようになりました。 
 UE4 でモバイル プロジェクトの新規作成ができる状態になりました。
 
 ## モバイル プロジェクトを作成する

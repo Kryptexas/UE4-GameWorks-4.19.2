@@ -172,7 +172,7 @@ void FVectorFieldVisualizationVertexFactoryShaderParameters::SetMesh(FRHICommand
 	SetTextureParameter(RHICmdList, VertexShaderRHI, VectorFieldTexture, VectorFieldTextureSampler, SamplerStatePoint, VertexFactory->VectorFieldTextureRHI);
 }
 
-IMPLEMENT_VERTEX_FACTORY_TYPE(FVectorFieldVisualizationVertexFactory,"VectorFieldVisualizationVertexFactory",true,false,true,false,false);
+IMPLEMENT_VERTEX_FACTORY_TYPE(FVectorFieldVisualizationVertexFactory,"/Engine/Private/VectorFieldVisualizationVertexFactory.ush",true,false,true,false,false);
 
 /*------------------------------------------------------------------------------
 	Drawing interface.

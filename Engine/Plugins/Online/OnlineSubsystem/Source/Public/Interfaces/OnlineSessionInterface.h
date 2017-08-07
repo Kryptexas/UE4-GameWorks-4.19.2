@@ -110,6 +110,32 @@ namespace EOnJoinSessionCompleteResult
 		UnknownError
 	};
 }
+
+namespace Lex
+{
+	/** Convert a EOnJoinSessionCompleteResult into a string */
+	inline const TCHAR* ToString(const EOnJoinSessionCompleteResult::Type Value)
+	{
+		switch (Value)
+		{
+		case EOnJoinSessionCompleteResult::Success:
+			return TEXT("Success");
+		case EOnJoinSessionCompleteResult::SessionIsFull:
+			return TEXT("SessionIsFull");
+		case EOnJoinSessionCompleteResult::SessionDoesNotExist:
+			return TEXT("SessionDoesNotExist");
+		case EOnJoinSessionCompleteResult::CouldNotRetrieveAddress:
+			return TEXT("CouldNotretrieveAddress");
+		case EOnJoinSessionCompleteResult::AlreadyInSession:
+			return TEXT("AlreadyInSession");
+		case EOnJoinSessionCompleteResult::UnknownError:
+			; // Intentional fall-through
+		}
+		
+		return TEXT("UnknownError");
+	}
+}
+
 /**
  * Delegate fired when the joining process for an online session has completed
  *

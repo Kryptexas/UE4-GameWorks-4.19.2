@@ -253,7 +253,7 @@ namespace Audio
 		SpeakerMap[1] = FMath::Cos(0.5f * CurrentPan * PI);
 
 		// Get information about the buffer if there is one
-		if (Parent->SampleBuffer.IsLoaded())
+		if (Parent->SampleBuffer.GetData() != nullptr)
 		{
 			const int16* Buffer = Parent->SampleBuffer.GetData();
 			const int32 NumBufferSamples = Parent->SampleBuffer.GetNumSamples();
@@ -376,8 +376,7 @@ namespace Audio
 	}
 
 	FGranularSynth::FGranularSynth()
-		: AudioDevice(nullptr)
-		, SampleRate(0)
+		: SampleRate(0)
 		, NumChannels(0)
 		, Mode(EGranularSynthMode::Synthesis)
 		, GrainOscType(EOsc::NumOscTypes)
@@ -388,7 +387,6 @@ namespace Audio
 		, NextSpawnFrame(0)
 		, NoteDurationFrameCount(0)
 		, NoteDurationFrameEnd(0)
-		, SampleDuration(0.0f)
 		, CurrentPlayHeadFrame(0.0f)
 		, PlaybackSpeed(1.0f)
 		, NumActiveGrains(0)
@@ -401,20 +399,13 @@ namespace Audio
 
 	}
 
-	void FGranularSynth::Init(FAudioDevice* InAudioDevice, const int32 InNumInitialGrains)
+	void FGranularSynth::Init(const int32 InSampleRate, const int32 InNumInitialGrains)
 	{
 		// make sure we're not double-initializing
 		check(SampleRate == 0);
 
-		AudioDevice = InAudioDevice;
-
-		// Initialize the sample buffer with the audio device
-		SampleBuffer.Init(AudioDevice);
-
 		// Init the sample rate and channels. This is set when grains need to play.
-		SampleRate = InAudioDevice->GetSampleRate();
-
-		SampleDuration = 0.0f;
+		SampleRate = InSampleRate;
 
 		// Set the granular synth to be stereo
 		NumChannels = 2;
@@ -468,21 +459,9 @@ namespace Audio
 		}
 	}
 
-	void FGranularSynth::LoadSoundWave(USoundWave* InSoundWave, const bool bLoadAsync)
+	void FGranularSynth::LoadSampleBuffer(const FSampleBuffer& InSampleBuffer)
 	{
-		SampleDuration = 0.0f;
-		SampleBuffer.Init(AudioDevice);
-		SampleBuffer.LoadSoundWave(InSoundWave, bLoadAsync);
-	}
-
-	void FGranularSynth::UpdateSoundWaveLoading()
-	{
-		SampleBuffer.UpdateLoading();
-	}
-
-	bool FGranularSynth::IsSoundWaveLoaded() const
-	{
-		return SampleBuffer.IsLoaded();
+		SampleBuffer = InSampleBuffer;
 	}
 
 	void FGranularSynth::NoteOn(const uint32 InMidiNote, const float InVelocity, const float InDurationSec)
@@ -545,7 +524,7 @@ namespace Audio
 
 	void FGranularSynth::SeekTime(const float InTimeSec, const float LerpTimeSec, const ESeekType::Type InSeekType)
 	{
-		if (IsSoundWaveLoaded())
+		if (SampleBuffer.GetData() != nullptr)
 		{
 			float TargetPlayheadFrame = 0.0f;
 
@@ -795,7 +774,7 @@ namespace Audio
 
 	float FGranularSynth::GetSampleDuration() const
 	{
-		return SampleDuration;
+		return SampleBuffer.SampleDuration;
 	}
 
 	void FGranularSynth::Generate(TArray<float>& OutAudiobuffer, const int32 NumFrames)
@@ -803,32 +782,9 @@ namespace Audio
 		OutAudiobuffer.Reset();
 		OutAudiobuffer.AddZeroed(2 * NumFrames);
 
-		// If we're granulating, that means we're generating grains from a loaded buffer
-		if (Mode == EGranularSynthMode::Granulation)
+		if (SampleBuffer.GetData() == nullptr)
 		{
-			if (SampleBuffer.IsLoaded())
-			{
-				if (SampleBuffer.GetSampleRate() > 0)
-				{
-					SampleDuration = (float)SampleBuffer.GetNumFrames() / SampleBuffer.GetSampleRate();
-				}
-				else
-				{
-					static bool bLoggedError = false;
-					if (!bLoggedError)
-					{
-						bLoggedError = true;
-						UE_LOG(LogAudioMixer, Error, TEXT("Loaded sample buffer in FGranularSynth is reporting 0 sample rate."))
-					}
-					return;
-				}
-			}
-			else
-			{
-				// Update loading
-				SampleBuffer.UpdateLoading();
-				return;
-			}
+			return;
 		}
 
 		// If the gain envelope is done, nothing to generate

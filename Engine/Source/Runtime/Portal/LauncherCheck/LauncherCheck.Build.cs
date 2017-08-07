@@ -6,19 +6,24 @@ public class LauncherCheck : ModuleRules
 {
 	public LauncherCheck(ReadOnlyTargetRules Target) : base(Target)
 	{
+		PublicIncludePaths.Add("Runtime/Portal/LauncherCheck/Public");
+
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
 				"Core",
-                 "HTTP",
+				"HTTP",
 			}
 		);
 
-        // Need to make this an option as it pulls in a developer module
-        if (UEBuildConfiguration.bUseLauncherChecks)
+		if (UEBuildConfiguration.bUseLauncherChecks)
+		{
+			Definitions.Add("WITH_LAUNCHERCHECK=1");
+			PublicDependencyModuleNames.Add("LauncherPlatform");
+		}
+        else
         {
-            Definitions.Add("WITH_LAUNCHERCHECK=1");
-            PublicDependencyModuleNames.Add("DesktopPlatform");
+            Definitions.Add("WITH_LAUNCHERCHECK=0");
         }
     }
 }

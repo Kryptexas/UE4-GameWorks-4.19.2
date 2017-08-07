@@ -5,6 +5,7 @@
 #include "EngineGlobals.h"
 #include "ActiveSound.h"
 #include "Sound/AudioSettings.h"
+#include "Sound/SoundCue.h"
 #include "GameFramework/GameUserSettings.h"
 #include "Engine/Engine.h"
 
@@ -79,14 +80,13 @@ void USoundNodeQualityLevel::ParseNodes( FAudioDevice* AudioDevice, const UPTRIN
 	}
 	else
 	{
-		static const int32 CachedQualityLevel = GEngine->GetGameUserSettings()->GetAudioQualityLevel();
-		QualityLevel = CachedQualityLevel;
+		QualityLevel = USoundCue::GetCachedQualityLevel();
 	}
 #else
-	static const int32 QualityLevel = GEngine->GetGameUserSettings()->GetAudioQualityLevel();
+	const int32 QualityLevel = USoundCue::GetCachedQualityLevel();
 #endif
 
-	if (QualityLevel < ChildNodes.Num() && ChildNodes[QualityLevel])
+	if (ChildNodes.IsValidIndex(QualityLevel) && ChildNodes[QualityLevel])
 	{
 		ChildNodes[QualityLevel]->ParseNodes( AudioDevice, GetNodeWaveInstanceHash(NodeWaveInstanceHash, ChildNodes[QualityLevel], QualityLevel), ActiveSound, ParseParams, WaveInstances );
 	}

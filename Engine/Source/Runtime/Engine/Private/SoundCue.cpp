@@ -5,6 +5,7 @@
 #include "EngineDefines.h"
 #include "EngineGlobals.h"
 #include "Engine/Engine.h"
+#include "Misc/CoreDelegates.h"
 #include "Components/AudioComponent.h"
 #include "UObject/UObjectIterator.h"
 #include "EngineUtils.h"
@@ -29,6 +30,8 @@
 	USoundCue implementation.
 -----------------------------------------------------------------------------*/
 
+int32 USoundCue::CachedQualityLevel = -1;
+
 #if WITH_EDITOR
 TSharedPtr<ISoundCueAudioEditor> USoundCue::SoundCueAudioEditor = nullptr;
 #endif
@@ -38,6 +41,7 @@ USoundCue::USoundCue(const FObjectInitializer& ObjectInitializer)
 {
 	VolumeMultiplier = 0.75f;
 	PitchMultiplier = 1.0f;
+	SubtitlePriority = DEFAULT_SUBTITLE_PRIORITY;
 }
 
 #if WITH_EDITOR
@@ -115,19 +119,19 @@ void USoundCue::PostLoad()
 	}
 	else
 #endif
-	if (GEngine)
+	if (GEngine && *GEngine->GameUserSettingsClass)
 	{
 		EvaluateNodes(false);
 	}
 	else
 	{
-		OnPostEngineInitHandle = UEngine::OnPostEngineInit.AddUObject(this, &USoundCue::OnPostEngineInit);
+		OnPostEngineInitHandle = FCoreDelegates::OnPostEngineInit.AddUObject(this, &USoundCue::OnPostEngineInit);
 	}
 }
 
 void USoundCue::OnPostEngineInit()
 {
-	UEngine::OnPostEngineInit.Remove(OnPostEngineInitHandle);
+	FCoreDelegates::OnPostEngineInit.Remove(OnPostEngineInitHandle);
 	OnPostEngineInitHandle.Reset();
 
 	EvaluateNodes(true);
@@ -135,6 +139,11 @@ void USoundCue::OnPostEngineInit()
 
 void USoundCue::EvaluateNodes(bool bAddToRoot)
 {
+	if (CachedQualityLevel == -1)
+	{
+		CachedQualityLevel = GEngine->GetGameUserSettings()->GetAudioQualityLevel();
+	}
+
 	TArray<USoundNode*> NodesToEvaluate;
 	NodesToEvaluate.Push(FirstNode);
 
@@ -148,8 +157,6 @@ void USoundCue::EvaluateNodes(bool bAddToRoot)
 			}
 			else if (USoundNodeQualityLevel* QualityLevelNode = Cast<USoundNodeQualityLevel>(SoundNode))
 			{
-				// Only pick the node connected for current quality, currently don't support changing audio quality on the fly
-				static const int32 CachedQualityLevel = GEngine->GetGameUserSettings()->GetAudioQualityLevel();
 				if (CachedQualityLevel < QualityLevelNode->ChildNodes.Num())
 				{
 					NodesToEvaluate.Add(QualityLevelNode->ChildNodes[CachedQualityLevel]);
@@ -233,6 +240,48 @@ bool USoundCue::FindPathToNode(const UPTRINT NodeHashToFind, TArray<USoundNode*>
 	return RecursiveFindPathToNode(FirstNode, (UPTRINT)FirstNode, NodeHashToFind, OutPath);
 }
 
+void USoundCue::StaticAudioQualityChanged(int32 NewQualityLevel)
+{
+	CachedQualityLevel = NewQualityLevel;
+
+	if (GEngine)
+	{
+		for (TObjectIterator<USoundCue> SoundCueIt; SoundCueIt; ++SoundCueIt)
+		{
+			SoundCueIt->AudioQualityChanged();
+		}
+	}
+	else
+	{
+		// PostLoad should have set up the delegate to fire EvaluateNodes once GEngine is initialized
+	}
+}
+
+void USoundCue::AudioQualityChanged()
+{
+	// First clear any references to assets that were loaded in the old child nodes
+	TArray<USoundNode*> NodesToClearReferences;
+	NodesToClearReferences.Push(FirstNode);
+
+	while (NodesToClearReferences.Num() > 0)
+	{
+		if (USoundNode* SoundNode = NodesToClearReferences.Pop(false))
+		{
+			if (USoundNodeAssetReferencer* AssetReferencerNode = Cast<USoundNodeAssetReferencer>(SoundNode))
+			{
+				AssetReferencerNode->ClearAssetReferences();
+			}
+			else
+			{
+				NodesToClearReferences.Append(SoundNode->ChildNodes);
+			}
+		}
+	}
+
+	// Now re-evaluate the nodes to reassign the references to any objects that are still legitimately
+	// referenced and load any new assets that are now referenced that were not previously
+	EvaluateNodes(false);
+}
 
 FString USoundCue::GetDesc()
 {
@@ -398,6 +447,11 @@ const FSoundAttenuationSettings* USoundCue::GetAttenuationSettingsToApply() cons
 		return &AttenuationOverrides;
 	}
 	return Super::GetAttenuationSettingsToApply();
+}
+
+float USoundCue::GetSubtitlePriority() const
+{
+	return SubtitlePriority;
 }
 
 #if WITH_EDITOR

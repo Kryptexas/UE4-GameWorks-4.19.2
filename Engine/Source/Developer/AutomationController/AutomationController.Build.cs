@@ -17,7 +17,8 @@ namespace UnrealBuildTool.Rules
 			PrivateDependencyModuleNames.AddRange(
 				new string[]
 				{
-					"AutomationMessages",
+                    "AssetRegistry",
+                    "AutomationMessages",
 					"UnrealEdMessages",
                     "MessageLog",
                     "Json",

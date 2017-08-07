@@ -15,6 +15,7 @@ struct FMessageLogInitializationOptions
 		, bAllowClear(true)
 		, bDiscardDuplicates(false)
 		, MaxPageCount(20)
+		, bShowInLogWindow(true)
 	{}
 
 	/** Whether to show the filters menu */
@@ -38,4 +39,7 @@ struct FMessageLogInitializationOptions
 
 	/** The maximum number of pages this log can hold. Pages are managed in a first in, last out manner */
 	uint32 MaxPageCount;
+
+	/** Whether to show this log in the main log window */
+	bool bShowInLogWindow;
 };

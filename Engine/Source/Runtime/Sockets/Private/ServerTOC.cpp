@@ -34,24 +34,49 @@ void FServerTOC::AddFileOrDirectory(const FString& Filename, const FDateTime& Ti
 	ServerPathDirectory->Add(Filename, Timestamp);
 }
 
-FDateTime* FServerTOC::FindFile(const FString& Filename)
+int32 FServerTOC::RemoveFileOrDirectory(const FString& Filename )
 {
-	FDateTime* Result = NULL;
+	const FString Path = FPaths::GetPath( Filename );
+	FDirectory* ServerPathDirectory = FindDirectory(Path);
+	if ( ServerPathDirectory != NULL )
+	{
+		return ServerPathDirectory->Remove(Filename);
+	}
+	return 0;
+}
+
+
+const FDateTime* FServerTOC::FindFile(const FString& Filename) const
+{
+	const FDateTime* Result = NULL;
 	// Find a directory first.
 	const FString Path = FPaths::GetPath(Filename);
-	FDirectory** FoundDirectory = Directories.Find(Path);
+	const FDirectory*const* FoundDirectory = Directories.Find(Path);
 	if (FoundDirectory != NULL)
 	{
 		// Find a file inside this directory.
-		FDirectory* Directory = *FoundDirectory;
+		const FDirectory* Directory = *FoundDirectory;
 		Result = Directory->Find(Filename);		
 	}
 	return Result;
 }
 
-FServerTOC::FDirectory* FServerTOC::FindDirectory(const FString& Directory)
+FServerTOC::FDirectory* FServerTOC::FindDirectory(const FString& Directory) 
 {
 	FDirectory** FoundDirectory = Directories.Find(Directory);
+	if (FoundDirectory != NULL)
+	{
+		return *FoundDirectory;
+	}
+	else
+	{
+		return NULL;
+	}
+}
+
+const FServerTOC::FDirectory* FServerTOC::FindDirectory(const FString& Directory) const
+{
+	const FDirectory*const* FoundDirectory = Directories.Find(Directory);
 	if (FoundDirectory != NULL)
 	{
 		return *FoundDirectory;

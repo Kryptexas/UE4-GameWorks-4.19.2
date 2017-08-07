@@ -165,7 +165,7 @@ private:
 	/** Output indices buffer. */
 	FShaderResourceParameter OutParticleIndices;
 };
-IMPLEMENT_SHADER_TYPE(,FParticleSortKeyGenCS,TEXT("ParticleSortKeyGen"),TEXT("GenerateParticleSortKeys"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FParticleSortKeyGenCS,TEXT("/Engine/Private/ParticleSortKeyGen.usf"),TEXT("GenerateParticleSortKeys"),SF_Compute);
 
 /**
  * Generate sort keys for a list of particles.

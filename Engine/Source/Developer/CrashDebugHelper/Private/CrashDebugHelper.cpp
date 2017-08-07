@@ -13,12 +13,14 @@
 #include "CrashDebugPDBCache.h"
 
 #include "Misc/EngineVersion.h"
+#if UE_EDITOR || IS_PROGRAM
 #include "ISourceControlOperation.h"
 #include "SourceControlOperations.h"
 #include "ISourceControlRevision.h"
 #include "ISourceControlProvider.h"
 #include "ISourceControlModule.h"
 #include "ISourceControlLabel.h"
+#endif
 
 #ifndef MINIDUMPDIAGNOSTICS
 	#define MINIDUMPDIAGNOSTICS	0
@@ -270,6 +272,7 @@ bool ICrashDebugHelper::InitSourceControl(bool bShowLogin)
 		return false;
 	}
 
+#if UE_EDITOR || IS_PROGRAM
 	// Initialize the source control if it hasn't already been
 	if( !ISourceControlModule::Get().IsEnabled() || !ISourceControlModule::Get().GetProvider().IsAvailable() )
 	{
@@ -293,6 +296,7 @@ bool ICrashDebugHelper::InitSourceControl(bool bShowLogin)
 			return false;
 		}
 	}
+#endif
 
 	return true;
 }
@@ -302,7 +306,9 @@ bool ICrashDebugHelper::InitSourceControl(bool bShowLogin)
  */
 void ICrashDebugHelper::ShutdownSourceControl()
 {
+#if UE_EDITOR || IS_PROGRAM
 	ISourceControlModule::Get().GetProvider().Close();
+#endif
 }
 
 
@@ -372,6 +378,7 @@ bool ICrashDebugHelper::SyncModules(bool& bOutPDBCacheEntryValid)
 	else
 	{
 		// Command line for blocking obsolete path
+#if UE_EDITOR || IS_PROGRAM
 		const bool bNoP4Symbols = FParse::Param(FCommandLine::Get(), TEXT("NoP4Symbols"));
 
 		// Check source control
@@ -546,6 +553,7 @@ bool ICrashDebugHelper::SyncModules(bool& bOutPDBCacheEntryValid)
 			UE_LOG(LogCrashDebugHelper, Error, TEXT("Could not find label: %s"), *CrashInfo.LabelName);
 			return false;
 		}
+#endif
 	}
 
 	bOutPDBCacheEntryValid = CrashInfo.PDBCacheEntry.IsValid() && CrashInfo.PDBCacheEntry->Files.Num() > 0;
@@ -554,6 +562,7 @@ bool ICrashDebugHelper::SyncModules(bool& bOutPDBCacheEntryValid)
 
 bool ICrashDebugHelper::SyncSourceFile()
 {
+#if UE_EDITOR || IS_PROGRAM
 	// Check source control
 	if( !ISourceControlModule::Get().IsEnabled() )
 	{
@@ -565,6 +574,7 @@ bool ICrashDebugHelper::SyncSourceFile()
 	ISourceControlModule::Get().GetProvider().Execute(ISourceControlOperation::Create<FSync>(), DepotPath);
 
 	UE_LOG( LogCrashDebugHelper, Warning, TEXT( "Syncing a single source file: %s"), *DepotPath );
+#endif
 
 	return true;
 }
@@ -644,6 +654,7 @@ bool ICrashDebugHelper::AddAnnotatedSourceToReport()
 	// Make sure we have a source file to interrogate
 	if( CrashInfo.SourceFile.Len() > 0 && CrashInfo.SourceLineNumber != 0 && !CrashInfo.LabelName.IsEmpty() )
 	{
+#if UE_EDITOR || IS_PROGRAM
 		// Check source control
 		if( !ISourceControlModule::Get().IsEnabled() )
 		{
@@ -671,6 +682,7 @@ bool ICrashDebugHelper::AddAnnotatedSourceToReport()
 				CrashInfo.SourceContext.Add( FString::Printf( TEXT( "%5u       %20s: %s" ), Line, *Lines[Line].UserName, *Lines[Line].Line ) );
 			}
 		}
+#endif
 		return true;
 	}
 
@@ -915,6 +927,7 @@ void ICrashDebugHelper::FindSymbolsAndBinariesStorage()
 		const FString LabelWithCL = SourceControlBuildLabelPattern.Replace( TEXT( "%CHANGELISTNUMBER%" ), *ChangelistString, ESearchCase::CaseSensitive );
 		UE_LOG( LogCrashDebugHelper, Log, TEXT( "Label matching pattern: %s" ), *LabelWithCL );
 
+#if UE_EDITOR || IS_PROGRAM
 		TArray< TSharedRef<ISourceControlLabel> > Labels = ISourceControlModule::Get().GetProvider().GetLabels( LabelWithCL );
 		if( Labels.Num() > 0 )
 		{
@@ -931,5 +944,6 @@ void ICrashDebugHelper::FindSymbolsAndBinariesStorage()
 				UE_LOG( LogCrashDebugHelper, Log, TEXT( "Using label: %s" ), *CrashInfo.LabelName );
 			}		
 		}
+#endif
 	}
 }

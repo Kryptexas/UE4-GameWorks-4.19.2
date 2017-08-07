@@ -47,6 +47,7 @@ class UK2Node_Timeline : public UK2Node
 
 	//~ Begin UEdGraphNode Interface.
 	virtual void AllocateDefaultPins() override;
+	virtual void PreloadRequiredAssets() override;
 	virtual void DestroyNode() override;
 	virtual void PostPasteNode() override;
 	virtual void PrepareForCopying() override;

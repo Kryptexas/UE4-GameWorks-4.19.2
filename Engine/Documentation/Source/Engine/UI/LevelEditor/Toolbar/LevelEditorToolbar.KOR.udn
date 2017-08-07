@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3275202
+﻿INTSourceChangelist:3467293
 Availability:Public
 Title:레벨 에디터 툴바
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
 Description:흔히 사용되는 툴과 기능을 빠르게 사용할 수 있는 명령 모음입니다.
 Version: 4.9
+topic-image:LevelEditorToolbar_topic.png
 
 **툴바** 패널은 대부분의 어플리케이션과 마찬가지로 흔히 사용되는 툴과 기능을 빠르게 사용할 수 있도록 해 주는 명령 모음입니다.
 

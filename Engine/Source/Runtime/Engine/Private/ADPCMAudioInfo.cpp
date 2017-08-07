@@ -36,7 +36,6 @@ void FADPCMAudioInfo::SeekToTime(const float SeekTime)
 	{
 		CurrentUncompressedBlockSampleIndex = UncompressedBlockSize / sizeof(uint16);
 		CurrentCompressedBlockIndex = 0;
-		TotalSamplesStreamed = 0;
 	
 		CurrentUncompressedBlockSampleIndex = 0;
 		CurrentChunkIndex = 0;

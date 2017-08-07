@@ -655,6 +655,14 @@ enum EShadowDepthCacheMode
 	SDCM_Uncached
 };
 
+inline bool IsShadowCacheModeOcclusionQueryable(EShadowDepthCacheMode CacheMode)
+{
+	// SDCM_StaticPrimitivesOnly shadowmaps are emitted randomly as the cache needs to be updated,
+	// And therefore not appropriate for occlusion queries which are latent and therefore need to be stable.
+	// Only one the cache modes from ComputeWholeSceneShadowCacheModes should be queryable
+	return CacheMode != SDCM_StaticPrimitivesOnly;
+}
+
 class FShadowMapRenderTargets
 {
 public:
@@ -881,7 +889,7 @@ public:
 	void BeginRenderRayTracedDistanceFieldProjection(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);
 
 	/** Renders ray traced distance field shadows. */
-	void RenderRayTracedDistanceFieldProjection(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View, bool bProjectingForForwardShading);
+	void RenderRayTracedDistanceFieldProjection(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View, IPooledRenderTarget* ScreenShadowMaskTexture, bool bProjectingForForwardShading);
 
 	/** Render one pass point light shadow projections. */
 	void RenderOnePassPointLightProjection(FRHICommandListImmediate& RHICmdList, int32 ViewIndex, const FViewInfo& View, bool bProjectingForForwardShading) const;
@@ -894,7 +902,7 @@ public:
 	/**
 	 * Adds a primitive to the shadow's subject list.
 	 */
-	void AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, TArray<FViewInfo>* ViewArray, bool bRecordShadowSubjectForMobileShading);
+	void AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, TArray<FViewInfo>* ViewArray, ERHIFeatureLevel::Type FeatureLevel, bool bRecordShadowSubjectForMobileShading);
 
 	/**
 	* @return TRUE if this shadow info has any casting subject prims to render
@@ -1068,7 +1076,7 @@ private:
 
 	friend class FShadowDepthVS;
 	template <bool bRenderingReflectiveShadowMaps> friend class TShadowDepthBasePS;
-	friend class FShadowProjectionVS;
+	friend class FShadowVolumeBoundProjectionVS;
 	friend class FShadowProjectionPS;
 	friend class FShadowDepthDrawingPolicyFactory;
 };
@@ -1191,15 +1199,30 @@ private:
 };
 
 /**
+* A generic vertex shader for projecting a shadow depth buffer onto the scene.
+*/
+class FShadowProjectionVertexShaderInterface : public FGlobalShader
+{
+public:
+	FShadowProjectionVertexShaderInterface() {}
+	FShadowProjectionVertexShaderInterface(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		: FGlobalShader(Initializer)
+	{ }
+
+	virtual void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FProjectedShadowInfo* ShadowInfo) = 0;
+};
+
+/**
 * A vertex shader for projecting a shadow depth buffer onto the scene.
 */
-class FShadowProjectionVS : public FGlobalShader
+class FShadowVolumeBoundProjectionVS : public FShadowProjectionVertexShaderInterface
 {
-	DECLARE_SHADER_TYPE(FShadowProjectionVS,Global);
+	DECLARE_SHADER_TYPE(FShadowVolumeBoundProjectionVS,Global);
 public:
 
-	FShadowProjectionVS() {}
-	FShadowProjectionVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) : FGlobalShader(Initializer) 
+	FShadowVolumeBoundProjectionVS() {}
+	FShadowVolumeBoundProjectionVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		: FShadowProjectionVertexShaderInterface(Initializer) 
 	{
 		StencilingGeometryParameters.Bind(Initializer.ParameterMap);
 	}
@@ -1208,11 +1231,11 @@ public:
 	
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FShadowProjectionVertexShaderInterface::ModifyCompilationEnvironment(Platform, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("USE_TRANSFORM"), (uint32)1);
 	}
 
-	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FProjectedShadowInfo* ShadowInfo);
+	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FProjectedShadowInfo* ShadowInfo) override;
 
 	//~ Begin FShader Interface
 	virtual bool Serialize(FArchive& Ar) override
@@ -1227,13 +1250,13 @@ private:
 	FStencilingGeometryShaderParameters StencilingGeometryParameters;
 };
 
-class FShadowProjectionNoTransformVS : public FGlobalShader
+class FShadowProjectionNoTransformVS : public FShadowProjectionVertexShaderInterface
 {
 	DECLARE_SHADER_TYPE(FShadowProjectionNoTransformVS,Global);
 public:
 	FShadowProjectionNoTransformVS() {}
 	FShadowProjectionNoTransformVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
-		: FGlobalShader(Initializer) 
+		: FShadowProjectionVertexShaderInterface(Initializer) 
 	{
 	}
 
@@ -1243,7 +1266,7 @@ public:
 	 */
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FShadowProjectionVertexShaderInterface::ModifyCompilationEnvironment(Platform, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("USE_TRANSFORM"), (uint32)0);
 	}
 
@@ -1252,9 +1275,14 @@ public:
 		return true;
 	}
 
-	inline void SetParameters(FRHICommandList& RHICmdList, const FUniformBufferRHIParamRef ViewUniformBuffer)
+	void SetParameters(FRHICommandList& RHICmdList, const FUniformBufferRHIParamRef ViewUniformBuffer)
 	{
 		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, GetVertexShader(), ViewUniformBuffer);
+	}
+
+	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FProjectedShadowInfo*) override
+	{
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, GetVertexShader(), View.ViewUniformBuffer);
 	}
 };
 
@@ -1327,21 +1355,23 @@ public:
 
 		const FIntPoint ShadowBufferResolution = ShadowInfo->GetShadowBufferResolution();
 
+		if (ShadowTileOffsetAndSizeParam.IsBound())
+		{
+			FVector2D InverseShadowBufferResolution(1.0f / ShadowBufferResolution.X, 1.0f / ShadowBufferResolution.Y);
+			FVector4 ShadowTileOffsetAndSize(
+				(ShadowInfo->BorderSize + ShadowInfo->X) * InverseShadowBufferResolution.X,
+				(ShadowInfo->BorderSize + ShadowInfo->Y) * InverseShadowBufferResolution.Y,
+				ShadowInfo->ResolutionX * InverseShadowBufferResolution.X,
+				ShadowInfo->ResolutionY * InverseShadowBufferResolution.Y);
+			SetShaderValue(RHICmdList, ShaderRHI, ShadowTileOffsetAndSizeParam, ShadowTileOffsetAndSize);
+		}
+
 		// Set the transform from screen coordinates to shadow depth texture coordinates.
 		if (bModulatedShadows)
 		{
 			// UE-29083 : work around precision issues with ScreenToShadowMatrix on low end devices.
 			const FMatrix ScreenToShadow = ShadowInfo->GetScreenToShadowMatrix(View, 0, 0, ShadowBufferResolution.X, ShadowBufferResolution.Y);
 			SetShaderValue(RHICmdList, ShaderRHI, ScreenToShadowMatrix, ScreenToShadow);
-
-			FVector2D InverseShadowBufferResolution(1.0f/ShadowBufferResolution.X, 1.0f/ShadowBufferResolution.Y);	
-			FVector4 ShadowTileOffsetAndSize(
-				(ShadowInfo->BorderSize + ShadowInfo->X) * InverseShadowBufferResolution.X,
-				(ShadowInfo->BorderSize + ShadowInfo->Y) * InverseShadowBufferResolution.Y,
-				ShadowInfo->ResolutionX * InverseShadowBufferResolution.X,
-				ShadowInfo->ResolutionY * InverseShadowBufferResolution.Y);
-
-			SetShaderValue(RHICmdList, ShaderRHI, ShadowTileOffsetAndSizeParam, ShadowTileOffsetAndSize);
 		}
 		else
 		{
@@ -1885,6 +1915,72 @@ struct FShadowProjectionMatrix: FMatrix
 		)
 	{}
 };
+
+
+/** Pixel shader to project directional PCSS onto the scene. */
+template<uint32 Quality, bool bUseFadePlane>
+class TDirectionalPercentageCloserShadowProjectionPS : public TShadowProjectionPS<Quality, bUseFadePlane>
+{
+	DECLARE_SHADER_TYPE(TDirectionalPercentageCloserShadowProjectionPS, Global);
+public:
+
+	TDirectionalPercentageCloserShadowProjectionPS() {}
+	TDirectionalPercentageCloserShadowProjectionPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) :
+		TShadowProjectionPS<Quality, bUseFadePlane>(Initializer)
+	{
+		PCSSParameters.Bind(Initializer.ParameterMap, TEXT("PCSSParameters"));
+	}
+
+	static bool ShouldCache(EShaderPlatform Platform)
+	{
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && Platform == SP_PCD3D_SM5;
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		TShadowProjectionPS<Quality, bUseFadePlane>::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		OutEnvironment.SetDefine(TEXT("USE_PCSS"), 1);
+	}
+
+	virtual void SetParameters(
+		FRHICommandList& RHICmdList,
+		int32 ViewIndex,
+		const FSceneView& View,
+		const FProjectedShadowInfo* ShadowInfo) override
+	{
+		TShadowProjectionPS<Quality, bUseFadePlane>::SetParameters(RHICmdList, ViewIndex, View, ShadowInfo);
+
+		const FPixelShaderRHIParamRef ShaderRHI = this->GetPixelShader();
+
+		// GetLightSourceAngle returns the full angle.
+		float TanLightSourceAngle = FMath::Tan(0.5 * FMath::DegreesToRadians(ShadowInfo->GetLightSceneInfo().Proxy->GetLightSourceAngle()));
+
+		static IConsoleVariable* CVarMaxSoftShadowKernelSize = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shadow.MaxSoftKernelSize"));
+		check(CVarMaxSoftShadowKernelSize);
+		int32 MaxKernelSize = CVarMaxSoftShadowKernelSize->GetInt();
+
+		float SW = 2.0 * ShadowInfo->ShadowBounds.W;
+		float SZ = ShadowInfo->MaxSubjectZ - ShadowInfo->MinSubjectZ;
+
+		FVector4 PCSSParameterValues = FVector4(TanLightSourceAngle * SZ / SW, MaxKernelSize / float(ShadowInfo->ResolutionX), 0, 0);
+		SetShaderValue(RHICmdList, ShaderRHI, PCSSParameters, PCSSParameterValues);
+	}
+
+	/**
+	* Serialize the parameters for this shader
+	* @param Ar - archive to serialize to
+	*/
+	virtual bool Serialize(FArchive& Ar) override
+	{
+		bool bShaderHasOutdatedParameters = TShadowProjectionPS<Quality, bUseFadePlane>::Serialize(Ar);
+		Ar << PCSSParameters;
+		return bShaderHasOutdatedParameters;
+	}
+
+protected:
+	FShaderParameter PCSSParameters;
+};
+
 
 // Sort by descending resolution
 struct FCompareFProjectedShadowInfoByResolution

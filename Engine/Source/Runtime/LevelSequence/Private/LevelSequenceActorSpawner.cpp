@@ -31,24 +31,29 @@ UObject* FLevelSequenceActorSpawner::SpawnObject(FMovieSceneSpawnable& Spawnable
 	// @todo sequencer: We should probably spawn these in a specific sub-level!
 	// World->CurrentLevel = ???;
 
-	const FName ActorName = NAME_None;
-
 	const EObjectFlags ObjectFlags = RF_Transient;
 
 	// @todo sequencer livecapture: Consider using SetPlayInEditorWorld() and RestoreEditorWorld() here instead
 	
 	// @todo sequencer actors: We need to make sure puppet objects aren't copied into PIE/SIE sessions!  They should be omitted from that duplication!
 
+	UWorld* WorldContext = Cast<UWorld>(Player.GetPlaybackContext());
+	if(WorldContext == nullptr)
+	{
+		WorldContext = GWorld;
+	}
+
 	// Spawn the puppet actor
 	FActorSpawnParameters SpawnInfo;
 	{
-		SpawnInfo.Name = ActorName;
+		SpawnInfo.Name = NAME_None;
 		SpawnInfo.ObjectFlags = ObjectFlags;
 		SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 		// @todo: Spawning with a non-CDO template is fraught with issues
 		//SpawnInfo.Template = ObjectTemplate;
 		// allow pre-construction variables to be set.
 		SpawnInfo.bDeferConstruction = true;
+		SpawnInfo.OverrideLevel = WorldContext->PersistentLevel;
 	}
 
 	FTransform SpawnTransform;
@@ -68,12 +73,6 @@ UObject* FLevelSequenceActorSpawner::SpawnObject(FMovieSceneSpawnable& Spawnable
 		}
 	}
 
-	UWorld* WorldContext = Cast<UWorld>(Player.GetPlaybackContext());
-	if(WorldContext == nullptr)
-	{
-		WorldContext = GWorld;
-	}
-
 	AActor* SpawnedActor = WorldContext->SpawnActorAbsolute(ObjectTemplate->GetClass(), SpawnTransform, SpawnInfo);
 	if (!SpawnedActor)
 	{
@@ -86,6 +85,9 @@ UObject* FLevelSequenceActorSpawner::SpawnObject(FMovieSceneSpawnable& Spawnable
 	UEngine::CopyPropertiesForUnrelatedObjects(ObjectTemplate, SpawnedActor, CopyParams);
 	SpawnedActor->RegisterAllComponents();
 
+	// tag this actor so we know it was spawned by sequencer
+	SpawnedActor->Tags.AddUnique(SequencerActorTag);
+
 #if WITH_EDITOR
 	if (GIsEditor)
 	{
@@ -97,10 +99,9 @@ UObject* FLevelSequenceActorSpawner::SpawnObject(FMovieSceneSpawnable& Spawnable
 			Component->SetFlags(RF_Transactional);
 		}
 	}
-#endif
 
-	// tag this actor so we know it was spawned by sequencer
-	SpawnedActor->Tags.AddUnique(SequencerActorTag);
+	SpawnedActor->SetActorLabel(Spawnable.GetName());
+#endif
 
 	const bool bIsDefaultTransform = true;
 	SpawnedActor->FinishSpawning(SpawnTransform, bIsDefaultTransform);

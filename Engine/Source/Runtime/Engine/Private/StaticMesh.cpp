@@ -1069,7 +1069,7 @@ FArchive& operator<<(FArchive& Ar, FMeshBuildSettings& BuildSettings)
 // differences, etc.) replace the version GUID below with a new one.
 // In case of merge conflicts with DDC versions, you MUST generate a new GUID
 // and set this new GUID as the version.                                       
-#define STATICMESH_DERIVEDDATA_VER TEXT("BA08C66E86EF48C993A163FC0A9ADF67")
+#define STATICMESH_DERIVEDDATA_VER TEXT("8A752B9E4A904F25B0AB9D65A70A8BDC")
 
 static const FString& GetStaticMeshDerivedDataVersion()
 {
@@ -1156,7 +1156,7 @@ static FString BuildStaticMeshDerivedDataKey(UStaticMesh* Mesh, const FStaticMes
 		}
 	}
 
-	KeySuffix.AppendChar(Mesh->bRequiresAreaWeightedSampling ? TEXT('1') : TEXT('0'));
+	KeySuffix.AppendChar(Mesh->bSupportUniformlyDistributedSampling ? TEXT('1') : TEXT('0'));
 
 	return FDerivedDataCacheInterface::BuildCacheKey(
 		TEXT("STATICMESH"),
@@ -1282,7 +1282,7 @@ void FStaticMeshRenderData::Cache(UStaticMesh* Owner, const FStaticMeshLODSettin
 			IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>(TEXT("MeshUtilities"));
 			MeshUtilities.BuildStaticMesh(*this, Owner->SourceModels, LODGroup, Owner->LightmapUVVersion, Owner->ImportVersion);
 			ComputeUVDensities();
-			if(Owner->bRequiresAreaWeightedSampling)
+			if(Owner->bSupportUniformlyDistributedSampling)
 			{
 				BuildAreaWeighedSamplingData();
 			}
@@ -1393,7 +1393,7 @@ UStaticMesh::UStaticMesh(const FObjectInitializer& ObjectInitializer)
 	LpvBiasMultiplier = 1.0f;
 	MinLOD = 0;
 
-	bRequiresAreaWeightedSampling = false;
+	bSupportUniformlyDistributedSampling = false;
 }
 
 void UStaticMesh::PostInitProperties()
@@ -1802,6 +1802,8 @@ void UStaticMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedE
 		SetLightingGuid();
 	}
 	
+	UpdateUVChannelData(true);
+
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 
@@ -2649,6 +2651,13 @@ void UStaticMesh::PostLoad()
 	}
 #endif // #if WITH_EDITOR
 
+#if WITH_EDITORONLY_DATA
+	if (GetLinkerCustomVersion(FRenderingObjectVersion::GUID) < FRenderingObjectVersion::FixedMeshUVDensity)
+	{
+		UpdateUVChannelData(true);
+	}
+#endif
+
 	EnforceLightmapRestrictions();
 
 	if (!GVertexElementTypeSupport.IsSupported(VET_Half2))
@@ -2694,17 +2703,37 @@ void UStaticMesh::PostLoad()
 		CalculateExtendedBounds();
 	}
 
-	if (SectionInfoMap.Map.Num() == 0)
+	//Always redo the whole SectionInfoMap to be sure it contain only valid data
+	//This will reuse everything valid from the just serialize SectionInfoMap.
+	FMeshSectionInfoMap TempOldSectionInfoMap = SectionInfoMap;
+	SectionInfoMap.Clear();
+	for (int32 LODResourceIndex = 0; LODResourceIndex < RenderData->LODResources.Num(); ++LODResourceIndex)
 	{
-		// Before this serialization issue was fixed, some assets were resaved and permanently lost their section info map.
-		// This attempts to recreate it based on the render data.
-		SectionInfoMap.Clear();
-		for (int32 LODResourceIndex = 0; LODResourceIndex < RenderData->LODResources.Num(); ++LODResourceIndex)
+		FStaticMeshLODResources& LOD = RenderData->LODResources[LODResourceIndex];
+		for (int32 SectionIndex = 0; SectionIndex < LOD.Sections.Num(); ++SectionIndex)
 		{
-			FStaticMeshLODResources& LOD = RenderData->LODResources[LODResourceIndex];
-			const int32 NumSections = LOD.Sections.Num();
-			for (int32 SectionIndex = 0; SectionIndex < NumSections; ++SectionIndex)
+			if (TempOldSectionInfoMap.IsValidSection(LODResourceIndex, SectionIndex))
 			{
+				FMeshSectionInfo Info = TempOldSectionInfoMap.Get(LODResourceIndex, SectionIndex);
+				if (StaticMaterials.IsValidIndex(Info.MaterialIndex))
+				{
+					//Reuse the valid data that come from the serialize
+					SectionInfoMap.Set(LODResourceIndex, SectionIndex, Info);
+				}
+				else
+				{
+					//Use the render data material index, but keep the flags (collision, shadow...)
+					const int32 MaterialIndex = LOD.Sections[SectionIndex].MaterialIndex;
+					if (StaticMaterials.IsValidIndex(MaterialIndex))
+					{
+						Info.MaterialIndex = MaterialIndex;
+						SectionInfoMap.Set(LODResourceIndex, SectionIndex, Info);
+					}
+				}
+			}
+			else
+			{
+				//Create a new SectionInfoMap from the render data
 				const int32 MaterialIndex = LOD.Sections[SectionIndex].MaterialIndex;
 				if (StaticMaterials.IsValidIndex(MaterialIndex))
 				{
@@ -2940,12 +2969,12 @@ void UStaticMesh::CreateNavCollision(const bool bIsUpdate)
 	{
 		UNavCollision* PrevNavCollision = NavCollision;
 
-		if (NavCollision == nullptr || bIsUpdate)
+		if (NavCollision == nullptr)
 		{
 			NavCollision = NewObject<UNavCollision>(this);
 		}
 
-		if (PrevNavCollision)
+		if (PrevNavCollision && PrevNavCollision != NavCollision)
 		{
 			NavCollision->CopyUserSettings(*PrevNavCollision);
 		}
@@ -3540,14 +3569,14 @@ UStaticMeshSocket::UStaticMeshSocket(const FObjectInitializer& ObjectInitializer
 bool UStaticMeshSocket::GetSocketMatrix(FMatrix& OutMatrix, UStaticMeshComponent const* MeshComp) const
 {
 	check( MeshComp );
-	OutMatrix = FScaleRotationTranslationMatrix( RelativeScale, RelativeRotation, RelativeLocation ) * MeshComp->ComponentToWorld.ToMatrixWithScale();
+	OutMatrix = FScaleRotationTranslationMatrix( RelativeScale, RelativeRotation, RelativeLocation ) * MeshComp->GetComponentTransform().ToMatrixWithScale();
 	return true;
 }
 
 bool UStaticMeshSocket::GetSocketTransform(FTransform& OutTransform, class UStaticMeshComponent const* MeshComp) const
 {
 	check( MeshComp );
-	OutTransform = FTransform(RelativeRotation, RelativeLocation, RelativeScale) * MeshComp->ComponentToWorld;
+	OutTransform = FTransform(RelativeRotation, RelativeLocation, RelativeScale) * MeshComp->GetComponentTransform();
 	return true;
 }
 
@@ -3565,7 +3594,7 @@ bool UStaticMeshSocket::AttachActor(AActor* Actor,  UStaticMeshComponent* MeshCo
 
 			Actor->SetActorLocation(SocketTM.GetOrigin(), false);
 			Actor->SetActorRotation(SocketTM.Rotator());
-			Actor->GetRootComponent()->SnapTo( MeshComp, SocketName );
+			Actor->GetRootComponent()->AttachToComponent(MeshComp, FAttachmentTransformRules::SnapToTargetNotIncludingScale, SocketName);
 
 #if WITH_EDITOR
 			if (GIsEditor)

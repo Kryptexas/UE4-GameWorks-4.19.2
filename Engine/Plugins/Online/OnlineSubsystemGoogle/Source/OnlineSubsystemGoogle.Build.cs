@@ -26,13 +26,10 @@ public class OnlineSubsystemGoogle : ModuleRules
 
 		if (Target.Platform == UnrealTargetPlatform.IOS)
 		{
-		   //PrivateIncludePaths.Add("Private/IOS");
+		   PrivateIncludePaths.Add("Private/IOS");
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Android)
 		{
-			/**
-			Definitions.Add("UE4_GOOGLE_VER=");
-
 			PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"Launch",
@@ -43,7 +40,7 @@ public class OnlineSubsystemGoogle : ModuleRules
 			AdditionalPropertiesForReceipt.Add(new ReceiptProperty("AndroidPlugin", Path.Combine(PluginPath, "OnlineSubsystemGoogle_UPL.xml")));
 
 			PrivateIncludePaths.Add("Private/Android");
-			*/
+			
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64)
 		{

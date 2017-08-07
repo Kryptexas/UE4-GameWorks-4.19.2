@@ -11,7 +11,7 @@
 #include "Factories/Factory.h"
 #include "AnimMontageFactory.generated.h"
 
-class FAssetData;
+struct FAssetData;
 class SWindow;
 class UAnimMontage;
 

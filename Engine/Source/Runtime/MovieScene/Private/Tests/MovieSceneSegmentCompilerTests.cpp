@@ -11,6 +11,7 @@
 namespace Impl
 {
 	static const TRangeBound<float> Inf = TRangeBound<float>::Open();
+	static const FOptionalMovieSceneBlendType NoBlending;
 
 	/** Compiler rules to sort by priority */
 	struct FSortByPriorityCompilerRules : FMovieSceneSegmentCompilerRules
@@ -123,11 +124,11 @@ bool FMovieSceneCompilerBasicTest::RunTest(const FString& Parameters)
 	//	Expected Impls		[ 		3			|			0,2,3			|		1,2		|		1,2,4		|			4				]
 
 	const FMovieSceneSectionData SegmentData[] = {
-		FMovieSceneSectionData(TRange<float>(10.f,	20.f), 									FSectionEvaluationData(0), 		4),
-		FMovieSceneSectionData(TRange<float>(20.f,	30.f), 									FSectionEvaluationData(1), 		3),
-		FMovieSceneSectionData(TRange<float>(10.f,	30.f), 									FSectionEvaluationData(2), 		2),
-		FMovieSceneSectionData(TRange<float>(Inf,	TRangeBound<float>::Exclusive(20.f)), 	FSectionEvaluationData(3), 		1),
-		FMovieSceneSectionData(TRange<float>(25.f,	Inf), 									FSectionEvaluationData(4), 		0)
+		FMovieSceneSectionData(TRange<float>(10.f,	20.f), 									FSectionEvaluationData(0), 	NoBlending,		4),
+		FMovieSceneSectionData(TRange<float>(20.f,	30.f), 									FSectionEvaluationData(1), 	NoBlending,		3),
+		FMovieSceneSectionData(TRange<float>(10.f,	30.f), 									FSectionEvaluationData(2), 	NoBlending,		2),
+		FMovieSceneSectionData(TRange<float>(Inf,	TRangeBound<float>::Exclusive(20.f)), 	FSectionEvaluationData(3), 	NoBlending,		1),
+		FMovieSceneSectionData(TRange<float>(25.f,	Inf), 									FSectionEvaluationData(4), 	NoBlending,		0)
 	};
 
 	FSortByPriorityCompilerRules DefaultRules(4, false);
@@ -157,8 +158,8 @@ bool FMovieSceneCompilerEmptySpaceTest::RunTest(const FString& Parameters)
 	//	Expected Impls	[	Empty		|		0		|	Empty		|		1		|	Empty		]
 
 	const FMovieSceneSectionData SegmentData[] = {
-		FMovieSceneSectionData(TRange<float>(10.f,	20.f), 									FSectionEvaluationData(0), 	1),
-		FMovieSceneSectionData(TRange<float>(30.f,	40.f), 									FSectionEvaluationData(1), 	0)
+		FMovieSceneSectionData(TRange<float>(10.f,	20.f), 									FSectionEvaluationData(0), NoBlending, 	1),
+		FMovieSceneSectionData(TRange<float>(30.f,	40.f), 									FSectionEvaluationData(1), NoBlending, 	0)
 	};
 
 	FSortByPriorityCompilerRules DefaultRules(1, true);
@@ -190,10 +191,10 @@ bool FMovieSceneCustomCompilerTest::RunTest(const FString& Parameters)
 	//	Expected Impls					[	0 (p)	| (0, 0(p)) |						0						]
 
 	const FMovieSceneSectionData SegmentData[] = {
-		FMovieSceneSectionData(TRange<float>(TRangeBound<float>::Inclusive(10.f),	TRangeBound<float>::Exclusive(20.f)), FSectionEvaluationData(0, ESectionEvaluationFlags::PreRoll),	4),
-		FMovieSceneSectionData(TRange<float>(TRangeBound<float>::Inclusive(15.f),	TRangeBound<float>::Exclusive(25.f)), FSectionEvaluationData(0),									1),
-		FMovieSceneSectionData(TRange<float>(TRangeBound<float>::Inclusive(20.f),	TRangeBound<float>::Exclusive(30.f)), FSectionEvaluationData(0),									1),
-		FMovieSceneSectionData(TRange<float>(TRangeBound<float>::Inclusive(30.f),	TRangeBound<float>::Exclusive(40.f)), FSectionEvaluationData(0),									1),
+		FMovieSceneSectionData(TRange<float>(TRangeBound<float>::Inclusive(10.f),	TRangeBound<float>::Exclusive(20.f)), FSectionEvaluationData(0, ESectionEvaluationFlags::PreRoll),	NoBlending,	4),
+		FMovieSceneSectionData(TRange<float>(TRangeBound<float>::Inclusive(15.f),	TRangeBound<float>::Exclusive(25.f)), FSectionEvaluationData(0),									NoBlending,	1),
+		FMovieSceneSectionData(TRange<float>(TRangeBound<float>::Inclusive(20.f),	TRangeBound<float>::Exclusive(30.f)), FSectionEvaluationData(0),									NoBlending,	1),
+		FMovieSceneSectionData(TRange<float>(TRangeBound<float>::Inclusive(30.f),	TRangeBound<float>::Exclusive(40.f)), FSectionEvaluationData(0),									NoBlending,	1),
 	};
 
 	FSortByPriorityCompilerRules DefaultRules(0, false);
@@ -259,7 +260,7 @@ bool FMovieSceneTrackCompilerTest::RunTest(const FString& Parameters)
 
 		// Test compiling with 'evaluate nearest section' enabled
 		{
-			Track->EvalOptions.bEvaluateNearestSection = true;
+			Track->EvalOptions.bEvalNearestSection = true;
 			FMovieSceneTrackEvaluationField Field = FMovieSceneTrackCompiler().Compile(Rows.Rows, Track->GetTrackCompilerRules().GetPtr(nullptr));
 
 			FMovieSceneSegment Expected[] = {
@@ -274,7 +275,7 @@ bool FMovieSceneTrackCompilerTest::RunTest(const FString& Parameters)
 
 		// Test compiling without 'evaluate nearest section' enabled
 		{
-			Track->EvalOptions.bEvaluateNearestSection = false;
+			Track->EvalOptions.bEvalNearestSection = false;
 			FMovieSceneTrackEvaluationField Field = FMovieSceneTrackCompiler().Compile(Rows.Rows, Track->GetTrackCompilerRules().GetPtr(nullptr));
 
 			FMovieSceneSegment Expected[] = {
@@ -287,7 +288,7 @@ bool FMovieSceneTrackCompilerTest::RunTest(const FString& Parameters)
 
 		// Test high-pass filter
 		{
-			Track->EvalOptions.bEvaluateNearestSection = false;
+			Track->EvalOptions.bEvalNearestSection = false;
 			Track->bHighPassFilter = true;
 			FMovieSceneTrackEvaluationField Field = FMovieSceneTrackCompiler().Compile(Rows.Rows, Track->GetTrackCompilerRules().GetPtr(nullptr));
 
@@ -367,7 +368,7 @@ bool FMovieSceneTrackCompilerTest::RunTest(const FString& Parameters)
 
 		// Test compiling with 'evaluate nearest section' enabled
 		{
-			Track->EvalOptions.bEvaluateNearestSection = true;
+			Track->EvalOptions.bEvalNearestSection = true;
 			FMovieSceneTrackEvaluationField Field = FMovieSceneTrackCompiler().Compile(Rows.Rows, Track->GetTrackCompilerRules().GetPtr(nullptr));
 
 			Expected[0].Impls = { FSectionEvaluationData(1) };
@@ -381,7 +382,7 @@ bool FMovieSceneTrackCompilerTest::RunTest(const FString& Parameters)
 
 		// Test compiling without 'evaluate nearest section' enabled
 		{
-			Track->EvalOptions.bEvaluateNearestSection = false;
+			Track->EvalOptions.bEvalNearestSection = false;
 			FMovieSceneTrackEvaluationField Field = FMovieSceneTrackCompiler().Compile(Rows.Rows, Track->GetTrackCompilerRules().GetPtr(nullptr));
 
 			Expected[0].Impls = { FSectionEvaluationData(1) };
@@ -395,7 +396,7 @@ bool FMovieSceneTrackCompilerTest::RunTest(const FString& Parameters)
 
 		// Test compiling with high pass filter
 		{
-			Track->EvalOptions.bEvaluateNearestSection = false;
+			Track->EvalOptions.bEvalNearestSection = false;
 			Track->bHighPassFilter = true;
 			FMovieSceneTrackEvaluationField Field = FMovieSceneTrackCompiler().Compile(Rows.Rows, Track->GetTrackCompilerRules().GetPtr(nullptr));
 
@@ -446,6 +447,6 @@ TInlineValue<FMovieSceneSegmentCompilerRules> UMovieSceneSegmentCompilerTestTrac
 		}
 	};
 
-	// Evaluate according to bEvaluateNearestSection preference
-	return FRules(bHighPassFilter, EvalOptions.bCanEvaluateNearestSection && EvalOptions.bEvaluateNearestSection);
+	// Evaluate according to bEvalNearestSection preference
+	return FRules(bHighPassFilter, EvalOptions.bCanEvaluateNearestSection && EvalOptions.bEvalNearestSection);
 }

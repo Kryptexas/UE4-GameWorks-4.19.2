@@ -40,12 +40,12 @@ FString FOutputDeviceHelper::FormatLogLine( ELogVerbosity::Type Verbosity, const
 		case ELogTimes::SinceGStartTime:
 		{																	
 			const double RealTime = Time == -1.0f ? FPlatformTime::Seconds() - GStartTime : Time;
-			Format = FString::Printf( TEXT( "[%07.2f][%3d]" ), RealTime, GFrameCounter % 1000 );
+			Format = FString::Printf( TEXT( "[%07.2f][%3llu]" ), RealTime, GFrameCounter % 1000);
 			break;
 		}
 
 		case ELogTimes::UTC:
-			Format = FString::Printf(TEXT("[%s][%3d]"), *FDateTime::UtcNow().ToString(TEXT("%Y.%m.%d-%H.%M.%S:%s")), GFrameCounter % 1000);
+			Format = FString::Printf(TEXT("[%s][%3llu]"), *FDateTime::UtcNow().ToString(TEXT("%Y.%m.%d-%H.%M.%S:%s")), GFrameCounter % 1000);
 			break;
 
 		default:
@@ -54,16 +54,12 @@ FString FOutputDeviceHelper::FormatLogLine( ELogVerbosity::Type Verbosity, const
 
 	if (bShowCategory)
 	{
+		Format += Category.ToString();
+		Format += TEXT(": ");
+
 		if (Verbosity != ELogVerbosity::Log)
 		{
-			Format += Category.ToString();
-			Format += TEXT(":");
 			Format += VerbosityToString(Verbosity);
-			Format += TEXT(": ");
-		}
-		else
-		{
-			Format += Category.ToString();
 			Format += TEXT(": ");
 		}
 	}

@@ -36,7 +36,8 @@ public:
 	static FName* FindScriptPackageName(FName InShortName);
 
 	/** 
-	 * Tries to convert the supplied filename to long package name. Will attempt to find the package on disk (very slow).
+	 * Tries to convert the supplied relative or absolute filename to a long package name/path starting with a root like /game
+	 * This works on both package names and directories, and it does not validate that it actually exists on disk.
 	 * 
 	 * @param InFilename Filename to convert.
 	 * @param OutPackageName The resulting long package name if the conversion was successful.
@@ -44,37 +45,52 @@ public:
 	 * @return Returns true if the supplied filename properly maps to one of the long package roots.
 	 */
 	static bool TryConvertFilenameToLongPackageName(const FString& InFilename, FString& OutPackageName, FString* OutFailureReason = nullptr);
+
 	/** 
 	 * Converts the supplied filename to long package name.
-	 *  Throws a fatal error if the conversion is not successfull.
+	 * Throws a fatal error if the conversion is not successful.
 	 * 
 	 * @param InFilename Filename to convert.
 	 * @return Long package name.
 	 */
 	static FString FilenameToLongPackageName(const FString& InFilename);
+
 	/** 
 	 * Tries to convert a long package name to a file name with the supplied extension.
+	 * This can be called on package paths as well, provide no extension in that case
 	 *
 	 * @param InLongPackageName Long Package Name
 	 * @param InExtension Package extension.
 	 * @return Package filename.
 	 */
 	static bool TryConvertLongPackageNameToFilename(const FString& InLongPackageName, FString& OutFilename, const FString& InExtension = TEXT(""));
+
 	/** 
 	 * Converts a long package name to a file name with the supplied extension.
+	 * Throws a fatal error if the conversion is not successful.
 	 *
 	 * @param InLongPackageName Long Package Name
 	 * @param InExtension Package extension.
 	 * @return Package filename.
 	 */
 	static FString LongPackageNameToFilename(const FString& InLongPackageName, const FString& InExtension = TEXT(""));
+
 	/** 
 	 * Returns the path to the specified package, excluding the short package name
 	 *
-	 * @param InLongPackageName Package Name.
-	 * @return The path to the specified package.
+	 * @param InLongPackageName Long Package Name.
+	 * @return The path containing the specified package.
 	 */
 	static FString GetLongPackagePath(const FString& InLongPackageName);
+
+	/** 
+	 * Returns the clean asset name for the specified package, same as GetShortName
+	 *
+	 * @param InLongPackageName Long Package Name
+	 * @return Clean asset name.
+	 */
+	static FString GetLongPackageAssetName(const FString& InLongPackageName);
+
 	/** 
 	 * Convert a long package name into root, path, and name components
 	 *
@@ -86,21 +102,7 @@ public:
 	 * @return True if the conversion was possible, false otherwise
 	 */
 	static bool SplitLongPackageName(const FString& InLongPackageName, FString& OutPackageRoot, FString& OutPackagePath, FString& OutPackageName, const bool bStripRootLeadingSlash = false);
-	/** 
-	 * Returns the clean asset name for the specified package 
-	 *
-	 * @param InLongPackageName Long Package Name
-	 * @return Clean asset name.
-	 */
-	static FString GetLongPackageAssetName(const FString& InLongPackageName);
-	/**
-	 * Convert a root path to the content path associated with it
-	 * Similar to TryConvertLongPackageNameToFilename except doesn't require a file just returns the pat
-	 * See also RegisterMountPoint and UnRegisterMountPoint
-	 * @param RootPath The package root path, eg "/Game/"
-	 * @param OutContentPath The path from the mount point to the package, eg "Maps/TestMaps/
-	 */
-	static bool ConvertRootPathToContentPath(const FString& RootPath, FString& OutContentPath);
+
 	/** 
 	 * Returns true if the path starts with a valid root (i.e. /Game/, /Engine/, etc) and contains no illegal characters.
 	 *
@@ -109,7 +111,19 @@ public:
 	 * @param OutReason					When returning false, this will provide a description of what was wrong with the name.
 	 * @return							true if a valid long package name
 	 */
-	static bool IsValidLongPackageName(const FString& InLongPackageName, bool bIncludeReadOnlyRoots = false, FText* OutReason = NULL);
+	static bool IsValidLongPackageName(const FString& InLongPackageName, bool bIncludeReadOnlyRoots = false, FText* OutReason = nullptr);
+
+	/** 
+	 * Returns true if the path starts with a valid root (i.e. /Game/, /Engine/, etc) and contains no illegal characters.
+	 * This validates that the packagename is valid, and also makes sure the object after package name is also correct.
+	 * This will return false if passed a path starting with Classname'
+	 *
+	 * @param InObjectPath				The object path to test
+	 * @param OutReason					When returning false, this will provide a description of what was wrong with the name.
+	 * @return							true if a valid object path
+	 */
+	static bool IsValidObjectPath(const FString& InObjectPath, FText* OutReason = nullptr);
+
 	/**
 	 * Checks if the given string is a long package name or not.
 	 *
@@ -117,20 +131,16 @@ public:
 	 * @return true if the given name is a long package name, false otherwise.
 	 */
 	static bool IsShortPackageName(const FString& PossiblyLongName);
-	/**
-	 * Checks if the given name is a long package name or not.
-	 *
-	 * @param PossiblyLongName Package name.
-	 * @return true if the given name is a long package name, false otherwise.
-	 */
 	static bool IsShortPackageName(const FName PossiblyLongName);
+
 	/**
 	 * Converts package name to short name.
 	 *
-	 * @param Package Package which name to convert.
+	 * @param Package Package with name to convert.
 	 * @return Short package name.
 	 */
 	static FString GetShortName(const UPackage* Package);
+
 	/**
 	 * Converts package name to short name.
 	 *
@@ -138,20 +148,9 @@ public:
 	 * @return Short package name.
 	 */
 	static FString GetShortName(const FString& LongName);
-	/**
-	 * Converts package name to short name.
-	 *
-	 * @param LongName Package name to convert.
-	 * @return Short package name.
-	 */
 	static FString GetShortName(const FName& LongName);
-	/**
-	 * Converts package name to short name.
-	 *
-	 * @param LongName Package name to convert.
-	 * @return Short package name.
-	 */
 	static FString GetShortName(const TCHAR* LongName);
+
 	/**
 	 * Converts package name to short name.
 	 *
@@ -159,33 +158,22 @@ public:
 	 * @return Short package name.
 	 */
 	static FName GetShortFName(const FString& LongName);
-	/**
-	 * Converts package name to short name.
-	 *
-	 * @param LongName Package name to convert.
-	 * @return Short package name.
-	 */
 	static FName GetShortFName(const FName& LongName);
-	/**
-	 * Converts package name to short name.
-	 *
-	 * @param LongName Package name to convert.
-	 * @return Short package name.
-	 */
 	static FName GetShortFName(const TCHAR* LongName);
+
 	/**
 	 * This will insert a mount point at the head of the search chain (so it can overlap an existing mount point and win).
 	 *
-	 * @param RootPath Root Path.
-	 * @param ContentPath Content Path.
+	 * @param RootPath Logical Root Path.
+	 * @param ContentPath Content Path on disk.
 	 */
 	static void RegisterMountPoint(const FString& RootPath, const FString& ContentPath);
 
 	/**
 	 * This will remove a previously inserted mount point.
 	 *
-	 * @param RootPath Root Path.
-	 * @param ContentPath Content Path.
+	 * @param RootPath Logical Root Path.
+	 * @param ContentPath Content Path on disk.
 	 */
 	static void UnRegisterMountPoint(const FString& RootPath, const FString& ContentPath);
 
@@ -246,6 +234,15 @@ public:
 	static FString GetDelegateResolvedPackagePath(const FString& InSourcePackagePath);
 
 	/**
+	 * Gets the source version of a localized long package path (it is also safe to pass non-localized paths into this function).
+	 *
+	 * @param InLocalizedPackagePath Path to the localized package.
+	 *
+	 * @returns Source package path.
+	 */
+	static FString GetSourcePackagePath(const FString& InLocalizedPackagePath);
+
+	/**
 	 * Gets the localized version of a long package path for the current culture, or returns the source package if there is no suitable localized package.
 	 *
 	 * @param InSourcePackagePath	Path to the source package.
@@ -264,19 +261,10 @@ public:
 	 */
 	static FString GetLocalizedPackagePath(const FString& InSourcePackagePath, const FString& InCultureName);
 
-	/**
-	 * Strips all path and extension information from a relative or fully qualified file name.
-	 *
-	 * @param	InPathName	a relative or fully qualified file name
-	 *
-	 * @return	the passed in string, stripped of path and extensions
-	 */
-	static FString PackageFromPath(const TCHAR* InPathName);
-
 	/** 
 	 * Returns the file extension for packages containing assets.
 	 *
-	 * @return	file extension for asset pacakges ( dot included )
+	 * @return	file extension for asset packages ( dot included )
 	 */
 	static FORCEINLINE const FString& GetAssetPackageExtension()
 	{
@@ -285,7 +273,7 @@ public:
 	/** 
 	 * Returns the file extension for packages containing assets.
 	 *
-	 * @return	file extension for asset pacakges ( dot included )
+	 * @return	file extension for asset packages ( dot included )
 	 */
 	static FORCEINLINE const FString& GetMapPackageExtension()
 	{
@@ -417,6 +405,21 @@ public:
 	* @return true if the package could be found on disk.
 	*/
 	static bool FindPackageFileWithoutExtension(const FString& InPackageFilename, FString& OutFilename);
+
+	/**
+	 * Converts a long package name to the case it exists as on disk.
+	 *
+	 * @param LongPackageName The long package name
+	 * @param Extension The extension for this package
+	 * @return True if the long package name was fixed up, false otherwise
+	 */
+	static bool FixPackageNameCase(FString& LongPackageName, const FString& Extension);
+
+	DEPRECATED(4.17, "Deprecated. Call TryConvertLongPackageNameToFilename instead, which also works on nested paths")
+	static bool ConvertRootPathToContentPath(const FString& RootPath, FString& OutContentPath);
+
+	DEPRECATED(4.17, "Deprecated. Call TryConvertFilenameToLongPackageName instead")
+	static FString PackageFromPath(const TCHAR* InPathName);
 
 private:
 

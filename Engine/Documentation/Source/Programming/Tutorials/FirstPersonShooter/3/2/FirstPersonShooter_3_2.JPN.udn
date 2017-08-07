@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3069483
-Availability: Public
+﻿INTSourceChangelist:3388666
+Availability:Public
 Title:3.2 - シューティングを実装する
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/3
 Description:FPS キャラクターにシューティングを実装する方法を学びます。
-SkillLevel: Beginner
-Version: 4.11
+SkillLevel:Beginner
+Version:4.15
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -71,35 +71,33 @@ Version: 4.11
 
 1.	`FPSCharacter.cpp` は以下のようになります。
 
-		// Fill out your copyright notice in the Description page of Project Settings. (Project Settings の Description ページに著作権情報を入力してください。) 
+		// Fill out your copyright notice in the Description page of Project Settings. (Project Settings の Description ページに著作権情報を入力してください) 
 		#include "FPSProject.h"
+
 		#include "FPSCharacter.h"
 		#include "FPSProjectile.h"
-
 		// Sets default values (デフォルト値を設定) 
 
 		AFPSCharacter::AFPSCharacter()
 		{
-		 	// Set this character to call Tick() every frame. (このキャラクターがフレーム毎に Tick() を呼び出すように設定します。) You can turn this off to improve performance if you don't need it. (必要がなければパフォーマンスを向上させるためにオフにすることができます。) 
+		 	// Set this character to call Tick() every frame. (このキャラクターがフレーム毎に Tick() を呼び出すように設定します) You can turn this off to improve performance if you don't need it. (必要がなければパフォーマンスを向上させるためにオフにすることができます) 
 			PrimaryActorTick.bCanEverTick = true;
-
 		// Create a first person camera component. (first person camera コンポーネントを作成)
 
 			FPSCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
 			// Attach the camera component to our capsule component. (camera コンポーネントを capsule コンポーネントにアタッチします)
-			FPSCameraComponent->AttachTo(GetCapsuleComponent());
+			FPSCameraComponent->SetupAttachment(GetCapsuleComponent());
 			// Position the camera slightly above the eyes. (目の高さより少し上にカメラを設定)
 			FPSCameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 50.0f + BaseEyeHeight));
 			// Allow the pawn to control camera rotation. (ポーンがカメラの回転を制御できるようにします)
 			FPSCameraComponent->bUsePawnControlRotation = true;
-
 		// Create a first person mesh component for the owning player. (所有しているプレイヤーのために一人称メッシュを作成) 
 
 			FPSMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstPersonMesh"));
 			// Only the owning player sees this mesh. (このメッシュは所有しているプレイヤーだけから見えます)
 			FPSMesh->SetOnlyOwnerSee(true);
 			// Attach the FPS mesh to the FPS camera. (FPS メッシュを FPS カメラにアタッチします)
-			FPSMesh->AttachTo(FPSCameraComponent);
+			FPSMesh->SetupAttachment(FPSCameraComponent);
 			// Disable some environmental shadowing to preserve the illusion of having a single mesh. (一部の背景のシャドウイングを無効にして、ひとつのメッシュを持っているという錯覚を維持します) 
 			FPSMesh->bCastDynamicShadow = false;
 			FPSMesh->CastShadow = false;
@@ -107,7 +105,7 @@ Version: 4.11
 
 			GetMesh()->SetOwnerNoSee(true);
 		}
-		// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼ばれます)
+		// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼び出される)
 
 		void AFPSCharacter::BeginPlay()
 		{
@@ -119,7 +117,7 @@ Version: 4.11
 				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("We are using FPSCharacter."));
 			}
 		}
-		// Called every frame (フレーム毎に呼ばれます) 
+		// Called every frame (フレームごとに呼び出される)
 
 		void AFPSCharacter::Tick( float DeltaTime )
 		{
@@ -128,22 +126,22 @@ Version: 4.11
 
 		// Called to bind functionality to input (機能と入力をバインドするために呼ばれます)
 
-		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
+		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 		{
-			Super::SetupPlayerInputComponent(InputComponent);
+			Super::SetupPlayerInputComponent(PlayerInputComponent);
 		// Set up "movement" bindings. (移動のバインディングをセットアップ) 
 
-			InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
-			InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
+			PlayerInputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
+			PlayerInputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
 		// Set up "look" bindings. (look のバインディングをセットアップ) 
 
-			InputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
-			InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
+			PlayerInputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
+			PlayerInputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
 		// Set up "action" bindings. (アクションのバインディングをセットアップ) 
 
-			InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
-			InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::StopJump);
-			InputComponent->BindAction("Fire", IE_Pressed, this, &AFPSCharacter::Fire);
+			PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
+			PlayerInputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::StopJump);
+			PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AFPSCharacter::Fire);
 		}
 		void AFPSCharacter::MoveForward(float Value)
 
@@ -207,7 +205,7 @@ Version: 4.11
 
 1.	**[Solution Explorer (ソリューション エクスプローラ)]** で **[FPSProject]** を探します。
 
-1.	**[FPSProject]** 上で右クリックして、**[Build (ビルド)]** を選択してプロジェクトをコンパイルします。
+1.	**[FPSProject]** 上で右クリックして **[Build]** を選択してプロジェクトをコンパイルします。
 
 	![](BuildFPSProject.png)
 
@@ -232,13 +230,15 @@ Version: 4.11
 
 	[REGION:warning]
 	スムージング グループに関する以下のエラーは無視してください。
-	![](FBXWarning.png)  
+	![](FBXWarning.png)
+
 	このメッシュはファーストパーソン メッシュの設定を表していますが、この後のセクションで設定するアニメーションでも機能します。
+
 	[/REGION]
 
 1.	[Save] ボタンを **クリック** してインポートしたスタティックメッシュを保存します。
 
-1.	**コンテンツ ブラウザ** の **Blueprints** フォルダに戻ります。
+1.	**コンテンツ ブラウザ** の **「Blueprints」** フォルダに戻ります。
 
 1.	 **[Add New]** ボタンをクリックして、**Blueprint クラス** を選択します。
 
@@ -285,8 +285,8 @@ Version: 4.11
 1.	`ProjectileMeshComponent` **Collision Presets** の値を、**NoCollision** に設定します (コリジョンにこのスタティックメッシュではなく、`SphereComponent` を使用しているため)。	
 
 	![](SetCollisionPresets.png)
-	1.	ブループリントを **コンパイル** し、**保存** してから、**ブループリント エディタ** を閉じます。
 
+1.	ブループリントを **コンパイル** し、**保存** してから、**ブループリント エディタ** を閉じます。
 
 1.	**BP_FPSCharacter** をダブルクリックして、編集のために Character ブループリントを開きます。
 

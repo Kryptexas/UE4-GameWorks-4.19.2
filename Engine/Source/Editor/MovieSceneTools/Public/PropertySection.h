@@ -44,7 +44,6 @@ public:
 	// ISequencerSection interface
 
 	virtual UMovieSceneSection* GetSectionObject() override;
-	virtual FText GetDisplayName() const override;
 	virtual FText GetSectionTitle() const override;
 	virtual int32 OnPaintSection(FSequencerSectionPainter& Painter) const override;
 

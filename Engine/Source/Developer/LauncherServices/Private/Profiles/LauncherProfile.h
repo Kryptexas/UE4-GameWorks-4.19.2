@@ -38,6 +38,7 @@ enum ELauncherVersion
 	LAUNCHERSERVICES_FILEFORMATCHANGE = 22,
 	LAUNCHERSERVICES_ADDARCHIVE = 23,
 	LAUNCHERSERVICES_ADDEDENCRYPTINIFILES = 24,
+	LAUNCHERSERVICES_ADDEDMULTILEVELPATCHING = 25,
 	
 	//ADD NEW STUFF HERE
 
@@ -434,6 +435,15 @@ public:
 		return GeneratePatch;
 	}
 
+	virtual bool ShouldAddPatchLevel() const override
+	{
+		return AddPatchLevel;
+	}
+
+	virtual bool ShouldStageBaseReleasePaks() const override
+	{
+		return StageBaseReleasePaks;
+	}
 
 	virtual bool IsCreatingDLC() const override
 	{
@@ -865,6 +875,11 @@ public:
 		{
 			Archive << GeneratePatch;
 		}
+		if ( Version >= LAUNCHERSERVICES_ADDEDMULTILEVELPATCHING )
+		{
+			Archive << AddPatchLevel;
+			Archive << StageBaseReleasePaks;
+		}
 		else if ( Version >= LAUNCHERSERVICES_ADDEDPATCHSOURCECONTENTPATH)
 		{
 			FString Temp;
@@ -1017,6 +1032,8 @@ public:
 		Writer.WriteValue("SkipCookingEditorContent", bSkipCookingEditorContent);
 		Writer.WriteValue("DeployIncremental", DeployIncremental);
 		Writer.WriteValue("GeneratePatch", GeneratePatch);
+		Writer.WriteValue("AddPatchLevel", AddPatchLevel);
+		Writer.WriteValue("StageBaseReleasePaks", StageBaseReleasePaks);
 		Writer.WriteValue("DLCIncludeEngineContent", DLCIncludeEngineContent);
 		Writer.WriteValue("CreateReleaseVersion", CreateReleaseVersion);
 		Writer.WriteValue("CreateReleaseVersionName", CreateReleaseVersionName);
@@ -1235,7 +1252,13 @@ public:
 					if (GetBasedOnReleaseVersionName().IsEmpty() == false)
 					{
 						Writer.WriteValue("basedonreleaseversion", GetBasedOnReleaseVersionName());
+						Writer.WriteValue("stagebasereleasepaks", ShouldStageBaseReleasePaks());
 					}
+				}
+
+				if (IsGeneratingPatch())
+				{
+					Writer.WriteValue("addpatchlevel", ShouldAddPatchLevel());
 				}
 
 				Writer.WriteValue("manifests", IsGeneratingChunks());
@@ -1635,6 +1658,18 @@ public:
 		bSkipCookingEditorContent = Object.GetBoolField("SkipCookingEditorContent");
 		DeployIncremental = Object.GetBoolField("DeployIncremental");
 		GeneratePatch = Object.GetBoolField("GeneratePatch");
+
+		if (Version >= LAUNCHERSERVICES_ADDEDMULTILEVELPATCHING)
+		{
+			AddPatchLevel = Object.GetBoolField("AddPatchLevel");
+			StageBaseReleasePaks = Object.GetBoolField("StageBaseReleasePaks");
+		}
+		else
+		{
+			AddPatchLevel = false;
+			StageBaseReleasePaks = false;
+		}
+
 		DLCIncludeEngineContent = Object.GetBoolField("DLCIncludeEngineContent");
 		CreateReleaseVersion = Object.GetBoolField("CreateReleaseVersion");
 		CreateReleaseVersionName = Object.GetStringField("CreateReleaseVersionName");
@@ -1756,6 +1791,8 @@ public:
 
 		CreateReleaseVersion = false;
 		GeneratePatch = false;
+		AddPatchLevel = false;
+		StageBaseReleasePaks = false;
 		CreateDLC = false;
 		DLCIncludeEngineContent = false;
 
@@ -2218,6 +2255,16 @@ public:
 		GeneratePatch = InGeneratePatch;
 	}
 
+	virtual void SetAddPatchLevel( bool InAddPatchLevel) override
+	{
+		AddPatchLevel = InAddPatchLevel;
+	}
+
+	virtual void SetStageBaseReleasePaks(bool InStageBaseReleasePaks) override
+	{
+		StageBaseReleasePaks = InStageBaseReleasePaks;
+	}
+
 	virtual bool SupportsEngineMaps( ) const override
 	{
 		return false;
@@ -2321,9 +2368,19 @@ protected:
 		}
 
 
-		if ( IsGeneratingPatch() && (CookMode != ELauncherProfileCookModes::ByTheBook) )
+		if ( (IsGeneratingPatch() || ShouldAddPatchLevel()) && (CookMode != ELauncherProfileCookModes::ByTheBook) )
 		{
 			ValidationErrors.Add(ELauncherProfileValidationErrors::GeneratingPatchesCanOnlyRunFromByTheBookCookMode);
+		}
+
+		if (ShouldAddPatchLevel() && !IsGeneratingPatch() )
+		{
+			ValidationErrors.Add(ELauncherProfileValidationErrors::GeneratingMultiLevelPatchesRequiresGeneratePatch);
+		}
+
+		if (ShouldStageBaseReleasePaks() && BasedOnReleaseVersionName.IsEmpty())
+		{
+			ValidationErrors.Add(ELauncherProfileValidationErrors::StagingBaseReleasePaksWithoutABaseReleaseVersion);
 		}
 
 		if ( IsGeneratingChunks() && (CookMode != ELauncherProfileCookModes::ByTheBook) )
@@ -2422,9 +2479,9 @@ protected:
 			const TArray<FString>& Devices = DeployedDeviceGroup->GetDeviceIDs();
 			for(auto DeviceId : Devices)
 			{
-				TSharedPtr<ITargetDeviceServicesModule> TargetDeviceServicesModule = StaticCastSharedPtr<ITargetDeviceServicesModule>(FModuleManager::Get().LoadModule(TEXT("TargetDeviceServices")));
+				ITargetDeviceServicesModule* TargetDeviceServicesModule = static_cast<ITargetDeviceServicesModule*>(FModuleManager::Get().LoadModule(TEXT("TargetDeviceServices")));
 				
-				if (TargetDeviceServicesModule.IsValid())
+				if (TargetDeviceServicesModule)
 				{
 					ITargetDeviceProxyPtr DeviceProxy = TargetDeviceServicesModule->GetDeviceProxyManager()->FindProxy(DeviceId);
 					
@@ -2553,6 +2610,12 @@ private:
 
 	// This build generate a patch based on some source content seealso PatchSourceContentPath
 	bool GeneratePatch;
+
+	// This build generates a new tier patch file for modified content
+	bool AddPatchLevel;
+
+	// This build stages pak files from the release version it is based on
+	bool StageBaseReleasePaks;
 
 	// This build will cook content for dlc See also DLCName
 	bool CreateDLC;

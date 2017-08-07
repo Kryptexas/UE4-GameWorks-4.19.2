@@ -7,7 +7,7 @@
 #include "Styling/ISlateStyle.h"
 #include "AssetTools/MediaSourceActions.h"
 
-class FAssetData;
+struct FAssetData;
 
 /**
  * Implements an action for UMediaSource assets.

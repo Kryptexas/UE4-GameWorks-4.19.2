@@ -196,7 +196,7 @@ FText FLatentActionLineItem::GetDescription() const
 {
 	if (UObject* ParentObject = ParentObjectRef.Get())
 	{
-		if (UWorld* World = GEngine->GetWorldFromContextObject(ParentObject))
+		if (UWorld* World = GEngine->GetWorldFromContextObject(ParentObject, EGetWorldErrorMode::ReturnNull))
 		{
 			FLatentActionManager& LatentActionManager = World->GetLatentActionManager();
 			return FText::FromString(LatentActionManager.GetDescription(ParentObject, UUID));
@@ -659,7 +659,7 @@ public:
 				}
 
 				// It could also have active latent behaviors
-				if (UWorld* World = GEngine->GetWorldFromContextObject(ParentObject))
+				if (UWorld* World = GEngine->GetWorldFromContextObject(ParentObject, EGetWorldErrorMode::ReturnNull))
 				{
 					FLatentActionManager& LatentActionManager = World->GetLatentActionManager();
 

@@ -16,7 +16,7 @@
 FAndroidMediaPlayer::FAndroidMediaPlayer()
 	: JavaMediaPlayer(nullptr)
 {
-	JavaMediaPlayer = MakeShareable(new FJavaAndroidMediaPlayer(false));
+	JavaMediaPlayer = MakeShareable(new FJavaAndroidMediaPlayer(FAndroidMisc::ShouldUseVulkan()));
 	State = JavaMediaPlayer.IsValid() ? EMediaState::Closed : EMediaState::Error;
 }
 

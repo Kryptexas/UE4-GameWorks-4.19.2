@@ -63,7 +63,7 @@ void SPropertyNameWidget::Construct( const FArguments& InArgs, TSharedPtr<FPrope
 		.VAlign(VAlign_Center)
 		.Padding(2,1)
 		[
-			SNew( SResetToDefaultPropertyEditor, PropertyEditor.ToSharedRef() )
+			SNew( SResetToDefaultPropertyEditor, PropertyEditor->GetPropertyHandle())
 		];
 	}
 }
@@ -73,10 +73,11 @@ void SPropertyValueWidget::Construct( const FArguments& InArgs, TSharedPtr<FProp
 	MinDesiredWidth = 0.0f;
 	MaxDesiredWidth = 0.0f;
 
+	bCreatedResetButton = false;
 	SetEnabled( TAttribute<bool>( PropertyEditor.ToSharedRef(), &FPropertyEditor::IsPropertyEditingEnabled ) );
 
 
-	ValueEditorWidget = ConstructPropertyEditorWidget( PropertyEditor, InPropertyUtilities );
+	ValueEditorWidget = ConstructPropertyEditorWidget( PropertyEditor, InPropertyUtilities, InArgs._OptionalResetWidget );
 
 	if ( !ValueEditorWidget->GetToolTip().IsValid() )
 	{
@@ -128,7 +129,7 @@ void SPropertyValueWidget::Construct( const FArguments& InArgs, TSharedPtr<FProp
 
 }
 
-TSharedRef<SWidget> SPropertyValueWidget::ConstructPropertyEditorWidget( TSharedPtr<FPropertyEditor>& PropertyEditor, TSharedPtr<IPropertyUtilities> InPropertyUtilities )
+TSharedRef<SWidget> SPropertyValueWidget::ConstructPropertyEditorWidget( TSharedPtr<FPropertyEditor>& PropertyEditor, TSharedPtr<IPropertyUtilities> InPropertyUtilities, TSharedRef<SWidget> InResetDefaultWidget)
 {
 	const TSharedRef<FPropertyEditor> PropertyEditorRef = PropertyEditor.ToSharedRef();
 	const TSharedRef<IPropertyUtilities> PropertyUtilitiesRef = InPropertyUtilities.ToSharedRef();
@@ -170,8 +171,15 @@ TSharedRef<SWidget> SPropertyValueWidget::ConstructPropertyEditorWidget( TShared
 		{
 			TSharedRef<SPropertyEditorAsset> AssetWidget = 
 				SAssignNew( PropertyWidget, SPropertyEditorAsset, PropertyEditorRef )
-				.ThumbnailPool( PropertyUtilitiesRef->GetThumbnailPool() );
-
+				.ThumbnailPool( PropertyUtilitiesRef->GetThumbnailPool() )
+				.ResetToDefaultSlot()
+				[
+					InResetDefaultWidget
+				];
+			if (InResetDefaultWidget != SNullWidget::NullWidget)
+			{
+				bCreatedResetButton = true;
+			}
 			AssetWidget->GetDesiredWidth( MinDesiredWidth, MaxDesiredWidth );
 		}
 		else if ( SPropertyEditorClass::Supports( PropertyEditorRef ) )

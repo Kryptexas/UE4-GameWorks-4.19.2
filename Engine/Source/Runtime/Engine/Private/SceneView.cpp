@@ -18,7 +18,7 @@
 #include "Engine/TextureCube.h"
 #include "IHeadMountedDisplay.h"
 #include "Engine/RendererSettings.h"
-#include "LightPropagationVolumeBlendable.h"
+#include "LightPropagationVolumeSettings.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "HighResScreenshot.h"
 #include "Slate/SceneViewport.h"
@@ -311,6 +311,16 @@ static TAutoConsoleVariable<float> CVarRoughnessMax(
 	ECVF_Cheat | ECVF_RenderThreadSafe
 	);
 
+static TAutoConsoleVariable<int32> CVarAllowTranslucencyAfterDOF(
+	TEXT("r.SeparateTranslucency"),
+	1,
+	TEXT("Allows to disable the separate translucency feature (all translucency is rendered in separate RT and composited\n")
+	TEXT("after DOF, if not specified otherwise in the material).\n")
+	TEXT(" 0: off (translucency is affected by depth of field)\n")
+	TEXT(" 1: on costs GPU performance and memory but keeps translucency unaffected by Depth of Field. (default)"),
+	ECVF_RenderThreadSafe);
+
+
 /** Global vertex color view mode setting when SHOW_VertexColors show flag is set */
 EVertexColorViewMode::Type GVertexColorViewMode = EVertexColorViewMode::Color;
 
@@ -455,6 +465,7 @@ FVector4 CreateInvDeviceZToWorldZTransform(const FMatrix& ProjMatrix)
 FViewMatrices::FViewMatrices(const FSceneViewInitOptions& InitOptions) : FViewMatrices()
 {
 	//check(InitOptions.ViewRotationMatrix.GetOrigin().IsNearlyZero());
+	check(FVector::Distance(InitOptions.ViewRotationMatrix.GetScaleVector(), FVector::OneVector) < KINDA_SMALL_NUMBER);
 
 	FVector LocalViewOrigin = InitOptions.ViewOrigin;
 	FMatrix ViewRotationMatrix = InitOptions.ViewRotationMatrix;
@@ -1294,7 +1305,10 @@ void FSceneView::OverridePostProcessSettings(const FPostProcessSettings& Src, fl
 		LERP_PP(BloomDirtMaskTint);
 		LERP_PP(BloomConvolutionSize);
 		LERP_PP(BloomConvolutionCenterUV);
-		LERP_PP(BloomConvolutionPreFilter);
+		LERP_PP(BloomConvolutionPreFilter_DEPRECATED);
+		LERP_PP(BloomConvolutionPreFilterMin);
+		LERP_PP(BloomConvolutionPreFilterMax);
+		LERP_PP(BloomConvolutionPreFilterMult);
 		LERP_PP(AmbientCubemapIntensity);
 		LERP_PP(AmbientCubemapTint);
 		LERP_PP(AutoExposureLowPercent);
@@ -1471,7 +1485,7 @@ void FSceneView::OverridePostProcessSettings(const FPostProcessSettings& Src, fl
 		{
 			UObject* Object = Src.WeightedBlendables.Array[i].Object;
 
-			if(!Object)
+			if(!Object || !Object->IsValidLowLevel())
 			{
 				continue;
 			}
@@ -2286,6 +2300,7 @@ void FSceneView::SetupCommonViewUniformBufferParameters(
 
 FSceneViewFamily::FSceneViewFamily(const ConstructionValues& CVS)
 	:
+	ViewMode(VMI_Lit),
 	FamilySizeX(0),
 	FamilySizeY(0),
 	InstancedStereoWidth(0),
@@ -2459,6 +2474,24 @@ const FSceneView& FSceneViewFamily::GetStereoEyeView(const EStereoscopicPass Eye
 		return *Views[1];
 	}
 }
+
+bool FSceneViewFamily::AllowTranslucencyAfterDOF() const
+{
+	static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.PostProcessing.PropagateAlpha"));
+	const bool bPostProcessAlphaChannel = CVar ? (CVar->GetInt() != 0) : false;
+
+	static IConsoleVariable* CVarMobileMSAA = IConsoleManager::Get().FindConsoleVariable(TEXT("r.MobileMSAA"));
+	const bool bMobileMSAA = CVarMobileMSAA ? (CVarMobileMSAA->GetInt() > 1) : false;
+	
+	return CVarAllowTranslucencyAfterDOF.GetValueOnRenderThread() != 0
+		&& (GetFeatureLevel() > ERHIFeatureLevel::ES3_1 || (IsMobileHDR() && !bMobileMSAA)) // on <= ES3_1 separate translucency requires HDR on and MSAA off
+		&& EngineShowFlags.PostProcessing // Used for reflection captures.
+		&& !UseDebugViewPS()
+		&& EngineShowFlags.SeparateTranslucency
+		&& !bPostProcessAlphaChannel;
+		// If not, translucency after DOF will be rendered in standard translucency.
+}
+
 
 FSceneViewFamilyContext::~FSceneViewFamilyContext()
 {

@@ -15,7 +15,7 @@ FSlateTextUnderlineLineHighlighter::FSlateTextUnderlineLineHighlighter(const FSl
 {
 }
 
-int32 FSlateTextUnderlineLineHighlighter::OnPaint(const FPaintArgs& Args, const FTextLayout::FLineView& Line, const float OffsetX, const float Width, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+int32 FSlateTextUnderlineLineHighlighter::OnPaint(const FPaintArgs& Args, const FTextLayout::FLineView& Line, const float OffsetX, const float Width, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	TSharedRef<FSlateFontCache> FontCache = FSlateApplication::Get().GetRenderer()->GetFontCache();
 
@@ -55,7 +55,6 @@ int32 FSlateTextUnderlineLineHighlighter::OnPaint(const FPaintArgs& Args, const 
 				++LayerId,
 				AllottedGeometry.ToPaintGeometry(TransformVector(InverseScale, Size), FSlateLayoutTransform(TransformPoint(InverseScale, Location + DrawShadowOffset))),
 				&UnderlineBrush,
-				MyClippingRect,
 				bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect,
 				ShadowColorAndOpacity * InWidgetStyle.GetColorAndOpacityTint()
 				);
@@ -67,7 +66,6 @@ int32 FSlateTextUnderlineLineHighlighter::OnPaint(const FPaintArgs& Args, const 
 			++LayerId,
 			AllottedGeometry.ToPaintGeometry(TransformVector(InverseScale, Size), FSlateLayoutTransform(TransformPoint(InverseScale, Location + DrawUnderlineOffset))),
 			&UnderlineBrush,
-			MyClippingRect,
 			bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect,
 			LineColorAndOpacity * InWidgetStyle.GetColorAndOpacityTint()
 			);

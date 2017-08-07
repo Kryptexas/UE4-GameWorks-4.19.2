@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3388665
 Availability: Public
 Title: 4.5 - 애니메이션 & 캐릭터 블루프린트 연결
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/4
 Description: 일인칭 슈팅 프로젝트에서 애니메이션 블루프린트를 캐릭터 블루프린트와 연결하는 법을 배워봅니다.
 SkillLevel: Beginner
-Version: 4.11
+Version: 4.15
 
 [VAR:Steps]
 [OBJECT:Navigation]

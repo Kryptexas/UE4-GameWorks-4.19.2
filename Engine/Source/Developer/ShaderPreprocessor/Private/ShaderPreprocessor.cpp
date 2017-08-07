@@ -29,29 +29,16 @@ class FMcppFileLoader
 {
 public:
 	/** Initialization constructor. */
-	explicit FMcppFileLoader(const FShaderCompilerInput& InShaderInput)
+	explicit FMcppFileLoader(const FShaderCompilerInput& InShaderInput, FShaderCompilerOutput& InShaderOutput)
 		: ShaderInput(InShaderInput)
+		, ShaderOutput(InShaderOutput)
 	{
-		FString ShaderDir = FPlatformProcess::ShaderDir();
-
-		InputShaderFile = ShaderDir / FPaths::GetCleanFilename(ShaderInput.SourceFilename);
-		if (FPaths::GetExtension(InputShaderFile) != TEXT("usf"))
-		{
-			InputShaderFile += TEXT(".usf");
-		}
-
 		FString InputShaderSource;
-		if (LoadShaderSourceFile(*ShaderInput.SourceFilename,InputShaderSource))
+		if (LoadShaderSourceFile(*InShaderInput.VirtualSourceFilePath, InputShaderSource, nullptr))
 		{
 			InputShaderSource = FString::Printf(TEXT("%s\n#line 1\n%s"), *ShaderInput.SourceFilePrefix, *InputShaderSource);
-			CachedFileContents.Add(GetRelativeShaderFilename(InputShaderFile),StringToArray<ANSICHAR>(*InputShaderSource, InputShaderSource.Len()));
+			CachedFileContents.Add(InShaderInput.VirtualSourceFilePath, StringToArray<ANSICHAR>(*InputShaderSource, InputShaderSource.Len()));
 		}
-	}
-
-	/** Returns the input shader filename to pass to MCPP. */
-	const FString& GetInputShaderFilename() const
-	{
-		return InputShaderFile;
 	}
 
 	/** Retrieves the MCPP file loader interface. */
@@ -68,27 +55,33 @@ private:
 	typedef TArray<ANSICHAR> FShaderContents;
 
 	/** MCPP callback for retrieving file contents. */
-	static int GetFileContents(void* InUserData, const ANSICHAR* InFilename, const ANSICHAR** OutContents, size_t* OutContentSize)
+	static int GetFileContents(void* InUserData, const ANSICHAR* InVirtualFilePath, const ANSICHAR** OutContents, size_t* OutContentSize)
 	{
 		FMcppFileLoader* This = (FMcppFileLoader*)InUserData;
-		FString Filename = GetRelativeShaderFilename(ANSI_TO_TCHAR(InFilename));
 
-		FShaderContents* CachedContents = This->CachedFileContents.Find(Filename);
+		FShaderContents* CachedContents = This->CachedFileContents.Find(InVirtualFilePath);
 		if (!CachedContents)
 		{
+			FString VirtualFilePath = (ANSI_TO_TCHAR(InVirtualFilePath));
 			FString FileContents;
-			if (This->ShaderInput.Environment.IncludeFileNameToContentsMap.Contains(Filename))
+
+			if (This->ShaderInput.Environment.IncludeVirtualPathToContentsMap.Contains(VirtualFilePath))
 			{
-				FileContents = FString(UTF8_TO_TCHAR(This->ShaderInput.Environment.IncludeFileNameToContentsMap.FindRef(Filename).GetData()));
+				FileContents = FString(UTF8_TO_TCHAR(
+					This->ShaderInput.Environment.IncludeVirtualPathToContentsMap.FindRef(VirtualFilePath).GetData()));
 			}
 			else
 			{
-				LoadShaderSourceFile(*Filename,FileContents);
+				LoadShaderSourceFile(*VirtualFilePath, FileContents, &This->ShaderOutput.Errors);
 			}
 
 			if (FileContents.Len() > 0)
 			{
-				CachedContents = &This->CachedFileContents.Add(Filename,StringToArray<ANSICHAR>(*FileContents, FileContents.Len()));
+				// Adds a #line 1 "<Absolute file path>" on top of every file content to have nice absolute virtual source
+				// file path in error messages.
+				FileContents = FString::Printf(TEXT("#line 1 \"%s\"\n%s"), *VirtualFilePath, *FileContents);
+
+				CachedContents = &This->CachedFileContents.Add(InVirtualFilePath, StringToArray<ANSICHAR>(*FileContents, FileContents.Len()));
 			}
 		}
 
@@ -101,15 +94,15 @@ private:
 			*OutContentSize = CachedContents ? CachedContents->Num() : 0;
 		}
 
-		return !!CachedContents;
+		return CachedContents != nullptr;
 	}
 
 	/** Shader input data. */
 	const FShaderCompilerInput& ShaderInput;
+	/** Shader output data. */
+	FShaderCompilerOutput& ShaderOutput;
 	/** File contents are cached as needed. */
 	TMap<FString,FShaderContents> CachedFileContents;
-	/** The input shader filename. */
-	FString InputShaderFile;
 };
 
 /**
@@ -127,10 +120,12 @@ bool PreprocessShader(
 	const FShaderCompilerDefinitions& AdditionalDefines
 	)
 {
+	check(CheckVirtualShaderFilePath(ShaderInput.VirtualSourceFilePath));
+
 	// Skip the cache system and directly load the file path (used for debugging)
 	if (ShaderInput.bSkipPreprocessedCache)
 	{
-		return FFileHelper::LoadFileToString(OutPreprocessedShader, *ShaderInput.SourceFilename);
+		return FFileHelper::LoadFileToString(OutPreprocessedShader, *ShaderInput.VirtualSourceFilePath);
 	}
 
 	FString McppOptions;
@@ -143,14 +138,14 @@ bool PreprocessShader(
 	static FCriticalSection McppCriticalSection;
 	FScopeLock McppLock(&McppCriticalSection);
 
-	FMcppFileLoader FileLoader(ShaderInput);
+	FMcppFileLoader FileLoader(ShaderInput, ShaderOutput);
 
 	AddMcppDefines(McppOptions, ShaderInput.Environment.GetDefinitions());
 	AddMcppDefines(McppOptions, AdditionalDefines.GetDefinitionMap());
 
 	int32 Result = mcpp_run(
 		TCHAR_TO_ANSI(*McppOptions),
-		TCHAR_TO_ANSI(*FileLoader.GetInputShaderFilename()),
+		TCHAR_TO_ANSI(*ShaderInput.VirtualSourceFilePath),
 		&McppOutAnsi,
 		&McppErrAnsi,
 		FileLoader.GetMcppInterface()
@@ -159,7 +154,7 @@ bool PreprocessShader(
 	McppOutput = McppOutAnsi;
 	McppErrors = McppErrAnsi;
 
-	if (ParseMcppErrors(ShaderOutput.Errors, McppErrors, true))
+	if (ParseMcppErrors(ShaderOutput.Errors, McppErrors))
 	{
 		// exchange strings
 		FMemory::Memswap( &OutPreprocessedShader, &McppOutput, sizeof(FString) );

@@ -96,6 +96,25 @@ void FStreamingLevelModel::SetLevelColor(FLinearColor InColor)
 	}
 }
 
+FName FStreamingLevelModel::GetFolderPath() const
+{
+	FName FolderPath = NAME_None;
+	if (LevelStreaming.IsValid())
+	{
+		FolderPath = LevelStreaming->GetFolderPath();
+	}
+
+	return FolderPath;
+}
+
+void FStreamingLevelModel::SetFolderPath(const FName& InFolderPath)
+{
+	if (LevelStreaming.IsValid())
+	{
+		LevelStreaming->SetFolderPath(InFolderPath);
+	}
+}
+
 void FStreamingLevelModel::Update()
 {
 	UpdatePackageFileAvailability();

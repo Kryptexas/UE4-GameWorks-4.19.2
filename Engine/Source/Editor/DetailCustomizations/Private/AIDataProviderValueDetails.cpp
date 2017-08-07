@@ -70,9 +70,9 @@ void FAIDataProviderValueDetails::CustomizeChildren(TSharedRef<class IPropertyHa
 {
 	if (StructPropertyHandle->IsValidHandle())
 	{
-		StructBuilder.AddChildProperty(DataBindingProperty.ToSharedRef());
+		StructBuilder.AddProperty(DataBindingProperty.ToSharedRef());
 
-		StructBuilder.AddChildContent(LOCTEXT("PropertyField", "Property"))
+		StructBuilder.AddCustomRow(LOCTEXT("PropertyField", "Property"))
 		.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FAIDataProviderValueDetails::GetDataFieldVisibility)))
 		.NameContent()
 		[

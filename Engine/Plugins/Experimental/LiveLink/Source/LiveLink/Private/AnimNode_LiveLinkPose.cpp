@@ -5,9 +5,13 @@
 
 #include "Features/IModularFeatures.h"
 
+#include "AnimInstanceProxy.h"
+
+#include "LiveLinkRemapAsset.h"
+
 #define LOCTEXT_NAMESPACE "LiveLinkAnimNode"
 
-void FAnimNode_LiveLinkPose::Initialize(const FAnimationInitializeContext& Context)
+void FAnimNode_LiveLinkPose::Initialize_AnyThread(const FAnimationInitializeContext& Context)
 {
 	IModularFeatures& ModularFeatures = IModularFeatures::Get();
 
@@ -15,40 +19,36 @@ void FAnimNode_LiveLinkPose::Initialize(const FAnimationInitializeContext& Conte
 	{
 		LiveLinkClient = &IModularFeatures::Get().GetModularFeature<ILiveLinkClient>(ILiveLinkClient::ModularFeatureName);
 	}
+
+	PreviousRetargetAsset = nullptr;
 }
 
-void FAnimNode_LiveLinkPose::Evaluate(FPoseContext& Output)
+void FAnimNode_LiveLinkPose::Update_AnyThread(const FAnimationUpdateContext & Context)
 {
-	FLiveLinkRefSkeleton RefSkeleton;
-	TArray<FTransform> BoneTransforms;
-	
+	EvaluateGraphExposedInputs.Execute(Context);
+
+	ULiveLinkRetargetAsset* CurrentRetargetAsset = RetargetAsset ? RetargetAsset : ULiveLinkRemapAsset::StaticClass()->GetDefaultObject<ULiveLinkRetargetAsset>();
+	if (PreviousRetargetAsset != CurrentRetargetAsset)
+	{
+		RetargetContext = CurrentRetargetAsset->CreateRetargetContext();
+		PreviousRetargetAsset = CurrentRetargetAsset;
+	}
+}
+
+void FAnimNode_LiveLinkPose::Evaluate_AnyThread(FPoseContext& Output)
+{
 	Output.ResetToRefPose();
 
-	if(LiveLinkClient && LiveLinkClient->GetSubjectData(SubjectName, BoneTransforms, RefSkeleton))
+	if (!LiveLinkClient || !PreviousRetargetAsset)
 	{
-		const TArray<FName>& BoneNames = RefSkeleton.GetBoneNames();
+		return;
+	}
 
-		if ((BoneNames.Num() == 0) || (BoneTransforms.Num() == 0) || (BoneNames.Num() != BoneTransforms.Num()))
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Failed to get live link data %i %i"), BoneNames.Num(), BoneTransforms.Num());
-			return;
-		}
+	
 
-		for (int32 i = 0; i < BoneNames.Num(); ++i)
-		{
-			FName BoneName = BoneNames[i];
-			FTransform BoneTransform = BoneTransforms[i];
-
-			int32 MeshIndex = Output.Pose.GetBoneContainer().GetPoseBoneIndexForBoneName(BoneName);
-			if (MeshIndex != INDEX_NONE)
-			{
-				FCompactPoseBoneIndex CPIndex = Output.Pose.GetBoneContainer().MakeCompactPoseIndex(FMeshPoseBoneIndex(MeshIndex));
-				if (CPIndex != INDEX_NONE)
-				{
-					Output.Pose[CPIndex] = BoneTransform;
-				}
-			}
-		}
+	if(const FLiveLinkSubjectFrame* Subject = LiveLinkClient->GetSubjectData(SubjectName))
+	{
+		PreviousRetargetAsset->BuildPoseForSubject(*Subject, RetargetContext, Output.Pose, Output.Curve);
 	}
 }
 

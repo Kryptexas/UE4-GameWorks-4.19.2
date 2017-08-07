@@ -1,8 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "XmppStrophe/XmppConnectionStrophe.h"
 #include "XmppStrophe/XmppMessagesStrophe.h"
 #include "XmppStrophe/XmppMultiUserChatStrophe.h"
+#include "XmppStrophe/XmppPingStrophe.h"
 #include "XmppStrophe/XmppPresenceStrophe.h"
 #include "XmppStrophe/XmppPrivateChatStrophe.h"
 #include "XmppStrophe/XmppPubSubStrophe.h"
@@ -18,11 +19,12 @@
 FXmppConnectionStrophe::FXmppConnectionStrophe()
 	: LoginStatus(EXmppLoginStatus::NotStarted)
 {
-	MessagesStrophe = MakeShareable(new FXmppMessagesStrophe(*this));
-	MultiUserChatStrophe = MakeShareable(new FXmppMultiUserChatStrophe(*this));
-	PresenceStrophe = MakeShareable(new FXmppPresenceStrophe(*this));
-	PrivateChatStrophe = MakeShareable(new FXmppPrivateChatStrophe(*this));
-	PubSubStrophe = MakeShareable(new FXmppPubSubStrophe(*this));
+	MessagesStrophe = MakeShared<FXmppMessagesStrophe, ESPMode::ThreadSafe>(*this);
+	MultiUserChatStrophe = MakeShared<FXmppMultiUserChatStrophe, ESPMode::ThreadSafe>(*this);
+	PingStrophe = MakeShared<FXmppPingStrophe, ESPMode::ThreadSafe>(*this);
+	PresenceStrophe = MakeShared<FXmppPresenceStrophe, ESPMode::ThreadSafe>(*this);
+	PrivateChatStrophe = MakeShared<FXmppPrivateChatStrophe, ESPMode::ThreadSafe>(*this);
+	PubSubStrophe = MakeShared<FXmppPubSubStrophe, ESPMode::ThreadSafe>(*this);
 }
 
 void FXmppConnectionStrophe::SetServer(const FXmppServer& NewServerConfiguration)
@@ -84,6 +86,7 @@ void FXmppConnectionStrophe::Logout()
 
 	MessagesStrophe->OnDisconnect();
 	MultiUserChatStrophe->OnDisconnect();
+	PingStrophe->OnDisconnect();
 	PresenceStrophe->OnDisconnect();
 	PrivateChatStrophe->OnDisconnect();
 	PubSubStrophe->OnDisconnect();
@@ -263,6 +266,14 @@ void FXmppConnectionStrophe::ReceiveStanza(const FStropheStanza& Stanza)
 			return;
 		}
 	}
+	if (PingStrophe.IsValid())
+	{
+		if (PingStrophe->ReceiveStanza(Stanza))
+		{
+			UE_LOG(LogXmpp, VeryVerbose, TEXT("%s Stanza handled by Ping"), *Stanza.GetName());
+			return;
+		}
+	}
 	if (PresenceStrophe.IsValid())
 	{
 		if (PresenceStrophe->ReceiveStanza(Stanza))
@@ -288,7 +299,8 @@ void FXmppConnectionStrophe::ReceiveStanza(const FStropheStanza& Stanza)
 		}
 	}
 
-	UE_LOG(LogXmpp, Log, TEXT("%s Stanza left unhandled"), *Stanza.GetName());
+	checkfSlow(false, TEXT("Unhandled XMPP stanza %s"), *Stanza.GetName());
+	UE_LOG(LogXmpp, Warning, TEXT("%s Stanza left unhandled"), *Stanza.GetName());
 }
 
 void FXmppConnectionStrophe::QueueNewLoginStatus(EXmppLoginStatus::Type NewStatus)

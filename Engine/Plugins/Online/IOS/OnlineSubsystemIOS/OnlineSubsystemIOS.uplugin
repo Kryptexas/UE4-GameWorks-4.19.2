@@ -27,5 +27,11 @@
 			"Name": "OnlineSubsystemIOS",
 			"LoadingPolicy": "Always"
 		}
+	],
+	"Plugins": [
+		{
+			"Name": "OnlineSubsystem",
+			"Enabled": true
+		}
 	]
 }

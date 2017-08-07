@@ -4,7 +4,6 @@
 
 
 #include "CoreTypes.h"
-#include "Templates/AlignOf.h"
 
 /**
  * Used to declare an untyped array of data with compile-time alignment.
@@ -58,6 +57,6 @@ template<typename ElementType>
 struct TTypeCompatibleBytes :
 	public TAlignedBytes<
 		sizeof(ElementType),
-		ALIGNOF(ElementType)
+		alignof(ElementType)
 		>
 {};

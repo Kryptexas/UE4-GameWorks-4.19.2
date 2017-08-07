@@ -25,7 +25,7 @@ import android.util.Log;
 public class MediaPlayer14
 	extends android.media.MediaPlayer
 {
-	private boolean SwizzlePixels = true;
+	private boolean VulkanRenderer = false;									
 	private volatile boolean WaitOnBitmapRender = false;
 
 	public class AudioTrackInfo {
@@ -58,10 +58,12 @@ public class MediaPlayer14
 	private ArrayList<AudioTrackInfo> audioTracks = new ArrayList<AudioTrackInfo>();
 	private ArrayList<VideoTrackInfo> videoTracks = new ArrayList<VideoTrackInfo>();
 
-
-	public MediaPlayer14()
+	public MediaPlayer14(boolean vulkanRenderer)
 	{
-		SwizzlePixels = true;
+		VulkanRenderer = vulkanRenderer;
+		
+		GameActivity.Log.debug("MediaPlayer14: initialized,  VulkanRenderer: " + VulkanRenderer);
+
 		WaitOnBitmapRender = false;
 
 		 setOnErrorListener(new OnErrorListener()
@@ -75,13 +77,6 @@ public class MediaPlayer14
 		}
 		);
 	}
-
-	public MediaPlayer14(boolean swizzlePixels)
-	{
-		SwizzlePixels = swizzlePixels;
-		WaitOnBitmapRender = false;
-	}
-
 
 	private void updateTrackInfo(MediaExtractor extractor)
 	{
@@ -396,8 +391,9 @@ public class MediaPlayer14
 		private float[] mTransformMatrix = new float[16];
 		private boolean mTriangleVerticesDirty = true;
 		private boolean mTextureSizeChanged = true;
-
 		private boolean mUseOwnContext = true;
+		private boolean mVulkanRenderer = false;
+		private boolean mSwizzlePixels = false;
 
 		private int GL_TEXTURE_EXTERNAL_OES = 0x8D65;
 
@@ -410,23 +406,34 @@ public class MediaPlayer14
 		private EGLSurface mSavedSurfaceDraw;
 		private EGLSurface mSavedSurfaceRead;
 
-		public BitmapRenderer()
+		private boolean mCreatedEGLDisplay = false;
+
+		public BitmapRenderer(boolean isVulkan)
 		{
-			mEglSurface = EGL14.EGL_NO_SURFACE;
-			mEglContext = EGL14.EGL_NO_CONTEXT;
-			mEglDisplay = EGL14.eglGetCurrentDisplay();
+			mVulkanRenderer = isVulkan;
 			mUseOwnContext = true;
 
-			String RendererString = GLES20.glGetString(GLES20.GL_RENDERER);
+			mEglSurface = EGL14.EGL_NO_SURFACE;
+			mEglContext = EGL14.EGL_NO_CONTEXT;
+			mEglDisplay = EGL14.EGL_NO_DISPLAY;
 
-			// Do not use shared context if Adreno before 400 or on older Android than Marshmallow
-			if (RendererString.contains("Adreno (TM) "))
+			if (mVulkanRenderer)
 			{
-				int AdrenoVersion = Integer.parseInt(RendererString.substring(12));
-				if (AdrenoVersion < 400 || android.os.Build.VERSION.SDK_INT < 22)
+				mSwizzlePixels = true;
+			}
+			else
+			{
+				String RendererString = GLES20.glGetString(GLES20.GL_RENDERER);
+
+				// Do not use shared context if Adreno before 400 or on older Android than Marshmallow
+				if (RendererString.contains("Adreno (TM) "))
 				{
-					GameActivity.Log.debug("MediaPlayer14: disabled shared GL context on " + RendererString);
-					mUseOwnContext = false;
+					int AdrenoVersion = Integer.parseInt(RendererString.substring(12));
+					if (AdrenoVersion < 400 || android.os.Build.VERSION.SDK_INT < 22)
+					{
+						GameActivity.Log.debug("MediaPlayer14: disabled shared GL context on " + RendererString);
+						mUseOwnContext = false;
+					}
 				}
 			}
 
@@ -446,7 +453,33 @@ public class MediaPlayer14
 
 		private void initContext()
 		{
-			EGLContext shareContext = EGL14.eglGetCurrentContext();
+			mEglDisplay = EGL14.EGL_NO_DISPLAY;
+			EGLContext shareContext = EGL14.EGL_NO_CONTEXT;
+
+			if (!mVulkanRenderer)
+			{
+				mEglDisplay = EGL14.eglGetCurrentDisplay();
+				shareContext = EGL14.eglGetCurrentContext();
+			}
+			else
+			{
+				mEglDisplay = EGL14.eglGetDisplay(EGL14.EGL_DEFAULT_DISPLAY);
+				if (mEglDisplay == EGL14.EGL_NO_DISPLAY)
+				{
+					GameActivity.Log.error("unable to get EGL14 display");
+					return;
+				}
+				int[] version = new int[2];
+				if (!EGL14.eglInitialize(mEglDisplay, version, 0, version, 1))
+				{
+					mEglDisplay = null;
+					GameActivity.Log.error("unable to initialize EGL14 display");
+					return;
+				}				
+				
+				mCreatedEGLDisplay = true;
+			}
+
 			int[] configSpec = new int[]
 			{
 				EGL14.EGL_RENDERABLE_TYPE, EGL14.EGL_OPENGL_ES2_BIT,
@@ -502,6 +535,7 @@ public class MediaPlayer14
 			mTextureID = textures[0];
 			if (mTextureID <= 0)
 			{
+				GameActivity.Log.error("mTextureID <= 0");
 				release();
 				return;
 			}
@@ -515,6 +549,7 @@ public class MediaPlayer14
 			mFBO = glInt[0];
 			if (mFBO <= 0)
 			{
+				GameActivity.Log.error("mFBO <= 0");
 				release();
 				return;
 			}
@@ -523,19 +558,22 @@ public class MediaPlayer14
 			mBlitVertexShaderID = createShader(GLES20.GL_VERTEX_SHADER, mBlitVextexShader);
 			if (mBlitVertexShaderID == 0)
 			{
+				GameActivity.Log.error("mBlitVertexShaderID == 0");
 				release();
 				return;
 			}
 			int mBlitFragmentShaderID = createShader(GLES20.GL_FRAGMENT_SHADER,
-				SwizzlePixels ? mBlitFragmentShaderBGRA : mBlitFragmentShaderRGBA);
+				mSwizzlePixels ? mBlitFragmentShaderBGRA : mBlitFragmentShaderRGBA);
 			if (mBlitFragmentShaderID == 0)
 			{
+				GameActivity.Log.error("mBlitFragmentShaderID == 0");
 				release();
 				return;
 			}
 			mProgram = GLES20.glCreateProgram();
 			if (mProgram <= 0)
 			{
+				GameActivity.Log.error("mProgram <= 0");
 				release();
 				return;
 			}
@@ -561,6 +599,7 @@ public class MediaPlayer14
 			mBlitBuffer = glInt[0];
 			if (mBlitBuffer <= 0)
 			{
+				GameActivity.Log.error("mBlitBuffer <= 0");
 				release();
 				return;
 			}
@@ -1096,6 +1135,12 @@ public class MediaPlayer14
 				EGL14.eglDestroyContext(mEglDisplay, mEglContext);
 				mEglContext = EGL14.EGL_NO_CONTEXT;
 			}
+			if (mCreatedEGLDisplay)
+			{
+				EGL14.eglTerminate(mEglDisplay);
+				mEglDisplay = EGL14.EGL_NO_DISPLAY;
+				mCreatedEGLDisplay = false;	
+			}
 		}
 	};
 
@@ -1103,7 +1148,7 @@ public class MediaPlayer14
 	{
 		releaseBitmapRenderer();
 
-		mBitmapRenderer = new BitmapRenderer();
+		mBitmapRenderer = new BitmapRenderer(VulkanRenderer);
 		if (!mBitmapRenderer.isValid())
 		{
 			mBitmapRenderer = null;

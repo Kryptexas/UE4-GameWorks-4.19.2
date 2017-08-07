@@ -462,21 +462,24 @@ void SAnimSegmentsPanel::OnTrackDragDrop( TSharedPtr<FDragDropOperation> DragDro
 	if (DragDropOp.IsValid() && DragDropOp->IsOfType<FAssetDragDropOp>())
 	{
 		TSharedPtr<FAssetDragDropOp> AssetOp = StaticCastSharedPtr<FAssetDragDropOp>(DragDropOp);
-		UAnimSequenceBase* DroppedSequence = FAssetData::GetFirstAsset<UAnimSequenceBase>(AssetOp->AssetData);
-		if (IsValidToAdd(DroppedSequence))
+		if (AssetOp->HasAssets())
 		{
-			if (bChildAnimMontage)
+			UAnimSequenceBase* DroppedSequence = FAssetData::GetFirstAsset<UAnimSequenceBase>(AssetOp->GetAssets());
+			if (IsValidToAdd(DroppedSequence))
 			{
-				ReplaceAnimSegment(DroppedSequence, DataPos);
+				if (bChildAnimMontage)
+				{
+					ReplaceAnimSegment(DroppedSequence, DataPos);
+				}
+				else
+				{
+					AddAnimSegment(DroppedSequence, DataPos);
+				}
 			}
 			else
 			{
-				AddAnimSegment(DroppedSequence, DataPos);
+				FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("FailedToAdd", "Make sure the target animation is valid. Check to make sure if it's same additive type if additive."));
 			}
-		}
-		else
-		{
-			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("FailedToAdd", "Make sure the target animation is valid. Check to make sure if it's same additive type if additive."));
 		}
 	}
 }

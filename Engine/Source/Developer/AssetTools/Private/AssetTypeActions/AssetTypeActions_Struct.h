@@ -7,7 +7,7 @@
 #include "AssetTypeActions_Base.h"
 #include "Engine/UserDefinedStruct.h"
 
-class FAssetData;
+struct FAssetData;
 
 class FAssetTypeActions_Struct : public FAssetTypeActions_Base
 {

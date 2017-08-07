@@ -1,4 +1,4 @@
-﻿INTChangeList:3244832
+﻿INTSourceChangelist:3355812
 Availability:Docs
 Title:VR スプラッシュ スクリーン
 Crumbs:%ROOT%, Platforms, Platforms/VR
@@ -15,16 +15,16 @@ Unreal Engine 4 (UE4) は、Oculus、Gear VR、SteamVR、PSVR Head Mounted Displ
 
 ## VR Splash Screen 対応のプラットフォーム 
 
-VR Splash Screen は以下の VR プラットフォームでのみ使用できます。 
+VR スプラッシュ スクリーンは以下の VR プラットフォームでのみ使用できます。 
 
 * **Oculus VR**
 * **Gear VR**
 * **Steam VR**
 * **PSVR**
 
-## VR Splash Screen プロジェクトの設定
+## VR スプラッシュ スクリーン プロジェクトの設定
 
-VR splash screen を設定および使用する前に、まず **Game Mode** と **Pawn** ブループリントを新規作成してVR splash screen での作業をしやすくします。次のセクションでは、作成すべきブループリントとその設定方法について説明します。
+VR スプラッシュ スクリーンを設定および使用する前に、まず **Game Mode** と **Pawn** ブループリントを新規作成してVR スプラッシュ スクリーンでの作業をしやすくします。次のセクションでは、作成すべきブループリントとその設定方法について説明します。
 
 1. コンテンツ ブラウザを右クリックして、**[Create Basic Asset (基本アセットの作成)]** リストで **[Blueprint Class]** オプションをクリックします。
 

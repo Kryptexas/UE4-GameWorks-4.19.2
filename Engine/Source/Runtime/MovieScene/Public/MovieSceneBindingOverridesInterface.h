@@ -5,6 +5,7 @@
 #include "UObject/Interface.h"
 #include "UObject/ObjectMacros.h"
 
+#include "MovieSceneSequenceID.h"
 #include "MovieSceneBindingOverridesInterface.generated.h"
 
 

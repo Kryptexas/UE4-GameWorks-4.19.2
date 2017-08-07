@@ -38,9 +38,13 @@ protected:
 	/** index of query option, that generated items */
 	UPROPERTY(BlueprintReadOnly, Category = "EQS")
 	int32 OptionIndex;
-	
+
 	UPROPERTY(BlueprintAssignable, Category = "AI|EQS", meta = (DisplayName = "OnQueryFinished"))
 	FEQSQueryDoneSignature OnQueryFinishedEvent;
+
+#if !UE_BUILD_SHIPPING
+	FWeakObjectPtr Instigator;
+#endif // !UE_BUILD_SHIPPING
 
 public:
 	UEnvQueryInstanceBlueprintWrapper(const FObjectInitializer& ObjectInitializer);
@@ -61,6 +65,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AI|EQS")
 	void SetNamedParam(FName ParamName, float Value);
 
+	void SetInstigator(const UObject* Object);
+
 protected:
 	void OnQueryFinished(TSharedPtr<FEnvQueryResult> Result);
+
+	virtual bool IsSupportedForNetworking() const override;
 };

@@ -49,7 +49,7 @@ void SGameplayTagWidget::Construct(const FArguments& InArgs, const TArray<FEdita
 	RootFilterString = InArgs._Filter;
 	GameplayTagUIMode = InArgs._GameplayTagUIMode;
 
-	bAddTagSectionExpanded = false;
+	bAddTagSectionExpanded = InArgs._NewTagControlsInitiallyExpanded;
 	bDelayRefresh = false;
 	MaxHeight = InArgs._MaxHeight;
 
@@ -125,7 +125,8 @@ void SGameplayTagWidget::Construct(const FArguments& InArgs, const TArray<FEdita
 				SAssignNew( AddNewTagWidget, SAddNewGameplayTagWidget )
 				.Visibility(this, &SGameplayTagWidget::DetermineAddNewTagWidgetVisibility)
 				.OnGameplayTagAdded(this, &SGameplayTagWidget::OnGameplayTagAdded)
-				]
+				.NewTagName(InArgs._NewTagName)
+			]
 
 			+SVerticalBox::Slot()
 			.AutoHeight()
@@ -284,22 +285,34 @@ bool SGameplayTagWidget::FilterChildrenCheck( TSharedPtr<FGameplayTagNode> InIte
 		return false;
 	}
 
+	auto FilterChildrenCheck_r = ([=]()
+	{
+		TArray< TSharedPtr<FGameplayTagNode> > Children = InItem->GetChildTagNodes();
+		for( int32 iChild = 0; iChild < Children.Num(); ++iChild )
+		{
+			if( FilterChildrenCheck( Children[iChild] ) )
+			{
+				return true;
+			}
+		}
+		return false;
+	});
+
+
+	bool DelegateShouldHide = false;
+	UGameplayTagsManager::Get().OnFilterGameplayTagChildren.Broadcast(RootFilterString, InItem, DelegateShouldHide);
+	if (DelegateShouldHide)
+	{
+		// The delegate wants to hide, see if any children need to show
+		return FilterChildrenCheck_r();
+	}
+
 	if( InItem->GetCompleteTagString().Contains( FilterString ) || FilterString.IsEmpty() )
 	{
 		return true;
 	}
 
-	TArray< TSharedPtr<FGameplayTagNode> > Children = InItem->GetChildTagNodes();
-
-	for( int32 iChild = 0; iChild < Children.Num(); ++iChild )
-	{
-		if( FilterChildrenCheck( Children[iChild] ) )
-		{
-			return true;
-		}
-	}
-
-	return false;
+	return FilterChildrenCheck_r();
 }
 
 TSharedRef<ITableRow> SGameplayTagWidget::OnGenerateRow(TSharedPtr<FGameplayTagNode> InItem, const TSharedRef<STableViewBase>& OwnerTable)

@@ -68,7 +68,8 @@ static ir_rvalue* process_mul(exec_list* instructions, _mesa_glsl_parse_state* s
 	bool bType1IsHalf = (type1->base_type == GLSL_TYPE_HALF);
 	bool bBothTypesAreHalf = (bType0IsHalf && bType1IsHalf);
 	bool bPromoteHalf = state->LanguageSpec->CanConvertBetweenHalfAndFloat() ? false : !bBothTypesAreHalf;
-
+	bool const bNativeMatrixIntrinsics = state->LanguageSpec->SupportsMatrixIntrinsics();
+	
 	if (!type0->is_float() || (bType0IsHalf && bPromoteHalf))
 	{
 		op[0] = convert_component(op[0],
@@ -156,16 +157,11 @@ static ir_rvalue* process_mul(exec_list* instructions, _mesa_glsl_parse_state* s
 	}
 	else if (type0->is_vector() && type1->is_matrix())
 	{
-		ir_variable* tmp_mat = new(ctx) ir_variable(type1, NULL, ir_var_temporary);
-		instructions->push_tail(tmp_mat);
-		instructions->push_tail(new(ctx) ir_assignment(
-			new(ctx) ir_dereference_variable(tmp_mat), op[1]));
-
 		// Vector-matrix multiplication treats the vector like a row vector,
 		// but in HLSL the matrix is transposed relative to GLSL conventions.
 		ir_variable* tmp_vec = new(ctx) ir_variable(type1->row_type(), NULL, ir_var_temporary);
 		instructions->push_tail(tmp_vec);
-
+		
 		if (tmp_vec->type->vector_elements > type0->vector_elements)
 		{
 			// Oddly, HLSL zero-extends the vector in this case. It is the only
@@ -173,46 +169,58 @@ static ir_rvalue* process_mul(exec_list* instructions, _mesa_glsl_parse_state* s
 			// of truncating.
 			ir_constant_data zero_data = { 0 };
 			instructions->push_tail(new(ctx) ir_assignment(
-				new(ctx) ir_dereference_variable(tmp_vec),
-				new(ctx) ir_constant(tmp_vec->type, &zero_data)));
+														   new(ctx) ir_dereference_variable(tmp_vec),
+														   new(ctx) ir_constant(tmp_vec->type, &zero_data)));
 			instructions->push_tail(new(ctx) ir_assignment(
-				new(ctx) ir_dereference_variable(tmp_vec),
-				op[0], NULL, (1 << type0->vector_elements) - 1));
+														   new(ctx) ir_dereference_variable(tmp_vec),
+														   op[0], NULL, (1 << type0->vector_elements) - 1));
 		}
 		else
 		{
 			// The swizzle here is unnecessary if the # of elements match, but
 			// it doesn't hurt and will be optimized out later anyway.
 			instructions->push_tail(new(ctx) ir_assignment(
-				new(ctx) ir_dereference_variable(tmp_vec),
-				new(ctx) ir_swizzle(op[0], 0, 1, 2, 3, tmp_vec->type->vector_elements)));
+														   new(ctx) ir_dereference_variable(tmp_vec),
+														   new(ctx) ir_swizzle(op[0], 0, 1, 2, 3, tmp_vec->type->vector_elements)));
 		}
-
-		ir_variable* tmp_result = new(ctx) ir_variable(type1->column_type(), NULL, ir_var_temporary);
-		instructions->push_tail(tmp_result);
-
-		for (unsigned c = 0; c < type1->matrix_columns; ++c)
+		
+		if (bNativeMatrixIntrinsics)
 		{
-			ir_expression* expr = new(ctx) ir_expression(
-				ir_binop_mul,
-				new(ctx) ir_dereference_array(tmp_mat, new(ctx) ir_constant(c)),
-				new(ctx) ir_swizzle(new(ctx) ir_dereference_variable(tmp_vec), c, c, c, c, type1->vector_elements));
-			if (c > 0)
-			{
-				expr = new(ctx) ir_expression(
-					ir_binop_add,
-					expr,
-					new(ctx) ir_dereference_variable(tmp_result));
-
-				tmp_result = new(ctx) ir_variable(tmp_result->type, NULL, ir_var_temporary);
-				instructions->push_tail(tmp_result);
-			}
-			instructions->push_tail(new(ctx) ir_assignment(
-				new(ctx) ir_dereference_variable(tmp_result),
-				expr));
+			return new(ctx) ir_expression(ir_binop_mul, type1->column_type(), new(ctx) ir_dereference_variable(tmp_vec), op[1]);
 		}
-
-		return new(ctx) ir_dereference_variable(tmp_result);
+		else
+		{
+			ir_variable* tmp_mat = new(ctx) ir_variable(type1, NULL, ir_var_temporary);
+			instructions->push_tail(tmp_mat);
+			instructions->push_tail(new(ctx) ir_assignment(
+				new(ctx) ir_dereference_variable(tmp_mat), op[1]));
+			
+			ir_variable* tmp_result = new(ctx) ir_variable(type1->column_type(), NULL, ir_var_temporary);
+			instructions->push_tail(tmp_result);
+			
+			for (unsigned c = 0; c < type1->matrix_columns; ++c)
+			{
+				ir_expression* expr = new(ctx) ir_expression(
+					ir_binop_mul,
+					new(ctx) ir_dereference_array(tmp_mat, new(ctx) ir_constant(c)),
+					new(ctx) ir_swizzle(new(ctx) ir_dereference_variable(tmp_vec), c, c, c, c, type1->vector_elements));
+				if (c > 0)
+				{
+					expr = new(ctx) ir_expression(
+						ir_binop_add,
+						expr,
+						new(ctx) ir_dereference_variable(tmp_result));
+					
+					tmp_result = new(ctx) ir_variable(tmp_result->type, NULL, ir_var_temporary);
+					instructions->push_tail(tmp_result);
+				}
+				instructions->push_tail(new(ctx) ir_assignment(
+					new(ctx) ir_dereference_variable(tmp_result),
+					expr));
+			}
+			
+			return new(ctx) ir_dereference_variable(tmp_result);
+		}
 	}
 	else if (type0->is_matrix() && type1->is_matrix())
 	{

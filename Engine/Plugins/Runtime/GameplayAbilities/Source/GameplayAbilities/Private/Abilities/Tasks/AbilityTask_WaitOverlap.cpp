@@ -36,7 +36,7 @@ void UAbilityTask_WaitOverlap::OnHitCallback(UPrimitiveComponent* HitComp, AActo
 
 UAbilityTask_WaitOverlap* UAbilityTask_WaitOverlap::WaitForOverlap(UGameplayAbility* OwningAbility)
 {
-	auto MyObj = NewAbilityTask<UAbilityTask_WaitOverlap>(OwningAbility);
+	UAbilityTask_WaitOverlap* MyObj = NewAbilityTask<UAbilityTask_WaitOverlap>(OwningAbility);
 	return MyObj;
 }
 

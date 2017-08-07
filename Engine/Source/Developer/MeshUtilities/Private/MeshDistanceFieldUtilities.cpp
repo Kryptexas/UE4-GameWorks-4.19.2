@@ -343,9 +343,23 @@ void FMeshUtilities::GenerateSignedDistanceFieldVolumeData(
 		if (bUseEmbree)
 		{
 			EmbreeDevice = rtcNewDevice(NULL);
-			check(rtcDeviceGetError(EmbreeDevice) == RTC_NO_ERROR);
+			
+			RTCError ReturnErrorNewDevice = rtcDeviceGetError(EmbreeDevice);
+			if (ReturnErrorNewDevice != RTC_NO_ERROR)
+			{
+				UE_LOG(LogMeshUtilities, Warning, TEXT("GenerateSignedDistanceFieldVolumeData failed for %s. Embree rtcNewDevice failed. Code: %d"), *MeshName, (int32)ReturnErrorNewDevice);
+				return;
+			}
+
 			EmbreeScene = rtcDeviceNewScene(EmbreeDevice, RTC_SCENE_STATIC, RTC_INTERSECT1);
-			check(rtcDeviceGetError(EmbreeDevice) == RTC_NO_ERROR);
+			
+			RTCError ReturnErrorNewScene = rtcDeviceGetError(EmbreeDevice);
+			if (ReturnErrorNewScene != RTC_NO_ERROR)
+			{
+				UE_LOG(LogMeshUtilities, Warning, TEXT("GenerateSignedDistanceFieldVolumeData failed for %s. Embree rtcDeviceNewScene failed. Code: %d"), *MeshName, (int32)ReturnErrorNewScene);
+				rtcDeleteDevice(EmbreeDevice);
+				return;
+			}
 		}
 #endif
 
@@ -477,7 +491,14 @@ void FMeshUtilities::GenerateSignedDistanceFieldVolumeData(
 			rtcUnmapBuffer(EmbreeScene, GeomID, RTC_VERTEX_BUFFER);
 			rtcUnmapBuffer(EmbreeScene, GeomID, RTC_INDEX_BUFFER);
 
-			check(rtcDeviceGetError(EmbreeDevice) == RTC_NO_ERROR);
+			RTCError ReturnError = rtcDeviceGetError(EmbreeDevice);
+			if (ReturnError != RTC_NO_ERROR)
+			{
+				UE_LOG(LogMeshUtilities, Warning, TEXT("GenerateSignedDistanceFieldVolumeData failed for %s. Embree rtcUnmapBuffer failed. Code: %d"), *MeshName, (int32)ReturnError);
+				rtcDeleteScene(EmbreeScene);
+				rtcDeleteDevice(EmbreeDevice);
+				return;
+			}
 		}
 #endif
 
@@ -488,7 +509,14 @@ void FMeshUtilities::GenerateSignedDistanceFieldVolumeData(
 		if (bUseEmbree)
 		{
 			rtcCommit(EmbreeScene);
-			check(rtcDeviceGetError(EmbreeDevice) == RTC_NO_ERROR);
+			RTCError ReturnError = rtcDeviceGetError(EmbreeDevice);
+			if (ReturnError != RTC_NO_ERROR)
+			{
+				UE_LOG(LogMeshUtilities, Warning, TEXT("GenerateSignedDistanceFieldVolumeData failed for %s. Embree rtcCommit failed. Code: %d"), *MeshName, (int32)ReturnError);
+				rtcDeleteScene(EmbreeScene);
+				rtcDeleteDevice(EmbreeDevice);
+				return;
+			}
 		}
 		else
 #endif

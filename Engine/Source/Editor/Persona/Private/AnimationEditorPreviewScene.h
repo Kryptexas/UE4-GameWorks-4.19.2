@@ -25,12 +25,13 @@ public:
 	virtual void SetPreviewAnimationAsset(UAnimationAsset* AnimAsset, bool bEnablePreview = true) override;
 	virtual UAnimationAsset* GetPreviewAnimationAsset() const override;
 	virtual void SetPreviewMesh(USkeletalMesh* NewPreviewMesh) override;
+	virtual USkeletalMesh* GetPreviewMesh() const override;
 	virtual bool AttachObjectToPreviewComponent(UObject* Object, FName AttachTo) override;
 	virtual void RemoveAttachedObjectFromPreviewComponent(UObject* Object, FName AttachedTo) override;
 	virtual void InvalidateViews() override;
 	virtual void FocusViews() override;
 	virtual UDebugSkelMeshComponent* GetPreviewMeshComponent() const override { return SkeletalMeshComponent; }
-	virtual void SetAdditionalMeshes(class UPreviewMeshCollection* InAdditionalMeshes) override;
+	virtual void SetAdditionalMeshes(class UDataAsset* InAdditionalMeshes) override;
 	virtual void RefreshAdditionalMeshes() override;
 	virtual void ShowReferencePose(bool bReferencePose) override;
 	virtual bool IsShowReferencePoseEnabled() const override;
@@ -118,9 +119,27 @@ public:
 	virtual bool AllowMeshHitProxies() const override;
 	virtual void SetAllowMeshHitProxies(bool bState) override;
 
+	virtual void RegisterOnSelectedLODChanged(const FOnSelectedLODChanged &Delegate) override
+	{
+		OnSelectedLODChanged.Add(Delegate);
+	}
+	
+	virtual void UnRegisterOnSelectedLODChanged(void* Thing) override
+	{
+		OnSelectedLODChanged.RemoveAll(Thing);
+	}
+	
+	virtual void BroadcastOnSelectedLODChanged() override
+	{
+		if (OnSelectedLODChanged.IsBound())
+		{
+			OnSelectedLODChanged.Broadcast();
+		}
+	}
+
 	/** FPreviewScene interface */
 	virtual void Tick(float InDeltaTime) override;
-	virtual void AddComponent(class UActorComponent* Component, const FTransform& LocalToWorld) override;
+	virtual void AddComponent(class UActorComponent* Component, const FTransform& LocalToWorld, bool bAttachToRoot = false) override;
 	virtual void RemoveComponent(class UActorComponent* Component) override;
 
 	/** FEditorUndoClient interface */
@@ -280,4 +299,7 @@ private:
 
 	/** Whether or not mesh section hit proxies should be enabled or not */
 	bool bEnableMeshHitProxies;
+
+	/* Selected LOD changed delegate */
+	FOnSelectedLODChangedMulticaster OnSelectedLODChanged;
 };

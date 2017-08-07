@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3386371
 Availability:Public
 Title: 멀티캐스트 델리게이트
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture, Programming/UnrealArchitecture/Delegates
@@ -7,7 +7,7 @@ Version: 4.9
 
 멀티캐스트(multi-cast) 델리게이트는 싱글캐스트 델리게이트의 기능 대부분을 그대로 갖고 있습니다. 오브젝트로의 약 레퍼런스만 갖고 있으며, 구조체와 함께 사용 가능하고, 쉽게 복사할 수 있고, 등등입니다. 
 보통의 델리게이트와 마찬가지로 멀티캐스트 델리게이트 역시 로드/세이브 가능하며 원격으로 트리거되나, 멀티캐스트 델리게이트 함수는 반환값을 사용할 수는 없습니다.
-델리게이트 콜렉션을 쉽사리 옮기는 데 사용하기에 좋습니다.
+델리게이트 컬렉션을 쉽사리 옮기는 데 사용하기에 좋습니다.
 
 [](Programming/UnrealArchitecture/Delegates\Events) 는 특수한 유형의 멀티캐스트 델리게이트로, 제한적이나마 `Broadcast()`, `IsBound()`, `Clear()` 함수에 접근 가능합니다.
 
@@ -38,7 +38,7 @@ Version: 4.9
 `RemoveAll()` 은 제공된 포인터에 바인딩된 모든 등록 델리게이트를 제거합니다. 염두에 둘 것은, 오브젝트 포인터에 바인딩되지 않은 raw 델리게이트는 이 함수로 제거되지 않습니다!
 [/REGION]
 
-이 함수의 변종, 인수, 구현 관련 자세한 내용은 `..\UE4\Engine\Source\Runtime\Core\Public\Templates\` 에 있는 `DelegateSignatureImpl.inl` 을 참고하시기 바랍니다.
+이 함수의 변종, 인수, 구현 관련 자세한 내용은 `..\UE4\Engine\Source\Runtime\Core\Public\Delegates\` 에 있는 `DelegateSignatureImpl.inl` 을 참고하시기 바랍니다.
 
 ## 멀티캐스트 실행
 

@@ -355,6 +355,12 @@ public:
 	void RemoveBulkData();
 
 	/**
+	 * Load the bulk data using a file reader. Works even when no archive is attached to the bulk data..
+  	 * @return Whether the operation succeeded.
+	 */
+	bool LoadBulkDataWithFileReader();
+
+	/**
 	 * Forces the bulk data to be resident in memory and detaches the archive.
 	 */
 	void ForceBulkDataResident();
@@ -460,6 +466,9 @@ private:
 	 * @param Dest Memory to serialize data into
 	 */
 	void LoadDataIntoMemory( void* Dest );
+
+	/** Create the async load task */
+	void AsyncLoadBulkData();
 
 	/** Starts serializing bulk data asynchronously */
 	void StartSerializingBulkData(FArchive& Ar, UObject* Owner, int32 Idx, bool bPayloadInline);

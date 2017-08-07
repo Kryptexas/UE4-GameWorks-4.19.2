@@ -189,7 +189,6 @@ MONOLITHIC_HEADER_BOILERPLATE()
 #include "Classes/Factories/FbxSceneImportOptionsSkeletalMesh.h"
 #include "Classes/Factories/FbxSceneImportOptionsStaticMesh.h"
 #include "Classes/Commandlets/FileServerCommandlet.h"
-#include "Classes/Commandlets/FixupRedirectsCommandlet.h"
 #include "Classes/Commandlets/GatherTextCommandletBase.h"
 #include "Classes/Commandlets/GatherTextCommandlet.h"
 #include "Classes/Commandlets/GatherTextFromAssetsCommandlet.h"

@@ -28,6 +28,13 @@ public:
 	*/
 	virtual void ScheduleLocalNotificationAtTime(const FDateTime& FireDateTime, bool LocalTime, const FText& Title, const FText& Body, const FText& Action, const FString& ActivationEvent) = 0;
 
+	/** Schedule a local notification badge at a specific time, inLocalTime specifies the current local time or if UTC time should be used
+	 * @param FireDateTime The time at which to fire the local notification
+	 * @param LocalTime If true the provided time is in the local timezone, if false it is in UTC
+	 * @param ActivationEvent A string that is passed in the delegate callback when the app is brought into the foreground from the user activating the notification
+	*/
+	virtual void ScheduleLocalNotificationBadgeAtTime(const FDateTime& FireDateTime, bool LocalTime, const FString& ActivationEvent) = 0;
+
 	/** Get the local notification that was used to launch the app
 	 * @param NotificationLaunchedApp Return true if a notification was used to launch the app
 	 * @param ActivationEvent Returns the name of the ActivationEvent if a notification was used to launch the app

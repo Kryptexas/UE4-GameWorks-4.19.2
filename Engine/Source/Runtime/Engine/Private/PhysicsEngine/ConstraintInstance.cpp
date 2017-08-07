@@ -2,6 +2,7 @@
 
 #include "PhysicsEngine/ConstraintInstance.h"
 #include "UObject/FrameworkObjectVersion.h"
+#include "UObject/AnimPhysObjectVersion.h"
 #include "HAL/IConsoleManager.h"
 #include "Components/PrimitiveComponent.h"
 #include "PhysicsPublic.h"
@@ -18,16 +19,28 @@
 
 #define LOCTEXT_NAMESPACE "ConstraintInstance"
 
-TAutoConsoleVariable<float> CVarConstraintDampingScale(
-	TEXT("p.ConstraintDampingScale"),
-	100000.f,
-	TEXT("The multiplier of constraint damping in simulation. Default: 100000"),
+TAutoConsoleVariable<float> CVarConstraintLinearDampingScale(
+	TEXT("p.ConstraintLinearDampingScale"),
+	1.f,
+	TEXT("The multiplier of constraint linear damping in simulation. Default: 1"),
 	ECVF_ReadOnly);
 
-TAutoConsoleVariable<float> CVarConstraintStiffnessScale(
-	TEXT("p.ConstraintStiffnessScale"),
+TAutoConsoleVariable<float> CVarConstraintLinearStiffnessScale(
+	TEXT("p.ConstraintLinearStiffnessScale"),
+	1.f,
+	TEXT("The multiplier of constraint linear stiffness in simulation. Default: 1"),
+	ECVF_ReadOnly);
+
+TAutoConsoleVariable<float> CVarConstraintAngularDampingScale(
+	TEXT("p.ConstraintAngularDampingScale"),
 	100000.f,
-	TEXT("The multiplier of constraint stiffness in simulation. Default: 100000"),
+	TEXT("The multiplier of constraint angular damping in simulation. Default: 100000"),
+	ECVF_ReadOnly);
+
+TAutoConsoleVariable<float> CVarConstraintAngularStiffnessScale(
+	TEXT("p.ConstraintAngularStiffnessScale"),
+	100000.f,
+	TEXT("The multiplier of constraint angular stiffness in simulation. Default: 100000"),
 	ECVF_ReadOnly);
 
 /** Handy macro for setting BIT of VAR based on the bool CONDITION */
@@ -429,13 +442,13 @@ bool GetPActors_AssumesLocked(const FBodyInstance* Body1, const FBodyInstance* B
 		if (PActor1->is<PxRigidStatic>() && PActor2->is<PxRigidBody>())
 		{
 			const uint32 SceneType = Body2->RigidActorSync != NULL ? PST_Sync : PST_Async;
-			PActor1 = Body1->GetPxRigidActor_AssumesLocked(SceneType);
+			PActor1 = Body1->GetPxRigidActorFromScene_AssumesLocked(SceneType);
 		}
 		else
 		if (PActor2->is<PxRigidStatic>() && PActor1->is<PxRigidBody>())
 		{
 			const uint32 SceneType = Body1->RigidActorSync != NULL ? PST_Sync : PST_Async;
-			PActor2 = Body2->GetPxRigidActor_AssumesLocked(SceneType);
+			PActor2 = Body2->GetPxRigidActorFromScene_AssumesLocked(SceneType);
 		}
 	}
 
@@ -535,26 +548,29 @@ void FConstraintInstance::UpdateAverageMass_AssumesLocked(const PxRigidActor* PA
 
 void EnsureSleepingActorsStaySleeping_AssumesLocked(PxRigidActor* PActor1, PxRigidActor* PActor2)
 {
+	PxRigidDynamic* RigidDynamic1 = PActor1 ? PActor1->is<PxRigidDynamic>() : nullptr;
+	PxRigidDynamic* RigidDynamic2 = PActor2 ? PActor2->is<PxRigidDynamic>() : nullptr;
+
 	// record if actors are asleep before creating joint, so we can sleep them afterwards if so (creating joint wakes them)
-	const bool bActor1Asleep = (PActor1 == nullptr || !PActor1->is<PxRigidDynamic>() || PActor1->is<PxRigidDynamic>()->isSleeping());
-	const bool bActor2Asleep = (PActor2 == nullptr || !PActor2->is<PxRigidDynamic>() || PActor2->is<PxRigidDynamic>()->isSleeping());
+	const bool bActor1Asleep = (RigidDynamic1 == nullptr) || (RigidDynamic1->getScene() != nullptr && RigidDynamic1->isSleeping());
+	const bool bActor2Asleep = (RigidDynamic2 == nullptr) || (RigidDynamic2->getScene() != nullptr && RigidDynamic2->isSleeping());
 
 	// creation of joints wakes up rigid bodies, so we put them to sleep again if both were initially asleep
 	if (bActor1Asleep && bActor2Asleep)
 	{
-		if (PActor1 && !IsRigidBodyKinematic_AssumesLocked(PActor1->is<PxRigidDynamic>()))
+		if (PActor1 && !IsRigidBodyKinematic_AssumesLocked(RigidDynamic1))
 		{
-			if(PActor1->is<PxRigidDynamic>())
+			if(RigidDynamic1)
 			{
-				PActor1->is<PxRigidDynamic>()->putToSleep();
+				RigidDynamic1->putToSleep();
 			}
 		}
 
-		if (PActor2 && !IsRigidBodyKinematic_AssumesLocked(PActor2->is<PxRigidDynamic>()))
+		if (PActor2 && !IsRigidBodyKinematic_AssumesLocked(RigidDynamic2))
 		{
-			if(PActor2->is<PxRigidDynamic>())
+			if(RigidDynamic2)
 			{
-				PActor2->is<PxRigidDynamic>()->putToSleep();
+				RigidDynamic2->putToSleep();
 			}
 			
 		}
@@ -889,7 +905,21 @@ void FConstraintInstance::GetConstraintForce(FVector& OutLinearForce, FVector& O
 #endif
 }
 
+bool FConstraintInstance::IsBroken()
+{
+#if WITH_PHYSX
+	if (ConstraintData)
+	{
+		SCOPED_SCENE_READ_LOCK(ConstraintData->getScene());
 
+		if (ConstraintData->getConstraintFlags()&PxConstraintFlag::eBROKEN)
+		{
+			return true;
+		}
+	}
+#endif
+	return false;
+}
 
 /** Function for turning linear position drive on and off. */
 void FConstraintInstance::SetLinearPositionDrive(bool bEnableXDrive, bool bEnableYDrive, bool bEnableZDrive)
@@ -1199,6 +1229,7 @@ void FConstraintInstance::SetLinearLimitSize(float NewLimitSize)
 bool FConstraintInstance::Serialize(FArchive& Ar)
 {
 	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
+	Ar.UsingCustomVersion(FAnimPhysObjectVersion::GUID);
 	return false;	//We only have this function to mark custom GUID. Still want serialize tagged properties
 }
 
@@ -1207,12 +1238,12 @@ void FConstraintInstance::PostSerialize(const FArchive& Ar)
 #if WITH_EDITORONLY_DATA
 	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_FIXUP_STIFFNESS_AND_DAMPING_SCALE)
 	{
-		LinearLimitStiffness_DEPRECATED		/= CVarConstraintStiffnessScale.GetValueOnGameThread();
-		SwingLimitStiffness_DEPRECATED		/= CVarConstraintStiffnessScale.GetValueOnGameThread();
-		TwistLimitStiffness_DEPRECATED		/= CVarConstraintStiffnessScale.GetValueOnGameThread();
-		LinearLimitDamping_DEPRECATED		/=  CVarConstraintDampingScale.GetValueOnGameThread();
-		SwingLimitDamping_DEPRECATED		/=  CVarConstraintDampingScale.GetValueOnGameThread();
-		TwistLimitDamping_DEPRECATED		/=  CVarConstraintDampingScale.GetValueOnGameThread();
+		LinearLimitStiffness_DEPRECATED		/= CVarConstraintAngularStiffnessScale.GetValueOnGameThread();
+		SwingLimitStiffness_DEPRECATED		/= CVarConstraintAngularStiffnessScale.GetValueOnGameThread();
+		TwistLimitStiffness_DEPRECATED		/= CVarConstraintAngularStiffnessScale.GetValueOnGameThread();
+		LinearLimitDamping_DEPRECATED		/=  CVarConstraintAngularDampingScale.GetValueOnGameThread();
+		SwingLimitDamping_DEPRECATED		/=  CVarConstraintAngularDampingScale.GetValueOnGameThread();
+		TwistLimitDamping_DEPRECATED		/=  CVarConstraintAngularDampingScale.GetValueOnGameThread();
 	}
 
 	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_FIXUP_MOTOR_UNITS)
@@ -1305,6 +1336,36 @@ void FConstraintInstance::PostSerialize(const FArchive& Ar)
 		ProfileInstance.AngularDrive.TwistDrive.MaxForce = AngularDriveForceLimit_DEPRECATED;
 		ProfileInstance.AngularDrive.SlerpDrive.MaxForce = AngularDriveForceLimit_DEPRECATED;
 
+	}
+
+	if (Ar.IsLoading() && Ar.CustomVer(FAnimPhysObjectVersion::GUID) < FAnimPhysObjectVersion::TuneSoftLimitStiffnessAndDamping)
+	{
+		//Handle the fact that 0,0 used to mean hard limit, but now means free
+		if(ProfileInstance.LinearLimit.Stiffness == 0.f && ProfileInstance.LinearLimit.Damping == 0.f)
+		{
+			ProfileInstance.LinearLimit.bSoftConstraint = false;
+		}
+
+		if (ProfileInstance.ConeLimit.Stiffness == 0.f && ProfileInstance.ConeLimit.Damping == 0.f)
+		{
+			ProfileInstance.ConeLimit.bSoftConstraint = false;
+		}
+
+		if (ProfileInstance.TwistLimit.Stiffness == 0.f && ProfileInstance.TwistLimit.Damping == 0.f)
+		{
+			ProfileInstance.TwistLimit.bSoftConstraint = false;
+		}
+
+		//Now handle the new linear spring stiffness and damping coefficient
+		if(CVarConstraintAngularStiffnessScale.GetValueOnGameThread() > 0.f)
+		{
+			ProfileInstance.LinearLimit.Stiffness *= CVarConstraintAngularStiffnessScale.GetValueOnGameThread() / CVarConstraintLinearStiffnessScale.GetValueOnGameThread();
+		}
+
+		if (CVarConstraintAngularDampingScale.GetValueOnGameThread() > 0.f)
+		{
+			ProfileInstance.LinearLimit.Damping *= CVarConstraintAngularDampingScale.GetValueOnGameThread() / CVarConstraintLinearDampingScale.GetValueOnGameThread();
+		}
 	}
 #endif
 }

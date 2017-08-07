@@ -443,17 +443,17 @@ protected:
 								if( *Buffer ) // if not eof...
 								{
 									Buffer = SkipNextData( Buffer );
-									if( *Buffer == L'"' )
+									if( *Buffer == L'"' || *Buffer == L'\'' )
 									{
 										Buffer++;
 										AttributeCount++;
 										Attributes[ AttributeCount ] = Buffer;
 										AttributeCount++;
-										while( *Buffer && *Buffer != 34 )
+										while( *Buffer && *Buffer != L'"' && *Buffer != L'\'' )
 										{
 											Buffer++;
 										}
-										if( *Buffer == L'"' )
+										if( *Buffer == L'"' || *Buffer == L'\'' )
 										{
 											*Buffer = 0;
 											Buffer++;

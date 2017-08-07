@@ -9,6 +9,7 @@
 #include "GenericPlatformSymbolication.h"
 #include "ApplePlatformStackWalk.h"
 #include "Serialization/Archive.h"
+#include "SharedPointer.h"
 
 /**
  * Opaque symbol cache for improved symbolisation performance.
@@ -29,7 +30,7 @@ struct FApplePlatformSymbolDatabase
 	~FApplePlatformSymbolDatabase();
 	FApplePlatformSymbolDatabase& operator=(FApplePlatformSymbolDatabase const& Other);
 	
-	FGenericPlatformSymbolDatabase GenericDB;
+	TSharedPtr<FGenericPlatformSymbolDatabase> GenericDB;
 	FApplePlatformSymbolCache AppleDB;
 };
 
@@ -47,7 +48,7 @@ struct FApplePlatformSymbolDatabaseKeyFuncs
 	 */
 	static FORCEINLINE KeyInitType GetSetKey(ElementInitType Element)
 	{
-		return Element.GenericDB.Signature;
+		return Element.GenericDB->Signature;
 	}
 
 	/**
@@ -75,7 +76,7 @@ struct CORE_API FApplePlatformSymbolication
 	static void EnableCoreSymbolication(bool const bEnable);
 	
 	static bool LoadSymbolDatabaseForBinary(FString SourceFolder, FString Binary, FString BinarySignature, FApplePlatformSymbolDatabase& OutDatabase);
-	static bool SaveSymbolDatabaseForBinary(FString TargetFolder, FString Name, FApplePlatformSymbolDatabase& Database);
+	static bool SaveSymbolDatabaseForBinary(FString TargetFolder, FString Name, FString BinarySignature, FApplePlatformSymbolDatabase& Database);
 	
 	static bool SymbolInfoForStrippedSymbol(FApplePlatformSymbolDatabase const& Database, uint64 ProgramCounter, uint64 ModuleOffset, FString ModuleSignature, FProgramCounterSymbolInfo& Info);
 	

@@ -123,7 +123,6 @@ int32 FCinematicShotSection::OnPaintSection(FSequencerSectionPainter& InPainter)
 		InPainter.LayerId++,
 		InPainter.SectionGeometry.ToPaintGeometry(FVector2D(LocalSectionSize.X-2.f, 7.f), FSlateLayoutTransform(FVector2D(1.f, 4.f))),
 		FilmBorder,
-		InPainter.SectionClippingRect.InsetBy(FMargin(1.f)),
 		InPainter.bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect
 	);
 
@@ -132,7 +131,6 @@ int32 FCinematicShotSection::OnPaintSection(FSequencerSectionPainter& InPainter)
 		InPainter.LayerId++,
 		InPainter.SectionGeometry.ToPaintGeometry(FVector2D(LocalSectionSize.X-2.f, 7.f), FSlateLayoutTransform(FVector2D(1.f, LocalSectionSize.Y - 11.f))),
 		FilmBorder,
-		InPainter.SectionClippingRect.InsetBy(FMargin(1.f)),
 		InPainter.bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect
 	);
 
@@ -162,9 +160,9 @@ int32 FCinematicShotSection::OnPaintSection(FSequencerSectionPainter& InPainter)
 	}
 
 	// add box for the working size
-	const float StartOffset = SectionObject.Parameters.TimeScale * SectionObject.Parameters.StartOffset;
-	const float WorkingStart = -SectionObject.Parameters.TimeScale * PlaybackRange.GetLowerBoundValue() - StartOffset;
-	const float WorkingSize = SectionObject.Parameters.TimeScale * (MovieScene != nullptr ? MovieScene->GetEditorData().WorkingRange.Size<float>() : 1.0f);
+	const float StartOffset = 1.0f/SectionObject.Parameters.TimeScale * SectionObject.Parameters.StartOffset;
+	const float WorkingStart = -1.0f/SectionObject.Parameters.TimeScale * PlaybackRange.GetLowerBoundValue() - StartOffset;
+	const float WorkingSize = 1.0f/SectionObject.Parameters.TimeScale * (MovieScene != nullptr ? MovieScene->GetEditorData().WorkingRange.Size<float>() : 1.0f);
 
 	// add dark tint for left out-of-bounds & working range
 	if (StartOffset < 0.0f)
@@ -177,7 +175,6 @@ int32 FCinematicShotSection::OnPaintSection(FSequencerSectionPainter& InPainter)
 				FVector2D(-StartOffset * DrawScale, InPainter.SectionGeometry.Size.Y)
 			),
 			FEditorStyle::GetBrush("WhiteBrush"),
-			InPainter.SectionClippingRect,
 			ESlateDrawEffect::None,
 			FLinearColor::Black.CopyWithNewOpacity(0.5f)
 		);
@@ -194,14 +191,13 @@ int32 FCinematicShotSection::OnPaintSection(FSequencerSectionPainter& InPainter)
 				FVector2D(1.0f, InPainter.SectionGeometry.Size.Y)
 			),
 			FEditorStyle::GetBrush("WhiteBrush"),
-			InPainter.SectionClippingRect,
 			ESlateDrawEffect::None,
 			FColor(32, 128, 32)	// 120, 75, 50 (HSV)
 		);
 	}
 
 	// add dark tint for right out-of-bounds & working range
-	const float PlaybackEnd = SectionObject.Parameters.TimeScale * PlaybackRange.Size<float>() - StartOffset;
+	const float PlaybackEnd = 1.0f/SectionObject.Parameters.TimeScale * PlaybackRange.Size<float>() - StartOffset;
 
 	if (PlaybackEnd < SectionSize)
 	{
@@ -213,7 +209,6 @@ int32 FCinematicShotSection::OnPaintSection(FSequencerSectionPainter& InPainter)
 				FVector2D((SectionSize - PlaybackEnd) * DrawScale, InPainter.SectionGeometry.Size.Y)
 			),
 			FEditorStyle::GetBrush("WhiteBrush"),
-			InPainter.SectionClippingRect,
 			ESlateDrawEffect::None,
 			FLinearColor::Black.CopyWithNewOpacity(0.5f)
 		);
@@ -230,7 +225,6 @@ int32 FCinematicShotSection::OnPaintSection(FSequencerSectionPainter& InPainter)
 				FVector2D(1.0f, InPainter.SectionGeometry.Size.Y)
 			),
 			FEditorStyle::GetBrush("WhiteBrush"),
-			InPainter.SectionClippingRect,
 			ESlateDrawEffect::None,
 			FColor(128, 32, 32)	// 0, 75, 50 (HSV)
 		);
@@ -303,11 +297,6 @@ void FCinematicShotSection::AddTakesMenu(FMenuBuilder& MenuBuilder)
 			FUIAction(FExecuteAction::CreateSP(CinematicShotTrackEditor.Pin().ToSharedRef(), &FCinematicShotTrackEditor::SwitchTake, &SectionObject, TakeNumber))
 		);
 	}
-}
-
-FText FCinematicShotSection::GetDisplayName() const
-{
-	return NSLOCTEXT("FCinematicShotSection", "Shot", "Shot");
 }
 
 /* FCinematicShotSection callbacks

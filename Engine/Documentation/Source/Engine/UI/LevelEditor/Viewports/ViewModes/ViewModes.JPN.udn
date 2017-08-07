@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2742006
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title:ビューモード
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor/Viewports
@@ -62,7 +62,7 @@ Version:4.9
 ![](ViewModeMenu.png) ![](ViewModes_SubMenu_button.png)(h:273)
 [/EXCERPT:Intro]
 
-## Lit (ライティング有り)
+## Lit （ライティング有り）
 
 [REGION:fullwidth]
 ![](VM_Lit.png)
@@ -73,7 +73,7 @@ Version:4.9
 
 全てのマテリアルとライティングが適用されると、 **Lit** ビューモードでシーンの最終結果が表示されます。
 
-## Unlit (ライティング無し)
+## Unlit （ライティング無し）
 
 [REGION:fullwidth]
 ![](VM_Unlit.png)
@@ -86,7 +86,7 @@ Version:4.9
 **Unlit** ビューモードは、ベース カラーのみを表示して、シーンから全てのライティングを取り除きます。
 
 
-## ワイヤーフレーム
+## Wireframe
 
 [REGION:fullwidth]
 ![](VM_Wireframe.png)
@@ -97,7 +97,7 @@ Version:4.9
 
 **Wireframe** ではシーンにポリゴンのエッジが全て表示されます。ブラシの場合、結果となるジオメトリが表示されます。
 
-## Detail Lighting (詳細ライティング)
+## Detail Lighting （詳細ライティング）
 
 [REGION:fullwidth]
 ![](VM_DetailLighting.png)
@@ -108,7 +108,7 @@ Version:4.9
 
 **Detail Lighting** は、オリジナル マテリアルの法線マップを使用して、シーン全体に中間色のマテリアルをアクティベートします。基本色が暗すぎたり、ごちゃごちゃしすぎでライティングが不明瞭になっている場合の分離に有効です。
 
-## Lighting Only (ライティングのみ)
+## Lighting Only （ライティングのみ）
 
 [REGION:fullwidth]
 ![](VM_LightingOnly.png)
@@ -119,7 +119,7 @@ Version:4.9
 
 **Lighting Only** はライティングにのみ影響を受ける中間色のマテリアルを表示します。法線マップは表示されない _Detail Lighting_ モードとは異なります。
 
-## Light Complexity (ライトの複雑度)
+## Light Complexity （ライトの複雑度）
 
 [REGION:fullwidth]
 ![](VM_LightingComplexity.png)
@@ -138,7 +138,7 @@ Light Complexity はジオメトリに影響を与える非静的ライトの数
 
 このカラー スキームは、シェーダー コードで定義されます。
 
-## Shader Complexity (シェーダーの複雑度)
+## Shader Complexity （シェーダーの複雑度）
 
 
 [REGION:fullwidth]
@@ -173,16 +173,16 @@ Light Complexity はジオメトリに影響を与える非静的ライトの数
 +ShaderComplexityColors=(R=1.0,G=0.9,B=0.9,A=1.0)  
 [/REGION]
 
-## Stationary Light Overlap (固定ライト オーバーラップ)
+## Stationary Light Overlap （固定ライト オーバーラップ）
 
 [REGION:fullwidth]
 ![](VM_StationaryLightOverlap.png)
 [/REGION]
 
-* ビューモードのホットキー：**なし (デフォルトでメニューのみ)**
+* ビューモードのホットキー：**なし （デフォルトでメニューのみ）**
 
 
-## Lightmap Density (ライトマップ密度)
+## Lightmap Density （ライトマップ密度）
 
 [REGION:fullwidth]
 ![](VM_LightmapDensity.png)
@@ -207,7 +207,7 @@ Light Complexity はジオメトリに影響を与える非静的ライトの数
 ![](VM_Reflections.png)
 [/REGION]
 
-* ビューモードのホットキー：**なし (デフォルトでメニューのみ)**
+* ビューモードのホットキー：**なし （デフォルトでメニューのみ）**
 
 **Reflections** ビューモードは、平坦な法線と 0 のラフネスで全てのマテリアルをオーバーライド、つまりミラーリングします。反射の詳細を診断し、より詳細が必要な場所により多くのReflection Capture (反射キャプチャ) アクタを置けるようになります。
 
@@ -247,7 +247,7 @@ Light Complexity はジオメトリに影響を与える非静的ライトの数
 
 Buffer Visualization 領域では、グラフィック カード内の各バッファへアクセスすることができ、シーンの見た目に関する問題点を診断しやすくなります。[](Engine/Rendering/Materials\MaterialInputs) と [](Engine/Rendering/Materials\MaterialProperties) の基礎を理解しておくと、buffer visualization モードを十分に活用しやすくなると思います。
 
-### Buffer Overview (バッファの概要)
+### Buffer Overview （バッファの概要）
 
 [REGION:fullwidth]
 ![](Buffer_Overview.png)
@@ -256,42 +256,42 @@ Buffer Visualization 領域では、グラフィック カード内の各バッ�
 **Buffer Overview** visualization モードによりグラフィック カードの GBuffer から複数の画像を見ることが可能になります。画像の多くはマテリアル上の入力と関連付いています。つまり、たったひとつのマテリアル入力で、シーンの見た目を確認することができるのです。
 
 
-### Base Color (基本色) 
+### Base Color （基本色） 
 
 
 [REGION:fullwidth]
 ![](Buffer_BaseColor.png)
 [/REGION]
 
-* ビューモードのホットキー：**なし (デフォルトでメニューのみ)**
+* ビューモードのホットキー：**なし （デフォルトでメニューのみ）**
 
 **Base Color** モードで、シーンのマテリアルの基本色のみを見ることができます。
 
 
 <!---
-### Custom Depth (カスタム深度)
+### Custom Depth （カスタム深度）
 Not included until I can get an answer from Daniel 
 -->
 
 
-### Decal Mask (デカールマスク)
+### Decal Mask （デカールマスク）
 
 [REGION:fullwidth]
 ![](Buffer_DecalMask.png)
 [/REGION]
 
-* ビューモードのホットキー：**なし (デフォルトでメニューのみ)**
+* ビューモードのホットキー：**なし （デフォルトでメニューのみ）**
 
 **Decal Mask** モードは、ディファード デカールを受けることが可能なサーフェスを全て白で表示します。不可能なオブジェクトは黒で表示されます。
 
-### Diffuse Color (ディフューズ カラー)
+### Diffuse Color （ディフューズ カラー）
 
 
 [REGION:fullwidth]
 ![](VM_DiffuseColor.png)
 [/REGION]
 
-* ビューモードのホットキー：**なし (デフォルトでメニューのみ)**
+* ビューモードのホットキー：**なし （デフォルトでメニューのみ）**
 
 **Diffuse Color** は基本色とマテリアルのアンビエントオクルージョン入力の結果を表示します。
 
@@ -313,7 +313,7 @@ not sure why it's in there
 [/REGION]
 
 
-* ビューモードのホットキー：**なし (デフォルトでメニューのみ)**
+* ビューモードのホットキー：**なし （デフォルトでメニューのみ）**
 
 **Shading Model** モードでは、シーンの各マテリアルの Shading Model プロパティの値が表示されます。 
 
@@ -324,7 +324,7 @@ not sure why it's in there
 |**マテリアルの Shading Model**|**Default Lit**|**Unlit**|**Subsurface**|**Preintegrated Skin**|
 
 
-### Material AO (マテリアル AO)
+### Material AO （マテリアル AO）
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -335,25 +335,25 @@ not sure why it's in there
 	[/PARAM]
 [/OBJECT]
 
-* ビューモードのホットキー：**なし (デフォルトでメニューのみ)**
+* ビューモードのホットキー：**なし （デフォルトでメニューのみ）**
 
 **Material AO** visualization モードは、マテリアルの _Ambient Occlusion_ 入力に接続している全てのテクスチャリングまたは Material Expression ノードの結果を表示します。
 
 
-### Metallic (メタリック)
+### Metallic （メタリック）
 
 
 [REGION:fullwidth]
 ![](Buffer_Metallic.png)
 [/REGION]
 
-* ビューモードのホットキー：**なし (デフォルトでメニューのみ)**
+* ビューモードのホットキー：**なし （デフォルトでメニューのみ）**
 
 **Metallic** visualization モードは、マテリアルの _Metallic_ 入力に接続している全てのテクスチャリングまたは Material Expression ノードの結果を表示します。
 
-注意:メタルには、 0 または 1 のメタリック値を使用し、その間の値にはなりません。レイヤー ブレンディングのために 0 と 1 の間の値が発生しますが、物理マテリアルは常にメタルかそうでないかになります。
+注意：メタルには、 0 または 1 のメタリック値を使用し、その間の値にはなりません。レイヤー ブレンディングのために 0 と 1 の間の値が発生しますが、物理マテリアルは常にメタルかそうでないかになります。
 
-### Opacity (オパシティ)
+### Opacity （オパシティ）
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -364,13 +364,13 @@ not sure why it's in there
 	[/PARAM]
 [/OBJECT]
 
-* ビューモードのホットキー：**なし (デフォルトでメニューのみ)**
+* ビューモードのホットキー：**なし （デフォルトでメニューのみ）**
 
 **Opacity** visualization モードは、マテリアルの Opacity 入力に接続している全てのテクスチャリングまたは Material Expression ノードの結果を表示します。上図では、キャラクターのドレッドロック (髪) に若干透明性があるのが分かると思います。
 
 Opacity ビューモードは Opacity の使用中に不透明なマテリアルのみを表示します。 Opacity によってどれくらい遠くにライトが差し込むかを制御するので、サブサーフェス スキャタリング マテリアルには重要です。
 
-### Roughness (ラフネス)
+### Roughness （ラフネス）
 
 
 [REGION:fullwidth]
@@ -378,24 +378,24 @@ Opacity ビューモードは Opacity の使用中に不透明なマテリアル
 [/REGION]
 
 
-* ビューモードのホットキー：**なし (デフォルトでメニューのみ)**
+* ビューモードのホットキー：**なし （デフォルトでメニューのみ）**
 
-**Roughness** visualization モードは、マテリアルの Roughness 入力に接続している全てのテクスチャリングまたは Material Expression ノードの結果を表示します。様々なリフレクションが発生するところでラフネスが変化します。
+**Roughness** visualization モードは、マテリアルの Roughness 入力に接続している全てのテクスチャリングまたは Material Expression ノードの結果を表示します。様々な反射が発生するところでラフネスが変化します。
 
-### Scene Color (シーン カラー)
+### Scene Color （シーン カラー）
 
 [REGION:fullwidth]
 ![](Buffer_SceneColor.png)
 [/REGION]
 
 
-* ビューモードのホットキー：**なし (デフォルトでメニューのみ)**
+* ビューモードのホットキー：**なし （デフォルトでメニューのみ）**
 
 **Scene Color** はポストプロセスが完了する前にシーンの結果を表示します。つまり、露出、ブルーム、色補正、アンチ エイリアスの前という意味です。上図では、露出が明るくされていないため、シーンが非常に暗く表示されています。
 
 
 
-### Scene Depth (シーン深度)
+### Scene Depth （シーン深度）
 
 
 
@@ -404,7 +404,7 @@ Opacity ビューモードは Opacity の使用中に不透明なマテリアル
 [/REGION]
 
 
-* ビューモードのホットキー：**なし (デフォルトでメニューのみ)**
+* ビューモードのホットキー：**なし （デフォルトでメニューのみ）**
 
 **Scene Depth** は白 (最も遠く) から黒 (最も近く) への一定のグラディエントでのシーン深度を表示します。 
 
@@ -416,7 +416,7 @@ Opacity ビューモードは Opacity の使用中に不透明なマテリアル
 [/REGION]
 
 
-* ビューモードのホットキー：**なし (デフォルトでメニューのみ)**
+* ビューモードのホットキー：**なし （デフォルトでメニューのみ）**
 
 **Separate Translucency RGB** は、透過マテリアルであり、 Separate Translucency を使用しているすべてのマテリアルの色情報を表示します。
 
@@ -429,76 +429,76 @@ Opacity ビューモードは Opacity の使用中に不透明なマテリアル
 [/REGION]
 
 
-* ビューモードのホットキー：**なし (デフォルトでメニューのみ)**
+* ビューモードのホットキー：**なし （デフォルトでメニューのみ）**
 
 **Separate Translucency A** は、透過マテリアルであり、 Separate Translucency を使用しているすべてのマテリアルのアルファ情報のみを表示します。
 
-### Specular Color (スペキュラカラー)
+### Specular Color （スペキュラカラー）
 
 
 [REGION:fullwidth]
 ![](Buffer_SpecColor.png)
 [/REGION]
 
-* ビューモードのホットキー：**なし (デフォルトでメニューのみ)**
+* ビューモードのホットキー：**なし （デフォルトでメニューのみ）**
 
 **スペキュラ カラー** はマテリアルのスペキュラ反射に使用される色を表示します。通常は、基本色とメタリックの値の組み合わせから推測されます。
 
-### Specular (スペキュラ)
+### Specular （スペキュラ）
 
 
 [REGION:fullwidth]
 ![](buffer_Specular.png)
 [/REGION]
 
-* ビューモードのホットキー：**なし (デフォルトでメニューのみ)**
+* ビューモードのホットキー：**なし （デフォルトでメニューのみ）**
 
 **Specular** は、マテリアルの Specular 入力に接続された全てのテクスチャリングまたは Material Expression ノードの結果を表示します。
 
-### Subsurface Color (サブサーフェス カラー)
+### Subsurface Color （サブサーフェス カラー）
 
 
 [REGION:fullwidth]
 ![](buffer_SubsurfColor.png)
 [/REGION]
 
-* ビューモードのホットキー：**なし (デフォルトでメニューのみ)**
+* ビューモードのホットキー：**なし （デフォルトでメニューのみ）**
 
 **Subsurface Color** は、マテリアルの Subsurface Color 入力に接続された全てのテクスチャリングまたは Material Expression ノードの結果を表示します。
 
-### World Normal (ワールド空間の法線)
+### World Normal （ワールド空間の法線）
 
 [REGION:fullwidth]
 ![](buffer_WorldNormal.png)
 [/REGION]
 
-* ビューモードのホットキー：**なし (デフォルトでメニューのみ)**
+* ビューモードのホットキー：**なし （デフォルトでメニューのみ）**
 
 
 **World Normal** は不透明なサーフェスのワールド空間法線を表示します。 
 
 
-### アンビエント オクルージョン (AO)
+### アンビエント オクルージョン （AO）
 
 [REGION:fullwidth]
 ![](buffer_AO.png)
 [/REGION]
 
-* ビューモードのホットキー：**なし (デフォルトでメニューのみ)**
+* ビューモードのホットキー：**なし （デフォルトでメニューのみ）**
 
 **Ambient Occlusion (AO)** はシーンで行われたアンビエント オクルージョンの計算結果を表示します。この計算はエンジンがサーフェスと法線マップに基づいて行っているので、マテリアルに適用される AO テクスチャとは別のものです。
 
 
 ## Landscape Visualizers
 
-### Normal
+### Normal （法線）
 
 [REGION:fullwidth]
 ![](Landscape_Normal.png)
 [/REGION]
 
 
-**Normal** Landscape visualization モードは、通常の lit ステートのランドスケープを表示します。
+**Normal** Landscape visualization モードは、正常な lit ステートのランドスケープを表示します。
 
 
 ### LOD
@@ -511,7 +511,7 @@ Opacity ビューモードは Opacity の使用中に不透明なマテリアル
 
 
 
-### Layer Density (レイヤーの密度)
+### Layer Density （レイヤーの密度）
 
 [REGION:fullwidth]
 ![](Landscape_LayerDensity.png)
@@ -522,11 +522,11 @@ Opacity ビューモードは Opacity の使用中に不透明なマテリアル
 
 
 <!--
-### Layer Debug (レイヤのデバッグ)
+### Layer Debug （レイヤのデバッグ）
 TODO
 -->
 
-## Exposure (露出)
+## Exposure （露出）
 
 [REGION:fullwidth]
 [OBJECT:EmbeddedVideo]

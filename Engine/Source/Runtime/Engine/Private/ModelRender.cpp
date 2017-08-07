@@ -392,6 +392,7 @@ public:
 												MeshElement.bCanApplyViewModeOverrides = true;
 												MeshElement.bUseWireframeSelectionColoring = false;
 												MeshElement.bUseSelectionOutline = bOnlySelectedSurfaces;
+												MeshElement.LODIndex = 0;
 												Collector.AddMesh(ViewIndex, MeshElement);
 												FirstIndex += NumIndices;
 											}
@@ -426,6 +427,7 @@ public:
 								MeshElement.DepthPriorityGroup = DepthPriorityGroup;
 								MeshElement.bCanApplyViewModeOverrides = true;
 								MeshElement.bUseWireframeSelectionColoring = false;
+								MeshElement.LODIndex = 0;
 								Collector.AddMesh(ViewIndex, MeshElement);
 							}
 						}
@@ -464,6 +466,7 @@ public:
 					BatchElement.MaxVertexIndex = ModelElement.MaxVertexIndex;
 					MeshElement.Type = PT_TriangleList;
 					MeshElement.DepthPriorityGroup = PrimitiveDPG;
+					MeshElement.LODIndex = 0;
 					PDI->DrawMesh(MeshElement, FLT_MAX);
 				}
 			}
@@ -505,23 +508,20 @@ public:
 
 		if (Elements.Num() > 0)
 		{
-			for(int32 ElementIndex = 0;ElementIndex < Elements.Num();ElementIndex++)
+			for (int32 ElementIndex = 0;ElementIndex < Elements.Num();ElementIndex++)
 			{
-				const FElementInfo* LCI = &Elements[ElementIndex];
-				if (LCI)
+				const FElementInfo& LCI = Elements[ElementIndex];
+				ELightInteractionType InteractionType = LCI.GetInteraction(LightSceneProxy).GetType();
+				if (InteractionType != LIT_CachedIrrelevant)
 				{
-					ELightInteractionType InteractionType = LCI->GetInteraction(LightSceneProxy).GetType();
-					if(InteractionType != LIT_CachedIrrelevant)
+					bRelevant = true;
+					if (InteractionType != LIT_CachedLightMap)
 					{
-						bRelevant = true;
-						if(InteractionType != LIT_CachedLightMap)
-						{
-							bLightMapped = false;
-						}
-						if(InteractionType != LIT_Dynamic)
-						{
-							bDynamic = false;
-						}
+						bLightMapped = false;
+					}
+					if (InteractionType != LIT_Dynamic)
+					{
+						bDynamic = false;
 					}
 				}
 			}

@@ -102,7 +102,7 @@ void FSlateChildSizeCustomization::HandleCheckStateChanged(ECheckBoxState InChec
 ECheckBoxState FSlateChildSizeCustomization::GetCheckState(TSharedPtr<IPropertyHandle> PropertyHandle, ESlateSizeRule::Type ForRule) const
 {
 	uint8 Value;
-	if ( PropertyHandle->GetValue(Value) )
+	if ( PropertyHandle->GetValue(Value) == FPropertyAccess::Result::Success )
 	{
 		return Value == ForRule ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
@@ -113,7 +113,7 @@ ECheckBoxState FSlateChildSizeCustomization::GetCheckState(TSharedPtr<IPropertyH
 TOptional<float> FSlateChildSizeCustomization::GetValue(TSharedPtr<IPropertyHandle> ValueHandle) const
 {
 	float Value;
-	if ( ValueHandle->GetValue(Value) )
+	if ( ValueHandle->GetValue(Value) == FPropertyAccess::Result::Success)
 	{
 		return Value;
 	}
@@ -129,7 +129,7 @@ void FSlateChildSizeCustomization::HandleValueComitted(float NewValue, ETextComm
 EVisibility FSlateChildSizeCustomization::GetValueVisiblity(TSharedPtr<IPropertyHandle> RuleHandle) const
 {
 	uint8 Value;
-	if ( RuleHandle->GetValue(Value) )
+	if ( RuleHandle->GetValue(Value) == FPropertyAccess::Result::Success)
 	{
 		return Value == ESlateSizeRule::Fill ? EVisibility::Visible : EVisibility::Collapsed;
 	}

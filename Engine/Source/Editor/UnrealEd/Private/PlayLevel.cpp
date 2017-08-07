@@ -102,7 +102,6 @@
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogPlayLevel, Log, All);
-DEFINE_LOG_CATEGORY_STATIC(LogHMD, Log, All);
 
 #define LOCTEXT_NAMESPACE "PlayLevel"
 
@@ -867,12 +866,13 @@ void UEditorEngine::RequestPlaySession( bool bAtPlayerStart, TSharedPtr<class IL
 
 
 // @todo gmp: temp hack for Rocket demo
-void UEditorEngine::RequestPlaySession( const FVector* StartLocation, const FRotator* StartRotation, bool MobilePreview, bool VulkanPreview )
+void UEditorEngine::RequestPlaySession( const FVector* StartLocation, const FRotator* StartRotation, bool MobilePreview, bool VulkanPreview , const FString& MobilePreviewTargetDevice)
 {
 	bPlayOnLocalPcSession = true;
 	bPlayUsingLauncher = false;
 	bPlayUsingMobilePreview = MobilePreview;
 	bPlayUsingVulkanPreview = VulkanPreview;
+	PlayUsingMobilePreviewTargetDevice = MobilePreviewTargetDevice;
 
 	if (StartLocation != NULL)
 	{
@@ -910,6 +910,7 @@ void UEditorEngine::CancelRequestPlaySession()
 	bPlayUsingLauncher = false;
 	bPlayUsingMobilePreview = false;
 	bPlayUsingVulkanPreview = false;
+	PlayUsingMobilePreviewTargetDevice.Reset();
 }
 
 void UEditorEngine::PlaySessionPaused()
@@ -1425,16 +1426,26 @@ void UEditorEngine::PlayStandaloneLocalPc(FString MapNameOverride, FIntPoint* Wi
 	// apply additional settings
 	if (bPlayUsingMobilePreview)
 	{
+		if (PlayUsingMobilePreviewTargetDevice.IsEmpty() == false)
+		{
+			AdditionalParameters += TEXT(" -MobileTargetDevice=") + PlayUsingMobilePreviewTargetDevice;
+		}
+		else
+		{
+			AdditionalParameters += TEXT(" -featureleveles2");
+		}
+
 		if (IsOpenGLPlatform(GShaderPlatformForFeatureLevel[GMaxRHIFeatureLevel]))
 		{
 			AdditionalParameters += TEXT(" -opengl");
 		}
-		AdditionalParameters += TEXT(" -featureleveles2 -faketouches");
+		AdditionalParameters += TEXT(" -faketouches");
 	}
 
 	if (bPlayUsingVulkanPreview)
 	{
-		AdditionalParameters += TEXT(" -vulkan -faketouches");
+		ensure(!bPlayUsingMobilePreview);
+		AdditionalParameters += TEXT(" -vulkan -faketouches -featureleveles31");
 	}
 
 	// Disable the HMD device in the new process if present. The editor process owns the HMD resource.
@@ -2177,7 +2188,7 @@ void UEditorEngine::RequestEndPlayMap()
 	{
 		bRequestEndPlayMapQueued = true;
 
-		// Cache the postion and rotation of the camera (the controller may be destroyed before we end the pie session and we need them to preserve the camera position)
+		// Cache the position and rotation of the camera (the controller may be destroyed before we end the pie session and we need them to preserve the camera position)
 		if (bLastViewAndLocationValid == false)
 		{
 			for (int32 WorldIdx = WorldList.Num() - 1; WorldIdx >= 0; --WorldIdx)
@@ -3318,7 +3329,7 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 InPIEInstance, bool bI
 
 				ViewportClient->SetViewportOverlayWidget( PieWindow, ViewportOverlayWidgetRef );
 				ViewportClient->SetGameLayerManager(GameLayerManagerRef);
-				bool bShouldMinimizeRootWindow = bUseVRPreview && GEngine->HMDDevice.IsValid();
+				bool bShouldMinimizeRootWindow = bUseVRPreview && GEngine->HMDDevice.IsValid() && GetDefault<ULevelEditorPlaySettings>()->ShouldMinimizeEditorOnVRPIE;
 				// Set up a notification when the window is closed so we can clean up PIE
 				{
 					struct FLocal
@@ -3391,13 +3402,13 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 InPIEInstance, bool bI
 				// Change the system resolution to match our window, to make sure game and slate window are kept syncronised
 				FSystemResolution::RequestResolutionChange(NewWindowWidth, NewWindowHeight, EWindowMode::Windowed);
 
-				if (bShouldMinimizeRootWindow)
+				if (bUseVRPreview)
 				{
 					GEngine->HMDDevice->EnableStereo(true);
 
 					// minimize the root window to provide max performance for the preview.
 					TSharedPtr<SWindow> RootWindow = FGlobalTabmanager::Get()->GetRootWindow();
-					if (RootWindow.IsValid())
+					if (RootWindow.IsValid() && bShouldMinimizeRootWindow)
 					{
 						RootWindow->Minimize();
 					}

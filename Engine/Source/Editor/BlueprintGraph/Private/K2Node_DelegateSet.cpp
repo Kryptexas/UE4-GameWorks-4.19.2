@@ -141,11 +141,11 @@ void UK2Node_DelegateSet::AllocateDefaultPins()
 	// Cache off the delegate signature, which will update the DelegatePropertyName as well, if it's been redirected
 	UFunction* DelegateSignature = GetDelegateSignature();
 
-	CreatePin(EGPD_Input, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_Execute);
-	CreatePin(EGPD_Input, K2Schema->PC_Object, TEXT(""), DelegatePropertyClass, false, false, DelegatePropertyName.ToString());
+	CreatePin(EGPD_Input, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_Execute);
+	CreatePin(EGPD_Input, K2Schema->PC_Object, FString(), DelegatePropertyClass, DelegatePropertyName.ToString());
 
-	CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_Then);
-	CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_DelegateEntry);
+	CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_Then);
+	CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_DelegateEntry);
 	
 	CreatePinsForFunctionEntryExit(DelegateSignature, true);
 

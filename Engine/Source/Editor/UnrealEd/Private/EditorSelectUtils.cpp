@@ -25,6 +25,7 @@
 #include "StatsViewerModule.h"
 #include "SnappingUtils.h"
 #include "Logging/MessageLog.h"
+#include "ActorGroupingUtils.h"
 
 #define LOCTEXT_NAMESPACE "EditorSelectUtils"
 
@@ -94,7 +95,7 @@ void UUnrealEdEngine::NoteActorMovement()
 
 			Actor->Modify();
 
-			if (GEditor->bGroupingActive)
+			if (UActorGroupingUtils::IsGroupingActive())
 			{
 				// if this actor is in a group, add the GroupActor into a list to be modified shortly
 				AGroupActor* ActorLockedRootGroup = AGroupActor::GetRootForActor(Actor, true);
@@ -219,7 +220,7 @@ void UUnrealEdEngine::SetPivot( FVector NewPivot, bool bSnapPivotToGrid, bool bI
 		++SnapCount;
 	}
 	
-	if( bAssignPivot && LastSelectedActor && GEditor->bGroupingActive ) 
+	if( bAssignPivot && LastSelectedActor && UActorGroupingUtils::IsGroupingActive())
 	{
 		// set group pivot for the root-most group
 		AGroupActor* ActorGroupRoot = AGroupActor::GetRootForActor(LastSelectedActor, true, true);
@@ -364,7 +365,7 @@ void UUnrealEdEngine::UpdatePivotLocationForSelection( bool bOnChange )
 			FVector PivotPoint = SingleActor->GetTransform().TransformPosition(SingleActor->GetPivotOffset());
 
 			// If grouping is active, see if this actor is part of a locked group and use that pivot instead
-			if(GEditor->bGroupingActive)
+			if(UActorGroupingUtils::IsGroupingActive())
 			{
 				AGroupActor* ActorGroupRoot = AGroupActor::GetRootForActor(SingleActor, true, true);
 				if(ActorGroupRoot)
@@ -523,7 +524,7 @@ bool UUnrealEdEngine::CanSelectActor(AActor* Actor, bool bInSelected, bool bSele
 
 	// If grouping operations are not currently allowed, don't select groups.
 	AGroupActor* SelectedGroupActor = Cast<AGroupActor>(Actor);
-	if( SelectedGroupActor && !GEditor->bGroupingActive )
+	if( SelectedGroupActor && !UActorGroupingUtils::IsGroupingActive())
 	{
 		return false;
 	}
@@ -569,7 +570,7 @@ void UUnrealEdEngine::SelectActor(AActor* Actor, bool bInSelected, bool bNotify,
 			}
 		}
 
-		if (GEditor->bGroupingActive)
+		if (UActorGroupingUtils::IsGroupingActive())
 		{
 			// if this actor is a group, do a group select/deselect
 			AGroupActor* SelectedGroupActor = Cast<AGroupActor>(Actor);

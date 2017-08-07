@@ -37,7 +37,7 @@ UAchievementQueryCallbackProxy* UAchievementQueryCallbackProxy::CacheAchievement
 
 void UAchievementQueryCallbackProxy::Activate()
 {
-	FOnlineSubsystemBPCallHelper Helper(TEXT("CacheAchievements or CacheAchievementDescriptions"), GEngine->GetWorldFromContextObject(WorldContextObject));
+	FOnlineSubsystemBPCallHelper Helper(TEXT("CacheAchievements or CacheAchievementDescriptions"), WorldContextObject);
 	Helper.QueryIDFromPlayerController(PlayerControllerWeakPtr.Get());
 
 	if (Helper.IsValid())

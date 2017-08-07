@@ -11,7 +11,7 @@ MeshTexCoordSizeAccuracyRendering.cpp: Contains definitions for rendering the vi
 #include "MeshBatch.h"
 #include "Engine/Engine.h"
 
-IMPLEMENT_SHADER_TYPE(,FMeshTexCoordSizeAccuracyPS,TEXT("MeshTexCoordSizeAccuracyPixelShader"),TEXT("Main"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FMeshTexCoordSizeAccuracyPS,TEXT("/Engine/Private/MeshTexCoordSizeAccuracyPixelShader.usf"),TEXT("Main"),SF_Pixel);
 
 void FMeshTexCoordSizeAccuracyPS::SetParameters(
 	FRHICommandList& RHICmdList, 

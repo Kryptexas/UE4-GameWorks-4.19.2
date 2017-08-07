@@ -9,6 +9,7 @@
 #include "Misc/App.h"
 #include "Misc/Paths.h"
 #include "MacApplication.h"
+#include "HAL/FileManager.h"
 #include <mach-o/dyld.h>
 #include <libproc.h>
 
@@ -199,6 +200,11 @@ int32 FMacPlatformProcess::GetDllApiVersion( const TCHAR* Filename )
 	}
 
 	return ((CurrentVersion & 0xff) + ((CurrentVersion >> 8) & 0xff) * 100 + ((CurrentVersion >> 16) & 0xffff) * 10000);
+}
+
+bool FMacPlatformProcess::CanLaunchURL(const TCHAR* URL)
+{
+	return URL != nullptr;
 }
 
 void FMacPlatformProcess::LaunchURL( const TCHAR* URL, const TCHAR* Parms, FString* Error )
@@ -717,6 +723,9 @@ bool FMacPlatformProcess::IsThisApplicationForeground()
 
 bool FMacPlatformProcess::IsSandboxedApplication()
 {
+	// Temporarily disabled as it can take 15 seconds or more to execute this function in Fortnite on a low spec Macs.
+	return false;
+#if 0
 	SCOPED_AUTORELEASE_POOL;
 	
 	bool bIsSandboxedApplication = false;
@@ -744,6 +753,7 @@ bool FMacPlatformProcess::IsSandboxedApplication()
 	}
 	
 	return bIsSandboxedApplication;
+#endif
 }
 
 void FMacPlatformProcess::CleanFileCache()
@@ -755,10 +765,24 @@ void FMacPlatformProcess::CleanFileCache()
 	bShouldCleanShaderWorkingDirectory = GIsFirstInstance;
 #endif
 
-	if (bShouldCleanShaderWorkingDirectory && !FParse::Param( FCommandLine::Get(), TEXT("Multiprocess")))
-	{
-		FPlatformProcess::CleanShaderWorkingDir();
-	}
+    if (bShouldCleanShaderWorkingDirectory && !FParse::Param( FCommandLine::Get(), TEXT("Multiprocess")))
+    {
+        // get shader path, and convert it to the userdirectory
+		for (const auto& ShaderSourceDirectoryEntry : FPlatformProcess::AllShaderSourceDirectoryMappings())
+		{
+			FString ShaderDir = FString(FPlatformProcess::BaseDir()) / ShaderSourceDirectoryEntry.Value;
+            FString UserShaderDir = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*ShaderDir);
+            FPaths::CollapseRelativeDirectories(ShaderDir);
+            
+            // make sure we don't delete from the source directory
+            if (ShaderDir != UserShaderDir)
+            {
+                IFileManager::Get().DeleteDirectory(*UserShaderDir, false, true);
+            }
+        }
+        
+        FPlatformProcess::CleanShaderWorkingDir();
+    }
 }
 
 const TCHAR* FMacPlatformProcess::BaseDir()

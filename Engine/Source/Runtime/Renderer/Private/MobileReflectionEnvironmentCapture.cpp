@@ -69,7 +69,7 @@ private:
 	FShaderResourceParameter SourceTextureSampler;
 };
 
-IMPLEMENT_SHADER_TYPE(, FMobileDownsamplePS, TEXT("ReflectionEnvironmentShaders"), TEXT("DownsamplePS_Mobile"), SF_Pixel);
+IMPLEMENT_SHADER_TYPE(, FMobileDownsamplePS, TEXT("/Engine/Private/ReflectionEnvironmentShaders.usf"), TEXT("DownsamplePS_Mobile"), SF_Pixel);
 namespace MobileReflectionEnvironmentCapture
 {
 	/** Encapsulates render target picking logic for cubemap mip generation. */

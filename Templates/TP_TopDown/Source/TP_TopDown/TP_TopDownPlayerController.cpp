@@ -3,7 +3,7 @@
 #include "TP_TopDownPlayerController.h"
 #include "AI/Navigation/NavigationSystem.h"
 #include "Runtime/Engine/Classes/Components/DecalComponent.h"
-#include "Kismet/HeadMountedDisplayFunctionLibrary.h"
+#include "HeadMountedDisplayFunctionLibrary.h"
 #include "TP_TopDownCharacter.h"
 
 ATP_TopDownPlayerController::ATP_TopDownPlayerController()

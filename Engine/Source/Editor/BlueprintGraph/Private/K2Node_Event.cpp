@@ -76,7 +76,7 @@ void UK2Node_Event::PostLoad()
 	if (!FindPin(DelegateOutputName))
 	{
 		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-		CreatePin(EGPD_Output, K2Schema->PC_Delegate, TEXT(""), NULL, false, false, DelegateOutputName);
+		CreatePin(EGPD_Output, K2Schema->PC_Delegate, FString(), nullptr, DelegateOutputName);
 	}
 }
 
@@ -191,7 +191,7 @@ FString UK2Node_Event::GetDocumentationLink() const
 		return FString::Printf(TEXT("Shared/Types/%s%s"), EventSignatureClass->GetPrefixCPP(), *EventSignatureClass->GetName());
 	}
 
-	return TEXT("");
+	return FString();
 }
 
 FString UK2Node_Event::GetDocumentationExcerptName() const
@@ -308,11 +308,11 @@ void UK2Node_Event::AllocateDefaultPins()
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
-	CreatePin(EGPD_Output, K2Schema->PC_Delegate, TEXT(""), NULL, false, false, DelegateOutputName);
-	CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_Then);
+	CreatePin(EGPD_Output, K2Schema->PC_Delegate, FString(), nullptr, DelegateOutputName);
+	CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_Then);
 
 	const UFunction* Function = FindEventSignatureFunction();
-	if (Function != NULL)
+	if (Function)
 	{
 		CreatePinsForFunctionEntryExit(Function, /*bIsFunctionEntry=*/ true);
 	}
@@ -388,7 +388,8 @@ bool UK2Node_Event::IsFunctionEntryCompatible(const UK2Node_FunctionEntry* Entry
 		if( CurPin->PinType.PinCategory == K2Schema->PC_Exec 
 			|| CurPin->PinType.PinSubCategory == K2Schema->PSC_Self
 			|| CurPin->PinName == DelegateOutputName
-			|| CurPin->Direction == EGPD_Input )
+			|| CurPin->Direction == EGPD_Input
+			|| CurPin->ParentPin != nullptr )
 		{
 			EventPins.RemoveAt(i, 1);
 			i--;
@@ -400,7 +401,9 @@ bool UK2Node_Event::IsFunctionEntryCompatible(const UK2Node_FunctionEntry* Entry
 		const UEdGraphPin* CurPin = EntryPins[i];
 		if( CurPin->PinType.PinCategory == K2Schema->PC_Exec 
 			|| CurPin->PinType.PinSubCategory == K2Schema->PSC_Self
-			|| CurPin->Direction == EGPD_Input)
+			|| CurPin->PinName == DelegateOutputName
+			|| CurPin->Direction == EGPD_Input
+			|| CurPin->ParentPin != nullptr )
 		{
 			EntryPins.RemoveAt(i, 1);
 			i--;

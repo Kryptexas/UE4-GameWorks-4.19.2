@@ -19,8 +19,8 @@ class AActor;
 /**
  *	Applies force to character's movement
  */
-UCLASS(MinimalAPI)
-class UAbilityTask_ApplyRootMotionRadialForce : public UAbilityTask_ApplyRootMotion_Base
+UCLASS()
+class GAMEPLAYABILITIES_API UAbilityTask_ApplyRootMotionRadialForce : public UAbilityTask_ApplyRootMotion_Base
 {
 	GENERATED_UCLASS_BODY()
 

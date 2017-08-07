@@ -491,7 +491,7 @@ bool ULevelExporterT3D::ExportText( const FExportObjectInnerContext* Context, UO
 
 				AActor* ParentActor = Actor->GetAttachParentActor();
 				FName SocketName = Actor->GetAttachParentSocketName();
-				Actor->DetachRootComponentFromParent(true);
+				Actor->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 
 				FString ParentActorString = ( ParentActor ? FString::Printf(TEXT(" ParentActor=%s"), *ParentActor->GetName() ) : TEXT(""));
 				FString SocketNameString = ( (ParentActor && SocketName != NAME_None) ? FString::Printf(TEXT(" SocketName=%s"), *SocketName.ToString() ) : TEXT(""));
@@ -912,7 +912,7 @@ static void AddActorToOBJs(AActor* Actor, TArray<FOBJGeom*>& Objects, TSet<UMate
 		if( StaticMeshComponent->IsRegistered() && StaticMeshComponent->GetStaticMesh()
 			&& StaticMeshComponent->GetStaticMesh()->HasValidRenderData() )
 		{
-			LocalToWorld = StaticMeshComponent->ComponentToWorld.ToMatrixWithScale();
+			LocalToWorld = StaticMeshComponent->GetComponentTransform().ToMatrixWithScale();
 			StaticMesh = StaticMeshComponent->GetStaticMesh();
 			if (StaticMesh)
 			{

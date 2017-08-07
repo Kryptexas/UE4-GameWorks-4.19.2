@@ -1,51 +1,16 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3429236
 Availability: Public
 Title: 오디오 파일
 Crumbs: %ROOT%, Engine, Engine/Audio
 Description:언리얼 엔진 4 에 사운드 파일을 들여오기 위한 기본 요건입니다.
 version: 4.9
+parent:Engine/Audio
+type:reference
+order:3
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Audio/WAV:title%](Engine/Audio/audio_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/audio_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Audio/WAV:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Audio/WAV:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Audio/WAV]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Audio/WAV:title%](Engine/Audio/audio_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/audio_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Audio/WAV:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Audio/WAV:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Audio/WAV]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [REGION:banner]
-![Audio](audio_landing_banner.png)
+![오디오](audio_landing_banner.png)
 [/REGION]
 
 [TOC (start:2 end:3)]

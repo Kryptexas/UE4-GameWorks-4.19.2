@@ -83,7 +83,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessHistogramCS,TEXT("PostProcessHistogram"),TEXT("MainCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FPostProcessHistogramCS,TEXT("/Engine/Private/PostProcessHistogram.usf"),TEXT("MainCS"),SF_Compute);
 
 void FRCPassPostProcessHistogram::Process(FRenderingCompositePassContext& Context)
 {
@@ -161,7 +161,7 @@ FPooledRenderTargetDesc FRCPassPostProcessHistogram::ComputeOutputDesc(EPassOutp
 
 	// format can be optimized later
 	FPooledRenderTargetDesc Ret(FPooledRenderTargetDesc::Create2DDesc(NewSize, PF_FloatRGBA, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable | TexCreate_UAV, false));
-
+	Ret.Flags |= GetTextureFastVRamFlag_DynamicLayout();
 	Ret.DebugName = TEXT("Histogram");
 
 	return Ret;

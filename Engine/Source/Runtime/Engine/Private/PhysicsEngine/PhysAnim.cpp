@@ -70,6 +70,7 @@ public:
 	{
 		if (USkeletalMeshComponent* Comp = SkeletalMeshComponent.Get())
 		{
+			SCOPED_NAMED_EVENT(FParallelBlendPhysicsTask_DoTask, FColor::Yellow);
 			Comp->ParallelBlendPhysics();
 		}
 	}
@@ -100,6 +101,7 @@ public:
 
 	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 	{
+		SCOPED_NAMED_EVENT(FParallelBlendPhysicsCompletionTask_DoTask, FColor::Yellow);
 		SCOPE_CYCLE_COUNTER(STAT_AnimGameThreadTime);
 		if (USkeletalMeshComponent* Comp = SkeletalMeshComponent.Get())
 		{
@@ -108,7 +110,7 @@ public:
 	}
 };
 
-typedef TArray<FAssetWorldBoneTM, TMemStackAllocator<ALIGNOF(FAssetWorldBoneTM)>> TAssetWorldBoneTMArray;
+typedef TArray<FAssetWorldBoneTM, TMemStackAllocator<alignof(FAssetWorldBoneTM)>> TAssetWorldBoneTMArray;
 // Use current pose to calculate world-space position of this bone without physics now.
 void UpdateWorldBoneTM(TAssetWorldBoneTMArray& WorldBoneTMs, const TArray<FTransform>& InBoneSpaceTransforms, int32 BoneIndex, USkeletalMeshComponent* SkelComp, const FTransform &LocalToWorldTM, const FVector& Scale3D)
 {
@@ -144,7 +146,7 @@ void USkeletalMeshComponent::PerformBlendPhysicsBones(const TArray<FBoneIndexTyp
 {
 	SCOPE_CYCLE_COUNTER(STAT_BlendInPhysics);
 	// Get drawscale from Owner (if there is one)
-	FVector TotalScale3D = ComponentToWorld.GetScale3D();
+	FVector TotalScale3D = GetComponentTransform().GetScale3D();
 	FVector RecipScale3D = TotalScale3D.Reciprocal();
 
 	UPhysicsAsset * const PhysicsAsset = GetPhysicsAsset();
@@ -172,7 +174,7 @@ void USkeletalMeshComponent::PerformBlendPhysicsBones(const TArray<FBoneIndexTyp
 	TAssetWorldBoneTMArray WorldBoneTMs;
 	WorldBoneTMs.AddZeroed(GetNumComponentSpaceTransforms());
 	
-	FTransform LocalToWorldTM = ComponentToWorld;
+	FTransform LocalToWorldTM = GetComponentTransform();
 	LocalToWorldTM.RemoveScaling();
 
 	TArray<FTransform>& EditableComponentSpaceTransforms = GetEditableComponentSpaceTransforms();
@@ -185,7 +187,7 @@ void USkeletalMeshComponent::PerformBlendPhysicsBones(const TArray<FBoneIndexTyp
 
 #define DEPERCATED_PHYSBLEND_UPDATES_PHYSX 0	//If you really need the old behavior of physics blending set this to 1. Note this is inefficient and doesn't lead to good results. Please use UPhysicalAnimationComponent
 #if DEPERCATED_PHYSBLEND_UPDATES_PHYSX
-	TArray<FBodyTMPair, TMemStackAllocator<ALIGNOF(FBodyTMPair)>> PendingBodyTMs;
+	TArray<FBodyTMPair, TMemStackAllocator<alignof(FBodyTMPair)>> PendingBodyTMs;
 #endif
 
 #if WITH_PHYSX
@@ -204,7 +206,7 @@ void USkeletalMeshComponent::PerformBlendPhysicsBones(const TArray<FBoneIndexTyp
 			int32 BoneIndex = InRequiredBones[i];
 
 			// See if this is a physics bone..
-			int32 BodyIndex = PhysicsAsset ? PhysicsAsset->FindBodyIndex(SkeletalMesh->RefSkeleton.GetBoneName(BoneIndex)) : INDEX_NONE;
+			int32 BodyIndex = PhysicsAsset->FindBodyIndex(SkeletalMesh->RefSkeleton.GetBoneName(BoneIndex));
 			// need to update back to physX so that physX knows where it was after blending
 #if DEPERCATED_PHYSBLEND_UPDATES_PHYSX
 			bool bUpdatePhysics = false;
@@ -220,11 +222,8 @@ void USkeletalMeshComponent::PerformBlendPhysicsBones(const TArray<FBoneIndexTyp
 				{
 					UE_LOG(LogPhysics, Warning, TEXT("%s(Mesh %s, PhysicsAsset %s)"), 
 						*GetName(), *GetNameSafe(SkeletalMesh), *GetNameSafe(PhysicsAsset));
-					if ( PhysicsAsset )
-					{
-						UE_LOG(LogPhysics, Warning, TEXT(" - # of BodySetup (%d), # of Bodies (%d), Invalid BodyIndex(%d)"), 
-							PhysicsAsset->SkeletalBodySetups.Num(), Bodies.Num(), BodyIndex);
-					}
+					UE_LOG(LogPhysics, Warning, TEXT(" - # of BodySetup (%d), # of Bodies (%d), Invalid BodyIndex(%d)"), 
+						PhysicsAsset->SkeletalBodySetups.Num(), Bodies.Num(), BodyIndex);
 					continue;
 				}
 #endif
@@ -321,7 +320,7 @@ void USkeletalMeshComponent::PerformBlendPhysicsBones(const TArray<FBoneIndexTyp
 				//For now I'm juts deferring it to the end of this loop, but in general we need to move it all out of here and do it when the blend task is done
 				FBodyTMPair* BodyTMPair = new (PendingBodyTMs) FBodyTMPair;
 				BodyTMPair->BI = PhysicsAssetBodyInstance;
-				BodyTMPair->TM = EditableComponentSpaceTransforms[BoneIndex] * ComponentToWorld;
+				BodyTMPair->TM = EditableComponentSpaceTransforms[BoneIndex] * GetComponentTransform();
 			}
 #endif
 		}
@@ -490,7 +489,7 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 		return;
 	}
 
-	const FTransform& CurrentLocalToWorld = ComponentToWorld;
+	const FTransform& CurrentLocalToWorld = GetComponentTransform();
 
 #if !(UE_BUILD_SHIPPING)
 	// Gracefully handle NaN
@@ -502,7 +501,7 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 #endif
 
 	// If we are only using bodies for physics, don't need to move them right away, can defer until simulation (unless told not to)
-	if(BodyInstance.GetCollisionEnabled() == ECollisionEnabled::PhysicsOnly && DeferralAllowed == EAllowKinematicDeferral::AllowDeferral)
+	if(DeferralAllowed == EAllowKinematicDeferral::AllowDeferral && (bDeferMovementFromSceneQueries || BodyInstance.GetCollisionEnabled() == ECollisionEnabled::PhysicsOnly))
 	{
 		PhysScene->MarkForPreSimKinematicUpdate(this, Teleport, bNeedsSkinning);
 		return;
@@ -546,7 +545,8 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 				return;
 			}
 #endif
-
+			const int32 NumComponentSpaceTransforms = GetNumComponentSpaceTransforms();
+			const int32 NumBodies = Bodies.Num();
 #if WITH_PHYSX
 
 			const uint32 SceneType = GetPhysicsSceneType(*PhysicsAsset, *PhysScene, UseAsyncScene);
@@ -555,18 +555,17 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 #endif
 
 			// Iterate over each body
-			for (int32 i = 0; i < Bodies.Num(); i++)
+			for (int32 i = 0; i < NumBodies; i++)
 			{
-				// If we have a physics body, and its kinematic...
 				FBodyInstance* BodyInst = Bodies[i];
-				check(BodyInst);
+				PxRigidActor* RigidActor = BodyInst->GetPxRigidActor_AssumesLocked();
 
-				if (BodyInst->IsValidBodyInstance() && (bTeleport || !BodyInst->IsInstanceSimulatingPhysics()))
+				if (RigidActor && (bTeleport || !BodyInst->IsInstanceSimulatingPhysics()))	//If we have a body and it's kinematic, or we are teleporting a simulated body
 				{
 					const int32 BoneIndex = BodyInst->InstanceBoneIndex;
 
 					// If we could not find it - warn.
-					if (BoneIndex == INDEX_NONE || BoneIndex >= GetNumComponentSpaceTransforms())
+					if (BoneIndex == INDEX_NONE || BoneIndex >= NumComponentSpaceTransforms)
 					{
 						const FName BodyName = PhysicsAsset->SkeletalBodySetups[i]->BoneName;
 						UE_LOG(LogPhysics, Log, TEXT("UpdateRBBones: WARNING: Failed to find bone '%s' need by PhysicsAsset '%s' in SkeletalMesh '%s'."), *BodyName.ToString(), *PhysicsAsset->GetName(), *SkeletalMesh->GetName());
@@ -585,8 +584,8 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 							continue;
 						}
 
-						// If kinematic and not teleporting, set kinematic target
-						if (!BodyInst->IsInstanceSimulatingPhysics() && !bTeleport)
+						// If not teleporting (must be kinematic) set kinematic target
+						if (!bTeleport)
 						{
 							PhysScene->SetKinematicTarget_AssumesLocked(BodyInst, BoneTransform, true);
 						}
@@ -595,7 +594,6 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 						{
 							const PxTransform PNewPose = U2PTransform(BoneTransform);
 							ensure(PNewPose.isValid());
-							PxRigidActor* RigidActor = BodyInst->GetPxRigidActor_AssumesLocked(); // This should never fail because IsValidBodyInstance() passed above
 							RigidActor->setGlobalPose(PNewPose);
 						}
 #endif

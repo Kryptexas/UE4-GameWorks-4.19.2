@@ -1,8 +1,16 @@
-Availability:Public
-Title:Vignette
-Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
-Description:Effect causing the brightness of the to decrease as the distance from the viewport's center increases.
-Version: 4.9
+Availability: Public
+Crumbs: %ROOT%
+Title: Vignette
+Description: Effect causing the brightness of the to decrease as the distance from the viewport's center increases.
+Type: Overview
+SkillLevel:Beginner
+Version:4.16
+Parent:Engine/Rendering/PostProcessEffects
+Order:11
+Tags:Post Process
+Topic-image:Vignette_topic.png
+
+
 
 [REGION:fullwidth]
 ![Vignette Effect](vignette.png)

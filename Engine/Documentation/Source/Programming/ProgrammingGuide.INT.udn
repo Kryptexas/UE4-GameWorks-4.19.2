@@ -2,85 +2,12 @@ Availability:Public
 Title:Programming Guide
 Crumbs: %ROOT%
 Description:Information for programmers developing with Unreal Engine.
-Related: Programming/Development/VisualStudioSetup
-Related: Programming/Development/BuildingUnrealEngine
-Related: Programming/Development/CompilingProjects
-Related: Programming/Development/CodingStandard
-Related: Programming/Development/ManagingGameCode
-Related: Programming/Development/Tools
-Related: Programming/Development/BuildConfiguration
-Related: Programming/Development/BuildGraph
-Related: Programming/Development/InstalledBuildReference
 version: 4.9
 parent:%ROOT%
 order:4
 type:landing
-
-[VAR:Params]
-[PARAM:image]
-	![%Programming:title%](%ROOT%/placeholder_topic.png)
-[/PARAM]
-[PARAM:icon]
-	![](%ROOT%/prog_role_icon.png)(convert:false)
-[/PARAM]
-[PARAM:title]
-	%Programming:title%
-[/PARAM]
-[PARAM:description]
-	%Programming:description%
-[/PARAM]
-[PARAM:path]
-	[RELATIVE:Programming]
-[/PARAM]
-[/VAR]
-
-[VAR:HomeParams]
-[PARAM:image]
-	![%Programming:title%](%ROOT%/placeholder_topic.png)
-[/PARAM]
-[PARAM:icon]
-	![](%ROOT%/prog_icon.png)(convert:false)
-[/PARAM]
-[PARAM:title]
-	Programmers
-[/PARAM]
-[PARAM:description]
-	%Programming:description%
-[/PARAM]
-[PARAM:path]
-	[RELATIVE:Programming]
-[/PARAM]
-[/VAR]
-
-[VAR:Topic]
-[OBJECT:Topic]
-%params%
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-%params%
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicRole]
-[OBJECT:Role]
-%homeparams%
-[PARAMLITERAL:id]
-programmer
-[/PARAMLITERAL]
-[/OBJECT]
-[/VAR]
-
-[VAR:Role]
-[OBJECT:Role]
-%params%
-[PARAMLITERAL:id]
-programming
-[/PARAMLITERAL]
-[/OBJECT]
-[/VAR]
+topic-icon:%ROOT%/prog_icon.png
+Topic-image:ProgrammingGuide_topic.png
 
 Unreal Engine 4 provides two toolsets for programmers which can also be used in tandem to accelerate development workflows. New gameplay classes, Slate and Canvas user interface elements,
 and editor functionality can be written with C++, and all changes will be reflected in Unreal Editor after compiling with either Visual Studio or XCode. The Blueprints visual scripting system
@@ -90,178 +17,61 @@ C++ classes can be used as a base for Blueprint classes, and in this way program
 
 ## Getting Started
 
-[REGION:features third]
-[OBJECT:Role]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Programming Quick Start
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Programming/QuickStart]
-	[/PARAM]
-	[PARAM:description]
-		%Programming/QuickStart:description%
-	[/PARAM]
-	[PARAMLITERAL:id]
-		quickstart
-	[/PARAMLITERAL]
-[/OBJECT]
+%Programming/QuickStart:role%
+%Programming/Introduction:role%
 
-[OBJECT:Role]
-	[PARAM:icon]
-		![](%ROOT%/prog_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Intro to C++ in Unreal
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Programming/Introduction]
-	[/PARAM]
-	[PARAM:description]
-		%Programming/Introduction:description%
-	[/PARAM]
-	[PARAMLITERAL:id]
-		intro
-	[/PARAMLITERAL]
-[/OBJECT]
+## Development Setup
 
-[OBJECT:Role]
-	[PARAM:icon]
-		![](%ROOT%/prog_role_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Programming/Tutorials:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Programming/Tutorials]
-	[/PARAM]
-	[PARAM:description]
-		%Programming/Tutorials:description%
-	[/PARAM]
-	[PARAMLITERAL:id]
-		tutorials
-	[/PARAMLITERAL]
-[/OBJECT]
+[DIR(output:"role" parent:"Programming/Development" org:"hierarchy" tags:"!BuildGraph")]
+
+## Unreal Engine Architecture
+	
+Whether you are programming with C++, Blueprints, or a combination of the two, the underlying Unreal architecture is the same.
+
+[DIR(output:"role" parent:"Programming/UnrealArchitecture/Reference" org:"hierarchy" end:"1")]
+
+## Gameplay Architecture
+
+[DIR(output:"role" parent:"Programming/UnrealArchitecture" org:"hierarchy" end:"1")]
+
+## Gameplay Guides
+
+[DIR(output:"fancy" parent:"Programming/Tutorials" org:"hierarchy" end:"1" skilllevel:"Beginner")]
+[DIR(output:"fancy" parent:"Programming/Tutorials" org:"hierarchy" end:"1" skilllevel:"Intermediate")]
+[DIR(output:"fancy" parent:"Programming/Tutorials" org:"hierarchy" end:"1" skilllevel:"Advanced")]
+
+## Unreal Engine API Reference
+
+%API:role%
+%API/Runtime/Core:role%
+%API/Runtime/CoreUObject:role%
+%API/Runtime/Engine:role%
+
+## System Guides
+
+%Programming/Animation/AnimNodes:role%
+%Programming/Automation:role%
+%Engine/Blueprints/TechnicalGuide:role%
+%Programming/Online:role%
+%Programming/Online/Steam:role%
+%Programming/Rendering:role%
+%Programming/Slate:role%
+%Programming/UnrealBuildSystem:role%
+
+## Automated Builds
+
+[DIR(output:"role" parent:"Programming/Development" org:"hierarchy" tags:"BuildGraph")]
+
+## Asset Handling Reference Guides
+
+[REGION:buttonlist]
+%Programming/Assets/AsyncLoading:role%
+[PUBLISH:Docs]
+%Programming/Assets/CustomImporters:role%
+%Programming/Assets/CustomExporters:role%
+[/PUBLISH:Docs]
+%Programming/Assets/Registry:role%
+[PUBLISH:Docs]
+%Programming/Assets/ThumbnailRendering:role%
+[/PUBLISH:Docs]
 [/REGION]
-
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/prog_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Unreal Engine Development Setup
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Programming/Development "%Programming/Development:description%")
-	[/PARAM]
-[/OBJECT]
-
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/api_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Unreal Engine API Reference
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [Unreal Engine API](https://docs.unrealengine.com/latest/INT/API/index.html)
-		* [Core API](https://docs.unrealengine.com/latest/INT/API/Runtime/Core/index.html)
-		* [Core UObject API](https://docs.unrealengine.com/latest/INT/API/Runtime/CoreUObject/index.html)
-		* [Engine API](https://docs.unrealengine.com/latest/INT/API/Runtime/Engine/index.html)
-	[/PARAM]
-[/OBJECT]
-
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/prog_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Unreal Engine Architecture
-	[/PARAM]
-	[PARAM:description]
-		Whether you are programming with C++, Blueprints, or a combination of the two, the underlying Unreal architecture is the same. 
-	[/PARAM]
-	[PARAM:links]
-	* [](Programming/UnrealArchitecture "%Programming/UnrealArchitecture:description%")
-		* [](Programming/UnrealArchitecture/Objects "%Programming/UnrealArchitecture/Objects:description%")
-			* [](Programming/UnrealArchitecture/Objects/Optimizations "%Programming/UnrealArchitecture/Objects/Optimizations:description%")
-			* [](Programming/UnrealArchitecture/Objects/Creation "%Programming/UnrealArchitecture/Objects/Creation:description%")
-		* [](Programming/UnrealArchitecture/Actors "%Programming/UnrealArchitecture/Actors:description%")
-			* [](Programming/UnrealArchitecture/Actors/Components "%Programming/UnrealArchitecture/Actors/Components:description%")
-			* [](Programming/UnrealArchitecture/Actors/Spawning "%Programming/UnrealArchitecture/Actors/Spawning:description%")
-	* [](Programming/UnrealArchitecture/Reference "%Programming/UnrealArchitecture/Reference:description%")
-		* [](Programming/UnrealArchitecture/Reference/Classes "%Programming/UnrealArchitecture/Reference/Classes:Description%")
-			* [](Programming/UnrealArchitecture/Reference/Functions "%Programming/UnrealArchitecture/Reference/Functions:Description%")
-			* [](Programming/UnrealArchitecture/Reference/Properties "%Programming/UnrealArchitecture/Reference/Properties:Description%")
-		* [](Programming/UnrealArchitecture/Reference/Structs "%Programming/UnrealArchitecture/Reference/Structs:Description%")
-		* [](Programming/UnrealArchitecture/TArrays "%Programming/UnrealArchitecture/TArrays:Description%")
-		* [](Programming/UnrealArchitecture/TMap "%Programming/UnrealArchitecture/TMap:Description%")
-		* [](Programming/UnrealArchitecture/TSubclassOf "%Programming/UnrealArchitecture/TSubclassOf:Description%")
-		* [](Programming/UnrealArchitecture/Reference/Interfaces "%Programming/UnrealArchitecture/Reference/Interfaces:Description%")
-	* [](Programming/Modules/Gameplay "%Programming/Modules/Gameplay:description%")
-	* [](Programming/Plugins "%Programming/Plugins:description%")
-	[/PARAM]
-[/OBJECT]
-
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/gameplay_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Unreal Gameplay
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Gameplay "%Gameplay:description%")
-	[/PARAM]
-[/OBJECT]
-
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/engine_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		System Guides
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		* [](Programming/Animation/AnimNodes "%Programming/Animation/AnimNodes:description%")
-		* [](Programming/Automation "%Programming/Automation:description%")
-		* [](Engine/Blueprints/TechnicalGuide "%Engine/Blueprints/TechnicalGuide:description%")
-		* [](Programming/Online "%Programming/Online:description%")
-		* [](Programming/Online/Steam "%Programming/Online/Steam:description%")
-		* [](Programming/Rendering "%Programming/Rendering:description%")
-		* [](Programming/Slate "%Programming/Slate:description%")
-		* [](Programming/UnrealBuildSystem "%Programming/UnrealBuildSystem:description%")
-	[/PARAM]
-[/OBJECT]
-
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Asset Handling Reference Guides
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		* [](Programming/Assets/AsyncLoading "%Programming/Assets/AsyncLoading:description%")
-		[PUBLISH:Docs]
-		* [](Programming/Assets/CustomImporters "%Programming/Assets/CustomImporters:description%")
-		* [](Programming/Assets/CustomExporters "%Programming/Assets/CustomExporters:description%")
-		[/PUBLISH:Docs]
-		* [](Programming/Assets/Registry "%Programming/Assets/Registry:description%")
-		[PUBLISH:Docs]
-		* [](Programming/Assets/ThumbnailRendering "%Programming/Assets/ThumbnailRendering:description%")
-		[/PUBLISH:Docs]
-	[/PARAM]
-[/OBJECT]

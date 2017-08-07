@@ -45,7 +45,11 @@ enum EMultiGPUMode
 
 static const bool GRedirectDefaultContextForAFR = true;
 
+/// @cond DOXYGEN_WARNINGS
+
 void* FD3D12ThreadLocalObject<FD3D12FastConstantAllocator>::ThisThreadObject = nullptr;
+
+/// @endcond
 
 struct FD3D12AdapterDesc
 {
@@ -84,6 +88,7 @@ class FD3D12Adapter : public FNoncopyable
 public:
 
 	FD3D12Adapter(FD3D12AdapterDesc& DescIn);
+	virtual ~FD3D12Adapter() { }
 
 	void Initialize(FD3D12DynamicRHI* RHI);
 	void InitializeDevices();
@@ -305,6 +310,7 @@ protected:
 		uint32 InUsage,
 		FRHIResourceCreateInfo& CreateInfo,
 		uint32 Alignment,
+		FD3D12TransientResource& TransientResource,
 		FD3D12ResourceLocation& ResourceLocation);
 
 	// Creates default root and execute indirect signatures

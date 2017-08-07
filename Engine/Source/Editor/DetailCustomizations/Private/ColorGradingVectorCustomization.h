@@ -71,8 +71,11 @@ protected:
 	/** Callback returning the max value for a specified color index */
 	TOptional<float> OnGetMaxValue(TOptional<float> DefaultValue, int32 ColorIndex) const;
 	
-	/** Callback called when a slider value changed */
-	void OnSliderValueChanged(float NewValue, int32 ColorIndex, bool ShouldCommitValueChanges);
+	void OnBeginSliderMovement();
+	void OnEndSliderMovement(float NewValue, int32 ColorIndex);
+
+	/** Callback called when a slider value changed or the user typed into the text box*/
+	void OnValueChanged(float NewValue, int32 ColorIndex);
 
 	/** Callback returning if we support dynamic max/min slider value */
 	bool GetSupportDynamicSliderMaxValue(bool DefaultValue, int32 ColorIndex) const;
@@ -116,6 +119,9 @@ protected:
 
 	/** Parent group in the property panel */
 	IDetailGroup* ParentGroup;
+
+	/** Whether or not the slider is actively being used */
+	bool bIsUsingSlider;
 };
 
 class FColorGradingVectorCustomization : public FColorGradingVectorCustomizationBase
@@ -160,8 +166,8 @@ public:
 	FOnColorModeChanged& GetOnColorModeChanged() { return OnColorModeChanged; }
 
 	/** Callback when user click the reset button of the color grading property */
-	void ResetToDefault(TSharedRef<IPropertyHandle> PropertyHandle);
-	bool CanResetToDefault(TSharedRef<IPropertyHandle> PropertyHandle);
+	void ResetToDefault(TSharedPtr<IPropertyHandle> PropertyHandle);
+	bool CanResetToDefault(TSharedPtr<IPropertyHandle> PropertyHandle);
 
 private:
 
@@ -177,6 +183,9 @@ private:
 	/* Local UI Handlers */
 	void OnColorGradingPickerChanged(FVector4 &NewValue, bool ShouldCommitValueChanges);
 	bool GetCurrentColorGradingValue(FVector4 &OutCurrentValue);
+
+	void OnBeginMainValueSliderMovement();
+	void OnEndMainValueSliderMovement();
 
 	/** Callback when user click the Group reset button */
 	void OnDetailGroupReset();

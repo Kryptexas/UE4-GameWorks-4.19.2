@@ -38,7 +38,7 @@ public:
 	virtual int32 ValidatePreviewAttachedObjects() override;
 	virtual int32 DeleteAnimNotifies(const TArray<FName>& InSelectedNotifyNames) override;
 	virtual int32 RenameNotify(const FName& NewName, const FName& OldName) override;
-	virtual void GetCompatibleAnimSequences(TArray<class FAssetData>& OutAssets) override;
+	virtual void GetCompatibleAnimSequences(TArray<struct FAssetData>& OutAssets) override;
 	virtual void RenameSocket(const FName& OldSocketName, const FName& NewSocketName, USkeletalMesh* InSkeletalMesh) override;
 	virtual void SetSocketParent(const FName& SocketName, const FName& NewParentName, USkeletalMesh* InSkeletalMesh) override;
 	virtual bool DoesSocketAlreadyExist(const class USkeletalMeshSocket* InSocket, const FText& InSocketName, ESocketParentType SocketParentType, USkeletalMesh* InSkeletalMesh) const override;
@@ -52,7 +52,7 @@ public:
 	virtual void SetCurveMetaBoneLinks(const FSmartName& CurveName, TArray<FBoneReference>& BoneLinks) override;
 	virtual void SetPreviewMesh(class USkeletalMesh* InSkeletalMesh) override;
 	virtual void LoadAdditionalPreviewSkeletalMeshes() override;
-	virtual void SetAdditionalPreviewSkeletalMeshes(class UPreviewMeshCollection* InSkeletalMeshes) override;
+	virtual void SetAdditionalPreviewSkeletalMeshes(class UDataAsset* InPreviewCollectionAsset) override;
 	virtual void RenameRetargetSource(const FName& InOldName, const FName& InNewName) override;
 	virtual void AddRetargetSource(const FName& InName, USkeletalMesh* InReferenceMesh) override;
 	virtual void DeleteRetargetSources(const TArray<FName>& InRetargetSourceNames) override;

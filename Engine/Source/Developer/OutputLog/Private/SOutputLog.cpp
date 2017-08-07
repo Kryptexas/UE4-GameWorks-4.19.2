@@ -941,16 +941,18 @@ bool SOutputLog::CreateLogMessages( const TCHAR* V, ELogVerbosity::Type Verbosit
 	}
 	else
 	{
+		// Get the style for this message. When piping output from child processes (eg. when cooking through the editor), we want to highlight messages
+		// according to their original verbosity, so also check for "Error:" and "Warning:" substrings. This is consistent with how the build system processes logs.
 		FName Style;
 		if (Category == NAME_Cmd)
 		{
 			Style = FName(TEXT("Log.Command"));
 		}
-		else if (Verbosity == ELogVerbosity::Error)
+		else if (Verbosity == ELogVerbosity::Error || FCString::Stristr(V, TEXT("Error:")) != nullptr)
 		{
 			Style = FName(TEXT("Log.Error"));
 		}
-		else if (Verbosity == ELogVerbosity::Warning)
+		else if (Verbosity == ELogVerbosity::Warning || FCString::Stristr(V, TEXT("Warning:")) != nullptr)
 		{
 			Style = FName(TEXT("Log.Warning"));
 		}

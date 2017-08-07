@@ -4,6 +4,10 @@ Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems
 Description:An overview of the Cascade Editor's UI, breaking down each key area.
 Version: 4.9
 tags:Particles
+parent:Engine/Rendering/ParticleSystems
+order:2
+type:reference
+topic-image:cascade_topic.png
 
 [VAR:Topic]
 [OBJECT:Topic]

@@ -188,7 +188,7 @@ enum class EDynamicActorScene : uint8
 };
 
 /** Container for a physics representation of an object */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct ENGINE_API FBodyInstance
 {
 	GENERATED_USTRUCT_BODY()
@@ -316,14 +316,14 @@ public:
 
 	/** When initializing dynamic instances their component or velocity can override the bStartAwake flag */
 	uint32 bWokenExternally : 1;
-protected:
 
 	/**
-	 * If true, this body will be put into the asynchronous physics scene. If false, it will be put into the synchronous physics scene.
-	 * If the body is static, it will be placed into both scenes regardless of the value of bUseAsyncScene.
-	 */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Physics)
-	uint32 bUseAsyncScene:1;
+	* If true, this body will be put into the asynchronous physics scene. If false, it will be put into the synchronous physics scene.
+	* If the body is static, it will be placed into both scenes regardless of the value of bUseAsyncScene.
+	*/
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = Physics)
+	uint32 bUseAsyncScene : 1;
+protected:
 
 	/** Whether this body instance has its own custom MaxDepenetrationVelocity*/
 	UPROPERTY(EditAnywhere, Category = Physics, meta=(InlineEditConditionToggle))
@@ -505,6 +505,9 @@ public:
 		/** Whether to use the BodySetup's PhysicsType to override if the instance simulates*/
 		bool bPhysicsTypeDeterminesSimulation;
 
+		/** Whether kinematic targets are used by scene queries */
+		bool bKinematicTargetsUpdateSQ;
+
 		/** Whether to override the physics scene used for simulation */
 		EDynamicActorScene DynamicActorScene;
 	};
@@ -632,7 +635,7 @@ public:
 	DEPRECATED(4.8, "Please call GetPxRigidActor_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
 	physx::PxRigidActor* GetPxRigidActor(int32 SceneType = -1) const
 	{
-		return GetPxRigidActor_AssumesLocked(SceneType);
+		return GetPxRigidActorFromScene_AssumesLocked(SceneType);
 	}
 
 	/**
@@ -641,7 +644,12 @@ public:
 	 * Invalid scene types will cause NULL to be returned.
 	 * Note: Reading/writing from/to PxRigidActor is not thread safe. If you use the actor make sure to obtain the appropriate PhysX scene lock
 	 */
-	physx::PxRigidActor* GetPxRigidActor_AssumesLocked(int32 SceneType = -1) const;
+	physx::PxRigidActor* GetPxRigidActor_AssumesLocked() const
+	{
+		return RigidActorSync ? RigidActorSync : RigidActorAsync;
+	}
+
+	physx::PxRigidActor* GetPxRigidActorFromScene_AssumesLocked(int32 SceneType) const;
 
 
 	/** Return the PxRigidDynamic if it exists in one of the scenes (NULL otherwise).  Currently a PxRigidDynamic can exist in only one of the two scenes. */
@@ -1151,7 +1159,7 @@ private:
 	/** 
 	 * Helper function to update per shape filtering info. This should interface is not very friendly and should only be used from inside FBodyInstance
 	 */
-	void UpdatePhysicsShapeFilterData(uint32 ComponentID, bool bUseComplexAsSimple, bool bUseSimpleAsComplex, bool bPhysicsStatic, const TEnumAsByte<ECollisionEnabled::Type> * CollisionEnabledOverride, FCollisionResponseContainer * ResponseOverride, bool * bNotifyOverride);
+	void UpdatePhysicsShapeFilterData(uint32 ComponentID, bool bPhysicsStatic, const TEnumAsByte<ECollisionEnabled::Type> * CollisionEnabledOverride, FCollisionResponseContainer * ResponseOverride, bool * bNotifyOverride);
 
 #endif 
 	/**
@@ -1268,13 +1276,15 @@ private:
 //////////////////////////////////////////////////////////////////////////
 // BodyInstance inlines
 
-//~ APIDOCTOOL: Document=Off
+/// @cond DOXYGEN_WARNINGS
+
 FORCEINLINE_DEBUGGABLE bool FBodyInstance::OverlapMulti(TArray<struct FOverlapResult>& InOutOverlaps, const class UWorld* World, const FTransform* pWorldToComponent, const FVector& Pos, const FRotator& Rot, ECollisionChannel TestChannel, const FComponentQueryParams& Params, const FCollisionResponseParams& ResponseParams, const FCollisionObjectQueryParams& ObjectQueryParams) const
 {
 	// Pass on to FQuat version
 	return OverlapMulti(InOutOverlaps, World, pWorldToComponent, Pos, Rot.Quaternion(), TestChannel, Params, ResponseParams, ObjectQueryParams);
 }
-//~ APIDOCTOOL: Document=On
+
+/// @endcond
 
 FORCEINLINE_DEBUGGABLE bool FBodyInstance::OverlapTestForBodies(const FVector& Position, const FQuat& Rotation, const TArray<FBodyInstance*>& Bodies) const
 {

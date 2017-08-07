@@ -17,7 +17,7 @@ UAbilityTask_MoveToLocation::UAbilityTask_MoveToLocation(const FObjectInitialize
 
 UAbilityTask_MoveToLocation* UAbilityTask_MoveToLocation::MoveToLocation(UGameplayAbility* OwningAbility, FName TaskInstanceName, FVector Location, float Duration, UCurveFloat* OptionalInterpolationCurve, UCurveVector* OptionalVectorInterpolationCurve)
 {
-	auto MyObj = NewAbilityTask<UAbilityTask_MoveToLocation>(OwningAbility, TaskInstanceName);
+	UAbilityTask_MoveToLocation* MyObj = NewAbilityTask<UAbilityTask_MoveToLocation>(OwningAbility, TaskInstanceName);
 
 	if (MyObj->GetAvatarActor() != nullptr)
 	{

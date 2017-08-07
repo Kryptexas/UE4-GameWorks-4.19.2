@@ -525,6 +525,11 @@ struct FAndroidESDeferredOpenGL : public FOpenGLESDeferred
 		return bSupportsMobileMultiView;
 	}
 
+	static FORCEINLINE bool SupportsImageExternal()
+	{
+		return false;
+	}
+
 	static FORCEINLINE GLuint64 GetTextureSamplerHandle(GLuint Texture, GLuint Sampler)
 	{
 		return glGetTextureSamplerHandleNV(Texture, Sampler);

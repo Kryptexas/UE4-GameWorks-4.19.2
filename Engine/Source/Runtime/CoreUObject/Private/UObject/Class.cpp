@@ -50,6 +50,10 @@ DEFINE_LOG_CATEGORY(LogClass);
 	#endif
 #endif
 
+// If we end up pushing class flags out beyond a uint32, there are various places
+// casting it to uint32 that need to be fixed up (mostly printfs but also some serialization code)
+static_assert(sizeof(__underlying_type(EClassFlags)) == sizeof(uint32), "expecting ClassFlags enum to fit in a uint32");
+
 //////////////////////////////////////////////////////////////////////////
 
 FThreadSafeBool& InternalSafeGetTokenStreamDirtyFlag()
@@ -668,32 +672,32 @@ void UStruct::Link(FArchive& Ar, bool bRelinkExistingProperties)
 		FName ToTest = GetFName();
 		if ( ToTest == NAME_Matrix )
 		{
-			check(MinAlignment == ALIGNOF(FMatrix));
+			check(MinAlignment == alignof(FMatrix));
 			check(PropertiesSize == sizeof(FMatrix));
 		}
 		else if ( ToTest == NAME_Plane )
 		{
-			check(MinAlignment == ALIGNOF(FPlane));
+			check(MinAlignment == alignof(FPlane));
 			check(PropertiesSize == sizeof(FPlane));
 		}
 		else if ( ToTest == NAME_Vector4 )
 		{
-			check(MinAlignment == ALIGNOF(FVector4));
+			check(MinAlignment == alignof(FVector4));
 			check(PropertiesSize == sizeof(FVector4));
 		}
 		else if ( ToTest == NAME_Quat )
 		{
-			check(MinAlignment == ALIGNOF(FQuat));
+			check(MinAlignment == alignof(FQuat));
 			check(PropertiesSize == sizeof(FQuat));
 		}
 		else if ( ToTest == NAME_Double )
 		{
-			check(MinAlignment == ALIGNOF(double));
+			check(MinAlignment == alignof(double));
 			check(PropertiesSize == sizeof(double));
 		}
 		else if ( ToTest == NAME_Color )
 		{
-			check(MinAlignment == ALIGNOF(FColor));
+			check(MinAlignment == alignof(FColor));
 			check(PropertiesSize == sizeof(FColor));
 #if !PLATFORM_LITTLE_ENDIAN
 			// Object.h declares FColor as BGRA which doesn't match up with what we'd like to use on
@@ -1426,10 +1430,6 @@ const UStruct* UStruct::HasMetaDataHierarchical(const FName& Key) const
 	}
 #endif // #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 
-//
-// Serialize an expression to an archive.
-// Returns expression token.
-//
 EExprToken UStruct::SerializeExpr( int32& iCode, FArchive& Ar )
 {
 #define SERIALIZEEXPR_INC
@@ -2559,7 +2559,7 @@ class FRestoreClassInfo: public FRestoreForUObjectOverwrite
 	/** Saved ClassDefaultObject **/
 	UObject*		DefaultObject;
 	/** Saved ClassFlags **/
-	uint32			Flags;
+	EClassFlags		Flags;
 	/** Saved ClassCastFlags **/
 	EClassCastFlags	CastFlags;
 	/** Saved ClassConstructor **/
@@ -2789,7 +2789,7 @@ void UClass::DeferredRegister(UClass *UClassStaticClass,const TCHAR* PackageName
 	// PVS-Studio justifiably complains about this cast, but we expect this to work because we 'know' that 
 	// we're coming from the UClass constructor that is used when 'statically linked'. V580 disables 
 	// a warning that indicates this is an 'odd explicit type casting'.
-	const TCHAR* InClassConfigName = *(TCHAR**)&ClassConfigName; //-V580
+	const TCHAR* InClassConfigName = *(TCHAR**)&ClassConfigName; //-V580 //-V641
 	ClassConfigName = InClassConfigName;
 
 	// Propagate inherited flags.
@@ -3410,18 +3410,18 @@ void UClass::Serialize( FArchive& Ar )
 	// Class flags first.
 	if (Ar.IsSaving())
 	{
-		auto SavedClassFlags = ClassFlags;
+		uint32 SavedClassFlags = ClassFlags;
 		SavedClassFlags &= ~(CLASS_ShouldNeverBeLoaded | CLASS_TokenStreamAssembled);
 		Ar << SavedClassFlags;
 	}
 	else if (Ar.IsLoading())
 	{
-		Ar << ClassFlags;
+		Ar << (uint32&)ClassFlags;
 		ClassFlags &= ~(CLASS_ShouldNeverBeLoaded | CLASS_TokenStreamAssembled);
 	}
 	else 
 	{
-		Ar << ClassFlags;
+		Ar << (uint32&)ClassFlags;
 	}
 	if (Ar.UE4Ver() < VER_UE4_CLASS_NOTPLACEABLE_ADDED)
 	{
@@ -3696,7 +3696,7 @@ void UClass::PurgeClass(bool bRecompilingOnLoad)
 {
 	ClassConstructor = nullptr;
 	ClassVTableHelperCtorCaller = nullptr;
-	ClassFlags = 0;
+	ClassFlags = CLASS_None;
 	ClassCastFlags = 0;
 	ClassUnique = 0;
 	ClassReps.Empty();
@@ -3794,7 +3794,7 @@ bool UClass::HasProperty(UProperty* InProperty) const
 UClass::UClass(const FObjectInitializer& ObjectInitializer)
 :	UStruct( ObjectInitializer )
 ,	ClassUnique(0)
-,	ClassFlags(0)
+,	ClassFlags(CLASS_None)
 ,	ClassCastFlags(0)
 ,	ClassWithin( UObject::StaticClass() )
 ,	ClassGeneratedBy(nullptr)
@@ -3811,7 +3811,7 @@ UClass::UClass(const FObjectInitializer& ObjectInitializer)
 UClass::UClass(const FObjectInitializer& ObjectInitializer, UClass* InBaseClass)
 :	UStruct(ObjectInitializer, InBaseClass)
 ,	ClassUnique(0)
-,	ClassFlags(0)
+,	ClassFlags(CLASS_None)
 ,	ClassCastFlags(0)
 ,	ClassWithin(UObject::StaticClass())
 ,	ClassGeneratedBy(nullptr)
@@ -3849,7 +3849,7 @@ UClass::UClass
 	EStaticConstructor,
 	FName			InName,
 	uint32			InSize,
-	uint32			InClassFlags,
+	EClassFlags		InClassFlags,
 	EClassCastFlags	InClassCastFlags,
 	const TCHAR*    InConfigName,
 	EObjectFlags	InFlags,
@@ -3885,7 +3885,7 @@ UClass::UClass
 
 bool UClass::HotReloadPrivateStaticClass(
 	uint32			InSize,
-	uint32			InClassFlags,
+	EClassFlags		InClassFlags,
 	EClassCastFlags	InClassCastFlags,
 	const TCHAR*    InConfigName,
 	ClassConstructorType InClassConstructor,
@@ -4163,7 +4163,7 @@ const FString UClass::GetConfigName() const
 	}
 	else if( ClassConfigName == NAME_None )
 	{
-		UE_LOG(LogClass, Fatal,TEXT("UObject::GetConfigName() called on class with config name 'None'. Class flags = %d"), ClassFlags );
+		UE_LOG(LogClass, Fatal,TEXT("UObject::GetConfigName() called on class with config name 'None'. Class flags = 0x%08X"), (uint32)ClassFlags );
 		return TEXT("");
 	}
 	else
@@ -4288,7 +4288,7 @@ void GetPrivateStaticClassBody(
 	UClass*& ReturnClass,
 	void(*RegisterNativeFunc)(),
 	uint32 InSize,
-	uint32 InClassFlags,
+	EClassFlags InClassFlags,
 	EClassCastFlags InClassCastFlags,
 	const TCHAR* InConfigName,
 	UClass::ClassConstructorType InClassConstructor,
@@ -4338,7 +4338,7 @@ void GetPrivateStaticClassBody(
 
 	if (!bIsDynamic)
 	{
-		ReturnClass = (UClass*)GUObjectAllocator.AllocateUObject(sizeof(UClass), ALIGNOF(UClass), true);
+		ReturnClass = (UClass*)GUObjectAllocator.AllocateUObject(sizeof(UClass), alignof(UClass), true);
 		ReturnClass = ::new (ReturnClass)
 			UClass
 			(
@@ -4357,7 +4357,7 @@ void GetPrivateStaticClassBody(
 	}
 	else
 	{
-		ReturnClass = (UClass*)GUObjectAllocator.AllocateUObject(sizeof(UDynamicClass), ALIGNOF(UDynamicClass), GIsInitialLoad);
+		ReturnClass = (UClass*)GUObjectAllocator.AllocateUObject(sizeof(UDynamicClass), alignof(UDynamicClass), GIsInitialLoad);
 		ReturnClass = ::new (ReturnClass)
 			UDynamicClass
 			(
@@ -4390,7 +4390,7 @@ void GetPrivateStaticClassBody(
 	UFunction.
 -----------------------------------------------------------------------------*/
 
-UFunction::UFunction(const FObjectInitializer& ObjectInitializer, UFunction* InSuperFunction, uint32 InFunctionFlags, uint16 InRepOffset, SIZE_T ParamsSize )
+UFunction::UFunction(const FObjectInitializer& ObjectInitializer, UFunction* InSuperFunction, EFunctionFlags InFunctionFlags, uint16 InRepOffset, SIZE_T ParamsSize )
 : UStruct( ObjectInitializer, InSuperFunction, ParamsSize )
 , FunctionFlags(InFunctionFlags)
 , RepOffset(InRepOffset)
@@ -4404,7 +4404,7 @@ UFunction::UFunction(const FObjectInitializer& ObjectInitializer, UFunction* InS
 {
 }
 
-UFunction::UFunction(UFunction* InSuperFunction, uint32 InFunctionFlags, uint16 InRepOffset, SIZE_T ParamsSize)
+UFunction::UFunction(UFunction* InSuperFunction, EFunctionFlags InFunctionFlags, uint16 InRepOffset, SIZE_T ParamsSize)
 	: UStruct(InSuperFunction, ParamsSize)
 	, FunctionFlags(InFunctionFlags)
 	, RepOffset(InRepOffset)
@@ -4822,13 +4822,13 @@ IMPLEMENT_CORE_INTRINSIC_CLASS(UFunction, UStruct,
 	}
 );
 
-UDelegateFunction::UDelegateFunction(const FObjectInitializer& ObjectInitializer, UFunction* InSuperFunction, uint32 InFunctionFlags, uint16 InRepOffset, SIZE_T ParamsSize)
+UDelegateFunction::UDelegateFunction(const FObjectInitializer& ObjectInitializer, UFunction* InSuperFunction, EFunctionFlags InFunctionFlags, uint16 InRepOffset, SIZE_T ParamsSize)
 	: UFunction(ObjectInitializer, InSuperFunction, InFunctionFlags, InRepOffset, ParamsSize)
 {
 
 }
 
-UDelegateFunction::UDelegateFunction(UFunction* InSuperFunction, uint32 InFunctionFlags, uint16 InRepOffset, SIZE_T ParamsSize)
+UDelegateFunction::UDelegateFunction(UFunction* InSuperFunction, EFunctionFlags InFunctionFlags, uint16 InRepOffset, SIZE_T ParamsSize)
 	: UFunction(InSuperFunction, InFunctionFlags, InRepOffset, ParamsSize)
 {
 
@@ -4869,7 +4869,7 @@ UDynamicClass::UDynamicClass(
 	EStaticConstructor,
 	FName			InName,
 	uint32			InSize,
-	uint32			InClassFlags,
+	EClassFlags		InClassFlags,
 	EClassCastFlags	InClassCastFlags,
 	const TCHAR*    InConfigName,
 	EObjectFlags	InFlags,

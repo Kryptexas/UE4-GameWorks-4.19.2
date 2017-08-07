@@ -1095,48 +1095,78 @@ private:
 class FMorphTargetVertexInfoBuffers : public FRenderResource
 {
 public:
-	FMorphTargetVertexInfoBuffers()
-		: NumInfluencedVerticesByMorphs(0)
+	FMorphTargetVertexInfoBuffers() : NumTotalWorkItems(0)
 	{
 	}
 
 	ENGINE_API virtual void InitRHI() override;
 	ENGINE_API virtual void ReleaseRHI() override;
 
-	uint32 GetNumInfluencedVerticesByMorphs() const
+	uint32 GetNumWorkItems(uint32 index = UINT_MAX) const
 	{
-		return NumInfluencedVerticesByMorphs;
+		check(index == UINT_MAX || index < (uint32)WorkItemsPerMorph.Num());
+		return index != UINT_MAX ? WorkItemsPerMorph[index] : NumTotalWorkItems;
 	}
 
-	FVertexBufferRHIRef PerVertexInfoVB;
-	FShaderResourceViewRHIRef PerVertexInfoSRV;
+	uint32 GetNumMorphs() const
+	{
+		return WorkItemsPerMorph.Num();
+	}
 
-	FVertexBufferRHIRef FlattenedDeltasVB;
-	FShaderResourceViewRHIRef FlattenedDeltasSRV;
+	uint32 GetStartOffset(uint32 Index) const
+	{
+		check(Index < (uint32)StartOffsetPerMorph.Num());
+		return StartOffsetPerMorph[Index];
+	}
+
+	const FVector4& GetMaximumMorphScale(uint32 Index) const
+	{
+		check(Index < (uint32)MaximumValuePerMorph.Num());
+		return MaximumValuePerMorph[Index];
+	}
+
+	const FVector4& GetMinimumMorphScale(uint32 Index) const
+	{
+		check(Index < (uint32)MinimumValuePerMorph.Num());
+		return MinimumValuePerMorph[Index];
+	}
+
+	FVertexBufferRHIRef VertexIndicesVB;
+	FShaderResourceViewRHIRef VertexIndicesSRV;
+
+	FVertexBufferRHIRef MorphDeltasVB;
+	FShaderResourceViewRHIRef MorphDeltasSRV;
 
 	// Changes to this struct must be reflected in MorphTargets.usf
-	struct FPerVertexInfo
+	struct FMorphDelta
 	{
-		uint32 DestVertexIndex;
-		uint32 StartDelta;
-		uint32 NumDeltas;
-	};
+		FMorphDelta(FVector InPosDelta, FVector InTangentDelta)
+		{
+			PosDelta[0] = FFloat16(InPosDelta.X);
+			PosDelta[1] = FFloat16(InPosDelta.Y);
+			PosDelta[2] = FFloat16(InPosDelta.Z);
 
-	// Changes to this struct must be reflected in MorphTargets.usf
-	struct FFlattenedDelta
-	{
-		FVector PosDelta;
-		FVector TangentDelta;
-		uint32 WeightIndex;
+			TangentDelta[0] = FFloat16(InTangentDelta.X);
+			TangentDelta[1] = FFloat16(InTangentDelta.Y);
+			TangentDelta[2] = FFloat16(InTangentDelta.Z);
+		}
+
+		FFloat16 PosDelta[3];
+		FFloat16 TangentDelta[3];
 	};
 
 protected:
 	// Transient data used while creating the vertex buffers, gets deleted as soon as VB gets initialized.
-	TArray<FPerVertexInfo> PerVertexInfoList;
+	TArray<uint32> VertexIndices;
 	// Transient data used while creating the vertex buffers, gets deleted as soon as VB gets initialized.
-	TArray<FFlattenedDelta> FlattenedDeltaList;
-	// Transient data used while creating the vertex buffers, gets deleted as soon as VB gets initialized.
-	uint32 NumInfluencedVerticesByMorphs;
+	TArray<FMorphDelta> MorphDeltas;
+
+	//x,y,y separate for position and shared w for tangent
+	TArray<FVector4> MaximumValuePerMorph;
+	TArray<FVector4> MinimumValuePerMorph;
+	TArray<uint32> StartOffsetPerMorph;
+	TArray<uint32> WorkItemsPerMorph;
+	uint32 NumTotalWorkItems;
 
 	friend class FStaticLODModel;
 };
@@ -1340,6 +1370,14 @@ public:
 	*/
 	ENGINE_API void GetVertices(TArray<FSoftSkinVertex>& Vertices) const;
 
+	/** 
+	 * Similar to GetVertices but ignores vertices from clothing sections
+	 * to avoid getting duplicate vertices from clothing sections if not needed
+	 *
+	 * @param OutVertices Array to fill
+	 */
+	ENGINE_API void GetNonClothVertices(TArray<FSoftSkinVertex>& OutVertices) const;
+
 	/**
 	* Fill array with APEX cloth mapping data.
 	*
@@ -1434,6 +1472,27 @@ public:
 		}
 
 		return NumSections;
+	}
+
+	int32 GetNumNonClothingVertices() const
+	{
+		int32 NumVerts = 0;
+		int32 NumSections = Sections.Num();
+
+		for(int32 i = 0; i < NumSections; i++)
+		{
+			const FSkelMeshSection& Section = Sections[i];
+
+			// Stop when we hit clothing sections
+			if(Section.ClothingData.AssetGuid.IsValid() && !Section.bDisabled)
+			{
+				break;
+			}
+
+			NumVerts += Section.SoftVertices.Num();
+		}
+
+		return NumVerts;
 	}
 
 	bool DoesVertexBufferHaveExtraBoneInfluences() const
@@ -1600,16 +1659,13 @@ public:
 	/** Util for getting LOD index currently used by this SceneProxy. */
 	int32 GetCurrentLODIndex();
 
-
-	/** 
-	 * Render a coordinate system indicator
-	 */
-	void RenderAxisGizmo(FPrimitiveDrawInterface* PDI, FTransform& Transform);
-
 	/** 
 	 * Render physics asset for debug display
 	 */
 	void DebugDrawPhysicsAsset(int32 ViewIndex, FMeshElementCollector& Collector, const FEngineShowFlags& EngineShowFlags) const;
+
+	/** Render the bones of the skeleton for debug display */
+	void DebugDrawSkeleton(int32 ViewIndex, FMeshElementCollector& Collector, const FEngineShowFlags& EngineShowFlags) const;
 
 	virtual uint32 GetMemoryFootprint( void ) const override { return( sizeof( *this ) + GetAllocatedSize() ); }
 	uint32 GetAllocatedSize( void ) const { return( FPrimitiveSceneProxy::GetAllocatedSize() + LODSections.GetAllocatedSize() ); }

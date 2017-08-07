@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3231087
+﻿INTSourceChangelist:3429229
 Availability:Public
 Title: 스켈레탈 메시 애니메이션 시스템
 Crumbs: %ROOT%, Engine
@@ -47,11 +47,34 @@ order:3
 [/VAR]
 
 [REGION:banner]
-![Animation System](animation_banner.png)(convert:false)
+![애니메이션 시스템](animation_banner.png)(convert:false)
 [/REGION]
 
 [INCLUDE:Engine/Animation/Overview#Intro]
 
+## 시작하기
+
+[DIR(output:"topic" parent:"Engine/Animation" org:"flat" tags:"Getting Started" type:"!how-to")]
+
+## 애셋 유형
+
+[DIR(output:"topic" parent:"Engine/Animation" org:"flat" tags:"Assets" type:"!how-to")]
+
+## 툴
+
+[DIR(output:"topic" parent:"Engine/Animation" end:"3" org:"hierarchy" tags:"!Assets" tags:"Tools" type:"!how-to")]
+
+## 기능
+
+[DIR(output:"topic" parent:"Engine/Animation" end:"1" org:"hierarchy" tags:"!Assets" tags:"!Getting Started" tags:"!Tools" type:"!how-to")]
+
+## 가이드
+
+[DIR(output:"fancy" parent:"Engine/Animation/AnimHowTo" end:"1" org:"hierarchy" tags:"!Assets" tags:"!Getting Started" type:"how-to" skilllevel:"Beginner")]
+[DIR(output:"fancy" parent:"Engine/Animation/AnimHowTo" end:"1" org:"hierarchy" tags:"!Assets" tags:"!Getting Started" type:"how-to" skilllevel:"Intermediate")]
+[DIR(output:"fancy" parent:"Engine/Animation/AnimHowTo" end:"1" org:"hierarchy" tags:"!Assets" tags:"!Getting Started" type:"how-to" skilllevel:"Advanced")]
+
+[PUBLISH:docs]
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/start_icon.png)(convert:false)
@@ -143,8 +166,4 @@ order:3
 			* [](Engine/Animation/UsingMixamoContent "%Engine/Animation/UsingMixamoContent:description%")
 	[/PARAM]
 [/OBJECT]
-
-
-
-
-
+[/PUBLISH:docs]

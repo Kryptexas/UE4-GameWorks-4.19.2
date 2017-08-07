@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3275202
+﻿INTSourceChangelist:3481084
 Availability:Public
 Title:디테일 패널
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
@@ -60,7 +60,33 @@ Version: 4.12
 
 1. **편집** 메뉴에서 **에디터 개인설정** 을 선택합니다.
 
-	![](EditorPrefs.png)
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![Main Menu Bar](EditorPrefs.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![Main Menu Bar](EditorPrefs_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 1. **실험단계** 아래, **Enable Details Panel Favorites** (디테일 패널 즐겨찾기 켜기) 옵션을 켜면 됩니다.
 

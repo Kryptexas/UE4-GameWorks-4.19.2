@@ -1,9 +1,13 @@
 Availability: Public
-title:Pivot Painter
+title:Pivot Painter Material Functions
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
 Description:Functions designed to allow utilization of the Pivot Painter MAXScript.
 Version: 4.9
+Parent:Engine/Rendering/Materials/Functions/Reference
+Related:Engine/Content/Tools/PivotPainter
+Topic-Image:PivotPainterMF_Topic.png
 tags:Materials
+tags:Pivot Painter
 
 [TOC (start:2 end:3)]
 
@@ -29,11 +33,13 @@ Although the data provided by Pivot Painter can be utilized without these functi
 
 ## Pivot Painter Functions
 
-The following is a list of all the functions underneath the Pivot Painter category.
+The following is a list of all the functions underneath the Pivot Painter category. 
+
+These functions are used to process and organize world position and angle information stored in the model's UVs by the Pivot Painter MAXScript.
 
 ### PivotPainter_HierarchyData
 
-Processes and organizes world position and angle information stored in the model's UVs by the Pivot Painter MAXScript. This particular function is specifically designed to work with object hierarchies.
+This particular function is specifically designed to work with object hierarchies.
 
 | Item | Description |
 | -------- | -------- |
@@ -59,7 +65,7 @@ Processes and organizes world position and angle information stored in the model
 
 ### PivotPainter_PerObjectData
 
-Processes and organizes world position and angle information stored in the model's UVs by the Pivot Painter MAXScript. This particular function is designed to work on a per-object basis.
+This particular function is designed to work on a per-object basis.
 
 | Item | Description |
 | -------- | -------- |
@@ -75,7 +81,7 @@ Processes and organizes world position and angle information stored in the model
 
 ### PivotPainter_PerObjectFoliageData
 
-Processes and organizes world position and angle information stored in the model's UVs by the Pivot Painter MAXScript. This function is designed to work specifically with individual foliage objects.
+This function is designed to work specifically with individual foliage objects.
 
 
 | Item | Description |
@@ -101,7 +107,7 @@ Processes and organizes world position and angle information stored in the model
 
 ### PivotPainter_TreeData
 
-Processes and organizes world position and angle information stored in the model's UVs by the Pivot Painter script. The outputs starting with *tree* process the model's UV information as it would be stored by the Pivot Painter MAXScript. The outputs starting with *Leaf* process the UV information as it would be stored by the per-object pivot painting section of the script.
+The outputs starting with *tree* process the model's UV information as it would be stored by the Pivot Painter MAXScript. The outputs starting with *Leaf* process the UV information as it would be stored by the per-object pivot painting section of the script.
 
 | Item | Description |
 | -------- | -------- |

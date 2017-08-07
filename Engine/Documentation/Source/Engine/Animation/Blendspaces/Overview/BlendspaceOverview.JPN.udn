@@ -1,98 +1,117 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3477699
 Availability:Docs
-Title: Blend Spaces Overview
 Crumbs: %ROOT%, Engine, Engine/Animation
-Description:Describes how Blend Space assets are used and the different types of Blend Space assets.
-Related: Engine\Animation\AnimHowTo\BlendSpace
-Related: Engine/Animation/Blendspaces/Editor
-Related: Engine/Animation/Blendspaces/UserGuide
-Related: Engine/Animation/StateMachines
-Related: Engine/Animation/AnimBlueprints
-version: 4.15
-type:overview
-topic-image:blendspacetopic.png
+Title:ブレンドスペースの概要
+Description:Blend Space アセットの使用方法とその様々なタイプについての説明
+Type:Overview
+SkillLevel:Intermediate
+Version:4.16
+Parent:Engine/Animation
+Order:1
 tags:Animation
 tags:Animation Blueprint
 tags:Blend Space
+topic-image:blendspacetopic.png
+Related:Engine\Animation\AnimHowTo\BlendSpace
+Related:Engine/Animation/Blendspaces/Editor
+Related:Engine/Animation/Blendspaces
+Related:Engine/Animation/StateMachines
+Related:Engine/Animation/AnimBlueprints
 
 [TOC (start:2 end:2)]
 
-The goal of a **Blend Space** is to reduce the need for creating individual, hard-coded nodes for blending
-animations with an asset that performs blending based on specific properties or conditions instead. By allowing the animator or programmer to specify 
-the inputs, the animations, and how the inputs are used to blend between animations, virtually any 
-type of blending can be performed using the generic Blend Space. 
+**ブレンドスペース** の目的は、特定のプロパティや条件に基づいたブレンディングを行うアセットを代わりに使うことで、
+個別にハードコード化したノードを作成する必要性を減らすことです。アニメーターやプログラマーが入力、アニメーション、およびアニメーション間でブレンドするための入力値の使用を指定できるようにすることで、 
+事実上、どのようなタイプのブレンドも 
+汎用ブレンドスペースを使用して実行することができます。 
 
-This is completely contrary to how AnimTrees in Unreal Engine 3 handled the same tasks. 
-Any complex blending required the creation of a new node to handle that blending. 
-Blend Spaces are completely generic allowing the factors that determine the blending to be specified on each individual Blend Space. 
-Each Blend Space has inputs that simply take in values. 
-These values can be calculated during the update cycle of an [Animation Blueprint](Engine\Animation\AnimBlueprints) (via the **EventGraph**), 
-driven by gameplay code, or any other means (as seen in the example chart below). This makes them extremely flexible and puts the power into 
-the hands of the person creating the AnimGraph to blend animations in any way they see fit.
+UE3 で AnimTree を使って同じタスクを処理していた方法とは正反対です。 
+複雑なブレンドを処理するには、それを行う新規ノードを作成する必要があります。 
+ブレンドスペースは完全に汎用的です。各ブレンドスペースで指定するブレンドを決める係数を有効にします。 
+各ブレンドスペースには値を取る入力があります。 
+これらの値は [Animation ブループリント](Engine\Animation\AnimBlueprints) (**EventGraph** 経由) の更新サイクル中に計算され、 
+ゲームプレイ コードやその他の方法で操作されます (以下の図参照)。これは柔軟性が高く、AnimGraph の作成者は 
+アニメーショがを適切に見えるようにブレンドすることができます。
 
 ![Input Flow](bs_flow.png)
 
 [REGION:caption]
-Above, the Event Graph, Gameplay Code or other factor drives each of the variables that in turn determines which pose in the Blend Space to use as the final pose. 
+上の図では、イベントグラフ、ゲームプレイ コード、その他のファクタがそれぞれの変数を操作して、最終ポーズとしてブレンドスペースのどのポーズを使用するかを決めます。 
 [/REGION]
 
 
-## Blend Space
+## ブレンドスペース
 
-You can think of a Blend Space like a 2D graph with each input value along one axis and animations plotted 
-on the graph at various points. The blended animation is calculated by blending between the animations 
-on the graph based on the location designated by the current input values.
-As an example, take the typical blending between directional run animations and an idle animation based on 
-the direction and speed of the movement of the player.
+ブレンドスペースは 2D グラフのようなものと捉えることができます。 
+ひとつの軸に沿った各入力値とグラフの様々な点に描画されているアニメーションがあります。ブレンドされたアニメーションは、現在の入力値で指定される位置に基づき 
+グラフ上のアニメーション間をブレンドすることで計算されます。
+例として、プレイヤーの動きの方向と速さに基づいた「方向性のある走りアニメーション」と「待機アニメーション」 
+を考えます。
 
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-HzgiW2mZomU
-[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	WhfIvH1Uxpg
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
 [/OBJECT]
 
-In Unreal Engine 3, this was performed using the directional blending node in combination with a speed 
-blending node. Each of these nodes was hard-coded to only do that specific blend. The values used to 
-perform the blending were hidden away in the code, so no modifications could be made to tweak the blend 
-except by a programmer; and if you modified the value in the code, it affected every instance of the node 
-in every AnimTree making use of it. This is far from ideal.
+アンリアル エンジン 3 では、SpeedBlending ノードと一緒に 
+DirectionalBlending ノードを使用することによってこのブレンドを実行していました。こうした各ノードは、この特定のブレンドを行うためだけにハード コーディングされていました。ブレンドを行うために使われた値は、 
+コードでは隠されています。そのため、プログラマ以外はブレンドを微調整する修正を加えることはできません。 
+コード内の値を修正したら、それを使用するすべての AnimTree でノードのあらゆるインスタンスに 
+影響を与えます。これは理想とは程遠い方法です。
 
-With Blend Spaces, this same blend can be performed using a single Blend Space. 
-The direction (which is indicated in the horizontal yellow box below) and speed (indicated in the vertical yellow box below) of the player would be values passed to the Blend Space as inputs.
-The animations (white diamonds below) would be set up to blend appropriately based on the values of these inputs resulting in the final pose you see (green diamond below) in-game.
+ブレンドスペースを使用すれば、単一のブレンドスペースで同様のブレンドを実行することができます。 
+プレイヤーの方向 (以下の横方向の黄色いボックス) と速度 (以下の縦方向の黄色いボックス) は、ブレンドスペースに入力として渡される値です。
+アニメーション (以下の白のダイヤ) は、こうした入力値に基づき適切にブレンドするようにセットアップされます。その結果、インゲームで見る (以下の緑のダイヤ) 最終ポーズになります。
 
 ![](BlendSpaceDirection.png)(w:720)
 
-Below, our **AnimGraph** implements the Blend Space to which we can adjust our inputs (in this case **Speed**) to drive the blending. 
+以下では、**AnimGraph** がブレンドを操作するために入力 (この場合、**Speed**) を調整できるブレンドスペースを実装しています。 
 
 ![](AnimGraphBlendSpace.png)
 
-Just as in the previewer, as we adjust our input values we alter and drive the blending in our Blend Space. 
+プレビューアと同様に、入力値を調整するに従い、ブレンドスペースでのブレンディングが変更、操作されます。 
 
 ## Blend Space 1D
 
-Blend Spaces can also be created in a one-dimensional format, known as a **Blend Space 1D**. These can blend between any number of poses or animations but do so based on a single input value. An example that we use is to make a character lean when sprinting. We have two poses, one leaning left and one leaning right, and use an input driven by how much the player is turning the character while sprinting. By blending into the additive leaning poses, we can give the running animation a bit more life as the character seems to lean into hard turns.
+ブレンドスペースは、**Blend Space 1D** という 1D 形式でも作成できます。ブレンドスペースでは、ポーズやアニメーションをいくつでもブレンドできますが、単一の入力値に基づき、ブレンドしてください。 
+Blend Space 1D の使用例としては、移動方向を自動的に向くキャラクターが考えられます。 
+キャラクターが道から外れたり、複数方向に移動できない場合、単一の **Speed** 値に基づき (以下の例のように)、Blend Space 1D を使って Idle から Walk に、最終的に Run させるようにブレンドすることができます。 
 
 [OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-2g_IxGNE0T4
-[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	KMl7-qkgs9g
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
 [/OBJECT]
 
 [REGION:note]
-Aside from having only one axis instead of two, a Blend Space 1D is exactly the same as a standard two-axis Blend Space. 
+2 軸ではなく 1 軸だけを持つ以外は、Blend Space 1D は標準の2 軸のブレンドスペースと全く同じです。 
 [/REGION]
+
+
 
 

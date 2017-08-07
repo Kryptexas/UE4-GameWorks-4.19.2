@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "XmppStrophe/StropheConnection.h"
 #include "XmppStrophe/StropheContext.h"
@@ -20,9 +20,14 @@ int StropheStanzaEventHandler(xmpp_conn_t* const UnusedPtr, xmpp_stanza_t* const
 
 	const FStropheStanza IncomingStanza(EventStanza);
 
-	// We want to forward our stanza to our connection and out to our handlers
-	FXmppConnectionStrophe* const ConnectionPtr = static_cast<FXmppConnectionStrophe* const>(VoidConnectionPtr);
-	ConnectionPtr->ReceiveStanza(IncomingStanza);
+	// Ignore session stanza (bug in libstrophe that we see get this at all)
+	static const FString LoginSessionStanza(TEXT("_xmpp_session1"));
+	if (IncomingStanza.GetId() != LoginSessionStanza)
+	{
+		// We want to forward our stanza to our connection and out to our handlers
+		FXmppConnectionStrophe* const ConnectionPtr = static_cast<FXmppConnectionStrophe* const>(VoidConnectionPtr);
+		ConnectionPtr->ReceiveStanza(IncomingStanza);
+	}
 
 	return 1;
 }
@@ -157,8 +162,14 @@ bool FStropheConnection::SendStanza(const FStropheStanza& Stanza)
 
 void FStropheConnection::XmppThreadTick()
 {
-	constexpr const int32 DefaultTimeout = 1; // Matches library default of 1ms
-	xmpp_run_once(Context.GetContextPtr(), DefaultTimeout);
+	constexpr const int32 DefaultTimeoutMs = 5;
+	constexpr const int32 DefaultTimeBetweenPolls = 5;
+
+	// Will process any data queued for send/receive and return. Will wait up to DefaultTimeoutMs if the socket is blocked.
+	xmpp_run_once(Context.GetContextPtr(), DefaultTimeoutMs);
+
+	// Since xmpp_run_once will not wait if the socket is not blocked, add a sleep between polls to avoid monopolizing the CPU
+	Sleep(DefaultTimeBetweenPolls);
 }
 
 void FStropheConnection::RegisterStropheHandler(FXmppConnectionStrophe& ConnectionManager)

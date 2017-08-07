@@ -16,14 +16,16 @@ namespace UnrealBuildTool
 			string InName,
 			DirectoryReference InModuleDirectory,
 			ModuleRules InRules,
-			FileReference InRulesFile
+			FileReference InRulesFile,
+			List<RuntimeDependency> InRuntimeDependencies
 			)
 			: base(
 				InType: InType,
 				InName: InName,
 				InModuleDirectory: InModuleDirectory,
 				InRules: InRules,
-				InRulesFile: InRulesFile
+				InRulesFile: InRulesFile,
+				InRuntimeDependencies: InRuntimeDependencies
 				)
 		{
 		}

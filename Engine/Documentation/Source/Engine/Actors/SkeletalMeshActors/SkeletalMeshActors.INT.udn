@@ -5,7 +5,9 @@ Description:Creating and using Skeletal Mesh Actors
 Related: Engine/Actors
 Related: Engine/Animation
 version: 4.9
-
+Parent:Engine/Actors/Types
+order:3
+type:overview
 
 
 [TOC(start:2 end:3)]
@@ -34,7 +36,7 @@ You can drag and drop Skeletal Mesh Actors right from the **Content Browser** ri
 
 1. Release the **Left Mouse Button** to place the mesh in the map as a Skeletal Mesh, as seen in the **Details** panel.   
 
-![](Skeletal_Mesh_Drag_&_Drop.gif)
+![](SkeletalMeshContextMenu.png)
 
 **Context Menus**
 
@@ -46,7 +48,7 @@ You can also place Skeletal Mesh Actors in the world using the **Right-click** c
 
 1. Once the **Place Actor: Skeletal Mesh** option has been clicked on with the mouse, the Skeletal Mesh you selected should now be placed in the scene. 
 
-![](Skeletal_Mesh_Context_Menu.gif.gif)
+![](SkeletalMeshDragAndDrop.png)
 
 ## Playing Animation on a Skeletal Mesh Actor 
 Getting a Skeletal Mesh Actor so that it will animate while the game is running can be done two different ways inside of UE4. You can use an [Animation Blueprint]( Engine/Animation/AnimBlueprints), which will allow you to play and blend multiple animations together. Or you can use and Animation Asset to play a single [Animation Sequence]( Engine/Animation/Sequences). In this tutorial, we will be focusing on using an Animation Sequence to play our animation while the game is running. 
@@ -98,7 +100,7 @@ To create a Physics Asset for your mesh, all you have to do is simply **Right-cl
 ### Assigning a Physics Asset
 Once your Physics Asset has been created, it is now time to assign it to your mesh. Physics Assets can be assigned to Skeletal Meshes by simply opening up the Skeletal Mesh and then assigning the Physics Asset to the **Physics Asset** slot that is under the **Physics** section. 
 
-![](SkeletalMeshActor_Add_Physics_Assets.png)
+![](SkeletalMeshActor_Assign_Physics_Asset.png)
 
 You can also override Physics Assets in your level by simply selecting your Skeletal Mesh and then under the **Physics** section of the **Details** panel, you can supply a new Physics Asset in the **Physics Asset Override** section.
 

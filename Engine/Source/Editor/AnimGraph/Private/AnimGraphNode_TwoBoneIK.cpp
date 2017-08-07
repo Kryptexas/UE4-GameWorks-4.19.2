@@ -2,14 +2,18 @@
 
 #include "AnimGraphNode_TwoBoneIK.h"
 #include "AnimNodeEditModes.h"
-#include "AnimationCustomVersion.h"
+#include "Animation/AnimInstance.h"
 
 // for customization details
 #include "PropertyHandle.h"
 #include "DetailLayoutBuilder.h"
 #include "DetailCategoryBuilder.h"
 
-#define LOCTEXT_NAMESPACE "A3Nodes"
+// version handling
+#include "AnimationCustomVersion.h"
+#include "ReleaseObjectVersion.h"
+
+#define LOCTEXT_NAMESPACE "AnimGraphNode_TwoBoneIK"
 
 /////////////////////////////////////////////////////
 // FTwoBoneIKDelegate
@@ -105,7 +109,6 @@ void UAnimGraphNode_TwoBoneIK::CustomizeDetails(class IDetailLayoutBuilder& Deta
 
 	EBoneControlSpace Space = Node.EffectorLocationSpace;
 	const FString TakeRotationPropName = FString::Printf(TEXT("Node.%s"), GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_TwoBoneIK, bTakeRotationFromEffectorSpace));
-	const FString MaintainEffectorPropName = FString::Printf(TEXT("Node.%s"), GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_TwoBoneIK, bMaintainEffectorRelRot));
 	const FString EffectorBoneName = FString::Printf(TEXT("Node.%s"), GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_TwoBoneIK, EffectorSpaceBoneName));
 	const FString EffectorLocationPropName = FString::Printf(TEXT("Node.%s"), GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_TwoBoneIK, EffectorLocation));
 
@@ -116,8 +119,6 @@ void UAnimGraphNode_TwoBoneIK::CustomizeDetails(class IDetailLayoutBuilder& Deta
 		TSharedPtr<IPropertyHandle> PropertyHandle;
 		PropertyHandle = DetailBuilder.GetProperty(*TakeRotationPropName, GetClass());
 		EffectorCategory.AddProperty(PropertyHandle);
-		PropertyHandle = DetailBuilder.GetProperty(*MaintainEffectorPropName, GetClass());
-		EffectorCategory.AddProperty(PropertyHandle);
 		PropertyHandle = DetailBuilder.GetProperty(*EffectorBoneName, GetClass());
 		EffectorCategory.AddProperty(PropertyHandle);
 	}
@@ -126,8 +127,6 @@ void UAnimGraphNode_TwoBoneIK::CustomizeDetails(class IDetailLayoutBuilder& Deta
 		TSharedPtr<IPropertyHandle> PropertyHandle = DetailBuilder.GetProperty(*EffectorLocationPropName, GetClass());
 		DetailBuilder.HideProperty(PropertyHandle);
 		PropertyHandle = DetailBuilder.GetProperty(*TakeRotationPropName, GetClass());
-		DetailBuilder.HideProperty(PropertyHandle);
-		PropertyHandle = DetailBuilder.GetProperty(*MaintainEffectorPropName, GetClass());
 		DetailBuilder.HideProperty(PropertyHandle);
 		PropertyHandle = DetailBuilder.GetProperty(*EffectorBoneName, GetClass());
 		DetailBuilder.HideProperty(PropertyHandle);
@@ -190,5 +189,23 @@ void UAnimGraphNode_TwoBoneIK::Serialize(FArchive& Ar)
 		Node.StartStretchRatio = Node.StretchLimits_DEPRECATED.X;
 		Node.MaxStretchScale = Node.StretchLimits_DEPRECATED.Y;
 	}
+
+	Ar.UsingCustomVersion(FReleaseObjectVersion::GUID);
+	if (Ar.CustomVer(FReleaseObjectVersion::GUID) < FReleaseObjectVersion::RenameNoTwistToAllowTwistInTwoBoneIK)
+	{
+		Node.bAllowTwist = !Node.bNoTwist_DEPRECATED;
+	}
 }
+
+void UAnimGraphNode_TwoBoneIK::Draw(FPrimitiveDrawInterface* PDI, USkeletalMeshComponent* SkelMeshComp) const
+{
+	if (bEnableDebugDraw && SkelMeshComp)
+	{
+		if (FAnimNode_TwoBoneIK* ActiveNode = GetActiveInstanceNode<FAnimNode_TwoBoneIK>(SkelMeshComp->GetAnimInstance()))
+		{
+			ActiveNode->ConditionalDebugDraw(PDI, SkelMeshComp);
+		}
+	}
+}
+
 #undef LOCTEXT_NAMESPACE

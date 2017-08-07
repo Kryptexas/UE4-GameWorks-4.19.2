@@ -17,7 +17,9 @@ class SSequencerCurveEditor : public SCurveEditor
 {
 public:
 	SLATE_BEGIN_ARGS( SSequencerCurveEditor )
-	{}
+	{
+		_Clipping = EWidgetClipping::ClipToBounds;
+	}
 
 		/** The range of time being viewed */
 		SLATE_ATTRIBUTE( FAnimatedRange, ViewRange )

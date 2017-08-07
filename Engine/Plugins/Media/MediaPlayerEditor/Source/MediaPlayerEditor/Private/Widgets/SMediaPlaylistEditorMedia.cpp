@@ -52,7 +52,7 @@ void SMediaPlaylistEditorMedia::Construct(const FArguments& InArgs, UMediaPlayli
 /* SMediaPlaylistEditorDetails callbacks
  *****************************************************************************/
 
-void SMediaPlaylistEditorMedia::HandleAssetPickerAssetDoubleClicked(const class FAssetData& AssetData)
+void SMediaPlaylistEditorMedia::HandleAssetPickerAssetDoubleClicked(const struct FAssetData& AssetData)
 {
 	UMediaSource* MediaSource = Cast<UMediaSource>(AssetData.GetAsset());
 	

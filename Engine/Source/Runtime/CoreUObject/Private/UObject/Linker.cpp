@@ -636,6 +636,11 @@ FLinkerLoad* GetPackageLinker
 			return nullptr;
 		}
 
+#if WITH_EDITORONLY_DATA
+		// Make sure the package name matches the name on disk
+		FPackageName::FixPackageNameCase(PackageNameToCreate, FPaths::GetExtension(NewFilename));
+#endif
+
 		// Create the package with the provided long package name.
 		UPackage* FilenamePkg = (ExistingPackage ? ExistingPackage : (CreatedPackage = CreatePackage(nullptr, *PackageNameToCreate)));
 		if (FilenamePkg && FilenamePkg != ExistingPackage && (LoadFlags & LOAD_PackageForPIE))

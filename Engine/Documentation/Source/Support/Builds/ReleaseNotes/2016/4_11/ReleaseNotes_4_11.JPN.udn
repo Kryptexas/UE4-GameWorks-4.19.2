@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2952959
+﻿INTSourceChangelist:3403469
 Availability:Public
 Title:アンリアル エンジン 4.11 リリースノート
 Crumbs:%ROOT%, Engine
@@ -25,17 +25,17 @@ Paragon はチームにとって、ユニークな挑戦の連続でした。Par
 
 細かい最適化をエンジン全体で数多く実施したので Paragon のパフォーマンスを大幅に改善しました。UE4 で作成されたすべてのゲームの改善にもつながるでしょう。これらの最適化の多くが 4.11 で実現され、今後のリリースで更に最適化されます。最適化作業の成果を幾つかを紹介します。
 
-**Parallelization (並列化):** PC やコンソール上での高いフレームレートの実現には今やマルチコア スケーリングが極めて重要となるので、**スレッド アーキテクチャ**をいくつかの方法で改善しました。タスク作成の負荷を減らして、優先度の高いタスクへのサポートを追加し、同期ポイントを多数取り除きました。  
+**Parallelization (並列化):** PC やコンソール上での高いフレームレートの実現には今やマルチコア スケーリングが極めて重要となるので、**スレッド アーキテクチャ** をいくつかの方法で改善しました。タスク作成の負荷を減らして、優先度の高いタスクへのサポートを追加し、同期ポイントを多数取り除きました。  
 
 **レンダリング パフォーマンス：**  GPU でオーバーヘッドを増やさずに最大の並列処理を実現するために、レンダラが GPU に生成された作業者タスクとコマンド バッファのサイズのバランスを保持できるようになりました。レンダラの同期ポイントも取り除いたので、利用可能なコアが使いやすくなりました。
 
-**クロス シミュレーション：** 劇的に速くなり、マルチスレッディングが使いやすくなりました。アセットごとに APEX ソルバをワーカースレッドから直接呼び出せるようになりました。そのため、スケジューリングが簡単になり、同期ポイントとオーバーヘッドが多数取り除かれました。クロスは、アニメーション後 (ブレンドが必要ない場合) あるいはスケルタル メッシュ コンポーネントのアップデート後にアップデートされるようになりました。 
+**クロス シミュレーション** が格段に速くなり、マルチスレッディングが使いやすくなりました。アセットごとに APEX ソルバをワーカースレッドから直接呼び出せるようになりました。そのため、スケジューリングが簡単になり、同期ポイントとオーバーヘッドが多数取り除かれました。クロスは、アニメーション後 (ブレンドが必要ない場合) あるいはスケルタル メッシュ コンポーネントのアップデート後にアップデートされるようになりました。 
 
 **ガーベジ コレクションの高速化:** ガーベジ コレクション "クラスタ" がサポートされて、エンジンがオブジェクト群をひとつのユニットとして処理できるようになったので、考慮すべきオブジェクト数が大幅に減りました。今のところ、マテリアルとパーティクル システムのサブオブジェクトのみクラスタ化されます。さらに、マーク フェーズおよび破壊フェーズがさらにキャッシュ コヒーレントになり、処理時間は 9 分の 1 に短縮、到達可能性分析中のメモリ チェーンも少なくなりました。
 
 **マルチスレッド アニメーション：** アニメーション グラフのアップデートがワーカースレッド上で実行できるようになったので、アニメートされたキャラクター数をコアの数でスケールすることが可能になりました。アップグレード ノートを確認してください。多くのアニメーション関連の API を非推奨とし、ワーカースレッド上で実行できるアニメーション グラフを制限しました。
 
-**アニメーション変数へのインスタント アクセス:** アニメーション グラフ アップデートに変数アクセスのためのファスト パスが追加されました。ブループリント コードを実行せずに、内部でパラメータを簡単にコピーできるようになりました。メンバ変数、無効の Boolean メンバ変数、ネスティングされた構造体のメンバをコンパイラで、最適化できるようになりました。
+**アニメーション変数へのインスタント アクセス:** アニメーション グラフ アップデートに変数アクセスのためのファスト パスが追加されました。This allows us to simply copy parameters internally rather than executing Blueprint code.メンバ変数、無効の Boolean メンバ変数、ネスティングされた構造体のメンバをコンパイラで、最適化できるようになりました。
 
 **加算アニメーションのベイク処理：** **ベイクした加算アニメーション**をオンにするオプションが付きました。**加算アニメーションの速さ** が **3 倍** になります。加算アニメーションのデルタ ポーズの計算に関わる作業はランタイムではなくクックタイムで処理されます。加算デルタ作成の計算作業のみならず、ランタイム時に必要がなくなったベース アニメーション解凍のメモリ アクセスと割り当ても保存されます。この機能によりクック時間が増加するので、cvar "a.UseBakedAdditiveAnimations" を 1 に設定して有効にする必要があります。今後のバージョンでは、この負荷が発生しないようにして、最適化された状態が永久に保たれるようにエンジンのアニメーション クック処理を改善します。
 
@@ -45,7 +45,7 @@ Paragon はチームにとって、ユニークな挑戦の連続でした。Par
 
 ![image alt text](image_2.png)![image alt text](image_3.png)
 
-2 つのスペキュラ ローブ、トランスミッションとスキャタリングをモデル化します。この機能を使うには、マテリアル エディタのシェーディング モデル リストから**[Hair]**を選択します。
+2 つのスペキュラ ローブ、トランスミッションとスキャタリングをモデル化します。この機能を使うには、マテリアル エディタのシェーディング モデル リストから **[Hair]** を選択します。
 
 ## 新規：リアルなアイシェーディング
 
@@ -65,7 +65,7 @@ Paragon はチームにとって、ユニークな挑戦の連続でした。Par
 
 ## 新規：リアルなクロスシェーディング
 
-**クロスを作るためのシェーディング モデル****が追加されました。不明瞭なレイヤーをシミュレートし、これまでよりもリアルなクロスの生成が可能になりました。この機能は、マテリアル エディタで [Cloth shading model] を選択します。
+**クロスを作るためのシェーディング モデル**** が追加されました。不明瞭なレイヤーをシミュレートし、これまでよりもリアルなクロスの生成が可能になりました。この機能は、マテリアル エディタで [Cloth shading model] を選択します。
 
 ![image alt text](image_6.png)
 
@@ -87,11 +87,11 @@ Paragon はチームにとって、ユニークな挑戦の連続でした。Par
 
 このカプセル シャドウの実装は非常に効率的です。深度を意識したアップサンプルを使って半分の解像度でシャドウイングを計算し、スクリーン タイル カリングを使ってシャドウイング作業を必要な場所のみに制限します。
 
-GPU 負荷は、カプセル数およびキャストされたシャドウが影響するピクセル数に比例します。
+GPU 負荷は、カプセル数およびキャストされたシャドウの影響を受けるピクセル数に比例します。
 
 カプセル シャドウを有効にする方法
 
-1. カプセルのみを使って、物理アセットを新規作成します。球体でもできますが、柔軟性が欠けます。カプセルはジョイントでわずかにオーバーラップします。足のカプセルは、キャラクターが地上にいるように見せる調整のために、もっとも重要です。腕は、地面を覆ったり這ったりする以外は、あまり必要ありません。
+1. カプセルのみを使って、物理アセットを新規作成します。球体でもできますが、柔軟性が欠けます。カプセルはジョイントでわずかにオーバーラップします。足のカプセルは、キャラクターが接地して見えるように調整する上でもっとも重要です。腕は、地面を覆ったり這ったりする以外は、あまり必要ありません。
 
 2. 物理アセットをスケルタル メッシュ アセットの Shadow Physics アセットに割り当てます。
 
@@ -123,7 +123,7 @@ Dithered Opacity Mask を使って、不透明なマテリアルを使った **�
 
 ![image alt text](image_13.gif)(convert:false)
 
-注記：この機能は有効化してもパフォーマンス負荷は低いので、マテリアル上で有効にしておかなければなりません。
+注記：** この機能は有効化してもパフォーマンス負荷は低いので、マテリアル上で有効にしておかなければなりません。
 
 ![image alt text](image_14.png)
 
@@ -195,7 +195,7 @@ Anim Dynamics の主要機能の概要です。
 
     * Anim Dynamics は、APEX クロス オブジェクトに影響を与えるのと同じ風を起こすアクタと使用できます。ノードごとの切り替えが可能で、スケーリングすることで風の完璧に反応させることができます。
 
-* **補正サブステップ機能**
+* **Adaptive sub-stepping**
 
     * シミュレーションは、物理プロジェクト設定にもとづいた法線ティック設定による実行、あるいは適応設定による実行が可能です。 
 
@@ -213,7 +213,7 @@ Anim Dynamics の主要機能の概要です。
 
         * Planar limits
 
-        Planar exclusion methods (平面制限のある球体コリジョン)
+        * Planar exclusion methods (平面制限のある球体コリジョン)
 
 ## 新規：ゲームプレイからのアニメーションのライブ録画
 
@@ -237,7 +237,7 @@ Anim Dynamics の主要機能の概要です。
 
 ![image alt text](image_20.png)
 
-## 新規：プラットフォームと SDK のアップデート
+## 新規：Platform SDK のアップデート
 
 通常のアップデートと合わせて、各種 VR プラットフォームの起動ウィンドウでのタイトル シッピングに備えて最新の SDK を使うためにすべての主要な VR プラットフォームもアップデートしました。今回のアップデートは安定性と仕上げに重点を置きました。UE4 4.11 で作成したタイトルは VR 出荷ができる状態のはずです！
 
@@ -263,7 +263,7 @@ Anim Dynamics の主要機能の概要です。
 
 * Linux Clang 3.7.0
 
-* Apple tvOS 9.0 support (GitHub only)
+* Apple tvOS 9.0 サポート (GitHub のみ)
 
 ## 新規：Improved DirectX 12
 
@@ -287,7 +287,7 @@ Microsoft が実験的に **Xbox One** の **DirectX 12** にサポートを追�
 
 体験版なので、この機能を有効にするｔレンダリングあるいは安定性に問題が発生する可能性があります。
 
-## 新規：Metal Rendering on Mac OS X
+## 新規：Mac OS X 上でのメタル レンダリング
 
 メタルは Mac OS X El Capitan 上でデフォルトのグラフィック API になりました！
 
@@ -295,7 +295,7 @@ Microsoft が実験的に **Xbox One** の **DirectX 12** にサポートを追�
 ![image alt text](image_23.png)
 [/REGION]
 
-エピックは Apple、AMD、Nvidia、Intel と密接に連携して Mac のメタルを統合し、4.11 では OpenGL を OS X El Capitan 用主要グラフィックス API に置き換えました。4.11 では、Metal と OpenGL 全体に同じレンダリング機能がデフォルトで提供されています。Metal は、ストリームライン、プリコンパイルされたシェーダー付きで小さいオーバーヘッドの API、効率のよいマルチスレッド サポートで GPU の処理パワーを最大にします。今後も引き続き、Mac Metal のサポートを拡張させます。エンジンの将来のバージョンでこの新しい API 機能を活用する方法を模索します。
+エピックは Apple、AMD、NVIDIA、Intel と密接に連携して Mac のメタルを統合し、4.11 では OpenGL を OS X El Capitan 用主要グラフィックス API に置き換えました。4.11 では、Metal と OpenGL 全体に同じレンダリング機能がデフォルトで提供されています。Metal は、ストリームライン、プリコンパイルされたシェーダー付きで小さいオーバーヘッドの API、効率のよいマルチスレッド サポートで GPU の処理パワーを最大にします。今後も引き続き、Mac Metal のサポートを拡張させます。エンジンの将来のバージョンでこの新しい API 機能を活用する方法を模索します。
 
 Shader Model 5 機能で実験的にメタルもサポートしました。"-metalsm5" コマンドライン スイッチを使って試してみてください。
 
@@ -311,13 +311,13 @@ Shader Model 5 機能で実験的にメタルもサポートしました。"-met
 
 ![image alt text](image_24.png)(w:640 convert:false)
 
-ポータルは Lightmass に入射光を探す場所を伝えるたけで、ポータル自体が実際に光を放出しているわけではありません。最終的なライティングに重要な小さな隙間を覆う場合にポータルはもってこいです。Lightmass は入射光に向かう光線の焦点を合わせることができるので、質の高いライトとシャドウを生成することができます。(下図**左**: ポータルなし。**右**: ポータルあり。)
+ポータルは Lightmass に入射光を探す場所を伝えるたけで、ポータル自体が実際に光を放出しているわけではありません。最終的なライティングに重要な小さな隙間を覆う場合にポータルはもってこいです。Lightmass は入射光に向かう光線の焦点を合わせることができるので、質の高いライトとシャドウを生成することができます。(下図 **左**: ポータルなし。**右**: ポータルあり。)
 
 ![image alt text](image_25.png)(w:640 convert:false)
 
 Lightmass のクオリティはその他の点でも改善されました。
 
-* ポイン ライト/スポットライト/ 指向性ライトで光が漏れるアーティファクトとを修正しました。
+* ポイン ライト / スポットライト / 指向性ライトで光が漏れるアーティファクトとを修正しました。
 
 * スカイライトの直接ライティングが改善されました。
 
@@ -381,7 +381,7 @@ LOD のボーンを無効にするには、**スケルトンツリー** の右�
 
 ![image alt text](image_35.png)
 
-### Performance results
+### パフォーマンス結果
 
 ![image alt text](image_36.png)
 
@@ -401,9 +401,9 @@ LOD のボーンを無効にするには、**スケルトンツリー** の右�
 
 * [Volumetric PerVertex NonDirectional] 設定は非常に速く、Unlit マテリアルとほぼ同じ速度です。
 
-* Per-vertex lighting モードをできる限り使用することを推奨します。ライティングは各トライアングルを補間するので、非常に大きなパーティクルやトライアングルは例外です。
+* Per-vertex lighting モードをできる限り使用することを推奨します。ライティングはトライアングルごとに補間されるので、パーティクルまたはトライアングルが非常に大きい場合は例外です
 
-## 新規：ライティング チャネル
+## 新規：ライティング チャンネル
 
 ライティング チャネルは、**オブジェクトのライティング チャネルがオーバーラップした時に**、動的ライトがオブジェクトのみに影響を与えることを可能にします。**ライティング チャネルが 3 つまで** サポートされます。
 
@@ -499,7 +499,7 @@ Sound Concurrency オブジェクトは、Sound Attenuation Setting オブジェ
 
 後方互換性の場合も、古いビヘイビアを好む場合も、Concurrency stetting オブジェクトをアセット上のローカルデータでオーバーライドする選択ができます。この場合、サウンド アセットは独自の並列処理グループとなり、アセット インスタンスで制限された並列処理の古いビヘイビアが実行されます。4.11 に変換された古いプロジェクトは、サウンド アセットをオーバーライドする設定に自動的になります。
 
-## 新規：Marker-Based Animation Syncing
+## 新規：マーカーベースのアニメーション同期
 
 ![image alt text](image_47.png)
 
@@ -543,7 +543,7 @@ Sound Concurrency オブジェクトは、Sound Attenuation Setting オブジェ
 
 プロキシ メッシュ生成が簡素化されて、最近統合された Simplygon SDK の目玉であるメッシュ生成プロセスが [HLOD Outliner] パネルからも行えるようになります。
 
-その他の改善点
+その他の改善点: 
 
 * スプライン メッシュが HLOD システムでサポートされます。
 
@@ -571,11 +571,11 @@ Sound Concurrency オブジェクトは、Sound Attenuation Setting オブジェ
 
 ## 新規：ブループリントの詳細検索
 
-ブループリントの検索ツールがアップデートされ、(精度のよい検索結果につながる) 詳細な検索機能が追加されました。
+The Blueprint search tool has been updated to support more advanced search functionality (to get more targeted results).
 
 ![image alt text](image_51.png)
 
-ノード、ピン、グラフ、関数、マクロ、変数、プロパティ、コンポーネントなど特別なエレメントを検索対象にすることができます。詳細はこちら [https://docs.unrealengine.com/latest/INT/Engine/Blueprints/Search/index.html](https://docs.unrealengine.com/latest/INT/Engine/Blueprints/Search/index.html) をご覧ください。
+* ノード、ピン、グラフ、関数、マクロ、変数、プロパティ、コンポーネントなど特別なエレメントを検索対象にすることができます。詳細はこちら [https://docs.unrealengine.com/latest/INT/Engine/Blueprints/Search/index.html](https://docs.unrealengine.com/latest/INT/Engine/Blueprints/Search/index.html) をご覧ください。
 
 * (syntax:Tag=Value を使用した) Tag/Value matching に加えて、And (&&) と Or (||) ロジック演算がサポートされます。
 
@@ -595,7 +595,7 @@ Sound Concurrency オブジェクトは、Sound Attenuation Setting オブジェ
 
 ## 新規：シーケンサーの進捗状況 (実験的)
 
-シーケンサーは、新しいノンリニア シネマティクス アニメーション システムです。シーケンサーはまだまだ開発段階ですので、制作作業で使うことはお勧めできませんが、試しに使ってフィードバックして頂けると大変うれしいです！今後の UE4 リリースで、シーケンサーに関する情報をもっと提供できると思います。  
+シーケンサーは、新しいノンリニア シネマティクス アニメーション システムです。シーケンサーは、新しいノンリニア シネマティクス アニメーション システムです。シーケンサーはまだまだ開発段階ですので、制作作業で使うことはお勧めできませんが、試しに使ってフィードバックして頂けると大変うれしいです！今後の UE4 リリースで、シーケンサーに関する情報をもっと提供できると思います。  
 
 4.11 でのシーケンサーの注目すべき新機能：
 
@@ -613,7 +613,7 @@ Sound Concurrency オブジェクトは、Sound Attenuation Setting オブジェ
 
 シーケンサーを起動するには、[Plugins] パネルを開いて、[Level Sequence Editor] プラグインを有効にしてからエディタを再起動します。
 
-# Release Notes 「訳注： 以下は、非常に技術的な部分が含まれるため、翻訳を省略します。」
+# リリース ノート 「訳注： 以下は、非常に技術的な部分が含まれるため、翻訳を省略します。」
 
 ### AI
 
@@ -3359,7 +3359,7 @@ Stats are automatically broken into the threads they execute on and can appear i
 
 * New:Added an experimental option to enable OpenCL acceleration for the convex decomposition tool on Mac which defaults to off.
 
-    * This avoids an OpenCL crash on Nvidia's OpenCL drivers but still allows users of AMD & Intel GPUs to enable it if they wish.
+    * This avoids an OpenCL crash on the NVIDIA OpenCL drivers but still allows users of AMD & Intel GPUs to enable it if they wish.
 
 * Bugfix:Change the ShaderCache to report when resource references are invalid and prevent it from caching states that use invalid references to avoid errors on subsequent runs.
 
@@ -5389,7 +5389,7 @@ Stats are automatically broken into the threads they execute on and can appear i
 
 * Added implementation of FPlatformProcess::UserTempDir()
 
-* Bind the index buffer as vertex attribute 0 when performing an attribute-less draw call to work around incorrect gl_VertexID values on Nvidia drivers rather than using different index buffers.
+* Bind the index buffer as vertex attribute 0 when performing an attribute-less draw call to work around incorrect gl_VertexID values on NVIDIA drivers rather than using different index buffers.
 
 * Detect when UE4 Mac is running under apitrace and fallback to using NSView rather than CoreAnimation to display so that tracing OpenGL works.
 
@@ -5647,85 +5647,83 @@ Stats are automatically broken into the threads they execute on and can appear i
 
     * Here is an example of how one would build a custom native AnimInstance class using the new proxy, granting Blueprint access to its innards and avoiding copies of shared data between the proxy and the instance:
 
-USTRUCT()
+			USTRUCT()
 
-struct FExampleAnimInstanceProxy : public FAnimInstanceProxy
+			struct FExampleAnimInstanceProxy : public FAnimInstanceProxy
 
-{
+			{
 
-	GENERATED_BODY()
+				GENERATED_BODY()
 
-	FExampleAnimInstanceProxy()
+				FExampleAnimInstanceProxy()
 
-	:FAnimInstanceProxy()
+				:FAnimInstanceProxy()
 
-	{}
+				{}
 
-	FExampleAnimInstanceProxy(UAnimInstance* Instance);
+				FExampleAnimInstanceProxy(UAnimInstance* Instance);
 
-	virtual void Update(float DeltaSeconds) override
+				virtual void Update(float DeltaSeconds) override
 
-	{
+				{
 
-		// Update internal variables
+					// Update internal variables
 
-		MovementAngle += 1.0f * DeltaSeconds;
+					MovementAngle += 1.0f * DeltaSeconds;
 
-		HorizontalSpeed = FMath::Max(0.0f, HorizontalSpeed - DeltaSeconds);
+					HorizontalSpeed = FMath::Max(0.0f, HorizontalSpeed - DeltaSeconds);
 
-	}
+				}
 
-public:
+			public:
 
-	UPROPERTY(Transient, BlueprintReadWrite, EditAnywhere, Category = "Example")
+				UPROPERTY(Transient, BlueprintReadWrite, EditAnywhere, Category = "Example")
 
-	float MovementAngle;
+				float MovementAngle;
 
-	UPROPERTY(Transient, BlueprintReadWrite, EditAnywhere, Category = "Example")
+				UPROPERTY(Transient, BlueprintReadWrite, EditAnywhere, Category = "Example")
 
-	float HorizontalSpeed;
+				float HorizontalSpeed;
 
-};
+			};
 
-UCLASS(Transient, Blueprintable)
+			UCLASS(Transient, Blueprintable)
 
-class UExampleAnimInstance : public UAnimInstance
+			class UExampleAnimInstance : public UAnimInstance
 
-{
+			{
 
-	GENERATED_UCLASS_BODY()
+				GENERATED_UCLASS_BODY()
 
-	private:
+			private:
 
+				// The AllowPrivateAccess meta flag will allow this to be exposed to Blueprint,
 
+				// but only to graphs internal to this class.
 
-	// The AllowPrivateAccess meta flag will allow this to be exposed to Blueprint,
+				UPROPERTY(Transient, BlueprintReadOnly, Category = "Example", meta = (AllowPrivateAccess = "true"))
 
-	// but only to graphs internal to this class.
+				FExampleAnimInstanceProxy Proxy;
 
-	UPROPERTY(Transient, BlueprintReadOnly, Category = "Example", meta = (AllowPrivateAccess = "true"))
+				virtual FAnimInstanceProxy* CreateAnimInstanceProxy() override
 
-	FExampleAnimInstanceProxy Proxy;
+				{
 
-	virtual FAnimInstanceProxy* CreateAnimInstanceProxy() override
+					// override this to just return the proxy on this instance
 
-	{
+					return &Proxy;
 
-		// override this to just return the proxy on this instance
+				}
 
-		return &Proxy;
+				virtual void DestroyAnimInstanceProxy(FAnimInstanceProxy* InProxy) override
 
-	}
+				{
 
-	virtual void DestroyAnimInstanceProxy(FAnimInstanceProxy* InProxy) override
+				}
 
-	{
+				friend struct FExampleAnimInstanceProxy;
 
-	}
-
-	friend struct FExampleAnimInstanceProxy;
-
-};
+			};
 
 * The following functions and variables of the **UAnimInstance** class are **now deprecated**:
 

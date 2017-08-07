@@ -7,6 +7,7 @@
 #include "Curves/CurveVector.h"
 #include "Curves/CurveFloat.h"
 #include "Engine/Engine.h"
+#include "GameFramework/PlayerController.h"
 
 #if ROOT_MOTION_DEBUG
 TAutoConsoleVariable<int32> RootMotionSourceDebug::CVarDebugRootMotionSources(
@@ -25,12 +26,41 @@ static TAutoConsoleVariable<float> CVarDebugRootMotionSourcesLifetime(
 
 void RootMotionSourceDebug::PrintOnScreen(const ACharacter& InCharacter, const FString& InString)
 {
-	const FString AdjustedDebugString = FString::Printf(TEXT("[%d] [%s] %s"), GFrameCounter, *InCharacter.GetName(), *InString);
+	// Skip bots, debug player networking.
+	if (InCharacter.IsPlayerControlled())
+	{
+		const FString AdjustedDebugString = FString::Printf(TEXT("[%d] [%s] %s"), GFrameCounter, *InCharacter.GetName(), *InString);
 
-	const FColor DebugColor = (InCharacter.IsLocallyControlled()) ? FColor::Green : FColor::Red;
-	GEngine->AddOnScreenDebugMessage(INDEX_NONE, 0.f, DebugColor, AdjustedDebugString, false, FVector2D::UnitVector * 1.5f);
+		// If on the server, replicate this message to everyone.
+		if (!InCharacter.IsLocallyControlled() && (InCharacter.Role == ROLE_Authority))
+		{
+			for (FConstPlayerControllerIterator Iterator = InCharacter.GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator)
+			{
+				if (const APlayerController* const PlayerController = Iterator->Get())
+				{
+					if (ACharacter* const Character = PlayerController->GetCharacter())
+					{
+						Character->RootMotionDebugClientPrintOnScreen(AdjustedDebugString);
+					}
+				}
+			}
+		}
+		else
+		{
+			const FColor DebugColor = (InCharacter.IsLocallyControlled()) ? FColor::Green : FColor::Purple;
+			GEngine->AddOnScreenDebugMessage(INDEX_NONE, 0.f, DebugColor, AdjustedDebugString, false, FVector2D::UnitVector * 1.5f);
 
-	UE_LOG(LogRootMotion, Verbose, TEXT("%s"), *AdjustedDebugString);
+			UE_LOG(LogRootMotion, Verbose, TEXT("%s"), *AdjustedDebugString);
+		}
+	}
+}
+
+void RootMotionSourceDebug::PrintOnScreenServerMsg(const FString& InString)
+{
+	const FColor DebugColor = FColor::Red;
+	GEngine->AddOnScreenDebugMessage(INDEX_NONE, 0.f, DebugColor, InString, false, FVector2D::UnitVector * 1.5f);
+
+	UE_LOG(LogRootMotion, Verbose, TEXT("%s"), *InString);
 }
 
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -1106,7 +1136,7 @@ void FRootMotionSource_JumpForce::PrepareRootMotion
 
 		// If we're beyond specified duration, we need to re-map times so that
 		// we continue our desired ending velocity
-		if (CurrentTimeFraction > 1.f)
+		if (TargetTimeFraction > 1.f)
 		{
 			float TimeFractionPastAllowable = TargetTimeFraction - 1.0f;
 			TargetTimeFraction -= TimeFractionPastAllowable;
@@ -1122,10 +1152,10 @@ void FRootMotionSource_JumpForce::PrepareRootMotion
 			TargetMoveFraction = TimeMappingCurve->GetFloatValue(TargetTimeFraction);
 		}
 
-		FVector CurrentRelativeLocation = GetRelativeLocation(CurrentMoveFraction);
-		FVector TargetRelativeLocation = GetRelativeLocation(TargetMoveFraction);
+		const FVector CurrentRelativeLocation = GetRelativeLocation(CurrentMoveFraction);
+		const FVector TargetRelativeLocation = GetRelativeLocation(TargetMoveFraction);
 
-		FVector Force = (TargetRelativeLocation - CurrentRelativeLocation) / MovementTickTime;
+		const FVector Force = (TargetRelativeLocation - CurrentRelativeLocation) / MovementTickTime;
 
 		// Debug
 #if ROOT_MOTION_DEBUG
@@ -1171,10 +1201,16 @@ void FRootMotionSource_JumpForce::PrepareRootMotion
 				GetTime(), GetTime() + SimulationTime, 
 				*CurrentLocation.ToString(), *CurrentTargetLocation.ToString(), 
 				*Force.ToString());
+
+			{
+				FString AdjustedDebugString = FString::Printf(TEXT("    FRootMotionSource_JumpForce::Prep Force(%s) SimTime(%.3f) MoveTime(%.3f) StartP(%.3f) EndP(%.3f)"),
+					*Force.ToCompactString(), SimulationTime, MovementTickTime, CurrentMoveFraction, TargetMoveFraction);
+				RootMotionSourceDebug::PrintOnScreen(Character, AdjustedDebugString);
+			}
 		}
 #endif
 
-		FTransform NewTransform(Force);
+		const FTransform NewTransform(Force);
 		RootMotionParams.Set(NewTransform);
 	}
 	else

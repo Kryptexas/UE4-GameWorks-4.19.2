@@ -28,5 +28,11 @@
 				"IOS"
 			]
 		}
+	],
+	"Plugins": [
+		{
+			"Name": "LocationServicesBPLibrary",
+			"Enabled": true
+		}
 	]
 }

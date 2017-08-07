@@ -15,7 +15,7 @@ UAbilityTask_WaitDelay* UAbilityTask_WaitDelay::WaitDelay(UGameplayAbility* Owni
 {
 	UAbilitySystemGlobals::NonShipping_ApplyGlobalAbilityScaler_Duration(Time);
 
-	auto MyObj = NewAbilityTask<UAbilityTask_WaitDelay>(OwningAbility);
+	UAbilityTask_WaitDelay* MyObj = NewAbilityTask<UAbilityTask_WaitDelay>(OwningAbility);
 	MyObj->Time = Time;
 	return MyObj;
 }

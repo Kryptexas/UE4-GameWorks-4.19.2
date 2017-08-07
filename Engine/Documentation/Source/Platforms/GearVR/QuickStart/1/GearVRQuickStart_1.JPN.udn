@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3150518
+﻿INTSourceChangelist:3451711
 Availability:Public
 Title:1.Gear VR プロジェクトの作成
 Crumbs:%ROOT%, Platforms/GearVR
 Description:Gear VR ヘッドセットに対応した C++ ベースの UE4 プロジェクトの作成方法
 Navigation:platform
-Version:4.9
+Version:4.16
 Skilllevel:Intermediate
 tags:VR
 tags:GearVR
@@ -27,7 +27,7 @@ Checkpoint:GearVRQS
 ## ステップ
 
 1. 最初に UE4 のバージョン **4.7.4** かそれ以降をダウンロードして、開発に使用する PC にインストールされていることを確認します。 
-UE4 のバージョン **4.7.4** かそれ以降は [アンリアルエンジンランチャー](http://tinyurl.com/oawb7x2) または [Github](https://www.unrealengine.com/ue4-on-github) からダウンロードできます。 
+UE4 のバージョン **4.7.4** かそれ以降は [アンリアルエンジンランチャー](http://tinyurl.com/oawb7x2) か [Github](https://www.unrealengine.com/ue4-on-github) からダウンロードできます。 
 
 	[Region:note]
 	**Setup.Bat** ファイルの実行に UE4 の [Github](https://www.unrealengine.com/ue4-on-github) バージョンを使用している場合は、先に進む前に開発PC に適切なファイルをダウンロード済みであることを確認してください。

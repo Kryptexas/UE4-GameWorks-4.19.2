@@ -50,7 +50,7 @@ struct FRandomAnimPlayData
 /** The random player node holds a list of sequences and parameter ranges which will be played continuously
   * In a random order. If shuffle mode is enabled then each entry will be played once before repeating any
   */
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct FRandomPlayerSequenceEntry
 {
 	GENERATED_BODY()
@@ -91,11 +91,11 @@ struct FRandomPlayerSequenceEntry
 	float MaxPlayRate;
 
 	/** Blending properties used when this entry is blending in ontop of another entry */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Settings")
+	UPROPERTY(EditAnywhere, Category = "Settings")
 	FAlphaBlend BlendIn;
 };
 
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ANIMGRAPHRUNTIME_API FAnimNode_RandomPlayer : public FAnimNode_Base
 {
 	GENERATED_BODY()
@@ -116,9 +116,9 @@ public:
 	TArray<FRandomPlayerSequenceEntry> Entries;
 
 	// FAnimNode_Base interface
-	virtual void Initialize(const FAnimationInitializeContext& Context) override;
-	virtual void Update(const FAnimationUpdateContext& Context) override;
-	virtual void Evaluate(FPoseContext& Output) override;
+	virtual void Initialize_AnyThread(const FAnimationInitializeContext& Context) override;
+	virtual void Update_AnyThread(const FAnimationUpdateContext& Context) override;
+	virtual void Evaluate_AnyThread(FPoseContext& Output) override;
 	virtual void GatherDebugData(FNodeDebugData& DebugData) override;
 	// End of FAnimNode_Base interface
 

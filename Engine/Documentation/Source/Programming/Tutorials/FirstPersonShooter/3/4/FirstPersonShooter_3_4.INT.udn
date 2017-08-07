@@ -3,7 +3,7 @@ Title: 3.4 - Getting Projectiles to Interact with the World
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/3
 Description: Learn how to get projectiles to interact with the world for your First Person Shooter project.
 SkillLevel: Beginner
-Version: 4.11
+Version: 4.15
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -33,7 +33,7 @@ Now that we can detect the projectile's collision interactions, we can determine
 
 		// Function that is called when the projectile hits something.
 		UFUNCTION()
-		void OnHit(class AActor* OtherActor, class UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit);
+		void OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit);
 
 1.	`FPSProjectile.h` should now look like the following:
 
@@ -73,7 +73,7 @@ Now that we can detect the projectile's collision interactions, we can determine
 			void FireInDirection(const FVector& ShootDirection);
 		
 			// Function that is called when the projectile hits something.
-			void OnHit(class AActor* OtherActor, class UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit);
+			void OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit);
 		};
 
 1.	Locate the `FPSProjectile` class CPP file in the **Solution Explorer** and open `FPSProjectile.cpp` to add the following code:

@@ -18,6 +18,7 @@
 #include "SequencerKeyActor.h"
 #include "EditorWorldExtension.h"
 #include "ViewportWorldInteraction.h"
+#include "Evaluation/MovieScene3DTransformTemplate.h"
 
 const FEditorModeID FSequencerEdMode::EM_SequencerMode(TEXT("EM_SequencerMode"));
 
@@ -134,15 +135,19 @@ void FSequencerEdMode::OnKeySelected(FViewport* Viewport, HMovieSceneKeyProxy* K
 	bool bAltDown = Viewport->KeyState(EKeys::LeftAlt) || Viewport->KeyState(EKeys::RightAlt);
 	bool bShiftDown = Viewport->KeyState(EKeys::LeftShift) || Viewport->KeyState(EKeys::RightShift);
 
-	if (KeyProxy->MovieSceneSection.IsValid() && KeyProxy->MovieSceneSection.Get() != nullptr)
+	for (TWeakPtr<FSequencer> WeakSequencer : Sequencers)
 	{
-		for (TWeakPtr<FSequencer> WeakSequencer : Sequencers)
+		TSharedPtr<FSequencer> Sequencer = WeakSequencer.Pin();
+		if (Sequencer.IsValid())
 		{
-			TSharedPtr<FSequencer> Sequencer = WeakSequencer.Pin();
-			if (Sequencer.IsValid())
+			Sequencer->SetLocalTimeDirectly(KeyProxy->Key.Time);
+
+			for (const FTrajectoryKey::FData KeyData : KeyProxy->Key.KeyData)
 			{
-				Sequencer->SetLocalTimeDirectly(KeyProxy->Time);
-				Sequencer->SelectTrackKeys(KeyProxy->MovieSceneSection.Get(), KeyProxy->Time, bShiftDown, bCtrlDown);
+				if (UMovieSceneSection* Section = KeyData.Section.Get())
+				{
+					Sequencer->SelectTrackKeys(Section, KeyProxy->Key.Time, bShiftDown, bCtrlDown);
+				}
 			}
 		}
 	}
@@ -255,15 +260,8 @@ FTransform FSequencerEdMode::GetRefFrame(const TSharedPtr<FSequencer>& Sequencer
 
 		// Check if our parent is animated in this Sequencer
 
-		FGuid ObjectBinding;
-		if (SceneComponent->GetAttachParent() == SceneComponent->GetOwner()->GetRootComponent())
-		{
-			ObjectBinding = Sequencer->FindObjectId(*SceneComponent->GetOwner(), Sequencer->GetFocusedTemplateID());
-		}
-		else
-		{
-			ObjectBinding = Sequencer->FindObjectId(*SceneComponent->GetAttachParent(), Sequencer->GetFocusedTemplateID());
-		}
+		UObject* ParentObject = SceneComponent->GetAttachParent() == SceneComponent->GetOwner()->GetRootComponent() ? static_cast<UObject*>(SceneComponent->GetOwner()) : SceneComponent->GetAttachParent();
+		FGuid ObjectBinding = Sequencer->FindObjectId(*ParentObject, Sequencer->GetFocusedTemplateID());
 
 		if (ObjectBinding.IsValid())
 		{
@@ -290,15 +288,24 @@ FTransform FSequencerEdMode::GetRefFrame(const TSharedPtr<FSequencer>& Sequencer
 									FVector ParentKeyPos;
 									FRotator ParentKeyRot;
 
-									GetLocationAtTime(ParentSection, KeyTime, ParentKeyPos, ParentKeyRot);
+									const FMovieSceneEvaluationTemplateInstance* TemplateInstance = Sequencer->GetEvaluationTemplate().GetInstance(Sequencer->GetFocusedTemplateID());
+									if (TemplateInstance)
+									{
+										for (FMovieSceneTrackIdentifier TrackID : TemplateInstance->Template->FindTracks(TransformTrack->GetSignature()))
+										{
+											if (const FMovieSceneEvaluationTrack* EvalTrack = TemplateInstance->Template->FindTrack(TrackID))
+											{
+												GetLocationAtTime(EvalTrack, ParentObject, KeyTime, ParentKeyPos, ParentKeyRot, Sequencer);
 
-									CurrentRefTM = FTransform(ParentKeyRot, ParentKeyPos);
+												CurrentRefTM = FTransform(ParentKeyRot, ParentKeyPos);
 
-									break; // Found the right section, early out
+												return CurrentRefTM * ParentRefTM;
+											}
+										}
+									}
 								}
 							}
 						}
-						break; // Found the transform track, early out
 					}
 				}
 			}
@@ -310,16 +317,25 @@ FTransform FSequencerEdMode::GetRefFrame(const TSharedPtr<FSequencer>& Sequencer
 	return RefTM;
 }
 
-void FSequencerEdMode::GetLocationAtTime(const UMovieScene3DTransformSection* TransformSection, float KeyTime, FVector& KeyPos, FRotator& KeyRot)
+void FSequencerEdMode::GetLocationAtTime(const FMovieSceneEvaluationTrack* Track, UObject* Object, float KeyTime, FVector& KeyPos, FRotator& KeyRot, const TSharedPtr<FSequencer>& Sequencer)
 {
-	TransformSection->EvalTranslation(KeyTime, KeyPos);
-	TransformSection->EvalRotation(KeyTime, KeyRot);
+	FMovieSceneInterrogationData InterrogationData;
+	Sequencer->GetEvaluationTemplate().CopyActuators(InterrogationData.GetAccumulator());
+
+	FMovieSceneContext Context(KeyTime);
+	Track->Interrogate(Context, InterrogationData, Object);
+
+	for (const FTransform& Transform : InterrogationData.Iterate<FTransform>(UMovieScene3DTransformTrack::GetInterrogationKey()))
+	{
+		KeyPos = Transform.GetTranslation();
+		KeyRot = Transform.GetRotation().Rotator();
+		break;
+	}
 }
 
 void FSequencerEdMode::DrawTransformTrack(const TSharedPtr<FSequencer>& Sequencer, FPrimitiveDrawInterface* PDI,
 											UMovieScene3DTransformTrack* TransformTrack, const TArray<TWeakObjectPtr<UObject>>& BoundObjects, const bool bIsSelected)
 {
-	FLinearColor TrackColor = FLinearColor::Yellow; //@todo - customizable per track
 	bool bHitTesting = true;
 	if( PDI != nullptr )
 	{
@@ -340,91 +356,81 @@ void FSequencerEdMode::DrawTransformTrack(const TSharedPtr<FSequencer>& Sequence
 		}
 	}
 
-	for (int32 SectionIndex = 0; SectionIndex < TransformTrack->GetAllSections().Num(); ++SectionIndex)
-	{
-		UMovieSceneSection* Section = TransformTrack->GetAllSections()[SectionIndex];
-		UMovieScene3DTransformSection* TransformSection = Cast<UMovieScene3DTransformSection>(Section);
-
-		if (TransformSection->GetShow3DTrajectory() == EShow3DTrajectory::EST_Never)
+	bool bShowTrajectory = TransformTrack->GetAllSections().ContainsByPredicate(
+		[bIsSelected](UMovieSceneSection* Section)
 		{
-			continue;
-		}
-
-		if (TransformSection->GetShow3DTrajectory() == EShow3DTrajectory::EST_OnlyWhenSelected && !bIsSelected)
-		{
-			continue;
-		}
-
-		FRichCurve& TransXCurve = TransformSection->GetTranslationCurve(EAxis::X);
-		FRichCurve& TransYCurve = TransformSection->GetTranslationCurve(EAxis::Y);
-		FRichCurve& TransZCurve = TransformSection->GetTranslationCurve(EAxis::Z);
-
-		TSet<float> KeyTimes;
-
-		for (auto KeyIt(TransXCurve.GetKeyHandleIterator()); KeyIt; ++KeyIt)
-		{
-			FKeyHandle KeyHandle = KeyIt.Key();
-			float KeyTime = TransXCurve.GetKeyTime(KeyHandle);
-			KeyTimes.Add(KeyTime);
-		}
-
-		for (auto KeyIt(TransYCurve.GetKeyHandleIterator()); KeyIt; ++KeyIt)
-		{
-			FKeyHandle KeyHandle = KeyIt.Key();
-			float KeyTime = TransYCurve.GetKeyTime(KeyHandle);
-			KeyTimes.Add(KeyTime);
-		}
-
-		for (auto KeyIt(TransZCurve.GetKeyHandleIterator()); KeyIt; ++KeyIt)
-		{
-			FKeyHandle KeyHandle = KeyIt.Key();
-			float KeyTime = TransZCurve.GetKeyTime(KeyHandle);
-			KeyTimes.Add(KeyTime);
-		}
-
-		KeyTimes.Sort([](const float& A, const float& B ) { return A < B; });
-
-		FVector OldKeyPos(0);
-		float OldKeyTime = 0.f;
-		int KeyTimeIndex = 0;
-
-		for (auto NewKeyTime : KeyTimes)
-		{
-			FVector NewKeyPos(0);
-			FRotator NewKeyRot(0,0,0);
-			GetLocationAtTime(TransformSection, NewKeyTime, NewKeyPos, NewKeyRot);
-
-			// If not the first keypoint, draw a line to the last keypoint.
-			if(KeyTimeIndex > 0)
+			UMovieScene3DTransformSection* TransformSection = Cast<UMovieScene3DTransformSection>(Section);
+			if (TransformSection)
 			{
-				int32 NumSteps = FMath::CeilToInt( (NewKeyTime - OldKeyTime)/SequencerEdMode_Draw3D::DrawTrackTimeRes );
-								// Limit the number of steps to prevent a rendering performance hit
-				NumSteps = FMath::Min( 100, NumSteps );
-				float DrawSubstep = (NewKeyTime - OldKeyTime)/NumSteps;
-
-				// Find position on first keyframe.
-				float OldTime = OldKeyTime;
-
-				FVector OldPos(0);
-				FRotator OldRot(0,0,0);
-				GetLocationAtTime(TransformSection, OldKeyTime, OldPos, OldRot);
-
-				FKeyHandle OldXKeyHandle = TransXCurve.FindKey(OldKeyTime);
-				FKeyHandle OldYKeyHandle = TransYCurve.FindKey(OldKeyTime);
-				FKeyHandle OldZKeyHandle = TransZCurve.FindKey(OldKeyTime);
-
-				bool bIsConstantKey = false;
-				if (TransXCurve.IsKeyHandleValid(OldXKeyHandle) && TransXCurve.GetKeyInterpMode(OldXKeyHandle) == ERichCurveInterpMode::RCIM_Constant &&
-					TransYCurve.IsKeyHandleValid(OldYKeyHandle) && TransYCurve.GetKeyInterpMode(OldYKeyHandle) == ERichCurveInterpMode::RCIM_Constant &&
-					TransZCurve.IsKeyHandleValid(OldZKeyHandle) && TransZCurve.GetKeyInterpMode(OldZKeyHandle) == ERichCurveInterpMode::RCIM_Constant)
+				switch (TransformSection->GetShow3DTrajectory())
 				{
-					bIsConstantKey = true;
+				case EShow3DTrajectory::EST_Always:				return true;
+				case EShow3DTrajectory::EST_Never:				return false;
+				case EShow3DTrajectory::EST_OnlyWhenSelected:	return bIsSelected;
 				}
+			}
+			return false;
+		}
+	);
+	
+	const FMovieSceneEvaluationTemplateInstance* TemplateInstance = Sequencer->GetEvaluationTemplate().GetInstance(Sequencer->GetFocusedTemplateID());
+	if (!bShowTrajectory || !TemplateInstance)
+	{
+		return;
+	}
 
-				for (auto BoundObject : BoundObjects)
+	FLinearColor TrackColor = TransformTrack->GetColorTint();
+
+	// Draw one line per-track (should only really ever be one)
+	for (FMovieSceneTrackIdentifier TrackID : TemplateInstance->Template->FindTracks(TransformTrack->GetSignature()))
+	{
+		const FMovieSceneEvaluationTrack* EvalTrack = TemplateInstance->Template->FindTrack(TrackID);
+		if (!EvalTrack)
+		{
+			continue;
+		}
+
+		TArray<FTrajectoryKey> TrajectoryKeys = TransformTrack->GetTrajectoryData();
+		for (TWeakObjectPtr<> WeakBinding : BoundObjects)
+		{
+			UObject* BoundObject = WeakBinding.Get();
+			if (!BoundObject)
+			{
+				continue;
+			}
+
+			FVector OldKeyPos(0);
+			float OldKeyTime = 0.f;
+			int KeyTimeIndex = 0;
+
+			for (const FTrajectoryKey& NewTrajectoryKey : TrajectoryKeys)
+			{
+				float NewKeyTime = NewTrajectoryKey.Time;
+
+				FVector NewKeyPos(0);
+				FRotator NewKeyRot(0,0,0);
+
+				GetLocationAtTime(EvalTrack, BoundObject, NewKeyTime, NewKeyPos, NewKeyRot, Sequencer);
+
+				// If not the first keypoint, draw a line to the last keypoint.
+				if(KeyTimeIndex > 0)
 				{
-					FTransform OldPosRefTM = GetRefFrame(Sequencer, BoundObject.Get(), OldKeyTime);
-					FTransform NewPosRefTM = GetRefFrame(Sequencer, BoundObject.Get(), NewKeyTime);
+					int32 NumSteps = FMath::CeilToInt( (NewKeyTime - OldKeyTime)/SequencerEdMode_Draw3D::DrawTrackTimeRes );
+									// Limit the number of steps to prevent a rendering performance hit
+					NumSteps = FMath::Min( 100, NumSteps );
+					float DrawSubstep = (NewKeyTime - OldKeyTime)/NumSteps;
+
+					// Find position on first keyframe.
+					float OldTime = OldKeyTime;
+
+					FVector OldPos(0);
+					FRotator OldRot(0,0,0);
+					GetLocationAtTime(EvalTrack, BoundObject, OldKeyTime, OldPos, OldRot, Sequencer);
+
+					const bool bIsConstantKey = NewTrajectoryKey.Is(ERichCurveInterpMode::RCIM_Constant);
+
+					FTransform OldPosRefTM = GetRefFrame(Sequencer, BoundObject, OldKeyTime);
+					FTransform NewPosRefTM = GetRefFrame(Sequencer, BoundObject, NewKeyTime);
 
 					FVector OldPos_G = OldPosRefTM.TransformPosition(OldPos);
 					FVector NewKeyPos_G = NewPosRefTM.TransformPosition(NewKeyPos);
@@ -446,9 +452,9 @@ void FSequencerEdMode::DrawTransformTrack(const TSharedPtr<FSequencer>& Sequence
 
 							FVector NewPos(0);
 							FRotator NewRot(0,0,0);
-							GetLocationAtTime(TransformSection, NewTime, NewPos, NewRot);
+							GetLocationAtTime(EvalTrack, BoundObject, NewTime, NewPos, NewRot, Sequencer);
 
-							FTransform RefTM = GetRefFrame(Sequencer, BoundObject.Get(), NewTime);
+							FTransform RefTM = GetRefFrame(Sequencer, BoundObject, NewTime);
 							FVector NewPos_G = RefTM.TransformPosition(NewPos);
 							if (PDI != nullptr)
 							{
@@ -472,45 +478,29 @@ void FSequencerEdMode::DrawTransformTrack(const TSharedPtr<FSequencer>& Sequence
 						}
 					}
 				}
+					
+				OldKeyTime = NewKeyTime;
+				OldKeyPos = NewKeyPos;
+				++KeyTimeIndex;
 			}
-			
-			OldKeyTime = NewKeyTime;			
-			OldKeyPos = NewKeyPos;
-			++KeyTimeIndex;			
-		}
 
-		// Draw keypoints on top of curve
-		for (auto NewKeyTime : KeyTimes)
-		{
-			// Find if this key is one of the selected ones.
-			bool bKeySelected = false;
-			//@todo
-			//for(int32 j=0; j<SelectedKeys.Num() && !bKeySelected; j++)
-			//{
-			//	if( SelectedKeys[j].Group == Group && 
-			//		SelectedKeys[j].Track == this && 
-			//		SelectedKeys[j].KeyIndex == i )
-			//		bKeySelected = true;
-			//}
-
-			// Find the time, position and orientation of this Key.
-
-			FVector NewKeyPos(0);
-			FRotator NewKeyRot(0,0,0);
-			GetLocationAtTime(TransformSection, NewKeyTime, NewKeyPos, NewKeyRot);
-
-			for (auto BoundObject : BoundObjects)
+			// Draw keypoints on top of curve
+			for (const FTrajectoryKey& TrajectoryKey : TrajectoryKeys)
 			{
-				FTransform RefTM = GetRefFrame(Sequencer, BoundObject.Get(), NewKeyTime);
+				float NewKeyTime = TrajectoryKey.Time;
 
-				FColor KeyColor = bKeySelected ? SequencerEdMode_Draw3D::KeySelectedColor : TrackColor.ToFColor(true);
+				// Find the time, position and orientation of this Key.
+				FVector NewKeyPos(0);
+				FRotator NewKeyRot(0,0,0);
+				GetLocationAtTime(EvalTrack, BoundObject, NewKeyTime, NewKeyPos, NewKeyRot, Sequencer);
 
-				if (bHitTesting) 
+				FTransform RefTM = GetRefFrame(Sequencer, BoundObject, NewKeyTime);
+
+				FColor KeyColor = TrackColor.ToFColor(true);
+
+				if (bHitTesting && PDI) 
 				{
-					if (PDI != nullptr)
-					{
-						PDI->SetHitProxy(new HMovieSceneKeyProxy(TransformTrack, TransformSection, NewKeyTime));
-					}
+					PDI->SetHitProxy(new HMovieSceneKeyProxy(TransformTrack, TrajectoryKey));
 				}
 
 				FVector NewKeyPos_G = RefTM.TransformPosition(NewKeyPos);
@@ -521,70 +511,25 @@ void FSequencerEdMode::DrawTransformTrack(const TSharedPtr<FSequencer>& Sequence
 				}
 				else if (TrailActor != nullptr)
 				{
-					TrailActor->AddKeyMeshActor(NewKeyTime, FTransform::FTransform(NewKeyRot, NewKeyPos, FVector::FVector(3.0f)), TransformSection);
-				}
-
-				//@todo
-				// If desired, draw directional arrow at each keyframe.
-				//if(bShowArrowAtKeys)
-				//{
-				//	FRotationTranslationMatrix ArrowToWorld(NewKeyRot,NewKeyPos);
-				//	DrawDirectionalArrow(PDI, FScaleMatrix(FVector(16.f,16.f,16.f)) * ArrowToWorld, KeyColor, 3.f, 1.f, SDPG_Foreground );
-				//}
-				if (bHitTesting && PDI != nullptr) 
-				{
-					PDI->SetHitProxy( NULL );
-				}
-
-				// If a selected key, draw handles.
-				/*
-				if (bKeySelected)
-				{
-					FVector ArriveTangent = PosTrack.Points[i].ArriveTangent;
-					FVector LeaveTangent = PosTrack.Points[i].LeaveTangent;
-
-					EInterpCurveMode PrevMode = (i > 0)							? GetKeyInterpMode(i-1) : EInterpCurveMode(255);
-					EInterpCurveMode NextMode = (i < PosTrack.Points.Num()-1)	? GetKeyInterpMode(i)	: EInterpCurveMode(255);
-
-					// If not first point, and previous mode was a curve type.
-					if(PrevMode == CIM_CurveAuto || PrevMode == CIM_CurveAutoClamped || PrevMode == CIM_CurveUser || PrevMode == CIM_CurveBreak)
+					TArray<UMovieScene3DTransformSection*> AllSections;
+					for (const FTrajectoryKey::FData& Value : TrajectoryKey.KeyData)
 					{
-						FVector HandlePos = NewKeyPos - RefTM.TransformVector(ArriveTangent * SequencerEdMode_Draw3D::CurveHandleScale);
-						PDI->DrawLine(NewKeyPos, HandlePos, FColor(128,255,0), SDPG_Foreground);
-
-						if (bHitTesting) 
-						{ 
-							//@todo
-							//PDI->SetHitProxy( new HInterpTrackKeyHandleProxy(Group, TrackIndex, i, true) );
-						}
-						PDI->DrawPoint(HandlePos, FColor(128,255,0), 5.f, SDPG_Foreground);
-						if (bHitTesting) 
+						if (UMovieScene3DTransformSection* Section = Value.Section.Get())
 						{
-							//@todo
-							//PDI->SetHitProxy( NULL );
+							AllSections.AddUnique(Section);
 						}
 					}
 
-					// If next section is a curve, draw leaving handle.
-					if(NextMode == CIM_CurveAuto || NextMode == CIM_CurveAutoClamped || NextMode == CIM_CurveUser || NextMode == CIM_CurveBreak)
+					for (UMovieScene3DTransformSection* Section : AllSections)
 					{
-						FVector HandlePos = NewKeyPos + RefTM.TransformVector(LeaveTangent * SequencerEdMode_Draw3D::CurveHandleScale);
-						PDI->DrawLine(NewKeyPos, HandlePos, FColor(128,255,0), SDPG_Foreground);
-
-						if (bHitTesting) 
-						{
-							//@todo
-							//PDI->SetHitProxy( new HInterpTrackKeyHandleProxy(Group, TrackIndex, i, false) );
-						}
-						PDI->DrawPoint(HandlePos, FColor(128,255,0), 5.f, SDPG_Foreground);
-						if (bHitTesting) 
-						{
-							//@todo
-							//PDI->SetHitProxy( NULL );
-						}
+						TrailActor->AddKeyMeshActor(NewKeyTime, FTransform::FTransform(NewKeyRot, NewKeyPos, FVector::FVector(3.0f)), Section);
 					}
 				}
-				*/
+
+				if (bHitTesting && PDI) 
+				{
+					PDI->SetHitProxy(nullptr);
+				}
 			}
 		}
 	}
@@ -667,8 +612,7 @@ void FSequencerEdMode::DrawTracks3D(FPrimitiveDrawInterface* PDI)
 				if (DisplayNode->GetType() == ESequencerNode::Track)
 				{
 					TSharedRef<FSequencerTrackNode> TrackNode = StaticCastSharedRef<FSequencerTrackNode>(DisplayNode);
-					UMovieSceneTrack* TrackNodeTrack = TrackNode->GetTrack();
-					UMovieScene3DTransformTrack* TransformTrack = Cast<UMovieScene3DTransformTrack>(TrackNodeTrack);
+					UMovieScene3DTransformTrack* TransformTrack = Cast<UMovieScene3DTransformTrack>(TrackNode->GetTrack());
 					if (TransformTrack != nullptr)
 					{
 						// If we are drawing mesh trails but we haven't made one for this track yet

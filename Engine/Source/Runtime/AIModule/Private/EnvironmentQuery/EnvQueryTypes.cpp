@@ -20,7 +20,7 @@
 
 #define LOCTEXT_NAMESPACE "EnvQueryGenerator"
 
-float UEnvQueryTypes::SkippedItemValue = -FLT_MAX;
+const float UEnvQueryTypes::SkippedItemValue = -MAX_flt;
 float UEnvQueryTypes::UnlimitedStepTime = -1.f;
 
 //----------------------------------------------------------------------//
@@ -119,7 +119,7 @@ FText FEnvDirection::ToText() const
 		Args.Add(TEXT("LineFrom"), UEnvQueryTypes::DescribeContext(LineFrom));
 		Args.Add(TEXT("LineTo"), UEnvQueryTypes::DescribeContext(LineTo));
 
-		return FText::Format(LOCTEXT("DescribeLineFromAndTo", "[{LineFrom} - {LineTo}]"), Args);
+		return FText::Format(LOCTEXT("DescribeLineFromAndTo", "[From: {LineFrom} To: {LineTo}]"), Args);
 	}
 	else
 	{

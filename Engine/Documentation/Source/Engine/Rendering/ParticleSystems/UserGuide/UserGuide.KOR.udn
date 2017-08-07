@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3243860
+﻿INTSourceChangelist:3481084
 Availability:Public
 Title: 파티클 시스템 사용 안내서
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems
@@ -6,6 +6,7 @@ Description:파티클 시스템과 캐스케이드의 일반적인 사용법입�
 Version: 4.9
 SkillLevel: Intermediate
 tags:Particles
+topic-image:ParticleSystemUserGuide_topic.png
 
 [TOC(start:2 end:3)]
 

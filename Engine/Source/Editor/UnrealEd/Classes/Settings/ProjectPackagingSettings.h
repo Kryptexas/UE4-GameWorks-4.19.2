@@ -124,6 +124,12 @@ public:
 	UPROPERTY(config, EditAnywhere, Category=Packaging)
 	bool bGenerateChunks;
 
+	/** 
+	 * If enabled, no platform will generate chunks, regardless of settings in platform-specific ini files.
+	 */
+	UPROPERTY(config, EditAnywhere, Category=Packaging)
+	bool bGenerateNoChunks;
+
 	/**
 	* Normally during chunk generation all dependencies of a package in a chunk will be pulled into that package's chunk.
 	* If this is enabled then only hard dependencies are pulled in. Soft dependencies stay in their original chunk.
@@ -149,9 +155,13 @@ public:
 	UPROPERTY(config, EditAnywhere, Category = Packaging)
 	FString HttpChunkInstallDataVersion;
 
-	/** Specifies whether to include prerequisites of packaged games, such as redistributable operating system components, whenever possible. */
-	UPROPERTY(config, EditAnywhere, Category=Packaging)
+	/** Specifies whether to include an installer for prerequisites of packaged games, such as redistributable operating system components, on platforms that support it. */
+	UPROPERTY(config, EditAnywhere, Category=Prerequisites, meta=(DisplayName="Include prerequisites installer"))
 	bool IncludePrerequisites;
+
+	/** Specifies whether to include prerequisites alongside the game executable. */
+	UPROPERTY(config, EditAnywhere, Category = Prerequisites, meta = (DisplayName = "Include app-local prerequisites"))
+	bool IncludeAppLocalPrerequisites;
 
 	/** 
 	 * By default shader code gets saved inline inside material assets, 
@@ -166,11 +176,11 @@ public:
 	 * enabling this option will use the platform-specific library format if and only if one is available
 	 * This will reduce overall package size but might increase loading time
 	 */
-	UPROPERTY(config, EditAnywhere, Category=Packaging)
+	UPROPERTY(config, EditAnywhere, Category=Packaging, meta = (EditCondition = "bShareMaterialShaderCode", ConfigRestartRequired = true))
 	bool bSharedMaterialNativeLibraries;
 
-	/** A directory containing prerequisite packages that should be staged in the executable directory. Can be relative to $(EngineDir) or $(ProjectDir) */
-	UPROPERTY(config, EditAnywhere, Category = Packaging, AdvancedDisplay)
+	/** A directory containing additional prerequisite packages that should be staged in the executable directory. Can be relative to $(EngineDir) or $(ProjectDir) */
+	UPROPERTY(config, EditAnywhere, Category=Prerequisites, AdvancedDisplay)
 	FDirectoryPath ApplocalPrerequisitesDirectory;
 
 	/**

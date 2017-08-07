@@ -15,8 +15,8 @@ class AActor;
 /**
  *	Waits for the actor to activate another ability
  */
-UCLASS(MinimalAPI)
-class UAbilityTask_WaitAbilityActivate : public UAbilityTask
+UCLASS()
+class GAMEPLAYABILITIES_API UAbilityTask_WaitAbilityActivate : public UAbilityTask
 {
 	GENERATED_UCLASS_BODY()
 
@@ -36,11 +36,17 @@ class UAbilityTask_WaitAbilityActivate : public UAbilityTask
 	UFUNCTION(BlueprintCallable, Category = "Ability|Tasks", meta = (HidePin = "OwningAbility", DefaultToSelf = "OwningAbility", BlueprintInternalUseOnly = "TRUE"))
 	static UAbilityTask_WaitAbilityActivate* WaitForAbilityActivateWithTagRequirements(UGameplayAbility* OwningAbility, FGameplayTagRequirements TagRequirements, bool IncludeTriggeredAbilities = false, bool TriggerOnce = true);
 
+	/** Wait until a new ability (of the same or different type) is activated. Only input based abilities will be counted unless IncludeTriggeredAbilities is true. */
+	UFUNCTION(BlueprintCallable, Category="Ability|Tasks", meta = (HidePin = "OwningAbility", DefaultToSelf = "OwningAbility", BlueprintInternalUseOnly = "TRUE"))
+	static UAbilityTask_WaitAbilityActivate* WaitForAbilityActivate_Query(UGameplayAbility* OwningAbility, FGameplayTagQuery Query, bool IncludeTriggeredAbilities=false, bool TriggerOnce=true);
+
 	FGameplayTag WithTag;
 	FGameplayTag WithoutTag;
 	bool IncludeTriggeredAbilities;
 	bool TriggerOnce;
 	FGameplayTagRequirements TagRequirements;
+
+	FGameplayTagQuery Query;
 
 protected:
 

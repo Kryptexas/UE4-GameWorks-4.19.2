@@ -103,11 +103,11 @@ FVector2D SRealtimeProfilerLineGraph::ComputeDesiredSize( float ) const
 
 FVector2D SRealtimeProfilerLineGraph::GetWidgetPosition(float X, float Y, const FGeometry& Geom) const
 {
-	return FVector2D( (X*Geom.Size.X) , (Geom.Size.Y-1) - (Y*Geom.Size.Y) );
+	return FVector2D( (X*Geom.GetLocalSize().X) , (Geom.GetLocalSize().Y-1) - (Y*Geom.GetLocalSize().Y) );
 }
 
 
-int32 SRealtimeProfilerLineGraph::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SRealtimeProfilerLineGraph::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	// Rendering info
 	bool bEnabled = ShouldBeEnabled( bParentEnabled );
@@ -121,9 +121,8 @@ int32 SRealtimeProfilerLineGraph::OnPaint( const FPaintArgs& Args, const FGeomet
 	FSlateDrawElement::MakeBox(
 		OutDrawElements,
 		LayerId,
-		AllottedGeometry.ToPaintGeometry( FVector2D(0,0), FVector2D(AllottedGeometry.Size.X,AllottedGeometry.Size.Y) ),
+		AllottedGeometry.ToPaintGeometry( FVector2D(0,0), FVector2D(AllottedGeometry.GetLocalSize().X,AllottedGeometry.Size.Y) ),
 		TimelineAreaBrush,
-		MyClippingRect,
 		DrawEffects,
 		TimelineAreaBrush->GetTint( InWidgetStyle ) * InWidgetStyle.GetColorAndOpacityTint()
 	);
@@ -143,7 +142,6 @@ int32 SRealtimeProfilerLineGraph::OnPaint( const FPaintArgs& Args, const FGeomet
 		LayerId,
 		AllottedGeometry.ToPaintGeometry(),
 		AxisPoints,
-		MyClippingRect,
 		DrawEffects,
 		WhiteBrush->GetTint( InWidgetStyle ) * InWidgetStyle.GetColorAndOpacityTint()
 		);
@@ -163,8 +161,8 @@ int32 SRealtimeProfilerLineGraph::OnPaint( const FPaintArgs& Args, const FGeomet
 	TArray<FVector2D> UnitGamePoints;
 	TArray<FVector2D> UnitGPUPoints;
 
-	float PixelDistanceBetweenPoints = ((float)AllottedGeometry.Size.X/MaxFrames.Get())*Zoom;
-	int32 NumPointsToDraw = (AllottedGeometry.Size.X/PixelDistanceBetweenPoints)+2;
+	float PixelDistanceBetweenPoints = ((float)AllottedGeometry.GetLocalSize().X/MaxFrames.Get())*Zoom;
+	int32 NumPointsToDraw = (AllottedGeometry.GetLocalSize().X/PixelDistanceBetweenPoints)+2;
 
 	//Convert Offset to FrameOffset
 	float FrameOffset = (-Offset/Zoom)*MaxFrames.Get();
@@ -187,25 +185,25 @@ int32 SRealtimeProfilerLineGraph::OnPaint( const FPaintArgs& Args, const FGeomet
 		if(!bDisplayFPSChart)
 		{
 			YPos = ProfileDataArray.GetData()[i]->DurationMs/MaxValue.Get();
-			YPos = (AllottedGeometry.Size.Y-1) - (YPos*AllottedGeometry.Size.Y);
+			YPos = (AllottedGeometry.GetLocalSize().Y-1) - (YPos*AllottedGeometry.GetLocalSize().Y);
 			LinePoints.Add(FVector2D((int32)XPos,(int32)YPos));
 		}
 		else
 		{
 			YPos = FPSChartDataArray.GetData()[i].UnitFrame/MaxValue.Get();
-			YPos = (AllottedGeometry.Size.Y-1) - (YPos*AllottedGeometry.Size.Y);
+			YPos = (AllottedGeometry.GetLocalSize().Y-1) - (YPos*AllottedGeometry.GetLocalSize().Y);
 			UnitFramePoints.Add(FVector2D((int32)XPos,(int32)YPos));
 
 			YPos = FPSChartDataArray.GetData()[i].UnitRender/MaxValue.Get();
-			YPos = (AllottedGeometry.Size.Y-1) - (YPos*AllottedGeometry.Size.Y);
+			YPos = (AllottedGeometry.GetLocalSize().Y-1) - (YPos*AllottedGeometry.GetLocalSize().Y);
 			UnitRenderPoints.Add(FVector2D((int32)XPos,(int32)YPos));
 
 			YPos = FPSChartDataArray.GetData()[i].UnitGame/MaxValue.Get();
-			YPos = (AllottedGeometry.Size.Y-1) - (YPos*AllottedGeometry.Size.Y);
+			YPos = (AllottedGeometry.GetLocalSize().Y-1) - (YPos*AllottedGeometry.GetLocalSize().Y);
 			UnitGamePoints.Add(FVector2D((int32)XPos,(int32)YPos));
 
 			YPos = FPSChartDataArray.GetData()[i].UnitGPU/MaxValue.Get();
-			YPos = (AllottedGeometry.Size.Y-1) - (YPos*AllottedGeometry.Size.Y);
+			YPos = (AllottedGeometry.GetLocalSize().Y-1) - (YPos*AllottedGeometry.GetLocalSize().Y);
 			UnitGPUPoints.Add(FVector2D((int32)XPos,(int32)YPos));
 		}
 
@@ -218,7 +216,6 @@ int32 SRealtimeProfilerLineGraph::OnPaint( const FPaintArgs& Args, const FGeomet
 			LayerId,
 			AllottedGeometry.ToPaintGeometry(),
 			LinePoints,
-			MyClippingRect,
 			DrawEffects,
 			InWidgetStyle.GetColorAndOpacityTint() * FLinearColor(1.0f, 0.0f, 0.0f, 1.0f)
 			);
@@ -232,7 +229,6 @@ int32 SRealtimeProfilerLineGraph::OnPaint( const FPaintArgs& Args, const FGeomet
 			LayerId,
 			AllottedGeometry.ToPaintGeometry(),
 			UnitFramePoints,
-			MyClippingRect,
 			DrawEffects,
 			InWidgetStyle.GetColorAndOpacityTint() * FLinearColor(0.0f, 1.0f, 0.0f, 1.0f)
 			);
@@ -244,7 +240,6 @@ int32 SRealtimeProfilerLineGraph::OnPaint( const FPaintArgs& Args, const FGeomet
 			LayerId,
 			AllottedGeometry.ToPaintGeometry(),
 			UnitRenderPoints,
-			MyClippingRect,
 			DrawEffects,
 			InWidgetStyle.GetColorAndOpacityTint() * FLinearColor(0.0f, 0.0f, 1.0f, 1.0f)
 			);
@@ -256,7 +251,6 @@ int32 SRealtimeProfilerLineGraph::OnPaint( const FPaintArgs& Args, const FGeomet
 			LayerId,
 			AllottedGeometry.ToPaintGeometry(),
 			UnitGamePoints,
-			MyClippingRect,
 			DrawEffects,
 			InWidgetStyle.GetColorAndOpacityTint() * FLinearColor(1.0f, 0.0f, 0.0f, 1.0f)
 			);
@@ -268,7 +262,6 @@ int32 SRealtimeProfilerLineGraph::OnPaint( const FPaintArgs& Args, const FGeomet
 			LayerId,
 			AllottedGeometry.ToPaintGeometry(),
 			UnitGPUPoints,
-			MyClippingRect,
 			DrawEffects,
 			InWidgetStyle.GetColorAndOpacityTint() * FLinearColor(1.0f, 1.0f, 0.0f, 1.0f)
 			);
@@ -290,7 +283,6 @@ int32 SRealtimeProfilerLineGraph::OnPaint( const FPaintArgs& Args, const FGeomet
 		LayerId,
 		AllottedGeometry.ToPaintGeometry(),
 		FPS30LinePoints,
-		MyClippingRect,
 		DrawEffects,
 		WhiteBrush->GetTint( InWidgetStyle ) * InWidgetStyle.GetColorAndOpacityTint()
 		);
@@ -307,7 +299,6 @@ int32 SRealtimeProfilerLineGraph::OnPaint( const FPaintArgs& Args, const FGeomet
 		LayerId,
 		AllottedGeometry.ToPaintGeometry(),
 		FPS60LinePoints,
-		MyClippingRect,
 		DrawEffects,
 		WhiteBrush->GetTint( InWidgetStyle ) * InWidgetStyle.GetColorAndOpacityTint()
 		);
@@ -324,7 +315,6 @@ int32 SRealtimeProfilerLineGraph::OnPaint( const FPaintArgs& Args, const FGeomet
 		LayerId,
 		AllottedGeometry.ToPaintGeometry(),
 		MouseCursorPoints,
-		MyClippingRect,
 		DrawEffects,
 		WhiteBrush->GetTint( InWidgetStyle ) * InWidgetStyle.GetColorAndOpacityTint()
 		);
@@ -332,7 +322,7 @@ int32 SRealtimeProfilerLineGraph::OnPaint( const FPaintArgs& Args, const FGeomet
 	LayerId++;
 
 	// Paint children
-	SCompoundWidget::OnPaint( Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+	SCompoundWidget::OnPaint( Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 
 	return LayerId;
 }

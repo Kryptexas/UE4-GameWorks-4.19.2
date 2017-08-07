@@ -63,6 +63,11 @@ FVertexBufferRHIRef FD3D12DynamicRHI::RHICreateVertexBuffer(uint32 Size, uint32 
 	const uint32 Alignment = 4;
 
 	FD3D12VertexBuffer* Buffer = GetAdapter().CreateRHIBuffer<FD3D12VertexBuffer>(nullptr, Desc, Alignment, 0, Size, InUsage, CreateInfo, false);
+	if (Buffer->ResourceLocation.IsTransient() )
+	{
+		// TODO: this should ideally be set in platform-independent code, since this tracking is for the high level
+		Buffer->SetCommitted(false);
+	}
 
 	UpdateBufferStats(&Buffer->ResourceLocation, true, D3D12_BUFFER_TYPE_VERTEX);
 
@@ -85,7 +90,11 @@ FVertexBufferRHIRef FD3D12DynamicRHI::CreateVertexBuffer_RenderThread(FRHIComman
 	const uint32 Alignment = 4;
 
 	FD3D12VertexBuffer* Buffer = GetAdapter().CreateRHIBuffer<FD3D12VertexBuffer>(&RHICmdList, Desc, Alignment, 0, Size, InUsage, CreateInfo, false);
-
+	if (Buffer->ResourceLocation.IsTransient())
+	{
+		// TODO: this should ideally be set in platform-independent code, since this tracking is for the high level
+		Buffer->SetCommitted(false);
+	}
 	UpdateBufferStats(&Buffer->ResourceLocation, true, D3D12_BUFFER_TYPE_VERTEX);
 
 	return Buffer;
@@ -149,7 +158,11 @@ FVertexBufferRHIRef FD3D12DynamicRHI::CreateAndLockVertexBuffer_RenderThread(FRH
 	const uint32 Alignment = 4;
 
 	FD3D12VertexBuffer* Buffer = GetAdapter().CreateRHIBuffer<FD3D12VertexBuffer>(nullptr, Desc, Alignment, 0, Size, InUsage, CreateInfo, false);
-
+	if (Buffer->ResourceLocation.IsTransient())
+	{
+		// TODO: this should ideally be set in platform-independent code, since this tracking is for the high level
+		Buffer->SetCommitted(false);
+	}
 	OutDataBuffer = LockVertexBuffer_RenderThread(RHICmdList, Buffer, 0, Size, RLM_WriteOnly);
 
 	UpdateBufferStats(&Buffer->ResourceLocation, true, D3D12_BUFFER_TYPE_VERTEX);

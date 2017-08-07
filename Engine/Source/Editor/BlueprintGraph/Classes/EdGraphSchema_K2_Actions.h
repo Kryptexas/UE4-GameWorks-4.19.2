@@ -779,7 +779,7 @@ public:
 		return OwningClass.Get();
 	}
 
-	UMulticastDelegateProperty* GetDelegatePoperty() const
+	UMulticastDelegateProperty* GetDelegateProperty() const
 	{
 		UClass* DelegateClass = GetDelegateClass();
 		return FindField<UMulticastDelegateProperty>(DelegateClass, DelegateName);

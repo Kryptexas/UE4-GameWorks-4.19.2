@@ -532,8 +532,7 @@ EReimportResult::Type UReimportFbxSceneFactory::Reimport(UObject* Obj)
 		AssetDataToDelete.Add(AssetRegistryModule.Get().GetAssetByObjectPath(FName(*(MeshInfo->GetFullImportName()))));
 	}
 
-	FbxNode* RootNodeToImport = nullptr;
-	RootNodeToImport = FbxImporter->Scene->GetRootNode();
+	FbxNode* RootNodeToImport = FbxImporter->Scene->GetRootNode();
 
 	AllNewAssets.Empty();
 	AssetToSyncContentBrowser.Empty();
@@ -549,10 +548,31 @@ EReimportResult::Type UReimportFbxSceneFactory::Reimport(UObject* Obj)
 		
 		//Set the import status for the next reimport
 		MeshInfo->bImportAttribute = (MeshStatus & EFbxSceneReimportStatusFlags::ReimportAsset) != EFbxSceneReimportStatusFlags::None;
-		
-		if ((MeshStatus & EFbxSceneReimportStatusFlags::Removed) != EFbxSceneReimportStatusFlags::None ||
-			(MeshStatus & EFbxSceneReimportStatusFlags::ReimportAsset) == EFbxSceneReimportStatusFlags::None)
+
+		//Remove the mesh
+		if ((MeshStatus & EFbxSceneReimportStatusFlags::Removed) != EFbxSceneReimportStatusFlags::None)
 		{
+			continue;
+		}
+
+		if ((MeshStatus & EFbxSceneReimportStatusFlags::ReimportAsset) == EFbxSceneReimportStatusFlags::None)
+		{
+			if (bCanReimportHierarchy &&
+				(MeshStatus & EFbxSceneReimportStatusFlags::Same) != EFbxSceneReimportStatusFlags::None &&
+				(MeshStatus & EFbxSceneReimportStatusFlags::FoundContentBrowserAsset) != EFbxSceneReimportStatusFlags::None &&
+				!AllNewAssets.Contains(MeshInfo))
+			{
+				//Add the old asset in the allNewAsset array, it allow to kept the reference if there was one
+				//Load the UObject associate with this MeshInfo
+				UObject* Mesh = MeshInfo->GetContentObject();
+				if (Mesh != nullptr)
+				{
+					if (MeshInfo->bIsSkelMesh ? Cast<USkeletalMesh>(Mesh) != nullptr : Cast<UStaticMesh>(Mesh) != nullptr)
+					{
+						AllNewAssets.Add(MeshInfo, Mesh);
+					}
+				}
+			}
 			continue;
 		}
 

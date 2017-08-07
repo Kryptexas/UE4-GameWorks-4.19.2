@@ -9,6 +9,7 @@
 #include "OnlineSubsystemOculusPackage.h"
 
 #define SETTING_OCULUS_POOL FName(TEXT("OCULUSPOOL"))
+#define SETTING_OCULUS_BUILD_UNIQUE_ID FName(TEXT("OCULUSSESSIONBUILDUNIQUEID"))
 
 #define SEARCH_OCULUS_MODERATED_ROOMS_ONLY FName(TEXT("OCULUSMODERATEDROOMSONLY"))
 
@@ -39,9 +40,11 @@ private:
 	 */
 	FName InProgressMatchmakingSearchName;
 
-	ovrID GetOvrIDFromSession(const FNamedOnlineSession& Session);
+	ovrID GetOvrIDFromSession(const FNamedOnlineSession& Session) const;
 
 	TArray<TSharedRef<const FOnlineSessionSearchResult>> PendingInviteAcceptedSessions;
+
+	int32 GetRoomBuildUniqueId(const ovrRoomHandle Room);
 
 PACKAGE_SCOPE:
 
@@ -54,10 +57,10 @@ PACKAGE_SCOPE:
 	FDelegateHandle OnMatchmakingNotificationMatchFoundHandle;
 	void OnMatchmakingNotificationMatchFound(ovrMessageHandle Message, bool bIsError);
 
-	TSharedRef<FOnlineSession> CreateSessionFromRoom(ovrRoomHandle Room);
+	TSharedRef<FOnlineSession> CreateSessionFromRoom(ovrRoomHandle Room) const;
 
-	void UpdateSessionFromRoom(FNamedOnlineSession& Session, ovrRoomHandle Room);
-	void UpdateSessionSettingsFromDataStore(FOnlineSessionSettings& SessionSettings, ovrDataStoreHandle DataStore);
+	void UpdateSessionFromRoom(FNamedOnlineSession& Session, ovrRoomHandle Room) const;
+	void UpdateSessionSettingsFromDataStore(FOnlineSessionSettings& SessionSettings, ovrDataStoreHandle DataStore) const;
 
 	void TickPendingInvites(float DeltaTime);
 
@@ -101,7 +104,7 @@ public:
 	virtual bool SendSessionInviteToFriend(const FUniqueNetId& LocalUserId, FName SessionName, const FUniqueNetId& Friend) override;
 	virtual bool SendSessionInviteToFriends(int32 LocalUserNum, FName SessionName, const TArray< TSharedRef<const FUniqueNetId> >& Friends) override;
 	virtual bool SendSessionInviteToFriends(const FUniqueNetId& LocalUserId, FName SessionName, const TArray< TSharedRef<const FUniqueNetId> >& Friends) override;
-	virtual bool GetResolvedConnectString(FName SessionName, FString& ConnectInfo, FName PortType) override;
+	virtual bool GetResolvedConnectString(FName SessionName, FString& ConnectInfo, FName PortType = GamePort) override;
 	virtual bool GetResolvedConnectString(const class FOnlineSessionSearchResult& SearchResult, FName PortType, FString& ConnectInfo) override;
 	virtual FOnlineSessionSettings* GetSessionSettings(FName SessionName) override;
 	virtual bool RegisterPlayer(FName SessionName, const FUniqueNetId& PlayerId, bool bWasInvited) override;

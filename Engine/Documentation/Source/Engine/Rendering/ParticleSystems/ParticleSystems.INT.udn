@@ -8,6 +8,8 @@ parent:Engine/Rendering
 order:4
 type:landing
 tags:Particles
+related:Engine/Basics/Distributions
+related:Engine/Rendering/Materials/Editor
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -61,91 +63,19 @@ Unreal's Particle Systems are edited via **Cascade**, a fully integrated and mod
 
 Particle systems are also very closely related to the various materials and textures applied to each particle. The primary job of the particle system itself is to control the behavior of the particles, while the specific look and feel of the particle system as a whole is often controlled by way of materials. As such, we have included a shortcut to the material documentation below.
 
-[REGION:topics third]
-[OBJECT:Topic]
-	[PARAM:image]
-		![](Engine/Rendering/ParticleSystems/particles_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/ParticleSystems/Overview:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/ParticleSystems/Overview:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/ParticleSystems/Overview]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/ParticleSystems/Cascade:title%](Engine/Rendering/ParticleSystems/Cascade/cascade_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/ParticleSystems/Cascade:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/ParticleSystems/Cascade:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/ParticleSystems/Cascade]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/ParticleSystems/Reference:title%](Engine/Rendering/ParticleSystems/Reference/particlereference_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/reference_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/ParticleSystems/Reference:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/ParticleSystems/Reference:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/ParticleSystems/Reference]
-	[/PARAM]
-[/OBJECT]
-[/REGION]
+## Starting Out
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/tech_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Particle Topics
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Engine/Rendering/ParticleSystems/UserGuide "%Engine/Rendering/ParticleSystems/UserGuide:Description%")
-	* [](Engine/Rendering/ParticleSystems/LODs "%Engine/Rendering/ParticleSystems/LODs:Description%")
-	* [](Engine/Rendering/ParticleSystems/ParticleLights "%Engine/Rendering/ParticleSystems/ParticleLights:Description%")
-	[/PARAM]
-[/OBJECT]
+[DIR(output:"topic" parent:"Engine/Rendering/ParticleSystems" end:"1" org:"hierarchy" tags:"Getting Started")]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/tech_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Related Topics
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Engine/Basics/Distributions "%Engine/Basics/Distributions:Description%")
-	* [](Engine/Rendering/Materials/Editor "%Engine/Rendering/Materials/Editor:Description%")
-	* [](Engine/Rendering/ParticleSystems/Optimization "%Engine/Rendering/ParticleSystems/Optimization:Description%")
-	[/PARAM]
-[/OBJECT]
+## Guides
+
+[DIR(output:"topic" parent:"Engine/Rendering/ParticleSystems" end:"1" org:"hierarchy" type:"!reference" tags:"!Getting Started")]
+
+## Reference
+
+[DIR(output:"topic" parent:"Engine/Rendering/ParticleSystems" end:"1" org:"hierarchy" type:"reference")]
+
+
 
 
 

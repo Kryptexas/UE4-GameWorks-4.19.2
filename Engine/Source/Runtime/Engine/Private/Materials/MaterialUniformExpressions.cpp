@@ -9,6 +9,7 @@
 #include "Materials/MaterialInstance.h"
 #include "Materials/MaterialInstanceSupport.h"
 #include "Materials/MaterialParameterCollection.h"
+#include "ExternalTexture.h"
 
 TLinkedList<FMaterialUniformExpressionType*>*& FMaterialUniformExpressionType::GetTypeList()
 {
@@ -90,6 +91,7 @@ void FUniformExpressionSet::Serialize(FArchive& Ar)
 	Ar << UniformScalarExpressions;
 	Ar << Uniform2DTextureExpressions;
 	Ar << UniformCubeTextureExpressions;
+	Ar << UniformExternalTextureExpressions;
 
 	Ar << ParameterCollections;
 
@@ -111,6 +113,7 @@ bool FUniformExpressionSet::IsEmpty() const
 		&& UniformScalarExpressions.Num() == 0
 		&& Uniform2DTextureExpressions.Num() == 0
 		&& UniformCubeTextureExpressions.Num() == 0
+		&& UniformExternalTextureExpressions.Num() == 0
 		&& PerFrameUniformScalarExpressions.Num() == 0
 		&& PerFrameUniformVectorExpressions.Num() == 0
 		&& PerFramePrevUniformScalarExpressions.Num() == 0
@@ -120,15 +123,16 @@ bool FUniformExpressionSet::IsEmpty() const
 
 bool FUniformExpressionSet::operator==(const FUniformExpressionSet& ReferenceSet) const
 {
-	if(UniformVectorExpressions.Num() != ReferenceSet.UniformVectorExpressions.Num()
-	|| UniformScalarExpressions.Num() != ReferenceSet.UniformScalarExpressions.Num()
-	|| Uniform2DTextureExpressions.Num() != ReferenceSet.Uniform2DTextureExpressions.Num()
-	|| UniformCubeTextureExpressions.Num() != ReferenceSet.UniformCubeTextureExpressions.Num()
-	|| PerFrameUniformScalarExpressions.Num() != ReferenceSet.PerFrameUniformScalarExpressions.Num()
-	|| PerFrameUniformVectorExpressions.Num() != ReferenceSet.PerFrameUniformVectorExpressions.Num()
-	|| PerFramePrevUniformScalarExpressions.Num() != ReferenceSet.PerFramePrevUniformScalarExpressions.Num()
-	|| PerFramePrevUniformVectorExpressions.Num() != ReferenceSet.PerFramePrevUniformVectorExpressions.Num()
-	|| ParameterCollections.Num() != ReferenceSet.ParameterCollections.Num())
+	if (UniformVectorExpressions.Num() != ReferenceSet.UniformVectorExpressions.Num()
+		|| UniformScalarExpressions.Num() != ReferenceSet.UniformScalarExpressions.Num()
+		|| Uniform2DTextureExpressions.Num() != ReferenceSet.Uniform2DTextureExpressions.Num()
+		|| UniformCubeTextureExpressions.Num() != ReferenceSet.UniformCubeTextureExpressions.Num()
+		|| UniformExternalTextureExpressions.Num() != ReferenceSet.UniformExternalTextureExpressions.Num()
+		|| PerFrameUniformScalarExpressions.Num() != ReferenceSet.PerFrameUniformScalarExpressions.Num()
+		|| PerFrameUniformVectorExpressions.Num() != ReferenceSet.PerFrameUniformVectorExpressions.Num()
+		|| PerFramePrevUniformScalarExpressions.Num() != ReferenceSet.PerFramePrevUniformScalarExpressions.Num()
+		|| PerFramePrevUniformVectorExpressions.Num() != ReferenceSet.PerFramePrevUniformVectorExpressions.Num()
+		|| ParameterCollections.Num() != ReferenceSet.ParameterCollections.Num())
 	{
 		return false;
 	}
@@ -160,6 +164,14 @@ bool FUniformExpressionSet::operator==(const FUniformExpressionSet& ReferenceSet
 	for (int32 i = 0; i < UniformCubeTextureExpressions.Num(); i++)
 	{
 		if (!UniformCubeTextureExpressions[i]->IsIdentical(ReferenceSet.UniformCubeTextureExpressions[i]))
+		{
+			return false;
+		}
+	}
+
+	for (int32 i = 0; i < UniformExternalTextureExpressions.Num(); i++)
+	{
+		if (!UniformExternalTextureExpressions[i]->IsIdentical(ReferenceSet.UniformExternalTextureExpressions[i]))
 		{
 			return false;
 		}
@@ -210,11 +222,12 @@ bool FUniformExpressionSet::operator==(const FUniformExpressionSet& ReferenceSet
 
 FString FUniformExpressionSet::GetSummaryString() const
 {
-	return FString::Printf(TEXT("(%u vectors, %u scalars, %u 2d tex, %u cube tex, %u scalars/frame, %u vectors/frame, %u collections)"),
+	return FString::Printf(TEXT("(%u vectors, %u scalars, %u 2d tex, %u cube tex, %u external tex, %u scalars/frame, %u vectors/frame, %u collections)"),
 		UniformVectorExpressions.Num(), 
 		UniformScalarExpressions.Num(),
 		Uniform2DTextureExpressions.Num(),
 		UniformCubeTextureExpressions.Num(),
+		UniformExternalTextureExpressions.Num(),
 		PerFrameUniformScalarExpressions.Num(),
 		PerFrameUniformVectorExpressions.Num(),
 		ParameterCollections.Num()
@@ -263,6 +276,8 @@ void FUniformExpressionSet::CreateBufferStruct()
 	static FString Texture2DSamplerNames[128];
 	static FString TextureCubeNames[128];
 	static FString TextureCubeSamplerNames[128];
+	static FString ExternalTextureNames[128];
+	static FString MediaTextureSamplerNames[128];
 	static bool bInitializedTextureNames = false;
 	if (!bInitializedTextureNames)
 	{
@@ -273,6 +288,8 @@ void FUniformExpressionSet::CreateBufferStruct()
 			Texture2DSamplerNames[i] = FString::Printf(TEXT("Texture2D_%dSampler"), i);
 			TextureCubeNames[i] = FString::Printf(TEXT("TextureCube_%d"), i);
 			TextureCubeSamplerNames[i] = FString::Printf(TEXT("TextureCube_%dSampler"), i);
+			ExternalTextureNames[i] = FString::Printf(TEXT("ExternalTexture_%d"), i);
+			MediaTextureSamplerNames[i] = FString::Printf(TEXT("ExternalTexture_%dSampler"), i);
 		}
 	}
 
@@ -296,6 +313,16 @@ void FUniformExpressionSet::CreateBufferStruct()
 		new(Members) FUniformBufferStruct::FMember(*TextureCubeSamplerNames[i],TEXT("SamplerState"),NextMemberOffset,UBMT_SAMPLER,EShaderPrecisionModifier::Float,1,1,1,NULL);
 		NextMemberOffset += 8;
 	}
+
+	for (int32 i = 0; i < UniformExternalTextureExpressions.Num(); ++i)
+	{
+		check((NextMemberOffset & 0x7) == 0);
+		new(Members) FUniformBufferStruct::FMember(*ExternalTextureNames[i], TEXT("TextureExternal"), NextMemberOffset, UBMT_TEXTURE, EShaderPrecisionModifier::Float, 1, 1, 1, NULL);
+		NextMemberOffset += 8;
+		new(Members) FUniformBufferStruct::FMember(*MediaTextureSamplerNames[i], TEXT("SamplerState"), NextMemberOffset, UBMT_SAMPLER, EShaderPrecisionModifier::Float, 1, 1, 1, NULL);
+		NextMemberOffset += 8;
+	}
+
 
 	new(Members) FUniformBufferStruct::FMember(TEXT("Wrap_WorldGroupSettings"),TEXT("SamplerState"),NextMemberOffset,UBMT_SAMPLER,EShaderPrecisionModifier::Float,1,1,1,NULL);
 	NextMemberOffset += 8;
@@ -350,7 +377,7 @@ FUniformBufferRHIRef FUniformExpressionSet::CreateUniformBuffer(const FMaterialR
 		void** ResourceTable = (void**)((uint8*)TempBuffer + UniformBufferStruct->GetLayout().ResourceOffset);
 		check(((UPTRINT)ResourceTable & 0x7) == 0);
 
-		check(UniformBufferStruct->GetLayout().Resources.Num() == Uniform2DTextureExpressions.Num() * 2 + UniformCubeTextureExpressions.Num() * 2 + 2);
+		check(UniformBufferStruct->GetLayout().Resources.Num() == Uniform2DTextureExpressions.Num() * 2 + UniformCubeTextureExpressions.Num() * 2 + UniformExternalTextureExpressions.Num() * 2 + 2);
 
 		// Cache 2D texture uniform expressions.
 		for(int32 ExpressionIndex = 0;ExpressionIndex < Uniform2DTextureExpressions.Num();ExpressionIndex++)
@@ -423,6 +450,25 @@ FUniformBufferRHIRef FUniformExpressionSet::CreateUniformBuffer(const FMaterialR
 
 				check(*SamplerSource);
 				*ResourceTable++ = *SamplerSource;
+			}
+			else
+			{
+				check(GWhiteTexture->TextureRHI);
+				*ResourceTable++ = GWhiteTexture->TextureRHI;
+				check(GWhiteTexture->SamplerStateRHI);
+				*ResourceTable++ = GWhiteTexture->SamplerStateRHI;
+			}
+		}
+
+		// Cache external texture uniform expressions.
+		for (int32 ExpressionIndex = 0; ExpressionIndex < UniformExternalTextureExpressions.Num(); ExpressionIndex++)
+		{
+			FTextureRHIRef TextureRHI;
+			FSamplerStateRHIRef SamplerStateRHI;
+			if (UniformExternalTextureExpressions[ExpressionIndex]->GetExternalTexture(MaterialRenderContext.MaterialRenderProxy, TextureRHI, SamplerStateRHI))
+			{
+				*ResourceTable++ = TextureRHI;
+				*ResourceTable++ = SamplerStateRHI;
 			}
 			else
 			{
@@ -525,6 +571,42 @@ bool FMaterialUniformExpressionTexture::IsIdentical(const FMaterialUniformExpres
 	return TextureIndex == OtherTextureExpression->TextureIndex;
 }
 
+
+FMaterialUniformExpressionExternalTexture::FMaterialUniformExpressionExternalTexture()
+{}
+
+FMaterialUniformExpressionExternalTexture::FMaterialUniformExpressionExternalTexture(const FGuid& InGuid) :
+	ExternalTextureGuid(InGuid)
+{
+}
+
+bool FMaterialUniformExpressionExternalTexture::GetExternalTexture(const FMaterialRenderProxy* MaterialRenderProxy, FTextureRHIRef& OutTextureRHI, FSamplerStateRHIRef& OutSamplerStateRHI)
+{
+	return FExternalTextureRegistry::Get().GetExternalTexture(MaterialRenderProxy, ExternalTextureGuid, OutTextureRHI, OutSamplerStateRHI);
+}
+
+void FMaterialUniformExpressionExternalTexture::Serialize(FArchive& Ar)
+{
+	Ar << ExternalTextureGuid;
+}
+
+bool FMaterialUniformExpressionExternalTexture::IsIdentical(const FMaterialUniformExpression* OtherExpression) const
+{
+	if (GetType() != OtherExpression->GetType())
+	{
+		return false;
+	}
+	FMaterialUniformExpressionExternalTexture* OtherExternalTextureExpression = (FMaterialUniformExpressionExternalTexture*)OtherExpression;
+
+	return ExternalTextureGuid == OtherExternalTextureExpression->ExternalTextureGuid;
+}
+
+FArchive& operator<<(FArchive& Ar, FMaterialUniformExpressionExternalTexture*& Ref)
+{
+	Ar << (FMaterialUniformExpression*&)Ref;
+	return Ar;
+}
+
 void FMaterialUniformExpressionVectorParameter::GetGameThreadNumberValue(const UMaterialInterface* SourceMaterialToCopyFrom, FLinearColor& OutValue) const
 {
 	check(IsInGameThread());
@@ -598,11 +680,13 @@ IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionRealTime);
 IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionVectorParameter);
 IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionScalarParameter);
 IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionTextureParameter);
+IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionExternalTexture);
 IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionFlipBookTextureParameter);
 IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionSine);
 IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionSquareRoot);
 IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionLength);
 IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionLogarithm2);
+IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionLogarithm10);
 IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionFoldedMath);
 IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionPeriodic);
 IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionAppendVector);

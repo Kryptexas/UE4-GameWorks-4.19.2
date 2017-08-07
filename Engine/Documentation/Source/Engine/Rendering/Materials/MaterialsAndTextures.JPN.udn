@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3155346
+﻿INTSourceChangelist:3481084
 Availability:Public
-Title:Materials 
+Title:マテリアル 
 Crumbs: %ROOT%, Engine
-Description:シェーダを使ったワールド内のサーフェスの外観の調節
+Description:シェーダを使ってワールド内のサーフェスの外観を調節する
 Navigation:topic
-Version:4.9
+Version:4.15
 parent:Engine/Rendering
 order:2
 type:landing

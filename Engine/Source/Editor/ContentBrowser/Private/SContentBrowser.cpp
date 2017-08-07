@@ -54,6 +54,8 @@
 #include "NativeClassHierarchy.h"
 #include "AddToProjectConfig.h"
 #include "GameProjectGenerationModule.h"
+#include "GlobalEditorCommonCommands.h"
+#include "ReferenceViewer.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -424,6 +426,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 		// Assets/tree
 		+ SVerticalBox::Slot()
 		.FillHeight(1.0f)
+		.Padding(0,2,0,0)
 		[
 			// The tree/assets splitter
 			SAssignNew(PathAssetSplitterPtr, SSplitter)
@@ -516,6 +519,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 					// Search and commands
 					+ SVerticalBox::Slot()
 					.AutoHeight()
+					.Padding(0, 0, 0, 2)
 					[
 						SNew(SHorizontalBox)
 
@@ -754,7 +758,7 @@ void SContentBrowser::BindCommands()
 	));
 
 	Commands->MapAction(FContentBrowserCommands::Get().PreviewAssets, FUIAction(
-		FExecuteAction::CreateSP(this, &SContentBrowser::HandlePreviewAssetsCommandEecute)
+		FExecuteAction::CreateSP(this, &SContentBrowser::HandlePreviewAssetsCommandExecute)
 	));
 
 	Commands->MapAction(FContentBrowserCommands::Get().CreateNewFolder, FUIAction(
@@ -776,6 +780,11 @@ void SContentBrowser::BindCommands()
 
 	Commands->MapAction(FContentBrowserCommands::Get().ResaveAllCurrentFolder, FUIAction(
 		FExecuteAction::CreateSP(this, &SContentBrowser::HandleResaveAllCurrentFolderCommand)
+	));
+
+	Commands->MapAction(FGlobalEditorCommonCommands::Get().ViewReferences, FUIAction(
+		FExecuteAction::CreateSP(this, &SContentBrowser::HandleViewReferencesCommand),
+		FCanExecuteAction::CreateSP(this, &SContentBrowser::HandleViewReferencesCanExecute)
 	));
 }
 
@@ -835,38 +844,41 @@ void SContentBrowser::ImportAsset( const FString& InPath )
 	if ( ensure( !InPath.IsEmpty() ) )
 	{
 		FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>( "AssetTools" );
-		AssetToolsModule.Get().ImportAssets( InPath );
+		AssetToolsModule.Get().ImportAssetsWithDialog( InPath );
 	}
 }
 
-void SContentBrowser::SyncToAssets( const TArray<FAssetData>& AssetDataList, const bool bAllowImplicitSync, const bool bDisableFiltersThatHideAssets )
+void SContentBrowser::PrepareToSync( const TArray<FAssetData>& AssetDataList, const TArray<FString>& FolderPaths, const bool bDisableFiltersThatHideAssets )
 {
 	// Check to see if any of the assets require certain folders to be visible
-	const UContentBrowserSettings* tmp = GetDefault<UContentBrowserSettings>();
 	bool bDisplayDev = GetDefault<UContentBrowserSettings>()->GetDisplayDevelopersFolder();
 	bool bDisplayEngine = GetDefault<UContentBrowserSettings>()->GetDisplayEngineFolder();
 	bool bDisplayPlugins = GetDefault<UContentBrowserSettings>()->GetDisplayPluginFolders();
 	bool bDisplayLocalized = GetDefault<UContentBrowserSettings>()->GetDisplayL10NFolder();
 	if ( !bDisplayDev || !bDisplayEngine || !bDisplayPlugins || !bDisplayLocalized )
 	{
-		bool bRepopulate = false;
-		for (int32 AssetIdx = AssetDataList.Num() - 1; AssetIdx >= 0 && ( !bDisplayDev || !bDisplayEngine || !bDisplayPlugins || !bDisplayLocalized ); --AssetIdx)
+		TSet<FString> PackagePaths = TSet<FString>(FolderPaths);
+		for (const FAssetData& AssetData : AssetDataList)
 		{
-			const FAssetData& Item = AssetDataList[AssetIdx];
-
 			FString PackagePath;
-			if ( Item.AssetClass == NAME_Class )
+			if (AssetData.AssetClass == NAME_Class)
 			{
 				// Classes are found in the /Classes_ roots
 				TSharedRef<FNativeClassHierarchy> NativeClassHierarchy = FContentBrowserSingleton::Get().GetNativeClassHierarchy();
-				NativeClassHierarchy->GetClassPath(Cast<UClass>(Item.GetAsset()), PackagePath, false/*bIncludeClassName*/);
+				NativeClassHierarchy->GetClassPath(Cast<UClass>(AssetData.GetAsset()), PackagePath, false/*bIncludeClassName*/);
 			}
 			else
 			{
 				// All other assets are found by their package path
-				PackagePath = Item.PackagePath.ToString();
+				PackagePath = AssetData.PackagePath.ToString();
 			}
 
+			PackagePaths.Add(PackagePath);
+		}
+
+		bool bRepopulate = false;
+		for (const FString& PackagePath : PackagePaths)
+		{
 			const ContentBrowserUtils::ECBFolderCategory FolderCategory = ContentBrowserUtils::GetFolderCategory( PackagePath );
 			if ( !bDisplayDev && FolderCategory == ContentBrowserUtils::ECBFolderCategory::DeveloperContent )
 			{
@@ -893,6 +905,11 @@ void SContentBrowser::SyncToAssets( const TArray<FAssetData>& AssetDataList, con
 				GetMutableDefault<UContentBrowserSettings>()->SetDisplayL10NFolder(true);
 				bRepopulate = true;
 			}
+
+			if (bDisplayDev && bDisplayEngine && bDisplayPlugins && bDisplayLocalized)
+			{
+				break;
+			}
 		}
 
 		// If we have auto-enabled any flags, force a refresh
@@ -913,13 +930,36 @@ void SContentBrowser::SyncToAssets( const TArray<FAssetData>& AssetDataList, con
 	SetSearchBoxText(FText::GetEmpty());
 	SearchBoxPtr->SetText(FText::GetEmpty());
 	SearchBoxPtr->SetError(FText::GetEmpty());
+}
+
+void SContentBrowser::SyncToAssets( const TArray<FAssetData>& AssetDataList, const bool bAllowImplicitSync, const bool bDisableFiltersThatHideAssets )
+{
+	PrepareToSync(AssetDataList, TArray<FString>(), bDisableFiltersThatHideAssets);
 
 	// Tell the sources view first so the asset view will be up to date by the time we request the sync
 	PathViewPtr->SyncToAssets(AssetDataList, bAllowImplicitSync);
 	AssetViewPtr->SyncToAssets(AssetDataList);
 }
 
-void SContentBrowser::SetIsPrimaryContentBrowser (bool NewIsPrimary)
+void SContentBrowser::SyncToFolders( const TArray<FString>& FolderList, const bool bAllowImplicitSync )
+{
+	PrepareToSync(TArray<FAssetData>(), FolderList, false);
+
+	// Tell the sources view first so the asset view will be up to date by the time we request the sync
+	PathViewPtr->SyncToFolders(FolderList, bAllowImplicitSync);
+	AssetViewPtr->SyncToFolders(FolderList);
+}
+
+void SContentBrowser::SyncTo( const FContentBrowserSelection& ItemSelection, const bool bAllowImplicitSync, const bool bDisableFiltersThatHideAssets )
+{
+	PrepareToSync(ItemSelection.SelectedAssets, ItemSelection.SelectedFolders, bDisableFiltersThatHideAssets);
+
+	// Tell the sources view first so the asset view will be up to date by the time we request the sync
+	PathViewPtr->SyncTo(ItemSelection, bAllowImplicitSync);
+	AssetViewPtr->SyncTo(ItemSelection);
+}
+
+void SContentBrowser::SetIsPrimaryContentBrowser(bool NewIsPrimary)
 {
 	bIsPrimaryBrowser = NewIsPrimary;
 
@@ -1351,11 +1391,12 @@ void SContentBrowser::OnUpdateHistoryData(FHistoryData& HistoryData) const
 
 	HistoryData.HistoryDesc = NewSource;
 	HistoryData.SourcesData = SourcesData;
-	HistoryData.SelectedAssets.Empty();
 
-	for ( auto AssetIt = SelectedAssets.CreateConstIterator(); AssetIt; ++AssetIt )
+	HistoryData.SelectionData.Reset();
+	HistoryData.SelectionData.SelectedFolders = TSet<FString>(AssetViewPtr->GetSelectedFolders());
+	for (const FAssetData& SelectedAsset : SelectedAssets)
 	{
-		HistoryData.SelectedAssets.Add(AssetIt->ObjectPath);
+		HistoryData.SelectionData.SelectedAssets.Add(SelectedAsset.ObjectPath);
 	}
 }
 
@@ -1698,16 +1739,28 @@ FString SContentBrowser::GetCurrentPath() const
 
 TSharedRef<SWidget> SContentBrowser::MakeAddNewContextMenu(bool bShowGetContent, bool bShowImport)
 {
+	const FSourcesData& SourcesData = AssetViewPtr->GetSourcesData();
+
+	int32 NumAssetPaths, NumClassPaths;
+	ContentBrowserUtils::CountPathTypes(SourcesData.PackagePaths, NumAssetPaths, NumClassPaths);
+
 	// Get all menu extenders for this context menu from the content browser module
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::GetModuleChecked<FContentBrowserModule>( TEXT("ContentBrowser") );
-	TArray<FContentBrowserMenuExtender> MenuExtenderDelegates = ContentBrowserModule.GetAllAssetContextMenuExtenders();
+	TArray<FContentBrowserMenuExtender_SelectedPaths> MenuExtenderDelegates = ContentBrowserModule.GetAllAssetContextMenuExtenders();
+	
+	// Delegate wants paths as FStrings
+	TArray<FString> SelectPaths;
+	for (FName PathName: SourcesData.PackagePaths)
+	{
+		SelectPaths.Add(PathName.ToString());
+	}
 
 	TArray<TSharedPtr<FExtender>> Extenders;
 	for (int32 i = 0; i < MenuExtenderDelegates.Num(); ++i)
 	{
 		if (MenuExtenderDelegates[i].IsBound())
 		{
-			Extenders.Add(MenuExtenderDelegates[i].Execute());
+			Extenders.Add(MenuExtenderDelegates[i].Execute(SelectPaths));
 		}
 	}
 	TSharedPtr<FExtender> MenuExtender = FExtender::Combine(Extenders);
@@ -1721,10 +1774,6 @@ TSharedRef<SWidget> SContentBrowser::MakeAddNewContextMenu(bool bShowGetContent,
 		OnNewFolderRequested = FNewAssetOrClassContextMenu::FOnNewFolderRequested::CreateSP(this, &SContentBrowser::NewFolderRequested);
 	}
 
-	const FSourcesData& SourcesData = AssetViewPtr->GetSourcesData();
-
-	int32 NumAssetPaths, NumClassPaths;
-	ContentBrowserUtils::CountPathTypes(SourcesData.PackagePaths, NumAssetPaths, NumClassPaths);
 
 	// New feature packs don't depend on the current paths, so we always add this item if it was requested
 	FNewAssetOrClassContextMenu::FOnGetContentRequested OnGetContentRequested;
@@ -2094,7 +2143,7 @@ void SContentBrowser::HandleOpenAssetsOrFoldersCommandExecute()
 	AssetViewPtr->OnOpenAssetsOrFolders();
 }
 
-void SContentBrowser::HandlePreviewAssetsCommandEecute()
+void SContentBrowser::HandlePreviewAssetsCommandExecute()
 {
 	AssetViewPtr->OnPreviewAssets();
 }
@@ -2125,6 +2174,81 @@ void SContentBrowser::HandleDirectoryUpCommandExecute()
 		FPaths::CollapseRelativeDirectories(ParentDir);
 		FolderEntered(ParentDir);
 	}
+}
+
+void SContentBrowser::HandleViewReferencesCommand()
+{
+	TArray<FName> ViewableAssets;
+
+	TArray<FAssetData> SelectedAssets;
+	TArray<FString> SelectedPaths;
+
+	// Get the list of selected assets and paths from the view that actually has focus
+
+	if (AssetViewPtr->HasAnyUserFocusOrFocusedDescendants())
+	{
+		SelectedAssets = AssetViewPtr->GetSelectedAssets();
+		SelectedPaths = AssetViewPtr->GetSelectedFolders();
+	}
+	else if (PathViewPtr->HasAnyUserFocusOrFocusedDescendants())
+	{
+		SelectedPaths = PathViewPtr->GetSelectedPaths();
+	}
+
+	// For any selected assets, just get the package name from the asset data
+	for (const FAssetData& Asset : SelectedAssets)
+	{
+		ViewableAssets.Add(Asset.PackageName);
+	}
+
+	// For any selected paths, get all assets that exist within that path
+	if (SelectedPaths.Num() > 0)
+	{
+		FARFilter Filter;
+		Filter.bRecursivePaths = true;
+
+		for (const FString& Path : SelectedPaths)
+		{
+			new (Filter.PackagePaths) FName(*Path);
+		}
+
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+		
+		TArray<FAssetData> AssetsInPaths;
+		AssetRegistryModule.Get().GetAssets(Filter, AssetsInPaths);
+
+		for (const FAssetData& Asset : AssetsInPaths)
+		{
+			ViewableAssets.Add(Asset.PackageName);
+		}
+	}
+
+	if (ViewableAssets.Num() > 0)
+	{
+		IReferenceViewerModule::Get().InvokeReferenceViewerTab(ViewableAssets);
+	}
+}
+
+bool SContentBrowser::HandleViewReferencesCanExecute()
+{
+	bool bCanViewReferences = IReferenceViewerModule::IsAvailable();
+
+	if (bCanViewReferences)
+	{
+		// The reference viewer should be called if either the asset view or the path view have focus and have
+		// at least one item selected
+
+		if (AssetViewPtr.IsValid() && AssetViewPtr->HasAnyUserFocusOrFocusedDescendants())
+		{
+			bCanViewReferences = AssetViewPtr->GetSelectedItems().Num() > 0;
+		}
+		else if (PathViewPtr.IsValid() && PathViewPtr->HasAnyUserFocusOrFocusedDescendants())
+		{
+			bCanViewReferences = PathViewPtr->GetSelectedPaths().Num() > 0;
+		}
+	}
+
+	return bCanViewReferences;
 }
 
 bool SContentBrowser::IsBackEnabled() const

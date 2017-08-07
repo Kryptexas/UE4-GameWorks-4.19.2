@@ -37,17 +37,18 @@ bool UMorphTarget::HasDataForLOD(int32 LODIndex)
 	return (MorphLODModels.IsValidIndex(LODIndex) && MorphLODModels[LODIndex].Vertices.Num() > 0);
 }
 
-
-void UMorphTarget::PostProcess( USkeletalMesh * NewMesh, const FMorphMeshRawSource& BaseSource, const FMorphMeshRawSource& TargetSource, int32 LODIndex, bool bCompareNormal)
+bool UMorphTarget::HasValidData() const
 {
-	// @todo anim: update BaseSkelMesh with my information
-	NewMesh->RegisterMorphTarget(this);
+	for (const FMorphTargetLODModel& Model : MorphLODModels)
+	{
+		if (Model.Vertices.Num() > 0)
+		{
+			return true;
+		}
+	}
 
-	CreateMorphMeshStreams( BaseSource, TargetSource, LODIndex, bCompareNormal);
-
-	MarkPackageDirty();
+	return false;
 }
-
 
 void UMorphTarget::CreateMorphMeshStreams( const FMorphMeshRawSource& BaseSource, const FMorphMeshRawSource& TargetSource, int32 LODIndex, bool bCompareNormal)
 {
@@ -78,9 +79,12 @@ void UMorphTarget::CreateMorphMeshStreams( const FMorphMeshRawSource& BaseSource
 
 	TMap<uint32,uint32> WedgePointToVertexIndexMap;
 	// Build a mapping of wedge point indices to vertex indices for fast lookup later.
-	for( int32 Idx=0; Idx < TargetSource.WedgePointIndices.Num(); Idx++ )
+	for (int32 Idx = 0; Idx < TargetSource.WedgePointIndices.Num(); Idx++)
 	{
-		WedgePointToVertexIndexMap.Add( TargetSource.WedgePointIndices[Idx], Idx);
+		if (BaseSource.WedgePointIndices.IsValidIndex(Idx) && BaseSource.WedgePointIndices[Idx] == TargetSource.WedgePointIndices[Idx])
+		{
+			WedgePointToVertexIndexMap.Add(TargetSource.WedgePointIndices[Idx], Idx);
+		}
 	}
 
 	// iterate over all the base mesh indices
@@ -150,7 +154,7 @@ void UMorphTarget::CreateMorphMeshStreams( const FMorphMeshRawSource& BaseSource
 	MorphModel.Vertices.Shrink();
 }
 
-void UMorphTarget::PopulateDeltas(const TArray<FMorphTargetDelta>& Deltas, const int32 LODIndex)
+void UMorphTarget::PopulateDeltas(const TArray<FMorphTargetDelta>& Deltas, const int32 LODIndex, const bool bCompareNormal)
 {
 	// create the LOD entry if it doesn't already exist
 	if (LODIndex >= MorphLODModels.Num())
@@ -172,7 +176,8 @@ void UMorphTarget::PopulateDeltas(const TArray<FMorphTargetDelta>& Deltas, const
 	// Still keep this (could remove in long term due to incoming data)
 	for (const FMorphTargetDelta& Delta : Deltas)
 	{
-		if (Delta.PositionDelta.SizeSquared() > FMath::Square(THRESH_POINTS_ARE_NEAR))
+		if (Delta.PositionDelta.SizeSquared() > FMath::Square(THRESH_POINTS_ARE_NEAR) || 
+			( bCompareNormal && Delta.TangentZDelta.SizeSquared() > 0.01f))
 		{
 			MorphModel.Vertices.Add(Delta);
 		}

@@ -359,6 +359,7 @@ DECLARE_FLOAT_ACCUMULATOR_STAT(TEXT("Uncompressor total time"),STAT_Uncompressor
 
 bool FCompression::UncompressMemory( ECompressionFlags Flags, void* UncompressedBuffer, int32 UncompressedSize, const void* CompressedBuffer, int32 CompressedSize, bool bIsSourcePadded /*= false*/, int32 BitWindow /*= DEFAULT_ZLIB_BIT_WINDOW*/ )
 {
+	SCOPED_NAMED_EVENT(FCompression_UncompressMemory, FColor::Cyan);
 	// Keep track of time spent uncompressing memory.
 	STAT(double UncompressorStartTime = FPlatformTime::Seconds();)
 	

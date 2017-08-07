@@ -12,6 +12,7 @@
 class UNetDriver;
 class UUnitTest;
 struct FStackTracker;
+class FOutputDeviceFile;
 
 // @todo #JohnBRefactor: Convert to multicast delegate
 
@@ -610,5 +611,21 @@ struct NUTUtil
 
 		return bReturnVal;
 	}
+
+
+	/**
+	 * Puts out a log message to FOutputDeviceFile, with a special category prefix added.
+	 *
+	 * For example:
+	 *	[2017.02.27-15.09.15:999][  0][SpecialCategory]LogUnitTest: LogMessage
+	 *
+	 * @param Ar				The FOutputDeviceFile archive to write to
+	 * @param SpecialCategory	The special category prefix to be added to the log message
+	 * @param Data				The log message
+	 * @param Verbosity			The verbosity of the log message
+	 * @param Category			The category of the log message
+	 */
+	static void SpecialLog(FOutputDeviceFile* Ar, const TCHAR* SpecialCategory, const TCHAR* Data, ELogVerbosity::Type Verbosity,
+							const FName& Category);
 };
 

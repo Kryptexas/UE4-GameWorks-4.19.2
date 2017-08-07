@@ -46,6 +46,18 @@ public:
 	UPROPERTY(EditAnywhere, Category = Settings, meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
 	float HighFreqAbsorption;
 
+	// How much this material transmits low frequency sound.
+	UPROPERTY(EditAnywhere, Category = Settings, meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
+	float LowFreqTransmission;
+
+	// How much this material transmits mid frequency sound.
+	UPROPERTY(EditAnywhere, Category = Settings, meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
+	float MidFreqTransmission;
+
+	// How much this material transmits high frequency sound.
+	UPROPERTY(EditAnywhere, Category = Settings, meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
+	float HighFreqTransmission;
+
 	// Specifies how "rough" the surface is. Surfaces with a high scattering value randomly reflect sound in all directions;
 	// surfaces with a low scattering value reflect sound in a mirror-like manner.
 	UPROPERTY(EditAnywhere, Category = Settings, meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))

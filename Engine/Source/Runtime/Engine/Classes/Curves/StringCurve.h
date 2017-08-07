@@ -81,6 +81,14 @@ struct ENGINE_API FStringCurve
 public:
 
 	/**
+	 * Check whether this curve has any data or not
+	 */
+	bool HasAnyData() const
+	{
+		return DefaultValue.Len() || Keys.Num();
+	}
+
+	/**
 	  * Add a new key to the curve with the supplied Time and Value. Returns the handle of the new key.
 	  * 
 	  * @param InTime The time at which to add the key.

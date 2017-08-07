@@ -1671,6 +1671,11 @@ void FTickFunction::SetTickFunctionEnable(bool bInEnabled)
 	{
 		TickState = (bInEnabled ? ETickState::Enabled : ETickState::Disabled);
 	}
+
+	if (TickState == ETickState::Disabled)
+	{
+		LastTickGameTimeSeconds = -1.f;
+	}
 }
 
 void FTickFunction::AddPrerequisite(UObject* TargetObject, struct FTickFunction& TargetTickFunction)
@@ -1831,6 +1836,10 @@ void FTickFunction::QueueTickFunctionParallel(const struct FTickContext& TickCon
 					{
 						// stale prereq, delete it
 						Prerequisites.RemoveAtSwap(PrereqIndex--);
+					}
+					else if (StackForCycleDetection.Contains(Prereq))
+					{
+						UE_LOG(LogTick, Warning, TEXT("While processing prerequisites for %s, could use %s because it would form a cycle."), *DiagnosticMessage(), *Prereq->DiagnosticMessage());
 					}
 					else if (Prereq->bRegistered)
 					{

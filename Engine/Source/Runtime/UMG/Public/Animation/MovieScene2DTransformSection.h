@@ -49,7 +49,7 @@ class UMovieScene2DTransformSection
 	: public UMovieSceneSection
 	, public IKeyframeSection<F2DTransformKey>
 {
-	GENERATED_BODY()
+	GENERATED_UCLASS_BODY()
 
 public:
 

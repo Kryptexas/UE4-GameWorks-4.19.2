@@ -207,6 +207,9 @@ define anything not defined through the command line to 0
 #ifndef PX_DOXYGEN
 #define PX_DOXYGEN 0
 #endif
+#ifndef NV_WIIU
+#define NV_WIIU 0
+#endif
 
 /**
 family shortcuts

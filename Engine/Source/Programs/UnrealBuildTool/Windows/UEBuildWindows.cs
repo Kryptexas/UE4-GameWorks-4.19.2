@@ -38,10 +38,39 @@ namespace UnrealBuildTool
 	}
 
 	/// <summary>
+	/// Which static analyzer to use
+	/// </summary>
+	public enum WindowsStaticAnalyzer
+	{
+		/// <summary>
+		/// Do not perform static analysis
+		/// </summary>
+		None,
+
+		/// <summary>
+		/// Use the built-in Visual C++ static analyzer
+		/// </summary>
+		VisualCpp,
+
+		/// <summary>
+		/// Use PVS-Studio for static analysis
+		/// </summary>
+		PVSStudio,
+	}
+
+	/// <summary>
 	/// Windows-specific target settings
 	/// </summary>
 	public class WindowsTargetRules
 	{
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		public WindowsTargetRules()
+		{
+			XmlConfig.ApplyTo(this);
+		}
+
 		/// <summary>
 		/// Version of the compiler toolchain to use on Windows platform. A value of "default" will be changed to a specific version at UBT startup.
 		/// </summary>
@@ -74,6 +103,19 @@ namespace UnrealBuildTool
 		/// </summary>
 		[ConfigFile(ConfigHierarchyType.Game, "/Script/EngineSettings.GeneralProjectSettings", "ProjectName")]
 		public string ProductName;
+
+		/// <summary>
+		/// The static analyzer to use
+		/// </summary>
+		[XmlConfigFile(Category = "WindowsPlatform")]
+		[CommandLine("-StaticAnalyzer")]
+		public WindowsStaticAnalyzer StaticAnalyzer = WindowsStaticAnalyzer.None;
+
+		/// <summary>
+		/// Provides a Module Definition File (.def) to the linker to describe various attributes of a DLL.
+		/// Necessary when exporting functions by ordinal values instead of by name.
+		/// </summary>
+		public string ModuleDefinitionFile;
 
 		/// VS2015 updated some of the CRT definitions but not all of the Windows SDK has been updated to match.
 		/// Microsoft provides legacy_stdio_definitions library to enable building with VS2015 until they fix everything up.
@@ -151,6 +193,16 @@ namespace UnrealBuildTool
 		public string ProductName
 		{
 			get { return Inner.ProductName; }
+		}
+
+		public WindowsStaticAnalyzer StaticAnalyzer
+		{
+			get { return Inner.StaticAnalyzer; }
+		}
+
+		public string ModuleDefinitionFile
+		{
+			get { return Inner.ModuleDefinitionFile; }
 		}
 
 		public bool bNeedsLegacyStdioDefinitionsLib
@@ -246,6 +298,18 @@ namespace UnrealBuildTool
 			if (Target.WindowsPlatform.Compiler == WindowsCompiler.Default)
 			{
 				Target.WindowsPlatform.Compiler = GetDefaultCompiler();
+			}
+
+			// Disable linking if we're using a static analyzer
+			if(Target.WindowsPlatform.StaticAnalyzer != WindowsStaticAnalyzer.None)
+			{
+				Target.bDisableLinking = true;
+			}
+
+			// Disable PCHs for PVS studio
+			if(Target.WindowsPlatform.StaticAnalyzer == WindowsStaticAnalyzer.PVSStudio)
+			{
+				Target.bUsePCHFiles = false;
 			}
 
 			// Override PCH settings
@@ -652,8 +716,8 @@ namespace UnrealBuildTool
 					Rules.Definitions.Add("D3D12_PROFILING_ENABLED=0");
 				}
 
-                // To enable platform specific D3D12 RHI Types
-                Rules.PrivateIncludePaths.Add("Runtime/Windows/D3D12RHI/Private/Windows");
+				// To enable platform specific D3D12 RHI Types
+				Rules.PrivateIncludePaths.Add("Runtime/Windows/D3D12RHI/Private/Windows");
 			}
 
 			// Delay-load D3D12 so we can use the latest features and still run on downlevel versions of the OS
@@ -686,7 +750,7 @@ namespace UnrealBuildTool
 
 			CompileEnvironment.Definitions.Add("DEPTH_32_BIT_CONVERSION=0");
 
-			FileReference MorpheusShaderPath = FileReference.Combine(UnrealBuildTool.EngineDirectory, "Shaders", "PS4", "PostProcessHMDMorpheus.usf");
+			FileReference MorpheusShaderPath = FileReference.Combine(UnrealBuildTool.EngineDirectory, "Shaders", "Private", "PS4", "PostProcessHMDMorpheus.usf");
 			if (FileReference.Exists(MorpheusShaderPath))
 			{
 				CompileEnvironment.Definitions.Add("HAS_MORPHEUS=1");
@@ -836,6 +900,8 @@ namespace UnrealBuildTool
 			{
 				LinkEnvironment.DefaultStackSizeCommit = IniDefaultStackSizeCommit;
 			}
+
+			LinkEnvironment.ModuleDefinitionFile = Target.WindowsPlatform.ModuleDefinitionFile;
 		}
 
 		/// <summary>
@@ -935,7 +1001,18 @@ namespace UnrealBuildTool
 		/// <returns>New toolchain instance.</returns>
 		public override UEToolChain CreateToolChain(CppPlatform CppPlatform, ReadOnlyTargetRules Target)
 		{
-			return new VCToolChain(CppPlatform, Target.WindowsPlatform.Compiler);
+			if (Target.WindowsPlatform.StaticAnalyzer == WindowsStaticAnalyzer.PVSStudio)
+			{
+				return new PVSToolChain(CppPlatform, Target.WindowsPlatform.Compiler);
+			}
+			else if(Target.WindowsPlatform.StaticAnalyzer == WindowsStaticAnalyzer.VisualCpp)
+			{
+				return new VCToolChain(CppPlatform, Target.WindowsPlatform.Compiler, true);
+			}
+			else
+			{
+				return new VCToolChain(CppPlatform, Target.WindowsPlatform.Compiler, false);
+			}
 		}
 
 		/// <summary>

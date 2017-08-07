@@ -26,7 +26,7 @@ void SSlider::Construct( const SSlider::FArguments& InDeclaration )
 	bControllerInputCaptured = false;
 }
 
-int32 SSlider::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SSlider::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	// we draw the slider like a horizontal slider regardless of the orientation, and apply a render transform to make it display correctly.
 	// However, the AllottedGeometry is computed as it will be rendered, so we have to use the "horizontal orientation" when doing drawing computations.
@@ -43,18 +43,17 @@ int32 SSlider::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometr
 	const FVector2D HalfHandleSize = 0.5f * HandleSize;
 	const float Indentation = IndentHandle.Get() ? HandleSize.X : 0.0f;
 
-	const float SliderLength = AllottedWidth - Indentation;
+	const float SliderLength = AllottedWidth - (Indentation + HandleSize.X);
 	const float SliderPercent = ValueAttribute.Get();
 	const float SliderHandleOffset = SliderPercent * SliderLength;
 	const float SliderY = 0.5f * AllottedHeight;
 
 	HandleRotation = 0.0f;
-	HandleTopLeftPoint = FVector2D(SliderHandleOffset - ( HandleSize.X * SliderPercent ) + 0.5f * Indentation, SliderY - HalfHandleSize.Y);
+	HandleTopLeftPoint = FVector2D(SliderHandleOffset + (0.5f * Indentation), SliderY - HalfHandleSize.Y);
 
 	SliderStartPoint = FVector2D(HalfHandleSize.X, SliderY);
 	SliderEndPoint = FVector2D(AllottedWidth - HalfHandleSize.X, SliderY);
 
-	FSlateRect RotatedClippingRect = MyClippingRect;
 	FGeometry SliderGeometry = AllottedGeometry;
 	
 	// rotate the slider 90deg if it's vertical. The 0 side goes on the bottom, the 1 side on the top.
@@ -67,16 +66,6 @@ int32 SSlider::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometr
 			FVector2D(AllottedWidth, AllottedHeight), 
 			FSlateLayoutTransform(), 
 			SlateRenderTransform, FVector2D::ZeroVector);
-		// The clipping rect is already given properly in window space. But we do not support layout rotations, so our local space rendering cannot
-		// get the clipping rect into local space properly for the local space clipping we do in the shader.
-		// Thus, we transform the clip coords into local space manually, UNDO the render transform so it will clip properly,
-		// and then bring the clip coords back into window space where DrawElements expect them.
-		RotatedClippingRect = TransformRect(
-			Concatenate(
-				Inverse(SliderGeometry.GetAccumulatedLayoutTransform()), 
-				Inverse(SlateRenderTransform),
-				SliderGeometry.GetAccumulatedLayoutTransform()), 
-			MyClippingRect);
 	}
 
 	const bool bEnabled = ShouldBeEnabled(bParentEnabled);
@@ -90,7 +79,6 @@ int32 SSlider::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometr
 		LayerId,
 		SliderGeometry.ToPaintGeometry(BarTopLeft, BarSize),
 		LockedAttribute.Get() ? &Style->DisabledBarImage : &Style->NormalBarImage,
-		RotatedClippingRect,
 		DrawEffects,
 		SliderBarColor.Get().GetColor(InWidgetStyle) * InWidgetStyle.GetColorAndOpacityTint()
 		);
@@ -103,7 +91,6 @@ int32 SSlider::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometr
 		LayerId,
 		SliderGeometry.ToPaintGeometry(HandleTopLeftPoint, Style->NormalThumbImage.ImageSize),
 		LockedAttribute.Get() ? &Style->DisabledThumbImage : &Style->NormalThumbImage,
-		RotatedClippingRect,
 		DrawEffects,
 		SliderHandleColor.Get().GetColor(InWidgetStyle) * InWidgetStyle.GetColorAndOpacityTint()
 	);
@@ -129,7 +116,6 @@ FVector2D SSlider::ComputeDesiredSize( float ) const
 
 	return FVector2D(SSliderDesiredSize.X, Thickness);
 }
-
 
 bool SSlider::IsLocked() const
 {
@@ -304,17 +290,23 @@ void SSlider::CommitValue(float NewValue)
 float SSlider::PositionToValue( const FGeometry& MyGeometry, const FVector2D& AbsolutePosition )
 {
 	const FVector2D LocalPosition = MyGeometry.AbsoluteToLocal(AbsolutePosition);
-	const float Indentation = IndentHandle.Get() ? Style->NormalThumbImage.ImageSize.X : 0.0f;
 
 	float RelativeValue;
+	float Denominator;
+	// Only need X as we rotate the thumb image when rendering vertically
+	const float Indentation = Style->NormalThumbImage.ImageSize.X * (IndentHandle.Get() ? 2.f : 1.f);
+	const float HalfIndentation = 0.5f * Indentation;
 
 	if (Orientation == Orient_Horizontal)
 	{
-		RelativeValue = (LocalPosition.X - 0.5f * Indentation) / (MyGeometry.Size.X - Indentation);
+		Denominator = MyGeometry.Size.X - Indentation;
+		RelativeValue = (Denominator != 0.f) ? (LocalPosition.X - HalfIndentation) / Denominator : 0.f;
 	}
 	else
 	{
-		RelativeValue = (MyGeometry.Size.Y - LocalPosition.Y - 0.5f * Indentation) / (MyGeometry.Size.Y - Indentation);
+		Denominator = MyGeometry.Size.Y - Indentation;
+		// Inverse the calculation as top is 0 and bottom is 1
+		RelativeValue = (Denominator != 0.f) ? ((MyGeometry.Size.Y - LocalPosition.Y) - HalfIndentation) / Denominator : 0.f;
 	}
 	
 	return FMath::Clamp(RelativeValue, 0.0f, 1.0f);
@@ -353,6 +345,11 @@ void SSlider::SetSliderBarColor(FSlateColor InSliderBarColor)
 void SSlider::SetSliderHandleColor(FSlateColor InSliderHandleColor)
 {
 	SliderHandleColor = InSliderHandleColor;
+}
+
+float SSlider::GetStepSize() const
+{
+	return StepSize.Get();
 }
 
 void SSlider::SetStepSize(const TAttribute<float>& InStepSize)

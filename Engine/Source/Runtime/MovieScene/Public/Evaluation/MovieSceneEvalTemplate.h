@@ -36,6 +36,7 @@ public:
 	FMovieSceneEvalTemplate()
 	{
 		CompletionMode = EMovieSceneCompletionMode::KeepState;
+		SourceSection = nullptr;
 	}
 
 	/**
@@ -120,8 +121,9 @@ public:
 	 *
 	 * @param Context				Evaluation context specifying the current evaluation time, sub sequence transform and other relevant information.
 	 * @param Container				Container to populate with the desired output from this track
+	 * @param BindingOverride		Optional binding to specify the object that is being animated by this track
 	 */
-	virtual void Interrogate(const FMovieSceneContext& Context, FMovieSceneInterrogationData& Container) const
+	virtual void Interrogate(const FMovieSceneContext& Context, FMovieSceneInterrogationData& Container, UObject* BindingOverride) const
 	{
 	}
 
@@ -131,13 +133,41 @@ public:
 	 * @param Context				Evaluation context specifying the current evaluation time, sub sequence transform and other relevant information.
 	 * @param SweptRange			The range to sweep, where this template evaluates with 'swept' evaluation
 	 * @param Container				Container to populate with the desired output from this track
+	 * @param BindingOverride		Optional binding to specify the object that is being animated by this track
 	 */
-	virtual void Interrogate(const FMovieSceneContext& Context, TRange<float> SweptRange, FMovieSceneInterrogationData& Container) const
+	virtual void Interrogate(const FMovieSceneContext& Context, TRange<float> SweptRange, FMovieSceneInterrogationData& Container, UObject* BindingOverride) const
 	{
 	}
 
+public:
+
+	/**
+	 * Set the source section from which this template originated
+	 *
+	 * @param SourceSection 		The source section
+	 */
+	void SetSourceSection(UMovieSceneSection* InSourceSection)
+	{
+		SourceSection = InSourceSection;
+	}
+
+	/**
+	 * Get the source section from which this template originated
+	 *
+	 * @return The source section from which this template originated
+	 */
+	UMovieSceneSection* GetSourceSection() const
+	{
+		return SourceSection;
+	}
+
 protected:
-	
+
+	/**
+	 * Evaluate this template's easing functions based on the specified time
+	 */
+	MOVIESCENE_API float EvaluateEasing(float CurrentTime) const;
+
 	/**
 	 * Enum evaluation flag structure defining which functions are to be called in implementations of this struct
 	 */
@@ -149,6 +179,10 @@ protected:
 	/** Enumeration value signifying whether we should restore any animated state stored by this entity when this eval tempalte is no longer evaluated */
 	UPROPERTY()
 	EMovieSceneCompletionMode CompletionMode;
+
+	/** The section from which this template originates */
+	UPROPERTY()
+	UMovieSceneSection* SourceSection;
 };
 
 /**

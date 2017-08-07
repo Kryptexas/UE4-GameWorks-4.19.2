@@ -191,6 +191,24 @@ FString FGenericPlatformHttp::HtmlEncode(const FString& UnencodedString)
 	return EncodedString;
 }
 
+
+FString FGenericPlatformHttp::GetUrlDomain(const FString& Url)
+{
+	FString Protocol;
+	FString Domain = Url;
+	// split the http protocol portion from domain
+	Url.Split(TEXT("://"), &Protocol, &Domain);
+	// strip off everything but the domain portion
+	int32 Idx = Domain.Find(TEXT("/"));
+	int32 IdxOpt = Domain.Find(TEXT("?"));
+	Idx = IdxOpt >= 0 && IdxOpt < Idx ? IdxOpt : Idx;
+	if (Idx > 0)
+	{
+		Domain = Domain.Left(Idx);
+	}
+	return Domain;
+}
+
 FString FGenericPlatformHttp::GetMimeType(const FString& FilePath)
 {
 	const FString FileExtension = FPaths::GetExtension(FilePath, true);

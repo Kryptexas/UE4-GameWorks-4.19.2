@@ -287,6 +287,7 @@ bool FGameplayDebuggerNetPack::NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaPa
 			return false;
 		}
 
+		bool bHasCategoryStateChanges = false;
 		for (int32 Idx = 0; Idx < CategoryCount; Idx++)
 		{
 			FGameplayDebuggerCategory& CategoryOb = Owner->Categories[Idx].Get();
@@ -306,7 +307,9 @@ bool FGameplayDebuggerNetPack::NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaPa
 				return false;
 			}
 
-			CategoryOb.bIsEnabled = (BaseFlags != 0);
+			const bool bNewCategoryEnabled = (BaseFlags != 0);
+			bHasCategoryStateChanges = bHasCategoryStateChanges || (CategoryOb.bIsEnabled != bNewCategoryEnabled);
+			CategoryOb.bIsEnabled = bNewCategoryEnabled;
 
 			if (ShouldUpdateTextLines)
 			{
@@ -349,6 +352,12 @@ bool FGameplayDebuggerNetPack::NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaPa
 				}
 			}
 		}
+
+		// force scene proxy updates if categories changed state
+		if (bHasCategoryStateChanges)
+		{
+			Owner->MarkComponentsRenderStateDirty();
+		}
 	}
 
 	return true;
@@ -382,6 +391,7 @@ AGameplayDebuggerCategoryReplicator::AGameplayDebuggerCategoryReplicator(const F
 #endif
 
 	bIsEnabled = false;
+	bIsEnabledLocal = false;
 	bReplicates = true;
 
 	ReplicatedData.Owner = this;
@@ -469,6 +479,8 @@ bool AGameplayDebuggerCategoryReplicator::IsNetRelevantFor(const AActor* RealVie
 	return (RealViewer == OwnerPC);
 }
 
+/// @cond DOXYGEN_WARNINGS
+
 void AGameplayDebuggerCategoryReplicator::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
@@ -528,6 +540,8 @@ void AGameplayDebuggerCategoryReplicator::ServerSendExtensionInputEvent_Implemen
 {
 	SendExtensionInputEvent(ExtensionId, HandlerId);
 }
+
+/// @endcond
 
 void AGameplayDebuggerCategoryReplicator::OnReceivedDataPackPacket(int32 CategoryId, int32 DataPackId, const FGameplayDebuggerDataPack& DataPacket)
 {
@@ -595,6 +609,18 @@ void AGameplayDebuggerCategoryReplicator::TickActor(float DeltaTime, enum ELevel
 {
 	Super::TickActor(DeltaTime, TickType, ThisTickFunction);
 	CollectCategoryData();
+}
+
+void AGameplayDebuggerCategoryReplicator::PostNetReceive()
+{
+	Super::PostNetReceive();
+
+	// force scene proxy updates if tool changed state
+	if (bIsEnabled != bIsEnabledLocal)
+	{
+		bIsEnabledLocal = bIsEnabled;
+		MarkComponentsRenderStateDirty();
+	}
 }
 
 void AGameplayDebuggerCategoryReplicator::CollectCategoryData(bool bForce)
@@ -676,6 +702,7 @@ void AGameplayDebuggerCategoryReplicator::SetEnabled(bool bEnable)
 	if (bHasAuthority)
 	{
 		bIsEnabled = bEnable;
+		bIsEnabledLocal = bEnable;
 		SetActorTickEnabled(bEnable);
 	}
 	else

@@ -503,6 +503,7 @@ bool FWmfMediaSession::ChangeState()
 		{
 			UE_LOG(LogWmfMedia, Verbose, TEXT("Closing media session on error"));
 			MediaSession->Close();
+			MediaSession->Shutdown();
 
 			return true;
 		}

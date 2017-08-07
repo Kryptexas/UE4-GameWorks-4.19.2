@@ -10,7 +10,7 @@
 #include "VREditorMode.h"
 #include "MultiBoxBuilder.h"
 #include "MultiBoxExtender.h"
-#include "Kismet/HeadMountedDisplayFunctionLibrary.h"	// For EHMDWornState::Type
+#include "HeadMountedDisplayTypes.h"
 
 class FVREditorModule : public IVREditorModule
 {
@@ -34,6 +34,7 @@ public:
 	virtual void EnableVREditor( const bool bEnable, const bool bForceWithoutHMD ) override;
 	virtual bool IsVREditorModeActive() override;
 	virtual UVREditorMode* GetVRMode() override;
+	virtual void UpdateActorPreview(TSharedRef<SWidget> InWidget) override;
 
 	virtual const TSharedRef<FExtender>& GetRadialMenuExtender() override
 	{
@@ -101,6 +102,11 @@ bool FVREditorModule::IsVREditorModeActive()
 UVREditorMode* FVREditorModule::GetVRMode()
 {
 	return ModeManager.GetCurrentVREditorMode();
+}
+
+void FVREditorModule::UpdateActorPreview(TSharedRef<SWidget> InWidget)
+{
+	GetVRMode()->RefreshActorPreviewWidget(InWidget);
 }
 
 void FVREditorModule::ToggleForceVRMode()

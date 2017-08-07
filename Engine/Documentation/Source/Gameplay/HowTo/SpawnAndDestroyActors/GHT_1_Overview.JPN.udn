@@ -1,26 +1,19 @@
-﻿INTSourceChangelist:2735872
+﻿INTSourceChangelist:3429254
 Availability:Public
 Title:アクタをスポーン/ 破壊する方法の概要
 Crumbs: %ROOT%, Gameplay
 Description:UE4 でアクタをスポーン / 破壊するための操作ガイド 
 Version:4.9
 Parent:Gameplay
-type:how-to
+type:overview
 order:1
-skilllevel:Beginner
+SkillLevel:Intermediate
 
-ゲームプレイ中にアイテムを動的にレベルに追加したい場合がよくあります。これをアクタをスポーンするといいます。スポーンしたいアイテムは、他のプレイヤーや敵からヘルス値、武器、報酬などのピックアップに至るまで、何でも選ぶことができます。このページでは、ブループリントを使ってアクタをスポーンする方法を説明します。<!-- さらに **アクタのスポーン** に関する情報と詳細ドキュメントへのリンクを紹介します。--> 
+ゲームプレイ中にアイテムを動的にレベルに追加する場合がよくあります。これをアクタをスポーンするといいます。スポーンするアイテムは、他のプレイヤーや敵からヘルス値、武器、報酬などのピックアップに至るまで、何でも選ぶことができます。このページでは、ブループリントを使ってアクタをスポーンする方法を説明します。<!-- as well as other information regarding **Actor Spawning** and links to more documentation.--> 
 
-## セットアップ
+## 実装ガイド
 
-ブループリントで アクタをスポーン / 破壊する方法については、以下のリンクを参照してください。
-
-[REGION:buttonlist]
-* [](Gameplay\HowTo\SpawnAndDestroyActors\Blueprints)
-<!--
-* [](Gameplay\HowTo\SpawnAndDestroyActors\Code)
--->
-[/REGION]
+[DIR(output:"role" parent:"Gameplay/HowTo/SpawnAndDestroyActors" org:"hierarchy" end:"1")]
 
 
 

@@ -115,7 +115,7 @@ void FNiagaraEffectScriptViewModel::RefreshEmitterNodes()
 			EmitterNode->SetOwnerEffect(&Effect);
 			EmitterNode->SetEmitterHandleId(EmitterHandle.GetId());
 
-			FVector2D NewLocation = CalculateNewEmitterNodePlacementPosition(EffectGraph, EmitterNode);
+			FVector2D NewLocation = CalculateNewEmitterNodePlacementPosition(EffectGraph, EmitterNode); //-V595
 			EmitterNode->NodePosX = NewLocation.X;
 			EmitterNode->NodePosY = NewLocation.Y;
 

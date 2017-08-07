@@ -6,6 +6,7 @@
 #include "IAnalyticsProviderET.h"
 #include "AnalyticsET.h"
 #include "Interfaces/IHttpResponse.h"
+#include "Analytics.h"
 
 bool FHttpServiceTracker::Tick(float DeltaTime)
 {

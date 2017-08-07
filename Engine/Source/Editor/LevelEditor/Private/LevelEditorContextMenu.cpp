@@ -46,6 +46,7 @@
 #include "EditorClassUtils.h"
 #include "Framework/Commands/GenericCommands.h"
 #include "LevelViewportActions.h"
+#include "ActorGroupingUtils.h"
 
 #define LOCTEXT_NAMESPACE "LevelViewportContextMenu"
 
@@ -601,7 +602,7 @@ FSlateColor InvertOnHover( const TWeakPtr< SWidget > WidgetPtr )
 
 void FLevelEditorContextMenu::BuildGroupMenu( FMenuBuilder& MenuBuilder, const FSelectedActorInfo& SelectedActorInfo )
 {
-	if( GEditor->bGroupingActive )
+	if( UActorGroupingUtils::IsGroupingActive() )
 	{
 		// Whether or not we added a grouping sub-menu
 		bool bNeedGroupSubMenu = SelectedActorInfo.bHaveSelectedLockedGroup || SelectedActorInfo.bHaveSelectedUnlockedGroup;

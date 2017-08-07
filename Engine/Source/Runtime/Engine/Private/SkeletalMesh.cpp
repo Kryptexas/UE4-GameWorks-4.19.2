@@ -42,6 +42,7 @@
 #include "Engine/Engine.h"
 #include "Animation/NodeMappingContainer.h"
 #include "GPUSkinCache.h"
+#include "Misc/ConfigCacheIni.h"
 
 #if WITH_EDITOR
 #include "MeshUtilities.h"
@@ -70,11 +71,16 @@
 #include "ClothingAssetFactoryInterface.h"
 #include "ClothingSystemEditorInterfaceModule.h"
 #endif
+#include "SkeletalDebugRendering.h"
+#include "Misc/RuntimeErrors.h"
 
 #define LOCTEXT_NAMESPACE "SkeltalMesh"
 
 DEFINE_LOG_CATEGORY(LogSkeletalMesh);
 DECLARE_CYCLE_STAT(TEXT("GetShadowShapes"), STAT_GetShadowShapes, STATGROUP_Anim);
+
+TAutoConsoleVariable<int32> CVarDebugDrawSimpleBones(TEXT("a.DebugDrawSimpleBones"), 0, TEXT("When drawing bones (using Show Bones), draw bones as simple lines."));
+TAutoConsoleVariable<int32> CVarDebugDrawBoneAxes(TEXT("a.DebugDrawBoneAxes"), 0, TEXT("When drawing bones (using Show Bones), draw bone axes."));
 
 // Custom serialization version for SkeletalMesh types
 struct FSkeletalMeshCustomVersion
@@ -1198,34 +1204,35 @@ FArchive& operator<<(FArchive& Ar,FSkelMeshSection& S)
 
 void FMorphTargetVertexInfoBuffers::InitRHI()
 {
-	if (PerVertexInfoList.Num() > 0)
+	check(NumTotalWorkItems > 0);
+
 	{
 		FRHIResourceCreateInfo CreateInfo;
-		void* PerVertexInfoListVBData = nullptr;
-		PerVertexInfoVB = RHICreateAndLockVertexBuffer(PerVertexInfoList.GetAllocatedSize(), BUF_Static | BUF_ShaderResource, CreateInfo, PerVertexInfoListVBData);
-		FMemory::Memcpy(PerVertexInfoListVBData, PerVertexInfoList.GetData(), PerVertexInfoList.GetAllocatedSize());
-		RHIUnlockVertexBuffer(PerVertexInfoVB);
-		PerVertexInfoSRV = RHICreateShaderResourceView(PerVertexInfoVB, sizeof(uint32), PF_R32_UINT);
-
-		void* FlattenedDeltasVBData = nullptr;
-		FlattenedDeltasVB = RHICreateAndLockVertexBuffer(FlattenedDeltaList.GetAllocatedSize(), BUF_Static | BUF_ShaderResource, CreateInfo, FlattenedDeltasVBData);
-		FMemory::Memcpy(FlattenedDeltasVBData, FlattenedDeltaList.GetData(), FlattenedDeltaList.GetAllocatedSize());
-		RHIUnlockVertexBuffer(FlattenedDeltasVB);
-		FlattenedDeltasSRV = RHICreateShaderResourceView(FlattenedDeltasVB, sizeof(uint32), PF_R32_UINT);
-
-		NumInfluencedVerticesByMorphs = (uint32)PerVertexInfoList.Num();
-
-		PerVertexInfoList.Empty();
-		FlattenedDeltaList.Empty();
+		void* VertexIndicesVBData = nullptr;
+		VertexIndicesVB = RHICreateAndLockVertexBuffer(VertexIndices.GetAllocatedSize(), BUF_Static | BUF_ShaderResource, CreateInfo, VertexIndicesVBData);
+		FMemory::Memcpy(VertexIndicesVBData, VertexIndices.GetData(), VertexIndices.GetAllocatedSize());
+		RHIUnlockVertexBuffer(VertexIndicesVB);
+		VertexIndicesSRV = RHICreateShaderResourceView(VertexIndicesVB, 4, PF_R32_UINT);
 	}
+	{
+		FRHIResourceCreateInfo CreateInfo;
+		void* MorphDeltasVBData = nullptr;
+		MorphDeltasVB = RHICreateAndLockVertexBuffer(MorphDeltas.GetAllocatedSize(), BUF_Static | BUF_ShaderResource, CreateInfo, MorphDeltasVBData);
+		FMemory::Memcpy(MorphDeltasVBData, MorphDeltas.GetData(), MorphDeltas.GetAllocatedSize());
+		RHIUnlockVertexBuffer(MorphDeltasVB);
+		MorphDeltasSRV = RHICreateShaderResourceView(MorphDeltasVB, 2, PF_R16F);
+	}
+
+	VertexIndices.Empty();
+	MorphDeltas.Empty();
 }
 
 void FMorphTargetVertexInfoBuffers::ReleaseRHI()
 {
-	PerVertexInfoVB.SafeRelease();
-	PerVertexInfoSRV.SafeRelease();
-	FlattenedDeltasVB.SafeRelease();
-	FlattenedDeltasSRV.SafeRelease();
+	VertexIndicesVB.SafeRelease();
+	VertexIndicesSRV.SafeRelease();
+	MorphDeltasVB.SafeRelease();
+	MorphDeltasSRV.SafeRelease();
 }
 
 /*-----------------------------------------------------------------------------
@@ -1543,44 +1550,61 @@ void FStaticLODModel::InitResources(bool bNeedsVertexColors, int32 LODIndex, TAr
 
 	if (RHISupportsComputeShaders(GMaxRHIShaderPlatform) && InMorphTargets.Num() > 0)
 	{
+		MorphTargetVertexInfoBuffers.VertexIndices.Empty();
+		MorphTargetVertexInfoBuffers.MorphDeltas.Empty();
+		MorphTargetVertexInfoBuffers.WorkItemsPerMorph.Empty();
+		MorphTargetVertexInfoBuffers.StartOffsetPerMorph.Empty();
+		MorphTargetVertexInfoBuffers.MaximumValuePerMorph.Empty();
+		MorphTargetVertexInfoBuffers.MinimumValuePerMorph.Empty();
+		MorphTargetVertexInfoBuffers.NumTotalWorkItems = 0;
+
 		// Populate the arrays to be filled in later in the render thread
-
-		// Auxiliary mapping for affected vertex indices by morph to its weights
-		TMap<uint32, TArray<FMorphTargetVertexInfoBuffers::FFlattenedDelta>> AuxDeltaList;
-
-		int32 TotalNumDeltas = 0;
 		for (int32 AnimIdx = 0; AnimIdx < InMorphTargets.Num(); ++AnimIdx)
 		{
+			uint32 StartOffset = MorphTargetVertexInfoBuffers.NumTotalWorkItems;
+			MorphTargetVertexInfoBuffers.StartOffsetPerMorph.Add(StartOffset);
+
+			float MaximumValues[4] = { -FLT_MAX, -FLT_MAX, -FLT_MAX, -FLT_MAX };
+			float MinimumValues[4] = { +FLT_MAX, +FLT_MAX, +FLT_MAX, +FLT_MAX };
 			UMorphTarget* MorphTarget = InMorphTargets[AnimIdx];
-
 			int32 NumSrcDeltas = 0;
-			FMorphTargetDelta* SrcDelta = MorphTarget->GetMorphTargetDelta(LODIndex, NumSrcDeltas);
-			for (int32 SrcDeltaIndex = 0; SrcDeltaIndex < NumSrcDeltas; ++SrcDeltaIndex, ++SrcDelta)
+			FMorphTargetDelta* MorphDeltas = MorphTarget->GetMorphTargetDelta(LODIndex, NumSrcDeltas);
+			for (int32 DeltaIndex = 0; DeltaIndex < NumSrcDeltas; DeltaIndex++)
 			{
-				TArray<FMorphTargetVertexInfoBuffers::FFlattenedDelta>& FlattenedDeltas = AuxDeltaList.FindOrAdd(SrcDelta->SourceIdx);
-				FMorphTargetVertexInfoBuffers::FFlattenedDelta* NewDelta = new(FlattenedDeltas) FMorphTargetVertexInfoBuffers::FFlattenedDelta;
-				NewDelta->PosDelta = SrcDelta->PositionDelta;
-				NewDelta->TangentDelta = SrcDelta->TangentZDelta;
-				NewDelta->WeightIndex = AnimIdx;
-				++TotalNumDeltas;
+				const auto& MorphDelta = MorphDeltas[DeltaIndex];
+				// when import, we do check threshold, and also when adding weight, we do have threshold for how smaller weight can fit in
+				// so no reason to check here another threshold
+				MaximumValues[0] = FMath::Max(MaximumValues[0], MorphDelta.PositionDelta.X);
+				MaximumValues[1] = FMath::Max(MaximumValues[1], MorphDelta.PositionDelta.Y);
+				MaximumValues[2] = FMath::Max(MaximumValues[2], MorphDelta.PositionDelta.Z);
+				MaximumValues[3] = FMath::Max(MaximumValues[3], FMath::Max(MorphDelta.TangentZDelta.X, FMath::Max(MorphDelta.TangentZDelta.Y, MorphDelta.TangentZDelta.Z)));
+
+				MinimumValues[0] = FMath::Min(MinimumValues[0], MorphDelta.PositionDelta.X);
+				MinimumValues[1] = FMath::Min(MinimumValues[1], MorphDelta.PositionDelta.Y);
+				MinimumValues[2] = FMath::Min(MinimumValues[2], MorphDelta.PositionDelta.Z);
+				MinimumValues[3] = FMath::Min(MinimumValues[3], FMath::Min(MorphDelta.TangentZDelta.X, FMath::Min(MorphDelta.TangentZDelta.Y, MorphDelta.TangentZDelta.Z)));
+
+				MorphTargetVertexInfoBuffers.VertexIndices.Add(MorphDelta.SourceIdx);
+				MorphTargetVertexInfoBuffers.MorphDeltas.Emplace(MorphDelta.PositionDelta, MorphDelta.TangentZDelta);
+				MorphTargetVertexInfoBuffers.NumTotalWorkItems++;
 			}
+
+			uint32 MorphTargetSize =  MorphTargetVertexInfoBuffers.NumTotalWorkItems - StartOffset;
+			if (MorphTargetSize > 0)
+			{
+				ensureMsgf(MaximumValues[0] < +32752.0f && MaximumValues[1] < +32752.0f && MaximumValues[2] < +32752.0f && MaximumValues[3] < +32752.0f, TEXT("Huge MorphTarget Delta found in %s at index %i, might break down because we use half float storage"), *MorphTarget->GetName(), AnimIdx);
+				ensureMsgf(MinimumValues[0] > -32752.0f && MinimumValues[1] > -32752.0f && MinimumValues[2] > -32752.0f && MaximumValues[3] > -32752.0f, TEXT("Huge MorphTarget Delta found in %s at index %i, might break down because we use half float storage"), *MorphTarget->GetName(), AnimIdx);
+			}
+		
+			MorphTargetVertexInfoBuffers.WorkItemsPerMorph.Add(MorphTargetSize);
+			MorphTargetVertexInfoBuffers.MaximumValuePerMorph.Add(FVector4(MaximumValues[0], MaximumValues[1], MaximumValues[2], MaximumValues[3]));
+			MorphTargetVertexInfoBuffers.MinimumValuePerMorph.Add(FVector4(MinimumValues[0], MinimumValues[1], MinimumValues[2], MinimumValues[3]));
 		}
 
-		MorphTargetVertexInfoBuffers.FlattenedDeltaList.Empty(TotalNumDeltas);
-		MorphTargetVertexInfoBuffers.PerVertexInfoList.AddUninitialized(AuxDeltaList.Num());
-		int32 StartDelta = 0;
-		FMorphTargetVertexInfoBuffers::FPerVertexInfo* NewPerVertexInfo = MorphTargetVertexInfoBuffers.PerVertexInfoList.GetData();
-		for (auto& Pair : AuxDeltaList)
-		{
-			NewPerVertexInfo->DestVertexIndex = Pair.Key;
-			NewPerVertexInfo->StartDelta = StartDelta;
-			NewPerVertexInfo->NumDeltas = Pair.Value.Num();
-			MorphTargetVertexInfoBuffers.FlattenedDeltaList.Append(Pair.Value);
-			StartDelta += Pair.Value.Num();
-			++NewPerVertexInfo;
-		}
-
-		if (AuxDeltaList.Num() > 0)
+		check(MorphTargetVertexInfoBuffers.WorkItemsPerMorph.Num() == MorphTargetVertexInfoBuffers.StartOffsetPerMorph.Num());
+		check(MorphTargetVertexInfoBuffers.WorkItemsPerMorph.Num() == MorphTargetVertexInfoBuffers.MaximumValuePerMorph.Num());
+		check(MorphTargetVertexInfoBuffers.WorkItemsPerMorph.Num() == MorphTargetVertexInfoBuffers.MinimumValuePerMorph.Num());
+		if (MorphTargetVertexInfoBuffers.NumTotalWorkItems > 0)
 		{
 			BeginInitResource(&MorphTargetVertexInfoBuffers);
 		}
@@ -1654,6 +1678,33 @@ void FStaticLODModel::GetVertices(TArray<FSoftSkinVertex>& Vertices) const
 	// All chunks are combined into one (rigid first, soft next)
 	FSoftSkinVertex* DestVertex = (FSoftSkinVertex*)Vertices.GetData();
 	for(int32 SectionIndex = 0; SectionIndex < Sections.Num(); SectionIndex++)
+	{
+		const FSkelMeshSection& Section = Sections[SectionIndex];
+		FMemory::Memcpy(DestVertex, Section.SoftVertices.GetData(), Section.SoftVertices.Num() * sizeof(FSoftSkinVertex));
+		DestVertex += Section.SoftVertices.Num();
+	}
+}
+
+void FStaticLODModel::GetNonClothVertices(TArray<FSoftSkinVertex>& OutVertices) const
+{
+	// Get the number of sections to copy
+	int32 NumSections = NumNonClothingSections();
+
+	// Count number of verts
+	int32 NumVertsToCopy = 0;
+	for(int32 SectionIndex = 0; SectionIndex < NumSections; SectionIndex++)
+	{
+		const FSkelMeshSection& Section = Sections[SectionIndex];
+		NumVertsToCopy += Section.SoftVertices.Num();
+	}
+
+	OutVertices.Empty(NumVertsToCopy);
+	OutVertices.AddUninitialized(NumVertsToCopy);
+
+	// Initialize the vertex data
+	// All chunks are combined into one (rigid first, soft next)
+	FSoftSkinVertex* DestVertex = (FSoftSkinVertex*)OutVertices.GetData();
+	for(int32 SectionIndex = 0; SectionIndex < NumSections; SectionIndex++)
 	{
 		const FSkelMeshSection& Section = Sections[SectionIndex];
 		FMemory::Memcpy(DestVertex, Section.SoftVertices.GetData(), Section.SoftVertices.Num() * sizeof(FSoftSkinVertex));
@@ -2846,6 +2897,8 @@ void USkeletalMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 		FMultiComponentReregisterContext ReregisterContext(ComponentsToReregister);
 	}
 
+	UpdateUVChannelData(true);
+
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 
@@ -3262,11 +3315,17 @@ void USkeletalMesh::PostLoad()
 			// here for previous LODs
 			for (int32 CurLodIndx = LodIndex + 1; CurLodIndx < TotalLODNum; ++CurLodIndx)
 			{
-				AddBoneToReductionSetting(CurLodIndx, ThisLODInfo.RemovedBones);
+				AddBoneToReductionSetting(CurLodIndx, ThisLODInfo.RemovedBones_DEPRECATED);
 			}
 
 			// we don't apply this change here, but this will be applied when you re-gen simplygon
 			ThisLODInfo.ReductionSettings.BonesToRemove_DEPRECATED.Empty();
+		}
+
+		if (ThisLODInfo.ReductionSettings.BakePose_DEPRECATED != nullptr)
+		{
+			ThisLODInfo.BakePose = ThisLODInfo.ReductionSettings.BakePose_DEPRECATED;
+			ThisLODInfo.ReductionSettings.BakePose_DEPRECATED = nullptr;
 		}
 #endif
 	}
@@ -3305,7 +3364,16 @@ void USkeletalMesh::PostLoad()
 			}
 		}
 	}
+
+	if (GetLinkerCustomVersion(FRenderingObjectVersion::GUID) < FRenderingObjectVersion::FixedMeshUVDensity)
+	{
+		UpdateUVChannelData(true);
+	}
 #endif // WITH_EDITOR
+
+	// init morph targets. 
+	// should do this before InitResource, so that we clear invalid morphtargets
+	InitMorphTargets();
 
 	// initialize rendering resources
 	if (FApp::CanEverRender())
@@ -3319,9 +3387,6 @@ void USkeletalMesh::PostLoad()
 	}
 
 	CalculateInvRefMatrices();
-
-	// init morph targets
-	InitMorphTargets();
 
 	// validate influences for existing clothing
 	if(FSkeletalMeshResource* SkelResource = GetImportedResource())
@@ -3612,6 +3677,9 @@ void USkeletalMesh::RegisterMorphTarget(UMorphTarget* MorphTarget)
 			MorphTarget->BaseSkelMesh->UnregisterMorphTarget(MorphTarget);
 		}
 
+		// if the input morphtarget doesn't have valid data, do not add to the base morphtarget
+		ensureMsgf(MorphTarget->HasValidData(), TEXT("RegisterMorphTarget: %s has empty data."), *MorphTarget->GetName());
+
 		MorphTarget->BaseSkelMesh = this;
 
 		bool bRegistered = false;
@@ -3672,6 +3740,14 @@ void USkeletalMesh::InitMorphTargets()
 	for (int32 Index = 0; Index < MorphTargets.Num(); ++Index)
 	{
 		UMorphTarget* MorphTarget = MorphTargets[Index];
+		// if we don't have a valid data, just remove it
+		if (!MorphTarget->HasValidData())
+		{
+			MorphTargets.RemoveAt(Index);
+			--Index;
+			continue;
+		}
+
 		FName const ShapeName = MorphTarget->GetFName();
 		if (MorphTargetIndexMap.Find(ShapeName) == nullptr)
 		{
@@ -4605,7 +4681,7 @@ void USkeletalMesh::AddBoneToReductionSetting(int32 LODIndex, const TArray<FName
 	{
 		for (auto& BoneName : BoneNames)
 		{
-			LODInfo[LODIndex].RemovedBones.AddUnique(BoneName);
+			LODInfo[LODIndex].BonesToRemove.AddUnique(BoneName);
 		}
 	}
 }
@@ -4613,7 +4689,7 @@ void USkeletalMesh::AddBoneToReductionSetting(int32 LODIndex, FName BoneName)
 {
 	if (LODInfo.IsValidIndex(LODIndex))
 	{
-		LODInfo[LODIndex].RemovedBones.AddUnique(BoneName);
+		LODInfo[LODIndex].BonesToRemove.AddUnique(BoneName);
 	}
 }
 #endif // WITH_EDITOR
@@ -4696,19 +4772,22 @@ USkeletalMeshSocket::USkeletalMeshSocket(const FObjectInitializer& ObjectInitial
 
 void USkeletalMeshSocket::InitializeSocketFromLocation(const class USkeletalMeshComponent* SkelComp, FVector WorldLocation, FVector WorldNormal)
 {
-	BoneName = SkelComp->FindClosestBone(WorldLocation);
-	if( BoneName != NAME_None )
+	if (ensureAsRuntimeWarning(SkelComp))
 	{
-		SkelComp->TransformToBoneSpace(BoneName, WorldLocation, WorldNormal.Rotation(), RelativeLocation, RelativeRotation);
+		BoneName = SkelComp->FindClosestBone(WorldLocation);
+		if (BoneName != NAME_None)
+		{
+			SkelComp->TransformToBoneSpace(BoneName, WorldLocation, WorldNormal.Rotation(), RelativeLocation, RelativeRotation);
+		}
 	}
 }
 
 FVector USkeletalMeshSocket::GetSocketLocation(const class USkeletalMeshComponent* SkelComp) const
 {
-	if( SkelComp )
+	if (ensureAsRuntimeWarning(SkelComp))
 	{
 		FMatrix SocketMatrix;
-		if( GetSocketMatrix(SocketMatrix, SkelComp) )
+		if (GetSocketMatrix(SocketMatrix, SkelComp))
 		{
 			return SocketMatrix.GetOrigin();
 		}
@@ -4721,7 +4800,7 @@ FVector USkeletalMeshSocket::GetSocketLocation(const class USkeletalMeshComponen
 
 bool USkeletalMeshSocket::GetSocketMatrix(FMatrix& OutMatrix, const class USkeletalMeshComponent* SkelComp) const
 {
-	int32 BoneIndex = SkelComp->GetBoneIndex(BoneName);
+	const int32 BoneIndex = SkelComp ? SkelComp->GetBoneIndex(BoneName) : INDEX_NONE;
 	if(BoneIndex != INDEX_NONE)
 	{
 		FMatrix BoneMatrix = SkelComp->GetBoneMatrix(BoneIndex);
@@ -4742,7 +4821,7 @@ FTransform USkeletalMeshSocket::GetSocketTransform(const class USkeletalMeshComp
 {
 	FTransform OutTM;
 
-	int32 BoneIndex = SkelComp->GetBoneIndex(BoneName);
+	const int32 BoneIndex = SkelComp ? SkelComp->GetBoneIndex(BoneName) : INDEX_NONE;
 	if(BoneIndex != INDEX_NONE)
 	{
 		FTransform BoneTM = SkelComp->GetBoneTransform(BoneIndex);
@@ -4755,7 +4834,7 @@ FTransform USkeletalMeshSocket::GetSocketTransform(const class USkeletalMeshComp
 
 bool USkeletalMeshSocket::GetSocketMatrixWithOffset(FMatrix& OutMatrix, class USkeletalMeshComponent* SkelComp, const FVector& InOffset, const FRotator& InRotation) const
 {
-	int32 BoneIndex = SkelComp->GetBoneIndex(BoneName);
+	const int32 BoneIndex = SkelComp ? SkelComp->GetBoneIndex(BoneName) : INDEX_NONE;
 	if(BoneIndex != INDEX_NONE)
 	{
 		FMatrix BoneMatrix = SkelComp->GetBoneMatrix(BoneIndex);
@@ -4771,7 +4850,7 @@ bool USkeletalMeshSocket::GetSocketMatrixWithOffset(FMatrix& OutMatrix, class US
 
 bool USkeletalMeshSocket::GetSocketPositionWithOffset(FVector& OutPosition, class USkeletalMeshComponent* SkelComp, const FVector& InOffset, const FRotator& InRotation) const
 {
-	int32 BoneIndex = SkelComp->GetBoneIndex(BoneName);
+	const int32 BoneIndex = SkelComp ? SkelComp->GetBoneIndex(BoneName) : INDEX_NONE;
 	if(BoneIndex != INDEX_NONE)
 	{
 		FMatrix BoneMatrix = SkelComp->GetBoneMatrix(BoneIndex);
@@ -4796,28 +4875,30 @@ bool USkeletalMeshSocket::GetSocketPositionWithOffset(FVector& OutPosition, clas
 bool USkeletalMeshSocket::AttachActor(AActor* Actor, class USkeletalMeshComponent* SkelComp) const
 {
 	bool bAttached = false;
-
-	// Don't support attaching to own socket
-	if (Actor != SkelComp->GetOwner() && Actor->GetRootComponent())
+	if (ensureAlways(SkelComp))
 	{
-		FMatrix SocketTM;
-		if( GetSocketMatrix( SocketTM, SkelComp ) )
+		// Don't support attaching to own socket
+		if ((Actor != SkelComp->GetOwner()) && Actor->GetRootComponent())
 		{
-			Actor->Modify();
-
-			Actor->SetActorLocation(SocketTM.GetOrigin(), false);
-			Actor->SetActorRotation(SocketTM.Rotator());
-			Actor->GetRootComponent()->SnapTo( SkelComp, SocketName );
-
-#if WITH_EDITOR
-			if (GIsEditor)
+			FMatrix SocketTM;
+			if (GetSocketMatrix(SocketTM, SkelComp))
 			{
-				Actor->PreEditChange(NULL);
-				Actor->PostEditChange();
-			}
-#endif // WITH_EDITOR
+				Actor->Modify();
 
-			bAttached = true;
+				Actor->SetActorLocation(SocketTM.GetOrigin(), false);
+				Actor->SetActorRotation(SocketTM.Rotator());
+				Actor->GetRootComponent()->AttachToComponent(SkelComp, FAttachmentTransformRules::SnapToTargetNotIncludingScale, SocketName);
+
+	#if WITH_EDITOR
+				if (GIsEditor)
+				{
+					Actor->PreEditChange(NULL);
+					Actor->PostEditChange();
+				}
+	#endif // WITH_EDITOR
+
+				bAttached = true;
+			}
 		}
 	}
 	return bAttached;
@@ -5126,7 +5207,7 @@ public:
 			if (ActualPreviewSectionIdx != INDEX_NONE && Sections.IsValidIndex(ActualPreviewSectionIdx))
 			{
 				const FSkelMeshSection& PreviewSection = Sections[ActualPreviewSectionIdx];
-				if (PreviewSection.CorrespondClothSectionIndex != INDEX_NONE)
+				if (PreviewSection.bDisabled && PreviewSection.CorrespondClothSectionIndex != INDEX_NONE)
 				{
 					ActualPreviewSectionIdx = PreviewSection.CorrespondClothSectionIndex;
 				}
@@ -5149,7 +5230,7 @@ public:
 				if (ActualPreviewSectionIdx != INDEX_NONE)
 				{
 					const FSkelMeshSection& PreviewSection = Sections[ActualPreviewSectionIdx];
-					if (PreviewSection.CorrespondClothSectionIndex != INDEX_NONE)
+					if (PreviewSection.bDisabled && PreviewSection.CorrespondClothSectionIndex != INDEX_NONE)
 					{
 						ActualPreviewSectionIdx = PreviewSection.CorrespondClothSectionIndex;
 					}
@@ -5255,6 +5336,19 @@ void FSkeletalMeshSceneProxy::GetMeshElementsConditionallySelectable(const TArra
 
 		check(LODSection.SectionElements.Num() == LODModel.Sections.Num());
 
+#if WITH_EDITORONLY_DATA
+		//Find the real editor selected section
+		int32 RealSelectedEditorSection = SkeletalMeshForDebug->SelectedEditorSection;
+		if (RealSelectedEditorSection != INDEX_NONE && LODModel.Sections.IsValidIndex(SkeletalMeshForDebug->SelectedEditorSection))
+		{
+			const FSkelMeshSection& SelectEditorSection = LODModel.Sections[SkeletalMeshForDebug->SelectedEditorSection];
+			if (SelectEditorSection.bDisabled && SelectEditorSection.CorrespondClothSectionIndex != INDEX_NONE && LODModel.Sections.IsValidIndex(SelectEditorSection.CorrespondClothSectionIndex))
+			{
+				RealSelectedEditorSection = SelectEditorSection.CorrespondClothSectionIndex;
+			}
+		}
+#endif
+
 		for (FSkeletalMeshSectionIter Iter(LODIndex, *MeshObject, LODModel, LODSection); Iter; ++Iter)
 		{
 			const FSkelMeshSection& Section = Iter.GetSection();
@@ -5272,7 +5366,7 @@ void FSkeletalMeshSceneProxy::GetMeshElementsConditionallySelectable(const TArra
 			}
 			else
 			{
-				bSectionSelected = (SkeletalMeshForDebug->SelectedEditorSection == Iter.GetSectionElementIndex());
+				bSectionSelected = (RealSelectedEditorSection == SectionIndex);
 			}
 			
 #endif
@@ -5302,7 +5396,7 @@ void FSkeletalMeshSceneProxy::GetMeshElementsConditionallySelectable(const TArra
 				DebugDrawPhysicsAsset(ViewIndex, Collector, ViewFamily.EngineShowFlags);
 			}
 
-			if (EngineShowFlags.MassProperties && DebugMassData.Num() > 0 && MeshObject)
+			if (EngineShowFlags.MassProperties && DebugMassData.Num() > 0)
 			{
 				FPrimitiveDrawInterface* PDI = Collector.GetPDI(ViewIndex);
 				const TArray<FTransform>& ComponentSpaceTransforms = *MeshObject->GetComponentSpaceTransforms();
@@ -5320,6 +5414,11 @@ void FSkeletalMeshSceneProxy::GetMeshElementsConditionallySelectable(const TArra
 			if (ViewFamily.EngineShowFlags.SkeletalMeshes)
 			{
 				RenderBounds(Collector.GetPDI(ViewIndex), ViewFamily.EngineShowFlags, GetBounds(), IsSelected());
+			}
+
+			if (ViewFamily.EngineShowFlags.Bones)
+			{
+				DebugDrawSkeleton(ViewIndex, Collector, ViewFamily.EngineShowFlags);
 			}
 		}
 	}
@@ -5454,43 +5553,47 @@ void FSkeletalMeshSceneProxy::GetDynamicElementsSection(const TArray<const FScen
 					}
 				}
 			}
-
-			if (ViewFamily.EngineShowFlags.VertexColors && AllowDebugViewmodes())
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+			if (bIsSelected)
 			{
-				// Override the mesh's material with our material that draws the vertex colors
-				UMaterial* VertexColorVisualizationMaterial = NULL;
-				switch (GVertexColorViewMode)
+				if (ViewFamily.EngineShowFlags.VertexColors && AllowDebugViewmodes())
 				{
-				case EVertexColorViewMode::Color:
-					VertexColorVisualizationMaterial = GEngine->VertexColorViewModeMaterial_ColorOnly;
-					break;
+					// Override the mesh's material with our material that draws the vertex colors
+					UMaterial* VertexColorVisualizationMaterial = NULL;
+					switch (GVertexColorViewMode)
+					{
+					case EVertexColorViewMode::Color:
+						VertexColorVisualizationMaterial = GEngine->VertexColorViewModeMaterial_ColorOnly;
+						break;
 
-				case EVertexColorViewMode::Alpha:
-					VertexColorVisualizationMaterial = GEngine->VertexColorViewModeMaterial_AlphaAsColor;
-					break;
+					case EVertexColorViewMode::Alpha:
+						VertexColorVisualizationMaterial = GEngine->VertexColorViewModeMaterial_AlphaAsColor;
+						break;
 
-				case EVertexColorViewMode::Red:
-					VertexColorVisualizationMaterial = GEngine->VertexColorViewModeMaterial_RedOnly;
-					break;
+					case EVertexColorViewMode::Red:
+						VertexColorVisualizationMaterial = GEngine->VertexColorViewModeMaterial_RedOnly;
+						break;
 
-				case EVertexColorViewMode::Green:
-					VertexColorVisualizationMaterial = GEngine->VertexColorViewModeMaterial_GreenOnly;
-					break;
+					case EVertexColorViewMode::Green:
+						VertexColorVisualizationMaterial = GEngine->VertexColorViewModeMaterial_GreenOnly;
+						break;
 
-				case EVertexColorViewMode::Blue:
-					VertexColorVisualizationMaterial = GEngine->VertexColorViewModeMaterial_BlueOnly;
-					break;
+					case EVertexColorViewMode::Blue:
+						VertexColorVisualizationMaterial = GEngine->VertexColorViewModeMaterial_BlueOnly;
+						break;
+					}
+					check(VertexColorVisualizationMaterial != NULL);
+
+					auto VertexColorVisualizationMaterialInstance = new FColoredMaterialRenderProxy(
+						VertexColorVisualizationMaterial->GetRenderProxy(Mesh.MaterialRenderProxy->IsSelected(), Mesh.MaterialRenderProxy->IsHovered()),
+						GetSelectionColor(FLinearColor::White, bSectionSelected, IsHovered())
+					);
+
+					Collector.RegisterOneFrameMaterialProxy(VertexColorVisualizationMaterialInstance);
+					Mesh.MaterialRenderProxy = VertexColorVisualizationMaterialInstance;
 				}
-				check(VertexColorVisualizationMaterial != NULL);
-
-				auto VertexColorVisualizationMaterialInstance = new FColoredMaterialRenderProxy(
-					VertexColorVisualizationMaterial->GetRenderProxy(Mesh.MaterialRenderProxy->IsSelected(), Mesh.MaterialRenderProxy->IsHovered()),
-					GetSelectionColor(FLinearColor::White, bSectionSelected, IsHovered())
-				);
-
-				Collector.RegisterOneFrameMaterialProxy(VertexColorVisualizationMaterialInstance);
-				Mesh.MaterialRenderProxy = VertexColorVisualizationMaterialInstance;
 			}
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 #endif // WITH_EDITORONLY_DATA
 
 			BatchElement.MinVertexIndex = Section.BaseVertexIndex;
@@ -5638,6 +5741,64 @@ void FSkeletalMeshSceneProxy::DebugDrawPhysicsAsset(int32 ViewIndex, FMeshElemen
 			if (EngineShowFlags.Constraints)
 			{
 				PhysicsAssetForDebug->DrawConstraints(ViewIndex, Collector, SkeletalMeshForDebug, *BoneSpaceBases, LocalToWorldTransform, TotalScale.X);
+			}
+		}
+	}
+}
+
+void FSkeletalMeshSceneProxy::DebugDrawSkeleton(int32 ViewIndex, FMeshElementCollector& Collector, const FEngineShowFlags& EngineShowFlags) const
+{
+	FMatrix ProxyLocalToWorld, WorldToLocal;
+	if (!GetWorldMatrices(ProxyLocalToWorld, WorldToLocal))
+	{
+		return; // Cannot draw this, world matrix not valid
+	}
+
+	FTransform LocalToWorldTransform(ProxyLocalToWorld);
+
+	auto MakeRandomColorForSkeleton = [](uint32 InUID)
+	{
+		FRandomStream Stream((int32)InUID);
+		const uint8 Hue = (uint8)(Stream.FRand()*255.f);
+		return FLinearColor::FGetHSV(Hue, 0, 255);
+	};
+
+	FPrimitiveDrawInterface* PDI = Collector.GetPDI(ViewIndex);
+	TArray<FTransform>& ComponentSpaceTransforms = *MeshObject->GetComponentSpaceTransforms();
+
+	for (int32 Index = 0; Index < ComponentSpaceTransforms.Num(); ++Index)
+	{
+		const int32 ParentIndex = SkeletalMeshForDebug->RefSkeleton.GetParentIndex(Index);
+		FVector Start, End;
+		
+		FLinearColor LineColor = MakeRandomColorForSkeleton(GetPrimitiveComponentId().PrimIDValue);
+		const FTransform Transform = ComponentSpaceTransforms[Index] * LocalToWorldTransform;
+
+		if (ParentIndex >= 0)
+		{
+			Start = (ComponentSpaceTransforms[ParentIndex] * LocalToWorldTransform).GetLocation();
+			End = Transform.GetLocation();
+		}
+		else
+		{
+			Start = LocalToWorldTransform.GetLocation();
+			End = Transform.GetLocation();
+		}
+
+		if(EngineShowFlags.Bones)
+		{
+			if(CVarDebugDrawSimpleBones.GetValueOnRenderThread() != 0)
+			{
+				PDI->DrawLine(Start, End, LineColor, SDPG_Foreground, 0.0f, 1.0f);
+			}
+			else
+			{
+				SkeletalDebugRendering::DrawWireBone(PDI, Start, End, LineColor, SDPG_Foreground);
+			}
+
+			if(CVarDebugDrawBoneAxes.GetValueOnRenderThread() != 0)
+			{
+				SkeletalDebugRendering::DrawAxes(PDI, Transform, SDPG_Foreground);
 			}
 		}
 	}

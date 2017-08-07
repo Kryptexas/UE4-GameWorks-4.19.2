@@ -9,7 +9,6 @@ DEFINE_LOG_CATEGORY_STATIC(LogTimeGuard, Log, All);
 
 TMap<const TCHAR*, FLightweightTimeGuard::FGuardInfo>  FLightweightTimeGuard::HitchData;
 bool FLightweightTimeGuard::bEnabled;
-double FLightweightTimeGuard::LastHitchTime;
 float FLightweightTimeGuard::FrameTimeThresholdMS = 1000.0 / 30.0;
 FCriticalSection FLightweightTimeGuard::ReportMutex;
 
@@ -27,8 +26,6 @@ void FLightweightTimeGuard::ClearData()
 {
 	FScopeLock Lock(&ReportMutex);
 	HitchData.Empty();
-	// don't capture any hitches immediately
-	LastHitchTime = FPlatformTime::Seconds();
 }
 
 void FLightweightTimeGuard::GetData(TMap<const TCHAR*, FGuardInfo>& Dest)
@@ -39,16 +36,6 @@ void FLightweightTimeGuard::GetData(TMap<const TCHAR*, FGuardInfo>& Dest)
 
 void FLightweightTimeGuard::ReportHitch(const TCHAR* InName, const float TimeMS)
 {
-	const double kHitchDebounceTime = 2.0;
-
-	// Don't report hitches that occur in the same 5sec window. This will also stop
-	// the outer scope of nested checks reporting
-	const double TimeNow = FPlatformTime::Seconds();
-	if (TimeNow < LastHitchTime + kHitchDebounceTime)
-	{
-		return;
-	}
-
 	FScopeLock lock(&ReportMutex);
 
 	FGuardInfo& Data = HitchData.FindOrAdd(InName);
@@ -63,8 +50,6 @@ void FLightweightTimeGuard::ReportHitch(const TCHAR* InName, const float TimeMS)
 	Data.Min = FMath::Min(Data.Min, TimeMS);
 	Data.Max = FMath::Max(Data.Max, TimeMS);
 	Data.LastTime = FDateTime::UtcNow();
-
-	LastHitchTime = TimeNow;
 
 	UE_LOG(LogTimeGuard, Warning, TEXT("Detected Hitch of %0.2fms in %s"), TimeMS, InName);
 }

@@ -102,4 +102,6 @@ protected:
 
 protected:
 	TSharedPtr<SMultiLineEditableText> MyMultiLineEditableText;
+
+	PROPERTY_BINDING_IMPLEMENTATION(FText, HintText);
 };

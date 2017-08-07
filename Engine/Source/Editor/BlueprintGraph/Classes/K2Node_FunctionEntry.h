@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "K2Node_FunctionTerminator.h"
+#include "Engine/Blueprint.h"
 #include "K2Node_FunctionEntry.generated.h"
 
 class UEdGraph;
@@ -24,7 +25,7 @@ class UK2Node_FunctionEntry : public UK2Node_FunctionTerminator
 
 	/** Array of local variables to be added to generated function */
 	UPROPERTY()
-	TArray<struct FBPVariableDescription> LocalVariables;
+	TArray<FBPVariableDescription> LocalVariables;
 
 	/** Whether or not to enforce const-correctness for const function overrides */
 	UPROPERTY()
@@ -32,6 +33,7 @@ class UK2Node_FunctionEntry : public UK2Node_FunctionTerminator
 
 	//~ Begin UObject Interface
 	virtual void Serialize(FArchive& Ar) override;
+	virtual void PreSave(const class ITargetPlatform* TargetPlatform) override;
 	//~ End UObject Interface
 
 	//~ Begin UEdGraphNode Interface
@@ -53,6 +55,7 @@ class UK2Node_FunctionEntry : public UK2Node_FunctionTerminator
 
 	//~ Begin UK2Node_EditablePinBase Interface
 	virtual bool CanUseRefParams() const override { return true; }
+	virtual bool ModifyUserDefinedPinDefaultValue(TSharedPtr<FUserPinInfo> PinInfo, const FString& NewDefaultValue) override;
 	//~ End UK2Node_EditablePinBase Interface
 
 	//~ Begin K2Node_FunctionTerminator Interface

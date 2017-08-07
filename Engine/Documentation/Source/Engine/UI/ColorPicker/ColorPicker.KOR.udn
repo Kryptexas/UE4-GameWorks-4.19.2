@@ -1,50 +1,11 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3429250
 Availability: Public
 Title:색 선택기
 Crumbs:%ROOT%, Engine, Engine/UI
 Description:액터의 컬러 프로퍼티에 할당할 색을 직접 보면서 선택할 수 있는 툴입니다.
 Version: 4.9
+topic-image:Engine/UI/colorPicker_topic.png
 
-
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/UI/ColorPicker:title%](Engine/UI/colorPicker_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/ColorPicker:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/ColorPicker:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/ColorPicker]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/UI/ColorPicker:title%](Engine/UI/colorPicker_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/ColorPicker:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/ColorPicker:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/ColorPicker]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [EXCERPT:Intro]
 **색 선택기** 를 통해 언리얼 에디터에서 컬러 프로퍼티의 색 값을 쉽게 조절할 수 있습니다. 색 조절은 RGBA(Red Green Blue Alpha), HSV(hue(색상), saturation(채도), value(명도)), Hex(ARGB) 방식을 통해 가능합니다. 또다른 방법으로는 색바퀴에 있는 색을 클릭하여 선택하거나, 마우스 커서 아래 점의 색을 캡처할 수도 있습니다.

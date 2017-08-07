@@ -18,6 +18,7 @@
 #include "PostProcess/PostProcessCircleDOF.h"
 #include "ClearQuad.h"
 #include "PipelineStateCache.h"
+#include "SpriteIndexBuffer.h"
 
 const int32 GBokehDOFSetupTileSizeX = 8;
 const int32 GBokehDOFSetupTileSizeY = 8;
@@ -50,7 +51,7 @@ public:
 };
 
 /** Global Bokeh index buffer. */
-TGlobalResource< FBokehIndexBuffer > GBokehIndexBuffer;
+TGlobalResource< FSpriteIndexBuffer<8> > GBokehIndexBuffer;
 
 /** Encapsulates the post processing depth of field setup pixel shader. */
 class PostProcessVisualizeDOFPS : public FGlobalShader
@@ -151,7 +152,7 @@ public:
 
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("PostProcessVisualizeDOF");
+		return TEXT("/Engine/Private/PostProcessVisualizeDOF.usf");
 	}
 
 	static const TCHAR* GetFunctionName()
@@ -194,7 +195,7 @@ void FRCPassPostProcessVisualizeDOF::Process(FRenderingCompositePassContext& Con
 	// can be optimized (don't clear areas we overwrite, don't clear when full screen),
 	// needed when a camera (matinee) has black borders or with multiple viewports
 	// focal distance depth is stored in the alpha channel to avoid DOF artifacts
-	DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor(0, 0, 0, View.FinalPostProcessSettings.DepthOfFieldFocalDistance), false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, DestRect);
+	DrawClearQuad(Context.RHICmdList, true, FLinearColor(0, 0, 0, View.FinalPostProcessSettings.DepthOfFieldFocalDistance), false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, DestRect);
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f );
 
@@ -418,7 +419,7 @@ public:
 
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("PostProcessBokehDOF");
+		return TEXT("/Engine/Private/PostProcessBokehDOF.usf");
 	}
 
 	static const TCHAR* GetFunctionName()
@@ -495,7 +496,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FRCPassPostProcessBokehDOFSetupCS,TEXT("PostProcessBokehDOF"),TEXT("MainCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FRCPassPostProcessBokehDOFSetupCS,TEXT("/Engine/Private/PostProcessBokehDOF.usf"),TEXT("MainCS"),SF_Compute);
 
 void FRCPassPostProcessBokehDOFSetup::Process(FRenderingCompositePassContext& Context)
 {
@@ -545,7 +546,7 @@ void FRCPassPostProcessBokehDOFSetup::Process(FRenderingCompositePassContext& Co
 		// can be optimized (don't clear areas we overwrite, don't clear when full screen),
 		// needed when a camera (matinee) has black borders or with multiple viewports
 		// focal distance depth is stored in the alpha channel to avoid DOF artifacts
-		DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor(0, 0, 0, View.FinalPostProcessSettings.DepthOfFieldFocalDistance), false, 0, false, 0, DestSize, DestRect);
+		DrawClearQuad(Context.RHICmdList, true, FLinearColor(0, 0, 0, View.FinalPostProcessSettings.DepthOfFieldFocalDistance), false, 0, false, 0, DestSize, DestRect);
 
 		Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f );
 
@@ -619,6 +620,8 @@ FPooledRenderTargetDesc FRCPassPostProcessBokehDOFSetup::ComputeOutputDesc(EPass
 	Ret.DebugName = TEXT("BokehDOFSetup");
 	Ret.TargetableFlags &= ~(TexCreate_RenderTargetable | TexCreate_UAV);
 	Ret.TargetableFlags |= bIsComputePass ? TexCreate_UAV : TexCreate_RenderTargetable;
+	Ret.Flags |= GetTextureFastVRamFlag_DynamicLayout();
+
 	return Ret;
 }
 
@@ -711,7 +714,7 @@ public:
 
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("PostProcessBokehDOF");
+		return TEXT("/Engine/Private/PostProcessBokehDOF.usf");
 	}
 
 	static const TCHAR* GetFunctionName()
@@ -782,7 +785,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessBokehDOFPS,TEXT("PostProcessBokehDOF"),TEXT("MainPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FPostProcessBokehDOFPS,TEXT("/Engine/Private/PostProcessBokehDOF.usf"),TEXT("MainPS"),SF_Pixel);
 
 // #define avoids a lot of code duplication
 #define VARIATION1(A) typedef FPostProcessBokehDOFVS<A> FPostProcessBokehDOFVS##A; \
@@ -886,7 +889,7 @@ void FRCPassPostProcessBokehDOF::Process(FRenderingCompositePassContext& Context
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 
 	// This clean is required to make the accumulation working
-	DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor(0, 0, 0, 0), false, 0, false, 0, GetOutput(ePId_Output0)->RenderTargetDesc.Extent, FIntRect());
+	DrawClearQuad(Context.RHICmdList, true, FLinearColor(0, 0, 0, 0), false, 0, false, 0, GetOutput(ePId_Output0)->RenderTargetDesc.Extent, FIntRect());
 
 	// we need to output to the whole rendertarget
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, PassOutputs[0].RenderTargetDesc.Extent.X, PassOutputs[0].RenderTargetDesc.Extent.Y, 1.0f);
@@ -951,6 +954,7 @@ FPooledRenderTargetDesc FRCPassPostProcessBokehDOF::ComputeOutputDesc(EPassOutpu
 	uint32 FullRes = FSceneRenderTargets::Get_FrameConstantsOnly().GetBufferSizeXY().Y;
 	uint32 HalfRes = FMath::DivideAndRoundUp(FullRes, (uint32)2);
 
+	Ret.Flags |= GetTextureFastVRamFlag_DynamicLayout();
 	// we need space for the front part and the back part
 	Ret.Extent.Y = HalfRes * 2 + SafetyBorder;
 	Ret.DebugName = TEXT("BokehDOF");

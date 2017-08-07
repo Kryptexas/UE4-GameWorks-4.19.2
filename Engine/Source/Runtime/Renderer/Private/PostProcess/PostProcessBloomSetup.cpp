@@ -78,7 +78,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessBloomSetupPS,TEXT("PostProcessBloom"),TEXT("MainPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FPostProcessBloomSetupPS,TEXT("/Engine/Private/PostProcessBloom.usf"),TEXT("MainPS"),SF_Pixel);
 
 
 /** Encapsulates the post processing bloom setup vertex shader. */
@@ -138,7 +138,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessBloomSetupVS,TEXT("PostProcessBloom"),TEXT("MainVS"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(,FPostProcessBloomSetupVS,TEXT("/Engine/Private/PostProcessBloom.usf"),TEXT("MainVS"),SF_Vertex);
 
 /** Encapsulates the post processing bloom threshold compute shader. */
 class FPostProcessBloomSetupCS : public FGlobalShader
@@ -209,7 +209,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessBloomSetupCS,TEXT("PostProcessBloom"),TEXT("MainCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FPostProcessBloomSetupCS,TEXT("/Engine/Private/PostProcessBloom.usf"),TEXT("MainCS"),SF_Compute);
 
 void FRCPassPostProcessBloomSetup::Process(FRenderingCompositePassContext& Context)
 {
@@ -287,7 +287,7 @@ void FRCPassPostProcessBloomSetup::Process(FRenderingCompositePassContext& Conte
 		SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 
 		// is optimized away if possible (RT size=view size, )
-		DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor::Black, false, 0, false, 0, DestSize, DestRect);
+		DrawClearQuad(Context.RHICmdList, true, FLinearColor::Black, false, 0, false, 0, DestSize, DestRect);
 
 		Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f );
 
@@ -404,7 +404,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessVisualizeBloomSetupPS,TEXT("PostProcessBloom"),TEXT("VisualizeBloomSetupPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FPostProcessVisualizeBloomSetupPS,TEXT("/Engine/Private/PostProcessBloom.usf"),TEXT("VisualizeBloomSetupPS"),SF_Pixel);
 
 
 
@@ -434,7 +434,7 @@ void FRCPassPostProcessVisualizeBloomSetup::Process(FRenderingCompositePassConte
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 
 	// is optimized away if possible (RT size=view size, )
-	DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor(0, 0, 0, 0), false, 0, false, 0, DestSize, DestRect);
+	DrawClearQuad(Context.RHICmdList, true, FLinearColor(0, 0, 0, 0), false, 0, false, 0, DestSize, DestRect);
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DestRect.Width(), DestRect.Height(), 1.0f );
 
@@ -548,7 +548,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessVisualizeBloomOverlayPS,TEXT("PostProcessBloom"),TEXT("VisualizeBloomOverlayPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FPostProcessVisualizeBloomOverlayPS,TEXT("/Engine/Private/PostProcessBloom.usf"),TEXT("VisualizeBloomOverlayPS"),SF_Pixel);
 
 
 
@@ -578,7 +578,7 @@ void FRCPassPostProcessVisualizeBloomOverlay::Process(FRenderingCompositePassCon
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 
 	// is optimized away if possible (RT size=view size, )
-	DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor(0, 0, 0 ,0), false, 0, false, 0, DestSize, DestRect);
+	DrawClearQuad(Context.RHICmdList, true, FLinearColor(0, 0, 0 ,0), false, 0, false, 0, DestSize, DestRect);
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DestRect.Width(), DestRect.Height(), 1.0f );
 

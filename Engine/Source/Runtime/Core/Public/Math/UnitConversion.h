@@ -49,17 +49,20 @@ enum class EUnit : uint8
 	/** Time units */
 	Milliseconds, Seconds, Minutes, Hours, Days, Months, Years,
 
+	/** Pixel density units */
+	PixelsPerInch,
+
 	/** Arbitrary multiplier */
 	Multiplier,
 
-	/** Symbolic entry, not specifyable on meta data */
+	/** Symbolic entry, not specifiable on meta data */
 	Unspecified
 };
 
 /** Enumeration that specifies particular classes of unit */
 enum class EUnitType
 {
-	Distance, Angle, Speed, Temperature, Mass, Force, Frequency, DataSize, LuminousFlux, Time, Arbitrary,
+	Distance, Angle, Speed, Temperature, Mass, Force, Frequency, DataSize, LuminousFlux, Time, PixelDensity, Arbitrary,
 
 	// Symbolic entry - do not use directly
 	NumberOf,

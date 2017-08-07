@@ -78,6 +78,12 @@ public:
 		/** Callback to get the current FVector4 value */
 		SLATE_EVENT(FOnGetCurrentVector4Value, OnQueryCurrentColor)
 
+		/** Called right before the slider begins to move */
+		SLATE_EVENT(FSimpleDelegate, OnBeginSliderMovement)
+
+		/** Called right after the slider handle is released by the user */
+		SLATE_EVENT(FSimpleDelegate, OnEndSliderMovement)
+
 	SLATE_END_ARGS()
 
 	/**	Destructor. */
@@ -107,6 +113,8 @@ protected:
 
 	TOptional<float> OnGetMainValue() const;
 	void OnMainValueChanged(float InValue, bool ShouldCommitValueChanges);
+	void OnMainValueCommitted(float InValue, ETextCommit::Type CommitType);
+
 	FLinearColor GetCurrentLinearColor();
 
 	bool IsEntryBoxEnabled() const;
@@ -136,4 +144,7 @@ protected:
 	FOnGetCurrentVector4Value OnQueryCurrentColor;
 	FOnNumericEntryBoxDynamicSliderMinMaxValueChanged OnNumericEntryBoxDynamicSliderMaxValueChanged;
 	FOnNumericEntryBoxDynamicSliderMinMaxValueChanged OnNumericEntryBoxDynamicSliderMinValueChanged;
+
+	FSimpleDelegate ExternalBeginSliderMovementDelegate;
+	FSimpleDelegate ExternalEndSliderMovementDelegate;
 };

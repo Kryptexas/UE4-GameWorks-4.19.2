@@ -91,7 +91,7 @@ void SProfilerMiniView::Tick( const FGeometry& AllottedGeometry, const double In
 	}
 }
 
-int32 SProfilerMiniView::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SProfilerMiniView::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 //	SCOPE_LOG_TIME_FUNC();
 
@@ -101,7 +101,7 @@ int32 SProfilerMiniView::OnPaint( const FPaintArgs& Args, const FGeometry& Allot
 	const FSlateBrush* MiniViewArea = FEditorStyle::GetBrush( "Profiler.LineGraphArea" );
 	const FSlateBrush* WhiteBrush = FEditorStyle::GetBrush( "WhiteTexture" );
 
-	PaintState = new((void*)PaintStateMemory) FSlateOnPaintState( AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, DrawEffects );
+	PaintState = new((void*)PaintStateMemory) FSlateOnPaintState( AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, DrawEffects );
 
 	const float MiniViewSizeX = AllottedGeometry.Size.X;
 	const float MiniViewSizeY = AllottedGeometry.Size.Y;
@@ -117,7 +117,6 @@ int32 SProfilerMiniView::OnPaint( const FPaintArgs& Args, const FGeometry& Allot
 		LayerId,
 		AllottedGeometry.ToPaintGeometry( FVector2D( 0, 0 ), FVector2D( MiniViewSizeX, AllottedGeometry.Size.Y ) ),
 		MiniViewArea,
-		MyClippingRect,
 		DrawEffects,
 		MiniViewArea->GetTint( InWidgetStyle ) * InWidgetStyle.GetColorAndOpacityTint()
 	);
@@ -154,7 +153,6 @@ int32 SProfilerMiniView::OnPaint( const FPaintArgs& Args, const FGeometry& Allot
 				LayerId,
 				AllottedGeometry.ToPaintGeometry( FVector2D( DestSamplePosX0, MiniViewSizeY - GTSizeY ), FVector2D( DestSampleSizeX, GTSizeY ) ),
 				&SolidWhiteBrush,
-				MyClippingRect,
 				DrawEffects,
 				GameThreadColor
 			);
@@ -166,7 +164,6 @@ int32 SProfilerMiniView::OnPaint( const FPaintArgs& Args, const FGeometry& Allot
 				LayerId,
 				AllottedGeometry.ToPaintGeometry( FVector2D( DestSamplePosX0, MiniViewSizeY - GTSizeY - RTSizeY ), FVector2D( DestSampleSizeX, RTSizeY ) ),
 				&SolidWhiteBrush,
-				MyClippingRect,
 				DrawEffects,
 				RenderThreadColor
 			);
@@ -180,7 +177,6 @@ int32 SProfilerMiniView::OnPaint( const FPaintArgs& Args, const FGeometry& Allot
 				LayerId,
 				AllottedGeometry.ToPaintGeometry( FVector2D( DestSamplePosX, MiniViewSizeY - AllSizeY ), FVector2D( DestSampleSizeX, OtherSizeY ) ),
 				&SolidWhiteBrush,
-				MyClippingRect,
 				DrawEffects,
 				OtherThreadsColor
 			);
@@ -206,7 +202,6 @@ int32 SProfilerMiniView::OnPaint( const FPaintArgs& Args, const FGeometry& Allot
 				LayerId,
 				AllottedGeometry.ToPaintGeometry( FVector2D( 0.0f, 0.0f ), FVector2D( (float)SelectionBoxX0, AllottedGeometry.Size.Y ) ),
 				&SolidWhiteBrush,
-				MyClippingRect,
 				DrawEffects,
 				FColorList::Grey.WithAlpha( 192 )
 			);
@@ -220,7 +215,6 @@ int32 SProfilerMiniView::OnPaint( const FPaintArgs& Args, const FGeometry& Allot
 				LayerId,
 				AllottedGeometry.ToPaintGeometry( FVector2D( SelectionBoxX1, 0.0f ), FVector2D( MiniViewSizeX - SelectionBoxX1, AllottedGeometry.Size.Y ) ),
 				&SolidWhiteBrush,
-				MyClippingRect,
 				DrawEffects,
 				FColorList::Grey.WithAlpha( 192 )
 			);
@@ -237,7 +231,6 @@ int32 SProfilerMiniView::OnPaint( const FPaintArgs& Args, const FGeometry& Allot
 				LayerId,
 				AllottedGeometry.ToPaintGeometry( FVector2D( FillerPosX0, 0.0f ), FVector2D( FillerSizeX + 1.0f, AllottedGeometry.Size.Y ) ),
 				&SolidWhiteBrush,
-				MyClippingRect,
 				DrawEffects,
 				// #Profiler: 2014-04-09 How to get this color from Slate?
 				FColor(96,96,96)
@@ -252,7 +245,6 @@ int32 SProfilerMiniView::OnPaint( const FPaintArgs& Args, const FGeometry& Allot
 			LayerId,
 			AllottedGeometry.ToPaintGeometry( FVector2D( SelectionBoxX0, 0.0f ), FVector2D( SelectionBoxX1 - SelectionBoxX0, AllottedGeometry.Size.Y ) ),
 			FEditorStyle::GetBrush( "PlainBorder" ),
-			MyClippingRect,
 			DrawEffects,
 			FColorList::Green
 		);
@@ -295,7 +287,7 @@ int32 SProfilerMiniView::OnPaint( const FPaintArgs& Args, const FGeometry& Allot
 		AllottedGeometry.ToOffsetPaintGeometry( FVector2D( 16.0f, GraphDescPosY ) ),
 		FString::Printf( TEXT( "SelectionBox FrameStart=%4i, FrameEnd=%4i (%3i) Hovered=%4i, NumPixelsPerSample=%2.1f" ), SelectionBoxFrameStart, SelectionBoxFrameEnd, SelectionBoxFrameEnd - SelectionBoxFrameStart, HoveredFrameIndex, GetNumPixelsPerSample() ),
 		SummaryFont,
-		MyClippingRect,
+		MyCullingRect,
 		DrawEffects,
 		FLinearColor::White
 	);
@@ -308,7 +300,7 @@ int32 SProfilerMiniView::OnPaint( const FPaintArgs& Args, const FGeometry& Allot
 		AllottedGeometry.ToOffsetPaintGeometry( FVector2D( 16.0f, GraphDescPosY ) ),
 		FString::Printf( TEXT( "AllFrames=%4i, MiniViewSamples=%3i, MaxFrameTime=%2.0f DistanceDragged=%2.0f" ), AllFrames.Num(), MiniViewSamples.Num(), MaxFrameTime, DistanceDragged ),
 		SummaryFont,
-		MyClippingRect,
+		MyCullingRect,
 		DrawEffects,
 		FLinearColor::White
 	);
@@ -321,7 +313,7 @@ int32 SProfilerMiniView::OnPaint( const FPaintArgs& Args, const FGeometry& Allot
 		AllottedGeometry.ToOffsetPaintGeometry( FVector2D( 16.0f, GraphDescPosY ) ),
 		FString::Printf( TEXT( "bCanBeStartD=%1i, bCanBeEndD=%1i" ), (int32)bCanBeStartDragged, (int32)bCanBeEndDragged ),
 		SummaryFont,
-		MyClippingRect,
+		MyCullingRect,
 		DrawEffects,
 		FLinearColor::White
 	);
@@ -329,7 +321,7 @@ int32 SProfilerMiniView::OnPaint( const FPaintArgs& Args, const FGeometry& Allot
 
 #endif // DEBUG_PROFILER_PERFORMANCE
 
-	return SCompoundWidget::OnPaint( Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled && IsEnabled() );
+	return SCompoundWidget::OnPaint( Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled && IsEnabled() );
 }
 
 
@@ -344,7 +336,6 @@ void SProfilerMiniView::DrawText( const FString& Text, const FSlateFontInfo& Fon
 			PaintState->AllottedGeometry.ToOffsetPaintGeometry( Position + ShadowOffset ),
 			Text,
 			FontInfo,
-			PaintState->MyClippingRect,
 			PaintState->DrawEffects,
 			ShadowColor
 		);
@@ -357,7 +348,6 @@ void SProfilerMiniView::DrawText( const FString& Text, const FSlateFontInfo& Fon
 		PaintState->AllottedGeometry.ToOffsetPaintGeometry( Position ),
 		Text,
 		FontInfo,
-		PaintState->MyClippingRect,
 		PaintState->DrawEffects,
 		TextColor
 	);

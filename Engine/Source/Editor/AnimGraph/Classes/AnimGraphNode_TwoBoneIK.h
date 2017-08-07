@@ -24,6 +24,10 @@ class UAnimGraphNode_TwoBoneIK : public UAnimGraphNode_SkeletalControlBase
 	UPROPERTY(EditAnywhere, Category=Settings)
 	FAnimNode_TwoBoneIK Node;
 
+	/** Enable drawing of the debug information of the node */
+	UPROPERTY(EditAnywhere, Category=Debug)
+	bool bEnableDebugDraw;
+
 	// just for refreshing UIs when bone space was changed
 	static TSharedPtr<class FTwoBoneIKDelegate> TwoBoneIKDelegate;
 
@@ -52,6 +56,7 @@ public:
 
 protected:
 	// UAnimGraphNode_SkeletalControlBase interface
+	virtual void Draw(FPrimitiveDrawInterface* PDI, USkeletalMeshComponent* SkelMeshComp) const override;
 	virtual FText GetControllerDescription() const override;
 	// End of UAnimGraphNode_SkeletalControlBase interface
 

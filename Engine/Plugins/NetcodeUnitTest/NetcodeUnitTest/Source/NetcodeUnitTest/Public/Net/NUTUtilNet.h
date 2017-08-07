@@ -13,6 +13,7 @@ class APlayerController;
 class FInBunch;
 class FInternetAddr;
 class FOutBunch;
+class UMinimalClient;
 class UNetConnection;
 class UNetDriver;
 class UUnitTestChannel;
@@ -34,7 +35,9 @@ public:
 	 * Base constructor
 	 */
 	FSocketHook()
-		: bLastSendToBlocked(false)
+		: MinClient(nullptr)
+		, SendToDel()
+		, bLastSendToBlocked(false)
 		, HookedSocket(nullptr)
 	{
 	}
@@ -45,6 +48,8 @@ public:
 	FSocketHook(FSocket* InHookedSocket)
 		: FSocket((InHookedSocket != nullptr ? InHookedSocket->GetSocketType() : ESocketType::SOCKTYPE_Datagram),
 					(InHookedSocket != nullptr ? InHookedSocket->GetDescription() + TEXT(" (hooked)") : TEXT("(hooked)")))
+		, MinClient(nullptr)
+		, SendToDel()
 		, bLastSendToBlocked(false)
 		, HookedSocket(InHookedSocket)
 	{
@@ -141,6 +146,7 @@ public:
 	virtual int32 GetPortNo() override;
 
 
+public:
 	/**
 	 * Delegate for hooking 'SendTo'
 	 *
@@ -150,6 +156,10 @@ public:
 	 */
 	DECLARE_DELEGATE_ThreeParams(FSendToDel, void* /*Data*/, int32 /*Count*/, bool& /*bBlockSend*/);
 
+
+public:
+	/** The minimal client which owns this socket hook (if any) */
+	UMinimalClient* MinClient;
 
 	/** Delegate for hooking 'SendTo' */
 	FSendToDel SendToDel;
@@ -177,7 +187,6 @@ public:
 	 */
 	FNetworkNotifyHook()
 		: FNetworkNotify()
-		, NotifyHandleClientPlayerDelegate()
 		, NotifyAcceptingConnectionDelegate()
 		, NotifyAcceptedConnectionDelegate()
 		, NotifyAcceptingChannelDelegate()
@@ -203,16 +212,6 @@ public:
 	}
 
 
-	/**
-	 * New notifications specifically added for unit testing
-	 */
-
-	/**
-	 * Catches opening of the PlayerController actor channel (good place for immediate triggering of PC RPC's)
-	 */
-	void NotifyHandleClientPlayer(APlayerController* PC, UNetConnection* Connection);
-
-
 protected:
 	/**
 	 * Old/original notifications
@@ -227,8 +226,6 @@ protected:
 	virtual void NotifyControlMessage(UNetConnection* Connection, uint8 MessageType, FInBunch& Bunch) override;
 
 
-	DECLARE_DELEGATE_TwoParams(FNotifyHandleClientPlayerDelegate, APlayerController* /*PC*/, UNetConnection* /*Connection*/);
-
 	DECLARE_DELEGATE_RetVal(EAcceptConnection::Type, FNotifyAcceptingConnectionDelegate);
 	DECLARE_DELEGATE_OneParam(FNotifyAcceptedConnectionDelegate, UNetConnection* /*Connection*/);
 	DECLARE_DELEGATE_RetVal_OneParam(bool, FNotifyAcceptingChannelDelegate, UChannel* /*Channel*/);
@@ -236,8 +233,6 @@ protected:
 										FInBunch& /*Bunch*/);
 
 public:
-	FNotifyHandleClientPlayerDelegate	NotifyHandleClientPlayerDelegate;
-
 	FNotifyAcceptingConnectionDelegate	NotifyAcceptingConnectionDelegate;
 	FNotifyAcceptedConnectionDelegate	NotifyAcceptedConnectionDelegate;
 	FNotifyAcceptingChannelDelegate		NotifyAcceptingChannelDelegate;
@@ -376,6 +371,17 @@ struct NUTNet
 	static NETCODEUNITTEST_API FOutBunch* CreateChannelBunch(int32& BunchSequence, UNetConnection* InConnection, EChannelType InChType,
 												int32 InChIndex=INDEX_NONE, bool bGetNextFreeChan=false);
 
+	// @todo #JohnB: Deprecate this, used during transition to minimal client code
+#if 1
+	static FORCEINLINE FOutBunch* CreateChannelBunch(int32* BunchSequence, UNetConnection* InConnection, EChannelType InChType,
+												int32 InChIndex=INDEX_NONE, bool bGetNextFreeChan=false)
+	{
+		check(BunchSequence != nullptr);
+
+		return CreateChannelBunch(*BunchSequence, InConnection, InChType, InChIndex, bGetNextFreeChan);
+	}
+#endif
+
 	/**
 	 * Sends a control channel bunch over a UUnitTestChannel based control channel
 	 *
@@ -393,34 +399,6 @@ struct NUTNet
 	 */
 	static NETCODEUNITTEST_API UUnitTestNetDriver* CreateUnitTestNetDriver(UWorld* InWorld);
 
-
-	/**
-	 * Creates a fake player, connecting to the specified IP
-	 * NOTE: If the passed in net driver is NULL, the value is automatically initialized
-	 * NOTE: Should be accompanied, by a call to DisconnectFakePlayer
-	 *
-	 * @param InWorld			The world that the fake player should be associated with
-	 * @param InNetDriver		The net driver to create the fake player on (if NULL, is automatically initialized)
-	 * @param ServerIP			The address the fake player should connect to
-	 * @param InNotify			Optionally, specifies an FNetworkNotify for hooking/handling low-level netcode events
-	 * @param bSkipJoin			Optionally, skip NMT_Join, which triggers PlayerController creation (or NMT_BeaconJoin, for beacons)
-	 * @param InNetID			Optionally, specifies the unique net id the player should send
-	 * @param bBeaconConnect	Specifies whether or not you're connecting to a beacon, rather than a normal connection
-	 * @param InBeaconType		If connecting to a beacon, specifies the type name of the beacon
-	 * @return					Whether or not the fake player was successfully created
-	 */
-	static bool CreateFakePlayer(UWorld* InWorld, UNetDriver*& InNetDriver, FString ServerIP, FNetworkNotify* InNotify=NULL,
-									bool bSkipJoin=false, FUniqueNetIdRepl* InNetID=NULL, bool bBeaconConnect=false,
-									FString InBeaconType=TEXT(""));
-
-	/**
-	 * Disconnects the specified fake player - including destructing the net driver and such (tears down the whole connection)
-	 * NOTE: Based upon the HandleDisconnect function, except removing parts that are undesired (e.g. which trigger level switch)
-	 *
-	 * @param PlayerWorld		The world the fake player inhabits
-	 * @param InNetDriver		The associated net driver, which will be torn down
-	 */
-	static void DisconnectFakePlayer(UWorld* PlayerWorld, UNetDriver* IntNetDriver);
 
 	/**
 	 * Handles setting up the client beacon once it is replicated, so that it can properly send RPC's
@@ -458,10 +436,5 @@ struct NUTNet
 	 * Returns true, if the specified world is a unit test world
 	 */
 	static bool IsUnitTestWorld(UWorld* InWorld);
-
-	/**
-	 * Returns true, if the Steam net driver (and thus Steam support) is enabled/available
-	 */
-	static bool IsSteamNetDriverAvailable();
 };
 

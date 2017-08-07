@@ -142,7 +142,7 @@ LANDSCAPE_API FVector FLandscapeComponentDataInterface::GetLocalVertex(int32 Loc
 
 LANDSCAPE_API FVector FLandscapeComponentDataInterface::GetWorldVertex(int32 LocalX, int32 LocalY) const
 {
-	return Component->ComponentToWorld.TransformPosition(GetLocalVertex(LocalX, LocalY));
+	return Component->GetComponentTransform().TransformPosition(GetLocalVertex(LocalX, LocalY));
 }
 
 LANDSCAPE_API void FLandscapeComponentDataInterface::GetWorldTangentVectors(int32 LocalX, int32 LocalY, FVector& WorldTangentX, FVector& WorldTangentY, FVector& WorldTangentZ) const
@@ -154,9 +154,9 @@ LANDSCAPE_API void FLandscapeComponentDataInterface::GetWorldTangentVectors(int3
 	WorldTangentX = FVector(-WorldTangentZ.Z, 0.f, WorldTangentZ.X);
 	WorldTangentY = FVector(0.f, WorldTangentZ.Z, -WorldTangentZ.Y);
 
-	WorldTangentX = Component->ComponentToWorld.TransformVectorNoScale(WorldTangentX);
-	WorldTangentY = Component->ComponentToWorld.TransformVectorNoScale(WorldTangentY);
-	WorldTangentZ = Component->ComponentToWorld.TransformVectorNoScale(WorldTangentZ);
+	WorldTangentX = Component->GetComponentTransform().TransformVectorNoScale(WorldTangentX);
+	WorldTangentY = Component->GetComponentTransform().TransformVectorNoScale(WorldTangentY);
+	WorldTangentZ = Component->GetComponentTransform().TransformVectorNoScale(WorldTangentZ);
 }
 
 LANDSCAPE_API void FLandscapeComponentDataInterface::GetWorldPositionTangents(int32 LocalX, int32 LocalY, FVector& WorldPos, FVector& WorldTangentX, FVector& WorldTangentY, FVector& WorldTangentZ) const
@@ -174,10 +174,10 @@ LANDSCAPE_API void FLandscapeComponentDataInterface::GetWorldPositionTangents(in
 	const float ScaleFactor = (float)Component->ComponentSizeQuads / (float)(ComponentSizeVerts - 1);
 	float XOffset, YOffset;
 	GetXYOffset(LocalX, LocalY, XOffset, YOffset);
-	WorldPos = Component->ComponentToWorld.TransformPosition(FVector(LocalX * ScaleFactor + XOffset, LocalY * ScaleFactor + YOffset, LandscapeDataAccess::GetLocalHeight(Height)));
-	WorldTangentX = Component->ComponentToWorld.TransformVectorNoScale(WorldTangentX);
-	WorldTangentY = Component->ComponentToWorld.TransformVectorNoScale(WorldTangentY);
-	WorldTangentZ = Component->ComponentToWorld.TransformVectorNoScale(WorldTangentZ);
+	WorldPos = Component->GetComponentTransform().TransformPosition(FVector(LocalX * ScaleFactor + XOffset, LocalY * ScaleFactor + YOffset, LandscapeDataAccess::GetLocalHeight(Height)));
+	WorldTangentX = Component->GetComponentTransform().TransformVectorNoScale(WorldTangentX);
+	WorldTangentY = Component->GetComponentTransform().TransformVectorNoScale(WorldTangentY);
+	WorldTangentZ = Component->GetComponentTransform().TransformVectorNoScale(WorldTangentZ);
 }
 
 #endif // WITH_EDITOR

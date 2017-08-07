@@ -11,7 +11,7 @@
 /**
  * An intermediary to make UBaseSound available for Slate to play sounds
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct SLATECORE_API FSlateSound
 {
 	GENERATED_USTRUCT_BODY()

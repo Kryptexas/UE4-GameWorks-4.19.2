@@ -101,7 +101,8 @@ namespace UnrealBuildTool
 					|| s.Reference.HasExtension(".uproject")
 					|| s.Reference.HasExtension(".ini")
 					|| s.Reference.HasExtension(".usf")
-				));
+                    || s.Reference.HasExtension(".ush")
+                ));
 
 				//
 				// Find/Create the correct virtual folder and place the file into it.
@@ -112,7 +113,7 @@ namespace UnrealBuildTool
 					// Try to get the correct relative folder representation for the project.
 					//
 					String CurrentFilePath = "";
-					// TODO It seems that the full pathname doesn't work for some files like .ini, .usf 
+					// TODO It seems that the full pathname doesn't work for some files like .ini, .usf, .ush
 					if ((ProjectTargetType == TargetType.Client) ||
 						(ProjectTargetType == TargetType.Editor) ||
 						(ProjectTargetType == TargetType.Game) ||

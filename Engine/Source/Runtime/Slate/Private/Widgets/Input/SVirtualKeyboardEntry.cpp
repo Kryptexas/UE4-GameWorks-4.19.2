@@ -49,7 +49,7 @@ void SVirtualKeyboardEntry::SetText(const TAttribute< FText >& InNewText)
 	bNeedsUpdate = true;
 }
 
-void SVirtualKeyboardEntry::SetTextFromVirtualKeyboard(const FText& InNewText, ESetTextType SetTextType, ETextCommit::Type CommitType)
+void SVirtualKeyboardEntry::SetTextFromVirtualKeyboard(const FText& InNewText, ETextEntryType TextEntryType)
 {
 	// Only set the text if the text attribute doesn't have a getter binding (otherwise it would be blown away).
 	// If it is bound, we'll assume that OnTextChanged will handle the update.
@@ -76,7 +76,7 @@ void SVirtualKeyboardEntry::RestoreOriginalText()
 {
 	if( HasTextChangedFromOriginal() )
 	{
-		SetTextFromVirtualKeyboard(OriginalText, ESetTextType::Commited, ETextCommit::OnUserMovedFocus);
+		SetTextFromVirtualKeyboard(OriginalText, ETextEntryType::TextEntryCanceled);
 	}
 }
 
@@ -158,7 +158,7 @@ FVector2D SVirtualKeyboardEntry::ComputeDesiredSize( float ) const
 	return FVector2D( FMath::Max(TextSize.X, MinDesiredWidth.Get()), FMath::Max(TextSize.Y, FontMaxCharHeight) );
 }
 
-int32 SVirtualKeyboardEntry::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SVirtualKeyboardEntry::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	const TSharedRef< FSlateFontMeasure > FontMeasureService = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
 
@@ -181,7 +181,7 @@ int32 SVirtualKeyboardEntry::OnPaint( const FPaintArgs& Args, const FGeometry& A
 	// We'll draw with the 'focused' look if we're either focused or we have a context menu summoned
 	const bool bShouldAppearFocused = HasKeyboardFocus();
 
-	const float DrawPositionY = ( AllottedGeometry.Size.Y / 2 ) - ( FontMaxCharHeight / 2 );
+	const float DrawPositionY = ( AllottedGeometry.GetLocalSize().Y / 2 ) - ( FontMaxCharHeight / 2 );
 
 	if (VisibleText.Len() == 0)
 	{
@@ -191,10 +191,9 @@ int32 SVirtualKeyboardEntry::OnPaint( const FPaintArgs& Args, const FGeometry& A
 		FSlateDrawElement::MakeText(
 			OutDrawElements,
 			LayerId + TextLayer,
-			AllottedGeometry.ToPaintGeometry( FVector2D( 0, DrawPositionY ), AllottedGeometry.Size ),
+			AllottedGeometry.ToPaintGeometry( FVector2D( 0, DrawPositionY ), AllottedGeometry.GetLocalSize() ),
 			ThisHintText,          // Text
 			FontInfo,              // Font information (font name, size)
-			MyClippingRect,        // Clipping rect
 			DrawEffects,           // Effects to use
 			HintTextColor          // Color
 		);
@@ -225,7 +224,6 @@ int32 SVirtualKeyboardEntry::OnPaint( const FPaintArgs& Args, const FGeometry& A
 			AllottedGeometry.ToPaintGeometry( DrawPosition, DrawSize ),
 			PotentiallyVisibleText,          // Text
 			FontInfo,                        // Font information (font name, size)
-			MyClippingRect,                  // Clipping rect
 			DrawEffects,                     // Effects to use
 			ColorAndOpacitySRGB              // Color
 		);
@@ -234,10 +232,9 @@ int32 SVirtualKeyboardEntry::OnPaint( const FPaintArgs& Args, const FGeometry& A
 		FSlateDrawElement::MakeText(
 			OutDrawElements,
 			LayerId + TextLayer,
-			AllottedGeometry.ToPaintGeometry(FVector2D(0, DrawPositionY), AllottedGeometry.Size),
+			AllottedGeometry.ToPaintGeometry(FVector2D(0, DrawPositionY), AllottedGeometry.GetLocalSize()),
 			VisibleText,           // Text
 			FontInfo,              // Font information (font name, size)
-			MyClippingRect,        // Clipping rect
 			DrawEffects,           // Effects to use
 			ColorAndOpacitySRGB    // Color
 			);

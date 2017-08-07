@@ -59,6 +59,9 @@ enum EPlayModeType
 	/** Runs a mobile preview in a new process. */
 	PlayMode_InMobilePreview,
 
+	/** Runs a mobile preview targeted to a particular device in a new process. */
+	PlayMode_InTargetedMobilePreview,
+
 	/** Runs a vulkan preview in a new process. */
 	PlayMode_InVulkanPreview,
 
@@ -173,6 +176,10 @@ public:
 	/** Should Play-in-Viewport respect HMD orientations (default = false) */
 	UPROPERTY(config, EditAnywhere, Category=PlayInEditor, meta=(ToolTip="Whether or not HMD orientation should be used when playing in viewport"))
 	bool ViewportGetsHMDControl;
+
+	/** Should we minimize the editor when VR PIE is clicked (default = true) */
+	UPROPERTY(config, EditAnywhere, Category = PlayInEditor, meta = (ToolTip = "Whether or not the editor is minimized on VR PIE"))
+	bool ShouldMinimizeEditorOnVRPIE;
 
 	/** Whether to automatically recompile blueprints on PIE */
 	UPROPERTY(config, EditAnywhere, Category=PlayInEditor, meta=(ToolTip="Automatically recompile blueprints used by the current level when initiating a Play In Editor session"))
@@ -411,6 +418,9 @@ public:
 	UPROPERTY(config)
 	TEnumAsByte<EPlayModeType> LastExecutedPlayModeType;
 
+	/** The name of the last device that the user ran a play session on. */
+	UPROPERTY(config)
+	FString LastExecutedPIEPreviewDevice;
 public:
 
 	/** Collection of common screen resolutions on mobile phones. */

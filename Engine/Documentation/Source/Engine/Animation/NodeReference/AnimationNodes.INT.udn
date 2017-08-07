@@ -3,6 +3,7 @@ Title: Animation Node Reference
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:Descriptions of the various animation nodes available for use in Animation Blueprints.
 version: 4.9
+topic-image:AnimationgNodeReference_topic.png
 
 [EXCERPT:Intro]
 Animation Blueprints make use of various nodes within their graphs to perform operations on input 

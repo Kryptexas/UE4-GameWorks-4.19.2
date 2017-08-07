@@ -173,8 +173,6 @@ public:
 	/** Destruct all snapshots */
 	void DestroyAllSnapshots();
 
-	static TAutoConsoleVariable<int32> CVarSetSeperateTranslucencyEnabled;
-
 protected:
 	/** Constructor */
 	FSceneRenderTargets(): 
@@ -194,6 +192,7 @@ protected:
 		bUseDownsizedOcclusionQueries(true),
 		CurrentGBufferFormat(0),
 		CurrentSceneColorFormat(0),
+		CurrentMobileSceneColorFormat(EPixelFormat::PF_Unknown),
 		bAllowStaticLighting(true),
 		CurrentMaxShadowResolution(0),
 		CurrentRSMResolution(0),
@@ -246,21 +245,23 @@ public:
 	/** Binds the appropriate shadow depth cube map for rendering. */
 	void BeginRenderingCubeShadowDepth(FRHICommandList& RHICmdList, int32 ShadowResolution);
 
+	/** Begin rendering translucency in the scene color. */
 	void BeginRenderingTranslucency(FRHICommandList& RHICmdList, const class FViewInfo& View, bool bFirstTimeThisFrame = true);
-
+	/** Begin rendering translucency in a separate (offscreen) buffer. This can be any translucency pass. */
 	void BeginRenderingSeparateTranslucency(FRHICommandList& RHICmdList, const FViewInfo& View, bool bFirstTimeThisFrame);
-	void FinishRenderingSeparateTranslucency(FRHICommandList& RHICmdList);
+	void FinishRenderingSeparateTranslucency(FRHICommandList& RHICmdList, const FViewInfo& View);
+
 	void FreeSeparateTranslucency()
 	{
 		SeparateTranslucencyRT.SafeRelease();
 		check(!SeparateTranslucencyRT);
 	}
 
-	void FreeSeparateTranslucencyDepth()
+	void FreeDownsampledTranslucencyDepth()
 	{
-		if (SeparateTranslucencyDepthRT.GetReference())
+		if (DownsampledTranslucencyDepthRT.GetReference())
 		{
-			SeparateTranslucencyDepthRT.SafeRelease();
+			DownsampledTranslucencyDepthRT.SafeRelease();
 		}
 	}
 
@@ -286,24 +287,25 @@ public:
 		DefaultDepthClear = DepthClear;
 	}
 
-	void GetSeparateTranslucencyDimensions(FIntPoint& OutScaledSize, float& OutScale)
+	FORCEINLINE void GetSeparateTranslucencyDimensions(FIntPoint& OutScaledSize, float& OutScale) const
 	{
 		OutScaledSize = SeparateTranslucencyBufferSize;
 		OutScale = SeparateTranslucencyScale;
 	}
 
+	/** Separate translucency buffer can be downsampled or not (as it is used to store the AfterDOF translucency) */
 	TRefCountPtr<IPooledRenderTarget>& GetSeparateTranslucency(FRHICommandList& RHICmdList, FIntPoint Size);
 
-	bool IsSeparateTranslucencyDepthValid()
+	bool IsDownsampledTranslucencyDepthValid()
 	{
-		return SeparateTranslucencyDepthRT != nullptr;
+		return DownsampledTranslucencyDepthRT != nullptr;
 	}
 
-	TRefCountPtr<IPooledRenderTarget>& GetSeparateTranslucencyDepth(FRHICommandList& RHICmdList, FIntPoint Size);
+	TRefCountPtr<IPooledRenderTarget>& GetDownsampledTranslucencyDepth(FRHICommandList& RHICmdList, FIntPoint Size);
 
-	const FTexture2DRHIRef& GetSeparateTranslucencyDepthSurface()
+	const FTexture2DRHIRef& GetDownsampledTranslucencyDepthSurface()
 	{
-		return (const FTexture2DRHIRef&)SeparateTranslucencyDepthRT->GetRenderTargetItem().TargetableTexture;
+		return (const FTexture2DRHIRef&)DownsampledTranslucencyDepthRT->GetRenderTargetItem().TargetableTexture;
 	}
 
 	/**
@@ -476,6 +478,9 @@ public:
 	TRefCountPtr<IPooledRenderTarget>& GetSceneColor();
 
 	EPixelFormat GetSceneColorFormat() const;
+	EPixelFormat GetDesiredMobileSceneColorFormat() const;
+	EPixelFormat GetMobileSceneColorFormat() const;
+
 
 	// changes depending at which part of the frame this is called
 	bool IsSceneColorAllocated() const;
@@ -514,13 +519,7 @@ public:
 
 	TRefCountPtr<IPooledRenderTarget>& GetReflectionBrightnessTarget();
 
-
-	bool IsSeparateTranslucencyActive(const FViewInfo& View) const;
-
-	bool IsSeparateTranslucencyPass()
-	{
-		return bSeparateTranslucencyPass;
-	}
+	FORCEINLINE bool IsSeparateTranslucencyPass() const { return bSeparateTranslucencyPass; }
 	
 	// Can be called when the Scene Color content is no longer needed. As we create SceneColor on demand we can make sure it is created with the right format.
 	// (as a call to SetSceneColor() can override it with a different format)
@@ -608,7 +607,8 @@ public:
 
 	/** ONLY for snapshots!!! this is a copy of the SeparateTranslucencyRT from the view state. */
 	TRefCountPtr<IPooledRenderTarget> SeparateTranslucencyRT;
-	TRefCountPtr<IPooledRenderTarget> SeparateTranslucencyDepthRT;
+	/** Downsampled depth used when rendering translucency in smaller resolution. */
+	TRefCountPtr<IPooledRenderTarget> DownsampledTranslucencyDepthRT;
 
 	// todo: free ScreenSpaceAO so pool can reuse
 	bool bScreenSpaceAOIsValid;
@@ -661,10 +661,10 @@ private:
 	void AllocSceneColor(FRHICommandList& RHICmdList);
 
 	/** Allocates the mobile multi-view scene color texture array render target. */
-	void AllocMobileMultiViewSceneColor(FRHICommandList& RHICmdList);
+	void AllocMobileMultiViewSceneColor(FRHICommandList& RHICmdList, const int32 ScaleFactor);
 
 	/** Allocates the mobile multi-view depth (no stencil) texture array render target. */
-	void AllocMobileMultiViewDepth(FRHICommandList& RHICmdList);
+	void AllocMobileMultiViewDepth(FRHICommandList& RHICmdList, const int32 ScaleFactor);
 
 	// internal method, used by AdjustGBufferRefCount()
 	void ReleaseGBufferTargets();
@@ -717,6 +717,8 @@ private:
 	FUniformBufferRHIRef GBufferDummyResourcesUniformBuffer;
 	/** size of the back buffer, in editor this has to be >= than the biggest view port */
 	FIntPoint BufferSize;
+	/* Size of the first view, used for multiview rendertargets */
+	FIntPoint View0Size;
 	FIntPoint SeparateTranslucencyBufferSize;
 	float SeparateTranslucencyScale;
 	/** e.g. 2 */
@@ -729,6 +731,8 @@ private:
 	int32 CurrentGBufferFormat;
 	/** To detect a change of the CVar r.SceneColorFormat */
 	int32 CurrentSceneColorFormat;
+	/** To detect a change of the mobile scene color format */
+	EPixelFormat CurrentMobileSceneColorFormat;
 	/** Whether render targets were allocated with static lighting allowed. */
 	bool bAllowStaticLighting;
 	/** To detect a change of the CVar r.Shadow.MaxResolution */

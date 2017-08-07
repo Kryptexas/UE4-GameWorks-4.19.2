@@ -1,92 +1,47 @@
-﻿INTSourceChangelist:3013123
+﻿INTSourceChangelist:3429248
 Availability:Public
 Title:Sequencer 编辑器
-Crumbs:%ROOT%, Engine
-Description:Sequencer 是虚幻引擎 4 的多轨道编辑器，用于实时创建和预览过场动画序列。 
+Crumbs: %ROOT%, Engine
+Description:Sequencer 是虚幻引擎 4 的多轨迹编辑器，用于实时创建和预览动画序列。 
 Navigation:topic
 parent:Engine
-order:3
+order:4
+topic-image:sequencer_topic.png
 social-image:sequencer_social.png
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Sequencer:title%](Engine/Sequencer/sequencer_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/cine_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Sequencer:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Sequencer:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Sequencer]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Sequencer:title%](Engine/Sequencer/sequencer_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/cine_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Sequencer:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Sequencer:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Sequencer]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+related:Engine/Matinee
+tags:Sequencer
 
 [REGION:banner]
 ![](SequencerBanner.png)(convert:false)
 [/REGION]
 
-**Sequencer** 编辑器是虚幻引擎 4 中的两个过场动画编辑工具之一。在 Sequencer 推出之前，制作过场动画的主要手段是在 [**Matinee**](Engine/Matinee) 编辑器中操作。
-与 Matinee 类似，Sequencer 使用了各种用于定义场景构成的专用 **轨道**。 
-可以向 Sequencer 添加几条骨骼网格轨道，然后添加动画轨道使这些骨骼网格活动起来，再添加摄像机轨道和镜头切换轨道来提供在不同摄像机之间切换的视角，这样您就有了设置过场动画序列的基础。 
+**Sequencer** 是虚幻引擎中的两大动画编辑工具之一。在 Sequencer 之前，编辑动画的主要手段是 [**Matinee**](Engine/Matinee) 编辑器。
+和 Matinee 相似，Sequencer 使用诸多特殊 **轨迹** 定义动画场的组成。 
+为 Sequencer 添加一些骨架网格体轨迹，然后添加动画轨迹为骨架网格体设置动画，放入镜头轨迹和镜头切换轨迹构成镜头之间的透视和循环。这样便拥有了设置动画序列的基础。 
 
-在本页您将找到有关 Sequencer 编辑器的不同方面的文档链接。 
-如果您刚刚接触 Sequencer，建议您查看 **基础** 部分，其中包含 Sequencer 编辑器的大体概述，分别介绍 Sequencer 编辑器各组件的编辑器参考，以及包含多份操作指南的部分（其中都是关于如何用 Sequencer 执行某些任务的一次性页面）。 
+此页面包含指向 Sequencer 编辑器各方面的文档链接。 
+如您刚开始接触 Sequencer，推荐阅读 **概要** 部分。其中包括 Sequencer 编辑器的高阶总览、详解 Sequencer 编辑器组件的编辑器参考、帮助用户快速上手的快速入门指南、多个讲述如何利用 Sequencer 执行特定任务的单页指南，以及一个工作流提示章节。 
+
+可在 Epic Games Launcher 的 Learn 标签中下载的 Sequencer Subway 项目范例将为您展示如何使用虚幻引擎 4 的 Sequencer 编辑器创建电影级的动画序列。 
+
+## 开始
+
+[DIR(output:"topic" parent:"Engine/Sequencer" org:"hierarchy" end:"1" tags:"Getting Started")]
+
+## 概要
+
+[DIR(output:"topic" parent:"Engine/Sequencer" org:"hierarchy" tags:"!Getting Started" path:"!Engine/Sequencer/HowTo")]
+
+## 指南
+
+[DIR(output:"fancy" parent:"Engine/Sequencer/HowTo" org:"hierarchy" skill_Level:"Beginner")]
+[DIR(output:"fancy" parent:"Engine/Sequencer/HowTo" org:"hierarchy" skill_Level:"Intermediate")]
+[DIR(output:"fancy" parent:"Engine/Sequencer/HowTo" org:"hierarchy" skill_Level:"Advanced")]
 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/start_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		基础
-	[/PARAM]
-	[PARAM:links]
-		* [](Engine\Sequencer\Overview "%Engine\Sequencer\Overview:description%")
-		* [](Engine\Sequencer\ReferenceEditor "%Engine\Sequencer\ReferenceEditor:description%")
-		* [](Engine\Sequencer\QuickStart "%Engine\Sequencer\QuickStart:description%")
-		* [](Engine\Sequencer\HowTo "%Engine\Sequencer\HowTo:description%")
-		* [](Engine\Sequencer\Workflow\ "%Engine\Sequencer\Workflow:description%")
-	[/PARAM]
-[/OBJECT]
+## 示例
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/related_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		相关链接
-	[/PARAM]
-	[PARAM:links]
-		* [Matinee 编辑器](Engine/Matinee "%Engine/Matinee:description%")
-	[/PARAM]
-[/OBJECT]
-
+[DIR(output:"topiccompact" parent:"Resources/Showcases" tags:"Sequencer")]
 
 <!-- Killing this for now while the current does get updates instead.
 * [](Engine\Sequencer\QuickStart "%Engine\Sequencer\QuickStart:description%")

@@ -12,7 +12,33 @@ tags:Materials
 
 The Material Editor UI consists of a menu bar, a toolbar, and, by default, four open panels.
 
-![](UpdatedUI.jpg)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](MaterialEditor_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](MaterialEditor_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 1. [Menu Bar](#MenuBar) - Lists the menu options for the current Material.
 1. [Toolbar](#Toolbar) - Contains tools that you can use to work with your Material.

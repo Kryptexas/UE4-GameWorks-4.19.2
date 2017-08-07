@@ -7,6 +7,7 @@
 #include "PostProcess/PostProcessing.h"
 #include "EngineGlobals.h"
 #include "ScenePrivate.h"
+#include "RendererModule.h"
 #include "PostProcess/PostProcessInput.h"
 #include "PostProcess/PostProcessAA.h"
 #if WITH_EDITOR
@@ -50,6 +51,7 @@
 #include "PostProcess/PostProcessStreamingAccuracyLegend.h"
 #include "DeferredShadingRenderer.h"
 #include "PostProcess/PostProcessFFTBloom.h"
+#include "MobileSeparateTranslucencyPass.h"
 
 /** The global center for all post processing activities. */
 FPostProcessing GPostProcessing;
@@ -187,7 +189,7 @@ TAutoConsoleVariable<int32> CVarHalfResFFTBloom(
 	TEXT(" 1: Half-resolution convoltuion that excludes the center of the kernel.\n"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessVS,TEXT("PostProcessBloom"),TEXT("MainPostprocessCommonVS"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(,FPostProcessVS,TEXT("/Engine/Private/PostProcessBloom.usf"),TEXT("MainPostprocessCommonVS"),SF_Vertex);
 
 static bool HasPostProcessMaterial(FPostprocessContext& Context, EBlendableLocation InLocation);
 
@@ -719,8 +721,16 @@ static FRenderingCompositeOutputRef AddBloom(FBloomDownSampleArray& BloomDownSam
 	// Extract the Context
 	FPostprocessContext& Context = BloomDownSampleArray.Context;
 
+	const bool bOldMetalNoFFT = (IsMetalPlatform(Context.View.GetShaderPlatform()) && RHIGetShaderLanguageVersion(Context.View.GetShaderPlatform()) < 2);
 	const bool bUseFFTBloom = (Context.View.FinalPostProcessSettings.BloomMethod == EBloomMethod::BM_FFT
 		&& Context.View.FeatureLevel >= ERHIFeatureLevel::SM5);
+		
+	static bool bWarnAboutOldMetalFFTOnce = false;
+	if (bOldMetalNoFFT && bUseFFTBloom && !bWarnAboutOldMetalFFTOnce)
+	{
+		UE_LOG(LogRenderer, Error, TEXT("Metal v1.2 and above is required to enable FFT Bloom. Set Max. Shader Standard to target to Metal v1.2 in Project Settings > Mac/iOS and recook."));
+		bWarnAboutOldMetalFFTOnce = true;
+	}
 
 	// Extract the downsample array.
 	FBloomDownSampleArray::FRenderingRefArray& PostProcessDownsamples = BloomDownSampleArray.PostProcessDownsamples;
@@ -731,7 +741,7 @@ static FRenderingCompositeOutputRef AddBloom(FBloomDownSampleArray& BloomDownSam
 		// No bloom, provide substitute source for lens flare.
 		BloomOutput = PostProcessDownsamples[0];
 	}
-	else if (bUseFFTBloom)
+	else if (bUseFFTBloom && !bOldMetalNoFFT)
 	{
 		
 		// verify the physical kernel is valid, or fail gracefully by skipping bloom 
@@ -804,6 +814,7 @@ static FRenderingCompositeOutputRef AddBloom(FBloomDownSampleArray& BloomDownSam
 			// Only bloom this down-sampled input if the bloom size is non-zero
 			if (Op.BloomSize > SMALL_NUMBER)
 			{
+
 				BloomOutput = RenderBloom(Context, PostProcessDownsamples[SourceIndex], Op.BloomSize * Settings.BloomSizeScale, Tint, BloomOutput);
 			}
 		}
@@ -813,7 +824,6 @@ static FRenderingCompositeOutputRef AddBloom(FBloomDownSampleArray& BloomDownSam
 			// Bloom was disabled by setting bloom size to zero in the post process.
 			// No bloom, provide substitute source for lens flare.
 			BloomOutput = PostProcessDownsamples[0];
-
 		}
 	}
 
@@ -1377,7 +1387,10 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 				bool bCircleDOF = View.FinalPostProcessSettings.DepthOfFieldMethod == DOFM_CircleDOF;
 				if(!bCircleDOF)
 				{
-					check(!FPostProcessing::HasAlphaChannelSupport());
+					if (FPostProcessing::HasAlphaChannelSupport())
+					{
+						UE_LOG(LogRenderer, Log, TEXT("Gaussian depth of field does not have alpha channel support. Only Circle DOF has."));
+					}
 					if(VelocityInput.IsValid())
 					{
 						bSepTransWasApplied = AddPostProcessDepthOfFieldGaussian(Context, DepthOfFieldStat, VelocityInput, SeparateTranslucency);
@@ -1417,7 +1430,10 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 
 			if(bBokehDOF)
 			{
-				check(!FPostProcessing::HasAlphaChannelSupport());
+				if (FPostProcessing::HasAlphaChannelSupport())
+				{
+					UE_LOG(LogRenderer, Log, TEXT("Boked depth of field does not have alpha channel support. Only Circle DOF has."));
+				}
 				if(VelocityInput.IsValid())
 				{
 					AddPostProcessDepthOfFieldBokeh(Context, SeparateTranslucency, VelocityInput);
@@ -1436,7 +1452,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 
 			if(SeparateTranslucency.IsValid() && !bSepTransWasApplied)
 			{
-				check(!FPostProcessing::HasAlphaChannelSupport());
+				checkf(!FPostProcessing::HasAlphaChannelSupport(), TEXT("Separate translucency was supposed to be disabled automatically."));
 				const bool bIsComputePass = CVarPostProcessingPreferCompute.GetValueOnRenderThread() && Context.View.FeatureLevel >= ERHIFeatureLevel::SM5;
 				// separate translucency is done here or in AddPostProcessDepthOfFieldBokeh()
 				FRenderingCompositePass* NodeRecombined = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessBokehDOFRecombine(bIsComputePass));
@@ -1936,7 +1952,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 			{
 				Node = Context.Graph.RegisterPass(new FRCPassPostProcessHMD());
 			}
-			else if(DeviceType == EHMDDeviceType::DT_Morpheus)
+			else if(DeviceType == EHMDDeviceType::DT_Morpheus && GEngine->HMDDevice->IsStereoEnabled())
 			{
 				
 #if defined(MORPHEUS_ENGINE_DISTORTION) && MORPHEUS_ENGINE_DISTORTION
@@ -2160,8 +2176,9 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, const FVi
 		// add the passes we want to add to the graph (commenting a line means the pass is not inserted into the graph) ---------
 		if( View.Family->EngineShowFlags.PostProcessing )
 		{
-			bool bUseMosaic = IsMobileHDRMosaic();
-			bool bUseEncodedHDR = bMobileHDR32bpp && !bUseMosaic;
+			const EMobileHDRMode HDRMode = GetMobileHDRMode();
+			bool bUseEncodedHDR = HDRMode == EMobileHDRMode::EnabledRGBE;
+			bool bHDRModeAllowsPost = bUseEncodedHDR || HDRMode == EMobileHDRMode::EnabledFloat16;
 
 			bool bUseSun = !bUseEncodedHDR && View.bLightShaftUse;
 			bool bUseDof = !bUseEncodedHDR && GetMobileDepthOfFieldScale(View) > 0.0f && !Context.View.Family->EngineShowFlags.VisualizeDOF;
@@ -2180,7 +2197,7 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, const FVi
 			bool bUsePost = bUseSun | bUseDof | bUseBloom | bUseVignette;
 
 			// Post is not supported on ES2 devices using mosaic.
-			bUsePost &= !bUseMosaic;
+			bUsePost &= bHDRModeAllowsPost;
 			bUsePost &= IsMobileHDR();
 
 			if(bUsePost)
@@ -2427,11 +2444,20 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, const FVi
 						BloomOutput = PostProcessSunAvg;
 					}
 				}
+			} // bUsePost
+
+			// mobile separate translucency 
+			if (IsMobileSeparateTranslucencyActive(Context.View))
+			{
+				FRCSeparateTranslucensyPassES2* Pass = (FRCSeparateTranslucensyPassES2*)Context.Graph.RegisterPass(new(FMemStack::Get()) FRCSeparateTranslucensyPassES2());
+				Pass->SetInput(ePId_Input0, Context.FinalOutput);
+				Context.FinalOutput = FRenderingCompositeOutputRef(Pass);
 			}
 		}
 		
 		static const auto VarTonemapperFilm = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mobile.TonemapperFilm"));
 		const bool bUseTonemapperFilm = IsMobileHDR() && !bMobileHDR32bpp && GSupportsRenderTargetFormat_PF_FloatRGBA && (VarTonemapperFilm && VarTonemapperFilm->GetValueOnRenderThread());
+
 
 		static const auto VarTonemapperUpscale = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileTonemapperUpscale"));
 		bool bDisableUpscaleInTonemapper = Context.View.Family->bUseSeparateRenderTarget || IsMobileHDRMosaic() || !VarTonemapperUpscale || VarTonemapperUpscale->GetValueOnRenderThread() == 0;
@@ -2472,7 +2498,7 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, const FVi
 					bDisableUpscaleInTonemapper = true;
 				}
 			}
-	
+
 			if (bUseAa)
 			{
 				// Double buffer post output.
@@ -2494,6 +2520,12 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, const FVi
 			}
 		}
 
+		// Screenshot mask
+		{
+			FRenderingCompositeOutputRef EmptySeparateTranslucency;
+			AddHighResScreenshotMask(Context, EmptySeparateTranslucency);
+		}
+		
 		// Apply ScreenPercentage
 		if (View.UnscaledViewRect != View.ViewRect)
 		{

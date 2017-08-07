@@ -134,6 +134,7 @@ UAnimSequence::UAnimSequence(const FObjectInitializer& ObjectInitializer)
 	, bUseRawDataOnly(!FPlatformProperties::RequiresCookedData())
 {
 	RateScale = 1.0;
+	CompressedRawDataSize = 0.f;
 }
 
 void UAnimSequence::PostInitProperties()
@@ -171,7 +172,9 @@ void UAnimSequence::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) con
 	}
 #endif
 
-	OutTags.Add(FAssetRegistryTag(TEXT("Compression Ratio"), FString::Printf(TEXT("%.03f"), (float)GetApproxCompressedSize() / (float)GetApproxRawSize()), FAssetRegistryTag::TT_Numerical));
+	const float CompressionRatio = CompressedRawDataSize > 0 ? (float)GetApproxCompressedSize() / (float)CompressedRawDataSize : -1.f;
+
+	OutTags.Add(FAssetRegistryTag(TEXT("Compression Ratio"), FString::Printf(TEXT("%.03f"), CompressionRatio), FAssetRegistryTag::TT_Numerical));
 	OutTags.Add(FAssetRegistryTag(TEXT("Compressed Size (KB)"), FString::Printf(TEXT("%.02f"), (float)GetApproxCompressedSize() / 1024.0f), FAssetRegistryTag::TT_Numerical));
 
 	Super::GetAssetRegistryTags(OutTags);
@@ -566,18 +569,18 @@ void UAnimSequence::PostLoad()
 #if WITH_EDITOR
 void ShowResaveMessage(const UAnimSequence* Sequence)
 {
-	if (!IsRunningGame())
+	if (IsRunningCommandlet())
 	{
-		UE_LOG(LogAnimation, Warning, TEXT("Resave Animation Required(%s, %s): Fixing track data and recompressing."), *GetNameSafe(Sequence), *Sequence->GetPathName());
+		UE_LOG(LogAnimation, Log, TEXT("Resave Animation Required(%s, %s): Fixing track data and recompressing."), *GetNameSafe(Sequence), *Sequence->GetPathName());
 
-		static FName NAME_LoadErrors("LoadErrors");
+		/*static FName NAME_LoadErrors("LoadErrors");
 		FMessageLog LoadErrors(NAME_LoadErrors);
 
 		TSharedRef<FTokenizedMessage> Message = LoadErrors.Warning();
 		Message->AddToken(FTextToken::Create(LOCTEXT("AnimationNeedsResave1", "The Animation ")));
 		Message->AddToken(FAssetNameToken::Create(Sequence->GetPathName(), FText::FromString(GetNameSafe(Sequence))));
 		Message->AddToken(FTextToken::Create(LOCTEXT("AnimationNeedsResave2", " needs resave.")));
-		LoadErrors.Notify();
+		LoadErrors.Notify();*/
 	}
 }
 
@@ -1469,7 +1472,17 @@ void UAnimSequence::GetBonePose_Additive(FCompactPose& OutPose, FBlendedCurve& O
 
 void UAnimSequence::GetAdditiveBasePose(FCompactPose& OutPose, FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext) const
 {
-	check(RefPoseType == ABPT_RefPose || !RefPoseSeq->IsValidAdditive() || RefPoseSeq->RawAnimationData.Num() > 0); //If this fails there is not enough information to get the base pose
+	const bool bGetAdditiveBasePoseValid = (RefPoseType == ABPT_RefPose || !RefPoseSeq->IsValidAdditive() || RefPoseSeq->RawAnimationData.Num() > 0);
+	if (!bGetAdditiveBasePoseValid) //If this fails there is not enough information to get the base pose
+	{
+		FString Name = GetName();
+		FString SkelName = GetSkeleton() ? GetSkeleton()->GetName() : TEXT("NoSkeleton");
+		FString RefName = RefPoseSeq->GetName();
+		FString RefSkelName = RefPoseSeq->GetSkeleton() ? RefPoseSeq->GetSkeleton()->GetName() : TEXT("NoRefSeqSkeleton");
+		const TCHAR* NeedsLoad = RefPoseSeq->HasAnyFlags(RF_NeedLoad) ? TEXT("Yes") : TEXT("No");
+
+		checkf(false, TEXT("Cannot get valid base pose for Anim: ['%s' (Skel:%s)] RefSeq: ['%s' (Skel:%s)] RawAnimDataNum: %i NeedsLoad: %s"), *Name, *SkelName, *RefName, *RefSkelName, RefPoseSeq->RawAnimationData.Num(), NeedsLoad);
+	}
 
 	switch (RefPoseType)
 	{
@@ -2078,6 +2091,9 @@ void UAnimSequence::RequestAnimCompression(bool bAsyncCompression, TSharedPtr<FA
 
 	const bool bDoCompressionInPlace = FUObjectThreadContext::Get().IsRoutingPostLoad;
 
+	// Need to make sure this is up to date.
+	VerifyCurveNames<FFloatCurve>(GetSkeleton(), USkeleton::AnimCurveMappingName, RawCurveData.FloatCurves);
+
 	if (bAsyncCompression)
 	{
 	}
@@ -2149,6 +2165,8 @@ void UAnimSequence::SerializeCompressedData(FArchive& Ar, bool bDDCData)
 
 	Ar << CompressedTrackToSkeletonMapTable;
 	Ar << CompressedCurveData;
+
+	Ar << CompressedRawDataSize;
 
 	if (Ar.IsLoading())
 	{
@@ -2340,7 +2358,7 @@ public:
 			RequiredBoneIndexArray[BoneIndex] = BoneIndex;
 		}
 
-		RequiredBones.InitializeTo(RequiredBoneIndexArray, *MySkeleton);
+		RequiredBones.InitializeTo(RequiredBoneIndexArray, false, *MySkeleton);
 	}
 
 };
@@ -2432,6 +2450,11 @@ void UAnimSequence::BakeOutAdditiveIntoRawData()
 	if (!CanBakeAdditive())
 	{
 		return; // Nothing to do
+	}
+
+	if (RefPoseSeq && RefPoseSeq->HasAnyFlags(EObjectFlags::RF_NeedPostLoad))
+	{
+		RefPoseSeq->VerifyCurveNames<FFloatCurve>(GetSkeleton(), USkeleton::AnimCurveMappingName, RefPoseSeq->RawCurveData.FloatCurves);
 	}
 
 	FMemMark Mark(FMemStack::Get());
@@ -4395,7 +4418,7 @@ bool UAnimSequence::CreateAnimation(USkeletalMesh* Mesh)
 		RawAnimationData.AddZeroed(NumBones);
 		AnimationTrackNames.AddUninitialized(NumBones);
 
-		const TArray<FTransform>& RefBonePose = RefSkeleton.GetRefBonePose();
+		const TArray<FTransform>& RefBonePose = RefSkeleton.GetRawRefBonePose();
 
 		check (RefBonePose.Num() == NumBones);
 
@@ -4439,7 +4462,7 @@ bool UAnimSequence::CreateAnimation(USkeletalMeshComponent* MeshComponent)
 
 		const TArray<FTransform>& BoneSpaceTransforms = MeshComponent->BoneSpaceTransforms;
 
-		check(BoneSpaceTransforms.Num() == NumBones);
+		check(BoneSpaceTransforms.Num() >= NumBones);
 
 		for(int32 BoneIndex=0; BoneIndex<NumBones; ++BoneIndex)
 		{
@@ -4579,7 +4602,7 @@ void UAnimSequence::AdvanceMarkerPhaseAsLeader(bool bLooping, float MoveDelta, c
 {
 	check(MoveDelta != 0.f);
 	const bool bPlayingForwards = MoveDelta > 0.f;
-	float CurrentMoveDelta = MoveDelta;
+	float CurrentMoveDelta = MoveDelta * RateScale;
 
 	bool bOffsetInitialized = false;
 	float MarkerTimeOffset = 0.f;
@@ -4758,7 +4781,7 @@ void AdvanceMarkerBackwards(int32& Marker, FName MarkerToFind, bool bLooping, co
 		{
 			break;
 		}
-		Counter = ++Counter % MarkerMax;
+		Counter = (Counter + 1) % MarkerMax;
 		Marker = MarkerCounterSpaceTransform(MarkerMax, Counter);
 	}
 

@@ -297,6 +297,7 @@ void* FGenericPlatformMallocCrash::Realloc( void* Ptr, SIZE_T NewSize, uint32 Al
 			{
 				// We can safely get allocation size only from a few mallocs, this may change in future.
 				if( FCStringWide::Strcmp( PreviousMalloc->GetDescriptiveName(), TEXT("binned") ) == 0 ||
+					FCStringWide::Strcmp( PreviousMalloc->GetDescriptiveName(), TEXT("binned2")) == 0 ||
 					FCStringWide::Strcmp( PreviousMalloc->GetDescriptiveName(), TEXT("jemalloc") ) == 0 )
 				{
 					// Realloc from the previous allocator.

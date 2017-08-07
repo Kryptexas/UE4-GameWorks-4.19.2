@@ -20,6 +20,17 @@ namespace physx
 	class PxShape;
 }
 
+UENUM()
+enum EWheelSweepType
+{
+	/** Sweeps against both simple and complex geometry. */
+	SimpleAndComplex UMETA(DisplayName="SimpleAndComplex"),	
+	/** Sweeps against simple geometry only */
+	Simple	UMETA(DisplayName="Simple"),		
+	/** Sweeps against complex geometry only */
+	Complex	UMETA(DisplayName="Complex")	
+};
+
 UCLASS(BlueprintType, Blueprintable)
 class PHYSXVEHICLES_API UVehicleWheel : public UObject
 {
@@ -116,6 +127,10 @@ class PHYSXVEHICLES_API UVehicleWheel : public UObject
 	 */
 	UPROPERTY(EditAnywhere, Category=Suspension)
 	float											SuspensionDampingRatio;
+
+	/** Whether wheel suspension considers simple, complex, or both */
+	UPROPERTY(EditAnywhere, Category = Suspension)
+	TEnumAsByte<EWheelSweepType> SweepType;
 
 	/** max brake torque for this wheel (Nm) */
 	UPROPERTY(EditAnywhere, Category=Brakes)

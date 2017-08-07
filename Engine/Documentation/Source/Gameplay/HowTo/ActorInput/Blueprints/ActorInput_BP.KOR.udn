@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3429254
 Availability: Public
 Title:블루프린트로 액터에 입력 구성
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\ActorInput
 Description:블루프린트로 액터에 입력을 구성하는 비법 안내서입니다.
 Version: 4.9
+type:how-to
 SkillLevel: Intermediate
 
 [TOC (start:2 end:2)]

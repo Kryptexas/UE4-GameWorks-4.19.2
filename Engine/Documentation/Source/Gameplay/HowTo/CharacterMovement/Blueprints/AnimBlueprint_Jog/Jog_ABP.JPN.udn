@@ -1,27 +1,18 @@
-﻿Availability:Public
+﻿INTSourceChangelist:3429254
+Availability:Public
 Title:7.Animation ブループリント - Jog ステート
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
 Description:このセクションではキャラクターの Jog ステートの設定に焦点を当てます。 
+Version:4.9
+Parent:Gameplay/HowTo/CharacterMovement/Blueprints
+SkillLevel:Advanced
+type:how-to
+type:multi-step
+order:7
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[前のステップ](Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Crouch "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Crouch:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[キャラクターの移動の概要](Gameplay\HowTo\CharacterMovement\Blueprints)
-	[/PARAM]
-	[PARAM:next]
-		[次のステップ](Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jump "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jump:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[NAV]
 
-%Steps%
-
-引き続き **Animation ブループリント** と **ステートマシン** を使って、このセクションでは **Jog** ステートと遷移の設定を行います。 
+引き続き **Animation ブループリント** と **ステートマシン** を使って、このセクションでは **Jog** ステートへの遷移、**Jog** ステートからの遷移の設定を行います。 
 
 1.	ステートマシン グラフに戻って **アセットブラウザ** で **Jog_BS** をグラフにドラッグします。 
 
@@ -37,19 +28,19 @@ Description:このセクションではキャラクターの Jog ステートの
 
 	![](AnimBP_Jog3.png)
 
-1.	**Crouch_Idle_Rifle_Hip** から **Jog_BS** への **遷移ルール** を開いて、以下のグラフを再度作成します。 
+1.	**Crouch_Idle_Rifle_Hip** から **Jog_BS** への **Transition Rule (遷移ルール)** を開いて、以下のグラフを再度作成します。 
 
 	![](AnimBP_Jog3b.png)
 
 	Is Jogging が _True_ でプレイヤーの速度が 0 より大きい場合、 Jogging Blend Space になります。 
 
-1.	ステートマシン グラフに戻り、 **Jog_BS** から **Crouch_Idle_Rifle_Hip** への **遷移ルール** を開きます。
+1.	ステートマシン グラフに戻り、 **Jog_BS** から **Crouch_Idle_Rifle_Hip** への **Transition Rule** を開きます。
 
-1.	**遷移ルール** 内のグラフを以下のように作成します。 
+1.	**Transition Rule** 内のグラフを以下のように作成します。 
 
 	![](AnimBP_Jog3c.png)
 
-	ここで、プレイヤーが Jog ステートから Crouch ステート になれるようにします (走るのをやめたら Crouch に戻ります)。 
+	ここで、プレイヤーが Crouch ステートから Jog ステートになれるようにします (走るのをやめたら Crouch に戻ります)。 
 
 1.	ステートマシン グラフに戻り **Crouch_BS** から **Jog_BS** へ、および **Jog_BS** から **Crouch_BS** への **遷移** を作成します。 
 
@@ -96,4 +87,4 @@ Description:このセクションではキャラクターの Jog ステートの
 1.	Animation ブループリントを **コンパイル** し **保存** します。 
 
 
-%Steps%
+[NAV]

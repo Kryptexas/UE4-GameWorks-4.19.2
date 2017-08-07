@@ -3,6 +3,7 @@ Title: Unreal Architecture
 Crumbs:%ROOT%, Programming
 Description:Reference to creating and implementing gameplay classes.
 Version: 4.9
+Parent:Programming
 
 When programming gameplay elements using C++ code, each module can contain many C++ classes. 
 

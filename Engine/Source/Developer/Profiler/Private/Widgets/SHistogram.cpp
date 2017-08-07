@@ -29,7 +29,7 @@ void SHistogram::Construct( const FArguments& InArgs )
 	];
 }
 
-int32 SHistogram::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SHistogram::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	const TSharedRef< FSlateFontMeasure > FontMeasureService = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
 
@@ -45,9 +45,8 @@ int32 SHistogram::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeom
 	(
 		OutDrawElements,
 		LayerId,
-		AllottedGeometry.ToPaintGeometry( FVector2D(0,0), FVector2D(AllottedGeometry.Size.X,AllottedGeometry.Size.Y) ),
+		AllottedGeometry.ToPaintGeometry( FVector2D(0,0), FVector2D(AllottedGeometry.GetLocalSize().X,AllottedGeometry.GetLocalSize().Y) ),
 		TimelineAreaBrush,
-		MyClippingRect,
 		DrawEffects,
 		TimelineAreaBrush->GetTint( InWidgetStyle ) * InWidgetStyle.GetColorAndOpacityTint()
 	);
@@ -68,19 +67,17 @@ int32 SHistogram::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeom
 	// draw the histogram box
 	LinePoints.Add( FVector2D(StartX-1, LabelBuffer-1) );
 	LinePoints.Add( FVector2D(StartX + Description.GetBinCount()*CountX+1, LabelBuffer-1) );
-	LinePoints.Add( FVector2D(StartX + Description.GetBinCount()*CountX+1, AllottedGeometry.Size.Y - LabelBuffer+1) );
+	LinePoints.Add( FVector2D(StartX + Description.GetBinCount()*CountX+1, AllottedGeometry.GetLocalSize().Y - LabelBuffer+1) );
 	LinePoints.Add( FVector2D(StartX-1, AllottedGeometry.Size.Y - LabelBuffer+1) );
 	LinePoints.Add( FVector2D(StartX-1, LabelBuffer-1) );
-	FSlateDrawElement::MakeLines
-		(
+	FSlateDrawElement::MakeLines(
 		OutDrawElements,
 		LayerId,
 		AllottedGeometry.ToPaintGeometry(),
 		LinePoints,
-		MyClippingRect,
 		DrawEffects,
 		BorderColor
-		);
+	);
 	LinePoints.Empty();
 	LayerId++;
 	
@@ -89,52 +86,46 @@ int32 SHistogram::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeom
 	{
 		float MarkerPosX = StartX + Index * CountX;
 		LinePoints.Add( FVector2D(MarkerPosX, LabelBuffer-1) );
-		LinePoints.Add( FVector2D(MarkerPosX, AllottedGeometry.Size.Y - LabelBuffer+1) );
-		FSlateDrawElement::MakeLines
-			(
+		LinePoints.Add( FVector2D(MarkerPosX, AllottedGeometry.GetLocalSize().Y - LabelBuffer+1) );
+		FSlateDrawElement::MakeLines(
 			OutDrawElements,
 			LayerId,
 			AllottedGeometry.ToPaintGeometry(),
 			LinePoints,
-			MyClippingRect,
 			DrawEffects,
 			GridColor
-			);
+		);
 		LinePoints.Empty();
 
 		// Bottom - X-Axes numbers, starting from MinValue
 		const FString XLabel = FString::Printf(TEXT("%.0f"), Description.MinValue + Index*Description.Interval);
 		float FontCharWidth = FontMeasureService->Measure(XLabel, SummaryFont).X;
-		FSlateDrawElement::MakeText
-			(
+		FSlateDrawElement::MakeText(
 			OutDrawElements, 
 			LayerId, 
-			AllottedGeometry.ToOffsetPaintGeometry( FVector2D(MarkerPosX-FontCharWidth/2.0f,AllottedGeometry.Size.Y-LabelBuffer/2.0f-MaxFontCharHeight/2.0f) ),
+			AllottedGeometry.ToOffsetPaintGeometry( FVector2D(MarkerPosX-FontCharWidth/2.0f,AllottedGeometry.GetLocalSize().Y-LabelBuffer/2.0f-MaxFontCharHeight/2.0f) ),
 			XLabel,
-			SummaryFont, 
-			MyClippingRect, 
-			DrawEffects, 
+			SummaryFont,
+			DrawEffects,
 			FLinearColor::White
-			);
+		);
 
 	}
 	LayerId++;
 
 	// draw the horizontal lines
-	float CountY = (AllottedGeometry.Size.Y-LabelBuffer*2.0f) / 4;
+	float CountY = (AllottedGeometry.GetLocalSize().Y-LabelBuffer*2.0f) / 4;
 	float StartY = LabelBuffer;
 	for (int32 Index = 0; Index < 5; ++Index)
 	{
 		float MarkerPosY = StartY + Index * CountY;
 		LinePoints.Add( FVector2D(StartX, MarkerPosY) );
 		LinePoints.Add( FVector2D(StartX + Description.GetBinCount()*CountX, MarkerPosY) );
-		FSlateDrawElement::MakeLines
-			(
+		FSlateDrawElement::MakeLines(
 			OutDrawElements,
 			LayerId,
 			AllottedGeometry.ToPaintGeometry(),
 			LinePoints,
-			MyClippingRect,
 			DrawEffects,
 			GridColor
 			);
@@ -149,8 +140,7 @@ int32 SHistogram::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeom
 			LayerId, 
 			AllottedGeometry.ToOffsetPaintGeometry( FVector2D(LabelBuffer/2.0f-FontCharWidth/2.0f,MarkerPosY-MaxFontCharHeight/2.0f) ),
 			YLabel,
-			SummaryFont, 
-			MyClippingRect, 
+			SummaryFont,
 			DrawEffects, 
 			FLinearColor::White
 			);
@@ -161,18 +151,17 @@ int32 SHistogram::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeom
 	for (int32 Index = 0; Index < Description.GetBinCount(); ++Index)
 	{
 		float MarkerPosX = StartX + Index * CountX;
-		float SizeY = (float)Description.GetCount(Index) / (float)Description.GetTotalCount() * (AllottedGeometry.Size.Y - LabelBuffer*2.0f);
+		float SizeY = (float)Description.GetCount(Index) / (float)Description.GetTotalCount() * (AllottedGeometry.GetLocalSize().Y - LabelBuffer*2.0f);
 		FSlateDrawElement::MakeBox(
 			OutDrawElements,
 			LayerId,
-			AllottedGeometry.ToPaintGeometry( FVector2D(MarkerPosX, AllottedGeometry.Size.Y - SizeY- LabelBuffer), FVector2D(CountX, SizeY) ),
+			AllottedGeometry.ToPaintGeometry( FVector2D(MarkerPosX, AllottedGeometry.GetLocalSize().Y - SizeY- LabelBuffer), FVector2D(CountX, SizeY) ),
 			FillImage,
-			MyClippingRect,
 			DrawEffects,
 			FLinearColor::Green
 			);
 	}
-	return SCompoundWidget::OnPaint( Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled && IsEnabled() );
+	return SCompoundWidget::OnPaint( Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled && IsEnabled() );
 }
 
 void SHistogram::SetFPSAnalyzer(const TSharedPtr<FFPSAnalyzer>& InAnalyzer)

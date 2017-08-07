@@ -800,6 +800,10 @@ public:
 	void ClientCheatGhost();
 	virtual void ClientCheatGhost_Implementation();
 
+	UFUNCTION(reliable, client)
+	void RootMotionDebugClientPrintOnScreen(const FString& InString);
+	virtual void RootMotionDebugClientPrintOnScreen_Implementation(const FString& InString);
+
 	// Root Motion
 public:
 	/** 
@@ -871,8 +875,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Animation)
 	float GetAnimRootMotionTranslationScale() const;
 
-	/** Called on the actor right before replication occurs */
-	virtual void PreReplication( IRepChangedPropertyTracker & ChangedPropertyTracker ) override;
+	/** Called on the actor right before replication occurs.
+	* Only called on Server, and for autonomous proxies if recording a Client Replay. */
+	virtual void PreReplication(IRepChangedPropertyTracker & ChangedPropertyTracker) override;
+
+	/** Called on the actor right before replication occurs.
+	* Called for everyone when recording a Client Replay, including Simulated Proxies. */
+	virtual void PreReplicationForReplay(IRepChangedPropertyTracker & ChangedPropertyTracker) override;
 
 public:
 	/** Returns Mesh subobject **/

@@ -5,16 +5,11 @@
 #include "USDImportOptions.h"
 #include "TokenizedMessage.h"
 
-#if USING_CODE_ANALYSIS
-MSVC_PRAGMA(warning(push))
-MSVC_PRAGMA(warning(disable : ALL_CODE_ANALYSIS_WARNINGS))
-#endif	// USING_CODE_ANALYSIS
+THIRD_PARTY_INCLUDES_START
 
 #include "UnrealUSDWrapper.h"
 
-#if USING_CODE_ANALYSIS
-MSVC_PRAGMA(warning(pop))
-#endif	// USING_CODE_ANALYSIS
+THIRD_PARTY_INCLUDES_END
 
 #include "USDImporter.generated.h"
 
@@ -71,6 +66,8 @@ struct FUsdImportContext
 
 	/** If true stop at any USD prim that has an unreal asset reference.  Geometry that is a child such prims will be ignored */
 	bool bFindUnrealAssetReferences;
+
+	virtual ~FUsdImportContext() { }
 
 	virtual void Init(UObject* InParent, const FString& InName, EObjectFlags InFlags, IUsdStage* InStage);
 

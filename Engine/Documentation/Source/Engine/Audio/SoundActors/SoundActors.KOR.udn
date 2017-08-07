@@ -1,13 +1,15 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3429236
 Availability: Public
 Title:사운드 액터 사용 안내서
 Crumbs: %ROOT%, Engine, Engine/Audio
 Description:게임내 배경음이나 국소적인 소리를 내기 위해 여러가지 사운드 액터를 사용하는 법입니다.
 version: 4.9
+parent:Engine/Audio
+type:overview
+order:2
+
+
 [TOC(start:2 end:2)]
-
-
-
 
 언리얼 엔진 4 에서는 **Ambient Sound Actor** (앰비언트 사운드 액터)의 사용을 통해 효율적인 배경음 제작 및 편집 프로세스가 가능합니다. **사운드 웨이브** 또는 **사운드 큐** 애셋을 레벨에 배치하면, 해당 사운드 애셋이 할당된 **앰비언트 사운드 액터** 가 생성됩니다. 이 글에서는 그 앰비언트 사운드 액터에 있는 여러가지 프로퍼티도 다루겠으며, 이를 통해 플레이어에게 사운드가 어떻게 들리는지 변경할 수 있습니다.
 

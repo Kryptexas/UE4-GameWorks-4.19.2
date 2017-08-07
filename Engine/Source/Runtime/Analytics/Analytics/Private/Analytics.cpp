@@ -4,7 +4,7 @@
 #include "Misc/CommandLine.h"
 #include "Interfaces/IAnalyticsProviderModule.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogAnalytics, Display, All);
+DEFINE_LOG_CATEGORY(LogAnalytics);
 
 IMPLEMENT_MODULE( FAnalytics, Analytics );
 

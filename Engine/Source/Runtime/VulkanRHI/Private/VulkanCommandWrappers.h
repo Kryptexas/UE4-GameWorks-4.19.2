@@ -27,6 +27,8 @@ namespace VulkanRHI
 	void DumpCreateBuffer(VkDevice Device, const VkBufferCreateInfo* CreateInfo, VkBuffer* Buffer);
 	void DumpCreateBufferView(VkDevice Device, const VkBufferViewCreateInfo* CreateInfo, VkBufferView* BufferView);
 	void DumpCreateImage(VkDevice Device, const VkImageCreateInfo* CreateInfo, VkImage* Image);
+	void DumpCreateImageResult(VkResult Result, const VkImageCreateInfo* CreateInfo, VkImage Image);
+	void DumpDestroyImage(VkDevice Device, VkImage Image);
 	void DumpCreateImageView(VkDevice Device, const VkImageViewCreateInfo* CreateInfo, VkImageView* ImageView);
 	void DumpFenceCreate(VkDevice Device, const VkFenceCreateInfo* CreateInfo, VkFence* Fence);
 	void DumpFenceList(uint32 FenceCount, const VkFence* Fences);
@@ -37,10 +39,14 @@ namespace VulkanRHI
 	void DumpCreateInstance(const VkInstanceCreateInfo* CreateInfo, VkInstance* Instance);
 	void DumpEnumeratePhysicalDevicesEpilog(uint32* PhysicalDeviceCount, VkPhysicalDevice* PhysicalDevices);
 	void DumpCmdPipelineBarrier(VkCommandBuffer CommandBuffer, VkPipelineStageFlags SrcStageMask, VkPipelineStageFlags DstStageMask, VkDependencyFlags DependencyFlags, uint32 MemoryBarrierCount, const VkMemoryBarrier* MemoryBarriers, uint32 BufferMemoryBarrierCount, const VkBufferMemoryBarrier* BufferMemoryBarriers, uint32 ImageMemoryBarrierCount, const VkImageMemoryBarrier* ImageMemoryBarriers);
+	void DumpCmdWaitEvents(VkCommandBuffer CommandBuffer, uint32 EventCount, const VkEvent* Events, VkPipelineStageFlags SrcStageMask, VkPipelineStageFlags DstStageMask, uint32 MemoryBarrierCount,
+		const VkMemoryBarrier* pMemoryBarriers, uint32 BufferMemoryBarrierCount, const VkBufferMemoryBarrier* pBufferMemoryBarriers, uint32 ImageMemoryBarrierCount, const VkImageMemoryBarrier* pImageMemoryBarriers);
 	void DumpCreateDescriptorSetLayout(VkDevice Device, const VkDescriptorSetLayoutCreateInfo* CreateInfo, VkDescriptorSetLayout* SetLayout);
 	void DumpAllocateDescriptorSets(VkDevice Device, const VkDescriptorSetAllocateInfo* AllocateInfo, VkDescriptorSet* DescriptorSets);
 	void DumpCreateFramebuffer(VkDevice Device, const VkFramebufferCreateInfo* CreateInfo, VkFramebuffer* Framebuffer);
+	void DumpCreateFramebufferResult(VkResult Result, const VkFramebufferCreateInfo* CreateInfo, VkFramebuffer Framebuffer);
 	void DumpCreateRenderPass(VkDevice Device, const VkRenderPassCreateInfo* CreateInfo, VkRenderPass* RenderPass);
+	void DumpCreateRenderPassResult(VkResult Result, const VkRenderPassCreateInfo* CreateInfo, VkRenderPass RenderPass);
 	void DumpQueueSubmit(VkQueue Queue, uint32 SubmitCount, const VkSubmitInfo* Submits, VkFence Fence);
 	void DumpCreateShaderModule(VkDevice Device, const VkShaderModuleCreateInfo* CreateInfo, VkShaderModule* ShaderModule);
 	void DumpCreateDevice(VkPhysicalDevice PhysicalDevice, const VkDeviceCreateInfo* CreateInfo, VkDevice* Device);
@@ -53,6 +59,7 @@ namespace VulkanRHI
 	void DumpCmdCopyBufferToImage(VkCommandBuffer CommandBuffer, VkBuffer SrcBuffer, VkImage DstImage, VkImageLayout DstImageLayout, uint32 RegionCount, const VkBufferImageCopy* Regions);
 	void DumpCmdCopyImageToBuffer(VkCommandBuffer CommandBuffer, VkImage SrcImage, VkImageLayout SrcImageLayout, VkBuffer DstBuffer, uint32 RegionCount, const VkBufferImageCopy* Regions);
 	void DumpCmdCopyBuffer(VkCommandBuffer CommandBuffer, VkBuffer SrcBuffer, VkBuffer DstBuffer, uint32 RegionCount, const VkBufferCopy* Regions);
+	void DumpCmdBlitImage(VkCommandBuffer CommandBuffer, VkImage SrcImage, VkImageLayout SrcImageLayout, VkImage DstImage, VkImageLayout DstImageLayout, uint32 RegionCount, const VkImageBlit* Regions, VkFilter Filter);
 	void DumpCreatePipelineCache(VkDevice Device, const VkPipelineCacheCreateInfo* CreateInfo, VkPipelineCache* PipelineCache);
 	void DumpCreateCommandPool(VkDevice Device, const VkCommandPoolCreateInfo* CreateInfo, VkCommandPool* CommandPool);
 	void DumpCreateQueryPool(VkDevice Device, const VkQueryPoolCreateInfo* CreateInfo, VkQueryPool* QueryPool);
@@ -68,73 +75,79 @@ namespace VulkanRHI
 	void DumpCmdClearDepthStencilImage(VkCommandBuffer CommandBuffer, VkImage Image, VkImageLayout ImageLayout, const VkClearDepthStencilValue* DepthStencil, uint32 RangeCount, const VkImageSubresourceRange* Ranges);
 	void DumpQueuePresent(VkQueue Queue, const VkPresentInfoKHR* PresentInfo);
 	void DumpCreateGraphicsPipelines(VkDevice Device, VkPipelineCache PipelineCache, uint32 CreateInfoCount, const VkGraphicsPipelineCreateInfo* CreateInfos, VkPipeline* Pipelines);
-	void TrackImageViewAdd(VkImageView View, VkImage Image);
+	void TrackImageViewAdd(VkImageView View, const VkImageViewCreateInfo* CreateInfo);
 	void TrackImageViewRemove(VkImageView View);
-	void TrackBufferViewAdd(VkBufferView View, VkBuffer Buffer);
+	void TrackBufferViewAdd(VkBufferView View, const VkBufferViewCreateInfo* pCreateInfo);
 	void TrackBufferViewRemove(VkBufferView View);
 #else
-	#define FlushDebugWrapperLog()
-	#define DevicePrintfBeginResult(d, x)
-	#define PrintfBeginResult(x)
-	#define DevicePrintfBegin(d, x)
-	#define CmdPrintfBegin(c, s)
-	#define CmdPrintfBeginResult(c, s)
-	#define PrintfBegin(x)
-	#define PrintResult(x)
-	#define PrintResultAndNamedHandle(r, n, h)
-	#define PrintResultAndNamedHandles(r, hn, nh, h)
-	#define PrintResultAndPointer(r, h)
-	#define DumpPhysicalDeviceProperties(x)
-	#define DumpAllocateMemory(d, i, m)
-	#define DumpMemoryRequirements(x)
-	#define DumpCreateBuffer(d, i, b)
-	#define DumpCreateBufferView(d, i, v)
-	#define DumpCreateImage(d, x, i)
-	#define DumpCreateImageView(d, i, v)
-	#define DumpFenceCreate(d, x, f)
-	#define DumpFenceList(c, p)
-	#define DumpSemaphoreCreate(d, i, s)
-	#define DumpMappedMemoryRanges(c, p)
-	#define DumpResolveImage(c, si, sil, di, dil, rc, r)
-	#define DumpFreeDescriptorSets(d, p, c, s)
-	#define DumpCreateInstance(c, i)
-	#define DumpEnumeratePhysicalDevicesEpilog(c, d)
-	#define DumpCmdPipelineBarrier(c, sm, dm, df, mc, mb, bc, bb, ic, ib)
-	#define DumpCreateDescriptorSetLayout(d, i, s)
-	#define DumpAllocateDescriptorSets(d, i, s)
-	#define DumpCreateFramebuffer(d, i, f)
-	#define DumpCreateRenderPass(d, i, r)
-	#define DumpQueueSubmit(q, c, s, f)
-	#define DumpCreateShaderModule(d, i, s)
-	#define DumpCreateDevice(p, i, d)
-	#define DumpUpdateDescriptorSets(d, wc, w, cc, c)
-	#define DumpBeginCommandBuffer(c, i)
-	#define DumpCmdBeginRenderPass(c, b, cont)
-	#define DumpCmdBindVertexBuffers(cb, f, bc, b, o)
-	#define DumpGetImageSubresourceLayout(d, i, s, l)
-	#define DumpImageSubresourceLayout(l)
-	#define DumpCmdCopyBufferToImage(cb, sb, di, dil, rc, r)
-	#define DumpCmdCopyImageToBuffer(cb, sb, di, dil, rc, r)
-	#define DumpCmdCopyBuffer(cb, sb, db, rc, r)
-	#define DumpCreatePipelineCache(d, i, pc)
-	#define DumpCreateCommandPool(d, i, c)
-	#define DumpCreateQueryPool(d, i, q)
-	#define DumpCreatePipelineLayout(d, i, p)
-	#define DumpCreateDescriptorPool(d, i, dp)
-	#define DumpCreateSampler(d, i, s)
-	#define DumpGetPhysicalDeviceFeatures(pd, f)
-	#define DumpPhysicalDeviceFeatures(f)
-	#define DumpBindDescriptorSets(c, pbp, l, fs, dsc, ds, doc, do)
-	#define DumpSwapChainImages(r, c, i)
-	#define DumpCmdClearAttachments(c, ac, a, rc, r)
-	#define DumpCmdClearColorImage(c, i, il, ds, rc, r)
-	#define DumpCmdClearDepthStencilImage(c, i, il, ds, rc, r)
-	#define DumpQueuePresent(q, i)
-	#define DumpCreateGraphicsPipelines(d, pc, cic, ci, p)
-	#define TrackImageViewAdd(v, i)
-	#define TrackImageViewRemove(v)
-	#define TrackBufferViewAdd(v, b)
-	#define TrackBufferViewRemove(v)
+#define FlushDebugWrapperLog()
+#define DevicePrintfBeginResult(d, x)
+#define PrintfBeginResult(x)
+#define DevicePrintfBegin(d, x)
+#define CmdPrintfBegin(c, s)
+#define CmdPrintfBeginResult(c, s)
+#define PrintfBegin(x)
+#define PrintResult(x)
+#define PrintResultAndNamedHandle(r, n, h)
+#define PrintResultAndNamedHandles(r, hn, nh, h)
+#define PrintResultAndPointer(r, h)
+#define DumpPhysicalDeviceProperties(x)
+#define DumpAllocateMemory(d, i, m)
+#define DumpMemoryRequirements(x)
+#define DumpCreateBuffer(d, i, b)
+#define DumpCreateBufferView(d, i, v)
+#define DumpCreateImage(d, x, i)
+#define DumpCreateImageResult(r, ci, i);
+#define DumpDestroyImage(d, i)
+#define DumpCreateImageView(d, i, v)
+#define DumpFenceCreate(d, x, f)
+#define DumpFenceList(c, p)
+#define DumpSemaphoreCreate(d, i, s)
+#define DumpMappedMemoryRanges(c, p)
+#define DumpResolveImage(c, si, sil, di, dil, rc, r)
+#define DumpFreeDescriptorSets(d, p, c, s)
+#define DumpCreateInstance(c, i)
+#define DumpEnumeratePhysicalDevicesEpilog(c, d)
+#define DumpCmdPipelineBarrier(c, sm, dm, df, mc, mb, bc, bb, ic, ib)
+#define DumpCmdWaitEvents(cb, ec, e, ssm, dsm, mbc, mb, bmbc, bmb, imbc, imb)
+#define DumpCreateDescriptorSetLayout(d, i, s)
+#define DumpAllocateDescriptorSets(d, i, s)
+#define DumpCreateFramebuffer(d, i, f)
+#define DumpCreateFramebufferResult(r, i, f)
+#define DumpCreateRenderPass(d, i, r)
+#define DumpCreateRenderPassResult(r, i, rp)
+#define DumpQueueSubmit(q, c, s, f)
+#define DumpCreateShaderModule(d, i, s)
+#define DumpCreateDevice(p, i, d)
+#define DumpUpdateDescriptorSets(d, wc, w, cc, c)
+#define DumpBeginCommandBuffer(c, i)
+#define DumpCmdBeginRenderPass(c, b, cont)
+#define DumpCmdBindVertexBuffers(cb, f, bc, b, o)
+#define DumpGetImageSubresourceLayout(d, i, s, l)
+#define DumpImageSubresourceLayout(l)
+#define DumpCmdCopyBufferToImage(cb, sb, di, dil, rc, r)
+#define DumpCmdCopyImageToBuffer(cb, sb, di, dil, rc, r)
+#define DumpCmdCopyBuffer(cb, sb, db, rc, r)
+#define DumpCmdBlitImage(cb, si, sil, di, dil, rc, r, f)
+#define DumpCreatePipelineCache(d, i, pc)
+#define DumpCreateCommandPool(d, i, c)
+#define DumpCreateQueryPool(d, i, q)
+#define DumpCreatePipelineLayout(d, i, p)
+#define DumpCreateDescriptorPool(d, i, dp)
+#define DumpCreateSampler(d, i, s)
+#define DumpGetPhysicalDeviceFeatures(pd, f)
+#define DumpPhysicalDeviceFeatures(f)
+#define DumpBindDescriptorSets(c, pbp, l, fs, dsc, ds, doc, do)
+#define DumpSwapChainImages(r, c, i)
+#define DumpCmdClearAttachments(c, ac, a, rc, r)
+#define DumpCmdClearColorImage(c, i, il, ds, rc, r)
+#define DumpCmdClearDepthStencilImage(c, i, il, ds, rc, r)
+#define DumpQueuePresent(q, i)
+#define DumpCreateGraphicsPipelines(d, pc, cic, ci, p)
+#define TrackImageViewAdd(v, ci)
+#define TrackImageViewRemove(v)
+#define TrackBufferViewAdd(v, b)
+#define TrackBufferViewRemove(v)
 #endif
 
 	FORCEINLINE_DEBUGGABLE VkResult  vkCreateInstance(const VkInstanceCreateInfo* CreateInfo, const VkAllocationCallbacks* Allocator, VkInstance* Instance)
@@ -556,7 +569,7 @@ namespace VulkanRHI
 		VULKANAPINAMESPACE::vkDestroyQueryPool(Device, QueryPool, Allocator);
 	}
 
-	static FORCEINLINE_DEBUGGABLE VkResult  vkGetQueryPoolResults(VkDevice Device, VkQueryPool QueryPool, 
+	static FORCEINLINE_DEBUGGABLE VkResult  vkGetQueryPoolResults(VkDevice Device, VkQueryPool QueryPool,
 		uint32 FirstQuery, uint32 QueryCount, size_t DataSize, void* Data, VkDeviceSize Stride, VkQueryResultFlags Flags)
 	{
 		DevicePrintfBeginResult(Device, FString::Printf(TEXT("vkGetQueryPoolResults(QueryPool=%p, FirstQuery=%d, QueryCount=%d, DataSize=%d, Data=%p, Stride=%d, Flags=%d)[...]"), QueryPool, FirstQuery, QueryCount, (int32)DataSize, Data, Stride, Flags));
@@ -591,7 +604,7 @@ namespace VulkanRHI
 
 		VkResult Result = VULKANAPINAMESPACE::vkCreateBufferView(Device, CreateInfo, Allocator, View);
 
-		TrackBufferViewAdd(*View, CreateInfo->buffer);
+		TrackBufferViewAdd(*View, CreateInfo);
 
 		PrintResultAndNamedHandle(Result, TEXT("BufferView"), *View);
 		return Result;
@@ -612,14 +625,13 @@ namespace VulkanRHI
 
 		VkResult Result = VULKANAPINAMESPACE::vkCreateImage(Device, CreateInfo, Allocator, Image);
 
-		PrintResultAndNamedHandle(Result, TEXT("Image"), *Image);
+		DumpCreateImageResult(Result, CreateInfo, *Image);
 		return Result;
 	}
 
 	static FORCEINLINE_DEBUGGABLE void  vkDestroyImage(VkDevice Device, VkImage Image, const VkAllocationCallbacks* Allocator)
 	{
-		DevicePrintfBegin(Device, FString::Printf(TEXT("vkDestroyImage(Image=%p)"), Image));
-
+		DumpDestroyImage(Device, Image);
 		VULKANAPINAMESPACE::vkDestroyImage(Device, Image, Allocator);
 	}
 
@@ -637,7 +649,7 @@ namespace VulkanRHI
 		DumpCreateImageView(Device, CreateInfo, View);
 
 		VkResult Result = VULKANAPINAMESPACE::vkCreateImageView(Device, CreateInfo, Allocator, View);
-		TrackImageViewAdd(*View, CreateInfo->image);
+		TrackImageViewAdd(*View, CreateInfo);
 		PrintResultAndNamedHandle(Result, TEXT("ImageView"), *View);
 		return Result;
 	}
@@ -653,7 +665,7 @@ namespace VulkanRHI
 	{
 		DumpCreateShaderModule(Device, CreateInfo, ShaderModule);
 
-		VkResult Result = VULKANAPINAMESPACE::vkCreateShaderModule(Device, CreateInfo, Allocator,ShaderModule);
+		VkResult Result = VULKANAPINAMESPACE::vkCreateShaderModule(Device, CreateInfo, Allocator, ShaderModule);
 
 		PrintResultAndNamedHandle(Result, TEXT("ShaderModule"), *ShaderModule);
 
@@ -847,7 +859,7 @@ namespace VulkanRHI
 
 		VkResult Result = VULKANAPINAMESPACE::vkCreateFramebuffer(Device, CreateInfo, Allocator, Framebuffer);
 
-		PrintResultAndNamedHandle(Result, TEXT("Framebuffer"), *Framebuffer);
+		DumpCreateFramebufferResult(Result, CreateInfo, *Framebuffer);
 		return Result;
 	}
 
@@ -864,7 +876,7 @@ namespace VulkanRHI
 
 		VkResult Result = VULKANAPINAMESPACE::vkCreateRenderPass(Device, CreateInfo, Allocator, RenderPass);
 
-		PrintResultAndNamedHandle(Result, TEXT("RenderPass"), *RenderPass);
+		DumpCreateRenderPassResult(Result, CreateInfo, *RenderPass);
 		return Result;
 	}
 
@@ -941,7 +953,7 @@ namespace VulkanRHI
 	}
 
 	static FORCEINLINE_DEBUGGABLE VkResult  vkResetCommandBuffer(VkCommandBuffer CommandBuffer, VkCommandBufferResetFlags Flags)
-	 {
+	{
 		PrintfBeginResult(FString::Printf(TEXT("vkResetCommandBuffer(Cmd=%p, Flags=%d)"), CommandBuffer, Flags));
 
 		VkResult Result = VULKANAPINAMESPACE::vkResetCommandBuffer(CommandBuffer, Flags);
@@ -967,7 +979,7 @@ namespace VulkanRHI
 	static FORCEINLINE_DEBUGGABLE void  vkCmdSetScissor(VkCommandBuffer CommandBuffer, uint32 FirstScissor, uint32 ScissorCount, const VkRect2D* Scissors)
 	{
 		CmdPrintfBegin(CommandBuffer, FString::Printf(TEXT("vkCmdSetScissor(FirstScissor=%d, ScissorCount=%d, Scissors=%p)[...]"), FirstScissor, ScissorCount, Scissors));
-		
+
 		VULKANAPINAMESPACE::vkCmdSetScissor(CommandBuffer, FirstScissor, ScissorCount, Scissors);
 	}
 
@@ -1008,7 +1020,7 @@ namespace VulkanRHI
 	static FORCEINLINE_DEBUGGABLE void  vkCmdSetStencilReference(VkCommandBuffer CommandBuffer, VkStencilFaceFlags FaceMask, uint32 Reference)
 	{
 		CmdPrintfBegin(CommandBuffer, FString::Printf(TEXT("vkCmdSetStencilReference(FaceMask=%d, Ref=%d)"), (int32)FaceMask, (int32)Reference));
-		
+
 		VULKANAPINAMESPACE::vkCmdSetStencilReference(CommandBuffer, FaceMask, Reference);
 	}
 
@@ -1088,17 +1100,13 @@ namespace VulkanRHI
 		VULKANAPINAMESPACE::vkCmdCopyImage(CommandBuffer, SrcImage, SrcImageLayout, DstImage, DstImageLayout, RegionCount, Regions);
 	}
 
-#if 0
-	static FORCEINLINE_DEBUGGABLE void  vkCmdBlitImage(
-		VkCommandBuffer                             commandBuffer,
-		VkImage                                     srcImage,
-		VkImageLayout                               srcImageLayout,
-		VkImage                                     dstImage,
-		VkImageLayout                               dstImageLayout,
-		uint32                                    regionCount,
-		const VkImageBlit*                          pRegions,
-		VkFilter                                    filter);
-#endif
+	static FORCEINLINE_DEBUGGABLE void  vkCmdBlitImage(VkCommandBuffer CommandBuffer, VkImage SrcImage, VkImageLayout SrcImageLayout, VkImage DstImage, VkImageLayout DstImageLayout, uint32 RegionCount, const VkImageBlit* Regions, VkFilter Filter)
+	{
+		DumpCmdBlitImage(CommandBuffer, SrcImage, SrcImageLayout, DstImage, DstImageLayout, RegionCount, Regions, Filter);
+
+		VULKANAPINAMESPACE::vkCmdBlitImage(CommandBuffer, SrcImage, SrcImageLayout, DstImage, DstImageLayout, RegionCount, Regions, Filter);
+	}
+
 	static FORCEINLINE_DEBUGGABLE void  vkCmdCopyBufferToImage(VkCommandBuffer CommandBuffer, VkBuffer SrcBuffer, VkImage DstImage, VkImageLayout DstImageLayout, uint32 RegionCount, const VkBufferImageCopy* Regions)
 	{
 		DumpCmdCopyBufferToImage(CommandBuffer, SrcBuffer, DstImage, DstImageLayout, RegionCount, Regions);
@@ -1181,7 +1189,8 @@ namespace VulkanRHI
 		uint32 BufferMemoryBarrierCount, const VkBufferMemoryBarrier* pBufferMemoryBarriers,
 		uint32 ImageMemoryBarrierCount, const VkImageMemoryBarrier* pImageMemoryBarriers)
 	{
-		CmdPrintfBegin(CommandBuffer, FString::Printf(TEXT("vkCmdWaitEvents()[...]")/*, Events, StageMask*/));
+		DumpCmdWaitEvents(CommandBuffer, EventCount, Events, SrcStageMask, DstStageMask,
+			MemoryBarrierCount, pMemoryBarriers, BufferMemoryBarrierCount, pBufferMemoryBarriers, ImageMemoryBarrierCount, pImageMemoryBarriers);
 
 		VULKANAPINAMESPACE::vkCmdWaitEvents(CommandBuffer, EventCount, Events, SrcStageMask, DstStageMask, MemoryBarrierCount, pMemoryBarriers,
 			BufferMemoryBarrierCount, pBufferMemoryBarriers, ImageMemoryBarrierCount, pImageMemoryBarriers);
@@ -1285,7 +1294,7 @@ namespace VulkanRHI
 
 	static FORCEINLINE_DEBUGGABLE VkResult vkGetSwapchainImagesKHR(VkDevice Device, VkSwapchainKHR Swapchain, uint32_t* SwapchainImageCount, VkImage* SwapchainImages)
 	{
-		DevicePrintfBeginResult(Device, FString::Printf(TEXT("vkGetSwapchainImagesKHR(Swapchain=%p, OutSwapchainImageCount=%p, OutSwapchainImages=%p)"), Swapchain, SwapchainImageCount, SwapchainImages));
+		DevicePrintfBeginResult(Device, FString::Printf(TEXT("vkGetSwapchainImagesKHR(Swapchain=%p, OutSwapchainImageCount=%p, OutSwapchainImages=%p)\n"), Swapchain, SwapchainImageCount, SwapchainImages));
 
 		VkResult Result = VULKANAPINAMESPACE::vkGetSwapchainImagesKHR(Device, Swapchain, SwapchainImageCount, SwapchainImages);
 
@@ -1295,7 +1304,7 @@ namespace VulkanRHI
 
 	static FORCEINLINE_DEBUGGABLE VkResult vkAcquireNextImageKHR(VkDevice Device, VkSwapchainKHR Swapchain, uint64_t Timeout, VkSemaphore Semaphore, VkFence Fence, uint32_t* ImageIndex)
 	{
-		DevicePrintfBeginResult(Device, FString::Printf(TEXT("vkAcquireNextImageKHR(Swapchain=%p, Timeout=%p, Semaphore=%p, Fence=%p, OutImageIndex=%p)[...]"), Swapchain, (void*)Timeout, Semaphore, Fence, ImageIndex));
+		DevicePrintfBeginResult(Device, FString::Printf(TEXT("vkAcquireNextImageKHR(Swapchain=%p, Timeout=%p, Semaphore=%p, Fence=%p, OutImageIndex=%p)[...]\n"), Swapchain, (void*)Timeout, Semaphore, Fence, ImageIndex));
 
 		VkResult Result = VULKANAPINAMESPACE::vkAcquireNextImageKHR(Device, Swapchain, Timeout, Semaphore, Fence, ImageIndex);
 

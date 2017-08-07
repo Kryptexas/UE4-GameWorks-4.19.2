@@ -10,6 +10,8 @@
 #include "Components/PanelWidget.h"
 #include "ScrollBox.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUserScrolledEvent, float, CurrentOffset);
+
 /**
  * An arbitrary scrollable collection of widgets.  Great for presenting 10-100 widgets in a list.  Doesn't support virtualization.
  */
@@ -53,13 +55,41 @@ public:
 	/**  */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Scroll")
 	bool AlwaysShowScrollbar;
-	
-	//TODO UMG Add SetOrientation
-	//TODO UMG Add SetScrollBarVisibility
-	//TODO UMG Add SetScrollbarThickness
-	//TODO UMG Add SetAlwaysShowScrollbar
 
+	/**  Disable to stop scrollbars from activating inertial overscrolling */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Scroll")
+	bool AllowOverscroll;
+
+	/**  */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Scroll")
+	EDescendantScrollDestination NavigationDestination;
+
+	/**
+	 * The amount of padding to ensure exists between the item being navigated to, at the edge of the
+	 * scrollbox.  Use this if you want to ensure there's a preview of the next item the user could scroll to.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Scroll")
+	float NavigationScrollPadding;
+	
+	UFUNCTION(BlueprintCallable, Category = "Scroll")
+	void SetOrientation(EOrientation NewOrientation);
+
+	UFUNCTION(BlueprintCallable, Category = "Scroll")
+	void SetScrollBarVisibility(ESlateVisibility NewScrollBarVisibility);
+
+	UFUNCTION(BlueprintCallable, Category = "Scroll")
+	void SetScrollbarThickness(const FVector2D& NewScrollbarThickness);
+
+	UFUNCTION(BlueprintCallable, Category = "Scroll")
+	void SetAlwaysShowScrollbar(bool NewAlwaysShowScrollbar);
+	
+	UFUNCTION(BlueprintCallable, Category = "Scroll")
+	void SetAllowOverscroll(bool NewAllowOverscroll);
 public:
+
+	/** Called when the scroll has changed */
+	UPROPERTY(BlueprintAssignable, Category = "Button|Event")
+	FOnUserScrolledEvent OnUserScrolled;
 
 	/**
 	 * Updates the scroll offset of the scrollbox.
@@ -84,7 +114,7 @@ public:
 
 	/** Scrolls the ScrollBox to the widget during the next layout pass. */
 	UFUNCTION(BlueprintCallable, Category="Widget")
-	void ScrollWidgetIntoView(UWidget* WidgetToFind, bool AnimateScroll = true);
+	void ScrollWidgetIntoView(UWidget* WidgetToFind, bool AnimateScroll = true, EDescendantScrollDestination ScrollDesintion = EDescendantScrollDestination::IntoView );
 
 	//~ Begin UWidget Interface
 	virtual void SynchronizeProperties() override;
@@ -113,6 +143,8 @@ protected:
 	virtual void OnSlotAdded(UPanelSlot* Slot) override;
 	virtual void OnSlotRemoved(UPanelSlot* Slot) override;
 	// End UPanelWidget
+
+	void SlateHandleUserScrolled(float CurrentOffset);
 
 protected:
 	/** The desired scroll offset for the underlying scrollbox.  This is a cache so that it can be set before the widget is constructed. */

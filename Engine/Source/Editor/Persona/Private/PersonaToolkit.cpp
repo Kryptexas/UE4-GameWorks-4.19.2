@@ -81,7 +81,7 @@ void FPersonaToolkit::CreatePreviewScene()
 		if (!EditableSkeleton.IsValid())
 		{
 			ISkeletonEditorModule& SkeletonEditorModule = FModuleManager::LoadModuleChecked<ISkeletonEditorModule>("SkeletonEditor");
-			EditableSkeleton = SkeletonEditorModule.CreateEditableSkeleton(Skeleton);
+			EditableSkeleton = SkeletonEditorModule.CreateEditableSkeleton(Skeleton.Get());
 		}
 
 		PreviewScene = MakeShareable(new FAnimationEditorPreviewScene(FPreviewScene::ConstructionValues().AllowAudioPlayback(true).ShouldSimulatePhysics(true), EditableSkeleton.ToSharedRef(), AsShared()));
@@ -120,7 +120,7 @@ void FPersonaToolkit::CreatePreviewScene()
 			}
 		}
 
-		if (!bSetMesh && Skeleton)
+		if (!bSetMesh && Skeleton.IsValid())
 		{
 			//If no preview mesh set, just find the first mesh that uses this skeleton
 			USkeletalMesh* PreviewMesh = Skeleton->FindCompatibleMesh();
@@ -135,7 +135,7 @@ void FPersonaToolkit::CreatePreviewScene()
 
 USkeleton* FPersonaToolkit::GetSkeleton() const
 {
-	return Skeleton;
+	return Skeleton.Get();
 }
 
 TSharedPtr<class IEditableSkeleton> FPersonaToolkit::GetEditableSkeleton() const
@@ -207,34 +207,37 @@ USkeletalMesh* FPersonaToolkit::GetPreviewMesh() const
 	}
 	else
 	{
-		check(Skeleton);
+		check(Skeleton.IsValid());
 		return Skeleton->GetPreviewMesh();
 	}
 }
 
-void FPersonaToolkit::SetPreviewMesh(class USkeletalMesh* InSkeletalMesh)
+void FPersonaToolkit::SetPreviewMesh(class USkeletalMesh* InSkeletalMesh, bool bSetPreviewMeshInAsset)
 {
 	// Cant set preview mesh on a skeletal mesh (makes for a confusing experience!)
 	if (InitialAssetClass != USkeletalMesh::StaticClass())
 	{
-		if (InitialAssetClass == UAnimationAsset::StaticClass())
+		if(bSetPreviewMeshInAsset)
 		{
-			FScopedTransaction Transaction(NSLOCTEXT("PersonaToolkit", "SetAnimationPreviewMesh", "Set Animation Preview Mesh"));
+			if (InitialAssetClass == UAnimationAsset::StaticClass())
+			{
+				FScopedTransaction Transaction(NSLOCTEXT("PersonaToolkit", "SetAnimationPreviewMesh", "Set Animation Preview Mesh"));
 
-			check(AnimationAsset);
-			AnimationAsset->SetPreviewMesh(InSkeletalMesh);
-		}
-		else if (InitialAssetClass == UAnimBlueprint::StaticClass())
-		{
-			FScopedTransaction Transaction(NSLOCTEXT("PersonaToolkit", "SetAnimBlueprintPreviewMesh", "Set Animation Blueprint Preview Mesh"));
+				check(AnimationAsset);
+				AnimationAsset->SetPreviewMesh(InSkeletalMesh);
+			}
+			else if (InitialAssetClass == UAnimBlueprint::StaticClass())
+			{
+				FScopedTransaction Transaction(NSLOCTEXT("PersonaToolkit", "SetAnimBlueprintPreviewMesh", "Set Animation Blueprint Preview Mesh"));
 
-			check(AnimBlueprint);
-			AnimBlueprint->SetPreviewMesh(InSkeletalMesh);
-		}
-		else
-		{
-			check(EditableSkeleton.IsValid());
-			EditableSkeleton->SetPreviewMesh(InSkeletalMesh);
+				check(AnimBlueprint);
+				AnimBlueprint->SetPreviewMesh(InSkeletalMesh);
+			}
+			else
+			{
+				check(EditableSkeleton.IsValid());
+				EditableSkeleton->SetPreviewMesh(InSkeletalMesh);
+			}
 		}
 
 		GetPreviewScene()->SetPreviewMesh(InSkeletalMesh);

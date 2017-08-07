@@ -8,8 +8,8 @@ ShaderComplexityRendering.cpp: Contains definitions for rendering the shader com
 #include "PostProcess/SceneRenderTargets.h"
 #include "PostProcess/PostProcessVisualizeComplexity.h"
 
-IMPLEMENT_SHADER_TYPE(template<>,TShaderComplexityAccumulatePS,TEXT("ShaderComplexityAccumulatePixelShader"),TEXT("Main"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>,TQuadComplexityAccumulatePS,TEXT("QuadComplexityAccumulatePixelShader"),TEXT("Main"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,TShaderComplexityAccumulatePS,TEXT("/Engine/Private/ShaderComplexityAccumulatePixelShader.usf"),TEXT("Main"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,TQuadComplexityAccumulatePS,TEXT("/Engine/Private/QuadComplexityAccumulatePixelShader.usf"),TEXT("Main"),SF_Pixel);
 
 template <bool bQuadComplexity>
 void TComplexityAccumulatePS<bQuadComplexity>::SetParameters(

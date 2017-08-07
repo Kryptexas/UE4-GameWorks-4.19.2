@@ -1,12 +1,15 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3467293
 Availability: Public
 Title:스크린샷 찍기
 Crumbs:%ROOT%, Engine
 Description:게임내 배경과 게임플레이 스크린샷 찍는 법 안내입니다.
 version: 4.9
+Parent:Engine
+type:overview
+order:28
+topic-image:TakingScreenshots_Topic.png
+
 [TOC (start:2 end:3)]
-
-
 
 언리얼 엔진 4 (UE4) 는 사용자에게 언리얼 엔진 게임 프로젝트의 게임내 스크린샷을 찍기 위한 여러가지 다양한 방법을 제공합니다.
 이 문서에서는 UE4 에서 스크린샷을 찍는 데 사용할 수 있는 툴뿐 아니라 그 사용법까지도 다뤄 보겠습니다.

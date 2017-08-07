@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3238697
+﻿INTSourceChangelist:3388666
 Availability: Public
 Title: 2.3 - 캐릭터 동작 함수 구현
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
 Description: 일인칭 슈팅 캐릭터에 대한 동작 함수 구현법을 배워봅니다.
 SkillLevel: Beginner
-Version: 4.11
+Version: 4.15
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -72,7 +72,7 @@ Version: 4.11
 			virtual void Tick( float DeltaSeconds ) override;
 		
 			// 입력에 함수성 바인딩을 위해 호출됩니다.
-			virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
+			virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 		
 			// 전후 이동을 처리합니다.
 			UFUNCTION()
@@ -88,16 +88,16 @@ Version: 4.11
 
 전형적인 FPS 조작법에서, 캐릭터의 동작 축은 카메라에 상대적입니다. "전방" 이란 "카메라가 향하는 방향" 을, "우측" 이란 "카메라가 향하는 방향의 우측"을 뜻합니다. 캐릭터의 제어 방향을 구하는 데는 `PlayerController` 를 사용할 것입니다. 또한 `MoveForward` 함수는 제어 회전의 핏치 컴포넌트를 무시하고 입력을 XY 면으로 제한시켜 위아래를 처다보더라도 캐릭터는 땅과 평행으로 움직일 수 있도록 합니다.
 
-1.	`FPSCharacter.cpp` 에서, `SetupPlayerInputComponent` 함수의 `Super::SetupPlayerInputComponent(InputComponent)` 아래 다음 줄을 추가합니다:
+1.	`FPSCharacter.cpp` 에서, `SetupPlayerInputComponent` 함수의 `Super::SetupPlayerInputComponent(PlayerInputComponent)` 아래 다음 줄을 추가합니다:
 
 		// 입력에 함수성 바인딩을 위해 호출됩니다.
-		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
+		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 		{
-			Super::SetupPlayerInputComponent(InputComponent);
+			Super::SetupPlayerInputComponent(PlayerInputComponent);
 			
 			// "movement" 바인딩 구성
-			InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
-			InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
+			PlayerInputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
+			PlayerInputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
 		}
 
 	[REGION:note]
@@ -157,13 +157,13 @@ Version: 4.11
 		}
 		
 		// 입력에 함수성 바인딩을 위해 호출됩니다.
-		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
+		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 		{
-			Super::SetupPlayerInputComponent(InputComponent);
+			Super::SetupPlayerInputComponent(PlayerInputComponent);
 		
 			// "movement" 바인딩을 구성합니다.
-			InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
-			InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
+			PlayerInputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
+			PlayerInputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
 		}
 		
 		void AFPSCharacter::MoveForward(float Value)

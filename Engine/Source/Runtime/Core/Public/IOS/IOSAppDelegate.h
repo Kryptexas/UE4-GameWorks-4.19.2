@@ -75,9 +75,19 @@ UITextFieldDelegate>
 
 @property (retain) NSTimer* timer;
 
+@property (retain) NSTimer* PeakMemoryTimer;
+
+/** Timer used for re-enabling the idle timer */
+@property (retain) NSTimer* IdleTimerEnableTimer;
+
+/** The time delay (in seconds) between idle timer enable requests and actually enabling the idle timer */
+@property (readonly) float IdleTimerEnablePeriod;
+
 #if !UE_BUILD_SHIPPING && !PLATFORM_TVOS
 	/** Properties for managing the console */
+#if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_9_0
 	@property (nonatomic, retain) UIAlertView*		ConsoleAlert;
+#endif
 #ifdef __IPHONE_8_0
 	@property (nonatomic, assign) UIAlertController* ConsoleAlertController;
 #endif
@@ -107,6 +117,7 @@ UITextFieldDelegate>
 -(int)GetAudioVolume;
 -(bool)AreHeadphonesPluggedIn;
 -(int)GetBatteryLevel;
+-(bool)IsRunningOnBattery;
 
 /** TRUE if the device is playing background music and we want to allow that */
 @property (assign) bool bUsingBackgroundMusic;

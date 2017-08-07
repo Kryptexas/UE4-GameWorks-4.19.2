@@ -474,7 +474,7 @@ void FSimulation::GenerateContacts()
 			}
 
 			const uint32 OtherActorIdx = ShapeSOA.OwningActors[OtherShapeIdx];
-			if(OtherActorIdx >= NumSimulatedBodies && OtherActorIdx < NumSimulatedBodies)
+			if(OtherActorIdx >= NumActiveSimulatedBodies && OtherActorIdx < NumSimulatedBodies)
 			{
 				continue;
 			}

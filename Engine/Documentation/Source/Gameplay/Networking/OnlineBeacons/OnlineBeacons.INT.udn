@@ -3,7 +3,7 @@ Title: Online Beacons
 Crumbs: %ROOT%, Engine
 Description:Overview of the Online Beacon system
 Version: 4.13
-parent:Engine
+parent:Gameplay/Networking
 Related: Gameplay/Networking/Actors/RPCs
 Related: Gameplay/Networking/Actors/Properties
 

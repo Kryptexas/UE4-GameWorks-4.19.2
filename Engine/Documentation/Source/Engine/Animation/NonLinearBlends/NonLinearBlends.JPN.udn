@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2949987
+﻿INTSourceChangelist:3467293
 Availability:Public
 Title:Animation ブレンドモード
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -9,7 +9,7 @@ Related:Engine\Animation\StateMachines
 Related:Engine/UI/CurveEditor
 Related:Engine/Basics/Distributions
 Related:Engine/Animation/AnimMontage
-
+Topic-image:AnimationgBlendModes_topic.png
 
 **Animation ブレンドモード** を使うと、[**ステートマシン**](Engine\Animation\StateMachines) 内であるステートから別のステートに遷移する場合にポーズ間でメッシュがブレンドする方法を制御することができます。 
 選択できるブレンドモードは複数あります。これは、ステートマシン (以下の図) の **[Transition Rule (遷移ルール)]** の **[Blend Settings]** から設定することができます。 

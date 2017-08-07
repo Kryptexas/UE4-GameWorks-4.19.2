@@ -82,6 +82,19 @@ void USafeZone::UpdateWidgetProperties()
 	}
 }
 
+void USafeZone::SetSidesToPad(bool InPadLeft, bool InPadRight, bool InPadTop, bool InPadBottom)
+{
+	PadLeft = InPadLeft;
+	PadRight = InPadRight;
+	PadTop = InPadTop;
+	PadBottom = InPadBottom;
+
+	if (MySafeZone.IsValid() && GetChildrenCount() > 0)
+	{
+		MySafeZone->SetSidesToPad(PadLeft, PadRight, PadTop, PadBottom);
+	}
+}
+
 TSharedRef<SWidget> USafeZone::RebuildWidget()
 {
 	USafeZoneSlot* SafeSlot = Slots.Num() > 0 ? Cast< USafeZoneSlot >( Slots[ 0 ] ) : nullptr;
@@ -104,7 +117,7 @@ TSharedRef<SWidget> USafeZone::RebuildWidget()
 			GetChildAt( 0 ) ? GetChildAt( 0 )->TakeWidget() : SNullWidget::NullWidget
 		];
 
-	return BuildDesignTimeWidget( MySafeZone.ToSharedRef() );
+	return MySafeZone.ToSharedRef();
 }
 
 void USafeZone::ReleaseSlateResources(bool bReleaseChildren)

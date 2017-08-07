@@ -10,6 +10,7 @@
 #include "ISequencer.h"
 #include "ControlRigEditMode.h"
 #include "EditorModeManager.h"
+#include "MovieSceneSequence.h"
 
 #define LOCTEXT_NAMESPACE "ControlRigEditorObjectSpawner"
 

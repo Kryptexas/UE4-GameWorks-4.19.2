@@ -74,6 +74,8 @@ FParseCandidate ParseCandidates[] = {
 	{ TEXT("Months"),				EUnit::Months },				{ TEXT("mth"),		EUnit::Months },
 	{ TEXT("Years"),				EUnit::Years },					{ TEXT("yr"),		EUnit::Years },
 
+	{ TEXT("ppi"),					EUnit::PixelsPerInch },			{ TEXT("dpi"),		EUnit::PixelsPerInch },
+
 	{ TEXT("times"),				EUnit::Multiplier },			{ TEXT("x"),	EUnit::Multiplier },			{ TEXT("multiplier"),		EUnit::Multiplier },
 };
 
@@ -102,6 +104,8 @@ const TCHAR* const DisplayStrings[] = {
 
 	TEXT("ms"), TEXT("s"), TEXT("min"), TEXT("hr"), TEXT("dy"), TEXT("mth"), TEXT("yr"),
 
+	TEXT("ppi"),
+
 	TEXT("x"),
 };
 
@@ -128,6 +132,8 @@ const EUnitType UnitTypes[] = {
 	EUnitType::LuminousFlux,
 
 	EUnitType::Time,		EUnitType::Time,		EUnitType::Time,		EUnitType::Time,		EUnitType::Time,		EUnitType::Time,		EUnitType::Time,
+
+	EUnitType::PixelDensity,
 
 	EUnitType::Arbitrary,
 };

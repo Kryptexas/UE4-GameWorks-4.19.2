@@ -1,7 +1,9 @@
-﻿Availability:Public
+﻿INTSourceChangelist:3244370
+Availability:Public
 Title:ブループリントの用語集
 Crumbs:%ROOT%, Engine/Blueprints
 Description:ブループリントの作業時に使用する専門用語集
+tags:Blueprints
 
 [REGION:toc_alpha]
 **クイック移動:** A [B](#B) [C](#C) D [E](#E) [F](#F) G H [I](#I) J K L M N O [P](#P) Q R S T U V W X Y Z
@@ -16,7 +18,7 @@ $ Blueprint (ブループリント):ビジュアルスクリプティングシ�
 ## C
 
 (#CustomEvent)
-$ Custom Event (カスタム イベント):イベントグラフのノード経由で実行が可能な **ブループリント エディタ** で定義された [イベント](#Event)。
+$ Custom Event :イベントグラフのノード経由で実行が可能な **ブループリント エディタ** で定義された [イベント](#Event)。
 
 
 ## E

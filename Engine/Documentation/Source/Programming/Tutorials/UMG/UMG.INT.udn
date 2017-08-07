@@ -3,6 +3,9 @@ Title:User Interface With UMG
 Crumbs:%ROOT%, GettingStarted
 Description:Create a simple menu system using UMG.
 version:4.14
+type:how-to
+type:landing
+skilllevel:Intermediate
 
 [VAR:Topic]
 [OBJECT:Topic]

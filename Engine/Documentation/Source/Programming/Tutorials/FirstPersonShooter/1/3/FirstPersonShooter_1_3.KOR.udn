@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3151861
+﻿INTSourceChangelist:3388666
 Availability: Public
 Title: 1.3 - 로그 메시징 추가
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/1
 Description: 게임에 로그 메시징 추가법을 배워봅니다.
 SkillLevel: Beginner
-Version: 4.11
+Version: 4.15
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -55,7 +55,7 @@ Version: 4.11
 		#pragma once
 		
 		#include "GameFramework/GameModeBase.h"
-		#include "FPSGameMode.generated.h"
+		#include "FPSProjectGameMode.generated.h"
 		
 		/**
 		 * 

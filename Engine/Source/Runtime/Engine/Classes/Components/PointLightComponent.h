@@ -61,7 +61,7 @@ class ENGINE_API UPointLightComponent : public ULightComponent
 	float SourceLength;
 
 	/** The Lightmass settings for this object. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Light, meta=(ShowOnlyInnerProperties))
+	UPROPERTY(EditAnywhere, Category=Light, meta=(ShowOnlyInnerProperties))
 	struct FLightmassPointLightSettings LightmassSettings;
 
 	UFUNCTION(BlueprintCallable, Category="Rendering|Lighting")

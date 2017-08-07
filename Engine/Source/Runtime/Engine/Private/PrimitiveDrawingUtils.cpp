@@ -103,6 +103,34 @@ void DrawPlane10x10(class FPrimitiveDrawInterface* PDI,const FMatrix& ObjectToWo
 	MeshBuilder.Draw(PDI, FScaleMatrix(Radii) * ObjectToWorld, MaterialRenderProxy, DepthPriorityGroup, 0.f);
 }
 
+void DrawTriangle(class FPrimitiveDrawInterface* PDI, const FVector& A, const FVector& B, const FVector& C, const FMaterialRenderProxy* MaterialRenderProxy, uint8 DepthPriorityGroup)
+{
+	FVector2D UVs[4] =
+	{
+		FVector2D(0,0),
+		FVector2D(0,1),
+		FVector2D(1,1),
+		FVector2D(1,0),
+	};
+
+	FDynamicMeshBuilder MeshBuilder;
+
+	FVector Normal = FVector(0, 0, 1);
+	FVector Tangent = FVector(1, 0, 0);	
+
+	MeshBuilder.AddVertex(FDynamicMeshVertex(A, Tangent, Normal, UVs[0],FColor::White));
+
+	MeshBuilder.AddVertex(FDynamicMeshVertex(B, Tangent, Normal, UVs[1], FColor::White));
+	MeshBuilder.AddVertex(FDynamicMeshVertex(C, Tangent, Normal, UVs[2], FColor::White));
+
+	MeshBuilder.AddTriangle(0, 1, 2);
+	MeshBuilder.Draw(PDI, FMatrix::Identity, MaterialRenderProxy, DepthPriorityGroup, false, false);
+
+	PDI->DrawLine(A, B, FColor::Yellow, DepthPriorityGroup, 1.f);
+	PDI->DrawLine(A, C, FColor::Yellow, DepthPriorityGroup, 1.f);
+	PDI->DrawLine(B, C, FColor::Yellow, DepthPriorityGroup, 1.f);
+}
+
 
 void GetBoxMesh(const FMatrix& BoxToWorld,const FVector& Radii,const FMaterialRenderProxy* MaterialRenderProxy,uint8 DepthPriorityGroup,int32 ViewIndex,FMeshElementCollector& Collector)
 {
@@ -312,7 +340,7 @@ extern ENGINE_API void GetSphereMesh(const FVector& Center, const FVector& Radii
 	GetHalfSphereMesh(Center, Radii, NumSides, NumRings, 0, PI, MaterialRenderProxy, DepthPriority, bDisableBackfaceCulling, ViewIndex, Collector, bUseSelectionOutline, HitProxy);
 }
 
-void DrawSphere(FPrimitiveDrawInterface* PDI,const FVector& Center,const FVector& Radii,int32 NumSides,int32 NumRings,const FMaterialRenderProxy* MaterialRenderProxy,uint8 DepthPriority,bool bDisableBackfaceCulling)
+void DrawSphere(FPrimitiveDrawInterface* PDI,const FVector& Center,const FRotator& Orientation,const FVector& Radii,int32 NumSides,int32 NumRings,const FMaterialRenderProxy* MaterialRenderProxy,uint8 DepthPriority,bool bDisableBackfaceCulling)
 {
 	// Use a mesh builder to draw the sphere.
 	FDynamicMeshBuilder MeshBuilder;
@@ -392,7 +420,7 @@ void DrawSphere(FPrimitiveDrawInterface* PDI,const FVector& Center,const FVector
 		FMemory::Free(Verts);
 		FMemory::Free(ArcVerts);
 	}
-	MeshBuilder.Draw(PDI, FScaleMatrix( Radii ) * FTranslationMatrix( Center ), MaterialRenderProxy, DepthPriority,bDisableBackfaceCulling);
+	MeshBuilder.Draw(PDI, FScaleMatrix( Radii ) * FRotationMatrix(Orientation) * FTranslationMatrix( Center ), MaterialRenderProxy, DepthPriority,bDisableBackfaceCulling);
 }
 
 FVector CalcConeVert(float Angle1, float Angle2, float AzimuthAngle)
@@ -1642,49 +1670,58 @@ void DrawUVsInternal(FViewport* InViewport, FCanvas* InCanvas, int32 InTextYPos,
 		const FVector2D BoxOrigin( MinX - 1, MinY - 1 );
 		const uint32 UVBoxScale = FMath::Min(InViewport->GetSizeXY().X - MinX, InViewport->GetSizeXY().Y - MinY) - BorderWidth;
 		const uint32 BoxSize = UVBoxScale + 2;
+		FCanvasTileItem BoxBackgroundTileItem(BoxOrigin, GWhiteTexture, FVector2D(BoxSize, BoxSize), FLinearColor(0, 0, 0, 0.4f));
+		BoxBackgroundTileItem.BlendMode = SE_BLEND_AlphaComposite;
+		InCanvas->DrawItem(BoxBackgroundTileItem);
 		FCanvasBoxItem BoxItem( BoxOrigin, FVector2D( BoxSize, BoxSize ) );
 		BoxItem.SetColor( FLinearColor::Black );
 		InCanvas->DrawItem( BoxItem );
 
-		//draw triangles
-		uint32 NumIndices = Indices.Num();
-		FCanvasLineItem LineItem;
-		for (uint32 i = 0; i < NumIndices - 2; i += 3)
 		{
-			FVector2D UVs[3];
-			bool bOutOfBounds[3];
-
-			for (int32 Corner=0; Corner<3; Corner++)
+			//draw triangles
+			uint32 NumIndices = Indices.Num();
+			FCanvasLineItem LineItem;
+			for (uint32 i = 0; i < NumIndices - 2; i += 3)
 			{
-				UVs[Corner] = ( VertexBuffer.GetVertexUV( Indices[ i + Corner ], UVChannel ) );
-				bOutOfBounds[Corner] = IsUVOutOfBounds(UVs[Corner]);
-			}
+				FVector2D UVs[3];
+				bool bOutOfBounds[3];
 
-			// Clamp the UV triangle to the [0,1] range (with some fudge).
-			ClampUVs(UVs,3);
+				for (int32 Corner = 0; Corner < 3; Corner++)
+				{
+					UVs[Corner] = (VertexBuffer.GetVertexUV(Indices[i + Corner], UVChannel));
+					bOutOfBounds[Corner] = IsUVOutOfBounds(UVs[Corner]);
+				}
 
-			for (int32 Edge=0; Edge<3; Edge++)
-			{
-				int32 Corner1 = Edge;
-				int32 Corner2 = (Edge + 1) % 3;
-				FLinearColor Color = (bOutOfBounds[Corner1] || bOutOfBounds[Corner2]) ? FLinearColor( 0.6f, 0.0f, 0.0f ) : FLinearColor::White;
-				LineItem.SetColor( Color );
-				LineItem.Draw( InCanvas, UVs[Corner1] * UVBoxScale + UVBoxOrigin, UVs[Corner2] * UVBoxScale + UVBoxOrigin );
+				// Clamp the UV triangle to the [0,1] range (with some fudge).
+				ClampUVs(UVs, 3);
+
+				for (int32 Edge = 0; Edge < 3; Edge++)
+				{
+					int32 Corner1 = Edge;
+					int32 Corner2 = (Edge + 1) % 3;
+					FLinearColor Color = (bOutOfBounds[Corner1] || bOutOfBounds[Corner2]) ? FLinearColor(0.6f, 0.0f, 0.0f) : (SelectedEdgeTexCoords.Num() > 0 ? FLinearColor(0.4f, 0.4f, 0.4f) : FLinearColor::White);
+					LineItem.SetColor(Color);
+					LineItem.Draw(InCanvas, UVs[Corner1] * UVBoxScale + UVBoxOrigin, UVs[Corner2] * UVBoxScale + UVBoxOrigin);
+				}
 			}
 		}
 
-		// Draw any edges that are currently selected by the user
-		if( SelectedEdgeTexCoords.Num() > 0 )
 		{
-			LineItem.SetColor( FLinearColor::Yellow );
-			for(int32 UVIndex = 0; UVIndex < SelectedEdgeTexCoords.Num(); UVIndex += 2)
+			// Draw any edges that are currently selected by the user
+			FCanvasLineItem LineItem;
+			if (SelectedEdgeTexCoords.Num() > 0)
 			{
-				FVector2D UVs[2];
-				UVs[0] = ( SelectedEdgeTexCoords[UVIndex] );
-				UVs[1] = ( SelectedEdgeTexCoords[UVIndex + 1] );
-				ClampUVs(UVs,2);
-				
-				LineItem.Draw( InCanvas, UVs[0] * UVBoxScale + UVBoxOrigin, UVs[1] * UVBoxScale + UVBoxOrigin );
+				LineItem.SetColor(FLinearColor::Yellow);
+				LineItem.LineThickness = 2.0f;
+				for (int32 UVIndex = 0; UVIndex < SelectedEdgeTexCoords.Num(); UVIndex += 2)
+				{
+					FVector2D UVs[2];
+					UVs[0] = (SelectedEdgeTexCoords[UVIndex]);
+					UVs[1] = (SelectedEdgeTexCoords[UVIndex + 1]);
+					ClampUVs(UVs, 2);
+
+					LineItem.Draw(InCanvas, UVs[0] * UVBoxScale + UVBoxOrigin, UVs[1] * UVBoxScale + UVBoxOrigin);
+				}
 			}
 		}
 	}

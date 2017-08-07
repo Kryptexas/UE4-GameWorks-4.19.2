@@ -113,6 +113,7 @@ class COREUOBJECT_API FClassNetCacheMgr
 {
 public:
 	FClassNetCacheMgr() : bDebugChecksum( false ), DebugChecksumIndent( 0 ) { }
+	~FClassNetCacheMgr() { ClearClassNetCache(); }
 
 	/** get the cached field to index mappings for the given class */
 	const FClassNetCache*	GetClassNetCache( const UClass* Class );
@@ -293,7 +294,6 @@ class COREUOBJECT_API FNetBitReader : public FBitReader
 {
 public:
 	FNetBitReader( UPackageMap* InPackageMap=NULL, uint8* Src=NULL, int64 CountBits=0 );
-	FNetBitReader( int64 InMaxBits );
 
 	class UPackageMap * PackageMap;
 

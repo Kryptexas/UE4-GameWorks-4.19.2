@@ -4,6 +4,7 @@ Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo, Engine\Ani
 Description:In this step we apply AnimDynamics to the harness and furnace the character is carrying so it reacts to movement.
 version: 4.12
 skilllevel: Advanced
+Order: 2
 
 [VAR:Steps]
 [OBJECT:Navigation]

@@ -50,6 +50,14 @@ public:
 	 */
 	bool Parse(const FAuthTokenGoogle& InAuthToken, const FString& InJsonStr);
 
+	/**
+	 * Parse Json profile request data into the user account
+	 *
+	 * @param InAuthToken previously associated auth token with this Json response
+	 * @param InJsonObject a json payload from a /me request
+	 */
+	bool Parse(const FAuthTokenGoogle& InAuthToken, TSharedPtr<FJsonObject> InJsonObject);
+
 protected:
 
 	/**

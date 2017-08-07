@@ -895,7 +895,7 @@ static void HlslParserCallbackWrapperRemoveOutputs(void* CallbackData, CrossComp
 
 bool RemoveUnusedOutputs(FString& InOutSourceCode, const TArray<FString>& InUsedOutputs, const TArray<FString>& InExceptions, FString& EntryPoint, TArray<FString>& OutErrors)
 {
-	FString DummyFilename(TEXT("RemoveUnusedOutputs.usf"));
+	FString DummyFilename(TEXT("/Engine/Private/RemoveUnusedOutputs.usf"));
 	FRemoveUnusedOutputs Data(InUsedOutputs, InExceptions);
 	Data.EntryPoint = EntryPoint;
 	CrossCompiler::FCompilerMessages Messages;
@@ -1354,7 +1354,7 @@ static void HlslParserCallbackWrapperRemoveInputs(void* CallbackData, CrossCompi
 
 bool RemoveUnusedInputs(FString& InOutSourceCode, const TArray<FString>& InInputs, FString& EntryPoint, TArray<FString>& OutErrors)
 {
-	FString DummyFilename(TEXT("RemoveUnusedInputs.usf"));
+	FString DummyFilename(TEXT("/Engine/Private/RemoveUnusedInputs.usf"));
 	FRemoveUnusedInputs Data(InInputs);
 	Data.EntryPoint = EntryPoint;
 	CrossCompiler::FCompilerMessages Messages;

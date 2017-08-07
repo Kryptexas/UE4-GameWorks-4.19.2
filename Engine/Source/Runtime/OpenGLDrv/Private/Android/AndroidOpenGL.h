@@ -452,6 +452,8 @@ struct FAndroidOpenGL : public FOpenGLES2
 	// 32 bpp HDR encoding mode via 'intrinsic_GetHDR32bppEncodeModeES2()'.
 	static FORCEINLINE bool SupportsHDR32bppEncodeModeIntrinsic()		{ return true; }
 
+	static FORCEINLINE bool SupportsSRGB()								{ return IsES31Usable(); }		// only with enabled EFeatureLevelSupport::ES31
+	static FORCEINLINE bool SupportsTextureSwizzle()					{ return bES30Support; }
 	static FORCEINLINE bool SupportsInstancing()						{ return bSupportsInstancing; }
 	static FORCEINLINE bool SupportsDrawBuffers()						{ return bES30Support; }
 	static FORCEINLINE bool SupportsMultipleRenderTargets()				{ return bES30Support; }
@@ -459,10 +461,17 @@ struct FAndroidOpenGL : public FOpenGLES2
 	static FORCEINLINE bool SupportsResourceView()						{ return bSupportsTextureBuffer; }
 	static FORCEINLINE bool SupportsTexture3D()							{ return bES30Support; }
 	static FORCEINLINE bool SupportsMobileMultiView()					{ return bSupportsMobileMultiView; }
+	static FORCEINLINE bool SupportsImageExternal()						{ return bSupportsImageExternal; }
 	static FORCEINLINE bool UseES30ShadingLanguage()
 	{
 		return bUseES30ShadingLanguage;
 	}
+
+	// For now, framebuffer fetch is disabled with ES3.1
+	static FORCEINLINE bool SupportsShaderFramebufferFetch() { return !IsES31Usable() && FOpenGLES2::SupportsShaderFramebufferFetch(); }
+	static FORCEINLINE bool SupportsShaderDepthStencilFetch() { return !IsES31Usable() && FOpenGLES2::SupportsShaderDepthStencilFetch(); }
+	static FORCEINLINE bool RequiresUEShaderFramebufferFetchDef() { return !IsES31Usable() && FOpenGLES2::RequiresUEShaderFramebufferFetchDef(); }
+
 	static FORCEINLINE bool SupportsTextureMaxLevel()					{ return bES31Support; }
 	static FORCEINLINE GLenum GetVertexHalfFloatFormat() { return bES31Support ? GL_HALF_FLOAT : GL_HALF_FLOAT_OES; }
 
@@ -495,6 +504,9 @@ struct FAndroidOpenGL : public FOpenGLES2
 
 	/** Whether device supports mobile multi-view */
 	static bool bSupportsMobileMultiView;
+
+	/** Whether device supports image external */
+	static bool bSupportsImageExternal;
 
 	/** Maximum number of MSAA samples supported on chip in tile memory, or 1 if not available */
 	static GLint MaxMSAASamplesTileMem;

@@ -556,7 +556,7 @@ static float ComputeLookupTableError( const FDistributionLookupTable& InTable1, 
 	const FDistributionLookupTable* Table1 = (InTable2.EntryCount > InTable1.EntryCount) ? &InTable2 : &InTable1;
 	const FDistributionLookupTable* Table2 = (Table1 == &InTable1) ? &InTable2 : &InTable1;
 	const int32 ValuesPerEntry = Table1->GetValuesPerEntry();
-	const float TimeStep = (MaxIn - MinIn) / SampleCount;
+	const float TimeStep = (MaxIn - MinIn) / (SampleCount-1);
 
 	float Values1[4] = {0};
 	float Values2[4] = {0};

@@ -11,6 +11,11 @@ namespace FMovieSceneEvaluationCustomVersion
 	enum Type
 	{
 		Initial = 0,
+		// Changed EvalOptions.bEvaluateNearestSection to be false by default
+		ChangeEvaluateNearestSectionDefault,
+
+		// Added support for blending
+		AddBlendingSupport,
 
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,

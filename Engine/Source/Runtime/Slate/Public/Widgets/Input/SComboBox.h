@@ -234,8 +234,8 @@ public:
 
 		// Need to establish the selected item at point of construction so its available for querying
 		// NB: If you need a selection to fire use SetItemSelection rather than setting an IntiallySelectedItem
-		this->SelectedItem = InArgs._InitiallySelectedItem;
-		if( TListTypeTraits<OptionType>::IsPtrValid( InArgs._InitiallySelectedItem ) )
+		SelectedItem = InArgs._InitiallySelectedItem;
+		if( TListTypeTraits<OptionType>::IsPtrValid( SelectedItem ) )
 		{
 			ComboListView->Private_SetItemSelection( SelectedItem, true);
 		}
@@ -249,7 +249,14 @@ public:
 
 	void SetSelectedItem( OptionType InSelectedItem )
 	{
-		ComboListView->SetSelection( InSelectedItem );
+		if (TListTypeTraits<OptionType>::IsPtrValid(InSelectedItem))
+		{
+			ComboListView->SetSelection(InSelectedItem);
+		}
+		else
+		{
+			ComboListView->ClearSelection();
+		}
 	}
 
 	/** @return the item currently selected by the combo box. */
@@ -410,11 +417,14 @@ private:
 	{
 		if (bOpen == false)
 		{
-			
 			bControllerInputCaptured = false;
-			//Ensure the ListView selection is set back to the last committed selection
-			ComboListView->SetSelection(SelectedItem, ESelectInfo::OnNavigation);
-			ComboListView->RequestScrollIntoView(SelectedItem, 0);
+
+			if (TListTypeTraits<OptionType>::IsPtrValid(SelectedItem))
+			{
+				// Ensure the ListView selection is set back to the last committed selection
+				ComboListView->SetSelection(SelectedItem, ESelectInfo::OnNavigation);
+				ComboListView->RequestScrollIntoView(SelectedItem, 0);
+			}
 
 			// Set focus back to ComboBox for users focusing the ListView that just closed
 			FSlateApplication::Get().ForEachUser([&](FSlateUser* User) {

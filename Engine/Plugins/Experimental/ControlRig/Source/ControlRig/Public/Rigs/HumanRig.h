@@ -11,7 +11,7 @@
 #include "HumanRig.generated.h"
 
 #define MIN_SPINE_CHAIN 2
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct FLimbControl
 {
 	GENERATED_BODY()
@@ -102,7 +102,7 @@ struct FLimbControl
 	void Initialize(float InUpperLimbLen, float InLowerLimbLen);
 };
 
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct FSpineControl
 {
 	GENERATED_USTRUCT_BODY()
@@ -315,7 +315,7 @@ struct FPoseKey
 	bool GetBlendedResult(FName InNodeName, float InKeyValue, FTransform& OutTransform) const;
 };
 
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct FFingerDescription
 {
 	GENERATED_USTRUCT_BODY()

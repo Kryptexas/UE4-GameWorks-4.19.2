@@ -46,7 +46,9 @@ public:
 		, _NestedContainerOuterPadding( 0.0f )
 		, _ContainerInnerPadding( 4.0f )
 		, _ChildContainerTextPadding( 2.0f )
-	{}
+	{
+		_Clipping = EWidgetClipping::ClipToBounds;
+	}
 
 		/** Sets whether the user can edit the tree map interactively by dragging nodes around and typing new node labels */
 		SLATE_ATTRIBUTE( bool, AllowEditing )
@@ -106,7 +108,7 @@ public:
 	void Construct( const FArguments& InArgs, const TSharedRef<class FTreeMapNodeData>& InTreeMapNodeData, const TSharedPtr< ITreeMapCustomization >& InCustomization );
 
 	/** SWidget overrides */
-	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
+	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
 	virtual FVector2D ComputeDesiredSize(float LayoutScaleMultiplier) const override;
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 	virtual FReply OnMouseButtonDown( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) override;

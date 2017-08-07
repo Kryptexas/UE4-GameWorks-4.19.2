@@ -53,10 +53,10 @@ namespace UnrealGameSync
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
 			this.TreeView.HideSelection = false;
-			this.TreeView.Location = new System.Drawing.Point(12, 38);
-			this.TreeView.MinimumSize = new System.Drawing.Size(680, 400);
+			this.TreeView.Location = new System.Drawing.Point(14, 44);
+			this.TreeView.MinimumSize = new System.Drawing.Size(793, 461);
 			this.TreeView.Name = "TreeView";
-			this.TreeView.Size = new System.Drawing.Size(685, 439);
+			this.TreeView.Size = new System.Drawing.Size(801, 506);
 			this.TreeView.TabIndex = 0;
 			this.TreeView.DrawNode += new System.Windows.Forms.DrawTreeNodeEventHandler(this.TreeView_DrawNode);
 			this.TreeView.NodeMouseClick += new System.Windows.Forms.TreeNodeMouseClickEventHandler(this.TreeView_NodeMouseClick);
@@ -65,9 +65,9 @@ namespace UnrealGameSync
 			// 
 			this.DeleteBtn.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
 			this.DeleteBtn.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-			this.DeleteBtn.Location = new System.Drawing.Point(610, 483);
+			this.DeleteBtn.Location = new System.Drawing.Point(714, 560);
 			this.DeleteBtn.Name = "DeleteBtn";
-			this.DeleteBtn.Size = new System.Drawing.Size(87, 23);
+			this.DeleteBtn.Size = new System.Drawing.Size(101, 26);
 			this.DeleteBtn.TabIndex = 1;
 			this.DeleteBtn.Text = "Delete Files";
 			this.DeleteBtn.UseVisualStyleBackColor = true;
@@ -77,9 +77,9 @@ namespace UnrealGameSync
 			// 
 			this.CancelBtn.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
 			this.CancelBtn.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-			this.CancelBtn.Location = new System.Drawing.Point(517, 483);
+			this.CancelBtn.Location = new System.Drawing.Point(607, 560);
 			this.CancelBtn.Name = "CancelBtn";
-			this.CancelBtn.Size = new System.Drawing.Size(87, 23);
+			this.CancelBtn.Size = new System.Drawing.Size(101, 26);
 			this.CancelBtn.TabIndex = 2;
 			this.CancelBtn.Text = "Cancel";
 			this.CancelBtn.UseVisualStyleBackColor = true;
@@ -89,9 +89,9 @@ namespace UnrealGameSync
 			this.label1.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
 			this.label1.AutoSize = true;
-			this.label1.Location = new System.Drawing.Point(12, 13);
+			this.label1.Location = new System.Drawing.Point(12, 16);
 			this.label1.Name = "label1";
-			this.label1.Size = new System.Drawing.Size(660, 13);
+			this.label1.Size = new System.Drawing.Size(727, 15);
 			this.label1.TabIndex = 3;
 			this.label1.Text = "The files below are not tracked by Perforce; check any you wish to delete. Interm" +
     "ediate files that are safe to delete are checked by default.";
@@ -99,9 +99,9 @@ namespace UnrealGameSync
 			// SelectAllBtn
 			// 
 			this.SelectAllBtn.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-			this.SelectAllBtn.Location = new System.Drawing.Point(12, 483);
+			this.SelectAllBtn.Location = new System.Drawing.Point(12, 560);
 			this.SelectAllBtn.Name = "SelectAllBtn";
-			this.SelectAllBtn.Size = new System.Drawing.Size(107, 23);
+			this.SelectAllBtn.Size = new System.Drawing.Size(125, 26);
 			this.SelectAllBtn.TabIndex = 4;
 			this.SelectAllBtn.Text = "Select All";
 			this.SelectAllBtn.UseVisualStyleBackColor = true;
@@ -162,18 +162,19 @@ namespace UnrealGameSync
 			// CleanWorkspaceWindow
 			// 
 			this.AcceptButton = this.DeleteBtn;
-			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+			this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
 			this.CancelButton = this.CancelBtn;
-			this.ClientSize = new System.Drawing.Size(709, 518);
+			this.ClientSize = new System.Drawing.Size(827, 598);
 			this.ControlBox = false;
 			this.Controls.Add(this.SelectAllBtn);
 			this.Controls.Add(this.label1);
 			this.Controls.Add(this.CancelBtn);
 			this.Controls.Add(this.DeleteBtn);
 			this.Controls.Add(this.TreeView);
+			this.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
 			this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
-			this.MinimumSize = new System.Drawing.Size(725, 520);
+			this.MinimumSize = new System.Drawing.Size(843, 594);
 			this.Name = "CleanWorkspaceWindow";
 			this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
 			this.Text = "Clean Workspace";

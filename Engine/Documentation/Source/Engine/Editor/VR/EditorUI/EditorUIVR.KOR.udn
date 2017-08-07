@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3350329
+﻿INTSourceChangelist:3360829
 Title: VR 모드에서의 에디터 창
 Description: VR 모드 작업시 에디터 패널과 창을 띄우고 작업하는 방법입니다.
 Crumbs:
@@ -7,11 +7,11 @@ parent: Engine/Editor/VR
 type: reference
 order: 5
 tags: VR
-version: 4.13
+version: 4.15
 skilllevel: intermediate
 topic-image:editorui_topic.png
 prereq:Engine/Editor/VR/ActivateVRMode
-prereq:Engine/Editor/VR/Setup
+
 
 [TOC(start:1 end:4)]
 

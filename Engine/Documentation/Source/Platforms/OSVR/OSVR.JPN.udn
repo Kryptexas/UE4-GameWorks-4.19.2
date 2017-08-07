@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3150518
+﻿INTSourceChangelist:3429260
 Title:OSVR の開発	
 Crumbs:%ROOT%, Platforms
 Description:
@@ -14,7 +14,7 @@ social-image:googlevr_social.png
 
 
 ## はじめよう
-PC および Android ベースのスマートフォンを使って UE4 と OSV を使う方法を説明します。
+OSVR クイックスタートでは、UE4 および OSVR を使用するための PC 設定方法を説明します。
 
 [DIR(output:"listbutton" type:"quick start" parent:"Platforms/OSVR")]
 

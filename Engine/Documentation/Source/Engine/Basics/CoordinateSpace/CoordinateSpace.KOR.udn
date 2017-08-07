@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3454520
 Availability:Public
 Title:좌표계 용어집
 Crumbs:%ROOT%, Programming, Programming/Rendering
 Description:언리얼 엔진에서 사용되는 여러 좌표계에 대한 설명입니다.
 version: 4.9
+Parent:Engine
+type:overview
+order:23
 
 ## 스페이스
 

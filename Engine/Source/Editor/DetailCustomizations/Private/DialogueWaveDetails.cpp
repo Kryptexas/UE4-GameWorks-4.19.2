@@ -90,9 +90,9 @@ void FDialogueContextMappingNodeBuilder::GenerateChildContent(IDetailChildrenBui
 	if (ContextMappingPropertyHandle->IsValidHandle())
 	{
 		const TSharedPtr<IPropertyHandle> SoundWavePropertyHandle = ContextMappingPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FDialogueContextMapping, SoundWave));
-		ChildrenBuilder.AddChildProperty(SoundWavePropertyHandle.ToSharedRef());
+		ChildrenBuilder.AddProperty(SoundWavePropertyHandle.ToSharedRef());
 
-		ChildrenBuilder.AddChildContent(LocalizationKeyFormatPropertyHandle->GetPropertyDisplayName())
+		ChildrenBuilder.AddCustomRow(LocalizationKeyFormatPropertyHandle->GetPropertyDisplayName())
 		.NameContent()
 		[
 			LocalizationKeyFormatPropertyHandle->CreatePropertyNameWidget()

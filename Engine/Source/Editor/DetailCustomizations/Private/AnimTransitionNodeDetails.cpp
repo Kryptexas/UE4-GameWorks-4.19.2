@@ -51,23 +51,27 @@ void FAnimTransitionNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailB
 {
 	// Get a handle to the node we're viewing
 	const TArray< TWeakObjectPtr<UObject> >& SelectedObjects = DetailBuilder.GetDetailsView().GetSelectedObjects();
-	for (int32 ObjectIndex = 0; !TransitionNode.IsValid() && (ObjectIndex < SelectedObjects.Num()); ++ObjectIndex)
+	bool bTransitionToConduit = false;
+	for (int32 ObjectIndex = 0; ObjectIndex < SelectedObjects.Num(); ++ObjectIndex)
 	{
 		const TWeakObjectPtr<UObject>& CurrentObject = SelectedObjects[ObjectIndex];
 		if (CurrentObject.IsValid())
 		{
-			TransitionNode = Cast<UAnimStateTransitionNode>(CurrentObject.Get());
+			if (UAnimStateTransitionNode* TransitionNodePtr = Cast<UAnimStateTransitionNode>(CurrentObject.Get()))
+			{
+				if(!TransitionNode.IsValid())
+				{
+					TransitionNode = TransitionNodePtr;
+				}
+
+				UAnimStateNodeBase* NextState = TransitionNodePtr->GetNextState();
+				if((NextState != NULL) && (NextState->IsA<UAnimStateConduitNode>()))
+				{
+					bTransitionToConduit = true;
+				}
+			}
 		}
 	}
-
-	bool bTransitionToConduit = false;
-	if (UAnimStateTransitionNode* TransitionNodePtr = TransitionNode.Get())
-	{
-		UAnimStateNodeBase* NextState = TransitionNodePtr->GetNextState();
-		bTransitionToConduit = (NextState != NULL) && (NextState->IsA<UAnimStateConduitNode>());
-	}
-
-	//////////////////////////////////////////////////////////////////////////
 
 	IDetailCategoryBuilder& TransitionCategory = DetailBuilder.EditCategory("Transition", LOCTEXT("TransitionCategoryTitle", "Transition") );
 
@@ -83,24 +87,56 @@ void FAnimTransitionNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailB
 	}
 	else
 	{
-		TransitionCategory.AddCustomRow( LOCTEXT("TransitionEventPropertiesCategoryLabel", "Transition") )
-		[
-			SNew( STextBlock )
-			.Text( LOCTEXT("TransitionEventPropertiesCategoryLabel", "Transition") )
-			.Font( IDetailLayoutBuilder::GetDetailFontBold() )
-		];
-
 		TransitionCategory.AddProperty(GET_MEMBER_NAME_CHECKED(UAnimStateTransitionNode, PriorityOrder)).DisplayName(LOCTEXT("PriorityOrderLabel", "Priority Order"));
 		TransitionCategory.AddProperty(GET_MEMBER_NAME_CHECKED(UAnimStateTransitionNode, Bidirectional)).DisplayName(LOCTEXT("BidirectionalLabel", "Bidirectional"));
-		TransitionCategory.AddProperty(GET_MEMBER_NAME_CHECKED(UAnimStateTransitionNode, LogicType)).DisplayName(LOCTEXT("BlendLogicLabel", "Blend Logic") );
+
+		TSharedPtr<IPropertyHandle> LogicTypeHandle = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UAnimStateTransitionNode, LogicType));
+		TransitionCategory.AddProperty(LogicTypeHandle)
+			.DisplayName(LOCTEXT("BlendLogicLabel", "Blend Logic") )
+			.CustomWidget()
+			.NameContent()
+			[
+				LogicTypeHandle->CreatePropertyNameWidget()
+			]
+			.ValueContent()
+			.MaxDesiredWidth(300.0f)
+			[
+				SNew(SHorizontalBox)
+				+SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					LogicTypeHandle->CreatePropertyValueWidget()
+				]
+				+SHorizontalBox::Slot()
+				.HAlign(HAlign_Right)
+				.FillWidth(1.0f)
+				.Padding(3.0f, 0.0f, 0.0f, 0.0f)
+				[
+					SNew(SButton)
+					.OnClicked(this, &FAnimTransitionNodeDetails::OnClickEditBlendGraph)
+					.Visibility( this, &FAnimTransitionNodeDetails::GetBlendGraphButtonVisibility, SelectedObjects.Num() > 1)
+					.Text(LOCTEXT("EditBlendGraph", "Edit Blend Graph"))
+					.TextStyle(&FEditorStyle::Get(), TEXT("TinyText"))
+				]
+			];
 
 		UAnimStateTransitionNode* TransNode = TransitionNode.Get();
-		if (TransitionNode != NULL)
+		if (TransitionNode != NULL && SelectedObjects.Num() == 1)
 		{
 			// The sharing option for the rule
 			TransitionCategory.AddCustomRow( LOCTEXT("TransitionRuleSharingLabel", "Transition Rule Sharing") )
+			.NameContent()
 			[
-				GetWidgetForInlineShareMenu(TEXT("Transition Rule Sharing"), TransNode->SharedRulesName, TransNode->bSharedRules,
+				SNew(STextBlock)
+				.Text(LOCTEXT("TransitionRuleSharingLabel", "Transition Rule Sharing"))
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+			]
+			.ValueContent()
+			.MaxDesiredWidth(300.0f)
+			[
+				GetWidgetForInlineShareMenu(
+					TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateLambda([TransNode]() { return FText::FromString(TransNode->SharedRulesName); })),
+					TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateLambda([TransNode]() { return TransNode->bSharedRules; })),
 					FOnClicked::CreateSP(this, &FAnimTransitionNodeDetails::OnPromoteToSharedClick, true),
 					FOnClicked::CreateSP(this, &FAnimTransitionNodeDetails::OnUnshareClick, true), 
 					FOnGetContent::CreateSP(this, &FAnimTransitionNodeDetails::OnGetShareableNodesMenu, true))
@@ -159,13 +195,23 @@ void FAnimTransitionNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailB
 
 		//////////////////////////////////////////////////////////////////////////
 
-		IDetailCategoryBuilder& CrossfadeCategory = DetailBuilder.EditCategory("BlendSettings", LOCTEXT("BlendSettingsCategoryTitle", "BlendSettings") );
-		if (TransitionNode != NULL)
+		IDetailCategoryBuilder& CrossfadeCategory = DetailBuilder.EditCategory("BlendSettings", LOCTEXT("BlendSettingsCategoryTitle", "Blend Settings") );
+		if (TransitionNode != NULL && SelectedObjects.Num() == 1)
 		{
 			// The sharing option for the crossfade settings
 			CrossfadeCategory.AddCustomRow( LOCTEXT("TransitionCrossfadeSharingLabel", "Transition Crossfade Sharing") )
+			.NameContent()
 			[
-				GetWidgetForInlineShareMenu(TEXT("Transition Crossfade Sharing"), TransNode->SharedCrossfadeName, TransNode->bSharedCrossfade,
+				SNew(STextBlock)
+				.Text(LOCTEXT("TransitionCrossfadeSharingLabel", "Transition Crossfade Sharing"))
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+			]
+			.ValueContent()
+			.MaxDesiredWidth(300.0f)
+			[
+				GetWidgetForInlineShareMenu(
+					TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateLambda([TransNode]() { return FText::FromString(TransNode->SharedCrossfadeName); })),
+					TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateLambda([TransNode]() { return TransNode->bSharedCrossfade; })),
 					FOnClicked::CreateSP(this, &FAnimTransitionNodeDetails::OnPromoteToSharedClick, false), 
 					FOnClicked::CreateSP(this, &FAnimTransitionNodeDetails::OnUnshareClick, false), 
 					FOnGetContent::CreateSP(this, &FAnimTransitionNodeDetails::OnGetShareableNodesMenu, false))
@@ -203,23 +249,6 @@ void FAnimTransitionNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailB
 					SkeletonEditorModule.CreateBlendProfilePicker(TargetSkeleton, Args)
 				];
 		}
-
-		// Add a button that is only visible when blend logic type is custom
-		CrossfadeCategory.AddCustomRow( LOCTEXT("EditBlendGraph", "Edit Blend Graph") )
-		[
-			SNew( SHorizontalBox )
-			+SHorizontalBox::Slot()
-			.HAlign(HAlign_Right)
-			.FillWidth(1)
-			.Padding(0,0,10.0f,0)
-			[
-				SNew(SButton)
-				.HAlign(HAlign_Right)
-				.OnClicked(this, &FAnimTransitionNodeDetails::OnClickEditBlendGraph)
-				.Visibility( this, &FAnimTransitionNodeDetails::GetBlendGraphButtonVisibility )
-				.Text(LOCTEXT("EditBlendGraph", "Edit Blend Graph"))
-			]
-		];
 
 		//////////////////////////////////////////////////////////////////////////
 
@@ -424,13 +453,16 @@ FReply FAnimTransitionNodeDetails::OnClickEditBlendGraph()
 	return FReply::Handled();
 }
 
-EVisibility FAnimTransitionNodeDetails::GetBlendGraphButtonVisibility() const
+EVisibility FAnimTransitionNodeDetails::GetBlendGraphButtonVisibility(bool bMultiSelect) const
 {
-	if (UAnimStateTransitionNode* TransitionNodePtr = TransitionNode.Get())
+	if(!bMultiSelect)
 	{
-		if (TransitionNodePtr->LogicType == ETransitionLogicType::TLT_Custom)
+		if (UAnimStateTransitionNode* TransitionNodePtr = TransitionNode.Get())
 		{
-			return EVisibility::Visible;
+			if (TransitionNodePtr->LogicType == ETransitionLogicType::TLT_Custom)
+			{
+				return EVisibility::Visible;
+			}
 		}
 	}
 
@@ -446,51 +478,36 @@ void FAnimTransitionNodeDetails::CreateTransitionEventPropertyWidgets(IDetailCat
 		.DisplayName( LOCTEXT("CreateTransition_CustomBlueprintEvent", "Custom Blueprint Event") );
 }
 
-TSharedRef<SWidget> FAnimTransitionNodeDetails::GetWidgetForInlineShareMenu(FString TypeName, FString SharedName, bool bIsCurrentlyShared,  FOnClicked PromoteClick, FOnClicked DemoteClick, FOnGetContent GetContentMenu)
+TSharedRef<SWidget> FAnimTransitionNodeDetails::GetWidgetForInlineShareMenu(const TAttribute<FText>& InSharedNameText, const TAttribute<bool>& bInIsCurrentlyShared, FOnClicked PromoteClick, FOnClicked DemoteClick, FOnGetContent GetContentMenu)
 {
-	const FText SharedNameText = bIsCurrentlyShared ? FText::FromString(SharedName) : LOCTEXT("SharedTransition", "Use Shared");
-
 	return
-		SNew(SExpandableArea)
-		.AreaTitle(FText::FromString(TypeName))
-		.InitiallyCollapsed(true)
-		.BodyContent()
+		SNew(SHorizontalBox)
+		+SHorizontalBox::Slot()
+		.AutoWidth()
 		[
-			SNew(SHorizontalBox)
-			+SHorizontalBox::Slot()
-			.AutoWidth()
-			.Padding( 2.0f )
+			SNew( SComboButton )
+			.ContentPadding(FMargin(4.0f, 2.0f))
+			.ToolTipText(LOCTEXT("UseSharedAnimationTransition_ToolTip", "Use Shared Transition"))
+			.OnGetMenuContent( GetContentMenu )
+			.ButtonContent()
 			[
-				SNew(SButton)
-				.HAlign(HAlign_Left)
-				.VAlign(VAlign_Fill)
-				.OnClicked(bIsCurrentlyShared ? DemoteClick : PromoteClick)
-				.Text(bIsCurrentlyShared ? LOCTEXT("UnshareLabel", "Unshare") : LOCTEXT("ShareLabel", "Promote To Shared"))
+				SNew(STextBlock)
+				.Text_Lambda( [bInIsCurrentlyShared, InSharedNameText]() { return bInIsCurrentlyShared.Get() ? InSharedNameText.Get() : LOCTEXT("SharedTransition", "Use Shared"); } )
+				.Font( IDetailLayoutBuilder::GetDetailFont() )
 			]
+		]
 
-			+SHorizontalBox::Slot()
-			.AutoWidth()
-			.Padding( 2.0f )
-			[
-				SNew( SBorder )
-				.BorderImage( FEditorStyle::GetBrush( "ToolBar.Background" ) )
-				[
-					SNew( SComboButton )
-					.ToolTipText(LOCTEXT("UseSharedAnimationTransition_ToolTip", "Use Shared Transition"))
-					.OnGetMenuContent( GetContentMenu )
-					.ContentPadding(0.0f)
-					.ButtonStyle( FEditorStyle::Get(), "ToggleButton" )
-					.ForegroundColor(FSlateColor::UseForeground())
-					.ButtonContent()
-					[
-						SNew(SEditableTextBox)
-						.IsReadOnly(true)
-						.MinDesiredWidth(128)
-						.Text( SharedNameText )
-						.Font( FEditorStyle::GetFontStyle( TEXT( "MenuItem.Font" ) ) )
-					]
-				]
-			]
+		+SHorizontalBox::Slot()
+		.AutoWidth()
+		.Padding(3.0f, 0.0f, 0.0f, 0.0f)
+		[
+			SNew(SButton)
+			.ContentPadding(FMargin(4.0f, 2.0f))
+			.HAlign(HAlign_Center)
+			.VAlign(VAlign_Center)
+			.OnClicked_Lambda([bInIsCurrentlyShared, DemoteClick, PromoteClick]() { return bInIsCurrentlyShared.Get() ? DemoteClick.Execute() : PromoteClick.Execute(); } )
+			.Text_Lambda([bInIsCurrentlyShared](){ return bInIsCurrentlyShared.Get() ? LOCTEXT("UnshareLabel", "Unshare") : LOCTEXT("ShareLabel", "Promote To Shared"); } )
+			.TextStyle(&FEditorStyle::Get(), TEXT("TinyText"))
 		];
 }
 

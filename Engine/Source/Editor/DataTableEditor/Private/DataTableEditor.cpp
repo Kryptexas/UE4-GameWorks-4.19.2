@@ -69,9 +69,11 @@ void FDataTableEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& 
 {
 	WorkspaceMenuCategory = InTabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_Data Table Editor", "Data Table Editor"));
 
-	InTabManager->RegisterTabSpawner( DataTableTabId, FOnSpawnTab::CreateSP(this, &FDataTableEditor::SpawnTab_DataTable) )
-		.SetDisplayName( LOCTEXT("DataTableTab", "Data Table") )
-		.SetGroup( WorkspaceMenuCategory.ToSharedRef() );
+	FAssetEditorToolkit::RegisterTabSpawners(InTabManager);
+
+	InTabManager->RegisterTabSpawner(DataTableTabId, FOnSpawnTab::CreateSP(this, &FDataTableEditor::SpawnTab_DataTable))
+		.SetDisplayName(LOCTEXT("DataTableTab", "Data Table"))
+		.SetGroup(WorkspaceMenuCategory.ToSharedRef());
 
 	InTabManager->RegisterTabSpawner(RowEditorTabId, FOnSpawnTab::CreateSP(this, &FDataTableEditor::SpawnTab_RowEditor))
 		.SetDisplayName(LOCTEXT("RowEditorTab", "Row Editor"))
@@ -80,7 +82,9 @@ void FDataTableEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& 
 
 void FDataTableEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>& InTabManager)
 {
-	InTabManager->UnregisterTabSpawner( DataTableTabId );
+	FAssetEditorToolkit::UnregisterTabSpawners(InTabManager);
+
+	InTabManager->UnregisterTabSpawner(DataTableTabId);
 	InTabManager->UnregisterTabSpawner(RowEditorTabId);
 }
 
@@ -132,6 +136,21 @@ void FDataTableEditor::PostChange(const class UUserDefinedStruct* Struct, FStruc
 	}
 }
 
+void FDataTableEditor::SelectionChange(const UDataTable* Changed, FName RowName)
+{
+	const UDataTable* Table = GetDataTable();
+	if (Changed == Table)
+	{
+		const bool bSelectionChanged = HighlightedRowName != RowName;
+		SetHighlightedRow(RowName);
+
+		if (bSelectionChanged)
+		{
+			CallbackOnRowHighlighted.ExecuteIfBound(HighlightedRowName);
+		}
+	}
+}
+
 void FDataTableEditor::PreChange(const UDataTable* Changed, FDataTableEditorUtils::EDataTableChangeInfo Info)
 {
 }
@@ -160,14 +179,21 @@ void FDataTableEditor::HandlePostChange()
 
 void FDataTableEditor::InitDataTableEditor( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UDataTable* Table )
 {
-	TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout( "Standalone_DataTableEditor_Layout" )
+	TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout( "Standalone_DataTableEditor_Layout_v2" )
 	->AddArea
 	(
 		FTabManager::NewPrimaryArea()->SetOrientation(Orient_Vertical)
 		->Split
 		(
 			FTabManager::NewStack()
-			->AddTab( DataTableTabId, ETabState::OpenedTab )
+			->SetSizeCoefficient(0.1f)
+			->SetHideTabWell(true)
+			->AddTab(GetToolbarTabId(), ETabState::OpenedTab)
+		)
+		->Split
+		(
+			FTabManager::NewStack()
+			->AddTab(DataTableTabId, ETabState::OpenedTab)
 		)
 		->Split
 		(
@@ -177,7 +203,7 @@ void FDataTableEditor::InitDataTableEditor( const EToolkitMode::Type Mode, const
 	);
 
 	const bool bCreateDefaultStandaloneMenu = true;
-	const bool bCreateDefaultToolbar = false;
+	const bool bCreateDefaultToolbar = true;
 	FAssetEditorToolkit::InitAssetEditor( Mode, InitToolkitHost, FDataTableEditorModule::DataTableEditorAppIdentifier, StandaloneDefaultLayout, bCreateDefaultStandaloneMenu, bCreateDefaultToolbar, Table );
 	
 	FDataTableEditorModule& DataTableEditorModule = FModuleManager::LoadModuleChecked<FDataTableEditorModule>( "DataTableEditor" );

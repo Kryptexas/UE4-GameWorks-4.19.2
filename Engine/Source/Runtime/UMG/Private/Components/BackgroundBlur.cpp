@@ -48,7 +48,7 @@ TSharedRef<SWidget> UBackgroundBlur::RebuildWidget()
 		Cast<UBackgroundBlurSlot>(GetContentSlot())->BuildSlot(MyBackgroundBlur.ToSharedRef());
 	}
 	
-	return BuildDesignTimeWidget(MyBackgroundBlur.ToSharedRef());
+	return MyBackgroundBlur.ToSharedRef();
 }
 
 void UBackgroundBlur::SynchronizeProperties()

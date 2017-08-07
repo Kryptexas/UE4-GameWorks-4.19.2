@@ -105,6 +105,13 @@ class USoundCue : public USoundBase
 	class UEdGraph* SoundCueGraph;
 #endif
 
+protected:
+	// NOTE: Use GetSubtitlePriority() to fetch this value for external use.
+	UPROPERTY(EditAnywhere, Category = Subtitles, Meta =
+		(Tooltip = "The priority of the subtitle.  Defaults to 10000.  Higher values will play instead of lower values.")
+			 )
+	float SubtitlePriority;
+
 private:
 	float MaxAudibleDistance;
 
@@ -131,6 +138,7 @@ public:
 	virtual float GetMaxAudibleDistance() override;
 	virtual float GetDuration() override;
 	virtual const FSoundAttenuationSettings* GetAttenuationSettingsToApply() const override;
+	virtual float GetSubtitlePriority() const override;
 	//~ End USoundBase Interface.
 
 	/** Construct and initialize a node within this Cue */
@@ -183,14 +191,21 @@ public:
 	/** Find the path through the sound cue to a node identified by its hash */
 	ENGINE_API bool FindPathToNode(const UPTRINT NodeHashToFind, TArray<USoundNode*>& OutPath) const;
 
+	/** Call when the audio quality has been changed */
+	ENGINE_API static void StaticAudioQualityChanged(int32 NewQualityLevel);
+
+	FORCEINLINE static int32 GetCachedQualityLevel() { return CachedQualityLevel; }
+
 protected:
 	bool RecursiveFindPathToNode(USoundNode* CurrentNode, const UPTRINT CurrentHash, const UPTRINT NodeHashToFind, TArray<USoundNode*>& OutPath) const;
 
 private:
+	void AudioQualityChanged();
 	void OnPostEngineInit();
 	void EvaluateNodes(bool bAddToRoot);
 
 	FDelegateHandle OnPostEngineInitHandle;
+	static int32 CachedQualityLevel;
 
 public:
 

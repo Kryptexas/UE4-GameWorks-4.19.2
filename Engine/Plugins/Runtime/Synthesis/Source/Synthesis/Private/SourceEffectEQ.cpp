@@ -2,9 +2,10 @@
 
 #include "SourceEffects/SourceEffectEQ.h"
 #include "Audio.h"
+#include "AudioDevice.h"
 
 FSourceEffectEQ::FSourceEffectEQ()
-	: SampleRate(AUDIO_SAMPLE_RATE)
+	: SampleRate(0)
 {
 	FMemory::Memzero((void*)InAudioFrame, sizeof(float)*2);
 	FMemory::Memzero((void*)OutAudioFrame, sizeof(float)*2);

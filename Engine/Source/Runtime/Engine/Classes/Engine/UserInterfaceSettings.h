@@ -7,6 +7,8 @@
 #include "Misc/StringClassReference.h"
 #include "Curves/CurveFloat.h"
 #include "Engine/DeveloperSettings.h"
+#include "Widgets/SWidget.h"
+
 #include "UserInterfaceSettings.generated.h"
 
 class UDPICustomScalingRule;

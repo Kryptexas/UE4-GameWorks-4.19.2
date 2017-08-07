@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2699852
+﻿INTSourceChangelist:3429254
 Availability:Public
 Title:ブループリントでアクタに入力を設定する操作手順
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\ActorInput
 Description:ブループリントでアクタに入力を設定するためのガイド 
 Version:4.9
+type:how-to
 SkillLevel:Intermediate
 
 [TOC (start:2 end:2)]
@@ -15,7 +16,7 @@ SkillLevel:Intermediate
 
 ## アクタの入力を有効にする
 
- _この例では、**Blueprint First Person Template with Starter Content** を使用します。_
+ _この例では、**スターターコンテンツを含む Blueprint First Person Template ** を使用します。_
 
 以下の方法で、アクタの入力を有効にします。
 
@@ -46,7 +47,7 @@ SkillLevel:Intermediate
 
 ![](input_2.png)
 
-上記の例では、前述の方法でアクタの入力を有効にしてから、 **E** Key Event を追加しました。E キーが押されると、アクタへ入力を与えないように、画面に何らかのテキストを表示してアクタの入力を無効にします。 
+上記の例では、前述の方法でアクタの入力を有効にしてから、 **E** Key Event を追加しました。**E** キーが押されると、アクタへ入力を与えないように、画面に何らかのテキストを表示してアクタの入力を無効にします。 
 
 **Enable Input** ノードと同様、 **Disable Input** ノードは **Target** と **Player Controller** を指定する必要があります。 
 
@@ -75,7 +76,7 @@ SkillLevel:Intermediate
 
 	![](input_5.png)
 
-1.	**[Trigger]** を **右クリック** し、 **Add Event -> Add OnComponentEndOverla** を選びます。 
+1.	**[Trigger]** を **右クリック** し、 **[Add Event -> Add OnComponentEndOverla]** を選びます。 
 
 	![](input_5b.png)
 
@@ -97,11 +98,11 @@ SkillLevel:Intermediate
 
 	プレイヤーがトリガー領域に入る時のみ入力は有効になり、プレイヤーがトリガーを離れると無効になります。これにより、プレイヤーがワールドのどこからでもアクタに影響してしまうことを防ぎ、作成したトリガー領域の内部にいる場合のみに制限されます。 
 
-1.	**E** Key イベントを **右クリック** し **Print String** ノードに追加します。 
+1.	**E** Key Event を **右クリック** し **Print String** ノードに追加します。 
 
 	![](input_8.png)
 
-1. 	**コンパイル** し **保存** してから、ブループリントを終了します(もし警告が表示されても、無視して次のステップへ進んでください)。
+1. 	**コンパイル** し **保存** してから、ブループリントを終了します (もし警告が表示されても、無視して次のステップへ進んでください)。
 
 1.	**Blueprint_CeilingLight** をレベルにドラッグし、 **[Play]** ボタンをクリックしてエディタで再生します。 
 

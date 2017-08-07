@@ -1,8 +1,12 @@
-﻿Availability:Public
+﻿INTSourceChangelist:3429264
+Availability:Public
 Title:コンポーネントとコリジョン
 Crumbs:%ROOT%, GettingStarted, Programming/Tutorials
 Description:コンポーネントでポーンを有効にして物理と相互作用し、パーティクル エフェクトを使用する方法などについて学習します。
 version:4.9
+type:how-to
+type:landing
+skilllevel:Intermediate
 
 [VAR:Topic]
 [OBJECT:Topic]

@@ -2,7 +2,7 @@ Availability: NoPublish
 Title: Build Configuration Properties Page
 Crumbs:
 Description: This is a procedurally generated markdown page.
-Version: 4.16
+Version: 4.17
 
 ### Read/Write Properties
 $ Type (ModuleType): Type of module
@@ -14,6 +14,8 @@ $ OptimizeCode (CodeOptimization): When this module's code should be optimized.
 $ PrivatePCHHeaderFile (String): Explicit private PCH for this module. Implies that this module will not use a shared PCH.
 
 $ SharedPCHHeaderFile (String): Header file name for a shared PCH provided by this module.  Must be a valid relative path to a public C++ header file. This should only be set for header files that are included by a significant number of other C++ modules.
+
+$ ShortName (String): Specifies an alternate name for intermediate directories and files for intermediates of this module. Useful when hitting path length limitations.
 
 $ PCHUsage (PCHUsageMode): Precompiled header usage for this module
 
@@ -44,6 +46,8 @@ $ bOutputPubliclyDistributable (Boolean): Whether the output from this module ca
 $ WhitelistRestrictedFolders (List&lt;String&gt;): List of folders which are whitelisted to be referenced when compiling this binary, without propagating restricted folder names
 
 $ bEnforceIWYU (Boolean): Enforce "include what you use" rules when PCHUsage is set to ExplicitOrSharedPCH; warns when monolithic headers (Engine.h, UnrealEd.h, etc...) are used, and checks that source files include their matching header first.
+
+$ bAddDefaultIncludePaths (Boolean): Whether to add all the default include paths to the module (eg. the Source/Classes folder, subfolders under Source/Public).
 
 $ PublicIncludePathModuleNames (List&lt;String&gt;): List of modules names (no path needed) with header files that our module's public headers needs access to, but we don't need to "import" or link against.
 
@@ -88,5 +92,7 @@ $ RuntimeDependencies (RuntimeDependencyList): List of files which this module d
 $ AdditionalPropertiesForReceipt (List&lt;ReceiptProperty&gt;): List of additional properties to be added to the build receipt
 
 $ PrecompileForTargets (PrecompileTargetsType): Which targets this module should be precompiled for
+
+$ ExternalDependencies (List&lt;String&gt;): External files which invalidate the makefile if modified. Relative paths are resolved relative to the .build.cs file.
 
 

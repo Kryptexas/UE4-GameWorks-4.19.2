@@ -309,9 +309,6 @@ public:
 	static FInputEvent GetInputEventFromPointerEvent(const FPointerEvent& Event);
 
 	UFUNCTION(BlueprintPure, Category="Widget", meta = ( CompactNodeTitle = "->", BlueprintAutocast ))
-	static FInputEvent GetInputEventFromControllerEvent(const FControllerEvent& Event);
-
-	UFUNCTION(BlueprintPure, Category="Widget", meta = ( CompactNodeTitle = "->", BlueprintAutocast ))
 	static FInputEvent GetInputEventFromNavigationEvent(const FNavigationEvent& Event);
 
 	/**

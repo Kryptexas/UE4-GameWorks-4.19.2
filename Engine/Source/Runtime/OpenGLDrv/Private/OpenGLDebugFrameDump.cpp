@@ -1343,12 +1343,6 @@ void FOpenGLDebugFrameDumper::DumpBufferBindings( FOutputDeviceFile& LogFile )
 	ASSERT_NO_GL_ERROR();
 	LogFile.Logf( TEXT("\tGL_MAX_UNIFORM_BUFFER_BINDINGS: %d") LINE_TERMINATOR, MaxUniformBuffers );
 
-#if PLATFORM_MAC
-	// A workaround for apparent bug in NVidia GT650M driver, introduced in 10.8.2 Mac update.
-	if( MaxUniformBuffers > 60 )
-		MaxUniformBuffers = 60;
-#endif
-
 	for( GLint UniformBufferIndex = 0; UniformBufferIndex < MaxUniformBuffers; ++UniformBufferIndex )
 	{
 		GLint UniformBufferBound;
@@ -1658,13 +1652,6 @@ void FOpenGLDebugFrameDumper::DumpPixelModeSettings( FOutputDeviceFile& LogFile 
 	glGetIntegerv( GL_UNPACK_ALIGNMENT, &UnpackAlignment );
 	ASSERT_NO_GL_ERROR();
 	LogFile.Logf( TEXT("\tGL_UNPACK_ALIGNMENTS: %d") LINE_TERMINATOR, UnpackAlignment );
-
-#if PLATFORM_MAC
-	GLboolean bUnpackClientStorageApple;
-	glGetBooleanv( GL_UNPACK_CLIENT_STORAGE_APPLE, &bUnpackClientStorageApple );
-	ASSERT_NO_GL_ERROR();
-	LogFile.Logf( TEXT("\tGL_UNPACK_CLIENT_STORAGE_APPLE: %s") LINE_TERMINATOR, bUnpackClientStorageApple ? TEXT("TRUE") : TEXT("FALSE") );
-#endif
 
 	GLint UnpackImageHeight;
 	glGetIntegerv( GL_UNPACK_IMAGE_HEIGHT, &UnpackImageHeight );
@@ -4186,28 +4173,10 @@ void FOpenGLDebugFrameDumper::DumpFramebufferContents( bool bReadFramebuffer )
 		DumpFramebufferContent( 0, GL_FRONT_LEFT, *FString::Printf( TEXT("fbScreenFront%s"), *LogFileEnding ), EFramebufferAttachmentSlotType::Color, true );
 		DumpFramebufferContent( 0, GL_BACK_LEFT, *FString::Printf( TEXT("fbScreenBack%s"), *LogFileEnding ), EFramebufferAttachmentSlotType::Color, true );
 
-#if PLATFORM_MAC
-		GLint AttachmentType;
-
-		glGetFramebufferAttachmentParameteriv( FramebufferTypeEnum, GL_DEPTH, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &AttachmentType );
-		ASSERT_NO_GL_ERROR();
-		if( AttachmentType != GL_NONE )
-		{
-			DumpFramebufferContent( 0, GL_DEPTH, *FString::Printf( TEXT("fbScreenDepth%s"), *LogFileEnding ), EFramebufferAttachmentSlotType::Depth, true );
-		}
-
-		glGetFramebufferAttachmentParameteriv( FramebufferTypeEnum, GL_STENCIL, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &AttachmentType );
-		ASSERT_NO_GL_ERROR();
-		if( AttachmentType != GL_NONE )
-		{
-			DumpFramebufferContent( 0, GL_STENCIL, *FString::Printf( TEXT("fbScreenStencil%s"), *LogFileEnding ), EFramebufferAttachmentSlotType::Stencil, true );
-		}
-#else
 		DumpFramebufferContent( 0, GL_DEPTH, *FString::Printf( TEXT("fbScreenDepth%s"), *LogFileEnding ), EFramebufferAttachmentSlotType::Depth, true );
 
 		// Commented out as Windows OpenGL provides no way to find out if screen buffer contains stencil, and causes OpenGL errors when it doesn't contain it.
 //		DumpFramebufferContent( 0, GL_STENCIL, *FString::Printf( TEXT("fbScreenStencil%s"), *LogFileEnding ), EFramebufferAttachmentSlotType::Stencil, true );
-#endif
 	}
 	else
 	{
@@ -5319,12 +5288,6 @@ void FOpenGLDebugFrameDumper::SignalDrawEvent( const TCHAR* FolderPart, const TC
 	if( !bDumpingFrame )
 		return;
 
-//	if( ![NSOpenGLContext currentContext] )
-//	{
-//		UE_LOG(LogRHI, Log, TEXT("DEBUG FRAME DUMPER: No valid OpenGL context set in calling thread!"));
-//		return;
-//	}
-
 	SetNewEventFolder( FolderPart );
 
 	DumpGeneralOpenGLState( DrawCommandDescription, true, false );
@@ -5348,12 +5311,6 @@ void FOpenGLDebugFrameDumper::SignalClearEvent( int8 ClearType, int8 NumColors, 
 {
 	if( !bDumpingFrame )
 		return;
-
-//	if( ![NSOpenGLContext currentContext] )
-//	{
-//		UE_LOG(LogRHI, Log, TEXT("DEBUG FRAME DUMPER: No valid OpenGL context set in calling thread!"));
-//		return;
-//	}
 
 	SetNewEventFolder( TEXT("glClearBuffer(s)") );
 
@@ -5407,12 +5364,6 @@ void FOpenGLDebugFrameDumper::SignalFramebufferBlitEvent( GLbitfield Mask )
 	if( !bDumpingFrame )
 		return;
 
-//	if( ![NSOpenGLContext currentContext] )
-//	{
-//		UE_LOG(LogRHI, Log, TEXT("DEBUG FRAME DUMPER: No valid OpenGL context set in calling thread!"));
-//		return;
-//	}
-
 	SetNewEventFolder( TEXT("glFramebufferBlit") );
 
 	FString MaskString;
@@ -5448,12 +5399,6 @@ void FOpenGLDebugFrameDumper::SignalEndFrameEvent( void )
 {
 	if( !bDumpingFrame )
 		return;
-
-//	if( ![NSOpenGLContext currentContext] )
-//	{
-//		UE_LOG(LogRHI, Log, TEXT("DEBUG FRAME DUMPER: No valid OpenGL context set in calling thread!"));
-//		return;
-//	}
 
 	SetNewEventFolder( TEXT("BufferFlush") );
 	DumpGeneralOpenGLState( TEXT("(BufferFlush)"), false, false );

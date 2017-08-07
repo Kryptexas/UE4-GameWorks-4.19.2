@@ -1,9 +1,11 @@
-﻿INTSourceChangelist:3206402
+﻿INTSourceChangelist:3429233
 Availability:Public
 Title:スケルトン アセット 
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:スケルトン アセットの概要および UE4 のアニメーションへの適用方法を説明します。
 version:4.9
+tags:Assets
+topic-image:Engine/Animation/Overview/SkeletonTopic.png
 
 [REGION:fullwidth]
 ![](SkeletonImage.png)

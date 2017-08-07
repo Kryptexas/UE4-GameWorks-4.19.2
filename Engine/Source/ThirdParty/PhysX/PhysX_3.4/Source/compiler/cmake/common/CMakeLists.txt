@@ -35,6 +35,8 @@ LIST(APPEND CMAKE_INCLUDE_PATH "${GW_DEPS_ROOT}/sw/physx/PxShared/${PX_SHARED_BR
 ENDIF()
 
 FIND_PACKAGE(PxShared REQUIRED)
+FIND_PACKAGE(nvToolsExt REQUIRED)
+
 
 # TODO: Fail if we didn't find deps
 

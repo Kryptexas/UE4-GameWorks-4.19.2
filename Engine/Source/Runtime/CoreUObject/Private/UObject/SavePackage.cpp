@@ -40,6 +40,7 @@
 #include "UObject/Linker.h"
 #include "UObject/LinkerLoad.h"
 #include "UObject/LinkerSave.h"
+#include "UObject/EditorObjectVersion.h"
 #include "Blueprint/BlueprintSupport.h"
 #include "Internationalization/TextPackageNamespaceUtil.h"
 #include "UObject/Interface.h"
@@ -50,11 +51,13 @@
 #include "UObject/DebugSerializationFlags.h"
 #include "EnumProperty.h"
 #include "BlueprintSupport.h"
+#include "IConsoleManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSavePackage, Log, All);
 
 static const int32 MAX_MERGED_COMPRESSION_CHUNKSIZE = 1024 * 1024;
 static const FName WorldClassName = FName("World");
+static const FName PrestreamPackageClassName = FName("PrestreamPackage");
 
 #define VALIDATE_INITIALIZECORECLASSES 0
 #define EXPORT_SORTING_DETAILED_LOGGING 0
@@ -1106,7 +1109,6 @@ public:
 	virtual FArchive& operator<<(UObject*& Obj) override;
 	virtual FArchive& operator<< (struct FWeakObjectPtr& Value) override;
 	virtual FArchive& operator<<(FLazyObjectPtr& LazyObjectPtr) override;
-	virtual FArchive& operator<<(FAssetPtr& AssetPtr) override;
 	virtual FArchive& operator<<(FStringAssetReference& Value) override;
 	virtual FArchive& operator<<(FName& Name) override;
 	
@@ -1247,33 +1249,12 @@ FArchive& FArchiveSaveTagImports::operator<<( FLazyObjectPtr& LazyObjectPtr)
 	return *this << ID;
 }
 
-FArchive& FArchiveSaveTagImports::operator<<( FAssetPtr& AssetPtr)
-{
-	FStringAssetReference ID;
-	UObject *Object = AssetPtr.Get();
-
-	if (Object)
-	{
-		// Use object in case name has changed. 
-		ID = FStringAssetReference(Object);
-	}
-	else
-	{
-		ID = AssetPtr.GetUniqueID();
-	}
-	return *this << ID;
-}
-
 FArchive& FArchiveSaveTagImports::operator<<(FStringAssetReference& Value)
 {
 	if (Value.IsValid())
 	{
+		Value.PreSavePath();
 		FString Path = Value.ToString();
-		if (FCoreUObjectDelegates::StringAssetReferenceSaving.IsBound())
-		{
-			// This picks up any redirectors
-			Path = FCoreUObjectDelegates::StringAssetReferenceSaving.Execute(Path);
-		}
 
 		if (GetIniFilenameFromObjectsReference(Path) != nullptr)
 		{
@@ -2477,7 +2458,7 @@ public:
 					}					
 
 					(*this) << (UObject*&)StructObject->Children;
-					CurrentClass = nullptr;
+					CurrentClass = nullptr; //-V519
 
 					(*this) << (UObject*&)StructObject->Next;
 
@@ -3442,15 +3423,12 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 		}
 
 		const bool FilterEditorOnly = InOuter->HasAnyPackageFlags(PKG_FilterEditorOnly);
-		// store a list of additional packages to cook when this is cooked (ie streaming levels)
-		TArray<FString> AdditionalPackagesToCook;
-
 
 		// Route PreSaveRoot to allow e.g. the world to attach components for the persistent level.
 		bool bCleanupIsRequired = false;
 		if (Base)
 		{
-			bCleanupIsRequired = Base->PreSaveRoot(Filename, AdditionalPackagesToCook);
+			bCleanupIsRequired = Base->PreSaveRoot(Filename);
 		}
 
 		const FString BaseFilename = FPaths::GetBaseFilename(Filename);
@@ -3703,6 +3681,7 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 				}
 
 				// Import objects & names.
+				TSet<UPackage*> PrestreamPackages;
 				{
 					TArray<UObject*> TagExpObjects;
 					GetObjectsWithAnyMarks(TagExpObjects, OBJECTMARK_TagExp);
@@ -3710,6 +3689,7 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 					{
 						UObject* Obj = TagExpObjects[Index];
 						check(Obj->HasAnyMarks(OBJECTMARK_TagExp));
+
 						// Build list.
 						FArchiveSaveTagImports ImportTagger(Linker);
 						ImportTagger.SetPortFlags(ComparisonFlags);
@@ -3752,6 +3732,23 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 									ImportTagger << Dep;
 								}
 							}
+							static const IConsoleVariable* ProcessPrestreamingRequests = IConsoleManager::Get().FindConsoleVariable(TEXT("s.ProcessPrestreamingRequests"));
+							if (ProcessPrestreamingRequests->GetInt())
+							{
+								Deps.Reset();
+								Obj->GetPrestreamPackages(Deps);
+								for (UObject* Dep : Deps)
+								{
+									if (Dep)
+									{
+										UPackage* Pkg = Dep->GetOutermost();
+										if (!Pkg->HasAnyPackageFlags(PKG_CompiledIn) && Obj->HasAnyMarks(OBJECTMARK_TagExp))
+										{
+											PrestreamPackages.Add(Pkg);
+										}
+									}
+								}
+							}
 						}
 
 						if( Obj->IsIn(GetTransientPackage()) )
@@ -3775,6 +3772,19 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 							}
 						}
 					}
+				}
+				if (PrestreamPackages.Num())
+				{
+					TSet<UPackage*> KeptPrestreamPackages;
+					for (UPackage* Pkg : PrestreamPackages)
+					{
+						if (!Pkg->HasAnyMarks(OBJECTMARK_TagImp))
+						{
+							Pkg->Mark(OBJECTMARK_TagImp);
+							KeptPrestreamPackages.Add(Pkg);
+						}
+					}
+					Exchange(PrestreamPackages, KeptPrestreamPackages);
 				}
 
 #if WITH_EDITOR
@@ -3848,6 +3858,15 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 							// A was already marked by the cooker. M.xxx now has a private import to A, which is normally illegal, hence
 							// the OBJECTMARK_MarkedByCooker check below
 							UPackage* ObjPackage = Obj->GetOutermost();
+							if (PrestreamPackages.Contains(ObjPackage))
+							{
+								SavePackageState->MarkNameAsReferenced(PrestreamPackageClassName);
+								// These are not errors
+								UE_LOG(LogSavePackage, Display, TEXT("Prestreaming package %s "), *ObjPackage->GetPathName()); //-V595
+								continue;
+							}
+
+
 							if( !Obj->HasAnyFlags(RF_Public) && !Obj->HasAnyFlags(RF_Transient))
 							{
 								if (!IsEventDrivenLoaderEnabledInCookedBuilds() || !TargetPlatform || !ObjPackage->HasAnyPackageFlags(PKG_CompiledIn))
@@ -3906,7 +3925,7 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 				}
 
 				// The graph is linked to objects in a different map package!
-				if( IllegalObjectsInOtherMaps.Num() )
+				if (IllegalObjectsInOtherMaps.Num() )
 				{
 					UObject* MostLikelyCulprit = nullptr;
 					const UProperty* PropertyRef = nullptr;
@@ -3963,7 +3982,7 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 				}
 
 				// The graph is linked to private objects!
-				if ( PrivateObjects.Num() )
+				if (PrivateObjects.Num())
 				{
 					UObject* MostLikelyCulprit = nullptr;
 					const UProperty* PropertyRef = nullptr;
@@ -4013,10 +4032,6 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 					}
 					return ESavePackageResult::Error;
 				}
-
-
-				// store the additional packages for cooking
-				Linker->Summary.AdditionalPackagesToCook = AdditionalPackagesToCook;
 
 				// Write fixed-length file summary to overwrite later.
 				if( Conform )
@@ -4115,6 +4130,9 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 				Linker->Summary.GatherableTextDataCount = 0;
 				if ( !(Linker->Summary.PackageFlags & PKG_FilterEditorOnly) && bCanCacheGatheredText )
 				{
+					// The Editor version is used as part of the check to see if a package is too old to use the gather cache, so we always have to add it if we have gathered loc for this asset
+					Linker->UsingCustomVersion(FEditorObjectVersion::GUID);
+
 					Linker->Summary.GatherableTextDataOffset = Linker->Tell();
 
 					// Save gatherable text data.
@@ -4171,8 +4189,12 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 							}
 						}
 #endif //WITH_EDITOR
-						FObjectImport* LocObjectImport = nullptr;
-						LocObjectImport = new(Linker->ImportMap)FObjectImport(Obj, ObjClass);
+						FObjectImport* LocObjectImport = new(Linker->ImportMap)FObjectImport(Obj, ObjClass);
+
+						if (PrestreamPackages.Contains((UPackage*)Obj))
+						{
+							LocObjectImport->ClassName = PrestreamPackageClassName;
+						}
 #if WITH_EDITOR
 						if (ReplacedName != NAME_None)
 						{
@@ -4289,50 +4311,47 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 
 					// add a dependency map entry also
 					TArray<FPackageIndex>& DependIndices = Linker->DependsMap[ExpIndex];
-					if ( Object != nullptr )
+					// find all the objects needed by this export
+					TArray<UObject*>* SrcDepends = ObjectDependencies.Find(Object);
+					checkf(SrcDepends,TEXT("Couldn't find dependency map for %s"), *Object->GetFullName());
+
+					// go through each object and...
+					for (int32 DependIndex = 0; DependIndex < SrcDepends->Num(); DependIndex++)
 					{
-						// find all the objects needed by this export
-						TArray<UObject*>* SrcDepends = ObjectDependencies.Find(Object);
-						checkf(SrcDepends,TEXT("Couldn't find dependency map for %s"), *Object->GetFullName());
+						UObject* DependentObject = (*SrcDepends)[DependIndex];
 
-						// go through each object and...
-						for (int32 DependIndex = 0; DependIndex < SrcDepends->Num(); DependIndex++)
+						FPackageIndex DependencyIndex;
+
+						// if the dependency is in the same pacakge, we need to save an index into our ExportMap
+						if (DependentObject->GetOutermost() == Linker->LinkerRoot)
 						{
-							UObject* DependentObject = (*SrcDepends)[DependIndex];
-
-							FPackageIndex DependencyIndex;
-
-							// if the dependency is in the same pacakge, we need to save an index into our ExportMap
-							if (DependentObject->GetOutermost() == Linker->LinkerRoot)
-							{
-								// ... find the associated ExportIndex
-								DependencyIndex = ExportToIndexMap.FindRef(DependentObject);
-							}
-							// otherwise we need to save an index into the ImportMap
-							else
-							{
-								// ... find the associated ImportIndex
-								DependencyIndex = ImportToIndexMap.FindRef(DependentObject);
-							}
+							// ... find the associated ExportIndex
+							DependencyIndex = ExportToIndexMap.FindRef(DependentObject);
+						}
+						// otherwise we need to save an index into the ImportMap
+						else
+						{
+							// ... find the associated ImportIndex
+							DependencyIndex = ImportToIndexMap.FindRef(DependentObject);
+						}
 					
 #if WITH_EDITOR
-							// If we still didn't find index, maybe it was a duplicate export which got removed.
-							// Check if we have a redirect to original.
-							if (DependencyIndex.IsNull() && DuplicateRedirects.Contains(DependentObject))
+						// If we still didn't find index, maybe it was a duplicate export which got removed.
+						// Check if we have a redirect to original.
+						if (DependencyIndex.IsNull() && DuplicateRedirects.Contains(DependentObject))
+						{
+							UObject** const RedirectObj = DuplicateRedirects.Find(DependentObject);
+							if (RedirectObj)
 							{
-								UObject** const RedirectObj = DuplicateRedirects.Find(DependentObject);
-								if (RedirectObj)
-								{
-									DependencyIndex = ExportToIndexMap.FindRef(*RedirectObj);
-								}
+								DependencyIndex = ExportToIndexMap.FindRef(*RedirectObj);
 							}
-#endif
-							// if we didn't find it (FindRef returns 0 on failure, which is good in this case), then we are in trouble, something went wrong somewhere
-							checkf(!DependencyIndex.IsNull(), TEXT("Failed to find dependency index for %s (%s)"), *DependentObject->GetFullName(), *Object->GetFullName());
-
-							// add the import as an import for this export
-							DependIndices.Add(DependencyIndex);
 						}
+#endif
+						// if we didn't find it (FindRef returns 0 on failure, which is good in this case), then we are in trouble, something went wrong somewhere
+						checkf(!DependencyIndex.IsNull(), TEXT("Failed to find dependency index for %s (%s)"), *DependentObject->GetFullName(), *Object->GetFullName());
+
+						// add the import as an import for this export
+						DependIndices.Add(DependencyIndex);
 					}
 				}
 
@@ -4592,7 +4611,13 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 							if (Struct->GetSuperStruct() != nullptr)
 							{
 								Export.SuperIndex = Linker->MapObject(Struct->GetSuperStruct());
-								check(!Export.SuperIndex.IsNull());
+								checkf(!Export.SuperIndex.IsNull(),
+									TEXT("Export Struct (%s) of type (%s) inheriting from (%s) of type (%s) has not mapped super struct."),
+									*(Struct->GetName()),
+									*(Struct->GetClass()->GetName()),
+									*(Struct->GetSuperStruct()->GetName()),
+									*(Struct->GetSuperStruct()->GetClass()->GetName())
+								);
 							}
 							else
 							{
@@ -5222,7 +5247,7 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 				SlowTask.EnterProgressFrame();
 
 				// Detach archive used for saving, closing file handle.
-				if (Linker && !bSaveAsync)
+				if (!bSaveAsync)
 				{
 					Linker->Detach();
 				}
@@ -5240,30 +5265,27 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 					// Compress the temporarily file to destination.
 					if (bSaveAsync)
 					{
-						UE_LOG(LogSavePackage, Log,  TEXT("Async saving from memory to '%s'"), *NewPath );
+						UE_LOG(LogSavePackage, Log, TEXT("Async saving from memory to '%s'"), *NewPath);
 
 						// Detach archive used for memory saving.
-						if (Linker)
+						FLargeMemoryWriter* Writer = (FLargeMemoryWriter*)(Linker->Saver);
+						int64 DataSize = Writer->TotalSize();
+
+						COOK_STAT(FScopedDurationTimer SaveTimer(SavePackageStats::AsyncWriteTimeSec));
+						TotalPackageSizeUncompressed += DataSize;
+
+						FLargeMemoryPtr DataPtr(Writer->GetData());
+						Writer->ReleaseOwnership();
+						if (IsEventDrivenLoaderEnabledInCookedBuilds() && Linker->IsCooking())
 						{
-							FLargeMemoryWriter* Writer = (FLargeMemoryWriter*)(Linker->Saver);
-							int64 DataSize = Writer->TotalSize();
-
-							COOK_STAT(FScopedDurationTimer SaveTimer(SavePackageStats::AsyncWriteTimeSec));
-							TotalPackageSizeUncompressed += DataSize;
-
-							FLargeMemoryPtr DataPtr(Writer->GetData());
-							Writer->ReleaseOwnership();
-							if (IsEventDrivenLoaderEnabledInCookedBuilds() && Linker->IsCooking())
-							{
-								AsyncWriteFileWithSplitExports(MoveTemp(DataPtr), DataSize, Linker->Summary.TotalHeaderSize, *NewPath, FinalTimeStamp);
-							}
-							else
-							{
-								AsyncWriteFile(MoveTemp(DataPtr), DataSize, *NewPath, FinalTimeStamp);
-							}
-
-							Linker->Detach();
+							AsyncWriteFileWithSplitExports(MoveTemp(DataPtr), DataSize, Linker->Summary.TotalHeaderSize, *NewPath, FinalTimeStamp);
 						}
+						else
+						{
+							AsyncWriteFile(MoveTemp(DataPtr), DataSize, *NewPath, FinalTimeStamp);
+						}
+
+						Linker->Detach();
 					}
 					// Move the temporary file.
 					else

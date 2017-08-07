@@ -64,14 +64,14 @@ static FAutoConsoleVariableRef CVarMetalResourceDeferDeleteNumFrames(
 #if UE_BUILD_SHIPPING || UE_BUILD_TEST
 int32 GMetalRuntimeDebugLevel = 0;
 #else
-int32 GMetalRuntimeDebugLevel = 0;
+int32 GMetalRuntimeDebugLevel = 1;
 #endif
 static FAutoConsoleVariableRef CVarMetalRuntimeDebugLevel(
 	TEXT("rhi.Metal.RuntimeDebugLevel"),
 	GMetalRuntimeDebugLevel,
 	TEXT("The level of debug validation performed by MetalRHI in addition to the underlying Metal API & validation layer.\n")
 	TEXT("Each subsequent level adds more tests and reporting in addition to the previous level.\n")
-	TEXT("*LEVELS >1 ARE IGNORED IN SHIPPING AND TEST BUILDS*. (Default: 2 (Debug, Development), 0 (Test, Shipping))\n")
+	TEXT("*LEVELS >1 ARE IGNORED IN SHIPPING AND TEST BUILDS*. (Default: 1 (Debug, Development), 0 (Test, Shipping))\n")
 	TEXT("\t0: Off,\n")
 	TEXT("\t1: Record the debug-groups issued into a command-buffer and report them on failure,\n")
 	TEXT("\t2: Enable light-weight validation of resource bindings & API usage,\n")
@@ -862,7 +862,7 @@ FMetalRHICommandContext* FMetalDeviceContext::AcquireContext(int32 NewIndex, int
 	
 	if (NewIndex == 0)
 	{
-		if (FRHICommandListExecutor::GetImmediateCommandList().Bypass() || !GRHIThread)
+		if (FRHICommandListExecutor::GetImmediateCommandList().Bypass() || !IsRunningRHIInSeparateThread())
 		{
 			FMetalRHICommandUpdateFence UpdateCommand(this, StartFence, FMetalRHICommandUpdateFence::End);
 			UpdateCommand.Execute(FRHICommandListExecutor::GetImmediateCommandList());
@@ -873,7 +873,7 @@ FMetalRHICommandContext* FMetalDeviceContext::AcquireContext(int32 NewIndex, int
 		}
 	}
 	
-	if (FRHICommandListExecutor::GetImmediateCommandList().Bypass() || !GRHIThread)
+	if (FRHICommandListExecutor::GetImmediateCommandList().Bypass() || !IsRunningRHIInSeparateThread())
 	{
 		FMetalRHICommandUpdateFence UpdateCommand(this, EndFence, FMetalRHICommandUpdateFence::Start);
 		UpdateCommand.Execute(FRHICommandListExecutor::GetImmediateCommandList());
@@ -1201,6 +1201,16 @@ bool FMetalContext::PrepareToDraw(uint32 PrimitiveType, EMetalIndexType IndexTyp
 		{
 			check(bNeedsDepthStencilForUAVRaster);
 			Info.DepthStencilRenderTarget = FRHIDepthRenderTargetView(FallbackDepthStencilSurface, ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::ENoAction, FExclusiveDepthStencil::DepthRead_StencilRead);
+		}
+		
+		// Ensure that we make it a Clear/Store -> Load/Store for the colour targets or we might render incorrectly
+		for (uint32 i = 0; i < Info.NumColorRenderTargets; i++)
+		{
+			if (Info.ColorRenderTarget[i].LoadAction != ERenderTargetLoadAction::ELoad)
+			{
+				check(Info.ColorRenderTarget[i].StoreAction == ERenderTargetStoreAction::EStore || Info.ColorRenderTarget[i].StoreAction == ERenderTargetStoreAction::EMultisampleResolve);
+				Info.ColorRenderTarget[i].LoadAction = ERenderTargetLoadAction::ELoad;
+			}
 		}
 		
 		if (StateCache.SetRenderTargetsInfo(Info, StateCache.GetVisibilityResultsBuffer(), false))

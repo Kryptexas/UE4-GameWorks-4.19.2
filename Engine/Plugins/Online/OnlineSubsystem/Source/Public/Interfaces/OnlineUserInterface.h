@@ -35,6 +35,8 @@ class IOnlineUser
 
 public:
 
+	virtual ~IOnlineUser() { }
+
 	/**
 	 * Starts an async task that queries/reads the info for a list of users
 	 *

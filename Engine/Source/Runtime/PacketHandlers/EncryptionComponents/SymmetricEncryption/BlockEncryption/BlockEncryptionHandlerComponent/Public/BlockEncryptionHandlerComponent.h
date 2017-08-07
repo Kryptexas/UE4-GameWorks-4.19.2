@@ -4,7 +4,7 @@
 
 #include "PacketHandler.h"
 
-#include "CryptoPP/5.6.2/include/osrng.h"
+#include "CryptoPP/5.6.5/include/osrng.h"
 
 /*
 * Abstract class for block encryptors
@@ -74,7 +74,7 @@ protected:
 	uint32 KeySizeInBytes;
 
 	// Key used for symmetric encryption
-	TArray<byte> Key;
+	TArray<uint8> Key;
 };
 
 /* Block Encryption Handler Component Module Interface */

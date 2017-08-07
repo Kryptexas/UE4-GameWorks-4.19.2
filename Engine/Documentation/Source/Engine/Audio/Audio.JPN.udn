@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3219004
+﻿INTSourceChangelist:3429234
 Availability:Public
 Title:オーディオとサウンド
 Crumbs: %ROOT%, Engine
@@ -7,45 +7,7 @@ Navigation:topic
 version:4.9
 parent:Engine
 order:5
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Audio:title%](Engine/Audio/audio_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/audio_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Audio:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Audio:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Audio]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Audio:title%](Engine/Audio/audio_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/audio_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Audio:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Audio:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Audio]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:audio_topic.png
 
 [REGION:banner]
 ![Audio](audio_landing_banner.png)
@@ -55,25 +17,21 @@ order:5
 サウンドは、リアルな没入感のある環境をつくるうえで極めて重要です。レベル内の環境音や、ビークル (乗り物) や武器から発するインタラクティブなサウンド、 
 キャラクターの会話などといったゲーム内のオーディオによって、ユーザー体験が形成されたり損なわれたりするものです。ゲーム内のオーディを現実の音と同じように聞こえるようにするのは、
  大変な仕事です。アンリアル エンジン 4 (UE4) のオーディオ システムには、ゲーム内のサウンドを望ましいものにするツールと機能があります。これは、 
- 重要なことです。なぜなら、外部アプリケーションで一度クリーンバージョンのサウンドを作成して、それをインポートし、さらに望ましい結果となるようにエンジン内で調整して適切な結果を生み出すことができるからです。
+ 重要なことです。なぜなら、外部アプリケーションで一度クリーンバージョンのサウンドを作成して、それをインポートし、さらに望ましい結果となるようにエンジン内で調整して適切な結果を生み出す 
+ ことができるからです。
 [/EXCERPT:Intro]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/audio_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Audio/Overview "%Engine/Audio/Overview:description%")
-	[/PARAM]
-	[PARAM:links]
-		* [](Engine/Audio/WAV "%Engine/Audio/WAV:description%")
-		* [](Engine/Audio/SoundCues/Editor "%Engine/Audio/SoundCues/Editor:description%")
-		* [](Engine/Audio/SoundCues/NodeReference "%Engine/Audio/SoundCues/NodeReference:description%")
-		* [](Engine/Audio/SoundActors "%Engine/Audio/SoundActors:description%")
-		* [](Engine/Audio/DistanceModelAttenuation "%Engine/Audio/DistanceModelAttenuation:description%")
-		* [](Engine/Audio/Dialogue "%Engine/Audio/Dialogue:description%")
-	[/PARAM]
-[/OBJECT]
+## はじめよう
+
+[DIR(output:"role" parent:Engine/Audio" type:"!reference" type:"!how-to" org:"hierarchy" end:"1")]
+
+## リファレンス
+
+[DIR(output:"role" parent:Engine/Audio" type:"reference" org:"flat")]
+
+## ガイド
+
+[DIR(output:"fancy" parent:Engine/Audio" type:"how-to" org:"hierarchy" end:"1")]
 
 
 

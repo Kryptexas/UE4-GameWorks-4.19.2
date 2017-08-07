@@ -35,11 +35,14 @@ class UPhysicsAsset;
 class USkeletalMeshComponent;
 struct FConstraintInstance;
 struct FNavigableGeometryExport;
+struct FCompactPose;
 
 enum class EClothingTeleportMode : uint8;
 
 DECLARE_MULTICAST_DELEGATE(FOnSkelMeshPhysicsCreatedMultiCast);
 typedef FOnSkelMeshPhysicsCreatedMultiCast::FDelegate FOnSkelMeshPhysicsCreated;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAnimInitialized);
 
 DECLARE_MULTICAST_DELEGATE(FOnSkelMeshTeleportedMultiCast);
 typedef FOnSkelMeshTeleportedMultiCast::FDelegate FOnSkelMeshTeleported;
@@ -284,7 +287,7 @@ public:
 	class TSubclassOf<UAnimInstance> AnimClass;
 
 	/** The active animation graph program instance. */
-	UPROPERTY(transient)
+	UPROPERTY(transient, NonTransactional)
 	UAnimInstance* AnimScriptInstance;
 
 	/** Any running sub anim instances that need to be updates on the game thread */
@@ -368,6 +371,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Clothing)
 	uint32 bDisableClothSimulation:1;
 
+private:
+	/** Disable animation curves for this component. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = SkeletalMesh)
+	uint32 bDisableAnimCurves : 1;
+
+public:
 	/** can't collide with part of environment if total collision volumes exceed 16 capsules or 32 planes per convex */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Clothing)
 	uint32 bCollideWithEnvironment:1;
@@ -395,20 +404,6 @@ public:
 	/** reset the clothing after moving the clothing position (called teleport) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Clothing)
 	uint32 bResetAfterTeleport:1;
-	/** 
-	 * conduct teleportation if the character's movement is greater than this threshold in 1 frame. 
-	 * Zero or negative values will skip the check 
-	 * you can also do force teleport manually using ForceNextUpdateTeleport() / ForceNextUpdateTeleportAndReset()
-	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Clothing)
-	float TeleportDistanceThreshold;
-	/** 
-	 * rotation threshold in degree, ranging from 0 to 180
-	 * conduct teleportation if the character's rotation is greater than this threshold in 1 frame. 
-	 * Zero or negative values will skip the check 
-	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Clothing)
-	float TeleportRotationThreshold;
 
 	/**
 	 * weight to blend between simulated results and key-framed positions
@@ -428,6 +423,10 @@ public:
 	 * Optimization
 	 */
 	
+	 /** Whether animation and world transform updates are deferred. If this is on, the kinematic bodies (scene query data) will not update until the next time the physics simulation is run */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = SkeletalMesh)
+	uint32 bDeferMovementFromSceneQueries : 1;
+
 	/** Skips Ticking and Bone Refresh. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=SkeletalMesh)
 	uint32 bNoSkeletonUpdate:1;
@@ -551,7 +550,7 @@ public:
 
 	/* Animation play functions
 	 *
-	 * These changes status of animation instance, which is transient data, which means it won't serialize with this compoennt
+	 * These changes status of animation instance, which is transient data, which means it won't serialize with this component
 	 * Becuase of that reason, it is not safe to be used during construction script
 	 * Please use OverrideAnimationDatat for construction script. That will override AnimationData to be serialized 
 	 */
@@ -560,7 +559,7 @@ public:
 
 	/* Animation play functions
 	*
-	* These changes status of animation instance, which is transient data, which means it won't serialize with this compoennt
+	* These changes status of animation instance, which is transient data, which means it won't serialize with this component
 	* Becuase of that reason, it is not safe to be used during construction script
 	* Please use OverrideAnimationDatat for construction script. That will override AnimationData to be serialized
 	*/
@@ -569,7 +568,7 @@ public:
 
 	/* Animation play functions
 	*
-	* These changes status of animation instance, which is transient data, which means it won't serialize with this compoennt
+	* These changes status of animation instance, which is transient data, which means it won't serialize with this component
 	* Becuase of that reason, it is not safe to be used during construction script
 	* Please use OverrideAnimationDatat for construction script. That will override AnimationData to be serialized
 	*/
@@ -578,7 +577,7 @@ public:
 
 	/* Animation play functions
 	*
-	* These changes status of animation instance, which is transient data, which means it won't serialize with this compoennt
+	* These changes status of animation instance, which is transient data, which means it won't serialize with this component
 	* Becuase of that reason, it is not safe to be used during construction script
 	* Please use OverrideAnimationDatat for construction script. That will override AnimationData to be serialized
 	*/
@@ -587,7 +586,7 @@ public:
 
 	/* Animation play functions
 	*
-	* These changes status of animation instance, which is transient data, which means it won't serialize with this compoennt
+	* These changes status of animation instance, which is transient data, which means it won't serialize with this component
 	* Becuase of that reason, it is not safe to be used during construction script
 	* Please use OverrideAnimationDatat for construction script. That will override AnimationData to be serialized
 	*/
@@ -596,7 +595,7 @@ public:
 
 	/* Animation play functions
 	*
-	* These changes status of animation instance, which is transient data, which means it won't serialize with this compoennt
+	* These changes status of animation instance, which is transient data, which means it won't serialize with this component
 	* Becuase of that reason, it is not safe to be used during construction script
 	* Please use OverrideAnimationDatat for construction script. That will override AnimationData to be serialized
 	*/
@@ -605,7 +604,7 @@ public:
 
 	/* Animation play functions
 	*
-	* These changes status of animation instance, which is transient data, which means it won't serialize with this compoennt
+	* These changes status of animation instance, which is transient data, which means it won't serialize with this component
 	* Becuase of that reason, it is not safe to be used during construction script
 	* Please use OverrideAnimationDatat for construction script. That will override AnimationData to be serialized
 	*/
@@ -614,7 +613,7 @@ public:
 
 	/* Animation play functions
 	*
-	* These changes status of animation instance, which is transient data, which means it won't serialize with this compoennt
+	* These changes status of animation instance, which is transient data, which means it won't serialize with this component
 	* Becuase of that reason, it is not safe to be used during construction script
 	* Please use OverrideAnimationDatat for construction script. That will override AnimationData to be serialized
 	*/
@@ -623,7 +622,7 @@ public:
 
 	/* Animation play functions
 	*
-	* These changes status of animation instance, which is transient data, which means it won't serialize with this compoennt
+	* These changes status of animation instance, which is transient data, which means it won't serialize with this component
 	* Becuase of that reason, it is not safe to be used during construction script
 	* Please use OverrideAnimationDatat for construction script. That will override AnimationData to be serialized
 	*/
@@ -689,11 +688,11 @@ public:
 	void ForceClothNextUpdateTeleportAndReset();
 
 	/** Stops simulating clothing, but does not show clothing ref pose. Keeps the last known simulation state */
-	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh")
+	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh", meta=(UnsafeDuringActorConstruction))
 	void SuspendClothingSimulation();
 
 	/** Resumes a previously suspended clothing simulation, teleporting the clothing on the next tick */
-	UFUNCTION(BlueprintCallable, Category = "Components|SkeletalMesh")
+	UFUNCTION(BlueprintCallable, Category = "Components|SkeletalMesh", meta=(UnsafeDuringActorConstruction))
 	void ResumeClothingSimulation();
 
 	/** Gets whether or not the clothing simulation is currently suspended */
@@ -742,6 +741,12 @@ public:
 		return bUpdateAnimationInEditor;	
 	}
 #endif 
+
+	UFUNCTION(BlueprintCallable, Category = "Components|SkeletalMesh")
+	void SetDisableAnimCurves(bool bInDisableAnimCurves);
+
+	UFUNCTION(BlueprintCallable, Category = "Components|SkeletalMesh")
+	bool GetDisableAnimCurves() const { return bDisableAnimCurves; }
 
 	/** We detach the Component once we are done playing it.
 	 *
@@ -847,11 +852,64 @@ public:
 	UPROPERTY(EditAnywhere, Category = ClothingSimulation)
 	TSubclassOf<class UClothingSimulationFactory> ClothingSimulationFactory;
 
-	/** used for pre-computation using TeleportRotationThreshold property */
+	/**
+	* Gets the teleportation rotation threshold.
+	* 
+	* @return Threshold in degrees.
+	*/
+	UFUNCTION(BlueprintGetter, Category=Clothing)
+	float GetTeleportRotationThreshold() const;
+
+	/**
+	* Sets the teleportation rotation threshold.
+	* 
+	* @param threshold Threshold in degrees.
+	*/
+	UFUNCTION(BlueprintSetter, Category=Clothing)
+	void SetTeleportRotationThreshold(float Threshold);
+
+	/**
+	* Gets the teleportation distance threshold.
+	* 
+	* @return Threshold value.
+	*/
+	UFUNCTION(BlueprintGetter, Category=Clothing)
+	float GetTeleportDistanceThreshold() const;
+
+	/**
+	* Sets the teleportation distance threshold.
+	* 
+	* @param threshold Threshold value.
+	*/
+	UFUNCTION(BlueprintSetter, Category=Clothing)
+	void SetTeleportDistanceThreshold(float Threshold);
+
+private:
+	/**
+	* Conduct teleportation if the character's movement is greater than this threshold in 1 frame.
+	* Zero or negative values will skip the check.
+	* You can also do force teleport manually using ForceNextUpdateTeleport() / ForceNextUpdateTeleportAndReset().
+	*/
+	UPROPERTY(EditAnywhere, BlueprintGetter=GetTeleportDistanceThreshold, BlueprintSetter=SetTeleportDistanceThreshold, Category=Clothing)
+	float TeleportDistanceThreshold;
+
+	/**
+	* Rotation threshold in degrees, ranging from 0 to 180.
+	* Conduct teleportation if the character's rotation is greater than this threshold in 1 frame.
+	* Zero or negative values will skip the check.
+	*/
+	UPROPERTY(EditAnywhere, BlueprintGetter=GetTeleportRotationThreshold, BlueprintSetter=SetTeleportRotationThreshold, Category=Clothing)
+	float TeleportRotationThreshold;
+
+	/** Used for pre-computation using TeleportRotationThreshold property */
 	float ClothTeleportCosineThresholdInRad;
-	/** used for pre-computation using tTeleportDistanceThreshold property */
+	/** Used for pre-computation using tTeleportDistanceThreshold property */
 	float ClothTeleportDistThresholdSquared;
 
+	void ComputeTeleportRotationThresholdInRadians();
+	void ComputeTeleportDistanceThresholdInRadians();
+
+public:
 	/** whether we need to teleport cloth. */
 	EClothingTeleportMode ClothTeleportMode;
 
@@ -885,7 +943,7 @@ private:
 	bool bBindClothToMasterComponent;
 
 	/** Copies the data from the external cloth simulation context. We copy instead of flipping because the API has to return the full struct to make backwards compat easy*/
-	void UpdateClothSimulationContext();
+	void UpdateClothSimulationContext(float InDeltaTime);
 
 	/** previous root bone matrix to compare the difference and decide to do clothing teleport  */
 	FMatrix	PrevRootBoneMatrix;
@@ -950,6 +1008,10 @@ public:
 	// Animation
 	//
 	virtual void InitAnim(bool bForceReinit);
+ 
+	// Broadcast when the components anim instance is initialized
+	UPROPERTY(BlueprintAssignable, Category = Animation)
+	FOnAnimInitialized OnAnimInitialized;
 
 	/** Tick Animation system */
 	void TickAnimation(float DeltaTime, bool bNeedsValidRootMotion);
@@ -1045,6 +1107,7 @@ protected:
 public:
 	virtual void InitializeComponent() override;
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
+	virtual void BeginPlay() override;
 
 	//Handle registering our end physics tick function
 	void RegisterEndPhysicsTick(bool bRegister);
@@ -1259,7 +1322,7 @@ public:
 	/**
 	 * Evaluates the post process instance from the skeletal mesh this component is using.
 	 */
-	void EvaluatePostProcessMeshInstance(TArray<FTransform>& OutBoneSpaceTransforms, FBlendedHeapCurve& OutCurve, const USkeletalMesh* InSkeletalMesh, FVector& OutRootBoneTranslation) const;
+	void EvaluatePostProcessMeshInstance(TArray<FTransform>& OutBoneSpaceTransforms, FCompactPose& InOutPose, FBlendedHeapCurve& OutCurve, const USkeletalMesh* InSkeletalMesh, FVector& OutRootBoneTranslation) const;
 
 	void PostAnimEvaluation(FAnimationEvaluationContext& EvaluationContext);
 
@@ -1510,9 +1573,6 @@ public:
 
 	bool IsAnimBlueprintInstanced() const;
 
-	/** Debug render skeletons bones to supplied canvas */
-	void DebugDrawBones(class UCanvas* Canvas, bool bSimpleBones) const;
-
 protected:
 	bool NeedToSpawnAnimScriptInstance() const;
 	bool NeedToSpawnPostPhysicsInstance() const;
@@ -1526,7 +1586,7 @@ private:
 	void EndPhysicsTickComponent(FSkeletalMeshComponentEndPhysicsTickFunction& ThisTickFunction);
 
 	/** Evaluate Anim System **/
-	void EvaluateAnimation(const USkeletalMesh* InSkeletalMesh, UAnimInstance* InAnimInstance, TArray<FTransform>& OutBoneSpaceTransforms, FVector& OutRootBoneTranslation, FBlendedHeapCurve& OutCurve) const;
+	void EvaluateAnimation(const USkeletalMesh* InSkeletalMesh, UAnimInstance* InAnimInstance, TArray<FTransform>& OutBoneSpaceTransforms, FVector& OutRootBoneTranslation, FBlendedHeapCurve& OutCurve, FCompactPose& OutPose) const;
 
 	/**
 	* Take the BoneSpaceTransforms array (translation vector, rotation quaternion and scale vector) and update the array of component-space bone transformation matrices (ComponentSpaceTransforms).
@@ -1534,8 +1594,6 @@ private:
 	* This code also applies any per-bone rotators etc. as part of the composition process
 	*/
 	void FillComponentSpaceTransforms(const USkeletalMesh* InSkeletalMesh, const TArray<FTransform>& InBoneSpaceTransforms, TArray<FTransform>& OutComponentSpaceTransforms) const;
-
-	void RenderAxisGizmo(const FTransform& Transform, class UCanvas* Canvas) const;
 
 	bool ShouldBlendPhysicsBones() const;
 	bool DoAnyPhysicsBodiesHaveWeight() const;
@@ -1597,6 +1655,9 @@ private:
 
 	// Handles registering/unregistering the 'during animation' tick as it is needed
 	void UpdateDuringAnimationTickRegisteredState();
+
+	// Finalizes pose to OutBoneSpaceTransforms
+	void FinalizePoseEvaluationResult(const USkeletalMesh* InMesh, TArray<FTransform>& OutBoneSpaceTransforms, FVector& OutRootBoneTranslation, FCompactPose& InFinalPose) const;
 
 	friend class FParallelBlendPhysicsTask;
 	
@@ -1675,7 +1736,13 @@ public:
 	/** Take extracted RootMotion and convert it from local space to world space. */
 	FTransform ConvertLocalRootMotionToWorld(const FTransform& InTransform);
 
+	/** Consume and return pending root motion from our internal anim instances (main, sub and post) */
 	FRootMotionMovementParams ConsumeRootMotion();
+
+protected:
+
+	/** Consume and return pending root motion from our internal anim instances (main, sub and post) */
+	FRootMotionMovementParams ConsumeRootMotion_Internal(float InAlpha);
 
 private:
 
@@ -1723,4 +1790,16 @@ private:
 	 * Cooking does not guarantee skeleton containing all names
 	 */
 	bool AreRequiredCurvesUpToDate() const;
+
+public:
+	void ConditionallyDispatchQueuedAnimEvents();
+
+	// Are we currently within PostAnimEvaluation
+	bool IsPostEvaluatingAnimation() const { return bPostEvaluatingAnimation; }
+
+private: 
+	UPROPERTY(Transient)
+	bool bNeedsQueuedAnimEventsDispatched;
+
+	bool bPostEvaluatingAnimation;
 };

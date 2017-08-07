@@ -3,7 +3,7 @@ Title: 2.4 - Implementing Mouse Camera Control
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
 Description: Learn how to implement mouse camera control for your First Person Shooter character.
 SkillLevel: Beginner
-Version: 4.11
+Version: 4.15
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -72,23 +72,23 @@ If you want to perform additional processing, such as adding support for sensiti
 
 1.	Add the following lines to the `SetupPlayerInputComponent` in `FPSCharacter.cpp`.
 		// Set up "look" bindings.
-		InputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
-		InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
+		PlayerInputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
+		PlayerInputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
 
 1.	The `SetupPlayerInputComponent` function should now look like the following:
 
 		// Called to bind functionality to input
-		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
+		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 		{
-			Super::SetupPlayerInputComponent(InputComponent);
+			Super::SetupPlayerInputComponent(PlayerInputComponent);
 		
 			// Set up "movement" bindings.
-			InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
-			InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
+			PlayerInputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
+			PlayerInputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
 
 			// Set up "look" bindings.
-			InputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
-			InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
+			PlayerInputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
+			PlayerInputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
 		}
 
 ## Testing Mouse Camera Control

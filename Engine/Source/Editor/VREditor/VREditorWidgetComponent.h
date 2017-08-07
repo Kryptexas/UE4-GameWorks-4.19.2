@@ -24,7 +24,7 @@ class UVREditorWidgetComponent : public UWidgetComponent
 
 public:
 	/** Default constructor that sets up CDO properties */
-	UVREditorWidgetComponent(const FObjectInitializer& ObjectInitializer);
+	UVREditorWidgetComponent();
 
 	void SetDrawingPolicy(EVREditorWidgetDrawingPolicy Value) { DrawingPolicy = Value; }
 	EVREditorWidgetDrawingPolicy GetDrawingPolicy() const { return DrawingPolicy; }

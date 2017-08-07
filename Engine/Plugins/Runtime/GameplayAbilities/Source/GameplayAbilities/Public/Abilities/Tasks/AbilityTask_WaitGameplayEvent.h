@@ -12,8 +12,8 @@ class UAbilitySystemComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FWaitGameplayEventDelegate, FGameplayEventData, Payload);
 
-UCLASS(MinimalAPI)
-class UAbilityTask_WaitGameplayEvent : public UAbilityTask
+UCLASS()
+class GAMEPLAYABILITIES_API UAbilityTask_WaitGameplayEvent : public UAbilityTask
 {
 	GENERATED_UCLASS_BODY()
 

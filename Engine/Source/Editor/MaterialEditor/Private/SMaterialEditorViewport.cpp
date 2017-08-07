@@ -41,7 +41,6 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void Draw(FViewport* Viewport,FCanvas* Canvas) override;
 	virtual bool ShouldOrbitCamera() const override;
-	virtual FSceneView* CalcSceneView(FSceneViewFamily* ViewFamily, const EStereoscopicPass StereoPass) override;
 	
 	void SetShowGrid(bool bShowGrid);
 
@@ -134,16 +133,6 @@ FLinearColor FMaterialEditorViewportClient::GetBackgroundColor() const
 	return BackgroundColor;
 }
 
-
-FSceneView* FMaterialEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily, const EStereoscopicPass StereoPass)
-{
-	FSceneView* SceneView = FEditorViewportClient::CalcSceneView(ViewFamily, StereoPass);
-	FFinalPostProcessSettings::FCubemapEntry& CubemapEntry = *new(SceneView->FinalPostProcessSettings.ContributingCubemaps) FFinalPostProcessSettings::FCubemapEntry;
-	CubemapEntry.AmbientCubemap = GUnrealEd->GetThumbnailManager()->AmbientCubemap;
-	CubemapEntry.AmbientCubemapTintMulScaleValue = FLinearColor::White;
-	return SceneView;
-}
-
 void FMaterialEditorViewportClient::SetShowGrid(bool bShowGrid)
 {
 	DrawHelper.bDrawGrid = bShowGrid;
@@ -202,6 +191,7 @@ void SMaterialEditor3DPreviewViewport::Construct(const FArguments& InArgs)
 
 	// Rotate the light in the preview scene so that it faces the preview object
 	PreviewScene.SetLightDirection(FRotator(-40.0f, 27.5f, 0.0f));
+	PreviewScene.SetSkyCubemap(GUnrealEd->GetThumbnailManager()->AmbientCubemap);
 
 	SEditorViewport::Construct( SEditorViewport::FArguments() );
 
@@ -618,7 +608,7 @@ public:
 	virtual FVector2D ComputeDesiredSize(float) const override;
 	virtual FChildren* GetChildren() override;
 	virtual FReply OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
-	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
+	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 
 	bool ZoomBy( const float Amount );
 	float GetZoomLevel() const;
@@ -686,9 +676,9 @@ FReply SMaterialEditorUIPreviewZoomer::OnMouseWheel( const FGeometry& MyGeometry
 	 return FReply::Handled();
 }
 
-int32 SMaterialEditorUIPreviewZoomer::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+int32 SMaterialEditorUIPreviewZoomer::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
-	LayerId = SPanel::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+	LayerId = SPanel::OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 	return LayerId;
 }
 

@@ -59,7 +59,7 @@ public:
 };
 
 /** A ViewTarget is the primary actor the camera is associated with. */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct ENGINE_API FTViewTarget
 {
 	GENERATED_USTRUCT_BODY()
@@ -98,7 +98,7 @@ public:
 };
 
 /** A set of parameters to describe how to transition between view targets. */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FViewTargetTransitionParams
 {
 	GENERATED_USTRUCT_BODY()
@@ -177,9 +177,8 @@ class ENGINE_API APlayerCameraManager : public AActor
 	UPROPERTY(transient)
 	class APlayerController* PCOwner;
 
-private_subobject:
+private:
 	/** Dummy component we can use to attach things to the camera. */
-	DEPRECATED_FORGAME(4.6, "TransformComponent should not be accessed directly, please use GetTransformComponent() function instead. TransformComponent will soon be private and your code will not compile.")
 	UPROPERTY(Category = PlayerCameraManager, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	class USceneComponent* TransformComponent;
 
@@ -384,6 +383,7 @@ public:
 	 * True if we did a camera cut this frame. Automatically reset to false every frame.
 	 * This flag affects various things in the renderer (such as whether to use the occlusion queries from last frame, and motion blur).
 	 */
+	UPROPERTY(Transient, BlueprintReadOnly, Category=PlayerCameraManager)
 	uint32 bGameCameraCutThisFrame : 1;
 
 protected:
@@ -861,5 +861,5 @@ private:
 
 public:
 	/** @return Returns TransformComponent subobject */
-	class USceneComponent* GetTransformComponent() const;
+	class USceneComponent* GetTransformComponent() const { return TransformComponent; }
 };

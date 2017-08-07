@@ -16,15 +16,20 @@ static UAudio::IUnrealAudioModule* UnrealAudioModule = nullptr;
 static bool UnrealAudioLoad(const FString* DeviceApi = nullptr)
 {
 	UnrealAudioModule = FModuleManager::LoadModulePtr<UAudio::IUnrealAudioModule>(FName("UnrealAudio"));
-	if (DeviceApi)
+	if (UnrealAudioModule != nullptr)
 	{
-		UnrealAudioModule->Initialize(*DeviceApi);
+		if (DeviceApi)
+		{
+			UnrealAudioModule->Initialize(*DeviceApi);
+			return true;
+		}
+		else
+		{
+			UnrealAudioModule->Initialize();
+			return true;
+		}
 	}
-	else
-	{
-		UnrealAudioModule->Initialize();
-	}
-	return UnrealAudioModule != nullptr;
+	return false;
 }
 
 static bool UnrealAudioUnload()

@@ -14,17 +14,21 @@
 #include "IPAddress.h"
 #include "Sockets.h"
 #include "PlatformHttp.h"
+#include "Interfaces/IHttpResponse.h"
 
 #define JSON_ARRAY_NAME					TEXT("PerfCounters")
 #define JSON_PERFCOUNTER_NAME			TEXT("Name")
 #define JSON_PERFCOUNTER_SIZE_IN_BYTES	TEXT("SizeInBytes")
 
+#define PERF_COUNTER_CONNECTION_TIMEOUT 5.0f
+
 FPerfCounters::FPerfCounters(const FString& InUniqueInstanceId)
-: UniqueInstanceId(InUniqueInstanceId)
-, InternalCountersUpdateInterval(60)
-, Socket(nullptr)
-, ZeroLoadThread(nullptr)
-, ZeroLoadRunnable(nullptr)
+	: SocketSubsystem(nullptr)
+	, UniqueInstanceId(InUniqueInstanceId)
+	, InternalCountersUpdateInterval(60)
+	, Socket(nullptr)
+	, ZeroLoadThread(nullptr)
+	, ZeroLoadRunnable(nullptr)
 {
 }
 
@@ -60,15 +64,17 @@ bool FPerfCounters::Initialize()
 	}
 
 	// get the socket subsystem
-	ISocketSubsystem* SocketSystem = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
-	if (SocketSystem == nullptr)
+	SocketSubsystem = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
+	if (SocketSubsystem == nullptr)
 	{
 		UE_LOG(LogPerfCounters, Error, TEXT("FPerfCounters unable to get socket subsystem"));
 		return false;
 	}
 
+	ScratchIPAddr = SocketSubsystem->CreateInternetAddr();
+
 	// make our listen socket
-	Socket = SocketSystem->CreateSocket(NAME_Stream, TEXT("FPerfCounters"));
+	Socket = SocketSubsystem->CreateSocket(NAME_Stream, TEXT("FPerfCounters"));
 	if (Socket == nullptr)
 	{
 		UE_LOG(LogPerfCounters, Error, TEXT("FPerfCounters unable to allocate stream socket"));
@@ -79,7 +85,7 @@ bool FPerfCounters::Initialize()
 	Socket->SetNonBlocking(true);
 
 	// create a localhost binding for the requested port
-	TSharedRef<FInternetAddr> LocalhostAddr = SocketSystem->CreateInternetAddr(0x7f000001 /* 127.0.0.1 */, StatsPort);
+	TSharedRef<FInternetAddr> LocalhostAddr = SocketSubsystem->CreateInternetAddr(0x7f000001 /* 127.0.0.1 */, StatsPort);
 	if (!Socket->Bind(*LocalhostAddr))
 	{
 		UE_LOG(LogPerfCounters, Error, TEXT("FPerfCounters unable to bind to %s"), *LocalhostAddr->ToString(true));
@@ -156,12 +162,23 @@ void FPerfCounters::ResetStatsForNextPeriod()
 	}
 };
 
-
 static bool SendAsUtf8(FSocket* Conn, const FString& Message)
 {
 	FTCHARToUTF8 ConvertToUtf8(*Message);
 	int32 BytesSent = 0;
-	return Conn->Send(reinterpret_cast<const uint8*>(ConvertToUtf8.Get()), ConvertToUtf8.Length(), BytesSent) && BytesSent == ConvertToUtf8.Length();
+	const bool bSendSuccess = Conn->Send(reinterpret_cast<const uint8*>(ConvertToUtf8.Get()), ConvertToUtf8.Length(), BytesSent);
+	const bool bSendSizeSuccess = (BytesSent == ConvertToUtf8.Length());
+
+	if (!bSendSuccess)
+	{
+		UE_LOG(LogPerfCounters, Warning, TEXT("Failed to send buffer size: %d"), ConvertToUtf8.Length());
+	}
+	else if (!bSendSizeSuccess)
+	{
+		UE_LOG(LogPerfCounters, Warning, TEXT("Failed to send entire buffer size: %d sent: %d"), ConvertToUtf8.Length(), BytesSent);
+	}
+
+	return bSendSuccess && bSendSizeSuccess;
 }
 
 bool FPerfCounters::Tick(float DeltaTime)
@@ -205,17 +222,27 @@ void FPerfCounters::TickSocket(float DeltaTime)
 	FSocket* IncomingConnection = Socket->Accept(PerfCounterRequest);
 	if (IncomingConnection)
 	{
-		if (0)
+		const bool bLogConnections = true;
+		if (bLogConnections)
 		{
-			TSharedRef<FInternetAddr> FromAddr = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateInternetAddr();
-			IncomingConnection->GetPeerAddress(*FromAddr);
-			UE_LOG(LogPerfCounters, Log, TEXT("New connection from %s"), *FromAddr->ToString(true));
+			IncomingConnection->GetPeerAddress(*ScratchIPAddr);
+			UE_LOG(LogPerfCounters, Log, TEXT("New connection from %s"), *ScratchIPAddr->ToString(true));
 		}
 
 		// make sure this is non-blocking
 		IncomingConnection->SetNonBlocking(true);
 
 		new (Connections) FPerfConnection(IncomingConnection);
+	}
+	else
+	{
+		ESocketErrors ErrorCode = SocketSubsystem->GetLastErrorCode();
+		if (ErrorCode != SE_EWOULDBLOCK &&
+			ErrorCode != SE_NO_ERROR)
+		{
+			const TCHAR* ErrorStr = SocketSubsystem->GetSocketError();
+			UE_LOG(LogPerfCounters, Warning, TEXT("Error accepting connection [%d] %s"), (int32)ErrorCode, ErrorStr);
+		}
 	}
 
 	TArray<FPerfConnection> ConnectionsToClose;
@@ -230,14 +257,21 @@ void FPerfCounters::TickSocket(float DeltaTime)
 			int32 DataLen = 0;
 			if (ExistingSocket->Recv(Buffer, sizeof(Buffer) - 1, DataLen, ESocketReceiveFlags::None))
 			{
+				double StartTime = FPlatformTime::Seconds();
+
 				FResponse Response;
 				if (ProcessRequest(Buffer, DataLen, Response))
 				{
+					if (!EHttpResponseCodes::IsOk(Response.Code))
+					{
+						UE_LOG(LogPerfCounters, Warning, TEXT("Sending error response: [%d] %s"), Response.Code, *Response.Body);
+					}
+
 					if (SendAsUtf8(ExistingSocket, Response.Header))
 					{
 						if (!SendAsUtf8(ExistingSocket, Response.Body))
 						{
-							UE_LOG(LogPerfCounters, Warning, TEXT("Unable to send full HTTP response body"));
+							UE_LOG(LogPerfCounters, Warning, TEXT("Unable to send full HTTP response body size: %d"), Response.Body.Len());
 						}
 					}
 					else
@@ -245,6 +279,14 @@ void FPerfCounters::TickSocket(float DeltaTime)
 						UE_LOG(LogPerfCounters, Warning, TEXT("Unable to send HTTP response header: %s"), *Response.Header);
 					}
 				}
+				else
+				{
+					UE_LOG(LogPerfCounters, Warning, TEXT("Failed to process request"));
+				}
+
+				double EndTime = FPlatformTime::Seconds();
+				ExistingSocket->GetPeerAddress(*ScratchIPAddr);
+				UE_LOG(LogPerfCounters, Log, TEXT("Request for %s processed in %0.2f s"), *ScratchIPAddr->ToString(true), EndTime - StartTime);
 			}
 			else
 			{
@@ -253,8 +295,9 @@ void FPerfCounters::TickSocket(float DeltaTime)
 
 			ConnectionsToClose.Add(Connection);
 		}
-		else if (Connection.ElapsedTime > 5.0f)
+		else if (Connection.ElapsedTime > PERF_COUNTER_CONNECTION_TIMEOUT)
 		{
+			UE_LOG(LogPerfCounters, Warning, TEXT("Closing connection due to timeout %d"), Connection.ElapsedTime);
 			ConnectionsToClose.Add(Connection);
 		}
 
@@ -268,14 +311,16 @@ void FPerfCounters::TickSocket(float DeltaTime)
 		FSocket* ClosingSocket = Connection.Connection;
 		if (ClosingSocket)
 		{
+			const bool bLogConnectionClosure = true;
+			if (bLogConnectionClosure)
+			{
+				ClosingSocket->GetPeerAddress(*ScratchIPAddr);
+				UE_LOG(LogPerfCounters, Log, TEXT("Closed connection to %s."), *ScratchIPAddr->ToString(true));
+			}
+
 			// close the socket (whether we processed or not)
 			ClosingSocket->Close();
-			ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(ClosingSocket);
-			
-			if (0)
-			{
-				UE_LOG(LogPerfCounters, Log, TEXT("Closed connection."));
-			}
+			SocketSubsystem->DestroySocket(ClosingSocket);
 		}
 	}
 }
@@ -342,13 +387,13 @@ bool FPerfCounters::ProcessRequest(uint8* Buffer, int32 BufferLen, FResponse& Re
 		if (Tokens.Num() >= 2)
 		{
 			FString ContentType(TEXT("application/json"));
-			Response.Code = 200;
+			Response.Code = EHttpResponseCodes::Ok;
 
 			// handle the request
 			if (Tokens[0] != TEXT("GET"))
 			{
 				Response.Body = FString::Printf(TEXT("{ \"error\": \"Method %s not allowed\" }"), *Tokens[0]);
-				Response.Code = 405;
+				Response.Code = EHttpResponseCodes::BadMethod;
 			}
 			else if (Tokens[1].StartsWith(TEXT("/stats")))
 			{
@@ -374,12 +419,12 @@ bool FPerfCounters::ProcessRequest(uint8* Buffer, int32 BufferLen, FResponse& Re
 					Response.Body = FString::Printf(TEXT("{ \"error\": \"exec handler not found\" }"));
 				}
 
-				Response.Code = bResult ? 200 : 404;
+				Response.Code = bResult ? EHttpResponseCodes::Ok : EHttpResponseCodes::NotFound;
 			}
 			else
 			{
 				Response.Body = FString::Printf(TEXT("{ \"error\": \"%s not found\" }"), *Tokens[1]);
-				Response.Code = 404;
+				Response.Code = EHttpResponseCodes::NotFound;
 			}
 
 			// send the response headers
@@ -393,7 +438,7 @@ bool FPerfCounters::ProcessRequest(uint8* Buffer, int32 BufferLen, FResponse& Re
 	}
 	else
 	{
-		UE_LOG(LogPerfCounters, Warning, TEXT("Unable to immediately receive full request header"));
+		UE_LOG(LogPerfCounters, Warning, TEXT("ProcessRequest: request incomplete"));
 	}
 
 	return bSuccess;

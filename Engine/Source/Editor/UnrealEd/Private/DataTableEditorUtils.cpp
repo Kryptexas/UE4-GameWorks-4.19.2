@@ -170,6 +170,15 @@ bool FDataTableEditorUtils::MoveRow(UDataTable* DataTable, FName RowName, ERowMo
 	return true;
 }
 
+bool FDataTableEditorUtils::SelectRow(UDataTable* DataTable, FName RowName)
+{
+	for (auto Listener : FDataTableEditorManager::Get().GetListeners())
+	{
+		static_cast<INotifyOnDataTableChanged*>(Listener)->SelectionChange(DataTable, RowName);
+	}
+	return true;
+}
+
 bool FDataTableEditorUtils::DiffersFromDefault(UDataTable* DataTable, FName RowName)
 {
 	bool bDiffers = false;
@@ -247,7 +256,10 @@ void FDataTableEditorUtils::CacheDataTableForEditing(const UDataTable* DataTable
 	{
 		const UProperty* Prop = *It;
 		check(Prop);
-		StructProps.Add(Prop);
+		if (!Prop->HasMetaData(FName(TEXT("HideFromDataTableEditorColumn"))))
+		{
+			StructProps.Add(Prop);
+		}
 	}
 
 	TSharedRef<FSlateFontMeasure> FontMeasure = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();

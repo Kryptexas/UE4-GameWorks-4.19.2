@@ -12,7 +12,7 @@ class UPrimitiveComponent;
 /**
  * Helper structure containing size and cull distance pair.
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FCullDistanceSizePair
 {
 	GENERATED_USTRUCT_BODY()

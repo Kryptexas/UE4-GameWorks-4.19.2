@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3473445
 Availability:Licensee
 Title: 출하 점검목록
 Crumbs:%ROOT%, Support/BusinessAndLegal
@@ -37,7 +37,7 @@ Version: 4.9
 라이선시는 게임의 물리적 포장에 "Powered by Unreal Technology" 로고를, 
 또한 게임의 스플래시 화면이나 시작 화면에 "Powered by Unreal Technology" 로고를 넣는다는 것에 동의합니다. 
 "Powered by Unreal Technology" 로고의 표시는 
-[상호와 로고](Support/BusinessAndLegal/TrademarksAndLogos) 페이지에서 찾을 수 있는 
+[로고 & 브랜드](https://www.unrealengine.com/branding) 페이지에서 찾을 수 있는 
 **_언리얼 엔진 스타일 가이드_** 를 따른다는 데 동의합니다.
 
 정적인 로고에 대한 대안으로 애니메이션 버전도 가능합니다.
@@ -47,9 +47,8 @@ Version: 4.9
 
 ## 써드 파티 소프트웨어
 
-라이선시는 게임에 사용된 다른 써드 파티 소프트웨어가 요구하는 법적 문구를 알맞게 실어야 합니다. 언리얼 엔진에 포함된 
-라이브러리 목록과 그에 따르는 법적 문구는 [써드 파티 소프트웨어](Support/BusinessAndLegal/ThirdPartySoftware) 
-페이지에서 찾아보실 수 있습니다.
+라이선시는 게임에 사용된 다른 써드 파티 소프트웨어가 요구하는 법적 문구를 알맞게 실어야 
+합니다. 
 
 ## 승인된 콘텐츠
 

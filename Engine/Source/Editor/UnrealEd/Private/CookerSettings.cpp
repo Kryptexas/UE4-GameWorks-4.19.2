@@ -9,7 +9,8 @@ UCookerSettings::UCookerSettings(const FObjectInitializer& ObjectInitializer)
 	, bEnableCookOnTheSide(false)
 	, bEnableBuildDDCInBackground(false)
 	, bIterativeCookingForLaunchOn(false)
-	, bUseAssetRegistryForIteration(false)
+	, bIgnoreIniSettingsOutOfDateForIteration(false)
+	, bIgnoreScriptPackagesOutOfDateForIteration(false)
 	, bCompileBlueprintsInDevelopmentMode(true)
 	, bCookBlueprintComponentTemplateData(false)
 {
@@ -28,8 +29,8 @@ void UCookerSettings::PostInitProperties()
 
 void UCookerSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-	static FName NAME_ClassesExcludedOnDedicatedServer(TEXT("ClassesExcludedOnDedicatedServer"));
-	static FName NAME_ClassesExcludedOnDedicatedClient(TEXT("ClassesExcludedOnDedicatedClient"));
+	static FName NAME_ClassesExcludedOnDedicatedServer = GET_MEMBER_NAME_CHECKED(UCookerSettings, ClassesExcludedOnDedicatedServer);
+	static FName NAME_ClassesExcludedOnDedicatedClient = GET_MEMBER_NAME_CHECKED(UCookerSettings, ClassesExcludedOnDedicatedClient);
 
 	static FName NAME_ModulesExcludedOnDedicatedServer(TEXT("ModulesExcludedOnDedicatedServer"));
 	static FName NAME_ModulesExcludedOnDedicatedClient(TEXT("ModulesExcludedOnDedicatedClient"));

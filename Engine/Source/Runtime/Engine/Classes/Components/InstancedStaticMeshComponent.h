@@ -27,7 +27,7 @@ DECLARE_STATS_GROUP(TEXT("Foliage"), STATGROUP_Foliage, STATCAT_Advanced);
 class FStaticLightingTextureMapping_InstancedStaticMesh;
 class FInstancedLightMap2D;
 class FInstancedShadowMap2D;
-struct FPerInstanceRenderData;
+class FStaticMeshInstanceData;
 
 USTRUCT()
 struct FInstancedStaticMeshInstanceData
@@ -74,11 +74,35 @@ struct FInstancedStaticMeshMappingInfo
 	}
 };
 
+class FAsyncBuildInstanceBuffer : public FNonAbandonableTask
+{
+public:
+	class UInstancedStaticMeshComponent* Component;
+	class UWorld* World;
+
+	FAsyncBuildInstanceBuffer(class UInstancedStaticMeshComponent* InComponent, class UWorld* InWorld)
+		: Component(InComponent)
+		, World(InWorld)
+	{
+	}
+	void DoWork();
+	FORCEINLINE TStatId GetStatId() const
+	{
+		RETURN_QUICK_DECLARE_CYCLE_STAT(FAsyncBuildInstanceBuffer, STATGROUP_ThreadPoolAsyncTasks);
+	}
+	static const TCHAR *Name()
+	{
+		return TEXT("FAsyncBuildInstanceBuffer");
+	}
+};
+
 /** A component that efficiently renders multiple instances of the same StaticMesh. */
 UCLASS(ClassGroup = Rendering, meta = (BlueprintSpawnableComponent), Blueprintable)
 class ENGINE_API UInstancedStaticMeshComponent : public UStaticMeshComponent
 {
 	GENERATED_UCLASS_BODY()
+
+	virtual ~UInstancedStaticMeshComponent();
 
 	/** Array of instances, bulk serialized. */
 	UPROPERTY(EditAnywhere, SkipSerialization, DisplayName="Instances", Category=Instances, meta=(MakeEditWidget=true))
@@ -106,8 +130,15 @@ class ENGINE_API UInstancedStaticMeshComponent : public UStaticMeshComponent
 	UPROPERTY()
 	TArray<int32> RemovedInstances;
 
+	/** Set to true to permit updating the vertex buffer used in the instance buffer without recreating it completely. This should be used if you plan on dynamically changing the instances at run-time. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = InstancedStaticMeshComponent)
+	bool UseDynamicInstanceBuffer;
+
 	/** Tracks outstanding proxysize, as this is a bit hard to do with the fire-and-forget grass. */
 	SIZE_T ProxySize;
+
+	// Temp hack, long term we will load data in the right format directly
+	FAsyncTask<FAsyncBuildInstanceBuffer>* AsyncBuildInstanceBufferTask;
 
 	/** Add an instance to this component. Transform is given in local space of this component. */
 	UFUNCTION(BlueprintCallable, Category="Components|InstancedStaticMesh")
@@ -171,19 +202,19 @@ class ENGINE_API UInstancedStaticMeshComponent : public UStaticMeshComponent
 
 	virtual bool ShouldCreatePhysicsState() const override;
 
+	virtual void PostLoad() override;
+
 public:
-	/** Render data will be initialized once we create scene proxy for this component. Released on the rendering thread. */
+	/** Render data will be initialized on PostLoad or on demand. Released on the rendering thread. */
 	TSharedPtr<FPerInstanceRenderData, ESPMode::ThreadSafe> PerInstanceRenderData;
-	/** This was prebuilt for grass, never destroy it. */
+	TSet<int32> NeedUpdatingInstanceIndexList;
+	/** This was prebuilt, grass system use it, never destroy it. */
 	bool bPerInstanceRenderDataWasPrebuilt;
 		
 #if WITH_EDITOR
 	/** One bit per instance if the instance is selected. */
 	TBitArray<> SelectedInstances;
 #endif
-	/** Incremented when instance selection is changed */
-	int32 SelectionStamp;
-	
 	/** Physics representation of the instance bodies. */
 	TArray<FBodyInstance*> InstanceBodies;
 
@@ -221,6 +252,7 @@ public:
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
 	void BeginDestroy() override;
+	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 #if WITH_EDITOR
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
 	virtual void PostEditUndo() override;
@@ -238,6 +270,9 @@ public:
 
 	/** Deselect all instances. */
 	void ClearInstanceSelection();
+
+	/** Initialize the Per Instance Render Data */
+	void InitPerInstanceRenderData(FStaticMeshInstanceData* InSharedInstanceBufferData = nullptr);
 
 	/** Transfers ownership of instance render data to a render thread. Instance render data will be released in scene proxy destructor or on render thread task. */
 	void ReleasePerInstanceRenderData();
@@ -266,6 +301,9 @@ protected:
 
 	/** Initializes the body instance for the specified instance of the static mesh. */
 	void InitInstanceBody(int32 InstanceIdx, FBodyInstance* InBodyInstance);
+
+	/** Flush the asyc instance buffer task if we're running in async mode */
+	void FlushAsyncBuildInstanceBufferTask();
 
 	/** Number of pending lightmaps still to be calculated (Apply()'d). */
 	UPROPERTY(Transient, DuplicateTransient, TextExportTransient)

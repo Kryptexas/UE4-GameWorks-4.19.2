@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Serialization/BufferArchive.h"
 #include "Serialization/ArrayReader.h"
+#include "Misc/EnumClassFlags.h"
 
 enum
 { 
@@ -58,6 +59,18 @@ namespace NFS_Channels
 		Heatbeat = 102,
 	};
 }
+
+
+
+enum class EConnectionFlags : uint8
+{
+	None = 0x00000000,
+	Streaming = 0x00000001,
+	PreCookedIterative = 0x00000002,
+};
+ENUM_CLASS_FLAGS(EConnectionFlags);
+
+
 
 /**
 * Simple abstraction for sockets that allows FNFSMessageHeader to use either an ordinary socket or a mutichannel socket

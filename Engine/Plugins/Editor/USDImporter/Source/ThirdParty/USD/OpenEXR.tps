@@ -3,7 +3,7 @@
   <Name />
   <Location>/Engine/Plugins/Editor/USDImporter/Source/ThirdParty/USD/OpenEXR/</Location>
   <Notification>
-Redirect: ../../../../../../../Source/ThirdParty/openexr/OpenEXR-1.7.1/OpenEXR.tps
+Redirect: ../../../../../../Source/ThirdParty/openexr/OpenEXR-1.7.1/OpenEXR.tps
   </Notification>
   <LicenseFolder />
 </TpsData>

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3042570
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title:Blueprint Workflow ツール
 Crumbs: %ROOT%, Engine, Engine/Blueprints
@@ -6,6 +6,7 @@ Description:コメント付けおよびブレークポイントなどのツー�
 version:4.9
 parent:Engine/Blueprints
 order:3
+tags:Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -47,7 +48,7 @@ order:3
 [/VAR]
 
 
-ブループリントで作業する際に、グラフへのコメント付け、プロジェクト内のすべてのブループリント対象の検索、ブレークポイントによるシステムのデバッグという主要ツールを使用することができます。
+ブループリントの作業では、グラフへのコメント追加、プロジェクト内のすべてのブループリントの検索、ブレークポイントによるシステムのデバッグという主要ツールを使うことができます。
 
 [DIR(output:"listbutton" parent:"Engine/Blueprints/Workflow")]
 

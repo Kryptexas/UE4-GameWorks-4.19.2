@@ -3,7 +3,7 @@ Title:1. Gear VR Project Creation
 Crumbs:%ROOT%, Platforms/GearVR
 Description:How to create a UE4 C++ based project that can be used with the Gear VR Headset.
 Navigation:platform
-Version: 4.9
+Version: 4.16
 Skilllevel: Intermediate
 tags:VR
 tags:GearVR

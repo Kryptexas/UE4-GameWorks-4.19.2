@@ -67,6 +67,7 @@ then
   fi
 fi
 
+
 if [ -e $1.entitlements ]
 then
   if [ -d ../../../Intermediate/IOS ]

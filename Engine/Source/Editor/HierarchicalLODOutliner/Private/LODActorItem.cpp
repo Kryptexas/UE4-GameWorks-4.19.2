@@ -185,7 +185,7 @@ HLODOutliner::FDragValidationInfo HLODOutliner::FLODActorDropTarget::ValidateDro
 {
 	if (DraggedObjects.StaticMeshActors.IsSet() && DraggedObjects.StaticMeshActors->Num() > 0)
 	{
-		if (DraggedObjects.StaticMeshActors->Num() > 0 && DraggedObjects.LODActors->Num() == 0)
+		if (DraggedObjects.LODActors->Num() == 0)
 		{			
 			if (DraggedObjects.bSceneOutliner == false)
 			{

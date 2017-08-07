@@ -230,10 +230,10 @@ private:
 			if ( UDeveloperSettings* Settings = *SettingsIt )
 			{
 				// Only Add the CDO of any UDeveloperSettings objects.
-				if ( Settings->HasAnyFlags(RF_ClassDefaultObject) && !Settings->GetClass()->HasAnyCastFlag(CLASS_Deprecated) )
+				if ( Settings->HasAnyFlags(RF_ClassDefaultObject) && !Settings->GetClass()->HasAnyClassFlags(CLASS_Deprecated | CLASS_Abstract) )
 				{
 					// Ignore the setting if it's specifically the UDeveloperSettings or other abstract settings classes
-					if ( Settings->GetClass()->HasAnyClassFlags(CLASS_Abstract) || !Settings->SupportsAutoRegistration())
+					if ( Settings->GetClass()->HasAnyClassFlags(CLASS_Abstract) || !Settings->SupportsAutoRegistration() )
 					{
 						continue;
 					}

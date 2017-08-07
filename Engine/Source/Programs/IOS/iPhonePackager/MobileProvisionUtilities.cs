@@ -136,17 +136,19 @@ namespace iPhonePackager
 					MobileProvision TestProvision = Pair.Value;
 
                     // make sure the file is not managed by Xcode
-                    if (TestProvision.FileName.Contains(TestProvision.UUID))
+                    if (Path.GetFileName(TestProvision.FileName).ToLower().Equals(TestProvision.UUID.ToLower() + ".mobileprovision"))
+                    {
                         continue;
+                    }
+
+                    Program.LogVerbose("  Phase {0} considering provision '{1}' named '{2}'", Phase, DebugName, TestProvision.ProvisionName);
 
                     // check to see if the platform is the same as what we are looking for
                     if (!string.IsNullOrEmpty(TestProvision.Platform) && TestProvision.Platform != Config.OSString && !string.IsNullOrEmpty(Config.OSString))
                         continue;
 
-                    Program.LogVerbose("  Phase {0} considering provision '{1}' named '{2}'", Phase, DebugName, TestProvision.ProvisionName);
-
-					// Validate the name
-					bool bPassesNameCheck = false;
+                    // Validate the name
+                    bool bPassesNameCheck = false;
 					if (Phase == 0)
 					{
 						bPassesNameCheck = TestProvision.ApplicationIdentifier.Substring(TestProvision.ApplicationIdentifierPrefix.Length+1) == CFBundleIdentifier;

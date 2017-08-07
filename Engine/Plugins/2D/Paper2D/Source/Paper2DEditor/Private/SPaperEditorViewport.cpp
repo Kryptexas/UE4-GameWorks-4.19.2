@@ -217,7 +217,7 @@ FReply SPaperEditorViewport::OnMouseButtonUp(const FGeometry& MyGeometry, const 
 
 		if (HasMouseCapture())
 		{
-			FSlateRect ThisPanelScreenSpaceRect = MyGeometry.GetClippingRect();
+			FSlateRect ThisPanelScreenSpaceRect = MyGeometry.GetLayoutBoundingRect();
 			const FVector2D ScreenSpaceCursorPos = MyGeometry.LocalToAbsolute( GraphCoordToPanelCoord( SoftwareCursorPosition ) );
 
 			FIntPoint BestPositionInViewport(
@@ -506,7 +506,7 @@ FSlateRect SPaperEditorViewport::PanelRectToGraphRect( const FSlateRect& PanelSp
 		LowerRight.X, LowerRight.Y );
 }
 
-void SPaperEditorViewport::PaintSoftwareCursor(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 DrawLayerId) const
+void SPaperEditorViewport::PaintSoftwareCursor(const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 DrawLayerId) const
 {
 	if (bShowSoftwareCursor)
 	{
@@ -516,17 +516,16 @@ void SPaperEditorViewport::PaintSoftwareCursor(const FGeometry& AllottedGeometry
 			OutDrawElements,
 			DrawLayerId,
 			AllottedGeometry.ToPaintGeometry( GraphCoordToPanelCoord(SoftwareCursorPosition) - ( Brush->ImageSize / 2 ), Brush->ImageSize ),
-			Brush,
-			MyClippingRect);
+			Brush);
 	}
 }
 
-int32 SPaperEditorViewport::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+int32 SPaperEditorViewport::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
-	int32 MaxLayerId = SCompoundWidget::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+	int32 MaxLayerId = SCompoundWidget::OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 
 	++MaxLayerId;
-	PaintSoftwareCursor(AllottedGeometry, MyClippingRect, OutDrawElements, MaxLayerId);
+	PaintSoftwareCursor(AllottedGeometry, MyCullingRect, OutDrawElements, MaxLayerId);
 
 	return MaxLayerId;
 }

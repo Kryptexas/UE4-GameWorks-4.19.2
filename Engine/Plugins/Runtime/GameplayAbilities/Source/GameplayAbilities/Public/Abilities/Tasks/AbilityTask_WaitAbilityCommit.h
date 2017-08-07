@@ -12,8 +12,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FWaitAbilityCommitDelegate, UGamepla
 /**
  *	Waits for the actor to activate another ability
  */
-UCLASS(MinimalAPI)
-class UAbilityTask_WaitAbilityCommit : public UAbilityTask
+UCLASS()
+class GAMEPLAYABILITIES_API UAbilityTask_WaitAbilityCommit : public UAbilityTask
 {
 	GENERATED_UCLASS_BODY()
 
@@ -25,13 +25,19 @@ class UAbilityTask_WaitAbilityCommit : public UAbilityTask
 	UFUNCTION()
 	void OnAbilityCommit(UGameplayAbility *ActivatedAbility);
 
-	/** Wait until a new ability (of the same or different type) is commited. Used to gracefully interrupt abilities in specific ways. */
+	/** Wait until a new ability (of the same or different type) is commited. */
 	UFUNCTION(BlueprintCallable, Category="Ability|Tasks", meta = (HidePin = "OwningAbility", DefaultToSelf = "OwningAbility", BlueprintInternalUseOnly = "TRUE", DisplayName = "Wait For New Ability Commit"))
 	static UAbilityTask_WaitAbilityCommit* WaitForAbilityCommit(UGameplayAbility* OwningAbility, FGameplayTag WithTag, FGameplayTag WithoutTage, bool TriggerOnce=true);
+
+	UFUNCTION(BlueprintCallable, Category="Ability|Tasks", meta = (HidePin = "OwningAbility", DefaultToSelf = "OwningAbility", BlueprintInternalUseOnly = "TRUE", DisplayName = "Wait For New Ability Commit Query"))
+	static UAbilityTask_WaitAbilityCommit* WaitForAbilityCommit_Query(UGameplayAbility* OwningAbility, FGameplayTagQuery Query, bool TriggerOnce=true);
 
 	FGameplayTag WithTag;
 	FGameplayTag WithoutTag;
 	bool TriggerOnce;
+
+
+	FGameplayTagQuery Query;
 
 protected:
 

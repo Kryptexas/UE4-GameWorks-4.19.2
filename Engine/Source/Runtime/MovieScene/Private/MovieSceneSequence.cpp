@@ -4,6 +4,7 @@
 #include "Compilation/MovieSceneEvaluationTemplateGenerator.h"
 #include "Evaluation/MovieSceneEvaluationCustomVersion.h"
 #include "MovieScene.h"
+#include "EditorObjectVersion.h"
 
 UMovieSceneSequence::UMovieSceneSequence(const FObjectInitializer& Init)
 	: Super(Init)
@@ -41,6 +42,7 @@ void UMovieSceneSequence::PostLoad()
 void UMovieSceneSequence::Serialize(FArchive& Ar)
 {
 	Ar.UsingCustomVersion(FMovieSceneEvaluationCustomVersion::GUID);
+	Ar.UsingCustomVersion(FEditorObjectVersion::GUID);
 
 #if WITH_EDITORONLY_DATA
 	if (Ar.IsCooking() && !HasAnyFlags(RF_ClassDefaultObject))

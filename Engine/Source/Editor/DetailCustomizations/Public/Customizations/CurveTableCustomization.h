@@ -60,7 +60,7 @@ public:
 			CurveTablePropertyHandle->SetOnPropertyValueChanged( OnCurveTableChangedDelegate );
 
 			/** Construct a combo box widget to select from a list of valid options */
-			StructBuilder.AddChildContent( NSLOCTEXT("CurveTable", "RowNameLabel", "Row Name" ) )
+			StructBuilder.AddCustomRow( NSLOCTEXT("CurveTable", "RowNameLabel", "Row Name" ) )
 			.NameContent()
 				[
 					SNew( STextBlock )
@@ -85,7 +85,7 @@ public:
 	virtual void CreateCurveTableChildProperty(IDetailChildrenBuilder& StructBuilder)
 	{
 		/** Edit the data table uobject as normal */
-		StructBuilder.AddChildProperty( CurveTablePropertyHandle.ToSharedRef() );
+		StructBuilder.AddProperty( CurveTablePropertyHandle.ToSharedRef() );
 	}
 
 protected:

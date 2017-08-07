@@ -252,7 +252,10 @@ void FSlateEditableTextLayout::SetText(const TAttribute<FText>& InText)
 		}
 	}
 
-	OwnerWidget->GetSlateWidget()->Invalidate(EInvalidateWidget::LayoutAndVolatility);
+	if (bHasTextChanged || BoundText.IsBound())
+	{
+		OwnerWidget->GetSlateWidget()->Invalidate(EInvalidateWidget::LayoutAndVolatility);
+	}
 }
 
 FText FSlateEditableTextLayout::GetText() const
@@ -563,8 +566,8 @@ FVector2D FSlateEditableTextLayout::SetVerticalScrollFraction(const float InScro
 FVector2D FSlateEditableTextLayout::SetScrollOffset(const FVector2D& InScrollOffset, const FGeometry& InGeometry)
 {
 	const FVector2D ContentSize = TextLayout->GetSize();
-	ScrollOffset.X = FMath::Clamp(InScrollOffset.X, 0.0f, ContentSize.X - InGeometry.Size.X);
-	ScrollOffset.Y = FMath::Clamp(InScrollOffset.Y, 0.0f, ContentSize.Y - InGeometry.Size.Y);
+	ScrollOffset.X = FMath::Clamp(InScrollOffset.X, 0.0f, ContentSize.X - InGeometry.GetLocalSize().X);
+	ScrollOffset.Y = FMath::Clamp(InScrollOffset.Y, 0.0f, ContentSize.Y - InGeometry.GetLocalSize().Y);
 	return ScrollOffset;
 }
 
@@ -587,8 +590,8 @@ bool FSlateEditableTextLayout::HandleFocusReceived(const FFocusEvent& InFocusEve
 	{
 		if (!OwnerWidget->IsTextReadOnly())
 		{
-			const bool bShowVirtualKeyboardOnAllFocusTypes = GetDefault<USlateSettings>()->bVirtualKeyboardDisplayOnFocus;
-			if (InFocusEvent.GetCause() == EFocusCause::Mouse || bShowVirtualKeyboardOnAllFocusTypes)
+			if ( (InFocusEvent.GetCause() == EFocusCause::Mouse && OwnerWidget->GetVirtualKeyboardTrigger() == EVirtualKeyboardTrigger::OnFocusByPointer) ||
+				 (OwnerWidget->GetVirtualKeyboardTrigger() == EVirtualKeyboardTrigger::OnAllFocusEvents))
 			{
 				// @TODO: Create ITextInputMethodSystem derivations for mobile
 				FSlateApplication::Get().ShowVirtualKeyboard(true, InFocusEvent.GetUser(), VirtualKeyboardEntry);
@@ -985,7 +988,11 @@ FReply FSlateEditableTextLayout::HandleMouseButtonDown(const FGeometry& MyGeomet
 				{
 					if (!OwnerWidget->IsTextReadOnly())
 					{
-						FSlateApplication::Get().ShowVirtualKeyboard(true, InMouseEvent.GetUserIndex(), VirtualKeyboardEntry.ToSharedRef());
+						if (OwnerWidget->GetVirtualKeyboardTrigger() == EVirtualKeyboardTrigger::OnAllFocusEvents ||
+							OwnerWidget->GetVirtualKeyboardTrigger() == EVirtualKeyboardTrigger::OnFocusByPointer)
+						{
+							FSlateApplication::Get().ShowVirtualKeyboard(true, InMouseEvent.GetUserIndex(), VirtualKeyboardEntry.ToSharedRef());
+						}
 					}
 				}
 			}
@@ -2997,21 +3004,19 @@ bool FSlateEditableTextLayout::ComputeVolatility() const
 
 void FSlateEditableTextLayout::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
-	if (bTextCommittedByVirtualKeyboard)
-	{
-		if (SetEditableText(VirtualKeyboardText))
-		{
-			// Let outsiders know that the text content has been changed
-			OwnerWidget->OnTextCommitted(GetEditableText(), VirtualKeyboardTextCommitType);
-		}
-		bTextCommittedByVirtualKeyboard = false;
-	}
-	else if (bTextChangedByVirtualKeyboard)
+	if (bTextChangedByVirtualKeyboard)
 	{
 		SetEditableText(VirtualKeyboardText);
 		// Let outsiders know that the text content has been changed
 		OwnerWidget->OnTextChanged(GetEditableText());
 		bTextChangedByVirtualKeyboard = false;
+	}
+
+	if (bTextCommittedByVirtualKeyboard)
+	{
+		// Let outsiders know that the text content has been changed
+		OwnerWidget->OnTextCommitted(GetEditableText(), VirtualKeyboardTextCommitType);
+		bTextCommittedByVirtualKeyboard = false;
 	}
 
 	if (TextInputMethodChangeNotifier.IsValid() && TextInputMethodContext.IsValid() && TextInputMethodContext->UpdateCachedGeometry(AllottedGeometry))
@@ -3057,18 +3062,18 @@ void FSlateEditableTextLayout::Tick(const FGeometry& AllottedGeometry, const dou
 			{
 				ScrollOffset.X += LocalCursorRect.Left;
 			}
-			else if (LocalCursorRect.Right > AllottedGeometry.Size.X)
+			else if (LocalCursorRect.Right > AllottedGeometry.GetLocalSize().X)
 			{
-				ScrollOffset.X += (LocalCursorRect.Right - AllottedGeometry.Size.X);
+				ScrollOffset.X += (LocalCursorRect.Right - AllottedGeometry.GetLocalSize().X);
 			}
 
 			if (LocalLineViewRect.Top < 0.0f)
 			{
 				ScrollOffset.Y += LocalLineViewRect.Top;
 			}
-			else if (LocalLineViewRect.Bottom > AllottedGeometry.Size.Y)
+			else if (LocalLineViewRect.Bottom > AllottedGeometry.GetLocalSize().Y)
 			{
-				ScrollOffset.Y += (LocalLineViewRect.Bottom - AllottedGeometry.Size.Y);
+				ScrollOffset.Y += (LocalLineViewRect.Bottom - AllottedGeometry.GetLocalSize().Y);
 			}
 		}
 
@@ -3078,7 +3083,7 @@ void FSlateEditableTextLayout::Tick(const FGeometry& AllottedGeometry, const dou
 	{
 		// The caret width is included in the margin
 		const float ContentSize = TextLayout->GetSize().X;
-		const float VisibleSize = AllottedGeometry.Size.X;
+		const float VisibleSize = AllottedGeometry.GetLocalSize().X;
 
 		// If this text box has no size, do not compute a view fraction because it will be wrong and causes pop in when the size is available
 		const float ViewFraction = (VisibleSize > 0.0f && ContentSize > 0.0f) ? VisibleSize / ContentSize : 1;
@@ -3091,7 +3096,7 @@ void FSlateEditableTextLayout::Tick(const FGeometry& AllottedGeometry, const dou
 
 	{
 		const float ContentSize = TextLayout->GetSize().Y;
-		const float VisibleSize = AllottedGeometry.Size.Y;
+		const float VisibleSize = AllottedGeometry.GetLocalSize().Y;
 
 		// If this text box has no size, do not compute a view fraction because it will be wrong and causes pop in when the size is available
 		const float ViewFraction = (VisibleSize > 0.0f && ContentSize > 0.0f) ? VisibleSize / ContentSize : 1;
@@ -3105,11 +3110,11 @@ void FSlateEditableTextLayout::Tick(const FGeometry& AllottedGeometry, const dou
 	TextLayout->SetVisibleRegion(AllottedGeometry.Size, ScrollOffset * TextLayout->GetScale());
 }
 
-int32 FSlateEditableTextLayout::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled)
+int32 FSlateEditableTextLayout::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled)
 {
 	// Update the auto-wrap size now that we have computed paint geometry; won't take affect until text frame
 	// Note: This is done here rather than in Tick(), because Tick() doesn't get called while resizing windows, but OnPaint() does
-	CachedSize = AllottedGeometry.Size;
+	CachedSize = AllottedGeometry.GetLocalSize();
 
 	// Only paint the hint text layout if we don't have any text set
 	if (TextLayout->IsEmpty() && HintTextLayout.IsValid())
@@ -3121,10 +3126,10 @@ int32 FSlateEditableTextLayout::OnPaint(const FPaintArgs& Args, const FGeometry&
 		HintTextStyle.ColorAndOpacity = FLinearColor(ThisColorAndOpacity.R, ThisColorAndOpacity.G, ThisColorAndOpacity.B, 0.35f);
 		HintTextLayout->OverrideTextStyle(HintTextStyle);
 
-		LayerId = HintTextLayout->OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+		LayerId = HintTextLayout->OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 	}
 
-	LayerId = TextLayout->OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+	LayerId = TextLayout->OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 
 	return LayerId;
 }
@@ -3296,7 +3301,7 @@ FSlateEditableTextLayout::FVirtualKeyboardEntry::FVirtualKeyboardEntry(FSlateEdi
 {
 }
 
-void FSlateEditableTextLayout::FVirtualKeyboardEntry::SetTextFromVirtualKeyboard(const FText& InNewText, ESetTextType SetTextType, ETextCommit::Type CommitType)
+void FSlateEditableTextLayout::FVirtualKeyboardEntry::SetTextFromVirtualKeyboard(const FText& InNewText, ETextEntryType TextEntryType)
 {
 	// Only set the text if the text attribute doesn't have a getter binding (otherwise it would be blown away).
 	// If it is bound, we'll assume that OnTextCommitted will handle the update.
@@ -3310,14 +3315,23 @@ void FSlateEditableTextLayout::FVirtualKeyboardEntry::SetTextFromVirtualKeyboard
 	// This causes the app to crash on those devices, so we're using polling here to ensure delegates are
 	// fired on the game thread in Tick.		
 	OwnerLayout->VirtualKeyboardText = InNewText;
-	if (SetTextType == ESetTextType::Changed)
+	OwnerLayout->bTextChangedByVirtualKeyboard = true;
+	if (TextEntryType == ETextEntryType::TextEntryAccepted)
 	{
-		OwnerLayout->bTextChangedByVirtualKeyboard = true;
+		if (OwnerLayout->OwnerWidget->GetVirtualKeyboardDismissAction() == EVirtualKeyboardDismissAction::TextCommitOnAccept ||
+			OwnerLayout->OwnerWidget->GetVirtualKeyboardDismissAction() == EVirtualKeyboardDismissAction::TextCommitOnDismiss)
+		{
+			OwnerLayout->VirtualKeyboardTextCommitType = ETextCommit::OnEnter;
+			OwnerLayout->bTextCommittedByVirtualKeyboard = true;
+		}
 	}
-	if (SetTextType == ESetTextType::Commited)
+	else if (TextEntryType == ETextEntryType::TextEntryCanceled)
 	{
-		OwnerLayout->VirtualKeyboardTextCommitType = CommitType;
-		OwnerLayout->bTextCommittedByVirtualKeyboard = true;
+		if (OwnerLayout->OwnerWidget->GetVirtualKeyboardDismissAction() == EVirtualKeyboardDismissAction::TextCommitOnDismiss)
+		{
+			OwnerLayout->VirtualKeyboardTextCommitType = ETextCommit::Default;
+			OwnerLayout->bTextCommittedByVirtualKeyboard = true;
+		}
 	}
 }
 

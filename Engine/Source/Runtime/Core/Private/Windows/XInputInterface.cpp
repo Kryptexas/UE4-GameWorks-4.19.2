@@ -87,14 +87,12 @@ XInputInterface::XInputInterface( const TSharedRef< FGenericApplicationMessageHa
 	Buttons[23] = FGamepadKeyNames::RightStickRight;
 }
 
-
 float ShortToNormalizedFloat(int16 AxisVal)
 {
 	// normalize [-32768..32767] -> [-1..1]
 	const float Norm = (AxisVal <= 0 ? 32768.f : 32767.f);
 	return float(AxisVal) / Norm;
 }
-
 
 void XInputInterface::SendControllerEvents()
 {
@@ -122,7 +120,7 @@ void XInputInterface::SendControllerEvents()
 		}
 	}
 		
-	for ( int32 ControllerIndex=0; ControllerIndex < MAX_NUM_XINPUT_CONTROLLERS; ++ControllerIndex )
+	for ( int32 ControllerIndex = 0; ControllerIndex < MAX_NUM_XINPUT_CONTROLLERS; ++ControllerIndex )
 	{
 		FControllerState& ControllerState = ControllerStates[ControllerIndex];
 
@@ -137,11 +135,11 @@ void XInputInterface::SendControllerEvents()
 			// If the controller is connected now but was not before, refresh the information
 			if (!bWasConnected && ControllerState.bIsConnected)
 			{
-				FCoreDelegates::OnControllerConnectionChange.Broadcast(true, -1, ControllerIndex);
+				FCoreDelegates::OnControllerConnectionChange.Broadcast(true, -1, ControllerState.ControllerId);
 			}
 			else if (bWasConnected && !ControllerState.bIsConnected)
 			{
-				FCoreDelegates::OnControllerConnectionChange.Broadcast(false, -1, ControllerIndex);
+				FCoreDelegates::OnControllerConnectionChange.Broadcast(false, -1, ControllerState.ControllerId);
 			}
 			
 			bool CurrentStates[MAX_NUM_CONTROLLER_BUTTONS] = {0};
@@ -244,14 +242,14 @@ void XInputInterface::SendControllerEvents()
 				ControllerState.ButtonStates[ButtonIndex] = CurrentStates[ButtonIndex];
 			}	
 
- 			// apply force feedback
- 			XINPUT_VIBRATION VibrationState;
+			// apply force feedback
+			XINPUT_VIBRATION VibrationState;
  
 			const float LargeValue = (ControllerState.ForceFeedback.LeftLarge > ControllerState.ForceFeedback.RightLarge ? ControllerState.ForceFeedback.LeftLarge : ControllerState.ForceFeedback.RightLarge);
 			const float SmallValue = (ControllerState.ForceFeedback.LeftSmall > ControllerState.ForceFeedback.RightSmall ? ControllerState.ForceFeedback.LeftSmall : ControllerState.ForceFeedback.RightSmall);
 
 			VibrationState.wLeftMotorSpeed = ( ::WORD ) ( LargeValue * 65535.0f );
- 			VibrationState.wRightMotorSpeed = ( ::WORD ) ( SmallValue * 65535.0f );
+			VibrationState.wRightMotorSpeed = ( ::WORD ) ( SmallValue * 65535.0f );
  
 			XInputSetState( ( ::DWORD ) ControllerState.ControllerId, &VibrationState );			
 		}

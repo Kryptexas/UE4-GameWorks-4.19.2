@@ -81,6 +81,7 @@ void FD3D12Adapter::AllocateBuffer(FD3D12Device* Device,
 	uint32 InUsage,
 	FRHIResourceCreateInfo& CreateInfo,
 	uint32 Alignment,
+	FD3D12TransientResource& TransientResource,
 	FD3D12ResourceLocation& ResourceLocation)
 {
 	// Explicitly check that the size is nonzero before allowing CreateBuffer to opaquely fail.
@@ -120,6 +121,8 @@ BufferType* FD3D12Adapter::CreateRHIBuffer(FRHICommandListImmediate* RHICmdList,
 	FRHIResourceCreateInfo& CreateInfo,
 	bool SkipCreate)
 {
+	SCOPE_CYCLE_COUNTER(STAT_D3D12CreateBufferTime);
+
 	const bool bIsDynamic = (InUsage & BUF_AnyDynamic) ? true : false;
 
 	BufferType* BufferOut = CreateLinkedObject<BufferType>([&](FD3D12Device* Device)
@@ -127,9 +130,9 @@ BufferType* FD3D12Adapter::CreateRHIBuffer(FRHICommandListImmediate* RHICmdList,
 		BufferType* NewBuffer = new BufferType(Device, Stride, Size, InUsage);
 		NewBuffer->BufferAlignment = Alignment;
 
-		if (SkipCreate == false)
+		if (!SkipCreate)
 		{
-			AllocateBuffer(Device, InDesc, Size, InUsage, CreateInfo, Alignment, NewBuffer->ResourceLocation);
+			AllocateBuffer(Device, InDesc, Size, InUsage, CreateInfo, Alignment, *NewBuffer, NewBuffer->ResourceLocation);
 		}
 
 		return NewBuffer;

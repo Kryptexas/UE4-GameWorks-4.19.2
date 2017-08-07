@@ -392,7 +392,11 @@ static bool SaveWorld(UWorld* World,
 {
 	// SaveWorld not reentrant - check that we are not already in the process of saving here (for example, via autosave)
 	static bool bIsReentrant = false;
-	check(!bIsReentrant);
+	if (bIsReentrant)
+	{
+		return false;
+	}
+
 	TGuardValue<bool> ReentrantGuard(bIsReentrant, true);
 
 	if ( !World )
@@ -594,7 +598,7 @@ static bool SaveWorld(UWorld* World,
 		if (bSuccess && !bAutosaving)
 		{
 			// Also save MapBuildData packages when saving the current level
-			FEditorFileUtils::SaveMapDataPackages(DuplicatedWorld ? DuplicatedWorld : World, bCheckDirty);
+			FEditorFileUtils::SaveMapDataPackages(DuplicatedWorld ? DuplicatedWorld : World, bCheckDirty || bPIESaving);
 		}
 
 		SlowTask.EnterProgressFrame(25);
@@ -749,40 +753,20 @@ static bool SaveAsImplementation( UWorld* InWorld, const FString& DefaultFilenam
 	{
 		SaveFilename = FString();
 		bool bSaveFileLocationSelected = false;
-		if (UEditorEngine::IsUsingWorldAssets())
-		{
-			FString DefaultPackagePath;
-			FPackageName::TryConvertFilenameToLongPackageName(DefaultDirectory / Filename, DefaultPackagePath);
 
-			FString PackageName;
-			bSaveFileLocationSelected = OpenSaveAsDialog(
-				UWorld::StaticClass(),
-				FPackageName::GetLongPackagePath(DefaultPackagePath),
-				FPaths::GetBaseFilename(Filename),
-				PackageName);
+		FString DefaultPackagePath;
+		FPackageName::TryConvertFilenameToLongPackageName(DefaultDirectory / Filename, DefaultPackagePath);
 
-			if ( bSaveFileLocationSelected )
-			{
-				SaveFilename = FPackageName::LongPackageNameToFilename(PackageName, FPackageName::GetMapPackageExtension());
-			}
-		}
-		else
-		{
-			bSaveFileLocationSelected = FileDialogHelpers::SaveFile(
-				NSLOCTEXT("UnrealEd", "SaveAs", "Save As").ToString(),
-				FEditorFileUtils::GetFilterString(FI_Save),
-				DefaultDirectory,
-				FPaths::GetCleanFilename(Filename),
-				SaveFilename
-				);
-		}
+		FString PackageName;
+		bSaveFileLocationSelected = OpenSaveAsDialog(
+			UWorld::StaticClass(),
+			FPackageName::GetLongPackagePath(DefaultPackagePath),
+			FPaths::GetBaseFilename(Filename),
+			PackageName);
+
 		if( bSaveFileLocationSelected )
 		{
-			// Add a map file extension if none was supplied
-			if( FPaths::GetExtension(SaveFilename).IsEmpty() )
-			{
-				SaveFilename = SaveFilename + FPackageName::GetMapPackageExtension();
-			}
+			SaveFilename = FPackageName::LongPackageNameToFilename(PackageName, FPackageName::GetMapPackageExtension());
 
 			FText ErrorMessage;
 			bFilenameIsValid = FEditorFileUtils::IsValidMapFilename(SaveFilename, ErrorMessage);
@@ -2003,111 +1987,62 @@ bool FEditorFileUtils::AttemptUnloadInactiveWorldPackage(UPackage* PackageToUnlo
  * Prompts the user to save the current map if necessary, the presents a load dialog and
  * loads a new map if selected by the user.
  */
-void FEditorFileUtils::LoadMap()
+bool FEditorFileUtils::LoadMap()
 {
 	if (GUnrealEd->WarnIfLightingBuildIsCurrentlyRunning())
 	{
-		return;
+		return false;
 	}
 
-	if (UEditorEngine::IsUsingWorldAssets())
+	bool bResult = false;
+	static bool bIsDialogOpen = false;
+
+	struct FLocal
 	{
-		static bool bIsDialogOpen = false;
-
-		struct FLocal
+		static void HandleLevelsChosen(const TArray<FAssetData>& SelectedAssets, bool* OutResult)
 		{
-			static void HandleLevelsChosen(const TArray<FAssetData>& SelectedAssets)
+			bIsDialogOpen = false;
+
+			if ( SelectedAssets.Num() > 0 )
 			{
-				bIsDialogOpen = false;
+				const FAssetData& AssetData = SelectedAssets[0];
 
-				if ( SelectedAssets.Num() > 0 )
-				{
-					const FAssetData& AssetData = SelectedAssets[0];
-
-					if (!GIsDemoMode)
-					{
-						// If there are any unsaved changes to the current level, see if the user wants to save those first.
-						bool bPromptUserToSave = true;
-						bool bSaveMapPackages = true;
-						bool bSaveContentPackages = true;
-						if (FEditorFileUtils::SaveDirtyPackages(bPromptUserToSave, bSaveMapPackages, bSaveContentPackages) == false)
-						{
-							return;
-						}
-					}
-
-					const FString FileToOpen = FPackageName::LongPackageNameToFilename(AssetData.PackageName.ToString(), FPackageName::GetMapPackageExtension());
-					const bool bLoadAsTemplate = false;
-					const bool bShowProgress = true;
-					FEditorFileUtils::LoadMap(FileToOpen, bLoadAsTemplate, bShowProgress);
-				}
-			}
-
-			static void HandleDialogCancelled()
-			{
-				bIsDialogOpen = false;
-			}
-		};
-		
-		if (!bIsDialogOpen)
-		{
-			bIsDialogOpen = true;
-			const bool bAllowMultipleSelection = false;
-			OpenLevelPickingDialog(FOnLevelsChosen::CreateStatic(&FLocal::HandleLevelsChosen),
-								   FOnLevelPickingCancelled::CreateStatic(&FLocal::HandleDialogCancelled),
-								   bAllowMultipleSelection);
-		}
-	}
-	else
-	{
-		bool bFilenameIsValid = false;
-		FString DefaultDirectory = FEditorDirectories::Get().GetLastDirectory(ELastDirectory::LEVEL);
-
-		while( !bFilenameIsValid )
-		{
-			TArray<FString> OutFiles;
-			if ( FileDialogHelpers::OpenFiles( NSLOCTEXT("UnrealEd", "Open", "Open").ToString(), GetFilterString(FI_Load), DefaultDirectory, EFileDialogFlags::None, OutFiles) )
-			{
-				const FString& FileToOpen = OutFiles[0];
-
-				FText ErrorMessage;
-				bFilenameIsValid = FEditorFileUtils::IsValidMapFilename(FileToOpen, ErrorMessage);
-				if ( !bFilenameIsValid )
-				{
-					// Start the loop over, prompting for load again
-					const FText DisplayFilename = FText::FromString( IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*FileToOpen) );
-					FFormatNamedArguments Arguments;
-					Arguments.Add(TEXT("Filename"), DisplayFilename);
-					Arguments.Add(TEXT("LineTerminators"), FText::FromString(LINE_TERMINATOR LINE_TERMINATOR));
-					Arguments.Add(TEXT("ErrorMessage"), ErrorMessage);
-					const FText DisplayMessage = FText::Format( NSLOCTEXT("LoadMap", "InvalidMapName", "Failed to load map {Filename}{LineTerminators}{ErrorMessage}"), Arguments );
-					FMessageDialog::Open( EAppMsgType::Ok, DisplayMessage );
-					continue;
-				}
-
-				if( !GIsDemoMode )
+				if (!GIsDemoMode)
 				{
 					// If there are any unsaved changes to the current level, see if the user wants to save those first.
 					bool bPromptUserToSave = true;
 					bool bSaveMapPackages = true;
 					bool bSaveContentPackages = true;
-					if( FEditorFileUtils::SaveDirtyPackages(bPromptUserToSave, bSaveMapPackages, bSaveContentPackages) == false )
+					if (FEditorFileUtils::SaveDirtyPackages(bPromptUserToSave, bSaveMapPackages, bSaveContentPackages) == false)
 					{
-						// something went wrong or the user pressed cancel.  Return to the editor so the user doesn't lose their changes		
+						*OutResult = false;
 						return;
 					}
 				}
 
-				FEditorDirectories::Get().SetLastDirectory(ELastDirectory::LEVEL, FPaths::GetPath(FileToOpen));
-				LoadMap( FileToOpen, false, true );
-			}
-			else
-			{
-				// User canceled the open dialog, do not prompt again.
-				break;
+				const FString FileToOpen = FPackageName::LongPackageNameToFilename(AssetData.PackageName.ToString(), FPackageName::GetMapPackageExtension());
+				const bool bLoadAsTemplate = false;
+				const bool bShowProgress = true;
+				*OutResult = FEditorFileUtils::LoadMap(FileToOpen, bLoadAsTemplate, bShowProgress);
 			}
 		}
+
+		static void HandleDialogCancelled()
+		{
+			bIsDialogOpen = false;
+		}
+	};
+		
+	if (!bIsDialogOpen)
+	{
+		bIsDialogOpen = true;
+		const bool bAllowMultipleSelection = false;
+		OpenLevelPickingDialog(FOnLevelsChosen::CreateStatic(&FLocal::HandleLevelsChosen, &bResult),
+								FOnLevelPickingCancelled::CreateStatic(&FLocal::HandleDialogCancelled),
+								bAllowMultipleSelection);
 	}
+
+	return bResult;
 }
 
 static void NotifyBSPNeedsRebuild(const FString& PackageName)
@@ -2193,13 +2128,13 @@ static void NotifyBSPNeedsRebuild(const FString& PackageName)
  * @param	LoadAsTemplate	Forces the map to load into an untitled outermost package
  *							preventing the map saving over the original file.
  */
-void FEditorFileUtils::LoadMap(const FString& InFilename, bool LoadAsTemplate, bool bShowProgress)
+bool FEditorFileUtils::LoadMap(const FString& InFilename, bool LoadAsTemplate, bool bShowProgress)
 {
 	double LoadStartTime = FPlatformTime::Seconds();
 	
 	if (GUnrealEd->WarnIfLightingBuildIsCurrentlyRunning())
 	{
-		return;
+		return false;
 	}
 
 	const FScopedBusyCursor BusyCursor;
@@ -2210,7 +2145,7 @@ void FEditorFileUtils::LoadMap(const FString& InFilename, bool LoadAsTemplate, b
 	if ( FPackageName::IsValidLongPackageName(InFilename) )
 	{
 		LongMapPackageName = InFilename;
-		FPackageName::TryConvertLongPackageNameToFilename(InFilename, Filename);
+		FPackageName::TryConvertLongPackageNameToFilename(InFilename, Filename, FPackageName::GetMapPackageExtension());
 	}
 	else
 	{
@@ -2230,7 +2165,7 @@ void FEditorFileUtils::LoadMap(const FString& InFilename, bool LoadAsTemplate, b
 		if ( !FPackageName::TryConvertFilenameToLongPackageName(Filename, LongMapPackageName) )
 		{
 			FMessageDialog::Open(EAppMsgType::Ok, FText::Format(NSLOCTEXT("Editor", "MapLoad_FriendlyBadFilename", "Map load failed. The filename '{0}' is not within the game or engine content folders found in '{1}'."), FText::FromString(Filename), FText::FromString(FPaths::RootDir())));
-			return;
+			return false;
 		}
 	}
 
@@ -2238,13 +2173,13 @@ void FEditorFileUtils::LoadMap(const FString& InFilename, bool LoadAsTemplate, b
 	// Abort if the user refuses to terminate the PIE session.
 	if ( GEditor->ShouldAbortBecauseOfPIEWorld() )
 	{
-		return;
+		return false;
 	}
 
 	// If a level is in memory but never saved to disk, warn the user that the level will be lost.
 	if (GEditor->ShouldAbortBecauseOfUnsavedWorld())
 	{
-		return;
+		return false;
 	}
 
 	// Save last opened level name.
@@ -2254,7 +2189,7 @@ void FEditorFileUtils::LoadMap(const FString& InFilename, bool LoadAsTemplate, b
 	GLevelEditorModeTools().DeactivateAllModes();
 
 	FString LoadCommand = FString::Printf(TEXT("MAP LOAD FILE=\"%s\" TEMPLATE=%d SHOWPROGRESS=%d FEATURELEVEL=%d"), *Filename, LoadAsTemplate, bShowProgress, (int32)GEditor->DefaultWorldFeatureLevel);
-	bool bResult = GUnrealEd->Exec( NULL, *LoadCommand );
+	const bool bResult = GUnrealEd->Exec( NULL, *LoadCommand );
 
 	UWorld* World = GWorld;
 	// Incase the load failed after gworld was torn down, default to a new blank map
@@ -2264,7 +2199,7 @@ void FEditorFileUtils::LoadMap(const FString& InFilename, bool LoadAsTemplate, b
 
 		ResetLevelFilenames();
 
-		return;
+		return false;
 	}
 
 	World->IssueEditorLoadWarnings();
@@ -2321,6 +2256,8 @@ void FEditorFileUtils::LoadMap(const FString& InFilename, bool LoadAsTemplate, b
 
 	// Fire delegate when a new map is opened, with name of map
 	FEditorDelegates::OnMapOpened.Broadcast(InFilename, LoadAsTemplate);
+
+	return bResult;
 }
 
 /**
@@ -2638,34 +2575,25 @@ static int32 InternalSavePackage( UPackage* PackageToSave, bool& bOutPackageLoca
 		while( NumSkips < NumSkipsBeforeAbort )
 		{
 			FString DefaultLocation = Directory;
-
-			bool bSaveFile = false;
-			if( UEditorEngine::IsUsingWorldAssets() )
+			FString DefaultPackagePath;
+			if (!FPackageName::TryConvertFilenameToLongPackageName(DefaultLocation / FinalPackageFilename, DefaultPackagePath))
 			{
-				FString DefaultPackagePath;
-				if (!FPackageName::TryConvertFilenameToLongPackageName(DefaultLocation / FinalPackageFilename, DefaultPackagePath))
-				{
-					// Original location is invalid; set default location to /Game/Maps
-					DefaultLocation = FPaths::GameContentDir() / TEXT("Maps");
-					ensure(FPackageName::TryConvertFilenameToLongPackageName(DefaultLocation / FinalPackageFilename, DefaultPackagePath));
-				}
-
-				FString SaveAsPackageName;
-				bSaveFile = OpenSaveAsDialog(
-					UWorld::StaticClass(),
-					FPackageName::GetLongPackagePath(DefaultPackagePath),
-					FPaths::GetBaseFilename(FinalPackageFilename),
-					SaveAsPackageName);
-
-				if (bSaveFile)
-				{
-					// Leave out the extension. It will be added below.
-					FinalPackageFilename = FPackageName::LongPackageNameToFilename(SaveAsPackageName);
-				}
+				// Original location is invalid; set default location to /Game/Maps
+				DefaultLocation = FPaths::GameContentDir() / TEXT("Maps");
+				ensure(FPackageName::TryConvertFilenameToLongPackageName(DefaultLocation / FinalPackageFilename, DefaultPackagePath));
 			}
-			else
+
+			FString SaveAsPackageName;
+			bool bSaveFile = OpenSaveAsDialog(
+				UWorld::StaticClass(),
+				FPackageName::GetLongPackagePath(DefaultPackagePath),
+				FPaths::GetBaseFilename(FinalPackageFilename),
+				SaveAsPackageName);
+
+			if (bSaveFile)
 			{
-				bSaveFile = FileDialogHelpers::SaveFile( SavePackageText.ToString(), FileTypes, DefaultLocation, FinalPackageFilename, FinalPackageFilename );
+				// Leave out the extension. It will be added below.
+				FinalPackageFilename = FPackageName::LongPackageNameToFilename(SaveAsPackageName);
 			}
 
 			if( bSaveFile )
@@ -3519,9 +3447,15 @@ bool FEditorFileUtils::IsFilenameValidForSaving( const FString& Filename, FText&
 			{
 				if ( BaseFilename.Equals(InvalidFilenames[NameIdx], ESearchCase::IgnoreCase) )
 				{
-					OutError = NSLOCTEXT("UnrealEd", "Error_InvalidFilename", "A file/folder may not match any of the following : \nCON, PRN, AUX, CLOCK$, NUL, \nCOM1, COM2, COM3, COM4, COM5, COM6, COM7, COM8, COM9, \nLPT1, LPT2, LPT3, LPT4, LPT5, LPT6, LPT7, LPT8, or LPT9.");
+					OutError = NSLOCTEXT("UnrealEd", "Error_InvalidFilename", "A file/folder may not match any of the following : \nCON, PRN, AUX, CLOCK$, NUL, NONE, \nCOM1, COM2, COM3, COM4, COM5, COM6, COM7, COM8, COM9, \nLPT1, LPT2, LPT3, LPT4, LPT5, LPT6, LPT7, LPT8, or LPT9.");
 					return false;
 				}
+			}
+
+			if (FName(*BaseFilename).IsNone())
+			{
+				OutError = FText::Format(NSLOCTEXT("UnrealEd", "Error_NoneFilename", "Filename '{0}' resolves to 'None' and cannot be used"), FText::FromString(BaseFilename));
+				return false;
 			}
 
 			// Check for invalid characters in the filename
@@ -3802,4 +3736,112 @@ void FEditorFileUtils::GetDirtyContentPackages(TArray<UPackage*>& OutDirtyPackag
 	}
 }
 
+UWorld* UEditorLoadingAndSavingUtils::LoadMap(const FString& Filename)
+{
+	const bool bLoadAsTemplate = false;
+	const bool bShowProgress = true;
+	if (FEditorFileUtils::LoadMap(Filename, bLoadAsTemplate, bShowProgress))
+	{
+		return GEditor->GetEditorWorldContext().World();
+	}
+
+	return nullptr;
+}
+
+bool UEditorLoadingAndSavingUtils::SaveMap(UWorld* World, const FString& AssetPath)
+{
+	bool bSucceeded = false;
+	FString SaveFilename;
+	if( FPackageName::TryConvertLongPackageNameToFilename(AssetPath, SaveFilename, FPackageName::GetMapPackageExtension()))
+	{
+		bSucceeded = FEditorFileUtils::SaveMap(World, SaveFilename);
+		if (bSucceeded)
+		{
+			FAssetRegistryModule::AssetCreated(World);
+		}
+	}
+
+	return bSucceeded;
+}
+
+UWorld* UEditorLoadingAndSavingUtils::NewBlankMap(bool bSaveExistingMap)
+{
+	GLevelEditorModeTools().DeactivateAllModes();
+
+	const bool bPromptUserToSave = false;
+	const bool bFastSave = !bPromptUserToSave;
+	const bool bSaveMapPackages = true;
+	const bool bSaveContentPackages = false;
+	if (bSaveExistingMap && FEditorFileUtils::SaveDirtyPackages(bPromptUserToSave, bSaveMapPackages, bSaveContentPackages, bFastSave) == false)
+	{
+		// something went wrong or the user pressed cancel.  Return to the editor so the user doesn't lose their changes		
+		return nullptr;
+	}
+
+	UWorld* World = GUnrealEd->NewMap();
+
+	FEditorFileUtils::ResetLevelFilenames();
+
+	return World;
+}
+
+UWorld* UEditorLoadingAndSavingUtils::NewMapFromTemplate(const FString& PathToTemplateLevel, bool bSaveExistingMap)
+{
+	bool bPromptUserToSave = false;
+	bool bSaveMapPackages = true;
+	bool bSaveContentPackages = false;
+	if (bSaveExistingMap && SaveDirtyPackages(bPromptUserToSave, bSaveMapPackages, bSaveContentPackages) == false)
+	{
+		return nullptr;
+	}
+
+	const bool bLoadAsTemplate = true;
+	// Load the template map file - passes LoadAsTemplate==true making the
+	// level load into an untitled package that won't save over the template
+	FEditorFileUtils::LoadMap(*PathToTemplateLevel, bLoadAsTemplate);
+
+	return GEditor->GetEditorWorldContext().World();
+}
+
+UWorld* UEditorLoadingAndSavingUtils::LoadMapWithDialog()
+{
+	if (!FEditorFileUtils::LoadMap())
+	{
+		return nullptr;
+	}
+
+	return GEditor->GetEditorWorldContext().World();
+}
+
+bool UEditorLoadingAndSavingUtils::SaveDirtyPackages(const bool bSaveMapPackages, const bool bSaveContentPackages, const bool bPromptUser)
+{
+	return FEditorFileUtils::SaveDirtyPackages(bPromptUser, bSaveMapPackages, bSaveContentPackages, !bPromptUser);
+}
+
+bool UEditorLoadingAndSavingUtils::SaveCurrentLevel()
+{
+	return FEditorFileUtils::SaveCurrentLevel();
+}
+
+void UEditorLoadingAndSavingUtils::GetDirtyMapPackages(TArray<UPackage*>& OutDirtyPackages)
+{
+	FEditorFileUtils::GetDirtyWorldPackages(OutDirtyPackages);
+}
+
+void UEditorLoadingAndSavingUtils::GetDirtyContentPackages(TArray<UPackage*>& OutDirtyPackages)
+{
+	FEditorFileUtils::GetDirtyContentPackages(OutDirtyPackages);
+}
+
+void UEditorLoadingAndSavingUtils::ImportScene(const FString& Filename)
+{
+	FEditorFileUtils::Import(Filename);
+}
+
+void UEditorLoadingAndSavingUtils::ExportScene(bool bExportSelectedActorsOnly)
+{
+	FEditorFileUtils::Export(bExportSelectedActorsOnly);
+}
+
 #undef LOCTEXT_NAMESPACE
+

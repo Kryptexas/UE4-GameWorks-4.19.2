@@ -1,8 +1,15 @@
-﻿INTSourceChangelist:2670165
+﻿INTSourceChangelist:3474032
 Availability:Public
-Title:Blendable
-Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
-Description:Blendable アセットはスムーズに補間し、レンダリングに影響を与えるために使用することができます (例、ポスト プロセス、フォグ、アンビエント キューブマップ、アンビエント オクルージョン)。 
+Crumbs: %ROOT%
+Title:Blendables
+Description:Blendable アセットはスムーズに補間し、レンダリングに影響を与えるために使用することができます (例、ポスト プロセス、フォグ、アンビエント キューブマップ、アンビエント オクルージョン)。
+Type:Overview
+SkillLevel:Beginner
+Version:4.16
+Parent:Engine/Rendering/PostProcessEffects
+Order:3
+Tags:Post Process
+Topic-image:Blendables_topic.png
 
 [EXCERPT:Blendables_Desc]
 **Blendable** は他のブレンド可能なもの (blendable) とスムーズに補間 (ブレンド) できるプロパティを持つアセットです。ほとんど PostProcessMaterials のブレンド可能なものを使用しますが、
@@ -62,7 +69,7 @@ PostProcessVolume 設定を開き、Blendable の配列を見ると、Blendable 
 Blendable (IBlendableInterface を実装) ならどのようなタイプでも可能です。配列内の順序はレイヤーのスタック順序とは反対になります。ブレンディングは一番上から一番下に適用され、
 それまで存在していたデータを上書きします。多数のボリューム (またはその他のオブジェクト) のデータはウェイトと優先度を考慮して結合されます。
 
-注記："global" というレベル内で優先度が低い境界を持たない (unbound) PostProcessVolume を持つことはグッドプラクティスです。既存レベルを十分に制御するために、
+注意："global" というレベル内で優先度が低い境界を持たない (unbound) PostProcessVolume を持つことはグッドプラクティスです。既存レベルを十分に制御するために、
 高優先度で境界を持たないボリュームを追加することができます。Blendable の効果の有無をチェックするには、ウェイトを 0 に調整し、戻ります。
 
 ## パッケージ内で、オブジェクト (例、ボリューム) の一部として、またはブループリントで動的に作成してブレンド可能 
@@ -77,9 +84,9 @@ Blendable (IBlendableInterface を実装) ならどのようなタイプでも�
 | LightPropagationVolumeBlendable は、エディタ内で見ることができるため詳細です。blendable がコンテンツ ブラウザ (左) で作成またはオブジェクトで作成 (例、ポスト プロセス ボリューム) のいずれであっても、ユーザー インターフェースは似たものになります。各プロパティにチェックボックス (weight=0 または weight=1) を付けて、構造体全体にブレンドのウェイトを与えるのはグッド プラクティスです。 |
 [/REGION]
 
-注記：LightPropagationVolumeBlendable プロパティは後方互換性の理由から今でも PostProcessSettings に存在します。しかし、将来的にはこの設定をなくし、blendable を唯一の方法とする予定です。
+注意：LightPropagationVolumeBlendable プロパティは後方互換性の理由から今でも PostProcessSettings に存在します。しかし、将来的にはこの設定をなくし、blendable を唯一の方法とする予定です。
 
-## 独自の Blendable の作成方法 (C++ )
+## 独自の Blendable の作成方法(C++ )
 
 現時点では、LightPropagationVolumeBlendable プラグインをコピーすることをお勧めします。アセット作成後は、Light Propagation System が行うのと同じようにブレンドされたデータをピックアップできます。
 メソッド **GetSingleFinalDataConst()** を使用してブレンド後にデータを取得できます。最高のパフォーマンスを得るには、この関数を不必要に (頻繁に) 呼び出すことは避けたほうがよいでしょう。
@@ -108,7 +115,7 @@ UI でオブジェクトを作成した場合と (オブジェクトの一部と
 | ここでは、LightpropagationVolumeBlendable タイプのオブジェクトを作成し、設定を取得し、いくつかのメンバを **SetMembersIn...** 関数で作成します。 |
 [/REGION]
 
-注記：現時点では、手動でオーバーライド フラグを true にする (チェックボックスをチェック) 必要があります。そうしないと、同じ名前のプロパティがピックアップされません。
+注意：現時点では、手動でオーバーライド フラグを true にする (チェックボックスをチェック) 必要があります。そうしないと、同じ名前のプロパティがピックアップされません。
 
 実験的に、表示フラグ **VisualizeLPV** (エディタ内では Visualize/Light Propagation Volume) を使用してブレンドしたプロパティを表示することができます。
 これは C++ コードで、このタイプの blendable に対してのみ実装されました。しかし、コード変更する必要なく後でどのプロパティであってもエクスポーズできます。

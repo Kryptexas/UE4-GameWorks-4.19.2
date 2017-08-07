@@ -3,6 +3,7 @@ Title: Animation Retargeting
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:Describes how retargeted animations can be used with multiple Skeletal Meshes, allowing you to share animations. 
 version:4.14
+topic-image:AnimationgRetargeting_topic.png
 
 [REGION:fullwidth]
 ![](RetargetingHeader.png)

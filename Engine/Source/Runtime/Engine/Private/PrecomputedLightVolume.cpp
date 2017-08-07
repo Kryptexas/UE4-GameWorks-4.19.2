@@ -115,7 +115,7 @@ FPrecomputedLightVolumeData::~FPrecomputedLightVolumeData()
 static void LoadVolumeLightSamples(FArchive& Ar, int32 ArchiveNumSHSamples, TArray<FVolumeLightingSample>& Samples)
 {
 	// If it's the same number as what is currently compiled
-	if (ArchiveNumSHSamples == NUM_INDIRECT_LIGHTING_SH_COEFFICIENTS)
+	if (ArchiveNumSHSamples == NUM_INDIRECT_LIGHTING_SH_COEFFICIENTS) //-V517
 	{
 		Ar << Samples;		
 	}
@@ -153,8 +153,9 @@ FArchive& operator<<(FArchive& Ar,FPrecomputedLightVolumeData& Volume)
 	}
 	else if (Ar.IsLoading())
 	{
-		Ar << Volume.bInitialized;
-		if (Volume.bInitialized)
+		bool bVolumeInitialized = false;
+		Ar << bVolumeInitialized; // Volume.bInitilized will be set in Volume.Initialize() call
+		if (bVolumeInitialized)
 		{
 			FBox Bounds;
 			Ar << Bounds;

@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:3343902
+﻿INTSourceChangelist:3376720
 Availability:Public
 Title:1.キャラクターのセットアップ
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
 Description:Widget Interaction コンポーネントをキャラクターに追加して、必要となる他のアセットを作成します。 
 SkillLevel:Advanced
 tags:UMG UI Designer
+Order:1
 
 [VAR:Steps]
 [OBJECT:Navigation]

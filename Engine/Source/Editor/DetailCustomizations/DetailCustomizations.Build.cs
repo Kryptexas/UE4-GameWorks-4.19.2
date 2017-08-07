@@ -44,7 +44,6 @@ public class DetailCustomizations : ModuleRules
 				"RHI",
                 "HardwareTargeting",
                 "AIModule", 
-                "MeshUtilities",
 				"ConfigEditor",
                 "Persona",
                 "CinematicCamera",
@@ -64,15 +63,19 @@ public class DetailCustomizations : ModuleRules
 				"PropertyEditor",
 				"GameProjectGeneration",
                 "ComponentVisualizers",
-				"GraphEditor"
-			}
+				"GraphEditor",
+                "MeshMergeUtilities",
+                "MeshReductionInterface",
+            }
 		);
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {
 				"Layers",
 				"GameProjectGeneration",
-			}
+                "MeshMergeUtilities",
+                "MeshReductionInterface",
+            }
 		);
 	}
 }

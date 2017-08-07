@@ -31,11 +31,11 @@ void FAnimNode_SplineIK::GatherDebugData(FNodeDebugData& DebugData)
 	ComponentPose.GatherDebugData(DebugData);
 }
 
-void FAnimNode_SplineIK::RootInitialize(const FAnimInstanceProxy* Proxy)
+void FAnimNode_SplineIK::OnInitializeAnimInstance(const FAnimInstanceProxy* InProxy, const UAnimInstance* InAnimInstance)
 {
-	if (Proxy->GetSkelMeshComponent() && Proxy->GetSkelMeshComponent()->SkeletalMesh)
+	if (InAnimInstance->GetSkelMeshComponent() && InAnimInstance->GetSkelMeshComponent()->SkeletalMesh)
 	{
-		GatherBoneReferences(Proxy->GetSkelMeshComponent()->SkeletalMesh->RefSkeleton);
+		GatherBoneReferences(InAnimInstance->GetSkelMeshComponent()->SkeletalMesh->RefSkeleton);
 	}
 }
 
@@ -69,7 +69,7 @@ void FAnimNode_SplineIK::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseCo
 		for (int32 BoneIndex = 0; BoneIndex < BoneCount; BoneIndex++)
 		{
 			const FSplineIKCachedBoneData& BoneData = CachedBoneReferences[BoneIndex];
-			if (!BoneData.Bone.IsValid(BoneContainer))
+			if (!BoneData.Bone.IsValidToEvaluate(BoneContainer))
 			{
 				break;
 			}
@@ -98,7 +98,7 @@ bool FAnimNode_SplineIK::IsValidToEvaluate(const USkeleton* Skeleton, const FBon
 	{
 		for (FSplineIKCachedBoneData& CachedBoneData : CachedBoneReferences)
 		{
-			if (CachedBoneData.Bone.IsValid(RequiredBones))
+			if (CachedBoneData.Bone.IsValidToEvaluate(RequiredBones))
 			{
 				return true;
 			}

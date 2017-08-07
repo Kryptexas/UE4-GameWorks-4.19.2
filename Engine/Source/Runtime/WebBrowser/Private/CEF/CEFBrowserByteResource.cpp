@@ -4,6 +4,24 @@
 
 #if WITH_CEF3
 
+FCEFBrowserByteResource::FCEFBrowserByteResource(const CefRefPtr<CefPostDataElement>& PostData, const FString& InMimeType)
+	: Position(0)
+	, Buffer(nullptr)
+	, MimeType(InMimeType)
+{
+	Size = PostData->GetBytesCount();
+	if (Size > 0)
+	{
+		Buffer = new unsigned char[Size];
+		PostData->GetBytes(Size, Buffer);
+	}
+}
+
+FCEFBrowserByteResource::~FCEFBrowserByteResource()
+{
+	delete[] Buffer;
+}
+
 void FCEFBrowserByteResource::Cancel()
 {
 
@@ -11,7 +29,7 @@ void FCEFBrowserByteResource::Cancel()
 
 void FCEFBrowserByteResource::GetResponseHeaders(CefRefPtr<CefResponse> Response, int64& ResponseLength, CefString& RedirectUrl)
 {
-	Response->SetMimeType("text/html");
+	Response->SetMimeType(*MimeType);
 	Response->SetStatus(200);
 	Response->SetStatusText("OK");
 	ResponseLength = Size;

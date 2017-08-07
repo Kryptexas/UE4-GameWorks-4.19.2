@@ -34,10 +34,5 @@ public:
 	{
 		return FModuleManager::Get().IsModuleLoaded( "ViewportInteraction" );
 	}
-
-	/**
-	 * @return The ViewportWorldInteractionManager that owns entering and exiting the ViewportWorldInteraction
-	 */
-	virtual class FViewportWorldInteractionManager& GetWorldInteractionManager() = 0;
 };
 

@@ -9,8 +9,6 @@
 #include "OnlineSubsystemGooglePlayPackage.h"
 #include "AndroidPermissionFunctionLibrary.h"
 
-#include <vector>
-
 THIRD_PARTY_INCLUDES_START
 #include "gpg/types.h"
 #include "gpg/player_manager.h"

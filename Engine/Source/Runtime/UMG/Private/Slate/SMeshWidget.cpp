@@ -55,7 +55,6 @@ static void SlateMeshToSlateRenderData(const USlateVectorArtData& DataSource, TA
 				NewVert.Color = SourceVertex.Color;
 			}
 
-
 			// Copy all the UVs that we have, and as many as we can fit.
 			{
 				NewVert.TexCoords[0] = SourceVertex.UV0.X;
@@ -66,12 +65,6 @@ static void SlateMeshToSlateRenderData(const USlateVectorArtData& DataSource, TA
 
 				NewVert.MaterialTexCoords[0] = SourceVertex.UV2.X;
 				NewVert.MaterialTexCoords[1] = SourceVertex.UV2.Y;
-
-				NewVert.ClipRect.TopLeft = SourceVertex.UV3;
-
-				NewVert.ClipRect.ExtentX = SourceVertex.UV4;
-
-				NewVert.ClipRect.ExtentY = SourceVertex.UV5;
 			}
 		}
 	}
@@ -158,7 +151,7 @@ TSharedPtr<FSlateInstanceBufferUpdate> SMeshWidget::BeginPerInstanceBufferUpdate
 }
 
 
-int32 SMeshWidget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+int32 SMeshWidget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 
 	if (RenderRuns.Num() > 0)

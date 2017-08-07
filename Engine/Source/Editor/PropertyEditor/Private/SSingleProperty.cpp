@@ -181,7 +181,7 @@ void SSingleProperty::SetObject( UObject* InObject )
 			.AutoWidth()
 			.VAlign( VAlign_Center )
 			[
-				SNew( SResetToDefaultPropertyEditor,  PropertyEditor )
+				SNew( SResetToDefaultPropertyEditor,  PropertyEditor->GetPropertyHandle() )
 			];
 		}
 	}

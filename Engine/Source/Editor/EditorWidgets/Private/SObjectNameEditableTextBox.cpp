@@ -7,6 +7,7 @@
 #include "EditorStyleSet.h"
 #include "GameFramework/Actor.h"
 #include "ScopedTransaction.h"
+#include "ActorEditorUtils.h"
 
 const float SObjectNameEditableTextBox::HighlightRectLeftOffset = 0.0f;
 const float SObjectNameEditableTextBox::HighlightRectRightOffset = 0.0f;
@@ -61,7 +62,7 @@ void SObjectNameEditableTextBox::Tick( const FGeometry& AllottedGeometry, const 
 	{
 		// Update highlight 'target' effect
 		const float HighlightLeftX = HighlightRectLeftOffset;
-		const float HighlightRightX = HighlightRectRightOffset + AllottedGeometry.Size.X;
+		const float HighlightRightX = HighlightRectRightOffset + AllottedGeometry.GetLocalSize().X;
 
 		HighlightTargetLeftSpring.SetTarget( HighlightLeftX );
 		HighlightTargetRightSpring.SetTarget( HighlightRightX );
@@ -71,9 +72,9 @@ void SObjectNameEditableTextBox::Tick( const FGeometry& AllottedGeometry, const 
 	}
 }
 
-int32 SObjectNameEditableTextBox::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SObjectNameEditableTextBox::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
-	int32 StartLayer = SCompoundWidget::OnPaint( Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled );
+	int32 StartLayer = SCompoundWidget::OnPaint( Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled );
 
 	const int32 TextLayer = 1;
 
@@ -99,7 +100,7 @@ int32 SObjectNameEditableTextBox::OnPaint( const FPaintArgs& Args, const FGeomet
 
 		// Compute the bounds offset of the highlight target from where the highlight target spring
 		// extents currently lie.  This is used to "grow" or "shrink" the highlight as needed.
-		const float CommittingAnimOffset = CommittingAnimOffsetPercent * AllottedGeometry.Size.Y;
+		const float CommittingAnimOffset = CommittingAnimOffsetPercent * AllottedGeometry.GetLocalSize().Y;
 
 		// Choose an offset amount depending on whether we're highlighting, or clearing highlight
 		const float EffectOffset = EffectAlpha * CommittingAnimOffset;
@@ -107,7 +108,7 @@ int32 SObjectNameEditableTextBox::OnPaint( const FPaintArgs& Args, const FGeomet
 		const float HighlightLeftX = HighlightTargetLeftSpring.GetPosition() - EffectOffset;
 		const float HighlightRightX = HighlightTargetRightSpring.GetPosition() + EffectOffset;
 		const float HighlightTopY = 0.0f - EffectOffset;
-		const float HighlightBottomY = AllottedGeometry.Size.Y + EffectOffset;
+		const float HighlightBottomY = AllottedGeometry.GetLocalSize().Y + EffectOffset;
 
 		const FVector2D DrawPosition = FVector2D( HighlightLeftX, HighlightTopY );
 		const FVector2D DrawSize = FVector2D( HighlightRightX - HighlightLeftX, HighlightBottomY - HighlightTopY );
@@ -120,7 +121,6 @@ int32 SObjectNameEditableTextBox::OnPaint( const FPaintArgs& Args, const FGeomet
 			LayerId + TextLayer,
 			AllottedGeometry.ToPaintGeometry( DrawPosition, DrawSize ),	// Position, Size, Scale
 			StyleInfo,													// Style
-			MyClippingRect,												// Clipping rect
 			DrawEffects,												// Effects to use
 			HighlightTargetColorAndOpacity );							// Color
 	}
@@ -241,7 +241,8 @@ void SObjectNameEditableTextBox::OnNameTextCommitted(const FText& NewText, EText
 {
 	// Don't apply the change if the TextCommit type is OnCleared - this will only be the case if the keyboard focus was cleared due to
 	// Enter being pressed, in which case we will already have been here once with a TextCommit type of OnEnter.
-	if (InTextCommit != ETextCommit::OnCleared)
+	FText ErrorMessage;
+	if (InTextCommit != ETextCommit::OnCleared && FActorEditorUtils::ValidateActorName(NewText, ErrorMessage))
 	{
 		FText TrimmedText = FText::TrimPrecedingAndTrailing(NewText);
 
@@ -299,17 +300,11 @@ void SObjectNameEditableTextBox::OnNameTextCommitted(const FText& NewText, EText
 
 void SObjectNameEditableTextBox::OnTextChanged( const FText& InLabel )
 {
-	FText TrimmedLabel = FText::TrimPrecedingAndTrailing(InLabel);
+	FText OutErrorMessage;
 
-	if (TrimmedLabel.IsEmpty())
+	if(!FActorEditorUtils::ValidateActorName(InLabel, OutErrorMessage))
 	{
-		TextBox->SetError(LOCTEXT( "RenameFailed_LeftBlank", "Names cannot be left blank" ));
-	}
-	else if (TrimmedLabel.ToString().Len() >= NAME_SIZE)
-	{
-		FFormatNamedArguments Arguments;
-		Arguments.Add( TEXT("CharCount"), NAME_SIZE );
-		TextBox->SetError(FText::Format(LOCTEXT("RenameFailed_TooLong", "Actor names must be less than {CharCount} characters long."), Arguments));
+		TextBox->SetError(OutErrorMessage);
 	}
 	else
 	{

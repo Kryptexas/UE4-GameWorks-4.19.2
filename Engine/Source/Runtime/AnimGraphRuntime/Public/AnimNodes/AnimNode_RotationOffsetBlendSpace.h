@@ -6,10 +6,11 @@
 #include "UObject/ObjectMacros.h"
 #include "Animation/AnimNodeBase.h"
 #include "AnimNodes/AnimNode_BlendSpacePlayer.h"
+#include "Animation/InputScaleBias.h"
 #include "AnimNode_RotationOffsetBlendSpace.generated.h"
 
 //@TODO: Comment
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ANIMGRAPHRUNTIME_API FAnimNode_RotationOffsetBlendSpace : public FAnimNode_BlendSpacePlayer
 {
 	GENERATED_USTRUCT_BODY()
@@ -29,14 +30,24 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_RotationOffsetBlendSpace : public FAnimNod
 	UPROPERTY(Transient)
 	bool bIsLODEnabled;
 
+	// Current strength of the AimOffset
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Settings, meta = (PinShownByDefault))
+	mutable float Alpha;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Settings)
+	FInputScaleBias AlphaScaleBias;
+
+	UPROPERTY(Transient)
+	float ActualAlpha;
+
 public:	
 	FAnimNode_RotationOffsetBlendSpace();
 
 	// FAnimNode_Base interface
-	virtual void Initialize(const FAnimationInitializeContext& Context) override;
-	virtual void CacheBones(const FAnimationCacheBonesContext& Context) override;
+	virtual void Initialize_AnyThread(const FAnimationInitializeContext& Context) override;
+	virtual void CacheBones_AnyThread(const FAnimationCacheBonesContext& Context) override;
 	virtual void UpdateAssetPlayer(const FAnimationUpdateContext& Context) override;
-	virtual void Evaluate(FPoseContext& Output) override;
+	virtual void Evaluate_AnyThread(FPoseContext& Output) override;
 	virtual void GatherDebugData(FNodeDebugData& DebugData) override;
 	// End of FAnimNode_Base interface
 };

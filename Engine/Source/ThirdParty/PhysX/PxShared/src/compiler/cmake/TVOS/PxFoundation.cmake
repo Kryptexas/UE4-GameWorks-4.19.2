@@ -2,8 +2,6 @@
 # Build PxFoundation
 #
 
-SET(GW_DEPS_ROOT $ENV{GW_DEPS_ROOT})
-
 SET(PXSHARED_SOURCE_DIR ${PROJECT_SOURCE_DIR}/../../../../src)
 
 SET(LL_SOURCE_DIR ${PXSHARED_SOURCE_DIR}/foundation)

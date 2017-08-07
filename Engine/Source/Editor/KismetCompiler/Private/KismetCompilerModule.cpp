@@ -28,6 +28,7 @@
 #include "UserDefinedStructureCompilerUtils.h"
 #include "Engine/UserDefinedStruct.h"
 #include "BlueprintCompilerCppBackendInterface.h"
+#include "IMessageLogListing.h"
 
 DEFINE_LOG_CATEGORY(LogK2Compiler);
 DECLARE_CYCLE_STAT(TEXT("Compile Time"), EKismetCompilerStats_CompileTime, STATGROUP_KismetCompiler);
@@ -49,8 +50,8 @@ public:
 	virtual void RemoveBlueprintGeneratedClasses(class UBlueprint* Blueprint) override;
 	virtual TArray<IBlueprintCompiler*>& GetCompilers() override { return Compilers; }
 	virtual void GetBlueprintTypesForClass(UClass* ParentClass, UClass*& OutBlueprintClass, UClass*& OutBlueprintGeneratedClass) const override;
-	virtual void GenerateCppCodeForEnum(UUserDefinedEnum* UDEnum, FString& OutHeaderCode, FString& OutCPPCode) override;
-	virtual FString GenerateCppCodeForStruct(UUserDefinedStruct* UDStruct, const FCompilerNativizationOptions& NativizationOptions) override;
+	virtual void GenerateCppCodeForEnum(UUserDefinedEnum* UDEnum, const FCompilerNativizationOptions& NativizationOptions, FString& OutHeaderCode, FString& OutCPPCode) override;
+	virtual void GenerateCppCodeForStruct(UUserDefinedStruct* UDStruct, const FCompilerNativizationOptions& NativizationOptions, FString& OutHeaderCode, FString& OutCPPCode) override;
 	virtual FString GenerateCppWrapper(UBlueprintGeneratedClass* BPGC, const FCompilerNativizationOptions& NativizationOptions) override;
 	// End implementation
 private:
@@ -179,16 +180,16 @@ void FKismet2CompilerModule::CompileStructure(UUserDefinedStruct* Struct, FCompi
 	FUserDefinedStructureCompilerUtils::CompileStruct(Struct, Results, true);
 }
 
-void FKismet2CompilerModule::GenerateCppCodeForEnum(UUserDefinedEnum* UDEnum, FString& OutHeaderCode, FString& OutCPPCode)
+void FKismet2CompilerModule::GenerateCppCodeForEnum(UUserDefinedEnum* UDEnum, const FCompilerNativizationOptions& NativizationOptions, FString& OutHeaderCode, FString& OutCPPCode)
 {
 	TUniquePtr<IBlueprintCompilerCppBackend> Backend_CPP(IBlueprintCompilerCppBackendModuleInterface::Get().Create());
-	Backend_CPP->GenerateCodeFromEnum(UDEnum, OutHeaderCode, OutCPPCode);
+	Backend_CPP->GenerateCodeFromEnum(UDEnum, NativizationOptions, OutHeaderCode, OutCPPCode);
 }
 
-FString FKismet2CompilerModule::GenerateCppCodeForStruct(UUserDefinedStruct* UDStruct, const FCompilerNativizationOptions& NativizationOptions)
+void FKismet2CompilerModule::GenerateCppCodeForStruct(UUserDefinedStruct* UDStruct, const FCompilerNativizationOptions& NativizationOptions, FString& OutHeaderCode, FString& OutCPPCode)
 {
 	TUniquePtr<IBlueprintCompilerCppBackend> Backend_CPP(IBlueprintCompilerCppBackendModuleInterface::Get().Create());
-	return Backend_CPP->GenerateCodeFromStruct(UDStruct, NativizationOptions);
+	Backend_CPP->GenerateCodeFromStruct(UDStruct, NativizationOptions, OutHeaderCode, OutCPPCode);
 }
 
 FString FKismet2CompilerModule::GenerateCppWrapper(UBlueprintGeneratedClass* BPGC, const FCompilerNativizationOptions& NativizationOptions)
@@ -310,6 +311,13 @@ void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const
 		UMetaData* MetaData =  Package->GetMetaData();
 		MetaData->RemoveMetaDataOutsidePackage();
 	}
+
+	if (!Results.bSilentMode)
+	{
+		FScopedBlueprintMessageLog MessageLog(Blueprint);
+		MessageLog.Log->ClearMessages();
+		MessageLog.Log->AddMessages(Results.Messages, false);
+	}
 }
 
 void FKismet2CompilerModule::RefreshVariables(UBlueprint* Blueprint)
@@ -360,8 +368,11 @@ void FKismet2CompilerModule::RefreshVariables(UBlueprint* Blueprint)
 				K2Schema,
 				MessageLog);
 
-			NewProperty->PropertyLinkNext = Blueprint->GeneratedClass->PropertyLink;
-			Blueprint->GeneratedClass->PropertyLink = NewProperty;
+			if(NewProperty)
+			{
+				NewProperty->PropertyLinkNext = Blueprint->GeneratedClass->PropertyLink;
+				Blueprint->GeneratedClass->PropertyLink = NewProperty;
+			}
 		}
 		
 		Blueprint->GeneratedClass->Bind();

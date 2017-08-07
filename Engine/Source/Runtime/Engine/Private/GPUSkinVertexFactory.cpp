@@ -19,6 +19,14 @@ static FAutoConsoleVariableRef CVarMaxGPUSkinBones(
 	TEXT("Max number of bones that can be skinned on the GPU in a single draw call. Cannot be changed at runtime."),
 	ECVF_ReadOnly);
 
+// Whether to use 2 bones influence instead of default 4 for GPU skinning
+// Changing this causes a full shader recompile
+static TAutoConsoleVariable<int32> CVarGPUSkinLimit2BoneInfluences(
+	TEXT("r.GPUSkin.Limit2BoneInfluences"),
+	0,	
+	TEXT("Whether to use 2 bones influence instead of default 4 for GPU skinning. Cannot be changed at runtime."),
+	ECVF_ReadOnly);
+
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FAPEXClothUniformShaderParameters,TEXT("APEXClothParam"));
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FBoneMatricesUniformShaderParameters,TEXT("Bones"));
@@ -164,7 +172,7 @@ static TAutoConsoleVariable<int32> CVarRHICmdDeferSkeletalLockAndFillToRHIThread
 
 static bool DeferSkeletalLockAndFillToRHIThread()
 {
-	return GRHIThread && CVarRHICmdDeferSkeletalLockAndFillToRHIThread.GetValueOnRenderThread() > 0;
+	return IsRunningRHIInSeparateThread() && CVarRHICmdDeferSkeletalLockAndFillToRHIThread.GetValueOnRenderThread() > 0;
 }
 
 struct FRHICommandUpdateBoneBuffer : public FRHICommand<FRHICommandUpdateBoneBuffer>
@@ -304,44 +312,6 @@ int32 FGPUBaseSkinVertexFactory::GetMaxGPUSkinBones()
 }
 
 /*-----------------------------------------------------------------------------
-	FBoneDataTexture
-	SizeX(32 * 1024) - Good size for UE3
------------------------------------------------------------------------------*/
-
-FBoneDataVertexBuffer::FBoneDataVertexBuffer()
-	: SizeX(80 * 1024)		// todo: we will replace this fixed size using FGlobalDynamicVertexBuffer
-{
-}
-
-float* FBoneDataVertexBuffer::LockData()
-{
-	checkSlow(IsInRenderingThread());
-	checkSlow(GetSizeX());
-	checkSlow(IsValidRef(BoneBuffer));
-
-	float* Data = (float*)RHILockVertexBuffer(BoneBuffer.VertexBufferRHI, 0, ComputeMemorySize(), RLM_WriteOnly);
-	checkSlow(Data);
-
-	return Data;
-}
-
-void FBoneDataVertexBuffer::UnlockData(uint32 SizeInBytes)
-{
-	checkSlow(IsValidRef(BoneBuffer));
-	RHIUnlockVertexBuffer(BoneBuffer.VertexBufferRHI);
-}
-
-uint32 FBoneDataVertexBuffer::GetSizeX() const
-{
-	return SizeX;
-}
-
-uint32 FBoneDataVertexBuffer::ComputeMemorySize()
-{
-	return SizeX * sizeof(FVector4);
-}
-
-/*-----------------------------------------------------------------------------
 TGPUSkinVertexFactory
 -----------------------------------------------------------------------------*/
 
@@ -350,8 +320,10 @@ TGlobalResource<FBoneBufferPool> FGPUBaseSkinVertexFactory::BoneBufferPool;
 template <bool bExtraBoneInfluencesT>
 bool TGPUSkinVertexFactory<bExtraBoneInfluencesT>::ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const FShaderType* ShaderType)
 {
-	// Skip trying to use extra bone influences on < SM4
-	if (bExtraBoneInfluencesT && GetMaxSupportedFeatureLevel(Platform) < ERHIFeatureLevel::ES3_1)
+	bool bLimit2BoneInfluences = (CVarGPUSkinLimit2BoneInfluences.GetValueOnAnyThread() != 0);
+	
+	// Skip trying to use extra bone influences on < SM4 or when project uses 2 bones influence
+	if (bExtraBoneInfluencesT && (GetMaxSupportedFeatureLevel(Platform) < ERHIFeatureLevel::ES3_1 || bLimit2BoneInfluences))
 	{
 		return false;
 	}
@@ -368,6 +340,10 @@ void TGPUSkinVertexFactory<bExtraBoneInfluencesT>::ModifyCompilationEnvironment(
 	OutEnvironment.SetDefine(TEXT("MAX_SHADER_BONES"), MaxGPUSkinBones);
 	const uint32 UseExtraBoneInfluences = bExtraBoneInfluencesT;
 	OutEnvironment.SetDefine(TEXT("GPUSKIN_USE_EXTRA_INFLUENCES"), UseExtraBoneInfluences);
+	{
+		bool bLimit2BoneInfluences = (CVarGPUSkinLimit2BoneInfluences.GetValueOnAnyThread() != 0);
+		OutEnvironment.SetDefine(TEXT("GPUSKIN_LIMIT_2BONE_INFLUENCES"), (bLimit2BoneInfluences ? 1 : 0));
+	}
 }
 
 
@@ -582,7 +558,7 @@ FVertexFactoryShaderParameters* TGPUSkinVertexFactory<bExtraBoneInfluencesT>::Co
 }
 
 /** bind gpu skin vertex factory to its shader file and its shader parameters */
-IMPLEMENT_GPUSKINNING_VERTEX_FACTORY_TYPE(TGPUSkinVertexFactory, "GpuSkinVertexFactory", true, false, true, false, false);
+IMPLEMENT_GPUSKINNING_VERTEX_FACTORY_TYPE(TGPUSkinVertexFactory, "/Engine/Private/GpuSkinVertexFactory.ush", true, false, true, false, false);
 
 /*-----------------------------------------------------------------------------
 TGPUSkinVertexFactoryShaderParameters
@@ -688,7 +664,7 @@ FVertexFactoryShaderParameters* FGPUSkinPassthroughVertexFactory::ConstructShade
 	return (ShaderFrequency == SF_Vertex) ? new FGPUSkinVertexPassthroughFactoryShaderParameters() : nullptr;
 }
 
-IMPLEMENT_VERTEX_FACTORY_TYPE(FGPUSkinPassthroughVertexFactory, "LocalVertexFactory", true, false, true, false, false);
+IMPLEMENT_VERTEX_FACTORY_TYPE(FGPUSkinPassthroughVertexFactory, "/Engine/Private/LocalVertexFactory.ush", true, false, true, false, false);
 
 /*-----------------------------------------------------------------------------
 TGPUSkinMorphVertexFactory
@@ -749,7 +725,7 @@ FVertexFactoryShaderParameters* TGPUSkinMorphVertexFactory<bExtraBoneInfluencesT
 }
 
 /** bind morph target gpu skin vertex factory to its shader file and its shader parameters */
-IMPLEMENT_GPUSKINNING_VERTEX_FACTORY_TYPE(TGPUSkinMorphVertexFactory, "GpuSkinVertexFactory", true, false, true, false, false);
+IMPLEMENT_GPUSKINNING_VERTEX_FACTORY_TYPE(TGPUSkinMorphVertexFactory, "/Engine/Private/GpuSkinVertexFactory.ush", true, false, true, false, false);
 
 
 /*-----------------------------------------------------------------------------
@@ -804,12 +780,12 @@ public:
 			if(ClothSimulVertsPositionsNormalsParameter.IsBound())
 			{
 				RHICmdList.SetShaderResourceViewParameter(Shader->GetVertexShader(), ClothSimulVertsPositionsNormalsParameter.GetBaseIndex(),
-					ClothShaderData.GetClothBufferForReading(false, FrameNumber).VertexBufferSRV);
+														  ClothShaderData.GetClothBufferForReading(false, FrameNumber).VertexBufferSRV);
 			}
 			if(PreviousClothSimulVertsPositionsNormalsParameter.IsBound())
 			{
 				RHICmdList.SetShaderResourceViewParameter(Shader->GetVertexShader(), PreviousClothSimulVertsPositionsNormalsParameter.GetBaseIndex(),
-					ClothShaderData.GetClothBufferForReading(true, FrameNumber).VertexBufferSRV);
+														  ClothShaderData.GetClothBufferForReading(true, FrameNumber).VertexBufferSRV);
 			}
 			
 			SetShaderValue(
@@ -1021,7 +997,7 @@ FVertexFactoryShaderParameters* TGPUSkinAPEXClothVertexFactory<bExtraBoneInfluen
 }
 
 /** bind cloth gpu skin vertex factory to its shader file and its shader parameters */
-IMPLEMENT_GPUSKINNING_VERTEX_FACTORY_TYPE(TGPUSkinAPEXClothVertexFactory, "GpuSkinVertexFactory", true, false, true, false, false);
+IMPLEMENT_GPUSKINNING_VERTEX_FACTORY_TYPE(TGPUSkinAPEXClothVertexFactory, "/Engine/Private/GpuSkinVertexFactory.ush", true, false, true, false, false);
 
 
 #undef IMPLEMENT_GPUSKINNING_VERTEX_FACTORY_TYPE

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2717841
+﻿INTSourceChangelist:3317931
 Availability: Public
 Title: 为 Unity 开发者准备的虚幻引擎 4
 Crumbs: %ROOT%, GettingStarted
@@ -799,7 +799,7 @@ _点击查看大图。_
 
 ### 物理：刚体 vs. 元组件
 
-在 Unity 中药给一个 GameObject 物理特性，需要给它一个刚体组件。在虚幻中，任何元组件（C++ 中为 UPrimitiveComponent）都可以是物理对象。一些通用的元组件，比如 ShapeComponent（胶囊形，球形，盒形），StaticMeshComponent，以及 SkeletalMeshComponent。
+在 Unity 中，要给一个 GameObject 物理特性，需要给它一个刚体组件。在虚幻中，任何元组件（C++ 中为 UPrimitiveComponent）都可以是物理对象。一些通用的元组件，比如 ShapeComponent（胶囊形，球形，盒形），StaticMeshComponent，以及 SkeletalMeshComponent。
 
 和 Unity 不同，Unity 将碰撞体和可视物体分列到不同的组件中。而虚幻则将潜在的物理碰撞和潜在的可视效果组合到了 PrimitiveComponent 中。任何在世界中具有形状的物体，要么就是能够被渲染显示，要么就是能作物理交互，它们都继承于 PrimitiveComponent。
 
@@ -905,28 +905,9 @@ Unity C#：
 			Trigger.SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 		}
 
-		void BeginPlay()
-		{
-			// Register to find out when an overlap occurs
-			OnActorBeginOverlap.AddDynamic(this, &AMyActor::OnTriggerEnter);
-			OnActorEndOverlap.AddDynamic(this, &AMyActor::OnTriggerExit);
+		virtual void NotifyActorBeginOverlap(AActor* Other) override;
 
-			Super::BeginPlay();
-		}
-
-		void EndPlay(const EEndPlayReason::Type EndPlayReason)
-		{
-			OnActorBeginOverlap.RemoveDynamic(this, &AMyActor::OnTriggerEnter);
-			OnActorEndOverlap.RemoveDynamic(this, &AMyActor::OnTriggerExit);
-
-			Super:EndPlay(EndPlayReason);
-		}
-
-		UFUNCTION()
-		void OnTriggerEnter(AActor* Other);
-
-		UFUNCTION()
-		void OnTriggerExit(AActor* Other);
+		virtual void NotifyActorEndOverlap(AActor* Other) override;
 	};
 
 虚幻 4 蓝图：

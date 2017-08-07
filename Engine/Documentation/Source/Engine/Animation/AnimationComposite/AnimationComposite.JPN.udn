@@ -1,9 +1,11 @@
-﻿INTSourceChangelist:2989492
+﻿INTSourceChangelist:3467293
 Availability:Public
-Title:アニメーション合成
+Title:アニメーションの合成
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:アニメーション合成は複数のアニメーションを結合し、単一ユニットとして扱います。
 version:4.9
+tags:Assets
+topic-image:AnimationgComposite_topic.png
 
 [REGION:fullwidth]
 ![](AnimationCompositeHeader.png)
@@ -12,7 +14,7 @@ version:4.9
 [TOC(start:2 end:2)]
 
 
-一定の状況下では、いくつかのアニメーション シーケンスをつなぎ合わせて、多数のシーケンスではなく、単一シーケンスとして使用できるようにする必要があるかもしれません。まさにこれが **アニメーション合成** の用途です。アニメーション合成は複数のアニメーションを結合し、単一ユニットとして扱えるように設計されたアニメーション アセットです。しかし、合成はアニメーションを単につなげるだけで、ブレンド機能はないことに注意してください。
+一定の状況下では、いくつかのアニメーション シーケンスをつなぎ合わせて、多数のシーケンスではなく、単一シーケンスとして使用できるようにする必要があるかもしれません。これこそまさに、**アニメーション合成** の用途です。アニメーション合成は複数のアニメーションを結合し、単一ユニットとして扱えるように設計されたアニメーション アセットです。ただし、合成はアニメーションを単につなげるだけで、ブレンド機能はないことに注意してください。
 
 [REGION:note]
 アニメーション合成は、[通知](Engine/Animation/Sequences\Notifies) と [カーブ](Engine/Animation/Sequences\Curves) の独自のセットを持つこともできます。 
@@ -20,7 +22,7 @@ version:4.9
 
 ## 合成を作成する
 
-新規アニメーション合成を作成するには、**コンテンツ ブラウザ** で **右クリック** (または **Add New** ボタンを選択) して、**アニメーション** を選択して、表示されるコンテキストメニューから **Animation Composite** を選択します。 
+新規アニメーション合成を作成するには、**コンテンツ ブラウザ** で **右クリック** (または **[Add New]** ボタンを選択) して、**アニメーション** を選択して、表示されるコンテキストメニューから **[Animation Composite]** を選択します。 
 
 ![](AnimationCompositeContextMenu.png)
 
@@ -29,18 +31,18 @@ version:4.9
 ![](PickSkeleton.png)
 
 [REGION:caption]
-プロジェクトで使用可能なもののリストからスケルトンを選択します。
+プロジェクトで利用可能なもののリストからスケルトンを選択します。
 [/REGION]
 
-次に合成に名前を付ける必要があります。
+次に合成したもの (Composite) に名前を付けます。
 
 ![](NameComposite.png)
 
-これで合成が作成され、編集できるようになりました。
+Composite が作成されて編集の準備ができました。
 
 ## 合成を編集する
 
-合成を **ダブルクリック** すると、その合成が選択され、編集できる状態でアニメーション モードでペルソナが開きます。
+Composite (合成) を **ダブルクリック** すると、その合成が選択され、編集できる状態でアニメーション モードでペルソナが開きます。
 
 ![](AnimationCompositeEdit.png)(w:600)
 
@@ -52,15 +54,15 @@ version:4.9
 
 ![](CompositeTrack.png)(w:600)
 
-合成にアニメーション シーケンスを追加するには、**アセット ブラウザ** から アニメーション シーケンスを **Composite Track** にドラッグ & ドロップします。
+合成にアニメーション シーケンスを追加するには、**アセット ブラウザ** からアニメーション シーケンスを **Composite Track** にドラッグ & ドロップします。
 
 ![](AddingAnimationsToComposite.png)(w:900)
 
 [REGION:caption]
-さらにシーケンスをドラッグすると、自動的に追加されます。
+さらに多くのシーケンスをドラッグすると、自動的に追加されます。
 [/REGION]
 
-シーケンスをドラッグして **合成トラック** に沿って移動できます。また、シーケンス上で **右クリック** してコンテキスト メニューから **[Delete Segment (セグメントの削除)]** を選択して削除することができます。
+シーケンスをドラッグして **合成トラック** に沿って移動できます。また、シーケンス上で **右クリック** してコンテキスト メニューから **[Delete Segment (セグメントの削除)]** を選択してトラックを取り除くことができます。
 
 ![](DeleteSegment.png)
 
@@ -92,26 +94,26 @@ qm0KEa8K1A8
 
 
 
-##Anim アセットの詳細
+## Anim アセットの詳細
 
-**ペルソナ** でアニメーション合成を開く場合、**Anim Asset Details** パネル内で調整できるいくつかのプロパティがあり、アセットの処理方法を決めることができます。こうしたプロパティには、再生速度の微調整、メタ データのアセットへの割り当てなどがあり、以下の表で説明します。 
+**ペルソナ** でアニメーション合成を開く場合、**[Anim Asset Details]** パネル内で調整できるいくつかのプロパティがあり、アセットの処理方法を決めることができます。こうしたプロパティには、再生速度の微調整、メタ データのアセットへの割り当てなどがあり、以下の表で説明します。 
 
 ![](AnimAssetDetailsComposite.png)
 
 |合成のプロパティ||
 |---|---|
-|[REGION:tablesection]加算設定[/REGION]||
+|[REGION:tablesection]追加設定[/REGION]||
 |**Preview Base Pose**| 加算ブレンドスペースのためのベース ポーズをプレビューします。|
 |[REGION:tablesection]長さ[/REGION]||
 |**Sequence Length**| 速度 1.0 (調整不可) で再生した場合の AnimSequence の長さ (秒単位) |
 |[REGION:tablesection]アニメーション[/REGION]||
-|**Rate Scale**| アニメーションの再生レートをグローバルに微調整する数値 |
+|**Rate Scale**| アニメーションの再生レートをグローバルに微調整する数値です。 |
 |**Skeleton**| アセットを再生できるスケルトンへのポインタ (調整不可)|
-|[REGION:tablesection]メタ データ[/REGION]||
-|**Meta Data**| アセットと共に保存可能なメタ データです。このメタデータは Anim Meta Data クラスから派生したブループリントで利用可能なクラスです。カスタムのメタ データを Animation アセットに追加できます (Anim Sequence、 Anim Montage、 Anim Composite、 および Blendspace はすべてサポートされます)。C++ で Animation アセットからこうしたデータをクエリーできます。`GetMetaData()` メソッドを呼び出すか、Anim Montages で `GetSectionMetaData()` を使用します。
+|[REGION:tablesection]メタデータ[/REGION]||
+|**Meta Data**| アセットと共に保存可能なメタデータです。このメタデータは Anim Meta Data クラスから派生したブループリントで利用可能なクラスです。カスタムのメタデータを Animation アセットに追加できます (Anim Sequence、 Anim Montage、 Anim Composite、 および Blendspace はすべてサポートされます)。C++ で Animation アセットからこうしたデータをクエリーできます。`GetMetaData()` メソッドを呼び出すか、Anim Montages で `GetSectionMetaData()` を使用します。
 |[REGION:tablesection]サムネイル[/REGION]||
-| **Orbit Pitch** | アセット周囲の軌道カメラのピッチ |
-| **Orbit Yaw** | アセット周囲の軌道カメラのヨー (左右回転) |
-| **Orbit Zoom** | アセットから境界の球体の距離のオフセット |
+| **Orbit Pitch** | アセット周囲の軌道カメラのピッチです。 |
+| **Orbit Yaw** | アセット周囲の軌道カメラのヨー (左右回転) です。 |
+| **Orbit Zoom** | アセットから境界の球体の距離のオフセットです。 |
 
 

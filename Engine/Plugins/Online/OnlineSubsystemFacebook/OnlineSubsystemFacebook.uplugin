@@ -28,5 +28,12 @@
 			"Name": "OnlineSubsystemFacebook",
 			"LoadingPolicy": "Always"
 		}
+	],
+	"Plugins": [
+		{
+			"Name": "OnlineSubsystem",
+			"Enabled": true
+		}
 	]
+
 }

@@ -9,6 +9,7 @@
 #include "K2Node_VariableGet.h"
 #include "Blueprint/WidgetTree.h"
 #include "Animation/WidgetAnimation.h"
+#include "MovieScene.h"
 
 #include "Kismet2/Kismet2NameValidators.h"
 #include "Kismet2/KismetReinstanceUtilities.h"
@@ -17,10 +18,14 @@
 #include "WidgetBlueprintEditorUtils.h"
 #include "WidgetGraphSchema.h"
 #include "IUMGModule.h"
+#include "IWidgetEditorExtension.h"
+#include "UMGEditorProjectSettings.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
 #define CPF_Instanced (CPF_PersistentInstance | CPF_ExportObject | CPF_InstancedReference)
+
+const FName IWidgetEditorExtension::ServiceFeatureName(TEXT("WidgetEditorExtension"));
 
 extern COREUOBJECT_API bool GMinimalCompileOnLoad;
 
@@ -150,7 +155,7 @@ void FWidgetBlueprintCompiler::CleanAndSanitizeClass(UBlueprintGeneratedClass* C
 	if ( !Blueprint->bIsRegeneratingOnLoad && bIsFullCompile )
 	{
 		UPackage* WidgetTemplatePackage = WidgetBP->GetWidgetTemplatePackage();
-		UUserWidget* OldArchetype = LoadObject<UUserWidget>(WidgetTemplatePackage, TEXT("WidgetArchetype"), nullptr, LOAD_NoWarn);
+		UUserWidget* OldArchetype = FindObjectFast<UUserWidget>(WidgetTemplatePackage, TEXT("WidgetArchetype"));
 		if ( OldArchetype )
 		{
 			const bool bRecompilingOnLoad = Blueprint->bIsRegeneratingOnLoad;
@@ -180,8 +185,7 @@ void FWidgetBlueprintCompiler::CleanAndSanitizeClass(UBlueprintGeneratedClass* C
 	Super::CleanAndSanitizeClass(ClassToClean, InOutOldCDO);
 
 	// Make sure our typed pointer is set
-	check(ClassToClean == NewClass);
-	NewWidgetBlueprintClass = CastChecked<UWidgetBlueprintGeneratedClass>((UObject*)NewClass);
+	check(ClassToClean == NewClass && NewWidgetBlueprintClass == NewClass);
 
 	for ( UWidgetAnimation* Animation : NewWidgetBlueprintClass->Animations )
 	{
@@ -223,8 +227,7 @@ void FWidgetBlueprintCompiler::CreateClassVariablesFromBlueprint()
 	ValidateWidgetNames();
 
 	// Build the set of variables based on the variable widgets in the widget tree.
-	TArray<UWidget*> Widgets;
-	WidgetBP->WidgetTree->GetAllWidgets(Widgets);
+	TArray<UWidget*> Widgets = WidgetBP->GetAllSourceWidgets();
 
 	// Sort the widgets alphabetically
 	Widgets.Sort( []( const UWidget& Lhs, const UWidget& Rhs ) { return Rhs.GetFName() < Lhs.GetFName(); } );
@@ -267,14 +270,14 @@ void FWidgetBlueprintCompiler::CreateClassVariablesFromBlueprint()
 			continue;
 		}
 
-		FEdGraphPinType WidgetPinType(Schema->PC_Object, TEXT(""), WidgetClass, false, false, false, false, FEdGraphTerminalType());
+		FEdGraphPinType WidgetPinType(Schema->PC_Object, FString(), WidgetClass, EPinContainerType::None, false, FEdGraphTerminalType());
 		
 		// Always name the variable according to the underlying FName of the widget object
 		UProperty* WidgetProperty = CreateVariable(Widget->GetFName(), WidgetPinType);
 		if ( WidgetProperty != nullptr )
 		{
-			const FString VariableName = Widget->IsGeneratedName() ? Widget->GetName() : Widget->GetLabelText().ToString();
-			WidgetProperty->SetMetaData(TEXT("DisplayName"), *VariableName);
+			const FString DisplayName = Widget->IsGeneratedName() ? Widget->GetName() : Widget->GetLabelText().ToString();
+			WidgetProperty->SetMetaData(TEXT("DisplayName"), *DisplayName);
 			
 			// Only show variables if they're explicitly marked as variables.
 			if ( Widget->bIsVariable )
@@ -295,7 +298,7 @@ void FWidgetBlueprintCompiler::CreateClassVariablesFromBlueprint()
 	// Add movie scenes variables here
 	for(UWidgetAnimation* Animation : WidgetBP->Animations)
 	{
-		FEdGraphPinType WidgetPinType(Schema->PC_Object, TEXT(""), Animation->GetClass(), false, true, false, false, FEdGraphTerminalType());
+		FEdGraphPinType WidgetPinType(Schema->PC_Object, FString(), Animation->GetClass(), EPinContainerType::None, true, FEdGraphTerminalType());
 		UProperty* AnimationProperty = CreateVariable(Animation->GetFName(), WidgetPinType);
 
 		if ( AnimationProperty != nullptr )
@@ -364,9 +367,15 @@ bool FWidgetBlueprintCompiler::CanAllowTemplate(FCompilerResultsLog& MessageLog,
 	// If this widget forces the slow construction path, we can't template it.
 	if ( WidgetBP->bForceSlowConstructionPath )
 	{
-		MessageLog.Note(*LOCTEXT("ForceSlowConstruction", "Fast Templating Disabled By User.").ToString());
-
-		return false;
+		if (GetDefault<UUMGEditorProjectSettings>()->bCookSlowConstructionWidgetTree)
+		{
+			MessageLog.Note(*LOCTEXT("ForceSlowConstruction", "Fast Templating Disabled By User.").ToString());
+			return false;
+		}
+		else
+		{
+			MessageLog.Error(*LOCTEXT("UnableToForceSlowConstruction", "This project has [Cook Slow Construction Widget Tree] disabled, so [Force Slow Construction Path] is no longer allowed.").ToString());
+		}
 	}
 
 	// For now we don't support nativization, it's going to require some extra work moving the template support
@@ -403,21 +412,28 @@ bool FWidgetBlueprintCompiler::CanTemplateWidget(FCompilerResultsLog& MessageLog
 void FWidgetBlueprintCompiler::FinishCompilingClass(UClass* Class)
 {
 	UWidgetBlueprint* WidgetBP = WidgetBlueprint();
+	UWidgetBlueprintGeneratedClass* BPGClass = CastChecked<UWidgetBlueprintGeneratedClass>(Class);
 
 	// Don't do a bunch of extra work on the skeleton generated class
 	if ( WidgetBP->SkeletonGeneratedClass != Class )
 	{
-		UWidgetBlueprintGeneratedClass* BPGClass = CastChecked<UWidgetBlueprintGeneratedClass>(Class);
 		if( !WidgetBP->bHasBeenRegenerated )
 		{
 			UBlueprint::ForceLoadMembers(WidgetBP->WidgetTree);
 		}
+
+		BPGClass->bCookSlowConstructionWidgetTree = GetDefault<UUMGEditorProjectSettings>()->bCookSlowConstructionWidgetTree;
 
 		BPGClass->WidgetTree = Cast<UWidgetTree>(StaticDuplicateObject(WidgetBP->WidgetTree, BPGClass, NAME_None, RF_AllFlags & ~RF_DefaultSubObject));
 
 		for ( const UWidgetAnimation* Animation : WidgetBP->Animations )
 		{
 			UWidgetAnimation* ClonedAnimation = DuplicateObject<UWidgetAnimation>(Animation, BPGClass, *( Animation->GetName() + TEXT("_INST") ));
+			//ClonedAnimation->SetFlags(RF_Public); // Needs to be marked public so that it can be referenced from widget instances.
+			//if (ClonedAnimation->MovieScene)
+			//{
+			//	ClonedAnimation->MovieScene->SetFlags(RF_Public); // Needs to be marked public so that it can be referenced from widget instances.
+			//}
 
 			BPGClass->Animations.Add(ClonedAnimation);
 		}
@@ -441,7 +457,7 @@ void FWidgetBlueprintCompiler::FinishCompilingClass(UClass* Class)
 
 		// Add all the names of the named slot widgets to the slot names structure.
 		BPGClass->NamedSlots.Reset();
-		BPGClass->WidgetTree->ForEachWidget([&] (UWidget* Widget) {
+		WidgetBP->ForEachSourceWidget([&] (UWidget* Widget) {
 			if ( Widget && Widget->IsA<UNamedSlot>() )
 			{
 				BPGClass->NamedSlots.Add(Widget->GetFName());
@@ -449,6 +465,23 @@ void FWidgetBlueprintCompiler::FinishCompilingClass(UClass* Class)
 		});
 	}
 
+	// Make sure that we don't have dueling widget hierarchies
+	if (UWidgetBlueprintGeneratedClass* SuperBPGClass = Cast<UWidgetBlueprintGeneratedClass>(BPGClass->GetSuperClass()))
+	{
+		UWidgetBlueprint* SuperBlueprint = Cast<UWidgetBlueprint>(SuperBPGClass->ClassGeneratedBy);
+		if (SuperBlueprint->WidgetTree != nullptr)
+		{
+			if ((SuperBlueprint->WidgetTree->RootWidget != nullptr) && (WidgetBlueprint()->WidgetTree->RootWidget != nullptr))
+			{
+				// We both have a widget tree, terrible things will ensue
+				// @todo: nickd - we need to switch this back to a warning in engine, but note for games
+				MessageLog.Note(*LOCTEXT("ParentAndChildBothHaveWidgetTrees", "This widget @@ and parent class widget @@ both have a widget hierarchy, which is not supported.  Only one of them should have a widget tree.").ToString(),
+					WidgetBP, SuperBPGClass->ClassGeneratedBy);
+			}
+		}
+	}
+	
+	//
 	UClass* ParentClass = WidgetBP->ParentClass;
 	for ( TUObjectPropertyBase<UWidget*>* WidgetProperty : TFieldRange<TUObjectPropertyBase<UWidget*>>( ParentClass ) )
 	{
@@ -528,6 +561,11 @@ void FWidgetBlueprintCompiler::PostCompile()
 			}
 		}
 	}
+
+	TArray<IWidgetEditorExtension*> Extensions = IModularFeatures::Get().GetModularFeatureImplementations<IWidgetEditorExtension>(IWidgetEditorExtension::ServiceFeatureName);
+	for (IWidgetEditorExtension* Extension : Extensions)
+	{
+	}
 }
 
 void FWidgetBlueprintCompiler::EnsureProperGeneratedClass(UClass*& TargetUClass)
@@ -555,6 +593,11 @@ void FWidgetBlueprintCompiler::SpawnNewClass(const FString& NewClassName)
 	NewClass = NewWidgetBlueprintClass;
 }
 
+void FWidgetBlueprintCompiler::OnNewClassSet(UBlueprintGeneratedClass* ClassToUse)
+{
+	NewWidgetBlueprintClass = CastChecked<UWidgetBlueprintGeneratedClass>(ClassToUse);
+}
+
 void FWidgetBlueprintCompiler::PrecompileFunction(FKismetFunctionContext& Context, EInternalCompilerFlags InternalFlags)
 {
 	Super::PrecompileFunction(Context, InternalFlags);
@@ -568,7 +611,7 @@ void FWidgetBlueprintCompiler::VerifyEventReplysAreNotEmpty(FKismetFunctionConte
 	Context.SourceGraph->GetNodesOfClass<UK2Node_FunctionResult>(FunctionResults);
 
 	UScriptStruct* EventReplyStruct = FEventReply::StaticStruct();
-	FEdGraphPinType EventReplyPinType(Schema->PC_Struct, TEXT(""), EventReplyStruct, /*bIsArray =*/false, /*bIsReference =*/false, /*bIsSet =*/false, /*bIsMap =*/ false, /*InValueTerminalType =*/FEdGraphTerminalType());
+	FEdGraphPinType EventReplyPinType(Schema->PC_Struct, FString(), EventReplyStruct, EPinContainerType::None, /*bIsReference =*/false, /*InValueTerminalType =*/FEdGraphTerminalType());
 
 	for ( UK2Node_FunctionResult* FunctionResult : FunctionResults )
 	{

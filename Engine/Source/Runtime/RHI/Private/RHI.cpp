@@ -259,30 +259,32 @@ uint32 GRHIDeviceId = 0;
 uint32 GRHIDeviceRevision = 0;
 bool GRHIDeviceIsAMDPreGCNArchitecture = false;
 bool GSupportsRenderDepthTargetableShaderResources = true;
-bool GSupportsRenderTargetFormat_PF_G8 = true;
-bool GSupportsRenderTargetFormat_PF_FloatRGBA = true;
+TRHIGlobal<bool> GSupportsRenderTargetFormat_PF_G8(true);
+TRHIGlobal<bool> GSupportsRenderTargetFormat_PF_FloatRGBA(true);
 bool GSupportsShaderFramebufferFetch = false;
 bool GSupportsShaderDepthStencilFetch = false;
 bool GSupportsTimestampRenderQueries = false;
 bool GHardwareHiddenSurfaceRemoval = false;
 bool GRHISupportsAsyncTextureCreation = false;
 bool GSupportsQuads = false;
+bool GSupportsGenerateMips = false;
 bool GSupportsVolumeTextureRendering = true;
 bool GSupportsSeparateRenderTargetBlendState = false;
 bool GSupportsDepthRenderTargetWithoutColorRenderTarget = true;
 bool GRHINeedsUnatlasedCSMDepthsWorkaround = false;
 bool GSupportsTexture3D = true;
 bool GSupportsMobileMultiView = false;
+bool GSupportsImageExternal = false;
 bool GSupportsResourceView = true;
-bool GSupportsMultipleRenderTargets = true;
+TRHIGlobal<bool> GSupportsMultipleRenderTargets(true);
 bool GSupportsWideMRT = true;
 float GMinClipZ = 0.0f;
 float GProjectionSignY = 1.0f;
 bool GRHINeedsExtraDeletionLatency = false;
-int32 GMaxShadowDepthBufferSizeX = 2048;
-int32 GMaxShadowDepthBufferSizeY = 2048;
-int32 GMaxTextureDimensions = 2048;
-int32 GMaxCubeTextureDimensions = 2048;
+TRHIGlobal<int32> GMaxShadowDepthBufferSizeX(2048);
+TRHIGlobal<int32> GMaxShadowDepthBufferSizeY(2048);
+TRHIGlobal<int32> GMaxTextureDimensions(2048);
+TRHIGlobal<int32> GMaxCubeTextureDimensions(2048);
 int32 GMaxTextureArrayLayers = 256;
 int32 GMaxTextureSamplers = 16;
 bool GUsingNullRHI = false;
@@ -294,14 +296,16 @@ bool GRHISupportsTextureStreaming = false;
 bool GSupportsDepthBoundsTest = false;
 bool GSupportsEfficientAsyncCompute = false;
 bool GRHISupportsBaseVertexIndex = true;
-bool GRHISupportsInstancing = true;
+TRHIGlobal<bool> GRHISupportsInstancing(true);
 bool GRHISupportsFirstInstance = false;
 bool GRHIRequiresEarlyBackBufferRenderTarget = true;
 bool GRHISupportsRHIThread = false;
+bool GRHISupportsRHIOnTaskThread = false;
 bool GRHISupportsParallelRHIExecute = false;
 bool GSupportsHDR32bppEncodeModeIntrinsic = false;
 bool GSupportsParallelOcclusionQueries = false;
 bool GSupportsRenderTargetWriteMask = false;
+bool GSupportsTransientResourceAliasing = false;
 
 bool GRHISupportsMSAADepthSampleAccess = false;
 bool GRHISupportsResolveCubemapFaces = false;
@@ -386,7 +390,6 @@ static FName NAME_PCD3D_SM4(TEXT("PCD3D_SM4"));
 static FName NAME_PCD3D_ES3_1(TEXT("PCD3D_ES31"));
 static FName NAME_PCD3D_ES2(TEXT("PCD3D_ES2"));
 static FName NAME_GLSL_150(TEXT("GLSL_150"));
-static FName NAME_GLSL_150_MAC(TEXT("GLSL_150_MAC"));
 static FName NAME_SF_PS4(TEXT("SF_PS4"));
 static FName NAME_SF_XBOXONE_D3D11(TEXT("SF_XBOXONE_D3D11"));
 static FName NAME_SF_XBOXONE_D3D12(TEXT("SF_XBOXONE_D3D12"));
@@ -407,6 +410,7 @@ static FName NAME_VULKAN_ES3_1_ANDROID(TEXT("SF_VULKAN_ES31_ANDROID"));
 static FName NAME_VULKAN_ES3_1(TEXT("SF_VULKAN_ES31"));
 static FName NAME_VULKAN_SM4_UB(TEXT("SF_VULKAN_SM4_UB"));
 static FName NAME_VULKAN_SM4(TEXT("SF_VULKAN_SM4"));
+static FName NAME_VULKAN_SM5_UB(TEXT("SF_VULKAN_SM5_UB"));
 static FName NAME_VULKAN_SM5(TEXT("SF_VULKAN_SM5"));
 static FName NAME_SF_METAL_SM4(TEXT("SF_METAL_SM4"));
 static FName NAME_SF_METAL_MACES3_1(TEXT("SF_METAL_MACES3_1"));
@@ -428,8 +432,6 @@ FName LegacyShaderPlatformToShaderFormat(EShaderPlatform Platform)
 		return NAME_PCD3D_ES2;
 	case SP_OPENGL_SM4:
 		return NAME_GLSL_150;
-	case SP_OPENGL_SM4_MAC:
-		return NAME_GLSL_150_MAC;
 	case SP_PS4:
 		return NAME_SF_PS4;
 	case SP_XBOXONE_D3D11:
@@ -475,7 +477,10 @@ FName LegacyShaderPlatformToShaderFormat(EShaderPlatform Platform)
 		return (CVar && CVar->GetValueOnAnyThread() != 0) ? NAME_VULKAN_SM4_UB : NAME_VULKAN_SM4;
 	}
 	case SP_VULKAN_SM5:
-		return NAME_VULKAN_SM5;
+	{
+		static auto* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Vulkan.UseRealUBs"));
+		return (CVar && CVar->GetValueOnAnyThread() != 0) ? NAME_VULKAN_SM5_UB : NAME_VULKAN_SM5;
+	}
 	case SP_VULKAN_PCES3_1:
 		return NAME_VULKAN_ES3_1;
 	case SP_VULKAN_ES3_1_ANDROID:
@@ -498,7 +503,6 @@ EShaderPlatform ShaderFormatToLegacyShaderPlatform(FName ShaderFormat)
 	if (ShaderFormat == NAME_PCD3D_ES3_1)			return SP_PCD3D_ES3_1;
 	if (ShaderFormat == NAME_PCD3D_ES2)				return SP_PCD3D_ES2;
 	if (ShaderFormat == NAME_GLSL_150)				return SP_OPENGL_SM4;
-	if (ShaderFormat == NAME_GLSL_150_MAC)			return SP_OPENGL_SM4_MAC;
 	if (ShaderFormat == NAME_SF_PS4)				return SP_PS4;
 	if (ShaderFormat == NAME_SF_XBOXONE_D3D11)		return SP_XBOXONE_D3D11;
 	if (ShaderFormat == NAME_SF_XBOXONE_D3D12)		return SP_XBOXONE_D3D12;
@@ -519,6 +523,7 @@ EShaderPlatform ShaderFormatToLegacyShaderPlatform(FName ShaderFormat)
 	if (ShaderFormat == NAME_VULKAN_ES3_1_ANDROID)	return SP_VULKAN_ES3_1_ANDROID;
 	if (ShaderFormat == NAME_VULKAN_ES3_1)			return SP_VULKAN_PCES3_1;
 	if (ShaderFormat == NAME_VULKAN_SM4_UB)			return SP_VULKAN_SM4;
+	if (ShaderFormat == NAME_VULKAN_SM5_UB)			return SP_VULKAN_SM5;
 	if (ShaderFormat == NAME_SF_METAL_SM4)			return SP_METAL_SM4;
 	if (ShaderFormat == NAME_SF_METAL_MACES3_1)		return SP_METAL_MACES3_1;
 	if (ShaderFormat == NAME_SF_METAL_MACES2)		return SP_METAL_MACES2;
@@ -593,7 +598,7 @@ RHI_API bool RHISupportsTessellation(const EShaderPlatform Platform)
 {
 	if (IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && !IsMetalPlatform(Platform))
 	{
-		return (Platform == SP_PCD3D_SM5) || (Platform == SP_XBOXONE_D3D12) || (Platform == SP_XBOXONE_D3D11) || (Platform == SP_OPENGL_SM5) || (Platform == SP_OPENGL_ES31_EXT) || (Platform == SP_VULKAN_SM5);
+		return (Platform == SP_PCD3D_SM5) || (Platform == SP_XBOXONE_D3D12) || (Platform == SP_XBOXONE_D3D11) || (Platform == SP_OPENGL_SM5) || (Platform == SP_OPENGL_ES31_EXT)/* || (Platform == SP_VULKAN_SM5)*/;
 	}
     // For Metal we can only support tessellation if we are willing to sacrifice backward compatibility with OS versions.
     // As such it becomes an opt-in project setting.
@@ -615,4 +620,37 @@ RHI_API bool RHISupportsPixelShaderUAVs(const EShaderPlatform Platform)
 		return (RHIGetShaderLanguageVersion(Platform) >= 2);
 	}
 	return false;
+}
+
+static ERHIFeatureLevel::Type GRHIMobilePreviewFeatureLevel = ERHIFeatureLevel::Num;
+RHI_API void RHISetMobilePreviewFeatureLevel(ERHIFeatureLevel::Type MobilePreviewFeatureLevel)
+{
+	check(MobilePreviewFeatureLevel == ERHIFeatureLevel::ES2 || MobilePreviewFeatureLevel == ERHIFeatureLevel::ES3_1);
+	check(GRHIMobilePreviewFeatureLevel == ERHIFeatureLevel::Num);
+	check(!GIsEditor);
+	GRHIMobilePreviewFeatureLevel = MobilePreviewFeatureLevel;
+}
+
+bool RHIGetPreviewFeatureLevel(ERHIFeatureLevel::Type& PreviewFeatureLevelOUT)
+{
+	static bool bForceFeatureLevelES2 = !GIsEditor && FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES2"));
+	static bool bForceFeatureLevelES3_1 = !GIsEditor && (FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES31")) || FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES3_1")));
+
+	if (bForceFeatureLevelES2)
+	{
+		PreviewFeatureLevelOUT = ERHIFeatureLevel::ES2;
+	}
+	else if (bForceFeatureLevelES3_1)
+	{
+		PreviewFeatureLevelOUT = ERHIFeatureLevel::ES3_1;
+	}
+	else if (!GIsEditor && GRHIMobilePreviewFeatureLevel != ERHIFeatureLevel::Num)
+	{
+		PreviewFeatureLevelOUT = GRHIMobilePreviewFeatureLevel;
+	}
+	else
+	{
+		return false;
+	}
+	return true;
 }

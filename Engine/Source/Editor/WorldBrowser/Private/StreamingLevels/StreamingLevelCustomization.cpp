@@ -134,7 +134,7 @@ void FStreamingLevelCustomization::CustomizeDetails(IDetailLayoutBuilder& Detail
 
 void FStreamingLevelCustomization::OnGenerateElementForEditorStreamingVolume(TSharedRef<IPropertyHandle> ElementProperty, int32 ElementIndex, IDetailChildrenBuilder& ChildrenBuilder)
 {
-	IDetailPropertyRow& PropertyRow = ChildrenBuilder.AddChildProperty(ElementProperty);
+	IDetailPropertyRow& PropertyRow = ChildrenBuilder.AddProperty(ElementProperty);
 	TSharedPtr<SWidget> NameWidget;
 	TSharedPtr<SWidget> ValueWidget;
 	FDetailWidgetRow Row;

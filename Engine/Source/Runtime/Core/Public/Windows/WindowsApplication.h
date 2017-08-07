@@ -355,7 +355,6 @@ public:
 	virtual FModifierKeysState GetModifierKeys() const override;
 	virtual bool IsCursorDirectlyOverSlateWindow() const override;
 	virtual FPlatformRect GetWorkArea( const FPlatformRect& CurrentWindow ) const override;
-	virtual bool TryCalculatePopupWindowPosition( const FPlatformRect& InAnchor, const FVector2D& InSize, const EPopUpOrientation::Type Orientation, /*OUT*/ FVector2D* const CalculatedPopUpPosition ) const override;
 	virtual void GetInitialDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const override;
 	virtual EWindowTitleAlignment::Type GetWindowTitleAlignment() const override;
 	virtual EWindowTransparency GetWindowTransparencySupport() const override;
@@ -409,6 +408,9 @@ private:
 
 	/**  @return  True if a windows message is related to user input from the mouse */
 	static bool IsMouseInputMessage( uint32 msg );
+
+	/**  @return  True if a windows message is a fake mouse input message generated after a WM_TOUCH event */
+	static bool IsFakeMouseInputMessage(uint32 msg);
 
 	/**  @return  True if a windows message is related to user input (mouse, keyboard) */
 	static bool IsInputMessage( uint32 msg );
@@ -502,10 +504,8 @@ private:
 	FILTERKEYS							StartupFilterKeys;
 
 #if WINVER >= 0x0601
-	static const int32 MaxTouches = 10;
-
 	/** Maps touch indexes to windows touch IDs. */
-	TOptional<int32> TouchIDs[MaxTouches];
+	TArray<TOptional<int32>> TouchIDs;
 #endif
 };
 

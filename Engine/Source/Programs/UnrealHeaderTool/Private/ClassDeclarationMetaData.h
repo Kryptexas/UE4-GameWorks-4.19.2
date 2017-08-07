@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "UObject/NameTypes.h"
 #include "Containers/Map.h"
+#include "Class.h"
 
 class FClass;
 class FClasses;
@@ -16,7 +17,7 @@ class FClassDeclarationMetaData
 public:
 	FClassDeclarationMetaData();
 
-	uint64 ClassFlags;
+	EClassFlags ClassFlags;
 	TMap<FName, FString> MetaData;
 	FString ClassWithin;
 	FString ConfigName;

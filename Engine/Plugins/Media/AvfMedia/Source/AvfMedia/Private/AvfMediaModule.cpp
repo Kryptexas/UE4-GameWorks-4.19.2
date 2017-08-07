@@ -25,7 +25,7 @@ public:
 
 	//~ IAvfMediaModule interface
 
-	virtual TSharedPtr<IMediaPlayer> CreatePlayer() override
+	virtual TSharedPtr<IMediaPlayer, ESPMode::ThreadSafe> CreatePlayer() override
 	{
 		return MakeShareable(new FAvfMediaPlayer());
 	}

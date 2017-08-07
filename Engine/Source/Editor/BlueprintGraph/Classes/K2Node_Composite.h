@@ -9,8 +9,8 @@
 
 class INameValidatorInterface;
 
-UCLASS(MinimalAPI)
-class UK2Node_Composite : public UK2Node_Tunnel
+UCLASS()
+class BLUEPRINTGRAPH_API UK2Node_Composite : public UK2Node_Tunnel
 {
 	GENERATED_UCLASS_BODY()
 
@@ -23,15 +23,15 @@ class UK2Node_Composite : public UK2Node_Tunnel
 	//~ End UObject Interface
 
 	//~ Begin UEdGraphNode Interface
-	BLUEPRINTGRAPH_API virtual void AllocateDefaultPins() override;
-	BLUEPRINTGRAPH_API virtual void DestroyNode() override;
-	BLUEPRINTGRAPH_API virtual void PostPasteNode() override;
-	BLUEPRINTGRAPH_API virtual FText GetTooltipText() const override;
-	BLUEPRINTGRAPH_API virtual FLinearColor GetNodeTitleColor() const override;
-	BLUEPRINTGRAPH_API virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
-	BLUEPRINTGRAPH_API virtual bool CanUserDeleteNode() const override;
-	BLUEPRINTGRAPH_API virtual UObject* GetJumpTargetForDoubleClick() const override;
-	BLUEPRINTGRAPH_API virtual void PostPlacedNewNode() override;
+	virtual void AllocateDefaultPins() override;
+	virtual void DestroyNode() override;
+	virtual void PostPasteNode() override;
+	virtual FText GetTooltipText() const override;
+	virtual FLinearColor GetNodeTitleColor() const override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual bool CanUserDeleteNode() const override;
+	virtual UObject* GetJumpTargetForDoubleClick() const override;
+	virtual void PostPlacedNewNode() override;
 	virtual void OnRenameNode(const FString& NewName) override;
 	virtual TSharedPtr<class INameValidatorInterface> MakeNameValidator() const override;
 	//~ End UEdGraphNode Interface
@@ -43,8 +43,8 @@ class UK2Node_Composite : public UK2Node_Tunnel
 	//~ End UK2Node Interface
 
 	// Get the entry/exit nodes inside this collapsed graph
-	BLUEPRINTGRAPH_API UK2Node_Tunnel* GetEntryNode() const;
-	BLUEPRINTGRAPH_API UK2Node_Tunnel* GetExitNode() const;
+	UK2Node_Tunnel* GetEntryNode() const;
+	UK2Node_Tunnel* GetExitNode() const;
 
 protected:
 	/** Fixes up the input and output sink when needed, useful after PostEditUndo which changes which graph these nodes point to */

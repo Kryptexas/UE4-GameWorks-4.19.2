@@ -62,14 +62,14 @@ void FSplineIKEditMode::Render(const FSceneView* View, FViewport* Viewport, FPri
 {
 	UDebugSkelMeshComponent* SkelComp = GetAnimPreviewScene().GetPreviewMeshComponent();
 
-	USplineComponent::Draw(PDI, View, SplineIKRuntimeNode->GetTransformedSplineCurves().Position, SkelComp->ComponentToWorld.ToMatrixWithScale(), FLinearColor::Yellow, SDPG_Foreground);
+	USplineComponent::Draw(PDI, View, SplineIKRuntimeNode->GetTransformedSplineCurves().Position, SkelComp->GetComponentTransform().ToMatrixWithScale(), FLinearColor::Yellow, SDPG_Foreground);
 
 	for (int32 SplineHandleIndex = 0; SplineHandleIndex < SplineIKRuntimeNode->GetNumControlPoints(); SplineHandleIndex++)
 	{
 		PDI->SetHitProxy(new HSplineHandleHitProxy(SplineHandleIndex));
 		FTransform StartTransform = SplineIKRuntimeNode->GetTransformedSplinePoint(SplineHandleIndex);
 		const float Scale = View->WorldToScreen(StartTransform.GetLocation()).W * (4.0f / View->UnscaledViewRect.Width() / View->ViewMatrices.GetProjectionMatrix().M[0][0]);
-		DrawSphere(PDI, StartTransform.GetLocation(), FVector(4.0f) * Scale, 64, 64, GEngine->ArrowMaterial->GetRenderProxy(SelectedSplinePoint == SplineHandleIndex), SDPG_Foreground);
+		DrawSphere(PDI, StartTransform.GetLocation(), FRotator::ZeroRotator, FVector(4.0f) * Scale, 64, 64, GEngine->ArrowMaterial->GetRenderProxy(SelectedSplinePoint == SplineHandleIndex), SDPG_Foreground);
 		DrawCoordinateSystem(PDI, StartTransform.GetLocation(), StartTransform.GetRotation().Rotator(), 30.0f * Scale, SDPG_Foreground);
 	}
 
@@ -83,7 +83,7 @@ FVector FSplineIKEditMode::GetWidgetLocation() const
 		FVector Location = SplineIKRuntimeNode->GetTransformedSplinePoint(SelectedSplinePoint).GetLocation();
 
 		UDebugSkelMeshComponent* SkelComp = GetAnimPreviewScene().GetPreviewMeshComponent();
-		return SkelComp->ComponentToWorld.TransformPosition(Location);
+		return SkelComp->GetComponentTransform().TransformPosition(Location);
 	}
 
 	return FVector::ZeroVector;
@@ -96,11 +96,8 @@ FWidget::EWidgetMode FSplineIKEditMode::GetWidgetMode() const
 
 bool FSplineIKEditMode::IsModeValid(FWidget::EWidgetMode InWidgetMode) const
 {
-	UEdGraphPin* Pin = nullptr;
-
 	// @TODO: when transforms are exposed as pin, deny editing via widget
-
-	return Pin == nullptr || Pin->LinkedTo.Num() == 0;
+	return true;
 }
 
 
@@ -191,7 +188,7 @@ bool FSplineIKEditMode::GetCustomDrawingCoordinateSystem(FMatrix& InMatrix, void
 		if (SelectedSplinePoint != INDEX_NONE)
 		{
 			FTransform Transform = SplineIKRuntimeNode->GetTransformedSplinePoint(SelectedSplinePoint);
-			FTransform WorldTransform = Transform * SkelMeshComp->ComponentToWorld;
+			FTransform WorldTransform = Transform * SkelMeshComp->GetComponentTransform();
 			InMatrix = WorldTransform.ToMatrixNoScale().RemoveTranslation();
 		}
 

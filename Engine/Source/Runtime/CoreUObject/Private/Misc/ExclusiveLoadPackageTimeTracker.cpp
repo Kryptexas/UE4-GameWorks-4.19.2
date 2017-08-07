@@ -17,6 +17,10 @@ FExclusiveLoadPackageTimeTracker::FExclusiveLoadPackageTimeTracker()
 		TEXT("LoadTimes.DumpReport"),
 		*LOCTEXT("CommandText_DumpReport", "Dumps a report about the amount of time spent loading assets").ToString(),
 		FConsoleCommandWithArgsDelegate::CreateRaw(this, &FExclusiveLoadPackageTimeTracker::DumpReportCommandHandler))
+	, ResetReportCommand(
+		TEXT("LoadTimes.Reset"),
+		*LOCTEXT("CommandText_ResetReport", "Resets accumulated report data").ToString(),
+		FConsoleCommandWithArgsDelegate::CreateRaw(this, &FExclusiveLoadPackageTimeTracker::ResetReportCommandHandler))
 {
 }
 
@@ -223,6 +227,13 @@ void FExclusiveLoadPackageTimeTracker::InternalDumpReport() const
 	}
 }
 
+void FExclusiveLoadPackageTimeTracker::InternalResetReport()
+{
+	FScopeLock Lock(&TimesCritical);
+	LoadTimes.Reset();
+	TimeStack.Reset();
+}
+
 double FExclusiveLoadPackageTimeTracker::InternalGetExclusiveLoadTime(FName PackageName) const
 {
 	FScopeLock Lock(&TimesCritical);
@@ -256,6 +267,12 @@ void FExclusiveLoadPackageTimeTracker::DumpReportCommandHandler(const TArray<FSt
 {
 	DumpReport();
 }
+
+void FExclusiveLoadPackageTimeTracker::ResetReportCommandHandler(const TArray<FString>& Args)
+{
+	ResetReport();
+}
+
 
 #undef LOCTEXT_NAMESPACE
 

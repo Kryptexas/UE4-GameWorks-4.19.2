@@ -431,8 +431,7 @@ bool UPawnSensingComponent::CanHear(const FVector& NoiseLoc, float Loudness, boo
 	}
 
 	// check if sound is occluded
-	static FName NAME_CanHear = FName(TEXT("CanHear"));
-	return !Owner->GetWorld()->LineTraceTestByChannel(HearingLocation, NoiseLoc, ECC_Visibility, FCollisionQueryParams(NAME_CanHear, true, Owner));
+	return !Owner->GetWorld()->LineTraceTestByChannel(HearingLocation, NoiseLoc, ECC_Visibility, FCollisionQueryParams(SCENE_QUERY_STAT(CanHear), true, Owner));
 }
 
 

@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:3285322
-Availability:Public
+﻿Availability:Public
 Title:アニメーション リターゲット（異なるスケルトン）
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:異なるスケルトン間で使用するためにアニメーションをリターゲットします。 
 Version:4.9
+Topic-image:AnimRetargetingDiffSkeleton_topic.png
 
 [REGION:fullwidth]
 ![](Retarget1_1.jpg)
@@ -165,6 +165,7 @@ Animation Starter Pack には、いくつかのアニメーションが入って
 	| **ball_r** | RightToeBase |
 	| **thigh_twist_01_r** | RightUpLeg |
 	あるスケルトンでもうひとつのスケルトンには含まれていない追加のボーンがある場合がありますが、これに対応するためにターゲット スケルトンで調整できるため、こうしたボーンは省略することができます。 
+
 	[REGION:note]
 	IK のリターゲットはまだ開発途中であるため、この例では、Mixamo キャラクターの IK ボーンを **None** のままにすることもできます。 
 	[/REGION]

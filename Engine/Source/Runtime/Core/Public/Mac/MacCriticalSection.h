@@ -3,6 +3,7 @@
 #pragma once
 
 #include "PThreadCriticalSection.h"
+#include "PThreadRWLock.h"
 #include "Containers/UnrealString.h"
 #include "Misc/Timespan.h"
 
@@ -38,3 +39,4 @@ private:
 
 typedef FPThreadsCriticalSection FCriticalSection;
 typedef FMacSystemWideCriticalSection FSystemWideCriticalSection;
+typedef FPThreadsRWLock FRWLock;

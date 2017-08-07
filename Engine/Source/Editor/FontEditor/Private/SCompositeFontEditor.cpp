@@ -1017,7 +1017,7 @@ void SSubTypefaceEditor::Construct(const FArguments& InArgs)
 				.ListItemsSource(&CharacterRangeEntries)
 				.SelectionMode(ESelectionMode::None)
 				.ItemWidth(160)
-				.ItemHeight(120)
+				.ItemHeight(144)
 				.ItemAlignment(EListItemAlignment::LeftAligned)
 				.OnGenerateTile(this, &SSubTypefaceEditor::MakeCharacterRangesEntryWidget)
 			]
@@ -1216,7 +1216,6 @@ TSharedRef<ITableRow> SSubTypefaceEditor::MakeCharacterRangesEntryWidget(FCharac
 
 			+SVerticalBox::Slot()
 			.VAlign(VAlign_Center)
-			.HAlign(HAlign_Center)
 			[
 				SNew(SCharacterRangeEditor)
 				.CompositeFontEditor(CompositeFontEditorPtr)
@@ -1324,74 +1323,128 @@ void SCharacterRangeEditor::Construct(const FArguments& InArgs)
 	CompositeFontEditorPtr = InArgs._CompositeFontEditor;
 	CharacterRange = InArgs._CharacterRange;
 
+	CacheCurrentRangeSelection();
+
+	// Copy the data so we can sort it by display name (it's usually ordered by ascending block range, and the sort happens when opening the combo)
+	TSharedPtr<FUnicodeBlockRange> CurrentRangeSelectionItem;
+	{
+		TArrayView<const FUnicodeBlockRange> UnicodeBlockRanges = FUnicodeBlockRange::GetUnicodeBlockRanges();
+		RangeSelectionComboData.Reserve(UnicodeBlockRanges.Num());
+		for(const FUnicodeBlockRange& UnicodeBlockRange : UnicodeBlockRanges)
+		{
+			RangeSelectionComboData.Emplace(MakeShared<FUnicodeBlockRange>(UnicodeBlockRange));
+
+			if(CurrentRangeSelection.IsSet() && CurrentRangeSelection->Range == UnicodeBlockRange.Range)
+			{
+				CurrentRangeSelectionItem = RangeSelectionComboData.Last();
+			}
+		}
+	}
+
 	ChildSlot
 	[
-		SNew(SGridPanel)
+		SNew(SVerticalBox)
 
-		// Minimum column
-		+SGridPanel::Slot(0, 0)
-		.Padding(2.0f)
+		// Block selector
+		+SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding(FMargin(0.0f, 2.0f))
 		[
-			SNew(SEditableTextBox)
-			.Text(this, &SCharacterRangeEditor::GetRangeComponentAsTCHAR, 0)
-			.OnTextCommitted(this, &SCharacterRangeEditor::OnRangeComponentCommittedAsTCHAR, 0)
-			.ToolTipText(LOCTEXT("MinCharacterRangeEditCharTooltip", "Specifies the lower inclusive boundary of this character range as a literal unicode character.\nExample: If you wanted to use the range 'A-Z', this would be set to 'A'."))
+			SAssignNew(RangeSelectionCombo, SComboBox<TSharedPtr<FUnicodeBlockRange>>)
+			.OptionsSource(&RangeSelectionComboData)
+			.InitiallySelectedItem(CurrentRangeSelectionItem)
+			.ContentPadding(FMargin(4.0, 2.0))
+			.OnComboBoxOpening(this, &SCharacterRangeEditor::OnRangeSelectionComboOpening)
+			.OnSelectionChanged(this, &SCharacterRangeEditor::OnRangeSelectionChanged)
+			.OnGenerateWidget(this, &SCharacterRangeEditor::MakeRangeSelectionWidget)
+			[
+				SNew(STextBlock)
+				.Text(this, &SCharacterRangeEditor::GetCurrentRangeSelectionDisplayName)
+				.ToolTipText(this, &SCharacterRangeEditor::GetCurrentRangeSelectionDisplayName)
+			]
 		]
 
-		+SGridPanel::Slot(0, 1)
-		.Padding(2.0f)
+		+SVerticalBox::Slot()
 		[
-			SNew(SEditableTextBox)
-			.Text(this, &SCharacterRangeEditor::GetRangeComponentAsHexString, 0)
-			.OnTextCommitted(this, &SCharacterRangeEditor::OnRangeComponentCommittedAsHexString, 0)
-			.ToolTipText(LOCTEXT("MinCharacterRangeEditHexTooltip", "Specifies the lower inclusive boundary of this character range as the hexadecimal value of a unicode character.\nExample: If you wanted to use the range '0x41-0x5A' (A-Z), this would be set to '0x41'."))
-		]
+			SNew(SHorizontalBox)
 
-		+SGridPanel::Slot(0, 2)
-		.Padding(2.0f)
-		[
-			SNew(SNumericEntryBox<int32>)
-			.Value(this, &SCharacterRangeEditor::GetRangeComponentAsOptional, 0)
-			.OnValueCommitted(this, &SCharacterRangeEditor::OnRangeComponentCommittedAsNumeric, 0)
-			.ToolTipText(LOCTEXT("MinCharacterRangeEditDecTooltip", "Specifies the lower inclusive boundary of this character range as the decimal value of a unicode character.\nExample: If you wanted to use the range '65-90' (A-Z), this would be set to '65'."))
-		]
+			// Minimum column
+			+SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				SNew(SVerticalBox)
 
-		// Separator
-		+SGridPanel::Slot(1, 0)
-		.RowSpan(3)
-		.VAlign(VAlign_Center)
-		[
-			SNew(STextBlock)
-			.Text(FText::FromString(TEXT(" - ")))
-			.Font(FEditorStyle::GetFontStyle("DetailsView.CategoryFontStyle"))
-		]
+				+SVerticalBox::Slot()
+				.Padding(2.0f)
+				[
+					SNew(SEditableTextBox)
+					.Text(this, &SCharacterRangeEditor::GetRangeComponentAsTCHAR, 0)
+					.OnTextCommitted(this, &SCharacterRangeEditor::OnRangeComponentCommittedAsTCHAR, 0)
+					.ToolTipText(LOCTEXT("MinCharacterRangeEditCharTooltip", "Specifies the lower inclusive boundary of this character range as a literal unicode character.\nExample: If you wanted to use the range 'A-Z', this would be set to 'A'."))
+				]
 
-		// Maximum column
-		+SGridPanel::Slot(2, 0)
-		.Padding(2.0f)
-		[
-			SNew(SEditableTextBox)
-			.Text(this, &SCharacterRangeEditor::GetRangeComponentAsTCHAR, 1)
-			.OnTextCommitted(this, &SCharacterRangeEditor::OnRangeComponentCommittedAsTCHAR, 1)
-			.ToolTipText(LOCTEXT("MaxCharacterRangeEditCharTooltip", "Specifies the upper inclusive boundary of this character range as a literal unicode character.\nExample: If you wanted to use the range 'A-Z', this would be set to 'Z'."))
-		]
+				+SVerticalBox::Slot()
+				.Padding(2.0f)
+				[
+					SNew(SEditableTextBox)
+					.Text(this, &SCharacterRangeEditor::GetRangeComponentAsHexString, 0)
+					.OnTextCommitted(this, &SCharacterRangeEditor::OnRangeComponentCommittedAsHexString, 0)
+					.ToolTipText(LOCTEXT("MinCharacterRangeEditHexTooltip", "Specifies the lower inclusive boundary of this character range as the hexadecimal value of a unicode character.\nExample: If you wanted to use the range '0x41-0x5A' (A-Z), this would be set to '0x41'."))
+				]
 
-		+SGridPanel::Slot(2, 1)
-		.Padding(2.0f)
-		[
-			SNew(SEditableTextBox)
-			.Text(this, &SCharacterRangeEditor::GetRangeComponentAsHexString, 1)
-			.OnTextCommitted(this, &SCharacterRangeEditor::OnRangeComponentCommittedAsHexString, 1)
-			.ToolTipText(LOCTEXT("MaxCharacterRangeEditHexTooltip", "Specifies the upper inclusive boundary of this character range as the hexadecimal value of a unicode character.\nExample: If you wanted to use the range '0x41-0x5A' (A-Z), this would be set to '0x5A'."))
-		]
+				+SVerticalBox::Slot()
+				.Padding(2.0f)
+				[
+					SNew(SNumericEntryBox<int32>)
+					.Value(this, &SCharacterRangeEditor::GetRangeComponentAsOptional, 0)
+					.OnValueCommitted(this, &SCharacterRangeEditor::OnRangeComponentCommittedAsNumeric, 0)
+					.ToolTipText(LOCTEXT("MinCharacterRangeEditDecTooltip", "Specifies the lower inclusive boundary of this character range as the decimal value of a unicode character.\nExample: If you wanted to use the range '65-90' (A-Z), this would be set to '65'."))
+				]
+			]
 
-		+SGridPanel::Slot(2, 2)
-		.Padding(2.0f)
-		[
-			SNew(SNumericEntryBox<int32>)
-			.Value(this, &SCharacterRangeEditor::GetRangeComponentAsOptional, 1)
-			.OnValueCommitted(this, &SCharacterRangeEditor::OnRangeComponentCommittedAsNumeric, 1)
-			.ToolTipText(LOCTEXT("MaxCharacterRangeEditDecTooltip", "Specifies the upper inclusive boundary of this character range as the decimal value of a unicode character.\nExample: If you wanted to use the range '65-90' (A-Z), this would be set to '90'."))
+			// Separator
+			+SHorizontalBox::Slot()
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Center)
+			[
+				SNew(STextBlock)
+				.Text(FText::AsCultureInvariant(TEXT(" - ")))
+				.Font(FEditorStyle::GetFontStyle("DetailsView.CategoryFontStyle"))
+			]
+
+			// Maximum column
+			+SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				SNew(SVerticalBox)
+
+				+SVerticalBox::Slot()
+				.Padding(2.0f)
+				[
+					SNew(SEditableTextBox)
+					.Text(this, &SCharacterRangeEditor::GetRangeComponentAsTCHAR, 1)
+					.OnTextCommitted(this, &SCharacterRangeEditor::OnRangeComponentCommittedAsTCHAR, 1)
+					.ToolTipText(LOCTEXT("MaxCharacterRangeEditCharTooltip", "Specifies the upper inclusive boundary of this character range as a literal unicode character.\nExample: If you wanted to use the range 'A-Z', this would be set to 'Z'."))
+				]
+
+				+SVerticalBox::Slot()
+				.Padding(2.0f)
+				[
+					SNew(SEditableTextBox)
+					.Text(this, &SCharacterRangeEditor::GetRangeComponentAsHexString, 1)
+					.OnTextCommitted(this, &SCharacterRangeEditor::OnRangeComponentCommittedAsHexString, 1)
+					.ToolTipText(LOCTEXT("MaxCharacterRangeEditHexTooltip", "Specifies the upper inclusive boundary of this character range as the hexadecimal value of a unicode character.\nExample: If you wanted to use the range '0x41-0x5A' (A-Z), this would be set to '0x5A'."))
+				]
+
+				+SVerticalBox::Slot()
+				.Padding(2.0f)
+				[
+					SNew(SNumericEntryBox<int32>)
+					.Value(this, &SCharacterRangeEditor::GetRangeComponentAsOptional, 1)
+					.OnValueCommitted(this, &SCharacterRangeEditor::OnRangeComponentCommittedAsNumeric, 1)
+					.ToolTipText(LOCTEXT("MaxCharacterRangeEditDecTooltip", "Specifies the upper inclusive boundary of this character range as the decimal value of a unicode character.\nExample: If you wanted to use the range '65-90' (A-Z), this would be set to '90'."))
+				]
+			]
 		]
 	];
 }
@@ -1400,13 +1453,13 @@ FText SCharacterRangeEditor::GetRangeComponentAsTCHAR(int32 InComponentIndex) co
 {
 	const int32 RangeComponent = GetRangeComponent(InComponentIndex);
 	const TCHAR RangeComponentStr[] = { static_cast<TCHAR>(RangeComponent), 0 };
-	return FText::FromString(RangeComponentStr);
+	return FText::AsCultureInvariant(RangeComponentStr);
 }
 
 FText SCharacterRangeEditor::GetRangeComponentAsHexString(int32 InComponentIndex) const
 {
 	const int32 RangeComponent = GetRangeComponent(InComponentIndex);
-	return FText::FromString(FString::Printf(TEXT("0x%04x"), RangeComponent));
+	return FText::AsCultureInvariant(FString::Printf(TEXT("0x%04x"), RangeComponent));
 }
 
 TOptional<int32> SCharacterRangeEditor::GetRangeComponentAsOptional(int32 InComponentIndex) const
@@ -1473,8 +1526,73 @@ void SCharacterRangeEditor::SetRangeComponent(const int32 InNewValue, const int3
 			? FInt32Range(FInt32Range::BoundsType::Inclusive(InNewValue), FInt32Range::BoundsType::Inclusive(CharacterRangePtr->GetUpperBoundValue())) 
 			: FInt32Range(FInt32Range::BoundsType::Inclusive(CharacterRangePtr->GetLowerBoundValue()), FInt32Range::BoundsType::Inclusive(InNewValue));
 
+		CacheCurrentRangeSelection();
+
 		CompositeFontEditorPtr->FlushCachedFont();
 	}
+}
+
+void SCharacterRangeEditor::CacheCurrentRangeSelection()
+{
+	CurrentRangeSelection.Reset();
+
+	TArrayView<const FUnicodeBlockRange> UnicodeBlockRanges = FUnicodeBlockRange::GetUnicodeBlockRanges();
+
+	// todo: could binary search on the lower bound since they're sorted in ascending order; need the Algo for it to come back from Main
+	FInt32Range* const CharacterRangePtr = CharacterRange->GetRange();
+	if(CharacterRangePtr)
+	{
+		for(const FUnicodeBlockRange& UnicodeBlockRange : UnicodeBlockRanges)
+		{
+			if(UnicodeBlockRange.Range == *CharacterRangePtr)
+			{
+				CurrentRangeSelection = UnicodeBlockRange;
+			}
+		}
+	}
+}
+
+FText SCharacterRangeEditor::GetCurrentRangeSelectionDisplayName() const
+{
+	return CurrentRangeSelection.IsSet() ? CurrentRangeSelection->DisplayName : LOCTEXT("UnicodeBlock_CustomSelection", "Custom");
+}
+
+void SCharacterRangeEditor::OnRangeSelectionComboOpening()
+{
+	RangeSelectionComboData.Sort([](const TSharedPtr<FUnicodeBlockRange>& One, const TSharedPtr<FUnicodeBlockRange>& Two)
+	{
+		return One->DisplayName.CompareTo(Two->DisplayName) < 0;
+	});
+
+	if(RangeSelectionCombo.IsValid())
+	{
+		RangeSelectionCombo->RefreshOptions();
+	}
+}
+
+void SCharacterRangeEditor::OnRangeSelectionChanged(TSharedPtr<FUnicodeBlockRange> InNewRangeSelection, ESelectInfo::Type)
+{
+	if(InNewRangeSelection.IsValid())
+	{
+		FInt32Range* const CharacterRangePtr = CharacterRange->GetRange();
+		if(CharacterRangePtr)
+		{
+			const FScopedTransaction Transaction(LOCTEXT("UpdateCharacterRange", "Update Character Range"));
+			CompositeFontEditorPtr->GetFontObject()->Modify();
+
+			*CharacterRangePtr = InNewRangeSelection->Range;
+			CurrentRangeSelection = *InNewRangeSelection;
+
+			CompositeFontEditorPtr->FlushCachedFont();
+		}
+	}
+}
+
+TSharedRef<SWidget> SCharacterRangeEditor::MakeRangeSelectionWidget(TSharedPtr<FUnicodeBlockRange> InRangeSelection)
+{
+	return SNew(STextBlock)
+		.Text(InRangeSelection->DisplayName)
+		.ToolTipText(FText::Format(LOCTEXT("RangeSelectionTooltipFmt", "{0} ({1} - {2})"), InRangeSelection->DisplayName, FText::AsCultureInvariant(FString::Printf(TEXT("0x%04x"), InRangeSelection->Range.GetLowerBoundValue())), FText::AsCultureInvariant(FString::Printf(TEXT("0x%04x"), InRangeSelection->Range.GetUpperBoundValue()))));
 }
 
 #undef LOCTEXT_NAMESPACE

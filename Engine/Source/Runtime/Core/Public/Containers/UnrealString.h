@@ -1910,9 +1910,12 @@ namespace Lex
 {
 	/**
 	 *	Expected functions in this namespace are as follows:
-	 *		static bool		TryParseString(T& OutValue, const TCHAR* Buffer);
-	 *		static void 	FromString(T& OutValue, const TCHAR* Buffer);
-	 *		static FString	ToString(const T& OutValue);
+	 *		bool								TryParseString(T& OutValue, const TCHAR* Buffer);
+	 *		void 								FromString(T& OutValue, const TCHAR* Buffer);
+	 *		<implicitly convertible to string>	ToString(T);
+	 *		                    ^-- Generally this means it can return either FString or const TCHAR* 
+	 *		                        Generic code that uses ToString should assign to an FString or forward along to other functions
+	 *		                        that accept types that are also implicitly convertible to FString 
 	 *
 	 *	Implement custom functionality externally.
 	 */
@@ -1968,11 +1971,16 @@ namespace Lex
 		return ToString(Value);
 	}
 
-	/** Specialized for floats */
-	template<>
-	inline FString ToSanitizedString<float>(const float& Value)
+	/** Overloaded for floats */
+	inline FString ToSanitizedString(float Value)
 	{
-		return FString::SanitizeFloat( Value );
+		return FString::SanitizeFloat(Value);
+	}
+
+	/** Overloaded for doubles */
+	inline FString ToSanitizedString(double Value)
+	{
+		return FString::SanitizeFloat(Value);
 	}
 
 
@@ -2196,5 +2204,15 @@ public:
  * @return the index in the given string of the closing parenthesis
  */
 CORE_API int32 FindMatchingClosingParenthesis(const FString& TargetString, const int32 StartSearch = 0);
+
+/**
+* Given a display label string, generates an FString slug that only contains valid characters for an FName.
+* For example, "[MyObject]: Object Label" becomes "MyObjectObjectLabel" FName slug.
+*
+* @param DisplayLabel The label string to convert to an FName
+*
+* @return	The slugged string
+*/
+CORE_API FString SlugStringForValidName(const FString& DisplayString);
 
 #include "Misc/StringFormatArg.h"

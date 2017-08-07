@@ -39,7 +39,7 @@ void SWeakWidget::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrange
 		ArrangedChildren.AddWidget( AllottedGeometry.MakeChild(
 			MyContent,
 			FVector2D(0,0),
-			AllottedGeometry.Size
+			AllottedGeometry.GetLocalSize()
 			) );
 	}
 }
@@ -51,7 +51,7 @@ FChildren* SWeakWidget::GetChildren()
 }
 
 
-int32 SWeakWidget::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SWeakWidget::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	// Just draw the children.
 	FArrangedChildren ArrangedChildren(EVisibility::Visible);
@@ -66,7 +66,7 @@ int32 SWeakWidget::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 		return TheChild.Widget->Paint( 
 			Args.WithNewParent(this), 
 			TheChild.Geometry, 
-			MyClippingRect, 
+			MyCullingRect, 
 			OutDrawElements, 
 			LayerId + 1,
 			InWidgetStyle, 

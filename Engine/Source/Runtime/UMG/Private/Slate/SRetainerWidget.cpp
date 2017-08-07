@@ -255,16 +255,13 @@ void SRetainerWidget::PaintRetainedContent(float DeltaTime)
 			LastTickedFrame = GFrameCounter;
 			const double TimeSinceLastDraw = FApp::GetCurrentTime() - LastDrawTime;
 
+			//const FSlateRenderTransform& RenderTransform = CachedAllottedGeometry.GetAccumulatedRenderTransform();
+
 			FPaintGeometry PaintGeometry = CachedAllottedGeometry.ToPaintGeometry();
+			FVector2D RenderSize = PaintGeometry.GetLocalSize() * PaintGeometry.GetAccumulatedRenderTransform().GetMatrix().GetScale().GetVector();
 
-			// extract the layout transform from the draw element
-			FSlateLayoutTransform InverseLayoutTransform(Inverse(FSlateLayoutTransform(PaintGeometry.DrawScale, PaintGeometry.DrawPosition)));
-
-			// The clip rect is NOT subject to the rotations specified by MakeRotatedBox.
-			FSlateRotatedRect RenderClipRect = FSlateRotatedRect::MakeSnappedRotatedRect(CachedClippingRect, InverseLayoutTransform, CachedAllottedGeometry.GetAccumulatedRenderTransform());
-
-			const uint32 RenderTargetWidth  = FMath::RoundToInt(RenderClipRect.ExtentX.X);
-			const uint32 RenderTargetHeight = FMath::RoundToInt(RenderClipRect.ExtentY.Y);
+			const uint32 RenderTargetWidth  = FMath::RoundToInt(RenderSize.X);
+			const uint32 RenderTargetHeight = FMath::RoundToInt(RenderSize.Y);
 
 			const FVector2D ViewOffset = PaintGeometry.DrawPosition.RoundToVector();
 
@@ -288,7 +285,7 @@ void SRetainerWidget::PaintRetainedContent(float DeltaTime)
 						RenderTarget->TargetGamma = bDynamicMaterialInUse ? 2.2f : 1.0f;
 						RenderTarget->SRGB = bDynamicMaterialInUse;
 						RenderTarget->InitCustomFormat(RenderTargetWidth, RenderTargetHeight, PF_B8G8R8A8, bForceLinearGamma);
-						RenderTarget->UpdateResourceImmediate();
+						RenderTarget->UpdateResource();
 					}
 
 					const float Scale = CachedAllottedGeometry.Scale;
@@ -306,7 +303,7 @@ void SRetainerWidget::PaintRetainedContent(float DeltaTime)
 						HitTestGrid.ToSharedRef(),
 						Window.ToSharedRef(),
 						WindowGeometry,
-						WindowGeometry.GetClippingRect(),
+						WindowGeometry.GetLayoutBoundingRect(),
 						TimeSinceLastDraw);
 				}
 			}
@@ -316,7 +313,7 @@ void SRetainerWidget::PaintRetainedContent(float DeltaTime)
 	}
 }
 
-int32 SRetainerWidget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+int32 SRetainerWidget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	STAT(FScopeCycleCounter PaintCycleCounter(MyStatId);)
 
@@ -330,14 +327,9 @@ int32 SRetainerWidget::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 		SCOPE_CYCLE_COUNTER( STAT_SlateRetainerWidgetPaint );
 		CachedAllottedGeometry = AllottedGeometry;
 		CachedWindowToDesktopTransform = Args.GetWindowToDesktopTransform();
-		CachedClippingRect = MyClippingRect;
 
 		{
-			extern SLATECORE_API TOptional<FShortRect> GSlateScissorRect;
-			TOptional<FShortRect> OldRect = GSlateScissorRect;
-			GSlateScissorRect = TOptional<FShortRect>();
 			MutableThis->PaintRetainedContent(FApp::GetDeltaTime());
-			GSlateScissorRect = OldRect;
 		}
 
 		if ( RenderTarget->GetSurfaceWidth() >= 1 && RenderTarget->GetSurfaceHeight() >= 1 )
@@ -357,7 +349,6 @@ int32 SRetainerWidget::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 				LayerId,
 				AllottedGeometry.ToPaintGeometry(),
 				&SurfaceBrush,
-				MyClippingRect,
 				bDynamicMaterialInUse ? ESlateDrawEffect::PreMultipliedAlpha : ESlateDrawEffect::PreMultipliedAlpha | ESlateDrawEffect::NoGamma,
 				FLinearColor(PremultipliedColorAndOpacity.R, PremultipliedColorAndOpacity.G, PremultipliedColorAndOpacity.B, PremultipliedColorAndOpacity.A)
 				);
@@ -377,7 +368,7 @@ int32 SRetainerWidget::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 	}
 	else if( bShouldRenderAnything )
 	{
-		return SCompoundWidget::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+		return SCompoundWidget::OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 	}
 
 	return LayerId;

@@ -1,8 +1,11 @@
-﻿INTSourceChangelist:3275202
+﻿INTSourceChangelist:3429227
 Availability:Public
 Title:一般的なアクタの種類
 Crumbs: %ROOT%, Engine, Engine/Actors
 Description:レベルで使用する一般的なアクタの種類のリストおよび説明
+parent:Engine/Actors
+type:overview
+order:0
 
 以下は、アンリアル エンジンを用いてゲーム開発をする場合に一般的に使用するアクタを簡単に分類したものです。 
 この分類は、どのようなアクタか、なぜ使用するかについて慣れ親しんでいただくためのものです。

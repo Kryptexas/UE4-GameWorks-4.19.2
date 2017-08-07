@@ -96,9 +96,6 @@ bool GCompilingBlueprint = false;
 /** True if we're reconstructing blueprint instances. Should never be true on cooked builds */
 bool GIsReconstructingBlueprintInstances = false;
 
-/** Force blueprints to not compile on load */
-bool GForceDisableBlueprintCompileOnLoad = false;
-
 /** True if actors and objects are being re-instanced. */
 bool GIsReinstancing = false;
 
@@ -280,17 +277,19 @@ bool					GPumpingMessagesOutsideOfMainLoop = false;
 /** Enables various editor and HMD hacks that allow the experimental VR editor feature to work, perhaps at the expense of other systems */
 bool					GEnableVREditorHacks = false;
 
-CORE_API bool			GIsGPUCrashed = false;
+bool CORE_API			GIsGPUCrashed = false;
 
-// Constrain bandwidth if wanted. Value is in MByte/ sec.
-float GAsyncIOBandwidthLimit = 0.0f;
-static FAutoConsoleVariableRef CVarAsyncIOBandwidthLimit(
-	TEXT("s.AsyncIOBandwidthLimit"),
-	GAsyncIOBandwidthLimit,
-	TEXT("Constrain bandwidth if wanted. Value is in MByte/ sec."),
-	ECVF_Default
-	);
+void ToggleGDebugPUCrashedFlag(const TArray<FString>& Args)
+{
+	GIsGPUCrashed = !GIsGPUCrashed;
+	UE_LOG(LogCore, Log, TEXT("Gpu crashed flag forcibly set to: %i"), GIsGPUCrashed ? 1 : 0);
+}
 
+FAutoConsoleCommand ToggleDebugGPUCrashedCmd(
+	TEXT("c.ToggleGPUCrashedFlagDbg"),
+	TEXT("Forcibly toggles the 'GPU Crashed' flag for testing crash analytics."),
+	FConsoleCommandWithArgsDelegate::CreateStatic(&ToggleGDebugPUCrashedFlag),
+	ECVF_Cheat);
 
 DEFINE_STAT(STAT_AudioMemory);
 DEFINE_STAT(STAT_TextureMemory);

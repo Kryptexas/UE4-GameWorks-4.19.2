@@ -102,7 +102,7 @@ public:
 	virtual int32 RenameNotify(const FName& NewName, const FName& OldName) = 0;
 
 	/** Populates OutAssets with the AnimSequences that match this current skeleton */
-	virtual void GetCompatibleAnimSequences(TArray<class FAssetData>& OutAssets) = 0;
+	virtual void GetCompatibleAnimSequences(TArray<struct FAssetData>& OutAssets) = 0;
 
 	/** Set the preview mesh in the skeleton*/
 	virtual void SetPreviewMesh(class USkeletalMesh* InSkeletalMesh) = 0;
@@ -111,7 +111,7 @@ public:
 	virtual void LoadAdditionalPreviewSkeletalMeshes() = 0;
 
 	/** Set the additional skeletal meshes we use when previewing this skeleton */
-	virtual void SetAdditionalPreviewSkeletalMeshes(class UPreviewMeshCollection* InSkeletalMeshes) = 0;
+	virtual void SetAdditionalPreviewSkeletalMeshes(class UDataAsset* InPreviewCollectionAsset) = 0;
 
 	/** Rename the specified retarget source */
 	virtual void RenameRetargetSource(const FName& InOldName, const FName& InNewName) = 0;

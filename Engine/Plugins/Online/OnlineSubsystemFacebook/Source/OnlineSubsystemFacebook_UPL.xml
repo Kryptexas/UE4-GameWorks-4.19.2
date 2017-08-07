@@ -76,6 +76,11 @@
 	<proguardAdditions>
 		<if condition="bEnabled">
 			<true>
+				<insert>
+-keep class epicgames.ue4.FacebookLogin.** {
+	public *;
+}  
+				</insert>
 			</true>
 		</if>
 	</proguardAdditions>

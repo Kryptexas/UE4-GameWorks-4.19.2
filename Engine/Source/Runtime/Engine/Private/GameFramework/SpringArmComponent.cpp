@@ -48,6 +48,18 @@ void USpringArmComponent::UpdateDesiredArmLocation(bool bDoTrace, bool bDoLocati
 {
 	FRotator DesiredRot = GetComponentRotation();
 
+	if (bUsePawnControlRotation)
+	{
+		if (APawn* OwningPawn = Cast<APawn>(GetOwner()))
+		{
+			const FRotator PawnViewRotation = OwningPawn->GetViewRotation();
+			if (DesiredRot != PawnViewRotation)
+			{
+				DesiredRot = PawnViewRotation;
+			}
+		}
+	}
+
 	// If inheriting rotation, check options for which components to inherit
 	if(!bAbsoluteRotation)
 	{
@@ -157,8 +169,7 @@ void USpringArmComponent::UpdateDesiredArmLocation(bool bDoTrace, bool bDoLocati
 	FVector ResultLoc;
 	if (bDoTrace && (TargetArmLength != 0.0f))
 	{
-		static FName TraceTagName(TEXT("SpringArm"));
-		FCollisionQueryParams QueryParams(TraceTagName, false, GetOwner());
+		FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(SpringArm), false, GetOwner());
 
 		FHitResult Result;
 		GetWorld()->SweepSingleByChannel(Result, ArmOrigin, DesiredLoc, FQuat::Identity, ProbeChannel, FCollisionShape::MakeSphere(ProbeSize), QueryParams);
@@ -173,7 +184,7 @@ void USpringArmComponent::UpdateDesiredArmLocation(bool bDoTrace, bool bDoLocati
 	// Form a transform for new world transform for camera
 	FTransform WorldCamTM(DesiredRot, ResultLoc);
 	// Convert to relative to component
-	FTransform RelCamTM = WorldCamTM.GetRelativeTransform(ComponentToWorld);
+	FTransform RelCamTM = WorldCamTM.GetRelativeTransform(GetComponentTransform());
 
 	// Update socket location/rotation
 	RelativeSocketLocation = RelCamTM.GetLocation();
@@ -185,6 +196,13 @@ void USpringArmComponent::UpdateDesiredArmLocation(bool bDoTrace, bool bDoLocati
 FVector USpringArmComponent::BlendLocations(const FVector& DesiredArmLocation, const FVector& TraceHitLocation, bool bHitSomething, float DeltaTime)
 {
 	return bHitSomething ? TraceHitLocation : DesiredArmLocation;
+}
+
+void USpringArmComponent::ApplyWorldOffset(const FVector & InOffset, bool bWorldShift)
+{
+	Super::ApplyWorldOffset(InOffset, bWorldShift);
+	PreviousDesiredLoc += InOffset;
+	PreviousArmOrigin += InOffset;
 }
 
 void USpringArmComponent::OnRegister()
@@ -213,19 +231,6 @@ void USpringArmComponent::PostLoad()
 void USpringArmComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-	if (bUsePawnControlRotation)
-	{
-		if (APawn* OwningPawn = Cast<APawn>(GetOwner()))
-		{
-			const FRotator PawnViewRotation = OwningPawn->GetViewRotation();
-			if (PawnViewRotation != GetComponentRotation())
-			{
-				SetWorldRotation(PawnViewRotation);
-			}
-		}
-	}
-
 	UpdateDesiredArmLocation(bDoCollisionTest, bEnableCameraLag, bEnableCameraRotationLag, DeltaTime);
 }
 
@@ -237,14 +242,14 @@ FTransform USpringArmComponent::GetSocketTransform(FName InSocketName, ERelative
 	{
 		case RTS_World:
 		{
-			return RelativeTransform * ComponentToWorld;
+			return RelativeTransform * GetComponentTransform();
 			break;
 		}
 		case RTS_Actor:
 		{
 			if( const AActor* Actor = GetOwner() )
 			{
-				FTransform SocketTransform = RelativeTransform * ComponentToWorld;
+				FTransform SocketTransform = RelativeTransform * GetComponentTransform();
 				return SocketTransform.GetRelativeTransform(Actor->GetTransform());
 			}
 			break;

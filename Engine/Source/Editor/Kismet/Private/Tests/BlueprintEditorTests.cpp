@@ -607,7 +607,7 @@ namespace BlueprintEditorPromotionUtils
 	static void AddStringMemberValue(UBlueprint* InBlueprint, const FName& VariableName)
 	{
 		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-		FEdGraphPinType StringPinType(K2Schema->PC_String, TEXT(""), NULL, false, false, false, false, FEdGraphTerminalType());
+		FEdGraphPinType StringPinType(K2Schema->PC_String, FString(), nullptr, EPinContainerType::None, false, FEdGraphTerminalType());
 		FBlueprintEditorUtils::AddMemberVariable(InBlueprint, VariableName, StringPinType);
 	}
 

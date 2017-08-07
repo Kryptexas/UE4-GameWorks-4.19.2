@@ -68,7 +68,7 @@ public:
 
 #define IMPLEMENT_LENSE_FLARE_BASE(_bClearRegion) \
 typedef TPostProcessLensFlareBasePS< _bClearRegion > FPostProcessLensFlareBasePS##_bClearRegion ;\
-IMPLEMENT_SHADER_TYPE(template<>,FPostProcessLensFlareBasePS##_bClearRegion ,TEXT("PostProcessLensFlares"),TEXT("CopyPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,FPostProcessLensFlareBasePS##_bClearRegion ,TEXT("/Engine/Private/PostProcessLensFlares.usf"),TEXT("CopyPS"),SF_Pixel);
 
 IMPLEMENT_LENSE_FLARE_BASE(true)
 IMPLEMENT_LENSE_FLARE_BASE(false)
@@ -123,7 +123,7 @@ public:
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessLensFlaresPS,TEXT("PostProcessLensFlares"),TEXT("MainPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FPostProcessLensFlaresPS,TEXT("/Engine/Private/PostProcessLensFlares.usf"),TEXT("MainPS"),SF_Pixel);
 
 
 
@@ -168,12 +168,12 @@ void FRCPassPostProcessLensFlares::Process(FRenderingCompositePassContext& Conte
 		
 	if (Context.HasHmdMesh() && View.StereoPass == eSSP_LEFT_EYE)
 	{
-		DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor::Black, false, 0, false, 0);
+		DrawClearQuad(Context.RHICmdList, true, FLinearColor::Black, false, 0, false, 0);
 	}
 	else
 	{
 		// is optimized away if possible (RT size=view size, )
-		DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor::Black, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, ViewRect1);
+		DrawClearQuad(Context.RHICmdList, true, FLinearColor::Black, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, ViewRect1);
 	}
 
 	Context.SetViewportAndCallRHI(ViewRect1);

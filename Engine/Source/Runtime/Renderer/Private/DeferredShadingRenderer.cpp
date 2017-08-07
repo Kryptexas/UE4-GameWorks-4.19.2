@@ -427,17 +427,9 @@ static void SetAndClearViewGBuffer(FRHICommandListImmediate& RHICmdList, FViewIn
 	FSceneRenderTargets::Get(RHICmdList).BeginRenderingGBuffer(RHICmdList, ERenderTargetLoadAction::EClear, DepthLoadAction, DepthStencilAccess, View.Family->EngineShowFlags.ShaderComplexity, ClearColor);
 }
 
-static TAutoConsoleVariable<int32> CVarOcclusionQueryLocation(
-	TEXT("r.OcclusionQueryLocation"),
-	0,
-	TEXT("Controls when occlusion queries are rendered.  Rendering before the base pass may give worse occlusion (because not all occluders generally render in the earlyzpass).  ")
-	TEXT("However, it may reduce CPU waiting for query result stalls on some platforms and increase overall performance.")
-	TEXT("0: After BasePass.")
-	TEXT("1: After EarlyZPass, but before BasePass."));
-
-void FDeferredShadingSceneRenderer::RenderOcclusion(FRHICommandListImmediate& RHICmdList, bool bRenderQueries, bool bRenderHZB)
+void FDeferredShadingSceneRenderer::RenderOcclusion(FRHICommandListImmediate& RHICmdList, bool bRenderQueries)
 {		
-	if (bRenderQueries || bRenderHZB)
+	if (bRenderQueries)
 	{
 		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
@@ -454,7 +446,6 @@ void FDeferredShadingSceneRenderer::RenderOcclusion(FRHICommandListImmediate& RH
 		// This is done after the downsampled depth buffer is created so that it can be used for issuing queries
 		BeginOcclusionTests(RHICmdList, bRenderQueries);
 
-		if (bRenderHZB)
 		{
 			RHICmdList.TransitionResource( EResourceTransitionAccess::EReadable, SceneContext.GetSceneDepthSurface() );
 
@@ -494,7 +485,7 @@ void FDeferredShadingSceneRenderer::RenderOcclusion(FRHICommandListImmediate& RH
 		// for these query results on some platforms.
 		RHICmdList.SubmitCommandsHint();
 
-		if (bRenderQueries && GRHIThread)
+		if (bRenderQueries && IsRunningRHIInSeparateThread())
 		{
 			SCOPE_CYCLE_COUNTER(STAT_OcclusionSubmittedFence_Dispatch);
 			int32 NumFrames = FOcclusionQueryHelpers::GetNumBufferedFrames();
@@ -531,6 +522,8 @@ static TAutoConsoleVariable<float> CVarStallInitViews(
 
 void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 {
+	SCOPED_NAMED_EVENT(FDeferredShadingSceneRenderer_Render, FColor::Emerald);
+
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 	
 	//make sure all the targets we're going to use will be safely writable.
@@ -541,7 +534,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 	bool bDBuffer = IsDBufferEnabled();	
 
-	if (GRHIThread)
+	if (IsRunningRHIInSeparateThread())
 	{
 		SCOPE_CYCLE_COUNTER(STAT_OcclusionSubmittedFence_Wait);
 		int32 BlockFrame = FOcclusionQueryHelpers::GetNumBufferedFrames() - 1;
@@ -622,7 +615,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		}	
 	}
 
-	if (GRHIThread)
+	if (IsRunningRHIInSeparateThread())
 	{
 		// we will probably stall on occlusion queries, so might as well have the RHI thread and GPU work while we wait.
 		SCOPE_CYCLE_COUNTER(STAT_PostInitViews_FlushDel);
@@ -639,6 +632,20 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		&& FeatureLevel >= ERHIFeatureLevel::SM4
 		&& ViewFamily.EngineShowFlags.DeferredLighting
 		&& bUseGBuffer;
+
+	bool bComputeLightGrid = false;
+	if (bUseGBuffer)
+	{
+		bComputeLightGrid = bRenderDeferredLighting;
+	}
+	else
+	{
+		bComputeLightGrid = ViewFamily.EngineShowFlags.Lighting;
+	}
+
+	bComputeLightGrid |= (
+		ShouldRenderVolumetricFog() ||
+		ViewFamily.ViewMode != VMI_Lit);
 
 	if (ClearMethodCVar)
 	{
@@ -791,11 +798,9 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		SceneContext.AllocGBufferTargets(RHICmdList);
 	}	
 
-	//occlusion can't run before basepass if there's no prepass to fill in some depth to occlude against.
-	bool bOcclusionBeforeBasePass = ((CVarOcclusionQueryLocation.GetValueOnRenderThread() == 1) && bNeedsPrePass) || IsForwardShadingEnabled(FeatureLevel);
-	bool bHZBBeforeBasePass = bOcclusionBeforeBasePass && (EarlyZPassMode == EDepthDrawingMode::DDM_AllOccluders || EarlyZPassMode == EDepthDrawingMode::DDM_AllOpaque);
+	const bool bOcclusionBeforeBasePass = (EarlyZPassMode == EDepthDrawingMode::DDM_AllOccluders) || (EarlyZPassMode == EDepthDrawingMode::DDM_AllOpaque);
 
-	RenderOcclusion(RHICmdList, bOcclusionBeforeBasePass, bHZBBeforeBasePass);
+	RenderOcclusion(RHICmdList, bOcclusionBeforeBasePass);
 	ServiceLocalQueue();
 
 	if (bOcclusionBeforeBasePass)
@@ -818,7 +823,10 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		RenderCustomDepthPassAtLocation(RHICmdList, 0);
 	}
 
-	ComputeLightGrid(RHICmdList);
+	if (bComputeLightGrid)
+	{
+		ComputeLightGrid(RHICmdList);
+	}
 
 	if (bOcclusionBeforeBasePass)
 	{
@@ -919,7 +927,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	{
 		// clear out emissive and baked lighting (not too efficient but simple and only needed for this debug view)
 		SceneContext.BeginRenderingSceneColor(RHICmdList);
-		DrawClearQuad(RHICmdList, GMaxRHIFeatureLevel, FLinearColor(0, 0, 0, 0));
+		DrawClearQuad(RHICmdList, FLinearColor(0, 0, 0, 0));
 	}
 
 	SceneContext.DBufferA.SafeRelease();
@@ -945,21 +953,20 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	SceneContext.ResolveSceneDepthToAuxiliaryTexture(RHICmdList);
 
 	bool bOcclusionAfterBasePass = bIsOcclusionTesting && !bOcclusionBeforeBasePass;
-	bool bHZBAfterBasePass = !bHZBBeforeBasePass;
-	RenderOcclusion(RHICmdList, bOcclusionAfterBasePass, bHZBAfterBasePass);
+	RenderOcclusion(RHICmdList, bOcclusionAfterBasePass);
 	ServiceLocalQueue();
+
+	if (bUseGBuffer)
+	{
+		SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_Resolve_After_Basepass);
+		SceneContext.FinishRenderingGBuffer(RHICmdList);
+	}
 
 	if (!bOcclusionBeforeBasePass)
 	{
 		RenderShadowDepthMaps(RHICmdList);
 		ComputeVolumetricFog(RHICmdList);
 		ServiceLocalQueue();
-	}
-
-	if (bUseGBuffer)
-	{
-		SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_Resolve_After_Basepass);
-		SceneContext.FinishRenderingGBuffer(RHICmdList);
 	}
 
 	if(GetCustomDepthPassLocation() == 1)
@@ -1013,6 +1020,10 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_AfterBasePass);
 
 		GRenderTargetPool.AddPhaseEvent(TEXT("AfterBasePass"));
+		if (!IsForwardShadingEnabled(FeatureLevel))
+		{
+			SceneContext.ResolveSceneDepthTexture(RHICmdList, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
+		}
 
 		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 		{
@@ -1104,6 +1115,8 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		RenderDeferredReflections(RHICmdList, DynamicBentNormalAO, VelocityRT);
 		ServiceLocalQueue();
 
+		DynamicBentNormalAO = NULL;
+
 		// Post-lighting composition lighting stage
 		// e.g. ScreenSpaceSubsurfaceScattering
 		for(int32 ViewIndex = 0; ViewIndex < Views.Num(); ++ViewIndex)
@@ -1184,7 +1197,19 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		SCOPE_CYCLE_COUNTER(STAT_TranslucencyDrawTime);
 
 		RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_Translucency));
-		RenderTranslucency(RHICmdList);
+
+		// For now there is only one resolve for all translucency passes. This can be changed by enabling the resolve in RenderTranslucency()
+		ConditionalResolveSceneColorForTranslucentMaterials(RHICmdList);
+		if (ViewFamily.AllowTranslucencyAfterDOF())
+		{
+			RenderTranslucency(RHICmdList, ETranslucencyPass::TPT_StandardTranslucency);
+			// Translucency after DOF is rendered now, but stored in the separate translucency RT for later use.
+			RenderTranslucency(RHICmdList, ETranslucencyPass::TPT_TranslucencyAfterDOF);
+		}
+		else // Otherwise render translucent primitives in a single bucket.
+		{
+			RenderTranslucency(RHICmdList, ETranslucencyPass::TPT_AllTranslucency);
+		}
 		ServiceLocalQueue();
 
 		static const auto DisableDistortionCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.DisableDistortion"));
@@ -1199,6 +1224,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 			RenderDistortion(RHICmdList);
 			ServiceLocalQueue();
 		}
+
 		RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_AfterTranslucency));
 	}
 
@@ -1266,7 +1292,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		}
 
 		// End of frame, we don't need it anymore
-		FSceneRenderTargets::Get(RHICmdList).FreeSeparateTranslucencyDepth();
+		FSceneRenderTargets::Get(RHICmdList).FreeDownsampledTranslucencyDepth();
 
 		// we rendered to it during the frame, seems we haven't made use of it, because it should be released
 		check(!FSceneRenderTargets::Get(RHICmdList).SeparateTranslucencyRT);
@@ -1355,7 +1381,7 @@ public:
 	FShaderParameter UseMaxDepth;
 };
 
-IMPLEMENT_SHADER_TYPE(,FDownsampleSceneDepthPS,TEXT("DownsampleDepthPixelShader"),TEXT("Main"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FDownsampleSceneDepthPS,TEXT("/Engine/Private/DownsampleDepthPixelShader.usf"),TEXT("Main"),SF_Pixel);
 
 /** Updates the downsized depth buffer with the current full resolution depth buffer. */
 void FDeferredShadingSceneRenderer::UpdateDownsampledDepthSurface(FRHICommandList& RHICmdList)
@@ -1466,7 +1492,7 @@ public:
 	FShaderResourceParameter SceneStencilTexture;
 };
 
-IMPLEMENT_SHADER_TYPE(,FCopyStencilToLightingChannelsPS,TEXT("DownsampleDepthPixelShader"),TEXT("CopyStencilToLightingChannelsPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FCopyStencilToLightingChannelsPS,TEXT("/Engine/Private/DownsampleDepthPixelShader.usf"),TEXT("CopyStencilToLightingChannelsPS"),SF_Pixel);
 
 void FDeferredShadingSceneRenderer::CopyStencilToLightingChannelTexture(FRHICommandList& RHICmdList)
 {

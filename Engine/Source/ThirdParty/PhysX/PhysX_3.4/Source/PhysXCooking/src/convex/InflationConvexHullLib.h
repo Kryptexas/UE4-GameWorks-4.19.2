@@ -54,7 +54,8 @@ namespace physx
 			eSUCCESS = 0,		// success!
 			eFAILURE,		// failed.
 			eVERTEX_LIMIT_REACHED,		// vertex limit reached fallback.
-			eZERO_AREA_TEST_FAILED// area test failed - failed to create simplex
+			eZERO_AREA_TEST_FAILED,		// area test failed - failed to create simplex
+			ePOLYGON_LIMIT_REACHED		// polygons hard limit 255 reached
 		};
 
 		PxU32	mVcount;
@@ -94,6 +95,9 @@ namespace physx
 
 		// computes the convex hull from provided points
 		virtual PxConvexMeshCookingResult::Enum createConvexHull();
+
+		// Inflation convex hull does not store edge information so we cannot provide the edge list
+		virtual bool createEdgeList(const PxU32 , const PxU8* , PxU8** , PxU16** , PxU16** ) { return false; }
 
 		// fills the convexmeshdesc with computed hull data
 		virtual void fillConvexMeshDesc(PxConvexMeshDesc& desc);

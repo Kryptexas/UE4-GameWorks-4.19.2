@@ -962,7 +962,7 @@ FORCEINLINE_DEBUGGABLE void ExportComponent(UActorComponent* Component, FRecastG
 	UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(Component);
 	if (PrimComp && PrimComp->IsNavigationRelevant() && (PrimComp->HasCustomNavigableGeometry() != EHasCustomNavigableGeometry::DontExport))
 	{
-		if (PrimComp->HasCustomNavigableGeometry() && !PrimComp->DoCustomNavigableGeometryExport(GeomExport)) 
+		if ((PrimComp->HasCustomNavigableGeometry() != EHasCustomNavigableGeometry::Type::No) && !PrimComp->DoCustomNavigableGeometryExport(GeomExport))
 		{
 			bHasData = true;
 		}
@@ -972,7 +972,7 @@ FORCEINLINE_DEBUGGABLE void ExportComponent(UActorComponent* Component, FRecastG
 		{
 			if (!bHasData)
 			{
-				ExportRigidBodySetup(*BodySetup, GeomExport.VertexBuffer, GeomExport.IndexBuffer, GeomExport.Data->Bounds, PrimComp->ComponentToWorld);
+				ExportRigidBodySetup(*BodySetup, GeomExport.VertexBuffer, GeomExport.IndexBuffer, GeomExport.Data->Bounds, PrimComp->GetComponentTransform());
 				bHasData = true;
 			}
 
@@ -2599,6 +2599,12 @@ bool FRecastTileGenerator::GenerateNavigationData(FNavMeshBuildContext& BuildCon
 				BuildContext.log(RC_LOG_ERROR, "GenerateNavigationData: Failed to build regions.");
 				return false;
 			}
+
+			// skip empty layer
+			if (GenerationContext.Layer->regCount <= 0)
+			{
+				continue;
+			}
 		}
 	
 		{
@@ -2625,6 +2631,12 @@ bool FRecastTileGenerator::GenerateNavigationData(FNavMeshBuildContext& BuildCon
 			{
 				BuildContext.log(RC_LOG_ERROR, "GenerateNavigationData: Failed to generate contour set (0x%08X).", status);
 				return false;
+			}
+
+			// skip empty layer, sometimes there are regions assigned but all flagged as empty (id=0)
+			if (GenerationContext.ContourSet->nconts <= 0)
+			{
+				continue;
 			}
 		}
 
@@ -2795,23 +2807,25 @@ void FRecastTileGenerator::MarkDynamicAreas(dtTileCacheLayer& Layer)
 				for (int32 AreaIdx = Element.Areas.Num() - 1; AreaIdx >= 0; AreaIdx--)
 				{
 					const FAreaNavModifier& AreaMod = Element.Areas[AreaIdx];
-					if (AreaMod.GetAreaClassToReplace() == UNavArea_LowHeight::StaticClass())
+					if (AreaMod.GetApplyMode() == ENavigationAreaMode::ApplyInLowPass ||
+						AreaMod.GetApplyMode() == ENavigationAreaMode::ReplaceInLowPass)
 					{
 						const int32* AreaIDPtr = AdditionalCachedData.AreaClassToIdMap.Find(AreaMod.GetAreaClass());
+						// replace area will be fixed as LowAreaId during this pass, regardless settings in area modifier
+						const int32* ReplaceAreaIDPtr = (AreaMod.GetApplyMode() == ENavigationAreaMode::ReplaceInLowPass) ? &LowAreaId : nullptr;
+
 						if (AreaIDPtr != nullptr)
 						{
 							for (const FTransform& LocalToWorld : Element.PerInstanceTransform)
 							{
-								MarkDynamicArea(AreaMod, LocalToWorld, Layer, *AreaIDPtr, &LowAreaId);
+								MarkDynamicArea(AreaMod, LocalToWorld, Layer, *AreaIDPtr, ReplaceAreaIDPtr);
 							}
 
 							if (Element.PerInstanceTransform.Num() == 0)
 							{
-								MarkDynamicArea(AreaMod, FTransform::Identity, Layer, *AreaIDPtr, &LowAreaId);
+								MarkDynamicArea(AreaMod, FTransform::Identity, Layer, *AreaIDPtr, ReplaceAreaIDPtr);
 							}
 						}
-
-						Element.Areas.RemoveAt(AreaIdx, 1, false);
 					}
 				}
 			}
@@ -2825,8 +2839,15 @@ void FRecastTileGenerator::MarkDynamicAreas(dtTileCacheLayer& Layer)
 		{
 			for (const FAreaNavModifier& Area : Element.Areas)
 			{
+				if (Area.GetApplyMode() == ENavigationAreaMode::ApplyInLowPass || Area.GetApplyMode() == ENavigationAreaMode::ReplaceInLowPass)
+				{
+					continue;
+				}
+
 				const int32* AreaIDPtr = AdditionalCachedData.AreaClassToIdMap.Find(Area.GetAreaClass());
-				const int32* ReplaceIDPtr = Area.GetAreaClassToReplace() ? AdditionalCachedData.AreaClassToIdMap.Find(Area.GetAreaClassToReplace()) : nullptr;
+				const int32* ReplaceIDPtr = (Area.GetApplyMode() == ENavigationAreaMode::Replace) && Area.GetAreaClassToReplace() ?
+					AdditionalCachedData.AreaClassToIdMap.Find(Area.GetAreaClassToReplace()) : nullptr;
+				
 				if (AreaIDPtr)
 				{
 					for (const FTransform& LocalToWorld : Element.PerInstanceTransform)
@@ -3367,11 +3388,13 @@ bool FRecastNavMeshGenerator::RebuildAll()
 
 void FRecastNavMeshGenerator::EnsureBuildCompletion()
 {
-	const bool bHasTasks = GetNumRemaningBuildTasks() > 0;
+	const bool bHadTasks = GetNumRemaningBuildTasks() > 0;
 	
+	const bool bDoAsyncDataGathering = (GatherGeometryOnGameThread() == false);
 	do 
 	{
-		ProcessTileTasks(16);
+		const int32 NumTasksToSubmit = (bDoAsyncDataGathering ? 1 : MaxTileGeneratorTasks) - RunningDirtyTiles.Num();
+		ProcessTileTasks(NumTasksToSubmit);
 		
 		// Block until tasks are finished
 		for (FRunningTileElement& Element : RunningDirtyTiles)
@@ -3382,7 +3405,7 @@ void FRecastNavMeshGenerator::EnsureBuildCompletion()
 	while (GetNumRemaningBuildTasks() > 0);
 
 	// Update navmesh drawing only if we had something to build
-	if (bHasTasks)
+	if (bHadTasks)
 	{
 		DestNavMesh->RequestDrawingUpdate();
 	}
@@ -3646,7 +3669,7 @@ TArray<uint32> FRecastNavMeshGenerator::RemoveTileLayers(const int32 TileX, cons
 	
 	if (DetourMesh != nullptr && DetourMesh->isEmpty() == false)
 	{
-		const int32 NumLayers = DetourMesh != nullptr ? DetourMesh->getTileCountAt(TileX, TileY) : 0;
+		const int32 NumLayers = DetourMesh->getTileCountAt(TileX, TileY);
 
 		if (NumLayers > 0)
 		{

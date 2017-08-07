@@ -148,4 +148,4 @@ void FParticleBeamTrailVertexFactory::SetDynamicParameterBuffer(const FVertexBuf
 
 ///////////////////////////////////////////////////////////////////////////////
 
-IMPLEMENT_VERTEX_FACTORY_TYPE(FParticleBeamTrailVertexFactory,"ParticleBeamTrailVertexFactory",true,false,true,false,false);
+IMPLEMENT_VERTEX_FACTORY_TYPE(FParticleBeamTrailVertexFactory,"/Engine/Private/ParticleBeamTrailVertexFactory.ush",true,false,true,false,false);

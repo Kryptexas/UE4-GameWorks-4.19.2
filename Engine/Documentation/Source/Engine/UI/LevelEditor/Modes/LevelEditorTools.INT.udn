@@ -3,6 +3,7 @@ Title:Level Editor Modes
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
 Description:Set of tools used to control the mode the Level Editor is currently in, reshape the builder brush, and create new Brush geometry and volumes.
 Version: 4.9
+topic-image:LevelEditorModes_topic.png
 
 [EXCERPT:main]
 [INCLUDE:Shared/Glossary/M#glossary_modes_panel]

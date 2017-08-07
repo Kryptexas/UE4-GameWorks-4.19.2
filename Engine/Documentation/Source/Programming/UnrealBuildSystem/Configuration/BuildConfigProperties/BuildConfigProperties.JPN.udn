@@ -1,8 +1,213 @@
-﻿INTSourceChangelist:0
-Availability: NoPublish
-Title: Build Configuration Properties Page
+﻿INTSourceChangelist:3372845
+Availability:NoPublish
+Title:ビルド コンフィギュレーション プロパティのページ
 Crumbs:
-Description: This is a procedurally generated markdown page.
-version: 4.15
-parent:Programming/UnrealBuildSystem/Configuration
+Description:プロシージャルに生成されるマークダウンの説明です。
+Version:4.16
+
+### BuildConfiguration
+
+$ bGeneratedSYMFile :ビルドしたいリスト アーキテクチャの dSYM ファイルを生成するかどうか指定します。
+
+$ bDebugBuildsActuallyUseDebugCRT :デバッグ ビルドのデバッグ C++ runtime (CRT) を有効にします。アンリアル エンジン プロジェクトをデバッグする場合、デバッグ版がそこまで便利なわけでもないので、デフォルトで常にリリース ランタイムを使用しています。また、Debug CRT ライブラリへリンク付けするとサードパーティ ライブラリ依存も Debug CRT を使って強制的にコンパイルされます (一般的にさらに遅くなります)。プログラム コードのデバッグのためだけにサードパーティ統計ライブラリのデバッグ バージョンを別に要求するのは面倒くさい場合が多いです。
+
+$ bUseUnityBuild :コンパイルを速くするために C++ コードを大きいファイルにまとめるかどうかを指定します。
+
+$ bForceUnityBuild :コンパイルを速くするために C++ コードを強制的に大きいファイルにまとめるかどうかを指定します。
+
+$ bUseAdaptiveUnityBuild :ヒューリスティックを使って、イタレート中のファイルを判断してユニティ ボディから取り除き、徐々にコンパイル時間を速くします。現在のインプリメンテーションは、修正中の場合ファイルはソース コントロールで書き込み可能になると仮定して、作業中のファイルを区別するために読み取り専用フラグを使って実行しています。この方法は、Perforce には使えますが、Git には適しません。
+
+$ bAdaptiveUnityDisablesOptimizations :適合するノンユニティ ワーキング セットの中のファイル最適化を無効にします。
+
+$ bAdaptiveUnityDisablesPCH :適合するノンユニティ ワーキング セットの中のファイルに対して強制インクルード PCH を無効にします。
+
+$ MinGameModuleSourceFilesForUnityBuild :ユニティ ビルドがそのモジュールに対して有効になる前のゲーム モジュール内のソース ファイル数です。小さいゲーム モジュールでは 1 ファイルあたりの反復コンパイル時間が速くなります。この設定は、モジュールの Build.cs ファイルの bFasterWithoutUnity オプションでオーバーライドすることが可能です。
+
+$ bShadowVariableErrors :シャドウ変数の警告をサポートしているプラットフォーム上では、強制的にエラーとして扱われます。
+
+$ bUndefinedIdentifierErrors :条件的表現式で未定義の識別子をエラーとして強制的に使用します。
+
+$ bUseFastMonoCalls :新しいモノリシック グラフィックス ドライバーに、各種 D3d 機能に代わる "fast calls" がオプションで付きました。
+
+$ bUseFastSemanticsRenderContexts :新しい Xbox ドライバーは「速いセマンティクス」コンテキスト タイプをサポートします。これは、即時およびディファードコンテキストをオンに切り替えます。Xbox RHI でレンダリングに問題があったりクラッシュする場合は、これを無効にしてみてください。
+
+$ NumIncludedBytesPerUnityCPP :1 つの統合された C++ ファイルへのインクルードするための C++ コードのおおよそのバイト数です。
+
+$ bStressTestUnity :1 つに統合されたファイルからすべての C++ ファイルをプロジェクトにインクルードすることで、C++ ユニティ ビルドの剛健性のテストを重視するかどうかを指定します。
+
+$ bDisableDebugInfo :デバッグ情報の生成をグローバルに無効にするかどうかを設定します。コンフィギュレーション別、プラットフォーム別のオプションは DebugInfoHeuristics.cs をご覧ください。
+
+$ bDisableDebugInfoForGeneratedCode :生成ファイルに対してデバッグ情報の生成を無効にするかどうか指定します。グルーコードが数多く生成されたモジュールへのリンク時間を改善します。
+
+$ bOmitPCDebugInfoInDevelopment :開発ビルド イタレーションで PC 上のデバッグ情報を無効にするかどうか (デバッグ情報を無効にしてリンク時間を大幅に短縮し、デベロッパーのイタレーションを速めるため) を指定します。
+
+$ bUsePDBFiles :PDB ファイルを Visual C++ ビルドに使用するかどうかを指定します。
+
+$ bUsePCHFiles :PCH ファイルを使用するかどうかを指定します。
+
+$ MinFilesUsingPrecompiledHeader :作成および使用前にプリコンパイル済みヘッダーを使わなければならないファイルの必要最小数です。
+
+$ bForcePrecompiledHeaderForGameModules :有効にすると、モジュールにソース ファイルが少ししかなくても、ゲーム モジュールに対して常にヘッダーが生成されます。これにより、プロジェクトの数ファイル上で繰り返し行う変更に対するコンパイル時間が改善されます。モジュールの Build.cs ファイルに MinFilesUsingPrecompiledHeaderOverride を指定すると、オーバーライドが可能になります。
+
+$ bUseIncrementalLinking :インクリメンタルリンクの使用について指定します。インクリメンタルリンクは、小さな変更に対するイタレーション時間を短縮できます。コンピューターによってはバグのような症状 (PDB 関連のコンパイル エラー) が出るので、現時点では無効にされています。
+
+$ bAllowLTCG :リンク時コード生成の使用の許可について指定します。
+
+$ bAllowASLRInShipping :ASLR (アドレス空間配置のランダム化) がサポートされている場合、使用の許可について指定します。シッピング ビルドのみに適用します。
+
+$ bSupportEditAndContinue :編集をサポートし継続するかどうかを指定します。32 ビット コンパイルの Microsoft コンパイラでのみ機能します。
+
+$ bOmitFramePointers :フレーム ポインタの省略について指定します。無効にすると、PC のメモリ プロファイリングなど行う際に便利です。
+
+$ bStripSymbolsOnIOS :iOS シンボルの削除について (bGeneratedSYMFile で暗示される) 指定します。
+
+$ bUseMallocProfiler :True にすると、ビルドのメモリ プロファイリングが有効になります (USE_MALLOC_PROFILER=1 を定義し bOmitFramePointers=false を強制します)。
+
+$ bUseSharedPCHs :UBT が探知するモジュール間で特定のファイルを共有しようとすることでコンパイル時間を大幅に短縮する機能 "Shared PCHs" を有効にすると、これらの PCH のヘッダ ファイルを含みます。
+
+$ bUseShippingPhysXLibraries :開発ビルドとリリース ビルドが PhysX/APEX のリリース コンフィギュレーションを使う場合は true を指定します。
+
+$ bUseCheckedPhysXLibraries :開発ビルドとリリース ビルドが PhysX/APEX のチェック済みコンフィギュレーションを使う場合は True にします。bUseShippingPhysXLibraries が true の場合は無視されます。
+
+$ bCheckLicenseViolations :ビルド中のモジュールが EULA に違反しているかどうか確認するように UBT に伝えます。
+
+$ bBreakBuildOnLicenseViolation :ビルド中のモジュールが EULA に違反している場合、ビルドの中断を UTB に伝えます。
+
+$ bUseFastPDBLinking :/DEBUG でビルドしてローカルの PDB をウィンドウ上に作成する場合、:FASTLINK オプションを使用するかどうかを指定します。速くなりますが、デバッガーでのシンボルの検索にまだ問題があるようです。
+
+$ bCreateMapFile :ビルドの一部としてマップ フィアルを出力します。
+
+$ bEnableCodeAnalysis :コード分析モードを有効にします。現在、特別要件があります。機能するのは、MSVC コンパイラのある Windows プラットフォームのみです。また、Visual Studio 2013 など、分析オプションをサポートしているバージョンのコンパイラが必要です。
+
+$ bCheckSystemHeadersForModification :無効のアクションと判断した場合、システム パスのヘッダの修正確認を行うかどうか指定します。
+
+$ bFlushBuildDirOnRemoteMac :ビルド前にリモート Mac で Builds ディレクトリの中のものをすべて削除するかどうかを指定します。
+
+$ bPrintToolChainTimingInfo :コンパイラとリンカから詳細なタイミング情報を書き出すかどうかを指定します。
+
+$ PCHOutputDirectory :プリコンパイル済みヘッダ ファイルを入れるディレクトリです。より速いドライブでのパスを使うことができる実験段階の設定です。設定しない場合は標準の出力ディレクトリがデフォルトになります。
+
+$ bIgnoreOutdatedImportLibraries :ターゲットのビルド時に、無効となったインポート ライブラリ ファイルを無視するかどうかを指定します。True に設定すると、イタレーション時間が改善されます。依存する .lib のみが変更された場合、このターゲットの依存するヘッダ ファイルが変更されない限りインポート ライブラリはおそらく同じままであり、その場合、ターゲットは自動的に再ビルドされるので、デフォルトではターゲットへわざわざ再リンクしません。
+
+$ bUseActionHistory :要求された場合、コンパイル アクションにコマンド ラインの依存関係を生成するかどうかを指定します。
+
+$ bPrintDebugInfo :デバッグ情報のコンソールへの書き出しについて指定します。
+
+$ LogFilename :ファイルへのロギングを許可します。
+
+$ bPrintPerformanceInfo :依存性とその他のビットのインクルードに関するパフォーマンス診断を出力します。
+
+$ bLogDetailedActionStats :詳細なアクション統計情報のログをとるかどうか指定します。ローカルでの実行を強制します。
+
+$ bAllowXGE :XGE の使用許可について指定します。
+
+$ bAllowSNDBS :SN-DBS の使用許可について指定します。
+
+$ bShouldDeleteAllOutdatedProducedItems :無効となった生成物を削除するかどうか指定します。
+
+$ LogLevel :表示するロギング レベルです。
+
+$ JsonExportFile :詳細なターゲット情報を含む JSON ファイルをエクスポートするかどうか指定します。
+
+$ bUseIncludeDependencyResolveCache :UBT がタイムスタンプの確認のためだけの各インクルード位置の再解決を不要にするために、依存性キャッシュが事前解決したインクルード位置をインクルードするかどうか指定します。これは技術的には全部正しいというわけではありません。依存性キャッシュはグローバルで、モジュールごとにインクルードパス セットは異なるので、ヘッダは別々にファイルを解決します。実際には上記は当てはまりません。何も処理がないと UBT はかなり速くなります。
+
+$ bTestIncludeDependencyResolveCache :依存性解決キャッシュのテストに使用します。解決キャッシュは都度解決して前の解決時と照合してコンフリクトがないことを確認します。
+
+$ bUseUBTMakefiles :ターゲット データをキャッシュして、非常に速い反復ビルドのサポートを有効にします。有効にすると、アンリアル ビルド ツールはターゲットの 'UBT Makefiles' の初回ビルド時にこれらを削除します。その後のビルドでは、これらの Makefiles をロードし、無効チェックを開始し、呼び出しリストをすぐにビルドします。プロジェクトでソースファイルの追加 / 削除を行う場合、ビルドを問題なく完了させるために UBT はこれらの情報収集が必要な点に注意してください。現時点では、UBT にこの情報を再収集するように伝えるために、プロジェクト ファイル ジェネレータはソース ファイルの追加 / 削除後に実行します。 
+    *  'UBT Makefile' を無効にできるイベント:
+        * .cpp フィアルの追加 / 削除
+        * UObjects をもつ .h ファイルの追加 / 削除
+        * UObject 型をこれまでもったことのないフィアルへの追加
+        * グローバル ビルド設定の変更 (このフィアルのほとんどの設定に適しています)
+        * アンリアル ヘッダ ツールの動作に影響するコードの変更 
+    * '-gather' 引数をパスする、あるいはプロジェクト ファイルを単に再生成すれば、'UBT Makefile' の再生成を強制できます。 
+    * インクルード ファイルの依存性のスキャンおよびキャッシュシステムが速くなり、アンリアル ビルド ツールが日付の依存性を非常に速く探知することができるようになります。有効にすると、深い C++ インクルード グラフは生成する必要がなくなり、その代わり、間接インクルードのスキャンとキャッシュのみ行います。依存性ビルド プロダクトが既に無効だと分かった後で 次のビルドの間、これらのキャッシュされた間接インクルードをロードし、無効性についてチェックします。
+
+$ bUseUHTMakefiles :前の UHT 実行の結果をキャッシュして速い UHT パースのサポートを有効にします。モジュールまたは *.uhtmanifest が変更された場合、最初に変更されたものだけでなくすべてのモジュールが makefile からロードされ、残りは定期的にパースされます。この機能は新しく、単独テストでは見つかっていない問題があるため、デフォルトでは無効になっています。
+
+$ bAllowDistcc :DMUCS/Distcc を使用するかどうか。Distcc には設定がいくつか必要なので、ローカル ビルドもリモートビルドも壊さないようにデフォルトでは無効になっています。
+
+$ bIgnoreJunk :ジャンク マニフェストで特定されるファイルのチェックをスキップするかどうかを指定します。
+
+$ bAllowDistccLocalFallback :DMUCS/Distcc が有効の場合、リモート コンパイルに失敗したらローカル コンパイルにフォールバックすることができます。プリプロセスとコンパイル ステージを分離して致命的ではないエラーが導入されるので、デフォルトは true を指定します。
+
+$ bVerboseDistccOutput :True に設定すると、デバッグを補助するための verbose distcc 出力が有効になります。
+
+$ DistccExecutablesPath :Distcc and DMUCS 実行ファイルへのパスです。
+
+$ DMUCSCoordinator :DMUCS coordinator のホスト名あるいは IP アドレスです。
+
+$ DMUCSDistProp :コンパイル ホストへ要求する DMUCS の識別プロパティ値です。
+
+$ ProcessorCountMultiplier :ローカル実行用のプロセッサ カウント マルチプライヤ他のタスクに対して CPU を確保するために 1 未満になる場合があります。ローカル実行プログラム (XGE ではなく) を使用する場合、CPU コアごとに 1 回アクションを実行します。大きめの値を設定すると、たいていの場合ビルド時間が若干短縮されますが、コンパイル中はコンピュータの応答性が大幅に悪くなりますので、ご注意ください。
+
+$ MaxProcessorCount :ローカル実行の最大プロセッサ数
+
+$ bAddFastPDBToProjects :-FastPDB オプションをデフォルトでビルド コマンドラインに追加するかどうかを指定します。
+
+$ bUsePerFileIntellisense :ファイルごとにインテリセンス データを生成するかどうかを指定します。
+
+$ bEditorDependsOnShaderCompileWorker :エディタ用にプロジェクト ファイルを生成する場合、ShaderCompileWorker への依存性をインクルードするかどうかを指定します。
+
+$ bXGENoWatchdogThread :VS2015 ツールチェーンの遅れを防ぐために no_watchdog_thread オプションを使用するかどうかを指定します。
+
+$ bShowXGEMonitor :XGE ビルド モニターを表示するかどうか指定します。
+
+$ bStopXGECompilationAfterErrors :有効にすると、コンパイル エラーが発生した後、XGE がターゲットのコンパイルを停止します。他の人のために計算中のリソースは保存しておくことを推奨します。
+
+### IOSToolChain
+
+$ IOSSDKVersion :ビルド時にターゲットにする iOS SDK のバージョンです。
+
+$ BuildIOSVersion :ビルド時に使用できる iOS のバージョンです。
+
+$ bUseDangerouslyFastMode :これを設定すると、Mac の適切なスポットへの実行ファイルの移動をのぞくすべてのポストコンパイル ステップが必要なくなります。
+
+### HTML5Platform
+
+$ HTML5Architecture :ビルドするアーキテクチャwin32 ビルド (html5 プラットフォームを win32 バイナリをデバッグ用にビルド) に -win32 を使用します。
+
+### UEBuildConfiguration
+
+$ bForceHeaderGeneration :True の場合、ヘッダ生成が矯正されます。ビルド マシン用です。
+
+$ bDoNotBuildUHT :True の場合、すでにビルドされていると仮定するので UHT はビルドされません。
+
+$ bFailIfGeneratedCodeChanges :True の場合、生成されたヘッダ ファイルが無効だと失敗します。
+
+$ bAllowHotReloadFromIDE :IDE からのホットロードを許可する場合は true を指定します。
+
+$ bForceDebugUnrealHeaderTool :True の場合、UnrealHeaderTool の Debug 版がビルドされ、Development 版の代わりに実行されます。
+
+### SNDBS
+
+$ ProcessorCountMultiplier :ローカル実行用のプロセッサ カウント マルチプライヤです。他のタスクに対して CPU を確保するために 1 未満になる場合があります。
+
+$ MaxProcessorCount :ローカル実行の最大プロセッサ数です。
+
+### VCProjectFileGenerator
+
+$ Version :プロジェクト ファイルを生成する Visual Studio のバージョンです。
+
+### RemoteToolChain
+
+$ RemoteServerName :こららの 2 つの変数は XmlConfigLoader.Init() の XML コンフィグ ファイルからロードされます。
+
+$ bUseRPCUtil :RPCUtility を使って UnrealRemoteTool へ接続するかどうかを指定します。
+
+$ RSyncExe :rsync 実行ファイルへのパスと rsync ユーティリティのパラメータです。
+
+$ SSHExe :rsync 実行ファイルへのパスと rsync ユーティリティのパラメータです。
+
+$ SSHPrivateKeyOverridePath :設定すると、通常の場所 (Documents/Unreal Engine/UnrealBuildTool/SSHKeys, Engine/Build/SSHKeys) で r RemoteToolChainPrivate.key を探すかわりにこの private key が使用されます。
+
+$ RsyncAuthentication :Rsync ( -e rsync フラグの) に使用する認証です。
+
+$ SSHAuthentication :SSH (恐らく RsyncAuthentication と類似) に使用する認証です。
+
+$ RSyncUsername :RSync で接続するリモート マシン上のユーザー名です。
+
+### WindowsPlatform
+
+$ Compiler :Windows プラットフォームで使うコンパイラ ツールチェーンのバージョンです。「デフォルト」値は、UBT 起動時の指定バージョンへ変更されます。
 

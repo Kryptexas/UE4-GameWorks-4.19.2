@@ -1,30 +1,18 @@
-﻿INTSourceChangelist:2740691
+﻿INTSourceChangelist:3429254
 Availability:Public
 Title:2.入力とゲームモード
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
-Description:このステップでは、キャラクターの制御だけでなくプレイ可能なキャラクターとなるデフォルトのポーンの設定を行うための入力を設定します。
+Description:このステップでは、キャラクターを制御する入力とプレイ可能なキャラクターとなるデフォルトのポーンを設定します。
 Version:4.9
+Parent:Gameplay/HowTo/CharacterMovement/Blueprints
 SkillLevel:Advanced
+type:how-to
+type:multi-step
+order:2
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[前のステップ](Gameplay\HowTo\CharacterMovement\Blueprints\Setup_1 "%Gameplay\HowTo\CharacterMovement\Blueprints\Setup_1:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[キャラクターの移動の概要](Gameplay\HowTo\CharacterMovement\Blueprints)
-	[/PARAM]
-	[PARAM:next]
-		[次のステップ](Gameplay\HowTo\CharacterMovement\Blueprints\Setup_2 "%Gameplay\HowTo\CharacterMovement\Blueprints\Setup_2:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[NAV]
 
-%Steps%
-
-このページでは、キャラクターを制御し、キャラクターに使用する **ゲームモード** を作成するための **入力** (ゲーム制御) の設定を行います。 
+このページでは、キャラクターを制御する **入力** (ゲーム制御) を設定し、キャラクターを使用する **ゲームモード** を作成します。 
 
 1.	**コンテンツブラウザ** 内を **右クリック** して **Game Mode** クラスの **Blueprint クラス** を作成し、「 **MyGame** 」と名前を付けます。 
 
@@ -32,13 +20,13 @@ SkillLevel:Advanced
 
 	![](SelectClassDefaults.png)
 
-1.	**[Details]** パネルの **[Classes]** で、 **Default Pawn Class** を **MyCharacter** ブループリントを使用する設定にします。 
+1.	**[Details]** パネルの **[Classes]** で、 **Default Pawn Class** が **MyCharacter** ブループリントを使用するように設定します。 
 
 	![](GameMode_1.png)
 
 1.	**コンパイル** し **保存** してから、ブループリントを閉じます。 
 
-1.	メインのエディタ ウィンドウの **メニュー バー** の **[Edit]** をクリックし **[Project Settings (プロジェクト設定)]** を選びます。 
+1.	メインのエディタ ウィンドウの **メニュー バー** の **[Edit]** をクリックし **[Project Settings]** を選びます。 
 
 1.	プロジェクト設定で **[Engine]** セクションの **[Input]** をクリックします。 
 
@@ -48,7 +36,7 @@ SkillLevel:Advanced
 
 	![](Input_1.png)(w:480)
 
-	空の Bindings は上のようになっているはずです。 
+	空の Bindings はこのようになっているはずです。 
 
 1.	**Bindings** を以下のように設定します (**Scale** を **A** 、 **S** そして **Mouse Y** を **-1.0** に設定するようにしてください)。 
 
@@ -62,15 +50,14 @@ SkillLevel:Advanced
 
 1.	Project Settings の **[Project]** セクションの **[Maps & Modes]** オプションをクリックします。 
 
-1.	Maps & Modes の **Default Modes** で、 **Default GameMode** に **MyGame** ゲームモードを設定します。 
+1.	Maps & Modes の **Default Modes** で、 **Default GameMode** が **MyGame** ゲームモードを使用するように設定します。 
 
 	![](GameMode_2.png)
 
 	[REGION:note]
-	ゲームモード に関する詳細は、 [](Gameplay\HowTo\SettingUpAGameMode) を参照してください。 
+	ゲームモードに関する詳細は、 [](Gameplay\HowTo\SettingUpAGameMode) を参照してください。 
 	[/REGION]
 
-1.	入力とゲームモードの設定が完了したら、[Project Settings] ウィンドウを閉じます。 
+1.	入力とゲームモードの設定が完了したら、[Project Settings] ウィンドウを終了します。 
 
-
-%Steps%
+[NAV]

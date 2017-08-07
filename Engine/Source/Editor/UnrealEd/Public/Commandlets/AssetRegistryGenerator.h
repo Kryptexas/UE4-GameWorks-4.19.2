@@ -51,8 +51,10 @@ public:
 	 * @param RemovedPackages list of packages that existed before, but do not any more
 	 * @param IdenticalCookedPackages list of cooked packages that have not changed
 	 * @param IdenticalUncookedPackages list of uncooked packages that have not changed. These were filtered out by platform or editor only
+	 * @param bRecurseModifications if true, modified packages are recursed to X in X->Y->Z chains. Otherwise, only Y and Z are seen as modified
+	 * @param bRecurseModifications if true, modified script/c++ packages are recursed, if false only asset references are recursed
 	 */
-	void ComputePackageDifferences(TSet<FName>& ModifiedPackages, TSet<FName>& NewPackages, TSet<FName>& RemovedPackages, TSet<FName>& IdenticalCookedPackages, TSet<FName>& IdenticalUncookedPackages);
+	void ComputePackageDifferences(TSet<FName>& ModifiedPackages, TSet<FName>& NewPackages, TSet<FName>& RemovedPackages, TSet<FName>& IdenticalCookedPackages, TSet<FName>& IdenticalUncookedPackages, bool bRecurseModifications, bool bRecurseScriptModifications);
 
 	/**
 	 * GenerateChunkManifest 
@@ -112,7 +114,7 @@ public:
 	/**
 	 * Saves generated asset registry data for each platform.
 	 */
-	bool SaveAssetRegistry(const FString& SandboxPath);
+	bool SaveAssetRegistry(const FString& SandboxPath, bool bSerializeDevelopmentAssetRegistry = true);
 
 	/** 
 	 * Writes out CookerOpenOrder.log file 
@@ -256,7 +258,7 @@ private:
 			}
 		}
 
-		if ( StartupPackages.Contains(PackageFName ))
+		if (StartupPackages.Contains(PackageFName))
 		{
 			ExistingChunkIDs.AddUnique(0);
 		}
@@ -277,9 +279,6 @@ private:
 		}
 		return RegistryChunkIDs;
 	}
-
-	/** Updates the Package Source hash based on dependency information */
-	void UpdatePackageSourceHashes();
 
 	/** Generate manifest for a single package */
 	void GenerateChunkManifestForPackage(const FName& PackageFName, const FString& PackagePathName, const FString& SandboxFilename, const FString& LastLoadedMapName, FSandboxPlatformFile* InSandboxFile);

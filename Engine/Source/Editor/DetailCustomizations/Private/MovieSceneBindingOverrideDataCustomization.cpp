@@ -39,7 +39,7 @@ void FMovieSceneBindingOverrideDataCustomization::CustomizeChildren(TSharedRef<I
 		return;
 	}
 
-	ChildBuilder.AddChildProperty(StructProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FMovieSceneBindingOverrideData, ObjectBindingId)).ToSharedRef());
+	ChildBuilder.AddProperty(StructProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FMovieSceneBindingOverrideData, ObjectBindingId)).ToSharedRef());
 
 	ObjectPickerProxy = Interface->GetObjectPickerProxy(ObjectProperty);
 	if (ObjectPickerProxy.IsValid())
@@ -48,11 +48,11 @@ void FMovieSceneBindingOverrideDataCustomization::CustomizeChildren(TSharedRef<I
 		for (TSharedPtr<IPropertyHandle> ChildHandle : StructProperty->AddChildStructure(ObjectPickerProxy.ToSharedRef()))
 		{
 			ChildHandle->SetOnPropertyValueChanged(FSimpleDelegate::CreateSP(this, &FMovieSceneBindingOverrideDataCustomization::OnGetObjectFromProxy));
-			ChildBuilder.AddChildProperty(ChildHandle.ToSharedRef());
+			ChildBuilder.AddProperty(ChildHandle.ToSharedRef());
 		}
 	}
 
-	ChildBuilder.AddChildProperty(StructProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FMovieSceneBindingOverrideData, bOverridesDefault)).ToSharedRef());
+	ChildBuilder.AddProperty(StructProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FMovieSceneBindingOverrideData, bOverridesDefault)).ToSharedRef());
 }
 
 IMovieSceneBindingOwnerInterface* FMovieSceneBindingOverrideDataCustomization::GetInterface() const

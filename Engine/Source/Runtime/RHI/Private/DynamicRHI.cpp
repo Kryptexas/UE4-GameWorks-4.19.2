@@ -12,6 +12,7 @@
 #include "RHI.h"
 #include "Modules/ModuleManager.h"
 #include "GenericPlatform/GenericPlatformDriver.h"
+#include "PipelineStateCache.h"
 
 #ifndef PLATFORM_ALLOW_NULL_RHI
 	#define PLATFORM_ALLOW_NULL_RHI		0
@@ -208,6 +209,9 @@ void RHIExit()
 {
 	if ( !GUsingNullRHI && GDynamicRHI != NULL )
 	{
+		// Clean up all cached pipelines
+		ClearPipelineCache();
+
 		// Destruct the dynamic RHI.
 		GDynamicRHI->Shutdown();
 		delete GDynamicRHI;
@@ -251,7 +255,7 @@ void FDynamicRHI::EnableIdealGPUCaptureOptions(bool bEnabled)
 
 	const bool bDrawEvents = GEmitDrawEvents != 0;
 	const bool bMaterialDrawEvents = ShowMaterialDrawEventVar ? ShowMaterialDrawEventVar->GetInt() != 0 : false;
-	const bool bRHIThread = GRHIThread != nullptr;	
+	const bool bRHIThread = IsRunningRHIInSeparateThread();
 	const bool bRHIBypass = RHICmdBypassVar ? RHICmdBypassVar->GetInt() != 0 : false;
 
 	UE_LOG(LogRHI, Display, TEXT("Setting GPU Capture Options: %i"), bEnabled ? 1 : 0);

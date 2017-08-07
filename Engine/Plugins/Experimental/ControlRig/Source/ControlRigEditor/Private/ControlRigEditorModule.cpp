@@ -201,10 +201,13 @@ void FControlRigEditorModule::StartupModule()
 						bool bCanReExport = false;
 						for (const FAssetData& AssetData : SelectedAssets)
 						{
-							if (Cast<UControlRigSequence>(AssetData.GetAsset())->LastExportedToAnimationSequence.IsValid())
+							if(UControlRigSequence* ControlRigSequence = Cast<UControlRigSequence>(AssetData.GetAsset()))
 							{
-								bCanReExport = true;
-								break;
+								if (ControlRigSequence->LastExportedToAnimationSequence.IsValid())
+								{
+									bCanReExport = true;
+									break;
+								}
 							}
 						}
 
@@ -406,7 +409,7 @@ void FControlRigEditorModule::HandleSequencerCreated(TSharedRef<ISequencer> InSe
 		}
 	});
 
-	InSequencer->OnMovieSceneDataChanged().AddLambda([LocalSequencer]()
+	InSequencer->OnMovieSceneDataChanged().AddLambda([LocalSequencer](EMovieSceneDataChangeType DataChangeType)
 	{
 		if (LocalSequencer.IsValid())
 		{

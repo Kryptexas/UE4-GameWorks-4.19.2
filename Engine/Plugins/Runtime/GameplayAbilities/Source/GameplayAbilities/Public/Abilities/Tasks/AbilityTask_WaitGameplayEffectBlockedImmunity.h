@@ -11,8 +11,8 @@ class UAbilitySystemComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FGameplayEffectBlockedDelegate, FGameplayEffectSpecHandle, BlockedSpec, FActiveGameplayEffectHandle, ImmunityGameplayEffectHandle);
 
-UCLASS(MinimalAPI)
-class UAbilityTask_WaitGameplayEffectBlockedImmunity : public UAbilityTask
+UCLASS()
+class GAMEPLAYABILITIES_API UAbilityTask_WaitGameplayEffectBlockedImmunity : public UAbilityTask
 {
 	GENERATED_UCLASS_BODY()
 

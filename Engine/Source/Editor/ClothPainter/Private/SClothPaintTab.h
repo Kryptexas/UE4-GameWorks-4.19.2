@@ -4,6 +4,13 @@
 
 #include "AssetEditorToolkit.h"
 
+class UClothingAsset;
+class SClothPaintWidget;
+class SClothAssetSelector;
+class IDetailsView;
+class ISkeletalMeshEditor;
+class IPersonaToolkit;
+
 class CLOTHPAINTER_API SClothPaintTab : public SCompoundWidget
 {
 public:
@@ -17,16 +24,29 @@ public:
 
 	/** SWidget functions */
 	void Construct(const FArguments& InArgs);
-
 	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 
 protected:
+
+	/** Called as the tool selection changes to enable/disable painting */
 	void UpdatePaintTools();
-protected:
+
+	/** Called from the selector when the asset selection changes (Asset, LOD, Mask) */
+	void OnAssetSelectionChanged(TWeakObjectPtr<UClothingAsset> InAssetPtr, int32 InLodIndex, int32 InMaskIndex);
+
+	/** Called from the details panel holding the asset config so we can respond to a config change */
+	void OnFinishedChangingClothConfigProperties(const FPropertyChangedEvent& InEvent);
+
+	/** Helpers for getting editor objects */
+	ISkeletalMeshEditor* GetSkeletalMeshEditor() const;
+	TSharedRef<IPersonaToolkit> GetPersonaToolkit() const;
+
 	TWeakPtr<class FAssetEditorToolkit> HostingApp;
 	
-	TSharedPtr<SWidget> ModeWidget;
+	TSharedPtr<SClothAssetSelector> SelectorWidget;
+	TSharedPtr<SClothPaintWidget> ModeWidget;
 	TSharedPtr<SVerticalBox> ContentBox;
+	TSharedPtr<IDetailsView> DetailsView;
 
 	bool bModeApplied;
 	bool bPaintModeEnabled;

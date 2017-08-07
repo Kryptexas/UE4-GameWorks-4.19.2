@@ -36,6 +36,7 @@ UEditableText::UEditableText(const FObjectInitializer& ObjectInitializer)
 	ClearKeyboardFocusOnCommit = Defaults._ClearKeyboardFocusOnCommit.Get();
 	SelectAllTextOnCommit = Defaults._SelectAllTextOnCommit.Get();
 	AllowContextMenu = Defaults._AllowContextMenu.Get();
+	Clipping = Defaults._Clipping;
 }
 
 void UEditableText::ReleaseSlateResources(bool bReleaseChildren)
@@ -59,15 +60,15 @@ TSharedRef<SWidget> UEditableText::RebuildWidget()
 		.OnTextCommitted( BIND_UOBJECT_DELEGATE( FOnTextCommitted, HandleOnTextCommitted ) )
 		.VirtualKeyboardType( EVirtualKeyboardType::AsKeyboardType( KeyboardType.GetValue() ) );
 	
-	return BuildDesignTimeWidget( MyEditableText.ToSharedRef() );
+	return MyEditableText.ToSharedRef();
 }
 
 void UEditableText::SynchronizeProperties()
 {
 	Super::SynchronizeProperties();
 
-	TAttribute<FText> TextBinding = OPTIONAL_BINDING(FText, Text);
-	TAttribute<FText> HintTextBinding = OPTIONAL_BINDING(FText, HintText);
+	TAttribute<FText> TextBinding = PROPERTY_BINDING(FText, Text);
+	TAttribute<FText> HintTextBinding = PROPERTY_BINDING(FText, HintText);
 
 	MyEditableText->SetText(TextBinding);
 	MyEditableText->SetHintText(HintTextBinding);

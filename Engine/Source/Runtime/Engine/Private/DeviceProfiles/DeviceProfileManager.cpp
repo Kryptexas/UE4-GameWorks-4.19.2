@@ -14,6 +14,7 @@
 #include "Interfaces/ITargetPlatform.h"
 #include "Interfaces/ITargetPlatformManagerModule.h"
 #include "PlatformInfo.h"
+#include "PIEPreviewDeviceProfileSelectorModule.h"
 #endif
 
 static TAutoConsoleVariable<FString> CVarDeviceProfileOverride(
@@ -192,8 +193,28 @@ void UDeviceProfileManager::InitializeCVarsForActiveDeviceProfile(bool bPushSett
 	}
 }
 
+static void TestProfileForCircularReferences(const FString& ProfileName, const FString& ParentName, const FConfigFile &PlatformConfigFile)
+{
+	TArray<FString> ProfileDependancies;
+	ProfileDependancies.Add(ProfileName);
+	FString CurrentParent = ParentName;
+	while (!CurrentParent.IsEmpty())
+	{
+		if (ProfileDependancies.FindByPredicate([CurrentParent](const FString& InName) { return InName.Equals(CurrentParent); }))
+		{
+			UE_LOG(LogInit, Fatal, TEXT("Device Profile %s has a circular dependency on %s"), *ProfileName, *CurrentParent);
+		}
+		else
+		{
+			ProfileDependancies.Add(CurrentParent);
+			const FString SectionName = FString::Printf(TEXT("%s %s"), *CurrentParent, *UDeviceProfile::StaticClass()->GetName());
+			CurrentParent.Reset();
+			PlatformConfigFile.GetString(*SectionName, TEXT("BaseProfileName"), CurrentParent);
+		}
+	}
+}
 
-UDeviceProfile* UDeviceProfileManager::CreateProfile( const FString& ProfileName, const FString& ProfileType, const FString& InSpecifyParentName, const TCHAR* ConfigPlatform )
+UDeviceProfile* UDeviceProfileManager::CreateProfile(const FString& ProfileName, const FString& ProfileType, const FString& InSpecifyParentName, const TCHAR* ConfigPlatform)
 {
 	UDeviceProfile* DeviceProfile = FindObject<UDeviceProfile>( GetTransientPackage(), *ProfileName );
 	if (DeviceProfile == NULL)
@@ -215,11 +236,12 @@ UDeviceProfile* UDeviceProfileManager::CreateProfile( const FString& ProfileName
 
 		UObject* ParentObject = nullptr;
 		// Recursively build the parent tree
-		if (ParentName.Len() > 0)
+		if (ParentName.Len() > 0 && ParentName != ProfileName)
 		{
 			ParentObject = FindObject<UDeviceProfile>(GetTransientPackage(), *ParentName);
 			if (ParentObject == nullptr)
 			{
+				TestProfileForCircularReferences(ProfileName, ParentName, PlatformConfigFile);
 				ParentObject = CreateProfile(ParentName, ProfileType, TEXT(""), ConfigPlatform);
 			}
 		}
@@ -465,6 +487,20 @@ const FString UDeviceProfileManager::GetActiveProfileName()
 		}
 	}
 
+#if WITH_EDITOR
+	if (FPIEPreviewDeviceProfileSelectorModule::IsRequestingPreviewDevice())
+	{
+		IDeviceProfileSelectorModule* PIEPreviewDeviceProfileSelectorModule = FModuleManager::LoadModulePtr<IDeviceProfileSelectorModule>("PIEPreviewDeviceProfileSelector");
+		if (PIEPreviewDeviceProfileSelectorModule)
+		{
+			FString PIEProfileName = PIEPreviewDeviceProfileSelectorModule->GetRuntimeDeviceProfileName();
+			if (!PIEProfileName.IsEmpty())
+			{
+				ActiveProfileName = PIEProfileName;
+			}
+		}
+	}
+#endif
 	return ActiveProfileName;
 }
 

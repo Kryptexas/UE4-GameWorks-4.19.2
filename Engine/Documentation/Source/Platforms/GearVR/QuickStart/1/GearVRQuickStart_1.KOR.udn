@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3150518
+﻿INTSourceChangelist:3451711
 Availability:Public
 Title:1. 기어 VR 프로젝트 생성
 Crumbs:%ROOT%, Platforms/GearVR
 Description:기어 VR 헤드셋에 사용할 수 있는 UE4 C++ 기반 프로젝트 생성 방법 안내입니다.
 Navigation:platform
-Version: 4.9
+Version: 4.16
 Skilllevel: Intermediate
 tags:VR
 tags:GearVR

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3481084
 Availability:Public
 Title:1. 액터 트랜스폼 작업
 Crumbs: %ROOT%, Gameplay, GettingStarted\HowTo, GettingStarted\HowTo\DetailsPanel
@@ -43,10 +43,37 @@ checkpoint: editorqs
 
 1.	액터가 배치되면, 에디터 우하단의 **디테일** 패널이 채워집니다.
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	[REGION:lightbox]
-	[![](Details2.png)](Details2.png)
-	_클릭하면 원래 크기로 봅니다._
+	[![](DetailsPanel_Windows.png)](DetailsPanel_Windows.png)
 	[/REGION]
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](DetailsPanel_Mac.png)](DetailsPanel_Mac.png)
+	[/REGION]
+	[/PARAM]
+	[/OBJECT]
 
 1.	**디테일** 패널에서 **트랜스폼** 아래, **스케일** 부분의 자물쇠 아이콘을 클릭하고 **XYZ** 값을 **3.0** 으로 설정합니다.
 

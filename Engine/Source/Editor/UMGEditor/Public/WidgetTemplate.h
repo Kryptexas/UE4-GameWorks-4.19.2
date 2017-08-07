@@ -18,6 +18,7 @@ class UMGEDITOR_API FWidgetTemplate : public TSharedFromThis<FWidgetTemplate>
 public:
 	/** Constructor */
 	FWidgetTemplate();
+	virtual ~FWidgetTemplate() { }
 
 	/** The category this template fits into. */
 	virtual FText GetCategory() const = 0;

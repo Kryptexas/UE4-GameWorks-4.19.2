@@ -117,24 +117,16 @@ return TSuper::SupportsFeature(Feature);
 		// no shaders needed for dedicated server target
 		if (!IS_DEDICATED_SERVER)
 		{
-			static FName NAME_GLSL_150_MAC(TEXT("GLSL_150_MAC"));
-			OutFormats.AddUnique(NAME_GLSL_150_MAC);
-
-#if PLATFORM_MAC // @todo: Enable this check on Windows and Linux to handle remote shader compiling, it would need to be done via rpc when compilation starts 
-			if (FPlatformMisc::MacOSXVersionCompare(10, 11, 0) >= 0)
-#endif
-			{
-				static FName NAME_SF_METAL_SM4(TEXT("SF_METAL_SM4"));
-				OutFormats.AddUnique(NAME_SF_METAL_SM4);
-				static FName NAME_SF_METAL_SM5(TEXT("SF_METAL_SM5"));
-				OutFormats.AddUnique(NAME_SF_METAL_SM5);
-				static FName NAME_SF_METAL_MACES3_1(TEXT("SF_METAL_MACES3_1"));
-				OutFormats.AddUnique(NAME_SF_METAL_MACES3_1);
-				static FName NAME_SF_METAL_MACES2(TEXT("SF_METAL_MACES2"));
-				OutFormats.AddUnique(NAME_SF_METAL_MACES2);
-				static FName NAME_SF_METAL_MRT_MAC(TEXT("SF_METAL_MRT_MAC"));
-				OutFormats.AddUnique(NAME_SF_METAL_MRT_MAC);
-			}
+			static FName NAME_SF_METAL_SM4(TEXT("SF_METAL_SM4"));
+			OutFormats.AddUnique(NAME_SF_METAL_SM4);
+			static FName NAME_SF_METAL_SM5(TEXT("SF_METAL_SM5"));
+			OutFormats.AddUnique(NAME_SF_METAL_SM5);
+			static FName NAME_SF_METAL_MACES3_1(TEXT("SF_METAL_MACES3_1"));
+			OutFormats.AddUnique(NAME_SF_METAL_MACES3_1);
+			static FName NAME_SF_METAL_MACES2(TEXT("SF_METAL_MACES2"));
+			OutFormats.AddUnique(NAME_SF_METAL_MACES2);
+			static FName NAME_SF_METAL_MRT_MAC(TEXT("SF_METAL_MRT_MAC"));
+			OutFormats.AddUnique(NAME_SF_METAL_MRT_MAC);
 		}
 	}
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3151855
+﻿INTSourceChangelist:3429257
 Availability:Public
 Title:プラットフォーム開発
 Crumbs:%ROOT%
@@ -8,49 +8,26 @@ version:4.9
 parent:%ROOT%
 order:8
 type:landing
+topic-icon:%ROOT%/platform_icon.png
 
-[VAR:Params]
-[PARAM:image]
-	![%Platforms:title%](%ROOT%/placeholder_topic.png)
-[/PARAM]
-[PARAM:icon]
-	![](%ROOT%/platform_icon.png)(convert:false)
-[/PARAM]
-[PARAM:title]
-	%Platforms:title%
-[/PARAM]
-[PARAM:description]
-	%Platforms:description%
-[/PARAM]
-[PARAM:path]
-	[RELATIVE:Platforms]
-[/PARAM]
-[/VAR]
 
-[VAR:Topic]
-[OBJECT:Topic]
-%params%
-[/OBJECT]
-[/VAR]
+## モバイル
 
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-%params%
-[/OBJECT]
-[/VAR]
+[DIR(end:"2" output:"topic" type:"landing" parent:"Platforms" tags:"Mobile" org:"hierarchy")]
 
-[VAR:Role]
-[OBJECT:Role]
-%params%
-[PARAMLITERAL:id]
-プラットフォーム
-[/PARAMLITERAL]
-[/OBJECT]
-[/VAR]
+## VR
 
-## プラットフォーム
+[DIR(end:"2" output:"topic" type:"landing" parent:"Platforms" tags:"VR" tags:"Platform" org:"hierarchy")]
 
-[DIR(end:"2" output:"listbutton" type:"landing" parent:"Platforms" org:"hierarchy")]
+## デスクトップ
+
+[DIR(end:"2" output:"topic" type:"landing" parent:"Platforms" tags:"Desktop" org:"hierarchy")]
+
+[PUBLISH:licensee]
+## コンソール
+
+[DIR(end:"2" output:"topic" type:"landing" parent:"Platforms" tags:"Console" org:"hierarchy")]
+[/PUBLISH:licensee]
 
 ## Platform ツール
 

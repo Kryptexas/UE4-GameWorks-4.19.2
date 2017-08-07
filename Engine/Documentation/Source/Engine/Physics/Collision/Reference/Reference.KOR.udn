@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3418529
 Availability: Public
 Title:콜리전 반응 참고서
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/Collision
@@ -33,17 +33,9 @@ Collision Properties (콜리전 프로퍼티) 카테고리의 Collision Presets(
 
 ![](collProp.png)(convert:false)
 
-[OBJECT:modulesectionexpanded]
-	[PARAMLITERAL:id]
-		coll
-	[/PARAMLITERAL]
-	[PARAM:heading]
-		Collision Presets (콜리전 프리셋)
-	[/PARAM]
-	[PARAM:content]
-		%p2%
-	[/PARAM]
-[/OBJECT]
+### 콜리전 프리셋
+	
+%p2%
 
 [VAR:p2]
 

@@ -18,7 +18,7 @@ class IRuntimeAssetCacheBuilder;
 /**
 * Useful for passing around void* data and size
 */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FVoidPtrParam
 {
 	GENERATED_BODY()
@@ -66,6 +66,8 @@ DECLARE_DYNAMIC_DELEGATE_TwoParams(FOnRuntimeAssetCacheAsyncComplete, int32, Han
 class FRuntimeAssetCacheInterface
 {
 public:
+	virtual ~FRuntimeAssetCacheInterface() { }
+
 	/**
 	* Synchronously gets value from cache. If value is not found, builds entry using CacheBuilder and updates cache.
 	* @param CacheBuilder Builder to produce cache key and in the event of a miss.

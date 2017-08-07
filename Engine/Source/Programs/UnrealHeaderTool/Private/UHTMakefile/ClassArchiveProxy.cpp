@@ -8,7 +8,7 @@ FClassArchiveProxy::FClassArchiveProxy(FUHTMakefile& UHTMakefile, const UClass* 
 	: FStructArchiveProxy(UHTMakefile, Class)
 {
 	ClassUnique = Class->ClassUnique;
-	ClassFlags = Class->ClassFlags;
+	ClassFlags = Class->GetClassFlags();
 	ClassCastFlags = Class->ClassCastFlags;
 	ClassWithinIndex = UHTMakefile.GetClassIndex(Class->ClassWithin);
 	ClassGeneratedByIndex = UHTMakefile.GetObjectIndex(Class->ClassGeneratedBy);
@@ -82,7 +82,7 @@ FArchive& operator<<(FArchive& Ar, FClassArchiveProxy& ClassArchiveProxy)
 {
 	Ar << static_cast<FStructArchiveProxy&>(ClassArchiveProxy);
 	Ar << ClassArchiveProxy.ClassUnique;
-	Ar << ClassArchiveProxy.ClassFlags;
+	Ar << (uint32&)ClassArchiveProxy.ClassFlags;
 	Ar << ClassArchiveProxy.ClassCastFlags;
 	Ar << ClassArchiveProxy.ClassWithinIndex;
 	Ar << ClassArchiveProxy.ClassGeneratedByIndex;

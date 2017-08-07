@@ -1040,7 +1040,7 @@ void FOnlineSessionNull::OnValidQueryPacketReceived(uint8* PacketData, int32 Pac
 	for (int32 SessionIndex = 0; SessionIndex < Sessions.Num(); SessionIndex++)
 	{
 		FNamedOnlineSession* Session = &Sessions[SessionIndex];
-							
+
 		// Don't respond to query if the session is not a joinable LAN match.
 		if (Session && IsSessionJoinable(*Session))
 		{

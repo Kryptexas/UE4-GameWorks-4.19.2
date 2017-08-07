@@ -11,7 +11,7 @@
 struct FPropertyChangedEvent;
 
 /**
- * Rendering settings.
+ * Streaming settings.
  */
 UCLASS(config=Engine, defaultconfig, meta=(DisplayName="Streaming"))
 class ENGINE_API UStreamingSettings : public UDeveloperSettings
@@ -48,11 +48,6 @@ protected:
 		ConsoleVariable = "s.MinBulkDataSizeForAsyncLoading", DisplayName = "Minimum Bulk Data Size For Async Loading",
 		ToolTip = "Minimum time the time limit exceeded warning will be triggered by."))
 	int32 MinBulkDataSizeForAsyncLoading;
-
-	UPROPERTY(config, EditAnywhere, Category = IO, meta = (
-		ConsoleVariable = "s.AsyncIOBandwidthLimit", DisplayName = "Asynchronous IO Bandwidth Limit",
-		ToolTip = "Constrain bandwidth if wanted. Value is in MByte/ sec."))
-	float AsyncIOBandwidthLimit;
 
 	UPROPERTY(EditAnywhere, config, Category = LevelStreaming, meta = (
 		ConsoleVariable = "s.UseBackgroundLevelStreaming", DisplayName = "Use Background Level Streaming",
@@ -178,6 +173,11 @@ protected:
 		ConsoleVariable = "gc.BlueprintClusteringEnabled", DisplayName = "Blueprint Clustering Enabled",
 		ToolTip = "Whether to allow Blueprint classes to create GC clusters."))
 	uint32 BlueprintClusteringEnabled : 1;
+
+	UPROPERTY(EditAnywhere, config, Category = Optimization, meta = (
+		ConsoleVariable = "gc.UseDisregardForGCOnDedicatedServers", DisplayName = "Use DisregardForGC On Dedicated Servers",
+		ToolTip = "If false, DisregardForGC will be disabled for dedicated servers."))
+	uint32 UseDisregardForGCOnDedicatedServers : 1;
 
 	UPROPERTY(EditAnywhere, config, Category = General, meta = (
 		ConsoleVariable = "gc.NumRetriesBeforeForcingGC", DisplayName = "Number Of Retries Before Forcing GC",

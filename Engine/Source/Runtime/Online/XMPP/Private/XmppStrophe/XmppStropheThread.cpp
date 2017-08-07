@@ -1,10 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "XmppStrophe/XmppStropheThread.h"
 #include "XmppStrophe/XmppConnectionStrophe.h"
 #include "XmppStrophe/StropheContext.h"
 #include "XmppStrophe/StropheConnection.h"
 #include "XmppStrophe/StropheStanza.h"
+#include "XmppLog.h"
 
 #include "HAL/RunnableThread.h"
 #include "Misc/Guid.h"
@@ -21,7 +22,7 @@ FXmppStropheThread::FXmppStropheThread(FXmppConnectionStrophe& InConnectionManag
 	StropheConnection.SetPassword(InAuth);
 	StropheConnection.SetKeepAlive(ServerConfiguration.PingTimeout, ServerConfiguration.PingInterval);
 
-	ConnectRequest = true;
+	bConnectRequest = true;
 
 	static int32 ThreadInstanceIdx = 0;
 	constexpr const int32 StackSize = 64 * 1024;
@@ -50,25 +51,33 @@ bool FXmppStropheThread::Init()
 
 uint32 FXmppStropheThread::Run()
 {
-	while (!ExitRequested)
+	while (!bExitRequested)
 	{
-		if (ConnectRequest)
+		if (bConnectRequest)
 		{
-			ConnectRequest = false;
+			bConnectRequest = false;
 
-			ConnectionManager.QueueNewLoginStatus(EXmppLoginStatus::ProcessingLogin);
-			if (!StropheConnection.Connect(ServerConfiguration.ServerAddr, ServerConfiguration.ServerPort, ConnectionManager))
+			if (StropheConnection.GetConnectionState() == FStropheConnectionState::Disconnected)
 			{
-				ConnectionManager.QueueNewLoginStatus(EXmppLoginStatus::LoggedOut);
+				ConnectionManager.QueueNewLoginStatus(EXmppLoginStatus::ProcessingLogin);
+				if (!StropheConnection.Connect(ServerConfiguration.ServerAddr, ServerConfiguration.ServerPort, ConnectionManager))
+				{
+					ConnectionManager.QueueNewLoginStatus(EXmppLoginStatus::LoggedOut);
+				}
 			}
 		}
-		else if (DisconnectRequest)
+		else if (bDisconnectRequest)
 		{
-			DisconnectRequest = false;
+			bDisconnectRequest = false;
 
-			ConnectionManager.QueueNewLoginStatus(EXmppLoginStatus::ProcessingLogout);
-			StropheConnection.Disconnect();
-			ConnectionManager.QueueNewLoginStatus(EXmppLoginStatus::LoggedOut);
+			if (StropheConnection.GetConnectionState() != FStropheConnectionState::Disconnected)
+			{
+				ConnectionManager.QueueNewLoginStatus(EXmppLoginStatus::ProcessingLogout);
+				StropheConnection.Disconnect();
+				ConnectionManager.QueueNewLoginStatus(EXmppLoginStatus::LoggedOut);
+			}
+
+			bExitRequested = true;
 		}
 
 		SendQueuedStanza();
@@ -81,7 +90,7 @@ uint32 FXmppStropheThread::Run()
 
 void FXmppStropheThread::Stop()
 {
-	ExitRequested = true;
+	bDisconnectRequest = true;
 }
 
 void FXmppStropheThread::Exit()
@@ -96,7 +105,7 @@ void FXmppStropheThread::Exit()
 void FXmppStropheThread::SendQueuedStanza()
 {
 	// Send all our queued stanzas
-	while (!StanzaSendQueue.IsEmpty())
+	while (!StanzaSendQueue.IsEmpty() && StropheConnection.GetConnectionState() == FStropheConnectionState::Connected)
 	{
 		TUniquePtr<FStropheStanza> StanzaPtr;
 		if (StanzaSendQueue.Dequeue(StanzaPtr))
@@ -108,7 +117,10 @@ void FXmppStropheThread::SendQueuedStanza()
 				StanzaPtr->SetAttribute(CorrelationId, FGuid::NewGuid().ToString());
 			}
 
-			StropheConnection.SendStanza(*StanzaPtr);
+			if (!StropheConnection.SendStanza(*StanzaPtr))
+			{
+				UE_LOG(LogXmpp, Warning, TEXT("Unable to send stanza %s"), *StanzaPtr->GetAttribute(CorrelationId));
+			}
 		}
 	}
 }

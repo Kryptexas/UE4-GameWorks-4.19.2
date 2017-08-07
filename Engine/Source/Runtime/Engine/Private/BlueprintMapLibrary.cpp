@@ -102,3 +102,14 @@ void UBlueprintMapLibrary::GenericMap_Clear(const void* TargetMap, const UMapPro
 	}
 }
 
+void UBlueprintMapLibrary::GenericMap_SetMapPropertyByName(UObject* OwnerObject, FName MapPropertyName, const void* SrcMapAddr)
+{
+	if (OwnerObject)
+	{
+		if (UMapProperty* MapProp = FindField<UMapProperty>(OwnerObject->GetClass(), MapPropertyName))
+		{
+			void* Dest = MapProp->ContainerPtrToValuePtr<void>(OwnerObject);
+			MapProp->CopyValuesInternal(Dest, SrcMapAddr, 1);
+		}
+	}
+}

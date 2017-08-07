@@ -291,6 +291,14 @@ public:
 		const FSlateFontInfo* InFontPtr = NULL);
 
 	/**
+	 * Register a floating struct on scope so that the details panel may use it as a property
+	 *
+	 * @param StructOnScope		The struct to register
+	 * @return The struct property that may may be associated with the details panel
+ 	 */
+	virtual UStructProperty* RegisterStructOnScopeProperty(TSharedRef<FStructOnScope> StructOnScope);
+
+	/**
 	 *
 	 */
 	virtual TSharedRef< FAssetEditorToolkit > CreatePropertyEditorToolkit( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UObject* ObjectToEdit );
@@ -333,5 +341,7 @@ private:
 	TMap< TWeakPtr<IDetailsView>, FCustomPropertyTypeLayoutMap > InstancePropertyTypeLayoutMap;
 	/** Event to be called when a property editor is opened */
 	FPropertyEditorOpenedEvent PropertyEditorOpened;
+	/** Mapping of registered floating UStructs to their struct proxy so they show correctly in the details panel */
+	TMap<FName, UStructProperty*> RegisteredStructToProxyMap;
 
 };

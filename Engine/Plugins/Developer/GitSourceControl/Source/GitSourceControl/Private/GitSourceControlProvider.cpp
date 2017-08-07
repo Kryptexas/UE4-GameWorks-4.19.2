@@ -20,7 +20,11 @@ static FName ProviderName("Git");
 
 void FGitSourceControlProvider::Init(bool bForceConnection)
 {
-	CheckGitAvailability();
+	// Init() is called multiple times at startup: do not check git each time
+	if(!bGitAvailable)
+	{
+		CheckGitAvailability();
+	}
 
 	// bForceConnection: not used anymore
 }
@@ -28,28 +32,23 @@ void FGitSourceControlProvider::Init(bool bForceConnection)
 void FGitSourceControlProvider::CheckGitAvailability()
 {
 	FGitSourceControlModule& GitSourceControl = FModuleManager::LoadModuleChecked<FGitSourceControlModule>("GitSourceControl");
-	const FString& PathToGitBinary = GitSourceControl.AccessSettings().GetBinaryPath();
+	FString PathToGitBinary = GitSourceControl.AccessSettings().GetBinaryPath();
+	if(PathToGitBinary.IsEmpty())
+	{
+		// Try to find Git binary, and update settings accordingly
+		PathToGitBinary = GitSourceControlUtils::FindGitBinaryPath();
+		if(!PathToGitBinary.IsEmpty())
+		{
+			GitSourceControl.AccessSettings().SetBinaryPath(PathToGitBinary);
+		}
+	}
+
 	if(!PathToGitBinary.IsEmpty())
 	{
 		bGitAvailable = GitSourceControlUtils::CheckGitAvailability(PathToGitBinary, &GitVersion);
 		if(bGitAvailable)
 		{
-			// Find the path to the root Git directory (if any)
-			const FString PathToGameDir = FPaths::ConvertRelativePathToFull(FPaths::GameDir());
-			const bool bRepositoryFound = GitSourceControlUtils::FindRootDirectory(PathToGameDir, PathToRepositoryRoot);
-			// Get user name & email (of the repository, else from the global Git config)
-			GitSourceControlUtils::GetUserConfig(PathToGitBinary, PathToRepositoryRoot, UserName, UserEmail);
-			if (bRepositoryFound)
-			{
-				// Get branch name
-				GitSourceControlUtils::GetBranchName(PathToGitBinary, PathToRepositoryRoot, BranchName);
-				bGitRepositoryFound = true;
-			}
-			else
-			{
-				UE_LOG(LogSourceControl, Error, TEXT("'%s' is not part of a Git repository"), *FPaths::GameDir());
-				bGitRepositoryFound = false;
-			}
+			CheckRepositoryStatus(PathToGitBinary);
 		}
 	}
 	else
@@ -58,10 +57,38 @@ void FGitSourceControlProvider::CheckGitAvailability()
 	}
 }
 
+void FGitSourceControlProvider::CheckRepositoryStatus(const FString& InPathToGitBinary)
+{
+	// Find the path to the root Git directory (if any)
+	const FString PathToGameDir = FPaths::ConvertRelativePathToFull(FPaths::GameDir());
+	bGitRepositoryFound = GitSourceControlUtils::FindRootDirectory(PathToGameDir, PathToRepositoryRoot);
+	if(bGitRepositoryFound)
+	{
+		// Get branch name
+		bGitRepositoryFound = GitSourceControlUtils::GetBranchName(InPathToGitBinary, PathToRepositoryRoot, BranchName);
+		if (!bGitRepositoryFound)
+		{
+			UE_LOG(LogSourceControl, Error, TEXT("'%s' is not a valid Git repository"), *PathToRepositoryRoot);
+		}
+	}
+	else
+	{
+		UE_LOG(LogSourceControl, Warning, TEXT("'%s' is not part of a Git repository"), *FPaths::GameDir());
+	}
+
+	// Get user name & email (of the repository, else from the global Git config)
+	GitSourceControlUtils::GetUserConfig(InPathToGitBinary, PathToRepositoryRoot, UserName, UserEmail);
+}
+
 void FGitSourceControlProvider::Close()
 {
 	// clear the cache
 	StateCache.Empty();
+
+	bGitAvailable = false;
+	bGitRepositoryFound = false;
+	UserName.Empty();
+	UserEmail.Empty();
 }
 
 TSharedRef<FGitSourceControlState, ESPMode::ThreadSafe> FGitSourceControlProvider::GetStateInternal(const FString& Filename)
@@ -213,6 +240,11 @@ bool FGitSourceControlProvider::UsesLocalReadOnlyState() const
 }
 
 bool FGitSourceControlProvider::UsesChangelists() const
+{
+	return false;
+}
+
+bool FGitSourceControlProvider::UsesCheckout() const
 {
 	return false;
 }

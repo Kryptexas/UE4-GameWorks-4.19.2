@@ -247,7 +247,7 @@ void LineCheckTracker::CaptureLineCheck(int32 LineCheckFlags, const FVector* Ext
 	Level actor management.
 -----------------------------------------------------------------------------*/
 // LOOKING_FOR_PERF_ISSUES
-#define PERF_SHOW_MULTI_PAWN_SPAWN_FRAMES ((1 && !(UE_BUILD_SHIPPING || UE_BUILD_TEST)) || !WITH_EDITORONLY_DATA)
+#define PERF_SHOW_MULTI_PAWN_SPAWN_FRAMES (!(UE_BUILD_SHIPPING || UE_BUILD_TEST)) && (LOOKING_FOR_PERF_ISSUES || !WITH_EDITORONLY_DATA)
 
 #if PERF_SHOW_MULTI_PAWN_SPAWN_FRAMES
 	/** Array showing names of pawns spawned this frame. */
@@ -401,7 +401,7 @@ AActor* UWorld::SpawnActor( UClass* Class, FTransform const* UserTransformPtr, c
 	// note: we can't handle all cases here, since we don't know the full component hierarchy until after the actor is spawned
 	if (CollisionHandlingMethod == ESpawnActorCollisionHandlingMethod::DontSpawnIfColliding)
 	{
-		USceneComponent* const TemplateRootComponent = Template ? Template->GetRootComponent() : nullptr;
+		USceneComponent* const TemplateRootComponent = Template->GetRootComponent();
 
 		// Note that we respect any initial transformation the root component may have from the CDO, so the final transform
 		// might necessarily be exactly the passed-in UserTransform.
@@ -605,7 +605,7 @@ bool UWorld::DestroyActor( AActor* ThisActor, bool bNetForce, bool bShouldModify
 			OldParentActor->Modify();
 		}
 
-		ThisActor->DetachRootComponentFromParent();
+		ThisActor->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 
 #if WITH_EDITOR
 		if( GIsEditor )
@@ -650,7 +650,11 @@ bool UWorld::DestroyActor( AActor* ThisActor, bool bNetForce, bool bShouldModify
 	// Invalidate the lighting cache in the Editor.  We need to check for GIsEditor as play has not begun in network game and objects get destroyed on switching levels
 	if ( GIsEditor )
 	{
-		ThisActor->InvalidateLightingCache();
+		if (!IsGameWorld())
+		{
+			ThisActor->InvalidateLightingCache();
+		}
+		
 #if WITH_EDITOR
 		GEngine->BroadcastLevelActorDeleted(ThisActor);
 #endif
@@ -793,8 +797,6 @@ bool UWorld::FindTeleportSpot(AActor* TestActor, FVector& TestLocation, FRotator
 	return !EncroachingBlockingGeometry(TestActor, TestLocation, TestRotation, &Adjust);
 }
 
-static const FName NAME_ComponentEncroachesBlockingGeometry_NoAdjustment = FName(TEXT("ComponentEncroachesBlockingGeometry_NoAdjustment"));
-
 /** Tests shape components more efficiently than the with-adjustment case, but does less-efficient ppr-poly collision for meshes. */
 static bool ComponentEncroachesBlockingGeometry_NoAdjustment(UWorld const* World, AActor const* TestActor, UPrimitiveComponent const* PrimComp, FTransform const& TestWorldTransform, const TArray<AActor*>& IgnoreActors)
 {	
@@ -815,7 +817,7 @@ static bool ComponentEncroachesBlockingGeometry_NoAdjustment(UWorld const* World
 			{
 				// must be registered
 				TArray<FOverlapResult> Overlaps;
-				FComponentQueryParams Params(NAME_ComponentEncroachesBlockingGeometry_NoAdjustment, TestActor);
+				FComponentQueryParams Params(SCENE_QUERY_STAT(ComponentEncroachesBlockingGeometry_NoAdjustment), TestActor);
 				FCollisionResponseParams ResponseParams;
 				PrimComp->InitSweepCollisionParams(Params, ResponseParams);
 				Params.AddIgnoredActors(IgnoreActors);
@@ -829,7 +831,7 @@ static bool ComponentEncroachesBlockingGeometry_NoAdjustment(UWorld const* World
 		}
 		else
 		{
-			FCollisionQueryParams Params(NAME_ComponentEncroachesBlockingGeometry_NoAdjustment, false, TestActor);
+			FCollisionQueryParams Params(SCENE_QUERY_STAT(ComponentEncroachesBlockingGeometry_NoAdjustment), false, TestActor);
 			FCollisionResponseParams ResponseParams;
 			PrimComp->InitSweepCollisionParams(Params, ResponseParams);
 			Params.AddIgnoredActors(IgnoreActors);
@@ -839,8 +841,6 @@ static bool ComponentEncroachesBlockingGeometry_NoAdjustment(UWorld const* World
 
 	return false;
 }
-
-static const FName NAME_ComponentEncroachesBlockingGeometry_WithAdjustment = FName(TEXT("ComponentEncroachesBlockingGeometry_WithAdjustment"));
 
 /** Tests shape components less efficiently than the no-adjustment case, but does quicker aabb collision for meshes. */
 static bool ComponentEncroachesBlockingGeometry_WithAdjustment(UWorld const* World, AActor const* TestActor, UPrimitiveComponent const* PrimComp, FTransform const& TestWorldTransform, FVector& OutProposedAdjustment, const TArray<AActor*>& IgnoreActors)
@@ -867,7 +867,7 @@ static bool ComponentEncroachesBlockingGeometry_WithAdjustment(UWorld const* Wor
 			if (PrimComp->IsRegistered())
 			{
 				// must be registered
-				FComponentQueryParams Params(NAME_ComponentEncroachesBlockingGeometry_WithAdjustment, TestActor);
+				FComponentQueryParams Params(SCENE_QUERY_STAT(ComponentEncroachesBlockingGeometry_WithAdjustment), TestActor);
 				FCollisionResponseParams ResponseParams;
 				PrimComp->InitSweepCollisionParams(Params, ResponseParams);
 				Params.AddIgnoredActors(IgnoreActors);
@@ -882,7 +882,7 @@ static bool ComponentEncroachesBlockingGeometry_WithAdjustment(UWorld const* Wor
 		else
 		{
 			// overlap our shape
-			FCollisionQueryParams Params(NAME_ComponentEncroachesBlockingGeometry_WithAdjustment, false, TestActor);
+			FCollisionQueryParams Params(SCENE_QUERY_STAT(ComponentEncroachesBlockingGeometry_WithAdjustment), false, TestActor);
 			FCollisionResponseParams ResponseParams;
 			PrimComp->InitSweepCollisionParams(Params, ResponseParams);
 			Params.AddIgnoredActors(IgnoreActors);

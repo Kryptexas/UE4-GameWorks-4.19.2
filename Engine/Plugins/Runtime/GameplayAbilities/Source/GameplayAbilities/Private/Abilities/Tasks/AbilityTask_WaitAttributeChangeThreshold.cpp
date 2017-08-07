@@ -14,7 +14,7 @@ UAbilityTask_WaitAttributeChangeThreshold::UAbilityTask_WaitAttributeChangeThres
 
 UAbilityTask_WaitAttributeChangeThreshold* UAbilityTask_WaitAttributeChangeThreshold::WaitForAttributeChangeThreshold(UGameplayAbility* OwningAbility, FGameplayAttribute Attribute, TEnumAsByte<EWaitAttributeChangeComparison::Type> ComparisonType, float ComparisonValue, bool bTriggerOnce)
 {
-	auto MyTask = NewAbilityTask<UAbilityTask_WaitAttributeChangeThreshold>(OwningAbility);
+	UAbilityTask_WaitAttributeChangeThreshold* MyTask = NewAbilityTask<UAbilityTask_WaitAttributeChangeThreshold>(OwningAbility);
 	MyTask->Attribute = Attribute;
 	MyTask->ComparisonType = ComparisonType;
 	MyTask->ComparisonValue = ComparisonValue;
@@ -36,12 +36,14 @@ void UAbilityTask_WaitAttributeChangeThreshold::Activate()
 			OnChange.Broadcast(bMatchedComparisonLastAttributeChange, CurrentValue);
 		}
 
-		OnAttributeChangeDelegateHandle = AbilitySystemComponent->RegisterGameplayAttributeEvent(Attribute).AddUObject(this, &UAbilityTask_WaitAttributeChangeThreshold::OnAttributeChange);
+		OnAttributeChangeDelegateHandle = AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(Attribute).AddUObject(this, &UAbilityTask_WaitAttributeChangeThreshold::OnAttributeChange);
 	}
 }
 
-void UAbilityTask_WaitAttributeChangeThreshold::OnAttributeChange(float NewValue, const FGameplayEffectModCallbackData* Data)
+void UAbilityTask_WaitAttributeChangeThreshold::OnAttributeChange(const FOnAttributeChangeData& CallbackData)
 {
+	float NewValue = CallbackData.NewValue;
+
 	bool bPassedComparison = DoesValuePassComparison(NewValue);
 	if (bPassedComparison != bMatchedComparisonLastAttributeChange)
 	{
@@ -90,7 +92,7 @@ void UAbilityTask_WaitAttributeChangeThreshold::OnDestroy(bool AbilityEnded)
 {
 	if (AbilitySystemComponent)
 	{
-		AbilitySystemComponent->RegisterGameplayAttributeEvent(Attribute).Remove(OnAttributeChangeDelegateHandle);
+		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(Attribute).Remove(OnAttributeChangeDelegateHandle);
 	}
 
 	Super::OnDestroy(AbilityEnded);

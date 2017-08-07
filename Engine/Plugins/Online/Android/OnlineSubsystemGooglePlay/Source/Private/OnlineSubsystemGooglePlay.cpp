@@ -245,6 +245,11 @@ bool FOnlineSubsystemGooglePlay::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutput
 	return false;
 }
 
+FText FOnlineSubsystemGooglePlay::GetOnlineServiceName() const
+{
+	return NSLOCTEXT("OnlineSubsystemGooglePlay", "OnlineServiceName", "Google Play");
+}
+
 bool FOnlineSubsystemGooglePlay::IsEnabled(void)
 {
 	bool bEnableGooglePlaySupport = true;
@@ -365,6 +370,10 @@ void FOnlineSubsystemGooglePlay::OnAuthActionFinished(AuthOperation Op, AuthStat
 
 			CurrentShowLoginUITask->OnAuthActionFinished(Op, Status);
 		}
+		else
+		{
+			UE_LOG(LogOnline, Log, TEXT("OnAuthActionFinished no handler!"));
+		}
 	}
 	else if (Op == AuthOperation::SIGN_OUT)
 	{
@@ -404,13 +413,15 @@ JNI_METHOD void Java_com_epicgames_ue4_GameActivity_nativeGoogleClientConnectCom
 		jenv->ReleaseStringUTFChars(accessToken, charsToken);
 	}
 
+	UE_LOG(LogOnline, Log, TEXT("nativeGoogleClientConnectCompleted Success: %d Token: %s"), bSuccess, *AccessToken);
+
 	DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.ProcessGoogleClientConnectResult"), STAT_FSimpleDelegateGraphTask_ProcessGoogleClientConnectResult, STATGROUP_TaskGraphTasks);
 
 	FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
 		FSimpleDelegateGraphTask::FDelegate::CreateLambda([=]()
 		{
 			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Google Client connected %s, Access Token: %s\n"), bSuccess ? TEXT("successfully") : TEXT("unsuccessfully"), *AccessToken);
-			if (FOnlineSubsystemGooglePlay* const OnlineSub = (FOnlineSubsystemGooglePlay*)IOnlineSubsystem::Get())
+			if (FOnlineSubsystemGooglePlay* const OnlineSub = static_cast<FOnlineSubsystemGooglePlay* const>(IOnlineSubsystem::Get(GOOGLEPLAY_SUBSYSTEM)))
 			{
 				OnlineSub->ProcessGoogleClientConnectResult(bSuccess, AccessToken);
 			}

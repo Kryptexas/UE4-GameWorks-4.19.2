@@ -2,7 +2,7 @@ Availability: Public
 Title: Android Quick Start
 Crumbs:%ROOT%, Platforms, Platforms/Android
 Description:Setting up for development for the Android platform.
-Version:4.12
+Version:4.16
 Skilllevel:Intermediate
 tags:Android
 tags:Mobile
@@ -48,9 +48,9 @@ Checkpoint:AndroidQS
 
 ![](AndroidTopic.jpg)
 
-Unreal Engine 4 (UE4) uses a special version of the Android Software Development Kit (SDK), called **CodeWorks for Android 1R4**. 
+Unreal Engine 4 (UE4) uses a special version of the Android Software Development Kit (SDK), called **CodeWorks for Android 1R6**. 
 This version of CodeWorks for Android is the easiest way to set up the SDK and Native Development Kit (NDK) needed to develop 
-Android projects with UE4. Although we're currently using version 1R4, we intend to use subsequent releases of CodeWorks. 
+Android projects with UE4. Although we're currently using version 1R6, we intend to use subsequent releases of CodeWorks. 
 If you have other versions of the Android SDK installed (or, older versions of CodeWorks for Android), we recommend that you 
 uninstall them and install CodeWorks for Android, using the CodeWorks for Android installer that's being distributed with UE4. 
 
@@ -65,7 +65,7 @@ This guide also teaches you how to put a template game on your Android device wi
 
 ## Objectives
 
-* Install and set up the Android SDK.
+* Install and setup the Android SDK.
 * Setting up your Android device for development.
 * Creating a project that is targeted for Android mobile development.
 * How to deploy a level to your Android device

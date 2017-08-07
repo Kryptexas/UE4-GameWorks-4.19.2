@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:3298293
+﻿INTSourceChangelist:3477690
 Availability:Public
 Title:4. 레벨 디플로이
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
 Description:원클릭 디플로이로 레벨을 실행시킵니다.
+version:4.16
 Skilllevel:Intermediate
 tags:Android
 tags:Mobile
@@ -55,16 +56,22 @@ Checkpoint:AndroidQS
 
 1. 디바이스에서 레벨이 실행되는 도중 그 진행상황이 화면 우하단 구석에 표시됩니다.
 프로젝트가 디바이스에 성공적으로 디플로이되면 알림창이 뜹니다.
-
+	
 	[OBJECT:EmbeddedVideo]
+		[PARAMLITERAL:videoid]
+		afagQeEvf4Q
+		[/PARAMLITERAL]
 		[PARAMLITERAL:width]
 		640
 		[/PARAMLITERAL]
 		[PARAMLITERAL:height]
 		360
 		[/PARAMLITERAL]
-		[PARAMLITERAL:videoid]
-		afagQeEvf4Q
+		[PARAMLITERAL:units]
+		px
+		[/PARAMLITERAL]
+		[PARAMLITERAL:type]
+		simple
 		[/PARAMLITERAL]
 	[/OBJECT]
 

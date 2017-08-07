@@ -1,48 +1,12 @@
-﻿INTSourceChangelist:3275202
+﻿INTSourceChangelist:3429227
 Availability:Public
 Title:액터 트랜스폼
 Crumbs: %ROOT%, Engine, Engine/Actors
 Description:레벨에 배치된 액터의 위치, 회전, 스케일 변경하기 입니다.
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Actors/Transform:title%](Engine/Actors/Transform/actortransform_topic.png)(convert:false)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Actors/Transform:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors/Transform:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Actors/Transform]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Actors/Transform:title%](Engine/Actors/Transform/actortransform_topic.png)(convert:false)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Actors/Transform:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors/Transform:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Actors/Transform]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+parent:Engine/Actors
+type:overview
+order:3
+topic-image:actortransform_topic.png
 
 
 [TOC(start:2)]

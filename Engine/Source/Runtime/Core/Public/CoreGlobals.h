@@ -89,9 +89,6 @@ extern CORE_API bool GCompilingBlueprint;
 /** True if we're reconstructing blueprint instances. Should never be true on cooked builds */
 extern CORE_API bool GIsReconstructingBlueprintInstances;
 
-/** Force blueprints to not compile on load */
-extern CORE_API bool GForceDisableBlueprintCompileOnLoad;
-
 /** True if actors and objects are being re-instanced. */
 extern CORE_API bool GIsReinstancing;
 
@@ -371,9 +368,6 @@ extern CORE_API FName GLongCoreUObjectPackageName;
 /** Whether or not a unit test is currently being run. */
 extern CORE_API bool GIsAutomationTesting;
 
-/** Constrain bandwidth if wanted. Value is in MByte/ sec. */
-extern CORE_API float GAsyncIOBandwidthLimit;
-
 /** Whether or not messages are being pumped outside of main loop */
 extern CORE_API bool GPumpingMessagesOutsideOfMainLoop;
 
@@ -433,7 +427,40 @@ extern CORE_API int32 GIsRenderingThreadSuspended;
 extern CORE_API bool IsInRHIThread();
 
 /** Thread used for RHI */
-extern CORE_API FRunnableThread* GRHIThread;
+extern CORE_API FRunnableThread* GRHIThread_InternalUseOnly;
+
+/** Thread ID of the the thread we are executing RHI commands on. This could either be a constant dedicated thread or changing every task if we run the rhi thread on tasks. */
+extern CORE_API uint32 GRHIThreadId;
+
+/** Boot loading timers */
+#if !UE_BUILD_SHIPPING
+CORE_API void NotifyLoadingStateChanged(bool bState, const TCHAR *Message);
+struct FScopedLoadingState
+{
+	FString Message;
+	FScopedLoadingState(const TCHAR* InMessage)
+		: Message(InMessage)
+	{
+		NotifyLoadingStateChanged(true, *Message);
+	}
+	~FScopedLoadingState()
+	{
+		NotifyLoadingStateChanged(false, *Message);
+	}
+};
+#else
+FORCEINLINE void NotifyLoadingStateChanged(bool bState, const TCHAR *Message)
+{
+}
+struct FScopedLoadingState
+{
+	FORCEINLINE FScopedLoadingState(const TCHAR* InMessage)
+	{
+	}
+};
+#endif
+
+
 
 /** Array to help visualize weak pointers in the debugger */
 class FFixedUObjectArray;

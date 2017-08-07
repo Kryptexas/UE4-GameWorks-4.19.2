@@ -11,11 +11,12 @@ Related: Gameplay/AI
 Related: Engine/Content/Tools/MayaRiggingTool
 version: 4.14
 type:landing
-topic-image:animbptopic.png
 tags:Animation
 tags:Animation Blueprint
 tags:Blueprints
 tags:State Machine
+tags:Assets
+topic-image:Engine/Animation/Overview/AnimationBlueprintTopic.png
 
 [REGION:banner]
 ![](AnimationBlueprint.png)

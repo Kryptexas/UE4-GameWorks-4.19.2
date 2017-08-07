@@ -7,6 +7,7 @@
 #include "UObject/UObjectIterator.h"
 #include "Components/SkinnedMeshComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Animation/MorphTarget.h"
 
 
 #include "MeshUtilities.h"
@@ -16,6 +17,7 @@
 #endif // #if WITH_APEX_CLOTHING
 
 #include "ComponentReregisterContext.h"
+#include "IMeshReductionManagerModule.h"
 
 void FLODUtilities::RemoveLOD(FSkeletalMeshUpdateContext& UpdateContext, int32 DesiredLOD )
 {
@@ -67,6 +69,15 @@ void FLODUtilities::RemoveLOD(FSkeletalMeshUpdateContext& UpdateContext, int32 D
 				SkinnedComponent->ForcedLodModel = 0;
 			}
 		}
+
+		//remove all Morph target data for this LOD
+		for (UMorphTarget* MorphTarget : SkeletalMesh->MorphTargets)
+		{
+			if (MorphTarget->HasDataForLOD(DesiredLOD))
+			{
+				MorphTarget->MorphLODModels.RemoveAt(DesiredLOD);
+			}
+		}
 		
 		//Notify calling system of change
 		UpdateContext.OnLODChanged.ExecuteIfBound();
@@ -78,8 +89,8 @@ void FLODUtilities::RemoveLOD(FSkeletalMeshUpdateContext& UpdateContext, int32 D
 
 void FLODUtilities::SimplifySkeletalMeshLOD( USkeletalMesh* SkeletalMesh, const FSkeletalMeshOptimizationSettings& InSetting, int32 DesiredLOD, bool bReregisterComponent /*= true*/ )
 {
-	IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
-	IMeshReduction* MeshReduction = MeshUtilities.GetSkeletalMeshReductionInterface();
+	IMeshReductionModule& ReductionModule = FModuleManager::Get().LoadModuleChecked<IMeshReductionModule>("MeshReductionInterface");
+	IMeshReduction* MeshReduction = ReductionModule.GetSkeletalMeshReductionInterface();
 
 	check (MeshReduction && MeshReduction->IsSupported());
 	{
@@ -110,8 +121,8 @@ void FLODUtilities::SimplifySkeletalMeshLOD( USkeletalMesh* SkeletalMesh, const 
 void FLODUtilities::SimplifySkeletalMesh( FSkeletalMeshUpdateContext& UpdateContext, TArray<FSkeletalMeshOptimizationSettings> &InSettings, bool bForceRegenerate )
 {
 	USkeletalMesh* SkeletalMesh = UpdateContext.SkeletalMesh;
-	IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
-	IMeshReduction* MeshReduction = MeshUtilities.GetSkeletalMeshReductionInterface();
+	IMeshReductionModule& ReductionModule = FModuleManager::Get().LoadModuleChecked<IMeshReductionModule>("MeshReductionInterface");
+	IMeshReduction* MeshReduction = ReductionModule.GetSkeletalMeshReductionInterface();
 
 	if ( MeshReduction && MeshReduction->IsSupported() && SkeletalMesh )
 	{
@@ -138,8 +149,8 @@ void FLODUtilities::SimplifySkeletalMesh( FSkeletalMeshUpdateContext& UpdateCont
 void FLODUtilities::SimplifySkeletalMeshLOD(FSkeletalMeshUpdateContext& UpdateContext, const FSkeletalMeshOptimizationSettings& Setting, int32 DesiredLOD, bool bReregisterComponent /*= true*/)
 {
 	USkeletalMesh* SkeletalMesh = UpdateContext.SkeletalMesh;
-	IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
-	IMeshReduction* MeshReduction = MeshUtilities.GetSkeletalMeshReductionInterface();
+	IMeshReductionModule& ReductionModule = FModuleManager::Get().LoadModuleChecked<IMeshReductionModule>("MeshReductionInterface");
+	IMeshReduction* MeshReduction = ReductionModule.GetSkeletalMeshReductionInterface();
 
 	if (MeshReduction && MeshReduction->IsSupported() && SkeletalMesh)
 	{

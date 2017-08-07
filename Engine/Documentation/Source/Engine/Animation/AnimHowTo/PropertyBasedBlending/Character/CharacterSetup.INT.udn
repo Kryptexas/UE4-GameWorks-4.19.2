@@ -1,4 +1,4 @@
-Availability: Public
+Availability: docs
 Title:3. Setting up the Character Blueprint
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo, Engine\Animation\AnimHowTo\PropertyBasedBlending
 Description:In this final step we provide a way for the player to press a key to alter the Speed parameter in our Blend Space. 

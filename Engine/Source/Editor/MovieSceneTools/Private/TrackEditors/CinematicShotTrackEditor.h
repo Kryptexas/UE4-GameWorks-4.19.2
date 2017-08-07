@@ -13,7 +13,7 @@
 #include "MovieSceneTrackEditor.h"
 
 class AActor;
-class FAssetData;
+struct FAssetData;
 class FMenuBuilder;
 class FTrackEditorThumbnailPool;
 class UMovieSceneCinematicShotSection;
@@ -141,7 +141,7 @@ private:
 	UMovieSceneCinematicShotTrack* FindOrCreateCinematicShotTrack();
 
 	/** Delegate for AnimatablePropertyChanged in AddKey */
-	bool AddKeyInternal(float KeyTime, UMovieSceneSequence* InMovieSceneSequence);
+	FKeyPropertyResult AddKeyInternal(float KeyTime, UMovieSceneSequence* InMovieSceneSequence);
 
 	/** Delegate for shots button lock state */
 	ECheckBoxState AreShotsLocked() const; 
@@ -167,7 +167,7 @@ private:
 	void OnUpdateCameraCut(UObject* CameraObject, bool bJumpCut);
 
 	/** Callback for AnimatablePropertyChanged in HandleAssetAdded. */
-	bool HandleSequenceAdded(float KeyTime, UMovieSceneSequence* Sequence);
+	FKeyPropertyResult HandleSequenceAdded(float KeyTime, UMovieSceneSequence* Sequence);
 
 	/** Callback for ImportEDL. */
 	void ImportEDL();

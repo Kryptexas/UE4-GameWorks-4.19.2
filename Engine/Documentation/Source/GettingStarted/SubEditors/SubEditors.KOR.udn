@@ -1,43 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3473462
 Availability: Public
 Title:툴 및 에디터
 Crumbs: %ROOT%, Gameplay, GettingStarted
 Description:언리얼 엔진 4 에는 여러가지 다양한 에디터 유형이 포함되어 있으며, 여기서는 그 각각을 집중 조명해 봅니다.
 version: 4.9
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![](editortypes_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%GettingStarted\SubEditors:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:GettingStarted\SubEditors]
-	[/PARAM]
-	[PARAM:description]
-	%GettingStarted\SubEditors:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![](editortypes_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%GettingStarted\SubEditors:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:GettingStarted\SubEditors]
-	[/PARAM]
-	[PARAM:description]
-	%GettingStarted\SubEditors:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:editortypes_topic.png
 
 
 이 글은 언리얼 엔진 4 안에서 작업시 만날 수 있는 여러가지 다양한 유형의 에디터 각각에 대한 개요서 역할을 하고자 합니다. 게임의 레벨을 제작하는 **레벨 에디터** 안에 있든, 레벨의 액터에 대한 스크립트 작동방식을 짜는 **블루프린트 에디터** 작업을 하든, **캐스케이드 에디터** 로 파티클 이펙트를 만들든, **페르소나 에디터** 에서 캐릭터 애니메이션을 구성중이든, 각 에디터가 하는 일은 무엇이고 각각의 조작법을 잘 알아두면 작업방식을 개선시켜 개발 도중 발부리에 걸리는 장애물을 방지하는 데 도움이 될 것입니다.
@@ -46,23 +13,56 @@ version: 4.9
 
 
 | ------- | ------------ |
-|![](LevelEditorImage.png)(w:400 h:240)|[INCLUDE:GettingStarted\SubEditors#leveleditor]| 
-|![](MaterialEditorImage.png)(w:400 h:240)|[INCLUDE:GettingStarted\SubEditors#materialeditor]| 
-|![](BlueprintEditorImage.png)(w:400 h:240)|[INCLUDE:GettingStarted\SubEditors#blueprinteditor]| 
-|![](BehaviorTreeImage.png)(w:400 h:240)|[INCLUDE:GettingStarted\SubEditors#behavioreditor]| 
-|![](PersonaEditorImage.png)(w:400 h:240)|[INCLUDE:GettingStarted\SubEditors#personaeditor]| 
-|![](CascadeEditorImage.png)(w:400 h:240)|[INCLUDE:GettingStarted\SubEditors#cascadeeditor]| 
-|![](UMGUIEditorImage.png)(w:400 h:240)|[INCLUDE:GettingStarted\SubEditors#umguieditor]| 
-|![](MatineeEditorImage.png)(w:400 h:240)|[INCLUDE:GettingStarted\SubEditors#matineeeditor]| 
-|![](SoundCueEditorImage.png)(w:400 h:240)|[INCLUDE:GettingStarted\SubEditors#soundcueeditor]| 
-|![](SpriteEditorImage.png)(w:400 h:240)|[INCLUDE:GettingStarted\SubEditors#spriteeditor]| 
-|![](FlipbookEditorImage.png)(w:400 h:240)|[INCLUDE:GettingStarted\SubEditors#flipbookeditor]| 
-|![](PhatEditorImage.png)(w:400 h:240)|[INCLUDE:GettingStarted\SubEditors#phateditor]| 
-|![](StaticMeshEditorImage.png)(w:400 h:240)|[INCLUDE:GettingStarted\SubEditors#staticmesheditor]| 
-|![](MediaFrameworkImage.png)(w:400 h:240)|[INCLUDE:GettingStarted\SubEditors#mediaeditor]| 
+|[INCLUDE:GettingStarted\SubEditors#leveleditorimage]|[INCLUDE:GettingStarted\SubEditors#leveleditor]| 
+|[INCLUDE:GettingStarted\SubEditors#materialeditorimage]|[INCLUDE:GettingStarted\SubEditors#materialeditor]| 
+|[INCLUDE:GettingStarted\SubEditors#blueprinteditorimage]|[INCLUDE:GettingStarted\SubEditors#blueprinteditor]| 
+|[INCLUDE:GettingStarted\SubEditors#behavioreditorimage]|[INCLUDE:GettingStarted\SubEditors#behavioreditor]| 
+|[INCLUDE:GettingStarted\SubEditors#personaeditorimage]|[INCLUDE:GettingStarted\SubEditors#personaeditor]| 
+|[INCLUDE:GettingStarted\SubEditors#cascadeeditorimage]|[INCLUDE:GettingStarted\SubEditors#cascadeeditor]| 
+|[INCLUDE:GettingStarted\SubEditors#umguieditorimage]|[INCLUDE:GettingStarted\SubEditors#umguieditor]| 
+|[INCLUDE:GettingStarted\SubEditors#matineeeditorimage]|[INCLUDE:GettingStarted\SubEditors#matineeeditor]| 
+|[INCLUDE:GettingStarted\SubEditors#soundcueeditorimage]|[INCLUDE:GettingStarted\SubEditors#soundcueeditor]| 
+|[INCLUDE:GettingStarted\SubEditors#spriteeditorimage]|[INCLUDE:GettingStarted\SubEditors#spriteeditor]| 
+|[INCLUDE:GettingStarted\SubEditors#flipbookeditorimage]|[INCLUDE:GettingStarted\SubEditors#flipbookeditor]| 
+|[INCLUDE:GettingStarted\SubEditors#phateditorimage]|[INCLUDE:GettingStarted\SubEditors#phateditor]| 
+|[INCLUDE:GettingStarted\SubEditors#staticmesheditorimage]|[INCLUDE:GettingStarted\SubEditors#staticmesheditor]| 
+|[INCLUDE:GettingStarted\SubEditors#mediaeditorimage]|[INCLUDE:GettingStarted\SubEditors#mediaeditor]| 
 
 
 <!---
+[EXCERPT:leveleditorimage]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](LevelEditor_Windows.png)(w:400 h:240)](LevelEditor_Windows.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](LevelEditor_Mac.png)(w:400 h:240)](LevelEditor_Mac.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:leveleditorimage]
 [EXCERPT:leveleditor]
 **레벨 에디터**
 
@@ -72,7 +72,39 @@ version: 4.9
 [/EXCERPT:leveleditor]
 
 ---
-
+[EXCERPT:materialeditorimage]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](MaterialEditor_Windows.png)(w:400 h:240)](MaterialEditor_Windows.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](MaterialEditor_Mac.png)(w:400 h:240)](MaterialEditor_Mac.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:materialeditorimage]
 [EXCERPT:materialeditor]
 **머티리얼 에디터**
 
@@ -82,7 +114,39 @@ version: 4.9
 [/EXCERPT:materialeditor]
 
 ---
-
+[EXCERPT:blueprinteditorimage]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](BlueprintEditor_Windows.png)(w:400 h:240)](BlueprintEditor_Windows.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](BlueprintEditor_Mac.png)(w:400 h:240)](BlueprintEditor_Mac.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:blueprinteditorimage]
 [EXCERPT:blueprinteditor]
 **블루프린트 에디터**
 
@@ -92,7 +156,39 @@ version: 4.9
 [/EXCERPT:blueprinteditor]
 
 ---
-
+[EXCERPT:behavioreditorimage]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](BehaviorTree_Windows.png)(w:400 h:240)](BehaviorTree_Windows.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](BehaviorTree_Mac.png)(w:400 h:240)](BehaviorTree_Mac.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:behavioreditorimage]
 [EXCERPT:behavioreditor]
 **비헤이비어 트리 에디터**
 
@@ -103,6 +199,39 @@ version: 4.9
 
 ---
 
+[EXCERPT:personaeditorimage]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](AnimEditors_Windows.png)(w:400 h:240)](AnimEditors_Windows.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](AnimEditors_Mac.png)(w:400 h:240)](AnimEditors_Mac.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:personaeditorimage]
 [EXCERPT:personaeditor]
 **페르소나 에디터**
 
@@ -113,7 +242,39 @@ version: 4.9
 [/EXCERPT:personaeditor]
 
 ---
-
+[EXCERPT:cascadeeditorimage]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](CascadeEditor_Windows.png)(w:400 h:240)](CascadeEditor_Windows.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](CascadeEditor_Mac.png)(w:400 h:240)](CascadeEditor_Mac.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:cascadeeditorimage]
 [EXCERPT:cascadeeditor]
 **캐스케이드 에디터**
 
@@ -123,7 +284,39 @@ version: 4.9
 [/EXCERPT:cascadeeditor]
 
 ---
-
+[EXCERPT:umguieditorimage]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](UMGEditor_Windows.png)(w:400 h:240)](UMGEditor_Windows.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](UMGEditor_Mac.png)(w:400 h:240)](UMGEditor_Mac.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:umguieditorimage]
 [EXCERPT:umguieditor]
 **UMG UI 에디터**
 
@@ -134,7 +327,39 @@ version: 4.9
 [/EXCERPT:umguieditor]
 
 ---
-
+[EXCERPT:matineeeditorimage]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](MatineeEditor_Windows.png)(w:400 h:240)](MatineeEditor_Windows.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](MatineeEditor_Mac.png)(w:400 h:240)](MatineeEditor_Mac.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:matineeeditorimage]
 [EXCERPT:matineeeditor]
 **마티네 에디터**
 
@@ -144,7 +369,39 @@ version: 4.9
 [/EXCERPT:matineeeditor]
 
 ---
-
+[EXCERPT:soundcueeditorimage]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](SoundCueEditor_Windows.png)(w:400 h:240)](SoundCueEditor_Windows.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](SoundCueEditor_Mac.png)(w:400 h:240)](SoundCueEditor_Mac.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:soundcueeditorimage]
 [EXCERPT:soundcueeditor]
 **사운드 큐 에디터**
 
@@ -154,7 +411,40 @@ version: 4.9
 자세한 정보: [](Engine/Audio/SoundCues/Editor)
 [/EXCERPT:soundcueeditor]
 
-
+---
+[EXCERPT:spriteeditorimage]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](SpriteEditor_Windows.png)(w:400 h:240)](SpriteEditor_Windows.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](SpriteEditor_Mac.png)(w:400 h:240)](SpriteEditor_Mac.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:spriteeditorimage]
 [EXCERPT:spriteeditor]
 **Paper2D 스프라이트 에디터**
 
@@ -165,7 +455,39 @@ version: 4.9
 [/EXCERPT:spriteeditor]
 
 ---
-
+[EXCERPT:flipbookeditorimage]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](FlipbookEditor_Windows.png)(w:400 h:240)](FlipbookEditor_Windows.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](FlipbookEditor_Mac.png)(w:400 h:240)](FlipbookEditor_Mac.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:flipbookeditorimage]
 [EXCERPT:flipbookeditor]
 **Paper2D 플립북 에디터**
 
@@ -175,7 +497,39 @@ version: 4.9
 [/EXCERPT:flipbookeditor]
 
 ---
-
+[EXCERPT:phateditorimage]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](PhysicsAssetEditor_Windows.png)(w:400 h:240)](PhysicsAssetEditor_Windows.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](PhysicsAssetEditor_Mac.png)(w:400 h:240)](PhysicsAssetEditor_Mac.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:phateditorimage]
 [EXCERPT:phateditor]
 **피직스 애셋 툴 에디터**
 
@@ -187,7 +541,39 @@ version: 4.9
 [/EXCERPT:phateditor]
 
 ---
-
+[EXCERPT:staticmesheditorimage]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](StaticMeshEditor_Windows.png)(w:400 h:240)](StaticMeshEditor_Windows.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](StaticMeshEditor_Mac.png)(w:400 h:240)](StaticMeshEditor_Mac.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:staticmesheditorimage]
 [EXCERPT:staticmesheditor]
 **스태틱 메시 에디터**
 
@@ -197,7 +583,39 @@ version: 4.9
 [/EXCERPT:staticmesheditor]
 
 ---
-
+[EXCERPT:mediaeditorimage]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](MediaPlayerEditor_Windows.png)(w:400 h:240)](MediaPlayerEditor_Windows.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](MediaPlayerEditor_Mac.png)(w:400 h:240)](MediaPlayerEditor_Mac.png)
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:mediaeditorimage]
 [EXCERPT:mediaeditor]
 **미디어 플레이어 에디터**
 

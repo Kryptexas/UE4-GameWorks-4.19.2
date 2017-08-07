@@ -27,27 +27,35 @@ uint32 FNavPathType::NextUniqueId = 0;
 const FNavPathType FNavigationPath::Type;
 
 FNavigationPath::FNavigationPath()
-	: PathType(FNavigationPath::Type)
+	: GoalActorAsNavAgent(nullptr)
+	, SourceActorAsNavAgent(nullptr)
+	, PathType(FNavigationPath::Type)
 	, bDoAutoUpdateOnInvalidation(true)
 	, bIgnoreInvalidation(false)
 	, bUpdateStartPointOnRepath(true)
 	, bUpdateEndPointOnRepath(true)
+	, bWaitingForRepath(false)
 	, bUseOnPathUpdatedNotify(false)
 	, LastUpdateTimeStamp(-1.f)	// indicates that it has not been set
 	, GoalActorLocationTetherDistanceSq(-1.f)
+	, GoalActorLastLocation(FVector::ZeroVector)
 {
 	InternalResetNavigationPath();
 }
 
 FNavigationPath::FNavigationPath(const TArray<FVector>& Points, AActor* InBase)
-	: PathType(FNavigationPath::Type)
+	: GoalActorAsNavAgent(nullptr)
+	, SourceActorAsNavAgent(nullptr)
+	, PathType(FNavigationPath::Type)
 	, bDoAutoUpdateOnInvalidation(true)
 	, bIgnoreInvalidation(false)
 	, bUpdateStartPointOnRepath(true)
 	, bUpdateEndPointOnRepath(true)
+	, bWaitingForRepath(false)
 	, bUseOnPathUpdatedNotify(false)
 	, LastUpdateTimeStamp(-1.f)	// indicates that it has not been set
 	, GoalActorLocationTetherDistanceSq(-1.f)
+	, GoalActorLastLocation(FVector::ZeroVector)
 {
 	InternalResetNavigationPath();
 	MarkReady();

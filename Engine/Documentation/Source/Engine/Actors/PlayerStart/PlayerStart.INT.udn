@@ -3,6 +3,9 @@ Title:Player Start
 Crumbs: %ROOT%, Engine, Engine/Actors
 Description:Guide to using Player Starts.
 version: 4.9
+Parent:Engine/Actors/Types
+order:5
+type:overview
 
 ![](Player_Start_Actor.png)
 

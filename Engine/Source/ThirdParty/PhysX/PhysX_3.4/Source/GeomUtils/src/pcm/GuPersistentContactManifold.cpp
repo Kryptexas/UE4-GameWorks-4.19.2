@@ -818,7 +818,8 @@ void Gu::PersistentContactManifold::addManifoldContactsToContactBuffer(Gu::Conta
 	This function is for sphere/capsule vs other primitives. We treat sphere as a point and capsule as a segment in the contact gen and store the sphere center or a point in the segment for capsule
 	in the manifold. 
 */
-void Gu::PersistentContactManifold::addManifoldContactsToContactBuffer(Gu::ContactBuffer& contactBuffer, const Ps::aos::Vec3VArg normal, const Ps::aos::Vec3VArg projectionNormal, const Ps::aos::PsTransformV& transf0, const Ps::aos::FloatVArg radius, const Ps::aos::FloatVArg contactOffset)
+void Gu::PersistentContactManifold::addManifoldContactsToContactBuffer(Gu::ContactBuffer& contactBuffer, const Ps::aos::Vec3VArg normal, const Ps::aos::Vec3VArg projectionNormal,
+	const Ps::aos::PsTransformV& transf0, const Ps::aos::FloatVArg radius, const Ps::aos::FloatVArg contactOffset)
 {
 	using namespace Ps::aos;
 

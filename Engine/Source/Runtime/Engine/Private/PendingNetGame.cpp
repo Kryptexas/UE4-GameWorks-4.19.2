@@ -47,23 +47,15 @@ void UPendingNetGame::InitNetDriver()
 			UNetConnection* ServerConn = NetDriver->ServerConnection;
 
 			// Kick off the connection handshake
-			if (ServerConn->StatelessConnectComponent.IsValid())
+			if (ServerConn->Handler.IsValid())
 			{
-				ServerConn->StatelessConnectComponent.Pin()->SendInitialConnect();
+				ServerConn->Handler->BeginHandshaking(
+					FPacketHandlerHandshakeComplete::CreateUObject(this, &UPendingNetGame::SendInitialJoin));
 			}
-
-
-			// Send initial message.
-			uint8 IsLittleEndian = uint8(PLATFORM_LITTLE_ENDIAN);
-			check(IsLittleEndian == !!IsLittleEndian); // should only be one or zero
-			
-			uint32 LocalNetworkVersion = FNetworkVersion::GetLocalNetworkVersion();
-
-			UE_LOG( LogNet, Log, TEXT( "UPendingNetGame::InitNetDriver: Sending hello. %s" ), *ServerConn->Describe() );
-
-			FNetControlMessage<NMT_Hello>::Send(ServerConn, IsLittleEndian, LocalNetworkVersion);
-
-			ServerConn->FlushNet();
+			else
+			{
+				SendInitialJoin();
+			}
 		}
 		else
 		{
@@ -83,6 +75,28 @@ void UPendingNetGame::InitNetDriver()
 	else
 	{
 		ConnectionError = NSLOCTEXT("Engine", "UsedCheatCommands", "Console commands were used which are disallowed in netplay.  You must restart the game to create a match.").ToString();
+	}
+}
+
+void UPendingNetGame::SendInitialJoin()
+{
+	if (NetDriver != nullptr)
+	{
+		UNetConnection* ServerConn = NetDriver->ServerConnection;
+
+		if (ServerConn != nullptr)
+		{
+			uint8 IsLittleEndian = uint8(PLATFORM_LITTLE_ENDIAN);
+			check(IsLittleEndian == !!IsLittleEndian); // should only be one or zero
+			
+			uint32 LocalNetworkVersion = FNetworkVersion::GetLocalNetworkVersion();
+
+			UE_LOG(LogNet, Log, TEXT( "UPendingNetGame::SendInitialJoin: Sending hello. %s" ), *ServerConn->Describe());
+
+			FNetControlMessage<NMT_Hello>::Send(ServerConn, IsLittleEndian, LocalNetworkVersion);
+
+			ServerConn->FlushNet();
+		}
 	}
 }
 
@@ -225,10 +239,28 @@ void UPendingNetGame::NotifyControlMessage(UNetConnection* Connection, uint8 Mes
 				// Send the player unique Id at login
 				UniqueIdRepl = LocalPlayer->GetPreferredUniqueNetId();
 			}
-			
+
+			// Send the player's online platform name
+			FName OnlinePlatformName = NAME_None;
+			if (const FWorldContext* const WorldContext = GEngine->GetWorldContextFromPendingNetGame(this))
+			{
+				if (WorldContext->OwningGameInstance)
+				{
+					OnlinePlatformName = WorldContext->OwningGameInstance->GetOnlinePlatformName();
+				}
+			}
+
 			Connection->ClientResponse = TEXT("0");
 			FString URLString(PartialURL.ToString());
-			FNetControlMessage<NMT_Login>::Send(Connection, Connection->ClientResponse, URLString, UniqueIdRepl);
+			FString OnlinePlatformNameString = OnlinePlatformName.ToString();
+			
+			// url stored as array to avoid FString serialization size limit
+			FTCHARToUTF8 UTF8String(*URLString);
+			TArray<uint8> RequestUrlBytes;
+			RequestUrlBytes.AddZeroed(UTF8String.Length() + 1);
+			FMemory::Memcpy(RequestUrlBytes.GetData(), UTF8String.Get(), UTF8String.Length());
+
+			FNetControlMessage<NMT_Login>::Send(Connection, Connection->ClientResponse, RequestUrlBytes, UniqueIdRepl, OnlinePlatformNameString);
 			NetDriver->ServerConnection->FlushNet();
 			break;
 		}

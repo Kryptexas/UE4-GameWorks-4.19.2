@@ -49,7 +49,7 @@ void FParticleSysParamStructCustomization::CustomizeChildren(TSharedRef<IPropert
 
 	// Add name property
 	TSharedPtr<IPropertyHandle> NameHandle = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FParticleSysParam, Name));
-	StructBuilder.AddChildProperty(NameHandle.ToSharedRef());
+	StructBuilder.AddProperty(NameHandle.ToSharedRef());
 
 	// Add type property - this is a custom widget which remembers its type so that other widgets can alter their visibility accordingly
 	TSharedPtr<IPropertyHandle> ParamTypeHandle = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FParticleSysParam, ParamType));
@@ -71,7 +71,7 @@ void FParticleSysParamStructCustomization::CustomizeChildren(TSharedRef<IPropert
 	TArray<bool> RestrictedList;
 	ParamTypeHandle->GeneratePossibleValues(ParameterTypeNames, ParameterTypeToolTips, RestrictedList);
 
-	StructBuilder.AddChildContent(LOCTEXT("ParamType", "Param Type"))
+	StructBuilder.AddCustomRow(LOCTEXT("ParamType", "Param Type"))
 		.NameContent()
 		[
 			ParamTypeHandle->CreatePropertyNameWidget()
@@ -93,31 +93,31 @@ void FParticleSysParamStructCustomization::CustomizeChildren(TSharedRef<IPropert
 
 	// Add other properties
 	TSharedPtr<IPropertyHandle> ScalarHandle = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FParticleSysParam, Scalar));
-	StructBuilder.AddChildProperty(ScalarHandle.ToSharedRef())
+	StructBuilder.AddProperty(ScalarHandle.ToSharedRef())
 		.Visibility(TAttribute<EVisibility>(this, &FParticleSysParamStructCustomization::GetScalarVisibility));
 
 	TSharedPtr<IPropertyHandle> ScalarLowHandle = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FParticleSysParam, Scalar_Low));
-	StructBuilder.AddChildProperty(ScalarLowHandle.ToSharedRef())
+	StructBuilder.AddProperty(ScalarLowHandle.ToSharedRef())
 		.Visibility(TAttribute<EVisibility>(this, &FParticleSysParamStructCustomization::GetScalarLowVisibility));
 
 	TSharedPtr<IPropertyHandle> VectorHandle = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FParticleSysParam, Vector));
-	StructBuilder.AddChildProperty(VectorHandle.ToSharedRef())
+	StructBuilder.AddProperty(VectorHandle.ToSharedRef())
 		.Visibility(TAttribute<EVisibility>(this, &FParticleSysParamStructCustomization::GetVectorVisibility));
 
 	TSharedPtr<IPropertyHandle> VectorLowHandle = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FParticleSysParam, Vector_Low));
-	StructBuilder.AddChildProperty(VectorLowHandle.ToSharedRef())
+	StructBuilder.AddProperty(VectorLowHandle.ToSharedRef())
 		.Visibility(TAttribute<EVisibility>(this, &FParticleSysParamStructCustomization::GetVectorLowVisibility));
 
 	TSharedPtr<IPropertyHandle> ColorHandle = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FParticleSysParam, Color));
-	StructBuilder.AddChildProperty(ColorHandle.ToSharedRef())
+	StructBuilder.AddProperty(ColorHandle.ToSharedRef())
 		.Visibility(TAttribute<EVisibility>(this, &FParticleSysParamStructCustomization::GetColorVisibility));
 
 	TSharedPtr<IPropertyHandle> ActorHandle = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FParticleSysParam, Actor));
-	StructBuilder.AddChildProperty(ActorHandle.ToSharedRef())
+	StructBuilder.AddProperty(ActorHandle.ToSharedRef())
 		.Visibility(TAttribute<EVisibility>(this, &FParticleSysParamStructCustomization::GetActorVisibility));
 
 	TSharedPtr<IPropertyHandle> MaterialHandle = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FParticleSysParam, Material));
-	StructBuilder.AddChildProperty(MaterialHandle.ToSharedRef())
+	StructBuilder.AddProperty(MaterialHandle.ToSharedRef())
 		.Visibility(TAttribute<EVisibility>(this, &FParticleSysParamStructCustomization::GetMaterialVisibility));
 }
 

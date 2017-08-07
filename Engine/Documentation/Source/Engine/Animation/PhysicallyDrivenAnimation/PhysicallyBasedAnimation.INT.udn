@@ -8,6 +8,7 @@ Related: Engine/Animation/StateMachines
 Related: Gameplay/AI
 Related: Engine/Content/Tools/MayaRiggingTool
 version: 4.9
+topic-image:PhysicsBasedAnimation_topic.png
 
 [REGION:fullwidth]
 ![](PhysicsBlend.png)

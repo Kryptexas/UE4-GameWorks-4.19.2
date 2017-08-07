@@ -44,6 +44,7 @@
 #include "Materials/MaterialExpressionArctangent2.h"
 #include "Materials/MaterialExpressionArctangent2Fast.h"
 #include "Materials/MaterialExpressionAtmosphericFogColor.h"
+#include "Materials/MaterialExpressionBentNormalCustomOutput.h"
 #include "Materials/MaterialExpressionBlackBody.h"
 #include "Materials/MaterialExpressionBlendMaterialAttributes.h"
 #include "Materials/MaterialExpressionBreakMaterialAttributes.h"
@@ -97,6 +98,7 @@
 #include "Materials/MaterialExpressionLightVector.h"
 #include "Materials/MaterialExpressionLinearInterpolate.h"
 #include "Materials/MaterialExpressionLogarithm2.h"
+#include "Materials/MaterialExpressionLogarithm10.h"
 #include "Materials/MaterialExpressionMakeMaterialAttributes.h"
 #include "Materials/MaterialExpressionMax.h"
 #include "Materials/MaterialExpressionMaterialProxyReplace.h"
@@ -149,6 +151,7 @@
 #include "Materials/MaterialExpressionSceneTexture.h"
 #include "Materials/MaterialExpressionScreenPosition.h"
 #include "Materials/MaterialExpressionSine.h"
+#include "Materials/MaterialExpressionSobol.h"
 #include "Materials/MaterialExpressionSpeedTree.h"
 #include "Materials/MaterialExpressionSphereMask.h"
 #include "Materials/MaterialExpressionSphericalParticleOpacity.h"
@@ -158,6 +161,7 @@
 #include "Materials/MaterialExpressionSubtract.h"
 #include "Materials/MaterialExpressionTangent.h"
 #include "Materials/MaterialExpressionTangentOutput.h"
+#include "Materials/MaterialExpressionTemporalSobol.h"
 #include "Materials/MaterialExpressionTextureBase.h"
 #include "Materials/MaterialExpressionTextureObject.h"
 #include "Materials/MaterialExpressionTextureProperty.h"
@@ -1468,26 +1472,6 @@ int32 UMaterialExpressionTextureSample::Compile(class FMaterialCompiler* Compile
 		if (TextureObject.Expression)
 		{
 			UMaterialExpression* InputExpression = TextureObject.Expression;
-			UMaterialExpressionFunctionInput* FunctionInput = Cast<UMaterialExpressionFunctionInput>(InputExpression);
-			if (FunctionInput)
-			{	
-				UMaterialExpressionFunctionInput* NestedFunctionInput = FunctionInput;
-
-				// Walk the input chain to find the last node in the chain
-				while (true)
-				{
-					UMaterialExpression* PreviewExpression = NestedFunctionInput->GetEffectivePreviewExpression();
-					if (PreviewExpression && PreviewExpression->IsA(UMaterialExpressionFunctionInput::StaticClass()))
-					{
-						NestedFunctionInput = CastChecked<UMaterialExpressionFunctionInput>(PreviewExpression);
-					}
-					else
-					{
-						break;
-					}
-				}
-				InputExpression = NestedFunctionInput->GetEffectivePreviewExpression();
-			}
 
 			// If we are referencing a texture input through a reroute node, we'll need to backtrack
 			// to get to the real texture.
@@ -1509,6 +1493,28 @@ int32 UMaterialExpressionTextureSample::Compile(class FMaterialCompiler* Compile
 					}
 				}
 			}
+
+			UMaterialExpressionFunctionInput* FunctionInput = Cast<UMaterialExpressionFunctionInput>(InputExpression);
+			if (FunctionInput)
+			{	
+				UMaterialExpressionFunctionInput* NestedFunctionInput = FunctionInput;
+
+				// Walk the input chain to find the last node in the chain
+				while (true)
+				{
+					UMaterialExpression* PreviewExpression = NestedFunctionInput->GetEffectivePreviewExpression();
+					if (PreviewExpression && PreviewExpression->IsA(UMaterialExpressionFunctionInput::StaticClass()))
+					{
+						NestedFunctionInput = CastChecked<UMaterialExpressionFunctionInput>(PreviewExpression);
+					}
+					else
+					{
+						break;
+					}
+				}
+				InputExpression = NestedFunctionInput->GetEffectivePreviewExpression();
+			}
+
 			
 			UMaterialExpressionTextureObject* TextureObjectExpression = Cast<UMaterialExpressionTextureObject>(InputExpression);
 			UMaterialExpressionTextureObjectParameter* TextureObjectParameter = Cast<UMaterialExpressionTextureObjectParameter>(InputExpression);
@@ -1686,6 +1692,7 @@ UMaterialExpressionTextureSampleParameter::UMaterialExpressionTextureSampleParam
 #if WITH_EDITORONLY_DATA
 	MenuCategories.Empty();
 	MenuCategories.Add( ConstructorStatics.NAME_Obsolete);
+	SortPriority = 0;
 #endif
 }
 
@@ -1697,17 +1704,14 @@ int32 UMaterialExpressionTextureSampleParameter::Compile(class FMaterialCompiler
 		return CompilerError(Compiler, GetRequirements());
 	}
 
-	if (Texture)
+	if (!TextureIsValid(Texture))
 	{
-		if (!TextureIsValid(Texture))
-		{
-			return CompilerError(Compiler, GetRequirements());
-		}
+		return CompilerError(Compiler, GetRequirements());
+	}
 
-		if (!VerifySamplerType(Compiler, (Desc.Len() > 0 ? *Desc : TEXT("TextureSampleParameter")), Texture, SamplerType))
-		{
-			return INDEX_NONE;
-		}
+	if (!VerifySamplerType(Compiler, (Desc.Len() > 0 ? *Desc : TEXT("TextureSampleParameter")), Texture, SamplerType))
+	{
+		return INDEX_NONE;
 	}
 
 	if (!ParameterName.IsValid() || ParameterName.IsNone())
@@ -5182,6 +5186,7 @@ UMaterialExpressionParameter::UMaterialExpressionParameter(const FObjectInitiali
 
 #if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Parameters);
+	SortPriority = 0;
 #endif
 
 	bCollapsed = false;
@@ -6917,6 +6922,11 @@ void UMaterialExpressionPower::GetCaption(TArray<FString>& OutCaptions) const
 
 	OutCaptions.Add(ret);
 }
+
+void UMaterialExpressionPower::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Returns the Base value raised to the power of Exponent. Base value must be positive, values less than 0 will be clamped."), 40, OutToolTip);
+}
 #endif // WITH_EDITOR
 
 UMaterialExpressionLogarithm2::UMaterialExpressionLogarithm2(const FObjectInitializer& ObjectInitializer)
@@ -6952,6 +6962,52 @@ int32 UMaterialExpressionLogarithm2::Compile(class FMaterialCompiler* Compiler, 
 void UMaterialExpressionLogarithm2::GetCaption(TArray<FString>& OutCaptions) const
 {
 	OutCaptions.Add(TEXT("Log2"));
+}
+
+void UMaterialExpressionLogarithm2::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Returns the base-2 logarithm of the input. Input should be greater than 0."), 40, OutToolTip);
+}
+#endif // WITH_EDITOR
+
+UMaterialExpressionLogarithm10::UMaterialExpressionLogarithm10(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Math;
+		FConstructorStatics()
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+#if WITH_EDITORONLY_DATA
+	MenuCategories.Add(ConstructorStatics.NAME_Math);
+#endif
+}
+
+#if WITH_EDITOR
+int32 UMaterialExpressionLogarithm10::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	if(!X.GetTracedInput().Expression)
+	{
+		return Compiler->Errorf(TEXT("Missing Log10 X input"));
+	}
+
+	return Compiler->Logarithm10(X.Compile(Compiler));
+}
+
+void UMaterialExpressionLogarithm10::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("Log10"));
+}
+
+void UMaterialExpressionLogarithm10::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Returns the base-10 logarithm of the input. Input should be greater than 0."), 40, OutToolTip);
 }
 #endif // WITH_EDITOR
 
@@ -7491,7 +7547,7 @@ int32 UMaterialExpressionFontSample::Compile(class FMaterialCompiler* Compiler, 
 		if( !Texture )
 		{
 			UE_LOG(LogMaterial, Log, TEXT("Invalid font texture. Using default texture"));
-			Texture = Texture = GEngine->DefaultTexture;
+			Texture = GEngine->DefaultTexture;
 		}
 		check(Texture);
 
@@ -7598,7 +7654,7 @@ int32 UMaterialExpressionFontSampleParameter::Compile(class FMaterialCompiler* C
 		if( !Texture )
 		{
 			UE_LOG(LogMaterial, Log, TEXT("Invalid font texture. Using default texture"));
-			Texture = Texture = GEngine->DefaultTexture;
+			Texture = GEngine->DefaultTexture;
 		}
 		check(Texture);
 
@@ -8912,10 +8968,8 @@ void UMaterialExpressionMaterialFunctionCall::PostEditChangeProperty(FPropertyCh
 	
 	if (PropertyThatChanged && PropertyThatChanged->GetFName() == FName(TEXT("MaterialFunction")))
 	{
-		UMaterialFunction* FunctionOuter = Cast<UMaterialFunction>(GetOuter());
-
 		// Set the new material function
-		SetMaterialFunction(FunctionOuter, SavedMaterialFunction, MaterialFunction);
+		SetMaterialFunctionEx(SavedMaterialFunction, MaterialFunction);
 		SavedMaterialFunction = NULL;
 	}
 
@@ -9008,11 +9062,11 @@ static const TCHAR* GetInputTypeName(uint8 InputType)
 	return TypeNames[InputType];
 }
 
-FString UMaterialExpressionMaterialFunctionCall::GetInputName(int32 InputIndex) const
+FString UMaterialExpressionMaterialFunctionCall::GetInputNameWithType(int32 InputIndex, bool bWithType) const
 {
 	if (InputIndex < FunctionInputs.Num())
 	{
-		if ( FunctionInputs[InputIndex].ExpressionInput != NULL )
+		if (FunctionInputs[InputIndex].ExpressionInput != NULL && bWithType)
 		{
 			return FunctionInputs[InputIndex].Input.InputName + TEXT(" (") + GetInputTypeName(FunctionInputs[InputIndex].ExpressionInput->InputType) + TEXT(")");
 		}
@@ -9022,6 +9076,11 @@ FString UMaterialExpressionMaterialFunctionCall::GetInputName(int32 InputIndex) 
 		}
 	}
 	return TEXT("");
+}
+
+FString UMaterialExpressionMaterialFunctionCall::GetInputName(int32 InputIndex) const
+{
+	return GetInputNameWithType(InputIndex, true);
 }
 
 bool UMaterialExpressionMaterialFunctionCall::IsInputConnectionRequired(int32 InputIndex) const
@@ -9119,11 +9178,23 @@ void UMaterialExpressionMaterialFunctionCall::GetExpressionToolTip(TArray<FStrin
 	}
 }
 
-bool UMaterialExpressionMaterialFunctionCall::SetMaterialFunction(
-	UMaterialFunction* ThisFunctionResource, 
+bool UMaterialExpressionMaterialFunctionCall::SetMaterialFunction(UMaterialFunction* NewMaterialFunction)
+{
+	// Remember the current material function
+	UMaterialFunction* OldFunction = MaterialFunction;
+
+	return SetMaterialFunctionEx(OldFunction, NewMaterialFunction);
+}
+
+
+bool UMaterialExpressionMaterialFunctionCall::SetMaterialFunctionEx(
 	UMaterialFunction* OldFunctionResource, 
 	UMaterialFunction* NewFunctionResource)
 {
+	// See if Outer is another material function
+	UMaterialFunction* ThisFunctionResource = Cast<UMaterialFunction>(GetOuter());
+
+
 	if (NewFunctionResource 
 		&& ThisFunctionResource
 		&& NewFunctionResource->IsDependent(ThisFunctionResource))
@@ -10590,6 +10661,91 @@ void UMaterialExpressionSphereMask::GetCaption(TArray<FString>& OutCaptions) con
 #endif // WITH_EDITOR
 
 ///////////////////////////////////////////////////////////////////////////////
+// UMaterialExpressionSobol
+///////////////////////////////////////////////////////////////////////////////
+UMaterialExpressionSobol::UMaterialExpressionSobol(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Utility;
+		FConstructorStatics()
+			: NAME_Utility(LOCTEXT("Utility", "Utility"))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+	ConstIndex = 0;
+	ConstSeed = FVector2D(0.f, 0.f);
+}
+
+#if WITH_EDITOR
+int32 UMaterialExpressionSobol::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	int32 CellInput = Cell.GetTracedInput().Expression ? Cell.Compile(Compiler) : Compiler->Constant2(0.f, 0.f);
+	int32 IndexInput = Index.GetTracedInput().Expression ? Index.Compile(Compiler) : Compiler->Constant(ConstIndex);
+	int32 SeedInput = Seed.GetTracedInput().Expression ? Seed.Compile(Compiler) : Compiler->Constant2(ConstSeed.X, ConstSeed.Y);
+	return Compiler->Sobol(CellInput, IndexInput, SeedInput);
+}
+
+void UMaterialExpressionSobol::GetCaption(TArray<FString>& OutCaptions) const
+{
+	FString Caption = TEXT("Sobol");
+
+	if (!Index.GetTracedInput().Expression)
+	{
+		Caption += FString::Printf(TEXT(" (%d)"), ConstIndex);;
+	}
+
+	OutCaptions.Add(Caption);
+}
+#endif // WITH_EDITOR
+
+///////////////////////////////////////////////////////////////////////////////
+// UMaterialExpressionTemporalSobol
+///////////////////////////////////////////////////////////////////////////////
+UMaterialExpressionTemporalSobol::UMaterialExpressionTemporalSobol(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Utility;
+		FConstructorStatics()
+			: NAME_Utility(LOCTEXT("Utility", "Utility"))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+	ConstIndex = 0;
+	ConstSeed = FVector2D(0.f, 0.f);
+}
+
+#if WITH_EDITOR
+int32 UMaterialExpressionTemporalSobol::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	int32 IndexInput = Index.GetTracedInput().Expression ? Index.Compile(Compiler) : Compiler->Constant(ConstIndex);
+	int32 SeedInput = Seed.GetTracedInput().Expression ? Seed.Compile(Compiler) : Compiler->Constant2(ConstSeed.X, ConstSeed.Y);
+	return Compiler->TemporalSobol(IndexInput, SeedInput);
+}
+
+void UMaterialExpressionTemporalSobol::GetCaption(TArray<FString>& OutCaptions) const
+{
+	FString Caption = TEXT("Temporal Sobol");
+
+	if (!Index.GetTracedInput().Expression)
+	{
+		Caption += FString::Printf(TEXT(" (%d)"), ConstIndex);;
+	}
+
+	OutCaptions.Add(Caption);
+}
+#endif // WITH_EDITOR
+
+///////////////////////////////////////////////////////////////////////////////
 // UMaterialExpressionNoise
 ///////////////////////////////////////////////////////////////////////////////
 UMaterialExpressionNoise::UMaterialExpressionNoise(const FObjectInitializer& ObjectInitializer)
@@ -10683,6 +10839,9 @@ int32 UMaterialExpressionNoise::Compile(class FMaterialCompiler* Compiler, int32
 
 void UMaterialExpressionNoise::GetCaption(TArray<FString>& OutCaptions) const
 {
+	const UEnum* NFEnum = FindObject<UEnum>(nullptr, TEXT("Engine.ENoiseFunction"));
+	check(NFEnum);
+	OutCaptions.Add(NFEnum->GetDisplayNameTextByValue(NoiseFunction).ToString());
 	OutCaptions.Add(TEXT("Noise"));
 }
 #endif // WITH_EDITOR
@@ -10756,6 +10915,9 @@ int32 UMaterialExpressionVectorNoise::Compile(class FMaterialCompiler* Compiler,
 
 void UMaterialExpressionVectorNoise::GetCaption(TArray<FString>& OutCaptions) const
 {
+	const UEnum* VNFEnum = FindObject<UEnum>(nullptr, TEXT("Engine.EVectorNoiseFunction"));
+	check(VNFEnum);
+	OutCaptions.Add(VNFEnum->GetDisplayNameTextByValue(NoiseFunction).ToString());
 	OutCaptions.Add(TEXT("Vector Noise"));
 }
 #endif // WITH_EDITOR
@@ -12110,6 +12272,63 @@ void UMaterialExpressionClearCoatNormalCustomOutput::GetCaption(TArray<FString>&
 #endif // WITH_EDITOR
 
 FExpressionInput* UMaterialExpressionClearCoatNormalCustomOutput::GetInput(int32 InputIndex)
+{
+	return &Input;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Bent Normal Output
+///////////////////////////////////////////////////////////////////////////////
+
+UMaterialExpressionBentNormalCustomOutput::UMaterialExpressionBentNormalCustomOutput(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Utility;
+		FConstructorStatics(const FString& DisplayName, const FString& FunctionName)
+			: NAME_Utility(LOCTEXT("Utility", "Utility"))
+		{
+			// Register with attribute map to allow use with material attribute nodes and blending
+			FMaterialAttributeDefinitionMap::AddCustomAttribute(FGuid(0xfbd7b46e, 0xb1234824, 0xbde76b23, 0x609f984c), DisplayName, FunctionName, MCT_Float3, FVector4(0,0,1,0));
+		}
+	};
+	static FConstructorStatics ConstructorStatics(GetDisplayName(), GetFunctionName());
+
+#if WITH_EDITORONLY_DATA
+	MenuCategories.Add(ConstructorStatics.NAME_Utility);
+#endif
+
+	bCollapsed = true;
+
+	// No outputs
+	Outputs.Reset();
+}
+
+#if WITH_EDITOR
+int32  UMaterialExpressionBentNormalCustomOutput::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	if (Input.GetTracedInput().Expression)
+	{
+		return Compiler->CustomOutput(this, OutputIndex, Input.Compile(Compiler));
+	}
+	else
+	{
+		return CompilerError(Compiler, TEXT("Input missing"));
+	}
+	return INDEX_NONE;
+}
+
+
+void UMaterialExpressionBentNormalCustomOutput::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(FString(TEXT("BentNormal")));
+}
+#endif // WITH_EDITOR
+
+FExpressionInput* UMaterialExpressionBentNormalCustomOutput::GetInput(int32 InputIndex)
 {
 	return &Input;
 }

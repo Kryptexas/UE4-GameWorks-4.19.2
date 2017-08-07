@@ -5,7 +5,7 @@
 /////////////////////////////////////////////////////
 // FAnimRefPoseNode
 
-void FAnimNode_RefPose::Evaluate(FPoseContext& Output)
+void FAnimNode_RefPose::Evaluate_AnyThread(FPoseContext& Output)
 {
 	// I don't have anything to evaluate. Should this be even here?
 	// EvaluateGraphExposedInputs.Execute(Context);
@@ -23,7 +23,7 @@ void FAnimNode_RefPose::Evaluate(FPoseContext& Output)
 	}
 }
 
-void FAnimNode_MeshSpaceRefPose::EvaluateComponentSpace(FComponentSpacePoseContext& Output)
+void FAnimNode_MeshSpaceRefPose::EvaluateComponentSpace_AnyThread(FComponentSpacePoseContext& Output)
 {
 	Output.ResetToRefPose();
 }

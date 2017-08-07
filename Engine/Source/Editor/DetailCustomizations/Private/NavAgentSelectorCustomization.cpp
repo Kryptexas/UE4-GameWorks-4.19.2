@@ -2,6 +2,7 @@
 
 #include "NavAgentSelectorCustomization.h"
 #include "Widgets/Text/STextBlock.h"
+#include "Engine/Engine.h"
 #include "AI/Navigation/NavigationSystem.h"
 #include "IDetailChildrenBuilder.h"
 #include "DetailWidgetRow.h"
@@ -38,8 +39,11 @@ void FNavAgentSelectorCustomization::CustomizeChildren(TSharedRef<class IPropert
 	StructPropertyHandle->GetNumChildren(NumChildren);
 
 	FString AgentPrefix("bSupportsAgent");
-	const UNavigationSystem* DefNavSys = (UNavigationSystem*)(UNavigationSystem::StaticClass()->GetDefaultObject());
-	const int32 NumAgents = FMath::Min(DefNavSys->GetSupportedAgents().Num(), 16);
+	const UNavigationSystem* NavSysCDO = (*GEngine->NavigationSystemClass != nullptr)
+		? GetDefault<UNavigationSystem>(GEngine->NavigationSystemClass)
+		: GetDefault<UNavigationSystem>();
+
+	const int32 NumAgents = FMath::Min(NavSysCDO->GetSupportedAgents().Num(), 16);
 
 	for (uint32 Idx = 0; Idx < NumChildren; Idx++)
 	{
@@ -53,8 +57,8 @@ void FNavAgentSelectorCustomization::CustomizeChildren(TSharedRef<class IPropert
 
 			if (AgentIdx >= 0 && AgentIdx < NumAgents)
 			{
-				FText PropName = FText::FromName(DefNavSys->GetSupportedAgents()[AgentIdx].Name);
-				StructBuilder.AddChildContent(PropName)
+				FText PropName = FText::FromName(NavSysCDO->GetSupportedAgents()[AgentIdx].Name);
+				StructBuilder.AddCustomRow(PropName)
 					.NameContent()
 					[
 						SNew(STextBlock)
@@ -70,14 +74,17 @@ void FNavAgentSelectorCustomization::CustomizeChildren(TSharedRef<class IPropert
 			continue;
 		}
 
-		StructBuilder.AddChildProperty(PropHandle.ToSharedRef());
+		StructBuilder.AddProperty(PropHandle.ToSharedRef());
 	}
 }
 
 void FNavAgentSelectorCustomization::OnAgentStateChanged()
 {
-	const UNavigationSystem* DefNavSys = (UNavigationSystem*)(UNavigationSystem::StaticClass()->GetDefaultObject());
-	const int32 NumAgents = FMath::Min(DefNavSys->GetSupportedAgents().Num(), 16);
+	const UNavigationSystem* NavSysCDO = (*GEngine->NavigationSystemClass != nullptr)
+		? GetDefault<UNavigationSystem>(GEngine->NavigationSystemClass)
+		: GetDefault<UNavigationSystem>();
+
+	const int32 NumAgents = FMath::Min(NavSysCDO->GetSupportedAgents().Num(), 16);
 
 	uint32 NumChildren = 0;
 	StructHandle->GetNumChildren(NumChildren);
@@ -120,11 +127,11 @@ void FNavAgentSelectorCustomization::OnAgentStateChanged()
 	}
 	else if (NumSupported == 1)
 	{
-		SupportedDesc = FText::FromName(DefNavSys->GetSupportedAgents()[FirstSupportedIdx].Name);
+		SupportedDesc = FText::FromName(NavSysCDO->GetSupportedAgents()[FirstSupportedIdx].Name);
 	}
 	else
 	{
-		SupportedDesc = FText::Format(FText::FromString("{0}, ..."), FText::FromName(DefNavSys->GetSupportedAgents()[FirstSupportedIdx].Name));
+		SupportedDesc = FText::Format(FText::FromString("{0}, ..."), FText::FromName(NavSysCDO->GetSupportedAgents()[FirstSupportedIdx].Name));
 	}
 }
 

@@ -174,7 +174,7 @@ public:
 	}
 
 	void SetShaderType( uint32 InShaderType );
-	void SetDrawEffects(ESlateDrawEffect InDrawEffects );
+	void SetDrawEffects( ESlateDrawEffect InDrawEffects );
 	void SetShaderParams( const FVector4& InShaderParams );
 	void SetGammaValues(const FVector2D& InGammaValues);
 protected:
@@ -182,9 +182,11 @@ protected:
 private:
 	MS_ALIGN(16) struct FPerElementConstants
 	{
-		FVector4 ShaderParams;
-		uint32 DrawEffects;
-		uint32 ShaderType;
+		uint32 ShaderType;			//  4 bytes
+		FVector4 ShaderParams;		// 16 bytes
+		uint32 IgnoreTextureAlpha;	//	4 byte
+		uint32 DisableEffect;		//  4 byte
+		uint32 UNUSED[1];			//  4 bytes
 	};
 
 	MS_ALIGN(16) struct FPerFrameConstants

@@ -50,13 +50,13 @@ void MeshPaintHelpers::RemoveInstanceVertexColors(UObject* Obj)
 {
 	// Currently only static mesh component supports per instance vertex colors so only need to retrieve those and remove colors
 	AActor* Actor = Cast<AActor>(Obj);
-	if (Actor != NULL)
+	if (Actor != nullptr)
 	{
 		TArray<UStaticMeshComponent*> StaticMeshComponents;
 		Actor->GetComponents<UStaticMeshComponent>(StaticMeshComponents);
 		for (const auto& StaticMeshComponent : StaticMeshComponents)
 		{
-			if (StaticMeshComponent != NULL)
+			if (StaticMeshComponent != nullptr)
 			{
 				MeshPaintHelpers::RemoveComponentInstanceVertexColors(StaticMeshComponent);
 			}
@@ -66,7 +66,7 @@ void MeshPaintHelpers::RemoveInstanceVertexColors(UObject* Obj)
 
 void MeshPaintHelpers::RemoveComponentInstanceVertexColors(UStaticMeshComponent* StaticMeshComponent)
 {
-	if (StaticMeshComponent != NULL && StaticMeshComponent->GetStaticMesh() != nullptr)
+	if (StaticMeshComponent != nullptr && StaticMeshComponent->GetStaticMesh() != nullptr)
 	{
 		// Mark the mesh component as modified
 		StaticMeshComponent->Modify();
@@ -150,7 +150,7 @@ bool MeshPaintHelpers::PropagateColorsToRawMesh(UStaticMesh* StaticMesh, int32 L
 			RenderModel.PositionVertexBuffer,
 			RenderModel.VertexBuffer,
 			TempPositionVertexBuffer,
-			/*OptionalVertexBuffer=*/ NULL,
+			/*OptionalVertexBuffer=*/ nullptr,
 			NewVertexColors
 		);
 		if (NewVertexColors.Num() == RawMesh.VertexPositions.Num())
@@ -806,28 +806,30 @@ void MeshPaintHelpers::FillVertexColors(UMeshComponent* MeshComponent, const FCo
 	{
 		TUniquePtr< FSkeletalMeshComponentRecreateRenderStateContext > RecreateRenderStateContext;
 		USkeletalMesh* Mesh = SkeletalMeshComponent->SkeletalMesh;
-
-		// Dirty the mesh
-		Mesh->SetFlags(RF_Transactional);
-		Mesh->Modify();
-		Mesh->bHasVertexColors = true;
-
-		// Release the static mesh's resources.
-		Mesh->ReleaseResources();
-
-		// Flush the resource release commands to the rendering thread to ensure that the build doesn't occur while a resource is still
-		// allocated, and potentially accessing the UStaticMesh.
-		Mesh->ReleaseResourcesFence.Wait();
-
-		if (Mesh && Mesh->LODInfo.Num() > 0)
+		if (Mesh)
 		{
-			RecreateRenderStateContext = MakeUnique<FSkeletalMeshComponentRecreateRenderStateContext>(Mesh);
-			const int32 NumLods = Mesh->LODInfo.Num();
-			for (int32 LODIndex = 0; LODIndex < NumLods; ++LODIndex)
+			// Dirty the mesh
+			Mesh->SetFlags(RF_Transactional);
+			Mesh->Modify();
+			Mesh->bHasVertexColors = true;
+
+			// Release the static mesh's resources.
+			Mesh->ReleaseResources();
+
+			// Flush the resource release commands to the rendering thread to ensure that the build doesn't occur while a resource is still
+			// allocated, and potentially accessing the UStaticMesh.
+			Mesh->ReleaseResourcesFence.Wait();
+
+			if (Mesh->LODInfo.Num() > 0)
 			{
-				MeshPaintHelpers::SetColorDataForLOD(Mesh, LODIndex, FillColor);
+				RecreateRenderStateContext = MakeUnique<FSkeletalMeshComponentRecreateRenderStateContext>(Mesh);
+				const int32 NumLods = Mesh->LODInfo.Num();
+				for (int32 LODIndex = 0; LODIndex < NumLods; ++LODIndex)
+				{
+					MeshPaintHelpers::SetColorDataForLOD(Mesh, LODIndex, FillColor);
+				}
+				Mesh->InitResources();
 			}
-			Mesh->InitResources();
 		}
 	}
 }
@@ -876,7 +878,7 @@ void MeshPaintHelpers::ImportVertexColorsFromTexture(UMeshComponent* MeshCompone
 	{
 		// Valid file name picked
 		const FString FileName = Filenames[0];
-		UTexture2D* ColorTexture = ImportObject<UTexture2D>(GEngine, NAME_None, RF_Public, *FileName, NULL, NULL, TEXT("NOMIPMAPS=1 NOCOMPRESSION=1"));
+		UTexture2D* ColorTexture = ImportObject<UTexture2D>(GEngine, NAME_None, RF_Public, *FileName, nullptr, nullptr, TEXT("NOMIPMAPS=1 NOCOMPRESSION=1"));
 
 		if (ColorTexture && ColorTexture->Source.GetFormat() == TSF_BGRA8)
 		{
@@ -1458,23 +1460,23 @@ FColor MeshPaintHelpers::PickVertexColorFromTextureData(const uint8* MipData, co
 	return VertexColor;
 }
 
-bool MeshPaintHelpers::ApplyPerVertexPaintAction(IMeshPaintGeometryAdapter* Adapter, const FVector& CameraPosition, const FVector& HitPosition, const UPaintBrushSettings* Settings, FPerVertexPaintAction Action)
+bool MeshPaintHelpers::ApplyPerVertexPaintAction(FPerVertexPaintActionArgs& InArgs, FPerVertexPaintAction Action)
 {
 	// Retrieve components world matrix
-	const FMatrix& ComponentToWorldMatrix = Adapter->GetComponentToWorldMatrix();
+	const FMatrix& ComponentToWorldMatrix = InArgs.Adapter->GetComponentToWorldMatrix();
 	
 	// Compute the camera position in actor space.  We need this later to check for back facing triangles.
-	const FVector ComponentSpaceCameraPosition(ComponentToWorldMatrix.InverseTransformPosition(CameraPosition));
-	const FVector ComponentSpaceBrushPosition(ComponentToWorldMatrix.InverseTransformPosition(HitPosition));
+	const FVector ComponentSpaceCameraPosition(ComponentToWorldMatrix.InverseTransformPosition(InArgs.CameraPosition));
+	const FVector ComponentSpaceBrushPosition(ComponentToWorldMatrix.InverseTransformPosition(InArgs.HitResult.Location));
 
 	// @todo MeshPaint: Input vector doesn't work well with non-uniform scale
-	const float BrushRadius = Settings->GetBrushRadius();
+	const float BrushRadius = InArgs.BrushSettings->GetBrushRadius();
 	const float ComponentSpaceBrushRadius = ComponentToWorldMatrix.InverseTransformVector(FVector(BrushRadius, 0.0f, 0.0f)).Size();
 	const float ComponentSpaceSquaredBrushRadius = ComponentSpaceBrushRadius * ComponentSpaceBrushRadius;
 
 	// Get a list of unique vertices indexed by the influenced triangles
 	TSet<int32> InfluencedVertices;
-	Adapter->GetInfluencedVertexIndices(ComponentSpaceSquaredBrushRadius, ComponentSpaceBrushPosition, ComponentSpaceCameraPosition, Settings->bOnlyFrontFacingTriangles, InfluencedVertices);
+	InArgs.Adapter->GetInfluencedVertexIndices(ComponentSpaceSquaredBrushRadius, ComponentSpaceBrushPosition, ComponentSpaceCameraPosition, InArgs.BrushSettings->bOnlyFrontFacingTriangles, InfluencedVertices);
 
 
 	const int32 NumParallelFors = 4;
@@ -1488,18 +1490,18 @@ bool MeshPaintHelpers::ApplyPerVertexPaintAction(IMeshPaintGeometryAdapter* Adap
 		
 		for (int32 VertexIndex = Start; VertexIndex < End; ++VertexIndex)
 		{
-			Action.Execute(Adapter, VertexIndex);
+			Action.ExecuteIfBound(Adapter, VertexIndex);
 		}
 	});*/
 	if (InfluencedVertices.Num())
 	{
-		Adapter->PreEdit();
+		InArgs.Adapter->PreEdit();
 		for (const int32 VertexIndex : InfluencedVertices)
 		{
-			// Apply the action!			
-			Action.Execute(Adapter, VertexIndex);
+		// Apply the action!			
+			Action.ExecuteIfBound(InArgs, VertexIndex);
 		}
-		Adapter->PostEdit();
+		InArgs.Adapter->PostEdit();
 	}
 
 	return (InfluencedVertices.Num() > 0);

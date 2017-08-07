@@ -13,14 +13,17 @@ FAssetEditorModeManager::FAssetEditorModeManager()
 	ActorSet = NewObject<USelection>();
 	ActorSet->SetFlags(RF_Transactional);
 	ActorSet->AddToRoot();
+	ActorSet->Initialize(nullptr);
 
 	ObjectSet = NewObject<USelection>();
 	ObjectSet->SetFlags(RF_Transactional);
 	ObjectSet->AddToRoot();
+	ObjectSet->Initialize(nullptr);
 
 	ComponentSet = NewObject<USelection>();
 	ComponentSet->SetFlags(RF_Transactional);
 	ComponentSet->AddToRoot();
+	ComponentSet->Initialize(nullptr);
 }
 
 FAssetEditorModeManager::~FAssetEditorModeManager()

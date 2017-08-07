@@ -462,12 +462,22 @@ void FAssetFixUpRedirectors::FixUpStringAssetReferences(const TArray<FRedirector
 	FEditorFileUtils::GetDirtyWorldPackages(PackagesToCheck);
 	FEditorFileUtils::GetDirtyContentPackages(PackagesToCheck);
 
-	for (auto& RedirectorRef : RedirectorsToFix)
+	TMap<FString, FString> RedirectorMap;
+
+	for (const FRedirectorRefs& RedirectorRef : RedirectorsToFix)
 	{
-		FAssetRenameManager::RenameReferencingStringAssetReferences(PackagesToCheck,
-			RedirectorRef.Redirector->GetPathName(),
-			RedirectorRef.Redirector->DestinationObject->GetPathName());
+		UObjectRedirector* Redirector = RedirectorRef.Redirector;
+		RedirectorMap.Add(Redirector->GetPathName(), Redirector->DestinationObject->GetPathName());
+
+		if (UBlueprint* Blueprint = Cast<UBlueprint>(Redirector->DestinationObject))
+		{
+			// Add redirect for class and default as well
+			RedirectorMap.Add(FString::Printf(TEXT("%s_C"), *Redirector->GetPathName()), FString::Printf(TEXT("%s_C"), *Redirector->DestinationObject->GetPathName()));
+			RedirectorMap.Add(FString::Printf(TEXT("Default__%s_C"), *Redirector->GetPathName()), FString::Printf(TEXT("Default__%s_C"), *Redirector->DestinationObject->GetPathName()));
+		}
 	}
+
+	FAssetRenameManager::RenameReferencingStringAssetReferences(PackagesToCheck, RedirectorMap);
 }
 
 #undef LOCTEXT_NAMESPACE

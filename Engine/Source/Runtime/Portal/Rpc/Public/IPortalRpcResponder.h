@@ -21,5 +21,5 @@ public:
 public:
 
 	/** Virtual destructor. */
-	~IPortalRpcResponder() { }
+	virtual ~IPortalRpcResponder() { }
 };

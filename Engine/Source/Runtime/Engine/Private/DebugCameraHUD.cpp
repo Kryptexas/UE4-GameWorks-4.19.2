@@ -110,7 +110,7 @@ void ADebugCameraHUD::PostRender()
 			bTraceComplex = CVarDebugCameraTraceComplex.GetValueOnGameThread() != 0;
 #endif
 
-			FCollisionQueryParams TraceParams(NAME_None, bTraceComplex, this);
+			FCollisionQueryParams TraceParams(NAME_None, FCollisionQueryParams::GetUnknownStatId(), bTraceComplex, this);
 			FHitResult Hit;
 			bool bHit = GetWorld()->LineTraceSingleByChannel(Hit, CamLoc, CamRot.Vector() * 100000.f + CamLoc, ECC_Pawn, TraceParams);
 

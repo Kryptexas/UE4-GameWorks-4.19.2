@@ -31,7 +31,7 @@ void UBehaviorTreeGraphNode_Root::PostPlacedNewNode()
 
 void UBehaviorTreeGraphNode_Root::AllocateDefaultPins()
 {
-	CreatePin(EGPD_Output, UBehaviorTreeEditorTypes::PinCategory_SingleComposite, TEXT(""), NULL, false, false, TEXT("In"));
+	CreatePin(EGPD_Output, UBehaviorTreeEditorTypes::PinCategory_SingleComposite, FString(), nullptr, TEXT("In"));
 }
 
 FText UBehaviorTreeGraphNode_Root::GetNodeTitle(ENodeTitleType::Type TitleType) const

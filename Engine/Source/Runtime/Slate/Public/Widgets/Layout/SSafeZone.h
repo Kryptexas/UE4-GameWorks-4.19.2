@@ -90,6 +90,13 @@ class SLATE_API SSafeZone : public SBox
 
 public:
 
+	SSafeZone()
+	{
+		bCanTick = false;
+		bCanSupportFocus = false;
+	}
+	virtual ~SSafeZone();
+
 	void Construct( const FArguments& InArgs );
 	
 	void SafeAreaUpdated();
@@ -104,6 +111,9 @@ public:
 
 	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override;
 	virtual FVector2D ComputeDesiredSize(float LayoutScale) const override;
+
+	static void SetSafeZoneScale(float InScale);
+	static float GetSafeZoneScale();
 
 private:
 
@@ -125,5 +135,7 @@ private:
 
 	/** Screen space margin */
 	FMargin SafeMargin;
+
+	FDelegateHandle OnSafeFrameChangedHandle;
+	static float SafeZoneScale;
 };
- 

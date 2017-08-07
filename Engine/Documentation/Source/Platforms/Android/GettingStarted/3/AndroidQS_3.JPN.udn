@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:3150518
+﻿INTSourceChangelist:3477690
 Availability:Public
-Title:3.プロジェクトを作成する
+Title:3.プロジェクトの作成
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
 Description:テンプレート プロジェクトを開始する
-Version:4.12
+Version:4.16
 Skilllevel:Intermediate
 tags:Android
 tags:Mobile
@@ -21,7 +21,7 @@ Blueprint Third Person template を用いてブループリント ベースの�
 
 
 
-1. **[Unreal Projects Browser]** ウィンドウから、 「EmissiveMaterials」 という名前の FPS プロジェクト を新規作成します。 
+1. **[Unreal Projects Browser]** ウィンドウから、「EmissiveMaterials」 という名前の FPS プロジェクトを新規作成します。 
 * Third Person Template を使う
 * ハードウェアをモバイル / タブレットに設定する
 * グラフィック レベルを Scalable 3D または 2D に設定する
@@ -33,7 +33,7 @@ Blueprint Third Person template を用いてブループリント ベースの�
 1. 完了したら緑の **[Create Project (プロジェクトを作成)]** ボタンを押してプロジェクトを作成します。
 
 [REGION:tip]
-この例はブループリント ベースのプロジェクトですが、C++ やブループリントなど、すべてのプロジェクト タイプを Android デバイスへパッケージ化およびデプロイできます。
+これはブループリント ベース プロジェクトの例ですが、C++ やブループリントなど、すべてのプロジェクト タイプを Android デバイスへパッケージ化およびデプロイすることができます。
 [/REGION]
 
 ## 結果

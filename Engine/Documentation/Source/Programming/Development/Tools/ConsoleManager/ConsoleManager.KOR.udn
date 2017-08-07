@@ -1,16 +1,19 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3429264
 Availability: Public
-Title:콘솔 매니저: C++ 의 콘솔 변수
+Title:C++ 의 콘솔 변수
 Crumbs:%ROOT%, Engine, Programming, Programming/Basics
 Description:콘솔 변수 생성을 위한 구현 세부사항과 콘솔 매니저에 대한 개요입니다.
-Version: 4.9
+Version: 4.16
+Parent:Programming/Development/Tools
+Order:
+topic-image:consoleVar_topicImage.png
 
 [TOC(start:2)]
 
 
 
 
-**콘솔 명령** 이란 단순히 사용자가 입력한 문자열을 엔진에 전송하여 엔진이 어떤 식으로 (예: 콘솔/로그 반응, 내부 상태 변경 등) 반응하는 것을 말합니다.
+**콘솔 명령** 이란 사용자가 입력한 문자열을 엔진에 전송하여 엔진이 어떤 식으로 (예: 콘솔/로그 반응, 내부 상태 변경 등) 반응하는 것을 말합니다.
 **콘솔 변수** 는 콘솔을 통해 변경할 수 있는 몇몇 상태를 추가적으로 저장합니다. 콘솔 매니저에서 콘솔 명령과 변수를 등록하는 것으로 
 자동 완성과 Enum 을 통해 콘솔 오브젝트 전체 목록을 구할 수 있습니다 (콘솔 명령 **Help** 또는 **DumpConsoleVariables**). 이때문에 예전 Exec 인터페이스는 피해야 합니다. 
 중심부의 콘솔 매니저가 (사용자 입력 히스토리 등) 모든 것을 제어합니다.

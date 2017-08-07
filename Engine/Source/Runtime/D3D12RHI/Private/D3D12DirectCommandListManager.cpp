@@ -475,11 +475,10 @@ uint32 FD3D12CommandListManager::GetResourceBarrierCommandList(FD3D12CommandList
 			// Should only be doing this for the few resources that need state tracking
 			check(PRB.Resource->RequiresResourceStateTracking());
 
-			CResourceState* pResourceState = PRB.Resource->GetResourceState();
-			check(pResourceState);
+			CResourceState& ResourceState = PRB.Resource->GetResourceState();
 
 			Desc.Transition.Subresource = PRB.SubResource;
-			const D3D12_RESOURCE_STATES Before = pResourceState->GetSubresourceState(Desc.Transition.Subresource);
+			const D3D12_RESOURCE_STATES Before = ResourceState.GetSubresourceState(Desc.Transition.Subresource);
 			const D3D12_RESOURCE_STATES After = PRB.State;
 
 			check(Before != D3D12_RESOURCE_STATE_TBD && Before != D3D12_RESOURCE_STATE_CORRUPT);
@@ -499,7 +498,7 @@ uint32 FD3D12CommandListManager::GetResourceBarrierCommandList(FD3D12CommandList
 			
 			if (Before != LastState)
 			{
-				pResourceState->SetSubresourceState(Desc.Transition.Subresource, LastState);
+				ResourceState.SetSubresourceState(Desc.Transition.Subresource, LastState);
 			}
 		}
 

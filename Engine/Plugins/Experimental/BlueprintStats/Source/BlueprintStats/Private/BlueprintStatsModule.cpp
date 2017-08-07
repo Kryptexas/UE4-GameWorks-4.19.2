@@ -12,9 +12,7 @@
 #include "IBlueprintStatsModule.h"
 #include "BlueprintStats.h"
 
-DECLARE_LOG_CATEGORY_EXTERN(LogBlueprintStats, Verbose, All);
-
-DEFINE_LOG_CATEGORY(LogBlueprintStats);
+DEFINE_LOG_CATEGORY_STATIC(LogBlueprintStats, Verbose, All);
 
 class FBlueprintStatsModule : public IBlueprintStatsModule
 {

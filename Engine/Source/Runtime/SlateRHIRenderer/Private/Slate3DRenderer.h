@@ -28,7 +28,7 @@ public:
 private:
 
 	/** Double buffered draw buffers so that the rendering thread can be rendering windows while the game thread is setting up for next frame */
-	static const int32 NUM_DRAW_BUFFERS = 3;
+	static const int32 NUM_DRAW_BUFFERS = 4;
 	FSlateDrawBuffer DrawBuffers[NUM_DRAW_BUFFERS];
 
 	/** The font services to use for rendering text */
@@ -45,4 +45,7 @@ private:
 
 	/** The draw buffer that is currently free for use by the game thread */
 	uint8 FreeBufferIndex;
+
+	/** The depth buffer texture if any */
+	FTexture2DRHIRef DepthStencil;
 };

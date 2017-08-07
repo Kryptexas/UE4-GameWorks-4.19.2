@@ -22,12 +22,18 @@
 #include "AndroidJavaMessageBox.h"
 #include "GenericPlatformChunkInstall.h"
 
+#include "Misc/Parse.h"
+#include "Internationalization/Regex.h"
+
 #include <android_native_app_glue.h>
 #include "Function.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogEngine, Log, All);
 
 void* FAndroidMisc::NativeWindow = NULL;
+#if STATS
+int32 FAndroidMisc::TraceMarkerFileDescriptor = -1;
+#endif
 
 // run time compatibility information
 FString FAndroidMisc::AndroidVersion; // version of android we are running eg "4.0.4"
@@ -161,7 +167,7 @@ extern "C"
 
 	JNIEXPORT void Java_com_epicgames_ue4_BatteryReceiver_dispatchEvent(JNIEnv * jni, jclass clazz, jint status, jint level, jint temperature)
 	{
-		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("nativeBatteryEvent(stat = %i, lvl = %i, t = %3.2f)"), status, level, float(temperature)/10.f);
+		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("nativeBatteryEvent(stat = %i, lvl = %i %, temp = %3.2f \u00B0C)"), status, level, float(temperature)/10.f);
 
 		ReceiversLock.Lock();
 		FAndroidMisc::FBatteryState state;
@@ -225,12 +231,32 @@ void FAndroidMisc::PlatformInit()
 	// Setup user specified thread affinity if any
 	extern void AndroidSetupDefaultThreadAffinity();
 	AndroidSetupDefaultThreadAffinity();
+
+#if STATS
+	// Setup trace file descriptor
+	TraceMarkerFileDescriptor = open("/sys/kernel/debug/tracing/trace_marker", O_WRONLY);
+	if (TraceMarkerFileDescriptor == -1)
+	{
+		UE_LOG(LogEngine, Warning, TEXT("Trace Marker failed to open; trace support disabled"));
+	}
+#endif
 }
 
 extern void AndroidThunkCpp_DismissSplashScreen();
 
 void FAndroidMisc::PlatformPostInit()
 {
+}
+
+void FAndroidMisc::PlatformTearDown()
+{
+#if STATS
+	// Tear down trace file descriptor
+	if (TraceMarkerFileDescriptor != -1)
+	{
+		close(TraceMarkerFileDescriptor);
+	}
+#endif
 }
 
 void FAndroidMisc::PlatformHandleSplashScreen(bool ShowSplashScreen)
@@ -305,6 +331,8 @@ EAppReturnType::Type FAndroidMisc::MessageBoxExt( EAppMsgType::Type MsgType, con
 	static EAppReturnType::Type ResultsYesNoYesAllNoAllCancel[] = {
 		EAppReturnType::Yes, EAppReturnType::No, EAppReturnType::YesAll,
 		EAppReturnType::NoAll, EAppReturnType::Cancel };
+	static EAppReturnType::Type ResultsYesNoYesAll[] = {
+		EAppReturnType::Yes, EAppReturnType::No, EAppReturnType::YesAll };
 
 	// TODO: Should we localize button text?
 
@@ -351,6 +379,12 @@ EAppReturnType::Type FAndroidMisc::MessageBoxExt( EAppMsgType::Type MsgType, con
 		MessageBox.AddButton(TEXT("Cancel"));
 		ResultValues = ResultsYesNoYesAllNoAllCancel;
 		break;
+	case EAppMsgType::YesNoYesAll:
+		MessageBox.AddButton(TEXT("Yes"));
+		MessageBox.AddButton(TEXT("No"));
+		MessageBox.AddButton(TEXT("Yes To All"));
+		ResultValues = ResultsYesNoYesAll;
+		break;
 	default:
 		check(0);
 	}
@@ -391,6 +425,112 @@ bool FAndroidMisc::HasPlatformFeature(const TCHAR* FeatureName)
 	}
 
 	return FGenericPlatformMisc::HasPlatformFeature(FeatureName);
+}
+
+struct FScreenDensity
+{
+	FString Model;
+	bool IsRegex;
+	int32 Density;
+	
+	FScreenDensity()
+		: Model()
+		, IsRegex(false)
+		, Density(0)
+	{
+	}
+
+	bool InitFromString(const FString& InSourceString)
+	{
+		Model = TEXT("");
+		Density = 0;
+		IsRegex = false;
+
+		// The initialization is only successful if the Model and Density values can all be parsed from the string
+		const bool bSuccessful = FParse::Value(*InSourceString, TEXT("Model="), Model) && FParse::Value(*InSourceString, TEXT("Density="), Density);
+
+		// Regex= is optional, it lets us know if this model requires regular expression matching, which is much more expensive.
+		FParse::Bool(*InSourceString, TEXT("IsRegex="), IsRegex);
+
+		return bSuccessful;
+	}
+
+	bool IsMatch(const FString& InDeviceModel) const
+	{
+		if ( IsRegex )
+		{
+			const FRegexPattern RegexPattern(Model);
+			FRegexMatcher RegexMatcher(RegexPattern, InDeviceModel);
+
+			return RegexMatcher.FindNext();
+		}
+		else
+		{
+			return Model == InDeviceModel;
+		}
+	}
+};
+
+float FAndroidMisc::GetWindowUpscaleFactor()
+{
+	// Determine the difference between the native resolution of the device, and the size of our window,
+	// and return that scalar.
+
+	int32_t SurfaceWidth, SurfaceHeight;
+	FAndroidWindow::CalculateSurfaceSize(FPlatformMisc::GetHardwareWindow(), SurfaceWidth, SurfaceHeight);
+
+	FPlatformRect ScreenRect = FAndroidWindow::GetScreenRect();
+
+	const float CalculatedScaleFactor = FVector2D(ScreenRect.Right - ScreenRect.Left, ScreenRect.Bottom - ScreenRect.Top).Size() / FVector2D(SurfaceWidth, SurfaceHeight).Size();
+
+	return CalculatedScaleFactor;
+}
+
+extern FString AndroidThunkCpp_GetMetaDataString(const FString& Key);
+
+EScreenPhysicalAccuracy FAndroidMisc::ComputePhysicalScreenDensity(int32& OutScreenDensity)
+{
+	FString MyDeviceModel = GetDeviceModel();
+
+	TArray<FString> DeviceStrings;
+	GConfig->GetArray(TEXT("DeviceScreenDensity"), TEXT("Devices"), DeviceStrings, GEngineIni);
+
+	TArray<FScreenDensity> Devices;
+	for ( const FString& DeviceString : DeviceStrings )
+	{
+		FScreenDensity DensityEntry;
+		if ( DensityEntry.InitFromString(DeviceString) )
+		{
+			Devices.Add(DensityEntry);
+		}
+	}
+
+	for ( const FScreenDensity& Device : Devices )
+	{
+		if ( Device.IsMatch(MyDeviceModel) )
+		{
+			OutScreenDensity = Device.Density * GetWindowUpscaleFactor();
+			return EScreenPhysicalAccuracy::Truth;
+		}
+	}
+
+	FString DPIStrings = AndroidThunkCpp_GetMetaDataString(TEXT("ue4.displaymetrics.dpi"));
+	TArray<FString> DPIValues;
+	DPIStrings.ParseIntoArray(DPIValues, TEXT(","));
+
+	float xdpi, ydpi;
+	LexicalConversion::FromString(xdpi, *DPIValues[0]);
+	LexicalConversion::FromString(ydpi, *DPIValues[1]);
+
+	OutScreenDensity = ( xdpi + ydpi ) / 2.0f;
+
+	if ( OutScreenDensity <= 0 || OutScreenDensity > 2000 )
+	{
+		return EScreenPhysicalAccuracy::Unknown;
+	}
+
+	OutScreenDensity *= GetWindowUpscaleFactor();
+	return EScreenPhysicalAccuracy::Approximation;
 }
 
 bool FAndroidMisc::AllowRenderThread()
@@ -709,6 +849,19 @@ bool FAndroidMisc::GetUseVirtualJoysticks()
 	return true;
 }
 
+extern void AndroidThunkCpp_RegisterForRemoteNotifications();
+extern void AndroidThunkCpp_UnregisterForRemoteNotifications();
+
+void FAndroidMisc::RegisterForRemoteNotifications()
+{
+	AndroidThunkCpp_RegisterForRemoteNotifications();
+}
+
+void FAndroidMisc::UnregisterForRemoteNotifications()
+{
+	AndroidThunkCpp_UnregisterForRemoteNotifications();
+}
+
 TArray<uint8> FAndroidMisc::GetSystemFontBytes()
 {
 	TArray<uint8> FontBytes;
@@ -720,15 +873,28 @@ TArray<uint8> FAndroidMisc::GetSystemFontBytes()
 class IPlatformChunkInstall* FAndroidMisc::GetPlatformChunkInstall()
 {
 	static IPlatformChunkInstall* ChunkInstall = nullptr;
-	IPlatformChunkInstallModule* PlatformChunkInstallModule = FModuleManager::LoadModulePtr<IPlatformChunkInstallModule>("HTTPChunkInstaller");
-	if (!ChunkInstall)
+	static bool bIniChecked = false;
+	if (!ChunkInstall || !bIniChecked)
 	{
-		if (PlatformChunkInstallModule != NULL)
+		FString ProviderName;
+		IPlatformChunkInstallModule* PlatformChunkInstallModule = nullptr;
+		if (!GEngineIni.IsEmpty())
 		{
-			// Attempt to grab the platform installer
-			ChunkInstall = PlatformChunkInstallModule->GetPlatformChunkInstall();
+			FString InstallModule;
+			GConfig->GetString(TEXT("StreamingInstall"), TEXT("DefaultProviderName"), InstallModule, GEngineIni);
+			FModuleStatus Status;
+			if (FModuleManager::Get().QueryModule(*InstallModule, Status))
+			{
+				PlatformChunkInstallModule = FModuleManager::LoadModulePtr<IPlatformChunkInstallModule>(*InstallModule);
+				if (PlatformChunkInstallModule != nullptr)
+				{
+					// Attempt to grab the platform installer
+					ChunkInstall = PlatformChunkInstallModule->GetPlatformChunkInstall();
+				}
+			}
+			bIniChecked = true;
 		}
-		else
+		if (!ChunkInstall)
 		{
 			// Placeholder instance
 			ChunkInstall = FGenericPlatformMisc::GetPlatformChunkInstall();
@@ -1558,6 +1724,42 @@ bool FAndroidMisc::IsDebuggerPresent()
 }
 #endif
 
+#if STATS
+void FAndroidMisc::BeginNamedEvent(const struct FColor& Color, const TCHAR* Text)
+{
+	const int MAX_TRACE_MESSAGE_LENGTH = 256;
+
+	// not static since may be called by different threads
+	ANSICHAR TextBuffer[MAX_TRACE_MESSAGE_LENGTH];
+
+	const TCHAR* SourcePtr = Text;
+	ANSICHAR* WritePtr = TextBuffer;
+	int32 RemainingSpace = MAX_TRACE_MESSAGE_LENGTH;
+	while (*SourcePtr && --RemainingSpace > 0)
+	{
+		*WritePtr++ = static_cast<ANSICHAR>(*SourcePtr++);
+	}
+	*WritePtr = '\0';
+
+	BeginNamedEvent(Color, TextBuffer);
+}
+
+void FAndroidMisc::BeginNamedEvent(const struct FColor& Color, const ANSICHAR* Text)
+{
+	const int MAX_TRACE_EVENT_LENGTH = 256;
+
+	ANSICHAR EventBuffer[MAX_TRACE_EVENT_LENGTH];
+	int EventLength = snprintf(EventBuffer, MAX_TRACE_EVENT_LENGTH, "B|%d|%s", getpid(), Text);
+	write(TraceMarkerFileDescriptor, EventBuffer, EventLength);
+}
+
+void FAndroidMisc::EndNamedEvent()
+{
+	const ANSICHAR EventTerminatorChar = 'E';
+	write(TraceMarkerFileDescriptor, &EventTerminatorChar, 1);
+}
+#endif
+
 int FAndroidMisc::GetVolumeState(double* OutTimeOfChangeInSec)
 {
 	int v;
@@ -1577,6 +1779,56 @@ const TCHAR* FAndroidMisc::GamePersistentDownloadDir()
 	return *GExternalFilePath;
 }
 
+FString FAndroidMisc::GetLoginId()
+{
+	static FString LoginId = TEXT("");
+
+	// Return already loaded or generated Id
+	if (!LoginId.IsEmpty())
+	{
+		return LoginId;
+	}
+
+	// Check for existing identifier file
+	extern FString GExternalFilePath;
+	FString LoginIdFilename = GExternalFilePath / TEXT("login-identifier.txt");
+	if (FPaths::FileExists(LoginIdFilename))
+	{
+		if (FFileHelper::LoadFileToString(LoginId, *LoginIdFilename))
+		{
+			return LoginId;
+		}
+	}
+
+	// Generate a new one and write to file
+	FGuid DeviceGuid;
+	FPlatformMisc::CreateGuid(DeviceGuid);
+	LoginId = DeviceGuid.ToString();
+	FFileHelper::SaveStringToFile(LoginId, *LoginIdFilename);
+
+	return LoginId;
+}
+
+extern FString AndroidThunkCpp_GetAndroidId();
+
+FString FAndroidMisc::GetDeviceId()
+{
+	static FString DeviceId = AndroidThunkCpp_GetAndroidId();
+
+	// note: this can be empty or NOT unique depending on the OEM implementation!
+	return DeviceId;
+}
+
+extern FString AndroidThunkCpp_GetAdvertisingId();
+
+FString FAndroidMisc::GetUniqueAdvertisingId()
+{
+	static FString AdvertisingId = AndroidThunkCpp_GetAdvertisingId();
+
+	// note: this can be empty if Google Play not installed, or user is blocking it!
+	return AdvertisingId;
+}
+
 FAndroidMisc::FBatteryState FAndroidMisc::GetBatteryState()
 {
 	FBatteryState CurState;
@@ -1584,6 +1836,18 @@ FAndroidMisc::FBatteryState FAndroidMisc::GetBatteryState()
 	CurState = CurrentBatteryState;
 	ReceiversLock.Unlock();
 	return CurState;
+}
+
+int FAndroidMisc::GetBatteryLevel()
+{
+	FBatteryState BatteryState = GetBatteryState();
+	return BatteryState.Level;
+}
+
+bool FAndroidMisc::IsRunningOnBattery()
+{
+	FBatteryState BatteryState = GetBatteryState();
+	return BatteryState.State == BATTERY_STATE_DISCHARGING;
 }
 
 bool FAndroidMisc::AreHeadPhonesPluggedIn()
@@ -1607,6 +1871,22 @@ FAndroidMisc::ReInitWindowCallbackType FAndroidMisc::GetOnReInitWindowCallback()
 void FAndroidMisc::SetOnReInitWindowCallback(FAndroidMisc::ReInitWindowCallbackType InOnReInitWindowCallback)
 {
 	OnReInitWindowCallback = InOnReInitWindowCallback;
+}
+
+FString FAndroidMisc::GetCPUVendor()
+{	
+	return DeviceMake;
+}
+
+FString FAndroidMisc::GetCPUBrand()
+{
+	return DeviceModel;
+}
+
+void FAndroidMisc::GetOSVersions(FString& out_OSVersionLabel, FString& out_OSSubVersionLabel)
+{
+	out_OSVersionLabel = TEXT("Android");
+	out_OSSubVersionLabel = AndroidVersion;
 }
 
 FString FAndroidMisc::GetOSVersion()

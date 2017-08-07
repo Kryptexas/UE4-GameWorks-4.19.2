@@ -122,18 +122,23 @@ class UMaterialExpressionMaterialFunctionCall : public UMaterialExpression
 #endif // WITH_EDITOR
 	//~ End UMaterialExpression Interface
 
+	/** Util to get name of a particular type, optionally with type appended in parenthesis */
+	ENGINE_API FString GetInputNameWithType(int32 InputIndex, bool bWithType) const;
 
 #if WITH_EDITOR
 	/** 
 	 * Set a new material function, given an old function so that links can be passed over if the name matches. 
 	 *
-	 *	@param ThisFunctionResource				The function the resource is a part of.
 	 *	@param OldFunctionResource				The function it was set to.
 	 *	@param NewResource						The function to be set to.
 	 *
 	 *	@return									true if setting the function was a success, false if it failed.
 	 */
-	ENGINE_API bool SetMaterialFunction(UMaterialFunction* ThisFunctionResource, UMaterialFunction* OldFunctionResource, UMaterialFunction* NewResource);
+	ENGINE_API bool SetMaterialFunctionEx(UMaterialFunction* OldFunctionResource, UMaterialFunction* NewResource);
+
+	/** */
+	UFUNCTION(BlueprintCallable, Category = "MaterialEditing")
+	ENGINE_API bool SetMaterialFunction(UMaterialFunction* NewMaterialFunction);
 #endif // WITH_EDITOR
 
 	/** 

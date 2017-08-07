@@ -58,6 +58,8 @@ namespace EPropertyNodeFlags
 
 	const Type  ShowInnerObjectProperties		= 1 << 22;
 
+	const Type	HasCustomResetToDefault			= 1 << 23;	/** true if this node's visual representation of reset to default has been customized*/
+
 	const Type 	NoFlags							= 0;
 
 };

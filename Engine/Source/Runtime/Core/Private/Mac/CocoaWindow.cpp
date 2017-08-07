@@ -263,12 +263,6 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 {
 	WindowMode = EWindowMode::Windowed;
 	self.TargetWindowMode = EWindowMode::Windowed;
-	
-	// Remove any primary fullscreen behaviour here, we don't support it properly.
-	NSWindowCollectionBehavior Behaviour = [self collectionBehavior];
-	Behaviour &= ~(NSWindowCollectionBehaviorFullScreenPrimary);
-	Behaviour |= NSWindowCollectionBehaviorFullScreenAuxiliary;
-	[self setCollectionBehavior: Behaviour];
 
 	if (MacApplication)
 	{
@@ -280,6 +274,12 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	{
 		MacCursor->SetMouseScaling(FVector2D::UnitVector, nullptr);
 	}
+}
+
+- (NSSize)window:(NSWindow*)Window willUseFullScreenContentSize:(NSSize)ProposedSize
+{
+	// Make sure the window in fullscreen is the size of the screen instead of the size of Metal drawable
+	return Window.screen.frame.size;
 }
 
 - (void)windowDidBecomeMain:(NSNotification*)Notification

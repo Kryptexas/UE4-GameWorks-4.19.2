@@ -6,12 +6,18 @@
 #include "Engine/EngineTypes.h"
 #include "CollisionQueryParams.h"
 #include "ICollisionAnalyzer.h"
+#include "Serialization/NameAsStringProxyArchive.h"
 
 class SWidget;
 
 /** Stores information about one collision query */
 struct FCAQuery
 {
+	FCAQuery():
+		Params(NAME_None, FCollisionQueryParams::GetUnknownStatId())
+	{
+	}
+
 	FVector						Start;
 	FVector						End;
 	FQuat						Rot;
@@ -102,4 +108,30 @@ private:
 	/** Event called when a single query is added to array */
 	FQueriesChangedEvent QueryAddedEvent;
 
+};
+
+/**
+ * Local archive that implements FWeakObjectPtr serialisation.
+ * In an ideal world we'd combine FNameAsStringProxyArchive and
+ * FArchiveUObject in a generic way, but the duplicate
+ * inheritance issues aren't worth it here.
+ */
+struct FCollisionAnalyzerProxyArchive : public FNameAsStringProxyArchive
+{
+	/**
+	 * Creates and initializes a new instance.
+	 *
+	 * @param InInnerArchive The inner archive to proxy.
+	 */
+	 FCollisionAnalyzerProxyArchive(FArchive& InInnerArchive)
+		 :	FNameAsStringProxyArchive(InInnerArchive)
+	 { }
+
+	 using FNameAsStringProxyArchive::operator<<;
+
+	 virtual FArchive& operator<< (struct FWeakObjectPtr& Value) override
+	 {
+		 Value.Serialize(*this);
+		 return *this;
+	 }
 };

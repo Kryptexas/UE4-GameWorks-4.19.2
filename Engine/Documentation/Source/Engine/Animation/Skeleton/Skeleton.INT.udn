@@ -3,6 +3,8 @@ Title: Skeleton Assets
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:An overview of the Skeleton asset and how it applies to animation in UE4.
 version: 4.9
+tags:Assets
+topic-image:Engine/Animation/Overview/SkeletonTopic.png
 
 [REGION:fullwidth]
 ![](SkeletonImage.png)

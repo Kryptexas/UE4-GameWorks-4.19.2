@@ -21,6 +21,7 @@ UEditorStyleSettings::UEditorStyleSettings( const FObjectInitializer& ObjectInit
 	EditorWindowBackgroundColor = FLinearColor::White;
 
 	AssetEditorOpenLocation = EAssetEditorOpenLocation::Default;
+	bEnableColorizedEditorTabs = true;
 	
 	bUseGrid = true;
 

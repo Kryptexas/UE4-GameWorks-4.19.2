@@ -3,7 +3,7 @@ Title: Sync Groups
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:Sync Groups allow you to maintain the synchronization of animations of different lengths.
 version: 4.9
-
+topic-image:SyncGroups_topic.png
 
 [EXCERPT:Intro]
 **Sync Groups** are to keep related animations that may have different lengths synchronized. For example, you may have a walk cycle and a run cycle that you would like to blend together so that the character can smoothly accelerate or decelerate. But what if these animations were different lengths, such as the walk being significantly longer than the run? In such a case, directly blending from one to the other would have unnatural results, an unsightly "beat" as the foot animation switches.

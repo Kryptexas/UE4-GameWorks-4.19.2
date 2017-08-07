@@ -12,7 +12,8 @@
 #include "Tracks/MovieScenePropertyTrack.h"
 #include "MovieScene.h"
 #include "MovieSceneEvaluation.h"
-
+#include "MovieSceneTemplateCommon.h"
+#include "Evaluation/Blending/MovieSceneMultiChannelBlending.h"
 
 namespace
 {
@@ -24,111 +25,128 @@ namespace
 	}
 }
 
+//	----------------------------------------------------------------------------
+//	Boolean Property Template
 FMovieSceneBoolPropertySectionTemplate::FMovieSceneBoolPropertySectionTemplate(const UMovieSceneBoolSection& Section, const UMovieScenePropertyTrack& Track)
-	: PropertyData(SanitizeBoolPropertyName(Track.GetPropertyName()), Track.GetPropertyPath())
+	: FMovieScenePropertySectionTemplate(Track.GetPropertyName(), Track.GetPropertyPath())
 	, BoolCurve(Section.GetCurve())
-{}
+{
+	PropertyData.PropertyName = SanitizeBoolPropertyName(PropertyData.PropertyName);
+}
 
 void FMovieSceneBoolPropertySectionTemplate::Evaluate(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const
 {
-	using namespace PropertyTemplate;
-
-	for (TCachedValue<bool>& ObjectAndValue : PersistentData.GetSectionData<TCachedSectionData<bool>>().ObjectsAndValues)
+	// Only evaluate if the curve has any data
+	if (BoolCurve.HasAnyData())
 	{
-		ObjectAndValue.Value = !!BoolCurve.Evaluate(Context.GetTime(), ObjectAndValue.Value ? 1 : 0);
+		ExecutionTokens.Add(TPropertyTrackExecutionToken<bool>(!!BoolCurve.Evaluate(Context.GetTime())));
 	}
-	
-	ExecutionTokens.Add(TCachedPropertyTrackExecutionToken<bool>());
 }
 
+
+//	----------------------------------------------------------------------------
+//	Float Property Template
 FMovieSceneFloatPropertySectionTemplate::FMovieSceneFloatPropertySectionTemplate(const UMovieSceneFloatSection& Section, const UMovieScenePropertyTrack& Track)
-	: PropertyData(Track.GetPropertyName(), Track.GetPropertyPath())
+	: FMovieScenePropertySectionTemplate(Track.GetPropertyName(), Track.GetPropertyPath())
 	, FloatCurve(Section.GetFloatCurve())
+	, BlendType(Section.GetBlendType().Get())
 {}
 
 void FMovieSceneFloatPropertySectionTemplate::Evaluate(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const
 {
-	using namespace PropertyTemplate;
-
-	for (TCachedValue<float>& ObjectAndValue : PersistentData.GetSectionData<TCachedSectionData<float>>().ObjectsAndValues)
+	// Only evaluate if the curve has any data
+	if (FloatCurve.HasAnyData())
 	{
-		ObjectAndValue.Value = FloatCurve.Eval(Context.GetTime(), ObjectAndValue.Value);
+		// Actuator type ID for this property
+		FMovieSceneBlendingActuatorID ActuatorTypeID = EnsureActuator<float>(ExecutionTokens.GetBlendingAccumulator());
+
+		// Add the blendable to the accumulator
+		const float Value = FloatCurve.Eval(Context.GetTime());
+		const float Weight = EvaluateEasing(Context.GetTime());
+		ExecutionTokens.BlendToken(ActuatorTypeID, TBlendableToken<float>(Value, BlendType, Weight));
 	}
-	
-	ExecutionTokens.Add(TCachedPropertyTrackExecutionToken<float>());
 }
 
+
+//	----------------------------------------------------------------------------
+//	Byte Property Template
 FMovieSceneBytePropertySectionTemplate::FMovieSceneBytePropertySectionTemplate(const UMovieSceneByteSection& Section, const UMovieScenePropertyTrack& Track)
-	: PropertyData(Track.GetPropertyName(), Track.GetPropertyPath())
+	: FMovieScenePropertySectionTemplate(Track.GetPropertyName(), Track.GetPropertyPath())
 	, ByteCurve(Section.GetCurve())
 {}
 
 void FMovieSceneBytePropertySectionTemplate::Evaluate(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const
 {
-	using namespace PropertyTemplate;
-
-	for (TCachedValue<uint8>& ObjectAndValue : PersistentData.GetSectionData<TCachedSectionData<uint8>>().ObjectsAndValues)
+	// Only evaluate if the curve has any data
+	if (ByteCurve.HasAnyData())
 	{
-		ObjectAndValue.Value = ByteCurve.Evaluate(Context.GetTime(), ObjectAndValue.Value);
+		ExecutionTokens.Add(TPropertyTrackExecutionToken<uint8>(ByteCurve.Evaluate(Context.GetTime())));
 	}
-	
-	ExecutionTokens.Add(TCachedPropertyTrackExecutionToken<uint8>());
 }
 
+
+//	----------------------------------------------------------------------------
+//	Enum Property Template
 FMovieSceneEnumPropertySectionTemplate::FMovieSceneEnumPropertySectionTemplate(const UMovieSceneEnumSection& Section, const UMovieScenePropertyTrack& Track)
-	: PropertyData(Track.GetPropertyName(), Track.GetPropertyPath())
+	: FMovieScenePropertySectionTemplate(Track.GetPropertyName(), Track.GetPropertyPath())
 	, EnumCurve(Section.GetCurve())
 {}
 
 void FMovieSceneEnumPropertySectionTemplate::Evaluate(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const
 {
-	using namespace PropertyTemplate;
-
-	for (TCachedValue<int64>& ObjectAndValue : PersistentData.GetSectionData<TCachedSectionData<int64>>().ObjectsAndValues)
+	// Only evaluate if the curve has any data
+	if (EnumCurve.HasAnyData())
 	{
-		ObjectAndValue.Value = EnumCurve.Evaluate(Context.GetTime(), ObjectAndValue.Value);
+		ExecutionTokens.Add(TPropertyTrackExecutionToken<int64>(EnumCurve.Evaluate(Context.GetTime())));
 	}
-	
-	ExecutionTokens.Add(TCachedPropertyTrackExecutionToken<int64>());
 }
 
+
+//	----------------------------------------------------------------------------
+//	Integer Property Template
 FMovieSceneIntegerPropertySectionTemplate::FMovieSceneIntegerPropertySectionTemplate(const UMovieSceneIntegerSection& Section, const UMovieScenePropertyTrack& Track)
-	: PropertyData(Track.GetPropertyName(), Track.GetPropertyPath())
+	: FMovieScenePropertySectionTemplate(Track.GetPropertyName(), Track.GetPropertyPath())
 	, IntegerCurve(Section.GetCurve())
+	, BlendType(Section.GetBlendType().Get())
 {}
 
 void FMovieSceneIntegerPropertySectionTemplate::Evaluate(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const
 {
-	using namespace PropertyTemplate;
-
-	for (TCachedValue<int32>& ObjectAndValue : PersistentData.GetSectionData<TCachedSectionData<int32>>().ObjectsAndValues)
+	if (IntegerCurve.HasAnyData())
 	{
-		ObjectAndValue.Value = IntegerCurve.Evaluate(Context.GetTime(), ObjectAndValue.Value);
+		// Actuator type ID for this property
+		FMovieSceneBlendingActuatorID ActuatorTypeID = EnsureActuator<int32>(ExecutionTokens.GetBlendingAccumulator());
+
+		// Add the blendable to the accumulator
+		const int32 Value = IntegerCurve.Evaluate(Context.GetTime());
+		const float Weight = EvaluateEasing(Context.GetTime());
+		ExecutionTokens.BlendToken(ActuatorTypeID, TBlendableToken<int32>(Value, BlendType, Weight));
 	}
-	
-	ExecutionTokens.Add(TCachedPropertyTrackExecutionToken<int32>());
 }
 
+
+//	----------------------------------------------------------------------------
+//	String Property Template
 FMovieSceneStringPropertySectionTemplate::FMovieSceneStringPropertySectionTemplate(const UMovieSceneStringSection& Section, const UMovieScenePropertyTrack& Track)
-	: PropertyData(Track.GetPropertyName(), Track.GetPropertyPath())
+	: FMovieScenePropertySectionTemplate(Track.GetPropertyName(), Track.GetPropertyPath())
 	, StringCurve(Section.GetStringCurve())
 {}
 
 void FMovieSceneStringPropertySectionTemplate::Evaluate(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const
 {
-	using namespace PropertyTemplate;
-
-	for (TCachedValue<FString>& ObjectAndValue : PersistentData.GetSectionData<TCachedSectionData<FString>>().ObjectsAndValues)
+	if (StringCurve.HasAnyData())
 	{
-		ObjectAndValue.Value = StringCurve.Eval(Context.GetTime(), ObjectAndValue.Value);
+		ExecutionTokens.Add(TPropertyTrackExecutionToken<FString>(StringCurve.Eval(Context.GetTime(), FString())));
 	}
-	
-	ExecutionTokens.Add(TCachedPropertyTrackExecutionToken<FString>());
 }
 
+
+//	----------------------------------------------------------------------------
+//	Vector Property Template
 FMovieSceneVectorPropertySectionTemplate::FMovieSceneVectorPropertySectionTemplate(const UMovieSceneVectorSection& Section, const UMovieScenePropertyTrack& Track)
-	: PropertyData(Track.GetPropertyName(), Track.GetPropertyPath())
+	: FMovieScenePropertySectionTemplate(Track.GetPropertyName(), Track.GetPropertyPath())
 	, NumChannelsUsed(Section.GetChannelsUsed())
+	, BlendType(Section.GetBlendType().Get())
 {
 	for (int32 Index = 0; Index < NumChannelsUsed; ++Index)
 	{
@@ -136,64 +154,47 @@ FMovieSceneVectorPropertySectionTemplate::FMovieSceneVectorPropertySectionTempla
 	}
 }
 
-void FMovieSceneVectorPropertySectionTemplate::Setup(FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const
+/** Helper function fo evaluating a number of curves for a specific vector type */
+template<typename VectorType, uint8 N>
+void EvaluateVectorCurve(EMovieSceneBlendType BlendType, float Weight, float Time, const FRichCurve* Curves, FMovieSceneBlendingActuatorID ActuatorTypeID, FMovieSceneExecutionTokens& ExecutionTokens)
 {
-	switch (NumChannelsUsed)
-	{
-	case 2:	PropertyData.SetupCachedTrack<FVector2D>(PersistentData);	break;
-	case 3:	PropertyData.SetupCachedTrack<FVector>(PersistentData);	break;
-	case 4:	PropertyData.SetupCachedTrack<FVector4>(PersistentData);	break;
+	MovieScene::TMultiChannelValue<float, N> AnimatedChannels;
 
-	default:
-		UE_LOG(LogMovieScene, Warning, TEXT("Invalid number of channels(%d) for vector track"), NumChannelsUsed );
-		break;
+	for (uint8 Index = 0; Index < N; ++Index)
+	{
+		const FRichCurve& Curve = Curves[Index];
+		if (Curve.HasAnyData())
+		{
+			AnimatedChannels.Set(Index, Curve.Eval(Time));
+		}
 	}
-}
 
-void FMovieSceneVectorPropertySectionTemplate::Initialize(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const
-{
-	switch (NumChannelsUsed)
+	// Only blend the token if at least one of the channels was animated
+	if (!AnimatedChannels.IsEmpty())
 	{
-	case 2:	PropertyData.SetupCachedFrame<FVector2D>(Operand, PersistentData, Player);	break;
-	case 3:	PropertyData.SetupCachedFrame<FVector>(Operand, PersistentData, Player);		break;
-	case 4:	PropertyData.SetupCachedFrame<FVector4>(Operand, PersistentData, Player);		break;
-
-	default:
-		UE_LOG(LogMovieScene, Warning, TEXT("Invalid number of channels(%d) for vector track"), NumChannelsUsed );
-		break;
+		ExecutionTokens.BlendToken(ActuatorTypeID, TBlendableToken<VectorType>(AnimatedChannels, BlendType, Weight));
 	}
 }
 
 void FMovieSceneVectorPropertySectionTemplate::Evaluate(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const
 {
-	using namespace PropertyTemplate;
+	FMovieSceneBlendingAccumulator& Accumulator = ExecutionTokens.GetBlendingAccumulator();
 
-	float Time = Context.GetTime();
+	const float Time = Context.GetTime();
+	const float Weight = EvaluateEasing(Context.GetTime());
 
 	switch (NumChannelsUsed)
 	{
 	case 2:
-		for (auto& ObjectAndValue : PersistentData.GetSectionData<TCachedSectionData<FVector2D>>().ObjectsAndValues)
-		{
-			ObjectAndValue.Value = FVector2D(ComponentCurves[0].Eval(Time, ObjectAndValue.Value.X), ComponentCurves[1].Eval(Time, ObjectAndValue.Value.Y));
-		}
-		ExecutionTokens.Add(TCachedPropertyTrackExecutionToken<FVector2D>());
+		EvaluateVectorCurve<FVector2D, 2>(BlendType, Weight, Time, ComponentCurves, EnsureActuator<FVector2D>(Accumulator), ExecutionTokens);
 		break;
 
 	case 3:
-		for (auto& ObjectAndValue : PersistentData.GetSectionData<TCachedSectionData<FVector>>().ObjectsAndValues)
-		{
-			ObjectAndValue.Value = FVector(ComponentCurves[0].Eval(Time, ObjectAndValue.Value.X), ComponentCurves[1].Eval(Time, ObjectAndValue.Value.Y), ComponentCurves[2].Eval(Time, ObjectAndValue.Value.Z));
-		}
-		ExecutionTokens.Add(TCachedPropertyTrackExecutionToken<FVector>());
+		EvaluateVectorCurve<FVector, 3>(BlendType, Weight, Time, ComponentCurves, EnsureActuator<FVector>(Accumulator), ExecutionTokens);
 		break;
 
 	case 4:
-		for (auto& ObjectAndValue : PersistentData.GetSectionData<TCachedSectionData<FVector4>>().ObjectsAndValues)
-		{
-			ObjectAndValue.Value = FVector4(ComponentCurves[0].Eval(Time, ObjectAndValue.Value.X), ComponentCurves[1].Eval(Time, ObjectAndValue.Value.Y), ComponentCurves[2].Eval(Time, ObjectAndValue.Value.Z), ComponentCurves[3].Eval(Time, ObjectAndValue.Value.W));
-		}
-		ExecutionTokens.Add(TCachedPropertyTrackExecutionToken<FVector4>());
+		EvaluateVectorCurve<FVector4, 4>(BlendType, Weight, Time, ComponentCurves, EnsureActuator<FVector4>(Accumulator), ExecutionTokens);
 		break;
 
 	default:
@@ -203,55 +204,27 @@ void FMovieSceneVectorPropertySectionTemplate::Evaluate(const FMovieSceneEvaluat
 }
 
 
+//	----------------------------------------------------------------------------
+//	Transform Property Template
 FMovieSceneTransformPropertySectionTemplate::FMovieSceneTransformPropertySectionTemplate(const UMovieScene3DTransformSection& Section, const UMovieScenePropertyTrack& Track)
-	: PropertyData(Track.GetPropertyName(), Track.GetPropertyPath())
-//	, TranslationCurve{ Section.GetTranslationCurve(EAxis::X), Section.GetTranslationCurve(EAxis::Y), Section.GetTranslationCurve(EAxis::Z) }
-//	, RotationCurve{ Section.GetRotationCurve(EAxis::X), Section.GetRotationCurve(EAxis::Y), Section.GetRotationCurve(EAxis::Z) }
-//	, ScaleCurve{ Section.GetScaleCurve(EAxis::X), Section.GetScaleCurve(EAxis::Y), Section.GetScaleCurve(EAxis::Z) }
-{
-	// VS2013 does not properly support C++11 style initializer lists for arrays
-	TranslationCurve[0] = Section.GetTranslationCurve(EAxis::X);
-	TranslationCurve[1] = Section.GetTranslationCurve(EAxis::Y);
-	TranslationCurve[2] = Section.GetTranslationCurve(EAxis::Z);
-
-	RotationCurve[0] = Section.GetRotationCurve(EAxis::X);
-	RotationCurve[1] = Section.GetRotationCurve(EAxis::Y);
-	RotationCurve[2] = Section.GetRotationCurve(EAxis::Z);
-
-	ScaleCurve[0] = Section.GetScaleCurve(EAxis::X);
-	ScaleCurve[1] = Section.GetScaleCurve(EAxis::Y);
-	ScaleCurve[2] = Section.GetScaleCurve(EAxis::Z);
-}
+	: FMovieScenePropertySectionTemplate(Track.GetPropertyName(), Track.GetPropertyPath())
+	, TemplateData(Section)
+{}
 
 void FMovieSceneTransformPropertySectionTemplate::Evaluate(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const
 {
-	using namespace PropertyTemplate;
+	MovieScene::TMultiChannelValue<float, 9> TransformValue = TemplateData.Evaluate(Context.GetTime());
 
-	float Time = Context.GetTime();
+	// Actuator type ID for this property
+	FMovieSceneBlendingActuatorID ActuatorTypeID = EnsureActuator<FTransform>(ExecutionTokens.GetBlendingAccumulator());
 
-	for (TCachedValue<FTransform>& ObjectAndValue : PersistentData.GetSectionData<TCachedSectionData<FTransform>>().ObjectsAndValues)
+	// Add the blendable to the accumulator
+	float Weight = EvaluateEasing(Context.GetTime());
+	if (EnumHasAllFlags(TemplateData.Mask.GetChannels(), EMovieSceneTransformChannel::Weight))
 	{
-		const FVector& DefaultLocation = ObjectAndValue.Value.GetLocation();
-		FVector Location;
-		Location.X = TranslationCurve[0].Eval(Time, DefaultLocation.X);
-		Location.Y = TranslationCurve[1].Eval(Time, DefaultLocation.Y);
-		Location.Z = TranslationCurve[2].Eval(Time, DefaultLocation.Z);
-		ObjectAndValue.Value.SetLocation(Location);
-
-		FRotator DefaultRotation = ObjectAndValue.Value.GetRotation().Rotator();
-		FRotator Rotation;
-		Rotation.Roll = RotationCurve[0].Eval(Time, DefaultRotation.Roll);
-		Rotation.Pitch = RotationCurve[1].Eval(Time, DefaultRotation.Pitch);
-		Rotation.Yaw = RotationCurve[2].Eval(Time, DefaultRotation.Yaw);
-		ObjectAndValue.Value.SetRotation(Rotation.Quaternion());
-
-		const FVector& DefaultScale = ObjectAndValue.Value.GetScale3D();
-		FVector Scale;
-		Scale.X = ScaleCurve[0].Eval(Time, DefaultScale.X);
-		Scale.Y = ScaleCurve[1].Eval(Time, DefaultScale.Y);
-		Scale.Z = ScaleCurve[2].Eval(Time, DefaultScale.Z);
-		ObjectAndValue.Value.SetScale3D(Scale);
+		Weight *= TemplateData.ManualWeight.Eval(Context.GetTime());
 	}
 
-	ExecutionTokens.Add(TCachedPropertyTrackExecutionToken<FTransform>());
+	// Add the blendable to the accumulator
+	ExecutionTokens.BlendToken(ActuatorTypeID, TBlendableToken<FTransform>(TransformValue, TemplateData.BlendType, Weight));
 }

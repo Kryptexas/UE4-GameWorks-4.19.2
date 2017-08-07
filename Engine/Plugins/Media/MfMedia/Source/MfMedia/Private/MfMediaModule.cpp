@@ -30,7 +30,7 @@ public:
 
 	//~ IMfMediaModule interface
 
-	virtual TSharedPtr<IMediaPlayer> CreatePlayer() override
+	virtual TSharedPtr<IMediaPlayer, ESPMode::ThreadSafe> CreatePlayer() override
 	{
 #if MFMEDIA_SUPPORTED_PLATFORM
 		if (Initialized)

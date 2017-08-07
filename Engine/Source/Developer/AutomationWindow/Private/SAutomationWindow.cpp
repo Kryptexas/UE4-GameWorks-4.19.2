@@ -262,6 +262,7 @@ void SAutomationWindow::Construct( const FArguments& InArgs, const IAutomationCo
 	RequestedFilterComboList.Add(MakeShareable(new FString(TEXT("Performance Tests"))));
 	RequestedFilterComboList.Add(MakeShareable(new FString(TEXT("Stress Tests"))));
 	RequestedFilterComboList.Add(MakeShareable(new FString(TEXT("Standard Tests"))));
+	RequestedFilterComboList.Add(MakeShareable(new FString(TEXT("Negative Tests"))));
 
 	TSharedRef<SNotificationList> NotificationList = SNew(SNotificationList) .Visibility( EVisibility::HitTestInvisible );
 
@@ -471,12 +472,17 @@ void SAutomationWindow::Construct( const FArguments& InArgs, const IAutomationCo
 									SNew(SBorder)
 									.BorderImage(FEditorStyle::GetBrush("MessageLog.ListBorder"))
 									[
-										SAssignNew(LogListView, SListView<TSharedPtr<FAutomationOutputMessage> >)
-										.ItemHeight(18)
-										.ListItemsSource(&LogMessages)
-										.SelectionMode(ESelectionMode::Multi)
-										.OnGenerateRow(this, &SAutomationWindow::OnGenerateWidgetForLog)
-										.OnSelectionChanged(this, &SAutomationWindow::HandleLogListSelectionChanged)
+										SNew(SScrollBox)
+										.Orientation(EOrientation::Orient_Horizontal)
+										+SScrollBox::Slot()
+										[
+											SAssignNew(LogListView, SListView<TSharedPtr<FAutomationOutputMessage> >)
+											.ItemHeight(18)
+											.ListItemsSource(&LogMessages)
+											.SelectionMode(ESelectionMode::Multi)
+											.OnGenerateRow(this, &SAutomationWindow::OnGenerateWidgetForLog)
+											.OnSelectionChanged(this, &SAutomationWindow::HandleLogListSelectionChanged)
+										]
 									]
 								]
 
@@ -962,6 +968,9 @@ void SAutomationWindow::HandleRequesteFilterChanged(TSharedPtr<FString> Item, ES
 			break;
 		case 6:	//	"Standard Tests"
 			NewRequestedFlags = EAutomationTestFlags::SmokeFilter | EAutomationTestFlags::EngineFilter | EAutomationTestFlags::ProductFilter | EAutomationTestFlags::PerfFilter;
+			break;
+		case 7: //  "Negative Tests"
+			NewRequestedFlags = EAutomationTestFlags::NegativeFilter;
 			break;
 	}
 	AutomationController->SetRequestedTestFlags(NewRequestedFlags);

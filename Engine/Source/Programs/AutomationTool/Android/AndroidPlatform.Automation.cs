@@ -203,7 +203,7 @@ public class AndroidPlatform : Platform
 		// Create main OBB with entire contents of staging dir. This
 		// includes any PAK files, movie files, etc.
 
-		string LocalObbName = SC.StageDirectory.TrimEnd(new char[] {'/', '\\'})+".obb";
+		string LocalObbName = SC.StageDirectory.FullName+".obb";
 
 		// Always delete the target OBB file if it exists
 		if (File.Exists(LocalObbName))
@@ -245,6 +245,13 @@ public class AndroidPlatform : Platform
 
 		// collect plugin extra data paths from target receipts
 		Deploy.SetAndroidPluginData(Architectures, CollectPluginDataPaths(SC));
+
+		ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, DirectoryReference.FromFile(Params.RawProjectPath), UnrealTargetPlatform.Android);
+		int MinSDKVersion;
+		Ini.GetInt32("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "MinSDKVersion", out MinSDKVersion);
+		int TargetSDKVersion = MinSDKVersion;
+		Ini.GetInt32("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "TargetSDKVersion", out TargetSDKVersion);
+		Log("Target SDK Version" + TargetSDKVersion);
 
 		foreach (string Architecture in Architectures)
 		{
@@ -294,7 +301,7 @@ public class AndroidPlatform : Platform
 					string BatchName = GetFinalBatchName(ApkName, Params, bMakeSeparateApks ? Architecture : "", bMakeSeparateApks ? GPUArchitecture : "", false, EBatchType.Install, Target);
 					string PackageName = GetPackageInfo(ApkName, false);
 					// make a batch file that can be used to install the .apk and .obb files
-					string[] BatchLines = GenerateInstallBatchFile(bPackageDataInsideApk, PackageName, ApkName, Params, ObbName, DeviceObbName, false, bIsPC);
+					string[] BatchLines = GenerateInstallBatchFile(bPackageDataInsideApk, PackageName, ApkName, Params, ObbName, DeviceObbName, false, bIsPC, Params.Distribution, TargetSDKVersion > 22);
 					File.WriteAllLines(BatchName, BatchLines);
 					// make a batch file that can be used to uninstall the .apk and .obb files
 					string UninstallBatchName = GetFinalBatchName(ApkName, Params, bMakeSeparateApks ? Architecture : "", bMakeSeparateApks ? GPUArchitecture : "", false, EBatchType.Uninstall, Target);
@@ -351,15 +358,21 @@ public class AndroidPlatform : Platform
 		PrintRunTime();
 	}
 
-    private string[] GenerateInstallBatchFile(bool bPackageDataInsideApk, string PackageName, string ApkName, ProjectParams Params, string ObbName, string DeviceObbName, bool bNoObbInstall, bool bIsPC)
+    private string[] GenerateInstallBatchFile(bool bPackageDataInsideApk, string PackageName, string ApkName, ProjectParams Params, string ObbName, string DeviceObbName, bool bNoObbInstall, bool bIsPC, bool bIsDistribution, bool bRequireRuntimeStoragePermission)
     {
         string[] BatchLines = null;
         string ReadPermissionGrantCommand = "shell pm grant " + PackageName + " android.permission.READ_EXTERNAL_STORAGE";
         string WritePermissionGrantCommand = "shell pm grant " + PackageName + " android.permission.WRITE_EXTERNAL_STORAGE";
 
-        if (!bIsPC)
+		// We don't grant runtime permission for distribution build on purpose since we will push the obb file to the folder that doesn't require runtime storage permission.
+		// This way developer can catch permission issue if they try to save/load game file in folder that requires runtime storage permission.
+		bool bNeedGrantStoragePermission = bRequireRuntimeStoragePermission && !bIsDistribution;
+
+		if (!bIsPC)
         {
-            string OBBInstallCommand = bNoObbInstall ? "shell 'rm -r $EXTERNAL_STORAGE/" + DeviceObbName + "'" : "push " + Path.GetFileName(ObbName) + " $STORAGE/" + DeviceObbName;
+			// If it is a distribution build, push to $STORAGE/Android/obb folder instead of $STORAGE/obb folder.
+			// Note that $STORAGE/Android/obb will be the folder that contains the obb if you download the app from playstore.
+			string OBBInstallCommand = bNoObbInstall ? "shell 'rm -r $EXTERNAL_STORAGE/" + DeviceObbName + "'" : "push " + Path.GetFileName(ObbName) + " $STORAGE/" + (bIsDistribution ? "Android/" : "") + DeviceObbName;
 
             Log("Writing shell script for install with {0}", bPackageDataInsideApk ? "data in APK" : "separate obb");
             BatchLines = new string[] {
@@ -377,14 +390,15 @@ public class AndroidPlatform : Platform
 						"$ADB $DEVICE install " + Path.GetFileName(ApkName),
 						"if [ $? -eq 0 ]; then",
                         "\techo",
-                        bPackageDataInsideApk ? "" : "\techo Grant READ_EXTERNAL_STORAGE and WRITE_EXTERNAL_STORAGE to the apk for reading OBB file.",
-                        bPackageDataInsideApk ? "" : "\t$ADB $DEVICE " + ReadPermissionGrantCommand,
-                        bPackageDataInsideApk ? "" : "\t$ADB $DEVICE " + WritePermissionGrantCommand,
+						bNeedGrantStoragePermission ? "\techo Grant READ_EXTERNAL_STORAGE and WRITE_EXTERNAL_STORAGE to the apk for reading OBB or game file in external storage." : "",
+						bNeedGrantStoragePermission ? "\t$ADB $DEVICE " + ReadPermissionGrantCommand : "",
+						bNeedGrantStoragePermission ?"\t$ADB $DEVICE " + WritePermissionGrantCommand : "",
                         "\techo",
 						"\techo Removing old data. Failures here are usually fine - indicating the files were not on the device.",
                         "\t$ADB $DEVICE shell 'rm -r $EXTERNAL_STORAGE/UE4Game/" + Params.ShortProjectName + "'",
 						"\t$ADB $DEVICE shell 'rm -r $EXTERNAL_STORAGE/UE4Game/UE4CommandLine.txt" + "'",
 						"\t$ADB $DEVICE shell 'rm -r $EXTERNAL_STORAGE/" + TargetAndroidLocation + PackageName + "'",
+						"\t$ADB $DEVICE shell 'rm -r $EXTERNAL_STORAGE/Android/" + TargetAndroidLocation + PackageName + "'",
 						bPackageDataInsideApk ? "" : "\techo",
 						bPackageDataInsideApk ? "" : "\techo Installing new data. Failures here indicate storage problems \\(missing SD card or bad permissions\\) and are fatal.",
 						bPackageDataInsideApk ? "" : "\tSTORAGE=$(echo \"`$ADB $DEVICE shell 'echo $EXTERNAL_STORAGE'`\" | cat -v | tr -d '^M')",
@@ -407,7 +421,7 @@ public class AndroidPlatform : Platform
         }
         else
         {
-            string OBBInstallCommand = bNoObbInstall ? "shell rm -r %STORAGE%/" + DeviceObbName : "push " + Path.GetFileName(ObbName) + " %STORAGE%/" + DeviceObbName;
+            string OBBInstallCommand = bNoObbInstall ? "shell rm -r %STORAGE%/" + DeviceObbName : "push " + Path.GetFileName(ObbName) + " %STORAGE%/" + (bIsDistribution ? "Android/" : "") + DeviceObbName;
 
 			Log("Writing bat for install with {0}", bPackageDataInsideApk ? "data in APK" : "separate OBB");
             BatchLines = new string[] {
@@ -428,14 +442,15 @@ public class AndroidPlatform : Platform
                         "%ADB% %DEVICE% shell rm -r %STORAGE%/UE4Game/" + Params.ShortProjectName,
 						"%ADB% %DEVICE% shell rm -r %STORAGE%/UE4Game/UE4CommandLine.txt", // we need to delete the commandline in UE4Game or it will mess up loading
 						"%ADB% %DEVICE% shell rm -r %STORAGE%/" + TargetAndroidLocation + PackageName,
+						"%ADB% %DEVICE% shell rm -r %STORAGE%/Android/" + TargetAndroidLocation + PackageName,
 						bPackageDataInsideApk ? "" : "@echo.",
 						bPackageDataInsideApk ? "" : "@echo Installing new data. Failures here indicate storage problems (missing SD card or bad permissions) and are fatal.",
 						bPackageDataInsideApk ? "" : "%ADB% %DEVICE% " + OBBInstallCommand,
 						bPackageDataInsideApk ? "" : "if \"%ERRORLEVEL%\" NEQ \"0\" goto Error",
 						"@echo.",
-                        bPackageDataInsideApk ? "" : "@echo Grant READ_EXTERNAL_STORAGE and WRITE_EXTERNAL_STORAGE to the apk for reading OBB file.",
-                        bPackageDataInsideApk ? "" : "%ADB% %DEVICE% " + ReadPermissionGrantCommand,
-                        bPackageDataInsideApk ? "" : "%ADB% %DEVICE% " + WritePermissionGrantCommand,
+						bNeedGrantStoragePermission ? "@echo Grant READ_EXTERNAL_STORAGE and WRITE_EXTERNAL_STORAGE to the apk for reading OBB file or game file in external storage." : "",
+						bNeedGrantStoragePermission ? "%ADB% %DEVICE% " + ReadPermissionGrantCommand : "",
+						bNeedGrantStoragePermission ? "%ADB% %DEVICE% " + WritePermissionGrantCommand : "",
                         "@echo.",
                         "@echo Installation successful",
 						"goto:eof",
@@ -449,7 +464,7 @@ public class AndroidPlatform : Platform
 						"@echo Check that the device has an SD card.",
 						"@pause"
 					};
-        } 
+        }
         return BatchLines;
     }
 
@@ -475,6 +490,7 @@ public class AndroidPlatform : Platform
 						"$ADB $DEVICE shell 'rm -r $EXTERNAL_STORAGE/UE4Game/" + Params.ShortProjectName + "'",
 						"$ADB $DEVICE shell 'rm -r $EXTERNAL_STORAGE/UE4Game/UE4CommandLine.txt" + "'",
 						"$ADB $DEVICE shell 'rm -r $EXTERNAL_STORAGE/" + TargetAndroidLocation + PackageName + "'",
+						"$ADB $DEVICE shell 'rm -r $EXTERNAL_STORAGE/Android/" + TargetAndroidLocation + PackageName + "'",
 						"echo",
 						"echo Uninstall completed",
 						"exit 0",
@@ -499,6 +515,7 @@ public class AndroidPlatform : Platform
 						"%ADB% %DEVICE% shell rm -r %STORAGE%/UE4Game/" + Params.ShortProjectName,
 						"%ADB% %DEVICE% shell rm -r %STORAGE%/UE4Game/UE4CommandLine.txt", // we need to delete the commandline in UE4Game or it will mess up loading
 						"%ADB% %DEVICE% shell rm -r %STORAGE%/" + TargetAndroidLocation + PackageName,
+						"%ADB% %DEVICE% shell rm -r %STORAGE%/Android/" + TargetAndroidLocation + PackageName,
 						"@echo.",
 						"@echo Uninstall completed",
 					};
@@ -806,7 +823,7 @@ public class AndroidPlatform : Platform
 		string SanitizedDeviceName = DeviceName.Replace(":", "_");
 
 		// Try retrieving the UFS files manifest files from the device
-		string UFSManifestFileName = CombinePaths(SC.StageDirectory, SC.UFSDeployedManifestFileName + "_" + SanitizedDeviceName);
+		string UFSManifestFileName = CombinePaths(SC.StageDirectory.FullName, SC.UFSDeployedManifestFileName + "_" + SanitizedDeviceName);
 		IProcessResult UFSResult = RunAdbCommand(Params, DeviceName, " pull " + RemoteDir + "/" + SC.UFSDeployedManifestFileName + " \"" + UFSManifestFileName + "\"", null, ERunOptions.AppMustExist);
 		if (!(UFSResult.Output.Contains("bytes") || UFSResult.Output.Contains("[100%]")))
 		{
@@ -814,7 +831,7 @@ public class AndroidPlatform : Platform
 		}
 
 		// Try retrieving the non UFS files manifest files from the device
-		string NonUFSManifestFileName = CombinePaths(SC.StageDirectory, SC.NonUFSDeployedManifestFileName + "_" + SanitizedDeviceName);
+		string NonUFSManifestFileName = CombinePaths(SC.StageDirectory.FullName, SC.NonUFSDeployedManifestFileName + "_" + SanitizedDeviceName);
 		IProcessResult NonUFSResult = RunAdbCommand(Params, DeviceName, " pull " + RemoteDir + "/" + SC.NonUFSDeployedManifestFileName + " \"" + NonUFSManifestFileName + "\"", null, ERunOptions.AppMustExist);
 		if (!(NonUFSResult.Output.Contains("bytes") || NonUFSResult.Output.Contains("[100%]")))
 		{
@@ -951,7 +968,7 @@ public class AndroidPlatform : Platform
             // update the ue4commandline.txt
             // update and deploy ue4commandline.txt
             // always delete the existing commandline text file, so it doesn't reuse an old one
-            string IntermediateCmdLineFile = CombinePaths(SC.StageDirectory, "UE4CommandLine.txt");
+            FileReference IntermediateCmdLineFile = FileReference.Combine(SC.StageDirectory, "UE4CommandLine.txt");
             Project.WriteStageCommandline(IntermediateCmdLineFile, Params, SC);
 
             // copy files to device if we were staging
@@ -965,7 +982,7 @@ public class AndroidPlatform : Platform
                 if (Params.IterativeDeploy)
                 {
                     // always send UE4CommandLine.txt (it was written above after delta checks applied)
-                    EntriesToDeploy.Add(IntermediateCmdLineFile);
+                    EntriesToDeploy.Add(IntermediateCmdLineFile.FullName);
 
                     // Add non UFS files if any to deploy
                     String NonUFSManifestPath = SC.GetNonUFSDeploymentDeltaPath(DeviceName);
@@ -976,7 +993,7 @@ public class AndroidPlatform : Platform
                         {
                             if (!string.IsNullOrEmpty(Filename) && !string.IsNullOrWhiteSpace(Filename))
                             {
-                                EntriesToDeploy.Add(CombinePaths(SC.StageDirectory, Filename.Trim()));
+                                EntriesToDeploy.Add(CombinePaths(SC.StageDirectory.FullName, Filename.Trim()));
                             }
                         }
                     }
@@ -990,7 +1007,7 @@ public class AndroidPlatform : Platform
                         {
                             if (!string.IsNullOrEmpty(Filename) && !string.IsNullOrWhiteSpace(Filename))
                             {
-                                EntriesToDeploy.Add(CombinePaths(SC.StageDirectory, Filename.Trim()));
+                                EntriesToDeploy.Add(CombinePaths(SC.StageDirectory.FullName, Filename.Trim()));
                             }
                         }
                     }
@@ -1003,7 +1020,7 @@ public class AndroidPlatform : Platform
 
                         EntriesToDeploy.Clear();
                         EntriesToDeploy.TrimExcess();
-                        EntriesToDeploy.Add(SC.StageDirectory);
+                        EntriesToDeploy.Add(SC.StageDirectory.FullName);
                     }
                 }
                 else
@@ -1012,7 +1029,7 @@ public class AndroidPlatform : Platform
                     RunAdbCommand(Params, DeviceName, "shell rm -r " + RemoteDir);
 
                     // Copy UFS files..
-                    string[] Files = Directory.GetFiles(SC.StageDirectory, "*", SearchOption.AllDirectories);
+                    string[] Files = Directory.GetFiles(SC.StageDirectory.FullName, "*", SearchOption.AllDirectories);
                     System.Array.Sort(Files);
 
                     // Find all the files we exclude from copying. And include
@@ -1041,9 +1058,9 @@ public class AndroidPlatform : Platform
                                     IndividualCopyDirectories.Add(FileDirectory);
                                 }
                             }
-                            if (!IndividualCopyDirectories.Contains(SC.StageDirectory))
+                            if (!IndividualCopyDirectories.Contains(SC.StageDirectory.FullName))
                             {
-                                IndividualCopyDirectories.Add(SC.StageDirectory);
+                                IndividualCopyDirectories.Add(SC.StageDirectory.FullName);
                             }
                         }
                     }
@@ -1073,7 +1090,7 @@ public class AndroidPlatform : Platform
 
                     if (EntriesToDeploy.Count == 0)
                     {
-                        EntriesToDeploy.Add(SC.StageDirectory);
+                        EntriesToDeploy.Add(SC.StageDirectory.FullName);
                     }
                 }
 
@@ -1085,7 +1102,7 @@ public class AndroidPlatform : Platform
                 foreach (string Entry in EntriesToDeploy)
                 {
                     string FinalRemoteDir = RemoteDir;
-                    string RemotePath = Entry.Replace(SC.StageDirectory, FinalRemoteDir).Replace("\\", "/");
+                    string RemotePath = Entry.Replace(SC.StageDirectory.FullName, FinalRemoteDir).Replace("\\", "/");
                     string Commandline = string.Format("{0} \"{1}\" \"{2}\"", BaseCommandline, Entry, RemotePath);
                     // We run deploy commands in parallel to maximize the connection
                     // throughput.
@@ -1118,7 +1135,7 @@ public class AndroidPlatform : Platform
             else if (SC.Archive)
             {
                 // deploy the obb if there is one
-                string ObbPath = Path.Combine(SC.StageDirectory, GetFinalObbName(ApkName));
+                string ObbPath = Path.Combine(SC.StageDirectory.FullName, GetFinalObbName(ApkName));
                 if (File.Exists(ObbPath))
                 {
                     // cache some strings
@@ -1142,7 +1159,7 @@ public class AndroidPlatform : Platform
 			    }
 			    */
 
-                string RemoteFilename = IntermediateCmdLineFile.Replace(SC.StageDirectory, FinalRemoteDir).Replace("\\", "/");
+                string RemoteFilename = IntermediateCmdLineFile.FullName.Replace(SC.StageDirectory.FullName, FinalRemoteDir).Replace("\\", "/");
                 string Commandline = string.Format("{0} \"{1}\" \"{2}\"", BaseCommandline, IntermediateCmdLineFile, RemoteFilename);
                 RunAdbCommand(Params, DeviceName, Commandline);
             }
@@ -1535,7 +1552,7 @@ public class AndroidPlatform : Platform
 	public override void GetFilesToDeployOrStage(ProjectParams Params, DeploymentContext SC)
 	{
         // Add any Android shader cache files
-        string ProjectShaderDir = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(Params.RawProjectPath.ToString())), "Build/ShaderCaches/Android");
+        DirectoryReference ProjectShaderDir = DirectoryReference.Combine(Params.RawProjectPath.Directory, "Build/ShaderCaches/Android");
         SC.StageFiles(StagedFileType.UFS, ProjectShaderDir, "*.*", true, null, null, true);
     }
 
@@ -1546,11 +1563,6 @@ public class AndroidPlatform : Platform
     public override string GetCookPlatform(bool bDedicatedServer, bool bIsClientOnly)
 	{
 		return "Android";
-	}
-
-	public override bool DeployPakInternalLowerCaseFilenames()
-	{
-		return false;
 	}
 
 	public override bool DeployLowerCaseFilenames(bool bUFSFile)
@@ -1564,11 +1576,6 @@ public class AndroidPlatform : Platform
 	}
 
 	public override bool IsSupported { get { return true; } }
-
-	public override string Remap(string Dest)
-	{
-		return Dest;
-	}
 
 	public override PakType RequiresPak(ProjectParams Params)
 	{

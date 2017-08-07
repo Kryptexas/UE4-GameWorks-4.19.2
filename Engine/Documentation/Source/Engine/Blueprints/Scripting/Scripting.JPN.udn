@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244370
+﻿INTSourceChangelist:3393423
 Availability:Public
 Title:スクリプト処理の基礎
 Crumbs: %ROOT%, Engine, Engine/Blueprints
@@ -46,9 +46,9 @@ tags:Blueprints
 [/OBJECT]
 [/VAR]
 
-ブループリントは、スクリプト処理言語をビジュアル化して表示します。そうすると、通常スクリプト処理言語を書く場合に伴う、データ タイプ変数、配列、構造体など数々のニュアンスが共有できます。 
-ブループリントでは各ノードは明確な線形実行が必要であるにもかかわらず、実行フローは典型的なスクリプト処理言語のように機能します。以下のページでは、様々な変数タイプ、それらの使い方、グラフ内のノードの実行に関して 
-詳しく説明しています。 
+ブループリントは、スクリプト処理言語を可視化して表示します。可視化することで、データ タイプ変数、配列、構造体など標準的なスクリプト処理言語のニュアンスを幅広く共有することができます。 
+ブループリントは、各ノードを明確に線形実行しなければなりませんが、実行フローは典型的なスクリプト処理言語のように機能します。それでは、様々な変数タイプ、それらの使い方、グラフ内のノードの実行に関して 
+詳しく説明していきます。 
 
 ## 変数
 
@@ -75,6 +75,20 @@ tags:Blueprints
 [DIR(output:"listbutton" parent:"Engine/Blueprints/Scripting" tags:"Arrays and Structures")]
 
 <!--
-Structs
+
+## 詳細なコンテナ
+
+アンリアル エンジン 4.15 では、Blueprint Application Programming Interface (API) にBlueprint Set と Map の両方が追加されました。Set と Map というコンテナによりデベロッパーはクリエイティブにデータの格納およびアクセスができるようになります。
+つまり、ブループリントの上級者向けのコンテナということになります。Blueprint Array を選べば無難ですが、結合タイプのコンテナ (Map や Set など) を使うと 
+ゲーム データをさらに楽しく扱いやすくなります。
+
+### Blueprint Map
+
+[DIR(output:"listbutton" parent:"Engine/Blueprints/Scripting" tags:"Blueprint Map")]
+
+### Blueprint Set
+
+[DIR(output:"listbutton" parent:"Engine/Blueprints/Scripting" tags:"Blueprint Set")]
+
 -->
 

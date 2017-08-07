@@ -61,6 +61,8 @@ public:
 	*/
 	static FString GetCurrentLocaleCode();
 
+	virtual FString ApplicationCacheDir() const override;
+
 public:
 
 	// IWebBrowserSingleton Interface

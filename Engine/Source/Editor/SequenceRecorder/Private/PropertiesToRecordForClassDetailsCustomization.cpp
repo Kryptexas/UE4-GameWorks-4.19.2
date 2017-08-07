@@ -24,9 +24,9 @@ void FPropertiesToRecordForClassDetailsCustomization::CustomizeChildren(TSharedR
 	TSharedRef<IPropertyHandle> ClassProperty = PropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FPropertiesToRecordForClass, Class)).ToSharedRef();
 	TSharedRef<IPropertyHandle> PropertiesProperty = PropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FPropertiesToRecordForClass, Properties)).ToSharedRef();
 
-	ChildBuilder.AddChildProperty(ClassProperty);
+	ChildBuilder.AddProperty(ClassProperty);
 
-	ChildBuilder.AddChildProperty(PropertiesProperty)
+	ChildBuilder.AddProperty(PropertiesProperty)
 	.CustomWidget()
 	.NameContent()
 	[

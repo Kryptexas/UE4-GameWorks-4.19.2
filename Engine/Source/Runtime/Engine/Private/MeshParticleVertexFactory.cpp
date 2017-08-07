@@ -111,7 +111,7 @@ void FMeshParticleVertexFactory::InitRHI()
 {
 	FVertexDeclarationElementList Elements;
 
-    const bool bInstanced = GRHISupportsInstancing;
+	const bool bInstanced = GRHISupportsInstancing;
 
 	if (Data.bInitialized)
 	{
@@ -149,6 +149,12 @@ void FMeshParticleVertexFactory::InitRHI()
 				Streams.Add(VertexStream);
 	
 				Elements.Add(FVertexElement(1, 0, VET_Float4, 13, DynamicParameterVertexStride, true));
+			}
+
+			// Add a dummy resource to avoid crash due to missing resource
+			if (GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+			{
+				PrevTransformBuffer.Initialize(sizeof(FVector4), 3, PF_A32B32G32R32F, BUF_Dynamic);
 			}
 		}
 
@@ -280,6 +286,6 @@ FVertexFactoryShaderParameters* FMeshParticleVertexFactory::ConstructShaderParam
 	return ShaderFrequency == SF_Vertex ? new FMeshParticleVertexFactoryShaderParameters() : NULL;
 }
 
-IMPLEMENT_VERTEX_FACTORY_TYPE(FMeshParticleVertexFactory,"MeshParticleVertexFactory",true,false,true,false,false);
-IMPLEMENT_VERTEX_FACTORY_TYPE(FMeshParticleVertexFactoryEmulatedInstancing,"MeshParticleVertexFactory",true,false,true,false,false);
+IMPLEMENT_VERTEX_FACTORY_TYPE(FMeshParticleVertexFactory,"/Engine/Private/MeshParticleVertexFactory.ush",true,false,true,false,false);
+IMPLEMENT_VERTEX_FACTORY_TYPE(FMeshParticleVertexFactoryEmulatedInstancing,"/Engine/Private/MeshParticleVertexFactory.ush",true,false,true,false,false);
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FMeshParticleUniformParameters,TEXT("MeshParticleVF"));

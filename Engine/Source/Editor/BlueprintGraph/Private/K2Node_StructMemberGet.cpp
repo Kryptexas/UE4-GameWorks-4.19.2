@@ -13,12 +13,23 @@ UK2Node_StructMemberGet::UK2Node_StructMemberGet(const FObjectInitializer& Objec
 {
 }
 
-void UK2Node_StructMemberGet::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+void UK2Node_StructMemberGet::PreEditChange(UProperty* PropertyThatWillChange)
 {
-	FName PropertyName = (PropertyChangedEvent.Property != NULL) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+	Super::PreEditChange(PropertyThatWillChange);
 
-	if ((PropertyName == TEXT("bShowPin")))
+	if (PropertyThatWillChange && PropertyThatWillChange->GetFName() == GET_MEMBER_NAME_CHECKED(FOptionalPinFromProperty, bShowPin))
 	{
+		FOptionalPinManager::CacheShownPins(ShowPinForProperties, OldShownPins);
+	}
+}
+
+void UK2Node_StructMemberGet::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	const FName PropertyName = (PropertyChangedEvent.Property ? PropertyChangedEvent.Property->GetFName() : NAME_None);
+
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(FOptionalPinFromProperty, bShowPin))
+	{
+		FOptionalPinManager::EvaluateOldShownPins(ShowPinForProperties, OldShownPins, this);
 		GetSchema()->ReconstructNode(*this);
 	}
 

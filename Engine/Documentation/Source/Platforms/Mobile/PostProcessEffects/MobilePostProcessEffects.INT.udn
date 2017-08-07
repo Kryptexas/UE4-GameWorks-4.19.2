@@ -16,9 +16,37 @@ reference-image:Mobile_PostProcessEffect.gif
 Mobile Post Processing is implemented as a separate code path from PC/Console Post Processing. This is to reflect the slower dependent texture reads, missing hardware features, extra render target resolve costs, and slower performance in general. 
 To enable Post Processing for your mobile applications, please make sure that **Mobile HDR** is enabled in your **Project Settings** as most of the settings below require Mobile HDR to be enabled for the effect(s) to work.
 
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
 [region: lightbox]
 [![](MobileHDR_Enabled.png)(w:400)](MobileHDR_Enabled.png)
 [/region]
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+[region: lightbox]
+[![](MobileHDR_Enabled_Mac.png)(w:400)](MobileHDR_Enabled_Mac.png)
+[/region]
+[/PARAM]
+[/OBJECT]
 
 [region:caption]
 Click for full image.
@@ -59,17 +87,76 @@ Click for full image.
 ### Enabling Tonemapper Film via .INI Files
 To enable or disable the Tonemapper project wide you will need to add **r.tonemapperfilm=1** to the **Rendering Settings** in your project's **DefaultEngine.ini**.
 
+
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
 [REGION:lightbox]
 [![](TM_Default_Engine_INI.png)(w:422 h:199)](TM_Default_Engine_INI.png)
 [/REGION]
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+[REGION:lightbox]
+[![](TM_Default_Engine_INI_Mac.png)(w:422 h:199)](TM_Default_Engine_INI_Mac.png)
+[/REGION]
+[/PARAM]
+[/OBJECT]
 	
 [REGION:caption]
 Click for full image.
 [/REGION]
 
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
 [REGION:lightbox]
 [![](TM_INI_Location.png)(w:422 h:199)](TM_INI_Location.png)
 [/REGION]
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+[REGION:lightbox]
+[![](TM_INI_Location_Mac.png)(w:422 h:199)](TM_INI_Location_Mac.png)
+[/REGION]
+[/PARAM]
+[/OBJECT]
+
 	
 [REGION:caption]
 Click for full image.
@@ -241,9 +328,37 @@ You can now use the **Custom Depth** Post Process option with the Mobile renderi
 
 As this features requires Post-Processing to work correctly, **Mobile HDR** must be enabled. To enable Mobile HDR go to **Project Settings** > **Engine** > **Rendering** > **Mobile** and make sure that **Mobile HDR** is checked.
 
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
 [region: lightbox]
 [![](MobileHDR_Enabled.png)(w:400)](MobileHDR_Enabled.png)
 [/region]
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+[region: lightbox]
+[![](MobileHDR_Enabled_Mac.png)(w:400)](MobileHDR_Enabled_Mac.png)
+[/region]
+[/PARAM]
+[/OBJECT]
 
 [region:caption]
 Click for full image.

@@ -212,7 +212,7 @@ void FMaterialShader::SetParameters(
 		if (UniformExpressionCache->CachedUniformExpressionShaderMap != Material.GetRenderingThreadShaderMap())
 		{
 			UMaterialInterface* MtlInterface = Material.GetMaterialInterface();
-			UMaterialInterface* ProxyInterface = MaterialRenderProxy ? MaterialRenderProxy->GetMaterialInterface() : nullptr;
+			UMaterialInterface* ProxyInterface = MaterialRenderProxy->GetMaterialInterface();
 
 			ensureMsgf(false,
 				TEXT("%s shader uniform expression set mismatched shader map for material %s/%s, forcing expression cache evaluation.\n")

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3429254
 Availability:Public
 Title:콘트롤러
 Crumbs:%ROOT%, Gameplay, Gameplay/Framework
@@ -8,10 +8,11 @@ Related: Gameplay\Framework\Controller\AIController
 Related: Gameplay\Framework\Pawn
 Related: Gameplay\Framework\Pawn\Character
 Version: 4.9
-type:reference
+type:overview
 parent:Gameplay/Framework
 order:4
 tags:Gameplay Framework
+topic-image:Gameplay/Framework/controller_lander.png
 
 
 [INCLUDE:Shared/Glossary/C/#Glossary_Controller_Class]

@@ -332,7 +332,8 @@ void UCrowdFollowingComponent::UpdateCachedDirections(const FVector& NewVelocity
 	}
 
 	// CrowdAgentMoveDirection either direction on path or aligned with current velocity
-	if (CharacterMovement->MovementMode != MOVE_Falling)
+	const bool bIsNotFalling = (CharacterMovement == nullptr || CharacterMovement->MovementMode != MOVE_Falling);
+	if (bIsNotFalling)
 	{
 		if (bUpdateDirectMoveVelocity)
 		{
@@ -382,7 +383,8 @@ void UCrowdFollowingComponent::ApplyCrowdAgentVelocity(const FVector& NewVelocit
 	bCanCheckMovingTooFar = !bTraversingLink && bIsNearEndOfPath;
 	if (IsCrowdSimulationEnabled() && Status == EPathFollowingStatus::Moving && MovementComp)
 	{
-		if (bAffectFallingVelocity || CharacterMovement == NULL || CharacterMovement->MovementMode != MOVE_Falling)
+		const bool bIsNotFalling = (CharacterMovement == nullptr || CharacterMovement->MovementMode != MOVE_Falling);
+		if (bAffectFallingVelocity || bIsNotFalling)
 		{
 			UpdateCachedDirections(NewVelocity, DestPathCorner, bTraversingLink);
 
@@ -916,9 +918,16 @@ void UCrowdFollowingComponent::UpdatePathSegment()
 	{
 		if (!Path->IsWaitingForRepath())
 		{
+			UE_VLOG(this, LogPathFollowing, Log, TEXT("Aborting move due to path being invalid and not waiting for repath"));
 			OnPathFinished(FPathFollowingResult(EPathFollowingResult::Aborted, FPathFollowingResultFlags::InvalidPath));
+			return;
 		}
-		return;
+		else
+		{
+			// continue with execution, if navigation is being rebuild constantly AI will get stuck with current waypoint
+			// path updates should be still coming in, even though they get invalidated right away
+			UE_VLOG(this, LogPathFollowing, Log, TEXT("Updating path points in invalid & pending path!"));
+		}
 	}
 
 	// if agent has control over its movement, check finish conditions

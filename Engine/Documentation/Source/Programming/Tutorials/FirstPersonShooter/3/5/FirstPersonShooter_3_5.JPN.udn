@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3069483
-Availability: Public
+﻿INTSourceChangelist:3388666
+Availability:Public
 Title:3.5 - ビューポートにクロスヘアを追加する
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/3
 Description:FPS プロジェクトで、ビューポートにクロスヘアを追加する方法を学びます。
-SkillLevel: Beginner
-Version: 4.11
+SkillLevel:Beginner
+Version:4.15
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -17,7 +17,7 @@ Version: 4.11
 		[セクション ホーム](Programming/Tutorials/FirstPersonShooter/3)
 	[/PARAM]
 	[PARAM:next]
-		[次のセクション](Programming/Tutorials/FirstPersonShooter/4 "")
+		[次のセクション](Programming/Tutorials/FirstPersonShooter/4)
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -70,7 +70,7 @@ Version: 4.11
 			// Primary draw call for the HUD. (HUD のプライマリ ドロー コール)
 			virtual void DrawHUD() override;
 
-1.	`FPSHUD.cpp` に、 `DrawHUD` 関数を実装します。
+1.	`FPSHUD.cpp` で、 `DrawHUD` を実装します。
 
 		void AFPSHUD::DrawHUD()
 		{
@@ -148,7 +148,7 @@ CPP HUD クラスをブループリントに拡張します。C++ クラスの�
 
 	![](CrosshairsInGame.png)
 
-1.	[PIE (Play In Editor)] モードを終了するには、レベル エディタで **[Stop]** ボタンをクリックします。
+1.	[PIE (Play In Editor)] モードを終了するには、レベル エディタで [Stop] ボタンを **クリック** します。
 
 [OBJECT:Section]
     [PARAMLITERAL:id]
@@ -162,11 +162,11 @@ CPP HUD クラスをブループリントに拡張します。C++ クラスの�
 			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
-
 			#include "GameFramework/Actor.h"
-			#include "FPSProjectile.generated.h"
 
+			#include "FPSProjectile.generated.h"
 			UCLASS()
+
 			class FPSPROJECT_API AFPSProjectile : public AActor
 			{
 				GENERATED_BODY()
@@ -174,28 +174,28 @@ CPP HUD クラスをブループリントに拡張します。C++ クラスの�
 
 				// Sets default values for this actor's properties. (このアクタのプロパティのデフォルト値を設定します)
 				AFPSProjectile();
-			// Called when the game starts or when spawned. (ゲーム開始時またはスポーン時に呼ばれます) 
+			protected:
 
+				// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼び出される)
 				virtual void BeginPlay() override;
+			public:
 
 				// Called every frame. (フレームごとに呼ばれます) 
 				virtual void Tick( float DeltaSeconds ) override;
-
 			// Sphere collision component (Sphere collision コンポーネント)
+
 				UPROPERTY(VisibleDefaultsOnly, Category = Projectile)
 				USphereComponent* CollisionComponent;
-
 				//Projectile movement component. (Projectile Movement コンポーネント)
 
 				UPROPERTY(VisibleAnywhere, Category = Movement)
 				UProjectileMovementComponent* ProjectileMovementComponent;
-
 			// Function that initializes the projectile's velocity in the shoot direction. (発射方向に発射物のべロシティを初期化する関数)
 
 				void FireInDirection(const FVector& ShootDirection);
 			// Function that is called when the projectile hits something. (発射物が何かにぶつかると呼び出される関数)
 
-				void OnHit(class AActor* OtherActor, class UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit);
+				void OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit);
 			};
 
 
@@ -210,13 +210,11 @@ CPP HUD クラスをブループリントに拡張します。C++ クラスの�
 			{
 			 	// Set this actor to call Tick() every frame. (フレーム毎に Tick() を呼び出すようにこのアクタを設定) You can turn this off to improve performance if you don't need it. (必要がなければパフォーマンスを向上させるためにオフにすることができます) 
 				PrimaryActorTick.bCanEverTick = true;
-
-			// Use a sphere as a simple collision representation. (簡易なコリジョン表現に球体を使用)
+			// Use a sphere as a simple collision representation (簡易なコリジョン表現に球体を使用)
 
 				CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComponent"));
 				CollisionComponent->BodyInstance.SetCollisionProfileName(TEXT("Projectile"));
 				CollisionComponent->OnComponentHit.AddDynamic(this, &AFPSProjectile::OnHit);
-
 			// Set the sphere's collision radius. (球体のコリジョン半径を設定します)
 
 				CollisionComponent->InitSphereRadius(15.0f);
@@ -266,13 +264,13 @@ CPP HUD クラスをブループリントに拡張します。C++ クラスの�
 
 		**FPSCharacter.h**
 			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
-
 			#pragma once
 
 			#include "GameFramework/Character.h"
-			#include "FPSCharacter.generated.h"
 
+			#include "FPSCharacter.generated.h"
 			UCLASS()
+
 			class FPSPROJECT_API AFPSCharacter : public ACharacter
 			{
 				GENERATED_BODY()
@@ -280,31 +278,29 @@ CPP HUD クラスをブループリントに拡張します。C++ クラスの�
 
 				// Sets default values for this character's properties. (このキャラクターのプロパティのデフォルト値を設定) 
 				AFPSCharacter();
+			protected:
 
-			// Called when the game starts or when spawned. (ゲーム開始時またはスポーン時に呼ばれます) 
-
+				// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼び出される)
 				virtual void BeginPlay() override;
+			public:
 
 				// Called every frame. (フレームごとに呼ばれます) 
 				virtual void Tick( float DeltaSeconds ) override;
-			// Called to bind functionality to input. (機能を入力にバインドするために呼ばれます) 
+			// Called to bind functionality to input (機能と入力をバインドするために呼ばれます)
 
 				virtual void SetupPlayerInputComponent(UInputComponent* InputComponent) override;
 			// Handles input for moving forward and backward. (前後方向の移動の入力を処理) 
 
 				UFUNCTION()
 				void MoveForward(float Value);
-
 			// Handles input for moving right and left. (左右の移動の入力を処理) 
 
 				UFUNCTION()
 				void MoveRight(float Value);
-
 			// Sets jump flag when key is pressed (キー押下時のジャンプフラグを設定) 
 
 				UFUNCTION()
 				void StartJump();
-
 			// Clears jump flag when key is released (キー解放時のジャンプフラグをクリア)
 
 				UFUNCTION()
@@ -313,7 +309,6 @@ CPP HUD クラスをブループリントに拡張します。C++ クラスの�
 
 				UFUNCTION()
 				void Fire();
-
 			// FPS camera (FPS カメラ)
 
 				UPROPERTY(VisibleAnywhere)
@@ -334,13 +329,11 @@ CPP HUD クラスをブループリントに拡張します。C++ クラスの�
 
 		**FPSCharacter.cpp**
 			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
-
 			#include "FPSProject.h"
+
 			#include "FPSCharacter.h"
 			#include "FPSProjectile.h"
-
 			// Sets default values (デフォルト値を設定) 
-
 
 			AFPSCharacter::AFPSCharacter()
 			{
@@ -350,7 +343,7 @@ CPP HUD クラスをブループリントに拡張します。C++ クラスの�
 
 				FPSCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
 				// Attach the camera component to our capsule component. (camera コンポーネントを capsule コンポーネントにアタッチします)
-				FPSCameraComponent->AttachTo(GetCapsuleComponent());
+				FPSCameraComponent->SetupAttachment(GetCapsuleComponent());
 				// Position the camera slightly above the eyes. (目の高さより少し上にカメラを設定)
 				FPSCameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 50.0f + BaseEyeHeight));
 				// Allow the pawn to control camera rotation. (ポーンがカメラの回転を制御できるようにします)
@@ -361,7 +354,7 @@ CPP HUD クラスをブループリントに拡張します。C++ クラスの�
 				// Only the owning player sees this mesh. (このメッシュは所有しているプレイヤーだけから見えます)
 				FPSMesh->SetOnlyOwnerSee(true);
 				// Attach the FPS mesh to the FPS camera. (FPS メッシュを FPS カメラにアタッチします)
-				FPSMesh->AttachTo(FPSCameraComponent);
+				FPSMesh->SetupAttachment(FPSCameraComponent);
 				// Disable some environmental shadowing to preserve the illusion of having a single mesh. (一部の背景のシャドウイングを無効にして、ひとつのメッシュを持っているという錯覚を維持します) 
 				FPSMesh->bCastDynamicShadow = false;
 				FPSMesh->CastShadow = false;
@@ -388,24 +381,24 @@ CPP HUD クラスをブループリントに拡張します。C++ クラスの�
 				Super::Tick( DeltaTime );
 			}
 
-			// Called to bind functionality to input. (機能を入力にバインドするために呼ばれます) 
+			// Called to bind functionality to input (機能と入力をバインドするために呼ばれます)
 
-			void AFPSCharacter::SetupPlayerInputComponent(UInputComponent* InputComponent)
+			void AFPSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 			{
-				Super::SetupPlayerInputComponent(InputComponent);
+				Super::SetupPlayerInputComponent(PlayerInputComponent);
 			// Set up "movement" bindings. (移動のバインディングをセットアップ) 
 
-				InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
-				InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
+				PlayerInputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
+				PlayerInputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
 			// Set up "look" bindings. (look のバインディングをセットアップ) 
 
-				InputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
-				InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
+				PlayerInputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
+				PlayerInputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
 			// Set up "action" bindings. (アクションのバインディングをセットアップ) 
 
-				InputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
-				InputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::StopJump);
-				InputComponent->BindAction("Fire", IE_Pressed, this, &AFPSCharacter::Fire);
+				PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
+				PlayerInputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::StopJump);
+				PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AFPSCharacter::Fire);
 			}
 			void AFPSCharacter::MoveForward(float Value)
 
@@ -494,6 +487,7 @@ CPP HUD クラスをブループリントに拡張します。C++ クラスの�
 		**FPSHUD.cpp**
 			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 			#include "FPSProject.h"
+
 			#include "FPSHUD.h"
 			void AFPSHUD::DrawHUD()
 

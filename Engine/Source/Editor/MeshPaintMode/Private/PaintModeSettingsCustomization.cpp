@@ -47,7 +47,7 @@ void FTexturePaintSettingsCustomization::CustomizeChildren(TSharedRef<IPropertyH
 
 		if (ArrayIndex == INDEX_NONE)
 		{
-			IDetailPropertyRow& Property = ChildBuilder.AddChildProperty(ChildHandle);			
+			IDetailPropertyRow& Property = ChildBuilder.AddProperty(ChildHandle);			
 		}
 		else
 		{
@@ -62,7 +62,7 @@ void FTexturePaintSettingsCustomization::CustomizeChildren(TSharedRef<IPropertyH
 	TArray<TSharedRef<IPropertyHandle>> Channels = { RedChannel, GreenChannel, BlueChannel, AlphaChannel };
 	TSharedPtr<SHorizontalBox> ChannelsWidget;
 
-	ChildBuilder.AddChildContent(NSLOCTEXT("ColorMask", "ChannelLabel", "Channels"))
+	ChildBuilder.AddCustomRow(NSLOCTEXT("ColorMask", "ChannelLabel", "Channels"))
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -91,7 +91,7 @@ void FTexturePaintSettingsCustomization::CustomizeChildren(TSharedRef<IPropertyH
 	{
 		TSharedRef<IPropertyHandle> UVChannel = CustomizedProperties.FindChecked(GET_MEMBER_NAME_CHECKED(FTexturePaintSettings, UVChannel));
 
-		ChildBuilder.AddChildContent(NSLOCTEXT("TexturePainting", "TexturePaintingUVLabel", "Texture Painting UV Channel"))
+		ChildBuilder.AddCustomRow(NSLOCTEXT("TexturePainting", "TexturePaintingUVLabel", "Texture Painting UV Channel"))
 		.NameContent()
 		[
 			UVChannel->CreatePropertyNameWidget()
@@ -119,7 +119,7 @@ void FTexturePaintSettingsCustomization::CustomizeChildren(TSharedRef<IPropertyH
 	{
 		TSharedRef<IPropertyHandle> TextureProperty = CustomizedProperties.FindChecked(GET_MEMBER_NAME_CHECKED(FTexturePaintSettings, PaintTexture));
 		TSharedPtr<SHorizontalBox> TextureWidget;
-		FDetailWidgetRow& Row = ChildBuilder.AddChildContent(NSLOCTEXT("TexturePaintSetting", "TextureSearchString", "Texture"))
+		FDetailWidgetRow& Row = ChildBuilder.AddCustomRow(NSLOCTEXT("TexturePaintSetting", "TextureSearchString", "Texture"))
 			.NameContent()
 			[
 				SNew(STextBlock)
@@ -174,7 +174,7 @@ void FVertexPaintSettingsCustomization::CustomizeChildren(TSharedRef<IPropertyHa
 		if (!CustomPropertyNames.Contains(ChildHandle->GetProperty()->GetFName()))
 		{
 			// Uses metadata to tag properties which should show for either vertex color of vertex blend weight painting
-			IDetailPropertyRow& Property = ChildBuilder.AddChildProperty(ChildHandle);
+			IDetailPropertyRow& Property = ChildBuilder.AddProperty(ChildHandle);
 			static const FName EditConditionName = "EnumCondition";
 			if (ChildHandle->HasMetaData(EditConditionName))
 			{
@@ -198,7 +198,7 @@ void FVertexPaintSettingsCustomization::CustomizeChildren(TSharedRef<IPropertyHa
 	TArray<TSharedRef<IPropertyHandle>> Channels = { RedChannel, GreenChannel, BlueChannel, AlphaChannel };
 	TSharedPtr<SHorizontalBox> ChannelsWidget;
 
-	ChildBuilder.AddChildContent(NSLOCTEXT("ColorMask", "ChannelLabel", "Channels"))
+	ChildBuilder.AddCustomRow(NSLOCTEXT("ColorMask", "ChannelLabel", "Channels"))
 		.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FVertexPaintSettingsCustomization::ArePropertiesVisible, 0)))
 		.NameContent()
 		[
@@ -242,7 +242,7 @@ void FVertexPaintSettingsCustomization::CustomizeChildren(TSharedRef<IPropertyHa
 	TSharedRef<IPropertyHandle> LODPaintingIndex = CustomizedProperties.FindChecked(GET_MEMBER_NAME_CHECKED(FVertexPaintSettings, LODIndex));
 	TSharedPtr<SWidget> LODIndexWidget = LODPaintingIndex->CreatePropertyValueWidget();
 
-	ChildBuilder.AddChildContent(NSLOCTEXT("LODPainting", "LODPaintingLabel", "LOD Model Painting"))
+	ChildBuilder.AddCustomRow(NSLOCTEXT("LODPainting", "LODPaintingLabel", "LOD Model Painting"))
 		.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FVertexPaintSettingsCustomization::ArePropertiesVisible, 0)))
 		.NameContent()
 		[

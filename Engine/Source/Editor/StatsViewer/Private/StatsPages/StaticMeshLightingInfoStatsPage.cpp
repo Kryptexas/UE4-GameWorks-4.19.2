@@ -124,7 +124,7 @@ struct StaticMeshLightingInfoStatsGenerator
 
 			Entry->StaticMeshActor = InActor;
 			Entry->StaticMeshComponent = InComponent;
-			Entry->StaticMesh = InComponent != nullptr ? InComponent->GetStaticMesh() : nullptr;
+			Entry->StaticMesh = InComponent->GetStaticMesh();
 			
 			Entry->TextureLightMapMemoryUsage = (float)TextureLightMapMemoryUsage / 1024.0f;
 			Entry->TextureShadowMapMemoryUsage = (float)TextureShadowMapMemoryUsage / 1024.0f;

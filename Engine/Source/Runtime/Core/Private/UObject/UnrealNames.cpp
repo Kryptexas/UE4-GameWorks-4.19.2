@@ -6,7 +6,6 @@
 #include "Math/NumericLimits.h"
 #include "Math/UnrealMathUtility.h"
 #include "HAL/UnrealMemory.h"
-#include "Templates/AlignOf.h"
 #include "Templates/UnrealTemplate.h"
 #include "Misc/CString.h"
 #include "Misc/Crc.h"
@@ -897,6 +896,12 @@ const FNameEntry* FName::GetDisplayNameEntry() const
 
 FString FName::ToString() const
 {
+	if (GetNumber() == NAME_NO_NUMBER_INTERNAL)
+	{
+		// Avoids some extra allocations in non-number case
+		return GetDisplayNameEntry()->GetPlainNameString();
+	}
+	
 	FString Out;	
 	ToString(Out);
 	return Out;
@@ -904,10 +909,21 @@ FString FName::ToString() const
 
 void FName::ToString(FString& Out) const
 {
-	// a version of ToString that saves at least one string copy
+	// A version of ToString that saves at least one string copy
 	const FNameEntry* const NameEntry = GetDisplayNameEntry();
-	Out.Empty( NameEntry->GetNameLength() + 6);
-	AppendString(Out);
+	if (GetNumber() == NAME_NO_NUMBER_INTERNAL)
+	{
+		Out.Empty(NameEntry->GetNameLength());
+		NameEntry->AppendNameToString(Out);
+	}	
+	else
+	{
+		Out.Empty(NameEntry->GetNameLength() + 6);
+		NameEntry->AppendNameToString(Out);
+
+		Out += TEXT("_");
+		Out.AppendInt(NAME_INTERNAL_TO_EXTERNAL(GetNumber()));
+	}
 }
 
 void FName::AppendString(FString& Out) const
@@ -1277,7 +1293,7 @@ public:
 		check(ThreadGuard.Increment() == 1);
 		// Some platforms need all of the name entries to be aligned to 4 bytes, so by
 		// aligning the size here the next allocation will be aligned to 4
-		Size = Align( Size, ALIGNOF(FNameEntry) );
+		Size = Align( Size, alignof(FNameEntry) );
 
 		// Allocate a new pool if current one is exhausted. We don't worry about a little bit
 		// of waste at the end given the relative size of pool to average and max allocation.

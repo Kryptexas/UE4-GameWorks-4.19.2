@@ -1,0 +1,46 @@
+﻿INTSourceChangelist:3435012
+Availability:Docs
+Crumbs:
+Title:NVIDIA SLI Alternate Frame Rendering
+Description:SLI を使用するゲームのサポートを可能にする Nvidia Alternate Frame Rendering 機能 
+Type:Overview
+Version:4.15
+Parent:Engine/Nvidia
+Order:1
+topic-image:AFR_topic.png
+Tags:Nvidia
+
+
+[REGION:fullwidth raw]
+![](AFR_Banner.png)
+[/REGION]
+
+
+アンリアル エンジン 4.15 では、NVIDIA SLI コンフィギュレーションでパッケージ化されたゲームを実行するための NVIDIA **Alternate Frame Rendering** (AFR) がサポートされています。AFR は結びついた GPU 間でフレームを交互に変える、 
+つまり 1 つのフレームを GPU 1、次のフレームは GPU 2、その次はまたは GPU 1 を使ってレンダリングをすることにより動作します。単一のモニタ上で複数の GPU を使用すると、
+画質とパフォーマンスが向上します！ 
+
+AFR によってパフォーマンスで最も改善される点は、レンダラが GPU 間でフレーム間の依存性を可能な限り早くコピーすることです。AFR を使用する場合、デベロッパーは NVIDIA を直接使ってゲームをテストし、 
+必要に応じて Alternating Frame Rendering 機能へ自動的に切り替わるようにする必要があります。 
+
+詳細に関下は、NVIDIA のドキュメント [SLI modes, specifically Alternate Frame Rendering](https://docs.nvidia.com/gameworks/content/technologies/desktop/sli.htm) をご覧ください。
+
+## AFR を強制的に有効にする方法
+
+アプリケーションの中には、NVIDIA コントロール パネルでプログラムを追加できる場合があります。以下の手順で行います。
+
+1. タスク トレイから **[NVIDIA Control Panel]** を開いて、**[Manage 3D Settings]** を開きます。 
+1. **[Program Settings]** タブをクリックして **[Select a program to cumstomize]** の下のドロップダウンから追加するプログラムを選択します。 
+1. **[SLI Rendering Mode]** オプションの横にある **[Force Alternate Frame Rendering]** を選択します。
+
+![](AFRSetting.jpg)
+
+[REGION:note]
+この機能はアプリケーションの品質もしくはパフォーマンスの改善を保証するものではありません。アンリアル エンジン 4 エディタによる使用を意図していません。NVIDIA のドライバーでこの機能を設定する場合は、 
+直接 NVIDIA に問い合わせることを強くお勧めします。
+[/REGION]
+
+
+
+
+

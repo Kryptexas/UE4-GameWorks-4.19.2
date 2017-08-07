@@ -1524,6 +1524,11 @@ bool FTextStringHelper::ReadFromString_ComplexText(const TCHAR* Buffer, FText& O
 				}
 			}
 #endif // USE_STABLE_LOCALIZATION_KEYS
+			if (!GIsEditor)
+			{
+				// Strip the package localization ID to match how text works at runtime (properties do this when saving during cook)
+				NamespaceString = TextNamespaceUtil::StripPackageNamespace(NamespaceString);
+			}
 			OutValue = FInternationalization::ForUseOnlyByLocMacroAndGraphNodeTextLiterals_CreateText(*SourceString, *NamespaceString, *KeyString);
 		}
 
@@ -1563,11 +1568,10 @@ bool FTextStringHelper::ReadFromString_ComplexText(const TCHAR* Buffer, FText& O
 		}
 		else
 		{
+			FString NamespaceString = (TextNamespace) ? TextNamespace : FString();
 #if USE_STABLE_LOCALIZATION_KEYS
 			if (GIsEditor && PackageNamespace && *PackageNamespace)
 			{
-				FString NamespaceString = (TextNamespace) ? TextNamespace : TEXT("");
-
 				const FString FullNamespace = TextNamespaceUtil::BuildFullNamespace(NamespaceString, PackageNamespace);
 				if (!NamespaceString.Equals(FullNamespace, ESearchCase::CaseSensitive))
 				{
@@ -1576,14 +1580,14 @@ bool FTextStringHelper::ReadFromString_ComplexText(const TCHAR* Buffer, FText& O
 					NamespaceString = FullNamespace;
 					KeyString = FGuid::NewGuid().ToString();
 				}
-
-				OutValue = FInternationalization::ForUseOnlyByLocMacroAndGraphNodeTextLiterals_CreateText(*SourceString, *NamespaceString, *KeyString);
 			}
-			else
 #endif // USE_STABLE_LOCALIZATION_KEYS
+			if (!GIsEditor)
 			{
-				OutValue = FInternationalization::ForUseOnlyByLocMacroAndGraphNodeTextLiterals_CreateText(*SourceString, (TextNamespace) ? TextNamespace : TEXT(""), *KeyString);
+				// Strip the package localization ID to match how text works at runtime (properties do this when saving during cook)
+				NamespaceString = TextNamespaceUtil::StripPackageNamespace(NamespaceString);
 			}
+			OutValue = FInternationalization::ForUseOnlyByLocMacroAndGraphNodeTextLiterals_CreateText(*SourceString, *NamespaceString, *KeyString);
 		}
 
 		if (OutNumCharsRead)
@@ -1604,11 +1608,6 @@ bool FTextStringHelper::ReadFromString_ComplexText(const TCHAR* Buffer, FText& O
 bool FTextStringHelper::ReadFromString(const TCHAR* Buffer, FText& OutValue, const TCHAR* TextNamespace, const TCHAR* PackageNamespace, int32* OutNumCharsRead, const bool bRequiresQuotes, const EStringTableLoadingPolicy InLoadingPolicy)
 {
 	const TCHAR* const Start = Buffer;
-
-	while (FChar::IsWhitespace(*Buffer))
-	{
-		++Buffer;
-	}
 
 	// First, try and parse the text as a complex text export
 	{

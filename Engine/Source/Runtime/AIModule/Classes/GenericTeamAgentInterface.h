@@ -19,7 +19,7 @@ namespace ETeamAttitude
 	};
 }
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct AIMODULE_API FGenericTeamId
 {
 	GENERATED_USTRUCT_BODY()

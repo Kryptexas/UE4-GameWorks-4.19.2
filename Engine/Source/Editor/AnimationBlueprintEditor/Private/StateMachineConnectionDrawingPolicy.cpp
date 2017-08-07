@@ -148,7 +148,6 @@ void FStateMachineConnectionDrawingPolicy::Internal_DrawLineWithArrow(const FVec
 		ArrowLayerID,
 		FPaintGeometry(ArrowDrawPos, ArrowImage->ImageSize * ZoomFactor, ZoomFactor),
 		ArrowImage,
-		ClippingRect,
 		ESlateDrawEffect::None,
 		AngleInRadians,
 		TOptional<FVector2D>(),

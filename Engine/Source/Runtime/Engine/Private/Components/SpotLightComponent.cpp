@@ -129,11 +129,14 @@ public:
 		OutInitializer.WorldToLight = GetWorldToLight().RemoveTranslation();
 		OutInitializer.Scales = FVector(1.0f,InvTanOuterCone,InvTanOuterCone);
 		OutInitializer.FaceDirection = FVector(1,0,0);
+
+		const FSphere AbsoluteBoundingSphere = FSpotLightSceneProxy::GetBoundingSphere();
 		OutInitializer.SubjectBounds = FBoxSphereBounds(
-			GetLightToWorld().RemoveTranslation().TransformPosition(FVector(Radius, 0, 0)),
-			FVector(Radius, Radius, Radius),
-			Radius
+			AbsoluteBoundingSphere.Center - GetOrigin(),
+			FVector(AbsoluteBoundingSphere.W, AbsoluteBoundingSphere.W, AbsoluteBoundingSphere.W),
+			AbsoluteBoundingSphere.W
 			);
+
 		OutInitializer.WAxis = FVector4(0,0,1,0);
 		OutInitializer.MinLightW = 0.1f;
 		OutInitializer.MaxDistanceToCastInLightW = Radius;
@@ -217,7 +220,7 @@ FSphere USpotLightComponent::GetBoundingSphere() const
 
 	// Use the law of cosines to find the distance to the furthest edge of the spotlight cone from a position that is halfway down the spotlight direction
 	const float BoundsRadius = FMath::Sqrt(1.25f * AttenuationRadius * AttenuationRadius - AttenuationRadius * AttenuationRadius * CosOuterCone);
-	return FSphere(ComponentToWorld.GetLocation() + .5f * GetDirection() * AttenuationRadius, BoundsRadius);
+	return FSphere(GetComponentTransform().GetLocation() + .5f * GetDirection() * AttenuationRadius, BoundsRadius);
 }
 
 bool USpotLightComponent::AffectsBounds(const FBoxSphereBounds& InBounds) const

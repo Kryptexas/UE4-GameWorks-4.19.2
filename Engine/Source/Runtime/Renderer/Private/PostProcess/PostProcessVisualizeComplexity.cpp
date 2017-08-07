@@ -92,7 +92,7 @@ void FVisualizeComplexityApplyPS::SetParameters(
 	SetShaderValue(Context.RHICmdList, ShaderRHI, ShaderComplexityParams2, FVector4((float)Colors.Num(), 0, (float)UsedQuadBufferSize.X, (float)UsedQuadBufferSize.Y));
 }
 
-IMPLEMENT_SHADER_TYPE(,FVisualizeComplexityApplyPS,TEXT("ShaderComplexityApplyPixelShader"),TEXT("Main"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FVisualizeComplexityApplyPS,TEXT("/Engine/Private/ShaderComplexityApplyPixelShader.usf"),TEXT("Main"),SF_Pixel);
 
 //reuse the generic filter vertex declaration
 extern TGlobalResource<FFilterVertexDeclaration> GFilterVertexDeclaration;

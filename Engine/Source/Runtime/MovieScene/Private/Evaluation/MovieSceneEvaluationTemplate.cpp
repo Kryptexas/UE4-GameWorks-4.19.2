@@ -80,7 +80,7 @@ bool FCachedMovieSceneEvaluationTemplate::IsOutOfDate(const FMovieSceneTrackComp
 
 #endif // WITH_EDITORONLY_DATA
 
-TArrayView<FMovieSceneTrackIdentifier> FMovieSceneTemplateGenerationLedger::FindTracks(const FGuid& InSignature)
+TArrayView<const FMovieSceneTrackIdentifier> FMovieSceneTemplateGenerationLedger::FindTracks(const FGuid& InSignature) const
 {
 	if (auto* Tracks = TrackSignatureToTrackIdentifier.Find(InSignature))
 	{
@@ -170,7 +170,7 @@ TMap<FMovieSceneTrackIdentifier, FMovieSceneEvaluationTrack>& FMovieSceneEvaluat
 	return *reinterpret_cast<TMap<FMovieSceneTrackIdentifier, FMovieSceneEvaluationTrack>*>(&Tracks);
 }
 
-TArrayView<FMovieSceneTrackIdentifier> FMovieSceneEvaluationTemplate::FindTracks(const FGuid& InSignature)
+TArrayView<const FMovieSceneTrackIdentifier> FMovieSceneEvaluationTemplate::FindTracks(const FGuid& InSignature) const
 {
 	return TemplateLedger.FindTracks(InSignature);
 }

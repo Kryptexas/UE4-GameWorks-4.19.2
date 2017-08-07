@@ -9,7 +9,7 @@
 #include "Dom/JsonObject.h"
 #include "HAL/Runnable.h"
 
-class FAssetData;
+struct FAssetData;
 class FFindInBlueprintsResult;
 class FImaginaryBlueprint;
 class FImaginaryFiBData;
@@ -461,13 +461,13 @@ private:
 	void UnpauseFindInBlueprintSearch();
 
 	/** Callback hook from the Asset Registry when an asset is added */
-	void OnAssetAdded(const class FAssetData& InAssetData);
+	void OnAssetAdded(const struct FAssetData& InAssetData);
 
 	/** Callback hook from the Asset Registry, marks the asset for deletion from the cache */
-	void OnAssetRemoved(const class FAssetData& InAssetData);
+	void OnAssetRemoved(const struct FAssetData& InAssetData);
 
 	/** Callback hook from the Asset Registry, marks the asset for deletion from the cache */
-	void OnAssetRenamed(const class FAssetData& InAssetData, const FString& InOldName);
+	void OnAssetRenamed(const struct FAssetData& InAssetData, const FString& InOldName);
 
 	/** Callback hook from the Asset Registry when an asset is loaded */
 	void OnAssetLoaded(class UObject* InAsset);

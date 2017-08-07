@@ -98,6 +98,7 @@ public:
 	};
 
 	bool bNeedsDynamicStateSet;
+	bool bHasPipeline;
 
 private:
 	FVulkanDevice* Device;
@@ -179,7 +180,6 @@ class FVulkanCommandBufferManager
 {
 public:
 	FVulkanCommandBufferManager(FVulkanDevice* InDevice, FVulkanCommandListContext* InContext);
-
 	~FVulkanCommandBufferManager();
 
 	inline FVulkanCmdBuffer* GetActiveCmdBuffer()
@@ -202,9 +202,9 @@ public:
 		return ActiveCmdBuffer != nullptr;
 	}
 
-	FVulkanCmdBuffer* GetUploadCmdBuffer();
+	VULKANRHI_API FVulkanCmdBuffer* GetUploadCmdBuffer();
 
-	void SubmitUploadCmdBuffer(bool bWaitForFence);
+	VULKANRHI_API void SubmitUploadCmdBuffer(bool bWaitForFence);
 	void SubmitActiveCmdBuffer(bool bWaitForFence);
 
 	void WaitForCmdBuffer(FVulkanCmdBuffer* CmdBuffer, float TimeInSecondsToWait = 1.0f);

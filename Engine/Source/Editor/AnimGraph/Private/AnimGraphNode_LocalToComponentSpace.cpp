@@ -36,12 +36,12 @@ FString UAnimGraphNode_LocalToComponentSpace::GetNodeCategory() const
 void UAnimGraphNode_LocalToComponentSpace::CreateOutputPins()
 {
 	const UAnimationGraphSchema* Schema = GetDefault<UAnimationGraphSchema>();
-	CreatePin(EGPD_Output, Schema->PC_Struct, TEXT(""), FComponentSpacePoseLink::StaticStruct(), /*bIsArray=*/ false, /*bIsReference=*/ false, TEXT("ComponentPose"));
+	CreatePin(EGPD_Output, Schema->PC_Struct, FString(), FComponentSpacePoseLink::StaticStruct(), TEXT("ComponentPose"));
 }
 
 void UAnimGraphNode_LocalToComponentSpace::PostProcessPinName(const UEdGraphPin* Pin, FString& DisplayName) const
 {
-	DisplayName = TEXT("");
+	DisplayName.Reset();
 }
 
 #undef LOCTEXT_NAMESPACE

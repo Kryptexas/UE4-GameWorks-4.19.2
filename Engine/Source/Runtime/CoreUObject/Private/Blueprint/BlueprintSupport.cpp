@@ -103,7 +103,7 @@ void FBlueprintSupport::InitializeCompilationManager()
 {
 	// 'real' initialization is done lazily because we're in a pretty tough
 	// spot in terms of dependencies:
-	GConfig->GetBool(TEXT("Blueprints"), TEXT("bUseCompilationManager"), GBlueprintUseCompilationManager, GEditorIni);
+	GConfig->GetBool(TEXT("/Script/UnrealEd.BlueprintEditorProjectSettings"), TEXT("bUseCompilationManager"), GBlueprintUseCompilationManager, GEditorIni);
 }
 
 static FFlushReinstancingQueueFPtr FlushReinstancingQueueFPtr = nullptr;
@@ -319,7 +319,7 @@ FScopedClassDependencyGather::~FScopedClassDependencyGather()
 {
 	// If this gatherer was the initial gatherer for the current scope, process 
 	// dependencies (unless compiling on load is explicitly disabled)
-	if( bMasterClass && !GForceDisableBlueprintCompileOnLoad )
+	if( bMasterClass )
 	{
 		auto DependencyIter = BatchClassDependencies.CreateIterator();
 		// implemented as a lambda, to prevent duplicated code between 
@@ -1135,7 +1135,7 @@ void FLinkerLoad::ResolveDeferredDependencies(UStruct* LoadStruct)
 				{
 					uint32 InternalLoadFlags = LoadFlags & (LOAD_NoVerify | LOAD_NoWarn | LOAD_Quiet);
 					// make sure LoadAllObjects() is called for this package
-					LoadPackageInternal(/*Outer =*/nullptr, *SourceLinker->Filename, InternalLoadFlags, this);
+					LoadPackageInternal(/*Outer =*/nullptr, *SourceLinker->Filename, InternalLoadFlags, this); //-V595
 				}
 
 				if (ULinkerPlaceholderClass* PlaceholderClass = Cast<ULinkerPlaceholderClass>(Import.XObject))
@@ -1474,6 +1474,17 @@ void FLinkerLoad::FinalizeBlueprint(UClass* LoadClass)
 	// we need it ran for any super-classes before we regen
 	ResolveAllImports();
 
+	// Now that imports have been resolved we optionally flush the compilation
+	// queue. This is only done for level blueprints, which will have instances
+	// of actors in them that cannot reliably be reinstanced on load (see useage
+	// of Scene pointers in things like UActorComponent::ExecuteRegisterEvents)
+	// - on load the Scene may not yet be created, meaning this code cannot 
+	// correctly be run. We could address that, but avoiding reinstancings is
+	// also a performance win:
+#if WITH_EDITOR
+	LoadClass->FlushCompilationQueueForLevel();
+#endif
+
 	// interfaces can invalidate classes which implement them (when the  
 	// interface is regenerated), they essentially define the makeup of the  
 	// implementing class; so here, like we do with the parent class above, we  
@@ -1761,7 +1772,7 @@ void FLinkerLoad::ForceBlueprintFinalization()
 bool FLinkerLoad::IsBlueprintFinalizationPending() const
 {
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
-	return bForceBlueprintFinalization || (DeferredCDOIndex != INDEX_NONE);
+	return (DeferredCDOIndex != INDEX_NONE) || bForceBlueprintFinalization;
 #else  // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 	return false;
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING

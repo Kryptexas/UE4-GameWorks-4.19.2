@@ -42,6 +42,7 @@ public:
 
 	//~ Begin UEdGraphNode Interface
 	virtual void AllocateDefaultPins() override;
+	virtual void PreloadRequiredAssets() override;
 	virtual FText GetTooltipText() const override;
 	virtual FText GetKeywords() const override;
 	virtual void PostPasteNode() override;

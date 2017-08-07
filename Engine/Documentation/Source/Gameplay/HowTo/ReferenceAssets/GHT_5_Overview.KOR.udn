@@ -1,11 +1,12 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3429254
 Availability: Public
 Title:액터 레퍼런싱
 Crumbs: %ROOT%, Gameplay
 Description:언리얼 엔진 4 에서 액터를 레퍼런싱하는 방법 안내서입니다.
 Version: 4.9
 Parent:Gameplay
-type:how-to
+SkillLevel: Advanced
+type:overview
 order:5
 
 [EXCERPT:ReferenceOverview]
@@ -18,16 +19,9 @@ order:5
 
 아래 **셋업** 부분의 링크에는 블루프린트를 사용한 **액터 레퍼런싱 방법** 에 대한 예제가 있습니다.
 
-## 셋업
+## 구현 안내
 
-블루프린트를 사용한 **액터 레퍼런싱** 관련 상세 정보는, 다음 링크를 참고하세요:
-
-[REGION:buttonlist]
-* [](Gameplay\HowTo\ReferenceAssets\Blueprints)
-[PUBLISH:Docs]
-* [](Gameplay\HowTo\ReferenceAssets\Code)
-[/PUBLISH:Docs]
-[/REGION]
+[DIR(output:"role" parent:"Gameplay/HowTo/ReferenceAssets" org:"hierarchy" end:"1")]
 
 
 

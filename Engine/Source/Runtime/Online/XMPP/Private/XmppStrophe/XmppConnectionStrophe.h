@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -13,6 +13,7 @@
 
 using FXmppMessagesStrophePtr = TSharedPtr<class FXmppMessagesStrophe, ESPMode::ThreadSafe>;
 using FXmppMultiUserChatStrophePtr = TSharedPtr<class FXmppMultiUserChatStrophe, ESPMode::ThreadSafe>;
+using FXmppPingStrophePtr = TSharedPtr<class FXmppPingStrophe, ESPMode::ThreadSafe>;
 using FXmppPresenceStrophePtr = TSharedPtr<class FXmppPresenceStrophe, ESPMode::ThreadSafe>;
 using FXmppPrivateChatStrophePtr = TSharedPtr<class FXmppPrivateChatStrophe, ESPMode::ThreadSafe>;
 using FXmppPubSubStrophePtr = TSharedPtr<class FXmppPubSubStrophe, ESPMode::ThreadSafe>;
@@ -112,6 +113,7 @@ protected:
 	/** XMPP Implementation Shared Pointers */
 	FXmppMessagesStrophePtr MessagesStrophe;
 	FXmppMultiUserChatStrophePtr MultiUserChatStrophe;
+	FXmppPingStrophePtr PingStrophe;
 	FXmppPresenceStrophePtr PresenceStrophe;
 	FXmppPrivateChatStrophePtr PrivateChatStrophe;
 	FXmppPubSubStrophePtr PubSubStrophe;

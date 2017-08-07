@@ -1,48 +1,13 @@
-﻿INTSourceChangelist:2895618
+﻿INTSourceChangelist:3429236
 Availability:Public
 Title:オーディオ ファイル
 Crumbs: %ROOT%, Engine, Engine/Audio
 Description:サウンド ファイルをアンリアル エンジン 4 に取り込むための基本要件。
 version:4.9
+parent:Engine/Audio
+type:reference
+order:3
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Audio/WAV:title%](Engine/Audio/audio_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/audio_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Audio/WAV:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Audio/WAV:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Audio/WAV]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Audio/WAV:title%](Engine/Audio/audio_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/audio_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Audio/WAV:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Audio/WAV:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Audio/WAV]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [REGION:banner]
 ![Audio](audio_landing_banner.png)
@@ -55,7 +20,7 @@ version:4.9
 		![](WAV_TitleIcon.png)(w:200 convert:false) 
 	[/PARAM]
 	[PARAM:description]
-	アンリアル エンジン 4 (UE4) のオーディオ システムには、ゲーム内のサウンドを望ましいものにするツールと機能があります。これはすべてオーディオ ソース ファイルから始まります。Mono またはステレオ ファイルとして、UE4 に迅速にインポートし、作品をさらに生き生きとしたものにします。以下は、オーディオ コンテンツの基本要件とクイック インポート ガイドです。
+	アンリアル エンジン 4 (UE4) のオーディオ システムには、ゲーム内のサウンドを望ましいものにするツールと機能があります。これはすべてオーディオ ソース ファイルから始まります。Mono またはステレオ ファイルとして、UE4 に迅速にインポートし、作品をさらに生き生きとしたものにします。以下はオーディオ コンテンツの基本要件とインポートのクイック ガイドです。
 	[/PARAM]
 [/OBJECT]
 
@@ -66,17 +31,17 @@ version:4.9
 現在のエンジンは、任意のサンプルレートによる非圧縮のリトルエンディアン 16 ビット wave ファイルのインポートをサポートしています (ただし、44100 Hz または22050 Hz のサンプルレートを推奨)。 
 
 | --- | --- |
-| 仕様| PCM、ADPCM、DVI ADPCM |
-| フォーマット | .WAV |
-| ビットレート | 16 |
+| 規格 | PCM, ADPCM, DVI ADPCM |
+| 形式 | .wav |
+| ビット レート | 16 |
 | スピーカー チャンネル | Mono、Stereo、2.1、4.1、 5.1、6.1、 7.1 |
 
-標準のサウンド ファクトリでインポートすると、再生のためのサウンドキューによって参照可能なシンプルなサウンドノード ウェーブを生み出します。これらのサウンドは、モノラルあるいはステレオのいずれかです。特別な命名規則でインポートすると、マルチチャンネル (例、5.1 など) サウンドが可能となります。すべてのプラットフォームで 8 チャンネルまでのサウンドの圧縮が可能ですが、これらを効率的に再生できるプラットフォームは限られます。パッケージの保存プロセスでは、プラットフォームのネイティブのフォーマットに変換するために必要なすべての作業を行います。スピーカーの厳密なマッピングはないため、チャンネルの番号により、どのチャンネルがどのスピーカーで再生されるかが推測されます (下の表を参照)。
+標準のサウンド ファクトリでインポートすると、再生のためのサウンドキューによって参照可能なシンプルなサウンドノード ウェーブを生み出します。こうしたサウンドは Mono または Stereo になります。特別な命名規則でインポートすると、マルチチャンネル (例、5.1 など) サウンドが可能となります。すべてのプラットフォームで 8 チャンネルまでのサウンドの圧縮が可能ですが、これらを効率的に再生できるプラットフォームは限られます。パッケージの保存プロセスでは、プラットフォームのネイティブのフォーマットに変換するために必要なすべての作業を行います。スピーカーの厳密なマッピングはないため、チャンネルの番号により、どのチャンネルがどのスピーカーで再生されるかが推測されます (下の表を参照)。
 
 [EXCERPT:multiChannelExtensionTable]
 
 [REGION:raw]
-|                   | Extension | 4.0         | 5.1         | 6.1         | 7.1         |
+|                   | 拡張子 | 4.0         | 5.1         | 6.1         | 7.1         |
 | ---               | ---       | ---         | ---         | ---         | ---         |
 | **FrontLeft**     | _fl       |  &#x2713;   |  &#x2713;   |  &#x2713;   |  &#x2713;   |
 | **FrontRight**    | _fr       |  &#x2713;   |  &#x2713;   |  &#x2713;   |  &#x2713;   |
@@ -93,7 +58,7 @@ version:4.9
 <!--
 
 [REGION:raw]
-|                   | 拡張子 | 4.0 | 5.1 | 6.1 | 7.1 |  
+|                   | Extension | 4.0 | 5.1 | 6.1 | 7.1 |  
 | --- | --- | --- | --- | --- | --- | 
 | **FrontLeft**     | _fl       | ![](icon_MatEd_Apply_40x.png) | ![](icon_MatEd_Apply_40x.png)   | ![](icon_MatEd_Apply_40x.png)   | ![](icon_MatEd_Apply_40x.png)   | 
 | **FrontRight**    | _fr       | ![](icon_MatEd_Apply_40x.png)   | ![](icon_MatEd_Apply_40x.png)   | ![](icon_MatEd_Apply_40x.png)   | ![](icon_MatEd_Apply_40x.png)   | 
@@ -107,34 +72,34 @@ version:4.9
 
 -->
 
-圧縮設定を微調整することにより、すべてのプラットフォームに対して同品質を保つことができます。数多くのサウンドをテストした結果、弊社のミュージシャンは 40 のXMA 品質が0.15 の ogg vorbis 品質と同等であると判断しました。 
+圧縮設定を微調整することにより、すべてのプラットフォームに対して同品質を保つことができます。多くのサウンドをテスト後、弊社の音楽担当が XMA 品質の 40 が Ogg Vorbis 品質の 0.15 と同等であると判断しました。 
 
 ### 単一ファイルのインポート
 
-**コンテンツ ブラウザ** から以下の操作を行います。
+**コンテンツ ブラウザ** で以下の操作を行います。
 
 1. 	 コンテンツ ブラウザで **[Import (インポート)]** ボタンをクリックします (以下の図参照)。
 	![](ImportButton_UI.png)
-1. 	 インポートする「.WAV」ファイルを選択します。
+1. 	 インポートする WAV ファイルを選択します。
 
-もしくは、
+または
 
-1. 	 Windows のファイル エクスプローラ ウィンドウからサウンド ファイルを選択します。
-1. 	 ファイルをクリックして、UE4 の **コンテンツ ブラウザ** へドラッグします。
+1. 	 Windows のファイル エクスプローラー ウィンドウからサウンド ファイルを選択します。
+1. 	 ファイルをクリックして、**コンテンツ ブラウザ** へドラッグします。
 
-### マルチチャンネルのインポート
+### マルチチャンネル インポート
 
-**コンテンツ ブラウザ** から以下の操作を行います。
+**コンテンツ ブラウザ** で以下の操作を行います。
 
 1. 	 コンテンツ ブラウザで **[Import (インポート)]** ボタンをクリックします (以下の図参照)。
 	![](ImportButton_UI.png)
-1. 	 適切な命名規則が設けられたファイルを選択します。これらのファイルは次のようなサウンドアセットになります。"Surround_fl.wav"、 "Surround_fr.wav"、 "Surround_sl.wav"、 "Surround_sr.wav"
-1. 	 「Surround」と呼ばれる 4 つのチャンネルアセットを作成します。
+1. 	 適切な命名規則が設けられたファイルを選択します。これらのファイルは次のようなサウンドアセットになります。"Surround_fl.wav", "Surround_fr.wav", "Surround_sl.wav", "Surround_sr.wav".
+1. 	 "Surround" と呼ばれる 4 チャンネル アセットを作成します。
 
-もしくは、
+または
 
 1. 	 Windows のファイル エクスプローラ ウィンドウからすべてのサウンドファイルを選択します。
-1. 	 ファイルをクリックして、UE4 の **コンテンツ ブラウザ** へドラッグします。
+1. 	 ファイルをクリックして、**コンテンツ ブラウザ** へドラッグします。
 
 [/EXCERPT:wav01]
 

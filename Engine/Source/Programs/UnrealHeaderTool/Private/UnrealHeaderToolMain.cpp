@@ -15,26 +15,12 @@
 
 #include "RequiredProgramMainCPPInclude.h"
 
-
-//#define COMPILER_WARNING(x) GCC warning x
-//#define COMPILER_ERROR(x) GCC error x
-
-//#define DO_WARNING(x) _Pragma(#x)
-//#define DO_WARNING_2(x) DO_WARNING(GCC warning x)
-
-//DO_WARNING_2("hello")
-
-//#pragma GCC warning "this is a warning"
-//#pragma GCC error "this is an error"
-
-//COMPILER_WARNING("this is a warning")
-//COMPILER_ERROR("this is an error")
-
 IMPLEMENT_APPLICATION(UnrealHeaderTool, "UnrealHeaderTool");
 
 DEFINE_LOG_CATEGORY(LogCompile);
 
 bool GUHTWarningLogged = false;
+bool GUHTErrorLogged = false;
 
 /**
  * Application entry point
@@ -125,7 +111,7 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 	extern ECompilationResult::Type UnrealHeaderTool_Main(const FString& ModuleInfoFilename);
 	ECompilationResult::Type Result = UnrealHeaderTool_Main(ModuleInfoFilename);
 
-	if (Result == ECompilationResult::Succeeded && GUHTWarningLogged && GWarn->TreatWarningsAsErrors)
+	if (Result == ECompilationResult::Succeeded && (GUHTErrorLogged || (GUHTWarningLogged && GWarn->TreatWarningsAsErrors)))
 	{
 		Result = ECompilationResult::OtherCompilationError;
 	}

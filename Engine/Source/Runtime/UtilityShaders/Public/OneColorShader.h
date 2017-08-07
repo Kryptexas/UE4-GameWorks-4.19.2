@@ -39,7 +39,7 @@ public:
 	
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("OneColorShader");
+		return TEXT("/Engine/Private/OneColorShader.usf");
 	}
 	
 	static const TCHAR* GetFunctionName()

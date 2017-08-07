@@ -829,13 +829,15 @@ RENDERCORE_API bool IsSimpleForwardShadingEnabled(EShaderPlatform Platform)
 	return CVar->GetValueOnAnyThread() != 0 && PlatformSupportsSimpleForwardShading(Platform);
 }
 
-RENDERCORE_API bool IsForwardShadingEnabled(ERHIFeatureLevel::Type FeatureLevel)
-{
-	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.ForwardShading"));
-	return CVar->GetValueOnAnyThread() != 0 
-		// Culling uses compute shader
-		&& FeatureLevel >= ERHIFeatureLevel::SM5;
-}
+RENDERCORE_API int32 bUseForwardShading = 0;
+static FAutoConsoleVariableRef CVarForwardShading(
+	TEXT("r.ForwardShading"),
+	bUseForwardShading,
+	TEXT("Whether to use forward shading on desktop platforms - requires Shader Model 5 hardware.\n")
+	TEXT("Forward shading has lower constant cost, but fewer features supported. 0:off, 1:on\n")
+	TEXT("This rendering path is a work in progress with many unimplemented features, notably only a single reflection capture is applied per object and no translucency dynamic shadow receiving."),
+	ECVF_RenderThreadSafe | ECVF_ReadOnly
+	); 
 
 class FUnitCubeVertexBuffer : public FVertexBuffer
 {

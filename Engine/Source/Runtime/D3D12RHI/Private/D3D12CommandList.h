@@ -64,7 +64,6 @@ private:
 			if (!IsClosed)
 			{
 				FlushResourceBarriers();
-
 				VERIFYD3D12RESULT(CommandList->Close());
 
 				D3DX12Residency::Close(ResidencySet);
@@ -511,6 +510,8 @@ public:
 
 	// Adds a UAV barrier to the barrier batch
 	void AddUAVBarrier();
+
+	void AddAliasingBarrier(FD3D12Resource* pResource);
 
 	// Flushes the batched resource barriers to the current command list
 	void FlushResourceBarriers()

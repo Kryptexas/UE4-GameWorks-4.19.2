@@ -31,8 +31,7 @@ void FScriptBlueprintCompiler::CleanAndSanitizeClass(UBlueprintGeneratedClass* C
 	Super::CleanAndSanitizeClass(ClassToClean, InOldCDO);
 
 	// Make sure our typed pointer is set
-	check(ClassToClean == NewClass);	
-	NewScriptBlueprintClass = CastChecked<UScriptBlueprintGeneratedClass>((UObject*)NewClass);
+	check(ClassToClean == NewClass && NewScriptBlueprintClass == NewClass);	
 	ContextProperty = NULL;
 }
 
@@ -74,9 +73,9 @@ void FScriptBlueprintCompiler::CreateClassVariablesFromBlueprint()
 			}
 			if (!PinCategory.IsEmpty())
 			{
-				FEdGraphPinType ScriptPinType(PinCategory, TEXT(""), InnerType, false, false, false, false, FEdGraphTerminalType());
+				FEdGraphPinType ScriptPinType(PinCategory, FString(), InnerType, EPinContainerType::None, false, FEdGraphTerminalType());
 				UProperty* ScriptProperty = CreateVariable(Field.Name, ScriptPinType);
-				if (ScriptProperty != NULL)
+				if (ScriptProperty)
 				{
 					ScriptProperty->SetMetaData(TEXT("Category"), *ScriptBP->GetName());
 					ScriptProperty->SetPropertyFlags(CPF_BlueprintVisible | CPF_Edit);
@@ -104,7 +103,7 @@ void FScriptBlueprintCompiler::CreateScriptContextProperty()
 
 	if (ContextClass)
 	{
-		FEdGraphPinType ScriptContextPinType(Schema->PC_Object, TEXT(""), ContextClass, false, false, false, false, FEdGraphTerminalType());
+		FEdGraphPinType ScriptContextPinType(Schema->PC_Object, FString(), ContextClass, EPinContainerType::None, false, FEdGraphTerminalType());
 		ContextProperty = CastChecked<UObjectProperty>(CreateVariable(TEXT("Generated_ScriptContext"), ScriptContextPinType));
 		ContextProperty->SetPropertyFlags(CPF_ContainsInstancedReference | CPF_InstancedReference);
 	}
@@ -229,6 +228,11 @@ void FScriptBlueprintCompiler::SpawnNewClass(const FString& NewClassName)
 		FBlueprintCompileReinstancer::Create(NewScriptBlueprintClass);
 	}
 	NewClass = NewScriptBlueprintClass;
+}
+	
+void FScriptBlueprintCompiler::OnNewClassSet(UBlueprintGeneratedClass* ClassToUse)
+{
+	NewScriptBlueprintClass = CastChecked<UScriptBlueprintGeneratedClass>(ClassToUse);
 }
 
 bool FScriptBlueprintCompiler::ValidateGeneratedClass(UBlueprintGeneratedClass* Class)

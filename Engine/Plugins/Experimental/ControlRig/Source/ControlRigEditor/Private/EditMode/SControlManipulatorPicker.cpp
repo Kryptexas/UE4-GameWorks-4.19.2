@@ -290,6 +290,7 @@ void SControlManipulatorPicker::Construct(const FArguments& InArgs)
 		.AutoHeight()
 		[
 			SAssignNew(PickerCanvas, SControlManipulatorPickerCanvas, SharedThis(this))
+			.Visibility(this, &SControlManipulatorPicker::ShowPickerCanvas)
 		]
 
 		+ SVerticalBox::Slot()
@@ -662,5 +663,9 @@ EVisibility SControlManipulatorPicker::ShowButtonEditingUI() const
 	return (bShowButtonEditing) ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
+EVisibility SControlManipulatorPicker::ShowPickerCanvas() const
+{
+	return (GetRig() != nullptr) ? EVisibility::Visible : EVisibility::Collapsed;
+}
 
 #undef LOCTEXT_NAMESPACE

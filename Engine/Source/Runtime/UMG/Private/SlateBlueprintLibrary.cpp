@@ -42,6 +42,11 @@ FVector2D USlateBlueprintLibrary::GetLocalSize(const FGeometry& Geometry)
 	return Geometry.GetLocalSize();
 }
 
+FVector2D USlateBlueprintLibrary::GetAbsoluteSize(const FGeometry& Geometry)
+{
+	return TransformVector(Geometry.GetAccumulatedRenderTransform(), Geometry.GetLocalSize());
+}
+
 bool USlateBlueprintLibrary::EqualEqual_SlateBrush(const FSlateBrush& A, const FSlateBrush& B)
 {
 	return A == B;
@@ -55,7 +60,7 @@ void USlateBlueprintLibrary::LocalToViewport(UObject* WorldContextObject, const 
 
 void USlateBlueprintLibrary::AbsoluteToViewport(UObject* WorldContextObject, FVector2D AbsoluteDesktopCoordinate, FVector2D& PixelPosition, FVector2D& ViewportPosition)
 {
-	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 	if ( World && World->IsGameWorld() )
 	{
 		if ( UGameViewportClient* ViewportClient = World->GetGameViewport() )
@@ -89,7 +94,7 @@ void USlateBlueprintLibrary::ScreenToWidgetLocal(UObject* WorldContextObject, co
 
 void USlateBlueprintLibrary::ScreenToWidgetAbsolute(UObject* WorldContextObject, FVector2D ScreenPosition, FVector2D& AbsoluteCoordinate)
 {
-	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 	if ( World && World->IsGameWorld() )
 	{
 		if ( UGameViewportClient* ViewportClient = World->GetGameViewport() )

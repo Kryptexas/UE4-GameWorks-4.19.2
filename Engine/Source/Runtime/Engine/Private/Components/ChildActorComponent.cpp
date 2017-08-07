@@ -120,6 +120,30 @@ void UChildActorComponent::Serialize(FArchive& Ar)
 }
 
 #if WITH_EDITOR
+void UChildActorComponent::PostEditImport()
+{
+	Super::PostEditImport();
+
+	if (IsTemplate())
+	{
+		TArray<UObject*> Children;
+		GetObjectsWithOuter(this, Children, false);
+
+		for (UObject* Child : Children)
+		{
+			if (Child->GetClass() == ChildActorClass)
+			{
+				ChildActorTemplate = CastChecked<AActor>(Child);
+				break;
+			}
+		}
+	}
+	else
+	{
+		ChildActorTemplate = CastChecked<UChildActorComponent>(GetArchetype())->ChildActorTemplate;
+	}
+}
+
 void UChildActorComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UChildActorComponent, ChildActorClass))
@@ -359,7 +383,7 @@ void UChildActorComponent::ApplyComponentInstanceData(FChildActorComponentInstan
 		USceneComponent* ChildActorRoot = ChildActor->GetRootComponent();
 		if (ChildActorRoot)
 		{
-			for (const auto& AttachInfo : ChildActorInstanceData->AttachedActors)
+			for (const FChildActorComponentInstanceData::FAttachedActorInfo& AttachInfo : ChildActorInstanceData->AttachedActors)
 			{
 				AActor* AttachedActor = AttachInfo.Actor.Get();
 				if (AttachedActor)
@@ -367,7 +391,7 @@ void UChildActorComponent::ApplyComponentInstanceData(FChildActorComponentInstan
 					USceneComponent* AttachedRootComponent = AttachedActor->GetRootComponent();
 					if (AttachedRootComponent)
 					{
-						AttachedActor->DetachRootComponentFromParent();
+						AttachedActor->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 						AttachedRootComponent->AttachToComponent(ChildActorRoot, FAttachmentTransformRules::KeepWorldTransform, AttachInfo.SocketName);
 						AttachedRootComponent->SetRelativeTransform(AttachInfo.RelativeTransform);
 						AttachedRootComponent->UpdateComponentToWorld();
@@ -492,7 +516,10 @@ void UChildActorComponent::CreateChildActor()
 				Params.bAllowDuringConstructionScript = true;
 				Params.OverrideLevel = (MyOwner ? MyOwner->GetLevel() : nullptr);
 				Params.Name = ChildActorName;
-				Params.Template = ChildActorTemplate;
+				if (ChildActorTemplate && ChildActorTemplate->GetClass() == ChildActorClass)
+				{
+					Params.Template = ChildActorTemplate;
+				}
 				Params.ObjectFlags |= (RF_TextExportTransient | RF_NonPIEDuplicateTransient);
 				if (!HasAllFlags(RF_Transactional))
 				{
@@ -515,7 +542,7 @@ void UChildActorComponent::CreateChildActor()
 
 					// Parts that we deferred from SpawnActor
 					const FComponentInstanceDataCache* ComponentInstanceData = (CachedInstanceData ? CachedInstanceData->ComponentInstanceData : nullptr);
-					ChildActor->FinishSpawning(ComponentToWorld, false, ComponentInstanceData);
+					ChildActor->FinishSpawning(GetComponentTransform(), false, ComponentInstanceData);
 
 					ChildActor->AttachToComponent(this, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 
@@ -558,7 +585,8 @@ void UChildActorComponent::DestroyChildActor()
 		if (!GExitPurge)
 		{
 			// if still alive, destroy, otherwise just clear the pointer
-			if (!ChildActor->IsPendingKillOrUnreachable())
+			const bool bIsChildActorPendingKillOrUnreachable = ChildActor->IsPendingKillOrUnreachable();
+			if (!bIsChildActorPendingKillOrUnreachable)
 			{
 #if WITH_EDITOR
 				if (CachedInstanceData)
@@ -574,33 +602,37 @@ void UChildActorComponent::DestroyChildActor()
 				{
 					CachedInstanceData = new FChildActorComponentInstanceData(this);
 				}
+			}
 
-				UWorld* World = ChildActor->GetWorld();
-				// World may be nullptr during shutdown
-				if (World != nullptr)
+			UWorld* World = ChildActor->GetWorld();
+			// World may be nullptr during shutdown
+			if (World != nullptr)
+			{
+				UClass* ChildClass = ChildActor->GetClass();
+
+				// We would like to make certain that our name is not going to accidentally get taken from us while we're destroyed
+				// so we increment ClassUnique beyond our index to be certain of it.  This is ... a bit hacky.
+				int32& ClassUnique = ChildActor->GetOutermost()->ClassUniqueNameIndexMap.FindOrAdd(ChildClass->GetFName());
+				ClassUnique = FMath::Max(ClassUnique, ChildActor->GetFName().GetNumber());
+
+				// If we are getting here due to garbage collection we can't rename, so we'll have to abandon this child actor name and pick up a new one
+				if (!IsGarbageCollecting())
 				{
-					UClass* ChildClass = ChildActor->GetClass();
-
-					// We would like to make certain that our name is not going to accidentally get taken from us while we're destroyed
-					// so we increment ClassUnique beyond our index to be certain of it.  This is ... a bit hacky.
-					int32& ClassUnique = ChildActor->GetOutermost()->ClassUniqueNameIndexMap.FindOrAdd(ChildClass->GetFName());
-					ClassUnique = FMath::Max(ClassUnique, ChildActor->GetFName().GetNumber());
-
-					// If we are getting here due to garbage collection we can't rename, so we'll have to abandon this child actor name and pick up a new one
-					if (!IsGarbageCollecting())
+					const FString ObjectBaseName = FString::Printf(TEXT("DESTROYED_%s_CHILDACTOR"), *ChildClass->GetName());
+					const ERenameFlags RenameFlags = ((GetWorld()->IsGameWorld() || IsLoading()) ? REN_DoNotDirty | REN_ForceNoResetLoaders : REN_DoNotDirty);
+					ChildActor->Rename(*MakeUniqueObjectName(ChildActor->GetOuter(), ChildClass, *ObjectBaseName).ToString(), nullptr, RenameFlags);
+				}
+				else
+				{
+					ChildActorName = NAME_None;
+					if (CachedInstanceData)
 					{
-						const FString ObjectBaseName = FString::Printf(TEXT("DESTROYED_%s_CHILDACTOR"), *ChildClass->GetName());
-						const ERenameFlags RenameFlags = ((GetWorld()->IsGameWorld() || IsLoading()) ? REN_DoNotDirty | REN_ForceNoResetLoaders : REN_DoNotDirty);
-						ChildActor->Rename(*MakeUniqueObjectName(ChildActor->GetOuter(), ChildClass, *ObjectBaseName).ToString(), nullptr, RenameFlags);
+						CachedInstanceData->ChildActorName = NAME_None;
 					}
-					else
-					{
-						ChildActorName = NAME_None;
-						if (CachedInstanceData)
-						{
-							CachedInstanceData->ChildActorName = NAME_None;
-						}
-					}
+				}
+
+				if (!bIsChildActorPendingKillOrUnreachable)
+				{
 					World->DestroyActor(ChildActor);
 				}
 			}

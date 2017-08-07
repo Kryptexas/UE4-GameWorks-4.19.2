@@ -15,7 +15,6 @@ namespace UnrealBuildTool.Rules
 					"Core",
 					"CoreUObject",
 					"Engine",
-					"OnlineSubsystem",
 					"OnlineSubsystemUtils",
 					"NetcodeUnitTest"
 				}

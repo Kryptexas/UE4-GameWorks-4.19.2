@@ -103,8 +103,8 @@ private:
 	FDeferredPixelShaderParameters DeferredParameters;
 };
 
-IMPLEMENT_SHADER_TYPE(template<>, FPrefilterPlanarReflectionPS<false>, TEXT("PlanarReflectionShaders"), TEXT("PrefilterPlanarReflectionPS"), SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>, FPrefilterPlanarReflectionPS<true>, TEXT("PlanarReflectionShaders"), TEXT("PrefilterPlanarReflectionPS"), SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>, FPrefilterPlanarReflectionPS<false>, TEXT("/Engine/Private/PlanarReflectionShaders.usf"), TEXT("PrefilterPlanarReflectionPS"), SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>, FPrefilterPlanarReflectionPS<true>, TEXT("/Engine/Private/PlanarReflectionShaders.usf"), TEXT("PrefilterPlanarReflectionPS"), SF_Pixel);
 
 template<bool bEnablePlanarReflectionPrefilter>
 void PrefilterPlanarReflection(FRHICommandListImmediate& RHICmdList, FViewInfo& View, const FPlanarReflectionSceneProxy* ReflectionSceneProxy, const FRenderTarget* Target)
@@ -272,7 +272,7 @@ static void UpdatePlanarReflectionContents_RenderThread(
 				else
 				{
 					SetRenderTarget(RHICmdList, Target->GetRenderTargetTexture(), nullptr, true);
-					DrawClearQuad(RHICmdList, GMaxRHIFeatureLevel, FLinearColor::Black);
+					DrawClearQuad(RHICmdList, FLinearColor::Black);
 				}
 
 				// Reflection view late update
@@ -325,7 +325,8 @@ extern FSceneRenderer* CreateSceneRendererForSceneCapture(
 	bool bCaptureSceneColor,
 	bool bIsPlanarReflection,
 	FPostProcessSettings* PostProcessSettings,
-	float PostProcessBlendWeight);
+	float PostProcessBlendWeight,
+	const AActor* ViewActor);
 
 void FScene::UpdatePlanarReflectionContents(UPlanarReflectionComponent* CaptureComponent, FSceneRenderer& MainSceneRenderer)
 {
@@ -364,12 +365,12 @@ void FScene::UpdatePlanarReflectionContents(UPlanarReflectionComponent* CaptureC
 			});
 		}
 
-		const FMatrix ComponentTransform = CaptureComponent->ComponentToWorld.ToMatrixWithScale();
+		const FMatrix ComponentTransform = CaptureComponent->GetComponentTransform().ToMatrixWithScale();
 		const FPlane MirrorPlane = FPlane(ComponentTransform.TransformPosition(FVector::ZeroVector), ComponentTransform.TransformVector(FVector(0, 0, 1)));
 
 		TArray<FSceneCaptureViewInfo> SceneCaptureViewInfo;
 
-		for (int32 ViewIndex = 0; ViewIndex < MainSceneRenderer.Views.Num(); ++ViewIndex)
+		for (int32 ViewIndex = 0; ViewIndex < MainSceneRenderer.Views.Num() && ViewIndex < GMaxPlanarReflectionViews; ++ViewIndex)
 		{
 			const FViewInfo& View = MainSceneRenderer.Views[ViewIndex];
 			FSceneCaptureViewInfo NewView;
@@ -404,7 +405,7 @@ void FScene::UpdatePlanarReflectionContents(UPlanarReflectionComponent* CaptureC
 		
 		FPostProcessSettings PostProcessSettings;
 
-		FSceneRenderer* SceneRenderer = CreateSceneRendererForSceneCapture(this, CaptureComponent, CaptureComponent->RenderTarget, DesiredPlanarReflectionTextureSize, SceneCaptureViewInfo, CaptureComponent->MaxViewDistanceOverride, true, true, &PostProcessSettings, 1.0f);
+		FSceneRenderer* SceneRenderer = CreateSceneRendererForSceneCapture(this, CaptureComponent, CaptureComponent->RenderTarget, DesiredPlanarReflectionTextureSize, SceneCaptureViewInfo, CaptureComponent->MaxViewDistanceOverride, true, true, &PostProcessSettings, 1.0f, /*ViewActor =*/nullptr);
 
 		for (int32 ViewIndex = 0; ViewIndex < SceneCaptureViewInfo.Num(); ++ViewIndex)
 		{
@@ -499,7 +500,7 @@ void FScene::UpdatePlanarReflectionTransform(UPlanarReflectionComponent* Compone
 	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
 		FUpdatePlanarReflectionCommand,
 		FPlanarReflectionSceneProxy*,SceneProxy,Component->SceneProxy,
-		FMatrix,Transform,Component->ComponentToWorld.ToMatrixWithScale(),
+		FMatrix,Transform,Component->GetComponentTransform().ToMatrixWithScale(),
 		FScene*,Scene,this,
 	{
 		Scene->ReflectionSceneData.bRegisteredReflectionCapturesHasChanged = true;
@@ -556,10 +557,23 @@ private:
 	FDeferredPixelShaderParameters DeferredParameters;
 };
 
-IMPLEMENT_SHADER_TYPE(,FPlanarReflectionPS,TEXT("PlanarReflectionShaders"),TEXT("PlanarReflectionPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FPlanarReflectionPS,TEXT("/Engine/Private/PlanarReflectionShaders.usf"),TEXT("PlanarReflectionPS"),SF_Pixel);
 
 bool FDeferredShadingSceneRenderer::RenderDeferredPlanarReflections(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, bool bLightAccumulationIsInUse, TRefCountPtr<IPooledRenderTarget>& Output)
 {
+	// Prevent rendering unsupported views when ViewIndex >= GMaxPlanarReflectionViews
+	// Planar reflections in those views will fallback to other reflection methods
+	{
+		int32 ViewIndex = INDEX_NONE;
+
+		ViewFamily.Views.Find(&View, ViewIndex);
+
+		if (ViewIndex >= GMaxPlanarReflectionViews)
+		{
+			return false;
+		}
+	}
+
 	bool bAnyVisiblePlanarReflections = false;
 
 	for (int32 PlanarReflectionIndex = 0; PlanarReflectionIndex < Scene->PlanarReflections.Num(); PlanarReflectionIndex++)
@@ -601,7 +615,7 @@ bool FDeferredShadingSceneRenderer::RenderDeferredPlanarReflections(FRHICommandL
 
 		if (!bSSRAsInput)
 		{
-			DrawClearQuad(RHICmdList, GMaxRHIFeatureLevel, FLinearColor(0, 0, 0, 0));
+			DrawClearQuad(RHICmdList, FLinearColor(0, 0, 0, 0));
 		}
 
 		{

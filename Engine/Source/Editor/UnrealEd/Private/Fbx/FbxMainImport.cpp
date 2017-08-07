@@ -27,6 +27,9 @@
 #include "Interfaces/IAnalyticsProvider.h"
 #include "UObject/UObjectGlobals.h"
 #include "UObject/Package.h"
+#include "AssetRegistryModule.h"
+#include "ARFilter.h"
+#include "Animation/Skeleton.h"
 
 DEFINE_LOG_CATEGORY(LogFbx);
 
@@ -37,9 +40,11 @@ namespace UnFbx
 
 TSharedPtr<FFbxImporter> FFbxImporter::StaticInstance;
 
+TSharedPtr<FFbxImporter> FFbxImporter::StaticPreviewInstance;
 
 
-FBXImportOptions* GetImportOptions( UnFbx::FFbxImporter* FbxImporter, UFbxImportUI* ImportUI, bool bShowOptionDialog, bool bIsAutomated, const FString& FullPath, bool& OutOperationCanceled, bool& bOutImportAll, bool bIsObjFormat, bool bForceImportType, EFBXImportType ImportType )
+
+FBXImportOptions* GetImportOptions( UnFbx::FFbxImporter* FbxImporter, UFbxImportUI* ImportUI, bool bShowOptionDialog, bool bIsAutomated, const FString& FullPath, bool& OutOperationCanceled, bool& bOutImportAll, bool bIsObjFormat, bool bForceImportType, EFBXImportType ImportType, UObject* ReimportObject)
 {
 	OutOperationCanceled = false;
 
@@ -55,7 +60,22 @@ FBXImportOptions* GetImportOptions( UnFbx::FFbxImporter* FbxImporter, UFbxImport
 		}
 		else
 		{
-			ImportUI->Skeleton = NULL;
+			// Look in the current target directory to see if we have a skeleton
+			FARFilter Filter;
+			Filter.PackagePaths.Add(*FPaths::GetPath(FullPath));
+			Filter.ClassNames.Add(USkeleton::StaticClass()->GetFName());
+
+			IAssetRegistry& AssetRegistry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry").Get();
+			TArray<FAssetData> SkeletonAssets;
+			AssetRegistry.GetAssets(Filter, SkeletonAssets);
+			if(SkeletonAssets.Num() > 0)
+			{
+				ImportUI->Skeleton = CastChecked<USkeleton>(SkeletonAssets[0].GetAsset());
+			}
+			else
+			{
+				ImportUI->Skeleton = NULL;
+			}
 		}
 
 		if ( ImportOptions->PhysicsAsset )
@@ -100,10 +120,17 @@ FBXImportOptions* GetImportOptions( UnFbx::FFbxImporter* FbxImporter, UFbxImport
 
 		TSharedRef<SWindow> Window = SNew(SWindow)
 			.Title(NSLOCTEXT("UnrealEd", "FBXImportOpionsTitle", "FBX Import Options"))
-			.SizingRule( ESizingRule::Autosized )
+			.SizingRule(ESizingRule::Autosized)
 			.AutoCenter(EAutoCenter::None)
 			.ScreenPosition(WindowPosition);
 		
+		auto OnPreviewFbxImportLambda = FOnPreviewFbxImport::CreateLambda([=]
+		{
+			UnFbx::FFbxImporter* PreviewFbxImporter = UnFbx::FFbxImporter::GetPreviewInstance();
+			PreviewFbxImporter->ShowFbxReimportPreview(ReimportObject, ImportUI, FullPath);
+			UnFbx::FFbxImporter::DeletePreviewInstance();
+		});
+
 		TSharedPtr<SFbxOptionWindow> FbxOptionWindow;
 		Window->SetContent
 		(
@@ -115,6 +142,7 @@ FBXImportOptions* GetImportOptions( UnFbx::FFbxImporter* FbxImporter, UFbxImport
 			.IsObjFormat( bIsObjFormat )
 			.MaxWindowHeight(FbxImportWindowHeight)
 			.MaxWindowWidth(FbxImportWindowWidth)
+			.OnPreviewFbxImport(OnPreviewFbxImportLambda)
 		);
 
 		// @todo: we can make this slow as showing progress bar later
@@ -197,6 +225,7 @@ void ApplyImportUIToImportOptions(UFbxImportUI* ImportUI, FBXImportOptions& InOu
 {
 	check(ImportUI);
 	InOutImportOptions.bImportMaterials = ImportUI->bImportMaterials;
+	InOutImportOptions.bResetMaterialSlots = ImportUI->bResetMaterialSlots;
 	InOutImportOptions.bInvertNormalMap = ImportUI->TextureImportData->bInvertNormalMaps;
 	InOutImportOptions.MaterialSearchLocation = ImportUI->TextureImportData->MaterialSearchLocation;
 	UMaterialInterface* BaseMaterialInterface = Cast<UMaterialInterface>(ImportUI->TextureImportData->BaseMaterialName.TryLoad());
@@ -394,6 +423,20 @@ void FFbxImporter::DeleteInstance()
 	StaticInstance.Reset();
 }
 
+FFbxImporter* FFbxImporter::GetPreviewInstance()
+{
+	if (!StaticPreviewInstance.IsValid())
+	{
+		StaticPreviewInstance = MakeShareable(new FFbxImporter());
+	}
+	return StaticPreviewInstance.Get();
+}
+
+void FFbxImporter::DeletePreviewInstance()
+{
+	StaticPreviewInstance.Reset();
+}
+
 //-------------------------------------------------------------------------
 //
 //-------------------------------------------------------------------------
@@ -455,7 +498,7 @@ int32 FFbxImporter::GetImportType(const FString& InFilename)
 	if (OpenFile(Filename, true))
 	{
 		FbxStatistics Statistics;
-		Importer->GetStatistics(&Statistics);
+		Importer->GetStatistics(&Statistics); //-V595
 		int32 ItemIndex;
 		FbxString ItemName;
 		int32 ItemCount;
@@ -803,6 +846,7 @@ void FFbxImporter::TraverseHierarchyNodeRecursively(FbxSceneInfo& SceneInfo, Fbx
 		}
 		else
 		{
+			ChildInfo.AttributeUniqueId = INVALID_UNIQUE_ID;
 			ChildInfo.AttributeType = "eNull";
 			ChildInfo.AttributeName = NULL;
 		}
@@ -990,10 +1034,6 @@ bool FFbxImporter::ImportFile(FString Filename, bool bPreventMaterialNameClash /
 	{
 		UE_LOG(LogFbx, Log, TEXT("FBX Scene Loaded Succesfully"));
 		CurPhase = IMPORTED;
-		
-		// Release importer now as it is unneeded
-		Importer->Destroy();
-		Importer = NULL;
 	}
 	else
 	{
@@ -1010,6 +1050,10 @@ bool FFbxImporter::ImportFile(FString Filename, bool bPreventMaterialNameClash /
 
 void FFbxImporter::ConvertScene()
 {
+	//Set the original file information
+	FileAxisSystem = Scene->GetGlobalSettings().GetAxisSystem();
+	FileUnitSystem = Scene->GetGlobalSettings().GetSystemUnit();
+
 	if (GetImportOptions()->bConvertScene)
 	{
 		// we use -Y as forward axis here when we import. This is odd considering our forward axis is technically +X
@@ -1210,8 +1254,7 @@ FName FFbxImporter::MakeNameForMesh(FString InName, FbxObject* FbxObject)
 		}
 
 		// for mesh, replace ':' with '_' because Unreal doesn't support ':' in mesh name
-		char* NewName = nullptr;
-		NewName = FCStringAnsi::Strchr (Name, ':');
+		char* NewName = FCStringAnsi::Strchr(Name, ':');
 
 		if (NewName)
 		{

@@ -22,9 +22,12 @@ void FSlateStyleRegistry::RegisterSlateStyle( const ISlateStyle& InSlateStyle )
 
 	SlateStyleRepository.Add( SlateStyleName, &InSlateStyle );
 
-	if ( FSlateApplicationBase::IsInitialized() && FSlateApplicationBase::Get().GetRenderer().IsValid() )
+	if ( FSlateApplicationBase::IsInitialized() )
 	{
-		FSlateApplicationBase::Get().GetRenderer()->LoadStyleResources( InSlateStyle );
+		if (FSlateRenderer* Renderer = FSlateApplicationBase::Get().GetRenderer())
+		{
+			Renderer->LoadStyleResources(InSlateStyle);
+		}
 	}
 }
 

@@ -21,7 +21,8 @@ using namespace ImmediatePhysics;
 
 #define LOCTEXT_NAMESPACE "ImmediatePhysics"
 
-FAnimNode_RigidBody::FAnimNode_RigidBody()
+FAnimNode_RigidBody::FAnimNode_RigidBody():
+	QueryParams(NAME_None, FCollisionQueryParams::GetUnknownStatId())
 {
 	bResetSimulated = false;
 	PhysicsSimulation = nullptr;
@@ -335,7 +336,7 @@ DECLARE_CYCLE_STAT(TEXT("FAnimNode_Ragdoll::UpdateWorldGeometry"), STAT_Immediat
 void FAnimNode_RigidBody::UpdateWorldGeometry(const UWorld& World, const USkeletalMeshComponent& SKC)
 {
 	SCOPE_CYCLE_COUNTER(STAT_ImmediateUpdateWorldGeometry);
-	QueryParams = FCollisionQueryParams(TEXT("RagdollNodeFindGeometry"), /*bTraceComplex=*/false);
+	QueryParams = FCollisionQueryParams(SCENE_QUERY_STAT(RagdollNodeFindGeometry), /*bTraceComplex=*/false);
 #if WITH_EDITOR
 	if(!World.IsGameWorld())
 	{
@@ -414,7 +415,7 @@ void FAnimNode_RigidBody::PreUpdate(const UAnimInstance* InAnimInstance)
 
 	if(SKC)
 	{
-		if (PhysicsSimulation && bEnableWorldGeometry && !bComponentSpaceSimulation && World)
+		if (PhysicsSimulation && bEnableWorldGeometry && !bComponentSpaceSimulation)
 		{
 			UpdateWorldGeometry(*World, *SKC);
 		}
@@ -519,13 +520,9 @@ void FAnimNode_RigidBody::InitializeBoneReferences(const FBoneContainer& Require
 	}
 }
 
-void FAnimNode_RigidBody::RootInitialize(const FAnimInstanceProxy* InProxy)
+void FAnimNode_RigidBody::OnInitializeAnimInstance(const FAnimInstanceProxy* InProxy, const UAnimInstance* InAnimInstance)
 {
-	if(const UAnimInstance* AnimInstance = Cast<UAnimInstance>(InProxy->GetAnimInstanceObject()))
-	{
-		InitPhysics(AnimInstance);
-	}
-	
+	InitPhysics(InAnimInstance);
 }
 
 #undef LOCTEXT_NAMESPACE

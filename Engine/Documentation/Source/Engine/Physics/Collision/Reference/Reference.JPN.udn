@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2994597
+﻿NTSourceChangelist:3418529
 Availability:Public
 Title:コリジョン反応の参照
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/Collision
@@ -27,23 +27,15 @@ Version:4.9
 
 Collision Properties カテゴリの Collision Presets/Collision Response には非常に多くのプロパティがありますので、分かりやすいように分類しました。
 
-##プロパティ
+## プロパティ
 
 以下は、物理ボディ (BodyInstances) の Collision プロパティのサブ カテゴリの Collision Presets のプロパティです。
 
 ![](collProp.png)(convert:false)
 
-[OBJECT:modulesectionexpanded]
-	[PARAMLITERAL:id]
-		coll
-	[/PARAMLITERAL]
-	[PARAM:heading]
-		Collision Presets
-	[/PARAM]
-	[PARAM:content]
-		%p2%
-	[/PARAM]
-[/OBJECT]
+### コリジョンのプリセット
+
+%p2%
 
 [VAR:p2]
 
@@ -93,7 +85,7 @@ Collision Properties カテゴリの Collision Presets/Collision Response には
 | プロパティ | %spacer2% | 説明 |
 | --- | :---: | :--- |
 | **Visibility** || 可視性全般をテストするチャンネルです。 |
-| **Camera** || カメラから何かをトラックする場合に通常使います。 |
+| **Camera** || カメラから何かをトレースする場合に通常使います。 |
 [/REGION]
 
 [/EXCERPT]
@@ -116,7 +108,7 @@ Collision Properties カテゴリの Collision Presets/Collision Response には
 
 [EXCERPT:colPre]
 
-デフォルトのコリジョン プロファイル、および [Project **Settings (プロジェクト設定)]** -> **[Engine]** -> **[Collision]** -> **[Preset]** (カスタム コリジョン プロファイルは []() を参照) で作成したものがすべてここに表示されます。
+デフォルトのコリジョン プロファイル、および [Project **Settings (プロジェクト設定)]** -> **[Engine]** -> **[Collision]** -> **[Preset]** (カスタム コリジョン プロファイルの作成は []() を参照) で作成したものがすべてここに表示されます。
 
 [REGION:raw]
 | プロパティ | %spacer2% | 説明 |
@@ -125,21 +117,21 @@ Collision Properties カテゴリの Collision Presets/Collision Response には
 | **Custom...** || このインスタンスに対してすべてのカスタム コリジョンの設定値を設定します。 |
 | **NoCollision** || コリジョンはありません。 |
 | **BlockAll** || デフォルトですべてのアクタをブロックする WorldStatic オブジェクトです。すべての新規カスタム チャネルは独自のデフォルト反応を使います。  |
-| **OverlapAll** || デフォルトですべてのアクタをブロックする WorldStatic オブジェクトです。すべての新規カスタム チャネルは独自のデフォルト反応を使います。  |
+| **OverlapAll** || デフォルトですべてのアクタをオーバーラップする WorldStatic オブジェクトです。すべての新規カスタム チャネルは独自のデフォルト反応を使います。  |
 | **BlockAllDynamic** || デフォルトですべてのアクタをブロックする WorldDynamic オブジェクトです。すべての新規カスタム チャネルは独自のデフォルト反応を使います。  |
-| **OverlapAllDynamic** || デフォルトですべてのアクタをブロックする WorldDynamic オブジェクトです。すべての新規カスタム チャネルは独自のデフォルト反応を使います。  |
-| **IngoreOnlyPawn** || ポーンとビークルを無視する WorldDynamic オブジェクトです。他のすべてのチャネルはデフォルトに設定されます。 |
-| **OverlapOnlyPawn** || ポーン、カメラ、ビークルにオーバーラップする WorldDynamic オブジェクトです。他のすべてのチャネルはデフォルトに設定されます。 |
+| **OverlapAllDynamic** || デフォルトですべてのアクタをオーバーラップする WorldDynamic オブジェクトです。すべての新規カスタム チャネルは独自のデフォルト反応を使います。  |
+| **IngoreOnlyPawn** || ポーンとビークルを無視する WorldDynamic オブジェクトです。他のすべてのチャンネルはデフォルトに設定されます。 |
+| **OverlapOnlyPawn** || ポーン、カメラ、ビークルにオーバーラップする WorldDynamic オブジェクトです。他のすべてのチャンネルはデフォルトに設定されます。  |
 | **Pawn** || ポーン オブジェクトです。すべてのプレイ可能なキャラクタや AI のカプセルに使用することができます。  |
 | **Spectator** || WorldStatic 以外のすべてのアクタを無視する Pawn オブジェクトです。 |
-| **CharacterMesh** || キャラクター メッシュに使用する Pawn オブジェクトです。他のすべてのチャネルはデフォルトに設定されます。 |
+| **CharacterMesh** || キャラクター メッシュに使用する Pawn オブジェクトです。他のすべてのチャンネルはデフォルトに設定されます。 |
 | **PhysicsActor** || シミュレーション中のアクタです。 |
 | **Destructible** || 被破壊アクタです。  |
 | **InvisibleWall** || 目に見えない WorldStatic オブジェクトです。 |
-| **InvisibleWallDynamic** || 目に見える WorldDynamic オブジェクトです。 |
-| **Trigger** || トリガに使われる WorldDynamic オブジェクトです。他のすべてのチャネルはデフォルトに設定されます。 |
-| **Ragdoll** || シミュレーション中の Skeletal Mesh コンポーネントです。他のすべてのチャネルはデフォルトに設定されます。 |
-| **Vehicle** || Vehicle、WorldStatic、WorldDynamic をブロックするVehicle オブジェクトです。他のすべてのチャネルはデフォルトに設定されます。 |
+| **InvisibleWallDynamic** || 目に見えない WorldDynamic オブジェクトです。 |
+| **Trigger** || トリガーに使われる WorldDynamic オブジェクトです。他のすべてのチャンネルはデフォルトに設定されます。 |
+| **Ragdoll** || シミュレーション中の Skeletal Mesh コンポーネントです。他のすべてのチャンネルはデフォルトに設定されます。 |
+| **Vehicle** || Vehicle、WorldStatic、WorldDynamic をブロックするVehicle オブジェクトです。他のすべてのチャンネルはデフォルトに設定されます。 |
 | **UI** || デフォルトですべてのアクタとオーバーラップする WorldStatic オブジェクトです。すべての新規カスタム チャネルは独自のデフォルト反応を使います。  |
 [/REGION]
 [/EXCERPT]
@@ -148,15 +140,15 @@ Collision Properties カテゴリの Collision Presets/Collision Response には
 
 [EXCERPT:colEn]
 
-[Collision Enabled (コリジョンを有効にする)] と、以下の 4 種類のステータスになります。
+[Collision Enabled (コリジョンを有効にする)] と、以下の 4 種類のステートが可能になります。
 
 [REGION:raw]
 | プロパティ | %spacer2% | 説明 |
 | --- | :---: | :--- |
 | **No Collision** || このボディは物理エンジンでは表示されません。空間クエリ (レイキャスト、スウィープ、オーバーラップ) やシミュレーション (剛体ボディ、コンストレイント) には使用できません。移動オブジェクトの場合は特に最高のパフォーマンスが得られる設定です。  |
-| **Query Only** || このボディは空間クエリ (レイキャスト、スウィープ、オーバーラップ) のみに使用されます。シミュレーション (剛体ボディ、コンストレイント) には使用できません。キャラクターの移動と物理シミュレーションの必要のないオブジェクトに使うと便利な設定です。物理シミュレーション ツリー内のデータを減らすとパフォーマンスが良くな場合もあります。 |
-| **Physics Only** || このボディは物理シミュレーション (剛体ボディ、コンストレイント) のみに使用されます。空間クエリ (レイキャスト、スウィープ、オーバーラップ) には使用できません。ボーンの検出ごとに必要ではないキャラクター上の副次的な動きのシミュレーションに使うと便利な設定です。クエリ ツリー内のデータを減らすとパフォーマンスが良くな場合もあります。 |
-| **Collision Enabled** || 空間クエリ (レイキャスト、スウィープ、オーバーラップ) にもシミュレーション (剛体ボディ、コンストレイント) にも使用できません。 |
+| **Query Only** || このボディは空間クエリ (レイキャスト、スウィープ、オーバーラップ) のみに使用されます。シミュレーション (剛体ボディ、コンストレイント) には使用できません。キャラクターの移動と物理シミュレーションの必要のないオブジェクトに使うと便利な設定です。物理シミュレーション ツリー内のデータを減らすとパフォーマンスが良くなる場合もあります。 |
+| **Physics Only** || このボディは物理シミュレーション (剛体ボディ、コンストレイント) のみに使用されます。空間クエリ (レイキャスト、スウィープ、オーバーラップ) には使用できません。ボーンごとの検出が不要なキャラクター上の副次的な動きのシミュレーションに使うと便利な設定です。クエリ ツリー内のデータを減らすとパフォーマンスが良くなる場合もあります。 |
+| **Collision Enabled** || 空間クエリ (レイキャスト、スウィープ、オーバーラップ) にもシミュレーション (剛体ボディ、コンストレイント) にも使用できます。 |
 [/REGION]
 [/EXCERPT]
 
@@ -171,7 +163,7 @@ Collision Properties カテゴリの Collision Presets/Collision Response には
 | --- | :---: | :--- |
 | **WorldStatic** || 移動しないすべてのアクタに使用します。Static Mesh アクタは、おそらく WorldStatic タイプを持っているであろうアクタの代表例です。 |
 | **WorldDynamic** || WorldDynamic は、アニメーション、コード、キネマティクスの影響を受けて移動するアクタ タイプに使用します。WorldDynamic アクタの代表例は、エレベータとドアです。 |
-| **Pawn** || エンティティを制御するすべてのプレイヤーには Pawn タイプがあります。プレイヤーのキャラクターは、Pawn オブジェクトのタイプを受け取るアクタの代表例です。 |
+| **Pawn** ||プレイヤーが制御するエンティティは Pawn タイプを持ちます。プレイヤーのキャラクターは、Pawn オブジェクトのタイプを受け取るアクタの代表例です。 |
 | **PhysicsBody** || 物理シミュレーションによって移動するアクタです。 |
 | **Vehicle** || ビークルはこのタイプをデフォルトで受け取ります。 |
 | **Destructible** || 被破壊メッシュはデフォルトでこのタイプを受け取ります。 |

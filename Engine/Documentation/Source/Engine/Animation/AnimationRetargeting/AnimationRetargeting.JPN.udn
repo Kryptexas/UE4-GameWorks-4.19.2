@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3206402
+﻿INTSourceChangelist:3467293
 Availability:Public
 Title:アニメーション リターゲット
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:リターゲットしたアニメーションを複数のスケルタルメッシュで使用して、アニメーションを共有できるようにします。 
 version:4.14
+topic-image:AnimationgRetargeting_topic.png
 
 [REGION:fullwidth]
 ![](RetargetingHeader.png)

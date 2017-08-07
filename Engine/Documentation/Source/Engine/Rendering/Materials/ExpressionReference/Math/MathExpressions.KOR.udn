@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3355715
+﻿INTSourceChangelist:3409695
 Availability:Public
 Title:Math 표현식
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
@@ -44,6 +44,104 @@ Add 표현식은 두 입력을 받아 더한 다음 결과를 출력합니다. �
 
 [INCLUDE:Engine/Rendering/Materials/ExpressionReference/VectorOps#AppendVector]
 
+
+## ArcSine 
+
+[REGION:lightbox]
+[![](MEN_ArcSine.png)(w:469)](MEN_ArcSine.png)
+[/REGION]
+
+[REGION:caption]
+클릭하면 이미지 원본을 확인합니다.
+[/REGION]
+
+**Arcsine** (아크사인) 표현식은 사인 함수의 역을 출력합니다. 인스트럭션 카운트에는 반영되지 않는 비싼 연산입니다.
+
+## ArcSineFast
+
+[REGION:lightbox]
+[![](MEN_ArcSineFast.png)(w:469)](MEN_ArcSineFast.png)
+[/REGION]
+
+[REGION:caption]
+클릭하면 이미지 원본을 확인합니다.
+[/REGION]
+
+**ArcsineFast** (빠른 아크사인) 표현식은 사인 함수의 역 추정 버전을 출력합니다. 입력 값은 -1 에서 1 범위여야 합니다.
+
+## ArcCosine
+
+[REGION:lightbox]
+[![](MEN_ArcCosine.png)(w:469)](MEN_ArcCosine.png)
+[/REGION]
+
+[REGION:caption]
+클릭하면 이미지 원본을 확인합니다.
+[/REGION]
+
+**Arccosine** (아크 코사인) 표현식은 코사인 함수의 역을 출력합니다. 인스트럭션 카운트에는 반영되지 않는 비싼 연산입니다.
+
+## ArcCosineFast
+
+[REGION:lightbox]
+[![](MEN_ArcCosineFast.png)(w:469)](MEN_ArcCosineFast.png)
+[/REGION]
+
+[REGION:caption]
+클릭하면 이미지 원본을 확인합니다.
+[/REGION]
+
+
+**ArccosineFast** (빠른 아크 코사인) 표현식은 역 코사인 함수의 추정 버전을 출력합니다. 입력 범위는 -1 에서 1 사이여야 합니다.
+
+## ArcTangent
+
+[REGION:lightbox]
+[![](MEN_ArcTangent.png)(w:469)](MEN_ArcTangent.png)
+[/REGION]
+
+[REGION:caption]
+클릭하면 이미지 원본을 확인합니다.
+[/REGION]
+
+**Arctangent** (아크 탄젠트) 표현식은 탄젠트 함수의 역을 출력합니다. 인스트럭션 카운트에 반영되지 않는 비싼 연산입니다.
+
+## ArcTragnetFast
+
+[REGION:lightbox]
+[![](MEN_ArcTangentFast.png)(w:469)](MEN_ArcTangentFast.png)
+[/REGION]
+
+[REGION:caption]
+클릭하면 이미지 원본을 확인합니다.
+[/REGION]
+
+**ArctangentFast** 표현식은 역 탄젠트 함수의 추정 버전을 출력합니다.
+
+## ArcTangent2
+
+[REGION:lightbox]
+[![](MEN_ArcTangent2.png)(w:469)](MEN_ArcTangent2.png)
+[/REGION]
+
+[REGION:caption]
+클릭하면 이미지 원본을 확인합니다.
+[/REGION]
+
+
+**Arctangent2** (아크 탄젠트 2) 표현식은 입력 부호로 사분면을 결정하는 x / y 의 역 탄젠트를 사용합니다. 인스트럭션 카운트에 반영되지 않는 비싼 연산입니다.
+
+## ArcrTangent2Fast
+
+[REGION:lightbox]
+[![](MEN_ArcTangent2Fast.png)(w:469)](MEN_ArcTangent2Fast.png)
+[/REGION]
+
+[REGION:caption]
+클릭하면 이미지 원본을 확인합니다.
+[/REGION]
+
+**Arctangent2Fast** 표현식은 입력 부호로 사분면을 결정하는 X / Y 의 역 탄젠트 추정입니다.
 
 ## Ceil
 
@@ -242,8 +340,6 @@ Min (최소) 표현식은 입력을 둘 받은 다음 그 중 낮은 것을 출�
 | **B** | 비교할 두 번째 값을 받습니다. |
 
 
-
-
 ## Multiply
 
 Multiply (곱하기) 표현식은 두 입력을 받아 서로 곱한 다음 결과를 출력합니다. 포포토샵의 멀티플라이 레이어 블렌드와 유사합니다. 곱하기는 채널별로 이루어집니다. 즉 첫째의 R은 둘째의 R로, 첫째의 G는 둘째의 G로 곱하는 식입니다. 둘 중 하나가 단일 실수값이 아닌 다음에야 두 입력은 채널 수가 같아야 합니다.
@@ -320,6 +416,33 @@ Power (거듭제곱) 표현식은 입력 둘을 받아서, Base(밑)을  Exp(지
 ![PowerExample.png](PowerExample.png)
 
 
+## Round
+
+**Round** (반올림) 표현식은 소수점이 .5 이상이면 다음 정수로 반올림을, 미만이면 내립니다.
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Round 전](RoundExample_00.png)(w:1100)
+	[/PARAM]
+	[PARAM:after]
+	![Round 후](RoundExample_01.png)
+	[/PARAM]
+[/OBJECT]
+
+**예:** 
+* 1.1 의 Round 는 1 입니다.
+* 1.4 의 Round 는 1 입니다.
+* 1.5 의 Round 는 2 입니다.
+* 1.85 의 Round 는 2 입니다.
+
+## Saturate
+
+**Saturate** (포화) 노드는 값을 0 에서 1 범위로 클램프(제한)시킵니다. Saturate 인스트럭션 비용은 최근 그래픽 하드웨어에서는 거의 무료입니다.
+
+![](SaturateExample_00.png)
+
+**사용 예:** 출력이나 입력 값을 0 에서 1 사이 범위로 제한시키고자 할 때 사용하면 됩니다.
+
 ## Sine
 
 **Sine** (사인) 표현식은 [0, 1] 입력 범위와 [-1, 1] 출력 범위에 걸쳐 둘 다 반복되는 사인 곡선 값을 출력합니다. [Cosine](#Cosine) 표현식 출력과의 차이는 파형에 주기의 1/4 만큼 오프셋이 적용되어 있습니다. `Cos(X)` 는 `Sin(X + 0.25)` 와 같다는 뜻입니다. 아주 흔하게, 입력에 [Time](Engine/Rendering/Materials/ExpressionReference/Constant#Time) 표현식을 입력하여 연속 진동 파형을 출력하는데 사용되지만, 월드스페이스 또는 스크린스페이스에서 물결을 만들 때나, 연속적인 부드러운 사이클이 필요한 경우에도 사용 가능합니다. 파형의 시각적 표현은 아래와 같으며, [0, 1] 출력 범위로 스케일을 조절한 것입니다:
@@ -364,3 +487,34 @@ Subtract (빼기) 표현식은 두 입력을 받아 첫째에서 둘째를 뺀 �
 
 ![SubtractExample.png](SubtractExample.png)(w:900)
 
+## Tangent
+
+[REGION:lightbox]
+[![](MEN_Tangent.png)(w:469)](MEN_Tangent.png)
+[/REGION]
+
+[REGION:caption]
+클릭하면 이미지 원본을 확인합니다.
+[/REGION]
+
+**Tangent** (탄젠트) 노드는 지정된 값의 탄젠트를 출력합니다.
+
+## Truncate
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Truncate 전](TruncateExample_00.png)(w:1100)
+	[/PARAM]
+	[PARAM:after]
+	![Truncate 후](TruncateExample_01.png)
+	[/PARAM]
+[/OBJECT]
+
+
+**Truncate** (버림) 노드는 값의 정수 부분만 남기고 소수점 부분은 버립니다.
+
+**예제:** 
+* 1.1 의 Truncate 는 1 입니다.
+* 1.4 의 Truncate 는 1 입니다.
+* 2.5 의 Truncate 는 2 입니다.
+* 3.1 의 Truncate 는 3 입니다.

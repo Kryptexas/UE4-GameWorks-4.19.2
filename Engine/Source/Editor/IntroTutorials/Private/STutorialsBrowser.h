@@ -12,7 +12,7 @@
 #include "Widgets/Views/STableRow.h"
 #include "IIntroTutorials.h"
 
-class FAssetData;
+struct FAssetData;
 class FTutorialListEntry_Category;
 class SWindow;
 class UEditorTutorial;

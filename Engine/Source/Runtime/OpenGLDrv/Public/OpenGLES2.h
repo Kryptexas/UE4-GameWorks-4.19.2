@@ -92,6 +92,7 @@ struct FOpenGLES2 : public FOpenGLBase
 	static FORCEINLINE bool SupportsSamplerObjects()					{ return false; }
 	static FORCEINLINE bool SupportsTexture3D()							{ return false; }
 	static FORCEINLINE bool SupportsMobileMultiView()					{ return false; }
+	static FORCEINLINE bool SupportsImageExternal()						{ return false; }
 	static FORCEINLINE bool SupportsTextureLODBias()					{ return false; }
 	static FORCEINLINE bool SupportsTextureCompare()					{ return false; }
 	static FORCEINLINE bool SupportsTextureBaseLevel()					{ return false; }

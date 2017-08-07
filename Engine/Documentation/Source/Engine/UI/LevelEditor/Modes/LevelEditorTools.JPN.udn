@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3275202
+﻿INTSourceChangelist:3467293
 Availability:Public
 Title:レベル エディタ モード
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
 Description:レベル エディタには、現在のモードを制御し、ビルダ ブラシの再形成、新規のブラシ ジオメトリやボリュームを作成するためのツールセットがあります。
 Version:4.9
+topic-image:LevelEditorModes_topic.png
 
 [EXCERPT:main]
 [INCLUDE:Shared/Glossary/M#glossary_modes_panel]

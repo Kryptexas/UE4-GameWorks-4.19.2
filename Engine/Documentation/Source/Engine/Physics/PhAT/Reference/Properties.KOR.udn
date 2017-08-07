@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3255748
+﻿INTSourceChangelist:3459053
 Availability: Public
 Title:피직스 애셋 프로퍼티 참고서
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhAT
@@ -117,7 +117,7 @@ SkillLevel: Beginner
 | **Linear Damping** | 직선 제동 - 직선 운동을 감소시키기 위해 더할 인력입니다. |
 | **Angular Damping** | 각 제동 - 각 운동을 감소시키기 위해 더할 인력입니다. |
 | **Enable Gravity** | 중력 켜기 - 오브젝트에 중력을 적용시킵니다. |
-| **Physics Type** | 피직스 유형 - **Unfixed** 로 설정되면 피직스를 사용합니다. **Fixed** 로 설정되면 키네마틱을 사용합니다. **Default** 는 **OwnerComponent** 작동방식을 상속합니다. |
+| **Physics Type** | 피직스 유형 - **Simulated** 로 설정되면 피직스를 사용합니다. **Kinematic** 으로 설정되면 키네마틱을 사용합니다. **Default** 는 **OwnerComponent** 작동방식을 상속합니다. |
 | **Double Sided Geometry** | 양면 지오메트리 - true 면 피직스 트라이앵글 메시는 씬 쿼리를 할 때 양면을 사용합니다. 양쪽 면에 통하는 트레이스가 필요한 단면 메시 또는 면에 좋습니다. |
 | **Simple Collision Physical Material** | 단순 콜리전 피지컬 머티리얼 - 이 바디의 단순 콜리전에 사용할 **피지컬 머티리얼** 입니다. |
 [/REGION]

@@ -75,7 +75,7 @@ public:
 		, _ShouldAutosize(false)
 		, _OnCanCloseTab()
 		, _OnPersistVisualState()
-		, _TabColorScale(0,0,0,0)
+		, _TabColorScale(FLinearColor::Transparent)
 		{}
 
 		SLATE_DEFAULT_SLOT( FArguments, Content )
@@ -91,7 +91,7 @@ public:
 		SLATE_ARGUMENT( bool, ShouldAutosize )
 		SLATE_EVENT( FCanCloseTab, OnCanCloseTab )
 		SLATE_EVENT( FOnPersistVisualState, OnPersistVisualState )
-		SLATE_ARGUMENT( FLinearColor, TabColorScale )
+		SLATE_ATTRIBUTE( FLinearColor, TabColorScale )
 	SLATE_END_ARGS()
 
 	/** Construct the widget from the declaration. */
@@ -371,7 +371,7 @@ protected:
 	bool bShouldAutosize;
 
 	/** Color of this tab */
-	FLinearColor TabColorScale;
+	TAttribute<FLinearColor> TabColorScale;
 
 	/** @return the scaling of the tab based on the opening/closing animation */
 	FVector2D GetAnimatedScale() const;

@@ -260,7 +260,10 @@ void UComboBoxString::HandleSelectionChanged(TSharedPtr<FString> Item, ESelectIn
 	SelectedOption = CurrentOptionPtr.IsValid() ? CurrentOptionPtr.ToSharedRef().Get() : FString();
 
 	// When the selection changes we always generate another widget to represent the content area of the combobox.
-	ComboBoxContent->SetContent(HandleGenerateWidget(CurrentOptionPtr));
+	if ( ComboBoxContent.IsValid() )
+	{
+		ComboBoxContent->SetContent(HandleGenerateWidget(CurrentOptionPtr));
+	}
 
 	if ( !IsDesignTime() )
 	{

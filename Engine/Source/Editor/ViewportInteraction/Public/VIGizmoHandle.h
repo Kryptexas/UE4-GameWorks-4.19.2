@@ -20,7 +20,7 @@ struct VIEWPORTINTERACTION_API FGizmoHandle
 	GENERATED_BODY()
 
 	/** Static mesh for this handle */
-	class UStaticMeshComponent* HandleMesh;
+	class UGizmoHandleMeshComponent* HandleMesh;
 
 	/** Scalar that will advance toward 1.0 over time as we hover over the gizmo handle */
 	float HoverAlpha;
@@ -40,9 +40,6 @@ public:
 	/** Default constructor that sets up CDO properties */
 	UGizmoHandleGroup();
 	
-	/** Deconstructor */
-	virtual ~UGizmoHandleGroup();
-
 	/** Given the unique index, makes a handle */
 	FTransformGizmoHandlePlacement MakeHandlePlacementForIndex( const int32 HandleIndex ) const;
 
@@ -62,11 +59,7 @@ public:
 	/** Default setting the visibility and collision for all the handles in this group */
 	void UpdateVisibilityAndCollision(const EGizmoHandleTypes GizmoType, const ECoordSystem GizmoCoordinateSpace, const bool bAllHandlesVisible, const bool bAllowRotationAndScaleHandles, UActorComponent* DraggingHandle);
 
-	/** Gets the InteractionType and the HandlePlacement for this Gizmo handle */
-	virtual void GetHandleIndexInteractionType( const int32 HandleIndex, ETransformGizmoInteractionType& OutInteractionType, TOptional<FTransformGizmoHandlePlacement>& OutHandlePlacement );
-
-	/** Gets the Gizmo InteractionType, needs to be implemented by derived classes */
-	virtual ETransformGizmoInteractionType GetInteractionType() const;
+	class UViewportDragOperationComponent* GetDragOperationComponent();
 
 	/** Finds the index of DraggedMesh in HandleMeshes */
 	virtual int32 GetDraggedHandleIndex( class UStaticMeshComponent* DraggedMesh );
@@ -103,13 +96,13 @@ protected:
 	void UpdateHandleColor( const int32 AxisIndex, FGizmoHandle& Handle, class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles );
 
 	/** Helper function to create gizmo handle meshes */
-	class UStaticMeshComponent* CreateMeshHandle( class UStaticMesh* HandleMesh, const FString& ComponentName );
+	class UGizmoHandleMeshComponent* CreateMeshHandle( class UStaticMesh* HandleMesh, const FString& ComponentName );
 
 	/** Creates handle meshcomponent and adds it to the Handles list */
-	class UStaticMeshComponent* CreateAndAddMeshHandle( class UStaticMesh* HandleMesh, const FString& ComponentName, const FTransformGizmoHandlePlacement& HandlePlacement );
+	class UGizmoHandleMeshComponent* CreateAndAddMeshHandle( class UStaticMesh* HandleMesh, const FString& ComponentName, const FTransformGizmoHandlePlacement& HandlePlacement );
 
 	/** Adds the HandleMeshComponent to the Handles list */
-	void AddMeshToHandles( class UStaticMeshComponent* HandleMeshComponent, const FTransformGizmoHandlePlacement& HandlePlacement );
+	void AddMeshToHandles( class UGizmoHandleMeshComponent* HandleMeshComponent, const FTransformGizmoHandlePlacement& HandlePlacement );
 
 	/** Gets the handleplacement axes */
 	FTransformGizmoHandlePlacement GetHandlePlacement( const int32 X, const int32 Y, const int32 Z ) const;
@@ -129,6 +122,9 @@ protected:
 	/** The actor transform gizmo owning this handlegroup */
 	UPROPERTY()
 	class ABaseTransformGizmo* OwningTransformGizmoActor;
+
+	UPROPERTY()
+	class UViewportDragOperationComponent* DragOperationComponent;
 
 private:
 

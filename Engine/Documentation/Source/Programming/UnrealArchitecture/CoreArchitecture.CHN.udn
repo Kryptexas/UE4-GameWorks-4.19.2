@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2728610
-Availability:Public
-Title:游戏性编程
-Crumbs:%ROOT%, Programming
-Description:基本游戏性元素、Actor 和对象的解释。
-version:4.9
+﻿INTSourceChangelist: 3388780
+Availability: Public
+Title: 游戏逻辑编程
+Crumbs: %ROOT%, Programming
+Description: 基本游戏性元素、Actor 和 对象 的解释。
+version: 4.9
 
 
 此文档将大概讲述引擎的核心功能，介绍一些核心架构概念，助您了解基本代码。
@@ -20,8 +20,4 @@ version:4.9
 
 [INCLUDE:Gameplay/Framework/QuickReference]
 
-
-
-
-
-
+想要在 UE4 中开始编程的道路，还可以去我们 [](Programming/QuickStart) 页面和其他页面 [](Programming\Tutorials) 看看。

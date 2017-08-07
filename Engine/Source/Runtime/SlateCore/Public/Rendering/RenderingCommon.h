@@ -148,9 +148,6 @@ struct SLATECORE_API FSlateVertex
 	/** Position of the vertex in window space */
 	FVector2D Position;
 
-	/** clip center/extents in render window space (window space with render transforms applied) */
-	FSlateRotatedRect ClipRect;
-
 	/** Vertex color */
 	FColor Color;
 	
@@ -158,105 +155,37 @@ struct SLATECORE_API FSlateVertex
 	uint16 PixelSize[2];
 
 	FSlateVertex() {}
-
-public:
 	
-	// These constructors have more or less been deprecated, you should use FSlateVertex::Make<ESlateVertexRounding::Enabled>(...) in order to have fine control over pixel snapping or not.
-	DEPRECATED(4.16, "FSlateVertex constructors have been deprecated, you should use FSlateVertex::Make" )
-	FSlateVertex(const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InTexCoord, const FVector2D& InTexCoord2, const FColor& InColor, const FSlateRotatedRect& InClipRect)
-		: Position(TransformPoint(RenderTransform, InLocalPosition))
-		, ClipRect(InClipRect)
-		, Color(InColor)
-	{
-		Position.X = FMath::RoundToInt(Position.X);
-		Position.Y = FMath::RoundToInt(Position.Y);
-
-		TexCoords[0] = InTexCoord.X;
-		TexCoords[1] = InTexCoord.Y;
-		TexCoords[2] = InTexCoord2.X;
-		TexCoords[3] = InTexCoord2.Y;
-	}
-
-	DEPRECATED(4.16, "FSlateVertex constructors have been deprecated, you should use FSlateVertex::Make")
-	FSlateVertex(const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InTexCoord, const FColor& InColor, const FSlateRotatedRect& InClipRect)
-		: Position(TransformPoint(RenderTransform, InLocalPosition))
-		, ClipRect(InClipRect)
-		, Color(InColor)
-	{
-		Position.X = FMath::RoundToInt(Position.X);
-		Position.Y = FMath::RoundToInt(Position.Y);
-
-		TexCoords[0] = InTexCoord.X;
-		TexCoords[1] = InTexCoord.Y;
-		TexCoords[2] = 1.0f;
-		TexCoords[3] = 1.0f;
-	}
-
-	DEPRECATED(4.16, "FSlateVertex constructors have been deprecated, you should use FSlateVertex::Make")
-	FSlateVertex(const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector4& InTexCoords, const FVector2D& InMaterialTexCoords, const FColor& InColor, const FSlateRotatedRect& InClipRect)
-		: MaterialTexCoords(InMaterialTexCoords)
-		, Position(TransformPoint(RenderTransform, InLocalPosition))
-		, ClipRect(InClipRect)
-		, Color(InColor)
-	{
-		Position.X = FMath::RoundToInt(Position.X);
-		Position.Y = FMath::RoundToInt(Position.Y);
-
-		TexCoords[0] = InTexCoords.X;
-		TexCoords[1] = InTexCoords.Y;
-		TexCoords[2] = InTexCoords.Z;
-		TexCoords[3] = InTexCoords.W;
-	}
-
-	DEPRECATED(4.16, "FSlateVertex constructors have been deprecated, you should use FSlateVertex::Make")
-	FSlateVertex(const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InLocalSize, float Scale, const FVector4& InTexCoords, const FColor& InColor, const FSlateRotatedRect& InClipRect)
-		: MaterialTexCoords(InLocalPosition.X / InLocalSize.X, InLocalPosition.Y / InLocalSize.Y)
-		, Position(TransformPoint(RenderTransform, InLocalPosition))
-		, ClipRect(InClipRect)
-		, Color(InColor)
-	{
-		Position.X = FMath::RoundToInt(Position.X);
-		Position.Y = FMath::RoundToInt(Position.Y);
-
-		PixelSize[0] = FMath::RoundToInt(InLocalSize.X * Scale);
-		PixelSize[1] = FMath::RoundToInt(InLocalSize.Y * Scale);
-
-		TexCoords[0] = InTexCoords.X;
-		TexCoords[1] = InTexCoords.Y;
-		TexCoords[2] = InTexCoords.Z;
-		TexCoords[3] = InTexCoords.W;
-	}
-
 public:
 
 	template<ESlateVertexRounding Rounding>
-	static FSlateVertex Make(const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InTexCoord, const FVector2D& InTexCoord2, const FColor& InColor, const FSlateRotatedRect& InClipRect)
+	static FSlateVertex Make(const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InTexCoord, const FVector2D& InTexCoord2, const FColor& InColor)
 	{
 		FSlateVertex Vertex;
 		Vertex.TexCoords[0] = InTexCoord.X;
 		Vertex.TexCoords[1] = InTexCoord.Y;
 		Vertex.TexCoords[2] = InTexCoord2.X;
 		Vertex.TexCoords[3] = InTexCoord2.Y;
-		Vertex.InitCommon<Rounding>(RenderTransform, InLocalPosition, InColor, InClipRect);
+		Vertex.InitCommon<Rounding>(RenderTransform, InLocalPosition, InColor);
 
 		return Vertex;
 	}
 
 	template<ESlateVertexRounding Rounding>
-	static FSlateVertex Make(const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InTexCoord, const FColor& InColor, const FSlateRotatedRect& InClipRect)
+	static FSlateVertex Make(const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InTexCoord, const FColor& InColor)
 	{
 		FSlateVertex Vertex;
 		Vertex.TexCoords[0] = InTexCoord.X;
 		Vertex.TexCoords[1] = InTexCoord.Y;
 		Vertex.TexCoords[2] = 1.0f;
 		Vertex.TexCoords[3] = 1.0f;
-		Vertex.InitCommon<Rounding>(RenderTransform, InLocalPosition, InColor, InClipRect);
+		Vertex.InitCommon<Rounding>(RenderTransform, InLocalPosition, InColor);
 
 		return Vertex;
 	}
 
 	template<ESlateVertexRounding Rounding>
-	static FSlateVertex Make(const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector4& InTexCoords, const FVector2D& InMaterialTexCoords, const FColor& InColor, const FSlateRotatedRect& InClipRect)
+	static FSlateVertex Make(const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector4& InTexCoords, const FVector2D& InMaterialTexCoords, const FColor& InColor)
 	{
 		FSlateVertex Vertex;
 		Vertex.TexCoords[0] = InTexCoords.X;
@@ -264,20 +193,21 @@ public:
 		Vertex.TexCoords[2] = InTexCoords.Z;
 		Vertex.TexCoords[3] = InTexCoords.W;
 		Vertex.MaterialTexCoords = InMaterialTexCoords;
-		Vertex.InitCommon<Rounding>(RenderTransform, InLocalPosition, InColor, InClipRect);
+		Vertex.InitCommon<Rounding>(RenderTransform, InLocalPosition, InColor);
 
 		return Vertex;
 	}
 
 	template<ESlateVertexRounding Rounding>
-	static FSlateVertex Make(const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InLocalSize, float Scale, const FVector4& InTexCoords, const FColor& InColor, const FSlateRotatedRect& InClipRect)
+	static FSlateVertex Make(const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InLocalSize, float Scale, const FVector4& InTexCoords, const FColor& InColor)
 	{
 		FSlateVertex Vertex;
 		Vertex.TexCoords[0] = InTexCoords.X;
 		Vertex.TexCoords[1] = InTexCoords.Y;
 		Vertex.TexCoords[2] = InTexCoords.Z;
 		Vertex.TexCoords[3] = InTexCoords.W;
-		Vertex.InitCommon<Rounding>(RenderTransform, InLocalPosition, InColor, InClipRect);
+		Vertex.MaterialTexCoords = FVector2D(InLocalPosition.X / InLocalSize.X, InLocalPosition.Y / InLocalSize.Y);
+		Vertex.InitCommon<Rounding>(RenderTransform, InLocalPosition, InColor);
 		Vertex.PixelSize[0] = FMath::RoundToInt(InLocalSize.X * Scale);
 		Vertex.PixelSize[1] = FMath::RoundToInt(InLocalSize.Y * Scale);
 		Vertex.MaterialTexCoords = FVector2D(InLocalPosition.X / InLocalSize.X, InLocalPosition.Y / InLocalSize.Y);
@@ -288,7 +218,7 @@ public:
 private:
 
 	template<ESlateVertexRounding Rounding>
-	FORCEINLINE void InitCommon(const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FColor& InColor, const FSlateRotatedRect& InClipRect)
+	FORCEINLINE void InitCommon(const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FColor& InColor)
 	{
 		Position = TransformPoint(RenderTransform, InLocalPosition);
 
@@ -298,7 +228,6 @@ private:
 			Position.Y = FMath::RoundToInt(Position.Y);
 		}
 
-		ClipRect = InClipRect;
 		Color = InColor;
 	}
 };
@@ -352,11 +281,19 @@ struct FShortRect
 		return !bDoNotOverlap;
 	}
 
+	FVector2D GetTopLeft() const { return FVector2D(Left, Top); }
+	FVector2D GetBottomRight() const { return FVector2D(Right, Bottom); }
+
 	uint16 Left;
 	uint16 Top;
 	uint16 Right;
 	uint16 Bottom;
 };
+
+static FVector2D RoundToInt(const FVector2D& Vec)
+{
+	return FVector2D(FMath::RoundToInt(Vec.X), FMath::RoundToInt(Vec.Y));
+}
 
 /**
  * Viewport implementation interface that is used by SViewport when it needs to draw and processes input.                   
@@ -373,7 +310,7 @@ public:
 	 *
 	 * @param AllottedGeometry	The geometry of the viewport widget
 	 */
-	virtual void OnDrawViewport( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, class FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) { }
+	virtual void OnDrawViewport( const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, class FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) { }
 	
 	/**
 	 * Returns the size of the viewport                   

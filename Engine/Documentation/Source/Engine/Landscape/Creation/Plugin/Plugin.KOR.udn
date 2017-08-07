@@ -1,10 +1,12 @@
-﻿INTSourceChangelist:3347993
+﻿INTSourceChangelist:3480877
 Availability: Public
 Title:커스텀 랜드스케이프 임포터 제작
 Crumbs: %ROOT%, Engine, Engine/Landscape, Engine/Landscape/Creation
 Description:플러그인을 통한 새로운 랜드스케이프 임포트 포맷을 만드는 방법 안내입니다.
 version: 4.15
 parent:Engine/Landscape
+topic-image:CreatingCustomLandscapeImporters_topic.png
+order:8
 
 랜드스케이프 데이터 임포트를 위한 별도의 하이트맵 및 웨이트맵 제작은 플러그인을 만드는 것으로 가능합니다. 플러그인은 엔진에 새로운 포맷을 추가해 줄 뿐만 아니라, 파일에서도 데이터를 임포트할 수 있습니다.
 

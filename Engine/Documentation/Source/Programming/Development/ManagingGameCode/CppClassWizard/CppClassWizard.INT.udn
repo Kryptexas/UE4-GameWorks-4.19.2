@@ -2,7 +2,10 @@ Availability:Public
 Title:C++ Class Wizard
 Crumbs: %ROOT%, Programming, Programming\Development
 Description:An overview of the C++ Class Wizard in UE4.
-Version: 4.9
+Version: 4.16
+Parent:Programming/Development/ManagingGameCode
+Order:
+type:overview
 
 %Globals:OSSelect%
 
@@ -13,7 +16,7 @@ The **C++ Class Wizard** provides a fast and easy way to add native C++ code cla
 with your own functionality, if you wish. This converts a content-only project into a code project. You can access the C++ Class Wizard like so:
 
 [REGION:note]
-On Windows, please make sure you have Visual Studio 2013 Express, Community, or Professional for Windows Desktop installed before proceeding.  On Mac, make sure to have Xcode 6.1 or higher installed.
+Please make sure you are running Visual Studio 2015 or higher for Windows Desktop installed before proceeding.  If you are using Mac, make sure to have Xcode 8 or higher installed.
 [/REGION:note]
 
 
@@ -51,7 +54,7 @@ On Windows, please make sure you have Visual Studio 2013 Express, Community, or 
 		active_button_content
 		[/PARAMLITERAL]
 		[PARAM:content]
-		The code will immediately open in Visual Studio 2013, ready for editing.
+		The code will immediately open in Visual Studio, ready for editing.
 	
 		![](CodeEditing.png)
 

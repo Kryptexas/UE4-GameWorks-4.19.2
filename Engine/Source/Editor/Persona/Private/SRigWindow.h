@@ -64,7 +64,7 @@ private:
 	TSharedRef<SWidget> MakeRigPickerWithMenu();
 
 	/** Returns true if the asset shouldn't show  */
-	bool ShouldFilterAsset(const class FAssetData& AssetData);
+	bool ShouldFilterAsset(const struct FAssetData& AssetData);
 
 	URig* GetRigObject() const;
 	

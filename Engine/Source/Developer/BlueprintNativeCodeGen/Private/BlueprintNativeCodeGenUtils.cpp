@@ -93,6 +93,7 @@ static bool BlueprintNativeCodeGenUtilsImpl::GeneratePluginDescFile(const FBluep
 	PluginDesc.bEnabledByDefault  = true;
 	PluginDesc.bCanContainContent = false;
 	PluginDesc.bIsBetaVersion     = true; // @TODO: change once we're confident in the feature
+	PluginDesc.bIsHidden    = true; 
 
 	const FName ModuleName = *TargetPaths.RuntimeModuleName();
 	FModuleDescriptor* ModuleDesc = PluginDesc.Modules.FindByPredicate([ModuleName](const FModuleDescriptor& Module)->bool
@@ -107,6 +108,7 @@ static bool BlueprintNativeCodeGenUtilsImpl::GeneratePluginDescFile(const FBluep
 	else
 	{
 		ModuleDesc->WhitelistPlatforms.Empty();
+		ModuleDesc->WhitelistTargets.Empty();
 	}
 	if (ensure(ModuleDesc))
 	{
@@ -123,6 +125,26 @@ static bool BlueprintNativeCodeGenUtilsImpl::GeneratePluginDescFile(const FBluep
 				// We use the 'UBTTargetId' because this white-list expects the 
 				// string to correspond to UBT's UnrealTargetPlatform enum (and by proxy, FPlatformMisc::GetUBTPlatform)
 				ModuleDesc->WhitelistPlatforms.AddUnique(PlatformIt->UBTTargetId.ToString());
+
+				// should correspond to UnrealBuildTool::TargetType in TargetRules.cs
+				switch (PlatformIt->PlatformType)
+				{
+				case PlatformInfo::EPlatformType::Game:
+					ModuleDesc->WhitelistTargets.AddUnique(TEXT("Game"));
+					break;
+
+				case PlatformInfo::EPlatformType::Client:
+					ModuleDesc->WhitelistTargets.AddUnique(TEXT("Client"));
+					break;
+
+				case PlatformInfo::EPlatformType::Server:
+					ModuleDesc->WhitelistTargets.AddUnique(TEXT("Server"));
+					break;
+
+				case PlatformInfo::EPlatformType::Editor:
+					ensureMsgf(PlatformIt->PlatformType != PlatformInfo::EPlatformType::Editor, TEXT("Nativized Blueprint plugin is for cooked projects only - it isn't supported in editor builds."));
+					break;
+				};				
 			}
 		}
 	}
@@ -393,11 +415,11 @@ void FBlueprintNativeCodeGenUtils::GenerateCppCode(UObject* Obj, TSharedPtr<FStr
 		IKismetCompilerInterface& Compiler = FModuleManager::LoadModuleChecked<IKismetCompilerInterface>(KISMET_COMPILER_MODULENAME);
 		if (UDEnum)
 		{
-			Compiler.GenerateCppCodeForEnum(UDEnum, *OutHeaderSource, *OutCppSource);
+			Compiler.GenerateCppCodeForEnum(UDEnum, NativizationOptions, *OutHeaderSource, *OutCppSource);
 		}
 		else if (UDStruct)
 		{
-			*OutHeaderSource = Compiler.GenerateCppCodeForStruct(UDStruct, NativizationOptions);
+			Compiler.GenerateCppCodeForStruct(UDStruct, NativizationOptions, *OutHeaderSource, *OutCppSource);
 		}
 	}
 	else

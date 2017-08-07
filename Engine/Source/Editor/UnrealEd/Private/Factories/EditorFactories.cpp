@@ -237,7 +237,7 @@
 #include "Haptics/HapticFeedbackEffect_Buffer.h"
 #include "Haptics/HapticFeedbackEffect_SoundWave.h"
 #include "DataTableEditorUtils.h"
-#include "Editor/KismetCompiler/Public/KismetCompilerModule.h"
+#include "KismetCompilerModule.h"
 #include "Factories/SubUVAnimationFactory.h"
 #include "Particles/SubUVAnimation.h"
 #include "Kismet2/BlueprintEditorUtils.h"
@@ -247,8 +247,11 @@
 #include "Factories/PreviewMeshCollectionFactory.h"
 #include "Factories/ForceFeedbackAttenuationFactory.h"
 #include "FileHelper.h"
+#include "ActorGroupingUtils.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogEditorFactories, Log, All);
+#include "Editor/EditorPerProjectUserSettings.h"
+
+DEFINE_LOG_CATEGORY(LogEditorFactories);
 
 #define LOCTEXT_NAMESPACE "EditorFactories"
 
@@ -260,14 +263,14 @@ class FAssetClassParentFilter : public IClassViewerFilter
 {
 public:
 	FAssetClassParentFilter()
-		: DisallowedClassFlags(0), bDisallowBlueprintBase(false)
+		: DisallowedClassFlags(CLASS_None), bDisallowBlueprintBase(false)
 	{}
 
 	/** All children of these classes will be included unless filtered out by another setting. */
 	TSet< const UClass* > AllowedChildrenOfClasses;
 
 	/** Disallowed class flags. */
-	uint32 DisallowedClassFlags;
+	EClassFlags DisallowedClassFlags;
 
 	/** Disallow blueprint base classes. */
 	bool bDisallowBlueprintBase;
@@ -758,7 +761,7 @@ UObject* ULevelFactory::FactoryCreateText
 						
 						if( NewActor )
 						{
-							if( GEditor->bGroupingActive && !Cast<AGroupActor>(NewActor) )
+							if( UActorGroupingUtils::IsGroupingActive() && !Cast<AGroupActor>(NewActor) )
 							{
 								bool bGrouped = false;
 
@@ -989,26 +992,18 @@ UObject* ULevelFactory::FactoryCreateText
 
 		// Import properties if the new actor is 
 		bool		bActorChanged = false;
-		FString*	PropText = &(ActorMapElement.Value); 
-		if( PropText )
+		FString&	PropText = ActorMapElement.Value;
+		if ( Actor->ShouldImport(&PropText, bIsMoveToStreamingLevel) )
 		{
-			if ( Actor->ShouldImport(PropText, bIsMoveToStreamingLevel) )
-			{
-				Actor->PreEditChange(nullptr);
-				ImportObjectProperties( (uint8*)Actor, **PropText, Actor->GetClass(), Actor, Actor, Warn, 0, INDEX_NONE, NULL, &ExistingToNewMap );
-				bActorChanged = true;
+			Actor->PreEditChange(nullptr);
+			ImportObjectProperties( (uint8*)Actor, *PropText, Actor->GetClass(), Actor, Actor, Warn, 0, INDEX_NONE, NULL, &ExistingToNewMap );
+			bActorChanged = true;
 
-				GEditor->SelectActor( Actor, true, false, true );
-			}
-			else // This actor is new, but rejected to import its properties, so just delete...
-			{
-				Actor->Destroy();
-			}
+			GEditor->SelectActor( Actor, true, false, true );
 		}
-		else
-		if( !Actor->IsA(AInstancedFoliageActor::StaticClass()) )
+		else // This actor is new, but rejected to import its properties, so just delete...
 		{
-			// This actor is old
+			Actor->Destroy();
 		}
 
 		// If this is a newly imported brush, validate it.  If it's a newly imported dynamic brush, rebuild it first.
@@ -4977,18 +4972,24 @@ EReimportResult::Type UReimportFbxStaticMeshFactory::Reimport( UObject* Obj )
 	{
 		ImportUI = NewObject<UFbxImportUI>(this, NAME_None, RF_Public);
 	}
+	const bool ShowImportDialogAtReimport = GetDefault<UEditorPerProjectUserSettings>()->bShowImportDialogAtReimport && !GIsAutomationTesting;
 
-	if( ImportData )
+	if( ImportData  && !ShowImportDialogAtReimport)
 	{
 		// Import data already exists, apply it to the fbx import options
 		ReimportUI->StaticMeshImportData = ImportData;
+		ReimportUI->bResetMaterialSlots = false;
 		ApplyImportUIToImportOptions(ReimportUI, *ImportOptions);
 	}
 	else
 	{
-		// An existing import data object was not found, make one here and show the options dialog
-		ImportData = UFbxStaticMeshImportData::GetImportDataForStaticMesh(Mesh, ImportUI->StaticMeshImportData);
-		Mesh->AssetImportData = ImportData;
+		if (ImportData == nullptr)
+		{
+			// An existing import data object was not found, make one here and show the options dialog
+			ImportData = UFbxStaticMeshImportData::GetImportDataForStaticMesh(Mesh, ImportUI->StaticMeshImportData);
+			Mesh->AssetImportData = ImportData;
+		}
+		ReimportUI->bIsReimport = true;
 		ReimportUI->StaticMeshImportData = ImportData;
 		
 		bool bImportOperationCanceled = false;
@@ -4997,7 +4998,7 @@ EReimportResult::Type UReimportFbxStaticMeshFactory::Reimport( UObject* Obj )
 		bool bOutImportAll = false;
 		bool bIsObjFormat = false;
 		bool bIsAutomated = false;
-		GetImportOptions( FFbxImporter, ReimportUI, bShowOptionDialog, bIsAutomated, Obj->GetPathName(), bOperationCanceled, bOutImportAll, bIsObjFormat, bForceImportType, FBXIT_StaticMesh );
+		GetImportOptions( FFbxImporter, ReimportUI, bShowOptionDialog, bIsAutomated, Obj->GetPathName(), bOperationCanceled, bOutImportAll, bIsObjFormat, bForceImportType, FBXIT_StaticMesh, Mesh);
 	}
 
 	//We do not touch bAutoComputeLodDistances when we re-import, setting it to true will make sure we do not change anything.
@@ -5111,6 +5112,7 @@ EReimportResult::Type UReimportFbxStaticMeshFactory::Reimport( UObject* Obj )
 	}
 	else
 	{
+		FFbxImporter->ReleaseScene();
 		return EReimportResult::Cancelled;
 	}
 }
@@ -5155,7 +5157,7 @@ bool UReimportFbxSkeletalMeshFactory::CanReimport( UObject* Obj, TArray<FString>
 				//This skeletal mesh was import with a scene import, we cannot reimport it here
 				return false;
 			}
-			else if (SkeletalMesh->AssetImportData != nullptr && (FPaths::GetExtension(SkeletalMesh->AssetImportData->GetFirstFilename()).ToLower() == "abc"))
+			else if (FPaths::GetExtension(SkeletalMesh->AssetImportData->GetFirstFilename()).ToLower() == "abc")
 			{
 				return false;
 			}
@@ -5219,21 +5221,26 @@ EReimportResult::Type UReimportFbxSkeletalMeshFactory::Reimport( UObject* Obj )
 
 	bool bSuccess = false;
 
-	if( ImportData )
+	const bool ShowImportDialogAtReimport = GetDefault<UEditorPerProjectUserSettings>()->bShowImportDialogAtReimport && !GIsAutomationTesting;
+	if( ImportData && !ShowImportDialogAtReimport)
 	{
 		// Import data already exists, apply it to the fbx import options
 		ReimportUI->SkeletalMeshImportData = ImportData;
 		//Some options not supported with skeletal mesh
 		ReimportUI->SkeletalMeshImportData->bBakePivotInVertex = false;
 		ReimportUI->SkeletalMeshImportData->bTransformVertexToAbsolute = true;
-
+		ReimportUI->bResetMaterialSlots = false;
 		ApplyImportUIToImportOptions(ReimportUI, *ImportOptions);
 	}
 	else
 	{
-		// An existing import data object was not found, make one here and show the options dialog
-		ImportData = UFbxSkeletalMeshImportData::GetImportDataForSkeletalMesh(SkeletalMesh, ImportUI->SkeletalMeshImportData);
-		SkeletalMesh->AssetImportData = ImportData;
+		if (ImportData == nullptr)
+		{
+			// An existing import data object was not found, make one here and show the options dialog
+			ImportData = UFbxSkeletalMeshImportData::GetImportDataForSkeletalMesh(SkeletalMesh, ImportUI->SkeletalMeshImportData);
+			SkeletalMesh->AssetImportData = ImportData;
+		}
+		ReimportUI->bIsReimport = true;
 		ReimportUI->SkeletalMeshImportData = ImportData;
 
 		bool bImportOperationCanceled = false;
@@ -5247,7 +5254,7 @@ EReimportResult::Type UReimportFbxSkeletalMeshFactory::Reimport( UObject* Obj )
 		ImportOptions->bCreatePhysicsAsset = false;
 		ImportOptions->PhysicsAsset = SkeletalMesh->PhysicsAsset;
 
-		ImportOptions = GetImportOptions( FFbxImporter, ReimportUI, bShowOptionDialog, bIsAutomated, Obj->GetPathName(), bOperationCanceled, bOutImportAll, bIsObjFormat, bForceImportType, FBXIT_SkeletalMesh );
+		ImportOptions = GetImportOptions( FFbxImporter, ReimportUI, bShowOptionDialog, bIsAutomated, Obj->GetPathName(), bOperationCanceled, bOutImportAll, bIsObjFormat, bForceImportType, FBXIT_SkeletalMesh, Obj );
 	}
 
 	if( !bOperationCanceled && ensure(ImportData) )
@@ -5306,6 +5313,7 @@ EReimportResult::Type UReimportFbxSkeletalMeshFactory::Reimport( UObject* Obj )
 	}
 	else
 	{
+		FFbxImporter->ReleaseScene();
 		return EReimportResult::Cancelled;
 	}
 }
@@ -5363,6 +5371,10 @@ bool UReimportFbxAnimSequenceFactory::CanReimport( UObject* Obj, TArray<FString>
 			if (FbxAssetImportData != nullptr && FbxAssetImportData->bImportAsScene)
 			{
 				//This mesh was import with a scene import, we cannot reimport it
+				return false;
+			}
+			else if (FPaths::GetExtension(AnimSequence->AssetImportData->GetFirstFilename()).ToLower() == "abc")
+			{
 				return false;
 			}
 		}
@@ -6050,7 +6062,7 @@ bool UDataAssetFactory::ConfigureProperties()
 	TSharedPtr<FAssetClassParentFilter> Filter = MakeShareable(new FAssetClassParentFilter);
 	Options.ClassFilter = Filter;
 
-	Filter->DisallowedClassFlags = CLASS_Abstract | CLASS_Deprecated | CLASS_NewerVersionExists;
+	Filter->DisallowedClassFlags = CLASS_Abstract | CLASS_Deprecated | CLASS_NewerVersionExists | CLASS_HideDropDown;
 	Filter->AllowedChildrenOfClasses.Add(UDataAsset::StaticClass());
 
 	const FText TitleText = LOCTEXT("CreateDataAssetOptions", "Pick Data Asset Class");

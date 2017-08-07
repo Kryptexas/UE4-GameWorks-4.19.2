@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3318622
+﻿INTSourceChangelist:3429233
 Availability:Public
 Title:애님 몽타주
 Crumbs:
@@ -17,6 +17,8 @@ Order:
 tags:Animation Montage
 tags:Animation
 type:overview
+tags:Assets
+topic-image:Engine/Animation/Overview/MontageTopic.png
 
 [TOC(start:2 end:3)]
 

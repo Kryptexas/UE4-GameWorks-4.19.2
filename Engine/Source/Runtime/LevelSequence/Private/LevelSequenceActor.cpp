@@ -65,6 +65,10 @@ void ALevelSequenceActor::BeginPlay()
 	{
 		InitializePlayer();
 	}
+	if (SequencePlayer)
+	{
+		SequencePlayer->BeginPlay();
+	}
 }
 
 
@@ -146,9 +150,43 @@ void ALevelSequenceActor::UpdateObjectFromProxy(FStructOnScope& Proxy, IProperty
 
 #endif
 
-ULevelSequence* ALevelSequenceActor::GetSequence(bool Load) const
+
+void ALevelSequenceActor::OnSequenceLoaded(const FName& PackageName, UPackage* Package, EAsyncLoadingResult::Type Result, bool bInitializePlayer)
 {
-	return Cast<ULevelSequence>(Load ? LevelSequence.TryLoad() : LevelSequence.ResolveObject());
+	if (Result == EAsyncLoadingResult::Succeeded)
+	{
+		if (bInitializePlayer)
+		{
+			InitializePlayer();
+		}
+	}
+}
+
+ULevelSequence* ALevelSequenceActor::GetSequence(bool bLoad, bool bInitializePlayer) const
+{
+	if (LevelSequence.IsValid())
+	{
+		ULevelSequence* Sequence = Cast<ULevelSequence>(LevelSequence.ResolveObject());
+		if (Sequence)
+		{
+			return Sequence;
+		}
+
+		if (bLoad)
+		{
+			if (IsAsyncLoading())
+			{
+				LoadPackageAsync(LevelSequence.GetLongPackageName(), FLoadPackageAsyncDelegate::CreateUObject(this, &ALevelSequenceActor::OnSequenceLoaded, bInitializePlayer));
+				return nullptr;
+			}
+			else
+			{
+				return Cast<ULevelSequence>(LevelSequence.TryLoad());
+			}
+		}
+	}
+
+	return nullptr;
 }
 
 
@@ -172,7 +210,7 @@ void ALevelSequenceActor::SetEventReceivers(TArray<AActor*> InAdditionalReceiver
 
 void ALevelSequenceActor::InitializePlayer()
 {
-	ULevelSequence* LevelSequenceAsset = GetSequence(true);
+	ULevelSequence* LevelSequenceAsset = GetSequence(true, true);
 
 	if (GetWorld()->IsGameWorld() && (LevelSequenceAsset != nullptr))
 	{

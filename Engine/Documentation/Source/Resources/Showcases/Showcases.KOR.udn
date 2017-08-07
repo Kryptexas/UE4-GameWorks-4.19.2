@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3275209
+﻿INTSourceChangelist:3403470
 Availability: Public
 Title:엔진 기능 예제
 Crumbs:%ROOT%, Resources
@@ -51,6 +51,7 @@ Version: 4.9
 [/EXCERPT:Showcases]
 
 [REGION:topics third]
+%Resources/Showcases/PhotorealisticCharacter:topiccompact%
 %Resources/Showcases/SequencerSubway:topiccompact%
 %Resources/Showcases/Infiltrator:topiccompact%
 %Resources/ContentExamples:TopicCompact%

@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:2705356
+﻿INTSourceChangelist:3429254
 Availability:Public
 Title:ブループリントでアクタをスポーン/ 破壊する方法
 Crumbs: %ROOT%, Gameplay, Gameplay/HowTo/SpawnAndDestroyActors
 Description:UE4 のブループリントでアクタをスポーン / 破壊するための操作ガイド
 Version:4.9
 SkillLevel:Intermediate
+type:how-to
 
 [TOC (start:2)]
 
@@ -172,6 +173,7 @@ Transform を手動で設定する方法およびアクタの Transform を参�
 Level ブループリントでスポーンされたアクタを破壊するには、以下の操作を行います。 
 
 1. エディタ内で任意のプロジェクトを一旦開き、 **[ブループリント]** ボタンと **Open Level Blueprint** をクリックします。  
+
 	[REGION:raw]
 	![](GHT1_1.png)
 	[/REGION]
@@ -208,7 +210,7 @@ Level ブループリントでスポーンされたアクタを破壊するに�
 
 SpawnActor ノードを実行してアクタをスポーンすると、必要に応じたイベントの種類でアクタの破壊がトリガーされます。 
 
-ブループリントを使った作業の詳細については、 [](Engine/Blueprints/UserGuide) を参照してください。 
+ブループリント を使った作業の詳細については、 [](Engine/Blueprints/UserGuide) を参照してください。 
 
 
 

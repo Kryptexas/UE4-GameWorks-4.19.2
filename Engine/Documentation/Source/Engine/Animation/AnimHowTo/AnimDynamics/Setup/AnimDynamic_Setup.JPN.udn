@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2988432
+﻿INTSourceChangelist:3376720
 Availability:Public
 Title:1 - 必要な設定
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo, Engine\Animation\AnimHowTo\AnimDynamics
@@ -6,6 +6,7 @@ Description:動的アニメーションを適用するキャラクターをセ�
 SkillLevel:Advanced
 Version:4.11
 checkpoint: editorqs
+Order:1
  
 [VAR:Steps]
 [OBJECT:Navigation]

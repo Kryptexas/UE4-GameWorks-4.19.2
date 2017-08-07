@@ -6,46 +6,9 @@ Navigation:topic
 parent:Engine/Editor
 order:5
 type:landing
+topic-image:Engine/Actors/Placement/actorplacement_topic.png
 track:LevelDesign_Beginner|7
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Actors:title%](Engine/Actors/Placement/actorplacement_topic.png)(convert:false)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Actors:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Actors]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Actors:title%](Engine/Actors/Placement/actorplacement_topic.png)(convert:false)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Actors:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Actors:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Actors]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [REGION:banner]
 ![](actorBanner.png)
@@ -64,32 +27,9 @@ properties will be modified to cause them to look or behave appropriately.
 
 ## Working with Actors
 
-[REGION:topics half]
-%Engine/Actors/Placement:topiccompact%
-%Engine/Actors/Selection:topiccompact%
-%Engine/Actors/Transform:topiccompact%
-%Engine/Actors/Grouping:topiccompact%
-[/REGION]
+[DIR(output:"topic" parent:"Engine/Actors" org:"hierarchy" end:"1" path:"!Engine/Actors/Types")]
 
+## Actor Types
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/levels_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-	[](Engine/Actors/Types "%Engine/Actors/Types:description%")
-	[/PARAM]
-	[PARAM:links]	
-	* [Static Mesh Actors](Engine/Actors/StaticMeshActor "%Engine/Actors/StaticMeshActor:description%")
-	* [](Engine/Actors/SkeletalMeshActors "%Engine/Actors/SkeletalMeshActors:description%")
-	* [Geometry Brush Actors](Engine/Actors/Brushes "%Engine/Actors/Brushes:description%")
-	* [](Engine/Actors/Volumes "%Engine/Actors/Volumes:description%")
-	* [](Engine/Actors/Triggers "%Engine/Actors/Triggers:description%")
-	* [](Engine/Actors/DecalActor "%Engine/Actors/DecalActor:description%")
-	* [](Engine/Actors/FogEffects "%Engine/Actors/FogEffects:description%")
-	* [](Engine/Actors/TargetPoint "%Engine/Actors/TargetPoint:description%")
-	* [](Engine/Actors/Mobility "%Engine/Actors/Mobility:description%")
-	* [](Engine/Actors/PlayerStart "%Engine/Actors/PlayerStart:description%")
-	* [](Engine/Actors/CameraActors "%Engine/Actors/CameraActors:description%")
-	[/PARAM]
-[/OBJECT]
+%Engine/Actors/Types:topic%
+[DIR(output:"topic" parent:"Engine/Actors/Types")]

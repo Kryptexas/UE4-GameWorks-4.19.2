@@ -1,12 +1,12 @@
-﻿INTSourceChangelist:2735872
+﻿INTSourceChangelist:3429254
 Availability:Public
 Title:ゲームプレイ フレームワークのクイック リファレンス
 Crumbs:%ROOT%, Gameplay, Gameplay/Framework
 Description:ゲームルール、キャラクター、コントローラー、ユーザーインターフェースなど、ゲームのフレームワークを構成するクラスの概略
 Version:4.9
-type:reference
+type:overview
 parent:Gameplay/Framework
-order:2
+order:0
 tags:Gameplay Framework
 
 基本的なゲームプレイ クラスにはプレイヤー、味方、敵を表す機能に加えて、プレイヤー入力もしくは AI ロジックでこれらのアバターを制御する機能が含まれます。プレイヤー用のヘッドアップ ディスプレイや 
@@ -16,90 +16,43 @@ tags:Gameplay Framework
 
 
 
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![](Gameplay/Framework/pawn_lander.png)(w:300)
-	[/PARAM]
-	[PARAM:title]
-		ワールドでプレイヤー、友達、敵を表現する
-	[/PARAM]
-	[PARAM:description]
-		**ポーン**
+## ワールドでプレイヤー、友達、敵を表現する
 
-		[](Gameplay/Framework/Pawn) はワールドで「エージェント」となりうるアクタです。ポーンはコントローラで所有することが可能で、入力の受け取りを簡単に設定でき、他のプレイヤーのような様々なことが行えます。ポーンは人間の形を前提としていないことにご注意ください。
+![](Gameplay/Framework/pawn_lander.png)(w:300)
 
-		**キャラクター**
+|||
+| --- | --- |
+| **Pawn** | [](Gameplay/Framework/Pawn) はワールドで「エージェント」となりうるアクタです。ポーンはコントローラで所有することが可能で、入力の受け取りを簡単に設定でき、他のプレイヤーのような様々なことが行えます。ポーンは人間の形を前提としていないことにご注意ください。 |
+| **Character** | [](Gameplay/Framework/Pawn/Character) は人間の形をしたポーンです。コリジョン用の CapsuleComponent と CharacterMovementComponent がデフォルトで付いています。人間の基本動作が可能で、ネットワーク全体でスムーズに動きをレプリケートでき、アニメーション関連機能も付いています。  |
 
-		 [](Gameplay/Framework/Pawn/Character) は人間の形をしたポーンです。コリジョン用の CapsuleComponent と CharacterMovementComponent がデフォルトで付いています。人間の基本動作が可能で、ネットワーク全体でスムーズに動きをレプリケートでき、アニメーション関連機能も付いています。 
+## プレイヤー入力や AI ロジックでポーンを制御する
 
-	[/PARAM]
-[/OBJECT]
+![](Gameplay/Framework/controller_lander.png)(w:300)
 
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![](Gameplay/Framework/controller_lander.png)(w:300)
-	[/PARAM]
-	[PARAM:title]
-		プレイヤー入力や AI ロジックでポーンを制御する
-	[/PARAM]
-	[PARAM:description]
+|||
+| --- | --- |
+| **Controller** | [](Gameplay/Framework/Controller) はポーンに指示を出す役目のアクタです。通常、 AIController と PlayerController の 2 タイプがあります。コントローラはポーンを「所有」して制御することができます。 |
+| **PlayerController** | [](Gameplay/Framework/Controller/PlayerController) は、ポーンと、それをコントロールする人プレーヤーとの間のインターフェースです。PlayerController は、基本的に人プレイヤーの意思を表します。 |
+| **AIController** | AIController は、ポーンを制御することができるシミュレートされた「意思」のようなものです。 |
 
-		**コントローラー** 
+## プレイヤーに情報を表示する
 
-		[](Gameplay/Framework/Controller) はポーンに指示を出す役目のアクタです。通常、 AIController と PlayerController の 2 タイプがあります。コントローラはポーンを「所有」して制御することができます。
+![](Gameplay/Framework/camera_lander.png)(w:300)
 
-		**プレイヤー コントローラー** 
+|||
+| --- | --- |
+| **HUD** | [HUD](Gameplay/Framework/UIAndHUD) はヘッドアップ ディスプレイです。多くのゲームで一般的な 2D オンスクリーン ディスプレイです。Health 、 ammo 、 gun reticle 等と思ってください。各 PlayerController には、これらのいずれかが通常あります。 |
+| **Camera** | PlayerCameraManager はプレイヤーの「眼球」で、挙動を管理します。各 PlayerController は、通常これらのいずれかを持ちます。詳細は、 [camera workflow](Gameplay/Framework/Camera) ページをご覧ください。 |
 
-		[](Gameplay/Framework/Controller/PlayerController) は、ポーンと、それをコントロールする人プレーヤーとの間のインターフェースです。PlayerController は、基本的に人プレイヤーの意思を表します。
+## ゲームのルールを設定しトラックする
 
-		**AIController** 
+![](Gameplay/Framework/hud_lander.png)(w:300)
 
-		AIController は、ポーンを制御することができるシミュレートされた「意思」のようなものです。
-
-	[/PARAM]
-[/OBJECT]
-
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![](Gameplay/Framework/camera_lander.png)(w:300)
-	[/PARAM]
-	[PARAM:title]
-		プレイヤーに情報を表示する
-	[/PARAM]
-	[PARAM:description]
-		**HUD** 
-
-		[HUD](Gameplay/Framework/UIAndHUD) はヘッドアップ ディスプレイです。多くのゲームで一般的な 2D オンスクリーン ディスプレイです。Health 、 ammo 、 gun reticle 等と思ってください。各 PlayerController には、これらのいずれかが通常あります。
-
-		**カメラ** 
-
-		PlayerCameraManager はプレイヤーの「眼球」で、挙動を管理します。各 PlayerController は、通常これらのいずれかを持ちます。詳細は、 [camera workflow](Gameplay/Framework/Camera) ページをご覧ください。
-	[/PARAM]
-[/OBJECT]
-
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![](Gameplay/Framework/hud_lander.png)(w:300)
-	[/PARAM]
-	[PARAM:title]
-		ゲームのルールを設定しトラックする
-	[/PARAM]
-	[PARAM:description]
-
-		**GameMode** 
-
-		「ゲーム」のコンセプトは 2 つのクラスに分割されます。[](Gameplay/Framework/GameMode) は、ゲーム ルールや勝敗条件など含めたゲームの定義です。サーバー上にのみ存在します。通常はプレイ中に変更されるデータがあまりあってはならず、クライアントが知る必要のある一時的なデータは絶対にあってはいけません。
-
-		**GameState** 
-
-		 [](Gameplay/Framework/GameState) はゲームのステートを含みます。接続されたプレイヤーのリスト、スコア、チェス ゲームの駒の位置、オープンなワールドゲームで完了したミッションのリストなどが含まれます。GameState はサーバーとすべてのクライアント上に存在し、自由にレプリケートして全てのマシンを最新の状態に保つことができます。
-
-		**PlayerState** 
-
-		**PlayerState** は、人プレーヤーやプレイヤーをシミュレートしているボットなどの、ゲームの参加者のステートです。ゲームの一部として存在する非プレイヤーの AI は PlayerState を持ちません。PlayerState として適切なデータの例には、プレイヤー名、スコア、MOBA などの場合のインマッチ レベル、CTF ゲームでプレイヤーが今フラグを持っているかどうか、などがあります。すべてのマシン上ですべてのプレイヤーに対して PlayerStates が存在し (PlayerControllers とは異なります) 、自由にレプリケートして同期することができます。
-
-	[/PARAM]
-[/OBJECT]
+|||
+| --- | --- |
+| **GameMode** | 「ゲーム」のコンセプトは 2 つのクラスに分割されます。[](Gameplay/Framework/GameMode) は、ゲーム ルールや勝敗条件など含めたゲームの定義です。サーバー上にのみ存在します。通常はプレイ中に変更されるデータがあまりあってはならず、クライアントが知る必要のある一時的なデータは絶対にあってはいけません。 |
+| **GameState** | [GameState](Gameplay/Framework/GameMode#GameState) はゲームのステートを含みます。接続されたプレイヤーのリスト、スコア、チェス ゲームの駒の位置、オープンなワールドゲームで完了したミッションのリストなどが含まれます。GameState はサーバーとすべてのクライアント上に存在し、自由にレプリケートして全てのマシンを最新の状態に保つことができます。 |
+| **PlayerState** | **PlayerState** は、人プレーヤーやプレイヤーをシミュレートしているボットなどの、ゲームの参加者のステートです。ゲームの一部として存在する非プレイヤーの AI は PlayerState を持ちません。PlayerState として適切なデータの例には、プレイヤー名、スコア、MOBA などの場合のインマッチ レベル、CTF ゲームでプレイヤーが今フラグを持っているかどうか、などがあります。すべてのマシン上ですべてのプレイヤーに対して PlayerStates が存在し (PlayerControllers とは異なります) 、自由にレプリケートして同期することができます。 |
 
 ## Framework クラスの関係
 

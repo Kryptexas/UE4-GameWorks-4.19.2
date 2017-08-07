@@ -40,7 +40,7 @@ struct ENGINE_API FAnimCurveParam
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = FAnimCurveParam)
+	UPROPERTY(EditAnywhere, Category = FAnimCurveParam)
 	FName Name;
 
 	// name UID for fast access
@@ -670,18 +670,6 @@ struct FRawCurveTracks
 #endif
 	}
 
-	void SortFloatCurvesByUID()
-	{
-		struct FCurveSortByUid
-		{
-			FORCEINLINE bool operator()(const FFloatCurve& A, const FFloatCurve& B) const
-			{
-				return (A.Name.UID < B.Name.UID);
-			}
-		};
-
-		FloatCurves.Sort(FCurveSortByUid());
-	}
 private:
 	/** 
 	 * Adding vector curve support - this is all transient data for now. This does not save and all these data will be baked into RawAnimationData

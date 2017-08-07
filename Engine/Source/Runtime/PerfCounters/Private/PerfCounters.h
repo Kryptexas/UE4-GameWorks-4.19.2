@@ -8,8 +8,10 @@
 #include "Containers/Ticker.h"
 #include "ProfilingDebugging/Histogram.h"
 
+class ISocketSubsystem;
 class FSocket;
 class FZeroLoad;
+class FInternetAddr;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogPerfCounters, Log, All);
 
@@ -97,6 +99,12 @@ private:
 			return Connection == Other.Connection;
 		}
 	};
+
+	/** Reference to the socket subsystem in use */
+	ISocketSubsystem* SocketSubsystem;
+
+	/** Scratch IP address to save on memory allocations */
+	TSharedPtr<FInternetAddr> ScratchIPAddr;
 
 	/** all active connections */
 	TArray<FPerfConnection> Connections;

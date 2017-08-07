@@ -24,6 +24,6 @@ public:
 	// End of SWidget interface
 
 protected:
-	void OnAssetSelectedFromPicker(const class FAssetData& AssetData);
-	void OnPressedEnterOnAssetsInPicker(const TArray<class FAssetData>& SelectedAssets);
+	void OnAssetSelectedFromPicker(const struct FAssetData& AssetData);
+	void OnPressedEnterOnAssetsInPicker(const TArray<struct FAssetData>& SelectedAssets);
 };

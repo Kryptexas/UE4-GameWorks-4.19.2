@@ -1,0 +1,46 @@
+{
+    "FileVersion" : 3,
+
+    "Version" : 1,
+    "VersionName" : "0.3",
+    "FriendlyName" : "Google Tango",
+    "Description" : "Support for Google's Tango platform.",
+    "Category" : "Augmented Reality",
+    "CreatedBy" : "Google",
+    "CreatedByURL" : "https://developers.google.com/tango/",
+    "CanContainContent" : true,
+    "Modules" :
+    [
+        {
+            "Name" : "Tango",
+            "Type" : "Runtime",
+            "WhitelistPlatforms": [ "Win64", "Mac", "Android" ]
+        },
+        {
+            "Name" : "EcefTools",
+            "Type" : "Runtime",
+            "WhitelistPlatforms": [ "Win64", "Mac", "Android" ]
+        },
+        {
+            "Name" : "TangoAreaLearning",
+            "Type" : "Runtime",
+            "WhitelistPlatforms": [ "Win64", "Mac", "Android" ]
+        },
+        {
+            "Name": "TangoRenderer",
+            "Type": "Runtime",
+            "LoadingPhase" : "PostConfigInit",
+            "WhitelistPlatforms": [ "Win64", "Mac", "Android" ]
+        },
+        {
+            "Name" : "MeshReconstructionEditor",
+            "Type" : "Editor"
+        }
+    ],
+    "Plugins": [
+        {
+            "Name": "AndroidPermission",
+            "Enabled": true
+        }
+    ]
+}

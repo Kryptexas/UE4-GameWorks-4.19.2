@@ -61,7 +61,7 @@ inline bool IsParticleCollisionModeSupported(EShaderPlatform InPlatform, EPartic
 	case PCM_None:
 		return IsFeatureLevelSupported(InPlatform, ERHIFeatureLevel::ES2);
 	case PCM_DepthBuffer:
-		return IsFeatureLevelSupported(InPlatform, ERHIFeatureLevel::SM4);
+		return IsFeatureLevelSupported(InPlatform, ERHIFeatureLevel::SM4) && !IsSimpleForwardShadingEnabled(InPlatform);
 	case PCM_DistanceField:
 		return IsFeatureLevelSupported(InPlatform, ERHIFeatureLevel::SM5);
 	}
@@ -188,8 +188,8 @@ public:
 	 */
 	int32 AddSortedGPUSimulation(FParticleSimulationGPU* Simulation, const FVector& ViewOrigin);
 
-	void PrepareGPUSimulation(FRHICommandListImmediate& RHICmdList);
-	void FinalizeGPUSimulation(FRHICommandListImmediate& RHICmdList);
+	void PrepareGPUSimulation(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef SceneDepthTexture = nullptr);
+	void FinalizeGPUSimulation(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef SceneDepthTexture = nullptr);
 
 private:
 

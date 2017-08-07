@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3237313
+﻿INTSourceChangelist:3481084
 Availability:Public
 Title:애니메이션 에디터
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -15,13 +15,42 @@ tags:Animation
 tags:Skeleton Asset
 tags:Animation Blueprint
 tags:Skeletal Mesh
+tags:Tools
 type:landing
 
 [VAR:ModeSize]w:450 convert:false[/VAR]
-
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
 [REGION:asyncgif]
 ![](UpdatedPersonaWindowAnim.gif)
 [/REGION]
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+[REGION:asyncgif]
+![](UpdatedPersonaWindowAnim_Mac.gif)
+[/REGION]
+[/PARAM]
+[/OBJECT]
+
 
 [EXCERPT:Intro]
 언리얼 엔진 4 에는 스켈레탈 애니메이션 및 **스켈레탈 메시** 작업에 쓰이는 주요 툴이 네 가지 들어있는데, 스켈레톤 에디터, 스켈레탈 메시 에디터, 애니메이션 에디터, 애니메이션 블루프린트 에디터 입니다. 이들 각각은 할당된 애셋을 편집하거나 각 애니메이션 에디터 상단의 내비게이션 버튼 넷을 사용하여 접근할 수 있습니다.
@@ -44,9 +73,33 @@ type:landing
 
 ## 특정 애니메이션 에디터 열기
 
-[REGION:raw]
-![](OpeningPersona.png)
-[/REGION]
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](OpenPersona_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](OpenPersona_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 
 각 애니메이션 에디터는 **콘텐츠 브라우저** 에서 해당 에디터에 연결된 애셋을 **더블클릭** 하는 것으로 열 수 있습니다:

@@ -73,7 +73,7 @@ bool UAbilityTask_VisualizeTargeting::BeginSpawningActor(UGameplayAbility* Ownin
 			UClass* Class = *InTargetClass;
 			if (Class != NULL)
 			{
-				UWorld* const World = GEngine->GetWorldFromContextObject(OwningAbility);
+				UWorld* const World = GEngine->GetWorldFromContextObject(OwningAbility, EGetWorldErrorMode::LogAndReturnNull);
 				if (World)
 				{
 					SpawnedActor = World->SpawnActorDeferred<AGameplayAbilityTargetActor>(Class, FTransform::Identity, NULL, NULL, ESpawnActorCollisionHandlingMethod::AlwaysSpawn);

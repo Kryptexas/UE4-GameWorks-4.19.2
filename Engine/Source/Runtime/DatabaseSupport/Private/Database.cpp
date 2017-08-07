@@ -319,7 +319,10 @@ FRemoteDataBaseRecordSet::~FRemoteDataBaseRecordSet()
 // using %COMMONFILES% works to hide the localization issues and non default program file folders.
 //#import "C:\Program files\Common Files\System\Ado\msado15.dll" rename("EOF", "ADOEOF")
 
+#pragma warning(push)
+#pragma warning(disable: 4471) // a forward declaration of an unscoped enumeration must have an underlying type (int assumed)
 #import "System\ADO\msado15.dll" rename("EOF", "ADOEOF") //lint !e322
+#pragma warning(pop)
 
 /*-----------------------------------------------------------------------------
 	FADODataBaseRecordSet implementation.

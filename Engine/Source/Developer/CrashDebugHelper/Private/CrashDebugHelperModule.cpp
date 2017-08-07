@@ -17,6 +17,9 @@ DEFINE_LOG_CATEGORY(LogCrashDebugHelper);
 #elif PLATFORM_MAC
 	#include "CrashDebugHelperMac.h"
 
+#elif PLATFORM_IOS
+	#include "CrashDebugHelperIOS.h"
+
 #else
 	#error "Unknown platform"
 #endif

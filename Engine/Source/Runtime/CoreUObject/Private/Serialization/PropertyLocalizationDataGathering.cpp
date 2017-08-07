@@ -313,6 +313,45 @@ void FPropertyLocalizationDataGatherer::GatherLocalizationDataFromChildTextPrope
 
 void FPropertyLocalizationDataGatherer::GatherTextInstance(const FText& Text, const FString& Description, const bool bIsEditorOnly)
 {
+	auto AddGatheredText = [this, &Description](const FString& InNamespace, const FString& InKey, const FTextSourceData& InSourceData, const bool InIsEditorOnly)
+	{
+		FGatherableTextData* GatherableTextData = GatherableTextDataArray.FindByPredicate([&](const FGatherableTextData& Candidate)
+		{
+			return Candidate.NamespaceName.Equals(InNamespace, ESearchCase::CaseSensitive)
+				&& Candidate.SourceData.SourceString.Equals(InSourceData.SourceString, ESearchCase::CaseSensitive)
+				&& Candidate.SourceData.SourceStringMetaData == InSourceData.SourceStringMetaData;
+		});
+		if (!GatherableTextData)
+		{
+			GatherableTextData = &GatherableTextDataArray[GatherableTextDataArray.AddDefaulted()];
+			GatherableTextData->NamespaceName = InNamespace;
+			GatherableTextData->SourceData = InSourceData;
+		}
+
+		// We might attempt to add the same text multiple times if we process the same object with slightly different flags - only add this source site once though.
+		{
+			static const FLocMetadataObject DefaultMetadataObject;
+			const bool bFoundSourceSiteContext = GatherableTextData->SourceSiteContexts.ContainsByPredicate([&](const FTextSourceSiteContext& InSourceSiteContext) -> bool
+			{
+				return InSourceSiteContext.KeyName.Equals(InKey, ESearchCase::CaseSensitive)
+					&& InSourceSiteContext.SiteDescription.Equals(Description, ESearchCase::CaseSensitive)
+					&& InSourceSiteContext.IsEditorOnly == InIsEditorOnly
+					&& InSourceSiteContext.IsOptional == false
+					&& InSourceSiteContext.InfoMetaData == DefaultMetadataObject
+					&& InSourceSiteContext.KeyMetaData == DefaultMetadataObject;
+			});
+
+			if (!bFoundSourceSiteContext)
+			{
+				FTextSourceSiteContext& SourceSiteContext = GatherableTextData->SourceSiteContexts[GatherableTextData->SourceSiteContexts.AddDefaulted()];
+				SourceSiteContext.KeyName = InKey;
+				SourceSiteContext.SiteDescription = Description;
+				SourceSiteContext.IsEditorOnly = InIsEditorOnly;
+				SourceSiteContext.IsOptional = false;
+			}
+		}
+	};
+
 	FString Namespace;
 	FString Key;
 	const FTextDisplayStringRef DisplayString = FTextInspector::GetSharedDisplayString(Text);
@@ -328,20 +367,7 @@ void FPropertyLocalizationDataGatherer::GatherTextInstance(const FText& Text, co
 	FTextSourceData SourceData;
 	{
 		const FString* SourceString = FTextInspector::GetSourceString(Text);
-		SourceData.SourceString = SourceString ? *SourceString : TEXT("");
-	}
-
-	FGatherableTextData* GatherableTextData = GatherableTextDataArray.FindByPredicate([&](const FGatherableTextData& Candidate)
-	{
-		return Candidate.NamespaceName.Equals(Namespace, ESearchCase::CaseSensitive)
-			&& Candidate.SourceData.SourceString.Equals(SourceData.SourceString, ESearchCase::CaseSensitive) 
-			&& Candidate.SourceData.SourceStringMetaData == SourceData.SourceStringMetaData;
-	});
-	if(!GatherableTextData)
-	{
-		GatherableTextData = &GatherableTextDataArray[GatherableTextDataArray.AddDefaulted()];
-		GatherableTextData->NamespaceName = Namespace;
-		GatherableTextData->SourceData = SourceData;
+		SourceData.SourceString = SourceString ? *SourceString : FString();
 	}
 
 #if USE_STABLE_LOCALIZATION_KEYS
@@ -356,27 +382,14 @@ void FPropertyLocalizationDataGatherer::GatherTextInstance(const FText& Text, co
 	}
 #endif // USE_STABLE_LOCALIZATION_KEYS
 
-	// We might attempt to add the same text multiple times if we process the same object with slightly different flags - only add this source site once though.
-	{
-		static const FLocMetadataObject DefaultMetadataObject;
-		const bool bFoundSourceSiteContext = GatherableTextData->SourceSiteContexts.ContainsByPredicate([&](const FTextSourceSiteContext& InSourceSiteContext) -> bool
-		{
-			return InSourceSiteContext.KeyName.Equals(Key, ESearchCase::CaseSensitive)
-				&& InSourceSiteContext.SiteDescription.Equals(Description, ESearchCase::CaseSensitive)
-				&& InSourceSiteContext.IsEditorOnly == bIsEditorOnly
-				&& InSourceSiteContext.IsOptional == false
-				&& InSourceSiteContext.InfoMetaData == DefaultMetadataObject
-				&& InSourceSiteContext.KeyMetaData == DefaultMetadataObject;
-		});
+	// Always include the text without its package localization ID
+	const FString CleanNamespace = TextNamespaceUtil::StripPackageNamespace(Namespace);
+	AddGatheredText(CleanNamespace, Key, SourceData, bIsEditorOnly);
 
-		if (!bFoundSourceSiteContext)
-		{
-			FTextSourceSiteContext& SourceSiteContext = GatherableTextData->SourceSiteContexts[GatherableTextData->SourceSiteContexts.AddDefaulted()];
-			SourceSiteContext.KeyName = Key;
-			SourceSiteContext.SiteDescription = Description;
-			SourceSiteContext.IsEditorOnly = bIsEditorOnly;
-			SourceSiteContext.IsOptional = false;
-		}
+	// Include the version with the package localization ID as editor-only
+	if (!CleanNamespace.Equals(Namespace, ESearchCase::CaseSensitive))
+	{
+		AddGatheredText(Namespace, Key, SourceData, true);
 	}
 }
 

@@ -9,24 +9,24 @@ FAnimNode_UseCachedPose::FAnimNode_UseCachedPose()
 {
 }
 
-void FAnimNode_UseCachedPose::Initialize(const FAnimationInitializeContext& Context)
+void FAnimNode_UseCachedPose::Initialize_AnyThread(const FAnimationInitializeContext& Context)
 {
-	FAnimNode_Base::Initialize(Context);
+	FAnimNode_Base::Initialize_AnyThread(Context);
 
 	LinkToCachingNode.Initialize(Context);
 }
 
-void FAnimNode_UseCachedPose::CacheBones(const FAnimationCacheBonesContext& Context) 
+void FAnimNode_UseCachedPose::CacheBones_AnyThread(const FAnimationCacheBonesContext& Context) 
 {
 	LinkToCachingNode.CacheBones(Context);
 }
 
-void FAnimNode_UseCachedPose::Update(const FAnimationUpdateContext& Context)
+void FAnimNode_UseCachedPose::Update_AnyThread(const FAnimationUpdateContext& Context)
 {
 	LinkToCachingNode.Update(Context);
 }
 
-void FAnimNode_UseCachedPose::Evaluate(FPoseContext& Output)
+void FAnimNode_UseCachedPose::Evaluate_AnyThread(FPoseContext& Output)
 {
 	LinkToCachingNode.Evaluate(Output);
 }

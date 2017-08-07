@@ -8,6 +8,8 @@
 #include "Interfaces/IPluginManager.h"
 #include "ProjectDescriptor.h"
 #include "Modules/ModuleManager.h"
+#include "GenericPlatform/GenericPlatformProcess.h"
+#include "HAL/PlatformProcess.h"
 
 DEFINE_LOG_CATEGORY_STATIC( LogProjectManager, Log, All );
 
@@ -30,6 +32,13 @@ bool FProjectManager::LoadProjectFile( const FString& InProjectFile )
 	TSharedPtr<FProjectDescriptor> Descriptor = MakeShareable(new FProjectDescriptor());
 	if(Descriptor->Load(InProjectFile, FailureReason))
 	{
+		// Add existing project's shader directory
+		FString RealShaderSourceDir = FPaths::Combine(FPaths::GetPath(InProjectFile), TEXT("Shaders"));
+		if (FPaths::DirectoryExists(RealShaderSourceDir))
+		{
+			FGenericPlatformProcess::AddShaderSourceDirectoryMapping(TEXT("/Project"), RealShaderSourceDir);
+		}
+
 		// Create the project
 		CurrentProject = Descriptor;
 		return true;
@@ -244,37 +253,31 @@ void FProjectManager::ClearSupportedTargetPlatformsForCurrentProject()
 	OnTargetPlatformsForCurrentProjectChangedEvent.Broadcast();
 }
 
-void FProjectManager::GetEnabledPlugins(TArray<FString>& OutPluginNames) const
-{
-	// Get the default list of plugin names
-	GetDefaultEnabledPlugins(OutPluginNames, true);
-
-	// Modify that with the list of plugins in the project file
-	const FProjectDescriptor *Project = GetCurrentProject();
-	if(Project != NULL)
-	{
-		for(const FPluginReferenceDescriptor& Plugin: Project->Plugins)
-		{
-			if(Plugin.IsEnabledForPlatform(FPlatformMisc::GetUBTPlatform()) && Plugin.IsEnabledForTarget(FPlatformMisc::GetUBTTarget()))
-			{
-				OutPluginNames.AddUnique(Plugin.Name);
-			}
-			else
-			{
-				OutPluginNames.Remove(Plugin.Name);
-			}
-		}
-	}
-}
-
 bool FProjectManager::IsNonDefaultPluginEnabled() const
 {
-	TArray<FString> EnabledPlugins;
-	GetEnabledPlugins(EnabledPlugins);
+	// Get settings for the plugins which are currently enabled or disabled by the project file
+	TMap<FString, bool> ConfiguredPlugins;
+	if (CurrentProject.IsValid())
+	{
+		for (const FPluginReferenceDescriptor& PluginReference : CurrentProject->Plugins)
+		{
+			ConfiguredPlugins.Add(PluginReference.Name, PluginReference.bEnabled);
+		}
+	}
 
+	// Check whether the setting for any default plugin has been changed
 	for(const FPluginStatus& Plugin: IPluginManager::Get().QueryStatusForAllPlugins())
 	{
-		if ((Plugin.LoadedFrom == EPluginLoadedFrom::GameProject || !Plugin.Descriptor.bEnabledByDefault || Plugin.Descriptor.bInstalled) && EnabledPlugins.Contains(Plugin.Name))
+		bool bEnabled = Plugin.Descriptor.bEnabledByDefault;
+
+		bool* EnabledPtr = ConfiguredPlugins.Find(Plugin.Name);
+		if(EnabledPtr != nullptr)
+		{
+			bEnabled = *EnabledPtr;
+		}
+
+		bool bEnabledInDefaultExe = (Plugin.LoadedFrom == EPluginLoadedFrom::Engine && Plugin.Descriptor.bEnabledByDefault && !Plugin.Descriptor.bInstalled);
+		if(bEnabled != bEnabledInDefaultExe)
 		{
 			return true;
 		}
@@ -333,6 +336,28 @@ bool FProjectManager::SetPluginEnabled(const FString& PluginName, bool bEnabled,
 	bIsCurrentProjectDirty = true;
 
 	return true;
+}
+
+bool FProjectManager::RemovePluginReference(const FString& PluginName, FText& OutFailReason)
+{
+	// Don't go any further if there's no project loaded
+	if (!CurrentProject.IsValid())
+	{
+		OutFailReason = LOCTEXT("NoProjectLoaded", "No project is currently loaded");
+		return false;
+	}
+
+	bool bPluginFound = false;
+	for (int32 PluginRefIdx = CurrentProject->Plugins.Num() - 1; PluginRefIdx >= 0 && !bPluginFound; --PluginRefIdx)
+	{
+		if (CurrentProject->Plugins[PluginRefIdx].Name == PluginName)
+		{
+			CurrentProject->Plugins.RemoveAt(PluginRefIdx);
+			bPluginFound = true;
+			break;
+		}
+	}
+	return bPluginFound;
 }
 
 void FProjectManager::GetDefaultEnabledPlugins(TArray<FString>& OutPluginNames, bool bIncludeInstalledPlugins)

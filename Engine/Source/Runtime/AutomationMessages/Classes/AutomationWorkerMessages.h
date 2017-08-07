@@ -643,3 +643,92 @@ public:
 	UPROPERTY(EditAnywhere, Category="Message")
 	FString ErrorMessage;
 };
+
+
+/**
+ * Implements a message that handles both storing and requesting ground truth data.
+ * for the first time this test is run, it might need to store things, or get things.
+ */
+USTRUCT()
+struct FAutomationWorkerTestDataRequest
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** The category of the data, this is purely to bucket and separate the ground truth data we store into different directories. */
+	UPROPERTY(EditAnywhere, Category="Message")
+	FString DataType;
+
+	/**  */
+	UPROPERTY(EditAnywhere, Category="Message")
+	FString DataPlatform;
+
+	/**  */
+	UPROPERTY(EditAnywhere, Category="Message")
+	FString DataTestName;
+
+	/**  */
+	UPROPERTY(EditAnywhere, Category="Message")
+	FString DataName;
+
+	/**  */
+	UPROPERTY(EditAnywhere, Category="Message")
+	FString JsonData;
+};
+
+/**
+ * Implements a message that responds to TestDataRequests.
+ */
+USTRUCT()
+struct FAutomationWorkerTestDataResponse
+{
+	GENERATED_USTRUCT_BODY()
+
+	/**  */
+	UPROPERTY(EditAnywhere, Category="Message")
+	FString JsonData;
+
+	UPROPERTY(EditAnywhere, Category="Message")
+	bool bIsNew;
+};
+
+/**
+ * Implements a message to request the performance data for this hardware.
+ */
+USTRUCT()
+struct FAutomationWorkerPerformanceDataRequest
+{
+	GENERATED_USTRUCT_BODY()
+
+	/**  */
+	UPROPERTY(EditAnywhere, Category="Message")
+	FString Platform;
+
+	/**  */
+	UPROPERTY(EditAnywhere, Category="Message")
+	FString Hardware;
+
+	/**  */
+	UPROPERTY(EditAnywhere, Category="Message")
+	FString TestName;
+
+	/**  */
+	UPROPERTY(EditAnywhere, Category="Message")
+	TArray<double> DataPoints;
+};
+
+/**
+ * Implements a message that responds to PerformanceDataRequest.
+ */
+USTRUCT()
+struct FAutomationWorkerPerformanceDataResponse
+{
+	GENERATED_USTRUCT_BODY()
+
+	/**  */
+	UPROPERTY(EditAnywhere, Category="Message")
+	bool bSuccess;
+
+	/**  */
+	UPROPERTY(EditAnywhere, Category="Message")
+	FString ErrorMessage;
+};

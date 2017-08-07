@@ -8,6 +8,11 @@
 #include "Net/OnlineEngineInterface.h"
 #include "OnlineEngineInterfaceImpl.generated.h"
 
+/** If OnlineEngineInterface.h doesn't define this, it isn't available. */
+#ifndef OSS_DEDICATED_SERVER_VOICECHAT
+#define OSS_DEDICATED_SERVER_VOICECHAT 0
+#endif
+
 class Error;
 class FVoicePacket;
 struct FWorldContext;
@@ -27,10 +32,23 @@ public:
 	virtual bool DoesInstanceExist(FName OnlineIdentifier) override;
 	virtual void ShutdownOnlineSubsystem(FName OnlineIdentifier) override;
 	virtual void DestroyOnlineSubsystem(FName OnlineIdentifier) override;
+#if OSS_DEDICATED_SERVER_VOICECHAT
+	virtual FName GetDefaultOnlineSubsystemName() const override;
+#endif
 
 private:
 
+	/** Allow the subsystem used for voice functions to be overridden, in case it needs to be different than the default subsystem. May be useful on console platforms. */
+	UPROPERTY(config)
+	FName VoiceSubsystemNameOverride;
+
+	/** Cache the name of the default subsystem, returned by GetDefaultOnlineSubsystemName(). */
+	FName DefaultSubsystemName;
+
 	FName GetOnlineIdentifier(UWorld* World);
+
+	/** Returns the name of a corresponding dedicated server subsystem for the given subsystem, or NAME_None if such a system doesn't exist. */
+	FName GetDedicatedServerSubsystemNameForSubsystem(const FName Subsystem) const;
 
 	/**
 	 * Identity
@@ -84,7 +102,11 @@ private:
 public:
 
 	virtual TSharedPtr<FVoicePacket> GetLocalPacket(UWorld* World, uint8 LocalUserNum) override;
+#if OSS_DEDICATED_SERVER_VOICECHAT
+	virtual TSharedPtr<FVoicePacket> SerializeRemotePacket(UWorld* World, const UNetConnection* const RemoteConnection, FArchive& Ar) override;
+#else
 	virtual TSharedPtr<FVoicePacket> SerializeRemotePacket(UWorld* World, FArchive& Ar) override;
+#endif
 
 	virtual void StartNetworkedVoice(UWorld* World, uint8 LocalUserNum) override;
 	virtual void StopNetworkedVoice(UWorld* World, uint8 LocalUserNum) override;

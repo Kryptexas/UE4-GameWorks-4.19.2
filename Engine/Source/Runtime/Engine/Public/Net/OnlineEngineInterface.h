@@ -8,7 +8,11 @@
 #include "UObject/CoreOnline.h"
 #include "OnlineEngineInterface.generated.h"
 
+/** Temporary version-check macro for dedicated server voice changes, for compatibility while the changes propagate. */
+#define OSS_DEDICATED_SERVER_VOICECHAT 1
+
 class FVoicePacket;
+class UNetConnection;
 struct FWorldContext;
 
 /** Delegate fired when an AutoLogin request is complete */
@@ -60,6 +64,8 @@ public:
 	virtual void ShutdownOnlineSubsystem(FName OnlineIdentifier) {}
 	/** Destroy a given online subsystem */
 	virtual void DestroyOnlineSubsystem(FName OnlineIdentifier) {}
+	/** Returns the name of the default online subsystem, generally the DefaultPlatformService config value. */
+	virtual FName GetDefaultOnlineSubsystemName() const { return NAME_None; }
 
 	/**
 	 * Identity
@@ -108,7 +114,7 @@ public:
 	/** @return any ready generated voice packet for a given local user */
 	virtual TSharedPtr<FVoicePacket> GetLocalPacket(UWorld* World, uint8 LocalUserNum) { return nullptr; }
 	/** @return a valid voice packet submitted over network */
-	virtual TSharedPtr<FVoicePacket> SerializeRemotePacket(UWorld* World, FArchive& Ar) { return nullptr; }
+	virtual TSharedPtr<FVoicePacket> SerializeRemotePacket(UWorld* World, const UNetConnection* const RemoteConnection, FArchive& Ar) { return nullptr; }
 
 	/** Start processing networked voice traffic for a given local user */
 	virtual void StartNetworkedVoice(UWorld* World, uint8 LocalUserNum) {}

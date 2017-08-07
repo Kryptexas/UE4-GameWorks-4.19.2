@@ -5,4 +5,3 @@
 #include "IHeadMountedDisplayModule.h"
 #include "HeadMountedDisplayTypes.h"
 #include "IHeadMountedDisplay.h"
-

@@ -9,6 +9,7 @@
 #include "MetalCommandList.h"
 #include "MetalCommandQueue.h"
 #include "MetalProfiler.h"
+#include "MetalCommandBuffer.h"
 
 #pragma mark - Public C++ Boilerplate -
 
@@ -27,7 +28,7 @@ FMetalCommandList::~FMetalCommandList(void)
 	
 #pragma mark - Public Command List Mutators -
 
-static void ReportMetalCommandBufferFailure(id <MTLCommandBuffer> CompletedBuffer, TCHAR const* ErrorType)
+static void ReportMetalCommandBufferFailure(id <MTLCommandBuffer> CompletedBuffer, TCHAR const* ErrorType, bool bDoCheck=true)
 {
 	NSString* Label = CompletedBuffer.label;
 	int32 Code = CompletedBuffer.error.code;
@@ -42,9 +43,28 @@ static void ReportMetalCommandBufferFailure(id <MTLCommandBuffer> CompletedBuffe
 	FString FailureString = FailureDesc ? FString(FailureDesc) : FString(TEXT("Unknown"));
 	FString RecoveryString = RecoveryDesc ? FString(RecoveryDesc) : FString(TEXT("Unknown"));
 	
-	NSString* Desc = CompletedBuffer.debugDescription;
-	UE_LOG(LogMetal, Warning, TEXT("%s"), *FString(Desc));
-	UE_LOG(LogMetal, Fatal, TEXT("Command Buffer %s Failed with %s Error! Error Domain: %s Code: %d Description %s %s %s"), *LabelString, ErrorType, *DomainString, Code, *ErrorString, *FailureString, *RecoveryString);
+	if (GetMetalDeviceContext().GetCommandQueue().GetRuntimeDebuggingLevel() == EMetalDebugLevelLogDebugGroups)
+	{
+		NSMutableString* DescString = [NSMutableString new];
+		[DescString appendFormat:@"Command Buffer %p %@:", CompletedBuffer, Label ? Label : @"Unknown"];
+
+		for (NSString* String in ((NSObject<MTLCommandBuffer>*)CompletedBuffer).debugGroups)
+		{
+			[DescString appendFormat:@"\n\tDebugGroup: %@", String];
+		}
+		
+		UE_LOG(LogMetal, Warning, TEXT("Command Buffer %p %s:%s"), CompletedBuffer, *LabelString, *FString(DescString));
+	}
+	else
+	{
+		NSString* Desc = CompletedBuffer.debugDescription;
+		UE_LOG(LogMetal, Warning, TEXT("%s"), *FString(Desc));
+	}
+	
+    if (bDoCheck)
+    {
+		UE_LOG(LogMetal, Fatal, TEXT("Command Buffer %s Failed with %s Error! Error Domain: %s Code: %d Description %s %s %s"), *LabelString, ErrorType, *DomainString, Code, *ErrorString, *FailureString, *RecoveryString);
+    }
 }
 
 static __attribute__ ((optnone)) void MetalCommandBufferFailureInternal(id <MTLCommandBuffer> CompletedBuffer)
@@ -54,7 +74,7 @@ static __attribute__ ((optnone)) void MetalCommandBufferFailureInternal(id <MTLC
 
 static __attribute__ ((optnone)) void MetalCommandBufferFailureTimeout(id <MTLCommandBuffer> CompletedBuffer)
 {
-	ReportMetalCommandBufferFailure(CompletedBuffer, TEXT("Timeout"));
+	ReportMetalCommandBufferFailure(CompletedBuffer, TEXT("Timeout"), PLATFORM_IOS);
 }
 
 static __attribute__ ((optnone)) void MetalCommandBufferFailurePageFault(id <MTLCommandBuffer> CompletedBuffer)

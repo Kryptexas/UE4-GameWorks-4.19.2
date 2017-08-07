@@ -14,6 +14,13 @@ UK2Node_StructOperation::UK2Node_StructOperation(const FObjectInitializer& Objec
 	: Super(ObjectInitializer)
 {
 }
+
+void UK2Node_StructOperation::ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const
+{
+	// Skip UK2Node_Variable's validation because it doesn't need a property (see CL# 1756451)
+	Super::Super::ValidateNodeDuringCompilation(MessageLog);
+}
+
 bool UK2Node_StructOperation::HasExternalDependencies(TArray<class UStruct*>* OptionalOutput) const
 {
 	const bool bResult = nullptr != StructType;
@@ -32,10 +39,10 @@ void UK2Node_StructOperation::FStructOperationOptionalPinManager::CustomizePinDa
 
 	if (Pin && Property)
 	{
-		const auto UDStructure = Cast<const UUserDefinedStruct>(Property->GetOwnerStruct());
+		const UUserDefinedStruct* UDStructure = Cast<const UUserDefinedStruct>(Property->GetOwnerStruct());
 		if (UDStructure)
 		{
-			const auto VarDesc = FStructureEditorUtils::GetVarDesc(UDStructure).FindByPredicate(
+			const FStructVariableDescription* VarDesc = FStructureEditorUtils::GetVarDesc(UDStructure).FindByPredicate(
 				FStructureEditorUtils::FFindByNameHelper<FStructVariableDescription>(Property->GetFName()));
 			if (VarDesc)
 			{
@@ -96,15 +103,22 @@ FString UK2Node_StructOperation::GetFindReferenceSearchString() const
 bool UK2Node_StructOperation::IsActionFilteredOut(const FBlueprintActionFilter& Filter)
 {
 	bool bIsFiltered = false;
-	if (StructType && !StructType->GetBoolMetaData(FBlueprintMetadata::MD_AllowableBlueprintVariableType))
+	if (StructType)
 	{
-		bIsFiltered = true;
-		for (UEdGraphPin* ContextPin : Filter.Context.Pins)
+		if (StructType->GetBoolMetaData(FBlueprintMetadata::MD_BlueprintInternalUseOnly))
 		{
-			if (ContextPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Struct && ContextPin->PinType.PinSubCategoryObject == StructType)
+			bIsFiltered = true;
+		}
+		else if (!StructType->GetBoolMetaData(FBlueprintMetadata::MD_AllowableBlueprintVariableType))
+		{
+			bIsFiltered = true;
+			for (UEdGraphPin* ContextPin : Filter.Context.Pins)
 			{
-				bIsFiltered = false;
-				break;
+				if (ContextPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Struct && ContextPin->PinType.PinSubCategoryObject == StructType)
+				{
+					bIsFiltered = false;
+					break;
+				}
 			}
 		}
 	}

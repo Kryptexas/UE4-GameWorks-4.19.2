@@ -25,6 +25,7 @@
 static FString GSavedCommandLine;
 extern int32 GuardedMain( const TCHAR* CmdLine );
 extern void LaunchStaticShutdownAfterError();
+static int32 GGuardedMainErrorLevel = 0;
 
 /**
  * Game-specific crash reporter
@@ -198,7 +199,7 @@ void EngineCrashHandler(const FGenericCrashContext& GenericContext)
 	{
 		// Don't use exception handling when a debugger is attached to exactly trap the crash. This does NOT check
 		// whether we are the first instance or not!
-		GuardedMain( *GSavedCommandLine );
+		GGuardedMainErrorLevel = GuardedMain( *GSavedCommandLine );
 	}
 	else
 	{
@@ -208,7 +209,7 @@ void EngineCrashHandler(const FGenericCrashContext& GenericContext)
 		}
 		GIsGuarded = 1;
 		// Run the guarded code.
-		GuardedMain( *GSavedCommandLine );
+		GGuardedMainErrorLevel = GuardedMain( *GSavedCommandLine );
 		GIsGuarded = 0;
 	}
 
@@ -293,5 +294,5 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 	[NSApplication sharedApplication];
 	[NSApp setDelegate:[UE4AppDelegate new]];
 	[NSApp run];
-	return 0;
+	return GGuardedMainErrorLevel;
 }

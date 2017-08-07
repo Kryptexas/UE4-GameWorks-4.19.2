@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2735872
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title:ブループリント通信プロジェクト
 Crumbs: %ROOT%, Engine, Engine/Blueprints
 Description:様々なブループリント通信方法を使って作成されたサンプル プロジェクト 
 version:4.9
+tags:Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -44,7 +45,7 @@ version:4.9
 [/OBJECT]
 [/VAR]
 
-**ブループリント通信プロジェクト** では、シンプルな射撃スタイルのゲームを作成します。プロジェクトではレベルからキャラクターへの通信方法に加えて、キャラクター情報の HUD への渡し方を学びます。プロジェクトの終了時には、以下のようなものが出来上がります。
+この **ブループリント通信プロジェクト** では、シンプルな射撃スタイルのゲームを作成します。プロジェクトではレベルからキャラクターへの通信方法に加えて、キャラクター情報の HUD への渡し方を学びます。プロジェクトの終了時には、以下のようなものが出来上がります。
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]

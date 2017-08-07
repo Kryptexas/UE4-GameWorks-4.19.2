@@ -91,6 +91,14 @@ FAutoConsoleVariableRef CVarAOOverwriteSceneColor(
 	ECVF_RenderThreadSafe
 	);
 
+int32 GAOJitterConeDirections = 0;
+FAutoConsoleVariableRef CVarAOJitterConeDirections(
+	TEXT("r.AOJitterConeDirections"),
+	GAOJitterConeDirections,
+	TEXT(""),
+	ECVF_RenderThreadSafe
+	);
+
 int32 GMaxDistanceFieldObjectsPerCullTile = 512;
 FAutoConsoleVariableRef CVarMaxDistanceFieldObjectsPerCullTile(
 	TEXT("r.AOMaxObjectsPerCullTile"),
@@ -160,7 +168,21 @@ const FVector RelaxedSpacedVectors9[] =
 	FVector(0.032967, -0.435625, 0.899524)
 };
 
-void GetSpacedVectors(TArray<FVector, TInlineAllocator<9> >& OutVectors)
+float TemporalHalton2( int32 Index, int32 Base )
+{
+	float Result = 0.0f;
+	float InvBase = 1.0f / Base;
+	float Fraction = InvBase;
+	while( Index > 0 )
+	{
+		Result += ( Index % Base ) * Fraction;
+		Index /= Base;
+		Fraction *= InvBase;
+	}
+	return Result;
+}
+
+void GetSpacedVectors(uint32 FrameNumber, TArray<FVector, TInlineAllocator<9> >& OutVectors)
 {
 	OutVectors.Empty(ARRAY_COUNT(SpacedVectors9));
 
@@ -176,6 +198,22 @@ void GetSpacedVectors(TArray<FVector, TInlineAllocator<9> >& OutVectors)
 		for (int32 i = 0; i < ARRAY_COUNT(RelaxedSpacedVectors9); i++)
 		{
 			OutVectors.Add(RelaxedSpacedVectors9[i]);
+		}
+	}
+
+	if (GAOJitterConeDirections)
+	{
+		float RandomAngle = TemporalHalton2(FrameNumber & 1023, 2) * 2 * PI;
+		float CosRandomAngle = FMath::Cos(RandomAngle);
+		float SinRandomAngle = FMath::Sin(RandomAngle);
+
+		for (int32 i = 0; i < OutVectors.Num(); i++)
+		{
+			FVector ConeDirection = OutVectors[i];
+			FVector2D ConeDirectionXY(ConeDirection.X, ConeDirection.Y);
+			ConeDirectionXY = FVector2D(FVector2D::DotProduct(ConeDirectionXY, FVector2D(CosRandomAngle, -SinRandomAngle)), FVector2D::DotProduct(ConeDirectionXY, FVector2D(SinRandomAngle, CosRandomAngle)));
+			OutVectors[i].X = ConeDirectionXY.X;
+			OutVectors[i].Y = ConeDirectionXY.Y;
 		}
 	}
 }
@@ -264,7 +302,7 @@ private:
 	FAOParameters AOParameters;
 };
 
-IMPLEMENT_SHADER_TYPE(,FComputeDistanceFieldNormalPS,TEXT("DistanceFieldScreenGridLighting"),TEXT("ComputeDistanceFieldNormalPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FComputeDistanceFieldNormalPS,TEXT("/Engine/Private/DistanceFieldScreenGridLighting.usf"),TEXT("ComputeDistanceFieldNormalPS"),SF_Pixel);
 
 
 class FComputeDistanceFieldNormalCS : public FGlobalShader
@@ -331,7 +369,7 @@ private:
 	FAOParameters AOParameters;
 };
 
-IMPLEMENT_SHADER_TYPE(,FComputeDistanceFieldNormalCS,TEXT("DistanceFieldScreenGridLighting"),TEXT("ComputeDistanceFieldNormalCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FComputeDistanceFieldNormalCS,TEXT("/Engine/Private/DistanceFieldScreenGridLighting.usf"),TEXT("ComputeDistanceFieldNormalCS"),SF_Compute);
 
 void ComputeDistanceFieldNormal(FRHICommandListImmediate& RHICmdList, const TArray<FViewInfo>& Views, FSceneRenderTargetItem& DistanceFieldNormal, const FDistanceFieldAOParameters& Parameters)
 {
@@ -774,6 +812,7 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldLighting(
 			{
 				const FIntPoint BufferSize = GetBufferSizeForAO();
 				FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_FloatRGBA, FClearValueBinding::Transparent, TexCreate_None, TexCreate_RenderTargetable | TexCreate_UAV, false));
+				Desc.Flags |= GetTextureFastVRamFlag_DynamicLayout();
 				GRenderTargetPool.FindFreeElement(RHICmdList, Desc, DistanceFieldNormal, TEXT("DistanceFieldNormal"));
 			}
 
@@ -808,6 +847,14 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldLighting(
 				BentNormalOutput, 
 				IrradianceOutput);
 
+			if ( IsTransientResourceBufferAliasingEnabled() )
+			{
+				GAOCulledObjectBuffers.Buffers.DiscardTransientResource();
+
+				FTileIntersectionResources* TileIntersectionResources = ((FSceneViewState*)View.State)->AOTileIntersectionResources;
+				TileIntersectionResources->DiscardTransientResource();
+			}
+
 			RenderCapsuleShadowsForMovableSkylight(RHICmdList, BentNormalOutput);
 
 			GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, BentNormalOutput);
@@ -819,6 +866,7 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldLighting(
 			else
 			{
 				FPooledRenderTargetDesc Desc = SceneContext.GetSceneColor()->GetDesc();
+				Desc.Flags &= ~(TexCreate_FastVRAM | TexCreate_Transient);
 				// Make sure we get a signed format
 				Desc.Format = PF_FloatRGBA;
 				GRenderTargetPool.FindFreeElement(RHICmdList, Desc, OutDynamicBentNormalAO, TEXT("DynamicBentNormalAO"));
@@ -971,7 +1019,7 @@ private:
 
 #define IMPLEMENT_SKYLIGHT_PS_TYPE(bApplyShadowing, bSupportIrradiance) \
 	typedef TDynamicSkyLightDiffusePS<bApplyShadowing, bSupportIrradiance> TDynamicSkyLightDiffusePS##bApplyShadowing##bSupportIrradiance; \
-	IMPLEMENT_SHADER_TYPE(template<>,TDynamicSkyLightDiffusePS##bApplyShadowing##bSupportIrradiance,TEXT("SkyLighting"),TEXT("SkyLightDiffusePS"),SF_Pixel);
+	IMPLEMENT_SHADER_TYPE(template<>,TDynamicSkyLightDiffusePS##bApplyShadowing##bSupportIrradiance,TEXT("/Engine/Private/SkyLighting.usf"),TEXT("SkyLightDiffusePS"),SF_Pixel);
 
 IMPLEMENT_SKYLIGHT_PS_TYPE(true, true)
 IMPLEMENT_SKYLIGHT_PS_TYPE(false, true)

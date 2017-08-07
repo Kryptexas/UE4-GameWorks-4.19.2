@@ -99,12 +99,46 @@ void FPrimaryAssetIdCustomization::OnSetObject(const FAssetData& AssetData)
 		FPrimaryAssetId AssetId;
 		if (AssetData.IsValid())
 		{
-			AssetId = Manager.GetPrimaryAssetIdFromData(AssetData);
+			AssetId = Manager.GetPrimaryAssetIdForData(AssetData);
 			ensure(AssetId.IsValid());
 		}
 
 		StructPropertyHandle->SetValueFromFormattedString(AssetId.ToString());
 	}
 }
+
+void SPrimaryAssetIdGraphPin::Construct(const FArguments& InArgs, UEdGraphPin* InGraphPinObj)
+{
+	SGraphPin::Construct(SGraphPin::FArguments(), InGraphPinObj);
+}
+
+TSharedRef<SWidget>	SPrimaryAssetIdGraphPin::GetDefaultValueWidget()
+{
+	FString DefaultString = GraphPinObj->GetDefaultAsString();
+	CurrentId = FPrimaryAssetId(DefaultString);
+
+	return SNew(SVerticalBox)
+		.Visibility(this, &SGraphPin::GetDefaultValueVisibility)
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			IAssetManagerEditorModule::MakePrimaryAssetIdSelector(
+				FOnGetPrimaryAssetDisplayText::CreateSP(this, &SPrimaryAssetIdGraphPin::GetDisplayText),
+				FOnSetPrimaryAssetId::CreateSP(this, &SPrimaryAssetIdGraphPin::OnIdSelected),
+				true)
+		];
+}
+
+void SPrimaryAssetIdGraphPin::OnIdSelected(FPrimaryAssetId AssetId)
+{
+	CurrentId = AssetId;
+	GraphPinObj->GetSchema()->TrySetDefaultValue(*GraphPinObj, CurrentId.ToString());
+}
+
+FText SPrimaryAssetIdGraphPin::GetDisplayText() const
+{
+	return FText::AsCultureInvariant(CurrentId.ToString());
+}
+
 
 #undef LOCTEXT_NAMESPACE

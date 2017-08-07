@@ -19,6 +19,25 @@ ONLINESUBSYSTEM_API DEFINE_STAT(STAT_Session_Interface);
 ONLINESUBSYSTEM_API DEFINE_STAT(STAT_Voice_Interface);
 #endif
 
+/** Workaround, please avoid using this */
+TSharedPtr<const FUniqueNetId> GetFirstSignedInUser(IOnlineIdentityPtr IdentityInt)
+{
+	TSharedPtr<const FUniqueNetId> UserId = nullptr;
+	if (IdentityInt.IsValid())
+	{
+		for (int32 i = 0; i < MAX_LOCAL_PLAYERS; i++)
+		{
+			UserId = IdentityInt->GetUniquePlayerId(i);
+			if (UserId.IsValid() && UserId->IsValid())
+			{
+				break;
+			}
+		}
+	}
+
+	return UserId;
+}
+
 int32 GetBuildUniqueId()
 {
 	static bool bStaticCheck = false;

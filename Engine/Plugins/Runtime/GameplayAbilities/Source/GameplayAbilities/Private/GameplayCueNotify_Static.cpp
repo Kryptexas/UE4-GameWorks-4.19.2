@@ -26,7 +26,7 @@ void UGameplayCueNotify_Static::PostEditChangeProperty(FPropertyChangedEvent& Pr
 	const UProperty* PropertyThatChanged = PropertyChangedEvent.Property;
 	UBlueprint* Blueprint = UBlueprint::GetBlueprintFromClass(GetClass());
 
-	if (PropertyThatChanged && PropertyThatChanged->GetFName() == FName(TEXT("GameplayCueTag")))
+	if (PropertyThatChanged && PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED(UGameplayCueNotify_Static, GameplayCueTag))
 	{
 		DeriveGameplayCueTagFromAssetName();
 		UAbilitySystemGlobals::Get().GetGameplayCueManager()->HandleAssetDeleted(Blueprint);

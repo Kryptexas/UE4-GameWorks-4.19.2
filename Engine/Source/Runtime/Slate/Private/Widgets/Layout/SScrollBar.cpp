@@ -6,12 +6,8 @@
 #include "Widgets/Layout/SSpacer.h"
 #include "Widgets/Images/SImage.h"
 #include "Widgets/Layout/SBox.h"
+#include "Framework/Application/SlateApplication.h"
 
-/**
- * Construct this widget
- *
- * @param	InArgs	The declaration data for this widget
- */
 void SScrollBar::Construct(const FArguments& InArgs)
 {
 	OnUserScrolled = InArgs._OnUserScrolled;
@@ -23,6 +19,10 @@ void SScrollBar::Construct(const FArguments& InArgs)
 
 	EHorizontalAlignment HorizontalAlignment = Orientation == Orient_Vertical ? HAlign_Center : HAlign_Fill;
 	EVerticalAlignment VerticalAlignment = Orientation == Orient_Vertical ? VAlign_Fill : VAlign_Center;
+
+	bHideWhenNotInUse = InArgs._HideWhenNotInUse;
+	bIsScrolling = false;
+	LastInteractionTime = 0;
 
 	SBorder::Construct( SBorder::FArguments()
 		.BorderImage(FCoreStyle::Get().GetBrush("NoBorder"))
@@ -89,24 +89,21 @@ void SScrollBar::SetOnUserScrolled( const FOnUserScrolled& InHandler )
 
 void SScrollBar::SetState( float InOffsetFraction, float InThumbSizeFraction )
 {
-	// Note that the maximum offset depends on how many items fit per screen
-	// It is 1.0f-InThumbSizeFraction.
-	Track->SetSizes( InOffsetFraction, InThumbSizeFraction );
+	if ( Track->DistanceFromTop() != InOffsetFraction || Track->GetThumbSizeFraction() != InThumbSizeFraction )
+	{
+		// Note that the maximum offset depends on how many items fit per screen
+		// It is 1.0f-InThumbSizeFraction.
+		Track->SetSizes(InOffsetFraction, InThumbSizeFraction);
+
+		LastInteractionTime = FSlateApplication::Get().GetCurrentTime();
+	}
 }
 
-/**
- * The system calls this method to notify the widget that a mouse button was pressed within it. This event is bubbled.
- *
- * @param MyGeometry The Geometry of the widget receiving the event
- * @param MouseEvent Information about the input event
- *
- * @return Whether the event was handled along with possible requests for the system to take action.
- */
 FReply SScrollBar::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
 	if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
 	{
-		FGeometry ThumbGeometry = this->FindChildGeometry(MyGeometry, DragThumb.ToSharedRef());
+		FGeometry ThumbGeometry = FindChildGeometry(MyGeometry, DragThumb.ToSharedRef());
 
 		if( DragThumb->IsHovered() )
 		{
@@ -125,7 +122,7 @@ FReply SScrollBar::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointe
 		else if( OnUserScrolled.IsBound() )
 		{
 			// Clicking in the non drag thumb area of the scrollbar
-			DragGrabOffset = Orientation == Orient_Horizontal ? (ThumbGeometry.Size.X * 0.5f) : (ThumbGeometry.Size.Y * 0.5f);
+			DragGrabOffset = Orientation == Orient_Horizontal ? (ThumbGeometry.GetLocalSize().X * 0.5f) : (ThumbGeometry.GetLocalSize().Y * 0.5f);
 			bDraggingThumb = true;
 
 			ExecuteOnUserScrolled( MyGeometry, MouseEvent );
@@ -142,14 +139,6 @@ FReply SScrollBar::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointe
 	}
 }
 
-/**
- * The system calls this method to notify the widget that a mouse button was release within it. This event is bubbled.
- *
- * @param MyGeometry The Geometry of the widget receiving the event
- * @param MouseEvent Information about the input event
- *
- * @return Whether the event was handled along with possible requests for the system to take action.
- */
 FReply SScrollBar::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
 	if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
@@ -163,28 +152,33 @@ FReply SScrollBar::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerE
 	}
 }
 
-/**
- * The system calls this method to notify the widget that a mouse moved within it. This event is bubbled.
- *
- * @param MyGeometry The Geometry of the widget receiving the event
- * @param MouseEvent Information about the input event
- *
- * @return Whether the event was handled along with possible requests for the system to take action.
- */
 FReply SScrollBar::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	if ( this->HasMouseCapture() && !MouseEvent.GetCursorDelta().IsZero() )
+	if ( this->HasMouseCapture() )
 	{
-		if ( OnUserScrolled.IsBound() )
+		if (!MouseEvent.GetCursorDelta().IsZero())
 		{
-			ExecuteOnUserScrolled( MyGeometry, MouseEvent );
+			if (OnUserScrolled.IsBound())
+			{
+				ExecuteOnUserScrolled(MyGeometry, MouseEvent);
+			}
+			return FReply::Handled();
 		}
-		return FReply::Handled();
 	}
-	else
-	{
-		return FReply::Unhandled();
-	}
+	
+	return FReply::Unhandled();
+}
+
+void SScrollBar::OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	SBorder::OnMouseEnter(MyGeometry, MouseEvent);
+	LastInteractionTime = FSlateApplication::Get().GetCurrentTime();
+}
+
+void SScrollBar::OnMouseLeave(const FPointerEvent& MouseEvent)
+{
+	SBorder::OnMouseLeave(MouseEvent);
+	LastInteractionTime = FSlateApplication::Get().GetCurrentTime();
 }
 
 void SScrollBar::ExecuteOnUserScrolled( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
@@ -192,7 +186,7 @@ void SScrollBar::ExecuteOnUserScrolled( const FGeometry& MyGeometry, const FPoin
 	const int32 AxisId = (Orientation == Orient_Horizontal) ? 0 : 1;
 	const FGeometry TrackGeometry = FindChildGeometry( MyGeometry, Track.ToSharedRef() );
 	const float UnclampedOffsetInTrack = TrackGeometry.AbsoluteToLocal( MouseEvent.GetScreenSpacePosition() )[ AxisId ] - DragGrabOffset;
-	const float TrackSizeBiasedByMinThumbSize = TrackGeometry.Size[ AxisId ] - Track->GetMinThumbSize();
+	const float TrackSizeBiasedByMinThumbSize = TrackGeometry.GetLocalSize()[ AxisId ] - Track->GetMinThumbSize();
 	const float ThumbOffsetInTrack = FMath::Clamp( UnclampedOffsetInTrack, 0.0f, TrackSizeBiasedByMinThumbSize );
 	const float ThumbOffset = ThumbOffsetInTrack / TrackSizeBiasedByMinThumbSize;
 	OnUserScrolled.ExecuteIfBound( ThumbOffset );
@@ -214,16 +208,14 @@ float SScrollBar::DistanceFromBottom() const
 }
 
 SScrollBar::SScrollBar()
-: bDraggingThumb(false)
-, DragGrabOffset( 0.0f )
+	: bDraggingThumb(false)
+	, DragGrabOffset( 0.0f )
 {
-
 }
-
 
 FSlateColor SScrollBar::GetTrackOpacity() const
 {
-	if ( bDraggingThumb || this->IsHovered() )
+	if ( bDraggingThumb || IsHovered() )
 	{
 		return FLinearColor(1,1,1,1);
 	}
@@ -233,19 +225,38 @@ FSlateColor SScrollBar::GetTrackOpacity() const
 	}
 }
 
-
 FLinearColor SScrollBar::GetThumbOpacity() const
 {
-	if ( bDraggingThumb || this->IsHovered() )
+	if ( bDraggingThumb || IsHovered() )
 	{
 		return FLinearColor(1,1,1,1);
 	}
 	else
 	{
-		return FLinearColor(1,1,1,0.75f);
+		if ( bHideWhenNotInUse )
+		{
+			const double LastInteractionDelta = bIsScrolling ? 0 : ( FSlateApplication::Get().GetCurrentTime() - LastInteractionTime );
+
+			float Opacity = FMath::Lerp(1.0f, 0.0f, FMath::Clamp((float)( ( LastInteractionDelta - 0.2 ) / 0.2 ), 0.0f, 1.0f));
+			return FLinearColor(1, 1, 1, Opacity);
+		}
+		else
+		{
+			return FLinearColor(1, 1, 1, 0.75f);
+		}
 	}
 }
 
+void SScrollBar::BeginScrolling()
+{
+	bIsScrolling = true;
+}
+
+void SScrollBar::EndScrolling()
+{
+	bIsScrolling = false;
+	LastInteractionTime = FSlateApplication::Get().GetCurrentTime();
+}
 
 const FSlateBrush* SScrollBar::GetDragThumbImage() const
 {
@@ -262,7 +273,6 @@ const FSlateBrush* SScrollBar::GetDragThumbImage() const
 		return NormalThumbImage;
 	}
 }
-
 
 EVisibility SScrollBar::ShouldBeVisible() const
 {

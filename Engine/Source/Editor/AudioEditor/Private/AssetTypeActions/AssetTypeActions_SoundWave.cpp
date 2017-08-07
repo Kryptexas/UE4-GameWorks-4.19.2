@@ -132,7 +132,7 @@ void FAssetTypeActions_SoundWave::ExecuteCreateSoundCue(TArray<TWeakObjectPtr<US
 	}
 }
 
-void FAssetTypeActions_SoundWave::ExecuteCreateDialogueWave(const class FAssetData& AssetData, TArray<TWeakObjectPtr<USoundWave>> Objects)
+void FAssetTypeActions_SoundWave::ExecuteCreateDialogueWave(const struct FAssetData& AssetData, TArray<TWeakObjectPtr<USoundWave>> Objects)
 {
 	const FString DefaultSuffix = TEXT("_Dialogue");
 
@@ -287,6 +287,7 @@ TSharedPtr<SWidget> FAssetTypeActions_SoundWave::GetThumbnailOverlay(const FAsse
 		.ToolTipText_Lambda(OnToolTipTextLambda)
 		.Cursor(EMouseCursor::Default) // The outer widget can specify a DragHand cursor, so we need to override that here
 		.ForegroundColor(FSlateColor::UseForeground())
+		.IsFocusable(false)
 		.OnClicked_Lambda(OnClickedLambda)
 		.Visibility_Lambda(OnGetVisibilityLambda)
 		[

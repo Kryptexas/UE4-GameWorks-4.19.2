@@ -8,8 +8,8 @@
 #include "Distributions/DistributionVectorParameterBase.h"
 #include "DistributionVectorParticleParameter.generated.h"
 
-UCLASS(collapsecategories, hidecategories=Object, editinlinenew, MinimalAPI)
-class UDistributionVectorParticleParameter : public UDistributionVectorParameterBase
+UCLASS(collapsecategories, hidecategories=Object, editinlinenew)
+class ENGINE_API UDistributionVectorParticleParameter : public UDistributionVectorParameterBase
 {
 	GENERATED_UCLASS_BODY()
 

@@ -3,47 +3,8 @@ Title:Color Picker
 Crumbs:%ROOT%, Engine, Engine/UI
 Description:Tool for interactively choosing colors to assign to color properties of actors.
 Version: 4.9
+topic-image:Engine/UI/colorPicker_topic.png
 
-
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/UI/ColorPicker:title%](Engine/UI/colorPicker_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/ColorPicker:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/ColorPicker:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/ColorPicker]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/UI/ColorPicker:title%](Engine/UI/colorPicker_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/editor_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/UI/ColorPicker:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/UI/ColorPicker:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/UI/ColorPicker]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [EXCERPT:Intro]
 The **Color Picker** allows you to easily adjust a color value for a color property in the Unreal Editor.  You can adjust colors by RGBA (red, green, blue, alpha), HSV (hue, saturation, value), and Hex (ARGB). Alternatively you can select a color by clicking anywhere in the color wheel or by capturing the color under your mouse, anywhere on your monitors.

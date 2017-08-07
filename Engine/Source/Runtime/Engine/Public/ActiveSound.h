@@ -271,6 +271,9 @@ public:
 	/** If true, the AudioComponent will be notified when a Wave is started to handle subtitles */
 	uint8 bHandleSubtitles:1;
 
+	/** If true, subtitles are being provided for the sound externally, so it still needs to make sure the sound plays to trigger the subtitles. */
+	uint8 bHasExternalSubtitles:1;
+
 	/** Whether the Location of the component is well defined */
 	uint8 bLocationDefined:1;
 

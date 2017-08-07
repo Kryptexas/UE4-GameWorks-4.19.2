@@ -4,6 +4,7 @@ Crumbs: %ROOT%, Gameplay, Gameplay/HowTo/SpawnAndDestroyActors
 Description:A How To Guide for Spawning/Destroying Actors through Blueprints in Unreal Engine 4.
 Version: 4.9
 SkillLevel:Intermediate
+type:how-to
 
 [TOC (start:2)]
 

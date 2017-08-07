@@ -177,6 +177,7 @@ namespace Audio
 
 		// Create a zero'd scratch buffer to get the audio from this submix's children
 		const int32 NumSamples = OutAudioBuffer.Num();
+		float* OutAudioBufferPtr = OutAudioBuffer.GetData();
 
 		{
 			SCOPE_CYCLE_COUNTER(STAT_AudioMixerSubmixChildren);
@@ -193,10 +194,12 @@ namespace Audio
 
 				ChildSubmix->ProcessAudio(ScratchBuffer);
 
+				float* ScratchBufferPtr = ScratchBuffer.GetData();
+
 				// Mix the output of the submix into the output buffer
 				for (int32 i = 0; i < NumSamples; ++i)
 				{
-					OutAudioBuffer[i] += ScratchBuffer[i];
+					OutAudioBufferPtr[i] += ScratchBufferPtr[i];
 				}
 			}
 		}
@@ -259,9 +262,9 @@ namespace Audio
 					SubmixEffect->ProcessAudio(InputData, OutputData);
 				}
 
-				for (int32 i = 0; i < OutAudioBuffer.Num(); ++i)
+				for (int32 i = 0; i < NumSamples; ++i)
 				{
-					OutAudioBuffer[i] = ScratchBuffer[i];
+					OutAudioBufferPtr[i] = ScratchBuffer[i];
 				}
 			}
 		}

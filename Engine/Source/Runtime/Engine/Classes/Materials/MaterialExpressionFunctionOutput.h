@@ -18,7 +18,7 @@ class UMaterialExpressionFunctionOutput : public UMaterialExpression
 	GENERATED_UCLASS_BODY()
 
 	/** The output's name, which will be drawn on the connector in function call expressions that use this function. */
-	UPROPERTY(EditAnywhere, Category=MaterialExpressionFunctionOutput)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = MaterialExpressionFunctionOutput)
 	FString OutputName;
 
 	/** The output's description, which will be used as a tooltip on the connector in function call expressions that use this function. */

@@ -542,7 +542,7 @@ void FGatherTextFromTextFilesConfigurationStructCustomization::CustomizeStructCh
 		const TSharedPtr<IPropertyHandle> ChildPropertyHandle = StructPropertyHandle->GetChildHandle(i);
 		if (!ChildPropertyHandle->IsCustomized())
 		{
-			ChildBuilder.AddChildProperty(ChildPropertyHandle.ToSharedRef());
+			ChildBuilder.AddProperty(ChildPropertyHandle.ToSharedRef());
 		}
 	}
 }
@@ -633,7 +633,7 @@ void FGatherTextFromPackagesConfigurationStructCustomization::CustomizeStructChi
 		const TSharedPtr<IPropertyHandle> ChildPropertyHandle = StructPropertyHandle->GetChildHandle(i);
 		if (!ChildPropertyHandle->IsCustomized())
 		{
-			ChildBuilder.AddChildProperty(ChildPropertyHandle.ToSharedRef());
+			ChildBuilder.AddProperty(ChildPropertyHandle.ToSharedRef());
 		}
 	}
 }
@@ -900,7 +900,7 @@ void FMetaDataKeyGatherSpecificationStructCustomization::CustomizeStructChildren
 		const TSharedPtr<IPropertyHandle> ChildPropertyHandle = StructPropertyHandle->GetChildHandle(i);
 		if (!ChildPropertyHandle->IsCustomized())
 		{
-			ChildBuilder.AddChildProperty(ChildPropertyHandle.ToSharedRef());
+			ChildBuilder.AddProperty(ChildPropertyHandle.ToSharedRef());
 		}
 	}
 }
@@ -991,7 +991,7 @@ void FGatherTextFromMetaDataConfigurationStructCustomization::CustomizeStructChi
 		const TSharedPtr<IPropertyHandle> ChildPropertyHandle = StructPropertyHandle->GetChildHandle(i);
 		if (!ChildPropertyHandle->IsCustomized())
 		{
-			ChildBuilder.AddChildProperty(ChildPropertyHandle.ToSharedRef());
+			ChildBuilder.AddProperty(ChildPropertyHandle.ToSharedRef());
 		}
 	}
 }

@@ -89,16 +89,6 @@ FArchive& FDuplicateDataReader::operator<<( FLazyObjectPtr& LazyObjectPtr)
 	return Ar;
 }
 
-FArchive& FDuplicateDataReader::operator<<( FAssetPtr& AssetPtr)
-{
-	FArchive& Ar = *this;
-	FStringAssetReference ID;
-	ID.Serialize(Ar);
-
-	AssetPtr = ID;
-	return Ar;
-}
-
 FArchive& FDuplicateDataReader::operator<<( FStringAssetReference& StringAssetReference)
 {
 	FArchiveUObject::operator<<(StringAssetReference);

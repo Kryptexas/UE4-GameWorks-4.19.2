@@ -1,8 +1,15 @@
-Availability:Public
-Title:Post Process Materials
-Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
-Description:How to author and blend custom Post Process passes with the material editor.
-Version: 4.9
+Availability: Public
+Crumbs: %ROOT%
+Title: Post Process Materials
+Description: How to author and blend custom Post Process passes with the material editor.
+Type: Overview
+SkillLevel:Beginner
+Version:4.16
+Parent:Engine/Rendering/PostProcessEffects
+Order:8
+Tags:Post Process
+Topic-image:PPMaterials_Topic.png
+
 
 ![](Teaser3.png)
 ![](Teaser0.png)

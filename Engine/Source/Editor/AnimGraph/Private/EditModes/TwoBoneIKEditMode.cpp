@@ -67,6 +67,8 @@ void FTwoBoneIKEditMode::Render(const FSceneView* View, FViewport* Viewport, FPr
 		DrawTargetLocation(PDI, BSM_JointTarget, FColor(128, 255, 128), FColor(128, 180, 128));
 		PDI->SetHitProxy(nullptr);
 	}
+
+	FAnimNodeEditMode::Render(View, Viewport, PDI);
 }
 
 void FTwoBoneIKEditMode::DrawTargetLocation(FPrimitiveDrawInterface* PDI, BoneSelectModeType InBoneSelectMode, const FColor& TargetColor, const FColor& BoneColor) const

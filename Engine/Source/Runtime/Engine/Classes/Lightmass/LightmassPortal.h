@@ -14,8 +14,8 @@ class ALightmassPortal : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
-private_subobject:
-	UPROPERTY(Category = Portal, VisibleAnywhere, BlueprintReadOnly)
+private:
+	UPROPERTY(Category = Portal, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	class ULightmassPortalComponent* PortalComponent;
 
 #if WITH_EDITORONLY_DATA

@@ -1,9 +1,13 @@
-﻿INTSourceChangelist:3275202
+﻿INTSourceChangelist:3429227
 Availability:Public
 Title:액터 모빌리티
 Crumbs: %ROOT%, Engine, Engine/Actors
 Description:액터를 게임플레이 도중 어떤 방식으로 이동 또는 변화할 수 있도록 할지를 제어하는 세팅입니다.
 version: 4.9
+parent:Engine/Actors
+type:overview
+order:4
+
 
 [EXCERPT:Intro]
 ![](TransformMobility.png)

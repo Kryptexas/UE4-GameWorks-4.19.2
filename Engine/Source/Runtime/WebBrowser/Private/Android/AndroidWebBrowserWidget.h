@@ -14,10 +14,13 @@ class SAndroidWebBrowserWidget : public SLeafWidget
 {
 	SLATE_BEGIN_ARGS(SAndroidWebBrowserWidget)
 		: _InitialURL("about:blank")
+		, _UseTransparency(false)
 	{ }
 
 		SLATE_ARGUMENT(FString, InitialURL);
+		SLATE_ARGUMENT(bool, UseTransparency);
 		SLATE_ARGUMENT(TSharedPtr<FAndroidWebBrowserWindow>, WebBrowserWindow);
+
 	SLATE_END_ARGS()
 
 public:
@@ -25,7 +28,7 @@ public:
 
 	void Construct(const FArguments& Args);
 
-	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
+	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 
 	virtual FVector2D ComputeDesiredSize(float) const override;
 

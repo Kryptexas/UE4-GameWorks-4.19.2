@@ -14,6 +14,7 @@ class FAndroidDeviceProfileSelectorModule
 public:
 
 	//~ Begin IDeviceProfileSelectorModule Interface
+	virtual const FString GetDeviceProfileName(const TMap<FString, FString>& DeviceParameters) override;
 	virtual const FString GetRuntimeDeviceProfileName() override;
 	//~ End IDeviceProfileSelectorModule Interface
 
@@ -23,18 +24,10 @@ public:
 	virtual void ShutdownModule() override;
 	//~ End IModuleInterface Interface
 
-	
 	/**
 	 * Virtual destructor.
 	 */
 	virtual ~FAndroidDeviceProfileSelectorModule()
 	{
 	}
-
-private:
-
-	/**
-	 * Make sure we use the java workaround for view scaling on devices that require this
-	 */
-	void CheckForJavaSurfaceViewWorkaround(const FString& DeviceMake, const FString& DeviceModel) const;
 };

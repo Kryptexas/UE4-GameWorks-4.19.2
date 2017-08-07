@@ -293,7 +293,7 @@ public:
 
 	bool ShouldOperateOnLevel(ULevel* InLevel) const
 	{
-		return !InLevel->bIsLightingScenario || InLevel == LightingScenario;
+		return InLevel && (!InLevel->bIsLightingScenario || InLevel == LightingScenario) && InLevel->bIsVisible;
 	}
 
 private:
@@ -410,14 +410,6 @@ private:
 		Finished
 	};
 	FStaticLightingSystem::LightingStage CurrentBuildStage;
-
-	// Variable for storing the state of the crash tracker
-	// We disable it only for export, for everything else it shouldn't matter.
-	// This is a very special case, and doing this sort of thing
-	// is almost never recommended, especially without profiling heavily.
-	// The reason it works here is because amortized export flushes the render
-	// commands every tick, which is highly detrimental to the crash tracker's operation.
-	bool bCrashTrackerOriginallyEnabled;
 
 	/** Stats we must cache off because the process is async */
 	// A separate statistics structure for tracking the LightmassProcess routines times

@@ -1,28 +1,16 @@
-﻿INTSourceChangelist:2740691
+﻿INTSourceChangelist:3429254
 Availability:Public
 Title:3.キャラクター設定の完了
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
 Description:Input Mapping に反応してキャラクターが移動するようにブループリントでスクリプトを実行します。 
 Version:4.9
+Parent:Gameplay/HowTo/CharacterMovement/Blueprints
 SkillLevel:Advanced
+type:how-to
+type:multi-step
+order:3
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[前のステップ](Gameplay\HowTo\CharacterMovement\Blueprints\Input "%Gameplay\HowTo\CharacterMovement\Blueprints\Input:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[キャラクターの移動の概要](Gameplay\HowTo\CharacterMovement\Blueprints)
-	[/PARAM]
-	[PARAM:next]
-		[次のステップ](Gameplay\HowTo\CharacterMovement\Blueprints\BlendSpace "%Gameplay\HowTo\CharacterMovement\Blueprints\BlendSpace:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 このセクションでは、プレイヤー入力に合わせてキャラクターを制御するスクリプトを実行して、キャラクター設定を完了させます。 
 
@@ -30,11 +18,11 @@ SkillLevel:Advanced
 
 1.	グラフ内で **InputAxis MoveForward** Event と **InputAxis MoveRight** Event を **右クリック** して追加します。 
 
-1.	**Control** を押したまま **DisableMovement** 変数をドラッグし、各イベントの **Branch** の **Condition** に接続します。 
+1.	**Control** キーを押したまま **DisableMovement** 変数をドラッグし、各イベントの **Branch** の **Condition** に接続します。 
 
 1.	残りのノード ネットワークを以下のように設定します。 
-
 	[REGION:lightbox]
+
 	[![](Character_Movement.png)(w:720)](Character_Movement.png)
 	[/REGION]
 
@@ -50,11 +38,11 @@ SkillLevel:Advanced
 
 1.	グラフ内を **右クリック** して、 **InputAction Jog** Event を追加します。 
 
-1.	**[MyBlueprint]** ウィンドウで、 **[Show inherited variables]** チェックボックスをクリックし、**Control** を押しながら、 **CharacterMovement** をグラフへドラッグします。 
+1.	**[MyBlueprint]** ウィンドウで、 **[Show inherited variables]** チェックボックスをクリックし、**Control** キーを押しながら、 **CharacterMovement** をグラフへドラッグします。 
 
 	![](Character_JogA.png)
 
-1.	**Alt** を押しながら **Jog Pressed** 変数をドラッグしたら、 **Control** を押しながら **Crouch Pressed** 変数をドラッグします。 
+1.	**Alt** キーを押しながら **Jog Pressed** 変数をドラッグしたら、 **Control** キーを押しながら **Crouch Pressed** 変数をドラッグします。 
 
 1.	適切な **Set** ノードの "Jog Pressed" がチェックされるように、ノード ネットワークを以下のように設定します:
 
@@ -69,7 +57,7 @@ SkillLevel:Advanced
 
 1.	グラフ内を **右クリック** して、 **InputAction Crouch** Eventを追加します。 
 
-1.	**Alt** を押しながら **Crouch Pressed** 変数をドラッグしたら、 **Control** を押しながら **Jog Pressed** 変数と **Prone Pressed** 変数をドラッグします。 
+1.	**Alt** キーを押しながら **Crouch Pressed** 変数をドラッグしたら、 **Control** キーを押しながら **Jog Pressed** 変数と **Prone Pressed** 変数をドラッグします。 
 
 1.	適切な **Set** ノードの "Crouch Pressed" がチェックされるように、ノード ネットワークを以下のように設定します。 
 
@@ -84,9 +72,9 @@ SkillLevel:Advanced
 
 1.	グラフ内を **右クリック** して、 **InputAction Prone** Event を追加します。 
 
-1.	**Alt** を押しながら **Prone Pressed** 変数と **DisableMovement** 変数をドラッグします。
+1.	**Alt** キーを押しながら **Prone Pressed** 変数と **DisableMovement** 変数をドラッグします。
 
-1.	**Control** を押しながら、 **Crouch Pressed** 変数をドラッグします。 
+1.	**Control** キーを押しながら、 **Crouch Pressed** 変数をドラッグします。 
 
 1.	適切な **Set** ノードの "Prone Pressed" がチェックされるように、ノード ネットワークを以下のように設定します。 
 
@@ -102,9 +90,9 @@ SkillLevel:Advanced
 
 1.	グラフ内を **右クリック** して、 **InputAction Jump** Event を追加し、 **[MyBlueprint]** ウィンドウから **CharacterMovement** をドラッグします。
 
-1.	**Alt** を押しながら **Jump Pressed** 変数をドラッグしたら、 **Control** を押しながら **DisableMovement** 変数と **CrouchPressed** 変数をドラッグします。 
+1.	**Alt** キーを押しながら **Jump Pressed** 変数をドラッグしたら、 **Control** キーを押しながら **DisableMovement** 変数と **CrouchPressed** 変数をドラッグします。 
 
-1.	適切な **Set** ノードの "Jump Pressed" がチェックされるように、ノード ネットワークを以下のように設定します。 
+1.	適切な **Set** ノードの "Jump Pressed" をチェックするように、ノード ネットワークを以下のように設定します。 
 
 	[REGION:lightbox]
 	[![](Character_Jump.png)(w:720)](Character_Jump.png)
@@ -112,9 +100,9 @@ SkillLevel:Advanced
 
 	_画像をクリックしてフルサイズで表示_
 
-	Jump スクリプトの場合は、まずステートが Prone か Crouched のいずれかになっているかを確認します。両方とも _true_ でなければ、 **CharacterMovement** コンポーネントを使って現在の速度を判断します。 0 より大きければ、移動していることになります。 
+	Jump スクリプトの場合は、まずステートが Prone か Crouched のいずれかになっているかを確認します。両方とも _true_ ではなければ、 **CharacterMovement** コンポーネントを使って現在の速度を判断します。 0 より大きければ、移動していることになります。 
 
 	移動しているかどうかに応じて、まだ固定状態のうちに **JumpZVelocity** を **365** (キャラクターが移動している場合) または **340** に設定して、キャラクターがジャンプできる高さを設定します。どちらの場合も **Jump Pressed** は _True_ に設定し、 Jump が解除されると **Jump Pressed** を _False_ に設定します。 
 
 
-%Steps%
+[NAV]

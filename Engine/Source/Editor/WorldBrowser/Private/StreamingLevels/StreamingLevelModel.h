@@ -7,7 +7,7 @@
 #include "LevelModel.h"
 #include "Layers/Layer.h"
 
-class FAssetData;
+struct FAssetData;
 class FLevelDragDropOp;
 class FStreamingLevelCollectionModel;
 class ULevel;
@@ -47,6 +47,9 @@ public:
 	virtual void OnDrop(const TSharedPtr<FLevelDragDropOp>& Op) override;
 	virtual bool IsGoodToDrop(const TSharedPtr<FLevelDragDropOp>& Op) const override;
 	virtual UClass* GetStreamingClass() const override;
+	FName GetFolderPath() const override;
+	virtual void SetFolderPath(const FName& InFolderPath) override;
+	virtual bool HasFolderSupport() const override { return true; }
 	// FLevelModel interface end
 		
 	/** @return The ULevelStreaming this viewmodel contains*/

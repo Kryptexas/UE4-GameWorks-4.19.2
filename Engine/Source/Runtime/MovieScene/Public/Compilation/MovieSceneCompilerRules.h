@@ -50,7 +50,8 @@ namespace MovieSceneSegmentCompiler
 		for (const FSectionEvaluationData& Impl : Segment.Impls)
 		{
 			const FMovieSceneSectionData& SectionData = SourceData[Impl.ImplIndex];
-			if (!SectionData.EvalData.IsPreRoll() &&
+			if (!SectionData.BlendType.IsValid() &&
+				!SectionData.EvalData.IsPreRoll() &&
 				!SectionData.EvalData.IsPostRoll())
 			{
 				HighestPriority = FMath::Max(HighestPriority, SectionData.Priority);
@@ -62,10 +63,11 @@ namespace MovieSceneSegmentCompiler
 		{
 			const FMovieSceneSectionData& SectionData = SourceData[Segment.Impls[RemoveAtIndex].ImplIndex];
 			if (SectionData.Priority != HighestPriority &&
+				!SectionData.BlendType.IsValid() &&
 				!SectionData.EvalData.IsPreRoll() && 
 				!SectionData.EvalData.IsPostRoll())
 			{
-				Segment.Impls.RemoveAtSwap(RemoveAtIndex, 1, false);
+				Segment.Impls.RemoveAt(RemoveAtIndex, 1, false);
 			}
 		}
 	}

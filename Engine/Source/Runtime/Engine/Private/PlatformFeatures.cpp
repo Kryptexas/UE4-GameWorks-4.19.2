@@ -24,6 +24,11 @@ TSharedPtr<const class FJsonObject> IPlatformFeaturesModule::GetTitleSettings()
 	return nullptr;
 }
 
+FString IPlatformFeaturesModule::GetUniqueAppId()
+{
+	return FString();
+}
+
 IVideoRecordingSystem* IPlatformFeaturesModule::GetVideoRecordingSystem()
 {
 	static FGenericVideoRecordingSystem GenericVideoRecordingSystem;

@@ -315,5 +315,3 @@ bool ABrush::Modify(bool bAlwaysMarkDirty)
 	return bSavedToTransactionBuffer;
 }
 
-/** Returns BrushComponent subobject **/
-UBrushComponent* ABrush::GetBrushComponent() const { return BrushComponent; }

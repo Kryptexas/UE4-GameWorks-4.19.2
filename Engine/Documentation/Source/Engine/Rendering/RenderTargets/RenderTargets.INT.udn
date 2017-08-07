@@ -8,6 +8,7 @@ parent:Engine/Rendering
 order:7
 Navigation:topic
 tags: Render Targets
+topic-image:RenderTargets_topic.png
 
 ![](BlueprintRenderTarget.png)
 

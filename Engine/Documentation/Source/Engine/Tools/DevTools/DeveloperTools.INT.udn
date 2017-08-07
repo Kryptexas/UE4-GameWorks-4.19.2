@@ -3,6 +3,10 @@ Title:Developer Tools
 Crumbs: %ROOT%, Engine
 Description:Descriptions of the options found under the Developer Tools file menu. 
 version: 4.12
+parent:Engine/Editor
+type:overview
+order:30
+Topic-image:DeveloperTools_topic.png
 
 [REGION:raw]
 ![](DeveloperTools2.png)

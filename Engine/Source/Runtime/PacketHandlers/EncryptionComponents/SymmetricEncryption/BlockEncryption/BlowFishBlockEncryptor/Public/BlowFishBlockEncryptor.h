@@ -3,7 +3,7 @@
 #pragma once
 
 #include "BlockEncryptionHandlerComponent.h"
-#include "CryptoPP/5.6.2/include/blowfish.h"
+#include "CryptoPP/5.6.5/include/blowfish.h"
 
 /* BlowFish Block Encryptor Module Interface */
 class FBlowFishBlockEncryptorModuleInterface : public FBlockEncryptorModuleInterface
@@ -19,13 +19,13 @@ class BLOWFISHBLOCKENCRYPTOR_API BlowFishBlockEncryptor : public BlockEncryptor
 {
 public:
 	/* Initialized the encryptor */
-	void Initialize(TArray<byte>* Key) override;
+	void Initialize(TArray<uint8>* Key) override;
 
 	/* Encrypts outgoing packets */
-	void EncryptBlock(byte* Block) override;
+	void EncryptBlock(uint8* Block) override;
 
 	/* Decrypts incoming packets */
-	void DecryptBlock(byte* Block) override;
+	void DecryptBlock(uint8* Block) override;
 
 	/* Get the default key size for this encryptor */
 	uint32 GetDefaultKeySize() { return 8; }

@@ -340,6 +340,21 @@ void FSoundCueEditor::BindGraphCommands()
 void FSoundCueEditor::PlayCue()
 {
 	GEditor->PlayPreviewSound(SoundCue);
+
+	SoundCueGraphEditor->RegisterActiveTimer(0.0f, 
+	FWidgetActiveTimerDelegate::CreateLambda(
+		[](double InCurrentTime, float InDeltaTime)
+		{
+			UAudioComponent* PreviewComp = GEditor->GetPreviewAudioComponent();
+			if (PreviewComp && PreviewComp->IsPlaying())
+			{
+				return EActiveTimerReturnType::Continue;
+			}
+			else
+			{
+				return EActiveTimerReturnType::Stop;
+			}
+		}));
 }
 
 void FSoundCueEditor::PlayNode()

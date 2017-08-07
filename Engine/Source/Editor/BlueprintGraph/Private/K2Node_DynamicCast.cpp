@@ -47,15 +47,15 @@ void UK2Node_DynamicCast::AllocateDefaultPins()
 	if (!bIsPureCast)
 	{
 		// Input - Execution Pin
-		CreatePin(EGPD_Input, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_Execute);
+		CreatePin(EGPD_Input, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_Execute);
 
 		// Output - Execution Pins
-		CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_CastSucceeded);
-		CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_CastFailed);
+		CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_CastSucceeded);
+		CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_CastFailed);
 	}
 
 	// Input - Source type Pin
-	CreatePin(EGPD_Input, K2Schema->PC_Wildcard, TEXT(""), UObject::StaticClass(), false, false, K2Schema->PN_ObjectToCast);
+	CreatePin(EGPD_Input, K2Schema->PC_Wildcard, FString(), UObject::StaticClass(), K2Schema->PN_ObjectToCast);
 
 	// Output - Data Pin
 	if (TargetType != NULL)
@@ -63,15 +63,15 @@ void UK2Node_DynamicCast::AllocateDefaultPins()
 		FString CastResultPinName = K2Schema->PN_CastedValuePrefix + TargetType->GetDisplayNameText().ToString();
 		if (TargetType->IsChildOf(UInterface::StaticClass()))
 		{
-			CreatePin(EGPD_Output, K2Schema->PC_Interface, TEXT(""), *TargetType, false, false, CastResultPinName);
+			CreatePin(EGPD_Output, K2Schema->PC_Interface, FString(), *TargetType, CastResultPinName);
 		}
 		else 
 		{
-			CreatePin(EGPD_Output, K2Schema->PC_Object, TEXT(""), *TargetType, false, false, CastResultPinName);
+			CreatePin(EGPD_Output, K2Schema->PC_Object, FString(), *TargetType, CastResultPinName);
 		}
 	}
 
-	UEdGraphPin* BoolSuccessPin = CreatePin(EGPD_Output, K2Schema->PC_Boolean, TEXT(""), nullptr, /*bIsArray =*/false, /*bIsReference =*/false, UK2Node_DynamicCastImpl::CastSuccessPinName);
+	UEdGraphPin* BoolSuccessPin = CreatePin(EGPD_Output, K2Schema->PC_Boolean, FString(), nullptr, UK2Node_DynamicCastImpl::CastSuccessPinName);
 	BoolSuccessPin->bHidden = !bIsPureCast;
 
 	Super::AllocateDefaultPins();

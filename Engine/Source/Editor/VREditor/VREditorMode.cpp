@@ -35,7 +35,6 @@
 #include "IViewportInteractionModule.h"
 #include "VREditorMotionControllerInteractor.h"
 
-#include "ViewportWorldInteractionManager.h"
 #include "EditorWorldExtension.h"
 #include "SequencerSettings.h"
 #include "Kismet/GameplayStatics.h"
@@ -44,7 +43,7 @@
 #include "VREditorActions.h"
 #include "EditorModes.h"
 #include "VRModeSettings.h"
-
+#include "IVREditorModule.h"
 
 #define LOCTEXT_NAMESPACE "VREditorMode"
 
@@ -65,9 +64,12 @@ namespace VREd
 	static FAutoConsoleVariable HeadLocationVelocityOffset( TEXT( "VREd.HeadLocationVelocityOffset" ), TEXT( "X=20, Y=0, Z=5" ), TEXT( "Offset relative to head for location velocity debug indicator" ) );
 	static FAutoConsoleVariable HeadRotationVelocityOffset( TEXT( "VREd.HeadRotationVelocityOffset" ), TEXT( "X=20, Y=0, Z=-5" ), TEXT( "Offset relative to head for rotation velocity debug indicator" ) );
 	static FAutoConsoleVariable SFXMultiplier(TEXT("VREd.SFXMultiplier"), 1.5f, TEXT("Default Sound Effect Volume Multiplier"));
+
+	static FAutoConsoleCommand ToggleDebugMode(TEXT("VREd.ToggleDebugMode"), TEXT("Toggles debug mode of the VR Mode"), FConsoleCommandDelegate::CreateStatic(&UVREditorMode::ToggleDebugMode));
 }
 
 const FString UVREditorMode::AssetContainerPath = FString("/Engine/VREditor/VREditorAssetContainerData");
+bool UVREditorMode::bDebugModeEnabled = false;
 
 UVREditorMode::UVREditorMode() : 
 	Super(),
@@ -91,13 +93,6 @@ UVREditorMode::UVREditorMode() :
 	AssetContainer(nullptr)
 {
 }
-
-
-UVREditorMode::~UVREditorMode()
-{
-	Shutdown();
-}
-
 
 void UVREditorMode::Init()
 {
@@ -320,8 +315,11 @@ void UVREditorMode::Enter()
 void UVREditorMode::Exit(const bool bShouldDisableStereo)
 {
 	{
+		GetLevelViewportPossessedForVR().RemoveAllPreviews();
+		GEditor->SelectNone(true, true, false);
+		GEditor->NoteSelectionChange();
 		FVREditorActionCallbacks::ChangeEditorModes(FBuiltinEditorModes::EM_Placement);
-
+		
 		//Destroy the avatar
 		{
 			DestroyTransientActor(AvatarActor);
@@ -399,11 +397,9 @@ void UVREditorMode::Exit(const bool bShouldDisableStereo)
 
 		WorldInteraction->RemoveInteractor( LeftHandInteractor );
 		LeftHandInteractor->MarkPendingKill();
-		LeftHandInteractor->Shutdown();
 		LeftHandInteractor = nullptr;
 
 		WorldInteraction->RemoveInteractor( RightHandInteractor );
-		RightHandInteractor->Shutdown();
 		RightHandInteractor->MarkPendingKill();
 		RightHandInteractor = nullptr;
 		
@@ -413,14 +409,14 @@ void UVREditorMode::Exit(const bool bShouldDisableStereo)
 			WorldInteraction->AddMouseCursorInteractor();
 			WorldInteraction->SetInVR(false);
 		}
-
-		WorldInteraction->SetDefaultOptionalViewportClient( nullptr );
 	}
 
 	if( bActuallyUsingVR )
 	{
 		FSlateNotificationManager::Get().SetAllowNotifications( true);
 	}
+
+	AssetContainer = nullptr;
 
 	FEditorDelegates::PostPIEStarted.RemoveAll( this );
 	FEditorDelegates::PrePIEEnded.RemoveAll( this );
@@ -692,9 +688,17 @@ void UVREditorMode::RefreshVREditorSequencer(class ISequencer* InCurrentSequence
 {
 	CurrentSequencer = InCurrentSequencer;
 	// Tell the VR Editor UI system to refresh the Sequencer UI
-	if (bActuallyUsingVR && InCurrentSequencer != nullptr)
+	if (bActuallyUsingVR && UISystem != nullptr)
 	{
 		GetUISystem().UpdateSequencerUI();
+	}
+}
+
+void UVREditorMode::RefreshActorPreviewWidget(TSharedRef<SWidget> InWidget)
+{
+	if (bActuallyUsingVR && UISystem != nullptr)
+	{
+		GetUISystem().UpdateActorPreviewUI(InWidget);
 	}
 }
 
@@ -792,10 +796,10 @@ const UVREditorMode::FSavedEditorState& UVREditorMode::GetSavedEditorState() con
 	return SavedEditorState;
 }
 
-void UVREditorMode::SaveSequencerSettings(bool bInKeyAllEnabled, EAutoKeyMode InAutoKeyMode, const class USequencerSettings& InSequencerSettings)
+void UVREditorMode::SaveSequencerSettings(bool bInKeyAllEnabled, EAutoChangeMode InAutoChangeMode, const class USequencerSettings& InSequencerSettings)
 {
 	SavedEditorState.bKeyAllEnabled = bInKeyAllEnabled;
-	SavedEditorState.AutoKeyMode = InAutoKeyMode;
+	SavedEditorState.AutoChangeMode = InAutoChangeMode;
 }
 
 void UVREditorMode::ToggleSIEAndVREditor()
@@ -1273,6 +1277,23 @@ void UVREditorMode::OnSwitchPIEAndSIE(bool bIsSimulatingInEditor)
 			FSlateApplication::Get().SetAllUserFocusToGameViewport();
 		}
 	}
+}
+
+void UVREditorMode::ToggleDebugMode()
+{
+	UVREditorMode::bDebugModeEnabled = !UVREditorMode::bDebugModeEnabled;
+	IVREditorModule& VREditorModule = IVREditorModule::Get();
+	UVREditorMode* VRMode = VREditorModule.GetVRMode();
+	if (VRMode != nullptr)
+	{
+		VRMode->OnToggleDebugMode().Broadcast(UVREditorMode::bDebugModeEnabled);
+	}
+}
+
+
+bool UVREditorMode::IsDebugModeEnabled()
+{
+	return UVREditorMode::bDebugModeEnabled;
 }
 
 #undef LOCTEXT_NAMESPACE

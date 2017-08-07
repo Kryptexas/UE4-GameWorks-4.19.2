@@ -45,7 +45,7 @@ void AStereoCapturePawn::UpdateStereoAtlas(UObject* WorldContextObject, struct F
     //               Got to dig deeper into UE4 to see proper way
     StereoCaptureDoneAction = new FStereoCaptureDoneAction(LatentInfo);
 
-    if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject))
+    if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull))
     {
         FLatentActionManager& LatentActionManager = World->GetLatentActionManager();
         if (LatentActionManager.FindExistingAction<FStereoCaptureDoneAction>(LatentInfo.CallbackTarget, LatentInfo.UUID) == NULL)

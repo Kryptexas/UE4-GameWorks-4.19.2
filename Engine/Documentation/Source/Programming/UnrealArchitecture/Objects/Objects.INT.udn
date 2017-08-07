@@ -91,7 +91,7 @@ This line is expected to be the the last #include directive in the file. If this
 	UCLASS()
 
 
-The UCLASS macro makes UMyObject visible to Unreal Engine 4. The macro supports a variety of arguments that determine which features are turned on or off for the class. (link to a page about UCLASS arguments)
+The UCLASS macro makes UMyObject visible to Unreal Engine 4. The macro supports a variety of [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/) that determine which features are turned on or off for the class.
 
 
 	class MYPROJECT_API UMyObject : public UObject

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3340108
+﻿INTSourceChangelist:3378497
 Availability:Public
 Title:Refraction モード:Pixel Normal Offset
 Crumbs:
@@ -7,8 +7,8 @@ Related:Engine/Rendering/Materials
 Related:Engine/Rendering/Materials/HowTo/Refraction
 Version:4.14
 SkillLevel:Intermediate
-parent:Engine/Rendering/Materials
-order:13
+Parent:Engine/Rendering/Materials
+Order:13
 type:overview
 tags:Materials
 topic-image:PNO_Topic.png

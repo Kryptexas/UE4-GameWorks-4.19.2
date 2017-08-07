@@ -1,9 +1,16 @@
 ﻿INTSourceChangelist:3108692
 Availability:Public
-Title:눈 순응
-Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
+Crumbs: %ROOT%
+Title:눈 순응 (자동 노출)
 Description:밝기의 변화에 눈이 순응하는 현상 시뮬레이션을 위해 씬 노출을 자동으로 조절하는 기능입니다.
-Version: 4.9
+Type: Overview
+SkillLevel: Beginnner
+Version:4.16
+Parent:Engine/Rendering/PostProcessEffects
+Order:2
+Tags:Post Process
+Topic-image:EyeAdap_Topic.png
+
 
 [EXCERPT:EyeAdaptation_Desc]
 **Eye Adaptation** (눈 순응), 또는 automatic exposure (자동 노출)은, 어두운 환경에서 밝은 환경으로 또는 그 반대로 이동할 때 인간의 눈이 순응하면서 느껴지는 효과를 재현하기 위해 씬의 노출을 자동으로 조절하는 것을 말합니다.

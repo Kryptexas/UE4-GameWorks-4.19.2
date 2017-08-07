@@ -23,6 +23,7 @@
 #if VSACCESSOR_HAS_DTE
 	#pragma warning(push)
 	#pragma warning(disable: 4278)
+	#pragma warning(disable: 4471)
 	#pragma warning(disable: 4146)
 	#pragma warning(disable: 4191)
 	#pragma warning(disable: 6244)
@@ -211,7 +212,7 @@ EAccessVisualStudioResult AccessVisualStudioViaDTE(TComPtr<EnvDTE::_DTE>& OutDTE
 								// Get the solution path for this instance
 								// If it equals the solution we would have opened above in RunVisualStudio(), we'll take that
 								TComPtr<EnvDTE::_Solution> Solution;
-								LPOLESTR OutPath;
+								BSTR OutPath = nullptr;
 								if (SUCCEEDED(TempDTE->get_Solution(&Solution)) &&
 									SUCCEEDED(Solution->get_FullName(&OutPath)))
 								{
@@ -223,6 +224,8 @@ EAccessVisualStudioResult AccessVisualStudioViaDTE(TComPtr<EnvDTE::_DTE>& OutDTE
 										OutDTE = TempDTE;
 										AccessResult = EAccessVisualStudioResult::VSInstanceIsOpen;
 									}
+
+									SysFreeString(OutPath);
 								}
 								else
 								{
@@ -563,15 +566,21 @@ bool GetProcessCommandLine(const ::DWORD InProcessID, FString& OutCommandLine)
 	::IWbemLocator *pLoc = nullptr;
 	if (SUCCEEDED(::CoCreateInstance(CLSID_WbemLocator, 0, CLSCTX_INPROC_SERVER, IID_IWbemLocator, (LPVOID*)&pLoc)))
 	{
+		FComBSTR ResourceName(TEXT("ROOT\\CIMV2"));
+
 		::IWbemServices *pSvc = nullptr;
-		if (SUCCEEDED(pLoc->ConnectServer(BSTR(TEXT("ROOT\\CIMV2")), nullptr, nullptr, nullptr, 0, 0, 0, &pSvc)))
+		if (SUCCEEDED(pLoc->ConnectServer(ResourceName, nullptr, nullptr, nullptr, 0, 0, 0, &pSvc)))
 		{
 			// Set the proxy so that impersonation of the client occurs
 			if (SUCCEEDED(::CoSetProxyBlanket(pSvc, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, nullptr, RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, nullptr, EOAC_NONE)))
 			{
 				::IEnumWbemClassObject* pEnumerator = nullptr;
 				const FString WQLQuery = FString::Printf(TEXT("SELECT ProcessId, CommandLine FROM Win32_Process WHERE ProcessId=%lu"), InProcessID);
-				if (SUCCEEDED(pSvc->ExecQuery(BSTR(TEXT("WQL")), BSTR(*WQLQuery), WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, nullptr, &pEnumerator)))
+
+				FComBSTR WQLBstr(TEXT("WQL"));
+				FComBSTR WQLQueryBstr(*WQLQuery);
+
+				if (SUCCEEDED(pSvc->ExecQuery(WQLBstr, WQLQueryBstr, WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, nullptr, &pEnumerator)))
 				{
 					while (pEnumerator && !bSuccess)
 					{
@@ -704,9 +713,9 @@ EAccessVisualStudioResult AccessVisualStudioViaProcess(::DWORD& OutProcessID, FS
 							{
 								UE_LOG(LogVSAccessor, Warning, TEXT("Couldn't access module information"));
 								AccessResult = EAccessVisualStudioResult::VSInstanceUnknown;
+							}
 						}
 					}
-						}
 					else
 					{
 						UE_LOG(LogVSAccessor, Warning, TEXT("Couldn't access module table"));

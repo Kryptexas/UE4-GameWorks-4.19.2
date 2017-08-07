@@ -172,7 +172,7 @@ void UPointLightComponent::SetSourceLength(float NewValue)
 
 bool UPointLightComponent::AffectsBounds(const FBoxSphereBounds& InBounds) const
 {
-	if((InBounds.Origin - ComponentToWorld.GetLocation()).SizeSquared() > FMath::Square(AttenuationRadius + InBounds.SphereRadius))
+	if((InBounds.Origin - GetComponentTransform().GetLocation()).SizeSquared() > FMath::Square(AttenuationRadius + InBounds.SphereRadius))
 	{
 		return false;
 	}
@@ -199,7 +199,7 @@ void UPointLightComponent::SendRenderTransform_Concurrent()
 //
 FVector4 UPointLightComponent::GetLightPosition() const
 {
-	return FVector4(ComponentToWorld.GetLocation(),1);
+	return FVector4(GetComponentTransform().GetLocation(),1);
 }
 
 /**
@@ -232,7 +232,7 @@ FBox UPointLightComponent::GetBoundingBox() const
 
 FSphere UPointLightComponent::GetBoundingSphere() const
 {
-	return FSphere(ComponentToWorld.GetLocation(), AttenuationRadius);
+	return FSphere(GetComponentTransform().GetLocation(), AttenuationRadius);
 }
 
 void UPointLightComponent::Serialize(FArchive& Ar)

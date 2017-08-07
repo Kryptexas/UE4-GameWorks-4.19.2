@@ -47,6 +47,8 @@ public:
 	virtual bool CanCreateKeyEditor() override;
 	virtual TSharedRef<SWidget> CreateKeyEditor(ISequencer* Sequencer) override;
 
+	TOptional<int32> GetExternalValue() const;
+
 protected:
 
 	virtual int32 ConvertCurveValueToIntegralType(int32 CurveValue) const { return CurveValue; }

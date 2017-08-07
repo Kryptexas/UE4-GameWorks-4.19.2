@@ -2,6 +2,8 @@
 
 
 #include "CoreMinimal.h"
+
+#include "BlueprintCompilationManager.h"
 #include "Misc/CoreMisc.h"
 #include "Stats/StatsMisc.h"
 #include "Stats/Stats.h"
@@ -88,6 +90,8 @@ DECLARE_CYCLE_STAT(TEXT("Refresh Dependent Blueprints"), EKismetCompilerStats_Re
 DECLARE_CYCLE_STAT(TEXT("Validate Generated Class"), EKismetCompilerStats_ValidateGeneratedClass, STATGROUP_KismetCompiler);
 
 #define LOCTEXT_NAMESPACE "UnrealEd.Editor"
+
+extern COREUOBJECT_API bool GBlueprintUseCompilationManager;
 
 //////////////////////////////////////////////////////////////////////////
 // FArchiveInvalidateTransientRefs
@@ -740,6 +744,12 @@ bool FKismetEditorUtilities::IsReferencedByUndoBuffer(UBlueprint* Blueprint)
 
 void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, EBlueprintCompileOptions CompileFlags, FCompilerResultsLog* pResults)
 {
+	if(GBlueprintUseCompilationManager)
+	{
+		FBlueprintCompilationManager::CompileSynchronously(FBPCompileRequest(BlueprintObj, CompileFlags, pResults));
+		return;
+	}
+
 	const bool bIsRegeneratingOnLoad		= (CompileFlags & EBlueprintCompileOptions::IsRegeneratingOnLoad		) != EBlueprintCompileOptions::None;
 	const bool bSkipGarbageCollection		= (CompileFlags & EBlueprintCompileOptions::SkipGarbageCollection		) != EBlueprintCompileOptions::None;
 	const bool bSaveIntermediateProducts	= (CompileFlags & EBlueprintCompileOptions::SaveIntermediateProducts	) != EBlueprintCompileOptions::None;
@@ -915,12 +925,6 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, EBluepri
 		}
 	}
 
-	// Default Values are now set in CDO. And these copies could be soon obsolete, so better to reset them.
-	for(int VarIndex = 0; VarIndex < BlueprintObj->NewVariables.Num(); ++VarIndex)
-	{
-		BlueprintObj->NewVariables[VarIndex].DefaultValue.Empty();
-	}
-
 	if (!bLetReinstancerRefreshDependBP && (bIsInterface || !BlueprintObj->bIsRegeneratingOnLoad) && !bSkipReinstancing)
 	{
 		BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_RefreshDependentBlueprints);
@@ -997,6 +1001,12 @@ bool FKismetEditorUtilities::GenerateBlueprintSkeleton(UBlueprint* BlueprintObj,
 void FKismetEditorUtilities::RecompileBlueprintBytecode(UBlueprint* BlueprintObj, TArray<UObject*>* ObjLoaded,  EBlueprintBytecodeRecompileOptions Flags)
 {
 	FSecondsCounterScope Timer(BlueprintCompileAndLoadTimerData); 
+
+	if(FBlueprintEditorUtils::IsCompileOnLoadDisabled(BlueprintObj))
+	{
+		return;
+	}
+
 	bool bBatchCompile = (Flags & EBlueprintBytecodeRecompileOptions::BatchCompile) != EBlueprintBytecodeRecompileOptions::None;
 	bool bSkipReinstancing = (Flags & EBlueprintBytecodeRecompileOptions::SkipReinstancing) != EBlueprintBytecodeRecompileOptions::None;
 
@@ -1009,7 +1019,6 @@ void FKismetEditorUtilities::RecompileBlueprintBytecode(UBlueprint* BlueprintObj
 	IKismetCompilerInterface& Compiler = FModuleManager::LoadModuleChecked<IKismetCompilerInterface>(KISMET_COMPILER_MODULENAME);
 
 	TGuardValue<bool> GuardTemplateNameFlag(GCompilingBlueprint, true);
-	FCompilerResultsLog Results;
 
 	TSharedPtr<FBlueprintCompileReinstancer> ReinstanceHelper;
 	if(!bSkipReinstancing)
@@ -1021,6 +1030,7 @@ void FKismetEditorUtilities::RecompileBlueprintBytecode(UBlueprint* BlueprintObj
 	CompileOptions.CompileType = EKismetCompileType::BytecodeOnly;
 	{
 		FRecreateUberGraphFrameScope RecreateUberGraphFrameScope(BlueprintObj->GeneratedClass, true);
+		FCompilerResultsLog Results;
 		Compiler.CompileBlueprint(BlueprintObj, CompileOptions, Results, NULL, ObjLoaded);
 	}
 	

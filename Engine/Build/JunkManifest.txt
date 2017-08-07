@@ -118,3 +118,4 @@ Engine\Plugins\Runtime\WolfPlatMoviePlayer\Source\WolfPlatMoviePlayer\Public\*
 Engine\Plugins\Runtime\WolfPlatMoviePlayer\Source\WolfPlatMoviePlayer\Private\*
 Engine\Binaries\Win64\*-Subtitles.*
 Engine\Binaries\Win64\*-SubtitlesEditor.*
+Engine\Binaries\Win64\*-PackageDependencyInfo*.*

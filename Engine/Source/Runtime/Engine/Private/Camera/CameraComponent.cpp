@@ -246,7 +246,7 @@ void UCameraComponent::Serialize(FArchive& Ar)
 
 void UCameraComponent::GetCameraView(float DeltaTime, FMinimalViewInfo& DesiredView)
 {
-	if (bLockToHmd && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed())
+	if (bLockToHmd && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed() && GetWorld()->WorldType != EWorldType::Editor)
 	{
 		const FTransform ParentWorld = CalcNewComponentToWorld(FTransform());
 		GEngine->HMDDevice->SetupLateUpdate(ParentWorld, this);
@@ -321,6 +321,15 @@ void UCameraComponent::CheckForErrors()
 			->AddToken(FTextToken::Create(LOCTEXT( "MapCheck_Message_CameraAspectRatioIsZero", "Camera has AspectRatio=0 - please set this to something non-zero" ) ))
 			->AddToken(FMapErrorToken::Create(FMapErrors::CameraAspectRatioIsZero));
 	}
+}
+
+bool UCameraComponent::GetEditorPreviewInfo(float DeltaTime, FMinimalViewInfo& ViewOut)
+{
+	if (bIsActive)
+	{
+		GetCameraView(DeltaTime, ViewOut);
+	}
+	return bIsActive;
 }
 #endif	// WITH_EDITOR
 

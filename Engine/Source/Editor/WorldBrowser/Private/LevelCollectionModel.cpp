@@ -30,6 +30,9 @@
 
 #include "ShaderCompiler.h"
 #include "FoliageEditModule.h"
+#include "InstancedFoliageActor.h"
+#include "FoliageEditUtility.h"
+#include "LevelUtils.h"
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 
@@ -623,6 +626,8 @@ void FLevelCollectionModel::UnloadLevels(const FLevelModelList& InLevelList)
 		GLevelEditorModeTools().ActivateDefaultMode();
 	}
 
+	BroadcastPreLevelsUnloaded();
+
 	// Take a copy of the list rather than using a reference to the selected levels list, as this will be modified in the loop below
 	const FLevelModelList LevelListCopy = InLevelList;
 	for (auto It = LevelListCopy.CreateConstIterator(); It; ++It)
@@ -662,6 +667,8 @@ void FLevelCollectionModel::UnloadLevels(const FLevelModelList& InLevelList)
 			}
 		}
 	}
+
+	BroadcastPostLevelsUnloaded();
 
 	GEditor->ResetTransaction( LOCTEXT("RemoveLevelTransReset", "Removing Levels from World") );
 
@@ -720,9 +727,14 @@ void FLevelCollectionModel::AddExistingLevelsFromAssetData(const TArray<FAssetDa
 	
 }
 
-TSharedPtr<FLevelDragDropOp> FLevelCollectionModel::CreateDragDropOp() const
+TSharedPtr<WorldHierarchy::FWorldBrowserDragDropOp> FLevelCollectionModel::CreateDragDropOp() const
 {
-	return TSharedPtr<FLevelDragDropOp>();
+	return MakeShareable( new WorldHierarchy::FWorldBrowserDragDropOp );
+}
+
+TSharedPtr<WorldHierarchy::FWorldBrowserDragDropOp> FLevelCollectionModel::CreateDragDropOp(const FLevelModelList& InLevels) const
+{
+	return TSharedPtr<WorldHierarchy::FWorldBrowserDragDropOp>();
 }
 
 bool FLevelCollectionModel::PassesAllFilters(const FLevelModel& Item) const
@@ -1033,6 +1045,16 @@ void FLevelCollectionModel::BroadcastHierarchyChanged()
 	HierarchyChanged.Broadcast();
 }
 
+void FLevelCollectionModel::BroadcastPreLevelsUnloaded()
+{
+	PreLevelsUnloaded.Broadcast();
+}
+
+void FLevelCollectionModel::BroadcastPostLevelsUnloaded()
+{
+	PostLevelsUnloaded.Broadcast();
+}
+
 float FLevelCollectionModel::EditableAxisLength()
 { 
 	return HALF_WORLD_MAX; 
@@ -1201,12 +1223,9 @@ void FLevelCollectionModel::SCCDiffAgainstDepot(const FLevelModelList& InList, U
 					FString TempFileName;
 					if (Revision->Get(TempFileName))
 					{
-						// Forcibly disable compile on load in case we are loading old blueprints that might try to update/compile
-						TGuardValue<bool> DisableCompileOnLoad(GForceDisableBlueprintCompileOnLoad, true);
-
 						// Try and load that package
 						FText NotMapReason;
-						UPackage* OldPackage = LoadPackage(NULL, *TempFileName, LOAD_None);
+						UPackage* OldPackage = LoadPackage(NULL, *TempFileName, LOAD_DisableCompileOnLoad);
 						if(OldPackage != NULL && InEditor->PackageIsAMapFile(*TempFileName, NotMapReason))
 						{
 							/* Set the revision information*/
@@ -1632,8 +1651,22 @@ void FLevelCollectionModel::MoveActorsToSelected_Executed()
 	}
 
 	MakeLevelCurrent_Executed();
-	const FScopedTransaction Transaction( LOCTEXT("MoveSelectedActorsToSelectedLevel", "Move Selected Actors to Level") );
-	GEditor->MoveSelectedActorsToLevel(GetWorld()->GetCurrentLevel());
+
+	const FScopedTransaction Transaction(LOCTEXT("MoveSelectedActorsToSelectedLevel", "Move Selected Actors to Level"));
+
+	// Redirect selected foliage actor to use the MoveActorFoliageInstancesToLevel functionality as we can't move the foliage actor only instances
+	USelection* SelectedActors = GEditor->GetSelectedActors();
+	for (FSelectionIterator Iter(*SelectedActors); Iter; ++Iter)
+	{
+		AInstancedFoliageActor* Actor = Cast<AInstancedFoliageActor>(*Iter);
+
+		if (Actor != nullptr)
+		{
+			FFoliageEditUtility::MoveActorFoliageInstancesToLevel(GetWorld()->GetCurrentLevel());
+		}
+	}
+
+	UEditorLevelUtils::MoveSelectedActorsToLevel(GetWorld()->GetCurrentLevel());
 
 	RequestUpdateAllLevels();
 }
@@ -1980,7 +2013,10 @@ bool FLevelCollectionModel::IsValidMoveFoliageToLevel() const
 		AreAllSelectedLevelsEditableAndVisible() && 
 		GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Foliage))
 	{
-		return true;
+		IFoliageEditModule& FoliageModule = FModuleManager::GetModuleChecked<IFoliageEditModule>("FoliageEdit");
+		ULevel* TargetLevel = GetSelectedLevels()[0]->GetLevelObject();
+
+		return FoliageModule.CanMoveSelectedFoliageToLevel(TargetLevel);
 	}
 
 	return false;

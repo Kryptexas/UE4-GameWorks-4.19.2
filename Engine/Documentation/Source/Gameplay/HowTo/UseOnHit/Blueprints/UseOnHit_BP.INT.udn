@@ -6,6 +6,8 @@ Related: Engine/Blueprints
 Related: Engine/Blueprints/UserGuide/Events
 Related: Engine/Blueprints/UserGuide/CastNodes
 version: 4.9
+type:how-to
+skilllevel:Intermediate
 
 
 On this page we will use the **OnComponentHit** and **Event Hit** [](Engine/Blueprints/UserGuide/Events) to apply damage to and fracture a Destructible Mesh as well as apply an impulse at the hit location to push the destructible, simulating the effects of being hit by a projectile and applying force at the hit location. 

@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3155346
+﻿INTSourceChangelist:3481084
 Availability:Public
 Title:머티리얼
 Crumbs: %ROOT%, Engine
 Description:셰이더를 활용하여 월드의 표면 외형을 제어하는 방법입니다.
 Navigation:topic
-Version:4.9
+Version:4.15
 parent:Engine/Rendering
 order:2
 type:landing

@@ -98,7 +98,7 @@ namespace AutomationScripts.Automation
 		private int GetLatestCodeChange()
 		{
 			List<P4Connection.ChangeRecord> ChangeRecords;
-			if(!P4.Changes(out ChangeRecords, String.Format("-m 1 //{0}/....cpp@<{1} //{0}/....h@<{1} //{0}/....cs@<{1} //{0}/....usf@<{1}", P4Env.Client, P4Env.Changelist), WithClient: true))
+			if(!P4.Changes(out ChangeRecords, String.Format("-m 1 //{0}/....cpp@<{1} //{0}/....h@<{1} //{0}/....cs@<{1} //{0}/....usf@<{1} //{0}/....ush@<{1}", P4Env.Client, P4Env.Changelist), WithClient: true))
 			{
 				throw new AutomationException("Couldn't enumerate latest change from branch");
 			}
@@ -291,8 +291,10 @@ namespace AutomationScripts.Automation
             Message.Attachments.Add()*/
 			try
 			{
+				#pragma warning disable CS0618 // Mono 4.6.x obsoletes this class
 				SmtpClient MailClient = new SmtpClient("smtp.epicgames.net");
 				MailClient.Send(Message);
+				#pragma warning restore CS0618
 			}
 			catch (Exception Ex)
 			{

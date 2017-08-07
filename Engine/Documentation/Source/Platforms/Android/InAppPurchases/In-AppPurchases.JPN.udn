@@ -1,6 +1,5 @@
-﻿INTSourceChangelist:3150518
-Title:Android でアプリ内課金を使用する
-Description:アプリ内課金を使って Android ゲームに有料コンテンツを追加する
+﻿Title:Android でのアプリ内課金の実装方法
+Description:アプリ内課金を実装して Android ゲームに有料コンテンツを追加する
 Crumbs:
 Availability:Public
 version:4.10
@@ -12,17 +11,17 @@ Related:Platforms/Mobile/InAppPurchases/
 
 ## コンフィギュレーション
 
-1. Google Play でアプリ内課金を設定するためのステップを説明します。
+1. Google Play でアプリ内課金 (In-App Purchase) を設定するためのステップを説明します。
 
     [REGION:note]
-	Google Play の id はすべて小文字でなければなりません。さらに、iOS と Android の ID を一致させておくとブループリントの設定がとても楽になります。
+	Google Play の id にはすべて小文字を使用します。また、iOS と Android の ID を同じにしておくと、ブループリントをとても楽に設定することができます。
 	[/REGION]
 
 	![image alt text](image_0.png)
 
-1. 使用する ID およびアイテムが消費型かそうでないかをメモしておきましょう。
+1. 使用する ID およびアイテムが消費型か非消費型かをメモしておきます。
 
-1. ブループリント プロジェクトであれば設定の必要はありません。コード プロジェクトのためオンライン システムを使う設定が必要な場合は、プロジェクトの Build.cs ファイルに次のブロックを加えてください。 
+1. ブループリント プロジェクトの場合は、そのままで大丈夫です。コード プロジェクト用にオンライン システムを使う設定にするには、プロジェクトの Build.cs ファイルに次のブロックを加えてください。 
 
 		if (Target.Platform == UnrealTargetPlatform.Android)
 		{
@@ -48,7 +47,7 @@ Related:Platforms/Mobile/InAppPurchases/
 
 ## テスティング
 
-Android をテストするには、正しいテスティング プロファイルを設定するだけでなく、パッケージ化した APK を Google Play にアップロードする必要があります。カスタム仕様のキーストアも必要になります。 
+Android をテストするためには、テスティング プロファイルを正しく設定し、かつパッケージ化した APK を Google Play にアップロードする必要があります。カスタム キーストアも必要になります。 
 
 ## 役に立つリンク
 

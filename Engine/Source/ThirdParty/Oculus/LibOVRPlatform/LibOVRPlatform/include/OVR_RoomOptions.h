@@ -4,9 +4,9 @@
 #define OVR_ROOM_OPTIONS_H
 
 #include "OVR_Platform_Defs.h"
+#include "OVR_Types.h"
 #include <stddef.h>
 #include <stdbool.h>
-#include <OVR_Types.h>
 
 #include "OVR_UserOrdering.h"
 

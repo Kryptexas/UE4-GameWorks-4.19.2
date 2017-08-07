@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3275202
+﻿INTSourceChangelist:3467293
 Availability:Public
 Title:レベル エディタ ツールバー
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
 Description:共通で使用するツールと操作へ素早くアクセスできるコマンドのコレクション
 Version:4.9
+topic-image:LevelEditorToolbar_topic.png
 
 ほとんどのアプリケーション同様に、**[ツールバー]** パネルは頻繁に使用するツールや操作へ素早くアクセスするためのコマンドの集まりです。
 

@@ -298,9 +298,4 @@ void ASkeletalMeshActor::LoadedFromAnotherClass(const FName& OldClassName)
 }
 #endif
 
-USkeletalMeshComponent* ASkeletalMeshActor::GetSkeletalMeshComponent() 
-{ 
-	return SkeletalMeshComponent; 
-}
-
 #undef LOCTEXT_NAMESPACE

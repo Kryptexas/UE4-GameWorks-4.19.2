@@ -13,7 +13,7 @@ UAbilityTask_WaitAbilityActivate::UAbilityTask_WaitAbilityActivate(const FObject
 
 UAbilityTask_WaitAbilityActivate* UAbilityTask_WaitAbilityActivate::WaitForAbilityActivate(UGameplayAbility* OwningAbility, FGameplayTag InWithTag, FGameplayTag InWithoutTag, bool InIncludeTriggeredAbilities, bool InTriggerOnce)
 {
-	auto MyObj = NewAbilityTask<UAbilityTask_WaitAbilityActivate>(OwningAbility);
+	UAbilityTask_WaitAbilityActivate* MyObj = NewAbilityTask<UAbilityTask_WaitAbilityActivate>(OwningAbility);
 	MyObj->WithTag = InWithTag;
 	MyObj->WithoutTag = InWithoutTag;
 	MyObj->IncludeTriggeredAbilities = InIncludeTriggeredAbilities;
@@ -23,11 +23,21 @@ UAbilityTask_WaitAbilityActivate* UAbilityTask_WaitAbilityActivate::WaitForAbili
 
 UAbilityTask_WaitAbilityActivate* UAbilityTask_WaitAbilityActivate::WaitForAbilityActivateWithTagRequirements(UGameplayAbility* OwningAbility, FGameplayTagRequirements TagRequirements, bool InIncludeTriggeredAbilities, bool InTriggerOnce)
 {
-	auto MyObj = NewAbilityTask<UAbilityTask_WaitAbilityActivate>(OwningAbility);
+	UAbilityTask_WaitAbilityActivate* MyObj = NewAbilityTask<UAbilityTask_WaitAbilityActivate>(OwningAbility);
 	MyObj->TagRequirements = TagRequirements;
 	MyObj->IncludeTriggeredAbilities = InIncludeTriggeredAbilities;
 	MyObj->TriggerOnce = InTriggerOnce;
 	return MyObj;
+}
+
+UAbilityTask_WaitAbilityActivate* UAbilityTask_WaitAbilityActivate::WaitForAbilityActivate_Query(UGameplayAbility* OwningAbility, FGameplayTagQuery Query, bool InIncludeTriggeredAbilities, bool InTriggerOnce)
+{
+	UAbilityTask_WaitAbilityActivate* MyObj = NewAbilityTask<UAbilityTask_WaitAbilityActivate>(OwningAbility);
+	MyObj->Query = Query;
+	MyObj->IncludeTriggeredAbilities = InIncludeTriggeredAbilities;
+	MyObj->TriggerOnce = InTriggerOnce;
+	return MyObj;
+
 }
 
 void UAbilityTask_WaitAbilityActivate::Activate()
@@ -59,6 +69,15 @@ void UAbilityTask_WaitAbilityActivate::OnAbilityActivate(UGameplayAbility* Activ
 		if (!TagRequirements.RequirementsMet(ActivatedAbility->AbilityTags))
 		{
 			// Failed tag check
+			return;
+		}
+	}
+
+	if (Query.IsEmpty() == false)
+	{
+		if (Query.Matches(ActivatedAbility->AbilityTags) == false)
+		{
+			// Failed query
 			return;
 		}
 	}

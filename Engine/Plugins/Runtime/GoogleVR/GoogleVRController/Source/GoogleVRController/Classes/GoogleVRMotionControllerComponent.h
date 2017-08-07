@@ -1,31 +1,19 @@
-/* Copyright 2016 Google Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2017 Google Inc.
 
 #pragma once
 
 #include "Components/ActorComponent.h"
 #include "GoogleVRPointer.h"
 #include "Components/SceneComponent.h"
+#include "Classes/GoogleVRControllerFunctionLibrary.h"
+#include "Engine/Texture2D.h"
 #include "GoogleVRMotionControllerComponent.generated.h"
 
 class UMotionControllerComponent;
 class UGoogleVRPointerInputComponent;
 class UMaterialInterface;
 class UMaterialParameterCollection;
-
-DEFINE_LOG_CATEGORY_STATIC(LogGoogleVRMotionController, Log, All);
+class UGoogleVRLaserPlaneComponent;
 
 /**
  * GoogleVRMotionControllerComponent is a customizable Daydream Motion Controller.
@@ -93,9 +81,45 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Materials")
 	UMaterialParameterCollection* ParameterCollection;
 
-	/** Particle system used to represent the laser. */
+	/** Mesh used for controller battery state. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battery")
+	UStaticMesh* ControllerBatteryMesh;
+
+	/** Texture parameter name for the battery material. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battery")
+	FName BatteryTextureParameterName;
+
+	/** Texture used for the battery unknown state. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battery")
+	UTexture2D* BatteryUnknownTexture;
+
+	/** Texture used for the battery full state. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battery")
+	UTexture2D* BatteryFullTexture;
+
+	/** Texture used for the battery almost full state. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battery")
+	UTexture2D* BatteryAlmostFullTexture;
+
+	/** Texture used for the battery medium state. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battery")
+	UTexture2D* BatteryMediumTexture;
+
+	/** Texture used for the battery low state. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battery")
+	UTexture2D* BatteryLowTexture;
+
+	/** Texture used for the battery critcally low state. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battery")
+	UTexture2D* BatteryCriticalLowTexture;
+
+	/** Texture used for the battery charging state. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Battery")
+	UTexture2D* BatteryChargingTexture;
+
+	/** Static mesh used to represent the laser. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Laser")
-	UParticleSystem* LaserParticleSystem;
+	UStaticMesh* LaserPlaneMesh;
 
 	/** Maximum distance of the pointer (in meters). */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Laser")
@@ -154,13 +178,20 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "GoogleVRMotionController", meta = (Keywords = "Cardboard AVR GVR"))
 	UStaticMeshComponent* GetControllerMesh() const;
 
-	/** Get the ParticleSystemComponent used to represent the laser.
-	 *  Can be used if you desire to modify the laser at runtime
-	 *  (i.e. change laser color when pointing at object).
-	 *  @return laser particle system component.
-	 */
+	/** Get the StaticMeshComponent used to represent the laser.
+	*  Can be used if you desire to modify the laser at runtime
+	*  @return laser static mesh component.
+	*/
 	UFUNCTION(BlueprintCallable, Category = "GoogleVRMotionController", meta = (Keywords = "Cardboard AVR GVR"))
-	UParticleSystemComponent* GetLaser() const;
+	UStaticMeshComponent* GetLaser() const;
+
+	/** Get the MaterialInstanceDynamic used to represent the laser material.
+	*  Can be used if you desire to modify the laser at runtime
+	*  (i.e. change laser color when pointing at object).
+	*  @return laser dynamic material instance.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "GoogleVRMotionController", meta = (Keywords = "Cardboard AVR GVR"))
+	UMaterialInstanceDynamic* GetLaserMaterial() const;
 
 	/** Get the MaterialBillboardComponent used to represent the reticle.
 	 *  Can be used if you desire to modify the reticle at runtime
@@ -204,7 +235,9 @@ public:
 private:
 
 	void TrySetControllerMaterial(UMaterialInterface* NewMaterial);
+	void UpdateBatteryIndicator();
 	void UpdateLaserDistance(float Distance);
+	void UpdateLaserCorrection(FVector Correction);
 	void UpdateReticleDistance(float Distance);
 	void UpdateReticleLocation(FVector Location, FVector OriginLocation);
 	void UpdateReticleSize();
@@ -217,12 +250,17 @@ private:
 	UMotionControllerComponent* MotionControllerComponent;
 	UStaticMeshComponent* ControllerMeshComponent;
 	UStaticMeshComponent* ControllerTouchPointMeshComponent;
+	UStaticMeshComponent* ControllerBatteryMeshComponent;
+	UMaterialInterface* ControllerBatteryStaticMaterial;
+	UMaterialInstanceDynamic* ControllerBatteryMaterial;
 	USceneComponent* PointerContainerComponent;
-	UParticleSystemComponent* LaserParticleSystemComponent;
+	UGoogleVRLaserPlaneComponent* LaserPlaneComponent;
 	UMaterialBillboardComponent* ReticleBillboardComponent;
 
 	FVector TouchMeshScale;
 	bool bAreSubComponentsEnabled;
+	EGoogleVRControllerBatteryLevel LastKnownBatteryState;
+	bool bBatteryWasCharging;
 
 	static constexpr float CONTROLLER_OFFSET_RATIO = 0.8f;
 	static constexpr float TOUCHPAD_RADIUS = 0.015f;
@@ -230,4 +268,7 @@ private:
 	static constexpr float TOUCHPAD_POINT_ELEVATION = 0.0025f;
 	static constexpr float TOUCHPAD_POINT_FILTER_STRENGTH = 0.8f;
 	static const FVector TOUCHPAD_POINT_DIMENSIONS;
+	static const FVector BATTERY_INDICATOR_TRANSLATION;
+	static const FVector BATTERY_INDICATOR_SCALE;
+	static const FQuat BATTERY_INDICATOR_ROTATION;
 };

@@ -19,7 +19,6 @@
 
 
 // Used to force returning custom content instead of performing a request.
-const FString CustomContentHeader(TEXT("X-UE-Content"));
 const FString CustomContentMethod(TEXT("X-GET-CUSTOM-CONTENT"));
 
 FCEFBrowserHandler::FCEFBrowserHandler(bool InUseTransparency)
@@ -361,8 +360,23 @@ CefRequestHandler::ReturnValue FCEFBrowserHandler::OnBeforeResourceLoad(CefRefPt
 			TOptional<FString> Contents = BrowserWindow->GetResourceContent(Frame, Request);
 			if(Contents.IsSet())
 			{
-				// Set a custom request header, so that we can return it wrapped in a custom resource handler in GetResourceHandler later on
-				HeaderMap.insert(std::pair<CefString, CefString>(*CustomContentHeader, *Contents.GetValue()));
+				// pass the text we'd like to come back as a response to the request post data
+				CefRefPtr<CefPostData> PostData = CefPostData::Create();
+				CefRefPtr<CefPostDataElement> Element = CefPostDataElement::Create();
+				FTCHARToUTF8 UTF8String(*Contents.GetValue());
+				Element->SetToBytes(UTF8String.Length(), UTF8String.Get());
+				PostData->AddElement(Element);
+				Request->SetPostData(PostData);
+
+				// Set a custom request header, so we know the mime type if it was specified as a hash on the dummy URL
+				std::string Url = Request->GetURL().ToString();
+				std::string::size_type HashPos = Url.find_last_of('#');
+				if (HashPos != std::string::npos)
+				{
+					std::string MimeType = Url.substr(HashPos + 1);
+					HeaderMap.insert(std::pair<CefString, CefString>(TEXT("Content-Type"), MimeType));
+				}
+
 				// Change http method to tell GetResourceHandler to return the content
 				Request->SetMethod(*CustomContentMethod);
 			}
@@ -410,13 +424,22 @@ CefRefPtr<CefResourceHandler> FCEFBrowserHandler::GetResourceHandler( CefRefPtr<
 	if (Request->GetMethod() == *CustomContentMethod)
 	{
 		// Content override header will be set by OnBeforeResourceLoad before passing the request on to this.
-		CefRequest::HeaderMap HeaderMap;
-		Request->GetHeaderMap(HeaderMap);
-		auto ContentOverride = HeaderMap.find(*CustomContentHeader);
-		if (ContentOverride != HeaderMap.end())
+		if (Request->GetPostData() && Request->GetPostData()->GetElementCount() > 0)
 		{
-			std::string Convert = ContentOverride->second.ToString();
-			return new FCEFBrowserByteResource(Convert.c_str(), Convert.length());
+			// get the mime type from Content-Type header (default to text/html to support old behavior)
+			FString MimeType = TEXT("text/html"); // default if not specified
+			CefRequest::HeaderMap HeaderMap;
+			Request->GetHeaderMap(HeaderMap);
+			auto ContentOverride = HeaderMap.find(TEXT("Content-Type"));
+			if (ContentOverride != HeaderMap.end())
+			{
+				MimeType = ContentOverride->second.ToWString().c_str();
+			}
+
+			// reply with the post data
+			CefPostData::ElementVector Elements;
+			Request->GetPostData()->GetElements(Elements);
+			return new FCEFBrowserByteResource(Elements[0], MimeType);
 		}
 	}
 	return nullptr;

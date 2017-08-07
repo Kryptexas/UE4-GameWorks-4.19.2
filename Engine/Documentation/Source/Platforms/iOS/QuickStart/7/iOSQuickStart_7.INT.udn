@@ -36,7 +36,34 @@ SkillLevel: Intermediate
 
 1. In the toolbar, click the arrow next to **Launch** to open the **Launch Options** menu and select the iOS device.
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	![](launch_ios.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](launch_ios_Mac.png)
+	[/PARAM]
+	[/OBJECT]
+
 
 1. The current map is cooked and packaged and installed on your device.
 

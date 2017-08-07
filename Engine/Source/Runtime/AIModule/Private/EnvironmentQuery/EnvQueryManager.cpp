@@ -25,6 +25,7 @@
 
 extern UNREALED_API UEditorEngine* GEditor;
 #endif // WITH_EDITOR
+#include "TimeGuard.h"
 
 DEFINE_LOG_CATEGORY(LogEQS);
 
@@ -40,6 +41,9 @@ DEFINE_STAT(STAT_AI_EQS_NumInstances);
 DEFINE_STAT(STAT_AI_EQS_NumItems);
 DEFINE_STAT(STAT_AI_EQS_InstanceMemory);
 DEFINE_STAT(STAT_AI_EQS_AvgInstanceResponseTime);
+DEFINE_STAT(STAT_AI_EQS_Debug_StoreQuery);
+DEFINE_STAT(STAT_AI_EQS_Debug_StoreTickTime);
+DEFINE_STAT(STAT_AI_EQS_Debug_StoreStats);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	bool UEnvQueryManager::bAllowEQSTimeSlicing = true;
@@ -77,7 +81,7 @@ int32 FEnvQueryRequest::Execute(EEnvQueryRunMode::Type RunMode, FQueryFinishedSi
 
 	if (World == NULL)
 	{
-		World = GEngine->GetWorldFromContextObject(Owner);
+		World = GEngine->GetWorldFromContextObject(Owner, EGetWorldErrorMode::ReturnNull);
 		if (World == NULL)
 		{
 			UE_LOG(LogEQS, Warning, TEXT("Unable to access world with owner: %s"), *GetNameSafe(Owner));
@@ -136,14 +140,14 @@ void UEnvQueryManager::FinishDestroy()
 UEnvQueryManager* UEnvQueryManager::GetCurrent(UWorld* World)
 {
 	UAISystem* AISys = UAISystem::GetCurrentSafe(World);
-	return AISys ? AISys->GetEnvironmentQueryManager() : NULL;
+	return AISys ? AISys->GetEnvironmentQueryManager() : nullptr;
 }
 
 UEnvQueryManager* UEnvQueryManager::GetCurrent(const UObject* WorldContextObject)
 {
-	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, false);
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 	UAISystem* AISys = UAISystem::GetCurrentSafe(World);
-	return AISys ? AISys->GetEnvironmentQueryManager() : NULL;
+	return AISys ? AISys->GetEnvironmentQueryManager() : nullptr;
 }
 
 #if USE_EQS_DEBUGGER
@@ -313,6 +317,7 @@ bool UEnvQueryManager::AbortQuery(int32 RequestID)
 
 void UEnvQueryManager::Tick(float DeltaTime)
 {
+	SCOPE_TIME_GUARD_MS(TEXT("UEnvQueryManager::Tick"), 10);
 	SCOPE_CYCLE_COUNTER(STAT_AI_EQS_Tick);
 	SET_DWORD_STAT(STAT_AI_EQS_NumInstances, RunningQueries.Num());
 
@@ -330,10 +335,18 @@ void UEnvQueryManager::Tick(float DeltaTime)
 		
 		const int32 NumRunningQueries = RunningQueries.Num();
 		int32 Index = 0;
-		while ((TimeLeft > 0.0) && (Index < NumRunningQueries) && (QueriesFinishedDuringUpdate < NumRunningQueries))
+
+		while ((TimeLeft > 0.0) 
+			&& (Index < NumRunningQueries) 
+			// make sure we account for queries that have finished (been aborted)
+			// before UEnvQueryManager::Tick has been called
+			&& (QueriesFinishedDuringUpdate + NumRunningQueriesAbortedSinceLastUpdate < NumRunningQueries))
 		{
 			const double StepStartTime = FPlatformTime::Seconds();
 			float ResultHandlingDuration = 0.0f;
+#if USE_EQS_DEBUGGER
+			bool bWorkHasBeenDone = false;
+#endif // USE_EQS_DEBUGGER
 
 			TSharedPtr<FEnvQueryInstance> QueryInstance = RunningQueries[Index];
 			FEnvQueryInstance* QueryInstancePtr = QueryInstance.Get();
@@ -344,13 +357,10 @@ void UEnvQueryManager::Tick(float DeltaTime)
 			}
 			else
 			{
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-				const float StepTimeLimit = bAllowEQSTimeSlicing ? TimeLeft : UEnvQueryTypes::UnlimitedStepTime;
-#else
-				const float StepTimeLimit = TimeLeft;
-#endif
 				QueryInstancePtr->ExecuteOneStep(TimeLeft);
-
+#if USE_EQS_DEBUGGER
+				bWorkHasBeenDone = true;
+#endif // USE_EQS_DEBUGGER
 				if (QueryInstancePtr->IsFinished())
 				{
 					// Always log that we executed total execution time at the end of the query.
@@ -409,7 +419,8 @@ void UEnvQueryManager::Tick(float DeltaTime)
 				TimeLeft -= StepProcessingTime;
 
 #if USE_EQS_DEBUGGER
-				if (QueryInstancePtr)
+				// we want to do any kind of logging only if any work has been done
+				if (QueryInstancePtr && bWorkHasBeenDone)
 				{
 					EQSDebugger.StoreTickTime(*QueryInstancePtr, StepProcessingTime, MaxAllowedTestingTime);
 				}
@@ -859,14 +870,14 @@ float UEnvQueryManager::FindNamedParam(int32 QueryId, FName ParamName) const
 //----------------------------------------------------------------------//
 // BP functions and related functionality 
 //----------------------------------------------------------------------//
-UEnvQueryInstanceBlueprintWrapper* UEnvQueryManager::RunEQSQuery(UObject* WorldContext, UEnvQuery* QueryTemplate, UObject* Querier, TEnumAsByte<EEnvQueryRunMode::Type> RunMode, TSubclassOf<UEnvQueryInstanceBlueprintWrapper> WrapperClass)
+UEnvQueryInstanceBlueprintWrapper* UEnvQueryManager::RunEQSQuery(UObject* WorldContextObject, UEnvQuery* QueryTemplate, UObject* Querier, TEnumAsByte<EEnvQueryRunMode::Type> RunMode, TSubclassOf<UEnvQueryInstanceBlueprintWrapper> WrapperClass)
 { 
 	if (QueryTemplate == nullptr || Querier == nullptr)
 	{
 		return nullptr;
 	}
 
-	UEnvQueryManager* EQSManager = GetCurrent(WorldContext);
+	UEnvQueryManager* EQSManager = GetCurrent(WorldContextObject);
 	UEnvQueryInstanceBlueprintWrapper* QueryInstanceWrapper = nullptr;
 
 	if (EQSManager)
@@ -896,6 +907,7 @@ UEnvQueryInstanceBlueprintWrapper* UEnvQueryManager::RunEQSQuery(UObject* WorldC
 			FEnvQueryRequest QueryRequest(QueryTemplate, Querier);
 			// @todo named params still missing support
 			//QueryRequest.SetNamedParams(QueryParams);
+			QueryInstanceWrapper->SetInstigator(WorldContextObject);
 			QueryInstanceWrapper->RunQuery(RunMode, QueryRequest);
 		}
 	}
@@ -968,6 +980,8 @@ bool UEnvQueryManager::Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& Ar
 
 void FEQSDebugger::StoreStats(const FEnvQueryInstance& QueryInstance)
 {
+	SCOPE_CYCLE_COUNTER(STAT_AI_EQS_Debug_StoreStats);
+
 	FStatsInfo& UpdateInfo = UEnvQueryManager::DebuggerStats.FindOrAdd(FName(*QueryInstance.QueryName));
 
 	const FEnvQueryDebugProfileData& QueryStats = QueryInstance.DebugData;
@@ -996,6 +1010,8 @@ void FEQSDebugger::StoreStats(const FEnvQueryInstance& QueryInstance)
 
 void FEQSDebugger::StoreQuery(const TSharedPtr<FEnvQueryInstance>& QueryInstance)
 {
+	SCOPE_CYCLE_COUNTER(STAT_AI_EQS_Debug_StoreQuery);
+
 	StoredQueries.Remove(nullptr);
 	if (!QueryInstance.IsValid() || QueryInstance->World == nullptr)
 	{
@@ -1028,6 +1044,8 @@ void FEQSDebugger::StoreQuery(const TSharedPtr<FEnvQueryInstance>& QueryInstance
 void FEQSDebugger::StoreTickTime(const FEnvQueryInstance& QueryInstance, float TickTime, float MaxTickTime)
 {
 #if USE_EQS_TICKLOADDATA
+	SCOPE_CYCLE_COUNTER(STAT_AI_EQS_Debug_StoreTickTime);
+
 	const int32 NumRecordedTicks = 0x4000;
 
 	FStatsInfo& UpdateInfo = UEnvQueryManager::DebuggerStats.FindOrAdd(FName(*QueryInstance.QueryName));

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Layout/Geometry.h"
 
 enum class EAllowOverscroll : uint8
 {
@@ -17,13 +18,20 @@ struct SLATE_API FOverscroll
 {
 public:
 
+	/** The amount to scale the logarithm by to make it more loose */
+	static float Looseness;
+	/** The "max" used to perform the interpolation snap back, and make it faster the further away it is. */
+	static float OvershootLooseMax;
+	/** The bounce back rate when the overscroll stops. */
+	static float OvershootBounceRate;
+
 	FOverscroll();
 
 	/** @return The Amount actually scrolled */
-	float ScrollBy(float Delta);
+	float ScrollBy(const FGeometry& AllottedGeometry, float LocalDeltaScroll);
 
 	/** How far the user scrolled above/below the beginning/end of the list. */
-	float GetOverscroll() const;
+	float GetOverscroll(const FGeometry& AllottedGeometry) const;
 
 	/** Ticks the overscroll manager so it can animate. */
 	void UpdateOverscroll(float InDeltaTime);
@@ -38,7 +46,9 @@ public:
 	 * @return true if the user's scrolling should be applied toward overscroll.
 	 */
 	bool ShouldApplyOverscroll(const bool bIsAtStartOfList, const bool bIsAtEndOfList, const float ScrollDelta) const;
-
+	
+	/** Resets the overscroll amout. */
+	void ResetOverscroll();
 private:
 	/** How much we've over-scrolled above/below the beginning/end of the list, stored in log form */
 	float OverscrollAmount;

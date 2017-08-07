@@ -26,6 +26,7 @@
 #include "Widgets/Notifications/SNotificationList.h"
 
 #include "Settings/EditorSettings.h"
+#include "Editor/EditorPerformanceSettings.h"
 
 #define LOCTEXT_NAMESPACE "PerformanceMonitor"
 
@@ -237,7 +238,7 @@ void FPerformanceMonitor::ShowPerformanceWarning(FText MessageText)
 
 void FPerformanceMonitor::CancelPerformanceNotification()
 {
-	UEditorPerProjectUserSettings* EditorUserSettings = GetMutableDefault<UEditorPerProjectUserSettings>();
+	UEditorPerformanceSettings* EditorUserSettings = GetMutableDefault<UEditorPerformanceSettings>();
 	EditorUserSettings->bMonitorEditorPerformance = false;
 	EditorUserSettings->PostEditChange();
 	EditorUserSettings->SaveConfig();
@@ -270,7 +271,7 @@ void FPerformanceMonitor::Tick(float DeltaTime)
 	FineMovingAverage.Tick(FPlatformTime::Seconds(), GAverageFPS);
 	CoarseMovingAverage.Tick(FPlatformTime::Seconds(), GAverageFPS);
 
-	bool bMonitorEditorPerformance = GetDefault<UEditorPerProjectUserSettings>()->bMonitorEditorPerformance;
+	bool bMonitorEditorPerformance = GetDefault<UEditorPerformanceSettings>()->bMonitorEditorPerformance;
 	if( !bMonitorEditorPerformance || !bIsNotificationAllowed )
 	{
 		return;

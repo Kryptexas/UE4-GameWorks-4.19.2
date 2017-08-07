@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3350329
+﻿INTSourceChangelist:3360829
 Title: VR 모드에서 액터 작업
 Description: VR 모드에서 작업시 액터 배치, 트랜스폼, 변경 방법을 배워봅니다.
 Crumbs:
@@ -8,11 +8,10 @@ type:how-to
 order: 4
 tags: VR
 tags: Level Editing
-version: 4.11
+version: 4.15
 skilllevel: intermediate
 topic-image:actorinteraction.png
 prereq:Engine/Editor/VR/ActivateVRMode
-prereq:Engine/Editor/VR/Setup
 
 [TOC(start:1 end:4)]
 

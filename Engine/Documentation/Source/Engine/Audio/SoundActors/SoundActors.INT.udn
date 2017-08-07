@@ -3,10 +3,12 @@ Title:Ambient Sound Actor User Guide
 Crumbs: %ROOT%, Engine, Engine/Audio
 Description:Guide to using the Ambient Sound Actor for creating ambient and localized sounds in-game.
 version: 4.9
+parent:Engine/Audio
+type:overview
+order:2
+
+
 [TOC(start:2 end:2)]
-
-
-
 
 Unreal Engine 4 streamlines the process by which you can produce or modify ambient sounds through the use of the **Ambient Sound Actor**. When a **Sound Wave** or **Sound Cue** asset is placed in a level, an Ambient Sound Actor with that sound asset is created. The Ambient Sound Actor has several properties which are covered on this page that will allow you to modify how players receive the sound.
 

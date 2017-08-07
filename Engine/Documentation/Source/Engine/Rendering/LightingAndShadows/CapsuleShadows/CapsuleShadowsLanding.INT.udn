@@ -1,13 +1,14 @@
-﻿availability:docs
+﻿availability:Public
 title: Capsule Shadows
 description:Landing page for Capsule Shadows in Unreal Engine 4
 crumbs:
 version:4.15
-parent:Engine/Rendering/LightingAndShadows/
+parent:Engine/Rendering/LightingAndShadows
 order:
 related: Engine/Rendering/LightingAndShadows/DistanceFields/HowTo/DFHT_4
 type:landing
 tags: Lighting
+topic-image:CapsuleShadows_Topic.png
 
 [REGION:fullwidth raw]
 ![CapsuleShadowsBanner](CapsuleShadowsBanner.png)

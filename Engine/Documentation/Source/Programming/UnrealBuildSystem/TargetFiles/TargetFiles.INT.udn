@@ -3,6 +3,10 @@ Title: Unreal Build System Target Files
 Crumbs: %ROOT%, Programming, Programming\UnrealBuildSystem
 Description:Reference for the target files used by Unreal Build System when building targets.
 Version: 4.16
+Parent:Programming/UnrealBuildSystem
+Order:
+Type:reference
+Tags:Unreal Build System
 
 [TOC (start:2 end:3)]
 

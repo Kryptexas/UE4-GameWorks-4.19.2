@@ -1,15 +1,15 @@
-﻿INTSourceChangelist:3069483
-Availability: Public
+﻿INTSourceChangelist:3108692
+Availability:Public
 Title:3 - 発射物を実装する
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter
 Description:First Person Shooter ゲームに発射物を実装する方法を学びます。
-Prereq:Programming/Tutorials/FirstPersonShooter/2
+prereq:Programming/Tutorials/FirstPersonShooter/2
 Related:Programming/Tutorials/FirstPersonShooter
-SkillLevel: Beginner
+SkillLevel:Beginner
 Version:4.9
 
 ![](CrosshairsInGame.png)
-_このセクションの最後まで終了すると、この画面のようになります。_
+_このセクションの最後まで終了すると、上の画面のようになります。_
 
 ## 目標
 

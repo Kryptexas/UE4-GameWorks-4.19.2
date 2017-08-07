@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:3298293
+﻿INTSourceChangelist:3477690
 Availability:Public
-Title:2.Android デバイスを設定する
+Title:2.Android デバイスの設定
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
 Description:Android デバイスを開発用に設定する
-Version:4.12
+Version:4.16
 Skilllevel:Intermediate
 tags:Android
 tags:Mobile
@@ -12,7 +12,7 @@ parent:Platforms/Android/GettingStarted
 order:2
 Checkpoint:AndroidQS
 
-Android Works をインストールしたら、Android デバイスを開発で使用できるように設定します。次のセクションでは、Android デバイスを UE4 プロジェクトで使用するための設定方法を説明します。
+Android Works をインストールしたら、Android デバイスを開発用に設定します。次のセクションでは、Android デバイスを UE4 プロジェクトで使用するための設定方法を説明します。
 
 [nav]
 
@@ -68,7 +68,7 @@ Android Works をインストールしたら、Android デバイスを開発で�
 
 1. Android デバイスを USB で開発用 PC に接続します。
 
-1.	デバイス ドライバ ソフトウェアは自動的にインストールされますが、そうでない場合は、[Android の OEM USB ドライバ](http://developer.android.com/tools/extras/oem-usb.html) ページでドライバ インストール リンクと追加情報を確認してください。  
+1.	デバイス ドライバ ソフトウェアは自動的にインストールされます。インストールされない場合は、[Android の OEM USB ドライバ](http://developer.android.com/tools/extras/oem-usb.html) ページでドライバ インストール リンクと追加情報を確認してください。  
 
 1.	Android デバイスの **[Settings]** アプリケーションを開きます。
 
@@ -86,9 +86,9 @@ Android Works をインストールしたら、Android デバイスを開発で�
 
 1.	**[Build Number]** を **7** 回たたきます。 
 
-	![](Enable_Dev_Mode.png)
+	![](Enable_Dev_Mode.png)(w:350)
 
-1. 数回たたいた段階で、「You are now **# steps **away from becoming a developer (デベロッパーになるまであと**# ステップ **)」 というメッセージが表示されます。
+1. 数回たたくと、「You are now **# steps **away from becoming a developer (デベロッパーになるまであと **# ステップ**)」 というメッセージが表示されます。
 
 1.	Developer Mode が起動すると、正常な処理を示す以下のメッセージが表示されます。
 
@@ -96,27 +96,27 @@ Android Works をインストールしたら、Android デバイスを開発で�
 
 1.	再度 **[Settings]** メニューへ戻ると **[Developer Options]** が利用可能になっているので、選択します。
 
-	![](Dev_Options_Enabled.png)
+	![](Dev_Options_Enabled.png)(w:350)
 
-1.	**[Developer Options]** メニューの **USB デバッグ** を指で 2 回叩いて有効にします。 
+1.	**[Developer Options]** メニューの **USB デバッグ** を指で 2 回たたいて有効にします。 
 
-	![](Enable_USB_Debugging.png)
+	![](Enable_USB_Debugging.png)(w:350)
 
 1. 求められたら **[Ok]** ボタンをクリックして USB デバッグを有効にしてください。
 
-	![](Enable_USB_Debugging_Warning.png)
+	![](Enable_USB_Debugging_Warning.png)(w:350)
 
 1. USB デバッグの横のチェックボックスの緑が有効になっている印です。
 
-	![](USB_Debugging_Enabled.png)
+	![](USB_Debugging_Enabled.png)(w:350)
 
-1. Android デバイスを USB から一旦取り外して、すぐに再度接続してください。 
-	PC がデバイスを認識したら、この PC にデバイスと通信を許可するかどうかのメッセージが Android デバイス上に表示されます。
-	**[Always allow this computer (常に許可)]** を押して、**[OK]** ボタンをクリックします。
+1. Android デバイスを USB から一旦取り外して、すぐに再度接続してください。PC がデバイスを認識したら、 
+この Mac にデバイスとの通信許可に関する次のメッセージが Android デバイス上に表示されます。	メッセージ ボックスは USB 接続をどのようにするか尋ねるので、**[Always allow this computer (常に許可)]** を押して、 
+**[OK]** ボタンをクリックします。
 
-	![](PC_RSA_Fingerprint.png)
+	![](PC_RSA_Fingerprint.png)(w:350)
 
-1.	デバイスの設定が適切か確認するために **Windows + R** キーでコマンド プロンプトを開き、**[Run (実行)]** ウィンドウに **「cmd」** とタイプします。
+	1.	デバイスの設定が適切か確認するために **Windows + R** キーでコマンド プロンプトを開き、**[Run (実行)]** ウィンドウに **「cmd」** とタイプします。
 
 	![](Windows_Run_Command.png)
 
@@ -126,7 +126,7 @@ Android Works をインストールしたら、Android デバイスを開発で�
 
 	[region:note]
 
-	adb devices と打ち込んでも自分のデバイスが確認できない場合は、次の方法で PC が Android デバイスを認識できるか試してみてください。 
+	「adb devices」と打ち込んでも自分のデバイスが確認できない場合は、次の方法で PC が Android デバイスを認識できるか試してみてください。 
 	* デバイスが表示されているのに権限がないと表示される場合は、デバイスに PC に認証させるかどうかを尋ねさせる必要があります。
 	* デバイスを表示させるためには、デバイスを一旦取り外して再接続しなければならない場合があります。
 	* [Always allow (常に許可)] チェックボックスにチェックを入れておくことを推奨します。
@@ -144,62 +144,61 @@ Android Works をインストールしたら、Android デバイスを開発で�
 1. Android デバイスの **[Settings (セッティング)]** アプリケーションを開きます。
 
 1. **[Developer Options (デベロッパー オプション)]** をタップして [Developer Options] メニューを開きます。 
-	[REGION:note]
 
+	[REGION:note]
 	このメニューが表示されない場合は、デバイスの [Developer Options] を有効にしてください。 
 	デベロッパー オプションの詳細は、[Android で使用しているハードウェア](http://developer.android.com/tools/device.html) ページをご覧ください。
 	[/REGION]
 
-1. 下へスクロールして **[About Phone]** を選びます。Android デバイスによっては、このオプションは **[About Device]**、**[About Tablet]**、または **[About Shield]** となる場合もあります。
+1. 下へスクロールして **[About Phone]** を選びます。Android デバイスによっては、このオプションは **[About Device]**、**[About Tablet]**、または **[About Shield]** となっている場合もあります。
 
 	[REGION: note]
-	注記：** 新しい Andorid のバージョンでは **[More]** セクションにある場合があります。
+	注記：新しい Andorid のバージョンでは **[More]** セクションにある場合があります。
 	[/REGION]
 
 1. **[Build Number]** を **7** 回たたきます。
 
-	![](Enable_Dev_Mode.png)
+	![](Enable_Dev_Mode.png)(w:350)
 
-1. 数回たたいた段階で、「**You are now # steps away from becoming a developer (デベロッパーになるまであと # ステップ )**」 というメッセージが表示さｒます。 
+1. 数回たたいた段階で、「**You are now # steps away from becoming a developer (デベロッパーになるまであと # ステップ)**」というメッセージが表示さｒます。 
 
 1. Developer Mode が起動すると、以下のようなメッセージが表示されて、通常に処理されたことが分かります。
 
-	![](Dev_Mode_Active.png)
+	![](Dev_Mode_Active.png)(w:350)
 
 1. 再度 **[Settings]** メニューへ戻ると **[Developer Options]** が利用可能な状態になっているので選択します。
 
-	![](Dev_Options_Enabled.png)
+	![](Dev_Options_Enabled.png)(w:350)
 
 1. **[Developer Options]** メニューの **[USB debugging]** を有効にします。 
 
-	![](Enable_USB_Debugging.png)
+	![](Enable_USB_Debugging.png)(w:350)
 
-1. 求められたら **[Ok]** ボタンをクリックして USB デバッグを有効にしてください。
+1. 求められたら **[OK]** ボタンをクリックして USB デバッグを有効にしてください。
 
-	![](Enable_USB_Debugging_Warning.png)
+	![](Enable_USB_Debugging_Warning.png)(w:350)
 
 1. USB デバッグの横のチェックボックスの緑が有効になっている印です。
 
-	![](USB_Debugging_Enabled.png)
+	![](USB_Debugging_Enabled.png)(w:350)
 
-1. Android デバイスを USB から一旦取り外して、すぐに再度接続してください。 
-	PC がデバイスを認識したら、この Mac にデバイスとの通信ｗｐ許可するかどうかのメッセージが Android デバイス上に表示されます。
-	**[Always allow this computer (常に許可)]** を押して、**[OK]** ボタンをクリックします。
-
-	![](PC_RSA_Fingerprint.png)
+1. Android デバイスを USB から一旦取り外して、すぐに再度接続してください。PC がデバイスを認識したら、 
+この Mac にデバイスとの通信許可に関する次のメッセージが Android デバイス上に表示されます。	メッセージ ボックスは USB 接続をどのようにするか尋ねるので、**[Always allow this computer (常に許可)]** を押して、 
+**[OK]** ボタンをクリックします。
+	![](PC_RSA_Fingerprint.png)(w:350)
 
 1. デバイスの設定が適切か確認するために、/Applications/Utilties から **Terminal app** を開きます。
 
 	![](MAC_Terminal_Activate.png)
 
-1.	コマンド プロンプトに **ADB devices** とタイプすると、Mac に接続されているすべてのデバイスが表示されます。
+1.	コマンド プロンプトに **「ADB devices」** と打ち込むと、Mac に接続されているすべてのデバイスが表示されます。
 
 	![](MAC_Checking_ADB_Devices.png)
 
 [region:note]
 
-adb devices と打ち込んでも自分のデバイスが確認できない場合は、次の方法で PC が Android デバイスを認識できるか試してみてください。 
-* デバイスが表示されているのに権限がないと表示される場合は、デバイスに PC に認証させるかどうかを尋ねさせる必要があります。
+「adb devices」と打ち込んでも自分のデバイスが確認できない場合は、次の方法で PC が Android デバイスを認識できるか試してみてください。 
+* デバイスが表示されても権限がないと表示される場合は、デバイスに PC に認証させるかどうかを尋ねさせる必要があります。
 * デバイスを表示させるためには、デバイスを一旦取り外して再接続しなければならない場合があります。
 * [Always allow (常に許可)] チェックボックスにチェックを入れておくことを推奨します。
 * **Camera (PTP)** ではなく **Media Device (MTP)** として接続されている場合、正しく設定されているデバイスが表示されない場合があります。この段階でご自分のデバイスが ***adb devices*** として全く表示されない場合は、**Camera (PTP)** オプションを選択してください。
@@ -209,9 +208,7 @@ adb devices と打ち込んでも自分のデバイスが確認できない場�
 [/EXCERPT:MacOSSetup]
 
 [EXCERPT:LinuxSetup]
-本文書は現在作成中です。現在公開されている文書については、 
-[新規および更新リソース](https://docs.unrealengine.com/latest/INT/Updates/index.html) を参照してください。
-<!--[INCLUDE:Platforms/Linux/IntermediateLinuxDeveloper/AndroidOnLinux/2#AndroidLinux_2]-->
+[INCLUDE:Platforms/Linux/IntermediateLinuxDeveloper/AndroidOnLinux/2#AndroidLinux_2]
 [/EXCERPT:LinuxSetup]
 -->
 

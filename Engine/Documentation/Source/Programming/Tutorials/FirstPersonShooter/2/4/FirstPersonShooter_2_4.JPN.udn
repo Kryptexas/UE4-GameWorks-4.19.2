@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3069483
-Availability: Public
+﻿INTSourceChangelist:3388666
+Availability:Public
 Title:2.4 - マウスによるカメラ制御の実装
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
 Description:FPS キャラクターのマウスによるカメラ制御の実装方法を学びます。
 SkillLevel:Beginner
-Version:4.11
+Version:4.15
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -28,7 +28,7 @@ Version:4.11
 
 ## 軸マッピングの回転
 
-1.	**[Edit (編集)]** メニューで、 **[Project Settings (プロジェクト設定)]** をクリック します。
+1.	**[Edit (編集)]** メニューで、 **[Project Settings (プロジェクト設定)]** をクリックします。
 
 1.	**[Project Settings]** タブの左側にある **[Engine]** の見出しで、 **[Input]** をクリックします。
 
@@ -73,23 +73,23 @@ Version:4.11
 
 1.	以下の行を「`FPSCharacter.cpp`」ファイルの `SetupPlayerInputComponent` へ追加します。
 		// Set up "look" bindings. (look のバインディングをセットアップ) 
-		InputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
-		InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
+		PlayerInputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
+		PlayerInputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
 
 1.	`SetupPlayerInputComponent` 関数は以下のようになります。
 
-		// 機能と入力をバインドするために呼び出されます
-		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
+		// Called to bind functionality to input (機能と入力をバインドするために呼ばれます)
+		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 		{
-			Super::SetupPlayerInputComponent(InputComponent);
-
+			Super::SetupPlayerInputComponent(PlayerInputComponent);
 		// Set up "movement" bindings. (移動のバインディングをセットアップ) 
-			InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
-			InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
+
+			PlayerInputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
+			PlayerInputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
 
 			// Set up "look" bindings. (look のバインディングをセットアップ) 
-			InputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
-			InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
+			PlayerInputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
+			PlayerInputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
 		}
 
 ## マウス操作によるカメラ制御
@@ -98,13 +98,13 @@ Version:4.11
 
 1.	**[Solution Explorer (ソリューション エクスプローラ)]** で **[FPSProject]** を探します。
 
-1.	**[FPSProject]** 上で右クリックして、**[Build (ビルド)]** を選択してプロジェクトをコンパイルします。
+1.	**[FPSProject]** 上で右クリックして **[Build]** を選択してプロジェクトをコンパイルします。
 
 	![](BuildProject.png)
 
 1.	ビルドが終了したらアンリアル エディタで **FPSProject** を開きます。
 
-1.	レベル エディタのツールバーで、[Play (プレイ)] ボタンを **クリック** します。これでマウス操作によるカメラの制御が可能になりました。
+1.	レベル エディタのツールバー で、**[Play (プレイ)]** ボタンをクリックします。これでマウス操作によるカメラの制御が可能になりました。
 
 1.	[PIE (Play In Editor)] モードを終了するには、レベル エディタで Escape キーを押すか、**[Stop]** ボタンをクリックします。
 

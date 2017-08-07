@@ -11,14 +11,20 @@ float FAnimNode_SequencePlayer::GetCurrentAssetTime()
 	return InternalTimeAccumulator;
 }
 
+float FAnimNode_SequencePlayer::GetCurrentAssetTimePlayRateAdjusted()
+{
+	float EffectivePlayrate = PlayRate * (Sequence ? Sequence->RateScale : 1.0f);
+	return (EffectivePlayrate < 0.0f) ? GetCurrentAssetLength() - InternalTimeAccumulator : InternalTimeAccumulator;
+}
+
 float FAnimNode_SequencePlayer::GetCurrentAssetLength()
 {
 	return Sequence ? Sequence->SequenceLength : 0.0f;
 }
 
-void FAnimNode_SequencePlayer::Initialize(const FAnimationInitializeContext& Context)
+void FAnimNode_SequencePlayer::Initialize_AnyThread(const FAnimationInitializeContext& Context)
 {
-	FAnimNode_AssetPlayerBase::Initialize(Context);
+	FAnimNode_AssetPlayerBase::Initialize_AnyThread(Context);
 
 	EvaluateGraphExposedInputs.Execute(Context);
 	InternalTimeAccumulator = StartPosition;
@@ -33,7 +39,7 @@ void FAnimNode_SequencePlayer::Initialize(const FAnimationInitializeContext& Con
 	}
 }
 
-void FAnimNode_SequencePlayer::CacheBones(const FAnimationCacheBonesContext& Context) 
+void FAnimNode_SequencePlayer::CacheBones_AnyThread(const FAnimationCacheBonesContext& Context) 
 {
 }
 
@@ -48,7 +54,7 @@ void FAnimNode_SequencePlayer::UpdateAssetPlayer(const FAnimationUpdateContext& 
 	}
 }
 
-void FAnimNode_SequencePlayer::Evaluate(FPoseContext& Output)
+void FAnimNode_SequencePlayer::Evaluate_AnyThread(FPoseContext& Output)
 {
 	if ((Sequence != NULL) && (Output.AnimInstanceProxy->IsSkeletonCompatible(Sequence->GetSkeleton())))
 	{

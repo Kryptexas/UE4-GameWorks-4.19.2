@@ -8,7 +8,7 @@
 #include "PaperSpriteActorFactory.generated.h"
 
 class AActor;
-class FAssetData;
+struct FAssetData;
 
 UCLASS()
 class UPaperSpriteActorFactory : public UActorFactory

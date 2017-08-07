@@ -35,6 +35,7 @@ typedef FIOSPlatformTypes FPlatformTypes;
 #define PLATFORM_USE_SYSTEM_VSWPRINTF					0
 #define PLATFORM_HAS_BSD_TIME							1
 #define PLATFORM_HAS_BSD_IPV6_SOCKETS					1
+#define PLATFORM_HAS_BSD_SOCKET_FEATURE_MSG_DONTWAIT	1
 #define PLATFORM_MAX_FILEPATH_LENGTH					MAX_PATH
 #define PLATFORM_SUPPORTS_TEXTURE_STREAMING				1
 #define PLATFORM_BUILTIN_VERTEX_HALF_FLOAT				0
@@ -50,6 +51,9 @@ typedef FIOSPlatformTypes FPlatformTypes;
 #define PLATFORM_USES_ES2								1
 #define PLATFORM_HAS_TOUCH_MAIN_SCREEN					1
 #endif
+#define PLATFORM_UI_HAS_MOBILE_SCROLLBARS				1
+#define PLATFORM_UI_NEEDS_TOOLTIPS						0
+#define PLATFORM_UI_NEEDS_FOCUS_OUTLINES				0
 
 // @todo iOS: temporarily use Ansi allocator as wxWidgets cause problems with MallocTBB
 #define FORCE_ANSI_ALLOCATOR 1

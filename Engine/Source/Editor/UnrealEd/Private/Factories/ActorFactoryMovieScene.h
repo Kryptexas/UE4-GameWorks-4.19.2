@@ -8,7 +8,7 @@
 #include "ActorFactoryMovieScene.generated.h"
 
 class AActor;
-class FAssetData;
+struct FAssetData;
 class ULevel;
 
 UCLASS()

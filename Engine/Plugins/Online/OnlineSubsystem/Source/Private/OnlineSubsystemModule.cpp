@@ -33,7 +33,7 @@ static inline FName GetOnlineModuleName(const FString& SubsystemName)
  * @param SubsystemName Name of the requested platform service to load
  * @return The module interface of the requested platform service, NULL if the service doesn't exist
  */
-static TSharedPtr<IModuleInterface> LoadSubsystemModule(const FString& SubsystemName)
+static IModuleInterface* LoadSubsystemModule(const FString& SubsystemName)
 {
 #if !UE_BUILD_SHIPPING && !UE_BUILD_SHIPPING_WITH_EDITOR
 	// Early out if we are overriding the module load
@@ -54,7 +54,7 @@ static TSharedPtr<IModuleInterface> LoadSubsystemModule(const FString& Subsystem
 		return ModuleManager.GetModule(ModuleName);
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 void FOnlineSubsystemModule::StartupModule()
@@ -96,7 +96,7 @@ void FOnlineSubsystemModule::LoadDefaultSubsystem()
 	{
 		FName InterfaceName = FName(*InterfaceString);
 		// A module loaded with its factory method set for creation and a default instance of the online subsystem is required
-		if (LoadSubsystemModule(InterfaceString).IsValid() &&
+		if (LoadSubsystemModule(InterfaceString) &&
 			OnlineFactories.Contains(InterfaceName) &&
 			GetOnlineSubsystem(InterfaceName) != NULL)
 		{
@@ -109,7 +109,7 @@ void FOnlineSubsystemModule::LoadDefaultSubsystem()
 			InterfaceName = FName(*InterfaceString);
 
 			// A module loaded with its factory method set for creation and a default instance of the online subsystem is required
-			if (LoadSubsystemModule(InterfaceString).IsValid() &&
+			if (LoadSubsystemModule(InterfaceString) &&
 				OnlineFactories.Contains(InterfaceName) &&
 				GetOnlineSubsystem(InterfaceName) != NULL)
 			{
@@ -239,8 +239,8 @@ IOnlineSubsystem* FOnlineSubsystemModule::GetOnlineSubsystem(const FName InSubsy
 			if (OSSFactory == NULL)
 			{
 				// Attempt to load the requested factory
-				TSharedPtr<IModuleInterface> NewModule = LoadSubsystemModule(SubsystemName.ToString());
-				if (NewModule.IsValid())
+				IModuleInterface* NewModule = LoadSubsystemModule(SubsystemName.ToString());
+				if (NewModule)
 				{
 					// If the module loaded successfully this should be non-NULL
 					OSSFactory = OnlineFactories.Find(SubsystemName);

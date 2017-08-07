@@ -58,4 +58,11 @@ class AIMODULE_API UAIBlueprintHelperLibrary : public UBlueprintFunctionLibrary
 
 	UFUNCTION(BlueprintPure, Category = "AI")
 	static bool IsValidAIRotation(FRotator Rotation);
+
+	/** Returns a copy of navigation path given controller is currently using. 
+	 *	The result being a copy means you won't be able to influence agent's pathfollowing 
+	 *	by manipulating received path */
+	UFUNCTION(BlueprintPure, Category = "AI", meta = (UnsafeDuringActorConstruction = "true"))
+	static UNavigationPath* GetCurrentPath(AController* Controller);
+
 };

@@ -764,7 +764,7 @@ public:
 		checkSlow(MethodPtr != nullptr);
 
 		return Payload.ApplyAfter(TMemberFunctionCaller<MutableUserClass, FMethodPtr>(MutableUserObject, MethodPtr), Params...);
-	}
+ 	}
 
 	virtual FDelegateHandle GetHandle() const override
 	{

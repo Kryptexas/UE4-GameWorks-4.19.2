@@ -63,7 +63,7 @@ namespace EQuitPreference
 	};
 }
 
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct FGenericStruct
 {
 	GENERATED_USTRUCT_BODY()
@@ -169,24 +169,55 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category="Utilities|Platform")
 	static FString GetDeviceId();
 
+	/** Converts an interfance into an object */
 	UFUNCTION(BlueprintPure, meta=(DisplayName = "ToObject (interface)", CompactNodeTitle = "->"), Category="Utilities")
 	static UObject* Conv_InterfaceToObject(const FScriptInterface& Interface); 
 
-	UFUNCTION(BlueprintPure, meta = (BlueprintInternalUseOnly = "true"), Category = "Utilities")
-	static UObject* Conv_AssetToObject(const TAssetPtr<UObject>& Asset);
+	/** Returns true if the Soft Object Reference is not null */
+	UFUNCTION(BlueprintPure, Category = "Utilities")
+	static bool IsValidSoftObjectReference(const TAssetPtr<UObject>& SoftObjectReference);
+
+	/** Returns true if the values are equal (A == B) */
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "Equal (SoftObjectReference)", CompactNodeTitle = "=="), Category = "Utilities")
+	static bool EqualEqual_SoftObjectReference(const TAssetPtr<UObject>& A, const TAssetPtr<UObject>& B);
+
+	/** Returns true if the values are not equal (A != B) */
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "NotEqual (SoftObjectReference)", CompactNodeTitle = "!="), Category = "Utilities")
+	static bool NotEqual_SoftObjectReference(const TAssetPtr<UObject>& A, const TAssetPtr<UObject>& B);
+
+	/** Returns true if the Soft Class Reference is not null */
+	UFUNCTION(BlueprintPure, Category = "Utilities")
+	static bool IsValidSoftClassReference(const TAssetSubclassOf<UObject>& SoftClassReference);
+
+	/** Returns true if the values are equal (A == B) */
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "Equal (SoftClassReference)", CompactNodeTitle = "=="), Category = "Utilities")
+	static bool EqualEqual_SoftClassReference(const TAssetSubclassOf<UObject>& A, const TAssetSubclassOf<UObject>& B);
+
+	/** Returns true if the values are not equal (A != B) */
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "NotEqual (SoftClassReference)", CompactNodeTitle = "!="), Category = "Utilities")
+	static bool NotEqual_SoftClassReference(const TAssetSubclassOf<UObject>& A, const TAssetSubclassOf<UObject>& B);
 
 	UFUNCTION(BlueprintPure, meta = (BlueprintInternalUseOnly = "true"), Category = "Utilities")
-	static TSubclassOf<UObject> Conv_AssetClassToClass(const TAssetSubclassOf<UObject>& AssetClass);
+	static UObject* Conv_SoftObjectReferenceToObject(const TAssetPtr<UObject>& Asset);
+
+	UFUNCTION(BlueprintPure, meta = (BlueprintInternalUseOnly = "true"), Category = "Utilities")
+	static TSubclassOf<UObject> Conv_SoftClassReferenceToClass(const TAssetSubclassOf<UObject>& AssetClass);
+
+	UFUNCTION(BlueprintPure, meta = (BlueprintInternalUseOnly = "true"), Category = "Utilities")
+	static TAssetPtr<UObject> Conv_ObjectToSoftObjectReference(UObject* Object);
+
+	UFUNCTION(BlueprintPure, meta = (BlueprintInternalUseOnly = "true"), Category = "Utilities")
+	static TAssetSubclassOf<UObject> Conv_ClassToSoftClassReference(const TSubclassOf<UObject>& Class);
 
 	DECLARE_DYNAMIC_DELEGATE_OneParam(FOnAssetLoaded, class UObject*, Loaded);
 
 	UFUNCTION(BlueprintCallable, meta = (Latent, LatentInfo = "LatentInfo", WorldContext = "WorldContextObject", BlueprintInternalUseOnly = "true"), Category = "Utilities")
-	static void LoadAsset(UObject* WorldContextObject, const TAssetPtr<UObject>& Asset, FOnAssetLoaded OnLoaded, FLatentActionInfo LatentInfo);
+	static void LoadAsset(UObject* WorldContextObject, TAssetPtr<UObject> Asset, FOnAssetLoaded OnLoaded, FLatentActionInfo LatentInfo);
 
 	DECLARE_DYNAMIC_DELEGATE_OneParam(FOnAssetClassLoaded, TSubclassOf<UObject>, Loaded);
 
 	UFUNCTION(BlueprintCallable, meta = (Latent, LatentInfo = "LatentInfo", WorldContext = "WorldContextObject", BlueprintInternalUseOnly = "true"), Category = "Utilities")
-	static void LoadAssetClass(UObject* WorldContextObject, const TAssetSubclassOf<UObject>& AssetClass, FOnAssetClassLoaded OnLoaded, FLatentActionInfo LatentInfo);
+	static void LoadAssetClass(UObject* WorldContextObject, TAssetSubclassOf<UObject> AssetClass, FOnAssetClassLoaded OnLoaded, FLatentActionInfo LatentInfo);
 
 
 	/**
@@ -1502,8 +1533,24 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	static TArray<FString> GetPreferredLanguages();
 	
 	/**
-	 * Returns the user's preferred language and region
-	 * @return A language ID indicating the user's language and region
+	 * Get the default language (for localization) used by this platform
+	 * @note This is typically the same as GetDefaultLocale unless the platform distinguishes between the two
+	 * @note This should be returned in IETF language tag form:
+	 *  - A two-letter ISO 639-1 language code (eg, "zh")
+	 *  - An optional four-letter ISO 15924 script code (eg, "Hans")
+	 *  - An optional two-letter ISO 3166-1 country code (eg, "CN")
+	 * @return The language as an IETF language tag (eg, "zh-Hans-CN")
+	 */
+	UFUNCTION(BlueprintPure, Category = "Utilities|Platform")
+	static FString GetDefaultLanguage();
+
+	/**
+	 * Get the default locale (for internationalization) used by this platform
+	 * @note This should be returned in IETF language tag form:
+	 *  - A two-letter ISO 639-1 language code (eg, "zh")
+	 *  - An optional four-letter ISO 15924 script code (eg, "Hans")
+	 *  - An optional two-letter ISO 3166-1 country code (eg, "CN")
+	 * @return The locale as an IETF language tag (eg, "zh-Hans-CN")
 	 */
 	UFUNCTION(BlueprintPure, Category = "Utilities|Platform")
 	static FString GetDefaultLocale();
@@ -1524,10 +1571,17 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 
 	/**
 	 * Requests permission to send remote notifications to the user's device.
-	 * (iOS only)
+	 * (Android and iOS only)
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Utilities|Platform")
 	static void RegisterForRemoteNotifications();
+
+	/**
+	* Requests Requests unregistering from receiving remote notifications to the user's device.
+	* (Android only)
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Utilities|Platform")
+	static void UnregisterForRemoteNotifications();
 
 	/**
 	 * Tells the engine what the user is doing for debug, analytics, etc.
@@ -1540,6 +1594,92 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	 */
 	UFUNCTION(BlueprintCallable, Category="Utilities")
 	static FString GetCommandLine();
+
+	// --- Asset Manager ------------------------------
+
+	/** Returns the Object associated with a Primary Asset Id, this will only return a valid object if it is in memory, it will not load it */
+	UFUNCTION(BlueprintPure, Category = "AssetManager")
+	static UObject* GetObjectFromPrimaryAssetId(FPrimaryAssetId PrimaryAssetId);
+
+	/** Returns the Blueprint Class associated with a Primary Asset Id, this will only return a valid object if it is in memory, it will not load it */
+	UFUNCTION(BlueprintPure, Category = "AssetManager")
+	static TSubclassOf<UObject> GetClassFromPrimaryAssetId(FPrimaryAssetId PrimaryAssetId);
+
+	/** Returns the Object Id associated with a Primary Asset Id, this works even if the asset is not loaded */
+	UFUNCTION(BlueprintPure, Category = "AssetManager")
+	static TAssetPtr<UObject> GetSoftObjectReferenceFromPrimaryAssetId(FPrimaryAssetId PrimaryAssetId);
+
+	/** Returns the Blueprint Class Id associated with a Primary Asset Id, this works even if the asset is not loaded */
+	UFUNCTION(BlueprintPure, Category = "AssetManager")
+	static TAssetSubclassOf<UObject> GetSoftClassReferenceFromPrimaryAssetId(FPrimaryAssetId PrimaryAssetId);
+
+	/** Returns the Primary Asset Id for an Object, this can return an invalid one if not registered */
+	UFUNCTION(BlueprintPure, Category = "AssetManager")
+	static FPrimaryAssetId GetPrimaryAssetIdFromObject(UObject* Object);
+
+	/** Returns the Primary Asset Id for a Class, this can return an invalid one if not registered */
+	UFUNCTION(BlueprintPure, Category = "AssetManager")
+	static FPrimaryAssetId GetPrimaryAssetIdFromClass(TSubclassOf<UObject> Class);
+
+	/** Returns the Primary Asset Id for a Soft Object Reference, this can return an invalid one if not registered */
+	UFUNCTION(BlueprintPure, Category = "AssetManager")
+	static FPrimaryAssetId GetPrimaryAssetIdFromSoftObjectReference(TAssetPtr<UObject> SoftObjectReference);
+
+	/** Returns the Primary Asset Id for a Soft Class Reference, this can return an invalid one if not registered */
+	UFUNCTION(BlueprintPure, Category = "AssetManager")
+	static FPrimaryAssetId GetPrimaryAssetIdFromSoftClassReference(TAssetSubclassOf<UObject> SoftClassReference);
+
+	/** Returns list of PrimaryAssetIds for a PrimaryAssetType */
+	UFUNCTION(BlueprintCallable, Category = "AssetManager")
+	static void GetPrimaryAssetIdList(FPrimaryAssetType PrimaryAssetType, TArray<FPrimaryAssetId>& OutPrimaryAssetIdList);
+
+	/** Returns true if the Primary Asset Id is valid */
+	UFUNCTION(BlueprintPure, Category = "AssetManager")
+	static bool IsValidPrimaryAssetId(FPrimaryAssetId PrimaryAssetId);
+
+	/** Returns true if the values are equal (A == B) */
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "Equal (PrimaryAssetId)", CompactNodeTitle = "=="), Category = "AssetManager")
+	static bool EqualEqual_PrimaryAssetId(FPrimaryAssetId A, FPrimaryAssetId B);
+
+	/** Returns true if the values are not equal (A != B) */
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "NotEqual (PrimaryAssetId)", CompactNodeTitle = "!="), Category = "AssetManager")
+	static bool NotEqual_PrimaryAssetId(FPrimaryAssetId A, FPrimaryAssetId B);
+
+	/** Returns list of PrimaryAssetIds for a PrimaryAssetType */
+	UFUNCTION(BlueprintPure, Category = "AssetManager")
+	static bool IsValidPrimaryAssetType(FPrimaryAssetType PrimaryAssetType);
+
+	/** Returns true if the values are equal (A == B) */
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "Equal (PrimaryAssetType)", CompactNodeTitle = "=="), Category = "AssetManager")
+	static bool EqualEqual_PrimaryAssetType(FPrimaryAssetType A, FPrimaryAssetType B);
+
+	/** Returns true if the values are not equal (A != B) */
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "NotEqual (PrimaryAssetType)", CompactNodeTitle = "!="), Category = "AssetManager")
+	static bool NotEqual_PrimaryAssetType(FPrimaryAssetType A, FPrimaryAssetType B);
+
+	/** Unloads a primary asset, which allows it to be garbage collected if nothing else is referencing it */
+	UFUNCTION(BlueprintCallable, Category = "AssetManager")
+	static void UnloadPrimaryAsset(FPrimaryAssetId PrimaryAssetId);
+
+	/** Unloads a primary asset, which allows it to be garbage collected if nothing else is referencing it */
+	UFUNCTION(BlueprintCallable, Category = "AssetManager")
+	static void UnloadPrimaryAssetList(const TArray<FPrimaryAssetId>& PrimaryAssetIdList);
+
+	/** 
+	 * Returns the list of loaded bundles for a given Primary Asset. This will return false if the asset is not loaded at all.
+	 * If ForceCurrentState is true it will return the current state even if a load is in process
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AssetManager")
+	static bool GetCurrentBundleState(FPrimaryAssetId PrimaryAssetId, bool bForceCurrentState, TArray<FName>& OutBundles);
+
+	/** 
+	 * Returns the list of assets that are in a given bundle state. Required Bundles must be specified
+	 * If ExcludedBundles is not empty, it will not return any assets in those bundle states
+	 * If ValidTypes is not empty, it will only return assets of those types
+	 * If ForceCurrentState is true it will use the current state even if a load is in process
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AssetManager", meta=(AutoCreateRefTerm = "ExcludedBundles, ValidTypes"))
+	static void GetPrimaryAssetsWithBundleState(const TArray<FName>& RequiredBundles, const TArray<FName>& ExcludedBundles, const TArray<FPrimaryAssetType>& ValidTypes, bool bForceCurrentState, TArray<FPrimaryAssetId>& OutPrimaryAssetIdList);
 };
 
 

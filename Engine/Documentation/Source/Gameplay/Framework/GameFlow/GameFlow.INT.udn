@@ -3,10 +3,11 @@ Title:Game Flow Overview
 Crumbs:%ROOT%, Gameplay/Framework
 Description:The process of starting the engine and launching a game or play-in-editor session.
 Version: 4.12
-type:reference
+type:overview
 parent:Gameplay/Framework
-order:5
+order:1
 tags:Gameplay Framework
+topic-image:Gameplay/Framework/gameflow_lander.png
 
 This document explains the process of starting the engine and launching a game. There are two main paths shown here: the editor path, and the standalone path. The general order of events is to initialize the engine, create and initialize a **GameInstance**, then load a level, and finally start playing. However, there are differences between standalone and editor modes, both in terms of the exact order of some of the functions that are called, and in which functions are called. The flowchart below shows the two paths running in parallel until they converge at the start of the game.
 

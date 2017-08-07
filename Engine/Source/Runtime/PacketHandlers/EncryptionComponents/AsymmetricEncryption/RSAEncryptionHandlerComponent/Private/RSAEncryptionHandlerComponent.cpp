@@ -2,13 +2,47 @@
 
 #include "RSAEncryptionHandlerComponent.h"
 
+#include "PacketAudit.h"
+
+#include "Modules/ModuleManager.h"
+
+
 DEFINE_LOG_CATEGORY(PacketHandlerLog);
 IMPLEMENT_MODULE(FRSAEncryptorHandlerComponentModuleInterface, RSAEncryptionHandlerComponent);
 
+
+// @todo #JohnB: Add/test support for CanReadUnaligned.
+
+
+// Defines
+
+/** Puts a limit on the maximum size of the exponent. */
+// @todo: This should be limited further, as a high exponent could potentially be used for performing a DoS attack,
+//			by making it very costly to decrypt packets. The limit is only this high temporarily.
+#define MAX_EXPONENT_BITS 1024
+
+/**
+ * RSAEncryptionHandlerComponent
+ */
 RSAEncryptionHandlerComponent::RSAEncryptionHandlerComponent(int32 InKeySizeInBits)
+	: PrivateKeyMaxPlaintextLength(0)
+	, PrivateKeyFixedCiphertextLength(0)
+	, RemotePublicKeyMaxPlaintextLength(0)
+	, RemotePublicKeyFixedCiphertextLength(0)
+	, KeySizeInBits(InKeySizeInBits)
+	, State(ERSAEncryptionHandler::State::UnInitialized)
+	, Rng()
+	, Params()
+	, RemotePublicEncryptor()
+	, PrivateEncryptor()
+	, PrivateDecryptor()
+	, PublicKey()
+	, PrivateKey()
+	, RemotePublicKey()
 {
-	KeySizeInBits = InKeySizeInBits;
 	SetActive(true);
+
+	bRequiresHandshake = true;
 }
 
 void RSAEncryptionHandlerComponent::Initialize()
@@ -22,8 +56,19 @@ void RSAEncryptionHandlerComponent::Initialize()
 
 	PrivateKeyMaxPlaintextLength = static_cast<uint32>(PrivateEncryptor.FixedMaxPlaintextLength());
 	PrivateKeyFixedCiphertextLength = static_cast<uint32>(PrivateEncryptor.FixedCiphertextLength());
+}
 
-	SetState(ERSAEncryptionHandler::State::InitializedLocalKeys);
+void RSAEncryptionHandlerComponent::NotifyHandshakeBegin()
+{
+	// Send the local key
+	FBitWriter OutPacket;
+
+	PackLocalKey(OutPacket);
+	SetState(ERSAEncryptionHandler::State::InitializedLocalKeysSentLocal);
+
+	FPacketAudit::AddStage(TEXT("RSAHandshake"), OutPacket);
+
+	Handler->SendHandlerPacket(this, OutPacket);
 }
 
 bool RSAEncryptionHandlerComponent::IsValid() const
@@ -38,66 +83,48 @@ void RSAEncryptionHandlerComponent::SetState(ERSAEncryptionHandler::State InStat
 
 void RSAEncryptionHandlerComponent::Outgoing(FBitWriter& Packet)
 {
-	switch (State)
+	if (State == ERSAEncryptionHandler::State::Initialized)
 	{
-		case ERSAEncryptionHandler::State::InitializedLocalKeys:
+		if (Packet.GetNumBytes() > 0)
 		{
-			PackLocalKey(Packet);
-			SetState(ERSAEncryptionHandler::State::InitializedLocalKeysSentLocal);
-			break;
+			Encrypt(Packet);
 		}
-		case ERSAEncryptionHandler::State::InitializedLocalRemoteKeys:
-		{
-			PackLocalKey(Packet);
-			SetState(ERSAEncryptionHandler::State::InitializedLocalRemoteKeysSentLocal);
-			break;
-		}
-		case ERSAEncryptionHandler::State::Initialized:
-		{
-			if (Packet.GetNumBytes() > 0)
-			{
-				Encrypt(Packet);
-			}
-			break;
-		}
-		default:
-		{
-			break;
-		}
+	}
+	else
+	{
+		UE_LOG(PacketHandlerLog, Warning, TEXT("RSAEncryptionHandlerComponent: Got outgoing packet when not yet initialized."));
+
+#if !UE_BUILD_SHIPPING
+		check(false);
+#endif
+
+		Packet.SetError();
 	}
 }
 
 void RSAEncryptionHandlerComponent::Incoming(FBitReader& Packet)
 {
-	switch (State)
+	if (State == ERSAEncryptionHandler::State::Initialized)
 	{
-		case ERSAEncryptionHandler::State::InitializedLocalKeys:
-		{
-			UnPackRemoteKey(Packet);
-			SetState(ERSAEncryptionHandler::State::InitializedLocalRemoteKeys);
-			break;
-		}
-		case ERSAEncryptionHandler::State::InitializedLocalKeysSentLocal:
-		{
-			UnPackRemoteKey(Packet);
-			Initialized();
-			SetState(ERSAEncryptionHandler::State::Initialized);
-			break;
-		}
-		case ERSAEncryptionHandler::State::InitializedLocalRemoteKeysSentLocal:
-		{
-			Initialized();
-			SetState(ERSAEncryptionHandler::State::Initialized);
-		}
-		case ERSAEncryptionHandler::State::Initialized:
-		{
-			Decrypt(Packet);
-			break;
-		}
-		default:
-		{
-			break;
-		}
+		Decrypt(Packet);
+	}
+	else if (State == ERSAEncryptionHandler::State::InitializedLocalKeysSentLocal)
+	{
+		FPacketAudit::CheckStage(TEXT("RSAHandshake"), Packet);
+
+		UnPackRemoteKey(Packet);
+		Initialized();
+		SetState(ERSAEncryptionHandler::State::Initialized);
+	}
+	else
+	{
+		UE_LOG(PacketHandlerLog, Warning, TEXT("RSAEncryptionHandlerComponent: Got incoming packet when not yet initialized."));
+
+#if !UE_BUILD_SHIPPING
+		check(false);
+#endif
+
+		Packet.SetError();
 	}
 }
 
@@ -108,45 +135,117 @@ void RSAEncryptionHandlerComponent::PackLocalKey(FBitWriter& Packet)
 	Local.SetAllowResize(true);
 
 	// Save remote public key information
-	TArray<byte> ModulusArray;
-	TArray<byte> ExponentArray;
+	TArray<uint8> ModulusArray;
+	TArray<uint8> ExponentArray;
+
 	SavePublicKeyModulus(ModulusArray);
 	SavePublicKeyExponent(ExponentArray);
 
-	// Pack public key info
-	Local << ModulusArray;
-	Local << ExponentArray;
+	if ((ModulusArray.Num() * 8u) > KeySizeInBits || ModulusArray.Num() == 0)
+	{
+		LowLevelFatalError(TEXT("Modulus size '%i bits' must be greater than zero, and must not exceed key size '%i'"),
+							(ModulusArray.Num() * 8), KeySizeInBits);
+	}
+
+	if ((ExponentArray.Num() * 8) > MAX_EXPONENT_BITS || ExponentArray.Num() == 0)
+	{
+		LowLevelFatalError(TEXT("Exponent size '%i bits' must be greater than zero, and must not exceed MAX_EXPONENT_BITS"),
+							(ExponentArray.Num() * 8));
+	}
+
+
+	const uint32 MaxModulusNum = (KeySizeInBits+7) >> 3;
+	const uint32 MaxExponentNum = (MAX_EXPONENT_BITS + 7) >> 3;
+
+	// Decrement by one, to allow serialization of #Num == Max#Num
+	uint32 ModulusSerializeNum = ModulusArray.Num() - 1;
+	uint32 ExponentSerializeNum = ExponentArray.Num() - 1;
+
+	Local.SerializeInt(ModulusSerializeNum, MaxModulusNum);
+	Local.Serialize(ModulusArray.GetData(), ModulusArray.Num());
+
+
+	Local.SerializeInt(ExponentSerializeNum, MaxExponentNum);
+	Local.Serialize(ExponentArray.GetData(), ExponentArray.Num());
+
 	Local.Serialize(Packet.GetData(), Packet.GetNumBytes());
+
 	Packet = Local;
 }
 
 void RSAEncryptionHandlerComponent::UnPackRemoteKey(FBitReader& Packet)
 {
 	// Save remote public key
-	TArray<byte> ModulusArray;
-	TArray<byte> ExponentArray;
+	TArray<uint8> ModulusArray;
+	TArray<uint8> ExponentArray;
+	const uint32 MaxModulusNum = (KeySizeInBits+7) >> 3;
+	const uint32 MaxExponentNum = (MAX_EXPONENT_BITS + 7) >> 3;
 
-	Packet << ModulusArray;
-	Packet << ExponentArray;
+	uint32 ModulusNum = 0;
 
-	CryptoPP::Integer Modulus;
-	CryptoPP::Integer Exponent;
+	Packet.SerializeInt(ModulusNum, MaxModulusNum);
 
-	for (int32 i = 0; i < ModulusArray.Num(); ++i)
+	ModulusNum++;
+
+	if ((ModulusNum * 8) > KeySizeInBits)
 	{
-		Modulus.SetByte(i, ModulusArray[i]);
+		UE_LOG(PacketHandlerLog, Warning, TEXT("Modulus size '%i bits' should not exceed key size '%i'"),
+							(ModulusNum * 8), KeySizeInBits);
+
+		Packet.SetError();
 	}
 
-	for (int32 i = 0; i < ExponentArray.Num(); ++i)
+	if (!Packet.IsError())
 	{
-		Exponent.SetByte(i, ExponentArray[i]);
+		ModulusArray.SetNumUninitialized(ModulusNum);
+		Packet.Serialize(ModulusArray.GetData(), ModulusNum);
+
+		uint32 ExponentNum = 0;
+
+		Packet.SerializeInt(ExponentNum, MaxExponentNum);
+
+		ExponentNum++;
+
+		if ((ExponentNum * 8) <= MAX_EXPONENT_BITS)
+		{
+			ExponentArray.SetNumUninitialized(ExponentNum);
+			Packet.Serialize(ExponentArray.GetData(), ExponentNum);
+		}
+		else
+		{
+			UE_LOG(PacketHandlerLog, Warning, TEXT("Exponent size '%i bits' should not exceed MAX_EXPONENT_BITS"),
+								(ExponentNum * 8));
+
+			Packet.SetError();
+		}
 	}
 
-	RemotePublicKey.SetModulus(Modulus);
-	RemotePublicKey.SetPublicExponent(Exponent);
-	RemotePublicEncryptor = CryptoPP::RSAES_OAEP_SHA_Encryptor(RemotePublicKey);
-	RemotePublicKeyMaxPlaintextLength = static_cast<uint32>(RemotePublicEncryptor.FixedMaxPlaintextLength());
-	RemotePublicKeyFixedCiphertextLength = static_cast<uint32>(RemotePublicEncryptor.FixedCiphertextLength());
+	if (!Packet.IsError())
+	{
+		// Make sure the packet has no remaining data now
+#if !UE_BUILD_SHIPPING
+		check(Packet.GetBitsLeft() == 0);
+#endif
+
+		CryptoPP::Integer Modulus;
+		CryptoPP::Integer Exponent;
+
+		for (int32 i = 0; i < ModulusArray.Num(); ++i)
+		{
+			Modulus.SetByte(i, ModulusArray[i]);
+		}
+
+		for (int32 i = 0; i < ExponentArray.Num(); ++i)
+		{
+			Exponent.SetByte(i, ExponentArray[i]);
+		}
+
+		RemotePublicKey.SetModulus(Modulus);
+		RemotePublicKey.SetPublicExponent(Exponent);
+		RemotePublicEncryptor = CryptoPP::RSAES_OAEP_SHA_Encryptor(RemotePublicKey);
+		RemotePublicKeyMaxPlaintextLength = static_cast<uint32>(RemotePublicEncryptor.FixedMaxPlaintextLength());
+		RemotePublicKeyFixedCiphertextLength = static_cast<uint32>(RemotePublicEncryptor.FixedCiphertextLength());
+	}
 }
 
 void RSAEncryptionHandlerComponent::Encrypt(FBitWriter& Packet)
@@ -154,7 +253,7 @@ void RSAEncryptionHandlerComponent::Encrypt(FBitWriter& Packet)
 	// Serialize size of plain text data
 	uint32 NumberOfBytesInPlaintext = static_cast<uint32>(Packet.GetNumBytes());
 
-	TArray<byte> PlainText;
+	TArray<uint8> PlainText;
 
 	// Copy byte stream to PlainText from Packet
 	for (int32 i = 0; i < Packet.GetNumBytes(); ++i)
@@ -180,7 +279,7 @@ void RSAEncryptionHandlerComponent::Encrypt(FBitWriter& Packet)
 	// Serialize invalid amount of bytes
 	Packet.SerializeIntPacked(NumberOfBytesInPlaintext);
 
-	TArray<byte> CipherText;
+	TArray<uint8> CipherText;
 
 	// The number of bytes in the plaintext is too large for the cipher text
 	EncryptWithRemotePublic(PlainText, CipherText);
@@ -190,8 +289,6 @@ void RSAEncryptionHandlerComponent::Encrypt(FBitWriter& Packet)
 	{
 		Packet << CipherText[i];
 	}
-
-	UE_LOG(PacketHandlerLog, Log, TEXT("RSA Encrypted"));
 }
 
 void RSAEncryptionHandlerComponent::Decrypt(FBitReader& Packet)
@@ -213,8 +310,8 @@ void RSAEncryptionHandlerComponent::Decrypt(FBitReader& Packet)
 		return;
 	}
 
-	TArray<byte> PlainText;
-	TArray<byte> CipherText;
+	TArray<uint8> PlainText;
+	TArray<uint8> CipherText;
 
 	// Copy byte stream to PlainText from Packet
 	// not including the NumOfBytesPT field
@@ -227,11 +324,9 @@ void RSAEncryptionHandlerComponent::Decrypt(FBitReader& Packet)
 
 	FBitReader Copy(PlainText.GetData(), NumberOfBytesInPlaintext * 8);
 	Packet = Copy;
-
-	UE_LOG(PacketHandlerLog, Log, TEXT("RSA Decrypted"));
 }
 
-void RSAEncryptionHandlerComponent::SavePublicKeyModulus(TArray<byte>& OutModulus)
+void RSAEncryptionHandlerComponent::SavePublicKeyModulus(TArray<uint8>& OutModulus)
 {
 	uint32 ModulusSize = static_cast<uint32>(PublicKey.GetModulus().ByteCount());
 
@@ -243,7 +338,7 @@ void RSAEncryptionHandlerComponent::SavePublicKeyModulus(TArray<byte>& OutModulu
 	}
 }
 
-void RSAEncryptionHandlerComponent::SavePublicKeyExponent(TArray<byte>& OutExponent)
+void RSAEncryptionHandlerComponent::SavePublicKeyExponent(TArray<uint8>& OutExponent)
 {
 	uint32 ExponentSize = static_cast<uint32>(PublicKey.GetPublicExponent().ByteCount());
 
@@ -255,12 +350,12 @@ void RSAEncryptionHandlerComponent::SavePublicKeyExponent(TArray<byte>& OutExpon
 	}
 }
 
-void RSAEncryptionHandlerComponent::EncryptWithRemotePublic(const TArray<byte>& InPlainText, TArray<byte>& OutCipherText)
+void RSAEncryptionHandlerComponent::EncryptWithRemotePublic(const TArray<uint8>& InPlainText, TArray<uint8>& OutCipherText)
 {
 	OutCipherText.Reset(); // Reset array
 	OutCipherText.Reserve(RemotePublicKeyFixedCiphertextLength); // Reserve memory
 
-	byte* CipherTextBuffer = new byte[RemotePublicKeyFixedCiphertextLength];
+	uint8* CipherTextBuffer = new uint8[RemotePublicKeyFixedCiphertextLength];
 
 	RemotePublicEncryptor.Encrypt(Rng, InPlainText.GetData(), InPlainText.Num(), CipherTextBuffer);
 
@@ -272,9 +367,9 @@ void RSAEncryptionHandlerComponent::EncryptWithRemotePublic(const TArray<byte>& 
 	delete[] CipherTextBuffer;
 }
 
-void RSAEncryptionHandlerComponent::DecryptWithPrivate(const TArray<byte>& InCipherText, TArray<byte>& OutPlainText)
+void RSAEncryptionHandlerComponent::DecryptWithPrivate(const TArray<uint8>& InCipherText, TArray<uint8>& OutPlainText)
 {
-	byte* PlainTextTextBuffer = new byte[PrivateKeyMaxPlaintextLength];
+	uint8* PlainTextTextBuffer = new uint8[PrivateKeyMaxPlaintextLength];
 
 	PrivateDecryptor.Decrypt(Rng, InCipherText.GetData(), InCipherText.Num(), PlainTextTextBuffer);
 

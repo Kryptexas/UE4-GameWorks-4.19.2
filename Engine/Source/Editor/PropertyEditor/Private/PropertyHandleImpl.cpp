@@ -22,6 +22,7 @@
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
 #include "EnumProperty.h"
+#include "IDetailPropertyRow.h"
 
 #define LOCTEXT_NAMESPACE "PropertyHandleImplementation"
 
@@ -272,11 +273,11 @@ FString FPropertyValueImpl::GetPropertyValueArray() const
 					{
 						String = FString::Printf( TEXT("%(%d)"), FScriptArrayHelper::Num(Addr) );
 					}
-					else if ( NodeProperty != nullptr && Cast<USetProperty>(NodeProperty) != nullptr )	
+					else if ( Cast<USetProperty>(NodeProperty) != nullptr )	
 					{
 						String = FString::Printf( TEXT("%(%d)"), FScriptSetHelper::Num(Addr) );
 					}
-					else if (NodeProperty != nullptr && Cast<UMapProperty>(NodeProperty) != nullptr)
+					else if (Cast<UMapProperty>(NodeProperty) != nullptr)
 					{
 						String = FString::Printf(TEXT("%(%d)"), FScriptMapHelper::Num(Addr));
 					}
@@ -1955,9 +1956,30 @@ void FPropertyHandleBase::MarkHiddenByCustomization()
 	}
 }
 
+void FPropertyHandleBase::MarkResetToDefaultCustomized()
+{
+	if (Implementation->GetPropertyNode().IsValid())
+	{
+		Implementation->GetPropertyNode()->SetNodeFlags(EPropertyNodeFlags::HasCustomResetToDefault, true);
+	}
+}
+
+void FPropertyHandleBase::ClearResetToDefaultCustomized()
+{
+	if (Implementation->GetPropertyNode().IsValid())
+	{
+		Implementation->GetPropertyNode()->SetNodeFlags(EPropertyNodeFlags::HasCustomResetToDefault, false);
+	}
+}
+
 bool FPropertyHandleBase::IsCustomized() const
 {
 	return Implementation->GetPropertyNode()->HasNodeFlags( EPropertyNodeFlags::IsCustomized ) != 0;
+}
+
+bool FPropertyHandleBase::IsResetToDefaultCustomized() const
+{
+	return Implementation->GetPropertyNode()->HasNodeFlags(EPropertyNodeFlags::HasCustomResetToDefault) != 0;
 }
 
 FString FPropertyHandleBase::GeneratePathToProperty() const
@@ -2216,6 +2238,20 @@ void FPropertyHandleBase::SetOnChildPropertyValueChanged( const FSimpleDelegate&
 TSharedPtr<FPropertyNode> FPropertyHandleBase::GetPropertyNode() const
 {
 	return Implementation->GetPropertyNode();
+}
+
+void FPropertyHandleBase::OnCustomResetToDefault(const FResetToDefaultOverride& OnCustomResetToDefault)
+{
+	if (OnCustomResetToDefault.OnResetToDefaultClicked().IsBound())
+	{
+		Implementation->GetPropertyNode()->NotifyPreChange(Implementation->GetPropertyNode()->GetProperty(), Implementation->GetPropertyUtilities()->GetNotifyHook());
+
+		OnCustomResetToDefault.OnResetToDefaultClicked().Execute(SharedThis(this));
+
+		// Call PostEditchange on all the objects
+		FPropertyChangedEvent ChangeEvent(Implementation->GetPropertyNode()->GetProperty());
+		Implementation->GetPropertyNode()->NotifyPostChange(ChangeEvent, Implementation->GetPropertyUtilities()->GetNotifyHook());
+	}
 }
 
 int32 FPropertyHandleBase::GetIndexInArray() const
@@ -2791,6 +2827,23 @@ TArray<TSharedPtr<IPropertyHandle>> FPropertyHandleBase::AddChildStructure( TSha
 	PropertyNode->AddChildNode(StructPropertyNode);
 
 	return PropertyHandles;
+}
+
+bool FPropertyHandleBase::CanResetToDefault() const
+{
+	UProperty* Property = GetProperty();
+
+	// Should not be able to reset fixed size arrays
+	const bool bFixedSized = Property && Property->PropertyFlags & CPF_EditFixedSize;
+	const bool bCanResetToDefault = !(Property && Property->PropertyFlags & CPF_Config);
+
+	return Property && bCanResetToDefault && !bFixedSized && DiffersFromDefault();
+}
+
+void FPropertyHandleBase::ExecuteCustomResetToDefault(const FResetToDefaultOverride& InOnCustomResetToDefault)
+{
+	// This action must be deferred until next tick so that we avoid accessing invalid data before we have a chance to tick
+	Implementation->GetPropertyUtilities()->EnqueueDeferredAction(FSimpleDelegate::CreateLambda([this, InOnCustomResetToDefault]() { OnCustomResetToDefault(InOnCustomResetToDefault); }));
 }
 
 /** Implements common property value functions */

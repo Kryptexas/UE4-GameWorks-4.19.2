@@ -244,7 +244,7 @@ const float FAnimNode_BoneDrivenController::ExtractSourceValue(const FTransform 
 
 bool FAnimNode_BoneDrivenController::IsValidToEvaluate(const USkeleton* Skeleton, const FBoneContainer& RequiredBones)
 {
-	return SourceBone.IsValid(RequiredBones) && ( TargetBone.IsValid(RequiredBones) || DestinationMode != EDrivenDestinationMode::Bone );
+	return SourceBone.IsValidToEvaluate(RequiredBones) && ( TargetBone.IsValidToEvaluate(RequiredBones) || DestinationMode != EDrivenDestinationMode::Bone );
 }
 
 void FAnimNode_BoneDrivenController::ConvertTargetComponentToBits()

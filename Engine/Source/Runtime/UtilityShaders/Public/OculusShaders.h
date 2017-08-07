@@ -7,6 +7,7 @@
 #include "Shader.h"
 #include "GlobalShader.h"
 #include "ShaderParameterUtils.h"
+#include "RenderResource.h"
 
 class FOculusVertexShader : public FGlobalShader
 {
@@ -87,4 +88,51 @@ public:
 private:
 	FShaderResourceParameter InTexture;
 	FShaderResourceParameter InTextureSampler;
+};
+
+
+/**
+* A pixel shader for rendering a textured screen element.
+*/
+class FOculusCubemapPS : public FGlobalShader
+{
+	DECLARE_EXPORTED_SHADER_TYPE(FOculusCubemapPS, Global, UTILITYSHADERS_API);
+public:
+
+	static bool ShouldCache(EShaderPlatform Platform) { return true; }
+
+	FOculusCubemapPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) :
+		FGlobalShader(Initializer)
+	{
+		InTexture.Bind(Initializer.ParameterMap, TEXT("InTextureCube"), SPF_Mandatory);
+		InTextureSampler.Bind(Initializer.ParameterMap, TEXT("InTextureSampler"));
+		InFaceIndexParameter.Bind(Initializer.ParameterMap, TEXT("CubeFaceIndex"));
+	}
+	FOculusCubemapPS() {}
+
+	void SetParameters(FRHICommandList& RHICmdList, const FTexture* Texture, int FaceIndex)
+	{
+		SetTextureParameter(RHICmdList, GetPixelShader(), InTexture, InTextureSampler, Texture);
+		SetShaderValue(RHICmdList, GetPixelShader(), InFaceIndexParameter, FaceIndex);
+	}
+
+	void SetParameters(FRHICommandList& RHICmdList, FSamplerStateRHIParamRef SamplerStateRHI, FTextureRHIParamRef TextureRHI, int FaceIndex)
+	{
+		SetTextureParameter(RHICmdList, GetPixelShader(), InTexture, InTextureSampler, SamplerStateRHI, TextureRHI);
+		SetShaderValue(RHICmdList, GetPixelShader(), InFaceIndexParameter, FaceIndex);
+	}
+
+	virtual bool Serialize(FArchive& Ar) override
+	{
+		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
+		Ar << InTexture;
+		Ar << InTextureSampler;
+		Ar << InFaceIndexParameter;
+		return bShaderHasOutdatedParameters;
+	}
+
+private:
+	FShaderResourceParameter InTexture;
+	FShaderResourceParameter InTextureSampler;
+	FShaderParameter		 InFaceIndexParameter;
 };

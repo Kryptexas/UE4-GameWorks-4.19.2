@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3069483
-Availability: Public
+﻿INTSourceChangelist:3388665
+Availability:Public
 Title:4.4.6 - Jump End から Idle への遷移を追加
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/4, Programming/Tutorials/FirstPersonShooter/4/4
-Description:FPS キャラクターのアニメーション ステートマシンに Jump End から Idle へのステート遷移を追加する方法を学びます。
+Description:FPS キャラクターのアニメーション ステートマシーンに Jump End から Idle へのステート遷移を追加する方法を学びます。
 SkillLevel:Beginner
-Version:4.11
+Version:4.15
 
 [VAR:Steps]
 [OBJECT:Navigation]

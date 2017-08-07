@@ -352,7 +352,7 @@ bool FPerforceCheckInWorker::Execute(FPerforceSourceControlCommand& InCommand)
 				if (InCommand.bCommandSuccessful)
 				{
 					// Remove any deleted files from status cache
-					FPerforceSourceControlModule& PerforceSourceControl = FModuleManager::LoadModuleChecked<FPerforceSourceControlModule>("PerforceSourceControl");
+					FPerforceSourceControlModule& PerforceSourceControl = FModuleManager::GetModuleChecked<FPerforceSourceControlModule>("PerforceSourceControl");
 					FPerforceSourceControlProvider& Provider = PerforceSourceControl.GetProvider();
 
 					TArray<TSharedRef<ISourceControlState, ESPMode::ThreadSafe>> States;

@@ -12,6 +12,9 @@
 #include "UnrealEngine.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Engine/GameEngine.h"
+#include "Sound/AudioSettings.h"
+#include "Sound/SoundCue.h"
+#include "AudioDevice.h"
 
 extern EWindowMode::Type GetWindowModeType(EWindowMode::Type WindowMode);
 
@@ -289,11 +292,7 @@ float UGameUserSettings::FindResolutionQualityForScreenSize(float Width, float H
 
 void UGameUserSettings::SetFrameRateLimitCVar(float InLimit)
 {
-	static IConsoleVariable* MaxFPSCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("t.MaxFPS"));
-	if (ensure(MaxFPSCVar))
-	{
-		MaxFPSCVar->Set(FMath::Max(InLimit, 0.0f), ECVF_SetByGameSetting);
-	}
+	GEngine->SetMaxFPS(FMath::Max(InLimit, 0.0f));
 }
 
 float UGameUserSettings::GetEffectiveFrameRateLimit()
@@ -388,6 +387,13 @@ void UGameUserSettings::ApplyNonResolutionSettings()
 	if (GEngine->IsInitialized())
 	{
 		Scalability::SetQualityLevels(ScalabilityQuality);
+	}
+
+	FAudioDevice* AudioDevice = GEngine->GetMainAudioDevice();
+	if (AudioDevice)
+	{
+		FAudioQualitySettings AudioSettings = AudioDevice->GetQualityLevelSettings();
+		AudioDevice->SetMaxChannels(AudioSettings.MaxChannels);
 	}
 
 	IConsoleManager::Get().CallAllConsoleVariableSinks();
@@ -607,7 +613,12 @@ void UGameUserSettings::SetBenchmarkFallbackValues()
 
 void UGameUserSettings::SetAudioQualityLevel(int32 QualityLevel)
 {
-	AudioQualityLevel = QualityLevel;
+	if (AudioQualityLevel != QualityLevel)
+	{
+		AudioQualityLevel = QualityLevel;
+
+		USoundCue::StaticAudioQualityChanged(QualityLevel);
+	}
 }
 
 void UGameUserSettings::SetFrameRateLimit(float NewLimit)

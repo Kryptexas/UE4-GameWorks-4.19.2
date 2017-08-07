@@ -129,7 +129,8 @@ void SAnimationOutlinerTreeNode::Construct( const FArguments& InArgs, TSharedRef
 		.ColorAndOpacity(this, &SAnimationOutlinerTreeNode::GetDisplayNameColor)
 		.OnTextChanged(this, &SAnimationOutlinerTreeNode::HandleNodeLabelTextChanged)
 		.Text(this, &SAnimationOutlinerTreeNode::GetDisplayName)
-		.ToolTipText(this, &SAnimationOutlinerTreeNode::GetDisplayNameToolTipText);
+		.ToolTipText(this, &SAnimationOutlinerTreeNode::GetDisplayNameToolTipText)
+		.Clipping(EWidgetClipping::ClipToBounds);
 
 
 	Node->OnRenameRequested().AddRaw(this, &SAnimationOutlinerTreeNode::EnterRenameMode);
@@ -209,13 +210,13 @@ void SAnimationOutlinerTreeNode::Construct( const FArguments& InArgs, TSharedRef
 							+ SHorizontalBox::Slot()
 							.VAlign(VAlign_Center)
 							.Padding(FMargin(0.f, 0.f, 4.f, 0.f))
-							.AutoWidth()
 							[
 								EditableLabel.ToSharedRef()
 							]
 
 							// Arbitrary customization slot
 							+ SHorizontalBox::Slot()
+							.AutoWidth()
 							[
 								InArgs._CustomContent.Widget
 							]

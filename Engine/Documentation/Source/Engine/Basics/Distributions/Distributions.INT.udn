@@ -3,10 +3,11 @@ Title: Distributions
 Crumbs: %ROOT%, Engine
 Description:Data types that provide flexibility by allowing for constant values, random values within a range, values interpolated along a curve, and values driven by parameters.
 version: 4.9
+Parent:Engine
+type:overview
+order:26
 
 [TOC (start:2 end:3)]
-
-
 
 
 **Distributions** are a group of data types that provide flexibility by allowing for constant values, random values within a range, values interpolated along a curve, and values driven by parameters. These are generally used in properties of Particle Systems and nodes within SoundCues.

@@ -12,6 +12,9 @@
 #include "Framework/Layout/IScrollableWidget.h"
 #include "Framework/Views/ITypedTableView.h"
 #include "Framework/Layout/InertialScrollManager.h"
+#include "Framework/Layout/Overscroll.h"
+
+#include "STableViewBase.generated.h"
 
 class FPaintArgs;
 class FSlateWindowElementList;
@@ -19,14 +22,20 @@ class ITableRow;
 class SHeaderRow;
 class SListPanel;
 class SScrollBar;
-enum class EAllowOverscroll : uint8;
 enum class EConsumeMouseWheel : uint8;
 
 /** If the list panel is arranging items horizontally, this enum dictates how the items should be aligned (basically, where any extra space is placed) */
+UENUM(BlueprintType)
 enum class EListItemAlignment : uint8
 {
 	/** Items are distributed evenly along the row (any extra space is added as padding between the items) */
-	EvenlyDistributed,
+	EvenlyDistributed UMETA(DisplayName = "Evenly (Padding)"),
+
+	/** Items are distributed evenly along the row (any extra space is used to scale up the size of the item proportionally.) */
+	EvenlySize UMETA(DisplayName = "Evenly (Size)"),
+
+	/** Items are distributed evenly along the row, any extra space is used to scale up width of the items proportionally.) */
+	EvenlyWide UMETA(DisplayName = "Evenly (Wide)"),
 
 	/** Items are left aligned on the row (any extra space is added to the right of the items) */
 	LeftAligned,
@@ -126,7 +135,7 @@ public:
 	virtual FReply OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
 	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const override;
-	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
+	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 	virtual FReply OnTouchStarted( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent ) override;
 	virtual FReply OnTouchMoved( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent ) override;
 	virtual FReply OnTouchEnded( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent ) override;
@@ -183,6 +192,11 @@ protected:
 	 * Get the uniform item height that is enforced by ListViews.
 	 */
 	float GetItemHeight() const;
+
+	/**
+	* Get the uniform item
+	*/
+	FVector2D GetItemSize() const;
 
 	/** @return the number of items that can fit on the screen */
 	virtual float GetNumLiveWidgets() const;
@@ -330,41 +344,9 @@ protected:
 	/** Whether the active timer to update the inertial scrolling is currently registered */
 	bool bIsScrollingActiveTimerRegistered;
 
-	/** Cached geometry for use by the active timer */
-	FGeometry CachedGeometry;
-
 protected:
 
-	struct SLATE_API FListOverscroll
-	{
-	public:
-
-		FListOverscroll();
-
-		/** @return The Amount actually scrolled */
-		float ScrollBy( float Delta );
-
-		/** How far the user scrolled above/below the beginning/end of the list. */
-		float GetOverscroll() const;
-
-		/** Ticks the overscroll manager so it can animate. */
-		void UpdateOverscroll( float InDeltaTime );
-
-		/**
-		 * Should ScrollDelta be applied to overscroll or to regular item scrolling.
-		 *
-		 * @param bIsAtStartOfList  Are we at the very beginning of the list (i.e. showing the first item at the top of the view)?
-		 * @param bIsAtEndOfList    Are we showing the last item on the screen completely?
-		 * @param ScrollDelta       How much the user is trying to scroll in Slate Units.
-		 *
-		 * @return true if the user's scrolling should be applied toward overscroll.
-		 */
-		bool ShouldApplyOverscroll( const bool bIsAtStartOfList, const bool bIsAtEndOfList, const float ScrollDelta ) const;
-
-	private:
-		/** How much we've over-scrolled above/below the beginning/end of the list. */
-		float OverscrollAmount;
-	} Overscroll;
+	FOverscroll Overscroll;
 
 	/** Whether to permit overscroll on this list view */
 	EAllowOverscroll AllowOverscroll;

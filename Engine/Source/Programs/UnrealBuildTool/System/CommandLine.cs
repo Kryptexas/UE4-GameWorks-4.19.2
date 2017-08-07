@@ -71,7 +71,7 @@ namespace UnrealBuildTool
 					}
 					else
 					{
-						if(FieldInfo.FieldType != typeof(bool) && !Attribute.ValueAfterSpace && !Prefix.EndsWith("="))
+						if(FieldInfo.FieldType != typeof(bool) && !Attribute.ValueAfterSpace && Attribute.Value == null && !Prefix.EndsWith("="))
 						{
 							Prefix = Prefix + "=";
 						}

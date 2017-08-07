@@ -71,7 +71,7 @@ void FDistanceDatumStructCustomization::CustomizeChildren(TSharedRef<IPropertyHa
 	for (uint32 ChildIndex = 0; ChildIndex < NumChildren; ++ChildIndex)
 	{
 		TSharedRef<IPropertyHandle> Child = InStructPropertyHandle->GetChildHandle(ChildIndex).ToSharedRef();
-		IDetailPropertyRow& ChildRow = StructBuilder.AddChildProperty(Child);
+		IDetailPropertyRow& ChildRow = StructBuilder.AddProperty(Child);
 
 		if (bAllParamNodes)
 		{

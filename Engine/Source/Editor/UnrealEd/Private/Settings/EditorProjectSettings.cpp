@@ -3,6 +3,7 @@
 #include "Settings/EditorProjectSettings.h"
 #include "UObject/UnrealType.h"
 
+extern COREUOBJECT_API bool GBlueprintUseCompilationManager;
 
 EUnit ConvertDefaultInputUnits(EDefaultLocationUnit In)
 {
@@ -25,6 +26,7 @@ EUnit ConvertDefaultInputUnits(EDefaultLocationUnit In)
 
 UEditorProjectAppearanceSettings::UEditorProjectAppearanceSettings(const FObjectInitializer& Initializer)
 	: Super(Initializer)
+	, bDisplayUnitsOnComponentTransforms(false)
 	, UnitDisplay_DEPRECATED(EUnitDisplay::Invalid)
 	, DefaultInputUnits_DEPRECATED(EDefaultLocationUnit::Invalid)
 {
@@ -137,4 +139,20 @@ void ULevelEditor2DSettings::PostEditChangeProperty(struct FPropertyChangedEvent
 	SnapLayers.Sort([](const FMode2DLayer& LHS, const FMode2DLayer& RHS){ return LHS.Depth > RHS.Depth; });
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
+}
+
+/* UBlueprintEditorProjectSettings */
+
+UBlueprintEditorProjectSettings::UBlueprintEditorProjectSettings(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+}
+
+void UBlueprintEditorProjectSettings::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+{
+	const FName Name = PropertyChangedEvent.Property ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+	if (Name == GET_MEMBER_NAME_CHECKED(UBlueprintEditorProjectSettings, bUseCompilationManager))
+	{
+		GBlueprintUseCompilationManager = bUseCompilationManager;
+	}
 }

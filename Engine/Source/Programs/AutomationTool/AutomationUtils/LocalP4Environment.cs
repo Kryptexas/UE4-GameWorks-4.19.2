@@ -145,7 +145,7 @@ namespace AutomationTool
 			CommandUtils.LogVerbose("uebp_CodeCL not set, detecting last code CL...");
 
 			// Retrieve the current changelist 
-			string P4Cmd = String.Format("changes -m 1 \"{0}/....cpp#have\" \"{0}/....h#have\" \"{0}/....inl#have\" \"{0}/....cs#have\" \"{0}/....usf#have\"", CommandUtils.CombinePaths(PathSeparator.Depot, ClientRootPath));
+			string P4Cmd = String.Format("changes -m 1 \"{0}/....cpp#have\" \"{0}/....h#have\" \"{0}/....inl#have\" \"{0}/....cs#have\" \"{0}/....usf#have\" \"{0}/....ush#have\"", CommandUtils.CombinePaths(PathSeparator.Depot, ClientRootPath));
 			IProcessResult P4Result = Connection.P4(P4Cmd, AllowSpew: false);
 
 			// Loop through all the lines of the output. Even though we requested one result, we'll get one for each search pattern.

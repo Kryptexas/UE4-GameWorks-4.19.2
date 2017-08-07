@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3467293
 Availability:Public
 Title: Mixamo 콘텐츠 사용하기
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:Mixamo 프로젝트에서 애니메이션과 스켈레탈 메시 사용을 시작하는 방법입니다.
 version: 4.9
+topic-image:UsingMixamoContent_topic.png
 
 Mixamo Animation Pack 에 제공된 15 개의 캐릭터는 캐릭터 블루프린트로든, 스켈레탈 메시와 애니메이션 블루프린트의 조합으로든, 프로젝트에 추가시킬 수 있습니다.
 전자의 방법은 삼인칭 캐릭터를 프로젝트에 빠르고 쉽게 놓을 수 있는 방법으로, 이동 조작과 공격이 완비되어 있습니다. 후자의 방법은 이동 및 입력 구성이 Mixamo 기본 캐릭터와 

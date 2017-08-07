@@ -577,7 +577,9 @@ void SGraphEditorImpl::ReconstructNodes()
 		{
 			if (UEdGraphNode* Node = Cast<UEdGraphNode>(*NodeIt))
 			{
+				TGuardValue<ESaveOrphanPinMode> GuardSaveMode(Node->OrphanedPinSaveMode, ESaveOrphanPinMode::SaveNone);
 				Schema->ReconstructNode(*Node);
+				Node->ClearCompilerMessage();
 			}
 		}
 	}
@@ -723,6 +725,11 @@ void SGraphEditorImpl::SetPinVisibility( SGraphEditor::EPinVisibility InVisibili
 			NotifyGraphChanged();
 		}
 	}
+}
+
+TSharedRef<FActiveTimerHandle> SGraphEditorImpl::RegisterActiveTimer(float TickPeriod, FWidgetActiveTimerDelegate TickFunction)
+{
+	return SWidget::RegisterActiveTimer(TickPeriod, TickFunction);
 }
 
 EVisibility SGraphEditorImpl::ReadOnlyVisibility() const

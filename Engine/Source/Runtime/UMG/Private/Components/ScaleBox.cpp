@@ -2,6 +2,7 @@
 
 #include "Components/ScaleBox.h"
 #include "Components/ScaleBoxSlot.h"
+#include "UObject/EditorObjectVersion.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -18,6 +19,7 @@ UScaleBox::UScaleBox(const FObjectInitializer& ObjectInitializer)
 	Stretch = EStretch::ScaleToFit;
 	UserSpecifiedScale = 1.0f;
 	IgnoreInheritedScale = false;
+	bSingleLayoutPass = false;
 }
 
 void UScaleBox::ReleaseSlateResources(bool bReleaseChildren)
@@ -29,14 +31,15 @@ void UScaleBox::ReleaseSlateResources(bool bReleaseChildren)
 
 TSharedRef<SWidget> UScaleBox::RebuildWidget()
 {
-	MyScaleBox = SNew(SScaleBox);
+	MyScaleBox = SNew(SScaleBox)
+		.SingleLayoutPass(bSingleLayoutPass);
 	
 	if ( GetChildrenCount() > 0 )
 	{
-		Cast<UScaleBoxSlot>(GetContentSlot())->BuildSlot(MyScaleBox.ToSharedRef());
+		CastChecked<UScaleBoxSlot>(GetContentSlot())->BuildSlot(MyScaleBox.ToSharedRef());
 	}
 
-	return BuildDesignTimeWidget( MyScaleBox.ToSharedRef() );
+	return MyScaleBox.ToSharedRef();
 }
 
 void UScaleBox::SetStretch(EStretch::Type InStretch)
@@ -106,6 +109,13 @@ void UScaleBox::OnSlotRemoved(UPanelSlot* InSlot)
 	{
 		MyScaleBox->SetContent(SNullWidget::NullWidget);
 	}
+}
+
+void UScaleBox::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	Ar.UsingCustomVersion(FEditorObjectVersion::GUID);
 }
 
 #if WITH_EDITOR

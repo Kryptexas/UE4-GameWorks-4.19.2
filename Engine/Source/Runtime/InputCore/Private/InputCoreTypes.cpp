@@ -206,19 +206,19 @@ const FKey EKeys::Gravity("Gravity");
 const FKey EKeys::Acceleration("Acceleration");
 
 // Fingers
-const FKey EKeys::TouchKeys[NUM_TOUCH_KEYS] =
+const FKey EKeys::TouchKeys[NUM_TOUCH_KEYS];
+
+static struct FKeyInitializer
 {
-	FKey("Touch1"),
-	FKey("Touch2"),
-	FKey("Touch3"),
-	FKey("Touch4"),
-	FKey("Touch5"),
-	FKey("Touch6"),
-	FKey("Touch7"),
-	FKey("Touch8"),
-	FKey("Touch9"),
-	FKey("Touch10")
-};
+	FKeyInitializer()
+	{
+		for (int TouchIndex = 0; TouchIndex < (EKeys::NUM_TOUCH_KEYS - 1); TouchIndex++)
+		{
+			const_cast<FKey&>(EKeys::TouchKeys[TouchIndex]) = FKey(*FString::Printf(TEXT("Touch%d"), TouchIndex + 1));
+		}
+	}
+
+} KeyInitializer;
 
 // Gestures
 const FKey EKeys::Gesture_Pinch("Gesture_Pinch");
@@ -577,16 +577,14 @@ void EKeys::Initialize()
 	// Fingers
 	AddMenuCategoryDisplayInfo("Touch", LOCTEXT("TouchSubCateogry", "Touch"), TEXT("GraphEditor.TouchEvent_16x"));
 
-	AddKey(FKeyDetails(EKeys::TouchKeys[ETouchIndex::Touch1], LOCTEXT("Touch1", "Touch 1"), 0, "Touch"));
-	AddKey(FKeyDetails(EKeys::TouchKeys[ETouchIndex::Touch2], LOCTEXT("Touch2", "Touch 2"), 0, "Touch"));
-	AddKey(FKeyDetails(EKeys::TouchKeys[ETouchIndex::Touch3], LOCTEXT("Touch3", "Touch 3"), 0, "Touch"));
-	AddKey(FKeyDetails(EKeys::TouchKeys[ETouchIndex::Touch4], LOCTEXT("Touch4", "Touch 4"), 0, "Touch"));
-	AddKey(FKeyDetails(EKeys::TouchKeys[ETouchIndex::Touch5], LOCTEXT("Touch5", "Touch 5"), 0, "Touch"));
-	AddKey(FKeyDetails(EKeys::TouchKeys[ETouchIndex::Touch6], LOCTEXT("Touch6", "Touch 6"), 0, "Touch"));
-	AddKey(FKeyDetails(EKeys::TouchKeys[ETouchIndex::Touch7], LOCTEXT("Touch7", "Touch 7"), 0, "Touch"));
-	AddKey(FKeyDetails(EKeys::TouchKeys[ETouchIndex::Touch8], LOCTEXT("Touch8", "Touch 8"), 0, "Touch"));
-	AddKey(FKeyDetails(EKeys::TouchKeys[ETouchIndex::Touch9], LOCTEXT("Touch9", "Touch 9"), 0, "Touch"));
-	AddKey(FKeyDetails(EKeys::TouchKeys[ETouchIndex::Touch10], LOCTEXT("Touch10", "Touch 10"), 0, "Touch"));
+	static_assert(EKeys::NUM_TOUCH_KEYS == ETouchIndex::MAX_TOUCHES, "The number of touch keys should be equal to the max number of TouchIndexes");
+	for (int TouchIndex = 0; TouchIndex < (EKeys::NUM_TOUCH_KEYS - 1); TouchIndex++)
+	{
+		AddKey(FKeyDetails(EKeys::TouchKeys[TouchIndex], FText::Format(LOCTEXT("TouchFormat", "Touch {0}"), FText::AsNumber(TouchIndex + 1)), 0, "Touch"));
+	}
+
+	// Make sure the Touch key for the cursor pointer is invalid, we don't want there to be an FKey for "Touch (Mouse Index)".
+	check(!EKeys::TouchKeys[(int32)ETouchIndex::CursorPointerIndex].IsValid());
 
 	// Gestures
 	AddMenuCategoryDisplayInfo("Gesture", LOCTEXT("GestureSubCateogry", "Gesture"), TEXT("GraphEditor.KeyEvent_16x"));

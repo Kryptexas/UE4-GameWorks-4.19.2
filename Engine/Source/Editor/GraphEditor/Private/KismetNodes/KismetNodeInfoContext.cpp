@@ -64,7 +64,7 @@ FKismetNodeInfoContext::FKismetNodeInfoContext(UEdGraph* SourceGraph)
 
 			for (UObject* ContextObject : LatentContextObjects)
 			{
-				if (UWorld* World = GEngine->GetWorldFromContextObject(ContextObject, /*bChecked =*/false))
+				if (UWorld* World = GEngine->GetWorldFromContextObject(ContextObject, EGetWorldErrorMode::ReturnNull))
 				{
 					FLatentActionManager& Manager = World->GetLatentActionManager();
 

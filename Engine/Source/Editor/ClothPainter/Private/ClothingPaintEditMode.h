@@ -15,6 +15,7 @@ class FClothingPaintEditMode : public IMeshPaintEdMode
 {
 public:
 	FClothingPaintEditMode();
+	virtual ~FClothingPaintEditMode();
 
 	virtual void Initialize() override;
 	virtual bool UsesToolkits() const override { return false; }
@@ -27,7 +28,7 @@ public:
 
 protected:
 
-	FClothPainter* ClothPainter;
+	TSharedPtr<FClothPainter> ClothPainter;
 
 	class IPersonaPreviewScene* GetAnimPreviewScene() const;
 	class TSharedPtr<IPersonaToolkit> PersonaToolkit;

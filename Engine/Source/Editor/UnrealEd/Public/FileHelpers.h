@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "AssetData.h"
 #include "ISourceControlProvider.h"
+#include "FileHelpers.generated.h"
 
 class ULevel;
 
@@ -25,6 +26,101 @@ namespace EAutosaveContentPackagesResult
 		Failure
 	};
 }
+
+/**
+ * This class is a wrapper for editor loading and saving functionality
+ * It is meant to contain only functions that can be executed in script (but are also allowed in C++).
+ * It is separated from FEditorFileUtils to ensure new easier to use methods can be created without breaking FEditorFileUtils backwards compatibility
+ * However this should be used in place of FEditorFileUtils wherever possible as the goal is to deprecate FEditorFileUtils eventually
+ */
+UCLASS(transient)
+class UEditorLoadingAndSavingUtils : public UObject
+{
+	GENERATED_BODY()
+
+public:
+	UFUNCTION(BlueprintCallable, Category= "Editor Scripting | Editor Loading and Saving")
+	static UNREALED_API UWorld* NewBlankMap(bool bSaveExistingMap);
+
+	UFUNCTION(BlueprintCallable, Category = "Editor Scripting | Editor Loading and Saving")
+	static UNREALED_API UWorld* NewMapFromTemplate(const FString& PathToTemplateLevel, bool bSaveExistingMap);
+
+	/**
+	 * Prompts the user to save the current map if necessary, the presents a load dialog and
+	 * loads a new map if selected by the user.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Editor Scripting | Editor Loading and Saving")
+	static UNREALED_API UWorld* LoadMapWithDialog();
+
+	/**
+	 * Loads the specified map.  Does not prompt the user to save the current map.
+	 *
+	 * @param	Filename		Level package filename, including path.
+	 * @return					true if the map was loaded successfully.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Editor Scripting | Editor Loading and Saving")
+	static UNREALED_API UWorld* LoadMap(const FString& Filename);
+
+	/**
+	 * Saves the specified map, returning true on success.
+	 *
+	 * @param	World			The world to save.
+	 * @param	AssetPath		The valid content directory path and name for the asset.  E.g "/Game/MyMap"
+	 *
+	 * @return					true if the map was saved successfully.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Editor Scripting | Editor Loading and Saving")
+	static UNREALED_API bool SaveMap(UWorld* World, const FString& AssetPath);
+
+	/**
+	 * Looks at all currently loaded packages and saves them if their "bDirty" flag is set, optionally prompting the user to select which packages to save)
+	 *
+	 * @param	bSaveMapPackages			true if map packages should be saved
+	 * @param	bSaveContentPackages		true if we should save content packages.
+	 * @param	bPromptUserToSave			true if we should prompt the user to save dirty packages we found and check them out from source control(if enabled). False to assume all dirty packages should be saved and checked out
+	 * @return								true on success, false on fail.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Editor Scripting | Editor Loading and Saving")
+	static UNREALED_API bool SaveDirtyPackages(const bool bSaveMapPackages, const bool bSaveContentPackages, const bool bPromptUser);
+
+	/**
+	 * Saves the active level, prompting the use for checkout if necessary.
+	 *
+	 * @return	true on success, False on fail
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Editor Scripting | Editor Loading and Saving")
+	static UNREALED_API bool SaveCurrentLevel();
+
+	/**
+	 * Appends array with all currently dirty map packages.
+	 *
+	 * @param OutDirtyPackages Array to append dirty packages to.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Editor Scripting | Editor Loading and Saving")
+	static UNREALED_API void GetDirtyMapPackages(TArray<UPackage*>& OutDirtyPackages);
+
+	/**
+	 * Appends array with all currently dirty content packages.
+	 *
+	 * @param OutDirtyPackages Array to append dirty packages to.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Editor Scripting | Editor Loading and Saving")
+	static UNREALED_API void GetDirtyContentPackages(TArray<UPackage*>& OutDirtyPackages);
+
+	/**	
+	 * Imports a file such as (FBX or obj) and spawns actors f into the current level
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Editor Scripting | Editor Loading and Saving")
+	static UNREALED_API void ImportScene(const FString& Filename);
+
+
+	/**
+	 * Exports the current scene 
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Editor Scripting | Editor Loading and Saving")
+	static UNREALED_API void ExportScene(bool bExportSelectedActorsOnly);
+};
+
 
 /**
  * For saving map files through the main editor frame.
@@ -84,7 +180,7 @@ public:
 	 * Prompts the user to save the current map if necessary, the presents a load dialog and
 	 * loads a new map if selected by the user.
 	 */
-	static UNREALED_API void LoadMap();
+	static UNREALED_API bool LoadMap();
 
 	/**
 	 * Loads the specified map.  Does not prompt the user to save the current map.
@@ -93,9 +189,10 @@ public:
 	 *
 	 * @param	LoadAsTemplate	Forces the map to load into an untitled outermost package
 	 *							preventing the map saving over the original file.
-	 * @param	bShowProgress	Whether to show a progress dialog as the map loads
+	 * @param	bShowProgress	Whether to show a progress dialog as the map loads\
+	 * @return	true on success, false otherwise
 	 */
-	static UNREALED_API void LoadMap(const FString& Filename, bool LoadAsTemplate = false, const bool bShowProgress=true);
+	static UNREALED_API bool LoadMap(const FString& Filename, bool LoadAsTemplate = false, const bool bShowProgress=true);
 
 	////////////////////////////////////////////////////////////////////////////
 	// Saving

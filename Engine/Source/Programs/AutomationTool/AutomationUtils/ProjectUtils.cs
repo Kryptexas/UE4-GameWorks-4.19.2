@@ -7,7 +7,6 @@ using System.Text;
 using System.IO;
 using UnrealBuildTool;
 using System.Diagnostics;
-using Tools.DotNETCommon.CaselessDictionary;
 using Tools.DotNETCommon;
 using System.Reflection;
 
@@ -69,7 +68,7 @@ namespace AutomationTool
 	/// </summary>
 	public class ProjectUtils
 	{
-		private static CaselessDictionary<ProjectProperties> PropertiesCache = new CaselessDictionary<ProjectProperties>();
+		private static Dictionary<string, ProjectProperties> PropertiesCache = new Dictionary<string, ProjectProperties>(StringComparer.InvariantCultureIgnoreCase);
 
 		/// <summary>
 		/// Gets a short project name (QAGame, Elemental, etc)
@@ -119,11 +118,11 @@ namespace AutomationTool
 		/// <param name="RawProjectPath">Full project path.</param>
 		/// <param name="Platform">Platform type.</param>
 		/// <returns>Path to the binaries folder.</returns>
-		public static string GetProjectClientBinariesFolder(string ProjectClientBinariesPath, UnrealTargetPlatform Platform = UnrealTargetPlatform.Unknown)
+		public static DirectoryReference GetProjectClientBinariesFolder(DirectoryReference ProjectClientBinariesPath, UnrealTargetPlatform Platform = UnrealTargetPlatform.Unknown)
 		{
 			if (Platform != UnrealTargetPlatform.Unknown)
 			{
-				ProjectClientBinariesPath = CommandUtils.CombinePaths(ProjectClientBinariesPath, Platform.ToString());
+				ProjectClientBinariesPath = DirectoryReference.Combine(ProjectClientBinariesPath, Platform.ToString());
 			}
 			return ProjectClientBinariesPath;
 		}
@@ -362,23 +361,23 @@ namespace AutomationTool
 		/// <param name="TargetType">Target type.</param>
 		/// <param name="bIsUProjectFile">True if uproject file.</param>
 		/// <returns>Binaries path.</returns>
-		public static string GetClientProjectBinariesRootPath(FileReference RawProjectPath, TargetType TargetType, bool bIsCodeBasedProject)
+		public static DirectoryReference GetClientProjectBinariesRootPath(FileReference RawProjectPath, TargetType TargetType, bool bIsCodeBasedProject)
 		{
-			var BinPath = String.Empty;
+			DirectoryReference BinPath = null;
 			switch (TargetType)
 			{
 				case TargetType.Program:
-					BinPath = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Binaries");
+					BinPath = DirectoryReference.Combine(CommandUtils.RootDirectory, "Engine", "Binaries");
 					break;
 				case TargetType.Client:
 				case TargetType.Game:
 					if (!bIsCodeBasedProject)
 					{
-						BinPath = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Binaries");
+						BinPath = DirectoryReference.Combine(CommandUtils.RootDirectory, "Engine", "Binaries");
 					}
 					else
 					{
-						BinPath = CommandUtils.CombinePaths(CommandUtils.GetDirectoryName(RawProjectPath.FullName), "Binaries");
+						BinPath = DirectoryReference.Combine(RawProjectPath.Directory, "Binaries");
 					}
 					break;
 			}
@@ -439,7 +438,7 @@ namespace AutomationTool
 				DirPushed = true;
 			}
 			var ExtraSearchDirectories = (ExtraSearchPaths == null)? null : ExtraSearchPaths.Select(x => new DirectoryReference(x)).ToList();
-			var TargetScripts = RulesCompiler.FindAllRulesSourceFiles(RulesCompiler.RulesFileType.Target, GameFolders: GameFolders, ForeignPlugins: null, AdditionalSearchPaths: ExtraSearchDirectories);
+			var TargetScripts = RulesCompiler.FindAllRulesSourceFiles(RulesCompiler.RulesFileType.Target, GameFolders: GameFolders, ForeignPlugins: null, AdditionalSearchPaths: ExtraSearchDirectories, bIncludeEnterprise: false);
 			if (DirPushed)
 			{
 				CommandUtils.PopDir();

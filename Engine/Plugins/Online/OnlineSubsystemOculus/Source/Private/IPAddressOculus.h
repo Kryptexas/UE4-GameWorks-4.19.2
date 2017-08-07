@@ -29,7 +29,7 @@ public:
 	* Constructor. Sets address to default state
 	*/
 	FInternetAddrOculus() :
-		OculusId((uint64)0)
+		OculusId(0ull)
 	{
 	}
 
@@ -54,7 +54,7 @@ public:
 		OculusId = strtoull(TCHAR_TO_ANSI(*OculusStringID), nullptr, 10);
 	}
 
-	ovrID GetID()
+	ovrID GetID() const
 	{
 		return OculusId.GetID();
 	}

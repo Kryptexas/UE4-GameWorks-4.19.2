@@ -11,7 +11,7 @@ using namespace BuildPatchTool;
 class FDiffManifestToolMode : public IToolMode
 {
 public:
-	FDiffManifestToolMode(const TSharedRef<IBuildPatchServicesModule>& InBpsInterface)
+	FDiffManifestToolMode(IBuildPatchServicesModule& InBpsInterface)
 		: BpsInterface(InBpsInterface)
 	{}
 
@@ -61,7 +61,7 @@ public:
 		}
 
 		// Run the merge manifest routine.
-		bool bSuccess = BpsInterface->DiffManifests(ManifestA, TagSetA, ManifestB, TagSetB, OutputFile);
+		bool bSuccess = BpsInterface.DiffManifests(ManifestA, TagSetA, ManifestB, TagSetB, OutputFile);
 		return bSuccess ? EReturnCode::OK : EReturnCode::ToolFailure;
 	}
 
@@ -115,7 +115,7 @@ private:
 	}
 
 private:
-	TSharedRef<IBuildPatchServicesModule> BpsInterface;
+	IBuildPatchServicesModule& BpsInterface;
 	bool bHelp;
 	FString ManifestA;
 	FString ManifestB;
@@ -126,7 +126,7 @@ private:
 	FString OutputFile;
 };
 
-BuildPatchTool::IToolModeRef BuildPatchTool::FDiffManifestToolModeFactory::Create(const TSharedRef<IBuildPatchServicesModule>& BpsInterface)
+BuildPatchTool::IToolModeRef BuildPatchTool::FDiffManifestToolModeFactory::Create(IBuildPatchServicesModule& BpsInterface)
 {
 	return MakeShareable(new FDiffManifestToolMode(BpsInterface));
 }

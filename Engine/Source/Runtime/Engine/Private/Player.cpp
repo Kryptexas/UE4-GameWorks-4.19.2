@@ -32,6 +32,7 @@ FString UPlayer::ConsoleCommand(const FString& Cmd, bool bWriteToLog)
 
 	UConsole* ViewportConsole = (GEngine->GameViewport != nullptr) ? GEngine->GameViewport->ViewportConsole : nullptr;
 	FConsoleOutputDevice StrOut(ViewportConsole);
+	FOutputDevice& EffectiveOutputDevice = (!bWriteToLog || (ViewportConsole != nullptr)) ? StrOut : (FOutputDevice&)(*GLog);
 
 	const int32 CmdLen = Cmd.Len();
 	TCHAR* CommandBuffer = (TCHAR*)FMemory::Malloc((CmdLen + 1)*sizeof(TCHAR));
@@ -47,7 +48,7 @@ FString UPlayer::ConsoleCommand(const FString& Cmd, bool bWriteToLog)
 		// if dissociated with the PC, stop processing commands
 		if (bIsBeacon || PlayerController)
 		{
-			if (!Exec(GetWorld(), Line, StrOut))
+			if (!Exec(GetWorld(), Line, EffectiveOutputDevice))
 			{
 				StrOut.Logf(TEXT("Command not recognized: %s"), Line);
 			}

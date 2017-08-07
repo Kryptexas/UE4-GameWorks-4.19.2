@@ -37,6 +37,8 @@
 #include "ScreenRendering.h"
 #include "PipelineStateCache.h"
 #include "ClearQuad.h"
+#include "MobileSeparateTranslucencyPass.h"
+
 
 uint32 GetShadowQuality();
 
@@ -144,7 +146,7 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		}
 	}
 
-	if (GRHIThread)
+	if (IsRunningRHIInSeparateThread())
 	{
 		// we will probably stall on occlusion queries, so might as well have the RHI thread and GPU work while we wait.
 		// Also when doing RHI thread this is the only spot that will process pending deletes
@@ -208,10 +210,18 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 	if (GIsEditor && !View.bIsSceneCapture)
 	{
-		DrawClearQuad(RHICmdList, GMaxRHIFeatureLevel, Views[0].BackgroundColor);
+		DrawClearQuad(RHICmdList, Views[0].BackgroundColor);
 	}
 
 	RenderMobileBasePass(RHICmdList, ViewList);
+
+	for (int32 ViewExt = 0; ViewExt < ViewFamily.ViewExtensions.Num(); ++ViewExt)
+	{
+		for (int32 ViewIndex = 0; ViewIndex < ViewFamily.Views.Num(); ++ViewIndex)
+		{
+			ViewFamily.ViewExtensions[ViewExt]->PostRenderMobileBasePass_RenderThread(RHICmdList, Views[ViewIndex]);
+		}
+	}
 
 	// Make a copy of the scene depth if the current hardware doesn't support reading and writing to the same depth buffer
 	ConditionalResolveSceneDepth(RHICmdList, View);
@@ -286,6 +296,8 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		CompositeContext.Process(PostProcessSunMask, TEXT("OnChipAlphaTransform"));
 	}
 
+	bool bKeepDepthContent = false;
+
 	if (!bGammaSpace || bRenderToSceneColor)
 	{
 		// Resolve the scene color for post processing.
@@ -294,15 +306,18 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		// On PowerVR we see flickering of shadows and depths not updating correctly if targets are discarded.
 		// See CVarMobileForceDepthResolve use in ConditionalResolveSceneDepth.
 		const bool bForceDepthResolve = CVarMobileForceDepthResolve.GetValueOnRenderThread() == 1;
+		const bool bSeparateTranslucencyActive = IsMobileSeparateTranslucencyActive(View);
 
-		const bool bKeepDepthContent = bForceDepthResolve || bPostProcessUsesDepthTexture || (View.bIsSceneCapture && (ViewFamily.SceneCaptureSource == ESceneCaptureSource::SCS_SceneColorHDR || ViewFamily.SceneCaptureSource == ESceneCaptureSource::SCS_SceneColorSceneDepth));
-		// Drop depth and stencil before post processing to avoid export.
-		if (!bKeepDepthContent)
-		{
-			RHICmdList.DiscardRenderTargets(true, true, 0);
-		}
+		bKeepDepthContent = bForceDepthResolve || bPostProcessUsesDepthTexture || bSeparateTranslucencyActive ||
+			(View.bIsSceneCapture && (ViewFamily.SceneCaptureSource == ESceneCaptureSource::SCS_SceneColorHDR || ViewFamily.SceneCaptureSource == ESceneCaptureSource::SCS_SceneColorSceneDepth));
 	}
 
+	// Drop depth and stencil before post processing to avoid export.
+	if (!bKeepDepthContent)
+	{
+		RHICmdList.DiscardRenderTargets(true, true, 0);
+	}
+	
 	if (ViewFamily.bResolveScene)
 	{
 		if (!bGammaSpace)
@@ -406,7 +421,6 @@ void FMobileSceneRenderer::ConditionalResolveSceneDepth(FRHICommandListImmediate
 	
 	SceneContext.ResolveSceneDepthToAuxiliaryTexture(RHICmdList);
 
-#if !PLATFORM_HTML5
 	auto ShaderPlatform = ViewFamily.GetShaderPlatform();
 
 	if (IsMobileHDR() 
@@ -419,7 +433,7 @@ void FMobileSceneRenderer::ConditionalResolveSceneDepth(FRHICommandListImmediate
 		
 		const bool bAlwaysResolveDepth = CVarMobileAlwaysResolveDepth.GetValueOnRenderThread() == 1;
 
-		if (!bOnChipDepthFetch || bAlwaysResolveDepth )
+		if (!bOnChipDepthFetch || bAlwaysResolveDepth)
 		{
 			// Only these features require depth texture
 			bool bDecals = ViewFamily.EngineShowFlags.Decals && Scene->Decals.Num();
@@ -429,51 +443,61 @@ void FMobileSceneRenderer::ConditionalResolveSceneDepth(FRHICommandListImmediate
 			{
 				SCOPED_DRAW_EVENT(RHICmdList, ConditionalResolveSceneDepth);
 
-				// Switch target to force hardware flush current depth to texture
-				FTextureRHIRef DummySceneColor = GSystemTextures.BlackDummy->GetRenderTargetItem().TargetableTexture;
-				FTextureRHIRef DummyDepthTarget = GSystemTextures.DepthDummy->GetRenderTargetItem().TargetableTexture;
-				SetRenderTarget(RHICmdList, DummySceneColor, DummyDepthTarget, ESimpleRenderTargetMode::EUninitializedColorClearDepth, FExclusiveDepthStencil::DepthWrite_StencilWrite);
-
-				if(CVarMobileForceDepthResolve.GetValueOnRenderThread() != 0)
+				// WEBGL copies depth from SceneColor alpha to a separate texture
+				if (ShaderPlatform == SP_OPENGL_ES2_WEBGL)
 				{
-					FGraphicsPipelineStateInitializer GraphicsPSOInit;
-					RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
-					GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
-					GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
-					GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+					if (bSceneDepthInAlpha)
+					{
+						CopySceneAlpha(RHICmdList, View);
+					}
+				}
+				else
+				{
+					// Switch target to force hardware flush current depth to texture
+					FTextureRHIRef DummySceneColor = GSystemTextures.BlackDummy->GetRenderTargetItem().TargetableTexture;
+					FTextureRHIRef DummyDepthTarget = GSystemTextures.DepthDummy->GetRenderTargetItem().TargetableTexture;
+					SetRenderTarget(RHICmdList, DummySceneColor, DummyDepthTarget, ESimpleRenderTargetMode::EUninitializedColorClearDepth, FExclusiveDepthStencil::DepthWrite_StencilWrite);
 
-					// for devices that do not support framebuffer fetch we rely on undocumented behavior:
-					// Depth reading features will have the depth bound as an attachment AND as a sampler this means
-					// some driver implementations will ignore our attempts to resolve, here we draw with the depth texture to force a resolve.
-					// See UE-37809 for a description of the desired fix.
-					// The results of this draw are irrelevant.
-					TShaderMapRef<FScreenVS> ScreenVertexShader(View.ShaderMap);
-					TShaderMapRef<FScreenPS> PixelShader(View.ShaderMap);
+					if(CVarMobileForceDepthResolve.GetValueOnRenderThread() != 0)
+					{
+						FGraphicsPipelineStateInitializer GraphicsPSOInit;
+						RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+						GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
+						GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
+						GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+
+						// for devices that do not support framebuffer fetch we rely on undocumented behavior:
+						// Depth reading features will have the depth bound as an attachment AND as a sampler this means
+						// some driver implementations will ignore our attempts to resolve, here we draw with the depth texture to force a resolve.
+						// See UE-37809 for a description of the desired fix.
+						// The results of this draw are irrelevant.
+						TShaderMapRef<FScreenVS> ScreenVertexShader(View.ShaderMap);
+						TShaderMapRef<FScreenPS> PixelShader(View.ShaderMap);
 					
-					GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
-					GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*ScreenVertexShader);
-					GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
-					GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+						GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
+						GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*ScreenVertexShader);
+						GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+						GraphicsPSOInit.PrimitiveType = PT_TriangleList;
 
-					SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+						SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
-					ScreenVertexShader->SetParameters(RHICmdList, View.ViewUniformBuffer);
-					PixelShader->SetParameters(RHICmdList, TStaticSamplerState<SF_Point>::GetRHI(), SceneContext.GetSceneDepthTexture());
-					DrawRectangle(
-						RHICmdList,
-						0, 0,
-						0, 0,
-						0, 0,
-						1, 1,
-						FIntPoint(1, 1),
-						FIntPoint(1, 1),
-						*ScreenVertexShader,
-						EDRF_UseTriangleOptimization);
+						ScreenVertexShader->SetParameters(RHICmdList, View.ViewUniformBuffer);
+						PixelShader->SetParameters(RHICmdList, TStaticSamplerState<SF_Point>::GetRHI(), SceneContext.GetSceneDepthTexture());
+						DrawRectangle(
+							RHICmdList,
+							0, 0,
+							0, 0,
+							0, 0,
+							1, 1,
+							FIntPoint(1, 1),
+							FIntPoint(1, 1),
+							*ScreenVertexShader,
+							EDRF_UseTriangleOptimization);
+					}
 				}
 			}
 		}
 	}
-#endif //!PLATFORM_HTML5
 }
 
 void FMobileSceneRenderer::CreateDirectionalLightUniformBuffers(FSceneView& SceneView)
@@ -571,7 +595,7 @@ public:
 	FShaderResourceParameter MobileMultiViewSceneColorTextureSampler;
 };
 
-IMPLEMENT_SHADER_TYPE(, FCopyMobileMultiViewSceneColorPS, TEXT("MobileMultiView"), TEXT("MainPS"), SF_Pixel);
+IMPLEMENT_SHADER_TYPE(, FCopyMobileMultiViewSceneColorPS, TEXT("/Engine/Private/MobileMultiView.usf"), TEXT("MainPS"), SF_Pixel);
 
 void FMobileSceneRenderer::CopyMobileMultiViewSceneColor(FRHICommandListImmediate& RHICmdList)
 {

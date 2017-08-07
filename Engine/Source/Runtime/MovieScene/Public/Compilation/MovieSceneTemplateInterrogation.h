@@ -4,8 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "Evaluation/MovieSceneAnimTypeID.h"
+#include "InlineValue.h"
 
 template<typename T> struct TMovieSceneInterrogationIterator;
+struct FMovieSceneBlendingAccumulator;
+struct FMovieSceneContext;
+class UObject;
 
 /** Key used for populating template interrogation data */
 struct FMovieSceneInterrogationKey
@@ -59,7 +63,7 @@ struct FMovieSceneInterrogationData
 	template<typename T>
 	void Add(T&& InData, FMovieSceneInterrogationKey Key)
 	{
-		TokenData.Add(TMovieSceneInterrogationToken<T>(InData, Key));
+		TokenData.Add(TMovieSceneInterrogationToken<T>(Forward<T>(InData), Key));
 	}
 
 	/**
@@ -80,17 +84,23 @@ struct FMovieSceneInterrogationData
 		return TMovieSceneInterrogationIterator<T>(*this, Key);
 	}
 
+	MOVIESCENE_API void Finalize(const FMovieSceneContext& Context, UObject* BindingOverride);
+
+	MOVIESCENE_API FMovieSceneBlendingAccumulator& GetAccumulator();
+
 private:
 
 	template<typename T> friend struct TMovieSceneInterrogationIterator;
 	TArray<TInlineValue<IMovieSceneInterrogationToken>> TokenData;
+
+	/** Optional accumulator that is allocated when required */
+	TSharedPtr<FMovieSceneBlendingAccumulator> Accumulator;
 };
 
 
 template<typename DataType>
 struct TMovieSceneInterrogationIterator
 {
-
 	TMovieSceneInterrogationIterator(const FMovieSceneInterrogationData& InContainer, FMovieSceneInterrogationKey InPredicateKey)
 		: Container(InContainer)
 		, PredicateKey(InPredicateKey)
@@ -125,13 +135,25 @@ struct TMovieSceneInterrogationIterator
 		return !(bool)*this;
 	}
 
-	FORCEINLINE friend bool operator==(const TMovieSceneInterrogationIterator& LHS, const TMovieSceneInterrogationIterator& RHS) { return LHS.Container == RHS.Container && LHS.Index == RHS.Index; }
-	FORCEINLINE friend bool operator!=(const TMovieSceneInterrogationIterator& LHS, const TMovieSceneInterrogationIterator& RHS) { return LHS.Container != RHS.Container || LHS.Index != RHS.Index; }
+	FORCEINLINE friend bool operator==(const TMovieSceneInterrogationIterator& LHS, const TMovieSceneInterrogationIterator& RHS) { return &LHS.Container == &RHS.Container && LHS.Index == RHS.Index; }
+	FORCEINLINE friend bool operator!=(const TMovieSceneInterrogationIterator& LHS, const TMovieSceneInterrogationIterator& RHS) { return &LHS.Container != &RHS.Container || LHS.Index != RHS.Index; }
+
+	FORCEINLINE friend TMovieSceneInterrogationIterator<DataType> begin(const TMovieSceneInterrogationIterator<DataType>& In) { return In; }
+	FORCEINLINE friend TMovieSceneInterrogationIterator<DataType> end(  const TMovieSceneInterrogationIterator<DataType>& In) { TMovieSceneInterrogationIterator<DataType> New = In; New.Index = -1; return New; }
 
 	void NextElement()
 	{
-		while (Container.TokenData.IsValidIndex(++Index) && (!PredicateKey.IsSet() || Container.TokenData[Index]->Key != PredicateKey))
+		while (Container.TokenData.IsValidIndex(++Index))
 		{
+			if (!PredicateKey.IsSet() || Container.TokenData[Index]->Key == PredicateKey)
+			{
+				break;
+			}
+		}
+
+		if (!Container.TokenData.IsValidIndex(Index))
+		{
+			Index = -1;
 		}
 	}
 

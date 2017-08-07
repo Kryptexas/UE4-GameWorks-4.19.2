@@ -73,19 +73,19 @@ profiles that can be shared between the various editor windows.
 1. Select a profile from the drop-down menu next to **Scene Profile Settings**.
 
 	[REGION:lightbox]
-	[![](RemoveProfileSelection.png)(w:350)](ProfileSelection.png) 
+	[![](RemoveProfileSelection.png)(w:350)](RemoveProfileSelection.png) 
 	[/REGION]
 
 2. Click on the button for **Remove Profile** to permanently delete the currently selected profile.
 
 	[REGION:lightbox]
-	[![](RemoveProfileButton.png)(w:350)](ProfileSelection.png) 
+	[![](RemoveProfileButton.png)(w:350)](RemoveProfileButton.png) 
 	[/REGION]
 
 3. You will now see that profile has been removed leaving only the default profile and any other previously set up profiles. 
 
 	[REGION:lightbox]
-	[![](RemoveProfileSelection1.png)(w:350)](ProfileSelection.png) 
+	[![](RemoveProfileSelection1.png)(w:350)](RemoveProfileSelection1.png) 
 	[/REGION]
 
 

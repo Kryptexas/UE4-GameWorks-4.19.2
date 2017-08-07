@@ -101,6 +101,11 @@ public abstract class LocalizationProvider
 
 	public static LocalizationProvider GetLocalizationProvider(string InLocalizationProviderId, LocalizationProvider.LocalizationProviderArgs InLocalizationProviderArgs)
 	{
+		if (String.IsNullOrEmpty(InLocalizationProviderId))
+		{
+			return null;
+		}
+
 		if (CachedLocalizationProviderTypes == null)
 		{
 			// Find all types that derive from LocalizationProvider in any of our DLLs

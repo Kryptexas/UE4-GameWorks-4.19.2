@@ -1,6 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "Commandlets/AssetRegistryGenerator.h"
+#include "AssetRegistryGenerator.h"
 #include "HAL/FileManager.h"
 #include "Misc/FileHelper.h"
 #include "Serialization/ArrayReader.h"
@@ -233,10 +233,17 @@ bool FAssetRegistryGenerator::GenerateStreamingInstallManifest()
 			int64 CurrentPakSize = 0;
 			bool bFinishedAllFiles = true;
 
+			if (bUseAssetManager)
+			{
+				// Sort so the order is consistent. If load order is important then it should be specified as a load order file to UnrealPak
+				ChunkFilenames.Sort();
+			}
+
 			for (; FilenameIndex < ChunkFilenames.Num(); ++FilenameIndex)
 			{
 				FString Filename = ChunkFilenames[FilenameIndex];
 				FString PakListLine = FPaths::ConvertRelativePathToFull(Filename.Replace(TEXT("[Platform]"), *Platform));
+				if (MaxChunkSize > 0)
 				{
 					TArray<FString> FoundFiles;
 					FString FileSearchString = FString::Printf(TEXT("%s.*"), *PakListLine);
@@ -247,14 +254,14 @@ bool FAssetRegistryGenerator::GenerateStreamingInstallManifest()
 						int64 FileSize = IFileManager::Get().FileSize(*(FPaths::Combine(Path,FoundFile)));
 						CurrentPakSize +=  FileSize > 0 ? FileSize : 0;
 					}
+					if (MaxChunkSize < CurrentPakSize)
+					{
+						// early out if we are over memory limit
+						bFinishedAllFiles = false;
+						break;
+					}
 				}
-				if ((MaxChunkSize > 0) && (MaxChunkSize < CurrentPakSize))
-				{
-					// early out if we are over memory limit
-					bFinishedAllFiles = false;
-					break;
-				}
-
+				
 				PakListLine.ReplaceInline(TEXT("/"), TEXT("\\"));
 				PakListLine += TEXT("\r\n");
 				PakListFile->Serialize(TCHAR_TO_ANSI(*PakListLine), PakListLine.Len());
@@ -353,17 +360,8 @@ void FAssetRegistryGenerator::CleanManifestDirectories()
 bool FAssetRegistryGenerator::LoadPreviousAssetRegistry(const FString& Filename)
 {
 	// First try development asset registry
-	FString DevelopmentFilename = Filename.Replace(TEXT("AssetRegistry.bin"), TEXT("DevelopmentAssetRegistry.bin"));
 	FArrayReader SerializedAssetData;
-
-	if (IFileManager::Get().FileExists(*DevelopmentFilename) && FFileHelper::LoadFileToArray(SerializedAssetData, *DevelopmentFilename))
-	{
-		FAssetRegistrySerializationOptions Options;
-		Options.ModifyForDevelopment();
-
-		return PreviousState.Serialize(SerializedAssetData, Options);
-	}
-
+	
 	if (IFileManager::Get().FileExists(*Filename) && FFileHelper::LoadFileToArray(SerializedAssetData, *Filename))
 	{
 		FAssetRegistrySerializationOptions Options;
@@ -427,17 +425,7 @@ bool FAssetRegistryGenerator::SaveManifests(FSandboxPlatformFile* InSandboxFile)
 
 bool FAssetRegistryGenerator::ContainsMap(const FName& PackageName) const
 {
-	const TArray<const FAssetData*>& PackageAssets = State.GetAssetsByPackageName(PackageName);
-	
-	for (const FAssetData* AssetData : PackageAssets)
-	{
-		UClass* AssetClass = AssetData->GetClass();
-		if (AssetClass->IsChildOf(UWorld::StaticClass()) || AssetClass->IsChildOf(ULevel::StaticClass()))
-		{
-			return true;
-		}
-	}
-	return false;
+	return PackagesContainingMaps.Contains(PackageName);
 }
 
 FAssetPackageData* FAssetRegistryGenerator::GetAssetPackageData(const FName& PackageName)
@@ -451,76 +439,17 @@ void FAssetRegistryGenerator::Initialize(const TArray<FName> &InStartupPackages)
 
 	FAssetRegistrySerializationOptions SaveOptions;
 
+	ensureMsgf(!AssetRegistry.IsLoadingAssets(), TEXT("Cannot initialize asset registry generator while asset registry is still scanning source assets "));
+
 	AssetRegistry.InitializeSerializationOptions(SaveOptions, TargetPlatform->IniPlatformName());
 
 	AssetRegistry.InitializeTemporaryAssetRegistryState(State, SaveOptions);
-
-	UpdatePackageSourceHashes();
 }
 
-void FAssetRegistryGenerator::UpdatePackageSourceHashes()
+void FAssetRegistryGenerator::ComputePackageDifferences(TSet<FName>& ModifiedPackages, TSet<FName>& NewPackages, TSet<FName>& RemovedPackages, TSet<FName>& IdenticalCookedPackages, TSet<FName>& IdenticalUncookedPackages, bool bRecurseModifications, bool bRecurseScriptModifications)
 {
-	UAssetManager* AssetManager = bUseAssetManager ? &UAssetManager::Get() : nullptr;
+	TArray<FName> ModifiedScriptPackages;
 
-	for (const TPair<FName, const FAssetPackageData*>& PackagePair : State.GetAssetPackageDataMap())
-	{
-		FName PackageName = PackagePair.Key;
-		FAssetPackageData* PackageData = const_cast<FAssetPackageData*>(PackagePair.Value);
-
-		FMD5 PackageSourceHash;
-
-		// Include package guid
-		PackageSourceHash.Update((uint8*)&PackageData->PackageGuid, sizeof(FGuid));
-
-		if (AssetManager)
-		{
-			AssetManager->UpdatePackageSourceHash(PackageName, PackageSourceHash);
-		}
-
-		// Find direct hard dependencies. We do not recurse the hashes, because dirty state is instead recursed
-		TArray<FAssetIdentifier> Dependencies;
-
-		State.GetDependencies(PackageName, Dependencies, EAssetRegistryDependencyType::Hard);
-
-		for (FAssetIdentifier& Dependency : Dependencies)
-		{
-			const FAssetPackageData* DependencyData = State.GetAssetPackageData(Dependency.PackageName);
-
-			if (DependencyData)
-			{
-				// Hash it's guid
-				PackageSourceHash.Update((uint8*)&DependencyData->PackageGuid, sizeof(FGuid));
-
-				if (AssetManager)
-				{
-					AssetManager->UpdatePackageSourceHash(PackageName, PackageSourceHash);
-				}
-			}
-			else
-			{
-				FString PackageString = Dependency.PackageName.ToString();
-
-				if (FPackageName::IsScriptPackage(PackageString))
-				{
-					// Get the guid off the script package, this is updated when script is changed
-					UPackage* Package = FindPackage(nullptr, *PackageString);
-
-					if (Package)
-					{
-						FGuid PackageGuid = Package->GetGuid();
-						PackageSourceHash.Update((uint8*)&PackageGuid, sizeof(FGuid));
-					}
-				}
-			}
-		}
-
-		// Source Hash is safe to modify inline so const cast it
-		PackageData->PackageSourceHash.Set(PackageSourceHash);
-	}
-}
-
-void FAssetRegistryGenerator::ComputePackageDifferences(TSet<FName>& ModifiedPackages, TSet<FName>& NewPackages, TSet<FName>& RemovedPackages, TSet<FName>& IdenticalCookedPackages, TSet<FName>& IdenticalUncookedPackages)
-{
 	for (const TPair<FName, const FAssetPackageData*>& PackagePair : State.GetAssetPackageDataMap())
 	{
 		FName PackageName = PackagePair.Key;
@@ -532,7 +461,7 @@ void FAssetRegistryGenerator::ComputePackageDifferences(TSet<FName>& ModifiedPac
 		{
 			NewPackages.Add(PackageName);
 		}
-		else if (CurrentPackageData->PackageSourceHash == PreviousPackageData->PackageSourceHash)
+		else if (CurrentPackageData->PackageGuid == PreviousPackageData->PackageGuid)
 		{
 			if (PreviousPackageData->DiskSize < 0)
 			{
@@ -545,7 +474,14 @@ void FAssetRegistryGenerator::ComputePackageDifferences(TSet<FName>& ModifiedPac
 		}
 		else
 		{
-			ModifiedPackages.Add(PackageName);
+			if (FPackageName::IsScriptPackage(PackageName.ToString()))
+			{
+				ModifiedScriptPackages.Add(PackageName);
+			}
+			else
+			{
+				ModifiedPackages.Add(PackageName);
+			}
 		}
 	}
 
@@ -562,27 +498,34 @@ void FAssetRegistryGenerator::ComputePackageDifferences(TSet<FName>& ModifiedPac
 		}
 	}
 
-	// Recurse modified packages to their dependencies. In theory a small number of packages are modified at once so this is faster than computing the hashes recursively
-	TArray<FName> ModifiedPackagesToRecurse = ModifiedPackages.Array();
-
-	for (int32 RecurseIndex = 0; RecurseIndex < ModifiedPackagesToRecurse.Num(); RecurseIndex++)
+	if (bRecurseModifications)
 	{
-		FName ModifiedPackage = ModifiedPackagesToRecurse[RecurseIndex];
-		TArray<FAssetIdentifier> Referencers;
-		State.GetReferencers(ModifiedPackage, Referencers, EAssetRegistryDependencyType::Hard);
+		// Recurse modified packages to their dependencies. This is needed because we only compare package guids
+		TArray<FName> ModifiedPackagesToRecurse = ModifiedPackages.Array();
 
-		for (const FAssetIdentifier& Referencer : Referencers)
+		if (bRecurseScriptModifications)
 		{
-			FName ReferencerPackage = Referencer.PackageName;
-			if (!ModifiedPackages.Contains(ReferencerPackage))
-			{
-				// Remove from identical/new list
-				IdenticalCookedPackages.Remove(ReferencerPackage);
-				IdenticalUncookedPackages.Remove(ReferencerPackage);
-				NewPackages.Remove(ReferencerPackage);
+			ModifiedPackagesToRecurse.Append(ModifiedScriptPackages);
+		}
 
-				ModifiedPackages.Add(ReferencerPackage);
-				ModifiedPackagesToRecurse.Add(ReferencerPackage);
+		for (int32 RecurseIndex = 0; RecurseIndex < ModifiedPackagesToRecurse.Num(); RecurseIndex++)
+		{
+			FName ModifiedPackage = ModifiedPackagesToRecurse[RecurseIndex];
+			TArray<FAssetIdentifier> Referencers;
+			State.GetReferencers(ModifiedPackage, Referencers, EAssetRegistryDependencyType::Hard);
+
+			for (const FAssetIdentifier& Referencer : Referencers)
+			{
+				FName ReferencerPackage = Referencer.PackageName;
+				if (!ModifiedPackages.Contains(ReferencerPackage) && (IdenticalCookedPackages.Contains(ReferencerPackage) || IdenticalUncookedPackages.Contains(ReferencerPackage)))
+				{
+					// Remove from identical list
+					IdenticalCookedPackages.Remove(ReferencerPackage);
+					IdenticalUncookedPackages.Remove(ReferencerPackage);
+
+					ModifiedPackages.Add(ReferencerPackage);
+					ModifiedPackagesToRecurse.Add(ReferencerPackage);
+				}
 			}
 		}
 	}
@@ -640,10 +583,11 @@ void FAssetRegistryGenerator::BuildChunkManifest(const TSet<FName>& InCookedPack
 				FoundIDList = &PackageChunkIDMap.Add(AssetData.PackageName);
 			}
 			FoundIDList->AddUnique(ChunkID);
-
-			// Now clear the original chunk id list. We will fill it with real IDs when cooking.
-			AssetData.ChunkIDs.Empty();
 		}
+
+		// Now clear the original chunk id list. We will fill it with real IDs when cooking.
+		AssetData.ChunkIDs.Empty();
+
 		// Update whether the owner package contains a map
 		if (AssetData.GetClass()->IsChildOf(UWorld::StaticClass()) || AssetData.GetClass()->IsChildOf(ULevel::StaticClass()))
 		{
@@ -759,7 +703,7 @@ void FAssetRegistryGenerator::AddAssetToFileOrderRecursive(FAssetData* InAsset, 
 	}
 }
 
-bool FAssetRegistryGenerator::SaveAssetRegistry(const FString& SandboxPath)
+bool FAssetRegistryGenerator::SaveAssetRegistry(const FString& SandboxPath, bool bSerializeDevelopmentAssetRegistry )
 {
 	UE_LOG(LogAssetRegistryGenerator, Display, TEXT("Saving asset registry."));
 	const TMap<FName, const FAssetData*>& ObjectToDataMap = State.GetObjectPathToAssetDataMap();
@@ -769,7 +713,16 @@ bool FAssetRegistryGenerator::SaveAssetRegistry(const FString& SandboxPath)
 	AssetRegistry.InitializeSerializationOptions(DevelopmentSaveOptions, TargetPlatform->IniPlatformName());
 	DevelopmentSaveOptions.ModifyForDevelopment();
 
-	if (DevelopmentSaveOptions.bSerializeAssetRegistry)
+	// Write runtime registry, this can be excluded per game/platform
+	FAssetRegistrySerializationOptions SaveOptions;
+	AssetRegistry.InitializeSerializationOptions(SaveOptions, TargetPlatform->IniPlatformName());
+
+	// Flush the asset registry and make sure the asset data is in sync, as it may have been updated during cook
+	AssetRegistry.Tick(-1.0f);
+
+	AssetRegistry.InitializeTemporaryAssetRegistryState(State, SaveOptions, true);
+
+	if (DevelopmentSaveOptions.bSerializeAssetRegistry && bSerializeDevelopmentAssetRegistry)
 	{
 		// Create development registry data, used for incremental cook and editor viewing
 		FArrayWriter SerializedAssetRegistry;
@@ -782,14 +735,10 @@ bool FAssetRegistryGenerator::SaveAssetRegistry(const FString& SandboxPath)
 		FFileHelper::SaveArrayToFile(SerializedAssetRegistry, *PlatformSandboxPath);
 	}
 
-	// Write runtime registry, this can be excluded per game/platform
-	FAssetRegistrySerializationOptions SaveOptions;
-	AssetRegistry.InitializeSerializationOptions(SaveOptions, TargetPlatform->IniPlatformName());
-
 	if (SaveOptions.bSerializeAssetRegistry)
 	{
 		// Prune out the development only packages
-		State.PruneAssetData(CookedPackages, TSet<FName>());
+		State.PruneAssetData(CookedPackages, TSet<FName>(), SaveOptions.bFilterAssetDataWithNoTags);
 
 		// Create runtime registry data
 		FArrayWriter SerializedAssetRegistry;
@@ -1257,8 +1206,8 @@ void FAssetRegistryGenerator::FixupPackageDependenciesForChunks(FSandboxPlatform
 		}
 	}
 
-	auto* ChunkDepGraph = DependencyInfo->GetChunkDependencyGraph(ChunkManifests.Num());
-	//Once complete, Add any remaining assets (that are not assigned to a chunk) to the first chunk.
+	const FChunkDependencyTreeNode* ChunkDepGraph = DependencyInfo->GetOrBuildChunkDependencyGraph(ChunkManifests.Num() - 1);
+	// Once complete, Add any remaining assets (that are not assigned to a chunk) to the first chunk.
 	if (FinalChunkManifests.Num() == 0)
 	{
 		FinalChunkManifests.Add(nullptr);
@@ -1295,11 +1244,6 @@ void FAssetRegistryGenerator::FixupPackageDependenciesForChunks(FSandboxPlatform
 				WriteCollection(CollectionName, PackagesRemovedFromChunks[i]);
 			}
 		}
-	}
-
-	if (!CheckChunkAssetsAreNotInChild(*ChunkDepGraph))
-	{
-		UE_LOG(LogAssetRegistryGenerator, Error, TEXT("Second Scan of chunks found duplicate asset entries in children."));
 	}
 
 	for (int32 ChunkID = 0, MaxChunk = ChunkManifests.Num(); ChunkID < MaxChunk; ++ChunkID)

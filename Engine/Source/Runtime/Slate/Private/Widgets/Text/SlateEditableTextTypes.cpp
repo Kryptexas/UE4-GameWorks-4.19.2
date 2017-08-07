@@ -97,7 +97,7 @@ void FCursorLineHighlighter::SetCursorBrush(const TAttribute<const FSlateBrush*>
 	CursorBrush = InCursorBrush;
 }
 
-int32 FCursorLineHighlighter::OnPaint(const FPaintArgs& Args, const FTextLayout::FLineView& Line, const float OffsetX, const float Width, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+int32 FCursorLineHighlighter::OnPaint(const FPaintArgs& Args, const FTextLayout::FLineView& Line, const float OffsetX, const float Width, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	const FVector2D Location(Line.Offset.X + OffsetX, Line.Offset.Y);
 	const FVector2D Size(Width, Line.TextSize.Y);
@@ -134,7 +134,6 @@ int32 FCursorLineHighlighter::OnPaint(const FPaintArgs& Args, const FTextLayout:
 		LayerId,
 		AllottedGeometry.ToPaintGeometry(TransformVector(InverseScale, FVector2D(FMath::Max(CursorWidth * AllottedGeometry.Scale, 1.0f), Size.Y)), FSlateLayoutTransform(TransformPoint(InverseScale, Location + OptionalWidth))),
 		CursorBrush.Get(),
-		MyClippingRect,
 		bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect,
 		CursorColorAndOpacity*InWidgetStyle.GetColorAndOpacityTint()
 		);
@@ -157,7 +156,7 @@ void FTextCompositionHighlighter::SetCompositionBrush(const TAttribute<const FSl
 	CompositionBrush = InCompositionBrush;
 }
 
-int32 FTextCompositionHighlighter::OnPaint(const FPaintArgs& Args, const FTextLayout::FLineView& Line, const float OffsetX, const float Width, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+int32 FTextCompositionHighlighter::OnPaint(const FPaintArgs& Args, const FTextLayout::FLineView& Line, const float OffsetX, const float Width, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	const FVector2D Location(Line.Offset.X + OffsetX, Line.Offset.Y);
 	const FVector2D Size(Width, Line.TextSize.Y);
@@ -175,7 +174,6 @@ int32 FTextCompositionHighlighter::OnPaint(const FPaintArgs& Args, const FTextLa
 			++LayerId,
 			AllottedGeometry.ToPaintGeometry(TransformVector(InverseScale, Size), FSlateLayoutTransform(TransformPoint(InverseScale, Location))),
 			CompositionBrush.Get(),
-			MyClippingRect,
 			bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect,
 			LineColorAndOpacity * InWidgetStyle.GetColorAndOpacityTint()
 			);
@@ -193,7 +191,7 @@ FTextSelectionHighlighter::FTextSelectionHighlighter()
 {
 }
 
-int32 FTextSelectionHighlighter::OnPaint(const FPaintArgs& Args, const FTextLayout::FLineView& Line, const float OffsetX, const float Width, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+int32 FTextSelectionHighlighter::OnPaint(const FPaintArgs& Args, const FTextLayout::FLineView& Line, const float OffsetX, const float Width, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	const FVector2D Location(Line.Offset.X + OffsetX, Line.Offset.Y);
 
@@ -216,7 +214,6 @@ int32 FTextSelectionHighlighter::OnPaint(const FPaintArgs& Args, const FTextLayo
 			++LayerId,
 			AllottedGeometry.ToPaintGeometry(TransformVector(InverseScale, FVector2D(HighlightWidth, FMath::Max(Line.Size.Y, Line.TextSize.Y))), FSlateLayoutTransform(TransformPoint(InverseScale, Location))),
 			&DefaultStyle.HighlightShape,
-			MyClippingRect,
 			bParentEnabled && bHasKeyboardFocus ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect,
 			SelectionBackgroundColorAndOpacity
 			);

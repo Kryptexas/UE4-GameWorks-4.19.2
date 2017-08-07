@@ -467,9 +467,9 @@ void FRawStatsWriteFile::WriteStatPacket( FArchive& Ar, FStatPacket& StatPacket 
 	// We must handle stat messages in a different way.
 	int32 NumMessages = StatPacket.StatMessages.Num();
 	Ar << NumMessages;
-	for (int32 MessageIndex = 0; MessageIndex < NumMessages; ++MessageIndex)
+	for (const FStatMessage& Message : StatPacket.StatMessages)
 	{
-		WriteMessage( Ar, StatPacket.StatMessages[MessageIndex] );
+		WriteMessage( Ar, Message );
 	}
 }
 

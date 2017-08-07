@@ -182,9 +182,10 @@ void SDockingTabStack::Construct( const FArguments& InArgs, const TSharedRef<FTa
 				SAssignNew(ContentSlot, SBorder)
 				.BorderImage(this, &SDockingTabStack::GetContentAreaBrush)
 				.Padding(this, &SDockingTabStack::GetContentPadding)
+				.Clipping(EWidgetClipping::ClipToBounds)
 				[
 					SNew(STextBlock)
-						.Text(LOCTEXT("EmptyTabMessage", "Empty Tab!"))
+					.Text(LOCTEXT("EmptyTabMessage", "Empty Tab!"))
 				]
 			]
 

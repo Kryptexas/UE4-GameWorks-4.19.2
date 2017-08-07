@@ -177,13 +177,48 @@ namespace UnrealBuildTool
 							{
 								if(!TryAddConfigLine(CurrentSection, Line, StartIdx, EndIdx, DefaultAction))
 								{
-									Console.WriteLine("Couldn't parse '{0}'", Line);
+									Console.WriteLine("Couldn't parse '{0}' in {1} of {2}", Line, CurrentSection, Location.FullName);
 								}
 								break;
 							}
 
 							// Otherwise just ignore it
 							break;
+						}
+					}
+				}
+			}
+		}
+
+		/// <summary>
+		/// Reads config data from the given string.
+		/// </summary>
+		/// <param name="IniText">Single line string of config settings in the format [Section1]:Key1=Value1,[Section2]:Key2=Value2</param>
+		/// <param name="DefaultAction">The default action to take when encountering arrays without a '+' prefix</param>
+		public ConfigFile(string IniText, ConfigLineAction DefaultAction = ConfigLineAction.Set)
+		{
+
+			// Break into individual settings of the form [Section]:Key=Value
+			string[] SettingLines = IniText.Split(new char[] { ',' });
+			foreach (string Setting in SettingLines)
+			{
+				// Locate and break off the section name
+				string SectionName = Setting.Remove(Setting.IndexOf(':')).Trim(new char[] { '[', ']' });
+				if (SectionName.Length > 0)
+				{
+					ConfigFileSection CurrentSection = null;
+					if (!Sections.TryGetValue(SectionName, out CurrentSection))
+					{
+						CurrentSection = new ConfigFileSection(SectionName);
+						Sections.Add(SectionName, CurrentSection);
+					}
+
+					if (CurrentSection != null)
+					{
+						string IniKeyValue = Setting.Substring(Setting.IndexOf(':') + 1);
+						if (!TryAddConfigLine(CurrentSection, IniKeyValue, 0, IniKeyValue.Length, DefaultAction))
+						{
+							Console.WriteLine("Couldn't parse '{0}'", IniKeyValue);
 						}
 					}
 				}

@@ -85,6 +85,21 @@ struct CORE_API FFrameworkObjectVersion
 		// Serialize hard references to sound files when possible
 		HardSoundReferences,
 
+		// Enforce const correctness in Animation Blueprint function graphs
+		EnforceConstInAnimBlueprintFunctionGraphs,
+		
+		// Upgrade the InputKeySelector to use a text style
+		InputKeySelectorTextStyle,
+
+		// Represent a pins container type as an enum not 3 independent booleans
+		EdGraphPinContainerType,
+
+		// Switch asset pins to store as string instead of hard object reference
+		ChangeAssetPinsToString,
+
+		// Fix Local Variables so that the properties are correctly flagged as blueprint visible
+		LocalVariablesBlueprintVisible,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

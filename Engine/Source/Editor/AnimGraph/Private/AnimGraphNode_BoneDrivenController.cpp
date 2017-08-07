@@ -168,8 +168,8 @@ void UAnimGraphNode_BoneDrivenController::Draw(FPrimitiveDrawInterface* PDI, USk
 
 	if ((SourceIdx != INDEX_NONE) && (TargetIdx != INDEX_NONE))
 	{
-		const FTransform SourceTM = SkelMeshComp->GetComponentSpaceTransforms()[SourceIdx] * SkelMeshComp->ComponentToWorld;
-		const FTransform TargetTM = SkelMeshComp->GetComponentSpaceTransforms()[TargetIdx] * SkelMeshComp->ComponentToWorld;
+		const FTransform SourceTM = SkelMeshComp->GetComponentSpaceTransforms()[SourceIdx] * SkelMeshComp->GetComponentTransform();
+		const FTransform TargetTM = SkelMeshComp->GetComponentSpaceTransforms()[TargetIdx] * SkelMeshComp->GetComponentTransform();
 
 		PDI->DrawLine(TargetTM.GetLocation(), SourceTM.GetLocation(), FLinearColor(0.0f, 0.0f, 1.0f), SDPG_Foreground, 0.5f);
 
@@ -193,19 +193,19 @@ void UAnimGraphNode_BoneDrivenController::ValidateAnimNodeDuringCompilation(USke
 {
 	if (ForSkeleton->GetReferenceSkeleton().FindBoneIndex(Node.SourceBone.BoneName) == INDEX_NONE)
 	{
-		MessageLog.Warning(*LOCTEXT("NoSourceBone", "@@ - You must pick a source bone as the Driver joint").ToString(), this);
+		MessageLog.Warning(*LOCTEXT("DriverJoint_NoSourceBone", "@@ - You must pick a source bone as the Driver joint").ToString(), this);
 	}
 
 	if (Node.SourceComponent == EComponentType::None)
 	{
-		MessageLog.Warning(*LOCTEXT("NoSourceComponent", "@@ - You must pick a source component on the Driver joint").ToString(), this);
+		MessageLog.Warning(*LOCTEXT("DriverJoint_NoSourceComponent", "@@ - You must pick a source component on the Driver joint").ToString(), this);
 	}
 	
 	if (Node.DestinationMode == EDrivenDestinationMode::Bone)
 	{
 		if (ForSkeleton->GetReferenceSkeleton().FindBoneIndex(Node.TargetBone.BoneName) == INDEX_NONE)
 		{
-			MessageLog.Warning(*LOCTEXT("NoTargetBone", "@@ - You must pick a target bone as the Driven joint").ToString(), this);
+			MessageLog.Warning(*LOCTEXT("DriverJoint_NoTargetBone", "@@ - You must pick a target bone as the Driven joint").ToString(), this);
 		}
 		
 		const bool bAffectsTranslation = Node.bAffectTargetTranslationX || Node.bAffectTargetTranslationY || Node.bAffectTargetTranslationZ;
@@ -214,7 +214,7 @@ void UAnimGraphNode_BoneDrivenController::ValidateAnimNodeDuringCompilation(USke
 
 		if (!bAffectsTranslation && !bAffectsRotation && !bAffectsScale)
 		{
-			MessageLog.Warning(*LOCTEXT("NoTargetComponent", "@@ - You must pick one or more target components on the Driven joint").ToString(), this);
+			MessageLog.Warning(*LOCTEXT("DriverJoint_NoTargetComponent", "@@ - You must pick one or more target components on the Driven joint").ToString(), this);
 		}
 	}
 
@@ -355,8 +355,8 @@ void UAnimGraphNode_BoneDrivenController::CustomizeDetails(IDetailLayoutBuilder&
 {
 	TSharedRef<IPropertyHandle> NodeHandle = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UAnimGraphNode_BoneDrivenController, Node), GetClass());
 
-	TAttribute<EVisibility> NotUsingCurveVisibility = TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateUObject(this, &UAnimGraphNode_BoneDrivenController::AreNonCurveMappingValuesVisible));
-	TAttribute<EVisibility> MapRangeVisiblity = TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateUObject(this, &UAnimGraphNode_BoneDrivenController::AreRemappingValuesVisible));
+	TAttribute<EVisibility> NotUsingCurveVisibility = TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateStatic(&UAnimGraphNode_BoneDrivenController::AreNonCurveMappingValuesVisible, &DetailBuilder));
+	TAttribute<EVisibility> MapRangeVisiblity = TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateStatic(&UAnimGraphNode_BoneDrivenController::AreRemappingValuesVisible, &DetailBuilder));
 
 	// Source (Driver) category
 	IDetailCategoryBuilder& SourceCategory = DetailBuilder.EditCategory(TEXT("Source (Driver)"));
@@ -387,8 +387,8 @@ void UAnimGraphNode_BoneDrivenController::CustomizeDetails(IDetailLayoutBuilder&
 	MappingCategory.AddProperty(NodeHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FAnimNode_BoneDrivenController, Multiplier))).Visibility(NotUsingCurveVisibility);
 
 	// Destination visiblity
-	TAttribute<EVisibility> BoneTargetVisibility = TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateUObject(this, &UAnimGraphNode_BoneDrivenController::AreTargetBonePropertiesVisible));
-	TAttribute<EVisibility> CurveTargetVisibility = TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateUObject(this, &UAnimGraphNode_BoneDrivenController::AreTargetCurvePropertiesVisible));
+	TAttribute<EVisibility> BoneTargetVisibility = TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateStatic(&UAnimGraphNode_BoneDrivenController::AreTargetBonePropertiesVisible, &DetailBuilder));
+	TAttribute<EVisibility> CurveTargetVisibility = TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateStatic(&UAnimGraphNode_BoneDrivenController::AreTargetCurvePropertiesVisible, &DetailBuilder));
 
 	// Destination (Driven) category
 	IDetailCategoryBuilder& TargetCategory = DetailBuilder.EditCategory(TEXT("Destination (Driven)"));
@@ -478,24 +478,72 @@ FText UAnimGraphNode_BoneDrivenController::ComponentTypeToText(EComponentType::T
 	}
 }
 
-EVisibility UAnimGraphNode_BoneDrivenController::AreNonCurveMappingValuesVisible() const
+EVisibility UAnimGraphNode_BoneDrivenController::AreNonCurveMappingValuesVisible(IDetailLayoutBuilder* DetailLayoutBuilder)
 {
-	return (Node.DrivingCurve != nullptr) ? EVisibility::Collapsed : EVisibility::Visible;
+	TArray<TWeakObjectPtr<UObject>> SelectedObjectsList = DetailLayoutBuilder->GetDetailsView().GetSelectedObjects();
+	for(TWeakObjectPtr<UObject> Object : SelectedObjectsList)
+	{
+		if(UAnimGraphNode_BoneDrivenController* BoneDrivenController = Cast<UAnimGraphNode_BoneDrivenController>(Object.Get()))
+		{
+			if (BoneDrivenController->Node.DrivingCurve == nullptr)
+			{
+				return EVisibility::Visible;
+			}
+		}
+	}
+
+	return EVisibility::Collapsed;
 }
 
-EVisibility UAnimGraphNode_BoneDrivenController::AreRemappingValuesVisible() const
+EVisibility UAnimGraphNode_BoneDrivenController::AreRemappingValuesVisible(IDetailLayoutBuilder* DetailLayoutBuilder)
 {
-	return ((Node.DrivingCurve == nullptr) && Node.bUseRange) ? EVisibility::Visible : EVisibility::Collapsed;
+	TArray<TWeakObjectPtr<UObject>> SelectedObjectsList = DetailLayoutBuilder->GetDetailsView().GetSelectedObjects();
+	for(TWeakObjectPtr<UObject> Object : SelectedObjectsList)
+	{
+		if(UAnimGraphNode_BoneDrivenController* BoneDrivenController = Cast<UAnimGraphNode_BoneDrivenController>(Object.Get()))
+		{
+			if((BoneDrivenController->Node.DrivingCurve == nullptr) && BoneDrivenController->Node.bUseRange)
+			{
+				return EVisibility::Visible;
+			}
+		}
+	}
+
+	return EVisibility::Collapsed;
 }
 
-EVisibility UAnimGraphNode_BoneDrivenController::AreTargetBonePropertiesVisible() const
+EVisibility UAnimGraphNode_BoneDrivenController::AreTargetBonePropertiesVisible(IDetailLayoutBuilder* DetailLayoutBuilder)
 {
-	return (Node.DestinationMode == EDrivenDestinationMode::Bone) ? EVisibility::Visible : EVisibility::Collapsed;
+	TArray<TWeakObjectPtr<UObject>> SelectedObjectsList = DetailLayoutBuilder->GetDetailsView().GetSelectedObjects();
+	for(TWeakObjectPtr<UObject> Object : SelectedObjectsList)
+	{
+		if(UAnimGraphNode_BoneDrivenController* BoneDrivenController = Cast<UAnimGraphNode_BoneDrivenController>(Object.Get()))
+		{	
+			if(BoneDrivenController->Node.DestinationMode == EDrivenDestinationMode::Bone)
+			{
+				return EVisibility::Visible;
+			}
+		}
+	}
+
+	return EVisibility::Collapsed;
 }
 
-EVisibility UAnimGraphNode_BoneDrivenController::AreTargetCurvePropertiesVisible() const
+EVisibility UAnimGraphNode_BoneDrivenController::AreTargetCurvePropertiesVisible(IDetailLayoutBuilder* DetailLayoutBuilder)
 {
-	return (Node.DestinationMode == EDrivenDestinationMode::MorphTarget || Node.DestinationMode == EDrivenDestinationMode::MaterialParameter) ? EVisibility::Visible : EVisibility::Collapsed;
+	TArray<TWeakObjectPtr<UObject>> SelectedObjectsList = DetailLayoutBuilder->GetDetailsView().GetSelectedObjects();
+	for(TWeakObjectPtr<UObject> Object : SelectedObjectsList)
+	{
+		if(UAnimGraphNode_BoneDrivenController* BoneDrivenController = Cast<UAnimGraphNode_BoneDrivenController>(Object.Get()))
+		{
+			if(BoneDrivenController->Node.DestinationMode == EDrivenDestinationMode::MorphTarget || BoneDrivenController->Node.DestinationMode == EDrivenDestinationMode::MaterialParameter)
+			{
+				return EVisibility::Visible;
+			}
+		}
+	}
+
+	return EVisibility::Collapsed;
 }
 
 #undef LOCTEXT_NAMESPACE

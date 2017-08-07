@@ -1,10 +1,12 @@
-﻿INTSourceChangelist:2740691
+﻿INTSourceChangelist:3429254
 Availability:Public
-Title:ブループリントにおけるキャラクター移動の設定方法
+Title:ブループリントでキャラクターの移動を設定する
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement
 Description:ブループリントにおいてキャラクター移動を設定するためのガイド 
 Version:4.9
 SkillLevel:Advanced
+type:how-to
+type:landing
 
  
 この「How To」シリーズでは、 **ブループリント** を使って完全にプレイ可能かつアニメートされたキャラクターを作成するために必要なすべてのステップを紹介していきます。シリーズの最後には、歩く、走る、しゃがむ、しゃがんで歩く、前かがみになる、静止した立ち姿勢または動作中からジャンプするといった動きが可能なキャラクターが出来上がります。 
@@ -29,25 +31,10 @@ f5DQQWQ8GEY
 
 では、以下のステップから開始していきましょう。 
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		ステップ
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Gameplay\HowTo\CharacterMovement\Blueprints\Setup_1 "%Gameplay\HowTo\CharacterMovement\Blueprints\Setup_1:description%")
-	* [](Gameplay\HowTo\CharacterMovement\Blueprints\Input "%Gameplay\HowTo\CharacterMovement\Blueprints\Input:description%")
-	* [](Gameplay\HowTo\CharacterMovement\Blueprints\Setup_2 "%Gameplay\HowTo\CharacterMovement\Blueprints\Setup_2:description%")
-	* [](Gameplay\HowTo\CharacterMovement\Blueprints\BlendSpace "%Gameplay\HowTo\CharacterMovement\Blueprints\BlendSpace:description%")
-	* [](Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Walk "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Walk:description%")
-	* [](Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Crouch "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Crouch:description%")
-	* [](Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jog "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jog:description%")
-	* [](Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jump "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jump:description%")
-	* [](Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Prone "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Prone\:description%")
-	[/PARAM]
-[/OBJECT]
+## ステップ
 
+[DIR(output:"checkpoint" parent:"Gameplay/HowTo/CharacterMovement/Blueprints")]
+
+[REGION:call_to_action]
+[クリックして開始](Gameplay/HowTo/CharacterMovement/Blueprints/Setup_1)
+[/REGION]

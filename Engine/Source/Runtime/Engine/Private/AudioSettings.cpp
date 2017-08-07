@@ -14,6 +14,40 @@
 
 #define LOCTEXT_NAMESPACE "AudioSettings"
 
+FAudioPlatformSettings FAudioPlatformSettings::GetPlatformSettings(const TCHAR* PlatformSettingsConfigFile)
+{
+	FAudioPlatformSettings Settings;
+
+	FString TempString;
+
+	if (GConfig->GetString(PlatformSettingsConfigFile, TEXT("AudioSampleRate"), TempString, GEngineIni))
+	{
+		Settings.SampleRate = FMath::Max(FCString::Atoi(*TempString), 8000);
+	}
+
+	if (GConfig->GetString(PlatformSettingsConfigFile, TEXT("AudioCallbackBufferFrameSize"), TempString, GEngineIni))
+	{
+		Settings.CallbackBufferFrameSize = FMath::Max(FCString::Atoi(*TempString), 256);
+	}
+
+	if (GConfig->GetString(PlatformSettingsConfigFile, TEXT("AudioNumBuffersToEnqueue"), TempString, GEngineIni))
+	{
+		Settings.NumBuffers = FMath::Max(FCString::Atoi(*TempString), 1);
+	}
+
+	if (GConfig->GetString(PlatformSettingsConfigFile, TEXT("AudioMaxChannels"), TempString, GEngineIni))
+	{
+		Settings.MaxChannels = FMath::Max(FCString::Atoi(*TempString), 0);
+	}
+
+	if (GConfig->GetString(PlatformSettingsConfigFile, TEXT("AudioNumSourceWorkers"), TempString, GEngineIni))
+	{
+		Settings.NumSourceWorkers = FMath::Max(FCString::Atoi(*TempString), 0);
+	}
+
+	return Settings;
+}
+
 UAudioSettings::UAudioSettings(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
 {
@@ -100,6 +134,7 @@ void UAudioSettings::PostEditChangeChainProperty(FPropertyChangedChainEvent& Pro
 
 const FAudioQualitySettings& UAudioSettings::GetQualityLevelSettings(int32 QualityLevel) const
 {
+	check(QualityLevels.Num() > 0);
 	return QualityLevels[FMath::Clamp(QualityLevel, 0, QualityLevels.Num() - 1)];
 }
 
@@ -111,6 +146,22 @@ void UAudioSettings::SetAudioMixerEnabled(const bool bInAudioMixerEnabled)
 const bool UAudioSettings::IsAudioMixerEnabled() const
 {
 	return bIsAudioMixerEnabled;
+}
+
+int32 UAudioSettings::GetHighestMaxChannels() const
+{
+	check(QualityLevels.Num() > 0);
+	
+	int32 HighestMaxChannels = -1;
+	for (const FAudioQualitySettings& Settings : QualityLevels)
+	{
+		if (Settings.MaxChannels > HighestMaxChannels)
+		{
+			HighestMaxChannels = Settings.MaxChannels;
+		}
+	}
+
+	return HighestMaxChannels;
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -213,6 +213,7 @@ public:
 	ENGINE_API FString GetWorldAssetPackageName() const;
 
 	/** Gets the package name for the world asset referred to by this level streaming as an FName */
+	UFUNCTION(BlueprintCallable, Category = "Game")
 	ENGINE_API FName GetWorldAssetPackageFName() const;
 
 	/** Sets the world asset based on the package name assuming it contains a world of the same name. */
@@ -294,6 +295,14 @@ public:
 	/** Returns the Level Script Actor of the level if the level is loaded and valid */
 	UFUNCTION(BlueprintPure, meta = (BlueprintInternalUseOnly = "true"))
 	ENGINE_API ALevelScriptActor* GetLevelScriptActor();
+
+#if WITH_EDITOR
+	/** Get the folder path for this level for use in the world browser. Only available in editor builds */
+	ENGINE_API const FName& GetFolderPath() const;
+
+	/** Sets the folder path for this level in the world browser. Only available in editor builds */
+	ENGINE_API void SetFolderPath(const FName& InFolderPath);
+#endif	// WITH_EDITOR
 
 	//~==============================================================================================
 	// Delegates
@@ -379,6 +388,13 @@ private:
 	/** Pointer to a Level object that was previously active and was replaced with a new LoadedLevel (for LOD switching) */
 	UPROPERTY(transient)
 	class ULevel* PendingUnloadLevel;
+
+#if WITH_EDITORONLY_DATA
+	/** The folder path for this level within the world browser. This is only available in editor builds. 
+		A NONE path indicates that it exists at the root. It is '/' separated. */
+	UPROPERTY()
+	FName FolderPath;
+#endif	// WITH_EDITORONLY_DATA
 
 	/** The cached package name of the world asset that is loaded by the levelstreaming */
 	FName CachedWorldAssetPackageFName;

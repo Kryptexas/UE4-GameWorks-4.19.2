@@ -1,23 +1,25 @@
-Availability:Public
-Title:Animation Blueprint Editor
+Availability: Docs
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/AnimBlueprints
+Title:Animation Blueprint Editor
 Description:Highlights the core features of the Animation Blueprint Editor in Unreal Engine 4. 
-related:Engine\Animation\AnimBlueprints
-related:Engine\Animation\AnimBlueprints\Creation
-related:Engine\Animation\AnimBlueprints\EventGraph
-related:Engine\Animation\AnimBlueprints\AnimGraph
-version: 4.14
-type:reference
-topic-image:AnimBPUITopic.png
+Type: Landing
+version: 4.16
+Parent: Engine/Animation/AnimBlueprints
+Order: 1
 tags:Animation
 tags:Animation Blueprint
 tags:Blueprints
+topic-image:AnimBPUITopic.png
+
+[REGION:banner]
+![](AnimBPBanner.png)
+[/REGION]
 
 The **Animation Blueprint Editor** shares similar functionality to the normal [Blueprint Editor](Engine/Blueprints) but is geared more towards character animation scripting. 
 
-![](AnimGraphUI.png)
-
 Please refer to each section below for a breakdown of the Animation Blueprint Editor user interface: 
+
+![](AnimGraphUI.png)
 
 ## 1. Toolbar
 
@@ -33,9 +35,11 @@ The [Viewport](Engine/Animation/Persona/Viewport) window allows you to preview p
 The **Graph** panel includes two main graph types: the [Event Graph](Engine/Animation/AnimBlueprints/EventGraph) which contains the animation event nodes used to trigger the updating of Skeletal Mesh poses and the [Anim Graph,](Engine/Animation/AnimBlueprints/AnimGraph) which is used to evaluate a final pose for the Skeletal Mesh to actually enter for the current frame. 
 These two graphs work together and drive the logic and poses for your character to enter during gameplay. 
 
-## 4. Details
+## 4. Details / Preview Scene Settings
 
 The **Details** panel in the Animation Blueprint Editor is the same as the [](Engine/Blueprints/Editor/UIComponents/Details) in the Blueprint Editor and is where you can access and edit properties related to any variables you have created as well as the nodes placed within your graph. 
+
+Also located in this section is a tab for [Preview Settings](Engine\Animation\Persona\PreviewSettings) which enable the ability to define the viewport settings such as the **Animation Mode** or **Animation** to use as a preview, switch **Skeletal Meshes** that are used for the preview, as well as viewport lighting and Post Process settings applied so you can preview your settings with various lighting applied. 
 
 
 ## 5. My Blueprint

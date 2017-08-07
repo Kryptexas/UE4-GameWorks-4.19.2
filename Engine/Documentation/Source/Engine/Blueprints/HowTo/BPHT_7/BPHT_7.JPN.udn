@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2686221
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title:7.応用編
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/HowTo
 Description:最後のステップでは、このプロジェクトの次のレベルへ進めるためのサンプル、および追加ドキュメントへのリンクを紹介します。 
-Version:4.9
+version:4.9
+tags:Blueprints
 
 
 [VAR:Steps]
@@ -42,7 +43,7 @@ yut5Feu1KxI
 * レベルに、スポーン ポイントをあと 2 つ追加する (角、またはプレイヤーの左右)。 
 * HUD に、プレイヤーが一発目でヒットした数を追跡するためのカテゴリを追加する。 
 
-本ガイドおよびエディタ全般に渡り取り扱ったトピックスに関しては、 [アンリアル エディタのマニュアル](Engine) をご覧ください。
+本ガイドおよびエディタ全般に渡り取り扱ったトピックスに関しては、アンリアル エディタのマニュアル](Engine) をご覧ください。
 
 このガイドのトピックに関連した情報は以下の通りです。
 
@@ -54,7 +55,7 @@ yut5Feu1KxI
 
 * キャスト に関する詳細は、[キャスト](Engine/Blueprints/UserGuide/CastNodes) をご覧ください。
 
-* Unreal Motion Graphics (UMG) での HUD エレメントの作成については、[アンリアル モーション グラフィック (UMG)](Engine/UMG) をご覧ください。
+* Unreal Motion Graphics (UMG) での HUD エレメントの作成については、[UMG UI デザイナ](Engine/UMG) をご覧ください。
 
 
 %Steps%

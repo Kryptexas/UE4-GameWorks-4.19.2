@@ -3213,8 +3213,7 @@ FbxNode* FFbxExporter::ExportCollisionMesh(const UStaticMesh* StaticMesh, const 
 	{
 		return nullptr;
 	}
-	FbxMesh* Mesh = nullptr;
-	Mesh = FbxMeshes.FindRef(StaticMesh);
+	FbxMesh* Mesh = FbxMeshes.FindRef(StaticMesh);
 	if (!Mesh)
 	{
 		//We export collision only if the mesh is already exported
@@ -3226,7 +3225,7 @@ FbxNode* FFbxExporter::ExportCollisionMesh(const UStaticMesh* StaticMesh, const 
 	Mesh = FbxMesh::Create(Scene, TCHAR_TO_UTF8(*MeshCollisionName));
 	//Name the node with the actor name
 	MeshCollisionName = TEXT("UCX_");
-	MeshCollisionName += UTF8_TO_TCHAR(ParentActor->GetName());
+	MeshCollisionName += UTF8_TO_TCHAR(ParentActor->GetName()); //-V595
 	FbxNode* FbxActor = FbxNode::Create(Scene, TCHAR_TO_UTF8(*MeshCollisionName));
 
 	FbxNode *ParentOfParentMesh = nullptr;
@@ -3999,9 +3998,9 @@ void FFbxExporter::ExportLandscapeToFbx(ALandscapeProxy* Landscape, const TCHAR*
 
 			FVector Normal, TangentX, TangentY;
 			CDI.GetLocalTangentVectors(VertX, VertY, TangentX, TangentY, Normal);
-			Normal /= Component->ComponentToWorld.GetScale3D(); Normal.Normalize();
-			TangentX /= Component->ComponentToWorld.GetScale3D(); TangentX.Normalize();
-			TangentY /= Component->ComponentToWorld.GetScale3D(); TangentY.Normalize();
+			Normal /= Component->GetComponentTransform().GetScale3D(); Normal.Normalize();
+			TangentX /= Component->GetComponentTransform().GetScale3D(); TangentX.Normalize();
+			TangentY /= Component->GetComponentTransform().GetScale3D(); TangentY.Normalize();
 			FbxVector4 FbxNormal = FbxVector4(Normal.X, -Normal.Y, Normal.Z); FbxNormal.Normalize();
 			Normals.SetAt(BaseVertIndex + VertIndex, FbxNormal);
 			FbxVector4 FbxTangent = FbxVector4(TangentX.X, -TangentX.Y, TangentX.Z); FbxTangent.Normalize();

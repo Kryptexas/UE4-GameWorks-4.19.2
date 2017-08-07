@@ -50,8 +50,8 @@ void FAnimNode_TwistCorrectiveNode::EvaluateComponentSpaceInternal(FComponentSpa
 
 bool FAnimNode_TwistCorrectiveNode::IsValidToEvaluate(const USkeleton* Skeleton, const FBoneContainer& RequiredBones)
 {
-	return BaseFrame.Bone.IsValid(RequiredBones) && BaseFrame.Axis.IsValid() &&
-		TwistFrame.Bone.IsValid(RequiredBones) && TwistFrame.Axis.IsValid() && 
+	return BaseFrame.Bone.IsValidToEvaluate(RequiredBones) && BaseFrame.Axis.IsValid() &&
+		TwistFrame.Bone.IsValidToEvaluate(RequiredBones) && TwistFrame.Axis.IsValid() &&
 		Curve.IsValidToEvaluate();
 }
 
@@ -66,15 +66,15 @@ void FAnimNode_TwistCorrectiveNode::InitializeBoneReferences(const FBoneContaine
 	RangeMaxInRadian = FMath::DegreesToRadians(RangeMax);
 }
 
-void FAnimNode_TwistCorrectiveNode::Initialize(const FAnimationInitializeContext& Context)
+void FAnimNode_TwistCorrectiveNode::Initialize_AnyThread(const FAnimationInitializeContext& Context)
 {
-	FAnimNode_SkeletalControlBase::Initialize(Context);
+	FAnimNode_SkeletalControlBase::Initialize_AnyThread(Context);
 	Curve.Initialize(Context.AnimInstanceProxy->GetSkeleton());
 }
 
-void FAnimNode_TwistCorrectiveNode::CacheBones(const FAnimationCacheBonesContext& Context)
+void FAnimNode_TwistCorrectiveNode::CacheBones_AnyThread(const FAnimationCacheBonesContext& Context)
 {
-	FAnimNode_SkeletalControlBase::CacheBones(Context);
+	FAnimNode_SkeletalControlBase::CacheBones_AnyThread(Context);
 	TArray<FTransform> SpaceBases;
 
 	const FTransform ComponentToWorld = Context.AnimInstanceProxy->GetSkelMeshComponent()->GetComponentToWorld();

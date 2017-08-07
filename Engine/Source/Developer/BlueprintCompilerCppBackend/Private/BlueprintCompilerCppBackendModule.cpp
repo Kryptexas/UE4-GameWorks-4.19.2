@@ -14,7 +14,7 @@ public:
 	//~ End IBlueprintCompilerCppBackendModuleInterface interface
 
 	//~ Begin IBlueprintCompilerCppBackendModule interface
-	virtual FString ConstructBaseFilename(const UObject* AssetObj) override;
+	virtual FString ConstructBaseFilename(const UObject* AssetObj, const FCompilerNativizationOptions& NativizationOptions) override;
 	virtual FPCHFilenameQuery& OnPCHFilenameQuery() override;
 	virtual FIsTargetedForConversionQuery& OnIsTargetedForConversionQuery() override;
 	virtual TMap<TWeakObjectPtr<UClass>, TWeakObjectPtr<UClass> >& GetOriginalClassMap() override;
@@ -44,10 +44,10 @@ TSharedPtr<FNativizationSummary>& FBlueprintCompilerCppBackendModule::Nativizati
 	return NativizationSummaryPtr;
 }
 
-FString FBlueprintCompilerCppBackendModule::ConstructBaseFilename(const UObject* AssetObj)
+FString FBlueprintCompilerCppBackendModule::ConstructBaseFilename(const UObject* AssetObj, const FCompilerNativizationOptions& NativizationOptions)
 {
 	// use the same function that the backend uses for #includes
-	return FEmitHelper::GetBaseFilename(AssetObj);
+	return FEmitHelper::GetBaseFilename(AssetObj, NativizationOptions);
 }
 
 IBlueprintCompilerCppBackendModule::FPCHFilenameQuery& FBlueprintCompilerCppBackendModule::OnPCHFilenameQuery()

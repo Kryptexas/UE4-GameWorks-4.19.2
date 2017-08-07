@@ -34,9 +34,9 @@ public:
 	/** Sets the entire identifier */
 	void SetIdentifier(const FAssetIdentifier& InIdentifier) { Identifier = InIdentifier;  }
 	/** Add a dependency to this node */
-	void AddDependency(FDependsNode* InDependency, EAssetRegistryDependencyType::Type InDependencyType = EAssetRegistryDependencyType::Hard);
+	void AddDependency(FDependsNode* InDependency, EAssetRegistryDependencyType::Type InDependencyType = EAssetRegistryDependencyType::Hard, bool bGuaranteedUnique = false);
 	/** Add a referencer to this node */
-	void AddReferencer(FDependsNode* InReferencer) { Referencers.AddUnique(InReferencer); }
+	void AddReferencer(FDependsNode* InReferencer, bool bGuaranteedUnique = false) { bGuaranteedUnique ? Referencers.Add(InReferencer) : Referencers.AddUnique(InReferencer); }
 	/** Remove a dependency from this node */
 	void RemoveDependency(FDependsNode* InDependency);
 	/** Remove a referencer from this node */
@@ -47,6 +47,11 @@ public:
 	void RemoveManageReferencesToNode();
 	/** Returns number of connections this node has, both references and dependencies */
 	int32 GetConnectionCount() const;
+	/** Returns amount of memory used by the arrays */
+	uint32 GetAllocatedSize(void) const
+	{
+		return HardDependencies.GetAllocatedSize() + SoftDependencies.GetAllocatedSize() + NameDependencies.GetAllocatedSize() + ManageDependencies.GetAllocatedSize() + Referencers.GetAllocatedSize();
+	}
 
 	/** Iterate over all the dependencies of this node, filtered by the supplied type parameter, and call the supplied lambda parameter on the record */
 	template <class T>

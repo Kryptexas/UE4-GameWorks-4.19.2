@@ -32,7 +32,7 @@ public:
 
 protected:
 	/** Sound class this sound belongs to */
-	UPROPERTY(EditAnywhere, Category=Sound, meta=(DisplayName = "Sound Class"))
+	UPROPERTY(EditAnywhere, Category=Sound, meta=(DisplayName = "Sound Class"), AssetRegistrySearchable)
 	USoundClass* SoundClassObject;
 
 public:

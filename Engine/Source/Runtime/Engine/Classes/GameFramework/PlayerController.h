@@ -95,6 +95,8 @@ struct FForceFeedbackEffectHistoryEntry
 struct ENGINE_API FInputModeDataBase
 {
 protected:
+	virtual ~FInputModeDataBase() { }
+
 	/** Derived classes override this function to apply the necessary settings for the desired input mode */
 	virtual void ApplyInputMode(class FReply& SlateOperations, class UGameViewportClient& GameViewportClient) const = 0;
 
@@ -255,6 +257,13 @@ class ENGINE_API APlayerController : public AController
 	UPROPERTY()
 	TArray<class AActor*> HiddenActors;
 
+	/** Explicit components the camera shouldn't see (helpful for external systems to hide a component from a single player) */
+	UPROPERTY()
+	TArray< TWeakObjectPtr<UPrimitiveComponent> > HiddenPrimitiveComponents;
+
+	/** Whether to render primitives component. */
+	bool bRenderPrimitiveComponents;
+
 	/** Used to make sure the client is kept synchronized when in a spectator state */
 	UPROPERTY()
 	float LastSpectatorStateSynchTime;
@@ -381,6 +390,10 @@ class ENGINE_API APlayerController : public AController
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Game|Feedback")
 	uint32 bForceFeedbackEnabled:1;
+
+	/** Scale applied to force feedback values */
+	UPROPERTY(config)
+	float ForceFeedbackScale;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MouseInterface, meta=(EditCondition="bEnableClickEvents"))
 	TArray<FKey> ClickEventKeys;
@@ -509,7 +522,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Game|Player", meta = (DisplayName = "ConvertMouseLocationToWorldSpace", Keywords = "deproject"))
 	bool DeprojectMousePositionToWorld(FVector& WorldLocation, FVector& WorldDirection) const;
 
-	/** Convert current mouse 2D position to World Space 3D position and direction. Returns false if unable to determine value. **/
+	/** Convert 2D screen position to World Space 3D position and direction. Returns false if unable to determine value. **/
 	UFUNCTION(BlueprintCallable, Category = "Game|Player", meta = (DisplayName = "ConvertScreenLocationToWorldSpace", Keywords = "deproject"))
 	bool DeprojectScreenPositionToWorld(float ScreenX, float ScreenY, FVector& WorldLocation, FVector& WorldDirection) const;
 
@@ -858,6 +871,14 @@ public:
 	/** Gets the HUD currently being used by this player controller */
 	UFUNCTION(BlueprintCallable, Category="HUD")
 	class AHUD* GetHUD() const;
+
+	/**
+	 * Sets the Widget for the Mouse Cursor to display 
+	 * @param Cursor - the cursor to set the widget for
+	 * @param CursorWidget - the widget to set the cursor to
+	 */
+	UFUNCTION(BlueprintCallable, Category = "UI")
+	void SetMouseCursorWidget(EMouseCursor::Type Cursor, class UUserWidget* CursorWidget);
 
 	/** Set the view target
 	 * @param A - new actor to set as view target
@@ -1326,6 +1347,8 @@ public:
 	virtual void SetPawn(APawn* InPawn) override;
 	//~ End AController Interface
 
+	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const override;
+
 	/** called on the server when the client sends a message indicating it was unable to initialize an Actor channel,
 	 * most commonly because the desired Actor's archetype couldn't be serialized
 	 * the default is to do nothing (Actor simply won't exist on the client), but this function gives the game code
@@ -1344,7 +1367,7 @@ public:
 	 * @param ViewLocation the view point to hide/unhide from
 	 * @param HiddenComponents the list to add to/remove from
 	 */
-	virtual void UpdateHiddenComponents(const FVector& ViewLocation, TSet<FPrimitiveComponentId>& HiddenComponents) {}
+	virtual void UpdateHiddenComponents(const FVector& ViewLocation, TSet<FPrimitiveComponentId>& /*HiddenComponents*/) {}
 
 	/**
 	 * Builds a list of components that are hidden based upon gameplay.
@@ -1352,7 +1375,7 @@ public:
 	 * @param ViewLocation the view point to hide/unhide from
 	 * @param HiddenComponents this list will have all components that should be hidden added to it
 	 */
-	void BuildHiddenComponentList(const FVector& ViewLocation, TSet<FPrimitiveComponentId>& HiddenComponents);
+	void BuildHiddenComponentList(const FVector& ViewLocation, TSet<FPrimitiveComponentId>& HiddenComponentsOut);
 
 	/**
 	 * Sets the Matinee director track instance that's currently possessing this player controller
@@ -1403,6 +1426,8 @@ protected:
 	virtual void BuildInputStack(TArray<UInputComponent*>& InputStack);
 	void ProcessForceFeedbackAndHaptics(const float DeltaTime, const bool bGamePaused);
 	virtual bool IsInViewportClient(UGameViewportClient* ViewportClient) const;
+
+	virtual int32 GetInputIndex() const;
 
 	/** Allows the PlayerController to set up custom input bindings. */
 	virtual void SetupInputComponent();

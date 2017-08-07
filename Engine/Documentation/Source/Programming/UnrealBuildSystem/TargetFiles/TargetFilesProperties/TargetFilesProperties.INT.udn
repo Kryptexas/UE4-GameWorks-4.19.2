@@ -2,7 +2,7 @@ Availability: NoPublish
 Title: Build Configuration Properties Page
 Crumbs:
 Description: This is a procedurally generated markdown page.
-Version: 4.16
+Version: 4.17
 
 ### Read-Only Properties
 
@@ -42,6 +42,8 @@ $ PakSigningKeysFile (String): Path to the set of pak signing keys to embed in t
 
 $ SolutionDirectory (String): Allows a Program Target to specify it's own solution folder path.
 
+$ bBuildInSolutionByDefault (Nullable&lt;Boolean&gt;): Whether the target should be included in the default solution build configuration
+
 $ bOutputToEngineBinaries (Boolean): Output the executable to the engine binaries folder.
 
 $ bShouldCompileAsDLL (Boolean): Whether this target should be compiled as a DLL.  Requires LinkType to be set to TargetLinkType.Monolithic.
@@ -55,8 +57,6 @@ $ bCompilePhysX (Boolean): Whether to include PhysX support.
 $ bCompileAPEX (Boolean): Whether to include PhysX APEX support.
 
 $ bCompileNvCloth (Boolean): Whether to include NvCloth.
-
-$ bRuntimePhysicsCooking (Boolean): Whether to allow runtime cooking of physics.
 
 $ bCompileBox2D (Boolean): Whether to include Box2D support.
 
@@ -81,6 +81,8 @@ $ bCompileSimplygon (Boolean): Whether we should compile in support for Simplygo
 $ bCompileSimplygonSSF (Boolean): Whether we should compile in support for Simplygon's SSF library or not.
 
 $ bCompileLeanAndMeanUE (Boolean): Whether to compile lean and mean version of UE.
+
+$ bUseCacheFreedOSAllocs (Boolean): Whether to utilize cache freed OS allocs with MallocBinned
 
 $ bCompileAgainstEngine (Boolean): Enabled for all builds that include the engine project.  Disabled only when building standalone apps that only link with Core.
 
@@ -203,8 +205,6 @@ $ bBreakBuildOnLicenseViolation (Boolean): Tells the UBT to break build if modul
 $ bUseFastPDBLinking (Boolean): Whether to use the :FASTLINK option when building with /DEBUG to create local PDBs on Windows. Fast, but currently seems to have problems finding symbols in the debugger.
 
 $ bCreateMapFile (Boolean): Outputs a map file as part of the build.
-
-$ bEnableCodeAnalysis (Boolean): Enables code analysis mode.  Currently, this has specific requirements.  It only works on Windows platform with the MSVC compiler.  Also, it requires a version of the compiler that supports the /analyze option, such as Visual Studio 2013.
 
 $ BundleVersion (String): Bundle version for Mac apps.
 

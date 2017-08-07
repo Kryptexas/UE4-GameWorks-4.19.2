@@ -193,7 +193,7 @@ Blueprint-specific markup available in Unreal Engine's C++ implementation enable
 [/OBJECT]
 [/REGION]
 
-[DIR(output:"listbutton" parent:"Engine/Blueprints" type:"overview" org:"hierarchy")]
+[DIR(output:"topic" parent:"Engine/Blueprints" type:"overview" org:"hierarchy")]
 
 
 <!--

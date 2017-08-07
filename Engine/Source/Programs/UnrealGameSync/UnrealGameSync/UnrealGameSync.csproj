@@ -112,6 +112,18 @@
     <Compile Include="ArchiveManifest.cs" />
     <Compile Include="BuildStep.cs" />
     <Compile Include="ChildProcess.cs" />
+    <Compile Include="Controls\SyncFilterControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Controls\SyncFilterControl.Designer.cs">
+      <DependentUpon>SyncFilterControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\WorkspaceControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Controls\WorkspaceControl.Designer.cs">
+      <DependentUpon>WorkspaceControl.cs</DependentUpon>
+    </Compile>
     <Compile Include="Controls\StatusPanel.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -122,6 +134,9 @@
       <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="Controls\LogSplitContainer.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="Controls\TabControl.cs">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="DeleteFilesTask.cs" />
@@ -157,6 +172,12 @@
     </Compile>
     <Compile Include="Forms\PerforceSettingsWindow.Designer.cs">
       <DependentUpon>PerforceSettingsWindow.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\SyncFilterSyntax.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\SyncFilterSyntax.Designer.cs">
+      <DependentUpon>SyncFilterSyntax.cs</DependentUpon>
     </Compile>
     <Compile Include="Forms\VariablesWindow.cs">
       <SubType>Form</SubType>
@@ -242,6 +263,12 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Utility.cs" />
+    <EmbeddedResource Include="Controls\SyncFilterControl.resx">
+      <DependentUpon>SyncFilterControl.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Controls\WorkspaceControl.resx">
+      <DependentUpon>WorkspaceControl.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Forms\ArgumentsWindow.resx">
       <DependentUpon>ArgumentsWindow.cs</DependentUpon>
     </EmbeddedResource>
@@ -256,6 +283,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Forms\PerforceSettingsWindow.resx">
       <DependentUpon>PerforceSettingsWindow.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\SyncFilterSyntax.resx">
+      <DependentUpon>SyncFilterSyntax.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Forms\VariablesWindow.resx">
       <DependentUpon>VariablesWindow.cs</DependentUpon>

@@ -449,19 +449,6 @@ void UAnimInstance::PostUpdateAnimation()
 		ExtractedRootMotion.MakeUpToFullWeight();
 	}
 
-	/////////////////////////////////////////////////////////////////////////////
-	// Notify / Event Handling!
-	// This can do anything to our component (including destroy it) 
-	// Any code added after this point needs to take that into account
-	/////////////////////////////////////////////////////////////////////////////
-	{
-		// now trigger Notifies
-		TriggerAnimNotifies(Proxy.GetDeltaSeconds());
-
-		// Trigger Montage end events after notifies. In case Montage ending ends abilities or other states, we make sure notifies are processed before montage events.
-		TriggerQueuedMontageEvents();
-	}
-
 #if WITH_EDITOR && 0
 	{
 		// Take a snapshot if the scrub control is locked to the end, we are playing, and we are the one being debugged
@@ -480,6 +467,38 @@ void UAnimInstance::PostUpdateAnimation()
 		}
 	}
 #endif
+}
+
+void UAnimInstance::DispatchQueuedAnimEvents()
+{
+	// now trigger Notifies
+	TriggerAnimNotifies(GetProxyOnGameThread<FAnimInstanceProxy>().GetDeltaSeconds());
+
+	// Trigger Montage end events after notifies. In case Montage ending ends abilities or other states, we make sure notifies are processed before montage events.
+	TriggerQueuedMontageEvents();
+
+	// After queued Montage Events have been dispatched, it's now safe to delete invalid Montage Instances.
+	// And dispatch 'OnAllMontageInstancesEnded'
+	for (int32 InstanceIndex = 0; InstanceIndex < MontageInstances.Num(); InstanceIndex++)
+	{
+		// Should never be null
+		FAnimMontageInstance* MontageInstance = MontageInstances[InstanceIndex];
+		ensure(MontageInstance);
+		if (MontageInstance && !MontageInstance->IsValid())
+		{
+			// Make sure we've cleared our references before deleting memory
+			ClearMontageInstanceReferences(*MontageInstance);
+
+			delete MontageInstance;
+			MontageInstances.RemoveAt(InstanceIndex);
+			--InstanceIndex;
+
+			if (MontageInstances.Num() == 0)
+			{
+				OnAllMontageInstancesEnded.Broadcast();
+			}
+		}
+	}
 }
 
 void UAnimInstance::ParallelUpdateAnimation()
@@ -521,10 +540,13 @@ bool UAnimInstance::ParallelCanEvaluate(const USkeletalMesh* InSkeletalMesh) con
 	return Proxy.GetRequiredBones().IsValid() && (Proxy.GetRequiredBones().GetAsset() == InSkeletalMesh);
 }
 
-void UAnimInstance::ParallelEvaluateAnimation(bool bForceRefPose, const USkeletalMesh* InSkeletalMesh, TArray<FTransform>& OutBoneSpaceTransforms, FBlendedHeapCurve& OutCurve)
+void UAnimInstance::ParallelEvaluateAnimation(bool bForceRefPose, const USkeletalMesh* InSkeletalMesh, TArray<FTransform>& OutBoneSpaceTransforms, FBlendedHeapCurve& OutCurve, FCompactPose& OutPose)
 {
-	FMemMark Mark(FMemStack::Get());
 	FAnimInstanceProxy& Proxy = GetProxyOnAnyThread<FAnimInstanceProxy>();
+	OutPose.SetBoneContainer(&Proxy.GetRequiredBones());
+	OutPose.ResetToRefPose();
+
+	FMemMark Mark(FMemStack::Get());
 
 	if( !bForceRefPose )
 	{
@@ -536,26 +558,11 @@ void UAnimInstance::ParallelEvaluateAnimation(bool bForceRefPose, const USkeleta
 		Proxy.EvaluateAnimation(EvaluationContext);
 		// Move the curves
 		OutCurve.CopyFrom(EvaluationContext.Curve);
-			
-		// can we avoid that copy?
-		if( EvaluationContext.Pose.GetNumBones() > 0 )
-		{
-			// Make sure rotations are normalized to account for accumulation of errors.
-			EvaluationContext.Pose.NormalizeRotations();
-			for (const FCompactPoseBoneIndex BoneIndex : EvaluationContext.Pose.ForEachBoneIndex())
-			{
-				FMeshPoseBoneIndex MeshPoseBoneIndex = EvaluationContext.Pose.GetBoneContainer().MakeMeshPoseIndex(BoneIndex);
-				OutBoneSpaceTransforms[MeshPoseBoneIndex.GetInt()] = EvaluationContext.Pose[BoneIndex];
-			}
-		}
-		else
-		{
-			FAnimationRuntime::FillWithRefPose(OutBoneSpaceTransforms, Proxy.GetRequiredBones());
-		}
+		OutPose.CopyBonesFrom(EvaluationContext.Pose);
 	}
 	else
 	{
-		FAnimationRuntime::FillWithRefPose(OutBoneSpaceTransforms, Proxy.GetRequiredBones());
+		OutPose.ResetToRefPose();
 	}
 }
 
@@ -963,9 +970,9 @@ void UAnimInstance::RecalcRequiredBones()
 	}
 }
 
-void UAnimInstance::RecalcRequiredCurves()
+void UAnimInstance::RecalcRequiredCurves(bool bDisableAnimCurves)
 {
-	GetProxyOnGameThread<FAnimInstanceProxy>().RecalcRequiredCurves();
+	GetProxyOnGameThread<FAnimInstanceProxy>().RecalcRequiredCurves(bDisableAnimCurves);
 }
 
 void UAnimInstance::Serialize(FArchive& Ar)
@@ -1324,89 +1331,6 @@ void UAnimInstance::SetRootMotionMode(TEnumAsByte<ERootMotionMode::Type> Value)
 	RootMotionMode = Value;
 }
 
-float UAnimInstance::GetAnimAssetPlayerLength(class UAnimationAsset* AnimAsset)
-{
-	if (AnimAsset)
-	{
-		return AnimAsset->GetMaxCurrentTime();
-	}
-
-	return 0.f;
-}
-
-float UAnimInstance::GetAnimAssetPlayerTimeFraction(class UAnimationAsset* AnimAsset, float CurrentTime)
-{
-	float Length = (AnimAsset)? AnimAsset->GetMaxCurrentTime() : 0.f;
-	if (Length > 0.f)
-	{
-		return CurrentTime / Length;
-	}
-
-	return 0.f;
-}
-
-float UAnimInstance::GetAnimAssetPlayerTimeFromEnd(class UAnimationAsset* AnimAsset, float CurrentTime)
-{
-	if (AnimAsset)
-	{
-		return AnimAsset->GetMaxCurrentTime() - CurrentTime;
-	}
-
-	return 0.f;
-}
-
-float UAnimInstance::GetAnimAssetPlayerTimeFromEndFraction(class UAnimationAsset* AnimAsset, float CurrentTime)
-{
-	float Length = (AnimAsset)? AnimAsset->GetMaxCurrentTime() : 0.f;
-	if ( Length > 0.f )
-	{
-		return (Length- CurrentTime) / Length;
-	}
-
-	return 0.f;
-}
-
-float UAnimInstance::GetStateWeight(int32 MachineIndex, int32 StateIndex)
-{
-	if (IAnimClassInterface* AnimBlueprintClass = IAnimClassInterface::GetFromClass(GetClass()))
-	{
-		const TArray<UStructProperty*>& AnimNodeProperties = AnimBlueprintClass->GetAnimNodeProperties();
-		if ((MachineIndex >= 0) && (MachineIndex < AnimNodeProperties.Num()))
-		{
-			const int32 InstancePropertyIndex = AnimNodeProperties.Num() - 1 - MachineIndex; //@TODO: ANIMREFACTOR: Reverse indexing
-
-			UStructProperty* MachineInstanceProperty = AnimNodeProperties[InstancePropertyIndex];
-			checkSlow(MachineInstanceProperty->Struct->IsChildOf(FAnimNode_StateMachine::StaticStruct()));
-
-			FAnimNode_StateMachine* MachineInstance = MachineInstanceProperty->ContainerPtrToValuePtr<FAnimNode_StateMachine>(this);
-
-			return MachineInstance->GetStateWeight(StateIndex);
-		}
-	}
-
-	return 0.0f;
-}
-
-float UAnimInstance::GetCurrentStateElapsedTime(int32 MachineIndex)
-{
-	if (IAnimClassInterface* AnimBlueprintClass = IAnimClassInterface::GetFromClass(GetClass()))
-	{
-		const TArray<UStructProperty*>& AnimNodeProperties = AnimBlueprintClass->GetAnimNodeProperties();
-		if ((MachineIndex >= 0) && (MachineIndex < AnimNodeProperties.Num()))
-		{
-			const int32 InstancePropertyIndex = AnimNodeProperties.Num() - 1 - MachineIndex; //@TODO: ANIMREFACTOR: Reverse indexing
-
-			UStructProperty* MachineInstanceProperty = AnimNodeProperties[InstancePropertyIndex];
-			checkSlow(MachineInstanceProperty->Struct->IsChildOf(FAnimNode_StateMachine::StaticStruct()));
-
-			FAnimNode_StateMachine* MachineInstance = MachineInstanceProperty->ContainerPtrToValuePtr<FAnimNode_StateMachine>(this);
-
-			return MachineInstance->GetCurrentStateElapsedTime();
-		}
-	}
-
-	return 0.0f;
-}
 
 FName UAnimInstance::GetCurrentStateName(int32 MachineIndex)
 {
@@ -1453,12 +1377,12 @@ void UAnimInstance::Montage_Advance(float DeltaSeconds)
 
 	// go through all montage instances, and update them
 	// and make sure their weight is updated properly
-	for (int32 InstanceIndex = 0; InstanceIndex<MontageInstances.Num(); InstanceIndex++)
+	for (int32 InstanceIndex = 0; InstanceIndex < MontageInstances.Num(); InstanceIndex++)
 	{
+		FAnimMontageInstance* const MontageInstance = MontageInstances[InstanceIndex];
 		// should never be NULL
-		FAnimMontageInstance* MontageInstance = MontageInstances[InstanceIndex];
 		ensure(MontageInstance);
-		if (MontageInstance)
+		if (MontageInstance && MontageInstance->IsValid())
 		{
 			bool const bUsingBlendedRootMotion = (RootMotionMode == ERootMotionMode::RootMotionFromEverything);
 			bool const bNoRootMotionExtraction = (RootMotionMode == ERootMotionMode::NoRootMotionExtraction);
@@ -1479,28 +1403,14 @@ void UAnimInstance::Montage_Advance(float DeltaSeconds)
 			MontageInstance->Advance(DeltaSeconds, RootMotionParams, bUsingBlendedRootMotion);
 			MontageInstance->MontageSync_PostUpdate();
 
-			if (!MontageInstance->IsValid())
-			{
-				// Make sure we've cleared our references before deleting memory
-				ClearMontageInstanceReferences(*MontageInstance);
-
-				delete MontageInstance;
-				MontageInstances.RemoveAt(InstanceIndex);
-				--InstanceIndex;
-
-				if (MontageInstances.Num() == 0)
-				{
-					OnAllMontageInstancesEnded.Broadcast();
-				}
-			}
 #if DO_CHECK && WITH_EDITORONLY_DATA && 0
-			else
+			// We need to re-check IsValid() here because Advance() could have terminated this Montage.
+			if (MontageInstance.IsValid())
 			{
-				FAnimMontageInstance* AnimMontageInstance = MontageInstances(I);
 				// print blending time and weight and montage name
-				UE_LOG(LogAnimMontage, Warning, TEXT("%d. Montage (%s), DesiredWeight(%0.2f), CurrentWeight(%0.2f), BlendingTime(%0.2f)"), 
-					I+1, *AnimMontageInstance->Montage->GetName(), AnimMontageInstance->GetDesiredWeight(), AnimMontageInstance->GetWeight(),  
-					AnimMontageInstance->GetBlendTime() );
+				UE_LOG(LogAnimMontage, Warning, TEXT("%d. Montage (%s), DesiredWeight(%0.2f), CurrentWeight(%0.2f), BlendingTime(%0.2f)"),
+					I + 1, *MontageInstance->Montage->GetName(), MontageInstance->GetDesiredWeight(), MontageInstance->GetWeight(),
+					MontageInstance->GetBlendTime());
 			}
 #endif
 		}
@@ -1607,7 +1517,7 @@ float UAnimInstance::PlaySlotAnimation(UAnimSequenceBase* Asset, FName SlotNodeN
 	USkeleton* AssetSkeleton = Asset->GetSkeleton();
 	if (!CurrentSkeleton->IsCompatible(AssetSkeleton))
 	{
-		UE_LOG(LogAnimMontage, Warning, TEXT("The Skeleton isn't compatible"));
+		UE_LOG(LogAnimMontage, Warning, TEXT("The Skeleton '%s' isn't compatible with '%s' in AnimSequence '%s'!"), *GetPathNameSafe(AssetSkeleton), *GetPathNameSafe(CurrentSkeleton), *Asset->GetName());
 		return 0.f;
 	}
 
@@ -1622,7 +1532,7 @@ float UAnimInstance::PlaySlotAnimation(UAnimSequenceBase* Asset, FName SlotNodeN
 	NewMontage->SetSkeleton(AssetSkeleton);
 
 	// add new track
-	FSlotAnimationTrack NewTrack;
+	FSlotAnimationTrack& NewTrack = NewMontage->SlotAnimTracks[0];
 	NewTrack.SlotName = SlotNodeName;
 	FAnimSegment NewSegment;
 	NewSegment.AnimReference = Asset;
@@ -1642,7 +1552,6 @@ float UAnimInstance::PlaySlotAnimation(UAnimSequenceBase* Asset, FName SlotNodeN
 	NewMontage->CompositeSections.Add(NewSection);
 	NewMontage->BlendIn.SetBlendTime(BlendInTime);
 	NewMontage->BlendOut.SetBlendTime(BlendOutTime);
-	NewMontage->SlotAnimTracks.Add(NewTrack);
 
 	return Montage_Play(NewMontage, InPlayRate);
 }
@@ -1668,7 +1577,7 @@ UAnimMontage* UAnimInstance::PlaySlotAnimationAsDynamicMontage(UAnimSequenceBase
 	USkeleton* AssetSkeleton = Asset->GetSkeleton();
 	if (!CurrentSkeleton->IsCompatible(AssetSkeleton))
 	{
-		UE_LOG(LogAnimMontage, Warning, TEXT("The Skeleton isn't compatible"));
+		UE_LOG(LogAnimMontage, Warning, TEXT("The Skeleton '%s' isn't compatible with '%s' in AnimSequence '%s'!"), *GetPathNameSafe(AssetSkeleton), *GetPathNameSafe(CurrentSkeleton), *Asset->GetName());
 		return nullptr;
 	}
 
@@ -1683,7 +1592,7 @@ UAnimMontage* UAnimInstance::PlaySlotAnimationAsDynamicMontage(UAnimSequenceBase
 	NewMontage->SetSkeleton(AssetSkeleton);
 
 	// add new track
-	FSlotAnimationTrack NewTrack;
+	FSlotAnimationTrack& NewTrack = NewMontage->SlotAnimTracks[0];
 	NewTrack.SlotName = SlotNodeName;
 	FAnimSegment NewSegment;
 	NewSegment.AnimReference = Asset;
@@ -1704,7 +1613,6 @@ UAnimMontage* UAnimInstance::PlaySlotAnimationAsDynamicMontage(UAnimSequenceBase
 	NewMontage->BlendIn.SetBlendTime(BlendInTime);
 	NewMontage->BlendOut.SetBlendTime(BlendOutTime);
 	NewMontage->BlendOutTriggerTime = BlendOutTriggerTime;
-	NewMontage->SlotAnimTracks.Add(NewTrack);
 
 	// if playing is successful, return the montage to allow more control if needed
 	float PlayTime = Montage_Play(NewMontage, InPlayRate, EMontagePlayReturnType::MontageLength, InTimeToStartMontageAt);

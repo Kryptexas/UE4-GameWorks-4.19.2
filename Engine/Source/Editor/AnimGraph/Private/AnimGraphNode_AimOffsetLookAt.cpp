@@ -199,6 +199,11 @@ void UAnimGraphNode_AimOffsetLookAt::ValidateAnimNodeDuringCompilation(class USk
 			MessageLog.Warning(TEXT("@@ contains no LOD Threshold."), this);
 		}
 	}
+
+	if(FMath::IsNearlyZero(Node.SocketAxis.SizeSquared()))
+	{
+		MessageLog.Error(TEXT("Socket axis for node @@ is zero."), this);
+	}
 }
 
 void UAnimGraphNode_AimOffsetLookAt::GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const

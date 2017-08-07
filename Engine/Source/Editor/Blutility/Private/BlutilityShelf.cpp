@@ -83,7 +83,7 @@ void SBlutilityShelf::Construct(const FArguments& InArgs)
 	BuildShelf();
 }
 
-void SBlutilityShelf::OnBlutilityDoubleClicked(const class FAssetData& AssetData)
+void SBlutilityShelf::OnBlutilityDoubleClicked(const struct FAssetData& AssetData)
 {
 	UEditorUtilityBlueprint* Blueprint = NULL;
 	if (!AssetData.IsAssetLoaded())

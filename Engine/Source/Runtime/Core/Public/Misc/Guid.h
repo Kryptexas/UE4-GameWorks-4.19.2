@@ -313,3 +313,14 @@ public:
 };
 
 template <> struct TIsPODType<FGuid> { enum { Value = true }; };
+
+namespace Lex
+{
+	/**
+	 * Guid default string conversion.
+	 */
+	inline FString ToString(const FGuid& Value)
+	{
+		return Value.ToString();
+	}
+}

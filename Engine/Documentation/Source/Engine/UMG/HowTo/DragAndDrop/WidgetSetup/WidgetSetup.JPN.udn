@@ -1,10 +1,19 @@
-﻿INTSourceChangelist:3343774
-Availability:Docs
+﻿INTSourceChangelist:3478014
+Availability:Public
 Title:2.ウィジェットのセットアップ
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
 Description:左マウスボタンを押したときに何がおこるかをスクリプティングします。 
 SkillLevel:Intermediate
+Version:4.15
+parent:Engine/UMG/HowTo/DragAndDrop
+order:2
+checkpoint: editorqs
+Related:Engine/UMG
+Related:Engine/UMG/UserGuide
 tags:UMG UI Designer
+tags:UI
+type:how-to
+
 
 [VAR:Steps]
 [OBJECT:Navigation]

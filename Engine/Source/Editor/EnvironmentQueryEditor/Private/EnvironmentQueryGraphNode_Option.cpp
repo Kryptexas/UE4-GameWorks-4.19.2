@@ -21,7 +21,7 @@ UEnvironmentQueryGraphNode_Option::UEnvironmentQueryGraphNode_Option(const FObje
 
 void UEnvironmentQueryGraphNode_Option::AllocateDefaultPins()
 {
-	UEdGraphPin* Inputs = CreatePin(EGPD_Input, TEXT("Transition"), TEXT(""), NULL, false, false, TEXT("Out"));
+	UEdGraphPin* Inputs = CreatePin(EGPD_Input, TEXT("Transition"), FString(), nullptr, TEXT("Out"));
 }
 
 void UEnvironmentQueryGraphNode_Option::PostPlacedNewNode()
@@ -161,7 +161,7 @@ void UEnvironmentQueryGraphNode_Option::UpdateNodeData()
 	{
 		CompositeGenerator->VerifyItemTypes();
 
-		ErrorMessage = CompositeGenerator->bHasMatchingItemType ? TEXT("") : LOCTEXT("NestedGeneratorMismatch", "Nested generators must work on exactly the same item types!").ToString();
+		ErrorMessage = CompositeGenerator->bHasMatchingItemType ? FString() : LOCTEXT("NestedGeneratorMismatch", "Nested generators must work on exactly the same item types!").ToString();
 	}
 }
 

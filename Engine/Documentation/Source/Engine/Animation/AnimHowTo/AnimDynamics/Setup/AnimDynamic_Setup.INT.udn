@@ -5,6 +5,7 @@ Description:In this step we will set up the character we will use to apply dynam
 SkillLevel:Advanced
 Version:4.11
 checkpoint: editorqs
+Order: 1
  
 [VAR:Steps]
 [OBJECT:Navigation]

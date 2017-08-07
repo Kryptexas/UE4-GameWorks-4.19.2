@@ -19,11 +19,15 @@ struct FGitVersion
 	int Minor;
 
 	uint32 bHasCatFileWithFilters : 1;
+	uint32 bHasGitLfs : 1;
+	uint32 bHasGitLfsLocking : 1;
 
 	FGitVersion() 
 		: Major(0)
 		, Minor(0)
 		, bHasCatFileWithFilters(false)
+		, bHasGitLfs(false)
+		, bHasGitLfsLocking(false)
 	{
 	}
 
@@ -59,6 +63,7 @@ public:
 	virtual void CancelOperation( const TSharedRef<ISourceControlOperation, ESPMode::ThreadSafe>& InOperation ) override;
 	virtual bool UsesLocalReadOnlyState() const override;
 	virtual bool UsesChangelists() const override;
+	virtual bool UsesCheckout() const override;
 	virtual void Tick() override;
 	virtual TArray< TSharedRef<class ISourceControlLabel> > GetLabels( const FString& InMatchingSpec ) const override;
 #if SOURCE_CONTROL_WITH_SLATE
@@ -66,9 +71,14 @@ public:
 #endif
 
 	/**
-	 * Run a Git "version" command to check the availability of the binary.
+	 * Check configuration, else standard paths, and run a Git "version" command to check the availability of the binary.
 	 */
 	void CheckGitAvailability();
+
+	/**
+	 * Find the .git/ repository and check it's status.
+	 */
+	void CheckRepositoryStatus(const FString& InPathToGitBinary);
 
 	/** Is git binary found and working. */
 	inline bool IsGitAvailable() const

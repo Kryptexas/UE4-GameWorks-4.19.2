@@ -61,7 +61,7 @@ void FAnimNode_Trail::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseConte
 	const FBoneContainer& BoneContainer = Output.Pose.GetPose().GetBoneContainer();
 	const FTransform& ComponentTransform = Output.AnimInstanceProxy->GetComponentTransform();
 	FTransform BaseTransform;
- 	if (BaseJoint.IsValid(BoneContainer)) 
+ 	if (BaseJoint.IsValidToEvaluate(BoneContainer))
  	{
 		FCompactPoseBoneIndex BasePoseIndex = BoneContainer.MakeCompactPoseIndex(FMeshPoseBoneIndex(BaseJoint.BoneIndex));
 		FTransform BaseBoneTransform = Output.Pose.GetComponentSpaceTransform(BasePoseIndex);
@@ -75,7 +75,7 @@ void FAnimNode_Trail::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseConte
 	OutBoneTransforms.AddZeroed(ChainLength);
 
 	// this should be checked outside
-	checkSlow (TrailBone.IsValid(BoneContainer));
+	checkSlow (TrailBone.IsValidToEvaluate(BoneContainer));
 
 	// If we have >0 this frame, but didn't last time, record positions of all the bones.
 	// Also do this if number has changed or array is zero.
@@ -208,7 +208,7 @@ void FAnimNode_Trail::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseConte
 bool FAnimNode_Trail::IsValidToEvaluate(const USkeleton* Skeleton, const FBoneContainer& RequiredBones) 
 {
 	// if bones are valid
-	if (TrailBone.IsValid(RequiredBones))
+	if (TrailBone.IsValidToEvaluate(RequiredBones))
 	{
 		for (auto& ChainIndex : ChainBoneIndices)
 		{
@@ -235,7 +235,7 @@ void FAnimNode_Trail::InitializeBoneReferences(const FBoneContainer& RequiredBon
 
 	// initialize chain bone indices
 	ChainBoneIndices.Reset();
-	if (ChainLength > 2 && TrailBone.IsValid(RequiredBones))
+	if (ChainLength > 2 && TrailBone.IsValidToEvaluate(RequiredBones))
 	{
 		ChainBoneIndices.AddZeroed(ChainLength);
 
@@ -300,9 +300,9 @@ void FAnimNode_Trail::PostLoad()
 		TrailRelaxation_DEPRECATED = 10.f;
 	}
 }
-void FAnimNode_Trail::Initialize(const FAnimationInitializeContext& Context)
+void FAnimNode_Trail::Initialize_AnyThread(const FAnimationInitializeContext& Context)
 {
-	FAnimNode_SkeletalControlBase::Initialize(Context);
+	FAnimNode_SkeletalControlBase::Initialize_AnyThread(Context);
 
 	// allocated all memory here in initialize
 	PerJointTrailData.Reset();

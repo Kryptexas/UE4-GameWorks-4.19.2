@@ -48,6 +48,14 @@ IPlatformFile* FPlatformFileManager::FindPlatformFile(const TCHAR* Name)
 	return NULL;
 }
 
+void FPlatformFileManager::TickActivePlatformFile()
+{
+	for ( IPlatformFile* ChainElement = TopmostPlatformFile; ChainElement; ChainElement = ChainElement->GetLowerLevel() )
+	{
+		ChainElement->Tick();
+	}
+}
+
 IPlatformFile* FPlatformFileManager::GetPlatformFile(const TCHAR* Name)
 {
 	IPlatformFile* PlatformFile = NULL;

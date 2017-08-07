@@ -7,13 +7,14 @@
 #include "UObject/ObjectMacros.h"
 #include "Textures/SlateIcon.h"
 #include "K2Node.h"
+#include "K2Node_AddPinInterface.h"
 #include "K2Node_MakeArray.generated.h"
 
 class FBlueprintActionDatabaseRegistrar;
 class UEdGraphPin;
 
 UCLASS(MinimalAPI)
-class UK2Node_MakeArray : public UK2Node
+class UK2Node_MakeArray : public UK2Node, public IK2Node_AddPinInterface
 {
 	GENERATED_UCLASS_BODY()
 
@@ -22,7 +23,6 @@ class UK2Node_MakeArray : public UK2Node
 	int32 NumInputs;
 
 public:
-	BLUEPRINTGRAPH_API void AddInputPin();
 	BLUEPRINTGRAPH_API void RemoveInputPin(UEdGraphPin* Pin);
 
 	/** returns a reference to the output array pin of this node, which is responsible for defining the type */
@@ -50,7 +50,9 @@ public:
 	virtual void ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins);
 	// End of UK2Node interface
 
-
+	// IK2Node_AddPinInterface interface
+	BLUEPRINTGRAPH_API virtual void AddInputPin() override;
+	// End of IK2Node_AddPinInterface interface
 
 protected:
 	friend class FKismetCompilerContext;

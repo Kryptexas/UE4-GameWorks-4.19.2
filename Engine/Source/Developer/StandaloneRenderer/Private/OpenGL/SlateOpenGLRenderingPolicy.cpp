@@ -126,7 +126,7 @@ void FSlateOpenGLRenderingPolicy::UpdateVertexAndIndexBuffers(FSlateBatchData& I
 }
 
 
-void FSlateOpenGLRenderingPolicy::DrawElements( const FMatrix& ViewProjectionMatrix, const TArray<FSlateRenderBatch>& RenderBatches )
+void FSlateOpenGLRenderingPolicy::DrawElements( const FMatrix& ViewProjectionMatrix, FVector2D ViewportSize, const TArray<FSlateRenderBatch>& RenderBatches, const TArray<FSlateClippingState> RenderClipStates)
 {
 	// Bind the vertex buffer.  Each element uses the same buffer
 	VertexBuffer.Bind();
@@ -158,6 +158,8 @@ void FSlateOpenGLRenderingPolicy::DrawElements( const FMatrix& ViewProjectionMat
 	glStencilMask(0xFF);
 	glStencilFunc(GL_GREATER, 0, 0xFF);
 	glStencilOp(GL_KEEP, GL_INCR, GL_INCR);
+
+	int32 LastClippingIndex = -1;
 
 	for( int32 BatchIndex = 0; BatchIndex < RenderBatches.Num(); ++BatchIndex )
 	{
@@ -243,14 +245,6 @@ void FSlateOpenGLRenderingPolicy::DrawElements( const FMatrix& ViewProjectionMat
 		Offset = STRUCT_OFFSET( FSlateVertex, Position );
 		glVertexAttribPointer( 1, 2, GL_FLOAT, GL_FALSE, Stride, BUFFER_OFFSET(Stride*BaseVertexIndex+Offset) );
 
-		glEnableVertexAttribArray(2);
-		Offset = STRUCT_OFFSET( FSlateVertex, ClipRect );
-		glVertexAttribPointer( 2, 2, GL_FLOAT, GL_FALSE, Stride, BUFFER_OFFSET(Stride*BaseVertexIndex+Offset) );
-
-		glEnableVertexAttribArray(3);
-		Offset = STRUCT_OFFSET( FSlateVertex, ClipRect ) + STRUCT_OFFSET( FSlateRotatedRect, ExtentX );
-		glVertexAttribPointer( 3, 4, GL_FLOAT, GL_FALSE, Stride, BUFFER_OFFSET(Stride*BaseVertexIndex+Offset) );
-
 		glEnableVertexAttribArray(4);
 		Offset = STRUCT_OFFSET( FSlateVertex, Color );
 		glVertexAttribPointer( 4, 4, GL_UNSIGNED_BYTE, GL_TRUE, Stride, BUFFER_OFFSET(Stride*BaseVertexIndex+Offset) );
@@ -261,6 +255,35 @@ void FSlateOpenGLRenderingPolicy::DrawElements( const FMatrix& ViewProjectionMat
 		IndexBuffer.Bind();
 
 
+		if (RenderBatch.ClippingIndex != LastClippingIndex)
+		{
+			LastClippingIndex = RenderBatch.ClippingIndex;
+
+			if (RenderBatch.ClippingIndex != -1)
+			{
+				const FSlateClippingState& ClipState = RenderClipStates[RenderBatch.ClippingIndex];
+				if (ClipState.ScissorRect.IsSet())
+				{
+					const FSlateClippingZone& ScissorRect = ClipState.ScissorRect.GetValue();
+
+					glEnable(GL_SCISSOR_TEST);
+					
+					const float ScissorWidth = FVector2D::Distance(ScissorRect.TopLeft, ScissorRect.TopRight);
+					const float ScissorHeight = FVector2D::Distance(ScissorRect.TopLeft, ScissorRect.BottomLeft);
+					glScissor(ScissorRect.TopLeft.X, ViewportSize.Y - ScissorRect.BottomLeft.Y, ScissorWidth, ScissorHeight);
+				}
+				else
+				{
+					// We don't support stencil clipping on the d3d rendering policy.
+					glDisable(GL_SCISSOR_TEST);
+				}
+			}
+			else
+			{
+				glDisable(GL_SCISSOR_TEST);
+			}
+		}
+		
 #if SLATE_USE_32BIT_INDICES
 #define GL_INDEX_FORMAT GL_UNSIGNED_INT
 #else
@@ -278,6 +301,7 @@ void FSlateOpenGLRenderingPolicy::DrawElements( const FMatrix& ViewProjectionMat
 	}
 
 	// Disable active textures and shaders
+	glDisable(GL_SCISSOR_TEST);
 	glActiveTexture( GL_TEXTURE0 );
 	glBindTexture( GL_TEXTURE_2D, 0 );
 	glUseProgram(0);

@@ -10,9 +10,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Amazon.S3.Model;
 using Tools.CrashReporter.CrashReportCommon;
-using Tools.DotNETCommon.LaunchProcess;
-using Tools.DotNETCommon.SimpleWebRequest;
-using Tools.DotNETCommon.XmlHandler;
 
 namespace Tools.CrashReporter.CrashReportProcess
 {
@@ -342,6 +339,8 @@ namespace Tools.CrashReporter.CrashReportProcess
 				}
 
 				CrashReporterProcessServicer.Log.CleanOutOldLogs(Config.Default.DeleteWaitingReportsDays);
+
+				Symbolicator.CleanOutOldLogs(Config.Default.DeleteWaitingReportsDays);
 			}
 			catch( Exception Ex )
 			{

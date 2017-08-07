@@ -215,4 +215,6 @@ protected:
 
 protected:
 	TSharedPtr<SSpinBox<float>> MySpinBox;
+
+	PROPERTY_BINDING_IMPLEMENTATION(float, Value);
 };

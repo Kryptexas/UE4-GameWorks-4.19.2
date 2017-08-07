@@ -1,9 +1,14 @@
-﻿INTSourceChangelist:2729971
+﻿INTSourceChangelist:3471591
 Availability:Public
-title:Pivot Painter（軸ペインター）
+title:Pivot Painter マテリアル関数
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
 Description:Pivot Painter MAXScript を使うために作成された機能
 Version:4.9
+Parent:Engine/Rendering/Materials/Functions/Reference
+Related:Engine/Content/Tools/PivotPainter
+Topic-Image:PivotPainterMF_Topic.png
+tags:Materials
+tags:Pivot Painter
 
 [TOC (start:2 end:3)]
 
@@ -29,20 +34,22 @@ Pivot Painter が提供するデータは、これらの関数を使わなくて
 
 ## Pivot Painter 関数
 
-以下は Pivot Painter カテゴリに属する全関数のリストです。
+以下は Pivot Painter カテゴリに属する全関数のリストです。 
+
+これらの関数は、Pivot Painter MAXScript によりモデルの UV に格納されているワールド位置およびアングルに関する情報の処理と整理を行います。
 
 ### PivotPainter_HierarchyData
 
-Pivot Painter MAXScript によりモデルの UV に格納されているワールド位置と角度情報の処理と整理を行います。この特別な関数はオブジェクト階層と機能するように特別に作成されています。
+オブジェクト階層と機能する特殊な関数です。
 
 | アイテム | 説明 |
 | -------- | -------- |
 | [REGION:tablesection]入力値[/REGION] ||
 | **Max Dist for Parent Piv (Scalar)** | アセットのペイント中は MAXScript 「Max Dist for Parent Piv」のスピナーで使用された値と一致しなければなりません。 |
 |[REGION:tablesection]出力値[/REGION] ||
-| **Parent Piv Position** | ワールド空間における各親の回転軸情報を返します。子供は自分がアタッチされている親の回転軸情報を返します。 |
+| **Parent Piv Position** | ワールド空間の親の回転軸情報を返します。子供は自分がアタッチされている親の回転軸情報を返します。 |
 | **Parent X Axis Vector** | 親の X 軸方向を向いている標準化されたベクターを返します。 |
-| **Child Piv Position** | 各子供に対するワールド内での回転位置情報を返します。親は値 (0,0,0) を返します。|
+| **Child Piv Position** | それぞれの子のワールド内での回転位置情報を返します。親は値 (0,0,0) を返します。|
 | **Child X-Axis Vector** | 親の回転軸方向を向いているノーマライズ化されたベクターを返します。|
 | **Object Pivot Point** | オブジェクトの回転軸の位置です。 |
 | **Object Orientation** | オブジェクトの方向です。 |
@@ -59,7 +66,7 @@ Pivot Painter MAXScript によりモデルの UV に格納されているワー�
 
 ### PivotPainter_PerObjectData
 
-Pivot Painter MAXScript によりモデルの UV に格納されているワールド位置と角度情報の処理と整理を行います。この特別な関数はオブジェクト別に機能するように特別に作成されています。
+オブジェクト別に機能する特殊な関数です。
 
 | アイテム | 説明 |
 | -------- | -------- |
@@ -75,18 +82,18 @@ Pivot Painter MAXScript によりモデルの UV に格納されているワー�
 
 ### PivotPainter_PerObjectFoliageData
 
-Pivot Painter MAXScript によりモデルの UV に格納されているワールド位置と角度情報の処理と整理を行います。この関数は個別のフォリッジ オブジェクトと特別に機能するように作成されました。
+個別のフォリッジ オブジェクトとのみ機能する関数です。
 
 
 | アイテム | 説明 |
 | -------- | -------- |
 | [REGION:tablesection]入力値[/REGION] ||
 | **Wind Vector (Vector4)** | 風の方向と大きさに使う入力ベクターを受け取ります。 |
-| **Optimized for Foliage Placement (StaticBool)** | 「Optimize for Foliage Placement」オプションにチェックを付けてPivot Painter を使用してメッシュを処理した場合は *true* に設定されています。デフォルトは *false* です。|
-| **Optimized Vector (Vector3)** | エレメントの回転軸として使用するローカルベクターを入力します。*Optimized for Foliage Placement* 入力が *true* に設定されている場合のみ実行可能です。|
+| **Optimized for Foliage Placement (StaticBool)** | [Optimize for Foliage Placement (フォリッジの配置を最適化)] オプションにチェックを付けてPivot Painter を使用してメッシュを処理した場合は *true* に設定されています。デフォルトは *false* です。|
+| **Optimized Vector (Vector3)** | エレメントの回転軸として使用するローカル ベクターを入力します。*Optimized for Foliage Placement* 入力が *true* に設定されている場合のみ実行可能です。|
 |[REGION:tablesection]出力値[/REGION] ||
 | **Piv Position** | ワールド空間における各エレメントの回転軸情報を返します。|
-| **Element Rot Axis** | RotateAboutAxis ノードで使用される枝の回転軸を返します。葉は同じ情報を返します。注記：ローカルからワールド空間へ枝の X 軸に沿ってベクターを変形すると角度が見つかります。すると、風向きと変形されたベクターの間の外積が見つかります。
+| **Element Rot Axis** | RotateAboutAxis ノードで使用される枝の回転軸を返します。葉は同じ情報を返します。注意：ローカルからワールド空間へ枝の X 軸に沿ってベクターを変形すると角度が見つかります。すると、風向きと変形されたベクターの間の外積が見つかります。|
 | **Element X-Axis** | 回転軸からメッシュの平均的な中心に向かって、エレメントの X 軸方向を向いている標準化されたベクターを返します。回転軸からメッシュの平均的な中心に向かいます。 |
 | **Random Value Per Element** | 0-1 の範囲でエレメントごとにランダムな値を返します。|
 | **Custom Alpha Values** | モデルの頂点アルファ チャネルに格納されているカスタム フォールオフ値を返します。|
@@ -101,31 +108,31 @@ Pivot Painter MAXScript によりモデルの UV に格納されているワー�
 
 ### PivotPainter_TreeData
 
-Pivot Painter スクリプトによりモデルの UV に格納されているワールド位置と角度情報の処理と整理を行います。*tree* で始まる出力ではモデルの UV 情報が処理され、Pivot Painter MAXScript で格納されます。*Leaf* で始まる出力では UV 情報が処理され、スクリプトのオブジェクトごとの pivot painting セクションによって格納されます。
+*tree* で始まる出力ではモデルの UV 情報が処理され、Pivot Painter MAXScript で格納されます。*Leaf* で始まる出力では UV 情報が処理され、スクリプトのオブジェクトごとの pivot painting セクションによって格納されます。
 
 | アイテム | 説明 |
 | -------- | -------- |
 | [REGION:tablesection]入力値[/REGION] ||
 | **WindVector (Vector3)** | 風が吹くことになる方向です。|
-| **Max Dist for Parent Piv (Scalar)** | アセットのペイント中は MAXScript 「Max Dist for Parent Piv」の最大スピナーで使用された値と一致しなければなりません。 |
+| **Max Dist for Parent Piv (Scalar)** | アセットのペイント中は MAXScript "Max Dist for Parent Piv" の最大スピナーで使用された値と一致しなければなりません。 |
 |[REGION:tablesection]出力値[/REGION] ||
 | **Piv Position** | ワールド空間における各枝の回転軸情報を返します。葉は自分がアタッチされている枝の回転軸情報を返します。|
-| **Branch Wind Rot Axis** | RotateAboutAxis ノードで使用される枝の回転軸を返します。葉は同じ情報を返します。注記：ローカルからワールド空間へ枝の X 軸に沿ってベクターを変形すると角度が見つかります。すると、風向きと変形されたベクターの間の外積が見つかります。
+| **Branch Wind Rot Axis** | RotateAboutAxis ノードで使用される枝の回転軸を返します。葉は同じ情報を返します。注意：ローカルからワールド空間へ枝の X 軸に沿ってベクターをトランスフォームすると、アングルが分かります。そうすると、風向きとトランスフォームしたベクター間の外積が見つかります。|
 | **Branch X-Axis Vector** | 枝の X 軸方向を向いている標準化されたベクターを返します。 カスタム ベクター算出に必要ない限り、フォリッジ アニメーションには通常必要ありません。 |
 | **Branch Flow Grad** | 風の吹いている方向にグラディエント値を返します。 |
 | **Branch Flow Grad 90 Deg** | 風に対して 90 度の角度でワールド空間を横切るグラディエント値を返します。|
 | **Leaf Piv Position** | 各葉のワールド内での回転位置情報を返します。枝は値 (0,0,0) を返します。
-| **Leaf Rot Axis** | RotateAboutAxis ノードで使用される葉の回転軸を返します。枝は (0,0,0) を返します。注記：ローカルからワールド空間へ葉の X 軸に沿ってベクターを変形すると角度が分かります。すると、風向きと変形されたベクターの間の外積が見つかります。
+| **Leaf Rot Axis** | RotateAboutAxis ノードで使用される葉の回転軸を返します。枝は (0,0,0) を返します。注意：ローカルからワールド空間へ葉の X 軸に沿ってベクターを変形すると角度が分かります。そうすると、風向きとトランスフォームしたベクター間の外積が見つかります。|
 | **Leaf X-Axis Vector** | 枝の X 軸方向を向いている標準化されたベクターを返します。 カスタム ベクター算出に必要ない限り、フォリッジ アニメーションには通常必要ありません。 |
-| **Leaf Mask** | 葉に使う白いマスクテクスチャを返します。枝は全て黒です。 |
+| **Leaf Mask** | 葉に使う白いマスク テクスチャを返します。枝は全て黒です。 |
 | **Leaf Flow Grad** | 風の吹いている方向のグラディエント値を返します。
 | **Leaf Flow Grad 90 Deg** | 風に対して 90 度の角度でワールド空間を横切るグラディエント値を返します。|
 | **Object Pivot Point** | オブジェクトの回転軸の位置を返します。|
 | **Object Orientation** | オブジェクトの方向を返します。|
 | **オブジェクト回転軸** | オブジェクトの回転軸を返します。|
-| **Object Orientation** | オブジェクトのスケールを返します。|
-| **Object Flow Grad** |ワールド空間のオブジェクトレベルで風のベクター値と揃っているグラディエントです。|
-| **Object Flow Grad 90 deg** |ワールド空間のオブジェクトレベルで風のベクター値と揃っているグラディエントです。|
+| **Object Scale** | オブジェクトのスケールを返します。|
+| **Object Flow Grad** | ワールド空間のオブジェクトレベルで風のベクター値と揃っているグラディエントです。|
+| **Object Flow Grad 90 deg** | ワールド空間のオブジェクトレベルで風のベクター値と揃っているグラディエントです。|
 | **WindStrength** | 風の強さを返します。風のベクター値の強度は風のベクター値から 0 へ距離を計算して割り出します。 |
 | **Normalized Wind Vector** | 0-1 の間の大きさで標準化された風のベクター値を返します。|
 | **WindSpeed** | 時間を乗算した風の速度です。|

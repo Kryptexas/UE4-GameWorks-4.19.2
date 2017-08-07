@@ -102,7 +102,7 @@ namespace BuildGraph.Tasks
 			}
 			try
 			{
-				CommandUtils.RunUAT(CommandUtils.CmdEnv, CommandLine.ToString());
+				CommandUtils.RunUAT(CommandUtils.CmdEnv, CommandLine.ToString(), Identifier: Parameters.Name);
 			}
 			catch (CommandUtils.CommandFailedException)
 			{

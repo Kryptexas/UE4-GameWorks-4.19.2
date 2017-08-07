@@ -5,8 +5,8 @@
 #include "Misc/FeedbackContext.h"
 
 #include "UnitTestManager.h"
-
 #include "UnitTestEnvironment.h"
+#include "NUTUtil.h"
 
 #include "UI/SLogWindow.h"
 #include "UI/SLogWidget.h"
@@ -402,9 +402,31 @@ void UProcessUnitTest::PollProcessOutput()
 				{
 					bProcessedPipeRead = false;
 
-					// NOTE: This MUST be set to 0.0, because in extreme circumstances (such as DDoS which outputs a lot of log data),
-					//			this can actually block the current thread, due to the sleep being too long
-					FPlatformProcess::Sleep(0.0f);
+					// Limit blocking pipe sleeps, to 5 seconds per every minute, to limit UI freezes
+					static double LastPipeCounterReset = 0.0;
+					static uint32 PipeCounter = 0;
+					const float PipeDelay = 0.1f;
+					const float MaxPipeDelay = 5.0f;
+
+					double CurTime = FPlatformTime::Seconds();
+
+					if ((CurTime - LastPipeCounterReset) - 60.0 >= 0)
+					{
+						LastPipeCounterReset = CurTime;
+						PipeCounter = 0;
+					}
+
+					if (MaxPipeDelay - (PipeCounter * PipeDelay) > 0.0f)
+					{
+						FPlatformProcess::Sleep(PipeDelay);
+						PipeCounter++;
+					}
+					else
+					{
+						// NOTE: This MUST be set to 0.0, because in extreme circumstances (such as DDoS outputting lots of log data),
+						//			this can actually block the current thread, due to the sleep being too long
+						FPlatformProcess::Sleep(0.0f);
+					}
 				}
 				else
 				{
@@ -416,7 +438,15 @@ void UProcessUnitTest::PollProcessOutput()
 			{
 				// Every log line should start with an endline, so if one is missing, print that into the log as an error
 				bool bPartialRead = !LogDump.StartsWith(FString(LINE_TERMINATOR));
-				const TCHAR* PartialLog = TEXT("--MISSING ENDLINE - PARTIAL PIPE READ--");
+				FString PartialLog = FString::Printf(TEXT("--MISSING ENDLINE - PARTIAL PIPE READ (First 32 chars: %s)--"),
+														*LogDump.Left(32));
+
+				// @todo #JohnB: I don't remember why I implemented this with StartsWith, but it worked for ~3-4 years,
+				//					and now it is throwing up 'partial pipe read' errors for Fortnite,
+				//					and I can't figure out why it worked at all, and why it's not working now.
+#if 1
+				bPartialRead = !LogDump.EndsWith(FString(LINE_TERMINATOR));
+#endif
 
 				// Now split up the log into multiple lines
 				TArray<FString> LogLines;
@@ -440,12 +470,26 @@ void UProcessUnitTest::PollProcessOutput()
 
 				if (bPartialRead)
 				{
-					UE_LOG(NetCodeTestNone, Log, TEXT("%s"), PartialLog);
+					UE_LOG(NetCodeTestNone, Log, TEXT("%s"), *PartialLog);
 				}
 
 				for (int LineIdx=0; LineIdx<LogLines.Num(); LineIdx++)
 				{
 					UE_LOG(NetCodeTestNone, Log, TEXT("%s%s"), *CurHandle->LogPrefix, *(LogLines[LineIdx]));
+				}
+
+				// Output to the unit log file
+				if (UnitLog.IsValid())
+				{
+					if (bPartialRead)
+					{
+						UnitLog->Serialize(*PartialLog, ELogVerbosity::Log, NAME_None);
+					}
+
+					for (int LineIdx=0; LineIdx<LogLines.Num(); LineIdx++)
+					{
+						NUTUtil::SpecialLog(UnitLog.Get(), *CurHandle->LogPrefix, *(LogLines[LineIdx]), ELogVerbosity::Log, NAME_None);
+					}
 				}
 
 				// Restore the engine-event log hook

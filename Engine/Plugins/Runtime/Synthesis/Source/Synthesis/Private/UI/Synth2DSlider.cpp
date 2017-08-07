@@ -36,8 +36,8 @@ void USynth2DSlider::SynchronizeProperties()
 {
 	Super::SynchronizeProperties();
 
-	TAttribute<float> ValueXBinding = OPTIONAL_BINDING(float, ValueX);
-	TAttribute<float> ValueYBinding = OPTIONAL_BINDING(float, ValueY);
+	TAttribute<float> ValueXBinding = PROPERTY_BINDING(float, ValueX);
+	TAttribute<float> ValueYBinding = PROPERTY_BINDING(float, ValueY);
 
 	MySlider->SetSliderHandleColor(SliderHandleColor);
 	MySlider->SetValueX(ValueXBinding);

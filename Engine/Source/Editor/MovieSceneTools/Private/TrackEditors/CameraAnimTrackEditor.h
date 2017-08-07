@@ -12,7 +12,7 @@
 #include "ISequencerTrackEditor.h"
 #include "MovieSceneTrackEditor.h"
 
-class FAssetData;
+struct FAssetData;
 class FMenuBuilder;
 class UCameraAnim;
 
@@ -54,7 +54,7 @@ public:
 private:
 
 	/** Delegate for AnimatablePropertyChanged in AddKey */
-	bool AddKeyInternal(float KeyTime, const TArray<TWeakObjectPtr<UObject>> Objects, UCameraAnim* CameraAnim);
+	FKeyPropertyResult AddKeyInternal(float KeyTime, const TArray<TWeakObjectPtr<UObject>> Objects, UCameraAnim* CameraAnim);
 
 	/** Animation sub menu */
 	TSharedRef<SWidget> BuildCameraAnimSubMenu(FGuid ObjectBinding);

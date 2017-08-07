@@ -1,11 +1,13 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3429264
 Availability: Public
 Title: 일인칭 슈팅 C++ 튜토리얼
 Crumbs: %ROOT%, GettingStarted, Programming/Tutorials
 Description: 일인칭 슈팅 게임 메커니즘 구현 방법을 배워봅니다.
 prereq:Programming/Development/VisualStudioSetup
-SkillLevel: Beginner
-Version: 4.11
+type:how-to
+type:landing
+skilllevel:Beginner
+Version: 4.15
 
 ![](FPS_CoverImage.png)
 _이 튜토리얼을 마치면 이와 같은 화면을 보게 됩니다._

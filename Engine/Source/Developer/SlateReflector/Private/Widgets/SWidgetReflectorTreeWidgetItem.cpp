@@ -9,10 +9,17 @@
 /* SMultiColumnTableRow overrides
  *****************************************************************************/
 
+FName SReflectorTreeWidgetItem::NAME_WidgetName(TEXT("WidgetName"));
+FName SReflectorTreeWidgetItem::NAME_WidgetInfo(TEXT("WidgetInfo"));
+FName SReflectorTreeWidgetItem::NAME_Visibility(TEXT("Visibility"));
+FName SReflectorTreeWidgetItem::NAME_Clipping(TEXT("Clipping"));
+FName SReflectorTreeWidgetItem::NAME_ForegroundColor(TEXT("ForegroundColor"));
+FName SReflectorTreeWidgetItem::NAME_Address(TEXT("Address"));
+
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 TSharedRef<SWidget> SReflectorTreeWidgetItem::GenerateWidgetForColumn(const FName& ColumnName)
 {
-	if (ColumnName == TEXT("WidgetName"))
+	if (ColumnName == NAME_WidgetName )
 	{
 		return SNew(SHorizontalBox)
 
@@ -33,7 +40,7 @@ TSharedRef<SWidget> SReflectorTreeWidgetItem::GenerateWidgetForColumn(const FNam
 			.ColorAndOpacity(this, &SReflectorTreeWidgetItem::GetTint)
 		];
 	}
-	else if (ColumnName == TEXT("WidgetInfo"))
+	else if (ColumnName == NAME_WidgetInfo )
 	{
 		return SNew(SBox)
 			.HAlign(HAlign_Left)
@@ -45,7 +52,7 @@ TSharedRef<SWidget> SReflectorTreeWidgetItem::GenerateWidgetForColumn(const FNam
 				.OnNavigate(this, &SReflectorTreeWidgetItem::HandleHyperlinkNavigate)
 			];
 	}
-	else if (ColumnName == "Visibility")
+	else if (ColumnName == NAME_Visibility )
 	{
 		return SNew(SBox)
 			.HAlign(HAlign_Center)
@@ -53,10 +60,21 @@ TSharedRef<SWidget> SReflectorTreeWidgetItem::GenerateWidgetForColumn(const FNam
 			.Padding(FMargin(2.0f, 0.0f))
 			[
 				SNew(STextBlock)
-					.Text(this, &SReflectorTreeWidgetItem::GetVisibilityAsString)
+				.Text(this, &SReflectorTreeWidgetItem::GetVisibilityAsString)
 			];
 	}
-	else if (ColumnName == "ForegroundColor")
+	else if ( ColumnName == NAME_Clipping )
+	{
+		return SNew(SBox)
+			.HAlign(HAlign_Center)
+			.VAlign(VAlign_Center)
+			.Padding(FMargin(2.0f, 0.0f))
+			[
+				SNew(STextBlock)
+				.Text(this, &SReflectorTreeWidgetItem::GetClippingAsString)
+			];
+	}
+	else if (ColumnName == NAME_ForegroundColor )
 	{
 		const FSlateColor Foreground = WidgetInfo->GetWidgetForegroundColor();
 
@@ -74,7 +92,7 @@ TSharedRef<SWidget> SReflectorTreeWidgetItem::GenerateWidgetForColumn(const FNam
 					.Size(FVector2D(16.0f, 16.0f))
 			];
 	}
-	else if (ColumnName == "Address")
+	else if (ColumnName == NAME_Address )
 	{
 		const FText Address = FText::FromString(WidgetInfo->GetWidgetAddress());
 		

@@ -7,6 +7,10 @@
 #include "OnlineExternalUIInterface.h"
 #include "OnlineError.h"
 
+#include "IWebBrowserSingleton.h"
+#include "WebBrowserModule.h"
+#include "IWebBrowserCookieManager.h"
+
 DEFINE_LOG_CATEGORY(LogLoginFlow);
 
 #define LOGIN_TOKEN_FOUND FString()
@@ -40,6 +44,11 @@ FLoginFlowManager::FLoginFlowManager()
 
 FLoginFlowManager::~FLoginFlowManager()
 {
+	Reset();
+}
+
+void FLoginFlowManager::Reset()
+{
 	// if we're in an active flow, just fire dismissal then shut down
 	if (PendingLogin.IsValid())
 	{
@@ -54,16 +63,21 @@ FLoginFlowManager::~FLoginFlowManager()
 		if (OnlineSub != nullptr)
 		{
 			IOnlineExternalUIPtr OnlineExternalUI = OnlineSub->GetExternalUIInterface();
+			IOnlineIdentityPtr OnlineIdentity = OnlineSub->GetIdentityInterface();
 			if (OnlineExternalUI.IsValid())
 			{
 				OnlineExternalUI->ClearOnLoginFlowUIRequiredDelegate_Handle(OnlineParams.LoginFlowUIRequiredDelegateHandle);
+			}
+			if (OnlineIdentity.IsValid())
+			{
+				OnlineIdentity->ClearOnLoginFlowLogoutDelegate_Handle(OnlineParams.LoginFlowLogoutDelegateHandle);
 			}
 		}
 	}
 	OnlineSubsystemsMap.Empty();
 }
 
-bool FLoginFlowManager::AddLoginFlow(FName OnlineIdentifier, const FOnDisplayPopup& InPopupDelegate)
+bool FLoginFlowManager::AddLoginFlow(FName OnlineIdentifier, const FOnDisplayPopup& InPopupDelegate, bool bPersistCookies)
 {
 	bool bSuccess = false;
 
@@ -73,13 +87,42 @@ bool FLoginFlowManager::AddLoginFlow(FName OnlineIdentifier, const FOnDisplayPop
 		IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get(OnlineIdentifier);
 		if (OnlineSub != nullptr)
 		{
-			// bind to the OSS delegate
+			// get information from OSS and bind to the OSS delegate
+			IOnlineIdentityPtr OnlineIdentity = OnlineSub->GetIdentityInterface();
 			IOnlineExternalUIPtr OnlineExternalUI = OnlineSub->GetExternalUIInterface();
-			if (OnlineExternalUI.IsValid())
+			if (OnlineIdentity.IsValid() && OnlineExternalUI.IsValid())
 			{
+				IWebBrowserSingleton* WebBrowserSingleton = IWebBrowserModule::Get().GetSingleton();
+				FString ContextName = FString::Printf(TEXT("LoginFlowContext_%s"), *OnlineIdentifier.ToString());
+
 				FOnlineParams& NewParams = OnlineSubsystemsMap.Add(OnlineIdentifier);
 				NewParams.OnlineIdentifier = OnlineIdentifier;
 				NewParams.OnDisplayPopup = InPopupDelegate;
+#ifdef WEBBROWSER_HASAPPLICATIONCACHEDIR
+				NewParams.BrowserContextSettings = MakeShared<FBrowserContextSettings>(ContextName);
+				NewParams.BrowserContextSettings->bPersistSessionCookies = bPersistCookies;
+				if (NewParams.BrowserContextSettings->bPersistSessionCookies)
+				{
+					// Taken from FWebBrowserSingleton
+					FString CachePath(FPaths::Combine(WebBrowserSingleton->ApplicationCacheDir(), TEXT("webcache")));
+					CachePath = FPaths::ConvertRelativePathToFull(CachePath);
+					NewParams.BrowserContextSettings->CookieStorageLocation = CachePath;
+				}
+
+				if (!WebBrowserSingleton->RegisterContext(*NewParams.BrowserContextSettings))
+				{
+					UE_LOG(LogLoginFlow, Warning, TEXT("Failed to register context in web browser singleton for %s"), *NewParams.BrowserContextSettings->Id);
+				}
+
+				NewParams.LoginFlowLogoutDelegateHandle = OnlineIdentity->AddOnLoginFlowLogoutDelegate_Handle(FOnLoginFlowLogoutDelegate::CreateSP(this, &FLoginFlowManager::OnLoginFlowLogout, OnlineIdentifier));
+#else
+				if (!bPersistCookies)
+				{
+					// context settings to not persist cookies
+					NewParams.BrowserContextSettings = MakeShared<FBrowserContextSettings>(TEXT("LoginFlowContext"));
+				}
+#endif
+
 				NewParams.LoginFlowUIRequiredDelegateHandle = OnlineExternalUI->AddOnLoginFlowUIRequiredDelegate_Handle(FOnLoginFlowUIRequiredDelegate::CreateSP(this, &FLoginFlowManager::OnLoginFlowStarted, OnlineIdentifier));
 				bSuccess = true;
 			}
@@ -131,12 +174,12 @@ void FLoginFlowManager::OnLoginFlowStarted(const FString& RequestedURL, const FO
 		SAssignNew(PendingLogin->PopupHolder, SBox);
 
 		// give the widget to the App to display and get back a callback we should use to dismiss it
-		FString AnalyticsSessionId;
 		PendingLogin->OnPopupDismissed = Params->OnDisplayPopup.Execute(PendingLogin->PopupHolder.ToSharedRef());
 
 		// generate a login flow chromium widget
 		ILoginFlowModule::FCreateSettings CreateSettings;
 		CreateSettings.Url = RequestedURL;
+		CreateSettings.BrowserContextSettings = Params->BrowserContextSettings;
 
 		// Setup will allow login flow module events to trigger passed in delegates
 		CreateSettings.CloseCallback = FOnLoginFlowRequestClose::CreateSP(this, &FLoginFlowManager::OnLoginFlow_Close, PendingLogin->InstanceId);
@@ -246,4 +289,27 @@ void FLoginFlowManager::FinishLogin()
 
 	// clear this object so we can handle another login
 	PendingLogin.Reset();
+}
+
+void FLoginFlowManager::OnLoginFlowLogout(const TArray<FString>& LoginDomains, FName InOnlineIdentifier)
+{
+	FOnlineParams* Params = OnlineSubsystemsMap.Find(InOnlineIdentifier);
+	if (Params)
+	{
+		IWebBrowserSingleton* WebBrowserSingleton = IWebBrowserModule::Get().GetSingleton();
+		TOptional<FString> ContextId;
+		if (Params->BrowserContextSettings.IsValid())
+		{
+			ContextId = Params->BrowserContextSettings->Id;
+		}
+		TSharedPtr<IWebBrowserCookieManager> CookieManager = WebBrowserSingleton->GetCookieManager(ContextId);
+		for (const FString& LoginDomain : LoginDomains)
+		{
+			CookieManager->DeleteCookies(LoginDomain);
+		}
+	}
+	else
+	{
+		UE_LOG(LogLoginFlow, Error, TEXT("No login flow registered for online subsystem %s"), *InOnlineIdentifier.ToString());
+	}
 }

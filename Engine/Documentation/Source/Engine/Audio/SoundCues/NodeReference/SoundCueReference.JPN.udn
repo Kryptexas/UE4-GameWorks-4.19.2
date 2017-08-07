@@ -1,9 +1,13 @@
-﻿INTSourceChangelist:2675756
+﻿INTSourceChangelist:3429236
 Availability:Public
 Title:サウンド キュー リファレンス
 Crumbs: %ROOT%, Engine, Engine/Audio
 Description:サウンド キューとそのプロパティに使用できるノードを説明したリファレンス
 version:4.9
+Parent:Engine/Audio
+type:reference
+order:6
+
 [TOC (start:2)]
 
 
@@ -86,7 +90,7 @@ Attenuation ノードを使ってサウンド キューの減衰設定をオー�
 | [REGION:tablesection]Sound Node Modulator Continuous[/REGION] ||
 | [REGION:tablesection]Pitch Modulation Params[/REGION] ||
 | **Parameter Name** | ピッチ制御に使用するパラメータです。 |
-| **Default** | ピッチのモジュレーション (変調) のデフォルト レベルです。。 |
+| **Default** | ピッチのモジュレーション (変調) のデフォルト レベルです。 |
 | **Min Input** | 入力サウンドの最小ピッチです。 |
 | **Max Input** | 入力サウンドの最大ピッチです。 |
 | **Min Output** | 出力サウンドの最小ピッチです。 |
@@ -98,7 +102,7 @@ Attenuation ノードを使ってサウンド キューの減衰設定をオー�
 | **Min Input** | 入力サウンドの最小ボリュームを設定します。 |
 | **Max Input** | 入力サウンドの最大ボリュームを設定します。 |
 | **Min Output** | 出力サウンドの最小ボリュームを設定します。 |
-| **Max Output** | 出力サウンドの最大ボリュームを設定します。 |
+| **Min Output** | 出力サウンドの最大ボリュームを設定します。 |
 | **Param Mode** | [INCLUDE:Engine/Audio/SoundCues/NodeReference/#ParamMode] |
 
 [REGION:note]
@@ -106,7 +110,7 @@ Attenuation ノードを使ってサウンド キューの減衰設定をオー�
 [/REGION]
 
 
-<!--
+<!---
 [EXCERPT:ParamMode]
 パラメータを適用するモードは以下の通りです。 
 * **MPM_Normal** - 入力値を範囲 (MinInput, MaxInput) にクランプしてから範囲 (MinOutput、MaxOutput) に対してマッピングします。 
@@ -155,7 +159,7 @@ Attenuation ノードを使ってサウンド キューの減衰設定をオー�
 
 ## Delay ノード
 
-Delay (遅延) ノードは入力サウンドが出力として渡される前に一連のオーディオノードを一時停止して遅延を加えます。遅延時間は **[Details]** パネルで指定する **Delay Min** から **Delay Max** の間のランダム値です。
+**Delay (遅延)** ノードは入力サウンドが出力として渡される前に一連のオーディオノードを一時停止して遅延を加えます。遅延時間は **[Details]** パネルで指定する **Delay Min** から **Delay Max** の間のランダム値です。
 
 ![Delay Node](SoundCueEditor_Delay.png)
 
@@ -210,7 +214,7 @@ Delay (遅延) ノードは入力サウンドが出力として渡される前�
 | **Loop Indefinitely** | これが有効化されている場合、Loop Count 値に関係なくエンベロープはループし続けます。 |
 | **Loop** | これが有効化されている場合、エンベロープはループ設定を使用してループします。 |
 | [REGION:tablesection]Envelope[/REGION] ||
-| **Volume Curve** | ボリューム エンベロープを定義する分布です。  |
+| **Volume Curve** | ボリューム エンベロープを定義する分布です。 |
 | **Pitch Curve** | ピッチ エンベロープを定義する分布です。 |
 | [REGION:tablesection]Modulation [/REGION] ||
 | **Pitch Min** | 入力サウンドの最小ピッチを設定します。 |
@@ -241,7 +245,7 @@ Enveloper ノードの **[Details (詳細)]** パネルにはエンベロープ 
 
 | プロパティ | 説明 |
 | -------- | ----------- |
-| [REGION:tablesection]Sound Node Branch[/REGION] ||
+| [REGION:tablesection]Sound Node Group Control[/REGION] ||
 | **Group Sizes** | グループ内の Sound Wave ノード数から 1 をひいた数 (最初の Sound Wave ノードは 0 )。|
 
 <!-- get more info here -->

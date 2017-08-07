@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3481084
 Availability:Public
 Title: 메인 메뉴 바
 Crumbs:%ROOT%, Engine, Engine/UI
@@ -9,7 +9,37 @@ Version: 4.9
 에디터의 **메뉴 바** 는 윈도우 어플리케이션을 사용하신 분이라면 누구에게나 익숙할 것입니다. 에디터에서 작업시 흔히 사용되는 일반 툴과 명령이 들어있는 메뉴입니다.
 [/EXCERPT:Intro]
 
-![](MainMenubar.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+[REGION:lightbox]
+![](MenuBar_Windows.png)
+[/REGION]
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+[REGION:lightbox]
+![](MenuBar_Mac.png)
+[/REGION]
+[/PARAM]
+[/OBJECT]
 
 ## 파일
 

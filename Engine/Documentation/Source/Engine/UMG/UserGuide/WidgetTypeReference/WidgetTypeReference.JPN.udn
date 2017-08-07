@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3345453
+﻿INTSourceChangelist:3372539
 Availability:Public
 Title:Widget タイプのリファレンス
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
@@ -8,7 +8,7 @@ tags:UMG UI Designer
 
 [TOC(start:2 end:2)]
 
-**Widget ブループリント エディタ** 内の **[Palette (パレット)]** ウィンドウには、4 種類の **Widget** のカテゴリがあります。各カテゴリ内には、様々な Widget があり、**ビジュアル デザイナ** にドラッグ＆ドロップすることができます。こうしたウィジェットを組み合わせて、**[Designer (デザイナ)]** タブで UI の外観をレイアウトし、各ウィジェットの **[Details (詳細)]** パネルの設定と **[Graph (グラフ)]** タブの設定を通してウィジェットの機能を追加することができます。 
+**Widget ブループリント エディタ** 内の **[Palette (パレット)]** ウィンドウには、いくつかの **Widget** のカテゴリがあります。各カテゴリ内には、様々な Widget があり、**ビジュアル デザイナ** にドラッグ＆ドロップすることができます。こうしたウィジェットを組み合わせて、**[Designer (デザイナ)]** タブで UI の外観をレイアウトし、各ウィジェットの **[Details (詳細)]** パネルの設定と **[Graph (グラフ)]** タブの設定を通してウィジェットの機能を追加することができます。 
 
 以下は、**[Palette]** ウィンドウの Widget の種類を表しています。 
 
@@ -29,7 +29,7 @@ tags:UMG UI Designer
 | **Button** | ボタンは単一の子であり、基本的なインタラクションを有効にするクリック可能なプリミティブ ウィジェットです。ボタン内に他のウィジェットを入れてより複雑な面白いクリック可能なエレメントを UI に作ることができます。 |
 | **Check Box** | 'unchecked'、 'checked'、'indeterminable' (未チェック、チェック済み、未確定) の切り替えた状態を表示できます。標準的なチェックボックス、またはトグルボタン、またはラジオボタンとしてこのチェックボックスを使用できます。  |
 | **Image** | UI にスレートブラシ、テクスチャ、スプライト、またはマテリアルを表示できるようにします。[REGION:note]レンダリング時にすべて同じレイヤーを共有しているのであれば、同じテクスチャ アトラスを構成しているスプライトはスレートと一緒にバッチ処理することができます。つまり、ドロー コール カウントの制限が厳しいプラットフォームでは、Paper2D スプライトをブラシの入力として使用すると UMG とスレート ウィジェットのレンダリングの効率は大幅に上がります。[/REGION] |
-| [Named Slot](Engine\UMG\UserGuide\WidgetTypeReference\NamedSlot) | [INCLUDE:Engine\UMG\UserGuide\WidgetTypeReference\NamedSlot#desc] |
+| [**Named Slot**](Engine\UMG\UserGuide\WidgetTypeReference\NamedSlot) | [INCLUDE:Engine\UMG\UserGuide\WidgetTypeReference\NamedSlot#desc] |
 | **Progress Bar** | 進捗バー ウィジェットは、進捗に合わせて満たされるシンプルなバーであり、経験値、ヘルス、ポイントなどの用途でいくつでも再スタイリングできます。 |
 | **Slider** | ハンドル付きのスライド バーを表示するシンプルなウィジェットです。 0-1 の間の値を制御できます。 |
 | **Text** | 画面上にテキストを表示する基本的な方法です。オプションや他の UI エレメントのテキストを記述するために使用できます。 |
@@ -89,7 +89,7 @@ tags:UMG UI Designer
 | **Uniform Grid Panel** | 複数の子全体で利用可能な領域を均等に分割するパネルです。 |
 | **Vertical Box** | 縦方向ボックス (vertical box) ウィジェットは、子ウィジェットを自動的に垂直に配列するレイアウト パネルです。これはウィジェットを積み重ね、縦方向に並べるのに適しています。|
 | **Widget Switcher** | タブ コントロールのようなものですが、タブはなく、独自にタブを作成してこのウィジェット スイッチャーと組み合わせてタブ効果を得ることができます。最大限でもウィジェットは一度に 1 つだけ見えます。  |
-| [Wrap Box](Engine\UMG\UserGuide\WidgetTypeReference\WrapBox) | [INCLUDE:Engine\UMG\UserGuide\WidgetTypeReference\WrapBox#desc] |
+| [**Wrap Box**](Engine\UMG\UserGuide\WidgetTypeReference\WrapBox) | [INCLUDE:Engine\UMG\UserGuide\WidgetTypeReference\WrapBox#desc] |
 
 
 ## プリミティブ
@@ -103,7 +103,7 @@ tags:UMG UI Designer
 | **Circular Throbber** | くるくると回る円で画像を表示するウィジェットです。 |
 | **Editable Text** | ボックスの背景なしのユーザー入力可能なテキスト欄です。編集可能なテキストは一行だけです。 |
 | **Editable Text (Multi-Line)** | Editable Text と似ていますが、一行ではなく複数行に対応しています。 |
-| [Menu Anchor](Engine\UMG\UserGuide\WidgetTypeReference\MenuAnchor) | [INCLUDE:Engine\UMG\UserGuide\WidgetTypeReference\MenuAnchor#desc] |
+| [**Menu Anchor**](Engine\UMG\UserGuide\WidgetTypeReference\MenuAnchor) | [INCLUDE:Engine\UMG\UserGuide\WidgetTypeReference\MenuAnchor#desc] |
 | **Native Widget Host** | 子スレート ウィジェットを 1 つ格納できるコンテナ ウィジェットです。UMG ウィジェット内部にネイティブ ウィジェットをネスティングすることだけが必要な場合に使用します。 |
 | **Spacer** |他のウィジェットとの間でカスタムのパディングをします。このスペーサーは、視覚的に表示されずゲーム内では見えません。|
 | **Throbber** | いくつかのズームする円を一列に表示するアニメートされた throbber ウィジェットです (例えば、ロード中であることを表すために使用できます)。 |
@@ -117,7 +117,7 @@ UI ベースの特殊効果を生成するために使われるウィジェッ�
 
 | オプション | 説明 |
 | -------- | ----------- |
-| [Background Blur](Engine\UMG\UserGuide\WidgetTypeReference\BackgroundBlur) | [INCLUDE:Engine\UMG\UserGuide\WidgetTypeReference\BackgroundBlur#desc] |
+| [**Background Blur**](Engine\UMG\UserGuide\WidgetTypeReference\BackgroundBlur) | [INCLUDE:Engine\UMG\UserGuide\WidgetTypeReference\BackgroundBlur#desc] |
 
 ## カテゴリなし
 
@@ -148,7 +148,7 @@ User Created Widgets (ユーザー作成ウィジェット) は、別の Widget 
 
 | オプション | 説明 |
 | -------- | ----------- |
-| [Web Browser](Engine\UMG\UserGuide\WidgetTypeReference\WebBrowser) | [INCLUDE:Engine\UMG\UserGuide\WidgetTypeReference\WebBrowser#desc] |
+| [**Web Browser**](Engine\UMG\UserGuide\WidgetTypeReference\WebBrowser) | [INCLUDE:Engine\UMG\UserGuide\WidgetTypeReference\WebBrowser#desc] |
 
 
 

@@ -10,7 +10,7 @@ PrimitiveDistanceAccuracyRendering.cpp: Contains definitions for rendering the v
 #include "MeshBatch.h"
 #include "Engine/Engine.h"
 
-IMPLEMENT_SHADER_TYPE(,FPrimitiveDistanceAccuracyPS,TEXT("PrimitiveDistanceAccuracyPixelShader"),TEXT("Main"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FPrimitiveDistanceAccuracyPS,TEXT("/Engine/Private/PrimitiveDistanceAccuracyPixelShader.usf"),TEXT("Main"),SF_Pixel);
 
 void FPrimitiveDistanceAccuracyPS::SetParameters(
 	FRHICommandList& RHICmdList, 

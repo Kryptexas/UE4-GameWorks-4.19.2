@@ -7,7 +7,7 @@
 #include "Toolkits/IToolkitHost.h"
 #include "AssetTypeActions/AssetTypeActions_ClassTypeBase.h"
 
-class FAssetData;
+struct FAssetData;
 class FMenuBuilder;
 class IClassTypeActions;
 class UFactory;

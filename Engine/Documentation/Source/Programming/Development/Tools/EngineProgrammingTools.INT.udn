@@ -2,19 +2,7 @@ Availability:Public
 Title:Programming Tools
 Crumbs: %ROOT%, Programming, Programming\Development
 Description:Applications, tools, and add-ins that are useful for programmers working with Unreal Engine.
-Version: 4.9
+Version: 4.16
 
 
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/profile_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Engine Tools
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		* [](Programming/Development/Tools/SymbolDebugger) - %Programming/Development/Tools/SymbolDebugger:Description%
-	[/PARAM]
-[/OBJECT]
+%Programming/Development/Tools/ConsoleManager:topic%

@@ -38,7 +38,7 @@ class UK2Node_SetFieldsInStruct : public UK2Node_MakeStruct
 		AllOtherPins
 	};
 
-	BLUEPRINTGRAPH_API void RemoveFieldPins(const UEdGraphPin* InGraphPin, EPinsToRemove Selection);
+	BLUEPRINTGRAPH_API void RemoveFieldPins(UEdGraphPin* InGraphPin, EPinsToRemove Selection);
 	BLUEPRINTGRAPH_API bool AllPinsAreShown() const;
 	BLUEPRINTGRAPH_API void RestoreAllPins();
 

@@ -22,7 +22,8 @@ public class VulkanRHI : ModuleRules
 				"RenderCore", 
 				"ShaderCore",
 				"UtilityShaders",
-			}
+                "HeadMountedDisplay",
+            }
 		);
 
 		if (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64)

@@ -1,11 +1,12 @@
-﻿INTSourceChangelist:2735882
+﻿INTSourceChangelist:3429254
 Availability:Public
 Title:アクタのレプリケート方法
 Crumbs: %ROOT%, Gameplay
 Description:マルチプレイヤー ゲームでアクタをレプリケートするためのガイド 
 version:4.9
 Parent:Gameplay
-type:how-to
+SkillLevel:Advanced
+type:overview
 order:15
 
 サーバーとクライアント間でデータやコマンドを渡すプロセスは **レプリケーション** と呼ばれ、アクタのレプリケーションとは、アクタがレプリケーションを使用するかどうかをサーバーが特定し認識することです。アクタが Replicate に設定されていると、サーバーはクライアントに、クライアント側でそのアクタのレプリケートされたコピーを作成し保持するように伝えます。サーバーのアクタが常にそのアクタの正式版で、クライアント側 (複数可) のアクタはそのアクタのレプリケート版となります。 
@@ -13,14 +14,9 @@ order:15
 移動をレプリケート (アクタの位置 / 回転) するか否かの設定から、 ネットワークの関連性の設定 (レプリケートを設定されたアクタはゲームの状況によって関連性が変わるため、レプリケートされたデータをいつクライアントに渡すか) に至るまで、レプリケートされたアクタのクライアント側でのビヘイビアを設定することもできます。 
 
 
-## セットアップ
+## 実装ガイド
 
-ブループリントでアクタをレプリケートする方法については、以下のリンクを参照してください。
-
-[REGION:buttonlist]
-* [](Gameplay\HowTo\Networking\ReplicateActor\Blueprints)
-[/REGION]
-
+[DIR(output:"role" parent:"Gameplay/HowTo/Networking/ReplicateActor" org:"hierarchy" end:"1")]
 
 
 

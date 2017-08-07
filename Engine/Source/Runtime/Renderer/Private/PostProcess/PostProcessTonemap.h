@@ -94,6 +94,7 @@ public:
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const override;
 	
 	bool bDoScreenPercentageInTonemapper;
+
 private:
 	const FViewInfo& View;
 

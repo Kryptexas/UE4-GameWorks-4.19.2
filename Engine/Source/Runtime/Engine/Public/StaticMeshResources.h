@@ -827,18 +827,22 @@ struct FInstanceStream
 
 	FORCEINLINE void NullifyInstance()
 	{
+		// Nullify Instance & Editor data
 		FInstanceStream* RESTRICT Me = (FInstanceStream* RESTRICT)this;
 		Me->InstanceTransform1[0] = FloatType();
 		Me->InstanceTransform1[1] = FloatType();
 		Me->InstanceTransform1[2] = FloatType();
+		Me->InstanceTransform1[3] = FloatType();
 
 		Me->InstanceTransform2[0] = FloatType();
 		Me->InstanceTransform2[1] = FloatType();
 		Me->InstanceTransform2[2] = FloatType();
+		Me->InstanceTransform2[3] = FloatType();
 
 		Me->InstanceTransform3[0] = FloatType();
 		Me->InstanceTransform3[1] = FloatType();
 		Me->InstanceTransform3[2] = FloatType();
+		Me->InstanceTransform3[3] = FloatType();
 	}
 
 	FORCEINLINE void SetInstanceEditorData(FColor HitProxyColor, bool bSelected)
@@ -916,6 +920,11 @@ public:
 		return SIZE_T(InNumInstances) * SIZE_T(bInUseHalfFloat ? sizeof(FInstanceStream16) : sizeof(FInstanceStream32));
 	}
 
+	SIZE_T GetResourceSize(int32 InNumInstances)
+	{
+		return SIZE_T(InNumInstances) * SIZE_T(bUseHalfFloat ? sizeof(FInstanceStream16) : sizeof(FInstanceStream32));
+	}
+
 	/**
 	 * Resizes the vertex data buffer, discarding any data which no longer fits.
 	 * @param NumVertices - The number of vertices to allocate the buffer for.
@@ -964,19 +973,37 @@ public:
 		InstanceStream32.BulkSerialize(Ar);
 	}
 
-	void AllocateInstances(int32 NumInstances)
+	void AllocateInstances(int32 NumInstances, bool DestroyExistingInstances)
 	{
 		// We cannot write directly to the data on all platforms,
 		// so we make a TArray of the right type, then assign it
 		if (PLATFORM_BUILTIN_VERTEX_HALF_FLOAT || bUseHalfFloat)
 		{
-			InstanceStream16.Empty(NumInstances);
-			InstanceStream16.AddUninitialized(NumInstances);
+			if (DestroyExistingInstances)
+			{
+				InstanceStream16.Empty(NumInstances);
+			}
+
+			int32 DeltaToAdd = NumInstances - InstanceStream16.Num();
+
+			if (DeltaToAdd > 0)
+			{
+				InstanceStream16.AddUninitialized(DeltaToAdd);
+			}
 		}
 		else
 		{
-			InstanceStream32.Empty(NumInstances);
-			InstanceStream32.AddUninitialized(NumInstances);
+			if (DestroyExistingInstances)
+			{
+				InstanceStream32.Empty(NumInstances);
+			}
+
+			int32 DeltaToAdd = NumInstances - InstanceStream32.Num();
+
+			if (DeltaToAdd > 0)
+			{
+				InstanceStream32.AddUninitialized(DeltaToAdd);
+			}
 		}
 	}
 
@@ -1061,6 +1088,18 @@ public:
 		else
 		{
 			return (uint8*)(InstanceStream32.GetData() + InstanceIndex);
+		}
+	}
+
+	FORCEINLINE int32 IsValidIndex(int32 Index) const
+	{
+		if (PLATFORM_BUILTIN_VERTEX_HALF_FLOAT || bUseHalfFloat)
+		{
+			return InstanceStream16.IsValidIndex(Index);
+		}
+		else
+		{
+			return InstanceStream32.IsValidIndex(Index);
 		}
 	}
 

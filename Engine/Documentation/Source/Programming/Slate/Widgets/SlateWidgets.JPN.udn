@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2616658
+﻿INTSourceChangelist:3372845
 Availability:Public
-Title:スレート ウィジェットの例
+Title:スレート ウィジェットのサンプル
 Crumbs:%ROOT%, Programming, Programming/Slate, Programming/Slate/Widgets
-Description:Slate Viewer Widget Galleryで実演されないレイアウトとウィジェットの複雑性
-Version:4.9
+Description:Slate Viewer Widget Gallery で実演されないレイアウトとウィジェットの複雑性
+version:4.9
 
 [TOC (start:2)]
 
@@ -13,35 +13,35 @@ Version:4.9
 
 * IsEnabled - ウィジェットがインタラクト可能かどうかを指定します。無効にされている場合、グレーアウト表示されます。
 * ToolTip - このウィジェットのツールヒントに使用するカスタム SToolTip ウィジェットのタイプを指定します。指定しない場合、ToolTip は表示されません。
-* ToolTipText - このウィジェットのツールヒントとして、簡易なツールヒントに表示するテキストのタイプを指定します。指定しない、または ToolTip の属性が使用されている場合、ToolTipText は表示されません。
-* Cursor - マウスがこのウィジェットにかざされている間に表示するカーソルを指定します。
+* ToolTipText - このウィジェットのツールチップとして、簡易なツールヒントに表示するテキストのタイプを指定します。指定しない場合、または ToolTip 属性が使用されている場合、ToolTipText は表示されません。
+* Cursor - マウスがこのウィジェット上に置かれた時に表示するカーソルを指定します。
 * Visibility - 以下の「Visibility」セクションを参照してください。
 
 
-以下の引数を全ての単一ウィジェットが持っているわけではありませんが、ほとんどのウィジェットに設定されています。
+以下の引数は、すべてではありませんが、ほとんどのウィジェットに設定されています。
 
 * Text - 該当する場合、ウィジェットが使用するテキストを指定します。
 * Content - 該当する場合、ウィジェットのコンテンツ セクションに配置できるウィジェットを指定します。
 * ReadOnly - _true_ の場合、このウィジェットを編集不可にします。
 * Style - 画像のスタイルまたはウィジェットが使用するテキストのフォントを指定します。適用方法はウィジェットによって異なります。
 * [...]ColorAndOpacity - ウィジェットのカラーやオパシティ、またはウィジェットの指定システムです。
-* Padding - ウィジェットのパディングです。親内のウィジェットの上部、左、右、そして下部周りに設定するパディングの間隔をスレート単位で表します。単一の値を 4 ヶ所に指定することができます。もしくは、水平や垂直値、またはそれぞれ異なる 4 つの値を指定できます。
+* Padding - ウィジェットのパディングです。親のウィジェットの上部、左、右、そして下部周りに設定するパディングの間隔をスレート単位で表します。1 つの値を 4 ヶ所に指定する、もしくは水平や垂直値、またはそれぞれ異なる 4 つの値を指定できます。
 * HAlign - ウィジェット内のコンテンツの水平方向の整列です。
 * VAlign - ウィジェット内のコンテンツの垂直方向の整列です。
 
 
-### 可視性
+### Visibility (可視性)
 
 ウィジェットの可視性は、ウィジェットの表示方法とインタラクティビティを決定します。
 
 * Visible (Default) - ウィジェットは通常表示されます。
 * Collapsed - レイアウトでウィジェットは非表示となり、スペースを取りません。インタラクティブにはなりません。
-* Hidden - ウィジェットは非表示となりますが、レイアウトのスペースを取ってしまいます。インタラクティブにはなりません。
-* HitTestInvisible - ユーザーに表示されますが、アートとして表示されるのみです。インタラクティブにはなりません。
-* SelfHitTestInvisible - HitTestInvisible と同一ですが、子ウィジェットには利用できません。
+* Hidden - ウィジェットは非表示となりますが、レイアウトでスペースを取ります。インタラクティブにはなりません。
+* HitTestInvisible - ユーザーに対してアートとしてのみ表示されます。インタラクティブにはなりません。
+* SelfHitTestInvisible - HitTestInvisible と同じですが、子ウィジェットには利用できません。
 
 
-###アライメント
+### アライメント
 
 ウィジェットのアライメントは、親ウィジェット内でのウィジェットの位置を決定します。親ウィジェットがウィジェットと同一サイズの場合 (パディングを除く)、アライメントは意味をなしません。この現象は、ウィジェットに「Fill」、またはボックススロットに「Full Size」を指定した時、ボックススロットにデフォルトで発生します。
 
@@ -55,7 +55,7 @@ Version:4.9
 * VAlign_Bottom
 
 
-##ボックスパネル
+## ボックスパネル
 
 **SHorizontalBox** と **SVerticalBox** は、レイアウトのアレンジに最も使用頻度の高いウィジェットです。これらのボックスはウィジェットとして宣言しますが、ボックスにはスロットが挿入されています。SHorizontalBoxes は、左側の最初のウィジェットと右側の最後のウィジェットにスロットを配置するのに対し、SVerticalBoxes はスロットを上から下へ配置します。
 
@@ -63,7 +63,7 @@ Version:4.9
 
 ### スロットの属性
 
-* Width (横) またはHeight (高さ) の設定 (以下のオプションは相互排他的です)
+* Width (横) またはHeight (高さ) の設定 (以下のオプションは相互排他的です) :
 	* **Auto Size** (デフォルト) - 必要以上でも以下でもなく、必要なだけの間隔をスロットに埋めるように指定します。スロット内のアライメントは、ここでは重要ではありません。
 	* **Fill Size** - fill 係数を指定すると、別のスロットの fill 係数に基づいてスロットが埋められます。同一方向のスロットのアライメントは、ここでは重要ではありません。
 * **Max Size** - スロットに設定できる最大サイズをスレート単位で指定します。
@@ -71,7 +71,7 @@ Version:4.9
 * **Alignment** - スロット内の子ウィジェットの整列方法を決定します。Fill Size の配置が同じ方向に指定された場合、このオプションは意味をなしません。
 
 
-以下は、スクロールボックス内にネスティングさせた自動サイズ調整された平行ボックスと、fill のサイズに設定された平行ボックスの例です。さらに、これらのスロットとアライメントの使用方法も表示しています。
+以下は、スクロールボックス内にネストさせた自動的にサイズ変更する平行ボックスと、fill のサイズに設定された平行ボックスの例です。さらに、これらのスロットとアライメントの使用方法も表示しています。
 
 	SNew(SScrollBox)
 	+SScrollBox::Slot() .Padding(10,5)
@@ -107,7 +107,7 @@ Version:4.9
 		]
 	]
 
-###均等なグリッドパネル
+### 均等なグリッドパネル
 
 **SUniformGridPanel** は垂直、平行方向均等に子ウィジェットを分布するパネルです。子スロットは、子のインデックスを指定する一対の整数を使用して指定されています。以下は、均等なグリッドパネルの例です。
 
@@ -176,18 +176,18 @@ Version:4.9
 
 	...
 
-	ESlateCheckBoxState::Type IsRadioChecked( ERadioChoice ButtonId ) const
+	ECheckBoxState::Type IsRadioChecked( ERadioChoice ButtonId ) const
 	{
 		return (CurrentChoice == ButtonId)
-			?ESlateCheckBoxState::Checked
-			:ESlateCheckBoxState::Unchecked;
+			?ECheckBoxState::Checked
+			:ECheckBoxState::Unchecked;
 	}
 
 	...
 
-	void OnRadioChanged( ERadioChoice RadioThatChanged, ESlateCheckBoxState::Type NewRadioState )
+	void OnRadioChanged( ERadioChoice RadioThatChanged, ECheckBoxState::Type NewRadioState )
 	{
-		if (NewRadioState == ESlateCheckBoxState::Checked)
+		if (NewRadioState == ECheckBoxState::Checked)
 		{
 			CurrentChoice = RadioThatChanged;
 		}
@@ -197,9 +197,9 @@ Version:4.9
 
 ### メニュー
 
-メニューまたはツールバーの作成にマルチボックスを使用します。動的に生成されるボタン/コントロールで処理することはできませんが、コマンドはスレートの UI_COMMAND システムを使用しなくてはいけません。
+メニューまたはツールバーの作成にマルチボックスを使用します。動的に生成されたボタン / 制御で使用することはできなくても、コマンドはスレートの UI_COMMAND システムを使用しなくてはいけません。
 
-メニューの作成は、**FUICommandList** を渡して **FMenuBarBuilder** を作成します。これで、配置するウィジェットを取得するためにメニューバービルダーで **MakeWidget()** を呼び出すことができます。
+メニューの作成は、**FUICommandList** を渡して **FMenuBarBuilder** を作成します。これで、配置するウィジェットを取得するためにメニューバー ビルダーで **MakeWidget()** を呼び出すことができます。
 
 	FMenuBarBuilder MenuBarBuilder( CommandList );
 	{
@@ -210,7 +210,7 @@ Version:4.9
 
 	return MenuBarBuilder.MakeWidget();
 
-メニューヘッダ、エントリー、セパレーター、サブメニュー、編集可能なテキスト、またはカスタムウィジェットを作成されたメニューへ追加することができます。
+メニューヘッダ、エントリ、セパレータ、サブメニュー、編集可能なテキスト、またはカスタム ウィジェットを作成されたメニューへ追加することができます。
 
 	static void FillMenu1Entries( FMenuBuilder& MenuBuilder )
 	{
@@ -227,7 +227,7 @@ Version:4.9
 
 ### コンテキスト メニュー
 
-コンテキスト メニューとしてこれらのメニューのどれかを呼び出すには、**FMenuBuilder** から生成したウィジェットを取得して、**PushMenu()** 関数へ渡します。このようになります。
+これらのメニューのどれかをコンテキスト メニューとして呼び出すには、**FMenuBuilder** から生成したウィジェットを取得して、**PushMenu()** 関数へ渡します。このようになります。
 
 	FSlateApplication::Get().PushMenu(
 		MenuBuilder.MakeWidget(),

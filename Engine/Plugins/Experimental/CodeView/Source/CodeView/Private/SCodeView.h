@@ -41,7 +41,7 @@ namespace CodeView
 		{
 		}
 
-		~FTreeItem()
+		virtual ~FTreeItem()
 		{
 		}
 

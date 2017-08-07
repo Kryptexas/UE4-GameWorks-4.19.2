@@ -275,7 +275,7 @@ bool UGameplayAbility::CanActivateAbility(const FGameplayAbilitySpecHandle Handl
 	FGameplayTagContainer& OutTags = OptionalRelevantTags ? *OptionalRelevantTags : DummyContainer;
 
 	// make sure the ActorInfo and its ability system component are valid, if not bail out.
-	if (ActorInfo == nullptr || !ActorInfo->AbilitySystemComponent.IsValid())
+	if (!ActorInfo->AbilitySystemComponent.IsValid())
 	{
 		return false;
 	}
@@ -541,7 +541,7 @@ bool UGameplayAbility::IsEndAbilityValid(const FGameplayAbilitySpecHandle Handle
 	}
 
 	// check to see if this is an NonInstanced or if the ability is active.
-	const FGameplayAbilitySpec* Spec = AbilityComp ? AbilityComp->FindAbilitySpecFromHandle(Handle) : nullptr;
+	const FGameplayAbilitySpec* Spec = AbilityComp->FindAbilitySpecFromHandle(Handle);
 	const bool bIsSpecActive = Spec ? Spec->IsActive() : IsActive();
 
 	if (!bIsSpecActive)

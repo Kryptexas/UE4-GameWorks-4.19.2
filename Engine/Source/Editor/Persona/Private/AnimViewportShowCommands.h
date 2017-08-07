@@ -33,6 +33,9 @@ public:
 	/** Option to mute audio in the viewport */
 	TSharedPtr< FUICommandInfo > MuteAudio;
 
+	/** Option to use audio attenuation in the viewport */
+	TSharedPtr< FUICommandInfo > UseAudioAttenuation;
+
 	/** Option to show root motion in viewport */
 	TSharedPtr< FUICommandInfo > ProcessRootMotion;
 
@@ -91,6 +94,9 @@ public:
 	TSharedPtr< FUICommandInfo > ShowOverlayNone;
 	TSharedPtr< FUICommandInfo > ShowBoneWeight;
 	TSharedPtr< FUICommandInfo > ShowMorphTargetVerts;
+
+	/** Show mesh vertex colors */
+	TSharedPtr< FUICommandInfo > ShowVertexColors;
 
 	/** Show socket hit point diamonds */
 	TSharedPtr< FUICommandInfo > ShowSockets;

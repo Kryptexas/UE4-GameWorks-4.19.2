@@ -69,7 +69,6 @@
 #include "PhysicsPublic.h"
 #include "AI/AISystemBase.h"
 #include "Camera/CameraActor.h"
-#include "Engine/DemoNetDriver.h"
 #include "Engine/NetworkObjectList.h"
 #include "GameFramework/PlayerState.h"
 #include "GameFramework/GameStateBase.h"
@@ -600,7 +599,7 @@ void UWorld::PostDuplicate(bool bDuplicateForPIE)
 		// We're duplicating the world, also duplicate UObjects which are map data but don't have the UWorld in their Outer chain.  There are two cases:
 		// 1) legacy lightmap textures and MapBuildData object will be in the same package as the UWorld
 		// 2) MapBuildData will be in a separate package with lightmap textures underneath it
-		if (PersistentLevel && PersistentLevel->MapBuildData)
+		if (PersistentLevel->MapBuildData)
 		{
 			UPackage* BuildDataPackage = MyPackage;
 			FName NewMapBuildDataName = PersistentLevel->MapBuildData->GetFName();
@@ -854,23 +853,8 @@ void UWorld::PostLoad()
 }
 
 
-bool UWorld::PreSaveRoot(const TCHAR* Filename, TArray<FString>& AdditionalPackagesToCook)
+bool UWorld::PreSaveRoot(const TCHAR* Filename)
 {
-	// add any streaming sublevels to the list of extra packages to cook
-	for (int32 LevelIndex = 0; LevelIndex < StreamingLevels.Num(); LevelIndex++)
-	{
-		ULevelStreaming* StreamingLevel = StreamingLevels[LevelIndex];
-		if (StreamingLevel)
-		{
-			// Load package if found.
-			const FString WorldAssetPackageName = StreamingLevel->GetWorldAssetPackageName();
-			FString PackageFilename;
-			if (FPackageName::DoesPackageExist(WorldAssetPackageName, NULL, &PackageFilename))
-			{
-				AdditionalPackagesToCook.Add(WorldAssetPackageName);
-			}
-		}
-	}
 #if WITH_EDITOR
 	// Rebuild all level blueprints now to ensure no stale data is stored on the actors
 	if( !IsRunningCommandlet() )
@@ -2970,7 +2954,7 @@ void UWorld::ConditionallyBuildStreamingData()
 
 bool UWorld::IsVisibilityRequestPending() const
 {
-	return (CurrentLevelPendingVisibility != nullptr && CurrentLevelPendingInvisibility != nullptr);
+	return (CurrentLevelPendingVisibility != nullptr || CurrentLevelPendingInvisibility != nullptr);
 }
 
 bool UWorld::AreAlwaysLoadedLevelsLoaded() const
@@ -3109,6 +3093,11 @@ bool UWorld::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	if( FParse::Command( &Cmd, TEXT("TRACETAG") ) )
 	{
 		return HandleTraceTagCommand( Cmd, Ar );
+	}
+	else if( FParse::Command( &Cmd, TEXT("TRACETAGALL")))
+	{
+		bDebugDrawAllTraceTags = !bDebugDrawAllTraceTags;
+		return true;
 	}
 	else if( FParse::Command( &Cmd, TEXT("FLUSHPERSISTENTDEBUGLINES") ) )
 	{		
@@ -3320,14 +3309,17 @@ void UWorld::InitializeActorsForPlay(const FURL& InURL, bool bResetTime)
 			UE_LOG(LogWorld, Warning, TEXT("*** WARNING - PATHS MAY NOT BE VALID ***"));
 		}
 
-		// Lock the level.
-		if(IsPreviewWorld())
+		if (GEngine != NULL)
 		{
-			UE_LOG(LogWorld, Verbose,  TEXT("Bringing preview %s up for play (max tick rate %i) at %s"), *GetFullName(), FMath::RoundToInt(GEngine->GetMaxTickRate(0,false)), *FDateTime::Now().ToString() );
-		}
-		else
-		{
-			UE_LOG(LogWorld, Log,  TEXT("Bringing %s up for play (max tick rate %i) at %s"), *GetFullName(), FMath::RoundToInt(GEngine->GetMaxTickRate(0,false)), *FDateTime::Now().ToString() );
+			// Lock the level.
+			if (IsPreviewWorld())
+			{
+				UE_LOG(LogWorld, Verbose, TEXT("Bringing preview %s up for play (max tick rate %i) at %s"), *GetFullName(), FMath::RoundToInt(GEngine->GetMaxTickRate(0, false)), *FDateTime::Now().ToString());
+			}
+			else
+			{
+				UE_LOG(LogWorld, Log, TEXT("Bringing %s up for play (max tick rate %i) at %s"), *GetFullName(), FMath::RoundToInt(GEngine->GetMaxTickRate(0, false)), *FDateTime::Now().ToString());
+			}
 		}
 
 		// Initialize network actors and start execution.
@@ -4208,9 +4200,12 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 			case NMT_Login:
 			{
 				FUniqueNetIdRepl UniqueIdRepl;
+				FString OnlinePlatformName;
 
 				// Admit or deny the player here.
-				FNetControlMessage<NMT_Login>::Receive(Bunch, Connection->ClientResponse, Connection->RequestURL, UniqueIdRepl);
+				TArray<uint8> RequestUrlBytes;
+				FNetControlMessage<NMT_Login>::Receive(Bunch, Connection->ClientResponse, RequestUrlBytes, UniqueIdRepl, OnlinePlatformName);
+				Connection->RequestURL = UTF8_TO_TCHAR(RequestUrlBytes.GetData());
 				UE_LOG(LogNet, Log, TEXT("Login request: %s userId: %s"), *Connection->RequestURL, UniqueIdRepl.IsValid() ? *UniqueIdRepl->ToString() : TEXT("Invalid"));
 
 
@@ -4241,6 +4236,9 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 
 				// keep track of net id for player associated with remote connection
 				Connection->PlayerId = UniqueIdRepl;
+
+				// keep track of the online platform the player associated with this connection is using.
+				Connection->SetPlayerOnlinePlatformName(FName(*OnlinePlatformName));
 
 				// ask the game code if this player can join
 				FString ErrorMsg;
@@ -4388,6 +4386,7 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 
 					UChildConnection* ChildConn = NetDriver->CreateChild(Connection);
 					ChildConn->PlayerId = Connection->PlayerId;
+					ChildConn->SetPlayerOnlinePlatformName(Connection->GetPlayerOnlinePlatformName());
 					ChildConn->RequestURL = SplitRequestURL;
 					ChildConn->ClientWorldPackageName = CurrentLevel->GetOutermost()->GetFName();
 
@@ -5710,6 +5709,11 @@ bool UWorld::IsGameWorld() const
 	return WorldType == EWorldType::Game || WorldType == EWorldType::PIE || WorldType == EWorldType::GamePreview;
 }
 
+bool UWorld::IsEditorWorld() const
+{
+	return WorldType == EWorldType::Editor || WorldType == EWorldType::EditorPreview || WorldType == EWorldType::PIE;
+}
+
 bool UWorld::IsPreviewWorld() const
 {
 	return WorldType == EWorldType::EditorPreview || WorldType == EWorldType::GamePreview;
@@ -6090,17 +6094,23 @@ void UWorld::SetGameState(AGameStateBase* NewGameState)
 	GameState = NewGameState;
 
 	// Set the GameState on the LevelCollection it's associated with.
-	const ULevel* const CachedLevel = NewGameState->GetLevel();
-	FLevelCollection* const FoundCollection = NewGameState ? CachedLevel->GetCachedLevelCollection() : nullptr;
-	if (FoundCollection)
+	if (NewGameState != nullptr)
 	{
-		FoundCollection->SetGameState(NewGameState);
-
-		// For now the static levels use the same GameState as the source dynamic levels.
-		if (FoundCollection->GetType() == ELevelCollectionType::DynamicSourceLevels)
+	    const ULevel* const CachedLevel = NewGameState->GetLevel();
+		if(CachedLevel != nullptr)
 		{
-			FLevelCollection& StaticLevels = FindOrAddCollectionByType(ELevelCollectionType::StaticLevels);
-			StaticLevels.SetGameState(NewGameState);
+	        FLevelCollection* const FoundCollection = CachedLevel->GetCachedLevelCollection();
+	        if (FoundCollection)
+	        {
+		        FoundCollection->SetGameState(NewGameState);
+        
+		        // For now the static levels use the same GameState as the source dynamic levels.
+		        if (FoundCollection->GetType() == ELevelCollectionType::DynamicSourceLevels)
+		        {
+			        FLevelCollection& StaticLevels = FindOrAddCollectionByType(ELevelCollectionType::StaticLevels);
+			        StaticLevels.SetGameState(NewGameState);
+		        }
+	        }
 		}
 	}
 }
@@ -6233,28 +6243,6 @@ void UWorld::SetActiveLevelCollection(const FLevelCollection* InCollection)
 	GameState = InCollection->GetGameState();
 	NetDriver = InCollection->GetNetDriver();
 	DemoNetDriver = InCollection->GetDemoNetDriver();
-
-	// TODO: START TEMP FIX FOR UE-42508
-	if (NetDriver && NetDriver->NetDriverName != NAME_None)
-	{
-		UNetDriver* TempNetDriver = GEngine->FindNamedNetDriver(this, NetDriver->NetDriverName);
-		if (TempNetDriver != NetDriver)
-		{
-			UE_LOG(LogWorld, Warning, TEXT("SetActiveLevelCollection attempted to use an out of date NetDriver: %s"), *(NetDriver->NetDriverName.ToString()));
-			NetDriver = TempNetDriver;
-		}
-	}
-
-	if (DemoNetDriver && DemoNetDriver->NetDriverName != NAME_None)
-	{
-		UDemoNetDriver* TempDemoNetDriver = Cast<UDemoNetDriver>(GEngine->FindNamedNetDriver(this, DemoNetDriver->NetDriverName));
-		if (TempDemoNetDriver != DemoNetDriver)
-		{
-			UE_LOG(LogWorld, Warning, TEXT("SetActiveLevelCollection attempted to use an out of date DemoNetDriver: %s"), *(DemoNetDriver->NetDriverName.ToString()));
-			DemoNetDriver = TempDemoNetDriver;
-		}
-	}
-	// TODO: END TEMP FIX FOR UE-42508
 }
 
 static ULevel* DuplicateLevelWithPrefix(ULevel* InLevel, int32 InstanceID )
@@ -6468,11 +6456,7 @@ void UWorld::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 			Blueprint->GetAssetRegistryTags(OutTags);
 		}
 
-		// If there are no Blueprints, add empty FiB data so the manager knows that the Blueprint is indexed.
-		if (LevelBlueprints.Num() == 0)
-		{
-			OutTags.Add(FAssetRegistryTag("FiB", FString(), FAssetRegistryTag::TT_Hidden));
-		}
+		// If there are no blueprints FiBData will be empty, the search manager will treat this as indexed
 	}
 
 	// Get the full file path with extension
@@ -6480,8 +6464,8 @@ void UWorld::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 
 	// Save/Display the file size and modify date
 	FDateTime AssetDateModified = IFileManager::Get().GetTimeStamp(*FullFilePath);
-	OutTags.Add(FAssetRegistryTag("DateModified", FText::AsDate(AssetDateModified, EDateTimeStyle::Short).ToString(), FAssetRegistryTag::TT_Dimensional));
-	OutTags.Add(FAssetRegistryTag("MapFileSize", FText::AsMemory(IFileManager::Get().FileSize(*FullFilePath)).ToString(), FAssetRegistryTag::TT_Numerical));
+	OutTags.Add(FAssetRegistryTag("DateModified", AssetDateModified.ToString(), FAssetRegistryTag::TT_Chronological, FAssetRegistryTag::TD_Date));
+	OutTags.Add(FAssetRegistryTag("MapFileSize", Lex::ToString(IFileManager::Get().FileSize(*FullFilePath)), FAssetRegistryTag::TT_Numerical, FAssetRegistryTag::TD_Memory));
 
 	FWorldDelegates::GetAssetTags.Broadcast(this, OutTags);
 }

@@ -382,13 +382,13 @@ TSharedRef<SWidget> UViewport::RebuildWidget()
 {
 	if ( IsDesignTime() )
 	{
-		return BuildDesignTimeWidget(SNew(SBox)
+		return SNew(SBox)
 			.HAlign(HAlign_Center)
 			.VAlign(VAlign_Center)
 			[
 				SNew(STextBlock)
 				.Text(LOCTEXT("Viewport", "Viewport"))
-			]);
+			];
 	}
 	else
 	{
@@ -399,7 +399,7 @@ TSharedRef<SWidget> UViewport::RebuildWidget()
 			ViewportWidget->SetContent(GetContentSlot()->Content ? GetContentSlot()->Content->TakeWidget() : SNullWidget::NullWidget);
 		}
 
-		return BuildDesignTimeWidget(ViewportWidget.ToSharedRef());
+		return ViewportWidget.ToSharedRef();
 	}
 }
 

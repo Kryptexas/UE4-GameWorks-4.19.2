@@ -13,7 +13,7 @@
 #include "TrackEditors/SubTrackEditor.h"
 #include "ControlRig.h"
 
-class FAssetData;
+struct FAssetData;
 class FFloatCurveKeyArea;
 class FMenuBuilder;
 class FSequencerSectionPainter;
@@ -48,13 +48,12 @@ public:
 
 	// ISequencerTrackEditor interface
 
-	TSharedPtr<SWidget> BuildOutlinerEditWidget(const FGuid& ObjectBinding, UMovieSceneTrack* Track, const FBuildEditWidgetParams& Params) override;
+	virtual TSharedPtr<SWidget> BuildOutlinerEditWidget(const FGuid& ObjectBinding, UMovieSceneTrack* Track, const FBuildEditWidgetParams& Params) override;
 	virtual void BuildAddTrackMenu(FMenuBuilder& MenuBuilder) override;
 	virtual void BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const UClass* ObjectClass) override;
 	virtual TSharedRef<ISequencerSection> MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track, FGuid ObjectBinding ) override;
 	virtual bool SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const override;
 	virtual void BuildTrackContextMenu( FMenuBuilder& MenuBuilder, UMovieSceneTrack* Track ) override;
-	virtual EMultipleRowMode GetMultipleRowMode() const override;
 	virtual const FSlateBrush* GetIconBrush() const override;
 
 private:
@@ -67,7 +66,7 @@ private:
 	void OnSequencerAssetSelected(const FAssetData& AssetData, FGuid ObjectBinding, UMovieSceneTrack* Track);
 
 	/** Delegate for AnimatablePropertyChanged in AddKey */
-	bool AddKeyInternal(float KeyTime, FGuid ObjectBinding, UControlRigSequence* Sequence, UMovieSceneTrack* Track);
+	FKeyPropertyResult AddKeyInternal(float KeyTime, FGuid ObjectBinding, UControlRigSequence* Sequence, UMovieSceneTrack* Track);
 
 	/** Callback for generating the menu of the "Add Sequence" combo button. */
 	TSharedRef<SWidget> HandleAddSubSequenceComboButtonGetMenuContent(FGuid ObjectBinding, UMovieSceneTrack* InTrack);

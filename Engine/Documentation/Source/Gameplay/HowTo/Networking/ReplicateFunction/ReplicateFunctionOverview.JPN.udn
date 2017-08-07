@@ -1,11 +1,12 @@
-﻿INTSourceChangelist:2735882
+﻿INTSourceChangelist:3429254
 Availability:Public
 Title:関数をレプリケートする
 Crumbs: %ROOT%, Gameplay
-Description:マルチプレイヤー　ゲームで関数をレプリケートするガイド 
+Description:マルチプレイヤー ゲームで関数をレプリケートするガイド 
 Version:4.9
 Parent:Gameplay
-type:how-to
+SkillLevel:Advanced
+type:overview
 order:16
 
 **関数のレプリケーション** (Remote Procedure Calls、略して RPCs) は、ローカルで呼び出される関数ですが、別のマシンでリモートで実行されます (呼び出しを実行する側のマシンとは別)。RPC 関数は非常に便利で、クライアントまたはサーバーがネットワーク接続で互いにメッセージを送信できます。レプリケート関数の呼び出しは **Reliable (信頼できる)** もしくは **Unreliable (信頼できない)** のいずれかに設定することができ、信頼できるコールは発生が保証される一方、信頼できないコールはネットワーク トラフィックの渋滞の間に取り下げられます。表面上の外見を処理するレプリケート関数のほとんどは、ネットワーク サチュレーションを避けるためのものなので信頼できません。 
@@ -14,13 +15,9 @@ order:16
 
 サーバーおよびクライアント側でレプリケートされたレプリケート関数には、 **Net Owner** を持つアクタ上でしか使用することができないという制限があります。アクタがプレイヤー コントローラーの場合、もしくはプレイヤー コントローラーにより所有される場合、アクタにはネット オーナーがあります。例えば、プレイヤー コントローラにより所有されるポーンは、 サーバー側でのレプリケート関数またはクライアント側でのレプリケート関数を、その上で実行することができます。 
 
-## セットアップ
+## 実装ガイド
 
-ブループリントを使ったレプリケート関数のセットアップ方法については、以下のリンクを参照してください。
-
-[REGION:buttonlist]
-* [](Gameplay\HowTo\Networking\ReplicateFunction\Blueprints)
-[/REGION]
+[DIR(output:"role" parent:"Gameplay/HowTo/Networking/ReplicateFunction" org:"hierarchy" end:"1")]
 
 
 

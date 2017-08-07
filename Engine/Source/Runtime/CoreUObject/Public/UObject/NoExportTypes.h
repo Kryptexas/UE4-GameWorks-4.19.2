@@ -330,7 +330,7 @@ struct FVector
 * A 4-D homogeneous vector.
 * The full C++ class is located here: Engine\Source\Runtime\Core\Public\Math\Vector4.h
 */
-USTRUCT(immutable, noexport)
+USTRUCT(immutable, noexport, BlueprintType)
 struct FVector4
 {
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Vector4, SaveGame)
@@ -364,7 +364,7 @@ struct FVector2D
 
 
 
-USTRUCT(immutable, noexport)
+USTRUCT(immutable, BlueprintType, noexport)
 struct FTwoVectors
 {
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=TwoVectors, SaveGame)
@@ -380,7 +380,7 @@ struct FTwoVectors
  * A plane definition in 3D space.
  * The full C++ class is located here: Engine\Source\Runtime\Core\Public\Math\Plane.h
  */
-USTRUCT(immutable, noexport)
+USTRUCT(immutable, noexport, BlueprintType)
 struct FPlane : public FVector
 {
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Plane, SaveGame)
@@ -415,7 +415,7 @@ struct FRotator
  * Quaternion.
  * The full C++ class is located here: Engine\Source\Runtime\Core\Public\Math\Quat.h
  */
-USTRUCT(immutable, noexport)
+USTRUCT(immutable, noexport, BlueprintType)
 struct FQuat
 {
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Quat, SaveGame)
@@ -440,16 +440,16 @@ struct FQuat
 USTRUCT(immutable, noexport)
 struct FPackedNormal
 {
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PackedNormal, SaveGame)
+	UPROPERTY(EditAnywhere, Category=PackedNormal, SaveGame)
 	uint8 X;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PackedNormal, SaveGame)
+	UPROPERTY(EditAnywhere, Category=PackedNormal, SaveGame)
 	uint8 Y;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PackedNormal, SaveGame)
+	UPROPERTY(EditAnywhere, Category=PackedNormal, SaveGame)
 	uint8 Z;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PackedNormal, SaveGame)
+	UPROPERTY(EditAnywhere, Category=PackedNormal, SaveGame)
 	uint8 W;
 
 };
@@ -461,7 +461,7 @@ struct FPackedNormal
 USTRUCT(immutable, noexport)
 struct FPackedRGB10A2N
 {
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PackedBasis, SaveGame)
+	UPROPERTY(EditAnywhere, Category = PackedBasis, SaveGame)
 	int32 Packed;
 };
 
@@ -472,10 +472,10 @@ struct FPackedRGB10A2N
 USTRUCT(immutable, noexport)
 struct FPackedRGBA16N
 {
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PackedNormal, SaveGame)
+	UPROPERTY(EditAnywhere, Category = PackedNormal, SaveGame)
 	int32 XY;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PackedNormal, SaveGame)
+	UPROPERTY(EditAnywhere, Category = PackedNormal, SaveGame)
 	int32 ZW;
 };
 
@@ -483,7 +483,7 @@ struct FPackedRGBA16N
  * Screen coordinates.
  * The full C++ class is located here: Engine\Source\Runtime\Core\Public\Math\IntPoint.h
  */
-USTRUCT(immutable, noexport)
+USTRUCT(immutable, noexport, BlueprintType)
 struct FIntPoint
 {
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=IntPoint, SaveGame)
@@ -516,7 +516,7 @@ struct FIntVector
  * A Color (BGRA).
  * The full C++ class is located here: Engine\Source\Runtime\Core\Public\Math\Color.h
  */
-USTRUCT(immutable, noexport)
+USTRUCT(immutable, noexport, BlueprintType)
 struct FColor
 {
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Color, SaveGame, meta=(ClampMin="0", ClampMax="255"))
@@ -597,7 +597,7 @@ struct FBox2D
  * A bounding box and bounding sphere with the same origin.
  * The full C++ class is located here : Engine\Source\Runtime\Core\Public\Math\BoxSphereBounds.h
  */
-USTRUCT(noexport)
+USTRUCT(noexport, BlueprintType)
 struct FBoxSphereBounds
 {
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=BoxSphereBounds, SaveGame)
@@ -618,25 +618,25 @@ struct FBoxSphereBounds
 USTRUCT(immutable, noexport)
 struct FOrientedBox
 {
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OrientedBox, SaveGame)
+	UPROPERTY(EditAnywhere, Category=OrientedBox, SaveGame)
 	FVector Center;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OrientedBox, SaveGame)
+	UPROPERTY(EditAnywhere, Category=OrientedBox, SaveGame)
 	FVector AxisX;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OrientedBox, SaveGame)
+	UPROPERTY(EditAnywhere, Category=OrientedBox, SaveGame)
 	FVector AxisY;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OrientedBox, SaveGame)
+	UPROPERTY(EditAnywhere, Category=OrientedBox, SaveGame)
 	FVector AxisZ;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OrientedBox, SaveGame)
+	UPROPERTY(EditAnywhere, Category=OrientedBox, SaveGame)
 	float ExtentX;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OrientedBox, SaveGame)
+	UPROPERTY(EditAnywhere, Category=OrientedBox, SaveGame)
 	float ExtentY;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OrientedBox, SaveGame)
+	UPROPERTY(EditAnywhere, Category=OrientedBox, SaveGame)
 	float ExtentZ;
 };
 
@@ -644,7 +644,7 @@ struct FOrientedBox
  * A 4x4 matrix.
  * The full C++ class is located here: Engine\Source\Runtime\Core\Public\Math\Matrix.h
  */
-USTRUCT(immutable, noexport)
+USTRUCT(immutable, noexport, BlueprintType)
 struct FMatrix
 {
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Matrix, SaveGame)
@@ -663,7 +663,7 @@ struct FMatrix
 
 
 
-USTRUCT(noexport)
+USTRUCT(noexport, BlueprintType)
 struct FInterpCurvePointFloat
 {
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointFloat)
@@ -685,7 +685,7 @@ struct FInterpCurvePointFloat
 
 
 
-USTRUCT(noexport)
+USTRUCT(noexport, BlueprintType)
 struct FInterpCurveFloat
 {
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveFloat)
@@ -700,7 +700,7 @@ struct FInterpCurveFloat
 
 
 
-USTRUCT(noexport)
+USTRUCT(noexport, BlueprintType)
 struct FInterpCurvePointVector2D
 {
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointVector2D)
@@ -722,7 +722,7 @@ struct FInterpCurvePointVector2D
 
 
 
-USTRUCT(noexport)
+USTRUCT(noexport, BlueprintType)
 struct FInterpCurveVector2D
 {
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveVector2D)
@@ -737,7 +737,7 @@ struct FInterpCurveVector2D
 
 
 
-USTRUCT(noexport)
+USTRUCT(noexport, BlueprintType)
 struct FInterpCurvePointVector
 {
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointVector)
@@ -759,7 +759,7 @@ struct FInterpCurvePointVector
 
 
 
-USTRUCT(noexport)
+USTRUCT(noexport, BlueprintType)
 struct FInterpCurveVector
 {
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveVector)
@@ -774,7 +774,7 @@ struct FInterpCurveVector
 
 
 
-USTRUCT(noexport)
+USTRUCT(noexport, BlueprintType)
 struct FInterpCurvePointQuat
 {
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointQuat)
@@ -796,7 +796,7 @@ struct FInterpCurvePointQuat
 
 
 
-USTRUCT(noexport)
+USTRUCT(noexport, BlueprintType)
 struct FInterpCurveQuat
 {
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveQuat)
@@ -811,7 +811,7 @@ struct FInterpCurveQuat
 
 
 
-USTRUCT(noexport)
+USTRUCT(noexport, BlueprintType)
 struct FInterpCurvePointTwoVectors
 {
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointTwoVectors)
@@ -833,7 +833,7 @@ struct FInterpCurvePointTwoVectors
 
 
 
-USTRUCT(noexport)
+USTRUCT(noexport, BlueprintType)
 struct FInterpCurveTwoVectors
 {
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveTwoVectors)
@@ -848,7 +848,7 @@ struct FInterpCurveTwoVectors
 
 
 
-USTRUCT(noexport)
+USTRUCT(noexport, BlueprintType)
 struct FInterpCurvePointLinearColor
 {
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointLinearColor)
@@ -870,7 +870,7 @@ struct FInterpCurvePointLinearColor
 
 
 
-USTRUCT(noexport)
+USTRUCT(noexport, BlueprintType)
 struct FInterpCurveLinearColor
 {
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveLinearColor)
@@ -939,7 +939,7 @@ struct FTimespan
 
 // A string asset reference
 
-USTRUCT(noexport, meta=(HasNativeMake="Engine.BlueprintFunctionLibrary.MakeStringAssetReference"))
+USTRUCT(noexport, BlueprintType, meta=(HasNativeMake="Engine.BlueprintFunctionLibrary.MakeStringAssetReference"))
 struct FStringAssetReference
 {
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=StringAssetReference)
@@ -957,9 +957,8 @@ struct FStringClassReference : public FStringAssetReference
 USTRUCT(noexport, BlueprintType)
 struct FPrimaryAssetType
 {
-private:
 	/** The Type of this object, by default it's base class's name */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PrimaryAssetType)
 	FName Name;
 };
 
@@ -983,7 +982,7 @@ struct FFallbackStruct
 {
 };
 
-UENUM()
+UENUM(BlueprintType)
 namespace ERangeBoundTypes
 {
 	/**
@@ -1010,49 +1009,49 @@ namespace ERangeBoundTypes
 
 // A float range bound
 
-USTRUCT(noexport)
+USTRUCT(noexport, BlueprintType)
 struct FFloatRangeBound
 {
-	UPROPERTY(EditAnywhere, Category=Range)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Range)
 	TEnumAsByte<ERangeBoundTypes::Type> Type;
 
-	UPROPERTY(EditAnywhere, Category=Range)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Range)
 	float Value;
 };
 
 // A float range
 
-USTRUCT(noexport)
+USTRUCT(noexport, BlueprintType)
 struct FFloatRange
 {
-	UPROPERTY(EditAnywhere, Category=Range)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Range)
 	FFloatRangeBound LowerBound;
 
-	UPROPERTY(EditAnywhere, Category=Range)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Range)
 	FFloatRangeBound UpperBound;
 };
 
 // An int32 range bound
 
-USTRUCT(noexport)
+USTRUCT(noexport, BlueprintType)
 struct FInt32RangeBound
 {
-	UPROPERTY(EditAnywhere, Category = Range)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Range)
 	TEnumAsByte<ERangeBoundTypes::Type> Type;
 
-	UPROPERTY(EditAnywhere, Category = Range)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Range)
 	int32 Value;
 };
 
 // An int32 range
 
-USTRUCT(noexport)
+USTRUCT(noexport, BlueprintType)
 struct FInt32Range
 {
-	UPROPERTY(EditAnywhere, Category = Range)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Range)
 	FInt32RangeBound LowerBound;
 
-	UPROPERTY(EditAnywhere, Category = Range)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Range)
 	FInt32RangeBound UpperBound;
 };
 

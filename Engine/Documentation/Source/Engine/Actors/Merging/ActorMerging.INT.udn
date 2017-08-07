@@ -4,8 +4,9 @@ Crumbs: %ROOT%, Engine, Engine/Actors, Engine/Actors/Merging
 Description:How to use the Actor Merge tool to combine multiple Static Meshes into one in UE4.
 Related: Engine/Actors/StaticMeshActor
 Version: 4.12
-
-
+parent:Engine/Actors
+type:overview
+order:6
 
 [TOC(start:2 end:2)]
 
@@ -15,7 +16,33 @@ The Merge Actors tool enables the user to combine multiple Static Meshes into a 
 The Merge Actor feature is officially supported in 4.12 and later. In 4.8 to 4.11, it must be activated from the Editor Settings under the Experimental tab. If you are using a version of the engine earlier than 4.12, this feature is considered experimental and is not officially supported.
 [/REGION]
 
-![](MergeActorsWindow.png)
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](MergeActors_Windows.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](MergeActors_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 ## Actor Merging Worklow
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3467293
 Availability:Public
 Title: 에임 오프셋
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -10,6 +10,8 @@ Related: Engine/Animation/StateMachines
 Related: Gameplay/AI
 Related: Engine/Content/Tools/MayaRiggingTool
 version: 4.9
+tags:Assets
+topic-image:AimOffset_topic.png
 
 [REGION:fullwidth]
 ![](AimOffset.png)

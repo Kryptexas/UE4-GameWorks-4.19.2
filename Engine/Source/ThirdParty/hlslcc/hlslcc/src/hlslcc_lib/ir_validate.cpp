@@ -513,10 +513,25 @@ ir_visitor_status ir_validate::visit_leave(ir_expression *ir)
 		break;
 
 	case ir_binop_mul:
+	{
+		bool const bNativeMatrixIntrinsics = state->LanguageSpec->SupportsMatrixIntrinsics();
+		
 		// Matrix-Vector multiplication not handled by ir_binop_mul.
 		validate_expr(!ir->operands[0]->type->is_matrix() || !ir->operands[1]->type->is_vector());
-		validate_expr(!ir->operands[1]->type->is_matrix() || !ir->operands[0]->type->is_vector());
+		
+		if (bNativeMatrixIntrinsics && ir->operands[1]->type->is_matrix() && ir->operands[0]->type->is_vector())
+		{
+			ValidateTypes(ir->operands[1]->type->column_type(), ir->type);
+			ValidateTypes(ir->operands[1]->type->row_type(), ir->operands[0]->type);
+			break;
+		}
+		else
+		{
+			// Vector-Matrix multiplication not handled by ir_binop_mul.
+			validate_expr(!ir->operands[1]->type->is_matrix() || !ir->operands[0]->type->is_vector());
+		}
 		// intentional fallthrough
+	}
 	case ir_binop_add:
 	case ir_binop_sub:
 	case ir_binop_mod:

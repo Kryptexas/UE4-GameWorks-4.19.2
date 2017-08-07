@@ -98,14 +98,6 @@ protected:
 	/** Delegate to execute to determine if we can close this tab */
 	SDockTab::FCanCloseTab OnCanCloseTab;
 
-	/** The brushes used to draw the tab in its various states */
-	const FSlateBrush* NoBrush;
-	const FSlateBrush* NormalBrush;
-	const FSlateBrush* ActiveBrush;
-	const FSlateBrush* ColorOverlayBrush;
-	const FSlateBrush* ForegroundBrush;
-	const FSlateBrush* HoveredBrush;
-
 	/**
 	 * The brush that the SDockTabStack should use to draw the content associated with this tab
 	 * Documents, Apps, and Tool Panels have different backgrounds

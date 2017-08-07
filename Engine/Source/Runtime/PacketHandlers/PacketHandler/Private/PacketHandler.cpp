@@ -1,6 +1,8 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "PacketHandler.h"
+#include "PacketAudit.h"
+
 #include "Misc/ConfigCacheIni.h"
 #include "Modules/ModuleManager.h"
 #include "UObject/ObjectMacros.h"
@@ -12,15 +14,12 @@
 // @todo #JohnB: There is quite a lot of inefficient copying of packet data going on.
 //					Redo the whole packet parsing/modification pipeline.
 
+// @todo: There is no netcode stats tracking this low down in the pipeline. Should probably add some.
+
 
 IMPLEMENT_MODULE(FPacketHandlerComponentModuleInterface, PacketHandler);
 
 DEFINE_LOG_CATEGORY(PacketHandlerLog);
-
-
-// @todo #JohnB: For the moment, disable the reliability handler, while it is causing network trouble
-#define DISABLE_RELIABILITY_HANDLER 1
-
 
 /**
  * PacketHandler
@@ -29,6 +28,9 @@ DEFINE_LOG_CATEGORY(PacketHandlerLog);
 PacketHandler::PacketHandler()
 	: Mode(Handler::Mode::Client)
 	, Time(0.f)
+	, bConnectionlessHandler(false)
+	, LowLevelSendDel()
+	, HandshakeCompleteDel()
 	, OutgoingPacket()
 	, IncomingPacket()
 	, HandlerComponents()
@@ -36,10 +38,13 @@ PacketHandler::PacketHandler()
 	, State(Handler::State::Uninitialized)
 	, BufferedPackets()
 	, QueuedPackets()
+	, QueuedRawPackets()
+	, QueuedHandlerPackets()
 	, BufferedConnectionlessPackets()
 	, QueuedConnectionlessPackets()
 	, ReliabilityComponent(nullptr)
 	, bRawSend(false)
+	, bBeganHandshaking(false)
 {
 	OutgoingPacket.SetAllowResize(true);
 	OutgoingPacket.AllowAppend(true);
@@ -52,6 +57,21 @@ void PacketHandler::Tick(float DeltaTime)
 	for (int32 i=0; i<HandlerComponents.Num(); ++i)
 	{
 		HandlerComponents[i]->Tick(DeltaTime);
+	}
+
+
+	// Send off any queued handler packets
+	BufferedPacket* QueuedPacket = nullptr;
+
+	while (QueuedHandlerPackets.Dequeue(QueuedPacket))
+	{
+		check(QueuedPacket->FromComponent != nullptr);
+
+		FBitWriter OutPacket;
+
+		OutPacket.SerializeBits(QueuedPacket->Data, QueuedPacket->CountBits);
+
+		SendHandlerPacket(QueuedPacket->FromComponent, OutPacket);
 	}
 }
 
@@ -73,6 +93,17 @@ void PacketHandler::Initialize(Handler::Mode InMode, uint32 InMaxPacketBits, boo
 		{
 			AddHandler(CurComponent, true);
 		}
+	}
+
+
+	bool bEnableReliability = false;
+
+	GConfig->GetBool(TEXT("PacketHandlerComponents"), TEXT("bEnableReliability"), bEnableReliability, GEngineIni);
+
+	if (bEnableReliability && !ReliabilityComponent.IsValid())
+	{
+		ReliabilityComponent = MakeShareable(new ReliabilityHandlerComponent);
+		AddHandler(ReliabilityComponent, true);
 	}
 }
 
@@ -103,6 +134,26 @@ void PacketHandler::InitializeComponents()
 
 	// Called early, to ensure that all handlers report a valid reserved packet bits value (triggers an assert if not)
 	GetTotalReservedPacketBits();
+}
+
+void PacketHandler::BeginHandshaking(FPacketHandlerHandshakeComplete InHandshakeDel/*=FPacketHandlerHandshakeComplete()*/)
+{
+	check(!bBeganHandshaking);
+
+	bBeganHandshaking = true;
+
+	HandshakeCompleteDel = InHandshakeDel;
+
+	for (int32 i=HandlerComponents.Num() - 1; i>=0; --i)
+	{
+		HandlerComponent& CurComponent = *HandlerComponents[i];
+
+		if (CurComponent.bRequiresHandshake && !CurComponent.IsInitialized())
+		{
+			CurComponent.NotifyHandshakeBegin();
+			break;
+		}
+	}
 }
 
 void PacketHandler::AddHandler(TSharedPtr<HandlerComponent> NewHandler, bool bDeferInitialize/*=false*/)
@@ -206,17 +257,11 @@ TSharedPtr<HandlerComponent> PacketHandler::AddHandler(FString ComponentStr, boo
 			// @todo #JohnB: Deprecate non-factory components eventually
 			else
 			{
-				TSharedPtr<IModuleInterface> Interface = FModuleManager::Get().LoadModule(FName(*ComponentName));
+				FPacketHandlerComponentModuleInterface* PacketHandlerInterface = FModuleManager::Get().LoadModulePtr<FPacketHandlerComponentModuleInterface>(FName(*ComponentName));
 
-				if (Interface.IsValid())
+				if (PacketHandlerInterface)
 				{
-					TSharedPtr<FPacketHandlerComponentModuleInterface> PacketHandlerInterface =
-						StaticCastSharedPtr<FPacketHandlerComponentModuleInterface>(Interface);
-
-					if (PacketHandlerInterface.IsValid())
-					{
-						ReturnVal = PacketHandlerInterface->CreateComponentInstance(ComponentOptions);
-					}
+					ReturnVal = PacketHandlerInterface->CreateComponentInstance(ComponentOptions);
 				}
 				else
 				{
@@ -290,6 +335,8 @@ const ProcessedPacket PacketHandler::Incoming_Internal(uint8* Packet, int32 Coun
 	{
 		FBitReader ProcessedPacketReader(Packet, CountBits);
 
+		FPacketAudit::CheckStage(TEXT("PostPacketHandler"), ProcessedPacketReader);
+
 		if (State == Handler::State::Uninitialized)
 		{
 			UpdateInitialState();
@@ -323,6 +370,11 @@ const ProcessedPacket PacketHandler::Incoming_Internal(uint8* Packet, int32 Coun
 		{
 			ReplaceIncomingPacket(ProcessedPacketReader);
 
+			if (IncomingPacket.GetBitsLeft() > 0)
+			{
+				FPacketAudit::CheckStage(TEXT("PrePacketHandler"), IncomingPacket, true);
+			}
+
 			return ProcessedPacket(IncomingPacket.GetData(), IncomingPacket.GetBitsLeft());
 		}
 		else
@@ -352,15 +404,7 @@ const ProcessedPacket PacketHandler::Outgoing_Internal(uint8* Packet, int32 Coun
 		{
 			OutgoingPacket.SerializeBits(Packet, CountBits);
 
-
-			if (!bConnectionless)
-			{
-				// Queue packet for resending before handling
-				if (CountBits > 0 && ReliabilityComponent.IsValid())
-				{
-					ReliabilityComponent->QueuePacketForResending(Packet, CountBits);
-				}
-			}
+			FPacketAudit::AddStage(TEXT("PrePacketHandler"), OutgoingPacket, true);
 
 			for (int32 i=0; i<HandlerComponents.Num() && !OutgoingPacket.IsError(); ++i)
 			{
@@ -392,9 +436,17 @@ const ProcessedPacket PacketHandler::Outgoing_Internal(uint8* Packet, int32 Coun
 			}
 
 			// Add a termination bit, the same as the UNetConnection code does, if appropriate
-			if (HandlerComponents.Num() > 0)
+			if (HandlerComponents.Num() > 0 && OutgoingPacket.GetNumBits() > 0)
 			{
+				FPacketAudit::AddStage(TEXT("PostPacketHandler"), OutgoingPacket);
+
 				OutgoingPacket.WriteBit(1);
+			}
+
+			if (!bConnectionless && ReliabilityComponent.IsValid() && OutgoingPacket.GetNumBits() > 0)
+			{
+				// Let the reliability handler know about all processed packets, so it can record them for resending if needed
+				ReliabilityComponent->QueuePacketForResending(OutgoingPacket.GetData(), OutgoingPacket.GetNumBits());
 			}
 		}
 		// Buffer any packets being sent from game code until processors are initialized
@@ -478,6 +530,80 @@ void PacketHandler::RealignPacket(FBitReader& Packet)
 	}
 }
 
+void PacketHandler::SendHandlerPacket(HandlerComponent* InComponent, FBitWriter& Writer)
+{
+	// @todo #JohnB: There is duplication between this function and others, it would be nice to reduce this.
+
+	// For the moment, this should only be used by HandlerComponents which are in the process of initializing.
+	check(State == Handler::State::InitializingComponents);
+
+	if (LowLevelSendDel.IsBound())
+	{
+		bool bEncounteredComponent = false;
+
+		for (int32 i=0; i<HandlerComponents.Num() && !Writer.IsError(); ++i)
+		{
+			HandlerComponent& CurComponent = *HandlerComponents[i];
+
+			// Only process the packet through components coming after the specified one
+			if (!bEncounteredComponent)
+			{
+				if (&CurComponent == InComponent)
+				{
+					bEncounteredComponent = true;
+				}
+
+				continue;
+			}
+
+			if (CurComponent.IsActive())
+			{
+				if (Writer.GetNumBits() <= CurComponent.MaxOutgoingBits)
+				{
+					CurComponent.Outgoing(Writer);
+				}
+				else
+				{
+					Writer.SetError();
+
+					UE_LOG(PacketHandlerLog, Error, TEXT("Handler packet exceeded HandlerComponents 'MaxOutgoingBits' value: %i vs %i"),
+							Writer.GetNumBits(), CurComponent.MaxOutgoingBits);
+
+					break;
+				}
+			}
+		}
+
+		if (!Writer.IsError() && Writer.GetNumBits() > 0)
+		{
+			FPacketAudit::AddStage(TEXT("PostPacketHandler"), Writer);
+
+			// Add a termination bit, the same as the UNetConnection code does, if appropriate
+			Writer.WriteBit(1);
+
+
+			if (ReliabilityComponent.IsValid())
+			{
+				// Let the reliability handler know about all processed packets, so it can record them for resending if needed
+				ReliabilityComponent->QueueHandlerPacketForResending(InComponent, Writer.GetData(), Writer.GetNumBits());
+			}
+
+			// Now finish off with a raw send (as we don't want to go through the PacketHandler chain again)
+			bool bOldRawSend = bRawSend;
+
+			bRawSend = true;
+
+			LowLevelSendDel.Execute(Writer.GetData(), Writer.GetNumBytes(), Writer.GetNumBits());
+
+			bRawSend = bOldRawSend;
+		}
+	}
+	else
+	{
+		LowLevelFatalError(TEXT("Called SendHandlerPacket when no LowLevelSend delegate is bound"));
+	}
+}
+
 void PacketHandler::SetState(Handler::State InState)
 {
 	if (InState == State)
@@ -494,18 +620,7 @@ void PacketHandler::UpdateInitialState()
 {
 	if (State == Handler::State::Uninitialized)
 	{
-#if !DISABLE_RELIABILITY_HANDLER
-		if (!ReliabilityComponent.IsValid())
-		{
-			ReliabilityComponent = MakeShareable(new ReliabilityHandlerComponent);
-			AddHandler(ReliabilityComponent);
-		}
-
-		// Have handlers to initialize other than reliability
-		if (HandlerComponents.Num() > 1)
-#else
 		if (HandlerComponents.Num() > 0)
-#endif
 		{
 			InitializeComponents();
 		} 
@@ -518,6 +633,26 @@ void PacketHandler::UpdateInitialState()
 
 void PacketHandler::HandlerInitialized()
 {
+	// Quickly verify that, if reliability is required, that it is enabled
+	if (!ReliabilityComponent.IsValid())
+	{
+		for (int32 i=0; i<HandlerComponents.Num(); i++)
+		{
+			if (HandlerComponents[i]->bRequiresReliability)
+			{
+				// Don't allow this to be missed in shipping - but allow it during development,
+				// as this is valid when developing new HandlerComponent's
+#if UE_BUILD_SHIPPING
+				UE_LOG(PacketHandlerLog, Fatal, TEXT("Some HandlerComponents require bEnableReliability!!!"));
+#else
+				UE_LOG(PacketHandlerLog, Warning, TEXT("Some HandlerComponents require bEnableReliability!!!"));
+#endif
+
+				break;
+			}
+		}
+	}
+
 	// If any buffered packets, add to queue
 	for (int32 i=0; i<BufferedPackets.Num(); ++i)
 	{
@@ -536,22 +671,52 @@ void PacketHandler::HandlerInitialized()
 	BufferedConnectionlessPackets.Empty();
 
 	SetState(Handler::State::Initialized);
+
+	if (bBeganHandshaking)
+	{
+		HandshakeCompleteDel.ExecuteIfBound();
+	}
 }
 
-void PacketHandler::HandlerComponentInitialized()
+void PacketHandler::HandlerComponentInitialized(HandlerComponent* InComponent)
 {
 	// Check if all handlers are initialized
 	if (State != Handler::State::Initialized)
 	{
-		for (int32 i=0; i<HandlerComponents.Num(); ++i)
+		bool bAllInitialized = true;
+		bool bEncounteredComponent = false;
+		bool bPassedHandshakeNotify = false;
+
+		for (int32 i=HandlerComponents.Num() - 1; i>=0; --i)
 		{
-			if (HandlerComponents[i]->IsInitialized() == false)
+			HandlerComponent& CurComponent = *HandlerComponents[i];
+
+			if (!CurComponent.IsInitialized())
 			{
-				return;
+				bAllInitialized = false;
+			}
+
+			if (bEncounteredComponent)
+			{
+				// If the initialized component required a handshake, pass on notification to the next handshaking component
+				// (components closer to the Socket, perform their handshake first)
+				if (bBeganHandshaking && !CurComponent.IsInitialized() && InComponent->bRequiresHandshake && !bPassedHandshakeNotify &&
+						CurComponent.bRequiresHandshake)
+				{
+					CurComponent.NotifyHandshakeBegin();
+					bPassedHandshakeNotify = true;
+				}
+			}
+			else
+			{
+				bEncounteredComponent = &CurComponent == InComponent;
 			}
 		}
 
-		HandlerInitialized();
+		if (bAllInitialized)
+		{
+			HandlerInitialized();
+		}
 	}
 }
 
@@ -564,6 +729,15 @@ BufferedPacket* PacketHandler::GetQueuedPacket()
 	return QueuedPacket;
 }
 
+BufferedPacket* PacketHandler::GetQueuedRawPacket()
+{
+	BufferedPacket* QueuedPacket = nullptr;
+
+	QueuedRawPackets.Dequeue(QueuedPacket);
+
+	return QueuedPacket;
+}
+
 BufferedPacket* PacketHandler::GetQueuedConnectionlessPacket()
 {
 	BufferedPacket* QueuedConnectionlessPacket = nullptr;
@@ -571,11 +745,6 @@ BufferedPacket* PacketHandler::GetQueuedConnectionlessPacket()
 	QueuedConnectionlessPackets.Dequeue(QueuedConnectionlessPacket);
 
 	return QueuedConnectionlessPacket;
-}
-
-void PacketHandler::QueuePacketForSending(BufferedPacket* PacketToQueue)
-{
-	// @todo #JohnB: Deprecate?
 }
 
 int32 PacketHandler::GetTotalReservedPacketBits()
@@ -622,6 +791,8 @@ HandlerComponent::HandlerComponent()
 	: Handler(nullptr)
 	, State(Handler::Component::State::UnInitialized)
 	, MaxOutgoingBits(0)
+	, bRequiresHandshake(false)
+	, bRequiresReliability(false)
 	, bActive(false)
 	, bInitialized(false)
 {
@@ -645,10 +816,25 @@ void HandlerComponent::SetState(Handler::Component::State InState)
 void HandlerComponent::Initialized()
 {
 	bInitialized = true;
-	Handler->HandlerComponentInitialized();
+	Handler->HandlerComponentInitialized(this);
 }
 
 bool HandlerComponent::IsInitialized() const
 {
 	return bInitialized;
 }
+
+
+/**
+ * FPacketHandlerComponentModuleInterface
+ */
+void FPacketHandlerComponentModuleInterface::StartupModule()
+{
+	FPacketAudit::Init();
+}
+
+void FPacketHandlerComponentModuleInterface::ShutdownModule()
+{
+	FPacketAudit::Destruct();
+}
+

@@ -247,6 +247,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|Light", meta=(DisplayName = "Set IES Texture"))
 	void SetIESTexture(UTextureLightProfile* NewValue);
 
+	UFUNCTION(BlueprintCallable, Category="Rendering|Components|Light")
+	void SetShadowBias(float NewValue);
+
 public:
 	/** The light's scene info. */
 	class FLightSceneProxy* SceneProxy;

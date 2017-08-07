@@ -6,9 +6,10 @@
 #include "Evaluation/MovieSceneEvaluationKey.h"
 #include "Misc/InlineValue.h"
 #include "MovieSceneExecutionToken.h"
-#include "MovieSceneSection.h"
+#include "MovieSceneEvaluationScope.h"
 #include "Evaluation/PersistentEvaluationData.h"
 #include "Evaluation/MovieScenePlayback.h"
+#include "Evaluation/Blending/MovieSceneBlendingAccumulator.h"
 
 
 /**
@@ -23,15 +24,18 @@ struct FMovieSceneExecutionTokens
 
 	FMovieSceneExecutionTokens(const FMovieSceneExecutionTokens&) = delete;
 	FMovieSceneExecutionTokens& operator=(const FMovieSceneExecutionTokens&) = delete;
-	
+
+	FMovieSceneExecutionTokens(FMovieSceneExecutionTokens&&) = default;
+	FMovieSceneExecutionTokens& operator=(FMovieSceneExecutionTokens&&) = default;
+
 	/**
 	 * Add a new IMovieSceneExecutionToken derived token to the stack
 	 */
 	template<typename T>
 	FORCEINLINE typename TEnableIf<TPointerIsConvertibleFromTo<typename TRemoveReference<T>::Type, const IMovieSceneExecutionToken>::Value>::Type Add(T&& InToken)
 	{
-		check(TrackKey.IsValid() && Operand.IsValid());
-		Tokens.Add(FEntry(Operand, TrackKey, SectionIdentifier, CompletionMode, Context, Forward<T>(InToken)));
+		check(Scope.Key.IsValid() && Operand.IsValid());
+		OrderedTokens.Add(FEntry(Operand, Scope, Context, Forward<T>(InToken)));
 	}
 
 	/**
@@ -45,15 +49,6 @@ struct FMovieSceneExecutionTokens
 	}
 
 	/**
-	* Attempt to locate an existing shared execution token by its ID
-	*/
-	const IMovieSceneSharedExecutionToken* FindShared(FMovieSceneSharedDataId ID) const
-	{
-		const auto* Existing = SharedTokens.Find(ID);
-		return Existing ? Existing->GetPtr() : nullptr;
-	}
-
-	/**
 	 * Attempt to locate an existing shared execution token by its ID
 	 */
 	IMovieSceneSharedExecutionToken* FindShared(FMovieSceneSharedDataId ID)
@@ -61,6 +56,46 @@ struct FMovieSceneExecutionTokens
 		auto* Existing = SharedTokens.Find(ID);
 		return Existing ? Existing->GetPtr() : nullptr;
 	}
+
+public:
+
+	/**
+	 * Access the execution stack's blending accumulator which is responsible for marshalling all blending operations for all animated objects
+	 * @return Mutable reference to the blending accumulator
+	 */
+	FMovieSceneBlendingAccumulator& GetBlendingAccumulator()
+	{
+		return BlendingAccumulator;
+	}
+
+	/**
+	 * Access the execution stack's blending accumulator which is responsible for marshalling all blending operations for all animated objects
+	 * @return Mutable reference to the blending accumulator
+	 */
+	const FMovieSceneBlendingAccumulator& GetBlendingAccumulator() const
+	{
+		return BlendingAccumulator;
+	}
+
+	/**
+	 * Blend the specified global token using the specified actuator ID
+	 * @note: Actuator must already exist for this function to succeed
+	 *
+	 * @param InActuatorTypeID 		Type identifier that uniquely identifies the actuator to be used to apply the final blend
+	 * @param InToken 				Token holding the data to blend
+	 */
+	template<typename ActuatorDataType>
+	void BlendToken(FMovieSceneBlendingActuatorID InActuatorTypeID, TBlendableToken<ActuatorDataType>&& InToken)
+	{
+		BlendingAccumulator.BlendToken(Operand, InActuatorTypeID, Scope, Context, MoveTemp(InToken));
+	}
+
+	/**
+	 * Apply all execution tokens in order, followed by blended tokens
+	 */
+	MOVIESCENE_API void Apply(const FMovieSceneContext& RootContext, IMovieScenePlayer& Player);
+
+public:
 
 	/**
 	 * Internal: Set the operand we're currently operating on
@@ -71,19 +106,11 @@ struct FMovieSceneExecutionTokens
 	}
 
 	/**
-	 * Internal: Set the track we're currently evaluating
+	 * Internal: Set the current scope
 	 */
-	FORCEINLINE void SetTrack(const FMovieSceneEvaluationKey& InTrackKey)
+	FORCEINLINE void SetCurrentScope(const FMovieSceneEvaluationScope& InScope)
 	{
-		TrackKey = InTrackKey;
-	}
-
-	/**
-	 * Internal: Set the section we're currently evaluating
-	 */
-	FORCEINLINE void SetSectionIdentifier(uint32 InSectionIdentifier)
-	{
-		SectionIdentifier = InSectionIdentifier;
+		Scope = InScope;
 	}
 
 	/**
@@ -95,83 +122,51 @@ struct FMovieSceneExecutionTokens
 	}
 
 	/**
-	 * Internal: Set what should happen when the section is no longer evaluated
+	 * Get the current evaluation scope
 	 */
-	FORCEINLINE void SetCompletionMode(EMovieSceneCompletionMode InCompletionMode)
+	FORCEINLINE FMovieSceneEvaluationScope GetCurrentScope() const
 	{
-		CompletionMode = InCompletionMode;
+		return Scope;
 	}
-
-	/** Apply all execution tokens in order */
-	MOVIESCENE_API void Apply(IMovieScenePlayer& Player);
 
 private:
 
 	struct FEntry
 	{
-		FEntry(const FMovieSceneEvaluationOperand& InOperand, const FMovieSceneEvaluationKey& InTrackKey, uint32 InSectionIdentifier, EMovieSceneCompletionMode InCompletionMode, const FMovieSceneContext& InContext, TInlineValue<IMovieSceneExecutionToken, 32>&& InToken)
+		FEntry(const FMovieSceneEvaluationOperand& InOperand, const FMovieSceneEvaluationScope& InScope, const FMovieSceneContext& InContext, TInlineValue<IMovieSceneExecutionToken, 64>&& InToken)
 			: Operand(InOperand)
-			, TrackKey(InTrackKey)
-			, SectionIdentifier(InSectionIdentifier)
-			, CompletionMode(InCompletionMode)
+			, Scope(InScope)
 			, Context(InContext)
 			, Token(MoveTemp(InToken))
 		{
 		}
 
-#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 		FEntry(FEntry&&) = default;
 		FEntry& operator=(FEntry&&) = default;
-#else
-		FEntry(FEntry&& RHS)
-			: Operand(MoveTemp(RHS.Operand))
-			, TrackKey(MoveTemp(RHS.TrackKey))
-			, SectionIdentifier(MoveTemp(RHS.SectionIdentifier))
-			, CompletionMode(MoveTemp(RHS.CompletionMode))
-			, Context(MoveTemp(RHS.Context))
-			, Token(MoveTemp(RHS.Token))
-		{
-		}
-		FEntry& operator=(FEntry&& RHS)
-		{
-			Operand = MoveTemp(RHS.Operand);
-			TrackKey = MoveTemp(RHS.TrackKey);
-			SectionIdentifier = MoveTemp(RHS.SectionIdentifier);
-			CompletionMode = MoveTemp(RHS.CompletionMode);
-			Context = MoveTemp(RHS.Context);
-			Token = MoveTemp(RHS.Token);
-			return *this;
-		}
-#endif
 
 		/** The operand we were operating on when this token was added */
 		FMovieSceneEvaluationOperand Operand;
-		/** The track we were evaluating when this token was added */
-		FMovieSceneEvaluationKey TrackKey;
-		/** The section identifier we were evaluating when this token was added */
-		uint32 SectionIdentifier;
-		/** What should happen when the entity is no longer evaluated */
-		EMovieSceneCompletionMode CompletionMode;
+		/** The evaluation scope at the time this token was created */
+		FMovieSceneEvaluationScope Scope;
 		/** The context from when this token was added */
 		FMovieSceneContext Context;
 		/** The user-provided token */
-		TInlineValue<IMovieSceneExecutionToken, 32> Token;
+		TInlineValue<IMovieSceneExecutionToken, 64> Token;
 	};
 
 	/** Ordered array of tokens */
-	TArray<FEntry> Tokens;
+	TArray<FEntry> OrderedTokens;
 
 	/** Sortable, shared array of identifyable tokens */
 	TMap<FMovieSceneSharedDataId, TInlineValue<IMovieSceneSharedExecutionToken, 32>> SharedTokens;
 
+	/** Accumulator used to marshal blended animation data */
+	FMovieSceneBlendingAccumulator BlendingAccumulator;
+
 	/** The operand we're currently operating on */
 	FMovieSceneEvaluationOperand Operand;
-	/** The track we're currently evaluating */
-	FMovieSceneEvaluationKey TrackKey;
-	/** The section we're currently evaluating */
-	uint32 SectionIdentifier;
-	/* What should happen when the section is no longer evaluated */
-	EMovieSceneCompletionMode CompletionMode;
+	/** The current evaluation scope */
+	FMovieSceneEvaluationScope Scope;
 	/** The current context */
 	FMovieSceneContext Context;
 };

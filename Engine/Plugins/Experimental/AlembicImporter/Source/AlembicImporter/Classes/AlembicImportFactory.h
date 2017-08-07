@@ -26,6 +26,9 @@ class UAlembicImportFactory : public UFactory, public FReimportHandler
 	UPROPERTY()
 	UAbcImportSettings* ImportSettings;
 
+	UPROPERTY()
+	bool bShowOption;
+
 	//~ Begin UObject Interface
 	void PostInitProperties();
 	//~ End UObject Interface

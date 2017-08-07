@@ -15,6 +15,7 @@
 #include "Editor/SceneOutliner/Public/SceneOutlinerModule.h"
 #include "AssetRegistryModule.h"
 #include "UserInterface/PropertyEditor/PropertyEditorAssetConstants.h"
+#include "SceneOutlinerPublicTypes.h"
 
 #define LOCTEXT_NAMESPACE "PropertyEditor"
 
@@ -84,6 +85,9 @@ void SPropertyMenuActorPicker::Construct( const FArguments& InArgs )
 		InitOptions.Mode = ESceneOutlinerMode::ActorPicker;
 		InitOptions.Filters->AddFilterPredicate(ActorFilter);
 		InitOptions.bFocusSearchBoxWhenOpened = true;
+
+		InitOptions.ColumnMap.Add(SceneOutliner::FBuiltInColumnTypes::Label(), SceneOutliner::FColumnInfo(SceneOutliner::EColumnVisibility::Visible, 0) );
+		InitOptions.ColumnMap.Add(SceneOutliner::FBuiltInColumnTypes::ActorInfo(), SceneOutliner::FColumnInfo(SceneOutliner::EColumnVisibility::Visible, 10) );
 		
 		MenuContent =
 			SNew(SBox)

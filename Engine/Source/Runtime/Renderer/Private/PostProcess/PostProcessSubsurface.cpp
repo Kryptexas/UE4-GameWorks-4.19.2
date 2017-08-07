@@ -220,7 +220,7 @@ public:
 
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("PostProcessSubsurface");
+		return TEXT("/Engine/Private/PostProcessSubsurface.usf");
 	}
 
 	static const TCHAR* GetFunctionName()
@@ -290,7 +290,7 @@ void FRCPassPostProcessSubsurfaceVisualize::Process(FRenderingCompositePassConte
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 
 	// is optimized away if possible (RT size=view size, )
-	DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor::Black, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, DestRect);
+	DrawClearQuad(Context.RHICmdList, true, FLinearColor::Black, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, DestRect);
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f );
 
@@ -342,7 +342,7 @@ void FRCPassPostProcessSubsurfaceVisualize::Process(FRenderingCompositePassConte
 FPooledRenderTargetDesc FRCPassPostProcessSubsurfaceVisualize::ComputeOutputDesc(EPassOutputId InPassOutputId) const
 {
 	FPooledRenderTargetDesc Ret = FSceneRenderTargets::Get_FrameConstantsOnly().GetSceneColor()->GetDesc();
-
+	Ret.Flags &= ~(TexCreate_FastVRAM | TexCreate_Transient);
 	Ret.Reset();
 	Ret.DebugName = TEXT("SubsurfaceVisualize");
 	// alpha is used to store depth and renormalize (alpha==0 means there is no subsurface scattering)
@@ -416,7 +416,7 @@ public:
 
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("PostProcessSubsurface");
+		return TEXT("/Engine/Private/PostProcessSubsurface.usf");
 	}
 
 	static const TCHAR* GetFunctionName()
@@ -546,7 +546,7 @@ void FRCPassPostProcessSubsurfaceSetup::Process(FRenderingCompositePassContext& 
 FPooledRenderTargetDesc FRCPassPostProcessSubsurfaceSetup::ComputeOutputDesc(EPassOutputId InPassOutputId) const
 {
 	FPooledRenderTargetDesc Ret = FSceneRenderTargets::Get_FrameConstantsOnly().GetSceneColor()->GetDesc();
-
+	Ret.Flags &= ~(TexCreate_FastVRAM | TexCreate_Transient);
 	Ret.Reset();
 	Ret.DebugName = TEXT("SubsurfaceSetup");
 	// alpha is used to store depth and renormalize (alpha==0 means there is no subsurface scattering)
@@ -632,7 +632,7 @@ public:
 
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("PostProcessSubsurface");
+		return TEXT("/Engine/Private/PostProcessSubsurface.usf");
 	}
 
 	static const TCHAR* GetFunctionName()
@@ -845,7 +845,7 @@ public:
 
 	static const TCHAR* GetSourceFilename()
 	{
-		return TEXT("PostProcessSubsurface");
+		return TEXT("/Engine/Private/PostProcessSubsurface.usf");
 	}
 
 	static const TCHAR* GetFunctionName()

@@ -88,6 +88,45 @@ private:
 	FShaderResourceParameter InTextureSampler;
 };
 
+class FScreenPS_OSE : public FGlobalShader
+{
+    DECLARE_EXPORTED_SHADER_TYPE(FScreenPS_OSE,Global,ENGINE_API);
+public:
+
+    static bool ShouldCache(EShaderPlatform Platform) { return true; }
+
+    FScreenPS_OSE(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
+        FGlobalShader(Initializer)
+    {
+        InTexture.Bind(Initializer.ParameterMap,TEXT("InTexture"), SPF_Mandatory);
+        InTextureSampler.Bind(Initializer.ParameterMap,TEXT("InTextureSampler"));
+    }
+
+    FScreenPS_OSE() {}
+
+    void SetParameters(FRHICommandList& RHICmdList, const FTexture* Texture)
+    {
+        SetTextureParameter(RHICmdList, GetPixelShader(),InTexture,InTextureSampler,Texture);
+    }
+
+    void SetParameters(FRHICommandList& RHICmdList, FSamplerStateRHIParamRef SamplerStateRHI, FTextureRHIParamRef TextureRHI)
+    {
+        SetTextureParameter(RHICmdList, GetPixelShader(),InTexture,InTextureSampler,SamplerStateRHI,TextureRHI);
+    }
+
+    virtual bool Serialize(FArchive& Ar) override
+    {
+        bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
+        Ar << InTexture;
+        Ar << InTextureSampler;
+        return bShaderHasOutdatedParameters;
+    }
+
+private:
+    FShaderResourceParameter InTexture;
+    FShaderResourceParameter InTextureSampler;
+};
+
 /**
  * A vertex shader for rendering a textured screen element.
  */
@@ -133,7 +172,7 @@ public:
 	  {
 	  }
 	TScreenVSForGS() {}
-	
+
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FScreenVS::ModifyCompilationEnvironment(Platform, OutEnvironment);

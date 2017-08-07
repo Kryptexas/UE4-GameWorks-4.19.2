@@ -7,7 +7,6 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Tools.CrashReporter.CrashReportCommon;
-using Tools.DotNETCommon.LaunchProcess;
 
 namespace Tools.CrashReporter.CrashReportProcess
 {
@@ -147,6 +146,40 @@ namespace Tools.CrashReporter.CrashReportProcess
 			CrashReporterProcessServicer.WriteEvent(string.Format("PROC-{0} ", ProcessorIndex) + string.Format("Symbolicator.Run: Thread blocked for {0:N1}s then MDD ran for {1:N1}s", WaitForLockTime, MDDRunTime));
 
 			return NewSymbolicatorTask.Result;
+		}
+
+		/// <summary>
+		/// Clear out old MDD logs
+		/// </summary>
+		/// <param name="NumDays">Number of days worth of logs to keep</param>
+		public static void CleanOutOldLogs(int NumDays)
+		{
+			DateTime DeleteTime = DateTime.UtcNow - TimeSpan.FromDays(NumDays);
+			try
+			{
+				DirectoryInfo BaseFolder = new DirectoryInfo(CrashReporterProcessServicer.SymbolicatorLogFolder);
+				if (BaseFolder.Exists)
+				{
+					foreach (DirectoryInfo SubFolder in BaseFolder.EnumerateDirectories())
+					{
+						if (!SubFolder.EnumerateFiles("*", SearchOption.AllDirectories).Any(x => x.LastWriteTimeUtc > DeleteTime))
+						{
+							try
+							{
+								SubFolder.Delete(true);
+							}
+							catch(Exception Ex)
+							{
+								CrashReporterProcessServicer.WriteEvent(String.Format("Symbolicator.CleanOutOldLogs: Unable to delete {0}: {1}", SubFolder.FullName, Ex.Message));
+							}
+						}
+					}
+				}
+			}
+			catch(Exception Ex)
+			{
+				CrashReporterProcessServicer.WriteEvent(String.Format("Symbolicator.CleanOutOldLogs: Failed to delete logs: {0}", Ex.Message));
+			}
 		}
 
 		private Task<bool>[] Tasks;

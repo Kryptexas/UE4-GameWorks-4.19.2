@@ -52,6 +52,7 @@ public:
 	virtual bool IsSoftwareCursorVisible() const override { return bIsSoftwareCursorVisible; }
 	virtual FVector2D GetSoftwareCursorPosition() const override { return SoftwareCursorPosition; }
 	virtual FCanvas* GetDebugCanvas() override;
+	virtual float GetDisplayGamma() const override;
 
 	/** Gets the proper RenderTarget based on the current thread*/
 	virtual const FTexture2DRHIRef& GetRenderTargetTexture() const;
@@ -211,7 +212,7 @@ public:
 
 	/** ISlateViewport interface */
 	virtual FSlateShaderResource* GetViewportRenderTargetTexture() const override;
-	virtual void OnDrawViewport( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) override;
+	virtual void OnDrawViewport( const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) override;
 	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) override;
 	virtual TOptional<TSharedRef<SWidget>> OnMapCursor(const FCursorReply& CursorReply) override;
 	virtual FReply OnMouseButtonDown( const FGeometry& InGeometry, const FPointerEvent& MouseEvent ) override;
@@ -256,6 +257,13 @@ public:
 
 	/** Get the cached viewport geometry. */
 	const FGeometry& GetCachedGeometry() const { return CachedGeometry; }
+
+
+	/** Set an optional display gamma to use for this viewport */
+	void SetGammaOverride(const float InGammaOverride)
+	{
+		ViewportGammaOverride = InGammaOverride;
+	};
 
 private:
 	/**
@@ -420,4 +428,7 @@ private:
 
 	/** Tracks the number of touches currently active on the viewport */
 	int32 NumTouches;
+
+	/** The optional gamma value to use for this viewport */
+	TOptional<float> ViewportGammaOverride;
 };

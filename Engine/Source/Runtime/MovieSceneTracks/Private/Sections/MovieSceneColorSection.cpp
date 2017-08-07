@@ -21,6 +21,7 @@ void FMovieSceneColorKeyStruct::PropagateChanges(const FPropertyChangedEvent& Ch
 		else
 		{
 			Keys[Index]->Value = Color.Component(Index);
+			Keys[Index]->Time = Time;
 		}
 	}
 }
@@ -33,6 +34,7 @@ UMovieSceneColorSection::UMovieSceneColorSection(const FObjectInitializer& Objec
 	: Super(ObjectInitializer)
 { 
 	EvalOptions.EnableAndSetCompletionMode(GetLinkerCustomVersion(FSequencerObjectVersion::GUID) < FSequencerObjectVersion::WhenFinishedDefaultsToRestoreState ? EMovieSceneCompletionMode::KeepState : EMovieSceneCompletionMode::RestoreState);
+	BlendType = EMovieSceneBlendType::Absolute;
 }
 
 /* UMovieSceneSection interface
@@ -127,6 +129,7 @@ TSharedPtr<FStructOnScope> UMovieSceneColorSection::GetKeyStruct(const TArray<FK
 			if (Struct->Keys[Index] != nullptr)
 			{
 				FirstValidKeyTime = Struct->Keys[Index]->Time;
+				Struct->Time = FirstValidKeyTime;
 			}
 		}
 

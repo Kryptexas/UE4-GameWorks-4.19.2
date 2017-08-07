@@ -160,14 +160,6 @@ static TAutoConsoleVariable<int32> CVarMaxMobileShadowCascades(
 	ECVF_Scalability | ECVF_RenderThreadSafe
 );
 
-static TAutoConsoleVariable<int32> CVarForwardShading(
-	TEXT("r.ForwardShading"),
-	0,
-	TEXT("Whether to use forward shading on desktop platforms - requires Shader Model 5 hardware.\n")
-	TEXT("Forward shading has lower constant cost, but fewer features supported. 0:off, 1:on\n")
-	TEXT("This rendering path is a work in progress with many unimplemented features, notably only a single reflection capture is applied per object and no translucency dynamic shadow receiving."),
-	ECVF_RenderThreadSafe | ECVF_ReadOnly);
-
 static TAutoConsoleVariable<int32> CVarSupportSimpleForwardShading(
 	TEXT("r.SupportSimpleForwardShading"),
 	0,
@@ -241,9 +233,22 @@ static TAutoConsoleVariable<int32> CVarWideCustomResolve(
 	ECVF_RenderThreadSafe | ECVF_Scalability
 	);
 
+TAutoConsoleVariable<int32> CVarTransientResourceAliasing_RenderTargets(
+	TEXT("r.TransientResourceAliasing.RenderTargets"),
+	1,
+	TEXT("0 : Disabled\n")
+	TEXT("1 : enable transient resource aliasing for fastVRam rendertargets\n")
+	TEXT("2 : enable transient resource aliasing for ALL rendertargets (experimental!)\n"),
+	ECVF_ReadOnly);
+
+TAutoConsoleVariable<int32> CVarTransientResourceAliasing_Buffers(
+	TEXT("r.TransientResourceAliasing.Buffers"),
+	1,
+	TEXT("If true, enable transient resource aliasing for buffers"),
+	ECVF_ReadOnly);
+
 static FParallelCommandListSet* GOutstandingParallelCommandListSet = nullptr;
 
-DECLARE_CYCLE_STAT(TEXT("DeferredShadingSceneRenderer MotionBlurStartFrame"), STAT_FDeferredShadingSceneRenderer_MotionBlurStartFrame, STATGROUP_SceneRendering);
 DECLARE_CYCLE_STAT(TEXT("DeferredShadingSceneRenderer UpdateMotionBlurCache"), STAT_FDeferredShadingSceneRenderer_UpdateMotionBlurCache, STATGROUP_SceneRendering);
 
 
@@ -440,6 +445,7 @@ FViewInfo::FViewInfo(const FSceneView* InView)
 void FViewInfo::Init()
 {
 	CachedViewUniformShaderParameters = nullptr;
+	bHasNoVisiblePrimitive = false;
 	bHasTranslucentViewMeshElements = 0;
 	bPrevTransformsReset = false;
 	bIgnoreExistingQueries = false;
@@ -598,6 +604,13 @@ void UpdateNoiseTextureParameters(FViewUniformShaderParameters& ViewUniformShade
 	}
 	check(ViewUniformShaderParameters.PerlinNoise3DTexture);
 	ViewUniformShaderParameters.PerlinNoise3DTextureSampler = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
+
+	if (GSystemTextures.SobolSampling.GetReference())
+	{
+		ViewUniformShaderParameters.SobolSamplingTexture = (FTexture2DRHIRef&)GSystemTextures.SobolSampling->GetRenderTargetItem().ShaderResourceTexture;
+		SetBlack2DIfNull(ViewUniformShaderParameters.SobolSamplingTexture);
+	}
+	check(ViewUniformShaderParameters.SobolSamplingTexture);
 }
 
 /** Creates the view's uniform buffers given a set of view transforms. */
@@ -816,10 +829,25 @@ void FViewInfo::SetupUniformBufferParameters(
 
 	{
 		// Enables HDR encoding mode selection without recompile of all PC shaders during ES2 emulation.
-		ViewUniformShaderParameters.HDR32bppEncodingMode = 0;
+		ViewUniformShaderParameters.HDR32bppEncodingMode = 0.0f;
 		if (IsMobileHDR32bpp())
 		{
-			ViewUniformShaderParameters.HDR32bppEncodingMode = IsMobileHDRMosaic() ? 1.0f : 2.0f;
+			EMobileHDRMode MobileHDRMode = GetMobileHDRMode();
+			switch (MobileHDRMode)
+			{
+				case EMobileHDRMode::EnabledMosaic:
+					ViewUniformShaderParameters.HDR32bppEncodingMode = 1.0f;
+				break;
+				case EMobileHDRMode::EnabledRGBE:
+					ViewUniformShaderParameters.HDR32bppEncodingMode = 2.0f;
+				break;
+				case EMobileHDRMode::EnabledRGBA8:
+					ViewUniformShaderParameters.HDR32bppEncodingMode = 3.0f;
+					break;
+				default:
+					checkNoEntry();
+				break;
+			}
 		}
 	}
 
@@ -936,7 +964,7 @@ FViewInfo* FViewInfo::CreateSnapshot() const
 	}
 	else
 	{
-		Result = (FViewInfo*)FMemory::Malloc(sizeof(FViewInfo), ALIGNOF(FViewInfo));
+		Result = (FViewInfo*)FMemory::Malloc(sizeof(FViewInfo), alignof(FViewInfo));
 	}
 	FMemory::Memcpy(*Result, *this);
 
@@ -1931,6 +1959,12 @@ void FRendererModule::BeginRenderingViewFamily(FCanvas* Canvas, FSceneViewFamily
 		}
 	}
 
+	ENQUEUE_RENDER_COMMAND(UpdateDeferredCachedUniformExpressions)(
+		[](FRHICommandList& RHICmdList)
+		{
+			FMaterialRenderProxy::UpdateDeferredCachedUniformExpressions();
+		});
+
 	// Flush the canvas first.
 	Canvas->Flush_GameThread();
 
@@ -1973,14 +2007,7 @@ void FRendererModule::BeginRenderingViewFamily(FCanvas* Canvas, FSceneViewFamily
 		// Construct the scene renderer.  This copies the view family attributes into its own structures.
 		FSceneRenderer* SceneRenderer = FSceneRenderer::CreateSceneRenderer(ViewFamily, Canvas->GetHitProxyConsumer());
 
-		bool bWorldIsPaused = ViewFamily->bWorldIsPaused;
-
-		ENQUEUE_RENDER_COMMAND(MotionBlurStartFrame)(
-			[Scene, bWorldIsPaused](FRHICommandList& RHICmdList)
-			{
-				SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_MotionBlurStartFrame);
-				Scene->MotionBlurInfoData.StartFrame(bWorldIsPaused);
-			});
+		Scene->EnsureMotionBlurCacheIsUpToDate(ViewFamily->bWorldIsPaused);
 
 		if (!SceneRenderer->ViewFamily.EngineShowFlags.HitProxies)
 		{
@@ -2014,6 +2041,8 @@ void FRendererModule::BeginRenderingViewFamily(FCanvas* Canvas, FSceneViewFamily
 			RenderViewFamily_RenderThread(RHICmdList, SceneRenderer);
 			FlushPendingDeleteRHIResources_RenderThread();
 		});
+
+		Scene->ResetMotionBlurCacheTracking();
 	}
 }
 

@@ -20,6 +20,9 @@
 #include "Runtime/Engine/Classes/Engine/RendererSettings.h"
 #include "Blueprint/SlateBlueprintLibrary.h"
 #include "Slate/SceneViewport.h"
+#include "Slate/SGameLayerManager.h"
+#include "Framework/Application/SlateApplication.h"
+#include "FrameValue.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -72,16 +75,27 @@ bool UWidgetLayoutLibrary::ProjectWorldLocationToWidgetPositionWithDistance(APla
 
 float UWidgetLayoutLibrary::GetViewportScale(UObject* WorldContextObject)
 {
-	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
-	if ( World && World->IsGameWorld() )
+	static TFrameValue<float> ViewportScaleCache;
+
+	if ( !ViewportScaleCache.IsSet() || WITH_EDITOR )
 	{
-		if ( UGameViewportClient* ViewportClient = World->GetGameViewport() )
+		float ViewportScale = 1.0f;
+
+		UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
+		if ( World && World->IsGameWorld() )
 		{
-			return GetViewportScale(ViewportClient);
+			if ( UGameViewportClient* ViewportClient = World->GetGameViewport() )
+			{
+				FVector2D ViewportSize;
+				ViewportClient->GetViewportSize(ViewportSize);
+				ViewportScale = GetDefault<UUserInterfaceSettings>()->GetDPIScaleBasedOnSize(FIntPoint(ViewportSize.X, ViewportSize.Y));
+			}
 		}
+
+		ViewportScaleCache = ViewportScale;
 	}
 
-	return 1;
+	return ViewportScaleCache.GetValue();
 }
 
 float UWidgetLayoutLibrary::GetViewportScale(UGameViewportClient* ViewportClient)
@@ -101,10 +115,30 @@ float UWidgetLayoutLibrary::GetViewportScale(UGameViewportClient* ViewportClient
 	return UserResolutionScale;
 }
 
+FVector2D UWidgetLayoutLibrary::GetMousePositionOnPlatform()
+{
+	if ( FSlateApplication::IsInitialized() )
+	{
+		return FSlateApplication::Get().GetCursorPos();
+	}
+
+	return FVector2D(0, 0);
+}
+
+FVector2D UWidgetLayoutLibrary::GetMousePositionOnViewport(UObject* WorldContextObject)
+{
+	if ( FSlateApplication::IsInitialized() )
+	{
+		FVector2D MousePosition = FSlateApplication::Get().GetCursorPos();
+		FGeometry ViewportGeometry = GetViewportWidgetGeometry(WorldContextObject);
+		return ViewportGeometry.AbsoluteToLocal(MousePosition);
+	}
+
+	return FVector2D(0, 0);
+}
+
 bool UWidgetLayoutLibrary::GetMousePositionScaledByDPI(APlayerController* Player, float& LocationX, float& LocationY)
 {
-	// TODO NDarnell We should deprecate this function, it's not super useful.
-
 	if ( Player && Player->GetMousePosition(LocationX, LocationY) )
 	{
 		float Scale = UWidgetLayoutLibrary::GetViewportScale(Player);
@@ -119,18 +153,61 @@ bool UWidgetLayoutLibrary::GetMousePositionScaledByDPI(APlayerController* Player
 
 FVector2D UWidgetLayoutLibrary::GetViewportSize(UObject* WorldContextObject)
 {
-	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	static TFrameValue<FVector2D> ViewportSizeCache;
+
+	if ( !ViewportSizeCache.IsSet() || WITH_EDITOR )
+	{
+		FVector2D ViewportSize(1, 1);
+
+		UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
+		if ( World && World->IsGameWorld() )
+		{
+			if ( UGameViewportClient* ViewportClient = World->GetGameViewport() )
+			{
+				ViewportClient->GetViewportSize(ViewportSize);
+			}
+		}
+
+		ViewportSizeCache = ViewportSize;
+	}
+
+	return ViewportSizeCache.GetValue();
+}
+
+FGeometry UWidgetLayoutLibrary::GetViewportWidgetGeometry(UObject* WorldContextObject)
+{
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 	if ( World && World->IsGameWorld() )
 	{
 		if ( UGameViewportClient* ViewportClient = World->GetGameViewport() )
 		{
-			FVector2D ViewportSize;
-			ViewportClient->GetViewportSize(ViewportSize);
-			return ViewportSize;
+			TSharedPtr<IGameLayerManager> LayerManager = ViewportClient->GetGameLayerManager();
+			if ( LayerManager.IsValid() )
+			{
+				return LayerManager->GetViewportWidgetHostGeometry();
+			}
 		}
 	}
 
-	return FVector2D(1, 1);
+	return FGeometry();
+}
+
+FGeometry UWidgetLayoutLibrary::GetPlayerScreenWidgetGeometry(APlayerController* PlayerController)
+{
+	UWorld* World = GEngine->GetWorldFromContextObject(PlayerController, EGetWorldErrorMode::LogAndReturnNull);
+	if ( World && World->IsGameWorld() )
+	{
+		if ( UGameViewportClient* ViewportClient = World->GetGameViewport() )
+		{
+			TSharedPtr<IGameLayerManager> LayerManager = ViewportClient->GetGameLayerManager();
+			if ( LayerManager.IsValid() )
+			{
+				return LayerManager->GetPlayerWidgetHostGeometry(PlayerController->GetLocalPlayer());
+			}
+		}
+	}
+
+	return FGeometry();
 }
 
 UBorderSlot* UWidgetLayoutLibrary::SlotAsBorderSlot(UWidget* Widget)
@@ -205,7 +282,7 @@ UVerticalBoxSlot* UWidgetLayoutLibrary::SlotAsVerticalBoxSlot(UWidget* Widget)
 
 void UWidgetLayoutLibrary::RemoveAllWidgets(UObject* WorldContextObject)
 {
-	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 	if ( World && World->IsGameWorld() )
 	{
 		if ( UGameViewportClient* ViewportClient = World->GetGameViewport() )

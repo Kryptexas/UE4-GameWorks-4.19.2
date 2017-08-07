@@ -15,7 +15,9 @@ FVulkanDevice::FVulkanDevice(VkPhysicalDevice InGpu)
 	, Device(VK_NULL_HANDLE)
 	, ResourceHeapManager(this)
 	, DeferredDeletionQueue(this)
-	, DefaultSampler(VK_NULL_HANDLE)
+	, DefaultSampler(nullptr)
+	, DefaultImage(nullptr)
+	, DefaultImageView(VK_NULL_HANDLE)
 	, TimestampQueryPool(nullptr)
 	, GfxQueue(nullptr)
 	, TransferQueue(nullptr)
@@ -55,6 +57,8 @@ void FVulkanDevice::CreateDevice()
 	TArray<const ANSICHAR*> DeviceExtensions;
 	TArray<const ANSICHAR*> ValidationLayers;
 	GetDeviceExtensions(DeviceExtensions, ValidationLayers, bDebugMarkersFound);
+
+	ParseOptionalDeviceExtensions(DeviceExtensions);
 
 	DeviceInfo.enabledExtensionCount = DeviceExtensions.Num();
 	DeviceInfo.ppEnabledExtensionNames = DeviceExtensions.GetData();
@@ -306,7 +310,7 @@ void FVulkanDevice::SetupFormats()
 	MapFormatSupport(PF_A2B10G10R10, VK_FORMAT_A2B10G10R10_UNORM_PACK32, 4);
 	SetComponentMapping(PF_A2B10G10R10, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
 
-	MapFormatSupport(PF_A16B16G16R16, VK_FORMAT_R16G16B16A16_UNORM, 4);
+	MapFormatSupport(PF_A16B16G16R16, VK_FORMAT_R16G16B16A16_UNORM, 8);
 	SetComponentMapping(PF_A16B16G16R16, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
 
 	MapFormatSupport(PF_A8, VK_FORMAT_R8_UNORM);
@@ -516,8 +520,7 @@ void FVulkanDevice::InitGPU(int32 DeviceIndex)
 	{
 		CacheFilenames.Add(FPaths::GameDir() / TEXT("Build") / TEXT("ShaderCaches") / TEXT("Android") / TEXT("VulkanPSO.cache"));
 	}
-	CacheFilenames.Add(FPaths::GameSavedDir() / TEXT("VulkanPSO.cache"));
-	PipelineStateCache->InitAndLoad(CacheFilenames);
+	CacheFilenames.Add(FPaths::GameSavedDir() / TEXT("VulkanPSO.cache"));	
 
 	bool bSupportsTimestamps = (GpuProps.limits.timestampComputeAndGraphics == VK_TRUE);
 	if (bSupportsTimestamps)
@@ -532,10 +535,16 @@ void FVulkanDevice::InitGPU(int32 DeviceIndex)
 
 	ImmediateContext = new FVulkanCommandListContext((FVulkanDynamicRHI*)GDynamicRHI, this, true);
 
+	PipelineStateCache->InitAndLoad(CacheFilenames);
+
 	// Setup default resource
 	{
 		FSamplerStateInitializerRHI Default(SF_Point);
 		DefaultSampler = new FVulkanSamplerState(Default, *this);
+
+		FRHIResourceCreateInfo CreateInfo;
+		DefaultImage = new FVulkanSurface(*this, VK_IMAGE_VIEW_TYPE_2D, PF_B8G8R8A8, 1, 1, 1, false, 0, 1, 1, TexCreate_RenderTargetable | TexCreate_ShaderResource, CreateInfo);
+		DefaultImageView = FVulkanTextureView::StaticCreate(*this, DefaultImage->Image, VK_IMAGE_VIEW_TYPE_2D, DefaultImage->GetFullAspectMask(), PF_B8G8R8A8, VK_FORMAT_B8G8R8A8_UNORM, 0, 1, 0, 1);
 	}
 }
 
@@ -546,6 +555,14 @@ void FVulkanDevice::PrepareForDestroy()
 
 void FVulkanDevice::Destroy()
 {
+	VulkanRHI::vkDestroyImageView(GetInstanceHandle(), DefaultImageView, nullptr);
+
+	delete DefaultSampler;
+	DefaultSampler = nullptr;
+
+	delete DefaultImage;
+	DefaultImage = nullptr;
+
 	delete ImmediateContext;
 	ImmediateContext = nullptr;
 
@@ -564,9 +581,6 @@ void FVulkanDevice::Destroy()
 
 	delete PipelineStateCache;
 	PipelineStateCache = nullptr;
-
-	delete DefaultSampler;
-	DefaultSampler = nullptr;
 
 	StagingManager.Deinit();
 
@@ -633,6 +647,12 @@ void FVulkanDevice::NotifyDeletedRenderTarget(VkImage Image)
 	GetImmediateContext().NotifyDeletedRenderTarget(Image);
 }
 
+void FVulkanDevice::NotifyDeletedImage(VkImage Image)
+{
+	//#todo-rco: Loop through all contexts!
+	GetImmediateContext().NotifyDeletedImage(Image);
+}
+
 void FVulkanDevice::PrepareForCPURead()
 {
 	//#todo-rco: Process other contexts first!
@@ -650,7 +670,31 @@ void FVulkanDevice::SubmitCommandsAndFlushGPU()
 	}
 	if (CmdMgr->HasPendingActiveCmdBuffer())
 	{
+		//#todo-rco: If we get real render passes then this is not needed
+		if (ImmediateContext->TransitionState.CurrentRenderPass)
+		{
+			ImmediateContext->TransitionState.EndRenderPass(CmdMgr->GetActiveCmdBuffer());
+		}
+
 		CmdMgr->SubmitActiveCmdBuffer(true);
 	}
 	CmdMgr->PrepareForNewActiveCommandBuffer();
+}
+
+void FVulkanDevice::NotifyDeletedGfxPipeline(class FVulkanGraphicsPipelineState* Pipeline)
+{
+	//#todo-rco: Loop through all contexts!
+	if (ImmediateContext)
+	{
+		ImmediateContext->PendingGfxState->NotifyDeletedPipeline(Pipeline);
+	}
+}
+
+void FVulkanDevice::NotifyDeletedComputePipeline(class FVulkanComputePipeline* Pipeline)
+{
+	//#todo-rco: Loop through all contexts!
+	if (ImmediateContext)
+	{
+		ImmediateContext->PendingComputeState->NotifyDeletedPipeline(Pipeline);
+	}
 }

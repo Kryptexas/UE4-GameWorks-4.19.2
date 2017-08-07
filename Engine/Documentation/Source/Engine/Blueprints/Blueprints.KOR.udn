@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3244370
+﻿INTSourceChangelist:3429238
 Availability:Public
 Title: 블루프린트 비주얼 스크립팅
 Crumbs: %ROOT%, Engine
@@ -194,7 +194,7 @@ UE4 를 사용하다 보면, 블루프린트를 사용하여 정의된 오브젝
 [/OBJECT]
 [/REGION]
 
-[DIR(output:"listbutton" parent:"Engine/Blueprints" type:"overview" org:"hierarchy")]
+[DIR(output:"topic" parent:"Engine/Blueprints" type:"overview" org:"hierarchy")]
 
 
 <!--

@@ -90,6 +90,10 @@ namespace
 			FMetadataKeyword& FriendlyName = Dictionary.Add(TEXT("FriendlyName"), EMetadataValueArgument::Required);
 			FriendlyName.InsertAddAction(TEXT("FriendlyName"), TEXT(""));
 
+			FMetadataKeyword& BlueprintInternalUseOnly = Dictionary.Add(TEXT("BlueprintInternalUseOnly"), EMetadataValueArgument::None);
+			BlueprintInternalUseOnly.InsertAddAction(TEXT("BlueprintInternalUseOnly"), TEXT("true"));
+			BlueprintInternalUseOnly.InsertAddAction(TEXT("BlueprintType"), TEXT("true"));
+
 			FMetadataKeyword& BlueprintType = Dictionary.Add(TEXT("BlueprintType"), EMetadataValueArgument::None);
 			BlueprintType.InsertAddAction(TEXT("BlueprintType"), TEXT("true"));
 

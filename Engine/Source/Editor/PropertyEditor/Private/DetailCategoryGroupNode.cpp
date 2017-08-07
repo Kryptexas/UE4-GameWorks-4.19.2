@@ -82,7 +82,7 @@ void SDetailCategoryTableRow::Construct( const FArguments& InArgs, TSharedRef<ID
 	}
 
 	ChildSlot
-	.Padding( 0.0f, ChildSlotPadding, 0.0f, 0.0f )
+	.Padding( 0.0f, bIsInnerCategory ? 0.0f : ChildSlotPadding, 0.0f, 0.0f )
 	[	
 		SNew( SBorder )
 		.BorderImage( this, &SDetailCategoryTableRow::GetBackgroundImage )

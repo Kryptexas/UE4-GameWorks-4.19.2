@@ -226,7 +226,7 @@ float ACharacter::GetDefaultHalfHeight() const
 UActorComponent* ACharacter::FindComponentByClass(const TSubclassOf<UActorComponent> ComponentClass) const
 {
 	// If the character has a Mesh, treat it as the first 'hit' when finding components
-	if (Mesh && Mesh->IsA(ComponentClass))
+	if (Mesh && ComponentClass && Mesh->IsA(ComponentClass))
 	{
 		return Mesh;
 	}
@@ -668,7 +668,7 @@ void ACharacter::SetBase( UPrimitiveComponent* NewBaseComponent, const FName InB
 		{
 			if( Loop == this )
 			{
-				UE_LOG(LogCharacter, Warning, TEXT(" SetBase failed! Recursion detected. Pawn %s already based on %s."), *GetName(), *NewBaseComponent->GetName());
+				UE_LOG(LogCharacter, Warning, TEXT(" SetBase failed! Recursion detected. Pawn %s already based on %s."), *GetName(), *NewBaseComponent->GetName()); //-V595
 				return;
 			}
 		}
@@ -811,7 +811,7 @@ void ACharacter::PossessedBy(AController* NewController)
 	Super::PossessedBy(NewController);
 
 	// If we are controlled remotely, set animation timing to be driven by client's network updates. So timing and events remain in sync.
-	if (Mesh && (GetRemoteRole() == ROLE_AutonomousProxy && GetNetConnection() != nullptr))
+	if (Mesh && bReplicateMovement && (GetRemoteRole() == ROLE_AutonomousProxy && GetNetConnection() != nullptr))
 	{
 		Mesh->bOnlyAllowAutonomousTickPose = true;
 	}
@@ -1429,42 +1429,45 @@ void ACharacter::PreReplication( IRepChangedPropertyTracker & ChangedPropertyTra
 			ReplicatedBasedMovement.Rotation = GetActorRotation();
 		}
 	}
-
-	if ( ChangedPropertyTracker.IsReplay() )
-	{
-		// If this is a replay, we save out certain values we need to runtime to do smooth interpolation
-		// We'll be able to look ahead in the replay to have these ahead of time for smoother playback
-		FCharacterReplaySample ReplaySample;
-
-		// If this is a client-recorded replay, use the mesh location and rotation, since these will always
-		// be smoothed - unlike the actor position and rotation.
-		const USkeletalMeshComponent* const MeshComponent = GetMesh();
-		if (MeshComponent && GetWorld()->IsRecordingClientReplay())
-		{
-			// Remove the base transform from the mesh's transform, since on playback the base transform
-			// will be stored in the mesh's RelativeLocation and RelativeRotation.
-			const FTransform BaseTransform(GetBaseRotationOffset(), GetBaseTranslationOffset());
-			const FTransform MeshRootTransform = BaseTransform.Inverse() * MeshComponent->GetComponentTransform();
-
-			ReplaySample.Location		= MeshRootTransform.GetLocation();
-			ReplaySample.Rotation		= MeshRootTransform.GetRotation().Rotator();
-		}
-		else
-		{
-			ReplaySample.Location		= GetActorLocation();
-			ReplaySample.Rotation		= GetActorRotation();
-		}
-
-		ReplaySample.Velocity			= GetVelocity();
-		ReplaySample.Acceleration		= CharacterMovement->GetCurrentAcceleration();
-		ReplaySample.RemoteViewPitch	= RemoteViewPitch;
-
-		FBitWriter Writer( 0, true );
-		Writer << ReplaySample;
-
-		ChangedPropertyTracker.SetExternalData( Writer.GetData(), Writer.GetNumBits() );
-	}
 }
+
+void ACharacter::PreReplicationForReplay(IRepChangedPropertyTracker & ChangedPropertyTracker)
+{
+	Super::PreReplicationForReplay(ChangedPropertyTracker);
+
+	// If this is a replay, we save out certain values we need to runtime to do smooth interpolation
+	// We'll be able to look ahead in the replay to have these ahead of time for smoother playback
+	FCharacterReplaySample ReplaySample;
+
+	// If this is a client-recorded replay, use the mesh location and rotation, since these will always
+	// be smoothed - unlike the actor position and rotation.
+	const USkeletalMeshComponent* const MeshComponent = GetMesh();
+	if (MeshComponent && GetWorld()->IsRecordingClientReplay())
+	{
+		// Remove the base transform from the mesh's transform, since on playback the base transform
+		// will be stored in the mesh's RelativeLocation and RelativeRotation.
+		const FTransform BaseTransform(GetBaseRotationOffset(), GetBaseTranslationOffset());
+		const FTransform MeshRootTransform = BaseTransform.Inverse() * MeshComponent->GetComponentTransform();
+
+		ReplaySample.Location = MeshRootTransform.GetLocation();
+		ReplaySample.Rotation = MeshRootTransform.GetRotation().Rotator();
+	}
+	else
+	{
+		ReplaySample.Location = GetActorLocation();
+		ReplaySample.Rotation = GetActorRotation();
+	}
+
+	ReplaySample.Velocity = GetVelocity();
+	ReplaySample.Acceleration = CharacterMovement->GetCurrentAcceleration();
+	ReplaySample.RemoteViewPitch = RemoteViewPitch;
+
+	FBitWriter Writer(0, true);
+	Writer << ReplaySample;
+
+	ChangedPropertyTracker.SetExternalData(Writer.GetData(), Writer.GetNumBits());
+}
+
 
 void ACharacter::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const
 {
@@ -1590,3 +1593,9 @@ void ACharacter::ClientCheatGhost_Implementation()
 #endif
 }
 
+void ACharacter::RootMotionDebugClientPrintOnScreen_Implementation(const FString& InString)
+{
+#if ROOT_MOTION_DEBUG
+	RootMotionSourceDebug::PrintOnScreenServerMsg(InString);
+#endif
+}

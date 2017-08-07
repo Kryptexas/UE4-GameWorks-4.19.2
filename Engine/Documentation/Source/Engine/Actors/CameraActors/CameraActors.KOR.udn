@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3429227
 Availability: Public
 Title:카메라 액터
 Crumbs: %ROOT%, Engine, Engine/Actors
 Description:에디터 안에서 카메라 액터를 배치하고 사용하는 방법 안내서입니다.
 version: 4.9
+Parent:Engine/Actors/Types
+order:4
+type:overview
 
 ![](CameraActorHeader.png)
 

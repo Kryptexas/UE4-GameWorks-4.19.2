@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3260884
+﻿INTSourceChangelist:3481084
 Availability: Public
 Title:폴리지, 인스턴싱된 메시
 Crumbs:%ROOT%, Engine
@@ -337,21 +337,105 @@ order:11
 
 1. FT_Box 가 열리면, **Mesh** 와 **Scalability** 섹션을 엽니다.
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	[REGION:lightbox]
-	[![](Foliage_Scalability_02.png)(w:405 h:223)](Foliage_Scalability_02.png)
+	[![](Foliage_Scalability_02_Windows.png)(w:405)](Foliage_Scalability_02_Windows.png)
 	[/REGION]
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](Foliage_Scalability_02_Mac.png)(w:405)](Foliage_Scalability_02_Mac.png)
+	[/REGION]
+	[/PARAM]
+	[/OBJECT]
 
 1. **콘텐츠 브라우저** 에서 스태틱 메시를 선택합니다 (이 예제에서는 시작용 콘텐츠에 포함된 **Shape_Cube** 를 사용합니다). FT_Box 폴리지 타입의 **Mesh** 섹션에서, 콘텐츠 브라우저의 **Shape_Cube** 를 끌어 **Mesh** 옵션에 놓습니다.
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	[REGION:lightbox]
-	[![](Foliage_Scalability_03.png)(w:405 h:223)](Foliage_Scalability_03.png)
+	[![](Foliage_Scalability_03_Windows.png)(w:405)](Foliage_Scalability_03_Windows.png)
 	[/REGION]
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](Foliage_Scalability_03_Mac.png)(w:405)](Foliage_Scalability_03_Mac.png)
+	[/REGION]
+	[/PARAM]
+	[/OBJECT]
 
 1. FT_Box 폴리지 타입의 **Scalability** 섹션에서, **Enable Density Scaling** (밀도 스케일 허용) 옆의 박스를 클릭하면 엔진 퀄리티(Scalability) 시스템이 이 스태틱 메시에 접근하도록 허용합니다.
 
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
 	[REGION:lightbox]
-	[![](Foliage_Scalability_04.png)(w:405 h:223)](Foliage_Scalability_04.png)
+	[![](Foliage_Scalability_04_Windows.png)(w:405)](Foliage_Scalability_04_Windows.png)
 	[/REGION]
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:lightbox]
+	[![](Foliage_Scalability_04_Mac.png)(w:405)](Foliage_Scalability_04_Mac.png)
+	[/REGION]
+	[/PARAM]
+	[/OBJECT]
 
 	[region:note]
 	**Enable Density Scaling** 옵션은 전형적으로 작은 돌이나 덤불처럼 콜리전이 없는 디테일 폴리지에만 켜야 합니다. 나무와 같이 콜리전이 있는 폴리지 타입에 켜면 인스턴스를 제거한 경우 콜리전만 게임에 남아있기 때문입니다.

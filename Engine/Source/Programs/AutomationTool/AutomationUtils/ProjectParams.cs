@@ -221,7 +221,9 @@ namespace AutomationTool
             this.BasedOnReleaseVersion = InParams.BasedOnReleaseVersion;
             this.CreateReleaseVersion = InParams.CreateReleaseVersion;
             this.GeneratePatch = InParams.GeneratePatch;
-            this.DLCName = InParams.DLCName;
+			this.AddPatchLevel = InParams.AddPatchLevel;
+			this.StageBaseReleasePaks = InParams.StageBaseReleasePaks;
+			this.DLCName = InParams.DLCName;
             this.DLCIncludeEngineContent = InParams.DLCIncludeEngineContent;
             this.DiffCookedContentPath = InParams.DiffCookedContentPath;
             this.AdditionalCookerOptions = InParams.AdditionalCookerOptions;
@@ -234,11 +236,14 @@ namespace AutomationTool
 			this.ServerTargetPlatforms = InParams.ServerTargetPlatforms;
             this.ServerDependentPlatformMap = InParams.ServerDependentPlatformMap;
 			this.Build = InParams.Build;
+			this.SkipBuildClient = InParams.SkipBuildClient;
+			this.SkipBuildEditor = InParams.SkipBuildEditor;
 			this.Run = InParams.Run;
 			this.Cook = InParams.Cook;
 			this.IterativeCooking = InParams.IterativeCooking;
 			this.IterateSharedCookedBuild = InParams.IterateSharedCookedBuild;
-            this.CookAll = InParams.CookAll;
+			this.IterateSharedBuildUsePrecompiledExe = InParams.IterateSharedBuildUsePrecompiledExe;
+			this.CookAll = InParams.CookAll;
 			this.CookPartialGC = InParams.CookPartialGC;
 			this.CookInEditor = InParams.CookInEditor; 
 			this.CookOutputDir = InParams.CookOutputDir;
@@ -273,6 +278,7 @@ namespace AutomationTool
             this.CreateChunkInstall = InParams.CreateChunkInstall;
 			this.UE4Exe = InParams.UE4Exe;
 			this.NoDebugInfo = InParams.NoDebugInfo;
+			this.MapFile = InParams.MapFile;
 			this.NoCleanStage = InParams.NoCleanStage;
 			this.MapToRun = InParams.MapToRun;
 			this.AdditionalServerMapParams = InParams.AdditionalServerMapParams;
@@ -282,6 +288,7 @@ namespace AutomationTool
             this.BundleName = InParams.BundleName;
 			this.RunCommandline = InParams.RunCommandline;
 			this.ServerCommandline = InParams.ServerCommandline;
+            this.ClientCommandline = InParams.ClientCommandline;
             this.Package = InParams.Package;
 			this.Deploy = InParams.Deploy;
 			this.DeployFolder = InParams.DeployFolder;
@@ -360,6 +367,8 @@ namespace AutomationTool
 			List<TargetPlatformDescriptor> ServerTargetPlatforms = null,
             Dictionary<TargetPlatformDescriptor, TargetPlatformDescriptor> ServerDependentPlatformMap = null,
 			bool? Build = null,
+			bool? SkipBuildClient = null,
+			bool? SkipBuildEditor = null,
 			bool? Cook = null,
 			bool? Run = null,
 			bool? SkipServer = null,
@@ -368,6 +377,7 @@ namespace AutomationTool
             bool? UseDebugParamForEditorExe = null,
             bool? IterativeCooking = null,
 			bool? IterateSharedCookedBuild = null,
+			bool? IterateSharedBuildUsePrecompiledExe = null,
 			bool? CookAll = null,
 			bool? CookPartialGC = null,
 			bool? CookInEditor = null,
@@ -387,7 +397,9 @@ namespace AutomationTool
 			string CreateReleaseVersionBasePath = null,
 			string BasedOnReleaseVersionBasePath = null,
             bool? GeneratePatch = null,
-            string DLCName = null,
+			bool? AddPatchLevel = null,
+			bool? StageBaseReleasePaks = null,
+			string DLCName = null,
             string DiffCookedContentPath = null,
             bool? DLCIncludeEngineContent = null,
 			bool? CrashReporter = null,
@@ -402,6 +414,7 @@ namespace AutomationTool
 			bool? NoCleanStage = null,
 			bool? NoClient = null,
 			bool? NoDebugInfo = null,
+			bool? MapFile = null,
 			bool? NoXGE = null,
 			bool? Package = null,
 			bool? Pak = null,
@@ -509,6 +522,8 @@ namespace AutomationTool
             this.ServerTargetPlatforms = SetupTargetPlatforms(ref this.ServerDependentPlatformMap, Command, ServerTargetPlatforms, this.ClientTargetPlatforms, false, "ServerTargetPlatform", "ServerPlatform");
 
 			this.Build = GetParamValueIfNotSpecified(Command, Build, this.Build, "build");
+			this.SkipBuildClient = GetParamValueIfNotSpecified(Command, SkipBuildClient, this.SkipBuildEditor, "skipbuildclient");
+			this.SkipBuildEditor = GetParamValueIfNotSpecified(Command, SkipBuildEditor, this.SkipBuildEditor, "skipbuildeditor");
 			this.Run = GetParamValueIfNotSpecified(Command, Run, this.Run, "run");
 			this.Cook = GetParamValueIfNotSpecified(Command, Cook, this.Cook, "cook");
 			this.CreateReleaseVersionBasePath = ParseParamValueIfNotSpecified(Command, CreateReleaseVersionBasePath, "createreleaseversionroot", String.Empty);
@@ -516,7 +531,9 @@ namespace AutomationTool
             this.CreateReleaseVersion = ParseParamValueIfNotSpecified(Command, CreateReleaseVersion, "createreleaseversion", String.Empty);
             this.BasedOnReleaseVersion = ParseParamValueIfNotSpecified(Command, BasedOnReleaseVersion, "basedonreleaseversion", String.Empty);
             this.GeneratePatch = GetParamValueIfNotSpecified(Command, GeneratePatch, this.GeneratePatch, "GeneratePatch");
-            this.AdditionalCookerOptions = ParseParamValueIfNotSpecified(Command, AdditionalCookerOptions, "AdditionalCookerOptions", String.Empty);
+            this.AddPatchLevel = GetParamValueIfNotSpecified(Command, AddPatchLevel, this.AddPatchLevel, "AddPatchLevel");
+			this.StageBaseReleasePaks = GetParamValueIfNotSpecified(Command, StageBaseReleasePaks, this.StageBaseReleasePaks, "StageBaseReleasePaks");
+			this.AdditionalCookerOptions = ParseParamValueIfNotSpecified(Command, AdditionalCookerOptions, "AdditionalCookerOptions", String.Empty);
             this.DLCName = ParseParamValueIfNotSpecified(Command, DLCName, "DLCName", String.Empty);
             this.DiffCookedContentPath = ParseParamValueIfNotSpecified(Command, DiffCookedContentPath, "DiffCookedContentPath", String.Empty);
             this.DLCIncludeEngineContent = GetParamValueIfNotSpecified(Command, DLCIncludeEngineContent, this.DLCIncludeEngineContent, "DLCIncludeEngineContent");
@@ -566,7 +583,8 @@ namespace AutomationTool
             this.UseDebugParamForEditorExe = GetParamValueIfNotSpecified(Command, UseDebugParamForEditorExe, this.UseDebugParamForEditorExe, "UseDebugParamForEditorExe");
 			this.IterativeCooking = GetParamValueIfNotSpecified(Command, IterativeCooking, this.IterativeCooking, new string[] { "iterativecooking", "iterate" });
 			this.IterateSharedCookedBuild = GetParamValueIfNotSpecified(Command, IterateSharedCookedBuild, this.IterateSharedCookedBuild, new string[] { "IterateSharedCookedBuild"});
-			
+			this.IterateSharedBuildUsePrecompiledExe = GetParamValueIfNotSpecified(Command, IterateSharedBuildUsePrecompiledExe, this.IterateSharedBuildUsePrecompiledExe, new string[] { "IterateSharedBuildUsePrecompiledExe" });
+
 			this.SkipCookOnTheFly = GetParamValueIfNotSpecified(Command, SkipCookOnTheFly, this.SkipCookOnTheFly, "skipcookonthefly");
 			this.CookAll = GetParamValueIfNotSpecified(Command, CookAll, this.CookAll, "CookAll");
 			this.CookPartialGC = GetParamValueIfNotSpecified(Command, CookPartialGC, this.CookPartialGC, "CookPartialGC");
@@ -595,6 +613,11 @@ namespace AutomationTool
             this.CreateChunkInstall = GetParamValueIfNotSpecified(Command, CreateChunkInstall, this.CreateChunkInstall, "createchunkinstall");
 			this.ChunkInstallDirectory = ParseParamValueIfNotSpecified(Command, ChunkInstallDirectory, "chunkinstalldirectory", String.Empty, true);
 			this.ChunkInstallVersionString = ParseParamValueIfNotSpecified(Command, ChunkInstallVersionString, "chunkinstallversion", String.Empty, true);
+            this.ChunkInstallReleaseString = ParseParamValueIfNotSpecified(Command, ChunkInstallReleaseString, "chunkinstallrelease", String.Empty, true);
+            if (string.IsNullOrEmpty(this.ChunkInstallReleaseString))
+            {
+                this.ChunkInstallReleaseString = this.ChunkInstallVersionString;
+            }
 			this.Archive = GetParamValueIfNotSpecified(Command, Archive, this.Archive, "archive");
 			this.ArchiveDirectoryParam = ParseParamValueIfNotSpecified(Command, ArchiveDirectoryParam, "archivedirectory", String.Empty, true);
 			this.ArchiveMetaData = GetParamValueIfNotSpecified(Command, ArchiveMetaData, this.ArchiveMetaData, "archivemetadata");
@@ -619,6 +642,7 @@ namespace AutomationTool
                 //this.StageDirectoryParam = this.PrebuiltDir;
             }
             this.NoDebugInfo = GetParamValueIfNotSpecified(Command, NoDebugInfo, this.NoDebugInfo, "nodebuginfo");
+			this.MapFile = GetParamValueIfNotSpecified(Command, MapFile, this.MapFile, "mapfile");
 			this.NoCleanStage = GetParamValueIfNotSpecified(Command, NoCleanStage, this.NoCleanStage, "nocleanstage");
 			this.MapToRun = ParseParamValueIfNotSpecified(Command, MapToRun, "map", String.Empty);
 			this.AdditionalServerMapParams = ParseParamValueIfNotSpecified(Command, AdditionalServerMapParams, "AdditionalServerMapParams", String.Empty);
@@ -630,6 +654,8 @@ namespace AutomationTool
 			this.RunCommandline = this.RunCommandline.Replace('\'', '\"'); // replace any single quotes with double quotes
 			this.ServerCommandline = ParseParamValueIfNotSpecified(Command, ServerCommandline, "servercmdline");
 			this.ServerCommandline = this.ServerCommandline.Replace('\'', '\"'); // replace any single quotes with double quotes
+            this.ClientCommandline = ParseParamValueIfNotSpecified(Command, ClientCommandline, "clientcmdline");
+            this.ClientCommandline = this.ClientCommandline.Replace('\'', '\"'); // replace any single quotes with double quotes
             this.Package = GetParamValueIfNotSpecified(Command, Package, this.Package, "package");
 
 			this.Deploy = GetParamValueIfNotSpecified(Command, Deploy, this.Deploy, "deploy");
@@ -1052,6 +1078,11 @@ namespace AutomationTool
 		public string ChunkInstallVersionString { set; get; }
 
 		/// <summary>
+        /// Shared: Release string to use for built chunk install data, command line: -chunkinstallrelease=
+        /// </summary>
+        public string ChunkInstallReleaseString { set; get; }
+
+        /// <summary>
 		/// Shared: Directory to copy the client to, command line: -stagingdirectory=
 		/// </summary>	
 		public string BaseStageDirectory
@@ -1134,6 +1165,16 @@ namespace AutomationTool
         /// </summary>
         [Help("build", "True if build step should be executed")]
 		public bool Build { private set; get; }
+
+		/// <summary>
+		/// SkipBuildClient if true then don't build the client exe
+		/// </summary>
+		public bool SkipBuildClient { private set; get; }
+
+		/// <summary>
+		/// SkipBuildEditor if true then don't build the editor exe
+		/// </summary>
+		public bool SkipBuildEditor { private set; get; }
 
 		/// <summary>
 		/// Build: True if XGE should NOT be used for building.
@@ -1294,6 +1335,17 @@ namespace AutomationTool
         public bool GeneratePatch;
 
         /// <summary>
+        /// Are we adding a new patch tier (otherwise patch will modify the most recent patch tier), this requires GeneratePatch and BasedOnReleaseVersion
+        /// see also GeneratePatch, BasedOnReleaseVersion
+        /// </summary>
+        public bool AddPatchLevel;
+
+        /// <summary>
+        /// Are we staging the unmodified pak files from the base release
+        /// </summary>
+        public bool StageBaseReleasePaks;
+
+        /// <summary>
         /// Name of dlc to cook and package (if this paramter is supplied cooks the dlc and packages it into the dlc directory)
         /// </summary>
         public string DLCName;
@@ -1358,10 +1410,16 @@ namespace AutomationTool
 		public bool IterativeCooking;
 
 		/// <summary>
-		/// Cook: Iterate from a shared cooked build 
+		/// Cook: Iterate from a build on the network
 		/// </summary>
 		[Help("Iteratively cook from a shared cooked build")]
 		public bool IterateSharedCookedBuild;
+
+		/// <summary>
+		/// Build: Don't build the game instead use the prebuild exe (requires iterate shared cooked build
+		/// </summary>
+		[Help("Iteratively cook from a shared cooked build")]
+		public bool IterateSharedBuildUsePrecompiledExe;
 
 		/// <summary>
 		/// Cook: Only cook maps (and referenced content) instead of cooking everything only affects -cookall flag
@@ -1407,10 +1465,16 @@ namespace AutomationTool
 		#region Stage
 
 		/// <summary>
-		/// Stage: Commanndline: -nodebuginfo
+		/// Stage: Commandline: -nodebuginfo
 		/// </summary>
 		[Help("nodebuginfo", "do not copy debug files to the stage")]
 		public bool NoDebugInfo { private set; get; }
+
+		/// <summary>
+		/// Stage: Commandline: -mapfile
+		/// </summary>
+		[Help("MapFile", "generates a *.map file")]
+		public bool MapFile { private set; get; }
 
 		/// <summary>
 		/// true if the staging directory is to be cleaned: -cleanstage (also true if -clean is specified)
@@ -1579,6 +1643,12 @@ namespace AutomationTool
 		/// </summary>
 		[Help("servercmdline", "Additional command line arguments for the program")]
 		public string ServerCommandline;
+
+        /// <summary>
+		/// Run: Override command line arguments to pass to the client, if set it will not try to guess at IPs or settings
+		/// </summary>
+		[Help("clientcmdline", "Override command line arguments to pass to the client")]
+        public string ClientCommandline;
 
         /// <summary>
         /// Run:adds -nullrhi to the client commandline
@@ -1870,7 +1940,7 @@ namespace AutomationTool
 				if ( ClientTargetPlatforms.Count > 0 )
 				{
 					var ProjectClientBinariesPath = ProjectUtils.GetClientProjectBinariesRootPath(RawProjectPath, ProjectType, Properties.bIsCodeBasedProject);
-					ProjectBinariesPath = ProjectUtils.GetProjectClientBinariesFolder(ProjectClientBinariesPath, ClientTargetPlatforms[0].Type);
+					ProjectBinariesPath = ProjectUtils.GetProjectClientBinariesFolder(ProjectClientBinariesPath, ClientTargetPlatforms[0].Type).FullName;
 					ProjectGameExePath = CommandUtils.CombinePaths(ProjectBinariesPath, GameTarget + Platform.GetExeExtension(ClientTargetPlatforms[0].Type));
 				}
 			}
@@ -2025,7 +2095,7 @@ namespace AutomationTool
 			String Platform = SC.StageTargetPlatform.GetCookPlatform(SC.DedicatedServer, bIsClientOnly);
 			if (String.IsNullOrEmpty(BasePath))
 			{
-                BasePath = CommandUtils.CombinePaths(SC.ProjectRoot, "Releases", BasedOnReleaseVersion, Platform);
+                BasePath = CommandUtils.CombinePaths(SC.ProjectRoot.FullName, "Releases", BasedOnReleaseVersion, Platform);
 			}
 			else
 			{
@@ -2051,7 +2121,7 @@ namespace AutomationTool
 			String Platform = SC.StageTargetPlatform.GetCookPlatform(SC.DedicatedServer, bIsClientOnly);
 			if (String.IsNullOrEmpty(BasePath))
 			{
-				BasePath = CommandUtils.CombinePaths(SC.ProjectRoot, "Releases", CreateReleaseVersion, Platform);
+				BasePath = CommandUtils.CombinePaths(SC.ProjectRoot.FullName, "Releases", CreateReleaseVersion, Platform);
 			}
 			else
 			{
@@ -2072,6 +2142,22 @@ namespace AutomationTool
         public bool IsGeneratingPatch
         {
             get { return GeneratePatch; }
+        }
+
+        /// <summary>
+        /// True if we are generating a new patch pak tier
+        /// </summary>
+        public bool ShouldAddPatchLevel
+        {
+            get { return AddPatchLevel; }
+        }
+
+        /// <summary>
+        /// True if we should stage pak files from the base release
+        /// </summary>
+        public bool ShouldStageBaseReleasePaks
+        {
+            get { return StageBaseReleasePaks; }
         }
 
 		/// <summary>
@@ -2259,12 +2345,22 @@ namespace AutomationTool
                 throw new AutomationException("DLCIncludeEngineContent flag is only valid when cooking dlc.");
             }
 
-            if ((IsGeneratingPatch || HasDLCName) && !HasBasedOnReleaseVersion)
+            if ((IsGeneratingPatch || HasDLCName || ShouldAddPatchLevel) && !HasBasedOnReleaseVersion)
             {
                 throw new AutomationException("Require based on release version to build patches or dlc");
             }
 
-            if (HasCreateReleaseVersion && (IsGeneratingPatch || HasDLCName))
+            if (ShouldAddPatchLevel && !IsGeneratingPatch)
+            {
+                throw new AutomationException("Creating a new patch tier requires patch generation");
+            }
+
+			if (ShouldStageBaseReleasePaks && !HasBasedOnReleaseVersion)
+			{
+				throw new AutomationException("Staging pak files from the base release requires a base release version");
+			}
+
+			if (HasCreateReleaseVersion && HasDLCName)
             {
                 throw new AutomationException("Can't create a release version at the same time as creating dlc.");
             }
@@ -2311,6 +2407,8 @@ namespace AutomationTool
 				CommandUtils.LogLog("BaseArchiveDirectory={0}", BaseArchiveDirectory);
 				CommandUtils.LogLog("BaseStageDirectory={0}", BaseStageDirectory);
 				CommandUtils.LogLog("Build={0}", Build);
+				CommandUtils.LogLog("SkipBuildClient={0}", SkipBuildClient);
+				CommandUtils.LogLog("SkipBuildEditor={0}", SkipBuildEditor);
 				CommandUtils.LogLog("Cook={0}", Cook);
 				CommandUtils.LogLog("Clean={0}", Clean);
 				CommandUtils.LogLog("Client={0}", Client);
@@ -2327,8 +2425,10 @@ namespace AutomationTool
                 CommandUtils.LogLog("EncryptEverything={0}", EncryptEverything);
 				CommandUtils.LogLog("SkipCookingEditorContent={0}", SkipCookingEditorContent);
                 CommandUtils.LogLog("NumCookersToSpawn={0}", NumCookersToSpawn);
-                CommandUtils.LogLog("GeneratePatch={0}", GeneratePatch);
-                CommandUtils.LogLog("CreateReleaseVersion={0}", CreateReleaseVersion);
+				CommandUtils.LogLog("GeneratePatch={0}", GeneratePatch);
+				CommandUtils.LogLog("AddPatchLevel={0}", AddPatchLevel);
+				CommandUtils.LogLog("StageBaseReleasePaks={0}", StageBaseReleasePaks);
+				CommandUtils.LogLog("CreateReleaseVersion={0}", CreateReleaseVersion);
                 CommandUtils.LogLog("BasedOnReleaseVersion={0}", BasedOnReleaseVersion);
                 CommandUtils.LogLog("DLCName={0}", DLCName);
                 CommandUtils.LogLog("DLCIncludeEngineContent={0}", DLCIncludeEngineContent);
@@ -2343,6 +2443,7 @@ namespace AutomationTool
 				CommandUtils.LogLog("IsProgramTarget={0}", IsProgramTarget.ToString());
 				CommandUtils.LogLog("IterativeCooking={0}", IterativeCooking);
 				CommandUtils.LogLog("IterateSharedCookedBuild={0}", IterateSharedCookedBuild);
+				CommandUtils.LogLog("IterateSharedBuildUsePrecompiledExe={0}", IterateSharedBuildUsePrecompiledExe);
 				CommandUtils.LogLog("CookAll={0}", CookAll);
 				CommandUtils.LogLog("CookPartialGC={0}", CookPartialGC);
 				CommandUtils.LogLog("CookInEditor={0}", CookInEditor);
@@ -2356,6 +2457,7 @@ namespace AutomationTool
 				CommandUtils.LogLog("NoClient={0}", NoClient);
 				CommandUtils.LogLog("NumClients={0}", NumClients);                
 				CommandUtils.LogLog("NoDebugInfo={0}", NoDebugInfo);
+				CommandUtils.LogLog("MapFile={0}", MapFile);
 				CommandUtils.LogLog("NoCleanStage={0}", NoCleanStage);
 				CommandUtils.LogLog("NoXGE={0}", NoXGE);
 				CommandUtils.LogLog("MapsToCook={0}", MapsToCook.ToString());

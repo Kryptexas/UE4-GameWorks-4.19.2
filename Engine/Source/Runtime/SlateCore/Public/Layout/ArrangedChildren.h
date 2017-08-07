@@ -162,7 +162,7 @@ public:
 
 	FORCEINLINE void Empty()
 	{
-		Array.Empty();
+		Array.Reset();
 	}
 
 	FORCEINLINE bool IsValidIndex(int32 Index)

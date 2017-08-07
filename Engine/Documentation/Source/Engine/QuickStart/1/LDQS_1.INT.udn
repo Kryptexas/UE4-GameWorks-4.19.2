@@ -37,7 +37,33 @@ After completing this step, you will have a Template that you can build onto for
 
 1. Click the **New Project** tab and select the **Blank** Blueprint Template, enter a Save Location and Name, then click **Create Project**. 
 
-	![](ProjectBrowser1.png)(w:720)
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](NewProject_Windows.png)
+	[/PARAM]
+	[/OBJECT]
+
+	[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	![](NewProject_Mac.png)
+	[/PARAM]
+	[/OBJECT]
 
 	The **New Project** tab is where you can create new projects based off several different template types while the **Projects** tab contains any previously created projects or samples that you have downloaded. 
 
@@ -46,7 +72,33 @@ After completing this step, you will have a Template that you can build onto for
 
 After creating your project, once the Unreal Editor has finished loading, you will be presented with the Main Editor Interface as shown below. 
 
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+windows
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
 ![](ExampleLevel.png)
+[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+[PARAMLITERAL:category]
+OS
+[/PARAMLITERAL]
+[PARAMLITERAL:id]
+mac
+[/PARAMLITERAL]
+[PARAMLITERAL:active]
+[/PARAMLITERAL]
+[PARAM:content]
+![](ExampleLevel_Mac.png)
+[/PARAM]
+[/OBJECT]
 
 In the next step, we will cover the basic controls for navigating the **Viewports** inside the Unreal Editor. 
 

@@ -480,6 +480,7 @@ static uint32 ComputeBytesPerPixel(DXGI_FORMAT Format)
 		case DXGI_FORMAT_R10G10B10A2_UNORM:
 		case DXGI_FORMAT_R11G11B10_FLOAT:
 		case DXGI_FORMAT_R16G16_UNORM:
+		case DXGI_FORMAT_R32_UINT:
 			BytesPerPixel = 4;
 			break;
 		case DXGI_FORMAT_R16G16B16A16_FLOAT:
@@ -1272,44 +1273,62 @@ static void ConvertRAWSurfaceDataToFLinearColor(EPixelFormat Format, uint32 Widt
 	}
 	else if (Format == PF_FloatRGBA)
 	{
-		FPlane	MinValue(0.0f, 0.0f, 0.0f, 0.0f),
-			MaxValue(1.0f, 1.0f, 1.0f, 1.0f);
-
-		check(sizeof(FD3DFloat16) == sizeof(uint16));
-
-		for (uint32 Y = 0; Y < Height; Y++)
+		if (InFlags.GetCompressionMode() == RCM_MinMax)
 		{
-			FD3DFloat16* SrcPtr = (FD3DFloat16*)(In + Y * SrcPitch);
-
-			for (uint32 X = 0; X < Width; X++)
+			for (uint32 Y = 0; Y < Height; Y++)
 			{
-				MinValue.X = FMath::Min<float>(SrcPtr[0], MinValue.X);
-				MinValue.Y = FMath::Min<float>(SrcPtr[1], MinValue.Y);
-				MinValue.Z = FMath::Min<float>(SrcPtr[2], MinValue.Z);
-				MinValue.W = FMath::Min<float>(SrcPtr[3], MinValue.W);
-				MaxValue.X = FMath::Max<float>(SrcPtr[0], MaxValue.X);
-				MaxValue.Y = FMath::Max<float>(SrcPtr[1], MaxValue.Y);
-				MaxValue.Z = FMath::Max<float>(SrcPtr[2], MaxValue.Z);
-				MaxValue.W = FMath::Max<float>(SrcPtr[3], MaxValue.W);
-				SrcPtr += 4;
+				FD3DFloat16* SrcPtr = (FD3DFloat16*)(In + Y * SrcPitch);
+				FLinearColor* DestPtr = Out + Y * Width;
+
+				for (uint32 X = 0; X < Width; X++)
+				{
+					*DestPtr = FLinearColor((float)SrcPtr[0], (float)SrcPtr[1], (float)SrcPtr[2], (float)SrcPtr[3]);
+					++DestPtr;
+					SrcPtr += 4;
+				}
 			}
 		}
-
-		for (uint32 Y = 0; Y < Height; Y++)
+		else
 		{
-			FD3DFloat16* SrcPtr = (FD3DFloat16*)(In + Y * SrcPitch);
-			FLinearColor* DestPtr = Out + Y * Width;
+			FPlane	MinValue(0.0f, 0.0f, 0.0f, 0.0f);
+			FPlane	MaxValue(1.0f, 1.0f, 1.0f, 1.0f);
 
-			for (uint32 X = 0; X < Width; X++)
+			check(sizeof(FD3DFloat16) == sizeof(uint16));
+
+			for (uint32 Y = 0; Y < Height; Y++)
 			{
-				*DestPtr = FLinearColor(
-					(SrcPtr[0] - MinValue.X) / (MaxValue.X - MinValue.X),
-					(SrcPtr[1] - MinValue.Y) / (MaxValue.Y - MinValue.Y),
-					(SrcPtr[2] - MinValue.Z) / (MaxValue.Z - MinValue.Z),
-					(SrcPtr[3] - MinValue.W) / (MaxValue.W - MinValue.W)
-					);
-				++DestPtr;
-				SrcPtr += 4;
+				FD3DFloat16* SrcPtr = (FD3DFloat16*)(In + Y * SrcPitch);
+
+				for (uint32 X = 0; X < Width; X++)
+				{
+					MinValue.X = FMath::Min<float>(SrcPtr[0], MinValue.X);
+					MinValue.Y = FMath::Min<float>(SrcPtr[1], MinValue.Y);
+					MinValue.Z = FMath::Min<float>(SrcPtr[2], MinValue.Z);
+					MinValue.W = FMath::Min<float>(SrcPtr[3], MinValue.W);
+					MaxValue.X = FMath::Max<float>(SrcPtr[0], MaxValue.X);
+					MaxValue.Y = FMath::Max<float>(SrcPtr[1], MaxValue.Y);
+					MaxValue.Z = FMath::Max<float>(SrcPtr[2], MaxValue.Z);
+					MaxValue.W = FMath::Max<float>(SrcPtr[3], MaxValue.W);
+					SrcPtr += 4;
+				}
+			}
+
+			for (uint32 Y = 0; Y < Height; Y++)
+			{
+				FD3DFloat16* SrcPtr = (FD3DFloat16*)(In + Y * SrcPitch);
+				FLinearColor* DestPtr = Out + Y * Width;
+
+				for (uint32 X = 0; X < Width; X++)
+				{
+					*DestPtr = FLinearColor(
+						(SrcPtr[0] - MinValue.X) / (MaxValue.X - MinValue.X),
+						(SrcPtr[1] - MinValue.Y) / (MaxValue.Y - MinValue.Y),
+						(SrcPtr[2] - MinValue.Z) / (MaxValue.Z - MinValue.Z),
+						(SrcPtr[3] - MinValue.W) / (MaxValue.W - MinValue.W)
+						);
+					++DestPtr;
+					SrcPtr += 4;
+				}
 			}
 		}
 	}

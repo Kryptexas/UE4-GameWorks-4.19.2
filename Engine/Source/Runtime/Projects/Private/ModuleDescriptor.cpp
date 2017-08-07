@@ -172,6 +172,28 @@ bool FModuleDescriptor::Read(const FJsonObject& Object, FText& OutFailReason)
 		}
 	}
 
+	// Read the whitelisted targets
+	TSharedPtr<FJsonValue> WhitelistTargetsValue = Object.TryGetField(TEXT("WhitelistTargets"));
+	if (WhitelistTargetsValue.IsValid() && WhitelistTargetsValue->Type == EJson::Array)
+	{
+		const TArray< TSharedPtr< FJsonValue > >& TargetsArray = WhitelistTargetsValue->AsArray();
+		for (int Idx = 0; Idx < TargetsArray.Num(); Idx++)
+		{
+			WhitelistTargets.Add(TargetsArray[Idx]->AsString());
+		}
+	}
+
+	// Read the blacklisted targets
+	TSharedPtr<FJsonValue> BlacklistTargetsValue = Object.TryGetField(TEXT("BlacklistTargets"));
+	if (BlacklistTargetsValue.IsValid() && BlacklistTargetsValue->Type == EJson::Array)
+	{
+		const TArray< TSharedPtr< FJsonValue > >& TargetsArray = BlacklistTargetsValue->AsArray();
+		for (int Idx = 0; Idx < TargetsArray.Num(); Idx++)
+		{
+			BlacklistTargets.Add(TargetsArray[Idx]->AsString());
+		}
+	}
+
 	// Read the additional dependencies
 	TSharedPtr<FJsonValue> AdditionalDependenciesValue = Object.TryGetField(TEXT("AdditionalDependencies"));
 	if (AdditionalDependenciesValue.IsValid() && AdditionalDependenciesValue->Type == EJson::Array)
@@ -244,6 +266,24 @@ void FModuleDescriptor::Write(TJsonWriter<>& Writer) const
 		}
 		Writer.WriteArrayEnd();
 	}
+	if (WhitelistTargets.Num() > 0)
+	{
+		Writer.WriteArrayStart(TEXT("WhitelistTargets"));
+		for (int Idx = 0; Idx < WhitelistTargets.Num(); Idx++)
+		{
+			Writer.WriteValue(WhitelistTargets[Idx]);
+		}
+		Writer.WriteArrayEnd();
+	}
+	if (BlacklistTargets.Num() > 0)
+	{
+		Writer.WriteArrayStart(TEXT("BlacklistTargets"));
+		for (int Idx = 0; Idx < BlacklistTargets.Num(); Idx++)
+		{
+			Writer.WriteValue(BlacklistTargets[Idx]);
+		}
+		Writer.WriteArrayEnd();
+	}
 	if (AdditionalDependencies.Num() > 0)
 	{
 		Writer.WriteArrayStart(TEXT("AdditionalDependencies"));
@@ -282,6 +322,20 @@ bool FModuleDescriptor::IsCompiledInCurrentConfiguration() const
 
 	// Check the platform is not blacklisted
 	if(BlacklistPlatforms.Num() > 0 && BlacklistPlatforms.Contains(UBTPlatform))
+	{
+		return false;
+	}
+
+	static FString UBTTarget(FPlatformMisc::GetUBTTarget());
+
+	// Check the target is whitelisted
+	if (WhitelistTargets.Num() > 0 && !WhitelistTargets.Contains(UBTTarget))
+	{
+		return false;
+	}
+
+	// Check the target is not blacklisted
+	if (BlacklistTargets.Num() > 0 && BlacklistTargets.Contains(UBTTarget))
 	{
 		return false;
 	}
@@ -403,27 +457,23 @@ bool FModuleDescriptor::IsLoadedInCurrentConfiguration() const
 void FModuleDescriptor::LoadModulesForPhase(ELoadingPhase::Type LoadingPhase, const TArray<FModuleDescriptor>& Modules, TMap<FName, EModuleLoadResult>& ModuleLoadErrors)
 {
 	FScopedSlowTask SlowTask(Modules.Num());
-	for(int Idx = 0; Idx < Modules.Num(); Idx++)
+	for (int Idx = 0; Idx < Modules.Num(); Idx++)
 	{
 		SlowTask.EnterProgressFrame(1);
 		const FModuleDescriptor& Descriptor = Modules[Idx];
 
 		// Don't need to do anything if this module is already loaded
-		if( !FModuleManager::Get().IsModuleLoaded( Descriptor.Name ) )
+		if (!FModuleManager::Get().IsModuleLoaded(Descriptor.Name))
 		{
-			if( LoadingPhase == Descriptor.LoadingPhase && Descriptor.IsLoadedInCurrentConfiguration() )
+			if (LoadingPhase == Descriptor.LoadingPhase && Descriptor.IsLoadedInCurrentConfiguration())
 			{
 				// @todo plugin: DLL search problems.  Plugins that statically depend on other modules within this plugin may not be found?  Need to test this.
 
 				// NOTE: Loading this module may cause other modules to become loaded, both in the engine or game, or other modules 
 				//       that are part of this project or plugin.  That's totally fine.
 				EModuleLoadResult FailureReason;
-				const TSharedPtr<IModuleInterface>& ModuleInterface = FModuleManager::Get().LoadModuleWithFailureReason( Descriptor.Name, FailureReason );
-				if( ModuleInterface.IsValid() )
-				{
-					// Module loaded OK (or was already loaded.)
-				}
-				else 
+				IModuleInterface* ModuleInterface = FModuleManager::Get().LoadModuleWithFailureReason(Descriptor.Name, FailureReason);
+				if (ModuleInterface == nullptr)
 				{
 					// The module failed to load. Note this in the ModuleLoadErrors list.
 					ModuleLoadErrors.Add(Descriptor.Name, FailureReason);
@@ -449,4 +499,3 @@ bool FModuleDescriptor::CheckModuleCompatibility(const TArray<FModuleDescriptor>
 }
 
 #undef LOCTEXT_NAMESPACE
-

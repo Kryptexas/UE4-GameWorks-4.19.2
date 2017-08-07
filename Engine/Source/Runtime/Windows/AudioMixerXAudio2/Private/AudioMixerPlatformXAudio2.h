@@ -3,7 +3,6 @@
 #pragma once
 
 #include "AudioMixer.h"
-#include "WindowsHWrapper.h"
 #include "AllowWindowsPlatformTypes.h"
 #include <xaudio2.h>
 #include "HideWindowsPlatformTypes.h"
@@ -19,11 +18,11 @@ namespace Audio
 	* This callback class is used to get event notifications on buffer end (when a buffer has finished processing).
 	* This is used to signal the I/O thread that it can request another buffer from the user callback.
 	*/
-	class FXAudio2VoiceCallback : public IXAudio2VoiceCallback
+	class FXAudio2VoiceCallback final : public IXAudio2VoiceCallback
 	{
 	public:
 		FXAudio2VoiceCallback() {}
-		~FXAudio2VoiceCallback() {}
+		virtual ~FXAudio2VoiceCallback() {}
 
 	private:
 		void STDCALL OnVoiceProcessingPassStart(UINT32 BytesRequired) {}
@@ -59,12 +58,15 @@ namespace Audio
 		virtual bool StartAudioStream() override;
 		virtual bool StopAudioStream() override;
 		virtual bool MoveAudioStreamToNewAudioDevice(const FString& InNewDeviceId) override;
+		virtual void ResumePlaybackOnNewDevice() override;
 		virtual FAudioPlatformDeviceInfo GetPlatformDeviceInfo() const override;
-		virtual void SubmitBuffer(const TArray<float>& Buffer) override;
+		virtual void SubmitBuffer(const uint8* Buffer) override;
 		virtual FName GetRuntimeFormat(USoundWave* InSoundWave) override;
 		virtual bool HasCompressedAudioInfoClass(USoundWave* InSoundWave) override;
+		virtual bool SupportsRealtimeDecompression() const override { return true; }
 		virtual ICompressedAudioInfo* CreateCompressedAudioInfo(USoundWave* InSoundWave) override;
 		virtual FString GetDefaultDeviceName() override;
+		virtual FAudioPlatformSettings GetPlatformSettings() const override;
 		//~ End IAudioMixerPlatformInterface
 
 		//~ Begin IAudioMixerDeviceChangedLister
@@ -82,9 +84,8 @@ namespace Audio
 
 		const TCHAR* GetErrorString(HRESULT Result);
 
-	private:
 		typedef TArray<long> TChannelTypeMap;
-
+		
 		// Bool indicating that the default audio device changed
 		// And that we need to restart the audio device.
 		FThreadSafeBool bDeviceChanged;

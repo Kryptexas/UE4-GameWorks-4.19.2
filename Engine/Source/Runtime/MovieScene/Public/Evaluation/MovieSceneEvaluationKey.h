@@ -5,10 +5,14 @@
 #include "CoreMinimal.h"
 #include "MovieSceneSequenceID.h"
 #include "Evaluation/MovieSceneTrackIdentifier.h"
+#include "MovieSceneEvaluationKey.generated.h"
 
 /** Keyable struct that represents a particular entity within an evaluation template (either a section/template or a track) */
+USTRUCT()
 struct FMovieSceneEvaluationKey
 {
+	GENERATED_BODY()
+
 	/**
 	 * Default construction to an invalid key
 	 */
@@ -60,9 +64,44 @@ struct FMovieSceneEvaluationKey
 		return A.TrackIdentifier == B.TrackIdentifier && A.SequenceID == B.SequenceID && A.SectionIdentifier == B.SectionIdentifier;
 	}
 
+	friend bool operator<(const FMovieSceneEvaluationKey& A, const FMovieSceneEvaluationKey& B)
+	{
+		if (A.SequenceID < B.SequenceID)
+		{
+			return true;
+		}
+		else if (A.SequenceID > B.SequenceID)
+		{
+			return false;
+		}
+		else if (A.TrackIdentifier < B.TrackIdentifier)
+		{
+			return true;
+		}
+		else
+		{
+			return A.TrackIdentifier == B.TrackIdentifier && A.SectionIdentifier < B.SectionIdentifier;
+		}
+	}
+
 	friend uint32 GetTypeHash(const FMovieSceneEvaluationKey& In)
 	{
 		return GetTypeHash(In.SequenceID) ^ (~GetTypeHash(In.TrackIdentifier)) ^ In.SectionIdentifier;
+	}
+
+	/** Custom serialized to reduce memory footprint */
+	bool Serialize(FArchive& Ar)
+	{
+		Ar << SequenceID;
+		Ar << TrackIdentifier;
+		Ar << SectionIdentifier;
+		return true;
+	}
+
+	friend FArchive& operator<<(FArchive& Ar, FMovieSceneEvaluationKey& Key)
+	{
+		Key.Serialize(Ar);
+		return Ar;
 	}
 
 	/** ID of the sequence that the entity is contained within */
@@ -71,4 +110,13 @@ struct FMovieSceneEvaluationKey
 	FMovieSceneTrackIdentifier TrackIdentifier;
 	/** ID of the section this key relates to (or -1 where this key relates to a track) */
 	uint32 SectionIdentifier;
+};
+
+template<>
+struct TStructOpsTypeTraits<FMovieSceneEvaluationKey> : public TStructOpsTypeTraitsBase2<FMovieSceneEvaluationKey>
+{
+	enum
+	{
+		WithSerializer = true
+	};
 };

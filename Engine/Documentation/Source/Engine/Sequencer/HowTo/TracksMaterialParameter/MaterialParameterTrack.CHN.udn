@@ -1,0 +1,154 @@
+﻿INTSourceChangelist:0
+Availability: Public
+Title: Animating Material Parameter Collections
+Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
+Description:Describes how you can update Material Parameter Collections within Sequencer. 
+Version: 4.16
+SkillLevel: Intermediate
+parent:Engine/Sequencer/HowTo
+order:1
+topic-image: EndResult.png
+checkpoint: editorqs
+Related: Engine/Sequencer/Overview
+Related: Engine/Rendering/Materials/ParameterCollections
+Related: Engine/Rendering/Materials
+tags:Sequencer
+type:how-to
+
+Sequencer provides a special **Material Parameter Collection** track for working with and animating [](Engine/Rendering/Materials/ParameterCollections). 
+This is extremely useful if you have several Materials that you need to update as you no longer have to animate individual parameter values on each material instance in order to share animation. 
+
+In this how-to guide, you'll create a Material Parameter Collection and update its values through Sequencer causing any Materials that use the collection to pulsate between colors. 
+
+![](EndResult.png)
+
+## Steps
+
+[REGION:note]
+For this how-to guide, we are using the **Blueprint Third Person Template** with **Starter Content** enabled. 
+[/REGION]
+
+1.	With your project open, in the **Content/Mannequin/Character/Materials** folder, open the **M_UE4Man_Body** Material. 
+
+	![](MPCTrack01.png)
+
+1.	In the **Graph** select the **BodyColor** parameter, then in the **Details** panel, **Right-click** and **Copy** the **Default Value** under **Material Expression Vector Parameter**. 
+
+	![](MPCTrack02.png)
+
+	We are going to use this value as the Default Value in our Material Parameter Collection asset. 
+
+1.	From the **Content Browser**, click the **Add New** button and under **Materials & Textures** select **Material Parameter Collection** and call it **Sample_MPC**. 
+
+	![](MPCTrack03.png)
+
+1.	Inside **Sample_MPC**, add a **Vector Parameter** called **Example** and for the **Default Value**, **Right-click** and **Paste** the copied values. 
+
+	![](MPCTrack04.png)
+
+1.	Back in the **M_UE4Man_Body** Material, **Right-click** and add a **CollectionParameter** node with **Collection** set to **Sample_MPC** and **Parameter Name** set to **Example**. 
+
+	![](MPCTrack05.png)
+
+1.	Connect the **Example** Collection Parameter node to nodes marked **1** and **2** below. 
+	
+	![](MPCTrack06.png)
+
+1.	From the Main Editor Toolbar, click the **Cinematics** button and select **Add Level Sequence** and choose a name and save location. 
+
+	![](MPCTrack07.png)
+
+1.	In the **Details** panel for the new sequence, check the **Auto Play** option and **Loop Indefinitely**. 
+
+	![](MPCTrack08.png)
+
+1.	In Sequencer, click the **Add** button and select **Material Parameter Collection Track** then **Sample_MPC**. 
+
+	![](MPCTrack09.png)
+
+	Any Material Parameter Collection assets you have created will be displayed in the roll-out window when choosing the Material Parameter Collection Track. 
+
+1.	On the **Sample_MPC** track, click the **Parameter** button and add the **Example** vector track. 
+
+	![](MPCTrack10.png)
+
+	This corresponds to parameter name defined within the Material Parameter Collection asset, any other defined parameters will be displayed from the drop-down menu. 
+
+1.	Scrub the timeline ahead to frame **75** then add keys for **Red (1.0)**, **Green (0.0)** and **Blue (0.0)**. 
+
+	![](MPCTrack11.png)
+
+1.	**Left-click** and drag a selection box around the keys at frame 0, then press **Ctrl+C** to copy them. 
+
+	![](MPCTrack12.png)
+
+1.	Scrub the timeline ahead to frame **150** then press **Ctrl+V** to paste the copied keys. 
+
+	![](MPCTrack13.png)
+
+	This will set the Material Parameter Collection back to its Default Value. 
+
+1.	From the Main Editor Toolbar, click the **Play** button to play in the editor. 
+
+
+## End Result
+
+When you play in the level, the character will continually pulsate between the default color and a red color. 
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:videoid]
+	8PE6jCw7bhM
+	[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	100
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	56.25
+	[/PARAMLITERAL]
+	[PARAMLITERAL:units]
+	%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:type]
+	simple
+	[/PARAMLITERAL]
+[/OBJECT]
+
+We only applied this to our playable character, however, any Materials that use the **Sample_MPC** Material Parameter Collection asset within their Material Graph will also be updated. 
+Below, we updated the **RampMaterial** (located in **Content/ThirdPerson/Meshes** folder) which is applied to the geometry in the level. 
+
+![](MPCTrack14.png)
+
+As a result, they too are affected by our Material Parameter Collection Track within Sequencer and update accordingly. 
+
+![](MPCTrack15.png)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

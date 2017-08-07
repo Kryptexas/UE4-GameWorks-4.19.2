@@ -294,7 +294,7 @@ bool ANUTActor::NotifyControlMessage(UNetConnection* Connection, uint8 MessageTy
 	return bHandledMessage;
 }
 
-void ANUTActor::NotifyPostLoadMap(UWorld*)
+void ANUTActor::NotifyPostLoadMap(UWorld* LoadedWorld)
 {
 	if (VerifyEventWatcher())
 	{
@@ -390,13 +390,11 @@ void ANUTActor::Tick(float DeltaSeconds)
 
 
 				// Also switch over replication to the beacon net driver
-				Role = ROLE_None;
 				SetReplicates(false);
 
 				BeaconDriverName = BeaconDriver->NetDriverName;
 				NetDriverName = BeaconDriverName;
 
-				Role = ROLE_Authority;
 				SetReplicates(true);
 
 
@@ -674,7 +672,7 @@ void ANUTActor::NetMulticastPing_Implementation()
 
 void ANUTActor::ExecuteOnServer(UObject* InTargetObj, FString InTargetFunc)
 {
-	if (InTargetObj != NULL && InTargetFunc.Len() > 0)
+	if (InTargetObj != nullptr && InTargetFunc.Len() > 0)
 	{
 		// Only static functions can be used, so verify this is referencing a static function
 		FName TargetFuncName = *InTargetFunc;
@@ -682,7 +680,7 @@ void ANUTActor::ExecuteOnServer(UObject* InTargetObj, FString InTargetFunc)
 
 		if (FString(TargetFuncName.ToString()).StartsWith(TEXT("UnitTestServer_"), ESearchCase::CaseSensitive))
 		{
-			if (TargetFuncObj != NULL)
+			if (TargetFuncObj != nullptr)
 			{
 				if (TargetFuncObj->HasAnyFunctionFlags(FUNC_Static))
 				{
@@ -698,7 +696,7 @@ void ANUTActor::ExecuteOnServer(UObject* InTargetObj, FString InTargetFunc)
 					UDelegateProperty* DelProp = FindField<UDelegateProperty>(GetClass(), TEXT("TempDelegate"));
 
 					FString DelString;
-					DelProp->ExportTextItem(DelString, DelProp->ContainerPtrToValuePtr<uint8>(this), NULL, this, 0, NULL);
+					DelProp->ExportTextItem(DelString, DelProp->ContainerPtrToValuePtr<uint8>(this), nullptr, this, 0, nullptr);
 
 					ServerExecute(DelString);
 				}

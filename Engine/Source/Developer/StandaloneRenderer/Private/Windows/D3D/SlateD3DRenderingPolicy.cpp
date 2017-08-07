@@ -5,6 +5,7 @@
 #include "Windows/D3D/SlateD3DTextureManager.h"
 #include "Windows/D3D/SlateD3DTextures.h"
 #include "SlateStats.h"
+#include "Layout/Clipping.h"
 
 SLATE_DECLARE_CYCLE_COUNTER(GSlateResizeRenderBuffers, "Resize Render Buffers");
 SLATE_DECLARE_CYCLE_COUNTER(GSlateLockRenderBuffers, "Lock Render Buffers");
@@ -164,8 +165,6 @@ void FSlateD3D11RenderingPolicy::UpdateVertexAndIndexBuffers( FSlateBatchData& I
 				// @todo make this better
 				VertexBuffer.ResizeBuffer( NumBytesNeeded + 200*sizeof(FSlateVertex) );
 			}
-
-		
 		}
 
 		if( InBatchData.GetNumBatchedIndices() > 0 )
@@ -180,8 +179,6 @@ void FSlateD3D11RenderingPolicy::UpdateVertexAndIndexBuffers( FSlateBatchData& I
 				// @todo make this better
 				IndexBuffer.ResizeBuffer( NumIndices + 100 );
 			}
-
-	
 		}
 
 		uint8* VerticesPtr = nullptr;
@@ -202,11 +199,10 @@ void FSlateD3D11RenderingPolicy::UpdateVertexAndIndexBuffers( FSlateBatchData& I
 			VertexBuffer.Unlock();
 			IndexBuffer.Unlock();
 		}
-
 	}
 }
 
-void FSlateD3D11RenderingPolicy::DrawElements( const FMatrix& ViewProjectionMatrix, const TArray<FSlateRenderBatch>& RenderBatches )
+void FSlateD3D11RenderingPolicy::DrawElements( const FMatrix& ViewProjectionMatrix, const TArray<FSlateRenderBatch>& RenderBatches, const TArray<FSlateClippingState> RenderClipStates )
 {
 	VertexShader->BindShader();
 
@@ -227,6 +223,8 @@ void FSlateD3D11RenderingPolicy::DrawElements( const FMatrix& ViewProjectionMatr
 
 
 	PixelShader->BindShader();
+
+	int32 LastClippingIndex = -1;
 
 	for( int32 BatchIndex = 0; BatchIndex < RenderBatches.Num(); ++BatchIndex )
 	{
@@ -255,25 +253,37 @@ void FSlateD3D11RenderingPolicy::DrawElements( const FMatrix& ViewProjectionMatr
 		{
 			GD3DDeviceContext->RSSetState( WireframeRasterState );
 		}
-		else
+		
+		if (RenderBatch.ClippingIndex != LastClippingIndex)
 		{
-			if (RenderBatch.ScissorRect.IsSet())
+			LastClippingIndex = RenderBatch.ClippingIndex;
+
+			if (RenderBatch.ClippingIndex != -1)
 			{
-				D3D11_RECT R;
-				FShortRect ScissorRect = RenderBatch.ScissorRect.GetValue();
-				R.left = ScissorRect.Left;
-				R.top = ScissorRect.Top;
-				R.bottom = ScissorRect.Bottom;
-				R.right = ScissorRect.Right;
-				GD3DDeviceContext->RSSetScissorRects(1, &R);
-				GD3DDeviceContext->RSSetState(ScissorRasterState);
+				const FSlateClippingState& ClipState = RenderClipStates[RenderBatch.ClippingIndex];
+				if (ClipState.ScissorRect.IsSet())
+				{
+					const FSlateClippingZone& ScissorRect = ClipState.ScissorRect.GetValue();
+
+					D3D11_RECT R;
+					R.left = ScissorRect.TopLeft.X;
+					R.top = ScissorRect.TopLeft.Y;
+					R.right = ScissorRect.BottomRight.X;
+					R.bottom = ScissorRect.BottomRight.Y;
+					GD3DDeviceContext->RSSetScissorRects(1, &R);
+					GD3DDeviceContext->RSSetState(ScissorRasterState);
+				}
+				else
+				{
+					// We don't support stencil clipping on the d3d rendering policy.
+					GD3DDeviceContext->RSSetState(NormalRasterState);
+				}
 			}
 			else
 			{
 				GD3DDeviceContext->RSSetState(NormalRasterState);
 			}
 		}
-	
 
 		PixelShader->SetShaderType( RenderBatch.ShaderType );
 
@@ -311,8 +321,11 @@ void FSlateD3D11RenderingPolicy::DrawElements( const FMatrix& ViewProjectionMatr
 
 		check(RenderBatch.IndexOffset + RenderBatch.NumIndices <= IndexBuffer.GetMaxNumIndices());
 		GD3DDeviceContext->DrawIndexed( IndexCount, RenderBatch.IndexOffset, RenderBatch.VertexOffset );
-
 	}
+
+	// Reset the Raster state when finished, there are places that are making assumptions about the raster state
+	// that need to be fixed.
+	GD3DDeviceContext->RSSetState(NormalRasterState);
 }
 
 TSharedRef<FSlateShaderResourceManager> FSlateD3D11RenderingPolicy::GetResourceManager() const

@@ -16,28 +16,7 @@ bool FUserOnlineAccountGoogleCommon::Parse(const FAuthTokenGoogle& InAuthToken, 
 			if (FJsonSerializer::Deserialize(JsonReader, JsonUser) &&
 				JsonUser.IsValid())
 			{
-				if (FromJson(JsonUser))
-				{
-					if (!UserId.IsEmpty())
-					{
-						UserIdPtr = MakeShared<FUniqueNetIdString>(UserId);
-
-						AddUserAttributes(JsonUser);
-
-						// update the access token
-						AuthToken = InAuthToken;
-
-						bResult = true;
-					}
-					else
-					{
-						UE_LOG_ONLINE(Warning, TEXT("FUserOnlineAccountGoogleCommon: Missing user id. payload=%s"), *InJsonStr);
-					}
-				}
-				else
-				{
-					UE_LOG_ONLINE(Warning, TEXT("FUserOnlineAccountGoogleCommon: Invalid response payload=%s"), *InJsonStr);
-				}
+				bResult = Parse(InAuthToken, JsonUser);
 			}
 			else
 			{
@@ -47,6 +26,49 @@ bool FUserOnlineAccountGoogleCommon::Parse(const FAuthTokenGoogle& InAuthToken, 
 		else
 		{
 			UE_LOG_ONLINE(Warning, TEXT("FUserOnlineAccountGoogleCommon: Empty Json string"));
+		}
+	}
+	else
+	{
+		UE_LOG_ONLINE(Warning, TEXT("FUserOnlineAccountGoogleCommon: Invalid auth token"));
+	}
+
+	return bResult;
+}
+
+bool FUserOnlineAccountGoogleCommon::Parse(const FAuthTokenGoogle& InAuthToken, TSharedPtr<FJsonObject> InJsonObject)
+{
+	bool bResult = false;
+	if (InAuthToken.IsValid())
+	{
+		if (InJsonObject.IsValid())
+		{
+			if (FromJson(InJsonObject))
+			{
+				if (!UserId.IsEmpty())
+				{
+					UserIdPtr = MakeShared<FUniqueNetIdString>(UserId);
+
+					AddUserAttributes(InJsonObject);
+
+					// update the access token
+					AuthToken = InAuthToken;
+
+					bResult = true;
+				}
+				else
+				{
+					UE_LOG_ONLINE(Warning, TEXT("FUserOnlineAccountGoogleCommon: Missing user id in json object"));
+				}
+			}
+			else
+			{
+				UE_LOG_ONLINE(Warning, TEXT("FUserOnlineAccountGoogleCommon: Invalid json object"));
+			}
+		}	
+		else
+		{
+			UE_LOG_ONLINE(Warning, TEXT("FUserOnlineAccountGoogleCommon: Invalid json object pointer"));
 		}
 	}
 	else

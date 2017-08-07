@@ -575,13 +575,17 @@ public:
 	{
 	}
 
-	/** 2D transformation of a point. */
+	/**
+	 * 2D transformation of a point.  Transforms position, rotation, and scale.
+	 */
 	FVector2D TransformPoint(const FVector2D& Point) const
 	{
 		return ::TransformPoint(Trans, ::TransformPoint(M, Point));
 	}
 
-	/** 2D transformation of a vector. */
+	/**
+	 * 2D transformation of a vector.  Transforms rotation and scale.
+	 */
 	FVector2D TransformVector(const FVector2D& Vector) const
 	{
 		return ::TransformVector(M, Vector);
@@ -659,6 +663,22 @@ public:
 	bool IsIdentity() const
 	{
 		return M.IsIdentity() && Trans == FVector2D::ZeroVector;
+	}
+
+	/**
+	 * Converts this affine 2D Transform into an affine 3D transform.
+	 */
+	FMatrix To3DMatrix() const
+	{
+		float A, B, C, D;
+		M.GetMatrix(A, B, C, D);
+
+		return FMatrix(
+			FPlane(      A,      B, 0.0f, 0.0f),
+			FPlane(      C,      D, 0.0f, 0.0f),
+			FPlane(   0.0f,   0.0f, 1.0f, 0.0f),
+			FPlane(Trans.X, Trans.Y, 0.0f, 1.0f)
+		);
 	}
 
 private:

@@ -5,8 +5,10 @@
 #include "PhysicsPublic.h"
 #include "PhysXIncludes.h"
 
-extern TAutoConsoleVariable<float> CVarConstraintDampingScale;
-extern TAutoConsoleVariable<float> CVarConstraintStiffnessScale;
+extern TAutoConsoleVariable<float> CVarConstraintLinearDampingScale;
+extern TAutoConsoleVariable<float> CVarConstraintLinearStiffnessScale;
+extern TAutoConsoleVariable<float> CVarConstraintAngularDampingScale;
+extern TAutoConsoleVariable<float> CVarConstraintAngularStiffnessScale;
 
 #if WITH_PHYSX
 
@@ -38,20 +40,28 @@ PxD6Motion::Enum U2PLinearMotion(ELinearConstraintMotion InMotion)
 	return PxD6Motion::eFREE;
 }
 
+enum class ESoftLimitTypeHelper
+{
+	Linear,
+	Angular
+};
 
 /** Util for setting soft limit params */
+template <ESoftLimitTypeHelper Type>
 void SetSoftLimitParams_AssumesLocked(PxJointLimitParameters* PLimit, bool bSoft, float Spring, float Damping)
 {
 	if(bSoft)
 	{
-		PLimit->stiffness = Spring * CVarConstraintStiffnessScale.GetValueOnGameThread();
-		PLimit->damping = Damping * CVarConstraintDampingScale.GetValueOnGameThread();
+		const float SpringCoeff = Type == ESoftLimitTypeHelper::Angular ? CVarConstraintAngularStiffnessScale.GetValueOnGameThread() : CVarConstraintLinearStiffnessScale.GetValueOnGameThread();
+		const float DampingCoeff = Type == ESoftLimitTypeHelper::Angular ? CVarConstraintAngularDampingScale.GetValueOnGameThread() : CVarConstraintLinearDampingScale.GetValueOnGameThread();
+		PLimit->stiffness = Spring * SpringCoeff;
+		PLimit->damping = Damping * DampingCoeff;
 	}
 }
 
 /** Util for setting linear movement for an axis */
 template <PxD6Axis::Enum PAxis>
-void SetLinearMovement_AssumesLocked(PxD6Joint* PD6Joint, ELinearConstraintMotion Motion, bool bLockLimitSize)
+void SetLinearMovement_AssumesLocked(PxD6Joint* PD6Joint, ELinearConstraintMotion Motion, bool bLockLimitSize, bool bSkipSoftLimit)
 {
 	if(Motion == LCM_Locked || (Motion == LCM_Limited && bLockLimitSize))
 	{
@@ -59,6 +69,11 @@ void SetLinearMovement_AssumesLocked(PxD6Joint* PD6Joint, ELinearConstraintMotio
 	}else
 	{
 		PD6Joint->setMotion(PAxis, U2PLinearMotion(Motion));
+	}
+
+	if(bSkipSoftLimit && Motion == LCM_Limited)
+	{
+		PD6Joint->setMotion(PAxis, PxD6Motion::eFREE);
 	}
 }
 
@@ -103,22 +118,30 @@ FTwistConstraint::FTwistConstraint()
 	ContactDistance = 1.f;
 }
 
+bool ShouldSkipSoftLimits(float Stiffness, float Damping, float AverageMass)
+{
+	return ((Stiffness * AverageMass) == 0.f && (Damping * AverageMass) == 0.f);
+}
+
 #if WITH_PHYSX
 void FLinearConstraint::UpdatePhysXLinearLimit_AssumesLocked(PxD6Joint* Joint, float AverageMass, float Scale) const
 {
 	const float UseLimit = FMath::Max(Limit * Scale, KINDA_SMALL_NUMBER);	//physx doesn't ever want limit of 0
 	const bool bLockLimitSize = (UseLimit < RB_MinSizeToLockDOF);
-		
-	SetLinearMovement_AssumesLocked<PxD6Axis::eX>(Joint, XMotion, bLockLimitSize);
-	SetLinearMovement_AssumesLocked<PxD6Axis::eY>(Joint, YMotion, bLockLimitSize);
-	SetLinearMovement_AssumesLocked<PxD6Axis::eZ>(Joint, ZMotion, bLockLimitSize);
+	
+	const bool bSkipSoft = bSoftConstraint && ShouldSkipSoftLimits(Stiffness, Damping, AverageMass);
+
+	SetLinearMovement_AssumesLocked<PxD6Axis::eX>(Joint, XMotion, bLockLimitSize, bSkipSoft);
+	SetLinearMovement_AssumesLocked<PxD6Axis::eY>(Joint, YMotion, bLockLimitSize, bSkipSoft);
+	SetLinearMovement_AssumesLocked<PxD6Axis::eZ>(Joint, ZMotion, bLockLimitSize, bSkipSoft);
 
 	// If any DOF is locked/limited, set up the joint limit
 	if (XMotion != LCM_Free || YMotion != LCM_Free || ZMotion != LCM_Free)
 	{
 		PxJointLinearLimit PLinearLimit(GPhysXSDK->getTolerancesScale(), UseLimit, FMath::Clamp(ContactDistance, 5.f, UseLimit * 0.49f));
 		PLinearLimit.restitution = Restitution;
-		SetSoftLimitParams_AssumesLocked(&PLinearLimit, bSoftConstraint, Stiffness*AverageMass, Damping*AverageMass);
+		SetSoftLimitParams_AssumesLocked<ESoftLimitTypeHelper::Linear>(&PLinearLimit, bSoftConstraint, Stiffness*AverageMass, Damping*AverageMass);
+
 		Joint->setLinearLimit(PLinearLimit);
 	}
 }
@@ -138,12 +161,13 @@ void FConeConstraint::UpdatePhysXConeLimit_AssumesLocked(PxD6Joint* Joint, float
 
 		PxJointLimitCone PSwingLimitCone(Limit2Rad, Limit1Rad, ContactRad);
 		PSwingLimitCone.restitution = Restitution;
-		SetSoftLimitParams_AssumesLocked(&PSwingLimitCone, bSoftConstraint, Stiffness * AverageMass, Damping * AverageMass);
+		SetSoftLimitParams_AssumesLocked<ESoftLimitTypeHelper::Angular>(&PSwingLimitCone, bSoftConstraint, Stiffness * AverageMass, Damping * AverageMass);
 		Joint->setSwingLimit(PSwingLimitCone);
 	}
 
-	Joint->setMotion(PxD6Axis::eSWING2, U2PAngularMotion(Swing1Motion));
-	Joint->setMotion(PxD6Axis::eSWING1, U2PAngularMotion(Swing2Motion));
+	const bool bSkipSoftLimits = bSoftConstraint && ShouldSkipSoftLimits(Stiffness, Damping, AverageMass);
+	Joint->setMotion(PxD6Axis::eSWING2, (bSkipSoftLimits && Swing1Motion == ACM_Limited) ? PxD6Motion::eFREE : U2PAngularMotion(Swing1Motion));
+	Joint->setMotion(PxD6Axis::eSWING1, (bSkipSoftLimits && Swing2Motion == ACM_Limited) ? PxD6Motion::eFREE : U2PAngularMotion(Swing2Motion));
 }
 #endif
 
@@ -159,10 +183,11 @@ void FTwistConstraint::UpdatePhysXTwistLimit_AssumesLocked(PxD6Joint* Joint, flo
 
 		PxJointAngularLimitPair PTwistLimitPair(-TwistLimitRad, TwistLimitRad, ContactRad);
 		PTwistLimitPair.restitution = Restitution;
-		SetSoftLimitParams_AssumesLocked(&PTwistLimitPair, bSoftConstraint, Stiffness * AverageMass, Damping * AverageMass);
+		SetSoftLimitParams_AssumesLocked<ESoftLimitTypeHelper::Angular>(&PTwistLimitPair, bSoftConstraint, Stiffness * AverageMass, Damping * AverageMass);
 		Joint->setTwistLimit(PTwistLimitPair);
 	}
 
-	Joint->setMotion(PxD6Axis::eTWIST, U2PAngularMotion(TwistMotion));
+	const bool bSkipSoftLimits = bSoftConstraint && ShouldSkipSoftLimits(Stiffness, Damping, AverageMass);
+	Joint->setMotion(PxD6Axis::eTWIST, (bSkipSoftLimits && TwistMotion == ACM_Limited) ? PxD6Motion::eFREE : U2PAngularMotion(TwistMotion));
 }
 #endif

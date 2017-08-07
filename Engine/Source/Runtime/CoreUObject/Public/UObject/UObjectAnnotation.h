@@ -786,5 +786,5 @@ private:
 
 
 // Definition is in UObjectGlobals.cpp
-extern COREUOBJECT_API FUObjectAnnotationSparseBool GSelectedAnnotation;
+extern COREUOBJECT_API FUObjectAnnotationSparseBool GSelectedObjectAnnotation;
 

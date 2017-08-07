@@ -218,9 +218,9 @@ void SSequencerTreeView::Tick(const FGeometry& AllottedGeometry, const double In
 	}
 }
 
-int32 SSequencerTreeView::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+int32 SSequencerTreeView::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
-	LayerId = STreeView::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+	LayerId = STreeView::OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 
 	// These are updated in both tick and paint since both calls can cause changes to the cached rows and the data needs
 	// to be kept synchronized so that external measuring calls get correct and reliable results.
@@ -242,7 +242,6 @@ int32 SSequencerTreeView::OnPaint(const FPaintArgs& Args, const FGeometry& Allot
 			LayerId+1,
 			AllottedGeometry.ToPaintGeometry(FVector2D(2.f, HighlightRegion->Top - 4.f), FVector2D(AllottedGeometry.Size.X - 4.f, 4.f)),
 			FEditorStyle::GetBrush("Sequencer.TrackHoverHighlight_Top"),
-			MyClippingRect,
 			ESlateDrawEffect::None,
 			FLinearColor::Black
 		);
@@ -252,7 +251,6 @@ int32 SSequencerTreeView::OnPaint(const FPaintArgs& Args, const FGeometry& Allot
 			LayerId+1,
 			AllottedGeometry.ToPaintGeometry(FVector2D(2.f, HighlightRegion->Bottom), FVector2D(AllottedGeometry.Size.X - 4.f, 4.f)),
 			FEditorStyle::GetBrush("Sequencer.TrackHoverHighlight_Bottom"),
-			MyClippingRect,
 			ESlateDrawEffect::None,
 			FLinearColor::Black
 		);
@@ -308,7 +306,7 @@ void SSequencerTreeView::ReportChildRowGeometry(const FDisplayNodeRef& InNode, c
 	float ChildOffset = TransformPoint(
 		Concatenate(
 			InGeometry.GetAccumulatedLayoutTransform(),
-			CachedGeometry.GetAccumulatedLayoutTransform().Inverse()
+			GetCachedGeometry().GetAccumulatedLayoutTransform().Inverse()
 		),
 		FVector2D(0,0)
 	).Y;
@@ -617,7 +615,7 @@ void SSequencerTreeView::Refresh()
 
 void SSequencerTreeView::ScrollByDelta(float DeltaInSlateUnits)
 {
-	ScrollBy( CachedGeometry, DeltaInSlateUnits, EAllowOverscroll::No );
+	ScrollBy( GetCachedGeometry(), DeltaInSlateUnits, EAllowOverscroll::No );
 }
 
 template<typename T>

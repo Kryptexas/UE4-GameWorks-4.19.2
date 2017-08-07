@@ -6,6 +6,7 @@
 
 #include "AndroidAudioDevice.h"
 #include "AudioDecompress.h"
+#include "ContentStreaming.h"
 
 // Callback that is registered if the source needs to loop
 void OpenSLBufferQueueCallback( SLAndroidSimpleBufferQueueItf InQueueInterface, void* pContext ) 
@@ -439,27 +440,6 @@ void FSLESSoundSource::Update( void )
 
 	SetFilterFrequency();
 	
-	FVector Location;
-	FVector	Velocity;
-	
-	// See file header for coordinate system explanation.
-	Location.X = WaveInstance->Location.X;
-	Location.Y = WaveInstance->Location.Z; // Z/Y swapped to match UE coordinate system
-	Location.Z = WaveInstance->Location.Y; // Z/Y swapped to match UE coordinate system
-	
-	Velocity.X = WaveInstance->Velocity.X;
-	Velocity.Y = WaveInstance->Velocity.Z; // Z/Y swapped to match UE coordinate system
-	Velocity.Z = WaveInstance->Velocity.Y; // Z/Y swapped to match UE coordinate system
-	
-	// We're using a relative coordinate system for un- spatialized sounds.
-	if( !WaveInstance->bUseSpatialization )
-	{
-		Location = FVector( 0.f, 0.f, 0.f );
-	}
-	
-	// Set volume (Pitch changes are not supported on current Android platforms!)
-	// also Location & Velocity
-	
 	// Avoid doing the log calculation each update by only doing it if the volume changed
 	if (Volume != VolumePreviousUpdate)
 	{
@@ -510,27 +490,33 @@ void FSLESSoundSource::Play( void )
  */
 void FSLESSoundSource::Stop( void )
 {
-	if( WaveInstance )
+	IStreamingManager::Get().GetAudioStreamingManager().RemoveStreamingSoundSource(this);
+
+	if (SL_PlayerPlayInterface)
 	{
 		// set the player's state to stopped
 		SLresult result = (*SL_PlayerPlayInterface)->SetPlayState(SL_PlayerPlayInterface, SL_PLAYSTATE_STOPPED);
 		check(SL_RESULT_SUCCESS == result);
-		
-		// Unregister looping callback
-		if( WaveInstance->LoopingMode != LOOP_Never ) 
-		{
-			result = (*SL_PlayerBufferQueue)->RegisterCallback(SL_PlayerBufferQueue, NULL, NULL);
-		}
-		
-		DestroyPlayer();
-		ReleaseResources();
-		
-		Paused = false;
-		Playing = false;
-		SLESBuffer = nullptr;
-		Buffer = nullptr;
 	}
-	
+
+	if (WaveInstance)
+	{
+		// Unregister looping callback
+		if (WaveInstance->LoopingMode != LOOP_Never)
+		{
+			SLresult result = (*SL_PlayerBufferQueue)->RegisterCallback(SL_PlayerBufferQueue, NULL, NULL);
+			check(SL_RESULT_SUCCESS == result);
+		}
+	}
+
+	DestroyPlayer();
+	ReleaseResources();
+
+	Paused = false;
+	Playing = false;
+	SLESBuffer = nullptr;
+	Buffer = nullptr;
+
 	FSoundSource::Stop();
 }
 

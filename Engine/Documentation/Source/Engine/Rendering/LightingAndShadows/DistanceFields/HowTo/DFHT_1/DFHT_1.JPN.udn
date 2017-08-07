@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3340382
+﻿INTSourceChangelist:3351628
 Availability:Docs
 Crumbs:
 Title:RayTraced Distance Field Soft Shadows
@@ -6,7 +6,7 @@ Description:RayTraced Distance Field Soft Shadows の設定および使用方法
 Related:Engine/Rendering/LightingandShadows/DistanceFieldAmbientOcclusion
 Related:Engine/Rendering/LightingandShadows/RayTracedDistanceFieldShadowing
 SkillLevel:Intermediate
-Type:how to
+Type:how-to
 Parent:Engine/Rendering/LightingAndShadows/DistanceFields/HowTo
 Order:
 Tags:Lighting
@@ -21,12 +21,9 @@ Version:4.15
 
 
 
-ゲーム開発をしていると、広大なオープン ワールドでは事前計算されたライティングがまったく使い物にならず、 
-動的ライティングしか効率的に使えない状況になる場合があります。**Ray Traced Distance Field Soft Shadows** (略して **ディスタンス フィールド シャドウ**) は、 
-指向性ライトを使った通常のカスケード シャドウ マップ (CSM) よりも遠い場所でのシャドウイングを可能にします。オープン ワールド ゲームまたはビュー ディスタンスが単に遠い場合に、ディスタンス フィールド シャドウは CSM ディスタンスよりも長く効率的なシャドウイングを可能にします。このメソッドは、エピック ゲームズ ランチャーの [Learn] タブからダウンロード可能な 
-オープン ワールド デモ "A Boy and His Kite" でふんだんに使用されています。 
+ゲーム開発をしていると、広大なオープン ワールドで事前計算されたライティングがまったく使い物ににならなかったり、ターゲット システムのリソースに厳しすぎる場合、そのシーンには動的ライティングを使うことが最善の策だと感じることがあります。**Ray Traced Distance Field Soft Shadows** (**Distance Field Shadows** とも呼ばれる) は、**指向性ライト** による通常の **Cascaded Shadow Maps** (CSM) よりも遠い距離でのシャドウイングを可能にします。オープン ワールド ゲームまたはビュー ディスタンスが一般的に遠い場合に、ディスタンス フィールド シャドウは CSM ディスタンスよりも長く効率的なシャドウイングを可能にします。このメソッドは、オープン ワールド デモ "A Boy and His Kite" (エピック ゲームズのランチャーの Learn タブからダウンロード可能) でふんだんに使用されています。
 
-このガイドでは、ライトタイプに合わせてディスタンス フィールド シャドウを有効にする方法およびそれらで使うことができる各種設定について説明します。
+このガイドでは、ライトタイプに合わせて Distance Field Shadows を有効にする方法およびそれらで使うことができる各種設定について説明します。
 
 
 ## ステップ
@@ -40,7 +37,7 @@ Version:4.15
 	![](ModesPanelLights.png)(w:400)
 
 	[REGION:note]
-	ディスタンス フィールド シャドウを有効にする方法は、すべての Light アクタ共通です。ガイドの中で、これらのライトタイプそれぞれの特有のプロパティを補足説明します。
+	Distance Field Shadows を有効にする方法は、すべての Light アクタ共通です。ガイドの中で、これらのライトタイプそれぞれの特有のプロパティを補足説明します。
 	[/REGION]
 
 1. Light アクタを選択したら、そのアクタの **[Details (詳細)]** パネルを開いて **[Mobility]** を **[Movable]** に設定します。 
@@ -54,28 +51,24 @@ Version:4.15
 	|---|---|
 	| 指向性ライト | スポット/ポイントライト |
 	[/Region]
-
 	[REGION:note]
+
 	このオプションがグレーアウトになっている場合は、ライトが **[Movable]** 設定になっていること、プロジェクト設定で **[Generate Mesh Distance Fields]** のオプションが有効になっていることを確認してください。
 	[/REGION]
 
-	1. 	この設定をオンにしたライトに対して、ディスタンス フィールド シャドウが有効にされました。コンテンツ ブラウザからいくつかスタティックメッシュをドラッグして、ゲームでディスタンス フィールド シャドウが機能するか確認します。
+1. 	この設定をオンにしたライトに対して、Distance Field Shadows が有効にされました。コンテンツ ブラウザからいくつかスタティックメッシュをドラッグして、ゲームでディスタンス フィールド シャドウが機能するか確認します。
 
 	[REGION:tip]
-	指向性ライトを使う場合、**Dynamic Shadow Distance Moveable Light** スライダーを **「0」** に設定しておくと便利です。こうすると、カスケード シャドウ マップ (CSM) が無効になるので、
-	メッシュのディスタンス フィールド シャドウのみが表示されます。**[Show (表示)]** > **[Visualize (可視化)]** > **[Mesh Distance Fields]** を選択してメイン ビューポートで有効にできるメッシュ ディスタンス フィールドに対するビジュアル化モードの使用、
-	さらにはシーンのテストおよび隠れているディスタンス フィールド問題の診断にも便利です。
+	指向性ライトを使う場合、**Dynamic Shadow Distance Moveable Light** スライダーを **「0」** に設定しておくと便利です。こうすると、CMS シャドウ が無効になるので、メッシュの Distance Field Shadow だけを表示されます。[Show (表示)] > [Visualize (可視化)] > [Mesh Distance Fields] を選択してメッシュ ディスタンス フィールドの可視化モードをメイン ビューポートで有効にして使用する場合以外にも、シーンのテストおよびディスタンス フィールドに潜んでいる問題の診断に便利です。
 	[/REGION]
-
 
 ## 光源設定
 
-**指向性ライト**、**スポットライト**、**ポイントライト** は、それぞれ利用できるオプションが異なります。調節可能な設定内容、および
-ディスタンス フィールド シャドウへの使用方法は以下の通りです。
+指向性ライト、スポットライト、ポイントライト は、それぞれ利用できるオプションが異なります。Distance Field Shadows への調節および使用方法は以下の通りです。
 
 ### 指向性ライト
 
-ディスタンス フィールド シャドウがオンにされている **指向性** ライトでは、以下の設定が使用できます。
+Distance Field Shadows を有効にした指向性ライトでは、以下の設定が使用できます。
 
 ![Distance Field Shadow Settings](DirectionalLightSettings.png)
 
@@ -85,17 +78,17 @@ Version:4.15
 | [REGION:tablesection]Light[/REGION] ||
 | Light Source Angle | 光源の角度です。ディスタンス フィールドあるいはカプセル シャドウを使った動的シャドウイング メソッドでソフトエリア シャドウをサポートするために使用します。 | 
 | [REGION:tablesection]Distance Field Shadows[/REGION] ||
-| DistanceField Shadow Distance | ディスタンス フィールド シャドウの一番遠い距離です。ディスタンス フィールド シャドウは、この値と CMS シャドウ用 **Dynamic Shadow Distance Movable Light** の間の距離をカバーします。 | 
-| RayTraced DistanceField Shadows | 光源のディスタンス フィールド シャドウをオンにします。 | 
-| Distance Field Trace Distance  | シャドウがキャスト可能な距離をワールド単位で設定します。値が大きいほどシーンに対するシャドウ負荷が高くなります。 |
-| Ray Start Offset Depth Scale | カメラが遠ざかるにつれて受影面からオフセットするレイトレース シャドウの大きさを調節します。非常に大きなスタティック メッシュの低解像ディスタンス フィールドからのセルフ シャドウのアーティファクトを隠すのに便利です。 | 
+| DistanceField Shadow Distance | ディスタンス フィールド シャドウイングが可能な最長距離です。Distance Field Shadows は、この値と CMS シャドウ用 **Dynamic Shadow Distance Movable Light** の間の距離をカバーします。 | 
+| RayTraced DistanceField Shadows | 光源の Distance Field Shadows をオンにします。 | 
+| Distance Field Trace Distance  | シャドウがシャドウ キャスターからキャスト可能な距離をワールド単位で設定します。値が大きいほどシーンに対するシャドウ負荷が高くなります。 |
+| Ray Start Offset Depth Scale | カメラが遠ざかるにつれて受影面からオフセットするレイトレース シャドウの大きさを調節します。非常に大きなスタティック メッシュの低解像ディスタンス フィールドからのセルフ シャドウのアーティファクトを隠すために使用します。 | 
 [/REGION]
 
-#### カスケード シャドウ マップとディスタンス フィールド シャドウの違い
+#### Cascaded Shadow Maps と Distance Field Shadows の違い
 
-この例では、指向性ライト上でのカスケード シャドウ マップとディスタンス フィールド シャドウの違いについて説明します。CSM シャドウの方は高品質ですが、ビュー ディスタンスが大きいと使用できません。 
-一方、ディスタンス フィールドは、さらに遠くまで効率的にシャドウを表現することが可能です。指向性ライトでは両方のメソッドを使用して、カメラの近くにあるオブジェクトの CSM シャドウイングに対してトレードオフできる距離を見つけて、 
-CSM ディスタンスより遠くのオブジェクトにディスタンス フィールド シャドウを使うと良いでしょう。
+Cascaded Shadow Maps は高品質ですが、ビュー ディスタンスが大きいと使用できません。
+一方、Distance Field Shadows はより遠くまで効率的にシャドウを表現することができますが、質はメッシュ ディスタンス フィールドの解像度次第になります。カメラの近くにあるオブジェクトの CSM シャドウイングに対してトレードオフできる距離を見つけてから、 
+Distance Field Shadows を使って遠くにシャドウイングを行うと良いでしょう。 
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -108,12 +101,9 @@ CSM ディスタンスより遠くのオブジェクトにディスタンス フ
 
 #### Light Source Angle (光源の角度)
 
-指向性ライトの **Light Source Angle** は、ライトの回転角と入力値に基づいてシャドウを鮮明にしたり柔らかくしたりします。この設定はディスタンス フィールドとカプセル シャドウでのみ機能し、 
-シャドウが簡単にはぼけない従来の動的シャドウでは機能しません。 
+指向性ライトの **Light Source Angle** は、ライトの回転角と入力値に基づいてシャドウを鮮明にしたり柔らかくしたりします。この設定は Distance Fields と Capsule Shadows でのみ機能し、シャドウが簡単にはぼけない従来の動的シャドウでは機能しません。
 
-この例では、Light Source Angle は 0 に設定されているので、シャドウは非常に鮮明に表現されています。
-一方、デフォルト値の 1 を使用すると、シャドウは照射面に沿って広がって柔らかくなります。 
-
+Light Source Angle は 0 に設定されているので、シャドウは非常に鮮明に表現されています。一方、値を高くすると、シャドウは照射面に沿って広がって柔らかくなります。
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -127,11 +117,10 @@ CSM ディスタンスより遠くのオブジェクトにディスタンス フ
 
 #### Distance Field Trace Distance (ディスタンス フィールド トレース ディスタンス)
 
-**Distance Field Trace Distance** は、シャドウキャスターに対するシャドウイングのレイキャスト距離を調節します。トレース距離の値を下げると、シャドウはソースからそのポイントより先へは描画されないので、 
-シーンへのシャドウ キャスト負荷が小さくなります。ただし、カメラ ビューからのシャドウ ディスタンスはこのトレース距離では変わらないので、**Distance Field Shadow Distance** で調節します。
+**Distance Field Trace Distance** は、シャドウ キャスターに対するシャドウイングのレイキャスト距離を調節します。トレース距離の値を下げると、シャドウはソースからそのポイントより先へは描画されないので、 
+シーンへのシャドウ キャスト負荷が小さくなります。ただし、カメラ ビューからのシャドウ ディスタンスはこのトレース距離では変わらないので、**Distance Field Shadow Distance** で調節することを覚えておいてください。
 
-この例では、木は Mesh Distance Field を使ってグラウンドに沿ってシャドウをキャストしています。1500 単位という低めのトレース距離、およびデフォルト値 10000 を使った場合、 
-ご覧のように木の影は、照射面から 1500 単位以上離れている木の頂点をキャプチャしていません。 
+この例では、木は Mesh Distance Field を使ってグラウンドに沿ってシャドウをキャストしています。木の影は 1500 単位以上離れている照射面からキャストされるため、1500 単位のトレース距離 (デフォルト値は 10000) では最上部の枝と葉をキャプチャしません。
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -144,7 +133,7 @@ CSM ディスタンスより遠くのオブジェクトにディスタンス フ
 
 ### ポイント / スポットライト
  
- **スポット** ライトおよび **ポイント** ライトは、[Distance Field Shadows] をオンにすると以下の設定が使用できます。
+**スポット** ライトおよび **ポイント** ライトは、[Distance Field Shadows] をオンにすると以下の設定が使用できます。
  
 ![](PointSpotLightSettings.png)
  
@@ -154,13 +143,13 @@ CSM ディスタンスより遠くのオブジェクトにディスタンス フ
 | [REGION:tablesection]Light[/REGION] ||
 | Source Radius | 光源の球体のサイズとして使います。値が大きくなると、半暗部が大きくなりますが、パフォーマンスの負荷も高くなります。 |
 | [REGION:tablesection]Distance Field Shadows[/REGION] ||
-| RayTraced DistanceField Shadows | レイ トレース ディスタンス フィールド エリア シャドウを使用するかどうか設定します。 | 
+| RayTraced DistanceField Shadows | RayTraced DistanceField Shadows を使用するかどうか設定します。 | 
 | Ray Start Offset Depth Scale | カメラが遠ざかるにつれて受影面からオフセットするレイトレース シャドウの大きさを調節します。非常に大きなスタティック メッシュの低解像ディスタンス フィールドからのセルフ シャドウのアーティファクトを隠すのに便利です。 | 
 [/REGION]
 
-#### 従来のシャドウ マップとディスタンス フィールド シャドウの違い
+#### 従来のシャドウ マップと Distance Field Shadows の違い
 
-この例では、ポイントライトからのデフォルト シャドウがディスタンス フィールド シャドウに比べてかなり鮮明なので、ライトの **Source Radius** で調節してシャドウを柔らかくします。 
+スポットライトとポイントライトのシャドウマップは CSM シャドウと同様に非常に質の良い詳細なシャドウを作成します。一方、Distance Field Shadows はライトの **Source Radius** を使ってシャドウのシャープさを調節します。
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -173,10 +162,9 @@ CSM ディスタンスより遠くのオブジェクトにディスタンス フ
 
 ### Source Radius
 
-**Source Radius** は指向性ライトの Light Source Angle と同じく、光源そのものの大きさを調節してエリア シャドウを柔らかくするために使用します。 
+**Source Radius** は指向性ライトの Light Source Angle と同じく、光源そのものの大きさを調節してエリア シャドウをソフトにします。 
 
-この例では、**Source Radius** を調節してシャドウを鮮明にしたり柔らかくします。
-半径を小さくするとシャドウが鮮明に、半径を大きくするとシャドウ キャスターからの距離が伸びてシャドウが柔らかくなります。 
+値を低くするとシャドウはライトの減衰半径全体でシャープになり、値を高くするとシャドウはシャドウ キャスターから広がるにつれてソフトになります。
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -190,7 +178,7 @@ CSM ディスタンスより遠くのオブジェクトにディスタンス フ
 ### Ray Start Offset Depth Scale
 
 場合によっては、低解像度のディスタンス フィールドあるいは複雑なジオメトリによって、自己シャドウイングによるアーティファクトが生じることがあります。メッシュの **Distance Field Resolution** の調節でオフセットできる場合もありますが、 
-必要とされるボリューム テクスチャを生成することで高い負荷をかけたくはありません。その代りにカメラが遠ざかるにつれて、**Ray Start Offset Depth Scale** を使って受影面からのシャドウに対する光線の開始位置を調節することができます。 
+ボリューム テクスチャを生成する必要があるため、高い負荷が発生します。そこで、**Ray Start Offset Depth Scale** を代わりに使用すれば、カメラが遠ざかる時に受影面からのシャドウに対する光線の開始位置を調節することができます。 
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -204,8 +192,8 @@ CSM ディスタンスより遠くのオブジェクトにディスタンス フ
 
 ## 結果
 
-レベル内の様々なライト タイプのディスタンス フィールド シャドウを有効にして、それらの各種設定の調節方法を確認したので、
-ディスタンス フィールドを使ってこれらのコンセプトを独自のレベルとゲームに適用することができます。 
+レベル内の様々な種類のライトの Distance Fields Shadows を有効にして、それらの各種設定の調節方法を説明しました。
+Distance Fields を使ってこれらのコンセプトを自分のレベルとゲームに活用してください。 
 
 
 

@@ -14,6 +14,7 @@
 #include "Serialization/JsonWriter.h"
 #include "Modules/ModuleManager.h"
 #include "AnalyticsET.h"
+#include "Analytics.h"
 #include "Interfaces/IHttpResponse.h"
 #include "Interfaces/IHttpRequest.h"
 #include "HttpModule.h"
@@ -192,6 +193,7 @@ public:
 	virtual void RecordEvent(FString EventName, TArray<FAnalyticsEventAttribute>&& Attributes) override;
 	virtual void RecordEventJson(FString EventName, TArray<FAnalyticsEventAttribute>&& AttributesJson) override;
 	virtual void SetDefaultEventAttributes(TArray<FAnalyticsEventAttribute>&& Attributes) override;
+	virtual const TArray<FAnalyticsEventAttribute>& GetDefaultEventAttributes() const override;
 
 	virtual ~FAnalyticsProviderET();
 
@@ -225,6 +227,10 @@ private:
 	const int32 MaxCachedNumEvents;
 	/** Max time that can elapse before pushing cached events to server */
 	const float MaxCachedElapsedTime;
+	/** Min retry delay (in seconds) after a failure to submit. */
+	const float RetryDelaySecs;
+	/** Timecode of the last time a flush request failed to submit (for throttling). */
+	FDateTime LastFailedFlush;
 	/** Allows events to not be cached when -AnalyticsDisableCaching is used. This should only be used for debugging as caching significantly reduces bandwidth overhead per event. */
 	bool bShouldCacheEvents;
 	/** Current countdown timer to keep track of MaxCachedElapsedTime push */
@@ -272,8 +278,8 @@ private:
 	 */
 	TArray<FAnalyticsEventEntry> CachedEvents;
 
-	/** Critical section for updating the CachedEvents */
-	FCriticalSection CachedEventsCS;
+	/** Critical section for updating the CachedEvents. Mutable to allow const methods to access the list. */
+	mutable FCriticalSection CachedEventsCS;
 
 	/**
 	* Delegate called when an event Http request completes
@@ -342,6 +348,8 @@ FAnalyticsProviderET::FAnalyticsProviderET(const FAnalyticsET::Config& ConfigVal
 	, APIServer(ConfigValues.APIServerET)
 	, MaxCachedNumEvents(20)
 	, MaxCachedElapsedTime(60.0f)
+	, RetryDelaySecs(120.0f)
+	, LastFailedFlush(FDateTime::MinValue())
 	, bShouldCacheEvents(true)
 	, FlushEventsCountdown(MaxCachedElapsedTime)
 	, bInDestructor(false)
@@ -415,7 +423,11 @@ bool FAnalyticsProviderET::Tick(float DeltaSeconds)
 		if (FlushEventsCountdown <= 0 ||
 			CachedEvents.Num() >= MaxCachedNumEvents)
 		{
-			FlushEvents();
+			FTimespan TimeSinceLastFailure = FDateTime::UtcNow() - LastFailedFlush;
+			if (TimeSinceLastFailure.GetTotalSeconds() >= RetryDelaySecs)
+			{
+				FlushEvents();
+			}
 		}
 	}
 	return true;
@@ -454,6 +466,8 @@ bool FAnalyticsProviderET::StartSession(TArray<FAnalyticsEventAttribute>&& Attri
 
 	// always ensure we send a few specific attributes on session start.
 	TArray<FAnalyticsEventAttribute> AppendedAttributes(MoveTemp(Attributes));
+	// this allows mapping to ad networks attribution data
+	AppendedAttributes.Emplace(TEXT("AttributionId"), FPlatformMisc::GetUniqueAdvertisingId());
 	// we should always know what platform is hosting this session.
 	AppendedAttributes.Emplace(TEXT("Platform"), FString(FPlatformProperties::IniPlatformName()));
 
@@ -792,6 +806,15 @@ void FAnalyticsProviderET::SetDefaultEventAttributes(TArray<FAnalyticsEventAttri
 	}
 }
 
+const TArray<FAnalyticsEventAttribute>& FAnalyticsProviderET::GetDefaultEventAttributes() const
+{
+	FScopeLock ScopedLock(&CachedEventsCS);
+
+	int DefaultIndex = CachedEvents.FindLastByPredicate([](const FAnalyticsEventEntry& Entry) { return Entry.bIsDefaultAttributes == 1; });
+	checkf(DefaultIndex != INDEX_NONE, TEXT("failed to find default attributes entry in analytics cached events list"));
+	return CachedEvents[DefaultIndex].Attributes;
+}
+
 void FAnalyticsProviderET::EventRequestComplete(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool, TSharedPtr< TArray<FAnalyticsEventEntry> > FlushedEvents)
 {
 	// process responses
@@ -809,31 +832,37 @@ void FAnalyticsProviderET::EventRequestComplete(FHttpRequestPtr HttpRequest, FHt
 		UE_LOG(LogAnalytics, VeryVerbose, TEXT("[%s] ET response for [%s]. No response"), *APIKey, *HttpRequest->GetURL());
 	}
 
-	// if the events were not delivered and FlushedEvents is passed, requeue them at the beginning
-	if (FlushedEvents.IsValid() && !bEventsDelivered)
+	// if the events were not delivered
+	if (!bEventsDelivered)
 	{
-		// add a dropped submission event so we can see how often this is happening
-		if (bShouldCacheEvents && CachedEvents.Num() < 1024)
-		{
-			TArray<FAnalyticsEventAttribute> Attributes;
-			Attributes.Emplace(FAnalyticsEventAttribute(FString(TEXT("HTTP_STATUS")), FString::Printf(TEXT("%d"), HttpResponse.IsValid() ? HttpResponse->GetResponseCode() : 0)));
-			Attributes.Emplace(FAnalyticsEventAttribute(FString(TEXT("URL")), HttpRequest->GetURL()));
-			Attributes.Emplace(FAnalyticsEventAttribute(FString(TEXT("EVENTS_IN_BATCH")), FString::Printf(TEXT("%d"), FlushedEvents->Num())));
-			Attributes.Emplace(FAnalyticsEventAttribute(FString(TEXT("EVENTS_QUEUED")), FString::Printf(TEXT("%d"), CachedEvents.Num())));
-			CachedEvents.Emplace(FAnalyticsEventEntry(FString(TEXT("ET.DroppedSubmission")), MoveTemp(Attributes), false, false));
-		}
+		// record the time (for throttling) so we don't retry again immediately
+		LastFailedFlush = FDateTime::UtcNow();
 
-		// if we're being super spammy or have been offline forever, just leave it at the ET.DroppedSubmission event
-		if (bShouldCacheEvents && CachedEvents.Num() < 256)
+		// if FlushedEvents is passed, re-queue the events for next time
+		if (FlushedEvents.IsValid())
 		{
-			UE_LOG(LogAnalytics, Log, TEXT("[%s] ET Requeuing %d analytics events due to failure to send"), *APIKey, FlushedEvents->Num());
+			// add a dropped submission event so we can see how often this is happening
+			if (bShouldCacheEvents && CachedEvents.Num() < 1024)
+			{
+				TArray<FAnalyticsEventAttribute> Attributes;
+				Attributes.Emplace(FAnalyticsEventAttribute(FString(TEXT("HTTP_STATUS")), FString::Printf(TEXT("%d"), HttpResponse.IsValid() ? HttpResponse->GetResponseCode() : 0)));
+				Attributes.Emplace(FAnalyticsEventAttribute(FString(TEXT("EVENTS_IN_BATCH")), FString::Printf(TEXT("%d"), FlushedEvents->Num())));
+				Attributes.Emplace(FAnalyticsEventAttribute(FString(TEXT("EVENTS_QUEUED")), FString::Printf(TEXT("%d"), CachedEvents.Num())));
+				CachedEvents.Emplace(FAnalyticsEventEntry(FString(TEXT("ET.DroppedSubmission")), MoveTemp(Attributes), false, false));
+			}
 
-			// put them at the beginning since it should include a default attributes entry and we don't want to change the current default attributes
-			CachedEvents.Insert(*FlushedEvents, 0);
-		}
-		else
-		{
-			UE_LOG(LogAnalytics, Error, TEXT("[%s] ET dropping %d analytics events due to too many in queue (%d)"), *APIKey, FlushedEvents->Num(), CachedEvents.Num());
+			// if we're being super spammy or have been offline forever, just leave it at the ET.DroppedSubmission event
+			if (bShouldCacheEvents && CachedEvents.Num() < 256)
+			{
+				UE_LOG(LogAnalytics, Log, TEXT("[%s] ET Requeuing %d analytics events due to failure to send"), *APIKey, FlushedEvents->Num());
+
+				// put them at the beginning since it should include a default attributes entry and we don't want to change the current default attributes
+				CachedEvents.Insert(*FlushedEvents, 0);
+			}
+			else
+			{
+				UE_LOG(LogAnalytics, Error, TEXT("[%s] ET dropping %d analytics events due to too many in queue (%d)"), *APIKey, FlushedEvents->Num(), CachedEvents.Num());
+			}
 		}
 	}
 }

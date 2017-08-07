@@ -57,7 +57,7 @@ namespace Audio
 		// Returns the frequency of the wave table oscillator.
 		float GetFrequencyHz() const { return FrequencyHz; }
 
-		// Returns the internal table used int he wave table.
+		// Returns the internal table used in the wave table.
 		TArray<float>& GetTable();
 		const TArray<float>& GetTable() const;
 

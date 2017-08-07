@@ -23,6 +23,7 @@
 #include "PropertyCustomizationHelpers.h"
 #include "IDocumentation.h"
 #include "Kismet2/KismetEditorUtilities.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 #include "EditorClassUtils.h"
 
 #define LOCTEXT_NAMESPACE "FGameModeInfoCustomizer"
@@ -245,8 +246,12 @@ public:
 			const UClass** DefaultClassPtr = ClassProp->ContainerPtrToValuePtr<const UClass*>(GetCurrentGameModeCDO());
 			*DefaultClassPtr = NewDefaultClass;
 
-			// Indicate that the BP has changed and would need to be saved.
-			GameModeClass->MarkPackageDirty();
+			UBlueprint* Blueprint = Cast<UBlueprint>(GameModeClass->ClassGeneratedBy);
+			if (Blueprint)
+			{
+				// Indicate that the BP has changed and would need to be saved.
+				FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
+			}
 		}
 	}
 

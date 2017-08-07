@@ -126,6 +126,7 @@ void FGameplayEffectContext::SetAbility(const UGameplayAbility* InGameplayAbilit
 {
 	if (InGameplayAbility)
 	{
+		AbilityInstanceNotReplicated = InGameplayAbility;
 		AbilityCDO = InGameplayAbility->GetClass()->GetDefaultObject<UGameplayAbility>();
 		AbilityLevel = InGameplayAbility->GetAbilityLevel();
 	}
@@ -135,6 +136,12 @@ const UGameplayAbility* FGameplayEffectContext::GetAbility() const
 {
 	return AbilityCDO.Get();
 }
+
+const UGameplayAbility* FGameplayEffectContext::GetAbilityInstance_NotReplicated() const
+{
+	return AbilityInstanceNotReplicated.Get();
+}
+
 
 void FGameplayEffectContext::AddActors(const TArray<TWeakObjectPtr<AActor>>& InActors, bool bReset)
 {

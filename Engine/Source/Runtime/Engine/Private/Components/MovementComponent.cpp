@@ -300,7 +300,7 @@ bool UMovementComponent::ShouldSkipUpdate(float DeltaTime) const
 				{
 					const_cast<UMovementComponent*>(this)->bEditorWarnedStaticMobilityMove = true;
 					FMessageLog("PIE").Warning(FText::Format(LOCTEXT("InvalidMove", "Mobility of {0} : {1} has to be 'Movable' if you'd like to move it with {2}. "),
-						FText::FromString(GetNameSafe(UpdatedComponent->GetOwner())), FText::FromString(UpdatedComponent->GetName()), FText::FromString(GetClass()->GetName())));
+						FText::FromString(GetPathNameSafe(UpdatedComponent->GetOwner())), FText::FromString(UpdatedComponent->GetName()), FText::FromString(GetClass()->GetName())));
 				}
 			}
 		}
@@ -375,7 +375,7 @@ void UMovementComponent::InitCollisionParams(FCollisionQueryParams &OutParams, F
 
 bool UMovementComponent::OverlapTest(const FVector& Location, const FQuat& RotationQuat, const ECollisionChannel CollisionChannel, const FCollisionShape& CollisionShape, const AActor* IgnoreActor) const
 {
-	FCollisionQueryParams QueryParams(MovementComponentStatics::TestOverlapName, false, IgnoreActor);
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(MovementOverlapTest), false, IgnoreActor);
 	FCollisionResponseParams ResponseParam;
 	InitCollisionParams(QueryParams, ResponseParam);
 	return GetWorld()->OverlapBlockingTestByChannel(Location, RotationQuat, CollisionChannel, CollisionShape, QueryParams, ResponseParam);

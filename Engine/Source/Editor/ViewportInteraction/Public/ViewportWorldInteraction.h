@@ -261,7 +261,7 @@ public:
 	void SetLastDragGizmoStartTransform( const FTransform NewLastDragGizmoStartTransform );
 
 	/** Gets all the interactors */
-	TArray<UViewportInteractor*>& GetInteractors();
+	const TArray<UViewportInteractor*>& GetInteractors() const;
 
 	/** Given a world space velocity vector, applies inertial damping to it to slow it down */
 	void ApplyVelocityDamping( FVector& Velocity, const bool bVelocitySensitive );
@@ -300,7 +300,7 @@ public:
 	}
 
 	/** The ability to move and scale the world */
-	void AllowWorldMovement(bool bDisable);
+	void AllowWorldMovement(bool bAllow);
 
 	/** For other systems to check if the Viewport World Interaction system is currently aligning transformables to actors*/
 	bool AreAligningToActors();
@@ -308,9 +308,6 @@ public:
 	bool HasCandidatesSelected();
 	/** If there are no currently selected candidates, use the currently selected actors as candidates. Otherwise, reset the candidates */
 	void SetSelectionAsCandidates();
-
-	/** When RotateOnAngle we intersect on a plane to rotate the transform gizmo. This is the local point from the transform gizmo location of that intersect */
-	FVector GetLocalIntersectPointOnRotationGizmo() const;
 
 	/** Gets the current delta time, so functions that don't get the delta time passed can still get it */
 	float GetCurrentDeltaTime() const;
@@ -337,6 +334,8 @@ public:
 	/** Get if this world interaction is in VR. */
 	bool IsInVR() const;
 
+	FVector SnapLocation(const bool bLocalSpaceSnapping, const FVector& DesiredGizmoLocation, const FTransform &GizmoStartTransform, const FVector SnapGridBase, const bool bShouldConstrainMovement, const FVector AlignAxes);
+
 protected:
 
 	virtual void TransitionWorld(UWorld* NewWorld) override;
@@ -356,24 +355,25 @@ private:
 	
 	/** Called by the world interaction system when one of our components is dragged by the user.  If null is
 	    passed in then we'll treat it as dragging the whole object (rather than a specific axis/handle) */
-	void UpdateDragging( 
+	void UpdateDragging(
 		const float DeltaTime,
-		bool& bIsFirstDragUpdate, 
-		const EViewportInteractionDraggingMode DraggingMode, 
-		const ETransformGizmoInteractionType InteractionType, 
-		const bool bWithTwoHands, 
-		const TOptional<FTransformGizmoHandlePlacement> OptionalHandlePlacement, 
-		const FVector& DragDelta, 
-		const FVector& OtherHandDragDelta, 
-		const FVector& DraggedTo, 
-		const FVector& OtherHandDraggedTo, 
-		const FVector& DragDeltaFromStart, 
-		const FVector& OtherHandDragDeltaFromStart, 
-		const FVector& LaserPointerStart, 
-		const FVector& LaserPointerDirection, 
+		bool& bIsFirstDragUpdate,
+		UViewportInteractor* Interactor,
+		const EViewportInteractionDraggingMode DraggingMode,
+		class UViewportDragOperation* DragOperation,
+		const bool bWithTwoHands,
+		const TOptional<FTransformGizmoHandlePlacement> OptionalHandlePlacement,
+		const FVector& DragDelta,
+		const FVector& OtherHandDragDelta,
+		const FVector& DraggedTo,
+		const FVector& OtherHandDraggedTo,
+		const FVector& DragDeltaFromStart,
+		const FVector& OtherHandDragDeltaFromStart,
+		const FVector& LaserPointerStart,
+		const FVector& LaserPointerDirection,
 		const float LaserPointerMaxLength,
-		const bool bIsLaserPointerValid, 
-		const FTransform& GizmoStartTransform, 
+		const bool bIsLaserPointerValid,
+		const FTransform& GizmoStartTransform,
 		FTransform& GizmoLastTransform,
 		FTransform& GizmoTargetTransform,
 		FTransform& GizmoUnsnappedTargetTransform,
@@ -385,21 +385,18 @@ private:
 		bool& bIsDrivingVelocityOfSimulatedTransformables,
 		FVector& OutUnsnappedDraggedTo);
 
-	FVector SnapLocation(const bool bLocalSpaceSnapping, const FVector& DesiredGizmoLocation, const FTransform &GizmoStartTransform, const FVector SnapGridBase, const bool bShouldConstrainMovement, const FVector AlignAxes);
-
-
 	/** Given a drag delta from a starting point, contrains that delta based on a gizmo handle axis */
-	FVector ComputeConstrainedDragDeltaFromStart( 
-		const bool bIsFirstDragUpdate, 
-		const ETransformGizmoInteractionType InteractionType, 
-		const TOptional<FTransformGizmoHandlePlacement> OptionalHandlePlacement, 
-		const FVector& DragDeltaFromStart, 
-		const FVector& LaserPointerStart, 
-		const FVector& LaserPointerDirection, 
-		const bool bIsLaserPointerValid, 
-		const FTransform& GizmoStartTransform, 
-		const float LaserPointerMaxLength, 
-		FVector& GizmoSpaceFirstDragUpdateOffsetAlongAxis, 
+	FVector ComputeConstrainedDragDeltaFromStart(
+		const bool bIsFirstDragUpdate,
+		const bool bOnPlane,
+		const TOptional<FTransformGizmoHandlePlacement> OptionalHandlePlacement,
+		const FVector& DragDeltaFromStart,
+		const FVector& LaserPointerStart,
+		const FVector& LaserPointerDirection,
+		const bool bIsLaserPointerValid,
+		const FTransform& GizmoStartTransform,
+		const float LaserPointerMaxLength,
+		FVector& GizmoSpaceFirstDragUpdateOffsetAlongAxis,
 		FVector& DragDeltaFromStartOffset,
 		FVector& OutClosestPointOnLaser) const;
 
@@ -584,14 +581,6 @@ private:
 	/** Current gizmo bounds in local space.  Updated every frame.  This is not the same as the gizmo actor's bounds. */
 	FBox GizmoLocalBounds;
 
-	/** Starting angle when rotating an object with  ETransformGizmoInteractionType::RotateOnAngle */
-	TOptional<float> StartDragAngleOnRotation;
-
-	FVector LocalIntersectPointOnRotationGizmo;
-
-	/** The direction of where the rotation handle is facing when starting rotation */
-	TOptional<FVector> DraggingRotationHandleDirection;
-
 	/** Whether the gizmo should be visible or not */
 	bool bShouldTransformGizmoBeVisible;
 
@@ -715,4 +704,7 @@ private:
 
 	/** If we want to skip playing the sound when refreshing the transform gizmo next time */
 	bool bPlayNextRefreshTransformGizmoSound;
+
+	/** Slate Input Processor */
+	TSharedPtr<class FViewportInteractionInputProcessor> InputProcessor;
 };

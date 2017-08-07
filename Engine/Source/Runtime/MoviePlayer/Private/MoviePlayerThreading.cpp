@@ -48,6 +48,8 @@ FSlateLoadingSynchronizationMechanism::~FSlateLoadingSynchronizationMechanism()
 
 void FSlateLoadingSynchronizationMechanism::Initialize()
 {
+	check(IsInGameThread());
+
 	ResetSlateDrawPassEnqueued();
 	SetSlateMainLoopRunning();
 
@@ -62,16 +64,23 @@ void FSlateLoadingSynchronizationMechanism::Initialize()
 
 void FSlateLoadingSynchronizationMechanism::DestroySlateThread()
 {
+	check(IsInGameThread());
+
 	if (SlateLoadingThread)
 	{
 		IsRunningSlateMainLoop.Reset();
 
-		MainLoop.BlockUntilUnlocked();
+		while (MainLoop.IsLocked())
+		{
+			FPlatformMisc::PumpMessages(false);
+
+			FPlatformProcess::Sleep(0.1f);
+		}
 
 		delete SlateLoadingThread;
 		delete SlateRunnableTask;
-		SlateLoadingThread = NULL;
-		SlateRunnableTask = NULL;
+		SlateLoadingThread = nullptr;
+		SlateRunnableTask = nullptr;
 	}
 }
 
@@ -126,7 +135,7 @@ void FSlateLoadingSynchronizationMechanism::SlateThreadRunMainLoop()
 
 		if (FSlateApplication::IsInitialized() && !IsSlateDrawPassEnqueued())
 		{
-			TSharedPtr<FSlateRenderer> MainSlateRenderer = FSlateApplication::Get().GetRenderer();
+			FSlateRenderer* MainSlateRenderer = FSlateApplication::Get().GetRenderer();
 			FScopeLock ScopeLock(MainSlateRenderer->GetResourceCriticalSection());
 
 			WidgetRenderer->DrawWindow(DeltaTime);

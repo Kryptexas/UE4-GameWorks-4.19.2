@@ -420,7 +420,7 @@ FString ConvertToResourceStateString(uint32 ResourceState)
 		return FString(TEXT("D3D12_RESOURCE_STATE_COMMON"));
 	}
 
-	TCHAR* ResourceStateNames[] =
+	const TCHAR* ResourceStateNames[] =
 	{
 		TEXT("D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER"),
 		TEXT("D3D12_RESOURCE_STATE_INDEX_BUFFER"),
@@ -742,8 +742,11 @@ DEFINE_STAT(STAT_D3D12TexturesReleased);
 DEFINE_STAT(STAT_D3D12CreateTextureTime);
 DEFINE_STAT(STAT_D3D12LockTextureTime);
 DEFINE_STAT(STAT_D3D12UnlockTextureTime);
+DEFINE_STAT(STAT_D3D12CreateBufferTime);
 DEFINE_STAT(STAT_D3D12LockBufferTime);
 DEFINE_STAT(STAT_D3D12UnlockBufferTime);
+DEFINE_STAT(STAT_D3D12CommitTransientResourceTime);
+DEFINE_STAT(STAT_D3D12DecommitTransientResourceTime);
 
 DEFINE_STAT(STAT_D3D12NewBoundShaderStateTime);
 DEFINE_STAT(STAT_D3D12CreateBoundShaderStateTime);

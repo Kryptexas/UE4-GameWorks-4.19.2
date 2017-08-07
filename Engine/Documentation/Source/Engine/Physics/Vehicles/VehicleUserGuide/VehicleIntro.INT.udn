@@ -1,336 +1,88 @@
-Availability:Public
-Title:Vehicles User Guide
-Crumbs:%ROOT%
-Description:The Unreal Engine 4 Blueprint Vehicles User Guide.
-Navigation:topic
-Version: 4.9
-SkillLevel: Advanced
+Availability: Public
+crumbs:%ROOT%
+Title: Vehicle User Guide
+Description: The Unreal Engine 4 Blueprint Vehicle User Guide.
+Type:how-to
+SkillLevel:Advanced
+Version:4.15
+Parent:Engine/Physics/Vehicles
+Prereq:Engine/Physics/Vehicles/VehcileContentCreation
+Order:1
+checkpoint:vehicleuserguideHT
+Tags:Vehicles
+topic-image:Vechicle_Topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Programming/Gameplay/Framework/Vehicle:title%](vehicle_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Programming/Gameplay/Framework/Vehicle:title%
-	[/PARAM]
-	[PARAM:description]
-		%Programming/Gameplay/Framework/Vehicle:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Programming/Gameplay/Framework/Vehicle]
-	[/PARAM]
+
+
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	pYelGtIMQpk
+	[/PARAMLITERAL]
 [/OBJECT]
-[/VAR]
 
-[TOC(start:2 end:3)]
+At the end of this guide, you'll have a fully functional vehicle that you can use in your own game projects.
 
+## Goal
 
+In this guide, we'll cover the creation of a vehicle using the **Wheeled Vehicle** Blueprint class in a new blank project. This guide will take you through the process of creating all the necessary
+in-editor items you need to have a functional vehicle but assumes you have your own **Skeletal Mesh** and a **Physics Asset** ready to go. At the end of this guide, you should have a fully functional
+vehicle similar to the one from the Vehicle Game or the Vehicle Template.
 
-This document will cover the creation of a vehicle using the **Wheeled Vehicle** Blueprint class, in a blank project. The process will take you through the creation of all the 
-necessary in-editor items, but assumes you have a **Skeletal Mesh** and a **Physics Asset** for your vehicle ready to go.
+[REGION:note]
+If you need information on getting a vehicle Skeletal Mesh and a Physics Asset into the engine, please see the [Vehicle Content Guide](Engine/Physics/Vehicles/VehcileContentCreation).
+Alternatively, you can work out of the **Vehicle Template** or the **Vehicle Game** project to have access to a pre-built Skeletal Mesh and Physics Asset.
+The **Vehicle Template** is in the **New Project** menu of the **Unreal Project Browser**, and the **Vehicle Game** is on the **Learn** tab of the **Epic Games Launcher**.
+[/REGION]
 
-If you need information on getting a vehicle Skeletal Mesh and Physics Asset into the engine, please see the [Vehicle Content Guide](Engine/Physics/Vehicles/VehcileContentCreation). 
-Alternatively, you can work out of the **Vehicle Template** or **Vehicle Game** to have access to a prebuilt Skeletal Mesh and Physics Asset.
+## Objective
 
+During the course of this tutorial you will create the key components that make up a Vehicle in Unreal Engine 4 (UE4). Some of this requires assets that you create outside of UE4, while the majority
+of the components will be created right inside of the Editor!
 
-## Content
-
-A vehicle in Unreal Engine 4 is composed of a number of assets:
+This is the individual assets that make up the Vehicle we'll construct: 
 
 * A Skeletal Mesh
 * A Physics Asset
 * An Animation Blueprint
 * A Vehicle Blueprint
 * One or more Wheel Blueprints.
-* A TireType Data Asset
+* A TireConfig Data Asset
 
 [REGION:raw]
 ![](overview.png)(convert:false)
 [/REGION]
 
-[REGION:note]
-This document will cover the Blueprint setup required to make a functioning vehicle in Unreal Engine 4, and assumes you already have a vehicle asset to work with. See the 
-[](Engine/Physics/Vehicles/VehcileContentCreation) for more information on setting up the Skeletal Mesh and Physics Asset.
+By the end of this guide you'll know how to setup each of these asset types and how they work together to bring your vehicles to life!
+
+* How to configure a TireConfig Data Asset
+* How to configure a Wheel Blueprint for your Font and Rear wheels.
+* How to setup an Animation Blueprint specifically for a Vehicle.
+* How to configure your Vehicle Blueprint with your Skeletal Mesh, Animation Blueprint, and Wheel Blueprint(s).
+* How to configure your Axis Mappings and Bindings to control your Vehicle.
+* How to create and assign a new Game Mode to spawn your vehicle.
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Steps
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	[DIR(output:"checkpoint" parent:"Engine/Physics/Vehicles/VehicleUserGuide" org:"hierarchy")]
+	[/PARAM]
+[/OBJECT]
+
+[REGION:call_to_action]
+	[Click to Start](Engine/Physics/Vehicles/VehicleUserGuide/1 "%Engine/Physics/Vehicles/VehicleUserGuide/1:title%")
 [/REGION]
-
-## Creating the Vehicle Blueprint
-
-To create a new **Vehicle Blueprint**: in the **Content Browser** click **Add New** button -> **Blueprint** -> search for "vehicle" and click **WheeledVehicle** from the list.
-
-[REGION:raw]
-![](newVehicle.png)(convert:false)
-[/REGION]
-
-## Creating the Wheel Blueprints
-
-To create a new **Wheel Blueprint**: in the **Content Browser** click **Add New** button -> **Blueprint** -> search for "wheel" and click **VehicleWheel** from the list. Repeat 
-this at least once so you have a front and rear wheel type.
-
-[REGION:raw]
-![](newWheels.png)(convert:false)
-[/REGION]
-
-In most cases, you will have at least two wheel types: A wheel that is affected by steering, and one that is not. Also you can set differing radii, mass, width, handbrake effect, 
-suspension, and many other properties to give your vehicle the handling you desire.
-
-
-## Creating the TireType Data Asset
-
-To create a new **TireType Data Asset**: in the **Content Browser** click **Add New** button -> **Misc** -> **Data Asset** -> choose **TireType** -> click the **Select** button.
-
-[REGION:raw]
-![](newDataAsset.png)(convert:false)
-[/REGION]
-
-[EXCERPT:frictionScale]
-The **TireType Data Asset** only has a single value: **Friction Scale**. This value not only affects the raw friction of the wheel, but also scales the values for how difficult 
-(or easy) it is for a wheel to slide while in a hard turn.
-[/EXCERPT:frictionScale]
-
-There is a property slot on the **VehicleWheel** Blueprint type for the **TireType Data Asset**.
-
-## Creating the Animation Blueprint
-
-To create a new **Animation Blueprint**: in the **Content Browser** click **Add New** button -> **Animation** -> **Animation Blueprint** -> choose the **Skeleton** from the list 
-that is for your vehicle -> choose **VehicleAnimInstance**  -> click the **Ok** button.
-
-[REGION:raw]
-![](newAnimBP.png)(convert:false)
-[/REGION]
-
-
-## Editing the Animation Blueprint
-
-**Double-click** the **Animation Blueprint** from the **Content Browser** to edit the vehicle Animation Blueprint in Persona. The **Anim Graph** for a vehicle has been greatly 
-simplified for the 4.2 release:
-
-1. **Right-click** in the **Anim Graph**, from the context menu search for the **Mesh Space Ref Pose** node, and select it to create it.
-
-	[REGION:raw]
-	![](meshSpace.png)
-	[/REGION]
-
-1. **Right-click** in the **Anim Graph**, from the context menu search for the **Wheel Handler** node, and select it to create it.
-
-	[REGION:raw]
-	![](wheelHandler01.png)
-	[/REGION]
-
-1. Connect the **Mesh Space Ref Pose** node to the **Wheel Handler** node
-1. Connect the **Wheel Handler** node to the **Final Animation Pose** node
-
-
-![](animBPPreAnimGraph.png)
-
-That is it! The **Component to Local** conversion node will be created automatically, and the Animation Blueprint will now drive the wheels of the vehicle.
-
-![](animBPanimGraph.png)
-
-### The Wheel Handler Node
-
-![](wheelHandler02.png)
-
-The **Wheel Handler** node handles all the animation needs of your wheels: spinning, steering, handbrake, and suspension. There is no additional setup, it just grabs all the 
-necessary information from the wheels (How fast is it spinning? Can it steer? Is it affected by the Handbrake? What are the suspension settings for this wheel?) and translates that 
-to animation on the bone the wheel is associated with.
-
-Now, if you have additional struts and other suspension needs, you will need additional nodes in your Anim Graph to handle the joints that affect those polygons. The Vehicle from 
-Vehicle Game has a few extra joints that control the axel connections to the wheels. These are driven by simple **Look At** nodes:
-
-![](fullVehGameAnimBP.png)
-
-The additional nodes in the Vehicle Game's Vehicle Anim Graph simply cause the strut joints point at the wheel joints. Given the wheel joints will be driven by the Wheel Handler 
-Node, and the **Look At** nodes will make sure the suspension stays attached to the wheels.
-
-## Editing the Tires Data Asset
-
-**Double-click** the **TireType Data Asset** from the **Content Browser**.
-
-![](tires02.png)
-
-[INCLUDE:#frictionscale]
-
-
-## Editing the Wheels Blueprints
-
-**Double-click** the **Wheel Blueprint** from the **Content Browser** to bring up the Blueprint Editor.
-
-
-1. Switch the Blueprint Editor to Defaults Editing mode:
-
-	![](defaultsMode.png)
-
-1. The properties that initially need to be set are:
-	
-	* Shape Radius
-	* Shape Width
-	* Affected by Handbrake (usually restricted to the rear wheels)
-	* Steer Angle (usually only the front wheels)
-
-		[REGION:raw]
-		![](wheelProps.png)
-		[/REGION]
-
-1. Finally, you will need to set your Tire Type.
-
-	[REGION:raw]
-	![](tireType.png)
-	[/REGION]
-
-
-These are the 5 things you will need to change for each wheel. The rest of the properties change the way your vehicle will perform, and can be tweaked as you start testing your 
-vehicle.
-
-## Editing the Vehicle Blueprint
-
-This is really where the vehicle starts to come together. If your art is ready, and you have setup your wheels, then you will be able to fashion a working vehicle at this point.
-
-**Double-click** the **Vehicle Blueprint** from the **Content Browser** to bring up the Blueprint Editor.
-
-1. Click on the **Skeletal Mesh Component's** called "Mesh" and in its **Details** panel, set the **Skeletal Mesh** property to your vehicle's Skeletal Mesh asset.
-
-	![](componentsMode.png)
-
-1. **Set** the **Anim Blueprint Generated Class** to your vehicles Animation Blueprint.
-
-	[REGION:raw]
-	![](AnimBPandSkelMesh.png)
-	[/REGION]
-
-1. Return to the **Components** panel and add a **Camera Component**.
-
-	[REGION:raw]
-	![](addCamera.png)
-	[/REGION]
-
-1. **Position** this Camera Component where you like. In the image below, it is positioned behind the vehicle.
-
-	![](cameraPlacement.png)
-
-1. Disable **Camera Settings** -> **Use Controller View Rotation**, this will lock the camera to its view direction, rather than that of the Player Controller.
-
-	![](cameraControllerOff.png)
-
-1. Select the **Vehicle Movement Component** and in the **Vehicle Setup** category, expand **Wheel Setups**.
-
-	![](defaultsMode.png)
-
-1. For each wheel (0-3):
-	1. **Set** the **Wheel Class** to one of the wheel Blueprints you created.
-	1. **Set** the **Bone Name** to the name of the joint that should be controlled by the wheel.
-
-		[REGION:raw]
-		![](wheelsSetup.png)
-		[/REGION]
-
-		_The **Bone Name** in the above image is specific to this skeletal mesh._
-
-	The order you assign wheels has no bearing on if it is a front or a rear wheel, only the **Bone Name** and **Wheel Class** have any affect.
-
-	[REGION:note]
-	If you need more than 4 wheels, you can click the "**+**" icon next to the **Wheel Setups** property to add more.
-	[/REGION]
-
-At this point, assuming your vehicle is not substantially larger than a minivan, the default values will be a good starting point for you to start testing.
-
-
-## Testing
-
-There are a few ways to setup the vehicle for testing, and some steps will be dependent on which template you started with.
-
-1. Controls
-
-	[REGION:raw]
-	![](input.png)
-	[/REGION]
-
-	1. **Project Settings** -> **Input**
-	1. **Add** an **Axis Mapping**, by clicking the "**+**" sign next to the Axis Mappings property
-	1. **Expand** the Axis Mappings
-	1. **Rename** the Axis Mapping from "None" to **Forward**
-	1. **Click** the "**+**" next to the **Forward** Axis Mapping
-	1. **Expand** the **Forward** Axis Mapping
-	1. **Set** the first "None" to "**W**"
-	1. **Set** the second "None" to "**S**"
-	1. **Set** the Scale of the "**S**" mapping to "-1.0"
-	1. **Add** another **Axis Mapping**, by clicking the "**+**" sign next to the Axis Mappings property
-	1. **Rename** the new Axis Mapping from "None" to **Right** 
-	1. **Expand** the **Right** Axis Mapping
-	1. **Set** the first "None" to "**D**"
-	1. **Set** the second "None" to "**A**"
-	1. **Set** the Scale of the "**A**" mapping to "-1.0"
-	1. Then **add** an **Action Mapping**, by clicking the "**+**" sign next to the Action Mappings property, for:
-	1. **Expand** the **Action Mappings** property
-	1. **Rename** the new Action Mapping from "None" to "**Handbrake**"
-	1. **Expand** the **Handbrake** Action Mapping
-	1. **Set** the "None" to "**Space Bar**"
-1. New Game Mode
-	1. Create new Game Mode Blueprint.
-
-		[REGION:raw]
-		![](newGameMode.png)
-		[/REGION]
-
-	1. **Double-click** your new Game Mode Blueprint to edit it.
-
-	1. **Game Mode** Category -> **Default Pawn Class** -> **change** "None" to your **Vehicle Blueprint**.
-
-		[REGION:raw]
-		![](defaultPawnClass.png)
-		[/REGION]
-
-1. **World Settings** -> **Game Mode** -> set **GameMode Override** to "Your Game Mode".
-
-	[REGION:raw]
-	![](setGameMode.png)
-	[/REGION]
-
-1. In your vehicle's Blueprint, you can then call on the Axis and Action events you created in the **Project Settings Input** category.
-	1. **Edit** your Vehicle Blueprint, and open the **Event Graph**.
-
-		![](graphMode.png)
-
-	1. Throttle
-	
-		![](throttleBP.png)
-
-	1. Steering
-
-		![](steeringBP.png)
-
-	1. Handbrake
-
-		![](handbrakeBP.png)
-
-1. Player Start
-	* If you do not have a **Player Start** Actor in the world, you can either add one to your map using the **Modes Panel** -> **Placement Mode** -> **Basic** -> then clicking and 
-	dragging a **Player Start** into the world.
-
-	[REGION:raw]
-	![](playerStart.png)
-	[/REGION]
-
-	Alternatively you can set Play in Editor to play from the current camera location.
-1. Finally, with everything setup, you are now ready to use **Play in Editor** to test your vehicle.
-
-	[REGION:raw]
-	![](Play.png)
-	[/REGION]
-
-	Given the Axis and Action Bindings you setup above, **W** will increase your throttle, **S** will apply the brakes, **A** will turn left, **D** will turn right, and 
-	**Space Bar** will apply the Handbrake.
-
-
-
-
-
-
-
-
-
-
 

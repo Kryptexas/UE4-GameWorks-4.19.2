@@ -7,7 +7,7 @@
 #include "Styling/ISlateStyle.h"
 #include "Styling/SlateStyle.h"
 
-class FAssetData;
+struct FAssetData;
 class UCurveFloat;
 class UCurveLinearColor;
 class UCurveVector;

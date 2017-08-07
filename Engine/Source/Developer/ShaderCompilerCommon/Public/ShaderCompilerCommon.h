@@ -93,6 +93,7 @@ namespace CrossCompiler
 	struct SHADERCOMPILERCOMMON_API FHlslccHeader
 	{
 		FHlslccHeader();
+		virtual ~FHlslccHeader() { }
 
 		bool Read(const ANSICHAR*& ShaderSource, int32 SourceLen);
 

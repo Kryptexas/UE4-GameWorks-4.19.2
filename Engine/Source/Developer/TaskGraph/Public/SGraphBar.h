@@ -43,7 +43,7 @@ public:
 	void Construct( const FArguments& InArgs );
 
 	// SWidget interface
-	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
+	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
@@ -107,8 +107,8 @@ private:
 		const double ClampedStart = FMath::Clamp( Offset + EventStart * Zoom, 0.0, 1.0  );		
 		const double ClampedEnd = FMath::Clamp( Offset + (EventStart + EventDuration) * Zoom, 0.0, 1.0  );
 		const double ClampedSize = ClampedEnd - ClampedStart;
-		OutStartX = (float)( InGeometry.Size.X * ClampedStart );
-		OutEndX = OutStartX + (float)FMath::Max( InGeometry.Size.X * ClampedSize, ClampedEnd > 0.0f ? SubPixelMinSize : 0.0 );
+		OutStartX = (float)( InGeometry.GetLocalSize().X * ClampedStart );
+		OutEndX = OutStartX + (float)FMath::Max( InGeometry.GetLocalSize().X * ClampedSize, ClampedEnd > 0.0f ? SubPixelMinSize : 0.0 );
 		return ClampedEnd > 0.0 && ClampedStart < 1.0;
 	}
 

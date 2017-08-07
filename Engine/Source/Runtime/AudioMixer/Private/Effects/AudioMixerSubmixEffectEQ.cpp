@@ -55,7 +55,7 @@ static bool IsEqual(const FSubmixEffectSubmixEQSettings& Left, const FSubmixEffe
 
 
 FSubmixEffectSubmixEQ::FSubmixEffectSubmixEQ()
-	: SampleRate(AUDIO_SAMPLE_RATE)
+	: SampleRate(0)
 	, NumOutputChannels(2)
 {
 	FMemory::Memzero((void*)ScratchInBuffer, sizeof(float) * 2);

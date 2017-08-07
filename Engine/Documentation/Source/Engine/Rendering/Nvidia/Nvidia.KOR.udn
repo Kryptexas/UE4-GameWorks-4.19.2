@@ -1,0 +1,24 @@
+﻿INTSourceChangelist:3435012
+Availability:Docs
+Title:NVIDIA 피처 지원
+Description: 게임에서 사용하기 위한 NVIDIA 테크놀로지 통합 및 지원 사항입니다.
+Crumbs:
+Parent:Engine/Rendering
+Order:101
+type:landing
+version:4.16
+topic-image:NVIDIA_logo_Topic.png
+
+
+[REGION:raw]
+![](nvidia_logo_horizontal.png)(w:700)
+[/REGION]
+
+
+게임에서 사용하기 위한 NVIDIA 통합 테크놀로지 및 관련 정보를 찾아볼 수 있는 페이지입니다.
+
+
+%Engine\Nvidia\NVAlternateFrameRendering:Topic%
+%Engine\Nvidia\NVAftermath:Topic%
+
+

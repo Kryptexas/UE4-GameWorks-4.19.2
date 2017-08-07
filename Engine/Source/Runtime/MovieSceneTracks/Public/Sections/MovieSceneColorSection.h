@@ -47,9 +47,13 @@ struct FMovieSceneColorKeyStruct
 {
 	GENERATED_BODY()
 
-	/** They key's color value. */
+	/** The key's color value. */
 	UPROPERTY(EditAnywhere, Category=Key, meta=(InlineColorPicker))
 	FLinearColor Color;
+
+	/** The key's time. */
+	UPROPERTY(EditAnywhere, Category=Key)
+	float Time;
 
 	FRichCurveKey* Keys[4];
 	FRichCurve* Curves[4];

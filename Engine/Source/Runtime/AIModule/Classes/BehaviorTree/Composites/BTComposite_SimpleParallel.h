@@ -64,6 +64,7 @@ class AIMODULE_API UBTComposite_SimpleParallel : public UBTCompositeNode
 
 	virtual void NotifyChildExecution(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, int32 ChildIdx, EBTNodeResult::Type& NodeResult) const override;
 	virtual void NotifyNodeDeactivation(FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type& NodeResult) const override;
+	virtual bool CanNotifyDecoratorsOnDeactivation(FBehaviorTreeSearchData& SearchData, int32 ChildIdx, EBTNodeResult::Type& NodeResult) const override;
 	virtual bool CanPushSubtree(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, int32 ChildIdx) const override;
 	virtual void SetChildOverride(FBehaviorTreeSearchData& SearchData, int8 Index) const override;
 	virtual uint16 GetInstanceMemorySize() const override;
