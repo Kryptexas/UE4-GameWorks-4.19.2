@@ -359,10 +359,10 @@ namespace AutomationTool
 			// Find the triggers which we are explicitly running.
 			ManualTrigger Trigger = null;
 			if(TriggerName != null && !Graph.NameToTrigger.TryGetValue(TriggerName, out Trigger))
-				{
-					LogError("Couldn't find trigger '{0}'", TriggerName);
-					return ExitCode.Error_Unknown;
-				}
+			{
+				LogError("Couldn't find trigger '{0}'", TriggerName);
+				return ExitCode.Error_Unknown;
+			}
 
 			// If we're just building a single node, find it 
 			Node SingleNode = null;
