@@ -22,6 +22,10 @@
 #include "UObject/StructScriptLoader.h"
 #include "UObject/UObjectThreadContext.h"
 
+#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+#include "UObjectIterator.h"
+#endif
+
 DEFINE_LOG_CATEGORY_STATIC(LogBlueprintSupport, Log, All);
 
 // Flag to enable the new BlueprintCompilationManager:
@@ -686,8 +690,14 @@ bool FLinkerLoad::DeferPotentialCircularImport(const int32 Index)
 					if (DeferPotentialCircularImport(OuterImportIndex))
 					{
 						UObject* FuncOuter = ImportMap[OuterImportIndex].XObject;
-						Import.XObject = MakeImportPlaceholder<ULinkerPlaceholderFunction>(FuncOuter, *Import.ObjectName.ToString(), Index);
-						DEFERRED_DEPENDENCY_CHECK(dynamic_cast<ULinkerPlaceholderClass*>(FuncOuter) != nullptr);
+						// This is an ugly check to make sure we don't make a placeholder function for a missing native instance.
+						// We likely also need to avoid making placeholders for anything that's not outered to a ULinkerPlaceholderClass,
+						// but the DEFERRED_DEPENDENCY_CHECK may be out of date...
+						if(Cast<UClass>(FuncOuter))
+						{
+							Import.XObject = MakeImportPlaceholder<ULinkerPlaceholderFunction>(FuncOuter, *Import.ObjectName.ToString(), Index);
+							DEFERRED_DEPENDENCY_CHECK(dynamic_cast<ULinkerPlaceholderClass*>(FuncOuter) != nullptr);
+						}
 					}
 				}
 			}
