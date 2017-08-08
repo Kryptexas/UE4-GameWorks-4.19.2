@@ -309,7 +309,7 @@ int32 FHittestGrid::InsertWidget(const int32 ParentHittestIndex, const EVisibili
 			(*WidgetsCachedThisFrame)[ParentHittestIndex].AddChild(WidgetIndex);
 		}
 
-		if (ensure(Cells.Num() > 0) && Visibility.IsHitTestVisible())
+		if (Visibility.IsHitTestVisible())
 		{
 			// Mark any cell that is overlapped by this widget.
 
