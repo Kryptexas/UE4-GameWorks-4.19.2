@@ -409,7 +409,7 @@ void FImagePlateTrackEditor::AddNewSection(const FAssetData& AssetData, UMovieSc
 	check(Track);
 
 	const float TimeToStart = GetSequencer()->GetLocalTime();
-	const float Length = FMath::Max(0.f, FileSequence->GetAsyncCache().Length() / FileSequence->Framerate);
+	const float Length = FileSequence->Framerate <= 0.f ? 1.f : FMath::Max(0.f, FileSequence->GetAsyncCache().Length() / FileSequence->Framerate);
 
 	TRange<float> SectionRange(TimeToStart, TimeToStart + Length);
 
