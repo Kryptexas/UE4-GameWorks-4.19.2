@@ -995,7 +995,7 @@ namespace UnrealBuildTool
 				if (!bIsBuildingUHT && bUHTNeedsToRun)
 				{
 					// Always build UnrealHeaderTool if header regeneration is required, unless we're running within an installed ecosystem or hot-reloading
-					if ((UnrealBuildTool.IsEngineInstalled() == false || Target.EnabledPlugins.Any(x => x.Descriptor.bCanBeUsedWithUnrealHeaderTool && !x.File.IsUnderDirectory(UnrealBuildTool.EngineDirectory))) &&
+					if ((UnrealBuildTool.IsEngineInstalled() == false || Target.bHasProjectScriptPlugin) &&
 						BuildConfiguration.bDoNotBuildUHT == false &&
 						BuildConfiguration.bHotReloadFromIDE == false &&
 						!(bHaveHeaderTool && !UnrealBuildTool.IsGatheringBuild && UnrealBuildTool.IsAssemblingBuild))	// If running in "assembler only" mode, we assume UHT is already up to date for much faster iteration!

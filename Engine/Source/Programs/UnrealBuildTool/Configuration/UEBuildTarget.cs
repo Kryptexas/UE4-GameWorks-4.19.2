@@ -1106,6 +1106,11 @@ namespace UnrealBuildTool
 		public bool bUsePrecompiled;
 
 		/// <summary>
+		/// Identifies whether the project contains a script plugin. This will cause UHT to be rebuilt, even in installed builds.
+		/// </summary>
+		public bool bHasProjectScriptPlugin;
+
+		/// <summary>
 		/// All plugins which are built for this target
 		/// </summary>
 		[NonSerialized]
@@ -1284,6 +1289,7 @@ namespace UnrealBuildTool
 			PreBuildStepScripts = (FileReference[])Info.GetValue("pr", typeof(FileReference[]));
 			PostBuildStepScripts = (FileReference[])Info.GetValue("po", typeof(FileReference[]));
 			DeployTargetFile = (FileReference)Info.GetValue("dt", typeof(FileReference));
+			bHasProjectScriptPlugin = Info.GetBoolean("sp");
 		}
 
 		public void GetObjectData(SerializationInfo Info, StreamingContext Context)
@@ -1318,6 +1324,7 @@ namespace UnrealBuildTool
 			Info.AddValue("pr", PreBuildStepScripts);
 			Info.AddValue("po", PostBuildStepScripts);
 			Info.AddValue("dt", DeployTargetFile);
+			Info.AddValue("sp", bHasProjectScriptPlugin);
 		}
 
 		/// <summary>
@@ -3867,6 +3874,9 @@ namespace UnrealBuildTool
 				}
 				PrecompilePlugins = new List<UEBuildPlugin>(NameToInstance.Values.Except(BuildPlugins));
 			}
+
+			// Determine if the project has a script plugin. We will always build UHT if there is a script plugin in the game folder.
+			bHasProjectScriptPlugin = EnabledPlugins.Any(x => x.Descriptor.bCanBeUsedWithUnrealHeaderTool && !x.File.IsUnderDirectory(UnrealBuildTool.EngineDirectory));
 		}
 
 		/// <summary>
