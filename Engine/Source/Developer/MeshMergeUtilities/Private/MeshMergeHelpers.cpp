@@ -749,7 +749,7 @@ void FMeshMergeHelpers::RetrieveCullingLandscapeAndVolumes(UWorld* InWorld, cons
 						FVector Origin, Extent;
 						LandscapeProxy->GetActorBounds(false, Origin, Extent);
 						const FBox LandscapeBounds(Origin - Extent, Origin + Extent);
-						if (LandscapeBounds.IntersectXY(EstimatedBounds.GetBox()))
+						if (LandscapeBounds.IntersectXY(EstimatedMeshProxyBounds.GetBox()))
 						{
 							LandscapeActors.Add(LandscapeProxy);
 						}
