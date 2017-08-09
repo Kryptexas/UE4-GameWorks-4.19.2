@@ -949,7 +949,7 @@ void FMeshMergeUtilities::CreateProxyMesh(const TArray<AActor*>& InActors, const
 	TMap<FMeshIdAndLOD, TArray<int32>> GlobalMaterialMap;
 	static const int32 ProxyMeshTargetLODLevel = 0;
 
-	FBoxSphereBounds EstimatedBounds(ForceInitToZero);
+	FBoxSphereBounds EstimatedBounds = ComponentsToMerge[0]->Bounds;
 	for (const UStaticMeshComponent* StaticMeshComponent : ComponentsToMerge)
 	{
 		EstimatedBounds = EstimatedBounds + StaticMeshComponent->Bounds;
