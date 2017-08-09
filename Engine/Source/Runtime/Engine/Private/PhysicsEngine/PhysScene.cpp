@@ -1951,6 +1951,7 @@ void FPhysScene::InitPhysScene(uint32 SceneType)
 
 	// Need to turn this on to consider kinematics turning into dynamic. Otherwise, you'll need to call resetFiltering to do the expensive broadphase reinserting 
 	PSceneDesc.flags |= PxSceneFlag::eENABLE_KINEMATIC_STATIC_PAIRS;
+	PSceneDesc.flags |= PxSceneFlag::eENABLE_KINEMATIC_PAIRS;	//this is only needed for destruction, but unfortunately this flag cannot be modified after creation and the plugin has no hook (yet)
 
 	// @TODO Should we set up PSceneDesc.limits? How?
 

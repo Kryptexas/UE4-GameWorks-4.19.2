@@ -192,10 +192,12 @@ public:
 	virtual void OnInitPhys(FPhysScene* PhysScene, EPhysicsSceneType SceneType)
 	{
 #if WITH_APEX
-		if(PxScene* PScene = PhysScene->GetPhysXScene(SceneType))
+		//Can't set this flag after scene already created
+		/*if(PxScene* PScene = PhysScene->GetPhysXScene(SceneType))
 		{
+			SCOPED_SCENE_WRITE_LOCK(PScene);
 			PScene->setFlag(PxSceneFlag::eENABLE_KINEMATIC_PAIRS, true);
-		}
+		}*/
 
 		if((PhysScene->bAsyncSceneEnabled && SceneType == PST_Async) || (!PhysScene->bAsyncSceneEnabled && SceneType == PST_Sync))
 		{
