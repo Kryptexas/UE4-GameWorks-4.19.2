@@ -2,6 +2,9 @@
 
 
 #pragma once
+
+#include "Components/PrimitiveComponent.h"
+
 #include "FlexFluidSurfaceComponent.generated.h"
 
 /**

@@ -170,7 +170,7 @@ struct FFlexContainerInstance : public PxDeletionListener
 	TArray<TWeakObjectPtr<UPrimitiveComponent>> ShapeReportComponents;
 
 	// temporary buffers used during collision shape building
-	NvFlexVector<FVector> TriMeshVerts;
+	NvFlexVector<FVector4> TriMeshVerts;
 	NvFlexVector<int32> TriMeshIndices;	
 	NvFlexVector<FVector4> ConvexMeshPlanes;
 

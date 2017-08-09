@@ -446,6 +446,9 @@ void InitGamePhysPostRHI()
 	if (!GUsingNullRHI)
 	{
 
+		NvFlexInitDesc desc;
+		memset(&desc, 0, sizeof(NvFlexInitDesc));
+		
 #if WITH_FLEX_CUDA
 		// query the CUDA device index from the NVIDIA control panel
 		int SuggestedOrdinal = NvFlexDeviceGetSuggestedOrdinal();
@@ -455,13 +458,21 @@ void InitGamePhysPostRHI()
 		// GPU PhysX then it is recommended to skip this step and use
 		// the same CUDA context as PhysX
 		NvFlexDeviceCreateCudaContext(SuggestedOrdinal);
-#endif
 
-		NvFlexInitDesc desc;
-		memset(&desc, 0, sizeof(NvFlexInitDesc));
+		desc.computeType = eNvFlexCUDA;
+#else
+
 		static const bool bD3D12 = FParse::Param(FCommandLine::Get(), TEXT("d3d12")) || FParse::Param(FCommandLine::Get(), TEXT("dx12"));
 		desc.computeType = bD3D12 ? eNvFlexD3D12 : eNvFlexD3D11;
+
+#endif
+
 		GFlexLib = NvFlexInit(NV_FLEX_VERSION, FlexErrorFunc, &desc);
+		
+		if (GFlexLib)
+		{
+			UE_LOG(LogInit, Display, TEXT("Initialized Flex with GPU: %s"), ANSI_TO_TCHAR(NvFlexGetDeviceName(GFlexLib)));
+		}
 	}
 
 	if (GFlexLib != NULL)

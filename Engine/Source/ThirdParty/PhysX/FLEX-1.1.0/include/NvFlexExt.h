@@ -44,7 +44,7 @@
 template <typename T>
 struct NvFlexVector
 {
-	NvFlexVector(NvFlexLibrary* l, int size=0, NvFlexBufferType type=eNvFlexBufferHost) : lib(l), buffer(NULL), mappedPtr(NULL), count(0), capacity(0), type(type)
+	NvFlexVector(NvFlexLibrary* l, int size = 0, NvFlexBufferType type = eNvFlexBufferHost) : lib(l), buffer(NULL), mappedPtr(NULL), count(0), capacity(0), type(type)
 	{
 		if (size)
 		{
@@ -55,7 +55,7 @@ struct NvFlexVector
 		}		
 	}
 	
-	NvFlexVector(NvFlexLibrary* l, const T* ptr, int size) : lib(l), buffer(NULL), mappedPtr(NULL), count(0), capacity(0)
+	NvFlexVector(NvFlexLibrary* l, const T* ptr, int size, NvFlexBufferType type = eNvFlexBufferHost) : lib(l), buffer(NULL), mappedPtr(NULL), count(0), capacity(0), type(type)
 	{
 		assign(ptr, size);
 		unmap();

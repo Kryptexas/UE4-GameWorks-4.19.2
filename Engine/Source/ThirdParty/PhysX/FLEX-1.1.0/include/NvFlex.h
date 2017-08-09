@@ -317,8 +317,10 @@ struct NvFlexInitDesc
 	int deviceIndex;				//!< The GPU device index that should be used, if there is already a CUDA context on the calling thread then this parameter will be ignored and the active CUDA context used. Otherwise a new context will be created using the suggested device ordinal.
 	bool enableExtensions;			//!< Enable or disable NVIDIA/AMD extensions in DirectX, can lead to improved performance.
 	void* renderDevice;				//!< Direct3D device to use for simulation, if none is specified a new device and context will be created.
-	void* renderContext;			//!< Direct3D context to use for simulation, if none is specified a new context will be created, in DirectX 12 this should be a pointer to the ID3D12CommandQueue where compute operations will take place. 
-	
+	void* renderContext;			//!< Direct3D context that the app is using for rendering. In DirectX 12 this should be a ID3D12CommandQueue pointer.
+	void* computeContext;           //!< Direct3D context to use for simulation, if none is specified a new context will be created, in DirectX 12 this should be a pointer to the ID3D12CommandQueue where compute operations will take place. 
+	bool runOnRenderContext;		//!< If true, run Flex on D3D11 render context, or D3D12 direct queue. If false, run on a D3D12 compute queue, or vendor specific D3D11 compute queue, allowing compute and graphics to run in parallel on some GPUs.
+
 	NvFlexComputeType computeType;	//!< Set to eNvFlexD3D11 if DirectX 11 should be used, eNvFlexD3D12 for DirectX 12, this must match the libraries used to link the application
 };
 
@@ -331,7 +333,7 @@ struct NvFlexInitDesc
 * @param[in] desc The NvFlexInitDesc struct defining the device ordinal, D3D device/context and the type of D3D compute being used
 * @return A pointer to a library instance that can be used to allocate shared object such as triangle meshes, buffers, etc
 */
-NV_FLEX_API NvFlexLibrary* NvFlexInit(int version = NV_FLEX_VERSION, NvFlexErrorCallback errorFunc = 0, NvFlexInitDesc * desc = 0);
+NV_FLEX_API NvFlexLibrary* NvFlexInit(int version = NV_FLEX_VERSION, NvFlexErrorCallback errorFunc = 0, NvFlexInitDesc* desc = 0);
 
 /**
  * Shutdown library, users should manually destroy any previously created   
@@ -352,8 +354,8 @@ NV_FLEX_API int NvFlexGetVersion();
 enum NvFlexFeatureMode
 {
 	eNvFlexFeatureModeDefault			= 0,	//!< All features enabled
-	eNvFlexFeatureModeSimpleSolids		= 1,	//!< Simple per-particle collision (no per-particle SDF normals)
-	eNvFlexFeatureModeSimpleFluids		= 2,	//!< Simple single phase fluid-only particles
+	eNvFlexFeatureModeSimpleSolids		= 1,	//!< Simple per-particle collision (no per-particle SDF normals, no fluids)
+	eNvFlexFeatureModeSimpleFluids		= 2,	//!< Simple single phase fluid-only particles (no solids)
 };
 
 /**
@@ -370,7 +372,7 @@ struct NvFlexSolverDesc
 
 /**
  * Initialize the solver desc to its default values
- * @param[in] Pointer to a description structure that will be initialized to default values
+ * @param[in] desc Pointer to a description structure that will be initialized to default values
  */
 NV_FLEX_API void NvFlexSetSolverDescDefaults(NvFlexSolverDesc* desc);
 
@@ -992,7 +994,6 @@ NV_FLEX_API void NvFlexSetInflatables(NvFlexSolver* solver, NvFlexBuffer* startT
  * Get the density values for fluid particles
  *
  * @param[in] solver A valid solver
- * @param[in] n The number of particle densities to return
  * @param[out] densities Pointer to a buffer of floats, should be maxParticles in length, density values are normalized between [0, 1] where 1 represents the rest density
  * @param[in] desc Pointer to a descriptor specifying the contents to read back
  */
@@ -1105,12 +1106,15 @@ NV_FLEX_API void NvFlexGetBounds(NvFlexSolver* solver, NvFlexBuffer* lower, NvFl
 /**
  *
  * @param[in] solver A valid solver
+ * @param[out] begin Optional pointer to a 64 bit unsigned to receive the value of the GPU clock when Flex update began (in cycles)
+ * @param[out] end Optional pointer to a 64 bit unsigned to receive the value of the GPU clock when Flex update ended (in cycles)
+ * @param[out] frequency Optional pointer to a 64 bit unsigned to receive the frequency of the clock used to measure begin and end
  * @return The time in seconds between the first and last GPU operations executed by the last NvFlexUpdateSolver.
  *
  * @note This method causes the CPU to wait until the GPU has finished any outstanding work. 
  *		 To avoid blocking the calling thread it should be called after work has completed, e.g.: directly after a NvFlexMap().
  */
-NV_FLEX_API float NvFlexGetDeviceLatency(NvFlexSolver* solver);
+NV_FLEX_API float NvFlexGetDeviceLatency(NvFlexSolver* solver, unsigned long long* begin, unsigned long long* end, unsigned long long* frequency);
 
 /**
  * Fetch high-level GPU timers.
@@ -1278,6 +1282,8 @@ NV_FLEX_API void NvFlexGetDeviceAndContext(NvFlexLibrary* lib, void** device, vo
  */
 NV_FLEX_API void NvFlexFlush(NvFlexLibrary* lib);
 
+NV_FLEX_API void NvFlexWait(NvFlexLibrary* lib);
+
 //! \cond HIDDEN_SYMBOLS
 
 /**
@@ -1288,6 +1294,7 @@ NV_FLEX_API void NvFlexSetDebug(NvFlexSolver* solver, bool enable);
 NV_FLEX_API void NvFlexGetShapeBVH(NvFlexSolver* solver, void* bvh);
 NV_FLEX_API void NvFlexCopySolver(NvFlexSolver* dst, NvFlexSolver* src);
 NV_FLEX_API void NvFlexCopyDeviceToHost(NvFlexSolver* solver, NvFlexBuffer* pDevice, void* pHost, int size, int stride);
+NV_FLEX_API void NvFlexComputeWaitForGraphics(NvFlexLibrary* lib);
 
 //! \endcond
 

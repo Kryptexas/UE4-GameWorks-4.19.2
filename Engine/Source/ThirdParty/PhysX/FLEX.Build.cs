@@ -28,7 +28,7 @@ public class FLEX : ModuleRules
             Definitions.Add("WITH_FLEX_CUDA=1");
             Definitions.Add("WITH_FLEX_DX=0");
         }
-
+        
         string FLEXDir = UEBuildConfiguration.UEThirdPartySourceDirectory + "PhysX/FLEX-1.1.0/";
 		string FLEXLibDir = FLEXDir + "lib";
 
@@ -89,6 +89,7 @@ public class FLEX : ModuleRules
             {
                 string[] RuntimeDependenciesX64 =
                 {
+                    "nvToolsExt64_1.dll",
                     "cudart64_80.dll",
                     "NvFlexDebugCUDA_x64.dll",
                     "NvFlexReleaseCUDA_x64.dll",
@@ -107,6 +108,7 @@ public class FLEX : ModuleRules
             {
                 string[] RuntimeDependenciesX64 =
                 {
+                    "nvToolsExt64_1.dll",
                     "amd_ags_x64.dll",
                     "NvFlexDebugD3D_x64.dll",
                     "NvFlexReleaseD3D_x64.dll",
@@ -173,6 +175,7 @@ public class FLEX : ModuleRules
 
                 string[] RuntimeDependenciesX86 =
                 {
+                    "nvToolsExt32_1.dll",
                     "cudart32_80.dll",
                     "NvFlexDebugCUDA_x86.dll",
                     "NvFlexReleaseCUDA_x86.dll",
@@ -193,6 +196,7 @@ public class FLEX : ModuleRules
 
                 string[] RuntimeDependenciesX86 =
                 {
+                    "nvToolsExt32_1.dll",
                     "amd_ags_x86.dll",
                     "NvFlexDebugD3D_x86.dll",
                     "NvFlexReleaseD3D_x86.dll",

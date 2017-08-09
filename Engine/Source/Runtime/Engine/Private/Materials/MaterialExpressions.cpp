@@ -2337,7 +2337,7 @@ FString UMaterialExpressionFlexFluidSurfaceThickness::GetInputName(int32 InputIn
 		// Display the current InputMode enum's display name.
 		UByteProperty* InputModeProperty = NULL;
 		InputModeProperty = FindField<UByteProperty>(UMaterialExpressionFlexFluidSurfaceThickness::StaticClass(), "InputMode");
-		return InputModeProperty->Enum->GetEnumName((int32)InputMode.GetValue());
+		return InputModeProperty->Enum->GetNameStringByIndex((int32)InputMode.GetValue());
 	}
 	return TEXT("");
 }

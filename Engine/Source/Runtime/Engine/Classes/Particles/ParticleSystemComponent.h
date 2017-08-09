@@ -11,6 +11,11 @@
 #include "Materials/MaterialInterface.h"
 #include "Particles/ParticleSystem.h"
 #include "Particles/Emitter.h"
+
+#if WITH_FLEX
+#include "PhysicsEngine/FlexFluidSurface.h"
+#endif // WITH_FLEX
+
 #include "ParticleSystemComponent.generated.h"
 
 class FParticleDynamicData;
