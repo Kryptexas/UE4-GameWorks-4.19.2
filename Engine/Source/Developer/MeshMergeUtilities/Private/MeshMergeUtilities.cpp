@@ -998,7 +998,7 @@ void FMeshMergeUtilities::CreateProxyMesh(const TArray<AActor*>& InActors, const
 		{
 			FSectionInfo& Section = Sections[SectionIndex];
 			const int32 UniqueIndex = UniqueSections.AddUnique(Section);
-			UniqueSectionIndexPerLOD.Add(MeshIndex, TPair<uint32, uint32>(UniqueIndex, SectionIndex));
+			UniqueSectionIndexPerLOD.Add(MeshIndex, TPair<uint32, uint32>(UniqueIndex, Section.MaterialIndex));
 
 			SectionToMesh.Add(UniqueIndex, MeshIndex);
 		}
