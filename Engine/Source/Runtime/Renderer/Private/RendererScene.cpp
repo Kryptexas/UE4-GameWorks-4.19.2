@@ -58,6 +58,8 @@
 #define CHECK_FOR_PIE_PRIMITIVE_ATTACH_SCENE_MISMATCH	0
 
 
+DECLARE_CYCLE_STAT(TEXT("DeferredShadingSceneRenderer MotionBlurStartFrame"), STAT_FDeferredShadingSceneRenderer_MotionBlurStartFrame, STATGROUP_SceneRendering);
+
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FDistanceCullFadeUniformShaderParameters,TEXT("PrimitiveFade"));
 
 /** Global primitive uniform buffer resource containing faded in */
@@ -618,6 +620,7 @@ FScene::FScene(UWorld* InWorld, bool bInRequiresHitProxies, bool bInIsEditorScen
 ,	NumVisibleLights_GameThread(0)
 ,	NumEnabledSkylights_GameThread(0)
 ,	SceneFrameNumber(0)
+,	CurrentFrameUpdatedMotionBlurCache(false)
 {
 	FMemory::Memzero(MobileDirectionalLights);
 
@@ -2842,6 +2845,23 @@ bool FScene::AddPixelInspectorRequest(FPixelInspectorRequest *PixelInspectorRequ
 	return PixelInspectorData.AddPixelInspectorRequest(PixelInspectorRequest);
 }
 #endif //WITH_EDITOR
+
+void FScene::EnsureMotionBlurCacheIsUpToDate(bool bWorldIsPaused)
+{
+	if (!CurrentFrameUpdatedMotionBlurCache)
+	{
+		FScene* Scene = this;
+
+		ENQUEUE_RENDER_COMMAND(MotionBlurStartFrame)(
+			[Scene, bWorldIsPaused](FRHICommandList& RHICmdList)
+		{
+			SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_MotionBlurStartFrame);
+			Scene->MotionBlurInfoData.StartFrame(bWorldIsPaused);
+		});
+
+		CurrentFrameUpdatedMotionBlurCache = true;
+	}
+}
 
 /**
  * Dummy NULL scene interface used by dedicated servers.

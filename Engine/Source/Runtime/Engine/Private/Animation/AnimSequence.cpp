@@ -4471,7 +4471,7 @@ bool UAnimSequence::CreateAnimation(USkeletalMeshComponent* MeshComponent)
 
 		const TArray<FTransform>& BoneSpaceTransforms = MeshComponent->BoneSpaceTransforms;
 
-		check(BoneSpaceTransforms.Num() == NumBones);
+		check(BoneSpaceTransforms.Num() >= NumBones);
 
 		for(int32 BoneIndex=0; BoneIndex<NumBones; ++BoneIndex)
 		{

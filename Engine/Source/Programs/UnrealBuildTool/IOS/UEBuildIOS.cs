@@ -198,6 +198,8 @@ namespace UnrealBuildTool
 						return "9.0";
 					case "IOS_10":
 						return "10.0";
+					case "IOS_11":
+						return "11.0";
 					default:
 						return "8.0";
 				}

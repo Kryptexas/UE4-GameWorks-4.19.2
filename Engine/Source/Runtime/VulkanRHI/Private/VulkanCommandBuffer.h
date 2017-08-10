@@ -27,7 +27,7 @@ protected:
 	friend class FVulkanQueue;
 
 	FVulkanCmdBuffer(FVulkanDevice* InDevice, FVulkanCommandBufferPool* InCommandBufferPool);
-	virtual ~FVulkanCmdBuffer();
+	~FVulkanCmdBuffer();
 
 public:
 	FVulkanCommandBufferPool* GetOwner()
@@ -180,8 +180,7 @@ class FVulkanCommandBufferManager
 {
 public:
 	FVulkanCommandBufferManager(FVulkanDevice* InDevice, FVulkanCommandListContext* InContext);
-
-	virtual ~FVulkanCommandBufferManager();
+	~FVulkanCommandBufferManager();
 
 	inline FVulkanCmdBuffer* GetActiveCmdBuffer()
 	{
@@ -203,9 +202,9 @@ public:
 		return ActiveCmdBuffer != nullptr;
 	}
 
-	virtual FVulkanCmdBuffer* GetUploadCmdBuffer();
+	VULKANRHI_API FVulkanCmdBuffer* GetUploadCmdBuffer();
 
-	virtual void SubmitUploadCmdBuffer(bool bWaitForFence);
+	VULKANRHI_API void SubmitUploadCmdBuffer(bool bWaitForFence);
 	void SubmitActiveCmdBuffer(bool bWaitForFence);
 
 	void WaitForCmdBuffer(FVulkanCmdBuffer* CmdBuffer, float TimeInSecondsToWait = 1.0f);

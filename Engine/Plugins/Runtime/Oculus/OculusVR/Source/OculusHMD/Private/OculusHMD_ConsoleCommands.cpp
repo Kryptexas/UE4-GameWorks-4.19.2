@@ -43,6 +43,15 @@ FConsoleCommands::FConsoleCommands(class FOculusHMD* InHMDPtr)
 		*NSLOCTEXT("OculusRift", "CCommandText_HQDistortion",
 			"Oculus Rift specific extension.\nEnable or disable using multiple mipmap levels for the eye layer.").ToString(),
 		FConsoleCommandWithWorldArgsAndOutputDeviceDelegate::CreateRaw(InHMDPtr, &FOculusHMD::HQDistortionCommandHandler))
+	, ShowGlobalMenuCommand(TEXT("vr.oculus.ShowGlobalMenu"),
+		*NSLOCTEXT("OculusRift", "CCommandText_GlobalMenu",
+			"Oculus Rift specific extension.\nOpens the global menu.").ToString(),
+		FConsoleCommandWithWorldArgsAndOutputDeviceDelegate::CreateRaw(InHMDPtr, &FOculusHMD::ShowGlobalMenuCommandHandler))
+	, ShowQuitMenuCommand(TEXT("vr.oculus.ShowQuitMenu"),
+		*NSLOCTEXT("OculusRift", "CCommandText_QuitMenu",
+			"Oculus Rift specific extension.\nOpens the quit menu.").ToString(),
+		FConsoleCommandWithWorldArgsAndOutputDeviceDelegate::CreateRaw(InHMDPtr, &FOculusHMD::ShowQuitMenuCommandHandler))
+
 #if !UE_BUILD_SHIPPING
 	, UpdateOnGameThreadCommand(TEXT("vr.oculus.bUpdateOnGameThread"),
 		*NSLOCTEXT("OculusRift", "CCommandText_UpdateGT",
@@ -90,6 +99,28 @@ FConsoleCommands::FConsoleCommands(class FOculusHMD* InHMDPtr)
 		FConsoleCommandWithWorldArgsAndOutputDeviceDelegate::CreateRaw(InHMDPtr, &FOculusHMD::NCPCommandHandler))
 #endif // !UE_BUILD_SHIPPING
 {
+}
+
+bool FConsoleCommands::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
+{
+	const TCHAR* OrigCmd = Cmd;
+	FString AliasedCommand;
+	
+	if (FParse::Command(&Cmd, TEXT("OVRGLOBALMENU")))
+	{
+		AliasedCommand = TEXT("vr.oculus.ShowGlobalMenu");
+	}
+	else if (FParse::Command(&Cmd, TEXT("OVRQUITMENU")))
+	{
+		AliasedCommand = TEXT("vr.oculus.ShowQuitMenu");
+	}
+
+	if (!AliasedCommand.IsEmpty())
+	{
+		Ar.Logf(ELogVerbosity::Warning, TEXT("%s is deprecated. Use %s instead"), OrigCmd, *AliasedCommand);
+		return IConsoleManager::Get().ProcessUserConsoleInput(*AliasedCommand, Ar, InWorld);
+	}
+	return false;
 }
 
 /// @endcond

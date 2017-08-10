@@ -6,10 +6,12 @@
 #include "OculusHMD.h"
 #include "RenderingThread.h"
 #include "Misc/ScopeLock.h"
+#include "OculusHMDRuntimeSettings.h"
 #if PLATFORM_ANDROID
 #include "Android/AndroidJNI.h"
 #include "Android/AndroidEGL.h"
 #include "AndroidApplication.h"
+#include "OculusHMDTypes.h"
 #endif
 
 namespace OculusHMD
@@ -33,60 +35,12 @@ FSplash::FSplash(FOculusHMD* InOculusHMD) :
 	SystemDisplayInterval(1 / 90.0f),
 	ShowFlags(0)
 {
-	const TCHAR* SplashSettings = TEXT("Oculus.Splash.Settings");
-	float f;
-	FVector vec;
-	FVector2D vec2d;
-	FString s;
-	bool b;
-	FRotator r;
-	if (GConfig->GetBool(SplashSettings, TEXT("bAutoEnabled"), b, GEngineIni))
+	UOculusHMDRuntimeSettings* HMDSettings = GetMutableDefault<UOculusHMDRuntimeSettings>();
+	check(HMDSettings);
+	bAutoShow = HMDSettings->bAutoEnabled;
+	for (const FOculusSplashDesc& SplashDesc : HMDSettings->SplashDescs)
 	{
-		bAutoShow = b;
-	}
-	FString num;
-	for (int32 i = 0; ; ++i)
-	{
-		FSplashDesc SplashDesc;
-		if (GConfig->GetString(SplashSettings, *(FString(TEXT("TexturePath")) + num), s, GEngineIni))
-		{
-			SplashDesc.TexturePath = s;
-		}
-		else
-		{
-			break;
-		}
-		if (GConfig->GetVector(SplashSettings, *(FString(TEXT("DistanceInMeters")) + num), vec, GEngineIni))
-		{
-			SplashDesc.TransformInMeters.SetTranslation(vec);
-		}
-		if (GConfig->GetRotator(SplashSettings, *(FString(TEXT("Rotation")) + num), r, GEngineIni))
-		{
-			SplashDesc.TransformInMeters.SetRotation(FQuat(r));
-		}
-		if (GConfig->GetVector2D(SplashSettings, *(FString(TEXT("SizeInMeters")) + num), vec2d, GEngineIni))
-		{
-			SplashDesc.QuadSizeInMeters = vec2d;
-		}
-		if (GConfig->GetRotator(SplashSettings, *(FString(TEXT("DeltaRotation")) + num), r, GEngineIni))
-		{
-			SplashDesc.DeltaRotation = FQuat(r);
-		}
-		else
-		{
-			if (GConfig->GetVector(SplashSettings, *(FString(TEXT("RotationAxis")) + num), vec, GEngineIni))
-			{
-				if (GConfig->GetFloat(SplashSettings, *(FString(TEXT("RotationDeltaInDegrees")) + num), f, GEngineIni))
-				{
-					SplashDesc.DeltaRotation = FQuat(vec, FMath::DegreesToRadians(f));
-				}
-			}
-		}
-		if (!SplashDesc.TexturePath.IsEmpty())
-		{
-			AddSplash(SplashDesc);
-		}
-		num = Lex::ToString(i);
+		AddSplash(SplashDesc);
 	}
 
 	// Create empty quad layer for black frame
@@ -107,21 +61,6 @@ FSplash::~FSplash()
 	// Make sure RenTicker is freed in Shutdown
 	check(!Ticker.IsValid())
 }
-
-
-void FSplash::AddReferencedObjects(FReferenceCollector& Collector)
-{
-	FScopeLock ScopeLock(&RenderThreadLock);
-
-	for (int32 SplashLayerIndex = 0; SplashLayerIndex < SplashLayers.Num(); SplashLayerIndex++)
-	{
-		if (SplashLayers[SplashLayerIndex].Desc.LoadingTexture)
-		{
-			Collector.AddReferencedObject(SplashLayers[SplashLayerIndex].Desc.LoadingTexture);
-		}
-	}
-}
-
 
 void FSplash::Tick_RenderThread(float DeltaTime)
 {
@@ -371,7 +310,7 @@ void FSplash::OnLoadingEnds()
 }
 
 
-bool FSplash::AddSplash(const FSplashDesc& Desc)
+bool FSplash::AddSplash(const FOculusSplashDesc& Desc)
 {
 	CheckInGameThread();
 
@@ -390,7 +329,7 @@ void FSplash::ClearSplashes()
 }
 
 
-bool FSplash::GetSplash(unsigned InSplashLayerIndex, FSplashDesc& OutDesc)
+bool FSplash::GetSplash(unsigned InSplashLayerIndex, FOculusSplashDesc& OutDesc)
 {
 	CheckInGameThread();
 
@@ -449,7 +388,7 @@ void FSplash::OnShow()
 		{
 			FSplashLayer& SplashLayer = SplashLayers[SplashLayerIndex];
 
-			if (!SplashLayer.Desc.TexturePath.IsEmpty())
+			if (SplashLayer.Desc.TexturePath.IsValid())
 			{
 				// load temporary texture (if TexturePath was specified)
 				LoadTexture(SplashLayer);
@@ -579,7 +518,7 @@ void FSplash::UnloadTextures()
 	FScopeLock ScopeLock(&RenderThreadLock);
 	for (int32 SplashLayerIndex = 0; SplashLayerIndex < SplashLayers.Num(); ++SplashLayerIndex)
 	{
-		if (!SplashLayers[SplashLayerIndex].Desc.TexturePath.IsEmpty())
+		if (SplashLayers[SplashLayerIndex].Desc.TexturePath.IsValid())
 		{
 			UnloadTexture(SplashLayers[SplashLayerIndex]);
 		}
@@ -593,8 +532,8 @@ void FSplash::LoadTexture(FSplashLayer& InSplashLayer)
 
 	UnloadTexture(InSplashLayer);
 
-	UE_LOG(LogLoadingSplash, Log, TEXT("Loading texture for splash %s..."), *InSplashLayer.Desc.TexturePath);
-	InSplashLayer.Desc.LoadingTexture = LoadObject<UTexture2D>(NULL, *InSplashLayer.Desc.TexturePath, NULL, LOAD_None, NULL);
+	UE_LOG(LogLoadingSplash, Log, TEXT("Loading texture for splash %s..."), *InSplashLayer.Desc.TexturePath.GetAssetName());
+	InSplashLayer.Desc.LoadingTexture = Cast<UTexture2D>(InSplashLayer.Desc.TexturePath.TryLoad());
 	if (InSplashLayer.Desc.LoadingTexture != nullptr)
 	{
 		UE_LOG(LogLoadingSplash, Log, TEXT("...Success. "));

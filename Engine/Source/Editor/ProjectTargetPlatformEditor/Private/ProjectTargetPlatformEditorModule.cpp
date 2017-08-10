@@ -107,8 +107,8 @@ public:
 				.VAlign(VAlign_Bottom)
 				[
 					SNew(SBox)
-					.WidthOverride(MultiBoxConstants::MenuIconSize * 0.9f)
-					.HeightOverride(MultiBoxConstants::MenuIconSize * 0.9f)
+					.WidthOverride(MultiBoxConstants::MenuIconSize)
+					.HeightOverride(MultiBoxConstants::MenuIconSize)
 					[
 						SNew(SImage)
 						.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateStatic(&Local::IsUnsupportedPlatformWarningVisible, PlatformInfo.VanillaPlatformName)))

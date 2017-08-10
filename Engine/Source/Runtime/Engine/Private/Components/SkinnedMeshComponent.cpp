@@ -492,6 +492,10 @@ void USkinnedMeshComponent::DestroyRenderState_Concurrent()
 {
 	Super::DestroyRenderState_Concurrent();
 
+	// clear morphtarget array info while rendering state is destroyed
+	ActiveMorphTargets.Empty();
+	MorphTargetWeights.Empty();
+
 	if(MeshObject)
 	{
 		// Begin releasing the RHI resources used by this skeletal mesh component.

@@ -78,6 +78,15 @@ struct FHmdUserProfile
 		PlayerHeight(0.f), EyeHeight(0.f), IPD(0.f), NeckToEyeDistance(FVector2D::ZeroVector) {}
 };
 
+/** DEPRECATED in 4.17 : All functions using this enum have been deprecated and it will be removed with them. If you are still needing this, then please create your own replacement.*/
+UENUM(BlueprintType)
+enum class EGearVRControllerHandedness_DEPRECATED : uint8
+{
+	RightHanded_DEPRECATED,
+	LeftHanded_DEPRECATED,
+	Unknown_DEPRECATED
+};
+
 UCLASS()
 class OCULUSHMD_API UOculusFunctionLibrary : public UBlueprintFunctionLibrary
 {
@@ -106,7 +115,7 @@ class OCULUSHMD_API UOculusFunctionLibrary : public UBlueprintFunctionLibrary
 	* @param TimeInSeconds			(out) Time when the reported IMU reading took place, in seconds.
 	*/
 	UFUNCTION(BlueprintPure, Category = "Input|OculusLibrary")
-	static void GetRawSensorData(ETrackedDeviceType DeviceType, FVector& AngularAcceleration, FVector& LinearAcceleration, FVector& AngularVelocity, FVector& LinearVelocity, float& TimeInSeconds);
+	static void GetRawSensorData(FVector& AngularAcceleration, FVector& LinearAcceleration, FVector& AngularVelocity, FVector& LinearVelocity, float& TimeInSeconds, ETrackedDeviceType DeviceType = ETrackedDeviceType::HMD);
 
 	/**
 	* Returns if the device is currently tracked by the runtime or not.
@@ -284,4 +293,58 @@ class OCULUSHMD_API UOculusFunctionLibrary : public UBlueprintFunctionLibrary
 
 protected:
 	static class OculusHMD::FOculusHMD* GetOculusHMD();
+
+private:
+	//
+	// DEPRECATED functions from the old GearVR module
+
+	/** Set Gear VR CPU and GPU Levels */
+	DEPRECATED(4.17, "The Oculus API no longer supports this function. Therefore it has been deprecated, and is no longer available.")
+	UFUNCTION(BlueprintCallable, CustomThunk, Category = "GearVR", meta=(DeprecatedFunction, DeprecationMessage="The Oculus API no longer supports this GearVR function."))
+	static bool IsPowerLevelStateMinimum();
+	DECLARE_FUNCTION(execIsPowerLevelStateMinimum);
+
+	/** Set Gear VR CPU and GPU Levels */
+	DEPRECATED(4.17, "The Oculus API no longer supports this function. Therefore it has been deprecated, and is no longer available.")
+	UFUNCTION(BlueprintCallable, CustomThunk, Category = "GearVR", meta=(DeprecatedFunction, DeprecationMessage="The Oculus API no longer supports this GearVR function."))
+	static bool IsPowerLevelStateThrottled();
+	DECLARE_FUNCTION(execIsPowerLevelStateThrottled);
+
+	/** Set Gear VR CPU and GPU Levels */
+	DEPRECATED(4.17, "The Oculus API no longer supports this function. Therefore it has been deprecated, and is no longer available.")
+	UFUNCTION(BlueprintCallable, CustomThunk, Category = "GearVR", meta=(DeprecatedFunction, DeprecationMessage="The Oculus API no longer supports this GearVR function."))
+	static bool AreHeadPhonesPluggedIn();
+	DECLARE_FUNCTION(execAreHeadPhonesPluggedIn);
+
+	/** Set Gear VR CPU and GPU Levels */
+	DEPRECATED(4.17, "The Oculus API no longer supports this function. Therefore it has been deprecated, and is no longer available.")
+	UFUNCTION(BlueprintCallable, CustomThunk, Category = "GearVR", meta=(DeprecatedFunction, DeprecationMessage="The Oculus API no longer supports this GearVR function."))
+	static float GetTemperatureInCelsius();
+	DECLARE_FUNCTION(execGetTemperatureInCelsius);
+
+	/** Set Gear VR CPU and GPU Levels */
+	DEPRECATED(4.17, "The Oculus API no longer supports this function. Therefore it has been deprecated, and is no longer available.")
+	UFUNCTION(BlueprintCallable, CustomThunk, Category = "GearVR", meta=(DeprecatedFunction, DeprecationMessage="The Oculus API no longer supports this GearVR function."))
+	static float GetBatteryLevel();
+	DECLARE_FUNCTION(execGetBatteryLevel);
+
+	/** Set Gear VR CPU and GPU Levels */
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
+	DEPRECATED(4.17, "The Oculus API no longer supports this function. Therefore it has been deprecated, and is no longer available.")
+	UFUNCTION(BlueprintCallable, CustomThunk, Category = "GearVRController", meta=(DeprecatedFunction, DeprecationMessage="The Oculus API no longer supports this GearVR function."))
+	static EGearVRControllerHandedness_DEPRECATED GetGearVRControllerHandedness();
+	DECLARE_FUNCTION(execGetGearVRControllerHandedness);
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
+
+	/** Set Gear VR CPU and GPU Levels */
+	DEPRECATED(4.17, "The Oculus API no longer supports this function. Therefore it has been deprecated, and is no longer available.")
+	UFUNCTION(BlueprintCallable, CustomThunk, Category = "GearVRController", meta=(DeprecatedFunction, DeprecationMessage="The Oculus API no longer supports this GearVR function."))
+	static void EnableArmModel(bool bArmModelEnable);
+	DECLARE_FUNCTION(execEnableArmModel);
+
+	/** Is controller active */
+	DEPRECATED(4.17, "The Oculus API no longer supports this function. Therefore it has been deprecated, and is no longer available.")
+	UFUNCTION(BlueprintCallable, CustomThunk, Category = "GearVRController", meta=(DeprecatedFunction, DeprecationMessage="The Oculus API no longer supports this GearVR function."))
+	static bool IsControllerActive();
+	DECLARE_FUNCTION(execIsControllerActive);
 };

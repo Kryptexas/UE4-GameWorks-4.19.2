@@ -48,6 +48,13 @@ class UKismetRenderingLibrary : public UBlueprintFunctionLibrary
 	 */
 	UFUNCTION(BlueprintCallable, Category="Rendering", meta=(WorldContext="WorldContextObject"))
 	static ENGINE_API UTextureRenderTarget2D* CreateRenderTarget2D(UObject* WorldContextObject, int32 Width = 256, int32 Height = 256, bool bHDR = true);
+	
+	/**
+	 * Manually releases GPU resources of a render target. This is useful for blueprint creating a lot of render target that would
+	 * normally be released too late by the garbage collector that can be problematic on platforms that have tight GPU memory constrains.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Rendering")
+	static ENGINE_API void ReleaseRenderTarget2D(UTextureRenderTarget2D* TextureRenderTarget);
 
 	/** 
 	 * Renders a quad with the material applied to the specified render target.   

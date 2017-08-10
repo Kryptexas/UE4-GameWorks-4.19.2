@@ -82,11 +82,17 @@ void FMaterialInstanceParameterDetails::CustomizeDetails(IDetailLayoutBuilder& D
 
 	// Customize Parent property so we can check for recursively set parents
 	TSharedRef<IPropertyHandle> ParentPropertyHandle = DetailLayout.GetProperty("Parent");
-	IDetailPropertyRow& ParentPropertyRow = DefaultCategory.AddProperty("Parent");
+	IDetailPropertyRow& ParentPropertyRow = DefaultCategory.AddProperty(ParentPropertyHandle);
+
+	ParentPropertyHandle->MarkResetToDefaultCustomized();
+	
 	TSharedPtr<SWidget> NameWidget;
 	TSharedPtr<SWidget> ValueWidget;
 	FDetailWidgetRow Row;
+
 	ParentPropertyRow.GetDefaultWidgets(NameWidget, ValueWidget, Row);
+	
+	ParentPropertyHandle->ClearResetToDefaultCustomized();
 
 	const bool bShowChildren = true;
 	ParentPropertyRow.CustomWidget(bShowChildren)
@@ -107,6 +113,9 @@ void FMaterialInstanceParameterDetails::CustomizeDetails(IDetailLayoutBuilder& D
 			.AllowClear(true)
 			.OnShouldSetAsset(this, &FMaterialInstanceParameterDetails::OnShouldSetAsset)
 		];
+
+	ValueWidget.Reset();
+
 
 	// Add/hide other properties
 	DefaultCategory.AddProperty("LightmassSettings");
@@ -382,7 +391,7 @@ FText FMaterialInstanceParameterDetails::GetParameterExpressionDescription(UDEdi
 	return FText::GetEmpty();
 }
 
-void FMaterialInstanceParameterDetails::ResetToDefault(TSharedRef<IPropertyHandle> PropertyHandle, class UDEditorParameterValue* Parameter)
+void FMaterialInstanceParameterDetails::ResetToDefault(TSharedPtr<IPropertyHandle> PropertyHandle, class UDEditorParameterValue* Parameter)
 {
 	const FScopedTransaction Transaction( LOCTEXT( "ResetToDefault", "Reset To Default" ) );
 	Parameter->Modify();
@@ -458,7 +467,7 @@ void FMaterialInstanceParameterDetails::ResetToDefault(TSharedRef<IPropertyHandl
 	}
 }
 
-bool FMaterialInstanceParameterDetails::ShouldShowResetToDefault(TSharedRef<IPropertyHandle> PropertyHandle, class UDEditorParameterValue* Parameter)
+bool FMaterialInstanceParameterDetails::ShouldShowResetToDefault(TSharedPtr<IPropertyHandle> PropertyHandle, class UDEditorParameterValue* Parameter)
 {
 	FName ParameterName = Parameter->ParameterName;
 

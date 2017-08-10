@@ -21,6 +21,7 @@
 #include "Engine/StaticMesh.h"
 #include "Physics/PhysicsFiltering.h"
 #include "ApexDestructionModule.h"
+#include "PhysicsEngine/PhysicsSettings.h"
 
 UDestructibleComponent::UDestructibleComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -45,6 +46,9 @@ UDestructibleComponent::UDestructibleComponent(const FObjectInitializer& ObjectI
 	LargeChunkThreshold = 25.f;
 
 	SetComponentSpaceTransformsDoubleBuffering(false);
+
+	// Get contact offset params
+	FBodySetupShapeIterator::GetContactOffsetParams(ContactOffsetFactor, MinContactOffset, MaxContactOffset);
 }
 
 #if WITH_EDITORONLY_DATA
@@ -1624,6 +1628,11 @@ void UDestructibleComponent::SetCollisionResponseForShape(PxShape* Shape, int32 
 		PSimFilterData.word3 |= EPDF_SimpleCollision | EPDF_ComplexCollision | EPDF_KinematicKinematicPairs;
 
 		SCOPED_SCENE_WRITE_LOCK(Shape->getActor()->getScene());
+
+		// See FBodySetupShapeIterator::ComputeContactOffset(const PxConvexMeshGeometry&) for this calculation. 
+		// Reproduced here to avoid going to the underlying PxConvexMeshGeometry
+		const float MinBoundsExtent = Shape->getActor()->getWorldBounds().getExtents().minElement();
+		Shape->setContactOffset(FMath::Clamp(ContactOffsetFactor * MinBoundsExtent, MinContactOffset, MaxContactOffset));
 
 		Shape->setQueryFilterData(PQueryFilterData);
 		Shape->setSimulationFilterData(PSimFilterData);

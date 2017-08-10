@@ -29,6 +29,7 @@
 #include "Internationalization/BreakIterator.h"
 #include "Widgets/Text/SInlineEditableTextBlock.h"
 #include "Misc/EngineBuildSettings.h"
+#include "ContentBrowserLog.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -672,13 +673,18 @@ TSharedRef<SWidget> SAssetViewItem::CreateToolTipWidget() const
 			// Add Path
 			AddToToolTipInfoBox( InfoBox, LOCTEXT("TileViewTooltipPath", "Path"), FText::FromName(AssetData.PackagePath), false);
 
-			int32 PackageNameLengthForCooking = ContentBrowserUtils::GetPackageLengthForCooking(AssetData.PackageName.ToString(), FEngineBuildSettings::IsInternalBuild());
+			if(AssetData.PackageName != NAME_None)
+			{
+				int32 PackageNameLengthForCooking = ContentBrowserUtils::GetPackageLengthForCooking(AssetData.PackageName.ToString(), FEngineBuildSettings::IsInternalBuild());
 
-			AddToToolTipInfoBox( InfoBox, LOCTEXT("TileViewTooltipPathLengthForCookingKey", "Cooking Filepath Length"), FText::Format(LOCTEXT("TileViewTooltipPathLengthForCookingValue", "{0} / {1}"), 
-								 FText::AsNumber(PackageNameLengthForCooking), FText::AsNumber(ContentBrowserUtils::MaxCookPathLen)), PackageNameLengthForCooking > ContentBrowserUtils::MaxCookPathLen ? true : false);
+				AddToToolTipInfoBox(InfoBox, LOCTEXT("TileViewTooltipPathLengthForCookingKey", "Cooking Filepath Length"), FText::Format(LOCTEXT("TileViewTooltipPathLengthForCookingValue", "{0} / {1}"),
+					FText::AsNumber(PackageNameLengthForCooking), FText::AsNumber(ContentBrowserUtils::MaxCookPathLen)), PackageNameLengthForCooking > ContentBrowserUtils::MaxCookPathLen ? true : false);
+			}
+			else
+			{
+				UE_LOG(LogContentBrowser, Error, TEXT("AssetData for '%s' is invalid"), *AssetData.PackagePath.ToString());
+			}
 
-			
-			
 			// Add Collections
 			{
 				FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();

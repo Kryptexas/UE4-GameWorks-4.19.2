@@ -3196,6 +3196,8 @@ void SAssetView::SetCurrentViewType(EAssetViewType::Type NewType)
 			RefreshFolders();
 			SortList();
 		}
+
+		FSlateApplication::Get().DismissAllMenus();
 	}
 }
 
@@ -4610,25 +4612,29 @@ bool SAssetView::PerformQuickJump(const bool bWasJumping)
 
 void SAssetView::FillToggleColumnsMenu(FMenuBuilder& MenuBuilder)
 {
-	const TIndirectArray<SHeaderRow::FColumn> Columns = ColumnView->GetHeaderRow()->GetColumns();
-
-	for (int32 ColumnIndex = 0; ColumnIndex < Columns.Num(); ++ColumnIndex)
+	// Column view may not be valid if we toggled off columns view while the columns menu was open
+	if(ColumnView.IsValid())
 	{
-		const FString ColumnName = Columns[ColumnIndex].ColumnId.ToString();
+		const TIndirectArray<SHeaderRow::FColumn> Columns = ColumnView->GetHeaderRow()->GetColumns();
 
-		MenuBuilder.AddMenuEntry(
-			Columns[ColumnIndex].DefaultText,
-			LOCTEXT("ShowHideColumnTooltip", "Show or hide column"),
-			FSlateIcon(),
-			FUIAction(
-				FExecuteAction::CreateSP(this, &SAssetView::ToggleColumn, ColumnName),
-				FCanExecuteAction::CreateSP(this, &SAssetView::CanToggleColumn, ColumnName),
-				FIsActionChecked::CreateSP(this, &SAssetView::IsColumnVisible, ColumnName),
-				EUIActionRepeatMode::RepeatEnabled
+		for (int32 ColumnIndex = 0; ColumnIndex < Columns.Num(); ++ColumnIndex)
+		{
+			const FString ColumnName = Columns[ColumnIndex].ColumnId.ToString();
+
+			MenuBuilder.AddMenuEntry(
+				Columns[ColumnIndex].DefaultText,
+				LOCTEXT("ShowHideColumnTooltip", "Show or hide column"),
+				FSlateIcon(),
+				FUIAction(
+					FExecuteAction::CreateSP(this, &SAssetView::ToggleColumn, ColumnName),
+					FCanExecuteAction::CreateSP(this, &SAssetView::CanToggleColumn, ColumnName),
+					FIsActionChecked::CreateSP(this, &SAssetView::IsColumnVisible, ColumnName),
+					EUIActionRepeatMode::RepeatEnabled
 				),
-			NAME_None,
-			EUserInterfaceActionType::Check
+				NAME_None,
+				EUserInterfaceActionType::Check
 			);
+		}
 	}
 }
 

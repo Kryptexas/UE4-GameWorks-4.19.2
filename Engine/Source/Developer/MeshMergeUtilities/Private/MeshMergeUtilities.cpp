@@ -185,7 +185,21 @@ void FMeshMergeUtilities::BakeMaterialsForComponent(TArray<TWeakObjectPtr<UObjec
 					MeshSettings.RawMesh = RawMeshLODs.Find(LODIndex);
 
 					MeshSettings.TextureCoordinateBox = FBox2D(FVector2D(0.0f, 0.0f), FVector2D(1.0f, 1.0f));
-					MeshSettings.TextureCoordinateIndex = MaterialOptions->bUseSpecificUVIndex ? MaterialOptions->TextureCoordinateIndex : 0;
+					const bool bUseVertexColor = (MeshSettings.RawMesh->WedgeColors.Num() > 0);
+					if (MaterialOptions->bUseSpecificUVIndex)
+					{
+						MeshSettings.TextureCoordinateIndex = MaterialOptions->TextureCoordinateIndex;
+					}
+					// if you use vertex color, we can't rely on overlapping UV channel, so use light map UV to unwrap UVs
+					else if (bUseVertexColor)
+					{
+						MeshSettings.TextureCoordinateIndex = Adapter->LightmapUVIndex();
+					}
+					else
+					{
+						MeshSettings.TextureCoordinateIndex = 0;
+					}
+					
 					Adapter->ApplySettings(LODIndex, MeshSettings);
 					
 					// In case part of the UVs is not within the 0-1 range try to use the lightmap UVs
@@ -1294,7 +1308,7 @@ void FMeshMergeUtilities::MergeComponentsToStaticMesh(const TArray<UPrimitiveCom
 			if (bFirstMesh)
 		{
 			// Mesh component pivot point
-			MergedAssetPivot = InSettings.bPivotPointAtZero ? FVector::ZeroVector : MeshComponent->ComponentToWorld.GetLocation();
+			MergedAssetPivot = InSettings.bPivotPointAtZero ? FVector::ZeroVector : MeshComponent->GetComponentTransform().GetLocation();
 			// Source mesh asset package name
 			MergedAssetPackageName = MeshComponent->GetStaticMesh()->GetOutermost()->GetName();
 
@@ -1361,6 +1375,11 @@ void FMeshMergeUtilities::MergeComponentsToStaticMesh(const TArray<UPrimitiveCom
 				{
 					DataTracker.RemoveRawMesh(ComponentIndex, LODIndex);
 					break;
+				}
+				else if(Component->GetStaticMesh() != nullptr)
+				{
+					// If the mesh is valid at this point, record the lightmap UV so we have a record for use later
+					DataTracker.AddLightmapChannelRecord(ComponentIndex, LODIndex, Component->GetStaticMesh()->LightMapCoordinateIndex);
 				}
 
 				DataTracker.AddLODIndex(LODIndex);
@@ -1435,6 +1454,11 @@ void FMeshMergeUtilities::MergeComponentsToStaticMesh(const TArray<UPrimitiveCom
 			if (!bValidMesh)
 			{
 				DataTracker.RemoveRawMesh(ComponentIndex, LODIndex);
+			}
+			else if(Component->GetStaticMesh() != nullptr)
+			{
+				// If the mesh is valid at this point, record the lightmap UV so we have a record for use later
+				DataTracker.AddLightmapChannelRecord(ComponentIndex, LODIndex, Component->GetStaticMesh()->LightMapCoordinateIndex);
 			}
 		}
 	}
@@ -1533,7 +1557,9 @@ void FMeshMergeUtilities::MergeComponentsToStaticMesh(const TArray<UPrimitiveCom
 				if (InSettings.bUseVertexDataForBakingMaterial && (bDoesMaterialUseVertexData || bRequiresUniqueUVs))
 				{
 					MeshData.RawMesh = DataTracker.GetRawMeshPtr(Key);
-					if (bRequiresUniqueUVs)
+					// if it has vertex color/*WedgetColors.Num()*/, it should also use light map UV index
+					// we can't do this for all meshes, but only for the mesh that has vertex color.
+					if (bRequiresUniqueUVs || MeshData.RawMesh->WedgeColors.Num() > 0)
 					{
 						// Check if there are lightmap uvs available?
 						const int32 LightMapUVIndex = StaticMeshComponentsToMerge[Key.GetMeshIndex()]->GetStaticMesh()->LightMapCoordinateIndex;

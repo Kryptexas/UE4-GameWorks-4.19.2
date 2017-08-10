@@ -74,6 +74,8 @@ struct FBodySetupUVInfo
 /** Helper struct to indicate which geometry needs to be cooked */
 struct ENGINE_API FCookBodySetupInfo
 {
+	FCookBodySetupInfo();
+
 	/** Trimesh data for cooking */
 	FTriMeshCollisionData TriangleMeshDesc;
 
@@ -412,6 +414,9 @@ struct ENGINE_API FBodySetupShapeIterator
 	/** Iterates over the elements array and creates the needed geometry and local pose. Note that this memory is on the stack so it's illegal to use it by reference outside the lambda */
 	template <typename ElemType, typename GeomType>
 	void ForEachShape(const TArray<ElemType>& Elements, TFunctionRef<void(const ElemType& Elem, const GeomType& Geom, const physx::PxTransform& LocalPose, float ContactOffset)> VisitorFunc) const;
+
+	/** Helper function to determine contact offset params */
+	static void GetContactOffsetParams(float& InOutContactOffsetFactor, float& InOutMinContactOffset, float& InOutMaxContactOffset);
 
 private:
 

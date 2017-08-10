@@ -818,11 +818,12 @@ UAnimInstance* SAnimCurveViewer::GetAnimInstance() const
 	return PreviewScenePtr.Pin()->GetPreviewMeshComponent()->GetAnimInstance();
 }
 
-int32 FindIndexOfAnimCurveInfo(TArray<TSharedPtr<FDisplayedAnimCurveInfo>>& AnimCurveInfos, const FName& CurveName)
+int32 FindIndexOfAnimCurveInfo(TArray<TSharedPtr<FDisplayedAnimCurveInfo>>& AnimCurveInfos, const FSmartName& CurveName)
 {
 	for (int32 CurveIdx = 0; CurveIdx < AnimCurveInfos.Num(); CurveIdx++)
 	{
-		if (AnimCurveInfos[CurveIdx]->SmartName.DisplayName == CurveName)
+		// check UID to make sure they match what it's looking for
+		if (AnimCurveInfos[CurveIdx]->SmartName.UID == CurveName.UID)
 		{
 			return CurveIdx;
 		}
@@ -864,12 +865,6 @@ void SAnimCurveViewer::CreateAnimCurveList( const FString& SearchText )
 			}
 		}
 		
-		// In case the num of curves in the cached list does not match the num of smart names we do a full clear
-		if (UidList.Num() != AnimCurveList.Num() && FilterText.IsEmpty())
-		{
-			AnimCurveList.Empty();
-		}
-
 		// Iterate through all curves..
 		for (SmartName::UID_Type Uid : UidList)
 		{
@@ -897,7 +892,7 @@ void SAnimCurveViewer::CreateAnimCurveList( const FString& SearchText )
 			if (bAddToList)
 			{
 				// If not already in list, add it
-				if (FindIndexOfAnimCurveInfo(AnimCurveList, SmartName.DisplayName) == INDEX_NONE)
+				if (FindIndexOfAnimCurveInfo(AnimCurveList, SmartName) == INDEX_NONE)
 				{
 					UEditorAnimCurveBoneLinks* EditorMirrorObj = Cast<UEditorAnimCurveBoneLinks> (EditorObjectTracker.GetEditorObjectForClass(UEditorAnimCurveBoneLinks::StaticClass()));
 					EditorMirrorObj->Initialize(EditableSkeletonPtr, SmartName, FOnAnimCurveBonesChange::CreateSP(this, &SAnimCurveViewer::ApplyCurveBoneLinks));
@@ -916,7 +911,7 @@ void SAnimCurveViewer::CreateAnimCurveList( const FString& SearchText )
 			else
 			{
 				// If already in list, remove it
-				int32 CurrentIndex = FindIndexOfAnimCurveInfo(AnimCurveList, SmartName.DisplayName);
+				int32 CurrentIndex = FindIndexOfAnimCurveInfo(AnimCurveList, SmartName);
 				if (CurrentIndex != INDEX_NONE)
 				{
 					AnimCurveList.RemoveAt(CurrentIndex);

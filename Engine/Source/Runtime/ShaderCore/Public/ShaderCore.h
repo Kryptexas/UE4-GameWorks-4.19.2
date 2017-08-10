@@ -874,13 +874,12 @@ struct FShaderCompilerOutput
 	}
 };
 
-#if DO_CHECK
 /** 
  * Validates the format of a virtual shader file path.
  * Meant to be use as such: check(CheckVirtualShaderFilePath(VirtualFilePath));
+ * CompileErrors output array is optional.
  */
-extern SHADERCORE_API bool CheckVirtualShaderFilePath(const FString& VirtualPath);
-#endif
+extern SHADERCORE_API bool CheckVirtualShaderFilePath(const FString& VirtualPath, TArray<FShaderCompilerError>* CompileErrors = nullptr);
 
 /**
  * Converts an absolute or relative shader filename to a filename relative to
@@ -896,7 +895,7 @@ extern SHADERCORE_API FString ParseVirtualShaderFilename(const FString& InFilena
  * @param OutFileContents - If true is returned, will contain the contents of the shader file.
  * @return True if the file was successfully loaded.
  */
-extern SHADERCORE_API bool LoadShaderSourceFile(const TCHAR* VirtualFilePath, FString& OutFileContents);
+extern SHADERCORE_API bool LoadShaderSourceFile(const TCHAR* VirtualFilePath, FString& OutFileContents, TArray<FShaderCompilerError>* OutCompileErrors);
 
 /** Loads the shader file with the given name.  If the shader file couldn't be loaded, throws a fatal error. */
 extern SHADERCORE_API void LoadShaderSourceFileChecked(const TCHAR* VirtualFilePath, FString& OutFileContents);

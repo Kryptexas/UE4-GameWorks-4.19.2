@@ -89,7 +89,7 @@ void UOculusFunctionLibrary::GetBaseRotationAndBaseOffsetInMeters(FRotator& OutR
 #endif // OCULUS_HMD_SUPPORTED_PLATFORMS
 }
 
-void UOculusFunctionLibrary::GetRawSensorData(ETrackedDeviceType DeviceType, FVector& AngularAcceleration, FVector& LinearAcceleration, FVector& AngularVelocity, FVector& LinearVelocity, float& TimeInSeconds)
+void UOculusFunctionLibrary::GetRawSensorData(FVector& AngularAcceleration, FVector& LinearAcceleration, FVector& AngularVelocity, FVector& LinearVelocity, float& TimeInSeconds, ETrackedDeviceType DeviceType)
 {
 #if OCULUS_HMD_SUPPORTED_PLATFORMS
 	OculusHMD::FOculusHMD* OculusHMD = GetOculusHMD();
@@ -207,7 +207,7 @@ void UOculusFunctionLibrary::AddLoadingSplashScreen(class UTexture2D* Texture, F
 			}
 			Splash->SetLoadingIconMode(false);
 
-			OculusHMD::FSplashDesc Desc;
+			FOculusSplashDesc Desc;
 			Desc.LoadingTexture = Texture;
 			Desc.QuadSizeInMeters = SizeInMeters;
 			Desc.TransformInMeters = FTransform(Rotation, TranslationInMeters);
@@ -310,7 +310,7 @@ void UOculusFunctionLibrary::ShowLoadingIcon(class UTexture2D* Texture)
 		if (Splash)
 		{
 			Splash->ClearSplashes();
-			OculusHMD::FSplashDesc Desc;
+			FOculusSplashDesc Desc;
 			Desc.LoadingTexture = Texture;
 			Splash->AddSplash(Desc);
 			Splash->SetLoadingIconMode(true);
@@ -365,7 +365,7 @@ void UOculusFunctionLibrary::SetLoadingSplashParams(FString TexturePath, FVector
 		{
 			Splash->ClearSplashes();
 			Splash->SetLoadingIconMode(false);
-			OculusHMD::FSplashDesc Desc;
+			FOculusSplashDesc Desc;
 			Desc.TexturePath = TexturePath;
 			Desc.QuadSizeInMeters = SizeInMeters;
 			Desc.TransformInMeters = FTransform(DistanceInMeters);
@@ -385,7 +385,7 @@ void UOculusFunctionLibrary::GetLoadingSplashParams(FString& TexturePath, FVecto
 		OculusHMD::FSplash* Splash = OculusHMD->GetSplash();
 		if (Splash)
 		{
-			OculusHMD::FSplashDesc Desc;
+			FOculusSplashDesc Desc;
 			if (Splash->GetSplash(0, Desc))
 			{
 				if (Desc.LoadingTexture && Desc.LoadingTexture->IsValidLowLevel())
@@ -394,7 +394,7 @@ void UOculusFunctionLibrary::GetLoadingSplashParams(FString& TexturePath, FVecto
 				}
 				else
 				{
-					TexturePath = Desc.TexturePath;
+					TexturePath = Desc.TexturePath.ToString();
 				}
 				DistanceInMeters = Desc.TransformInMeters.GetTranslation();
 				SizeInMeters	 = Desc.QuadSizeInMeters;
@@ -419,3 +419,121 @@ class IStereoLayers* UOculusFunctionLibrary::GetStereoLayers()
 	return nullptr;
 }
 
+DECLARE_FUNCTION(UOculusFunctionLibrary::execIsPowerLevelStateMinimum)
+{
+	P_FINISH;
+
+	FBlueprintExceptionInfo ExceptionInfo(
+		EBlueprintExceptionType::AccessViolation,
+		FText::Format(NSLOCTEXT("OculusFuncLib", "DeprecatedGearVRFunc", "The Oculus API no longer supports this GearVR function ({0}). Please remove it from your Blueprint."), FText::FromString(TEXT("IsPowerLevelStateMinimum")))
+	);
+	FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+
+	P_NATIVE_BEGIN;
+	*(bool*)Z_Param__Result = false;
+	P_NATIVE_END;
+}
+
+DECLARE_FUNCTION(UOculusFunctionLibrary::execIsPowerLevelStateThrottled)
+{
+	P_FINISH;
+
+	FBlueprintExceptionInfo ExceptionInfo(
+		EBlueprintExceptionType::AccessViolation,
+		FText::Format(NSLOCTEXT("OculusFuncLib", "DeprecatedGearVRFunc", "The Oculus API no longer supports this GearVR function ({0}). Please remove it from your Blueprint."), FText::FromString(TEXT("IsPowerLevelStateThrottled")))
+	);
+	FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+
+	P_NATIVE_BEGIN;
+	*(bool*)Z_Param__Result = false;
+	P_NATIVE_END;
+}
+
+DECLARE_FUNCTION(UOculusFunctionLibrary::execAreHeadPhonesPluggedIn)
+{
+	P_FINISH;
+
+	FBlueprintExceptionInfo ExceptionInfo(
+		EBlueprintExceptionType::AccessViolation,
+		FText::Format(NSLOCTEXT("OculusFuncLib", "DeprecatedGearVRFunc", "The Oculus API no longer supports this GearVR function ({0}). Please remove it from your Blueprint."), FText::FromString(TEXT("AreHeadPhonesPluggedIn")))
+	);
+	FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+
+	P_NATIVE_BEGIN;
+	*(bool*)Z_Param__Result = false;
+	P_NATIVE_END;
+}
+
+DECLARE_FUNCTION(UOculusFunctionLibrary::execGetTemperatureInCelsius)
+{
+	P_FINISH;
+
+	FBlueprintExceptionInfo ExceptionInfo(
+		EBlueprintExceptionType::AccessViolation,
+		FText::Format(NSLOCTEXT("OculusFuncLib", "DeprecatedGearVRFunc", "The Oculus API no longer supports this GearVR function ({0}). Please remove it from your Blueprint."), FText::FromString(TEXT("GetTemperatureInCelsius")))
+	);
+	FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+
+	P_NATIVE_BEGIN;
+	*(float*)Z_Param__Result = 0.f;
+	P_NATIVE_END;
+}
+
+DECLARE_FUNCTION(UOculusFunctionLibrary::execGetBatteryLevel)
+{
+	P_FINISH;
+
+	FBlueprintExceptionInfo ExceptionInfo(
+		EBlueprintExceptionType::AccessViolation,
+		FText::Format(NSLOCTEXT("OculusFuncLib", "DeprecatedGearVRFunc", "The Oculus API no longer supports this GearVR function ({0}). Please remove it from your Blueprint."), FText::FromString(TEXT("GetBatteryLevel")))
+	);
+	FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+
+	P_NATIVE_BEGIN;
+	*(float*)Z_Param__Result = 0.f;
+	P_NATIVE_END;
+}
+
+DECLARE_FUNCTION(UOculusFunctionLibrary::execGetGearVRControllerHandedness)
+{
+	P_FINISH;
+
+	FBlueprintExceptionInfo ExceptionInfo(
+		EBlueprintExceptionType::AccessViolation,
+		FText::Format(NSLOCTEXT("OculusFuncLib", "DeprecatedGearVRFunc", "The Oculus API no longer supports this GearVR function ({0}). Please remove it from your Blueprint."), FText::FromString(TEXT("GetGearVRControllerHandedness")))
+	);
+	FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+
+	P_NATIVE_BEGIN;
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
+	*(EGearVRControllerHandedness_DEPRECATED*)Z_Param__Result = EGearVRControllerHandedness_DEPRECATED::Unknown_DEPRECATED;
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
+	P_NATIVE_END;
+}
+
+DECLARE_FUNCTION(UOculusFunctionLibrary::execEnableArmModel)
+{
+	P_GET_UBOOL(Z_Param_bArmModelEnable);
+	P_FINISH;
+
+	FBlueprintExceptionInfo ExceptionInfo(
+		EBlueprintExceptionType::AccessViolation,
+		FText::Format(NSLOCTEXT("OculusFuncLib", "DeprecatedGearVRFunc", "The Oculus API no longer supports this GearVR function ({0}). Please remove it from your Blueprint."), FText::FromString(TEXT("EnableArmModel")))
+	);
+	FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+}
+
+DECLARE_FUNCTION(UOculusFunctionLibrary::execIsControllerActive)
+{
+	P_FINISH;
+
+	FBlueprintExceptionInfo ExceptionInfo(
+		EBlueprintExceptionType::AccessViolation,
+		FText::Format(NSLOCTEXT("OculusFuncLib", "DeprecatedGearVRFunc", "The Oculus API no longer supports this GearVR function ({0}). Please remove it from your Blueprint."), FText::FromString(TEXT("IsControllerActive")))
+	);
+	FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+
+	P_NATIVE_BEGIN;
+	*(bool*)Z_Param__Result = false;
+	P_NATIVE_END;
+}

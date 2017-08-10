@@ -2457,6 +2457,8 @@ public:
 
 	/** The vertex buffer used to access tiles in the simulation. */
 	FParticleTileVertexBuffer TileVertexBuffer;
+	/** Reference to the GPU sprite resources. */
+	TRefCountPtr<FGPUSpriteResources> GPUSpriteResources;
 	/** The per-emitter simulation resources. */
 	const FParticleEmitterSimulationResources* EmitterSimulationResources;
 	/** The per-frame simulation uniform buffer. */
@@ -2525,40 +2527,7 @@ public:
 	 * @param Tiles							The list of tiles to include in the simulation.
 	 * @param InEmitterSimulationResources	The emitter resources used by this simulation.
 	 */
-	void InitResources(const TArray<uint32>& Tiles, const FParticleEmitterSimulationResources* InEmitterSimulationResources)
-	{
-		ensure(InEmitterSimulationResources);
-
-		if (InEmitterSimulationResources)
-		{
-			ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
-				FInitParticleSimulationGPUCommand,
-				FParticleSimulationGPU*, Simulation, this,
-				TArray<uint32>, Tiles, Tiles,
-				const FParticleEmitterSimulationResources*, InEmitterSimulationResources, InEmitterSimulationResources,
-				{
-					// Release vertex buffers.
-					Simulation->VertexBuffer.ReleaseResource();
-					Simulation->TileVertexBuffer.ReleaseResource();
-
-					// Initialize new buffers with list of tiles.
-					Simulation->VertexBuffer.Init(Tiles);
-					Simulation->TileVertexBuffer.Init(Tiles);
-
-					// Store simulation resources for this emitter.
-					Simulation->EmitterSimulationResources = InEmitterSimulationResources;
-
-					// If a visualization vertex factory has been created, initialize it.
-					if (Simulation->VectorFieldVisualizationVertexFactory)
-					{
-						Simulation->VectorFieldVisualizationVertexFactory->InitResource();
-					}
-				});
-		}
-
-		bDirty_GameThread = false;
-		bReleased_GameThread = false;
-	}
+	void InitResources(const TArray<uint32>& Tiles, FGPUSpriteResources* InGPUSpriteResources);
 
 	/**
 	 * Create and initializes a visualization vertex factory if needed.
@@ -2673,7 +2642,71 @@ public:
 		UniformBuffer.SafeRelease();
 		EmitterSimulationResources.SimulationUniformBuffer.SafeRelease();
 	}
+
+	inline uint32 AddRef()
+	{
+		return NumRefs.Increment();
+	}
+
+	inline uint32 Release()
+	{
+		int32 Refs = NumRefs.Decrement();
+		check(Refs >= 0);
+
+		if (Refs == 0)
+		{
+			// When all references are released, we need the render thread
+			// to release RHI resources and delete this instance.
+			ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+				ReleaseCommand,
+				FRenderResource*, Resource, this,
+				{
+					Resource->ReleaseResource();
+					delete Resource;
+				});
+		}
+		return Refs;
+	}
+
+private:
+	FThreadSafeCounter NumRefs;
 };
+
+void FParticleSimulationGPU::InitResources(const TArray<uint32>& Tiles, FGPUSpriteResources* InGPUSpriteResources)
+{
+	ensure(InGPUSpriteResources);
+
+	if (InGPUSpriteResources)
+	{
+		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
+			FInitParticleSimulationGPUCommand,
+			FParticleSimulationGPU*, Simulation, this,
+			TArray<uint32>, Tiles, Tiles,
+			TRefCountPtr<FGPUSpriteResources>, InGPUSpriteResources, InGPUSpriteResources, // TRefCountPtr to take reference for lifetime of this render command
+			{
+				// Release vertex buffers.
+				Simulation->VertexBuffer.ReleaseResource();
+				Simulation->TileVertexBuffer.ReleaseResource();
+
+				// Initialize new buffers with list of tiles.
+				Simulation->VertexBuffer.Init(Tiles);
+				Simulation->TileVertexBuffer.Init(Tiles);
+
+				// Store simulation resources for this emitter.
+				Simulation->GPUSpriteResources = InGPUSpriteResources;
+				Simulation->EmitterSimulationResources = &InGPUSpriteResources->EmitterSimulationResources;
+
+				// If a visualization vertex factory has been created, initialize it.
+				if (Simulation->VectorFieldVisualizationVertexFactory)
+				{
+					Simulation->VectorFieldVisualizationVertexFactory->InitResource();
+				}
+		});
+	}
+
+	bDirty_GameThread = false;
+	bReleased_GameThread = false;
+}
 
 class FGPUSpriteCollectorResources : public FOneFrameResource
 {
@@ -3337,7 +3370,7 @@ public:
 
 		if (Simulation->bDirty_GameThread)
 		{
-			Simulation->InitResources(AllocatedTiles, &EmitterInfo.Resources->EmitterSimulationResources);
+			Simulation->InitResources(AllocatedTiles, EmitterInfo.Resources);
 		}
 		check(!Simulation->bReleased_GameThread);
 		check(!Simulation->bDestroyed_GameThread);
@@ -3597,7 +3630,7 @@ public:
 			// Queue an update to the GPU simulation if needed.
 			if (Simulation->bDirty_GameThread)
 			{
-				Simulation->InitResources(AllocatedTiles, &EmitterInfo.Resources->EmitterSimulationResources);
+				Simulation->InitResources(AllocatedTiles, EmitterInfo.Resources);
 			}
 
 			CheckEmitterFinished();
@@ -5013,6 +5046,9 @@ FGPUSpriteResources* BeginCreateGPUSpriteResources( const FGPUSpriteResourceData
 	if (RHISupportsGPUParticles())
 	{
 		Resources = new FGPUSpriteResources;
+		//@TODO Ideally FGPUSpriteEmitterInfo::Resources would be a TRefCountPtr<FGPUSpriteResources>, but
+		//since that class is defined in this file, we can't do that, so we just addref here instead
+		Resources->AddRef();
 		SetGPUSpriteResourceData( Resources, InResourceData );
 		BeginInitResource( Resources );
 	}
@@ -5032,12 +5068,8 @@ void BeginReleaseGPUSpriteResources( FGPUSpriteResources* Resources )
 	if ( Resources )
 	{
 		ClearGPUSpriteResourceData( Resources );
-		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-			FReleaseGPUSpriteResourcesCommand,
-			FGPUSpriteResources*, Resources, Resources,
-		{
-			Resources->ReleaseResource();
-			delete Resources;
-		});
+		// Deletion of this resource is deferred until all particle
+		// systems on the render thread have finished with it.
+		Resources->Release();
 	}
 }

@@ -5349,6 +5349,7 @@ void UCookOnTheFlyServer::CookByTheBookFinished()
 
 	const UProjectPackagingSettings* const PackagingSettings = GetDefault<UProjectPackagingSettings>();
 	bool const bCacheShaderLibraries = !IsCookingDLC();
+    bool bShaderLibrarySaved = false;
 	if (bCacheShaderLibraries && PackagingSettings->bShareMaterialShaderCode)
 	{
 		ITargetPlatformManagerModule& TPM = GetTargetPlatformManagerRef();
@@ -5365,9 +5366,10 @@ void UCookOnTheFlyServer::CookByTheBookFinished()
 				TArray<FName> ShaderFormats;
 				TargetPlatform->GetAllTargetedShaderFormats(ShaderFormats);
 				
-				if(!FShaderCodeLibrary::SaveShaderCode(ShaderCodeDir, DebugShaderCodeDir, ShaderFormats))
+                bShaderLibrarySaved = FShaderCodeLibrary::SaveShaderCode(ShaderCodeDir, DebugShaderCodeDir, ShaderFormats);
+				if(!bShaderLibrarySaved)
 				{
-					LogCookerMessage(FString::Printf(TEXT("Shared Material Shader Code Library failed for %s."),*TargetPlatformNameString), EMessageSeverity::Warning);
+					LogCookerMessage(FString::Printf(TEXT("Shared Material Shader Code Library failed for %s."),*TargetPlatformNameString), EMessageSeverity::Error);
 				}
 			}
 		}
@@ -5419,7 +5421,7 @@ void UCookOnTheFlyServer::CookByTheBookFinished()
 		const FString& SandboxRegistryFilename = GetSandboxAssetRegistryFilename();
 
 		ITargetPlatformManagerModule& TPM = GetTargetPlatformManagerRef();
-		if (bCacheShaderLibraries && PackagingSettings->bShareMaterialShaderCode)
+		if (bCacheShaderLibraries && PackagingSettings->bShareMaterialShaderCode && bShaderLibrarySaved)
 		{
 			if (PackagingSettings->bSharedMaterialNativeLibraries)
 			{
@@ -5436,7 +5438,7 @@ void UCookOnTheFlyServer::CookByTheBookFinished()
 					if(!FShaderCodeLibrary::PackageNativeShaderLibrary(ShaderCodeDir, DebugShaderCodeDir, ShaderFormats))
 					{
 						// This is fatal - In this case we should cancel any launch on device operation or package write but we don't want to assert and crash the editor
-						LogCookerMessage(FString::Printf(TEXT("Package Native Shader Library failed for %s."),*TargetPlatformNameString), EMessageSeverity::Warning);
+						LogCookerMessage(FString::Printf(TEXT("Package Native Shader Library failed for %s."),*TargetPlatformNameString), EMessageSeverity::Error);
 					}
 				}
 			}

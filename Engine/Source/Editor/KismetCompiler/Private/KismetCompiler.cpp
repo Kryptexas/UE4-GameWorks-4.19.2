@@ -1092,6 +1092,24 @@ void FKismetCompilerContext::CopyTermDefaultsToDefaultObject(UObject* DefaultObj
 			UProperty* Property = *It;
 			if (Property->GetFName() == TargetPropName)
 			{
+				if(UObjectProperty* AsObjectProperty = Cast<UObjectProperty>(Property))
+				{
+					// Value is the fully qualified name, so just search for it:
+					UObject* Result = StaticFindObjectSafe(UObject::StaticClass(), nullptr, *Value);
+					if(Result)
+					{
+						// Object may be of a type that is also being compiled and therefore REINST_, so get real class:
+						UClass* RealClass = Result->GetClass()->GetAuthoritativeClass();
+
+						// If object is compatible, write it into cdo:
+						if( RealClass->IsChildOf(AsObjectProperty->PropertyClass) )
+						{
+							AsObjectProperty->SetObjectPropertyValue( AsObjectProperty->ContainerPtrToValuePtr<uint8>(DefaultObject), Result );
+							continue;
+						}
+					}
+				}
+
 				const bool bParseSuccedded = FBlueprintEditorUtils::PropertyValueFromString(Property, Value, reinterpret_cast<uint8*>(DefaultObject));
 				if(!bParseSuccedded)
 				{

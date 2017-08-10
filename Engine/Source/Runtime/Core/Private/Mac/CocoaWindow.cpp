@@ -263,12 +263,6 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 {
 	WindowMode = EWindowMode::Windowed;
 	self.TargetWindowMode = EWindowMode::Windowed;
-	
-	// Remove any primary fullscreen behaviour here, we don't support it properly.
-	NSWindowCollectionBehavior Behaviour = [self collectionBehavior];
-	Behaviour &= ~(NSWindowCollectionBehaviorFullScreenPrimary);
-	Behaviour |= NSWindowCollectionBehaviorFullScreenAuxiliary;
-	[self setCollectionBehavior: Behaviour];
 
 	if (MacApplication)
 	{

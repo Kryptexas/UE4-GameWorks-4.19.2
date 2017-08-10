@@ -105,10 +105,6 @@ public:
 	float PixelDensityMax;
 	bool bPixelDensityAdaptive;
 
-	// Used to convert between screen percentage and pixel density
-	float IdealScreenPercentage;
-	float CurrentScreenPercentage;
-
 	ovrpSystemHeadset SystemHeadset;
 
 	float VsyncToNextVsync;
@@ -119,7 +115,6 @@ public:
 
 	bool IsStereoEnabled() const { return Flags.bStereoEnabled && Flags.bHMDEnabled; }
 
-	void UpdateScreenPercentageFromPixelDensity();
 	bool UpdatePixelDensityFromScreenPercentage();
 
 	TSharedPtr<FSettings, ESPMode::ThreadSafe> Clone() const;

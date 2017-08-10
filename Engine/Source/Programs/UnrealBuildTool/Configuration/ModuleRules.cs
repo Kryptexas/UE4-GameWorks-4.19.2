@@ -501,7 +501,7 @@ namespace UnrealBuildTool
 			// defines inside their Build.cs files won't leak out)
 			if (Target.bCompilePhysX == true)
 			{
-				AddEngineThirdPartyPrivateStaticDependencies(Target, "PhysX");
+				PrivateDependencyModuleNames.Add("PhysX");
 				Definitions.Add("WITH_PHYSX=1");
 			}
 			else
@@ -516,7 +516,7 @@ namespace UnrealBuildTool
 					throw new BuildException("APEX is enabled, without PhysX. This is not supported!");
 				}
 
-				AddEngineThirdPartyPrivateStaticDependencies(Target, "APEX");
+				PrivateDependencyModuleNames.Add("APEX");
 				Definitions.Add("WITH_APEX=1");
 				Definitions.Add("WITH_APEX_CLOTHING=1");
 				Definitions.Add("WITH_CLOTH_COLLISION_DETECTION=1");
@@ -538,7 +538,7 @@ namespace UnrealBuildTool
 					throw new BuildException("NvCloth is enabled, without PhysX. This is not supported!");
 				}
 
-				AddEngineThirdPartyPrivateStaticDependencies(Target, "NvCloth");
+				PrivateDependencyModuleNames.Add("NvCloth");
                 Definitions.Add("WITH_NVCLOTH=1");
 
 			}

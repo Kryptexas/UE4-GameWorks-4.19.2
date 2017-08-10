@@ -366,6 +366,7 @@ namespace UnrealGameSync
 					if(Context.Options.HasFlag(WorkspaceUpdateOptions.ContentOnly))
 					{
 						Filter.Exclude("*.usf");
+						Filter.Exclude("*.ush");
 					}
 					SyncFiles.RemoveAll(x => !Filter.Matches(x));
 
@@ -427,7 +428,7 @@ namespace UnrealGameSync
 
 						// Find the last code change before this changelist. For consistency in versioning between local builds and precompiled binaries, we need to use the last submitted code changelist as our version number.
 						List<PerforceChangeSummary> CodeChanges;
-						if(!Perforce.FindChanges(new string[]{ ".cs", ".h", ".cpp", ".usf" }.SelectMany(x => SyncPaths.Select(y => String.Format("{0}{1}@<={2}", y, x, PendingChangeNumber))), 1, out CodeChanges, Log))
+						if(!Perforce.FindChanges(new string[]{ ".cs", ".h", ".cpp", ".usf", ".ush" }.SelectMany(x => SyncPaths.Select(y => String.Format("{0}{1}@<={2}", y, x, PendingChangeNumber))), 1, out CodeChanges, Log))
 						{
 							StatusMessage = String.Format("Couldn't determine last code changelist before CL {0}.", PendingChangeNumber);
 							return WorkspaceUpdateResult.FailedToSync;

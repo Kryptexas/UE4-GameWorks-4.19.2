@@ -22,8 +22,8 @@ static jfieldID FindField(JNIEnv* JEnv, jclass Class, const ANSICHAR* FieldName,
 	return Field;
 }
 
-FJavaAndroidMediaPlayer::FJavaAndroidMediaPlayer(bool swizzlePixels)
-	: FJavaClassObject(GetClassName(), "(Z)V", swizzlePixels)
+FJavaAndroidMediaPlayer::FJavaAndroidMediaPlayer(bool vulkanRenderer)
+	: FJavaClassObject(GetClassName(), "(Z)V", vulkanRenderer)
 	, GetDurationMethod(GetClassMethod("getDuration", "()I"))
 	, ResetMethod(GetClassMethod("reset", "()V"))
 	, GetCurrentPositionMethod(GetClassMethod("getCurrentPosition", "()I"))
@@ -196,7 +196,7 @@ bool FJavaAndroidMediaPlayer::GetVideoLastFrameData(void* & outPixels, int64 & o
 		JNIEnv*	JEnv = FAndroidApplication::GetJavaEnv();
 		outPixels = JEnv->GetDirectBufferAddress(buffer);
 		outCount = JEnv->GetDirectBufferCapacity(buffer);
-		JEnv->DeleteGlobalRef(buffer);
+		// we don't reduce the buffer refcount because it is still owned by the Java class, and will be reused.
 	}
 	if (nullptr == buffer || nullptr == outPixels || 0 == outCount)
 	{

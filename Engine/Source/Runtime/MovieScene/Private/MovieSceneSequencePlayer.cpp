@@ -32,7 +32,7 @@ UMovieSceneSequencePlayer::UMovieSceneSequencePlayer(const FObjectInitializer& I
 
 UMovieSceneSequencePlayer::~UMovieSceneSequencePlayer()
 {
-	if (OldMaxTickRate.IsSet())
+	if (GEngine && OldMaxTickRate.IsSet())
 	{
 		GEngine->SetMaxFPS(OldMaxTickRate.GetValue());
 	}
@@ -234,11 +234,11 @@ void UMovieSceneSequencePlayer::Stop()
 	}
 }
 
-void UMovieSceneSequencePlayer::StopAndGoToEnd()
+void UMovieSceneSequencePlayer::GoToEndAndStop()
 {
-	Stop();
-
 	SetPlaybackPosition(GetLength());
+
+	Stop();
 }
 
 float UMovieSceneSequencePlayer::GetPlaybackPosition() const

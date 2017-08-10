@@ -864,6 +864,7 @@ void FNamedSlotModel::DoDrop(UWidget* NamedSlotHostWidget, UWidget* DroppingWidg
 FHierarchyWidget::FHierarchyWidget(FWidgetReference InItem, TSharedPtr<FWidgetBlueprintEditor> InBlueprintEditor)
 	: FHierarchyModel(InBlueprintEditor)
 	, Item(InItem)
+	, bEditing(false)
 {
 }
 
@@ -883,7 +884,7 @@ FText FHierarchyWidget::GetText() const
 	UWidget* WidgetTemplate = Item.GetTemplate();
 	if ( WidgetTemplate )
 	{
-		return WidgetTemplate->GetLabelText();
+		return bEditing ? WidgetTemplate->GetLabelText() : WidgetTemplate->GetLabelTextWithMetadata();
 	}
 
 	return FText::GetEmpty();
@@ -1045,9 +1046,19 @@ bool FHierarchyWidget::CanRename() const
 	return true;
 }
 
-void FHierarchyWidget::BeginRename()
+void FHierarchyWidget::RequestBeginRename()
 {
 	RenameEvent.ExecuteIfBound();
+}
+
+void FHierarchyWidget::OnBeginEditing()
+{
+	bEditing = true;
+}
+
+void FHierarchyWidget::OnEndEditing()
+{
+	bEditing = false;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1055,7 +1066,7 @@ void FHierarchyWidget::BeginRename()
 void SHierarchyViewItem::Construct(const FArguments& InArgs, const TSharedRef< STableViewBase >& InOwnerTableView, TSharedPtr<FHierarchyModel> InModel)
 {
 	Model = InModel;
-	Model->RenameEvent.BindSP(this, &SHierarchyViewItem::BeginRename);
+	Model->RenameEvent.BindSP(this, &SHierarchyViewItem::OnRequestBeginRename);
 
 	STableRow< TSharedPtr<FHierarchyModel> >::Construct(
 		STableRow< TSharedPtr<FHierarchyModel> >::FArguments()
@@ -1091,6 +1102,9 @@ void SHierarchyViewItem::Construct(const FArguments& InArgs, const TSharedRef< S
 				.Text(this, &SHierarchyViewItem::GetItemText)
 				.ToolTipText(Model->GetLabelToolTipText())
 				.HighlightText(InArgs._HighlightText)
+				.IsReadOnly(this, &SHierarchyViewItem::IsReadOnly)
+				.OnEnterEditingMode(this, &SHierarchyViewItem::OnBeginNameTextEdit)
+				.OnExitEditingMode(this, &SHierarchyViewItem::OnEndNameTextEdit)
 				.OnVerifyTextChanged(this, &SHierarchyViewItem::OnVerifyNameTextChanged)
 				.OnTextCommitted(this, &SHierarchyViewItem::OnNameTextCommited)
 				.IsSelected(this, &SHierarchyViewItem::IsSelectedExclusively)
@@ -1165,6 +1179,18 @@ void SHierarchyViewItem::OnMouseLeave(const FPointerEvent& MouseEvent)
 	Model->OnMouseLeave();
 }
 
+void SHierarchyViewItem::OnBeginNameTextEdit()
+{
+	Model->OnBeginEditing();
+
+	InitialText = Model->GetText();
+}
+
+void SHierarchyViewItem::OnEndNameTextEdit()
+{
+	Model->OnEndEditing();
+}
+
 bool SHierarchyViewItem::OnVerifyNameTextChanged(const FText& InText, FText& OutErrorMessage)
 {
 	return Model->OnVerifyNameTextChanged(InText, OutErrorMessage);
@@ -1175,19 +1201,20 @@ void SHierarchyViewItem::OnNameTextCommited(const FText& InText, ETextCommit::Ty
 	// The model can return nice names "Border_53" becomes [Border] in some cases
 	// This check makes sure we don't rename the object internally to that nice name.
 	// Most common case would be the user enters edit mode by accident then just moves focus away.
-	if (Model->GetText().EqualToCaseIgnored(InText))
+	if (InitialText.EqualToCaseIgnored(InText))
 	{
 		return;
 	}
+
 	Model->OnNameTextCommited(InText, CommitInfo);
 }
 
-bool SHierarchyViewItem::CanRename() const
+bool SHierarchyViewItem::IsReadOnly() const
 {
-	return Model->CanRename();
+	return !Model->CanRename();
 }
 
-void SHierarchyViewItem::BeginRename()
+void SHierarchyViewItem::OnRequestBeginRename()
 {
 	TSharedPtr<SInlineEditableTextBlock> SafeEditBox = EditBox.Pin();
 	if ( SafeEditBox.IsValid() )

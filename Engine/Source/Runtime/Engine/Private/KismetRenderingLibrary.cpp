@@ -66,14 +66,38 @@ UTextureRenderTarget2D* UKismetRenderingLibrary::CreateRenderTarget2D(UObject* W
 	return nullptr;
 }
 
+// static 
+void UKismetRenderingLibrary::ReleaseRenderTarget2D(UTextureRenderTarget2D* TextureRenderTarget)
+{
+	if (!TextureRenderTarget)
+	{
+		return;
+	}
+
+	TextureRenderTarget->ReleaseResource();
+}
+
 void UKismetRenderingLibrary::DrawMaterialToRenderTarget(UObject* WorldContextObject, UTextureRenderTarget2D* TextureRenderTarget, UMaterialInterface* Material)
 {
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 
-	if (TextureRenderTarget 
-		&& TextureRenderTarget->Resource 
-		&& World 
-		&& Material)
+	if (!World)
+	{
+		FMessageLog("Blueprint").Warning(LOCTEXT("DrawMaterialToRenderTarget_InvalidWorldContextObject", "DrawMaterialToRenderTarget: WorldContextObject is not valid."));
+	}
+	else if (!Material)
+	{
+		FMessageLog("Blueprint").Warning(LOCTEXT("DrawMaterialToRenderTarget_InvalidMaterial", "DrawMaterialToRenderTarget: Material must be non-null."));
+	}
+	else if (!TextureRenderTarget)
+	{
+		FMessageLog("Blueprint").Warning(LOCTEXT("DrawMaterialToRenderTarget_InvalidTextureRenderTarget", "DrawMaterialToRenderTarget: TextureRenderTarget must be non-null."));
+	}
+	else if (!TextureRenderTarget->Resource)
+	{
+		FMessageLog("Blueprint").Warning(LOCTEXT("DrawMaterialToRenderTarget_ReleasedTextureRenderTarget", "DrawMaterialToRenderTarget: render target has been released."));
+	}
+	else
 	{
 		UCanvas* Canvas = World->GetCanvasForDrawMaterialToRenderTarget();
 
@@ -116,18 +140,6 @@ void UKismetRenderingLibrary::DrawMaterialToRenderTarget(UObject* WorldContextOb
 			}
 		);
 	}
-	else if (!World)
-	{
-		FMessageLog("Blueprint").Warning(LOCTEXT("DrawMaterialToRenderTarget_InvalidWorldContextObject", "DrawMaterialToRenderTarget: WorldContextObject is not valid."));
-	}
-	else if (!Material)
-	{
-		FMessageLog("Blueprint").Warning(LOCTEXT("DrawMaterialToRenderTarget_InvalidMaterial", "DrawMaterialToRenderTarget: Material must be non-null."));
-	}
-	else if (!TextureRenderTarget)
-	{
-		FMessageLog("Blueprint").Warning(LOCTEXT("DrawMaterialToRenderTarget_InvalidTextureRenderTarget", "DrawMaterialToRenderTarget: TextureRenderTarget must be non-null."));
-	}
 }
 
 void UKismetRenderingLibrary::ExportRenderTarget(UObject* WorldContextObject, UTextureRenderTarget2D* TextureRenderTarget, const FString& FilePath, const FString& FileName)
@@ -136,7 +148,24 @@ void UKismetRenderingLibrary::ExportRenderTarget(UObject* WorldContextObject, UT
 	FText PathError;
 	FPaths::ValidatePath(TotalFileName, &PathError);
 
-	if (TextureRenderTarget && !FileName.IsEmpty() && PathError.IsEmpty())
+
+	if (!TextureRenderTarget)
+	{
+		FMessageLog("Blueprint").Warning(LOCTEXT("ExportRenderTarget_InvalidTextureRenderTarget", "ExportRenderTarget: TextureRenderTarget must be non-null."));
+	}
+	else if (!TextureRenderTarget->Resource)
+	{
+		FMessageLog("Blueprint").Warning(LOCTEXT("ExportRenderTarget_ReleasedTextureRenderTarget", "ExportRenderTarget: render target has been released."));
+	}
+	else if (!PathError.IsEmpty())
+	{
+		FMessageLog("Blueprint").Warning(FText::Format(LOCTEXT("ExportRenderTarget_InvalidFilePath", "ExportRenderTarget: Invalid file path provided: '{0}'"), PathError));
+	}
+	else if (FileName.IsEmpty())
+	{
+		FMessageLog("Blueprint").Warning(LOCTEXT("ExportRenderTarget_InvalidFileName", "ExportRenderTarget: FileName must be non-empty."));
+	}
+	else
 	{
 		FArchive* Ar = IFileManager::Get().CreateFileWriter(*TotalFileName);
 
@@ -165,19 +194,6 @@ void UKismetRenderingLibrary::ExportRenderTarget(UObject* WorldContextObject, UT
 		{
 			FMessageLog("Blueprint").Warning(LOCTEXT("ExportRenderTarget_FileWriterFailedToCreate", "ExportRenderTarget: FileWrite failed to create."));
 		}
-	}
-
-    else if (!TextureRenderTarget)
-	{
-		FMessageLog("Blueprint").Warning(LOCTEXT("ExportRenderTarget_InvalidTextureRenderTarget", "ExportRenderTarget: TextureRenderTarget must be non-null."));
-	}
-	if (!PathError.IsEmpty())
-	{
-		FMessageLog("Blueprint").Warning(FText::Format(LOCTEXT("ExportRenderTarget_InvalidFilePath", "ExportRenderTarget: Invalid file path provided: '{0}'"), PathError));
-	}
-	if (FileName.IsEmpty())
-	{
-		FMessageLog("Blueprint").Warning(LOCTEXT("ExportRenderTarget_InvalidFileName", "ExportRenderTarget: FileName must be non-empty."));
 	}
 }
 /*
@@ -209,24 +225,28 @@ void UKismetRenderingLibrary::CreateTexture2DFromRenderTarget(UObject* WorldCont
 void UKismetRenderingLibrary::ConvertRenderTargetToTexture2DEditorOnly( UObject* WorldContextObject, UTextureRenderTarget2D* RenderTarget, UTexture2D* Texture )
 {
 #if WITH_EDITOR
-	if (RenderTarget && Texture)
+	if (!RenderTarget)
+	{
+		FMessageLog("Blueprint").Warning(LOCTEXT("ConvertRenderTargetToTexture2D_InvalidRenderTarget", "ConvertRenderTargetToTexture2DEditorOnly: RenderTarget must be non-null."));
+	}
+	else if (!RenderTarget->Resource)
+	{
+		FMessageLog("Blueprint").Warning(LOCTEXT("ConvertRenderTargetToTexture2D_ReleasedTextureRenderTarget", "ConvertRenderTargetToTexture2DEditorOnly: render target has been released."));
+	}
+	else if (!Texture)
+	{
+		FMessageLog("Blueprint").Warning(LOCTEXT("ConvertRenderTargetToTexture2D_InvalidTexture", "ConvertRenderTargetToTexture2DEditorOnly: Texture must be non-null."));
+	}
+	else
 	{
 		UTexture2D* NewTexture = RenderTarget->ConstructTexture2D(Texture->GetOuter(), Texture->GetName(), RenderTarget->GetMaskedFlags(), CTF_Default, NULL);
 
 		check(NewTexture == Texture);
-		
+
 		NewTexture->Modify();
 		NewTexture->MarkPackageDirty();
 		NewTexture->PostEditChange();
 		NewTexture->UpdateResource();
-	}
-	else if (!RenderTarget)
-	{
-		FMessageLog("Blueprint").Warning(LOCTEXT("ConvertRenderTargetToTexture2D_InvalidRenderTarget", "ExportRenderTarget: RenderTarget must be non-null."));
-	}
-	else if (!Texture)
-	{
-		FMessageLog("Blueprint").Warning(LOCTEXT("ConvertRenderTargetToTexture2D_InvalidTexture", "ExportRenderTarget: Texture must be non-null."));
 	}
 #else
 	FMessageLog("Blueprint").Error(LOCTEXT("Convert to render target can't be used at run time.", "ConvertRenderTarget: Can't convert render target to texture2d at run time. "));
@@ -284,9 +304,19 @@ void UKismetRenderingLibrary::BeginDrawCanvasToRenderTarget(UObject* WorldContex
 	Size = FVector2D(0, 0);
 	Context = FDrawToRenderTargetContext();
 
-	if (TextureRenderTarget 
-		&& TextureRenderTarget->Resource 
-		&& World)
+	if (!World)
+	{
+		FMessageLog("Blueprint").Warning(LOCTEXT("BeginDrawCanvasToRenderTarget_InvalidWorldContextObject", "BeginDrawCanvasToRenderTarget: WorldContextObject is not valid."));
+	}
+	else if (!TextureRenderTarget)
+	{
+		FMessageLog("Blueprint").Warning(LOCTEXT("BeginDrawCanvasToRenderTarget_InvalidTextureRenderTarget", "BeginDrawCanvasToRenderTarget: TextureRenderTarget must be non-null."));
+	}
+	else if (!TextureRenderTarget->Resource)
+	{
+		FMessageLog("Blueprint").Warning(LOCTEXT("BeginDrawCanvasToRenderTarget_ReleasedTextureRenderTarget", "BeginDrawCanvasToRenderTarget: render target has been released."));
+	}
+	else
 	{
 		Context.RenderTarget = TextureRenderTarget;
 
@@ -318,14 +348,6 @@ void UKismetRenderingLibrary::BeginDrawCanvasToRenderTarget(UObject* WorldContex
 					(*DrawEvent), 
 					*RTName.ToString());
 			});
-	}
-	else if (!World)
-	{
-		FMessageLog("Blueprint").Warning(LOCTEXT("BeginDrawCanvasToRenderTarget_InvalidWorldContextObject", "BeginDrawCanvasToRenderTarget: WorldContextObject is not valid."));
-	}
-	else if (!TextureRenderTarget)
-	{
-		FMessageLog("Blueprint").Warning(LOCTEXT("BeginDrawCanvasToRenderTarget_InvalidTextureRenderTarget", "BeginDrawCanvasToRenderTarget: TextureRenderTarget must be non-null."));
 	}
 }
 

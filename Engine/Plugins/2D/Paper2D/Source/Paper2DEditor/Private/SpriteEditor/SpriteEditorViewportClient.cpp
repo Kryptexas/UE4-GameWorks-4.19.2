@@ -588,7 +588,7 @@ void FSpriteEditorViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInt
 	{
 		const bool bCanSelectPivot = false;
 		const bool bHitTestingForPivot = PDI->IsHitTesting() && bCanSelectPivot;
-		FUnrealEdUtils::DrawWidget(View, PDI, RenderSpriteComponent->ComponentToWorld.ToMatrixWithScale(), 0, 0, EAxisList::XZ, EWidgetMovementMode::WMM_Translate, bHitTestingForPivot);
+		FUnrealEdUtils::DrawWidget(View, PDI, RenderSpriteComponent->GetComponentTransform().ToMatrixWithScale(), 0, 0, EAxisList::XZ, EWidgetMovementMode::WMM_Translate, bHitTestingForPivot);
 	}
 
 	if (bShowSockets && !IsInSourceRegionEditMode())

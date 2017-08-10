@@ -282,29 +282,18 @@ FString FComponentEditorUtils::GenerateValidVariableNameFromAsset(UObject* Asset
 
 USceneComponent* FComponentEditorUtils::FindClosestParentInList(UActorComponent* ChildComponent, const TArray<UActorComponent*>& ComponentList)
 {
-	USceneComponent* ClosestParentComponent = nullptr;
-	for (UActorComponent* Component : ComponentList)
+	// Find the most recent parent that is part of the ComponentList
+	if (USceneComponent* ChildAsScene = Cast<USceneComponent>(ChildComponent))
 	{
-		USceneComponent* ChildAsScene = Cast<USceneComponent>(ChildComponent);
-		USceneComponent* SceneComponent = Cast<USceneComponent>(Component);
-		if (ChildAsScene && SceneComponent)
+		for (USceneComponent* Parent = ChildAsScene->GetAttachParent(); Parent != nullptr; Parent = Parent->GetAttachParent())
 		{
-			// Check to see if any parent is also in the list
-			USceneComponent* Parent = ChildAsScene->GetAttachParent();
-			while (Parent != nullptr)
+			if (ComponentList.Contains(Parent))
 			{
-				if (ComponentList.Contains(Parent))
-				{
-					ClosestParentComponent = SceneComponent;
-					break;
-				}
-
-				Parent = Parent->GetAttachParent();
+				return Parent;
 			}
 		}
 	}
-
-	return ClosestParentComponent;
+	return nullptr;
 }
 
 bool FComponentEditorUtils::CanCopyComponents(const TArray<UActorComponent*>& ComponentsToCopy)

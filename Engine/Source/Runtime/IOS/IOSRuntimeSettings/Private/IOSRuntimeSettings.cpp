@@ -3,6 +3,7 @@
 #include "IOSRuntimeSettings.h"
 #include "HAL/FileManager.h"
 #include "Misc/Paths.h"
+#include "Misc/EngineBuildSettings.h"
 
 
 UIOSRuntimeSettings::UIOSRuntimeSettings(const FObjectInitializer& ObjectInitializer)
@@ -115,6 +116,21 @@ void UIOSRuntimeSettings::PostInitProperties()
 	if (MinimumiOSVersion < EIOSVersion::IOS_8)
 	{
 		MinimumiOSVersion = EIOSVersion::IOS_8;
+	}
+
+	// disable 32-bit support if in binary release and update the ini file
+	if (!FEngineBuildSettings::IsSourceDistribution())
+	{
+		if (bDevForArmV7)
+		{
+			bDevForArmV7 = false;
+			UpdateSinglePropertyInConfigFile(GetClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bDevForArmV7)), GetDefaultConfigFilename());
+		}
+		if (bShipForArmV7)
+		{
+			bShipForArmV7 = false;
+			UpdateSinglePropertyInConfigFile(GetClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bShipForArmV7)), GetDefaultConfigFilename());
+		}
 	}
 }
 #endif

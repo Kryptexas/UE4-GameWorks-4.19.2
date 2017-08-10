@@ -3,7 +3,11 @@
 #include "ComposureBlueprintLibrary.h"
 
 #include "UObject/Package.h"
+#include "Public/Slate/SceneViewport.h"
 #include "Classes/Components/SceneCaptureComponent2D.h"
+#include "Classes/Camera/PlayerCameraManager.h"
+#include "Classes/GameFramework/PlayerController.h"
+#include "Classes/Engine/LocalPlayer.h"
 
 #include "ComposurePlayerCompositingTarget.h"
 #include "ComposureUtils.h"
@@ -43,4 +47,24 @@ void UComposureBlueprintLibrary::GetRedGreenUVFactorsFromChromaticAberration(
 {
 	RedGreenUVFactors = FComposureUtils::GetRedGreenUVFactorsFromChromaticAberration(
 		FMath::Clamp(ChromaticAberrationAmount, 0.f, 1.f));
+}
+
+//static
+void UComposureBlueprintLibrary::GetPlayerDisplayGamma(const APlayerCameraManager* PlayerCameraManager, float& DisplayGamma)
+{
+	DisplayGamma = 0;
+	if (!PlayerCameraManager)
+	{
+		return;
+	}
+
+	UGameViewportClient* ViewportClient = PlayerCameraManager->PCOwner->GetLocalPlayer()->ViewportClient;
+	if (!ViewportClient)
+	{
+		return;
+	}
+
+	FSceneViewport* SceneViewport = ViewportClient->GetGameViewport();
+
+	DisplayGamma = SceneViewport ? SceneViewport->GetDisplayGamma() : 0.0;
 }

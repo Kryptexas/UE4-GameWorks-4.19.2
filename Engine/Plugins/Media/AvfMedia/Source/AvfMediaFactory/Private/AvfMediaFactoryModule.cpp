@@ -80,7 +80,7 @@ public:
 		return true;
 	}
 
-	virtual TSharedPtr<IMediaPlayer> CreatePlayer() override
+	virtual TSharedPtr<IMediaPlayer, ESPMode::ThreadSafe> CreatePlayer() override
 	{
 		auto AvfMediaModule = FModuleManager::LoadModulePtr<IAvfMediaModule>("AvfMedia");
 		return (AvfMediaModule != nullptr) ? AvfMediaModule->CreatePlayer() : nullptr;

@@ -154,7 +154,7 @@ UMetaData* UPackage::GetMetaData()
 void UPackage::FullyLoad()
 {
 	// Make sure we're a topmost package.
-	check(GetOuter()==NULL);
+	checkf(GetOuter()==NULL, TEXT("Package is not topmost. Name:%s Path: %s"), *GetName(), *GetPathName());
 
 	// Only perform work if we're not already fully loaded.
 	if( !IsFullyLoaded() )

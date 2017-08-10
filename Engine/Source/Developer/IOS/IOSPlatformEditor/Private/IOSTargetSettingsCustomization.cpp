@@ -291,7 +291,7 @@ void FIOSTargetSettingsCustomization::BuildPListSection(IDetailLayoutBuilder& De
 	AutomaticSigningProperty = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bAutomaticSigning));
 	BuildCategory.AddProperty(AutomaticSigningProperty)
 		.Visibility(EVisibility::Hidden);
-	ProvisionCategory.AddProperty(AutomaticSigningProperty);
+//	ProvisionCategory.AddProperty(AutomaticSigningProperty);
 
 /*	ProvisionCategory.AddCustomRow(TEXT("Certificate Request"), false)
 		.NameContent()
@@ -756,7 +756,8 @@ void FIOSTargetSettingsCustomization::BuildPListSection(IDetailLayoutBuilder& De
 	SETUP_PLIST_PROP(bSupportsMetal, RenderCategory);
 
 	SETUP_SOURCEONLY_PROP(bEnableRemoteNotificationsSupport, OnlineCategory)
-	
+//	SETUP_SOURCEONLY_PROP(bAutomaticSigning, ProvisionCategory)
+
     // Handle max. shader version a little specially.
     {
         ShaderVersionPropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, MaxShaderLanguageVersion));
@@ -1202,7 +1203,7 @@ FReply FIOSTargetSettingsCustomization::OnInstallCertificateClicked()
 		FString CmdExe = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Binaries/DotNET/IOS/IPhonePackager.exe"));
 		FString CommandLine = FString::Printf(TEXT("Install Engine -project \"%s\" -certificate \"%s\" -bundlename \"%s\""), *ProjectPath, *CertPath, *BundleIdentifier);
 #endif
-		IPPProcess = MakeShareable(new FMonitoredProcess(CmdExe, CommandLine, true));
+		IPPProcess = MakeShareable(new FMonitoredProcess(CmdExe, CommandLine, false));
 		OutputMessage = TEXT("");
 		IPPProcess->OnOutput().BindStatic(&OnOutput);
 		IPPProcess->Launch();

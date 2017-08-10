@@ -281,9 +281,13 @@ void FSlateRHIRenderingPolicy::DrawElements(
 	// Should only be called by the rendering thread
 	check(IsInRenderingThread());
 
-	if (TextureLODGroups.Num() == 0)
+	TArray<FTextureLODGroup> TextureLODGroups;
+	if (UDeviceProfileManager::DeviceProfileManagerSingleton)
 	{
-		TextureLODGroups = UDeviceProfileManager::Get().GetActiveProfile()->GetTextureLODSettings()->TextureLODGroups;
+		if (UDeviceProfile* Profile = UDeviceProfileManager::Get().GetActiveProfile())
+		{
+			TextureLODGroups = Profile->GetTextureLODSettings()->TextureLODGroups;
+		}
 	}
 
 	IRendererModule& RendererModule = FModuleManager::GetModuleChecked<IRendererModule>(RendererModuleName);
@@ -374,6 +378,8 @@ void FSlateRHIRenderingPolicy::DrawElements(
 	// Disable depth/stencil testing by default
 	GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
 
+	FVector2D ViewTranslation2D = Options.ViewOffset;
+
 	// Draw each element
 	for( int32 BatchIndex = 0; BatchIndex < RenderBatches.Num(); ++BatchIndex )
 	{
@@ -419,7 +425,7 @@ void FSlateRHIRenderingPolicy::DrawElements(
 #if STATS
 				&ScissorClips, &StencilClips,
 #endif
-				&StencilRef, &MaskingID, &BackBuffer, &RenderBatch, &ColorTarget, &DepthStencilTarget, &RenderClipStates, &LastClippingIndex, &bSwitchVerticalAxis](FGraphicsPipelineStateInitializer& InGraphicsPSOInit, const FMatrix& ViewProjection, bool bForceStateChange)
+				&StencilRef, &MaskingID, &BackBuffer, &RenderBatch, &ColorTarget, &DepthStencilTarget, &RenderClipStates, &LastClippingIndex, &ViewTranslation2D, &bSwitchVerticalAxis](FGraphicsPipelineStateInitializer& InGraphicsPSOInit, const FMatrix& ViewProjection, bool bForceStateChange)
 		{
 			if ( RenderBatch.ClippingIndex != LastClippingIndex || bForceStateChange )
 			{
@@ -433,16 +439,20 @@ void FSlateRHIRenderingPolicy::DrawElements(
 #endif
 
 						const FSlateClippingZone& ScissorRect = ClipState.ScissorRect.GetValue();
+
+						const FVector2D TopLeft = ScissorRect.TopLeft + ViewTranslation2D;
+						const FVector2D BottomRight = ScissorRect.BottomRight + ViewTranslation2D;
+
 						if (bSwitchVerticalAxis)
 						{
-							FIntPoint ViewSize = BackBuffer.GetSizeXY();
-							int32 MinY = (ViewSize.Y - ScissorRect.BottomRight.Y);
-							int32 MaxY = (ViewSize.Y - ScissorRect.TopLeft.Y);
-							RHICmdList.SetScissorRect(true, ScissorRect.TopLeft.X, MinY, ScissorRect.BottomRight.X, MaxY);
+							const FIntPoint ViewSize = BackBuffer.GetSizeXY();
+							const int32 MinY = (ViewSize.Y - BottomRight.Y);
+							const int32 MaxY = (ViewSize.Y - TopLeft.Y);
+							RHICmdList.SetScissorRect(true, TopLeft.X, MinY, BottomRight.X, MaxY);
 						}
 						else
 						{
-							RHICmdList.SetScissorRect(true, ScissorRect.TopLeft.X, ScissorRect.TopLeft.Y, ScissorRect.BottomRight.X, ScissorRect.BottomRight.Y);
+							RHICmdList.SetScissorRect(true, TopLeft.X, TopLeft.Y, BottomRight.X, BottomRight.Y);
 						}
 						
 						// Disable depth/stencil testing by default
@@ -486,18 +496,21 @@ void FSlateRHIRenderingPolicy::DrawElements(
 							//
 							// NOTE - We also round it, because if we don't it can over-eagerly slice off pixels it shouldn't.
 							const FSlateClippingZone& MaskQuad = StencilQuads.Last();
-							FSlateRect LastStencilBoundingBox = MaskQuad.GetBoundingBox().Round();
+							const FSlateRect LastStencilBoundingBox = MaskQuad.GetBoundingBox().Round();
+
+							const FVector2D TopLeft = LastStencilBoundingBox.GetTopLeft() + ViewTranslation2D;
+							const FVector2D BottomRight = LastStencilBoundingBox.GetBottomRight() + ViewTranslation2D;
 
 							if (bSwitchVerticalAxis)
 							{
-								FIntPoint ViewSize = BackBuffer.GetSizeXY();
-								int32 MinY = (ViewSize.Y - LastStencilBoundingBox.Bottom);
-								int32 MaxY = (ViewSize.Y - LastStencilBoundingBox.Top);
-								RHICmdList.SetScissorRect(true, LastStencilBoundingBox.Left, MinY, LastStencilBoundingBox.Right, MaxY);
+								const FIntPoint ViewSize = BackBuffer.GetSizeXY();
+								const int32 MinY = (ViewSize.Y - BottomRight.Y);
+								const int32 MaxY = (ViewSize.Y - TopLeft.Y);
+								RHICmdList.SetScissorRect(true, TopLeft.X, MinY, BottomRight.X, MaxY);
 							}
 							else
 							{
-								RHICmdList.SetScissorRect(true, LastStencilBoundingBox.Left, LastStencilBoundingBox.Top, LastStencilBoundingBox.Right, LastStencilBoundingBox.Bottom);
+								RHICmdList.SetScissorRect(true, TopLeft.X, TopLeft.Y, BottomRight.X, BottomRight.Y);
 							}
 						}
 
@@ -764,7 +777,7 @@ void FSlateRHIRenderingPolicy::DrawElements(
 
 						if (UTexture* TextureObj = TextureObjectResource->TextureObject)
 						{
-							Filter = GetSamplerFilter(TextureObj);
+							Filter = GetSamplerFilter(TextureLODGroups, TextureObj);
 						}
 					}
 					else
@@ -1120,7 +1133,7 @@ void FSlateRHIRenderingPolicy::DrawElements(
 	INC_DWORD_STAT_BY(STAT_SlateStencilClips, StencilClips);
 }
 
-ETextureSamplerFilter FSlateRHIRenderingPolicy::GetSamplerFilter(const UTexture* Texture) const
+ETextureSamplerFilter FSlateRHIRenderingPolicy::GetSamplerFilter(const TArray<FTextureLODGroup>& TextureLODGroups, const UTexture* Texture) const
 {
 	// Default to point filtering.
 	ETextureSamplerFilter Filter = ETextureSamplerFilter::Point;
@@ -1134,7 +1147,10 @@ ETextureSamplerFilter FSlateRHIRenderingPolicy::GetSamplerFilter(const UTexture*
 		// TF_Default
 	default:
 		// Use LOD group value to find proper filter setting.
-		Filter = TextureLODGroups[Texture->LODGroup].Filter;
+		if (Texture->LODGroup < TextureLODGroups.Num())
+		{
+			Filter = TextureLODGroups[Texture->LODGroup].Filter;
+		}
 	}
 
 	return Filter;

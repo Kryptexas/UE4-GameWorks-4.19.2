@@ -40,6 +40,16 @@ FString FOculusHMDModule::GetModuleKeyName() const
 	return FString(TEXT("OculusHMD"));
 }
 
+void FOculusHMDModule::GetModuleAliases(TArray<FString>& AliasesOut) const
+{
+	// old name for this module (was renamed in 4.17)
+	AliasesOut.Add(TEXT("OculusRift"));
+	// the old "GearVR" module was merged with this one (also in 4.17)
+	AliasesOut.Add(TEXT("GearVR"));
+
+	AliasesOut.Add(TEXT("Oculus"));
+	AliasesOut.Add(TEXT("Rift"));
+}
 
 bool FOculusHMDModule::PreInit()
 {

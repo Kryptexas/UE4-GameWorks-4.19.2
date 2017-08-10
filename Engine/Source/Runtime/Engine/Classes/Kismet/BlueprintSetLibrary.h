@@ -131,8 +131,8 @@ public:
 	static void Set_Difference(const TSet<int32>& A, const TSet<int32>& B, TSet<int32>& Result );
 
 	/** 
-	* Not exposed to users. Supports setting a set property on an object by name.
-	*/
+	 * Not exposed to users. Supports setting a set property on an object by name.
+	 */
 	UFUNCTION(BlueprintCallable, CustomThunk, meta=(BlueprintInternalUseOnly = "true", SetParam = "Value"))
 	static void SetSetPropertyByName(UObject* Object, FName PropertyName, const TSet<int32>& Value);
 

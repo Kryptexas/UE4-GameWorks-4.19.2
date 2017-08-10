@@ -1744,7 +1744,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		// if (FParse::Param(FCommandLine::Get(), TEXT("Multiprocess")) == false)
 		{
 			CompileGlobalShaderMap(false);
-			if (GetGlobalShaderMap(GMaxRHIFeatureLevel) == nullptr && GIsRequestingExit)
+			if (GIsRequestingExit)
 			{
 				// This means we can't continue without the global shader map.
 				return 1;
@@ -3934,7 +3934,30 @@ void FEngineLoop::PreInitHMDDevice()
 		{
 			IHeadMountedDisplayModule* HMDModule = *HMDModuleIt;
 
-			if ((bUseExplicitHMDName && !ExplicitHMDName.Equals(HMDModule->GetModuleKeyName(), ESearchCase::IgnoreCase)) || !HMDModule->PreInit())
+
+			bool bUnregisterHMDModule = false;
+			if (bUseExplicitHMDName)
+			{
+				TArray<FString> HMDAliases;
+				HMDModule->GetModuleAliases(HMDAliases);
+				HMDAliases.Add(HMDModule->GetModuleKeyName());
+
+				bUnregisterHMDModule = true;
+				for (const FString& HMDModuleName : HMDAliases)
+				{
+					if (ExplicitHMDName.Equals(HMDModule->GetModuleKeyName(), ESearchCase::IgnoreCase))
+					{
+						bUnregisterHMDModule = false;
+						break;
+					}
+				}
+			}
+			else
+			{
+				bUnregisterHMDModule = !HMDModule->PreInit();
+			}
+
+			if (bUnregisterHMDModule)
 			{
 				// Unregister modules which don't match ExplicitHMDName, or which fail PreInit
 				ModularFeatures.UnregisterModularFeature(Type, HMDModule);

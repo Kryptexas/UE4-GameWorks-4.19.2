@@ -148,6 +148,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Rendering|SceneCapture")
 	void ClearShowOnlyComponents(UPrimitiveComponent* InComponent);
 
+	/** Clears the hidden list. */
+	UFUNCTION(BlueprintCallable, Category = "Rendering|SceneCapture")
+	void ClearHiddenComponents();
+
 	/** Changes the value of TranslucentSortPriority. */
 	UFUNCTION(BlueprintCallable, Category = "Rendering|SceneCapture")
 	void SetCaptureSortPriority(int32 NewCaptureSortPriority);

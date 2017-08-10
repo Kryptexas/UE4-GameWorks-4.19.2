@@ -456,7 +456,7 @@ void TermGamePhys()
 		}
 	}
 
-	if(IPhysXCookingModule* PhysXCookingModule = GetPhysXCookingModule())
+	if(IPhysXCookingModule* PhysXCookingModule = GetPhysXCookingModule( /*bforceLoad=*/false))
 	{
 		PhysXCookingModule->Terminate();
 	}

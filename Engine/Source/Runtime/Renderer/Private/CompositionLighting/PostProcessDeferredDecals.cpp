@@ -987,12 +987,17 @@ void FDecalRenderTargetManager::SetRenderTargetMode(FDecalRenderingCommon::ERend
 		// Which is not needed here since no more read will be done at this point (at least not before any other CopyToResolvedTarget).
 		RHICmdList.TransitionResource(EResourceTransitionAccess::EWritable, SceneContext.GBufferA->GetRenderTargetItem().TargetableTexture);
 	}
+
+	// @todo Workaround Vulkan (always) or Mac with NV/Intel graphics driver bug requires we pointlessly bind into RT1 even though we don't write to it,
+	// otherwise the writes to RT2 and RT3 go haywire. This isn't really possible to fix lower down the stack.
+	const bool bRequiresDummyRenderTarget = PLATFORM_MAC || IsVulkanPlatform(GMaxRHIShaderPlatform);
+
 	switch (CurrentRenderTargetMode)
 	{
 	case FDecalRenderingCommon::RTM_SceneColorAndGBufferWithNormal:
 	case FDecalRenderingCommon::RTM_SceneColorAndGBufferNoNormal:
 		TargetsToResolve[SceneColorIndex] = SceneContext.GetSceneColor()->GetRenderTargetItem().TargetableTexture;
-		TargetsToResolve[GBufferAIndex] = bHasNormal ? SceneContext.GBufferA->GetRenderTargetItem().TargetableTexture : (PLATFORM_MAC ? SceneContext.GBufferB->GetRenderTargetItem().TargetableTexture : nullptr); // @todo Workaround a Mac NV/Intel graphics driver bug that requires we pointlessly bind into RT1 even though we don't write to it, otherwise the writes to RT2 and RT3 go haywire. This isn't really possible to fix lower down the stack.
+		TargetsToResolve[GBufferAIndex] = bHasNormal ? SceneContext.GBufferA->GetRenderTargetItem().TargetableTexture : (bRequiresDummyRenderTarget ? SceneContext.GBufferB->GetRenderTargetItem().TargetableTexture : nullptr);
 		TargetsToResolve[GBufferBIndex] = SceneContext.GBufferB->GetRenderTargetItem().TargetableTexture;
 		TargetsToResolve[GBufferCIndex] = SceneContext.GBufferC->GetRenderTargetItem().TargetableTexture;
 		SetRenderTargets(RHICmdList, 4, TargetsToResolve, SceneContext.GetSceneDepthSurface(), ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilWrite, TargetsToTransitionWritable[CurrentRenderTargetMode]);
@@ -1001,7 +1006,7 @@ void FDecalRenderTargetManager::SetRenderTargetMode(FDecalRenderingCommon::ERend
 	case FDecalRenderingCommon::RTM_SceneColorAndGBufferDepthWriteWithNormal:
 	case FDecalRenderingCommon::RTM_SceneColorAndGBufferDepthWriteNoNormal:
 		TargetsToResolve[SceneColorIndex] = SceneContext.GetSceneColor()->GetRenderTargetItem().TargetableTexture;
-		TargetsToResolve[GBufferAIndex] = bHasNormal ? SceneContext.GBufferA->GetRenderTargetItem().TargetableTexture : (PLATFORM_MAC ? SceneContext.GBufferB->GetRenderTargetItem().TargetableTexture : nullptr); // @todo Workaround a Mac NV/Intel graphics driver bug that requires we pointlessly bind into RT1 even though we don't write to it, otherwise the writes to RT2 and RT3 go haywire. This isn't really possible to fix lower down the stack.
+		TargetsToResolve[GBufferAIndex] = bHasNormal ? SceneContext.GBufferA->GetRenderTargetItem().TargetableTexture : (bRequiresDummyRenderTarget ? SceneContext.GBufferB->GetRenderTargetItem().TargetableTexture : nullptr);
 		TargetsToResolve[GBufferBIndex] = SceneContext.GBufferB->GetRenderTargetItem().TargetableTexture;
 		TargetsToResolve[GBufferCIndex] = SceneContext.GBufferC->GetRenderTargetItem().TargetableTexture;
 		TargetsToResolve[GBufferEIndex] = SceneContext.GBufferE->GetRenderTargetItem().TargetableTexture;

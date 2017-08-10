@@ -1400,6 +1400,22 @@ void ULevel::PostEditUndo()
 
 	MarkLevelBoundsDirty();
 }
+
+void ULevel::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	UProperty* PropertyThatChanged = PropertyChangedEvent.MemberProperty;
+	const FString PropertyName = PropertyThatChanged ? PropertyThatChanged->GetName() : TEXT("");
+
+	if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(ULevel, MapBuildData))
+	{
+		// MapBuildData is not editable but can be modified by the editor's Force Delete
+		ReleaseRenderingResources();
+		InitializeRenderingResources();
+	}
+} 
+
 #endif // WITH_EDITOR
 
 void ULevel::MarkLevelBoundsDirty()

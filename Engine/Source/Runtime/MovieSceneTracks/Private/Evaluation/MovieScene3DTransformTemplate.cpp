@@ -72,7 +72,7 @@ struct FComponentTransformActuator : TMovieSceneBlendingActuator<F3DTransformTra
 	/** Set an object's transform */
 	virtual void Actuate(UObject* InObject, const F3DTransformTrackToken& InFinalValue, const TBlendableTokenStack<F3DTransformTrackToken>& OriginalStack, const FMovieSceneContext& Context, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) override
 	{
-		check(InObject);
+		ensureMsgf(InObject, TEXT("Attempting to evaluate a Transform track with a null object."));
 
 		USceneComponent* SceneComponent = MovieSceneHelpers::SceneComponentFromRuntimeObject(InObject);
 		if (SceneComponent)

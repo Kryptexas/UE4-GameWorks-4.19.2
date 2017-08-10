@@ -200,8 +200,10 @@ public:
 	SProfilerMiniView();
 	~SProfilerMiniView();
 
-	SLATE_BEGIN_ARGS( SProfilerMiniView )
-		{}
+	SLATE_BEGIN_ARGS( SProfilerMiniView )	
+	{
+		_Clipping = EWidgetClipping::ClipToBounds;
+	}
 	SLATE_END_ARGS()
 
 	/**

@@ -266,9 +266,8 @@ FMetalShaderPipeline* FMetalRenderPipelineDesc::CreatePipelineStateForBoundShade
 			
 			if (computeFunction == nil)
 			{
-				NSLog(@"Failed to create kernel: %@", Error);
-				NSLog(@"*********** Error\n%@", BSS->VertexShader->GlslCodeNSString);
-				check(0);
+				UE_LOG(LogRHI, Error, TEXT("*********** Error\n%s"), *FString(BSS->VertexShader->GetSourceCode()));
+				UE_LOG(LogRHI, Fatal, TEXT("Failed to create kernel: %s"), *FString([Error description]));
 			}
 			
 			tessellationDesc.DSNumUniformBuffers = BSS->DomainShader->Bindings.NumUniformBuffers;
@@ -329,12 +328,11 @@ FMetalShaderPipeline* FMetalRenderPipelineDesc::CreatePipelineStateForBoundShade
 			}
 			if(statePack.ComputePipelineState == nil)
 			{
-				NSLog(@"Failed to generate a pipeline state object: %@", Error);
-				NSLog(@"Vertex shader: %@", BSS->VertexShader->GlslCodeNSString);
-				NSLog(@"Pixel shader: %@", BSS->PixelShader->GlslCodeNSString);
-				NSLog(@"Hull shader: %@", BSS->HullShader->GlslCodeNSString);
-				NSLog(@"Domain shader: %@", BSS->DomainShader->GlslCodeNSString);
-				NSLog(@"Descriptor: %@", PipelineDescriptor);
+				UE_LOG(LogRHI, Error, TEXT("Vertex shader: %s"), *FString(BSS->VertexShader->GetSourceCode()));
+				UE_LOG(LogRHI, Error, TEXT("Pixel shader: %s"), *FString(BSS->PixelShader->GetSourceCode()));
+				UE_LOG(LogRHI, Error, TEXT("Hull shader: %s"), *FString(BSS->HullShader->GetSourceCode()));
+				UE_LOG(LogRHI, Error, TEXT("Domain shader: %s"), *FString(BSS->DomainShader->GetSourceCode()));
+				UE_LOG(LogRHI, Error, TEXT("Descriptor: %s"), *FString([PipelineDescriptor description]));
 				
 				UE_LOG(LogMetal, Fatal, TEXT("Failed to generate a hull pipeline state object:\n\n %s\n\n"), *FString([Error localizedDescription]));
 			}
@@ -535,9 +533,9 @@ FMetalShaderPipeline* FMetalRenderPipelineDesc::CreatePipelineStateForBoundShade
 			TRACK_OBJECT(STAT_MetalRenderPipelineStateCount, statePack.RenderPipelineState);
 			
 #if METAL_DEBUG_OPTIONS
-			statePack.ComputeSource = BSS->DomainShader ? BSS->VertexShader->GlslCodeNSString : nil;
-			statePack.VertexSource = BSS->DomainShader ? BSS->DomainShader->GlslCodeNSString : BSS->VertexShader->GlslCodeNSString;
-			statePack.FragmentSource = BSS->PixelShader ? BSS->PixelShader->GlslCodeNSString : nil;
+			statePack.ComputeSource = BSS->DomainShader ? BSS->VertexShader->GetSourceCode() : nil;
+			statePack.VertexSource = BSS->DomainShader ? BSS->DomainShader->GetSourceCode() : BSS->VertexShader->GetSourceCode();
+			statePack.FragmentSource = BSS->PixelShader ? BSS->PixelShader->GetSourceCode() : nil;
 #endif
 			
 			if(IsRunningRHIInSeparateThread())
@@ -567,19 +565,17 @@ FMetalShaderPipeline* FMetalRenderPipelineDesc::CreatePipelineStateForBoundShade
 		}
 		else
 		{
-			NSLog(@"Failed to generate a pipeline state object: %@", Error);
-			NSLog(@"Vertex shader: %@", BSS->VertexShader->GlslCodeNSString);
-			NSLog(@"Pixel shader: %@", BSS->PixelShader->GlslCodeNSString);
-			
+			UE_LOG(LogRHI, Error, TEXT("Vertex shader: %s"), *FString(BSS->VertexShader->GetSourceCode()));
+			UE_LOG(LogRHI, Error, TEXT("Pixel shader: %s"), *FString(BSS->PixelShader->GetSourceCode()));
 			if (IsValidRef(BSS->HullShader))
 			{
-				NSLog(@"Hull shader: %@", BSS->HullShader->GlslCodeNSString);
+				UE_LOG(LogRHI, Error, TEXT("Hull shader: %s"), *FString(BSS->HullShader->GetSourceCode()));
 			}
 			if (IsValidRef(BSS->DomainShader))
 			{
-				NSLog(@"Domain shader: %@", BSS->DomainShader->GlslCodeNSString);
+				UE_LOG(LogRHI, Error, TEXT("Domain shader: %s"), *FString(BSS->DomainShader->GetSourceCode()));
 			}
-			NSLog(@"Descriptor: %@", PipelineDescriptor);
+			UE_LOG(LogRHI, Error, TEXT("Descriptor: %s"), *FString([PipelineDescriptor description]));
 			
 			UE_LOG(LogMetal, Fatal, TEXT("Failed to generate a render pipeline state object:\n\n %s\n\n"), *FString([Error localizedDescription]));
 			return nil;

@@ -564,8 +564,11 @@ FGoogleVRHMD::~FGoogleVRHMD()
 		gvr_buffer_viewport_destroy(&ScratchViewport);
 	}
 
-	CustomPresent->Shutdown();
-    CustomPresent = nullptr;
+	if (CustomPresent)
+	{
+		CustomPresent->Shutdown();
+		CustomPresent = nullptr;
+	}
 #endif
 
 	FCoreUObjectDelegates::PreLoadMap.RemoveAll(this);
@@ -1284,6 +1287,13 @@ void FGoogleVRHMD::PostRenderViewFamily_RenderThread(FRHICommandListImmediate& R
 			ReadbackTextureSizes[textureIndex] = renderSize;
 		}
 		ReadbackCopyQueries[ReadbackTextureCount % kReadbackTextureCount] = RHICmdList.CreateRenderQuery(ERenderQueryType::RQT_AbsoluteTime);
+		
+		// Absolute time query creation can fail on AMD hardware due to driver support
+		if (!ReadbackCopyQueries[ReadbackTextureCount % kReadbackTextureCount])
+		{
+			return;
+		}
+		
 		// copy and map the texture.
 		FPooledRenderTargetDesc OutputDesc(FPooledRenderTargetDesc::Create2DDesc(ReadbackTextureSizes[textureIndex], PF_B8G8R8A8, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable, false));
 		const auto FeatureLevel = GMaxRHIFeatureLevel;
@@ -2196,10 +2206,10 @@ bool FGoogleVRHMD::HandleInputKey(UPlayerInput *, const FKey & Key, EInputEvent 
 				if (bIsInDaydreamMode)
 				{
 					AndroidThunkCpp_QuitDaydreamApplication();
+					return true;
 				}
 			}
 		}
-		return true;
 	}
 #endif
 	return false;

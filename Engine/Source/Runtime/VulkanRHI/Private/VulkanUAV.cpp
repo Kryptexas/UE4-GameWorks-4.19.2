@@ -81,42 +81,52 @@ void FVulkanUnorderedAccessView::UpdateView()
 			BufferView->Create(SourceVertexBuffer.GetReference(), BufferViewFormat, SourceVertexBuffer->GetOffset(), SourceVertexBuffer->GetSize());
 		}
 	}
-	else
+	else if (SourceStructuredBuffer)
 	{
-		if (TextureView.View == VK_NULL_HANDLE)
+		if (SourceStructuredBuffer->IsVolatile() && VolatileLockCounter != SourceStructuredBuffer->GetVolatileLockCounter())
 		{
-			EPixelFormat Format = (BufferViewFormat == PF_Unknown) ? SourceTexture->GetFormat() : BufferViewFormat;
-			if (FRHITexture2D* Tex2D = SourceTexture->GetTexture2D())
+			BufferView = nullptr;
+			VolatileLockCounter = SourceStructuredBuffer->GetVolatileLockCounter();
+		}
+
+		if (BufferView == nullptr || SourceStructuredBuffer->IsDynamic())
+		{
+			SCOPE_CYCLE_COUNTER(STAT_VulkanSRVUpdateTime);
+			// thanks to ref counting, overwriting the buffer will toss the old view
+			BufferView = new FVulkanBufferView(Device);
+			BufferView->Create(SourceStructuredBuffer.GetReference(), BufferViewFormat, SourceStructuredBuffer->GetOffset(), SourceStructuredBuffer->GetSize());
+		}
+	}
+	else if (TextureView.View == VK_NULL_HANDLE)
+	{
+		EPixelFormat Format = (BufferViewFormat == PF_Unknown) ? SourceTexture->GetFormat() : BufferViewFormat;
+		if (FRHITexture2D* Tex2D = SourceTexture->GetTexture2D())
+		{
+			FVulkanTexture2D* VTex2D = ResourceCast(Tex2D);
+			if (Format == PF_X24_G8)
 			{
-				FVulkanTexture2D* VTex2D = ResourceCast(Tex2D);
-				if (Format == PF_X24_G8)
-				{
-					Format = PF_DepthStencil;
-				}
-				TextureView.Create(*Device, VTex2D->Surface.Image, VK_IMAGE_VIEW_TYPE_2D, VTex2D->Surface.GetPartialAspectMask(), Format, UEToVkFormat(Format, false), MipLevel, 1, 0, 1);
+				Format = PF_DepthStencil;
 			}
-			else
-			{
-				ensure(0);
-			}
+			TextureView.Create(*Device, VTex2D->Surface.Image, VK_IMAGE_VIEW_TYPE_2D, VTex2D->Surface.GetPartialAspectMask(), Format, UEToVkFormat(Format, false), MipLevel, 1, 0, 1);
+		}
+		else
+		{
+			ensure(0);
 		}
 	}
 }
 
 FUnorderedAccessViewRHIRef FVulkanDynamicRHI::RHICreateUnorderedAccessView(FStructuredBufferRHIParamRef StructuredBufferRHI, bool bUseUAVCounter, bool bAppendBuffer)
 {
-#if 0
 	FVulkanStructuredBuffer* StructuredBuffer = ResourceCast(StructuredBufferRHI);
 
-	// create the UAV buffer to point to the structured buffer's memory
-	FVulkanUnorderedAccessView* UAV = new FVulkanUnorderedAccessView;
+	FVulkanUnorderedAccessView* UAV = new FVulkanUnorderedAccessView(Device);
+	// delay the shader view create until we use it, so we just track the source info here
 	UAV->SourceStructuredBuffer = StructuredBuffer;
 
+	//#todo-rco: bUseUAVCounter and bAppendBuffer
+
 	return UAV;
-#else
-	VULKAN_SIGNAL_UNIMPLEMENTED();
-	return nullptr;
-#endif
 }
 
 FUnorderedAccessViewRHIRef FVulkanDynamicRHI::RHICreateUnorderedAccessView(FTextureRHIParamRef TextureRHI, uint32 MipLevel)
@@ -160,15 +170,10 @@ FUnorderedAccessViewRHIRef FVulkanDynamicRHI::RHICreateUnorderedAccessView(FVert
 
 FShaderResourceViewRHIRef FVulkanDynamicRHI::RHICreateShaderResourceView(FStructuredBufferRHIParamRef StructuredBufferRHI)
 {
-#if 0
 	FVulkanStructuredBuffer* StructuredBuffer = ResourceCast(StructuredBufferRHI);
-
-	FVulkanShaderResourceView* SRV = new FVulkanShaderResourceView;
+	FVulkanShaderResourceView* SRV = new FVulkanShaderResourceView(Device);
+	SRV->SourceStructuredBuffer = StructuredBuffer;
 	return SRV;
-#else
-	VULKAN_SIGNAL_UNIMPLEMENTED();
-	return nullptr;
-#endif
 }
 
 FShaderResourceViewRHIRef FVulkanDynamicRHI::RHICreateShaderResourceView(FVertexBufferRHIParamRef VertexBufferRHI, uint32 Stride, uint8 Format)
@@ -295,6 +300,6 @@ void FVulkanCommandListContext::RHIWaitComputeFence(FComputeFenceRHIParamRef InF
 	FVulkanComputeFence* Fence = ResourceCast(InFence);
 	FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
 	VkEvent Event = Fence->GetHandle();
-	VulkanRHI::vkCmdWaitEvents(CmdBuffer->GetHandle(), 1, &Event, VK_SHADER_STAGE_COMPUTE_BIT, VK_SHADER_STAGE_ALL_GRAPHICS, 0, nullptr, 0, nullptr, 0, nullptr);
+	VulkanRHI::vkCmdWaitEvents(CmdBuffer->GetHandle(), 1, &Event, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, nullptr, 0, nullptr, 0, nullptr);
 	IRHICommandContext::RHIWaitComputeFence(InFence);
 }

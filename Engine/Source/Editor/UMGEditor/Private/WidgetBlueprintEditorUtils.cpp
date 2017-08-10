@@ -382,14 +382,14 @@ void FWidgetBlueprintEditorUtils::DeleteWidgets(UWidgetBlueprint* Blueprint, TSe
 			}
 
 			// Rename the removed widget to the transient package so that it doesn't conflict with future widgets sharing the same name.
-			WidgetTemplate->Rename(nullptr, nullptr);
+			WidgetTemplate->Rename(nullptr, GetTransientPackage());
 
 			// Rename all child widgets as well, to the transient package so that they don't conflict with future widgets sharing the same name.
 			TArray<UWidget*> ChildWidgets;
 			UWidgetTree::GetChildWidgets(WidgetTemplate, ChildWidgets);
 			for ( UWidget* Widget : ChildWidgets )
 			{
-				Widget->Rename(nullptr, nullptr);
+				Widget->Rename(nullptr, GetTransientPackage());
 			}
 		}
 

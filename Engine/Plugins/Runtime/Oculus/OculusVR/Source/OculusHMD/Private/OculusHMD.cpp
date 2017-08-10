@@ -42,6 +42,8 @@
 
 #if OCULUS_HMD_SUPPORTED_PLATFORMS
 
+#include "OculusHMDModule.h" // for IsOVRPluginAvailable()
+
 namespace OculusHMD
 {
 
@@ -429,6 +431,8 @@ namespace OculusHMD
 			FLayerPtr EyeLayer = LayerMap[0]->Clone();
 			EyeLayer->Initialize_RenderThread(CustomPresent, EyeLayer_RenderThread.Get());
 			EyeLayer_RenderThread = Layers_RenderThread[0] = EyeLayer;
+
+			UE_LOG(LogHMD, Log, TEXT("Allocating Oculus %d x %d rendertarget swapchain"), SizeX, SizeY);
 
 			const FTextureSetProxyPtr& TextureSet = EyeLayer->GetTextureSetProxy();
 
@@ -1480,6 +1484,8 @@ namespace OculusHMD
 				}
 			}
 
+			UpdateHMDWornState();
+
 			// Update tracking
 			ovrp_Update3(ovrpStep_Game, Frame->FrameNumber, 0.0);
 
@@ -1497,6 +1503,23 @@ namespace OculusHMD
 		return retval;
 	}
 
+	void FOculusHMD::UpdateHMDWornState()
+	{
+		const EHMDWornState::Type NewHMDWornState = GetHMDWornState();
+
+		if (NewHMDWornState != HMDWornState)
+		{
+			HMDWornState = NewHMDWornState;
+			if (HMDWornState == EHMDWornState::Worn)
+			{
+				FCoreDelegates::VRHeadsetPutOnHead.Broadcast();
+			}
+			else if (HMDWornState == EHMDWornState::NotWorn)
+			{
+				FCoreDelegates::VRHeadsetRemovedFromHead.Broadcast();
+			}
+		}
+	}
 
 	bool FOculusHMD::OnEndGameFrame(FWorldContext& InWorldContext)
 	{
@@ -1678,7 +1701,7 @@ namespace OculusHMD
 		{
 			if (SplashLayerHandle)
 			{
-				FSplashDesc CurrentDesc;
+				FOculusSplashDesc CurrentDesc;
 				Splash->GetSplash(0, CurrentDesc);
 				CurrentDesc.LoadedTexture = Texture;
 				CurrentDesc.TextureOffset = SplashOffset;
@@ -1688,7 +1711,7 @@ namespace OculusHMD
 			{
 				Splash->ClearSplashes();
 
-				FSplashDesc NewDesc;
+				FOculusSplashDesc NewDesc;
 				NewDesc.LoadedTexture = Texture;
 				NewDesc.QuadSizeInMeters = FVector2D(8.0f, 4.5f);
 
@@ -2488,7 +2511,7 @@ namespace OculusHMD
 		ovrpLayerDesc_EyeFov EyeLayerDesc;
 		if (OVRP_SUCCESS(ovrp_CalculateEyeLayerDesc(
 			Layout,
-			Settings->PixelDensityMax,
+			Settings->bPixelDensityAdaptive ? Settings->PixelDensityMax : Settings->PixelDensity,
 			Settings->Flags.bHQDistortion ? 0 : 1,
 			1, // UNDONE
 			CustomPresent->GetOvrpTextureFormat(CustomPresent->GetDefaultPixelFormat(), true),
@@ -2496,7 +2519,7 @@ namespace OculusHMD
 			&EyeLayerDesc)))
 		{
 			// Update viewports
-			float ViewportScale = PixelDensity / Settings->PixelDensityMax;
+			float ViewportScale = Settings->bPixelDensityAdaptive ? PixelDensity / Settings->PixelDensityMax : 1.0f;
 			ovrpSizei rtSize = EyeLayerDesc.TextureSize;
 			ovrpSizei vpSizeMax = EyeLayerDesc.MaxViewportSize;
 			ovrpRecti vpRect[3];
@@ -2537,7 +2560,6 @@ namespace OculusHMD
 			if (!FMath::IsNearlyEqual(Settings->PixelDensity, PixelDensity))
 			{
 				Settings->PixelDensity = PixelDensity;
-				Settings->UpdateScreenPercentageFromPixelDensity();
 			}
 		}
 	}
@@ -2548,8 +2570,6 @@ namespace OculusHMD
 		CheckInGameThread();
 
 		static const auto ScreenPercentageCVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.ScreenPercentage"));
-		Settings->CurrentScreenPercentage = ScreenPercentageCVar->GetValueOnGameThread();
-		Settings->IdealScreenPercentage = Settings->CurrentScreenPercentage / Settings->PixelDensityMax;
 		ovrp_GetSystemDisplayFrequency2(&Settings->VsyncToNextVsync);
 	}
 
@@ -2631,6 +2651,14 @@ namespace OculusHMD
 		return nullptr;
 	}
 
+	bool FOculusHMD::IsHMDActive() const
+	{
+		if (FOculusHMDModule::Get().IsOVRPluginAvailable())
+		{
+			return ovrp_GetInitialized() != ovrpBool_False;
+		}
+		return false;
+	}
 
 	float FOculusHMD::GetWorldToMetersScale() const
 	{
@@ -2939,7 +2967,6 @@ namespace OculusHMD
 		Settings->PixelDensity = FMath::Clamp(NewPD, ClampPixelDensityMin, ClampPixelDensityMax);
 		Settings->PixelDensityMin = FMath::Min(Settings->PixelDensity, Settings->PixelDensityMin);
 		Settings->PixelDensityMax = FMath::Max(Settings->PixelDensity, Settings->PixelDensityMax);
-		Settings->UpdateScreenPercentageFromPixelDensity();
 	}
 
 
@@ -3318,7 +3345,6 @@ namespace OculusHMD
 			if (!FMath::IsNearlyEqual(NewPixelDensity, Settings->PixelDensity))
 			{
 				Settings->PixelDensity = NewPixelDensity;
-				Settings->UpdateScreenPercentageFromPixelDensity();
 			}
 		}
 		Ar.Logf(TEXT("vr.oculus.PixelDensity.min = \"%1.2f\""), Settings->PixelDensityMin);
@@ -3337,7 +3363,6 @@ namespace OculusHMD
 			if (!FMath::IsNearlyEqual(NewPixelDensity, Settings->PixelDensity))
 			{
 				Settings->PixelDensity = NewPixelDensity;
-				Settings->UpdateScreenPercentageFromPixelDensity();
 			}
 		}
 		Ar.Logf(TEXT("vr.oculus.PixelDensity.max = \"%1.2f\""), Settings->PixelDensityMax);
@@ -3367,6 +3392,25 @@ namespace OculusHMD
 		BOOLEAN_COMMAND_HANDLER_BODY(TEXT("vr.oculus.bHQDistortion"), Settings->Flags.bHQDistortion);
 	}
 
+	void FOculusHMD::ShowGlobalMenuCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar)
+	{
+		CheckInGameThread();
+
+		if (!OVRP_SUCCESS(ovrp_ShowSystemUI2(ovrpUI::ovrpUI_GlobalMenu)))
+		{
+			Ar.Logf(TEXT("Could not show platform menu"));
+		}
+	}
+
+	void FOculusHMD::ShowQuitMenuCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar)
+	{
+		CheckInGameThread();
+
+		if (!OVRP_SUCCESS(ovrp_ShowSystemUI2(ovrpUI::ovrpUI_ConfirmQuit)))
+		{
+			Ar.Logf(TEXT("Could not show platform menu"));
+		}
+	}
 
 #if !UE_BUILD_SHIPPING
 	void FOculusHMD::UpdateOnGameThreadCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar)
@@ -3506,6 +3550,64 @@ namespace OculusHMD
 		bool v;
 		float f;
 		FVector vec;
+
+		// Handling of old (deprecated) GearVR settings
+		// @TODO: Remove GearVR deprecation handling in 4.18+
+		{
+			const TCHAR* OldGearVRSettings = TEXT("GearVR.Settings");
+
+			if (GConfig->GetBool(OldGearVRSettings, TEXT("bChromaAbCorrectionEnabled"), v, GEngineIni))
+			{
+				Settings->Flags.bChromaAbCorrectionEnabled = v;
+				UE_LOG(LogHMD, Warning, TEXT("Deprecated config setting: 'bChromaAbCorrectionEnabled' in [GearVR.Settings] has been deprecated. This setting has been merged with its conterpart in [Oculus.Settings] (which will override this value if it's set). Please make sure to acount for this change and then remove all [GearVR.Settings] from your config file."));
+			}
+
+			if (GConfig->GetBool(OldGearVRSettings, TEXT("bOverrideIPD"), v, GEngineIni) || GConfig->GetBool(OculusSettings, TEXT("bOverrideIPD"), v, GEngineIni))
+			{
+				UE_LOG(LogHMD, Warning, TEXT("Removed config setting: 'bOverrideIPD' config variable has been removed completely. Now, only in non-shipping builds, if you set the 'IPD' config variable then the IPD will automatically be overridden."));
+			}
+			// other GearVR settings that have been removed entirely: 
+			//    "CpuLevel"
+			//    "GpuLevel"
+			//    "MinimumVsyncs"
+			//    "HeadModelScale"
+			//    "bOverrideFOV" + "HFOV" & "VFOV"
+
+			if (GConfig->GetFloat(OldGearVRSettings, TEXT("IPD"), f, GEngineIni))
+			{
+	#if !UE_BUILD_SHIPPING
+				if (ensure(!FMath::IsNaN(f)))
+				{
+					SetInterpupillaryDistance(FMath::Clamp(f, 0.0f, 1.0f));
+				}
+
+				UE_LOG(LogHMD, Warning, TEXT("Deprecated config setting: 'IPD' in [GearVR.Settings] has been deprecated. This setting has been merged with its conterpart in [Oculus.Settings] (which will override this value if it's set). Please make sure to acount for this change and then remove all [GearVR.Settings] from your config file."));
+	#endif // #if !UE_BUILD_SHIPPING
+			}
+
+			if (GConfig->GetBool(OldGearVRSettings, TEXT("bUpdateOnRT"), v, GEngineIni))
+			{
+				Settings->Flags.bUpdateOnRT = v;
+				UE_LOG(LogHMD, Warning, TEXT("Deprecated config setting: 'bUpdateOnRT' in [GearVR.Settings] has been deprecated. This setting has been merged with its conterpart in [Oculus.Settings] (which will override this value if it's set). Please make sure to acount for this change and then remove all [GearVR.Settings] from your config file."));
+			}
+			if (GConfig->GetFloat(OldGearVRSettings, TEXT("FarClippingPlane"), f, GEngineIni))
+			{
+				if (ensure(!FMath::IsNaN(f)))
+				{
+					Settings->FarClippingPlane = FMath::Max(f, 0.0f);
+				}
+				UE_LOG(LogHMD, Warning, TEXT("Deprecated config setting: 'FarClippingPlane' in [GearVR.Settings] has been deprecated. This setting has been merged with its conterpart in [Oculus.Settings] (which will override this value if it's set). Please make sure to acount for this change and then remove all [GearVR.Settings] from your config file."));
+			}
+			if (GConfig->GetFloat(OldGearVRSettings, TEXT("NearClippingPlane"), f, GEngineIni))
+			{
+				if (ensure(!FMath::IsNaN(f)))
+				{
+					Settings->NearClippingPlane = FMath::Max(f, 0.0f);
+				}
+				UE_LOG(LogHMD, Warning, TEXT("Deprecated config setting: 'NearClippingPlane' in [GearVR.Settings] has been deprecated. This setting has been merged with its conterpart in [Oculus.Settings] (which will override this value if it's set). Please make sure to acount for this change and then remove all [GearVR.Settings] from your config file."));
+			}
+		}
+
 		if (GConfig->GetBool(OculusSettings, TEXT("bChromaAbCorrectionEnabled"), v, GEngineIni))
 		{
 			Settings->Flags.bChromaAbCorrectionEnabled = v;

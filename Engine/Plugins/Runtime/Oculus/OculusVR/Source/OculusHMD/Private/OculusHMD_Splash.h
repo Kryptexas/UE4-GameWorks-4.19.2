@@ -7,49 +7,12 @@
 #include "OculusHMD_GameFrame.h"
 #include "OculusHMD_Layer.h"
 #include "TickableObjectRenderThread.h"
+#include "OculusHMDTypes.h"
 
 namespace OculusHMD
 {
 
 class FOculusHMD;
-
-
-//-------------------------------------------------------------------------------------------------
-// FSplashDesc
-//-------------------------------------------------------------------------------------------------
-
-struct FSplashDesc
-{
-	UTexture2D*			LoadingTexture;					// a UTexture pointer, either loaded manually or passed externally.
-	FString				TexturePath;					// a path to a texture for auto loading, can be empty if LoadingTexture is specified explicitly
-	FTransform			TransformInMeters;				// transform of center of quad (meters)
-	FVector2D			QuadSizeInMeters;				// dimensions in meters
-	FQuat				DeltaRotation;					// a delta rotation that will be added each rendering frame (half rate of full vsync)
-	FTextureRHIRef		LoadedTexture;					// texture reference for when a TexturePath or UTexture is not available
-	FVector2D			TextureOffset;					// texture offset amount from the top left corner
-	FVector2D			TextureScale;					// texture scale
-	bool				bNoAlphaChannel;				// whether the splash layer uses it's alpha channel
-
-	FSplashDesc() : LoadingTexture(nullptr)
-		, TransformInMeters(FVector(4.0f, 0.f, 0.f))
-		, QuadSizeInMeters(3.f, 3.f)
-		, DeltaRotation(FQuat::Identity)
-		, LoadedTexture(nullptr)
-		, TextureOffset(0.0f, 0.0f)
-		, TextureScale(1.0f, 1.0f)
-		, bNoAlphaChannel(false)
-	{
-	}
-
-	bool operator==(const FSplashDesc& d) const
-	{
-		return LoadingTexture == d.LoadingTexture && TexturePath == d.TexturePath && LoadedTexture == d.LoadedTexture &&
-			TransformInMeters.Equals(d.TransformInMeters) &&
-			QuadSizeInMeters == d.QuadSizeInMeters && DeltaRotation.Equals(d.DeltaRotation) &&
-			TextureOffset == d.TextureOffset && TextureScale == d.TextureScale;
-	}
-};
-
 
 //-------------------------------------------------------------------------------------------------
 // FSplashLayer
@@ -57,11 +20,11 @@ struct FSplashDesc
 
 struct FSplashLayer
 {
-	FSplashDesc Desc;
+	FOculusSplashDesc Desc;
 	FLayerPtr Layer;
 
 public:
-	FSplashLayer(const FSplashDesc& InDesc) : Desc(InDesc) {}
+	FSplashLayer(const FOculusSplashDesc& InDesc) : Desc(InDesc) {}
 	FSplashLayer(const FSplashLayer& InSplashLayer) : Desc(InSplashLayer.Desc), Layer(InSplashLayer.Layer) {}
 };
 
@@ -70,7 +33,7 @@ public:
 // FSplash
 //-------------------------------------------------------------------------------------------------
 
-class FSplash : public TSharedFromThis<FSplash>, public FGCObject
+class FSplash : public TSharedFromThis<FSplash>
 {
 protected:
 	class FTicker : public FTickableObjectRenderThread, public TSharedFromThis<FTicker>
@@ -89,10 +52,6 @@ public:
 	FSplash(FOculusHMD* InPlugin);
 	virtual ~FSplash();
 
-	// FGCObject interface
-	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
-	// End of FGCObject interface
-
 	void Tick_RenderThread(float DeltaTime);
 	bool IsTickable() const { return bTickable; }
 	bool IsShown() const;
@@ -107,9 +66,9 @@ public:
 	void OnLoadingBegins();
 	void OnLoadingEnds();
 
-	bool AddSplash(const FSplashDesc&);
+	bool AddSplash(const FOculusSplashDesc&);
 	void ClearSplashes();
-	bool GetSplash(unsigned index, FSplashDesc& OutDesc);
+	bool GetSplash(unsigned index, FOculusSplashDesc& OutDesc);
 
 	void SetAutoShow(bool bInAuto) { bAutoShow = bInAuto; }
 	bool IsAutoShow() const { return bAutoShow; }

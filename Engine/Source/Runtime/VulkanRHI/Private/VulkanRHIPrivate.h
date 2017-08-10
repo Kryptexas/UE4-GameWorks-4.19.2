@@ -546,7 +546,7 @@ inline VkFormat UEToVkFormat(EPixelFormat UEFormat, const bool bIsSRGB)
 		{
 		case VK_FORMAT_B8G8R8A8_UNORM:				Format = VK_FORMAT_B8G8R8A8_SRGB; break;
 		case VK_FORMAT_A8B8G8R8_UNORM_PACK32:		Format = VK_FORMAT_A8B8G8R8_SRGB_PACK32; break;
-		case VK_FORMAT_R8_UNORM:					Format = VK_FORMAT_R8_SRGB; break;
+		case VK_FORMAT_R8_UNORM:					Format = ((GMaxRHIFeatureLevel <= ERHIFeatureLevel::ES3_1) ? VK_FORMAT_R8_UNORM : VK_FORMAT_R8_SRGB); break;
 		case VK_FORMAT_R8G8_UNORM:					Format = VK_FORMAT_R8G8_SRGB; break;
 		case VK_FORMAT_R8G8B8_UNORM:				Format = VK_FORMAT_R8G8B8_SRGB; break;
 		case VK_FORMAT_R8G8B8A8_UNORM:				Format = VK_FORMAT_R8G8B8A8_SRGB; break;
@@ -655,3 +655,10 @@ namespace FRCLog
 	void Printf(const FString& S);
 }
 #endif
+
+
+#ifndef VK_KHR_maintenance1
+#define VK_KHR_maintenance1	0
+#endif
+
+#define SUPPORTS_MAINTENANCE_LAYER							VK_KHR_maintenance1

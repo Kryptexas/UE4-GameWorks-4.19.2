@@ -838,4 +838,4 @@ public:
 	static FOnPhysDispatchNotifications OnPhysDispatchNotifications;
 };
 
-extern ENGINE_API class IPhysXCookingModule* GetPhysXCookingModule();
+extern ENGINE_API class IPhysXCookingModule* GetPhysXCookingModule(bool bForceLoad = true);

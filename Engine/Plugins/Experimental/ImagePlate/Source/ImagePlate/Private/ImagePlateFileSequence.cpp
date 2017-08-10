@@ -14,6 +14,7 @@
 #include "Async.h"
 #include "PackageName.h"
 #include "Engine/Texture2DDynamic.h"
+#include "Engine/TextureRenderTarget2D.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogImagePlateFileSequence, Log, Warning);
 
@@ -31,7 +32,12 @@ UImagePlateFileSequence::UImagePlateFileSequence(const FObjectInitializer& Init)
 
 FImagePlateAsyncCache UImagePlateFileSequence::GetAsyncCache()
 {
-	FString Path = SequencePath.Path;
+	FString Path;
+	if (!FPackageName::TryConvertLongPackageNameToFilename(SequencePath.Path, Path))
+	{
+		UE_LOG(LogImagePlateFileSequence, Warning, TEXT("Sequence path is not a long package name. This path is not portable, and may not work in a packaged build."));
+		Path = SequencePath.Path;
+	}
 
 	if (GetDefault<UImagePlateSettings>()->ProxyName.Len() != 0)
 	{
@@ -65,7 +71,103 @@ bool FImagePlateSourceFrame::IsValid() const
 	return Buffer.IsValid();
 }
 
-TFuture<void> FImagePlateSourceFrame::CopyTo(UTexture2DDynamic* DestinationTexture)
+bool FImagePlateSourceFrame::EnsureTextureMetrics(UTexture* DestinationTexture) const
+{
+	if (BitDepth != 16 && BitDepth != 8)
+	{
+		UE_LOG(LogImagePlateFileSequence, Warning, TEXT("Unsupported source image bitdepth: %u. Only float 16 and fixed 8 bitdepths are supported"), BitDepth);
+		return false;
+	}
+
+	// Ensure the texture dimensions and bitdepth match if possible
+	bool bNeedsUpdate = false;
+
+	if (auto* Texture2DDynamic = Cast<UTexture2DDynamic>(DestinationTexture))
+	{
+		if (Width > 0 && Texture2DDynamic->SizeX != Width)
+		{
+			Texture2DDynamic->SizeX = Width;
+			bNeedsUpdate = true;
+		}
+
+		if (Height > 0 && Texture2DDynamic->SizeY != Height)
+		{
+			Texture2DDynamic->SizeY = Height;
+			bNeedsUpdate = true;
+		}
+
+		uint32 DestBitDepth = GPixelFormats[Texture2DDynamic->Format].BlockBytes * 8 / GPixelFormats[Texture2DDynamic->Format].NumComponents;
+		if (DestBitDepth != BitDepth)
+		{
+			bNeedsUpdate = true;
+			switch (BitDepth)
+			{
+			case 16: Texture2DDynamic->Format = PF_FloatRGBA; break;
+			case 8: Texture2DDynamic->Format = PF_R8G8B8A8; break;
+			}
+		}
+	}
+	else if (auto* TextureRenderTarget2D = Cast<UTextureRenderTarget2D>(DestinationTexture))
+	{
+		if (Width > 0 && TextureRenderTarget2D->SizeX != Width)
+		{
+			TextureRenderTarget2D->SizeX = Width;
+			bNeedsUpdate = true;
+		}
+
+		if (Height > 0 && TextureRenderTarget2D->SizeY != Height)
+		{
+			TextureRenderTarget2D->SizeY = Height;
+			bNeedsUpdate = true;
+		}
+
+		EPixelFormat PF = GetPixelFormatFromRenderTargetFormat(TextureRenderTarget2D->RenderTargetFormat);
+		uint32 DestBitDepth = GPixelFormats[PF].BlockBytes * 8 / GPixelFormats[PF].NumComponents;
+		if (DestBitDepth != BitDepth)
+		{
+			bNeedsUpdate = true;
+			switch (BitDepth)
+			{
+			case 16: TextureRenderTarget2D->RenderTargetFormat = RTF_RGBA16f; break;
+			case 8: TextureRenderTarget2D->RenderTargetFormat = RTF_RGBA8; break;
+			}
+		}
+	}
+	else if (DestinationTexture->Resource)
+	{
+		// We have to have a valid texture to check whether it's the right type or not
+		if (!DestinationTexture->Resource->TextureRHI)
+		{
+			DestinationTexture->UpdateResource();
+			FlushRenderingCommands();
+		}
+
+		FTexture2DRHIRef Texture2DRHI = DestinationTexture->Resource->TextureRHI ? DestinationTexture->Resource->TextureRHI->GetTexture2D() : nullptr;
+		if (!Texture2DRHI)
+		{
+			UE_LOG(LogImagePlateFileSequence, Warning, TEXT("Unsupported texture type encountered: Unable to update texture to fit source frame size or bitdepth."));
+			return false;
+		}
+		else
+		{
+			// At least check the bitdepth
+			uint32 DestBitDepth = GPixelFormats[Texture2DRHI->GetFormat()].BlockBytes * 8 / GPixelFormats[Texture2DRHI->GetFormat()].NumComponents;
+			if (DestBitDepth != BitDepth)
+			{
+				UE_LOG(LogImagePlateFileSequence, Warning, TEXT("Invalid destination texture bitdepth. Expected %u, encountered %u."), BitDepth, DestBitDepth);
+				return false;
+			}
+		}
+	}
+
+	if (bNeedsUpdate)
+	{
+		DestinationTexture->UpdateResource();
+	}
+	return true;
+}
+
+TFuture<void> FImagePlateSourceFrame::CopyTo(UTexture* DestinationTexture)
 {
 	// Copy the data to the texture via a render command
 	struct FRenderCommandData
@@ -73,7 +175,7 @@ TFuture<void> FImagePlateSourceFrame::CopyTo(UTexture2DDynamic* DestinationTextu
 		TPromise<void> Promise;
 		bool bClearTexture;
 		FImagePlateSourceFrame SourceFrame;
-		UTexture2DDynamic* DestinationTexture;
+		UTexture* DestinationTexture;
 	};
 
 	// Shared render command data to allow us to pass the promise through to the command
@@ -82,49 +184,32 @@ TFuture<void> FImagePlateSourceFrame::CopyTo(UTexture2DDynamic* DestinationTextu
 
 	TFuture<void> CompletionFuture = CommandData->Promise.GetFuture();
 
-	CommandData->bClearTexture = !Buffer.IsValid();
+	CommandData->bClearTexture = !Buffer.IsValid() || !EnsureTextureMetrics(DestinationTexture);
 	CommandData->SourceFrame = *this;
 	CommandData->DestinationTexture = DestinationTexture;
-
-	// Ensure the texture dimensions and bitdepth match
-	bool bNeedsUpdate = false;
-	if (Width > 0 && DestinationTexture->SizeX != Width)
-	{
-		DestinationTexture->SizeX = Width;
-		bNeedsUpdate = true;
-	}
-
-	if (Height > 0 && DestinationTexture->SizeY != Height)
-	{
-		DestinationTexture->SizeY = Height;
-		bNeedsUpdate = true;
-	}
-
-	uint32 DestBitDepth = GPixelFormats[DestinationTexture->Format].BlockBytes * 8 / GPixelFormats[DestinationTexture->Format].NumComponents;
-	if (DestBitDepth != BitDepth)
-	{
-		bNeedsUpdate = true;
-		switch (BitDepth)
-		{
-		case 16: DestinationTexture->Format = PF_FloatRGBA; break;
-		case 32: DestinationTexture->Format = PF_R8G8B8A8; break;
-		default: CommandData->bClearTexture = true;
-		}
-	}
-
-	if (bNeedsUpdate)
-	{
-		DestinationTexture->UpdateResource();
-	}
 
 	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
 		CopySourceBufferToTexture,
 		FCommandDataPtr, CommandData, CommandData,
 		{
-			FTexture2DRHIRef Texture2DRHI = static_cast<FTexture2DDynamicResource*>(CommandData->DestinationTexture->Resource)->GetTexture2DRHI();
+			if (!CommandData->DestinationTexture->Resource || !CommandData->DestinationTexture->Resource->TextureRHI)
+			{
+				return;
+			}
+
+			FTexture2DRHIRef Texture2DRHI = CommandData->DestinationTexture->Resource->TextureRHI->GetTexture2D();
+			if (!Texture2DRHI)
+			{
+				return;
+			}
 
 			uint32 DestPitch = 0;
 			uint8* DestinationBuffer = (uint8*)RHILockTexture2D(Texture2DRHI, 0, RLM_WriteOnly, DestPitch, false);
+			if (!DestinationBuffer)
+			{
+				UE_LOG(LogImagePlateFileSequence, Warning, TEXT("Unable to lock texture for write"));
+				return;
+			}
 
 			if (CommandData->bClearTexture)
 			{
@@ -290,21 +375,6 @@ namespace ImagePlateFrameCache
 		: CurrentFrameNumber(-1), MinCacheRange(-1), MaxCacheRange(-1), Framerate(InFramerate)
 	{
 		FString SequenceFolder = InSequencePath;
-		if (!FPackageName::TryConvertLongPackageNameToFilename(InSequencePath, SequenceFolder))
-		{
-			SequenceFolder = InSequencePath;
-			if (FPaths::IsRelative(SequenceFolder))
-			{
-				if (SequenceFolder.StartsWith(TEXT("./")))
-				{
-					SequenceFolder = FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir(), SequenceFolder.RightChop(2));
-				}
-				else
-				{
-					SequenceFolder = FPaths::ConvertRelativePathToFull(SequenceFolder);
-				}
-			}
-		}
 
 		IFileManager::Get().FindFiles(FrameFilenames, *SequenceFolder, *InWildcard);
 		if (FrameFilenames.Num() == 0)
@@ -482,12 +552,14 @@ namespace ImagePlateFrameCache
 		const TArray<uint8>* RawImageData = nullptr;
 		if (ImageWrapper->GetRaw(ERGBFormat::RGBA, SourceBitDepth, RawImageData) && RawImageData)
 		{
+			// BMP image wrappers supply the bitdepth per pixel, rather than per-channel
+			SourceBitDepth = ImageType == EImageFormat::BMP ? ImageWrapper->GetBitDepth() / 4 : ImageWrapper->GetBitDepth();
 
 			return FImagePlateSourceFrame(
 				*RawImageData,
 				ImageWrapper->GetWidth(),
 				ImageWrapper->GetHeight(),
-				ImageWrapper->GetBitDepth()
+				SourceBitDepth
 			);
 		}
 		else

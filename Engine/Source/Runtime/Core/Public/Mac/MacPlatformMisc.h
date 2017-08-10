@@ -183,6 +183,8 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 
 	static FString GetXcodePath();
 
+	static bool IsSupportedXcodeVersionInstalled();
+
 	static bool bChachedMacMenuStateNeedsUpdate;
 
 	static id<NSObject> CommandletActivity;

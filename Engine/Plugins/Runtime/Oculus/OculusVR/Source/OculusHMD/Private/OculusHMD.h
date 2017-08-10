@@ -194,7 +194,7 @@ protected:
 	class FSceneViewport* FindSceneViewport();
 
 public:
-	bool IsHMDActive() { return ovrp_GetInitialized() != ovrpBool_False; }
+	bool IsHMDActive() const;
 
 	FSplash* GetSplash() const { return Splash.Get(); }
 
@@ -307,6 +307,8 @@ protected:
 	void PixelDensityAdaptiveCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
 	void HQBufferCommandHandler(const TArray<FString>& Args, UWorld*, FOutputDevice& Ar);
 	void HQDistortionCommandHandler(const TArray<FString>& Args, UWorld*, FOutputDevice& Ar);
+	void ShowGlobalMenuCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
+	void ShowQuitMenuCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
 #if !UE_BUILD_SHIPPING
 	void UpdateOnGameThreadCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
 	void PositionOffsetCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
@@ -325,6 +327,9 @@ protected:
 	void SaveToIni();
 
 protected:
+	void UpdateHMDWornState();
+	EHMDWornState::Type HMDWornState = EHMDWornState::Unknown;
+		
 	union
 	{
 		struct

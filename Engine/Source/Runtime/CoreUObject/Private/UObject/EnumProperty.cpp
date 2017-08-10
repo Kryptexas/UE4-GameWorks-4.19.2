@@ -71,9 +71,8 @@ void UEnumProperty::AddCppProperty(UProperty* Inner)
 void UEnumProperty::SerializeItem( FArchive& Ar, void* Value, void const* Defaults ) const
 {
 	check(UnderlyingProp);
-	check(Enum);
 
-	if(Ar.UseToResolveEnumerators())
+	if (Enum && Ar.UseToResolveEnumerators())
 	{
 		int64 IntValue = UnderlyingProp->GetSignedIntPropertyValue(Value);
 		int64 ResolvedIndex = Enum->ResolveEnumerator(Ar, IntValue);
@@ -87,23 +86,27 @@ void UEnumProperty::SerializeItem( FArchive& Ar, void* Value, void const* Defaul
 		FName EnumValueName;
 		Ar << EnumValueName;
 
-		// Make sure enum is properly populated
-		if( Enum->HasAnyFlags(RF_NeedLoad) )
-		{
-			Ar.Preload(Enum);
-		}
+		int64 NewEnumValue = 0;
 
-		// There's no guarantee EnumValueName is still present in Enum, in which case Value will be set to the enum's max value.
-		// On save, it will then be serialized as NAME_None.
-		int32 EnumIndex = Enum->GetIndexByName(EnumValueName, true);
-		int64 NewEnumValue;
-		if (EnumIndex == INDEX_NONE)
+		if (Enum)
 		{
-			NewEnumValue = Enum->GetMaxEnumValue();
-		}
-		else
-		{
-			NewEnumValue = Enum->GetValueByIndex(EnumIndex);
+			// Make sure enum is properly populated
+			if (Enum->HasAnyFlags(RF_NeedLoad))
+			{
+				Ar.Preload(Enum);
+			}
+
+			// There's no guarantee EnumValueName is still present in Enum, in which case Value will be set to the enum's max value.
+			// On save, it will then be serialized as NAME_None.
+			const int32 EnumIndex = Enum->GetIndexByName(EnumValueName, true);
+			if (EnumIndex == INDEX_NONE)
+			{
+				NewEnumValue = Enum->GetMaxEnumValue();
+			}
+			else
+			{
+				NewEnumValue = Enum->GetValueByIndex(EnumIndex);
+			}
 		}
 
 		UnderlyingProp->SetIntPropertyValue(Value, NewEnumValue);
@@ -112,17 +115,14 @@ void UEnumProperty::SerializeItem( FArchive& Ar, void* Value, void const* Defaul
 	else if (Ar.IsSaving())
 	{
 		FName EnumValueName;
-		int64 IntValue = UnderlyingProp->GetSignedIntPropertyValue(Value);
+		if (Enum)
+		{
+			const int64 IntValue = UnderlyingProp->GetSignedIntPropertyValue(Value);
 
-		// subtract 1 because the last entry in the enum's Names array
-		// is the _MAX entry
-		if (Enum->IsValidEnumValue(IntValue))
-		{
-			EnumValueName = Enum->GetNameByValue(IntValue);
-		}
-		else
-		{
-			EnumValueName = NAME_None;
+			if (Enum->IsValidEnumValue(IntValue))
+			{
+				EnumValueName = Enum->GetNameByValue(IntValue);
+			}
 		}
 
 		Ar << EnumValueName;
@@ -329,8 +329,11 @@ bool UEnumProperty::SameType(const UProperty* Other) const
 
 bool UEnumProperty::ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, bool& bOutAdvanceProperty)
 {
-	check(Enum);
-	check(UnderlyingProp);
+	if ((Enum == nullptr) || (UnderlyingProp == nullptr))
+	{
+		bOutAdvanceProperty = false;
+		return false;
+	}
 
 	bOutAdvanceProperty = true;
 

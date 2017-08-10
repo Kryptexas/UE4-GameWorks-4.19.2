@@ -939,11 +939,19 @@ void FCanvas::Clear(const FLinearColor& ClearColor)
 		[ClearColor, CanvasRenderTarget](FRHICommandList& RHICmdList)
 		{
 			SCOPED_DRAW_EVENT(RHICmdList, CanvasClear);
-			if( CanvasRenderTarget )
+			if (CanvasRenderTarget)
 			{
-				::SetRenderTarget(RHICmdList, CanvasRenderTarget->GetRenderTargetTexture(), FTextureRHIRef(), true);
-				RHICmdList.SetViewport(0, 0, 0.0f, CanvasRenderTarget->GetSizeXY().X, CanvasRenderTarget->GetSizeXY().Y, 1.0f);
-				DrawClearQuad(RHICmdList, ClearColor);
+				if (CanvasRenderTarget->GetRenderTargetTexture()->GetClearBinding() == FClearValueBinding(ClearColor))
+				{
+					// do fast clear
+					SetRenderTarget(RHICmdList, CanvasRenderTarget->GetRenderTargetTexture(), FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorAndDepth);
+				}
+				else
+				{
+					::SetRenderTarget(RHICmdList, CanvasRenderTarget->GetRenderTargetTexture(), FTextureRHIRef(), true);
+					RHICmdList.SetViewport(0, 0, 0.0f, CanvasRenderTarget->GetSizeXY().X, CanvasRenderTarget->GetSizeXY().Y, 1.0f);
+					DrawClearQuad(RHICmdList, ClearColor);
+				}
 			}
 			else
 			{

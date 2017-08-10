@@ -280,6 +280,9 @@ namespace UnrealBuildTool
 	 * The current element is referenced with tag="$".  Element variables are referenced with $varname
 	 * since using $E(varname) will be expanded to the string equivalent of the XML.
 	 * 
+	 * addElement, addElements, and removeElement by default are applied to all matching tags.  An
+	 * optional once="true" attribute may be added to only apply to first matching tag.
+	 *
 	 * <uses-permission>, <uses-feature>, and <uses-library> are updated with:
 	 * 
 	 *	<addPermission android:name="" .. />
@@ -330,7 +333,10 @@ namespace UnrealBuildTool
 	 * 	<!-- optional AAR imports additions -->
 	 * 	<AARImports> </AARImports>
 	 * 	
-	 * 	<!-- optional build.gradle additions -->
+	 * 	<!-- optional base build.gradle additions -->
+	 * 	<baseBuildGradleAdditions>  </baseBuildGradleAdditions>
+	 *
+	 * 	<!-- optional app build.gradle additions -->
 	 * 	<buildGradleAdditions>  </buildGradleAdditions>
 	 * 	
 	 * 	<!-- optional additions to generated build.xml before ${sdk.dir}/tools/ant/build.xml import -->
@@ -1373,6 +1379,7 @@ namespace UnrealBuildTool
 					case "removeElement":
 						{
 							string Tag = GetAttribute(CurrentContext, Node, "tag");
+							bool bOnce = StringToBool(GetAttribute(CurrentContext, Node, "once", true, false));
 							if (Tag != null)
 							{
 								if (Tag == "$")
@@ -1387,6 +1394,10 @@ namespace UnrealBuildTool
 									foreach (var Element in XMLWork.Descendants(Tag).ToList())
 									{
 										Element.Remove();
+										if (bOnce)
+										{
+											break;
+										}
 									}
 								}
 							}
@@ -1397,6 +1408,7 @@ namespace UnrealBuildTool
 						{
 							string Tag = GetAttribute(CurrentContext, Node, "tag");
 							string Name = GetAttribute(CurrentContext, Node, "name");
+							bool bOnce = StringToBool(GetAttribute(CurrentContext, Node, "once", true, false));
 							if (Tag != null && Name != null)
 							{
 								XElement Element;
@@ -1430,7 +1442,18 @@ namespace UnrealBuildTool
 									{
 										CurrentElement.Add(new XElement(Element));
 									}
+
+									// make sure we don't recurse forever if Tag is in Element
+									List<XElement> AddSet = new List<XElement>();
 									foreach (var WorkNode in CurrentElement.Descendants(Tag))
+									{
+										AddSet.Add(WorkNode);
+										if (bOnce)
+										{
+											break;
+										}
+									}
+									foreach (var WorkNode in AddSet)
 									{
 										WorkNode.Add(new XElement(Element));
 									}
@@ -1442,6 +1465,7 @@ namespace UnrealBuildTool
 					case "addElements":
 						{
 							string Tag = GetAttribute(CurrentContext, Node, "tag");
+							bool bOnce = StringToBool(GetAttribute(CurrentContext, Node, "once", true, false));
 							if (Tag != null)
 							{
 								if (Tag.StartsWith("$"))
@@ -1466,7 +1490,18 @@ namespace UnrealBuildTool
 									{
 										AddElements(CurrentElement, Node);
 									}
+
+									// make sure we don't recurse forever if Tag is in Node
+									List<XElement> AddSet = new List<XElement>();
 									foreach (var WorkNode in CurrentElement.Descendants(Tag))
+									{
+										AddSet.Add(WorkNode);
+										if (bOnce)
+										{
+											break;
+										}
+									}
+									foreach (var WorkNode in AddSet)
 									{
 										AddElements(WorkNode, Node);
 									}

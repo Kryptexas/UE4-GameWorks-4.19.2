@@ -545,6 +545,11 @@ void FCompilerResultsLog::Append(FCompilerResultsLog const& Other)
 {
 	for (TSharedRef<FTokenizedMessage> const& Message : Other.Messages)
 	{
+		if (Messages.Contains(Message))
+		{
+			continue;
+		}
+
 		switch (Message->GetSeverity())
 		{
 		case EMessageSeverity::Warning:

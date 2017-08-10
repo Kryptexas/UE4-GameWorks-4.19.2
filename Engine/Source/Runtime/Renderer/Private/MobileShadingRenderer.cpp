@@ -296,6 +296,8 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		CompositeContext.Process(PostProcessSunMask, TEXT("OnChipAlphaTransform"));
 	}
 
+	bool bKeepDepthContent = false;
+
 	if (!bGammaSpace || bRenderToSceneColor)
 	{
 		// Resolve the scene color for post processing.
@@ -306,15 +308,16 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		const bool bForceDepthResolve = CVarMobileForceDepthResolve.GetValueOnRenderThread() == 1;
 		const bool bSeparateTranslucencyActive = IsMobileSeparateTranslucencyActive(View);
 
-		const bool bKeepDepthContent = bForceDepthResolve || bPostProcessUsesDepthTexture || bSeparateTranslucencyActive ||
+		bKeepDepthContent = bForceDepthResolve || bPostProcessUsesDepthTexture || bSeparateTranslucencyActive ||
 			(View.bIsSceneCapture && (ViewFamily.SceneCaptureSource == ESceneCaptureSource::SCS_SceneColorHDR || ViewFamily.SceneCaptureSource == ESceneCaptureSource::SCS_SceneColorSceneDepth));
-		// Drop depth and stencil before post processing to avoid export.
-		if (!bKeepDepthContent)
-		{
-			RHICmdList.DiscardRenderTargets(true, true, 0);
-		}
 	}
 
+	// Drop depth and stencil before post processing to avoid export.
+	if (!bKeepDepthContent)
+	{
+		RHICmdList.DiscardRenderTargets(true, true, 0);
+	}
+	
 	if (ViewFamily.bResolveScene)
 	{
 		if (!bGammaSpace)

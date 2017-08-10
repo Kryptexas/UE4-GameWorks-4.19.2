@@ -278,6 +278,11 @@ void USceneCaptureComponent::ClearShowOnlyComponents(UPrimitiveComponent* InComp
 	ShowOnlyComponents.Reset();
 }
 
+void USceneCaptureComponent::ClearHiddenComponents()
+{
+	HiddenComponents.Reset();
+}
+
 void USceneCaptureComponent::SetCaptureSortPriority(int32 NewCaptureSortPriority)
 {
 	CaptureSortPriority = NewCaptureSortPriority;

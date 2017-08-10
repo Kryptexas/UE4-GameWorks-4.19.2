@@ -260,7 +260,6 @@ bool FCookedIterativeNetworkFile::DeleteDirectoryRecursively(const TCHAR* Direct
 	return bSucceeded;
 }
 
-
 bool		FCookedIterativeNetworkFile::IterateDirectory(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor)
 {
 	//return PakPlatformFile->IterateDirectory(Directory, Visitor);
@@ -272,7 +271,6 @@ bool FCookedIterativeNetworkFile::IterateDirectoryRecursively(const TCHAR* Direc
 	return FNetworkPlatformFile::IterateDirectoryRecursively(Directory, Visitor);
 }
 
-
 FFileStatData FCookedIterativeNetworkFile::GetStatData(const TCHAR* FilenameOrDirectory)
 {
 	if (ShouldPassToPak(FilenameOrDirectory))
@@ -281,7 +279,6 @@ FFileStatData FCookedIterativeNetworkFile::GetStatData(const TCHAR* FilenameOrDi
 	}
 	return FNetworkPlatformFile::GetStatData(FilenameOrDirectory);
 }
-
 
 bool FCookedIterativeNetworkFile::IterateDirectoryStat(const TCHAR* Directory, IPlatformFile::FDirectoryStatVisitor& Visitor)
 {

@@ -1838,6 +1838,18 @@ EVisibility FBlueprintVarActionDetails::ExposeToCinematicsVisibility() const
 			{
 				return EVisibility::Visible;
 			}
+			else if (UObjectProperty* ObjectProperty = Cast<UObjectProperty>(VariableProperty))
+			{
+				UClass* ClassType = ObjectProperty->PropertyClass ? ObjectProperty->PropertyClass->GetSuperClass() : nullptr;
+				while (ClassType)
+				{
+					if (SequencerModule->CanAnimateProperty(FAnimatedPropertyKey::FromObjectType(ClassType)))
+					{
+						return EVisibility::Visible;
+					}
+					ClassType = ClassType->GetSuperClass();
+				}
+			}
 		}
 	}
 	return EVisibility::Collapsed;
@@ -2910,6 +2922,11 @@ void FBlueprintGraphArgumentLayout::OnArgNameChange(const FText& InNewText)
 
 	FText ErrorMessage;
 
+	if (!ParamItemPtr.IsValid())
+	{
+		return;
+	}
+
 	if (InNewText.IsEmpty())
 	{
 		ErrorMessage = LOCTEXT("EmptyArgument", "Name cannot be empty!");
@@ -3526,9 +3543,13 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 		}
 	}
 
-	if (bHasAGraph)
+	if (MyBlueprint.IsValid())
 	{
-		MyRegisteredGraphChangedDelegateHandle = GetGraph()->AddOnGraphChangedHandler(FOnGraphChanged::FDelegate::CreateSP(this, &FBaseBlueprintGraphActionDetails::OnGraphChanged));
+		TWeakPtr<FBlueprintEditor> BlueprintEditor = MyBlueprint.Pin()->GetBlueprintEditor();
+		if (BlueprintEditor.IsValid())
+		{
+			BlueprintEditorRefreshDelegateHandle = BlueprintEditor.Pin()->OnRefresh().AddSP(this, &FBlueprintGraphActionDetails::OnPostEditorRefresh);
+		}
 	}
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
@@ -3616,17 +3637,22 @@ bool FBaseBlueprintGraphActionDetails::AttemptToCreateResultNode()
 
 FBaseBlueprintGraphActionDetails::~FBaseBlueprintGraphActionDetails()
 {
-	UEdGraph* MyGraph = GetGraph();
-	if (MyRegisteredGraphChangedDelegateHandle.IsValid() && MyGraph)
+	if (BlueprintEditorRefreshDelegateHandle.IsValid() && MyBlueprint.IsValid())
 	{
-		MyGraph->RemoveOnGraphChangedHandler(MyRegisteredGraphChangedDelegateHandle);
+		// Remove the callback delegate we registered for
+		TWeakPtr<FBlueprintEditor> BlueprintEditor = MyBlueprint.Pin()->GetBlueprintEditor();
+		if (BlueprintEditor.IsValid())
+		{
+			BlueprintEditor.Pin()->OnRefresh().Remove(BlueprintEditorRefreshDelegateHandle);
+		}
 	}
 }
 
-void FBaseBlueprintGraphActionDetails::OnGraphChanged(const FEdGraphEditAction& Action)
+void FBaseBlueprintGraphActionDetails::OnPostEditorRefresh()
 {
-	/** Graph changed, need to refresh inputs in case pin UI changed */
+	/** Blueprint changed, need to refresh inputs in case pin UI changed */
 	RegenerateInputsChildrenDelegate.ExecuteIfBound();
+	RegenerateOutputsChildrenDelegate.ExecuteIfBound();
 }
 
 void FBaseBlueprintGraphActionDetails::SetRefreshDelegate(FSimpleDelegate RefreshDelegate, bool bForInputs)
@@ -3962,6 +3988,8 @@ void FBlueprintDelegateActionDetails::OnFunctionSelected(TSharedPtr<FString> Fun
 		const FName Name( *(*FunctionName) );
 		if (UFunction* NewSignature = ScopeClass->FindFunctionByName(Name))
 		{
+			const FScopedTransaction Transaction(LOCTEXT("CopySignature", "Copy Signature"));
+
 			while (FunctionEntryNode->UserDefinedPins.Num())
 			{
 				TSharedPtr<FUserPinInfo> Pin = FunctionEntryNode->UserDefinedPins[0];
@@ -5138,13 +5166,18 @@ void FBlueprintGlobalOptionsDetails::OnClassPicked(UClass* PickedClass)
 
 bool FBlueprintGlobalOptionsDetails::CanDeprecateBlueprint() const
 {
-	// If the parent is deprecated, we cannot modify deprecation on this Blueprint
-	if(GetBlueprintObj()->ParentClass->HasAnyClassFlags(CLASS_Deprecated))
+	if (UBlueprint* Blueprint = GetBlueprintObj())
 	{
-		return false;
+		// If the parent is deprecated, we cannot modify deprecation on this Blueprint
+		if (Blueprint->ParentClass->HasAnyClassFlags(CLASS_Deprecated))
+		{
+			return false;
+		}
+		
+		return true;
 	}
 
-	return true;
+	return false;
 }
 
 void FBlueprintGlobalOptionsDetails::OnDeprecateBlueprint(ECheckBoxState InCheckState)
@@ -5155,7 +5188,11 @@ void FBlueprintGlobalOptionsDetails::OnDeprecateBlueprint(ECheckBoxState InCheck
 
 ECheckBoxState FBlueprintGlobalOptionsDetails::IsDeprecatedBlueprint() const
 {
-	return GetBlueprintObj()->bDeprecate? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	if (UBlueprint* Blueprint = GetBlueprintObj())
+	{
+		return Blueprint->bDeprecate ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	}
+	return ECheckBoxState::Unchecked;
 }
 
 FText FBlueprintGlobalOptionsDetails::GetDeprecatedTooltip() const

@@ -413,9 +413,10 @@ void ALODActor::AddSubActor(AActor* InActor)
 		InActor->GetComponents<UStaticMeshComponent>(StaticMeshComponents);
 		for (UStaticMeshComponent* Component : StaticMeshComponents)
 		{
-			if (Component && Component->GetStaticMesh() && Component->GetStaticMesh()->RenderData)
+			const UStaticMesh* StaticMesh = (Component) ? Component->GetStaticMesh() : nullptr;
+			if (StaticMesh && StaticMesh->RenderData && StaticMesh->RenderData->LODResources.Num() > 0)
 			{
-				NumTrianglesInSubActors += Component->GetStaticMesh()->RenderData->LODResources[0].GetNumTriangles();
+				NumTrianglesInSubActors += StaticMesh->RenderData->LODResources[0].GetNumTriangles();
 			}
 			Component->MarkRenderStateDirty();
 		}
@@ -446,9 +447,10 @@ const bool ALODActor::RemoveSubActor(AActor* InActor)
 			InActor->GetComponents<UStaticMeshComponent>(StaticMeshComponents);
 			for (UStaticMeshComponent* Component : StaticMeshComponents)
 			{
-				if (Component && Component->GetStaticMesh() && Component->GetStaticMesh()->RenderData)
+				const UStaticMesh* StaticMesh = (Component) ? Component->GetStaticMesh() : nullptr;
+				if (StaticMesh && StaticMesh->RenderData && StaticMesh->RenderData->LODResources.Num() > 0)
 				{
-					NumTrianglesInSubActors -= Component->GetStaticMesh()->RenderData->LODResources[0].GetNumTriangles();
+					NumTrianglesInSubActors -= StaticMesh->RenderData->LODResources[0].GetNumTriangles();
 				}
 
 				Component->MarkRenderStateDirty();
@@ -618,9 +620,10 @@ void ALODActor::SetStaticMesh(class UStaticMesh* InStaticMesh)
 		StaticMeshComponent->SetStaticMesh(InStaticMesh);
 		SetIsDirty(false);
 
-		if (StaticMeshComponent && StaticMeshComponent->GetStaticMesh() && StaticMeshComponent->GetStaticMesh()->RenderData)
+		ensure(StaticMeshComponent->GetStaticMesh() == InStaticMesh);
+		if (InStaticMesh->RenderData && InStaticMesh->RenderData->LODResources.Num() > 0)
 		{
-			NumTrianglesInMergedMesh = StaticMeshComponent->GetStaticMesh()->RenderData->LODResources[0].GetNumTriangles();
+			NumTrianglesInMergedMesh = InStaticMesh->RenderData->LODResources[0].GetNumTriangles();
 		}
 	}
 }

@@ -53,6 +53,7 @@
 #include "Interfaces/IPluginManager.h"
 #include "SAssetView.h"
 #include "SPathView.h"
+#include "ContentBrowserLog.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -1744,43 +1745,50 @@ int32 ContentBrowserUtils::GetPackageLengthForCooking(const FString& PackageName
 	const FString AbsoluteGamePath = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir());
 	const FString AbsoluteCookPath = AbsoluteGamePath / TEXT("Saved") / TEXT("Cooked") / TEXT("WindowsNoEditor") / GameName;
 
-	const FString RelativePathToAsset = FPackageName::LongPackageNameToFilename(PackageName, FPackageName::GetAssetPackageExtension());
-	const FString AbsolutePathToAsset = FPaths::ConvertRelativePathToFull(RelativePathToAsset);
-
-	FString AssetPathWithinCookDir = AbsolutePathToAsset;
-	FPaths::RemoveDuplicateSlashes(AssetPathWithinCookDir);
-	AssetPathWithinCookDir.RemoveFromStart(AbsoluteGamePath, ESearchCase::CaseSensitive);
-
 	int32 AbsoluteCookPathToAssetLength = 0;
 
-	if (IsInternalBuild)
+	FString RelativePathToAsset;
+
+	if(FPackageName::TryConvertLongPackageNameToFilename(PackageName, RelativePathToAsset, FPackageName::GetAssetPackageExtension()))
 	{
-		// We assume a constant size for the build machine base path, so strip either the root or game path from the start
-		// (depending on whether the project is part of the main UE4 source tree or located elsewhere)
-		FString CookDirWithoutBasePath = AbsoluteCookPath;
-		if (CookDirWithoutBasePath.StartsWith(AbsoluteRootPath, ESearchCase::CaseSensitive))
+		const FString AbsolutePathToAsset = FPaths::ConvertRelativePathToFull(RelativePathToAsset);
+
+		FString AssetPathWithinCookDir = AbsolutePathToAsset;
+		FPaths::RemoveDuplicateSlashes(AssetPathWithinCookDir);
+		AssetPathWithinCookDir.RemoveFromStart(AbsoluteGamePath, ESearchCase::CaseSensitive);
+
+		if (IsInternalBuild)
 		{
-			CookDirWithoutBasePath.RemoveFromStart(AbsoluteRootPath, ESearchCase::CaseSensitive);
+			// We assume a constant size for the build machine base path, so strip either the root or game path from the start
+			// (depending on whether the project is part of the main UE4 source tree or located elsewhere)
+			FString CookDirWithoutBasePath = AbsoluteCookPath;
+			if (CookDirWithoutBasePath.StartsWith(AbsoluteRootPath, ESearchCase::CaseSensitive))
+			{
+				CookDirWithoutBasePath.RemoveFromStart(AbsoluteRootPath, ESearchCase::CaseSensitive);
+			}
+			else
+			{
+				CookDirWithoutBasePath.RemoveFromStart(AbsoluteGamePath, ESearchCase::CaseSensitive);
+			}
+
+			FString AbsoluteBuildMachineCookPathToAsset = FString(TEXT("D:/BuildFarm/buildmachine_++depot+UE4-Releases+4.10")) / CookDirWithoutBasePath / AssetPathWithinCookDir;
+			AbsoluteBuildMachineCookPathToAsset.ReplaceInline(*GameName, *GameNamePadded, ESearchCase::CaseSensitive);
+
+			AbsoluteCookPathToAssetLength = AbsoluteBuildMachineCookPathToAsset.Len();
 		}
 		else
 		{
-			CookDirWithoutBasePath.RemoveFromStart(AbsoluteGamePath, ESearchCase::CaseSensitive);
+			// Test that the package can be cooked based on the current project path
+			FString AbsoluteCookPathToAsset = AbsoluteCookPath / AssetPathWithinCookDir;
+			AbsoluteCookPathToAsset.ReplaceInline(*GameName, *GameNamePadded, ESearchCase::CaseSensitive);
+
+			AbsoluteCookPathToAssetLength = AbsoluteCookPathToAsset.Len();
 		}
-
-		FString AbsoluteBuildMachineCookPathToAsset = FString(TEXT("D:/BuildFarm/buildmachine_++depot+UE4-Releases+4.10")) / CookDirWithoutBasePath / AssetPathWithinCookDir;
-		AbsoluteBuildMachineCookPathToAsset.ReplaceInline(*GameName, *GameNamePadded, ESearchCase::CaseSensitive);
-
-		AbsoluteCookPathToAssetLength = AbsoluteBuildMachineCookPathToAsset.Len();
 	}
-	else	
-	{ 
-		// Test that the package can be cooked based on the current project path
-		FString AbsoluteCookPathToAsset = AbsoluteCookPath / AssetPathWithinCookDir;
-		AbsoluteCookPathToAsset.ReplaceInline(*GameName, *GameNamePadded, ESearchCase::CaseSensitive);
-
-		AbsoluteCookPathToAssetLength = AbsoluteCookPathToAsset.Len();
+	else
+	{
+		UE_LOG(LogContentBrowser, Error, TEXT("Package Name '%' is not a valid path and cannot be converted to a filename"), *PackageName);
 	}
-
 	return AbsoluteCookPathToAssetLength;
 }
 

@@ -548,26 +548,29 @@ void FConstraintInstance::UpdateAverageMass_AssumesLocked(const PxRigidActor* PA
 
 void EnsureSleepingActorsStaySleeping_AssumesLocked(PxRigidActor* PActor1, PxRigidActor* PActor2)
 {
+	PxRigidDynamic* RigidDynamic1 = PActor1 ? PActor1->is<PxRigidDynamic>() : nullptr;
+	PxRigidDynamic* RigidDynamic2 = PActor2 ? PActor2->is<PxRigidDynamic>() : nullptr;
+
 	// record if actors are asleep before creating joint, so we can sleep them afterwards if so (creating joint wakes them)
-	const bool bActor1Asleep = (PActor1 == nullptr || !PActor1->is<PxRigidDynamic>() || PActor1->is<PxRigidDynamic>()->isSleeping());
-	const bool bActor2Asleep = (PActor2 == nullptr || !PActor2->is<PxRigidDynamic>() || PActor2->is<PxRigidDynamic>()->isSleeping());
+	const bool bActor1Asleep = (RigidDynamic1 == nullptr) || (RigidDynamic1->getScene() != nullptr && RigidDynamic1->isSleeping());
+	const bool bActor2Asleep = (RigidDynamic2 == nullptr) || (RigidDynamic2->getScene() != nullptr && RigidDynamic2->isSleeping());
 
 	// creation of joints wakes up rigid bodies, so we put them to sleep again if both were initially asleep
 	if (bActor1Asleep && bActor2Asleep)
 	{
-		if (PActor1 && !IsRigidBodyKinematic_AssumesLocked(PActor1->is<PxRigidDynamic>()))
+		if (PActor1 && !IsRigidBodyKinematic_AssumesLocked(RigidDynamic1))
 		{
-			if(PActor1->is<PxRigidDynamic>())
+			if(RigidDynamic1)
 			{
-				PActor1->is<PxRigidDynamic>()->putToSleep();
+				RigidDynamic1->putToSleep();
 			}
 		}
 
-		if (PActor2 && !IsRigidBodyKinematic_AssumesLocked(PActor2->is<PxRigidDynamic>()))
+		if (PActor2 && !IsRigidBodyKinematic_AssumesLocked(RigidDynamic2))
 		{
-			if(PActor2->is<PxRigidDynamic>())
+			if(RigidDynamic2)
 			{
-				PActor2->is<PxRigidDynamic>()->putToSleep();
+				RigidDynamic2->putToSleep();
 			}
 			
 		}

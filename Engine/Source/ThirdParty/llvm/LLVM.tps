@@ -7,9 +7,9 @@
   <Justification>allows us to experiment with new C++ technologies based on the Clang open source project</Justification>
   <Eula>http://llvm.org/docs/DeveloperPolicy.html#license</Eula>
   <RedistributeTo>
-    <EndUserGroup>P4</EndUserGroup>
-    <EndUserGroup>Git</EndUserGroup>
     <EndUserGroup>Licensees</EndUserGroup>
+    <EndUserGroup>Git</EndUserGroup>
+    <EndUserGroup>P4</EndUserGroup>
   </RedistributeTo>
   <LicenseFolder>/Engine/Source/ThirdParty/Licenses/LLVM_License.txt</LicenseFolder>
 </TpsData>

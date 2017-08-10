@@ -1366,7 +1366,7 @@ EVisibility FSlateBrushStructCustomization::GetMarginPropertyVisibility() const
 	return (Result == FPropertyAccess::MultipleValues || DrawAsType == ESlateBrushDrawType::Box || DrawAsType == ESlateBrushDrawType::Border) ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
-bool FSlateBrushStructCustomization::IsImageSizeResetToDefaultVisible(TSharedRef<IPropertyHandle> PropertyHandle) const
+bool FSlateBrushStructCustomization::IsImageSizeResetToDefaultVisible(TSharedPtr<IPropertyHandle> PropertyHandle) const
 {
 	UObject* ResourceObject;
 	if (FPropertyAccess::Success == ResourceObjectProperty->GetValue(ResourceObject) && ResourceObject)
@@ -1401,7 +1401,7 @@ bool FSlateBrushStructCustomization::IsImageSizeResetToDefaultVisible(TSharedRef
 	return PropertyHandle->DiffersFromDefault();
 }
 
-void FSlateBrushStructCustomization::OnImageSizeResetToDefault(TSharedRef<IPropertyHandle> PropertyHandle) const
+void FSlateBrushStructCustomization::OnImageSizeResetToDefault(TSharedPtr<IPropertyHandle> PropertyHandle) const
 {
 	UObject* ResourceObject;
 	if (FPropertyAccess::Success == ResourceObjectProperty->GetValue(ResourceObject) && ResourceObject)

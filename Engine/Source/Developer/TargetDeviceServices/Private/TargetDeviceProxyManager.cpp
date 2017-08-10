@@ -29,6 +29,7 @@ FTargetDeviceProxyManager::FTargetDeviceProxyManager()
 FTargetDeviceProxyManager::~FTargetDeviceProxyManager()
 {
 	FTicker::GetCoreTicker().RemoveTicker(TickDelegateHandle);
+	FMessageEndpoint::SafeRelease(MessageEndpoint);
 }
 
 

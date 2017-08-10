@@ -58,6 +58,9 @@ class UComposureBlueprintLibrary : public UBlueprintFunctionLibrary
 
 	/** Returns the red and green channel factors from percentage of chromatic aberration. */
 	UFUNCTION(BlueprintPure, Category = "Composure")
-	static void GetRedGreenUVFactorsFromChromaticAberration(float ChromaticAberrationAmount, FVector2D& RedGreenUVFactors);
+		static void GetRedGreenUVFactorsFromChromaticAberration(float ChromaticAberrationAmount, FVector2D& RedGreenUVFactors);
 
+	/** Returns display gamma of a given player camera manager, or 0 if no scene viewport attached. */
+	UFUNCTION(BlueprintPure, Category = "Composure")
+	static void GetPlayerDisplayGamma(const APlayerCameraManager* PlayerCameraManager, float& DisplayGamma);
 };

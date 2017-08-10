@@ -128,7 +128,7 @@ void FClothPaintTool_Gradient::Render(USkeletalMeshComponent* InComponent, IMesh
 	TArray<MeshPaintHelpers::FPaintRay> PaintRays;
 	MeshPaintHelpers::RetrieveViewportPaintRays(View, Viewport, PDI, PaintRays);
 	
-	const FMatrix ComponentToWorldMatrix = InComponent->ComponentToWorld.ToMatrixWithScale();
+	const FMatrix ComponentToWorldMatrix = InComponent->GetComponentTransform().ToMatrixWithScale();
 	
 	for (const MeshPaintHelpers::FPaintRay& PaintRay : PaintRays)
 	{
@@ -238,7 +238,7 @@ void FClothPaintTool_Gradient::PaintAction(FPerVertexPaintActionArgs& InArgs, in
 	const UPaintBrushSettings* BrushSettings = InArgs.BrushSettings;
 	FClothMeshPaintAdapter* Adapter = (FClothMeshPaintAdapter*)InArgs.Adapter;
 
-	const FMatrix ComponentToWorldMatrix = HitResult.Component->ComponentToWorld.ToMatrixWithScale();
+	const FMatrix ComponentToWorldMatrix = HitResult.Component->GetComponentTransform().ToMatrixWithScale();
 	const FVector ComponentSpaceCameraPosition(ComponentToWorldMatrix.InverseTransformPosition(InArgs.CameraPosition));
 	const FVector ComponentSpaceBrushPosition(ComponentToWorldMatrix.InverseTransformPosition(HitResult.Location));
 	const float ComponentSpaceBrushRadius = ComponentToWorldMatrix.InverseTransformVector(FVector(Settings->bUseRegularBrush ? BrushSettings->GetBrushRadius() : 2.0f, 0.0f, 0.0f)).Size();
@@ -419,7 +419,7 @@ void FClothPaintTool_Smooth::PaintAction(FPerVertexPaintActionArgs& InArgs, int3
 	const UPaintBrushSettings* BrushSettings = InArgs.BrushSettings;
 	FClothMeshPaintAdapter* Adapter = (FClothMeshPaintAdapter*)InArgs.Adapter;
 
-	const FMatrix ComponentToWorldMatrix = HitResult.Component->ComponentToWorld.ToMatrixWithScale();
+	const FMatrix ComponentToWorldMatrix = HitResult.Component->GetComponentTransform().ToMatrixWithScale();
 	const FVector ComponentSpaceCameraPosition(ComponentToWorldMatrix.InverseTransformPosition(InArgs.CameraPosition));
 	const FVector ComponentSpaceBrushPosition(ComponentToWorldMatrix.InverseTransformPosition(HitResult.Location));
 	const float ComponentSpaceBrushRadius = ComponentToWorldMatrix.InverseTransformVector(FVector(BrushSettings->GetBrushRadius(), 0.0f, 0.0f)).Size();
@@ -526,7 +526,7 @@ void FClothPaintTool_Fill::Render(USkeletalMeshComponent* InComponent, IMeshPain
 	TArray<MeshPaintHelpers::FPaintRay> PaintRays;
 	MeshPaintHelpers::RetrieveViewportPaintRays(View, Viewport, PDI, PaintRays);
 
-	const FMatrix ComponentToWorldMatrix = InComponent->ComponentToWorld.ToMatrixWithScale();
+	const FMatrix ComponentToWorldMatrix = InComponent->GetComponentTransform().ToMatrixWithScale();
 
 	for(const MeshPaintHelpers::FPaintRay& PaintRay : PaintRays)
 	{
@@ -573,7 +573,7 @@ void FClothPaintTool_Fill::PaintAction(FPerVertexPaintActionArgs& InArgs, int32 
 	const UPaintBrushSettings* BrushSettings = InArgs.BrushSettings;
 	FClothMeshPaintAdapter* Adapter = (FClothMeshPaintAdapter*)InArgs.Adapter;
 
-	const FMatrix ComponentToWorldMatrix = HitResult.Component->ComponentToWorld.ToMatrixWithScale();
+	const FMatrix ComponentToWorldMatrix = HitResult.Component->GetComponentTransform().ToMatrixWithScale();
 	const FVector ComponentSpaceCameraPosition(ComponentToWorldMatrix.InverseTransformPosition(InArgs.CameraPosition));
 	const FVector ComponentSpaceBrushPosition(ComponentToWorldMatrix.InverseTransformPosition(HitResult.Location));
 	const float ComponentSpaceBrushRadius = ComponentToWorldMatrix.InverseTransformVector(FVector(QueryRadius, 0.0f, 0.0f)).Size();

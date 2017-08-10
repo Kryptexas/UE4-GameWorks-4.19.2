@@ -441,6 +441,8 @@ void SCurveEdTrack::NewCurveNameEntered( const FText& NewText, ETextCommit::Type
 				SmartName::UID_Type RequestedNameUID = NameMapping->FindUID(RequestedName);
 				FGuid RequestedNameGuid;
 
+				FScopedTransaction Transaction(LOCTEXT("CurveEditor_RenameCurve", "Rename Curve"));
+
 				if (RequestedNameUID != SmartName::MaxUID)
 				{
 					FSmartName ExistingName;
@@ -451,6 +453,7 @@ void SCurveEdTrack::NewCurveNameEntered( const FText& NewText, ETextCommit::Type
 					// Already in use in this sequence, and if it's not my UID
 					if (RequestedNameUID != CurveInterface->CurveUID && CurveInterface->AnimSequenceBase->RawCurveData.GetCurveData(RequestedNameUID) != nullptr)
 					{
+						Transaction.Cancel();
 						FFormatNamedArguments Args;
 						Args.Add(TEXT("InvalidName"), FText::FromName(RequestedName));
 						FNotificationInfo Info(FText::Format(LOCTEXT("AnimCurveRenamedInUse", "The name \"{InvalidName}\" is already used."), Args));
@@ -464,10 +467,21 @@ void SCurveEdTrack::NewCurveNameEntered( const FText& NewText, ETextCommit::Type
 							Notification->SetCompletionState(SNotificationItem::CS_Fail);
 						}
 					}
+					else
+					{
+						CurveInterface->AnimSequenceBase->Modify(true);
+						CurveInterface->UpdateName(RequestedNameUID, RequestedNameGuid, RequestedName);
+
+						// Refresh the panel
+						TSharedPtr<SAnimCurvePanel> SharedPanel = PanelPtr.Pin();
+						if (SharedPanel.IsValid())
+						{
+							SharedPanel.Get()->UpdatePanel();
+						}
+					}
 				}
 				else
 				{
-					FScopedTransaction Transaction(LOCTEXT("CurveEditor_RenameCurve", "Rename Curve"));
 					const bool bRenamed = Skeleton->RenameSmartnameAndModify(USkeleton::AnimCurveMappingName, CurveInterface->CurveUID, RequestedName);
 					if (bRenamed)
 					{

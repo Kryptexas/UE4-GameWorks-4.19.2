@@ -54,6 +54,16 @@ FName UHeadMountedDisplayFunctionLibrary::GetHMDDeviceName()
 	return DeviceName;
 }
 
+EHMDWornState::Type UHeadMountedDisplayFunctionLibrary::GetHMDWornState()
+{
+	if (GEngine->HMDDevice.IsValid())
+	{
+		return GEngine->HMDDevice->GetHMDWornState();
+	}
+
+	return EHMDWornState::Unknown;
+}
+
 void UHeadMountedDisplayFunctionLibrary::GetOrientationAndPosition(FRotator& DeviceRotation, FVector& DevicePosition)
 {
 	if(GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed())
@@ -275,6 +285,11 @@ void UHeadMountedDisplayFunctionLibrary::SetSpectatorScreenTexture(UTexture* InT
 	ISpectatorScreenController* const Controller = HMDFunctionLibraryHelpers::GetSpectatorScreenController();
 	if (Controller)
 	{
+		if (!InTexture)
+		{
+			UE_LOG(LogHMD, Warning, TEXT("SetSpectatorScreenTexture blueprint function called with null Texture!"));
+		}
+
 		Controller->SetSpectatorScreenTexture(InTexture);
 	}
 }

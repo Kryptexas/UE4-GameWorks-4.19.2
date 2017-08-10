@@ -65,7 +65,7 @@ struct FGPUSkinBatchElementUserData
 class FGPUSkinCache
 {
 public:
-	struct FAllocation;
+	struct FRWBufferTracker;
 
 	enum ESkinCacheInitSettings
 	{
@@ -93,14 +93,7 @@ public:
 		class FShader* Shader, const FGPUSkinPassthroughVertexFactory* VertexFactory,
 		uint32 BaseVertexIndex, FShaderParameter PreviousStreamFloatOffset, FShaderResourceParameter PreviousStreamBuffer);
 
-	static inline void Release(FGPUSkinCacheEntry*& SkinCacheEntry)
-	{
-		if (SkinCacheEntry)
-		{
-			InternalRelease(SkinCacheEntry);
-			SkinCacheEntry = nullptr;
-		}
-	}
+	static void Release(FGPUSkinCacheEntry*& SkinCacheEntry);
 
 	static inline FGPUSkinBatchElementUserData* GetFactoryUserData(FGPUSkinCacheEntry* Entry, int32 Section)
 	{
@@ -120,42 +113,68 @@ public:
 		return OriginalValue;
 	}
 
-	struct FAllocation
+	enum
 	{
-		static uint64 CalulateRequiredMemory(uint32 NumFloatsRequired)
-		{
-			return sizeof(float) * (uint64)NumFloatsRequired * NUM_BUFFERS;
-		}
+		NUM_BUFFERS = 2,
+	};
 
-		FAllocation(uint32 InNumFloatsRequired)
+	struct FRWBuffersAllocation
+	{
+		FRWBuffersAllocation(uint32 InNumFloatsRequired)
 			: NumFloatsRequired(InNumFloatsRequired)
 		{
 			for (int32 Index = 0; Index < NUM_BUFFERS; ++Index)
 			{
 				RWBuffers[Index].Initialize(sizeof(float), NumFloatsRequired, PF_R32_FLOAT, BUF_Static);
-				Revisions[Index] = 0;
-				BoneBuffers[Index] = nullptr;
 			}
 		}
 
-		void Release(TArray<FUnorderedAccessViewRHIParamRef>& InBuffersToTransition)
-		{
-			for (uint32 i = 0; i < NUM_BUFFERS; i++)
-			{
-				FRWBuffer& RWBuffer = RWBuffers[i];
-				if (RWBuffer.UAV.IsValid())
-				{
-					InBuffersToTransition.Remove(RWBuffer.UAV);
-				}
-			}
-		}
-
-		~FAllocation()
+		~FRWBuffersAllocation()
 		{
 			for (int32 Index = 0; Index < NUM_BUFFERS; ++Index)
 			{
 				RWBuffers[Index].Release();
 			}
+		}
+
+		static uint64 CalculateRequiredMemory(uint32 NumFloatsRequired)
+		{
+			return sizeof(float) * (uint64)NumFloatsRequired * NUM_BUFFERS;
+		}
+
+		uint64 GetNumBytes() const
+		{
+			return CalculateRequiredMemory(NumFloatsRequired);
+		}
+
+		const uint32 NumFloatsRequired;
+
+		// Output of the GPU skinning (ie Pos, Normals)
+		FRWBuffer RWBuffers[NUM_BUFFERS];
+	};
+
+	struct FRWBufferTracker
+	{
+		FRWBuffersAllocation* Allocation;
+
+		FRWBufferTracker()
+			: Allocation(nullptr)
+		{
+			Reset();
+		}
+
+		void Reset()
+		{
+			for (int32 Index = 0; Index < NUM_BUFFERS; ++Index)
+			{
+				Revisions[Index] = 0;
+				BoneBuffers[Index] = nullptr;
+			}
+		}
+
+		inline uint32 GetNumBytes() const
+		{
+			return Allocation->GetNumBytes();
 		}
 
 		FRWBuffer* Find(const FVertexBufferAndSRV& BoneBuffer, uint32 Revision)
@@ -164,7 +183,7 @@ public:
 			{
 				if (Revisions[Index] == Revision && BoneBuffers[Index] == &BoneBuffer)
 				{
-					return &RWBuffers[Index];
+					return &Allocation->RWBuffers[Index];
 				}
 			}
 
@@ -196,22 +215,7 @@ public:
 			}
 		}
 
-		uint64 GetNumBytes()
-		{
-			return CalulateRequiredMemory(NumFloatsRequired);
-		}
-
 	private:
-		enum
-		{
-			NUM_BUFFERS = 2,
-		};
-
-		uint32 NumFloatsRequired;
-
-		// Output of the GPU skinning (ie Pos, Normals)
-		FRWBuffer RWBuffers[NUM_BUFFERS];
-
 		uint32 Revisions[NUM_BUFFERS];
 		const FVertexBufferAndSRV* BoneBuffers[NUM_BUFFERS];
 	};
@@ -221,17 +225,16 @@ public:
 protected:
 	TArray<FUnorderedAccessViewRHIParamRef> BuffersToTransition;
 
-	//#todo-gpuskin Convert to linked list
-	TArray<FAllocation*> Allocations;
+	TArray<FRWBuffersAllocation*> Allocations;
 	TArray<FGPUSkinCacheEntry*> Entries;
-	FAllocation* TryAllocBuffer(uint32 NumFloatsRequired);
+	FRWBuffersAllocation* TryAllocBuffer(uint32 NumFloatsRequired);
 	void DoDispatch(FRHICommandListImmediate& RHICmdList, FGPUSkinCacheEntry* SkinCacheEntry, int32 Section, int32 FrameNumber);
 	void DispatchUpdateSkinTangents(FRHICommandListImmediate& RHICmdList, FGPUSkinCacheEntry* Entry, int32 SectionIndex);
 	void DispatchUpdateSkinning(FRHICommandListImmediate& RHICmdList, FGPUSkinCacheEntry* Entry, int32 Section, uint32 FrameNumber);
 
 	void Cleanup();
 
-	static void InternalRelease(FGPUSkinCacheEntry* SkinCacheEntry);
+	static void ReleaseSkinCacheEntry(FGPUSkinCacheEntry* SkinCacheEntry);
 	static FGPUSkinBatchElementUserData* InternalGetFactoryUserData(FGPUSkinCacheEntry* Entry, int32 Section);
 	void InvalidateAllEntries();
 	uint64 UsedMemoryInBytes;

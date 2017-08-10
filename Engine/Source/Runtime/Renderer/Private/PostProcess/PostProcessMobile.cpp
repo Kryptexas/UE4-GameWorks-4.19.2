@@ -2974,21 +2974,10 @@ void FRCPassPostProcessAaES2::Process(FRenderingCompositePassContext& Context)
 	
 	check(SrcSize == DestSize);
 
-	// Full clear to avoid restore
 	if (Context.View.StereoPass != eSSP_RIGHT_EYE)
 	{
-		// OverrideRenderTarget might patch out final render target and we have no control of the clear color anymore
-		if (DestRenderTarget.TargetableTexture->GetClearColor() == FLinearColor::Black)
-		{
-			FRHIRenderTargetView RtView = FRHIRenderTargetView(DestRenderTarget.TargetableTexture, ERenderTargetLoadAction::EClear);
-			FRHISetRenderTargetsInfo Info(1, &RtView, FRHIDepthRenderTargetView());
-			Context.RHICmdList.SetRenderTargetsAndClear(Info);
-		}
-		else
-		{
-			SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef(), ESimpleRenderTargetMode::EUninitializedColorAndDepth);
-			DrawClearQuad(Context.RHICmdList, FLinearColor::Black);
-		}
+		// Full clear to avoid restore
+		SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorAndDepth);
 	}
 	else
 	{

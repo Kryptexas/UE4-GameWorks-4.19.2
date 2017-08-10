@@ -102,7 +102,7 @@ void GetVolumeLightingDirectional(float4 AmbientLightingVector, float3 Direction
 	TranslucentLighting.R.V.x = AmbientLightingVector.r;
 	TranslucentLighting.G.V.x = AmbientLightingVector.g;
 	TranslucentLighting.B.V.x = AmbientLightingVector.b;
-	float3 NormalizedAmbientColor = AmbientLightingVector.rgb / Luminance( AmbientLightingVector.rgb );
+	float3 NormalizedAmbientColor = AmbientLightingVector.rgb / ( Luminance( AmbientLightingVector.rgb ) + 0.00001f );
 
 	// Scale the monocrome directional coefficients with the normalzed ambient color as an approximation to the uncompressed values
 	TranslucentLighting.R.V.yzw = DirectionalLightingVector.rgb * NormalizedAmbientColor.r;

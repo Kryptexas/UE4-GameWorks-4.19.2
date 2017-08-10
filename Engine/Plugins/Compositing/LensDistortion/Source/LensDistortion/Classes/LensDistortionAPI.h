@@ -14,7 +14,7 @@
  *  |  0   0   1  |
  */
 USTRUCT(BlueprintType)
-struct FLensDistortionCameraModel
+struct LENSDISTORTION_API FLensDistortionCameraModel
 {
 	GENERATED_USTRUCT_BODY()
 	FLensDistortionCameraModel()

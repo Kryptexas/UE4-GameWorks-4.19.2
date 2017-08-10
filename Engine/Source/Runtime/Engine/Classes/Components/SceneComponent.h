@@ -201,7 +201,7 @@ public:
 	FBoxSphereBounds Bounds;
 
 	/** Current transform of the component, relative to the world */
-	DEPRECATED_FORGAME(4.17, "ComponentToWorld will be made private, use GetComponentTransform() instead.")
+	DEPRECATED(4.17, "ComponentToWorld will be made private, use GetComponentTransform() instead.")
 	FTransform ComponentToWorld;
 
 private:

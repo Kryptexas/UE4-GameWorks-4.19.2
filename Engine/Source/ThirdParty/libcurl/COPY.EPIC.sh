@@ -241,69 +241,6 @@ copy_libcurl()
 	fi
 }
 
-copy_libwebsockets()
-{
-	if [[ $SYSTEM == *'_NT-'* ]]; then
-		# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-		SRC=libWebSockets/v1.7.4/INSTALL.v1.7.4/Win64/VS2015
-		DST=libWebSockets/v1.7.4/include/Win64/VS2015
-			rm -rf "$TPS"/$DST
-			mkdir -p "$TPS"/$DST
-				$COPY $SRC/include/* "$TPS"/$DST/.
-		DST=libWebSockets/v1.7.4/lib/Win64/VS2015
-			rm -rf "$TPS"/$DST
-			mkdir -p "$TPS"/$DST
-				$COPY $SRC/lib/* "$TPS"/$DST/.
-				$COPY $SRC/bin/*.dll "$TPS"/$DST/.
-	
-		SRC=libWebSockets/v1.7.4/INSTALL.v1.7.4/Win64/VS2013
-		DST=libWebSockets/v1.7.4/include/Win64/VS2013
-			rm -rf "$TPS"/$DST
-			mkdir -p "$TPS"/$DST
-				$COPY $SRC/include/* "$TPS"/$DST/.
-		DST=libWebSockets/v1.7.4/lib/Win64/VS2013
-			rm -rf "$TPS"/$DST
-			mkdir -p "$TPS"/$DST
-				$COPY $SRC/lib/* "$TPS"/$DST/.
-				$COPY $SRC/bin/*.dll "$TPS"/$DST/.
-	
-		SRC=libWebSockets/v1.7.4/INSTALL.v1.7.4/Win32/VS2015
-		DST=libWebSockets/v1.7.4/include/Win32/VS2015
-			rm -rf "$TPS"/$DST
-			mkdir -p "$TPS"/$DST
-				$COPY $SRC/include/* "$TPS"/$DST/.
-		DST=libWebSockets/v1.7.4/lib/Win32/VS2015
-			rm -rf "$TPS"/$DST
-			mkdir -p "$TPS"/$DST
-				$COPY $SRC/lib/* "$TPS"/$DST/.
-				$COPY $SRC/bin/*.dll "$TPS"/$DST/.
-
-		SRC=libWebSockets/v1.7.4/INSTALL.v1.7.4/Win32/VS2013
-		DST=libWebSockets/v1.7.4/include/Win32/VS2013
-			rm -rf "$TPS"/$DST
-			mkdir -p "$TPS"/$DST
-				$COPY $SRC/include/* "$TPS"/$DST/.
-		DST=libWebSockets/v1.7.4/lib/Win32/VS2013
-			rm -rf "$TPS"/$DST
-			mkdir -p "$TPS"/$DST
-				$COPY $SRC/lib/* "$TPS"/$DST/.
-				$COPY $SRC/bin/*.dll "$TPS"/$DST/.
-		# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-	else
-		# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-		SRC=libWebSockets/v1.7.4/INSTALL.v1.7.4/$PLATFORM
-		DST=libWebSockets/v1.7.4/include/$PLATFORM
-			rm -rf "$TPS"/$DST
-			mkdir -p "$TPS"/$DST
-				$COPY $SRC/include/* "$TPS"/$DST/.
-		DST=libWebSockets/v1.7.4/lib/$PLATFORM
-			rm -rf "$TPS"/$DST
-			mkdir -p "$TPS"/$DST
-				$COPY $SRC/{lib,bin}/* "$TPS"/$DST/.
-		
-	fi
-}
-
 copy_webrtc()
 {
 	if [[ $SYSTEM == *'_NT-'* ]]; then
@@ -372,6 +309,5 @@ configure_platform
 copy_zlib
 copy_openssl
 copy_libcurl
-copy_libwebsockets
 copy_webrtc
 

@@ -93,7 +93,10 @@ void SSkeletonTree::Construct(const FArguments& InArgs, const TSharedRef<FEditab
 	// Register delegates
 	InSkeletonTreeArgs.OnPostUndo.Add(FSimpleDelegate::CreateSP(this, &SSkeletonTree::PostUndo));
 
-	PreviewScene->RegisterOnLODChanged(FSimpleDelegate::CreateSP(this, &SSkeletonTree::OnLODSwitched));
+	if(PreviewScene.IsValid())
+	{
+		PreviewScene.Pin()->RegisterOnLODChanged(FSimpleDelegate::CreateSP(this, &SSkeletonTree::OnLODSwitched));
+	}
 
 	InEditableSkeleton->RegisterOnSkeletonHierarchyChanged(USkeleton::FOnSkeletonHierarchyChanged::CreateSP(this, &SSkeletonTree::PostUndo));
 
@@ -101,7 +104,7 @@ void SSkeletonTree::Construct(const FArguments& InArgs, const TSharedRef<FEditab
 
 	BoneProxy = NewObject<UBoneProxy>(GetTransientPackage());
 	BoneProxy->AddToRoot();
-	BoneProxy->SkelMeshComponent = PreviewScene->GetPreviewMeshComponent();
+	BoneProxy->SkelMeshComponent = PreviewScene.IsValid() ? PreviewScene.Pin()->GetPreviewMeshComponent() : nullptr;
 
 	// Register and bind all our menu commands
 	FSkeletonTreeCommands::Register();

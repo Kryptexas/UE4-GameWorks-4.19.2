@@ -7,9 +7,9 @@
   <Justification>Dependancy for crashreporterPL</Justification>
   <Eula>https://github.com/protobuf-c/protobuf-c/blob/master/LICENSE</Eula>
   <RedistributeTo>
+    <EndUserGroup>Licensees</EndUserGroup>
     <EndUserGroup>Git</EndUserGroup>
     <EndUserGroup>P4</EndUserGroup>
-    <EndUserGroup>Licensees</EndUserGroup>
   </RedistributeTo>
   <LicenseFolder>/Engine/Source/ThirdParty/Licenses/Protobuf-c_License.txt</LicenseFolder>
 </TpsData>

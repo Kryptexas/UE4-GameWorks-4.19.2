@@ -197,19 +197,44 @@ void FShaderCompilerOutput::GenerateOutputHash()
 	HashState.GetHash(&OutputHash.Hash[0]);
 }
 
-
-#if DO_CHECK
-bool CheckVirtualShaderFilePath(const FString& VirtualFilePath)
+static void ReportVirtualShaderFilePathError(TArray<FShaderCompilerError>* CompileErrors, FString ErrorString)
 {
-	checkf(VirtualFilePath.StartsWith(TEXT("/")),
-		TEXT("Virtual shader source file name \"%s\" should be absolute from the virtual root directory \"/\"."), *VirtualFilePath);
-	checkf((FPaths::GetExtension(VirtualFilePath) == TEXT("usf") || FPaths::GetExtension(VirtualFilePath) == TEXT("ush")) && !VirtualFilePath.EndsWith(TEXT(".usf.usf")),
-		TEXT("Extension on virtual shader source file name \"%s\" is wrong."), *VirtualFilePath);
-	checkf(!VirtualFilePath.Contains(TEXT("\\")),
-		TEXT("Backslashes are not permitted in Virtual shader source file name \"%s\""), *VirtualFilePath);
-	return true;
+	if (CompileErrors)
+	{
+		CompileErrors->Add(FShaderCompilerError(*ErrorString));
+	}
+
+	UE_LOG(LogShaders, Error, TEXT("%s"), *ErrorString);
 }
-#endif
+
+bool CheckVirtualShaderFilePath(const FString& VirtualFilePath, TArray<FShaderCompilerError>* CompileErrors /*= nullptr*/)
+{
+	bool bSuccess = true;
+
+	if (!VirtualFilePath.StartsWith(TEXT("/")))
+	{
+		FString Error = FString::Printf(TEXT("Virtual shader source file name \"%s\" should be absolute from the virtual root directory \"/\"."), *VirtualFilePath);
+		ReportVirtualShaderFilePathError(CompileErrors, Error);
+		bSuccess = false;
+	}
+
+	if (VirtualFilePath.Contains(TEXT("\\")))
+	{
+		FString Error = FString::Printf(TEXT("Backslashes are not permitted in virtual shader source file name \"%s\""), *VirtualFilePath);
+		ReportVirtualShaderFilePathError(CompileErrors, Error);
+		bSuccess = false;
+	}
+
+	FString Extension = FPaths::GetExtension(VirtualFilePath);
+	if ((Extension != TEXT("usf") && Extension != TEXT("ush")) || VirtualFilePath.EndsWith(TEXT(".usf.usf")))
+	{
+		FString Error = FString::Printf(TEXT("Extension on virtual shader source file name \"%s\" is wrong. Only .usf or .ush allowed."), *VirtualFilePath);
+		ReportVirtualShaderFilePathError(CompileErrors, Error);
+		bSuccess = false;
+	}
+
+	return bSuccess;
+}
 
 /**
 * Add a new entry to the list of shader source files
@@ -285,15 +310,27 @@ void VerifyShaderSourceFiles()
 			SlowTask.EnterProgressFrame(1);
 			FString FileContents;
 			// load each shader source file. This will cache the shader source data after it has been verified
-			LoadShaderSourceFileChecked(*VirtualShaderSourcePaths[ShaderFileIdx], FileContents);
+			LoadShaderSourceFile(*VirtualShaderSourcePaths[ShaderFileIdx], FileContents, nullptr);
 		}
 	}
 }
 
-static FString GetShaderSourceFilePath(const FString& VirtualFilePath)
+static void LogShaderSourceDirectoryMappings()
+{
+	const TMap<FString, FString>& ShaderSourceDirectoryMappings = FPlatformProcess::AllShaderSourceDirectoryMappings();
+	for (const auto& Iter : ShaderSourceDirectoryMappings)
+	{
+		UE_LOG(LogShaders, Log, TEXT("Shader directory mapping %s -> %s"), *Iter.Key, *Iter.Value);
+	}
+}
+
+static FString GetShaderSourceFilePath(const FString& VirtualFilePath, TArray<FShaderCompilerError>* CompileErrors)
 {
 	// Make sure the .usf extension is correctly set.
-	check(CheckVirtualShaderFilePath(VirtualFilePath));
+	if (!CheckVirtualShaderFilePath(VirtualFilePath, CompileErrors))
+	{
+		return FString();
+	}
 
 	// We don't cache the output of this function because only used in LoadShaderSourceFile that is cached, or when there
 	// is shader compilation errors.
@@ -319,10 +356,18 @@ static FString GetShaderSourceFilePath(const FString& VirtualFilePath)
 	}
 
 	// Make sure a directory mapping has matched.
-	checkf(!RealFilePath.IsEmpty(), TEXT("Could not map virtual shader source path \"%s\"."), *VirtualFilePath);
+	if (RealFilePath.IsEmpty())
+	{
+		FString Error = FString::Printf(TEXT("Can't map virtual shader source path \"%s\"."), *VirtualFilePath);
+		Error += TEXT("\nDirectory mappings are:");
+		for (const auto& Iter : ShaderSourceDirectoryMappings)
+		{
+			Error += FString::Printf(TEXT("\n  %s -> %s"), *Iter.Key, *Iter.Value);
+		}
+
+		ReportVirtualShaderFilePathError(CompileErrors, Error);
+	}
 	
-	// Normally, the return should be a relative path from process's base dir.
-	check(FPaths::IsRelative(RealFilePath));
 	return RealFilePath;
 }
 
@@ -381,7 +426,7 @@ FString ParseVirtualShaderFilename(const FString& InFilename)
 	return OutputFilename;
 }
 
-bool LoadShaderSourceFile(const TCHAR* VirtualFilePath, FString& OutFileContents) // TODO: const FString&
+bool LoadShaderSourceFile(const TCHAR* VirtualFilePath, FString& OutFileContents, TArray<FShaderCompilerError>* OutCompileErrors) // TODO: const FString&
 {
 	// it's not expected that cooked platforms get here, but if they do, this is the final out
 	if (FPlatformProperties::RequiresCookedData())
@@ -408,10 +453,10 @@ bool LoadShaderSourceFile(const TCHAR* VirtualFilePath, FString& OutFileContents
 		}
 		else
 		{
-			FString ShaderFilePath = GetShaderSourceFilePath(VirtualFilePath);
+			FString ShaderFilePath = GetShaderSourceFilePath(VirtualFilePath, OutCompileErrors);
 
 			// verify SHA hash of shader files on load. missing entries trigger an error
-			if (FFileHelper::LoadFileToString(OutFileContents, *ShaderFilePath, FFileHelper::EHashOptions::EnableVerify|FFileHelper::EHashOptions::ErrorMissingHash) )
+			if (!ShaderFilePath.IsEmpty() && FFileHelper::LoadFileToString(OutFileContents, *ShaderFilePath, FFileHelper::EHashOptions::EnableVerify|FFileHelper::EHashOptions::ErrorMissingHash) )
 			{
 				//update the shader file cache
 				GShaderFileCache.Add(VirtualFilePath, *OutFileContents);
@@ -426,7 +471,7 @@ bool LoadShaderSourceFile(const TCHAR* VirtualFilePath, FString& OutFileContents
 
 void LoadShaderSourceFileChecked(const TCHAR* VirtualFilePath, FString& OutFileContents)
 {
-	if (!LoadShaderSourceFile(VirtualFilePath, OutFileContents))
+	if (!LoadShaderSourceFile(VirtualFilePath, OutFileContents, nullptr))
 	{
 		UE_LOG(LogShaders, Fatal, TEXT("Couldn't find source file of virtual shader path \'%s\'"), VirtualFilePath);
 	}
@@ -455,14 +500,19 @@ const TCHAR* SkipToCharOnCurrentLine(const TCHAR* InStr, TCHAR TargetChar)
 /**
  * Recursively populates IncludeFilenames with the unique include filenames found in the shader file named Filename.
  */
-void GetShaderIncludes(const TCHAR* EntryPointVirtualFilePath, const TCHAR* VirtualFilePath, TArray<FString>& IncludeVirtualFilePaths, uint32 DepthLimit)
+static void GetShaderIncludes(const TCHAR* EntryPointVirtualFilePath, const TCHAR* VirtualFilePath, TArray<FString>& IncludeVirtualFilePaths, uint32 DepthLimit, bool AddToIncludeFile)
 {
 	FString FileContents;
-	LoadShaderSourceFileChecked(VirtualFilePath, FileContents);
+	LoadShaderSourceFile(VirtualFilePath, FileContents, nullptr);
 
 	//avoid an infinite loop with a 0 length string
 	if (FileContents.Len() > 0)
 	{
+		if (AddToIncludeFile)
+		{
+			IncludeVirtualFilePaths.Add(VirtualFilePath);
+		}
+
 		//find the first include directive
 		const TCHAR* IncludeBegin = FCString::Strstr(*FileContents, TEXT("#include "));
 
@@ -490,9 +540,6 @@ void GetShaderIncludes(const TCHAR* EntryPointVirtualFilePath, const TCHAR* Virt
 						ExtractedIncludeFilename = FPaths::GetPath(VirtualFilePath) / ExtractedIncludeFilename;
 					}
 
-					// Check virtual.
-					check(CheckVirtualShaderFilePath(ExtractedIncludeFilename));
-
 					//CRC the template, not the filled out version so that this shader's CRC will be independent of which material references it.
 					if (ExtractedIncludeFilename == TEXT("/Engine/Generated/Material.ush"))
 					{
@@ -501,6 +548,9 @@ void GetShaderIncludes(const TCHAR* EntryPointVirtualFilePath, const TCHAR* Virt
 
 					// Ignore uniform buffer, vertex factory and instanced stereo includes
 					bool bIgnoreInclude = ExtractedIncludeFilename.StartsWith(TEXT("/Engine/Generated/"));
+
+					// Check virtual.
+					bIgnoreInclude |= !CheckVirtualShaderFilePath(ExtractedIncludeFilename);
 			
 					// Some headers aren't required to be found (platforms that the user doesn't have access to)
 					// @todo: Is there some way to generalize this"
@@ -529,8 +579,7 @@ void GetShaderIncludes(const TCHAR* EntryPointVirtualFilePath, const TCHAR* Virt
 					{
 						if (!IncludeVirtualFilePaths.Contains(ExtractedIncludeFilename))
 						{
-							IncludeVirtualFilePaths.Add(ExtractedIncludeFilename);
-							GetShaderIncludes(EntryPointVirtualFilePath, *ExtractedIncludeFilename, IncludeVirtualFilePaths, DepthLimit - 1);
+							GetShaderIncludes(EntryPointVirtualFilePath, *ExtractedIncludeFilename, IncludeVirtualFilePaths, DepthLimit - 1, true);
 						}
 					}
 				}
@@ -556,6 +605,11 @@ void GetShaderIncludes(const TCHAR* EntryPointVirtualFilePath, const TCHAR* Virt
 				DepthLimit);
 		}
 	}
+}
+
+void GetShaderIncludes(const TCHAR* EntryPointVirtualFilePath, const TCHAR* VirtualFilePath, TArray<FString>& IncludeVirtualFilePaths, uint32 DepthLimit)
+{
+	GetShaderIncludes(EntryPointVirtualFilePath, VirtualFilePath, IncludeVirtualFilePaths, DepthLimit, false);
 }
 
 static void UpdateSingleShaderFilehash(FSHA1& InOutHashState, const TCHAR* VirtualFilePath)
@@ -705,6 +759,10 @@ void BuildShaderFileToUniformBufferMap(TMap<FString, TArray<const TCHAR*> >& Sha
 
 void InitializeShaderTypes()
 {
+	UE_LOG(LogShaders, Log, TEXT("InitializeShaderTypes() begin"));
+
+	LogShaderSourceDirectoryMappings();
+
 	TMap<FString, TArray<const TCHAR*> > ShaderFileToUniformBufferVariables;
 	BuildShaderFileToUniformBufferMap(ShaderFileToUniformBufferVariables);
 
@@ -712,14 +770,20 @@ void InitializeShaderTypes()
 	FVertexFactoryType::Initialize(ShaderFileToUniformBufferVariables);
 
 	FShaderPipelineType::Initialize();
+
+	UE_LOG(LogShaders, Log, TEXT("InitializeShaderTypes() end"));
 }
 
 void UninitializeShaderTypes()
 {
+	UE_LOG(LogShaders, Log, TEXT("UninitializeShaderTypes() begin"));
+
 	FShaderPipelineType::Uninitialize();
 
 	FShaderType::Uninitialize();
 	FVertexFactoryType::Uninitialize();
+
+	UE_LOG(LogShaders, Log, TEXT("UninitializeShaderTypes() end"));
 }
 
 /**
@@ -728,11 +792,15 @@ void UninitializeShaderTypes()
  */
 void FlushShaderFileCache()
 {
+	UE_LOG(LogShaders, Log, TEXT("FlushShaderFileCache() begin"));
+
 	GShaderHashCache.Empty();
 	GShaderFileCache.Empty();
 
 	if (!FPlatformProperties::RequiresCookedData())
 	{
+		LogShaderSourceDirectoryMappings();
+
 		TMap<FString, TArray<const TCHAR*> > ShaderFileToUniformBufferVariables;
 		BuildShaderFileToUniformBufferMap(ShaderFileToUniformBufferVariables);
 
@@ -755,6 +823,8 @@ void FlushShaderFileCache()
 			It->FlushShaderFileCache(ShaderFileToUniformBufferVariables);
 		}
 	}
+
+	UE_LOG(LogShaders, Log, TEXT("FlushShaderFileCache() end"));
 }
 
 void GenerateReferencedUniformBuffers(
@@ -818,6 +888,6 @@ FString FShaderCompilerError::GetShaderSourceFilePath() const
 	}
 	else
 	{
-	return ::GetShaderSourceFilePath(ErrorVirtualFilePath);
+		return ::GetShaderSourceFilePath(ErrorVirtualFilePath, nullptr);
 	}
 }

@@ -6,20 +6,9 @@
 #include "TokenizedMessage.h"
 
 THIRD_PARTY_INCLUDES_START
-/*
-#if USING_CODE_ANALYSIS
-MSVC_PRAGMA(warning(push))
-MSVC_PRAGMA(warning(disable : ALL_CODE_ANALYSIS_WARNINGS))
-#endif	// USING_CODE_ANALYSIS
-*/
 
 #include "UnrealUSDWrapper.h"
 
-/*
-#if USING_CODE_ANALYSIS
-MSVC_PRAGMA(warning(pop))
-#endif	// USING_CODE_ANALYSIS
-*/
 THIRD_PARTY_INCLUDES_END
 
 #include "USDImporter.generated.h"

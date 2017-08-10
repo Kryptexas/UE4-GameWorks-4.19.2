@@ -310,11 +310,12 @@ void MainForGS(
 		OutPosition);
 }
 
+#define USING_ONEPASS_POINT_VERTEX_LAYER	(FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && ONEPASS_POINTLIGHT_SHADOW && USING_VERTEX_SHADER_LAYER)
 
 #if POSITION_ONLY
 void PositionOnlyMain(
 	in FPositionOnlyVertexFactoryInput Input,
-#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && ONEPASS_POINTLIGHT_SHADOW && USING_VERTEX_SHADER_LAYER
+#if USING_ONEPASS_POINT_VERTEX_LAYER
 	out uint LayerIndex : SV_RenderTargetArrayIndex,
 	out float ClipDistance : SV_ClipDistance0,
 #endif
@@ -326,17 +327,21 @@ void PositionOnlyMain(
 
 	float4 WorldPos = VertexFactoryGetWorldPosition(Input);
 
+#if INTERPOLATE_VF_ATTRIBUTES
+	OutParameters.FactoryInterpolants = (FVertexFactoryInterpolantsVSToPS)0;
+#endif
+
 #if ONEPASS_POINTLIGHT_SHADOW
 	OutPosition = OutParameters.GSPosition = WorldPos;
 
-#if USING_VERTEX_SHADER_LAYER && VERTEXSHADER
-	LayerIndex = Input.InstanceId / InstanceCount;
-	OutPosition = mul(WorldPos, ShadowViewProjectionMatrices[LayerIndex]);
-	#if INTERPOLATE_VF_ATTRIBUTES
-		OutParameters.GSPosition = OutPosition;
+	#if USING_ONEPASS_POINT_VERTEX_LAYER
+		LayerIndex = Input.InstanceId / InstanceCount;
+		OutPosition = mul(WorldPos, ShadowViewProjectionMatrices[LayerIndex]);
+		#if INTERPOLATE_VF_ATTRIBUTES
+			OutParameters.GSPosition = OutPosition;
+		#endif
+		ClipDistance = (MeshVisibleToFace[LayerIndex].x > 0) ? 1.0 : -1.0;
 	#endif
-	ClipDistance = (MeshVisibleToFace[LayerIndex].x > 0) ? 1.0 : -1.0;
-#endif
 
 #else // #if ONEPASS_POINTLIGHT_SHADOW
 	float ShadowDepth;
@@ -356,7 +361,7 @@ void PositionOnlyMain(
 
 void PositionOnlyMainForGS(
 	in FPositionOnlyVertexFactoryInput Input,
-#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && ONEPASS_POINTLIGHT_SHADOW && USING_VERTEX_SHADER_LAYER
+#if USING_ONEPASS_POINT_VERTEX_LAYER
 	out uint LayerIndex : SV_RenderTargetArrayIndex,
 	out float ClipDistance : SV_ClipDistance0,
 #endif
@@ -365,7 +370,7 @@ void PositionOnlyMainForGS(
 	)
 {
 	PositionOnlyMain(Input,
-#if ONEPASS_POINTLIGHT_SHADOW && USING_VERTEX_SHADER_LAYER
+#if USING_ONEPASS_POINT_VERTEX_LAYER
 		LayerIndex, ClipDistance,
 #endif
 		OutParameters, OutPosition);

@@ -15,6 +15,7 @@
 #include "IDetailPropertyRow.h"
 #include "SCheckBox.h"
 #include "Editor.h"
+#include "ScopedTransaction.h"
 
 #define LOCTEXT_NAMESPACE "FColorGradingCustomization"
 
@@ -733,7 +734,7 @@ void FColorGradingCustomBuilder::OnDetailGroupReset()
 	}
 }
 
-void FColorGradingCustomBuilder::ResetToDefault(TSharedRef<IPropertyHandle> PropertyHandle)
+void FColorGradingCustomBuilder::ResetToDefault(TSharedPtr<IPropertyHandle> PropertyHandle)
 {
 	PropertyHandle->ResetToDefault();
 
@@ -754,7 +755,7 @@ void FColorGradingCustomBuilder::ResetToDefault(TSharedRef<IPropertyHandle> Prop
 	}
 }
 
-bool FColorGradingCustomBuilder::CanResetToDefault(TSharedRef<IPropertyHandle> PropertyHandle)
+bool FColorGradingCustomBuilder::CanResetToDefault(TSharedPtr<IPropertyHandle> PropertyHandle)
 {
 	return PropertyHandle->DiffersFromDefault();
 }
@@ -790,18 +791,20 @@ void FColorGradingCustomBuilder::GenerateHeaderRowContent(FDetailWidgetRow& Node
 			.Padding(FMargin(2.0f, 2.0f, 2.0f, 2.0f))
 			[
 				SAssignNew(ColorGradingPickerWidget, SColorGradingPicker)
-					.ValueMin(MinValue)
-					.ValueMax(MaxValue)
-					.SliderValueMin(SliderMinValue)
-					.SliderValueMax(SliderMaxValue)
-					.MainDelta(Delta)
-					.SupportDynamicSliderMaxValue(SupportDynamicSliderMaxValue)
-					.SupportDynamicSliderMinValue(SupportDynamicSliderMinValue)
-					.MainShiftMouseMovePixelPerDelta(ShiftMouseMovePixelPerDelta)
-					.ColorGradingModes(ColorGradingMode)
-					.OnColorCommitted(this, &FColorGradingCustomBuilder::OnColorGradingPickerChanged)
-					.OnQueryCurrentColor(this, &FColorGradingCustomBuilder::GetCurrentColorGradingValue)
-					.AllowSpin(ColorGradingPropertyHandle.Pin()->GetNumOuterObjects() == 1)
+				.ValueMin(MinValue)
+				.ValueMax(MaxValue)
+				.SliderValueMin(SliderMinValue)
+				.SliderValueMax(SliderMaxValue)
+				.MainDelta(Delta)
+				.SupportDynamicSliderMaxValue(SupportDynamicSliderMaxValue)
+				.SupportDynamicSliderMinValue(SupportDynamicSliderMinValue)
+				.MainShiftMouseMovePixelPerDelta(ShiftMouseMovePixelPerDelta)
+				.ColorGradingModes(ColorGradingMode)
+				.OnColorCommitted(this, &FColorGradingCustomBuilder::OnColorGradingPickerChanged)
+				.OnQueryCurrentColor(this, &FColorGradingCustomBuilder::GetCurrentColorGradingValue)
+				.AllowSpin(ColorGradingPropertyHandle.Pin()->GetNumOuterObjects() == 1)
+				.OnBeginSliderMovement(this, &FColorGradingCustomBuilder::OnBeginMainValueSliderMovement)
+				.OnEndSliderMovement(this, &FColorGradingCustomBuilder::OnEndMainValueSliderMovement)
 			]
 		];
 
@@ -1090,9 +1093,27 @@ ECheckBoxState FColorGradingCustomBuilder::OnGetChangeColorMode(ColorModeType Mo
 
 void FColorGradingCustomBuilder::OnColorGradingPickerChanged(FVector4& NewValue, bool ShouldCommitValueChanges)
 {
+	
+	FScopedTransaction Transaction(LOCTEXT("ColorGradingMainValue", "Color Grading Main Value"),ShouldCommitValueChanges);
 	if (ColorGradingPropertyHandle.IsValid())
 	{
-		ColorGradingPropertyHandle.Pin()->SetValue(NewValue, ShouldCommitValueChanges ? EPropertyValueSetFlags::DefaultFlags : EPropertyValueSetFlags::InteractiveChange);
+		if (ShouldCommitValueChanges && !bIsUsingSlider)
+		{
+			FVector4 ExistingValue;
+			ColorGradingPropertyHandle.Pin()->GetValue(ExistingValue);
+			if (ExistingValue != NewValue)
+			{
+				ColorGradingPropertyHandle.Pin()->SetValue(NewValue, ShouldCommitValueChanges ? EPropertyValueSetFlags::DefaultFlags : EPropertyValueSetFlags::InteractiveChange);
+			}
+			else
+			{
+				Transaction.Cancel();
+			}
+		}
+		else
+		{
+			ColorGradingPropertyHandle.Pin()->SetValue(NewValue, ShouldCommitValueChanges ? EPropertyValueSetFlags::DefaultFlags : EPropertyValueSetFlags::InteractiveChange);
+		}
 	}
 
 	FLinearColor NewHSVColor(NewValue.X, NewValue.Y, NewValue.Z);
@@ -1106,8 +1127,21 @@ bool FColorGradingCustomBuilder::GetCurrentColorGradingValue(FVector4& OutCurren
 	return ColorGradingPropertyHandle.Pin()->GetValue(OutCurrentValue) == FPropertyAccess::Success;
 }
 
+
 void FColorGradingCustomBuilder::GenerateChildContent(IDetailChildrenBuilder& ChildrenBuilder)
 {
+}
+
+void FColorGradingCustomBuilder::OnBeginMainValueSliderMovement()
+{
+	bIsUsingSlider = true;
+	GEditor->BeginTransaction(LOCTEXT("ColorGradingMainValue", "Color Grading Main Value"));
+}
+
+void FColorGradingCustomBuilder::OnEndMainValueSliderMovement()
+{
+	bIsUsingSlider = false;
+	GEditor->EndTransaction();
 }
 
 #undef LOCTEXT_NAMESPACE

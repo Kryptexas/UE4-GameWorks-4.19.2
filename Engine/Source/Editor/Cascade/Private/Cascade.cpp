@@ -137,17 +137,20 @@ FCascade::~FCascade()
 		WindowPtr->RequestDestroyWindow();
 	}
 
-	
-	// Reset the detail mode values
-	for (TObjectIterator<UParticleSystemComponent> It;It;++It)
+	if (ParticleSystemComponent)
 	{
-		if (It->Template == ParticleSystemComponent->Template)
+		ParticleSystemComponent->ResetParticles(/*bEmptyInstances=*/ true);
+		ParticleSystemComponent->CascadePreviewViewportPtr = nullptr;
+
+		// Reset the detail mode values
+		for (TObjectIterator<UParticleSystemComponent> It; It; ++It)
 		{
-			It->EditorDetailMode = -1;
+			if (It->Template == ParticleSystemComponent->Template)
+			{
+				It->EditorDetailMode = -1;
+			}
 		}
 	}
-
-	ParticleSystemComponent->ResetParticles(/*bEmptyInstances=*/ true);
 
 	if (ParticleSystem != NULL)
 	{
@@ -204,7 +207,9 @@ void FCascade::OnComponentActivationChange(UParticleSystemComponent* PSC, bool b
 {
 	check(PSC);
 
-	if (UCascadeParticleSystemComponent* CPSC = Cast<UCascadeParticleSystemComponent>(PSC))
+	UCascadeParticleSystemComponent* CPSC = Cast<UCascadeParticleSystemComponent>(PSC);
+
+	if (CPSC && CPSC->CascadePreviewViewportPtr)
 	{
 		if (FCascade* Cascade = CPSC->CascadePreviewViewportPtr->GetCascade())
 		{

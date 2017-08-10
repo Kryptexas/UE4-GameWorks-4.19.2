@@ -469,7 +469,7 @@ struct FEditorShaderCodeArchive
 			if (FileWriter)
 			{
 				check(Format);
-				if (Format->CanStripShaderCode())
+				if (Format->CanStripShaderCode(bNativeFormat))
 				{
 					uint32 Size = Pair.Value.UncompressedSize;
 					TArray<uint8> Code = Pair.Value.Code;

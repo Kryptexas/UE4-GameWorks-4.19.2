@@ -5,14 +5,25 @@
 
 #define LOCTEXT_NAMESPACE "ResetToDefaultPropertyEditor"
 
-void SResetToDefaultPropertyEditor::Construct( const FArguments& InArgs, const TSharedPtr<IPropertyHandle>& InPropertyHandle )
+SResetToDefaultPropertyEditor::~SResetToDefaultPropertyEditor()
+{
+	if (PropertyHandle.IsValid())
+	{
+		PropertyHandle->ClearResetToDefaultCustomized();
+	}
+}
+
+void SResetToDefaultPropertyEditor::Construct(const FArguments& InArgs, const TSharedPtr<IPropertyHandle>& InPropertyHandle)
 {
 	PropertyHandle = InPropertyHandle;
 	NonVisibleState = InArgs._NonVisibleState;
 	bValueDiffersFromDefault = false;
 	OptionalCustomResetToDefault = InArgs._CustomResetToDefault;
 
-	InPropertyHandle->MarkResetToDefaultCustomized();
+	if (InPropertyHandle.IsValid())
+	{
+		InPropertyHandle->MarkResetToDefaultCustomized();
+	}
 
 	// Indicator for a value that differs from default. Also offers the option to reset to default.
 	ChildSlot
@@ -71,21 +82,23 @@ FReply SResetToDefaultPropertyEditor::OnResetClicked()
 			PropertyHandle->ResetToDefault();
 		}
 	}
+	else if(OptionalCustomResetToDefault.IsSet())
+	{
+		OptionalCustomResetToDefault.GetValue().OnResetToDefaultClicked().ExecuteIfBound(PropertyHandle);
+	}
+
 	return FReply::Handled();
 }
 
 void SResetToDefaultPropertyEditor::UpdateDiffersFromDefaultState()
 {
-	if (PropertyHandle.IsValid())
+	if (OptionalCustomResetToDefault.IsSet())
 	{
-		if (OptionalCustomResetToDefault.IsSet())
-		{
-			bValueDiffersFromDefault = OptionalCustomResetToDefault.GetValue().IsResetToDefaultVisible(PropertyHandle.ToSharedRef());
-		}
-		else
-		{
-			bValueDiffersFromDefault = PropertyHandle->CanResetToDefault();
-		}
+		bValueDiffersFromDefault = OptionalCustomResetToDefault.GetValue().IsResetToDefaultVisible(PropertyHandle);
+	}
+	else if (PropertyHandle.IsValid())
+	{
+		bValueDiffersFromDefault = PropertyHandle->CanResetToDefault();
 	}
 }
 

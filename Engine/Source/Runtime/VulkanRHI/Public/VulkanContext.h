@@ -144,6 +144,11 @@ public:
 		TransitionState.NotifyDeletedRenderTarget(*Device, Image);
 	}
 
+	inline void NotifyDeletedImage(VkImage Image)
+	{
+		TransitionState.NotifyDeletedImage(Image);
+	}
+
 	inline FVulkanRenderPass* GetCurrentRenderPass()
 	{
 		return TransitionState.CurrentRenderPass;
@@ -257,6 +262,11 @@ protected:
 
 		void NotifyDeletedRenderTarget(FVulkanDevice& InDevice, VkImage Image);
 
+		inline void NotifyDeletedImage(VkImage Image)
+		{
+			CurrentLayout.Remove(Image);
+		}
+
 		VkImageLayout FindOrAddLayout(VkImage Image, VkImageLayout LayoutIfNotFound)
 		{
 			VkImageLayout* Found = CurrentLayout.Find(Image);
@@ -308,6 +318,7 @@ protected:
 		TMap<FVulkanQueryPool*, TArray<uint64>> ResetList;
 	};
 	FOcclusionQueryData CurrentOcclusionQueryData;
+	void AdvanceQuery(FVulkanRenderQuery* Query);
 
 	FVulkanPendingGfxState* PendingGfxState;
 	FVulkanPendingComputeState* PendingComputeState;

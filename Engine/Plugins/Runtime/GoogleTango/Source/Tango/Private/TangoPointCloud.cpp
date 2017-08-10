@@ -96,6 +96,7 @@ void FTangoPointCloud::UpdatePointCloud()
 #endif
 }
 
+#if PLATFORM_ANDROID
 bool FTangoPointCloud::FindFloorPlane(
 	UWorld* World,
 	TMap<int32, int32> & NumUpPoints,
@@ -114,7 +115,6 @@ bool FTangoPointCloud::FindFloorPlane(
 		UE_LOG(LogTango, Error, TEXT("FindFloorPlane: No World available"));
 		return false;
 	}
-#if PLATFORM_ANDROID
 	auto PointCloud = GetLatestPointCloud();
 	if (PointCloud == nullptr)
 	{
@@ -167,9 +167,10 @@ bool FTangoPointCloud::FindFloorPlane(
 			return true;
 		}
 	}
-#endif
+
 	return false;
 }
+#endif
 
 bool FTangoPointCloud::FitPlane(UWorld* World,
 	const FVector2D& ScreenPoint,
@@ -345,42 +346,52 @@ bool FTangoPointCloud::ConnectPointCloud(TangoConfig Config)
 	{
 		FTangoDevice::GetInstance()->OnTangoServiceUnboundDelegate.AddRaw(this, &FTangoPointCloud::DisconnectPointCloud);
 	}
-
-	FScopeLock ScopeLock(&PointCloudLock);
-	if (PointCloudManager != nullptr)
-	{
-		// Aready connected
-		return true;
-	}
-	int32 MaxPointCloudElements = 0;
 	if (Config == nullptr)
 	{
 		return false;
 	}
-	bool bSuccess = TangoConfig_getInt32_dynamic(Config, "max_point_cloud_elements", &MaxPointCloudElements) == TANGO_SUCCESS;
+	int32 MaxPointCloudElementsConfig = 0;
+	bool bSuccess = TangoConfig_getInt32_dynamic(Config, "max_point_cloud_elements", &MaxPointCloudElementsConfig) == TANGO_SUCCESS;
 	if (bSuccess)
 	{
-		int32 ret = TangoSupport_createPointCloudManager(MaxPointCloudElements, &PointCloudManager);
-		if (ret != TANGO_SUCCESS)
+		if (PointCloudManager != nullptr)
 		{
-			UE_LOG(LogTango, Error, TEXT("createPointCloudManager failed with error code: %d"), ret);
+			if (this->MaxPointCloudElements != MaxPointCloudElementsConfig)
+			{
+				TangoSupport_freePointCloudManager(PointCloudManager);
+				PointCloudManager = nullptr;
+			}
 		}
-		else
+		if (PointCloudManager == nullptr)
 		{
-			UE_LOG(LogTango, Log, TEXT("Created point cloud manager"));
+			this->MaxPointCloudElements = MaxPointCloudElementsConfig;
+			int32 ret = TangoSupport_createPointCloudManager(this->MaxPointCloudElements, &PointCloudManager);
+			if (ret != TANGO_SUCCESS)
+			{
+				UE_LOG(LogTango, Error, TEXT("createPointCloudManager failed with error code: %d"), ret);
+				return false;
+			}
+			else
+			{
+				UE_LOG(LogTango, Log, TEXT("Created point cloud manager for max point cloud elements %d"), MaxPointCloudElements);
+			}
+		}
+		if (TangoPointCloudPtr == nullptr)
+		{
 			TangoPointCloudPtr = this;
-			ret = TangoService_connectOnPointCloudAvailable_dynamic(OnPointCloudAvailableRouter);
-
+			int32 ret = TangoService_connectOnPointCloudAvailable_dynamic(OnPointCloudAvailableRouter);
 			if (ret != TANGO_SUCCESS)
 			{
 				UE_LOG(LogTango, Error, TEXT("connectOnPointCloudAvailable failed with error code: %d"), ret);
+				return false;
 			}
 			else
 			{
 				UE_LOG(LogTango, Log, TEXT("Connected point cloud available callback"));
 			}
+
+			UE_LOG(LogTango, Log, TEXT("Tango Point Cloud connected"));
 		}
-		UE_LOG(LogTango, Log, TEXT("Tango Point Cloud connected"));
 		return true;
 	}
 	else
@@ -392,13 +403,7 @@ bool FTangoPointCloud::ConnectPointCloud(TangoConfig Config)
 
 void FTangoPointCloud::DisconnectPointCloud()
 {
-	FScopeLock ScopeLock(&PointCloudLock);
-	if (PointCloudManager != nullptr)
-	{
-		TangoSupport_freePointCloudManager(PointCloudManager);
-		PointCloudManager = nullptr;
-		UE_LOG(LogTango, Log, TEXT("Tango Point Cloud disconnected"));
-	}
+	UE_LOG(LogTango, Log, TEXT("Tango Point Cloud disconnected"));
 }
 
 void FTangoPointCloud::EvalPointCloud(TFunction<void(const TangoPointCloud*)> Func)

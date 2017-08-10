@@ -604,6 +604,49 @@ public:
 private:
 	void Init(FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, ESlateDrawEffect InDrawEffects);
 
+	static bool ShouldCull(FSlateWindowElementList& ElementList);
+
+	FORCEINLINE static bool ShouldCull(FSlateWindowElementList& ElementList, const FPaintGeometry& PaintGeometry)
+	{
+		const FVector2D& LocalSize = PaintGeometry.GetLocalSize();
+		if (LocalSize.X == 0 || LocalSize.Y == 0)
+		{
+			return true;
+		}
+
+		return ShouldCull(ElementList);
+	}
+
+	FORCEINLINE static bool ShouldCull(FSlateWindowElementList& ElementList, const FPaintGeometry& PaintGeometry, const FSlateBrush* InBrush)
+	{
+		if ((InBrush && InBrush->DrawAs == ESlateBrushDrawType::NoDrawType) || ShouldCull(ElementList, PaintGeometry))
+		{
+			return true;
+		}
+
+		return false;
+	}
+
+	FORCEINLINE static bool ShouldCull(FSlateWindowElementList& ElementList, const FPaintGeometry& PaintGeometry, const FLinearColor& InTint)
+	{
+		if (InTint.A == 0 || ShouldCull(ElementList, PaintGeometry))
+		{
+			return true;
+		}
+
+		return false;
+	}
+
+	FORCEINLINE static bool ShouldCull(FSlateWindowElementList& ElementList, const FPaintGeometry& PaintGeometry, const FSlateBrush* InBrush, const FLinearColor& InTint)
+	{
+		if (InTint.A == 0 || ShouldCull(ElementList, PaintGeometry, InBrush))
+		{
+			return true;
+		}
+
+		return false;
+	}
+
 	static FVector2D GetRotationPoint( const FPaintGeometry& PaintGeometry, const TOptional<FVector2D>& UserRotationPoint, ERotationSpace RotationSpace );
 
 private:

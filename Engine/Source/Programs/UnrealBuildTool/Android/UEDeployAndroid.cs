@@ -959,7 +959,7 @@ namespace UnrealBuildTool
 						if (Directory.Exists(RenderDocPath))
 						{
 							Directory.CreateDirectory(Path.Combine(UE4BuildPath, "libs", NDKArch));
-							string RenderDocLibSrcPath = Path.Combine(RenderDocPath, @"android\libs", NDKArch, "libVkLayer_RenderDoc.so");
+							string RenderDocLibSrcPath = Path.Combine(RenderDocPath, @"android\lib", NDKArch, "libVkLayer_RenderDoc.so");
 							string RenderDocLibDstPath = Path.Combine(UE4BuildPath, "libs", NDKArch, "libVkLayer_RenderDoc.so");
 
 							Console.WriteLine("Copying {0} to {1}", RenderDocLibSrcPath, RenderDocLibDstPath);
@@ -2419,6 +2419,73 @@ namespace UnrealBuildTool
 			File.WriteAllText(AntBatFilename, AntBatText);
 		}
 
+		private bool CreateRunGradle(string GradlePath)
+		{
+			string RunGradleBatFilename = Path.Combine(GradlePath, "rungradle.bat");
+
+			// check for an unused drive letter
+			string UnusedDriveLetter = "";
+			bool bFound = true;
+			DriveInfo[] AllDrives = DriveInfo.GetDrives();
+			for (char DriveLetter = 'Z'; DriveLetter >= 'A'; DriveLetter--)
+			{
+				UnusedDriveLetter = Char.ToString(DriveLetter) + ":";
+				bFound = false;
+				for (int DriveIndex = AllDrives.Length - 1; DriveIndex >= 0; DriveIndex--)
+				{
+					if (AllDrives[DriveIndex].Name.ToUpper().StartsWith(UnusedDriveLetter))
+					{
+						bFound = true;
+						break;
+					}
+				}
+				if (!bFound)
+				{
+					break;
+				}
+			}
+
+			if (bFound)
+			{
+				Log.TraceInformation("\nUnable to apply subst, using gradlew.bat directly (all drive letters in use!)");
+				return false;
+			}
+
+			Log.TraceInformation("\nCreating rungradle.bat to work around commandline length limit (using unused drive letter {0})", UnusedDriveLetter);
+
+			// make sure rungradle.bat isn't read-only
+			if (File.Exists(RunGradleBatFilename))
+			{
+				FileAttributes Attribs = File.GetAttributes(RunGradleBatFilename);
+				if (Attribs.HasFlag(FileAttributes.ReadOnly))
+				{
+					File.SetAttributes(RunGradleBatFilename, Attribs & ~FileAttributes.ReadOnly);
+				}
+			}
+
+			// generate new ant.bat with an unused drive letter for subst
+			string RunGradleBatText =
+					"@echo off\n" +
+					"setlocal\n" +
+					"set GRADLEPATH=%~dp0\n" +
+					"set GRADLE_CMD_LINE_ARGS=\n" +
+					":setupArgs\n" +
+					"if \"\"%1\"\"==\"\"\"\" goto doneStart\n" +
+					"set GRADLE_CMD_LINE_ARGS=%GRADLE_CMD_LINE_ARGS% %1\n" +
+					"shift\n" +
+					"goto setupArgs\n\n" +
+					":doneStart\n" +
+					"subst " + UnusedDriveLetter + " \"%CD%\"\n" +
+					"pushd " + UnusedDriveLetter + "\n" +
+					"call \"%GRADLEPATH%\\gradlew.bat\" %GRADLE_CMD_LINE_ARGS%\n" +
+					"popd\n" +
+					"subst " + UnusedDriveLetter + " /d\n";
+
+			File.WriteAllText(RunGradleBatFilename, RunGradleBatText);
+
+			return true;
+		}
+
 		private bool GradleEnabled()
 		{
 			ConfigHierarchy Ini = GetConfigCacheIni(ConfigHierarchyType.Engine);
@@ -3132,17 +3199,32 @@ namespace UnrealBuildTool
 						GradleBuildAdditionsContent.AppendLine("}");
 					}
 
-					// Add any UPL GradleAdditions
+					// Add any UPL app buildGradleAdditions
 					GradleBuildAdditionsContent.Append(UPL.ProcessPluginNode(NDKArch, "buildGradleAdditions", ""));
 
 					string GradleBuildAdditionsFilename = Path.Combine(UE4BuildGradleAppPath, "buildAdditions.gradle");
 					File.WriteAllText(GradleBuildAdditionsFilename, GradleBuildAdditionsContent.ToString());
 
-					string GradleScriptPath = Path.Combine(UE4BuildGradlePath, "gradlew" + (Utils.IsRunningOnMono ? "" : ".bat"));
+					// Create baseBuildAdditions.gradle from plugins baseBuildGradleAdditions
+					string GradleBaseBuildAdditionsFilename = Path.Combine(UE4BuildGradlePath, "baseBuildAdditions.gradle");
+					File.WriteAllText(GradleBaseBuildAdditionsFilename, UPL.ProcessPluginNode(NDKArch, "baseBuildGradleAdditions", ""));
+
+					string GradleScriptPath = Path.Combine(UE4BuildGradlePath, "gradlew");
 					if (Utils.IsRunningOnMono)
 					{
 						// fix permissions for Mac/Linux
 						RunCommandLineProgramWithException(UE4BuildGradlePath, "/bin/sh", string.Format("-c 'chmod 0755 \"{0}\"'", GradleScriptPath.Replace("'", "'\"'\"'")), "Fix gradlew permissions");
+					}
+					else
+					{
+						if (CreateRunGradle(UE4BuildGradlePath))
+						{
+							GradleScriptPath = Path.Combine(UE4BuildGradlePath, "rungradle.bat");
+						}
+						else
+						{
+							GradleScriptPath = Path.Combine(UE4BuildGradlePath, "gradlew.bat");
+						}
 					}
 
 					// Use gradle to build the .apk file
@@ -3593,7 +3675,8 @@ namespace UnrealBuildTool
 			AARImportsContent.AppendLine("repositories {");
 			foreach (string Repository in AARHandler.Repositories)
 			{
-				AARImportsContent.AppendLine("\tmaven { url uri('" + Repository.Replace('\\', '/') + "') }");
+				string RepositoryPath = Path.GetFullPath(Repository).Replace('\\', '/');
+				AARImportsContent.AppendLine("\tmaven { url uri('" + RepositoryPath + "') }");
 			}
 			AARImportsContent.AppendLine("}");
 

@@ -9,7 +9,6 @@
 void FComposureUtils::SetEngineShowFlagsForPostprocessingOnly(FEngineShowFlags& EngineShowFlags)
 {
 	EngineShowFlags.DynamicShadows = false;
-	EngineShowFlags.ReflectionOverride = false;
 	EngineShowFlags.ReflectionEnvironment = false;
 	EngineShowFlags.ScreenSpaceReflections = false;
 	EngineShowFlags.ScreenSpaceAO = false;
@@ -18,11 +17,16 @@ void FComposureUtils::SetEngineShowFlagsForPostprocessingOnly(FEngineShowFlags& 
 	EngineShowFlags.DeferredLighting = false;
 	EngineShowFlags.Decals = false;
 	EngineShowFlags.Translucency = false;
-	EngineShowFlags.DepthOfField = false;
 	EngineShowFlags.AntiAliasing = false;
 	EngineShowFlags.MotionBlur = false;
 	EngineShowFlags.Bloom = false;
 	EngineShowFlags.EyeAdaptation = false;
+
+#if !UE_BUILD_OPTIMIZED_SHOWFLAGS
+	// Development-only flags
+	EngineShowFlags.ReflectionOverride = false;
+	EngineShowFlags.DepthOfField = false;
+#endif
 }
 
 // static

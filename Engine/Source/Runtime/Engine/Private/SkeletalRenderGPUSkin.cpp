@@ -385,6 +385,7 @@ void FSkeletalMeshObjectGPUSkin::ProcessUpdatedDynamicData(FGPUSkinCache* GPUSki
 		{
 			if (GUseGPUMorphTargets && RHISupportsComputeShaders(GMaxRHIShaderPlatform))
 			{
+				ensureAlways(DynamicData->MorphTargetWeights.Num() == LODModel.MorphTargetVertexInfoBuffers.GetNumMorphs());
 				// update the morph data for the lod (before SkinCache)
 				LOD.UpdateMorphVertexBufferGPU(RHICmdList, DynamicData->MorphTargetWeights, LODModel.MorphTargetVertexInfoBuffers);
 			}

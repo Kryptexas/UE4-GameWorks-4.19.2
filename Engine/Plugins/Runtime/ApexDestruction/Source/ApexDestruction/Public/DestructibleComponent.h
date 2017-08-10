@@ -267,6 +267,12 @@ public:
 	TArray<FPhysxUserData> PhysxChunkUserData;
 	bool IsChunkLarge(physx::PxRigidActor* ChunkActor) const;
 #endif
+
+private:
+	/** Cached values for computing contact offsets */
+	float ContactOffsetFactor; 
+	float MinContactOffset;
+	float MaxContactOffset;
 };
 
 

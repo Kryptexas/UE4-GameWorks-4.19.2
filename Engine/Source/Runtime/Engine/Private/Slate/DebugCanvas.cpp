@@ -65,7 +65,17 @@ FDebugCanvasDrawer::~FDebugCanvasDrawer()
 		GameThreadCanvas.Reset();
 	}
 
-	RenderThreadCanvas.Reset();
+	if( RenderThreadCanvas.IsValid() )
+	{
+		// Capture a copy of the canvas until the render thread can delete it
+		FCanvasPtr RTCanvas = RenderThreadCanvas;
+		ENQUEUE_RENDER_COMMAND(DeleteDebugRenderThreadCanvas)(
+			[RTCanvas](FRHICommandListImmediate& RHICmdList)
+		{
+		});
+
+		RenderThreadCanvas = nullptr;
+	}
 }
 
 FCanvas* FDebugCanvasDrawer::GetGameThreadDebugCanvas()

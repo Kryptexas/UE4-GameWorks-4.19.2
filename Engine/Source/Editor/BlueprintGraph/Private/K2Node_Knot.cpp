@@ -136,11 +136,17 @@ void UK2Node_Knot::PropagatePinType()
 
 void UK2Node_Knot::PropagatePinTypeFromInput()
 {
+	if (bRecursionGuard)
+	{
+		return;
+	}
 	// Set the type of the pin based on input connections.
 	// We have to move up the chain of linked reroute nodes until we reach a node
 	// with type information before percolating that information down.
 	UEdGraphPin* MyInputPin = GetInputPin();
 	UEdGraphPin* MyOutputPin = GetOutputPin();
+
+	TGuardValue<bool> RecursionGuard(bRecursionGuard, true);
 
 	for (UEdGraphPin* InPin : MyInputPin->LinkedTo)
 	{

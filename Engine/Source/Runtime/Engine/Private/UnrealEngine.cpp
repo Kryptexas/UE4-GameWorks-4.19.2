@@ -199,6 +199,13 @@
 #include "ObjectKey.h"
 #include "AssetRegistryModule.h"
 
+#if !UE_BUILD_SHIPPING
+#include "IPluginManager.h"
+#include "GenericPlatformCrashContext.h"
+#include "EngineBuildSettings.h"
+#endif
+
+
 DEFINE_LOG_CATEGORY(LogEngine);
 IMPLEMENT_MODULE( FEngineModule, Engine );
 
@@ -1026,6 +1033,22 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 	// Start capturing errors and warnings
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	ErrorsAndWarningsCollector.Initialize();
+#endif
+
+#if !UE_BUILD_SHIPPING
+	if(!FEngineBuildSettings::IsInternalBuild())
+	{
+		TArray<TSharedRef<IPlugin>> EnabledPlugins = IPluginManager::Get().GetEnabledPlugins();
+
+		for (auto Plugin : EnabledPlugins)
+		{
+			const FPluginDescriptor& Desc = Plugin->GetDescriptor();
+
+			FString DescStr;
+			Desc.Write(DescStr);
+			FGenericCrashContext::AddPlugin(DescStr);
+		}
+	}
 #endif
 
 	// Set the memory warning handler
@@ -2412,9 +2435,26 @@ bool UEngine::InitializeHMDDevice()
 				IHeadMountedDisplayModule* HMDModule = *HMDModuleIt;
 
 				// Skip all non-matching modules when an explicit module name has been specified on the command line
-				if (bUseExplicitHMDDevice && !ExplicitHMDName.Equals(HMDModule->GetModuleKeyName(), ESearchCase::IgnoreCase))
+				if (bUseExplicitHMDDevice)
 				{
-					continue;
+					TArray<FString> HMDAliases;
+					HMDModule->GetModuleAliases(HMDAliases);
+					HMDAliases.Add(HMDModule->GetModuleKeyName());
+
+					bool bMatchesExplicitDevice = false;
+					for (const FString& HMDModuleName : HMDAliases)
+					{
+						if (ExplicitHMDName.Equals(HMDModule->GetModuleKeyName(), ESearchCase::IgnoreCase))
+						{
+							bMatchesExplicitDevice = true;
+							break;
+						}
+					}
+
+					if (!bMatchesExplicitDevice)
+					{
+						continue;
+					}
 				}
 
 				if(HMDModule->IsHMDConnected())
@@ -9524,8 +9564,17 @@ bool UEngine::HandleStreamMapCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorl
 	if (TestURL.IsLocalInternal())
 	{
 		// make sure the file exists if we are opening a local file
-		if (MakeSureMapNameIsValid(WorldContext.LastURL.Map))
+		if (MakeSureMapNameIsValid(TestURL.Map) && TestURL.Valid)
 		{
+			for (const ULevel* const Level : InWorld->GetLevels())
+			{
+				if (Level->URL.Map == TestURL.Map)
+				{
+					Ar.Logf(TEXT("ERROR: The map '%s' is already loaded."), *TestURL.Map);
+					return true;
+				}
+			}
+
 			TArray<FName> LevelNames;
 			LevelNames.Add(*TestURL.Map);
 

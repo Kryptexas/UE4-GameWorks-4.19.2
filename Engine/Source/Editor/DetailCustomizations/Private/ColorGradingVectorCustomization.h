@@ -166,8 +166,8 @@ public:
 	FOnColorModeChanged& GetOnColorModeChanged() { return OnColorModeChanged; }
 
 	/** Callback when user click the reset button of the color grading property */
-	void ResetToDefault(TSharedRef<IPropertyHandle> PropertyHandle);
-	bool CanResetToDefault(TSharedRef<IPropertyHandle> PropertyHandle);
+	void ResetToDefault(TSharedPtr<IPropertyHandle> PropertyHandle);
+	bool CanResetToDefault(TSharedPtr<IPropertyHandle> PropertyHandle);
 
 private:
 
@@ -183,6 +183,9 @@ private:
 	/* Local UI Handlers */
 	void OnColorGradingPickerChanged(FVector4 &NewValue, bool ShouldCommitValueChanges);
 	bool GetCurrentColorGradingValue(FVector4 &OutCurrentValue);
+
+	void OnBeginMainValueSliderMovement();
+	void OnEndMainValueSliderMovement();
 
 	/** Callback when user click the Group reset button */
 	void OnDetailGroupReset();

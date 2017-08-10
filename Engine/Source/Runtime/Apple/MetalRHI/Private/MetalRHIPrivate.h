@@ -56,6 +56,8 @@ const uint32 MaxMetalStreams = 30;
 #define UNREAL_TO_METAL_BUFFER_INDEX(Index) ((MaxMetalStreams - 1) - Index)
 #define METAL_TO_UNREAL_BUFFER_INDEX(Index) ((MaxMetalStreams - 1) - Index)
 
+#define METAL_NEW_NONNULL_DECL (__clang_major__ >= 9)
+
 // Dependencies
 #include "MetalRHI.h"
 #include "RHI.h"

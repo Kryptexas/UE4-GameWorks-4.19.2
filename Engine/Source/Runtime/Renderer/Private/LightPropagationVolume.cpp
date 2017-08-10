@@ -932,8 +932,8 @@ void FLightPropagationVolume::InitSettings(FRHICommandListImmediate& RHICmdList,
 				LPV_GRIDRES,
 				PF_G8,
 				FClearValueBinding::None,
-				TexCreate_HideInVisualizeTexture,
-				TexCreate_ShaderResource | TexCreate_UAV | GFastVRamConfig.LPV,
+				TexCreate_HideInVisualizeTexture | GFastVRamConfig.LPV,
+				TexCreate_ShaderResource | TexCreate_UAV,
 				false,
 				1));
 			GRenderTargetPool.FindFreeElement(RHICmdList, AODesc, AOVolumeTexture, TEXT("LPVAOVolume"));

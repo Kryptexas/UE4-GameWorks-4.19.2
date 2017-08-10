@@ -51,6 +51,7 @@ namespace SessionManagerDefs
 	static const FString ProjectNameStoreKey(TEXT("ProjectName"));
 	static const FString CommandLineStoreKey(TEXT("CommandLine"));
 	static const FString CrashStoreKey(TEXT("IsCrash"));
+	static const FString GPUCrashStoreKey(TEXT("IsGPUCrash"));
 	static const FString DeactivatedStoreKey(TEXT("IsDeactivated"));
 	static const FString BackgroundStoreKey(TEXT("IsInBackground"));
 	static const FString EngineVersionStoreKey(TEXT("EngineVersion"));
@@ -246,6 +247,7 @@ void FEngineSessionManager::Shutdown()
 			FPlatformMisc::DeleteStoredValue(SessionManagerDefs::StoreId, CurrentSessionSectionName, SessionManagerDefs::ModeStoreKey);
 			FPlatformMisc::DeleteStoredValue(SessionManagerDefs::StoreId, CurrentSessionSectionName, SessionManagerDefs::ProjectNameStoreKey);
 			FPlatformMisc::DeleteStoredValue(SessionManagerDefs::StoreId, CurrentSessionSectionName, SessionManagerDefs::CrashStoreKey);
+			FPlatformMisc::DeleteStoredValue(SessionManagerDefs::StoreId, CurrentSessionSectionName, SessionManagerDefs::GPUCrashStoreKey);
 			FPlatformMisc::DeleteStoredValue(SessionManagerDefs::StoreId, CurrentSessionSectionName, SessionManagerDefs::EngineVersionStoreKey);
 			FPlatformMisc::DeleteStoredValue(SessionManagerDefs::StoreId, CurrentSessionSectionName, SessionManagerDefs::TimestampStoreKey);
 			FPlatformMisc::DeleteStoredValue(SessionManagerDefs::StoreId, CurrentSessionSectionName, SessionManagerDefs::DebuggerStoreKey);
@@ -316,6 +318,8 @@ bool FEngineSessionManager::BeginReadWriteRecords()
 			FPlatformMisc::GetStoredValue(SessionManagerDefs::StoreId, SectionName, SessionManagerDefs::UserActivityStoreKey, UserActivityString);
 			FString IsVanillaString = SessionManagerDefs::FalseValueString;
 			FPlatformMisc::GetStoredValue(SessionManagerDefs::StoreId, SectionName, SessionManagerDefs::VanillaStoreKey, IsVanillaString);
+			FString IsGPUCrashString = SessionManagerDefs::FalseValueString;
+			FPlatformMisc::GetStoredValue(SessionManagerDefs::StoreId, SectionName, SessionManagerDefs::GPUCrashStoreKey, IsGPUCrashString);
 
 			// Create new record from the read values
 			FSessionRecord NewRecord;
@@ -325,6 +329,7 @@ bool FEngineSessionManager::BeginReadWriteRecords()
 			NewRecord.EngineVersion = EngineVersionString;
 			NewRecord.Timestamp = StringToTimestamp(TimestampString);
 			NewRecord.bCrashed = IsCrashString == SessionManagerDefs::TrueValueString;
+			NewRecord.bGPUCrashed = IsGPUCrashString == SessionManagerDefs::TrueValueString;
 			NewRecord.bIsDebugger = IsDebuggerString == SessionManagerDefs::TrueValueString;
 			NewRecord.bWasEverDebugger = WasDebuggerString == SessionManagerDefs::TrueValueString;
 			NewRecord.bIsDeactivated = IsDeactivatedString == SessionManagerDefs::TrueValueString;
@@ -340,6 +345,7 @@ bool FEngineSessionManager::BeginReadWriteRecords()
 			FPlatformMisc::DeleteStoredValue(SessionManagerDefs::StoreId, SectionName, SessionManagerDefs::ModeStoreKey);
 			FPlatformMisc::DeleteStoredValue(SessionManagerDefs::StoreId, SectionName, SessionManagerDefs::ProjectNameStoreKey);
 			FPlatformMisc::DeleteStoredValue(SessionManagerDefs::StoreId, SectionName, SessionManagerDefs::CrashStoreKey);
+			FPlatformMisc::DeleteStoredValue(SessionManagerDefs::StoreId, SectionName, SessionManagerDefs::GPUCrashStoreKey);
 			FPlatformMisc::DeleteStoredValue(SessionManagerDefs::StoreId, SectionName, SessionManagerDefs::EngineVersionStoreKey);
 			FPlatformMisc::DeleteStoredValue(SessionManagerDefs::StoreId, SectionName, SessionManagerDefs::TimestampStoreKey);
 			FPlatformMisc::DeleteStoredValue(SessionManagerDefs::StoreId, SectionName, SessionManagerDefs::DebuggerStoreKey);
@@ -384,6 +390,7 @@ void FEngineSessionManager::DeleteStoredRecord(const FSessionRecord& Record)
 	FPlatformMisc::DeleteStoredValue(SessionManagerDefs::StoreId, SectionName, SessionManagerDefs::ModeStoreKey);
 	FPlatformMisc::DeleteStoredValue(SessionManagerDefs::StoreId, SectionName, SessionManagerDefs::ProjectNameStoreKey);
 	FPlatformMisc::DeleteStoredValue(SessionManagerDefs::StoreId, SectionName, SessionManagerDefs::CrashStoreKey);
+	FPlatformMisc::DeleteStoredValue(SessionManagerDefs::StoreId, SectionName, SessionManagerDefs::GPUCrashStoreKey);
 	FPlatformMisc::DeleteStoredValue(SessionManagerDefs::StoreId, SectionName, SessionManagerDefs::EngineVersionStoreKey);
 	FPlatformMisc::DeleteStoredValue(SessionManagerDefs::StoreId, SectionName, SessionManagerDefs::TimestampStoreKey);
 	FPlatformMisc::DeleteStoredValue(SessionManagerDefs::StoreId, SectionName, SessionManagerDefs::DebuggerStoreKey);
@@ -417,6 +424,7 @@ void FEngineSessionManager::DeleteStoredRecord(const FSessionRecord& Record)
  * @EventParam Timestamp - the UTC time of the last known time the abnormally terminated session was running, within 5 minutes.
  * @EventParam CurrentUserActivity - If one was set when the session abnormally terminated, this is the activity taken from the FUserActivityTracking API.
  * @EventParam IsVanilla - Value from the engine's IsVanillaProduct() method. Basically if this is a Epic-distributed Editor with zero third party plugins or game code modules.
+ * @EventParam GPUCrash - A GPU Hang or Crash was detected before the final assert, fatal log, or other exit.
  *
  * @TODO: Debugger should be a completely separate flag, since it's orthogonal to whether we detect a crash or shutdown.
  *
@@ -475,6 +483,7 @@ void FEngineSessionManager::SendAbnormalShutdownReport(const FSessionRecord& Rec
 	FString RunTypeString = Record.Mode == EEngineSessionManagerMode::Editor ? SessionManagerDefs::EditorValueString : SessionManagerDefs::GameValueString;
 	FString IsVanillaString = Record.bIsVanilla ? SessionManagerDefs::TrueValueString : SessionManagerDefs::FalseValueString;
 	FString WasDebuggedString = Record.bWasEverDebugger ? SessionManagerDefs::TrueValueString : SessionManagerDefs::FalseValueString;
+	FString GPUCrashedString = Record.bGPUCrashed ? SessionManagerDefs::TrueValueString : SessionManagerDefs::FalseValueString;
 
 	TArray< FAnalyticsEventAttribute > AbnormalShutdownAttributes;
 	AbnormalShutdownAttributes.Add(FAnalyticsEventAttribute(TEXT("RunType"), RunTypeString));
@@ -487,6 +496,7 @@ void FEngineSessionManager::SendAbnormalShutdownReport(const FSessionRecord& Rec
 	AbnormalShutdownAttributes.Add(FAnalyticsEventAttribute(TEXT("CurrentUserActivity"), Record.CurrentUserActivity));
 	AbnormalShutdownAttributes.Add(FAnalyticsEventAttribute(TEXT("IsVanilla"), IsVanillaString));
 	AbnormalShutdownAttributes.Add(FAnalyticsEventAttribute(TEXT("WasDebugged"), WasDebuggedString));
+	AbnormalShutdownAttributes.Add(FAnalyticsEventAttribute(TEXT("GPUCrash"), GPUCrashedString));
 
 	FEngineAnalytics::GetProvider().RecordEvent(TEXT("Engine.AbnormalShutdown"), AbnormalShutdownAttributes);
 
@@ -548,12 +558,15 @@ void FEngineSessionManager::CreateAndWriteRecordForSession()
 #endif
 }
 
+extern CORE_API bool GIsGPUCrashed;
 void FEngineSessionManager::OnCrashing()
 {
 	if (!CurrentSession.bCrashed && bInitializedRecords)
 	{
 		CurrentSession.bCrashed = true;
+		CurrentSession.bGPUCrashed = GIsGPUCrashed;
 		FPlatformMisc::SetStoredValue(SessionManagerDefs::StoreId, CurrentSessionSectionName, SessionManagerDefs::CrashStoreKey, SessionManagerDefs::TrueValueString);
+		FPlatformMisc::SetStoredValue(SessionManagerDefs::StoreId, CurrentSessionSectionName, SessionManagerDefs::GPUCrashStoreKey, CurrentSession.bGPUCrashed ? SessionManagerDefs::TrueValueString : SessionManagerDefs::FalseValueString);
 
 #if PLATFORM_SUPPORTS_WATCHDOG
 		if (!WatchdogSectionName.IsEmpty())

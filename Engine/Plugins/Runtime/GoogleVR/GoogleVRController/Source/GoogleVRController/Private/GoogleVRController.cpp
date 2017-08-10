@@ -134,6 +134,9 @@ FGoogleVRController::FGoogleVRController(const TSharedRef< FGenericApplicationMe
 #if GOOGLEVRCONTROLLER_SUPPORTED_EMULATOR_PLATFORMS
 	, BaseEmulatorOrientation(FRotator::ZeroRotator)
 #endif
+#if GOOGLEVRCONTROLLER_SUPPORTED_INSTANT_PREVIEW_PLATFORMS
+	, InstantPreviewControllerState()
+#endif
 {
 	UE_LOG(LogGoogleVRController, Log, TEXT("GoogleVR Controller Created"));
 
@@ -443,6 +446,12 @@ void FGoogleVRController::ProcessControllerButtons()
 
 			// The controller's touch positions are in [0,1]^2 coordinate space, we want to be in [-1,1]^2, so translate the touch positions.
 			TranslatedLocation = FVector2D((CachedControllerState.GetTouchPos().x * 2) - 1, (CachedControllerState.GetTouchPos().y * 2) - 1);
+			// Clamp the translated location inside the circle with radius = 1 to match the controller touch pad.
+			float VectorLength = TranslatedLocation.Size();
+			if (VectorLength > 1.0f)
+			{
+				TranslatedLocation = TranslatedLocation / VectorLength;
+			}
 
 			// OnHold
 			if( CachedControllerState.IsTouching() || CachedControllerState.GetTouchUp() )
@@ -719,7 +728,11 @@ bool FGoogleVRController::GetControllerOrientationAndPosition(const int32 Contro
 			FQuat Orientation = ConvertGvrQuaternionToUnreal(ControllerRotation.w(), ControllerRotation.x(), ControllerRotation.y(), ControllerRotation.z());
 
 			FQuat BaseOrientation;
-			if (GEngine->HMDDevice.IsValid())
+			const bool bUsingGoogleVRHMD =
+				GEngine->HMDDevice.IsValid() &&
+				(GEngine->HMDDevice->GetDeviceName() == FName(TEXT("FGoogleVRHMD")));
+
+			if (bUsingGoogleVRHMD)
 			{
 				BaseOrientation = GEngine->HMDDevice->GetBaseOrientation();
 			}

@@ -91,6 +91,8 @@ FVulkanViewport::~FVulkanViewport()
 		delete RenderingDoneSemaphores[Index];
 
 		TextureViews[Index].Destroy(*Device);
+
+		Device->NotifyDeletedImage(BackBufferImages[Index]);
 	}
 
 	SwapChain->Destroy();
@@ -418,9 +420,9 @@ void FVulkanViewport::CreateSwapchain()
 
 			VkClearColorValue Color;
 			FMemory::Memzero(Color);
-			VulkanSetImageLayoutSimple(CmdBuffer->GetHandle(), Images[Index], VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
-			VulkanRHI::vkCmdClearColorImage(CmdBuffer->GetHandle(), Images[Index], VK_IMAGE_LAYOUT_GENERAL, &Color, 1, &Range);
-			VulkanSetImageLayoutSimple(CmdBuffer->GetHandle(), Images[Index], VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+			VulkanSetImageLayoutSimple(CmdBuffer->GetHandle(), Images[Index], VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+			VulkanRHI::vkCmdClearColorImage(CmdBuffer->GetHandle(), Images[Index], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &Color, 1, &Range);
+			VulkanSetImageLayoutSimple(CmdBuffer->GetHandle(), Images[Index], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 		}
 	}
 
@@ -433,7 +435,7 @@ void FVulkanViewport::CreateSwapchain()
 inline static void CopyImageToBackBuffer(const VkCommandBuffer& CmdBuffer, const VkImage& SrcSurface, const VkImage& DstSurface, int32 SizeX, int32 SizeY)
 {
 	VkImageLayout SrcLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-	VkImageLayout DstLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	VkImageLayout DstLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
 	VkImageSubresourceRange ResourceRange;
 	ResourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -522,7 +524,8 @@ bool FVulkanViewport::Present(FVulkanCmdBuffer* CmdBuffer, FVulkanQueue* Queue, 
 	int32 SyncInterval = 0;
 	bool bNeedNativePresent = true;
 
-	if (IsValidRef(CustomPresent))
+	const bool bHasCustomPresent = IsValidRef(CustomPresent);
+	if (bHasCustomPresent)
 	{
 		bNeedNativePresent = CustomPresent->Present(SyncInterval);
 	}
@@ -533,7 +536,7 @@ bool FVulkanViewport::Present(FVulkanCmdBuffer* CmdBuffer, FVulkanQueue* Queue, 
 		// Present the back buffer to the viewport window.
 		bResult = SwapChain->Present(Queue, RenderingDoneSemaphores[AcquiredImageIndex]);//, SyncInterval, 0);
 
-		if (IsValidRef(CustomPresent))
+		if (bHasCustomPresent)
 		{
 			CustomPresent->PostPresent();
 		}
@@ -574,7 +577,7 @@ bool FVulkanViewport::Present(FVulkanCmdBuffer* CmdBuffer, FVulkanQueue* Queue, 
 	FVulkanCommandBufferManager* ImmediateCmdBufMgr = Device->GetImmediateContext().GetCommandBufferManager();
 	ImmediateCmdBufMgr->PrepareForNewActiveCommandBuffer();
 
-	//#todo-rco: Consolidate 'end of frame'
+	//#todo-rco: This needs to happen on the render thread? Acquire happens on render thread
 	Device->GetImmediateContext().GetTempFrameAllocationBuffer().Reset();
 #if 0
 	CurrentBackBuffer = -1;
@@ -797,6 +800,7 @@ void FVulkanDynamicRHI::RHIAdvanceFrameForGetViewportBackBuffer()
 		}
 		else
 		{
+			check(IsInRenderingThread());
 			new (RHICmdList.AllocCommand<FRHICommandProcessDeferredDeletionQueue>()) FRHICommandProcessDeferredDeletionQueue(Device);
 		}
 	}

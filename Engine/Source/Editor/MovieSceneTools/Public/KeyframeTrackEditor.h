@@ -269,6 +269,11 @@ private:
 		bool bSectionAdded = false;
 		Track->Modify();
 		UMovieSceneSection* NewSection = Track->FindOrAddSection( Time, bSectionAdded );
+		if (!bSectionAdded && !CanAutoKeySection(NewSection, Time))
+		{
+			return false;
+		}
+
 		IKeyframeSection<KeyDataType>* KeyframeSection = CastChecked<SectionType>( NewSection );
 		KeyframeSection->AddKey( Time, KeyData, KeyInterpolation );
 
@@ -277,6 +282,15 @@ private:
 			NewSection->SetIsInfinite(bInfiniteKeyAreas);
 		}
 		return bSectionAdded;
+	}
+
+	/** Check whether we can autokey the specified section at the specified time */
+	static bool CanAutoKeySection(UMovieSceneSection* Section, float Time)
+	{
+		FOptionalMovieSceneBlendType BlendType = Section->GetBlendType();
+		// Sections are only eligible for autokey if they are not blendable (or absolute), and overlap the current time
+		return ( !BlendType.IsValid() || BlendType.Get() == EMovieSceneBlendType::Absolute ) &&
+			   ( Section->IsInfinite() || Section->GetRange().Contains(Time) );
 	}
 
 	/* Return whether a section was added */
@@ -288,6 +302,11 @@ private:
 		{
 			for ( UMovieSceneSection* Section : Sections )
 			{
+				if ( !CanAutoKeySection(Section, Time) )
+				{
+					continue;
+				}
+
 				IKeyframeSection<KeyDataType>* KeyframeSection = CastChecked<SectionType>( Section );
 				if (!KeyframeSection->HasKeys(KeyData))
 				{

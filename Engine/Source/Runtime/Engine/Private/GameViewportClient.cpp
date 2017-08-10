@@ -589,7 +589,7 @@ bool UGameViewportClient::InputMotion(FViewport* InViewport, int32 ControllerId,
 
 void UGameViewportClient::SetIsSimulateInEditorViewport(bool bInIsSimulateInEditorViewport)
 {
-#if PLATFORM_DESKTOP
+#if PLATFORM_DESKTOP || PLATFORM_HTML5
 	if (GetDefault<UInputSettings>()->bUseMouseForTouch)
 	{
 		FSlateApplication::Get().SetGameIsFakingTouchEvents(!bInIsSimulateInEditorViewport);
@@ -616,7 +616,7 @@ void UGameViewportClient::MouseEnter(FViewport* InViewport, int32 x, int32 y)
 {
 	Super::MouseEnter(InViewport, x, y);
 
-#if PLATFORM_DESKTOP
+#if PLATFORM_DESKTOP || PLATFORM_HTML5
 	if (GetDefault<UInputSettings>()->bUseMouseForTouch && !GetGameViewport()->GetPlayInEditorIsSimulate())
 	{
 		FSlateApplication::Get().SetGameIsFakingTouchEvents(true);
@@ -648,7 +648,7 @@ void UGameViewportClient::MouseLeave(FViewport* InViewport)
 			FIntPoint LastViewportCursorPos;
 			InViewport->GetMousePos(LastViewportCursorPos, false);
 
-#if PLATFORM_DESKTOP
+#if PLATFORM_DESKTOP || PLATFORM_HTML5
 			FVector2D CursorPos(LastViewportCursorPos.X, LastViewportCursorPos.Y);
 			FSlateApplication::Get().SetGameIsFakingTouchEvents(false, &CursorPos);
 #endif
@@ -1241,9 +1241,14 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 	
 	// If the views don't cover the entire bounding rectangle, clear the entire buffer.
 	bool bBufferCleared = false;
-	if ( ViewFamily.Views.Num() == 0 || TotalArea != (MaxX-MinX)*(MaxY-MinY) || bDisableWorldRendering )
+	if (ViewFamily.Views.Num() == 0 || TotalArea != (MaxX-MinX)*(MaxY-MinY) || bDisableWorldRendering)
 	{
-		SceneCanvas->Clear(FLinearColor::Black);
+		bool bStereoscopicPass = (ViewFamily.Views.Num() != 0 && ViewFamily.Views[0]->StereoPass != eSSP_FULL);
+		if (bDisableWorldRendering || !bStereoscopicPass) // TotalArea computation does not work correctly for stereoscopic views
+		{
+			SceneCanvas->Clear(FLinearColor::Transparent);
+		}
+		
 		bBufferCleared = true;
 	}
 
@@ -1573,7 +1578,7 @@ void UGameViewportClient::LostFocus(FViewport* InViewport)
 
 void UGameViewportClient::ReceivedFocus(FViewport* InViewport)
 {
-#if PLATFORM_DESKTOP
+#if PLATFORM_DESKTOP || PLATFORM_HTML5
 	if (GetDefault<UInputSettings>()->bUseMouseForTouch && GetGameViewport() && !GetGameViewport()->GetPlayInEditorIsSimulate())
 	{
 		FSlateApplication::Get().SetGameIsFakingTouchEvents(true);
@@ -1611,7 +1616,7 @@ void UGameViewportClient::CloseRequested(FViewport* InViewport)
 {
 	check(InViewport == Viewport);
 
-#if PLATFORM_DESKTOP
+#if PLATFORM_DESKTOP || PLATFORM_HTML5
 	FSlateApplication::Get().SetGameIsFakingTouchEvents(false);
 #endif
 	

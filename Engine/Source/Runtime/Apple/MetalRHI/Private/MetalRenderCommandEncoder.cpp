@@ -234,7 +234,11 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
     [Inner setVertexTexture:texture atIndex:index];
 }
 
+#if METAL_NEW_NONNULL_DECL
+- (void)setVertexTextures:(const id <MTLTexture> __nullable [__nonnull])textures withRange:(NSRange)range
+#else
 - (void)setVertexTextures:(const id <MTLTexture> __nullable [__nullable])textures withRange:(NSRange)range
+#endif
 {
 #if METAL_DEBUG_OPTIONS
     for (uint32 i = 0; i < range.length; i++)
@@ -289,7 +293,11 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
     [Inner setVertexSamplerState:sampler atIndex:index];
 }
 
+#if METAL_NEW_NONNULL_DECL
+- (void)setVertexSamplerStates:(const id <MTLSamplerState> __nullable [__nonnull])samplers withRange:(NSRange)range
+#else
 - (void)setVertexSamplerStates:(const id <MTLSamplerState> __nullable [__nullable])samplers withRange:(NSRange)range
+#endif
 {
 #if METAL_DEBUG_OPTIONS
     for(uint32 i = 0; i < range.length; i++)
@@ -345,7 +353,11 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
     [Inner setVertexSamplerState:sampler lodMinClamp:lodMinClamp lodMaxClamp:lodMaxClamp atIndex:index];
 }
 
+#if METAL_NEW_NONNULL_DECL
+- (void)setVertexSamplerStates:(const id <MTLSamplerState> __nullable [__nonnull])samplers lodMinClamps:(const float [__nonnull])lodMinClamps lodMaxClamps:(const float [__nonnull])lodMaxClamps withRange:(NSRange)range
+#else
 - (void)setVertexSamplerStates:(const id <MTLSamplerState> __nullable [__nullable])samplers lodMinClamps:(const float [__nullable])lodMinClamps lodMaxClamps:(const float [__nullable])lodMaxClamps withRange:(NSRange)range
+#endif
 {
 #if METAL_DEBUG_OPTIONS
     for(uint32 i = 0; i < range.length; i++)
@@ -543,7 +555,11 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
     [Inner setFragmentTexture:texture atIndex:index];
 }
 
+#if METAL_NEW_NONNULL_DECL
+- (void)setFragmentTextures:(const id <MTLTexture> __nullable [__nonnull])textures withRange:(NSRange)range
+#else
 - (void)setFragmentTextures:(const id <MTLTexture> __nullable [__nullable])textures withRange:(NSRange)range
+#endif
 {
 #if METAL_DEBUG_OPTIONS
     for (uint32 i = 0; i < range.length; i++)
@@ -599,7 +615,11 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
     [Inner setFragmentSamplerState:sampler atIndex:(NSUInteger)index];
 }
 
+#if METAL_NEW_NONNULL_DECL
+- (void)setFragmentSamplerStates:(const id <MTLSamplerState> __nullable [__nonnull])samplers withRange:(NSRange)range
+#else
 - (void)setFragmentSamplerStates:(const id <MTLSamplerState> __nullable [__nullable])samplers withRange:(NSRange)range
+#endif
 {
 #if METAL_DEBUG_OPTIONS
 	for(uint32 i = 0; i < range.length; i++)
@@ -655,7 +675,11 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
     [Inner setFragmentSamplerState:sampler lodMinClamp:(float)lodMinClamp lodMaxClamp:(float)lodMaxClamp atIndex:(NSUInteger)index];
 }
 
+#if METAL_NEW_NONNULL_DECL
+- (void)setFragmentSamplerStates:(const id <MTLSamplerState> __nullable [__nonnull])samplers lodMinClamps:(const float [__nonnull])lodMinClamps lodMaxClamps:(const float [__nonnull])lodMaxClamps withRange:(NSRange)range
+#else
 - (void)setFragmentSamplerStates:(const id <MTLSamplerState> __nullable [__nullable])samplers lodMinClamps:(const float [__nullable])lodMinClamps lodMaxClamps:(const float [__nullable])lodMaxClamps withRange:(NSRange)range
+#endif
 {
 #if METAL_DEBUG_OPTIONS
     for(uint32 i = 0; i < range.length; i++)
@@ -1264,6 +1288,50 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 {
 	return self;
 }
+
+#if (METAL_NEW_NONNULL_DECL && !PLATFORM_MAC)
+// Null implementations of these functions to support iOS 11 beta.  To be filled out later
+- (void)setDepthClipMode:(MTLDepthClipMode)depthClipMode
+{
+	[Inner setDepthClipMode:depthClipMode];
+}
+
+- (void)setColorStoreActionOptions:(MTLStoreActionOptions)storeActionOptions atIndex:(NSUInteger)colorAttachmentIndex
+{
+	[Inner setColorStoreActionOptions:storeActionOptions atIndex:colorAttachmentIndex];
+}
+
+- (void)setDepthStoreActionOptions:(MTLStoreActionOptions)storeActionOptions
+{
+	[Inner setDepthStoreActionOptions:storeActionOptions];
+}
+
+- (void)setStencilStoreActionOptions:(MTLStoreActionOptions)storeActionOptions
+{
+	[Inner setStencilStoreActionOptions:storeActionOptions];
+}
+
+- (void)useResource:(id <MTLResource>)resource usage:(MTLResourceUsage)usage
+{
+	[Inner useResource:resource usage:usage];
+}
+
+- (void)useResources:(const id <MTLResource> __nonnull[__nonnull])resources count:(NSUInteger)count usage:(MTLResourceUsage)usage
+{
+	[Inner useResources:resources count:count usage:usage];
+}
+
+- (void)useHeap:(id <MTLHeap>)heap
+{
+	[Inner useHeap:heap];
+}
+
+- (void)useHeaps:(const id <MTLHeap> __nonnull[__nonnull])heaps count:(NSUInteger)count
+{
+	[Inner useHeaps:heaps count:count];
+}
+#endif //(METAL_NEW_NONNULL_DECL && !PLATFORM_MAC)
+
 
 @end
 

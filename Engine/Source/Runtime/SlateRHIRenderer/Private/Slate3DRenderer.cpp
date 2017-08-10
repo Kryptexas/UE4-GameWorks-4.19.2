@@ -156,8 +156,10 @@ void FSlate3DRenderer::DrawWindowToTarget_RenderThread( FRHICommandListImmediate
 
 		RenderTargetPolicy->UpdateVertexAndIndexBuffers(InRHICmdList, BatchData);
 		
+		FVector2D DrawOffset = WindowDrawBuffer.ViewOffset;
+
 		FMatrix ProjectionMatrix = FSlateRHIRenderer::CreateProjectionMatrix(RTResource->GetSizeX(), RTResource->GetSizeY());
-		FMatrix ViewOffset = FTranslationMatrix::Make(FVector(WindowDrawBuffer.ViewOffset.X, WindowDrawBuffer.ViewOffset.Y, 0));
+		FMatrix ViewOffset = FTranslationMatrix::Make(FVector(DrawOffset, 0));
 		ProjectionMatrix = ViewOffset * ProjectionMatrix;
 
 		if ( BatchData.GetRenderBatches().Num() > 0 )
@@ -167,6 +169,7 @@ void FSlate3DRenderer::DrawWindowToTarget_RenderThread( FRHICommandListImmediate
 			FSlateRenderingOptions DrawOptions(ProjectionMatrix);
 			// The scene renderer will handle it in this case
 			DrawOptions.bAllowSwitchVerticalAxis = false;
+			DrawOptions.ViewOffset = DrawOffset;
 
 			FTexture2DRHIRef ColorTarget = RenderTargetResource->GetTextureRHI();
 
