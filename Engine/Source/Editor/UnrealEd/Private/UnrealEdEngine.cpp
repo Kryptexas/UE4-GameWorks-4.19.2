@@ -181,6 +181,9 @@ void UUnrealEdEngine::Init(IEngineLoop* InEngineLoop)
 			CookServer = NewObject<UCookOnTheFlyServer>();
 			CookServer->Initialize(ECookMode::CookByTheBookFromTheEditor, BaseCookingFlags);
 		}
+
+		extern void UProjectPackagingSettings_StartBlueprintNativizationProjectSettings();
+		UProjectPackagingSettings_StartBlueprintNativizationProjectSettings();
 	}
 
 	bPivotMovedIndependently = false;
@@ -347,6 +350,9 @@ void UUnrealEdEngine::PreExit()
 
 	// Notify edit modes we're mode at exit
 	FEditorModeRegistry::Get().Shutdown();
+
+	extern void UProjectPackagingSettings_ShutdownBlueprintNativizationProjectSettings();
+	UProjectPackagingSettings_ShutdownBlueprintNativizationProjectSettings();
 
 	Super::PreExit();
 }
