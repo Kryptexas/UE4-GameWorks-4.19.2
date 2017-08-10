@@ -1393,18 +1393,23 @@ UClass* FBlueprintCompilationManagerImpl::FastGenerateSkeletonClass(UBlueprint* 
 			{
 				// we only want the *skeleton* version of the function:
 				UClass* InterfaceClass = BPID.Interface;
-				if(UBlueprint* Owner = Cast<UBlueprint>(InterfaceClass->ClassGeneratedBy))
+				// We need to null check because FBlueprintEditorUtils::ConformImplementedInterfaces won't run until 
+				// after the skeleton classes have been generated:
+				if(InterfaceClass)
 				{
-					if( ensure(Owner->SkeletonGeneratedClass) )
+					if(UBlueprint* Owner = Cast<UBlueprint>(InterfaceClass->ClassGeneratedBy))
 					{
-						InterfaceClass = Owner->SkeletonGeneratedClass;
+						if( ensure(Owner->SkeletonGeneratedClass) )
+						{
+							InterfaceClass = Owner->SkeletonGeneratedClass;
+						}
 					}
-				}
 
-				if(UFunction* ParentInterfaceFn = InterfaceClass->FindFunctionByName(NewFunction->GetFName()))
-				{
-					ParentFn = ParentInterfaceFn;
-					break;
+					if(UFunction* ParentInterfaceFn = InterfaceClass->FindFunctionByName(NewFunction->GetFName()))
+					{
+						ParentFn = ParentInterfaceFn;
+						break;
+					}
 				}
 			}
 		}
@@ -1685,34 +1690,39 @@ UClass* FBlueprintCompilationManagerImpl::FastGenerateSkeletonClass(UBlueprint* 
 	for(const FBPInterfaceDescription& BPID : BP->ImplementedInterfaces)
 	{
 		UClass* InterfaceClass = BPID.Interface;
-		if(UBlueprint* Owner = Cast<UBlueprint>(InterfaceClass->ClassGeneratedBy))
+		// Again, once the skeleton has been created we will purge null ImplementedInterfaces entries,
+		// but not yet:
+		if(InterfaceClass)
 		{
-			if( ensure(Owner->SkeletonGeneratedClass) )
+			if(UBlueprint* Owner = Cast<UBlueprint>(InterfaceClass->ClassGeneratedBy))
 			{
-				InterfaceClass = Owner->SkeletonGeneratedClass;
+				if( ensure(Owner->SkeletonGeneratedClass) )
+				{
+					InterfaceClass = Owner->SkeletonGeneratedClass;
+				}
 			}
-		}
 
-		AddFunctionForGraphs(TEXT(""), BPID.Graphs, CurrentFieldStorageLocation, BPTYPE_FunctionLibrary == BP->BlueprintType);
+			AddFunctionForGraphs(TEXT(""), BPID.Graphs, CurrentFieldStorageLocation, BPTYPE_FunctionLibrary == BP->BlueprintType);
 
-		for (TFieldIterator<UFunction> FunctionIt(InterfaceClass, EFieldIteratorFlags::ExcludeSuper); FunctionIt; ++FunctionIt)
-		{
-			UFunction* Fn = *FunctionIt;
+			for (TFieldIterator<UFunction> FunctionIt(InterfaceClass, EFieldIteratorFlags::ExcludeSuper); FunctionIt; ++FunctionIt)
+			{
+				UFunction* Fn = *FunctionIt;
 			
-			UField** CurrentParamStorageLocation = nullptr;
+				UField** CurrentParamStorageLocation = nullptr;
 
-			// Note that MakeFunction will early out if the function was created above:
-			MakeFunction(
-				Fn->GetFName(), 
-				CurrentFieldStorageLocation, 
-				CurrentParamStorageLocation, 
-				Fn->FunctionFlags & ~FUNC_Native, 
-				TArray<UK2Node_FunctionResult*>(), 
-				TArray<UEdGraphPin*>(),
-				false, 
-				false,
-				nullptr
-			);
+				// Note that MakeFunction will early out if the function was created above:
+				MakeFunction(
+					Fn->GetFName(), 
+					CurrentFieldStorageLocation, 
+					CurrentParamStorageLocation, 
+					Fn->FunctionFlags & ~FUNC_Native, 
+					TArray<UK2Node_FunctionResult*>(), 
+					TArray<UEdGraphPin*>(),
+					false, 
+					false,
+					nullptr
+				);
+			}
 		}
 	}
 
