@@ -1337,6 +1337,12 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageNameO
 
 		Linker->Flush();
 
+		if (!FPlatformProperties::RequiresCookedData())
+		{
+			// Flush cache on uncooked platforms to free precache memory
+			Linker->FlushCache();
+		}
+
 		// With UE4 and single asset per package, we load so many packages that some platforms will run out
 		// of file handles. So, this will close the package, but just things like bulk data loading will
 		// fail, so we only currently do this when loading on consoles.
@@ -1632,9 +1638,11 @@ void EndLoad()
 
 		if ( GIsEditor && LoadedLinkers.Num() > 0 )
 		{
-			for (auto LoadedLinker : LoadedLinkers)
+			for (FLinkerLoad* LoadedLinker : LoadedLinkers)
 			{
 				check(LoadedLinker != nullptr);
+
+				LoadedLinker->FlushCache();
 
 				if (LoadedLinker->LinkerRoot != nullptr && !LoadedLinker->LinkerRoot->IsFullyLoaded())
 				{
@@ -1666,12 +1674,12 @@ void EndLoad()
 		for (FLinkerLoad* Linker : PackagesToClose)
 		{
 			if (Linker)
-			{
+			{				
 				if (Linker->Loader && Linker->LinkerRoot)
 				{
 					ResetLoaders(Linker->LinkerRoot);
 				}
-				check(Linker->Loader == nullptr);
+				check(Linker->Loader == nullptr);				
 			}
 		}
 

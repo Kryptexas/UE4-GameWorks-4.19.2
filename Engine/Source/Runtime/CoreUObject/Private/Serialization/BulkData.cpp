@@ -1381,6 +1381,8 @@ void FUntypedBulkData::LoadDataIntoMemory( void* Dest )
 
 	// Restore file pointer.
 	AttachedAr->Seek( PushedPos );
+	AttachedAr->FlushCache();
+
 #else
 	bool bWasLoadedSuccessfully = false;
 	if ((IsInGameThread() || IsInAsyncLoadingThread()) && Package.IsValid() && Package->LinkerLoad && Package->LinkerLoad->GetOwnerThreadId() == FPlatformTLS::GetCurrentThreadId() && ((BulkDataFlags & BULKDATA_PayloadInSeperateFile) == 0))

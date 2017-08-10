@@ -384,6 +384,11 @@ struct FAsyncPackage : FGCObject
 	void DetachLinker();
 
 	/**
+	* Flushes linker cache for all objects loaded with this package
+	*/
+	void FlushObjectLinkerCache();
+
+	/**
 	 * Returns the name of the package to load.
 	 */
 	FORCEINLINE const FName& GetPackageName() const
