@@ -42,6 +42,7 @@ namespace UnrealBuildTool
 		private bool bGradleEnabled = false;
 
 		private UnrealPluginLanguage UPL = null;
+		private bool GearVRPluginEnabled = false;
 		private bool GoogleVRPluginEnabled = false;
 		private bool CrashlyticsPluginEnabled = false;
 
@@ -53,21 +54,27 @@ namespace UnrealBuildTool
 				NDKArches.Add(GetNDKArch(Arch));
 			}
 
-			// check if the GoogleVR plugin was enabled
+			// check if certain plugins are enabled
 			GoogleVRPluginEnabled = false;
+			GearVRPluginEnabled = false;
+			CrashlyticsPluginEnabled = false;
 			foreach (var Plugin in inPluginExtraData)
 			{
+				// check if the Gear VR plugin was enabled
+				if (Plugin.Contains("GearVR_APL"))
+				{
+					GearVRPluginEnabled = true;
+					break;
+				}
+
+				// check if the GoogleVR plugin was enabled
 				if (Plugin.Contains("GoogleVRHMD"))
 				{
 					GoogleVRPluginEnabled = true;
 					break;
 				}
-			}
 
-			// check if Crashlytics plugin was enabled
-			CrashlyticsPluginEnabled = false;
-			foreach (var Plugin in inPluginExtraData)
-			{
+				// check if Crashlytics plugin was enabled
 				// NOTE: There is a thirdparty plugin using Crashlytics_UPL_Android.xml which shouldn't use this code so check full name
 				if (Plugin.Contains("Crashlytics_UPL.xml"))
 				{
@@ -381,6 +388,26 @@ namespace UnrealBuildTool
 				// changes the mode, there will be no setting string to look up here
 				return true;
 			}
+		}
+
+		public bool IsPackagingForGearVR(ConfigHierarchy Ini = null)
+		{
+			// always false if the GearVR plugin wasn't enabled
+			if (!GearVRPluginEnabled)
+			{
+				return false;
+			}
+
+			// make a new one if one wasn't passed in
+			if (Ini == null)
+			{
+				Ini = GetConfigCacheIni(ConfigHierarchyType.Engine);
+			}
+
+			bool bPackageForGearVR = false;
+			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bPackageForGearVR", out bPackageForGearVR);
+
+			return bPackageForGearVR;
 		}
 
 		public bool DisableVerifyOBBOnStartUp(ConfigHierarchy Ini = null)
@@ -1497,8 +1524,7 @@ namespace UnrealBuildTool
 			ConfigHierarchy Ini = GetConfigCacheIni(ConfigHierarchyType.Engine);
 			bool bShowLaunchImage = false;
 			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bShowLaunchImage", out bShowLaunchImage);
-			bool bPackageForGearVR;
-			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bPackageForGearVR", out bPackageForGearVR);
+			bool bPackageForGearVR = IsPackagingForGearVR();
 			bool bPackageForDaydream = IsPackagingForDaydream();
 			
 			//override the parameters if we are not showing a launch image or are packaging for GearVR and Daydream
@@ -1769,8 +1795,7 @@ namespace UnrealBuildTool
 			Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "ExtraApplicationSettings", out ExtraApplicationSettings);
 			List<string> ExtraPermissions;
 			Ini.GetArray("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "ExtraPermissions", out ExtraPermissions);
-			bool bPackageForGearVR;
-			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bPackageForGearVR", out bPackageForGearVR);
+			bool bPackageForGearVR = IsPackagingForGearVR();
 			bool bEnableIAP = false;
 			Ini.GetBool("OnlineSubsystemGooglePlay.Store", "bSupportsInAppPurchasing", out bEnableIAP);
 			bool bShowLaunchImage = false;
@@ -3143,8 +3168,15 @@ namespace UnrealBuildTool
 					string GradleBuildType = ":app:assembleDebug";
 					if (bForDistribution)
 					{
+						bool bDisableV2Signing = false;
 						GradleBuildType = ":app:assembleRelease";
 
+						if (IsPackagingForGearVR())
+						{
+							bDisableV2Signing = true;
+							Log.TraceInformation("Disabling v2Signing for Gear VR APK");
+						}
+						
 						string KeyAlias, KeyStore, KeyStorePassword, KeyPassword;
 						Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "KeyStore", out KeyStore);
 						Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "KeyAlias", out KeyAlias);
@@ -3175,6 +3207,10 @@ namespace UnrealBuildTool
 						GradleBuildAdditionsContent.AppendLine(string.Format("\t\t\tstorePassword '{0}'", KeyStorePassword));
 						GradleBuildAdditionsContent.AppendLine(string.Format("\t\t\tkeyAlias '{0}'", KeyAlias));
 						GradleBuildAdditionsContent.AppendLine(string.Format("\t\t\tkeyPassword '{0}'", KeyPassword));
+						if (bDisableV2Signing)
+						{
+							GradleBuildAdditionsContent.AppendLine("\t\t\tv2SigningEnabled false");
+						}
 						GradleBuildAdditionsContent.AppendLine("\t\t}");
 						GradleBuildAdditionsContent.AppendLine("\t}");
 						GradleBuildAdditionsContent.AppendLine("}");
