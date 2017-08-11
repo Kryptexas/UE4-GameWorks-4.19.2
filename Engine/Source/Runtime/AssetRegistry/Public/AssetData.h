@@ -6,7 +6,7 @@
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
 #include "UObject/Class.h"
-#include "Misc/StringAssetReference.h"
+#include "UObject/SoftObjectPath.h"
 #include "UObject/Package.h"
 #include "UObject/ObjectRedirector.h"
 #include "Misc/PackageName.h"
@@ -111,6 +111,7 @@ public:
 			}
 
 			const UPackage* Outermost = InAsset->GetOutermost();
+			const UObject* Outer = InAsset->GetOuter();
 
 			PackageName = Outermost->GetFName();
 			PackagePath = FName(*FPackageName::GetLongPackagePath(Outermost->GetName()));
@@ -240,10 +241,16 @@ public:
 		return FoundClass;
 	}
 
-	/** Convert to a StringAssetReference for loading */
-	FStringAssetReference ToStringReference() const
+	/** Convert to a SoftObjectPath for loading */
+	FSoftObjectPath ToSoftObjectPath() const
 	{
-		return FStringAssetReference(ObjectPath.ToString());
+		return FSoftObjectPath(ObjectPath.ToString());
+	}
+
+	DEPRECATED(4.18, "ToStringReference was renamed to ToSoftObjectPath")
+	FSoftObjectPath ToStringReference() const
+	{
+		return ToSoftObjectPath();
 	}
 	
 	/** Gets primary asset id of this data */

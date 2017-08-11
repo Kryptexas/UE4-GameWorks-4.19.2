@@ -41,7 +41,6 @@ UBlueprintGeneratedClass::UBlueprintGeneratedClass(const FObjectInitializer& Obj
 	: Super(ObjectInitializer)
 {
 	NumReplicatedProperties = 0;
-	bHasInstrumentation = false;
 	bHasNativizedParent = false;
 	bCustomPropertyListForPostConstructionInitialized = false;
 }
@@ -1363,28 +1362,6 @@ bool UBlueprintGeneratedClass::CanBeClusterRoot() const
 
 void UBlueprintGeneratedClass::Link(FArchive& Ar, bool bRelinkExistingProperties)
 {
-	// Ensure that function netflags equate to any super function in a parent BP prior to linking; it may have been changed by the user
-	// and won't be reflected in the child class until it is recompiled. Without this, UClass::Link() will assert if they are out of sync.
-	for(UField* Field = Children; Field; Field = Field->Next)
-	{
-		Ar.Preload(Field);
-
-		UFunction* Function = dynamic_cast<UFunction*>(Field);
-		if(Function != nullptr)
-		{
-			UFunction* ParentFunction = Function->GetSuperFunction();
-			if(ParentFunction != nullptr)
-			{
-				const EFunctionFlags ParentNetFlags = (ParentFunction->FunctionFlags & FUNC_NetFuncFlags);
-				if(ParentNetFlags != (Function->FunctionFlags & FUNC_NetFuncFlags))
-				{
-					Function->FunctionFlags &= ~FUNC_NetFuncFlags;
-					Function->FunctionFlags |= ParentNetFlags;
-				}
-			}
-		}
-	}
-
 	Super::Link(Ar, bRelinkExistingProperties);
 
 	if (UsePersistentUberGraphFrame() && UberGraphFunction)

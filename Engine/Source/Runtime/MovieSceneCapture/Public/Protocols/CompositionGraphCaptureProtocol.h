@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
-#include "Misc/StringAssetReference.h"
+#include "UObject/SoftObjectPath.h"
 #include "IMovieSceneCaptureProtocol.h"
 #include "MovieSceneCaptureProtocolSettings.h"
 #include "CompositionGraphCaptureProtocol.generated.h"
@@ -62,7 +62,7 @@ public:
 
 	/** Custom post processing material to use for rendering */
 	UPROPERTY(config, EditAnywhere, Category="Composition Graph Options", meta=(AllowedClasses=""))
-	FStringAssetReference PostProcessingMaterial;
+	FSoftObjectPath PostProcessingMaterial;
 };
 
 struct MOVIESCENECAPTURE_API FCompositionGraphCaptureProtocol : IMovieSceneCaptureProtocol

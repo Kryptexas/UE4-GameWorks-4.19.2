@@ -9,7 +9,7 @@
 /**
  * A module for adding automation exposure in the editor
  */
-class IEditorAutomationModule : public IModuleInterface
+class IFunctionalTestingEditorModule : public IModuleInterface
 {
 public:
 	/**

@@ -73,6 +73,9 @@ public:
 	virtual void PostPasteNode() override;
 	virtual bool IsDeprecated() const;
 	virtual FString GetDeprecationMessage() const;
+	virtual UObject* GetJumpTargetForDoubleClick() const override;
+	virtual bool CanJumpToDefinition() const override;
+	virtual void JumpToDefinition() const override;
 	//~ End UEdGraphNode Interface
 
 	//~ Begin K2Node Interface

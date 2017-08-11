@@ -72,7 +72,7 @@ static bool IsTypeCompatibleWithProperty(UEdGraphPin* SourcePin, const FEdGraphP
 		UEnumProperty* EnumProperty = Cast<UEnumProperty>(TestProperty);
 		bTypeMismatch = (ByteProperty == nullptr) && (EnumProperty == nullptr || !EnumProperty->GetUnderlyingProperty()->IsA<UByteProperty>());
 	}
-	else if ((PinCategory == Schema->PC_Class) || (PinCategory == Schema->PC_AssetClass))
+	else if ((PinCategory == Schema->PC_Class) || (PinCategory == Schema->PC_SoftClass))
 	{
 		const UClass* ClassType = (PinSubCategory == Schema->PSC_Self) ? SelfClass : Cast<const UClass>(PinSubCategoryObject);
 
@@ -87,9 +87,9 @@ static bool IsTypeCompatibleWithProperty(UEdGraphPin* SourcePin, const FEdGraphP
 			{
 				MetaClass = ClassProperty->MetaClass;
 			}
-			else if (auto AssetClassProperty = Cast<UAssetClassProperty>(TestProperty))
+			else if (auto SoftClassProperty = Cast<USoftClassProperty>(TestProperty))
 			{
-				MetaClass = AssetClassProperty->MetaClass;
+				MetaClass = SoftClassProperty->MetaClass;
 			}
 
 			if (MetaClass != NULL)
@@ -102,7 +102,7 @@ static bool IsTypeCompatibleWithProperty(UEdGraphPin* SourcePin, const FEdGraphP
 				// It matches if it's an exact match or if the output class is more derived than the input class
 				bTypeMismatch = bSubtypeMismatch = !((OutputClass == InputClass) || (OutputClass->IsChildOf(InputClass)));
 
-				if ((PinCategory == Schema->PC_AssetClass) && (!TestProperty->IsA<UAssetClassProperty>()))
+				if ((PinCategory == Schema->PC_SoftClass) && (!TestProperty->IsA<USoftClassProperty>()))
 				{
 					bTypeMismatch = true;
 				}
@@ -137,7 +137,7 @@ static bool IsTypeCompatibleWithProperty(UEdGraphPin* SourcePin, const FEdGraphP
 			&& PropertyDelegate->SignatureFunction 
 			&& PropertyDelegate->SignatureFunction->IsSignatureCompatibleWith(SignatureFunction));
 	}
-	else if ((PinCategory == Schema->PC_Object) || (PinCategory == Schema->PC_Interface) || (PinCategory == Schema->PC_Asset))
+	else if ((PinCategory == Schema->PC_Object) || (PinCategory == Schema->PC_Interface) || (PinCategory == Schema->PC_SoftObject))
 	{
 		const UClass* ObjectType = (PinSubCategory == Schema->PSC_Self) ? SelfClass : Cast<const UClass>(PinSubCategoryObject);
 
@@ -184,7 +184,7 @@ static bool IsTypeCompatibleWithProperty(UEdGraphPin* SourcePin, const FEdGraphP
 				// It matches if it's an exact match or if the output class is more derived than the input class
 				bTypeMismatch = bSubtypeMismatch = !((OutputClass == InputClass) || (OutputClass->IsChildOf(InputClass)));
 
-				if ((PinCategory == Schema->PC_Asset) && (!TestProperty->IsA<UAssetObjectProperty>()))
+				if ((PinCategory == Schema->PC_SoftObject) && (!TestProperty->IsA<USoftObjectProperty>()))
 				{
 					bTypeMismatch = true;
 				}
@@ -863,7 +863,7 @@ UProperty* FKismetCompilerUtilities::CreatePrimitiveProperty(UObject* PropertySc
 
 	UProperty* NewProperty = nullptr;
 	//@TODO: Nasty string if-else tree
-	if ((PinCategory == Schema->PC_Object) || (PinCategory == Schema->PC_Interface) || (PinCategory == Schema->PC_Asset))
+	if ((PinCategory == Schema->PC_Object) || (PinCategory == Schema->PC_Interface) || (PinCategory == Schema->PC_SoftObject))
 	{
 		UClass* SubType = (PinSubCategory == Schema->PSC_Self) ? SelfClass : Cast<UClass>(PinSubCategoryObject);
 
@@ -891,9 +891,9 @@ UProperty* FKismetCompilerUtilities::CreatePrimitiveProperty(UObject* PropertySc
 			{
 				UObjectPropertyBase* NewPropertyObj = NULL;
 
-				if (PinCategory == Schema->PC_Asset)
+				if (PinCategory == Schema->PC_SoftObject)
 				{
-					NewPropertyObj = NewObject<UAssetObjectProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
+					NewPropertyObj = NewObject<USoftObjectProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
 				}
 				else if (bIsWeakPointer)
 				{
@@ -946,7 +946,7 @@ UProperty* FKismetCompilerUtilities::CreatePrimitiveProperty(UObject* PropertySc
 			}
 		}
 	}
-	else if ((PinCategory == Schema->PC_Class) || (PinCategory == Schema->PC_AssetClass))
+	else if ((PinCategory == Schema->PC_Class) || (PinCategory == Schema->PC_SoftClass))
 	{
 		UClass* SubType = Cast<UClass>(PinSubCategoryObject);
 
@@ -964,16 +964,16 @@ UProperty* FKismetCompilerUtilities::CreatePrimitiveProperty(UObject* PropertySc
 
 		if (SubType)
 		{
-			if (PinCategory == Schema->PC_AssetClass)
+			if (PinCategory == Schema->PC_SoftClass)
 			{
-				UAssetClassProperty* AssetClassProperty = NewObject<UAssetClassProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
+				USoftClassProperty* SoftClassProperty = NewObject<USoftClassProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
 				// we want to use this setter function instead of setting the 
 				// MetaClass member directly, because it properly handles  
 				// placeholder classes (classes that are stubbed in during load)
-				AssetClassProperty->SetMetaClass(SubType);
-				AssetClassProperty->PropertyClass = UClass::StaticClass();
-				AssetClassProperty->SetPropertyFlags(CPF_HasGetValueTypeHash);
-				NewProperty = AssetClassProperty;
+				SoftClassProperty->SetMetaClass(SubType);
+				SoftClassProperty->PropertyClass = UClass::StaticClass();
+				SoftClassProperty->SetPropertyFlags(CPF_HasGetValueTypeHash);
+				NewProperty = SoftClassProperty;
 			}
 			else
 			{
@@ -1559,7 +1559,7 @@ FBlueprintCompiledStatement& FNodeHandlingFunctor::GenerateSimpleThenGoto(FKisme
 		TargetNode = ThenExecPin->LinkedTo[0]->GetOwningNode();
 	}
 
-	if (Context.bCreateDebugData && (!Context.bInstrumentScriptCode || Context.IsInstrumentationRequiredForPin(ThenExecPin)))
+	if (Context.bCreateDebugData)
 	{
 		FBlueprintCompiledStatement& TraceStatement = Context.AppendStatementForNode(&Node);
 		TraceStatement.Type = Context.GetWireTraceType();
@@ -1704,7 +1704,7 @@ FString FNetNameMapping::MakeBaseName(const UAnimGraphNode_Base* Net)
 //////////////////////////////////////////////////////////////////////////
 // FKismetFunctionContext
 
-FKismetFunctionContext::FKismetFunctionContext(FCompilerResultsLog& InMessageLog, const UEdGraphSchema_K2* InSchema, UBlueprintGeneratedClass* InNewClass, UBlueprint* InBlueprint, bool bInGeneratingCpp, bool bInWantsInstrumentation)
+FKismetFunctionContext::FKismetFunctionContext(FCompilerResultsLog& InMessageLog, const UEdGraphSchema_K2* InSchema, UBlueprintGeneratedClass* InNewClass, UBlueprint* InBlueprint, bool bInGeneratingCpp)
 	: Blueprint(InBlueprint)
 	, SourceGraph(nullptr)
 	, EntryPoint(nullptr)
@@ -1718,7 +1718,6 @@ FKismetFunctionContext::FKismetFunctionContext(FCompilerResultsLog& InMessageLog
 	, bIsInterfaceStub(false)
 	, bIsConstFunction(false)
 	, bEnforceConstCorrectness(false)
-	, bInstrumentScriptCode(bInWantsInstrumentation)
 	// only need debug-data when running in the editor app:
 	, bCreateDebugData(GIsEditor && !IsRunningCommandlet())
 	, bIsSimpleStubGraphWithNoParams(false)
@@ -1884,10 +1883,8 @@ void FKismetFunctionContext::ResolveGotoFixups()
 			{
 				continue;
 			}
-			if (!bInstrumentScriptCode || IsInstrumentationRequiredForPin(GotoIt->Value))
-			{
-				InsertWireTrace(GotoIt.Key(), GotoIt.Value());
-			}
+
+			InsertWireTrace(GotoIt.Key(), GotoIt.Value());
 		}
 	}
 

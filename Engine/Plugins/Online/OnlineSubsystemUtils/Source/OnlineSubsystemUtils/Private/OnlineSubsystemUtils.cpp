@@ -56,7 +56,7 @@ UAudioComponent* CreateVoiceAudioComponent(uint32 SampleRate)
 				AudioComponent->bAllowSpatialization = false;
 				AudioComponent->SetVolumeMultiplier(1.5f);
 
-				const FStringAssetReference VoiPSoundClassName = GetDefault<UAudioSettings>()->VoiPSoundClass;
+				const FSoftObjectPath VoiPSoundClassName = GetDefault<UAudioSettings>()->VoiPSoundClass;
 				if (VoiPSoundClassName.IsValid())
 				{
 					AudioComponent->SoundClassOverride = LoadObject<USoundClass>(nullptr, *VoiPSoundClassName.ToString());

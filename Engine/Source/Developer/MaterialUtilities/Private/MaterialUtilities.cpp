@@ -2,7 +2,6 @@
 #include "MaterialUtilities.h"
 #include "EngineDefines.h"
 #include "ShowFlags.h"
-#include "Misc/StringAssetReference.h"
 #include "Materials/MaterialInterface.h"
 #include "Materials/Material.h"
 #include "Engine/Texture2D.h"
@@ -2220,7 +2219,7 @@ bool FMaterialUtilities::ExportMaterialUVDensities(UMaterialInterface* InMateria
 				FMaterialTextureInfo TextureInfo;
 				TextureInfo.SamplingScale = SamplingScale;
 				TextureInfo.UVChannelIndex = CoordIndex;
-				TextureInfo.TextureReference = FStringAssetReference(Texture2D);
+				TextureInfo.TextureReference = FSoftObjectPath(Texture2D);
 				TextureInfo.TextureIndex = RegisterIndex;
 				TextureStreamingData.Add(TextureInfo);
 				bSuccess = true;

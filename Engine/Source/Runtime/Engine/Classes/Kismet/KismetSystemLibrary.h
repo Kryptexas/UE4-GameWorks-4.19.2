@@ -11,6 +11,7 @@
 #include "UObject/ScriptMacros.h"
 #include "UObject/Interface.h"
 #include "UObject/TextProperty.h"
+#include "UObject/SoftObjectPtr.h"
 #include "Engine/LatentActionManager.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "Engine/CollisionProfile.h"
@@ -21,8 +22,6 @@ class ACameraActor;
 class APlayerController;
 class UPrimitiveComponent;
 class USceneComponent;
-
-template<class TClass> class TAssetSubclassOf;
 
 UENUM(BlueprintType)
 namespace EDrawDebugTrace
@@ -173,51 +172,59 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta=(DisplayName = "ToObject (interface)", CompactNodeTitle = "->"), Category="Utilities")
 	static UObject* Conv_InterfaceToObject(const FScriptInterface& Interface); 
 
+	/** Builds a SoftObjectPath struct. Generally you should be using Soft Object References/Ptr types instead */
+	UFUNCTION(BlueprintPure, Category = "SoftObjectPath", meta = (Keywords = "construct build", NativeMakeFunc))
+	static FSoftObjectPath MakeSoftObjectPath(const FString& PathString);
+
+	/** Gets the path string out of a Soft Object Path */
+	UFUNCTION(BlueprintPure, Category = "SoftObjectPath", meta = ( NativeBreakFunc))
+	static void BreakSoftObjectPath(FSoftObjectPath InSoftObjectPath, FString& PathString);
+
 	/** Returns true if the Soft Object Reference is not null */
 	UFUNCTION(BlueprintPure, Category = "Utilities")
-	static bool IsValidSoftObjectReference(const TAssetPtr<UObject>& SoftObjectReference);
+	static bool IsValidSoftObjectReference(const TSoftObjectPtr<UObject>& SoftObjectReference);
 
 	/** Returns true if the values are equal (A == B) */
 	UFUNCTION(BlueprintPure, meta = (DisplayName = "Equal (SoftObjectReference)", CompactNodeTitle = "=="), Category = "Utilities")
-	static bool EqualEqual_SoftObjectReference(const TAssetPtr<UObject>& A, const TAssetPtr<UObject>& B);
+	static bool EqualEqual_SoftObjectReference(const TSoftObjectPtr<UObject>& A, const TSoftObjectPtr<UObject>& B);
 
 	/** Returns true if the values are not equal (A != B) */
 	UFUNCTION(BlueprintPure, meta = (DisplayName = "NotEqual (SoftObjectReference)", CompactNodeTitle = "!="), Category = "Utilities")
-	static bool NotEqual_SoftObjectReference(const TAssetPtr<UObject>& A, const TAssetPtr<UObject>& B);
+	static bool NotEqual_SoftObjectReference(const TSoftObjectPtr<UObject>& A, const TSoftObjectPtr<UObject>& B);
 
 	/** Returns true if the Soft Class Reference is not null */
 	UFUNCTION(BlueprintPure, Category = "Utilities")
-	static bool IsValidSoftClassReference(const TAssetSubclassOf<UObject>& SoftClassReference);
+	static bool IsValidSoftClassReference(const TSoftClassPtr<UObject>& SoftClassReference);
 
 	/** Returns true if the values are equal (A == B) */
 	UFUNCTION(BlueprintPure, meta = (DisplayName = "Equal (SoftClassReference)", CompactNodeTitle = "=="), Category = "Utilities")
-	static bool EqualEqual_SoftClassReference(const TAssetSubclassOf<UObject>& A, const TAssetSubclassOf<UObject>& B);
+	static bool EqualEqual_SoftClassReference(const TSoftClassPtr<UObject>& A, const TSoftClassPtr<UObject>& B);
 
 	/** Returns true if the values are not equal (A != B) */
 	UFUNCTION(BlueprintPure, meta = (DisplayName = "NotEqual (SoftClassReference)", CompactNodeTitle = "!="), Category = "Utilities")
-	static bool NotEqual_SoftClassReference(const TAssetSubclassOf<UObject>& A, const TAssetSubclassOf<UObject>& B);
+	static bool NotEqual_SoftClassReference(const TSoftClassPtr<UObject>& A, const TSoftClassPtr<UObject>& B);
 
 	UFUNCTION(BlueprintPure, meta = (BlueprintInternalUseOnly = "true"), Category = "Utilities")
-	static UObject* Conv_SoftObjectReferenceToObject(const TAssetPtr<UObject>& Asset);
+	static UObject* Conv_SoftObjectReferenceToObject(const TSoftObjectPtr<UObject>& SoftObject);
 
 	UFUNCTION(BlueprintPure, meta = (BlueprintInternalUseOnly = "true"), Category = "Utilities")
-	static TSubclassOf<UObject> Conv_SoftClassReferenceToClass(const TAssetSubclassOf<UObject>& AssetClass);
+	static TSubclassOf<UObject> Conv_SoftClassReferenceToClass(const TSoftClassPtr<UObject>& SoftClass);
 
 	UFUNCTION(BlueprintPure, meta = (BlueprintInternalUseOnly = "true"), Category = "Utilities")
-	static TAssetPtr<UObject> Conv_ObjectToSoftObjectReference(UObject* Object);
+	static TSoftObjectPtr<UObject> Conv_ObjectToSoftObjectReference(UObject* Object);
 
 	UFUNCTION(BlueprintPure, meta = (BlueprintInternalUseOnly = "true"), Category = "Utilities")
-	static TAssetSubclassOf<UObject> Conv_ClassToSoftClassReference(const TSubclassOf<UObject>& Class);
+	static TSoftClassPtr<UObject> Conv_ClassToSoftClassReference(const TSubclassOf<UObject>& Class);
 
 	DECLARE_DYNAMIC_DELEGATE_OneParam(FOnAssetLoaded, class UObject*, Loaded);
 
 	UFUNCTION(BlueprintCallable, meta = (Latent, LatentInfo = "LatentInfo", WorldContext = "WorldContextObject", BlueprintInternalUseOnly = "true"), Category = "Utilities")
-	static void LoadAsset(UObject* WorldContextObject, TAssetPtr<UObject> Asset, FOnAssetLoaded OnLoaded, FLatentActionInfo LatentInfo);
+	static void LoadAsset(UObject* WorldContextObject, TSoftObjectPtr<UObject> Asset, FOnAssetLoaded OnLoaded, FLatentActionInfo LatentInfo);
 
 	DECLARE_DYNAMIC_DELEGATE_OneParam(FOnAssetClassLoaded, TSubclassOf<UObject>, Loaded);
 
 	UFUNCTION(BlueprintCallable, meta = (Latent, LatentInfo = "LatentInfo", WorldContext = "WorldContextObject", BlueprintInternalUseOnly = "true"), Category = "Utilities")
-	static void LoadAssetClass(UObject* WorldContextObject, TAssetSubclassOf<UObject> AssetClass, FOnAssetClassLoaded OnLoaded, FLatentActionInfo LatentInfo);
+	static void LoadAssetClass(UObject* WorldContextObject, TSoftClassPtr<UObject> AssetClass, FOnAssetClassLoaded OnLoaded, FLatentActionInfo LatentInfo);
 
 
 	/**
@@ -648,13 +655,13 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly = "true", AutoCreateRefTerm = "Value" ))
 	static void SetNamePropertyByName(UObject* Object, FName PropertyName, const FName& Value);
 
-	/** Set a ASSET property by name */
+	/** Set a SOFTOBJECT property by name */
 	UFUNCTION(BlueprintCallable, meta = (BlueprintInternalUseOnly = "true", AutoCreateRefTerm = "Value"))
-	static void SetAssetPropertyByName(UObject* Object, FName PropertyName, const TAssetPtr<UObject>& Value);
+	static void SetSoftObjectPropertyByName(UObject* Object, FName PropertyName, const TSoftObjectPtr<UObject>& Value);
 
-	/** Set a ASSETCLASS property by name */
+	/** Set a SOFTCLASS property by name */
 	UFUNCTION(BlueprintCallable, meta = (BlueprintInternalUseOnly = "true", AutoCreateRefTerm = "Value"))
-	static void SetAssetClassPropertyByName(UObject* Object, FName PropertyName, const TAssetSubclassOf<UObject>& Value);
+	static void SetSoftClassPropertyByName(UObject* Object, FName PropertyName, const TSoftClassPtr<UObject>& Value);
 
 	/** Set a STRING property by name */
 	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly = "true", AutoCreateRefTerm = "Value" ))
@@ -1607,11 +1614,11 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 
 	/** Returns the Object Id associated with a Primary Asset Id, this works even if the asset is not loaded */
 	UFUNCTION(BlueprintPure, Category = "AssetManager")
-	static TAssetPtr<UObject> GetSoftObjectReferenceFromPrimaryAssetId(FPrimaryAssetId PrimaryAssetId);
+	static TSoftObjectPtr<UObject> GetSoftObjectReferenceFromPrimaryAssetId(FPrimaryAssetId PrimaryAssetId);
 
 	/** Returns the Blueprint Class Id associated with a Primary Asset Id, this works even if the asset is not loaded */
 	UFUNCTION(BlueprintPure, Category = "AssetManager")
-	static TAssetSubclassOf<UObject> GetSoftClassReferenceFromPrimaryAssetId(FPrimaryAssetId PrimaryAssetId);
+	static TSoftClassPtr<UObject> GetSoftClassReferenceFromPrimaryAssetId(FPrimaryAssetId PrimaryAssetId);
 
 	/** Returns the Primary Asset Id for an Object, this can return an invalid one if not registered */
 	UFUNCTION(BlueprintPure, Category = "AssetManager")
@@ -1623,11 +1630,11 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 
 	/** Returns the Primary Asset Id for a Soft Object Reference, this can return an invalid one if not registered */
 	UFUNCTION(BlueprintPure, Category = "AssetManager")
-	static FPrimaryAssetId GetPrimaryAssetIdFromSoftObjectReference(TAssetPtr<UObject> SoftObjectReference);
+	static FPrimaryAssetId GetPrimaryAssetIdFromSoftObjectReference(TSoftObjectPtr<UObject> SoftObjectReference);
 
 	/** Returns the Primary Asset Id for a Soft Class Reference, this can return an invalid one if not registered */
 	UFUNCTION(BlueprintPure, Category = "AssetManager")
-	static FPrimaryAssetId GetPrimaryAssetIdFromSoftClassReference(TAssetSubclassOf<UObject> SoftClassReference);
+	static FPrimaryAssetId GetPrimaryAssetIdFromSoftClassReference(TSoftClassPtr<UObject> SoftClassReference);
 
 	/** Returns list of PrimaryAssetIds for a PrimaryAssetType */
 	UFUNCTION(BlueprintCallable, Category = "AssetManager")

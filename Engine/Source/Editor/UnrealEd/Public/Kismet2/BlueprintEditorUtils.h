@@ -617,7 +617,7 @@ public:
 	 *
 	 * @param [in,out]	GraphNames	The graph names will be appended to this array.
 	 */
-	static void GetAllGraphNames(const UBlueprint* Blueprint, TArray<FName>& GraphNames);
+	static void GetAllGraphNames(const UBlueprint* Blueprint, TSet<FName>& GraphNames);
 
 	/**
 	 * Gets the compiler-relevant (i.e. non-ignorable) node links from the given pin.
@@ -654,7 +654,7 @@ public:
 	 * @param			Blueprint		The blueprint to check
 	 * @param [in,out]	FunctionNames	List of function names currently in use
 	 */
-	static void GetFunctionNameList(const UBlueprint* Blueprint, TArray<FName>& FunctionNames);
+	static void GetFunctionNameList(const UBlueprint* Blueprint, TSet<FName>& FunctionNames);
 
 	/**
 	 * Gets a list of delegates names in the blueprint, based on the skeleton class
@@ -662,7 +662,7 @@ public:
 	 * @param			Blueprint		The blueprint to check
 	 * @param [in,out]	DelegatesNames	List of function names currently in use
 	 */
-	static void GetDelegateNameList(const UBlueprint* Blueprint, TArray<FName>& DelegatesNames);
+	static void GetDelegateNameList(const UBlueprint* Blueprint, TSet<FName>& DelegatesNames);
 
 	/** 
 	 * Get a graph for delegate signature with given name, from given blueprint.
@@ -713,15 +713,15 @@ public:
 	/**
 	 * Gets the visible class variable list.  This includes both variables introduced here and in all superclasses.
 	 *
-	 * @param [in,out]	VisibleVariables	The visible variables will be appened to this array.
+	 * @param [in,out]	VisibleVariables	The visible variables will be appended to this array.
 	 */
-	static void GetClassVariableList(const UBlueprint* Blueprint, TArray<FName>& VisibleVariables, bool bIncludePrivateVars=false);
+	static void GetClassVariableList(const UBlueprint* Blueprint, TSet<FName>& VisibleVariables, bool bIncludePrivateVars=false);
 
 	/**
 	 * Gets variables of specified type
 	 *
 	 * @param 			FEdGraphPinType	 			Type of variables to look for
-	 * @param [in,out]	VisibleVariables			The visible variables will be appened to this array.
+	 * @param [in,out]	VisibleVariables			The visible variables will be appended to this array.
 	 */
 	static void GetNewVariablesOfType( const UBlueprint* Blueprint, const FEdGraphPinType& Type, TArray<FName>& OutVars);
 
@@ -729,7 +729,7 @@ public:
 	 * Gets local variables of specified type
 	 *
 	 * @param 			FEdGraphPinType	 			Type of variables to look for
-	 * @param [in,out]	VisibleVariables			The visible variables will be appened to this array.
+	 * @param [in,out]	VisibleVariables			The visible variables will be appended to this array.
 	 */
 	static void GetLocalVariablesOfType( const UEdGraph* Graph, const FEdGraphPinType& Type, TArray<FName>& OutVars);
 
@@ -1028,6 +1028,23 @@ public:
 	 */
 	static void SetBlueprintVariableCategory(UBlueprint* Blueprint, const FName& VarName, const UStruct* InLocalVarScope, const FText& NewCategory, bool bDontRecompile=false);
 
+
+	/**
+	 * Sets the custom category on the function or macro
+	 * @note: Will not change the category for functions defined via native classes.
+	 *
+	 * @param	Graph				Graph associated with the function or macro
+	 * @param	NewCategory			The new value of the custom category for the function
+	 * @param	bDontRecompile		If true, the blueprint will not be marked as modified, and will not be recompiled.  
+	 */
+	static void SetBlueprintFunctionOrMacroCategory(UEdGraph* Graph, const FText& NewCategory, bool bDontRecompile=false);
+
+	/** Finds the index of the specified graph (function or macro) in the parent (if it is not reorderable, then we will return INDEX_NONE) */
+	static int32 FindIndexOfGraphInParent(UEdGraph* Graph);
+
+	/** Reorders the specified graph (function or macro) to be at the new index in the parent (moving whatever was there to be after it), assuming it is reorderable and that is a valid index */
+	static bool MoveGraphBeforeOtherGraph(UEdGraph* Graph, int32 NewIndex, bool bDontRecompile);
+
 	/**
 	 * Gets the custom category on the variable with the specified name.
 	 *
@@ -1061,9 +1078,6 @@ public:
 	/** Change the order of variables in the Blueprint */
 	static bool MoveVariableBeforeVariable(UBlueprint* Blueprint, FName VarNameToMove, FName TargetVarName, bool bDontRecompile);
 
-	/** Find first variable of the supplied category */
-	static int32 FindFirstNewVarOfCategory(const UBlueprint* Blueprint, FText Category);
-
 	/**
 	 * Find the index of a timeline first declared in this blueprint. Returns INDEX_NONE if not found.
 	 *
@@ -1078,7 +1092,7 @@ public:
 	 *
 	 * @param [in,out]	VariableNames		The list of variable names for the SCS node array.
 	 */
-	static void GetSCSVariableNameList(const UBlueprint* Blueprint, TArray<FName>& VariableNames);
+	static void GetSCSVariableNameList(const UBlueprint* Blueprint, TSet<FName>& VariableNames);
 
 	/** 
 	 * Gets a list of function names in blueprints that implement the interface defined by the given blueprint.
@@ -1086,7 +1100,7 @@ public:
 	 * @param [in,out]	Blueprint			The interface blueprint to check.
 	 * @param [in,out]	VariableNames		The list of function names for implementing blueprints.
 	 */
-	static void GetImplementingBlueprintsFunctionNameList(const UBlueprint* Blueprint, TArray<FName>& FunctionNames);
+	static void GetImplementingBlueprintsFunctionNameList(const UBlueprint* Blueprint, TSet<FName>& FunctionNames);
 
 	/**
 	 * Find the index of a SCS_Node first declared in this blueprint. Returns INDEX_NONE if not found.
@@ -1287,7 +1301,7 @@ public:
 	 * @param	LevelScriptActor	The newly-created level script actor that should be (re-)bound to
 	 * @param	ScriptBlueprint		The level scripting blueprint that contains the bound events to try and bind delegates to this actor for
 	 */
-	static bool FixLevelScriptActorBindings(ALevelScriptActor* LevelScriptActor, const class ULevelScriptBlueprint* ScriptBlueprint);
+	static void FixLevelScriptActorBindings(ALevelScriptActor* LevelScriptActor, const class ULevelScriptBlueprint* ScriptBlueprint);
 
 	/**
 	 * Find how many actors reference the supplied actor
@@ -1314,11 +1328,6 @@ public:
 
 	// Diagnostic exec commands
 	static bool KismetDiagnosticExec(const TCHAR* Stream, FOutputDevice& Ar);
-
-	/** Called by FixLevelScriptActorBindings() to allow external modules to update level script actors when they are
-	    recreated after a blueprint change */
-	DECLARE_EVENT_ThreeParams( FBlueprintEditorUtils, FFixLevelScriptActorBindingsEvent, ALevelScriptActor* /* LevelScriptActor */, const ULevelScriptBlueprint* /* LevelScriptBlueprint */, bool& /* bWasSuccessful */ );
-	static FFixLevelScriptActorBindingsEvent& OnFixLevelScriptActorBindings();
 
 	/**
 	 * Searches the world for any blueprints that are open and do not have a debug instances set and sets one if possible.
@@ -1385,7 +1394,7 @@ public:
 	 * @param InGraph			The graph to search through
 	 * @return					If valid a pointer to the user declared function meta data structure otherwise nullptr.
 	 */
-	static FKismetUserDeclaredFunctionMetadata* GetGraphFunctionMetaData( UEdGraph* InGraph );
+	static FKismetUserDeclaredFunctionMetadata* GetGraphFunctionMetaData(const UEdGraph* InGraph);
 
 	/**
 	 * Returns the description of the graph from the metadata
@@ -1450,9 +1459,6 @@ protected:
 
 	// Removes all NULL graph references in the specified array
 	static void CleanNullGraphReferencesInArray(UBlueprint* Blueprint, TArray<UEdGraph*>& GraphArray);
-
-	/** Static global event that is broadcast when a blueprint is changed and FixLevelScriptActorBindings() is called */
-	static FFixLevelScriptActorBindingsEvent FixLevelScriptActorBindingsEvent;
 
 	/**
 	 * Checks that the actor type matches the blueprint type (or optionally is BASED on the same type. 

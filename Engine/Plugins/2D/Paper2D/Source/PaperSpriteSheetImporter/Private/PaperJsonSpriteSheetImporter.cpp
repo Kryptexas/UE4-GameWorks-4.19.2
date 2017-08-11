@@ -360,22 +360,18 @@ FPaperJsonSpriteSheetImporter::FPaperJsonSpriteSheetImporter()
 {
 }
 
-void FPaperJsonSpriteSheetImporter::SetReimportData(const TArray<FString>& ExistingSpriteNames, const TArray< TAssetPtr<class UPaperSprite> >& ExistingSpriteAssetPtrs)
+void FPaperJsonSpriteSheetImporter::SetReimportData(const TArray<FString>& ExistingSpriteNames, const TArray< TSoftObjectPtr<class UPaperSprite> >& ExistingSpriteSoftPtrs)
 {
-	check(ExistingSpriteNames.Num() == ExistingSpriteAssetPtrs.Num());
-	if (ExistingSpriteNames.Num() == ExistingSpriteAssetPtrs.Num())
+	check(ExistingSpriteNames.Num() == ExistingSpriteSoftPtrs.Num());
+	if (ExistingSpriteNames.Num() == ExistingSpriteSoftPtrs.Num())
 	{
-		for (int i = 0; i < ExistingSpriteAssetPtrs.Num(); ++i)
+		for (int i = 0; i < ExistingSpriteSoftPtrs.Num(); ++i)
 		{
-			const TAssetPtr<class UPaperSprite> SpriteAssetPtr = ExistingSpriteAssetPtrs[i];
-			FStringAssetReference SpriteStringRef = SpriteAssetPtr.ToStringReference();
-			if (!SpriteStringRef.ToString().IsEmpty())
+			const TSoftObjectPtr<class UPaperSprite> SpriteSoftPtr = ExistingSpriteSoftPtrs[i];
+			UPaperSprite* LoadedSprite = SpriteSoftPtr.LoadSynchronous();
+			if (LoadedSprite != nullptr)
 			{
-				UPaperSprite* LoadedSprite = Cast<UPaperSprite>(StaticLoadObject(UPaperSprite::StaticClass(), nullptr, *SpriteStringRef.ToString(), nullptr, LOAD_None, nullptr));
-				if (LoadedSprite != nullptr)
-				{
-					ExistingSprites.Add(ExistingSpriteNames[i], LoadedSprite);
-				}
+				ExistingSprites.Add(ExistingSpriteNames[i], LoadedSprite);
 			}
 		}
 	}

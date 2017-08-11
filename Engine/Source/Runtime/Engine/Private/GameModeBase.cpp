@@ -867,7 +867,7 @@ void AGameModeBase::ReplicateStreamingStatus(APlayerController* PC)
 						TheLevel->bHasLoadRequestPending);
 
 					PC->ClientUpdateLevelStreamingStatus(
-						TheLevel->GetWorldAssetPackageFName(),
+						PC->NetworkRemapPath(TheLevel->GetWorldAssetPackageFName(), false),
 						TheLevel->bShouldBeLoaded,
 						TheLevel->bShouldBeVisible,
 						TheLevel->bShouldBlockOnLoad,

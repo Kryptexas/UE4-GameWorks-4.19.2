@@ -1,13 +1,13 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "StringClassReferenceCustomization.h"
+#include "SoftClassPathCustomization.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Engine/GameViewportClient.h"
 #include "PropertyHandle.h"
 #include "PropertyCustomizationHelpers.h"
 #include "EditorClassUtils.h"
 
-void FStringClassReferenceCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> InPropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
+void FSoftClassPathCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> InPropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
 	PropertyHandle = InPropertyHandle;
 
@@ -45,16 +45,16 @@ void FStringClassReferenceCustomization::CustomizeHeader(TSharedRef<IPropertyHan
 			.AllowNone(bAllowNone)
 			.ShowTreeView(bShowTreeView)
 			.HideViewOptions(bHideViewOptions)
-			.SelectedClass(this, &FStringClassReferenceCustomization::OnGetClass)
-			.OnSetClass(this, &FStringClassReferenceCustomization::OnSetClass)
+			.SelectedClass(this, &FSoftClassPathCustomization::OnGetClass)
+			.OnSetClass(this, &FSoftClassPathCustomization::OnSetClass)
 	];
 }
 
-void FStringClassReferenceCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> InStructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
+void FSoftClassPathCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> InStructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
 }
 
-const UClass* FStringClassReferenceCustomization::OnGetClass() const
+const UClass* FSoftClassPathCustomization::OnGetClass() const
 {
 	FString ClassName;
 	PropertyHandle->GetValueAsFormattedString(ClassName);
@@ -69,7 +69,7 @@ const UClass* FStringClassReferenceCustomization::OnGetClass() const
 	return Class;
 }
 
-void FStringClassReferenceCustomization::OnSetClass(const UClass* NewClass)
+void FSoftClassPathCustomization::OnSetClass(const UClass* NewClass)
 {
 	if (PropertyHandle->SetValueFromFormattedString((NewClass) ? NewClass->GetPathName() : "None") == FPropertyAccess::Result::Success)
 	{

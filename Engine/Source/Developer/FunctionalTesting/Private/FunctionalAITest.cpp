@@ -3,7 +3,7 @@
 #include "FunctionalAITest.h"
 #include "TimerManager.h"
 #include "Engine/World.h"
-#include "FuncTestManager.h"
+#include "FunctionalTestingModule.h"
 #include "FunctionalTestingManager.h"
 #include "AI/Navigation/NavigationSystem.h"
 #include "AIController.h"

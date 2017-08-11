@@ -189,7 +189,7 @@ public:
 	{
 	}
 
-	explicit FPropertyBase(UClass* InClass, bool bIsWeak = false, bool bWeakIsAuto = false, bool bIsLazy = false, bool bIsAsset = false)
+	explicit FPropertyBase(UClass* InClass, bool bIsWeak = false, bool bWeakIsAuto = false, bool bIsLazy = false, bool bIsSoft = false)
 	: Type                (CPT_ObjectReference)
 	, ArrayType           (EArrayType::None)
 	, PropertyFlags       (0)
@@ -213,9 +213,9 @@ public:
 		{
 			Type = CPT_LazyObjectReference;
 		}
-		else if (bIsAsset)
+		else if (bIsSoft)
 		{
-			Type = CPT_AssetObjectReference;
+			Type = CPT_SoftObjectReference;
 		}
 		else if (bIsWeak)
 		{
@@ -384,16 +384,16 @@ public:
 			*this = FPropertyBase(CPT_LazyObjectReference);
 			PropertyClass = Cast<ULazyObjectProperty>(Property)->PropertyClass;
 		}
-		else if( ClassOfProperty==UAssetClassProperty::StaticClass() )
+		else if( ClassOfProperty==USoftClassProperty::StaticClass() )
 		{
-			*this = FPropertyBase(CPT_AssetObjectReference);
-			PropertyClass = Cast<UAssetClassProperty>(Property)->PropertyClass;
-			MetaClass = Cast<UAssetClassProperty>(Property)->MetaClass;
+			*this = FPropertyBase(CPT_SoftObjectReference);
+			PropertyClass = Cast<USoftClassProperty>(Property)->PropertyClass;
+			MetaClass = Cast<USoftClassProperty>(Property)->MetaClass;
 		}
-		else if( ClassOfProperty==UAssetObjectProperty::StaticClass() )
+		else if( ClassOfProperty==USoftObjectProperty::StaticClass() )
 		{
-			*this = FPropertyBase(CPT_AssetObjectReference);
-			PropertyClass = Cast<UAssetObjectProperty>(Property)->PropertyClass;
+			*this = FPropertyBase(CPT_SoftObjectReference);
+			PropertyClass = Cast<USoftObjectProperty>(Property)->PropertyClass;
 		}
 		else if( ClassOfProperty==UNameProperty::StaticClass() )
 		{
@@ -448,7 +448,7 @@ public:
 	 */
 	bool IsObject() const
 	{
-		return Type == CPT_ObjectReference || Type == CPT_Interface || Type == CPT_WeakObjectReference || Type == CPT_LazyObjectReference || Type == CPT_AssetObjectReference;
+		return Type == CPT_ObjectReference || Type == CPT_Interface || Type == CPT_WeakObjectReference || Type == CPT_LazyObjectReference || Type == CPT_SoftObjectReference;
 	}
 
 	bool IsContainer() const
@@ -518,7 +518,7 @@ public:
 				return false;
 			}
 		}
-		else if ((Type == CPT_ObjectReference || Type == CPT_WeakObjectReference || Type == CPT_LazyObjectReference || Type == CPT_AssetObjectReference) && Other.Type != CPT_Interface && (PropertyFlags & CPF_ReturnParm))
+		else if ((Type == CPT_ObjectReference || Type == CPT_WeakObjectReference || Type == CPT_LazyObjectReference || Type == CPT_SoftObjectReference) && Other.Type != CPT_Interface && (PropertyFlags & CPF_ReturnParm))
 		{
 			bReverseClassChainCheck = false;
 		}
@@ -830,6 +830,14 @@ public:
 
 	// Setters.
 	
+	void SetIdentifier( const TCHAR* InString)
+	{
+		InitToken(CPT_None);
+		TokenType = TOKEN_Identifier;
+		FCString::Strncpy(Identifier, InString, NAME_SIZE);
+		TokenName = FName(Identifier, FNAME_Find);
+	}
+
 	void SetConstInt64( int64 InInt64 )
 	{
 		(FPropertyBase&)*this = FPropertyBase(CPT_Int64);
@@ -866,7 +874,7 @@ public:
 		*(FName *)NameBytes = InName;
 		TokenType		= TOKEN_Const;
 	}
-	void SetConstString( TCHAR* InString, int32 MaxLength=MAX_STRING_CONST_SIZE )
+	void SetConstString( const TCHAR* InString, int32 MaxLength=MAX_STRING_CONST_SIZE )
 	{
 		check(MaxLength>0);
 		(FPropertyBase&)*this = FPropertyBase(CPT_String);

@@ -35,7 +35,7 @@ bool UK2Node_ConvertAsset::IsAssetClassType() const
 	UEdGraphPin* InputPin = FindPin(UK2Node_ConvertAssetImpl::InputPinName);
 	bool bIsConnected = InputPin && InputPin->LinkedTo.Num() && InputPin->LinkedTo[0];
 	UEdGraphPin* SourcePin = bIsConnected ? InputPin->LinkedTo[0] : nullptr;
-	return SourcePin ? (SourcePin->PinType.PinCategory == UEdGraphSchema_K2::PC_AssetClass || SourcePin->PinType.PinCategory == UEdGraphSchema_K2::PC_Class) : false;
+	return SourcePin ? (SourcePin->PinType.PinCategory == UEdGraphSchema_K2::PC_SoftClass || SourcePin->PinType.PinCategory == UEdGraphSchema_K2::PC_Class) : false;
 }
 
 bool UK2Node_ConvertAsset::IsConvertToAsset() const
@@ -52,8 +52,8 @@ bool UK2Node_ConvertAsset::IsConnectionDisallowed(const UEdGraphPin* MyPin, cons
 	UEdGraphPin* InputPin = FindPin(UK2Node_ConvertAssetImpl::InputPinName);
 	if (InputPin && OtherPin && (InputPin == MyPin) && (MyPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Wildcard))
 	{
-		if ((OtherPin->PinType.PinCategory != UEdGraphSchema_K2::PC_Asset) &&
-			(OtherPin->PinType.PinCategory != UEdGraphSchema_K2::PC_AssetClass) &&
+		if ((OtherPin->PinType.PinCategory != UEdGraphSchema_K2::PC_SoftObject) &&
+			(OtherPin->PinType.PinCategory != UEdGraphSchema_K2::PC_SoftClass) &&
 			(OtherPin->PinType.PinCategory != UEdGraphSchema_K2::PC_Object) &&
 			(OtherPin->PinType.PinCategory != UEdGraphSchema_K2::PC_Class))
 		{
@@ -83,11 +83,11 @@ void UK2Node_ConvertAsset::RefreshPinTypes()
 			if (bIsConvertToAsset)
 			{
 				InputCategory = (bIsAssetClass ? UEdGraphSchema_K2::PC_Class : UEdGraphSchema_K2::PC_Object);
-				OutputCategory = (bIsAssetClass ? UEdGraphSchema_K2::PC_AssetClass : UEdGraphSchema_K2::PC_Asset);
+				OutputCategory = (bIsAssetClass ? UEdGraphSchema_K2::PC_SoftClass : UEdGraphSchema_K2::PC_SoftObject);
 			}
 			else
 			{
-				InputCategory = (bIsAssetClass ? UEdGraphSchema_K2::PC_AssetClass : UEdGraphSchema_K2::PC_Asset);
+				InputCategory = (bIsAssetClass ? UEdGraphSchema_K2::PC_SoftClass : UEdGraphSchema_K2::PC_SoftObject);
 				OutputCategory = (bIsAssetClass ? UEdGraphSchema_K2::PC_Class : UEdGraphSchema_K2::PC_Object);
 			}
 		}
@@ -235,8 +235,8 @@ void UK2Node_ConvertAsset::ExpandNode(class FKismetCompilerContext& CompilerCont
 			//Connect input to convert
 			UEdGraphPin* InputPin = FindPin(UK2Node_ConvertAssetImpl::InputPinName);
 			const FString ConvertInputName = bIsAssetClass
-				? FString(TEXT("AssetClass"))
-				: FString(TEXT("Asset"));
+				? FString(TEXT("SoftClass"))
+				: FString(TEXT("SoftObject"));
 			UEdGraphPin* ConvertInput = ConvertToObjectFunc->FindPin(ConvertInputName);
 			bIsErrorFree = InputPin && ConvertInput && CompilerContext.MovePinLinksToIntermediate(*InputPin, *ConvertInput).CanSafeConnect();
 

@@ -1139,10 +1139,10 @@ void FNativeClassHeaderGenerator::PropertyNew(FOutputDevice& Out, UProperty* Pro
 		return;
 	}
 
-	if (UAssetClassProperty* TypedProp = Cast<UAssetClassProperty>(Prop))
+	if (USoftClassProperty* TypedProp = Cast<USoftClassProperty>(Prop))
 	{
 		Out.Logf(
-			TEXT("%sstatic const UE4CodeGen_Private::FAssetClassPropertyParams %s = { UE4CodeGen_Private::EPropertyClass::AssetClass, %s, %s, 0x%016llx, %s, %s, %s, %s, %s };%s\r\n"),
+			TEXT("%sstatic const UE4CodeGen_Private::FSoftClassPropertyParams %s = { UE4CodeGen_Private::EPropertyClass::SoftClass, %s, %s, 0x%016llx, %s, %s, %s, %s, %s };%s\r\n"),
 			Spaces,
 			Name,
 			*PropName,
@@ -1199,10 +1199,10 @@ void FNativeClassHeaderGenerator::PropertyNew(FOutputDevice& Out, UProperty* Pro
 		return;
 	}
 
-	if (UAssetObjectProperty* TypedProp = Cast<UAssetObjectProperty>(Prop))
+	if (USoftObjectProperty* TypedProp = Cast<USoftObjectProperty>(Prop))
 	{
 		Out.Logf(
-			TEXT("%sstatic const UE4CodeGen_Private::FAssetObjectPropertyParams %s = { UE4CodeGen_Private::EPropertyClass::AssetObject, %s, %s, 0x%016llx, %s, %s, %s, %s, %s };%s\r\n"),
+			TEXT("%sstatic const UE4CodeGen_Private::FSoftObjectPropertyParams %s = { UE4CodeGen_Private::EPropertyClass::SoftObject, %s, %s, 0x%016llx, %s, %s, %s, %s, %s };%s\r\n"),
 			Spaces,
 			Name,
 			*PropName,
@@ -3106,7 +3106,10 @@ void FNativeClassHeaderGenerator::ExportGeneratedStructBodyMacros(FOutputDevice&
 		Out.Logf(TEXT("}\r\n"));
 
 		Out.Logf(TEXT("static FCompiledInDeferStruct Z_CompiledInDeferStruct_UScriptStruct_%s(%s::StaticStruct, TEXT(\"%s\"), TEXT(\"%s\"), %s, %s, %s);\r\n"),
-			StructNameCPP, StructNameCPP, *Struct->GetOutermost()->GetName(), *ActualStructName,
+			StructNameCPP,
+			StructNameCPP,
+			bIsDynamic ? *FClass::GetTypePackageName(Struct) : *Struct->GetOutermost()->GetName(),
+			*ActualStructName,
 			bIsDynamic ? TEXT("true") : TEXT("false"),
 			bIsDynamic ? *AsTEXT(FClass::GetTypePackageName(Struct)) : TEXT("nullptr"),
 			bIsDynamic ? *AsTEXT(FNativeClassHeaderGenerator::GetOverriddenPathName(Struct)) : TEXT("nullptr"));

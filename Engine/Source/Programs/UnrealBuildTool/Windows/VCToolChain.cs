@@ -1377,7 +1377,10 @@ namespace UnrealBuildTool
 				// Preprocessor definitions.
 				foreach (string Definition in CompileEnvironment.Definitions)
 				{
-					AddDefinition(Arguments, Definition);
+					if (!Definition.Contains("_API"))
+					{
+						AddDefinition(Arguments, Definition);
+					}
 				}
 
 				// Add the RES file to the produced item list.

@@ -253,7 +253,7 @@ FText UK2Node_LoadAsset::GetMenuCategory() const
 
 const FString& UK2Node_LoadAsset::GetInputCategory() const
 {
-	return UEdGraphSchema_K2::PC_Asset;
+	return UEdGraphSchema_K2::PC_SoftObject;
 }
 
 const FString& UK2Node_LoadAsset::GetOutputCategory() const
@@ -298,7 +298,7 @@ FText UK2Node_LoadAssetClass::GetNodeTitle(ENodeTitleType::Type TitleType) const
 
 const FString& UK2Node_LoadAssetClass::GetInputCategory() const
 {
-	return UEdGraphSchema_K2::PC_AssetClass;
+	return UEdGraphSchema_K2::PC_SoftClass;
 }
 
 const FString& UK2Node_LoadAssetClass::GetOutputCategory() const

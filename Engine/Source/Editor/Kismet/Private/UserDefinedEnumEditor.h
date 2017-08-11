@@ -19,6 +19,8 @@ class FUserDefinedEnumLayout;
 class IDetailChildrenBuilder;
 class IDetailLayoutBuilder;
 class SEditableTextBox;
+class FEditableTextUserDefinedEnum;
+class FEditableTextUserDefinedEnumTooltip;
 
 class KISMET_API FUserDefinedEnumEditor : public IUserDefinedEnumEditor
 {
@@ -172,5 +174,8 @@ private:
 	int32 EnumeratorIndex;
 
 	/** The editable text interface for the display name data */
-	TSharedPtr<class FEditableTextUserDefinedEnum> DisplayNameEditor;
+	TSharedPtr<FEditableTextUserDefinedEnum> DisplayNameEditor;
+
+	/** The editable text interface for the tooltip data */
+	TSharedPtr<FEditableTextUserDefinedEnumTooltip> TooltipEditor;
 };

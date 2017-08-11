@@ -2,13 +2,12 @@
 
 #include "Serialization/ObjectReader.h"
 #include "UObject/LazyObjectPtr.h"
-#include "Misc/StringAssetReference.h"
-#include "UObject/AssetPtr.h"
+#include "UObject/SoftObjectPtr.h"
 
 ///////////////////////////////////////////////////////
 // FObjectReader
 
-FArchive& FObjectReader::operator<<( class FName& N )
+FArchive& FObjectReader::operator<<(FName& N)
 {
 	NAME_INDEX ComparisonIndex;
 	NAME_INDEX DisplayIndex;
@@ -21,35 +20,35 @@ FArchive& FObjectReader::operator<<( class FName& N )
 	return *this;
 }
 
-FArchive& FObjectReader::operator<<( class UObject*& Res )
+FArchive& FObjectReader::operator<<(UObject*& Res)
 {
 	ByteOrderSerialize(&Res, sizeof(Res));
 	return *this;
 }
 
-FArchive& FObjectReader::operator<<( class FLazyObjectPtr& LazyObjectPtr )
+FArchive& FObjectReader::operator<<(FLazyObjectPtr& Value)
 {
 	FArchive& Ar = *this;
 	FUniqueObjectGuid ID;
 	Ar << ID;
 
-	LazyObjectPtr = ID;
+	Value = ID;
 	return Ar;
 }
 
-FArchive& FObjectReader::operator<<( class FAssetPtr& AssetPtr )
+FArchive& FObjectReader::operator<<(FSoftObjectPtr& Value)
 {
-	AssetPtr.ResetWeakPtr();
-	return *this << AssetPtr.GetUniqueID();
+	Value.ResetWeakPtr();
+	return *this << Value.GetUniqueID();
 }
 
-FArchive& FObjectReader::operator<<(FStringAssetReference& Value)
+FArchive& FObjectReader::operator<<(FSoftObjectPath& Value)
 {
 	Value.SerializePath(*this);
 	return *this;
 }
 
-FArchive& FObjectReader::operator<< (struct FWeakObjectPtr& Value)
+FArchive& FObjectReader::operator<<(FWeakObjectPtr& Value)
 {
 	Value.Serialize(*this);
 	return *this;

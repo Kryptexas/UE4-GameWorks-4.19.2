@@ -55,7 +55,6 @@
 #include "Misc/ConfigCacheIni.h"
 #include "UObject/UObjectIterator.h"
 #include "Serialization/ArchiveReplaceObjectRef.h"
-#include "Misc/RedirectCollector.h"
 #include "GameFramework/WorldSettings.h"
 #include "Engine/Light.h"
 #include "Engine/StaticMeshActor.h"
@@ -2153,7 +2152,7 @@ void UEditorEngine::Cleanse( bool ClearSelection, bool Redraw, const FText& Tran
 		// the fact that the loading routing will check that already
 		// existed, but the object was missing in cache.
 		const EObjectFlags FlagsToClear = RF_Standalone | RF_Transactional;
-		TArray<UPackage*> PackagesToUnload;
+		TSet<UPackage*> PackagesToUnload;
 		for (TObjectIterator<UObjectRedirector> RedirIt; RedirIt; ++RedirIt)
 		{
 			UPackage* RedirectorPackage = RedirIt->GetOutermost();
@@ -2169,7 +2168,8 @@ void UEditorEngine::Cleanse( bool ClearSelection, bool Redraw, const FText& Tran
 			if (!PackageObjects.ContainsByPredicate(
 					[](UObject* Object)
 					{
-						return !Object->IsA<UMetaData>() && !Object->IsA<UObjectRedirector>();
+						// Look for any standalone objects that are not a redirector or metadata, if found this is not a redirector-only package
+						return !Object->IsA<UMetaData>() && !Object->IsA<UObjectRedirector>() && Object->HasAnyFlags(RF_Standalone);
 					})
 				)
 			{
@@ -2183,11 +2183,11 @@ void UEditorEngine::Cleanse( bool ClearSelection, bool Redraw, const FText& Tran
 			}
 		}
 
-		for (auto* PackageToUnload : PackagesToUnload)
+		for (UPackage* PackageToUnload : PackagesToUnload)
 		{
 			TArray<UObject*> PackageObjects;
 			GetObjectsWithOuter(PackageToUnload, PackageObjects);
-			for (auto* Object : PackageObjects)
+			for (UObject* Object : PackageObjects)
 			{
 				Object->ClearFlags(FlagsToClear);
 				Object->RemoveFromRoot();
@@ -4042,11 +4042,10 @@ bool UEditorEngine::IsPackageValidForAutoAdding(UPackage* InPackage, const FStri
 		// and that the editor is not auto-saving.
 		if ( bPackageIsValid )
 		{
-			const bool bIsPlayOnConsolePackage = CleanFilename.StartsWith( PLAYWORLD_CONSOLE_BASE_PACKAGE_PREFIX );
 			const bool bIsPIEOrScriptPackage = InPackage->RootPackageHasAnyFlags( PKG_ContainsScript | PKG_PlayInEditor );
 			const bool bIsAutosave = GUnrealEd->GetPackageAutoSaver().IsAutoSaving();
 
-			if ( bIsPlayOnConsolePackage || bIsPIEOrScriptPackage || bIsAutosave || GIsAutomationTesting )
+			if ( bIsPIEOrScriptPackage || bIsAutosave || GIsAutomationTesting )
 			{
 				bPackageIsValid = false;
 			}
@@ -4121,15 +4120,6 @@ FSavePackageResultStruct UEditorEngine::Save( UPackage* InOuter, UObject* InBase
 				 uint32 SaveFlags, const class ITargetPlatform* TargetPlatform, const FDateTime& FinalTimeStamp, bool bSlowTask )
 {
 	FScopedSlowTask SlowTask(100, FText(), bSlowTask);
-
-	// If we we need to fixup string asset references, load any referenced by this package before it is saved
-	static bool bForceLoadStringAssetReferences = FParse::Param(FCommandLine::Get(), TEXT("FixupStringAssetReferences"));
-
-	if (bForceLoadStringAssetReferences)
-	{
-		const FString PackageName = FPackageName::FilenameToLongPackageName(Filename);
-		GRedirectCollector.ResolveStringAssetReference(FName(*PackageName));
-	}
 
 	UObject* Base = InBase;
 	if ( !Base && InOuter && InOuter->HasAnyPackageFlags(PKG_ContainsMap) )
@@ -4252,6 +4242,9 @@ FSavePackageResultStruct UEditorEngine::Save( UPackage* InOuter, UObject* InBase
 			
 			// Update components again in case it was a world without a physics scene but did have rendered components.
 			World->UpdateWorldComponents(true, true);
+
+			// Rerunning construction scripts may have made it dirty again
+			InOuter->SetDirtyFlag(false);
 		}
 	}
 
@@ -6319,7 +6312,7 @@ bool UEditorEngine::LoadPreviewMesh( int32 Index )
 	const ULevelEditorViewportSettings& ViewportSettings = *GetDefault<ULevelEditorViewportSettings>();
 	if( ViewportSettings.PreviewMeshes.IsValidIndex(Index) )
 	{
-		const FStringAssetReference& MeshName = ViewportSettings.PreviewMeshes[Index];
+		const FSoftObjectPath& MeshName = ViewportSettings.PreviewMeshes[Index];
 
 		// If we don't have a preview mesh component in the world yet, create one. 
 		if( !PreviewMeshComp )
@@ -6591,45 +6584,55 @@ void UEditorEngine::UpdateAutoLoadProject()
 	IFileManager::Get().Delete(*AutoLoadInProgressFilename, bRequireExists, bEvenIfReadOnly, bQuiet);
 }
 
-FORCEINLINE bool NetworkRemapPath_local(FWorldContext &Context, FString &Str, bool reading)
+FORCEINLINE bool NetworkRemapPath_local(FWorldContext& Context, FString& Str, bool bReading)
 {
-	if (reading)
+	if (bReading)
 	{
-		return (Str.ReplaceInline( *Context.PIERemapPrefix, *Context.PIEPrefix, ESearchCase::IgnoreCase) > 0);
+		if (FPackageName::IsShortPackageName(Str))
+		{
+			return false;
+		}
+
+		// First strip any source prefix, then add the appropriate prefix for this context
+		FSoftObjectPath Path = UWorld::RemovePIEPrefix(Str);
+			
+		Path.FixupForPIE();
+		FString Remapped = Path.ToString();
+		if (!Remapped.Equals(Str, ESearchCase::CaseSensitive))
+		{
+			Str = Remapped;
+			return true;
+		}
 	}
 	else
 	{
-		return (Str.ReplaceInline( *Context.PIEPrefix, *Context.PIERemapPrefix, ESearchCase::IgnoreCase) > 0);
+		// When sending, strip prefix
+		FString Remapped = UWorld::RemovePIEPrefix(Str);
+		if (!Remapped.Equals(Str, ESearchCase::CaseSensitive))
+		{
+			Str = Remapped;
+			return true;
+		}
 	}
+	return false;
 }
 
-bool UEditorEngine::NetworkRemapPath(UNetDriver* Driver, FString &Str, bool reading)
+bool UEditorEngine::NetworkRemapPath(UNetDriver* Driver, FString& Str, bool bReading)
 {
 	if (Driver == nullptr)
 	{
 		return false;
 	}
 
-	FWorldContext &Context = GetWorldContextFromWorldChecked(Driver->GetWorld());
-	if (Context.PIEPrefix.IsEmpty() || Context.PIERemapPrefix.IsEmpty())
-	{
-		return false;
-	}
-
-	return NetworkRemapPath_local(Context, Str, reading);
+	FWorldContext& Context = GetWorldContextFromWorldChecked(Driver->GetWorld());
+	return NetworkRemapPath_local(Context, Str, bReading);
 }
 
-bool UEditorEngine::NetworkRemapPath( UPendingNetGame *PendingNetGame, FString &Str, bool reading)
+bool UEditorEngine::NetworkRemapPath( UPendingNetGame *PendingNetGame, FString& Str, bool bReading)
 {
-	FWorldContext &Context = GetWorldContextFromPendingNetGameChecked(PendingNetGame);
-	if (Context.PIEPrefix.IsEmpty() || Context.PIERemapPrefix.IsEmpty())
-	{
-		return false;
-	}
-
-	return NetworkRemapPath_local(Context, Str, reading);
+	FWorldContext& Context = GetWorldContextFromPendingNetGameChecked(PendingNetGame);
+	return NetworkRemapPath_local(Context, Str, bReading);
 }
-
 
 void UEditorEngine::VerifyLoadMapWorldCleanup()
 {
@@ -6895,6 +6898,29 @@ void FActorLabelUtilities::SetActorLabelUnique(AActor* Actor, const FString& New
 	}
 
 	Actor->SetActorLabel(ModifiedActorLabel);
+}
+
+void FActorLabelUtilities::RenameExistingActor(AActor* Actor, const FString& NewActorLabel, bool bMakeUnique)
+{
+	FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
+
+	FSoftObjectPath OldPath = FSoftObjectPath(Actor);
+	if (bMakeUnique)
+	{
+		SetActorLabelUnique(Actor, NewActorLabel, nullptr);
+	}
+	else
+	{
+		Actor->SetActorLabel(NewActorLabel);
+	}
+	FSoftObjectPath NewPath = FSoftObjectPath(Actor);
+
+	if (OldPath != NewPath)
+	{
+		TArray<FAssetRenameData> RenameData;
+		RenameData.Add(FAssetRenameData(OldPath, NewPath, true));
+		AssetToolsModule.Get().RenameAssets(RenameData);
+	}
 }
 
 void UEditorEngine::HandleTravelFailure(UWorld* InWorld, ETravelFailure::Type FailureType, const FString& ErrorString)

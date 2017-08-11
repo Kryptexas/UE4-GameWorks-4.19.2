@@ -7,7 +7,7 @@
 #include "RHI.h"
 #include "RHIResources.h"
 #include "Engine/Texture2D.h"
-#include "Misc/StringAssetReference.h"
+#include "UObject/SoftObjectPath.h"
 #include "OculusHMDTypes.generated.h"
 
 USTRUCT()

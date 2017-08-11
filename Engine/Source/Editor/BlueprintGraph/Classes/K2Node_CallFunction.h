@@ -89,6 +89,9 @@ public:
 	virtual void PinDefaultValueChanged(UEdGraphPin* Pin) override;
 	virtual void AddSearchMetaDataInfo(TArray<struct FSearchTagDataPair>& OutTaggedMetaData) const override;
 	virtual TSharedPtr<SWidget> CreateNodeImage() const override;
+	virtual UObject* GetJumpTargetForDoubleClick() const override;
+	virtual bool CanJumpToDefinition() const override;
+	virtual void JumpToDefinition() const override;
 	// End of UEdGraphNode interface
 
 	// UK2Node interface

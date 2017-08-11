@@ -3529,17 +3529,6 @@ void FEditorFileUtils::FindAllPackageFiles(TArray<FString>& OutPackages)
 	TArray<FString> Paths;
 	GConfig->GetArray( TEXT("Core.System"), *Key, Paths, GEngineIni );
 
-	// If doing a 'Play on XXX' from the editor, add the auto-save directory to the package search path, so streamed sub-levels can be found
-	if ( !GIsEditor && FParse::Param(FCommandLine::Get(), TEXT("PIEVIACONSOLE")) )
-	{
-		FString AutoSave;
-		GConfig->GetString( TEXT("/Script/UnrealEd.EditorEngine"), TEXT("AutoSaveDir"), AutoSave, GEngineIni );
-		if (AutoSave.Len())
-		{
-			Paths.AddUnique(AutoSave);
-		}
-	}
-
 	for (int32 PathIndex = 0; PathIndex < Paths.Num(); PathIndex++)
 	{
 		FPackageName::FindPackagesInDirectory(OutPackages, *Paths[PathIndex]);

@@ -49,7 +49,7 @@ private:
 
 	TArray<TSharedPtr<FName>> CachedRowNames;
 	TSharedPtr<FStructOnScope> CurrentRow;
-	TAssetPtr<UDataTable> DataTable; // weak obj ptr couldn't handle reimporting
+	TSoftObjectPtr<UDataTable> DataTable; // weak obj ptr couldn't handle reimporting
 	TSharedPtr<class IStructureDetailsView> StructureDetailsView;
 	TSharedPtr<FName> SelectedName;
 	TSharedPtr<SComboBox<TSharedPtr<FName>>> RowComboBox;

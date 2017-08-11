@@ -13,7 +13,6 @@
 #include "UnrealExporter.h"
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
-#include "K2Node_TunnelBoundary.h"
 #include "K2Node_Composite.h"
 
 /////////////////////////////////////////////////////
@@ -26,7 +25,7 @@ public:
 	TSet<UEdGraphNode*> SpawnedNodes;
 	TSet<UEdGraphNode*> SubstituteNodes;
 	const UEdGraph* DestinationGraph;
-	TArray<FName> ExtraNamesInUse;
+	TSet<FName> ExtraNamesInUse;
 	TArray<UEdGraphNode*> NodesToDestroy;
 public:
 	FGraphObjectTextFactory(const UEdGraph* InDestinationGraph)
@@ -250,7 +249,7 @@ UEdGraph* FEdGraphUtilities::CloneGraph(UEdGraph* InSource, UObject* NewOuter, F
 
 				if (bCloningForCompile)
 				{
-					DstNode->EnabledState = SrcNode->IsNodeEnabled() ? ENodeEnabledState::Enabled : ENodeEnabledState::Disabled;
+					DstNode->SetEnabledState(SrcNode->IsNodeEnabled() ? ENodeEnabledState::Enabled : ENodeEnabledState::Disabled);
 				}
 			}
 		}
@@ -260,11 +259,11 @@ UEdGraph* FEdGraphUtilities::CloneGraph(UEdGraph* InSource, UObject* NewOuter, F
 }
 
 // Clones the content from SourceGraph and merges it into MergeTarget; including merging/flattening all of the children from the SourceGraph into MergeTarget
-void FEdGraphUtilities::CloneAndMergeGraphIn(UEdGraph* MergeTarget, UEdGraph* SourceGraph, FCompilerResultsLog& MessageLog, bool bRequireSchemaMatch, bool bInIsCompiling/* = false*/, bool bCreateBoundaryNodes/* = false*/, TArray<UEdGraphNode*>* OutClonedNodes)
+void FEdGraphUtilities::CloneAndMergeGraphIn(UEdGraph* MergeTarget, UEdGraph* SourceGraph, FCompilerResultsLog& MessageLog, bool bRequireSchemaMatch, bool bInIsCompiling/* = false*/, TArray<UEdGraphNode*>* OutClonedNodes)
 {
 	// Clone the graph, then move all of it's children
 	UEdGraph* ClonedGraph = CloneGraph(SourceGraph, NULL, &MessageLog, true);
-	MergeChildrenGraphsIn(ClonedGraph, ClonedGraph, bRequireSchemaMatch, false, &MessageLog, bCreateBoundaryNodes);
+	MergeChildrenGraphsIn(ClonedGraph, ClonedGraph, bRequireSchemaMatch, false, &MessageLog);
 
 	// Duplicate the list of cloned nodes
 	if (OutClonedNodes != NULL)
@@ -281,7 +280,7 @@ void FEdGraphUtilities::CloneAndMergeGraphIn(UEdGraph* MergeTarget, UEdGraph* So
 }
 
 // Moves the contents of all of the children graphs (recursively) into the target graph.  This does not clone, it's destructive to the source
-void FEdGraphUtilities::MergeChildrenGraphsIn(UEdGraph* MergeTarget, UEdGraph* ParentGraph, bool bRequireSchemaMatch, bool bInIsCompiling/* = false*/, FCompilerResultsLog* MessageLog/* = nullptr*/, bool bWantBoundaryNodes/* = false*/)
+void FEdGraphUtilities::MergeChildrenGraphsIn(UEdGraph* MergeTarget, UEdGraph* ParentGraph, bool bRequireSchemaMatch, bool bInIsCompiling/* = false*/, FCompilerResultsLog* MessageLog/* = nullptr*/)
 {
 	// Determine if we are regenerating a blueprint on load
 	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(MergeTarget);
@@ -291,46 +290,6 @@ void FEdGraphUtilities::MergeChildrenGraphsIn(UEdGraph* MergeTarget, UEdGraph* P
 	for (int32 Index = 0; Index < ParentGraph->SubGraphs.Num(); ++Index)
 	{
 		UEdGraph* ChildGraph = ParentGraph->SubGraphs[Index];
-
-		if (ChildGraph && MessageLog)
-		{
-			UK2Node_Composite* CompositeInstance = ChildGraph->GetTypedOuter<UK2Node_Composite>();
-			if (MessageLog->bTreatCompositeGraphsAsTunnels && CompositeInstance != nullptr)
-			{
-				// Locate or register active tunnels for this child graph.
-				TArray<TWeakObjectPtr<UEdGraphNode>> ActiveTunnels;
-				UEdGraphNode* TrueCompositeInstance = MessageLog->GetSourceTunnelNode(CompositeInstance);
-				MessageLog->GetTunnelsActiveForNode(TrueCompositeInstance, ActiveTunnels);
-				if (!ActiveTunnels.Num())
-				{
-					ActiveTunnels.Add(TrueCompositeInstance);
-					MessageLog->RegisterIntermediateTunnelInstance(TrueCompositeInstance, ActiveTunnels);
-				}
-				// Register composite nodes to the source composite instance.
-				for (auto Node : ChildGraph->Nodes)
-				{
-					MessageLog->RegisterIntermediateTunnelNode(Node, TrueCompositeInstance);
-					if (FBlueprintEditorUtils::IsTunnelInstanceNode(Node))
-					{
-						if (Node->IsA<UK2Node_Composite>())
-						{
-							UEdGraphNode* SourceNode = MessageLog->GetSourceTunnelNode(Node);
-							MessageLog->RegisterIntermediateTunnelInstance(SourceNode, ActiveTunnels);
-						}
-						else
-						{
-							// Register child macro instance nodes using the duplicated instance.
-							MessageLog->RegisterIntermediateTunnelInstance(Node, ActiveTunnels);
-						}
-					}
-				}
-			}
-		}
-		if (bWantBoundaryNodes && MessageLog)
-		{
-			// Create boundary nodes around tunnels for debugging/profiling if requested.
-			UK2Node_TunnelBoundary::CreateBoundaryNodesForGraph(ChildGraph, *MessageLog);
-		}
 
 		auto NodeOwner = Cast<const UEdGraphNode>(ChildGraph ? ChildGraph->GetOuter() : nullptr);
 		const bool bNonVirtualGraph = NodeOwner ? NodeOwner->ShouldMergeChildGraphs() : true;
@@ -348,7 +307,7 @@ void FEdGraphUtilities::MergeChildrenGraphsIn(UEdGraph* MergeTarget, UEdGraph* P
 				ChildGraph->MoveNodesToAnotherGraph(MergeTarget, IsAsyncLoading() || bIsLoading, bInIsCompiling);
 			}
 
-			MergeChildrenGraphsIn(MergeTarget, ChildGraph, bRequireSchemaMatch, bInIsCompiling, MessageLog, bWantBoundaryNodes);
+			MergeChildrenGraphsIn(MergeTarget, ChildGraph, bRequireSchemaMatch, bInIsCompiling, MessageLog);
 		}
 	}
 }

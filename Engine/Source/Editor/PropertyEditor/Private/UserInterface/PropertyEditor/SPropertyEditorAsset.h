@@ -29,6 +29,20 @@ class SPropertyEditorAsset : public SCompoundWidget
 {
 public:
 
+	enum class EActorReferenceState : uint8
+	{
+		// This is not pointing to an actor
+		NotAnActor,
+		// This is specifically pointing at no actor
+		Null,
+		// The pointed to actor is fully loaded in memory
+		Loaded,
+		// The pointed to actor is unknown because the pointed to map is not loaded 
+		Unknown,
+		// This is a known bad reference, the owning map is loaded but the actor does not exist
+		Error,
+	};
+
 	SLATE_BEGIN_ARGS( SPropertyEditorAsset )
 		: _AssetFont( FEditorStyle::GetFontStyle("PropertyEditor.AssetName.Font") ) 
 		, _ClassFont( FEditorStyle::GetFontStyle("PropertyEditor.AssetClass.Font") ) 
@@ -87,22 +101,30 @@ private:
 	struct FObjectOrAssetData
 	{
 		UObject* Object;
+		FSoftObjectPath ObjectPath;
 		FAssetData AssetData;
 
-		FObjectOrAssetData( UObject* InObject = NULL )
+		FObjectOrAssetData( UObject* InObject = nullptr )
 			: Object( InObject )
+			, ObjectPath( Object )
 		{
-			AssetData = InObject != NULL && !InObject->IsA<AActor>() ? FAssetData( InObject ) : FAssetData();
+			AssetData = InObject != nullptr && !InObject->IsA<AActor>() ? FAssetData( InObject ) : FAssetData();
 		}
 
+		FObjectOrAssetData( const FSoftObjectPath& InObjectPath )
+			: Object(nullptr)
+			, ObjectPath(InObjectPath)
+		{}
+
 		FObjectOrAssetData( const FAssetData& InAssetData )
-			: Object( NULL )
+			: Object( nullptr )
+			, ObjectPath( InAssetData.ToSoftObjectPath() )
 			, AssetData( InAssetData )
 		{}
 
 		bool IsValid() const
 		{
-			return Object != NULL || AssetData.IsValid();
+			return Object != nullptr || ObjectPath.IsValid() || AssetData.IsValid();
 		}
 	};
 
@@ -115,6 +137,12 @@ private:
 
 	/** Gets the border brush to show around the thumbnail, changes when the user hovers on it. */
 	const FSlateBrush* GetThumbnailBorder() const;
+
+	/** Returns the status icon, empty for non actors */
+	const FSlateBrush* GetStatusIcon() const;
+
+	/** Returns the state of this actor reference */
+	EActorReferenceState GetActorReferenceState() const;
 
 	/** 
 	 * Get the content to be displayed in the asset/actor picker menu 

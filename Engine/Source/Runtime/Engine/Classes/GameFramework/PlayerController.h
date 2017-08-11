@@ -1451,6 +1451,9 @@ public:
 	 */
 	FString GetServerNetworkAddress();
 
+	/** Handles remapping a package name for networking, call on both the client and server when sending package names manually for RPCs */
+	FName NetworkRemapPath(FName InPackageName, bool bReading);
+
 	/** Clears out 'left-over' audio components. */
 	virtual void CleanUpAudioComponents();
 

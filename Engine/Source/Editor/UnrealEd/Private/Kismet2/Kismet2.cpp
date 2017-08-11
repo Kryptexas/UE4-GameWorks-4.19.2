@@ -14,7 +14,7 @@
 #include "UObject/GarbageCollection.h"
 #include "UObject/Class.h"
 #include "UObject/Package.h"
-#include "Misc/StringAssetReference.h"
+#include "UObject/SoftObjectPath.h"
 #include "UObject/MetaData.h"
 #include "Templates/SubclassOf.h"
 #include "UObject/UnrealType.h"
@@ -79,7 +79,6 @@
 #include "Editor/UnrealEd/Public/PackageTools.h"
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
-#include "Developer/BlueprintProfiler/Public/BlueprintProfilerModule.h"
 #include "Engine/InheritableComponentHandler.h"
 
 DECLARE_CYCLE_STAT(TEXT("Compile Blueprint"), EKismetCompilerStats_CompileBlueprint, STATGROUP_KismetCompiler);
@@ -643,8 +642,6 @@ UK2Node_Event* FKismetEditorUtilities::AddDefaultEventNode(UBlueprint* InBluepri
 		NewEventNode->PostPlacedNewNode();
 		NewEventNode->SetFlags(RF_Transactional);
 		NewEventNode->AllocateDefaultPins();
-		NewEventNode->DisableNode();
-		NewEventNode->NodeComment = LOCTEXT("DisabledNodeComment", "This node is disabled and will not be called.\nDrag off pins to build functionality.").ToString();
 		NewEventNode->bCommentBubblePinned = true;
 		NewEventNode->bCommentBubbleVisible = true;
 		NewEventNode->NodePosY = InOutNodePosY;
@@ -677,12 +674,10 @@ UK2Node_Event* FKismetEditorUtilities::AddDefaultEventNode(UBlueprint* InBluepri
 			UEdGraphSchema_K2::SetNodeMetaData(ParentFunctionNode, FNodeMetadata::DefaultGraphNode);
 			FunctionNodeCreator.Finalize();
 
-			ParentFunctionNode->DisableNode();
-
-			// Adding the call to parent and connecting it will reset this value
-			NewEventNode->DisableNode();
-			NewEventNode->NodeComment = LOCTEXT("DisabledNodeComment", "This node is disabled and will not be called.\nDrag off pins to build functionality.").ToString();
+			ParentFunctionNode->MakeAutomaticallyPlacedGhostNode();
 		}
+
+		NewEventNode->MakeAutomaticallyPlacedGhostNode();
 	}
 
 	return NewEventNode;
@@ -691,7 +686,7 @@ UK2Node_Event* FKismetEditorUtilities::AddDefaultEventNode(UBlueprint* InBluepri
 UBlueprint* FKismetEditorUtilities::ReloadBlueprint(UBlueprint* StaleBlueprint)
 {
 	check(StaleBlueprint->IsAsset());
-	FStringAssetReference BlueprintAssetRef(StaleBlueprint);
+	FSoftObjectPath BlueprintAssetRef(StaleBlueprint);
 
 	FBlueprintUnloader Unloader(StaleBlueprint);
 	Unloader.UnloadBlueprint(/*bResetPackage =*/true);
@@ -755,7 +750,6 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, EBluepri
 	const bool bSaveIntermediateProducts	= (CompileFlags & EBlueprintCompileOptions::SaveIntermediateProducts	) != EBlueprintCompileOptions::None;
 	const bool bSkeletonUpToDate			= (CompileFlags & EBlueprintCompileOptions::SkeletonUpToDate			) != EBlueprintCompileOptions::None;
 	const bool bBatchCompile				= (CompileFlags & EBlueprintCompileOptions::BatchCompile				) != EBlueprintCompileOptions::None;
-	const bool bAddInstrumentation			= (CompileFlags & EBlueprintCompileOptions::AddInstrumentation			) != EBlueprintCompileOptions::None;
 	const bool bSkipReinstancing			= (CompileFlags & EBlueprintCompileOptions::SkipReinstancing			) != EBlueprintCompileOptions::None;
 
 	FSecondsCounterScope Timer(BlueprintCompileAndLoadTimerData); 
@@ -827,13 +821,7 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, EBluepri
 	FKismetCompilerOptions CompileOptions;
 	CompileOptions.bSaveIntermediateProducts = bSaveIntermediateProducts;
 	CompileOptions.bRegenerateSkelton = !bSkeletonUpToDate;
-	CompileOptions.bAddInstrumentation = bAddInstrumentation;
 	CompileOptions.bReinstanceAndStubOnFailure = !bSkipReinstancing;
-	if (pResults)
-	{
-		// enable debug information for composite graph instances if we are instrumenting the blueprint.
-		pResults->bTreatCompositeGraphsAsTunnels = bAddInstrumentation;
-	}
 	Compiler.CompileBlueprint(BlueprintObj, CompileOptions, Results, ReinstanceHelper);
 
 	FBlueprintEditorUtils::UpdateDelegatesInBlueprint(BlueprintObj);
@@ -2016,35 +2004,28 @@ void FKismetEditorUtilities::UpgradeCosmeticallyStaleBlueprint(UBlueprint* Bluep
 
 void FKismetEditorUtilities::CreateNewBoundEventForActor(AActor* Actor, FName EventName)
 {
-	if(Actor != NULL && EventName != NAME_None)
+	if ((Actor != nullptr) && (EventName != NAME_None))
 	{
 		// First, find the property we want to bind to
-		UMulticastDelegateProperty* DelegateProperty = FindField<UMulticastDelegateProperty>(Actor->GetClass(), EventName);
-		if(DelegateProperty != NULL)
+		if (UMulticastDelegateProperty* DelegateProperty = FindField<UMulticastDelegateProperty>(Actor->GetClass(), EventName))
 		{
 			// Get the correct level script blueprint
-			ULevelScriptBlueprint* LSB = Actor->GetLevel()->GetLevelScriptBlueprint();
-			UEdGraph* TargetGraph = NULL;
-			if(LSB != NULL && LSB->UbergraphPages.Num() > 0)
+			if (ULevelScriptBlueprint* LSB = Actor->GetLevel()->GetLevelScriptBlueprint())
 			{
-				TargetGraph = LSB->UbergraphPages[0]; // Just use the forst graph
-			}
-
-			if(TargetGraph != NULL)
-			{
-				// Figure out a decent place to stick the node
-				const FVector2D NewNodePos = TargetGraph->GetGoodPlaceForNewNode();
-
-				// Create a new event node
-				UK2Node_ActorBoundEvent* EventNodeTemplate = NewObject<UK2Node_ActorBoundEvent>();
-				EventNodeTemplate->InitializeActorBoundEventParams(Actor, DelegateProperty);
-
-				UK2Node_ActorBoundEvent* EventNode = FEdGraphSchemaAction_K2NewNode::SpawnNodeFromTemplate<UK2Node_ActorBoundEvent>(TargetGraph, EventNodeTemplate, NewNodePos);
-
-				// Finally, bring up kismet and jump to the new node
-				if(EventNode != NULL)
+				if (UEdGraph* TargetGraph = LSB->GetLastEditedUberGraph())
 				{
-					BringKismetToFocusAttentionOnObject(EventNode);
+					// Figure out a decent place to stick the node
+					const FVector2D NewNodePos = TargetGraph->GetGoodPlaceForNewNode();
+
+					// Create a new event node
+					UK2Node_ActorBoundEvent* EventNodeTemplate = NewObject<UK2Node_ActorBoundEvent>();
+					EventNodeTemplate->InitializeActorBoundEventParams(Actor, DelegateProperty);
+
+					// Finally, bring up kismet and jump to the new node
+					if (UK2Node_ActorBoundEvent* EventNode = FEdGraphSchemaAction_K2NewNode::SpawnNodeFromTemplate<UK2Node_ActorBoundEvent>(TargetGraph, EventNodeTemplate, NewNodePos))
+					{
+						BringKismetToFocusAttentionOnObject(EventNode);
+					}
 				}
 			}
 		}
@@ -2067,11 +2048,7 @@ void FKismetEditorUtilities::CreateNewBoundEventForClass(UClass* Class, FName Ev
 		UMulticastDelegateProperty* DelegateProperty = FindField<UMulticastDelegateProperty>(Class, EventName);
 		if ( DelegateProperty != nullptr )
 		{
-			UEdGraph* TargetGraph = nullptr;
-			if(Blueprint->UbergraphPages.Num() > 0)
-			{
-				TargetGraph = Blueprint->UbergraphPages[0]; // Just use the first graph
-			}
+			UEdGraph* TargetGraph = Blueprint->GetLastEditedUberGraph();
 
 			if ( TargetGraph != nullptr )
 			{

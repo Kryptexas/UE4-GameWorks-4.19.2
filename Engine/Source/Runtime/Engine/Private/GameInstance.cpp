@@ -185,12 +185,6 @@ FGameInstancePIEResult UGameInstance::InitializeForPlayInEditor(int32 PIEInstanc
 		// We are going to connect, so just load an empty world
 		NewWorld = EditorEngine->CreatePIEWorldFromEntry(*WorldContext, EditorEngine->EditorWorld, PIEMapName);
 	}
-	else if (PlayNetMode == PIE_ListenServer && !CanRunUnderOneProcess)
-	{
-		// We *have* to save the world to disk in order to be a listen server that allows other processes to connect.
-		// Otherwise, clients would not be able to load the world we are using
-		NewWorld = EditorEngine->CreatePIEWorldBySavingToTemp(*WorldContext, EditorEngine->EditorWorld, PIEMapName);
-	}
 	else
 	{
 		// Standard PIE path: just duplicate the EditorWorld

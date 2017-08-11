@@ -181,7 +181,7 @@ FArchive& operator<<( FArchive& Ar, FPackageFileSummary& Sum )
 
 		if (Ar.IsSaving() || Sum.FileVersionUE4 >= VER_UE4_ADD_STRING_ASSET_REFERENCES_MAP)
 		{
-			Ar << Sum.StringAssetReferencesCount << Sum.StringAssetReferencesOffset;
+			Ar << Sum.SoftPackageReferencesCount << Sum.SoftPackageReferencesOffset;
 		}
 
 		if (Ar.IsSaving() || Sum.FileVersionUE4 >= VER_UE4_ADDED_SEARCHABLE_NAMES)

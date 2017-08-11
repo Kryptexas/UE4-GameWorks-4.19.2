@@ -95,7 +95,7 @@ public:
 	// End FNameValidatorInterface
 private:
 	/** Name set to validate */
-	TArray<FName> Names;
+	TSet<FName> Names;
 	/** The blueprint to check for validity within */
 	const UBlueprint* BlueprintObject;
 	/** The current name of the object being validated */

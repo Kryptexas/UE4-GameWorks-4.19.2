@@ -11,7 +11,6 @@
 #include "UObject/Object.h"
 #include "Serialization/ArchiveUObject.h"
 #include "Misc/ITransaction.h"
-#include "UObject/AssetPtr.h"
 #include "Transactor.generated.h"
 
 

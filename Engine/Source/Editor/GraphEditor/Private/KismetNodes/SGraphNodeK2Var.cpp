@@ -322,8 +322,3 @@ const FSlateBrush* SGraphNodeK2Var::GetShadowBrush(bool bSelected) const
 {
 	return bSelected ? FEditorStyle::GetBrush(TEXT("Graph.VarNode.ShadowSelected")) : FEditorStyle::GetBrush(TEXT("Graph.VarNode.Shadow"));
 }
-
-const FSlateBrush* SGraphNodeK2Var::GetProfilerHeatmapBrush() const
-{
-	return FEditorStyle::GetBrush(TEXT("BlueprintProfiler.VarNode.HeatDisplay"));
-}

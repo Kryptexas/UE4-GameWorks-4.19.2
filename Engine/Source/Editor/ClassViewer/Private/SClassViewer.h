@@ -14,7 +14,7 @@
 #include "Widgets/Views/STreeView.h"
 #include "Settings/ClassViewerSettings.h"
 #include "Engine/EngineTypes.h"
-#include "Misc/StringClassReference.h"
+#include "UObject/SoftObjectPath.h"
 
 class FClassViewerNode;
 class FMenuBuilder;
@@ -221,7 +221,7 @@ private:
 	void HandleSettingChanged(FName PropertyName);
 
 	/** Accessor for the classnames that have been marked as internal only in settings */
-	void GetInternalOnlyClasses(TArray<FStringClassReference>& Classes);
+	void GetInternalOnlyClasses(TArray<FSoftClassPath>& Classes);
 	
 	/** Accessor for the class paths that have been marked as internal only in settings */
 	void GetInternalOnlyPaths(TArray<FDirectoryPath>& Paths);

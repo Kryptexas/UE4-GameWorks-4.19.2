@@ -574,13 +574,7 @@ void UPaperSprite::PostEditChangeProperty(FPropertyChangedEvent& PropertyChanged
 
 	if (PropertyName == GET_MEMBER_NAME_CHECKED(UPaperSprite, AtlasGroup))
 	{
-		auto SpriteAssetPtr = PreviousAtlasGroup;
-		FStringAssetReference AtlasGroupStringRef = SpriteAssetPtr.ToStringReference();
-		UPaperSpriteAtlas* PreviousAtlasGroupPtr = nullptr;
-		if (!AtlasGroupStringRef.ToString().IsEmpty())
-		{
-			PreviousAtlasGroupPtr = Cast<UPaperSpriteAtlas>(StaticLoadObject(UPaperSpriteAtlas::StaticClass(), nullptr, *AtlasGroupStringRef.ToString(), nullptr, LOAD_None, nullptr));
-		}
+		UPaperSpriteAtlas* PreviousAtlasGroupPtr = PreviousAtlasGroup.LoadSynchronous();
 		
 		if (PreviousAtlasGroupPtr != AtlasGroup)
 		{

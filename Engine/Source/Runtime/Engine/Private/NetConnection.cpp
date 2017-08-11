@@ -1929,15 +1929,7 @@ void UNetConnection::HandleClientPlayer( APlayerController *PC, UNetConnection* 
 			const ULevel* Level = LevelStreaming->GetLoadedLevel();
 			if ( Level != NULL && Level->bIsVisible && !Level->bClientOnlyVisible )
 			{
-				// Remap packagename for PIE networking before sending out to server
-				FName PackageName = Level->GetOutermost()->GetFName();
-				FString PackageNameStr = PackageName.ToString();
-				if (GEngine->NetworkRemapPath(Driver, PackageNameStr, false))
-				{
-					PackageName = FName(*PackageNameStr);
-				}
-
-				PC->ServerUpdateLevelVisibility( PackageName, true );
+				PC->ServerUpdateLevelVisibility(PC->NetworkRemapPath(Level->GetOutermost()->GetFName(), false), true );
 			}
 		}
 	}

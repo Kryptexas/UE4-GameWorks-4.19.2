@@ -716,7 +716,7 @@ TSharedRef<class IStructureDetailsView> FPropertyEditorModule::CreateStructureDe
 			PropertyToTest = SetProperty ? SetProperty->ElementProp : PropertyToTest;
 			PropertyToTest = MapProperty ? MapProperty->ValueProp : PropertyToTest;
 
-			if( InStructureDetailsViewArgs.bShowClasses && (PropertyToTest->IsA<UClassProperty>() || PropertyToTest->IsA<UAssetClassProperty>()) )
+			if( InStructureDetailsViewArgs.bShowClasses && (PropertyToTest->IsA<UClassProperty>() || PropertyToTest->IsA<USoftClassProperty>()) )
 			{
 				return true;
 			}
@@ -732,7 +732,7 @@ TSharedRef<class IStructureDetailsView> FPropertyEditorModule::CreateStructureDe
 				if( InStructureDetailsViewArgs.bShowAssets )
 				{
 					// Is this an "asset" property?
-					if( PropertyToTest->IsA<UAssetObjectProperty>())
+					if( PropertyToTest->IsA<USoftObjectProperty>())
 					{
 						return true;
 					}

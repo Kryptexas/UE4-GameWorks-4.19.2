@@ -3762,48 +3762,40 @@ UObject* FLinkerLoad::CreateExport( int32 Index )
 		// Try to find existing object first in case we're a forced export to be able to reconcile. Also do it for the
 		// case of async loading as we cannot in-place replace objects.
 
-		UObject* ActualObjectWithTheName = StaticFindObjectFastInternal(NULL, ThisParent, Export.ObjectName, true);
+		UObject* ActualObjectWithTheName = StaticFindObjectFastInternal(nullptr, ThisParent, Export.ObjectName, true);
 		
-		// if we require cooked data, attempt to find exports in memory first
-		if(	FPlatformProperties::RequiresCookedData() 
-			|| IsAsyncLoading()
-			|| Export.bForcedExport
-			|| LinkerRoot->ShouldFindExportsInMemoryFirst()
-			)
+		// Find object after making sure it isn't already set. This would be bad as the code below NULLs it in a certain
+		// case, which if it had been set would cause a linker detach mismatch.
+		check(Export.Object == nullptr);
+		if (ActualObjectWithTheName && (ActualObjectWithTheName->GetClass() == LoadClass))
 		{
-			// Find object after making sure it isn't already set. This would be bad as the code below NULLs it in a certain
-			// case, which if it had been set would cause a linker detach mismatch.
-			check( Export.Object == NULL );
-			if (ActualObjectWithTheName && (ActualObjectWithTheName->GetClass() == LoadClass))
-			{
-				Export.Object = ActualObjectWithTheName;
-			}
+			Export.Object = ActualObjectWithTheName;
+		}
 
-			// Object is found in memory.
-			if( Export.Object )
+		// Object is found in memory.
+		if (Export.Object)
+		{
+			// Mark that we need to dissociate forced exports later on if we are a forced export.
+			if (Export.bForcedExport)
 			{
-				// Mark that we need to dissociate forced exports later on if we are a forced export.
-				if( Export.bForcedExport )
-				{
-					FUObjectThreadContext::Get().ForcedExportCount++;
-				}
-				// Associate linker with object to avoid detachment mismatches.
-				else
-				{
-					Export.Object->SetLinker( this, Index );
-
-					// If this object was allocated but never loaded (components created by a constructor) make sure it gets loaded
-					// Do this for all subobjects created in the native constructor.
-					FUObjectThreadContext::Get().ObjLoaded.AddUnique(Export.Object);
-					if (!Export.Object->HasAnyFlags(RF_LoadCompleted) &&
-						(Export.Object->HasAnyFlags(RF_DefaultSubObject) || (ThisParent && ThisParent->IsTemplate(RF_ClassDefaultObject))))
-					{
-						check(!GEventDrivenLoaderEnabled || !EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME);
-						Export.Object->SetFlags(RF_NeedLoad | RF_NeedPostLoad | RF_NeedPostLoadSubobjects | RF_WasLoaded);
-					}
-				}
-				return Export.Object;
+				FUObjectThreadContext::Get().ForcedExportCount++;
 			}
+			// Associate linker with object to avoid detachment mismatches.
+			else
+			{
+				Export.Object->SetLinker(this, Index);
+
+				// If this object was allocated but never loaded (components created by a constructor) make sure it gets loaded
+				// Do this for all subobjects created in the native constructor.
+				FUObjectThreadContext::Get().ObjLoaded.AddUnique(Export.Object);
+				if (!Export.Object->HasAnyFlags(RF_LoadCompleted) &&
+					(Export.Object->HasAnyFlags(RF_DefaultSubObject) || (ThisParent && ThisParent->IsTemplate(RF_ClassDefaultObject))))
+				{
+					check(!GEventDrivenLoaderEnabled || !EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME);
+					Export.Object->SetFlags(RF_NeedLoad | RF_NeedPostLoad | RF_NeedPostLoadSubobjects | RF_WasLoaded);
+				}
+			}
+			return Export.Object;
 		}
 
 		// In cases when an object has been consolidated but its package hasn't been saved, look for UObjectRedirector before

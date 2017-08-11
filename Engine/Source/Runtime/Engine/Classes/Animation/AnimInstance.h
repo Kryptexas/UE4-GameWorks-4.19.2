@@ -903,7 +903,7 @@ public:
 	/** Name of Class to do Post Compile Validation.
 	* See Class UAnimBlueprintPostCompileValidation. */
 	UPROPERTY()
-	FStringClassReference PostCompileValidationClassName;
+	FSoftClassPath PostCompileValidationClassName;
 
 	/** Warn if AnimNodes are not using fast path during AnimBP compilation. */
 	virtual bool PCV_ShouldWarnAboutNodesNotUsingFastPath() const { return false; }

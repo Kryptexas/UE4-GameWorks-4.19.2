@@ -34,8 +34,8 @@
 #include "MathStructProxyCustomizations.h"
 #include "RangeStructCustomization.h"
 #include "IntervalStructCustomization.h"
-#include "StringAssetReferenceCustomization.h"
-#include "StringClassReferenceCustomization.h"
+#include "SoftObjectPathCustomization.h"
+#include "SoftClassPathCustomization.h"
 #include "AttenuationSettingsCustomizations.h"
 #include "WorldSettingsDetails.h"
 #include "DialogueStructsCustomizations.h"
@@ -169,8 +169,8 @@ void FDetailCustomizationsModule::ShutdownModule()
 
 void FDetailCustomizationsModule::RegisterPropertyTypeCustomizations()
 {
-	RegisterCustomPropertyTypeLayout("StringAssetReference", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FStringAssetReferenceCustomization::MakeInstance));
-	RegisterCustomPropertyTypeLayout("StringClassReference", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FStringClassReferenceCustomization::MakeInstance));
+	RegisterCustomPropertyTypeLayout("SoftObjectPath", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FSoftObjectPathCustomization::MakeInstance));
+	RegisterCustomPropertyTypeLayout("SoftClassPath", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FSoftClassPathCustomization::MakeInstance));
 	RegisterCustomPropertyTypeLayout("DataTableRowHandle", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FDataTableCustomizationLayout::MakeInstance));
 	RegisterCustomPropertyTypeLayout("DataTableCategoryHandle", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FDataTableCategoryCustomizationLayout::MakeInstance));
 	RegisterCustomPropertyTypeLayout("CurveTableRowHandle", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FCurveTableCustomizationLayout::MakeInstance));

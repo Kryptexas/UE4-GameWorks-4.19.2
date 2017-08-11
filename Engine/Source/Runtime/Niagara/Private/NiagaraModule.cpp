@@ -146,18 +146,18 @@ void FNiagaraTypeDefinition::RecreateUserDefinedTypeRegistry()
 
 	const UNiagaraSettings* Settings = GetDefault<UNiagaraSettings>();
 	check(Settings);
-	TArray<FStringAssetReference> TotalStructAssets;
-	for (FStringAssetReference AssetRef : Settings->AdditionalParameterTypes)
+	TArray<FSoftObjectPath> TotalStructAssets;
+	for (FSoftObjectPath AssetRef : Settings->AdditionalParameterTypes)
 	{
 		TotalStructAssets.AddUnique(AssetRef);
 	}
 
-	for (FStringAssetReference AssetRef : Settings->AdditionalPayloadTypes)
+	for (FSoftObjectPath AssetRef : Settings->AdditionalPayloadTypes)
 	{
 		TotalStructAssets.AddUnique(AssetRef);
 	}
 
-	for (FStringAssetReference AssetRef : TotalStructAssets)
+	for (FSoftObjectPath AssetRef : TotalStructAssets)
 	{
 		UObject* Obj = AssetRef.ResolveObject();
 		if (Obj == nullptr)
@@ -167,8 +167,8 @@ void FNiagaraTypeDefinition::RecreateUserDefinedTypeRegistry()
 
 		if (Obj != nullptr)
 		{
-			const FStringAssetReference* ParamRefFound = Settings->AdditionalParameterTypes.FindByPredicate([&](const FStringAssetReference& Ref) { return Ref.ToString() == AssetRef.ToString(); });
-			const FStringAssetReference* PayloadRefFound = Settings->AdditionalPayloadTypes.FindByPredicate([&](const FStringAssetReference& Ref) { return Ref.ToString() == AssetRef.ToString(); });
+			const FSoftObjectPath* ParamRefFound = Settings->AdditionalParameterTypes.FindByPredicate([&](const FSoftObjectPath& Ref) { return Ref.ToString() == AssetRef.ToString(); });
+			const FSoftObjectPath* PayloadRefFound = Settings->AdditionalPayloadTypes.FindByPredicate([&](const FSoftObjectPath& Ref) { return Ref.ToString() == AssetRef.ToString(); });
 			UScriptStruct* ScriptStruct = Cast<UScriptStruct>(Obj);
 			if (ScriptStruct != nullptr)
 			{

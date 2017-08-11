@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
-#include "Misc/StringAssetReference.h"
 #include "Animation/AnimationAsset.h"
 #include "AnimGraphNode_Base.h"
 #include "AnimGraphNode_AssetPlayerBase.generated.h"

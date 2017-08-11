@@ -156,6 +156,8 @@ class ANIMGRAPH_API UAnimGraphNode_Base : public UK2Node
 
 	// By default return any animation assets we have
 	virtual UObject* GetJumpTargetForDoubleClick() const override { return GetAnimationAsset(); }
+	virtual bool CanJumpToDefinition() const override;
+	virtual void JumpToDefinition() const override;
 	// End of UK2Node interface
 
 	// UAnimGraphNode_Base interface

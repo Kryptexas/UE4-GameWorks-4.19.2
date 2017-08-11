@@ -167,10 +167,10 @@ struct FAutomationWorkerRequestTests
 
 
 /**
- * Implements a message that is sent in response to FAutomationWorkerRequestTests.
+ * A single test reply, used by FAutomationWorkerRequestTestsReplyComplete
  */
 USTRUCT()
-struct FAutomationWorkerRequestTestsReply
+struct FAutomationWorkerSingleTestReply
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -204,16 +204,11 @@ struct FAutomationWorkerRequestTestsReply
 	UPROPERTY(EditAnywhere, Category="Message")
 	uint32 NumParticipantsRequired;
 
-	/** Holds the total number of tests returned. */
-	UPROPERTY(EditAnywhere, Category="Message")
-	int32 TotalNumTests;
-
 	/** Default constructor. */
-	FAutomationWorkerRequestTestsReply() { }
+	FAutomationWorkerSingleTestReply() { }
 
 	/** Creates and initializes a new instance. */
-	FAutomationWorkerRequestTestsReply(const FAutomationTestInfo& InTestInfo, const int32& InTotalNumTests)
-		: TotalNumTests(InTotalNumTests)
+	FAutomationWorkerSingleTestReply(const FAutomationTestInfo& InTestInfo)
 	{
 		DisplayName = InTestInfo.GetDisplayName();
 		FullTestPath = InTestInfo.GetFullTestPath();
@@ -245,11 +240,15 @@ struct FAutomationWorkerRequestTestsReply
 
 
 /**
-*/
+ * Returns list of all tests
+ */
 USTRUCT()
 struct FAutomationWorkerRequestTestsReplyComplete
 {
 	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, Category = "Message")
+	TArray<FAutomationWorkerSingleTestReply> Tests;
 };
 
 

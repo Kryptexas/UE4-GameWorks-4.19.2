@@ -3788,6 +3788,8 @@ void FSlateEditorStyle::FStyle::SetupGraphEditorStyles()
 		Set( "Graph.Node.NodeBackground", new BOX_BRUSH( "Old/Graph/NodeBackground", FMargin(12.0f/64) ) );
 
 		Set( "Graph.Node.Body", new BOX_BRUSH( "/Graph/RegularNode_body", FMargin(16.f/64.f, 25.f/64.f, 16.f/64.f, 16.f/64.f) ) );
+		Set( "Graph.Node.DisabledBanner", new IMAGE_BRUSH( "/Graph/GraphPanel_StripesBackground", FVector2D(64, 64), FLinearColor(0.5f, 0.5f, 0.5f, 0.3f), ESlateBrushTileType::Both ) );
+		Set( "Graph.Node.DevelopmentBanner", new IMAGE_BRUSH( "/Graph/GraphPanel_StripesBackground", FVector2D(64, 64), FLinearColor::Yellow * FLinearColor(1.f, 1.f, 1.f, 0.3f), ESlateBrushTileType::Both ) );
 		Set( "Graph.Node.TitleGloss", new BOX_BRUSH( "/Graph/RegularNode_title_gloss", FMargin(12.0f/64.0f) ) );
 		Set( "Graph.Node.ColorSpill", new BOX_BRUSH( "/Graph/RegularNode_color_spill", FMargin(8.0f/64.0f, 3.0f/32.0f, 0, 0) ) );
 		Set( "Graph.Node.TitleHighlight", new BOX_BRUSH( "/Graph/RegularNode_title_highlight", FMargin(16.0f/64.0f, 1.0f, 16.0f/64.0f, 0.0f) ) );
@@ -4941,85 +4943,6 @@ void FSlateEditorStyle::FStyle::SetupLevelEditorStyle()
 		Set( "LevelViewportToolBar.RestoreFromImmersive.Normal", new IMAGE_BRUSH( "Icons/icon_RestoreFromImmersive_16px", Icon16x16 ) );
 	}
 #endif // WITH_EDITOR || IS_PROGRAM
-
-	// Blueprint Profiler
-#if WITH_EDITOR
-	{
-		// Profiler stat window
-		Set( "BlueprintProfiler.ViewToolBar", new BOX_BRUSH("/Docking/Tab_Foreground", 4/16.0f));
-		Set( "BlueprintProfiler.ViewContent", new BOX_BRUSH("/Docking/AppTabContentArea", 4/16.0f));
-		Set( "BlueprintProfiler.BPIcon_Normal", new IMAGE_BRUSH("Icons/AssetIcons/Blueprint_16x", Icon16x16, FLinearColor( 0.46f, 0.54f, 0.81f )));
-		Set( "BlueprintProfiler.BPIcon_Macro", new IMAGE_BRUSH("Icons/AssetIcons/BlueprintMacroLibrary_16x", Icon16x16, FLinearColor( 0.46f, 0.54f, 0.81f )));
-		Set( "BlueprintProfiler.BPIcon_Interface", new IMAGE_BRUSH("Icons/AssetIcons/BlueprintInterface_16x", Icon16x16, FLinearColor( 0.46f, 0.54f, 0.81f )));
-		Set( "BlueprintProfiler.BPIcon_FunctionLibrary", new IMAGE_BRUSH("Icons/AssetIcons/BlueprintFunctionLibrary_16x", Icon16x16, FLinearColor( 0.46f, 0.54f, 0.81f )));
-		Set( "BlueprintProfiler.Actor", new IMAGE_BRUSH("Icons/AssetIcons/Actor_16x", Icon16x16, FLinearColor( 1.f, 1.f, 1.f )));
-		Set( "BlueprintProfiler.BPEventNode", new IMAGE_BRUSH("Icons/icon_Blueprint_Event_16x", Icon16x16, FLinearColor( 0.91f, 0.16f, 0.16f )));
-		Set( "BlueprintProfiler.BPFunctionNode", new IMAGE_BRUSH("Icons/icon_Blueprint_NewFunction_16x", Icon16x16, FLinearColor( 0.46f, 0.54f, 0.81f )));
-		Set( "BlueprintProfiler.BPMacroNode", new IMAGE_BRUSH("Icons/icon_Blueprint_Macro_16x", Icon16x16, FLinearColor( 0.46f, 0.54f, 0.81f )));
-		Set( "BlueprintProfiler.BPBranchNode", new IMAGE_BRUSH("Icons/icon_Blueprint_Sequence_16x", Icon16x16, FLinearColor( 0.46f, 0.54f, 0.81f )));
-		Set( "BlueprintProfiler.BPPinConnected", new IMAGE_BRUSH( "Icons/BPProfiler_ExecPin_Connected", Icon12x16 ) );
-		Set( "BlueprintProfiler.BPPinDisconnected", new IMAGE_BRUSH( "Icons/BPProfiler_ExecPin_Disconnected", Icon12x16 ) );
-		Set( "BlueprintProfiler.PureNode", new IMAGE_BRUSH( "/Icons/pill_16x", Icon16x16 ) );
-		Set( "BlueprintProfiler.BPNode", new IMAGE_BRUSH("Icons/Icon_Profiler_BPNode_16x", Icon16x16));
-		Set( "BlueprintProfiler.RegularNode.HeatDisplay", new BOX_BRUSH( "/Graph/RegularNode_heat_display", FMargin(36.0f/64.0f) ) );
-		Set( "BlueprintProfiler.VarNode.HeatDisplay", new BOX_BRUSH( "/Graph/VarNode_heat_display", FMargin(36.0f/64.0f) ) );
-		Set( "BlueprintProfiler.CompactNode.HeatDisplay", new BOX_BRUSH( "/Graph/MathNode_heat_display", FMargin(26.0f/64.0f) ) );
-
-		Button = FButtonStyle()
-			.SetNormal( FSlateNoResource() )
-			.SetHovered( FSlateNoResource() )
-			.SetPressed( FSlateNoResource() )
-			.SetNormalPadding( FMargin( 2,2,2,2 ) )
-			.SetPressedPadding( FMargin( 2,2,2,2 ) );
-		Set( "BlueprintProfiler.TreeArrowButton", Button );
-
-		Set( "BlueprintProfiler.TreeArrowGlyph", FTextBlockStyle(NormalText)
-			.SetFont(TTF_FONT("Fonts/FontAwesome", 10))
-			.SetShadowOffset(FVector2D::ZeroVector)
-		);
-
-		Set("BlueprintProfiler.ToggleButton.Start", FCheckBoxStyle()
-			.SetCheckBoxType(ESlateCheckBoxType::ToggleButton)
-			.SetUncheckedImage(BOX_BRUSH("Common/SmallRoundedToggleLeft", FMargin(7.f / 16.f), FLinearColor(0.09f, 0.09f, 0.09f)))
-			.SetUncheckedPressedImage(BOX_BRUSH("Common/SmallRoundedToggleLeft", FMargin(7.f / 16.f), SelectionColor_Pressed))
-			.SetUncheckedHoveredImage(BOX_BRUSH("Common/SmallRoundedToggleLeft", FMargin(7.f / 16.f), SelectionColor_Pressed))
-			.SetCheckedHoveredImage(BOX_BRUSH("Common/SmallRoundedToggleLeft", FMargin(7.f / 16.f), SelectionColor))
-			.SetCheckedPressedImage(BOX_BRUSH("Common/SmallRoundedToggleLeft", FMargin(7.f / 16.f), SelectionColor))
-			.SetCheckedImage(BOX_BRUSH("Common/SmallRoundedToggleLeft", FMargin(7.f / 16.f), SelectionColor)));
-
-		Set("BlueprintProfiler.ToggleButton.Middle", FCheckBoxStyle()
-			.SetCheckBoxType(ESlateCheckBoxType::ToggleButton)
-			.SetUncheckedImage(BOX_BRUSH("Common/SmallRoundedToggleCenter", FMargin(7.f / 16.f), FLinearColor(0.09f, 0.09f, 0.09f)))
-			.SetUncheckedPressedImage(BOX_BRUSH("Common/SmallRoundedToggleCenter", FMargin(7.f / 16.f), SelectionColor_Pressed))
-			.SetUncheckedHoveredImage(BOX_BRUSH("Common/SmallRoundedToggleCenter", FMargin(7.f / 16.f), SelectionColor_Pressed))
-			.SetCheckedHoveredImage(BOX_BRUSH("Common/SmallRoundedToggleCenter", FMargin(7.f / 16.f), SelectionColor))
-			.SetCheckedPressedImage(BOX_BRUSH("Common/SmallRoundedToggleCenter", FMargin(7.f / 16.f), SelectionColor))
-			.SetCheckedImage(BOX_BRUSH("Common/SmallRoundedToggleCenter", FMargin(7.f / 16.f), SelectionColor)));
-
-		Set("BlueprintProfiler.ToggleButton.End", FCheckBoxStyle()
-			.SetCheckBoxType(ESlateCheckBoxType::ToggleButton)
-			.SetUncheckedImage(BOX_BRUSH("Common/SmallRoundedToggleRight", FMargin(7.f / 16.f), FLinearColor(0.09f, 0.09f, 0.09f)))
-			.SetUncheckedPressedImage(BOX_BRUSH("Common/SmallRoundedToggleRight", FMargin(7.f / 16.f), SelectionColor_Pressed))
-			.SetUncheckedHoveredImage(BOX_BRUSH("Common/SmallRoundedToggleRight", FMargin(7.f / 16.f), SelectionColor_Pressed))
-			.SetCheckedHoveredImage(BOX_BRUSH("Common/SmallRoundedToggleRight", FMargin(7.f / 16.f), SelectionColor))
-			.SetCheckedPressedImage(BOX_BRUSH("Common/SmallRoundedToggleRight", FMargin(7.f / 16.f), SelectionColor))
-			.SetCheckedImage(BOX_BRUSH("Common/SmallRoundedToggleRight", FMargin(7.f / 16.f), SelectionColor)));
-
-		Set("BlueprintProfiler.TableView.Row", FTableRowStyle(NormalTableRowStyle)
-			.SetActiveBrush(IMAGE_BRUSH("Common/Selection", Icon8x8, FLinearColor(0.25f, 0.25f, 0.25f, 0.35f)))
-			.SetActiveHoveredBrush(IMAGE_BRUSH("Common/Selection", Icon8x8, FLinearColor(0.25f, 0.25f, 0.25f, 0.5f)))
-			.SetInactiveBrush(IMAGE_BRUSH("Common/Selection", Icon8x8, FLinearColor(0.25f, 0.25f, 0.25f, 0.15f)))
-			.SetInactiveHoveredBrush(IMAGE_BRUSH("Common/Selection", Icon8x8, FLinearColor(0.25f, 0.25f, 0.25f, 0.2f))));
-
-		FTextBlockStyle NodeHyperlinkText = FTextBlockStyle(NormalText)
-			.SetColorAndOpacity(FLinearColor(1.0f, 1.0f, 1.0f))
-			.SetHighlightColor(FLinearColor(1.0f, 1.0f, 1.0f));
-
-		FHyperlinkStyle NodeHyperlinkStyle = GetWidgetStyle<FHyperlinkStyle>("HoverOnlyHyperlink");
-		Set("BlueprintProfiler.Node.Hyperlink", NodeHyperlinkStyle
-			.SetTextStyle(NodeHyperlinkText));
-	}
-#endif // WITH_EDITOR
 
 	// Mobility Icons
 	{

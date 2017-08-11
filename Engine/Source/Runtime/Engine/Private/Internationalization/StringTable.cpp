@@ -3,7 +3,7 @@
 #include "StringTable.h"
 #include "StringTableCore.h"
 #include "StringTableRegistry.h"
-#include "StringAssetReference.h"
+#include "UObject/SoftObjectPtr.h"
 #include "PackageName.h"
 #include "GCObject.h"
 #include "Misc/ScopeLock.h"
@@ -82,7 +82,7 @@ private:
 	//~ IStringTableEngineInterop interface
 	virtual void RedirectAndLoadStringTableAssetImpl(FName& InOutTableId, const EStringTableLoadingPolicy InLoadingPolicy) override
 	{
-		FStringAssetReference StringTableAssetReference = GetAssetReference(InOutTableId);
+		FSoftObjectPath StringTableAssetReference = GetAssetReference(InOutTableId);
 		if (StringTableAssetReference.IsValid())
 		{
 			UStringTable* StringTableAsset = Cast<UStringTable>(StringTableAssetReference.ResolveObject());
@@ -111,7 +111,7 @@ private:
 		InAr << StringTableAsset;
 	}
 
-	static FStringAssetReference GetAssetReference(const FName InTableId)
+	static FSoftObjectPath GetAssetReference(const FName InTableId)
 	{
 		const FString StringTableAssetName = InTableId.ToString();
 
@@ -124,7 +124,7 @@ private:
 			}
 		}
 
-		FStringAssetReference StringTableAssetReference;
+		FSoftObjectPath StringTableAssetReference;
 		if (FPackageName::IsValidLongPackageName(StringTablePackageName, /*bIncludeReadOnlyRoots*/true) && FPackageName::DoesPackageExist(StringTablePackageName))
 		{
 			StringTableAssetReference.SetPath(StringTableAssetName);

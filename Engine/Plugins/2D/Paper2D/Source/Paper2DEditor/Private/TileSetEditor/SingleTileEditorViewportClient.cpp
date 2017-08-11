@@ -48,7 +48,7 @@ FSingleTileEditorViewportClient::FSingleTileEditorViewportClient(UPaperTileSet* 
 	// Create a render component for the tile preview
 	PreviewTileSpriteComponent = NewObject<UPaperSpriteComponent>();
 
-	FStringAssetReference DefaultTranslucentMaterialName("/Paper2D/TranslucentUnlitSpriteMaterial.TranslucentUnlitSpriteMaterial");
+	FSoftObjectPath DefaultTranslucentMaterialName("/Paper2D/TranslucentUnlitSpriteMaterial.TranslucentUnlitSpriteMaterial");
 	UMaterialInterface* TranslucentMaterial = Cast<UMaterialInterface>(DefaultTranslucentMaterialName.TryLoad());
 	PreviewTileSpriteComponent->SetMaterial(0, TranslucentMaterial);
 

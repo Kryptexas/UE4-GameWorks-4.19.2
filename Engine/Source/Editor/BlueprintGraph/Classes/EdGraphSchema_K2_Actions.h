@@ -201,33 +201,6 @@ struct FEdGraphSchemaAction_K2AddComponent : public FEdGraphSchemaAction_K2NewNo
 };
 
 /*******************************************************************************
-* FEdGraphSchemaAction_K2AddTimeline
-*******************************************************************************/
-
-/** Action to add a 'timeline' node to the graph */
-USTRUCT()
-struct FEdGraphSchemaAction_K2AddTimeline : public FEdGraphSchemaAction_K2NewNode
-{
-	GENERATED_USTRUCT_BODY()
-
-	// Simple type info
-	static FName StaticGetTypeId() {static FName Type("FEdGraphSchemaAction_K2AddTimeline"); return Type;}
-	virtual FName GetTypeId() const override { return StaticGetTypeId(); } 
-
-	FEdGraphSchemaAction_K2AddTimeline()
-		: FEdGraphSchemaAction_K2NewNode()
-	{}
-
-	FEdGraphSchemaAction_K2AddTimeline(FText InNodeCategory, FText InMenuDesc, FText InToolTip, const int32 InGrouping)
-		: FEdGraphSchemaAction_K2NewNode(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping)
-	{}
-
-	// FEdGraphSchemaAction interface
-	virtual UEdGraphNode* PerformAction(class UEdGraph* ParentGraph, UEdGraphPin* FromPin, const FVector2D Location, bool bSelectNewNode = true) override;
-	// End of FEdGraphSchemaAction interface
-};
-
-/*******************************************************************************
 * FEdGraphSchemaAction_K2AddEvent
 *******************************************************************************/
 
@@ -441,44 +414,44 @@ struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_K2Enum : public FEdGraphSchemaAct
 };
 
 /*******************************************************************************
-* FEdGraphSchemaAction_K2Var
+* FEdGraphSchemaAction_BlueprintVariableBase
 *******************************************************************************/
 
-/** Reference to a variable (only used in 'docked' palette) */
+/** Reference to a variable (only used in 'My Blueprints' but used for member variables, local variables, delegates, etc...) */
 USTRUCT()
-struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_K2Var : public FEdGraphSchemaAction
+struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_BlueprintVariableBase : public FEdGraphSchemaAction
 {
 	GENERATED_USTRUCT_BODY()
 
 private:
 	/** Name of function or class */
-	FName		VarName;
+	FName VarName;
 
-	/** The class that owns this item */
-	TWeakObjectPtr<UClass>		OwningClass;
+	/** The struct that owns this item */
+	TWeakObjectPtr<UStruct> VariableSource;
 
 	/** TRUE if the variable's type is boolean */
 	bool bIsVarBool;
 
 public:
-	void SetVariableInfo(const FName& InVarName, const UClass* InOwningClass, bool bInIsVarBool)
+	void SetVariableInfo(const FName& InVarName, const UStruct* InOwningScope, bool bInIsVarBool)
 	{
 		VarName = InVarName;
 		bIsVarBool = bInIsVarBool;
 
-		check(InOwningClass);
-		OwningClass = InOwningClass;
+		check(InOwningScope);
+		VariableSource = InOwningScope;
 	}
 
 	// Simple type info
 	static FName StaticGetTypeId() {static FName Type("FEdGraphSchemaAction_K2Var"); return Type;}
 	virtual FName GetTypeId() const override { return StaticGetTypeId(); } 
 
-	FEdGraphSchemaAction_K2Var() 
+	FEdGraphSchemaAction_BlueprintVariableBase()
 		: FEdGraphSchemaAction()
 	{}
 
-	FEdGraphSchemaAction_K2Var(FText InNodeCategory, FText InMenuDesc, FText InToolTip, const int32 InGrouping, const int32 InSectionID)
+	FEdGraphSchemaAction_BlueprintVariableBase(FText InNodeCategory, FText InMenuDesc, FText InToolTip, const int32 InGrouping, const int32 InSectionID)
 		: FEdGraphSchemaAction(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping, FText(), InSectionID)
 	{}
 
@@ -494,17 +467,52 @@ public:
 
 	UClass* GetVariableClass() const
 	{
-		return OwningClass.Get();
+		return Cast<UClass>(GetVariableScope());
+	}
+
+	UStruct* GetVariableScope() const
+	{
+		return VariableSource.Get();
 	}
 
 	UProperty* GetProperty() const
 	{
-		UClass* SearchScope = GetVariableClass();
-		return FindField<UProperty>(SearchScope, VarName);
+		return FindField<UProperty>(GetVariableScope(), VarName);
 	}
-
+	
 	// FEdGraphSchemaAction interface
+	virtual void MovePersistentItemToCategory(const FText& NewCategoryName) override;
+	virtual int32 GetReorderIndexInContainer() const override;
+	virtual bool ReorderToBeforeAction(TSharedRef<FEdGraphSchemaAction> OtherAction) override;
+	virtual FEdGraphSchemaActionDefiningObject GetPersistentItemDefiningObject() const override;
 	// End of FEdGraphSchemaAction interface
+
+	UBlueprint* GetSourceBlueprint() const;
+};
+
+
+/*******************************************************************************
+* FEdGraphSchemaAction_K2Var
+*******************************************************************************/
+
+/** Reference to a variable (only used in 'docked' palette) */
+USTRUCT()
+struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_K2Var : public FEdGraphSchemaAction_BlueprintVariableBase
+{
+	GENERATED_USTRUCT_BODY()
+
+public:
+	// Simple type info
+	static FName StaticGetTypeId() { static FName Type("FEdGraphSchemaAction_K2Var"); return Type; }
+	virtual FName GetTypeId() const override { return StaticGetTypeId(); }
+
+	FEdGraphSchemaAction_K2Var()
+		: FEdGraphSchemaAction_BlueprintVariableBase()
+	{}
+
+	FEdGraphSchemaAction_K2Var(FText InNodeCategory, FText InMenuDesc, FText InToolTip, const int32 InGrouping, const int32 InSectionID)
+		: FEdGraphSchemaAction_BlueprintVariableBase(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping, InSectionID)
+	{}
 };
 
 /*******************************************************************************
@@ -513,65 +521,22 @@ public:
 
 /** Reference to a local variable (only used in 'docked' palette) */
 USTRUCT()
-struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_K2LocalVar : public FEdGraphSchemaAction
+struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_K2LocalVar : public FEdGraphSchemaAction_BlueprintVariableBase
 {
 	GENERATED_USTRUCT_BODY()
 
-private:
-	/** Name of function or class */
-	FName		VarName;
-
-	/** The struct that owns this item */
-	TWeakObjectPtr<UStruct>		VariableScope;
-
-	/** TRUE if the variable's type is boolean */
-	bool bIsVarBool;
-
 public:
-	void SetVariableInfo(const FName& InVarName, const UStruct* InVariableScope, bool bInIsVarBool)
-	{
-		VarName = InVarName;
-		bIsVarBool = bInIsVarBool;
-
-		check(InVariableScope);
-		VariableScope = InVariableScope;
-	}
-
 	// Simple type info
 	static FName StaticGetTypeId() {static FName Type("FEdGraphSchemaAction_K2LocalVar"); return Type;}
 	virtual FName GetTypeId() const override { return StaticGetTypeId(); } 
 
 	FEdGraphSchemaAction_K2LocalVar() 
-		: FEdGraphSchemaAction()
+		: FEdGraphSchemaAction_BlueprintVariableBase()
 	{}
 
 	FEdGraphSchemaAction_K2LocalVar(FText InNodeCategory, FText InMenuDesc, FText InToolTip, const int32 InGrouping, const int32 InSectionID)
-		: FEdGraphSchemaAction(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping, FText(), InSectionID)
+		: FEdGraphSchemaAction_BlueprintVariableBase(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping, InSectionID)
 	{}
-
-	FName GetVariableName() const
-	{
-		return VarName;
-	}
-
-	FString GetFriendlyVariableName() const
-	{
-		return FName::NameToDisplayString( VarName.ToString(), bIsVarBool );
-	}
-
-	UStruct* GetVariableScope() const
-	{
-		return VariableScope.Get();
-	}
-
-	UProperty* GetProperty() const
-	{
-		UStruct* SearchScope = GetVariableScope();
-		return FindField<UProperty>(SearchScope, VarName);
-	}
-
-	// FEdGraphSchemaAction interface
-	// End of FEdGraphSchemaAction interface
 };
 
 /*******************************************************************************
@@ -624,7 +589,15 @@ struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_K2Graph : public FEdGraphSchemaAc
 
 	// FEdGraphSchemaAction interface
 	virtual bool IsParentable() const override { return true; }
+	virtual void MovePersistentItemToCategory(const FText& NewCategoryName) override;
+	virtual int32 GetReorderIndexInContainer() const override;
+	virtual bool ReorderToBeforeAction(TSharedRef<FEdGraphSchemaAction> OtherAction) override;
+	virtual FEdGraphSchemaActionDefiningObject GetPersistentItemDefiningObject() const override;
 	// End of FEdGraphSchemaAction interface
+
+protected:
+	UFunction* GetFunction() const;
+	UBlueprint* GetSourceBlueprint() const;
 };
 
 /*******************************************************************************
@@ -731,28 +704,13 @@ struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_K2InputAction : public FEdGraphSc
 * FEdGraphSchemaAction_K2Delegate
 *******************************************************************************/
 
-/** Reference to a function, macro, event graph, or timeline (only used in 'docked' palette) */
+/** Reference to a delegate */
 USTRUCT()
-struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_K2Delegate : public FEdGraphSchemaAction
+struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_K2Delegate : public FEdGraphSchemaAction_BlueprintVariableBase
 {
 	GENERATED_USTRUCT_BODY()
 
-private:
-	/** Name of the property */
-	FName DelegateName;
-
-	/** Class that owns the delegates */
-	TWeakObjectPtr<UClass> OwningClass;
-
 public:		
-	void SetDelegateInfo(const FName& InDelegateName, const UClass* InDelegateClass)
-	{
-		DelegateName = InDelegateName;
-
-		check(InDelegateClass);
-		OwningClass = const_cast<UClass*>(InDelegateClass);
-	}
-
 	// Simple type info
 	static FName StaticGetTypeId() {static FName Type("FEdGraphSchemaAction_K2Delegate"); return Type;}
 	virtual FName GetTypeId() const override { return StaticGetTypeId(); } 
@@ -761,32 +719,29 @@ public:
 	UEdGraph* EdGraph;
 
 	FEdGraphSchemaAction_K2Delegate() 
-		: FEdGraphSchemaAction(), EdGraph(NULL)
+		: FEdGraphSchemaAction_BlueprintVariableBase()
+		, EdGraph(nullptr)
 	{}
 
 	FEdGraphSchemaAction_K2Delegate(FText InNodeCategory, FText InMenuDesc, FText InToolTip, const int32 InGrouping, const int32 InSectionID)
-		: FEdGraphSchemaAction(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping, FText(), InSectionID)
+		: FEdGraphSchemaAction_BlueprintVariableBase(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping, InSectionID)
 		, EdGraph(nullptr)
 	{}
 
 	FName GetDelegateName() const
 	{
-		return DelegateName;
+		return GetVariableName();
 	}
 
 	UClass* GetDelegateClass() const
 	{
-		return OwningClass.Get();
+		return GetVariableClass();
 	}
 
 	UMulticastDelegateProperty* GetDelegateProperty() const
 	{
-		UClass* DelegateClass = GetDelegateClass();
-		return FindField<UMulticastDelegateProperty>(DelegateClass, DelegateName);
+		return FindField<UMulticastDelegateProperty>(GetVariableClass(), GetVariableName());
 	}
-
-	// FEdGraphSchemaAction interface
-	// End of FEdGraphSchemaAction interface
 };
 
 

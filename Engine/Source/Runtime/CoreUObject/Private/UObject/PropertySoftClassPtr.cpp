@@ -7,10 +7,10 @@
 #include "UObject/LinkerPlaceholderClass.h"
 
 /*-----------------------------------------------------------------------------
-	UAssetClassProperty.
+	USoftClassProperty.
 -----------------------------------------------------------------------------*/
 
-void UAssetClassProperty::BeginDestroy()
+void USoftClassProperty::BeginDestroy()
 {
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 	if (ULinkerPlaceholderClass* PlaceholderClass = Cast<ULinkerPlaceholderClass>(MetaClass))
@@ -22,29 +22,29 @@ void UAssetClassProperty::BeginDestroy()
 	Super::BeginDestroy();
 }
 
-FString UAssetClassProperty::GetCPPType(FString* ExtendedTypeText, uint32 CPPExportFlags) const
+FString USoftClassProperty::GetCPPType(FString* ExtendedTypeText, uint32 CPPExportFlags) const
 {
 	check(MetaClass);
 	return GetCPPTypeCustom(ExtendedTypeText, CPPExportFlags, 
 		FString::Printf(TEXT("%s%s"), MetaClass->GetPrefixCPP(), *MetaClass->GetName()));
 }
-FString UAssetClassProperty::GetCPPTypeCustom(FString* ExtendedTypeText, uint32 CPPExportFlags, const FString& InnerNativeTypeName) const
+FString USoftClassProperty::GetCPPTypeCustom(FString* ExtendedTypeText, uint32 CPPExportFlags, const FString& InnerNativeTypeName) const
 {
 	ensure(!InnerNativeTypeName.IsEmpty());
-	return FString::Printf(TEXT("TAssetSubclassOf<%s> "), *InnerNativeTypeName);
+	return FString::Printf(TEXT("TSoftClassPtr<%s> "), *InnerNativeTypeName);
 }
-FString UAssetClassProperty::GetCPPMacroType( FString& ExtendedTypeText ) const
+FString USoftClassProperty::GetCPPMacroType( FString& ExtendedTypeText ) const
 {
-	ExtendedTypeText = FString::Printf(TEXT("TAssetSubclassOf<%s%s> "),MetaClass->GetPrefixCPP(),*MetaClass->GetName());
-	return TEXT("ASSETOBJECT");
+	ExtendedTypeText = FString::Printf(TEXT("TSoftClassPtr<%s%s> "),MetaClass->GetPrefixCPP(),*MetaClass->GetName());
+	return TEXT("SOFTOBJECT");
 }
 
-FString UAssetClassProperty::GetCPPTypeForwardDeclaration() const
+FString USoftClassProperty::GetCPPTypeForwardDeclaration() const
 {
 	return FString::Printf(TEXT("class %s%s;"), MetaClass->GetPrefixCPP(), *MetaClass->GetName());
 }
 
-void UAssetClassProperty::Serialize( FArchive& Ar )
+void USoftClassProperty::Serialize( FArchive& Ar )
 {
 	Super::Serialize( Ar );
 	Ar << MetaClass;
@@ -73,7 +73,7 @@ void UAssetClassProperty::Serialize( FArchive& Ar )
 }
 
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
-void UAssetClassProperty::SetMetaClass(UClass* NewMetaClass)
+void USoftClassProperty::SetMetaClass(UClass* NewMetaClass)
 {
 	if (ULinkerPlaceholderClass* NewPlaceholderClass = Cast<ULinkerPlaceholderClass>(NewMetaClass))
 	{
@@ -88,20 +88,20 @@ void UAssetClassProperty::SetMetaClass(UClass* NewMetaClass)
 }
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 
-void UAssetClassProperty::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
+void USoftClassProperty::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {
-	UAssetClassProperty* This = CastChecked<UAssetClassProperty>(InThis);
+	USoftClassProperty* This = CastChecked<USoftClassProperty>(InThis);
 	Collector.AddReferencedObject( This->MetaClass, This );
 	Super::AddReferencedObjects( This, Collector );
 }
 
-bool UAssetClassProperty::SameType(const UProperty* Other) const
+bool USoftClassProperty::SameType(const UProperty* Other) const
 {
-	return Super::SameType(Other) && (MetaClass == ((UAssetClassProperty*)Other)->MetaClass);
+	return Super::SameType(Other) && (MetaClass == ((USoftClassProperty*)Other)->MetaClass);
 }
 
-IMPLEMENT_CORE_INTRINSIC_CLASS(UAssetClassProperty, UAssetObjectProperty,
+IMPLEMENT_CORE_INTRINSIC_CLASS(USoftClassProperty, USoftObjectProperty,
 	{
-		Class->EmitObjectReference(STRUCT_OFFSET(UAssetClassProperty, MetaClass), TEXT("MetaClass"));
+		Class->EmitObjectReference(STRUCT_OFFSET(USoftClassProperty, MetaClass), TEXT("MetaClass"));
 	}
 );

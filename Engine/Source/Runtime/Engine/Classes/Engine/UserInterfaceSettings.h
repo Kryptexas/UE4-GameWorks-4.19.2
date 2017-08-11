@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
-#include "Misc/StringClassReference.h"
+#include "UObject/SoftObjectPath.h"
 #include "Curves/CurveFloat.h"
 #include "Engine/DeveloperSettings.h"
 #include "Widgets/SWidget.h"
@@ -116,35 +116,35 @@ public:
 	TMap<TEnumAsByte<EMouseCursor::Type>, FHardwareCursorReference> HardwareCursors;
 
 	UPROPERTY(config, EditAnywhere, Category = "Software Cursors", meta = ( MetaClass = "UserWidget" ))
-	TMap<TEnumAsByte<EMouseCursor::Type>, FStringClassReference> SoftwareCursors;
+	TMap<TEnumAsByte<EMouseCursor::Type>, FSoftClassPath> SoftwareCursors;
 
 	// DEPRECATED 4.16
 	UPROPERTY(config)
-	FStringClassReference DefaultCursor_DEPRECATED;
+	FSoftClassPath DefaultCursor_DEPRECATED;
 
 	// DEPRECATED 4.16
 	UPROPERTY(config)
-	FStringClassReference TextEditBeamCursor_DEPRECATED;
+	FSoftClassPath TextEditBeamCursor_DEPRECATED;
 
 	// DEPRECATED 4.16
 	UPROPERTY(config)
-	FStringClassReference CrosshairsCursor_DEPRECATED;
+	FSoftClassPath CrosshairsCursor_DEPRECATED;
 
 	// DEPRECATED 4.16
 	UPROPERTY(config)
-	FStringClassReference HandCursor_DEPRECATED;
+	FSoftClassPath HandCursor_DEPRECATED;
 
 	// DEPRECATED 4.16
 	UPROPERTY(config)
-	FStringClassReference GrabHandCursor_DEPRECATED;
+	FSoftClassPath GrabHandCursor_DEPRECATED;
 	
 	// DEPRECATED 4.16
 	UPROPERTY(config)
-	FStringClassReference GrabHandClosedCursor_DEPRECATED;
+	FSoftClassPath GrabHandClosedCursor_DEPRECATED;
 
 	// DEPRECATED 4.16
 	UPROPERTY(config)
-	FStringClassReference SlashedCircleCursor_DEPRECATED;
+	FSoftClassPath SlashedCircleCursor_DEPRECATED;
 
 	/**
 	 * An optional application scale to apply on top of the custom scaling rules.  So if you want to expose a 
@@ -163,7 +163,7 @@ public:
 	 * Set DPI Scale Rule to Custom, and this class will be used instead of any of the built-in rules.
 	 */
 	UPROPERTY(config, EditAnywhere, Category="DPI Scaling", meta=( MetaClass="DPICustomScalingRule" ))
-	FStringClassReference CustomScalingRuleClass;
+	FSoftClassPath CustomScalingRuleClass;
 
 	/**
 	 * Controls how the UI is scaled at different resolutions based on the DPI Scale Rule

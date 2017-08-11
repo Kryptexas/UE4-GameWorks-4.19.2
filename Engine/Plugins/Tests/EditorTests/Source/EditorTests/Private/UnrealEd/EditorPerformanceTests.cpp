@@ -238,7 +238,7 @@ void FMapPerformanceInEditor::GetTests(TArray<FString>& OutBeautifiedNames, TArr
 
 	for ( const FEditorMapPerformanceTestDefinition& PerfDefinition : AutomationTestSettings->EditorPerformanceTestMaps )
 	{
-		const FStringAssetReference& PerfMap = PerfDefinition.PerformanceTestmap;
+		const FSoftObjectPath& PerfMap = PerfDefinition.PerformanceTestmap;
 
 		if ( PerfMap.IsValid() )
 		{

@@ -467,11 +467,11 @@ private:
 private:
 	/** The default skeletal mesh to use when previewing this skeleton */
 	UPROPERTY(duplicatetransient, AssetRegistrySearchable)
-	TAssetPtr<class USkeletalMesh> PreviewSkeletalMesh;
+	TSoftObjectPtr<class USkeletalMesh> PreviewSkeletalMesh;
 
 	/** The additional skeletal meshes to use when previewing this skeleton */
 	UPROPERTY(duplicatetransient, AssetRegistrySearchable)
-	TAssetPtr<class UDataAsset> AdditionalPreviewSkeletalMeshes;
+	TSoftObjectPtr<class UDataAsset> AdditionalPreviewSkeletalMeshes;
 
 	UPROPERTY()
 	FRigConfiguration RigConfig;

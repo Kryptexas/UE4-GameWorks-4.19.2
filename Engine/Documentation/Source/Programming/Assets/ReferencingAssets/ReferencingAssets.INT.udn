@@ -47,24 +47,24 @@ The declaration of the UPROPERTY appears the same as the previous hard reference
 
 ## Indirect Property Reference
 
-One easy way to control when an asset is loaded is to use a TAssetPtr. To the designer, they can work with it just like the direct property reference. However, instead of a direct pointer reference, the property is stored as a string with template code to enable safe checking of whether the asset has been loaded yet or not. Use the IsPending() method to check if the asset is ready to be accessed or not. Note that using TAssetPtr requires you to manually load the asset when you want to use it. You can use the templated LoadObject<>() method, StaticLoadObject(), or the FStreamingManager to load your object (see [](Programming/Assets/AsyncLoading) for more information). The first two methods load the asset synchronously which can cause frame rate spikes, so should only be used if you know it won't affect the gameplay.
+One easy way to control when an asset is loaded is to use a TSoftObjectPtr. To the designer, they can work with it just like the direct property reference. However, instead of a direct pointer reference, the property is stored as a string with template code to enable safe checking of whether the asset has been loaded yet or not. Use the IsPending() method to check if the asset is ready to be accessed or not. Note that using TSoftObjectPtr requires you to manually load the asset when you want to use it. You can use the templated LoadObject<>() method, StaticLoadObject(), or the FStreamingManager to load your object (see [](Programming/Assets/AsyncLoading) for more information). The first two methods load the asset synchronously which can cause frame rate spikes, so should only be used if you know it won't affect the gameplay.
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category=Building)
-	TAssetPtr<UStaticMesh> BaseMesh;
+	TSoftObjectPtr<UStaticMesh> BaseMesh;
 
 	UStaticMesh* GetLazyLoadedMesh()
 	{
 		if (BaseMesh.IsPending())
 		{
-			const FStringAssetReference& AssetRef = BaseMesh.ToStringReference();
+			const FSoftObjectPath& AssetRef = BaseMesh.ToStringReference();
 			BaseMesh = Cast< UStaticMesh>(Streamable.SynchronousLoad(AssetRef));
 		}
 		return BaseMesh.Get();
 	}
 
-The code above uses a TAssetPtr of UStaticMesh to lazy load the mesh at runtime. The asset is checked to see if the object has been loaded or not. If it has not, a synchronous load happens using the FStreamingManager. Otherwise, the UStaticMesh pointer within the TAssetPtr is returned to the caller.
+The code above uses a TSoftObjectPtr of UStaticMesh to lazy load the mesh at runtime. The asset is checked to see if the object has been loaded or not. If it has not, a synchronous load happens using the FStreamingManager. Otherwise, the UStaticMesh pointer within the TSoftObjectPtr is returned to the caller.
 
-If you want to defer loading a UClass, you use the same approach as the TAssetPtr substituting the class specific version TAssetSubclassOf template type. This functions the same as referring to a specific asset, but instead refers to the UClass for the asset instead of an instance.
+If you want to defer loading a UClass, you use the same approach as the TSoftObjectPtr substituting the class specific version TSoftClassPtr template type. This functions the same as referring to a specific asset, but instead refers to the UClass for the asset instead of an instance.
 
 ## Find/Load Object
 

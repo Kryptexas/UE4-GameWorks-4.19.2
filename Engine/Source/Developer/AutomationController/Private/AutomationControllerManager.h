@@ -377,17 +377,11 @@ protected:
 	 */
 	void RemoveTestRunning( const FMessageAddress& TestToRemove );
 
-	/** Resets the data holders which have been used to generate the tests available from a worker. */
-	void ResetIntermediateTestData()
-	{
-		TestInfo.Empty();
-	}
-
 	/** Changes the controller state. */
 	void SetControllerStatus( EAutomationControllerModuleState::Type AutomationTestState );
 
-	/** stores the tests that are valid for a particular device classification. */
-	void SetTestNames(const FMessageAddress& AutomationWorkerAddress);
+	/** Stores the tests that are valid for a particular device classification. */
+	void SetTestNames(const FMessageAddress& AutomationWorkerAddress, TArray<FAutomationTestInfo>& TestInfo);
 
 	/** Updates the tests to ensure they are all still running. */
 	void UpdateTests();
@@ -411,9 +405,6 @@ private:
 
 	/** Handles FAutomationWorkerRequestNextNetworkCommand messages. */
 	void HandleRequestNextNetworkCommandMessage( const FAutomationWorkerRequestNextNetworkCommand& Message, const IMessageContextRef& Context );
-
-	/** Handles FAutomationWorkerRequestTestsReply messages. */
-	void HandleRequestTestsReplyMessage( const FAutomationWorkerRequestTestsReply& Message, const IMessageContextRef& Context );
 
 	/** Handles FAutomationWorkerRequestTestsReplyComplete messages. */
 	void HandleRequestTestsReplyCompleteMessage(const FAutomationWorkerRequestTestsReplyComplete& Message, const IMessageContextRef& Context);
@@ -479,12 +470,6 @@ private:
 
 	/** Available stats/status for all tests. */
 	FAutomationReportManager ReportManager;
-
-	/** The number we are expecting to receive from a worker */
-	int32 NumOfTestsToReceive;
-
-	/** The collection of test data we are to send to a controller. */
-	TArray< FAutomationTestInfo > TestInfo;
 
 	/** A data holder to keep track of how long tests have been running. */
 	struct FTestRunningInfo

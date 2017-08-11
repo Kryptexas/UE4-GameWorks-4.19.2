@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
-#include "UObject/AssetPtr.h"
+#include "UObject/SoftObjectPtr.h"
 #include "PersonaPreviewSceneDescription.generated.h"
 
 class UAnimationAsset;
@@ -39,14 +39,14 @@ public:
 
 	/** The preview animation to use */
 	UPROPERTY(EditAnywhere, Category = "Animation", meta=(DisplayThumbnail=true))
-	TAssetPtr<UAnimationAsset> Animation;
+	TSoftObjectPtr<UAnimationAsset> Animation;
 
 	/** The preview mesh to use */
 	UPROPERTY(EditAnywhere, Category = "Mesh", meta=(DisplayThumbnail=true))
-	TAssetPtr<USkeletalMesh> PreviewMesh;
+	TSoftObjectPtr<USkeletalMesh> PreviewMesh;
 
 	UPROPERTY(EditAnywhere, Category = "Additional Meshes")
-	TAssetPtr<UDataAsset> AdditionalMeshes;
+	TSoftObjectPtr<UDataAsset> AdditionalMeshes;
 
 	UPROPERTY()
 	UPreviewMeshCollection* DefaultAdditionalMeshes;

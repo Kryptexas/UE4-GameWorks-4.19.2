@@ -576,6 +576,7 @@ namespace
 		// Set the world type in the static map, so that UWorld::PostLoad can set the world type
 		const FName PIEPackageFName = FName(*PIEPackageName);
 		UWorld::WorldTypePreLoadMap.FindOrAdd( PIEPackageFName ) = WorldContext.WorldType;
+		FSoftObjectPath::AddPIEPackageName(PIEPackageFName);
 
 		uint32 LoadFlags = LOAD_None;
 		UPackage* NewPackage = CreatePackage(NULL, *PIEPackageName);
@@ -1760,7 +1761,7 @@ void LoadSpecialMaterial(const FString& MaterialName, UMaterial*& Material, bool
 
 
 template<typename ClassType>
-void LoadEngineClass(const FStringClassReference& ClassName, TSubclassOf<ClassType>& EngineClassRef)
+void LoadEngineClass(const FSoftClassPath& ClassName, TSubclassOf<ClassType>& EngineClassRef)
 {
 	if ( EngineClassRef == nullptr )
 	{
@@ -9715,6 +9716,13 @@ bool UEngine::MakeSureMapNameIsValid(FString& InOutMapName)
 		// If the user starts a multiplayer PIE session with an unsaved map,
 		// DoesPackageExist won't find it, so we have to try to find the package in memory as well.
 		bIsValid = (FindObjectFast<UPackage>(nullptr, FName(*TestMapName)) != nullptr) || FPackageName::DoesPackageExist(TestMapName);
+
+		// If we're not in the editor, then we always want to strip off the PIE prefix.  We might be connected to
+		// a PIE listen server.  In this case, we'll use our version of the map without the PIE prefix.
+		if (bIsValid && !GIsEditor)
+		{
+			InOutMapName = TestMapName;
+		}
 	}
 	else
 	{
@@ -10316,54 +10324,45 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	UPackage* WorldPackage = NULL;
 	UWorld*	NewWorld = NULL;
 	
-	// If this world is a PIE instance, we need to check if we are travelling to another PIE instance's world.
+	// If this world is a PIE instance, we need to check if we are traveling to another PIE instance's world.
 	// If we are, we need to set the PIERemapPrefix so that we load a copy of that world, instead of loading the
 	// PIE world directly.
 	if (!WorldContext.PIEPrefix.IsEmpty())
 	{
 		for (const FWorldContext& WorldContextFromList : WorldList)
 		{
-			// We want to ignore our own PIE instance so that we don't unnecessarily set the PIERemapPrefix if we are not travelling to
+			// We want to ignore our own PIE instance so that we don't unnecessarily set the PIERemapPrefix if we are not traveling to
 			// a server.
 			if (WorldContextFromList.World() != WorldContext.World())
 			{
 				if (!WorldContextFromList.PIEPrefix.IsEmpty() && URL.Map.Contains(WorldContextFromList.PIEPrefix))
 				{
-					WorldContext.PIERemapPrefix = WorldContextFromList.PIEPrefix;
+					FString SourceWorldPackage = UWorld::RemovePIEPrefix(URL.Map);
+
+					// We are loading a new world for this context, so clear out PIE fixups that might be lingering.
+					// (note we dont want to do this in DuplicateWorldForPIE, since that is also called on streaming worlds.
+					GPlayInEditorID = WorldContext.PIEInstance;
+					FLazyObjectPtr::ResetPIEFixups();
+
+					NewWorld = UWorld::DuplicateWorldForPIE(SourceWorldPackage, nullptr);
+					if (NewWorld == nullptr)
+					{
+						NewWorld = CreatePIEWorldByLoadingFromPackage(WorldContext, SourceWorldPackage, WorldPackage);
+						if (NewWorld == nullptr)
+						{
+							Error = FString::Printf(TEXT("Failed to load package '%s' while in PIE"), *SourceWorldPackage);
+							return false;
+						}
+					}
+					else
+					{
+						WorldPackage = CastChecked<UPackage>(NewWorld->GetOuter());
+					}
+
+					NewWorld->StreamingLevelsPrefix = UWorld::BuildPIEPackagePrefix(WorldContext.PIEInstance);
+					GIsPlayInEditorWorld = true;
 				}
 			}
-		}
-	}
-
-	// Is this a PIE networking thing?
-	if (!WorldContext.PIERemapPrefix.IsEmpty())
-	{
-		if ( URL.Map.Contains(WorldContext.PIERemapPrefix) )
-		{
-			FString SourceWorldPackage = UWorld::RemovePIEPrefix(URL.Map);
-
-			// We are loading a new world for this context, so clear out PIE fixups that might be lingering.
-			// (note we dont want to do this in DuplicateWorldForPIE, since that is also called on streaming worlds.
-			GPlayInEditorID = WorldContext.PIEInstance;
-			FLazyObjectPtr::ResetPIEFixups();
-
-			NewWorld = UWorld::DuplicateWorldForPIE(SourceWorldPackage, NULL);
-			if (NewWorld == nullptr) 
-			{
-				NewWorld = CreatePIEWorldByLoadingFromPackage(WorldContext, SourceWorldPackage, WorldPackage);
-				if (NewWorld == nullptr)
-				{
-					Error = FString::Printf(TEXT("Failed to load package '%s' while in PIE"), *SourceWorldPackage);
-					return false;
-				}
-			}
-			else
-			{
-				WorldPackage = CastChecked<UPackage>(NewWorld->GetOuter());
-			}
-
-			NewWorld->StreamingLevelsPrefix = UWorld::BuildPIEPackagePrefix(WorldContext.PIEInstance);
-			GIsPlayInEditorWorld = true;
 		}
 	}
 
@@ -10419,7 +10418,7 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 		{
 			// If we are a PIE world and the world we just found is already initialized, then we're probably reloading the editor world and we
 			// need to create a PIE world by duplication instead
-			if (bPackageAlreadyLoaded)
+			if (bPackageAlreadyLoaded || NewWorld->WorldType == EWorldType::Editor)
 			{
 				if (WorldContext.PIEInstance == -1)
 				{

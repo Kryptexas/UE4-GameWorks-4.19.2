@@ -80,7 +80,7 @@ public:
 	 * @param BundleData		List of Name->asset paths that represent the possible bundle states for this asset
 	 * @return					True if added
 	 */
-	virtual bool AddDynamicAsset(const FPrimaryAssetId& PrimaryAssetId, const FStringAssetReference& AssetPath, const FAssetBundleData& BundleData);
+	virtual bool AddDynamicAsset(const FPrimaryAssetId& PrimaryAssetId, const FSoftObjectPath& AssetPath, const FAssetBundleData& BundleData);
 
 	/** This will expand out references in the passed in AssetBundleData that are pointing to other primary assets with bundles. This is useful to preload entire webs of assets */
 	virtual void RecursivelyExpandBundleData(FAssetBundleData& BundleData);
@@ -115,17 +115,17 @@ public:
 	/** Gets list of all loaded objects for a primary asset type, returns true if any were found. Will return blueprint class for blueprint assets. This works even if the asset wasn't loaded explicitly */
 	virtual bool GetPrimaryAssetObjectList(FPrimaryAssetType PrimaryAssetType, TArray<UObject*>& ObjectList) const;
 
-	/** Gets the FStringAssetReference for a primary asset type and name, returns invalid if not found */
-	virtual FStringAssetReference GetPrimaryAssetPath(const FPrimaryAssetId& PrimaryAssetId) const;
+	/** Gets the FSoftObjectPath for a primary asset type and name, returns invalid if not found */
+	virtual FSoftObjectPath GetPrimaryAssetPath(const FPrimaryAssetId& PrimaryAssetId) const;
 
-	/** Gets the list of all FStringAssetReferences for a given type, returns true if any found */
-	virtual bool GetPrimaryAssetPathList(FPrimaryAssetType PrimaryAssetType, TArray<FStringAssetReference>& AssetPathList) const;
+	/** Gets the list of all FSoftObjectPaths for a given type, returns true if any found */
+	virtual bool GetPrimaryAssetPathList(FPrimaryAssetType PrimaryAssetType, TArray<FSoftObjectPath>& AssetPathList) const;
 
 	/** Sees if the passed in object is a registered primary asset, if so return it. Returns invalid Identifier if not found */
 	virtual FPrimaryAssetId GetPrimaryAssetIdForObject(UObject* Object) const;
 
 	/** Sees if the passed in object path is a registered primary asset, if so return it. Returns invalid Identifier if not found */
-	virtual FPrimaryAssetId GetPrimaryAssetIdForPath(const FStringAssetReference& ObjectPath) const;
+	virtual FPrimaryAssetId GetPrimaryAssetIdForPath(const FSoftObjectPath& ObjectPath) const;
 	virtual FPrimaryAssetId GetPrimaryAssetIdForPath(FName ObjectPath) const;
 
 	/** Sees if the package has a primary asset, useful if only the package name is available */
@@ -247,7 +247,7 @@ public:
 	virtual TSharedPtr<FStreamableHandle> PreloadPrimaryAssets(const TArray<FPrimaryAssetId>& AssetsToLoad, const TArray<FName>& LoadBundles, bool bLoadRecursive, FStreamableDelegate DelegateToCall = FStreamableDelegate(), TAsyncLoadPriority Priority = FStreamableManager::DefaultAsyncLoadPriority);
 
 	/** Quick wrapper to async load some non primary assets with the primary streamable manager. This will not auto release the handle, release it if needed */
-	virtual TSharedPtr<FStreamableHandle> LoadAssetList(const TArray<FStringAssetReference>& AssetList, FStreamableDelegate DelegateToCall = FStreamableDelegate(), TAsyncLoadPriority Priority = FStreamableManager::DefaultAsyncLoadPriority, const FString& DebugName = TEXT("LoadAssetList"));
+	virtual TSharedPtr<FStreamableHandle> LoadAssetList(const TArray<FSoftObjectPath>& AssetList, FStreamableDelegate DelegateToCall = FStreamableDelegate(), TAsyncLoadPriority Priority = FStreamableManager::DefaultAsyncLoadPriority, const FString& DebugName = TEXT("LoadAssetList"));
 
 	/** Returns a single AssetBundleInfo, matching Scope and Name */
 	virtual FAssetBundleEntry GetAssetBundleEntry(const FPrimaryAssetId& BundleScope, FName BundleName) const;
@@ -262,7 +262,7 @@ public:
 	 * @param OutMissingChunkList	Chunks that are known about but not yet installed
 	 * @param OutErrorChunkList		Chunks that do not exist at all and are not installable
 	 */
-	virtual bool FindMissingChunkList(const TArray<FStringAssetReference>& AssetList, TArray<int32>& OutMissingChunkList, TArray<int32>& OutErrorChunkList) const;
+	virtual bool FindMissingChunkList(const TArray<FSoftObjectPath>& AssetList, TArray<int32>& OutMissingChunkList, TArray<int32>& OutErrorChunkList) const;
 
 	/** 
 	 * Acquires a set of chunks using the platform chunk layer, then calls the passed in callback
@@ -271,7 +271,7 @@ public:
 	 * @param CompleteDelegate		Delegate called when chunks have been acquired or failed. If any chunks fail the entire operation is considered a failure
 	 * @param Priority				Priority to use when acquiring chunks
 	 */
-	virtual void AcquireResourcesForAssetList(const TArray<FStringAssetReference>& AssetList, FAssetManagerAcquireResourceDelegate CompleteDelegate, EChunkPriority::Type Priority = EChunkPriority::Immediate);
+	virtual void AcquireResourcesForAssetList(const TArray<FSoftObjectPath>& AssetList, FAssetManagerAcquireResourceDelegate CompleteDelegate, EChunkPriority::Type Priority = EChunkPriority::Immediate);
 
 	/** 
 	 * Acquires a set of chunks using the platform chunk layer, then calls the passed in callback. This will download all bundles of a primary asset
@@ -309,10 +309,10 @@ public:
 	virtual FPrimaryAssetId ExtractPrimaryAssetIdFromData(const FAssetData& AssetData, FPrimaryAssetType SuggestedType = NAME_None) const;
 
 	/** Gets the FAssetData at a specific path, handles redirectors and blueprint classes correctly. Returns true if it found a valid data */
-	virtual bool GetAssetDataForPath(const FStringAssetReference& ObjectPath, FAssetData& AssetData) const;
+	virtual bool GetAssetDataForPath(const FSoftObjectPath& ObjectPath, FAssetData& AssetData) const;
 
-	/** Turns an FAssetData into FStringAssetReference, handles adding _C as necessary */
-	virtual FStringAssetReference GetAssetPathForData(const FAssetData& AssetData) const;
+	/** Turns an FAssetData into FSoftObjectPath, handles adding _C as necessary */
+	virtual FSoftObjectPath GetAssetPathForData(const FAssetData& AssetData) const;
 
 	/** Tries to redirect a Primary Asset Id, using list in AssetManagerSettings */
 	virtual FPrimaryAssetId GetRedirectedPrimaryAssetId(const FPrimaryAssetId& OldId) const;
@@ -322,10 +322,10 @@ public:
 
 	/** Reads AssetManagerSettings for specifically redirected asset paths. This is useful if you need to convert older saved data */
 	virtual FName GetRedirectedAssetPath(FName OldPath) const;
-	virtual FStringAssetReference GetRedirectedAssetPath(const FStringAssetReference& OldPath) const;
+	virtual FSoftObjectPath GetRedirectedAssetPath(const FSoftObjectPath& OldPath) const;
 
-	/** Extracts all FStringAssetReferences from a Class/Struct */
-	virtual void ExtractStringAssetReferences(const UStruct* Struct, const void* StructValue, TArray<FStringAssetReference>& FoundAssetReferences, const TArray<FName>& PropertiesToSkip = TArray<FName>()) const;
+	/** Extracts all FSoftObjectPaths from a Class/Struct */
+	virtual void ExtractSoftObjectPaths(const UStruct* Struct, const void* StructValue, TArray<FSoftObjectPath>& FoundAssetReferences, const TArray<FName>& PropertiesToSkip = TArray<FName>()) const;
 
 	/** Dumps out summary of managed types to log */
 	static void DumpAssetTypeSummary();
@@ -388,7 +388,7 @@ public:
 	 * Initializes asset bundle data from a passed in struct or class, this will read the AssetBundles metadata off the UProperties. As an example this property definition:
 	 *
 	 * UPROPERTY(EditDefaultsOnly, Category=Data, meta = (AssetBundles = "Client,Server"))
-	 * TAssetPtr<class UCurveTable> CurveTableReference;
+	 * TSoftObjectPtr<class UCurveTable> CurveTableReference;
 	 *
 	 * Would add the value of CurveTableReference to both the Client and Server asset bundles
 	 *
@@ -558,6 +558,10 @@ protected:
 	/** True if the asset management database should be updated after scan completes */
 	UPROPERTY()
 	bool bUpdateManagementDatabaseAfterScan;
+
+	/** True if only on-disk assets should be searched by the asset registry */
+	UPROPERTY()
+	bool bIncludeOnlyOnDiskAssets;
 
 	/** Number of notifications seen in this update */
 	UPROPERTY()

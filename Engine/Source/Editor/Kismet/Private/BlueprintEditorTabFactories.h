@@ -90,17 +90,6 @@ public:
 };
 
 /////////////////////////////////////////////////////
-// FBlueprintProfilerSummoner
-
-struct FBlueprintProfilerSummoner : public FWorkflowTabFactory
-{
-public:
-	FBlueprintProfilerSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp);
-
-	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override;
-};
-
-/////////////////////////////////////////////////////
 // FDefaultsEditorSummoner
 
 struct FDefaultsEditorSummoner : public FWorkflowTabFactory

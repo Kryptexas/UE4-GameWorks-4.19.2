@@ -93,10 +93,12 @@ void UWorldComposition::FixupForPIE(int32 PIEInstanceID)
 		
 		FString PIEPackageName = UWorld::ConvertToPIEPackageName(Tile.PackageName.ToString(), PIEInstanceID);
 		Tile.PackageName = FName(*PIEPackageName);
+		FSoftObjectPath::AddPIEPackageName(Tile.PackageName);
 		for (FName& LODPackageName : Tile.LODPackageNames)
 		{
 			FString PIELODPackageName = UWorld::ConvertToPIEPackageName(LODPackageName.ToString(), PIEInstanceID);
 			LODPackageName = FName(*PIELODPackageName);
+			FSoftObjectPath::AddPIEPackageName(LODPackageName);
 		}
 	}
 }

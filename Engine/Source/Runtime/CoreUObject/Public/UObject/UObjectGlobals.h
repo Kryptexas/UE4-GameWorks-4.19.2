@@ -151,7 +151,7 @@ COREUOBJECT_API TArray<const TCHAR*> ParsePropertyFlags(uint64 Flags);
 COREUOBJECT_API UPackage* GetTransientPackage();
 
 /**
- * Gets INI file name from object's reference if it contains one.
+ * Gets INI file name from object's reference if it contains one. 
  *
  * @returns If object reference doesn't contain any INI reference the function
  *		returns nullptr. Otherwise a ptr to INI's file name.
@@ -159,15 +159,15 @@ COREUOBJECT_API UPackage* GetTransientPackage();
 COREUOBJECT_API const FString* GetIniFilenameFromObjectsReference(const FString& ObjectsReferenceString);
 
 /**
- * Resolves ini object path to string object path.
+ * Resolves ini object path to string object path. This used to happen automatically in ResolveName but now must be called manually
  *
- * @param ObjectReference Ini reference.
- * @param IniFilename Ini filename.
- * @param bThrow Can this function throw?
+ * @param ObjectReference Ini reference, of the form engine-ini:/Script/Engine.Engine.DefaultMaterialName
+ * @param IniFilename Ini filename. If null it will call GetIniFilenameFromObjectsReference
+ * @param bThrow If true, will print an error if it can't find the file
  *
  * @returns Resolved object path.
  */
-COREUOBJECT_API FString ResolveIniObjectsReference(const FString& ObjectReference, const FString* IniFilename, bool bThrow = false);
+COREUOBJECT_API FString ResolveIniObjectsReference(const FString& ObjectReference, const FString* IniFilename = nullptr, bool bThrow = false);
 
 COREUOBJECT_API bool ResolveName(UObject*& Outer, FString& ObjectsReferenceString, bool Create, bool Throw, uint32 LoadFlags = LOAD_None);
 COREUOBJECT_API void SafeLoadError( UObject* Outer, uint32 LoadFlags, const TCHAR* ErrorMessage);
@@ -1881,10 +1881,6 @@ struct COREUOBJECT_API FCoreUObjectDelegates
 	/** Queries whether an object should be loaded on top ( replace ) an already existing one */
 	static FOnLoadObjectsOnTop ShouldLoadOnTop;
 
-	/** called when loading a string asset reference */
-	DECLARE_MULTICAST_DELEGATE_OneParam(FPackageLoadedFromStringAssetReference, const FName&);
-	static FPackageLoadedFromStringAssetReference PackageLoadedFromStringAssetReference;
-
 	/** called when path to world root is changed */
 	DECLARE_MULTICAST_DELEGATE_OneParam(FPackageCreatedForLoad, class UPackage*);
 	static FPackageCreatedForLoad PackageCreatedForLoad;
@@ -1893,13 +1889,13 @@ struct COREUOBJECT_API FCoreUObjectDelegates
 	DECLARE_DELEGATE_RetVal_OneParam(FPrimaryAssetId, FGetPrimaryAssetIdForObject, const UObject*);
 	static FGetPrimaryAssetIdForObject GetPrimaryAssetIdForObject;
 
-	DECLARE_DELEGATE_OneParam(FStringAssetReferenceLoaded, const FString&);
-	DEPRECATED(4.17, "StringAssetReferenceLoaded is deprecated, call FStringAssetReference::PostLoadPath instead")
-	static FStringAssetReferenceLoaded StringAssetReferenceLoaded;
+	DECLARE_DELEGATE_OneParam(FSoftObjectPathLoaded, const FString&);
+	DEPRECATED(4.17, "StringAssetReferenceLoaded is deprecated, call FSoftObjectPath::PostLoadPath instead")
+	static FSoftObjectPathLoaded StringAssetReferenceLoaded;
 
-	DECLARE_DELEGATE_RetVal_OneParam(FString, FStringAssetReferenceSaving, FString const& /*SavingAssetLongPathname*/);
-	DEPRECATED(4.17, "StringAssetReferenceSaving is deprecated, call FStringAssetReference::PreSavePath instead")
-	static FStringAssetReferenceSaving StringAssetReferenceSaving;
+	DECLARE_DELEGATE_RetVal_OneParam(FString, FSoftObjectPathSaving, FString const& /*SavingAssetLongPathname*/);
+	DEPRECATED(4.17, "StringAssetReferenceSaving is deprecated, call FSoftObjectPath::PreSavePath instead")
+	static FSoftObjectPathSaving StringAssetReferenceSaving;
 
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnRedirectorFollowed, const FString&, UObject*);
 	DEPRECATED(4.17, "RedirectorFollowed is deprecated, FixeupRedirects was replaced with ResavePackages -FixupRedirect")
@@ -1989,15 +1985,13 @@ struct FAssetMsg
 #if WITH_EDITOR
 /** 
  * Returns if true if the object is editor-only:
- * - it's a package marked as PKG_EditorOnly
+ * - it's a package marked as PKG_EditorOnly or inside one
  * or
- * - it's a class from a package marked as PKG_EditorOnly
- * or
- * - its class is from a package marked as PKG_EditorOnly
- * or
- * - its outer is editor-only
+ * - IsEditorOnly returns true
+ * or 
+ * - if bCheckRecursive is true, if it's class, outer, or archetypes are editor only
  */
-COREUOBJECT_API bool IsEditorOnlyObject(const UObject* InObject);
+COREUOBJECT_API bool IsEditorOnlyObject(const UObject* InObject, bool bCheckRecursive = true);
 #endif //WITH_EDITOR
 
 struct FClassFunctionLinkInfo;
@@ -2020,10 +2014,10 @@ namespace UE4CodeGen_Private
 		Float,
 		Double,
 		Bool,
-		AssetClass,
+		SoftClass,
 		WeakObject,
 		LazyObject,
-		AssetObject,
+		SoftObject,
 		Class,
 		Object,
 		Interface,
@@ -2197,7 +2191,7 @@ namespace UE4CodeGen_Private
 #endif
 	};
 
-	struct FAssetClassPropertyParams // : FPropertyParamsBaseWithOffset
+	struct FSoftClassPropertyParams // : FPropertyParamsBaseWithOffset
 	{
 		EPropertyClass   Type;
 		const char*      NameUTF8;
@@ -2313,7 +2307,7 @@ namespace UE4CodeGen_Private
 	typedef FGenericPropertyParams FTextPropertyParams;
 	typedef FObjectPropertyParams  FWeakObjectPropertyParams;
 	typedef FObjectPropertyParams  FLazyObjectPropertyParams;
-	typedef FObjectPropertyParams  FAssetObjectPropertyParams;
+	typedef FObjectPropertyParams  FSoftObjectPropertyParams;
 
 	struct FFunctionParams
 	{

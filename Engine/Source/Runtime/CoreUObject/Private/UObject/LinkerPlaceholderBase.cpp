@@ -492,11 +492,11 @@ int32 TLinkerImportPlaceholder<UClass>::ResolvePropertyReferences(UClass* Replac
 					++ReplacementCount;
 				}
 			}
-			else if (UAssetClassProperty* AssetClassProperty = Cast<UAssetClassProperty>(BaseObjProperty))
+			else if (USoftClassProperty* SoftClassProperty = Cast<USoftClassProperty>(BaseObjProperty))
 			{
-				if (AssetClassProperty->MetaClass == PlaceholderClass)
+				if (SoftClassProperty->MetaClass == PlaceholderClass)
 				{
-					AssetClassProperty->MetaClass = ReplacementClass;
+					SoftClassProperty->MetaClass = ReplacementClass;
 					++ReplacementCount;
 				}	
 			}

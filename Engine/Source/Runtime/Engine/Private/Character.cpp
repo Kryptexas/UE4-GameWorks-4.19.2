@@ -975,7 +975,7 @@ void ACharacter::CheckJumpInput(float DeltaTime)
 			const bool bDidJump = CanJump() && CharacterMovement->DoJump(bClientUpdating);
 			if (bDidJump)
 			{
-				// Transistion from not (actively) jumping to jumping.
+				// Transition from not (actively) jumping to jumping.
 				if (!bWasJumping)
 				{
 					JumpCurrentCount++;

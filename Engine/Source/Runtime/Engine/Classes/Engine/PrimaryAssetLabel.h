@@ -37,11 +37,11 @@ public:
 
 	/** List of manually specified assets to label */
 	UPROPERTY(EditAnywhere, Category = PrimaryAssetLabel, meta = (AssetBundles = "Explicit"))
-	TArray<TAssetPtr<UObject>> ExplicitAssets;
+	TArray<TSoftObjectPtr<UObject>> ExplicitAssets;
 
 	/** List of manually specified blueprint assets to label */
 	UPROPERTY(EditAnywhere, Category = PrimaryAssetLabel, meta = (AssetBundles = "Explicit", BlueprintBaseOnly))
-	TArray<TAssetSubclassOf<UObject>> ExplicitBlueprints;
+	TArray<TSoftClassPtr<UObject>> ExplicitBlueprints;
 
 	/** Collection to load asset references out of */
 	UPROPERTY(EditAnywhere, Category = PrimaryAssetLabel)

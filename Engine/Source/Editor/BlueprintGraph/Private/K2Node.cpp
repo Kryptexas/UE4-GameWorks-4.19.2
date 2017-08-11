@@ -97,9 +97,9 @@ void UK2Node::Serialize(FArchive& Ar)
 					}
 				}
 
-				if (Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Asset || Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_AssetClass)
+				if (Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_SoftObject || Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_SoftClass)
 				{
-					FStringAssetReference TempRef(Pin->DefaultValue);
+					FSoftObjectPath TempRef(Pin->DefaultValue);
 
 					// Serialize the asset reference, this will do the save fixup. It won't actually serialize the string if this is a real archive like linkersave
 					TempRef.SerializePath(Ar, true);
@@ -166,7 +166,7 @@ void UK2Node::FixupPinDefaultValues()
 		{
 			UEdGraphPin* Pin = Pins[i];
 
-			if (Pin->PinType.PinCategory == K2Schema->PC_Asset || Pin->PinType.PinCategory == K2Schema->PC_AssetClass)
+			if (Pin->PinType.PinCategory == K2Schema->PC_SoftObject || Pin->PinType.PinCategory == K2Schema->PC_SoftClass)
 			{
 				if (Pin->DefaultObject && Pin->DefaultValue.IsEmpty())
 				{
@@ -264,20 +264,7 @@ void UK2Node::AutowireNewNode(UEdGraphPin* FromPin)
 			}
 
 			ECanCreateConnectionResponse ConnectResponse = K2Schema->CanCreateConnection(FromPin, Pin).Response;
-			if (ConnectResponse == ECanCreateConnectionResponse::CONNECT_RESPONSE_MAKE)
-			{
-				if (K2Schema->TryCreateConnection(FromPin, Pin))
-				{
-					NodeList.Add(FromPin->GetOwningNode());
-					NodeList.Add(this);
-				}
-
-				// null out the backup connection (so we don't attempt to make it 
-				// once we exit the loop... we successfully made this connection!)
-				BackupConnection = NULL;
-				break;
-			}
-			else if((FromPin->PinType.PinCategory == K2Schema->PC_Exec) && (ConnectResponse == ECanCreateConnectionResponse::CONNECT_RESPONSE_BREAK_OTHERS_A))
+			if ((FromPin->PinType.PinCategory == K2Schema->PC_Exec) && (ConnectResponse == ECanCreateConnectionResponse::CONNECT_RESPONSE_BREAK_OTHERS_A))
 			{
 				InsertNewNode(FromPin, Pin, NodeList);
 
@@ -290,6 +277,22 @@ void UK2Node::AutowireNewNode(UEdGraphPin* FromPin)
 			{
 				// save this off, in-case we don't make any connection at all
 				BackupConnection = Pin;
+			}
+			else if ((ConnectResponse == ECanCreateConnectionResponse::CONNECT_RESPONSE_MAKE) ||
+				(ConnectResponse == ECanCreateConnectionResponse::CONNECT_RESPONSE_BREAK_OTHERS_A) ||
+				(ConnectResponse == ECanCreateConnectionResponse::CONNECT_RESPONSE_BREAK_OTHERS_B) ||
+				(ConnectResponse == ECanCreateConnectionResponse::CONNECT_RESPONSE_BREAK_OTHERS_AB))
+			{
+				if (K2Schema->TryCreateConnection(FromPin, Pin))
+				{
+					NodeList.Add(FromPin->GetOwningNode());
+					NodeList.Add(this);
+				}
+
+				// null out the backup connection (so we don't attempt to make it 
+				// once we exit the loop... we successfully made this connection!)
+				BackupConnection = NULL;
+				break;
 			}
 		}
 
@@ -461,6 +464,19 @@ UObject* UK2Node::GetJumpTargetForDoubleClick() const
     return GetReferencedLevelActor();
 }
 
+bool UK2Node::CanJumpToDefinition() const
+{
+	return GetJumpTargetForDoubleClick() != nullptr;
+}
+
+void UK2Node::JumpToDefinition() const
+{
+	if (UObject* HyperlinkTarget = GetJumpTargetForDoubleClick())
+	{
+		FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(HyperlinkTarget);
+	}
+}
+
 void UK2Node::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins)
 {
 	AllocateDefaultPins();
@@ -611,14 +627,21 @@ void UK2Node::RestoreSplitPins(TArray<UEdGraphPin*>& OldPins)
 			// find the new pin that corresponds to parent, and split it if it isn't already split
 			for (UEdGraphPin* NewPin : Pins)
 			{
-				if (FCString::Stricmp(*(NewPin->PinName), *(OldPin->ParentPin->PinName)) == 0)
+				// The pin we're searching for has the same direction, is not a container, has the same name as our parent pin (TODO: does this handle redirects?), and is either a wildcard or a struct
+				// We allow sub categories of struct to change because it may be changing to a type that has the same members
+				if ((NewPin->Direction == OldPin->Direction) && !NewPin->PinType.IsContainer() && (NewPin->PinName == OldPin->ParentPin->PinName) 
+					&& (NewPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Wildcard || NewPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Struct))
 				{
 					// Make sure we're not dealing with a menu node
 					UEdGraph* OuterGraph = GetGraph();
 					if (OuterGraph && OuterGraph->Schema && NewPin->SubPins.Num() == 0)
 					{
-						NewPin->PinType = OldPin->ParentPin->PinType;
-						GetSchema()->SplitPin(NewPin);
+						if (NewPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Wildcard)
+						{
+							NewPin->PinType = OldPin->ParentPin->PinType;
+						}
+						
+						GetSchema()->SplitPin(NewPin, false);
 						break;
 					}
 				}
@@ -1382,20 +1405,44 @@ UEdGraphPin* UK2Node::GetExecPin() const
 UEdGraphPin* UK2Node::GetPassThroughPin(const UEdGraphPin* FromPin) const
 {
 	UEdGraphPin* PassThroughPin = nullptr;
-	if(FromPin && Pins.Contains(FromPin))
+
+	if (FromPin && UEdGraphSchema_K2::IsExecPin(*FromPin))
 	{
-		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-		if(K2Schema->IsExecPin(*FromPin))
+		// We only allow execution passing if there is exactly one input and one output exec pin otherwise there is
+		// ambiguity (e.g., on a branch or sequence node or timeline) so we want no passthrough and commenting it out will kill subsequent code
+		bool bFoundFromPin = false;
+		int32 NumInputs = 0;
+		int32 NumOutputs = 0;
+		UEdGraphPin* PotentialResult = nullptr;
+
+		for (UEdGraphPin* Pin : Pins)
 		{
-			// Locate the first exec pin that's opposite the given exec pin, if any.
-			for(UEdGraphPin* Pin : Pins)
+			if (Pin == FromPin)
 			{
-				if(Pin && Pin != FromPin && Pin->Direction != FromPin->Direction && K2Schema->IsExecPin(*Pin))
+				bFoundFromPin = true;
+			}
+
+			if (UEdGraphSchema_K2::IsExecPin(*Pin))
+			{
+				if (Pin->Direction == EGPD_Input)
 				{
-					PassThroughPin = Pin;
-					break;
+					++NumInputs;
+				}
+				else
+				{
+					++NumOutputs;
+				}
+
+				if (Pin->Direction != FromPin->Direction)
+				{
+					PotentialResult = Pin;
 				}
 			}
+		}
+
+		if ((NumInputs == 1) && (NumOutputs == 1) && bFoundFromPin)
+		{
+			PassThroughPin = PotentialResult;
 		}
 	}
 

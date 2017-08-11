@@ -8,6 +8,7 @@ Level.cpp: Level-related functions
 #include "Misc/ScopedSlowTask.h"
 #include "UObject/RenderingObjectVersion.h"
 #include "Templates/ScopedPointer.h"
+#include "Templates/UnrealTemplate.h"
 #include "UObject/Package.h"
 #include "Serialization/AsyncLoading.h"
 #include "EngineStats.h"
@@ -1945,6 +1946,35 @@ void ULevel::BeginCacheForCookedPlatformData(const ITargetPlatform *TargetPlatfo
 	for (auto LevelBlueprint : GetLevelBlueprints())
 	{
 		LevelBlueprint->BeginCacheForCookedPlatformData(TargetPlatform);
+	}
+}
+
+void ULevel::FixupForPIE(int32 PIEInstanceID)
+{
+	TGuardValue<int32> SetPlayInEditorID(GPlayInEditorID, PIEInstanceID);
+
+	struct FSoftPathPIEFixupSerializer : public FArchiveUObject
+	{
+		FSoftPathPIEFixupSerializer() 
+		{
+			ArIsSaving = true;
+		}
+
+		FArchive& operator<<(FSoftObjectPath& Value)
+		{
+			Value.FixupForPIE();
+			return *this;
+		}
+	};
+
+	FSoftPathPIEFixupSerializer FixupSerializer;
+
+	TArray<UObject*> SubObjects;
+	GetObjectsWithOuter(this, SubObjects);
+
+	for (UObject* Object : SubObjects)
+	{
+		Object->Serialize(FixupSerializer);
 	}
 }
 

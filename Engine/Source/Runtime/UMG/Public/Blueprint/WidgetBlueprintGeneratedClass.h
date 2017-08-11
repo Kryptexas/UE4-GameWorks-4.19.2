@@ -129,7 +129,7 @@ private:
 	bool bTemplateInitialized;
 
 	UPROPERTY()
-	TAssetPtr<UUserWidget> TemplateAsset;
+	TSoftObjectPtr<UUserWidget> TemplateAsset;
 
 	UPROPERTY(Transient)
 	mutable UUserWidget* Template;

@@ -78,7 +78,7 @@ UEdGraphPin* UK2Node_CreateWidget::GetOwningPlayerPin() const
 	return Pin;
 }
 
-bool UK2Node_CreateWidget::IsSpawnVarPin(UEdGraphPin* Pin)
+bool UK2Node_CreateWidget::IsSpawnVarPin(UEdGraphPin* Pin) const
 {
 	return( Super::IsSpawnVarPin(Pin) &&
 		Pin->PinName != FK2Node_CreateWidgetHelper::OwningPlayerPinName );

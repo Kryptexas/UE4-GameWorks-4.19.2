@@ -457,6 +457,9 @@ bool UWorld::Rename(const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags)
 	bool bShouldFail = false;
 	FWorldDelegates::OnPreWorldRename.Broadcast(this, InName, NewOuter, Flags, bShouldFail);
 
+	// Make sure our legacy lightmap data is initialized so it can be renamed
+	PersistentLevel->HandleLegacyMapBuildData();
+
 	if (bShouldFail)
 	{
 		return false;
@@ -473,7 +476,7 @@ bool UWorld::Rename(const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags)
 	// We're moving the world to a new package, rename UObjects which are map data but don't have the UWorld in their Outer chain.  There are two cases:
 	// 1) legacy lightmap textures and MapBuildData object will be in the same package as the UWorld
 	// 2) MapBuildData will be in a separate package with lightmap textures underneath it
-	if (PersistentLevel && PersistentLevel->MapBuildData)
+	if (PersistentLevel->MapBuildData)
 	{
 		FName NewMapBuildDataName = PersistentLevel->MapBuildData->GetFName();
 
@@ -2174,15 +2177,7 @@ void UWorld::AddToWorld( ULevel* Level, const FTransform& LevelTransform )
 				APlayerController* LocalPlayerController = It->GetPlayerController(this);
 				if (LocalPlayerController != NULL)
 				{
-					// Remap packagename for PIE networking before sending out to server
-					FName PackageName = Level->GetOutermost()->GetFName();
-					FString PackageNameStr = PackageName.ToString();
-					if (GEngine->NetworkRemapPath(LocalPlayerController->GetNetDriver(), PackageNameStr, false))
-					{
-						PackageName = FName(*PackageNameStr);
-					}
-
-					LocalPlayerController->ServerUpdateLevelVisibility(PackageName, true);
+					LocalPlayerController->ServerUpdateLevelVisibility(LocalPlayerController->NetworkRemapPath(Level->GetOutermost()->GetFName(), false), true);
 				}
 			}
 		}
@@ -2328,15 +2323,7 @@ void UWorld::RemoveFromWorld( ULevel* Level, bool bAllowIncrementalRemoval )
 					APlayerController* LocalPlayerController = It->GetPlayerController(this);
 					if (LocalPlayerController != NULL)
 					{
-						// Remap packagename for PIE networking before sending out to server
-						FName PackageName = Level->GetOutermost()->GetFName();
-						FString PackageNameStr = PackageName.ToString();
-						if (GEngine->NetworkRemapPath(LocalPlayerController->GetNetDriver(), PackageNameStr, false))
-						{
-							PackageName = FName(*PackageNameStr);
-						}
-
-						LocalPlayerController->ServerUpdateLevelVisibility(PackageName, false);
+						LocalPlayerController->ServerUpdateLevelVisibility(LocalPlayerController->NetworkRemapPath(Level->GetOutermost()->GetFName(), false), false);
 					}
 				}
 			}
@@ -2509,12 +2496,14 @@ int32 FLevelStreamingGCHelper::GetNumLevelsPendingPurge()
 
 void UWorld::RenameToPIEWorld(int32 PIEInstanceID)
 {
+#if WITH_EDITOR
 	UPackage* WorldPackage = GetOutermost();
 
 	WorldPackage->PIEInstanceID = PIEInstanceID;
 
 	const FString PIEPackageName = *UWorld::ConvertToPIEPackageName(WorldPackage->GetName(), PIEInstanceID);
 	WorldPackage->Rename(*PIEPackageName);
+	FSoftObjectPath::AddPIEPackageName(FName(*PIEPackageName));
 
 	StreamingLevelsPrefix = UWorld::BuildPIEPackagePrefix(PIEInstanceID);
 	
@@ -2527,6 +2516,9 @@ void UWorld::RenameToPIEWorld(int32 PIEInstanceID)
 	{
 		LevelStreaming->RenameForPIE(PIEInstanceID);
 	}
+
+	PersistentLevel->FixupForPIE(PIEInstanceID);
+#endif
 }
 
 FString UWorld::ConvertToPIEPackageName(const FString& PackageName, int32 PIEInstanceID)
@@ -2654,31 +2646,13 @@ UWorld* UWorld::DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningW
 
 	FString PrefixedLevelName = ConvertToPIEPackageName(PackageName, PIEInstanceID);
 	const FName PrefixedLevelFName = FName(*PrefixedLevelName);
+	FSoftObjectPath::AddPIEPackageName(PrefixedLevelFName);
+
 	UWorld::WorldTypePreLoadMap.FindOrAdd(PrefixedLevelFName) = EWorldType::PIE;
 	UPackage* PIELevelPackage = CastChecked<UPackage>(CreatePackage(NULL,*PrefixedLevelName));
 	PIELevelPackage->SetPackageFlags(PKG_PlayInEditor);
 	PIELevelPackage->PIEInstanceID = PIEInstanceID;
 	PIELevelPackage->SetGuid( EditorLevelPackage->GetGuid() );
-
-	// Set up string asset reference fixups
-	TArray<FString> PackageNamesBeingDuplicatedForPIE;
-	PackageNamesBeingDuplicatedForPIE.Add(PrefixedLevelName);
-	if ( OwningWorld )
-	{
-		const FString PlayWorldMapName = ConvertToPIEPackageName(OwningWorld->GetOutermost()->GetName(), PIEInstanceID);
-
-		PackageNamesBeingDuplicatedForPIE.Add(PlayWorldMapName);
-		for (ULevelStreaming* StreamingLevel : OwningWorld->StreamingLevels)
-		{
-			if (StreamingLevel)
-			{
-				const FString StreamingLevelPIEName = UWorld::ConvertToPIEPackageName(StreamingLevel->GetWorldAssetPackageName(), PIEInstanceID);
-				PackageNamesBeingDuplicatedForPIE.AddUnique(StreamingLevelPIEName);
-			}
-		}
-	}
-
-	FStringAssetReference::SetPackageNamesBeingDuplicatedForPIE(PackageNamesBeingDuplicatedForPIE);
 
 	ULevel::StreamedLevelsOwningWorld.Add(PIELevelPackage->GetFName(), OwningWorld);
 	UWorld* PIELevelWorld = CastChecked<UWorld>(StaticDuplicateObject(EditorLevelWorld, PIELevelPackage, EditorLevelWorld->GetFName(), RF_AllFlags, nullptr, EDuplicateMode::PIE));
@@ -2692,9 +2666,6 @@ UWorld* UWorld::DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningW
 
 	// Ensure the feature level matches the editor's, this is required as FeatureLevel is not a UPROPERTY and is not duplicated from EditorLevelWorld.
 	PIELevelWorld->FeatureLevel = EditorLevelWorld->FeatureLevel;
-
-	// Clean up string asset reference fixups
-	FStringAssetReference::ClearPackageNamesBeingDuplicatedForPIE();
 
 	// Clean up the world type list and owning world list now that PostLoad has occurred
 	UWorld::WorldTypePreLoadMap.Remove(PrefixedLevelFName);
@@ -3401,20 +3372,13 @@ void UWorld::InitializeActorsForPlay(const FURL& InURL, bool bResetTime)
 		for (int32 LevelIndex = 1; LevelIndex < Levels.Num(); LevelIndex++)
 		{
 			ULevel*	SubLevel = Levels[LevelIndex];
-			// Remap packagename for PIE networking before sending out to server
-			FName PackageName = SubLevel->GetOutermost()->GetFName();
-			FString PackageNameStr = PackageName.ToString();
-			if (GEngine->NetworkRemapPath(GetNetDriver(), PackageNameStr, false))
-			{
-				PackageName = FName(*PackageNameStr);
-			}
 
 			for (FLocalPlayerIterator It(GEngine, this); It; ++It)
 			{
 				APlayerController* LocalPlayerController = It->GetPlayerController(this);
 				if (LocalPlayerController != NULL)
 				{
-					LocalPlayerController->ServerUpdateLevelVisibility(PackageName, SubLevel->bIsVisible);
+					LocalPlayerController->ServerUpdateLevelVisibility(LocalPlayerController->NetworkRemapPath(SubLevel->GetOutermost()->GetFName(), false), SubLevel->bIsVisible);
 				}
 			}
 		}
@@ -6309,6 +6273,8 @@ static ULevel* DuplicateLevelWithPrefix(ULevel* InLevel, int32 InstanceID )
 	NewPackage->FileName = OriginalPackage->FileName;
 	NewPackage->SetGuid( OriginalPackage->GetGuid() );
 
+	FSoftObjectPath::AddPIEPackageName(NewPackage->GetFName());
+
 	GPlayInEditorID = InstanceID;
 
 	// Create "vestigial" world for the persistent level - it's OwningWorld will still be the main world,
@@ -6317,11 +6283,6 @@ static ULevel* DuplicateLevelWithPrefix(ULevel* InLevel, int32 InstanceID )
 	NewWorld->SetFlags(RF_Transactional);
 	NewWorld->WorldType = EWorldType::Game;
 	NewWorld->FeatureLevel = ERHIFeatureLevel::Num;
-
-	TArray<FString> PackageNamesBeingDuplicatedForPIE;
-	PackageNamesBeingDuplicatedForPIE.Add( PrefixedPackageName );
-
-	FStringAssetReference::SetPackageNamesBeingDuplicatedForPIE( PackageNamesBeingDuplicatedForPIE );
 
 	ULevel::StreamedLevelsOwningWorld.Add(NewPackage->GetFName(), OriginalOwningWorld);
 
@@ -6337,7 +6298,6 @@ static ULevel* DuplicateLevelWithPrefix(ULevel* InLevel, int32 InstanceID )
 	ULevel* NewLevel = CastChecked<ULevel>( StaticDuplicateObjectEx( Parameters ) );
 
 	ULevel::StreamedLevelsOwningWorld.Remove(NewPackage->GetFName());
-	FStringAssetReference::ClearPackageNamesBeingDuplicatedForPIE();
 
 	// Fixup model components. The index buffers have been created for the components in the source world and the order
 	// in which components were post-loaded matters. So don't try to guarantee a particular order here, just copy the

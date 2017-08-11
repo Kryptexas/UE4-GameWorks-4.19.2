@@ -1,13 +1,13 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "StringAssetReferenceCustomization.h"
+#include "SoftObjectPathCustomization.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Engine/GameViewportClient.h"
 #include "AssetData.h"
 #include "PropertyHandle.h"
 #include "PropertyCustomizationHelpers.h"
 
-void FStringAssetReferenceCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> InStructPropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
+void FSoftObjectPathCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> InStructPropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
 	StructPropertyHandle = InStructPropertyHandle;
 
@@ -48,7 +48,7 @@ void FStringAssetReferenceCustomization::CustomizeHeader( TSharedRef<IPropertyHa
 	else if(CustomClassFilters.Num() > 0)
 	{
 		// Only bind the filter if we have classes that need filtering
-		AssetFilter.BindSP(this, &FStringAssetReferenceCustomization::OnShouldFilterAsset);
+		AssetFilter.BindSP(this, &FSoftObjectPathCustomization::OnShouldFilterAsset);
 	}
 
 	// Can the field be cleared
@@ -73,11 +73,11 @@ void FStringAssetReferenceCustomization::CustomizeHeader( TSharedRef<IPropertyHa
 	];
 }
 
-void FStringAssetReferenceCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> InStructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
+void FSoftObjectPathCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> InStructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
 }
 
-bool FStringAssetReferenceCustomization::OnShouldFilterAsset( const FAssetData& InAssetData ) const
+bool FSoftObjectPathCustomization::OnShouldFilterAsset( const FAssetData& InAssetData ) const
 {
 	// Only bound if we have classes to filter on, so we don't need to test for an empty array here
 	UClass* const AssetClass = InAssetData.GetClass();

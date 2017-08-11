@@ -45,8 +45,7 @@ void FGameplayAbilitiesEditor::InitGameplayAbilitiesEditor(const EToolkitMode::T
 void FGameplayAbilitiesEditor::EnsureGameplayAbilityBlueprintIsUpToDate(UBlueprint* Blueprint)
 {
 #if WITH_EDITORONLY_DATA
-	int32 Count = Blueprint->UbergraphPages.Num();
-	for (auto Graph : Blueprint->UbergraphPages)
+	for (UEdGraph* Graph : Blueprint->UbergraphPages)
 	{
 		// remove the default event graph, if it exists, from existing Gameplay Ability Blueprints
 		if (Graph->GetName() == "EventGraph" && Graph->Nodes.Num() == 0)

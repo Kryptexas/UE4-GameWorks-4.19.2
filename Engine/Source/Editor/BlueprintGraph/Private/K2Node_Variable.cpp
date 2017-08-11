@@ -13,6 +13,7 @@
 #include "Kismet2/CompilerResultsLog.h"
 #include "Styling/SlateIconFinder.h"
 #include "Logging/MessageLog.h"
+#include "SourceCodeNavigation.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
@@ -968,6 +969,49 @@ FString UK2Node_Variable::GetDeprecationMessage() const
 	}
 
 	return Super::GetDeprecationMessage();
+}
+
+UObject* UK2Node_Variable::GetJumpTargetForDoubleClick() const
+{
+	// Jump to the RepNotify function graph if one exists
+	UBlueprint* OwnerBlueprint = GetBlueprint();
+
+	FName RepNotifyFunc = FBlueprintEditorUtils::GetBlueprintVariableRepNotifyFunc(OwnerBlueprint, GetVarName());
+	if (RepNotifyFunc != NAME_None)
+	{
+		for (UEdGraph* Graph : OwnerBlueprint->FunctionGraphs)
+		{
+			if (Graph->GetFName() == RepNotifyFunc)
+			{
+				return Graph;
+			}
+		}
+	}
+
+	return nullptr;
+}
+
+bool UK2Node_Variable::CanJumpToDefinition() const
+{
+	const UProperty* VariableProperty = GetPropertyForVariable();
+	const bool bNativeVariable = (VariableProperty != nullptr) && (VariableProperty->IsNative());
+	return bNativeVariable || (GetJumpTargetForDoubleClick() != nullptr);
+}
+
+void UK2Node_Variable::JumpToDefinition() const
+{
+	// For native variables, try going to the variable definition in C++ if available
+	if (UProperty* VariableProperty = GetPropertyForVariable())
+	{
+		if (VariableProperty->IsNative())
+		{
+			FSourceCodeNavigation::NavigateToProperty(VariableProperty);
+			return;
+		}
+	}
+
+	// Otherwise, fall back to the inherited behavior
+	Super::JumpToDefinition();
 }
 
 #undef LOCTEXT_NAMESPACE

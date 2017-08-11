@@ -94,8 +94,6 @@ FCoreDelegates::FStatDisableAll FCoreDelegates::StatDisableAll;
 FCoreDelegates::FApplicationLicenseChange FCoreDelegates::ApplicationLicenseChange;
 FCoreDelegates::FPlatformChangedLaptopMode FCoreDelegates::PlatformChangedLaptopMode;
 
-FCoreDelegates::FLoadStringAssetReferenceInCook FCoreDelegates::LoadStringAssetReferenceInCook;
-
 FCoreDelegates::FVRHeadsetRecenter FCoreDelegates::VRHeadsetTrackingInitializingAndNeedsHMDToBeTrackedDelegate;
 FCoreDelegates::FVRHeadsetRecenter FCoreDelegates::VRHeadsetTrackingInitializedDelegate;
 FCoreDelegates::FVRHeadsetRecenter FCoreDelegates::VRHeadsetRecenter;

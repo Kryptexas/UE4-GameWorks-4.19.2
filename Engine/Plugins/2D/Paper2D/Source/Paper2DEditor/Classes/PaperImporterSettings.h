@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
-#include "Misc/StringAssetReference.h"
+#include "UObject/SoftObjectPath.h"
 #include "Engine/Texture.h"
 #include "PaperImporterSettings.generated.h"
 
@@ -93,27 +93,27 @@ protected:
 
 	// The unlit default masked material for newly created sprites (masked means binary opacity: things are either opaque or see-thru, with nothing in between)
 	UPROPERTY(config, EditAnywhere, Category=MaterialSettings, meta=(AllowedClasses="MaterialInterface", DisplayName="Unlit Default Masked Material"))
-	FStringAssetReference UnlitDefaultMaskedMaterialName;
+	FSoftObjectPath UnlitDefaultMaskedMaterialName;
 
 	// The unlit default translucent material for newly created sprites (translucent means smooth opacity which can vary continuously from 0..1, but translucent rendering is more expensive that opaque or masked rendering and has different sorting rules)
 	UPROPERTY(config, EditAnywhere, Category=MaterialSettings, meta=(AllowedClasses="MaterialInterface", DisplayName="Unlit Default Translucent Material"))
-	FStringAssetReference UnlitDefaultTranslucentMaterialName;
+	FSoftObjectPath UnlitDefaultTranslucentMaterialName;
 
 	// The unlit default opaque material for newly created sprites
 	UPROPERTY(config, EditAnywhere, Category=MaterialSettings, meta=(AllowedClasses="MaterialInterface", DisplayName="Unlit Default Opaque Sprite Material"))
-	FStringAssetReference UnlitDefaultOpaqueMaterialName;
+	FSoftObjectPath UnlitDefaultOpaqueMaterialName;
 
 	// The lit default masked material for newly created sprites (masked means binary opacity: things are either opaque or see-thru, with nothing in between)
 	UPROPERTY(config, EditAnywhere, Category=MaterialSettings, meta=(AllowedClasses="MaterialInterface", DisplayName="Lit Default Masked Material"))
-	FStringAssetReference LitDefaultMaskedMaterialName;
+	FSoftObjectPath LitDefaultMaskedMaterialName;
 
 	// The lit default translucent material for newly created sprites (translucent means smooth opacity which can vary continuously from 0..1, but translucent rendering is more expensive that opaque or masked rendering and has different sorting rules)
 	UPROPERTY(config, EditAnywhere, Category=MaterialSettings, meta=(AllowedClasses="MaterialInterface", DisplayName="Lit Default Translucent Material"))
-	FStringAssetReference LitDefaultTranslucentMaterialName;
+	FSoftObjectPath LitDefaultTranslucentMaterialName;
 
 	// The lit default opaque material for newly created sprites
 	UPROPERTY(config, EditAnywhere, Category=MaterialSettings, meta=(AllowedClasses="MaterialInterface", DisplayName="Lit Default Opaque Material"))
-	FStringAssetReference LitDefaultOpaqueMaterialName;
+	FSoftObjectPath LitDefaultOpaqueMaterialName;
 
 public:
 	UPaperImporterSettings();

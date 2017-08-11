@@ -283,7 +283,7 @@ void FUserDefinedStructureEditor::RegisterTabSpawners(const TSharedRef<class FTa
 	FAssetEditorToolkit::RegisterTabSpawners(InTabManager);
 
 	InTabManager->RegisterTabSpawner( MemberVariablesTabId, FOnSpawnTab::CreateSP(this, &FUserDefinedStructureEditor::SpawnStructureTab) )
-		.SetDisplayName( LOCTEXT("MemberVariablesEditor", "Member Variables") )
+		.SetDisplayName( LOCTEXT("MemberVariablesEditor", "Structure Editor") )
 		.SetGroup(WorkspaceMenuCategory.ToSharedRef())
 		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "Kismet.Tabs.Variables"));
 }
@@ -419,7 +419,7 @@ TSharedRef<SDockTab> FUserDefinedStructureEditor::SpawnStructureTab(const FSpawn
 
 	return SNew(SDockTab)
 		.Icon( FEditorStyle::GetBrush("GenericEditor.Tabs.Properties") )
-		.Label( LOCTEXT("UserDefinedStructureEditor", "Structure") )
+		.Label( LOCTEXT("UserDefinedStructureEditor", "Structure Editor") )
 		.TabColorScale( GetTabColorScale() )
 		[
 			Splitter
@@ -1110,7 +1110,7 @@ void FUserDefinedStructureDetails::CustomizeDetails(class IDetailLayoutBuilder& 
 	{
 		UserDefinedStruct = CastChecked<UUserDefinedStruct>(Objects[0].Get());
 
-		IDetailCategoryBuilder& StructureCategory = DetailLayout.EditCategory("Structure", LOCTEXT("Structure", "Structure"));
+		IDetailCategoryBuilder& StructureCategory = DetailLayout.EditCategory("Structure", LOCTEXT("StructureCategory", "Structure"));
 		Layout = MakeShareable(new FUserDefinedStructureLayout(SharedThis(this)));
 		StructureCategory.AddCustomBuilder(Layout.ToSharedRef());
 	}

@@ -16,12 +16,14 @@ UEdGraphNode_Comment::UEdGraphNode_Comment(const FObjectInitializer& ObjectIniti
 {
 	NodeWidth = 400.0f;
 	NodeHeight = 100.0f;
+	FontSize = 18;
 	CommentColor = GetDefault<UGraphEditorSettings>()->DefaultCommentNodeTitleColor;
 	bColorCommentBubble = false;
 	MoveMode = ECommentBoxMode::GroupMovement;
 
 	bCommentBubblePinned = true;
 	bCommentBubbleVisible = true;
+	bCommentBubbleVisible_InDetailsPanel = true;
 	bCanResizeNode = true;
 	bCanRenameNode = true;
 	CommentDepth = -1;
@@ -36,6 +38,13 @@ void UEdGraphNode_Comment::AddReferencedObjects(UObject* InThis, FReferenceColle
 	}
 
 	Super::AddReferencedObjects(InThis, Collector);
+}
+
+void UEdGraphNode_Comment::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	bCommentBubbleVisible = bCommentBubbleVisible_InDetailsPanel;
+	bCommentBubblePinned = bCommentBubbleVisible_InDetailsPanel;
+	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 
 void UEdGraphNode_Comment::PostPlacedNewNode()

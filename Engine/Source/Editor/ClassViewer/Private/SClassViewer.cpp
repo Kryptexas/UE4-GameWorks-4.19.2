@@ -2642,7 +2642,7 @@ bool SClassViewer::IsCurrentDeveloperViewType(EClassViewerDeveloperType ViewType
 	return GetCurrentDeveloperViewType() == ViewType;
 }
 
-void SClassViewer::GetInternalOnlyClasses(TArray<FStringClassReference>& Classes)
+void SClassViewer::GetInternalOnlyClasses(TArray<FSoftClassPath>& Classes)
 {
 	if (!InitOptions.bAllowViewOptions)
 	{
@@ -2992,7 +2992,7 @@ void SClassViewer::Populate()
 
 	bool ShowingInternalClasses = IsShowingInternalClasses();
 
-	TArray<FStringClassReference> InternalClassNames;
+	TArray<FSoftClassPath> InternalClassNames;
 	TArray<UClass*> InternalClasses;
 	TArray<FDirectoryPath> InternalPaths;
 	// If we aren't showing the internal classes, then we need to know what classes to consider Internal Only, so let's gather them up from the settings object.

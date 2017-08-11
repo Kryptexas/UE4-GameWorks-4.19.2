@@ -9,7 +9,7 @@ bool FAssetBundleData::SetFromAssetData(const FAssetData& AssetData)
 	FString TagValue;
 
 	// Register that we're reading string assets for a specific package
-	FStringAssetReferenceSerializationScope SerializationScope(AssetData.PackageName, FAssetBundleData::StaticStruct()->GetFName(), EStringAssetReferenceCollectType::AlwaysCollect);
+	FSoftObjectPathSerializationScope SerializationScope(AssetData.PackageName, FAssetBundleData::StaticStruct()->GetFName(), ESoftObjectPathCollectType::AlwaysCollect);
 
 	if (AssetData.GetTagValue(FAssetBundleData::StaticStruct()->GetFName(), TagValue))
 	{
@@ -44,7 +44,7 @@ FAssetBundleEntry* FAssetBundleData::FindEntry(const FPrimaryAssetId& SearchScop
 	return nullptr;
 }
 
-void FAssetBundleData::AddBundleAsset(FName BundleName, const FStringAssetReference& AssetPath)
+void FAssetBundleData::AddBundleAsset(FName BundleName, const FSoftObjectPath& AssetPath)
 {
 	if (!AssetPath.IsValid())
 	{
@@ -61,11 +61,11 @@ void FAssetBundleData::AddBundleAsset(FName BundleName, const FStringAssetRefere
 	FoundEntry->BundleAssets.AddUnique(AssetPath);
 }
 
-void FAssetBundleData::AddBundleAssets(FName BundleName, const TArray<FStringAssetReference>& AssetPaths)
+void FAssetBundleData::AddBundleAssets(FName BundleName, const TArray<FSoftObjectPath>& AssetPaths)
 {
 	FAssetBundleEntry* FoundEntry = FindEntry(FPrimaryAssetId(), BundleName);
 
-	for (const FStringAssetReference& Path : AssetPaths)
+	for (const FSoftObjectPath& Path : AssetPaths)
 	{
 		if (Path.IsValid())
 		{
@@ -80,7 +80,7 @@ void FAssetBundleData::AddBundleAssets(FName BundleName, const TArray<FStringAss
 	}
 }
 
-void FAssetBundleData::SetBundleAssets(FName BundleName, TArray<FStringAssetReference>&& AssetPaths)
+void FAssetBundleData::SetBundleAssets(FName BundleName, TArray<FSoftObjectPath>&& AssetPaths)
 {
 	FAssetBundleEntry* FoundEntry = FindEntry(FPrimaryAssetId(), BundleName);
 

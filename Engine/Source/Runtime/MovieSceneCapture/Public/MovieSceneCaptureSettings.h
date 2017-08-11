@@ -36,10 +36,6 @@ struct MOVIESCENECAPTURE_API FMovieSceneCaptureSettings
 	UPROPERTY(config, EditAnywhere, Category=General, meta=(RelativePath))
 	FDirectoryPath OutputDirectory;
 
-	/** Whether to save temporary copies of all of the levels before capturing the movie.  This allows you to record movies of temporary work, or work that isn't yet saved, but it will take much longer for capturing to begin. */
-	UPROPERTY(config, EditAnywhere, Category=General, AdvancedDisplay)
-	bool bCreateTemporaryCopiesOfLevels;
-
 	/** Optional game mode to override the map's default game mode with.  This can be useful if the game's normal mode displays UI elements or loading screens that you don't want captured. */
 	UPROPERTY(config, EditAnywhere, Category=General, AdvancedDisplay)
 	TSubclassOf<class AGameModeBase> GameModeOverride;

@@ -100,6 +100,10 @@ struct CORE_API FFrameworkObjectVersion
 		// Fix Local Variables so that the properties are correctly flagged as blueprint visible
 		LocalVariablesBlueprintVisible,
 
+		// Stopped serializing UField_Next so that UFunctions could be serialized in dependently of a UClass
+		// in order to allow us to do all UFunction loading in a single pass (after classes and CDOs are created):
+		RemoveUField_Next,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

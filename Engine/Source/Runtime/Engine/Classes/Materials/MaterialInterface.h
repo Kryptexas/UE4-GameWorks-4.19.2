@@ -8,7 +8,7 @@
 #include "UObject/Object.h"
 #include "Misc/Guid.h"
 #include "Engine/EngineTypes.h"
-#include "Misc/StringAssetReference.h"
+#include "UObject/SoftObjectPath.h"
 #include "UObject/ScriptMacros.h"
 #include "RenderCommandFence.h"
 #include "SceneTypes.h"
@@ -183,7 +183,7 @@ struct FMaterialTextureInfo
 #if WITH_EDITORONLY_DATA
 	/** The reference to the texture, used to keep the TextureName valid even if it gets renamed. */
 	UPROPERTY()
-	FStringAssetReference TextureReference;
+	FSoftObjectPath TextureReference;
 
 	/** 
 	  * The texture index in the material resource the data was built from.
@@ -231,7 +231,7 @@ public:
 #if WITH_EDITORONLY_DATA
 	/** The mesh used by the material editor to preview the material.*/
 	UPROPERTY(EditAnywhere, Category=Previewing, meta=(AllowedClasses="StaticMesh,SkeletalMesh", ExactClass="true"))
-	FStringAssetReference PreviewMesh;
+	FSoftObjectPath PreviewMesh;
 
 	/** Information for thumbnail rendering */
 	UPROPERTY(VisibleAnywhere, Instanced, Category = Thumbnail)

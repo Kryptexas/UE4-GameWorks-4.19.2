@@ -13,6 +13,7 @@
 #include "FileHelpers.h"
 #include "RedirectCollector.h"
 #include "Editor.h"
+#include "Engine/AssetManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGenerateDistillFileSetsCommandlet, Log, All);
 
@@ -100,6 +101,26 @@ int32 UGenerateDistillFileSetsCommandlet::Main( const FString& InParams )
 		for (const FFilePath& MapToCook : PackagingSettings->MapsToCook)
 		{
 			MapList.AddUnique(MapToCook.FilePath);
+		}
+	}
+
+	// Add any assets from the asset manager
+	if (UAssetManager::IsValid())
+	{
+		UAssetManager& Manager = UAssetManager::Get();
+		TArray<FPrimaryAssetTypeInfo> TypeInfos;
+		Manager.GetPrimaryAssetTypeInfoList(TypeInfos);
+
+		for (const FPrimaryAssetTypeInfo& TypeInfo : TypeInfos)
+		{
+			TArray<FAssetData> AssetDataList;
+
+			Manager.GetPrimaryAssetDataList(TypeInfo.PrimaryAssetType, AssetDataList);
+
+			for (const FAssetData& AssetData : AssetDataList)
+			{
+				MapList.AddUnique(AssetData.PackageName.ToString());
+			}
 		}
 	}
 	
@@ -228,7 +249,7 @@ int32 UGenerateDistillFileSetsCommandlet::Main( const FString& InParams )
 			UPackage* Package = LoadPackage( NULL, *MapPackage, LOAD_None );
 			if( Package != NULL )
 			{
-				GRedirectCollector.ResolveStringAssetReference();
+				GRedirectCollector.ResolveAllSoftObjectPaths();
 
 				AllPackageNames.Add(Package->GetName());
 

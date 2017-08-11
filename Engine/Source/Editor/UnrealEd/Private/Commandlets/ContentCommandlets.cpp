@@ -1226,11 +1226,8 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 
 			if (bShouldBuildLighting)
 			{
-				// This does not seem to have any use for the texture streaming build but slows down considerably the process.
-			GRedirectCollector.ResolveStringAssetReference();
-
-			FLightingBuildOptions LightingOptions;
- 			LightingOptions.QualityLevel = LightingBuildQuality;
+				FLightingBuildOptions LightingOptions;
+ 				LightingOptions.QualityLevel = LightingBuildQuality;
 
 				auto BuildFailedDelegate = [&bShouldProceedWithRebuild,&World]() {
 				UE_LOG(LogContentCommandlet, Error, TEXT("[REPORT] Failed building lighting for %s"), *World->GetOutermost()->GetName());

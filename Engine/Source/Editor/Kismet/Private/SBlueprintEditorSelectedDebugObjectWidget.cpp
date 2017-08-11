@@ -664,6 +664,11 @@ void SBlueprintEditorSelectedDebugObjectWidget::AddDebugObject(UObject* TestObje
 	if (AActor* Actor = Cast<AActor>(TestObject))
 	{
 		Label = Actor->GetActorLabel();
+
+		if (Actor->IsSelected())
+		{
+			Label += TEXT(" (selected)");
+		}
 	}
 	else
 	{

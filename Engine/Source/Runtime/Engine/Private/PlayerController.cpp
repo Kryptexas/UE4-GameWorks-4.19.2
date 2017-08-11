@@ -209,17 +209,20 @@ void APlayerController::FailedToSpawnPawn()
 	ClientGotoState(NAME_Inactive);
 }
 
+FName APlayerController::NetworkRemapPath(FName InPackageName, bool bReading)
+{
+	// For PIE Networking: remap the packagename to our local PIE packagename
+	FString PackageNameStr = InPackageName.ToString();
+	GEngine->NetworkRemapPath(GetNetDriver(), PackageNameStr, bReading);
+	return FName(*PackageNameStr);
+}
+
 /// @cond DOXYGEN_WARNINGS
 
 void APlayerController::ClientUpdateLevelStreamingStatus_Implementation(FName PackageName, bool bNewShouldBeLoaded, bool bNewShouldBeVisible, bool bNewShouldBlockOnLoad, int32 LODIndex )
 {
-	// For PIE Networking: remap the packagename to our local PIE packagename
-	FString PackageNameStr = PackageName.ToString();
-	if (GEngine->NetworkRemapPath(GetNetDriver(), PackageNameStr, true))
-	{
-		PackageName = FName(*PackageNameStr);
-	}
-
+	PackageName = NetworkRemapPath(PackageName, true);
+	
 	// Distance dependent streaming levels should be controlled by client only
 	if (GetWorld() && GetWorld()->WorldComposition)
 	{
@@ -296,6 +299,8 @@ void APlayerController::ServerUpdateLevelVisibility_Implementation(FName Package
 	UNetConnection* Connection = Cast<UNetConnection>(Player);
 	if (Connection != NULL)
 	{
+		PackageName = NetworkRemapPath(PackageName, true);
+
 		// add or remove the level package name from the list, as requested
 		if (bIsVisible)
 		{
@@ -1093,7 +1098,7 @@ void APlayerController::CreateTouchInterface()
 		if (CurrentTouchInterface == nullptr)
 		{
 			// load what the game wants to show at startup
-			FStringAssetReference DefaultTouchInterfaceName = GetDefault<UInputSettings>()->DefaultTouchInterface;
+			FSoftObjectPath DefaultTouchInterfaceName = GetDefault<UInputSettings>()->DefaultTouchInterface;
 
 			if (DefaultTouchInterfaceName.IsValid())
 			{
@@ -3104,7 +3109,7 @@ void APlayerController::ClientForceGarbageCollection_Implementation()
 
 void APlayerController::LevelStreamingStatusChanged(ULevelStreaming* LevelObject, bool bNewShouldBeLoaded, bool bNewShouldBeVisible, bool bNewShouldBlockOnLoad, int32 LODIndex )
 {
-	ClientUpdateLevelStreamingStatus(LevelObject->GetWorldAssetPackageFName(),bNewShouldBeLoaded,bNewShouldBeVisible,bNewShouldBlockOnLoad,LODIndex);
+	ClientUpdateLevelStreamingStatus(NetworkRemapPath(LevelObject->GetWorldAssetPackageFName(), false), bNewShouldBeLoaded, bNewShouldBeVisible, bNewShouldBlockOnLoad, LODIndex);
 }
 
 /// @cond DOXYGEN_WARNINGS

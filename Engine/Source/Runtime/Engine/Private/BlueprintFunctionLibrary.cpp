@@ -1,10 +1,9 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
+#include "Kismet/BlueprintFunctionLibrary.h"
 #include "CoreMinimal.h"
 #include "UObject/Script.h"
-#include "Misc/StringAssetReference.h"
 #include "EngineGlobals.h"
-#include "Kismet/BlueprintFunctionLibrary.h"
 #include "Engine/Engine.h"
 
 #if WITH_EDITOR
@@ -111,15 +110,3 @@ int32 UBlueprintFunctionLibrary::GetFunctionCallspace(UFunction* Function, void*
 	return bAbsorbFunctionCall ? FunctionCallspace::Absorbed : FunctionCallspace::Local;
 }
 
-FStringAssetReference UBlueprintFunctionLibrary::Generic_MakeStringAssetReference(FFrame& Stack, const FString& AssetLongPathname)
-{
-	FStringAssetReference Ref(AssetLongPathname);
-	if (!AssetLongPathname.IsEmpty() && !Ref.IsValid())
-	{
-		FBlueprintExceptionInfo Info(EBlueprintExceptionType::FatalError, NSLOCTEXT("BlueprintFunctionLibrary", "AssetStringInvalid", "Asset path not valid. Only long path name is allowed."));
-		FBlueprintCoreDelegates::ThrowScriptException(Stack.Object, Stack, Info);
-		return FStringAssetReference();
-	}
-
-	return Ref;
-}

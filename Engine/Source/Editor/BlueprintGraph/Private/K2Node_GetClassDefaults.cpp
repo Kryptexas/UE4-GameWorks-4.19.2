@@ -337,6 +337,8 @@ FNodeHandlingFunctor* UK2Node_GetClassDefaults::CreateNodeHandler(FKismetCompile
 
 void UK2Node_GetClassDefaults::ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph)
 {
+	Super::ExpandNode(CompilerContext, SourceGraph);
+
 	const UClass* ClassType = GetInputClass();
 
 	// @TODO - Remove if/when we support 'const' input pins.

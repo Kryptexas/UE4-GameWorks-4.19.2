@@ -7,7 +7,7 @@
 #include "UObject/ObjectMacros.h"
 #include "EdGraph/EdGraphNodeUtils.h"
 #include "K2Node.h"
-#include "Misc/StringClassReference.h"
+#include "UObject/SoftObjectPath.h"
 #include "K2Node_ControlRig.generated.h"
 
 class FBlueprintActionDatabaseRegistrar;
@@ -44,7 +44,7 @@ class UK2Node_ControlRig : public UK2Node
 	 * We need to cache this here as we need to access it during compilation when CDOs etc. may be in flux.
 	 */
 	UPROPERTY()
-	mutable FStringClassReference ControlRigClass;
+	mutable FSoftClassPath ControlRigClass;
 
 	/** Disabled input pins */
 	UPROPERTY(EditAnywhere, Category = "Inputs")

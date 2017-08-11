@@ -749,7 +749,6 @@ void ExportProperties
 				else
 				{
 					// If the array sizes are different, we will need to export each index so on import we maintain the size
-					bool bAnyElementDiffered = ArrayHelper.Num() != DiffArrayHelper.Num();
 					for (int32 DynamicArrayIndex = 0; DynamicArrayIndex < ArrayHelper.Num(); DynamicArrayIndex++)
 					{
 						FString	Value;
@@ -764,7 +763,6 @@ void ExportProperties
 						bool bExportItem = DiffData == NULL || (DiffData != SourceData && !InnerProp->Identical(SourceData, DiffData, ExportFlags));
 						if (bExportItem)
 						{
-							bAnyElementDiffered = true;
 							InnerProp->ExportTextItem(Value, SourceData, DiffData, Parent, ExportFlags, ExportRootScope);
 							if (ExportObjectProp)
 							{
@@ -801,14 +799,6 @@ void ExportProperties
 							}
 
 							Out.Logf(TEXT("%s%s(%i)=%s\r\n"), FCString::Spc(Indent), *Property->GetName(), DynamicArrayIndex, *Value);
-						}
-						// if some other element has already been determined to differ from the defaults, then export this item with no data so that
-						// the different array's size is maintained on import (this item will get the default values for that index, if any)
-						// however, if no elements of the array have changed, we still don't want to export anything
-						// so that the array size will also be taken from the defaults, which won't be the case if any element is exported
-						else if (bAnyElementDiffered)
-						{
-							Out.Logf(TEXT("%s%s(%i)=()\r\n"), FCString::Spc(Indent), *Property->GetName(), DynamicArrayIndex);
 						}
 					}
 					for (int32 DynamicArrayIndex = DiffArrayHelper.Num()-1; DynamicArrayIndex >= ArrayHelper.Num(); --DynamicArrayIndex)

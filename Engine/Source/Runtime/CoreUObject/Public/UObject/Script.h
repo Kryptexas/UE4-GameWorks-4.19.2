@@ -265,7 +265,7 @@ enum EExprToken
 	EX_LetValueOnPersistentFrame = 0x64,
 	EX_ArrayConst			= 0x65,
 	EX_EndArrayConst		= 0x66,
-	EX_AssetConst			= 0x67,
+	EX_SoftObjectConst		= 0x67,
 	EX_CallMath				= 0x68, // static pure function from on local call space
 	EX_SwitchValue			= 0x69,
 	EX_InstrumentationEvent	= 0x6A, // Instrumentation event

@@ -34,7 +34,7 @@ ENUM_CLASS_FLAGS(ECoreRedirectFlags);
 
 
 /**
- * An object path extracted into component names for matching. TODO merge with FStringAssetReference?
+ * An object path extracted into component names for matching. TODO merge with FSoftObjectPath?
  */
 struct COREUOBJECT_API FCoreRedirectObjectName
 {

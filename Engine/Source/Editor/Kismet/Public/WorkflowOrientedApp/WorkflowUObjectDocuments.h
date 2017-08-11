@@ -19,9 +19,9 @@ struct FTabPayload_UObject : public FTabPayload
 {
 public:
 	// Create a new payload wrapper for a UObject
-	static TSharedRef<FTabPayload_UObject> Make(UObject* DocumentID)
+	static TSharedRef<FTabPayload_UObject> Make(const UObject* DocumentID)
 	{
-		return MakeShareable(new FTabPayload_UObject(DocumentID));
+		return MakeShareable(new FTabPayload_UObject(const_cast<UObject*>(DocumentID)));
 	}
 
 	// Helper method to get the payload object as a specific type

@@ -2,7 +2,7 @@
 
 #include "GameplayAbilitiesModule.h"
 #include "UObject/Object.h"
-#include "Misc/StringClassReference.h"
+#include "UObject/SoftObjectPath.h"
 #include "GameFramework/HUD.h"
 #include "AbilitySystemGlobals.h"
 #include "AbilitySystemComponent.h"
@@ -25,7 +25,7 @@ class FGameplayAbilitiesModule : public IGameplayAbilitiesModule
 		// Defer loading of globals to the first time it is requested
 		if (!AbilitySystemGlobals)
 		{
-			FStringClassReference AbilitySystemClassName = (UAbilitySystemGlobals::StaticClass()->GetDefaultObject<UAbilitySystemGlobals>())->AbilitySystemGlobalsClassName;
+			FSoftClassPath AbilitySystemClassName = (UAbilitySystemGlobals::StaticClass()->GetDefaultObject<UAbilitySystemGlobals>())->AbilitySystemGlobalsClassName;
 
 			UClass* SingletonClass = AbilitySystemClassName.TryLoadClass<UObject>();
 			checkf(SingletonClass != nullptr, TEXT("Ability config value AbilitySystemGlobalsClassName is not a valid class name."));

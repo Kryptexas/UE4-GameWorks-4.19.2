@@ -36,5 +36,5 @@ protected:
 	/** Gets base class to use for the 'class' pin.  UObject by default. */
 	virtual UClass* GetClassPinBaseClass() const override;
 	/**  */
-	virtual bool IsSpawnVarPin(UEdGraphPin* Pin) override;
+	virtual bool IsSpawnVarPin(UEdGraphPin* Pin) const override;
 };

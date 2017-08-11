@@ -14,21 +14,21 @@ class NIAGARA_API UNiagaraSettings : public UDeveloperSettings
 		
 	/** Effect to duplicate as the base of all new effect assets created. */
 	UPROPERTY(config, EditAnywhere, Category = Niagara)
-	FStringAssetReference DefaultEffect;
+	FSoftObjectPath DefaultEffect;
 
 	/** Emitter to duplicate as the base of all new emitter assets created. */
 	UPROPERTY(config, EditAnywhere, Category = Niagara)
-	FStringAssetReference DefaultEmitter;
+	FSoftObjectPath DefaultEmitter;
 
 	/** Niagara script to duplicate as the base of all new script assets created. */
 	UPROPERTY(config, EditAnywhere, Category = Niagara)
-	FStringAssetReference DefaultScript;
+	FSoftObjectPath DefaultScript;
 
 	UPROPERTY(config, EditAnywhere, Category = Niagara, meta = (AllowedClasses = "ScriptStruct"))
-	TArray<FStringAssetReference> AdditionalParameterTypes;
+	TArray<FSoftObjectPath> AdditionalParameterTypes;
 
 	UPROPERTY(config, EditAnywhere, Category = Niagara, meta = (AllowedClasses = "ScriptStruct"))
-	TArray<FStringAssetReference> AdditionalPayloadTypes;
+	TArray<FSoftObjectPath> AdditionalPayloadTypes;
 
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;

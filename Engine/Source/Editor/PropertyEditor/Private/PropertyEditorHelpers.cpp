@@ -619,38 +619,16 @@ namespace PropertyEditorHelpers
 		return (NodeProperty->IsA<UObjectPropertyBase>() || NodeProperty->IsA<UInterfaceProperty>()) && (!bUsingAssetPicker || !SPropertyEditorAsset::Supports(NodeProperty));
 	}
 	
-	static bool IsStringAssetReference( const UProperty* Property )
+	static bool IsSoftObjectPath( const UProperty* Property )
 	{
-		bool bIsStringAssetRef = false;
-
 		const UStructProperty* StructProp = Cast<const UStructProperty>( Property );
-		if( StructProp && StructProp->Struct )
-		{
-			FName StructName = StructProp->Struct->GetFName();
-
-			static const FName StringAssetRef("StringAssetReference");
-
-			bIsStringAssetRef = StructName == StringAssetRef;
-		}
-
-		return bIsStringAssetRef;
+		return StructProp && StructProp->Struct == TBaseStructure<FSoftObjectPath>::Get();
 	}
 
-	static bool IsStringClassReference( const UProperty* Property )
+	static bool IsSoftClassPath( const UProperty* Property )
 	{
-		bool bIsStringClassRef = false;
-
-		const UStructProperty* StructProp = Cast<const UStructProperty>( Property );
-		if( StructProp && StructProp->Struct )
-		{
-			FName StructName = StructProp->Struct->GetFName();
-
-			static const FName StringClassRef("StringClassReference");
-
-			bIsStringClassRef = StructName == StringClassRef;
-		}
-
-		return bIsStringClassRef;
+		const UStructProperty* StructProp = Cast<const UStructProperty>(Property);
+		return StructProp && StructProp->Struct == TBaseStructure<FSoftClassPath>::Get();
 	}
 
 	void GetRequiredPropertyButtons( TSharedRef<FPropertyNode> PropertyNode, TArray<EPropertyButton::Type>& OutRequiredButtons, bool bUsingAssetPicker )
@@ -708,7 +686,7 @@ namespace PropertyEditorHelpers
 					else
 					{
 						// ignore class properties
-						if( (Cast<const UClassProperty>( NodeProperty ) == NULL) && (Cast<const UAssetClassProperty>( NodeProperty ) == NULL) )
+						if( (Cast<const UClassProperty>( NodeProperty ) == NULL) && (Cast<const USoftClassProperty>( NodeProperty ) == NULL) )
 						{
 							UObjectPropertyBase* ObjectProperty = Cast<UObjectPropertyBase>( NodeProperty );
 
@@ -734,7 +712,7 @@ namespace PropertyEditorHelpers
 							}
 							
 							// Do not allow actor object properties to show the asset picker
-							if( ( ObjectProperty && !ObjectProperty->PropertyClass->IsChildOf( AActor::StaticClass() ) ) || IsStringAssetReference(NodeProperty) )
+							if( ( ObjectProperty && !ObjectProperty->PropertyClass->IsChildOf( AActor::StaticClass() ) ) || IsSoftObjectPath(NodeProperty) )
 							{
 								// add button for picking the asset from an asset picker
 								OutRequiredButtons.Add( EPropertyButton::PickAsset );
@@ -753,7 +731,7 @@ namespace PropertyEditorHelpers
 		// Handle a class property.
 
 		UClassProperty* ClassProp = Cast<UClassProperty>(NodeProperty);
-		if( ClassProp || IsStringClassReference(NodeProperty))
+		if( ClassProp || IsSoftClassPath(NodeProperty))
 		{
 			OutRequiredButtons.Add( EPropertyButton::Use );			
 			OutRequiredButtons.Add( EPropertyButton::Browse );
@@ -770,7 +748,7 @@ namespace PropertyEditorHelpers
 				OutRequiredButtons.Add( EPropertyButton::Clear );
 			}
 		}
-		else if (NodeProperty->IsA<UAssetClassProperty>() )
+		else if (NodeProperty->IsA<USoftClassProperty>() )
 		{
 			OutRequiredButtons.Add( EPropertyButton::Use );
 			
@@ -843,11 +821,11 @@ namespace PropertyEditorHelpers
 
 		UProperty* Property = PropertyNode->GetProperty();
 		UClassProperty* ClassProperty = Cast<UClassProperty>(Property);
-		UAssetClassProperty* AssetClassProperty = Cast<UAssetClassProperty>(Property);
+		USoftClassProperty* SoftClassProperty = Cast<USoftClassProperty>(Property);
 
-		if (ClassProperty || AssetClassProperty)
+		if (ClassProperty || SoftClassProperty)
 		{
-			UClass const* const SelectedClass = GEditor->GetFirstSelectedClass(ClassProperty ? ClassProperty->MetaClass : AssetClassProperty->MetaClass);
+			UClass const* const SelectedClass = GEditor->GetFirstSelectedClass(ClassProperty ? ClassProperty->MetaClass : SoftClassProperty->MetaClass);
 			if (SelectedClass != nullptr)
 			{
 				SelectionPathName = SelectedClass->GetPathName();

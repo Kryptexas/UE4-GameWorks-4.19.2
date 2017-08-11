@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
-#include "UObject/AssetPtr.h"
+#include "UObject/SoftObjectPtr.h"
 #include "UObject/UnrealType.h"
 #include "Blueprint/BlueprintSupport.h"
 #include "UObject/LinkerPlaceholderBase.h"
@@ -32,14 +32,16 @@ FString UObjectProperty::GetCPPMacroType( FString& ExtendedTypeText ) const
 
 bool UObjectProperty::ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, bool& bOutAdvanceProperty)
 {
-	if (Tag.Type == NAME_AssetObjectProperty || Tag.Type == NAME_AssetSubclassOfProperty)
+	static FName NAME_AssetObjectProperty = "AssetObjectProperty"; // old name of soft object property
+
+	if (Tag.Type == NAME_SoftObjectProperty || Tag.Type == NAME_AssetObjectProperty)
 	{
-		// This property used to be a TAssetPtr<Foo> but is now a raw UObjectProperty Foo*, we can convert without loss of data
-		FAssetPtr PreviousValue;
+		// This property used to be a TSoftObjectPtr<Foo> but is now a raw UObjectProperty Foo*, we can convert without loss of data
+		FSoftObjectPtr PreviousValue;
 		Ar << PreviousValue;
 
 		// now copy the value into the object's address space
-		UObject* PreviousValueObj = PreviousValue.ToStringReference().TryLoad();
+		UObject* PreviousValueObj = PreviousValue.LoadSynchronous();
 		SetPropertyValue_InContainer(Data, PreviousValueObj, Tag.ArrayIndex);
 
 		return true;

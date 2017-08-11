@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
-#include "Misc/StringClassReference.h"
+#include "UObject/SoftObjectPath.h"
 #include "TutorialStateSettings.generated.h"
 
 class UEditorTutorial;
@@ -22,7 +22,7 @@ struct FTutorialProgress
 	}
 
 	UPROPERTY()
-	FStringClassReference Tutorial;
+	FSoftClassPath Tutorial;
 
 	UPROPERTY()
 	int32 CurrentStage;

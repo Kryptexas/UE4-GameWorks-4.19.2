@@ -158,11 +158,11 @@ public:
 
 	/** Asset pin type color */
 	UPROPERTY(EditAnywhere, config, Category = PinColors)
-	FLinearColor AssetPinTypeColor;
+	FLinearColor SoftObjectPinTypeColor;
 
 	/** Asset Class pin type color */
 	UPROPERTY(EditAnywhere, config, Category = PinColors)
-	FLinearColor AssetClassPinTypeColor;
+	FLinearColor SoftClassPinTypeColor;
 
 	/** Delegate pin type color */
 	UPROPERTY(EditAnywhere, config, Category=PinColors)

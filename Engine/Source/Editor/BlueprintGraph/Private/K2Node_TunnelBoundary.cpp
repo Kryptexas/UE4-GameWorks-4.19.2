@@ -306,7 +306,6 @@ void UK2Node_TunnelBoundary::WireUpEntry(UEdGraphNode* SourceNode, UEdGraphPin* 
 		UEdGraphPin* InputPin = CreatePin(EGPD_Input, SourcePin->PinType.PinCategory, SourcePin->PinType.PinSubCategory, SourcePin->PinType.PinSubCategoryObject.Get(), TEXT("EntryBoundary"), SourcePin->PinType.ContainerType, SourcePin->PinType.bIsReference, SourcePin->PinType.bIsConst, INDEX_NONE, SourcePin->PinType.PinValueType);
 		MessageLog.NotifyIntermediatePinCreation(InputPin, SourcePin);
 		UEdGraphPin* OutputPin = CreatePin(EGPD_Output, SourcePin->PinType.PinCategory, SourcePin->PinType.PinSubCategory, SourcePin->PinType.PinSubCategoryObject.Get(), SourcePin->PinName, SourcePin->PinType.ContainerType, SourcePin->PinType.bIsReference, SourcePin->PinType.bIsConst, INDEX_NONE, SourcePin->PinType.PinValueType);
-		MessageLog.AddPinTraceFilter(OutputPin);
 		for (UEdGraphPin* EntryPin : EntryPins)
 		{
 			for (UEdGraphPin* LinkedPin : EntryPin->LinkedTo)
@@ -333,7 +332,6 @@ void UK2Node_TunnelBoundary::WireUpExit(UEdGraphNode* SourceNode, UEdGraphPin* S
 		UEdGraphPin* OutputPin = CreatePin(EGPD_Output, SourcePin->PinType.PinCategory, SourcePin->PinType.PinSubCategory, SourcePin->PinType.PinSubCategoryObject.Get(), SourcePin->PinName, SourcePin->PinType.ContainerType, SourcePin->PinType.bIsReference, SourcePin->PinType.bIsConst, INDEX_NONE, SourcePin->PinType.PinValueType);
 		MessageLog.NotifyIntermediatePinCreation(OutputPin, SourcePin);
 		UEdGraphPin* InputPin = CreatePin(EGPD_Input, SourcePin->PinType.PinCategory, SourcePin->PinType.PinSubCategory, SourcePin->PinType.PinSubCategoryObject.Get(), TEXT("ExitBoundary"), SourcePin->PinType.ContainerType, SourcePin->PinType.bIsReference, SourcePin->PinType.bIsConst, INDEX_NONE, SourcePin->PinType.PinValueType);
-		MessageLog.AddPinTraceFilter(InputPin);
 		for (UEdGraphPin* ExitPin : ExitPins)
 		{
 			for (UEdGraphPin* LinkedPin : ExitPin->LinkedTo)

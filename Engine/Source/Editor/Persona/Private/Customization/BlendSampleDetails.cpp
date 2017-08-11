@@ -6,7 +6,6 @@
 #include "UObject/Class.h"
 #include "IDetailsView.h"
 #include "EditorStyleSet.h"
-#include "Misc/StringAssetReference.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "PropertyHandle.h"
 #include "DetailLayoutBuilder.h"
@@ -215,9 +214,8 @@ bool FBlendSampleDetails::ShouldFilterAssetStatic(const FAssetData& AssetData, c
 	FString SkeletonName;
 	if (AssetData.GetTagValue(SkeletonTagName, SkeletonName))
 	{
-		FStringAssetReference StringAssetReference(SkeletonName);
 		// Check whether or not the skeletons match
-		if (StringAssetReference.ToString() == BlendSpaceBase->GetSkeleton()->GetPathName())
+		if (SkeletonName == BlendSpaceBase->GetSkeleton()->GetPathName())
 		{
 			// If so check if the additive animation tpye is compatible with the blend space
 			const FName AdditiveTypeTagName = GET_MEMBER_NAME_CHECKED(UAnimSequence, AdditiveAnimType);
@@ -250,9 +248,8 @@ bool FBlendSampleDetails::ShouldFilterAsset(const FAssetData& AssetData) const
 	FString SkeletonName;
 	if (AssetData.GetTagValue(SkeletonTagName, SkeletonName))
 	{
-		FStringAssetReference StringAssetReference(SkeletonName);
 		// Check whether or not the skeletons match
-		if (StringAssetReference.ToString() == BlendSpace->GetSkeleton()->GetPathName())
+		if (SkeletonName == BlendSpace->GetSkeleton()->GetPathName())
 		{
 			// If so check if the additive animation tpye is compatible with the blend space
 			const FName AdditiveTypeTagName = GET_MEMBER_NAME_CHECKED(UAnimSequence, AdditiveAnimType);

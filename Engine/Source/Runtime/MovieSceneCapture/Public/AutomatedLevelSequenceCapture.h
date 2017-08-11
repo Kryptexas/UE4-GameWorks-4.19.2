@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
-#include "Misc/StringAssetReference.h"
+#include "UObject/SoftObjectPath.h"
 #include "LevelSequencePlayer.h"
 #include "MovieSceneCapture.h"
 #include "AutomatedLevelSequenceCapture.generated.h"
@@ -119,7 +119,7 @@ private:
 
 	/** A level sequence asset to playback at runtime - used where the level sequence does not already exist in the world. */
 	UPROPERTY()
-	FStringAssetReference LevelSequenceAsset;
+	FSoftObjectPath LevelSequenceAsset;
 
 	/** The pre-existing level sequence actor to use for capture that specifies playback settings */
 	UPROPERTY()

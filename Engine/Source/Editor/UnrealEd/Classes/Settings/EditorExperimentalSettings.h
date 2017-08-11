@@ -59,10 +59,6 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Blueprint Break on Exceptions"))
 	bool bBreakOnExceptions;
 
-	/** Enable experimental blueprint performance analysis tools. */
-	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Blueprint Performance Analysis Tools"))
-	bool bBlueprintPerformanceAnalysisTools;
-
 	/** Enables "Find and Replace All" tool in the MyBlueprint window for variables */
 	UPROPERTY(EditAnywhere, config, Category = Blueprints, meta = (DisplayName = "Find and Replace All References Tool"))
 	bool bEnableFindAndReplaceReferences;

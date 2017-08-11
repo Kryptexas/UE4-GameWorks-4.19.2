@@ -7357,6 +7357,7 @@ void UMaterialExpressionTransformPosition::GetCaption(TArray<FString>& OutCaptio
 UMaterialExpressionComment::UMaterialExpressionComment(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, CommentColor(FLinearColor::White)
+	, FontSize(18)
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
@@ -7397,6 +7398,14 @@ void UMaterialExpressionComment::PostEditChangeProperty(FPropertyChangedEvent& P
 			{
 				GraphNode->Modify();
 				CastChecked<UMaterialGraphNode_Comment>(GraphNode)->CommentColor = CommentColor;
+			}
+		}
+		else if (PropertyName == GET_MEMBER_NAME_CHECKED(UMaterialExpressionComment, FontSize))
+		{
+			if (GraphNode)
+			{
+				GraphNode->Modify();
+				CastChecked<UMaterialGraphNode_Comment>(GraphNode)->FontSize = FontSize;
 			}
 		}
 

@@ -131,8 +131,6 @@ public:
 	/** Whether this package has been fully loaded (aka had all it's exports created) at some point.															*/
 	mutable bool	bHasBeenFullyLoaded;
 private:
-	/** Returns whether exports should be found in memory first before trying to load from disk from within CreateExport.										*/
-	bool	bShouldFindExportsInMemoryFirst;
 	/** Indicates which folder to display this package under in the Generic Browser's list of packages. If not specified, package is added to the root level.	*/
 	FName	FolderName;
 	/** Time in seconds it took to fully load this package. 0 if package is either in process of being loaded or has never been fully loaded.					*/
@@ -294,27 +292,6 @@ public:
 	 * Tags the Package's metadata
 	 */
 	virtual void TagSubobjects(EObjectFlags NewFlags) override;
-
-	/**
-	 * Sets whether exports should be found in memory first or  not.
-	 *
-	 * @param bInShouldFindExportsInMemoryFirst	Whether to find in memory first or not
-	 */
-	void FindExportsInMemoryFirst( bool bInShouldFindExportsInMemoryFirst )
-	{
-		bShouldFindExportsInMemoryFirst = bInShouldFindExportsInMemoryFirst;
-	}
-
-	/**
-	 * Returns whether exports should be found in memory first before trying to load from disk
-	 * from within CreateExport.
-	 *
-	 * @return true if exports should be found via FindObject first, false otherwise.
-	 */
-	bool ShouldFindExportsInMemoryFirst()
-	{
-		return bShouldFindExportsInMemoryFirst;
-	}
 
 	/**
 	 * Called to indicate that this package contains a ULevel or UWorld object.

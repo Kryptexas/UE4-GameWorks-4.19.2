@@ -35,6 +35,7 @@
 #include "UObject/PropertyHelper.h"
 #include "UObject/CoreRedirects.h"
 #include "Serialization/ArchiveScriptReferenceCollector.h"
+#include "UObject/FrameworkObjectVersion.h"
 
 // This flag enables some expensive class tree validation that is meant to catch mutations of 
 // the class tree outside of SetSuperStruct. It has been disabled because loading blueprints 
@@ -172,7 +173,11 @@ void UField::PostLoad()
 void UField::Serialize( FArchive& Ar )
 {
 	Super::Serialize( Ar );
-	Ar << Next;
+	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
+	if (Ar.CustomVer(FFrameworkObjectVersion::GUID) < FFrameworkObjectVersion::RemoveUField_Next)
+	{
+		Ar << Next;
+	}
 }
 
 void UField::AddCppProperty( UProperty* Property )
@@ -546,7 +551,10 @@ void UStruct::GetPreloadDependencies(TArray<UObject*>& OutDeps)
 
 	for (UField* Field = Children; Field; Field = Field->Next)
 	{
-		OutDeps.Add(Field);
+		if (!Cast<UFunction>(Field))
+		{
+			OutDeps.Add(Field);
+		}
 	}
 }
 
@@ -563,8 +571,10 @@ void UStruct::Link(FArchive& Ar, bool bRelinkExistingProperties)
 
 		for (UField* Field = Children; Field; Field = Field->Next)
 		{
-			// calling Preload here is required in order to load the value of Field->Next
-			Ar.Preload(Field);
+			if (!GEventDrivenLoaderEnabled || !Cast<UFunction>(Field))
+			{
+				Ar.Preload(Field);
+			}
 		}
 
 		int32 LoopNum = 1;
@@ -1181,7 +1191,43 @@ void UStruct::Serialize( FArchive& Ar )
 	Super::Serialize( Ar );
 
 	SerializeSuperStruct(Ar);
-	Ar << Children;
+	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
+	if (Ar.CustomVer(FFrameworkObjectVersion::GUID) < FFrameworkObjectVersion::RemoveUField_Next)
+	{
+		Ar << Children;
+	}
+	else
+	{
+		TArray<UField*> ChildArray;
+		if (Ar.IsLoading())
+		{
+			Ar << ChildArray;
+			if (ChildArray.Num())
+			{
+				for (int32 Index = 0; Index + 1 < ChildArray.Num(); Index++)
+				{
+					ChildArray[Index]->Next = ChildArray[Index + 1];
+				}
+				Children = ChildArray[0];
+				ChildArray[ChildArray.Num() - 1]->Next = nullptr;
+			}
+			else
+			{
+				Children = nullptr;
+			}
+		}
+		else
+		{
+			UField* Child = Children;
+			while (Child)
+			{
+				ChildArray.Add(Child);
+				Child = Child->Next;
+			}
+			Ar << ChildArray;
+		}
+	}
+
 
 	if (Ar.IsLoading())
 	{
@@ -2638,15 +2684,18 @@ UObject* UClass::CreateDefaultObject()
 				auto ClassLinker = GetLinker();
 				if (ClassLinker)
 				{
-					UField* FieldIt = Children;
-					while(FieldIt && (FieldIt->GetOuter() == this))
+					if (!GEventDrivenLoaderEnabled)
 					{
-						// If we've had cyclic dependencies between classes here, we might need to preload to ensure that we load the rest of the property chain
-						if( FieldIt->HasAnyFlags(RF_NeedLoad) )
+						UField* FieldIt = Children;
+						while (FieldIt && (FieldIt->GetOuter() == this))
 						{
-							ClassLinker->Preload(FieldIt);
+							// If we've had cyclic dependencies between classes here, we might need to preload to ensure that we load the rest of the property chain
+							if (FieldIt->HasAnyFlags(RF_NeedLoad))
+							{
+								ClassLinker->Preload(FieldIt);
+							}
+							FieldIt = FieldIt->Next;
 						}
-						FieldIt = FieldIt->Next;
 					}
 					
 					StaticLink(true);
@@ -4802,15 +4851,15 @@ UScriptStruct* TBaseStructure<FInt32Interval>::Get()
 	return ScriptStruct;
 }
 
-UScriptStruct* TBaseStructure<FStringAssetReference>::Get()
+UScriptStruct* TBaseStructure<FSoftObjectPath>::Get()
 {
-	static auto ScriptStruct = StaticGetBaseStructureInternal(TEXT("StringAssetReference"));
+	static auto ScriptStruct = StaticGetBaseStructureInternal(TEXT("SoftObjectPath"));
 	return ScriptStruct;
 }
 
-UScriptStruct* TBaseStructure<FStringClassReference>::Get()
+UScriptStruct* TBaseStructure<FSoftClassPath>::Get()
 {
-	static auto ScriptStruct = StaticGetBaseStructureInternal(TEXT("StringClassReference"));
+	static auto ScriptStruct = StaticGetBaseStructureInternal(TEXT("SoftClassPath"));
 	return ScriptStruct;
 }
 

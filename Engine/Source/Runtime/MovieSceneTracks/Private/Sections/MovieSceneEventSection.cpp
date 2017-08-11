@@ -45,14 +45,14 @@ public:
 	}
 
 	/** Serialize an asset ptr */
-	virtual FArchive& operator<<(FAssetPtr& AssetPtr) override
+	virtual FArchive& operator<<(FSoftObjectPtr& AssetPtr) override
 	{
-		FStringAssetReference Ref = AssetPtr.ToStringReference();
+		FSoftObjectPath Ref = AssetPtr.ToSoftObjectPath();
 		*this << Ref;
 
 		if (IsLoading())
 		{
-			AssetPtr = FAssetPtr(Ref);
+			AssetPtr = FSoftObjectPtr(Ref);
 		}
 
 		return *this;

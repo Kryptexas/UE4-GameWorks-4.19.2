@@ -38,7 +38,7 @@ class UPhysicsAsset : public UObject
 	class USkeletalMesh * DefaultSkelMesh_DEPRECATED;
 
 	UPROPERTY()
-	TAssetPtr<class USkeletalMesh> PreviewSkeletalMesh;
+	TSoftObjectPtr<class USkeletalMesh> PreviewSkeletalMesh;
 
 	UPROPERTY(EditAnywhere, Category = Profiles, meta=(DisableCopyPaste))
 	TArray<FName> PhysicalAnimationProfiles;

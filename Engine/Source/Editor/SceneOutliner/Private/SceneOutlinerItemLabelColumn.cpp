@@ -322,7 +322,7 @@ private:
 		if (Actor && Actor->IsActorLabelEditable() && !InLabel.ToString().Equals(Actor->GetActorLabel(), ESearchCase::CaseSensitive))
 		{
 			const FScopedTransaction Transaction( LOCTEXT( "SceneOutlinerRenameActorTransaction", "Rename Actor" ) );
-			Actor->SetActorLabel( InLabel.ToString() );
+			FActorLabelUtilities::RenameExistingActor(Actor, InLabel.ToString());
 
 			auto Outliner = WeakSceneOutliner.Pin();
 			if (Outliner.IsValid())

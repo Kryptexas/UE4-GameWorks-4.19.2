@@ -68,6 +68,10 @@ enum {MAX_ARRAY_SIZE=2048};
 
 static const FName NAME_ToolTip(TEXT("ToolTip"));
 EGeneratedCodeVersion FHeaderParser::DefaultGeneratedCodeVersion = EGeneratedCodeVersion::V1;
+TArray<FString> FHeaderParser::StructsWithNoPrefix;
+TArray<FString> FHeaderParser::StructsWithTPrefix;
+TArray<FString> FHeaderParser::DelegateParameterCountStrings;
+TMap<FString, FString> FHeaderParser::TypeRedirectMap;
 TMap<UClass*, ClassDefinitionRange> ClassDefinitionRanges;
 /**
  * Dirty hack global variable to allow different result codes passed through
@@ -820,19 +824,19 @@ namespace
 				return Result;
 			}
 
-			case CPT_AssetObjectReference:
+			case CPT_SoftObjectReference:
 				check(VarProperty.PropertyClass);
 
 				if (VarProperty.PropertyClass->IsChildOf(UClass::StaticClass()))
 				{
-					UAssetClassProperty* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UAssetClassProperty(FObjectInitializer());
+					USoftClassProperty* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) USoftClassProperty(FObjectInitializer());
 					Result->MetaClass     = VarProperty.MetaClass;
 					Result->PropertyClass = VarProperty.PropertyClass;
 					return Result;
 				}
 				else
 				{
-					UAssetObjectProperty* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) UAssetObjectProperty(FObjectInitializer());
+					USoftObjectProperty* Result = new (EC_InternalUseOnlyConstructor, Scope, Name, ObjectFlags) USoftObjectProperty(FObjectInitializer());
 					Result->PropertyClass = VarProperty.PropertyClass;
 					return Result;
 				}
@@ -1037,7 +1041,7 @@ namespace
 
 		const bool bSupportedType = Property->IsA<UInterfaceProperty>()
 			|| Property->IsA<UClassProperty>()
-			|| Property->IsA<UAssetObjectProperty>()
+			|| Property->IsA<USoftObjectProperty>()
 			|| Property->IsA<UObjectProperty>()
 			|| Property->IsA<UFloatProperty>()
 			|| Property->IsA<UIntProperty>()
@@ -1097,6 +1101,8 @@ FClass* FHeaderParser::GetQualifiedClass(const FClasses& AllClasses, const TCHAR
 	FToken Token;
 	if (GetIdentifier(Token))
 	{
+		RedirectTypeIdentifier(Token);
+
 		FCString::Strncat( ClassName, Token.Identifier, ARRAY_COUNT(ClassName) );
 	}
 
@@ -2043,12 +2049,16 @@ UScriptStruct* FHeaderParser::CompileStructDeclaration(FClasses& AllClasses)
 		FToken ParentScope, ParentName;
 		if (GetIdentifier( ParentScope ))
 		{
+			RedirectTypeIdentifier(ParentScope);
+
 			TSharedPtr<FScope> StructScope = Scope;
 			FString ParentStructNameInScript = FString(ParentScope.Identifier);
 			if (MatchSymbol(TEXT(".")))
 			{
 				if (GetIdentifier(ParentName))
 				{
+					RedirectTypeIdentifier(ParentName);
+
 					ParentStructNameInScript = FString(ParentName.Identifier);
 					FString ParentNameStripped = GetClassNameWithPrefixRemoved(ParentScope.Identifier);
 					FClass* StructClass = AllClasses.FindClass(*ParentNameStripped);
@@ -3623,6 +3633,8 @@ void FHeaderParser::GetVarType(
 		FError::Throwf(TEXT("%s: Missing variable type"), GetHintText(VariableCategory));
 	}
 
+	RedirectTypeIdentifier(VarType);
+
 	if ( VarType.Matches(TEXT("int8")) )
 	{
 		VarProperty = FPropertyBase(CPT_Int8);
@@ -4076,8 +4088,8 @@ void FHeaderParser::GetVarType(
 			UClass* TempClass = NULL;
 
 			const bool bIsLazyPtrTemplate        = VarType.Matches(TEXT("TLazyObjectPtr"));
-			const bool bIsAssetPtrTemplate       = VarType.Matches(TEXT("TAssetPtr"));
-			const bool bIsAssetClassTemplate     = VarType.Matches(TEXT("TAssetSubclassOf"));
+			const bool bIsSoftObjectPtrTemplate  = VarType.Matches(TEXT("TSoftObjectPtr"));
+			const bool bIsSoftClassPtrTemplate   = VarType.Matches(TEXT("TSoftClassPtr"));
 			const bool bIsWeakPtrTemplate        = VarType.Matches(TEXT("TWeakObjectPtr"));
 			const bool bIsAutoweakPtrTemplate    = VarType.Matches(TEXT("TAutoWeakObjectPtr"));
 			const bool bIsScriptInterfaceWrapper = VarType.Matches(TEXT("TScriptInterface"));
@@ -4085,7 +4097,7 @@ void FHeaderParser::GetVarType(
 
 			bool bIsWeak     = false;
 			bool bIsLazy     = false;
-			bool bIsAsset    = false;
+			bool bIsSoft     = false;
 			bool bWeakIsAuto = false;
 
 			if (VarType.Matches(TEXT("TSubclassOf")))
@@ -4097,12 +4109,12 @@ void FHeaderParser::GetVarType(
 				TempClass = UInterface::StaticClass();
 				Flags |= CPF_UObjectWrapper;
 			}
-			else if (bIsAssetClassTemplate)
+			else if (bIsSoftClassPtrTemplate)
 			{
 				TempClass = UClass::StaticClass();
-				bIsAsset = true;
+				bIsSoft = true;
 			}
-			else if (bIsLazyPtrTemplate || bIsWeakPtrTemplate || bIsAutoweakPtrTemplate || bIsScriptInterfaceWrapper || bIsAssetPtrTemplate || bIsSubobjectPtrTemplate)
+			else if (bIsLazyPtrTemplate || bIsWeakPtrTemplate || bIsAutoweakPtrTemplate || bIsScriptInterfaceWrapper || bIsSoftObjectPtrTemplate || bIsSubobjectPtrTemplate)
 			{
 				RequireSymbol(TEXT("<"), VarType.Identifier);
 
@@ -4116,6 +4128,8 @@ void FHeaderParser::GetVarType(
 				FToken InnerClass;
 				if (GetIdentifier(InnerClass))
 				{
+					RedirectTypeIdentifier(InnerClass);
+
 					TempClass = AllClasses.FindScriptClass(InnerClass.Identifier);
 					if (TempClass == nullptr)
 					{
@@ -4135,9 +4149,9 @@ void FHeaderParser::GetVarType(
 					{
 						bIsWeak = true;
 					}
-					else if (bIsAssetPtrTemplate)
+					else if (bIsSoftObjectPtrTemplate)
 					{
-						bIsAsset = true;
+						bIsSoft = true;
 					}
 					else if (bIsSubobjectPtrTemplate)
 					{
@@ -4163,7 +4177,7 @@ void FHeaderParser::GetVarType(
 				bHandledType = true;
 
 				bool bAllowWeak = !(Disallow & CPF_AutoWeak); // if it is not allowing anything, force it strong. this is probably a function arg
-				VarProperty = FPropertyBase( TempClass, bAllowWeak && bIsWeak, bWeakIsAuto, bIsLazy, bIsAsset );
+				VarProperty = FPropertyBase(TempClass, bAllowWeak && bIsWeak, bWeakIsAuto, bIsLazy, bIsSoft);
 				if (TempClass->IsChildOf(UClass::StaticClass()))
 				{
 					if ( MatchSymbol(TEXT("<")) )
@@ -4179,6 +4193,8 @@ void FHeaderParser::GetVarType(
 						{
 							FError::Throwf(TEXT("'class': Missing class limitor"));
 						}
+
+						RedirectTypeIdentifier(Limitor);
 
 						VarProperty.MetaClass = AllClasses.FindScriptClassOrThrow(Limitor.Identifier);
 
@@ -4199,9 +4215,9 @@ void FHeaderParser::GetVarType(
 						FError::Throwf(TEXT("Class variables cannot be lazy, they are always strong."));
 					}
 
-					if (bIsAssetPtrTemplate)
+					if (bIsSoftObjectPtrTemplate)
 					{
-						FError::Throwf(TEXT("Class variables cannot be stored in TAssetPtr, use TAssetSubclassOf instead."));
+						FError::Throwf(TEXT("Class variables cannot be stored in TSoftObjectPtr, use TSoftClassPtr instead."));
 					}
 				}
 
@@ -4384,7 +4400,7 @@ void FHeaderParser::GetVarType(
 		}
 	}
 
-	if ( VarProperty.IsObject() && VarProperty.Type != CPT_AssetObjectReference && VarProperty.MetaClass == nullptr && (VarProperty.PropertyFlags&CPF_Config) != 0 )
+	if ( VarProperty.IsObject() && VarProperty.Type != CPT_SoftObjectReference && VarProperty.MetaClass == nullptr && (VarProperty.PropertyFlags&CPF_Config) != 0 )
 	{
 		FError::Throwf(TEXT("Not allowed to use 'config' with object variables"));
 	}
@@ -5726,6 +5742,18 @@ bool FHeaderParser::IsValidDelegateDeclaration(const FToken& Token) const
 	return (Token.TokenType == TOKEN_Identifier) && TokenStr.StartsWith(TEXT("DECLARE_DYNAMIC_"));
 }
 
+// Modify token to fix redirected types if needed
+void FHeaderParser::RedirectTypeIdentifier(FToken& Token) const
+{
+	check(Token.TokenType == TOKEN_Identifier);
+
+	FString* FoundRedirect = TypeRedirectMap.Find(Token.Identifier);
+	if (FoundRedirect)
+	{
+		Token.SetIdentifier(**FoundRedirect);
+	}
+}
+
 // Parse the parameter list of a function or delegate declaration
 void FHeaderParser::ParseParameterList(FClasses& AllClasses, UFunction* Function, bool bExpectCommaBeforeName, TMap<FName, FString>* MetaData)
 {
@@ -6893,7 +6921,7 @@ void FHeaderParser::ValidatePropertyIsDeprecatedIfNecessary(FPropertyBase& VarPr
 
 	// check to see if we have a UObjectProperty using a deprecated class.
 	// PropertyClass is part of a union, so only check PropertyClass if this token represents an object property
-	if ( (VarProperty.Type == CPT_ObjectReference || VarProperty.Type == CPT_WeakObjectReference || VarProperty.Type == CPT_LazyObjectReference || VarProperty.Type == CPT_AssetObjectReference) && VarProperty.PropertyClass != NULL
+	if ( (VarProperty.Type == CPT_ObjectReference || VarProperty.Type == CPT_WeakObjectReference || VarProperty.Type == CPT_LazyObjectReference || VarProperty.Type == CPT_SoftObjectReference) && VarProperty.PropertyClass != NULL
 		&&	VarProperty.PropertyClass->HasAnyClassFlags(CLASS_Deprecated)	// and the object class being used has been deprecated
 		&& (VarProperty.PropertyFlags&CPF_Deprecated) == 0					// and this property isn't marked deprecated as well
 		&& (OuterPropertyType == NULL || !(OuterPropertyType->PropertyFlags & CPF_Deprecated)) ) // and this property isn't in an array that was marked deprecated either
@@ -7658,34 +7686,53 @@ FHeaderParser::FHeaderParser(FFeedbackContext* InWarn, const FManifestModule& In
 
 	FScriptLocation::Compiler = this;
 
-	// This should be moved to some sort of config
-	StructsWithNoPrefix.Add("uint64");
-	StructsWithNoPrefix.Add("uint32");
-	StructsWithNoPrefix.Add("double");
+	static bool bConfigOptionsInitialized = false;
 
-	StructsWithTPrefix.Add("IndirectArray");
-	StructsWithTPrefix.Add("BitArray");
-	StructsWithTPrefix.Add("SparseArray");
-	StructsWithTPrefix.Add("Set");
-	StructsWithTPrefix.Add("Map");
-	StructsWithTPrefix.Add("MultiMap");
-	StructsWithTPrefix.Add("SharedPtr");
-
-	// List of legal delegate parameter counts
-	DelegateParameterCountStrings.Add(TEXT("_OneParam"));
-	DelegateParameterCountStrings.Add(TEXT("_TwoParams"));
-	DelegateParameterCountStrings.Add(TEXT("_ThreeParams"));
-	DelegateParameterCountStrings.Add(TEXT("_FourParams"));
-	DelegateParameterCountStrings.Add(TEXT("_FiveParams"));
-	DelegateParameterCountStrings.Add(TEXT("_SixParams"));
-	DelegateParameterCountStrings.Add(TEXT("_SevenParams"));
-	DelegateParameterCountStrings.Add(TEXT("_EightParams"));
-	DelegateParameterCountStrings.Add(TEXT("_NineParams"));
-
-	FString Version;
-	if (GConfig->GetString(TEXT("GeneratedCodeVersion"), TEXT("UnrealHeaderTool"), Version, GEngineIni))
+	if (!bConfigOptionsInitialized)
 	{
-		DefaultGeneratedCodeVersion = ToGeneratedCodeVersion(Version);
+		// Read Ini options, GConfig must exist by this point
+		check(GConfig);
+
+		const FName TypeRedirectsKey(TEXT("TypeRedirects"));
+		const FName StructsWithNoPrefixKey(TEXT("StructsWithNoPrefix"));
+		const FName StructsWithTPrefixKey(TEXT("StructsWithTPrefix"));
+		const FName DelegateParameterCountStringsKey(TEXT("DelegateParameterCountStrings"));
+		const FName GeneratedCodeVersionKey(TEXT("GeneratedCodeVersion"));
+
+		FConfigSection* ConfigSection = GConfig->GetSectionPrivate(TEXT("UnrealHeaderTool"), false, true, GEngineIni);
+		if (ConfigSection)
+		{
+			for (FConfigSection::TIterator It(*ConfigSection); It; ++It)
+			{
+				if (It.Key() == TypeRedirectsKey)
+				{
+					FString OldType;
+					FString NewType;
+
+					FParse::Value(*It.Value().GetValue(), TEXT("OldType="), OldType);
+					FParse::Value(*It.Value().GetValue(), TEXT("NewType="), NewType);
+
+					TypeRedirectMap.Add(OldType, NewType);
+				}
+				else if (It.Key() == StructsWithNoPrefixKey)
+				{
+					StructsWithNoPrefix.Add(It.Value().GetValue());
+				}
+				else if (It.Key() == StructsWithTPrefixKey)
+				{
+					StructsWithTPrefix.Add(It.Value().GetValue());
+				}
+				else if (It.Key() == DelegateParameterCountStringsKey)
+				{
+					DelegateParameterCountStrings.Add(It.Value().GetValue());
+				}
+				else if (It.Key() == GeneratedCodeVersionKey)
+				{
+					DefaultGeneratedCodeVersion = ToGeneratedCodeVersion(It.Value().GetValue());
+				}
+			}
+		}
+		bConfigOptionsInitialized = true;
 	}
 }
 

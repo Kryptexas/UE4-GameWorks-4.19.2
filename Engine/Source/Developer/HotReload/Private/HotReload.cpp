@@ -791,40 +791,9 @@ ECompilationResult::Type FHotReloadModule::DoHotReloadFromEditor(const bool bWai
 	return Result;
 }
 
-#if WITH_HOT_RELOAD
-/**
- * Gets duplicated CDO from the cache, renames it and returns.
- */
-UObject* GetCachedCDODuplicate(UObject* CDO, FName Name)
-{
-	UObject* DupCDO = nullptr;
-
-	UObject** DupCDOPtr = GetDuplicatedCDOMap().Find(CDO);
-	if (DupCDOPtr != nullptr)
-	{
-		DupCDO = *DupCDOPtr;
-		DupCDO->Rename(*Name.ToString(), GetTransientPackage(),
-			REN_DoNotDirty | REN_DontCreateRedirectors | REN_ForceNoResetLoaders | REN_NonTransactional | REN_SkipGeneratedClasses);
-	}
-
-	return DupCDO;
-}
-#endif // WITH_HOT_RELOAD
-
 ECompilationResult::Type FHotReloadModule::DoHotReloadInternal(const TMap<FString, FString>& ChangedModules, const TArray<UPackage*>& Packages, const TArray<FName>& InDependentModules, FOutputDevice& HotReloadAr)
 {
 #if WITH_HOT_RELOAD
-
-#if WITH_ENGINE
-	// Register with the BlueprintCompileReinstancer to handle duplicate requests
-	FBlueprintCompileReinstancer::FCDODuplicatesProvider& CDODuplicatesProvider = FBlueprintCompileReinstancer::GetCDODuplicatesProviderDelegate();
-	CDODuplicatesProvider.BindStatic(&GetCachedCDODuplicate);
-	ON_SCOPE_EXIT
-	{
-		CDODuplicatesProvider.Unbind();
-		GetDuplicatedCDOMap().Empty();
-	};
-#endif
 
 	FModuleManager& ModuleManager = FModuleManager::Get();
 

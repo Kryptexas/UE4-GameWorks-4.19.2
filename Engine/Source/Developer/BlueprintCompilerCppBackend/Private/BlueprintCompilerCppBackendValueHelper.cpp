@@ -1071,26 +1071,22 @@ public:
 
 struct FFakeImportTableHelper
 {
-	TSet<UObject*> SerializeBeforeSerializeClassDependencies;
+	TSet<UObject*> SerializeBeforeSerializeStructDependencies;
 
 	TSet<UObject*> SerializeBeforeCreateCDODependencies;
 
-	FFakeImportTableHelper(UClass* SourceClass, UClass* OriginalClass, FEmitterLocalContext& Context)
+	FFakeImportTableHelper(UStruct* SourceStruct, UClass* OriginalClass, FEmitterLocalContext& Context)
 	{
-		if (ensure(SourceClass) && ensure(OriginalClass))
+		UClass* SourceClass = Cast<UClass>(SourceStruct);
+		if (ensure(SourceStruct) && ensure(!SourceClass || OriginalClass))
 		{
-			auto GatherDependencies = [&](UClass* InClass)
+			auto GatherDependencies = [&](UStruct* InStruct)
 			{
-				SerializeBeforeSerializeClassDependencies.Add(InClass->GetSuperClass());
+				SerializeBeforeSerializeStructDependencies.Add(InStruct->GetSuperStruct());
 
-				for (const FImplementedInterface& ImplementedInterface : InClass->Interfaces)
-				{
-					SerializeBeforeSerializeClassDependencies.Add(ImplementedInterface.Class);
-				}
-
-				TArray<UObject*> ObjectsInsideClass;
-				GetObjectsWithOuter(InClass, ObjectsInsideClass, true);
-				for (UObject* Obj : ObjectsInsideClass)
+				TArray<UObject*> ObjectsInsideStruct;
+				GetObjectsWithOuter(InStruct, ObjectsInsideStruct, true);
+				for (UObject* Obj : ObjectsInsideStruct)
 				{
 					UProperty* Property = Cast<UProperty>(Obj);
 					if (!Property)
@@ -1107,28 +1103,40 @@ struct FFakeImportTableHelper
 					// Let UDS_A contain UDS_B. Let UDS_B contain an array or a set of UDS_A. It causes a cyclic dependency. 
 					// Should we try to fix it at this stage?
 
-					const bool bIsParam = (0 != (OwnerProperty->PropertyFlags & CPF_Parm)) && OwnerProperty->IsIn(InClass);
-					const bool bIsMemberVariable = (OwnerProperty->GetOuter() == InClass);
+					const bool bIsParam = (0 != (OwnerProperty->PropertyFlags & CPF_Parm)) && OwnerProperty->IsIn(InStruct);
+					const bool bIsMemberVariable = (OwnerProperty->GetOuter() == InStruct);
 					if (bIsParam || bIsMemberVariable) // Affects the class signature. It is necessary while ZCOnstructor/linking.
 					{
 						TArray<UObject*> LocalPreloadDependencies;
 						Property->GetPreloadDependencies(LocalPreloadDependencies);
 						for (UObject* Dependency : LocalPreloadDependencies)
 						{
-							const bool bDependencyMustBeSerializedBeforeClassIsLinked = Dependency
+							const bool bDependencyMustBeSerializedBeforeStructIsLinked = Dependency
 								&& (Dependency->IsA<UScriptStruct>() || Dependency->IsA<UEnum>());
-							if (bDependencyMustBeSerializedBeforeClassIsLinked)
+							if (bDependencyMustBeSerializedBeforeStructIsLinked)
 							{
-								SerializeBeforeSerializeClassDependencies.Add(Dependency);
+								SerializeBeforeSerializeStructDependencies.Add(Dependency);
 							}
 						}
 					}
 				}
-				SerializeBeforeCreateCDODependencies.Add(InClass->GetSuperClass()->GetDefaultObject());
+
+				if (UClass* Class = Cast<UClass>(InStruct))
+				{
+					for (const FImplementedInterface& ImplementedInterface : Class->Interfaces)
+					{
+						SerializeBeforeSerializeStructDependencies.Add(ImplementedInterface.Class);
+					}
+
+					SerializeBeforeCreateCDODependencies.Add(Class->GetSuperClass()->GetDefaultObject());
+				}
 			};
 
-			GatherDependencies(SourceClass);
-			GatherDependencies(OriginalClass);
+			GatherDependencies(SourceStruct);
+			if (OriginalClass)
+			{
+				GatherDependencies(OriginalClass);
+			}
 
 			auto GetClassesOfSubobjects = [&](TMap<UObject*, FString>& SubobjectsMap)
 			{
@@ -1143,6 +1151,7 @@ struct FFakeImportTableHelper
 					}
 				}
 			};
+
 			GetClassesOfSubobjects(Context.ClassSubobjectsMap);
 			GetClassesOfSubobjects(Context.CommonSubobjectsMap);
 		}
@@ -1154,16 +1163,16 @@ struct FFakeImportTableHelper
 
 		{
 			//Dynamic Class requires no non-native class, owner, archetype..
-			CompactDataRef.ClassDependency.bSerializationBeforeCreateDependency = false;
-			CompactDataRef.ClassDependency.bCreateBeforeCreateDependency = false;
+			CompactDataRef.StructDependency.bSerializationBeforeCreateDependency = false;
+			CompactDataRef.StructDependency.bCreateBeforeCreateDependency = false;
 
-			const bool bDependencyNecessaryForLinking = SerializeBeforeSerializeClassDependencies.Contains(const_cast<UObject*>(Asset));
+			const bool bDependencyNecessaryForLinking = SerializeBeforeSerializeStructDependencies.Contains(const_cast<UObject*>(Asset));
 
 			// Super Class, Interfaces, ScriptStructs, Enums..
-			CompactDataRef.ClassDependency.bSerializationBeforeSerializationDependency = bDependencyNecessaryForLinking;
+			CompactDataRef.StructDependency.bSerializationBeforeSerializationDependency = bDependencyNecessaryForLinking;
 
 			// Everything else
-			CompactDataRef.ClassDependency.bCreateBeforeSerializationDependency = !bDependencyNecessaryForLinking;
+			CompactDataRef.StructDependency.bCreateBeforeSerializationDependency = !bDependencyNecessaryForLinking;
 		}
 
 		{
@@ -1213,10 +1222,14 @@ void FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(FEmitterLocalCon
 	}
 
 	// HELPERS
-	auto SourceClass = Context.GetCurrentlyGeneratedClass();
-	auto OriginalClass = Context.Dependencies.FindOriginalClass(SourceClass);
-	const FString CppClassName = FEmitHelper::GetCppName(SourceClass);
-	FFakeImportTableHelper FakeImportTableHelper(SourceClass, OriginalClass, Context);
+	UStruct* SourceStruct = Context.Dependencies.GetActualStruct();
+	UClass* OriginalClass = nullptr;
+	if (UClass* SourceClass = Cast<UClass>(SourceStruct))
+	{
+		OriginalClass = Context.Dependencies.FindOriginalClass(SourceClass);
+	}
+	const FString CppTypeName = FEmitHelper::GetCppName(SourceStruct);
+	FFakeImportTableHelper FakeImportTableHelper(SourceStruct, OriginalClass, Context);
 
 	auto CreateAssetToLoadString = [&](const UObject* AssetObj) -> FString
 	{
@@ -1249,7 +1262,7 @@ void FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(FEmitterLocalCon
 		if (InAsset && IsEditorOnlyObject(InAsset))
 		{
 			UE_LOG(LogK2Compiler, Warning, TEXT("Nativized %d depends on editor only asset: %s")
-				, (OriginalClass ? *OriginalClass->GetPathName() : *CppClassName)
+				, (OriginalClass ? *OriginalClass->GetPathName() : *CppTypeName)
 				,*InAsset->GetPathName());
 			OptionalComment = TEXT("Editor Only asset");
 			return FCompactBlueprintDependencyData{};
@@ -1311,34 +1324,35 @@ void FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(FEmitterLocalCon
 		{
 			FString OptionalComment;
 			const FCompactBlueprintDependencyData DependencyRecord = CreateDependencyRecord(LocAsset, OptionalComment);
-			Context.AddLine(FString::Printf(TEXT("{%d, %s, %s},  // %s %s ")
-				, DependencyRecord.ObjectRefIndex
-				, *BlueprintDependencyTypeToString(DependencyRecord.ClassDependency)
-				, *BlueprintDependencyTypeToString(DependencyRecord.CDODependency)
-				, *OptionalComment
-				, *LocAsset->GetFullName()));
+
+			if (SourceStruct->IsA<UClass>())
+			{
+				Context.AddLine(FString::Printf(TEXT("{%d, %s, %s},  // %s %s ")
+					, DependencyRecord.ObjectRefIndex
+					, *BlueprintDependencyTypeToString(DependencyRecord.StructDependency)
+					, *BlueprintDependencyTypeToString(DependencyRecord.CDODependency)
+					, *OptionalComment
+					, *LocAsset->GetFullName()));
+			}
+			else
+			{
+				Context.AddLine(FString::Printf(TEXT("{%d, %s},  // %s %s ")
+					, DependencyRecord.ObjectRefIndex
+					, *BlueprintDependencyTypeToString(DependencyRecord.StructDependency)
+					, *OptionalComment
+					, *LocAsset->GetFullName()));
+			}
 		}
 
 		if (Assets.Num())
 		{
 			Context.DecreaseIndent();
 			Context.AddLine(TEXT("};"));
-			Context.AddLine(TEXT("for(const FCompactBlueprintDependencyData CompactData : LocCompactBlueprintDependencyData)"));
+			Context.AddLine(TEXT("for(const FCompactBlueprintDependencyData& CompactData : LocCompactBlueprintDependencyData)"));
 			Context.AddLine(TEXT("{"));
-			if (bEnableBootTimeEDLOptimization)
-			{
-				Context.AddLine(TEXT("\tAssetsToLoad.Add(FBlueprintDependencyData("));
-			}
-			else
-			{
-				Context.AddLine(TEXT("\tAssetsToLoad.AddUnique(FBlueprintDependencyData("));
-			}
-			Context.AddLine(TEXT("\t\tF__NativeDependencies::Get(CompactData.ObjectRefIndex)"));
-			Context.AddLine(TEXT("\t\t,CompactData.ClassDependency"));
-			Context.AddLine(TEXT("\t\t,CompactData.CDODependency"));
-			Context.AddLine(TEXT("\t\t,CompactData.ObjectRefIndex"));
-			Context.AddLine(TEXT("\t));"));
-			Context.AddLine(TEXT("} "));
+			Context.AddLine(FString::Printf(TEXT("\tAssetsToLoad.%s(FBlueprintDependencyData(F__NativeDependencies::Get(CompactData.ObjectRefIndex), CompactData));")
+				, bEnableBootTimeEDLOptimization ? TEXT("Add") : TEXT("AddUnique")));
+			Context.AddLine(TEXT("}"));
 		}
 	};
 
@@ -1360,8 +1374,9 @@ void FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(FEmitterLocalCon
 
 
 	// 3. LIST OF UsedAssets
+	if (SourceStruct->IsA<UClass>())
 	{
-		Context.AddLine(FString::Printf(TEXT("void %s::__StaticDependencies_DirectlyUsedAssets(TArray<FBlueprintDependencyData>& AssetsToLoad)"), *CppClassName));
+		Context.AddLine(FString::Printf(TEXT("void %s::__StaticDependencies_DirectlyUsedAssets(TArray<FBlueprintDependencyData>& AssetsToLoad)"), *CppTypeName));
 		Context.AddLine(TEXT("{"));
 		Context.IncreaseIndent();
 		TArray<const UObject*> AssetsToAdd;
@@ -1379,45 +1394,48 @@ void FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(FEmitterLocalCon
 
 	// 4. REMAINING DEPENDENCIES
 	{
-		Context.AddLine(FString::Printf(TEXT("void %s::__StaticDependenciesAssets(TArray<FBlueprintDependencyData>& AssetsToLoad)"), *CppClassName));
+		Context.AddLine(FString::Printf(TEXT("void %s::__StaticDependenciesAssets(TArray<FBlueprintDependencyData>& AssetsToLoad)"), *CppTypeName));
 		Context.AddLine(TEXT("{"));
 		Context.IncreaseIndent();
 
-		if (!OtherBPGCs.Num() || bEnableBootTimeEDLOptimization)
+		if (SourceStruct->IsA<UClass>())
 		{
-			Context.AddLine(FString(TEXT("__StaticDependencies_DirectlyUsedAssets(AssetsToLoad);")));
-		}
-		else
-		{
-			// To reduce the size of __StaticDependenciesAssets, all __StaticDependenciesAssets of listed BPs will be called.
-			FNativizationSummary::FDependencyRecord& DependencyRecord = FDependenciesGlobalMapHelper::FindDependencyRecord(OriginalClass);
-			ensure(DependencyRecord.Index >= 0); 
-			if (DependencyRecord.NativeLine.IsEmpty())
+			if (!OtherBPGCs.Num() || bEnableBootTimeEDLOptimization)
 			{
-				DependencyRecord.NativeLine = CreateAssetToLoadString(OriginalClass);
+				Context.AddLine(FString(TEXT("__StaticDependencies_DirectlyUsedAssets(AssetsToLoad);")));
 			}
-			Context.AddLine(FString::Printf(TEXT("const int16 __OwnIndex = %d;"), DependencyRecord.Index));
-			Context.AddLine(FString(TEXT("if(FBlueprintDependencyData::ContainsDependencyData(AssetsToLoad, __OwnIndex)) { return; }")));
-			Context.AddLine(TEXT("if(GEventDrivenLoaderEnabled && EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME){ __StaticDependencies_DirectlyUsedAssets(AssetsToLoad); }"));
-			Context.AddLine(TEXT("else"));
-			Context.AddLine(TEXT("{"));
-			Context.IncreaseIndent();
-			Context.AddLine(FString(TEXT("const bool __FirstFunctionCall = !AssetsToLoad.Num();")));
-			Context.AddLine(FString(TEXT("TArray<FBlueprintDependencyData> Temp;")));
-			// Other __StaticDependenciesAssets fucntions should not see the assets added by __StaticDependencies_DirectlyUsedAssets
-			// But in the first function called the assets from __StaticDependencies_DirectlyUsedAssets must go first in unchanged order (to satisfy FConvertedBlueprintsDependencies::FillUsedAssetsInDynamicClass)
-			Context.AddLine(FString(TEXT("__StaticDependencies_DirectlyUsedAssets(__FirstFunctionCall ? AssetsToLoad : Temp);")));
-			Context.AddLine(FString(TEXT("TArray<FBlueprintDependencyData>& ArrayUnaffectedByDirectlyUsedAssets = __FirstFunctionCall ? Temp : AssetsToLoad;")));
-
-			Context.AddLine(FString(TEXT("ArrayUnaffectedByDirectlyUsedAssets.AddUnique(FBlueprintDependencyData(F__NativeDependencies::Get(__OwnIndex), {}, {}, __OwnIndex));")));
-
-			for (const UBlueprintGeneratedClass* OtherBPGC : OtherBPGCs)
+			else
 			{
-				Context.AddLine(FString::Printf(TEXT("%s::__StaticDependenciesAssets(ArrayUnaffectedByDirectlyUsedAssets);"), *FEmitHelper::GetCppName(OtherBPGC)));
+				// To reduce the size of __StaticDependenciesAssets, all __StaticDependenciesAssets of listed BPs will be called.
+				FNativizationSummary::FDependencyRecord& DependencyRecord = FDependenciesGlobalMapHelper::FindDependencyRecord(OriginalClass);
+				ensure(DependencyRecord.Index >= 0);
+				if (DependencyRecord.NativeLine.IsEmpty())
+				{
+					DependencyRecord.NativeLine = CreateAssetToLoadString(OriginalClass);
+				}
+				Context.AddLine(FString::Printf(TEXT("const int16 __OwnIndex = %d;"), DependencyRecord.Index));
+				Context.AddLine(FString(TEXT("if(FBlueprintDependencyData::ContainsDependencyData(AssetsToLoad, __OwnIndex)) { return; }")));
+				Context.AddLine(TEXT("if(GEventDrivenLoaderEnabled && EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME){ __StaticDependencies_DirectlyUsedAssets(AssetsToLoad); }"));
+				Context.AddLine(TEXT("else"));
+				Context.AddLine(TEXT("{"));
+				Context.IncreaseIndent();
+				Context.AddLine(FString(TEXT("const bool __FirstFunctionCall = !AssetsToLoad.Num();")));
+				Context.AddLine(FString(TEXT("TArray<FBlueprintDependencyData> Temp;")));
+				// Other __StaticDependenciesAssets fucntions should not see the assets added by __StaticDependencies_DirectlyUsedAssets
+				// But in the first function called the assets from __StaticDependencies_DirectlyUsedAssets must go first in unchanged order (to satisfy FConvertedBlueprintsDependencies::FillUsedAssetsInDynamicClass)
+				Context.AddLine(FString(TEXT("__StaticDependencies_DirectlyUsedAssets(__FirstFunctionCall ? AssetsToLoad : Temp);")));
+				Context.AddLine(FString(TEXT("TArray<FBlueprintDependencyData>& ArrayUnaffectedByDirectlyUsedAssets = __FirstFunctionCall ? Temp : AssetsToLoad;")));
+
+				Context.AddLine(FString(TEXT("ArrayUnaffectedByDirectlyUsedAssets.AddUnique(FBlueprintDependencyData(F__NativeDependencies::Get(__OwnIndex), {}, {}, __OwnIndex));")));
+
+				for (const UBlueprintGeneratedClass* OtherBPGC : OtherBPGCs)
+				{
+					Context.AddLine(FString::Printf(TEXT("%s::__StaticDependenciesAssets(ArrayUnaffectedByDirectlyUsedAssets);"), *FEmitHelper::GetCppName(OtherBPGC)));
+				}
+				Context.AddLine(FString(TEXT("FBlueprintDependencyData::AppendUniquely(AssetsToLoad, Temp);")));
+				Context.DecreaseIndent();
+				Context.AddLine(TEXT("}"));
 			}
-			Context.AddLine(FString(TEXT("FBlueprintDependencyData::AppendUniquely(AssetsToLoad, Temp);")));
-			Context.DecreaseIndent();
-			Context.AddLine(TEXT("}"));
 		}
 
 		if (bEnableBootTimeEDLOptimization)
@@ -1456,11 +1474,15 @@ void FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(FEmitterLocalCon
 
 void FEmitDefaultValueHelper::AddRegisterHelper(FEmitterLocalContext& Context)
 {
-	auto SourceClass = Context.GetCurrentlyGeneratedClass();
-	auto OriginalClass = Context.Dependencies.FindOriginalClass(SourceClass);
-	const FString CppClassName = FEmitHelper::GetCppName(SourceClass);
+	UStruct* SourceStruct = Context.Dependencies.GetActualStruct();
+	const FString CppTypeName = FEmitHelper::GetCppName(SourceStruct);
 
-	const FString RegisterHelperName = FString::Printf(TEXT("FRegisterHelper__%s"), *CppClassName);
+	if (UClass* SourceClass = Cast<UClass>(SourceStruct))
+	{
+		SourceStruct = Context.Dependencies.FindOriginalClass(SourceClass);
+	}
+
+	const FString RegisterHelperName = FString::Printf(TEXT("FRegisterHelper__%s"), *CppTypeName);
 	Context.AddLine(FString::Printf(TEXT("struct %s"), *RegisterHelperName));
 	Context.AddLine(TEXT("{"));
 	Context.IncreaseIndent();
@@ -1471,8 +1493,8 @@ void FEmitDefaultValueHelper::AddRegisterHelper(FEmitterLocalContext& Context)
 
 	Context.AddLine(FString::Printf(
 		TEXT("FConvertedBlueprintsDependencies::Get().RegisterConvertedClass(TEXT(\"%s\"), &%s::__StaticDependenciesAssets);")
-		, *OriginalClass->GetOutermost()->GetPathName()
-		, *CppClassName));
+		, *SourceStruct->GetOutermost()->GetPathName()
+		, *CppTypeName));
 
 	Context.DecreaseIndent();
 	Context.AddLine(TEXT("}"));

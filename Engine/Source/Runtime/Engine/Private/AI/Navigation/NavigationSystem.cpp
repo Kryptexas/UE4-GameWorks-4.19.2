@@ -404,7 +404,7 @@ void UNavigationSystem::SetSupportedAgentsNavigationClass(int32 AgentIndex, TSub
 
 	if (NavigationDataClass != nullptr)
 	{
-		SupportedAgents[AgentIndex].NavigationDataClassName = FStringClassReference::GetOrCreateIDForClass(NavigationDataClass);
+		SupportedAgents[AgentIndex].NavigationDataClassName = FSoftClassPath::GetOrCreateIDForClass(NavigationDataClass);
 	}
 	else
 	{
@@ -455,7 +455,7 @@ void UNavigationSystem::PostInitProperties()
 				if (SupportedAgentConfig.NavigationDataClass != nullptr && SupportedAgentConfig.NavigationDataClassName.IsValid() == false)
 				{
 					// fill NavigationDataClassName
-					SupportedAgentConfig.NavigationDataClassName = FStringClassReference(SupportedAgentConfig.NavigationDataClass);
+					SupportedAgentConfig.NavigationDataClassName = FSoftClassPath(SupportedAgentConfig.NavigationDataClass);
 				}
 				else
 				{

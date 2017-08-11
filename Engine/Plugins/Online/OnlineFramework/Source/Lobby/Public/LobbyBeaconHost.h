@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
-#include "UObject/AssetPtr.h"
 #include "OnlineBeaconHostObject.h"
 
 #include "LobbyBeaconHost.generated.h"
@@ -93,7 +92,7 @@ protected:
 
 	/** Class to use for the lobby beacon state */
 	UPROPERTY()
-	TAssetSubclassOf<ALobbyBeaconState> LobbyStateClass;
+	TSoftClassPtr<ALobbyBeaconState> LobbyStateClass;
 
 	/** Actor representing the state of the lobby (similar to AGameState) */
 	UPROPERTY()

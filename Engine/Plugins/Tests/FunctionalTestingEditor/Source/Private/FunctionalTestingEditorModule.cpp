@@ -1,6 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EditorAutomationModule.h"
+#include "FunctionalTestingEditorModule.h"
 #include "HAL/IConsoleManager.h"
 #include "Modules/ModuleManager.h"
 #include "UObject/UObjectHash.h"
@@ -101,7 +101,7 @@ FAutoConsoleCommand OpenMapAndFocusActorCmd(
 	FConsoleCommandWithArgsDelegate::CreateStatic(OpenMapAndFocusActor)
 );
 
-class FEditorAutomationModule : public IEditorAutomationModule
+class FFunctionalTestingEditorModule : public IFunctionalTestingEditorModule
 {
 	void StartupModule()
 	{
@@ -111,13 +111,13 @@ class FEditorAutomationModule : public IEditorAutomationModule
 			"General",
 			EExtensionHook::After,
 			nullptr,
-			FMenuExtensionDelegate::CreateRaw(this, &FEditorAutomationModule::OnAutomationToolsMenuCreation));
+			FMenuExtensionDelegate::CreateRaw(this, &FFunctionalTestingEditorModule::OnAutomationToolsMenuCreation));
 
 		// add the menu extension to the editor
 		FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
 		LevelEditorModule.GetMenuExtensibilityManager()->AddExtender(Extender);
 
-		FModuleManager::Get().OnModulesChanged().AddRaw(this, &FEditorAutomationModule::OnModulesChanged);
+		FModuleManager::Get().OnModulesChanged().AddRaw(this, &FFunctionalTestingEditorModule::OnModulesChanged);
 
 		if ( IPlacementModeModule::IsAvailable() )
 		{
@@ -151,7 +151,7 @@ class FEditorAutomationModule : public IEditorAutomationModule
 			LOCTEXT("AutomationLabel", "Test Automation"),
 			LOCTEXT("Tooltip", "Launch the Testing Automation Frontend."),
 			FSlateIcon(FEditorStyle::GetStyleSetName(), "AutomationTools.MenuIcon"),
-			FUIAction(FExecuteAction::CreateStatic(&FEditorAutomationModule::OnShowAutomationFrontend)));
+			FUIAction(FExecuteAction::CreateStatic(&FFunctionalTestingEditorModule::OnShowAutomationFrontend)));
 		MenuBuilder.EndSection();
 
 		// TODO Come up with a way to hide this if no tools are registered.
@@ -160,7 +160,7 @@ class FEditorAutomationModule : public IEditorAutomationModule
 			MenuBuilder.AddSubMenu(
 				LOCTEXT("AutomationTools", "Automation Tools"),
 				LOCTEXT("AutomationToolsToolTip", "Assorted tools to help generate data for some of the automation tests."),
-				FNewMenuDelegate::CreateRaw(this, &FEditorAutomationModule::PopulateAutomationTools)
+				FNewMenuDelegate::CreateRaw(this, &FFunctionalTestingEditorModule::PopulateAutomationTools)
 			);
 		}
 	}
@@ -202,4 +202,4 @@ private:
 
 #undef LOCTEXT_NAMESPACE
 
-IMPLEMENT_MODULE(FEditorAutomationModule, FunctionalTestingEditor);
+IMPLEMENT_MODULE(FFunctionalTestingEditorModule, FunctionalTestingEditor);

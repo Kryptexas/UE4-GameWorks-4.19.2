@@ -28,7 +28,7 @@
 #include "UObject/MetaData.h"
 #include "Templates/Casts.h"
 #include "UObject/LazyObjectPtr.h"
-#include "Misc/StringAssetReference.h"
+#include "UObject/SoftObjectPtr.h"
 #include "UObject/PropertyPortFlags.h"
 #include "UObject/UnrealType.h"
 #include "UObject/ObjectRedirector.h"
@@ -1241,7 +1241,7 @@ void UObject::Serialize( FArchive& Ar )
 	// Invalidate asset pointer caches when loading a new object
 	if (Ar.IsLoading() )
 	{
-		FStringAssetReference::InvalidateTag();
+		FSoftObjectPath::InvalidateTag();
 	}
 
 	// Memory counting (with proper alignment to match C++)
@@ -3135,9 +3135,9 @@ bool StaticExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 						{
 							ExtraInfo = FString::Printf(TEXT("class<%s>"), *ClassProperty->MetaClass->GetName());
 						}
-						else if (UAssetClassProperty* AssetClassProperty = dynamic_cast<UAssetClassProperty*>(It->GetClass()))
+						else if (USoftClassProperty* SoftClassProperty = dynamic_cast<USoftClassProperty*>(It->GetClass()))
 						{
-							ExtraInfo = FString::Printf(TEXT("AssetSubclassOf<%s>"), *AssetClassProperty->MetaClass->GetName());
+							ExtraInfo = FString::Printf(TEXT("AssetSubclassOf<%s>"), *SoftClassProperty->MetaClass->GetName());
 						}
 						else if (UObjectPropertyBase* ObjectPropertyBase = dynamic_cast<UObjectPropertyBase*>(It->GetClass()))
 						{

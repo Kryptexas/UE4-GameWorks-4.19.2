@@ -1403,7 +1403,7 @@ void FSCSEditorTreeNodeRootActor::OnCompleteRename(const FText& InNewName)
 	if (Actor && Actor->IsActorLabelEditable() && !InNewName.ToString().Equals(Actor->GetActorLabel(), ESearchCase::CaseSensitive))
 	{
 		const FScopedTransaction Transaction(LOCTEXT("SCSEditorRenameActorTransaction", "Rename Actor"));
-		Actor->SetActorLabel(InNewName.ToString());
+		FActorLabelUtilities::RenameExistingActor(Actor, InNewName.ToString());
 	}
 }
 
@@ -3269,7 +3269,7 @@ FText SSCS_RowWidget_ActorRoot::GetActorDisplayText() const
 			{
 				FString Name;
 				UBlueprint* Blueprint = UBlueprint::GetBlueprintFromClass(DefaultActor->GetClass());
-				if(Blueprint != nullptr)
+				if(Blueprint != nullptr && SCSEditorPtr->GetEditorMode() != EComponentEditorMode::ActorInstance)
 				{
 					Blueprint->GetName(Name);
 				}
@@ -4035,7 +4035,11 @@ void SSCSEditor::OnFindReferences()
 		if (FoundAssetEditor.IsValid())
 		{
 			const FString VariableName = SelectedNodes[0]->GetVariableName().ToString();
-			const FString SearchTerm = FString::Printf(TEXT("Nodes(VariableReference(MemberName=+\"%s\"))"), *VariableName);
+
+			// Search for both an explicit variable reference (finds get/sets of exactly that var, without including related-sounding variables)
+			// and a softer search for (VariableName) to capture bound component/widget event nodes which wouldn't otherwise show up
+			//@TODO: This logic is duplicated in SMyBlueprint::OnFindReference(), keep in sync
+			const FString SearchTerm = FString::Printf(TEXT("Nodes(VariableReference(MemberName=+\"%s\") || Name=\"(%s)\")"), *VariableName, *VariableName);
 
 			TSharedRef<IBlueprintEditor> BlueprintEditor = StaticCastSharedRef<IBlueprintEditor>(FoundAssetEditor.ToSharedRef());
 			BlueprintEditor->SummonSearchUI(true, SearchTerm);
@@ -6162,7 +6166,7 @@ void SSCSEditor::OnOpenBlueprintEditor(bool bForceCodeEditing) const
 		{
 			if (bForceCodeEditing && (Blueprint->UbergraphPages.Num() > 0))
 			{
-				FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(Blueprint->UbergraphPages[0]);
+				FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(Blueprint->GetLastEditedUberGraph());
 			}
 			else
 			{

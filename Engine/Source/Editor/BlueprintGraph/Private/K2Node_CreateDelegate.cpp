@@ -405,28 +405,13 @@ FText UK2Node_CreateDelegate::GetNodeTitle(ENodeTitleType::Type TitleType) const
 UObject* UK2Node_CreateDelegate::GetJumpTargetForDoubleClick() const
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	UBlueprint* ScopeClassBlueprint = NULL;
+	UClass* ScopeClass = GetScopeClass();
 
-	UEdGraphPin* Pin = FindPinChecked(K2Schema->PN_Self);
-	UEdGraphPin* ResultPin = Pin->LinkedTo.Num() ? Pin->LinkedTo[0] : NULL;
-	if (ResultPin)
-	{
-		ensure(K2Schema->PC_Object == ResultPin->PinType.PinCategory);
-		if (UClass* TrueScopeClass = Cast<UClass>(ResultPin->PinType.PinSubCategoryObject.Get()))
-		{
-			ScopeClassBlueprint = Cast<UBlueprint>(TrueScopeClass->ClassGeneratedBy);
-		}
-		else if (K2Schema->PN_Self == ResultPin->PinType.PinSubCategory)
-		{
-			ScopeClassBlueprint = GetBlueprint();
-		}
-	}
-
-	if (ScopeClassBlueprint)
+	if (UBlueprint* ScopeClassBlueprint = (ScopeClass != nullptr) ? Cast<UBlueprint>(ScopeClass->ClassGeneratedBy) : nullptr)
 	{
 		if (UEdGraph* FoundGraph = FindObject<UEdGraph>(ScopeClassBlueprint, *GetFunctionName().ToString()))
 		{
-			if(!FBlueprintEditorUtils::IsGraphIntermediate(FoundGraph))
+			if (!FBlueprintEditorUtils::IsGraphIntermediate(FoundGraph))
 			{
 				return FoundGraph;
 			}
@@ -434,21 +419,22 @@ UObject* UK2Node_CreateDelegate::GetJumpTargetForDoubleClick() const
 		for (auto UbergraphIt = ScopeClassBlueprint->UbergraphPages.CreateIterator(); UbergraphIt; ++UbergraphIt)
 		{
 			UEdGraph* Graph = (*UbergraphIt);
-			if(!FBlueprintEditorUtils::IsGraphIntermediate(Graph))
+			if (!FBlueprintEditorUtils::IsGraphIntermediate(Graph))
 			{
 				TArray<UK2Node_Event*> EventNodes;
 				Graph->GetNodesOfClass(EventNodes);
-				for (auto EventIt = EventNodes.CreateIterator(); EventIt; ++EventIt)
+				for (UK2Node_Event* EventNode : EventNodes)
 				{
-					if(GetFunctionName() == (*EventIt)->GetFunctionName())
+					if (GetFunctionName() == EventNode->GetFunctionName())
 					{
-						return *EventIt;
+						return EventNode;
 					}
 				}
 			}
 		}
 	}
-	return NULL;
+
+	return GetDelegateSignature();
 }
 
 void UK2Node_CreateDelegate::AddSearchMetaDataInfo(TArray<struct FSearchTagDataPair>& OutTaggedMetaData) const

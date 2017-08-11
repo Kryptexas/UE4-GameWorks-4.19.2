@@ -240,7 +240,7 @@ protected:
 #if WITH_EDITORONLY_DATA
 	/** World references for mesh components stored in other streaming levels */
 	UPROPERTY(TextExportTransient, NonPIEDuplicateTransient)
-	TArray<TAssetPtr<UWorld>> ForeignWorlds;
+	TArray<TSoftObjectPtr<UWorld>> ForeignWorlds;
 
 	/** Key for tracking whether this segment has been modified relative to the mesh components stored in other streaming levels */
 	UPROPERTY(TextExportTransient, NonPIEDuplicateTransient)
@@ -264,7 +264,7 @@ public:
 	void UpdateSplineEditorMesh();
 	virtual void DeleteSplinePoints();
 
-	const TArray<TAssetPtr<UWorld>>& GetForeignWorlds() const { return ForeignWorlds; }
+	const TArray<TSoftObjectPtr<UWorld>>& GetForeignWorlds() const { return ForeignWorlds; }
 	FGuid GetModificationKey() const { return ModificationKey; }
 #endif
 

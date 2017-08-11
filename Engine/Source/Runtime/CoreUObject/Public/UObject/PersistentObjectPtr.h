@@ -10,10 +10,10 @@
 #include "UObject/WeakObjectPtr.h"
 
 /**
- * TPersistentObjectPtr is a template base class for FLazyObjectPtr and FAssetPtr
+ * TPersistentObjectPtr is a template base class for FLazyObjectPtr and FSoftObjectPtr
  */
 template<class TObjectID>
-class TPersistentObjectPtr
+struct TPersistentObjectPtr
 {
 public:	
 
@@ -120,7 +120,12 @@ public:
 		{
 			Object = ObjectID.ResolveObject();
 			WeakPtr = Object;
-			TagAtLastTest = TObjectID::GetCurrentTag();
+
+			// Not safe to update tag during save as ResolveObject may have failed accidentally
+			if (Object || !GIsSavingPackage)
+			{
+				TagAtLastTest = TObjectID::GetCurrentTag();
+			}
 
 			// If this object is pending kill or otherwise invalid, this will return nullptr as expected
 			Object = WeakPtr.Get();
@@ -141,7 +146,12 @@ public:
 		{
 			Object = ObjectID.ResolveObject();
 			WeakPtr = Object;
-			TagAtLastTest = TObjectID::GetCurrentTag();
+
+			// Not safe to update tag during save as ResolveObject may have failed accidentally
+			if (Object || !GIsSavingPackage)
+			{
+				TagAtLastTest = TObjectID::GetCurrentTag();
+			}
 
 			// If this object is pending kill or otherwise invalid, this will return nullptr as expected
 			Object = WeakPtr.Get(bEvenIfPendingKill);
@@ -229,7 +239,7 @@ public:
 	 */
 	FORCEINLINE bool IsNull() const
 	{
-		return Get() == nullptr && !ObjectID.IsValid();
+		return !ObjectID.IsValid();
 	}
 
 	/** Hash function */

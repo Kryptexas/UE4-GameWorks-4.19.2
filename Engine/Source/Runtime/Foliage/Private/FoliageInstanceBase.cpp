@@ -128,7 +128,7 @@ FFoliageInstanceBaseId FFoliageInstanceBaseCache::AddInstanceBaseId(UActorCompon
 				UWorld* ComponentWorld = Cast<UWorld>(ComponentLevel->GetOuter());
 				if (ComponentWorld)
 				{
-					auto WorldKey = TAssetPtr<UWorld>(ComponentWorld);
+					auto WorldKey = TSoftObjectPtr<UWorld>(ComponentWorld);
 					InstanceBaseLevelMap.FindOrAdd(WorldKey).Add(BaseInfo.BasePtr);
 				}
 			}
@@ -226,7 +226,7 @@ void FFoliageInstanceBaseCache::CompactInstanceBaseCache(AInstancedFoliageActor*
 		// Check sub-levels
 		if (!bExists)
 		{
-			const FName PackageName = FName(*FPackageName::ObjectPathToPackageName(WorldAsset.ToStringReference().ToString()));
+			const FName PackageName = FName(*FPackageName::ObjectPathToPackageName(WorldAsset.ToString()));
 			if (World->WorldComposition)
 			{
 				bExists = World->WorldComposition->DoesTileExists(PackageName);

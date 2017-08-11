@@ -25,6 +25,10 @@ class ENGINE_API UUserDefinedEnum : public UEnum
 #if WITH_EDITORONLY_DATA
 	UPROPERTY()
 	uint32 UniqueNameIndex;
+
+	/** Shows up in the content browser when the enum asset is hovered */
+	UPROPERTY(EditAnywhere, Category=Description, meta=(MultiLine=true))
+	FText EnumDescription;
 #endif //WITH_EDITORONLY_DATA
 
 	/**
@@ -67,6 +71,8 @@ public:
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 	virtual void PostLoad() override;
 	virtual void PostEditUndo() override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent);
+	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 	//~ End UObject Interface
 
 	FString GenerateNewEnumeratorName();

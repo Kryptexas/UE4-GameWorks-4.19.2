@@ -48,7 +48,7 @@ void UGameplayTagsManager::LoadGameplayTagTables()
 
 	UGameplayTagsSettings* MutableDefault = GetMutableDefault<UGameplayTagsSettings>();
 
-	for (FStringAssetReference DataTablePath : MutableDefault->GameplayTagTableList)
+	for (FSoftObjectPath DataTablePath : MutableDefault->GameplayTagTableList)
 	{
 		UDataTable* TagTable = LoadObject<UDataTable>(nullptr, *DataTablePath.ToString(), nullptr, LOAD_None, nullptr);
 

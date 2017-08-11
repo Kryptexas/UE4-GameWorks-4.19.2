@@ -28,6 +28,10 @@ class UMaterialExpressionComment : public UMaterialExpression
 	UPROPERTY(EditAnywhere, Category=MaterialExpressionComment)
 	FLinearColor CommentColor;
 
+	/** Size of the text in the comment box */
+	UPROPERTY(EditAnywhere, Category=MaterialExpressionComment, meta=(ClampMin=1, ClampMax=1000))
+	int32 FontSize;
+
 	//~ Begin UObject Interface
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;

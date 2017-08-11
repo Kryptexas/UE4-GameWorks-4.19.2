@@ -130,15 +130,14 @@ FCoreUObjectDelegates::FPreLoadMapDelegate FCoreUObjectDelegates::PreLoadMap;
 FCoreUObjectDelegates::FPostLoadMapDelegate FCoreUObjectDelegates::PostLoadMapWithWorld;
 PRAGMA_DISABLE_DEPRECATION_WARNINGS
 FSimpleMulticastDelegate FCoreUObjectDelegates::PostLoadMap;
-FCoreUObjectDelegates::FStringAssetReferenceLoaded FCoreUObjectDelegates::StringAssetReferenceLoaded;
-FCoreUObjectDelegates::FStringAssetReferenceSaving FCoreUObjectDelegates::StringAssetReferenceSaving;
+FCoreUObjectDelegates::FSoftObjectPathLoaded FCoreUObjectDelegates::StringAssetReferenceLoaded;
+FCoreUObjectDelegates::FSoftObjectPathSaving FCoreUObjectDelegates::StringAssetReferenceSaving;
 FCoreUObjectDelegates::FOnRedirectorFollowed FCoreUObjectDelegates::RedirectorFollowed;
 PRAGMA_ENABLE_DEPRECATION_WARNINGS
 FSimpleMulticastDelegate FCoreUObjectDelegates::PostDemoPlay;
 FCoreUObjectDelegates::FOnLoadObjectsOnTop FCoreUObjectDelegates::ShouldLoadOnTop;
 
 FCoreUObjectDelegates::FPackageCreatedForLoad FCoreUObjectDelegates::PackageCreatedForLoad;
-FCoreUObjectDelegates::FPackageLoadedFromStringAssetReference FCoreUObjectDelegates::PackageLoadedFromStringAssetReference;
 FCoreUObjectDelegates::FGetPrimaryAssetIdForObject FCoreUObjectDelegates::GetPrimaryAssetIdForObject;
 
 /** Check whether we should report progress or not */
@@ -652,6 +651,16 @@ UPackage* CreatePackage( UObject* InOuter, const TCHAR* PackageName )
 
 FString ResolveIniObjectsReference(const FString& ObjectReference, const FString* IniFilename, bool bThrow)
 {
+	if (!IniFilename)
+	{
+		IniFilename = GetIniFilenameFromObjectsReference(ObjectReference);
+	}
+
+	if (!IniFilename)
+	{
+		return ObjectReference;
+	}
+
 	// Get .ini key and section.
 	FString Section = ObjectReference.Mid(1 + ObjectReference.Find(TEXT(":"), ESearchCase::CaseSensitive));
 	int32 i = Section.Find(TEXT("."), ESearchCase::CaseSensitive, ESearchDir::FromEnd);
@@ -668,7 +677,7 @@ FString ResolveIniObjectsReference(const FString& ObjectReference, const FString
 	if (!GConfig->GetString(*Section, *Key, Output, *IniFilename))
 	{
 		if (bThrow == true)
-{
+		{
 			UE_LOG(LogUObjectGlobals, Error, TEXT(" %s %s "), *FString::Printf(TEXT("Can't find '%s' in configuration file section=%s key=%s"), *ObjectReference, *Section, *Key), **IniFilename);
 		}
 	}
@@ -704,13 +713,6 @@ const FString* GetIniFilenameFromObjectsReference(const FString& Name)
 //
 bool ResolveName(UObject*& InPackage, FString& InOutName, bool Create, bool Throw, uint32 LoadFlags /*= LOAD_None*/)
 {
-	const FString* IniFilename = GetIniFilenameFromObjectsReference(InOutName);
-
-	if (IniFilename && InOutName.Contains(TEXT("."), ESearchCase::CaseSensitive))
-	{
-		InOutName = ResolveIniObjectsReference(InOutName, IniFilename, Throw);
-	}
-
 	// Strip off the object class.
 	ConstructorHelpers::StripObjectClass( InOutName );
 
@@ -1683,7 +1685,7 @@ void EndLoad()
 	}
 
 	// Loaded new objects, so allow reaccessing asset ptrs
-	FStringAssetReference::InvalidateTag();
+	FSoftObjectPath::InvalidateTag();
 }
 
 /*-----------------------------------------------------------------------------
@@ -2245,10 +2247,8 @@ UObject* StaticAllocateObject
 	if (bCreatingCDO)
 	{
 		check(InClass->GetClass());
-		if( !GIsDuplicatingClassForReinstancing || InClass->HasAnyClassFlags(CLASS_Native) )
-		{
-			InName = InClass->GetDefaultObjectName();
-		}
+		ensure(!GIsDuplicatingClassForReinstancing || InClass->HasAnyClassFlags(CLASS_Native));
+		InName = InClass->GetDefaultObjectName();
 		// never call PostLoad on class default objects
 		InFlags &= ~(RF_NeedPostLoad|RF_NeedPostLoadSubobjects);
 	}
@@ -4047,10 +4047,10 @@ namespace UE4CodeGen_Private
 			}
 			break;
 
-			case EPropertyClass::AssetObject:
+			case EPropertyClass::SoftObject:
 			{
-				const FAssetObjectPropertyParams* Prop = (const FAssetObjectPropertyParams*)PropBase;
-				NewProp = new (EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Prop->NameUTF8), Prop->ObjectFlags) UAssetObjectProperty(FObjectInitializer(), EC_CppProperty, Prop->Offset, Prop->PropertyFlags, Prop->ClassFunc ? Prop->ClassFunc() : nullptr);
+				const FSoftObjectPropertyParams* Prop = (const FSoftObjectPropertyParams*)PropBase;
+				NewProp = new (EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Prop->NameUTF8), Prop->ObjectFlags) USoftObjectProperty(FObjectInitializer(), EC_CppProperty, Prop->Offset, Prop->PropertyFlags, Prop->ClassFunc ? Prop->ClassFunc() : nullptr);
 
 #if WITH_METADATA
 				MetaDataArray = Prop->MetaDataArray;
@@ -4071,10 +4071,10 @@ namespace UE4CodeGen_Private
 			}
 			break;
 
-			case EPropertyClass::AssetClass:
+			case EPropertyClass::SoftClass:
 			{
-				const FAssetClassPropertyParams* Prop = (const FAssetClassPropertyParams*)PropBase;
-				NewProp = new (EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Prop->NameUTF8), Prop->ObjectFlags) UAssetClassProperty(FObjectInitializer(), EC_CppProperty, Prop->Offset, Prop->PropertyFlags, Prop->MetaClassFunc ? Prop->MetaClassFunc() : nullptr);
+				const FSoftClassPropertyParams* Prop = (const FSoftClassPropertyParams*)PropBase;
+				NewProp = new (EC_InternalUseOnlyConstructor, Outer, UTF8_TO_TCHAR(Prop->NameUTF8), Prop->ObjectFlags) USoftClassProperty(FObjectInitializer(), EC_CppProperty, Prop->Offset, Prop->PropertyFlags, Prop->MetaClassFunc ? Prop->MetaClassFunc() : nullptr);
 
 #if WITH_METADATA
 				MetaDataArray = Prop->MetaDataArray;

@@ -1067,7 +1067,7 @@ private:
 		return *this;
 	}
 
-	virtual FArchive& operator<< (class FAssetPtr& Value) override
+	virtual FArchive& operator<< (struct FSoftObjectPtr& Value) override
 	{
 		if ( Value.Get() )
 		{
@@ -1075,7 +1075,7 @@ private:
 		}
 		return *this;
 	}
-	virtual FArchive& operator<< (struct FStringAssetReference& Value) override
+	virtual FArchive& operator<< (struct FSoftObjectPath& Value) override
 	{
 		if ( Value.ResolveObject() )
 		{
@@ -1273,7 +1273,7 @@ bool UCookOnTheFlyServer::ContainsMap(const FName& PackageName) const
 	return false;
 }
 
-bool UCookOnTheFlyServer::ContainsRedirector(const FName& PackageName, TMap<FString, FString>& RedirectedPaths) const
+bool UCookOnTheFlyServer::ContainsRedirector(const FName& PackageName, TMap<FName, FName>& RedirectedPaths) const
 {
 	bool bFoundRedirector = false;
 	TArray<FAssetData> Assets;
@@ -1283,22 +1283,25 @@ bool UCookOnTheFlyServer::ContainsRedirector(const FName& PackageName, TMap<FStr
 	{
 		if (Asset.IsRedirector())
 		{
-			FString OriginalPath = Asset.ObjectPath.ToString();
-			FString RedirectedPath;
-			if (Asset.GetTagValue("DestinationObject", RedirectedPath))
+			FName RedirectedPath;
+			FString RedirectedPathString;
+			if (Asset.GetTagValue("DestinationObject", RedirectedPathString))
 			{
-				ConstructorHelpers::StripObjectClass(RedirectedPath);
-				FAssetData DestinationData = AssetRegistry->GetAssetByObjectPath(FName(*RedirectedPath), true);
-				TSet<FString> SeenPaths;
+				ConstructorHelpers::StripObjectClass(RedirectedPathString);
+				RedirectedPath = FName(*RedirectedPathString);
+				FAssetData DestinationData = AssetRegistry->GetAssetByObjectPath(RedirectedPath, true);
+				TSet<FName> SeenPaths;
 
 				SeenPaths.Add(RedirectedPath);
 
 				// Need to follow chain of redirectors
 				while (DestinationData.IsRedirector())
 				{
-					if (DestinationData.GetTagValue("DestinationObject", RedirectedPath))
+					if (DestinationData.GetTagValue("DestinationObject", RedirectedPathString))
 					{
-						ConstructorHelpers::StripObjectClass(RedirectedPath);
+						ConstructorHelpers::StripObjectClass(RedirectedPathString);
+						RedirectedPath = FName(*RedirectedPathString);
+
 						if (SeenPaths.Contains(RedirectedPath))
 						{
 							// Recursive, bail
@@ -1307,7 +1310,7 @@ bool UCookOnTheFlyServer::ContainsRedirector(const FName& PackageName, TMap<FStr
 						else
 						{
 							SeenPaths.Add(RedirectedPath);
-							DestinationData = AssetRegistry->GetAssetByObjectPath(FName(*RedirectedPath), true);
+							DestinationData = AssetRegistry->GetAssetByObjectPath(RedirectedPath, true);
 						}
 					}
 					else
@@ -1322,7 +1325,7 @@ bool UCookOnTheFlyServer::ContainsRedirector(const FName& PackageName, TMap<FStr
 
 				if (!bDestinationValid)
 				{
-					FName StandardPackageName = GetCachedStandardPackageFileFName(FName(*FPackageName::ObjectPathToPackageName(RedirectedPath)));
+					FName StandardPackageName = GetCachedStandardPackageFileFName(FName(*FPackageName::ObjectPathToPackageName(RedirectedPathString)));
 					if (StandardPackageName != NAME_None)
 					{
 						bDestinationValid = true;
@@ -1331,12 +1334,12 @@ bool UCookOnTheFlyServer::ContainsRedirector(const FName& PackageName, TMap<FStr
 
 				if (bDestinationValid)
 				{
-					RedirectedPaths.Add(OriginalPath, RedirectedPath);
+					RedirectedPaths.Add(Asset.ObjectPath, RedirectedPath);
 				}
 				else
 				{
-					RedirectedPaths.Add(OriginalPath, FString());
-					UE_LOG(LogCook, Log, TEXT("Found redirector in package %s pointing to deleted object %s"), *PackageName.ToString(), *RedirectedPath);
+					RedirectedPaths.Add(Asset.ObjectPath, NAME_None);
+					UE_LOG(LogCook, Log, TEXT("Found redirector in package %s pointing to deleted object %s"), *PackageName.ToString(), *RedirectedPathString);
 				}
 
 				bFoundRedirector = true;
@@ -1374,30 +1377,6 @@ FString UCookOnTheFlyServer::GetBaseDirectoryForDLC() const
 }
 
 COREUOBJECT_API extern bool GOutputCookingWarnings;
-
-
-/**
- * Callback for handling string asset references being loaded
- */
-void UCookOnTheFlyServer::OnStringAssetReferenceLoadedPackage(const FName& PackageFName)
-{
-	if (IsCookByTheBookMode())
-	{
-		FName StandardPackageName = GetCachedStandardPackageFileFName(PackageFName);
-		if (StandardPackageName != NAME_None)
-		{
-			RequestPackage(StandardPackageName, true); // force to front of queue because we know this package is now loaded
-		}
-		else
-		{
-			if (!FPackageName::IsScriptPackage(PackageFName.ToString()) && !FPackageName::IsMemoryPackage(PackageFName.ToString()))
-			{
-				UE_LOG(LogCook, Warning, TEXT("Unable to find cached package name for package %s"), *PackageFName.ToString());
-			}
-		}
-	}
-}
-
 
 bool UCookOnTheFlyServer::RequestPackage(const FName& StandardPackageFName, const TArray<FName>& TargetPlatforms, const bool bForceFrontOfQueue)
 {
@@ -1837,7 +1816,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 		(!(Result & COSR_WaitingOnChildCookers)))
 	{
 		check(IsCookByTheBookMode());
-		// UE_LOG(LogCook, Display, TEXT("String asset reference resolve tried %d did %d"), bTriedToRunStringAssetReferenceResolve, bHasRunStringAssetReferenceResolve);
+
 		// if we are out of stuff and we are in cook by the book from the editor mode then we finish up
 		CookByTheBookFinished();
 	}
@@ -2086,7 +2065,6 @@ void UCookOnTheFlyServer::GetAllUnsolicitedPackages(TArray<UPackage*>& PackagesT
 		}
 		SCOPE_TIMER(UnsolicitedMarkup);
 		GetUnsolicitedPackages(PackagesToSave, ContainsFullAssetGCClasses, TargetPlatformNames);
-		
 	}
 }
 
@@ -3083,25 +3061,25 @@ void UCookOnTheFlyServer::SaveCookedPackage(UPackage* Package, uint32 SaveFlags,
 	FString Filename(GetCachedPackageFilename(Package));
 
 	// Don't resolve, just add to request list as needed
-	TSet<FName> StringAssetPackages;
+	TSet<FName> SoftObjectPackages;
 
-	GRedirectCollector.ProcessStringAssetReferencePackageList(Package->GetFName(), false, StringAssetPackages);
+	GRedirectCollector.ProcessSoftObjectPathPackageList(Package->GetFName(), false, SoftObjectPackages);
 	
-	for (FName StringAssetPackage : StringAssetPackages)
+	for (FName SoftObjectPackage : SoftObjectPackages)
 	{
-		TMap<FString, FString> RedirectedPaths;
+		TMap<FName, FName> RedirectedPaths;
 
 		// If this is a redirector, extract destination from asset registry
-		if (ContainsRedirector(StringAssetPackage, RedirectedPaths))
+		if (ContainsRedirector(SoftObjectPackage, RedirectedPaths))
 		{
-			for (TPair<FString, FString>& RedirectedPath : RedirectedPaths)
+			for (TPair<FName, FName>& RedirectedPath : RedirectedPaths)
 			{
 				GRedirectCollector.AddAssetPathRedirection(RedirectedPath.Key, RedirectedPath.Value);
 			}
 		}
 
 		// Verify package actually exists
-		FName StandardPackageName = GetCachedStandardPackageFileFName(StringAssetPackage);
+		FName StandardPackageName = GetCachedStandardPackageFileFName(SoftObjectPackage);
 
 		if (StandardPackageName != NAME_None && IsCookByTheBookMode() && !CookByTheBookOptions->bDisableUnsolicitedPackages)
 		{
@@ -3215,7 +3193,7 @@ void UCookOnTheFlyServer::SaveCookedPackage(UPackage* Package, uint32 SaveFlags,
 					if (World)
 					{
 						// Fixup legacy lightmaps before saving
-						// This should be done after loading, but FRedirectCollector::ResolveStringAssetReference in Core loads UWorlds with LoadObject so there's no opportunity to handle this fixup on load
+						// This should be done after loading, but Core loads UWorlds with LoadObject so there's no opportunity to handle this fixup on load
 						World->PersistentLevel->HandleLegacyMapBuildData();
 					}
 
@@ -3281,11 +3259,6 @@ void UCookOnTheFlyServer::Initialize( ECookMode::Type DesiredCookMode, ECookInit
 	if (IsCookByTheBookMode() && !IsCookingInEditor())
 	{
 		FCoreUObjectDelegates::PackageCreatedForLoad.AddUObject(this, &UCookOnTheFlyServer::MaybeMarkPackageAsAlreadyLoaded);
-	}
-
-	if (IsCookByTheBookMode())
-	{
-		FCoreUObjectDelegates::PackageLoadedFromStringAssetReference.AddUObject(this, &UCookOnTheFlyServer::OnStringAssetReferenceLoadedPackage);
 	}
 
 	if (IsCookingInEditor())
@@ -4691,13 +4664,6 @@ void UCookOnTheFlyServer::GenerateAssetRegistry()
 		return;
 	}
 
-	if (IsCookingInEditor() == false)
-	{
-		// we want to register the temporary save directory if we are cooking outside the editor.  
-		// If we are cooking inside the editor we never use this directory so don't worry about registring it
-		FPackageName::RegisterMountPoint(TEXT("/TempAutosave/"), FPaths::ProjectSavedDir() / GEngine->PlayOnConsoleSaveDir);
-	}
-
 	double GenerateAssetRegistryTime = 0.0;
 	{
 		SCOPE_TIMER(GenerateAssetRegistryTime);
@@ -5344,7 +5310,6 @@ void UCookOnTheFlyServer::CookByTheBookFinished()
 
 	GetDerivedDataCacheRef().WaitForQuiescence(true);
 	
-	GRedirectCollector.LogTimers();
 	UCookerSettings const* CookerSettings = GetDefault<UCookerSettings>();
 
 	const UProjectPackagingSettings* const PackagingSettings = GetDefault<UProjectPackagingSettings>();
@@ -5984,27 +5949,27 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 	}
 
 	TArray<FName> FilesInPath;
-	TSet<FName> StartupStringAssetPackages;
+	TSet<FName> StartupSoftObjectPackages;
 
 	// Get the list of string asset references, for both empty package and all startup packages
-	GRedirectCollector.ProcessStringAssetReferencePackageList(NAME_None, false, StartupStringAssetPackages);
+	GRedirectCollector.ProcessSoftObjectPathPackageList(NAME_None, false, StartupSoftObjectPackages);
 
 	for (const FName& StartupPackage : CookByTheBookOptions->StartupPackages)
 	{
-		GRedirectCollector.ProcessStringAssetReferencePackageList(StartupPackage, false, StartupStringAssetPackages);
+		GRedirectCollector.ProcessSoftObjectPathPackageList(StartupPackage, false, StartupSoftObjectPackages);
 	}
 
 	CollectFilesToCook(FilesInPath, CookMaps, CookDirectories, CookCultures, IniMapSections, CookOptions);
 
 	// Add string asset packages after collecting files, to avoid accidentally activating the behavior to cook all maps if none are specified
-	for (FName StringAssetPackage : StartupStringAssetPackages)
+	for (FName SoftObjectPackage : StartupSoftObjectPackages)
 	{
-		TMap<FString, FString> RedirectedPaths;
+		TMap<FName, FName> RedirectedPaths;
 
 		// If this is a redirector, extract destination from asset registry
-		if (ContainsRedirector(StringAssetPackage, RedirectedPaths))
+		if (ContainsRedirector(SoftObjectPackage, RedirectedPaths))
 		{
-			for (TPair<FString, FString>& RedirectedPath : RedirectedPaths)
+			for (TPair<FName, FName>& RedirectedPath : RedirectedPaths)
 			{
 				GRedirectCollector.AddAssetPathRedirection(RedirectedPath.Key, RedirectedPath.Value);
 			}
@@ -6012,7 +5977,7 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 
 		if (!CookByTheBookOptions->bDisableUnsolicitedPackages)
 		{
-			AddFileToCook(FilesInPath, StringAssetPackage.ToString());
+			AddFileToCook(FilesInPath, SoftObjectPackage.ToString());
 		}
 	}
 	

@@ -737,9 +737,9 @@ void FKismetBytecodeDisassembler::ProcessCommon(int32& ScriptIndex, EExprToken O
 			Ar.Logf(TEXT("%s $%X: EX_ObjectConst (%p:%s)"), *Indents, (int32)Opcode, Pointer, *Pointer->GetFullName());
 			break;
 		}
-	case EX_AssetConst:
+	case EX_SoftObjectConst:
 		{
-			Ar.Logf(TEXT("%s $%X: EX_AssetConst"), *Indents, (int32)Opcode);
+			Ar.Logf(TEXT("%s $%X: EX_SoftObjectConst"), *Indents, (int32)Opcode);
 			SerializeExpr(ScriptIndex);
 			break;
 		}

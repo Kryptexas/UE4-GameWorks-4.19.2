@@ -8,35 +8,31 @@
 #include "FunctionalTestingModule.h"
 #include "EngineGlobals.h"
 #include "Tests/AutomationCommon.h"
-#include "ARFilter.h"
-#include "AssetRegistryModule.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
 
 #define LOCTEXT_NAMESPACE "FunctionalTesting"
 
-DEFINE_LOG_CATEGORY_STATIC(LogFunctionalTesting, Log, All);
-
 DEFINE_LATENT_AUTOMATION_COMMAND(FWaitForFTestsToFinish);
 bool FWaitForFTestsToFinish::Update()
 {
-	return FFunctionalTestingModule::Get()->IsRunning() == false;
+	return IFunctionalTestingModule::Get().IsRunning() == false;
 }
 
 DEFINE_LATENT_AUTOMATION_COMMAND(FTriggerFTests);
 bool FTriggerFTests::Update()
 {
-	IFuncTestManager* Manager = FFunctionalTestingModule::Get();
-	if (Manager->IsFinished())
+	IFunctionalTestingModule& Module = IFunctionalTestingModule::Get();
+	if (Module.IsFinished())
 	{
 		// if tests have been already triggered by level script just make sure it's not looping
-		if (Manager->IsRunning())
+		if (Module.IsRunning())
 		{
-			FFunctionalTestingModule::Get()->SetLooping(false);
+			Module.SetLooping(false);
 		}
 		else
 		{
-			FFunctionalTestingModule::Get()->RunAllTestsOnMap(false, false);
+			Module.RunAllTestsOnMap(false, false);
 		}
 	}
 
@@ -47,17 +43,17 @@ bool FTriggerFTests::Update()
 DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FTriggerFTest, FString, TestName);
 bool FTriggerFTest::Update()
 {
-	IFuncTestManager* Manager = FFunctionalTestingModule::Get();
-	if ( Manager->IsFinished() )
+	IFunctionalTestingModule& Module = IFunctionalTestingModule::Get();
+	if (Module.IsFinished() )
 	{
 		// if tests have been already triggered by level script just make sure it's not looping
-		if ( Manager->IsRunning() )
+		if (Module.IsRunning() )
 		{
-			FFunctionalTestingModule::Get()->SetLooping(false);
+			Module.SetLooping(false);
 		}
 		else
 		{
-			FFunctionalTestingModule::Get()->RunTestOnMap(TestName, false, false);
+			Module.RunTestOnMap(TestName, false, false);
 		}
 	}
 
@@ -88,30 +84,43 @@ bool FStartFTestOnMap::Update()
 	return true;
 }
 
-/**
- * 
- */
-
-// Project.Maps.Client Functional Testing
-// Project.Maps.Functional Tests
-
-void ParseTestMapInfo(const FString& Parameters, FString& MapObjectPath, FString& MapPackageName, FString& MapTestName)
-{
-	TArray<FString> ParamArray;
-	Parameters.ParseIntoArray(ParamArray, TEXT(";"), true);
-
-	MapObjectPath = ParamArray[0];
-	MapPackageName = ParamArray[1];
-	MapTestName = ( ParamArray.Num() > 2 ) ? ParamArray[2] : TEXT("");
-}
-
-
 class FClientFunctionalTestingMapsBase : public FAutomationTestBase
 {
 public:
 	FClientFunctionalTestingMapsBase(const FString& InName, const bool bInComplexTask)
 		: FAutomationTestBase(InName, bInComplexTask)
 	{
+	}
+
+	// Project.Maps.Client Functional Testing
+	// Project.Maps.Functional Tests
+
+	static void ParseTestMapInfo(const FString& Parameters, FString& MapObjectPath, FString& MapPackageName, FString& MapTestName)
+	{
+		TArray<FString> ParamArray;
+		Parameters.ParseIntoArray(ParamArray, TEXT(";"), true);
+
+		MapObjectPath = ParamArray[0];
+		MapPackageName = ParamArray[1];
+		MapTestName = (ParamArray.Num() > 2) ? ParamArray[2] : TEXT("");
+	}
+
+	// @todo this is a temporary solution. Once we know how to get test's hands on a proper world
+	// this function should be redone/removed
+	static UWorld* GetAnyGameWorld()
+	{
+		UWorld* TestWorld = nullptr;
+		const TIndirectArray<FWorldContext>& WorldContexts = GEngine->GetWorldContexts();
+		for (const FWorldContext& Context : WorldContexts)
+		{
+			if (((Context.WorldType == EWorldType::PIE) || (Context.WorldType == EWorldType::Game)) && (Context.World() != NULL))
+			{
+				TestWorld = Context.World();
+				break;
+			}
+		}
+
+		return TestWorld;
 	}
 
 	virtual FString GetTestOpenCommand(const FString& Parameters) const override
@@ -129,132 +138,91 @@ public:
 
 		return MapObjectPath;
 	}
-};
 
-
-// create test base class
-IMPLEMENT_CUSTOM_COMPLEX_AUTOMATION_TEST(FClientFunctionalTestingMaps, FClientFunctionalTestingMapsBase, "Project.Functional Tests", (EAutomationTestFlags::ClientContext | EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter))
-
-
-/** 
- * Requests a enumeration of all maps to be loaded
- */
-void FClientFunctionalTestingMaps::GetTests(TArray<FString>& OutBeautifiedNames, TArray<FString>& OutTestCommands) const
-{
-	IAssetRegistry& AssetRegistry = FModuleManager::Get().LoadModuleChecked<FAssetRegistryModule>("AssetRegistry").Get();
-
-	if ( !AssetRegistry.IsLoadingAssets() )
+	/** 
+	 * Requests a enumeration of all maps to be loaded
+	 */
+	virtual void GetTests(TArray<FString>& OutBeautifiedNames, TArray<FString>& OutTestCommands) const override
 	{
-		TArray<FAssetData> MapList;
-		FARFilter Filter;
-		Filter.ClassNames.Add(UWorld::StaticClass()->GetFName());
-		Filter.bRecursiveClasses = true;
-		Filter.bIncludeOnlyOnDiskAssets = true;
-		if ( AssetRegistry.GetAssets(Filter, /*out*/ MapList) )
+		bool bEditorOnlyTests = !(GetTestFlags() & EAutomationTestFlags::ClientContext);
+		TArray<FString> MapAssets;
+		IFunctionalTestingModule::Get().GetMapTests(bEditorOnlyTests, OutBeautifiedNames, OutTestCommands, MapAssets);
+	}
+
+	/**
+	 * Execute the loading of each map and performance captures
+	 *
+	 * @param Parameters - Should specify which map name to load
+	 * @return	TRUE if the test was successful, FALSE otherwise
+	 */
+	virtual bool RunTest(const FString& Parameters) override
+	{
+		FString MapObjectPath, MapPackageName, MapTestName;
+		ParseTestMapInfo(Parameters, MapObjectPath, MapPackageName, MapTestName);
+
+		bool bCanProceed = false;
+
+		IFunctionalTestingModule::Get().MarkPendingActivation();
+
+		UWorld* TestWorld = GetAnyGameWorld();
+		if (TestWorld && TestWorld->GetMapName() == MapPackageName)
 		{
-			for ( const FAssetData& MapAsset : MapList )
-			{
-				const FString* Tests = MapAsset.TagsAndValues.Find(TEXT("Tests"));
-				const FString* TestNames = MapAsset.TagsAndValues.Find(TEXT("TestNames"));
-
-				if ( Tests && TestNames )
-				{
-					int32 TestCount = FCString::Atoi(**Tests);
-					if ( TestCount > 0 )
-					{
-						TArray<FString> MapTests;
-						( *TestNames ).ParseIntoArray(MapTests, TEXT(";"), true);
-
-						for ( const FString& MapTest : MapTests )
-						{
-							FString BeautifulTestName;
-							FString RealTestName;
-
-							if ( MapTest.Split(TEXT("|"), &BeautifulTestName, &RealTestName) )
-							{
-								OutBeautifiedNames.Add(MapAsset.PackageName.ToString() + TEXT(".") + *BeautifulTestName);
-								OutTestCommands.Add(MapAsset.ObjectPath.ToString() + TEXT(";") + MapAsset.PackageName.ToString() + TEXT(";") + *RealTestName);
-							}
-						}
-					}
-				}
-				else if ( MapAsset.AssetName.ToString().Find(TEXT("FTEST_")) == 0 )
-				{
-					OutBeautifiedNames.Add(MapAsset.AssetName.ToString());
-					OutTestCommands.Add(MapAsset.ObjectPath.ToString() + TEXT(";") + MapAsset.PackageName.ToString());
-				}
-			}
-		}
-	}
-}
-
-
-// @todo this is a temporary solution. Once we know how to get test's hands on a proper world
-// this function should be redone/removed
-static UWorld* GetAnyGameWorld()
-{
-	UWorld* TestWorld = nullptr;
-	const TIndirectArray<FWorldContext>& WorldContexts = GEngine->GetWorldContexts();
-	for ( const FWorldContext& Context : WorldContexts )
-	{
-		if ( ( ( Context.WorldType == EWorldType::PIE ) || ( Context.WorldType == EWorldType::Game ) ) && ( Context.World() != NULL ) )
-		{
-			TestWorld = Context.World();
-			break;
-		}
-	}
-
-	return TestWorld;
-}
-
-
-/** 
- * Execute the loading of each map and performance captures
- *
- * @param Parameters - Should specify which map name to load
- * @return	TRUE if the test was successful, FALSE otherwise
- */
-bool FClientFunctionalTestingMaps::RunTest(const FString& Parameters)
-{
-	FString MapObjectPath, MapPackageName, MapTestName;
-	ParseTestMapInfo(Parameters, MapObjectPath, MapPackageName, MapTestName);
-
-	bool bCanProceed = false;
-
-	FFunctionalTestingModule::Get()->MarkPendingActivation();
-
-	UWorld* TestWorld = GetAnyGameWorld();
-	if ( TestWorld && TestWorld->GetMapName() == MapPackageName )
-	{
-		// Map is already loaded.
-		bCanProceed = true;
-	}
-	else
-	{
-		bCanProceed = AutomationOpenMap(MapPackageName);
-	}
-
-	if (bCanProceed)
-	{
-		if ( MapTestName.IsEmpty() )
-		{
-			ADD_LATENT_AUTOMATION_COMMAND(FStartFTestsOnMap());
+			// Map is already loaded.
+			bCanProceed = true;
 		}
 		else
 		{
-			ADD_LATENT_AUTOMATION_COMMAND(FStartFTestOnMap(MapTestName));
+			bCanProceed = AutomationOpenMap(MapPackageName);
 		}
 
-		return true;
+		if (bCanProceed)
+		{
+			if (MapTestName.IsEmpty())
+			{
+				ADD_LATENT_AUTOMATION_COMMAND(FStartFTestsOnMap());
+			}
+			else
+			{
+				ADD_LATENT_AUTOMATION_COMMAND(FStartFTestOnMap(MapTestName));
+			}
+
+			return true;
+		}
+
+		/// FAutomationTestFramework::GetInstance().UnregisterAutomationTest
+
+		//	ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(1.f));
+		//  ADD_LATENT_AUTOMATION_COMMAND(FExitGameCommand);
+
+		UE_LOG(LogFunctionalTest, Error, TEXT("Failed to start the %s map (possibly due to BP compilation issues)"), *MapPackageName);
+		return false;
 	}
+};
 
-	/// FAutomationTestFramework::GetInstance().UnregisterAutomationTest
+// Runtime tests
+IMPLEMENT_CUSTOM_COMPLEX_AUTOMATION_TEST(FClientFunctionalTestingMapsRuntime, FClientFunctionalTestingMapsBase, "Project.Functional Tests", (EAutomationTestFlags::ClientContext | EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter))
 
-	//	ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(1.f));
-	//  ADD_LATENT_AUTOMATION_COMMAND(FExitGameCommand);
+void FClientFunctionalTestingMapsRuntime::GetTests(TArray<FString>& OutBeautifiedNames, TArray<FString>& OutTestCommands) const
+{
+	FClientFunctionalTestingMapsBase::GetTests(OutBeautifiedNames, OutTestCommands);
+}
 
-	UE_LOG(LogFunctionalTesting, Error, TEXT("Failed to start the %s map (possibly due to BP compilation issues)"), *MapPackageName);
-	return false;
+bool FClientFunctionalTestingMapsRuntime::RunTest(const FString& Parameters)
+{
+	return FClientFunctionalTestingMapsBase::RunTest(Parameters);
+}
+
+// Editor only tests
+IMPLEMENT_CUSTOM_COMPLEX_AUTOMATION_TEST(FClientFunctionalTestingMapsEditor, FClientFunctionalTestingMapsBase, "Project.Functional Tests", (EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter))
+
+void FClientFunctionalTestingMapsEditor::GetTests(TArray<FString>& OutBeautifiedNames, TArray<FString>& OutTestCommands) const
+{
+	FClientFunctionalTestingMapsBase::GetTests(OutBeautifiedNames, OutTestCommands);
+}
+
+bool FClientFunctionalTestingMapsEditor::RunTest(const FString& Parameters)
+{
+	return FClientFunctionalTestingMapsBase::RunTest(Parameters);
 }
 
 #undef LOCTEXT_NAMESPACE

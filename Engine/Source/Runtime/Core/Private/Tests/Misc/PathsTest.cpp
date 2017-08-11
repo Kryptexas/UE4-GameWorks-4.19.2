@@ -10,6 +10,9 @@
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPathTests, "System.Core.Misc.Paths", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::SmokeFilter)
 
+// MSVC 2015 generates bad code here due to the number of string literals, in a cooked build it was crashing on RunCollapseRelativeDirectoriesTest(TEXT("C:/."), TEXT("C:/."));
+PRAGMA_DISABLE_OPTIMIZATION
+
 bool FPathTests::RunTest( const FString& Parameters )
 {
 	// Directory collapsing
@@ -156,5 +159,7 @@ bool FPathTests::RunTest( const FString& Parameters )
 
 	return true;
 }
+
+PRAGMA_ENABLE_OPTIMIZATION
 
 #endif //WITH_DEV_AUTOMATION_TESTS

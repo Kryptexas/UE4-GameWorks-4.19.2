@@ -115,7 +115,7 @@ void FSignificanceManagerModule::PopulateAutoCompleteEntries(TArray<FAutoComplet
 USignificanceManager::USignificanceManager()
 	: Super()
 {
-	SignificanceManagerClassName = FStringClassReference(GetClass()); 
+	SignificanceManagerClassName = FSoftClassPath(GetClass()); 
 
 	bCreateOnClient = true;
 	bCreateOnServer = true;

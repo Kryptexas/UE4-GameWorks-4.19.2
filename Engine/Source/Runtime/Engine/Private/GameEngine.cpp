@@ -570,7 +570,7 @@ void UGameEngine::Init(IEngineLoop* InEngineLoop)
 
 	// Create game instance.  For GameEngine, this should be the only GameInstance that ever gets created.
 	{
-		FStringClassReference GameInstanceClassName = GetDefault<UGameMapsSettings>()->GameInstanceClass;
+		FSoftClassPath GameInstanceClassName = GetDefault<UGameMapsSettings>()->GameInstanceClass;
 		UClass* GameInstanceClass = (GameInstanceClassName.IsValid() ? LoadObject<UClass>(NULL, *GameInstanceClassName.ToString()) : UGameInstance::StaticClass());
 		
 		if (GameInstanceClass == nullptr)
@@ -734,11 +734,23 @@ bool UGameEngine::NetworkRemapPath(UNetDriver* Driver, FString& Str, bool bReadi
 		}
 	}
 
+	if (!bReading)
+	{
+		return false;
+	}
+
 	// If the game has created multiple worlds, some of them may have prefixed package names,
 	// so we need to remap the world package and streaming levels for replay playback to work correctly.
 	FWorldContext& Context = GetWorldContextFromWorldChecked(World);
-	if (Context.PIEInstance == INDEX_NONE || !bReading)
+	if (Context.PIEInstance == INDEX_NONE)
 	{
+		// If this is not a PIE instance but sender is PIE, we need to strip the PIE prefix
+		const FString Stripped = UWorld::RemovePIEPrefix(Str);
+		if (!Stripped.Equals(Str, ESearchCase::CaseSensitive))
+		{
+			Str = Stripped;
+			return true;
+		}
 		return false;
 	}
 
@@ -757,7 +769,7 @@ bool UGameEngine::NetworkRemapPath(UNetDriver* Driver, FString& Str, bool bReadi
 		return true;
 	}
 
-	for( ULevelStreaming* StreamingLevel : World->StreamingLevels)
+	for (ULevelStreaming* StreamingLevel : World->StreamingLevels)
 	{
 		if (StreamingLevel != nullptr)
 		{

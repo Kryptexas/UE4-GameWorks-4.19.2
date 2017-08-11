@@ -27,5 +27,5 @@ protected:
 
 	void RefreshNameList();
 
-	TAssetPtr<class UDataTable> DataTable;
+	TSoftObjectPtr<class UDataTable> DataTable;
 };

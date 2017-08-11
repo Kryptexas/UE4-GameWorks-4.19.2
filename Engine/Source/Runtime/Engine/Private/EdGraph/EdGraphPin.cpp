@@ -18,8 +18,6 @@
 
 #define LOCTEXT_NAMESPACE "EdGraph"
 
-TArray<UEdGraphPin*> PinsToDelete;
-
 class FPinDeletionQueue : 
 #if WITH_EDITOR
 	public FTickableEditorObject
@@ -28,6 +26,21 @@ class FPinDeletionQueue :
 #endif
 {
 public:
+
+	static FPinDeletionQueue* Get()
+	{
+		static FPinDeletionQueue* Instance = new FPinDeletionQueue;
+		return Instance;
+	}
+
+	static void Add(UEdGraphPin* PinToDelete)
+	{
+		FPinDeletionQueue* PinDeletionQueue = Get();
+	
+		checkSlow(!PinDeletionQueue->PinsToDelete.Contains(PinToDelete));
+		PinDeletionQueue->PinsToDelete.Add(PinToDelete);
+	}
+
 	virtual void Tick(float DeltaTime) override
 	{
 		for (UEdGraphPin* Pin : PinsToDelete)
@@ -39,7 +52,7 @@ public:
 
 	virtual bool IsTickable() const override
 	{
-		return true;
+		return (PinsToDelete.Num() > 0);
 	}
 
 	/** return the stat id to use for this tickable **/
@@ -48,10 +61,15 @@ public:
 		RETURN_QUICK_DECLARE_CYCLE_STAT(FPinDeletionQueue, STATGROUP_Tickables);
 	}
 
-	virtual ~FPinDeletionQueue() {}
-};
+	virtual ~FPinDeletionQueue() = default;
 
-FPinDeletionQueue* PinDeletionQueue = new FPinDeletionQueue();;
+private:
+
+	FPinDeletionQueue() = default;
+
+	TArray<UEdGraphPin*> PinsToDelete;
+
+};
 
 //#define TRACK_PINS
 
@@ -70,6 +88,20 @@ bool FEdGraphPinType::Serialize(FArchive& Ar)
 	}
 
 	Ar << PinCategory;
+
+	if (Ar.UE4Ver() < VER_UE4_ADDED_SOFT_OBJECT_PATH)
+	{
+		// Fixup has to be here instead of in BP code because this is embedded in other structures
+		if (PinCategory == TEXT("asset"))
+		{
+			PinCategory = TEXT("softobject");
+		}
+		else if (PinCategory == TEXT("assetclass"))
+		{
+			PinCategory = TEXT("softclass");
+		}
+	}
+
 	Ar << PinSubCategory;
 
 	// See: FArchive& operator<<( FArchive& Ar, FWeakObjectPtr& WeakObjectPtr )
@@ -344,8 +376,9 @@ void UEdGraphPin::MakeLinkTo(UEdGraphPin* ToPin)
 			LinkedTo.Add(ToPin);
 			ToPin->LinkedTo.Add(this);
 
-			UEdGraphPin::EnableAllConnectedNodes(MyNode);
-			UEdGraphPin::EnableAllConnectedNodes(ToPin->GetOwningNode());
+			// If either node was a pre-placed ghost, turn it into a real thing
+			UEdGraphPin::ConvertConnectedGhostNodesToRealNodes(MyNode);
+			UEdGraphPin::ConvertConnectedGhostNodesToRealNodes(ToPin->GetOwningNode());
 		}
 	}
 }
@@ -1166,7 +1199,7 @@ void UEdGraphPin::ShutdownVerification()
 
 void UEdGraphPin::Purge()
 {
-	PinDeletionQueue->Tick(0.f);
+	FPinDeletionQueue::Get()->Tick(0.f);
 }
 
 UEdGraphPin::UEdGraphPin(UEdGraphNode* InOwningNode, const FGuid& PinIdGuid)
@@ -1385,7 +1418,7 @@ void UEdGraphPin::InitFromDeprecatedPin(class UEdGraphPin_Deprecated* Deprecated
 
 void UEdGraphPin::DestroyImpl(bool bClearLinks)
 {
-	PinsToDelete.Add(this);
+	FPinDeletionQueue::Add(this);
 	if (bClearLinks)
 	{
 		BreakAllPinLinks();
@@ -1406,12 +1439,8 @@ void UEdGraphPin::DestroyImpl(bool bClearLinks)
 		{
 			SubPins[SubPinIndex]->DestroyImpl(bClearLinks);
 		}
-		else
-		{
-			SubPins.RemoveAt(SubPinIndex, 1, false);
-		}
 	}
-	ensure(SubPins.Num() == 0);
+	SubPins.Reset();
 	ParentPin = nullptr;
 	ReferencePassThroughConnection = nullptr;
 	bWasTrashed = true;
@@ -1527,22 +1556,21 @@ bool UEdGraphPin::Serialize(FArchive& Ar)
 	return true;
 }
 
-void UEdGraphPin::EnableAllConnectedNodes(UEdGraphNode* InNode)
+void UEdGraphPin::ConvertConnectedGhostNodesToRealNodes(UEdGraphNode* InNode)
 {
-	// Only enable when it has not been explicitly user-disabled
-	if (InNode && InNode->EnabledState == ENodeEnabledState::Disabled && !InNode->bUserSetEnabledState)
+	if (InNode && InNode->IsAutomaticallyPlacedGhostNode())
 	{
 		// Enable the node and clear the comment
 		InNode->Modify();
-		InNode->EnableNode();
+		InNode->SetEnabledState(ENodeEnabledState::Enabled, /*bUserAction=*/ false);
 		InNode->NodeComment.Empty();
 
 		// Go through all pin connections and enable the nodes. Enabled nodes will prevent further iteration
-		for (UEdGraphPin*  Pin : InNode->Pins)
+		for (UEdGraphPin* Pin : InNode->Pins)
 		{
 			for (UEdGraphPin* OtherPin : Pin->LinkedTo)
 			{
-				EnableAllConnectedNodes(OtherPin->GetOwningNode());
+				ConvertConnectedGhostNodesToRealNodes(OtherPin->GetOwningNode());
 			}
 		}
 	}

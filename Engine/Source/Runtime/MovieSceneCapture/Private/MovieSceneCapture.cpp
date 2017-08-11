@@ -36,7 +36,6 @@ FMovieSceneCaptureSettings::FMovieSceneCaptureSettings()
 	OutputDirectory.Path = FPaths::VideoCaptureDir();
 	FPaths::MakePlatformFilename( OutputDirectory.Path );
 
-	bCreateTemporaryCopiesOfLevels = false;
 	bUseRelativeFrameNumbers = false;
 	HandleFrames = 0;
 	GameModeOverride = nullptr;

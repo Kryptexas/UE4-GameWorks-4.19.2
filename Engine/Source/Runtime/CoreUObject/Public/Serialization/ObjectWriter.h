@@ -8,9 +8,10 @@
 #include "Internationalization/TextPackageNamespaceUtil.h"
 #include "UObject/PropertyPortFlags.h"
 
-class FAssetPtr;
-class FLazyObjectPtr;
-struct FStringAssetReference;
+struct FLazyObjectPtr;
+struct FSoftObjectPtr;
+struct FSoftObjectPath;
+struct FWeakObjectPtr;
 
 /**
  * UObject Memory Writer Archive.
@@ -38,12 +39,12 @@ public:
 	}
 
 	//~ Begin FArchive Interface
-	COREUOBJECT_API virtual FArchive& operator<<( class FName& N ) override;
-	COREUOBJECT_API virtual FArchive& operator<<( class UObject*& Res ) override;
-	COREUOBJECT_API virtual FArchive& operator<<( FLazyObjectPtr& LazyObjectPtr ) override;
-	COREUOBJECT_API virtual FArchive& operator<<( FAssetPtr& AssetPtr ) override;
-	COREUOBJECT_API virtual FArchive& operator<<(FStringAssetReference& AssetPtr) override;
-	COREUOBJECT_API virtual FArchive& operator<<(struct FWeakObjectPtr& Value) override;
+	COREUOBJECT_API virtual FArchive& operator<<(FName& N) override;
+	COREUOBJECT_API virtual FArchive& operator<<(UObject*& Res) override;
+	COREUOBJECT_API virtual FArchive& operator<<(FLazyObjectPtr& Value) override;
+	COREUOBJECT_API virtual FArchive& operator<<(FSoftObjectPtr& Value) override;
+	COREUOBJECT_API virtual FArchive& operator<<(FSoftObjectPath& Value) override;
+	COREUOBJECT_API virtual FArchive& operator<<(FWeakObjectPtr& Value) override;
 	COREUOBJECT_API virtual FString GetArchiveName() const override;
 	//~ End FArchive Interface
 

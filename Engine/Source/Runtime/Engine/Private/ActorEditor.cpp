@@ -396,7 +396,10 @@ void AActor::PostEditUndo()
 	// Notify LevelBounds actor that level bounding box might be changed
 	if (!IsTemplate())
 	{
-		GetLevel()->MarkLevelBoundsDirty();
+		if (ULevel* Level = GetLevel())
+		{
+			Level->MarkLevelBoundsDirty();
+		}
 	}
 
 	// Restore OwnedComponents array

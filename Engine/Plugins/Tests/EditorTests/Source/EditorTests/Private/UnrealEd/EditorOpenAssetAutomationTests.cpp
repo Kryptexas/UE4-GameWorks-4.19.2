@@ -20,7 +20,7 @@ IMPLEMENT_COMPLEX_AUTOMATION_TEST(FOpenAssetEditors, "Project.Editor.Open Assets
 void FOpenAssetEditors::GetTests(TArray<FString>& OutBeautifiedNames, TArray<FString>& OutTestCommands) const
 {
 	const UAutomationTestSettings* AutomationTestSettings = GetDefault<UAutomationTestSettings>();
-	for ( FStringAssetReference AssetRef : AutomationTestSettings->AssetsToOpen )
+	for ( FSoftObjectPath AssetRef : AutomationTestSettings->AssetsToOpen )
 	{
 		OutBeautifiedNames.Add(AssetRef.GetAssetName());
 		OutTestCommands.Add(AssetRef.GetLongPackageName());
@@ -33,7 +33,7 @@ bool FOpenAssetEditors::RunTest(const FString& LongAssetPath)
 	FAssetEditorManager::Get().CloseAllAssetEditors();
 
 	// below is all latent action, so before sending there, verify the asset exists
-	UObject* Object = FStringAssetReference(LongAssetPath).TryLoad();
+	UObject* Object = FSoftObjectPath(LongAssetPath).TryLoad();
 	if ( Object == nullptr )
 	{
 		UE_LOG(LogEditorAutomationTests, Error, TEXT("Failed to Open Asset '%s'."), *LongAssetPath);

@@ -130,7 +130,6 @@ FCompilerResultsLog::FCompilerResultsLog(bool bIsCompatibleWithEvents/* = true*/
 	, bLogInfoOnly(false)
 	, bAnnotateMentionedNodes(true)
 	, bLogDetailedResults(false)
-	, bTreatCompositeGraphsAsTunnels(false)
 	, EventDisplayThresholdMs(0)
 {
 	CurrentEventScope = nullptr;
@@ -696,7 +695,7 @@ void FCompilerResultsLog::RegisterIntermediateTunnelInstance(UEdGraphNode* Inter
 {
 	for (auto Tunnel : ActiveTunnels)
 	{
-		if (Tunnel.Get()->IsA<UK2Node_MacroInstance>() || bTreatCompositeGraphsAsTunnels)
+		if (Tunnel.Get()->IsA<UK2Node_MacroInstance>())
 		{
 			IntermediateTunnelInstanceHierarchyMap.Add(IntermediateTunnel, Tunnel);
 		}
@@ -704,7 +703,7 @@ void FCompilerResultsLog::RegisterIntermediateTunnelInstance(UEdGraphNode* Inter
 	UEdGraphNode* TrueSourceTunnelInstance = Cast<UEdGraphNode>(SourceBacktrackMap.FindSourceObject(IntermediateTunnel));
 	if (!ActiveTunnels.Contains(TrueSourceTunnelInstance))
 	{
-		if (TrueSourceTunnelInstance->IsA<UK2Node_MacroInstance>() || bTreatCompositeGraphsAsTunnels)
+		if (TrueSourceTunnelInstance->IsA<UK2Node_MacroInstance>())
 		{
 			IntermediateTunnelInstanceHierarchyMap.Add(IntermediateTunnel, TrueSourceTunnelInstance);
 		}
@@ -716,7 +715,7 @@ UEdGraphNode* FCompilerResultsLog::GetSourceNode(const UEdGraphNode* Intermediat
 	UEdGraphNode* Result = nullptr;
 	if (UEdGraphNode* SourceTunnelInstance = GetSourceTunnelInstance(IntermediateNode))
 	{
-		if (SourceTunnelInstance->IsA<UK2Node_MacroInstance>() || bTreatCompositeGraphsAsTunnels)
+		if (SourceTunnelInstance->IsA<UK2Node_MacroInstance>())
 		{
 			Result = SourceTunnelInstance;
 		}

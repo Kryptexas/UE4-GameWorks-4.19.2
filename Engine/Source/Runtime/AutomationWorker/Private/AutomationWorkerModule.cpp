@@ -259,11 +259,13 @@ void FAutomationWorkerModule::ReportTestComplete()
 
 void FAutomationWorkerModule::SendTests( const FMessageAddress& ControllerAddress )
 {
+	FAutomationWorkerRequestTestsReplyComplete* Reply = new FAutomationWorkerRequestTestsReplyComplete();
 	for( int32 TestIndex = 0; TestIndex < TestInfo.Num(); TestIndex++ )
 	{
-		MessageEndpoint->Send(new FAutomationWorkerRequestTestsReply(TestInfo[TestIndex], TestInfo.Num()), ControllerAddress);
+		Reply->Tests.Emplace(FAutomationWorkerSingleTestReply(TestInfo[TestIndex]));
 	}
-	MessageEndpoint->Send(new FAutomationWorkerRequestTestsReplyComplete(), ControllerAddress);
+
+	MessageEndpoint->Send(Reply, ControllerAddress);
 }
 
 
@@ -364,11 +366,6 @@ void FAutomationWorkerModule::HandleRequestTestsMessage( const FAutomationWorker
 void FAutomationWorkerModule::HandlePreTestingEvent()
 {
 #if WITH_ENGINE
-	if (!GIsEditor && GEngine->GameViewport)
-	{
-		GEngine->GameViewport->OnScreenshotCaptured().AddRaw(this, &FAutomationWorkerModule::HandleScreenShotCaptured);
-	}
-	//Register the editor screen shot callback
 	FAutomationTestFramework::Get().OnScreenshotCaptured().BindRaw(this, &FAutomationWorkerModule::HandleScreenShotCapturedWithName);
 #endif
 }
@@ -377,12 +374,7 @@ void FAutomationWorkerModule::HandlePreTestingEvent()
 void FAutomationWorkerModule::HandlePostTestingEvent()
 {
 #if WITH_ENGINE
-	if (!GIsEditor && GEngine->GameViewport)
-	{
-		GEngine->GameViewport->OnScreenshotCaptured().RemoveAll(this);
-	}
-	//Register the editor screen shot callback
-	FAutomationTestFramework::Get().OnScreenshotCaptured().BindRaw(this, &FAutomationWorkerModule::HandleScreenShotCapturedWithName);
+	FAutomationTestFramework::Get().OnScreenshotCaptured().Unbind();
 #endif
 }
 
@@ -404,16 +396,6 @@ void FAutomationWorkerModule::HandlePerformanceDataRetrieved(const FAutomationWo
 }
 
 #if WITH_ENGINE
-void FAutomationWorkerModule::HandleScreenShotCaptured(int32 Width, int32 Height, const TArray<FColor>& Bitmap)
-{
-	FAutomationScreenshotData Data;
-	Data.Width = Width;
-	Data.Height = Height;
-	Data.Path = FScreenshotRequest::GetFilename();
-
-	HandleScreenShotCapturedWithName(Bitmap, Data);
-}
-
 void FAutomationWorkerModule::HandleScreenShotCapturedWithName(const TArray<FColor>& RawImageData, const FAutomationScreenshotData& Data)
 {
 	int32 NewHeight = Data.Height;

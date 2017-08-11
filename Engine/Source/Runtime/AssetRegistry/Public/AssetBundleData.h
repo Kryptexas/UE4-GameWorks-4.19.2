@@ -3,8 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "PrimaryAssetId.h"
-#include "AssetPtr.h"
+#include "UObject/PrimaryAssetId.h"
+#include "UObject/SoftObjectPtr.h"
 #include "AssetBundleData.generated.h"
 
 /** A struct representing a single AssetBundle */
@@ -27,7 +27,7 @@ struct ASSETREGISTRY_API FAssetBundleEntry
 
 	/** List of string assets contained in this bundle */
 	UPROPERTY()
-	TArray<FStringAssetReference> BundleAssets;
+	TArray<FSoftObjectPath> BundleAssets;
 
 	FAssetBundleEntry(const FAssetBundleEntry& OldEntry)
 		: BundleScope(OldEntry.BundleScope), BundleName(OldEntry.BundleName), BundleAssets(OldEntry.BundleAssets)
@@ -90,19 +90,19 @@ struct ASSETREGISTRY_API FAssetBundleData
 	FAssetBundleEntry* FindEntry(const FPrimaryAssetId& SearchScope, FName SearchName);
 
 	/** Adds or updates an entry with the given BundleName -> Path. Scope is empty and will be filled in later */
-	void AddBundleAsset(FName BundleName, const FStringAssetReference& AssetPath);
+	void AddBundleAsset(FName BundleName, const FSoftObjectPath& AssetPath);
 
 	template< typename T >
-	void AddBundleAsset(FName BundleName, const TAssetPtr<T>& AssetPtr)
+	void AddBundleAsset(FName BundleName, const TSoftObjectPtr<T>& SoftObjectPtr)
 	{
-		AddBundleAsset(BundleName, AssetPtr.ToStringReference());
+		AddBundleAsset(BundleName, SoftObjectPtr.ToSoftObjectPath());
 	}
 
 	/** Adds multiple assets at once */
-	void AddBundleAssets(FName BundleName, const TArray<FStringAssetReference>& AssetPaths);
+	void AddBundleAssets(FName BundleName, const TArray<FSoftObjectPath>& AssetPaths);
 
 	/** A fast set of asset bundle assets, will destroy copied in path list */
-	void SetBundleAssets(FName BundleName, TArray<FStringAssetReference>&& AssetPaths);
+	void SetBundleAssets(FName BundleName, TArray<FSoftObjectPath>&& AssetPaths);
 
 	/** Resets the data to defaults */
 	void Reset();

@@ -372,7 +372,7 @@
 
 			break;
 		}
-		case EX_AssetConst:
+		case EX_SoftObjectConst:
 		{
 			SerializeExpr(iCode, Ar);
 			break;

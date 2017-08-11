@@ -586,6 +586,11 @@ void UAssetToolsImpl::RenameAssets(const TArray<FAssetRenameData>& AssetsAndName
 	AssetRenameManager->RenameAssets(AssetsAndNames);
 }
 
+void UAssetToolsImpl::FindSoftReferencesToObject(FSoftObjectPath TargetObject, TArray<UObject*>& ReferencingObjects) const
+{
+	AssetRenameManager->FindSoftReferencesToObject(TargetObject, ReferencingObjects);
+}
+
 TArray<UObject*> UAssetToolsImpl::ImportAssets(const FString& DestinationPath)
 {
 	return ImportAssetsWithDialog(DestinationPath);

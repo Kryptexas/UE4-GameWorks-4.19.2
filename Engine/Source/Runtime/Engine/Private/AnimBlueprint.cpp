@@ -175,22 +175,12 @@ void UAnimBlueprint::Serialize(FArchive& Ar)
 
 USkeletalMesh* UAnimBlueprint::GetPreviewMesh()
 {
-	USkeletalMesh* PreviewMesh = PreviewSkeletalMesh.Get();
-	if(!PreviewMesh)
+	USkeletalMesh* PreviewMesh = PreviewSkeletalMesh.LoadSynchronous();
+	// if somehow skeleton changes, just nullify it. 
+	if (PreviewMesh && PreviewMesh->Skeleton != TargetSkeleton)
 	{
-		// if preview mesh isn't loaded, see if we have set
-		FStringAssetReference PreviewMeshStringRef = PreviewSkeletalMesh.ToStringReference();
-		// load it since now is the time to load
-		if(!PreviewMeshStringRef.ToString().IsEmpty())
-		{
-			PreviewMesh = Cast<USkeletalMesh>(StaticLoadObject(USkeletalMesh::StaticClass(), NULL, *PreviewMeshStringRef.ToString(), NULL, LOAD_None, NULL));
-			// if somehow skeleton changes, just nullify it. 
-			if (PreviewMesh && PreviewMesh->Skeleton != TargetSkeleton)
-			{
-				PreviewMesh = NULL;
-				SetPreviewMesh(NULL);
-			}
-		}
+		PreviewMesh = nullptr;
+		SetPreviewMesh(nullptr);
 	}
 
 	return PreviewMesh;

@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
-#include "Misc/StringClassReference.h"
+#include "UObject/SoftObjectPath.h"
 #include "EditorTutorial.h"
 #include "EditorTutorialSettings.generated.h"
 
@@ -25,11 +25,11 @@ struct FTutorialContext
 
 	/** The tutorial to use in this context to let the user know there is a tutorial available */
 	UPROPERTY(EditAnywhere, Category = "Tutorials", meta = (MetaClass = "EditorTutorial"))
-	FStringClassReference AttractTutorial;
+	FSoftClassPath AttractTutorial;
 
 	/** The tutorial to use in this context when the user chooses to launch */
 	UPROPERTY(EditAnywhere, Category = "Tutorials", meta = (MetaClass = "EditorTutorial"))
-	FStringClassReference LaunchTutorial;
+	FSoftClassPath LaunchTutorial;
 };
 
 /** Editor-wide tutorial settings */
@@ -48,7 +48,7 @@ class UEditorTutorialSettings : public UObject
 
 	/** Tutorial to start on Editor startup */
 	UPROPERTY(Config, EditAnywhere, Category="Tutorials", meta=(MetaClass="EditorTutorial"))
-	FStringClassReference StartupTutorial;
+	FSoftClassPath StartupTutorial;
 
 	/** Tutorials used in various contexts - e.g. the various asset editors */
 	UPROPERTY(Config, EditAnywhere, Category = "Tutorials")

@@ -1305,8 +1305,6 @@ public:
 	* Callbacks from UObject globals
 	*/
 	void PreGarbageCollect();
-	void OnStringAssetReferenceLoadedPackage(const FName& PackageName);
-
 
 private:
 
@@ -1543,7 +1541,7 @@ private:
 	 * @param RedirectedPaths map of original to redirected object paths
 	 * @return true if the Package contains a redirector false otherwise
 	 */
-	bool ContainsRedirector(const FName& PackageName, TMap<FString,FString>& RedirectedPaths) const;
+	bool ContainsRedirector(const FName& PackageName, TMap<FName, FName>& RedirectedPaths) const;
 	
 	/**
 	 * Calls BeginCacheForCookedPlatformData on all UObjects in the package

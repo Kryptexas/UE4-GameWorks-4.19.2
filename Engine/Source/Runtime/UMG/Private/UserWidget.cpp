@@ -81,7 +81,8 @@ UWidgetBlueprintGeneratedClass* UUserWidget::GetWidgetTreeOwningClass()
 		// Force post load on the generated class so all subobjects are done (specifically the widget tree).
 		BGClass->ConditionalPostLoad();
 
-		const bool bNoRootWidget = ( nullptr == BGClass->WidgetTree ) || ( nullptr == BGClass->WidgetTree->RootWidget );
+		const bool bNoRootWidget = !BGClass->HasTemplate() && ( ( nullptr == BGClass->WidgetTree ) || ( nullptr == BGClass->WidgetTree->RootWidget ) );
+
 		if ( bNoRootWidget )
 		{
 			UWidgetBlueprintGeneratedClass* SuperBGClass = Cast<UWidgetBlueprintGeneratedClass>(BGClass->GetSuperClass());

@@ -1,6 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "FunctionalTest.h"
+#include "FunctionalTestingModule.h"
 #include "Misc/Paths.h"
 #include "Engine/GameViewportClient.h"
 #include "Engine/LatentActionManager.h"
@@ -13,7 +14,6 @@
 #include "GameFramework/PlayerController.h"
 #include "Components/TextRenderComponent.h"
 #include "Engine/Selection.h"
-#include "FuncTestManager.h"
 #include "FuncTestRenderingComponent.h"
 #include "ObjectEditorUtils.h"
 #include "VisualLogger/VisualLogger.h"

@@ -11,7 +11,7 @@
 #include "Engine/EngineTypes.h"
 #include "EdGraph/EdGraphPin.h"
 #include "Engine/BlueprintCore.h"
-#include "Misc/StringAssetReference.h"
+#include "UObject/SoftObjectPath.h"
 #include "Blueprint.generated.h"
 
 class FCompilerResultsLog;
@@ -104,7 +104,7 @@ struct FCompilerNativizationOptions
 
 	// Individually excluded assets
 	UPROPERTY()
-	TSet<FStringAssetReference> ExcludedAssets;
+	TSet<FSoftObjectPath> ExcludedAssets;
 
 	// Excluded folders. It excludes only BPGCs, enums and structures are still converted.
 	UPROPERTY()
@@ -146,9 +146,6 @@ public:
 	/** Whether or not this compile is for a duplicated blueprint */
 	bool bIsDuplicationInstigated;
 
-	/** Whether or not this compile should emit instrumentation events */
-	bool bAddInstrumentation;
-
 	/** Whether or not to reinstance and stub if the blueprint fails to compile */
 	bool bReinstanceAndStubOnFailure;
 
@@ -168,11 +165,6 @@ public:
 			|| (CompileType == EKismetCompileType::Cpp);
 	}
 
-	bool IsInstrumentationActive() const
-	{
-		return bAddInstrumentation && DoesRequireBytecodeGeneration();
-	}
-
 	/** Whether or not this compile type should operate on the generated class of the blueprint, as opposed to just the skeleton */
 	bool IsGeneratedClassCompileType() const
 	{
@@ -184,7 +176,6 @@ public:
 		, bSaveIntermediateProducts(false)
 		, bRegenerateSkelton(true)
 		, bIsDuplicationInstigated(false)
-		, bAddInstrumentation(false)
 		, bReinstanceAndStubOnFailure(true)
 	{
 	};

@@ -483,7 +483,7 @@ bool UK2Node_Event::CanPasteHere(const UEdGraph* TargetGraph) const
 		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(TargetGraph);
 		if(Blueprint && Blueprint->SkeletonGeneratedClass)
 		{
-			TArray<FName> ExistingNamesInUse;
+			TSet<FName> ExistingNamesInUse;
 			TArray<FString> ExcludedEventNames;
 			TArray<UK2Node_Event*> ExistingEventNodes;
 			TArray<UClass*> ImplementedInterfaceClasses;

@@ -461,11 +461,11 @@ FReply SAssetAuditBrowser::OnKeyDown(const FGeometry& MyGeometry, const FKeyEven
 	return FReply::Unhandled();
 }
 
-void SAssetAuditBrowser::AddAssetsToList(const TArray<FStringAssetReference>& AssetsToView, bool bReplaceExisting)
+void SAssetAuditBrowser::AddAssetsToList(const TArray<FSoftObjectPath>& AssetsToView, bool bReplaceExisting)
 {
 	TArray<FName> AssetNames;
 
-	for (const FStringAssetReference& AssetToView : AssetsToView)
+	for (const FSoftObjectPath& AssetToView : AssetsToView)
 	{
 		AssetNames.Add(FName(*AssetToView.GetLongPackageName()));
 	}
@@ -629,7 +629,7 @@ void SAssetAuditBrowser::AddAssetsOfType(FPrimaryAssetType AssetType)
 {
 	if (AssetType.IsValid())
 	{
-		TArray<FStringAssetReference> AssetArray;
+		TArray<FSoftObjectPath> AssetArray;
 		
 		AssetManager->GetPrimaryAssetPathList(AssetType, AssetArray);
 

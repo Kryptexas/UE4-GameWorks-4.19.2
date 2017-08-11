@@ -5,9 +5,9 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
+#include "UObject/SoftObjectPath.h"
 #include "Engine/EngineTypes.h"
 #include "Engine/EngineBaseTypes.h"
-#include "Misc/StringAssetReference.h"
 #include "Viewports.h"
 #include "Editor/UnrealEdTypes.h"
 #include "LevelEditorViewportSettings.generated.h"
@@ -450,7 +450,7 @@ public:
 
 	/** A list of meshes that can be used as preview mesh in the editor view port by holding down the backslash key */
 	UPROPERTY(EditAnywhere, config, Category=Preview, meta=(AllowedClasses = "StaticMesh"))
-	TArray<FStringAssetReference> PreviewMeshes;
+	TArray<FSoftObjectPath> PreviewMeshes;
 
 	UPROPERTY(EditAnywhere, config, AdvancedDisplay, Category=LookAndFeel, meta=(ClampMin = "0.01", UIMin = "0.01", UIMax = "5"))
 	float BillboardScale;

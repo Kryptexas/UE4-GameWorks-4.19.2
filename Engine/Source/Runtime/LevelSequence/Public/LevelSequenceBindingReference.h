@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
+#include "UObject/SoftObjectPath.h"
 #include "Misc/Guid.h"
 #include "Engine/Engine.h"
 #include "Paths.h"
@@ -39,15 +40,32 @@ struct FLevelSequenceBindingReference
 	 */
 	LEVELSEQUENCE_API UObject* Resolve(UObject* InContext) const;
 
+	/** Handles ExternalObjectPath fixup */
+	void PostSerialize(const FArchive& Ar);
+
 private:
 
-	/** The package name in which the object resides */
+	/** Replaced by ExternalObjectPath */
 	UPROPERTY()
-	FString PackageName;
+	FString PackageName_DEPRECATED;
 
-	/** The path of the object within the package, or from its outer (where PackageName is empty) */
+	/** Path to a specific actor/component inside an external package */
+	UPROPERTY()
+	FSoftObjectPath ExternalObjectPath;
+
+	/** Object path relative to a passed in context object, this is used if ExternalObjectPath is invalid */
 	UPROPERTY()
 	FString ObjectPath;
+};
+
+
+template<>
+struct TStructOpsTypeTraits<FLevelSequenceBindingReference> : public TStructOpsTypeTraitsBase2<FLevelSequenceBindingReference>
+{
+	enum
+	{
+		WithPostSerialize = true,
+	};
 };
 
 /**

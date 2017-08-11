@@ -287,7 +287,7 @@ struct ENGINE_API FSkeletalMeshClothBuildParams
 
 	// Physics asset to extract collisions from, note this will only extract spheres and Sphyls, as that is what the simulation supports.
 	UPROPERTY(EditAnywhere, Category = Collision)
-	TAssetPtr<UPhysicsAsset> PhysicsAsset;
+	TSoftObjectPtr<UPhysicsAsset> PhysicsAsset;
 };
 
 /** Struct containing information for a particular LOD level, such as materials and info for when to use it. */

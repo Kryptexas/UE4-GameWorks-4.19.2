@@ -612,6 +612,14 @@ FSlateIcon UK2Node_Timeline::GetIconAndTint(FLinearColor& OutColor) const
 	return Icon;
 }
 
+UObject* UK2Node_Timeline::GetJumpTargetForDoubleClick() const
+{
+	UBlueprint* Blueprint = GetBlueprint();
+	check(Blueprint);
+	UTimelineTemplate* Timeline = Blueprint->FindTimelineTemplateByVariableName(TimelineName);
+	return Timeline;
+}
+
 FString UK2Node_Timeline::GetDocumentationExcerptName() const
 {
 	return TEXT("UK2Node_Timeline");

@@ -350,7 +350,7 @@ FArchive& FNetBitWriter::operator<<( UObject*& Object )
 	return *this;
 }
 
-FArchive& FNetBitWriter::operator<<(FStringAssetReference& Value)
+FArchive& FNetBitWriter::operator<<(FSoftObjectPath& Value)
 {
 	FString Path = Value.ToString();
 
@@ -391,7 +391,7 @@ FArchive& FNetBitReader::operator<<( class FName& N )
 	return *this;
 }
 
-FArchive& FNetBitReader::operator<<(FStringAssetReference& Value)
+FArchive& FNetBitReader::operator<<(FSoftObjectPath& Value)
 {
 	FString Path = Value.ToString();
 

@@ -24,7 +24,7 @@ public:
 
 	/** The sequence from which to choose a binding identifier */
 	UPROPERTY(EditAnywhere, Category="Sequence", meta=(AllowedClasses="MovieSceneSequence"))
-	FStringAssetReference SourceSequence;
+	FSoftObjectPath SourceSequence;
 
 	/** The user-selected literal binding identifier from the sequence to use */
 	UPROPERTY()

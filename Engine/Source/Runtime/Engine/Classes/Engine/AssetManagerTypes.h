@@ -86,7 +86,7 @@ struct FPrimaryAssetTypeInfo
 private:
 	/** Base Class of all assets of this type */
 	UPROPERTY(EditAnywhere, Category = AssetType, meta = (AllowAbstract))
-	TAssetSubclassOf<UObject> AssetBaseClass;
+	TSoftClassPtr<UObject> AssetBaseClass;
 public:
 
 	/** Base Class of all assets of this type */
@@ -108,7 +108,7 @@ private:
 
 	/** Individual assets to scan */
 	UPROPERTY(EditAnywhere, Category = AssetType)
-	TArray<FStringAssetReference> SpecificAssets;
+	TArray<FSoftObjectPath> SpecificAssets;
 public:
 
 	/** Default management rules for this type, individual assets can be overridden */

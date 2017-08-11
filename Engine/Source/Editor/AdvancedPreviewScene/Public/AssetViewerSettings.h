@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
-#include "UObject/AssetPtr.h"
+#include "UObject/SoftObjectPtr.h"
 #include "UObject/ObjectRedirector.h"
 #include "Engine/Scene.h"
 #include "Engine/TextureCube.h"
@@ -73,7 +73,7 @@ struct FPreviewSceneProfile
 
 	/** Sets environment cube map used for sky lighting and reflections */
 	UPROPERTY(EditAnywhere, transient, Category = Environment)
-	TAssetPtr<UTextureCube> EnvironmentCubeMap;
+	TSoftObjectPtr<UTextureCube> EnvironmentCubeMap;
 
 	/** Storing path to environment cube to prevent it from getting cooked */
 	UPROPERTY(config)

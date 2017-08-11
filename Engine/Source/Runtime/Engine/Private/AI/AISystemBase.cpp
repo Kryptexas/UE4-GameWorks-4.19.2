@@ -14,10 +14,10 @@ FName UAISystemBase::GetAISystemModuleName()
 	return AISystemDefaultObject != NULL ? AISystemDefaultObject->AISystemModuleName : TEXT("");
 }
 
-FStringClassReference UAISystemBase::GetAISystemClassName()
+FSoftClassPath UAISystemBase::GetAISystemClassName()
 {
 	UAISystemBase* AISystemDefaultObject = Cast<UAISystemBase>(StaticClass()->GetDefaultObject());
-	return AISystemDefaultObject != NULL ? AISystemDefaultObject->AISystemClassName : FStringClassReference();
+	return AISystemDefaultObject != NULL ? AISystemDefaultObject->AISystemClassName : FSoftClassPath();
 }
 
 void UAISystemBase::StartPlay()

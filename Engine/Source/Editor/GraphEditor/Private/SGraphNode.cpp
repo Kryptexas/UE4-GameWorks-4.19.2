@@ -855,6 +855,64 @@ void SGraphNode::UpdateGraphNode()
 	TSharedPtr<SVerticalBox> InnerVerticalBox;
 	this->ContentScale.Bind( this, &SGraphNode::GetContentScale );
 
+
+	InnerVerticalBox = SNew(SVerticalBox)
+		+SVerticalBox::Slot()
+		.AutoHeight()
+		.HAlign(HAlign_Fill)
+		.VAlign(VAlign_Top)
+		.Padding(Settings->GetNonPinNodeBodyPadding())
+		[
+			TitleAreaWidget
+		]
+
+		+SVerticalBox::Slot()
+		.AutoHeight()
+		.HAlign(HAlign_Fill)
+		.VAlign(VAlign_Top)
+		[
+			CreateNodeContentArea()
+		];
+
+	if ((GraphNode->GetDesiredEnabledState() != ENodeEnabledState::Enabled) && !GraphNode->IsAutomaticallyPlacedGhostNode())
+	{
+		const bool bDevelopmentOnly = GraphNode->GetDesiredEnabledState() == ENodeEnabledState::DevelopmentOnly;
+		const FText StatusMessage = bDevelopmentOnly ? NSLOCTEXT("SGraphNode", "DevelopmentOnly", "Development Only") : NSLOCTEXT("SGraphNode", "DisabledNode", "Disabled");
+		const FText StatusMessageTooltip = bDevelopmentOnly ?
+			NSLOCTEXT("SGraphNode", "DevelopmentOnlyTooltip", "This node will only be executed in the editor and in Development builds in a packaged game (it will be treated as disabled in Shipping or Test builds cooked from a commandlet)") :
+			NSLOCTEXT("SGraphNode", "DisabledNodeTooltip", "This node is currently disabled and will not be executed");
+
+		InnerVerticalBox->AddSlot()
+			.AutoHeight()
+			.HAlign(HAlign_Fill)
+			.VAlign(VAlign_Top)
+			.Padding(FMargin(2, 0))
+			[
+				SNew(SBorder)
+				.BorderImage(FEditorStyle::GetBrush(bDevelopmentOnly ? "Graph.Node.DevelopmentBanner" : "Graph.Node.DisabledBanner"))
+				.HAlign(HAlign_Fill)
+				.VAlign(VAlign_Fill)
+				[
+					SNew(STextBlock)
+					.Text(StatusMessage)
+					.ToolTipText(StatusMessageTooltip)
+					.Justification(ETextJustify::Center)
+					.ColorAndOpacity(FLinearColor::White)
+					.ShadowOffset(FVector2D::UnitVector)
+					.Visibility(EVisibility::Visible)
+				]
+			];
+	}
+
+	InnerVerticalBox->AddSlot()
+		.AutoHeight()
+		.Padding(Settings->GetNonPinNodeBodyPadding())
+		[
+			ErrorReporting->AsWidget()
+		];
+
+
+
 	this->GetOrAddSlot( ENodeZone::Center )
 		.HAlign(HAlign_Center)
 		.VAlign(VAlign_Center)
@@ -874,30 +932,7 @@ void SGraphNode::UpdateGraphNode()
 				]
 				+SOverlay::Slot()
 				[
-					SAssignNew(InnerVerticalBox, SVerticalBox)
-					+SVerticalBox::Slot()
-					.AutoHeight()
-					.HAlign(HAlign_Fill)
-					.VAlign(VAlign_Top)
-					.Padding(Settings->GetNonPinNodeBodyPadding())
-					[
-						TitleAreaWidget
-					]
-
-					+SVerticalBox::Slot()
-					.AutoHeight()
-					.HAlign(HAlign_Fill)
-					.VAlign(VAlign_Top)
-					[
-						CreateNodeContentArea()
-					]
-
-					+SVerticalBox::Slot()
-					.AutoHeight()
-					.Padding(Settings->GetNonPinNodeBodyPadding())
-					[
-						ErrorReporting->AsWidget()
-					]
+					InnerVerticalBox.ToSharedRef()
 				]
 			]			
 		];

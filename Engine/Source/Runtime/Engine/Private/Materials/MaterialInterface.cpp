@@ -486,7 +486,7 @@ bool UMaterialInterface::FindTextureStreamingDataIndexRange(FName TextureName, i
 {
 #if WITH_EDITORONLY_DATA
 	// Because of redirectors (when textures are renammed), the texture names might be invalid and we need to udpate the data at every load.
-	// Normally we would do that in the post load, but since the process needs to resolve the StringAssetReference, this is forbidden at that place.
+	// Normally we would do that in the post load, but since the process needs to resolve the SoftObjectPaths, this is forbidden at that place.
 	// As a workaround, we do it on demand. Note that this is not required in cooked build as it is done in the presave.
 	const_cast<UMaterialInterface*>(this)->SortTextureStreamingData(false, false);
 #endif

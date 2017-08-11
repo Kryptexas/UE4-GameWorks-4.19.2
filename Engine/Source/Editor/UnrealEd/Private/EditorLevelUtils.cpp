@@ -47,6 +47,8 @@ EditorLevelUtils.cpp: Editor-specific level management routines
 #include "Components/ModelComponent.h"
 #include "Misc/RuntimeErrors.h"
 #include "HAL/PlatformApplicationMisc.h"
+#include "IAssetTools.h"
+#include "AssetToolsModule.h"
 
 DEFINE_LOG_CATEGORY(LogLevelTools);
 
@@ -112,12 +114,14 @@ int32 UEditorLevelUtils::MoveActorsToLevel(const TArray<AActor*>& ActorsToMove, 
 
 		if (FinalMoveList.Num() > 0)
 		{
+			TMap<FSoftObjectPath, FSoftObjectPath> ActorPathMapping;
 			GEditor->SelectNone(false, true, false);
 
 			USelection* ActorSelection = GEditor->GetSelectedActors();
 			ActorSelection->BeginBatchSelectOperation();
 			for (AActor* Actor : FinalMoveList)
 			{
+				ActorPathMapping.Add(FSoftObjectPath(Actor), FSoftObjectPath());
 				GEditor->SelectActor(Actor, true, false);
 			}
 			ActorSelection->EndBatchSelectOperation(false);
@@ -131,7 +135,7 @@ int32 UEditorLevelUtils::MoveActorsToLevel(const TArray<AActor*>& ActorsToMove, 
 				ULevel* OldCurrentLevel = OwningWorld->GetCurrentLevel();
 
 				// Copy the actors we have selected to the clipboard
-				GEditor->CopySelectedActorsToClipboard(OwningWorld, true);
+				GEditor->CopySelectedActorsToClipboard(OwningWorld, true, true);
 
 				// Set the new level and force it visible while we do the paste
 				OwningWorld->SetCurrentLevel(DestLevel);
@@ -143,6 +147,70 @@ int32 UEditorLevelUtils::MoveActorsToLevel(const TArray<AActor*>& ActorsToMove, 
 
 				// Paste the actors into the new level
 				GEditor->edactPasteSelected(OwningWorld, false, false, false);
+
+				// Build a remapping of old to new names so we can do a fixup
+				for (FSelectionIterator It(GEditor->GetSelectedActorIterator()); It; ++It)
+				{
+					AActor* Actor = static_cast<AActor*>(*It);
+					FSoftObjectPath NewPath = FSoftObjectPath(Actor);
+
+					bool bFoundMatch = false;
+
+					// First try exact match
+					for (TPair<FSoftObjectPath, FSoftObjectPath>& Pair : ActorPathMapping)
+					{
+						if (Pair.Value.IsNull() && NewPath.GetSubPathString() == Pair.Key.GetSubPathString())
+						{
+							bFoundMatch = true;
+							Pair.Value = NewPath;
+							break;
+						}
+					}
+
+					if (!bFoundMatch)
+					{
+						// Remove numbers from end as it may have had to add some to disambiguate
+						FString PartialPath = NewPath.GetSubPathString();
+						int32 IgnoreNumber;
+						FActorLabelUtilities::SplitActorLabel(PartialPath, IgnoreNumber);
+
+						for (TPair<FSoftObjectPath, FSoftObjectPath>& Pair : ActorPathMapping)
+						{
+							if (Pair.Value.IsNull())
+							{
+								FString KeyPartialPath = Pair.Key.GetSubPathString();
+								FActorLabelUtilities::SplitActorLabel(KeyPartialPath, IgnoreNumber);
+								if (PartialPath == KeyPartialPath)
+								{
+									bFoundMatch = true;
+									Pair.Value = NewPath;
+									break;
+								}
+							}
+						}
+					}
+
+					if (!bFoundMatch)
+					{
+						UE_LOG(LogLevelTools, Error, TEXT("Cannot find remapping for moved actor ID %s, any soft references pointing to it will be broken!"), *Actor->GetPathName());
+					}
+				}
+
+				FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
+				TArray<FAssetRenameData> RenameData;
+
+				for (TPair<FSoftObjectPath, FSoftObjectPath>& Pair : ActorPathMapping)
+				{
+					if (Pair.Value.IsValid())
+					{
+						RenameData.Add(FAssetRenameData(Pair.Key, Pair.Value, true));
+					}
+				}
+					
+				if (RenameData.Num() > 0)
+				{
+					AssetToolsModule.Get().RenameAssets(RenameData);
+				}
 
 				// Restore new level visibility to previous state
 				if (!bLevelVisible)
@@ -210,17 +278,18 @@ ULevel* UEditorLevelUtils::AddLevelsToWorld(UWorld* InWorld, const TArray<FStrin
 
 	// Try to add the levels that were specified in the dialog.
 	ULevel* NewLevel = nullptr;
-	for (const auto& PackageName : PackageNames)
+	for (const FString& PackageName : PackageNames)
 	{
 		SlowTask.EnterProgressFrame();
 
-		ULevelStreaming* NewStreamingLevel = AddLevelToWorld(InWorld, *PackageName, LevelStreamingClass);
-		NewLevel = NewStreamingLevel->GetLoadedLevel();
-		if (NewLevel)
+		if (ULevelStreaming* NewStreamingLevel = AddLevelToWorld(InWorld, *PackageName, LevelStreamingClass))
 		{
-			LevelDirtyCallback.Request();
+			NewLevel = NewStreamingLevel->GetLoadedLevel();
+			if (NewLevel)
+			{
+				LevelDirtyCallback.Request();
+			}
 		}
-
 	} // for each file
 
 	  // Set the last loaded level to be the current level

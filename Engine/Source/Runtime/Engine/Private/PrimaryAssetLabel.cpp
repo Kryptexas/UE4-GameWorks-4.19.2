@@ -46,11 +46,11 @@ void UPrimaryAssetLabel::UpdateAssetBundleData()
 		TArray<FAssetData> DirectoryAssets;
 		AssetRegistry.GetAssetsByPath(PackagePath, DirectoryAssets, true);
 
-		TArray<FStringAssetReference> NewPaths;
+		TArray<FSoftObjectPath> NewPaths;
 
 		for (const FAssetData& AssetData : DirectoryAssets)
 		{
-			FStringAssetReference AssetRef = Manager.GetAssetPathForData(AssetData);
+			FSoftObjectPath AssetRef = Manager.GetAssetPathForData(AssetData);
 
 			if (!AssetRef.IsNull())
 			{
@@ -64,7 +64,7 @@ void UPrimaryAssetLabel::UpdateAssetBundleData()
 
 	if (AssetCollection.CollectionName != NAME_None)
 	{
-		TArray<FStringAssetReference> NewPaths;
+		TArray<FSoftObjectPath> NewPaths;
 		TArray<FName> CollectionAssets;
 		ICollectionManager& CollectionManager = FCollectionManagerModule::GetModule().Get();
 		CollectionManager.GetAssetsInCollection(AssetCollection.CollectionName, ECollectionShareType::CST_All, CollectionAssets);
@@ -72,7 +72,7 @@ void UPrimaryAssetLabel::UpdateAssetBundleData()
 		{
 			FAssetData FoundAsset = Manager.GetAssetRegistry().GetAssetByObjectPath(CollectionAssets[Index]);
 
-			FStringAssetReference AssetRef = Manager.GetAssetPathForData(FoundAsset);
+			FSoftObjectPath AssetRef = Manager.GetAssetPathForData(FoundAsset);
 
 			if (!AssetRef.IsNull())
 			{

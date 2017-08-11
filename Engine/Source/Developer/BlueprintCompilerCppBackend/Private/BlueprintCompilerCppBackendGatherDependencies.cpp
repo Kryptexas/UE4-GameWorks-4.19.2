@@ -562,9 +562,9 @@ void FGatherConvertedClassDependencies::DependenciesForHeader()
 		const bool bIsMemberVariable = OwnerProperty && (OwnerProperty->GetOuter() == OriginalStruct);
 		if (bIsParam || bIsMemberVariable)
 		{
-			if (auto AssetClassProperty = Cast<const UAssetClassProperty>(Property))
+			if (auto SoftClassProperty = Cast<const USoftClassProperty>(Property))
 			{
-				DeclareInHeader.Add(GetFirstNativeOrConvertedClass(AssetClassProperty->MetaClass));
+				DeclareInHeader.Add(GetFirstNativeOrConvertedClass(SoftClassProperty->MetaClass));
 			}
 			if (auto ClassProperty = Cast<const UClassProperty>(Property))
 			{
@@ -725,9 +725,9 @@ public:
 	TSet<UObject*> References;
 
 	//~ Begin FArchive Interface
-	virtual FArchive& operator<< (class FLazyObjectPtr& Value) override { return *this; }
-	virtual FArchive& operator<< (class FAssetPtr& Value) override { return *this; }
-	virtual FArchive& operator<< (struct FStringAssetReference& Value) override { return *this; }
+	virtual FArchive& operator<<(struct FLazyObjectPtr& Value) override { return *this; }
+	virtual FArchive& operator<<(struct FSoftObjectPtr& Value) override { return *this; }
+	virtual FArchive& operator<<(struct FSoftObjectPath& Value) override { return *this; }
 
 	virtual FArchive& operator<<(UObject*& Object) override
 	{

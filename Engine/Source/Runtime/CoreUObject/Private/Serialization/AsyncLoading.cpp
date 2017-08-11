@@ -21,7 +21,7 @@
 #include "UObject/PackageFileSummary.h"
 #include "UObject/Linker.h"
 #include "UObject/CoreRedirects.h"
-#include "Misc/StringAssetReference.h"
+#include "UObject/SoftObjectPath.h"
 #include "UObject/LinkerLoad.h"
 #include "Serialization/DeferredMessageLog.h"
 #include "UObject/UObjectThreadContext.h"
@@ -3139,13 +3139,7 @@ void FAsyncPackage::EventDrivenCreateExport(int32 LocalExportIndex)
 
 				UObject* ActualObjectWithTheName = StaticFindObjectFastInternal(NULL, ThisParent, Export.ObjectName, true);
 
-				// if we require cooked data, attempt to find exports in memory first...which we always do for event driven loading
-				check(FPlatformProperties::RequiresCookedData()
-					|| IsAsyncLoading()
-					|| Export.bForcedExport
-					|| LinkerRoot->ShouldFindExportsInMemoryFirst()
-					);
-
+				// Always attempt to find object in memory first
 				if (ActualObjectWithTheName && (ActualObjectWithTheName->GetClass() == LoadClass))
 				{
 					Export.Object = ActualObjectWithTheName;
@@ -6360,7 +6354,7 @@ EAsyncPackageState::Type FAsyncPackage::PostLoadDeferredObjects(double InTickSta
 			::IsTimeLimitExceeded(InTickStartTime, bInUseTimeLimit, InOutTimeLimit, LastTypeOfWorkPerformed, LastObjectWorkWasPerformedOn);
 		}
 
-		FStringAssetReference::InvalidateTag();
+		FSoftObjectPath::InvalidateTag();
 		FUniqueObjectGuid::InvalidateTag();
 	}
 

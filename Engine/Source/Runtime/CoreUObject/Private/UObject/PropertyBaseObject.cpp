@@ -382,7 +382,7 @@ UObject* UObjectPropertyBase::FindImportedObject( const UProperty* Property, UOb
 		if (Result == nullptr && (PortFlags & PPF_SerializedAsImportText))
 		{
 			// Check string asset redirectors
-			FStringAssetReference Path = FString(Text);
+			FSoftObjectPath Path = FString(Text);
 			if (Path.PreSavePath())
 			{
 				Result = StaticFindObjectSafe(ObjectClass, nullptr, *Path.ToString());

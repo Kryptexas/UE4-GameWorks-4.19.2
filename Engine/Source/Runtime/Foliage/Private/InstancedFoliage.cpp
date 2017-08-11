@@ -193,7 +193,7 @@ static void ConvertDeprecatedFoliageMeshes(
 	check(IFA->InstanceBaseCache.InstanceBaseLevelMap.Num() <= 1);
 	// populate WorldAsset->BasePtr map
 	IFA->InstanceBaseCache.InstanceBaseLevelMap.Empty();
-	auto& BaseList = IFA->InstanceBaseCache.InstanceBaseLevelMap.Add(TAssetPtr<UWorld>(Cast<UWorld>(IFA->GetLevel()->GetOuter())));
+	auto& BaseList = IFA->InstanceBaseCache.InstanceBaseLevelMap.Add(TSoftObjectPtr<UWorld>(Cast<UWorld>(IFA->GetLevel()->GetOuter())));
 	for (auto& BaseInfoPair : IFA->InstanceBaseCache.InstanceBaseMap)
 	{
 		BaseList.Add(BaseInfoPair.Value.BasePtr);

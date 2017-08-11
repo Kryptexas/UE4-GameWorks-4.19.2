@@ -10,6 +10,7 @@
 #include "HardwareInfo.h"
 #include "UObject/UObjectHash.h"
 #include "UObject/UObjectIterator.h"
+#include "UObject/Package.h"
 #include "Kismet/GameplayStatics.h"
 #include "ContentStreaming.h"
 #include "Widgets/SWindow.h"
@@ -19,6 +20,7 @@
 #include "Scalability.h"
 #include "Matinee/MatineeActor.h"
 #include "IHeadMountedDisplay.h"
+#include "PackageName.h"
 
 #if (WITH_DEV_AUTOMATION_TESTS || WITH_PERF_AUTOMATION_TESTS)
 
@@ -82,7 +84,7 @@ namespace AutomationCommon
 	/** Gets a path used for automation testing (PNG sent to the AutomationTest folder) */
 	void GetScreenshotPath(const FString& TestName, FString& OutScreenshotName)
 	{
-		FString PathName = FPaths::AutomationDir() + TestName / FPlatformProperties::PlatformName();
+		FString PathName = FPaths::AutomationDir() + TestName / FPlatformProperties::IniPlatformName();
 		PathName = PathName + TEXT("_") + GetRenderDetailsString();
 
 		FPaths::MakePathRelativeTo(PathName, *FPaths::RootDir());
@@ -92,8 +94,6 @@ namespace AutomationCommon
 
 	FAutomationScreenshotData BuildScreenshotData(const FString& MapOrContext, const FString& TestName, int32 Width, int32 Height)
 	{
-		FString HardwareDetails = FHardwareInfo::GetHardwareDetailsString();
-
 		FAutomationScreenshotData Data;
 
 		Data.Name = TestName;
@@ -103,7 +103,7 @@ namespace AutomationCommon
 
 		Data.Width = Width;
 		Data.Height = Height;
-		Data.Platform = FPlatformProperties::PlatformName();
+		Data.Platform = FPlatformProperties::IniPlatformName();
 		Data.Rhi = FHardwareInfo::GetHardwareInfo(NAME_RHI);
 		GetFeatureLevelName(GMaxRHIFeatureLevel, Data.FeatureLevel);
 		Data.bIsStereo = GEngine->HMDDevice.IsValid() ? GEngine->HMDDevice->IsStereoEnabled() : false;
@@ -186,9 +186,16 @@ bool AutomationOpenMap(const FString& MapName)
 	{
 		UWorld* TestWorld = AutomationCommon::GetAnyGameWorld();
 
-		//Don't reload the map if it's already loaded. Check if the two are equal or one contains the other,
-		// since sometime one is a path and the other is the asset name, depending on whether we're in PIE.
-		if ( !TestWorld->GetMapName().Contains(MapName) && !MapName.Contains(TestWorld->GetMapName()) )
+		// Convert both to short names and strip PIE prefix
+		FString ShortMapName = FPackageName::GetShortName(MapName);
+		FString ShortWorldMapName = FPackageName::GetShortName(TestWorld->GetMapName());
+
+		if (TestWorld->GetOutermost()->PIEInstanceID != INDEX_NONE)
+		{
+			FString PIEPrefix = FString::Printf(PLAYWORLD_PACKAGE_PREFIX TEXT("_%d_"), TestWorld->GetOutermost()->PIEInstanceID);
+			ShortWorldMapName.ReplaceInline(*PIEPrefix, TEXT(""));
+		}
+		if (ShortMapName != ShortWorldMapName)
 		{
 			FString OpenCommand = FString::Printf(TEXT("Open %s"), *MapName);
 			GEngine->Exec(TestWorld, *OpenCommand);

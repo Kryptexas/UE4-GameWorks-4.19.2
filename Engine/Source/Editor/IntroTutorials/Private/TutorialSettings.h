@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
-#include "Misc/StringClassReference.h"
+#include "UObject/SoftObjectPath.h"
 #include "EditorTutorial.h"
 #include "TutorialSettings.generated.h"
 
@@ -21,5 +21,5 @@ class UTutorialSettings : public UObject
 
 	/** Tutorial to start on project startup */
 	UPROPERTY(Config, EditAnywhere, Category="Tutorials", meta=(MetaClass="EditorTutorial"))
-	FStringClassReference StartupTutorial;
+	FSoftClassPath StartupTutorial;
 };

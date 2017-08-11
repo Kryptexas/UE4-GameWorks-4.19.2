@@ -5,7 +5,6 @@
 #include "Object.h"
 #include "ObjectMacros.h"
 #include "Features/IModularFeature.h"
-#include "AssetPtr.h"
 
 #include "ClothingAssetFactoryInterface.generated.h"
 

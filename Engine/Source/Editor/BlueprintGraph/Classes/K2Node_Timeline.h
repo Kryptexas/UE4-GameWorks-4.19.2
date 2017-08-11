@@ -61,6 +61,7 @@ class UK2Node_Timeline : public UK2Node
 	virtual FString GetDocumentationExcerptName() const override;
 	virtual FSlateIcon GetIconAndTint(FLinearColor& OutColor) const override;
 	virtual bool ShouldShowNodeProperties() const override { return true; }
+	virtual UObject* GetJumpTargetForDoubleClick() const override;
 	//~ End UEdGraphNode Interface.
 
 	//~ Begin UK2Node Interface.

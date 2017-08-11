@@ -13,7 +13,7 @@
 #include "UObject/Class.h"
 #include "UObject/UObjectIterator.h"
 #include "UObject/Package.h"
-#include "Misc/StringAssetReference.h"
+#include "UObject/SoftObjectPath.h"
 #include "UObject/MetaData.h"
 #include "UObject/UnrealType.h"
 #include "Serialization/ObjectWriter.h"
@@ -913,7 +913,7 @@ bool FBlueprintCompileOnLoadTest::RunTest(const FString& BlueprintAssetPath)
 	struct FReplaceInnerData
 	{
 		TWeakObjectPtr<UClass> Class;
-		FStringAssetReference BlueprintAsset;
+		FSoftObjectPath BlueprintAsset;
 	};
 	TArray<FReplaceInnerData> ReplaceInnerData;
 	for (auto BPToUnloadWP : BlueprintDependencies)
@@ -924,7 +924,7 @@ bool FBlueprintCompileOnLoadTest::RunTest(const FString& BlueprintAssetPath)
 		{
 			FReplaceInnerData Data;
 			Data.Class = OldClass;
-			Data.BlueprintAsset = FStringAssetReference(BPToUnload);
+			Data.BlueprintAsset = FSoftObjectPath(BPToUnload);
 			ReplaceInnerData.Add(Data);
 		}
 	}

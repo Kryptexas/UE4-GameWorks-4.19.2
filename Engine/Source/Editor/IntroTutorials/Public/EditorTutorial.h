@@ -5,10 +5,9 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
-#include "Misc/StringAssetReference.h"
 #include "UObject/ScriptMacros.h"
 #include "Types/SlateEnums.h"
-#include "Misc/StringClassReference.h"
+#include "UObject/SoftObjectPath.h"
 #include "EditorTutorial.generated.h"
 
 class AActor;
@@ -79,7 +78,7 @@ struct INTROTUTORIALS_API FTutorialCategory
 
 	/** Texture for this tutorial, used when presented to the user in the tutorial browser. */
 	UPROPERTY(EditAnywhere, Category="Tutorial", meta=(AllowedClasses="Texture2D"))
-	FStringAssetReference Texture;
+	FSoftObjectPath Texture;
 };
 
 /** Content wrapper */
@@ -131,7 +130,7 @@ struct INTROTUTORIALS_API FTutorialContentAnchor
 
 	/** If reference is an asset, we use this to resolve it */
 	UPROPERTY(EditAnywhere, Category="Anchor")
-	FStringAssetReference Asset;
+	FSoftObjectPath Asset;
 
 	/** Whether to draw an animated highlight around the widget */
 	UPROPERTY(EditAnywhere, Category="Anchor")
@@ -267,11 +266,11 @@ class INTROTUTORIALS_API UEditorTutorial : public UObject
 
 	/** Tutorial to optionally chain back to if the "back" button is clicked on the first stage */
 	UPROPERTY(EditAnywhere, Category = "Tutorial", meta = (MetaClass = "EditorTutorial"))
-	FStringClassReference PreviousTutorial;
+	FSoftClassPath PreviousTutorial;
 
 	/** Tutorial to optionally chain onto after this tutorial completes */
 	UPROPERTY(EditAnywhere, Category="Tutorial", meta=(MetaClass="EditorTutorial"))
-	FStringClassReference NextTutorial;
+	FSoftClassPath NextTutorial;
 
 	/**
 	* Attempts to find the actor specified by PathToActor in the current editor world
@@ -287,7 +286,7 @@ class INTROTUTORIALS_API UEditorTutorial : public UObject
 	
 	/** Asset to open & attach the tutorial to. Non-widget-bound content will appear in the asset's window */
 	UPROPERTY(EditAnywhere, Category="Tutorial")
-	FStringAssetReference AssetToUse;
+	FSoftObjectPath AssetToUse;
 
 	/** The path this tutorial was imported from, if any. */
 	UPROPERTY()

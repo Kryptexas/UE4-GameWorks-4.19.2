@@ -28,7 +28,7 @@
 #include "UObject/Package.h"
 #include "Templates/Casts.h"
 #include "UObject/LazyObjectPtr.h"
-#include "Misc/StringAssetReference.h"
+#include "UObject/SoftObjectPtr.h"
 #include "UObject/PropertyPortFlags.h"
 #include "UObject/UnrealType.h"
 #include "UObject/TextProperty.h"
@@ -686,7 +686,7 @@ public:
  * or 
  * - It's an editor only object
 */
-bool IsEditorOnlyObject(const UObject* InObject)
+bool IsEditorOnlyObject(const UObject* InObject, bool bCheckRecursive)
 {
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("IsEditorOnlyObject"), STAT_IsEditorOnlyObject, STATGROUP_LoadTime);
 
@@ -721,7 +721,39 @@ bool IsEditorOnlyObject(const UObject* InObject)
 		return true;
 	}
 
-	// Recursion is checked with ConditionallyExcludeObjectForTarget
+	if (bCheckRecursive && !InObject->IsNative())
+	{
+		UObject* Outer = InObject->GetOuter();
+		if (Outer && Outer != Package)
+		{
+			if (IsEditorOnlyObject(Outer, true))
+			{
+				return true;
+			}
+		}
+		const UStruct* InStruct = Cast<UStruct>(InObject);
+		if (InStruct)
+		{
+			const UStruct* SuperStruct = InStruct->GetSuperStruct();
+			if (SuperStruct && IsEditorOnlyObject(SuperStruct, true))
+			{
+				return true;
+			}
+		}
+		else
+		{
+			if (IsEditorOnlyObject(InObject->GetClass(), true))
+			{
+				return true;
+			}
+
+			UObject* Archetype = InObject->GetArchetype();
+			if (Archetype && IsEditorOnlyObject(Archetype, true))
+			{
+				return true;
+			}
+		}
+	}
 	return false;
 }
 
@@ -828,7 +860,7 @@ static void ConditionallyExcludeObjectForTarget(UObject* Obj, EObjectMark Exclud
 	}
 	else
 	{
-		if (!Obj->HasAnyMarks(OBJECTMARK_EditorOnly) && ((InheritedMarks & OBJECTMARK_EditorOnly) || IsEditorOnlyObject(Obj)))
+		if (!Obj->HasAnyMarks(OBJECTMARK_EditorOnly) && ((InheritedMarks & OBJECTMARK_EditorOnly) || IsEditorOnlyObject(Obj, false)))
 		{
 			Obj->Mark(OBJECTMARK_EditorOnly);
 		}
@@ -1109,7 +1141,7 @@ public:
 	virtual FArchive& operator<<(UObject*& Obj) override;
 	virtual FArchive& operator<< (struct FWeakObjectPtr& Value) override;
 	virtual FArchive& operator<<(FLazyObjectPtr& LazyObjectPtr) override;
-	virtual FArchive& operator<<(FStringAssetReference& Value) override;
+	virtual FArchive& operator<<(FSoftObjectPath& Value) override;
 	virtual FArchive& operator<<(FName& Name) override;
 	
 	virtual void MarkSearchableName(const UObject* TypeObject, const FName& ValueName) const override;
@@ -1249,26 +1281,17 @@ FArchive& FArchiveSaveTagImports::operator<<( FLazyObjectPtr& LazyObjectPtr)
 	return *this << ID;
 }
 
-FArchive& FArchiveSaveTagImports::operator<<(FStringAssetReference& Value)
+FArchive& FArchiveSaveTagImports::operator<<(FSoftObjectPath& Value)
 {
 	if (Value.IsValid())
 	{
-		Value.PreSavePath();
-		FString Path = Value.ToString();
+		Value.SerializePath(*this);
 
-		if (GetIniFilenameFromObjectsReference(Path) != nullptr)
-		{
-			Linker->StringAssetReferencesMap.AddUnique(Path);
-		}
-		else
-		{
-			FString NormalizedPath = FPackageName::GetNormalizedObjectPath(Path);
-			if (!NormalizedPath.IsEmpty())
-			{
-				Linker->StringAssetReferencesMap.AddUnique(FPackageName::ObjectPathToPackageName(NormalizedPath));
-				Value.SetPath(MoveTemp(NormalizedPath));
-			}
-		}
+		FString Path = Value.ToString();
+		FName PackageName = FName(*FPackageName::ObjectPathToPackageName(Path));
+
+		SavePackageState->MarkNameAsReferenced(PackageName);
+		Linker->SoftPackageReferenceList.AddUnique(PackageName);	
 	}
 	return *this;
 }
@@ -1928,8 +1951,8 @@ class FExportReferenceSorter : public FArchiveUObject
 				UWeakObjectProperty::StaticClass(),
 				UObjectPropertyBase::StaticClass(),
 				ULazyObjectProperty::StaticClass(),
-				UAssetObjectProperty::StaticClass(),
-				UAssetClassProperty::StaticClass(),
+				USoftObjectProperty::StaticClass(),
+				USoftClassProperty::StaticClass(),
 				UMapProperty::StaticClass(),
 				USetProperty::StaticClass(),
 				UEnumProperty::StaticClass()
@@ -2036,8 +2059,8 @@ class FExportReferenceSorter : public FArchiveUObject
 			UWeakObjectProperty::StaticClass(),
 			UObjectPropertyBase::StaticClass(),
 			ULazyObjectProperty::StaticClass(),
-			UAssetObjectProperty::StaticClass(),
-			UAssetClassProperty::StaticClass(),
+			USoftObjectProperty::StaticClass(),
+			USoftClassProperty::StaticClass(),
 			UMapProperty::StaticClass(),
 			USetProperty::StaticClass(),
 			UEnumProperty::StaticClass()
@@ -4543,16 +4566,16 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 				// Only save string asset and searchable name map if saving for editor
 				if (!(Linker->Summary.PackageFlags & PKG_FilterEditorOnly))
 				{
-					// Save string asset reference map
-					Linker->Summary.StringAssetReferencesOffset = Linker->Tell();
-					Linker->Summary.StringAssetReferencesCount = Linker->StringAssetReferencesMap.Num();
+					// Save soft package references
+					Linker->Summary.SoftPackageReferencesOffset = Linker->Tell();
+					Linker->Summary.SoftPackageReferencesCount = Linker->SoftPackageReferenceList.Num();
 					{
 #if WITH_EDITOR
 						FArchive::FScopeSetDebugSerializationFlags S(*Linker, DSF_IgnoreDiff, true);
 #endif
-						for (FString& StringAssetReference : Linker->StringAssetReferencesMap)
+						for (FName& SoftPackageName : Linker->SoftPackageReferenceList)
 						{
-							*Linker << StringAssetReference;
+							*Linker << SoftPackageName;
 						}
 					}
 
@@ -4562,8 +4585,8 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 				}
 				else
 				{
-					Linker->Summary.StringAssetReferencesCount = 0;
-					Linker->Summary.StringAssetReferencesOffset = 0;
+					Linker->Summary.SoftPackageReferencesCount = 0;
+					Linker->Summary.SoftPackageReferencesOffset = 0;
 					Linker->Summary.SearchableNamesOffset = 0;
 				}
 
@@ -4690,7 +4713,7 @@ FSavePackageResultStruct UPackage::Save(UPackage* InOuter, UObject* Base, EObjec
 							{
 								UE_LOG(LogSavePackage, Warning, TEXT("A dependency '%s' of '%s' is in the linker table, but is pending kill. We will keep the dependency anyway (%d)."), *ToTest->GetFullName(), *ForObj->GetFullName(), CallSite);
 							}
-							bool bNotFiltered = (ExcludedObjectMarks == OBJECTMARK_NOMARKS || !ToTest->HasAnyMarks(ExcludedObjectMarks)) && (!(Linker->Summary.PackageFlags & PKG_FilterEditorOnly) || !IsEditorOnlyObject(ToTest));
+							bool bNotFiltered = (ExcludedObjectMarks == OBJECTMARK_NOMARKS || !ToTest->HasAnyMarks(ExcludedObjectMarks)) && (!(Linker->Summary.PackageFlags & PKG_FilterEditorOnly) || !IsEditorOnlyObject(ToTest, false));
 							if (bMandatory && !bNotFiltered)
 							{
 								UE_LOG(LogSavePackage, Warning, TEXT("A dependency '%s' of '%s' was filtered, but is mandatory. This indicates a problem with editor only stripping. We will keep the dependency anyway (%d)."), *ToTest->GetFullName(), *ForObj->GetFullName(), CallSite);

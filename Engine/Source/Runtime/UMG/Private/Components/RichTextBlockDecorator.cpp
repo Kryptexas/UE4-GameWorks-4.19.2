@@ -1,7 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Components/RichTextBlockDecorator.h"
-#include "Misc/StringAssetReference.h"
+#include "UObject/SoftObjectPtr.h"
 #include "Rendering/DrawElements.h"
 #include "Framework/Text/SlateTextRun.h"
 
@@ -149,7 +149,7 @@ void FDefaultRichTextDecorator::ExplodeRunInfo(const FRunInfo& InRunInfo, FSlate
 
 	if ( FontFamilyString )
 	{
-		FStringAssetReference Font(**FontFamilyString);
+		FSoftObjectPath Font(**FontFamilyString);
 		if ( UObject* FontAsset = Font.TryLoad() )
 		{
 			OutFont.FontObject = FontAsset;

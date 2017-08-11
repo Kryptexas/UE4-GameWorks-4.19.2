@@ -2873,7 +2873,7 @@ public:
 	* @param	OutNewActors			[out] Newly created actors are appended to this list.
 	* @param	DestLevel				The level to duplicate the actors in this job to.
 	*/
-	void MoveActorsToLevel(TArray<AActor*>& OutNewActors, ULevel* DestLevel, ULevel* BufferLevel, bool bCopyOnly, FString* OutClipboardContents )
+	void MoveActorsToLevel(TArray<AActor*>& OutNewActors, ULevel* DestLevel, ULevel* BufferLevel, bool bCopyOnly, bool bIsMove, FString* OutClipboardContents )
 	{
 		UWorld* World = SrcLevel->OwningWorld;
 		ULevel* OldCurrentLevel = World->GetCurrentLevel();
@@ -2903,7 +2903,7 @@ public:
 
 		if( !bCopyOnly )
 		{
-			const bool bSuccess = GEditor->edactDeleteSelected( World, false );
+			const bool bSuccess = GEditor->edactDeleteSelected( World, false, true, !bIsMove);
 			if ( !bSuccess )
 			{
 				// The deletion was aborted.
@@ -2952,7 +2952,7 @@ public:
 				*OutClipboardContents = *ScratchData;
 			}
 
-			GEditor->edactDeleteSelected( World, false );
+			GEditor->edactDeleteSelected( World, false, false, false );
 		}
 
 		if( DestLevel )
@@ -3140,7 +3140,7 @@ bool UEditorEngine::CanCopySelectedActorsToClipboard( UWorld* InWorld, FCopySele
 	return false;
 }
 
-void UEditorEngine::CopySelectedActorsToClipboard( UWorld* InWorld, bool bShouldCut )
+void UEditorEngine::CopySelectedActorsToClipboard( UWorld* InWorld, bool bShouldCut, const bool bIsMove )
 {
 	FCopySelectedInfo CopySelected;
 	if ( !CanCopySelectedActorsToClipboard( InWorld, &CopySelected ) )
@@ -3177,7 +3177,7 @@ void UEditorEngine::CopySelectedActorsToClipboard( UWorld* InWorld, bool bShould
 			// Cut!
 			const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "Cut", "Cut") );
 			edactCopySelected( World );
-			edactDeleteSelected( World );
+			edactDeleteSelected( World, true, true, !bIsMove );
 		}
 		else
 		{
@@ -3285,7 +3285,7 @@ void UEditorEngine::CopySelectedActorsToClipboard( UWorld* InWorld, bool bShould
 
 					FString CopiedActorsString;
 					const bool bCopyOnly = !bShouldCut;
-					Job->MoveActorsToLevel( NewActors, NULL, BufferLevel, bCopyOnly, &CopiedActorsString );
+					Job->MoveActorsToLevel( NewActors, NULL, BufferLevel, bCopyOnly, bIsMove, &CopiedActorsString );
 
 					// Append our copied actors to our final clipboard string
 					ClipboardString += CopiedActorsString;

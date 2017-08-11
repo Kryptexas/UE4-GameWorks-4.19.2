@@ -74,7 +74,7 @@ struct FReplaceReferenceHelper
 		}
 	}
 
-	static void FindAndReplaceReferences(const TArray<UObject*>& SourceObjects, TSet<UObject*>* ObjectsThatShouldUseOldStuff, const TArray<UObject*>& ObjectsToReplace, const TMap<UObject*, UObject*>& OldToNewInstanceMap, const TMap<FStringAssetReference, UObject*>& ReinstancedObjectsWeakReferenceMap)
+	static void FindAndReplaceReferences(const TArray<UObject*>& SourceObjects, TSet<UObject*>* ObjectsThatShouldUseOldStuff, const TArray<UObject*>& ObjectsToReplace, const TMap<UObject*, UObject*>& OldToNewInstanceMap, const TMap<FSoftObjectPath, UObject*>& ReinstancedObjectsWeakReferenceMap)
 	{
 		if(SourceObjects.Num() == 0 && ObjectsToReplace.Num() == 0 )
 		{
@@ -98,22 +98,22 @@ struct FReplaceReferenceHelper
 				{
 					// The class for finding and replacing weak references.
 					// We can't relay on "standard" weak references replacement as
-					// it depends on FStringAssetReference::ResolveObject, which
+					// it depends on FSoftObjectPath::ResolveObject, which
 					// tries to find the object with the stored path. It is
 					// impossible, cause above we deleted old actors (after
 					// spawning new ones), so during objects traverse we have to
-					// find FStringAssetReferences with the raw given path taken
+					// find FSoftObjectPath with the raw given path taken
 					// before deletion of old actors and fix them.
 					class ReferenceReplace : public FArchiveReplaceObjectRef < UObject >
 					{
 					public:
-						ReferenceReplace(UObject* InSearchObject, const TMap<UObject*, UObject*>& InReplacementMap, const TMap<FStringAssetReference, UObject*>& InWeakReferencesMap)
+						ReferenceReplace(UObject* InSearchObject, const TMap<UObject*, UObject*>& InReplacementMap, const TMap<FSoftObjectPath, UObject*>& InWeakReferencesMap)
 							: FArchiveReplaceObjectRef<UObject>(InSearchObject, InReplacementMap, false, false, false, true), WeakReferencesMap(InWeakReferencesMap)
 						{
 							SerializeSearchObject();
 						}
 
-						FArchive& operator<<(FStringAssetReference& Ref) override
+						FArchive& operator<<(FSoftObjectPath& Ref) override
 						{
 							const UObject*const* PtrToObjPtr = WeakReferencesMap.Find(Ref);
 
@@ -125,13 +125,13 @@ struct FReplaceReferenceHelper
 							return *this;
 						}
 
-						FArchive& operator<<(FAssetPtr& Ref) override
+						FArchive& operator<<(FSoftObjectPtr& Ref) override
 						{
 							return operator<<(Ref.GetUniqueID());
 						}
 
 					private:
-						const TMap<FStringAssetReference, UObject*>& WeakReferencesMap;
+						const TMap<FSoftObjectPath, UObject*>& WeakReferencesMap;
 					};
 
 					ReferenceReplace ReplaceAr(Obj, OldToNewInstanceMap, ReinstancedObjectsWeakReferenceMap);
@@ -573,7 +573,7 @@ void FBlueprintCompileReinstancer::FinalizeFastReinstancing(TArray<UObject*>& Ob
 {
 	TArray<UObject*> SourceObjects;
 	TMap<UObject*, UObject*> OldToNewInstanceMap;
-	TMap<FStringAssetReference, UObject*> ReinstancedObjectsWeakReferenceMap;
+	TMap<FSoftObjectPath, UObject*> ReinstancedObjectsWeakReferenceMap;
 	FReplaceReferenceHelper::IncludeCDO(DuplicatedClass, ClassToReinstance, OldToNewInstanceMap, SourceObjects, OriginalCDO);
 
 	if (IsClassObjectReplaced())
@@ -989,11 +989,8 @@ void FBlueprintCompileReinstancer::UpdateBytecodeReferences()
 			for( TFieldIterator<UFunction> FuncIter(BPClass, EFieldIteratorFlags::ExcludeSuper); FuncIter; ++FuncIter )
 			{
 				UFunction* CurrentFunction = *FuncIter;
-				if( CurrentFunction->Script.Num() > 0 )
-				{
-					FArchiveReplaceObjectRef<UObject> ReplaceAr(CurrentFunction, FieldMappings, /*bNullPrivateRefs=*/ false, /*bIgnoreOuterRef=*/ true, /*bIgnoreArchetypeRef=*/ true);
-					bBPWasChanged |= (0 != ReplaceAr.GetCount());
-				}
+				FArchiveReplaceObjectRef<UObject> ReplaceAr(CurrentFunction, FieldMappings, /*bNullPrivateRefs=*/ false, /*bIgnoreOuterRef=*/ true, /*bIgnoreArchetypeRef=*/ true);
+				bBPWasChanged |= (0 != ReplaceAr.GetCount());
 			}
 
 			FArchiveReplaceObjectRef<UObject> ReplaceInBPAr(*DependentBP, FieldMappings, false, true, true);
@@ -1144,7 +1141,7 @@ struct FActorReplacementHelper
 	 * Runs construction scripts on the new actor and then finishes it off by
 	 * attaching it to the same attachments that its predecessor was set with. 
 	 */
-	void Finalize(const TMap<UObject*, UObject*>& OldToNewInstanceMap, TSet<UObject*>* ObjectsThatShouldUseOldStuff, const TArray<UObject*>& ObjectsToReplace, const TMap<FStringAssetReference, UObject*>& ReinstancedObjectsWeakReferenceMap);
+	void Finalize(const TMap<UObject*, UObject*>& OldToNewInstanceMap, TSet<UObject*>* ObjectsThatShouldUseOldStuff, const TArray<UObject*>& ObjectsToReplace, const TMap<FSoftObjectPath, UObject*>& ReinstancedObjectsWeakReferenceMap);
 
 	/**
 	* Takes the cached child actors, as well as the old AttachParent, and sets
@@ -1153,7 +1150,7 @@ struct FActorReplacementHelper
 	*
 	* @param OldToNewInstanceMap Mapping of reinstanced objects.
 	*/
-	void ApplyAttachments(const TMap<UObject*, UObject*>& OldToNewInstanceMap, TSet<UObject*>* ObjectsThatShouldUseOldStuff, const TArray<UObject*>& ObjectsToReplace, const TMap<FStringAssetReference, UObject*>& ReinstancedObjectsWeakReferenceMap);
+	void ApplyAttachments(const TMap<UObject*, UObject*>& OldToNewInstanceMap, TSet<UObject*>* ObjectsThatShouldUseOldStuff, const TArray<UObject*>& ObjectsToReplace, const TMap<FSoftObjectPath, UObject*>& ReinstancedObjectsWeakReferenceMap);
 
 private:
 	/**
@@ -1175,7 +1172,7 @@ private:
 	TMap<FName, UActorComponent*> OldActorComponentNameMap;
 };
 
-void FActorReplacementHelper::Finalize(const TMap<UObject*, UObject*>& OldToNewInstanceMap, TSet<UObject*>* ObjectsThatShouldUseOldStuff, const TArray<UObject*>& ObjectsToReplace, const TMap<FStringAssetReference, UObject*>& ReinstancedObjectsWeakReferenceMap)
+void FActorReplacementHelper::Finalize(const TMap<UObject*, UObject*>& OldToNewInstanceMap, TSet<UObject*>* ObjectsThatShouldUseOldStuff, const TArray<UObject*>& ObjectsToReplace, const TMap<FSoftObjectPath, UObject*>& ReinstancedObjectsWeakReferenceMap)
 {
 	
 	// because this is an editor context it's important to use this execution guard
@@ -1253,7 +1250,7 @@ void FActorReplacementHelper::Finalize(const TMap<UObject*, UObject*>& OldToNewI
 	}
 }
 
-void FActorReplacementHelper::ApplyAttachments(const TMap<UObject*, UObject*>& OldToNewInstanceMap, TSet<UObject*>* ObjectsThatShouldUseOldStuff, const TArray<UObject*>& ObjectsToReplace, const TMap<FStringAssetReference, UObject*>& ReinstancedObjectsWeakReferenceMap)
+void FActorReplacementHelper::ApplyAttachments(const TMap<UObject*, UObject*>& OldToNewInstanceMap, TSet<UObject*>* ObjectsThatShouldUseOldStuff, const TArray<UObject*>& ObjectsToReplace, const TMap<FSoftObjectPath, UObject*>& ReinstancedObjectsWeakReferenceMap)
 {
 	USceneComponent* NewRootComponent = NewActor->GetRootComponent();
 	if (NewRootComponent == nullptr)
@@ -1520,7 +1517,7 @@ UClass* FBlueprintCompileReinstancer::MoveCDOToNewClass(UClass* OwnerClass, cons
 	{
 		if(bAvoidCDODuplication)
 		{
-			OldCDO->Rename(*OldCDO->GetName(), CopyOfOwnerClass, REN_DoNotDirty | REN_DontCreateRedirectors | REN_ForceNoResetLoaders);
+			OldCDO->Rename(nullptr, CopyOfOwnerClass->GetOuter(), REN_DoNotDirty | REN_DontCreateRedirectors | REN_ForceNoResetLoaders);
 			CopyOfOwnerClass->ClassDefaultObject = OldCDO;
 		}
 		OldCDO->SetClass(CopyOfOwnerClass);
@@ -1549,7 +1546,7 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass_Inner(TMap<UClass*, U
 	// Map of old objects to new name (used to assist with reinstancing archetypes)
 	TMap<UObject*, FName> OldToNewNameMap;
 
-	TMap<FStringAssetReference, UObject*> ReinstancedObjectsWeakReferenceMap;
+	TMap<FSoftObjectPath, UObject*> ReinstancedObjectsWeakReferenceMap;
 
 	// actors being replace
 	TArray<FActorReplacementHelper> ReplacementActors;
@@ -2157,28 +2154,6 @@ void FBlueprintCompileReinstancer::CopyPropertiesForUnrelatedObjects(UObject* Ol
 	UEngine::CopyPropertiesForUnrelatedObjects(OldObject, NewObject, Params);
 
 	InstancedPropertyUtils::FArchiveInsertInstancedSubObjects InstancedSubObjSpawner(NewObject, InstancedPropertyMap);
-}
-
-UObject* FBlueprintCompileReinstancer::GetClassCDODuplicate(UObject* CDO, FName Name)
-{
-	UObject* DupCDO = nullptr;
-
-	FCDODuplicatesProvider& CDODupProvider = GetCDODuplicatesProviderDelegate();
-
-	if (!CDODupProvider.IsBound() || (DupCDO = CDODupProvider.Execute(CDO, Name)) == nullptr)
-	{
-		GIsDuplicatingClassForReinstancing = true;
-		DupCDO = (UObject*)StaticDuplicateObject(CDO, GetTransientPackage(), Name);
-		GIsDuplicatingClassForReinstancing = false;
-	}
-
-	return DupCDO;
-}
-
-FBlueprintCompileReinstancer::FCDODuplicatesProvider& FBlueprintCompileReinstancer::GetCDODuplicatesProviderDelegate()
-{
-	static FCDODuplicatesProvider Delegate;
-	return Delegate;
 }
 
 FRecreateUberGraphFrameScope::FRecreateUberGraphFrameScope(UClass* InClass, bool bRecreate)

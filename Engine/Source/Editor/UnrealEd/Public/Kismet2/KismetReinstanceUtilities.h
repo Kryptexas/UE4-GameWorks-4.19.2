@@ -38,17 +38,6 @@ public:
 
 class UNREALED_API FBlueprintCompileReinstancer : public TSharedFromThis<FBlueprintCompileReinstancer>, public FGCObject
 {
-public:
-	/**
-	 * CDO duplicates provider delegate type.
-	 */
-	DECLARE_DELEGATE_RetVal_TwoParams(UObject*, FCDODuplicatesProvider, UObject*, FName);
-
-	/**
-	 * Gets CDO duplicates provider delegate.
-	 */
-	static FCDODuplicatesProvider& GetCDODuplicatesProviderDelegate();
-
 protected:
 	friend struct FBlueprintCompilationManagerImpl;
 
@@ -198,15 +187,6 @@ protected:
 	static void CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* NewObject, bool bClearExternalReferences);
 
 private:
-	/**
-	 * Gets class CDO duplicate from cache (or creates it if not available or not
-	 * during hot-reload) for given class.
-	 *
-	 * @param CDO Object to get duplicate of.
-	 * @param Name The name that CDO has to be renamed with (or created with).
-	 */
-	static UObject* GetClassCDODuplicate(UObject* CDO, FName Name);
-
 	/** Handles the work of ReplaceInstancesOfClass, handling both normal replacement of instances and batch */
 	static void ReplaceInstancesOfClass_Inner(TMap<UClass*, UClass*>& InOldToNewClassMap, UObject* InOriginalCDO, TSet<UObject*>* ObjectsThatShouldUseOldStuff = NULL, bool bClassObjectReplaced = false, bool bPreserveRootComponent = true);
 };

@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
-#include "UObject/AssetPtr.h"
+#include "UObject/SoftObjectPtr.h"
 #include "Modules/ModuleInterface.h"
 #include "Modules/ModuleManager.h"
 #include "Engine/Blueprint.h"
@@ -84,8 +84,8 @@ public:
 	virtual void FinalizeManifest() = 0;
 	virtual void GenerateStubs() = 0;
 	virtual void GenerateFullyConvertedClasses() = 0;
-	virtual void MarkUnconvertedBlueprintAsNecessary(TAssetPtr<UBlueprint> BPPtr, const FCompilerNativizationOptions& NativizationOptions) = 0;
-	virtual const TMultiMap<FName, TAssetSubclassOf<UObject>>& GetFunctionsBoundToADelegate() = 0;
+	virtual void MarkUnconvertedBlueprintAsNecessary(TSoftObjectPtr<UBlueprint> BPPtr, const FCompilerNativizationOptions& NativizationOptions) = 0;
+	virtual const TMultiMap<FName, TSoftClassPtr<UObject>>& GetFunctionsBoundToADelegate() = 0;
 
 	virtual void FillPlatformNativizationDetails(const ITargetPlatform* Platform, FPlatformNativizationDetails& OutDetails) = 0;
 protected:

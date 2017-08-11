@@ -10,7 +10,7 @@
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
 #include "Engine/EngineTypes.h"
-#include "Misc/StringAssetReference.h"
+#include "UObject/SoftObjectPath.h"
 #include "AutomationTestSettings.generated.h"
 
 
@@ -307,7 +307,7 @@ struct FEditorMapPerformanceTestDefinition
 	
 	/** Map to be used for the Performance Capture **/
 	UPROPERTY(config, EditAnywhere, Category = Automation, meta=( AllowedClasses="World" ))
-	FStringAssetReference PerformanceTestmap;
+	FSoftObjectPath PerformanceTestmap;
 
 	/** How long is this test expected to run before stopping **/
 	UPROPERTY(config, EditAnywhere, Category = Automation, meta = (ToolTip = "This is the length of time in seconds that this test will run for before stopping."))
@@ -357,7 +357,7 @@ public:
 	 * The automation test map to be used for several of the automation tests.
 	 */
 	UPROPERTY(config, EditAnywhere, Category = Automation, meta=( AllowedClasses="World" ))
-	FStringAssetReference AutomationTestmap;
+	FSoftObjectPath AutomationTestmap;
 
 	/**
 	* The map to be used for the editor performance capture tool.
@@ -369,7 +369,7 @@ public:
 	 * Asset to test for open in automation process
 	 */
 	UPROPERTY(EditAnywhere, config, Category="Open Asset Tests")
-	TArray<FStringAssetReference> AssetsToOpen;
+	TArray<FSoftObjectPath> AssetsToOpen;
 
 	/**
 	* Editor build promotion test settings

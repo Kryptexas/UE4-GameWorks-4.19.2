@@ -183,6 +183,38 @@ AActor* UK2Node_ActorBoundEvent::GetReferencedLevelActor() const
 	return EventOwner;
 }
 
+void UK2Node_ActorBoundEvent::ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const
+{
+	Super::ValidateNodeDuringCompilation(MessageLog);
+
+	// make sure that the actor still exists:
+	AActor* TargetActor = GetReferencedLevelActor();
+	if(!TargetActor)
+	{
+		MessageLog.Warning(
+			*NSLOCTEXT("KismetCompiler", "MissingActor_ActorBoundEvent", "@@ is referencing an Actor that no longer exists. Attached logic will never execute.").ToString(), 
+			this
+		);
+	}
+	else if(DelegateOwnerClass == nullptr)
+	{
+		MessageLog.Warning(
+			*NSLOCTEXT("KismetCompiler", "MissingClass_ActorBoundEvent", "@@ is trying to find an Event Dispatcher named @@ in a class that no longer exists. Attached logic will never execute.").ToString(), 
+			this,
+			*DelegatePropertyName.ToString()
+		);
+	}
+	else if( GetTargetDelegatePropertyFromSkel() == nullptr )
+	{
+		MessageLog.Warning(
+			*NSLOCTEXT("KismetCompiler", "MissingDelegate_ActorBoundEvent", "@@ is referencing an Event Dispatcher named @@ that no longer exists in class @@. Attached logic will never execute.").ToString(),
+			this,
+			*DelegatePropertyName.ToString(),
+			DelegateOwnerClass
+		);
+	}
+}
+
 void UK2Node_ActorBoundEvent::InitializeActorBoundEventParams(AActor* InEventOwner, const UMulticastDelegateProperty* InDelegateProperty)
 {
 	if (InEventOwner && InDelegateProperty)
@@ -201,6 +233,11 @@ void UK2Node_ActorBoundEvent::InitializeActorBoundEventParams(AActor* InEventOwn
 UMulticastDelegateProperty* UK2Node_ActorBoundEvent::GetTargetDelegateProperty() const
 {
 	return Cast<UMulticastDelegateProperty>(FindField<UMulticastDelegateProperty>(DelegateOwnerClass, DelegatePropertyName));
+}
+
+UMulticastDelegateProperty* UK2Node_ActorBoundEvent::GetTargetDelegatePropertyFromSkel() const
+{
+	return Cast<UMulticastDelegateProperty>(FindField<UMulticastDelegateProperty>(FBlueprintEditorUtils::GetMostUpToDateClass(DelegateOwnerClass), DelegatePropertyName));
 }
 
 FMulticastScriptDelegate* UK2Node_ActorBoundEvent::GetTargetDelegate() const 

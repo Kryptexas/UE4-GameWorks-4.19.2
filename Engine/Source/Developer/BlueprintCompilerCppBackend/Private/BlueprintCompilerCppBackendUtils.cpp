@@ -7,7 +7,7 @@
 #include "UObject/MetaData.h"
 #include "UObject/TextProperty.h"
 #include "UObject/PropertyPortFlags.h"
-#include "Misc/StringClassReference.h"
+#include "UObject/SoftObjectPath.h"
 #include "Components/ActorComponent.h"
 #include "Engine/BlueprintGeneratedClass.h"
 #include "Engine/UserDefinedEnum.h"
@@ -253,7 +253,7 @@ FString FEmitterLocalContext::ExportTextItem(const UProperty* Property, const vo
 			ValueStr = TEXT("(-2147483647 - 1)");
 		}
 	}
-	if (Property->IsA<UAssetObjectProperty>())
+	if (Property->IsA<USoftObjectProperty>())
 	{
 		const FString TypeText = ExportCppDeclaration(Property, EExportedDeclaration::Parameter, LocalExportCPPFlags, EPropertyNameInDeclaration::Skip);
 		return FString::Printf(TEXT("%s(%s)"), *TypeText, *ValueStr);
@@ -298,9 +298,9 @@ FString FEmitterLocalContext::ExportCppDeclaration(const UProperty* Property, EE
 	{
 		GetActualNameCPP(ClassProperty, ClassProperty->MetaClass);
 	}
-	else if (auto AssetClassProperty = Cast<const UAssetClassProperty>(Property))
+	else if (auto SoftClassProperty = Cast<const USoftClassProperty>(Property))
 	{
-		GetActualNameCPP(AssetClassProperty, AssetClassProperty->MetaClass);
+		GetActualNameCPP(SoftClassProperty, SoftClassProperty->MetaClass);
 	}
 	else if (auto ObjectProperty = Cast<const UObjectPropertyBase>(Property))
 	{
@@ -1148,7 +1148,7 @@ FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEd
 		}
 		return FString(TEXT("((UClass*)nullptr)"));
 	}
-	else if((UEdGraphSchema_K2::PC_AssetClass == Type.PinCategory) || (UEdGraphSchema_K2::PC_Asset == Type.PinCategory))
+	else if((UEdGraphSchema_K2::PC_SoftClass == Type.PinCategory) || (UEdGraphSchema_K2::PC_SoftObject == Type.PinCategory))
 	{
 		UClass* MetaClass = Cast<UClass>(Type.PinSubCategoryObject.Get());
 		MetaClass = MetaClass ? MetaClass : UObject::StaticClass();
@@ -1156,9 +1156,9 @@ FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEd
 
 		if (!CustomValue.IsEmpty())
 		{
-			const bool bAssetSubclassOf = (UEdGraphSchema_K2::PC_AssetClass == Type.PinCategory);
-			return FString::Printf(TEXT("%s<%s>(FStringAssetReference(TEXT(\"%s\")))")
-				, bAssetSubclassOf ? TEXT("TAssetSubclassOf") : TEXT("TAssetPtr")
+			const bool bAssetSubclassOf = (UEdGraphSchema_K2::PC_SoftClass == Type.PinCategory);
+			return FString::Printf(TEXT("%s<%s>(FSoftObjectPath(TEXT(\"%s\")))")
+				, bAssetSubclassOf ? TEXT("TSoftClassPtr") : TEXT("TSoftObjectPtr")
 				, *ObjTypeStr
 				, *(CustomValue.ReplaceCharWithEscapedChar()));
 		}
@@ -1261,11 +1261,11 @@ FString FEmitHelper::PinTypeToNativeType(const FEdGraphPinType& Type)
 				return FString::Printf(TEXT("TSubclassOf<%s>"), *FEmitHelper::GetCppName(Class));
 			}
 		}
-		else if (UEdGraphSchema_K2::PC_AssetClass == InType.PinCategory)
+		else if (UEdGraphSchema_K2::PC_SoftClass == InType.PinCategory)
 		{
 			if (UClass* Class = Cast<UClass>(InType.PinSubCategoryObject.Get()))
 			{
-				return FString::Printf(TEXT("TAssetSubclassOf<%s>"), *FEmitHelper::GetCppName(Class));
+				return FString::Printf(TEXT("TSoftClassPtr<%s>"), *FEmitHelper::GetCppName(Class));
 			}
 		}
 		else if (UEdGraphSchema_K2::PC_Interface == InType.PinCategory)
@@ -1275,11 +1275,11 @@ FString FEmitHelper::PinTypeToNativeType(const FEdGraphPinType& Type)
 				return FString::Printf(TEXT("TScriptInterface<%s>"), *FEmitHelper::GetCppName(Class));
 			}
 		}
-		else if (UEdGraphSchema_K2::PC_Asset == InType.PinCategory)
+		else if (UEdGraphSchema_K2::PC_SoftObject == InType.PinCategory)
 		{
 			if (UClass* Class = Cast<UClass>(InType.PinSubCategoryObject.Get()))
 			{
-				return FString::Printf(TEXT("TAssetPtr<%s>"), *FEmitHelper::GetCppName(Class));
+				return FString::Printf(TEXT("TSoftObjectPtr<%s>"), *FEmitHelper::GetCppName(Class));
 			}
 		}
 		else if (UEdGraphSchema_K2::PC_Object == InType.PinCategory)
@@ -1573,7 +1573,7 @@ void FNativizationSummaryHelper::InaccessibleProperty(const UProperty* Property)
 	TSharedPtr<FNativizationSummary> NativizationSummary = BackEndModule.NativizationSummary();
 	if (NativizationSummary.IsValid())
 	{
-		FStringAssetReference Key(Property);
+		FSoftObjectPath Key(Property);
 		int32* FoundStat = NativizationSummary->InaccessiblePropertyStat.Find(Key);
 		if (FoundStat)
 		{
@@ -1599,7 +1599,7 @@ static void FNativizationSummaryHelper__MemberUsed(const UClass* Class, const UF
 			const bool bUnrelatedClass = !Class->IsChildOf(Owner);
 			if (AnimBP && bUnrelatedClass)
 			{
-				FNativizationSummary::FAnimBlueprintDetails& AnimBlueprintDetails = NativizationSummary->AnimBlueprintStat.FindOrAdd(FStringAssetReference(AnimBP));
+				FNativizationSummary::FAnimBlueprintDetails& AnimBlueprintDetails = NativizationSummary->AnimBlueprintStat.FindOrAdd(FSoftObjectPath(AnimBP));
 				(AnimBlueprintDetails.*CouterPtr)++;
 			}
 		}
@@ -1625,19 +1625,19 @@ void FNativizationSummaryHelper::ReducibleFunciton(const UClass* OriginalClass)
 		UAnimBlueprint* AnimBP = Cast<UAnimBlueprint>(UBlueprint::GetBlueprintFromClass(OriginalClass));
 		if (NativizationSummary.IsValid() && OriginalClass && AnimBP)
 		{
-			FNativizationSummary::FAnimBlueprintDetails& AnimBlueprintDetails = NativizationSummary->AnimBlueprintStat.FindOrAdd(FStringAssetReference(AnimBP));
+			FNativizationSummary::FAnimBlueprintDetails& AnimBlueprintDetails = NativizationSummary->AnimBlueprintStat.FindOrAdd(FSoftObjectPath(AnimBP));
 			AnimBlueprintDetails.ReducibleFunctions++;
 		}
 	}
 }
 
-void FNativizationSummaryHelper::RegisterRequiredModules(const FName PlatformName, const TSet<TAssetPtr<UPackage>>& InModules)
+void FNativizationSummaryHelper::RegisterRequiredModules(const FName PlatformName, const TSet<TSoftObjectPtr<UPackage>>& InModules)
 {
 	IBlueprintCompilerCppBackendModule& BackEndModule = (IBlueprintCompilerCppBackendModule&)IBlueprintCompilerCppBackendModule::Get();
 	TSharedPtr<FNativizationSummary> NativizationSummary = BackEndModule.NativizationSummary();
 	if (NativizationSummary.IsValid())
 	{
-		TSet<TAssetPtr<UPackage>>& Modules = NativizationSummary->ModulesRequiredByPlatform.FindOrAdd(PlatformName);
+		TSet<TSoftObjectPtr<UPackage>>& Modules = NativizationSummary->ModulesRequiredByPlatform.FindOrAdd(PlatformName);
 		Modules.Append(InModules);
 	}
 }
@@ -1650,7 +1650,7 @@ void FNativizationSummaryHelper::RegisterClass(const UClass* OriginalClass)
 	if (NativizationSummary.IsValid() && OriginalClass && AnimBP)
 	{
 		{
-			FNativizationSummary::FAnimBlueprintDetails& AnimBlueprintDetails = NativizationSummary->AnimBlueprintStat.FindOrAdd(FStringAssetReference(AnimBP));
+			FNativizationSummary::FAnimBlueprintDetails& AnimBlueprintDetails = NativizationSummary->AnimBlueprintStat.FindOrAdd(FSoftObjectPath(AnimBP));
 
 			AnimBlueprintDetails.Variables = AnimBP->NewVariables.Num();
 
@@ -1669,7 +1669,7 @@ void FNativizationSummaryHelper::RegisterClass(const UClass* OriginalClass)
 			UAnimBlueprint* ParentAnimBP = Cast<UAnimBlueprint>(UBlueprint::GetBlueprintFromClass(SuperClass));
 			if (ParentAnimBP)
 			{
-				FNativizationSummary::FAnimBlueprintDetails& AnimBlueprintDetails = NativizationSummary->AnimBlueprintStat.FindOrAdd(FStringAssetReference(ParentAnimBP));
+				FNativizationSummary::FAnimBlueprintDetails& AnimBlueprintDetails = NativizationSummary->AnimBlueprintStat.FindOrAdd(FSoftObjectPath(ParentAnimBP));
 				AnimBlueprintDetails.Children++;
 			}
 		}
@@ -1757,7 +1757,7 @@ FString FEmitHelper::AccessInaccessibleProperty(FEmitterLocalContext& EmitterCon
 
 struct FSearchableValuesdHelper_StaticData
 {
-	TArray<FStringClassReference> ClassesWithStaticSearchableValues;
+	TArray<FSoftClassPath> ClassesWithStaticSearchableValues;
 	TArray<FName> TagPropertyNames;
 private:
 	FSearchableValuesdHelper_StaticData()
@@ -1767,7 +1767,7 @@ private:
 			GConfig->GetArray(TEXT("BlueprintNativizationSettings"), TEXT("ClassesWithStaticSearchableValues"), Paths, GEditorIni);
 			for (FString& Path : Paths)
 			{
-				ClassesWithStaticSearchableValues.Add(FStringClassReference(Path));
+				ClassesWithStaticSearchableValues.Add(FSoftClassPath(Path));
 			}
 		}
 
@@ -1791,7 +1791,7 @@ public:
 
 bool FBackendHelperStaticSearchableValues::HasSearchableValues(UClass* InClass)
 {
-	for (const FStringClassReference& ClassStrRef : FSearchableValuesdHelper_StaticData::Get().ClassesWithStaticSearchableValues)
+	for (const FSoftClassPath& ClassStrRef : FSearchableValuesdHelper_StaticData::Get().ClassesWithStaticSearchableValues)
 	{
 		UClass* IterClass = ClassStrRef.ResolveClass();
 		if (IterClass && InClass && InClass->IsChildOf(IterClass))
@@ -1919,7 +1919,7 @@ FString FDependenciesGlobalMapHelper::EmitBodyCode(const FString& PCHFilename)
 	return CodeText.Result;
 }
 
-FNativizationSummary::FDependencyRecord& FDependenciesGlobalMapHelper::FindDependencyRecord(const FStringAssetReference& Key)
+FNativizationSummary::FDependencyRecord& FDependenciesGlobalMapHelper::FindDependencyRecord(const FSoftObjectPath& Key)
 {
 	auto& DependenciesGlobalMap = GetDependenciesGlobalMap();
 	FNativizationSummary::FDependencyRecord& DependencyRecord = DependenciesGlobalMap.FindOrAdd(Key);
@@ -1930,7 +1930,7 @@ FNativizationSummary::FDependencyRecord& FDependenciesGlobalMapHelper::FindDepen
 	return DependencyRecord;
 }
 
-TMap<FStringAssetReference, FNativizationSummary::FDependencyRecord>& FDependenciesGlobalMapHelper::GetDependenciesGlobalMap()
+TMap<FSoftObjectPath, FNativizationSummary::FDependencyRecord>& FDependenciesGlobalMapHelper::GetDependenciesGlobalMap()
 {
 	IBlueprintCompilerCppBackendModule& BackEndModule = (IBlueprintCompilerCppBackendModule&)IBlueprintCompilerCppBackendModule::Get();
 	TSharedPtr<FNativizationSummary> NativizationSummary = BackEndModule.NativizationSummary();
@@ -1990,7 +1990,7 @@ struct FStructAccessHelper_StaticData
 {
 	TMap<const UStruct*, FString> BaseStructureAccessorsMap;
 	TMap<const UStruct*, bool> SupportsDirectNativeAccessMap;
-	TArray<FStringClassReference> NoExportTypesWithDirectNativeFieldAccess;
+	TArray<FSoftClassPath> NoExportTypesWithDirectNativeFieldAccess;
 
 	static FStructAccessHelper_StaticData& Get()
 	{
@@ -2026,7 +2026,7 @@ private:
 			GConfig->GetArray(TEXT("BlueprintNativizationSettings"), TEXT("NoExportTypesWithDirectNativeFieldAccess"), Paths, GEditorIni);
 			for (FString& Path : Paths)
 			{
-				NoExportTypesWithDirectNativeFieldAccess.Add(FStringClassReference(Path));
+				NoExportTypesWithDirectNativeFieldAccess.Add(FSoftClassPath(Path));
 			}
 		}
 	}

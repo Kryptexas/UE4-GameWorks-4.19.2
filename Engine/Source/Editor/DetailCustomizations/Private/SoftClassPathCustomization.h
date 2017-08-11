@@ -10,12 +10,12 @@ class IPropertyHandle;
 /**
  * Customizes a string class reference to look like a UClass property
  */
-class FStringClassReferenceCustomization : public IPropertyTypeCustomization
+class FSoftClassPathCustomization : public IPropertyTypeCustomization
 {
 public:
 	static TSharedRef<IPropertyTypeCustomization> MakeInstance() 
 	{
-		return MakeShareable(new FStringClassReferenceCustomization);
+		return MakeShareable(new FSoftClassPathCustomization);
 	}
 
 	/** IPropertyTypeCustomization interface */

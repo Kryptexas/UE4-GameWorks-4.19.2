@@ -196,7 +196,7 @@ TSharedPtr<SGraphNode> FNodeFactory::CreateNodeWidget(UEdGraphNode* InNode)
 	{
 		return SNew(SGraphNodeDocumentation, DocNode);
 	}
-	else if (InNode->ShouldDrawNodeAsComment())
+	else if (UEdGraphNode_Comment* CommentNode = Cast<UEdGraphNode_Comment>(InNode))
 	{
 		if (UMaterialGraphNode_Comment* MaterialCommentNode = Cast<UMaterialGraphNode_Comment>(InNode))
 		{
@@ -204,7 +204,7 @@ TSharedPtr<SGraphNode> FNodeFactory::CreateNodeWidget(UEdGraphNode* InNode)
 		}
 		else
 		{
-			return SNew(SGraphNodeComment, InNode);
+			return SNew(SGraphNodeComment, CommentNode);
 		}
 	}
 	else
@@ -254,7 +254,7 @@ TSharedPtr<SGraphPin> FNodeFactory::CreatePinWidget(UEdGraphPin* InPin)
 		{
 			return SNew(SGraphPinObject, InPin);
 		}
-		else if (InPin->PinType.PinCategory == K2Schema->PC_Asset)
+		else if (InPin->PinType.PinCategory == K2Schema->PC_SoftObject)
 		{
 			return SNew(SGraphPinObject, InPin);
 		}
@@ -262,7 +262,7 @@ TSharedPtr<SGraphPin> FNodeFactory::CreatePinWidget(UEdGraphPin* InPin)
 		{
 			return SNew(SGraphPinClass, InPin);
 		}
-		else if (InPin->PinType.PinCategory == K2Schema->PC_AssetClass)
+		else if (InPin->PinType.PinCategory == K2Schema->PC_SoftClass)
 		{
 			return SNew(SGraphPinClass, InPin);
 		}

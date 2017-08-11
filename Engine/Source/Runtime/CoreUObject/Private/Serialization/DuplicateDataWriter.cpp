@@ -2,8 +2,6 @@
 
 #include "CoreMinimal.h"
 #include "UObject/LazyObjectPtr.h"
-#include "Misc/StringAssetReference.h"
-#include "UObject/AssetPtr.h"
 #include "UObject/PropertyPortFlags.h"
 #include "Serialization/DuplicatedObject.h"
 #include "Serialization/DuplicatedDataWriter.h"

@@ -47,11 +47,11 @@ struct ENGINE_API FDialogueContext
 	FDialogueContext();
 
 	/** The person speaking the dialogue. */
-	UPROPERTY(EditAnywhere, Category=DialogueContext )
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=DialogueContext )
 	UDialogueVoice* Speaker;
 
 	/** The people being spoken to. */
-	UPROPERTY(EditAnywhere, Category=DialogueContext )
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=DialogueContext )
 	TArray<UDialogueVoice*> Targets;
 
 	/** Gets a generated hash created from the source and targets. */

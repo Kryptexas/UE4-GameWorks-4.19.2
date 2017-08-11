@@ -560,7 +560,7 @@ private:
 	bool Serialize(FArchive& Ar);
 
 	// Helper functions
-	static void EnableAllConnectedNodes(class UEdGraphNode* InNode);
+	static void ConvertConnectedGhostNodesToRealNodes(UEdGraphNode* InNode);
 	static void ResolveReferencesToPin(UEdGraphPin* Pin, bool bStrictValidation = true);
 	static void SerializePinArray(FArchive& Ar, TArray<UEdGraphPin*>& ArrayRef, UEdGraphPin* RequestingPin, EPinResolveType ResolveType);
 	static bool SerializePin(FArchive& Ar, UEdGraphPin*& PinRef, int32 ArrayIdx, UEdGraphPin* RequestingPin, EPinResolveType ResolveType, TArray<UEdGraphPin*>& OldPins);

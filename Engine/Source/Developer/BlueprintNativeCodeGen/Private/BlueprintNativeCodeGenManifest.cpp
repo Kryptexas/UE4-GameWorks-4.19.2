@@ -300,12 +300,6 @@ FConvertedAssetRecord::FConvertedAssetRecord(const FAssetData& AssetInfo, const 
 	GeneratedHeaderPath = BlueprintNativeCodeGenManifestImpl::GenerateSourceFileSavePath(TargetPaths, AssetInfo, NativizationOptions, FBlueprintNativeCodeGenPaths::HFile);
 }
 
-//------------------------------------------------------------------------------
-FStringAssetReference FConvertedAssetRecord::ToAssetRef() const
-{
-	return FStringAssetReference(TargetObjPath);
-}
-
 /*******************************************************************************
  * FUnconvertedDependencyRecord
  ******************************************************************************/

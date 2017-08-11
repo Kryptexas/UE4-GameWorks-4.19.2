@@ -93,8 +93,6 @@ void FAutomationControllerManager::RequestTests()
 		{
 			FMessageAddress MessageAddress = DeviceClusterManager.GetDeviceMessageAddress(ClusterIndex, 0);
 
-			ResetIntermediateTestData();
-
 			//issue tests on appropriate platforms
 			MessageEndpoint->Send(new FAutomationWorkerRequestTests(bDeveloperDirectoryIncluded, RequestedTestFlags), MessageAddress);
 		}
@@ -218,19 +216,24 @@ void FAutomationControllerManager::ProcessComparisonQueue()
 
 			// Get the current test.
 			TSharedPtr<IAutomationReport> Report = DeviceClusterManager.GetTest(ClusterIndex, DeviceIndex);
-			check(Report.IsValid());
+			if (Report.IsValid())
+			{
+				// Record the artifacts for the test.
+				FString ApprovedFolder = ScreenshotManager->GetLocalApprovedFolder();
+				FString UnapprovedFolder = ScreenshotManager->GetLocalUnapprovedFolder();
+				FString ComparisonFolder = ScreenshotManager->GetLocalComparisonFolder();
 
-			// Record the artifacts for the test.
-			FString ApprovedFolder = ScreenshotManager->GetLocalApprovedFolder();
-			FString UnapprovedFolder = ScreenshotManager->GetLocalUnapprovedFolder();
-			FString ComparisonFolder = ScreenshotManager->GetLocalComparisonFolder();
+				TMap<FString, FString> LocalFiles;
+				LocalFiles.Add(TEXT("approved"), ApprovedFolder / Result.ApprovedFile);
+				LocalFiles.Add(TEXT("unapproved"), UnapprovedFolder / Result.IncomingFile);
+				LocalFiles.Add(TEXT("difference"), ComparisonFolder / Result.ComparisonFile);
 
-			TMap<FString, FString> LocalFiles;
-			LocalFiles.Add(TEXT("approved"), ApprovedFolder / Result.ApprovedFile);
-			LocalFiles.Add(TEXT("unapproved"), UnapprovedFolder / Result.IncomingFile);
-			LocalFiles.Add(TEXT("difference"), ComparisonFolder / Result.ComparisonFile);
-
-			Report->AddArtifact(ClusterIndex, CurrentTestPass, FAutomationArtifact(Entry->Name, EAutomationArtifactType::Comparison, LocalFiles));
+				Report->AddArtifact(ClusterIndex, CurrentTestPass, FAutomationArtifact(Entry->Name, EAutomationArtifactType::Comparison, LocalFiles));
+			}
+			else
+			{
+				UE_LOG(AutomationControllerLog, Error, TEXT("Cannot generate screenshot report for screenshot %s as report is missing"), *Result.IncomingFile);
+			}
 		}
 	}
 }
@@ -496,7 +499,6 @@ void FAutomationControllerManager::Startup()
 		.Handling<FAutomationWorkerFindWorkersResponse>(this, &FAutomationControllerManager::HandleFindWorkersResponseMessage)
 		.Handling<FAutomationWorkerPong>(this, &FAutomationControllerManager::HandlePongMessage)
 		.Handling<FAutomationWorkerRequestNextNetworkCommand>(this, &FAutomationControllerManager::HandleRequestNextNetworkCommandMessage)
-		.Handling<FAutomationWorkerRequestTestsReply>(this, &FAutomationControllerManager::HandleRequestTestsReplyMessage)
 		.Handling<FAutomationWorkerRequestTestsReplyComplete>(this, &FAutomationControllerManager::HandleRequestTestsReplyCompleteMessage)
 		.Handling<FAutomationWorkerRunTestsReply>(this, &FAutomationControllerManager::HandleRunTestsReplyMessage)
 		.Handling<FAutomationWorkerScreenImage>(this, &FAutomationControllerManager::HandleReceivedScreenShot)
@@ -513,7 +515,6 @@ void FAutomationControllerManager::Startup()
 	bDeveloperDirectoryIncluded = false;
 	RequestedTestFlags = EAutomationTestFlags::SmokeFilter | EAutomationTestFlags::EngineFilter | EAutomationTestFlags::ProductFilter | EAutomationTestFlags::PerfFilter;
 
-	NumOfTestsToReceive = 0;
 	NumTestPasses = 1;
 
 	//Default to machine name
@@ -536,7 +537,7 @@ void FAutomationControllerManager::RemoveCallbacks()
 	TestsCompleteDelegate.Clear();
 }
 
-void FAutomationControllerManager::SetTestNames(const FMessageAddress& AutomationWorkerAddress)
+void FAutomationControllerManager::SetTestNames(const FMessageAddress& AutomationWorkerAddress, TArray<FAutomationTestInfo>& TestInfo)
 {
 	int32 DeviceClusterIndex = INDEX_NONE;
 	int32 DeviceIndex = INDEX_NONE;
@@ -561,9 +562,6 @@ void FAutomationControllerManager::SetTestNames(const FMessageAddress& Automatio
 			// Ensure our test exists. If not, add it
 			ReportManager.EnsureReportExists(TestInfo[TestIndex], DeviceClusterIndex, NumTestPasses);
 		}
-
-		// Clear any intermediate data we had associated with the tests whilst building the full list of tests
-		ResetIntermediateTestData();
 	}
 	else
 	{
@@ -995,15 +993,17 @@ void FAutomationControllerManager::HandleRequestNextNetworkCommandMessage(const 
 	}
 }
 
-void FAutomationControllerManager::HandleRequestTestsReplyMessage(const FAutomationWorkerRequestTestsReply& Message, const IMessageContextRef& Context)
-{
-	FAutomationTestInfo NewTest = Message.GetTestInfo();
-	TestInfo.Add(NewTest);
-}
-
 void FAutomationControllerManager::HandleRequestTestsReplyCompleteMessage(const FAutomationWorkerRequestTestsReplyComplete& Message, const IMessageContextRef& Context)
 {
-	SetTestNames(Context->GetSender());
+	TArray<FAutomationTestInfo> TestInfo;
+	TestInfo.Reset(Message.Tests.Num());
+	for (const FAutomationWorkerSingleTestReply& SingleTestReply : Message.Tests)
+	{
+		FAutomationTestInfo NewTest = SingleTestReply.GetTestInfo();
+		TestInfo.Add(NewTest);
+	}
+
+	SetTestNames(Context->GetSender(), TestInfo);
 }
 
 void FAutomationControllerManager::HandleRunTestsReplyMessage(const FAutomationWorkerRunTestsReply& Message, const IMessageContextRef& Context)

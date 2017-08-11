@@ -1208,7 +1208,7 @@ public:
 	DECLARE_FUNCTION(execUnicodeStringConst);
 	DECLARE_FUNCTION(execTextConst);
 	DECLARE_FUNCTION(execObjectConst);
-	DECLARE_FUNCTION(execAssetConst);
+	DECLARE_FUNCTION(execSoftObjectConst);
 
 	// @todo delegate: Multi-cast versions needed for script execution!		(Need Add, Remove, Clear/Empty)
 	DECLARE_FUNCTION(execInstanceDelegate);

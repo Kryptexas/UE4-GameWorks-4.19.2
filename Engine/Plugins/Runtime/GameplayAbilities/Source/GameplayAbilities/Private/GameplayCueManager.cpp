@@ -276,7 +276,7 @@ bool UGameplayCueManager::HandleMissingGameplayCue(UGameplayCueSet* OwningSet, s
 	return false;
 }
 
-void UGameplayCueManager::OnMissingCueAsyncLoadComplete(FStringAssetReference LoadedObject, TWeakObjectPtr<UGameplayCueSet> OwningSet, FGameplayTag GameplayCueTag, TWeakObjectPtr<AActor> TargetActor, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters)
+void UGameplayCueManager::OnMissingCueAsyncLoadComplete(FSoftObjectPath LoadedObject, TWeakObjectPtr<UGameplayCueSet> OwningSet, FGameplayTag GameplayCueTag, TWeakObjectPtr<AActor> TargetActor, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters)
 {
 	if (!LoadedObject.ResolveObject())
 	{
@@ -647,7 +647,7 @@ void UGameplayCueManager::RefreshObjectLibraries()
 	}
 }
 
-static void SearchDynamicClassCues(const FName PropertyName, const TArray<FString>& Paths, TArray<FGameplayCueReferencePair>& CuesToAdd, TArray<FStringAssetReference>& AssetsToLoad)
+static void SearchDynamicClassCues(const FName PropertyName, const TArray<FString>& Paths, TArray<FGameplayCueReferencePair>& CuesToAdd, TArray<FSoftObjectPath>& AssetsToLoad)
 {
 	// Iterate over all Dynamic Classes (nativized Blueprints). Search for ones with GameplayCueName tag.
 
@@ -675,7 +675,7 @@ static void SearchDynamicClassCues(const FName PropertyName, const TArray<FStrin
 			FGameplayTag GameplayCueTag = Manager.RequestGameplayTag(*FoundGameplayTag, false);
 			if (GameplayCueTag.IsValid())
 			{
-				FStringAssetReference StringRef(ClassPath); // TODO: is there any translation needed?
+				FSoftObjectPath StringRef(ClassPath); // TODO: is there any translation needed?
 				ensure(StringRef.IsValid());
 
 				CuesToAdd.Add(FGameplayCueReferencePair(GameplayCueTag, StringRef));
@@ -758,7 +758,7 @@ void UGameplayCueManager::InitObjectLibrary(FGameplayCueObjectLibrary& Lib)
 	Lib.StaticObjectLibrary->GetAssetDataList(StaticAssetDatas);
 
 	TArray<FGameplayCueReferencePair> CuesToAdd;
-	TArray<FStringAssetReference> AssetsToLoad;
+	TArray<FSoftObjectPath> AssetsToLoad;
 
 	// ------------------------------------------------------------------------------------------------------------------
 	// Build Cue lists for loading. Determines what from the obj library needs to be loaded
@@ -786,7 +786,7 @@ void UGameplayCueManager::InitObjectLibrary(FGameplayCueObjectLibrary& Lib)
 	// --------------------------------------------
 	if (Lib.bShouldAsyncLoad)
 	{
-		auto ForwardLambda = [](TArray<FStringAssetReference> AssetList, FOnGameplayCueNotifySetLoaded OnLoadedDelegate)
+		auto ForwardLambda = [](TArray<FSoftObjectPath> AssetList, FOnGameplayCueNotifySetLoaded OnLoadedDelegate)
 		{
 			OnLoadedDelegate.ExecuteIfBound(AssetList);
 		};
@@ -808,7 +808,7 @@ void UGameplayCueManager::InitObjectLibrary(FGameplayCueObjectLibrary& Lib)
 
 static FAutoConsoleVariable CVarGameplyCueAddToGlobalSetDebug(TEXT("GameplayCue.AddToGlobalSet.DebugTag"), TEXT(""), TEXT("Debug Tag adding to global set"), ECVF_Default	);
 
-void UGameplayCueManager::BuildCuesToAddToGlobalSet(const TArray<FAssetData>& AssetDataList, FName TagPropertyName, TArray<FGameplayCueReferencePair>& OutCuesToAdd, TArray<FStringAssetReference>& OutAssetsToLoad, FShouldLoadGCNotifyDelegate ShouldLoad)
+void UGameplayCueManager::BuildCuesToAddToGlobalSet(const TArray<FAssetData>& AssetDataList, FName TagPropertyName, TArray<FGameplayCueReferencePair>& OutCuesToAdd, TArray<FSoftObjectPath>& OutAssetsToLoad, FShouldLoadGCNotifyDelegate ShouldLoad)
 {
 	UGameplayTagsManager& Manager = UGameplayTagsManager::Get();
 
@@ -850,7 +850,7 @@ void UGameplayCueManager::BuildCuesToAddToGlobalSet(const TArray<FAssetData>& As
 			if (GameplayCueTag.IsValid())
 			{
 				// Add a new NotifyData entry to our flat list for this one
-				FStringAssetReference StringRef;
+				FSoftObjectPath StringRef;
 				StringRef.SetPath(FPackageName::ExportTextPathToObjectPath(*GeneratedClassTag));
 
 				OutCuesToAdd.Add(FGameplayCueReferencePair(GameplayCueTag, StringRef));
@@ -920,9 +920,9 @@ void UGameplayCueManager::CheckForTooManyRPCs(FName FuncName, const FGameplayCue
 	}
 }
 
-void UGameplayCueManager::OnGameplayCueNotifyAsyncLoadComplete(TArray<FStringAssetReference> AssetList)
+void UGameplayCueManager::OnGameplayCueNotifyAsyncLoadComplete(TArray<FSoftObjectPath> AssetList)
 {
-	for (FStringAssetReference StringRef : AssetList)
+	for (FSoftObjectPath StringRef : AssetList)
 	{
 		UClass* GCClass = FindObject<UClass>(nullptr, *StringRef.ToString());
 		if (ensure(GCClass))
@@ -977,7 +977,7 @@ void UGameplayCueManager::HandleAssetAdded(UObject *Object)
 		{
 			if (VerifyNotifyAssetIsInValidPath(Blueprint->GetOuter()->GetPathName()))
 			{
-				FStringAssetReference StringRef;
+				FSoftObjectPath StringRef;
 				StringRef.SetPath(Blueprint->GeneratedClass->GetPathName());
 
 				TArray<FGameplayCueReferencePair> CuesToAdd;
@@ -1004,7 +1004,7 @@ void UGameplayCueManager::HandleAssetAdded(UObject *Object)
 /** Handles cleaning up an object library if it matches the passed in object */
 void UGameplayCueManager::HandleAssetDeleted(UObject *Object)
 {
-	FStringAssetReference StringRefToRemove;
+	FSoftObjectPath StringRefToRemove;
 	UBlueprint* Blueprint = Cast<UBlueprint>(Object);
 	if (Blueprint && Blueprint->GeneratedClass)
 	{
@@ -1019,7 +1019,7 @@ void UGameplayCueManager::HandleAssetDeleted(UObject *Object)
 
 	if (StringRefToRemove.IsValid())
 	{
-		TArray<FStringAssetReference> StringRefs;
+		TArray<FSoftObjectPath> StringRefs;
 		StringRefs.Add(StringRefToRemove);
 		
 		

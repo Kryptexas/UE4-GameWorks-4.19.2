@@ -101,8 +101,8 @@ void FAssetFixUpRedirectors::ExecuteFixUp(TArray<TWeakObjectPtr<UObjectRedirecto
 				// If any referencing packages are left read-only, the checkout failed or SCC was not enabled. Trim them from the save list and leave redirectors.
 				DetectReadOnlyPackages(RedirectorRefsList, ReferencingPackagesToSave);
 
-				// Fix up referencing FStringAssetReferences
-				FixUpStringAssetReferences(RedirectorRefsList, ReferencingPackagesToSave);
+				// Fix up referencing FSoftObjectPaths
+				FixUpSoftObjectPaths(RedirectorRefsList, ReferencingPackagesToSave);
 
 				// Save all packages that were referencing any of the assets that were moved without redirectors
 				TArray<UPackage*> FailedToSave;
@@ -455,29 +455,32 @@ void FAssetFixUpRedirectors::ReportFailures(const TArray<FRedirectorRefs>& Redir
 	EditorErrors.Open();
 }
 
-void FAssetFixUpRedirectors::FixUpStringAssetReferences(const TArray<FRedirectorRefs>& RedirectorsToFix, const TArray<UPackage*>& InReferencingPackagesToSave) const
+void FAssetFixUpRedirectors::FixUpSoftObjectPaths(const TArray<FRedirectorRefs>& RedirectorsToFix, const TArray<UPackage*>& InReferencingPackagesToSave) const
 {
 	TArray<UPackage *> PackagesToCheck(InReferencingPackagesToSave);
 
 	FEditorFileUtils::GetDirtyWorldPackages(PackagesToCheck);
 	FEditorFileUtils::GetDirtyContentPackages(PackagesToCheck);
 
-	TMap<FString, FString> RedirectorMap;
+	TMap<FSoftObjectPath, FSoftObjectPath> RedirectorMap;
 
 	for (const FRedirectorRefs& RedirectorRef : RedirectorsToFix)
 	{
 		UObjectRedirector* Redirector = RedirectorRef.Redirector;
-		RedirectorMap.Add(Redirector->GetPathName(), Redirector->DestinationObject->GetPathName());
+		FSoftObjectPath OldPath = FSoftObjectPath(Redirector);
+		FSoftObjectPath NewPath = FSoftObjectPath(Redirector->DestinationObject);
+
+		RedirectorMap.Add(OldPath, NewPath);
 
 		if (UBlueprint* Blueprint = Cast<UBlueprint>(Redirector->DestinationObject))
 		{
 			// Add redirect for class and default as well
-			RedirectorMap.Add(FString::Printf(TEXT("%s_C"), *Redirector->GetPathName()), FString::Printf(TEXT("%s_C"), *Redirector->DestinationObject->GetPathName()));
-			RedirectorMap.Add(FString::Printf(TEXT("Default__%s_C"), *Redirector->GetPathName()), FString::Printf(TEXT("Default__%s_C"), *Redirector->DestinationObject->GetPathName()));
+			RedirectorMap.Add(FString::Printf(TEXT("%s_C"), *OldPath.ToString()), FString::Printf(TEXT("%s_C"), *NewPath.ToString()));
+			RedirectorMap.Add(FString::Printf(TEXT("%s.Default__%s_C"), *OldPath.GetLongPackageName(), *OldPath.GetAssetName()), FString::Printf(TEXT("%s.Default__%s_C"), *NewPath.GetLongPackageName(), *NewPath.GetAssetName()));
 		}
 	}
 
-	FAssetRenameManager::RenameReferencingStringAssetReferences(PackagesToCheck, RedirectorMap);
+	FAssetRenameManager::RenameReferencingSoftObjectPaths(PackagesToCheck, RedirectorMap);
 }
 
 #undef LOCTEXT_NAMESPACE

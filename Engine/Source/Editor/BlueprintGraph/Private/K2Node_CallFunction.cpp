@@ -32,6 +32,7 @@
 #include "BlueprintActionFilter.h"
 #include "FindInBlueprintManager.h"
 #include "SPinTypeSelector.h"
+#include "SourceCodeNavigation.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
@@ -1896,23 +1897,19 @@ void UK2Node_CallFunction::Serialize(FArchive& Ar)
 		{
 			// Don't validate the enabled state if the user has explicitly set it. Also skip validation if we're just duplicating this node.
 			const bool bIsDuplicating = (Ar.GetPortFlags() & PPF_Duplicate) != 0;
-			if (!bIsDuplicating && !bUserSetEnabledState)
+			if (!bIsDuplicating && !HasUserSetTheEnabledState())
 			{
-				UClass* SelfScope = GetBlueprintClassFromNode();
-				if (!FunctionReference.IsSelfContext() || SelfScope != nullptr)
+				if (const UFunction* Function = GetTargetFunction())
 				{
-					if (const UFunction* Function = FunctionReference.ResolveMember<UFunction>(SelfScope))
+					// Enable as development-only if specified in metadata. This way existing functions that have the metadata added to them will get their enabled state fixed up on load.
+					if (GetDesiredEnabledState() == ENodeEnabledState::Enabled && Function->HasMetaData(FBlueprintMetadata::MD_DevelopmentOnly))
 					{
-						// Enable as development-only if specified in metadata. This way existing functions that have the metadata added to them will get their enabled state fixed up on load.
-						if (EnabledState == ENodeEnabledState::Enabled && Function->HasMetaData(FBlueprintMetadata::MD_DevelopmentOnly))
-						{
-							EnabledState = ENodeEnabledState::DevelopmentOnly;
-						}
-						// Ensure that if the metadata is removed, we also fix up the enabled state to avoid leaving it set as development-only in that case.
-						else if (EnabledState == ENodeEnabledState::DevelopmentOnly && !Function->HasMetaData(FBlueprintMetadata::MD_DevelopmentOnly))
-						{
-							EnabledState = ENodeEnabledState::Enabled;
-						}
+						SetEnabledState(ENodeEnabledState::DevelopmentOnly, /*bUserAction=*/ false);
+					}
+					// Ensure that if the metadata is removed, we also fix up the enabled state to avoid leaving it set as development-only in that case.
+					else if (GetDesiredEnabledState() == ENodeEnabledState::DevelopmentOnly && !Function->HasMetaData(FBlueprintMetadata::MD_DevelopmentOnly))
+					{
+						SetEnabledState(ENodeEnabledState::Enabled, /*bUserAction=*/ false);
 					}
 				}
 			}
@@ -1927,13 +1924,13 @@ void UK2Node_CallFunction::PostPlacedNewNode()
 	// Try re-setting the function given our new parent scope, in case it turns an external to an internal, or vis versa
 	FunctionReference.RefreshGivenNewSelfScope<UFunction>(GetBlueprintClassFromNode());
 
-	// Re-enable for development only if specified in metadata.
-	if(EnabledState == ENodeEnabledState::Enabled && !bUserSetEnabledState)
+	// Set the node to development only if the function specifies that
+	check(!HasUserSetTheEnabledState());
+	if (const UFunction* Function = GetTargetFunction())
 	{
-		const UFunction* Function = GetTargetFunction();
-		if (Function && Function->HasMetaData(FBlueprintMetadata::MD_DevelopmentOnly))
+		if (Function->HasMetaData(FBlueprintMetadata::MD_DevelopmentOnly))
 		{
-			EnabledState = ENodeEnabledState::DevelopmentOnly;
+			SetEnabledState(ENodeEnabledState::DevelopmentOnly, /*bUserAction=*/ false);
 		}
 	}
 }
@@ -2728,6 +2725,44 @@ TSharedPtr<SWidget> UK2Node_CallFunction::CreateNodeImage() const
 	}
 
 	return TSharedPtr<SWidget>();
+}
+
+UObject* UK2Node_CallFunction::GetJumpTargetForDoubleClick() const
+{
+	// If there is an event node, jump to it, otherwise jump to the function graph
+	const UEdGraphNode* ResultEventNode = nullptr;
+	UEdGraph* FunctionGraph = GetFunctionGraph(/*out*/ ResultEventNode);
+	if (ResultEventNode != nullptr)
+	{
+		return const_cast<UEdGraphNode*>(ResultEventNode);
+	}
+	else
+	{
+		return FunctionGraph;
+	}
+}
+
+bool UK2Node_CallFunction::CanJumpToDefinition() const
+{
+	const UFunction* TargetFunction = GetTargetFunction();
+	const bool bNativeFunction = (TargetFunction != nullptr) && (TargetFunction->IsNative());
+	return bNativeFunction || (GetJumpTargetForDoubleClick() != nullptr);
+}
+
+void UK2Node_CallFunction::JumpToDefinition() const
+{
+	// For native functions, try going to the function definition in C++ if available
+	if (UFunction* TargetFunction = GetTargetFunction())
+	{
+		if (TargetFunction->IsNative())
+		{
+			FSourceCodeNavigation::NavigateToFunctionAsync(TargetFunction);
+			return;
+		}
+	}
+
+	// Otherwise, fall back to the inherited behavior which should go to the function entry node
+	Super::JumpToDefinition();
 }
 
 bool UK2Node_CallFunction::IsConnectionDisallowed(const UEdGraphPin* MyPin, const UEdGraphPin* OtherPin, FString& OutReason) const

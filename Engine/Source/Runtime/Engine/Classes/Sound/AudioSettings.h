@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
-#include "Misc/StringAssetReference.h"
+#include "UObject/SoftObjectPath.h"
 #include "Engine/DeveloperSettings.h"
 #include "AudioSettings.generated.h"
 
@@ -72,19 +72,19 @@ class ENGINE_API UAudioSettings : public UDeveloperSettings
 
 	/** The SoundClass assigned to newly created sounds */
 	UPROPERTY(config, EditAnywhere, Category="Audio", meta=(AllowedClasses="SoundClass", DisplayName="Default Sound Class"))
-	FStringAssetReference DefaultSoundClassName;
+	FSoftObjectPath DefaultSoundClassName;
 
 	/** The SoundConcurrency assigned to newly created sounds */
 	UPROPERTY(config, EditAnywhere, Category = "Audio", meta = (AllowedClasses = "SoundConcurrency", DisplayName = "Default Sound Concurrency"))
-	FStringAssetReference DefaultSoundConcurrencyName;
+	FSoftObjectPath DefaultSoundConcurrencyName;
 
 	/** The SoundMix to use as base when no other system has specified a Base SoundMix */
 	UPROPERTY(config, EditAnywhere, Category="Audio", meta=(AllowedClasses="SoundMix"))
-	FStringAssetReference DefaultBaseSoundMix;
+	FSoftObjectPath DefaultBaseSoundMix;
 	
 	/** Sound class to be used for the VOIP audio component */
 	UPROPERTY(config, EditAnywhere, Category="Audio", meta=(AllowedClasses="SoundClass"))
-	FStringAssetReference VoiPSoundClass;
+	FSoftObjectPath VoiPSoundClass;
 
 	UPROPERTY(config, EditAnywhere, Category="Audio", AdvancedDisplay, meta=(ClampMin=0.1,ClampMax=1.5))
 	float LowPassFilterResonance;

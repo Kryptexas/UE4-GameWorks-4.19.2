@@ -184,7 +184,7 @@ bool UK2Node_Copy::IsConnectionDisallowed(const UEdGraphPin* MyPin, const UEdGra
 			return true;
 		}
 		else if (OtherPin->PinType.PinCategory == K2Schema->PC_Object || OtherPin->PinType.PinCategory == K2Schema->PC_Class
-			|| OtherPin->PinType.PinCategory == K2Schema->PC_Asset || OtherPin->PinType.PinCategory == K2Schema->PC_AssetClass
+			|| OtherPin->PinType.PinCategory == K2Schema->PC_SoftObject || OtherPin->PinType.PinCategory == K2Schema->PC_SoftClass
 			|| OtherPin->PinType.PinCategory == K2Schema->PC_Interface)
 		{
 			OutReason = FText::Format(LOCTEXT("ObjectConnectionDisallowed", "Cannot connect with {0} pin."), FText::FromString(OtherPin->PinType.PinCategory)).ToString();

@@ -562,7 +562,7 @@ void ULandscapeSplinesComponent::AutoFixMeshComponentErrors(UWorld* OtherWorld)
 {
 	UWorld* ThisOuterWorld = GetTypedOuter<UWorld>();
 
-	TAssetPtr<UWorld> OtherWorldAssetPtr = OtherWorld;
+	TSoftObjectPtr<UWorld> OtherWorldSoftPtr = OtherWorld;
 	ULandscapeSplinesComponent* StreamingSplinesComponent = GetStreamingSplinesComponentForLevel(OtherWorld->PersistentLevel);
 	auto* ForeignWorldSplineData = StreamingSplinesComponent ? StreamingSplinesComponent->ForeignWorldSplineDataMap.Find(ThisOuterWorld) : nullptr;
 
@@ -634,9 +634,9 @@ void ULandscapeSplinesComponent::CheckForErrors()
 	// Check spline segment meshes
 	for (ULandscapeSplineSegment* Segment : Segments)
 	{
-		for (auto& ForeignWorldAssetPtr : Segment->GetForeignWorlds())
+		for (auto& ForeignWorldSoftPtr : Segment->GetForeignWorlds())
 		{
-			UWorld* ForeignWorld = ForeignWorldAssetPtr.Get();
+			UWorld* ForeignWorld = ForeignWorldSoftPtr.Get();
 
 			if (ForeignWorld && !OutdatedWorlds.Contains(ForeignWorld))
 			{
@@ -674,16 +674,16 @@ void ULandscapeSplinesComponent::CheckForErrors()
 	// check for orphaned components
 	for (auto& ForeignWorldSplineDataPair : ForeignWorldSplineDataMap)
 	{
-		auto& ForeignWorldAssetPtr = ForeignWorldSplineDataPair.Key;
+		auto& ForeignWorldSoftPtr = ForeignWorldSplineDataPair.Key;
 		auto& ForeignWorldSplineData = ForeignWorldSplineDataPair.Value;
 
 		// World is not loaded
-		if (ForeignWorldAssetPtr.IsPending())
+		if (ForeignWorldSoftPtr.IsPending())
 		{
 			continue;
 		}
 
-		UWorld* ForeignWorld = ForeignWorldAssetPtr.Get();
+		UWorld* ForeignWorld = ForeignWorldSoftPtr.Get();
 		for (auto& ForeignSplineSegmentData : ForeignWorldSplineData.ForeignSplineSegmentData)
 		{
 			const ULandscapeSplineSegment* ForeignSplineSegment = ForeignSplineSegmentData.Identifier.Get();

@@ -222,7 +222,7 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 			}
 
 			// even if the load failed this could be the first time through the loop so it might have all the startup packages to resolve
-			GRedirectCollector.ResolveStringAssetReference();
+			GRedirectCollector.ResolveAllSoftObjectPaths();
 
 			// cache all the resources for this platform
 			for (TObjectIterator<UObject> It; It; ++It)

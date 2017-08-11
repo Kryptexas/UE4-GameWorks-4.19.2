@@ -417,8 +417,8 @@ bool FStructureEditorUtils::ChangeVariableDefaultValue(UUserDefinedStruct* Struc
 		else if ((PinType.PinCategory == K2Schema->PC_Object) 
 			|| (PinType.PinCategory == K2Schema->PC_Interface) 
 			|| (PinType.PinCategory == K2Schema->PC_Class)
-			|| (PinType.PinCategory == K2Schema->PC_AssetClass)
-			|| (PinType.PinCategory == K2Schema->PC_Asset))
+			|| (PinType.PinCategory == K2Schema->PC_SoftClass)
+			|| (PinType.PinCategory == K2Schema->PC_SoftObject))
 		{
 			// K2Schema->DefaultValueSimpleValidation finds an object, passed by path, invalid
 			bResult = true;
@@ -695,6 +695,7 @@ bool FStructureEditorUtils::ChangeTooltip(UUserDefinedStruct* Struct, const FStr
 		StructEditorData->ToolTip = InTooltip;
 
 		Struct->SetMetaData(FBlueprintMetadata::MD_Tooltip, *StructEditorData->ToolTip);
+		Struct->PostEditChange();
 
 		return true;
 	}

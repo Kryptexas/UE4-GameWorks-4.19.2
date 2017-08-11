@@ -367,37 +367,6 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 			bool bInlineEventCall = false;
 			bool bEmitInstrumentPushState = false;
 			FName EventName = NAME_None;
-			if (Context.IsInstrumentationRequired())
-			{
-				if (UK2Node_CallFunction* CallFunctionNode = Cast<UK2Node_CallFunction>(Node))
-				{
-					const UEdGraphNode* EventNodeOut = nullptr;
-					if (UEdGraph* FunctionGraph = CallFunctionNode->GetFunctionGraph(EventNodeOut))
-					{
-						bEmitInstrumentPushState = true;
-						if (const UK2Node_Event* EventNode = Cast<UK2Node_Event>(EventNodeOut))
-						{
-							bInlineEventCall = true;
-							EventName = EventNode->GetFunctionName();
-						}
-					}
-				}
-			}
-			const bool bInstrumentFunctionEntry = Context.IsInstrumentationRequired() && (bIsLatent || bInlineEventCall || bEmitInstrumentPushState);
-			if (bInstrumentFunctionEntry)
-			{
-				if (bInlineEventCall)
-				{
-					FBlueprintCompiledStatement& EventStatement = Context.AppendStatementForNode(Node);
-					EventStatement.Type = KCST_InstrumentedEvent;
-					EventStatement.Comment = EventName.ToString();
-				}
-				else
-				{
-					FBlueprintCompiledStatement& PushState = Context.AppendStatementForNode(Node);
-					PushState.Type = KCST_InstrumentedStatePush;
-				}
-			}
 
 			// Iterate over all the contexts this functions needs to be called on, and emit a call function statement for each
 			FBlueprintCompiledStatement* LatentStatement = nullptr;
@@ -443,17 +412,6 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 			// Create the exit from this node if there is one
 			if (bIsLatent)
 			{
-				if (bInstrumentFunctionEntry)
-				{
-					FBlueprintCompiledStatement& SuspendState = Context.AppendStatementForNode(Node);
-					SuspendState.Type = KCST_InstrumentedStateSuspend;
-					if (LatentTargetNode)
-					{
-						check(LatentTargetParamIndex != INDEX_NONE);
-						SuspendState.UbergraphCallIndex = LatentTargetParamIndex;
-						SuspendState.TargetLabel = LatentStatement;
-					}
-				}
 				// End this thread of execution; the latent function will resume it at some point in the future
 				FBlueprintCompiledStatement& PopStatement = Context.AppendStatementForNode(Node);
 				PopStatement.Type = KCST_EndOfThread;
@@ -463,19 +421,6 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 				// Generate the output impulse from this node
 				if (!IsCalledFunctionPure(Node))
 				{
-					if (bInstrumentFunctionEntry)
-					{
-						if (bInlineEventCall)
-						{
-							FBlueprintCompiledStatement& EventStop = Context.AppendStatementForNode(Node);
-							EventStop.Type = KCST_InstrumentedEventStop;
-						}
-						else
-						{
-							FBlueprintCompiledStatement& PopState = Context.AppendStatementForNode(Node);
-							PopState.Type = KCST_InstrumentedStatePop;
-						}
-					}
 					GenerateSimpleThenGoto(Context, *Node);
 				}
 			}

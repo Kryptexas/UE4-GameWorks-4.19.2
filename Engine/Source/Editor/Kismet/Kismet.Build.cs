@@ -52,7 +52,6 @@ public class Kismet : ModuleRules
 				"DesktopPlatform",
 				"HotReload",
                 "BlueprintNativeCodeGen",
-                "BlueprintProfiler",
                 "UMGEditor",
                 "UMG" // for SBlueprintDiff
 			}

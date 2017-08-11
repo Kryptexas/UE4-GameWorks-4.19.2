@@ -86,24 +86,18 @@ FPhATSharedData::~FPhATSharedData()
 
 void FPhATSharedData::Initialize()
 {
-	EditorSkelComp = NULL;
+	EditorSkelComp = nullptr;
 	PhysicalAnimationComponent = nullptr;
 
-	USkeletalMesh * PreviewMesh =  NULL; 
-	FStringAssetReference PreviewMeshStringRef = PhysicsAsset->PreviewSkeletalMesh.ToStringReference();
-	// load it since now is the time to load
-	if (!PreviewMeshStringRef.ToString().IsEmpty())
-	{
-		PreviewMesh = Cast<USkeletalMesh>(StaticLoadObject(USkeletalMesh::StaticClass(), NULL, *PreviewMeshStringRef.ToString(), NULL, LOAD_None, NULL));
-	}
+	USkeletalMesh* PreviewMesh = PhysicsAsset->PreviewSkeletalMesh.LoadSynchronous();
 
-	if ( PreviewMesh == NULL)
+	if ( PreviewMesh == nullptr)
 	{
 		// Fall back to the default skeletal mesh in the EngineMeshes package.
 		// This is statically loaded as the package is likely not fully loaded
 		// (otherwise, it would have been found in the above iteration).
 		PreviewMesh = (USkeletalMesh*)StaticLoadObject(
-			USkeletalMesh::StaticClass(), NULL, TEXT("/Engine/EngineMeshes/SkeletalCube.SkeletalCube"), NULL, LOAD_None, NULL);
+			USkeletalMesh::StaticClass(), NULL, TEXT("/Engine/EngineMeshes/SkeletalCube.SkeletalCube"), nullptr, LOAD_None, nullptr);
 		check(PreviewMesh);
 
 		FMessageDialog::Open(EAppMsgType::Ok, FText::Format(
@@ -123,7 +117,7 @@ void FPhATSharedData::Initialize()
 	PhysicalAnimationComponent->SetSkeletalMeshComponent(EditorSkelComp);
 
 	// Create floor component
-	UStaticMesh* FloorMesh = LoadObject<UStaticMesh>(NULL, TEXT("/Engine/EditorMeshes/PhAT_FloorBox.PhAT_FloorBox"), NULL, LOAD_None, NULL);
+	UStaticMesh* FloorMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/EditorMeshes/PhAT_FloorBox.PhAT_FloorBox"), NULL, LOAD_None, NULL);
 	check(FloorMesh);
 
 	EditorFloorComp = NewObject<UStaticMeshComponent>();

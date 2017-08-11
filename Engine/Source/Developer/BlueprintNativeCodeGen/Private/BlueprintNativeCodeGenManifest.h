@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
-#include "Misc/StringAssetReference.h"
 #include "Engine/Blueprint.h"
 #include "BlueprintNativeCodeGenManifest.generated.h"
 
@@ -24,16 +23,11 @@ public:
 	FConvertedAssetRecord() {}
 	FConvertedAssetRecord(const FAssetData& AssetInfo, const FBlueprintNativeCodeGenPaths& TargetPaths, const FCompilerNativizationOptions& NativizationOptions);
 
-	/**
-	 * @return 
-	 */
-	FStringAssetReference ToAssetRef() const;
-
 public:
 	UPROPERTY()
 	UClass* AssetType;
 
-	// cannot use a FStringAssetReference, as the json serializer has problems 
+	// cannot use a FSoftObjectPath, as the json serializer has problems 
 	// with some asset paths (for example, I had a folder named 'Folder()')
 	UPROPERTY()
 	FString TargetObjPath; 

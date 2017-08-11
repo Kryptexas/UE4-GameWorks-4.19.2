@@ -154,20 +154,13 @@ UMetaData* UPackage::GetMetaData()
 void UPackage::FullyLoad()
 {
 	// Make sure we're a topmost package.
-	checkf(GetOuter()==NULL, TEXT("Package is not topmost. Name:%s Path: %s"), *GetName(), *GetPathName());
+	checkf(GetOuter()==nullptr, TEXT("Package is not topmost. Name:%s Path: %s"), *GetName(), *GetPathName());
 
 	// Only perform work if we're not already fully loaded.
-	if( !IsFullyLoaded() )
+	if(!IsFullyLoaded())
 	{
-		// Mark package so exports are found in memory first instead of being clobbered.
-		bool bSavedState = ShouldFindExportsInMemoryFirst();
-		FindExportsInMemoryFirst( true );
-
 		// Re-load this package.
-		LoadPackage( NULL, *GetName(), LOAD_None );
-
-		// Restore original state.
-		FindExportsInMemoryFirst( bSavedState );
+		LoadPackage(nullptr, *GetName(), LOAD_None);
 	}
 }
 

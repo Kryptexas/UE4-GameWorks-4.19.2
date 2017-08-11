@@ -15,7 +15,7 @@
 #include "UObject/UnrealType.h"
 #include "UObject/PropertyHelper.h"
 #include "UObject/CoreRedirects.h"
-#include "Misc/StringClassReference.h"
+#include "UObject/SoftObjectPath.h"
 #include "Math/Box2D.h"
 
 DEFINE_LOG_CATEGORY(LogProperty);
@@ -273,7 +273,7 @@ IMPLEMENT_STRUCT(Timespan);
 
 
 template<>
-struct TStructOpsTypeTraits<FStringAssetReference> : public TStructOpsTypeTraitsBase2<FStringAssetReference>
+struct TStructOpsTypeTraits<FSoftObjectPath> : public TStructOpsTypeTraitsBase2<FSoftObjectPath>
 {
 	enum
 	{
@@ -286,10 +286,10 @@ struct TStructOpsTypeTraits<FStringAssetReference> : public TStructOpsTypeTraits
 		WithSerializeFromMismatchedTag = true,
 	};
 };
-IMPLEMENT_STRUCT(StringAssetReference);
+IMPLEMENT_STRUCT(SoftObjectPath);
 
 template<>
-struct TStructOpsTypeTraits<FStringClassReference> : public TStructOpsTypeTraitsBase2<FStringClassReference>
+struct TStructOpsTypeTraits<FSoftClassPath> : public TStructOpsTypeTraitsBase2<FSoftClassPath>
 {
 	enum
 	{
@@ -302,7 +302,7 @@ struct TStructOpsTypeTraits<FStringClassReference> : public TStructOpsTypeTraits
 		WithSerializeFromMismatchedTag = true,
 	};
 };
-IMPLEMENT_STRUCT(StringClassReference);
+IMPLEMENT_STRUCT(SoftClassPath);
 
 template<>
 struct TStructOpsTypeTraits<FPrimaryAssetType> : public TStructOpsTypeTraitsBase2<FPrimaryAssetType>

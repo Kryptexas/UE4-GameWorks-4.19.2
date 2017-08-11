@@ -750,7 +750,7 @@ void UGameViewportClient::SetVirtualCursorWidget(EMouseCursor::Type Cursor, UUse
 	}
 }
 
-void UGameViewportClient::AddSoftwareCursor(EMouseCursor::Type Cursor, const FStringClassReference& CursorClass)
+void UGameViewportClient::AddSoftwareCursor(EMouseCursor::Type Cursor, const FSoftClassPath& CursorClass)
 {
 	if (ensureMsgf(CursorClass.IsValid(), TEXT("UGameViewportClient::AddCusor: Cursor class is not valid!")))
 	{

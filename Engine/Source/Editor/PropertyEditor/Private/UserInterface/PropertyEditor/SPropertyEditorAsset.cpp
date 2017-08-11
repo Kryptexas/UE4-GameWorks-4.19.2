@@ -10,6 +10,7 @@
 #include "UObject/UObjectHash.h"
 #include "UObject/UObjectIterator.h"
 #include "Widgets/Layout/SBox.h"
+#include "Widgets/Images/SImage.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Particles/ParticleSystem.h"
 #include "UserInterface/PropertyEditor/PropertyEditorConstants.h"
@@ -38,22 +39,21 @@ bool SPropertyEditorAsset::ShouldDisplayThumbnail( const FArguments& InArgs, con
 		// also check metadata for thumbnail & text display
 		if(InArgs._ThumbnailPool.IsValid())
 		{
-
 			const UProperty* ArrayParent = PropertyEditorHelpers::GetArrayParent( *PropertyEditor->GetPropertyNode() );
 			const UProperty* SetParent = PropertyEditorHelpers::GetSetParent( *PropertyEditor->GetPropertyNode() );
 			const UProperty* MapParent = PropertyEditorHelpers::GetMapParent( *PropertyEditor->GetPropertyNode() );
 
 			const UProperty* PropertyToCheck = PropertyEditor->GetProperty();
-			if( ArrayParent != NULL )
+			if( ArrayParent != nullptr )
 			{
 				// If the property is a child of an array property, the parent will have the display thumbnail metadata
 				PropertyToCheck = ArrayParent;
 			}
-			else if ( SetParent != NULL )
+			else if ( SetParent != nullptr )
 			{
 				PropertyToCheck = SetParent;
 			}
-			else if ( MapParent != NULL )
+			else if ( MapParent != nullptr )
 			{
 				PropertyToCheck = MapParent;
 			}
@@ -64,9 +64,7 @@ bool SPropertyEditorAsset::ShouldDisplayThumbnail( const FArguments& InArgs, con
 				bDisplayThumbnail = DisplayThumbnailString == TEXT("true");
 			}
 		}
-
 	}
-
 
 	return bDisplayThumbnail;
 }
@@ -173,7 +171,7 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 		NewAssetFactories = PropertyCustomizationHelpers::GetNewAssetFactoriesForClasses(CustomClassFilters);
 	}
 	
-	TSharedPtr<SHorizontalBox> ValueContentBox = NULL;
+	TSharedPtr<SHorizontalBox> ValueContentBox = nullptr;
 	ChildSlot
 	[
 		SNew( SAssetDropTarget )
@@ -233,11 +231,26 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 		.ContentPadding(2.0f)
 		.ButtonContent()
 		[
-			// Show the name of the asset or actor
-			SNew(STextBlock)
-			.TextStyle( FEditorStyle::Get(), "PropertyEditor.AssetClass" )
-			.Font( FEditorStyle::GetFontStyle( PropertyEditorConstants::PropertyFontStyle ) )
-			.Text(this,&SPropertyEditorAsset::OnGetAssetName)
+			SNew(SHorizontalBox)
+			+SHorizontalBox::Slot()
+			.AutoWidth()
+			.HAlign(HAlign_Left)
+			.VAlign(VAlign_Center)
+			[
+				SNew(SImage)
+				.Image( this, &SPropertyEditorAsset::GetStatusIcon )
+			]
+
+			+SHorizontalBox::Slot()
+			.FillWidth(1)
+			.VAlign(VAlign_Center)
+			[
+				// Show the name of the asset or actor
+				SNew(STextBlock)
+				.TextStyle( FEditorStyle::Get(), "PropertyEditor.AssetClass" )
+				.Font( FEditorStyle::GetFontStyle( PropertyEditorConstants::PropertyFontStyle ) )
+				.Text(this,&SPropertyEditorAsset::OnGetAssetName)
+			]
 		];
 
 	if (bOldEnableAttribute && !InArgs._EnableContentPicker)
@@ -257,9 +270,7 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 
 		AssetThumbnail = MakeShareable( new FAssetThumbnail( Value.AssetData, InArgs._ThumbnailSize.X, InArgs._ThumbnailSize.Y, InArgs._ThumbnailPool ) );
 
-
 		FAssetThumbnailConfig AssetThumbnailConfig;
-
 		TSharedPtr<IAssetTypeActions> AssetTypeActions;
 		if (ObjectClass != nullptr)
 		{
@@ -469,6 +480,56 @@ const FSlateBrush* SPropertyEditorAsset::GetThumbnailBorder() const
 	}
 }
 
+const FSlateBrush* SPropertyEditorAsset::GetStatusIcon() const
+{
+	static FSlateNoResource EmptyBrush = FSlateNoResource();
+
+	EActorReferenceState State = GetActorReferenceState();
+
+	if (State == EActorReferenceState::Unknown)
+	{
+		return FEditorStyle::GetBrush("Icons.Warning");
+	}
+	else if (State == EActorReferenceState::Error)
+	{
+		return FEditorStyle::GetBrush("Icons.Error");
+	}
+
+	return &EmptyBrush;
+}
+
+SPropertyEditorAsset::EActorReferenceState SPropertyEditorAsset::GetActorReferenceState() const
+{
+	if (bIsActor)
+	{
+		FObjectOrAssetData Value;
+		GetValue(Value);
+
+		if (Value.Object != nullptr)
+		{
+			return EActorReferenceState::Loaded;
+		}
+		else if (Value.ObjectPath.IsNull())
+		{
+			return EActorReferenceState::Null;
+		}
+		else
+		{
+			// Get a path pointing to the owning map
+			FSoftObjectPath MapObjectPath = FSoftObjectPath(Value.ObjectPath.GetAssetPathName(), FString());
+
+			if (MapObjectPath.ResolveObject())
+			{
+				// If the map is valid but the 
+				return EActorReferenceState::Error;
+			}
+
+			return EActorReferenceState::Unknown;
+		}
+	}
+	return EActorReferenceState::NotAnActor;
+}
+
 void SPropertyEditorAsset::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
 	if( AssetThumbnail.IsValid() )
@@ -501,9 +562,9 @@ bool SPropertyEditorAsset::Supports( const UProperty* NodeProperty )
 	const UObjectPropertyBase* ObjectProperty = Cast<const UObjectPropertyBase>( NodeProperty );
 	const UInterfaceProperty* InterfaceProperty = Cast<const UInterfaceProperty>( NodeProperty );
 
-	if ( ( ObjectProperty != NULL || InterfaceProperty != NULL )
+	if ( ( ObjectProperty != nullptr || InterfaceProperty != nullptr )
 		 && !NodeProperty->IsA(UClassProperty::StaticClass()) 
-		 && !NodeProperty->IsA(UAssetClassProperty::StaticClass()) )
+		 && !NodeProperty->IsA(USoftClassProperty::StaticClass()) )
 	{
 		return true;
 	}
@@ -563,12 +624,12 @@ FText SPropertyEditorAsset::OnGetAssetName() const
 	FText Name = LOCTEXT("None", "None");
 	if( Result == FPropertyAccess::Success )
 	{
-		if(Value.Object != NULL)
+		if(Value.Object != nullptr)
 		{
 			if( bIsActor )
 			{
 				AActor* Actor = CastChecked<AActor>(Value.Object);
-				Name = FText::FromString(Actor->GetActorLabel());
+				Name = FText::AsCultureInvariant(Actor->GetActorLabel());
 			}
 			else if (UField* AsField = Cast<UField>(Value.Object))
 			{
@@ -576,12 +637,16 @@ FText SPropertyEditorAsset::OnGetAssetName() const
 			}
 			else
 			{
-				Name = FText::FromString(Value.Object->GetName());
+				Name = FText::AsCultureInvariant(Value.Object->GetName());
 			}
 		}
 		else if( Value.AssetData.IsValid() )
 		{
-			Name = FText::FromName(Value.AssetData.AssetName);
+			Name = FText::AsCultureInvariant(Value.AssetData.AssetName.ToString());
+		}
+		else if (Value.ObjectPath.IsValid())
+		{
+			Name = FText::AsCultureInvariant(Value.ObjectPath.ToString());
 		}
 	}
 	else if( Result == FPropertyAccess::MultipleValues )
@@ -597,7 +662,7 @@ FText SPropertyEditorAsset::OnGetAssetClassName() const
 	UClass* Class = GetDisplayedClass();
 	if(Class)
 	{
-		return FText::FromString(Class->GetName());
+		return FText::AsCultureInvariant(Class->GetName());
 	}
 	return FText::GetEmpty();
 }
@@ -611,14 +676,37 @@ FText SPropertyEditorAsset::OnGetToolTip() const
 
 	if( Result == FPropertyAccess::Success )
 	{
-		if(Value.Object != NULL && !bIsActor )
+		if ( bIsActor )
+		{
+			// Always show full path instead of label
+			EActorReferenceState State = GetActorReferenceState();
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("Actor"), FText::AsCultureInvariant(Value.ObjectPath.ToString()));
+			if (State == EActorReferenceState::Null)
+			{
+				ToolTipText = LOCTEXT("EmptyActorReference", "None");
+			}
+			else if (State == EActorReferenceState::Error)
+			{
+				ToolTipText = FText::Format(LOCTEXT("BrokenActorReference", "Broken reference to Actor ID '{Actor}', it was deleted or renamed"), Args);
+			}
+			else if (State == EActorReferenceState::Unknown)
+			{
+				ToolTipText = FText::Format(LOCTEXT("UnknownActorReference", "Unloaded reference to Actor ID '{Actor}', use Browse to load level"), Args);
+			}
+			else
+			{
+				ToolTipText = FText::Format(LOCTEXT("GoodActorReference", "Reference to Actor ID '{Actor}'"), Args);
+			}
+		}
+		else if( Value.Object != nullptr )
 		{
 			// Display the package name which is a valid path to the object without redundant information
-			ToolTipText = FText::FromString(Value.Object->GetOutermost()->GetName());
+			ToolTipText = FText::AsCultureInvariant(Value.Object->GetOutermost()->GetName());
 		}
 		else if( Value.AssetData.IsValid() )
 		{
-			ToolTipText = FText::FromName(Value.AssetData.PackageName);
+			ToolTipText = FText::AsCultureInvariant(Value.AssetData.PackageName.ToString());
 		}
 	}
 	else if( Result == FPropertyAccess::MultipleValues )
@@ -628,7 +716,7 @@ FText SPropertyEditorAsset::OnGetToolTip() const
 
 	if( ToolTipText.IsEmpty() )
 	{
-		ToolTipText = FText::FromString(ObjectPath.Get());
+		ToolTipText = FText::AsCultureInvariant(ObjectPath.Get());
 	}
 
 	return ToolTipText;
@@ -664,10 +752,10 @@ FPropertyAccess::Result SPropertyEditorAsset::GetValue( FObjectOrAssetData& OutV
 
 	if( PropertyEditor.IsValid() && PropertyEditor->GetPropertyHandle()->IsValidHandle() )
 	{
-		UObject* Object = NULL;
+		UObject* Object = nullptr;
 		Result = PropertyEditor->GetPropertyHandle()->GetValue(Object);
 
-		if (Object == NULL)
+		if (Object == nullptr)
 		{
 			// Check to see if it's pointing to an unloaded object
 			FString CurrentObjectPath;
@@ -675,16 +763,32 @@ FPropertyAccess::Result SPropertyEditorAsset::GetValue( FObjectOrAssetData& OutV
 
 			if (CurrentObjectPath.Len() > 0 && CurrentObjectPath != TEXT("None"))
 			{
-				if( !CachedAssetData.IsValid() || CachedAssetData.ObjectPath.ToString() != CurrentObjectPath )
+				FSoftObjectPath SoftObjectPath = FSoftObjectPath(CurrentObjectPath);
+
+				if (SoftObjectPath.IsAsset())
 				{
-					static FName AssetRegistryName("AssetRegistry");
+					if (!CachedAssetData.IsValid() || CachedAssetData.ObjectPath.ToString() != CurrentObjectPath)
+					{
+						static FName AssetRegistryName("AssetRegistry");
 
-					FAssetRegistryModule& AssetRegistryModule = FModuleManager::Get().LoadModuleChecked<FAssetRegistryModule>(AssetRegistryName);
-					CachedAssetData = AssetRegistryModule.Get().GetAssetByObjectPath( *CurrentObjectPath );
+						FAssetRegistryModule& AssetRegistryModule = FModuleManager::Get().LoadModuleChecked<FAssetRegistryModule>(AssetRegistryName);
+						CachedAssetData = AssetRegistryModule.Get().GetAssetByObjectPath(*CurrentObjectPath);
+					}
+
+					Result = FPropertyAccess::Success;
+					OutValue = FObjectOrAssetData(CachedAssetData);
 				}
+				else
+				{
+					// This is an actor or other subobject reference
+					if (CachedAssetData.IsValid())
+					{
+						CachedAssetData = FAssetData();
+					}
 
-				Result = FPropertyAccess::Success;
-				OutValue = FObjectOrAssetData( CachedAssetData );
+					Result = FPropertyAccess::Success;
+					OutValue = FObjectOrAssetData(SoftObjectPath);
+				}
 
 				return Result;
 			}
@@ -702,13 +806,13 @@ FPropertyAccess::Result SPropertyEditorAsset::GetValue( FObjectOrAssetData& OutV
 	}
 	else
 	{
-		UObject* Object = NULL;
+		UObject* Object = nullptr;
 		if (PropertyHandle.IsValid())
 		{
 			Result = PropertyHandle->GetValue(Object);
 		}
 
-		if (Object != NULL)
+		if (Object != nullptr)
 		{
 #if !UE_BUILD_SHIPPING
 			if (!Object->IsValidLowLevel())
@@ -725,37 +829,48 @@ FPropertyAccess::Result SPropertyEditorAsset::GetValue( FObjectOrAssetData& OutV
 			const FString CurrentObjectPath = ObjectPath.Get();
 			Result = FPropertyAccess::Success;
 
-			if (CurrentObjectPath != TEXT("None") && (!CachedAssetData.IsValid() || CachedAssetData.ObjectPath.ToString() != CurrentObjectPath))
+			FSoftObjectPath SoftObjectPath = FSoftObjectPath(CurrentObjectPath);
+
+			if (SoftObjectPath.IsAsset())
 			{
-				static FName AssetRegistryName("AssetRegistry");
-
-				FAssetRegistryModule& AssetRegistryModule = FModuleManager::Get().LoadModuleChecked<FAssetRegistryModule>(AssetRegistryName);
-				CachedAssetData = AssetRegistryModule.Get().GetAssetByObjectPath(*CurrentObjectPath);
-
-				if (PropertyHandle.IsValid())
+				if (CurrentObjectPath != TEXT("None") && (!CachedAssetData.IsValid() || CachedAssetData.ObjectPath.ToString() != CurrentObjectPath))
 				{
-					// No property editor was specified so check if multiple property values are associated with the property handle
-					TArray<FString> ObjectValues;
-					PropertyHandle->GetPerObjectValues(ObjectValues);
+					static FName AssetRegistryName("AssetRegistry");
 
-					if (ObjectValues.Num() > 1)
+					FAssetRegistryModule& AssetRegistryModule = FModuleManager::Get().LoadModuleChecked<FAssetRegistryModule>(AssetRegistryName);
+					CachedAssetData = AssetRegistryModule.Get().GetAssetByObjectPath(*CurrentObjectPath);
+				}
+
+				OutValue = FObjectOrAssetData(CachedAssetData);
+			}
+			else
+			{
+				// This is an actor or other subobject reference
+				if (CachedAssetData.IsValid())
+				{
+					CachedAssetData = FAssetData();
+				}
+
+				OutValue = FObjectOrAssetData(SoftObjectPath);
+			}
+
+			if (PropertyHandle.IsValid())
+			{
+				// No property editor was specified so check if multiple property values are associated with the property handle
+				TArray<FString> ObjectValues;
+				PropertyHandle->GetPerObjectValues(ObjectValues);
+
+				if (ObjectValues.Num() > 1)
+				{
+					for (int32 ObjectIndex = 1; ObjectIndex < ObjectValues.Num() && Result == FPropertyAccess::Success; ++ObjectIndex)
 					{
-						for (int32 ObjectIndex = 1; ObjectIndex < ObjectValues.Num() && Result == FPropertyAccess::Success; ++ObjectIndex)
+						if (ObjectValues[ObjectIndex] != ObjectValues[0])
 						{
-							if (ObjectValues[ObjectIndex] != ObjectValues[0])
-							{
-								Result = FPropertyAccess::MultipleValues;
-							}
+							Result = FPropertyAccess::MultipleValues;
 						}
 					}
 				}
 			}
-			else if (CurrentObjectPath == TEXT("None"))
-			{
-				CachedAssetData = FAssetData();
-			}
-
-			OutValue = FObjectOrAssetData(CachedAssetData);
 		}
 	}
 
@@ -766,7 +881,7 @@ UClass* SPropertyEditorAsset::GetDisplayedClass() const
 {
 	FObjectOrAssetData Value;
 	GetValue( Value );
-	if(Value.Object != NULL)
+	if(Value.Object != nullptr)
 	{
 		return Value.Object->GetClass();
 	}
@@ -808,6 +923,13 @@ void SPropertyEditorAsset::OnBrowse()
 	FObjectOrAssetData Value;
 	GetValue( Value );
 
+	// Try loading owning object
+	if (Value.Object == nullptr && Value.ObjectPath.IsValid())
+	{
+		FSoftObjectPath MapObjectPath = FSoftObjectPath(Value.ObjectPath.GetAssetPathName(), FString());
+		MapObjectPath.TryLoad();
+	}
+
 	if(PropertyEditor.IsValid() && Value.Object)
 	{
 		// This code only works on loaded objects
@@ -829,8 +951,8 @@ FText SPropertyEditorAsset::GetOnBrowseToolTip() const
 	if (Value.Object)
 	{
 		FFormatNamedArguments Args;
-		Args.Add(TEXT("Asset"), FText::FromString(Value.Object->GetName()));
-		if (Value.Object->IsA(AActor::StaticClass()))
+		Args.Add(TEXT("Asset"), FText::AsCultureInvariant(Value.Object->GetName()));
+		if (bIsActor)
 		{
 			return FText::Format(LOCTEXT( "BrowseToAssetInViewport", "Select '{Asset}' in the viewport"), Args);
 		}
@@ -856,7 +978,7 @@ void SPropertyEditorAsset::OnUse()
 		FEditorDelegates::LoadSelectedAssetsIfNeeded.Broadcast();
 
 		// try to get a selected object of our class
-		UObject* Selection = NULL;
+		UObject* Selection = nullptr;
 		if( ObjectClass && ObjectClass->IsChildOf( AActor::StaticClass() ) )
 		{
 			Selection = GEditor->GetSelectedActors()->GetTop( ObjectClass );
@@ -868,11 +990,11 @@ void SPropertyEditorAsset::OnUse()
 		}
 
 		// Check against custom asset filter
-		if (Selection != NULL
+		if (Selection != nullptr
 			&& OnShouldFilterAsset.IsBound()
 			&& OnShouldFilterAsset.Execute(FAssetData(Selection)))
 		{
-			Selection = NULL;
+			Selection = nullptr;
 		}
 
 		if( Selection )
@@ -884,7 +1006,7 @@ void SPropertyEditorAsset::OnUse()
 
 void SPropertyEditorAsset::OnClear()
 {
-	SetValue(NULL);
+	SetValue(nullptr);
 }
 
 FSlateColor SPropertyEditorAsset::GetAssetClassColor()
@@ -901,7 +1023,7 @@ FSlateColor SPropertyEditorAsset::GetAssetClassColor()
 
 bool SPropertyEditorAsset::OnAssetDraggedOver( const UObject* InObject ) const
 {
-	if (CanEdit() && InObject != NULL && InObject->IsA(ObjectClass))
+	if (CanEdit() && InObject != nullptr && InObject->IsA(ObjectClass))
 	{
 		// Check against custom asset filter
 		if (!OnShouldFilterAsset.IsBound()
@@ -932,6 +1054,10 @@ void SPropertyEditorAsset::OnCopy()
 	{
 		FPlatformApplicationMisc::ClipboardCopy(*Value.AssetData.GetExportTextName());
 	}
+	else
+	{
+		FPlatformApplicationMisc::ClipboardCopy(*Value.ObjectPath.ToString());
+	}
 }
 
 void SPropertyEditorAsset::OnPaste()
@@ -941,11 +1067,11 @@ void SPropertyEditorAsset::OnPaste()
 
 	if(DestPath == TEXT("None"))
 	{
-		SetValue(NULL);
+		SetValue(nullptr);
 	}
 	else
 	{
-		UObject* Object = LoadObject<UObject>(NULL, *DestPath);
+		UObject* Object = LoadObject<UObject>(nullptr, *DestPath);
 		if(Object && Object->IsA(ObjectClass))
 		{
 			// Check against custom asset filter
@@ -1017,18 +1143,18 @@ bool SPropertyEditorAsset::CanSetBasedOnCustomClasses( const FAssetData& InAsset
 
 UClass* SPropertyEditorAsset::GetObjectPropertyClass(const UProperty* Property)
 {
-	UClass* Class = NULL;
+	UClass* Class = nullptr;
 
-	if (Cast<const UObjectPropertyBase>(Property) != NULL)
+	if (Cast<const UObjectPropertyBase>(Property) != nullptr)
 	{
 		Class = Cast<const UObjectPropertyBase>(Property)->PropertyClass;
 	}
-	else if (Cast<const UInterfaceProperty>(Property) != NULL)
+	else if (Cast<const UInterfaceProperty>(Property) != nullptr)
 	{
 		Class = Cast<const UInterfaceProperty>(Property)->InterfaceClass;
 	}
 
-	if (!ensureMsgf(Class != NULL, TEXT("Property (%s) is not an object or interface class"), Property ? *Property->GetFullName() : TEXT("null")))
+	if (!ensureMsgf(Class != nullptr, TEXT("Property (%s) is not an object or interface class"), Property ? *Property->GetFullName() : TEXT("null")))
 	{
 		Class = UObject::StaticClass();
 	}

@@ -275,7 +275,7 @@ struct FBlueprintDependencyType
 struct COREUOBJECT_API FCompactBlueprintDependencyData
 {
 	int16 ObjectRefIndex;
-	FBlueprintDependencyType ClassDependency;
+	FBlueprintDependencyType StructDependency;
 	FBlueprintDependencyType CDODependency;
 
 	FCompactBlueprintDependencyData()
@@ -283,10 +283,10 @@ struct COREUOBJECT_API FCompactBlueprintDependencyData
 	{}
 
 	FCompactBlueprintDependencyData(int16 InObjectRefIndex
-		, FBlueprintDependencyType InClassDependency
-		, FBlueprintDependencyType InCDODependency)
+		, FBlueprintDependencyType InStructDependency
+		, FBlueprintDependencyType InCDODependency = FBlueprintDependencyType())
 		: ObjectRefIndex(InObjectRefIndex)
-		, ClassDependency(InClassDependency)
+		, StructDependency(InStructDependency)
 		, CDODependency(InCDODependency)
 	{}
 };
@@ -310,21 +310,19 @@ struct COREUOBJECT_API FBlueprintDependencyObjectRef
 struct COREUOBJECT_API FBlueprintDependencyData
 {
 	FBlueprintDependencyObjectRef ObjectRef;
-	// 0 - dependency type for dynamic class
+	// 0 - dependency type for dynamic class or UDS
 	// 1 - dependency type for CD0
 	FBlueprintDependencyType DependencyTypes[2];
 
 	int16 ObjectRefIndex; // NativizationWithoutEDLBT
 
 	FBlueprintDependencyData(const FBlueprintDependencyObjectRef& InObjectRef
-		, FBlueprintDependencyType InClassDependency
-		, FBlueprintDependencyType InCDODependency
-		, int16 InObjectRefIndex)
+		, const FCompactBlueprintDependencyData& InCompactDependencyData)
 		: ObjectRef(InObjectRef)
-		, ObjectRefIndex(InObjectRefIndex)
+		, ObjectRefIndex(InCompactDependencyData.ObjectRefIndex)
 	{
-		DependencyTypes[0] = InClassDependency;
-		DependencyTypes[1] = InCDODependency;
+		DependencyTypes[0] = InCompactDependencyData.StructDependency;
+		DependencyTypes[1] = InCompactDependencyData.CDODependency;
 	}
 
 	bool operator==(const FBlueprintDependencyData& Other) const

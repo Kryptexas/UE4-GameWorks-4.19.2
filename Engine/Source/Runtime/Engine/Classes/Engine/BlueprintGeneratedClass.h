@@ -647,10 +647,6 @@ public:
 	UPROPERTY()
 	TArray<FEventGraphFastCallPair> FastCallPairs_DEPRECATED;
 
-	// If this Generated Class has instrumentation
-	UPROPERTY()
-	bool bHasInstrumentation;
-
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(Transient)
 	UObject* OverridenArchetypeForCDO;
@@ -720,10 +716,6 @@ public:
 	virtual void Bind() override;
 	virtual void GetRequiredPreloadDependencies(TArray<UObject*>& DependenciesOut) override;
 	virtual UObject* FindArchetype(UClass* ArchetypeClass, const FName ArchetypeName) const override;
-	virtual bool HasInstrumentation() const override 
-	{
-		return bHasInstrumentation; 
-	}
 
 	virtual void InitPropertiesFromCustomList(uint8* DataPtr, const uint8* DefaultDataPtr) override;
 

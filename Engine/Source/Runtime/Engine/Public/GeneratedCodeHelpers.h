@@ -490,19 +490,6 @@ public:
 		return UKismetSystemLibrary::Generic_SetStructurePropertyByName(Object, PropertyName, &Value);
 	}
 
-	// Replacements for CustomThunk functions from UBlueprintFunctionLibrary
-	static FStringAssetReference MakeStringAssetReference(const FString& AssetLongPathname)
-	{
-		FStringAssetReference Ref(AssetLongPathname);
-		if (!AssetLongPathname.IsEmpty() && !Ref.IsValid())
-		{
-			ExecutionMessage(*FString::Printf(TEXT("Asset path \"%s\" not valid. Only long path name is allowed."), *AssetLongPathname), ELogVerbosity::Error);
-			return FStringAssetReference();
-		}
-
-		return Ref;
-	}
-
 	// Replacements for CustomThunk functions from KismetMathLibrary
 	static float Divide_FloatFloat(float A, float B)
 	{

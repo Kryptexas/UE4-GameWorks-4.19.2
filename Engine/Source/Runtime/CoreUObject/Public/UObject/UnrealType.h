@@ -21,7 +21,7 @@
 #include "Templates/Greater.h"
 #include "Containers/List.h"
 #include "UObject/LazyObjectPtr.h"
-#include "UObject/AssetPtr.h"
+#include "UObject/SoftObjectPtr.h"
 #include "UObject/PropertyTag.h"
 #include "Serialization/SerializedPropertyScope.h"
 
@@ -2132,15 +2132,15 @@ public:
 //
 // Describes a reference variable to another object which may be nil, and will become valid or invalid at any point
 //
-class COREUOBJECT_API UAssetObjectProperty : public TUObjectPropertyBase<FAssetPtr>
+class COREUOBJECT_API USoftObjectProperty : public TUObjectPropertyBase<FSoftObjectPtr>
 {
-	DECLARE_CASTED_CLASS_INTRINSIC(UAssetObjectProperty, TUObjectPropertyBase<FAssetPtr>, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UAssetObjectProperty)
+	DECLARE_CASTED_CLASS_INTRINSIC(USoftObjectProperty, TUObjectPropertyBase<FSoftObjectPtr>, 0, TEXT("/Script/CoreUObject"), CASTCLASS_USoftObjectProperty)
 
-	UAssetObjectProperty(ECppProperty, int32 InOffset, uint64 InFlags, UClass* InClass)
+	USoftObjectProperty(ECppProperty, int32 InOffset, uint64 InFlags, UClass* InClass)
 		: TUObjectPropertyBase(FObjectInitializer::Get(), EC_CppProperty, InOffset, InFlags, InClass)
 	{}
 
-	UAssetObjectProperty( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags, UClass* InClass )
+	USoftObjectProperty( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags, UClass* InClass )
 		: TUObjectPropertyBase(ObjectInitializer, EC_CppProperty, InOffset, InFlags, InClass)
 	{}
 
@@ -2168,7 +2168,7 @@ private:
 	virtual uint32 GetValueTypeHashInternal(const void* Src) const override;
 public:
 
-	// ScriptVM should store Asset as FAssetPtr not as UObject.
+	// ScriptVM should store Asset as FSoftObjectPtr not as UObject.
 
 	virtual void CopySingleValueToScriptVM(void* Dest, void const* Src) const override;
 	virtual void CopyCompleteValueToScriptVM(void* Dest, void const* Src) const override;
@@ -2240,25 +2240,25 @@ public:
 };
 
 /*-----------------------------------------------------------------------------
-	UAssetSubclassOfProperty.
+	USoftClassProperty.
 -----------------------------------------------------------------------------*/
 
 //
 // Describes a reference variable to another class which may be nil, and will become valid or invalid at any point
 //
-class COREUOBJECT_API UAssetClassProperty : public UAssetObjectProperty
+class COREUOBJECT_API USoftClassProperty : public USoftObjectProperty
 {
-	DECLARE_CASTED_CLASS_INTRINSIC(UAssetClassProperty, UAssetObjectProperty, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UAssetClassProperty)
+	DECLARE_CASTED_CLASS_INTRINSIC(USoftClassProperty, USoftObjectProperty, 0, TEXT("/Script/CoreUObject"), CASTCLASS_USoftClassProperty)
 
 	// Variables.
 	class UClass* MetaClass;
 public:
-	UAssetClassProperty(ECppProperty, int32 InOffset, uint64 InFlags, UClass* InMetaClass)
+	USoftClassProperty(ECppProperty, int32 InOffset, uint64 InFlags, UClass* InMetaClass)
 		: Super(FObjectInitializer::Get(), EC_CppProperty, InOffset, InFlags, UClass::StaticClass())
 		, MetaClass(InMetaClass)
 	{}
 
-	UAssetClassProperty( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags, UClass* InMetaClass )
+	USoftClassProperty( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags, UClass* InMetaClass )
 		:	Super(ObjectInitializer, EC_CppProperty, InOffset, InFlags, UClass::StaticClass() )
 		,	MetaClass( InMetaClass )
 	{}

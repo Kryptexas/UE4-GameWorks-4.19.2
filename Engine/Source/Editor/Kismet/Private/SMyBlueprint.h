@@ -24,6 +24,7 @@ class UUserDefinedEnum;
 class UUserDefinedStruct;
 struct FEdGraphSchemaAction_K2Struct;
 struct FGraphActionNode;
+struct FGraphActionSort;
 
 /* Enums to use when grouping the blueprint members in the list panel. The order here will determine the order in the list */
 namespace NodeSectionID
@@ -161,9 +162,9 @@ private:
 	/** Callback used to populate all actions list in SGraphActionMenu */
 	void CollectAllActions(FGraphActionListBuilderBase& OutAllActions);
 	void CollectStaticSections(TArray<int32>& StaticSectionIDs);
-	void GetChildGraphs(UEdGraph* EdGraph, int32 const SectionId, FGraphActionListBuilderBase& OutAllActions, FText ParentCategory = FText::GetEmpty());
-	void GetChildEvents(UEdGraph const* EdGraph, int32 const SectionId, FGraphActionListBuilderBase& OutAllActions, FText ParentCategory = FText::GetEmpty()) const;
-	void GetLocalVariables(FGraphActionListBuilderBase& OutAllActions) const;
+	void GetChildGraphs(UEdGraph* EdGraph, int32 const SectionId, FGraphActionSort& SortList, FText ParentCategory = FText::GetEmpty());
+	void GetChildEvents(UEdGraph const* EdGraph, int32 const SectionId, FGraphActionSort& SortList, FText ParentCategory = FText::GetEmpty()) const;
+	void GetLocalVariables(FGraphActionSort& SortList) const;
 	
 	/** Handles the visibility of the local action list */
 	EVisibility GetLocalActionsListVisibility() const;

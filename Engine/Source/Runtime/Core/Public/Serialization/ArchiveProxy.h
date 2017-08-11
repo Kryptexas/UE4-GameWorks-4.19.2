@@ -42,7 +42,7 @@ public:
 		return *this;
 	}
 
-	virtual FArchive& operator<<(struct FStringAssetReference& Value) override
+	virtual FArchive& operator<<(struct FSoftObjectPath& Value) override
 	{
 		InnerArchive << Value;
 		return *this;

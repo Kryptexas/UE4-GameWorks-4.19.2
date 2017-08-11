@@ -4,7 +4,6 @@
 #include "HAL/FileManager.h"
 #include "Misc/Paths.h"
 #include "Modules/ModuleManager.h"
-#include "Misc/StringAssetReference.h"
 #include "Misc/PackageName.h"
 #include "InputCoreTypes.h"
 #include "EditorStyleSettings.h"
@@ -31,7 +30,6 @@
 #include "AutoReimport/AutoReimportUtilities.h"
 #include "Misc/ConfigCacheIni.h" // for FConfigCacheIni::GetString()
 #include "SourceCodeNavigation.h"
-#include "Developer/BlueprintProfiler/Public/BlueprintProfilerModule.h"
 #include "IProjectManager.h"
 #include "ProjectDescriptor.h"
 #include "Settings/SkeletalMeshEditorSettings.h"
@@ -113,7 +111,6 @@ USkeletalMeshEditorSettings::USkeletalMeshEditorSettings(const FObjectInitialize
 UEditorExperimentalSettings::UEditorExperimentalSettings( const FObjectInitializer& ObjectInitializer )
 	: Super(ObjectInitializer)
 	, bEnableLocalizationDashboard(true)
-	, bBlueprintPerformanceAnalysisTools(false)
 	, bUseOpenCLForConvexHullDecomp(false)
 	, bAllowPotentiallyUnsafePropertyEditing(false)
 {
@@ -136,18 +133,6 @@ void UEditorExperimentalSettings::PostEditChangeProperty( struct FPropertyChange
 		if (bEQSEditor)
 		{
 			FModuleManager::Get().LoadModule(TEXT("EnvironmentQueryEditor"));
-		}
-	}
-	else if (Name == FName(TEXT("bBlueprintPerformanceAnalysisTools")))
-	{
-		if (!bBlueprintPerformanceAnalysisTools)
-		{
-			IBlueprintProfilerInterface* ProfilerInterface = FModuleManager::GetModulePtr<IBlueprintProfilerInterface>("BlueprintProfiler");
-			if (ProfilerInterface && ProfilerInterface->IsProfilerEnabled())
-			{
-				// Force Profiler off
-				ProfilerInterface->ToggleProfilingCapture();
-			}
 		}
 	}
 
@@ -422,7 +407,7 @@ ULevelEditorViewportSettings::ULevelEditorViewportSettings( const FObjectInitial
 	MeasuringToolUnits = MeasureUnits_Centimeters;
 
 	// Set a default preview mesh
-	PreviewMeshes.Add(FStringAssetReference("/Engine/EditorMeshes/ColorCalibrator/SM_ColorCalibrator.SM_ColorCalibrator"));
+	PreviewMeshes.Add(FSoftObjectPath("/Engine/EditorMeshes/ColorCalibrator/SM_ColorCalibrator.SM_ColorCalibrator"));
 }
 
 void ULevelEditorViewportSettings::PostInitProperties()

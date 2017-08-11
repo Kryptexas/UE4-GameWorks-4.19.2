@@ -10,7 +10,7 @@
 class AActor;
 class APawn;
 class APlayerController;
-class UAssetClassProperty;
+class USoftClassProperty;
 class UBlueprint;
 class ULevel;
 class UPrimitiveComponent;
@@ -312,8 +312,8 @@ DECLARE_CAST_BY_FLAG(UObjectPropertyBase)				\
 DECLARE_CAST_BY_FLAG(UObjectProperty)					\
 DECLARE_CAST_BY_FLAG(UWeakObjectProperty)				\
 DECLARE_CAST_BY_FLAG(ULazyObjectProperty)				\
-DECLARE_CAST_BY_FLAG(UAssetObjectProperty)				\
-DECLARE_CAST_BY_FLAG(UAssetClassProperty)				\
+DECLARE_CAST_BY_FLAG(USoftObjectProperty)				\
+DECLARE_CAST_BY_FLAG(USoftClassProperty)				\
 DECLARE_CAST_BY_FLAG(UBoolProperty)						\
 DECLARE_CAST_BY_FLAG(UFunction)							\
 DECLARE_CAST_BY_FLAG(UStructProperty)					\

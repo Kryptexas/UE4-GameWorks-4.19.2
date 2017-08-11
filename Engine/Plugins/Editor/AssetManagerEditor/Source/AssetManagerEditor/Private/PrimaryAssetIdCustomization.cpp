@@ -85,7 +85,7 @@ FString FPrimaryAssetIdCustomization::OnGetObjectPath() const
 
 	UAssetManager& Manager = UAssetManager::Get();
 
-	FStringAssetReference FoundPath = Manager.GetPrimaryAssetPath(FPrimaryAssetId(StringReference));
+	FSoftObjectPath FoundPath = Manager.GetPrimaryAssetPath(FPrimaryAssetId(StringReference));
 
 	return FoundPath.ToString();
 }

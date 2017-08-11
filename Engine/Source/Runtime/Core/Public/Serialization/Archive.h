@@ -226,25 +226,25 @@ public:
 	 * @param Value The value to serialize.
 	 * @return This instance.
 	 */
-	virtual FArchive& operator<<(class FLazyObjectPtr& Value);
+	virtual FArchive& operator<<(struct FLazyObjectPtr& Value);
 	
 	/**
 	 * Serializes asset pointer from or into this archive.
 	 *
-	 * Most of the time, FAssetPtrs are serialized as UObject *, but some archives need to override this.
+	 * Most of the time, FSoftObjectPtr are serialized as UObject *, but some archives need to override this.
 	 *
 	 * @param Value The asset pointer to serialize.
 	 * @return This instance.
 	 */
-	virtual FArchive& operator<<(class FAssetPtr& Value);
+	virtual FArchive& operator<<(struct FSoftObjectPtr& Value);
 
 	/**
-	 * Serializes string asset reference from or into this archive.
+	 * Serializes soft object paths from or into this archive.
 	 *
 	 * @param Value String asset reference to serialize.
 	 * @return This instance.
 	 */
-	virtual FArchive& operator<<(struct FStringAssetReference& Value);
+	virtual FArchive& operator<<(struct FSoftObjectPath& Value);
 
 	/**
 	* Serializes FWeakObjectPtr value from or into this archive.

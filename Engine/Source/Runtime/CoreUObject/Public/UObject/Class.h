@@ -2559,9 +2559,6 @@ public:
 	 */
 	virtual void GetRequiredPreloadDependencies(TArray<UObject*>& DependenciesOut) {}
 
-	/** Returns true if this class implements script instrumentation. */
-	virtual bool HasInstrumentation() const { return false; }
-
 private:
 	#if UCLASS_FAST_ISA_IMPL == UCLASS_ISA_INDEXTREE
 		// For UObjectBaseUtility
@@ -3082,14 +3079,14 @@ template<> struct TBaseStructure<FInt32Interval>
 	COREUOBJECT_API static UScriptStruct* Get();
 };
 
-struct FStringAssetReference;
-template<> struct TBaseStructure<FStringAssetReference>
+struct FSoftObjectPath;
+template<> struct TBaseStructure<FSoftObjectPath>
 {
 	COREUOBJECT_API static UScriptStruct* Get();
 };
 
-struct FStringClassReference;
-template<> struct TBaseStructure<FStringClassReference>
+struct FSoftClassPath;
+template<> struct TBaseStructure<FSoftClassPath>
 {
 	COREUOBJECT_API static UScriptStruct* Get();
 };

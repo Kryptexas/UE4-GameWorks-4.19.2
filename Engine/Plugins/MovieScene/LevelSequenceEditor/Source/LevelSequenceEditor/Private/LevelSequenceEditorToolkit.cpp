@@ -385,7 +385,7 @@ void FLevelSequenceEditorToolkit::AddDefaultTracksForActor(AActor& Actor, const 
 		}
 
 		// add tracks by type
-		for (const FStringClassReference& DefaultTrack : TrackSettings.DefaultTracks)
+		for (const FSoftClassPath& DefaultTrack : TrackSettings.DefaultTracks)
 		{
 			UClass* TrackClass = DefaultTrack.ResolveClass();
 
@@ -399,7 +399,7 @@ void FLevelSequenceEditorToolkit::AddDefaultTracksForActor(AActor& Actor, const 
 					continue;
 				}
 				
-				for (const FStringClassReference& ExcludeDefaultTrack : ExcludeTrackSettings.ExcludeDefaultTracks)
+				for (const FSoftClassPath& ExcludeDefaultTrack : ExcludeTrackSettings.ExcludeDefaultTracks)
 				{
 					if (ExcludeDefaultTrack == DefaultTrack)
 					{

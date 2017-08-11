@@ -182,6 +182,8 @@ class UK2Node : public UEdGraphNode
 	BLUEPRINTGRAPH_API virtual void AutowireNewNode(UEdGraphPin* FromPin) override;
 	BLUEPRINTGRAPH_API void PinConnectionListChanged(UEdGraphPin* Pin) override;
 	BLUEPRINTGRAPH_API virtual UObject* GetJumpTargetForDoubleClick() const override;
+	BLUEPRINTGRAPH_API virtual bool CanJumpToDefinition() const override;
+	BLUEPRINTGRAPH_API virtual void JumpToDefinition() const override;
 	BLUEPRINTGRAPH_API virtual FString GetDocumentationLink() const override;
 	BLUEPRINTGRAPH_API virtual void GetPinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) const override;
 	BLUEPRINTGRAPH_API virtual bool ShowPaletteIconOnNode() const override { return true; }

@@ -39,7 +39,7 @@ public:
 
 	/**
 	 * Remove item from set. Output value indicates if something was actually removed. False
-	 * indicates no equilalent item was found.
+	 * indicates no equivalent item was found.
 	 *
 	 * @param	TargetSet		The set to remove from
 	 * @param	Item			The item to remove from the set

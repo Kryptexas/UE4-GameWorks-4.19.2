@@ -3,7 +3,7 @@
 #pragma once
 
 #include "IXRDeviceAssets.h"
-#include "UObject/AssetPtr.h"
+#include "UObject/SoftObjectPtr.h"
 
 class  FSteamVRAsyncMeshLoader;
 struct FSteamVRMeshData;
@@ -36,5 +36,5 @@ protected:
 
 private:
 	TArray< TSharedPtr<FSteamVRAsyncMeshLoader> > AsyncMeshLoaders;
-	TAssetPtr<UMaterial> DefaultDeviceMat;
+	TSoftObjectPtr<UMaterial> DefaultDeviceMat;
 };

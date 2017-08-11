@@ -329,7 +329,7 @@ bool FPackageReader::ReadDependencyData(FPackageDependencyData& OutDependencyDat
 
 	SerializeNameMap();
 	SerializeImportMap(OutDependencyData.ImportMap);
-	SerializeStringAssetReferencesMap(OutDependencyData.StringAssetReferencesMap);
+	SerializeSoftPackageReferenceList(OutDependencyData.SoftPackageReferenceList);
 	SerializeSearchableNamesMap(OutDependencyData);
 
 	return true;
@@ -378,44 +378,38 @@ void FPackageReader::SerializeExportMap(TArray<FObjectExport>& OutExportMap)
 	}
 }
 
-void FPackageReader::SerializeStringAssetReferencesMap(TArray<FString>& OutStringAssetReferencesMap)
+void FPackageReader::SerializeSoftPackageReferenceList(TArray<FName>& OutSoftPackageReferenceList)
 {
-	if (UE4Ver() >= VER_UE4_ADD_STRING_ASSET_REFERENCES_MAP && PackageFileSummary.StringAssetReferencesOffset > 0 && PackageFileSummary.StringAssetReferencesCount > 0)
+	if (UE4Ver() >= VER_UE4_ADD_STRING_ASSET_REFERENCES_MAP && PackageFileSummary.SoftPackageReferencesOffset > 0 && PackageFileSummary.SoftPackageReferencesCount > 0)
 	{
-		Seek(PackageFileSummary.StringAssetReferencesOffset);
+		Seek(PackageFileSummary.SoftPackageReferencesOffset);
 
-		if (UE4Ver() < VER_UE4_KEEP_ONLY_PACKAGE_NAMES_IN_STRING_ASSET_REFERENCES_MAP)
+		if (UE4Ver() < VER_UE4_ADDED_SOFT_OBJECT_PATH)
 		{
-			for (int32 ReferenceIdx = 0; ReferenceIdx < PackageFileSummary.StringAssetReferencesCount; ++ReferenceIdx)
+			for (int32 ReferenceIdx = 0; ReferenceIdx < PackageFileSummary.SoftPackageReferencesCount; ++ReferenceIdx)
 			{
-				FString Buf;
-				*this << Buf;
+				FString PackageName;
+				*this << PackageName;
 
-				if (GetIniFilenameFromObjectsReference(Buf) != nullptr)
+				if (UE4Ver() < VER_UE4_KEEP_ONLY_PACKAGE_NAMES_IN_STRING_ASSET_REFERENCES_MAP)
 				{
-					OutStringAssetReferencesMap.AddUnique(MoveTemp(Buf));
-				}
-				else
-				{
-					FString NormalizedPath = FPackageName::GetNormalizedObjectPath(MoveTemp(Buf));
-					if (!NormalizedPath.IsEmpty())
+					PackageName = FPackageName::GetNormalizedObjectPath(PackageName);
+					if (!PackageName.IsEmpty())
 					{
-						OutStringAssetReferencesMap.AddUnique(
-							FPackageName::ObjectPathToPackageName(
-								NormalizedPath
-							)
-						);
+						PackageName = FPackageName::ObjectPathToPackageName(PackageName);
 					}
 				}
+
+				OutSoftPackageReferenceList.Add(FName(*PackageName));
 			}
 		}
 		else
 		{
-			for (int32 ReferenceIdx = 0; ReferenceIdx < PackageFileSummary.StringAssetReferencesCount; ++ReferenceIdx)
+			for (int32 ReferenceIdx = 0; ReferenceIdx < PackageFileSummary.SoftPackageReferencesCount; ++ReferenceIdx)
 			{
-				FString Buf;
-				*this << Buf;
-				OutStringAssetReferencesMap.Add(MoveTemp(Buf));
+				FName PackageName;
+				*this << PackageName;
+				OutSoftPackageReferenceList.Add(PackageName);
 			}
 		}
 	}

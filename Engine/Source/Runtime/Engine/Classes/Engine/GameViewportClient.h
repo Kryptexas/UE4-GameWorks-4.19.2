@@ -16,6 +16,7 @@
 #include "Engine/TitleSafeZone.h"
 #include "Engine/GameViewportDelegates.h"
 #include "Engine/DebugDisplayProperty.h"
+#include "UObject/SoftObjectPath.h"
 
 #include "GameViewportClient.generated.h"
 
@@ -29,7 +30,6 @@ class UCanvas;
 class UGameInstance;
 class ULocalPlayer;
 class UNetDriver;
-struct FStringClassReference;
 class FHardwareCursor;
 
 /**
@@ -812,7 +812,7 @@ private:
 	void HandleViewportStatDisableAll(const bool bInAnyViewport);
 	
 	/** Adds a cursor to the set based on the enum and the class reference to it. */
-	void AddSoftwareCursor(EMouseCursor::Type Cursor, const FStringClassReference& CursorClass);
+	void AddSoftwareCursor(EMouseCursor::Type Cursor, const FSoftClassPath& CursorClass);
 
 private:
 	/** Slate window associated with this viewport client.  The same window may host more than one viewport client. */

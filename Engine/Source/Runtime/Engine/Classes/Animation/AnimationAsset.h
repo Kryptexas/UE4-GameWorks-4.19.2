@@ -908,7 +908,7 @@ public:
 private:
 	/** The default skeletal mesh to use when previewing this asset - this only applies when you open Persona using this asset*/
 	UPROPERTY(duplicatetransient, AssetRegistrySearchable)
-	TAssetPtr<class USkeletalMesh> PreviewSkeletalMesh;
+	TSoftObjectPtr<class USkeletalMesh> PreviewSkeletalMesh;
 #endif //WITH_EDITORONLY_DATA
 
 protected:

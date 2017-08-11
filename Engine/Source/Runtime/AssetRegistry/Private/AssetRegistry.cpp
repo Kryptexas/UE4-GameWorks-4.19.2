@@ -1220,7 +1220,7 @@ void UAssetRegistryImpl::AssetDeleted(UObject* DeletedAsset)
 		if (bInitialSearchCompleted && AssetDataDeleted.IsRedirector())
 		{
 			// Need to remove from GRedirectCollector
-			GRedirectCollector.RemoveAssetPathRedirection(AssetDataDeleted.ObjectPath.ToString());
+			GRedirectCollector.RemoveAssetPathRedirection(AssetDataDeleted.ObjectPath);
 		}
 #endif
 
@@ -1753,24 +1753,15 @@ void UAssetRegistryImpl::DependencyDataGathered(const double TickStartTime, TBac
 			PackageDependencies.Add(AssetReference, EAssetRegistryDependencyType::Hard);
 		}
 
-		for (const FString& StringAssetReference : Result.StringAssetReferencesMap)
+		for (FName SoftPackageName : Result.SoftPackageReferenceList)
 		{
-			// Possibly resolve ini:name references before adding to dependency list
-			const FString* IniFilename = GetIniFilenameFromObjectsReference(StringAssetReference);
-			const FName AssetReference = IniFilename ? *ResolveIniObjectsReference(StringAssetReference, IniFilename) : *StringAssetReference;
-
 			// Already processed?
-			if (PackageDependencies.Contains(AssetReference))
+			if (PackageDependencies.Contains(SoftPackageName))
 			{
 				continue;
 			}
 
-			if (FPackageName::IsShortPackageName(AssetReference))
-			{
-				UE_LOG(LogAssetRegistry, Warning, TEXT("Package with string asset reference with short asset path: %s. This is unsupported, can couse errors and be slow on loading. Please resave the package to fix this."), *Result.PackageName.ToString());
-			}
-
-			PackageDependencies.Add(AssetReference, EAssetRegistryDependencyType::Soft);
+			PackageDependencies.Add(SoftPackageName, EAssetRegistryDependencyType::Soft);
 		}
 
 		for (const TPair<FPackageIndex, TArray<FName>>& SearchableNameList : Result.SearchableNamesMap)
@@ -2241,7 +2232,7 @@ void UAssetRegistryImpl::UpdateRedirectCollector()
 
 		if (Destination != AssetData->ObjectPath)
 		{
-			GRedirectCollector.AddAssetPathRedirection(AssetData->ObjectPath.ToString(), Destination.ToString());
+			GRedirectCollector.AddAssetPathRedirection(AssetData->ObjectPath, Destination);
 		}
 	}
 }

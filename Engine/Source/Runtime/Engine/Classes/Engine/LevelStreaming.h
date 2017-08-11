@@ -87,7 +87,7 @@ class ULevelStreaming : public UObject
 private:
 	/** The reference to the world containing the level to load																	*/
 	UPROPERTY(Category=LevelStreaming, VisibleAnywhere, BlueprintReadOnly, meta=(DisplayName = "Level", AllowPrivateAccess="true"))
-	TAssetPtr<UWorld> WorldAsset;
+	TSoftObjectPtr<UWorld> WorldAsset;
 
 public:
 
@@ -204,10 +204,10 @@ public:
 	}
 
 	/** Returns a constant reference to the world asset this streaming level object references  */
-	ENGINE_API const TAssetPtr<UWorld>& GetWorldAsset() const { return WorldAsset; }
+	ENGINE_API const TSoftObjectPtr<UWorld>& GetWorldAsset() const { return WorldAsset; }
 
 	/** Setter for WorldAsset. Use this instead of setting WorldAsset directly to update the cached package name. */
-	ENGINE_API void SetWorldAsset(const TAssetPtr<UWorld>& NewWorldAsset);
+	ENGINE_API void SetWorldAsset(const TSoftObjectPtr<UWorld>& NewWorldAsset);
 
 	/** Gets the package name for the world asset referred to by this level streaming */
 	ENGINE_API FString GetWorldAssetPackageName() const;

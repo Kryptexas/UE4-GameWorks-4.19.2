@@ -26,11 +26,6 @@
 #include "TutorialMetaData.h"
 #include "Widgets/Layout/SBox.h"
 
-// Blueprint Profiler
-#include "Developer/BlueprintProfiler/Public/BlueprintProfilerModule.h"
-#include "Editor/Kismet/Public/Profiler/BlueprintProfilerSettings.h"
-#include "Editor/Kismet/Public/Profiler/EventExecution.h"
-
 #define LOCTEXT_NAMESPACE "SGraphNodeK2Base"
 
 //////////////////////////////////////////////////////////////////////////
@@ -573,53 +568,6 @@ const FSlateBrush* SGraphNodeK2Base::GetShadowBrush(bool bSelected) const
 	{
 		return SGraphNode::GetShadowBrush(bSelected);
 	}
-}
-
-FLinearColor SGraphNodeK2Base::GetProfilerHeatmapIntensity() const
-{
-	float IntensityValue = 0.0f;
-	IBlueprintProfilerInterface& ProfilerModule = FModuleManager::LoadModuleChecked<IBlueprintProfilerInterface>("BlueprintProfiler");
-	if (ProfilerModule.IsProfilerEnabled() && GraphNode)
-	{
-		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForNode(GraphNode);
-		if (Blueprint && Blueprint->GeneratedClass && Blueprint->GeneratedClass->HasInstrumentation())
-		{
-			TSharedPtr<FScriptExecutionNode> ExecNode = ProfilerModule.GetProfilerDataForNode(GraphNode);
-			if (ExecNode.IsValid())
-			{
-				const FScriptPerfData& NodePerfData = ExecNode->GetNodePerfData();
-				switch (GetDefault<UBlueprintProfilerSettings>()->GraphNodeHeatMapDisplayMode)
-				{
-				case EBlueprintProfilerHeatMapDisplayMode::Average:
-					IntensityValue = NodePerfData.GetAverageHeatLevel();
-					break;
-
-				case EBlueprintProfilerHeatMapDisplayMode::Inclusive:
-					IntensityValue = NodePerfData.GetInclusiveHeatLevel();
-					break;
-
-				case EBlueprintProfilerHeatMapDisplayMode::MaxTiming:
-					IntensityValue = NodePerfData.GetMaxTimeHeatLevel();
-					break;
-
-				case EBlueprintProfilerHeatMapDisplayMode::Total:
-					IntensityValue = NodePerfData.GetTotalHeatLevel();
-					break;
-				}
-			}
-		}
-	}
-	const float Value = 1.f - IntensityValue;
-	return FLinearColor(1.f, Value, Value, IntensityValue*IntensityValue);
-}
-
-const FSlateBrush* SGraphNodeK2Base::GetProfilerHeatmapBrush() const
-{
-	const UK2Node* K2Node = CastChecked<UK2Node>(GraphNode);
-	const bool bCompactMode = K2Node->ShouldDrawCompact();
-
-	return bCompactMode ?	FEditorStyle::GetBrush(TEXT("BlueprintProfiler.CompactNode.HeatDisplay")) : 
-							FEditorStyle::GetBrush(TEXT("BlueprintProfiler.RegularNode.HeatDisplay"));
 }
 
 void SGraphNodeK2Base::PerformSecondPassLayout(const TMap< UObject*, TSharedRef<SNode> >& NodeToWidgetLookup) const

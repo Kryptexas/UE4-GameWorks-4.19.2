@@ -865,17 +865,7 @@ USkeletalMesh* USkeleton::FindCompatibleMesh() const
 
 USkeletalMesh* USkeleton::GetPreviewMesh(bool bFindIfNotSet)
 {
-	USkeletalMesh* PreviewMesh = PreviewSkeletalMesh.Get();
-	if(!PreviewMesh)
-	{
-		// if preview mesh isn't loaded, see if we have set
-		FStringAssetReference PreviewMeshStringRef = PreviewSkeletalMesh.ToStringReference();
-		// load it since now is the time to load
-		if (!PreviewMeshStringRef.ToString().IsEmpty())
-		{
-			PreviewMesh = Cast<USkeletalMesh>(StaticLoadObject(USkeletalMesh::StaticClass(), NULL, *PreviewMeshStringRef.ToString(), NULL, LOAD_None, NULL));
-		}
-	}
+	USkeletalMesh* PreviewMesh = PreviewSkeletalMesh.LoadSynchronous();
 
 	if(PreviewMesh && PreviewMesh->Skeleton != this) // fix mismatched skeleton
 	{

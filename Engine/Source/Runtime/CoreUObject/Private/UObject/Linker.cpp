@@ -172,7 +172,7 @@ void FLinker::Serialize( FArchive& Ar )
 		Ar << ImportMap;
 		Ar << ExportMap;
 		Ar << DependsMap;
-		Ar << StringAssetReferencesMap;
+		Ar << SoftPackageReferenceList;
 		Ar << GatherableTextDataMap;
 		Ar << SearchableNamesMap;
 	}

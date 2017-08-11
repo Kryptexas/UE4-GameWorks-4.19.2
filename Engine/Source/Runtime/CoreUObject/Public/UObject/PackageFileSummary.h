@@ -119,14 +119,14 @@ public:
 	int32		DependsOffset;
 
 	/**
-	* Number of references contained in this package
+	* Number of soft package references contained in this package
 	*/
-	int32		StringAssetReferencesCount;
+	int32		SoftPackageReferencesCount;
 
 	/**
-	* Location into the file on disk for the string asset references map data
+	* Location into the file on disk for the soft package reference list
 	*/
-	int32		StringAssetReferencesOffset;
+	int32		SoftPackageReferencesOffset;
 
 	/**
 	* Location into the file on disk for the SearchableNamesMap data

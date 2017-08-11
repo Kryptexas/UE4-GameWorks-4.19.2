@@ -86,7 +86,7 @@ UHudSettings::UHudSettings( const FObjectInitializer& ObjectInitializer )
 /* Static functions
  *****************************************************************************/
 
-const FString UGameMapsSettings::GetGameDefaultMap( )
+FString UGameMapsSettings::GetGameDefaultMap( )
 {
 	return IsRunningDedicatedServer()
 		? GetDefault<UGameMapsSettings>()->ServerDefaultMap.GetLongPackageName()
@@ -94,7 +94,7 @@ const FString UGameMapsSettings::GetGameDefaultMap( )
 }
 
 
-const FString& UGameMapsSettings::GetGlobalDefaultGameMode( )
+FString UGameMapsSettings::GetGlobalDefaultGameMode( )
 {
 	UGameMapsSettings* GameMapsSettings = Cast<UGameMapsSettings>(UGameMapsSettings::StaticClass()->GetDefaultObject());
 
@@ -212,7 +212,7 @@ void UGameMapsSettings::SetGlobalDefaultGameMode( const FString& NewGameMode )
 }
 
 // Backwards compat for map strings
-void FixMapAssetRef(FStringAssetReference& MapAssetReference)
+void FixMapAssetRef(FSoftObjectPath& MapAssetReference)
 {
 	const FString AssetRefStr = MapAssetReference.ToString();
 	int32 DummyIndex;

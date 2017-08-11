@@ -68,7 +68,7 @@ As an example, here is a definition for level up experience data and the CSV doc
 
 		/** Icon to use for Achivement */
 		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=LevelUp)
-		TAssetPtr<UTexture> AchievementIcon;
+		TSoftObjectPtr<UTexture> AchievementIcon;
 	};
 
 
@@ -149,5 +149,5 @@ One final note is that all structures and curves returned should not be cached f
 of a function. This is to ensure that if the table is refreshed via re-import, the data changes take effect 
 immediately and that no invalid pointers are accessed.
 
-In the above DataTable example, the asset that is referenced is a lazy loaded asset (TAssetPtr handles this). 
+In the above DataTable example, the asset that is referenced is a lazy loaded asset (TSoftObjectPtr handles this). 
 If the Asset field type was set to UTexture, all of the assets would be loaded whenever the DataTable was loaded.

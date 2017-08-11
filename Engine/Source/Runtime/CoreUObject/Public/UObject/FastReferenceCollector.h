@@ -32,21 +32,32 @@ class FGCArrayPool
 public:
 
 	/**
-	* Gets the singleton instance of the FObjectArrayPool
-	* @return Pool singleton.
-	*/
+	 * Gets the singleton instance of the FObjectArrayPool
+	 * @return Pool singleton.
+	 */
 	FORCEINLINE static FGCArrayPool& Get()
 	{
-		static FGCArrayPool Singleton;
-		return Singleton;
+		static FAutoConsoleCommandWithOutputDevice GCDumpPoolCommand(
+			TEXT("gc.DumpPoolStats"),
+			TEXT("Dumps count and size of GC Pools"),
+			FConsoleCommandWithOutputDeviceDelegate::CreateStatic(&FGCArrayPool::DumpStats)
+		);
+
+		static FGCArrayPool* Singleton = nullptr;
+
+		if (!Singleton)
+		{
+			Singleton = new FGCArrayPool();
+		}
+		return *Singleton;
 	}
 
 	/**
-	* Gets an event from the pool or creates one if necessary.
-	*
-	* @return The array.
-	* @see ReturnToPool
-	*/
+	 * Gets an event from the pool or creates one if necessary.
+	 *
+	 * @return The array.
+	 * @see ReturnToPool
+	 */
 	FORCEINLINE FGCArrayStruct* GetArrayStructFromPool()
 	{
 		FGCArrayStruct* Result = Pool.Pop();
@@ -62,11 +73,11 @@ public:
 	}
 
 	/**
-	* Returns an array to the pool.
-	*
-	* @param Array The array to return.
-	* @see GetArrayFromPool
-	*/
+	 * Returns an array to the pool.
+	 *
+	 * @param Array The array to return.
+	 * @see GetArrayFromPool
+	 */
 	FORCEINLINE void ReturnToPool(FGCArrayStruct* ArrayStruct)
 	{
 #if UE_BUILD_DEBUG
@@ -78,7 +89,10 @@ public:
 		Pool.Push(ArrayStruct);
 	}
 
-	/** Performs memory cleanup */
+	/** 
+	 * Performs manual memory cleanup. 
+	 * Generally the pools will be cleaned up when ClearWeakReferences is called on a full GC purge
+	 */
 	void Cleanup()
 	{
 #if UE_BUILD_DEBUG
@@ -100,7 +114,83 @@ public:
 		UE_LOG(LogGarbage, Log, TEXT("Freed %ub from %d GC array pools."), FreedMemory, AllArrays.Num());
 	}
 
-	/** Clears weak references for everything in the pool */
+	/**
+	 * Writes out info about the makeup of the pool. called by 'gc.DumpPoolStats'
+	 *
+	 * @param Array The array to return.
+	 * @see GetArrayFromPool
+	 */
+	static void DumpStats(FOutputDevice& OutputDevice)
+	{
+		FGCArrayPool& Instance = Get();
+
+		TArray<FGCArrayStruct*> PoppedItems;
+
+		TMap<int32, int32> Buckets;
+
+		int32 TotalSize = 0;
+		int32 MaxSize = 0;
+		int32 TotalItems = 0;
+
+		do
+		{
+			FGCArrayStruct* Item = Instance.Pool.Pop();
+
+			if (Item)
+			{
+				PoppedItems.Push(Item);
+
+				// Inc our bucket
+				Buckets.FindOrAdd(Item->ObjectsToSerialize.Max()) += 1;
+
+				TotalSize += Item->ObjectsToSerialize.Max();
+				TotalSize += Item->WeakReferences.Max();
+				TotalItems++;
+			}
+			else
+			{
+				break;
+			}
+
+		} while (true);
+
+		// return everything to the pool
+		while (PoppedItems.Num())
+		{
+			Instance.Pool.Push(PoppedItems.Pop());
+		}
+
+		// One of these lists is used by the main GC and is huge, so remove it so that it doesn't
+		// pollute the stats and we can accurately see what the task pools are using.
+		int32 TotalSizeKB = (TotalSize * sizeof(UObject*)) / 1024;
+
+		OutputDevice.Logf(TEXT("GCPoolStats: %d Pools totaling %d KB. Avg: Objs=%d, Size=%d KB."),
+			TotalItems,
+			TotalSizeKB,
+			TotalSize / FMath::Max(TotalItems, 1),
+			TotalSizeKB / FMath::Max(TotalItems, 1));
+
+		// long form output...
+		TArray<int32> Keys;
+
+		Buckets.GetKeys(Keys);
+
+		Keys.Sort([&](int32 lhs, int32 rhs) {
+			return lhs > rhs;
+		});
+
+		for (int Key : Keys)
+		{
+			const int32 Value = Buckets[Key];
+			int32 ItemSize = (Key * sizeof(UObject*)) / 1024;
+			OutputDevice.Logf(TEXT("\t%d\t\t(%d Items @ %d KB = %d KB)"), Key, Value, ItemSize, Value * ItemSize);
+		}
+	}
+
+	/** 
+	 * Clears weak references for everything in the pool. 
+	 * If bClearPools is true it will clear all of the pools as well, which is used during a full purge 
+	 */
 	void ClearWeakReferences(bool bClearPools)
 	{
 		TArray<FGCArrayStruct*> AllArrays;

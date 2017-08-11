@@ -37,7 +37,7 @@ void UPlatformGameInstance::BeginDestroy()
 	FCoreDelegates::ApplicationRegisteredForUserNotificationsDelegate.RemoveAll(this);
 	FCoreDelegates::ApplicationFailedToRegisterForRemoteNotificationsDelegate.RemoveAll(this);
 	FCoreDelegates::ApplicationReceivedRemoteNotificationDelegate.RemoveAll(this);
-	FCoreDelegates::ApplicationReceivedRemoteNotificationDelegate.RemoveAll(this);
+	FCoreDelegates::ApplicationReceivedLocalNotificationDelegate.RemoveAll(this);
 	FCoreDelegates::ApplicationReceivedScreenOrientationChangedNotificationDelegate.RemoveAll(this);
 
     Super::BeginDestroy();

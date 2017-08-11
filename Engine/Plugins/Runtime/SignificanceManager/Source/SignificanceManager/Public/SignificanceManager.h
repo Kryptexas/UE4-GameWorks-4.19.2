@@ -9,7 +9,7 @@
 #include "Templates/SubclassOf.h"
 #include "Modules/ModuleManager.h"
 #include "UObject/GCObject.h"
-#include "Misc/StringClassReference.h"
+#include "UObject/SoftObjectPath.h"
 #include "Engine/World.h"
 #include "SignificanceManager.generated.h"
 
@@ -191,7 +191,7 @@ private:
 
 	// Game specific significance class to instantiate
 	UPROPERTY(globalconfig, noclear, EditAnywhere, Category=DefaultClasses, meta=(MetaClass="SignificanceManager", DisplayName="Significance Manager Class"))
-	FStringClassReference SignificanceManagerClassName;
+	FSoftClassPath SignificanceManagerClassName;
 
 	// Callback function registered with HUD to supply debug info when ShowDebug SignificanceManager has been entered on the console
 	void OnShowDebugInfo(AHUD* HUD, UCanvas* Canvas, const FDebugDisplayInfo& DisplayInfo, float& YL, float& YPos);

@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
-#include "Misc/StringAssetReference.h"
+#include "UObject/SoftObjectPath.h"
 #include "GameplayTagsManager.h"
 #include "GameplayTagsSettings.generated.h"
 
@@ -99,7 +99,7 @@ class GAMEPLAYTAGS_API UGameplayTagsSettings : public UGameplayTagsList
 
 	/** List of data tables to load tags from */
 	UPROPERTY(config, EditAnywhere, Category = GameplayTags, meta = (AllowedClasses = "DataTable"))
-	TArray<FStringAssetReference> GameplayTagTableList;
+	TArray<FSoftObjectPath> GameplayTagTableList;
 
 	/** List of active tag redirects */
 	UPROPERTY(config, EditAnywhere, Category = GameplayTags)

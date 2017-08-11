@@ -252,15 +252,7 @@ void UK2Node_DynamicCast::SetPurity(bool bNewPurity)
 
 void UK2Node_DynamicCast::TogglePurity()
 {
-	FText TransactionTitle;
-	if(bIsPureCast)
-	{
-		TransactionTitle = LOCTEXT("TogglePure", "Convert to Pure Cast");
-	}
-	else
-	{
-		TransactionTitle = LOCTEXT("ToggleImpure", "Convert to Impure Cast");
-	}
+	const FText TransactionTitle = bIsPureCast ? LOCTEXT("TogglePurityToImpure", "Convert to Impure Cast") : LOCTEXT("TogglePurityToPure", "Convert to Pure Cast");
 	const FScopedTransaction Transaction( TransactionTitle );
 	Modify();
 

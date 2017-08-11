@@ -4,6 +4,8 @@
 #include "EditorObjectVersion.h"
 #if WITH_EDITOR
 #include "Kismet2/EnumEditorUtils.h"
+#include "UObject/MetaData.h"
+#include "UObject/Package.h"
 #endif	// WITH_EDITOR
 
 UUserDefinedEnum::UUserDefinedEnum(const FObjectInitializer& ObjectInitializer)
@@ -89,6 +91,36 @@ void UUserDefinedEnum::PostEditUndo()
 {
 	Super::PostEditUndo();
 	FEnumEditorUtils::PostEditUndo(this);
+}
+
+void UUserDefinedEnum::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	// Add the description to the tooltip
+ 	static const FName NAME_Tooltip(TEXT("Tooltip"));
+
+	UPackage* Package = GetOutermost();
+	check(Package);
+	UMetaData* PackageMetaData = Package->GetMetaData();
+
+	if (!EnumDescription.IsEmpty())
+	{
+		PackageMetaData->SetValue(this, NAME_Tooltip, *EnumDescription.ToString());
+	}
+	else
+	{
+		PackageMetaData->RemoveValue(this, NAME_Tooltip);
+	}
+}
+
+void UUserDefinedEnum::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
+{
+	Super::GetAssetRegistryTags(OutTags);
+
+	FString DescriptionString;
+	FTextStringHelper::WriteToString(/*out*/ DescriptionString, EnumDescription);
+	OutTags.Emplace(GET_MEMBER_NAME_CHECKED(UUserDefinedEnum, EnumDescription), DescriptionString, FAssetRegistryTag::TT_Hidden);
 }
 
 FString UUserDefinedEnum::GenerateNewEnumeratorName()

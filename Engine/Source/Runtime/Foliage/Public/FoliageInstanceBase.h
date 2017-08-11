@@ -3,7 +3,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/LazyObjectPtr.h"
-#include "UObject/AssetPtr.h"
+#include "UObject/SoftObjectPtr.h"
 
 class AInstancedFoliageActor;
 class UActorComponent;
@@ -82,7 +82,7 @@ struct FFoliageInstanceBaseCache
 	
 	// Map for detecting removed bases
 	// serialized
-	TMap<TAssetPtr<UWorld>, TArray<FFoliageInstanceBasePtr>> InstanceBaseLevelMap;
+	TMap<TSoftObjectPtr<UWorld>, TArray<FFoliageInstanceBasePtr>> InstanceBaseLevelMap;
 };
 
 #endif// WITH_EDITORONLY_DATA

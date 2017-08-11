@@ -216,7 +216,7 @@ void UPhysicsAsset::Serialize(FArchive& Ar)
 #if WITH_EDITORONLY_DATA
 	if (DefaultSkelMesh_DEPRECATED != NULL)
 	{
-		PreviewSkeletalMesh = TAssetPtr<USkeletalMesh>(DefaultSkelMesh_DEPRECATED);
+		PreviewSkeletalMesh = TSoftObjectPtr<USkeletalMesh>(DefaultSkelMesh_DEPRECATED);
 		DefaultSkelMesh_DEPRECATED = NULL;
 	}
 #endif

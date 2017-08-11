@@ -12,8 +12,8 @@
 /**
  * 
  */
-UCLASS(Blueprintable, MinimalAPI)
-class AScreenshotFunctionalTest : public AFunctionalTest
+UCLASS(Blueprintable)
+class FUNCTIONALTESTING_API AScreenshotFunctionalTest : public AFunctionalTest
 {
 	GENERATED_BODY()
 

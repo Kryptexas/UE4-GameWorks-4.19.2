@@ -5,7 +5,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
-#include "UObject/AssetPtr.h"
+#include "UObject/SoftObjectPtr.h"
 #include "Sound/SoundNodeAssetReferencer.h"
 #include "SoundNodeWavePlayer.generated.h"
 
@@ -26,7 +26,7 @@ class USoundNodeWavePlayer : public USoundNodeAssetReferencer
 
 private:
 	UPROPERTY(EditAnywhere, Category=WavePlayer, meta=(DisplayName="Sound Wave"))
-	TAssetPtr<USoundWave> SoundWaveAssetPtr;
+	TSoftObjectPtr<USoundWave> SoundWaveAssetPtr;
 
 	UPROPERTY(transient)
 	USoundWave* SoundWave;

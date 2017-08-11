@@ -200,7 +200,7 @@ bool FAudioDevice::Init(int32 InMaxChannels)
 
 	bAllowVirtualizedSounds = GetDefault<UAudioSettings>()->bAllowVirtualizedSounds;
 
-	const FStringAssetReference DefaultBaseSoundMixName = GetDefault<UAudioSettings>()->DefaultBaseSoundMix;
+	const FSoftObjectPath DefaultBaseSoundMixName = GetDefault<UAudioSettings>()->DefaultBaseSoundMix;
 	if (DefaultBaseSoundMixName.IsValid())
 	{
 		DefaultBaseSoundMix = LoadObject<USoundMix>(nullptr, *DefaultBaseSoundMixName.ToString());
@@ -1516,7 +1516,7 @@ void FAudioDevice::SetDefaultBaseSoundMix(USoundMix* SoundMix)
 {
 	if (IsInGameThread() && SoundMix == nullptr)
 	{
-		const FStringAssetReference DefaultBaseSoundMixName = GetDefault<UAudioSettings>()->DefaultBaseSoundMix;
+		const FSoftObjectPath DefaultBaseSoundMixName = GetDefault<UAudioSettings>()->DefaultBaseSoundMix;
 		if (DefaultBaseSoundMixName.IsValid())
 		{			
 			SoundMix = LoadObject<USoundMix>(nullptr, *DefaultBaseSoundMixName.ToString());

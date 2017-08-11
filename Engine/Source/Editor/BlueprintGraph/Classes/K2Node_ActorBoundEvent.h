@@ -48,6 +48,7 @@ class UK2Node_ActorBoundEvent : public UK2Node_Event
 	//~ Begin K2Node Interface
 	virtual AActor* GetReferencedLevelActor() const override;
 	virtual bool NodeCausesStructuralBlueprintChange() const override { return true; }
+	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override;
 	virtual FNodeHandlingFunctor* CreateNodeHandler(FKismetCompilerContext& CompilerContext) const override;
 	//~ End K2Node Interface
 
@@ -63,6 +64,7 @@ class UK2Node_ActorBoundEvent : public UK2Node_Event
 
 	/** Return the delegate property that this event is bound to */
 	BLUEPRINTGRAPH_API UMulticastDelegateProperty* GetTargetDelegateProperty() const;
+	BLUEPRINTGRAPH_API UMulticastDelegateProperty* GetTargetDelegatePropertyFromSkel() const;
 
 	/** Returns the delegate that this event is bound in, for actors bound in level script */
 	BLUEPRINTGRAPH_API FMulticastScriptDelegate* GetTargetDelegate() const;

@@ -806,6 +806,11 @@ public:
 	 *  Called when the level script blueprint has been successfully changed and compiled.  Handles creating an instance of the blueprint class in LevelScriptActor
 	 */
 	ENGINE_API void OnLevelScriptBlueprintChanged(class ULevelScriptBlueprint* InBlueprint);
+
+	/** 
+	 * Call on a level that was loaded from disk instead of PIE-duplicating, to fixup actor references
+	 */
+	ENGINE_API void FixupForPIE(int32 PIEInstanceID);
 #endif
 
 	/** @todo document */

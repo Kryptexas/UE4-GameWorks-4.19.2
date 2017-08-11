@@ -123,8 +123,6 @@ DEFINE_STAT(EKismetCompilerStats_NotifyBlueprintChanged);
 DECLARE_CYCLE_STAT(TEXT("Mark Blueprint as Structurally Modified"), EKismetCompilerStats_MarkBlueprintasStructurallyModified, STATGROUP_KismetCompiler);
 DECLARE_CYCLE_STAT(TEXT("Refresh External DependencyNodes"), EKismetCompilerStats_RefreshExternalDependencyNodes, STATGROUP_KismetCompiler);
 
-FBlueprintEditorUtils::FFixLevelScriptActorBindingsEvent FBlueprintEditorUtils::FixLevelScriptActorBindingsEvent;
-
 struct FCompareNodePriority
 {
 	FORCEINLINE bool operator()( const UK2Node& A, const UK2Node& B ) const
@@ -762,7 +760,7 @@ UClass* FBlueprintEditorUtils::FindFirstNativeClass(UClass* Class)
 	return Class;
 }
 
-void FBlueprintEditorUtils::GetAllGraphNames(const UBlueprint* Blueprint, TArray<FName>& GraphNames)
+void FBlueprintEditorUtils::GetAllGraphNames(const UBlueprint* Blueprint, TSet<FName>& GraphNames)
 {
 	TArray< UEdGraph* > GraphList;
 	Blueprint->GetAllGraphs(GraphList);
@@ -782,7 +780,7 @@ void FBlueprintEditorUtils::GetAllGraphNames(const UBlueprint* Blueprint, TArray
 
 		for(int32 FunctionIndex = 0; FunctionIndex < ParentBP->FunctionGraphs.Num(); ++FunctionIndex)
 		{
-			GraphNames.AddUnique(ParentBP->FunctionGraphs[FunctionIndex]->GetFName());
+			GraphNames.Add(ParentBP->FunctionGraphs[FunctionIndex]->GetFName());
 		}
 	}
 }
@@ -1429,12 +1427,6 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 		Blueprint->bHasBeenRegenerated = !FBlueprintEditorUtils::IsDataOnlyBlueprint(Blueprint) || Blueprint->GeneratedClass != nullptr; 
 
 		Blueprint->bIsRegeneratingOnLoad = false;
-
-		if( Package )
-		{
-			// Tell the linker to try to find exports in memory first, so that it gets the new, regenerated versions
-			Package->FindExportsInMemoryFirst(true);
-		}
 
 		bRegenerated = bShouldBeRecompiled;
 
@@ -3038,7 +3030,7 @@ bool FBlueprintEditorUtils::IsDataOnlyBlueprint(const UBlueprint* Blueprint)
 		return false;
 	}
 
-	if(USimpleConstructionScript* SimpleConstructionScript = Blueprint->SimpleConstructionScript)
+	if (USimpleConstructionScript* SimpleConstructionScript = Blueprint->SimpleConstructionScript)
 	{
 		const TArray<USCS_Node*>& Nodes = SimpleConstructionScript->GetAllNodes();
 		if (Nodes.Num() > 1)
@@ -3084,20 +3076,13 @@ bool FBlueprintEditorUtils::IsDataOnlyBlueprint(const UBlueprint* Blueprint)
 		}
 	}
 
-	// No extra eventgraphs
-	if( Blueprint->UbergraphPages.Num() > 1 )
+	// All EventGraphs are empty (at least of non-ghost, non-disabled nodes)
+	for (UEdGraph* EventGraph : Blueprint->UbergraphPages)
 	{
-		return false;
-	}
-
-	// EventGraph is empty
-	UEdGraph* EventGraph = (Blueprint->UbergraphPages.Num() == 1) ? Blueprint->UbergraphPages[0] : nullptr;
-	if( EventGraph && EventGraph->Nodes.Num() > 0 )
-	{
-		for(UEdGraphNode* GraphNode : EventGraph->Nodes)
+		for (UEdGraphNode* GraphNode : EventGraph->Nodes)
 		{
-			// If there is an enabled node in the event graph (or a node that was explicitly disabled by the user), the Blueprint is not data only
-			if (GraphNode && (GraphNode->IsNodeEnabled() || GraphNode->bUserSetEnabledState))
+			// If there is an enabled node in the event graph, the Blueprint is not data only
+			if (GraphNode && (GraphNode->GetDesiredEnabledState() != ENodeEnabledState::Disabled))
 			{
 				return false;
 			}
@@ -3105,7 +3090,7 @@ bool FBlueprintEditorUtils::IsDataOnlyBlueprint(const UBlueprint* Blueprint)
 	}
 
 	// No implemented interfaces
-	if( Blueprint->ImplementedInterfaces.Num() > 0 )
+	if (Blueprint->ImplementedInterfaces.Num() > 0)
 	{
 		return false;
 	}
@@ -3415,20 +3400,6 @@ bool FBlueprintEditorUtils::MoveVariableBeforeVariable(UBlueprint* Blueprint, FN
 	return bMoved;
 }
 
-int32 FBlueprintEditorUtils::FindFirstNewVarOfCategory(const UBlueprint* Blueprint, FText Category)
-{
-	for(int32 VarIdx=0; VarIdx<Blueprint->NewVariables.Num(); VarIdx++)
-	{
-		if(Blueprint->NewVariables[VarIdx].Category.EqualTo(Category))
-		{
-			return VarIdx;
-		}
-	}
-	return INDEX_NONE;
-}
-
-
-
 int32 FBlueprintEditorUtils::FindTimelineIndex(const UBlueprint* Blueprint, const FName& InName) 
 {
 	const FName TimelineTemplateName = *UTimelineTemplate::TimelineVariableNameToTemplateName(InName);
@@ -3443,7 +3414,7 @@ int32 FBlueprintEditorUtils::FindTimelineIndex(const UBlueprint* Blueprint, cons
 	return INDEX_NONE;
 }
 
-void FBlueprintEditorUtils::GetSCSVariableNameList(const UBlueprint* Blueprint, TArray<FName>& VariableNames)
+void FBlueprintEditorUtils::GetSCSVariableNameList(const UBlueprint* Blueprint, TSet<FName>& VariableNames)
 {
 	if(Blueprint != nullptr && Blueprint->SimpleConstructionScript != nullptr)
 	{
@@ -3454,14 +3425,14 @@ void FBlueprintEditorUtils::GetSCSVariableNameList(const UBlueprint* Blueprint, 
 				const FName VariableName = SCS_Node->GetVariableName();
 				if(VariableName != NAME_None)
 				{
-					VariableNames.AddUnique(VariableName);
+					VariableNames.Add(VariableName);
 				}
 			}
 		}
 	}
 }
 
-void FBlueprintEditorUtils::GetImplementingBlueprintsFunctionNameList(const UBlueprint* Blueprint, TArray<FName>& FunctionNames)
+void FBlueprintEditorUtils::GetImplementingBlueprintsFunctionNameList(const UBlueprint* Blueprint, TSet<FName>& FunctionNames)
 {
 	if(Blueprint != nullptr && FBlueprintEditorUtils::IsInterfaceBlueprint(Blueprint))
 	{
@@ -3835,16 +3806,26 @@ void FBlueprintEditorUtils::RemoveBlueprintVariableMetaData(UBlueprint* Blueprin
 
 void FBlueprintEditorUtils::SetBlueprintVariableCategory(UBlueprint* Blueprint, const FName& VarName, const UStruct* InLocalVarScope, const FText& NewCategory, bool bDontRecompile)
 {
-	const FScopedTransaction Transaction( LOCTEXT("ChangeVariableCategory", "Change Variable Category") );
-	Blueprint->Modify();
+	if (Blueprint == nullptr)
+	{
+		return;
+	}
 
 	// Ensure we always set a category
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 	FText SetCategory = NewCategory;
 	if (SetCategory.IsEmpty())
 	{
-		SetCategory = K2Schema->VR_DefaultCategory; 
+		SetCategory = UEdGraphSchema_K2::VR_DefaultCategory;
 	}
+	
+	const FText OldCategory = GetBlueprintVariableCategory(Blueprint, VarName, InLocalVarScope);
+	if (OldCategory.EqualTo(SetCategory))
+	{
+		return;
+	}
+
+	const FScopedTransaction Transaction(LOCTEXT("ChangeVariableCategory", "Change Variable Category"));
+	Blueprint->Modify();
 
 	UClass* SkeletonGeneratedClass = Blueprint->SkeletonGeneratedClass;
 	if (UProperty* TargetProperty = FindField<UProperty>(SkeletonGeneratedClass, VarName))
@@ -3860,56 +3841,125 @@ void FBlueprintEditorUtils::SetBlueprintVariableCategory(UBlueprint* Blueprint, 
 			const int32 VarIndex = FBlueprintEditorUtils::FindNewVariableIndex(Blueprint, VarName);
 			if (VarIndex != INDEX_NONE)
 			{
-				bIsCategoryChanged = !Blueprint->NewVariables[VarIndex].Category.EqualTo(SetCategory);
-				
-				if(bIsCategoryChanged)
-				{
-					Blueprint->NewVariables[VarIndex].Category = SetCategory;
-				}
+				Blueprint->NewVariables[VarIndex].Category = SetCategory;
 			}
 			else
 			{
 				const int32 SCS_NodeIndex = FBlueprintEditorUtils::FindSCS_Node(Blueprint, VarName);
 				if (SCS_NodeIndex != INDEX_NONE)
 				{
-					bIsCategoryChanged = !Blueprint->SimpleConstructionScript->GetAllNodes()[SCS_NodeIndex]->CategoryName.EqualTo(SetCategory);
-					
-					if(bIsCategoryChanged)
-					{
-						Blueprint->SimpleConstructionScript->GetAllNodes()[SCS_NodeIndex]->Modify();
-						Blueprint->SimpleConstructionScript->GetAllNodes()[SCS_NodeIndex]->CategoryName = SetCategory;
-					}
+					Blueprint->SimpleConstructionScript->GetAllNodes()[SCS_NodeIndex]->Modify();
+					Blueprint->SimpleConstructionScript->GetAllNodes()[SCS_NodeIndex]->CategoryName = SetCategory;
 				}
-			}
-
-			if (bDontRecompile == false && bIsCategoryChanged)
-			{
-				FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
 			}
 		}
 	}
-	else if(InLocalVarScope)
+	else if (InLocalVarScope)
 	{
 		UK2Node_FunctionEntry* OutFunctionEntryNode;
-		if(FBPVariableDescription* LocalVariable = FindLocalVariable(Blueprint, InLocalVarScope, VarName, &OutFunctionEntryNode))
+		if (FBPVariableDescription* LocalVariable = FindLocalVariable(Blueprint, InLocalVarScope, VarName, &OutFunctionEntryNode))
 		{
-			// If the category does not change, we will not recompile the Blueprint
-			bool bIsCategoryChanged = !LocalVariable->Category.EqualTo(SetCategory);
+			OutFunctionEntryNode->Modify();
+			LocalVariable->SetMetaData(TEXT("Category"), *SetCategory.ToString());
+			LocalVariable->Category = SetCategory;
+		}
+	}
 
-			if(bIsCategoryChanged)
-			{
-				OutFunctionEntryNode->Modify();
-				LocalVariable->SetMetaData(TEXT("Category"), *SetCategory.ToString());
-				LocalVariable->Category = SetCategory;
-			}
+	if (bDontRecompile == false)
+	{
+		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+	}
+}
 
-			if (bDontRecompile == false && bIsCategoryChanged)
+void FBlueprintEditorUtils::SetBlueprintFunctionOrMacroCategory(UEdGraph* Graph, const FText& InCategoryName, bool bDontRecompile)
+{
+	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(Graph);
+	if (FKismetUserDeclaredFunctionMetadata* MetaData = FBlueprintEditorUtils::GetGraphFunctionMetaData(Graph))
+	{
+		UFunction* Function = nullptr;
+		for (TFieldIterator<UFunction> FunctionIt(Blueprint->SkeletonGeneratedClass, EFieldIteratorFlags::IncludeSuper); FunctionIt; ++FunctionIt)
+		{
+			if (FunctionIt->GetName() == Graph->GetName())
 			{
-				FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+				Function = *FunctionIt;
+				break;
 			}
+		}
+
+		const FText& NewCategory = InCategoryName.IsEmpty() ? UEdGraphSchema_K2::VR_DefaultCategory : InCategoryName;
+		MetaData->Category = NewCategory;
+
+		if (Function)
+		{
+			check(!Function->IsNative()); // Should never get here with a native function, as we wouldn't have been able to find metadata for it
+			Function->Modify();
+			Function->SetMetaData(FBlueprintMetadata::MD_FunctionCategory, *NewCategory.ToString());
+		}
+
+		if (!bDontRecompile)
+		{
+			FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
 		}
 	}
 }
+
+int32 FBlueprintEditorUtils::FindIndexOfGraphInParent(UEdGraph* Graph)
+{
+	int32 Result = INDEX_NONE;
+
+	if (UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(Graph))
+	{
+		Result = Blueprint->FunctionGraphs.IndexOfByKey(Graph);
+		if (Result == INDEX_NONE)
+		{
+			Result = Blueprint->MacroGraphs.IndexOfByKey(Graph);
+		}
+	}
+
+	return Result;
+}
+
+bool FBlueprintEditorUtils::MoveGraphBeforeOtherGraph(UEdGraph* Graph, int32 NewIndex, bool bDontRecompile)
+{
+	if (UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(Graph))
+	{
+		bool bModified = false;
+
+		const int32 OldFunctionIndex = Blueprint->FunctionGraphs.IndexOfByKey(Graph);
+		if (OldFunctionIndex != INDEX_NONE)
+		{
+			if ((OldFunctionIndex != NewIndex) && Blueprint->FunctionGraphs.IsValidIndex(NewIndex))
+			{
+				Blueprint->Modify();
+				Blueprint->FunctionGraphs.Insert(Graph, NewIndex);
+				Blueprint->FunctionGraphs.RemoveAt((OldFunctionIndex < NewIndex) ? OldFunctionIndex : (OldFunctionIndex + 1));
+				bModified = true;
+			}
+		}
+
+		const int32 OldMacroIndex = Blueprint->MacroGraphs.IndexOfByKey(Graph);
+		if (OldMacroIndex != INDEX_NONE)
+		{
+			if ((OldMacroIndex != NewIndex) && Blueprint->MacroGraphs.IsValidIndex(NewIndex))
+			{
+				Blueprint->Modify();
+				Blueprint->MacroGraphs.Insert(Graph, NewIndex);
+				Blueprint->MacroGraphs.RemoveAt((OldMacroIndex < NewIndex) ? OldMacroIndex : (OldMacroIndex + 1));
+				bModified = true;
+			}
+		}
+
+		if (bModified && !bDontRecompile)
+		{
+			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+		}
+
+		return bModified;
+	}
+
+	return false;
+}
+
 
 FText FBlueprintEditorUtils::GetBlueprintVariableCategory(UBlueprint* Blueprint, const FName& VarName, const UStruct* InLocalVarScope)
 {
@@ -3971,9 +4021,7 @@ void FBlueprintEditorUtils::SetBlueprintVariableRepNotifyFunc(UBlueprint* Bluepr
 	}
 }
 
-
-// Gets a list of function names currently in use in the blueprint, based on the skeleton class
-void FBlueprintEditorUtils::GetFunctionNameList(const UBlueprint* Blueprint, TArray<FName>& FunctionNames)
+void FBlueprintEditorUtils::GetFunctionNameList(const UBlueprint* Blueprint, TSet<FName>& FunctionNames)
 {
 	if( UClass* SkeletonClass = Blueprint->SkeletonGeneratedClass )
 	{
@@ -3984,7 +4032,7 @@ void FBlueprintEditorUtils::GetFunctionNameList(const UBlueprint* Blueprint, TAr
 	}
 }
 
-void FBlueprintEditorUtils::GetDelegateNameList(const UBlueprint* Blueprint, TArray<FName>& FunctionNames)
+void FBlueprintEditorUtils::GetDelegateNameList(const UBlueprint* Blueprint, TSet<FName>& FunctionNames)
 {
 	check(Blueprint);
 	for (int32 It = 0; It < Blueprint->DelegateSignatureGraphs.Num(); It++)
@@ -4095,8 +4143,7 @@ bool FBlueprintEditorUtils::IsPinTypeValid(const FEdGraphPinType& Type)
 	return true;
 }
 
-// Gets the visible class variable list.  This includes both variables introduced here and in all superclasses.
-void FBlueprintEditorUtils::GetClassVariableList(const UBlueprint* Blueprint, TArray<FName>& VisibleVariables, bool bIncludePrivateVars) 
+void FBlueprintEditorUtils::GetClassVariableList(const UBlueprint* Blueprint, TSet<FName>& VisibleVariables, bool bIncludePrivateVars) 
 {
 	// Existing variables in the parent class and above, when using the compilation manager the previous SkeletonGeneratedClass will have been cleared when
 	// we're regenerating the SkeletonGeneratedClass. Using this function in the skeleton pass at all is highly dubious, but I am leaving it until the 
@@ -4128,14 +4175,14 @@ void FBlueprintEditorUtils::GetClassVariableList(const UBlueprint* Blueprint, TA
 
 				for (int32 VariableIndex = 0; VariableIndex < ParentBP->NewVariables.Num(); ++VariableIndex)
 				{
-					VisibleVariables.AddUnique(ParentBP->NewVariables[VariableIndex].VarName);
+					VisibleVariables.Add(ParentBP->NewVariables[VariableIndex].VarName);
 				}
 
 				for (UTimelineTemplate* Timeline : ParentBP->Timelines)
 				{
 					if (Timeline)
 					{
-						VisibleVariables.AddUnique(Timeline->GetFName());
+						VisibleVariables.Add(Timeline->GetFName());
 					}
 				}
 			}
@@ -4191,7 +4238,7 @@ bool FBlueprintEditorUtils::AddMemberVariable(UBlueprint* Blueprint, const FName
 	}
 
 	// First we need to see if there is already a variable with that name, in this blueprint or parent class
-	TArray<FName> CurrentVars;
+	TSet<FName> CurrentVars;
 	FBlueprintEditorUtils::GetClassVariableList(Blueprint, CurrentVars);
 	if(CurrentVars.Contains(NewVarName))
 	{
@@ -4220,7 +4267,7 @@ bool FBlueprintEditorUtils::AddMemberVariable(UBlueprint* Blueprint, const FName
 		PostSetupObjectPinType(Blueprint, NewVar);
 	}
 	NewVar.ReplicationCondition = COND_None;
-	NewVar.Category = K2Schema->VR_DefaultCategory;
+	NewVar.Category = UEdGraphSchema_K2::VR_DefaultCategory;
 	NewVar.DefaultValue = DefaultValue;
 
 	// user created variables should be none of these things
@@ -4807,7 +4854,7 @@ bool FBlueprintEditorUtils::AddLocalVariable(UBlueprint* Blueprint, UEdGraph* In
 		NewVar.VarType = InNewVarType;
 		NewVar.PropertyFlags |= CPF_BlueprintVisible;
 		NewVar.FriendlyName = FName::NameToDisplayString( NewVar.VarName.ToString(), (NewVar.VarType.PinCategory == K2Schema->PC_Boolean) ? true : false );
-		NewVar.Category = K2Schema->VR_DefaultCategory;
+		NewVar.Category = UEdGraphSchema_K2::VR_DefaultCategory;
 		NewVar.DefaultValue = DefaultValue;
 
 		PostSetupObjectPinType(Blueprint, NewVar);
@@ -5975,7 +6022,7 @@ namespace
 			}
 			else
 			{
-				TArray<FName> DummyExtraNameList;
+				TSet<FName> DummyExtraNameList;
 				UEdGraphNode* CustomEventNode = CurrentGraph->GetSchema()->CreateSubstituteNode(EventNode, CurrentGraph, nullptr, DummyExtraNameList);
 				if (ensure(CustomEventNode))
 				{
@@ -6105,7 +6152,7 @@ static void ConformInterfaceByName(UBlueprint* Blueprint, FBPInterfaceDescriptio
 
 		// check to make sure that there aren't any interface methods that we originally 
 		// implemented as events, but have since switched to functions 
-		TArray<FName> ExtraNameList;
+		TSet<FName> ExtraNameList;
 		for (UK2Node_Event* EventNode : ImplementedEvents)
 		{
 			// if this event belongs to something other than this interface
@@ -7058,17 +7105,11 @@ void FBlueprintEditorUtils::GetActorReferenceMap(UWorld* InWorld, TArray<UClass*
 	}
 }
 
-FBlueprintEditorUtils::FFixLevelScriptActorBindingsEvent& FBlueprintEditorUtils::OnFixLevelScriptActorBindings()
-{
-	return FixLevelScriptActorBindingsEvent;
-}
-
-
-bool FBlueprintEditorUtils::FixLevelScriptActorBindings(ALevelScriptActor* LevelScriptActor, const ULevelScriptBlueprint* ScriptBlueprint)
+void FBlueprintEditorUtils::FixLevelScriptActorBindings(ALevelScriptActor* LevelScriptActor, const ULevelScriptBlueprint* ScriptBlueprint)
 {
 	if( ScriptBlueprint->BlueprintType != BPTYPE_LevelScript )
 	{
-		return false;
+		return;
 	}
 
 	UPackage* ActorPackage = LevelScriptActor->GetOutermost();
@@ -7079,10 +7120,8 @@ bool FBlueprintEditorUtils::FixLevelScriptActorBindings(ALevelScriptActor* Level
 	// prevents us from cross-binding instantiated (PIE) actors to editor objects
 	if (ActorPackage != BlueprintPkg)
 	{
-		return false;
+		return;
 	}
-
-	bool bWasSuccessful = true;
 
 	TArray<UEdGraph*> AllGraphs;
 	ScriptBlueprint->GetAllGraphs(AllGraphs);
@@ -7114,34 +7153,6 @@ bool FBlueprintEditorUtils::FixLevelScriptActorBindings(ALevelScriptActor* Level
 						Delegate.BindUFunction(LevelScriptActor, TargetFunction);
 						TargetDelegate->AddUnique(Delegate);
 					}
-					else
-					{
-						FString ErrorFormat = LOCTEXT("FailedLSABinding_NoDelegate", "Unable to bind event node %s. Target instance is missing the expected delegate - is it a Blueprint in need of compile?").ToString();
-						if (FCompilerResultsLog* ActiveLog = FCompilerResultsLog::GetEventTarget())
-						{
-							ActiveLog->Warning(*FString::Printf(*ErrorFormat, TEXT("@@")), EventNode);
-						}
-						else
-						{
-							// For some reason, we don't have a valid entry point for the event in the LSA...
-							UE_LOG(LogBlueprint, Warning, TEXT("%s"), *FString::Printf(*ErrorFormat, *EventNode->GetName()));
-						}
-						bWasSuccessful = false;
-					}
-				}
-				else
-				{
-					FString ErrorFormat = LOCTEXT("FailedLSABinding_NoFunction", "Unable to bind event node %s. Please recompile the level Blueprint.").ToString();
-					if (FCompilerResultsLog* ActiveLog = FCompilerResultsLog::GetEventTarget())
-					{
-						ActiveLog->Warning(*FString::Printf(*ErrorFormat, TEXT("@@")), EventNode);
-					}
-					else
-					{
-						// For some reason, we don't have a valid entry point for the event in the LSA...
-						UE_LOG(LogBlueprint, Warning, TEXT("%s"), *FString::Printf(*ErrorFormat, (EventNode ? *EventNode->GetName() : TEXT("[unknown]"))));
-					}
-					bWasSuccessful = false;
 				}
 			}
 		}
@@ -7160,12 +7171,6 @@ bool FBlueprintEditorUtils::FixLevelScriptActorBindings(ALevelScriptActor* Level
 			}
 		}
 	}
-
-	// Allow external sub-systems perform changes to the level script actor
-	FixLevelScriptActorBindingsEvent.Broadcast( LevelScriptActor, ScriptBlueprint, bWasSuccessful );
-
-
-	return bWasSuccessful;
 }
 
 void FBlueprintEditorUtils::ListPackageContents(UPackage* Package, FOutputDevice& Ar)
@@ -8496,34 +8501,30 @@ void FBlueprintEditorUtils::GetEntryAndResultNodes(const UEdGraph* InGraph, TWea
 	}
 }
 
-FKismetUserDeclaredFunctionMetadata* FBlueprintEditorUtils::GetGraphFunctionMetaData( UEdGraph* InGraph )
+FKismetUserDeclaredFunctionMetadata* FBlueprintEditorUtils::GetGraphFunctionMetaData(const UEdGraph* InGraph)
 {
-	FKismetUserDeclaredFunctionMetadata* FunctionMetaData = nullptr;
-
-	if( InGraph )
+	if (InGraph)
 	{
-		TArray<UK2Node_FunctionEntry*> EntryNodes;
-		InGraph->GetNodesOfClass( EntryNodes );
-
-		if( EntryNodes.Num() )
+		UK2Node_EditablePinBase* FunctionEntryNode = GetEntryNode(InGraph);
+		if (UK2Node_FunctionEntry* TypedEntryNode = Cast<UK2Node_FunctionEntry>(FunctionEntryNode))
 		{
-			FunctionMetaData = &EntryNodes[ 0 ]->MetaData;
+			return &(TypedEntryNode->MetaData);
+		}
+		else if (UK2Node_Tunnel* TunnelNode = ExactCast<UK2Node_Tunnel>(FunctionEntryNode))
+		{
+			// Must be exactly a tunnel, not a macro instance
+			return &(TunnelNode->MetaData);
 		}
 	}
-	return FunctionMetaData;
+
+	return nullptr;
 }
 
 FText FBlueprintEditorUtils::GetGraphDescription(const UEdGraph* InGraph)
 {
-	UK2Node_EditablePinBase* FunctionEntryNode = GetEntryNode(InGraph);
-	if (UK2Node_FunctionEntry* TypedEntryNode = Cast<UK2Node_FunctionEntry>(FunctionEntryNode))
+	if (FKismetUserDeclaredFunctionMetadata* MetaData = GetGraphFunctionMetaData(InGraph))
 	{
-		return TypedEntryNode->MetaData.ToolTip;
-	}
-	else if (UK2Node_Tunnel* TunnelNode = ExactCast<UK2Node_Tunnel>(FunctionEntryNode))
-	{
-		// Must be exactly a tunnel, not a macro instance
-		return TunnelNode->MetaData.ToolTip;
+		 return MetaData->ToolTip;
 	}
 
 	return LOCTEXT( "NoGraphTooltip", "(None)" );

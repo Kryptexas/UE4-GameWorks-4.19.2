@@ -11,7 +11,7 @@
 #include "Curves/CurveInterface.h"
 #include "UObject/StructOnScope.h"
 #include "Engine/Engine.h"
-#include "StringAssetReference.h"
+#include "UObject/SoftObjectPath.h"
 #include "MovieSceneEventSection.generated.h"
 
 struct EventData;
@@ -84,8 +84,8 @@ struct MOVIESCENETRACKS_API FMovieSceneEventParameters
 
 private:
 
-	/** String asset reference to the type of this parameter payload */
-	FStringAssetReference StructType;
+	/** Soft object path to the type of this parameter payload */
+	FSoftObjectPath StructType;
 
 	/** Serialized bytes that represent the payload. Serialized internally with FEventParameterArchive */
 	TArray<uint8> StructBytes;

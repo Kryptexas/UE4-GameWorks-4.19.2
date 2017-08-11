@@ -71,7 +71,7 @@ bool SPropertyEditorClass::Supports(const TSharedRef< class FPropertyEditor >& I
 	const UProperty* Property = InPropertyEditor->GetProperty();
 	int32 ArrayIndex = PropertyNode->GetArrayIndex();
 
-	if ((Property->IsA(UClassProperty::StaticClass()) || Property->IsA(UAssetClassProperty::StaticClass())) 
+	if ((Property->IsA(UClassProperty::StaticClass()) || Property->IsA(USoftClassProperty::StaticClass())) 
 		&& ((ArrayIndex == -1 && Property->ArrayDim == 1) || (ArrayIndex > -1 && Property->ArrayDim > 0)))
 	{
 		return true;
@@ -92,9 +92,9 @@ void SPropertyEditorClass::Construct(const FArguments& InArgs, const TSharedPtr<
 		{
 			MetaClass = ClassProp->MetaClass;
 		}
-		else if (UAssetClassProperty* const AssetClassProperty = Cast<UAssetClassProperty>(Property))
+		else if (USoftClassProperty* const SoftClassProperty = Cast<USoftClassProperty>(Property))
 		{
-			MetaClass = AssetClassProperty->MetaClass;
+			MetaClass = SoftClassProperty->MetaClass;
 		}
 		else
 		{

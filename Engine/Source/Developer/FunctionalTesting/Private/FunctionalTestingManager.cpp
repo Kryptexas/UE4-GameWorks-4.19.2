@@ -4,7 +4,6 @@
 #include "TimerManager.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
-#include "FuncTestManager.h"
 #include "FunctionalTestingModule.h"
 #include "AI/Navigation/NavigationSystem.h"
 #include "EngineGlobals.h"
@@ -184,14 +183,14 @@ void UFunctionalTestingManager::TriggerFirstValidTest()
 
 UFunctionalTestingManager* UFunctionalTestingManager::GetManager(UObject* WorldContext)
 {
-	UFunctionalTestingManager* Manager = FFunctionalTestingModule::Get()->GetCurrentScript();
+	UFunctionalTestingManager* Manager = IFunctionalTestingModule::Get().GetCurrentManager();
 
 	if (Manager == nullptr)
 	{
 		if (UObject* World = GEngine->GetWorldFromContextObject(WorldContext, EGetWorldErrorMode::LogAndReturnNull))
 		{
 			Manager = NewObject<UFunctionalTestingManager>(World);
-			FFunctionalTestingModule::Get()->SetScript(Manager);
+			IFunctionalTestingModule::Get().SetManager(Manager);
 
 			// add to root and get notified on world cleanup to remove from root on map cleanup
 			Manager->AddToRoot();
@@ -215,7 +214,7 @@ void UFunctionalTestingManager::OnWorldCleanedUp(UWorld* World, bool bSessionEnd
 		RemoveFromRoot();
 
 		// Clear the functional test manager once the world is removed.
-		FFunctionalTestingModule::Get()->SetScript(nullptr);
+		IFunctionalTestingModule::Get().SetManager(nullptr);
 	}
 }
 

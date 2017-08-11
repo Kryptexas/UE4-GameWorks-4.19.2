@@ -20,7 +20,7 @@
 #include "UObject/CoreNative.h"
 #include "UObject/Class.h"
 #include "Templates/Casts.h"
-#include "Misc/StringAssetReference.h"
+#include "UObject/SoftObjectPtr.h"
 #include "UObject/PropertyPortFlags.h"
 #include "UObject/UnrealType.h"
 #include "UObject/Stack.h"
@@ -1212,24 +1212,6 @@ void UObject::ProcessEvent( UFunction* Function, void* Parms )
 	FScopeCycleCounterUObject ContextScope(bShouldTrackObject ? this : nullptr);
 #endif
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	bool bInstrumentScriptEvent = false;
-	if (GetClass()->HasInstrumentation())
-	{
-		// Don't instrument native events that have not been implemented/overridden in script (BP). These events will not have had any profiler data generated for them at compile time.
-		if (!Function->HasAnyFunctionFlags(FUNC_Native) || Function->GetOuter()->GetClass()->HasAnyClassFlags(CLASS_CompiledFromBlueprint))
-		{
-			if (Function->HasAnyFunctionFlags(FUNC_Event|FUNC_BlueprintEvent))
-			{
-				// Don't handle latent actions here, let the latent action manager handle them.
-				FScriptInstrumentationSignal EventInstrumentationInfo(EScriptInstrumentation::Event, this, Function);
-				FBlueprintCoreDelegates::InstrumentScriptEvent(EventInstrumentationInfo);
-				bInstrumentScriptEvent = true;
-			}
-		}
-	}
-#endif
-
 #if DO_BLUEPRINT_GUARD
 	FBlueprintExceptionTracker& BlueprintExceptionTracker = FBlueprintExceptionTracker::Get();
 	BlueprintExceptionTracker.ScriptEntryTag++;
@@ -1350,11 +1332,6 @@ void UObject::ProcessEvent( UFunction* Function, void* Parms )
 	}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (bInstrumentScriptEvent)
-	{
-		FScriptInstrumentationSignal EventInstrumentationInfo(EScriptInstrumentation::Stop, this, Function);
-		FBlueprintCoreDelegates::InstrumentScriptEvent(EventInstrumentationInfo);
-	}
 #if WITH_EDITORONLY_DATA
 	FBlueprintCoreDelegates::OnScriptExecutionEnd.Broadcast();
 #endif
@@ -2539,13 +2516,13 @@ void UObject::execObjectConst( FFrame& Stack, RESULT_DECL )
 }
 IMPLEMENT_VM_FUNCTION( EX_ObjectConst, execObjectConst );
 
-void UObject::execAssetConst(FFrame& Stack, RESULT_DECL)
+void UObject::execSoftObjectConst(FFrame& Stack, RESULT_DECL)
 {
 	FString LongPath;
 	Stack.Step(Stack.Object, &LongPath);
-	*(FAssetPtr*)RESULT_PARAM = FStringAssetReference(LongPath);
+	*(FSoftObjectPtr*)RESULT_PARAM = FSoftObjectPath(LongPath);
 }
-IMPLEMENT_VM_FUNCTION(EX_AssetConst, execAssetConst);
+IMPLEMENT_VM_FUNCTION( EX_SoftObjectConst, execSoftObjectConst);
 
 void UObject::execInstanceDelegate( FFrame& Stack, RESULT_DECL )
 {

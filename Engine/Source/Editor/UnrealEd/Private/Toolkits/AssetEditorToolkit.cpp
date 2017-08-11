@@ -983,7 +983,7 @@ void FAssetEditorToolkit::GenerateToolbar()
 	ToolbarBuilder.BeginSection("Asset");
 	{
 		ToolbarBuilder.AddToolBarButton(FAssetEditorCommonCommands::Get().SaveAsset);
-		ToolbarBuilder.AddToolBarButton(FGlobalEditorCommonCommands::Get().FindInContentBrowser, NAME_None, LOCTEXT("FindInContentBrowserButton", "Find in CB"));
+		ToolbarBuilder.AddToolBarButton(FGlobalEditorCommonCommands::Get().FindInContentBrowser, NAME_None, LOCTEXT("FindInContentBrowserButton", "Browse"));
 	}
 	ToolbarBuilder.EndSection();
 

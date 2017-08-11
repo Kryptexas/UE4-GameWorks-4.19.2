@@ -42,8 +42,8 @@ public:
 	TArray<FObjectExport> ExportMap;
 	/** List of dependency lists for each export */
 	TArray<TArray<FPackageIndex> > DependsMap;
-	/** Map that holds info about string asset references from the package. */
-	TArray<FString> StringAssetReferencesMap;
+	/** List of packages that are soft referenced by this package */
+	TArray<FName> SoftPackageReferenceList;
 	/** List of Searchable Names, by object containing them. Not in MultiMap to allow sorting, and sizes are usually small enough where TArray makes sense */
 	TMap<FPackageIndex, TArray<FName> > SearchableNamesMap;
 

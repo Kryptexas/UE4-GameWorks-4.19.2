@@ -751,7 +751,6 @@ const UK2Node* FBlueprintActionMenuUtils::ExtractNodeTemplateFromAction(TSharedP
 		else if (ActionId == FEdGraphSchemaAction_K2NewNode::StaticGetTypeId() ||
 			ActionId == FEdGraphSchemaAction_K2AssignDelegate::StaticGetTypeId() ||
 			ActionId == FEdGraphSchemaAction_K2AddComponent::StaticGetTypeId() ||
-			ActionId == FEdGraphSchemaAction_K2AddTimeline::StaticGetTypeId() ||
 			ActionId == FEdGraphSchemaAction_K2AddCustomEvent::StaticGetTypeId() ||
 			ActionId == FEdGraphSchemaAction_K2AddCallOnActor::StaticGetTypeId() ||
 			ActionId == FEdGraphSchemaAction_K2TargetNode::StaticGetTypeId() ||

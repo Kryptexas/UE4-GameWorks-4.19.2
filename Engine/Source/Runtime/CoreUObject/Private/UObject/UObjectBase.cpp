@@ -538,34 +538,6 @@ static TArray<FFieldCompiledInInfo*>& GetDeferredClassRegistration()
 }
 
 #if WITH_HOT_RELOAD
-TMap<UObject*, UObject*>& GetDuplicatedCDOMap()
-{
-	/**
-	 * GC referencer object, so duplicated CDOs aren't destroyed if still
-	 * referenced by the map.
-	 */
-	class FDuplicatedCDOMap : public FGCObject
-	{
-	public:
-		/**
-		 * Add referenced objects to reference collector.
-		 */
-		virtual void AddReferencedObjects(FReferenceCollector& Collector) override
-		{
-			for (auto& KVP : Map)
-			{
-				Collector.AddReferencedObject(KVP.Value);
-			}
-		}
-
-		/** Duplicated CDOs map. */
-		TMap<UObject*, UObject*> Map;
-	};
-
-	static FDuplicatedCDOMap Cache;
-	return Cache.Map;
-}
-
 /** Map of deferred class registration info (including size and reflection info) */
 static TMap<FName, FFieldCompiledInInfo*>& GetDeferRegisterClassMap()
 {
@@ -747,41 +719,6 @@ void UClassReplaceHotReloadClasses()
 	HotReloadClasses.Empty();
 }
 
-/**
- * Creates a cache of cpp-only-changed UClasses' CDOs, which are going to be
- * used later during BP reinstancing.
- */
-static void UClassGenerateCDODuplicatesForHotReload()
-{
-	if (!GIsHotReload)
-	{
-		return;
-	}
-
-	const TArray<FFieldCompiledInInfo*>& HotReloadClasses = GetHotReloadClasses();
-	TMap<UObject*, UObject*> DuplicatedCDOMap = GetDuplicatedCDOMap();
-	UPackage* TransientPackage = GetTransientPackage();
-
-	for (UClass* Class : TObjectRange<UClass>())
-	{
-		UObject* CDO = Class->GetDefaultObject();
-
-		for (const FFieldCompiledInInfo* HotReloadedClass : HotReloadClasses)
-		{
-			if (!HotReloadedClass->bHasChanged && Class->IsChildOf(HotReloadedClass->OldClass))
-			{
-				GIsDuplicatingClassForReinstancing = true;
-
-				FName UniqueName = MakeUniqueObjectName(TransientPackage, Class, TEXT("HOTRELOAD_CDO_DUPLICATE"));
-				UObject* DupCDO = StaticDuplicateObject(CDO, TransientPackage, UniqueName);
-
-				GIsDuplicatingClassForReinstancing = false;
-
-				DuplicatedCDOMap.Add(CDO, DupCDO);
-			}
-		}
-	}
-}
 #endif
 
 /**
@@ -874,11 +811,6 @@ void ProcessNewlyLoadedUObjects()
 {
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("ProcessNewlyLoadedUObjects"), STAT_ProcessNewlyLoadedUObjects, STATGROUP_ObjectVerbose);
 
-
-
-#if WITH_HOT_RELOAD
-	UClassGenerateCDODuplicatesForHotReload();
-#endif
 	UClassRegisterAllCompiledInClasses();
 
 	const TArray<UClass* (*)()>& DeferredCompiledInRegistration = GetDeferredCompiledInRegistration();

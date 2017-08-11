@@ -18,8 +18,7 @@
 #include "Misc/Guid.h"
 #include "Misc/DateTime.h"
 #include "Misc/Timespan.h"
-#include "Misc/StringAssetReference.h"
-#include "Misc/StringClassReference.h"
+#include "UObject/SoftObjectPath.h"
 
 #include "Math/InterpCurvePoint.h"
 #include "Math/UnitConversion.h"
@@ -938,19 +937,22 @@ struct FTimespan
 };
 
 
-// A string asset reference
-
-USTRUCT(noexport, BlueprintType, meta=(HasNativeMake="Engine.BlueprintFunctionLibrary.MakeStringAssetReference"))
-struct FStringAssetReference
+/** An object path, this is saved as a name/string pair */
+USTRUCT(noexport, BlueprintType, meta=(HasNativeMake="Engine.KismetSystemLibrary.MakeSoftObjectPath", HasNativeBreak="Engine.KismetSystemLibrary.BreakSoftObjectPath"))
+struct FSoftObjectPath
 {
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=StringAssetReference)
-	FString AssetLongPathname;
+	/** Asset path, patch to a top level object in a package */
+	UPROPERTY()
+	FName AssetPathName;
+
+	/** Optional FString for subobject within an asset */
+	UPROPERTY()
+	FString SubPathString;
 };
 
-// A string class reference
-
+/** Subclass of FSoftObjectPath that is only valid to use with UClass* */
 USTRUCT(noexport)
-struct FStringClassReference : public FStringAssetReference
+struct FSoftClassPath : public FSoftObjectPath
 {
 };
 

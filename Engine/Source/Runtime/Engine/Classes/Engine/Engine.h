@@ -10,8 +10,7 @@
 #include "Templates/SubclassOf.h"
 #include "Engine/EngineTypes.h"
 #include "Engine/EngineBaseTypes.h"
-#include "Misc/StringAssetReference.h"
-#include "Misc/StringClassReference.h"
+#include "UObject/SoftObjectPath.h"
 #include "Engine/World.h"
 #include "Misc/BufferedOutputDevice.h"
 #include "Engine.generated.h"
@@ -317,12 +316,13 @@ struct FWorldContext
 	UPROPERTY(transient)
 	TArray<FNamedNetDriver> ActiveNetDrivers;
 
+	/** The PIE instance of this world, -1 is default */
 	int32	PIEInstance;
 
+	/** The Prefix in front of PIE level names, empty is default */
 	FString	PIEPrefix;
 
-	FString PIERemapPrefix;
-
+	/** Is this running as a dedicated server */
 	bool	RunAsDedicated;
 
 	/** Is this world context waiting for an online login to complete (for PIE) */
@@ -599,7 +599,7 @@ private:
 public:
 	/** @todo document */
 	UPROPERTY(globalconfig, EditAnywhere, Category=Fonts, meta=(AllowedClasses="Font", DisplayName="Tiny Font"))
-	FStringAssetReference TinyFontName;
+	FSoftObjectPath TinyFontName;
 
 private:
 	/** @todo document */
@@ -609,7 +609,7 @@ private:
 public:
 	/** @todo document */
 	UPROPERTY(globalconfig, EditAnywhere, Category=Fonts, meta=(AllowedClasses="Font", DisplayName="Small Font"))
-	FStringAssetReference SmallFontName;
+	FSoftObjectPath SmallFontName;
 
 private:
 	/** @todo document */
@@ -619,7 +619,7 @@ private:
 public:
 	/** @todo document */
 	UPROPERTY(globalconfig, EditAnywhere, Category=Fonts, meta=(AllowedClasses="Font", DisplayName="Medium Font"))
-	FStringAssetReference MediumFontName;
+	FSoftObjectPath MediumFontName;
 
 private:
 	/** @todo document */
@@ -629,7 +629,7 @@ private:
 public:
 	/** @todo document */
 	UPROPERTY(globalconfig, EditAnywhere, Category=Fonts, meta=(AllowedClasses="Font", DisplayName="Large Font"))
-	FStringAssetReference LargeFontName;
+	FSoftObjectPath LargeFontName;
 
 private:
 	/** @todo document */
@@ -639,7 +639,7 @@ private:
 public:
 	/** @todo document */
 	UPROPERTY(globalconfig, EditAnywhere, Category=Fonts, meta=(AllowedClasses="Font", DisplayName="Subtitle Font"), AdvancedDisplay)
-	FStringAssetReference SubtitleFontName;
+	FSoftObjectPath SubtitleFontName;
 
 private:
 	/** Any additional fonts that script may use without hard-referencing the font. */
@@ -660,7 +660,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig, noclear, EditAnywhere, Category=DefaultClasses, meta=(MetaClass="Console", DisplayName="Console Class"))
-	FStringClassReference ConsoleClassName;
+	FSoftClassPath ConsoleClassName;
 
 	/** The class to use for the game viewport client. */
 	UPROPERTY()
@@ -668,7 +668,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig, noclear, EditAnywhere, Category=DefaultClasses, meta=(MetaClass="GameViewportClient", DisplayName="Game Viewport Client Class"))
-	FStringClassReference GameViewportClientClassName;
+	FSoftClassPath GameViewportClientClassName;
 
 	/** The class to use for local players. */
 	UPROPERTY()
@@ -676,7 +676,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig, noclear, EditAnywhere, Category=DefaultClasses, meta=(MetaClass="LocalPlayer", DisplayName="Local Player Class"))
-	FStringClassReference LocalPlayerClassName;
+	FSoftClassPath LocalPlayerClassName;
 
 	/** The class for WorldSettings **/
 	UPROPERTY()
@@ -684,11 +684,11 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig, noclear, EditAnywhere, Category=DefaultClasses, meta=(MetaClass="WorldSettings", DisplayName="World Settings Class"))
-	FStringClassReference WorldSettingsClassName;
+	FSoftClassPath WorldSettingsClassName;
 
 	/** @todo document */
 	UPROPERTY(globalconfig, noclear, meta=(MetaClass="NavigationSystem", DisplayName="Navigation System Class"))
-	FStringClassReference NavigationSystemClassName;
+	FSoftClassPath NavigationSystemClassName;
 
 	/** The class for NavigationSystem **/
 	UPROPERTY()
@@ -696,7 +696,7 @@ public:
 	
 	/** Name of behavior tree manager class */
 	UPROPERTY(globalconfig, noclear, meta=(MetaClass="AvoidanceManager", DisplayName="Avoidance Manager Class"))
-	FStringClassReference AvoidanceManagerClassName;
+	FSoftClassPath AvoidanceManagerClassName;
 	
 	/** The class for behavior tree manager **/
 	UPROPERTY()
@@ -708,17 +708,17 @@ public:
 
 	/** Name of PhysicsCollisionHandler class we should use by default. */
 	UPROPERTY(globalconfig, noclear, EditAnywhere, Category=DefaultClasses, meta=(MetaClass="PhysicsCollisionHandler", DisplayName="Physics Collision Handler Class"), AdvancedDisplay)
-	FStringClassReference PhysicsCollisionHandlerClassName;
+	FSoftClassPath PhysicsCollisionHandlerClassName;
 
 	UPROPERTY(globalconfig, noclear, meta=(MetaClass="GameUserSettings", DisplayName="Game User Settings Class"))
-	FStringClassReference GameUserSettingsClassName;
+	FSoftClassPath GameUserSettingsClassName;
 
 	UPROPERTY()
 	TSubclassOf<class UGameUserSettings> GameUserSettingsClass;
 
 	/** name of Controller class to be used as default AIController class for pawns */
 	UPROPERTY(globalconfig, noclear, meta = (MetaClass = "AI", DisplayName = "Default AIController class for all Pawns"))
-	FStringClassReference AIControllerClassName;
+	FSoftClassPath AIControllerClassName;
 
 	/** Global instance of the user game settings */
 	UPROPERTY()
@@ -730,15 +730,15 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig, noclear, EditAnywhere, Category=DefaultClasses, meta=(MetaClass="LevelScriptActor", DisplayName="Level Script Actor Class"))
-	FStringClassReference LevelScriptActorClassName;
+	FSoftClassPath LevelScriptActorClassName;
 	
 	/** Name of the base class to use for new blueprints, configurable on a per-game basis */
 	UPROPERTY(globalconfig, noclear, EditAnywhere, Category=DefaultClasses, meta=(MetaClass="Object", DisplayName="Default Blueprint Base Class", AllowAbstract, BlueprintBaseOnly), AdvancedDisplay)
-	FStringClassReference DefaultBlueprintBaseClassName;
+	FSoftClassPath DefaultBlueprintBaseClassName;
 
 	/** Name of a singleton class to create at startup time, configurable per game */
 	UPROPERTY(globalconfig, noclear, EditAnywhere, Category=DefaultClasses, meta=(MetaClass="Object", DisplayName="Game Singleton Class"), AdvancedDisplay)
-	FStringClassReference GameSingletonClassName;
+	FSoftClassPath GameSingletonClassName;
 
 	/** A UObject spawned at initialization time to handle game-specific data */
 	UPROPERTY()
@@ -746,15 +746,11 @@ public:
 
 	/** Name of a singleton class to spawn as the AssetManager, configurable per game. If empty, it will not spawn one */
 	UPROPERTY(globalconfig, noclear, EditAnywhere, Category=DefaultClasses, meta=(MetaClass="Object", DisplayName="Asset Manager Class"), AdvancedDisplay)
-	FStringClassReference AssetManagerClassName;
+	FSoftClassPath AssetManagerClassName;
 
 	/** A UObject spawned at initialization time to handle game-specific data */
 	UPROPERTY()
 	class UAssetManager *AssetManager;
-
-	/** Path that levels for play on console will be saved to (relative to FPaths::ProjectSavedDir()) */
-	UPROPERTY(config)
-	FString PlayOnConsoleSaveDir;
 
 	/** A global default texture. */
 	UPROPERTY()
@@ -762,7 +758,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig)
-	FStringAssetReference DefaultTextureName;
+	FSoftObjectPath DefaultTextureName;
 
 	/** A global default diffuse texture.*/
 	UPROPERTY()
@@ -770,7 +766,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig)
-	FStringAssetReference DefaultDiffuseTextureName;
+	FSoftObjectPath DefaultDiffuseTextureName;
 
 	/** @todo document */
 	UPROPERTY()
@@ -778,7 +774,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig)
-	FStringAssetReference DefaultBSPVertexTextureName;
+	FSoftObjectPath DefaultBSPVertexTextureName;
 
 	/** Texture used to get random image grain values for post processing */
 	UPROPERTY()
@@ -786,7 +782,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig)
-	FStringAssetReference HighFrequencyNoiseTextureName;
+	FSoftObjectPath HighFrequencyNoiseTextureName;
 
 	/** Texture used to blur out of focus content, mimics the Bokeh shape of actual cameras */
 	UPROPERTY()
@@ -794,7 +790,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig)
-	FStringAssetReference DefaultBokehTextureName;
+	FSoftObjectPath DefaultBokehTextureName;
 
 	/** Texture used to bloom when using FFT, mimics characteristic bloom produced in a camera from a signle bright source */
 	UPROPERTY()
@@ -802,7 +798,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig)
-	FStringAssetReference DefaultBloomKernelTextureName;
+	FSoftObjectPath DefaultBloomKernelTextureName;
 
 	/** The material used to render wireframe meshes. */
 	UPROPERTY()
@@ -819,7 +815,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig)
-	FStringAssetReference GeomMaterialName;
+	FSoftObjectPath GeomMaterialName;
 #endif
 
 	/** A material used to render debug meshes. */
@@ -828,7 +824,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig)
-	FStringAssetReference DebugMeshMaterialName;
+	FSoftObjectPath DebugMeshMaterialName;
 
 	/** Material used for visualizing level membership in lit view port modes. */
 	UPROPERTY()
@@ -876,7 +872,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig)
-	FStringAssetReference RemoveSurfaceMaterialName;
+	FSoftObjectPath RemoveSurfaceMaterialName;
 
 	/** Material that renders vertex color as emmissive. */
 	UPROPERTY()
@@ -933,7 +929,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig)
-	FStringAssetReference BoneWeightMaterialName;
+	FSoftObjectPath BoneWeightMaterialName;
 
 	/** Materials used to render cloth properties on skeletal meshes */
 	UPROPERTY()
@@ -947,11 +943,11 @@ public:
 
 	/** Name of the material used to render cloth in the clothing tools */
 	UPROPERTY(globalconfig)
-	FStringAssetReference ClothPaintMaterialName;
+	FSoftObjectPath ClothPaintMaterialName;
 
 	/** Name of the material used to render cloth wireframe in the clothing tools */
 	UPROPERTY(globalconfig)
-	FStringAssetReference ClothPaintMaterialWireframeName;
+	FSoftObjectPath ClothPaintMaterialWireframeName;
 
 	/** A material used to render debug meshes. */
 	UPROPERTY()
@@ -960,7 +956,7 @@ public:
 
 	/** A material used to render debug opaque material. Used in various animation editor viewport features. */
 	UPROPERTY(globalconfig)
-	FStringAssetReference DebugEditorMaterialName;
+	FSoftObjectPath DebugEditorMaterialName;
 
 	/** Material used to render constraint limits */
 	UPROPERTY()
@@ -991,7 +987,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig)
-	FStringAssetReference InvalidLightmapSettingsMaterialName;
+	FSoftObjectPath InvalidLightmapSettingsMaterialName;
 
 	/** Material that renders a message about preview shadows being used. */
 	UPROPERTY()
@@ -999,7 +995,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig, EditAnywhere, Category=DefaultMaterials, meta=(AllowedClasses="Material", DisplayName="Preview Shadows Indicator Material"))
-	FStringAssetReference PreviewShadowsIndicatorMaterialName;
+	FSoftObjectPath PreviewShadowsIndicatorMaterialName;
 
 	/** Material that 'fakes' lighting, used for arrows, widgets. */
 	UPROPERTY()
@@ -1007,7 +1003,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig)
-	FStringAssetReference ArrowMaterialName;
+	FSoftObjectPath ArrowMaterialName;
 
 	/** @todo document */
 	UPROPERTY(globalconfig)
@@ -1095,7 +1091,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig)
-	FStringAssetReference EditorBrushMaterialName;
+	FSoftObjectPath EditorBrushMaterialName;
 #endif
 
 	/** PhysicalMaterial to use if none is defined for a particular object. */
@@ -1104,7 +1100,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig)
-	FStringAssetReference DefaultPhysMaterialName;
+	FSoftObjectPath DefaultPhysMaterialName;
 
 	UPROPERTY(config)
 	TArray<FGameNameRedirect> ActiveGameNameRedirects;
@@ -1124,7 +1120,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig)
-	FStringAssetReference PreIntegratedSkinBRDFTextureName;
+	FSoftObjectPath PreIntegratedSkinBRDFTextureName;
 
 	/** Texture used to do font rendering in shaders */
 	UPROPERTY()
@@ -1132,7 +1128,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig)
-	FStringAssetReference MiniFontTextureName;
+	FSoftObjectPath MiniFontTextureName;
 
 	/** Texture used as a placeholder for terrain weight-maps to give the material the correct texture format. */
 	UPROPERTY()
@@ -1140,7 +1136,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig)
-	FStringAssetReference WeightMapPlaceholderTextureName;
+	FSoftObjectPath WeightMapPlaceholderTextureName;
 
 	/** Texture used to display LightMapDensity */
 	UPROPERTY()
@@ -1148,7 +1144,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig)
-	FStringAssetReference LightMapDensityTextureName;
+	FSoftObjectPath LightMapDensityTextureName;
 
 	// Variables.
 
@@ -2618,8 +2614,8 @@ public:
 	void DestroyNamedNetDriver(UWorld *InWorld, FName NetDriverName);
 	void DestroyNamedNetDriver(UPendingNetGame *PendingNetGame, FName NetDriverName);
 
-	virtual bool NetworkRemapPath( UNetDriver* Driver, FString &Str, bool reading=true) { return false; }
-	virtual bool NetworkRemapPath( UPendingNetGame *PendingNetGame, FString &Str, bool reading=true) { return false; }
+	virtual bool NetworkRemapPath( UNetDriver* Driver, FString &Str, bool bReading=true) { return false; }
+	virtual bool NetworkRemapPath( UPendingNetGame *PendingNetGame, FString &Str, bool bReading=true) { return false; }
 
 	virtual bool HandleOpenCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld * InWorld );
 

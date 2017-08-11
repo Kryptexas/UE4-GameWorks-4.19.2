@@ -21,6 +21,7 @@
 #include "Widgets/Docking/SDockTab.h"
 #include "IDocumentation.h"
 #include "STextPropertyEditableTextBox.h"
+#include "ScopedTransaction.h"
 
 #define LOCTEXT_NAMESPACE "UserDefinedEnumEditor"
 
@@ -77,9 +78,8 @@ public:
 	virtual void SetText(const int32 InIndex, const FText& InText) override
 	{
 		check(InIndex == 0);
-		bCausedChange = true;
+		TGuardValue<bool> CausingChange(bCausedChange, true);
 		FEnumEditorUtils::SetEnumeratorDisplayName(TargetEnum, EnumeratorIndex, InText);
-		bCausedChange = false;
 	}
 
 	virtual bool IsValidText(const FText& InText, FText& OutErrorMsg) const override
@@ -128,6 +128,103 @@ private:
 	/** Set while we are invoking a change to the user defined enum */
 	bool bCausedChange;
 };
+
+
+
+/** Allows STextPropertyEditableTextBox to edit the tooltip metadata for a user defined enum entry */
+class FEditableTextUserDefinedEnumTooltip : public IEditableTextProperty
+{
+public:
+	FEditableTextUserDefinedEnumTooltip(UUserDefinedEnum* InTargetEnum, const int32 InEnumeratorIndex)
+		: TargetEnum(InTargetEnum)
+		, EnumeratorIndex(InEnumeratorIndex)
+		, bCausedChange(false)
+	{
+	}
+
+	virtual bool IsMultiLineText() const override
+	{
+		return true;
+	}
+
+	virtual bool IsPassword() const override
+	{
+		return false;
+	}
+
+	virtual bool IsReadOnly() const override
+	{
+		return false;
+	}
+
+	virtual bool IsDefaultValue() const override
+	{
+		return false;
+	}
+
+	virtual FText GetToolTipText() const override
+	{
+		return FText::GetEmpty();
+	}
+
+	virtual int32 GetNumTexts() const override
+	{
+		return 1;
+	}
+
+	virtual FText GetText(const int32 InIndex) const override
+	{
+		check(InIndex == 0);
+		return TargetEnum->GetToolTipTextByIndex(EnumeratorIndex);
+	}
+
+	virtual void SetText(const int32 InIndex, const FText& InText) override
+	{
+		check(InIndex == 0);
+		TGuardValue<bool> CausingChange(bCausedChange, true);
+		//@TODO: Metadata is not transactional right now, so we cannot transact a tooltip edit
+		// const FScopedTransaction Transaction(NSLOCTEXT("EnumEditor", "SetEnumeratorTooltip", "Set Description"));
+		TargetEnum->Modify();
+		TargetEnum->SetMetaData(TEXT("ToolTip"), *InText.ToString(), EnumeratorIndex);
+	}
+
+	virtual bool IsValidText(const FText& InText, FText& OutErrorMsg) const override
+	{
+		return true;
+	}
+
+#if USE_STABLE_LOCALIZATION_KEYS
+	virtual void GetStableTextId(const int32 InIndex, const ETextPropertyEditAction InEditAction, const FString& InTextSource, const FString& InProposedNamespace, const FString& InProposedKey, FString& OutStableNamespace, FString& OutStableKey) const override
+	{
+		check(InIndex == 0);
+		return StaticStableTextId(TargetEnum, InEditAction, InTextSource, InProposedNamespace, InProposedKey, OutStableNamespace, OutStableKey);
+	}
+#endif // USE_STABLE_LOCALIZATION_KEYS
+
+	virtual void RequestRefresh() override
+	{
+	}
+
+	bool CausedChange() const
+	{
+		return bCausedChange;
+	}
+
+private:
+	/** The user defined enum being edited */
+	UUserDefinedEnum* TargetEnum;
+
+	/** Index of enumerator entry */
+	int32 EnumeratorIndex;
+
+	/** Set while we are invoking a change to the user defined enum */
+	bool bCausedChange;
+};
+
+
+
+
+
 
 void FUserDefinedEnumEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& InTabManager)
 {
@@ -388,12 +485,14 @@ void FUserDefinedEnumLayout::GenerateChildContent( IDetailChildrenBuilder& Child
 
 bool FUserDefinedEnumIndexLayout::CausedChange() const
 {
-	return DisplayNameEditor.IsValid() && DisplayNameEditor->CausedChange();
+	return (DisplayNameEditor.IsValid() && DisplayNameEditor->CausedChange()) || (TooltipEditor.IsValid() && TooltipEditor->CausedChange());
 }
 
 void FUserDefinedEnumIndexLayout::GenerateHeaderRowContent( FDetailWidgetRow& NodeRow )
 {
 	DisplayNameEditor = MakeShared<FEditableTextUserDefinedEnum>(TargetEnum, EnumeratorIndex);
+
+	TooltipEditor = MakeShared<FEditableTextUserDefinedEnumTooltip>(TargetEnum, EnumeratorIndex);
 
 	const bool bIsEditable = !DisplayNameEditor->IsReadOnly();
 	const bool bIsMoveUpEnabled = (TargetEnum->NumEnums() != 1) && (EnumeratorIndex != 0) && bIsEditable;
@@ -408,13 +507,41 @@ void FUserDefinedEnumIndexLayout::GenerateHeaderRowContent( FDetailWidgetRow& No
 			SNew(SHorizontalBox)
 
 			+SHorizontalBox::Slot()
+			.VAlign(VAlign_Center)
+			.AutoWidth()
+			.Padding(0, 0, 4, 0)
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("EnumDisplayNameLabel", "Display Name"))
+			]
+
+			+SHorizontalBox::Slot()
+			.VAlign(VAlign_Center)
+			.FillWidth(1.0f)
 			[
 				SNew(STextPropertyEditableTextBox, DisplayNameEditor.ToSharedRef())
 			]
 
 			+SHorizontalBox::Slot()
+			.VAlign(VAlign_Center)
+			.AutoWidth()
+			.Padding(4, 0, 4, 0)
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("EnumTooltipLabel", "Description"))
+			]
+
+			+SHorizontalBox::Slot()
+			.VAlign(VAlign_Center)
+			.FillWidth(1.0f)
+			[
+				SNew(STextPropertyEditableTextBox, TooltipEditor.ToSharedRef())
+			]
+
+			+SHorizontalBox::Slot()
 			.AutoWidth()
 			.Padding(2, 0)
+			.VAlign(VAlign_Center)
 			[
 				SNew(SButton)
 				.ContentPadding(0)
@@ -428,6 +555,7 @@ void FUserDefinedEnumIndexLayout::GenerateHeaderRowContent( FDetailWidgetRow& No
 			+SHorizontalBox::Slot()
 			.AutoWidth()
 			.Padding(2, 0)
+			.VAlign(VAlign_Center)
 			[
 				SNew(SButton)
 				.ContentPadding(0)
@@ -442,6 +570,7 @@ void FUserDefinedEnumIndexLayout::GenerateHeaderRowContent( FDetailWidgetRow& No
 			+SHorizontalBox::Slot()
 			.AutoWidth()
 			.Padding(2, 0)
+			.VAlign(VAlign_Center)
 			[
 				ClearButton
 			]

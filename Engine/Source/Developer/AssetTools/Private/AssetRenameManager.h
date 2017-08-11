@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "IAssetTools.h"
+#include "UObject/SoftObjectPath.h"
 
 struct FAssetRenameDataWithReferencers;
 
@@ -22,16 +23,22 @@ public:
 	/** Renames assets using the specified names. */
 	void RenameAssets(const TArray<FAssetRenameData>& AssetsAndNames) const;
 
+	/** Returns list of objects that soft reference the given soft object path. This will load assets into memory to verify */
+	void FindSoftReferencesToObject(FSoftObjectPath TargetObject, TArray<UObject*>& ReferencingObjects) const;
+
 	/** Accessor for post rename event */
 	FAssetPostRenameEvent& OnAssetPostRenameEvent() { return AssetPostRenameEvent; }
 
 	/**
-	 * Function that renames all FStringAssetReference object with the old asset path to the new one.
+	 * Function that renames all FSoftObjectPath object with the old asset path to the new one.
 	 *
-	 * @param PackagesToCheck Packages to check for referencing FStringAssetReference.
+	 * @param PackagesToCheck Packages to check for referencing FSoftObjectPath.
 	 * @param AssetRedirectorMap Map from old asset path to new asset path
 	 */
-	static void RenameReferencingStringAssetReferences(const TArray<UPackage *> PackagesToCheck, const TMap<FString, FString>& AssetRedirectorMap);
+	static void RenameReferencingSoftObjectPaths(TArray<UPackage*> PackagesToCheck, const TMap<FSoftObjectPath, FSoftObjectPath>& AssetRedirectorMap);
+
+	/** Filters packages list depending on if it actually has soft object paths pointing to the specific object being renamed */
+	static bool CheckPackageForSoftObjectReferences(UPackage* Package, const TMap<FSoftObjectPath, FSoftObjectPath>& AssetRedirectorMap, TArray<UObject*>& OutReferencingObjects);
 
 private:
 	/** Attempts to load and fix redirector references for the supplied assets */
@@ -49,8 +56,9 @@ private:
 	/** 
 	  * Loads all referencing packages to assets in AssetsToRename, finds assets whose references can
 	  * not be fixed up to mark that a redirector should be left, and returns a list of referencing packages to save.
+	  * if bFindAllSoftObjectReferences is true, it will load all referencing packages even if they can't be checked out
 	  */
-	void LoadReferencingPackages(TArray<FAssetRenameDataWithReferencers>& AssetsToRename, TArray<UPackage*>& OutReferencingPackagesToSave) const;
+	void LoadReferencingPackages(TArray<FAssetRenameDataWithReferencers>& AssetsToRename, bool bLoadAllPackages, TArray<UPackage*>& OutReferencingPackagesToSave, TArray<UObject*>& OutSoftReferencingObjects) const;
 
 	/** 
 	  * Prompts to check out the source package and all referencing packages and marks assets whose referencing packages were not checked out to leave a redirector.

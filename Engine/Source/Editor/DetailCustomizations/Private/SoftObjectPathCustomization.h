@@ -10,12 +10,12 @@ class IPropertyHandle;
 /**
  * Customizes a string asset reference to look like a UObject property
  */
-class FStringAssetReferenceCustomization : public IPropertyTypeCustomization
+class FSoftObjectPathCustomization : public IPropertyTypeCustomization
 {
 public:
 	static TSharedRef<IPropertyTypeCustomization> MakeInstance() 
 	{
-		return MakeShareable( new FStringAssetReferenceCustomization );
+		return MakeShareable( new FSoftObjectPathCustomization );
 	}
 
 	/** IPropertyTypeCustomization interface */

@@ -297,7 +297,6 @@ void UCompileAllBlueprintsCommandlet::CompileBlueprint(UBlueprint* Blueprint)
 		CompileOptions.bSaveIntermediateProducts = false;
 		CompileOptions.bRegenerateSkelton = false;
 		CompileOptions.bIsDuplicationInstigated = false;
-		CompileOptions.bAddInstrumentation = false;
 		CompileOptions.bReinstanceAndStubOnFailure = false;
 
 		if (bCompileSkeletonOnly)

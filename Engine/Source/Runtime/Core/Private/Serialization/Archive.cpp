@@ -269,30 +269,30 @@ FArchive& FArchive::operator<<( FText& Value )
 	return *this;
 }
 
-FArchive& FArchive::operator<<( class FLazyObjectPtr& LazyObjectPtr )
+FArchive& FArchive::operator<<(struct FLazyObjectPtr& Value)
 {
-	// The base FArchive does not implement this method. Use FArchiveUOBject instead.
+	// The base FArchive does not implement this method. Use FArchiveUObject instead.
 	UE_LOG(LogSerialization, Fatal, TEXT("FArchive does not support FLazyObjectPtr serialization. Use FArchiveUObject instead."));
 	return *this;
 }
 
-FArchive& FArchive::operator<<( class FAssetPtr& AssetPtr )
+FArchive& FArchive::operator<<(struct FSoftObjectPtr& Value)
 {
-	// The base FArchive does not implement this method. Use FArchiveUOBject instead.
-	UE_LOG(LogSerialization, Fatal, TEXT("FArchive does not support FAssetPtr serialization. Use FArchiveUObject instead."));
+	// The base FArchive does not implement this method. Use FArchiveUObject instead.
+	UE_LOG(LogSerialization, Fatal, TEXT("FArchive does not support FSoftObjectPtr serialization. Use FArchiveUObject instead."));
 	return *this;
 }
 
-FArchive& FArchive::operator<<(struct FStringAssetReference& Value)
+FArchive& FArchive::operator<<(struct FSoftObjectPath& Value)
 {
-	// The base FArchive does not implement this method. Use FArchiveUOBject instead.
-	UE_LOG(LogSerialization, Fatal, TEXT("FArchive does not support FAssetPtr serialization. Use FArchiveUObject instead."));
+	// The base FArchive does not implement this method. Use FArchiveUObject instead.
+	UE_LOG(LogSerialization, Fatal, TEXT("FArchive does not support FSoftObjectPath serialization. Use FArchiveUObject instead."));
 	return *this;
 }
 
 FArchive& FArchive::operator<<(struct FWeakObjectPtr& Value)
 {
-	// The base FArchive does not implement this method. Use FArchiveUOBject instead.
+	// The base FArchive does not implement this method. Use FArchiveUObject instead.
 	UE_LOG(LogSerialization, Fatal, TEXT("FArchive does not support FWeakObjectPtr serialization. Use FArchiveUObject instead."));
 	return *this;
 }

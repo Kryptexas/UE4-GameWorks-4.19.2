@@ -223,10 +223,21 @@ private:
 	}
 };
 
+/** Type enum, used to represent the special End iterator */
 enum class EActorIteratorType
 {
 	End
 };
+
+/** Iteration flags, specifies which types of levels and actors should be iterated */
+enum class EActorIteratorFlags
+{
+	AllActors			= 0x00000000, // No flags, iterate all actors
+	SkipPendingKill		= 0x00000001, // Skip pending kill actors
+	OnlySelectedActors	= 0x00000002, // Only iterate actors that are selected
+	OnlyActiveLevels	= 0x00000004, // Only iterate active levels
+};
+ENUM_CLASS_FLAGS(EActorIteratorFlags);
 
 /**
  * Template class used to filter actors by certain characteristics
@@ -332,10 +343,12 @@ protected:
 	 * Hide the constructors as construction on this class should only be done by subclasses
 	 */
 	explicit TActorIteratorBase(EActorIteratorType)
+		: Flags(EActorIteratorFlags::AllActors)
 	{
 	}
 
-	TActorIteratorBase(UWorld* InWorld, TSubclassOf<AActor> InClass)
+	TActorIteratorBase(UWorld* InWorld, TSubclassOf<AActor> InClass, EActorIteratorFlags InFlags)
+		: Flags(InFlags)
 	{
 		State.Emplace(InWorld, InClass);
 	}
@@ -347,9 +360,19 @@ protected:
 	 * @param	Actor	Actor to check
 	 * @return	true
 	 */
-	FORCEINLINE static bool IsActorSuitable(AActor* Actor)
+	FORCEINLINE bool IsActorSuitable(AActor* Actor) const
 	{
-		return !Actor->IsPendingKill();
+		if (EnumHasAnyFlags(Flags, EActorIteratorFlags::SkipPendingKill) && Actor->IsPendingKill())
+		{
+			return false;
+		}
+
+		if (EnumHasAnyFlags(Flags, EActorIteratorFlags::OnlySelectedActors) && !Actor->IsSelected())
+		{
+			return false;
+		}
+
+		return true;
 	}
 
 	/**
@@ -359,12 +382,31 @@ protected:
 	 * @param Level the level to check for iteration
 	 * @return true if the level can be iterated, false otherwise
 	 */
-	FORCEINLINE static bool CanIterateLevel(ULevel* Level)
+	FORCEINLINE bool CanIterateLevel(ULevel* Level) const
 	{
+		if (EnumHasAnyFlags(Flags, EActorIteratorFlags::OnlyActiveLevels))
+		{
+			const bool bIsLevelVisibleOrAssociating = Level->bIsVisible || Level->bIsAssociatingLevel;
+
+			// Only allow iteration of Level if it's in the currently active level collection of the world, or is a static level.
+			const FLevelCollection* const ActorLevelCollection = Level->GetCachedLevelCollection();
+			const FLevelCollection* const ActiveLevelCollection = Level->OwningWorld ? Level->OwningWorld->GetActiveLevelCollection() : nullptr;
+
+			// If the world's active level collection is null, we can't apply any meaningful filter,
+			// so just allow iteration in this case.
+			const bool bIsCurrentLevelCollectionTicking = !ActiveLevelCollection || (ActorLevelCollection == ActiveLevelCollection);
+
+			const bool bIsLevelCollectionNullOrStatic = !ActorLevelCollection || ActorLevelCollection->GetType() == ELevelCollectionType::StaticLevels;
+			const bool bShouldIterateLevelCollection = bIsCurrentLevelCollectionTicking || bIsLevelCollectionNullOrStatic;
+
+			return bIsLevelVisibleOrAssociating && bShouldIterateLevelCollection;
+		}
+
 		return true;
 	}
 
 private:
+	EActorIteratorFlags Flags;
 	TOptional<FActorIteratorState> State;
 
 	friend bool operator==(const TActorIteratorBase& Lhs, const TActorIteratorBase& Rhs) { check(!Rhs.State); return  !Lhs; }
@@ -386,8 +428,8 @@ public:
 	 *
 	 * @param  InWorld  The world whose actors are to be iterated over.
 	 */
-	explicit FActorIterator(UWorld* InWorld)
-		: Super(InWorld, AActor::StaticClass())
+	explicit FActorIterator(UWorld* InWorld, EActorIteratorFlags InFlags = EActorIteratorFlags::OnlyActiveLevels | EActorIteratorFlags::SkipPendingKill)
+		: Super(InWorld, AActor::StaticClass(), InFlags)
 	{
 		++(*this);
 	}
@@ -398,31 +440,6 @@ public:
 	explicit FActorIterator(EActorIteratorType)
 		: Super(EActorIteratorType::End)
 	{
-	}
-
-private:
-	/**
-	 * Used to examine whether this level is valid for iteration or not
-	 *
-	 * @param Level the level to check for iteration
-	 * @return true if the level can be iterated, false otherwise
-	 */
-	static bool CanIterateLevel(ULevel* Level)
-	{
-		const bool bIsLevelVisibleOrAssociating = Level->bIsVisible || Level->bIsAssociatingLevel;
-
-		// Only allow iteration of Level if it's in the currently active level collection of the world, or is a static level.
-		const FLevelCollection* const ActorLevelCollection = Level->GetCachedLevelCollection();
-		const FLevelCollection* const ActiveLevelCollection = Level->OwningWorld ? Level->OwningWorld->GetActiveLevelCollection() : nullptr;
-
-		// If the world's active level collection is null, we can't apply any meaningful filter,
-		// so just allow iteration in this case.
-		const bool bIsCurrentLevelCollectionTicking = !ActiveLevelCollection || (ActorLevelCollection == ActiveLevelCollection);
-		
-		const bool bIsLevelCollectionNullOrStatic = !ActorLevelCollection || ActorLevelCollection->GetType() == ELevelCollectionType::StaticLevels;
-		const bool bShouldIterateLevelCollection = bIsCurrentLevelCollectionTicking || bIsLevelCollectionNullOrStatic;
-
-		return bIsLevelVisibleOrAssociating && bShouldIterateLevelCollection;
 	}
 };
 
@@ -438,15 +455,17 @@ public:
 	 *
 	 * @param  InWorld  The world whose actors are to be iterated over.
 	 */
-	explicit FActorRange(UWorld* InWorld)
-		: World(InWorld)
+	explicit FActorRange(UWorld* InWorld, EActorIteratorFlags InFlags = EActorIteratorFlags::OnlyActiveLevels | EActorIteratorFlags::SkipPendingKill)
+		: Flags(InFlags)
+		, World(InWorld)
 	{
 	}
 
 private:
-	UWorld* World;
+	EActorIteratorFlags	Flags;
+	UWorld*				World;
 
-	friend FActorIterator begin(const FActorRange& Range) { return FActorIterator(Range.World); }
+	friend FActorIterator begin(const FActorRange& Range) { return FActorIterator(Range.World, Range.Flags); }
 	friend FActorIterator end  (const FActorRange& Range) { return FActorIterator(EActorIteratorType::End); }
 };
 
@@ -466,8 +485,8 @@ public:
 	 * @param  InWorld  The world whose actors are to be iterated over.
 	 * @param  InClass  The subclass of actors to be iterated over.
 	 */
-	explicit TActorIterator( UWorld* InWorld, TSubclassOf<ActorType> InClass = ActorType::StaticClass() )
-		: Super( InWorld, InClass )
+	explicit TActorIterator(UWorld* InWorld, TSubclassOf<ActorType> InClass = ActorType::StaticClass(), EActorIteratorFlags InFlags = EActorIteratorFlags::OnlyActiveLevels | EActorIteratorFlags::SkipPendingKill)
+		: Super(InWorld, InClass, InFlags)
 	{
 		++(*this);
 	}
@@ -499,18 +518,6 @@ public:
 	{
 		return **this;
 	}
-
-private:
-	/**
-	 * Used to examine whether this level is valid for iteration or not
-	 *
-	 * @param Level the level to check for iteration
-	 * @return true if the level can be iterated, false otherwise
-	 */
-	static bool CanIterateLevel(ULevel* Level)
-	{
-		return Level->bIsVisible || Level->bIsAssociatingLevel;
-	}
 };
 
 /**
@@ -526,22 +533,24 @@ public:
 	 * @param  InWorld  The world whose actors are to be iterated over.
 	 * @param  InClass  The subclass of actors to be iterated over.
 	 */
-	explicit TActorRange(UWorld* InWorld, TSubclassOf<ActorType> InClass = ActorType::StaticClass())
-		: World(InWorld)
+	explicit TActorRange(UWorld* InWorld, TSubclassOf<ActorType> InClass = ActorType::StaticClass(), EActorIteratorFlags InFlags = EActorIteratorFlags::OnlyActiveLevels | EActorIteratorFlags::SkipPendingKill)
+		: Flags(InFlags)
+		, World(InWorld)
 		, Class(InClass)
 	{
 	}
 
 private:
-	UWorld*                World;
-	TSubclassOf<ActorType> Class;
+	EActorIteratorFlags		Flags;
+	UWorld*					World;
+	TSubclassOf<ActorType>	Class;
 
-	friend TActorIterator<ActorType> begin(const TActorRange& Range) { return TActorIterator<ActorType>(Range.World, Range.Class); }
-	friend TActorIterator<ActorType> end  (const TActorRange& Range) { return TActorIterator<ActorType>(EActorIteratorType::End); }
+	friend TActorIterator<ActorType> begin(const TActorRange& Range) { return TActorIterator<ActorType>(Range.World, Range.Class, Range.Flags); }
+	friend TActorIterator<ActorType> end(const TActorRange& Range) { return TActorIterator<ActorType>(EActorIteratorType::End); }
 };
 
 /**
- * Selected actor iterator
+ * Selected actor iterator, this is for ease of use but the same can be done by adding EActorIteratorFlags::OnlySelectedActors to 
  */
 class FSelectedActorIterator : public TActorIteratorBase<FSelectedActorIterator>
 {
@@ -554,8 +563,8 @@ public:
 	 *
 	 * @param  InWorld  The world whose actors are to be iterated over.
 	 */
-	explicit FSelectedActorIterator( UWorld* InWorld )
-		:Super( InWorld, AActor::StaticClass() )
+	explicit FSelectedActorIterator(UWorld* InWorld)
+		: Super(InWorld, AActor::StaticClass(), EActorIteratorFlags::SkipPendingKill | EActorIteratorFlags::OnlySelectedActors)
 	{
 		++(*this);
 	}
@@ -566,18 +575,6 @@ public:
 	explicit FSelectedActorIterator(EActorIteratorType)
 		: Super(EActorIteratorType::End)
 	{
-	}
-
-protected:
-	/**
-	 * Determines if the actor should be returned during iteration or not
-	 *
-	 * @param	Actor	Actor to check
-	 * @return	true if actor is not null and is selected, false otherwise
-	 */
-	FORCEINLINE static bool IsActorSuitable(AActor* Actor)
-	{
-		return !Actor->IsPendingKill() && Actor->IsSelected();
 	}
 };
 

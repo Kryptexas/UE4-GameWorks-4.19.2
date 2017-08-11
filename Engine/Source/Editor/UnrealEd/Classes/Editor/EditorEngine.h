@@ -821,8 +821,8 @@ private:
 	virtual void RemapGamepadControllerIdForPIE(class UGameViewportClient* GameViewport, int32 &ControllerId) override;
 	virtual TSharedPtr<SViewport> GetGameViewportWidget() const override;
 	virtual void TriggerStreamingDataRebuild() override;
-	virtual bool NetworkRemapPath(UNetDriver* Driver, FString &Str, bool reading = true) override;
-	virtual bool NetworkRemapPath(UPendingNetGame* PendingNetGame, FString& Str, bool reading = true) override;
+	virtual bool NetworkRemapPath(UNetDriver* Driver, FString& Str, bool bReading = true) override;
+	virtual bool NetworkRemapPath(UPendingNetGame* PendingNetGame, FString& Str, bool bReading = true) override;
 	virtual bool AreEditorAnalyticsEnabled() const override;
 	virtual void CreateStartupAnalyticsAttributes(TArray<FAnalyticsEventAttribute>& StartSessionAttributes) const override;
 	virtual void VerifyLoadMapWorldCleanup() override;
@@ -1366,10 +1366,11 @@ public:
 	 *
 	 * @param	InWorld				World context
 	 * @param	bVerifyDeletionCanHappen	[opt] If true (default), verify that deletion can be performed.
-	 * @param	bWarnAboutReferences		[opt] If true (default), we prompt the user about referenced actours they are about to delete
+	 * @param	bWarnAboutReferences		[opt] If true (default), we prompt the user about referenced actors they are about to delete
+	 * @param	bWarnAboutSoftReferences	[opt] If true (default), we prompt the user about soft references to actors they are about to delete
 	 * @return								true unless the delete operation was aborted.
 	 */
-	virtual bool edactDeleteSelected(UWorld* InWorld, bool bVerifyDeletionCanHappen=true, bool bWarnAboutReferences = true) { return true; }
+	virtual bool edactDeleteSelected(UWorld* InWorld, bool bVerifyDeletionCanHappen=true, bool bWarnAboutReferences = true, bool bWarnAboutSoftReferences = true) { return true; }
 
 	/**
 	 * Checks the state of the selected actors and notifies the user of any potentially unknown destructive actions which may occur as
@@ -1692,19 +1693,16 @@ public:
 	// @todo gmp: temp hack for Rocket demo
 	void RequestPlaySession(const FVector* StartLocation, const FRotator* StartRotation, bool MobilePreview, bool VulkanPreview, const FString& MobilePreviewTargetDevice);
 
-	/**
-	 * Request to play a game on a remote device 
-	 */
+	/** Request to play a game on a remote device */
 	void RequestPlaySession( const FString& DeviceId, const FString& DeviceName );
 
-	/**
-	 * Cancel request to start a play session
-	 */
+	/** Cancel request to start a play session */
 	void CancelRequestPlaySession();
 
-	/**
-	 * Makes a request to start a play from a Slate editor session
-	 */
+	/** Asks the player to save dirty maps, if this fails it will return false and call CancelRequestPlaySession */
+	bool SaveMapsForPlaySession();
+
+	/** Makes a request to start a play from a Slate editor session */
 	void RequestToggleBetweenPIEandSIE() { bIsToggleBetweenPIEandSIEQueued = true; }
 
 	/** Called when the debugger has paused the active PIE or SIE session */
@@ -1739,16 +1737,6 @@ public:
 	 * Request to create a new PIE window and join the currently running PIE session.
 	 */
 	void RequestLateJoin();
-
-	/**
-	 * Saves play in editor levels and also fixes up references in AWorldSettings to other levels.
-	 *
-	 * @param	Prefix				Prefix used to save files to disk.
-	 * @param	OutSavedFilenames	The file names of all successfully saved worlds will be added to this (with the P world being the first)
-	 *
-	 * @return	False if the save failed and the user wants to abort what they were doing
-	 */
-	virtual bool SavePlayWorldPackages(UWorld* InWorld, const TCHAR* Prefix, TArray<FString>& OutSavedFilenames);
 
 	/**
 	 * Builds a URL for game spawned by the editor (not including map name!). 
@@ -1947,8 +1935,9 @@ public:
 	 *
 	 * @param InWorld		World to get the selected actors from
 	 * @param bShouldCut If true, deletes the selected actors after copying them to the clipboard
+	 * @param bShouldCut If true, this cut is part of a move and the actors will be immediately pasted
 	 */
-	void CopySelectedActorsToClipboard( UWorld* InWorld, const bool bShouldCut );
+	void CopySelectedActorsToClipboard( UWorld* InWorld, const bool bShouldCut, const bool bIsMove = false );
 
 	/**
 	 * Checks to see whether it's possible to perform a paste operation.
@@ -2554,13 +2543,7 @@ private:
 	 * @return	true if a static mesh was loaded; false, otherwise.
 	 */
 	bool LoadPreviewMesh( int32 Index );
-public:
-	/** Creates a PIE world by saving to a temp file and then reloading it */
-	UWorld* CreatePIEWorldBySavingToTemp(FWorldContext &WorldContext, UWorld* InWorld, FString &PlayWorldMapName);
 
-	UWorld* CreatePIEWorldFromEntry(FWorldContext &WorldContext, UWorld* InWorld, FString &PlayWorldMapName);
-
-private:
 	/**
 	 * Login PIE instances with the online platform before actually creating any PIE worlds
 	 *
@@ -2587,6 +2570,9 @@ private:
 	virtual void OnLoginPIEAllComplete();
 
 public:
+	/** Creates a pie world from the default entry map, used by clients that connect to a PIE server */
+	UWorld* CreatePIEWorldFromEntry(FWorldContext &WorldContext, UWorld* InWorld, FString &PlayWorldMapName);
+
 	/**
 	 * Continue the creation of a single PIE world after a login was successful
 	 *
@@ -2880,13 +2866,6 @@ protected:
 
 	void PlayUsingLauncher();
 
-public:
-
-	/** Save the currently loaded world ready for a play session */
-	void SaveWorldForPlay(TArray<FString>& SavedMapNames);
-
-protected:
-
 	/** Called when Matinee is opened */
 	virtual void OnOpenMatinee(){};
 
@@ -2951,7 +2930,7 @@ public:
 protected:
 
 	UPROPERTY(EditAnywhere, config, Category = Advanced, meta = (MetaClass = "ActorGroupingUtils"))
-	FStringClassReference ActorGroupingUtilsClassName;
+	FSoftClassPath ActorGroupingUtilsClassName;
 
 	UPROPERTY()
 	class UActorGroupingUtils* ActorGroupingUtils;
@@ -2986,6 +2965,15 @@ public:
 	 * @param	InExistingActorLabels	(optional) Pointer to a set of actor labels that are currently in use
 	 */
 	static void SetActorLabelUnique(AActor* Actor, const FString& NewActorLabel, const FCachedActorLabels* InExistingActorLabels = nullptr);
+
+	/** 
+	 * Does an explicit actor rename. In addition to changing the label this will also fix any soft references pointing to it 
+	 * 
+	 * @param	Actor					The actor to change the label of
+	 * @param	NewActorLabel			The new label string to assign to the actor.  If empty, the actor will have a default label.
+	 * @param	bMakeUnique				If true, it will call SetActorLabelUnique, if false it will use the exact label specified
+	 */
+	static void RenameExistingActor(AActor* Actor, const FString& NewActorLabel, bool bMakeUnique = false);
 
 private:
 	FActorLabelUtilities() {}

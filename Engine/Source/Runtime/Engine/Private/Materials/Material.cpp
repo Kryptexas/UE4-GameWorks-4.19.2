@@ -409,28 +409,30 @@ void UMaterialInterface::InitDefaultMaterials()
 
 		
 #if WITH_EDITOR
-		GPowerToRoughnessMaterialFunction = LoadObject< UMaterialFunction >( NULL, TEXT("/Engine/Functions/Engine_MaterialFunctions01/Shading/PowerToRoughness.PowerToRoughness"), NULL, LOAD_None, NULL );
+		GPowerToRoughnessMaterialFunction = LoadObject< UMaterialFunction >(nullptr, TEXT("/Engine/Functions/Engine_MaterialFunctions01/Shading/PowerToRoughness.PowerToRoughness"), nullptr, LOAD_None, nullptr);
 		checkf( GPowerToRoughnessMaterialFunction, TEXT("Cannot load PowerToRoughness") );
 		GPowerToRoughnessMaterialFunction->AddToRoot();
 
-		GConvertFromDiffSpecMaterialFunction = LoadObject< UMaterialFunction >( NULL, TEXT("/Engine/Functions/Engine_MaterialFunctions01/Shading/ConvertFromDiffSpec.ConvertFromDiffSpec"), NULL, LOAD_None, NULL );
+		GConvertFromDiffSpecMaterialFunction = LoadObject< UMaterialFunction >(nullptr, TEXT("/Engine/Functions/Engine_MaterialFunctions01/Shading/ConvertFromDiffSpec.ConvertFromDiffSpec"), nullptr, LOAD_None, nullptr);
 		checkf( GConvertFromDiffSpecMaterialFunction, TEXT("Cannot load ConvertFromDiffSpec") );
 		GConvertFromDiffSpecMaterialFunction->AddToRoot();
 #endif
 
 		for (int32 Domain = 0; Domain < MD_MAX; ++Domain)
 		{
-			if (GDefaultMaterials[Domain] == NULL)
+			if (GDefaultMaterials[Domain] == nullptr)
 			{
-				GDefaultMaterials[Domain] = FindObject<UMaterial>(NULL,GDefaultMaterialNames[Domain]);
-				if (GDefaultMaterials[Domain] == NULL
+				FString ResolvedPath = ResolveIniObjectsReference(GDefaultMaterialNames[Domain]);
+
+				GDefaultMaterials[Domain] = FindObject<UMaterial>(nullptr, *ResolvedPath);
+				if (GDefaultMaterials[Domain] == nullptr
 #if USE_EVENT_DRIVEN_ASYNC_LOAD_AT_BOOT_TIME
 					&& (RecursionLevel == 1 || !GEventDrivenLoaderEnabled)
 #endif
 					)
 				{
-					GDefaultMaterials[Domain] = LoadObject<UMaterial>(NULL, GDefaultMaterialNames[Domain], NULL, LOAD_DisableDependencyPreloading, NULL);
-					checkf(GDefaultMaterials[Domain] != NULL, TEXT("Cannot load default material '%s'"), GDefaultMaterialNames[Domain]);
+					GDefaultMaterials[Domain] = LoadObject<UMaterial>(nullptr, *ResolvedPath, nullptr, LOAD_DisableDependencyPreloading, nullptr);
+					checkf(GDefaultMaterials[Domain] != nullptr, TEXT("Cannot load default material '%s'"), GDefaultMaterialNames[Domain]);
 				}
 				if (GDefaultMaterials[Domain])
 				{

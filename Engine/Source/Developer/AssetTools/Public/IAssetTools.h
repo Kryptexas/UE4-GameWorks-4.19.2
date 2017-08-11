@@ -8,6 +8,7 @@
 #include "UObject/ObjectMacros.h"
 #include "UObject/Class.h"
 #include "UObject/Interface.h"
+#include "UObject/SoftObjectPath.h"
 #include "AssetTypeCategories.h"
 #include "IAssetTypeActions.h"
 #include "AutomatedAssetImportData.h"
@@ -24,30 +25,48 @@ struct FAssetRenameData
 {
 	GENERATED_BODY()
 
+	/** Object being renamed */
 	UPROPERTY(BlueprintReadWrite, Category=AssetRenameData)
 	TWeakObjectPtr<UObject> Asset;
 
+	/** New path to package without package name, ie /Game/SubDirectory */
 	UPROPERTY(BlueprintReadWrite, Category = AssetRenameData)
-	FString PackagePath;
+	FString NewPackagePath;
 
+	/** New package and asset name, new object path will be PackagePath/NewName.NewName */
 	UPROPERTY(BlueprintReadWrite, Category = AssetRenameData)
 	FString NewName;
 
-	UPROPERTY(BlueprintReadWrite, Category = AssetRenameData)
-	FString OriginalAssetPath;
+	/** Full path to old name, in form /Game/SubDirectory/OldName.OldName:SubPath*/
+	UPROPERTY()
+	FSoftObjectPath OldObjectPath;
+
+	/** New full path, may be a SubObject */
+	UPROPERTY()
+	FSoftObjectPath NewObjectPath;
+
+	/** If true, only fix soft references. This will work even if Asset is null because it has already been renamed */
+	UPROPERTY()
+	bool bOnlyFixSoftReferences;
 
 	FAssetRenameData()
+		: bOnlyFixSoftReferences(false)
 	{}
 
-	FAssetRenameData(const TWeakObjectPtr<UObject>& InAsset, const FString& InPackagePath, const FString& InNewName)
+	/** These constructors leave some fields empty, they are fixed up inside AssetRenameManager */
+	FAssetRenameData(const TWeakObjectPtr<UObject>& InAsset, const FString& InNewPackagePath, const FString& InNewName)
 		: Asset(InAsset)
-		, PackagePath(InPackagePath)
+		, NewPackagePath(InNewPackagePath)
 		, NewName(InNewName)
+		, bOnlyFixSoftReferences(false)
 	{
-		if (InAsset.IsValid())
-		{
-			OriginalAssetPath = InAsset.Get()->GetOutermost()->GetName();
-		}
+	}
+	
+	FAssetRenameData(const FSoftObjectPath& InOldObjectPath, const FSoftObjectPath& InNewObjectPath, bool bInOnlyFixSoftReferences = false)
+		: OldObjectPath(InOldObjectPath)
+		, NewObjectPath(InNewObjectPath)
+		, bOnlyFixSoftReferences(bInOnlyFixSoftReferences)
+	{
 	}
 };
 
@@ -162,6 +181,10 @@ public:
 	/** Renames assets using the specified names. */
 	UFUNCTION(BlueprintCallable, Category = "Editor Scripting | Asset Tools")
 	virtual void RenameAssets(const TArray<FAssetRenameData>& AssetsAndNames) const = 0;
+
+	/** Returns list of objects that soft reference the given soft object path. This will load assets into memory to verify */
+	UFUNCTION(BlueprintCallable, Category = "Editor Scripting | Asset Tools")
+	virtual void FindSoftReferencesToObject(FSoftObjectPath TargetObject, TArray<UObject*>& ReferencingObjects) const = 0;
 
 	/** Event issued at the end of the rename process */
 	virtual FAssetPostRenameEvent& OnAssetPostRename() = 0;

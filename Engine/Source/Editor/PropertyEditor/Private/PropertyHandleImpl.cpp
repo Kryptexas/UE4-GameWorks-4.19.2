@@ -899,14 +899,14 @@ FPropertyAccess::Result FPropertyValueImpl::OnUseSelected()
 		UObjectPropertyBase* ObjProp = Cast<UObjectPropertyBase>( NodeProperty );
 		UInterfaceProperty* IntProp = Cast<UInterfaceProperty>( NodeProperty );
 		UClassProperty* ClassProp = Cast<UClassProperty>( NodeProperty );
-		UAssetClassProperty* AssetClassProperty = Cast<UAssetClassProperty>( NodeProperty );
+		USoftClassProperty* SoftClassProperty = Cast<USoftClassProperty>( NodeProperty );
 		UClass* const InterfaceThatMustBeImplemented = ObjProp ? ObjProp->GetOwnerProperty()->GetClassMetaData(TEXT("MustImplement")) : nullptr;
 
-		if(ClassProp || AssetClassProperty)
+		if(ClassProp || SoftClassProperty)
 		{
 			FEditorDelegates::LoadSelectedAssetsIfNeeded.Broadcast();
 
-			const UClass* const SelectedClass = GEditor->GetFirstSelectedClass(ClassProp ? ClassProp->MetaClass : AssetClassProperty->MetaClass);
+			const UClass* const SelectedClass = GEditor->GetFirstSelectedClass(ClassProp ? ClassProp->MetaClass : SoftClassProperty->MetaClass);
 			if(SelectedClass)
 			{
 				if (!InterfaceThatMustBeImplemented || SelectedClass->ImplementsInterface(InterfaceThatMustBeImplemented))
@@ -2596,11 +2596,11 @@ bool FPropertyHandleBase::GeneratePossibleValues(TArray< TSharedPtr<FString> >& 
 			}
 		}
 	}
-	else if( Property->IsA(UClassProperty::StaticClass()) || Property->IsA(UAssetClassProperty::StaticClass()) )		
+	else if( Property->IsA(UClassProperty::StaticClass()) || Property->IsA(USoftClassProperty::StaticClass()) )		
 	{
 		UClass* MetaClass = Property->IsA(UClassProperty::StaticClass()) 
 			? CastChecked<UClassProperty>(Property)->MetaClass
-			: CastChecked<UAssetClassProperty>(Property)->MetaClass;
+			: CastChecked<USoftClassProperty>(Property)->MetaClass;
 
 		TSharedPtr< FString > NoneStr( new FString( TEXT("None") ) );
 		OutOptionStrings.Add( NoneStr );
@@ -3390,7 +3390,7 @@ FPropertyAccess::Result FPropertyHandleObject::SetValue(const FAssetData& NewVal
 	// Instanced references can not be set this way (most likely editinlinenew )
 	if (!Property->HasAnyPropertyFlags(CPF_InstancedReference))
 	{
-		if ( !Property->IsA( UAssetObjectProperty::StaticClass() ) )
+		if ( !Property->IsA( USoftObjectProperty::StaticClass() ) )
 		{
 			// Make sure the asset is loaded if we are not a string asset reference.
 			NewValue.GetAsset();
