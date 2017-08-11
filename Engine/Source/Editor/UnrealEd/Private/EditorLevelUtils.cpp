@@ -209,17 +209,18 @@ ULevel* UEditorLevelUtils::AddLevelsToWorld(UWorld* InWorld, const TArray<FStrin
 
 	// Try to add the levels that were specified in the dialog.
 	ULevel* NewLevel = nullptr;
-	for (const auto& PackageName : PackageNames)
+	for (const FString& PackageName : PackageNames)
 	{
 		SlowTask.EnterProgressFrame();
 
-		ULevelStreaming* NewStreamingLevel = AddLevelToWorld(InWorld, *PackageName, LevelStreamingClass);
-		NewLevel = NewStreamingLevel->GetLoadedLevel();
-		if (NewLevel)
+		if (ULevelStreaming* NewStreamingLevel = AddLevelToWorld(InWorld, *PackageName, LevelStreamingClass))
 		{
-			LevelDirtyCallback.Request();
+			NewLevel = NewStreamingLevel->GetLoadedLevel();
+			if (NewLevel)
+			{
+				LevelDirtyCallback.Request();
+			}
 		}
-
 	} // for each file
 
 	  // Set the last loaded level to be the current level
