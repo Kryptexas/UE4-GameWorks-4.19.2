@@ -3165,6 +3165,13 @@ namespace UnrealBuildTool
 					GradleBuildAdditionsContent.AppendLine("apply from: 'aar-imports.gradle'");
 					GradleBuildAdditionsContent.AppendLine("apply from: 'projects.gradle'");
 
+					GradleBuildAdditionsContent.AppendLine("android {");
+					GradleBuildAdditionsContent.AppendLine("\tdefaultConfig {");
+					GradleBuildAdditionsContent.AppendLine("\t\tndk {");
+					GradleBuildAdditionsContent.AppendLine(string.Format("\t\t\tabiFilter \"{0}\"", NDKArch));
+					GradleBuildAdditionsContent.AppendLine("\t\t}");
+					GradleBuildAdditionsContent.AppendLine("\t}");
+
 					string GradleBuildType = ":app:assembleDebug";
 					if (bForDistribution)
 					{
@@ -3200,7 +3207,6 @@ namespace UnrealBuildTool
 							throw new BuildException("Keystore file is missing. Check the DistributionSettings section in the Android tab of Project Settings");
 						}
 
-						GradleBuildAdditionsContent.AppendLine("android {");
 						GradleBuildAdditionsContent.AppendLine("\tsigningConfigs {");
 						GradleBuildAdditionsContent.AppendLine("\t\trelease {");
 						GradleBuildAdditionsContent.AppendLine(string.Format("\t\t\tstoreFile file('{0}')", KeyStoreFilename.Replace("\\", "/")));
@@ -3213,7 +3219,6 @@ namespace UnrealBuildTool
 						}
 						GradleBuildAdditionsContent.AppendLine("\t\t}");
 						GradleBuildAdditionsContent.AppendLine("\t}");
-						GradleBuildAdditionsContent.AppendLine("}");
 
 						// Generate the Proguard file contents and write it
 						string ProguardContents = GenerateProguard(NDKArch, UE4BuildFilesPath, GameBuildFilesPath);
@@ -3227,13 +3232,12 @@ namespace UnrealBuildTool
 					else
 					{
 						// empty just for Gradle not to complain
-						GradleBuildAdditionsContent.AppendLine("android {");
 						GradleBuildAdditionsContent.AppendLine("\tsigningConfigs {");
 						GradleBuildAdditionsContent.AppendLine("\t\trelease {");
 						GradleBuildAdditionsContent.AppendLine("\t\t}");
 						GradleBuildAdditionsContent.AppendLine("\t}");
-						GradleBuildAdditionsContent.AppendLine("}");
 					}
+					GradleBuildAdditionsContent.AppendLine("}");
 
 					// Add any UPL app buildGradleAdditions
 					GradleBuildAdditionsContent.Append(UPL.ProcessPluginNode(NDKArch, "buildGradleAdditions", ""));
