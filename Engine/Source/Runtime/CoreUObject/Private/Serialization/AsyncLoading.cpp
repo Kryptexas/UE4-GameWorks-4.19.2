@@ -6907,6 +6907,7 @@ FArchiveAsync2::FArchiveAsync2(const TCHAR* InFileName, TFunction<void()>&& InSu
 	, HeaderSize(0)
 	, HeaderSizeWhenReadingExportsFromSplitFile(0)
 	, LoadPhase(ELoadPhase::WaitingForSize)
+	, bCookedForEDLInEditor(false)
 	, FileName(InFileName)
 	, OpenTime(FPlatformTime::Seconds())
 	, SummaryReadTime(0.0)
@@ -7014,6 +7015,10 @@ void FArchiveAsync2::ReadCallback(bool bWasCancelled, IAsyncReadRequest* Request
 				checkf(Ar.Tell() < FAsyncLoadingThread::Get().MaxPackageSummarySize.Value / 2, 
 					TEXT("The initial read request was too small (%d) compared to package %s header size (%lld). Try increasing s.MaxPackageSummarySize value in DefaultEngine.ini."),
 					FAsyncLoadingThread::Get().MaxPackageSummarySize.Value, *FileName, Ar.Tell());
+				
+				// Support for cooked EDL packages in the editor
+				bCookedForEDLInEditor = !FPlatformProperties::RequiresCookedData() && (Sum.PackageFlags & PKG_FilterEditorOnly) && Sum.PreloadDependencyCount > 0 && Sum.PreloadDependencyOffset > 0;
+
 				HeaderSize = Sum.TotalHeaderSize;
 				LogItem(TEXT("Starting Header"), 0, HeaderSize);
 				PrecacheInternal(0, HeaderSize);
@@ -7118,7 +7123,7 @@ int64 FArchiveAsync2::TotalSize()
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_FArchiveAsync2_TotalSize);
 		SizeRequestPtr->WaitCompletion();
-		if (GEventDrivenLoaderEnabled && HeaderSizeWhenReadingExportsFromSplitFile)
+		if ((GEventDrivenLoaderEnabled || bCookedForEDLInEditor) && HeaderSizeWhenReadingExportsFromSplitFile)
 		{
 			FileSize = SizeRequestPtr->GetSizeResults();
 		}
@@ -7414,7 +7419,7 @@ void FArchiveAsync2::FirstExportStarting()
 	LogItem(TEXT("Exports"));
 	LoadPhase = ELoadPhase::ProcessingExports;
 
-	if (GEventDrivenLoaderEnabled && !EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME)
+	if ((GEventDrivenLoaderEnabled && !EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME) || bCookedForEDLInEditor)
 	{
 		FlushCache();
 		if (Handle)

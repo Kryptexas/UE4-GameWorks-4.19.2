@@ -1126,7 +1126,9 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::SerializePackageFileSummary()
 		}
 
 #if PLATFORM_WINDOWS
-		if (!FPlatformProperties::RequiresCookedData())
+		if (!FPlatformProperties::RequiresCookedData() && 
+			// We can't check the post tag if the file is an EDL cooked package
+			!((Summary.PackageFlags & PKG_FilterEditorOnly) && Summary.PreloadDependencyCount > 0 && Summary.PreloadDependencyOffset > 0))
 		{
 			// check if this package version stored the 4-byte magic post tag
 			// get the offset of the post tag
@@ -1620,7 +1622,7 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::SerializeDependsMap()
 		*this << Depends;
 		DependsMapIndex++;
 	}
-	
+
 	// Return whether we finished this step and it's safe to start with the next.
 	return ((DependsMapIndex == Summary.ExportCount) && !IsTimeLimitExceeded( TEXT("serializing depends map") )) ? LINKER_Loaded : LINKER_TimedOut;
 }
