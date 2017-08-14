@@ -1822,7 +1822,10 @@ void UHierarchicalInstancedStaticMeshComponent::PostDuplicate(bool bDuplicateFor
 {
 	Super::PostDuplicate(bDuplicateForPIE);
 
-	BuildTreeIfOutdated(false, false);
+	if (!HasAnyFlags(RF_NeedPostLoad))
+	{
+		BuildTreeIfOutdated(false, false);
+	}
 }
 
 void UHierarchicalInstancedStaticMeshComponent::RemoveInstanceInternal(int32 InstanceIndex)
