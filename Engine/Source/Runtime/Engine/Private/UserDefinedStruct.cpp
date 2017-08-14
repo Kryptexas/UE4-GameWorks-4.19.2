@@ -116,6 +116,12 @@ void UUserDefinedStruct::PostLoad()
 	Super::PostLoad();
 
 	ValidateGuid();
+
+	// Backwards compat code. TODO 4.18: Put version check around this
+	for (TFieldIterator<UProperty> PropIt(this); PropIt; ++PropIt)
+	{
+		PropIt->PropertyFlags |= CPF_BlueprintVisible;
+	}
 }
 
 void UUserDefinedStruct::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
