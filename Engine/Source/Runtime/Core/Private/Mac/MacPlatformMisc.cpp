@@ -1842,8 +1842,8 @@ FString FMacPlatformMisc::GetXcodePath()
 
 bool FMacPlatformMisc::IsSupportedXcodeVersionInstalled()
 {
-	// We need Xcode 8.2 or newer to be able to compile Metal shaders correctly
-	return GMacAppInfo.XcodeVersion.majorVersion > 8 || (GMacAppInfo.XcodeVersion.majorVersion == 8 && GMacAppInfo.XcodeVersion.minorVersion >= 2);
+	// We need Xcode 8.2 or newer (but not Xcode 9 beta) to be able to compile Metal shaders correctly
+	return GMacAppInfo.XcodeVersion.majorVersion == 8 && GMacAppInfo.XcodeVersion.minorVersion >= 2;
 }
 
 float FMacPlatformMisc::GetDPIScaleFactorAtPoint(float X, float Y)

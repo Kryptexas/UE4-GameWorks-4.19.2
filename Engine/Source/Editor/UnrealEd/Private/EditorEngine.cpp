@@ -6568,8 +6568,8 @@ void UEditorEngine::UpdateAutoLoadProject()
 		const ECheckBoxState DontAskAgainCheckBoxState = Local::GetDontAskAgainCheckBoxState();
 		if (DontAskAgainCheckBoxState == ECheckBoxState::Unchecked)
 		{
-			const FText NoXcodeMessageText = LOCTEXT("XcodeNotInstalledWarningNotification", "Xcode is not installed on this Mac.\nMetal shader compilation will fall back to runtime compiled text shaders, which are slower.\nPlease install latest version of Xcode for best performance.");
-			const FText OldXcodeMessageText = LOCTEXT("OldXcodeVersionWarningNotification", "Xcode installed on this Mac is too old to be used for Metal shader compilation.\nFalling back to runtime compiled text shaders, which are slower.\nPlease update to latest version of Xcode for best performance.");
+			const FText NoXcodeMessageText = LOCTEXT("XcodeNotInstalledOr9WarningNotification", "Xcode is not installed on this Mac.\nMetal shader compilation will fall back to runtime compiled text shaders, which are slower.\nPlease install Xcode 8.3.x for best performance.");
+			const FText OldXcodeMessageText = LOCTEXT("OldXcodeVersionOr9WarningNotification", "Xcode installed on this Mac cannot be used for Metal shader compilation.\nFalling back to runtime compiled text shaders, which are slower.\nPlease install Xcode 8.3.x for best performance.");
 
 			FNotificationInfo Info(bIsXcodeInstalled ? OldXcodeMessageText : NoXcodeMessageText);
 			Info.bFireAndForget = false;
