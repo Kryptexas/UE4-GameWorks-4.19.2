@@ -85,7 +85,7 @@ struct FBlueprintCompilationManagerImpl : public FGCObject
 
 	void QueueForCompilation(const FBPCompileRequest& CompileJob);
 	void CompileSynchronouslyImpl(const FBPCompileRequest& Request);
-	void FlushCompilationQueueImpl(TArray<UObject*>* ObjLoaded, bool bSuppressBroadcastCompiled);
+	void FlushCompilationQueueImpl(TArray<UObject*>* ObjLoaded, bool bSuppressBroadcastCompiled, TArray<UBlueprint*>* BlueprintsCompiled);
 	void FlushReinstancingQueueImpl();
 	bool HasBlueprintsToCompile() const;
 	bool IsGeneratedClassLayoutReady() const;
@@ -181,10 +181,11 @@ void FBlueprintCompilationManagerImpl::CompileSynchronouslyImpl(const FBPCompile
 
 	ensure(QueuedRequests.Num() == 0);
 	QueuedRequests.Add(Request);
-	// We suppress normal compilation boradcasts because the old code path 
+	// We suppress normal compilation broadcasts because the old code path 
 	// did this after GC and we want to match the old behavior:
 	const bool bSuppressBroadcastCompiled = true;
-	FlushCompilationQueueImpl(nullptr, bSuppressBroadcastCompiled);
+	TArray<UBlueprint*> CompiledBlueprints;
+	FlushCompilationQueueImpl(nullptr, bSuppressBroadcastCompiled, &CompiledBlueprints);
 	FlushReinstancingQueueImpl();
 	
 	if ( GEditor )
@@ -201,6 +202,11 @@ void FBlueprintCompilationManagerImpl::CompileSynchronouslyImpl(const FBPCompile
 	
 	if (!bBatchCompile)
 	{
+		for(UBlueprint* BP : CompiledBlueprints)
+		{
+			BP->BroadcastCompiled();
+		}
+
 		if(GEditor)
 		{
 			GEditor->BroadcastBlueprintCompiled();	
@@ -296,7 +302,7 @@ struct FReinstancingJob
 	TSharedPtr<FKismetCompilerContext> Compiler;
 };
 	
-void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*>* ObjLoaded, bool bSuppressBroadcastCompiled)
+void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*>* ObjLoaded, bool bSuppressBroadcastCompiled, TArray<UBlueprint*>* BlueprintsCompiled)
 {
 	TGuardValue<bool> GuardTemplateNameFlag(GCompilingBlueprint, true);
 	ensure(bGeneratedClassLayoutReady);
@@ -868,9 +874,18 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 		{
 			if(CompilerData.ShouldCompileClassFunctions())
 			{
-				// Some logic (e.g. UObject::ProcessInternal) uses this flag to suppress warnings:
-				TGuardValue<bool> ReinstancingGuard(GIsReinstancing, true);
-				CompilerData.BP->BroadcastCompiled();
+				if(BlueprintsCompiled)
+				{
+					BlueprintsCompiled->Add(CompilerData.BP);
+				}
+				
+				if(!bSuppressBroadcastCompiled)
+				{
+					// Some logic (e.g. UObject::ProcessInternal) uses this flag to suppress warnings:
+					TGuardValue<bool> ReinstancingGuard(GIsReinstancing, true);
+					CompilerData.BP->BroadcastCompiled();
+				}
+
 				continue;
 			}
 
@@ -1905,7 +1920,7 @@ void FBlueprintCompilationManager::FlushCompilationQueue(TArray<UObject*>* ObjLo
 {
 	if(BPCMImpl)
 	{
-		BPCMImpl->FlushCompilationQueueImpl(ObjLoaded, false);
+		BPCMImpl->FlushCompilationQueueImpl(ObjLoaded, false, nullptr);
 
 		// we can't support save on compile when reinstancing is deferred:
 		BPCMImpl->CompiledBlueprintsToSave.Empty();
