@@ -475,13 +475,17 @@ void UActorComponent::BeginDestroy()
 bool UActorComponent::NeedsLoadForClient() const
 {
 	check(GetOuter());
-	return (!IsEditorOnly() && GetOuter()->NeedsLoadForClient() && Super::NeedsLoadForClient());
+	// For Component Blueprints, avoid calling into the class to avoid recursion
+	bool bNeedsLoadOuter = HasAnyFlags(RF_ClassDefaultObject) || GetOuter()->NeedsLoadForClient();
+	return (!IsEditorOnly() && bNeedsLoadOuter && Super::NeedsLoadForClient());
 }
 
 bool UActorComponent::NeedsLoadForServer() const
 {
 	check(GetOuter());
-	return (!IsEditorOnly() && GetOuter()->NeedsLoadForServer() && Super::NeedsLoadForServer());
+	// For Component Blueprints, avoid calling into the class to avoid recursion
+	bool bNeedsLoadOuter = HasAnyFlags(RF_ClassDefaultObject) || GetOuter()->NeedsLoadForServer();
+	return (!IsEditorOnly() && bNeedsLoadOuter && Super::NeedsLoadForServer());
 }
 
 int32 UActorComponent::GetFunctionCallspace( UFunction* Function, void* Parameters, FFrame* Stack )
