@@ -324,7 +324,10 @@ FSequencer::FSequencer()
 
 FSequencer::~FSequencer()
 {
-	GEditor->UnregisterForUndo(this);
+	if (GEditor)
+	{
+		GEditor->UnregisterForUndo(this);
+	}
 
 	if (ISettingsModule* SettingsModulePtr = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
 	{
