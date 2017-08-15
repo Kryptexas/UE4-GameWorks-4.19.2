@@ -1588,6 +1588,11 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context,
 		if (Context.EntryPoint)
 		{
 			Context.Function->FunctionFlags |= (EFunctionFlags)Context.EntryPoint->GetExtraFlags();
+			
+			if (UEdGraphPin* WorldContextPin = Context.EntryPoint->GetAutoWorldContextPin())
+			{
+				Context.Function->SetMetaData(FBlueprintMetadata::MD_WorldContext, *WorldContextPin->PinName);
+			}
 		}
 
 		// First try to get the overriden function from the super class
