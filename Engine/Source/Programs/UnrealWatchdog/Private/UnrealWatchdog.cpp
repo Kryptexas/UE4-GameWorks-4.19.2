@@ -144,7 +144,8 @@ void SendHeartbeatEvent(IAnalyticsProviderET& Analytics, const FWatchdogCommandL
 		// Update the IntervalSec with the exact time since the last heartbeat
 		FDateTime EventTime = FDateTime::UtcNow();
 		FTimespan ActualInterval = EventTime - LastEventTime;
-		HeartbeatAttributes[HeartbeatAttributes.Num() - 1] = FAnalyticsEventAttribute(TEXT("IntervalSec"), ActualInterval.GetTotalSeconds());
+		HeartbeatAttributes.RemoveAt(HeartbeatAttributes.Num() - 1);
+		HeartbeatAttributes.Add(FAnalyticsEventAttribute(TEXT("IntervalSec"), ActualInterval.GetTotalSeconds()));
 		LastEventTime = EventTime;
 	}
 
@@ -186,8 +187,8 @@ void SendHangDetectedEvent(IAnalyticsProviderET& Analytics, const FWatchdogComma
 	GetCommonEventAttributes(CommandLine, HangAttributes);
 
 	// Internal builds should popup dialogs for hangs
-	FAnalyticsEventAttribute HangUserResponse(TEXT("HangUserResponse"), TEXT("Unattended"));
-	FAnalyticsEventAttribute RecoveredUserResponse(TEXT("AlreadyRecoveredUserResponse"), TEXT("Unattended"));
+	FString HangResponse = TEXT("Unattended");
+	FString RecoveredResponse = TEXT("Unattended");
 	if (CommandLine.bAllowDialogs)
 	{
 		FText SessionLabel = FText::Format(LOCTEXT("HangSessionLabel", "{0} ({1})"), FText::FromString(CommandLine.ProjectName), FText::FromString(CommandLine.RunType));
@@ -200,7 +201,7 @@ void SendHangDetectedEvent(IAnalyticsProviderET& Analytics, const FWatchdogComma
 		if (HangAnswer == EAppReturnType::Yes)
 		{
 			UE_LOG(UnrealWatchdogLog, Log, TEXT("User confirmed hang"));
-			HangUserResponse.AttrValue = TEXT("Confirmed");
+			HangResponse= TEXT("Confirmed");
 
 			FText RecoveredMessage(LOCTEXT("WatchdogPopupRecoveredMessage", "Has the application recovered?"));
 
@@ -209,12 +210,12 @@ void SendHangDetectedEvent(IAnalyticsProviderET& Analytics, const FWatchdogComma
 			if (RecoveredAnswer == EAppReturnType::Yes)
 			{
 				UE_LOG(UnrealWatchdogLog, Log, TEXT("User confirmed recovery from hang"));
-				RecoveredUserResponse.AttrValue = TEXT("Recovered");
+				RecoveredResponse = TEXT("Recovered");
 			}
 			else
 			{
 				UE_LOG(UnrealWatchdogLog, Log, TEXT("User confirmed hang not yet recovered"));
-				RecoveredUserResponse.AttrValue = TEXT("NotRecovered");
+				RecoveredResponse = TEXT("NotRecovered");
 			}
 
 			FText CRCMessage(LOCTEXT("WatchdogPopupHangCRCMessage", "We will now open the Crash Reporter for you to tell us what happened."));
@@ -226,13 +227,13 @@ void SendHangDetectedEvent(IAnalyticsProviderET& Analytics, const FWatchdogComma
 		else  // HangAnswer == EAppReturnType::No
 		{
 			UE_LOG(UnrealWatchdogLog, Warning, TEXT("User didn't witness hang. False positive warning!"));
-			HangUserResponse.AttrValue = TEXT("False");
-			RecoveredUserResponse.AttrValue = TEXT("N/A");
+			HangResponse = TEXT("False");
+			RecoveredResponse = TEXT("N/A");
 		}
 	}
 
-	HangAttributes.Add(HangUserResponse);
-	HangAttributes.Add(RecoveredUserResponse);
+	HangAttributes.Add(FAnalyticsEventAttribute(TEXT("HangUserResponse"), HangResponse));
+	HangAttributes.Add(FAnalyticsEventAttribute(TEXT("AlreadyRecoveredUserResponse"), RecoveredResponse));
 	UE_LOG(UnrealWatchdogLog, Log, TEXT("Sending event UnrealWatchdog.HangDetected"));
 	Analytics.RecordEvent(TEXT("UnrealWatchdog.HangDetected"), MoveTemp(HangAttributes));
 }
@@ -452,7 +453,7 @@ int RunUnrealWatchdog(const TCHAR* CommandLine)
 	}
 
 	// Optional section for dialogs and CRC in internal builds
-	FAnalyticsEventAttribute UserResponse(TEXT("AbnormalShutdownUserResponse"), TEXT("Unattended"));
+	FString ShutdownResponse = TEXT("Unattended");
 	if (WatchdogCommandLine.bAllowDialogs && !bHang && StoredValues.WasDebugged != WatchdogDefs::TrueValueString)
 	{
 		EAppReturnType::Type UserAnswer = EAppReturnType::Cancel;
@@ -472,12 +473,12 @@ int RunUnrealWatchdog(const TCHAR* CommandLine)
 			if (UserAnswer == EAppReturnType::Yes)
 			{
 				UE_LOG(UnrealWatchdogLog, Log, TEXT("User confirmed crash and crash report client"));
-				UserResponse.AttrValue = TEXT("Confirmed");
+				ShutdownResponse = TEXT("Confirmed");
 			}
 			else if (UserAnswer == EAppReturnType::No)
 			{
 				UE_LOG(UnrealWatchdogLog, Warning, TEXT("User didn't witness crash and crash report client. False positive warning!"));
-				UserResponse.AttrValue = TEXT("False");
+				ShutdownResponse = TEXT("False");
 
 				FText CRCMessage(LOCTEXT("WatchdogPopupCRCMessage", "We will now open the Crash Reporter for you to tell us what happened."));
 				FMessageDialog::Open(EAppMsgType::Ok, CRCMessage, &MessageTitle);
@@ -551,7 +552,7 @@ int RunUnrealWatchdog(const TCHAR* CommandLine)
 			if (UserAnswer == EAppReturnType::Yes)
 			{
 				UE_LOG(UnrealWatchdogLog, Log, TEXT("User confirmed abnormal shutdown"));
-				UserResponse.AttrValue = TEXT("Confirmed");
+				ShutdownResponse = TEXT("Confirmed");
 
 				FText MessageTitleFormat(LOCTEXT("WatchdogPopupTitleAbnormalShutdown", "{0} terminated unexpectedly"));
 				FText MessageTitle = FText::Format(MessageTitleFormat, SessionLabel);
@@ -564,7 +565,7 @@ int RunUnrealWatchdog(const TCHAR* CommandLine)
 			else if (UserAnswer == EAppReturnType::No)
 			{
 				UE_LOG(UnrealWatchdogLog, Warning, TEXT("User didn't witness abnormal shutdown. False positive warning!"));
-				UserResponse.AttrValue = TEXT("False");
+				ShutdownResponse = TEXT("False");
 			}
 		}
 	}
@@ -572,6 +573,7 @@ int RunUnrealWatchdog(const TCHAR* CommandLine)
 	// Send watchdog shutdown event
 	UE_LOG(UnrealWatchdogLog, Log, TEXT("Watchdog watched process exited. bReturnCodeObtained=%s, ReturnCode=%u, RecordedShutdownType=%s"),
 		bReturnCodeObtained ? TEXT("1") : TEXT("0"), ReturnCode, *StoredValues.ExecutionStatus);
+	FAnalyticsEventAttribute UserResponse(TEXT("AbnormalShutdownUserResponse"), ShutdownResponse);
 	SendShutdownEvent(Analytics, WatchdogCommandLine, bReturnCodeObtained, ReturnCode, UserResponse, StoredValues, StartupTime);
 
 	// Shutdown tool and engine

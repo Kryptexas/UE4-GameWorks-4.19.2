@@ -320,6 +320,15 @@ namespace UnrealBuildTool
 			string FacebookDisplayName = "";
 			Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "BundleDisplayName", out FacebookDisplayName);
 
+			// Get Google Support details
+			bool bEnableGoogleSupport = true;
+			Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bEnableGoogleSupport", out bEnableGoogleSupport);
+
+			// Write the Google App ID if we need it.
+			string GoogleReversedClientId = "";
+			Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "GoogleReversedClientId", out GoogleReversedClientId);
+			bEnableGoogleSupport = bEnableFacebookSupport && !string.IsNullOrWhiteSpace(GoogleReversedClientId);
+
 			// Add remote-notifications as background mode
 			bool bRemoteNotificationsSupported = false;
 			Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bEnableRemoteNotificationsSupport", out bRemoteNotificationsSupported);
@@ -352,6 +361,10 @@ namespace UnrealBuildTool
 			{
 				// This is needed for facebook login to redirect back to the app after completion.
 				Text.AppendLine(string.Format("\t\t\t\t<string>fb{0}</string>", FacebookAppID));
+			}
+			if (bEnableGoogleSupport)
+			{
+				Text.AppendLine(string.Format("\t\t\t\t<string>{0}</string>", GoogleReversedClientId));
 			}
 			Text.AppendLine("\t\t\t</array>");
 			Text.AppendLine("\t\t</dict>");

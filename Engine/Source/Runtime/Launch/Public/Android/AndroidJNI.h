@@ -48,6 +48,8 @@ public:
 	static jmethodID AndroidThunkJava_HasActiveWiFiConnection;
 	static jmethodID AndroidThunkJava_GetAndroidId;
 
+	static jmethodID AndroidThunkCpp_IsVirtuaInputClicked;
+
 	// InputDeviceInfo member field ids
 	static jclass InputDeviceInfoClass;
 	static jfieldID InputDeviceInfo_VendorId;
@@ -88,6 +90,7 @@ public:
 	// SurfaceView functionality for view scaling on some devices
 	static jmethodID AndroidThunkJava_UseSurfaceViewWorkaround;
 	static jmethodID AndroidThunkJava_SetDesiredViewSize;
+	static jmethodID AndroidThunkJava_IsVirtuaInputClicked;
 
 	// member fields for getting the launch notification
 	static jclass LaunchNotificationClass;

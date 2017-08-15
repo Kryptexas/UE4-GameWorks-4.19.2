@@ -59,13 +59,14 @@ public:
 
 	struct FCPUState
 	{
+		const static int32			MaxSupportedCores = 16; //Core count 16 is maximum for now
 		int32						CoreCount;
 		int32						ActivatedCoreCount;
-		ANSICHAR					Name[5];
-		FAndroidMisc::FCPUStatTime	CurrentUsage[8]; //Core count 8 is maximum for now
-		FAndroidMisc::FCPUStatTime	PreviousUsage[8];
-		int32						Status[8];
-		double						Utilization[8];
+		ANSICHAR					Name[6];
+		FAndroidMisc::FCPUStatTime	CurrentUsage[MaxSupportedCores]; 
+		FAndroidMisc::FCPUStatTime	PreviousUsage[MaxSupportedCores];
+		int32						Status[MaxSupportedCores];
+		double						Utilization[MaxSupportedCores];
 		double						AverageUtilization;
 		
 	};
@@ -215,6 +216,15 @@ public:
 	static int32 AndroidBuildVersion;
 
 	static bool VolumeButtonsHandledBySystem;
+
+	enum class ECoreFrequencyProperty
+	{
+		CurrentFrequency,
+		MaxFrequency,
+		MinFrequency,
+	};
+
+	static uint32 GetCoreFrequency(int32 CoreIndex, ECoreFrequencyProperty CoreFrequencyProperty);
 };
 
 typedef FAndroidMisc FPlatformMisc;

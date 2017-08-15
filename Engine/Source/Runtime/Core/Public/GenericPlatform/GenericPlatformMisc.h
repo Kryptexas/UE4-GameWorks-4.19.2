@@ -1024,6 +1024,11 @@ public:
 	static void RegisterForRemoteNotifications();
 
 	/**
+	 * Returns whether or not the device has been registered to receive remote notifications.
+	 */
+	static bool IsRegisteredForRemoteNotifications();
+
+	/**
 	* Requests unregistering from receiving remote notifications on the user's device.
 	*/
 	static void UnregisterForRemoteNotifications();

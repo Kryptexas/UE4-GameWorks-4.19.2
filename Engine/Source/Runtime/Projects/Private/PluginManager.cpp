@@ -365,49 +365,7 @@ void FPluginManager::ReadPluginsInDirectory(const FString& PluginsDirectory, con
 
 void FPluginManager::FindPluginsInDirectory(const FString& PluginsDirectory, TArray<FString>& FileNames)
 {
-	// Class to enumerate the contents of a directory, and find all sub-directories and plugin descriptors within it
-	struct FPluginDirectoryVisitor : public IPlatformFile::FDirectoryVisitor
-	{
-		TArray<FString> SubDirectories;
-		TArray<FString> PluginDescriptors;
-
-		virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory) override
-		{
-			FString FilenameOrDirectoryStr = FilenameOrDirectory;
-			if(bIsDirectory)
-			{
-				SubDirectories.Add(FilenameOrDirectoryStr);
-			}
-			else if(FilenameOrDirectoryStr.EndsWith(TEXT(".uplugin")))
-			{
-				PluginDescriptors.Add(FilenameOrDirectoryStr);
-			}
-			return true;
-		}
-	};
-
-	// Enumerate the contents of the current directory
-	FPluginDirectoryVisitor Visitor;
-	FPlatformFileManager::Get().GetPlatformFile().IterateDirectory(*PluginsDirectory, Visitor);
-
-	// If there's no plugins in this directory, recurse through all the child directories
-	if(Visitor.PluginDescriptors.Num() == 0)
-	{
-		for(const FString& SubDirectory: Visitor.SubDirectories)
-		{
-			FindPluginsInDirectory(SubDirectory, FileNames);
-		}
-	}
-	else
-	{
-		for(const FString& PluginDescriptor: Visitor.PluginDescriptors)
-		{
-			if (!FileNames.Contains(PluginDescriptor))
-			{
-				FileNames.Add(PluginDescriptor);
-			}
-		}
-	}
+	FPlatformFileManager::Get().GetPlatformFile().FindFilesRecursively(FileNames, *PluginsDirectory, TEXT(".uplugin"));
 }
 
 void FPluginManager::FindPluginManifestsInDirectory(const FString& PluginManifestDirectory, TArray<FString>& FileNames)

@@ -147,6 +147,8 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 	static bool IsRunningOnBattery();
 
 	static void RegisterForRemoteNotifications();
+	static bool IsRegisteredForRemoteNotifications();
+	static void UnregisterForRemoteNotifications();
 
 	static class IPlatformChunkInstall* GetPlatformChunkInstall();
 	

@@ -182,7 +182,7 @@ void FAnalyticsProviderFileLogging::RecordEvent(const FString& EventName, const 
 				}
 				FileArchive->Logf(TEXT("\t\t\t{"));
 				FileArchive->Logf(TEXT("\t\t\t\t\"name\" : \"%s\","), *Attr.AttrName);
-				FileArchive->Logf(TEXT("\t\t\t\t\"value\" : \"%s\""), *Attr.AttrValue);
+				FileArchive->Logf(TEXT("\t\t\t\t\"value\" : \"%s\""), *Attr.ToString());
 				FileArchive->Logf(TEXT("\t\t\t}"));
 				bHasWrittenFirstAttr = true;
 			}
@@ -349,7 +349,7 @@ void FAnalyticsProviderFileLogging::RecordError(const FString& Error, const TArr
 			}
 			FileArchive->Logf(TEXT("\t\t\t{"));
 			FileArchive->Logf(TEXT("\t\t\t\t\"name\" : \"%s\","), *Attr.AttrName);
-			FileArchive->Logf(TEXT("\t\t\t\t\"value\" : \"%s\""), *Attr.AttrValue);
+			FileArchive->Logf(TEXT("\t\t\t\t\"value\" : \"%s\""), *Attr.ToString());
 			FileArchive->Logf(TEXT("\t\t\t}"));
 			bHasWrittenFirstAttr = true;
 		}
@@ -394,7 +394,7 @@ void FAnalyticsProviderFileLogging::RecordProgress(const FString& ProgressType, 
 			}
 			FileArchive->Logf(TEXT("\t\t\t{"));
 			FileArchive->Logf(TEXT("\t\t\t\t\"name\" : \"%s\","), *Attr.AttrName);
-			FileArchive->Logf(TEXT("\t\t\t\t\"value\" : \"%s\""), *Attr.AttrValue);
+			FileArchive->Logf(TEXT("\t\t\t\t\"value\" : \"%s\""), *Attr.ToString());
 			FileArchive->Logf(TEXT("\t\t\t}"));
 			bHasWrittenFirstAttr = true;
 		}
@@ -439,7 +439,7 @@ void FAnalyticsProviderFileLogging::RecordItemPurchase(const FString& ItemId, in
 			}
 			FileArchive->Logf(TEXT("\t\t\t{"));
 			FileArchive->Logf(TEXT("\t\t\t\t\"name\" : \"%s\","), *Attr.AttrName);
-			FileArchive->Logf(TEXT("\t\t\t\t\"value\" : \"%s\""), *Attr.AttrValue);
+			FileArchive->Logf(TEXT("\t\t\t\t\"value\" : \"%s\""), *Attr.ToString());
 			FileArchive->Logf(TEXT("\t\t\t}"));
 			bHasWrittenFirstAttr = true;
 		}
@@ -484,7 +484,7 @@ void FAnalyticsProviderFileLogging::RecordCurrencyPurchase(const FString& GameCu
 			}
 			FileArchive->Logf(TEXT("\t\t\t{"));
 			FileArchive->Logf(TEXT("\t\t\t\t\"name\" : \"%s\","), *Attr.AttrName);
-			FileArchive->Logf(TEXT("\t\t\t\t\"value\" : \"%s\""), *Attr.AttrValue);
+			FileArchive->Logf(TEXT("\t\t\t\t\"value\" : \"%s\""), *Attr.ToString());
 			FileArchive->Logf(TEXT("\t\t\t}"));
 			bHasWrittenFirstAttr = true;
 		}
@@ -529,7 +529,7 @@ void FAnalyticsProviderFileLogging::RecordCurrencyGiven(const FString& GameCurre
 			}
 			FileArchive->Logf(TEXT("\t\t\t{"));
 			FileArchive->Logf(TEXT("\t\t\t\t\"name\" : \"%s\","), *Attr.AttrName);
-			FileArchive->Logf(TEXT("\t\t\t\t\"value\" : \"%s\""), *Attr.AttrValue);
+			FileArchive->Logf(TEXT("\t\t\t\t\"value\" : \"%s\""), *Attr.ToString());
 			FileArchive->Logf(TEXT("\t\t\t}"));
 			bHasWrittenFirstAttr = true;
 		}

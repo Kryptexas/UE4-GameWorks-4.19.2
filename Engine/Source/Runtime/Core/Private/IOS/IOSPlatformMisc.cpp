@@ -977,6 +977,16 @@ void FIOSPlatformMisc::RegisterForRemoteNotifications()
 #endif
 }
 
+bool FIOSPlatformMisc::IsRegisteredForRemoteNotifications()
+{
+	return false;
+}
+
+void FIOSPlatformMisc::UnregisterForRemoteNotifications()
+{
+
+}
+
 void FIOSPlatformMisc::GetValidTargetPlatforms(TArray<FString>& TargetPlatformNames)
 {
 	// this is only used to cook with the proper TargetPlatform with COTF, it's not the runtime platform (which is just IOS for both)

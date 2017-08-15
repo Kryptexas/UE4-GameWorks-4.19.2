@@ -19,9 +19,7 @@ import android.util.Log;
 
 import android.os.Vibrator;
 import android.os.SystemClock;
-//@HSL_BEGIN - chance.lyon - Adding Handler for Sticky window callbacks
 import android.os.Handler;
-//@HSL_END
 
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -57,9 +55,7 @@ import android.media.AudioManager;
 import android.util.DisplayMetrics;
 
 import android.view.InputDevice;
-//@HSL_BEGIN - chance.lyon - Adding KeyEvent for Sticky window callbacks
 import android.view.KeyEvent;
-//@HSL_END
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
@@ -125,6 +121,13 @@ import android.view.inputmethod.InputMethodManager;
 import android.graphics.Rect;
 import android.view.ViewTreeObserver;
 
+import android.widget.FrameLayout;
+import android.widget.RelativeLayout;
+import android.view.inputmethod.InputConnection;
+import android.view.inputmethod.InputConnectionWrapper;
+import android.util.AttributeSet;
+import android.graphics.Color;
+
 //$${gameActivityImportAdditions}$$
 
 //$${gameActivityPostImportAdditions}$$
@@ -165,7 +168,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	private static final String CONSOLE_SPINNER_ITEMS[] = {"Common Console Commands", "stat FPS", "stat Anim","stat OpenGLRHI","stat VulkanRHI","stat DumpEvents","stat DumpFrame",
 		"stat DumpHitches","stat Engine","stat Game","stat Grouped","stat Hitches","stat InitViews","stat LightRendering",
 		"stat Memory","stat Particles","stat SceneRendering","stat SceneUpdate","stat ShadowRendering","stat Slow",
-		"stat Streaming","stat StreamingDetails","stat Unit","stat UnitGraph", "stat StartFile", "stat StopFile", "GameVer", "show PostProcessing"};
+		"stat Streaming","stat StreamingDetails","stat Unit","stat UnitGraph", "stat StartFile", "stat StopFile", "GameVer", "show PostProcessing", "stat AndroidCPU"};
 	AlertDialog consoleAlert;
 	LinearLayout consoleAlertLayout;
 	Spinner consoleSpinner;
@@ -179,6 +182,15 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	AlertDialog virtualKeyboardAlert;
 	EditText virtualKeyboardInputBox;
 	String virtualKeyboardPreviousContents;
+
+	//virtual keyboard input - custom EditText
+	VirtualKeyboardInput newVirtualKeyboardInput;
+
+	//layout for displaying virtual keyboard input
+	private LinearLayout virtualKeyboardLayout;
+
+	//container for SurfaceView and virtual keyboard input
+	private FrameLayout containerFrameLayout;
 
 	// Keep a reference to the main content view so we can bring up the virtual keyboard without an editbox
 	private View mainView;
@@ -932,11 +944,17 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 			HasAllFiles = true;
 		}
 
+		containerFrameLayout = new FrameLayout(_activity);
+		virtualKeyboardLayout = new LinearLayout(_activity);
+
 		// Need to create our surface view here regardless of if we are going to end up using it
 		getWindow().takeSurface(null);
 		MySurfaceView = new SurfaceView(this);
+		MySurfaceView.setBackgroundColor(Color.TRANSPARENT);
 		MySurfaceView.getHolder().addCallback(this);
-		setContentView(MySurfaceView);
+		containerFrameLayout.addView(MySurfaceView);
+		containerFrameLayout.addView(virtualKeyboardLayout);
+		setContentView(containerFrameLayout);
 
 		// cache a reference to the main content view and set it so it can be focused on
         mainView = findViewById( android.R.id.content );
@@ -947,7 +965,9 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
         mainDecorViewRect = new Rect();
         mainDecorView.getWindowVisibleDisplayFrame( mainDecorViewRect );
 
-        mainView.getViewTreeObserver().addOnGlobalLayoutListener( new ViewTreeObserver.OnGlobalLayoutListener()
+		createVirtualKeyboardInput();
+		
+		mainView.getViewTreeObserver().addOnGlobalLayoutListener( new ViewTreeObserver.OnGlobalLayoutListener()
         {
         	@Override
         	public void onGlobalLayout()
@@ -955,7 +975,8 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
         		if( bKeyboardShowing )
         		{
         			Rect visibleRect = new Rect();
-        			View visibleView = getWindow().getDecorView();
+        			View visibleView = mainView.getRootView();
+
         			visibleView.getWindowVisibleDisplayFrame( visibleRect );
 
         			// determine which side of the screen the keyboard is covering
@@ -971,7 +992,22 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
     				keyboardRect.right = ( leftDiff > 0 ) ? visibleRect.left : mainDecorViewRect.right; // keyboard is on the left
     				keyboardRect.bottom = ( topDiff > 0 ) ? visibleRect.top : mainDecorViewRect.bottom; // keyboard is on the top
 
+    				int screenHeight = visibleView.getHeight();
+    				int heightDiff = visibleRect.bottom - newVirtualKeyboardInput.getHeight();
+                    
         			nativeVirtualKeyboardShown( keyboardRect.left, keyboardRect.top, keyboardRect.right, keyboardRect.bottom );
+                    if(bottomDiff + topDiff + rightDiff + topDiff> 100)
+                    {
+                    	newVirtualKeyboardInput.setY(heightDiff);
+                    	newVirtualKeyboardInput.setVisibility(View.VISIBLE);
+						newVirtualKeyboardInput.requestFocus();
+                    }
+                    else if(newVirtualKeyboardInput.getY() > 0)
+                    {
+						newVirtualKeyboardInput.setVisibility(View.GONE);
+						//set offscreen
+        				newVirtualKeyboardInput.setY(-1000); 
+                    }
         		}
         	}
         });
@@ -981,7 +1017,6 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		Log.debug("==============> GameActive.onCreate complete!");
 	}
 
-//@HSL_BEGIN - chance.lyon - Adding Handler for Sticky window callbacks
 	private Handler mRestoreImmersiveModeHandler = new Handler();
 	private Runnable restoreImmersiveModeRunnable = new Runnable()
 	{
@@ -1037,7 +1072,6 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 
 		return super.onKeyDown(keyCode, event);
 	}
-//@HSL_END
 	
 	@Override
 	public void onResume()
@@ -1050,7 +1084,6 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		// only do this on KitKat and above
 		if (ShouldHideUI)
 		{ 
-//@HSL_BEGIN - chance.lyon - Adding Handler for Sticky window callbacks
 			restoreTransparentBars();
 			View decorView = getWindow().getDecorView(); 
 
@@ -1072,7 +1105,6 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 				}
 			});
 		}
-//@HSL_END
 		
 		if(HasAllFiles)
 		{
@@ -1382,7 +1414,6 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		// Set label and starting contents
 		virtualKeyboardAlert.setTitle(Label);
 
-		// @HSL_BEGIN - Josh.May - 11/01/2016 - Ensure the input mode of the text box is set before setting the contents.
 		// configure for type of input
 		virtualKeyboardInputBox.setRawInputType(inInputType);
 		virtualKeyboardInputBox.setTransformationMethod((inInputType & InputType.TYPE_TEXT_VARIATION_PASSWORD) == 0 ? null : PasswordTransformationMethod.getInstance());
@@ -1390,7 +1421,6 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		virtualKeyboardInputBox.setText("");
 		virtualKeyboardInputBox.append(Contents);
 		virtualKeyboardPreviousContents = Contents;
-		// @HSL_END - Josh.May - 11/01/2016
 
 		_activity.runOnUiThread(new Runnable()
 		{
@@ -1413,36 +1443,63 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		{
 			public void run()
 			{
-		        InputMethodManager imm =(InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
-		        imm.hideSoftInputFromWindow(mainView.getWindowToken(), 0);
+				Log.debug("Hide newVirtualKeyboardInput");
 
+		        InputMethodManager imm =(InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+				imm.hideSoftInputFromWindow(newVirtualKeyboardInput.getWindowToken(), 0);
+
+				newVirtualKeyboardInput.clearFocus();
+				//set offscreen
+				newVirtualKeyboardInput.setY(-1000);
+
+				newVirtualKeyboardInput.setVisibility(View.GONE);
+
+				nativeVirtualKeyboardVisible(false);
 		        bKeyboardShowing = false;
 			}
 		});
 	}
 
-	public void AndroidThunkJava_ShowVirtualKeyboardInput(int InputType, String Label, String Contents)
+	//initial settings for the virtual input
+	String virtualKeyboardInputContent;
+	int virtualKeyboardInputType;
+	public void AndroidThunkJava_ShowVirtualKeyboardInput(int inInputType, String Label, String Contents)
 	{
+		virtualKeyboardInputContent = Contents;
+		virtualKeyboardInputType = inInputType;
 		_activity.runOnUiThread(new Runnable()
 		{
 			public void run()
 			{
+				newVirtualKeyboardInput.setVisibility(View.VISIBLE);
+				//set offscreen
+				newVirtualKeyboardInput.setY(-1000);
+
+				newVirtualKeyboardInput.setText("");
+				newVirtualKeyboardInput.append(virtualKeyboardInputContent);
+
 				if (bKeyboardShowing)
 				{
 					Log.debug("Virtual keyboard already showing.");
-					return;
 				}
-				else if (mainView.requestFocus())
+				else if(newVirtualKeyboardInput.requestFocus())
 				{
-		            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-		            imm.showSoftInput(mainView, 0);
+					InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
 
-		            bKeyboardShowing = true;
-		        }
-		    }
-	    });
-		// @HSL_END - Josh.May - 3/28/2017
- 	}
+					imm.showSoftInput(newVirtualKeyboardInput, 0);
+
+					newVirtualKeyboardInput.setRawInputType(virtualKeyboardInputType);
+					newVirtualKeyboardInput.setTransformationMethod((
+						virtualKeyboardInputType & InputType.TYPE_TEXT_VARIATION_PASSWORD) == 0 ? 
+						null : 
+						PasswordTransformationMethod.getInstance());
+
+					nativeVirtualKeyboardVisible(true);
+					bKeyboardShowing = true;
+				}
+			}
+		});
+	}
 	
 	public void AndroidThunkJava_LaunchURL(String URL)
 	{
@@ -2611,6 +2668,169 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		}
 		return _bundle.getString(key);
 	}
+			
+	//virtual keyboard input class - custom EditText
+	public class VirtualKeyboardInput extends EditText 
+	{
+		public VirtualKeyboardInput(Context context, AttributeSet attrs, int defStyle) 
+		{
+			super(context, attrs, defStyle);
+		}
+
+		public VirtualKeyboardInput(Context context, AttributeSet attrs) 
+		{
+			super(context, attrs);
+		}
+
+		public VirtualKeyboardInput(Context context) 
+		{
+			super(context);
+		}
+
+		//Override BACK key to hide the virtual keyboard
+		@Override 
+		public boolean onKeyPreIme(int keyCode, KeyEvent event) 
+		{
+		    if (keyCode == KeyEvent.KEYCODE_BACK &&  event.getAction() == KeyEvent.ACTION_UP) 
+			{
+		    	AndroidThunkJava_HideVirtualKeyboardInput();
+		        return false;
+		    }
+		    return super.dispatchKeyEvent(event);
+		}
+
+		//extend associated InputConnection to handle special keys 
+		@Override
+		public InputConnection onCreateInputConnection(EditorInfo outAttrs) {
+			return new VirtualKeyboardInputConnection(super.onCreateInputConnection(outAttrs),
+					true, this);
+		}
+
+		private class VirtualKeyboardInputConnection extends InputConnectionWrapper {
+			VirtualKeyboardInput owner;
+			public VirtualKeyboardInputConnection(InputConnection target, boolean mutable, VirtualKeyboardInput editText) {
+						super(target, mutable);
+						owner = editText;
+					}
+
+			//implement virtual keyboard's BACKSPACE and ENTER keys
+			@Override
+			public boolean sendKeyEvent(KeyEvent event) 
+			{
+				StringBuffer text = new StringBuffer(owner.getText().toString());
+
+				int selStart, selEnd;
+ 
+				int a = owner.getSelectionStart();
+				int b = owner.getSelectionEnd();
+ 
+				selStart = Math.min(a, b);
+				selEnd = Math.max(a, b);
+				
+				if (event.getAction() == KeyEvent.ACTION_DOWN && event.getKeyCode() == KeyEvent.KEYCODE_DEL) 
+				{
+					//delete selected text / previous character
+					if (selStart != selEnd) 
+					{
+						text.replace(selStart, selEnd, "");
+					} 
+					else if(selStart > 0)
+					{ 
+						selStart--;
+						text.replace(selStart, selStart + 1, "");
+					} 
+					owner.setText(text.toString());
+					owner.setSelection(selStart);
+					return true;
+				}
+				else if (event.getAction() == KeyEvent.ACTION_DOWN && event.getKeyCode() == KeyEvent.KEYCODE_ENTER) 
+				{
+					//add new line
+					if (selStart != selEnd) 
+					{
+						text.replace(selStart, selEnd, "\n");
+					} 
+					else 
+					{ 
+						text.insert(selStart, "\n");
+					} 
+					owner.setText(text.toString());
+					owner.setSelection(selStart + 1);
+					return true;
+				}
+				return super.sendKeyEvent(event);
+			}
+
+			//in latest Android, deleteSurroundingText(1, 0) will be called for BACKSPACE
+			@Override
+			public boolean deleteSurroundingText(int beforeLength, int afterLength) {       
+				if (beforeLength == 1 && afterLength == 0) {
+					// backspace
+					return sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL))
+						&& sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DEL));
+				}
+
+				return super.deleteSurroundingText(beforeLength, afterLength);
+			}
+
+		}
+	}
+
+	//create the virtual keyboard input 
+	private void createVirtualKeyboardInput()
+	{
+		newVirtualKeyboardInput = new VirtualKeyboardInput(this);
+		newVirtualKeyboardInput.setSingleLine(false);
+		newVirtualKeyboardInput.setBackgroundColor(Color.WHITE);
+		newVirtualKeyboardInput.setLayoutParams(new RelativeLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+		newVirtualKeyboardInput.setVisibility(View.GONE);
+		if (ANDROID_BUILD_VERSION < 11)
+		{
+			newVirtualKeyboardInput.setImeOptions(EditorInfo.IME_FLAG_NO_EXTRACT_UI);
+		}
+		else
+		{
+			newVirtualKeyboardInput.setImeOptions(EditorInfo.IME_FLAG_NO_EXTRACT_UI | EditorInfo.IME_FLAG_NO_FULLSCREEN);
+		}
+
+		newVirtualKeyboardInput.addTextChangedListener(new TextWatcher() {
+			@Override
+			public void beforeTextChanged(CharSequence charSequence, int start, int count, int after) 
+			{
+			}
+
+			@Override
+			public void afterTextChanged(Editable s) 
+			{
+			}
+
+			@Override
+			public void onTextChanged(CharSequence charSequence, int start, int before, int count) 
+			{
+				//send to the associated Slate control
+				String message = newVirtualKeyboardInput.getText().toString();
+				nativeVirtualKeyboardChanged(message);
+			}
+		});
+		
+		virtualKeyboardLayout.addView (newVirtualKeyboardInput);
+	}
+
+	//check if the new virtual keyboard input has received a MOUSE_DOWN event
+	public boolean AndroidThunkJava_IsVirtuaInputClicked(int x, int y) 
+	{
+		View view = getCurrentFocus();
+		if (view == newVirtualKeyboardInput) 
+		{
+			Rect r = new Rect();
+			view.getGlobalVisibleRect(r);
+			if (r.contains(x, y)) 
+			{
+				return true;
+			}
+		}
+		return false;
+	}
 
 	public native boolean nativeIsShippingBuild();
 	public native void nativeSetGlobalActivity(boolean bUseExternalFilesDir, boolean bOBBInAPK, String APKPath);
@@ -2633,6 +2853,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	public native void nativeGoogleClientConnectCompleted(boolean bSuccess, String accessToken);
 
 	public native void nativeVirtualKeyboardShown(int left, int top, int right, int bottom);
+	public native void nativeVirtualKeyboardVisible(boolean bShown);
 		
 	static
 	{

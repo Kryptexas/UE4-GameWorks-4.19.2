@@ -120,6 +120,8 @@ void FJavaWrapper::FindClassesAndMethods(JNIEnv* Env)
 	// SurfaceView functionality for view scaling on some devices
 	AndroidThunkJava_UseSurfaceViewWorkaround = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_UseSurfaceViewWorkaround", "()V", bIsOptional);
 	AndroidThunkJava_SetDesiredViewSize = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_SetDesiredViewSize", "(II)V", bIsOptional);
+
+	AndroidThunkJava_IsVirtuaInputClicked = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_IsVirtuaInputClicked", "(II)Z", bIsOptional);
 }
 
 void FJavaWrapper::FindGooglePlayMethods(JNIEnv* Env)
@@ -318,6 +320,8 @@ jmethodID FJavaWrapper::AndroidThunkJava_IapConsumePurchase;
 jmethodID FJavaWrapper::AndroidThunkJava_UseSurfaceViewWorkaround;
 jmethodID FJavaWrapper::AndroidThunkJava_SetDesiredViewSize;
 
+jmethodID FJavaWrapper::AndroidThunkJava_IsVirtuaInputClicked;
+
 jclass FJavaWrapper::LaunchNotificationClass;
 jfieldID FJavaWrapper::LaunchNotificationUsed;
 jfieldID FJavaWrapper::LaunchNotificationEvent;
@@ -427,6 +431,16 @@ bool AndroidThunkCpp_GetInputDeviceInfo(int32 deviceId, FAndroidInputDeviceInfo 
 	results.Name = FString("Unknown");
 	results.Descriptor = FString("Unknown");
 	return false;
+}
+
+bool AndroidThunkCpp_IsVirtuaInputClicked(int32 x, int32 y)
+{
+	bool Result = false;
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
+	{
+		Result = FJavaWrapper::CallBooleanMethod(Env, FJavaWrapper::GameActivityThis, FJavaWrapper::AndroidThunkJava_IsVirtuaInputClicked, x, y);
+	}
+	return Result;
 }
 
 bool AndroidThunkCpp_IsGamepadAttached()

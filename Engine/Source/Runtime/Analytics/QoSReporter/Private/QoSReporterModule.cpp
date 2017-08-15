@@ -238,7 +238,7 @@ void FAnalyticsProviderQoSReporter::RecordEvent(const FString& InEventName, cons
 			for (int32 AttrIdx = 0; AttrIdx < Attributes.Num(); AttrIdx++)
 			{
 				const FAnalyticsEventAttribute& Attr = Attributes[AttrIdx];
-				JsonWriter->WriteValue(Attr.AttrName, Attr.AttrValue);
+				JsonWriter->WriteValue(Attr.AttrName, Attr.ToString());
 			}
 		}
 		JsonWriter->WriteObjectEnd();

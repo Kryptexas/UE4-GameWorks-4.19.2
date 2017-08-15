@@ -1261,10 +1261,10 @@ public partial class Project : CommandUtils
 			bool bAddedToChunk = false;
 			for (int ChunkIndex = 0; !bAddedToChunk && ChunkIndex < ChunkResponseFiles.Length; ++ChunkIndex)
 			{
-                		string OriginalFilename = StagingFile.Key;
-                		string NoExtension = CombinePaths(Path.GetDirectoryName(OriginalFilename), Path.GetFileNameWithoutExtension(OriginalFilename));
-                		string OriginalReplaceSlashes = OriginalFilename.Replace('/', '\\');
-                		string NoExtensionReplaceSlashes = NoExtension.Replace('/', '\\');
+				string OriginalFilename = StagingFile.Key;
+				string NoExtension = CombinePaths(Path.GetDirectoryName(OriginalFilename), Path.GetFileNameWithoutExtension(OriginalFilename));
+				string OriginalReplaceSlashes = OriginalFilename.Replace('/', '\\');
+				string NoExtensionReplaceSlashes = NoExtension.Replace('/', '\\');
 
 				if (ChunkResponseFiles[ChunkIndex].Contains(OriginalFilename) || 
                 		    ChunkResponseFiles[ChunkIndex].Contains(OriginalReplaceSlashes) ||
@@ -1302,7 +1302,7 @@ public partial class Project : CommandUtils
 		IEnumerable<Tuple<Dictionary<string,string>, string>> PakPairs = PakResponseFiles.Zip(ChunkList, (a, b) => Tuple.Create(a, b));
 	
         System.Threading.Tasks.ParallelOptions Options = new System.Threading.Tasks.ParallelOptions();
-        Options.MaxDegreeOfParallelism = 1;
+        Options.MaxDegreeOfParallelism = 16;
 		System.Threading.Tasks.Parallel.ForEach(PakPairs, (PakPair) =>
 		{
 			var ChunkName = Path.GetFileNameWithoutExtension(PakPair.Item2);

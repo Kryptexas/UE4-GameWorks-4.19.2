@@ -170,6 +170,11 @@ namespace UnrealBuildTool
 		public bool bEnableExceptions = false;
 
 		/// <summary>
+		/// Enable objective C exception handling
+		/// </summary>
+		public bool bEnableObjCExceptions = false;
+
+		/// <summary>
 		/// Whether to warn about the use of shadow variables
 		/// </summary>
 		public bool bEnableShadowVariableWarnings = false;
@@ -336,6 +341,7 @@ namespace UnrealBuildTool
 			MinFilesUsingPrecompiledHeaderOverride = Other.MinFilesUsingPrecompiledHeaderOverride;
 			bBuildLocallyWithSNDBS = Other.bBuildLocallyWithSNDBS;
 			bEnableExceptions = Other.bEnableExceptions;
+			bEnableObjCExceptions = Other.bEnableObjCExceptions;
 			bShadowVariableWarningsAsErrors = Other.bShadowVariableWarningsAsErrors;
 			bEnableShadowVariableWarnings = Other.bEnableShadowVariableWarnings;
 			bUndefinedIdentifierWarningsAsErrors = Other.bUndefinedIdentifierWarningsAsErrors;

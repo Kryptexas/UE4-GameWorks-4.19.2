@@ -405,7 +405,6 @@ void FMaterialDetailCustomization::CustomizeDetails( IDetailLayoutBuilder& Detai
 		DetailLayout.HideCategory( TEXT("TranslucencySelfShadowing") );
 		DetailLayout.HideCategory( TEXT("Translucency") );
 		DetailLayout.HideCategory( TEXT("Tessellation") );
-		DetailLayout.HideCategory( TEXT("Mobile") );
 		DetailLayout.HideCategory( TEXT("PostProcessMaterial") );
 		DetailLayout.HideCategory( TEXT("Lightmass") );
 		DetailLayout.HideCategory( TEXT("Thumbnail") );
@@ -413,22 +412,44 @@ void FMaterialDetailCustomization::CustomizeDetails( IDetailLayoutBuilder& Detai
 		DetailLayout.HideCategory( TEXT("PhysicalMaterial") );
 		DetailLayout.HideCategory( TEXT("Usage") );
 
-		IDetailCategoryBuilder& MaterialCategory = DetailLayout.EditCategory( TEXT("Material") );
-
-		TArray<TSharedRef<IPropertyHandle>> AllProperties;
-		MaterialCategory.GetDefaultProperties( AllProperties );
-
-		for( TSharedRef<IPropertyHandle>& PropertyHandle : AllProperties )
+		// Materail category
 		{
-			UProperty* Property = PropertyHandle->GetProperty();
-			FName PropertyName = Property->GetFName();
+			IDetailCategoryBuilder& MaterialCategory = DetailLayout.EditCategory( TEXT("Material") );
 
-			if(		PropertyName != GET_MEMBER_NAME_CHECKED(UMaterial, MaterialDomain) 
-				&&	PropertyName != GET_MEMBER_NAME_CHECKED(UMaterial, BlendMode) 
-				&&	PropertyName != GET_MEMBER_NAME_CHECKED(UMaterial, OpacityMaskClipValue) 
-				&&  	PropertyName != GET_MEMBER_NAME_CHECKED(UMaterial, NumCustomizedUVs) )
+			TArray<TSharedRef<IPropertyHandle>> AllProperties;
+			MaterialCategory.GetDefaultProperties( AllProperties );
+
+			for( TSharedRef<IPropertyHandle>& PropertyHandle : AllProperties )
 			{
-				DetailLayout.HideProperty( PropertyHandle );
+				UProperty* Property = PropertyHandle->GetProperty();
+				FName PropertyName = Property->GetFName();
+
+				if(		PropertyName != GET_MEMBER_NAME_CHECKED(UMaterial, MaterialDomain) 
+					&&	PropertyName != GET_MEMBER_NAME_CHECKED(UMaterial, BlendMode) 
+					&&	PropertyName != GET_MEMBER_NAME_CHECKED(UMaterial, OpacityMaskClipValue) 
+					&&  	PropertyName != GET_MEMBER_NAME_CHECKED(UMaterial, NumCustomizedUVs) )
+				{
+					DetailLayout.HideProperty( PropertyHandle );
+				}
+			}
+		}
+
+		// Mobile category
+		{
+			IDetailCategoryBuilder& MobileCategory = DetailLayout.EditCategory(TEXT("Mobile"));
+			
+			TArray<TSharedRef<IPropertyHandle>> AllProperties;
+			MobileCategory.GetDefaultProperties(AllProperties);
+
+			for (TSharedRef<IPropertyHandle>& PropertyHandle : AllProperties)
+			{
+				UProperty* Property = PropertyHandle->GetProperty();
+				FName PropertyName = Property->GetFName();
+
+				if (PropertyName != GET_MEMBER_NAME_CHECKED(UMaterial, bUseFullPrecision)) 
+				{
+					DetailLayout.HideProperty(PropertyHandle);
+				}
 			}
 		}
 	}

@@ -194,6 +194,7 @@ public:
 	virtual void RecordEventJson(FString EventName, TArray<FAnalyticsEventAttribute>&& AttributesJson) override;
 	virtual void SetDefaultEventAttributes(TArray<FAnalyticsEventAttribute>&& Attributes) override;
 	virtual const TArray<FAnalyticsEventAttribute>& GetDefaultEventAttributes() const override;
+	virtual void SetEventCallback(const OnEventRecorded& Callback) override;
 
 	virtual ~FAnalyticsProviderET();
 
@@ -281,6 +282,8 @@ private:
 	/** Critical section for updating the CachedEvents. Mutable to allow const methods to access the list. */
 	mutable FCriticalSection CachedEventsCS;
 
+	TArray<OnEventRecorded> EventRecordedCallbacks;
+
 	/**
 	* Delegate called when an event Http request completes
 	*/
@@ -313,6 +316,7 @@ public:
 	virtual void RecordEvent(FString EventName, TArray<FAnalyticsEventAttribute>&& Attributes) override {}
 	virtual void RecordEventJson(FString EventName, TArray<FAnalyticsEventAttribute>&& AttributesJson) override {}
 	virtual void SetDefaultEventAttributes(TArray<FAnalyticsEventAttribute>&& Attributes) override {}
+	virtual void SetEventCallback(const OnEventRecorded& Callback) override {}
 
 	virtual ~FAnalyticsProviderETNULL() {};
 
@@ -558,21 +562,49 @@ void FAnalyticsProviderET::FlushEvents()
 					// default attributes for this event
 					for (const FAnalyticsEventAttribute& Attr : CurrentDefaultAttributes)
 					{
-						JsonWriter->WriteValue(Attr.AttrName, Attr.AttrValue);
+						switch (Attr.AttrType)
+						{
+						case FAnalyticsEventAttribute::AttrTypeEnum::String:
+							JsonWriter->WriteValue(Attr.AttrName, Attr.AttrValueString);
+							break;
+						case FAnalyticsEventAttribute::AttrTypeEnum::Number:
+							JsonWriter->WriteValue(Attr.AttrName, Attr.AttrValueNumber);
+							break;
+						case FAnalyticsEventAttribute::AttrTypeEnum::Boolean:
+							JsonWriter->WriteValue(Attr.AttrName, Attr.AttrValueBool);
+							break;
+						case FAnalyticsEventAttribute::AttrTypeEnum::JsonFragment:
+							JsonWriter->WriteRawJSONValue(Attr.AttrName, Attr.AttrValueString);
+							break;
+						}
 					}
 					// optional attributes for this event
 					if (!Entry.bIsJsonEvent)
 					{
 						for (const FAnalyticsEventAttribute& Attr : Entry.Attributes)
 						{
-							JsonWriter->WriteValue(Attr.AttrName, Attr.AttrValue);
+							switch (Attr.AttrType)
+							{
+							case FAnalyticsEventAttribute::AttrTypeEnum::String:
+								JsonWriter->WriteValue(Attr.AttrName, Attr.AttrValueString);
+								break;
+							case FAnalyticsEventAttribute::AttrTypeEnum::Number:
+								JsonWriter->WriteValue(Attr.AttrName, Attr.AttrValueNumber);
+								break;
+							case FAnalyticsEventAttribute::AttrTypeEnum::Boolean:
+								JsonWriter->WriteValue(Attr.AttrName, Attr.AttrValueBool);
+								break;
+							case FAnalyticsEventAttribute::AttrTypeEnum::JsonFragment:
+								JsonWriter->WriteRawJSONValue(Attr.AttrName, Attr.AttrValueString);
+								break;
+							}
 						}
 					}
 					else
 					{
 						for (const FAnalyticsEventAttribute& Attr : Entry.Attributes)
 						{
-							JsonWriter->WriteRawJSONValue(Attr.AttrName, Attr.AttrValue);
+							JsonWriter->WriteRawJSONValue(Attr.AttrName, Attr.AttrValueString);
 						}
 					}
 					JsonWriter->WriteObjectEnd();
@@ -650,7 +682,7 @@ void FAnalyticsProviderET::FlushEvents()
 							PayloadNdx,
 							*FPlatformHttp::UrlEncode(CurrentDefaultAttributes[DefaultAttributeNdx].AttrName),
 							PayloadNdx,
-							*FPlatformHttp::UrlEncode(CurrentDefaultAttributes[DefaultAttributeNdx].AttrValue));
+							*FPlatformHttp::UrlEncode(CurrentDefaultAttributes[DefaultAttributeNdx].ToString()));
 					}
 					// optional attributes for this event
 					for (int AttrNdx = 0; AttrNdx < Event.Attributes.Num() && PayloadNdx < 40; ++AttrNdx, ++PayloadNdx)
@@ -659,7 +691,7 @@ void FAnalyticsProviderET::FlushEvents()
 							PayloadNdx,
 							*FPlatformHttp::UrlEncode(Event.Attributes[AttrNdx].AttrName),
 							PayloadNdx,
-							*FPlatformHttp::UrlEncode(Event.Attributes[AttrNdx].AttrValue));
+							*FPlatformHttp::UrlEncode(Event.Attributes[AttrNdx].ToString()));
 					}
 
 					// log out the un-encoded values to make reading the log easier.
@@ -766,6 +798,12 @@ void FAnalyticsProviderET::RecordEvent(const FString& EventName, const TArray<FA
 
 void FAnalyticsProviderET::RecordEvent(FString EventName, TArray<FAnalyticsEventAttribute>&& Attributes)
 {
+	// fire any callbacks
+	for (const auto& Cb : EventRecordedCallbacks)
+	{
+		Cb(EventName, Attributes, false);
+	}
+
 	// There are much better ways to do this, but since most events are recorded and handled on the same (game) thread,
 	// this is probably mostly fine for now, and simply favoring not crashing at the moment
 	FScopeLock ScopedLock(&CachedEventsCS);
@@ -780,6 +818,13 @@ void FAnalyticsProviderET::RecordEvent(FString EventName, TArray<FAnalyticsEvent
 void FAnalyticsProviderET::RecordEventJson(FString EventName, TArray<FAnalyticsEventAttribute>&& AttributesJson)
 {
 	checkf(!UseLegacyProtocol, TEXT("Cannot use Json events with legacy protocol"));
+
+	// fire any callbacks
+	for (const auto& Cb : EventRecordedCallbacks)
+	{
+		Cb(EventName, AttributesJson, true);
+	}
+
 	// There are much better ways to do this, but since most events are recorded and handled on the same (game) thread,
 	// this is probably mostly fine for now, and simply favoring not crashing at the moment
 	FScopeLock ScopedLock(&CachedEventsCS);
@@ -813,6 +858,11 @@ const TArray<FAnalyticsEventAttribute>& FAnalyticsProviderET::GetDefaultEventAtt
 	int DefaultIndex = CachedEvents.FindLastByPredicate([](const FAnalyticsEventEntry& Entry) { return Entry.bIsDefaultAttributes == 1; });
 	checkf(DefaultIndex != INDEX_NONE, TEXT("failed to find default attributes entry in analytics cached events list"));
 	return CachedEvents[DefaultIndex].Attributes;
+}
+
+void FAnalyticsProviderET::SetEventCallback(const OnEventRecorded& Callback)
+{
+	EventRecordedCallbacks.Add(Callback);
 }
 
 void FAnalyticsProviderET::EventRequestComplete(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool, TSharedPtr< TArray<FAnalyticsEventEntry> > FlushedEvents)

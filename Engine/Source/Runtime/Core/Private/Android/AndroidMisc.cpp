@@ -27,6 +27,7 @@
 
 #include <android_native_app_glue.h>
 #include "Function.h"
+#include "AndroidStats.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogEngine, Log, All);
 
@@ -552,7 +553,7 @@ FAndroidMisc::FCPUState& FAndroidMisc::GetCPUState(){
 	int32		Index = 0;
 	ANSICHAR	Buffer[500];
 
-	CurrentCPUState.CoreCount = FAndroidMisc::NumberOfCores();
+	CurrentCPUState.CoreCount = FMath::Min( FAndroidMisc::NumberOfCores(), FAndroidMisc::FCPUState::MaxSupportedCores);
 	FILE* FileHandle = fopen("/proc/stat", "r");
 	if (FileHandle){
 		CurrentCPUState.ActivatedCoreCount = 0;
@@ -563,18 +564,23 @@ FAndroidMisc::FCPUState& FAndroidMisc::GetCPUState(){
 		
 		while (fgets(Buffer, 100, FileHandle)) {
 #if PLATFORM_64BITS
-			sscanf(Buffer, "%4s %8lu %8lu %8lu %8lu %8lu %8lu %8lu", CurrentCPUState.Name,
+			sscanf(Buffer, "%5s %8lu %8lu %8lu %8lu %8lu %8lu %8lu", CurrentCPUState.Name,
 				&UserTime, &NiceTime, &SystemTime, &IdleTime, &IOWaitTime, &IRQTime,
 				&SoftIRQTime);
 #else
-			sscanf(Buffer, "%4s %8llu %8llu %8llu %8llu %8llu %8llu %8llu", CurrentCPUState.Name,
+			sscanf(Buffer, "%5s %8llu %8llu %8llu %8llu %8llu %8llu %8llu", CurrentCPUState.Name,
 				&UserTime, &NiceTime, &SystemTime, &IdleTime, &IOWaitTime, &IRQTime,
 				&SoftIRQTime);
 #endif
 
 			if (0 == strncmp(CurrentCPUState.Name, "cpu", 3)) {
 				Index = CurrentCPUState.Name[3] - '0';
-				if (Index >= 0 && Index < CurrentCPUState.CoreCount) {
+				if (Index >= 0 && Index < CurrentCPUState.CoreCount)
+				{
+					if(CurrentCPUState.Name[5] != '\0')
+					{
+						Index = atol(&CurrentCPUState.Name[3]);
+					}
 					CurrentCPUState.CurrentUsage[Index].IdleTime = IdleTime;
 					CurrentCPUState.CurrentUsage[Index].NiceTime = NiceTime;
 					CurrentCPUState.CurrentUsage[Index].SystemTime = SystemTime;
@@ -1597,4 +1603,39 @@ void FAndroidMisc::GetOSVersions(FString& out_OSVersionLabel, FString& out_OSSub
 FString FAndroidMisc::GetOSVersion()
 {
 	return GetAndroidVersion();
+}
+
+uint32 FAndroidMisc::GetCoreFrequency(int32 CoreIndex, ECoreFrequencyProperty CoreFrequencyProperty)
+{
+	uint32 ReturnFrequency = 0;
+	char QueryFile[256];
+	const char* FreqProperty = nullptr;
+	static const char* CurrentFrequencyString = "scaling_cur_freq";
+	static const char* MaxFrequencyString = "cpuinfo_max_freq";
+	static const char* MinFrequencyString = "cpuinfo_min_freq";
+	switch (CoreFrequencyProperty)
+	{
+		case ECoreFrequencyProperty::MaxFrequency:
+			FreqProperty = MaxFrequencyString;
+			break;
+		case ECoreFrequencyProperty::MinFrequency:
+			FreqProperty = MinFrequencyString;
+			break;
+		default:
+		case ECoreFrequencyProperty::CurrentFrequency:
+			FreqProperty = CurrentFrequencyString;
+			break;
+	}
+	sprintf(QueryFile, "/sys/devices/system/cpu/cpu%d/cpufreq/%s", CoreIndex, FreqProperty);
+
+	if (FILE* CoreFreqStateFile = fopen(QueryFile, "r"))
+	{
+		char curr_corefreq[32] = { 0 };
+		if( fgets(curr_corefreq, ARRAY_COUNT(curr_corefreq), CoreFreqStateFile) != nullptr)
+		{
+			ReturnFrequency = atol(curr_corefreq);
+		}
+		fclose(CoreFreqStateFile);
+	}
+	return ReturnFrequency;
 }

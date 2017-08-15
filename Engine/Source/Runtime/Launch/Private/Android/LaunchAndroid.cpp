@@ -27,6 +27,7 @@
 #include "HAL/PlatformAffinity.h"
 #include "Modules/ModuleManager.h"
 #include "IMessagingModule.h"
+#include "AndroidStats.h"
 
 // Function pointer for retrieving joystick events
 // Function has been part of the OS since Honeycomb, but only appeared in the
@@ -94,6 +95,7 @@ extern "C"
 
 extern void AndroidThunkCpp_InitHMDs();
 extern void AndroidThunkCpp_ShowConsoleWindow();
+extern bool AndroidThunkCpp_IsVirtuaInputClicked(int, int);
 
 // Base path for file accesses
 extern FString GFilePathBase;
@@ -134,6 +136,9 @@ static const int32_t SensorDelayGame = 1;
 static const float SampleDecayRate = 0.85f;
 // Event for coordinating pausing of the main and event handling threads to prevent background spinning
 static FEvent* EventHandlerEvent = NULL;
+
+// virtualKeyboard shown
+static volatile bool GVirtualKeyboardShown = false;
 
 // Wait for Java onCreate to complete before resume main init
 static volatile bool GResumeMainInit = false;
@@ -330,6 +335,8 @@ int32 AndroidMain(struct android_app* state)
 	// tick until done
 	while (!GIsRequestingExit)
 	{
+		FAndroidStats::UpdateAndroidStats();
+
 		FAppEventManager::GetInstance()->Tick();
 		if(!FAppEventManager::GetInstance()->IsGamePaused())
 		{
@@ -571,6 +578,16 @@ static int32_t HandleInputCB(struct android_app* app, AInputEvent* event)
 			}
 			FPlatformRect ScreenRect = FAndroidWindow::GetScreenRect();
 
+			if (GVirtualKeyboardShown && (type == TouchBegan || type == TouchMoved))
+			{
+				int pointerId = AMotionEvent_getPointerId(event, actionPointer);
+				int32 x = AMotionEvent_getX(event, actionPointer);
+				int32 y = AMotionEvent_getY(event, actionPointer);
+
+				//ignore key down events when the native input was clicked
+				if (AndroidThunkCpp_IsVirtuaInputClicked(x, y))
+					return 0;
+			}
 			if(isActionTargeted)
 			{
 				if(actionPointer < 0 || pointerCount < (int)actionPointer)
@@ -1074,6 +1091,12 @@ static int HandleSensorEvents(int fd, int events, void* data)
 }
 
 //Native-defined functions
+
+//Set GVirtualKeyboardShown.This function is declared in the Java-defined class, GameActivity.java: "public native void nativeVirtualKeyboardVisible(boolean bShown)"
+JNI_METHOD void Java_com_epicgames_ue4_GameActivity_nativeVirtualKeyboardVisible(JNIEnv* jenv, jobject thiz, jboolean bShown)
+{
+	GVirtualKeyboardShown = bShown;
+}
 
 //This function is declared in the Java-defined class, GameActivity.java: "public native void nativeConsoleCommand(String commandString);"
 JNI_METHOD void Java_com_epicgames_ue4_GameActivity_nativeConsoleCommand(JNIEnv* jenv, jobject thiz, jstring commandString)

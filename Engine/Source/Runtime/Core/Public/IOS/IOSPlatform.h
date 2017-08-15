@@ -62,7 +62,7 @@ typedef FIOSPlatformTypes FPlatformTypes;
 #define VARARGS															/* Functions with variable arguments */
 #define CDECL															/* Standard C function */
 #define STDCALL															/* Standard calling convention */
-#if UE_BUILD_DEBUG
+#if UE_BUILD_DEBUG || UE_DISABLE_FORCE_INLINE
 #define FORCEINLINE inline 												/* Don't force code to be inline */
 #else
 #define FORCEINLINE inline __attribute__ ((always_inline))				/* Force code to be inline */

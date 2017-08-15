@@ -463,6 +463,11 @@ namespace UnrealBuildTool
 		public bool bForceEnableExceptions = false;
 
 		/// <summary>
+		/// Enable exceptions for all modules.
+		/// </summary>
+		public bool bForceEnableObjCExceptions = false;
+
+		/// <summary>
 		/// Enable RTTI for all modules.
 		/// </summary>
 		public bool bForceEnableRTTI = false;
@@ -1620,6 +1625,11 @@ namespace UnrealBuildTool
 		public bool bForceEnableExceptions
 		{
 			get { return Inner.bForceEnableExceptions; }
+		}
+
+		public bool bForceEnableObjCExceptions
+		{
+			get { return Inner.bForceEnableObjCExceptions; }
 		}
 
 		public bool bForceEnableRTTI

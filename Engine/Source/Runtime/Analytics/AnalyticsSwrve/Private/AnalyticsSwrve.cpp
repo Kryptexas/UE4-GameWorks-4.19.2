@@ -357,7 +357,7 @@ void FAnalyticsProviderSwrve::RecordEvent(const FString& EventName, const TArray
 			{
 				EventParams += TEXT(",");
 			}
-			EventParams += FString(TEXT("\"")) + Attributes[Ndx].AttrName + TEXT("\": \"") + Attributes[Ndx].AttrValue+ TEXT("\"");
+			EventParams += FString(TEXT("\"")) + Attributes[Ndx].AttrName + TEXT("\": \"") + Attributes[Ndx].ToString()+ TEXT("\"");
 		}
 		EventParams += TEXT("}");
 	}

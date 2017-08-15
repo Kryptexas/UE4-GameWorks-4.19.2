@@ -13,11 +13,10 @@ DEFINE_LOG_CATEGORY_STATIC(LogAnalyticsBPLib, Display, All);
 static inline TArray<FAnalyticsEventAttribute> ConvertAttrs(const TArray<FAnalyticsEventAttr>& Attributes)
 {
 	TArray<FAnalyticsEventAttribute> Converted;
-	Converted.AddZeroed(Attributes.Num());
-	for (int32 Index = 0; Index < Attributes.Num(); Index++)
+	Converted.Reserve(Attributes.Num());
+	for (const FAnalyticsEventAttr& Attr : Attributes)
 	{
-		Converted[Index].AttrName = Attributes[Index].Name;
-		Converted[Index].AttrValue = Attributes[Index].Value;
+		Converted.Emplace(Attr.Name, Attr.Value);
 	}
 	return Converted;
 }

@@ -231,6 +231,11 @@ namespace UnrealBuildTool
 		public bool bEnableExceptions = false;
 
 		/// <summary>
+		/// Enable objective C exception handling
+		/// </summary>
+		public bool bEnableObjCExceptions = false;
+
+		/// <summary>
 		/// Enable warnings for shadowed variables
 		/// </summary>
 		public bool bEnableShadowVariableWarnings = true;

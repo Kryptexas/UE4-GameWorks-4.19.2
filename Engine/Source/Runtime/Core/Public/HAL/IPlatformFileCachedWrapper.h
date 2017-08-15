@@ -368,6 +368,14 @@ public:
 	{
 		return LowerLevel->IterateDirectoryStatRecursively(Directory, Visitor);
 	}
+	virtual void		FindFiles(TArray<FString>& FoundFiles, const TCHAR* Directory, const TCHAR* FileExtension)
+	{
+		return LowerLevel->FindFiles(FoundFiles, Directory, FileExtension);
+	}
+	virtual void		FindFilesRecursively(TArray<FString>& FoundFiles, const TCHAR* Directory, const TCHAR* FileExtension)
+	{
+		return LowerLevel->FindFilesRecursively(FoundFiles, Directory, FileExtension);
+	}
 	virtual bool		DeleteDirectoryRecursively(const TCHAR* Directory) override
 	{
 		return LowerLevel->DeleteDirectoryRecursively(Directory);

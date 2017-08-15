@@ -1533,7 +1533,7 @@ public class IOSPlatform : Platform
 
 	public override void PostStagingFileCopy(ProjectParams Params, DeploymentContext SC)
 	{
-		if (Params.CreateChunkInstall)
+/*		if (Params.CreateChunkInstall)
 		{
 			// get the bundle identifier
 			string BundleIdentifier = "";
@@ -1605,7 +1605,7 @@ public class IOSPlatform : Platform
 
 			// generate the OnDemandResources.plist
 			GenerateOnDemandResourcesPlist (ChunkData, SC.StageDirectory.FullName);
-		}
+		}*/
 	}
 
 	public override bool StageMovies

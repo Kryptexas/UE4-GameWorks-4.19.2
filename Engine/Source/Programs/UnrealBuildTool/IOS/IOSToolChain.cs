@@ -173,7 +173,16 @@ namespace UnrealBuildTool
 			{
 				Result += " -fno-exceptions";
 			}
-			
+
+			if (CompileEnvironment.bEnableObjCExceptions)
+			{
+				Result += " -fobjc-exceptions";
+			}
+			else
+			{
+				Result += " -fno-objc-exceptions";
+			}
+
 			string SanitizerMode = Environment.GetEnvironmentVariable("ENABLE_ADDRESS_SANITIZER");
 			if(SanitizerMode != null && SanitizerMode == "YES")
 			{
@@ -1324,6 +1333,32 @@ namespace UnrealBuildTool
 			}
 		}
 
+		private static void GenerateCrashlyticsData(string ExecutableDirectory, string ExecutableName, string ProjectDir, string ProjectName)
+        {
+			Log.TraceInformation("Generating and uploading Crashlytics Data");
+            string FabricPath = UnrealBuildTool.EngineDirectory + "/Intermediate/UnzippedFrameworks/ThirdPartyFrameworks/Fabric.embeddedframework";
+            if (Directory.Exists(FabricPath))
+            {
+				string PlistFile = ProjectDir + "/Intermediate/IOS/" + ProjectName + "-Info.plist";
+                Process FabricProcess = new Process();
+                FabricProcess.StartInfo.WorkingDirectory = ExecutableDirectory;
+                FabricProcess.StartInfo.FileName = "/bin/sh";
+				FabricProcess.StartInfo.Arguments = string.Format("-c 'chmod 777 \"{0}/Fabric.framework/upload-symbols\"; \"{0}/Fabric.framework/upload-symbols\" -a 7a4cebd0324af21696e5e321802c5e26ba541cad -p ios {1}'",
+                    FabricPath,
+					ExecutableDirectory + "/" + ExecutableName + ".dSYM.zip");
+                FabricProcess.OutputDataReceived += new DataReceivedEventHandler(OutputReceivedDataEventHandler);
+                FabricProcess.ErrorDataReceived += new DataReceivedEventHandler(OutputReceivedDataEventHandler);
+
+                OutputReceivedDataEventHandlerEncounteredError = false;
+                OutputReceivedDataEventHandlerEncounteredErrorMessage = "";
+                Utils.RunLocalProcess(FabricProcess);
+                if (OutputReceivedDataEventHandlerEncounteredError)
+                {
+                    throw new Exception(OutputReceivedDataEventHandlerEncounteredErrorMessage);
+                }
+            }
+        }
+
         public static void PostBuildSync(UEBuildTarget Target)
 		{
 			IOSProjectSettings ProjectSettings = ((IOSPlatform)UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.IOS)).ReadProjectSettings(Target.ProjectFile);
@@ -1354,6 +1389,10 @@ namespace UnrealBuildTool
 					}
 				}
 
+                // ensure the plist, entitlements, and provision files are properly copied
+                var DeployHandler = (Target.Platform == UnrealTargetPlatform.IOS ? new UEDeployIOS() : new UEDeployTVOS());
+                DeployHandler.PrepTargetForDeployment(new UEBuildDeployTarget(Target));
+
 				// copy the executable
 				if (!File.Exists(FinalRemoteExecutablePath))
 				{
@@ -1361,15 +1400,13 @@ namespace UnrealBuildTool
 				}
 				File.Copy(Target.OutputPath.FullName, FinalRemoteExecutablePath, true);
 
+				GenerateCrashlyticsData(RemoteShadowDirectoryMac, Path.GetFileName(Target.OutputPath.FullName), Target.ProjectDirectory.FullName, AppName);
+
 				if (Target.Rules.bCreateStubIPA)
 				{
 					string Project = Target.ProjectDirectory + "/" + AppName + ".uproject";
 
 					string SchemeName = AppName;
-
-                    // ensure the plist, entitlements, and provision files are properly copied
-                    var DeployHandler = (Target.Platform == UnrealTargetPlatform.IOS ? new UEDeployIOS() : new UEDeployTVOS());
-                    DeployHandler.PrepTargetForDeployment(new UEBuildDeployTarget(Target));
 
                     // generate the dummy project so signing works
                     if (AppName == "UE4Game" || AppName == "UE4Client" || Utils.IsFileUnderDirectory(Target.ProjectDirectory + "/" + AppName + ".uproject", Path.GetFullPath("../..")))

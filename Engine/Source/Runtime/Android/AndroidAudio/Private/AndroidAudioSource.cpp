@@ -508,6 +508,12 @@ void FSLESSoundSource::Stop( void )
 			check(SL_RESULT_SUCCESS == result);
 		}
 	}
+	DestroyPlayer();
+	ReleaseResources();
+	Paused = false;
+	Playing = false;
+	SLESBuffer = nullptr;
+	Buffer = nullptr;
 
 	DestroyPlayer();
 	ReleaseResources();

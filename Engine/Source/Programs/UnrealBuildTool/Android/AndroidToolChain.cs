@@ -1435,6 +1435,9 @@ namespace UnrealBuildTool
 
 		public override void ModifyBuildProducts(ReadOnlyTargetRules Target, UEBuildBinary Binary, List<string> Libraries, List<UEBuildBundleResource> BundleResources, Dictionary<FileReference, BuildProductType> BuildProducts)
 		{
+			// only the .so needs to be in the manifest; we always have to build the apk since its contents depend on the project
+
+			/*
 			// the binary will have all of the .so's in the output files, we need to trim down to the shared apk (which is what needs to go into the manifest)
 			if (Target.bDeployAfterCompile && Binary.Config.Type != UEBuildBinaryType.StaticLibrary)
 			{
@@ -1444,6 +1447,7 @@ namespace UnrealBuildTool
 					BuildProducts.Add(ApkFile, BuildProductType.Package);
 				}
 			}
+			*/
 		}
 
 		public override void CompileCSharpProject(CSharpEnvironment CompileEnvironment, FileReference ProjectFileName, FileReference DestinationFile, ActionGraph ActionGraph)

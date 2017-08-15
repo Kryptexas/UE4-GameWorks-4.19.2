@@ -549,7 +549,8 @@ void EngineCrashHandler(const FGenericCrashContext& GenericContext)
 	OSVersion = [[[UIDevice currentDevice] systemVersion] floatValue];
 	if (!FPlatformMisc::IsDebuggerPresent() || GAlwaysReportCrash)
 	{
-        FPlatformMisc::SetCrashHandler(EngineCrashHandler);
+//        FPlatformMisc::SetCrashHandler(EngineCrashHandler);
+        InstallSignalHandlers();
 	}
 
 	// create the main landscape window object
@@ -920,36 +921,48 @@ void EngineCrashHandler(const FGenericCrashContext& GenericContext)
 
 -(void)application : (UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo fetchCompletionHandler:(void(^)(UIBackgroundFetchResult result))handler
 {
-	NSString* JsonString = @"{}";
-	NSError* JsonError;
-	NSData* JsonData = [NSJSONSerialization dataWithJSONObject : userInfo
-					options : 0
-					error : &JsonError];
-
-	if (JsonData)
+	if (bEngineInit)
 	{
-		JsonString = [[[NSString alloc] initWithData:JsonData encoding : NSUTF8StringEncoding] autorelease];
+		NSString* JsonString = @"{}";
+		NSError* JsonError;
+		NSData* JsonData = [NSJSONSerialization dataWithJSONObject : userInfo
+						options : 0
+						error : &JsonError];
+
+		if (JsonData)
+		{
+			JsonString = [[[NSString alloc] initWithData:JsonData encoding : NSUTF8StringEncoding] autorelease];
+		}
+		
+		FString	jsonFString(JsonString);
+		int AppState;
+		if (application.applicationState == UIApplicationStateInactive)
+		{
+			AppState = 1; // EApplicationState::Inactive;
+		}
+		else if (application.applicationState == UIApplicationStateBackground)
+		{
+			AppState = 2; // EApplicationState::Background;
+		}
+		else
+		{
+			AppState = 3; // EApplicationState::Active;
+		}
+
+		FFunctionGraphTask::CreateAndDispatchWhenReady([jsonFString, AppState]()
+		{
+			FCoreDelegates::ApplicationReceivedRemoteNotificationDelegate.Broadcast(jsonFString, AppState);
+		}, TStatId(), NULL, ENamedThreads::GameThread);
 	}
 	
-	FString	jsonFString(JsonString);
-	int AppState;
-	if (application.applicationState == UIApplicationStateInactive)
-	{
-		AppState = 1; // EApplicationState::Inactive;
-	}
-	else if (application.applicationState == UIApplicationStateBackground)
-	{
-		AppState = 2; // EApplicationState::Background;
-	}
-	else
-	{
-		AppState = 3; // EApplicationState::Active;
-	}
-
-    FFunctionGraphTask::CreateAndDispatchWhenReady([jsonFString, AppState]()
-    {
-		FCoreDelegates::ApplicationReceivedRemoteNotificationDelegate.Broadcast(jsonFString, AppState);
-    }, TStatId(), NULL, ENamedThreads::GameThread);
+	// According to Apple documentation:
+	//   As soon as you finish processing the notification, you must call the
+	//   block in the handler parameter or your app will be terminated. Your app
+	//   has up to 30 seconds of wall-clock time to process the notification and
+	//   call the specified completion handler block. In practice, you should
+	//   call the handler block as soon as you are done processing the
+	//   notification.
+	handler(UIBackgroundFetchResultNoData);
 }
 
 #endif

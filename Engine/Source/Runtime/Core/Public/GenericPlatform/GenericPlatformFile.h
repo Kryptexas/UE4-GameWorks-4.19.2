@@ -371,6 +371,24 @@ public:
 	 * @return				false if the directory did not exist or if the visitor returned false.
 	**/
 	virtual bool IterateDirectoryStatRecursively(const TCHAR* Directory, FDirectoryStatVisitor& Visitor);
+		
+	/**
+	 * Finds all the files within the given directory, with optional file extension filter
+	 * @param Directory			The directory to iterate the contents of
+	 * @param FileExtension		If FileExtension is NULL, or an empty string "" then all files are found.
+	 * 							Otherwise FileExtension can be of the form .EXT or just EXT and only files with that extension will be returned.
+	 * @return FoundFiles		All the files that matched the optional FileExtension filter, or all files if none was specified.
+	 */
+	virtual void FindFiles(TArray<FString>& FoundFiles, const TCHAR* Directory, const TCHAR* FileExtension);
+
+	/**
+	 * Finds all the files within the directory tree, with optional file extension filter
+	 * @param Directory			The starting directory to iterate the contents. This function explores subdirectories
+	 * @param FileExtension		If FileExtension is NULL, or an empty string "" then all files are found.
+	 * 							Otherwise FileExtension can be of the form .EXT or just EXT and only files with that extension will be returned.
+	 * @return FoundFiles		All the files that matched the optional FileExtension filter, or all files if none was specified.
+	 */
+	virtual void FindFilesRecursively(TArray<FString>& FoundFiles, const TCHAR* Directory, const TCHAR* FileExtension);
 
 	/** 
 	 * Delete all files and subdirectories in a directory, then delete the directory itself

@@ -534,6 +534,52 @@ bool IPlatformFile::IterateDirectoryStatRecursively(const TCHAR* Directory, FDir
 	return IterateDirectoryStat(Directory, Recurse);
 }
 
+class FFindFilesVisitor : public IPlatformFile::FDirectoryVisitor
+{
+public:
+	IPlatformFile&		PlatformFile;
+	TArray<FString>&	FoundFiles;
+	const TCHAR*		FileExtension;
+	int32				FileExtensionLen;
+	FFindFilesVisitor(IPlatformFile& InPlatformFile, TArray<FString>& InFoundFiles, const TCHAR* InFileExtension)
+		: PlatformFile(InPlatformFile)
+		, FoundFiles(InFoundFiles)
+		, FileExtension(InFileExtension)
+		, FileExtensionLen(InFileExtension ? FCString::Strlen(InFileExtension) : 0)
+	{
+	}
+	virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory) override
+	{
+		if (!bIsDirectory)
+		{
+			if (FileExtensionLen > 0)
+			{
+				int32 FileNameLen = FCString::Strlen(FilenameOrDirectory);
+				if (FileNameLen < FileExtensionLen || 
+					FCString::Strcmp(&FilenameOrDirectory[FileNameLen - FileExtensionLen], FileExtension) != 0)
+				{
+					return true;
+				}
+			}
+				
+			FoundFiles.Emplace(FString(FilenameOrDirectory));
+		}
+		return true;
+	}
+};
+
+void IPlatformFile::FindFiles(TArray<FString>& FoundFiles, const TCHAR* Directory, const TCHAR* FileExtension)
+{
+	FFindFilesVisitor FindFilesVisitor(*this, FoundFiles, FileExtension);
+	IterateDirectory(Directory, FindFilesVisitor);
+}
+
+void IPlatformFile::FindFilesRecursively(TArray<FString>& FoundFiles, const TCHAR* Directory, const TCHAR* FileExtension)
+{
+	FFindFilesVisitor FindFilesVisitor(*this, FoundFiles, FileExtension);
+	IterateDirectoryRecursively(Directory, FindFilesVisitor);
+}
+
 bool IPlatformFile::DeleteDirectoryRecursively(const TCHAR* Directory)
 {
 	class FRecurse : public FDirectoryVisitor

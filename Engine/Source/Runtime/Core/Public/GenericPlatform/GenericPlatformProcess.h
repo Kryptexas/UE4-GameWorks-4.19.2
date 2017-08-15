@@ -304,7 +304,8 @@ struct CORE_API FGenericPlatformProcess
 	/**
 	 * Launch a uniform resource locator (i.e. http://www.epicgames.com/unreal).
 	 * This is expected to return immediately as the URL is launched by another
-	 * task.
+	 * task. The URL param must already be a valid URL. If you're looking for code 
+	 * to properly escape a URL fragment, use FGenericPlatformHttp::UrlEncode.
 	 */
 	static void LaunchURL( const TCHAR* URL, const TCHAR* Parms, FString* Error );
 

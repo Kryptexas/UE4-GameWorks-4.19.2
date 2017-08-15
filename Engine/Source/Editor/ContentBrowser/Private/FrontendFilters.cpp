@@ -96,8 +96,7 @@ public:
 			}
 		}
 
-		check(AliasToSourceTagMapping.IsValid());
-		return AliasToSourceTagMapping->FindRef(InAlias);
+		return AliasToSourceTagMapping.IsValid() ? AliasToSourceTagMapping->FindRef(InAlias) : NAME_None;
 	}
 
 private:

@@ -169,7 +169,7 @@ bool FAnalyticsProviderAdjust::StartSession(const TArray<FAnalyticsEventAttribut
 	for (auto Attr : Attributes)
 	{
 		NSString* IOSKey = [NSString stringWithFString : Attr.AttrName];
-		NSString* IOSValue = [NSString stringWithFString : Attr.AttrValue];
+		NSString* IOSValue = [NSString stringWithFString : Attr.ToString()];
 		[Adjust addSessionPartnerParameter:IOSKey value:IOSValue];
 	}
 	RecordEvent(TEXT("SessionAttributes"), Attributes);
@@ -276,7 +276,7 @@ void FAnalyticsProviderAdjust::RecordEvent(const FString& EventName, const TArra
 			for (auto Attr : Attributes)
 			{
 				NSString* IOSKey = [NSString stringWithFString : Attr.AttrName];
-				NSString* IOSValue = [NSString stringWithFString : Attr.AttrValue];
+				NSString* IOSValue = [NSString stringWithFString : Attr.ToString()];
 				[event addCallbackParameter:IOSKey value:IOSValue];
 			}
 		}
@@ -382,7 +382,7 @@ void FAnalyticsProviderAdjust::RecordError(const FString& Error, const TArray<FA
 			for (auto Attr : EventAttrs)
 			{
 				NSString* IOSKey = [NSString stringWithFString : Attr.AttrName];
-				NSString* IOSValue = [NSString stringWithFString : Attr.AttrValue];
+				NSString* IOSValue = [NSString stringWithFString : Attr.ToString()];
 				[event addCallbackParameter:IOSKey value:IOSValue];
 			}
 		}
@@ -417,7 +417,7 @@ void FAnalyticsProviderAdjust::RecordProgress(const FString& ProgressType, const
 			for (auto Attr : EventAttrs)
 			{
 				NSString* IOSKey = [NSString stringWithFString : Attr.AttrName];
-				NSString* IOSValue = [NSString stringWithFString : Attr.AttrValue];
+				NSString* IOSValue = [NSString stringWithFString : Attr.ToString()];
 				[event addCallbackParameter:IOSKey value:IOSValue];
 			}
 		}

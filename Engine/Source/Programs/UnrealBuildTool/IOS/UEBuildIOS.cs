@@ -142,6 +142,12 @@ namespace UnrealBuildTool
 		public readonly bool bAutomaticSigning = false;
 
 		/// <summary>
+		/// true to change FORCEINLINE to a regular INLINE.
+		/// </summary>
+		[ConfigFile(ConfigHierarchyType.Engine, "/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bDisableForceInline")]
+		public readonly bool bDisableForceInline = false;
+		
+		/// <summary>
 		/// Returns a list of all the non-shipping architectures which are supported
 		/// </summary>
 		public IEnumerable<string> NonShippingArchitectures
@@ -751,6 +757,8 @@ namespace UnrealBuildTool
 			{
 				CompileEnvironment.Definitions.Add("NOTIFICATIONS_ENABLED=0");
 			}
+
+			CompileEnvironment.Definitions.Add("UE_DISABLE_FORCE_INLINE=" + (ProjectSettings.bDisableForceInline ? "1" : "0"));
 
 			if (Target.Architecture == "-simulator")
 			{

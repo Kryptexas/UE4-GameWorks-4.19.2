@@ -123,10 +123,10 @@ public:
 	}
 
 	/** Displays the data gathered in various ways. */
-	FORCEINLINE static void DumpReport()
+	FORCEINLINE static void DumpReport(const TArray<FString>& Args)
 	{
 #if WITH_LOADPACKAGE_TIME_TRACKER
-		Get().InternalDumpReport();
+		Get().InternalDumpReport(Args);
 #endif
 	}
 
@@ -196,7 +196,7 @@ private:
 	COREUOBJECT_API void InternalPopLoadPackage(UPackage* LoadedPackage, UObject* LoadedAsset);
 
 	/** Displays the data gathered in various ways. */
-	COREUOBJECT_API void InternalDumpReport() const;
+	COREUOBJECT_API void InternalDumpReport(const TArray<FString>& Args) const;
 
 	/** Resets the data */
 	COREUOBJECT_API void InternalResetReport();

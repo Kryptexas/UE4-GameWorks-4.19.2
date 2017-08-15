@@ -1003,6 +1003,12 @@ void FGenericPlatformMisc::RegisterForRemoteNotifications()
 	// not implemented by default
 }
 
+bool FGenericPlatformMisc::IsRegisteredForRemoteNotifications()
+{
+	// not implemented by default
+	return false;
+}
+
 void FGenericPlatformMisc::UnregisterForRemoteNotifications()
 {
 	// not implemented by default
