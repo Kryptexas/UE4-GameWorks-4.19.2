@@ -4567,6 +4567,12 @@ EAsyncPackageState::Type FAsyncLoadingThread::ProcessLoadedPackages(bool bUseTim
 					}
 					else
 					{
+						if (GIsEditor)
+						{
+							// Flush linker cache for all objects loaded with this package.
+							// This may be slow, hence we only do it in the editor
+							Package->FlushObjectLinkerCache();
+						}
 						// Detach linker in mutex scope to make sure that if something requests this package
 						// before it's been deleted does not try to associate the new async package with the old linker
 						// while this async package is still bound to it.
@@ -5279,10 +5285,23 @@ void FAsyncPackage::DetachLinker()
 {	
 	if (Linker)
 	{
+		Linker->FlushCache();
 		checkf(bLoadHasFinished || bLoadHasFailed, TEXT("FAsyncPackage::DetachLinker called before load finished on package \"%s\""), *this->GetPackageName().ToString());
 		check(Linker->AsyncRoot == this || Linker->AsyncRoot == nullptr);
 		Linker->AsyncRoot = nullptr;
 		Linker = nullptr;
+	}
+}
+
+void FAsyncPackage::FlushObjectLinkerCache()
+{
+	for (UObject* Obj : PackageObjLoaded)
+	{
+		FLinkerLoad* ObjLinker = Obj->GetLinker();
+		if (ObjLinker)
+		{
+			ObjLinker->FlushCache();
+		}
 	}
 }
 
@@ -6817,6 +6836,58 @@ void NotifyRegistrationComplete()
 	GetGEDLBootNotificationManager().NotifyRegistrationComplete();
 }
 
+#define USE_DETAILED_FARCHIVEASYNC2_MEMORY_TRACKING 0
+
+#if USE_DETAILED_FARCHIVEASYNC2_MEMORY_TRACKING
+class FArchiveAsync2MemTracker
+{
+	TMap<FString, int64> AllocatedMem;
+	FCriticalSection AllocatedMemCritical;
+
+public:
+
+	void Allocate(const FString& Filename, int64 Mem)
+	{
+		FScopeLock AllocatedMemLock(&AllocatedMemCritical);
+		int64& AllocatedMemAmount = AllocatedMem.FindOrAdd(Filename);
+		AllocatedMemAmount += Mem;
+	}
+
+	void Deallocate(const FString& Filename, int64 Mem)
+	{
+		FScopeLock AllocatedMemLock(&AllocatedMemCritical);
+		int64& AllocatedMemAmount = AllocatedMem.FindOrAdd(Filename);
+		AllocatedMemAmount -= Mem;
+		check(AllocatedMemAmount >= 0);
+		if (AllocatedMemAmount == 0)
+		{
+			AllocatedMem.Remove(Filename);
+		}
+	}
+
+	void Dump()
+	{
+		FScopeLock AllocatedMemLock(&AllocatedMemCritical);
+
+		UE_LOG(LogStreaming, Display, TEXT("Dumping FArchiveAsync2 allocated memory (%d)"), AllocatedMem.Num());
+		for (TPair<FString, int64>& ArchiveMem : AllocatedMem)
+		{
+			UE_LOG(LogStreaming, Display, TEXT("  %s %lldb"), *ArchiveMem.Key, ArchiveMem.Value);
+		}
+	}
+} GArchiveAsync2MemTracker;
+
+void DumpArchiveAsync2Mem(const TArray<FString>& Args)
+{
+	GArchiveAsync2MemTracker.Dump();
+}
+
+static FAutoConsoleCommand GDumpSerializeCmd(
+	TEXT("DumpFArchiveAsync2Mem"),
+	TEXT("Debug command to dump the memory allocated by existing FArhiveAsync2."),
+	FConsoleCommandWithArgsDelegate::CreateStatic(&DumpArchiveAsync2Mem)
+);
+#endif // USE_DETAILED_FARCHIVEASYNC2_MEMORY_TRACKING
 
 FArchiveAsync2::FArchiveAsync2(const TCHAR* InFileName, TFunction<void()>&& InSummaryReadyCallback)
 	: Handle(nullptr)
@@ -6836,6 +6907,7 @@ FArchiveAsync2::FArchiveAsync2(const TCHAR* InFileName, TFunction<void()>&& InSu
 	, HeaderSize(0)
 	, HeaderSizeWhenReadingExportsFromSplitFile(0)
 	, LoadPhase(ELoadPhase::WaitingForSize)
+	, bCookedForEDLInEditor(false)
 	, FileName(InFileName)
 	, OpenTime(FPlatformTime::Seconds())
 	, SummaryReadTime(0.0)
@@ -6943,6 +7015,10 @@ void FArchiveAsync2::ReadCallback(bool bWasCancelled, IAsyncReadRequest* Request
 				checkf(Ar.Tell() < FAsyncLoadingThread::Get().MaxPackageSummarySize.Value / 2, 
 					TEXT("The initial read request was too small (%d) compared to package %s header size (%lld). Try increasing s.MaxPackageSummarySize value in DefaultEngine.ini."),
 					FAsyncLoadingThread::Get().MaxPackageSummarySize.Value, *FileName, Ar.Tell());
+				
+				// Support for cooked EDL packages in the editor
+				bCookedForEDLInEditor = !FPlatformProperties::RequiresCookedData() && (Sum.PackageFlags & PKG_FilterEditorOnly) && Sum.PreloadDependencyCount > 0 && Sum.PreloadDependencyOffset > 0;
+
 				HeaderSize = Sum.TotalHeaderSize;
 				LogItem(TEXT("Starting Header"), 0, HeaderSize);
 				PrecacheInternal(0, HeaderSize);
@@ -6968,6 +7044,9 @@ void FArchiveAsync2::FlushPrecacheBlock()
 	{
 		DEC_MEMORY_STAT_BY(STAT_FArchiveAsync2Mem, PrecacheEndPos - PrecacheStartPos);
 		FMemory::Free(PrecacheBuffer);
+#if USE_DETAILED_FARCHIVEASYNC2_MEMORY_TRACKING
+		GArchiveAsync2MemTracker.Deallocate(FileName, PrecacheEndPos - PrecacheStartPos);
+#endif
 	}
 	PrecacheBuffer = nullptr;
 	PrecacheStartPos = 0;
@@ -7044,7 +7123,7 @@ int64 FArchiveAsync2::TotalSize()
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_FArchiveAsync2_TotalSize);
 		SizeRequestPtr->WaitCompletion();
-		if (GEventDrivenLoaderEnabled && HeaderSizeWhenReadingExportsFromSplitFile)
+		if ((GEventDrivenLoaderEnabled || bCookedForEDLInEditor) && HeaderSizeWhenReadingExportsFromSplitFile)
 		{
 			FileSize = SizeRequestPtr->GetSizeResults();
 		}
@@ -7135,7 +7214,9 @@ void FArchiveAsync2::CompleteRead()
 			PrecacheEndPos = ReadRequestOffset + ReadRequestSize;
 			INC_MEMORY_STAT_BY(STAT_FArchiveAsync2Mem, PrecacheEndPos - PrecacheStartPos);
 			DEC_MEMORY_STAT_BY(STAT_AsyncFileMemory, ReadRequestSize);
-
+#if USE_DETAILED_FARCHIVEASYNC2_MEMORY_TRACKING
+			GArchiveAsync2MemTracker.Allocate(FileName, PrecacheEndPos - PrecacheStartPos);
+#endif
 			// keeps the last cache block of the header around until we process the first export
 			if (LoadPhase != ELoadPhase::ProcessingExports)
 			{
@@ -7338,7 +7419,7 @@ void FArchiveAsync2::FirstExportStarting()
 	LogItem(TEXT("Exports"));
 	LoadPhase = ELoadPhase::ProcessingExports;
 
-	if (GEventDrivenLoaderEnabled && !EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME)
+	if ((GEventDrivenLoaderEnabled && !EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME) || bCookedForEDLInEditor)
 	{
 		FlushCache();
 		if (Handle)

@@ -745,7 +745,14 @@ void FMeshMergeHelpers::RetrieveCullingLandscapeAndVolumes(UWorld* InWorld, cons
 					{
 						// Retrieve highest landscape LOD level possible
 						MaxLandscapeExportLOD = FMath::Max(MaxLandscapeExportLOD, FMath::CeilLogTwo(LandscapeProxy->SubsectionSizeQuads + 1) - 1);
-						LandscapeActors.Add(LandscapeProxy);
+						// Check whether or not the cluster actually overlaps with the landscape
+						FVector Origin, Extent;
+						LandscapeProxy->GetActorBounds(false, Origin, Extent);
+						const FBox LandscapeBounds(Origin - Extent, Origin + Extent);
+						if (LandscapeBounds.IntersectXY(EstimatedMeshProxyBounds.GetBox()))
+						{
+							LandscapeActors.Add(LandscapeProxy);
+						}
 					}
 					// Check for culling volumes
 					AMeshMergeCullingVolume* Volume = Cast<AMeshMergeCullingVolume>(Actor);

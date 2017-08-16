@@ -2161,6 +2161,24 @@ bool FMaterialUtilities::ExportMaterialUVDensities(UMaterialInterface* InMateria
 			return false;
 		}
 
+		// If for some reason the shadermap of the proxy is not available, it will return the default material.
+		bool bHasValidMaterial = false;
+		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
+			CheckForDefaultMaterialCommand,
+			FMaterialRenderProxy*, TestProxy, MaterialProxy,
+			ERHIFeatureLevel::Type, TestFeatureLevel, FeatureLevel,
+			bool*, HasValidMaterial, &bHasValidMaterial,
+		{
+			check(TestProxy && HasValidMaterial);
+			*HasValidMaterial = TestProxy->GetMaterial(TestFeatureLevel) && !TestProxy->GetMaterial(TestFeatureLevel)->IsDefaultMaterial();
+		});
+		FlushRenderingCommands();
+
+		if (!bHasValidMaterial)
+		{
+			return false;
+		}
+
 		FBox2D DummyBounds(FVector2D(0, 0), FVector2D(1, 1));
 		TArray<FVector2D> EmptyTexCoords;
 		FMaterialMergeData MaterialData(InMaterial, nullptr, nullptr, 0, DummyBounds, EmptyTexCoords);

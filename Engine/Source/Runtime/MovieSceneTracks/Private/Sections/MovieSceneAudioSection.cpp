@@ -9,9 +9,9 @@ UMovieSceneAudioSection::UMovieSceneAudioSection( const FObjectInitializer& Obje
 {
 	Sound = nullptr;
 	StartOffset = 0.f;
-	AudioStartTime_DEPRECATED = 0.f;
-	AudioDilationFactor_DEPRECATED = 1.f;
-	AudioVolume_DEPRECATED = 1.f;
+	AudioStartTime_DEPRECATED = FLT_MAX;
+	AudioDilationFactor_DEPRECATED = FLT_MAX;
+	AudioVolume_DEPRECATED = FLT_MAX;
 	SoundVolume.SetDefaultValue(1.f);
 	PitchMultiplier.SetDefaultValue(1.f);
 	bSuppressSubtitles = false;

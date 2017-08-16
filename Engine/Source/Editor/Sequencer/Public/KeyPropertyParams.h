@@ -96,7 +96,7 @@ public:
 					}
 					ContainerPtr = ParentArrayHelper.GetRawPtr(ArrayIndex);
 				}
-				else
+				else if (ArrayIndex >= 0 && ArrayIndex < Property->ArrayDim)
 				{
 					ContainerPtr = Property->ContainerPtrToValuePtr<ValueType>(ContainerPtr, ArrayIndex);
 				}

@@ -1923,4 +1923,14 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 			KeyString += TEXT("_ARCHIVE");
 		}
 	}
+
+	if (IsMetalPlatform(Platform))
+	{
+#if PLATFORM_MAC
+		static const bool bCanCompileOfflineMetalShaders = FPlatformMisc::IsSupportedXcodeVersionInstalled();
+		KeyString += bCanCompileOfflineMetalShaders ? TEXT("") : TEXT("_NoOpt");
+#else
+		KeyString += TEXT("_Remote");
+#endif
+	}
 }

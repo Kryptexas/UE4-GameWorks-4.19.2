@@ -621,7 +621,7 @@ void ALODActor::SetStaticMesh(class UStaticMesh* InStaticMesh)
 		SetIsDirty(false);
 
 		ensure(StaticMeshComponent->GetStaticMesh() == InStaticMesh);
-		if (InStaticMesh->RenderData && InStaticMesh->RenderData->LODResources.Num() > 0)
+		if (InStaticMesh && InStaticMesh->RenderData && InStaticMesh->RenderData->LODResources.Num() > 0)
 		{
 			NumTrianglesInMergedMesh = InStaticMesh->RenderData->LODResources[0].GetNumTriangles();
 		}

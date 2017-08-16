@@ -144,6 +144,8 @@ DECLARE_FLOAT_COUNTER_STAT(TEXT("Postprocessing"), Stat_GPU_Postprocessing, STAT
 DECLARE_FLOAT_COUNTER_STAT(TEXT("HZB"), Stat_GPU_HZB, STATGROUP_GPU);
 DECLARE_FLOAT_COUNTER_STAT(TEXT("[unaccounted]"), Stat_GPU_Unaccounted, STATGROUP_GPU);
 
+FForwardLightingViewResources* GetMinimalDummyForwardLightingResources();
+
 bool ShouldForceFullDepthPass(ERHIFeatureLevel::Type FeatureLevel)
 {
 	static IConsoleVariable* CDBufferVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.DBuffer"));
@@ -826,6 +828,13 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	if (bComputeLightGrid)
 	{
 		ComputeLightGrid(RHICmdList);
+	}
+	else
+	{
+		for (auto& View : Views)
+		{
+			View.ForwardLightingResources = GetMinimalDummyForwardLightingResources();
+		}
 	}
 
 	if (bOcclusionBeforeBasePass)

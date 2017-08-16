@@ -35,8 +35,16 @@
 #include "Developer/BlueprintProfiler/Public/BlueprintProfilerModule.h"
 #include "IProjectManager.h"
 #include "ProjectDescriptor.h"
+#include "Interfaces/ILauncherWorker.h"
 
 #define LOCTEXT_NAMESPACE "SettingsClasses"
+
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnLaunchStartedDelegate, ILauncherProfilePtr, double);
+
+extern LAUNCHERSERVICES_API FOnStageStartedDelegate GLauncherWorker_StageStarted;
+extern LAUNCHERSERVICES_API FOnLaunchStartedDelegate GLauncherWorker_LaunchStarted;
+extern LAUNCHERSERVICES_API FOnLaunchCanceledDelegate GLauncherWorker_LaunchCanceled;
+extern LAUNCHERSERVICES_API FOnLaunchCompletedDelegate GLauncherWorker_LaunchCompleted;
 
 /* UContentBrowserSettings interface
  *****************************************************************************/
@@ -528,8 +536,48 @@ void ULevelEditorViewportSettings::PostEditChangeProperty( struct FPropertyChang
 	SettingChangedEvent.Broadcast(Name);
 }
 
-/* UProjectPackagingSettings interface
+/* FBlueprintNativizationMethodGlobals
  *****************************************************************************/
+
+void UProjectPackagingSettings_EnableBlueprintNativizationProjectSettings(bool bEnable);
+
+namespace FBlueprintNativizationMethodGlobals
+{
+	FCriticalSection Mutex;
+	int32 DisabledCount = 0;
+	EProjectPackagingBlueprintNativizationMethod CachedValue = EProjectPackagingBlueprintNativizationMethod::Disabled;
+
+	FDelegateHandle LauncherWorker_OnStageStarted;
+	FDelegateHandle LauncherWorker_OnLaunchStarted;
+	FDelegateHandle LauncherWorker_OnLaunchCanceled;
+	FDelegateHandle LauncherWorker_OnLaunchCompleted;
+
+	void OnLauncherWorker_LaunchStarted(ILauncherProfilePtr InProfile, double InStartTime)
+	{
+		UProjectPackagingSettings_EnableBlueprintNativizationProjectSettings(false);
+	}
+
+	void OnLauncherWorker_StageStarted(const FString& InStageName)
+	{
+		if (InStageName.Equals(TEXT("Run Task")))
+		{
+			UProjectPackagingSettings_EnableBlueprintNativizationProjectSettings(true);
+		}
+	}
+
+	void OnLauncherWorker_LaunchCanceled(double InDuration)
+	{
+		UProjectPackagingSettings_EnableBlueprintNativizationProjectSettings(true);
+	}
+
+	void OnLauncherWorker_LaunchCompleted(bool bSucceeded, double InDuration, int32 InResultCode)
+	{
+		UProjectPackagingSettings_EnableBlueprintNativizationProjectSettings(true);
+	}
+}
+
+/* UProjectPackagingSettings interface
+*****************************************************************************/
 
 UProjectPackagingSettings::UProjectPackagingSettings( const FObjectInitializer& ObjectInitializer )
 	: Super(ObjectInitializer)
@@ -654,32 +702,45 @@ void UProjectPackagingSettings::PostEditChangeProperty( FPropertyChangedEvent& P
 	}
 	else if (Name == FName((TEXT("BlueprintNativizationMethod"))))
 	{
-		IProjectManager& ProjManager = IProjectManager::Get();
+		// This exists to guard against the remote possibility of parallel execution of a Project Settings UI edit and a Project Launcher worker thread, for example.
+		FScopeLock ScopeLock(&FBlueprintNativizationMethodGlobals::Mutex);
+
+		// Keep the current Blueprint nativization method setting locked while it is disabled.
+		if (FBlueprintNativizationMethodGlobals::DisabledCount > 0)
 		{
-			// NOTE: these are hardcoded to match the path constructed by AddBlueprintPluginPathArgument() on CookCommand.Automation.cs, and the defaults in 
-			//       FBlueprintNativeCodeGenPaths::GetDefaultCodeGenPaths(); if you alter this (or either of those) then you need to update the others
-			const FString NativizedPluginDir  = TEXT("./Intermediate/Plugins");
-			const FString NativizedPluginName = TEXT("NativizedAssets");
-			const FString FullPluginPath = FPaths::ConvertRelativePathToFull( FPaths::ConvertRelativePathToFull(FPaths::GameDir()), NativizedPluginDir );
-
-			if (BlueprintNativizationMethod == EProjectPackagingBlueprintNativizationMethod::Disabled)
+			// Defer the current project file update until we restore Blueprint nativization.
+			FBlueprintNativizationMethodGlobals::CachedValue = BlueprintNativizationMethod;
+			BlueprintNativizationMethod = EProjectPackagingBlueprintNativizationMethod::Disabled;
+		}
+		else
+		{
+			IProjectManager& ProjManager = IProjectManager::Get();
 			{
-				
-				ProjManager.UpdateAdditionalPluginDirectory(FullPluginPath, /*bAddOrRemove =*/false);
-				FText PluginDisableFailure;
-				ProjManager.SetPluginEnabled(NativizedPluginName, /*bEnabled =*/false, PluginDisableFailure);
-			}
-			else
-			{
-				ProjManager.UpdateAdditionalPluginDirectory(FullPluginPath, /*bAddOrRemove =*/true);
-				// plugin is enabled by default, so let's remove it from the uproject list entirely (else it causes problem in the packaged project)
-				// SetPluginEnabled() will only remove it if the plugin exists (it may not yet), so we rely on this explicit removal
-				FText PluginEnableFailure;
-				ProjManager.RemovePluginReference(NativizedPluginName, PluginEnableFailure);
-			}
+				// NOTE: these are hardcoded to match the path constructed by AddBlueprintPluginPathArgument() on CookCommand.Automation.cs, and the defaults in 
+				//       FBlueprintNativeCodeGenPaths::GetDefaultCodeGenPaths(); if you alter this (or either of those) then you need to update the others
+				const FString NativizedPluginDir = TEXT("./Intermediate/Plugins");
+				const FString NativizedPluginName = TEXT("NativizedAssets");
+				const FString FullPluginPath = FPaths::ConvertRelativePathToFull(FPaths::ConvertRelativePathToFull(FPaths::GameDir()), NativizedPluginDir);
 
-			FText SaveFailure;
-			ProjManager.SaveCurrentProjectToDisk(SaveFailure);
+				if (BlueprintNativizationMethod == EProjectPackagingBlueprintNativizationMethod::Disabled)
+				{
+
+					ProjManager.UpdateAdditionalPluginDirectory(FullPluginPath, /*bAddOrRemove =*/false);
+					FText PluginDisableFailure;
+					ProjManager.SetPluginEnabled(NativizedPluginName, /*bEnabled =*/false, PluginDisableFailure);
+				}
+				else
+				{
+					ProjManager.UpdateAdditionalPluginDirectory(FullPluginPath, /*bAddOrRemove =*/true);
+					// plugin is enabled by default, so let's remove it from the uproject list entirely (else it causes problem in the packaged project)
+					// SetPluginEnabled() will only remove it if the plugin exists (it may not yet), so we rely on this explicit removal
+					FText PluginEnableFailure;
+					ProjManager.RemovePluginReference(NativizedPluginName, PluginEnableFailure);
+				}
+
+				FText SaveFailure;
+				ProjManager.SaveCurrentProjectToDisk(SaveFailure);
+			}
 		}
 	}
 	else if (Name == FName((TEXT("NativizeBlueprintAssets"))))
@@ -780,6 +841,10 @@ bool UProjectPackagingSettings::CanEditChange( const UProperty* InProperty ) con
 	{
 		return false;
 	}
+	else if (InProperty->GetFName() == FName(TEXT("BlueprintNativizationMethod")))
+	{
+		return FBlueprintNativizationMethodGlobals::DisabledCount == 0;
+	}
 	else if (InProperty->GetFName() == FName(TEXT("NativizeBlueprintAssets")))
 	{
 		return BlueprintNativizationMethod == EProjectPackagingBlueprintNativizationMethod::Exclusive;
@@ -852,6 +917,72 @@ int32 UProjectPackagingSettings::FindBlueprintInNativizationList(const UBlueprin
 		}
 	}
 	return ListIndex;
+}
+
+void UProjectPackagingSettings_StartBlueprintNativizationProjectSettings()
+{
+	FBlueprintNativizationMethodGlobals::LauncherWorker_OnStageStarted = GLauncherWorker_StageStarted.AddStatic(&FBlueprintNativizationMethodGlobals::OnLauncherWorker_StageStarted);
+	FBlueprintNativizationMethodGlobals::LauncherWorker_OnLaunchStarted = GLauncherWorker_LaunchStarted.AddStatic(&FBlueprintNativizationMethodGlobals::OnLauncherWorker_LaunchStarted);
+	FBlueprintNativizationMethodGlobals::LauncherWorker_OnLaunchCanceled = GLauncherWorker_LaunchCanceled.AddStatic(&FBlueprintNativizationMethodGlobals::OnLauncherWorker_LaunchCanceled);
+	FBlueprintNativizationMethodGlobals::LauncherWorker_OnLaunchCompleted = GLauncherWorker_LaunchCompleted.AddStatic(&FBlueprintNativizationMethodGlobals::OnLauncherWorker_LaunchCompleted);
+}
+
+void UProjectPackagingSettings_ShutdownBlueprintNativizationProjectSettings()
+{
+	GLauncherWorker_StageStarted.Remove(FBlueprintNativizationMethodGlobals::LauncherWorker_OnStageStarted);
+	GLauncherWorker_LaunchStarted.Remove(FBlueprintNativizationMethodGlobals::LauncherWorker_OnLaunchStarted);
+	GLauncherWorker_LaunchCanceled.Remove(FBlueprintNativizationMethodGlobals::LauncherWorker_OnLaunchCanceled);
+	GLauncherWorker_LaunchCompleted.Remove(FBlueprintNativizationMethodGlobals::LauncherWorker_OnLaunchCompleted);
+}
+
+void UProjectPackagingSettings_EnableBlueprintNativizationProjectSettings(bool bEnable)
+{
+	// Guard against parallel execution by multiple Project Launcher worker threads.
+	FScopeLock ScopeLock(&FBlueprintNativizationMethodGlobals::Mutex);
+
+	const bool bIsDisabled = (FBlueprintNativizationMethodGlobals::DisabledCount > 0);
+	UProjectPackagingSettings* Settings = GetMutableDefault<UProjectPackagingSettings>();
+
+	auto SetBlueprintNativizationMethodLambda = [Settings](EProjectPackagingBlueprintNativizationMethod InMethod)
+	{
+		// Update the actual setting.
+		Settings->BlueprintNativizationMethod = InMethod;
+
+		// Must call this in order to update the current project file to reflect the setting change.
+		static UProperty* Property = FindFieldChecked<UProperty>(UProjectPackagingSettings::StaticClass(), GET_MEMBER_NAME_CHECKED(UProjectPackagingSettings, BlueprintNativizationMethod));
+		FPropertyChangedEvent PropertyChangedEvent(Property, EPropertyChangeType::ValueSet);
+		Settings->PostEditChangeProperty(PropertyChangedEvent);
+	};
+
+	if (bEnable)
+	{
+		if (bIsDisabled)
+		{
+			// Decrement the call stack. Reset only when we hit zero.
+			if (--FBlueprintNativizationMethodGlobals::DisabledCount == 0)
+			{
+				// Apply previous setting.
+				SetBlueprintNativizationMethodLambda(FBlueprintNativizationMethodGlobals::CachedValue);
+
+				// Reset the cached value.
+				FBlueprintNativizationMethodGlobals::CachedValue = EProjectPackagingBlueprintNativizationMethod::Disabled;
+			}
+		}
+	}
+	else
+	{
+		if (!bIsDisabled)
+		{
+			// Cache the current setting if we haven't already.
+			FBlueprintNativizationMethodGlobals::CachedValue = Settings->BlueprintNativizationMethod;
+
+			// Switch the current nativization method to be disabled.
+			SetBlueprintNativizationMethodLambda(EProjectPackagingBlueprintNativizationMethod::Disabled);
+		}
+
+		// Increment the call stack.
+		++FBlueprintNativizationMethodGlobals::DisabledCount;
+	}
 }
 
 /* UCrashReporterSettings interface

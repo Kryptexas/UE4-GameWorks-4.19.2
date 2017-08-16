@@ -1906,6 +1906,15 @@ void UEditorEngine::PlayUsingLauncher()
 {
 	if (!PlayUsingLauncherDeviceId.IsEmpty())
 	{
+		// Launch on Device does not currently support Blueprint nativization, so we temporarily disable it around the launch.
+		extern void UProjectPackagingSettings_EnableBlueprintNativizationProjectSettings(bool bEnable);
+		UProjectPackagingSettings_EnableBlueprintNativizationProjectSettings(false);
+		ON_SCOPE_EXIT
+		{
+			// Restore Blueprint nativization in case of an early exit. Otherwise, this will be handled on completion of the launch.
+			UProjectPackagingSettings_EnableBlueprintNativizationProjectSettings(true);
+		};
+
 		ILauncherServicesModule& LauncherServicesModule = FModuleManager::LoadModuleChecked<ILauncherServicesModule>(TEXT("LauncherServices"));
 		ITargetDeviceServicesModule& TargetDeviceServicesModule = FModuleManager::LoadModuleChecked<ITargetDeviceServicesModule>("TargetDeviceServices");
 

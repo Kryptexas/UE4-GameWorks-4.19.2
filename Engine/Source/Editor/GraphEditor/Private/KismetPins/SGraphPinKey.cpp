@@ -12,7 +12,7 @@ void SGraphPinKey::Construct(const FArguments& InArgs, UEdGraphPin* InGraphPinOb
 
 	SelectedKey = FKey(*InGraphPinObj->GetDefaultAsString());
 
-	if (!SelectedKey.IsValid())
+	if (!SelectedKey.IsValid() && InGraphPinObj->Direction == EEdGraphPinDirection::EGPD_Input)
 	{
 		// Ensure first valid key is always set by default
 		SelectedKey = KeyList[0];

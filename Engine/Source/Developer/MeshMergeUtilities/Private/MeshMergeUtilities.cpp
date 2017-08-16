@@ -949,7 +949,7 @@ void FMeshMergeUtilities::CreateProxyMesh(const TArray<AActor*>& InActors, const
 	TMap<FMeshIdAndLOD, TArray<int32>> GlobalMaterialMap;
 	static const int32 ProxyMeshTargetLODLevel = 0;
 
-	FBoxSphereBounds EstimatedBounds(ForceInitToZero);
+	FBoxSphereBounds EstimatedBounds = ComponentsToMerge[0]->Bounds;
 	for (const UStaticMeshComponent* StaticMeshComponent : ComponentsToMerge)
 	{
 		EstimatedBounds = EstimatedBounds + StaticMeshComponent->Bounds;
@@ -998,7 +998,7 @@ void FMeshMergeUtilities::CreateProxyMesh(const TArray<AActor*>& InActors, const
 		{
 			FSectionInfo& Section = Sections[SectionIndex];
 			const int32 UniqueIndex = UniqueSections.AddUnique(Section);
-			UniqueSectionIndexPerLOD.Add(MeshIndex, TPair<uint32, uint32>(UniqueIndex, SectionIndex));
+			UniqueSectionIndexPerLOD.Add(MeshIndex, TPair<uint32, uint32>(UniqueIndex, Section.MaterialIndex));
 
 			SectionToMesh.Add(UniqueIndex, MeshIndex);
 		}

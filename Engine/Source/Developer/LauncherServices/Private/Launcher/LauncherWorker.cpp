@@ -18,6 +18,14 @@
 
 #define LOCTEXT_NAMESPACE "LauncherWorker"
 
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnLaunchStartedDelegate, ILauncherProfilePtr, double);
+
+LAUNCHERSERVICES_API FOnStageStartedDelegate GLauncherWorker_StageStarted;
+LAUNCHERSERVICES_API FOnStageCompletedDelegate GLauncherWorker_StageCompleted;
+LAUNCHERSERVICES_API FOnLaunchStartedDelegate GLauncherWorker_LaunchStarted;
+LAUNCHERSERVICES_API FOnLaunchCanceledDelegate GLauncherWorker_LaunchCanceled;
+LAUNCHERSERVICES_API FOnLaunchCompletedDelegate GLauncherWorker_LaunchCompleted;
+
 /* Static class member instantiations
 *****************************************************************************/
 
@@ -49,6 +57,8 @@ uint32 FLauncherWorker::Run( )
 	FString Line;
 
 	LaunchStartTime = FPlatformTime::Seconds();
+
+	GLauncherWorker_LaunchStarted.Broadcast(Profile, LaunchStartTime);
 
 	// wait for tasks to be completed
 	while (Status == ELauncherWorkerStatus::Busy)
@@ -124,14 +134,21 @@ uint32 FLauncherWorker::Run( )
 
 	FPlatformProcess::ClosePipe(ReadPipe, WritePipe);
 
+	const double Duration = FPlatformTime::Seconds() - LaunchStartTime;
 	if (Status == ELauncherWorkerStatus::Canceling)
 	{
-		LaunchCanceled.Broadcast(FPlatformTime::Seconds() - LaunchStartTime);
+		LaunchCanceled.Broadcast(Duration);
+		GLauncherWorker_LaunchCanceled.Broadcast(Duration);
+
 		Status = ELauncherWorkerStatus::Canceled;
 	}
 	else
 	{
-		LaunchCompleted.Broadcast(TaskChain->Succeeded(), FPlatformTime::Seconds() - LaunchStartTime, TaskChain->ReturnCode());
+		const bool bSucceeded = TaskChain->Succeeded();
+		const int32 ReturnCode = TaskChain->ReturnCode();
+
+		LaunchCompleted.Broadcast(bSucceeded, Duration, ReturnCode);
+		GLauncherWorker_LaunchCompleted.Broadcast(bSucceeded, Duration, ReturnCode);
 	}
 
 	return 0;
@@ -203,12 +220,15 @@ void FLauncherWorker::OnTaskStarted(const FString& TaskName)
 {
 	StageStartTime = FPlatformTime::Seconds();
 	StageStarted.Broadcast(TaskName);
+	GLauncherWorker_StageStarted.Broadcast(TaskName);
 }
 
 
 void FLauncherWorker::OnTaskCompleted(const FString& TaskName)
 {
-	StageCompleted.Broadcast(TaskName, FPlatformTime::Seconds() - StageStartTime);
+	const double Duration = FPlatformTime::Seconds() - StageStartTime;
+	StageCompleted.Broadcast(TaskName, Duration);
+	GLauncherWorker_StageCompleted.Broadcast(TaskName, Duration);
 }
 
 static void AddDeviceToLaunchCommand(const FString& DeviceId, ITargetDeviceProxyPtr DeviceProxy, const ILauncherProfileRef& InProfile, FString& DeviceNames, FString& RoleCommands, bool& bVsyncAdded)

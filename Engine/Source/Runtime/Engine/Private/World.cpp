@@ -6243,6 +6243,28 @@ void UWorld::SetActiveLevelCollection(const FLevelCollection* InCollection)
 	GameState = InCollection->GetGameState();
 	NetDriver = InCollection->GetNetDriver();
 	DemoNetDriver = InCollection->GetDemoNetDriver();
+
+	// TODO: START TEMP FIX FOR UE-42508
+	if (NetDriver && NetDriver->NetDriverName != NAME_None)
+	{
+		UNetDriver* TempNetDriver = GEngine->FindNamedNetDriver(this, NetDriver->NetDriverName);
+		if (TempNetDriver != NetDriver)
+		{
+			UE_LOG(LogWorld, Warning, TEXT("SetActiveLevelCollection attempted to use an out of date NetDriver: %s"), *(NetDriver->NetDriverName.ToString()));
+			NetDriver = TempNetDriver;
+		}
+	}
+
+	if (DemoNetDriver && DemoNetDriver->NetDriverName != NAME_None)
+	{
+		UDemoNetDriver* TempDemoNetDriver = Cast<UDemoNetDriver>(GEngine->FindNamedNetDriver(this, DemoNetDriver->NetDriverName));
+		if (TempDemoNetDriver != DemoNetDriver)
+		{
+			UE_LOG(LogWorld, Warning, TEXT("SetActiveLevelCollection attempted to use an out of date DemoNetDriver: %s"), *(DemoNetDriver->NetDriverName.ToString()));
+			DemoNetDriver = TempDemoNetDriver;
+		}
+	}
+	// TODO: END TEMP FIX FOR UE-42508
 }
 
 static ULevel* DuplicateLevelWithPrefix(ULevel* InLevel, int32 InstanceID )
