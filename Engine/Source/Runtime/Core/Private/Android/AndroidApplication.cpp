@@ -6,7 +6,7 @@
 #include "IInputDeviceModule.h"
 #include "HAL/OutputDevices.h"
 #include "Misc/AssertionMacros.h"
-
+ 
 DEFINE_LOG_CATEGORY_STATIC(LogAndroidApplication, Log, All);
 
 bool FAndroidApplication::bWindowSizeChanged = false;
