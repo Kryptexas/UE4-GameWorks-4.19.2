@@ -1196,8 +1196,11 @@ void FBlueprintCompilationManagerImpl::ReinstanceBatch(TArray<FReinstancingJob>&
 						Obj->HasAnyFlags(RF_ArchetypeObject|RF_InheritableComponentTemplate)
 						|| Obj->GetTypedOuter<UBlueprintGeneratedClass>()
 						|| Obj->GetTypedOuter<UBlueprint>();
-					// remove if this is not an archetype or its an archetype in the transient package:
-					return !bIsArchetype || Obj->GetOutermost() == GetTransientPackage(); 
+					// remove if this is not an archetype or its already in the transient package, note
+					// that things that are not directly outered to the transient package will be 
+					// 'reinst'd', this is specifically to handle components, which need to be up to date
+					// on the REINST_ actor class:
+					return !bIsArchetype || Obj->GetOuter() == GetTransientPackage(); 
 				}
 			);
 
