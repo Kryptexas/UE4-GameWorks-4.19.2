@@ -647,14 +647,7 @@ bool FOculusInput::GetControllerOrientationAndPosition( const int32 ControllerIn
 									OutOrientation = OutPose.Orientation.Rotator();
 								}
 
-								if (bPositionTracked)
-								{
-									OutPosition = OutPose.Position;
-								}
-								else
-								{
-									OutPosition = FVector::ZeroVector;
-								}
+								OutPosition = OutPose.Position;
 
 								return true;
 							}
