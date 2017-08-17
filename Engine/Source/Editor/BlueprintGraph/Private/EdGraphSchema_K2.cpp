@@ -4322,11 +4322,6 @@ bool UEdGraphSchema_K2::ArePinTypesCompatible(const FEdGraphPinType& Output, con
 	}
 	else if (Output.PinCategory == PC_Wildcard || Input.PinCategory == PC_Wildcard)
 	{
-		if (Output.PinCategory == PC_Exec || Input.PinCategory == PC_Exec)
-		{
-			return false;
-		}
-
 		// If this is an Index Wildcard we have to check compatibility for indexing types
 		if (Output.PinSubCategory == PSC_Index)
 		{

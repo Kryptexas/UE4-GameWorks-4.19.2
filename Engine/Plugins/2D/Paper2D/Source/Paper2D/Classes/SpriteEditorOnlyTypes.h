@@ -18,9 +18,6 @@ namespace ESpriteCollisionMode
 		/** Should this have no collison and not participate in physics? */
 		None,
 
-		/** EXPERIMENTAL: Should this have 2D collision geometry and participate in the 2D physics world? */
-		Use2DPhysics UMETA(DisplayName = "Use 2D Physics"),
-
 		/** Should this have 3D collision geometry and participate in the 3D physics world? */
 		Use3DPhysics UMETA(DisplayName = "Use 3D Physics")
 	};

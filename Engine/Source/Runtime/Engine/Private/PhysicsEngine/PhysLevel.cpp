@@ -19,9 +19,6 @@
 	#include "PhysicsEngine/PhysXSupport.h"
 #endif
 
-#if WITH_BOX2D
-	#include "../PhysicsEngine2D/Box2DIntegration.h"
-#endif
 #include "PhysicsEngine/PhysicsSettings.h"
 #include "CoreDelegates.h"
 
@@ -245,10 +242,6 @@ void PvdConnect(FString Host, bool bVisualization);
 //////// GAME-LEVEL RIGID BODY PHYSICS STUFF ///////
 void InitGamePhys()
 {
-#if WITH_BOX2D
-	FPhysicsIntegration2D::InitializePhysics();
-#endif
-
 #if WITH_PHYSX
 	// Do nothing if SDK already exists
 	if(GPhysXFoundation != NULL)
@@ -401,10 +394,6 @@ void InitGamePhys()
 
 void TermGamePhys()
 {
-#if WITH_BOX2D
-	FPhysicsIntegration2D::ShutdownPhysics();
-#endif
-
 #if WITH_PHYSX
 	FPhysxSharedData::Terminate();
 

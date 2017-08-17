@@ -333,6 +333,7 @@ void FClothCreateSettingsCustomization::CustomizeDetails(IDetailLayoutBuilder& D
 			.ContentPadding(2)
 			.ButtonStyle(FEditorStyle::Get(), "PropertyEditor.AssetComboStyle")
 			.ForegroundColor(FEditorStyle::GetColor("PropertyEditor.AssetName.ColorAndOpacity"))
+			.CollapseMenuOnParentFocus(true)
 			.ButtonContent()
 			[
 				SNew(STextBlock)
@@ -354,6 +355,7 @@ void FClothCreateSettingsCustomization::CustomizeDetails(IDetailLayoutBuilder& D
 			.IsEnabled(this, &FClothCreateSettingsCustomization::CanSelectLod)
 			.OnGetMenuContent(this, &FClothCreateSettingsCustomization::OnGetTargetLodMenu)
 			.ContentPadding(2)
+			.CollapseMenuOnParentFocus(true)
 			.ButtonContent()
 			[
 				SNew(STextBlock)

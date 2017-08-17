@@ -373,19 +373,22 @@ UMaterialInterface* UModelComponent::GetMaterialFromCollisionFaceIndex(int32 Fac
 	UMaterialInterface* Result = nullptr;
 	SectionIndex = 0;
 
-	// Look for element that corresponds to the supplied face
-	int32 TotalFaceCount = 0;
-	for (int32 ElementIdx = 0; ElementIdx < Elements.Num(); ElementIdx++)
+	if (FaceIndex >= 0)
 	{
-		const FModelElement& Element = Elements[ElementIdx];
-		TotalFaceCount += Element.NumTriangles;
-
-		if (FaceIndex < TotalFaceCount)
+		// Look for element that corresponds to the supplied face
+		int32 TotalFaceCount = 0;
+		for (int32 ElementIdx = 0; ElementIdx < Elements.Num(); ElementIdx++)
 		{
-			// Grab the material
-			Result = Element.Material;
-			SectionIndex = ElementIdx;
-			break;
+			const FModelElement& Element = Elements[ElementIdx];
+			TotalFaceCount += Element.NumTriangles;
+
+			if (FaceIndex < TotalFaceCount)
+			{
+				// Grab the material
+				Result = Element.Material;
+				SectionIndex = ElementIdx;
+				break;
+			}
 		}
 	}
 

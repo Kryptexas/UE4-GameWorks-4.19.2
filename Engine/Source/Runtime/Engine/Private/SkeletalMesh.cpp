@@ -758,6 +758,23 @@ bool FSoftSkinVertex::GetRigidWeightBone(uint8& OutBoneIndex) const
 	return bIsRigid;
 }
 
+uint8 FSoftSkinVertex::GetMaximumWeight() const
+{
+	uint8 MaxInfluenceWeight = 0;
+
+	for ( int32 Index = 0; Index < MAX_TOTAL_INFLUENCES; Index++ )
+	{
+		const uint8 Weight = InfluenceWeights[Index];
+
+		if ( Weight > MaxInfluenceWeight )
+		{
+			MaxInfluenceWeight = Weight;
+		}
+	}
+
+	return MaxInfluenceWeight;
+}
+
 /*-----------------------------------------------------------------------------
 	FMultiSizeIndexBuffer
 -------------------------------------------------------------------------------*/
@@ -5541,27 +5558,18 @@ void FSkeletalMeshSceneProxy::GetDynamicElementsSection(const TArray<const FScen
 				BatchElement.FirstIndex *= 4;
 			}
 
+			Mesh.MaterialRenderProxy = SectionElementInfo.Material->GetRenderProxy(false, IsHovered());
 		#if WITH_EDITOR
-
 			Mesh.BatchHitProxyId = SectionElementInfo.HitProxy ? SectionElementInfo.HitProxy->Id : FHitProxyId();
 
 			if (bSectionSelected && bCanHighlightSelectedSections)
 			{
-				auto SelectionOverrideProxy = new FOverrideSelectionColorMaterialRenderProxy(
-					SectionElementInfo.Material->GetRenderProxy(true, IsHovered()),
-					GetSelectionColor(GEngine->GetSelectedMaterialColor(), true, IsHovered())
-					);
-
-				Collector.RegisterOneFrameMaterialProxy(SelectionOverrideProxy);
-
-				Mesh.MaterialRenderProxy = SelectionOverrideProxy;
+				Mesh.bUseSelectionOutline = true;
 			}
 			else
 			{
-				Mesh.MaterialRenderProxy = SectionElementInfo.Material->GetRenderProxy(false, IsHovered());
+				Mesh.bUseSelectionOutline = false;
 			}
-		#else
-			Mesh.MaterialRenderProxy = SectionElementInfo.Material->GetRenderProxy(false, IsHovered());
 		#endif
 
 			BatchElement.PrimitiveUniformBufferResource = &GetUniformBuffer();

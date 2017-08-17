@@ -13,6 +13,11 @@
 #include "ClothPaintToolCommands.h"
 #include "UICommandInfo.h"
 #include "UICommandList.h"
+#include "IDetailCustomization.h"
+#include "DetailCategoryBuilder.h"
+#include "DetailLayoutBuilder.h"
+#include "DetailWidgetRow.h"
+#include "SButton.h"
 
 #define LOCTEXT_NAMESPACE "ClothTools"
 
@@ -372,6 +377,72 @@ bool FClothPaintTool_Gradient::CanApplyGradient()
 	return GradientEndIndices.Num() > 0 && GradientStartIndices.Num() > 0;
 }
 
+class FSmoothToolCustomization : public IDetailCustomization
+{
+public:
+	FSmoothToolCustomization() = delete;
+
+	FSmoothToolCustomization(TSharedPtr<FClothPainter> InPainter)
+		: Painter(InPainter)
+	{}
+
+	static TSharedRef<IDetailCustomization> MakeInstance(TSharedPtr<FClothPainter> InPainter)
+	{
+		return MakeShareable(new FSmoothToolCustomization(InPainter));
+	}
+
+	virtual void CustomizeDetails(IDetailLayoutBuilder& DetailBuilder) override
+	{
+		const FName ToolCategoryName = "ToolSettings";
+		IDetailCategoryBuilder& CategoryBuilder = DetailBuilder.EditCategory(ToolCategoryName);
+
+		TArray<TSharedRef<IPropertyHandle>> DefaultProperties;
+		CategoryBuilder.GetDefaultProperties(DefaultProperties);
+
+		for(TSharedRef<IPropertyHandle>& Handle : DefaultProperties)
+		{
+			CategoryBuilder.AddProperty(Handle);
+		}
+
+		FDetailWidgetRow& MeshSmoothRow = CategoryBuilder.AddCustomRow(LOCTEXT("MeshSmoothRowName", "MeshSmooth"));
+
+		MeshSmoothRow.ValueContent()
+			[
+				SNew(SButton)
+				.Text(LOCTEXT("MeshSmoothButtonText", "Smooth Mesh"))
+				.ToolTipText(LOCTEXT("MeshSmoothButtonToolTip", "Applies the smooth operation to the whole mesh at once."))
+				.OnClicked(this, &FSmoothToolCustomization::OnMeshSmoothClicked)
+			];
+	}
+
+private:
+
+	FReply OnMeshSmoothClicked()
+	{
+		if(Painter.IsValid())
+		{
+			const int32 NumVerts = Painter->GetAdapter()->GetMeshVertices().Num();
+			TSet<int32> IndexSet;
+			IndexSet.Reserve(NumVerts);
+
+			for(int32 Index = 0; Index < NumVerts; ++Index)
+			{
+				IndexSet.Add(Index);
+			}
+
+			TSharedPtr<FClothPaintTool_Smooth> SmoothTool = StaticCastSharedPtr<FClothPaintTool_Smooth>(Painter->GetSelectedTool());
+			if(SmoothTool.IsValid())
+			{
+				SmoothTool->SmoothVertices(IndexSet, Painter);
+			}
+		}
+
+		return FReply::Handled();
+	}
+
+	TSharedPtr<FClothPainter> Painter;
+};
+
 FClothPaintTool_Smooth::~FClothPaintTool_Smooth()
 {
 	if(Settings)
@@ -406,6 +477,11 @@ bool FClothPaintTool_Smooth::IsPerVertex() const
 	return false;
 }
 
+void FClothPaintTool_Smooth::RegisterSettingsObjectCustomizations(IDetailsView* InDetailsView)
+{
+	InDetailsView->RegisterInstancedCustomPropertyLayout(UClothPaintTool_SmoothSettings::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic(&FSmoothToolCustomization::MakeInstance, Painter.Pin()));
+}
+
 void FClothPaintTool_Smooth::PaintAction(FPerVertexPaintActionArgs& InArgs, int32 VertexIndex, FMatrix InverseBrushMatrix)
 {
 	TSharedPtr<FClothPainter> SharedPainter = Painter.Pin();
@@ -430,6 +506,16 @@ void FClothPaintTool_Smooth::PaintAction(FPerVertexPaintActionArgs& InArgs, int3
 
 	TSet<int32> InfluencedVertices;
 	Adapter->GetInfluencedVertexIndices(ComponentSpaceSquaredBrushRadius, ComponentSpaceBrushPosition, ComponentSpaceCameraPosition, BrushSettings->bOnlyFrontFacingTriangles, InfluencedVertices);
+	SmoothVertices(InfluencedVertices, SharedPainter);
+}
+
+void FClothPaintTool_Smooth::SmoothVertices(const TSet<int32> &InfluencedVertices, TSharedPtr<FClothPainter> SharedPainter)
+{
+	check(SharedPainter.IsValid());
+
+	TSharedPtr<IMeshPaintGeometryAdapter> AdapterInterface = SharedPainter->GetAdapter();
+	FClothMeshPaintAdapter* Adapter = (FClothMeshPaintAdapter*)AdapterInterface.Get();
+
 	const int32 NumVerts = InfluencedVertices.Num();
 	if(NumVerts > 0)
 	{
@@ -437,7 +523,7 @@ void FClothPaintTool_Smooth::PaintAction(FPerVertexPaintActionArgs& InArgs, int3
 		NewValues.AddZeroed(NumVerts);
 
 		int32 InfluencedIndex = 0;
-		for(int32 Index : InfluencedVertices)
+		for(const int32 Index : InfluencedVertices)
 		{
 			const TArray<int32>* Neighbors = Adapter->GetVertexNeighbors(Index);
 			if(Neighbors && Neighbors->Num() > 0)

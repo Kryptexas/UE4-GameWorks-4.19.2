@@ -119,6 +119,18 @@ namespace Audio
 		return 440.0f * FMath::Pow(2.0f, (InMidiNote - 69.0f) / 12.0f);
 	}
 
+	// Returns the log frequency of the input value. Maps linear domain and range values to log output (good for linear slider controlling frequency)
+	static FORCEINLINE float GetLogFrequencyClamped(const float InValue, const FVector2D& Domain, const FVector2D& Range)
+	{
+		const float InValueCopy = FMath::Clamp<float>(InValue, Domain.X, Domain.Y);
+		const FVector2D RangeLog(FMath::Loge(Range.X), FMath::Loge(Range.Y));
+
+		check(Domain.Y != Domain.X);
+		const float Scale = (RangeLog.Y - RangeLog.X) / (Domain.Y - Domain.X);
+
+		return FMath::Exp(RangeLog.X + Scale * (InValueCopy - Domain.X));
+	}
+
 	// Using midi tuning standard, compute midi from frequency in hz
 	static FORCEINLINE float GetMidiFromFrequency(const float InFrequency)
 	{

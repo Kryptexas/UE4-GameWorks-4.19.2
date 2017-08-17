@@ -380,6 +380,7 @@ void FSimulation::PrepareIterationCache()
 	// Iteration cache is not yet available, so we need to iterate over bodies and prepare the data as needed
 	const int32 NumActors = Actors.Num();
 	ShapeSOA.LocalTMs.Empty(NumActors);
+	ShapeSOA.Materials.Empty(NumActors);
 	ShapeSOA.Geometries.Empty(NumActors);
 	ShapeSOA.Bounds.Empty(NumActors);
 	ShapeSOA.OwningActors.Empty(NumActors);
@@ -405,6 +406,7 @@ void FSimulation::PrepareIterationCache()
 		for(const FShape& Shape : Actor.Shapes)
 		{
 			ShapeSOA.LocalTMs.Add(Shape.LocalTM);
+			ShapeSOA.Materials.Add(Shape.Material);
 			ShapeSOA.Geometries.Add(Shape.Geometry);
 			ShapeSOA.Bounds.Add(Shape.BoundsMagnitude);
 			ShapeSOA.BoundsOffsets.Add(Shape.BoundsOffset);
@@ -487,6 +489,7 @@ void FSimulation::GenerateContacts()
 		const PxVec3 SimulatedShapeBoundsOrigin = SimulatedShapeTM.transform(SimulatedBoundsOffset);
 		
 		const uint32 SimulatedActorIdx = ShapeSOA.OwningActors[SimShapeIdx];
+		const FMaterial& SimulatedShapeMaterial = ShapeSOA.Materials[SimShapeIdx];
 		const PxGeometry* SimulatedGeometry = ShapeSOA.Geometries[SimShapeIdx];
 
 		if(SimulatedActorIdx >= NumActiveSimulatedBodies)
@@ -522,6 +525,7 @@ void FSimulation::GenerateContacts()
 			PxCache Cache;
 			InCache = &Cache;
 #endif
+			const FMaterial& OtherShapeMaterial = ShapeSOA.Materials[OtherShapeIdx];
 			const float OtherRadius = ShapeSOA.Bounds[OtherShapeIdx];
 			const float TotalRadius = (SimulatedRadius + OtherRadius);
 			const float TotalRadius2 = TotalRadius * TotalRadius;
@@ -538,7 +542,7 @@ void FSimulation::GenerateContacts()
 				continue;	//no intersection so skip narrow phase
 			}
 
-			FContactPointRecorder ContactRecorder(*this, SimulatedActorIdx, OtherActorIdx, PotentialPairIdx);
+			FContactPointRecorder ContactRecorder(*this, SimulatedActorIdx, OtherActorIdx, PotentialPairIdx, SimulatedShapeMaterial, OtherShapeMaterial);
 			if (!immediate::PxGenerateContacts(&SimulatedGeometry, &ShapeSOA.Geometries[OtherShapeIdx], &SimulatedShapeTM, &OtherShapeTM, InCache, 1, ContactRecorder, 4.f, 1.f, 100.f, CacheAllocator))
 			{
 #if PERSISTENT_CONTACT_PAIRS

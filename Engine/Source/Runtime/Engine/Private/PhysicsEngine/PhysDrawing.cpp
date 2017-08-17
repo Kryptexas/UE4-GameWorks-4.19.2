@@ -417,7 +417,7 @@ void FKConvexElem::DrawElemWire(FPrimitiveDrawInterface* PDI, const FTransform& 
 			{
 				// Get the verts that make up this line.
 				int32 I0 = PIndices[j];
-				int32 I1 = PIndices[j+1];
+				int32 I1 = (j == Data.mNbVerts - 1) ? PIndices[0] : PIndices[j + 1];
 
 				// Loop back last and first vertices
 				if(j==Data.mNbVerts - 1)
@@ -759,7 +759,8 @@ void UPhysicsAsset::GetCollisionMesh(int32 ViewIndex, FMeshElementCollector& Col
 		FColor* BoneColor = (FColor*)( &SkeletalBodySetups[i] );
 
 		FTransform BoneTransform = GetSkelBoneTransform(BoneIndex, SpaceBases, LocalToWorld);
-		BoneTransform.SetScale3D(Scale3D);
+		// SkelBoneTransform should have the appropriate scale baked in from Component and Import Transform.
+		// BoneTransform.SetScale3D(Scale3D);
 		SkeletalBodySetups[i]->CreatePhysicsMeshes();
 		SkeletalBodySetups[i]->AggGeom.GetAggGeom(BoneTransform, *BoneColor, NULL, false, false, false, ViewIndex, Collector);
 	}

@@ -379,6 +379,12 @@ void UClothingAsset::UnbindFromSkeletalMesh(USkeletalMesh* InSkelMesh, int32 InM
 
 				if(ClothSection.ClothingData.IsValid() && ClothSection.ClothingData.AssetGuid == AssetGuid)
 				{
+					// Clear selection if we're going to remove that section
+					if(InSkelMesh->SelectedEditorSection == SectionIdx)
+					{
+						InSkelMesh->SelectedEditorSection = INDEX_NONE;
+					}
+
 					// We made this one.
 					int32 OriginalSectionIdx = INDEX_NONE;
 
@@ -928,6 +934,43 @@ void UClothingAsset::CalculateReferenceBoneIndex()
 	}
 }
 
+#if WITH_EDITOR
+
+void UClothingAsset::PostEditChangeChainProperty(FPropertyChangedChainEvent& InEvent)
+{
+	if(InEvent.ChangeType != EPropertyChangeType::Interactive)
+	{
+		if(InEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UClothingAsset, PhysicsAsset))
+		{
+			HandlePhysicsAssetChange();
+		}
+
+		if(InEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(FClothConfig, SelfCollisionRadius) ||
+			InEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(FClothConfig, SelfCollisionCullScale))
+		{
+			BuildSelfCollisionData();
+		}
+	}
+}
+
+void UClothingAsset::HandlePhysicsAssetChange()
+{
+	if(USkeletalMesh* OwnerMesh = Cast<USkeletalMesh>(GetOuter()))
+	{
+		for(TObjectIterator<USkeletalMeshComponent> It; It; ++It)
+		{
+			if(USkeletalMeshComponent* Component = *It)
+			{
+				if(Component->SkeletalMesh == OwnerMesh)
+				{
+					FComponentReregisterContext Context(Component);
+				}
+			}
+		}
+	}
+}
+
+#endif
 
 void UClothingAsset::Serialize(FArchive& Ar)
 {

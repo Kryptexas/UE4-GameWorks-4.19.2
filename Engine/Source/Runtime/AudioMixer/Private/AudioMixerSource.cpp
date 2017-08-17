@@ -76,7 +76,7 @@ namespace Audio
 			SCOPE_CYCLE_COUNTER(STAT_AudioSourceInitTime);
 
 			AUDIO_MIXER_CHECK(MixerDevice);
-			MixerSourceVoice = MixerDevice->GetMixerSourceVoice(InWaveInstance, this, UseHRTSpatialization());
+			MixerSourceVoice = MixerDevice->GetMixerSourceVoice(InWaveInstance, this, UseObjectBasedSpatialization());
 			if (!MixerSourceVoice)
 			{
 				return false;
@@ -88,7 +88,7 @@ namespace Audio
 			InitParams.NumInputChannels = InWaveInstance->WaveData->NumChannels;
 			InitParams.NumInputFrames = NumFrames;
 			InitParams.SourceVoice = MixerSourceVoice;
-			InitParams.bUseHRTFSpatialization = UseHRTSpatialization();
+			InitParams.bUseHRTFSpatialization = UseObjectBasedSpatialization();
 			InitParams.AudioComponentUserID = InWaveInstance->ActiveSound->GetAudioComponentUserID();
 
 			InitParams.SourceEffectChainId = 0;
@@ -165,7 +165,7 @@ namespace Audio
 #endif
 
 			// Whether or not we're 3D
-			bIs3D = !UseHRTSpatialization() && WaveInstance->bUseSpatialization && SoundBuffer->NumChannels < 3;
+			bIs3D = !UseObjectBasedSpatialization() && WaveInstance->bUseSpatialization && SoundBuffer->NumChannels < 3;
 
 			// Grab the source's reverb plugin settings 
 			InitParams.SpatializationPluginSettings = UseSpatializationPlugin() ? InWaveInstance->SpatializationPluginSettings : nullptr;
@@ -853,31 +853,49 @@ namespace Audio
 			LastLPFFrequency = LPFFrequency;
 		}
 
+		if (LastHPFFrequency != HPFFrequency)
+		{
+			MixerSourceVoice->SetHPFFrequency(HPFFrequency);
+			LastHPFFrequency = HPFFrequency;
+		}
+
+		// If reverb is applied, figure out how of the source to "send" to the reverb.
 		if (bReverbApplied)
 		{
-			if (UseReverbPlugin())
+			float ReverbSendLevel = 0.0f;
+
+			if (WaveInstance->ReverbSendMethod == EReverbSendMethod::Manual)
 			{
-				FMixerSubmixPtr MasterReverbPluginSubmix = MixerDevice->GetMasterReverbPluginSubmix();
-				MixerSourceVoice->SetSubmixSendInfo(MasterReverbPluginSubmix, 1.0f);
+				ReverbSendLevel = FMath::Clamp(WaveInstance->ManualReverbSendLevel, 0.0f, 1.0f);
 			}
-			else // don't send reverb to the built-in reverb if there's a plugin reverb being used.
+			else
 			{
-				// Get fraction of the sound to the 
-				if (WaveInstance->bUseSpatialization && WaveInstance->ReverbDistanceMax > WaveInstance->ReverbDistanceMin)
+				// The alpha value is determined identically between manual and custom curve methods
+				const FVector2D& ReverbSendRadialRange = WaveInstance->ReverbSendLevelDistanceRange;
+				const float Denom = FMath::Max(ReverbSendRadialRange.Y - ReverbSendRadialRange.X, 1.0f);
+				const float Alpha = FMath::Clamp((WaveInstance->ListenerToSoundDistance - ReverbSendRadialRange.X) / Denom, 0.0f, 1.0f);
+
+				if (WaveInstance->ReverbSendMethod == EReverbSendMethod::Linear)
 				{
-					float Alpha = (WaveInstance->ListenerToSoundDistance - WaveInstance->ReverbDistanceMin) / (WaveInstance->ReverbDistanceMax - WaveInstance->ReverbDistanceMin);
-					Alpha = FMath::Clamp(Alpha, 0.0f, 1.0f);
-					float WetLevel = FMath::Lerp(WaveInstance->ReverbWetLevelMin, WaveInstance->ReverbWetLevelMax, Alpha);
-					FMixerSubmixPtr MasterReverbSubmix = MixerDevice->GetMasterReverbSubmix();
-					MixerSourceVoice->SetSubmixSendInfo(MasterReverbSubmix, WetLevel);
+					ReverbSendLevel = FMath::Clamp(FMath::Lerp(WaveInstance->ReverbSendLevelRange.X, WaveInstance->ReverbSendLevelRange.Y, Alpha), 0.0f, 1.0f);
 				}
 				else
 				{
-					// If we're not 3d spatializing a sound, then use the default send amount, which is
-					// set to ReverbWetLevelMin in the WaveInstance initialization
-					FMixerSubmixPtr MasterReverbSubmix = MixerDevice->GetMasterReverbSubmix();
-					MixerSourceVoice->SetSubmixSendInfo(MasterReverbSubmix, WaveInstance->ReverbWetLevelMin);
+					ReverbSendLevel = FMath::Clamp(WaveInstance->CustomRevebSendCurve.GetRichCurveConst()->Eval(Alpha), 0.0f, 1.0f);
 				}
+			}
+
+			// Send the source audio to the reverb plugin if enabled
+			if (UseReverbPlugin())
+			{
+				FMixerSubmixPtr MasterReverbPluginSubmix = MixerDevice->GetMasterReverbPluginSubmix();
+				MixerSourceVoice->SetSubmixSendInfo(MasterReverbPluginSubmix, ReverbSendLevel);
+			}
+			else 
+			{
+				// Send the source audio to the master reverb
+				FMixerSubmixPtr MasterReverbSubmix = MixerDevice->GetMasterReverbSubmix();
+				MixerSourceVoice->SetSubmixSendInfo(MasterReverbSubmix, ReverbSendLevel);
 			}
 		}
 
@@ -907,12 +925,12 @@ namespace Audio
 
 	bool FMixerSource::ComputeMonoChannelMap()
 	{
-		if (UseHRTSpatialization())
+		if (UseObjectBasedSpatialization())
 		{
-			if (WaveInstance->SpatializationAlgorithm != SPATIALIZATION_HRTF && !bEditorWarnedChangedSpatialization)
+			if (WaveInstance->SpatializationMethod != ESoundSpatializationAlgorithm::SPATIALIZATION_HRTF && !bEditorWarnedChangedSpatialization)
 			{
 				bEditorWarnedChangedSpatialization = true;
-				UE_LOG(LogAudioMixer, Warning, TEXT("Changing the spatialization algorithm on a playing sound is not supported (WaveInstance: %s)"), *WaveInstance->WaveData->GetFullName());
+				UE_LOG(LogAudioMixer, Warning, TEXT("Changing the spatialization method on a playing sound is not supported (WaveInstance: %s)"), *WaveInstance->WaveData->GetFullName());
 			}
 
 			// Treat the source as if it is a 2D stereo source
@@ -939,7 +957,7 @@ namespace Audio
 
 	bool FMixerSource::ComputeStereoChannelMap()
 	{
-		if (!UseHRTSpatialization() && WaveInstance->bUseSpatialization && (!FMath::IsNearlyEqual(WaveInstance->AbsoluteAzimuth, PreviousAzimuth, 0.01f) || MixerSourceVoice->NeedsSpeakerMap()))
+		if (!UseObjectBasedSpatialization() && WaveInstance->bUseSpatialization && (!FMath::IsNearlyEqual(WaveInstance->AbsoluteAzimuth, PreviousAzimuth, 0.01f) || MixerSourceVoice->NeedsSpeakerMap()))
 		{
 			// Make sure our stereo emitter positions are updated relative to the sound emitter position
 			UpdateStereoEmitterPositions();
@@ -1000,13 +1018,13 @@ namespace Audio
 		return false;
 	}
 
-	bool FMixerSource::UseHRTSpatialization() const
+	bool FMixerSource::UseObjectBasedSpatialization() const
 	{
 		return (Buffer->NumChannels == 1 &&
 				AudioDevice->AudioPlugin != nullptr &&
 				AudioDevice->IsSpatializationPluginEnabled() &&
 				DisableHRTFCvar == 0 &&
-				WaveInstance->SpatializationAlgorithm != SPATIALIZATION_Default);
+				WaveInstance->SpatializationMethod == ESoundSpatializationAlgorithm::SPATIALIZATION_HRTF);
 	}
 
 	bool FMixerSource::UseSpatializationPlugin() const

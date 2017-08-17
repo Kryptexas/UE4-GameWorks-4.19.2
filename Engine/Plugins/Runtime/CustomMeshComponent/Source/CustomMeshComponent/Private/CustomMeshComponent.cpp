@@ -261,6 +261,7 @@ bool UCustomMeshComponent::SetCustomMeshTriangles(const TArray<FCustomMeshTriang
 
 	// Need to recreate scene proxy to send it over
 	MarkRenderStateDirty();
+	UpdateBounds();
 
 	return true;
 }
@@ -271,6 +272,7 @@ void UCustomMeshComponent::AddCustomMeshTriangles(const TArray<FCustomMeshTriang
 
 	// Need to recreate scene proxy to send it over
 	MarkRenderStateDirty();
+	UpdateBounds();
 }
 
 void  UCustomMeshComponent::ClearCustomMeshTriangles()
@@ -279,6 +281,7 @@ void  UCustomMeshComponent::ClearCustomMeshTriangles()
 
 	// Need to recreate scene proxy to send it over
 	MarkRenderStateDirty();
+	UpdateBounds();
 }
 
 
@@ -300,10 +303,21 @@ int32 UCustomMeshComponent::GetNumMaterials() const
 
 FBoxSphereBounds UCustomMeshComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
+	FBox BoundingBox(ForceInit);
+
+	// Bounds are tighter if the box is generated from pre-transformed vertices.
+	for (int32 Index = 0; Index < CustomMeshTris.Num(); ++Index)
+	{
+		BoundingBox += LocalToWorld.TransformPosition(CustomMeshTris[Index].Vertex0);
+		BoundingBox += LocalToWorld.TransformPosition(CustomMeshTris[Index].Vertex1);
+		BoundingBox += LocalToWorld.TransformPosition(CustomMeshTris[Index].Vertex2);
+	}
+
 	FBoxSphereBounds NewBounds;
-	NewBounds.Origin = FVector::ZeroVector;
-	NewBounds.BoxExtent = FVector(HALF_WORLD_MAX,HALF_WORLD_MAX,HALF_WORLD_MAX);
-	NewBounds.SphereRadius = FMath::Sqrt(3.0f * FMath::Square(HALF_WORLD_MAX));
+	NewBounds.BoxExtent = BoundingBox.GetExtent();
+	NewBounds.Origin = BoundingBox.GetCenter();
+	NewBounds.SphereRadius = NewBounds.BoxExtent.Size();
+
 	return NewBounds;
 }
 

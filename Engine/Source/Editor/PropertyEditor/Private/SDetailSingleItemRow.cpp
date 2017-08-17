@@ -177,6 +177,8 @@ void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCus
 	EHorizontalAlignment HorizontalAlignment = HAlign_Fill;
 	EVerticalAlignment VerticalAlignment = VAlign_Fill;
 
+	TAttribute<bool> NameWidgetEnabled;
+
 	const bool bIsValidTreeNode = InOwnerTreeNode->GetParentCategory().IsValid() && InOwnerTreeNode->GetParentCategory()->IsParentLayoutValid();
 	if(bIsValidTreeNode)
 	{
@@ -190,6 +192,7 @@ void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCus
 			NameWidget = Row.NameWidget.Widget;
 			if(Row.IsEnabledAttr.IsBound())
 			{
+				NameWidgetEnabled = Row.IsEnabledAttr;
 				NameWidget->SetEnabled(Row.IsEnabledAttr);
 			}
 
@@ -249,7 +252,15 @@ void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCus
 
 			if(bHasMultipleColumns)
 			{
-				NameWidget->SetEnabled(IsPropertyEditingEnabled);
+				// If the NameWidget has already been disabled, don't re-enable it if IsPropertyEditingEnabled is true.
+				NameWidget->SetEnabled(NameWidgetEnabled.IsBound() ?
+					TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateLambda(
+						[NameWidgetEnabled, IsPropertyEditingEnabled]()
+						{
+							return NameWidgetEnabled.Get() && IsPropertyEditingEnabled.Get();
+						}))
+					: IsPropertyEditingEnabled);
+
 				TSharedPtr<SHorizontalBox> HBox;
 
 				InternalLeftColumnRowBox->AddSlot()

@@ -11,7 +11,7 @@
 #include "PhysxUserData.h"
 #include "BodyInstance.generated.h"
 
-#define UE_WITH_PHYSICS (WITH_PHYSX || WITH_BOX2D)
+#define UE_WITH_PHYSICS (WITH_PHYSX)
 
 class FPhysScene;
 class UBodySetup;
@@ -378,7 +378,7 @@ public:
 
 	/** Per-instance scaling of inertia (bigger number means  it'll be harder to rotate) */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = Physics)
-	float InertiaScale;
+	FVector InertiaTensorScale;
 
 	/** Use the collision profile found in the given BodySetup's default BodyInstance */
 	void UseExternalCollisionProfile(UBodySetup* InExternalCollisionProfileBodySetup);
@@ -492,8 +492,6 @@ public:
 
 #if WITH_PHYSX
 	typedef physx::PxAggregate* PhysXAggregateType;
-#elif WITH_BOX2D
-	typedef void* PhysXAggregateType;
 #endif
 
 #if UE_WITH_PHYSICS
@@ -1135,13 +1133,6 @@ private:
 	friend class FDerivedDataPhysXBinarySerializer;
 	friend class FBodyInstanceCustomizationHelper;
 	friend class FFoliageTypeCustomizationHelpers;
-
-#if WITH_BOX2D
-
-public:
-	class b2Body* BodyInstancePtr;
-
-#endif	//WITH_BOX2D
 
 private:
 

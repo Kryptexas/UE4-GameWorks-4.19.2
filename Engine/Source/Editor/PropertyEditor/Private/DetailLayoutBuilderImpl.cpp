@@ -7,6 +7,7 @@
 #include "PropertyEditorHelpers.h"
 #include "StructurePropertyNode.h"
 #include "DetailMultiTopLevelObjectRootNode.h"
+#include "ObjectEditorUtils.h"
 
 FDetailLayoutBuilderImpl::FDetailLayoutBuilderImpl(TSharedPtr<FComplexPropertyNode>& InRootNode, FClassToPropertyMap& InPropertyMap, const TSharedRef< class IPropertyUtilities >& InPropertyUtilities, const TSharedPtr< IDetailsViewPrivate >& InDetailsView)
 	: RootNode( InRootNode )
@@ -65,6 +66,35 @@ IDetailCategoryBuilder& FDetailLayoutBuilderImpl::EditCategory( FName CategoryNa
 	return *CategoryImpl;
 }
 
+IDetailPropertyRow& FDetailLayoutBuilderImpl::AddPropertyToCategory(TSharedPtr<IPropertyHandle> InPropertyHandle)
+{
+	// Get the UProperty itself
+	UProperty* Property = InPropertyHandle->GetProperty();
+
+	// Get the property's category name
+	FName CategoryFName = FObjectEditorUtils::GetCategoryFName(Property);
+
+	// Get the layout builder's category builder
+	IDetailCategoryBuilder& MyCategory = EditCategory(CategoryFName);
+
+	// Add the property to the category
+	return MyCategory.AddProperty(InPropertyHandle);
+}
+
+FDetailWidgetRow& FDetailLayoutBuilderImpl::AddCustomRowToCategory(TSharedPtr<IPropertyHandle> InPropertyHandle, const FText& CustomSearchString, bool bForAdvanced)
+{
+	// Get the UProperty itself
+	UProperty* Property = InPropertyHandle->GetProperty();
+
+	// Get the property's category name
+	FName CategoryFName = FObjectEditorUtils::GetCategoryFName(Property);
+
+	// Get the layout builder's category builder
+	IDetailCategoryBuilder& MyCategory = EditCategory(CategoryFName);
+
+	// Add the property to the category
+	return MyCategory.AddCustomRow(CustomSearchString, bForAdvanced);
+}
 
 TSharedRef<IPropertyHandle> FDetailLayoutBuilderImpl::GetProperty( const FName PropertyPath, const UClass* ClassOutermost, FName InInstanceName )
 {	

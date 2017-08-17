@@ -69,6 +69,7 @@ public:
 					SAssignNew(EditableText, SInlineEditableTextBlock)
 					.Text(this, &SAssetListRow::GetAssetName)
 					.OnTextCommitted(this, &SAssetListRow::OnCommitAssetName)
+					.IsSelected(this, &SAssetListRow::IsSelected)
 				]
 			],
 			InOwnerTable

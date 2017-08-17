@@ -9,11 +9,10 @@ USoundConcurrency* USoundBase::DefaultSoundConcurrencyObject = nullptr;
 
 USoundBase::USoundBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
-	, bIgnoreFocus(false)
+	, bIgnoreFocus_DEPRECATED(false)
 	, Priority(1.0f)
 {
 	MaxConcurrentPlayCount_DEPRECATED = 16;
-	DefaultMasterReverbSendAmount = 0.2f;
 }
 
 void USoundBase::PostInitProperties()

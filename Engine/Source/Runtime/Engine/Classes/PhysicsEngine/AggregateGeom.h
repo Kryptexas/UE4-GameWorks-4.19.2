@@ -27,7 +27,7 @@ struct ENGINE_API FKAggregateGeom
 	UPROPERTY(EditAnywhere, editfixedsize, Category = "Aggregate Geometry", meta = (DisplayName = "Capsules"))
 	TArray<FKSphylElem> SphylElems;
 
-	UPROPERTY(EditAnywhere, editfixedsize, Category = "Aggregate Geometry", meta = (DisplayName = "Convex Elements"))
+	UPROPERTY(VisibleAnywhere, editfixedsize, Category = "Aggregate Geometry", meta = (DisplayName = "Convex Elements"))
 	TArray<FKConvexElem> ConvexElems;
 
 	class FKConvexGeomRenderInfo* RenderInfo;

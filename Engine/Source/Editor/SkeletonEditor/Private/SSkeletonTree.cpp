@@ -964,13 +964,17 @@ void SSkeletonTree::OnCopyBoneNames()
 
 	if( TreeSelection.SelectedBones.Num() > 0 )
 	{
+		bool bFirst = true;
 		FString BoneNames;
 		for (const TSharedPtr<FSkeletonTreeBoneItem>& Item : TreeSelection.SelectedBones)
 		{
 			FName BoneName = Item->GetRowItemName();
-
+			if (!bFirst)
+			{
+				BoneNames += "\r\n";
+			}
 			BoneNames += BoneName.ToString();
-			BoneNames += "\r\n";
+			bFirst = false;
 		}
 		FPlatformApplicationMisc::ClipboardCopy( *BoneNames );
 	}

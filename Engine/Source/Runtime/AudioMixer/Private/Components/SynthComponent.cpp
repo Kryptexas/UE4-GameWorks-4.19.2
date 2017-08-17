@@ -88,15 +88,8 @@ void USynthComponent::Deactivate()
 	}
 }
 
-void USynthComponent::OnRegister()
+void USynthComponent::Initialize()
 {
-	if (AudioComponent->GetAttachParent() == nullptr && !AudioComponent->IsAttachedTo(this))
-	{
-		AudioComponent->SetupAttachment(this);
-	}
-
-	Super::OnRegister();
-
 	if (!bIsInitialized)
 	{
 		bIsInitialized = true;
@@ -119,16 +112,32 @@ void USynthComponent::OnRegister()
 		NumChannels = FMath::Clamp(NumChannels, 1, 2);
 #endif
 
-		Synth = NewObject<USynthSound>(this, TEXT("Synth"));	
+		Synth = NewObject<USynthSound>(this, TEXT("Synth"));
 
 		// Copy sound base data to the sound
 		Synth->SourceEffectChain = SourceEffectChain;
-		Synth->DefaultMasterReverbSendAmount = DefaultMasterReverbSendAmount;
 		Synth->SoundSubmixObject = SoundSubmix;
 		Synth->SoundSubmixSends = SoundSubmixSends;
 
 		Synth->Init(this, NumChannels);
 	}
+}
+
+UAudioComponent* USynthComponent::GetAudioComponent()
+{
+	return AudioComponent;
+}
+
+void USynthComponent::OnRegister()
+{
+	Initialize();
+
+	if (AudioComponent->GetAttachParent() == nullptr && !AudioComponent->IsAttachedTo(this))
+	{
+		AudioComponent->SetupAttachment(this);
+	}
+
+	Super::OnRegister();
 }
 
 void USynthComponent::OnUnregister()

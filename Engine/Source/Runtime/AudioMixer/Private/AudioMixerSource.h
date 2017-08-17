@@ -134,7 +134,7 @@ namespace Audio
 		bool ComputeChannelMap(const int32 NumChannels);
 
 		/** Whether or not we should create the source voice with the HRTF spatializer. */
-		bool UseHRTSpatialization() const;
+		bool UseObjectBasedSpatialization() const;
 
 		/** Whether or not to use the spatialization plugin. */
 		bool UseSpatializationPlugin() const;

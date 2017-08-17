@@ -318,12 +318,27 @@ public:
 		return false;
 	}
 
+	virtual bool HasCustomSpatializationSetting() const
+	{
+		return false;
+	}
+
 	virtual bool ImplementsOcclusion() const
 	{
 		return false;
 	}
 
+	virtual bool HasCustomOcclusionSetting() const
+	{
+		return false;
+	}
+
 	virtual bool ImplementsReverb() const
+	{
+		return false;
+	}
+
+	virtual bool HasCustomReverbSetting() const
 	{
 		return false;
 	}

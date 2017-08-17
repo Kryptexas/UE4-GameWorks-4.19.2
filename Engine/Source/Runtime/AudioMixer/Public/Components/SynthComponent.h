@@ -108,10 +108,6 @@ public:
 	UPROPERTY(EditAnywhere, Category = Effects)
 	USoundEffectSourcePresetChain* SourceEffectChain;
 
-	/** The default send level to the master rerverb. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Effects)
-	float DefaultMasterReverbSendAmount;
-
 	/** Submix this sound belongs to */
 	UPROPERTY(EditAnywhere, Category = Effects)
 	USoundSubmix* SoundSubmix;
@@ -119,6 +115,12 @@ public:
 	/** An array of submix sends. Audio from this sound will send a portion of its audio to these effects.  */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Effects)
 	TArray<FSoundSubmixSendInfo> SoundSubmixSends;
+
+	/** Call if creating this synth component not via an actor component in BP, but in code or some other location. */
+	void Initialize();
+
+	/** Retrieves this synth component's audio component. */
+	UAudioComponent* GetAudioComponent();
 
 protected:
 

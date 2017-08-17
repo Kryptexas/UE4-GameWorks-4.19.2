@@ -554,29 +554,6 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Setup this module for Box2D support (based on the settings in UEBuildConfiguration)
-		/// </summary>
-		public void SetupModuleBox2DSupport(ReadOnlyTargetRules Target)
-		{
-			//@TODO: This need to be kept in sync with RulesCompiler.cs for now
-			bool bSupported = false;
-			if ((Target.Platform == UnrealTargetPlatform.Win64) || (Target.Platform == UnrealTargetPlatform.Win32))
-			{
-				bSupported = true;
-			}
-
-			bSupported = bSupported && Target.bCompileBox2D;
-
-			if (bSupported)
-			{
-				AddEngineThirdPartyPrivateStaticDependencies(Target, "Box2D");
-			}
-
-			// Box2D included define (required because pointer types may be in public exported structures)
-			Definitions.Add(string.Format("WITH_BOX2D={0}", bSupported ? 1 : 0));
-		}
-
-		/// <summary>
 		/// Hack to allow deprecating existing code which references the static BuildConfiguration object; redirect it to use properties on this object.
 		/// </summary>
 		[Obsolete("The BuildConfiguration alias is deprecated in 4.18. Set the same properties on the ReadOnlyTargetRules instance passed into the ModuleRules constructor instead.")]

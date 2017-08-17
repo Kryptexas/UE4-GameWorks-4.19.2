@@ -9,6 +9,7 @@
 #include "AudioMixerBuffer.h"
 #include "AudioMixerSubmix.h"
 #include "DSP/OnePole.h"
+#include "DSP/Filter.h"
 #include "DSP/EnvelopeFollower.h"
 #include "IAudioExtensionPlugin.h"
 #include "Containers/Queue.h"
@@ -247,7 +248,8 @@ namespace Audio
 		void SetSpatializationParams(const int32 SourceId, const FSpatializationParams& InParams);
 		void SetChannelMap(const int32 SourceId, const TArray<float>& InChannelMap, const bool bInIs3D, const bool bInIsCenterChannelOnly);
 		void SetLPFFrequency(const int32 SourceId, const float Frequency);
-		
+		void SetHPFFrequency(const int32 SourceId, const float Frequency);
+
 		void SubmitBuffer(const int32 SourceId, FMixerSourceBufferPtr InSourceVoiceBuffer, const bool bSubmitSynchronously);
 
 		int64 GetNumFramesPlayed(const int32 SourceId) const;
@@ -340,12 +342,15 @@ namespace Audio
 			int32 CurrentFrameIndex;
 			int64 NumFramesPlayed;
 
+			// Interpolated source params
 			FSourceParam PitchSourceParam;
 			FSourceParam VolumeSourceParam;
 			FSourceParam LPFCutoffFrequencyParam;
+			FSourceParam HPFCutoffFrequencyParam;
 
-			// Simple LPFs for all sources (all channels of all sources)
-			TArray<FOnePoleLPF> LowPassFilters;
+			// One-Pole LPFs and HPFs per source
+			Audio::FOnePoleFilter LowPassFilter;
+			Audio::FOnePoleFilter HighPassFilter;
 
 			// Source effect instances
 			uint32 SourceEffectChainId;

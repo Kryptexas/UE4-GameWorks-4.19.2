@@ -40,6 +40,7 @@ void SClothPaintWidget::Construct(const FArguments& InArgs, FClothPainter* InPai
 		if(ToolSettings)
 		{
 			Objects.Add(ToolSettings);
+			Painter->GetSelectedTool()->RegisterSettingsObjectCustomizations(DetailsView.Get());
 		}
 
 		ClothPainterSettings = Cast<UClothPainterSettings>(InPainter->GetPainterSettings());
@@ -105,6 +106,7 @@ void SClothPaintWidget::OnRefresh()
 		if(ToolSettings)
 		{
 			Objects.Add(ToolSettings);
+			Painter->GetSelectedTool()->RegisterSettingsObjectCustomizations(DetailsView.Get());
 		}
 
 		Objects.Add(Painter->GetBrushSettings());

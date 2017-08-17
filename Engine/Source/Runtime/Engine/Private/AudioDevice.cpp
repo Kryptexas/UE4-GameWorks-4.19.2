@@ -3520,12 +3520,7 @@ void FAudioDevice::AddSoundToStop(FActiveSound* SoundToStop)
 	}
 
 	check(SoundToStop);
-	bool bIsAlreadyInSet = false;
-	PendingSoundsToStop.Add(SoundToStop, &bIsAlreadyInSet);
-	if (bIsAlreadyInSet)
-	{
-		UE_LOG(LogAudio, Verbose, TEXT("Stopping sound which was already in the process of stopping"));
-	}
+	PendingSoundsToStop.Add(SoundToStop);
 }
 
 void FAudioDevice::StopActiveSound(const uint64 AudioComponentID)
@@ -3651,7 +3646,7 @@ void FAudioDevice::GetMaxDistanceAndFocusFactor(USoundBase* Sound, const UWorld*
 
 		OutMaxDistance = AttenuationSettingsToApply->GetMaxDimension();
 
-		if (AttenuationSettingsToApply->bSpatialize && AttenuationSettingsToApply->bEnableListenerFocus && !Sound->bIgnoreFocus)
+		if (AttenuationSettingsToApply->bSpatialize && AttenuationSettingsToApply->bEnableListenerFocus)
 		{
 			// Now scale the max distance based on the focus settings in the attenuation settings
 			FAttenuationListenerData ListenerData;

@@ -65,7 +65,6 @@ void SClothPaintTab::Construct(const FArguments& InArgs)
 	DetailsViewArgs.bAllowMultipleTopLevelObjects = true;
 
 	DetailsView = EditModule.CreateDetailView(DetailsViewArgs);
-	DetailsView->OnFinishedChangingProperties().AddSP(this, &SClothPaintTab::OnFinishedChangingClothConfigProperties);
 	
 	// Add delegate for editing enabled, which allows us to show a greyed out version with the CDO
 	// selected when we haven't got an asset selected to avoid the UI popping.
@@ -229,27 +228,6 @@ void SClothPaintTab::OnAssetSelectionChanged(TWeakObjectPtr<UClothingAsset> InAs
 		Objects.Add(Asset);
 
 		DetailsView->SetObjects(Objects, true);
-	}
-}
-
-void SClothPaintTab::OnFinishedChangingClothConfigProperties(const FPropertyChangedEvent& InEvent)
-{
-	if(InEvent.ChangeType != EPropertyChangeType::Interactive)
-	{
-		if(InEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(FClothConfig, SelfCollisionRadius) ||
-			InEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(FClothConfig, SelfCollisionCullScale))
-		{
-			if(UClothingAsset* CurrAsset = SelectorWidget->GetSelectedAsset().Get())
-			{
-				CurrAsset->BuildSelfCollisionData();
-			}
-		}
-	}
-
-	if(UDebugSkelMeshComponent* PreviewComponent = GetPersonaToolkit()->GetPreviewMeshComponent())
-	{
-		// Reregister our preview component to apply the change
-		FComponentReregisterContext Context(PreviewComponent);
 	}
 }
 

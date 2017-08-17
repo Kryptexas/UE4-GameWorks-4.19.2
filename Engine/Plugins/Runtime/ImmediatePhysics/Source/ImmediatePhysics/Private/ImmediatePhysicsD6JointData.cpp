@@ -58,6 +58,11 @@ D6JointData::D6JointData(PxD6Joint* Joint)
 	{
 		motion[MotionIdx] = Joint->getMotion((PxD6Axis::Enum)MotionIdx);
 	}
+
+	invMassScale.linear0 = Joint->getInvMassScale0();
+	invMassScale.linear1 = Joint->getInvMassScale1();
+	invMassScale.angular0 = Joint->getInvInertiaScale0();
+	invMassScale.angular1 = Joint->getInvInertiaScale1();
 }
 
 bool IsActive(const D6JointData& JointData, const PxD6Drive::Enum Index)

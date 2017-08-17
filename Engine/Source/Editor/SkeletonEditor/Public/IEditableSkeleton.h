@@ -164,6 +164,12 @@ public:
 	/** Register a delegate to be called when a set of smart names are removed */
 	virtual void UnregisterOnSmartNameRemoved(FDelegateHandle InHandle) = 0;
 
+	/** Register a delegate to be called when this skeletons notifies are changed */
+	virtual void RegisterOnNotifiesChanged(const FSimpleMulticastDelegate::FDelegate& InDelegate) = 0;
+
+	/** Unregister a delegate to be called when this skeletons notifies are changed */
+	virtual void UnregisterOnNotifiesChanged(void* Thing) = 0;
+
 	/** Wrap USkeleton::SetBoneTranslationRetargetingMode */
 	virtual void SetBoneTranslationRetargetingMode(FName InBoneName, EBoneTranslationRetargetingMode::Type NewRetargetingMode) = 0;
 

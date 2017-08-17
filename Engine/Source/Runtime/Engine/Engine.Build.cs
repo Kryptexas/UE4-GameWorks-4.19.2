@@ -349,8 +349,6 @@ public class Engine : ModuleRules
             }
         }
 
-		SetupModuleBox2DSupport(Target);
-
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||
 			(Target.Platform == UnrealTargetPlatform.Win32))
 		{

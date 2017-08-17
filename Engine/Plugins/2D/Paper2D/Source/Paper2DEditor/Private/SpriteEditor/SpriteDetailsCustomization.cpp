@@ -217,7 +217,6 @@ void FSpriteDetailsCustomization::BuildCollisionSection(IDetailCategoryBuilder& 
 
 	TAttribute<EVisibility> ParticipatesInPhysics = TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP( this, &FSpriteDetailsCustomization::AnyPhysicsMode, SpriteCollisionDomainProperty));
 	TAttribute<EVisibility> ParticipatesInPhysics3D = TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FSpriteDetailsCustomization::PhysicsModeMatches, SpriteCollisionDomainProperty, ESpriteCollisionMode::Use3DPhysics));
-	TAttribute<EVisibility> ParticipatesInPhysics2D = TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FSpriteDetailsCustomization::PhysicsModeMatches, SpriteCollisionDomainProperty, ESpriteCollisionMode::Use2DPhysics));
 	TAttribute<EVisibility> HideWhenInRenderingMode = TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FSpriteDetailsCustomization::EditorModeIsNot, ESpriteEditorMode::EditRenderingGeomMode));
 	TAttribute<EVisibility> ShowWhenInRenderingMode = TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FSpriteDetailsCustomization::EditorModeMatches, ESpriteEditorMode::EditRenderingGeomMode));
 
@@ -234,19 +233,6 @@ void FSpriteDetailsCustomization::BuildCollisionSection(IDetailCategoryBuilder& 
 		];
 
 	CollisionCategory.AddProperty(SpriteCollisionDomainProperty).Visibility(HideWhenInRenderingMode);
-
-	// Add a warning bar about 2D collision being experimental
-	FText WarningFor2D = LOCTEXT("Experimental2DPhysicsWarning", "2D collision support is *experimental*");
-	FText TooltipFor2D = LOCTEXT("Experimental2DPhysicsWarningTooltip", "2D collision support is *experimental* and should not be relied on yet.\n\nRigid body collision detection and response works, but there are only precompiled libraries for Windows currently.\n\nRaycasts are partially supported (and need to be enabled in project settings), but queries, sweeps, or overlap tests are not implemented yet.");
-	GenerateWarningRow(CollisionCategory, /*bExperimental=*/ true, WarningFor2D, TooltipFor2D, TEXT("Shared/Editors/SpriteEditor"), TEXT("CollisionDomain2DWarning"))
-		.Visibility(ParticipatesInPhysics2D);
-
-	// Add a warning bar if 2D collision queries aren't enabled
-	TAttribute<EVisibility> WarnAbout2DQueriesBeingDisabledVisibility = TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FSpriteDetailsCustomization::Get2DPhysicsNotEnabledWarningVisibility, SpriteCollisionDomainProperty));
-	FText QueryWarningFor2D = LOCTEXT("Query2DPhysicsWarning", "2D collision queries are disabled");
-	FText QueryTooltipFor2D = LOCTEXT("Query2DPhysicsWarningTooltip", "You can enable 2D queries in Project Settings..Physics by setting bEnable2DPhysics to true, otherwise only collision detection and response will work.\n\nNote: Only raycasts are partially supported; other queries, sweeps, and overlap tests are not implemented yet.");
-	GenerateWarningRow(CollisionCategory, /*bExperimental=*/ false, QueryWarningFor2D, QueryTooltipFor2D, TEXT("Shared/Editors/SpriteEditor"), TEXT("Disabled2DCollisionQueriesWarning"))
-		.Visibility(WarnAbout2DQueriesBeingDisabledVisibility);
 
 	// Add the collision geometry mode into the parent container (renamed)
 	{
@@ -493,9 +479,6 @@ FText FSpriteDetailsCustomization::GetCollisionHeaderContentText(TSharedPtr<IPro
 			case ESpriteCollisionMode::None:
 				CollisionContentText = LOCTEXT("CollisionHeader_NoCollision", "(no collision)");
 				break;
-			case ESpriteCollisionMode::Use2DPhysics:
-				CollisionContentText = LOCTEXT("CollisionHeader_Use2D", "Uses 2D Physics");
-				break;
 			case ESpriteCollisionMode::Use3DPhysics:
 				CollisionContentText = LOCTEXT("CollisionHeader_Use3D", "Uses 3D Physics");
 				break;
@@ -599,12 +582,6 @@ EVisibility FSpriteDetailsCustomization::GetCustomPivotVisibility(TSharedPtr<IPr
 
 	// If there are multiple values, show all properties
 	return EVisibility::Visible;
-}
-
-EVisibility FSpriteDetailsCustomization::Get2DPhysicsNotEnabledWarningVisibility(TSharedPtr<IPropertyHandle> Property) const
-{
-	// Hide the warning if 2D queries are enabled, or if the collision mode is not 2D physics
-	return GetDefault<UPhysicsSettings>()->bEnable2DPhysics ? EVisibility::Collapsed : PhysicsModeMatches(Property, ESpriteCollisionMode::Use2DPhysics);
 }
 
 EVisibility FSpriteDetailsCustomization::PolygonModeMatches(TSharedPtr<IPropertyHandle> Property, ESpritePolygonMode::Type DesiredMode) const

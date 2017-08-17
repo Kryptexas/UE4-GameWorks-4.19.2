@@ -9,6 +9,7 @@
 #include "Sound/SoundWave.h"
 #include "Sound/SoundNodeAttenuation.h"
 #include "SubtitleManager.h"
+#include "DSP/Dsp.h"
 
 FTraceDelegate FActiveSound::ActiveSoundTraceDelegate;
 TMap<FTraceHandle, FActiveSound::FAsyncTraceDetails> FActiveSound::TraceToActiveSoundMap;
@@ -353,7 +354,6 @@ void FActiveSound::UpdateWaveInstances( TArray<FWaveInstance*> &InWaveInstances,
 	ParseParams.bIsPaused = bIsPaused;
 
 	ParseParams.SoundSubmix = GetSoundSubmix();
-	ParseParams.DefaultMasterReverbSendAmount = Sound->DefaultMasterReverbSendAmount;
 	GetSoundSubmixSends(ParseParams.SoundSubmixSends);
 
 	// Set up the base source effect chain. 
@@ -885,6 +885,69 @@ void FActiveSound::CollectAttenuationShapesForVisualization(TMultiMap<EAttenuati
 	}
 }
 
+float FActiveSound::GetAttenuationFrequency(const FSoundAttenuationSettings* Settings, const FAttenuationListenerData& ListenerData, const FVector2D& FrequencyRange, const FRuntimeFloatCurve& CustomCurve)
+{
+	float OutputFrequency = 0.0f;
+
+	// If the frequency mapping is the same no matter what, no need to do any mapping
+	if (FrequencyRange.X == FrequencyRange.Y)
+	{
+		OutputFrequency = FrequencyRange.X;
+	}
+	// If the transition band is instantaneous, just set it to before/after frequency value
+	else if (Settings->LPFRadiusMin == Settings->LPFRadiusMax)
+	{
+		if (ListenerData.AttenuationDistance > Settings->LPFRadiusMin)
+		{
+			OutputFrequency = FrequencyRange.Y;
+		}
+		else
+		{
+			OutputFrequency = FrequencyRange.X;
+		}
+	}
+	else if (Settings->AbsorptionMethod == EAirAbsorptionMethod::Linear)
+	{
+		FVector2D AbsorptionDistanceRange = { Settings->LPFRadiusMin, Settings->LPFRadiusMax };
+
+		// Do log-scaling if we've been told to do so. This applies a log function to perceptually smooth filter frequency between target frequency ranges
+		if (Settings->bEnableLogFrequencyScaling)
+		{
+			OutputFrequency = Audio::GetLogFrequencyClamped(ListenerData.AttenuationDistance, AbsorptionDistanceRange, FrequencyRange);
+		}
+		else
+		{
+			OutputFrequency = FMath::GetMappedRangeValueClamped(AbsorptionDistanceRange, FrequencyRange, ListenerData.AttenuationDistance);
+		}
+	}
+	else
+	{
+		// In manual absorption mode, the frequency ranges are interpreted as a true "range"
+		FVector2D ActualFreqRange(FMath::Min(FrequencyRange.X, FrequencyRange.Y), FMath::Max(FrequencyRange.X, FrequencyRange.Y));
+
+		// Normalize the distance values to a value between 0 and 1
+		FVector2D AbsorptionDistanceRange = { Settings->LPFRadiusMin, Settings->LPFRadiusMax };
+		check(AbsorptionDistanceRange.Y != AbsorptionDistanceRange.X);
+		const float Alpha = FMath::Clamp<float>((ListenerData.AttenuationDistance - AbsorptionDistanceRange.X) / (AbsorptionDistanceRange.Y - AbsorptionDistanceRange.X), 0.0f, 1.0f);
+
+		// Perform the curve mapping
+		const float MappedFrequencyValue = FMath::Clamp<float>(CustomCurve.GetRichCurveConst()->Eval(Alpha), 0.0f, 1.0f);
+
+		if (Settings->bEnableLogFrequencyScaling)
+		{
+			// Use the mapped value in the log scale mapping
+			OutputFrequency = Audio::GetLogFrequencyClamped(MappedFrequencyValue, FVector2D(0.0f, 1.0f), ActualFreqRange);
+		}
+		else
+		{
+			// Do a straight linear interpolation between the absorption frequency ranges
+			OutputFrequency = FMath::GetMappedRangeValueClamped(FVector2D(0.0f, 1.0f), ActualFreqRange, MappedFrequencyValue);
+		}
+	}
+
+	return FMath::Clamp<float>(OutputFrequency, MIN_FILTER_FREQUENCY, MAX_FILTER_FREQUENCY);
+}
+
 void FActiveSound::ApplyAttenuation(FSoundParseParameters& ParseParams, const FListener& Listener, const FSoundAttenuationSettings* SettingsAttenuationNode)
 {
 	float& Volume = ParseParams.Volume;
@@ -902,26 +965,33 @@ void FActiveSound::ApplyAttenuation(FSoundParseParameters& ParseParams, const FL
 
 	check(Sound);
 
-	if (Settings->bSpatialize)
+	if (Settings->bEnableReverbSend)
 	{
-		// Compute the azimuth of the active sound
-		const FGlobalFocusSettings& FocusSettings = AudioDevice->GetGlobalFocusSettings();
+		ParseParams.ReverbSendMethod = Settings->ReverbSendMethod;
+		ParseParams.ManualReverbSendLevel = Settings->ManualReverbSendLevel;
+		ParseParams.CustomReverbSendCurve = Settings->CustomReverbSendCurve;
+		ParseParams.ReverbSendLevelRange = { Settings->ReverbWetLevelMin, Settings->ReverbWetLevelMax };
+		ParseParams.ReverbSendLevelDistanceRange = { Settings->ReverbDistanceMin, Settings->ReverbDistanceMax };
+	}
 
+	if (Settings->bSpatialize || Settings->bEnableListenerFocus)
+	{
 		AudioDevice->GetAzimuth(ListenerData, Sound, SoundTransform, *Settings, Listener.Transform, Azimuth, AbsoluteAzimuth);
 
-		ParseParams.AttenuationDistance = ListenerData.AttenuationDistance;
-
-		ParseParams.ListenerToSoundDistance = ListenerData.ListenerToSoundDistance;
-
-		ParseParams.AbsoluteAzimuth = AbsoluteAzimuth;
-
-		ParseParams.ReverbWetLevelMin = Settings->ReverbWetLevelMin;
-		ParseParams.ReverbWetLevelMax = Settings->ReverbWetLevelMax;
-		ParseParams.ReverbDistanceMin = Settings->ReverbDistanceMin;
-		ParseParams.ReverbDistanceMax = Settings->ReverbDistanceMax;
-
-		if (Settings->bEnableListenerFocus && !Sound->bIgnoreFocus)
+		if (Settings->bSpatialize)
 		{
+			ParseParams.AttenuationDistance = ListenerData.AttenuationDistance;
+
+			ParseParams.ListenerToSoundDistance = ListenerData.ListenerToSoundDistance;
+
+			ParseParams.AbsoluteAzimuth = AbsoluteAzimuth;
+		}
+
+		if (Settings->bEnableListenerFocus)
+		{
+			// Compute the azimuth of the active sound
+			const FGlobalFocusSettings& FocusSettings = AudioDevice->GetGlobalFocusSettings();
+
 			// Get the current target focus factor
 			const float TargetFocusFactor = AudioDevice->GetFocusFactor(ListenerData, Sound, Azimuth, *Settings);
 
@@ -1001,34 +1071,41 @@ void FActiveSound::ApplyAttenuation(FSoundParseParameters& ParseParams, const FL
 	ParseParams.SpatializationPluginSettings = Settings->SpatializationPluginSettings;
 	ParseParams.ReverbPluginSettings = Settings->ReverbPluginSettings;
 
-	// Attenuate with the low pass filter if necessary
+	// Attenuate with the absorption filter if necessary
 	if (Settings->bAttenuateWithLPF)
 	{
 		AudioDevice->GetAttenuationListenerData(ListenerData, SoundTransform, *Settings, &Listener.Transform);
 
-		// Attenuate with the low pass filter if necessary
-		FVector2D InputRange(Settings->LPFRadiusMin, Settings->LPFRadiusMax);
-		FVector2D OutputRange(Settings->LPFFrequencyAtMin, Settings->LPFFrequencyAtMax);
-		float AttenuationFilterFrequency = FMath::GetMappedRangeValueClamped(InputRange, OutputRange, ListenerData.AttenuationDistance);
+		FVector2D AbsorptionLowPassFrequencyRange = { Settings->LPFFrequencyAtMin, Settings->LPFFrequencyAtMax };
+		FVector2D AbsorptionHighPassFrequencyRange = { Settings->HPFFrequencyAtMin, Settings->HPFFrequencyAtMax };
+		const float AttenuationLowpassFilterFrequency = GetAttenuationFrequency(Settings, ListenerData, AbsorptionLowPassFrequencyRange, Settings->CustomLowpassAirAbsorptionCurve);
+		const float AttenuationHighPassFilterFrequency = GetAttenuationFrequency(Settings, ListenerData, AbsorptionHighPassFrequencyRange, Settings->CustomHighpassAirAbsorptionCurve);
 
 		// Only apply the attenuation filter frequency if it results in a lower attenuation filter frequency than is already being used by ParseParams (the struct pass into the sound cue node tree)
 		// This way, subsequently chained attenuation nodes in a sound cue will only result in the lowest frequency of the set.
-		if (AttenuationFilterFrequency < ParseParams.AttenuationFilterFrequency)
+		if (AttenuationLowpassFilterFrequency < ParseParams.AttenuationLowpassFilterFrequency)
 		{
-			ParseParams.AttenuationFilterFrequency = AttenuationFilterFrequency;
+			ParseParams.AttenuationLowpassFilterFrequency = AttenuationLowpassFilterFrequency;
+		}
+
+		// Same with high pass filter frequency
+		if (AttenuationHighPassFilterFrequency > ParseParams.AttenuationHighpassFilterFrequency)
+		{
+			ParseParams.AttenuationHighpassFilterFrequency = AttenuationHighPassFilterFrequency;
 		}
 	}
 
 	ParseParams.OmniRadius = Settings->OmniRadius;
 	ParseParams.StereoSpread = Settings->StereoSpread;
+	ParseParams.bApplyNormalizationToStereoSounds = Settings->bApplyNormalizationToStereoSounds;
 	ParseParams.bUseSpatialization |= Settings->bSpatialize;
 
-	if (Settings->SpatializationAlgorithm == SPATIALIZATION_Default && AudioDevice->IsHRTFEnabledForAll())
+	if (Settings->SpatializationAlgorithm == ESoundSpatializationAlgorithm::SPATIALIZATION_Default && AudioDevice->IsHRTFEnabledForAll())
 	{
-		ParseParams.SpatializationAlgorithm = SPATIALIZATION_HRTF;
+		ParseParams.SpatializationMethod = ESoundSpatializationAlgorithm::SPATIALIZATION_HRTF;
 	}
 	else
 	{
-		ParseParams.SpatializationAlgorithm = Settings->SpatializationAlgorithm;
+		ParseParams.SpatializationMethod = Settings->SpatializationAlgorithm;
 	}
 }

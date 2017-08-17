@@ -6,7 +6,6 @@
 #include "EditorFramework/AssetImportData.h"
 #include "Paper2DModule.h"
 #include "PhysicsEngine/BodySetup.h"
-#include "PhysicsEngine/BodySetup2D.h"
 #include "PaperCustomVersion.h"
 #include "PaperTileSet.h"
 #include "PaperTileLayer.h"
@@ -259,9 +258,6 @@ void UPaperTileMap::UpdateBodySetup()
 	{
 	case ESpriteCollisionMode::Use3DPhysics:
 		BodySetup = NewObject<UBodySetup>(this);
-		break;
-	case ESpriteCollisionMode::Use2DPhysics:
-		BodySetup = NewObject<UBodySetup2D>(this);
 		break;
 	case ESpriteCollisionMode::None:
 		BodySetup = nullptr;

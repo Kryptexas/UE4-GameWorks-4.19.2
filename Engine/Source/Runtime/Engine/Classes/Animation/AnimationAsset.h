@@ -73,6 +73,11 @@ struct FBlendSampleData
 	UPROPERTY()
 	float PreviousTime;
 
+	// We may merge multiple samples if they use the same animation
+	// Calculate the combined sample play rate here
+	UPROPERTY()
+	float SamplePlayRate;
+
 	FMarkerTickRecord MarkerTickRecord;
 
 	// transient perbone interpolation data

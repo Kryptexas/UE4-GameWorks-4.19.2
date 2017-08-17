@@ -20,6 +20,7 @@ namespace Audio
 		, Volume(-1.0f)
 		, Distance(-1.0f)
 		, LPFFrequency(-1.0f)
+		, HPFFrequency(-1.0f)
 		, SourceId(INDEX_NONE)
 		, bIsPlaying(false)
 		, bIsPaused(false)
@@ -100,6 +101,17 @@ namespace Audio
 		{
 			LPFFrequency = InLPFFrequency;
 			SourceManager->SetLPFFrequency(SourceId, LPFFrequency);
+		}
+	}
+
+	void FMixerSourceVoice::SetHPFFrequency(const float InHPFFrequency)
+	{
+		AUDIO_MIXER_CHECK_GAME_THREAD(MixerDevice);
+
+		if (HPFFrequency != InHPFFrequency)
+		{
+			HPFFrequency = InHPFFrequency;
+			SourceManager->SetHPFFrequency(SourceId, HPFFrequency);
 		}
 	}
 

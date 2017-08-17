@@ -77,17 +77,17 @@ struct FSoundParseParameters
 	TArray<FSoundSubmixSendInfo> SoundSubmixSends;
 
 	// Reverb wet-level parameters
-	float ReverbWetLevelMin;
-	float ReverbWetLevelMax;
-	float ReverbDistanceMin;
-	float ReverbDistanceMax;
-	float DefaultMasterReverbSendAmount;
+	EReverbSendMethod ReverbSendMethod;
+	FVector2D ReverbSendLevelRange;
+	FVector2D ReverbSendLevelDistanceRange;
+	float ManualReverbSendLevel;
+	FRuntimeFloatCurve CustomReverbSendCurve;
 
 	// The distance between left and right channels when spatializing stereo assets
 	float StereoSpread;
 
 	// Which spatialization algorithm to use
-	ESoundSpatializationAlgorithm SpatializationAlgorithm;
+	ESoundSpatializationAlgorithm SpatializationMethod;
 
 	// What occlusion plugin source settings to use
 	USpatializationPluginSourceSettingsBase* SpatializationPluginSettings;
@@ -105,7 +105,10 @@ struct FSoundParseParameters
 	float LowPassFilterFrequency;
 
 	// The lowpass filter frequency to apply due to distance attenuation
-	float AttenuationFilterFrequency;
+	float AttenuationLowpassFilterFrequency;
+
+	// The highpass filter frequency to apply due to distance attenuation
+	float AttenuationHighpassFilterFrequency;
 
 	// The lowpass filter to apply if the sound is occluded
 	float OcclusionFilterFrequency;
@@ -128,6 +131,9 @@ struct FSoundParseParameters
 	// Whether or not this sound is manually paused (i.e. not by application-wide pause)
 	uint32 bIsPaused:1;
 
+	// Whether or not to apply a =6 dB attenuation to stereo spatialization sounds
+	uint32 bApplyNormalizationToStereoSounds:1;
+
 	FSoundParseParameters()
 		: SoundClass(nullptr)
 		, Velocity(ForceInit)
@@ -142,19 +148,19 @@ struct FSoundParseParameters
 		, ListenerToSoundDistance(0.0f)
 		, AbsoluteAzimuth(0.0f)
 		, SoundSubmix(nullptr)
-		, ReverbWetLevelMin(0.0f)
-		, ReverbWetLevelMax(0.0f)
-		, ReverbDistanceMin(0.0f)
-		, ReverbDistanceMax(0.0f)
-		, DefaultMasterReverbSendAmount(0.0f)
+		, ReverbSendMethod(EReverbSendMethod::Linear)
+		, ReverbSendLevelRange(0.0f, 0.0f)
+		, ReverbSendLevelDistanceRange(0.0f, 0.0f)
+		, ManualReverbSendLevel(0.2f)
 		, StereoSpread(0.0f)
-		, SpatializationAlgorithm(SPATIALIZATION_Default)
+		, SpatializationMethod(ESoundSpatializationAlgorithm::SPATIALIZATION_Default)
 		, SpatializationPluginSettings(nullptr)
 		, OcclusionPluginSettings(nullptr)
 		, ReverbPluginSettings(nullptr)
 		, SourceEffectChain(nullptr)
 		, LowPassFilterFrequency(MAX_FILTER_FREQUENCY)
-		, AttenuationFilterFrequency(MAX_FILTER_FREQUENCY)
+		, AttenuationLowpassFilterFrequency(MAX_FILTER_FREQUENCY)
+		, AttenuationHighpassFilterFrequency(MIN_FILTER_FREQUENCY)
 		, OcclusionFilterFrequency(MAX_FILTER_FREQUENCY)
 		, AmbientZoneFilterFrequency(MAX_FILTER_FREQUENCY)
 		, bUseSpatialization(false)
@@ -162,6 +168,7 @@ struct FSoundParseParameters
 		, bEnableLowPassFilter(false)
 		, bIsOccluded(false)
 		, bIsPaused(false)
+		, bApplyNormalizationToStereoSounds(false)
 	{
 	}
 };
@@ -543,6 +550,9 @@ private:
 	 
 	/** Apply the interior settings to the ambient sound as appropriate */
 	void HandleInteriorVolumes( const FListener& Listener, struct FSoundParseParameters& ParseParams );
+
+	/** Helper function which retrieves attenuation frequency value for HPF and LPF distance-based filtering. */
+	float GetAttenuationFrequency(const FSoundAttenuationSettings* InSettings, const FAttenuationListenerData& ListenerData, const FVector2D& FrequencyRange, const FRuntimeFloatCurve& CustomCurve);
 
 	/** Internal Focus Factor value used to allow smooth interpolation in/out of Focus */
 	float InternalFocusFactor;

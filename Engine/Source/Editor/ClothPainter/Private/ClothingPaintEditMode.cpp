@@ -13,6 +13,9 @@
 #include "ComponentRecreateRenderStateContext.h"
 #include "IPersonaToolkit.h"
 #include "ClothingAsset.h"
+#include "EditorViewportClient.h"
+#include "AssetViewerSettings.h"
+#include "Editor/EditorPerProjectUserSettings.h"
 
 FClothingPaintEditMode::FClothingPaintEditMode()
 {
@@ -54,6 +57,18 @@ void FClothingPaintEditMode::SetPersonaToolKit(class TSharedPtr<IPersonaToolkit>
 void FClothingPaintEditMode::Enter()
 {
 	IMeshPaintEdMode::Enter();
+
+	for (int32 ViewIndex = 0; ViewIndex < GEditor->AllViewportClients.Num(); ++ViewIndex)
+	{
+		FEditorViewportClient* ViewportClient = GEditor->AllViewportClients[ViewIndex];
+		if (!ViewportClient || ViewportClient->GetModeTools() != GetModeManager() )
+		{
+			continue;
+		}
+
+		ViewportClient->EngineShowFlags.DisableAdvancedFeatures();
+	}
+
 	IPersonaPreviewScene* Scene = GetAnimPreviewScene();
 	if (Scene)
 	{
@@ -106,7 +121,25 @@ void FClothingPaintEditMode::Exit()
 		}
 	}
 
+	for (int32 ViewIndex = 0; ViewIndex < GEditor->AllViewportClients.Num(); ++ViewIndex)
+	{
+		FEditorViewportClient* ViewportClient = GEditor->AllViewportClients[ViewIndex];
+		if (!ViewportClient || ViewportClient->GetModeTools() != GetModeManager() )
+		{
+			continue;
+		}
 
+		const bool bEnablePostProcessing = UAssetViewerSettings::Get()->Profiles[GetMutableDefault<UEditorPerProjectUserSettings>()->AssetViewerProfileIndex].bPostProcessingEnabled;
+
+		if ( bEnablePostProcessing )
+		{
+			ViewportClient->EngineShowFlags.EnableAdvancedFeatures();
+		}
+		else
+		{
+			ViewportClient->EngineShowFlags.DisableAdvancedFeatures();
+		}
+	}
 
 	IMeshPaintEdMode::Exit();
 }

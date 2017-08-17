@@ -18,14 +18,18 @@ namespace SteamAudio
 		virtual void StartupModule() override;
 		virtual void ShutdownModule() override;
 
-		virtual bool ImplementsSpatialization() const override;
-		virtual bool ImplementsOcclusion() const override;
-		virtual bool ImplementsReverb() const override;
-
+		//~ Begin IAudioPlugin
+		virtual bool ImplementsSpatialization() const override { return true; }
+		virtual bool HasCustomSpatializationSetting() const override { return true; }
+		virtual bool ImplementsOcclusion() const override { return true; }
+		virtual bool HasCustomOcclusionSetting() const override { return true; }
+		virtual bool ImplementsReverb() const override { return true; }
+		virtual bool HasCustomReverbSetting() const override { return true; }
 		virtual TAudioSpatializationPtr CreateSpatializationInterface(class FAudioDevice* AudioDevice) override;
 		virtual TAudioOcclusionPtr CreateOcclusionInterface(class FAudioDevice* AudioDevice) override;
 		virtual TAudioReverbPtr CreateReverbInterface(class FAudioDevice* AudioDevice) override;
 		virtual TAudioListenerObserverPtr CreateListenerObserverInterface(class FAudioDevice* AudioDevice) override;
+		//~ End IAudioPlugin
 
 		void CreateEnvironment(UWorld* World, FAudioDevice* InAudioDevice);
 		void DestroyEnvironment(FAudioDevice* InAudioDevice);

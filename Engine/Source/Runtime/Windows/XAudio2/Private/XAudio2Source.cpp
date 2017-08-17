@@ -252,32 +252,25 @@ void FXAudio2SoundSource::SubmitPCMRTBuffers( void )
 		bPlayedCachedBuffer = true;
 		FMemory::Memcpy((uint8*)XAudio2Buffers[0].pAudioData, WaveInstance->WaveData->CachedRealtimeFirstBuffer, BufferSize);
 		FMemory::Memcpy((uint8*)XAudio2Buffers[1].pAudioData, WaveInstance->WaveData->CachedRealtimeFirstBuffer + BufferSize, BufferSize);
-
-		// Immediately submit the first two buffers that were either cached or synchronously read
-		// The first buffer will start the voice processing buffers and trigger an OnBufferEnd callback, which will then 
-		// trigger async tasks to generate more PCMRT buffers.
-		AudioDevice->ValidateAPICall(TEXT("SubmitSourceBuffer - PCMRT"),
-			Source->SubmitSourceBuffer(&XAudio2Buffers[0]));
-
-		AudioDevice->ValidateAPICall(TEXT("SubmitSourceBuffer - PCMRT"),
-			Source->SubmitSourceBuffer(&XAudio2Buffers[1]));
-
-		// Prepare the third buffer for the OnBufferEnd callback to write to in the OnBufferEnd callback
-		CurrentBuffer = 2;
 	}
 	else
 	{
-		// Read the first buffer now
+		// Read the first two buffers and submit them
 		ReadMorePCMData(0, EDataReadMode::Synchronous);
-
-		// Submit it
-		AudioDevice->ValidateAPICall(TEXT("SubmitSourceBuffer - PCMRT"),
-			Source->SubmitSourceBuffer(&XAudio2Buffers[0]));
-
-		// Kick off an async decode of the next buffer so when first buffer finishes, it'll be ready
-		CurrentBuffer = 1;
-		ReadMorePCMData(CurrentBuffer, EDataReadMode::Asynchronous);
+		ReadMorePCMData(1, EDataReadMode::Synchronous);
 	}
+
+	// Immediately submit the first two buffers that were either cached or synchronously read
+	// The first buffer will start the voice processing buffers and trigger an OnBufferEnd callback, which will then 
+	// trigger async tasks to generate more PCMRT buffers.
+	AudioDevice->ValidateAPICall(TEXT("SubmitSourceBuffer - PCMRT"),
+		Source->SubmitSourceBuffer(&XAudio2Buffers[0]));
+
+	AudioDevice->ValidateAPICall(TEXT("SubmitSourceBuffer - PCMRT"),
+		Source->SubmitSourceBuffer(&XAudio2Buffers[1]));
+
+	// Prepare the third buffer for the OnBufferEnd callback to write to in the OnBufferEnd callback
+	CurrentBuffer = 2;
 
 	bResourcesNeedFreeing = true;
 }
@@ -729,7 +722,7 @@ void FXAudio2SoundSource::GetMonoChannelVolumes(float ChannelVolumes[CHANNEL_MAT
 		// If we are using a HRTF spatializer, we are going to be using an XAPO effect that takes a mono stream and splits it into stereo
 		// So in th at case we will just set the emitter position as a parameter to the XAPO plugin and then treat the
 		// sound as if it was a non-spatialized stereo asset
-		if (WaveInstance->SpatializationAlgorithm != SPATIALIZATION_HRTF && !bEditorWarnedChangedSpatialization)
+		if (WaveInstance->SpatializationMethod == ESoundSpatializationAlgorithm::SPATIALIZATION_HRTF && !bEditorWarnedChangedSpatialization)
 		{
 			bEditorWarnedChangedSpatialization = true;
 			UE_LOG(LogXAudio2, Warning, TEXT("Changing the spatialization algorithm on a playing sound is not supported (WaveInstance: %s)"), *WaveInstance->WaveData->GetFullName());
@@ -1641,7 +1634,7 @@ bool FXAudio2SoundSource::CreateWithSpatializationEffect()
 {
 	return (Buffer->NumChannels == 1 &&
 			AudioDevice->IsSpatializationPluginEnabled() &&
-			WaveInstance->SpatializationAlgorithm != SPATIALIZATION_Default);
+			WaveInstance->SpatializationMethod == ESoundSpatializationAlgorithm::SPATIALIZATION_HRTF);
 }
 
 /*------------------------------------------------------------------------------------

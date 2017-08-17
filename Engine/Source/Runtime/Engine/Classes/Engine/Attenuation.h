@@ -45,19 +45,20 @@ struct ENGINE_API FBaseAttenuationSettings
 
 	virtual ~FBaseAttenuationSettings() { }
 
-	/* The type of volume versus distance algorithm to use for the attenuation model. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Attenuation )
+	/* The type of attenuation as a function of distance to use. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category= AttenuationDistance, meta = (DisplayName = "Attenuation Function"))
 	EAttenuationDistanceModel DistanceAlgorithm;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Attenuation)
+	/* The custom volume attenuation curve to use. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category= AttenuationDistance)
 	FRuntimeFloatCurve CustomAttenuationCurve;
 
-	/* The shape of the attenuation volume. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Attenuation )
+	/* The shape of the non-custom attenuation method. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category= AttenuationDistance)
 	TEnumAsByte<enum EAttenuationShape::Type> AttenuationShape;
 
-	/* The volume at maximum distance in deciBels. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Attenuation, meta=(DisplayName = "dB Attenuation At Max", ClampMax = "0" ))
+	/* The attenuation volume at maximum distance in decibels, used for natural attenuation method. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category= AttenuationDistance, meta=(DisplayName = "dB Attenuation At Max", ClampMax = "0" ))
 	float dBAttenuationAtMax;
 
 	/* The dimensions to use for the attenuation shape. Interpretation of the values differ per shape.
@@ -66,15 +67,15 @@ struct ENGINE_API FBaseAttenuationSettings
 	   Box     - X, Y, and Z are the Box's dimensions
 	   Cone    - X is Cone Radius, Y is Cone Angle, Z is Cone Falloff Angle
 	*/
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Attenuation)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category= AttenuationDistance)
 	FVector AttenuationShapeExtents;
 
 	/* The distance back from the sound's origin to begin the cone when using the cone attenuation shape. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Attenuation, meta=(ClampMin = "0"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category= AttenuationDistance, meta=(ClampMin = "0"))
 	float ConeOffset;
 
-	/* The distance over which falloff occurs. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Attenuation, meta=(ClampMin = "0"))
+	/* The distance over which volume attenuation occurs. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category= AttenuationDistance, meta=(ClampMin = "0"))
 	float FalloffDistance;
 
 	FBaseAttenuationSettings()

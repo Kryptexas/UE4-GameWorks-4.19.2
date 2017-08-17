@@ -70,17 +70,21 @@ bool FSoundAttenuationSettings::operator==(const FSoundAttenuationSettings& Othe
 			&& bSpatialize			    == Other.bSpatialize
 			&& dBAttenuationAtMax	    == Other.dBAttenuationAtMax
 			&& OmniRadius				== Other.OmniRadius
+			&& bApplyNormalizationToStereoSounds == Other.bApplyNormalizationToStereoSounds
 			&& StereoSpread				== Other.StereoSpread
 			&& DistanceAlgorithm	    == Other.DistanceAlgorithm
 			&& AttenuationShape		    == Other.AttenuationShape
-			&& bAttenuateWithLPF	    == Other.bAttenuateWithLPF
-			&& LPFRadiusMin			    == Other.LPFRadiusMin
-			&& LPFRadiusMax			    == Other.LPFRadiusMax
+			&& bAttenuateWithLPF		== Other.bAttenuateWithLPF
+			&& LPFRadiusMin				== Other.LPFRadiusMax
 			&& FalloffDistance		    == Other.FalloffDistance
 			&& AttenuationShapeExtents	== Other.AttenuationShapeExtents
-			&& SpatializationAlgorithm  == Other.SpatializationAlgorithm
-			&& LPFFrequencyAtMin == Other.LPFFrequencyAtMin
-			&& LPFFrequencyAtMax == Other.LPFFrequencyAtMax
+			&& SpatializationAlgorithm == Other.SpatializationAlgorithm
+			&& SpatializationPluginSettings == Other.SpatializationPluginSettings
+			&& LPFFrequencyAtMax		== Other.LPFFrequencyAtMax
+			&& LPFFrequencyAtMin		== Other.LPFFrequencyAtMin
+			&& HPFFrequencyAtMax		== Other.HPFFrequencyAtMax
+			&& HPFFrequencyAtMin		== Other.HPFFrequencyAtMin
+			&& bEnableLogFrequencyScaling == Other.bEnableLogFrequencyScaling
 			&& bEnableListenerFocus == Other.bEnableListenerFocus
 			&& FocusAzimuth				== Other.FocusAzimuth
 			&& NonFocusAzimuth			== Other.NonFocusAzimuth
@@ -88,7 +92,18 @@ bool FSoundAttenuationSettings::operator==(const FSoundAttenuationSettings& Othe
 			&& FocusPriorityScale		== Other.FocusPriorityScale
 			&& NonFocusPriorityScale	== Other.NonFocusPriorityScale
 			&& FocusVolumeAttenuation	== Other.FocusVolumeAttenuation
-			&& NonFocusVolumeAttenuation == Other.NonFocusVolumeAttenuation);
+			&& NonFocusVolumeAttenuation == Other.NonFocusVolumeAttenuation
+			&& OcclusionTraceChannel	== Other.OcclusionTraceChannel
+			&& OcclusionLowPassFilterFrequency == Other.OcclusionLowPassFilterFrequency
+			&& OcclusionVolumeAttenuation == Other.OcclusionVolumeAttenuation
+			&& OcclusionInterpolationTime == Other.OcclusionInterpolationTime
+			&& OcclusionPluginSettings	== Other.OcclusionPluginSettings
+			&& bEnableReverbSend		== Other.bEnableReverbSend
+			&& ReverbPluginSettings		== Other.ReverbPluginSettings
+			&& ReverbWetLevelMin		== Other.ReverbWetLevelMin
+			&& ReverbWetLevelMax		== Other.ReverbWetLevelMax
+			&& ReverbDistanceMin		== Other.ReverbDistanceMin
+			&& ReverbDistanceMax		== Other.ReverbDistanceMax);
 }
 
 void FSoundAttenuationSettings::CollectAttenuationShapesForVisualization(TMultiMap<EAttenuationShape::Type, AttenuationShapeDetails>& ShapeDetailsMap) const

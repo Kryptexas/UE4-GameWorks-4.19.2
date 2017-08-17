@@ -94,7 +94,7 @@ class USoundCue : public USoundBase
 	float PitchMultiplier;
 
 	/* Attenuation settings to use if Override Attenuation is set to true */
-	UPROPERTY(EditAnywhere, Category=Attenuation, meta=(EditCondition="bOverrideAttenuation"))
+	UPROPERTY(EditAnywhere, Category=AttenuationSettings, meta=(EditCondition="bOverrideAttenuation"))
 	FSoundAttenuationSettings AttenuationOverrides;
 
 #if WITH_EDITORONLY_DATA
@@ -107,9 +107,7 @@ class USoundCue : public USoundBase
 
 protected:
 	// NOTE: Use GetSubtitlePriority() to fetch this value for external use.
-	UPROPERTY(EditAnywhere, Category = Subtitles, Meta =
-		(Tooltip = "The priority of the subtitle.  Defaults to 10000.  Higher values will play instead of lower values.")
-			 )
+	UPROPERTY(EditAnywhere, Category = Subtitles, Meta = (Tooltip = "The priority of the subtitle.  Defaults to 10000.  Higher values will play instead of lower values."))
 	float SubtitlePriority;
 
 private:

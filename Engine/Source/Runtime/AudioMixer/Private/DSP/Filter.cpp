@@ -285,26 +285,38 @@ namespace Audio
 
 	void IFilter::SetFrequency(const float InCutoffFrequency)
 	{
-		BaseFrequency = InCutoffFrequency;
-		bChanged = true;
+		if (BaseFrequency != InCutoffFrequency)
+		{
+			BaseFrequency = InCutoffFrequency;
+			bChanged = true;
+		}
 	}
 
 	void IFilter::SetFrequencyMod(const float InModFrequency)
 	{
-		ExternalModFrequency = InModFrequency;
-		bChanged = true;
+		if (ExternalModFrequency != InModFrequency)
+		{	
+			ExternalModFrequency = InModFrequency;		
+			bChanged = true;
+		}
 	}
 
 	void IFilter::SetQ(const float InQ)
 	{
-		BaseQ = InQ;
-		bChanged = true;
+		if (BaseQ != InQ)
+		{
+			BaseQ = InQ;
+			bChanged = true;
+		}
 	}
 
 	void IFilter::SetQMod(const float InModQ)
 	{
-		ExternalModQ = InModQ;
-		bChanged = true;
+		if (ExternalModQ != InModQ)
+		{
+			ExternalModQ = InModQ;
+			bChanged = true;
+		}
 	}
 
 	void IFilter::SetFilterType(const EFilter::Type InFilterType)

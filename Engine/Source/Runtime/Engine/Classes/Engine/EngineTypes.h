@@ -1872,7 +1872,7 @@ struct ENGINE_API FHitResult
 	UPROPERTY()
 	float Time;
 	 
-	/** The distance from the TraceStart to the ImpactPoint in world space. This value is 0 if there was an initial overlap (trace started inside another colliding object). */
+	/** The distance from the TraceStart to the Location in world space. This value is 0 if there was an initial overlap (trace started inside another colliding object). */
 	UPROPERTY()
 	float Distance; 
 	

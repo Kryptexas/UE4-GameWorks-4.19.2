@@ -142,7 +142,6 @@ void FMeshMergeUtilities::BakeMaterialsForComponent(TArray<TWeakObjectPtr<UObjec
 	TArray<UMaterialInterface*> UniqueMaterials;
 	TMap<UMaterialInterface*, int32> MaterialIndices;
 	TMultiMap<uint32, uint32> SectionToMaterialMap;
-
 	// Populate list of unique materials and store section mappings
 	for (int32 SectionIndex = 0; SectionIndex < UniqueSections.Num(); ++SectionIndex)
 	{
@@ -151,12 +150,16 @@ void FMeshMergeUtilities::BakeMaterialsForComponent(TArray<TWeakObjectPtr<UObjec
 		SectionToMaterialMap.Add(UniqueIndex, SectionIndex);
 	}
 
+	TArray<bool> bMaterialUsesVertexData;
+	DetermineMaterialVertexDataUsage(bMaterialUsesVertexData, UniqueMaterials, MaterialOptions);
+
 	TArray<FMeshData> GlobalMeshSettings;
 	TArray<FMaterialData> GlobalMaterialSettings;
 	TMultiMap< uint32, TPair<uint32, uint32>> OutputMaterialsMap;
 	for (int32 MaterialIndex = 0; MaterialIndex < UniqueMaterials.Num(); ++MaterialIndex)
 	{
 		UMaterialInterface* Material = UniqueMaterials[MaterialIndex];
+		const bool bDoesMaterialUseVertexData = bMaterialUsesVertexData[MaterialIndex];
 		// Retrieve all sections using this material 
 		TArray<uint32> SectionIndices;
 		SectionToMaterialMap.MultiFind(MaterialIndex, SectionIndices);
@@ -485,7 +488,7 @@ void FMeshMergeUtilities::BakeMaterialsForMesh(UStaticMesh* StaticMesh) const
 
 void FMeshMergeUtilities::DetermineMaterialVertexDataUsage(TArray<bool>& InOutMaterialUsesVertexData, const TArray<UMaterialInterface*>& UniqueMaterials, const UMaterialOptions* MaterialOptions) const
 {
-	InOutMaterialUsesVertexData.AddDefaulted(UniqueMaterials.Num());
+	InOutMaterialUsesVertexData.SetNum(UniqueMaterials.Num());
 	for (int32 MaterialIndex = 0; MaterialIndex < UniqueMaterials.Num(); ++MaterialIndex)
 	{
 		UMaterialInterface* Material = UniqueMaterials[MaterialIndex];
@@ -1305,7 +1308,7 @@ void FMeshMergeUtilities::MergeComponentsToStaticMesh(const TArray<UPrimitiveCom
 			StaticMeshComponentsToMerge.Add(MeshComponent);
 
 		// Save the pivot and asset package name of the first mesh, will later be used for creating merged mesh asset 
-			if (bFirstMesh)
+		if (bFirstMesh)
 		{
 			// Mesh component pivot point
 			MergedAssetPivot = InSettings.bPivotPointAtZero ? FVector::ZeroVector : MeshComponent->GetComponentTransform().GetLocation();
@@ -1693,12 +1696,27 @@ void FMeshMergeUtilities::MergeComponentsToStaticMesh(const TArray<UPrimitiveCom
 			MergeFlattenedMaterials(FlattenedMaterials, OutMaterial, UVTransforms);
 		}
 		
+		// If materials were baked out using either a different UV channel than 0 or with fully custom uvs we should replace them
+		for (FMeshData& MeshData : GlobalMeshSettings)
+		{
+			FRawMesh* RawMesh = MeshData.RawMesh;
+			if (MeshData.CustomTextureCoordinates.Num())
+			{
+				RawMesh->WedgeTexCoords[0] = MeshData.CustomTextureCoordinates;
+			}
+			else if (MeshData.TextureCoordinateIndex != 0)
+			{
+				RawMesh->WedgeTexCoords[0] = RawMesh->WedgeTexCoords[MeshData.TextureCoordinateIndex];
+			}
+		}
+
 		// Adjust UVs
 		for (int32 ComponentIndex = 0; ComponentIndex < ComponentsToMerge.Num(); ++ComponentIndex)
 		{
+			TArray<uint32> ProcessedMaterials;
 			for (TPair<FMeshLODKey, MaterialRemapPair>& MappingPair : OutputMaterialsMap)
 			{
-				if (MappingPair.Key.GetMeshIndex() == ComponentIndex)
+				if (MappingPair.Key.GetMeshIndex() == ComponentIndex && !ProcessedMaterials.Contains(MappingPair.Value.Key))
 				{
 					const int32 LODIndex = MappingPair.Key.GetLODIndex();
 					// Found component entry
@@ -1710,19 +1728,9 @@ void FMeshMergeUtilities::MergeComponentsToStaticMesh(const TArray<UPrimitiveCom
 					const FUVOffsetScalePair& UVTransform = UVTransforms[MappingPair.Value.Value];
 
 					const uint32 MaterialIndex = MappingPair.Value.Key;
-
+					ProcessedMaterials.Add(MaterialIndex);
 					if (RawMesh->VertexPositions.Num())
 					{
-						// If materials were baked out using either a different UV channel than 0 or with fully custom uvs we should replace them
-						if (MeshData.CustomTextureCoordinates.Num())
-						{
-							RawMesh->WedgeTexCoords[0] = MeshData.CustomTextureCoordinates;
-						}
-						else if (MeshData.TextureCoordinateIndex != 0)
-						{
-							RawMesh->WedgeTexCoords[0] = RawMesh->WedgeTexCoords[MeshData.TextureCoordinateIndex];
-						}
-
 						for (int32 UVChannelIdx = 0; UVChannelIdx < MAX_MESH_TEXTURE_COORDS; ++UVChannelIdx)
 						{
 							TArray<FVector2D>& UVs = RawMesh->WedgeTexCoords[UVChannelIdx];

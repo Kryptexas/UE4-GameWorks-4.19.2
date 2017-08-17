@@ -313,11 +313,10 @@ FBox UPhysicsAsset::CalcAABB(const USkinnedMeshComponent* MeshComp, const FTrans
 				int32 BoneIndex = MeshComp->GetBoneIndex(bs->BoneName);
 				if(BoneIndex != INDEX_NONE)
 				{
-					FTransform WorldBoneTransform = MeshComp->GetBoneTransform(BoneIndex, LocalToWorld);
-					if(FMath::Abs(WorldBoneTransform.GetDeterminant()) > (float)KINDA_SMALL_NUMBER)
-					{
-						Box += bs->AggGeom.CalcAABB( WorldBoneTransform );
-					}
+					const FTransform WorldBoneTransform = MeshComp->GetBoneTransform(BoneIndex, LocalToWorld);
+					const FBox BodySetupBounds = bs->AggGeom.CalcAABB(WorldBoneTransform);
+					
+					Box += BodySetupBounds;
 				}
 			}
 		}

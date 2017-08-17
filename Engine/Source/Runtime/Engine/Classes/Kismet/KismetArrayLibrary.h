@@ -108,7 +108,7 @@ class ENGINE_API UKismetArrayLibrary : public UBlueprintFunctionLibrary
 	 *@param	TargetArray		The array to get the length of
 	 *@return	The length of the array
 	*/
-	UFUNCTION(BlueprintPure, CustomThunk, meta=(DisplayName = "Length", CompactNodeTitle = "LENGTH", ArrayParm = "TargetArray", Keywords = "num size count"), Category="Utilities|Array")
+	UFUNCTION(BlueprintPure, CustomThunk, meta=(DisplayName = "Length", CompactNodeTitle = "LENGTH", ArrayParm = "TargetArray", Keywords = "num size count", BlueprintThreadSafe), Category="Utilities|Array")
 	static int32 Array_Length(const TArray<int32>& TargetArray);
 
 
@@ -118,7 +118,7 @@ class ENGINE_API UKismetArrayLibrary : public UBlueprintFunctionLibrary
 	 *@param	TargetArray		The array to perform the operation on
 	 *@return	The last valid index of the array
 	*/
-	UFUNCTION(BlueprintPure, CustomThunk, meta=(DisplayName = "Last Index", CompactNodeTitle = "LAST INDEX", ArrayParm = "TargetArray"), Category="Utilities|Array")
+	UFUNCTION(BlueprintPure, CustomThunk, meta=(DisplayName = "Last Index", CompactNodeTitle = "LAST INDEX", ArrayParm = "TargetArray", BlueprintThreadSafe), Category="Utilities|Array")
 	static int32 Array_LastIndex(const TArray<int32>& TargetArray);
 
 	/*

@@ -63,7 +63,11 @@ namespace FPhysicsAssetUtils
 	 */
 	UNREALED_API bool CreateFromSkeletalMesh(UPhysicsAsset* PhysicsAsset, USkeletalMesh* SkelMesh, FPhysAssetCreateParams& Params, FText& OutErrorMessage, bool bSetToMesh = true);
 
-	/** Replaces any collision already in the BodySetup with an auto-generated one using the parameters provided. 
+	/** Replaces any collision already in the BodySetup with an auto-generated one using the parameters provided.
+	 * 
+	 * @warning Certain physics geometry types, such as multi-convex hull, must recreate internal caches every time this function is called.
+	 * If you find you're calling this function repeatedly for different bone indices on the same mesh,
+	 * CreateFromSkeletalMesh or CreateCollisionFromBones will provide better performance.
 	 *
 	 * @param	bs					BodySetup to create the collision for
 	 * @param	skelMesh			The SkeletalMesh we create collision for
@@ -74,9 +78,20 @@ namespace FPhysicsAssetUtils
 	 */
 	UNREALED_API bool CreateCollisionFromBone( UBodySetup* bs, USkeletalMesh* skelMesh, int32 BoneIndex, FPhysAssetCreateParams& Params, const FBoneVertInfo& Info );
 
+	/** Replaces any collision already in the BodySetup with an auto-generated one using the parameters provided.
+	 * 
+	 * @param	bs					BodySetup to create the collision for
+	 * @param	skelMesh			The SkeletalMesh we create collision for
+	 * @param	BoneIndices			Indices of the bones the collisions are created for
+	 * @param	Params				Additional parameters to control the creation 
+	 * @param	Info				The vertices to create the collision for
+	 * @return  Returns true if successfully created collision from all specified bones
+	 */
+	UNREALED_API bool CreateCollisionFromBones( UBodySetup* bs, USkeletalMesh* skelMesh, const TArray<int32>& BoneIndices, FPhysAssetCreateParams& Params, const FBoneVertInfo& Info );
+
 	/**
 	 * Does a few things:
-	 * - add any collision primitives from body2 into body1 (adjusting eaches tm).
+	 * - add any collision primitives from body2 into body1 (adjusting the tm of each).
 	 * - reconnect any constraints between 'add body' to 'base body', destroying any between them.
 	 * - update collision disable table for any pairs including 'add body'
 	 */

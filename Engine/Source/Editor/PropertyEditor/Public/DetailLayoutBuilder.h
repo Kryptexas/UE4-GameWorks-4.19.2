@@ -7,6 +7,7 @@
 #include "EditorStyleSet.h"
 #include "AssetThumbnail.h"
 #include "PropertyHandle.h"
+#include "IDetailPropertyRow.h"
 
 class IDetailCategoryBuilder;
 
@@ -94,6 +95,21 @@ public:
 	 * @param CategoryType				Category type to define sort order.  Category display order is sorted by this type (optional)
 	 */
 	virtual IDetailCategoryBuilder& EditCategory( FName CategoryName, const FText& NewLocalizedDisplayName = FText::GetEmpty(), ECategoryPriority::Type CategoryType = ECategoryPriority::Default ) = 0;
+
+	/** 
+	 * Adds the property to its given category automatically. Useful in detail customizations which want to preserve categories.
+	 * @param InPropertyHandle			The handle to the property that you want to add to its own category.
+	 * @return the property row with which the property was added.
+	 */
+	virtual IDetailPropertyRow& AddPropertyToCategory(TSharedPtr<IPropertyHandle> InPropertyHandle) = 0;
+
+	/**
+	* Adds a custom row to the property's category automatically. Useful in detail customizations which want to preserve categories.
+	* @param InPropertyHandle			The handle to the property that you want to add to its own category.
+	* @param InCustomSearchString		A string which is used to filter this custom row when a user types into the details panel search box.
+	* @return the detail widget that can be further customized. 
+	*/
+	virtual FDetailWidgetRow& AddCustomRowToCategory(TSharedPtr<IPropertyHandle> InPropertyHandle, const FText& InCustomSearchString, bool bForAdvanced = false) = 0;
 
 	/**
 	 * Hides an entire category

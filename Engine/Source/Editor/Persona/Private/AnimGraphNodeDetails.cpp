@@ -450,7 +450,33 @@ TSharedRef<IPropertyTypeCustomization> FBoneReferenceCustomization::MakeInstance
 
 void FBoneReferenceCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
-
+	// set property handle 
+	SetPropertyHandle(StructPropertyHandle);
+	// set editable skeleton info from struct
+	SetEditableSkeleton(StructPropertyHandle);
+	if (TargetEditableSkeleton.IsValid() && BoneNameProperty->IsValidHandle())
+	{
+		HeaderRow
+		.NameContent()
+		[
+			StructPropertyHandle->CreatePropertyNameWidget()
+		]
+		.ValueContent()
+		.MinDesiredWidth(200.f)
+		[
+			SNew(SBoneSelectionWidget)
+			.ToolTipText(StructPropertyHandle->GetToolTipText())
+			.OnBoneSelectionChanged(this, &FBoneReferenceCustomization::OnBoneSelectionChanged)
+			.OnGetSelectedBone(this, &FBoneReferenceCustomization::GetSelectedBone)
+			.OnGetReferenceSkeleton(this, &FBoneReferenceCustomization::GetReferenceSkeleton)
+		];
+	}
+	else
+	{
+		// if this FBoneReference is used by some other Outers, this will fail	
+		// should warn programmers instead of silent fail
+		ensureAlways(false);
+	}
 }
 
 void FBoneReferenceCustomization::SetEditableSkeleton(TSharedRef<IPropertyHandle> StructPropertyHandle) 
@@ -537,45 +563,10 @@ void FBoneReferenceCustomization::SetPropertyHandle(TSharedRef<IPropertyHandle> 
 	BoneNameProperty = FindStructMemberProperty(StructPropertyHandle, GET_MEMBER_NAME_CHECKED(FBoneReference, BoneName));
 	check(BoneNameProperty->IsValidHandle());
 }
-BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-void FBoneReferenceCustomization::Build(TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder)
-{
-	if (TargetEditableSkeleton.IsValid() && BoneNameProperty->IsValidHandle())
-	{
-		ChildBuilder
-		.AddProperty(BoneNameProperty.ToSharedRef())
-		.CustomWidget()
-		.NameContent()
-		[
-			StructPropertyHandle->CreatePropertyNameWidget()
-		]
-		.ValueContent()
-		.MinDesiredWidth(200.f)
-		[
-			SNew(SBoneSelectionWidget)
-			.ToolTipText(StructPropertyHandle->GetToolTipText())
-			.OnBoneSelectionChanged(this, &FBoneReferenceCustomization::OnBoneSelectionChanged)
-			.OnGetSelectedBone(this, &FBoneReferenceCustomization::GetSelectedBone)
-			.OnGetReferenceSkeleton(this, &FBoneReferenceCustomization::GetReferenceSkeleton)
-		];
-	}
-	else
-	{
-		// if this FBoneReference is used by some other Outers, this will fail	
-		// should warn programmers instead of silent fail
-		ensureAlways(false);
-	}
-}
 
-END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void FBoneReferenceCustomization::CustomizeChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
-	// set property handle 
-	SetPropertyHandle(StructPropertyHandle);
-	// set editable skeleton info from struct
-	SetEditableSkeleton(StructPropertyHandle);
-
-	Build(StructPropertyHandle, ChildBuilder);
+	
 }
 
 void FBoneReferenceCustomization::OnBoneSelectionChanged(FName Name)
@@ -607,6 +598,15 @@ const struct FReferenceSkeleton&  FBoneReferenceCustomization::GetReferenceSkele
 TSharedRef<IPropertyTypeCustomization> FBoneSocketTargetCustomization::MakeInstance()
 {
 	return MakeShareable(new FBoneSocketTargetCustomization());
+}
+
+void FBoneSocketTargetCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
+{
+	// set property handle 
+ 	SetPropertyHandle(StructPropertyHandle);
+ 	// set editable skeleton info from struct
+ 	SetEditableSkeleton(StructPropertyHandle);
+ 	Build(StructPropertyHandle, ChildBuilder);
 }
 
 void FBoneSocketTargetCustomization::SetPropertyHandle(TSharedRef<IPropertyHandle> StructPropertyHandle)

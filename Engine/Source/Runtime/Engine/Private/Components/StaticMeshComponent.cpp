@@ -2281,7 +2281,7 @@ UMaterialInterface* UStaticMeshComponent::GetMaterialFromCollisionFaceIndex(int3
 	SectionIndex = 0;
 
 	UStaticMesh* Mesh = GetStaticMesh();
-	if (Mesh && Mesh->RenderData.IsValid())
+	if (Mesh && Mesh->RenderData.IsValid() && FaceIndex >= 0)
 	{
 		// Get the info for the LOD that is used for collision
 		int32 LODIndex = Mesh->LODForCollision;

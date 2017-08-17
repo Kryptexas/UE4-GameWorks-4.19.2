@@ -11,7 +11,7 @@
 #include "SpriteEditorOnlyTypes.h"
 #include "SpriteEditor/SpriteEditorSelections.h"
 #include "PaperEditorShared/SpriteGeometryEditCommands.h"
-#include "PhysicsEngine/BodySetup2D.h"
+#include "PhysicsEngine/BodySetup.h"
 #include "PaperEditorShared/SocketEditing.h"
 
 #define LOCTEXT_NAMESPACE "PaperGeometryEditing"
@@ -585,20 +585,6 @@ void FSpriteGeometryEditMode::DrawCollisionStats(FViewport& InViewport, FSceneVi
 	for (const FKConvexElem& ConvexElement : AggGeom3D.ConvexElems)
 	{
 		NumConvexVerts += ConvexElement.VertexData.Num();
-	}
-
-	if (UBodySetup2D* BodySetup2D = Cast<UBodySetup2D>(BodySetup))
-	{
-		bIs2D = true;
-		const FAggregateGeometry2D& AggGeom2D = BodySetup2D->AggGeom2D;
-		NumSpheres += AggGeom2D.CircleElements.Num();
-		NumBoxes += AggGeom2D.BoxElements.Num();
-		NumConvexElems += AggGeom2D.ConvexElements.Num();
-
-		for (const FConvexElement2D& ConvexElement : AggGeom2D.ConvexElements)
-		{
-			NumConvexVerts += ConvexElement.VertexData.Num();
-		}
 	}
 
 	if (NumSpheres > 0)

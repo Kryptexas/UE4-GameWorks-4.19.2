@@ -34,9 +34,6 @@ protected:
 	/** Called from the selector when the asset selection changes (Asset, LOD, Mask) */
 	void OnAssetSelectionChanged(TWeakObjectPtr<UClothingAsset> InAssetPtr, int32 InLodIndex, int32 InMaskIndex);
 
-	/** Called from the details panel holding the asset config so we can respond to a config change */
-	void OnFinishedChangingClothConfigProperties(const FPropertyChangedEvent& InEvent);
-
 	/** Whether or not the asset config section is enabled for editing */
 	bool IsAssetDetailsPanelEnabled();
 

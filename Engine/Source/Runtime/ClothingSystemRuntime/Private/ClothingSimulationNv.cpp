@@ -802,6 +802,7 @@ bool FClothingSimulationNv::ShouldSimulate() const
 FBoxSphereBounds FClothingSimulationNv::GetBounds(const USkeletalMeshComponent* InOwnerComponent) const
 {
 	FBoxSphereBounds CurrentBounds(FVector(0.0f), FVector(0.0f), 0.0f);
+	bool bFirstActor = true;
 
 	const bool bUsingMaster = InOwnerComponent->MasterPoseComponent.IsValid();
 	const USkinnedMeshComponent* ActualComponent = bUsingMaster ? InOwnerComponent->MasterPoseComponent.Get() : InOwnerComponent;
@@ -837,7 +838,15 @@ FBoxSphereBounds FClothingSimulationNv::GetBounds(const USkeletalMeshComponent* 
 			FVector Center = SimBoneTransformCS.TransformPosition(P2UVector(LodData.Cloth->getBoundingBoxCenter()));
 			FVector HalfExtents = SimBoneTransformCS.TransformVector(P2UVector(LodData.Cloth->getBoundingBoxScale()));
 	
-			CurrentBounds = CurrentBounds + FBox(Center - HalfExtents, Center + HalfExtents);
+			if(bFirstActor)
+			{
+				bFirstActor = false;
+				CurrentBounds = FBox(Center - HalfExtents, Center + HalfExtents);
+			}
+			else
+			{
+				CurrentBounds = CurrentBounds + FBox(Center - HalfExtents, Center + HalfExtents);
+			}
 		}
 	}
 
@@ -1080,11 +1089,12 @@ void FClothingSimulationNv::DebugDraw_Normals(USkeletalMeshComponent* OwnerCompo
 		const uint32 NumParticles = CurrentCloth->getNumParticles();
 		nv::cloth::MappedRange<physx::PxVec4> Particles = CurrentCloth->getCurrentParticles();
 		const TArray<FVector>& Normals = Actor.CurrentNormals;
+		FTransform RootBoneTransform = OwnerComponent->GetComponentSpaceTransforms()[Actor.AssetCreatedFrom->ReferenceBoneIndex];
 
 		for(uint32 ParticleIndex = 0; ParticleIndex < NumParticles; ++ParticleIndex)
 		{
-			FVector Position = P2UVector(Particles[ParticleIndex]);
-			FVector Normal = Normals[ParticleIndex];
+			FVector Position = RootBoneTransform.TransformPosition(P2UVector(Particles[ParticleIndex]));
+			FVector Normal = RootBoneTransform.TransformVector(Normals[ParticleIndex]);
 
 			PDI->DrawLine(Position, Position + Normal * 20.0f, FLinearColor::White, SDPG_World, 0.2f);
 		}
@@ -1101,41 +1111,45 @@ void FClothingSimulationNv::DebugDraw_Collision(USkeletalMeshComponent* OwnerCom
 		}
 
 		const FClothCollisionData& CollisionData = Actor.AggregatedCollisions;
+		const TArray<int32>& UsedBones = Actor.AssetCreatedFrom->UsedBoneIndices;
 
 		for(const FClothCollisionPrim_SphereConnection& Connection : CollisionData.SphereConnections)
 		{
 			const FClothCollisionPrim_Sphere& Sphere0 = CollisionData.Spheres[Connection.SphereIndices[0]];
 			const FClothCollisionPrim_Sphere& Sphere1 = CollisionData.Spheres[Connection.SphereIndices[1]];
 
-			const int32 MappedIndex0 = Actor.AssetCreatedFrom->UsedBoneIndices[Sphere0.BoneIndex];
-			const int32 MappedIndex1 = Actor.AssetCreatedFrom->UsedBoneIndices[Sphere1.BoneIndex];
-
-			if(MappedIndex0 != INDEX_NONE && MappedIndex1 != INDEX_NONE)
+			if(UsedBones.IsValidIndex(Sphere0.BoneIndex) && UsedBones.IsValidIndex(Sphere1.BoneIndex))
 			{
-				FVector Center0 = OwnerComponent->GetBoneMatrix(MappedIndex0).TransformPosition(Sphere0.LocalPosition);
-				FVector Center1 = OwnerComponent->GetBoneMatrix(MappedIndex1).TransformPosition(Sphere1.LocalPosition);
+				const int32 MappedIndex0 = UsedBones[Sphere0.BoneIndex];
+				const int32 MappedIndex1 = UsedBones[Sphere1.BoneIndex];
 
-				// Draws just the sides of a tapered capsule specified by provided Spheres that can have different radii.  Does not draw the spheres, just the sleeve.
-				// Extent geometry endpoints not necessarily coplanar with sphere origins (uses hull horizon)
-				// Otherwise uses the great-circle cap assumption.
-				const float AngleIncrement = 30.0f;   // if parameter added for number of sides, then set this to be:  = 360.0f / NumSides; 
-				FVector Separation = Center1 - Center0;
-				float Distance = Separation.Size();
-				if(Separation.IsNearlyZero() || Distance <= FMath::Abs(Sphere0.Radius - Sphere1.Radius))
+				if(MappedIndex0 != INDEX_NONE && MappedIndex1 != INDEX_NONE)
 				{
-					continue;
-				}
-				FQuat CapsuleOrientation = FQuat::FindBetween(FVector(0, 0, 1), Separation.GetSafeNormal());
-				float OffsetZ = true ? -(Sphere1.Radius - Sphere0.Radius) / Distance : 0.0f;
-				float ScaleXY = FMath::Sqrt(1.0f - FMath::Square(OffsetZ));
-				FVector VertexPrevious = CapsuleOrientation.RotateVector(FVector(ScaleXY, 0, OffsetZ));
-				for(float Angle = AngleIncrement; Angle <= 360.0f; Angle += AngleIncrement)  // iterate over unit circle about capsule's major axis (which is orientation.AxisZ)
-				{
-					FVector VertexCurrent = CapsuleOrientation.RotateVector(FVector(FMath::Cos(FMath::DegreesToRadians(Angle))*ScaleXY, FMath::Sin(FMath::DegreesToRadians(Angle))*ScaleXY, OffsetZ));
-					PDI->DrawLine(Center0 + VertexCurrent  * Sphere0.Radius, Center1 + VertexCurrent * Sphere1.Radius, FColor::Cyan, SDPG_World, 0.2f);  // capsule side segment between spheres
-					PDI->DrawLine(Center0 + VertexPrevious * Sphere0.Radius, Center0 + VertexCurrent * Sphere0.Radius, FColor::Cyan, SDPG_World, 0.2f);  // cap-circle segment on sphere S0
-					PDI->DrawLine(Center1 + VertexPrevious * Sphere1.Radius, Center1 + VertexCurrent * Sphere1.Radius, FColor::Cyan, SDPG_World, 0.2f);  // cap-circle segment on sphere S1
-					VertexPrevious = VertexCurrent;
+					FVector Center0 = OwnerComponent->GetBoneMatrix(MappedIndex0).TransformPosition(Sphere0.LocalPosition);
+					FVector Center1 = OwnerComponent->GetBoneMatrix(MappedIndex1).TransformPosition(Sphere1.LocalPosition);
+
+					// Draws just the sides of a tapered capsule specified by provided Spheres that can have different radii.  Does not draw the spheres, just the sleeve.
+					// Extent geometry endpoints not necessarily coplanar with sphere origins (uses hull horizon)
+					// Otherwise uses the great-circle cap assumption.
+					const float AngleIncrement = 30.0f;   // if parameter added for number of sides, then set this to be:  = 360.0f / NumSides; 
+					FVector Separation = Center1 - Center0;
+					float Distance = Separation.Size();
+					if(Separation.IsNearlyZero() || Distance <= FMath::Abs(Sphere0.Radius - Sphere1.Radius))
+					{
+						continue;
+					}
+					FQuat CapsuleOrientation = FQuat::FindBetween(FVector(0, 0, 1), Separation.GetSafeNormal());
+					float OffsetZ = true ? -(Sphere1.Radius - Sphere0.Radius) / Distance : 0.0f;
+					float ScaleXY = FMath::Sqrt(1.0f - FMath::Square(OffsetZ));
+					FVector VertexPrevious = CapsuleOrientation.RotateVector(FVector(ScaleXY, 0, OffsetZ));
+					for(float Angle = AngleIncrement; Angle <= 360.0f; Angle += AngleIncrement)  // iterate over unit circle about capsule's major axis (which is orientation.AxisZ)
+					{
+						FVector VertexCurrent = CapsuleOrientation.RotateVector(FVector(FMath::Cos(FMath::DegreesToRadians(Angle))*ScaleXY, FMath::Sin(FMath::DegreesToRadians(Angle))*ScaleXY, OffsetZ));
+						PDI->DrawLine(Center0 + VertexCurrent  * Sphere0.Radius, Center1 + VertexCurrent * Sphere1.Radius, FColor::Cyan, SDPG_World, 0.2f);  // capsule side segment between spheres
+						PDI->DrawLine(Center0 + VertexPrevious * Sphere0.Radius, Center0 + VertexCurrent * Sphere0.Radius, FColor::Cyan, SDPG_World, 0.2f);  // cap-circle segment on sphere S0
+						PDI->DrawLine(Center1 + VertexPrevious * Sphere1.Radius, Center1 + VertexCurrent * Sphere1.Radius, FColor::Cyan, SDPG_World, 0.2f);  // cap-circle segment on sphere S1
+						VertexPrevious = VertexCurrent;
+					}
 				}
 			}
 		}
@@ -1144,11 +1158,9 @@ void FClothingSimulationNv::DebugDraw_Collision(USkeletalMeshComponent* OwnerCom
 		{
 			const FClothCollisionPrim_Sphere& Sphere = CollisionData.Spheres[SphereIndex];
 
-			const int32 MappedBoneIndex = Actor.AssetCreatedFrom->UsedBoneIndices[Sphere.BoneIndex];
-
-			if(MappedBoneIndex != INDEX_NONE)
+			if(UsedBones.IsValidIndex(Sphere.BoneIndex) && UsedBones[Sphere.BoneIndex] != INDEX_NONE)
 			{
-				FMatrix BoneMatrix = OwnerComponent->GetBoneMatrix(MappedBoneIndex);
+				FMatrix BoneMatrix = OwnerComponent->GetBoneMatrix(UsedBones[Sphere.BoneIndex]);
 				FVector ActualPosition = BoneMatrix.TransformPosition(Sphere.LocalPosition);
 
 				FTransform SphereTransform(BoneMatrix);
@@ -1181,6 +1193,7 @@ void FClothingSimulationNv::DebugDraw_Backstops(USkeletalMeshComponent* OwnerCom
 		const FClothingActorNv::FActorLodData& LodData = Actor.LodData[Actor.CurrentLodIndex];
 		const UClothingAsset* Asset = Actor.AssetCreatedFrom;
 		const FClothPhysicalMeshData& MeshData = Asset->LodData[Actor.CurrentLodIndex].PhysicalMeshData;
+		FTransform RootBoneTransform = OwnerComponent->GetComponentSpaceTransforms()[Actor.AssetCreatedFrom->ReferenceBoneIndex];
 
 		const int32 NumVerts = Actor.SkinnedPhysicsMeshPositions.Num();
 		check(NumVerts == Actor.SkinnedPhysicsMeshNormals.Num());
@@ -1188,8 +1201,8 @@ void FClothingSimulationNv::DebugDraw_Backstops(USkeletalMeshComponent* OwnerCom
 
 		for(int32 VertIndex = 0; VertIndex < NumVerts; ++VertIndex)
 		{
-			const FVector& Position = Actor.SkinnedPhysicsMeshPositions[VertIndex];
-			const FVector& Normal = Actor.SkinnedPhysicsMeshNormals[VertIndex];
+			const FVector& Position = RootBoneTransform.TransformPosition(Actor.SkinnedPhysicsMeshPositions[VertIndex]);
+			const FVector& Normal = RootBoneTransform.TransformVector(Actor.SkinnedPhysicsMeshNormals[VertIndex]);
 			
 			float BackstopDistance = MeshData.BackstopDistances[VertIndex];
 			const float BackstopRadius = MeshData.BackstopRadiuses[VertIndex];
@@ -1239,6 +1252,7 @@ void FClothingSimulationNv::DebugDraw_MaxDistances(USkeletalMeshComponent* Owner
 		const FClothingActorNv::FActorLodData& LodData = Actor.LodData[Actor.CurrentLodIndex];
 		const UClothingAsset* Asset = Actor.AssetCreatedFrom;
 		const FClothPhysicalMeshData& MeshData = Asset->LodData[Actor.CurrentLodIndex].PhysicalMeshData;
+		FTransform RootBoneTransform = OwnerComponent->GetComponentSpaceTransforms()[Actor.AssetCreatedFrom->ReferenceBoneIndex];
 
 		const int32 NumVerts = Actor.SkinnedPhysicsMeshPositions.Num();
 		check(NumVerts == Actor.SkinnedPhysicsMeshNormals.Num());
@@ -1246,8 +1260,8 @@ void FClothingSimulationNv::DebugDraw_MaxDistances(USkeletalMeshComponent* Owner
 
 		for(int32 VertIndex = 0; VertIndex < NumVerts; ++VertIndex)
 		{
-			const FVector& Position = Actor.SkinnedPhysicsMeshPositions[VertIndex];
-			const FVector& Normal = Actor.SkinnedPhysicsMeshNormals[VertIndex];
+			const FVector& Position = RootBoneTransform.TransformPosition(Actor.SkinnedPhysicsMeshPositions[VertIndex]);
+			const FVector& Normal = RootBoneTransform.TransformVector(Actor.SkinnedPhysicsMeshNormals[VertIndex]);
 			const float& MaxDistance = MeshData.MaxDistances[VertIndex];
 
 			PDI->DrawLine(Position, Position + Normal * MaxDistance, FColor::White, SDPG_World, 0.2f);

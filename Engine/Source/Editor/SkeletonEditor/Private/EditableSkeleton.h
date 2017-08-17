@@ -70,6 +70,8 @@ public:
 	virtual void RenameSlotName(const FName& InOldSlotName, const FName& InNewSlotName) override;
 	virtual FDelegateHandle RegisterOnSmartNameRemoved(const FOnSmartNameRemoved::FDelegate& InOnSmartNameRemoved) override;
 	virtual void UnregisterOnSmartNameRemoved(FDelegateHandle InHandle) override;
+	virtual void RegisterOnNotifiesChanged(const FSimpleMulticastDelegate::FDelegate& InDelegate);
+	virtual void UnregisterOnNotifiesChanged(void* Thing);
 	virtual void SetBoneTranslationRetargetingMode(FName InBoneName, EBoneTranslationRetargetingMode::Type NewRetargetingMode) override;
 	virtual EBoneTranslationRetargetingMode::Type GetBoneTranslationRetargetingMode(FName InBoneName) const override;
 	virtual void RefreshBoneTree() override;
@@ -156,4 +158,7 @@ private:
 
 	/** Delegate called when a smart name is removed */
 	FOnSmartNameRemoved OnSmartNameRemoved;
+
+	/** Delegate called when notifies are modified */
+	FSimpleMulticastDelegate OnNotifiesChanged;
 };

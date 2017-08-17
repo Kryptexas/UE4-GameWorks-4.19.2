@@ -45,9 +45,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Concurrency)
 	uint32 bOverrideConcurrency:1;
 
-	/** Whether or not to ignore focus on this sound. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Attenuation)
-	uint32 bIgnoreFocus:1;
+	UPROPERTY()
+	uint32 bIgnoreFocus_DEPRECATED:1;
 
 	/** If Override Concurrency is false, the sound concurrency settings to use for this sound. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Concurrency, meta = (EditCondition = "!bOverrideConcurrency"))
@@ -86,13 +85,6 @@ public:
 	/** An array of submix sends. Audio from this sound will send a portion of its audio to these effects.  */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Effects)
 	TArray<FSoundSubmixSendInfo> SoundSubmixSends;
-
-	/** 
-	 * The default amount of audio to send to the master reverb effect for this sound if reverb is enabled for the sound. 
-	 * This can be overridden by sound attenuation settings for 3d sounds. 
-	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Effects)
-	float DefaultMasterReverbSendAmount;
 
 	/** The source effect chain to use for this sound. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Effects)

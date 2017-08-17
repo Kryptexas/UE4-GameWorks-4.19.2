@@ -244,6 +244,7 @@ struct EAudioPlugin
 
 /** Queries if a plugin of the given type is enabled. */
 ENGINE_API bool IsAudioPluginEnabled(EAudioPlugin::Type PluginType);
+ENGINE_API bool DoesAudioPluginHaveCustomSettings(EAudioPlugin::Type PluginType);
 
 /**
  * Structure encapsulating all information required to play a USoundWave on a channel/source. This is required
@@ -256,12 +257,16 @@ struct ENGINE_API FWaveInstance
 
 	/** Wave data */
 	class USoundWave* WaveData;
+
 	/** Sound class */
 	class USoundClass* SoundClass;
+
 	/** Sound submix */
 	class USoundSubmix* SoundSubmix;
+
 	/** Sound submix sends */
 	TArray<FSoundSubmixSendInfo> SoundSubmixSends;
+
 	/** Sound effect chain */
 	USoundEffectSourcePresetChain* SourceEffectChain;
 
@@ -271,132 +276,170 @@ struct ENGINE_API FWaveInstance
 	/** Active Sound this wave instance belongs to */
 	struct FActiveSound* ActiveSound;
 
-
 	/** Current volume */
-	float				Volume;
+	float Volume;
+
 	/** Current volume multiplier - used to zero the volume without stopping the source */
-	float				VolumeMultiplier;
+	float VolumeMultiplier;
+
 	/** The volume of the wave instance due to application volume or tab-state */
-	float				VolumeApp;
+	float VolumeApp;
+
 	/** An audio component priority value that scales with volume (post all gain stages) and is used to determine voice playback priority. */
-	float				Priority;
+	float Priority;
+
 	/** Voice center channel volume */
-	float				VoiceCenterChannelVolume;
+	float VoiceCenterChannelVolume;
+
 	/** Volume of the radio filter effect */
-	float				RadioFilterVolume;
+	float RadioFilterVolume;
+
 	/** The volume at which the radio filter kicks in */
-	float				RadioFilterVolumeThreshold;
+	float RadioFilterVolumeThreshold;
+
 	/** The amount of stereo sounds to bleed to the rear speakers */
-	float				StereoBleed;
+	float StereoBleed;
+
 	/** The amount of a sound to bleed to the LFE channel */
-	float				LFEBleed;
+	float LFEBleed;
 
 	/** Looping mode - None, loop with notification, forever */
-	ELoopingMode		LoopingMode;
+	ELoopingMode LoopingMode;
 
-	float				StartTime;
+	/** An offset/seek time to play this wave instance. */
+	float StartTime;
 
 	/** Set to true if the sound nodes state that the radio filter should be applied */
-	uint32				bApplyRadioFilter:1;
+	uint32 bApplyRadioFilter:1;
 
 	/** Whether wave instanced has been started */
-	uint32				bIsStarted:1;
+	uint32 bIsStarted:1;
+
 	/** Whether wave instanced is finished */
-	uint32				bIsFinished:1;
+	uint32 bIsFinished:1;
+
 	/** Whether the notify finished hook has been called since the last update/parsenodes */
-	uint32				bAlreadyNotifiedHook:1;
+	uint32 bAlreadyNotifiedHook:1;
+
 	/** Whether to use spatialization */
-	uint32				bUseSpatialization:1;
+	uint32 bUseSpatialization:1;
+
 	/** Whether or not to enable the low pass filter */
-	uint32				bEnableLowPassFilter:1;
+	uint32 bEnableLowPassFilter:1;
+
 	/** Whether or not the sound is occluded. */
-	uint32				bIsOccluded:1;
+	uint32 bIsOccluded:1;
+
 	/** Whether to apply audio effects */
-	uint32				bEQFilterApplied:1;
+	uint32 bEQFilterApplied:1;
+
 	/** Whether or not this sound plays when the game is paused in the UI */
-	uint32				bIsUISound:1;
+	uint32 bIsUISound:1;
+
 	/** Whether or not this wave is music */
-	uint32				bIsMusic:1;
+	uint32 bIsMusic:1;
+
 	/** Whether or not this wave has reverb applied */
-	uint32				bReverb:1;
+	uint32 bReverb:1;
+
 	/** Whether or not this sound class forces sounds to the center channel */
-	uint32				bCenterChannelOnly:1;
+	uint32 bCenterChannelOnly:1;
+
 	/** Whether or not this sound is manually paused */
-	uint32				bIsPaused:1;
+	uint32 bIsPaused:1;
+
 	/** Prevent spamming of spatialization of surround sounds by tracking if the warning has already been emitted */
-	uint32				bReportedSpatializationWarning:1;
-	/** Which algorithm to use to spatialize 3d sounds. */
-	ESoundSpatializationAlgorithm SpatializationAlgorithm;
+	uint32 bReportedSpatializationWarning:1;
+
+	/** Which spatialization method to use to spatialize 3d sounds. */
+	ESoundSpatializationAlgorithm SpatializationMethod;
+
 	/** The occlusion plugin settings to use for the wave instance. */
 	USpatializationPluginSourceSettingsBase* SpatializationPluginSettings;
+
 	/** The occlusion plugin settings to use for the wave instance. */
 	UOcclusionPluginSourceSettingsBase* OcclusionPluginSettings;
+
 	/** The occlusion plugin settings to use for the wave instance. */
 	UReverbPluginSourceSettingsBase* ReverbPluginSettings;
-	/** Which output target the sound should play to */
-	EAudioOutputTarget::Type OutputTarget;
-	float				LowPassFilterFrequency;
-	/** The low pass filter frequency to use if the sound is occluded */
-	float				OcclusionFilterFrequency;
-	/** The low pass filter frequency to use due to ambient zones */
-	float				AmbientZoneFilterFrequency;
-	/** The low pass filter frequency to use due to distance attenuation */
-	float				AttenuationFilterFrequency;
-	/** Current pitch */
-	float				Pitch;
-	/** Current location */
-	FVector				Location;
-	/** At what distance we start transforming into omnidirectional soundsource */
-	float				OmniRadius;
-	/** Amount of spread for 3d multi-channel asset spatialization */
-	float				StereoSpread;
-	/** Distance over which the sound is attenuated. */
-	float				AttenuationDistance;
-	/** The distance from this wave instance to the closest listener. */
-	float				ListenerToSoundDistance;
-	/** The absolute position of the wave instance relative to forward vector of listener. */
-	float				AbsoluteAzimuth; 
 
-	/** Reverb distance-based wet-level settings defined in attenuation settings. */
-	float				ReverbWetLevelMin;
-	float				ReverbWetLevelMax;
-	float				ReverbDistanceMin;
-	float				ReverbDistanceMax;
+	/** Which output target the sound should play on. */
+	EAudioOutputTarget::Type OutputTarget;
+
+	/** The low pass filter frequency to use */
+	float LowPassFilterFrequency;
+
+	/** The low pass filter frequency to use if the sound is occluded. */
+	float OcclusionFilterFrequency;
+
+	/** The low pass filter frequency to use due to ambient zones. */
+	float AmbientZoneFilterFrequency;
+
+	/** The low pass filter frequency to use due to distance attenuation. */
+	float AttenuationLowpassFilterFrequency;
+
+	/** The high pass filter frequency to use due to distance attenuation. (using in audio mixer only) */
+	float AttenuationHighpassFilterFrequency;
+
+	/** Current pitch scale. */
+	float Pitch;
+
+	/** Current location */
+	FVector Location;
+
+	/** At what distance we start transforming into omnidirectional soundsource */
+	float OmniRadius;
+
+	/** Amount of spread for 3d multi-channel asset spatialization */
+	float StereoSpread;
+
+	/** Distance over which the sound is attenuated. */
+	float AttenuationDistance;
+
+	/** The distance from this wave instance to the closest listener. */
+	float ListenerToSoundDistance;
+
+	/** The absolute position of the wave instance relative to forward vector of listener. */
+	float AbsoluteAzimuth; 
+
+	/** The reverb send method to use. */
+	EReverbSendMethod ReverbSendMethod;
+
+	/** Reverb distance-based wet-level amount range. */
+	FVector2D ReverbSendLevelRange;
+
+	/** Reverb distance-based wet-level distance/radial range. */
+	FVector2D ReverbSendLevelDistanceRange;
+
+	/** Custom reverb send curve. */
+	FRuntimeFloatCurve CustomRevebSendCurve;
+
+	/** The manual send level to use if the sound is set to use manual send level. */
+	float ManualReverbSendLevel;
 
 	/** Cached type hash */
-	uint32				TypeHash;
+	uint32 TypeHash;
+
 	/** Hash value for finding the wave instance based on the path through the cue to get to it */
-	UPTRINT				WaveInstanceHash;
+	UPTRINT WaveInstanceHash;
+
 	/** User / Controller index that owns the sound */
-	uint8				UserIndex;
+	uint8 UserIndex;
 
-	/**
-	 * Constructor, initializing all member variables.
-	 *
-	 * @param InAudioComponent	Audio component this wave instance belongs to.
-	 */
-	FWaveInstance( FActiveSound* ActiveSound );
+	/** Constructor, initializing all member variables. */
+	FWaveInstance(FActiveSound* ActiveSound);
 
-	/**
-	 * Stops the wave instance without notifying NotifyWaveInstanceFinishedHook. This will NOT stop wave instance
-	 * if it is set up to loop indefinitely or set to remain active.
- 	 */
-	void StopWithoutNotification( void );
+	/** Stops the wave instance without notifying NotifyWaveInstanceFinishedHook. */
+	void StopWithoutNotification();
 
-	/**
-	 * Notifies the wave instance that the current playback buffer has finished.
-	 */
-	void NotifyFinished( const bool bStopped = false );
+	/** Notifies the wave instance that the current playback buffer has finished. */
+	void NotifyFinished(const bool bStopped = false);
 
-	/**
-	 * Friend archive function used for serialization.
-	 */
-	friend FArchive& operator<<( FArchive& Ar, FWaveInstance* WaveInstance );
+	/** Friend archive function used for serialization. */
+	friend FArchive& operator<<(FArchive& Ar, FWaveInstance* WaveInstance);
 
-	/**
-	 * Function used by the GC.
-	 */
-	void AddReferencedObjects( FReferenceCollector& Collector );
+	/** Function used by the GC. */
+	void AddReferencedObjects(FReferenceCollector& Collector);
 
 	/** Returns the actual volume the wave instance will play at */
 	bool ShouldStopDueToMaxConcurrency() const;
@@ -410,16 +453,14 @@ struct ENGINE_API FWaveInstance
 	/** Returns the weighted priority of the wave instance. */
 	float GetVolumeWeightedPriority() const;
 
-	/**
-	 * Checks whether wave is streaming and streaming is supported
-	 */
+	/** Checks whether wave is streaming and streaming is supported */
 	bool IsStreaming() const;
 
 	/** Returns the name of the contained USoundWave */
 	FString GetName() const;
 };
 
-inline uint32 GetTypeHash( FWaveInstance* A ) { return A->TypeHash; }
+inline uint32 GetTypeHash(FWaveInstance* A) { return A->TypeHash; }
 
 /*-----------------------------------------------------------------------------
 	FSoundBuffer.
@@ -512,10 +553,13 @@ public:
 		, StereoBleed(0.0f)
 		, LFEBleed(0.5f)
 		, LPFFrequency(MAX_FILTER_FREQUENCY)
+		, HPFFrequency(MIN_FILTER_FREQUENCY)
 		, LastLPFFrequency(MAX_FILTER_FREQUENCY)
+		, LastHPFFrequency(MIN_FILTER_FREQUENCY)
 		, PlaybackTime(0.0f)
 		, Pitch(1.0f)
 		, LastUpdate(0)
+		, LastHeardUpdate(0)
 		, LeftChannelSourceLocation(0)
 		, RightChannelSourceLocation(0)
 		, NumFramesPlayed(0)
@@ -667,8 +711,14 @@ protected:
 	/** What frequency to set the LPF filter to. Note this could be caused by occlusion, manual LPF application, or LPF distance attenuation. */
 	float LPFFrequency;
 
+	/** What frequency to set the HPF filter to. Note this could be caused by HPF distance attenuation. */
+	float HPFFrequency;
+
 	/** The last LPF frequency set. Used to avoid making API calls when parameter doesn't changing. */
 	float LastLPFFrequency;
+
+	/** The last HPF frequency set. Used to avoid making API calls when parameter doesn't changing. */
+	float LastHPFFrequency;
 
 	/** The virtual current playback time. Used to trigger notifications when finished. */
 	float PlaybackTime;

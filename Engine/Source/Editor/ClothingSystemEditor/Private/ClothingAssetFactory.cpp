@@ -104,13 +104,16 @@ UClothingAssetBase* UClothingAssetFactory::Import
 		}
 
 		// Create an unreal clothing asset
-		NewClothingAsset = CastChecked<UClothingAsset>(CreateFromApexAsset(ApexAsset, TargetMesh, InName));
+		NewClothingAsset = Cast<UClothingAsset>(CreateFromApexAsset(ApexAsset, TargetMesh, InName));
 
-		// Store import path
-		NewClothingAsset->ImportedFilePath = Filename;
+		if(NewClothingAsset)
+		{
+			// Store import path
+			NewClothingAsset->ImportedFilePath = Filename;
 
-		// Push to the target mesh
-		TargetMesh->AddClothingAsset(NewClothingAsset);
+			// Push to the target mesh
+			TargetMesh->AddClothingAsset(NewClothingAsset);
+		}
 	}
 
 	return NewClothingAsset;
@@ -444,6 +447,16 @@ UClothingAssetBase* UClothingAssetFactory::CreateFromApexAsset(nvidia::apex::Clo
 	{
 		const FName& BoneName = NewClothingAsset->UsedBoneNames[UsedBoneIndex];
 		const int32 UnrealBoneIndex = TargetMesh->RefSkeleton.FindBoneIndex(BoneName);
+
+		// If we find an invalid bone then the asset is invalid, as it cannot be skinned to this mesh
+		if(UnrealBoneIndex == INDEX_NONE)
+		{
+			FText ErrorText = FText::Format(LOCTEXT("InvalidBoneError", "Imported asset requires bone \"{0}\", which is not present in the skeletal mesh ({1})"), FText::FromName(BoneName), FText::FromString(TargetMesh->GetName()));
+			LogAndToastWarning(ErrorText);
+
+			return nullptr;
+		}
+		
 		NewClothingAsset->UsedBoneIndices[UsedBoneIndex] = UnrealBoneIndex;
 	}
 

@@ -80,7 +80,7 @@ public:
 	 * @param	TargetSet		The set to get the length of
 	 * @return	The length of the set
 	 */
-	UFUNCTION(BlueprintPure, CustomThunk, meta=(DisplayName = "Length", CompactNodeTitle = "LENGTH", SetParam = "TargetSet", Keywords = "num size count"), Category="Utilities|Set")
+	UFUNCTION(BlueprintPure, CustomThunk, meta=(DisplayName = "Length", CompactNodeTitle = "LENGTH", SetParam = "TargetSet", Keywords = "num size count", BlueprintThreadSafe), Category="Utilities|Set")
 	static int32 Set_Length(const TSet<int32>& TargetSet);
 
 	/**
@@ -90,7 +90,7 @@ public:
 	 * @param	ItemToFind		The item to look for
 	 * @return	True if the item was found within the set
 	 */
-	UFUNCTION(BlueprintPure, CustomThunk, meta=(DisplayName = "Contains Item", CompactNodeTitle = "CONTAINS", SetParam = "TargetSet|ItemToFind", AutoCreateRefTerm = "ItemToFind"), Category="Utilities|Set")
+	UFUNCTION(BlueprintPure, CustomThunk, meta=(DisplayName = "Contains Item", CompactNodeTitle = "CONTAINS", SetParam = "TargetSet|ItemToFind", AutoCreateRefTerm = "ItemToFind", BlueprintThreadSafe), Category="Utilities|Set")
 	static bool Set_Contains(const TSet<int32>& TargetSet, const int32& ItemToFind);
 
 	/**

@@ -510,9 +510,19 @@ public:
 #endif
 
 	// UObject Interface //////////////////////////////////////////////////////
+	
 	virtual void PostLoad() override;
 	virtual void Serialize(FArchive& Ar) override;
+
+#if WITH_EDITOR
+	virtual void PostEditChangeChainProperty(struct FPropertyChangedChainEvent& PropertyChangedEvent) override;
+#endif
+
 	// End UObject Interface //////////////////////////////////////////////////
+
+#if WITH_EDITOR
+	void HandlePhysicsAssetChange();
+#endif
 
 	/** 
 	 * Builds self collision data

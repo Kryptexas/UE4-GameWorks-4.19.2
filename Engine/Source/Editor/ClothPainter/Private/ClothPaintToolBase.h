@@ -5,6 +5,8 @@
 #include "MeshPaintHelpers.h"
 #include "ClothPainter.h"
 
+class IDetailsView;
+
 /** 
  * Base object for tools used to paint clothing
  * Derive from this and register a new tool in FClothPainter::Init to add to the available tools
@@ -52,6 +54,9 @@ public:
 	 * the brush settings in the Painter.
 	 */
 	virtual UObject* GetSettingsObject() { return nullptr; }
+
+	/** Optionally register any applicable customizations for the settings object */
+	virtual void RegisterSettingsObjectCustomizations(IDetailsView* InDetailsView) {}
 
 protected:
 

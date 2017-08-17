@@ -39,11 +39,6 @@
 
 #define LOCTEXT_NAMESPACE "BodyInstance"
 
-#if WITH_BOX2D
-#include "../PhysicsEngine2D/Box2DIntegration.h"
-#include "PhysicsEngine/BodySetup2D.h"
-#include "PhysicsEngine/AggregateGeometry2D.h"
-#endif	//WITH_BOX2D
 #include "Components/ModelComponent.h"
 #include "Components/BrushComponent.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
@@ -473,7 +468,7 @@ FBodyInstance::FBodyInstance()
 	, CustomDOFPlaneNormal(FVector::ZeroVector)
 	, COMNudge(ForceInit)
 	, MassScale(1.f)
-	, InertiaScale(1.f)
+	, InertiaTensorScale(1.f)
 	, DOFConstraint(NULL)
 	, WeldParent(NULL)
 	, PhysMaterialOverride(NULL)
@@ -492,11 +487,6 @@ FBodyInstance::FBodyInstance()
 #if WITH_PHYSX
 	, InitialLinearVelocity(0.0f)
 	, PhysxUserData(this)
-#endif // WITH_PHYSX
-#if WITH_BOX2D
-	, BodyInstancePtr(nullptr)
-#endif // WITH_BOX2D
-#if WITH_PHYSX
 	, CurrentSceneState(BodyInstanceSceneState::NotAdded)
 #endif // WITH_PHYSX
 	, SleepFamily(ESleepFamily::Normal)
@@ -641,25 +631,6 @@ void FBodyInstance::UpdatePhysicalMaterials()
 	});
 #endif
 
-#if WITH_BOX2D
-	if (BodyInstancePtr)
-	{
-		if(SimplePhysMat)
-		{
-			for(b2Fixture* Fixture = BodyInstancePtr->GetFixtureList(); Fixture; Fixture = Fixture->GetNext())
-			{
-				Fixture->SetFriction(SimplePhysMat->Friction);
-				Fixture->SetRestitution(SimplePhysMat->Restitution);
-
-				//@TODO: BOX2D: Determine if it's feasible to add support for FrictionCombineMode to Box2D
-			}
-		}
-		else
-		{
-			UE_LOG(LogPhysics, Error, TEXT("FBodyInstance::UpdatePhysicalMaterials : No valid physics material found when setting Box2D physical material parameters."));
-		}
-	}
-#endif
 }
 
 void FBodyInstance::InvalidateCollisionProfileName()
@@ -1211,41 +1182,6 @@ void FBodyInstance::UpdatePhysicsFilterData()
 	UpdatePhysicsShapeFilterData(ComponentID, bPhysicsStatic, CollisionEnabledOverride, ResponseOverride, bNotifyOverridePtr);
 #endif
 
-#if WITH_BOX2D
-	if (BodyInstancePtr != nullptr)
-	{
-		if (UseCollisionEnabled != ECollisionEnabled::NoCollision)
-		{
-			// Create the simulation/query filter data
-			FPhysicsFilterBuilder FilterBuilder(ObjectType, MaskFilter, UseResponse);
- 			FilterBuilder.ConditionalSetFlags(EPDF_CCD, bUseCCD && !bPhysicsStatic);
-			FilterBuilder.ConditionalSetFlags(EPDF_ContactNotify, bUseNotifyRBCollision);
- 			FilterBuilder.ConditionalSetFlags(EPDF_StaticShape, bPhysicsStatic);
-
-			b2Filter BoxSimFilterData;
-			FilterBuilder.GetCombinedData(/*out*/ BoxSimFilterData.BlockingChannels, /*out*/ BoxSimFilterData.TouchingChannels, /*out*/ BoxSimFilterData.ObjectTypeAndFlags);
-			BoxSimFilterData.UniqueComponentID = ComponentID;
-			BoxSimFilterData.BodyIndex = InstanceBodyIndex;
-
-			// Update the body data
-			const bool bSimCollision = CollisionEnabledHasPhysics(UseCollisionEnabled);
-			BodyInstancePtr->SetBullet(bSimCollision && !bPhysicsStatic && bUseCCD);
-			BodyInstancePtr->SetActive(true);
-
-			// Copy the filter data to each fixture in the body
-			for (b2Fixture* Fixture = BodyInstancePtr->GetFixtureList(); Fixture; Fixture = Fixture->GetNext())
-			{
-				Fixture->SetFilterData(BoxSimFilterData);
-				Fixture->SetSensor(UseCollisionEnabled == ECollisionEnabled::QueryOnly);
-			}
-		}
-		else
-		{
-			// No collision
-			BodyInstancePtr->SetActive(false);
-		}
-	}
-#endif
 }
 
 TAutoConsoleVariable<int32> CDisableQueryOnlyActors(TEXT("p.DisableQueryOnlyActors"), 0, TEXT("If QueryOnly is used, actors are marked as simulation disabled. This is NOT compatible with origin shifting at the moment."));
@@ -1307,10 +1243,6 @@ struct FInitBodiesHelper
 	{
 #if WITH_PHYSX
 		InitBodies_PhysX();
-#endif
-
-#if WITH_BOX2D
-		InitBodies_Box2D();
 #endif
 	}
 
@@ -1770,179 +1702,6 @@ struct FInitBodiesHelper
 	}
 #endif
 
-#if WITH_BOX2D
-
-	void InitBodies_Box2D() const
-	{
-		const int32 NumBodies = Bodies.Num();
-		bool bLocalComponentAwake = bComponentAwake;
-		if (UBodySetup2D* BodySetup2D = Cast<UBodySetup2D>(BodySetup))
-		{
-			if (b2World* BoxWorld = FPhysicsIntegration2D::FindAssociatedWorld(PrimitiveComp->GetWorld()))
-			{
-				for (int32 BodyIdx = 0; BodyIdx < NumBodies; ++BodyIdx)
-				{
-					FBodyInstance* Instance = Bodies[BodyIdx];
-					const FTransform& Transform = Transforms[BodyIdx];
-
-					const b2Vec2 Scale2D = FPhysicsIntegration2D::ConvertUnrealVectorToBox(Instance->Scale3D);
-					Instance->OwnerComponent = PrimitiveComp;
-
-					// Create the body definition
-					b2BodyDef BodyDefinition;
-					if (IsStatic())
-					{
-						BodyDefinition.type = b2_staticBody;
-					}
-					else
-					{
-						BodyDefinition.type = Instance->ShouldInstanceSimulatingPhysics() ? b2_dynamicBody : b2_kinematicBody;
-					}
-
-					if (SkelMeshComp)
-					{
-						bLocalComponentAwake = Instance->bStartAwake && SkelMeshComp->BodyInstance.bStartAwake;
-					}
-
-					if (Instance->bStartAwake || bLocalComponentAwake)
-					{
-						BodyDefinition.awake = true;
-					}
-					else
-					{
-						BodyDefinition.awake = false;
-					}
-
-					if (Instance->ShouldInstanceSimulatingPhysics())
-					{
-						BodyDefinition.linearVelocity = FPhysicsIntegration2D::ConvertUnrealVectorToBox(InitialLinVel);
-					}
-
-					// Create the body
-					Instance->BodyInstancePtr = BoxWorld->CreateBody(&BodyDefinition);
-					Instance->BodyInstancePtr->SetUserData(Instance);
-
-					// Circles
-					for (const FCircleElement2D& Circle : BodySetup2D->AggGeom2D.CircleElements)
-					{
-						b2CircleShape CircleShape;
-						CircleShape.m_radius = Circle.Radius * Instance->Scale3D.Size() / UnrealUnitsPerMeter;
-						CircleShape.m_p.x = Circle.Center.X * Scale2D.x;
-						CircleShape.m_p.y = Circle.Center.Y * Scale2D.y;
-
-						b2FixtureDef FixtureDef;
-						FixtureDef.shape = &CircleShape;
-
-						Instance->BodyInstancePtr->CreateFixture(&FixtureDef);
-					}
-
-					// Boxes
-					for (const FBoxElement2D& Box : BodySetup2D->AggGeom2D.BoxElements)
-					{
-						const b2Vec2 HalfBoxSize(Box.Width * 0.5f * Scale2D.x, Box.Height * 0.5f * Scale2D.y);
-						const b2Vec2 BoxCenter(Box.Center.X * Scale2D.x, Box.Center.Y * Scale2D.y);
-
-						b2PolygonShape DynamicBox;
-						DynamicBox.SetAsBox(HalfBoxSize.x, HalfBoxSize.y, BoxCenter, FMath::DegreesToRadians(Box.Angle));
-
-						b2FixtureDef FixtureDef;
-						FixtureDef.shape = &DynamicBox;
-
-						Instance->BodyInstancePtr->CreateFixture(&FixtureDef);
-					}
-
-					// Convex hulls
-					for (const FConvexElement2D& Convex : BodySetup2D->AggGeom2D.ConvexElements)
-					{
-						const int32 NumVerts = Convex.VertexData.Num();
-
-						if (NumVerts <= b2_maxPolygonVertices)
-						{
-							TArray<b2Vec2, TInlineAllocator<b2_maxPolygonVertices>> Verts;
-
-							for (int32 VertexIndex = 0; VertexIndex < Convex.VertexData.Num(); ++VertexIndex)
-							{
-								const FVector2D SourceVert = Convex.VertexData[VertexIndex];
-								new (Verts)b2Vec2(SourceVert.X * Scale2D.x, SourceVert.Y * Scale2D.y);
-							}
-
-							b2PolygonShape ConvexPoly;
-							ConvexPoly.Set(Verts.GetData(), Verts.Num());
-
-							b2FixtureDef FixtureDef;
-							FixtureDef.shape = &ConvexPoly;
-
-							Instance->BodyInstancePtr->CreateFixture(&FixtureDef);
-						}
-						else
-						{
-							UE_LOG(LogPhysics, Warning, TEXT("Too many vertices in a 2D convex body")); //@TODO: Create a better error message that indicates the asset
-						}
-					}
-
-					// Make sure it contained at least one shape
-					if (Instance->BodyInstancePtr->GetFixtureList() == nullptr)
-					{
-						if (DebugName.Len())
-						{
-							UE_LOG(LogPhysics, Log, TEXT("InitBody: failed - no shapes: %s"), *DebugName);
-						}
-
-						Instance->BodyInstancePtr->SetUserData(nullptr);
-						BoxWorld->DestroyBody(Instance->BodyInstancePtr);
-						Instance->BodyInstancePtr = nullptr;
-
-						//clear Owner and Setup info as well to properly clean up the BodyInstance.
-						Instance->OwnerComponent = NULL;
-						Instance->BodySetup = NULL;
-						Instance->ExternalCollisionProfileBodySetup = nullptr;
-
-						return;
-					}
-					else
-					{
-						// Position the body
-						Instance->SetBodyTransform(Transform, ETeleportType::TeleportPhysics);
-					}
-
-					// Apply correct physical materials to shape we created.
-					Instance->UpdatePhysicalMaterials();
-
-					// Set the filter data on the shapes (call this after setting BodyData because it uses that pointer)
-					Instance->UpdatePhysicsFilterData();
-
-					if (!IsStatic())
-					{
-						// Compute mass (call this after setting BodyData because it uses that pointer)
-						Instance->UpdateMassProperties();
-
-						// Update damping
-						Instance->UpdateDampingProperties();
-
-						Instance->SetMaxAngularVelocityInRadians(Instance->GetMaxAngularVelocityInRadians(), false, false);
-
-						Instance->SetMaxDepenetrationVelocity(Instance->bOverrideMaxDepenetrationVelocity ? Instance->MaxDepenetrationVelocity : UPhysicsSettings::Get()->MaxDepenetrationVelocity);
-
-						//@TODO: BOX2D: Determine if sleep threshold and solver settings can be configured per-body or not
-#if 0
-						// Set the parameters for determining when to put the object to sleep.
-						float SleepEnergyThresh = PNewDynamic->getSleepThreshold();
-						SleepEnergyThresh *= GetSleepThresholdMultiplier();
-						PNewDynamic->setSleepThreshold(SleepEnergyThresh);
-						// set solver iteration count 
-						int32 PositionIterCount = FMath::Clamp(PositionSolverIterationCount, 1, 255);
-						int32 VelocityIterCount = FMath::Clamp(VelocitySolverIterationCount, 1, 255);
-						PNewDynamic->setSolverIterationCounts(PositionIterCount, VelocityIterCount);
-#endif
-					}
-				}
-			}
-			return;
-		}
-	}
-
-#endif
-
 };
 
 FBodyInstance::FInitBodySpawnParams::FInitBodySpawnParams(const UPrimitiveComponent* PrimComp)
@@ -2101,40 +1860,47 @@ TArray<int32> FBodyInstance::AddCollisionNotifyInfo(const FBodyInstance* Body0, 
 	for (uint32 PairIdx = 0; PairIdx < NumPairs; ++PairIdx)
 	{
 		const PxContactPair* Pair = Pairs + PairIdx;
-		// Get the two shapes that are involved in the collision
-		const PxShape* Shape0 = Pair->shapes[0];
-		check(Shape0);
-		const PxShape* Shape1 = Pair->shapes[1];
-		check(Shape1);
-
 		PairNotifyMapping.Add(-1);	//start as -1 because we can have collisions that we don't want to actually record collision
-
-		const FBodyInstance* SubBody0 = Body0->GetOriginalBodyInstance(Shape0);
-		const FBodyInstance* SubBody1 = Body1->GetOriginalBodyInstance(Shape1);
 		
-		PxU32 FilterFlags0 = Shape0->getSimulationFilterData().word3 & 0xFFFFFF;
-		PxU32 FilterFlags1 = Shape1->getSimulationFilterData().word3 & 0xFFFFFF;
-
-		const bool bBody0Notify = (FilterFlags0&EPDF_ContactNotify) != 0;
-		const bool bBody1Notify = (FilterFlags1&EPDF_ContactNotify) != 0;
-		
-		if (bBody0Notify || bBody1Notify)
+		// Check if either shape has been removed
+		if ( !Pair->events.isSet(PxPairFlag::eNOTIFY_TOUCH_LOST) &&
+			 !Pair->events.isSet(PxPairFlag::eNOTIFY_THRESHOLD_FORCE_LOST) &&
+			 !Pair->flags.isSet(PxContactPairFlag::eREMOVED_SHAPE_0) &&
+			 !Pair->flags.isSet(PxContactPairFlag::eREMOVED_SHAPE_1) )
 		{
-			TMap<const FBodyInstance *, int32> & SubBodyNotifyMap = BodyPairNotifyMap.FindOrAdd(SubBody0);
-			int32* NotifyInfoIndex = SubBodyNotifyMap.Find(SubBody1);
+			// Get the two shapes that are involved in the collision
+			const PxShape* Shape0 = Pair->shapes[0];
+			check(Shape0);
+			const PxShape* Shape1 = Pair->shapes[1];
+			check(Shape1);
+		
+			PxU32 FilterFlags0 = Shape0->getSimulationFilterData().word3 & 0xFFFFFF;
+			PxU32 FilterFlags1 = Shape1->getSimulationFilterData().word3 & 0xFFFFFF;
 
-			if (NotifyInfoIndex == NULL)
+			const bool bBody0Notify = (FilterFlags0 & EPDF_ContactNotify) != 0;
+			const bool bBody1Notify = (FilterFlags1 & EPDF_ContactNotify) != 0;
+		
+			if (bBody0Notify || bBody1Notify)
 			{
-				FCollisionNotifyInfo * NotifyInfo = new (PendingNotifyInfos) FCollisionNotifyInfo;
-				NotifyInfo->bCallEvent0 = (bBody0Notify);
-				NotifyInfo->Info0.SetFrom(SubBody0);
-				NotifyInfo->bCallEvent1 = (bBody1Notify);
-				NotifyInfo->Info1.SetFrom(SubBody1);
+				const FBodyInstance* SubBody0 = Body0->GetOriginalBodyInstance(Shape0);
+				const FBodyInstance* SubBody1 = Body1->GetOriginalBodyInstance(Shape1);
 
-				NotifyInfoIndex = &SubBodyNotifyMap.Add(SubBody0, PendingNotifyInfos.Num() - 1);
+				TMap<const FBodyInstance *, int32> & SubBodyNotifyMap = BodyPairNotifyMap.FindOrAdd(SubBody0);
+				int32* NotifyInfoIndex = SubBodyNotifyMap.Find(SubBody1);
+
+				if (NotifyInfoIndex == NULL)
+				{
+					FCollisionNotifyInfo * NotifyInfo = new (PendingNotifyInfos) FCollisionNotifyInfo;
+					NotifyInfo->bCallEvent0 = bBody0Notify;
+					NotifyInfo->Info0.SetFrom(SubBody0);
+					NotifyInfo->bCallEvent1 = bBody1Notify;
+					NotifyInfo->Info1.SetFrom(SubBody1);
+
+					NotifyInfoIndex = &SubBodyNotifyMap.Add(SubBody0, PendingNotifyInfos.Num() - 1);
+				}
+
+				PairNotifyMapping[PairIdx] = *NotifyInfoIndex;
 			}
-
-			PairNotifyMapping[PairIdx] = *NotifyInfoIndex;
 		}
 	}
 
@@ -2191,23 +1957,6 @@ void TermBodyHelper(int16& SceneIndex, PxRigidActor*& PRigidActor, FBodyInstance
 void FBodyInstance::TermBody()
 {
 	SCOPE_CYCLE_COUNTER(STAT_TermBody);
-#if WITH_BOX2D
-	if (BodyInstancePtr != NULL)
-	{
-		if (UPrimitiveComponent* OwnerComponentInst = OwnerComponent.Get())
-		{
-			if (b2World* World = FPhysicsIntegration2D::FindAssociatedWorld(OwnerComponentInst->GetWorld()))
-			{
-				World->DestroyBody(BodyInstancePtr);
-			}
-			else
-			{
-				BodyInstancePtr->SetUserData(nullptr);
-			}
-		}
-		BodyInstancePtr = nullptr;
-	}
-#endif
 
 #if WITH_PHYSX
 	// Release sync actor
@@ -2237,8 +1986,6 @@ void FBodyInstance::TermBody()
 		FConstraintInstance::Free(DOFConstraint);
 			DOFConstraint = NULL;
 	}
-	
-
 	
 }
 
@@ -2546,12 +2293,6 @@ bool FBodyInstance::UpdateBodyScale(const FVector& InScale3D, bool bForceUpdate)
 		GetAllShapes_AssumesLocked(PShapes);
 		ScaleMode = ComputeScaleMode(PShapes);
 #endif
-#if WITH_BOX2D
-		if (BodyInstancePtr)
-		{
-			//@TODO: BOX2D: UpdateBodyScale is not implemented yet
-		}
-#endif
 		FVector AdjustedScale3D;
 		FVector AdjustedScale3DAbs;
 		ComputeScalingVectors(ScaleMode, InScale3D, AdjustedScale3D, AdjustedScale3DAbs);
@@ -2764,13 +2505,6 @@ bool FBodyInstance::UpdateBodyScale(const FVector& InScale3D, bool bForceUpdate)
 	
 #endif
 
-#if WITH_BOX2D
-	if (BodyInstancePtr)
-	{
-		//@TODO: BOX2D: UpdateBodyScale is not implemented yet
-	}
-#endif
-
 	// if success, overwrite old Scale3D, otherwise, just don't do it. It will have invalid scale next time
 	if (bSuccess)
 	{
@@ -2824,14 +2558,6 @@ void FBodyInstance::UpdateInstanceSimulatePhysics()
 	});
 #endif
 
-#if WITH_BOX2D
-	if (BodyInstancePtr != NULL)
-	{
-		bInitialized = true;
-		BodyInstancePtr->SetType(bUseSimulate ? b2_dynamicBody : b2_kinematicBody);
-	}
-#endif
-
 	//In the original physx only implementation this was wrapped in a PRigidDynamic != NULL check.
 	//We use bInitialized to check rigid actor has been created in either engine because if we haven't even initialized yet, we don't want to undo our settings
 	if (bInitialized)
@@ -2863,13 +2589,6 @@ bool FBodyInstance::IsDynamic() const
 		bIsDynamic = true;
 	});
 #endif // WITH_PHYSX
-
-#if WITH_BOX2D
-	if (BodyInstancePtr != nullptr)
-	{
-		bIsDynamic = BodyInstancePtr->GetType() != b2_staticBody;
-	}
-#endif // WITH_BOX2D
 
 	return bIsDynamic;
 }
@@ -2974,13 +2693,6 @@ bool FBodyInstance::IsValidBodyInstance() const
 	}
 #endif // WITH_PHYSX
 
-#if WITH_BOX2D
-	if (BodyInstancePtr != nullptr)
-	{
-		return true;
-	}
-#endif
-
 	return false;
 }
 
@@ -3000,24 +2712,6 @@ FTransform GetUnrealWorldTransformImp(const FBodyInstance* BodyInstance, bool bW
 		}
 	});
 #endif // WITH_PHYSX
-
-#if WITH_BOX2D
-	if (BodyInstance->BodyInstancePtr != NULL)
-	{
-		const b2Vec2 Pos2D = BodyInstance->BodyInstancePtr->GetPosition();
-		const float RotationInRadians = BodyInstance->BodyInstancePtr->GetAngle();
-
-		const FVector Translation3D(FPhysicsIntegration2D::ConvertBoxVectorToUnreal(Pos2D));
-		const FRotator Rotation3D(FMath::RadiansToDegrees(RotationInRadians), 0.0f, 0.0f); //@TODO: BOX2D: Should be moved to FPhysicsIntegration2D
-
-		WorldTM = FTransform(Rotation3D, Translation3D, BodyInstance->Scale3D);
-
-		if (bWithProjection)
-		{
-			BodyInstance->OnCalculateCustomProjection.ExecuteIfBound(BodyInstance, WorldTM);
-		}
-	}
-#endif
 
 	return WorldTM;
 }
@@ -3110,19 +2804,6 @@ void FBodyInstance::SetBodyTransform(const FTransform& NewTransform, ETeleportTy
 	}
 #endif  // WITH_PHYSX
 
-#if WITH_BOX2D
-	if (BodyInstancePtr != NULL)
-	{
-		const FVector NewLocation = NewTransform.GetLocation();
-		const b2Vec2 NewLocation2D(FPhysicsIntegration2D::ConvertUnrealVectorToBox(NewLocation));
-
-		//@TODO: BOX2D: SetBodyTransform: What about scale?
-		const FRotator NewRotation3D(NewTransform.GetRotation());
-		const float NewAngle = FMath::DegreesToRadians(NewRotation3D.Pitch);
-
-		BodyInstancePtr->SetTransform(NewLocation2D, NewAngle);
-	}
-#endif
 }
 
 void FBodyInstance::SetWeldedBodyTransform(FBodyInstance* TheirBody, const FTransform& NewTransform)
@@ -3142,13 +2823,6 @@ FVector GetUnrealWorldVelocityImp(const FBodyInstance* BodyInstance)
 		LinVel = P2UVector(PRigidBody->getLinearVelocity());
 	});
 #endif // WITH_PHYSX
-
-#if WITH_BOX2D
-	if (BodyInstance->BodyInstancePtr != nullptr)
-	{
-		LinVel = FPhysicsIntegration2D::ConvertBoxVectorToUnreal(BodyInstance->BodyInstancePtr->GetLinearVelocity());
-	}
-#endif
 
 	return LinVel;
 }
@@ -3174,13 +2848,6 @@ FVector GetUnrealWorldAngularVelocityInRadiansImp(const FBodyInstance* BodyInsta
 		AngVel = P2UVector(PRigidBody->getAngularVelocity());
 	});
 #endif // WITH_PHYSX
-
-#if WITH_BOX2D
-	if (BodyInstance->BodyInstancePtr != nullptr)
-	{
-		AngVel = FPhysicsIntegration2D::ConvertBoxAngularVelocityToUnreal(BodyInstance->BodyInstancePtr->GetAngularVelocity());
-	}
-#endif
 
 	return AngVel;
 }
@@ -3209,14 +2876,6 @@ FVector GetUnrealWorldVelocityAtPointImp(const FBodyInstance* BodyInstance, cons
 		LinVel = P2UVector(PxRigidBodyExt::getVelocityAtPos(*PRigidBody, PPoint));
 	});
 #endif // WITH_PHYSX
-
-#if WITH_BOX2D
-	if (BodyInstance->BodyInstancePtr != nullptr)
-	{
-		const b2Vec2 BoxPoint = FPhysicsIntegration2D::ConvertUnrealVectorToBox(Point);
-		LinVel = FPhysicsIntegration2D::ConvertBoxVectorToUnreal(BodyInstance->BodyInstancePtr->GetLinearVelocityFromWorldPoint(BoxPoint));
-	}
-#endif
 
 	return LinVel;
 }
@@ -3252,13 +2911,6 @@ FTransform FBodyInstance::GetMassSpaceToWorldSpace() const
 	});
 #endif // WITH_PHYSX
 
-#if WITH_BOX2D
-	if (BodyInstancePtr != nullptr)
-	{
-		MassSpaceToWorldSpace = FTransform(FQuat::Identity, FPhysicsIntegration2D::ConvertBoxVectorToUnreal(BodyInstancePtr->GetWorldCenter()));
-	}
-#endif
-
 	return MassSpaceToWorldSpace;
 }
 
@@ -3272,13 +2924,6 @@ float FBodyInstance::GetBodyMass() const
 		Retval = PRigidBody->getMass();
 	});
 #endif // WITH_PHYSX
-
-#if WITH_BOX2D
-	if (BodyInstancePtr != nullptr)
-	{
-		Retval = BodyInstancePtr->GetMass();
-	}
-#endif
 
 	return Retval;
 }
@@ -3294,13 +2939,6 @@ FVector FBodyInstance::GetBodyInertiaTensor() const
 		Retval = P2UVector(PRigidBody->getMassSpaceInertiaTensor());
 	});
 #endif // WITH_PHYSX
-
-#if WITH_BOX2D
-	if (BodyInstancePtr != nullptr)
-	{
-		Retval = FVector(BodyInstancePtr->GetInertia(), 0.f, 0.f);
-	}
-#endif
 
 	return Retval;
 }
@@ -3354,11 +2992,6 @@ void FBodyInstance::CopyBodyInstancePropertiesFrom(const FBodyInstance* FromInst
 	check(!BodyAggregate);
 #endif //WITH_PHYSX
 	//check(SceneIndex == 0);
-
-#if WITH_BOX2D
-	check(!FromInst->BodyInstancePtr);
-	check(!BodyInstancePtr);
-#endif
 
 	*this = *FromInst;
 }
@@ -3685,7 +3318,7 @@ PxMassProperties ComputeMassProperties(const FBodyInstance* OwningBodyInstance, 
 	PxMassProperties FinalMassProps = MassProps * MassRatio;
 
 	FinalMassProps.centerOfMass += U2PVector(MassModifierTransform.TransformVector(OwningBodyInstance->COMNudge));
-	FinalMassProps.inertiaTensor *= OwningBodyInstance->InertiaScale;
+	FinalMassProps.inertiaTensor = PxMassProperties::scaleInertia(FinalMassProps.inertiaTensor, PxQuat(PxIdentity), U2PVector(OwningBodyInstance->InertiaTensorScale));
 
 	return FinalMassProps;
 }
@@ -3788,45 +3421,6 @@ void FBodyInstance::UpdateMassProperties()
 	});
 #endif
 
-#if WITH_BOX2D
-	if (BodyInstancePtr)
-	{
-		//@TODO: BOX2D: Implement COMNudge, Unreal 'funky' mass algorithm, etc... for UpdateMassProperties (if we don't update the formula, we need to update the displayed mass in the details panel)
-
-		float MassScaledDensity = 0.f;
-		if (bOverrideMass == false)
-		{
-			// Unreal material density is in g/cm^3, and Box2D density is in kg/m^2
-			// physical material - nothing can weigh less than hydrogen (0.09 kg/m^3)
-
-			float DensityKGPerCubicCM = 1.0f;
-			if(PhysMat)
-			{
-				DensityKGPerCubicCM = FMath::Max(KgPerM3ToKgPerCm3(0.09f), gPerCm3ToKgPerCm3(PhysMat->Density));
-			}
-
-			const float DensityKGPerCubicM = DensityKGPerCubicCM * 1000.0f;
-			const float DensityKGPerSquareM = DensityKGPerCubicM * 0.1f; //@TODO: BOX2D: Should there be a thickness property for mass calculations?
-			MassScaledDensity = DensityKGPerSquareM * FMath::Clamp<float>(MassScale, 0.01f, 100.0f);
-		}
-		else
-		{
-			MassScaledDensity = FMath::Max(MassInKgOverride, 0.001f);	//min weight of 1g	//TODO: this is actually wrong because we're assuming mass and density are the same thing, but good enough for now
-		}
-
-		check(MassScaledDensity > 0.f);
-
-		// Apply the density
-		for (b2Fixture* Fixture = BodyInstancePtr->GetFixtureList(); Fixture; Fixture = Fixture->GetNext())
-		{
-			Fixture->SetDensity(MassScaledDensity);
-		}
-
-		// Recalculate the body mass / COM / etc... based on the updated density
-		BodyInstancePtr->ResetMassData();
-	}
-#endif
-
 	//Let anyone who cares about mass properties know they've been updated
 	OnRecalculatedMassProperties.Broadcast(this);
 }
@@ -3851,14 +3445,6 @@ void FBodyInstance::UpdateDampingProperties()
 		PRigidDynamic->setAngularDamping(AngularDamping);
 	});
 #endif
-
-#if WITH_BOX2D
-	if (BodyInstancePtr)
-	{
-		BodyInstancePtr->SetLinearDamping(LinearDamping);
-		BodyInstancePtr->SetAngularDamping(AngularDamping);
-	}
-#endif
 }
 
 bool FBodyInstance::IsInstanceAwake() const
@@ -3869,13 +3455,6 @@ bool FBodyInstance::IsInstanceAwake() const
 	{
 		bIsSleeping = PRigidDynamic->isSleeping();
 	});
-#endif
-
-#if WITH_BOX2D
-	if (BodyInstancePtr)
-	{
-		bIsSleeping = !BodyInstancePtr->IsAwake();
-	}
 #endif
 
 	return !bIsSleeping;
@@ -3894,13 +3473,6 @@ void FBodyInstance::WakeInstance()
 		}
 	});
 #endif
-
-#if WITH_BOX2D
-	if (BodyInstancePtr)
-	{
-		BodyInstancePtr->SetAwake(true);
-	}
-#endif
 }
 
 void FBodyInstance::PutInstanceToSleep()
@@ -3914,13 +3486,6 @@ void FBodyInstance::PutInstanceToSleep()
 		}
 	});
 #endif //WITH_PHYSX
-
-#if WITH_BOX2D
-	if (BodyInstancePtr)
-	{
-		BodyInstancePtr->SetAwake(false);
-	}
-#endif
 }
 
 float FBodyInstance::GetSleepThresholdMultiplier() const
@@ -3953,21 +3518,6 @@ void FBodyInstance::SetLinearVelocity(const FVector& NewVel, bool bAddToCurrent)
 		PRigidBody->setLinearVelocity(PNewVel);
 	});
 #endif // WITH_PHYSX
-
-#if WITH_BOX2D
-	if (BodyInstancePtr)
-	{
-		b2Vec2 BoxNewVel = FPhysicsIntegration2D::ConvertUnrealVectorToBox(NewVel);
-
-		if (bAddToCurrent)
-		{
-			const b2Vec2 BoxOldVel = BodyInstancePtr->GetLinearVelocity();
-			BoxNewVel += BoxOldVel;
-		}
-
-		BodyInstancePtr->SetLinearVelocity(BoxNewVel);
-	}
-#endif
 }
 
 /** Note NewAngVel is in degrees per second */
@@ -3987,21 +3537,6 @@ void FBodyInstance::SetAngularVelocityInRadians(const FVector& NewAngVel, bool b
 		PRigidBody->setAngularVelocity(PNewAngVel);
 	});
 #endif //WITH_PHYSX
-
-#if WITH_BOX2D
-	if (BodyInstancePtr)
-	{
-		float BoxNewAngVel = FPhysicsIntegration2D::ConvertUnrealAngularVelocityToBox(NewAngVel);
-
-		if (bAddToCurrent)
-		{
-			const float BoxOldAngVel = BodyInstancePtr->GetAngularVelocity();
-			BoxNewAngVel += BoxOldAngVel;
-		}
-
-		BodyInstancePtr->SetAngularVelocity(BoxNewAngVel);
-	}
-#endif
 }
 
 float FBodyInstance::GetMaxAngularVelocityInRadians() const
@@ -4079,13 +3614,6 @@ void FBodyInstance::AddCustomPhysics(FCalculateCustomPhysics& CalculateCustomPhy
 	
 #endif // WITH_PHYSX
 
-#if WITH_BOX2D
-	if (BodyInstancePtr)
-	{
-		// Since Box2D does not have any substepping, might as well apply custom forces now
-		CalculateCustomPhysics.ExecuteIfBound(0.0f, this);
-	}
-#endif
 }
 
 void FBodyInstance::AddForce(const FVector& Force, bool bAllowSubstepping, bool bAccelChange)
@@ -4103,17 +3631,6 @@ void FBodyInstance::AddForce(const FVector& Force, bool bAllowSubstepping, bool 
 		}
 	});
 #endif // WITH_PHYSX
-
-#if WITH_BOX2D
-	if (BodyInstancePtr)
-	{
-		if (!Force.IsNearlyZero())
-		{
-			const b2Vec2 Force2D = FPhysicsIntegration2D::ConvertUnrealVectorToBox(Force);
-			BodyInstancePtr->ApplyForceToCenter(bAccelChange ? (BodyInstancePtr->GetMass() * Force2D) : Force2D, /*wake=*/ true);
-		}
-	}
-#endif
 }
 
 void FBodyInstance::AddForceAtPosition(const FVector& Force, const FVector& Position, bool bAllowSubstepping, bool bIsLocalForce)
@@ -4131,31 +3648,6 @@ void FBodyInstance::AddForceAtPosition(const FVector& Force, const FVector& Posi
 	});
 	
 #endif // WITH_PHYSX
-
-#if WITH_BOX2D
-	if (BodyInstancePtr)
-	{
-		if (!Force.IsNearlyZero())
-		{
-			FVector ActualPosition = Position;
-			FVector ActualForce = Force;
-
-			if (bIsLocalForce)
-			{
-				if (UPrimitiveComponent* Owner = OwnerComponent.Get())
-				{
-					FTransform CTW = Owner->GetComponentToWorld();
-					ActualPosition = CTW.TransformVector(ActualPosition);
-					ActualForce = CTW.TransformVector(ActualForce);
-				}
-			}
-
-			const b2Vec2 Force2D = FPhysicsIntegration2D::ConvertUnrealVectorToBox(ActualForce);
-			const b2Vec2 Position2D = FPhysicsIntegration2D::ConvertUnrealVectorToBox(ActualPosition);
-			BodyInstancePtr->ApplyForce(Force2D, Position2D, /*wake=*/ true);
-		}
-	}
-#endif
 }
 
 void FBodyInstance::AddTorqueInRadians(const FVector& Torque, bool bAllowSubstepping, bool bAccelChange)
@@ -4172,17 +3664,6 @@ void FBodyInstance::AddTorqueInRadians(const FVector& Torque, bool bAllowSubstep
 		}
 	});
 #endif // WITH_PHYSX
-
-#if WITH_BOX2D
-	if (BodyInstancePtr)
-	{
-		const float Torque1D = FPhysicsIntegration2D::ConvertUnrealTorqueToBox(Torque) * (bAccelChange ? BodyInstancePtr->GetInertia() : 1.f);
-		if (!FMath::IsNearlyZero(Torque1D))
-		{
-			BodyInstancePtr->ApplyTorque(Torque1D, /*wake=*/ true);
-		}
-	}
-#endif
 }
 
 void FBodyInstance::AddAngularImpulseInRadians(const FVector& AngularImpulse, bool bVelChange)
@@ -4200,17 +3681,6 @@ void FBodyInstance::AddAngularImpulseInRadians(const FVector& AngularImpulse, bo
 	});
 	
 #endif // WITH_PHYSX
-
-#if WITH_BOX2D
-	if (BodyInstancePtr)
-	{
-		if (!AngularImpulse.IsNearlyZero())
-		{
-			const float AngularImpulse2D = FPhysicsIntegration2D::ConvertUnrealTorqueToBox(AngularImpulse);
-			BodyInstancePtr->ApplyAngularImpulse(AngularImpulse2D, /*wake=*/ true);
-		}
-	}
-#endif
 }
 
 void FBodyInstance::AddImpulse(const FVector& Impulse, bool bVelChange)
@@ -4226,17 +3696,6 @@ void FBodyInstance::AddImpulse(const FVector& Impulse, bool bVelChange)
 	});
 	
 #endif // WITH_PHYSX
-
-#if WITH_BOX2D
-	if (BodyInstancePtr)
-	{
-		if (!Impulse.IsNearlyZero())
-		{
-			const b2Vec2 Impulse2D = FPhysicsIntegration2D::ConvertUnrealVectorToBox(Impulse);
-			BodyInstancePtr->ApplyLinearImpulse(Impulse2D, BodyInstancePtr->GetWorldCenter(), /*wake=*/ true);
-		}
-	}
-#endif
 }
 
 void FBodyInstance::AddImpulseAtPosition(const FVector& Impulse, const FVector& Position)
@@ -4252,18 +3711,6 @@ void FBodyInstance::AddImpulseAtPosition(const FVector& Impulse, const FVector& 
 	});
 	
 #endif // WITH_PHYSX
-
-#if WITH_BOX2D
-	if (BodyInstancePtr)
-	{
-		if (!Impulse.IsNearlyZero())
-		{
-			const b2Vec2 Impulse2D = FPhysicsIntegration2D::ConvertUnrealVectorToBox(Impulse);
-			const b2Vec2 Position2D = FPhysicsIntegration2D::ConvertUnrealVectorToBox(Position);
-			BodyInstancePtr->ApplyLinearImpulse(Impulse2D, Position2D, /*wake=*/ true);
-		}
-	}
-#endif
 }
 
 void FBodyInstance::SetInstanceNotifyRBCollision(bool bNewNotifyCollision)
@@ -4285,61 +3732,12 @@ void FBodyInstance::SetEnableGravity(bool bInGravityEnabled)
 		});
 #endif // WITH_PHYSX
 
-#if WITH_BOX2D
-		if (BodyInstancePtr)
-		{
-			BodyInstancePtr->SetGravityScale(bEnableGravity ? 1.0f : 0.0f);
-		}
-#endif
-
 		if (bEnableGravity)
 		{
 			WakeInstance();
 		}
 	}
 }
-
-
-#if WITH_BOX2D
-void AddRadialImpulseToBox2DBodyInstance(class b2Body* BodyInstancePtr, const FVector& Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff, bool bImpulse, bool bMassIndependent)
-{
-	const b2Vec2 CenterOfMass2D = BodyInstancePtr->GetWorldCenter();
-	const b2Vec2 Origin2D = FPhysicsIntegration2D::ConvertUnrealVectorToBox(Origin);
-
-	// If the center of mass is outside of the blast radius, do nothing.
-	b2Vec2 Delta2D = CenterOfMass2D - Origin2D;
-	const float DistanceFromBlast = Delta2D.Normalize() * UnrealUnitsPerMeter;
-	if (DistanceFromBlast > Radius)
-	{
-		return;
-	}
-	
-	// If using linear falloff, scale with distance.
-	const float EffectiveStrength = (Falloff == RIF_Linear) ? (Strength * (1.0f - (DistanceFromBlast / Radius))) : Strength;
-
-	b2Vec2 ForceOrImpulse2D = Delta2D;
-	ForceOrImpulse2D *= EffectiveStrength;
-
-	if (bMassIndependent)
-	{
-		const float Mass = BodyInstancePtr->GetMass();
-		if (!FMath::IsNearlyZero(Mass))
-		{
-			ForceOrImpulse2D *= Mass;
-		}
-	}
-
-	if (bImpulse)
-	{
-		BodyInstancePtr->ApplyLinearImpulse(ForceOrImpulse2D, CenterOfMass2D, /*wake=*/ true);
-	}
-	else
-	{
-		BodyInstancePtr->ApplyForceToCenter(ForceOrImpulse2D, /*wake=*/ true);
-	}
-}
-#endif
-
 
 
 void FBodyInstance::AddRadialImpulseToBody(const FVector& Origin, float Radius, float Strength, uint8 Falloff, bool bVelChange)
@@ -4354,13 +3752,6 @@ void FBodyInstance::AddRadialImpulseToBody(const FVector& Origin, float Radius, 
 	});
 	
 #endif // WITH_PHYSX
-
-#if WITH_BOX2D
-	if (BodyInstancePtr)
-	{
-		AddRadialImpulseToBox2DBodyInstance(BodyInstancePtr, Origin, Radius, Strength, static_cast<ERadialImpulseFalloff>(Falloff), /*bImpulse=*/ true, /*bMassIndependent=*/ bVelChange);
-	}
-#endif
 }
 
 void FBodyInstance::AddRadialForceToBody(const FVector& Origin, float Radius, float Strength, uint8 Falloff, bool bAccelChange, bool bAllowSubstepping)
@@ -4378,13 +3769,6 @@ void FBodyInstance::AddRadialForceToBody(const FVector& Origin, float Radius, fl
 		}
 	});
 #endif // WITH_PHYSX
-
-#if WITH_BOX2D
-	if (BodyInstancePtr)
-	{
-		AddRadialImpulseToBox2DBodyInstance(BodyInstancePtr, Origin, Radius, Strength, static_cast<ERadialImpulseFalloff>(Falloff), /*bImpulse=*/ false, /*bMassIndependent=*/ bAccelChange);
-	}
-#endif
 }
 
 FString FBodyInstance::GetBodyDebugName() const
@@ -4498,13 +3882,6 @@ bool FBodyInstance::LineTrace(struct FHitResult& OutHit, const FVector& Start, c
 		});
 		
 #endif //WITH_PHYSX
-
-#if WITH_BOX2D
-		if (BodyInstancePtr != nullptr)
-		{
-			//@TODO: BOX2D: Implement FBodyInstance::LineTrace
-		}
-#endif
 	}
 
 	return bHitSomething;
@@ -4535,13 +3912,6 @@ bool FBodyInstance::Sweep(struct FHitResult& OutHit, const FVector& Start, const
 		});
 		
 #endif //WITH_PHYSX
-
-#if WITH_BOX2D
-		if (BodyInstancePtr != nullptr)
-		{
-			//@TODO: BOX2D: Implement FBodyInstance::Sweep
-		}
-#endif
 
 		return bSweepHit;
 	}
@@ -4752,13 +4122,6 @@ bool FBodyInstance::OverlapTest(const FVector& Position, const FQuat& Rotation, 
 	});
 #endif
 
-#if WITH_BOX2D
-	if (!bHasOverlap && (BodyInstancePtr != nullptr))
-	{
-		//@TODO: BOX2D: Implement FBodyInstance::OverlapTest
-	}
-#endif
-
 	return bHasOverlap;
 }
 
@@ -4856,13 +4219,6 @@ bool FBodyInstance::OverlapMulti(TArray<struct FOverlapResult>& InOutOverlaps, c
 				InOutOverlaps.Append(TempOverlaps);
 			}
 		});
-	}
-#endif
-
-#if WITH_BOX2D
-	if (BodyInstancePtr != nullptr)
-	{
-		//@TODO: BOX2D: Implement FBodyInstance::OverlapMulti
 	}
 #endif
 
@@ -5102,11 +4458,6 @@ bool FBodyInstance::UseAsyncScene(const FPhysScene* PhysScene) const
 
 void FBodyInstance::SetUseAsyncScene(bool bNewUseAsyncScene)
 {
-#if WITH_BOX2D
-	// Invalid to call this if the body has been created
-	check(BodyInstancePtr == nullptr);
-#endif // WITH_BOX2D
-
 	// Set flag
 	bUseAsyncScene = bNewUseAsyncScene;
 }

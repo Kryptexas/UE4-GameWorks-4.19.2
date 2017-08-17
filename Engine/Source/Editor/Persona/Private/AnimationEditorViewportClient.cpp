@@ -112,6 +112,8 @@ FAnimationViewportClient::FAnimationViewportClient(const TSharedRef<ISkeletonTre
 	EngineShowFlags.SetSeparateTranslucency(true);
 	EngineShowFlags.SetCompositeEditorPrimitives(true);
 
+	EngineShowFlags.SetSelectionOutline(true);
+
 	// set camera mode
 	bCameraFollow = false;
 
@@ -137,6 +139,10 @@ FAnimationViewportClient::FAnimationViewportClient(const TSharedRef<ISkeletonTre
 	InPreviewScene->RegisterOnInvalidateViews(FSimpleDelegate::CreateRaw(this, &FAnimationViewportClient::HandleInvalidateViews));
 	InPreviewScene->RegisterOnFocusViews(FSimpleDelegate::CreateRaw(this, &FAnimationViewportClient::HandleFocusViews));
 
+	UDebugSkelMeshComponent* MeshComponent = InPreviewScene->GetPreviewMeshComponent();
+	MeshComponent->SelectionOverrideDelegate = UPrimitiveComponent::FSelectionOverride::CreateRaw(this, &FAnimationViewportClient::PreviewComponentSelectionOverride);
+	MeshComponent->PushSelectionToProxy();
+
 	// Register delegate to update the show flags when the post processing is turned on or off
 	UAssetViewerSettings::Get()->OnAssetViewerSettingsChanged().AddRaw(this, &FAnimationViewportClient::OnAssetViewerSettingsChanged);
 	// Set correct flags according to current profile settings
@@ -147,8 +153,16 @@ FAnimationViewportClient::~FAnimationViewportClient()
 {
 	if (PreviewScenePtr.IsValid())
 	{
-		GetPreviewScene()->UnregisterOnPreviewMeshChanged(this);
-		GetPreviewScene()->UnregisterOnInvalidateViews(this);
+		TSharedPtr<IPersonaPreviewScene> ScenePtr = PreviewScenePtr.Pin();
+
+		UDebugSkelMeshComponent* MeshComponent = ScenePtr->GetPreviewMeshComponent();
+		if (MeshComponent)
+		{
+			MeshComponent->SelectionOverrideDelegate.Unbind();
+		}
+
+		ScenePtr->UnregisterOnPreviewMeshChanged(this);
+		ScenePtr->UnregisterOnInvalidateViews(this);
 	}
 
 	if (AssetEditorToolkitPtr.IsValid())
@@ -1551,6 +1565,11 @@ void FAnimationViewportClient::GetAllVertexIndicesUsedInSection(const FRawStatic
 		const int32 VertexIndexForWedge = IndexBuffer.Get(SkelMeshSection.BaseIndex + WedgeIndex);
 		OutIndices.Add(VertexIndexForWedge);
 	}
+}
+
+bool FAnimationViewportClient::PreviewComponentSelectionOverride(const UPrimitiveComponent* InComponent) const
+{
+	return InComponent == GetPreviewScene()->GetPreviewMeshComponent();
 }
 
 FBox FAnimationViewportClient::ComputeBoundingBoxForSelectedEditorSection() const

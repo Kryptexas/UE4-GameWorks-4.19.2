@@ -392,9 +392,9 @@ FVector UKismetMathLibrary::RandomUnitVector()
 	return FMath::VRand();
 }
 
-FVector UKismetMathLibrary::RandomUnitVectorInConeWithYawAndPitch(FVector ConeDir, float MaxYawInDegrees, float MaxPitchInDegrees)
+FVector UKismetMathLibrary::RandomUnitVectorInEllipticalConeInRadians(FVector ConeDir, float MaxYawInRadians, float MaxPitchInRadians)
 {
-	return FMath::VRandCone(ConeDir, DegreesToRadians(MaxYawInDegrees), DegreesToRadians(MaxPitchInDegrees));
+	return FMath::VRandCone(ConeDir, MaxYawInRadians, MaxPitchInRadians);
 }
 
 FRotator UKismetMathLibrary::RandomRotator(bool bRoll)
@@ -1037,6 +1037,16 @@ void UKismetMathLibrary::BreakRandomStream(const FRandomStream& InRandomStream, 
 FRandomStream UKismetMathLibrary::MakeRandomStream(int32 InitialSeed)
 {
 	return FRandomStream(InitialSeed);
+}
+
+FVector UKismetMathLibrary::RandomUnitVectorInConeInRadiansFromStream(const FVector& ConeDir, float ConeHalfAngleInRadians, const FRandomStream& Stream)
+{
+	return Stream.VRandCone(ConeDir, ConeHalfAngleInRadians);
+}
+
+FVector UKismetMathLibrary::RandomUnitVectorInEllipticalConeInRadiansFromStream(const FVector& ConeDir, float MaxYawInRadians, float MaxPitchInRadians, const FRandomStream& Stream)
+{
+	return Stream.VRandCone(ConeDir, MaxYawInRadians, MaxPitchInRadians);
 }
 
 #undef LOCTEXT_NAMESPACE

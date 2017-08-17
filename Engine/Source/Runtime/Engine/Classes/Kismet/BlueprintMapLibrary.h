@@ -46,7 +46,7 @@ public:
 	 * @param	Value			The value associated with the key, default constructed if key was not found
 	 * @return	True if an item was found (False indicates nothing in the map uses the provided key)
 	 */
-	UFUNCTION(BlueprintPure, CustomThunk, meta=(DisplayName = "Find", CompactNodeTitle = "FIND", MapParam = "TargetMap", MapKeyParam = "Key", MapValueParam = "Value", AutoCreateRefTerm = "Key, Value"), Category = "Utilities|Map")
+	UFUNCTION(BlueprintPure, CustomThunk, meta=(DisplayName = "Find", CompactNodeTitle = "FIND", MapParam = "TargetMap", MapKeyParam = "Key", MapValueParam = "Value", AutoCreateRefTerm = "Key, Value", BlueprintThreadSafe), Category = "Utilities|Map")
 	static bool Map_Find(const TMap<int32, int32>& TargetMap, const int32& Key, int32& Value);
 	
 	/** 
@@ -56,7 +56,7 @@ public:
 	 * @param	Key				The key that will be used to lookup
 	 * @return	True if an item was found (False indicates nothing in the map uses the provided key)
 	 */
-	UFUNCTION(BlueprintPure, CustomThunk, meta=(DisplayName = "Contains", CompactNodeTitle = "CONTAINS", MapParam = "TargetMap", MapKeyParam = "Key", AutoCreateRefTerm = "Key"), Category = "Utilities|Map")
+	UFUNCTION(BlueprintPure, CustomThunk, meta=(DisplayName = "Contains", CompactNodeTitle = "CONTAINS", MapParam = "TargetMap", MapKeyParam = "Key", AutoCreateRefTerm = "Key", BlueprintThreadSafe), Category = "Utilities|Map")
 	static bool Map_Contains(const TMap<int32, int32>& TargetMap, const int32& Key);
 	
 	/** 
@@ -83,7 +83,7 @@ public:
 	 * @param	TargetMap		The map in question
 	 * @return	The number of entries in the map
 	 */
-	UFUNCTION(BlueprintPure, CustomThunk, meta=(DisplayName = "Length", CompactNodeTitle = "LENGTH", MapParam = "TargetMap", Keywords = "num size count"), Category="Utilities|Map")
+	UFUNCTION(BlueprintPure, CustomThunk, meta=(DisplayName = "Length", CompactNodeTitle = "LENGTH", MapParam = "TargetMap", Keywords = "num size count", BlueprintThreadSafe), Category="Utilities|Map")
 	static int32 Map_Length(const TMap<int32, int32>& TargetMap);
 	
 	/** 

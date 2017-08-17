@@ -215,6 +215,9 @@ struct FSoftSkinVertex
 	/** If this vert is rigidly weighted to a bone, return true and the bone index. Otherwise return false. */
 	ENGINE_API bool GetRigidWeightBone(uint8& OutBoneIndex) const;
 
+	/** Returns the maximum weight of any bone that influences this vertex. */
+	ENGINE_API uint8 GetMaximumWeight() const;
+
 	/**
 	* Serializer
 	*

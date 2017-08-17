@@ -828,21 +828,46 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	static FVector RandomPointInBoundingBox(const FVector& Origin, const FVector& BoxExtent);
 
 	/** 
-	 * Returns a random vector with length of 1, within the specified cone, with uniform random distribution. 
-	 * @param ConeDir	The base "center" direction of the cone.
-	 * @param ConeHalfAngle		The half-angle of the cone (from ConeDir to edge), in radians.
+	 * Returns a random vector with length of 1, within the specified cone, with uniform random distribution.
+	 * @param ConeDir					The base "center" direction of the cone.
+	 * @param ConeHalfAngleInRadians	The half-angle of the cone (from ConeDir to edge), in radians.
 	 */
 	UFUNCTION(BlueprintPure, Category = "Math|Random", meta=(NotBlueprintThreadSafe))
-	static FVector RandomUnitVectorInCone(FVector ConeDir, float ConeHalfAngle);
+	static FVector RandomUnitVectorInConeInRadians(FVector ConeDir, float ConeHalfAngleInRadians);
+
+	/** 
+	 * Returns a random vector with length of 1, within the specified cone, with uniform random distribution.
+	 * @param ConeDir					The base "center" direction of the cone.
+	 * @param ConeHalfAngleInDegrees	The half-angle of the cone (from ConeDir to edge), in degrees.
+	 */
+	UFUNCTION(BlueprintPure, Category = "Math|Random", meta=(NotBlueprintThreadSafe))
+	static inline FVector RandomUnitVectorInConeInDegrees(FVector ConeDir, float ConeHalfAngleInDegrees)
+	{
+		return RandomUnitVectorInConeInRadians(ConeDir, FMath::DegreesToRadians(ConeHalfAngleInDegrees));
+	}
 
 	/**
-	* RandomUnitVectorWithYawAndPitch
+	* Returns a random vector with length of 1, within the specified cone, with uniform random distribution.
+	* The shape of the cone can be modified according to the yaw and pitch angles.
 	*
-	* @param MaxYaw - The Yaw-angle of the cone (from ConeDir to horizontal-edge), in degrees.
-	* @param MaxPitch - The Pitch-angle of the cone (from ConeDir to vertical-edge), in degrees.	
+	* @param MaxYawInRadians	The yaw angle of the cone (from ConeDir to horizontal edge), in radians.
+	* @param MaxPitchInRadians	The pitch angle of the cone (from ConeDir to vertical edge), in radians.	
 	*/
-	UFUNCTION(BlueprintPure, Category = "Math|Random", meta = (Keywords = "RandomVector", NotBlueprintThreadSafe))
-	static FVector RandomUnitVectorInConeWithYawAndPitch(FVector ConeDir, float MaxYawInDegrees, float MaxPitchInDegrees);
+	UFUNCTION(BlueprintPure, Category = "Math|Random", meta = (Keywords = "RandomVector Pitch Yaw", NotBlueprintThreadSafe))
+	static FVector RandomUnitVectorInEllipticalConeInRadians(FVector ConeDir, float MaxYawInRadians, float MaxPitchInRadians);
+
+	/**
+	* Returns a random vector with length of 1, within the specified cone, with uniform random distribution.
+	* The shape of the cone can be modified according to the yaw and pitch angles.
+	*
+	* @param MaxYawInDegrees	The yaw angle of the cone (from ConeDir to horizontal edge), in degrees.
+	* @param MaxPitchInDegrees	The pitch angle of the cone (from ConeDir to vertical edge), in degrees.	
+	*/
+	UFUNCTION(BlueprintPure, Category = "Math|Random", meta = (Keywords = "RandomVector Pitch Yaw", NotBlueprintThreadSafe))
+	static inline FVector RandomUnitVectorInEllipticalConeInDegrees(FVector ConeDir, float MaxYawInDegrees, float MaxPitchInDegrees)
+	{
+		return RandomUnitVectorInEllipticalConeInRadians(ConeDir, FMath::DegreesToRadians(MaxYawInDegrees), FMath::DegreesToRadians(MaxPitchInDegrees));
+	}
 
 	// Mirrors a vector by a normal
 	UFUNCTION(BlueprintPure, Category="Math|Vector")
@@ -2004,6 +2029,52 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	/** Set the seed of a random stream to a specific number */
 	UFUNCTION(BlueprintCallable, Category="Math|Random")
 	static void SetRandomStreamSeed(UPARAM(ref) FRandomStream& Stream, int32 NewSeed);
+
+	/** 
+	 * Returns a random vector with length of 1, within the specified cone, with uniform random distribution.
+	 * @param ConeDir					The base "center" direction of the cone.
+	 * @param ConeHalfAngleInRadians	The half-angle of the cone (from ConeDir to edge), in radians.
+	 * @param Stream					The random stream from which to obtain the vector.
+	 */
+	UFUNCTION(BlueprintPure, Category="Math|Random", meta = (Keywords = "RandomVector"))
+	static FVector RandomUnitVectorInConeInRadiansFromStream(const FVector& ConeDir, float ConeHalfAngleInRadians, const FRandomStream& Stream);
+
+	/** 
+	 * Returns a random vector with length of 1, within the specified cone, with uniform random distribution.
+	 * @param ConeDir					The base "center" direction of the cone.
+	 * @param ConeHalfAngleInDegrees	The half-angle of the cone (from ConeDir to edge), in degrees.
+	 * @param Stream					The random stream from which to obtain the vector.
+	 */
+	UFUNCTION(BlueprintPure, Category="Math|Random", meta = (Keywords = "RandomVector"))
+	static inline FVector RandomUnitVectorInConeInDegreesFromStream(const FVector& ConeDir, float ConeHalfAngleInDegrees, const FRandomStream& Stream)
+	{
+		return RandomUnitVectorInConeInRadiansFromStream(ConeDir, FMath::DegreesToRadians(ConeHalfAngleInDegrees), Stream);
+	}
+
+	/**
+	* Returns a random vector with length of 1, within the specified cone, with uniform random distribution.
+	* The shape of the cone can be modified according to the yaw and pitch angles.
+	*
+	* @param MaxYawInRadians	The yaw angle of the cone (from ConeDir to horizontal edge), in radians.
+	* @param MaxPitchInRadians	The pitch angle of the cone (from ConeDir to vertical edge), in radians.
+	* @param Stream				The random stream from which to obtain the vector.
+	*/
+	UFUNCTION(BlueprintPure, Category = "Math|Random", meta = (Keywords = "RandomVector"))
+	static FVector RandomUnitVectorInEllipticalConeInRadiansFromStream(const FVector& ConeDir, float MaxYawInRadians, float MaxPitchInRadians, const FRandomStream& Stream);
+
+	/**
+	* Returns a random vector with length of 1, within the specified cone, with uniform random distribution.
+	* The shape of the cone can be modified according to the yaw and pitch angles.
+	*
+	* @param MaxYawInDegrees	The yaw angle of the cone (from ConeDir to horizontal edge), in degrees.
+	* @param MaxPitchInDegrees	The pitch angle of the cone (from ConeDir to vertical edge), in degrees.
+	* @param Stream				The random stream from which to obtain the vector.
+	*/
+	UFUNCTION(BlueprintPure, Category = "Math|Random", meta = (Keywords = "RandomVector"))
+	static inline FVector RandomUnitVectorInEllipticalConeInDegreesFromStream(const FVector& ConeDir, float MaxYawInDegrees, float MaxPitchInDegrees, const FRandomStream& Stream)
+	{
+		return RandomUnitVectorInEllipticalConeInRadiansFromStream(ConeDir, FMath::DegreesToRadians(MaxYawInDegrees), FMath::DegreesToRadians(MaxPitchInDegrees), Stream);
+	}
 
 	//
 	// Geometry

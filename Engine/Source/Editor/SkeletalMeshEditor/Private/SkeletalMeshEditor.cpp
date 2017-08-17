@@ -468,17 +468,20 @@ bool FSkeletalMeshEditor::CanApplyClothing(int32 InLodIndex, int32 InSectionInde
 {
 	USkeletalMesh* Mesh = GetPersonaToolkit()->GetPreviewMesh();
 
-	FSkeletalMeshResource* MeshResource = Mesh->GetImportedResource();
-
-	if(MeshResource->LODModels.IsValidIndex(InLodIndex))
+	if(Mesh->MeshClothingAssets.Num() > 0)
 	{
-		FStaticLODModel& LodModel = MeshResource->LODModels[InLodIndex];
+		FSkeletalMeshResource* MeshResource = Mesh->GetImportedResource();
 
-		if(LodModel.Sections.IsValidIndex(InSectionIndex))
+		if(MeshResource->LODModels.IsValidIndex(InLodIndex))
 		{
-			FSkelMeshSection& Section = LodModel.Sections[InSectionIndex];
+			FStaticLODModel& LodModel = MeshResource->LODModels[InLodIndex];
 
-			return Section.CorrespondClothSectionIndex == INDEX_NONE;
+			if(LodModel.Sections.IsValidIndex(InSectionIndex))
+			{
+				FSkelMeshSection& Section = LodModel.Sections[InSectionIndex];
+
+				return Section.CorrespondClothSectionIndex == INDEX_NONE;
+			}
 		}
 	}
 
@@ -508,7 +511,23 @@ bool FSkeletalMeshEditor::CanRemoveClothing(int32 InLodIndex, int32 InSectionInd
 
 bool FSkeletalMeshEditor::CanCreateClothing(int32 InLodIndex, int32 InSectionIndex)
 {
-	return CanApplyClothing(InLodIndex, InSectionIndex);
+	USkeletalMesh* Mesh = GetPersonaToolkit()->GetPreviewMesh();
+
+	FSkeletalMeshResource* MeshResource = Mesh->GetImportedResource();
+
+	if(MeshResource->LODModels.IsValidIndex(InLodIndex))
+	{
+		FStaticLODModel& LodModel = MeshResource->LODModels[InLodIndex];
+
+		if(LodModel.Sections.IsValidIndex(InSectionIndex))
+		{
+			FSkelMeshSection& Section = LodModel.Sections[InSectionIndex];
+
+			return Section.CorrespondClothSectionIndex == INDEX_NONE;
+		}
+	}
+
+	return false;
 }
 
 bool FSkeletalMeshEditor::CanCreateClothingLod(int32 InLodIndex, int32 InSectionIndex)

@@ -235,7 +235,8 @@ namespace Audio
 		SourceInfo.VolumeSourceParam.Reset();
 		SourceInfo.LPFCutoffFrequencyParam.Reset();
 
-		SourceInfo.LowPassFilters.Reset();
+		SourceInfo.LowPassFilter.Reset();
+		SourceInfo.HighPassFilter.Reset();
 		SourceInfo.ChannelMapParam.Reset();
 		SourceInfo.BufferQueue.Empty();
 		SourceInfo.CurrentPCMBuffer = nullptr;
@@ -376,7 +377,11 @@ namespace Audio
 			SourceInfo.NumInputFrames = InitParams.NumInputFrames;
 
 			// Initialize the number of per-source LPF filters based on input channels
-			SourceInfo.LowPassFilters.AddDefaulted(InitParams.NumInputChannels);
+			SourceInfo.LowPassFilter.Init(MixerDevice->SampleRate, InitParams.NumInputChannels, 0, nullptr);
+			SourceInfo.LowPassFilter.SetFilterType(EFilter::Type::LowPass);
+
+			SourceInfo.HighPassFilter.Init(MixerDevice->SampleRate, InitParams.NumInputChannels, 0, nullptr);
+			SourceInfo.HighPassFilter.SetFilterType(EFilter::Type::HighPass);
 
 			// Create the spatialization plugin source effect
 			if (InitParams.bUseHRTFSpatialization)
@@ -642,8 +647,24 @@ namespace Audio
 			float SampleRate = MixerDevice->GetSampleRate();
 			AUDIO_MIXER_CHECK(SampleRate > 0.0f);
 
-			const float NormalizedFrequency = 2.0f * InLPFFrequency / SampleRate;
-			SourceInfos[SourceId].LPFCutoffFrequencyParam.SetValue(NormalizedFrequency, NumOutputFrames);
+			SourceInfos[SourceId].LPFCutoffFrequencyParam.SetValue(InLPFFrequency, NumOutputFrames);
+		});
+	}
+
+	void FMixerSourceManager::SetHPFFrequency(const int32 SourceId, const float InHPFFrequency)
+	{
+		AUDIO_MIXER_CHECK(SourceId < NumTotalSources);
+		AUDIO_MIXER_CHECK(GameThreadInfo.bIsBusy[SourceId]);
+		AUDIO_MIXER_CHECK_GAME_THREAD(MixerDevice);
+
+		AudioMixerThreadCommand([this, SourceId, InHPFFrequency]()
+		{
+			AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
+
+			float SampleRate = MixerDevice->GetSampleRate();
+			AUDIO_MIXER_CHECK(SampleRate > 0.0f);
+
+			SourceInfos[SourceId].HPFCutoffFrequencyParam.SetValue(InHPFFrequency, NumOutputFrames);
 		});
 	}
 
@@ -934,9 +955,11 @@ namespace Audio
 				for (int32 Frame = 0; Frame < NumOutputFrames; ++Frame)
 				{
 					FSourceParam& LPFFrequencyParam = SourceInfo.LPFCutoffFrequencyParam;
+					FSourceParam& HPFFrequencyParam = SourceInfo.HPFCutoffFrequencyParam;
 
 					// Update the frequency at the block rate
 					const float LPFFreq = LPFFrequencyParam.Update();
+					const float HPFFreq = HPFFrequencyParam.Update();
 
 					// Update the volume
 #if AUDIO_MIXER_ENABLE_DEBUG_MODE				
@@ -945,20 +968,29 @@ namespace Audio
 #else
 					CurrentVolumeValue = SourceInfo.VolumeSourceParam.Update();
 #endif
+					SourceInfo.LowPassFilter.SetFrequency(LPFFreq);
+					SourceInfo.LowPassFilter.Update();
 
+					SourceInfo.HighPassFilter.SetFrequency(HPFFreq);
+					SourceInfo.HighPassFilter.Update();
+
+					// feed audio frame through filters
+					int32 SampleIndex = NumInputChans * Frame;
+
+					SourceInfo.LowPassFilter.ProcessAudio(&BufferPtr[SampleIndex], &BufferPtr[SampleIndex]);
+					SourceInfo.HighPassFilter.ProcessAudio(&BufferPtr[SampleIndex], &BufferPtr[SampleIndex]);
+
+					// Scale by current volume value. TODO: do this as a SIMD operation in its own loop
 					for (int32 Channel = 0; Channel < NumInputChans; ++Channel)
 					{
-						SourceInfo.LowPassFilters[Channel].SetFrequency(LPFFreq);
-
-						// Process the source through the filter
-						const int32 SampleIndex = NumInputChans * Frame + Channel;
-						BufferPtr[SampleIndex] = CurrentVolumeValue * SourceInfo.LowPassFilters[Channel].ProcessAudio(BufferPtr[SampleIndex]);
+						BufferPtr[SampleIndex + Channel] *= CurrentVolumeValue;
 					}
 				}
 			}
 
 			// Reset the volume and LPF param interpolations
 			SourceInfo.LPFCutoffFrequencyParam.Reset();
+			SourceInfo.HPFCutoffFrequencyParam.Reset();
 			SourceInfo.VolumeSourceParam.Reset();
 
 			// Now process the effect chain if it exists

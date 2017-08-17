@@ -947,15 +947,20 @@ int32 FEditableSkeleton::DeleteAnimNotifies(const TArray<FName>& InNotifyNames)
 	for (int32 AssetIndex = 0; AssetIndex < CompatibleAnimSequences.Num(); ++AssetIndex)
 	{
 		const FAssetData& PossibleAnimSequence = CompatibleAnimSequences[AssetIndex];
-		UAnimSequenceBase* Sequence = Cast<UAnimSequenceBase>(PossibleAnimSequence.GetAsset());
-
-		if (Sequence->RemoveNotifies(InNotifyNames))
+		if(UObject* LoadedAsset = PossibleAnimSequence.GetAsset())
 		{
-			++NumAnimationsModified;
+			UAnimSequenceBase* Sequence = CastChecked<UAnimSequenceBase>(LoadedAsset);
+
+			if (Sequence->RemoveNotifies(InNotifyNames))
+			{
+				++NumAnimationsModified;
+			}
 		}
 	}
 
 	FBlueprintActionDatabase::Get().RefreshAssetActions(Skeleton);
+	
+	OnNotifiesChanged.Broadcast();
 
 	return NumAnimationsModified;
 }
@@ -976,29 +981,34 @@ int32 FEditableSkeleton::RenameNotify(const FName& NewName, const FName& OldName
 	for (int32 AssetIndex = 0; AssetIndex < CompatibleAnimSequences.Num(); ++AssetIndex)
 	{
 		const FAssetData& PossibleAnimSequence = CompatibleAnimSequences[AssetIndex];
-		UAnimSequenceBase* Sequence = Cast<UAnimSequenceBase>(PossibleAnimSequence.GetAsset());
-
-		bool SequenceModified = false;
-		for (int32 NotifyIndex = Sequence->Notifies.Num() - 1; NotifyIndex >= 0; --NotifyIndex)
+		if(UObject* Asset = PossibleAnimSequence.GetAsset())
 		{
-			FAnimNotifyEvent& AnimNotify = Sequence->Notifies[NotifyIndex];
-			if (OldName == AnimNotify.NotifyName)
+			UAnimSequenceBase* Sequence = Cast<UAnimSequenceBase>(Asset);
+
+			bool SequenceModified = false;
+			for (int32 NotifyIndex = Sequence->Notifies.Num() - 1; NotifyIndex >= 0; --NotifyIndex)
 			{
-				if (!SequenceModified)
+				FAnimNotifyEvent& AnimNotify = Sequence->Notifies[NotifyIndex];
+				if (OldName == AnimNotify.NotifyName)
 				{
-					Sequence->Modify();
-					++NumAnimationsModified;
-					SequenceModified = true;
+					if (!SequenceModified)
+					{
+						Sequence->Modify();
+						++NumAnimationsModified;
+						SequenceModified = true;
+					}
+					AnimNotify.NotifyName = NewName;
 				}
-				AnimNotify.NotifyName = NewName;
+			}
+
+			if (SequenceModified)
+			{
+				Sequence->MarkPackageDirty();
 			}
 		}
-
-		if (SequenceModified)
-		{
-			Sequence->MarkPackageDirty();
-		}
 	}
+
+	OnNotifiesChanged.Broadcast();
 
 	return NumAnimationsModified;
 }
@@ -1037,6 +1047,16 @@ void FEditableSkeleton::UnregisterOnSkeletonHierarchyChanged(void* Thing)
 	{
 		Skeleton->UnregisterOnSkeletonHierarchyChanged(Thing);
 	}
+}
+
+void FEditableSkeleton::RegisterOnNotifiesChanged(const FSimpleMulticastDelegate::FDelegate& InDelegate)
+{
+	OnNotifiesChanged.Add(InDelegate);
+}
+
+void FEditableSkeleton::UnregisterOnNotifiesChanged(void* Thing)
+{
+	OnNotifiesChanged.RemoveAll(Thing);
 }
 
 void FEditableSkeleton::SetPreviewMesh(class USkeletalMesh* InSkeletalMesh)

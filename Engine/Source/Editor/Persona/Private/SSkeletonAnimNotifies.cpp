@@ -119,6 +119,8 @@ void SSkeletonAnimNotifies::Construct(const FArguments& InArgs, const TSharedRef
 	InOnChangeAnimNotifies.Add(FSimpleDelegate::CreateSP( this, &SSkeletonAnimNotifies::PostUndo ) );
 	InOnPostUndo.Add(FSimpleDelegate::CreateSP( this, &SSkeletonAnimNotifies::RefreshNotifiesListWithFilter ) );
 
+	EditableSkeleton->RegisterOnNotifiesChanged(FSimpleDelegate::CreateSP(this, &SSkeletonAnimNotifies::OnNotifiesChanged));
+
 	this->ChildSlot
 	[
 		SNew( SVerticalBox )
@@ -153,6 +155,11 @@ void SSkeletonAnimNotifies::Construct(const FArguments& InArgs, const TSharedRef
 	];
 
 	CreateNotifiesList();
+}
+
+void SSkeletonAnimNotifies::OnNotifiesChanged()
+{
+	RefreshNotifiesListWithFilter();
 }
 
 void SSkeletonAnimNotifies::OnFilterTextChanged( const FText& SearchText )
@@ -349,14 +356,17 @@ void SSkeletonAnimNotifies::ShowNotifyInDetailsView(FName NotifyName)
 		for( int32 AssetIndex = 0; AssetIndex < CompatibleAnimSequences.Num(); ++AssetIndex )
 		{
 			const FAssetData& PossibleAnimSequence = CompatibleAnimSequences[AssetIndex];
-			UAnimSequenceBase* Sequence = Cast<UAnimSequenceBase>(PossibleAnimSequence.GetAsset());
-			for(int32 NotifyIndex = 0; NotifyIndex < Sequence->Notifies.Num(); ++NotifyIndex)
+			if(UObject* AnimSeqAsset = PossibleAnimSequence.GetAsset())
 			{
-				FAnimNotifyEvent& NotifyEvent = Sequence->Notifies[NotifyIndex];
-				if(NotifyEvent.NotifyName == NotifyName)
+				UAnimSequenceBase* Sequence = CastChecked<UAnimSequenceBase>(AnimSeqAsset);
+				for (int32 NotifyIndex = 0; NotifyIndex < Sequence->Notifies.Num(); ++NotifyIndex)
 				{
-					Obj->AnimationNames.Add(MakeShareable(new FString(PossibleAnimSequence.AssetName.ToString())));
-					break;
+					FAnimNotifyEvent& NotifyEvent = Sequence->Notifies[NotifyIndex];
+					if (NotifyEvent.NotifyName == NotifyName)
+					{
+						Obj->AnimationNames.Add(MakeShareable(new FString(PossibleAnimSequence.AssetName.ToString())));
+						break;
+					}
 				}
 			}
 		}

@@ -853,9 +853,9 @@ FVector UKismetMathLibrary::RandomPointInBoundingBox(const FVector& Origin, cons
 }
 
 KISMET_MATH_FORCEINLINE
-FVector UKismetMathLibrary::RandomUnitVectorInCone(FVector ConeDir, float ConeHalfAngle)
+FVector UKismetMathLibrary::RandomUnitVectorInConeInRadians(FVector ConeDir, float ConeHalfAngleInRadians)
 {
-	return FMath::VRandCone(ConeDir, ConeHalfAngle);
+	return FMath::VRandCone(ConeDir, ConeHalfAngleInRadians);
 }
 
 KISMET_MATH_FORCEINLINE

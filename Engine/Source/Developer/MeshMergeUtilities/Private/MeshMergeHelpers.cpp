@@ -199,12 +199,9 @@ void FMeshMergeHelpers::RetrieveMesh(const UStaticMeshComponent* StaticMeshCompo
 		return;
 	}
 
-	// If mirrored should recalculate normals
-	const bool bIsMirrored = ComponentToWorldTransform.GetDeterminant() < 0.f;
-
 	// Figure out if we should recompute normals and tangents. By default generated LODs should not recompute normals	
-	const bool bRecomputeNormals = RawMesh.WedgeTangentZ.Num() == 0 || bIsMirrored;
-	const bool bRecomputeTangents = RawMesh.WedgeTangentX.Num() == 0 || RawMesh.WedgeTangentY.Num() == 0 || bIsMirrored;
+	const bool bRecomputeNormals = RawMesh.WedgeTangentZ.Num() == 0;
+	const bool bRecomputeTangents = RawMesh.WedgeTangentX.Num() == 0 || RawMesh.WedgeTangentY.Num() == 0;
 
 	if (bRecomputeNormals || bRecomputeTangents)
 	{
@@ -685,43 +682,33 @@ void FMeshMergeHelpers::TransformRawMeshVertexData(const FTransform& InTransform
 
 	for (FVector& TangentX : OutRawMesh.WedgeTangentX)
 	{
-		TangentX = InTransform.TransformVectorNoScale(TangentX);
+		TangentX = InTransform.TransformVector(TangentX).GetSafeNormal();
 	}
 
 	for (FVector& TangentY : OutRawMesh.WedgeTangentY)
 	{
-		TangentY = InTransform.TransformVectorNoScale(TangentY);
+		TangentY = InTransform.TransformVector(TangentY).GetSafeNormal();
 	}
 
 	for (FVector& TangentZ : OutRawMesh.WedgeTangentZ)
 	{
-		TangentZ = InTransform.TransformVectorNoScale(TangentZ);
+		TangentZ = InTransform.TransformVector(TangentZ).GetSafeNormal();
 	}
 
 	const bool bIsMirrored = InTransform.GetDeterminant() < 0.f;
 	if (bIsMirrored)
 	{
-		// Flip faces
-		for (int32 FaceIdx = 0; FaceIdx < OutRawMesh.WedgeIndices.Num() / 3; FaceIdx++)
+		Algo::Reverse(OutRawMesh.WedgeIndices);
+		Algo::Reverse(OutRawMesh.WedgeTangentX);
+		Algo::Reverse(OutRawMesh.WedgeTangentY);
+		Algo::Reverse(OutRawMesh.WedgeTangentZ);
+		for (uint32 UVIndex = 0; UVIndex < MAX_MESH_TEXTURE_COORDS; ++UVIndex)
 		{
-			int32 I0 = FaceIdx * 3 + 0;
-			int32 I2 = FaceIdx * 3 + 2;
-			Swap(OutRawMesh.WedgeIndices[I0], OutRawMesh.WedgeIndices[I2]);
-
-			// seems like vertex colors and UVs are not indexed, so swap values instead
-			if (OutRawMesh.WedgeColors.Num())
-			{
-				Swap(OutRawMesh.WedgeColors[I0], OutRawMesh.WedgeColors[I2]);
-			}
-
-			for (int32 i = 0; i < MAX_MESH_TEXTURE_COORDS; ++i)
-			{
-				if (OutRawMesh.WedgeTexCoords[i].Num())
-				{
-					Swap(OutRawMesh.WedgeTexCoords[i][I0], OutRawMesh.WedgeTexCoords[i][I2]);
-				}
-			}
+			Algo::Reverse(OutRawMesh.WedgeTexCoords[UVIndex]);
 		}
+		Algo::Reverse(OutRawMesh.FaceMaterialIndices);
+		Algo::Reverse(OutRawMesh.FaceSmoothingMasks);
+		Algo::Reverse(OutRawMesh.WedgeColors);
 	}
 }
 

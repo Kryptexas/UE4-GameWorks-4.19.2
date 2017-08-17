@@ -180,7 +180,11 @@ public:
 	virtual FPerVertexPaintAction GetPaintAction(const FMeshPaintParameters& InPaintParams, UClothPainterSettings* InPainterSettings) override;
 	virtual FText GetDisplayName() const override;
 	virtual UObject* GetSettingsObject() override;
+	virtual void RegisterSettingsObjectCustomizations(IDetailsView* InDetailsView) override;
 	virtual bool IsPerVertex() const override;
+
+	/** Given a set of vertex indices, apply the smooth operation over the set */
+	void SmoothVertices(const TSet<int32> &InfluencedVertices, TSharedPtr<FClothPainter> SharedPainter);
 
 protected:
 

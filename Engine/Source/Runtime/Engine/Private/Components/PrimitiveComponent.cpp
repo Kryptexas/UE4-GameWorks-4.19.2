@@ -22,9 +22,6 @@
 #include "UnrealEngine.h"
 #include "PhysicsPublic.h"
 #include "PhysicsEngine/BodySetup.h"
-#if WITH_BOX2D
-#include "PhysicsEngine/BodySetup2D.h"
-#endif
 #include "Logging/TokenizedMessage.h"
 #include "Logging/MessageLog.h"
 #include "Misc/UObjectToken.h"

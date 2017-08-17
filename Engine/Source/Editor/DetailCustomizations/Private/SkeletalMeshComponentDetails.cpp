@@ -19,6 +19,8 @@
 #include "ClassViewerFilter.h"
 #include "Engine/Selection.h"
 #include "Animation/AnimBlueprintGeneratedClass.h"
+#include "SImage.h"
+#include "PhysicsEngine/PhysicsSettings.h"
 
 #define LOCTEXT_NAMESPACE "SkeletalMeshComponentDetails"
 
@@ -74,58 +76,15 @@ void FSkeletalMeshComponentDetails::CustomizeDetails(IDetailLayoutBuilder& Detai
 	DetailBuilder.HideProperty("bLightAsIfStatic", UPrimitiveComponent::StaticClass());
 	DetailBuilder.EditCategory("Animation", FText::GetEmpty(), ECategoryPriority::Important);
 
-	OnSkeletalMeshPropertyChanged = USkeletalMeshComponent::FOnSkeletalMeshPropertyChanged::CreateSP(this, &FSkeletalMeshComponentDetails::SkeletalMeshPropertyChanged);
+	PerformInitialRegistrationOfSkeletalMeshes(DetailBuilder);
 
 	UpdateAnimationCategory(DetailBuilder);
+	UpdatePhysicsCategory(DetailBuilder);
 }
 
 void FSkeletalMeshComponentDetails::UpdateAnimationCategory( IDetailLayoutBuilder& DetailBuilder )
 {
-	// Grab the objects we're editing so we can filter the skeleton when we need to change the animation.
-	// Cache them for updates later if the mesh/skeleton changes
-	DetailBuilder.GetObjectsBeingCustomized(SelectedObjects);
-
-	check(SelectedObjects.Num() > 0);
-	
-	// Check for incompatible (different) skeletons. This can happen when the user selects more than
-	// one object in the viewport. If this happens we disable and hide the anim selection picker
-	USkeleton* Skeleton = NULL;
-
-	for(auto ObjectIter = SelectedObjects.CreateIterator() ; ObjectIter ; ++ObjectIter)
-	{
-		if(USkeletalMeshComponent* Mesh = Cast<USkeletalMeshComponent>(ObjectIter->Get()))
-		{
-			RegisterSkeletalMeshPropertyChanged(Mesh);
-
-			if(Mesh->SkeletalMesh)
-			{
-				if(!Skeleton)
-				{
-					Skeleton = Mesh->SkeletalMesh->Skeleton;
-					bAnimPickerEnabled = true;
-				}
-				else if(Mesh->SkeletalMesh->Skeleton != Skeleton)
-				{
-					// There's an incompatible skeleton in the selection, stop checking
-					bAnimPickerEnabled = false;
-					break;
-				}
-			}
-		}
-	}
-
-	if(!Skeleton)
-	{
-		// No valid skeleton in selection, treat as invalid
-		SelectedSkeletonName = "";
-		bAnimPickerEnabled = false;
-	}
-
-	if(bAnimPickerEnabled)
-	{
-		// If we're showing the animation asset then we have a valid skeleton
-		SelectedSkeletonName = FString::Printf(TEXT("%s'%s'"), *Skeleton->GetClass()->GetName(), *Skeleton->GetPathName());
-	}
+	UpdateSkeletonNameAndPickerVisibility();
 
 	IDetailCategoryBuilder& AnimationCategory = DetailBuilder.EditCategory("Animation", FText::GetEmpty(), ECategoryPriority::Important);
 
@@ -238,6 +197,84 @@ void FSkeletalMeshComponentDetails::UpdateAnimationCategory( IDetailLayoutBuilde
 	}
 }
 
+void FSkeletalMeshComponentDetails::UpdatePhysicsCategory(IDetailLayoutBuilder& DetailBuilder)
+{
+	IDetailCategoryBuilder& PhysicsCategory = DetailBuilder.EditCategory("Physics", FText::GetEmpty(), ECategoryPriority::TypeSpecific);
+
+	const FName AsyncSceneFName(GET_MEMBER_NAME_CHECKED(USkeletalMeshComponent, UseAsyncScene));
+	AsyncSceneHandle = DetailBuilder.GetProperty(AsyncSceneFName);
+	check(AsyncSceneHandle->IsValidHandle());
+
+	TAttribute<EVisibility> AsyncSceneWarningVisibilityAttribute(this, &FSkeletalMeshComponentDetails::VisibilityForAsyncSceneWarning);
+	TAttribute<bool> AsyncSceneDropdownEnabledState(this, &FSkeletalMeshComponentDetails::ShouldAllowAsyncSceneSettingToBeChanged);
+
+	DetailBuilder.HideProperty(AsyncSceneHandle);
+	PhysicsCategory.AddCustomRow(AsyncSceneHandle->GetPropertyDisplayName(), true)
+	.Visibility(EVisibility::Visible)
+	.NameContent()
+	[
+		AsyncSceneHandle->CreatePropertyNameWidget()
+	]
+	.ValueContent()
+	.HAlign(HAlign_Fill)
+	[
+		SNew(SVerticalBox)
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
+			.IsEnabled(AsyncSceneDropdownEnabledState)
+			+ SHorizontalBox::Slot()
+			.HAlign(HAlign_Left)
+			[
+				AsyncSceneHandle->CreatePropertyValueWidget()
+			]
+		]
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding(FMargin(0,4))
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.HAlign(HAlign_Left)
+			[
+				SNew(SBorder)
+				.BorderBackgroundColor(FLinearColor::Yellow)
+				.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+				.Padding(2)
+				.HAlign(HAlign_Fill)
+				.Visibility(AsyncSceneWarningVisibilityAttribute)
+				.Clipping(EWidgetClipping::ClipToBounds)
+				[
+					SNew(SHorizontalBox)
+
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.VAlign(VAlign_Center)
+					.Padding(0)
+					[
+						SNew(SImage)
+						.Image(FEditorStyle::GetBrush("Icons.Warning"))
+					]
+
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(FMargin(2,0))
+					[
+						SNew(STextBlock)
+						.Font(IDetailLayoutBuilder::GetDetailFont())
+						.Text(LOCTEXT("WarningForProjectAsyncSceneNotEnabled", "The project setting \"Enable Async Scene\" must be set."))
+						.AutoWrapText(true)
+						.ToolTipText(LOCTEXT("WarningForProjectAsyncSceneNotEnabledTooltip",
+							"The project setting \"Enable Async Scene\" must be set in order to use an async scene. "
+							"Otherwise, this property will be ignored."))
+					]
+				]
+			]
+		]
+	];
+}
+
 EVisibility FSkeletalMeshComponentDetails::VisibilityForAnimationMode(EAnimationMode::Type AnimationMode) const
 {
 	uint8 AnimationModeValue=0;
@@ -258,32 +295,15 @@ bool FSkeletalMeshComponentDetails::OnShouldFilterAnimAsset( const FAssetData& A
 
 void FSkeletalMeshComponentDetails::SkeletalMeshPropertyChanged()
 {
-	// Update the selected skeleton name and the picker visibility
-	USkeleton* Skeleton = NULL;
-	for(auto ObjectIter = SelectedObjects.CreateIterator() ; ObjectIter ; ++ObjectIter)
-	{
-		if(USkeletalMeshComponent* Mesh = Cast<USkeletalMeshComponent>(ObjectIter->Get()))
-		{
-			if(!Mesh->SkeletalMesh)
-			{
-				// One of the selected meshes has no skeletal mesh, stop checking
-				Skeleton = NULL;
-				break;
-			}
-			else if(!Skeleton)
-			{
-				Skeleton = Mesh->SkeletalMesh->Skeleton;
-			}
-			else if(Mesh->SkeletalMesh->Skeleton != Skeleton)
-			{
-				// There's an incompatible skeleton in the selection, stop checking
-				Skeleton = NULL;
-				break;
-			}
-		}
-	}
+	UpdateSkeletonNameAndPickerVisibility();
+}
 
-	if(Skeleton)
+void FSkeletalMeshComponentDetails::UpdateSkeletonNameAndPickerVisibility()
+{
+	// Update the selected skeleton name and the picker visibility
+	USkeleton* Skeleton = GetValidSkeletonFromRegisteredMeshes();
+
+	if (Skeleton)
 	{
 		bAnimPickerEnabled = true;
 		SelectedSkeletonName = FString::Printf(TEXT("%s'%s'"), *Skeleton->GetClass()->GetName(), *Skeleton->GetPathName());
@@ -411,4 +431,63 @@ void FSkeletalMeshComponentDetails::UseSelectedAnimBlueprint()
 		}
 	}
 }
+
+EVisibility FSkeletalMeshComponentDetails::VisibilityForAsyncSceneWarning() const
+{
+	return UPhysicsSettings::Get()->bEnableAsyncScene ? EVisibility::Collapsed : EVisibility::Visible;
+}
+
+bool FSkeletalMeshComponentDetails::ShouldAllowAsyncSceneSettingToBeChanged() const
+{
+	return UPhysicsSettings::Get()->bEnableAsyncScene;
+}
+
+void FSkeletalMeshComponentDetails::PerformInitialRegistrationOfSkeletalMeshes(IDetailLayoutBuilder& DetailBuilder)
+{
+	OnSkeletalMeshPropertyChanged = USkeletalMeshComponent::FOnSkeletalMeshPropertyChanged::CreateSP(this, &FSkeletalMeshComponentDetails::SkeletalMeshPropertyChanged);
+
+	DetailBuilder.GetObjectsBeingCustomized(SelectedObjects);
+
+	check(SelectedObjects.Num() > 0);
+
+	for (auto ObjectIter = SelectedObjects.CreateIterator(); ObjectIter; ++ObjectIter)
+	{
+		if (USkeletalMeshComponent* Mesh = Cast<USkeletalMeshComponent>(ObjectIter->Get()))
+		{
+			RegisterSkeletalMeshPropertyChanged(Mesh);
+		}
+	}
+}
+
+USkeleton* FSkeletalMeshComponentDetails::GetValidSkeletonFromRegisteredMeshes() const
+{
+	USkeleton* Skeleton = NULL;
+
+	for (auto ObjectIter = SelectedObjects.CreateConstIterator(); ObjectIter; ++ObjectIter)
+	{
+		USkeletalMeshComponent* const Mesh = Cast<USkeletalMeshComponent>(ObjectIter->Get());
+		if ( !Mesh || !Mesh->SkeletalMesh )
+		{
+			continue;
+		}
+
+		// If we've not come across a valid skeleton yet, store this one.
+		if (!Skeleton)
+		{
+			Skeleton = Mesh->SkeletalMesh->Skeleton;
+			continue;
+		}
+
+		// We've encountered a valid skeleton before.
+		// If this skeleton is not the same one, that means there are multiple
+		// skeletons selected, so we don't want to take any action.
+		if (Mesh->SkeletalMesh->Skeleton != Skeleton)
+		{
+			return NULL;
+		}
+	}
+
+	return Skeleton;
+}
+
 #undef LOCTEXT_NAMESPACE

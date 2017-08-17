@@ -44,6 +44,9 @@ namespace Audio
 		// Sets the source voice's LPF filter frequency.
 		void SetLPFFrequency(const float InFrequency);
 
+		// Sets the source voice's HPF filter frequency.
+		void SetHPFFrequency(const float InFrequency);
+
 		// Sets the source voice's channel map (2d or 3d).
 		void SetChannelMap(TArray<float>& InChannelMap, const bool bInIs3D, const bool bInIsCenterChannelOnly);
 
@@ -102,6 +105,7 @@ namespace Audio
 		float Volume;
 		float Distance;
 		float LPFFrequency;
+		float HPFFrequency;
 		int32 SourceId;
 		uint16 bIsPlaying : 1;
 		uint16 bIsPaused : 1;

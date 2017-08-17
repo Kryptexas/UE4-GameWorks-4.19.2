@@ -658,7 +658,8 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 		WaveInstance->bIsOccluded = ParseParams.bIsOccluded;
 		WaveInstance->LowPassFilterFrequency = ParseParams.LowPassFilterFrequency;
 		WaveInstance->OcclusionFilterFrequency = ParseParams.OcclusionFilterFrequency;
-		WaveInstance->AttenuationFilterFrequency = ParseParams.AttenuationFilterFrequency;
+		WaveInstance->AttenuationLowpassFilterFrequency = ParseParams.AttenuationLowpassFilterFrequency;
+		WaveInstance->AttenuationHighpassFilterFrequency = ParseParams.AttenuationHighpassFilterFrequency;
 		WaveInstance->AmbientZoneFilterFrequency = ParseParams.AmbientZoneFilterFrequency;
 		WaveInstance->bApplyRadioFilter = ActiveSound.bApplyRadioFilter;
 		WaveInstance->StartTime = ParseParams.StartTime;
@@ -738,37 +739,36 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 		WaveInstance->bIsStarted = true;
 		WaveInstance->bAlreadyNotifiedHook = false;
 		WaveInstance->bUseSpatialization = ParseParams.bUseSpatialization;
-		WaveInstance->SpatializationAlgorithm = ParseParams.SpatializationAlgorithm;
+		WaveInstance->SpatializationMethod = ParseParams.SpatializationMethod;
 		WaveInstance->WaveData = this;
 		WaveInstance->NotifyBufferFinishedHooks = ParseParams.NotifyBufferFinishedHooks;
 		WaveInstance->LoopingMode = ((bLooping || ParseParams.bLooping) ? LOOP_Forever : LOOP_Never);
 		WaveInstance->bIsPaused = ParseParams.bIsPaused;
 
-		// If we're using spatialization, then use the dry-wet mapping function defined in attenuation settings
-		if (WaveInstance->bUseSpatialization)
+		// If we're normalizing 3d stereo spatialized sounds, we need to scale by -6 dB
+		if (WaveInstance->bUseSpatialization && ParseParams.bApplyNormalizationToStereoSounds && NumChannels == 2)
 		{
-			WaveInstance->ReverbWetLevelMin = ParseParams.ReverbWetLevelMin;
-			WaveInstance->ReverbWetLevelMax = ParseParams.ReverbWetLevelMax;
-			WaveInstance->ReverbDistanceMin = ParseParams.ReverbDistanceMin;
-			WaveInstance->ReverbDistanceMax = ParseParams.ReverbDistanceMax;
+			WaveInstance->Volume *= 0.5f;
 		}
-		else
-		{
-			// Otherwise, we're just going to use the DefaultMasterReverbSendAmount defined the sound base
-			WaveInstance->ReverbWetLevelMin = ParseParams.DefaultMasterReverbSendAmount;
-		}
+
+		// Copy reverb send settings
+		WaveInstance->ReverbSendMethod = ParseParams.ReverbSendMethod;
+		WaveInstance->ManualReverbSendLevel = ParseParams.ManualReverbSendLevel;
+		WaveInstance->CustomRevebSendCurve = ParseParams.CustomReverbSendCurve;
+		WaveInstance->ReverbSendLevelRange = ParseParams.ReverbSendLevelRange;
+		WaveInstance->ReverbSendLevelDistanceRange = ParseParams.ReverbSendLevelDistanceRange;
 
 		// Copy over the submix sends.
 		WaveInstance->SoundSubmix = ParseParams.SoundSubmix;
 		WaveInstance->SoundSubmixSends = ParseParams.SoundSubmixSends;
 
-		if (AudioDevice->IsHRTFEnabledForAll() && ParseParams.SpatializationAlgorithm == SPATIALIZATION_Default)
+		if (AudioDevice->IsHRTFEnabledForAll() && ParseParams.SpatializationMethod == ESoundSpatializationAlgorithm::SPATIALIZATION_Default)
 		{
-			WaveInstance->SpatializationAlgorithm = SPATIALIZATION_HRTF;
+			WaveInstance->SpatializationMethod = ESoundSpatializationAlgorithm::SPATIALIZATION_HRTF;
 		}
 		else
 		{
-			WaveInstance->SpatializationAlgorithm = ParseParams.SpatializationAlgorithm;
+			WaveInstance->SpatializationMethod = ParseParams.SpatializationMethod;
 		}
 
 		// Pass along plugin settings to the wave instance

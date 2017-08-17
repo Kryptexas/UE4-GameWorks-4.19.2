@@ -258,21 +258,6 @@ namespace SteamAudio
 		}
 	}
 
-	bool FSteamAudioModule::ImplementsSpatialization() const
-	{
-		return true;
-	}
-
-	bool FSteamAudioModule::ImplementsOcclusion() const
-	{
-		return true;
-	}
-
-	bool FSteamAudioModule::ImplementsReverb() const
-	{
-		return true;
-	}
-
 	TAudioSpatializationPtr FSteamAudioModule::CreateSpatializationInterface(class FAudioDevice* AudioDevice)
 	{
 		return SpatializationInstance = TAudioSpatializationPtr(new FPhononSpatialization());

@@ -193,6 +193,7 @@ private:
 	struct FShapeSOA
 	{
 		TArray<PxTransform> LocalTMs;
+		TArray<FMaterial> Materials;
 		TArray<const PxGeometry*> Geometries;
 		TArray<float> Bounds;
 		TArray<PxVec3> BoundsOffsets;

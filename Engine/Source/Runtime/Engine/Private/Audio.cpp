@@ -79,6 +79,28 @@ bool IsAudioPluginEnabled(EAudioPlugin::Type PluginType)
 	return false;
 }
 
+bool DoesAudioPluginHaveCustomSettings(EAudioPlugin::Type PluginType)
+{
+	TArray<IAudioPlugin *> AudioPlugin = IModularFeatures::Get().GetModularFeatureImplementations<IAudioPlugin>(IAudioPlugin::GetModularFeatureName());
+	if (AudioPlugin.Num() > 0)
+	{
+		if (PluginType == EAudioPlugin::SPATIALIZATION)
+		{
+			return AudioPlugin[0]->HasCustomSpatializationSetting();
+		}
+		else if (PluginType == EAudioPlugin::REVERB)
+		{
+			return AudioPlugin[0]->HasCustomReverbSetting();
+		}
+		else if (PluginType == EAudioPlugin::OCCLUSION)
+		{
+			return AudioPlugin[0]->HasCustomOcclusionSetting();
+		}
+	}
+
+	return false;
+}
+
 
 /*-----------------------------------------------------------------------------
 	FSoundBuffer implementation.
@@ -309,10 +331,13 @@ void FSoundSource::SetFilterFrequency()
 			LPFFrequency = WaveInstance->AmbientZoneFilterFrequency;
 		}
 
-		if (WaveInstance->AttenuationFilterFrequency < LPFFrequency)
+		if (WaveInstance->AttenuationLowpassFilterFrequency < LPFFrequency)
 		{
-			LPFFrequency = WaveInstance->AttenuationFilterFrequency;
+			LPFFrequency = WaveInstance->AttenuationLowpassFilterFrequency;
 		}
+
+		// This is only used in audio mixer, and only one thing is setting HPF
+		HPFFrequency = WaveInstance->AttenuationHighpassFilterFrequency;
 	}
 }
 
@@ -694,13 +719,14 @@ FWaveInstance::FWaveInstance( FActiveSound* InActiveSound )
 	, bReverb(true)
 	, bCenterChannelOnly(false)
 	, bReportedSpatializationWarning(false)
-	, SpatializationAlgorithm(SPATIALIZATION_Default)
+	, SpatializationMethod(ESoundSpatializationAlgorithm::SPATIALIZATION_Default)
 	, OcclusionPluginSettings(nullptr)
 	, OutputTarget(EAudioOutputTarget::Speaker)
 	, LowPassFilterFrequency(MAX_FILTER_FREQUENCY)
 	, OcclusionFilterFrequency(MAX_FILTER_FREQUENCY)
 	, AmbientZoneFilterFrequency(MAX_FILTER_FREQUENCY)
-	, AttenuationFilterFrequency(MAX_FILTER_FREQUENCY)
+	, AttenuationLowpassFilterFrequency(MAX_FILTER_FREQUENCY)
+	, AttenuationHighpassFilterFrequency(MIN_FILTER_FREQUENCY)
 	, Pitch(0.0f)
 	, Location(FVector::ZeroVector)
 	, OmniRadius(0.0f)
@@ -708,10 +734,8 @@ FWaveInstance::FWaveInstance( FActiveSound* InActiveSound )
 	, AttenuationDistance(0.0f)
 	, ListenerToSoundDistance(0.0f)
 	, AbsoluteAzimuth(0.0f)
-	, ReverbWetLevelMin(0.0f)
-	, ReverbWetLevelMax(0.0f)
-	, ReverbDistanceMin(0.0f)
-	, ReverbDistanceMax(0.0f)
+	, ReverbSendLevelRange(0.0f, 0.0f)
+	, ReverbSendLevelDistanceRange(0.0f, 0.0f)
 	, UserIndex(0)
 {
 	TypeHash = ++TypeHashCounter;

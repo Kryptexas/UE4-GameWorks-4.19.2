@@ -58,6 +58,7 @@ void FSoundWaveDetails::CustomizeCurveDetails(IDetailLayoutBuilder& DetailBuilde
 				]
 				+SHorizontalBox::Slot()
 				.AutoWidth()
+				.VAlign(VAlign_Center)
 				[
 					SNew(SButton)
 					.Visibility(this, &FSoundWaveDetails::GetMakeInternalCurvesVisibility, SoundWave, CurvePropertyHandle)
@@ -71,6 +72,7 @@ void FSoundWaveDetails::CustomizeCurveDetails(IDetailLayoutBuilder& DetailBuilde
 				]
 				+SHorizontalBox::Slot()
 				.AutoWidth()
+				.VAlign(VAlign_Center)
 				[
 					SNew(SButton)
 					.Visibility(this, &FSoundWaveDetails::GetUseInternalCurvesVisibility, SoundWave, CurvePropertyHandle)

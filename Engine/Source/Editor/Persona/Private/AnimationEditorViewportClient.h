@@ -439,6 +439,9 @@ private:
 										  const FSkelMeshSection& SkelMeshSection,
 										  TArray<int32>& OutIndices) const;
 
+	/** Override for preview component selection to inform the editor we consider it selected */
+	bool PreviewComponentSelectionOverride(const UPrimitiveComponent* InComponent) const;
+
 private:
 	/** Allow mesh stats to be disabled for specific viewport instances */
 	bool bShowMeshStats;
