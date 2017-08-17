@@ -2645,9 +2645,13 @@ void FLandscapeEditDataInterface::SetAlphaData(ULandscapeLayerInfoObject* const 
 			for (int32 LayerIdx = 0; LayerIdx < Component->WeightmapLayerAllocations.Num(); LayerIdx++)
 			{
 				FWeightmapLayerAllocationInfo& Allocation = Component->WeightmapLayerAllocations[LayerIdx];
-				LayerDataPtrs[LayerIdx] = (uint8*)TexDataInfos[Allocation.WeightmapTextureIndex]->GetMipData(0) + ChannelOffsets[Allocation.WeightmapTextureChannel];
-				LayerNoWeightBlends[LayerIdx] = Allocation.LayerInfo->bNoWeightBlend;
-				LayerEditDataAllZero[LayerIdx] = true;
+
+				if (Allocation.LayerInfo != nullptr) // only take into account valid layer
+				{
+					LayerDataPtrs[LayerIdx] = (uint8*)TexDataInfos[Allocation.WeightmapTextureIndex]->GetMipData(0) + ChannelOffsets[Allocation.WeightmapTextureChannel];
+					LayerNoWeightBlends[LayerIdx] = Allocation.LayerInfo->bNoWeightBlend;
+					LayerEditDataAllZero[LayerIdx] = true;
+				}
 			}
 
 			// Find the texture data corresponding to this vertex
