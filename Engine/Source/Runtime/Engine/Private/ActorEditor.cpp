@@ -406,6 +406,10 @@ void AActor::PostEditUndo()
 	if (!IsPendingKill())
 	{
 		ResetOwnedComponents();
+
+		// BP created components are not serialized, so this should be cleared and will be filled in as the construction scripts are run
+		BlueprintCreatedComponents.Reset();
+
 		// notify navigation system
 		UNavigationSystem::UpdateActorAndComponentsInNavOctree(*this);
 	}
@@ -438,7 +442,10 @@ void AActor::PostEditUndo(TSharedPtr<ITransactionObjectAnnotation> TransactionAn
 	// Notify LevelBounds actor that level bounding box might be changed
 	if (!IsTemplate())
 	{
-		GetLevel()->MarkLevelBoundsDirty();
+		if (ULevel* Level = GetLevel())
+		{
+			Level->MarkLevelBoundsDirty();
+		}
 	}
 
 	// Restore OwnedComponents array
