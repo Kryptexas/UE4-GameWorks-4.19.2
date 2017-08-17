@@ -2732,8 +2732,12 @@ void AInstancedFoliageActor::PostLoad()
 	{
 		for (auto& MeshPair : FoliageMeshes)
 		{
-			MeshPair.Value->Component->ConditionalPostLoad();
-			MeshPair.Value->Component->DestroyComponent();
+			if (MeshPair.Value->Component != nullptr)
+			{
+				MeshPair.Value->Component->ConditionalPostLoad();
+				MeshPair.Value->Component->DestroyComponent();
+			}
+
 			MeshPair.Value = FFoliageMeshInfo();
 		}
 	}
