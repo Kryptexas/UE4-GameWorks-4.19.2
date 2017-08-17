@@ -1996,4 +1996,5 @@ bool FBlueprintCompilationManager::IsGeneratedClassLayoutReady()
 	return BPCMImpl->IsGeneratedClassLayoutReady();
 }
 
+#undef LOCTEXT_NAMESPACE
 
