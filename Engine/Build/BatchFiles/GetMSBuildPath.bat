@@ -8,6 +8,11 @@ rem ## The discovered path is set to the MSBUILD_EXE environment variable on suc
 
 set MSBUILD_EXE=
 
+rem ## Check for MSBuild 15. This is installed alongside Visual Studio 2017, so we get the path relative to that.
+
+call :ReadInstallPath Microsoft\VisualStudio\SxS\VS7 15.0 MSBuild\15.0\bin\MSBuild.exe
+if not errorlevel 1 goto Succeeded
+
 rem ## Try to get the MSBuild 14.0 path directly (see https://msdn.microsoft.com/en-us/library/hh162058(v=vs.120).aspx)
 
 if exist "%ProgramFiles(x86)%\MSBuild\14.0\bin\MSBuild.exe" (
@@ -18,11 +23,6 @@ if exist "%ProgramFiles(x86)%\MSBuild\14.0\bin\MSBuild.exe" (
 rem ## Try to get the MSBuild 14.0 path from the registry
 
 call :ReadInstallPath Microsoft\MSBuild\ToolsVersions\14.0 MSBuildToolsPath MSBuild.exe
-if not errorlevel 1 goto Succeeded
-
-rem ## Check for MSBuild 15. This is installed alongside Visual Studio "15", so we get the path relative to that.
-
-call :ReadInstallPath Microsoft\VisualStudio\SxS\VS7 15.0 MSBuild\15.0\bin\MSBuild.exe
 if not errorlevel 1 goto Succeeded
 
 rem ## Check for older versions of MSBuild. These are registered as separate versions in the registry.
