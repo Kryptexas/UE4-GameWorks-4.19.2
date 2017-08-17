@@ -79,29 +79,9 @@ void* FWindowsPlatformProcess::GetDllHandle( const TCHAR* FileName )
 
 	// Load the DLL, avoiding windows dialog boxes if missing
 	int32 PrevErrorMode = ::SetErrorMode(SuppressErrors ? SEM_NOOPENFILEERRORBOX : 0);
-
 	void* Handle = LoadLibraryWithSearchPaths(FileName, SearchPaths);
-
-	if (!Handle)
-	{
-		DWORD LastError = ::GetLastError();
-
-		UE_LOG(LogWindows, Log, TEXT("LoadLibraryWithSearchPaths failed for file %s. GetLastError=%d"), FileName, LastError);
-
-		// if errors == 126 (module not found) then write out more info
-		if (LastError == ERROR_MOD_NOT_FOUND)
-		{
-			BOOL Missing = IFileManager::Get().FileExists(FileName);
-			UE_LOG(LogWindows, Log, TEXT("FileExists returned %d for Module %s"), Missing, FileName);
-
-			for (const auto& Path : SearchPaths)
-			{
-				UE_LOG(LogWindows, Log, TEXT("\t%s"), *Path);
-			}
-		}
-	}
-	
 	::SetErrorMode(PrevErrorMode);
+
 	return Handle;
 }
 
@@ -1418,6 +1398,30 @@ bool FWindowsPlatformProcess::Daemonize()
 	return true;
 }
 
+static void LogImportDiagnostics(bool (*ReadLibraryImports)(const TCHAR*, TArray<FString>&), const FString& FileName, const TArray<FString>& SearchPaths)
+{
+	TArray<FString> ImportNames;
+	if(ReadLibraryImports(*FileName, ImportNames))
+	{
+		bool bIncludeSearchPaths = false;
+		for(const FString& ImportName : ImportNames)
+		{
+			if(GetModuleHandle(*ImportName) == nullptr)
+			{
+				UE_LOG(LogWindows, Log, TEXT("  Missing import: %s"), *ImportName);
+				bIncludeSearchPaths = true;
+			}
+		}
+		if(bIncludeSearchPaths)
+		{
+			for (const FString& SearchPath : SearchPaths)
+			{
+				UE_LOG(LogWindows, Log, TEXT("  Looked in: %s"), *SearchPath);
+			}
+		}
+	}
+}
+
 void *FWindowsPlatformProcess::LoadLibraryWithSearchPaths(const FString& FileName, const TArray<FString>& SearchPaths)
 {
 	// Make sure the initial module exists. If we can't find it from the path we're given, it's probably a system dll.
@@ -1440,11 +1444,38 @@ void *FWindowsPlatformProcess::LoadLibraryWithSearchPaths(const FString& FileNam
 		{
 			if (GetModuleHandle(*ImportFileNames[Idx]) == nullptr)
 			{
-				LoadLibrary(*ImportFileNames[Idx]);
+				if(LoadLibrary(*ImportFileNames[Idx]))
+				{
+					UE_LOG(LogWindows, Verbose, TEXT("Preloaded '%s'"), *ImportFileNames[Idx]);
+				}
+				else
+				{
+					UE_LOG(LogWindows, Log, TEXT("Failed to preload '%s' (GetLastError=%d)"), *ImportFileNames[Idx], GetLastError());
+					LogImportDiagnostics(&ReadLibraryImports, ImportFileNames[Idx], SearchPaths);
+				}
 			}
 		}
 	}
-	return LoadLibrary(*FullFileName);
+
+	// Try to load the actual library
+	void* Handle = LoadLibrary(*FullFileName);
+	if(Handle)
+	{
+		UE_LOG(LogWindows, Verbose, TEXT("Loaded %s"), *FullFileName);
+	}
+	else
+	{
+		UE_LOG(LogWindows, Log, TEXT("Failed to load '%s' (GetLastError=%d)"), *FileName, ::GetLastError());
+		if(IFileManager::Get().FileExists(*FileName))
+		{
+			LogImportDiagnostics(&ReadLibraryImports, FileName, SearchPaths);
+		}
+		else
+		{
+			UE_LOG(LogWindows, Log, TEXT("File '%s' does not exist"), *FileName);
+		}
+	}
+	return Handle;
 }
 
 void FWindowsPlatformProcess::ResolveImportsRecursive(const FString& FileName, const TArray<FString>& SearchPaths, TArray<FString>& ImportFileNames, TArray<FString>& VisitedImportNames)
