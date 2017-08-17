@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 
-#if WITH_CEF3
+#if WITH_CEF3 && !PLATFORM_LINUX
 
 #include "Geometry.h"
 #include "SWindow.h"

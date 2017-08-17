@@ -175,7 +175,11 @@ bool FCEFBrowserHandler::OnBeforePopup( CefRefPtr<CefBrowser> Browser,
 		OutClient = NewHandler;
 
 		// Always use off screen rendering so we can integrate with our windows
+#if PLATFORM_LINUX
+		OutWindowInfo.SetAsWindowless(kNullWindowHandle, shouldUseTransparency);
+#else
 		OutWindowInfo.SetAsWindowless(kNullWindowHandle);
+#endif
 
 		// We need to rely on CEF to create our window so we set the WindowInfo, BrowserSettings, Client, and then return false
 		return false;
@@ -212,9 +216,16 @@ void FCEFBrowserHandler::OnLoadError(CefRefPtr<CefBrowser> Browser,
 	}
 }
 
+#if PLATFORM_LINUX
+void FCEFBrowserHandler::OnLoadStart(CefRefPtr<CefBrowser> Browser, CefRefPtr<CefFrame> Frame)
+{
+}
+#else
 void FCEFBrowserHandler::OnLoadStart(CefRefPtr<CefBrowser> Browser, CefRefPtr<CefFrame> Frame, TransitionType CefTransitionType)
 {
 }
+#endif
+
 
 void FCEFBrowserHandler::OnLoadingStateChange(CefRefPtr<CefBrowser> Browser, bool bIsLoading, bool bCanGoBack, bool bCanGoForward)
 {
@@ -313,6 +324,7 @@ bool FCEFBrowserHandler::GetScreenInfo(CefRefPtr<CefBrowser> Browser, CefScreenI
 }
 
 
+#if !PLATFORM_LINUX
 void FCEFBrowserHandler::OnImeCompositionRangeChanged(
 	CefRefPtr<CefBrowser> Browser,
 	const CefRange& SelectionRange,
@@ -324,6 +336,7 @@ void FCEFBrowserHandler::OnImeCompositionRangeChanged(
 		BrowserWindow->OnImeCompositionRangeChanged(Browser, SelectionRange, CharacterBounds);
 	}
 }
+#endif
 
 CefRequestHandler::ReturnValue FCEFBrowserHandler::OnBeforeResourceLoad(CefRefPtr<CefBrowser> Browser, CefRefPtr<CefFrame> Frame, CefRefPtr<CefRequest> Request, CefRefPtr<CefRequestCallback> Callback)
 {
@@ -562,7 +575,11 @@ bool FCEFBrowserHandler::OnKeyEvent(CefRefPtr<CefBrowser> Browser,
 	return false;
 }
 
+#if PLATFORM_LINUX
+bool FCEFBrowserHandler::OnJSDialog(CefRefPtr<CefBrowser> Browser, const CefString& OriginUrl, const CefString& AcceptLang, JSDialogType DialogType, const CefString& MessageText, const CefString& DefaultPromptText, CefRefPtr<CefJSDialogCallback> Callback, bool& OutSuppressMessage)
+#else
 bool FCEFBrowserHandler::OnJSDialog(CefRefPtr<CefBrowser> Browser, const CefString& OriginUrl, JSDialogType DialogType, const CefString& MessageText, const CefString& DefaultPromptText, CefRefPtr<CefJSDialogCallback> Callback, bool& OutSuppressMessage)
+#endif
 {
 	bool Retval = false;
 	TSharedPtr<FCEFWebBrowserWindow> BrowserWindow = BrowserWindowPtr.Pin();

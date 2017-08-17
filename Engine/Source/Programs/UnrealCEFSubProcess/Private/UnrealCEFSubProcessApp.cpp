@@ -48,6 +48,7 @@ void FUnrealCEFSubProcessApp::OnRenderThreadCreated( CefRefPtr<CefListValue> Ext
 	}
 }
 
+#if !PLATFORM_LINUX
 void FUnrealCEFSubProcessApp::OnFocusedNodeChanged(CefRefPtr<CefBrowser> Browser, CefRefPtr<CefFrame> Frame, CefRefPtr<CefDOMNode> Node)
 {
 	CefRefPtr<CefProcessMessage> Message = CefProcessMessage::Create("UE::IME::FocusChanged");
@@ -89,5 +90,6 @@ void FUnrealCEFSubProcessApp::OnFocusedNodeChanged(CefRefPtr<CefBrowser> Browser
 
 	Browser->SendProcessMessage(PID_BROWSER, Message);
 }
+#endif
 
 #endif

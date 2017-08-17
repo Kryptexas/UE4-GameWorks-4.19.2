@@ -1127,7 +1127,7 @@ namespace UnrealBuildTool
 						AppendMacLine(FinalizeAppBundleScript, FormatCopyCommand(String.Format("{0}/Runtime/Launch/Resources/Mac/UProject.icns", EngineSourcePath), String.Format("{0}.app/Contents/Resources/UProject.icns", ExeName)));
 					}
 
-					string InfoPlistFile = CustomResourcesPath + (bBuildingEditor ? "Info-Editor.plist" : "Info.plist");
+					string InfoPlistFile = CustomResourcesPath + (bBuildingEditor ? "/Info-Editor.plist" : "/Info.plist");
 					if (!File.Exists(InfoPlistFile))
 					{
 						InfoPlistFile = EngineSourcePath + "/Runtime/Launch/Resources/Mac/" + (bBuildingEditor ? "Info-Editor.plist" : "Info.plist");

@@ -420,7 +420,7 @@ TSharedPtr<IWebBrowserWindow> FWebBrowserSingleton::CreateBrowserWindow(const FC
 
 
 #if PLATFORM_WINDOWS
-		// Create the widget as a child window on whindows when passing in a parent window
+		// Create the widget as a child window on windows when passing in a parent window
 		if (WindowSettings.OSWindowHandle != nullptr)
 		{
 			RECT ClientRect = { 0, 0, 0, 0 };
@@ -430,7 +430,11 @@ TSharedPtr<IWebBrowserWindow> FWebBrowserSingleton::CreateBrowserWindow(const FC
 #endif
 		{
 			// Use off screen rendering so we can integrate with our windows
+#if PLATFORM_LINUX
+			WindowInfo.SetAsWindowless(kNullWindowHandle, WindowSettings.bUseTransparency);
+#else
 			WindowInfo.SetAsWindowless(kNullWindowHandle);
+#endif
 			BrowserSettings.windowless_frame_rate = WindowSettings.BrowserFrameRate;
 		}
 

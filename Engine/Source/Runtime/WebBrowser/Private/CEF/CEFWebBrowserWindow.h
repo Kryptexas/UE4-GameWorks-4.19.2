@@ -404,6 +404,7 @@ private:
 	 */
 	void ShowPopupMenu(bool bShow);
 
+#if !PLATFORM_LINUX
 	/**
 	 * Called when the IME composition DOM node has changed.
 	 * @param Browser The CefBrowser for this window.
@@ -414,6 +415,7 @@ private:
 		CefRefPtr<CefBrowser> Browser,
 		const CefRange& SelectionRange,
 		const CefRenderHandler::RectList& CharacterBounds);
+#endif
 
 public:
 
@@ -617,8 +619,10 @@ private:
 	/** Handling of passing and marshalling messages for JS integration is delegated to a helper class*/
 	TSharedPtr<FCEFJSScripting> Scripting;
 
+#if !PLATFORM_LINUX
 	/** Handling of foreign language character input is delegated to a helper class */
 	TSharedPtr<FCEFImeHandler> Ime;
+#endif
 
 	TSharedPtr<SWindow> ParentWindow;
 };

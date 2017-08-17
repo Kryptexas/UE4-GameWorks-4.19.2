@@ -180,10 +180,16 @@ public:
 		bool canGoBack,
 		bool canGoForward) override;
 
+#if PLATFORM_LINUX
 	virtual void OnLoadStart(
-		CefRefPtr<CefBrowser> Browser, 
-		CefRefPtr<CefFrame> Frame, 
+		CefRefPtr<CefBrowser> Browser,
+		CefRefPtr<CefFrame> Frame) override;
+#else
+	virtual void OnLoadStart(
+		CefRefPtr<CefBrowser> Browser,
+		CefRefPtr<CefFrame> Frame,
 		TransitionType CefTransitionType) override;
+#endif
 
 public:
 
@@ -202,10 +208,12 @@ public:
 	virtual void OnPopupShow(CefRefPtr<CefBrowser> Browser, bool bShow) override;
 	virtual void OnPopupSize(CefRefPtr<CefBrowser> Browser, const CefRect& Rect) override;
 	virtual bool GetScreenInfo(CefRefPtr<CefBrowser> Browser, CefScreenInfo& ScreenInfo) override;
+#if !PLATFORM_LINUX
 	virtual void OnImeCompositionRangeChanged(
 		CefRefPtr<CefBrowser> Browser,
 		const CefRange& SelectionRange,
 		const CefRenderHandler::RectList& CharacterBounds) override;
+#endif
 
 public:
 
@@ -241,14 +249,26 @@ public:
 public:
 	// CefJSDialogHandler interface
 
+#if PLATFORM_LINUX
 	virtual bool OnJSDialog(
-		CefRefPtr<CefBrowser> Browser, 
-		const CefString& OriginUrl, 
-		JSDialogType DialogType, 
-		const CefString& MessageText, 
-		const CefString& DefaultPromptText, 
-		CefRefPtr<CefJSDialogCallback> Callback, 
+		CefRefPtr<CefBrowser> Browser,
+		const CefString& OriginUrl,
+		const CefString& AcceptLang,
+		JSDialogType DialogType,
+		const CefString& MessageText,
+		const CefString& DefaultPromptText,
+		CefRefPtr<CefJSDialogCallback> Callback,
 		bool& OutSuppressMessage) override;
+#else
+	virtual bool OnJSDialog(
+		CefRefPtr<CefBrowser> Browser,
+		const CefString& OriginUrl,
+		JSDialogType DialogType,
+		const CefString& MessageText,
+		const CefString& DefaultPromptText,
+		CefRefPtr<CefJSDialogCallback> Callback,
+		bool& OutSuppressMessage) override;
+#endif
 
 	virtual bool OnBeforeUnloadDialog(CefRefPtr<CefBrowser> Browser, const CefString& MessageText, bool IsReload, CefRefPtr<CefJSDialogCallback> Callback) override;
 

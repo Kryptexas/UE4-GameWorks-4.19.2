@@ -15,6 +15,9 @@
 #include "include/cef_task.h"
 #pragma pop_macro("OVERRIDE")
 
+#if PLATFORM_LINUX
+typedef CefBase CefBaseRefCounted;
+#endif
 
 #if PLATFORM_WINDOWS
 	#include "HideWindowsPlatformTypes.h"

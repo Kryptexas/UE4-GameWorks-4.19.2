@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 
-#if WITH_CEF3
+#if WITH_CEF3 && !PLATFORM_LINUX
 
 #include "SWidget.h"
 
@@ -23,14 +23,10 @@ THIRD_PARTY_INCLUDES_END
 #include "HideWindowsPlatformAtomics.h"
 #include "HideWindowsPlatformTypes.h"
 #endif
-#endif
-
 
 class ITextInputMethodSystem;
 class FCEFTextInputMethodContext;
 class ITextInputMethodChangeNotifier;
-
-#if WITH_CEF3
 
 class FCEFImeHandler
 	: public TSharedFromThis<FCEFImeHandler>

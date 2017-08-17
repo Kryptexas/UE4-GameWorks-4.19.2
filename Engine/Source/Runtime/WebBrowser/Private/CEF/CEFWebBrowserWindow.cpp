@@ -394,7 +394,9 @@ FCEFWebBrowserWindow::FCEFWebBrowserWindow(CefRefPtr<CefBrowser> InBrowser, CefR
 	, ErrorCode(0)
 	, bDeferNavigations(false)
 	, Scripting(new FCEFJSScripting(InBrowser, bInJSBindingToLoweringEnabled))
+#if !PLATFORM_LINUX
 	, Ime(new FCEFImeHandler(InBrowser))
+#endif
 {
 	check(InBrowser.get() != nullptr);
 
@@ -466,7 +468,9 @@ TSharedRef<SViewport> FCEFWebBrowserWindow::CreateWidget()
 		.EnableBlending(bUseTransparency)
 		.IgnoreTextureAlpha(!bUseTransparency);
 
+#if !PLATFORM_LINUX
 	Ime->CacheBrowserSlateInfo(BrowserWidgetRef);
+#endif
 
 	return BrowserWidgetRef;
 }
@@ -1270,7 +1274,9 @@ void FCEFWebBrowserWindow::OnFocus(bool SetFocus, bool bIsPopup)
 		bMainHasFocus = SetFocus;
 	}
 
+#if !PLATFORM_LINUX
 	Ime->SetFocus(!bPopupHasFocus && bMainHasFocus);
+#endif
 
 	// Only notify focus if there is no popup menu with focus, as SendFocusEvent will dismiss any popup menus.
 	if (IsValid() && !bPopupHasFocus)
@@ -1844,8 +1850,10 @@ int32 FCEFWebBrowserWindow::GetCefInputModifiers(const FInputEvent& InputEvent)
 
 void FCEFWebBrowserWindow::UpdateCachedGeometry(const FGeometry& AllottedGeometry)
 {
+#if !PLATFORM_LINUX
 	// Forward along the geometry for use by IME
 	Ime->UpdateCachedGeometry(AllottedGeometry);
+#endif
 }
 
 void FCEFWebBrowserWindow::CheckTickActivity()
@@ -1986,7 +1994,9 @@ bool FCEFWebBrowserWindow::OnProcessMessageReceived(CefRefPtr<CefBrowser> Browse
 
 	if (!bHandled)
 	{
+#if !PLATFORM_LINUX
 		bHandled = Ime->OnProcessMessageReceived(Browser, SourceProcess, Message);
+#endif
 	}
 	
 	return bHandled;
@@ -2004,12 +2014,16 @@ void FCEFWebBrowserWindow::UnbindUObject(const FString& Name, UObject* Object, b
 
 void FCEFWebBrowserWindow::BindInputMethodSystem(ITextInputMethodSystem* TextInputMethodSystem)
 {
+#if !PLATFORM_LINUX
 	Ime->BindInputMethodSystem(TextInputMethodSystem);
+#endif
 }
 
 void FCEFWebBrowserWindow::UnbindInputMethodSystem()
 {
+#if !PLATFORM_LINUX
 	Ime->UnbindInputMethodSystem();
+#endif
 }
 
 void FCEFWebBrowserWindow::OnBrowserClosing()
@@ -2025,7 +2039,9 @@ void FCEFWebBrowserWindow::OnBrowserClosed()
 	}
 
 	Scripting->UnbindCefBrowser();
+#if !PLATFORM_LINUX
 	Ime->UnbindCefBrowser();
+#endif
 	InternalCefBrowser = nullptr;
 }
 
@@ -2049,6 +2065,7 @@ void FCEFWebBrowserWindow:: ShowPopupMenu(bool bShow)
 	}
 }
 
+#if !PLATFORM_LINUX
 void FCEFWebBrowserWindow::OnImeCompositionRangeChanged(
 	CefRefPtr<CefBrowser> Browser, 
 	const CefRange& SelectionRange, 
@@ -2059,5 +2076,6 @@ void FCEFWebBrowserWindow::OnImeCompositionRangeChanged(
 		Ime->CEFCompositionRangeChanged(SelectionRange, CharacterBounds);
 	}
 }
+#endif
 
 #endif

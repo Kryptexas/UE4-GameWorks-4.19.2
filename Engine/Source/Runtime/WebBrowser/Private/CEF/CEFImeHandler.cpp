@@ -2,7 +2,7 @@
 
 #include "CEF/CEFImeHandler.h"
 
-#if WITH_CEF3
+#if WITH_CEF3 && !PLATFORM_LINUX
 
 #include "CEFTextInputMethodContext.h"
 
