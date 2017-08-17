@@ -3956,12 +3956,15 @@ namespace UnrealBuildTool
 						if (ModuleInfo.IsCompiledInConfiguration(Platform, TargetType, Rules.bBuildDeveloperTools, Rules.bBuildEditor, Rules.bBuildRequiresCookedData))
 						{
 							UEBuildModule Module = FindOrCreateModuleByName(ModuleInfo.Name);
-							if (!Module.RulesFile.IsUnderDirectory(Info.Directory))
+							if (!Instance.Modules.Contains(Module))
 							{
-								throw new BuildException("Plugin '{0}' does not contain the '{1}' module, but lists it in '{2}'.", Info.Name, ModuleInfo.Name, Info.File);
+								if (!Module.RulesFile.IsUnderDirectory(Info.Directory))
+								{
+									throw new BuildException("Plugin '{0}' does not contain the '{1}' module, but lists it in '{2}'.", Info.Name, ModuleInfo.Name, Info.File);
+								}
+								Instance.bDescriptorNeededAtRuntime = true;
+								Instance.Modules.Add(Module);
 							}
-							Instance.bDescriptorNeededAtRuntime = true;
-							Instance.Modules.Add(Module);
 						}
 					}
 				}
