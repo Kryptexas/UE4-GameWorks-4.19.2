@@ -31,6 +31,8 @@
 #include "WidgetBlueprint.h"
 #include "Kismet2/KismetDebugUtilities.h"
 
+#define LOCTEXT_NAMESPACE "BlueprintCompilationManager"
+
 /*
 	BLUEPRINT COMPILATION MANAGER IMPLEMENTATION NOTES
 
@@ -694,6 +696,10 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 		
 					FKismetCompilerContext& CompilerContext = *(CompilerData.Compiler);
 					CompilerContext.CompileClassLayout(EInternalCompilerFlags::PostponeLocalsGenerationUntilPhaseTwo);
+				}
+				else
+				{
+					CompilerData.ActiveResultsLog->Error(*LOCTEXT("KismetCompileError_MalformedParentClasss", "Blueprint @@ has missing or NULL parent class.").ToString(), BP);
 				}
 			}
 			else if(CompilerData.Compiler.IsValid() && BP->GeneratedClass)
