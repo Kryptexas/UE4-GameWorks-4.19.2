@@ -3258,7 +3258,7 @@ void ALandscapeProxy::PostEditMove(bool bFinished)
 	// This point is only reached when Copy and Pasted
 	Super::PostEditMove(bFinished);
 
-	if (bFinished)
+	if (bFinished && !GetWorld()->IsGameWorld())
 	{
 		ULandscapeInfo::RecreateLandscapeInfo(GetWorld(), true);
 		RecreateComponentsState();
@@ -3293,7 +3293,7 @@ void ALandscapeProxy::PostEditImport()
 
 void ALandscape::PostEditMove(bool bFinished)
 {
-	if (bFinished)
+	if (bFinished && !GetWorld()->IsGameWorld())
 	{
 		// align all proxies to landscape actor
 		auto* LandscapeInfo = GetLandscapeInfo();
