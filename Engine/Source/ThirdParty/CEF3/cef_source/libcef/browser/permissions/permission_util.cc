@@ -15,7 +15,6 @@ ContentSettingsType PermissionTypeToContentSetting(PermissionType permission) {
     case PermissionType::MIDI_SYSEX:
       return CONTENT_SETTINGS_TYPE_MIDI_SYSEX;
     case PermissionType::PUSH_MESSAGING:
-      return CONTENT_SETTINGS_TYPE_PUSH_MESSAGING;
     case PermissionType::NOTIFICATIONS:
       return CONTENT_SETTINGS_TYPE_NOTIFICATIONS;
     case PermissionType::GEOLOCATION:
@@ -36,6 +35,10 @@ ContentSettingsType PermissionTypeToContentSetting(PermissionType permission) {
       return CONTENT_SETTINGS_TYPE_MEDIASTREAM_MIC;
     case PermissionType::VIDEO_CAPTURE:
       return CONTENT_SETTINGS_TYPE_MEDIASTREAM_CAMERA;
+    case PermissionType::BACKGROUND_SYNC:
+      return CONTENT_SETTINGS_TYPE_BACKGROUND_SYNC;
+    case PermissionType::FLASH:
+      return CONTENT_SETTINGS_TYPE_PLUGINS;
     case PermissionType::NUM:
       // This will hit the NOTREACHED below.
       break;

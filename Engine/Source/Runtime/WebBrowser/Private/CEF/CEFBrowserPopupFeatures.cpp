@@ -43,16 +43,6 @@ FCEFBrowserPopupFeatures::FCEFBrowserPopupFeatures( const CefPopupFeatures& Popu
 	bResizable = PopupFeatures.resizable ? true : false;
 	bIsFullscreen = PopupFeatures.fullscreen ? true : false;
 	bIsDialog = PopupFeatures.dialog ? true : false;
-
-	int Count = PopupFeatures.additionalFeatures ? cef_string_list_size(PopupFeatures.additionalFeatures) : 0;
-	CefString ListValue;
-
-	for(int ListIdx = 0; ListIdx < Count; ListIdx++)
-	{
-		cef_string_list_value(PopupFeatures.additionalFeatures, ListIdx, ListValue.GetWritableStruct());
-		AdditionalFeatures.Add(ListValue.ToWString().c_str());
-	}
-
 }
 
 FCEFBrowserPopupFeatures::~FCEFBrowserPopupFeatures()
@@ -141,7 +131,8 @@ bool FCEFBrowserPopupFeatures::IsDialog() const
 
 TArray<FString> FCEFBrowserPopupFeatures::GetAdditionalFeatures() const
 {
-	return AdditionalFeatures;
+	TArray<FString> Empty;
+	return Empty;
 }
 
 #endif

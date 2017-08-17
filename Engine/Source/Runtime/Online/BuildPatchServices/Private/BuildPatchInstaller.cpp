@@ -14,1388 +14,1376 @@
 #include "Misc/ScopeLock.h"
 #include "Misc/ConfigCacheIni.h"
 #include "Misc/FeedbackContext.h"
-#include "BuildPatchError.h"
-#include "BuildPatchHTTP.h"
-#include "BuildPatchVerification.h"
-#include "BuildPatchFileAttributes.h"
-#include "BuildPatchChunkCache.h"
+#include "Containers/Ticker.h"
+#include "HttpModule.h"
 #include "BuildPatchFileConstructor.h"
-#include "BuildPatchDownloader.h"
 #include "BuildPatchServicesModule.h"
 #include "BuildPatchUtil.h"
-#include "BuildPatchAnalytics.h"
 #include "BuildPatchServicesPrivate.h"
+#include "Common/HttpManager.h"
+#include "Common/FileSystem.h"
+#include "Installer/InstallerError.h"
+#include "Installer/DiskChunkStore.h"
+#include "Installer/CloudChunkSource.h"
+#include "Installer/MemoryChunkStore.h"
+#include "Installer/ChunkReferenceTracker.h"
+#include "Installer/ChunkEvictionPolicy.h"
+#include "Installer/DownloadService.h"
+#include "Installer/ChunkDbChunkSource.h"
+#include "Installer/InstallChunkSource.h"
+#include "Installer/ChainedChunkSource.h"
+#include "Installer/Verifier.h"
+#include "Installer/FileAttribution.h"
+#include "Installer/InstallerStatistics.h"
+#include "Installer/InstallerAnalytics.h"
+#include "Installer/Prerequisites.h"
+#include "Installer/MachineConfig.h"
+#include "Installer/MessagePump.h"
 
-using namespace BuildPatchConstants;
-
-#define LOCTEXT_NAMESPACE "BuildPatchInstaller"
-
-#define NUM_DOWNLOAD_READINGS	5
-
-#define TIME_PER_READING		0.5
-
-#define MEGABYTE_VALUE			1048576
-
-#define KILOBYTE_VALUE			1024
-
-#define NUM_FILE_MOVE_RETRIES	5
-
-#define NUM_INSTALLER_RETRIES	5
-
-namespace
+namespace ConfigHelpers
 {
-	// A simple scope timer class
-	class FScopeTimer
+	int32 LoadNumFileMoveRetries()
+	{
+		int32 MoveRetries = 5;
+		GConfig->GetInt(TEXT("Portal.BuildPatch"), TEXT("NumFileMoveRetries"), MoveRetries, GEngineIni);
+		return FMath::Clamp<int32>(MoveRetries, 1, 50);
+	}
+
+	int32 LoadNumInstallerRetries()
+	{
+		int32 InstallerRetries = 5;
+		GConfig->GetInt(TEXT("Portal.BuildPatch"), TEXT("NumInstallerRetries"), InstallerRetries, GEngineIni);
+		return FMath::Clamp<int32>(InstallerRetries, 1, 50);
+	}
+
+	float LoadDownloadSpeedAverageTime()
+	{
+		float AverageTime = 10.0;
+		GConfig->GetFloat(TEXT("Portal.BuildPatch"), TEXT("DownloadSpeedAverageTime"), AverageTime, GEngineIni);
+		return FMath::Clamp<float>(AverageTime, 1.0f, 30.0f);
+	}
+
+	float DownloadSpeedAverageTime()
+	{
+		static float AverageTime = LoadDownloadSpeedAverageTime();
+		return AverageTime;
+	}
+
+	int32 NumFileMoveRetries()
+	{
+		static int32 MoveRetries = LoadNumFileMoveRetries();
+		return MoveRetries;
+	}
+
+	int32 NumInstallerRetries()
+	{
+		static int32 InstallerRetries = LoadNumInstallerRetries();
+		return InstallerRetries;
+	}
+}
+
+namespace BuildPatchServices
+{
+	struct FScopedControllables
 	{
 	public:
-		FScopeTimer(float& InValueToSet, FCriticalSection* InSynchObject)
-			: Time(InValueToSet)
-			, SynchObject(InSynchObject)
+		FScopedControllables(FCriticalSection* InSyncObject, TArray<IControllable*>& InRegistrationArray, bool& bInIsPaused, bool& bInShouldAbort)
+			: SyncObject(InSyncObject)
+			, RegistrationArray(InRegistrationArray)
+			, bIsPaused(bInIsPaused)
+			, bShouldAbort(bInShouldAbort)
 		{
-			StartSecs = FPlatformTime::Seconds();
 		}
-		~FScopeTimer()
+
+		~FScopedControllables()
 		{
-			StartSecs = FPlatformTime::Seconds() - StartSecs;
-			SynchObject->Lock();
-			Time = StartSecs;
-			SynchObject->Unlock();
+			FScopeLock ScopeLock(SyncObject);
+			for (IControllable* Controllable : RegisteredArray)
+			{
+				RegistrationArray.Remove(Controllable);
+			}
+		}
+
+		void Register(IControllable* Controllable)
+		{
+			FScopeLock ScopeLock(SyncObject);
+			RegistrationArray.Add(Controllable);
+			RegisteredArray.Add(Controllable);
+			if (bShouldAbort)
+			{
+				Controllable->Abort();
+			}
+			else
+			{
+				Controllable->SetPaused(bIsPaused);
+			}
 		}
 
 	private:
-		double StartSecs;
-		float& Time;
-		FCriticalSection* SynchObject;
+		FCriticalSection* SyncObject;
+		TArray<IControllable*>& RegistrationArray;
+		TArray<IControllable*> RegisteredArray;
+		bool& bIsPaused;
+		bool& bShouldAbort;
 	};
-}
 
-/* FBuildPatchInstaller implementation
-*****************************************************************************/
-FBuildPatchInstaller::FBuildPatchInstaller(FInstallerConfiguration InConfiguration, FBuildPatchInstallationInfo& InstallationInfoRef, const FString& InLocalMachineConfigFile, FBuildPatchBoolManifestDelegate InOnCompleteDelegate)
-	: Thread(nullptr)
-	, OnCompleteDelegate(InOnCompleteDelegate)
-	, Configuration(MoveTemp(InConfiguration))
-	, CurrentBuildManifest(StaticCastSharedPtr<FBuildPatchAppManifest>(Configuration.CurrentManifest))
-	, NewBuildManifest(StaticCastSharedRef<FBuildPatchAppManifest>(Configuration.InstallManifest))
-	, DataStagingDir(Configuration.StagingDirectory / TEXT("PatchData"))
-	, InstallStagingDir(Configuration.StagingDirectory / TEXT("Install"))
-	, PreviousMoveMarker(Configuration.InstallDirectory / TEXT("$movedMarker"))
-	, LocalMachineConfigFile(InLocalMachineConfigFile)
-	, ThreadLock()
-	, bIsFileData(NewBuildManifest->IsFileDataManifest())
-	, bIsChunkData(!bIsFileData)
-	, bSuccess(false)
-	, bIsRunning(false)
-	, bIsInited(false)
-	, bFirstInstallIteration(true)
-	, DownloadSpeedValue(-1.0)
-	, DownloadHealthValue(EBuildPatchDownloadHealth::Excellent)
-	, DownloadBytesLeft(0)
-	, BuildStats()
-	, BuildProgress()
-	, InitialNumChunkDownloads(0.0f)
-	, InitialNumChunkConstructions(0.0f)
-	, TotalInitialDownloadSize(0)
-	, TimePausedAt(0.0)
-	, FilesInstalled()
-	, TaggedFiles()
-	, FilesToConstruct()
-	, InstalledPrereqs()
-	, InstallationInfo(InstallationInfoRef)
-{
-}
-
-FBuildPatchInstaller::~FBuildPatchInstaller()
-{
-	if (Thread != nullptr)
+	struct FBuildPatchDownloadRecord
 	{
-		Thread->WaitForCompletion();
-		delete Thread;
-		Thread = nullptr;
-	}
-}
+		double StartTime;
+		double EndTime;
+		int64 DownloadSize;
 
-bool FBuildPatchInstaller::StartInstallation()
-{
-	if (Thread == nullptr)
-	{
-		// Pre-process install tags. Doing this logic here means it doesn't need repeating around lower level code
-		// No tags means full installation
-		if (Configuration.InstallTags.Num() == 0)
+		FBuildPatchDownloadRecord()
+			: StartTime(0)
+			, EndTime(0)
+			, DownloadSize(0)
+		{}
+
+		friend bool operator<(const FBuildPatchDownloadRecord& Lhs, const FBuildPatchDownloadRecord& Rhs)
 		{
-			NewBuildManifest->GetFileTagList(Configuration.InstallTags);
+			return Lhs.StartTime < Rhs.StartTime;
 		}
+	};
 
-		// Always require the empty tag
-		Configuration.InstallTags.Add(TEXT(""));
-
-		// Load configuration now
-		LoadLocalMachineConfig();
-
-		// Start thread!
-		const TCHAR* ThreadName = TEXT("BuildPatchInstallerThread");
-		Thread = FRunnableThread::Create(this, ThreadName);
-	}
-	return Thread != nullptr;
-}
-
-bool FBuildPatchInstaller::Initialize()
-{
-	bool bInstallerInitSuccess = true;
-
-	// Check provided tags are all valid.
-	TSet<FString> ValidTags;
-	Configuration.InstallManifest->GetFileTagList(ValidTags);
-	if (Configuration.InstallTags.Difference(ValidTags).Num() > 0)
+	/* FBuildPatchInstaller implementation
+	*****************************************************************************/
+	FBuildPatchInstaller::FBuildPatchInstaller(FInstallerConfiguration InConfiguration, TMap<FString, FBuildPatchAppManifestRef> InInstallationInfo, const FString& InLocalMachineConfigFile, TSharedPtr<IAnalyticsProvider> InAnalytics, TSharedPtr<FHttpServiceTracker> InHttpTracker, FBuildPatchBoolManifestDelegate InOnCompleteDelegate)
+		: Thread(nullptr)
+		, OnCompleteDelegate(InOnCompleteDelegate)
+		, Configuration(MoveTemp(InConfiguration))
+		, CurrentBuildManifest(StaticCastSharedPtr<FBuildPatchAppManifest>(Configuration.CurrentManifest))
+		, NewBuildManifest(StaticCastSharedRef<FBuildPatchAppManifest>(Configuration.InstallManifest))
+		, DataStagingDir(Configuration.StagingDirectory / TEXT("PatchData"))
+		, InstallStagingDir(Configuration.StagingDirectory / TEXT("Install"))
+		, PreviousMoveMarker(Configuration.InstallDirectory / TEXT("$movedMarker"))
+		, ThreadLock()
+		, bIsFileData(NewBuildManifest->IsFileDataManifest())
+		, bIsChunkData(!bIsFileData)
+		, bSuccess(false)
+		, bIsRunning(false)
+		, bIsInited(false)
+		, bFirstInstallIteration(true)
+		, BuildStats()
+		, BuildProgress()
+		, bIsPaused(false)
+		, bShouldAbort(false)
+		, FilesInstalled()
+		, TaggedFiles()
+		, FilesToConstruct()
+		, InstallationInfo(MoveTemp(InInstallationInfo))
+		, LocalMachineConfigFile(InLocalMachineConfigFile)
+		, HttpManager(FHttpManagerFactory::Create())
+		, FileSystem(FFileSystemFactory::Create())
+		, Platform(FPlatformFactory::Create())
+		, InstallerError(FInstallerErrorFactory::Create())
+		, Analytics(MoveTemp(InAnalytics))
+		, HttpTracker(MoveTemp(InHttpTracker))
+		, InstallerAnalytics(FInstallerAnalyticsFactory::Create(Analytics.Get(), HttpTracker.Get()))
+		, InstallerStatistics(FInstallerStatisticsFactory::Create(InstallerAnalytics.Get(), &BuildProgress))
+		, DownloadService(FDownloadServiceFactory::Create(FTicker::GetCoreTicker(), HttpManager.Get(), FileSystem.Get(), InstallerStatistics->GetDownloadServiceStat(), InstallerAnalytics.Get()))
+		, MessagePump(FMessagePumpFactory::Create())
+		, Controllables()
 	{
-		UE_LOG(LogBuildPatchServices, Error, TEXT("Installer configuration: Invalid InstallTags provided."));
-		FBuildPatchInstallError::SetFatalError(EBuildPatchInstallError::InitializationError, InitializationErrorCodes::InvalidInstallTags,
-			NSLOCTEXT("BuildPatchInstallError", "InvalidInstallTags", "This installation could not continue due to a configuration issue. Please contact support."));
-		bInstallerInitSuccess = false;
-	}
-
-	// Check that we were provided with a bound delegate.
-	if (!OnCompleteDelegate.IsBound())
-	{
-		UE_LOG(LogBuildPatchServices, Error, TEXT("Installer configuration: Completion delegate not provided."));
-		FBuildPatchInstallError::SetFatalError(EBuildPatchInstallError::InitializationError, InitializationErrorCodes::MissingCompleteDelegate);
-		bInstallerInitSuccess = false;
-	}
-
-	// Make sure we have install directory access.
-	IFileManager::Get().MakeDirectory(*Configuration.InstallDirectory, true);
-	if (!IFileManager::Get().DirectoryExists(*Configuration.InstallDirectory))
-	{
-		UE_LOG(LogBuildPatchServices, Error, TEXT("Installer setup: Inability to create InstallDirectory %s."), *Configuration.InstallDirectory);
-		FBuildPatchInstallError::SetFatalError(EBuildPatchInstallError::InitializationError, InitializationErrorCodes::MissingInstallDirectory,
-			FText::Format(NSLOCTEXT("BuildPatchInstallError", "MissingInstallDirectory", "The installation directory could not be created.\n{0}"), FText::FromString(Configuration.InstallDirectory)));
-		bInstallerInitSuccess = false;
-	}
-
-	// Make sure we have staging directory access.
-	IFileManager::Get().MakeDirectory(*Configuration.StagingDirectory, true);
-	if (!IFileManager::Get().DirectoryExists(*Configuration.StagingDirectory))
-	{
-		UE_LOG(LogBuildPatchServices, Error, TEXT("Installer setup: Inability to create StagingDirectory %s."), *Configuration.StagingDirectory);
-		FBuildPatchInstallError::SetFatalError(EBuildPatchInstallError::InitializationError, InitializationErrorCodes::MissingStageDirectory,
-			FText::Format(NSLOCTEXT("BuildPatchInstallError", "MissingStageDirectory", "The following directory could not be created.\n{0}"), FText::FromString(Configuration.StagingDirectory)));
-		bInstallerInitSuccess = false;
-	}
-
-	// Init build statistics that are known.
-	{
-		FScopeLock Lock(&ThreadLock);
-		BuildStats.AppName = NewBuildManifest->GetAppName();
-		BuildStats.AppPatchVersion = NewBuildManifest->GetVersionString();
-		BuildStats.AppInstalledVersion = CurrentBuildManifest.IsValid() ? CurrentBuildManifest->GetVersionString() : TEXT("NONE");
-		BuildStats.CloudDirectory = Configuration.CloudDirectories[0];
-		BuildStats.NumFilesInBuild = NewBuildManifest->GetNumFiles();
-		BuildStats.ProcessSuccess = bInstallerInitSuccess;
-		BuildStats.ErrorCode = FBuildPatchInstallError::GetErrorCode();
-		BuildStats.FailureReasonText = FBuildPatchInstallError::GetErrorText();
-		BuildStats.FailureType = FBuildPatchInstallError::GetErrorState();
-	}
-
-	bIsInited = true;
-	return bInstallerInitSuccess;
-}
-
-uint32 FBuildPatchInstaller::Run()
-{
-	// Make sure this function can never be parallelized
-	static FCriticalSection SingletonFunctionLockCS;
-	FScopeLock SingletonFunctionLock(&SingletonFunctionLockCS);
-	FBuildPatchInstallError::Reset();
-	bIsRunning = true;
-
-	// Init prereqs progress value
-	const bool bInstallPrereqs = Configuration.bRunRequiredPrereqs && !NewBuildManifest->GetPrereqPath().IsEmpty();
-
-	// Get the start time
-	double StartTime = FPlatformTime::Seconds();
-	double CleanUpTime = 0;
-
-	// Initialization
-	bool bProcessSuccess = Initialize();
-
-	// Run if successful init
-	if (bProcessSuccess)
-	{
-		SetDownloadSpeed(-1);
-		UpdateDownloadProgressInfo(true);
-
-		// Register the current manifest with the installation info, to make sure we pull from it
-		if (CurrentBuildManifest.IsValid())
+		if (InstallationInfo.Contains(Configuration.InstallDirectory) == false && CurrentBuildManifest.IsValid())
 		{
-			InstallationInfo.RegisterAppInstallation(CurrentBuildManifest.ToSharedRef(), Configuration.InstallDirectory);
+			InstallationInfo.Add(Configuration.InstallDirectory, CurrentBuildManifest.ToSharedRef());
 		}
+		InstallerError->RegisterForErrors([this]() { CancelInstall(); });
+		Controllables.Add(&BuildProgress);
+	}
 
-		// Keep track of files that failed verify
-		TArray<FString> CorruptFiles;
+	FBuildPatchInstaller::~FBuildPatchInstaller()
+	{
+		PreExit();
+	}
 
-		// Keep retrying the install while it is not canceled, or caused by download error
-		bProcessSuccess = false;
-		bool bCanRetry = true;
-		int32 InstallRetries = NUM_INSTALLER_RETRIES;
-		while (!bProcessSuccess && bCanRetry)
+	void FBuildPatchInstaller::PreExit()
+	{
+		// Set shutdown error so any running threads will exit if no error has already been set.
+		InstallerError->SetError(EBuildPatchInstallError::ApplicationClosing, ApplicationClosedErrorCodes::ApplicationClosed);
+		if (Thread != nullptr)
 		{
-			// No longer queued
-			BuildProgress.SetStateProgress(EBuildPatchState::Queued, 1.0f);
+			Thread->WaitForCompletion();
+			delete Thread;
+			Thread = nullptr;
+		}
+	}
 
-			// Run the install
-			bool bInstallSuccess = RunInstallation(CorruptFiles);
-			BuildProgress.SetStateProgress(EBuildPatchState::PrerequisitesInstall, bInstallPrereqs ? 0.0f : 1.0f);
-			if (bInstallSuccess)
+	bool FBuildPatchInstaller::StartInstallation()
+	{
+		if (Thread == nullptr)
+		{
+			// Pre-process install tags. Doing this logic here means it doesn't need repeating around lower level code
+			// No tags means full installation
+			if (Configuration.InstallTags.Num() == 0)
 			{
-				BuildProgress.SetStateProgress(EBuildPatchState::Downloading, 1.0f);
-				BuildProgress.SetStateProgress(EBuildPatchState::Installing, 1.0f);
+				NewBuildManifest->GetFileTagList(Configuration.InstallTags);
 			}
 
-			// Backup local changes then move generated files
-			bInstallSuccess = bInstallSuccess && RunBackupAndMove();
+			// Always require the empty tag
+			Configuration.InstallTags.Add(TEXT(""));
 
-			// There is no more potential for initializing
-			BuildProgress.SetStateProgress(EBuildPatchState::Initializing, 1.0f);
+			// Start thread!
+			const TCHAR* ThreadName = TEXT("BuildPatchInstallerThread");
+			Thread = FRunnableThread::Create(this, ThreadName);
+		}
+		return Thread != nullptr;
+	}
 
-			// Setup file attributes
-			bInstallSuccess = bInstallSuccess && RunFileAttributes(Configuration.bIsRepair);
+	bool FBuildPatchInstaller::Initialize()
+	{
+		bool bInstallerInitSuccess = true;
 
-			// Run Verification
-			CorruptFiles.Empty();
-			bProcessSuccess = bInstallSuccess && RunVerification(CorruptFiles);
+		// Check provided tags are all valid.
+		TSet<FString> ValidTags;
+		Configuration.InstallManifest->GetFileTagList(ValidTags);
+		if (Configuration.InstallTags.Difference(ValidTags).Num() > 0)
+		{
+			UE_LOG(LogBuildPatchServices, Error, TEXT("Installer configuration: Invalid InstallTags provided."));
+			InstallerError->SetError(EBuildPatchInstallError::InitializationError, InitializationErrorCodes::InvalidInstallTags,
+				NSLOCTEXT("BuildPatchInstallError", "InvalidInstallTags", "This installation could not continue due to a configuration issue. Please contact support."));
+			bInstallerInitSuccess = false;
+		}
 
-			// Clean staging if INSTALL success
-			BuildProgress.SetStateProgress(EBuildPatchState::CleanUp, 0.0f);
-			CleanUpTime = FPlatformTime::Seconds();
-			if (bInstallSuccess)
+		// Check that we were provided with a bound delegate.
+		if (!OnCompleteDelegate.IsBound())
+		{
+			UE_LOG(LogBuildPatchServices, Error, TEXT("Installer configuration: Completion delegate not provided."));
+			InstallerError->SetError(EBuildPatchInstallError::InitializationError, InitializationErrorCodes::MissingCompleteDelegate);
+			bInstallerInitSuccess = false;
+		}
+
+		// Make sure we have install directory access.
+		IFileManager::Get().MakeDirectory(*Configuration.InstallDirectory, true);
+		if (!IFileManager::Get().DirectoryExists(*Configuration.InstallDirectory))
+		{
+			UE_LOG(LogBuildPatchServices, Error, TEXT("Installer setup: Inability to create InstallDirectory %s."), *Configuration.InstallDirectory);
+			InstallerError->SetError(EBuildPatchInstallError::InitializationError, InitializationErrorCodes::MissingInstallDirectory,
+				FText::Format(NSLOCTEXT("BuildPatchInstallError", "MissingInstallDirectory", "The installation directory could not be created.\n{0}"), FText::FromString(Configuration.InstallDirectory)));
+			bInstallerInitSuccess = false;
+		}
+
+		// Make sure we have staging directory access.
+		IFileManager::Get().MakeDirectory(*Configuration.StagingDirectory, true);
+		if (!IFileManager::Get().DirectoryExists(*Configuration.StagingDirectory))
+		{
+			UE_LOG(LogBuildPatchServices, Error, TEXT("Installer setup: Inability to create StagingDirectory %s."), *Configuration.StagingDirectory);
+			InstallerError->SetError(EBuildPatchInstallError::InitializationError, InitializationErrorCodes::MissingStageDirectory,
+				FText::Format(NSLOCTEXT("BuildPatchInstallError", "MissingStageDirectory", "The following directory could not be created.\n{0}"), FText::FromString(Configuration.StagingDirectory)));
+			bInstallerInitSuccess = false;
+		}
+
+		// Init build statistics that are known.
+		{
+			FScopeLock Lock(&ThreadLock);
+			BuildStats.AppName = NewBuildManifest->GetAppName();
+			BuildStats.AppPatchVersion = NewBuildManifest->GetVersionString();
+			BuildStats.AppInstalledVersion = CurrentBuildManifest.IsValid() ? CurrentBuildManifest->GetVersionString() : TEXT("NONE");
+			BuildStats.CloudDirectory = Configuration.CloudDirectories[0];
+			BuildStats.NumFilesInBuild = NewBuildManifest->GetNumFiles();
+			BuildStats.ProcessSuccess = bInstallerInitSuccess;
+			BuildStats.ErrorCode = InstallerError->GetErrorCode();
+			BuildStats.FailureReasonText = InstallerError->GetErrorText();
+			BuildStats.FailureType = InstallerError->GetErrorType();
+		}
+
+		bIsInited = true;
+		return bInstallerInitSuccess;
+	}
+
+	uint32 FBuildPatchInstaller::Run()
+	{
+		// Make sure this function can never be parallelized
+		static FCriticalSection SingletonFunctionLockCS;
+		FScopeLock SingletonFunctionLock(&SingletonFunctionLockCS);
+		bIsRunning = true;
+		ProcessExecuteTimer.Start();
+		ProcessActiveTimer.Start();
+
+		// Init prereqs progress value
+		const bool bInstallPrereqs = Configuration.bRunRequiredPrereqs && !NewBuildManifest->GetPrereqPath().IsEmpty();
+
+		// Initialization
+		InitializeTimer.Start();
+		bool bProcessSuccess = Initialize();
+
+		// Run if successful init
+		if (bProcessSuccess)
+		{
+			// Keep track of files that failed verify
+			TArray<FString> CorruptFiles;
+
+			// Keep retrying the install while it is not canceled, or caused by download error
+			bProcessSuccess = false;
+			bool bCanRetry = true;
+			int32 InstallRetries = ConfigHelpers::NumInstallerRetries();
+			while (!bProcessSuccess && bCanRetry)
 			{
-				if (Configuration.bStageOnly)
+				// No longer queued
+				BuildProgress.SetStateProgress(EBuildPatchState::Queued, 1.0f);
+
+				// Run the install
+				bool bInstallSuccess = RunInstallation(CorruptFiles);
+				InitializeTimer.Stop();
+				BuildProgress.SetStateProgress(EBuildPatchState::PrerequisitesInstall, bInstallPrereqs ? 0.0f : 1.0f);
+				if (bInstallSuccess)
 				{
-					GLog->Logf(TEXT("BuildPatchServices: Deleting litter from staging area"));
-					IFileManager::Get().DeleteDirectory(*DataStagingDir, false, true);
-					IFileManager::Get().Delete(*(InstallStagingDir / TEXT("$resumeData")), false, true);
+					BuildProgress.SetStateProgress(EBuildPatchState::Downloading, 1.0f);
+					BuildProgress.SetStateProgress(EBuildPatchState::Installing, 1.0f);
 				}
-				else
+
+				// Backup local changes then move generated files
+				bInstallSuccess = bInstallSuccess && RunBackupAndMove();
+
+				// There is no more potential for initializing
+				BuildProgress.SetStateProgress(EBuildPatchState::Initializing, 1.0f);
+
+				// Setup file attributes
+				bInstallSuccess = bInstallSuccess && RunFileAttributes(Configuration.bIsRepair);
+
+				// Run Verification
+				CorruptFiles.Empty();
+				bProcessSuccess = bInstallSuccess && RunVerification(CorruptFiles);
+
+				// Clean staging if INSTALL success
+				BuildProgress.SetStateProgress(EBuildPatchState::CleanUp, 0.0f);
+				if (bInstallSuccess)
 				{
-					GLog->Logf(TEXT("BuildPatchServices: Deleting staging area"));
-					IFileManager::Get().DeleteDirectory(*Configuration.StagingDirectory, false, true);
-				}
-			}
-			CleanUpTime = FPlatformTime::Seconds() - CleanUpTime;
-			BuildProgress.SetStateProgress(EBuildPatchState::CleanUp, 1.0f);
-
-			// Set if we can retry
-			--InstallRetries;
-			bCanRetry = InstallRetries > 0 && !FBuildPatchInstallError::IsInstallationCancelled() && !FBuildPatchInstallError::IsNoRetryError();
-
-			// If successful or we will retry, remove the moved files marker
-			if (bProcessSuccess || bCanRetry)
-			{
-				GLog->Logf(TEXT("BuildPatchServices: Reset MM"));
-				IFileManager::Get().Delete(*PreviousMoveMarker, false, true);
-			}
-
-			// Setup end of attempt stats
-			bFirstInstallIteration = false;
-			float TempFinalProgress = BuildProgress.GetProgressNoMarquee();
-			{
-				FScopeLock Lock(&ThreadLock);
-				BuildStats.NumInstallRetries = NUM_INSTALLER_RETRIES - (InstallRetries + 1);
-				BuildStats.FinalProgress = TempFinalProgress;
-				// If we failed, and will retry, record this failure type
-				if (!bProcessSuccess && bCanRetry)
-				{
-					BuildStats.RetryFailureTypes.Add(FBuildPatchInstallError::GetErrorState());
-					BuildStats.RetryErrorCodes.Add(FBuildPatchInstallError::GetErrorCode());
-				}
-			}
-		}
-	}
-
-	if (bProcessSuccess)
-	{
-		// Run the prerequisites installer if this is our first install and the manifest has prerequisites info
-		if (bInstallPrereqs)
-		{
-			// @TODO: We also want to trigger prereq install if this is an update and the prereq installer differs in the update
-			bProcessSuccess &= RunPrereqInstaller();
-		}
-	}
-
-	// Set final stat values and log out results
-	bSuccess = bProcessSuccess;
-	{
-		FScopeLock Lock(&ThreadLock);
-		BuildStats.ProcessSuccess = bProcessSuccess;
-		BuildStats.ProcessExecuteTime = (FPlatformTime::Seconds() - StartTime) - BuildStats.ProcessPausedTime;
-		BuildStats.ErrorCode = FBuildPatchInstallError::GetErrorCode();
-		BuildStats.FailureReasonText = FBuildPatchInstallError::GetErrorText();
-		BuildStats.CleanUpTime = CleanUpTime;
-		BuildStats.FailureType = FBuildPatchInstallError::GetErrorState();
-
-		// Log stats
-		GLog->Logf(TEXT("BuildPatchServices: Build Stat: AppName: %s"), *BuildStats.AppName);
-		GLog->Logf(TEXT("BuildPatchServices: Build Stat: AppInstalledVersion: %s"), *BuildStats.AppInstalledVersion);
-		GLog->Logf(TEXT("BuildPatchServices: Build Stat: AppPatchVersion: %s"), *BuildStats.AppPatchVersion);
-		GLog->Logf(TEXT("BuildPatchServices: Build Stat: CloudDirectory: %s"), *BuildStats.CloudDirectory);
-		GLog->Logf(TEXT("BuildPatchServices: Build Stat: NumFilesInBuild: %u"), BuildStats.NumFilesInBuild);
-		GLog->Logf(TEXT("BuildPatchServices: Build Stat: NumFilesOutdated: %u"), BuildStats.NumFilesOutdated);
-		GLog->Logf(TEXT("BuildPatchServices: Build Stat: NumFilesToRemove: %u"), BuildStats.NumFilesToRemove);
-		GLog->Logf(TEXT("BuildPatchServices: Build Stat: NumChunksRequired: %u"), BuildStats.NumChunksRequired);
-		GLog->Logf(TEXT("BuildPatchServices: Build Stat: ChunksQueuedForDownload: %u"), BuildStats.ChunksQueuedForDownload);
-		GLog->Logf(TEXT("BuildPatchServices: Build Stat: ChunksLocallyAvailable: %u"), BuildStats.ChunksLocallyAvailable);
-		GLog->Logf(TEXT("BuildPatchServices: Build Stat: NumChunksDownloaded: %u"), BuildStats.NumChunksDownloaded);
-		GLog->Logf(TEXT("BuildPatchServices: Build Stat: NumChunksRecycled: %u"), BuildStats.NumChunksRecycled);
-		GLog->Logf(TEXT("BuildPatchServices: Build Stat: NumChunksCacheBooted: %u"), BuildStats.NumChunksCacheBooted);
-		GLog->Logf(TEXT("BuildPatchServices: Build Stat: NumDriveCacheChunkLoads: %u"), BuildStats.NumDriveCacheChunkLoads);
-		GLog->Logf(TEXT("BuildPatchServices: Build Stat: NumFailedDownloads: %u"), BuildStats.NumFailedDownloads);
-		GLog->Logf(TEXT("BuildPatchServices: Build Stat: NumBadDownloads: %u"), BuildStats.NumBadDownloads);
-		GLog->Logf(TEXT("BuildPatchServices: Build Stat: NumRecycleFailures: %u"), BuildStats.NumRecycleFailures);
-		GLog->Logf(TEXT("BuildPatchServices: Build Stat: NumDriveCacheLoadFailures: %u"), BuildStats.NumDriveCacheLoadFailures);
-		GLog->Logf(TEXT("BuildPatchServices: Build Stat: TotalDownloadedData: %lld"), BuildStats.TotalDownloadedData);
-		GLog->Logf(TEXT("BuildPatchServices: Build Stat: AverageDownloadSpeed: %.3f MB/sec"), BuildStats.AverageDownloadSpeed / 1024.0 / 1024.0);
-		GLog->Logf(TEXT("BuildPatchServices: Build Stat: TheoreticalDownloadTime: %s"), *FPlatformTime::PrettyTime(BuildStats.TheoreticalDownloadTime));
-		GLog->Logf(TEXT("BuildPatchServices: Build Stat: VerifyTime: %s"), *FPlatformTime::PrettyTime(BuildStats.VerifyTime));
-		GLog->Logf(TEXT("BuildPatchServices: Build Stat: CleanUpTime: %s"), *FPlatformTime::PrettyTime(BuildStats.CleanUpTime));
-		GLog->Logf(TEXT("BuildPatchServices: Build Stat: PrereqTime: %s"), *FPlatformTime::PrettyTime(BuildStats.PrereqTime));
-		GLog->Logf(TEXT("BuildPatchServices: Build Stat: ProcessExecuteTime: %s"), *FPlatformTime::PrettyTime(BuildStats.ProcessExecuteTime));
-		GLog->Logf(TEXT("BuildPatchServices: Build Stat: ProcessPausedTime: %.1f sec"), BuildStats.ProcessPausedTime);
-		GLog->Logf(TEXT("BuildPatchServices: Build Stat: ProcessSuccess: %s"), BuildStats.ProcessSuccess ? TEXT("TRUE") : TEXT("FALSE"));
-		GLog->Logf(TEXT("BuildPatchServices: Build Stat: ErrorCode: %s"), *BuildStats.ErrorCode);
-		GLog->Logf(TEXT("BuildPatchServices: Build Stat: FailureReasonText: %s"), *BuildStats.FailureReasonText.BuildSourceString());
-		GLog->Logf(TEXT("BuildPatchServices: Build Stat: FailureType %s"), *FBuildPatchInstallError::EnumToString(BuildStats.FailureType));
-		GLog->Logf(TEXT("BuildPatchServices: Build Stat: NumInstallRetries: %d"), BuildStats.NumInstallRetries);
-		check(BuildStats.NumInstallRetries == BuildStats.RetryFailureTypes.Num() && BuildStats.NumInstallRetries == BuildStats.RetryErrorCodes.Num());
-		for (uint32 RetryIdx = 0; RetryIdx < BuildStats.NumInstallRetries; ++RetryIdx)
-		{
-			GLog->Logf(TEXT("BuildPatchServices: Build Stat: RetryFailureType %d: %s"), RetryIdx, *FBuildPatchInstallError::EnumToString(BuildStats.RetryFailureTypes[RetryIdx]));
-			GLog->Logf(TEXT("BuildPatchServices: Build Stat: RetryErrorCodes %d: %s"), RetryIdx, *BuildStats.RetryErrorCodes[RetryIdx]);
-		}
-		GLog->Logf(TEXT("BuildPatchServices: Build Stat: FinalProgressValue: %f"), BuildStats.FinalProgress);
-		GLog->Logf(TEXT("BuildPatchServices: Build Stat: OverallRequestSuccessRate: %f"), BuildStats.OverallRequestSuccessRate);
-		GLog->Logf(TEXT("BuildPatchServices: Build Stat: ExcellentDownloadHealthTime: %f"), BuildStats.ExcellentDownloadHealthTime);
-		GLog->Logf(TEXT("BuildPatchServices: Build Stat: GoodDownloadHealthTime: %f"), BuildStats.GoodDownloadHealthTime);
-		GLog->Logf(TEXT("BuildPatchServices: Build Stat: OkDownloadHealthTime: %f"), BuildStats.OkDownloadHealthTime);
-		GLog->Logf(TEXT("BuildPatchServices: Build Stat: PoorDownloadHealthTime: %f"), BuildStats.PoorDownloadHealthTime);
-		GLog->Logf(TEXT("BuildPatchServices: Build Stat: DisconnectedDownloadHealthTime: %f"), BuildStats.DisconnectedDownloadHealthTime);
-	}
-
-	// Mark that we are done
-	bIsRunning = false;
-	return bSuccess ? 0 : 1;
-}
-
-bool FBuildPatchInstaller::CheckForExternallyInstalledFiles()
-{
-	// Check the marker file for a previous installation unfinished
-	if (IPlatformFile::GetPlatformPhysical().FileExists(*PreviousMoveMarker))
-	{
-		return true;
-	}
-
-	// If we are patching, but without the marker, we should not return true, the existing files will be old installation
-	if (CurrentBuildManifest.IsValid())
-	{
-		return false;
-	}
-
-	// Check if any required file is potentially already in place, by comparing file size as a quick 'same file' check
-	TArray<FString> BuildFiles;
-	NewBuildManifest->GetFileList(BuildFiles);
-	for (const FString& BuildFile : BuildFiles)
-	{
-		if (NewBuildManifest->GetFileSize(BuildFile) == IFileManager::Get().FileSize(*(Configuration.InstallDirectory / BuildFile)))
-		{
-			return true;
-		}
-	}
-	return false;
-}
-
-bool FBuildPatchInstaller::RunInstallation(TArray<FString>& CorruptFiles)
-{
-	GLog->Logf(TEXT("BuildPatchServices: Starting Installation"));
-	// Save the staging directories
-	FPaths::NormalizeDirectoryName(DataStagingDir);
-	FPaths::NormalizeDirectoryName(InstallStagingDir);
-
-	// Make sure staging directories exist
-	IFileManager::Get().MakeDirectory(*DataStagingDir, true);
-	IFileManager::Get().MakeDirectory(*InstallStagingDir, true);
-
-	// Reset any error from a previous install
-	FBuildPatchInstallError::Reset();
-	FBuildPatchAnalytics::ResetCounters();
-	BuildProgress.Reset();
-	BuildProgress.SetStateProgress(EBuildPatchState::Queued, 1.0f);
-	BuildProgress.SetStateProgress(EBuildPatchState::Initializing, 0.01f);
-	BuildProgress.SetStateProgress(EBuildPatchState::CleanUp, 0.0f);
-
-	// Remove any inventory
-	FBuildPatchFileConstructor::PurgeFileDataInventory();
-
-	// Store some totals
-	const uint32 NumFilesInBuild = NewBuildManifest->GetNumFiles();
-
-	// Get the list of required files, by the tags
-	TaggedFiles.Empty();
-	NewBuildManifest->GetTaggedFileList(Configuration.InstallTags, TaggedFiles);
-
-	// Check if we should skip out of this process due to existing installation,
-	// that will mean we start with the verification stage
-	bool bFirstTimeRun = CorruptFiles.Num() == 0;
-	if (bFirstTimeRun && CheckForExternallyInstalledFiles())
-	{
-		GLog->Logf(TEXT("BuildPatchServices: Detected previous staging completed, or existing files in target directory"));
-		// Set weights for verify only
-		BuildProgress.SetStateWeight(EBuildPatchState::Downloading, 0.0f);
-		BuildProgress.SetStateWeight(EBuildPatchState::Installing, 0.0f);
-		BuildProgress.SetStateWeight(EBuildPatchState::MovingToInstall, 0.0f);
-		BuildProgress.SetStateWeight(EBuildPatchState::SettingAttributes, 0.2f);
-		BuildProgress.SetStateWeight(EBuildPatchState::BuildVerification, 1.0f);
-		// Mark all installation steps complete
-		BuildProgress.SetStateProgress(EBuildPatchState::Initializing, 1.0f);
-		BuildProgress.SetStateProgress(EBuildPatchState::Resuming, 1.0f);
-		BuildProgress.SetStateProgress(EBuildPatchState::Downloading, 1.0f);
-		BuildProgress.SetStateProgress(EBuildPatchState::Installing, 1.0f);
-		BuildProgress.SetStateProgress(EBuildPatchState::MovingToInstall, 1.0f);
-		return true;
-	}
-
-	// Get the list of files actually needing construction
-	FilesToConstruct.Empty();
-	if (CorruptFiles.Num() > 0)
-	{
-		FilesToConstruct.Append(CorruptFiles);
-	}
-	else
-	{
-		TSet<FString> OutdatedFiles;
-		NewBuildManifest->GetOutdatedFiles(CurrentBuildManifest, Configuration.InstallDirectory, OutdatedFiles);
-		FilesToConstruct = OutdatedFiles.Intersect(TaggedFiles);
-	}
-	FilesToConstruct.Sort(TLess<FString>());
-	GLog->Logf(TEXT("BuildPatchServices: Requiring %d files"), FilesToConstruct.Num());
-
-	// Make sure all the files won't exceed the maximum path length
-	for (const auto& FileToConstruct : FilesToConstruct)
-	{
-		if ((InstallStagingDir / FileToConstruct).Len() >= PLATFORM_MAX_FILEPATH_LENGTH)
-		{
-			GWarn->Logf(TEXT("BuildPatchServices: ERROR: Could not create new file due to exceeding maximum path length %s"), *(InstallStagingDir / FileToConstruct));
-			FBuildPatchInstallError::SetFatalError(EBuildPatchInstallError::PathLengthExceeded, PathLengthErrorCodes::StagingDirectory);
-			return false;
-		}
-	}
-
-	// Create the downloader
-	FBuildPatchDownloader::Create(DataStagingDir, Configuration.CloudDirectories, NewBuildManifest, &BuildProgress);
-
-	// Set initial health
-	SetDownloadHealth(FBuildPatchDownloader::Get().GetDownloadHealth());
-
-	// Create chunk cache
-	if (bIsChunkData)
-	{
-		FBuildPatchChunkCache::Init(NewBuildManifest, CurrentBuildManifest, DataStagingDir, Configuration.InstallDirectory, &BuildProgress, FilesToConstruct, InstallationInfo);
-	}
-
-	// Hold the file constructor thread
-	FBuildPatchFileConstructor* FileConstructor = NULL;
-
-	// Stats for build
-	const uint32 NumFilesToConstruct = bIsFileData ? NumFilesInBuild : FBuildPatchChunkCache::Get().GetStatNumFilesToConstruct();
-	const uint32 NumRequiredChunks = bIsFileData ? NumFilesInBuild : FBuildPatchChunkCache::Get().GetStatNumRequiredChunks();
-	const uint32 NumChunksToDownload = bIsFileData ? NumFilesInBuild : FBuildPatchChunkCache::Get().GetStatNumChunksToDownload();
-	const uint32 NumChunksToConstruct = bIsFileData ? 0 : FBuildPatchChunkCache::Get().GetStatNumChunksToRecycle();
-
-	// Save stats
-	{
-		FScopeLock Lock(&ThreadLock);
-		BuildStats.NumFilesOutdated = NumFilesToConstruct;
-		BuildStats.NumChunksRequired = NumRequiredChunks;
-		BuildStats.ChunksQueuedForDownload = NumChunksToDownload;
-		BuildStats.ChunksLocallyAvailable = NumChunksToConstruct;
-	}
-
-	// Save initial counts as float for use with progress updates
-	InitialNumChunkDownloads = NumChunksToDownload;
-	InitialNumChunkConstructions = NumChunksToConstruct;
-
-	// Setup some weightings for the progress tracking
-	const float NumRequiredChunksFloat = NumRequiredChunks;
-	const bool bHasFileAttributes = NewBuildManifest->HasFileAttributes();
-	const float AttributesWeight = bHasFileAttributes ? Configuration.bIsRepair ? 1.0f / 50.0f : 1.0f / 20.0f : 0.0f;
-	const float VerifyWeight = Configuration.VerifyMode == EVerifyMode::ShaVerifyAllFiles || Configuration.VerifyMode == EVerifyMode::ShaVerifyTouchedFiles ? 1.1f / 9.0f : 0.3f / 9.0f;
-	BuildProgress.SetStateWeight(EBuildPatchState::Downloading, NumRequiredChunksFloat > 0.0f ? InitialNumChunkDownloads / NumRequiredChunksFloat : 0.0f);
-	BuildProgress.SetStateWeight(EBuildPatchState::Installing, NumRequiredChunksFloat > 0.0f ? 0.1f + (InitialNumChunkConstructions / NumRequiredChunksFloat) : 0.0f);
-	BuildProgress.SetStateWeight(EBuildPatchState::MovingToInstall, NumFilesToConstruct > 0 ? 0.05f : 0.0f);
-	BuildProgress.SetStateWeight(EBuildPatchState::SettingAttributes, AttributesWeight);
-	BuildProgress.SetStateWeight(EBuildPatchState::BuildVerification, VerifyWeight);
-
-	// If this is a repair operation, start off with install and download complete
-	if (Configuration.bIsRepair)
-	{
-		GLog->Logf(TEXT("BuildPatchServices: Performing a repair operation"));
-		BuildProgress.SetStateProgress(EBuildPatchState::Downloading, 1.0f);
-		BuildProgress.SetStateProgress(EBuildPatchState::Installing, 1.0f);
-		BuildProgress.SetStateProgress(EBuildPatchState::MovingToInstall, 1.0f);
-	}
-
-	// Start the file constructor
-	GLog->Logf(TEXT("BuildPatchServices: Starting file contruction worker"));
-	FileConstructor = new FBuildPatchFileConstructor(CurrentBuildManifest, NewBuildManifest, Configuration.InstallDirectory, InstallStagingDir, FilesToConstruct, &BuildProgress);
-
-	// Initializing is now complete if we are constructing files
-	BuildProgress.SetStateProgress(EBuildPatchState::Initializing, NumFilesToConstruct > 0 ? 1.0f : 0.0f);
-
-	// If this is file data, queue the download list
-	if (bIsFileData)
-	{
-		TArray< FGuid > RequiredFileData;
-		NewBuildManifest->GetChunksRequiredForFiles(FilesToConstruct, RequiredFileData);
-		FBuildPatchDownloader::Get().AddChunksToDownload(RequiredFileData);
-		TotalInitialDownloadSize = NewBuildManifest->GetDataSize(RequiredFileData);
-	}
-	else
-	{
-		TotalInitialDownloadSize = FBuildPatchChunkCache::Get().GetStatTotalChunkDownloadSize();
-	}
-
-	// Wait for the file constructor to complete
-	while (FileConstructor->IsComplete() == false)
-	{
-		UpdateDownloadProgressInfo();
-		FPlatformProcess::Sleep(0.1f);
-	}
-	FileConstructor->Wait();
-	delete FileConstructor;
-	FileConstructor = NULL;
-	GLog->Logf(TEXT("BuildPatchServices: File construction complete"));
-
-	// Wait for downloader to complete
-	FBuildPatchDownloader::Get().NotifyNoMoreChunksToAdd();
-	while (FBuildPatchDownloader::Get().IsComplete() == false)
-	{
-		UpdateDownloadProgressInfo();
-		FPlatformProcess::Sleep(0.0f);
-	}
-	TArray< FBuildPatchDownloadRecord > AllChunkDownloads = FBuildPatchDownloader::Get().GetDownloadRecordings();
-	double LastDownloadSpeedSeen = GetDownloadSpeed();
-	SetDownloadSpeed(-1);
-	BuildProgress.SetIsDownloading(false);
-
-	// Cache the final download health
-	SetDownloadHealth(FBuildPatchDownloader::Get().GetDownloadHealth());
-
-	// Calculate the average download speed from the recordings
-	// NB: Because we are threading several downloads at once this is not simply averaging every download. We have to know about
-	//     how much data is being received simultaneously too. We also need to ignore download pauses.
-	int64 TotalDownloadedBytes = 0;
-	double TotalTimeDownloading = 0;
-	double RecoredEndTime = 0;
-	if (AllChunkDownloads.Num() > 0)
-	{
-		// Sort by start time
-		AllChunkDownloads.Sort();
-		// Start with first record
-		TotalTimeDownloading = AllChunkDownloads[0].EndTime - AllChunkDownloads[0].StartTime;
-		TotalDownloadedBytes = AllChunkDownloads[0].DownloadSize;
-		RecoredEndTime = AllChunkDownloads[0].EndTime;
-		// For every other record..
-		for (int32 RecordIdx = 1; RecordIdx < AllChunkDownloads.Num(); ++RecordIdx)
-		{
-			// Do we have some time to count
-			if (RecoredEndTime < AllChunkDownloads[RecordIdx].EndTime)
-			{
-				// Was there a break in downloading
-				if (AllChunkDownloads[RecordIdx].StartTime > RecoredEndTime)
-				{
-					TotalTimeDownloading += AllChunkDownloads[RecordIdx].EndTime - AllChunkDownloads[RecordIdx].StartTime;
-				}
-				// Otherwise don't count time overlap
-				else
-				{
-					TotalTimeDownloading += AllChunkDownloads[RecordIdx].EndTime - RecoredEndTime;
-				}
-				RecoredEndTime = AllChunkDownloads[RecordIdx].EndTime;
-			}
-			// Count all bytes
-			TotalDownloadedBytes += AllChunkDownloads[RecordIdx].DownloadSize;
-		}
-	}
-
-	// Set final stats
-	{
-		FScopeLock Lock(&ThreadLock);
-		BuildStats.TotalDownloadedData = TotalDownloadedBytes;
-		BuildStats.NumChunksDownloaded = AllChunkDownloads.Num();
-		const double TotalDownloadedBytesDouble = TotalDownloadedBytes;
-		BuildStats.AverageDownloadSpeed = TotalTimeDownloading > 0 ? TotalDownloadedBytesDouble / TotalTimeDownloading : 0;
-		BuildStats.TheoreticalDownloadTime = TotalTimeDownloading;
-		BuildStats.NumChunksRecycled = bIsFileData ? 0 : FBuildPatchChunkCache::Get().GetCounterChunksRecycled();
-		BuildStats.NumChunksCacheBooted = bIsFileData ? 0 : FBuildPatchChunkCache::Get().GetCounterChunksCacheBooted();
-		BuildStats.NumDriveCacheChunkLoads = bIsFileData ? 0 : FBuildPatchChunkCache::Get().GetCounterDriveCacheChunkLoads();
-		BuildStats.NumFailedDownloads = FBuildPatchDownloader::Get().GetNumFailedDownloads();
-		BuildStats.NumBadDownloads = FBuildPatchDownloader::Get().GetNumBadDownloads();
-		BuildStats.NumRecycleFailures = bIsFileData ? 0 : FBuildPatchChunkCache::Get().GetCounterRecycleFailures();
-		BuildStats.NumDriveCacheLoadFailures = bIsFileData ? 0 : FBuildPatchChunkCache::Get().GetCounterDriveCacheLoadFailures();
-		BuildStats.OverallRequestSuccessRate = FBuildPatchDownloader::Get().GetDownloadSuccessRate();
-		TArray<float> HealthTimers = FBuildPatchDownloader::Get().GetDownloadHealthTimers();
-		BuildStats.ExcellentDownloadHealthTime = HealthTimers[(int32)EBuildPatchDownloadHealth::Excellent];
-		BuildStats.GoodDownloadHealthTime = HealthTimers[(int32)EBuildPatchDownloadHealth::Good];
-		BuildStats.OkDownloadHealthTime = HealthTimers[(int32)EBuildPatchDownloadHealth::OK];
-		BuildStats.PoorDownloadHealthTime = HealthTimers[(int32)EBuildPatchDownloadHealth::Poor];
-		BuildStats.DisconnectedDownloadHealthTime = HealthTimers[(int32)EBuildPatchDownloadHealth::Disconnected];
-		BuildStats.FinalDownloadSpeed = LastDownloadSpeedSeen;
-	}
-
-	// Perform static cleanup
-	if (bIsChunkData)
-	{
-		FBuildPatchChunkCache::Shutdown();
-	}
-	FBuildPatchDownloader::Shutdown();
-	FBuildPatchFileConstructor::PurgeFileDataInventory();
-
-	GLog->Logf(TEXT("BuildPatchServices: Staged install complete"));
-
-	return !FBuildPatchInstallError::HasFatalError();
-}
-
-
-void FBuildPatchInstaller::CleanupEmptyDirectories(const FString& RootDirectory)
-{
-	TArray<FString> SubDirNames;
-	IFileManager::Get().FindFiles(SubDirNames, *(RootDirectory / TEXT("*")), false, true);
-	for(auto DirName : SubDirNames)
-	{
-		CleanupEmptyDirectories(*(RootDirectory / DirName));
-	}
-
-	TArray<FString> SubFileNames;
-	IFileManager::Get().FindFilesRecursive(SubFileNames, *RootDirectory, TEXT("*.*"), true, false);
-	if (SubFileNames.Num() == 0)
-	{
-#if PLATFORM_MAC
-		// On Mac we need to delete the .DS_Store file, but FindFiles() skips .DS_Store files.
-		IFileManager::Get().Delete(*(RootDirectory / TEXT(".DS_Store")), false, true);
-#endif
-
-		bool bDeleteSuccess = IFileManager::Get().DeleteDirectory(*RootDirectory, false, true);
-		const uint32 LastError = FPlatformMisc::GetLastError();
-		GLog->Logf(TEXT("BuildPatchServices: Deleted Empty Folder (%u,%u) %s"), bDeleteSuccess ? 1 : 0, LastError, *RootDirectory);
-	}
-}
-
-void FBuildPatchInstaller::LoadLocalMachineConfig()
-{
-	check(IsInGameThread());
-	TArray<FString> ConfigStrings;
-	GConfig->GetArray(TEXT("Portal.BuildPatch"), TEXT("InstalledPrereqs"), ConfigStrings, LocalMachineConfigFile);
-	ThreadLock.Lock();
-	InstalledPrereqs.Append(ConfigStrings);
-	ThreadLock.Unlock();
-}
-
-void FBuildPatchInstaller::SaveLocalMachineConfig()
-{
-	check(IsInGameThread());
-	ThreadLock.Lock();
-	GConfig->SetArray(TEXT("Portal.BuildPatch"), TEXT("InstalledPrereqs"), InstalledPrereqs.Array(), LocalMachineConfigFile);
-	ThreadLock.Unlock();
-}
-
-bool FBuildPatchInstaller::RunBackupAndMove()
-{
-	// We skip this step if performing stage only
-	bool bMoveSuccess = true;
-	if (Configuration.bStageOnly)
-	{
-		GLog->Logf(TEXT("BuildPatchServices: Skipping backup and stage relocation"));
-		BuildProgress.SetStateProgress(EBuildPatchState::MovingToInstall, 1.0f);
-	}
-	else
-	{
-		GLog->Logf(TEXT("BuildPatchServices: Running backup and stage relocation"));
-		// If there's no error, move all complete files
-		bMoveSuccess = FBuildPatchInstallError::HasFatalError() == false;
-		if (bMoveSuccess)
-		{
-			// First handle files that should be removed for patching
-			TArray< FString > FilesToRemove;
-			if (CurrentBuildManifest.IsValid())
-			{
-				NewBuildManifest->GetRemovableFiles(CurrentBuildManifest.ToSharedRef(), FilesToRemove);
-			}
-			// And also files that may no longer be required (removal of tags)
-			TArray<FString> NewBuildFiles;
-			NewBuildManifest->GetFileList(NewBuildFiles);
-			TSet<FString> NewBuildFilesSet(NewBuildFiles);
-			TSet<FString> RemovableBuildFiles = NewBuildFilesSet.Difference(TaggedFiles);
-			FilesToRemove.Append(RemovableBuildFiles.Array());
-			// Add to build stats
-			ThreadLock.Lock();
-			BuildStats.NumFilesToRemove = FilesToRemove.Num();
-			ThreadLock.Unlock();
-			for (const FString& OldFilename : FilesToRemove)
-			{
-				BackupFileIfNecessary(OldFilename);
-				const bool bDeleteSuccess = IFileManager::Get().Delete(*(Configuration.InstallDirectory / OldFilename), false, true, true);
-				const uint32 LastError = FPlatformMisc::GetLastError();
-				GLog->Logf(TEXT("BuildPatchServices: Removed (%u,%u) %s"), bDeleteSuccess ? 1 : 0, LastError, *OldFilename);
-			}
-
-			// Now handle files that have been constructed
-			bool bSavedMoveMarkerFile = false;
-			TArray< FString > ConstructionFiles;
-			NewBuildManifest->GetFileList(ConstructionFiles);
-			BuildProgress.SetStateProgress(EBuildPatchState::MovingToInstall, 0.0f);
-			const float NumConstructionFilesFloat = ConstructionFiles.Num();
-			for (auto ConstructionFilesIt = ConstructionFiles.CreateConstIterator(); ConstructionFilesIt && bMoveSuccess && !FBuildPatchInstallError::HasFatalError(); ++ConstructionFilesIt)
-			{
-				const FString& ConstructionFile = *ConstructionFilesIt;
-				const FString SrcFilename = InstallStagingDir / ConstructionFile;
-				const FString DestFilename = Configuration.InstallDirectory / ConstructionFile;
-				const float FileIndexFloat = ConstructionFilesIt.GetIndex();
-				// Skip files not constructed
-				if (!FPlatformFileManager::Get().GetPlatformFile().FileExists(*SrcFilename))
-				{
-					BuildProgress.SetStateProgress(EBuildPatchState::MovingToInstall, FileIndexFloat / NumConstructionFilesFloat);
-					continue;
-				}
-				// Create the move marker file
-				if (!bSavedMoveMarkerFile)
-				{
-					bSavedMoveMarkerFile = true;
-					GLog->Logf(TEXT("BuildPatchServices: Create MM"));
-					FArchive* MoveMarkerFile = IFileManager::Get().CreateFileWriter(*PreviousMoveMarker, FILEWRITE_EvenIfReadOnly);
-					if (MoveMarkerFile != NULL)
+					CleanUpTimer.Start();
+					if (Configuration.bStageOnly)
 					{
-						MoveMarkerFile->Close();
-						delete MoveMarkerFile;
-					}
-					// Make sure we have some progress if we do some work
-					if (BuildProgress.GetStateWeight(EBuildPatchState::MovingToInstall) <= 0.0f)
-					{
-						BuildProgress.SetStateWeight(EBuildPatchState::MovingToInstall, 0.1f);
-					}
-				}
-				// Backup file if need be
-				BackupFileIfNecessary(ConstructionFile);
-				// Delete existing if there
-				IFileManager::Get().Delete(*DestFilename, false, true, false);
-				// Move the file to the installation directory
-				int32 MoveRetries = NUM_FILE_MOVE_RETRIES;
-				bMoveSuccess = IFileManager::Get().Move(*DestFilename, *SrcFilename, true, true, true, true);
-				uint32 ErrorCode = FPlatformMisc::GetLastError();
-				while (!bMoveSuccess && MoveRetries > 0)
-				{
-					--MoveRetries;
-					FBuildPatchAnalytics::RecordConstructionError(ConstructionFile, ErrorCode, TEXT("Failed To Move"));
-					UE_LOG(LogBuildPatchServices, Error, TEXT("Failed to move file %s (%d), trying copy"), *ConstructionFile, ErrorCode);
-					bMoveSuccess = IFileManager::Get().Copy(*DestFilename, *SrcFilename, true, true, true) == COPY_OK;
-					ErrorCode = FPlatformMisc::GetLastError();
-					if (!bMoveSuccess)
-					{
-						UE_LOG(LogBuildPatchServices, Error, TEXT("Failed to copy file %s (%d), retying after 0.5 sec"), *ConstructionFile, ErrorCode);
-						FPlatformProcess::Sleep(0.5f);
-						bMoveSuccess = IFileManager::Get().Move(*DestFilename, *SrcFilename, true, true, true, true);
-						ErrorCode = FPlatformMisc::GetLastError();
+						UE_LOG(LogBuildPatchServices, Log, TEXT("Deleting litter from staging area."));
+						IFileManager::Get().DeleteDirectory(*DataStagingDir, false, true);
+						IFileManager::Get().Delete(*(InstallStagingDir / TEXT("$resumeData")), false, true);
 					}
 					else
 					{
-						IFileManager::Get().Delete(*SrcFilename, false, true, false);
+						UE_LOG(LogBuildPatchServices, Log, TEXT("Deleting staging area."));
+						IFileManager::Get().DeleteDirectory(*Configuration.StagingDirectory, false, true);
+					}
+					CleanUpTimer.Stop();
+				}
+				BuildProgress.SetStateProgress(EBuildPatchState::CleanUp, 1.0f);
+
+				// Set if we can retry
+				--InstallRetries;
+				bCanRetry = InstallRetries > 0 && !InstallerError->IsCancelled() && InstallerError->CanRetry();
+
+				// If successful or we will retry, remove the moved files marker
+				if (bProcessSuccess || bCanRetry)
+				{
+					UE_LOG(LogBuildPatchServices, Log, TEXT("Reset MM."));
+					IFileManager::Get().Delete(*PreviousMoveMarker, false, true);
+				}
+
+				// Setup end of attempt stats
+				bFirstInstallIteration = false;
+				float TempFinalProgress = BuildProgress.GetProgressNoMarquee();
+				{
+					FScopeLock Lock(&ThreadLock);
+					BuildStats.NumInstallRetries = ConfigHelpers::NumInstallerRetries() - (InstallRetries + 1);
+					BuildStats.FinalProgress = TempFinalProgress;
+					// If we failed, and will retry, record this failure type and reset the abort flag
+					if (!bProcessSuccess && bCanRetry)
+					{
+						BuildStats.RetryFailureTypes.Add(InstallerError->GetErrorType());
+						BuildStats.RetryErrorCodes.Add(InstallerError->GetErrorCode());
+						bShouldAbort = false;
 					}
 				}
-				if (!bMoveSuccess)
-				{
-					UE_LOG(LogBuildPatchServices, Error, TEXT("Failed to move file %s"), *FPaths::GetCleanFilename(ConstructionFile));
-					FBuildPatchInstallError::SetFatalError(EBuildPatchInstallError::MoveFileToInstall, MoveErrorCodes::StageToInstall);
-				}
-				else
-				{
-					FilesInstalled.Add(ConstructionFile);
-					BuildProgress.SetStateProgress(EBuildPatchState::MovingToInstall, FileIndexFloat / NumConstructionFilesFloat);
-				}
 			}
+		}
 
-			// After we've completed deleting/moving patch files to the install directory, clean up any empty directories left over
-			CleanupEmptyDirectories(Configuration.InstallDirectory);
-
-			bMoveSuccess = bMoveSuccess && (FBuildPatchInstallError::HasFatalError() == false);
-			if (bMoveSuccess)
+		if (bProcessSuccess)
+		{
+			// Run the prerequisites installer if this is our first install and the manifest has prerequisites info
+			if (bInstallPrereqs)
 			{
-				BuildProgress.SetStateProgress(EBuildPatchState::MovingToInstall, 1.0f);
+				PrereqTimer.Start();
+				bProcessSuccess &= RunPrerequisites();
+				PrereqTimer.Stop();
 			}
 		}
-		GLog->Logf(TEXT("BuildPatchServices: Relocation complete %d"), bMoveSuccess?1:0);
-	}
-	return bMoveSuccess;
-}
 
-bool FBuildPatchInstaller::RunFileAttributes(bool bForce)
-{
-	// Only provide stage directory if stage-only mode
-	FString EmptyString;
-	FString& OptionalStageDirectory = Configuration.bStageOnly ? InstallStagingDir : EmptyString;
+		// Make sure all timers are stopped
+		InitializeTimer.Stop();
+		ConstructTimer.Stop();
+		MoveFromStageTimer.Stop();
+		FileAttributesTimer.Stop();
+		VerifyTimer.Stop();
+		CleanUpTimer.Stop();
+		PrereqTimer.Stop();
+		ProcessPausedTimer.Stop();
+		ProcessActiveTimer.Stop();
+		ProcessExecuteTimer.Stop();
 
-	// Construct the attributes class
-	auto Attributes = FBuildPatchFileAttributesFactory::Create(NewBuildManifest, CurrentBuildManifest, Configuration.InstallDirectory, OptionalStageDirectory, &BuildProgress);
-	Attributes->ApplyAttributes(bForce);
-
-	// We don't fail on this step currently
-	return true;
-}
-
-bool FBuildPatchInstaller::RunVerification(TArray< FString >& CorruptFiles)
-{
-	// Make sure this function can never be parallelized
-	static FCriticalSection SingletonFunctionLockCS;
-	FScopeLock SingletonFunctionLock(&SingletonFunctionLockCS);
-
-	BuildProgress.SetStateProgress(EBuildPatchState::BuildVerification, 0.0f);
-
-	// Verify the installation
-	double VerifyTime = 0;
-	double VerifyPauseTime;
-	GLog->Logf(TEXT("BuildPatchServices: Verifying install"));
-	CorruptFiles.Empty();
-	VerifyTime = FPlatformTime::Seconds();
-
-	// Setup the verify delegates
-	FBuildPatchFloatDelegate ProgressDelegate = FBuildPatchFloatDelegate::CreateRaw(this, &FBuildPatchInstaller::UpdateVerificationProgress);
-	FBuildPatchBoolRetDelegate IsPausedDelegate = FBuildPatchBoolRetDelegate::CreateRaw(this, &FBuildPatchInstaller::IsPaused);
-
-	// Only provide stage directory if stage-only mode
-	FString EmptyString;
-	FString& OptionalStageDirectory = Configuration.bStageOnly ? InstallStagingDir : EmptyString;
-
-	// For a repair operation, the first verify must be ShaVerifyAllFiles.
-	EVerifyMode ModeToRun = Configuration.bIsRepair && bFirstInstallIteration ? EVerifyMode::ShaVerifyAllFiles : Configuration.VerifyMode;
-
-	// Construct the verifier
-	TSharedRef<FBuildPatchVerification> Verifier = FBuildPatchVerificationFactory::Create(ModeToRun, FilesToConstruct, Configuration.InstallTags, NewBuildManifest, Configuration.InstallDirectory, OptionalStageDirectory, ProgressDelegate, IsPausedDelegate);
-
-	// Verify the build
-	bool bVerifySuccess = Verifier->VerifyAgainstDirectory(CorruptFiles, VerifyPauseTime);
-	VerifyTime = FPlatformTime::Seconds() - VerifyTime - VerifyPauseTime;
-	if (!bVerifySuccess)
-	{
-		UE_LOG(LogBuildPatchServices, Error, TEXT("Build verification failed on %u file(s)"), CorruptFiles.Num());
-		FBuildPatchInstallError::SetFatalError(EBuildPatchInstallError::BuildVerifyFail, VerifyErrorCodes::FinalCheck);
-	}
-
-	ThreadLock.Lock();
-	BuildStats.VerifyTime = VerifyTime;
-	ThreadLock.Unlock();
-
-	BuildProgress.SetStateProgress(EBuildPatchState::BuildVerification, 1.0f);
-
-	// Delete/Backup any incorrect files if failure was not cancellation
-	if (!FBuildPatchInstallError::IsInstallationCancelled())
-	{
-		for (const FString& CorruptFile : CorruptFiles)
+		// Set final stat values and log out results
+		bSuccess = bProcessSuccess;
 		{
-			BackupFileIfNecessary(CorruptFile, true);
-			if (!Configuration.bStageOnly)
+			FScopeLock Lock(&ThreadLock);
+			BuildStats.InitializeTime = InitializeTimer.GetSeconds();
+			BuildStats.ConstructTime = ConstructTimer.GetSeconds();
+			BuildStats.MoveFromStageTime = MoveFromStageTimer.GetSeconds();
+			BuildStats.FileAttributesTime = FileAttributesTimer.GetSeconds();
+			BuildStats.VerifyTime = VerifyTimer.GetSeconds();
+			BuildStats.CleanUpTime = CleanUpTimer.GetSeconds();
+			BuildStats.PrereqTime = PrereqTimer.GetSeconds();
+			BuildStats.ProcessPausedTime = ProcessPausedTimer.GetSeconds();
+			BuildStats.ProcessActiveTime = ProcessActiveTimer.GetSeconds();
+			BuildStats.ProcessExecuteTime = ProcessExecuteTimer.GetSeconds();
+			BuildStats.ProcessSuccess = bProcessSuccess;
+			BuildStats.ErrorCode = InstallerError->GetErrorCode();
+			BuildStats.FailureReasonText = InstallerError->GetErrorText();
+			BuildStats.FailureType = InstallerError->GetErrorType();
+
+			// Log stats
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: AppName: %s"), *BuildStats.AppName);
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: AppInstalledVersion: %s"), *BuildStats.AppInstalledVersion);
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: AppPatchVersion: %s"), *BuildStats.AppPatchVersion);
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: CloudDirectory: %s"), *BuildStats.CloudDirectory);
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: NumFilesInBuild: %u"), BuildStats.NumFilesInBuild);
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: NumFilesOutdated: %u"), BuildStats.NumFilesOutdated);
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: NumFilesToRemove: %u"), BuildStats.NumFilesToRemove);
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: NumChunksRequired: %u"), BuildStats.NumChunksRequired);
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: ChunksQueuedForDownload: %u"), BuildStats.ChunksQueuedForDownload);
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: ChunksLocallyAvailable: %u"), BuildStats.ChunksLocallyAvailable);
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: ChunksInChunkDbs: %u"), BuildStats.ChunksInChunkDbs);
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: NumChunksDownloaded: %u"), BuildStats.NumChunksDownloaded);
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: NumChunksRecycled: %u"), BuildStats.NumChunksRecycled);
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: NumChunksReadFromChunkDbs: %u"), BuildStats.NumChunksReadFromChunkDbs);
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: NumChunksCacheBooted: %u"), BuildStats.NumChunksCacheBooted);
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: NumDriveCacheChunkLoads: %u"), BuildStats.NumDriveCacheChunkLoads);
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: NumFailedDownloads: %u"), BuildStats.NumFailedDownloads);
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: NumBadDownloads: %u"), BuildStats.NumBadDownloads);
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: NumAbortedDownloads: %u"), BuildStats.NumAbortedDownloads);
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: NumRecycleFailures: %u"), BuildStats.NumRecycleFailures);
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: NumDriveCacheLoadFailures: %u"), BuildStats.NumDriveCacheLoadFailures);
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: NumChunkDbChunksFailed: %u"), BuildStats.NumChunkDbChunksFailed);
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: TotalDownloadedData: %lld"), BuildStats.TotalDownloadedData);
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: AverageDownloadSpeed: %.3f MB/sec"), BuildStats.AverageDownloadSpeed / 1024.0 / 1024.0);
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: TheoreticalDownloadTime: %s"), *FPlatformTime::PrettyTime(BuildStats.TheoreticalDownloadTime));
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: InitializeTime: %s"), *FPlatformTime::PrettyTime(BuildStats.InitializeTime));
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: ConstructTime: %s"), *FPlatformTime::PrettyTime(BuildStats.ConstructTime));
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: MoveFromStageTime: %s"), *FPlatformTime::PrettyTime(BuildStats.MoveFromStageTime));
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: FileAttributesTime: %s"), *FPlatformTime::PrettyTime(BuildStats.FileAttributesTime));
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: VerifyTime: %s"), *FPlatformTime::PrettyTime(BuildStats.VerifyTime));
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: CleanUpTime: %s"), *FPlatformTime::PrettyTime(BuildStats.CleanUpTime));
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: PrereqTime: %s"), *FPlatformTime::PrettyTime(BuildStats.PrereqTime));
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: ProcessPausedTime: %s"), *FPlatformTime::PrettyTime(BuildStats.ProcessPausedTime));
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: ProcessActiveTime: %s"), *FPlatformTime::PrettyTime(BuildStats.ProcessActiveTime));
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: ProcessExecuteTime: %s"), *FPlatformTime::PrettyTime(BuildStats.ProcessExecuteTime));
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: ProcessSuccess: %s"), BuildStats.ProcessSuccess ? TEXT("TRUE") : TEXT("FALSE"));
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: ErrorCode: %s"), *BuildStats.ErrorCode);
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: FailureReasonText: %s"), *BuildStats.FailureReasonText.BuildSourceString());
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: FailureType: %s"), *EnumToString(BuildStats.FailureType));
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: NumInstallRetries: %d"), BuildStats.NumInstallRetries);
+			check(BuildStats.NumInstallRetries == BuildStats.RetryFailureTypes.Num() && BuildStats.NumInstallRetries == BuildStats.RetryErrorCodes.Num());
+			for (uint32 RetryIdx = 0; RetryIdx < BuildStats.NumInstallRetries; ++RetryIdx)
 			{
-				IFileManager::Get().Delete(*(Configuration.InstallDirectory / CorruptFile), false, true);
+				UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: RetryFailureType %d: %s"), RetryIdx, *EnumToString(BuildStats.RetryFailureTypes[RetryIdx]));
+				UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: RetryErrorCodes %d: %s"), RetryIdx, *BuildStats.RetryErrorCodes[RetryIdx]);
 			}
-			IFileManager::Get().Delete(*(InstallStagingDir / CorruptFile), false, true);
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: FinalProgressValue: %f"), BuildStats.FinalProgress);
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: OverallRequestSuccessRate: %f"), BuildStats.OverallRequestSuccessRate);
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: ExcellentDownloadHealthTime: %f"), BuildStats.ExcellentDownloadHealthTime);
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: GoodDownloadHealthTime: %f"), BuildStats.GoodDownloadHealthTime);
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: OkDownloadHealthTime: %f"), BuildStats.OkDownloadHealthTime);
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: PoorDownloadHealthTime: %f"), BuildStats.PoorDownloadHealthTime);
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Build Stat: DisconnectedDownloadHealthTime: %f"), BuildStats.DisconnectedDownloadHealthTime);
 		}
+
+		// Mark that we are done
+		bIsRunning = false;
+		return bSuccess ? 0 : 1;
 	}
 
-	GLog->Logf(TEXT("BuildPatchServices: Verify stage complete %d"), bVerifySuccess ? 1 : 0);
-
-	return bVerifySuccess;
-}
-
-bool FBuildPatchInstaller::BackupFileIfNecessary(const FString& Filename, bool bDiscoveredByVerification /*= false */)
-{
-	const FString InstalledFilename = Configuration.InstallDirectory / Filename;
-	const FString BackupFilename = Configuration.BackupDirectory / Filename;
-	const bool bBackupOriginals = !Configuration.BackupDirectory.IsEmpty();
-	// Skip if not doing backups
-	if (!bBackupOriginals)
+	bool FBuildPatchInstaller::CheckForExternallyInstalledFiles()
 	{
-		return true;
-	}
-	// Skip if no file to backup
-	const bool bInstalledFileExists = FPlatformFileManager::Get().GetPlatformFile().FileExists(*InstalledFilename);
-	if (!bInstalledFileExists)
-	{
-		return true;
-	}
-	// Skip if already backed up
-	const bool bAlreadyBackedUp = FPlatformFileManager::Get().GetPlatformFile().FileExists(*BackupFilename);
-	if (bAlreadyBackedUp)
-	{
-		return true;
-	}
-	// Skip if the target file was already copied to the installation
-	const bool bAlreadyInstalled = FilesInstalled.Contains(Filename);
-	if (bAlreadyInstalled)
-	{
-		return true;
-	}
-	// If discovered by verification, but the patching system did not touch the file, we know it must be backed up.
-	// If patching system touched the file it would already have been backed up
-	if (bDiscoveredByVerification && CurrentBuildManifest.IsValid() && !NewBuildManifest->IsFileOutdated(CurrentBuildManifest.ToSharedRef(), Filename))
-	{
-		return IFileManager::Get().Move(*BackupFilename, *InstalledFilename, true, true, true);
-	}
-	bool bUserEditedFile = bDiscoveredByVerification;
-	const bool bCheckFileChanges = !bDiscoveredByVerification;
-	if (bCheckFileChanges)
-	{
-		const FFileManifestData* OldFileManifest = CurrentBuildManifest.IsValid() ? CurrentBuildManifest->GetFileManifest(Filename) : nullptr;
-		const FFileManifestData* NewFileManifest = NewBuildManifest->GetFileManifest(Filename);
-		const int64 InstalledFilesize = IFileManager::Get().FileSize(*InstalledFilename);
-		const int64 OriginalFileSize = OldFileManifest ? OldFileManifest->GetFileSize() : INDEX_NONE;
-		const int64 NewFileSize = NewFileManifest ? NewFileManifest->GetFileSize() : INDEX_NONE;
-		const FSHAHashData HashZero;
-		const FSHAHashData& HashOld = OldFileManifest ? OldFileManifest->FileHash : HashZero;
-		const FSHAHashData& HashNew = NewFileManifest ? NewFileManifest->FileHash : HashZero;
-		const bool bFileSizeDiffers = OriginalFileSize != InstalledFilesize && NewFileSize != InstalledFilesize;
-		bUserEditedFile = bFileSizeDiffers || FBuildPatchUtils::VerifyFile(InstalledFilename, HashOld, HashNew) == 0;
-	}
-	// Finally, use the above logic to determine if we must do the backup
-	const bool bNeedBackup = bUserEditedFile;
-	bool bBackupSuccess = true;
-	if (bNeedBackup)
-	{
-		GLog->Logf(TEXT("BuildPatchServices: Backing up %s"), *Filename);
-		bBackupSuccess = IFileManager::Get().Move(*BackupFilename, *InstalledFilename, true, true, true);
-	}
-	return bBackupSuccess;
-}
-
-bool FBuildPatchInstaller::RunPrereqInstaller()
-{
-	FScopeTimer ScopeTimer(BuildStats.PrereqTime, &ThreadLock);
-	BuildProgress.SetStateProgress(EBuildPatchState::PrerequisitesInstall, 0.0f);
-
-	// The prereq fields support some known variables
-	static const TCHAR* RootDirectoryVariable = TEXT("$[RootDirectory]");
-	static const TCHAR* LogDirectoryVariable = TEXT("$[LogDirectory]");
-	static const TCHAR* QuoteVariable = TEXT("$[Quote]");
-	static const TCHAR* Quote = TEXT("\"");
-	const FString InstallDirWithSlash = Configuration.InstallDirectory / TEXT("");
-	const FString StageDirWithSlash = InstallStagingDir / TEXT("");
-	const FString LogDirWithSlash = FPaths::ConvertRelativePathToFull(FPaths::ProjectLogDir() / TEXT(""));
-
-	// Get the hash string for the prereq so we can use it to check and set if already installed previously
-	FString PrereqHashString;
-	{
-		FString PrereqFilename = NewBuildManifest->GetPrereqPath();
-		PrereqFilename.ReplaceInline(TEXT("\\"), TEXT("/"));
-		FSHAHashData PrereqHash;
-		if (NewBuildManifest->GetFileHash(PrereqFilename, PrereqHash))
+		// Check the marker file for a previous installation unfinished
+		if (IPlatformFile::GetPlatformPhysical().FileExists(*PreviousMoveMarker))
 		{
-			PrereqHashString = PrereqHash.ToString();
-		}
-	}
-
-	// Check to see if we stored a successful run of this prerequisite already, and can therefore skip it.
-	// We only skip if we are not attempting a repair.
-	if (!Configuration.bIsRepair && !PrereqHashString.IsEmpty())
-	{
-		FScopeLock ScopeLock(&ThreadLock);
-		if (InstalledPrereqs.Contains(PrereqHashString))
-		{
-			UE_LOG(LogBuildPatchServices, Log, TEXT("Skipping already installed prerequisites installer"));
-			BuildProgress.SetStateProgress(EBuildPatchState::PrerequisitesInstall, 1.0f);
 			return true;
 		}
-	}
 
-	FString PrereqPath;
-	bool bUsingInstallRoot = false;
-	bool bUsingStageRoot = false;
-	if (Configuration.bStageOnly)
-	{
-		PrereqPath = NewBuildManifest->GetPrereqPath();
-		if (PrereqPath.ReplaceInline(RootDirectoryVariable, *StageDirWithSlash) == 0)
-		{
-			PrereqPath = StageDirWithSlash + NewBuildManifest->GetPrereqPath();
-		}
-		if (IFileManager::Get().FileSize(*PrereqPath) > 0)
-		{
-			bUsingStageRoot = true;
-		}
-	}
-	if (!bUsingStageRoot)
-	{
-		PrereqPath = NewBuildManifest->GetPrereqPath();
-		if (PrereqPath.ReplaceInline(RootDirectoryVariable, *InstallDirWithSlash) == 0)
-		{
-			PrereqPath = InstallDirWithSlash + NewBuildManifest->GetPrereqPath();
-		}
-		if (IFileManager::Get().FileSize(*PrereqPath) > 0)
-		{
-			bUsingInstallRoot = true;
-		}
-	}
-	// If we found no prerequisite above, then we have nothing to run and this is an error in the shipped build
-	if (!bUsingInstallRoot && !bUsingStageRoot)
-	{
-		PrereqPath = NewBuildManifest->GetPrereqPath();
-	}
-
-	const FString PrereqCommandline = NewBuildManifest->GetPrereqArgs()
-		.Replace(RootDirectoryVariable, *InstallDirWithSlash)
-		.Replace(LogDirectoryVariable, *LogDirWithSlash)
-		.Replace(QuoteVariable, Quote);
-
-	UE_LOG(LogBuildPatchServices, Log, TEXT("Running prerequisites installer %s %s"), *PrereqPath, *PrereqCommandline);
-
-	// Prerequisites have to be ran elevated otherwise a background run of the prereq which asks for elevation itself
-	// on some OSs will result in a minimised or un-focused request.
-	int32 ReturnCode = INDEX_NONE;
-	bool bPrereqInstallSuccessful = FPlatformProcess::ExecElevatedProcess(*PrereqPath, *PrereqCommandline, &ReturnCode);
-	if (!bPrereqInstallSuccessful)
-	{
-		ReturnCode = FPlatformMisc::GetLastError();
-		UE_LOG(LogBuildPatchServices, Error, TEXT("Failed to start the prerequisites install process %u"), ReturnCode);
-		FBuildPatchAnalytics::RecordPrereqInstallationError(NewBuildManifest->GetAppName(), NewBuildManifest->GetVersionString(), PrereqPath, PrereqCommandline, ReturnCode, TEXT("Failed to start installer"));
-		FBuildPatchInstallError::SetFatalError(EBuildPatchInstallError::PrerequisiteError, *FString::Printf(TEXT("%s%u"), PrerequisiteErrorPrefixes::ExecuteCode, ReturnCode));
-	}
-	else
-	{
-		if (ReturnCode != 0)
-		{
-			UE_LOG(LogBuildPatchServices, Error, TEXT("Prerequisites executable failed with code %u"), ReturnCode);
-			FBuildPatchAnalytics::RecordPrereqInstallationError(NewBuildManifest->GetAppName(), NewBuildManifest->GetVersionString(), PrereqPath, PrereqCommandline, ReturnCode, TEXT("Failed to install"));
-			bPrereqInstallSuccessful = false;
-			FBuildPatchInstallError::SetFatalError(EBuildPatchInstallError::PrerequisiteError, *FString::Printf(TEXT("%s%u"), PrerequisiteErrorPrefixes::ReturnCode, ReturnCode));
-		}
-	}
-
-	if (bPrereqInstallSuccessful)
-	{
-		FScopeLock ScopeLock(&ThreadLock);
-		BuildProgress.SetStateProgress(EBuildPatchState::PrerequisitesInstall, 1.0f);
-		InstalledPrereqs.Add(PrereqHashString);
-	}
-
-	return bPrereqInstallSuccessful;
-}
-
-void FBuildPatchInstaller::SetDownloadSpeed( double ByteSpeed )
-{
-	FScopeLock Lock( &ThreadLock );
-	DownloadSpeedValue = ByteSpeed;
-}
-
-void FBuildPatchInstaller::SetDownloadBytesLeft( const int64& BytesLeft )
-{
-	FScopeLock Lock( &ThreadLock );
-	DownloadBytesLeft = BytesLeft;
-}
-
-void FBuildPatchInstaller::UpdateDownloadProgressInfo( bool bReset )
-{
-	// Static variables for persistent values
-	static double LastTime = FPlatformTime::Seconds();
-	static double NowTime = 0;
-	static double DeltaTime = 0;
-	static double LastReadingTime = 0;
-	static double LastDataReadings[NUM_DOWNLOAD_READINGS] = { 0 };
-	static double LastTimeReadings[NUM_DOWNLOAD_READINGS] = { 0 };
-	static uint32 ReadingIdx = 0;
-	static bool bProgressIsDownload = true;
-	static double AverageDownloadSpeed = 0;
-
-	// Reset internals?
-	if( bReset )
-	{
-		LastTime = FPlatformTime::Seconds();
-		LastReadingTime = LastTime;
-		NowTime = 0;
-		DeltaTime = 0;
-		for (int32 i = 0; i < NUM_DOWNLOAD_READINGS; ++i)
-		{
-			LastDataReadings[i] = 0;
-			LastTimeReadings[i] = 0;
-		}
-		ReadingIdx = 0;
-		bProgressIsDownload = true;
-		AverageDownloadSpeed = 0;
-		return;
-	}
-
-	// Return if not downloading yet
-	if( !NewBuildManifest->IsFileDataManifest() && !FBuildPatchChunkCache::Get().HaveDownloadsStarted() )
-	{
-		return;
-	}
-
-	// Cache the download health.
-	EBuildPatchDownloadHealth CurrentDownloadHealth = FBuildPatchDownloader::Get().GetDownloadHealth();
-	SetDownloadHealth(CurrentDownloadHealth);
-	BuildProgress.SetIsDownloading(FBuildPatchDownloader::Get().IsDownloading());
-
-	// Calculate percentage complete based on number of chunks
-	const int64 DownloadNumBytesLeft = FBuildPatchDownloader::Get().GetNumBytesLeft();
-	const float DownloadSizeFloat = TotalInitialDownloadSize;
-	const float DownloadBytesLeftFloat = DownloadNumBytesLeft;
-	const float DownloadProgress = 1.0f - (TotalInitialDownloadSize > 0 ? DownloadBytesLeftFloat / DownloadSizeFloat : 0.0f);
-	BuildProgress.SetStateProgress( EBuildPatchState::Downloading, DownloadProgress );
-
-	// Calculate the average download speed
-	NowTime = FPlatformTime::Seconds();
-	DeltaTime += NowTime - LastTime;
-	if( DeltaTime > TIME_PER_READING )
-	{
-		const double BytesDownloaded = FBuildPatchDownloader::Get().GetByteDownloadCountReset();
-		const double TimeSinceLastReading = NowTime - LastReadingTime;
-		LastReadingTime = NowTime;
-		LastDataReadings[ReadingIdx] = BytesDownloaded;
-		LastTimeReadings[ReadingIdx] = TimeSinceLastReading;
-		ReadingIdx = (ReadingIdx + 1) % NUM_DOWNLOAD_READINGS;
-		DeltaTime = 0;
-		double TotalData = 0;
-		double TotalTime = 0;
-		for (uint32 i = 0; i < NUM_DOWNLOAD_READINGS; ++i)
-		{
-			TotalData += LastDataReadings[i];
-			TotalTime += LastTimeReadings[i];
-		}
-		AverageDownloadSpeed = TotalData / TotalTime;
-	}
-
-	// Use 0 speed while disconnected - this avoids the slow trail off of averaging.
-	if (CurrentDownloadHealth == EBuildPatchDownloadHealth::Disconnected)
-	{
-		// Don't adjust download bytes left either.
-		SetDownloadSpeed(0.0f);
-	}
-	else
-	{
-		// Set download values
-		SetDownloadSpeed( DownloadProgress < 1.0f ? AverageDownloadSpeed : -1.0f );
-		SetDownloadBytesLeft( DownloadNumBytesLeft );
-	}
-
-	// If we are paused download speed should register as not downloading
-	if (BuildProgress.GetPauseState())
-	{
-		SetDownloadSpeed(-1);
-	}
-
-	// Set last time
-	LastTime = NowTime;
-}
-
-//@todo this is deprecated and shouldn't be used anymore [6/4/2014 justin.sargent]
-FText FBuildPatchInstaller::GetDownloadSpeedText() const
-{
-	static const FText DownloadSpeedFormat = LOCTEXT("BuildPatchInstaller_DownloadSpeedFormat", "{Current} / {Total} ({Speed}/sec)");
-
-	FScopeLock Lock(&ThreadLock);
-	FText SpeedDisplayedText;
-	if (DownloadSpeedValue >= 0)
-	{
-		FNumberFormattingOptions SpeedFormattingOptions;
-		SpeedFormattingOptions.MaximumFractionalDigits = 1;
-		SpeedFormattingOptions.MinimumFractionalDigits = 0;
-
-		FNumberFormattingOptions SizeFormattingOptions;
-		SizeFormattingOptions.MaximumFractionalDigits = 1;
-		SizeFormattingOptions.MinimumFractionalDigits = 1;
-
-		FFormatNamedArguments Args;
-		Args.Add(TEXT("Speed"), FText::AsMemory(DownloadSpeedValue, &SpeedFormattingOptions));
-		Args.Add(TEXT("Total"), FText::AsMemory(TotalInitialDownloadSize, &SizeFormattingOptions));
-		Args.Add(TEXT("Current"), FText::AsMemory(TotalInitialDownloadSize - DownloadBytesLeft, &SizeFormattingOptions));
-		return FText::Format(DownloadSpeedFormat, Args);
-	}
-
-	return FText();
-}
-
-double FBuildPatchInstaller::GetDownloadSpeed() const
-{
-	FScopeLock Lock(&ThreadLock);
-	return DownloadSpeedValue;
-}
-
-int64 FBuildPatchInstaller::GetInitialDownloadSize() const
-{
-	FScopeLock Lock(&ThreadLock);
-	return TotalInitialDownloadSize;
-}
-
-int64 FBuildPatchInstaller::GetTotalDownloaded() const
-{
-	FScopeLock Lock(&ThreadLock);
-	return TotalInitialDownloadSize - DownloadBytesLeft;
-}
-
-bool FBuildPatchInstaller::IsComplete() const
-{
-	FScopeLock Lock( &ThreadLock );
-	return !bIsRunning && bIsInited;
-}
-
-bool FBuildPatchInstaller::IsCanceled() const
-{
-	FScopeLock Lock( &ThreadLock );
-	return BuildStats.FailureType == EBuildPatchInstallError::UserCanceled;
-}
-
-bool FBuildPatchInstaller::IsPaused() const
-{
-	return BuildProgress.GetPauseState();
-}
-
-bool FBuildPatchInstaller::IsResumable() const
-{
-	FScopeLock Lock( &ThreadLock );
-	if (BuildStats.FailureType == EBuildPatchInstallError::PathLengthExceeded)
-	{
-		return false;
-	}
-	return !BuildStats.ProcessSuccess;
-}
-
-bool FBuildPatchInstaller::HasError() const
-{
-	FScopeLock Lock( &ThreadLock );
-	if (BuildStats.FailureType == EBuildPatchInstallError::UserCanceled)
-	{
-		return false;
-	}
-	return !BuildStats.ProcessSuccess;
-}
-
-EBuildPatchInstallError FBuildPatchInstaller::GetErrorType() const
-{
-	FScopeLock Lock(&ThreadLock);
-	return BuildStats.FailureType;
-}
-
-FString FBuildPatchInstaller::GetErrorCode() const
-{
-	FScopeLock Lock(&ThreadLock);
-	return BuildStats.ErrorCode;
-}
-
-//@todo this is deprecated and shouldn't be used anymore [6/4/2014 justin.sargent]
-FText FBuildPatchInstaller::GetPercentageText() const
-{
-	static const FText PleaseWait = LOCTEXT( "BuildPatchInstaller_GenericProgress", "Please Wait" );
-
-	FScopeLock Lock( &ThreadLock );
-
-	float Progress = GetUpdateProgress() * 100.0f;
-	if( Progress <= 0.0f )
-	{
-		return PleaseWait;
-	}
-
-	FNumberFormattingOptions PercentFormattingOptions;
-	PercentFormattingOptions.MaximumFractionalDigits = 0;
-	PercentFormattingOptions.MinimumFractionalDigits = 0;
-
-	return FText::AsPercent(GetUpdateProgress(), &PercentFormattingOptions);
-}
-
-EBuildPatchState FBuildPatchInstaller::GetState() const
-{
-	return BuildProgress.GetState();
-}
-
-FText FBuildPatchInstaller::GetStatusText() const
-{
-	return BuildProgress.GetStateText();
-}
-
-float FBuildPatchInstaller::GetUpdateProgress() const
-{
-	return BuildProgress.GetProgress();
-}
-
-FBuildInstallStats FBuildPatchInstaller::GetBuildStatistics() const
-{
-	FScopeLock Lock( &ThreadLock );
-	return BuildStats;
-}
-
-EBuildPatchDownloadHealth FBuildPatchInstaller::GetDownloadHealth() const
-{
-	FScopeLock Lock(&ThreadLock);
-	return DownloadHealthValue;
-}
-
-void FBuildPatchInstaller::SetDownloadHealth(EBuildPatchDownloadHealth DownloadHealth)
-{
-	FScopeLock Lock(&ThreadLock);
-	DownloadHealthValue = DownloadHealth;
-}
-
-FText FBuildPatchInstaller::GetErrorText() const
-{
-	FScopeLock Lock( &ThreadLock );
-	return BuildStats.FailureReasonText;
-}
-
-void FBuildPatchInstaller::CancelInstall()
-{
-	FBuildPatchInstallError::SetFatalError(EBuildPatchInstallError::UserCanceled, UserCancelErrorCodes::UserRequested);
-	FBuildPatchHTTP::CancelAllHttpRequests();
-	// Make sure we are not paused
-	if( IsPaused() )
-	{
-		TogglePauseInstall();
-	}
-}
-
-bool FBuildPatchInstaller::TogglePauseInstall()
-{
-	if( IsPaused() )
-	{
-		// We are now resuming, so record time paused for
-		FScopeLock Lock( &ThreadLock );
-		const double PausedForSec = FPlatformTime::Seconds() - TimePausedAt;
-		BuildStats.ProcessPausedTime += PausedForSec;
-	}
-	else
-	{
-		// If there is an error, we don't allow the pause
-		if( FBuildPatchInstallError::HasFatalError() )
+		// If we are patching, but without the marker, we should not return true, the existing files will be old installation
+		if (CurrentBuildManifest.IsValid())
 		{
 			return false;
 		}
-		// Set the time we pause at
-		TimePausedAt = FPlatformTime::Seconds();
+
+		// Check if any required file is potentially already in place, by comparing file size as a quick 'same file' check
+		TArray<FString> BuildFiles;
+		NewBuildManifest->GetFileList(BuildFiles);
+		for (const FString& BuildFile : BuildFiles)
+		{
+			if (NewBuildManifest->GetFileSize(BuildFile) == IFileManager::Get().FileSize(*(Configuration.InstallDirectory / BuildFile)))
+			{
+				return true;
+			}
+		}
+		return false;
 	}
-	return BuildProgress.TogglePauseState();
-}
 
-void FBuildPatchInstaller::UpdateVerificationProgress( float Percent )
-{
-	BuildProgress.SetStateProgress( EBuildPatchState::BuildVerification, Percent );
-}
-
-void FBuildPatchInstaller::ExecuteCompleteDelegate()
-{
-	// Should be executed in main thread, and already be complete
-	check( IsInGameThread() );
-	check( IsComplete() );
-	// Take opportunity to save configuration
-	SaveLocalMachineConfig();
-	// Call the complete delegate
-	OnCompleteDelegate.ExecuteIfBound(bSuccess, NewBuildManifest);
-}
-
-void FBuildPatchInstaller::WaitForThread() const
-{
-	if (Thread != NULL)
+	FChunkDbSourceConfig FBuildPatchInstaller::BuildChunkDbSourceConfig()
 	{
-		Thread->WaitForCompletion();
+		FChunkDbSourceConfig ChunkDbSourceConfig(Configuration.ChunkDatabaseFiles);
+
+		// Load batch fetch config.
+		GConfig->GetInt(TEXT("Portal.BuildPatch"), TEXT("ChunkDbSourcePreFetchMinimum"), ChunkDbSourceConfig.PreFetchMinimum, GEngineIni);
+		GConfig->GetInt(TEXT("Portal.BuildPatch"), TEXT("ChunkDbSourcePreFetchMaximum"), ChunkDbSourceConfig.PreFetchMaximum, GEngineIni);
+		ChunkDbSourceConfig.PreFetchMinimum = FMath::Clamp<int32>(ChunkDbSourceConfig.PreFetchMinimum, 1, 1000);
+		ChunkDbSourceConfig.PreFetchMaximum = FMath::Clamp<int32>(ChunkDbSourceConfig.PreFetchMaximum, ChunkDbSourceConfig.PreFetchMinimum, 1000);
+
+		// Load reopen retry time.
+		GConfig->GetFloat(TEXT("Portal.BuildPatch"), TEXT("ChunkDbSourceChunkDbOpenRetryTime"), ChunkDbSourceConfig.ChunkDbOpenRetryTime, GEngineIni);
+		ChunkDbSourceConfig.ChunkDbOpenRetryTime = FMath::Clamp<float>(ChunkDbSourceConfig.ChunkDbOpenRetryTime, 0.5f, 60.0f);
+
+		return ChunkDbSourceConfig;
+	}
+
+	FInstallSourceConfig FBuildPatchInstaller::BuildInstallSourceConfig(TSet<FGuid> ChunkIgnoreSet)
+	{
+		FInstallSourceConfig InstallSourceConfig;
+		InstallSourceConfig.ChunkIgnoreSet = MoveTemp(ChunkIgnoreSet);
+
+		// Load batch fetch config
+		GConfig->GetInt(TEXT("Portal.BuildPatch"), TEXT("InstallSourceBatchFetchMinimum"), InstallSourceConfig.BatchFetchMinimum, GEngineIni);
+		GConfig->GetInt(TEXT("Portal.BuildPatch"), TEXT("InstallSourceBatchFetchMaximum"), InstallSourceConfig.BatchFetchMaximum, GEngineIni);
+		InstallSourceConfig.BatchFetchMinimum = FMath::Clamp<int32>(InstallSourceConfig.BatchFetchMinimum, 1, 1000);
+		InstallSourceConfig.BatchFetchMaximum = FMath::Clamp<int32>(InstallSourceConfig.BatchFetchMaximum, InstallSourceConfig.BatchFetchMinimum, 1000);
+
+		return InstallSourceConfig;
+	}
+
+	FCloudSourceConfig FBuildPatchInstaller::BuildCloudSourceConfig()
+	{
+		FCloudSourceConfig CloudSourceConfig(Configuration.CloudDirectories);
+
+		// Load simultaneous downloads from engine config.
+		GConfig->GetInt(TEXT("Portal.BuildPatch"), TEXT("ChunkDownloads"), CloudSourceConfig.NumSimultaneousDownloads, GEngineIni);
+		CloudSourceConfig.NumSimultaneousDownloads = FMath::Clamp<int32>(CloudSourceConfig.NumSimultaneousDownloads, 1, 100);
+
+		// Load max download retry count from engine config.
+		GConfig->GetInt(TEXT("Portal.BuildPatch"), TEXT("ChunkRetries"), CloudSourceConfig.MaxRetryCount, GEngineIni);
+		CloudSourceConfig.MaxRetryCount = FMath::Clamp<int32>(CloudSourceConfig.MaxRetryCount, -1, 1000);
+
+		// Load prefetch config
+		GConfig->GetInt(TEXT("Portal.BuildPatch"), TEXT("CloudSourcePreFetchMinimum"), CloudSourceConfig.PreFetchMinimum, GEngineIni);
+		GConfig->GetInt(TEXT("Portal.BuildPatch"), TEXT("CloudSourcePreFetchMaximum"), CloudSourceConfig.PreFetchMaximum, GEngineIni);
+		CloudSourceConfig.PreFetchMinimum = FMath::Clamp<int32>(CloudSourceConfig.PreFetchMinimum, 1, 1000);
+		CloudSourceConfig.PreFetchMaximum = FMath::Clamp<int32>(CloudSourceConfig.PreFetchMaximum, CloudSourceConfig.PreFetchMinimum, 1000);
+
+		// Load retry times from engine config.
+		TArray<FString> ConfigStrings;
+		GConfig->GetArray(TEXT("Portal.BuildPatch"), TEXT("RetryTimes"), ConfigStrings, GEngineIni);
+		bool bReadArraySuccess = ConfigStrings.Num() > 0;
+		TArray<float> RetryDelayTimes;
+		RetryDelayTimes.AddZeroed(ConfigStrings.Num());
+		for (int32 TimeIdx = 0; TimeIdx < ConfigStrings.Num() && bReadArraySuccess; ++TimeIdx)
+		{
+			float TimeValue = FPlatformString::Atof(*ConfigStrings[TimeIdx]);
+			// Atof will return 0.0 if failed to parse, and we don't expect a time of 0.0 so presume error
+			if (TimeValue > 0.0f)
+			{
+				RetryDelayTimes[TimeIdx] = FMath::Clamp<float>(TimeValue, 0.5f, 300.0f);
+			}
+			else
+			{
+				bReadArraySuccess = false;
+			}
+		}
+		// If the retry array was parsed successfully, set on config.
+		if (bReadArraySuccess)
+		{
+			CloudSourceConfig.RetryDelayTimes = MoveTemp(RetryDelayTimes);
+		}
+
+		// Load percentiles for download health groupings from engine config.
+		// If the enum was changed since writing, the config here needs updating.
+		check((int32)EBuildPatchDownloadHealth::NUM_Values == 5);
+		TArray<float> HealthPercentages;
+		HealthPercentages.AddZeroed((int32)EBuildPatchDownloadHealth::NUM_Values);
+		if (GConfig->GetFloat(TEXT("Portal.BuildPatch"), TEXT("OKHealth"), HealthPercentages[(int32)EBuildPatchDownloadHealth::OK], GEngineIni)
+		 && GConfig->GetFloat(TEXT("Portal.BuildPatch"), TEXT("GoodHealth"), HealthPercentages[(int32)EBuildPatchDownloadHealth::Good], GEngineIni)
+		 && GConfig->GetFloat(TEXT("Portal.BuildPatch"), TEXT("ExcellentHealth"), HealthPercentages[(int32)EBuildPatchDownloadHealth::Excellent], GEngineIni))
+		{
+			CloudSourceConfig.HealthPercentages = MoveTemp(HealthPercentages);
+		}
+
+		// Load the delay for how long we get no data for until determining the health as disconnected.
+		GConfig->GetFloat(TEXT("Portal.BuildPatch"), TEXT("DisconnectedDelay"), CloudSourceConfig.DisconnectedDelay, GEngineIni);
+		CloudSourceConfig.DisconnectedDelay = FMath::Clamp<float>(CloudSourceConfig.DisconnectedDelay, 1.0f, 30.0f);
+
+		// We tell the cloud source to only start downloads once it receives the first get call.
+		CloudSourceConfig.bBeginDownloadsOnFirstGet = true;
+
+		return CloudSourceConfig;
+	}
+
+	bool FBuildPatchInstaller::RunInstallation(TArray<FString>& CorruptFiles)
+	{
+		UE_LOG(LogBuildPatchServices, Log, TEXT("Starting Installation"));
+		// Save the staging directories
+		FPaths::NormalizeDirectoryName(DataStagingDir);
+		FPaths::NormalizeDirectoryName(InstallStagingDir);
+
+		// Make sure staging directories exist
+		IFileManager::Get().MakeDirectory(*DataStagingDir, true);
+		IFileManager::Get().MakeDirectory(*InstallStagingDir, true);
+
+		// Reset our error and build progress
+		InstallerError.Reset(FInstallerErrorFactory::Create());
+		InstallerError->RegisterForErrors([this]() { CancelInstall(); });
+		BuildProgress.Reset();
+		BuildProgress.SetStateProgress(EBuildPatchState::Queued, 1.0f);
+		BuildProgress.SetStateProgress(EBuildPatchState::Initializing, 0.01f);
+		BuildProgress.SetStateProgress(EBuildPatchState::CleanUp, 0.0f);
+
+		// Store some totals
+		const uint32 NumFilesInBuild = NewBuildManifest->GetNumFiles();
+
+		// Get the list of required files, by the tags
+		TaggedFiles.Empty();
+		NewBuildManifest->GetTaggedFileList(Configuration.InstallTags, TaggedFiles);
+
+		// Check if we should skip out of this process due to existing installation,
+		// that will mean we start with the verification stage
+		bool bFirstTimeRun = CorruptFiles.Num() == 0;
+		if (bFirstTimeRun && CheckForExternallyInstalledFiles())
+		{
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Detected previous staging completed, or existing files in target directory"));
+			// Set weights for verify only
+			BuildProgress.SetStateWeight(EBuildPatchState::Downloading, 0.0f);
+			BuildProgress.SetStateWeight(EBuildPatchState::Installing, 0.0f);
+			BuildProgress.SetStateWeight(EBuildPatchState::MovingToInstall, 0.0f);
+			BuildProgress.SetStateWeight(EBuildPatchState::SettingAttributes, 0.2f);
+			BuildProgress.SetStateWeight(EBuildPatchState::BuildVerification, 1.0f);
+			// Mark all installation steps complete
+			BuildProgress.SetStateProgress(EBuildPatchState::Initializing, 1.0f);
+			BuildProgress.SetStateProgress(EBuildPatchState::Resuming, 1.0f);
+			BuildProgress.SetStateProgress(EBuildPatchState::Downloading, 1.0f);
+			BuildProgress.SetStateProgress(EBuildPatchState::Installing, 1.0f);
+			BuildProgress.SetStateProgress(EBuildPatchState::MovingToInstall, 1.0f);
+			return true;
+		}
+
+		// Get the list of files actually needing construction
+		FilesToConstruct.Empty();
+		if (CorruptFiles.Num() > 0)
+		{
+			FilesToConstruct.Append(CorruptFiles);
+		}
+		else
+		{
+			TSet<FString> OutdatedFiles;
+			NewBuildManifest->GetOutdatedFiles(CurrentBuildManifest, Configuration.InstallDirectory, OutdatedFiles);
+			FilesToConstruct = OutdatedFiles.Intersect(TaggedFiles);
+		}
+		FilesToConstruct.Sort(TLess<FString>());
+		UE_LOG(LogBuildPatchServices, Log, TEXT("Requiring %d files"), FilesToConstruct.Num());
+
+		// Make sure all the files won't exceed the maximum path length
+		for (const FString& FileToConstruct : FilesToConstruct)
+		{
+			if ((InstallStagingDir / FileToConstruct).Len() >= PLATFORM_MAX_FILEPATH_LENGTH)
+			{
+				GWarn->Logf(TEXT("BuildPatchServices: ERROR: Could not create new file due to exceeding maximum path length %s"), *(InstallStagingDir / FileToConstruct));
+				InstallerError->SetError(EBuildPatchInstallError::PathLengthExceeded, PathLengthErrorCodes::StagingDirectory);
+				return false;
+			}
+		}
+
+		// Default chunk store sizes to tie in with the default prefetch maxes for source configs.
+		// Cloud chunk source will share store with chunkdb source, since chunkdb is designed for standing in place of the need to download.
+		const int32 DefaultChunkDbMaxRead = FChunkDbSourceConfig({}).PreFetchMaximum;
+		const int32 DefaultInstallMaxRead = FInstallSourceConfig().BatchFetchMaximum;
+		const int32 DefaultCloudMaxRead = FCloudSourceConfig({}).PreFetchMaximum;
+		int32 CloudChunkStoreMemorySize = DefaultCloudMaxRead + DefaultChunkDbMaxRead;
+		int32 InstallChunkStoreMemorySize = DefaultInstallMaxRead;
+		// Load overridden sizes from config.
+		GConfig->GetInt(TEXT("Portal.BuildPatch"), TEXT("CloudChunkStoreMemorySize"), CloudChunkStoreMemorySize, GEngineIni);
+		GConfig->GetInt(TEXT("Portal.BuildPatch"), TEXT("InstallChunkStoreMemorySize"), InstallChunkStoreMemorySize, GEngineIni);
+		// Clamp to sensible limits.
+		CloudChunkStoreMemorySize = FMath::Clamp<int32>(CloudChunkStoreMemorySize, 32, 2048);
+		InstallChunkStoreMemorySize = FMath::Clamp<int32>(InstallChunkStoreMemorySize, 32, 2048);
+
+		// Scoped systems composition and execution.
+		{
+			TUniquePtr<IChunkDataSerialization> ChunkDataSerialization(FChunkDataSerializationFactory::Create(
+				FileSystem.Get()));
+			TUniquePtr<IChunkReferenceTracker> ChunkReferenceTracker(FChunkReferenceTrackerFactory::Create(
+				NewBuildManifest,
+				FilesToConstruct));
+			TSet<FGuid> ReferencedChunks = ChunkReferenceTracker->GetReferencedChunks();
+			TUniquePtr<IChunkEvictionPolicy> MemoryEvictionPolicy(FChunkEvictionPolicyFactory::Create(
+				ChunkReferenceTracker.Get()));
+			TUniquePtr<IDiskChunkStore> DiskOverflowStore(FDiskChunkStoreFactory::Create(
+				ChunkDataSerialization.Get(),
+				InstallerStatistics->GetDiskChunkStoreStat(),
+				DataStagingDir));
+			TUniquePtr<IMemoryChunkStore> InstallChunkStore(FMemoryChunkStoreFactory::Create(
+				InstallChunkStoreMemorySize,
+				MemoryEvictionPolicy.Get(),
+				DiskOverflowStore.Get(),
+				InstallerStatistics->GetMemoryChunkStoreStat(EMemoryChunkStore::InstallSource)));
+			TUniquePtr<IMemoryChunkStore> CloudChunkStore(FMemoryChunkStoreFactory::Create(
+				CloudChunkStoreMemorySize,
+				MemoryEvictionPolicy.Get(),
+				DiskOverflowStore.Get(),
+				InstallerStatistics->GetMemoryChunkStoreStat(EMemoryChunkStore::CloudSource)));
+			TUniquePtr<IChunkDbChunkSource> ChunkDbChunkSource(FChunkDbChunkSourceFactory::Create(
+				BuildChunkDbSourceConfig(),
+				Platform.Get(),
+				FileSystem.Get(),
+				CloudChunkStore.Get(),
+				ChunkReferenceTracker.Get(),
+				ChunkDataSerialization.Get(),
+				MessagePump.Get(),
+				InstallerError.Get(),
+				InstallerStatistics->GetChunkDbChunkSourceStat()));
+			TUniquePtr<IInstallChunkSource> InstallChunkSource(FInstallChunkSourceFactory::Create(
+				BuildInstallSourceConfig(ChunkDbChunkSource->GetAvailableChunks()),
+				FileSystem.Get(),
+				InstallChunkStore.Get(),
+				ChunkReferenceTracker.Get(),
+				InstallerError.Get(),
+				InstallerStatistics->GetInstallChunkSourceStat(),
+				InstallationInfo,
+				NewBuildManifest));
+			const TSet<FGuid> InitialDownloadChunks = ReferencedChunks.Difference(InstallChunkSource->GetAvailableChunks()).Difference(ChunkDbChunkSource->GetAvailableChunks());
+			TUniquePtr<ICloudChunkSource> CloudChunkSource(FCloudChunkSourceFactory::Create(
+				BuildCloudSourceConfig(),
+				Platform.Get(),
+				CloudChunkStore.Get(),
+				DownloadService.Get(),
+				ChunkReferenceTracker.Get(),
+				ChunkDataSerialization.Get(),
+				MessagePump.Get(),
+				InstallerError.Get(),
+				InstallerStatistics->GetCloudChunkSourceStat(),
+				NewBuildManifest,
+				InitialDownloadChunks));
+			TArray<IChunkSource*> ChunkSources;
+			ChunkSources.Add(ChunkDbChunkSource.Get());
+			ChunkSources.Add(InstallChunkSource.Get());
+			ChunkSources.Add(CloudChunkSource.Get());
+			TUniquePtr<IChainedChunkSource> ChainedChunkSource(FChainedChunkSourceFactory::Create(
+				ChunkSources));
+			TUniquePtr<FBuildPatchFileConstructor> FileConstructor(new FBuildPatchFileConstructor(
+				NewBuildManifest,
+				Configuration.InstallDirectory,
+				InstallStagingDir,
+				FilesToConstruct.Array(),
+				ChainedChunkSource.Get(),
+				ChunkReferenceTracker.Get(),
+				InstallerError.Get(),
+				InstallerAnalytics.Get(),
+				InstallerStatistics->GetFileConstructorStat()));
+
+			// Register controllables.
+			FScopedControllables ScopedControllables(&ThreadLock, Controllables, bIsPaused, bShouldAbort);
+			ScopedControllables.Register(InstallChunkSource.Get());
+			ScopedControllables.Register(CloudChunkSource.Get());
+			ScopedControllables.Register(FileConstructor.Get());
+
+			// Set chunk counter stats.
+			{
+				FScopeLock Lock(&ThreadLock);
+				BuildStats.NumChunksRequired = ReferencedChunks.Num();
+				BuildStats.ChunksQueuedForDownload = InitialDownloadChunks.Num();
+				BuildStats.ChunksLocallyAvailable = ReferencedChunks.Intersect(InstallChunkSource->GetAvailableChunks()).Num();
+				BuildStats.ChunksInChunkDbs = ReferencedChunks.Intersect(ChunkDbChunkSource->GetAvailableChunks()).Num();
+			}
+
+			// Setup some weightings for the progress tracking
+			const float NumRequiredChunksFloat = ReferencedChunks.Num();
+			const bool bHasFileAttributes = NewBuildManifest->HasFileAttributes();
+			const float AttributesWeight = bHasFileAttributes ? Configuration.bIsRepair ? 1.0f / 50.0f : 1.0f / 20.0f : 0.0f;
+			const float VerifyWeight = Configuration.VerifyMode == EVerifyMode::ShaVerifyAllFiles || Configuration.VerifyMode == EVerifyMode::ShaVerifyTouchedFiles ? 1.1f / 9.0f : 0.3f / 9.0f;
+			BuildProgress.SetStateWeight(EBuildPatchState::Downloading, 0.0f);
+			BuildProgress.SetStateWeight(EBuildPatchState::Installing, FilesToConstruct.Num() > 0 ? 1.0f : 0.0f);
+			BuildProgress.SetStateWeight(EBuildPatchState::MovingToInstall, FilesToConstruct.Num() > 0 ? 0.05f : 0.0f);
+			BuildProgress.SetStateWeight(EBuildPatchState::SettingAttributes, AttributesWeight);
+			BuildProgress.SetStateWeight(EBuildPatchState::BuildVerification, VerifyWeight);
+
+			// If this is a repair operation, start off with install and download complete
+			if (Configuration.bIsRepair)
+			{
+				UE_LOG(LogBuildPatchServices, Log, TEXT("Performing a repair operation"));
+				BuildProgress.SetStateProgress(EBuildPatchState::Downloading, 1.0f);
+				BuildProgress.SetStateProgress(EBuildPatchState::Installing, 1.0f);
+				BuildProgress.SetStateProgress(EBuildPatchState::MovingToInstall, 1.0f);
+			}
+
+			// Initializing is now complete if we are constructing files
+			BuildProgress.SetStateProgress(EBuildPatchState::Initializing, FilesToConstruct.Num() > 0 ? 1.0f : 0.0f);
+			InitializeTimer.Stop();
+
+			// Wait for the file constructor to complete
+			ConstructTimer.Start();
+			FileConstructor->Wait();
+			ConstructTimer.Stop();
+			UE_LOG(LogBuildPatchServices, Log, TEXT("File construction complete"));
+		}
+
+		// Process some final stats.
+		{
+			FScopeLock Lock(&ThreadLock);
+			BuildStats.NumFilesOutdated = FilesToConstruct.Num();
+			BuildStats.TotalDownloadedData = InstallerStatistics->GetBytesDownloaded();
+			BuildStats.NumChunksDownloaded = InstallerStatistics->GetNumSuccessfulChunkDownloads();
+			BuildStats.NumFailedDownloads = InstallerStatistics->GetNumFailedChunkDownloads();
+			BuildStats.NumBadDownloads = InstallerStatistics->GetNumCorruptChunkDownloads();
+			BuildStats.NumAbortedDownloads = InstallerStatistics->GetNumAbortedChunkDownloads();
+			BuildStats.OverallRequestSuccessRate = InstallerStatistics->GetDownloadSuccessRate();
+			BuildStats.AverageDownloadSpeed = InstallerStatistics->GetDownloadSpeed(TNumericLimits<double>::Max());
+			BuildStats.FinalDownloadSpeed = GetDownloadSpeed();
+			BuildStats.TheoreticalDownloadTime = BuildStats.AverageDownloadSpeed > 0 ? BuildStats.TotalDownloadedData / BuildStats.AverageDownloadSpeed : 0;
+			BuildStats.NumChunksRecycled = InstallerStatistics->GetNumSuccessfulChunkRecycles();
+			BuildStats.NumChunksReadFromChunkDbs = InstallerStatistics->GetNumSuccessfulChunkDbLoads();
+			BuildStats.NumRecycleFailures = InstallerStatistics->GetNumFailedChunkRecycles();
+			BuildStats.NumChunksCacheBooted = InstallerStatistics->GetNumStoreBootedChunks();
+			BuildStats.NumDriveCacheChunkLoads = InstallerStatistics->GetNumSuccessfulChunkDiskCacheLoads();
+			BuildStats.NumDriveCacheLoadFailures = InstallerStatistics->GetNumFailedChunkDiskCacheLoads();
+			BuildStats.NumChunkDbChunksFailed = InstallerStatistics->GetNumFailedChunkDbLoads();
+			TArray<float> HealthTimers = InstallerStatistics->GetDownloadHealthTimers();
+			BuildStats.ExcellentDownloadHealthTime = HealthTimers[(int32)EBuildPatchDownloadHealth::Excellent];
+			BuildStats.GoodDownloadHealthTime = HealthTimers[(int32)EBuildPatchDownloadHealth::Good];
+			BuildStats.OkDownloadHealthTime = HealthTimers[(int32)EBuildPatchDownloadHealth::OK];
+			BuildStats.PoorDownloadHealthTime = HealthTimers[(int32)EBuildPatchDownloadHealth::Poor];
+			BuildStats.DisconnectedDownloadHealthTime = HealthTimers[(int32)EBuildPatchDownloadHealth::Disconnected];
+		}
+
+		UE_LOG(LogBuildPatchServices, Log, TEXT("Staged install complete"));
+
+		return !InstallerError->HasError();
+	}
+
+	bool FBuildPatchInstaller::RunPrerequisites()
+	{
+		TUniquePtr<IMachineConfig> MachineConfig(FMachineConfigFactory::Create(LocalMachineConfigFile, true));
+		TUniquePtr<IPrerequisites> Prerequisites(FPrerequisitesFactory::Create(
+			MachineConfig.Get(),
+			InstallerAnalytics.Get(),
+			InstallerError.Get(),
+			FileSystem.Get(),
+			Platform.Get()));
+
+		return Prerequisites->RunPrereqs(NewBuildManifest, Configuration, InstallStagingDir, BuildProgress);
+	}
+
+	void FBuildPatchInstaller::CleanupEmptyDirectories(const FString& RootDirectory)
+	{
+		TArray<FString> SubDirNames;
+		IFileManager::Get().FindFiles(SubDirNames, *(RootDirectory / TEXT("*")), false, true);
+		for(auto DirName : SubDirNames)
+		{
+			CleanupEmptyDirectories(*(RootDirectory / DirName));
+		}
+
+		TArray<FString> SubFileNames;
+		IFileManager::Get().FindFilesRecursive(SubFileNames, *RootDirectory, TEXT("*.*"), true, false);
+		if (SubFileNames.Num() == 0)
+		{
+	#if PLATFORM_MAC
+			// On Mac we need to delete the .DS_Store file, but FindFiles() skips .DS_Store files.
+			IFileManager::Get().Delete(*(RootDirectory / TEXT(".DS_Store")), false, true);
+	#endif
+
+			bool bDeleteSuccess = IFileManager::Get().DeleteDirectory(*RootDirectory, false, true);
+			const uint32 LastError = FPlatformMisc::GetLastError();
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Deleted Empty Folder (%u,%u) %s"), bDeleteSuccess ? 1 : 0, LastError, *RootDirectory);
+		}
+	}
+
+	bool FBuildPatchInstaller::RunBackupAndMove()
+	{
+		// We skip this step if performing stage only
+		bool bMoveSuccess = true;
+		if (Configuration.bStageOnly)
+		{
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Skipping backup and stage relocation"));
+			BuildProgress.SetStateProgress(EBuildPatchState::MovingToInstall, 1.0f);
+		}
+		else
+		{
+			MoveFromStageTimer.Start();
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Running backup and stage relocation"));
+			// If there's no error, move all complete files
+			bMoveSuccess = InstallerError->HasError() == false;
+			if (bMoveSuccess)
+			{
+				// First handle files that should be removed for patching
+				TArray< FString > FilesToRemove;
+				if (CurrentBuildManifest.IsValid())
+				{
+					NewBuildManifest->GetRemovableFiles(CurrentBuildManifest.ToSharedRef(), FilesToRemove);
+				}
+				// And also files that may no longer be required (removal of tags)
+				TArray<FString> NewBuildFiles;
+				NewBuildManifest->GetFileList(NewBuildFiles);
+				TSet<FString> NewBuildFilesSet(NewBuildFiles);
+				TSet<FString> RemovableBuildFiles = NewBuildFilesSet.Difference(TaggedFiles);
+				FilesToRemove.Append(RemovableBuildFiles.Array());
+				// Add to build stats
+				ThreadLock.Lock();
+				BuildStats.NumFilesToRemove = FilesToRemove.Num();
+				ThreadLock.Unlock();
+				for (const FString& OldFilename : FilesToRemove)
+				{
+					BackupFileIfNecessary(OldFilename);
+					const bool bDeleteSuccess = IFileManager::Get().Delete(*(Configuration.InstallDirectory / OldFilename), false, true, true);
+					const uint32 LastError = FPlatformMisc::GetLastError();
+					UE_LOG(LogBuildPatchServices, Log, TEXT("Removed (%u,%u) %s"), bDeleteSuccess ? 1 : 0, LastError, *OldFilename);
+				}
+
+				// Now handle files that have been constructed
+				bool bSavedMoveMarkerFile = false;
+				TArray< FString > ConstructionFiles;
+				NewBuildManifest->GetFileList(ConstructionFiles);
+				BuildProgress.SetStateProgress(EBuildPatchState::MovingToInstall, 0.0f);
+				const float NumConstructionFilesFloat = ConstructionFiles.Num();
+				for (auto ConstructionFilesIt = ConstructionFiles.CreateConstIterator(); ConstructionFilesIt && bMoveSuccess && !InstallerError->HasError(); ++ConstructionFilesIt)
+				{
+					const FString& ConstructionFile = *ConstructionFilesIt;
+					const FString SrcFilename = InstallStagingDir / ConstructionFile;
+					const FString DestFilename = Configuration.InstallDirectory / ConstructionFile;
+					const float FileIndexFloat = ConstructionFilesIt.GetIndex();
+					// Skip files not constructed
+					if (!FPlatformFileManager::Get().GetPlatformFile().FileExists(*SrcFilename))
+					{
+						BuildProgress.SetStateProgress(EBuildPatchState::MovingToInstall, FileIndexFloat / NumConstructionFilesFloat);
+						continue;
+					}
+					// Create the move marker file
+					if (!bSavedMoveMarkerFile)
+					{
+						bSavedMoveMarkerFile = true;
+						UE_LOG(LogBuildPatchServices, Log, TEXT("Create MM"));
+						FArchive* MoveMarkerFile = IFileManager::Get().CreateFileWriter(*PreviousMoveMarker, FILEWRITE_EvenIfReadOnly);
+						if (MoveMarkerFile != nullptr)
+						{
+							MoveMarkerFile->Close();
+							delete MoveMarkerFile;
+						}
+						// Make sure we have some progress if we do some work
+						if (BuildProgress.GetStateWeight(EBuildPatchState::MovingToInstall) <= 0.0f)
+						{
+							BuildProgress.SetStateWeight(EBuildPatchState::MovingToInstall, 0.1f);
+						}
+					}
+					// Backup file if need be
+					BackupFileIfNecessary(ConstructionFile);
+					// Delete existing if there
+					IFileManager::Get().Delete(*DestFilename, false, true, false);
+					// Move the file to the installation directory
+					int32 MoveRetries = ConfigHelpers::NumFileMoveRetries();
+					bMoveSuccess = IFileManager::Get().Move(*DestFilename, *SrcFilename, true, true, true, true);
+					uint32 ErrorCode = FPlatformMisc::GetLastError();
+					while (!bMoveSuccess && MoveRetries > 0)
+					{
+						--MoveRetries;
+						InstallerAnalytics->RecordConstructionError(ConstructionFile, ErrorCode, TEXT("Failed To Move"));
+						UE_LOG(LogBuildPatchServices, Error, TEXT("Failed to move file %s (%d), trying copy"), *ConstructionFile, ErrorCode);
+						bMoveSuccess = IFileManager::Get().Copy(*DestFilename, *SrcFilename, true, true, true) == COPY_OK;
+						ErrorCode = FPlatformMisc::GetLastError();
+						if (!bMoveSuccess)
+						{
+							UE_LOG(LogBuildPatchServices, Error, TEXT("Failed to copy file %s (%d), retying after 0.5 sec"), *ConstructionFile, ErrorCode);
+							FPlatformProcess::Sleep(0.5f);
+							bMoveSuccess = IFileManager::Get().Move(*DestFilename, *SrcFilename, true, true, true, true);
+							ErrorCode = FPlatformMisc::GetLastError();
+						}
+						else
+						{
+							IFileManager::Get().Delete(*SrcFilename, false, true, false);
+						}
+					}
+					if (!bMoveSuccess)
+					{
+						UE_LOG(LogBuildPatchServices, Error, TEXT("Failed to move file %s"), *FPaths::GetCleanFilename(ConstructionFile));
+						InstallerError->SetError(EBuildPatchInstallError::MoveFileToInstall, MoveErrorCodes::StageToInstall);
+					}
+					else
+					{
+						FilesInstalled.Add(ConstructionFile);
+						BuildProgress.SetStateProgress(EBuildPatchState::MovingToInstall, FileIndexFloat / NumConstructionFilesFloat);
+					}
+				}
+
+				// After we've completed deleting/moving patch files to the install directory, clean up any empty directories left over
+				CleanupEmptyDirectories(Configuration.InstallDirectory);
+
+				bMoveSuccess = bMoveSuccess && (InstallerError->HasError() == false);
+				if (bMoveSuccess)
+				{
+					BuildProgress.SetStateProgress(EBuildPatchState::MovingToInstall, 1.0f);
+				}
+			}
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Relocation complete %d"), bMoveSuccess ? 1 : 0);
+			MoveFromStageTimer.Stop();
+		}
+		return bMoveSuccess;
+	}
+
+	bool FBuildPatchInstaller::RunFileAttributes(bool bForce)
+	{
+		// Only provide stage directory if stage-only mode
+		FString EmptyString;
+		FString& OptionalStageDirectory = Configuration.bStageOnly ? InstallStagingDir : EmptyString;
+
+		// Construct the attributes class
+		FileAttributesTimer.Start();
+		TUniquePtr<IFileAttribution> Attributes(FFileAttributionFactory::Create(FileSystem.Get(), NewBuildManifest, CurrentBuildManifest, FilesToConstruct, Configuration.InstallDirectory, OptionalStageDirectory, &BuildProgress));
+		FScopedControllables ScopedControllables(&ThreadLock, Controllables, bIsPaused, bShouldAbort);
+		ScopedControllables.Register(Attributes.Get());
+		Attributes->ApplyAttributes(bForce);
+		FileAttributesTimer.Stop();
+
+		// We don't fail on this step currently
+		return true;
+	}
+
+	bool FBuildPatchInstaller::RunVerification(TArray< FString >& CorruptFiles)
+	{
+		// Make sure this function can never be parallelized
+		static FCriticalSection SingletonFunctionLockCS;
+		FScopeLock SingletonFunctionLock(&SingletonFunctionLockCS);
+
+		VerifyTimer.Start();
+		BuildProgress.SetStateProgress(EBuildPatchState::BuildVerification, 0.0f);
+
+		// Verify the installation
+		UE_LOG(LogBuildPatchServices, Log, TEXT("Verifying install"));
+		CorruptFiles.Empty();
+
+		// Only provide stage directory if stage-only mode
+		FString EmptyString;
+		FString& OptionalStageDirectory = Configuration.bStageOnly ? InstallStagingDir : EmptyString;
+
+		// For a repair operation, the first verify must be ShaVerifyAllFiles.
+		EVerifyMode ModeToRun = Configuration.bIsRepair && bFirstInstallIteration ? EVerifyMode::ShaVerifyAllFiles : Configuration.VerifyMode;
+
+		// Construct the verifier
+		TUniquePtr<IVerifier> Verifier(FVerifierFactory::Create(FileSystem.Get(), InstallerStatistics->GetVerifierStat(), ModeToRun, FilesToConstruct, Configuration.InstallTags, NewBuildManifest, Configuration.InstallDirectory, OptionalStageDirectory));
+		FScopedControllables ScopedControllables(&ThreadLock, Controllables, bIsPaused, bShouldAbort);
+		ScopedControllables.Register(Verifier.Get());
+
+		// Verify the build
+		bool bVerifySuccess = Verifier->Verify(CorruptFiles);
+		if (!bVerifySuccess)
+		{
+			UE_LOG(LogBuildPatchServices, Error, TEXT("Build verification failed on %u file(s)"), CorruptFiles.Num());
+			InstallerError->SetError(EBuildPatchInstallError::BuildVerifyFail, VerifyErrorCodes::FinalCheck);
+		}
+		BuildProgress.SetStateProgress(EBuildPatchState::BuildVerification, 1.0f);
+
+		// Delete/Backup any incorrect files if failure was not cancellation
+		if (!InstallerError->IsCancelled())
+		{
+			for (const FString& CorruptFile : CorruptFiles)
+			{
+				BackupFileIfNecessary(CorruptFile, true);
+				if (!Configuration.bStageOnly)
+				{
+					IFileManager::Get().Delete(*(Configuration.InstallDirectory / CorruptFile), false, true);
+				}
+				IFileManager::Get().Delete(*(InstallStagingDir / CorruptFile), false, true);
+			}
+		}
+
+		UE_LOG(LogBuildPatchServices, Log, TEXT("Verify stage complete %d"), bVerifySuccess ? 1 : 0);
+
+		VerifyTimer.Stop();
+		return bVerifySuccess;
+	}
+
+	bool FBuildPatchInstaller::BackupFileIfNecessary(const FString& Filename, bool bDiscoveredByVerification /*= false */)
+	{
+		const FString InstalledFilename = Configuration.InstallDirectory / Filename;
+		const FString BackupFilename = Configuration.BackupDirectory / Filename;
+		const bool bBackupOriginals = !Configuration.BackupDirectory.IsEmpty();
+		// Skip if not doing backups
+		if (!bBackupOriginals)
+		{
+			return true;
+		}
+		// Skip if no file to backup
+		const bool bInstalledFileExists = FPlatformFileManager::Get().GetPlatformFile().FileExists(*InstalledFilename);
+		if (!bInstalledFileExists)
+		{
+			return true;
+		}
+		// Skip if already backed up
+		const bool bAlreadyBackedUp = FPlatformFileManager::Get().GetPlatformFile().FileExists(*BackupFilename);
+		if (bAlreadyBackedUp)
+		{
+			return true;
+		}
+		// Skip if the target file was already copied to the installation
+		const bool bAlreadyInstalled = FilesInstalled.Contains(Filename);
+		if (bAlreadyInstalled)
+		{
+			return true;
+		}
+		// If discovered by verification, but the patching system did not touch the file, we know it must be backed up.
+		// If patching system touched the file it would already have been backed up
+		if (bDiscoveredByVerification && CurrentBuildManifest.IsValid() && !NewBuildManifest->IsFileOutdated(CurrentBuildManifest.ToSharedRef(), Filename))
+		{
+			return IFileManager::Get().Move(*BackupFilename, *InstalledFilename, true, true, true);
+		}
+		bool bUserEditedFile = bDiscoveredByVerification;
+		const bool bCheckFileChanges = !bDiscoveredByVerification;
+		if (bCheckFileChanges)
+		{
+			const FFileManifestData* OldFileManifest = CurrentBuildManifest.IsValid() ? CurrentBuildManifest->GetFileManifest(Filename) : nullptr;
+			const FFileManifestData* NewFileManifest = NewBuildManifest->GetFileManifest(Filename);
+			const int64 InstalledFilesize = IFileManager::Get().FileSize(*InstalledFilename);
+			const int64 OriginalFileSize = OldFileManifest ? OldFileManifest->GetFileSize() : INDEX_NONE;
+			const int64 NewFileSize = NewFileManifest ? NewFileManifest->GetFileSize() : INDEX_NONE;
+			const FSHAHashData HashZero;
+			const FSHAHashData& HashOld = OldFileManifest ? OldFileManifest->FileHash : HashZero;
+			const FSHAHashData& HashNew = NewFileManifest ? NewFileManifest->FileHash : HashZero;
+			const bool bFileSizeDiffers = OriginalFileSize != InstalledFilesize && NewFileSize != InstalledFilesize;
+			bUserEditedFile = bFileSizeDiffers || FBuildPatchUtils::VerifyFile(FileSystem.Get(), InstalledFilename, HashOld, HashNew) == 0;
+		}
+		// Finally, use the above logic to determine if we must do the backup
+		const bool bNeedBackup = bUserEditedFile;
+		bool bBackupSuccess = true;
+		if (bNeedBackup)
+		{
+			UE_LOG(LogBuildPatchServices, Log, TEXT("Backing up %s"), *Filename);
+			bBackupSuccess = IFileManager::Get().Move(*BackupFilename, *InstalledFilename, true, true, true);
+		}
+		return bBackupSuccess;
+	}
+
+	//@todo this is deprecated and shouldn't be used anymore [6/4/2014 justin.sargent]
+	FText FBuildPatchInstaller::GetDownloadSpeedText() const
+	{
+		static const FText DownloadSpeedFormat = NSLOCTEXT("BuildPatchInstaller", "BuildPatchInstaller_DownloadSpeedFormat", "{Current} / {Total} ({Speed}/sec)");
+
+		FScopeLock Lock(&ThreadLock);
+		FText SpeedDisplayedText;
+		double DownloadSpeed = GetDownloadSpeed();
+		double InitialDownloadSize = GetInitialDownloadSize();
+		double TotalDownloaded = GetTotalDownloaded();
+		if (DownloadSpeed >= 0)
+		{
+			FNumberFormattingOptions FormattingOptions;
+			FormattingOptions.MaximumFractionalDigits = 1;
+			FormattingOptions.MinimumFractionalDigits = 1;
+
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("Speed"), FText::AsMemory(DownloadSpeed, &FormattingOptions));
+			Args.Add(TEXT("Total"), FText::AsMemory(InitialDownloadSize, &FormattingOptions));
+			Args.Add(TEXT("Current"), FText::AsMemory(TotalDownloaded, &FormattingOptions));
+
+			return FText::Format(DownloadSpeedFormat, Args);
+		}
+
+		return FText();
+	}
+
+	double FBuildPatchInstaller::GetDownloadSpeed() const
+	{
+		return InstallerStatistics->GetDownloadSpeed(ConfigHelpers::DownloadSpeedAverageTime());
+	}
+
+	int64 FBuildPatchInstaller::GetInitialDownloadSize() const
+	{
+		return InstallerStatistics->GetRequiredDownloadSize();
+	}
+
+	int64 FBuildPatchInstaller::GetTotalDownloaded() const
+	{
+		return InstallerStatistics->GetBytesDownloaded();
+	}
+
+	bool FBuildPatchInstaller::IsComplete() const
+	{
+		return !bIsRunning && bIsInited;
+	}
+
+	bool FBuildPatchInstaller::IsCanceled() const
+	{
+		FScopeLock Lock(&ThreadLock);
+		return BuildStats.FailureType == EBuildPatchInstallError::UserCanceled;
+	}
+
+	bool FBuildPatchInstaller::IsPaused() const
+	{
+		FScopeLock Lock(&ThreadLock);
+		return bIsPaused;
+	}
+
+	bool FBuildPatchInstaller::IsResumable() const
+	{
+		FScopeLock Lock(&ThreadLock);
+		if (BuildStats.FailureType == EBuildPatchInstallError::PathLengthExceeded)
+		{
+			return false;
+		}
+		return !BuildStats.ProcessSuccess;
+	}
+
+	bool FBuildPatchInstaller::HasError() const
+	{
+		FScopeLock Lock(&ThreadLock);
+		if (BuildStats.FailureType == EBuildPatchInstallError::UserCanceled)
+		{
+			return false;
+		}
+		return !BuildStats.ProcessSuccess;
+	}
+
+	EBuildPatchInstallError FBuildPatchInstaller::GetErrorType() const
+	{
+		FScopeLock Lock(&ThreadLock);
+		return BuildStats.FailureType;
+	}
+
+	FString FBuildPatchInstaller::GetErrorCode() const
+	{
+		FScopeLock Lock(&ThreadLock);
+		return BuildStats.ErrorCode;
+	}
+
+	//@todo this is deprecated and shouldn't be used anymore [6/4/2014 justin.sargent]
+	FText FBuildPatchInstaller::GetPercentageText() const
+	{
+		static const FText PleaseWait = NSLOCTEXT("BuildPatchInstaller", "BuildPatchInstaller_GenericProgress", "Please Wait");
+
+		FScopeLock Lock(&ThreadLock);
+
+		float Progress = GetUpdateProgress() * 100.0f;
+		if (Progress <= 0.0f)
+		{
+			return PleaseWait;
+		}
+
+		FNumberFormattingOptions PercentFormattingOptions;
+		PercentFormattingOptions.MaximumFractionalDigits = 0;
+		PercentFormattingOptions.MinimumFractionalDigits = 0;
+
+		return FText::AsPercent(GetUpdateProgress(), &PercentFormattingOptions);
+	}
+
+	EBuildPatchState FBuildPatchInstaller::GetState() const
+	{
+		return BuildProgress.GetState();
+	}
+
+	FText FBuildPatchInstaller::GetStatusText() const
+	{
+		return BuildProgress.GetStateText();
+	}
+
+	float FBuildPatchInstaller::GetUpdateProgress() const
+	{
+		return BuildProgress.GetProgress();
+	}
+
+	FBuildInstallStats FBuildPatchInstaller::GetBuildStatistics() const
+	{
+		FScopeLock Lock(&ThreadLock);
+		return BuildStats;
+	}
+
+	EBuildPatchDownloadHealth FBuildPatchInstaller::GetDownloadHealth() const
+	{
+		return InstallerStatistics->GetDownloadHealth();
+	}
+
+	FText FBuildPatchInstaller::GetErrorText() const
+	{
+		return InstallerError->GetErrorText();
+	}
+
+	void FBuildPatchInstaller::CancelInstall()
+	{
+		InstallerError->SetError(EBuildPatchInstallError::UserCanceled, UserCancelErrorCodes::UserRequested);
+
+		// Make sure we are not paused
+		if (IsPaused())
+		{
+			TogglePauseInstall();
+		}
+
+		// Abort all controllable classes
+		ThreadLock.Lock();
+		bShouldAbort = true;
+		for (IControllable* Controllable : Controllables)
+		{
+			Controllable->Abort();
+		}
+		ThreadLock.Unlock();
+	}
+
+	bool FBuildPatchInstaller::TogglePauseInstall()
+	{
+		FScopeLock Lock(&ThreadLock);
+		// If there is an error, we don't allow pausing.
+		const bool bShouldBePaused = !bIsPaused && !InstallerError->HasError();
+		if (bIsPaused)
+		{
+			// Stop pause timer.
+			ProcessPausedTimer.Stop();
+		}
+		else if (bShouldBePaused)
+		{
+			// Start pause timer.
+			ProcessPausedTimer.Start();
+		}
+		bIsPaused = bShouldBePaused;
+		// Set pause state on all controllable classes
+		for (IControllable* Controllable : Controllables)
+		{
+			Controllable->SetPaused(bShouldBePaused);
+		}
+		// Set pause state on pausable process timers.
+		ConstructTimer.SetPause(bIsPaused);
+		MoveFromStageTimer.SetPause(bIsPaused);
+		FileAttributesTimer.SetPause(bIsPaused);
+		VerifyTimer.SetPause(bIsPaused);
+		CleanUpTimer.SetPause(bIsPaused);
+		ProcessActiveTimer.SetPause(bIsPaused);
+		return bShouldBePaused;
+	}
+
+	void FBuildPatchInstaller::RegisterMessageHandler(FMessageHandler* MessageHandler)
+	{
+		check(IsInGameThread());
+		check(MessageHandler != nullptr);
+		MessageHandlers.AddUnique(MessageHandler);
+	}
+
+	void FBuildPatchInstaller::UnregisterMessageHandler(FMessageHandler* MessageHandler)
+	{
+		check(IsInGameThread());
+		MessageHandlers.Remove(MessageHandler);
+	}
+
+	void FBuildPatchInstaller::ExecuteCompleteDelegate()
+	{
+		// Should be executed in main thread, and already be complete
+		check(IsInGameThread());
+		check(IsComplete());
+		// Call the complete delegate
+		OnCompleteDelegate.ExecuteIfBound(bSuccess, NewBuildManifest);
+	}
+
+	void FBuildPatchInstaller::PumpMessages()
+	{
+		check(IsInGameThread());
+		MessagePump->PumpMessages(MessageHandlers);
+	}
+
+	void FBuildPatchInstaller::WaitForThread() const
+	{
+		if (Thread != nullptr)
+		{
+			Thread->WaitForCompletion();
+		}
 	}
 }
-
-#undef LOCTEXT_NAMESPACE

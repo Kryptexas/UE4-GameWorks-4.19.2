@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -14,20 +14,20 @@
 #define CEF_LIBCEF_DLL_CTOCPP_LIFE_SPAN_HANDLER_CTOCPP_H_
 #pragma once
 
-#ifndef BUILDING_CEF_SHARED
-#pragma message("Warning: "__FILE__" may be accessed DLL-side only")
-#else  // BUILDING_CEF_SHARED
+#if !defined(BUILDING_CEF_SHARED)
+#error This file can be included DLL-side only
+#endif
 
 #include "include/cef_life_span_handler.h"
 #include "include/capi/cef_life_span_handler_capi.h"
 #include "include/cef_client.h"
 #include "include/capi/cef_client_capi.h"
-#include "libcef_dll/ctocpp/ctocpp.h"
+#include "libcef_dll/ctocpp/ctocpp_ref_counted.h"
 
 // Wrap a C structure with a C++ class.
 // This class may be instantiated and accessed DLL-side only.
 class CefLifeSpanHandlerCToCpp
-    : public CefCToCpp<CefLifeSpanHandlerCToCpp, CefLifeSpanHandler,
+    : public CefCToCppRefCounted<CefLifeSpanHandlerCToCpp, CefLifeSpanHandler,
         cef_life_span_handler_t> {
  public:
   CefLifeSpanHandlerCToCpp();
@@ -40,10 +40,8 @@ class CefLifeSpanHandlerCToCpp
       CefRefPtr<CefClient>& client, CefBrowserSettings& settings,
       bool* no_javascript_access) override;
   void OnAfterCreated(CefRefPtr<CefBrowser> browser) override;
-  bool RunModal(CefRefPtr<CefBrowser> browser) override;
   bool DoClose(CefRefPtr<CefBrowser> browser) override;
   void OnBeforeClose(CefRefPtr<CefBrowser> browser) override;
 };
 
-#endif  // BUILDING_CEF_SHARED
 #endif  // CEF_LIBCEF_DLL_CTOCPP_LIFE_SPAN_HANDLER_CTOCPP_H_

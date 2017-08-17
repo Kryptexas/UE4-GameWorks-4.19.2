@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -52,18 +52,18 @@ void CefRunFileDialogCallbackCToCpp::OnFileDialogDismissed(
 CefRunFileDialogCallbackCToCpp::CefRunFileDialogCallbackCToCpp() {
 }
 
-template<> cef_run_file_dialog_callback_t* CefCToCpp<CefRunFileDialogCallbackCToCpp,
+template<> cef_run_file_dialog_callback_t* CefCToCppRefCounted<CefRunFileDialogCallbackCToCpp,
     CefRunFileDialogCallback, cef_run_file_dialog_callback_t>::UnwrapDerived(
     CefWrapperType type, CefRunFileDialogCallback* c) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
-#ifndef NDEBUG
-template<> base::AtomicRefCount CefCToCpp<CefRunFileDialogCallbackCToCpp,
+#if DCHECK_IS_ON()
+template<> base::AtomicRefCount CefCToCppRefCounted<CefRunFileDialogCallbackCToCpp,
     CefRunFileDialogCallback, cef_run_file_dialog_callback_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefRunFileDialogCallbackCToCpp,
+template<> CefWrapperType CefCToCppRefCounted<CefRunFileDialogCallbackCToCpp,
     CefRunFileDialogCallback, cef_run_file_dialog_callback_t>::kWrapperType =
     WT_RUN_FILE_DIALOG_CALLBACK;

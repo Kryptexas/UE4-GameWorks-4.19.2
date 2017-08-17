@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -14,18 +14,19 @@
 #define CEF_LIBCEF_DLL_CTOCPP_URLREQUEST_CTOCPP_H_
 #pragma once
 
-#ifndef USING_CEF_SHARED
-#pragma message("Warning: "__FILE__" may be accessed wrapper-side only")
-#else  // USING_CEF_SHARED
+#if !defined(WRAPPING_CEF_SHARED)
+#error This file can be included wrapper-side only
+#endif
 
 #include "include/cef_urlrequest.h"
 #include "include/capi/cef_urlrequest_capi.h"
-#include "libcef_dll/ctocpp/ctocpp.h"
+#include "libcef_dll/ctocpp/ctocpp_ref_counted.h"
 
 // Wrap a C structure with a C++ class.
 // This class may be instantiated and accessed wrapper-side only.
 class CefURLRequestCToCpp
-    : public CefCToCpp<CefURLRequestCToCpp, CefURLRequest, cef_urlrequest_t> {
+    : public CefCToCppRefCounted<CefURLRequestCToCpp, CefURLRequest,
+        cef_urlrequest_t> {
  public:
   CefURLRequestCToCpp();
 
@@ -38,5 +39,4 @@ class CefURLRequestCToCpp
   void Cancel() OVERRIDE;
 };
 
-#endif  // USING_CEF_SHARED
 #endif  // CEF_LIBCEF_DLL_CTOCPP_URLREQUEST_CTOCPP_H_

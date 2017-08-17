@@ -6,10 +6,10 @@
 # This file is used by tools/automate/automate-ue4.py and tools/make_distrib.py
 #
 {
-	'branch': '2623',
-	'commit': '3034273cb99755b2da07955b1b87ae9c2d035244',
+	'branch': '3071',
+	'commit': '4a193051a9ce3da206290e349b4c463d35abc8e1',
 	'url': 'git@bitbucket.org:chromiumembedded/cef.git',
-	'revision': '1395', # git rev-list --count 'origin/2623'
+	'revision': '1611', # git rev-list --count 'origin/3071'
 }
 
 

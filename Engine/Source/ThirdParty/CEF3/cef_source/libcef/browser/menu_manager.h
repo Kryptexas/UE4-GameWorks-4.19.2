@@ -10,7 +10,6 @@
 
 #include "libcef/browser/menu_runner.h"
 
-#include "base/memory/scoped_ptr.h"
 #include "base/memory/weak_ptr.h"
 #include "content/public/browser/web_contents_observer.h"
 #include "content/public/common/context_menu_params.h"
@@ -27,7 +26,7 @@ class CefMenuManager : public CefMenuModelImpl::Delegate,
                        public content::WebContentsObserver {
  public:
   CefMenuManager(CefBrowserHostImpl* browser,
-                 scoped_ptr<CefMenuRunner> runner);
+                 std::unique_ptr<CefMenuRunner> runner);
   ~CefMenuManager() override;
 
   // Delete the runner to free any platform constructs.
@@ -47,7 +46,8 @@ class CefMenuManager : public CefMenuModelImpl::Delegate,
                       cef_event_flags_t event_flags) override;
   void MenuWillShow(CefRefPtr<CefMenuModelImpl> source) override;
   void MenuClosed(CefRefPtr<CefMenuModelImpl> source) override;
-  bool FormatLabel(base::string16& label) override;
+  bool FormatLabel(CefRefPtr<CefMenuModelImpl> source,
+                   base::string16& label) override;
 
   void ExecuteCommandCallback(int command_id,
                               cef_event_flags_t event_flags);
@@ -63,7 +63,7 @@ class CefMenuManager : public CefMenuModelImpl::Delegate,
   // CefBrowserHostImpl pointer is guaranteed to outlive this object.
   CefBrowserHostImpl* browser_;
 
-  scoped_ptr<CefMenuRunner> runner_;
+  std::unique_ptr<CefMenuRunner> runner_;
 
   CefRefPtr<CefMenuModelImpl> model_;
   content::ContextMenuParams params_;

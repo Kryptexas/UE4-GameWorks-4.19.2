@@ -766,7 +766,7 @@ void FXmppConnectionJingle::Logout()
 
 	if (!ErrorStr.IsEmpty())
 	{
-		UE_LOG(LogXmpp, Warning, TEXT("Logout failed. %s"), *ErrorStr);
+		UE_LOG(LogXmpp, Log, TEXT("Logout failed. %s"), *ErrorStr);
 		OnLogoutComplete().Broadcast(GetUserJid(), false, ErrorStr);
 	}
 }

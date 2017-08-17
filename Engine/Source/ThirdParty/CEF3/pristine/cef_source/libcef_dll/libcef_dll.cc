@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -12,6 +12,10 @@
 
 #include "include/cef_app.h"
 #include "include/capi/cef_app_capi.h"
+#include "include/cef_crash_util.h"
+#include "include/capi/cef_crash_util_capi.h"
+#include "include/cef_file_util.h"
+#include "include/capi/cef_file_util_capi.h"
 #include "include/cef_geolocation.h"
 #include "include/capi/cef_geolocation_capi.h"
 #include "include/cef_origin_whitelist.h"
@@ -24,6 +28,8 @@
 #include "include/capi/cef_process_util_capi.h"
 #include "include/cef_scheme.h"
 #include "include/capi/cef_scheme_capi.h"
+#include "include/cef_ssl_info.h"
+#include "include/capi/cef_ssl_info_capi.h"
 #include "include/cef_task.h"
 #include "include/capi/cef_task_capi.h"
 #include "include/cef_trace.h"
@@ -35,36 +41,57 @@
 #include "libcef_dll/cpptoc/auth_callback_cpptoc.h"
 #include "libcef_dll/cpptoc/before_download_callback_cpptoc.h"
 #include "libcef_dll/cpptoc/binary_value_cpptoc.h"
+#include "libcef_dll/cpptoc/views/box_layout_cpptoc.h"
 #include "libcef_dll/cpptoc/browser_cpptoc.h"
 #include "libcef_dll/cpptoc/browser_host_cpptoc.h"
+#include "libcef_dll/cpptoc/views/browser_view_cpptoc.h"
+#include "libcef_dll/cpptoc/views/button_cpptoc.h"
 #include "libcef_dll/cpptoc/callback_cpptoc.h"
 #include "libcef_dll/cpptoc/command_line_cpptoc.h"
 #include "libcef_dll/cpptoc/context_menu_params_cpptoc.h"
 #include "libcef_dll/cpptoc/domdocument_cpptoc.h"
 #include "libcef_dll/cpptoc/domnode_cpptoc.h"
 #include "libcef_dll/cpptoc/dictionary_value_cpptoc.h"
+#include "libcef_dll/cpptoc/views/display_cpptoc.h"
 #include "libcef_dll/cpptoc/download_item_cpptoc.h"
 #include "libcef_dll/cpptoc/download_item_callback_cpptoc.h"
 #include "libcef_dll/cpptoc/drag_data_cpptoc.h"
 #include "libcef_dll/cpptoc/file_dialog_callback_cpptoc.h"
+#include "libcef_dll/cpptoc/views/fill_layout_cpptoc.h"
 #include "libcef_dll/cpptoc/frame_cpptoc.h"
 #include "libcef_dll/cpptoc/geolocation_callback_cpptoc.h"
+#include "libcef_dll/cpptoc/image_cpptoc.h"
 #include "libcef_dll/cpptoc/jsdialog_callback_cpptoc.h"
+#include "libcef_dll/cpptoc/views/label_button_cpptoc.h"
+#include "libcef_dll/cpptoc/views/layout_cpptoc.h"
 #include "libcef_dll/cpptoc/list_value_cpptoc.h"
+#include "libcef_dll/cpptoc/views/menu_button_cpptoc.h"
 #include "libcef_dll/cpptoc/menu_model_cpptoc.h"
 #include "libcef_dll/cpptoc/navigation_entry_cpptoc.h"
+#include "libcef_dll/cpptoc/views/panel_cpptoc.h"
 #include "libcef_dll/cpptoc/print_dialog_callback_cpptoc.h"
 #include "libcef_dll/cpptoc/print_job_callback_cpptoc.h"
 #include "libcef_dll/cpptoc/print_settings_cpptoc.h"
 #include "libcef_dll/cpptoc/process_message_cpptoc.h"
 #include "libcef_dll/cpptoc/request_callback_cpptoc.h"
 #include "libcef_dll/cpptoc/run_context_menu_callback_cpptoc.h"
-#include "libcef_dll/cpptoc/sslcert_principal_cpptoc.h"
 #include "libcef_dll/cpptoc/sslinfo_cpptoc.h"
+#include "libcef_dll/cpptoc/sslstatus_cpptoc.h"
 #include "libcef_dll/cpptoc/scheme_registrar_cpptoc.h"
+#include "libcef_dll/cpptoc/views/scroll_view_cpptoc.h"
+#include "libcef_dll/cpptoc/select_client_certificate_callback_cpptoc.h"
 #include "libcef_dll/cpptoc/stream_reader_cpptoc.h"
 #include "libcef_dll/cpptoc/stream_writer_cpptoc.h"
 #include "libcef_dll/cpptoc/task_runner_cpptoc.h"
+#include "libcef_dll/cpptoc/views/textfield_cpptoc.h"
+#include "libcef_dll/cpptoc/thread_cpptoc.h"
+#include "libcef_dll/cpptoc/test/translator_test_cpptoc.h"
+#include "libcef_dll/cpptoc/test/translator_test_ref_ptr_library_cpptoc.h"
+#include "libcef_dll/cpptoc/test/translator_test_ref_ptr_library_child_cpptoc.h"
+#include "libcef_dll/cpptoc/test/translator_test_ref_ptr_library_child_child_cpptoc.h"
+#include "libcef_dll/cpptoc/test/translator_test_scoped_library_cpptoc.h"
+#include "libcef_dll/cpptoc/test/translator_test_scoped_library_child_cpptoc.h"
+#include "libcef_dll/cpptoc/test/translator_test_scoped_library_child_child_cpptoc.h"
 #include "libcef_dll/cpptoc/urlrequest_cpptoc.h"
 #include "libcef_dll/cpptoc/v8context_cpptoc.h"
 #include "libcef_dll/cpptoc/v8exception_cpptoc.h"
@@ -72,11 +99,18 @@
 #include "libcef_dll/cpptoc/v8stack_trace_cpptoc.h"
 #include "libcef_dll/cpptoc/v8value_cpptoc.h"
 #include "libcef_dll/cpptoc/value_cpptoc.h"
+#include "libcef_dll/cpptoc/views/view_cpptoc.h"
+#include "libcef_dll/cpptoc/waitable_event_cpptoc.h"
 #include "libcef_dll/cpptoc/web_plugin_info_cpptoc.h"
+#include "libcef_dll/cpptoc/views/window_cpptoc.h"
+#include "libcef_dll/cpptoc/x509cert_principal_cpptoc.h"
+#include "libcef_dll/cpptoc/x509certificate_cpptoc.h"
 #include "libcef_dll/cpptoc/xml_reader_cpptoc.h"
 #include "libcef_dll/cpptoc/zip_reader_cpptoc.h"
 #include "libcef_dll/ctocpp/app_ctocpp.h"
 #include "libcef_dll/ctocpp/browser_process_handler_ctocpp.h"
+#include "libcef_dll/ctocpp/views/browser_view_delegate_ctocpp.h"
+#include "libcef_dll/ctocpp/views/button_delegate_ctocpp.h"
 #include "libcef_dll/ctocpp/completion_callback_ctocpp.h"
 #include "libcef_dll/ctocpp/context_menu_handler_ctocpp.h"
 #include "libcef_dll/ctocpp/cookie_visitor_ctocpp.h"
@@ -85,6 +119,7 @@
 #include "libcef_dll/ctocpp/dialog_handler_ctocpp.h"
 #include "libcef_dll/ctocpp/display_handler_ctocpp.h"
 #include "libcef_dll/ctocpp/download_handler_ctocpp.h"
+#include "libcef_dll/ctocpp/download_image_callback_ctocpp.h"
 #include "libcef_dll/ctocpp/drag_handler_ctocpp.h"
 #include "libcef_dll/ctocpp/end_tracing_callback_ctocpp.h"
 #include "libcef_dll/ctocpp/find_handler_ctocpp.h"
@@ -95,10 +130,14 @@
 #include "libcef_dll/ctocpp/keyboard_handler_ctocpp.h"
 #include "libcef_dll/ctocpp/life_span_handler_ctocpp.h"
 #include "libcef_dll/ctocpp/load_handler_ctocpp.h"
+#include "libcef_dll/ctocpp/views/menu_button_delegate_ctocpp.h"
+#include "libcef_dll/ctocpp/menu_model_delegate_ctocpp.h"
 #include "libcef_dll/ctocpp/navigation_entry_visitor_ctocpp.h"
+#include "libcef_dll/ctocpp/views/panel_delegate_ctocpp.h"
 #include "libcef_dll/ctocpp/pdf_print_callback_ctocpp.h"
 #include "libcef_dll/ctocpp/print_handler_ctocpp.h"
 #include "libcef_dll/ctocpp/read_handler_ctocpp.h"
+#include "libcef_dll/ctocpp/register_cdm_callback_ctocpp.h"
 #include "libcef_dll/ctocpp/render_handler_ctocpp.h"
 #include "libcef_dll/ctocpp/render_process_handler_ctocpp.h"
 #include "libcef_dll/ctocpp/request_handler_ctocpp.h"
@@ -111,11 +150,19 @@
 #include "libcef_dll/ctocpp/set_cookie_callback_ctocpp.h"
 #include "libcef_dll/ctocpp/string_visitor_ctocpp.h"
 #include "libcef_dll/ctocpp/task_ctocpp.h"
+#include "libcef_dll/ctocpp/views/textfield_delegate_ctocpp.h"
+#include "libcef_dll/ctocpp/test/translator_test_ref_ptr_client_ctocpp.h"
+#include "libcef_dll/ctocpp/test/translator_test_ref_ptr_client_child_ctocpp.h"
+#include "libcef_dll/ctocpp/test/translator_test_scoped_client_ctocpp.h"
+#include "libcef_dll/ctocpp/test/translator_test_scoped_client_child_ctocpp.h"
 #include "libcef_dll/ctocpp/urlrequest_client_ctocpp.h"
 #include "libcef_dll/ctocpp/v8accessor_ctocpp.h"
 #include "libcef_dll/ctocpp/v8handler_ctocpp.h"
+#include "libcef_dll/ctocpp/v8interceptor_ctocpp.h"
+#include "libcef_dll/ctocpp/views/view_delegate_ctocpp.h"
 #include "libcef_dll/ctocpp/web_plugin_info_visitor_ctocpp.h"
 #include "libcef_dll/ctocpp/web_plugin_unstable_callback_ctocpp.h"
+#include "libcef_dll/ctocpp/views/window_delegate_ctocpp.h"
 #include "libcef_dll/ctocpp/write_handler_ctocpp.h"
 #include "libcef_dll/transfer_util.h"
 
@@ -188,16 +235,21 @@ CEF_EXPORT void cef_shutdown() {
   // Execute
   CefShutdown();
 
-#ifndef NDEBUG
+#if DCHECK_IS_ON()
   // Check that all wrapper objects have been destroyed
   DCHECK(base::AtomicRefCountIsZero(&CefAuthCallbackCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(
       &CefBeforeDownloadCallbackCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefBinaryValueCppToC::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(&CefBoxLayoutCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefBrowserCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefBrowserHostCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(
       &CefBrowserProcessHandlerCToCpp::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(&CefBrowserViewCppToC::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(&CefBrowserViewDelegateCToCpp::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(&CefButtonCppToC::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(&CefButtonDelegateCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefCallbackCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefCompletionCallbackCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefContextMenuHandlerCToCpp::DebugObjCt));
@@ -210,8 +262,11 @@ CEF_EXPORT void cef_shutdown() {
       &CefDeleteCookiesCallbackCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefDialogHandlerCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefDictionaryValueCppToC::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(&CefDisplayCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefDisplayHandlerCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefDownloadHandlerCToCpp::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(
+      &CefDownloadImageCallbackCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(
       &CefDownloadItemCallbackCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefDownloadItemCppToC::DebugObjCt));
@@ -219,6 +274,7 @@ CEF_EXPORT void cef_shutdown() {
   DCHECK(base::AtomicRefCountIsZero(&CefDragHandlerCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefEndTracingCallbackCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefFileDialogCallbackCppToC::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(&CefFillLayoutCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefFindHandlerCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefFocusHandlerCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefFrameCppToC::DebugObjCt));
@@ -226,16 +282,24 @@ CEF_EXPORT void cef_shutdown() {
   DCHECK(base::AtomicRefCountIsZero(&CefGeolocationHandlerCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(
       &CefGetGeolocationCallbackCToCpp::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(&CefImageCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefJSDialogCallbackCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefJSDialogHandlerCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefKeyboardHandlerCToCpp::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(&CefLabelButtonCppToC::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(&CefLayoutCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefLifeSpanHandlerCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefListValueCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefLoadHandlerCToCpp::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(&CefMenuButtonCppToC::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(&CefMenuButtonDelegateCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefMenuModelCppToC::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(&CefMenuModelDelegateCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefNavigationEntryCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(
       &CefNavigationEntryVisitorCToCpp::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(&CefPanelCppToC::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(&CefPanelDelegateCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefPdfPrintCallbackCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefPrintDialogCallbackCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefPrintHandlerCToCpp::DebugObjCt));
@@ -243,6 +307,7 @@ CEF_EXPORT void cef_shutdown() {
   DCHECK(base::AtomicRefCountIsZero(&CefPrintSettingsCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefProcessMessageCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefReadHandlerCToCpp::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(&CefRegisterCdmCallbackCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefRenderHandlerCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(
       &CefRenderProcessHandlerCToCpp::DebugObjCt));
@@ -257,36 +322,71 @@ CEF_EXPORT void cef_shutdown() {
       &CefRunContextMenuCallbackCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(
       &CefRunFileDialogCallbackCToCpp::DebugObjCt));
-  DCHECK(base::AtomicRefCountIsZero(&CefSSLCertPrincipalCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefSSLInfoCppToC::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(&CefSSLStatusCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(
       &CefSchemeHandlerFactoryCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefSchemeRegistrarCppToC::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(&CefScrollViewCppToC::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(
+      &CefSelectClientCertificateCallbackCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefSetCookieCallbackCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefStreamReaderCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefStreamWriterCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefStringVisitorCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefTaskCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefTaskRunnerCppToC::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(&CefTextfieldCppToC::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(&CefTextfieldDelegateCToCpp::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(&CefThreadCppToC::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(&CefTranslatorTestCppToC::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(
+      &CefTranslatorTestRefPtrClientCToCpp::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(
+      &CefTranslatorTestRefPtrClientChildCToCpp::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(
+      &CefTranslatorTestRefPtrLibraryChildChildCppToC::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(
+      &CefTranslatorTestRefPtrLibraryChildCppToC::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(
+      &CefTranslatorTestRefPtrLibraryCppToC::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(
+      &CefTranslatorTestScopedClientCToCpp::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(
+      &CefTranslatorTestScopedClientChildCToCpp::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(
+      &CefTranslatorTestScopedLibraryChildChildCppToC::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(
+      &CefTranslatorTestScopedLibraryChildCppToC::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(
+      &CefTranslatorTestScopedLibraryCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefURLRequestClientCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefURLRequestCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefV8AccessorCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefV8ContextCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefV8ExceptionCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefV8HandlerCToCpp::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(&CefV8InterceptorCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefV8StackFrameCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefV8StackTraceCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefV8ValueCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefValueCppToC::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(&CefViewCppToC::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(&CefViewDelegateCToCpp::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(&CefWaitableEventCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefWebPluginInfoCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(
       &CefWebPluginInfoVisitorCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(
       &CefWebPluginUnstableCallbackCToCpp::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(&CefWindowCppToC::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(&CefWindowDelegateCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefWriteHandlerCToCpp::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(&CefX509CertPrincipalCppToC::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(&CefX509CertificateCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefXmlReaderCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefZipReaderCppToC::DebugObjCt));
-#endif  // !NDEBUG
+#endif  // DCHECK_IS_ON()
 }
 
 CEF_EXPORT void cef_do_message_loop_work() {
@@ -323,6 +423,173 @@ CEF_EXPORT void cef_enable_highdpi_support() {
 
   // Execute
   CefEnableHighDPISupport();
+}
+
+CEF_EXPORT int cef_crash_reporting_enabled() {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  bool _retval = CefCrashReportingEnabled();
+
+  // Return type: bool
+  return _retval;
+}
+
+CEF_EXPORT void cef_set_crash_key_value(const cef_string_t* key,
+    const cef_string_t* value) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Verify param: key; type: string_byref_const
+  DCHECK(key);
+  if (!key)
+    return;
+  // Unverified params: value
+
+  // Execute
+  CefSetCrashKeyValue(
+      CefString(key),
+      CefString(value));
+}
+
+CEF_EXPORT int cef_create_directory(const cef_string_t* full_path) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Verify param: full_path; type: string_byref_const
+  DCHECK(full_path);
+  if (!full_path)
+    return 0;
+
+  // Execute
+  bool _retval = CefCreateDirectory(
+      CefString(full_path));
+
+  // Return type: bool
+  return _retval;
+}
+
+CEF_EXPORT int cef_get_temp_directory(cef_string_t* temp_dir) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Verify param: temp_dir; type: string_byref
+  DCHECK(temp_dir);
+  if (!temp_dir)
+    return 0;
+
+  // Translate param: temp_dir; type: string_byref
+  CefString temp_dirStr(temp_dir);
+
+  // Execute
+  bool _retval = CefGetTempDirectory(
+      temp_dirStr);
+
+  // Return type: bool
+  return _retval;
+}
+
+CEF_EXPORT int cef_create_new_temp_directory(const cef_string_t* prefix,
+    cef_string_t* new_temp_path) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Verify param: new_temp_path; type: string_byref
+  DCHECK(new_temp_path);
+  if (!new_temp_path)
+    return 0;
+  // Unverified params: prefix
+
+  // Translate param: new_temp_path; type: string_byref
+  CefString new_temp_pathStr(new_temp_path);
+
+  // Execute
+  bool _retval = CefCreateNewTempDirectory(
+      CefString(prefix),
+      new_temp_pathStr);
+
+  // Return type: bool
+  return _retval;
+}
+
+CEF_EXPORT int cef_create_temp_directory_in_directory(
+    const cef_string_t* base_dir, const cef_string_t* prefix,
+    cef_string_t* new_dir) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Verify param: base_dir; type: string_byref_const
+  DCHECK(base_dir);
+  if (!base_dir)
+    return 0;
+  // Verify param: new_dir; type: string_byref
+  DCHECK(new_dir);
+  if (!new_dir)
+    return 0;
+  // Unverified params: prefix
+
+  // Translate param: new_dir; type: string_byref
+  CefString new_dirStr(new_dir);
+
+  // Execute
+  bool _retval = CefCreateTempDirectoryInDirectory(
+      CefString(base_dir),
+      CefString(prefix),
+      new_dirStr);
+
+  // Return type: bool
+  return _retval;
+}
+
+CEF_EXPORT int cef_directory_exists(const cef_string_t* path) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Verify param: path; type: string_byref_const
+  DCHECK(path);
+  if (!path)
+    return 0;
+
+  // Execute
+  bool _retval = CefDirectoryExists(
+      CefString(path));
+
+  // Return type: bool
+  return _retval;
+}
+
+CEF_EXPORT int cef_delete_file(const cef_string_t* path, int recursive) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Verify param: path; type: string_byref_const
+  DCHECK(path);
+  if (!path)
+    return 0;
+
+  // Execute
+  bool _retval = CefDeleteFile(
+      CefString(path),
+      recursive?true:false);
+
+  // Return type: bool
+  return _retval;
+}
+
+CEF_EXPORT int cef_zip_directory(const cef_string_t* src_dir,
+    const cef_string_t* dest_file, int include_hidden_files) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Verify param: src_dir; type: string_byref_const
+  DCHECK(src_dir);
+  if (!src_dir)
+    return 0;
+  // Verify param: dest_file; type: string_byref_const
+  DCHECK(dest_file);
+  if (!dest_file)
+    return 0;
+
+  // Execute
+  bool _retval = CefZipDirectory(
+      CefString(src_dir),
+      CefString(dest_file),
+      include_hidden_files?true:false);
+
+  // Return type: bool
+  return _retval;
 }
 
 CEF_EXPORT int cef_get_geolocation(
@@ -465,19 +732,17 @@ CEF_EXPORT int cef_create_url(const struct _cef_urlparts_t* parts,
 }
 
 CEF_EXPORT cef_string_userfree_t cef_format_url_for_security_display(
-    const cef_string_t* origin_url, const cef_string_t* languages) {
+    const cef_string_t* origin_url) {
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   // Verify param: origin_url; type: string_byref_const
   DCHECK(origin_url);
   if (!origin_url)
     return NULL;
-  // Unverified params: languages
 
   // Execute
   CefString _retval = CefFormatUrlForSecurityDisplay(
-      CefString(origin_url),
-      CefString(languages));
+      CefString(origin_url));
 
   // Return type: string
   return _retval.DetachToUserFree();
@@ -597,36 +862,6 @@ CEF_EXPORT cef_string_userfree_t cef_uridecode(const cef_string_t* text,
 
   // Return type: string
   return _retval.DetachToUserFree();
-}
-
-CEF_EXPORT int cef_parse_csscolor(const cef_string_t* string, int strict,
-    cef_color_t* color) {
-  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
-
-  // Verify param: string; type: string_byref_const
-  DCHECK(string);
-  if (!string)
-    return 0;
-  // Verify param: color; type: simple_byref
-  DCHECK(color);
-  if (!color)
-    return 0;
-
-  // Translate param: color; type: simple_byref
-  cef_color_t colorVal = color?*color:0;
-
-  // Execute
-  bool _retval = CefParseCSSColor(
-      CefString(string),
-      strict?true:false,
-      colorVal);
-
-  // Restore param: color; type: simple_byref
-  if (color)
-    *color = colorVal;
-
-  // Return type: bool
-  return _retval;
 }
 
 CEF_EXPORT struct _cef_value_t* cef_parse_json(const cef_string_t* json_string,
@@ -771,6 +1006,28 @@ CEF_EXPORT int cef_clear_scheme_handler_factories() {
   return _retval;
 }
 
+CEF_EXPORT int cef_is_cert_status_error(cef_cert_status_t status) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  bool _retval = CefIsCertStatusError(
+      status);
+
+  // Return type: bool
+  return _retval;
+}
+
+CEF_EXPORT int cef_is_cert_status_minor_error(cef_cert_status_t status) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  bool _retval = CefIsCertStatusMinorError(
+      status);
+
+  // Return type: bool
+  return _retval;
+}
+
 CEF_EXPORT int cef_currently_on(cef_thread_id_t threadId) {
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -904,45 +1161,6 @@ CEF_EXPORT void cef_refresh_web_plugins() {
   CefRefreshWebPlugins();
 }
 
-CEF_EXPORT void cef_add_web_plugin_path(const cef_string_t* path) {
-  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
-
-  // Verify param: path; type: string_byref_const
-  DCHECK(path);
-  if (!path)
-    return;
-
-  // Execute
-  CefAddWebPluginPath(
-      CefString(path));
-}
-
-CEF_EXPORT void cef_add_web_plugin_directory(const cef_string_t* dir) {
-  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
-
-  // Verify param: dir; type: string_byref_const
-  DCHECK(dir);
-  if (!dir)
-    return;
-
-  // Execute
-  CefAddWebPluginDirectory(
-      CefString(dir));
-}
-
-CEF_EXPORT void cef_remove_web_plugin_path(const cef_string_t* path) {
-  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
-
-  // Verify param: path; type: string_byref_const
-  DCHECK(path);
-  if (!path)
-    return;
-
-  // Execute
-  CefRemoveWebPluginPath(
-      CefString(path));
-}
-
 CEF_EXPORT void cef_unregister_internal_web_plugin(const cef_string_t* path) {
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -953,19 +1171,6 @@ CEF_EXPORT void cef_unregister_internal_web_plugin(const cef_string_t* path) {
 
   // Execute
   CefUnregisterInternalWebPlugin(
-      CefString(path));
-}
-
-CEF_EXPORT void cef_force_web_plugin_shutdown(const cef_string_t* path) {
-  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
-
-  // Verify param: path; type: string_byref_const
-  DCHECK(path);
-  if (!path)
-    return;
-
-  // Execute
-  CefForceWebPluginShutdown(
       CefString(path));
 }
 
@@ -999,5 +1204,21 @@ CEF_EXPORT void cef_is_web_plugin_unstable(const cef_string_t* path,
   CefIsWebPluginUnstable(
       CefString(path),
       CefWebPluginUnstableCallbackCToCpp::Wrap(callback));
+}
+
+CEF_EXPORT void cef_register_widevine_cdm(const cef_string_t* path,
+    struct _cef_register_cdm_callback_t* callback) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Verify param: path; type: string_byref_const
+  DCHECK(path);
+  if (!path)
+    return;
+  // Unverified params: callback
+
+  // Execute
+  CefRegisterWidevineCdm(
+      CefString(path),
+      CefRegisterCdmCallbackCToCpp::Wrap(callback));
 }
 

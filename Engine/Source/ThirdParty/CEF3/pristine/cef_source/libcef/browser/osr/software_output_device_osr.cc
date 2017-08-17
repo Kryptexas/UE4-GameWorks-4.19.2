@@ -9,7 +9,7 @@
 #include "libcef/browser/osr/render_widget_host_view_osr.h"
 #include "libcef/browser/thread_util.h"
 
-#include "third_party/skia/include/core/SkDevice.h"
+#include "third_party/skia/src/core/SkDevice.h"
 #include "ui/compositor/compositor.h"
 #include "ui/gfx/skia_util.h"
 
@@ -31,8 +31,6 @@ CefSoftwareOutputDeviceOSR::~CefSoftwareOutputDeviceOSR() {
 void CefSoftwareOutputDeviceOSR::Resize(const gfx::Size& viewport_pixel_size,
                                         float scale_factor) {
   CEF_REQUIRE_UIT();
-
-  scale_factor_ = scale_factor;
 
   if (viewport_pixel_size_ == viewport_pixel_size)
     return;

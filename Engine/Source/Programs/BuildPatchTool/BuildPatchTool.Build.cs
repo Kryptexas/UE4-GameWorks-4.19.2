@@ -13,7 +13,7 @@ public class BuildPatchTool : ModuleRules
 		PrivateIncludePaths.Add("Programs/BuildPatchTool/Private");
 
 		PrivateDependencyModuleNames.AddRange(
-			new string[] 
+			new string[]
 			{
 				"Core",
 				"BuildPatchServices",
@@ -25,5 +25,17 @@ public class BuildPatchTool : ModuleRules
 				"StreamingFile"
 			}
 		);
+
+
+		if (Target.Configuration != UnrealTargetConfiguration.Shipping)
+		{
+			PrivateDependencyModuleNames.AddRange(
+				new string[] {
+					"Messaging",
+					"AutomationWorker",
+					"AutomationController"
+				}
+			);
+		}
 	}
 }

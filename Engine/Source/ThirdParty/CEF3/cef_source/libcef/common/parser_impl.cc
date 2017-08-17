@@ -5,14 +5,12 @@
 #include <sstream>
 
 #include "include/cef_parser.h"
-#include "libcef/renderer/webkit_glue.h"
 
 #include "base/base64.h"
 #include "base/threading/thread_restrictions.h"
 #include "components/url_formatter/elide_url.h"
 #include "net/base/escape.h"
 #include "net/base/mime_util.h"
-#include "third_party/WebKit/public/platform/WebString.h"
 #include "url/gurl.h"
 
 bool CefParseURL(const CefString& url,
@@ -77,10 +75,9 @@ bool CefCreateURL(const CefURLParts& parts,
   return false;
 }
 
-CefString CefFormatUrlForSecurityDisplay(const CefString& origin_url,
-                                         const CefString& languages) {
+CefString CefFormatUrlForSecurityDisplay(const CefString& origin_url) {
   return url_formatter::FormatUrlForSecurityDisplay(
-      GURL(origin_url.ToString()), languages);
+      GURL(origin_url.ToString()));
 }
 
 CefString CefGetMimeType(const CefString& extension) {
@@ -126,7 +123,7 @@ CefRefPtr<CefBinaryValue> CefBase64Decode(const CefString& data) {
 }
 
 CefString CefURIEncode(const CefString& text, bool use_plus) {
-  return net::EscapeQueryParamValue(text, use_plus);
+  return net::EscapeQueryParamValue(text.ToString(), use_plus);
 }
 
 CefString CefURIDecode(const CefString& text,
@@ -138,14 +135,4 @@ CefString CefURIDecode(const CefString& text,
     return net::UnescapeAndDecodeUTF8URLComponent(text.ToString(), type);
   else
     return net::UnescapeURLComponent(text.ToString(), type);
-}
-
-bool CefParseCSSColor(const CefString& string,
-                      bool strict,
-                      cef_color_t& color) {
-  // Blink types depend on PartitionAlloc. Safe to call multiple times.
-  webkit_glue::InitializePartitionAlloc();
-
-  return webkit_glue::ParseCSSColor(
-      blink::WebString::fromUTF8(string.ToString().data()), strict, color);
 }

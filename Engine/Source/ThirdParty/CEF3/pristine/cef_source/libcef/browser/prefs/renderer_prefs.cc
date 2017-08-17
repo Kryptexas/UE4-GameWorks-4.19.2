@@ -13,18 +13,19 @@
 #include "libcef/common/extensions/extensions_util.h"
 
 #include "base/command_line.h"
-#include "base/prefs/pref_service.h"
-#include "base/prefs/pref_store.h"
+#include "base/i18n/character_encoding.h"
+#include "base/memory/ptr_util.h"
 #include "base/values.h"
 #include "chrome/browser/accessibility/animation_policy_prefs.h"
-#include "chrome/browser/character_encoding.h"
 #include "chrome/browser/defaults.h"
 #include "chrome/browser/extensions/extension_webkit_preferences.h"
 #include "chrome/browser/font_family_cache.h"
-#include "chrome/browser/prefs/command_line_pref_store.h"
 #include "chrome/browser/ui/prefs/prefs_tab_helper.h"
 #include "chrome/common/chrome_switches.h"
 #include "chrome/common/pref_names.h"
+#include "components/prefs/command_line_pref_store.h"
+#include "components/prefs/pref_service.h"
+#include "components/prefs/pref_store.h"
 #include "components/pref_registry/pref_registry_syncable.h"
 #include "content/public/browser/render_process_host.h"
 #include "content/public/browser/render_view_host.h"
@@ -35,6 +36,7 @@
 #include "extensions/browser/extension_registry.h"
 #include "extensions/browser/view_type_utils.h"
 #include "extensions/common/constants.h"
+#include "media/media_features.h"
 
 namespace renderer_prefs {
 
@@ -51,8 +53,6 @@ void SetDefaultPrefs(content::WebPreferences& web) {
       !command_line->HasSwitch(switches::kDisableJavascriptCloseWindows);
   web.javascript_can_access_clipboard =
       !command_line->HasSwitch(switches::kDisableJavascriptAccessClipboard);
-  web.caret_browsing_enabled =
-      command_line->HasSwitch(switches::kEnableCaretBrowsing);
   web.allow_universal_access_from_file_urls =
       command_line->HasSwitch(switches::kAllowUniversalAccessFromFileUrls);
     web.shrinks_standalone_images_to_fit =
@@ -119,15 +119,11 @@ void SetChromePrefs(CefBrowserContext* profile,
   if (prefs->GetBoolean(prefs::kDisable3DAPIs))
     web.experimental_webgl_enabled = false;
 
-  web.allow_displaying_insecure_content =
-      prefs->GetBoolean(prefs::kWebKitAllowDisplayingInsecureContent);
   web.allow_running_insecure_content =
       prefs->GetBoolean(prefs::kWebKitAllowRunningInsecureContent);
 
   web.password_echo_enabled = browser_defaults::kPasswordEchoEnabled;
 
-  web.uses_universal_detector =
-      prefs->GetBoolean(prefs::kWebKitUsesUniversalDetector);
   web.text_areas_are_resizable =
       prefs->GetBoolean(prefs::kWebKitTextAreasAreResizable);
   web.hyperlink_auditing_enabled =
@@ -146,9 +142,8 @@ void SetChromePrefs(CefBrowserContext* profile,
   }
 
   // Make sure we will set the default_encoding with canonical encoding name.
-  web.default_encoding =
-      CharacterEncoding::GetCanonicalEncodingNameByAliasName(
-          web.default_encoding);
+  web.default_encoding = base::GetCanonicalEncodingNameByAliasName(
+      web.default_encoding);
   if (web.default_encoding.empty()) {
     prefs->ClearPref(prefs::kDefaultCharset);
     web.default_encoding = prefs->GetString(prefs::kDefaultCharset);
@@ -251,7 +246,6 @@ void SetCefPrefs(const CefBrowserSettings& cef,
   SET_STATE(cef.javascript_access_clipboard,
       web.javascript_can_access_clipboard);
   SET_STATE(cef.javascript_dom_paste, web.dom_paste_enabled);
-  SET_STATE(cef.caret_browsing, web.caret_browsing_enabled);
   SET_STATE(cef.plugins, web.plugins_enabled);
   SET_STATE(cef.universal_access_from_file_urls,
       web.allow_universal_access_from_file_urls);
@@ -278,7 +272,7 @@ void SetString(CommandLinePrefStore* prefs,
                const std::string& value) {
   prefs->SetValue(
       key,
-      make_scoped_ptr(new base::StringValue(value)),
+      base::WrapUnique(new base::Value(value)),
       WriteablePrefStore::DEFAULT_PREF_WRITE_FLAGS);
 }
 
@@ -286,30 +280,8 @@ void SetBool(CommandLinePrefStore* prefs,
              const std::string& key,
              bool value) {
   prefs->SetValue(key,
-      make_scoped_ptr(new base::FundamentalValue(value)),
+      base::WrapUnique(new base::Value(value)),
       WriteablePrefStore::DEFAULT_PREF_WRITE_FLAGS);
-}
-
-SkColor GetBaseBackgroundColor(CefRefPtr<CefBrowserHostImpl> browser) {
-  if (browser.get()) {
-    const CefBrowserSettings& browser_settings = browser->settings();
-    if (CefColorGetA(browser_settings.background_color) > 0) {
-      return SkColorSetRGB(
-          CefColorGetR(browser_settings.background_color),
-          CefColorGetG(browser_settings.background_color),
-          CefColorGetB(browser_settings.background_color));
-    }
-  }
-
-  const CefSettings& settings = CefContext::Get()->settings();
-  if (CefColorGetA(settings.background_color) > 0) {
-    return SkColorSetRGB(
-        CefColorGetR(settings.background_color),
-        CefColorGetG(settings.background_color),
-        CefColorGetB(settings.background_color));
-  }
-
-  return SK_ColorWHITE;
 }
 
 }  // namespace
@@ -343,12 +315,13 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
       false,
       user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
 
-#if defined(ENABLE_WEBRTC)
+#if BUILDFLAG(ENABLE_WEBRTC)
   // TODO(guoweis): Remove next 2 options at M50.
   registry->RegisterBooleanPref(prefs::kWebRTCMultipleRoutesEnabled, true);
   registry->RegisterBooleanPref(prefs::kWebRTCNonProxiedUdpEnabled, true);
   registry->RegisterStringPref(prefs::kWebRTCIPHandlingPolicy,
                                content::kWebRTCIPHandlingDefault);
+  registry->RegisterStringPref(prefs::kWebRTCUDPPortRange, std::string());
 #endif
 
 #if !defined(OS_MACOSX)
@@ -373,7 +346,7 @@ void PopulateWebPreferences(content::RenderViewHost* rvh,
   SetDefaultPrefs(web);
 
   // Set preferences based on the context's PrefService.
-  if (browser.get()) {
+  if (browser) {
     CefBrowserContext* profile =
         static_cast<CefBrowserContext*>(
             browser->web_contents()->GetBrowserContext());
@@ -384,11 +357,18 @@ void PopulateWebPreferences(content::RenderViewHost* rvh,
   SetExtensionPrefs(rvh, web);
 
   // Set preferences based on CefBrowserSettings.
-  if (browser.get())
+  if (browser)
     SetCefPrefs(browser->settings(), web);
 
   // Set the background color for the WebView.
-  web.base_background_color = GetBaseBackgroundColor(browser);
+  if (browser) {
+    web.base_background_color = browser->GetBackgroundColor();
+  } else {
+    // We don't know for sure that the browser will be windowless but assume
+    // that the global windowless state is likely to be accurate.
+    web.base_background_color =
+        CefContext::Get()->GetBackgroundColor(nullptr, STATE_DEFAULT);
+  }
 }
 
 }  // namespace renderer_prefs

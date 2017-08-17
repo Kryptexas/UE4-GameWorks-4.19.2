@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -14,21 +14,21 @@
 #define CEF_LIBCEF_DLL_CPPTOC_CALLBACK_CPPTOC_H_
 #pragma once
 
-#ifndef BUILDING_CEF_SHARED
-#pragma message("Warning: "__FILE__" may be accessed DLL-side only")
-#else  // BUILDING_CEF_SHARED
+#if !defined(BUILDING_CEF_SHARED)
+#error This file can be included DLL-side only
+#endif
 
 #include "include/cef_callback.h"
 #include "include/capi/cef_callback_capi.h"
-#include "libcef_dll/cpptoc/cpptoc.h"
+#include "libcef_dll/cpptoc/cpptoc_ref_counted.h"
 
 // Wrap a C++ class with a C structure.
 // This class may be instantiated and accessed DLL-side only.
 class CefCallbackCppToC
-    : public CefCppToC<CefCallbackCppToC, CefCallback, cef_callback_t> {
+    : public CefCppToCRefCounted<CefCallbackCppToC, CefCallback,
+        cef_callback_t> {
  public:
   CefCallbackCppToC();
 };
 
-#endif  // BUILDING_CEF_SHARED
 #endif  // CEF_LIBCEF_DLL_CPPTOC_CALLBACK_CPPTOC_H_

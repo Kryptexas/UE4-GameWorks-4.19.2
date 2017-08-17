@@ -3518,6 +3518,11 @@ FSlateEditableTextLayout::FTextInputMethodContext::FTextInputMethodContext(FSlat
 {
 }
 
+bool FSlateEditableTextLayout::FTextInputMethodContext::IsComposing()
+{
+	return bIsComposing;
+}
+
 bool FSlateEditableTextLayout::FTextInputMethodContext::IsReadOnly()
 {
 	return OwnerLayout->OwnerWidget->IsTextReadOnly();

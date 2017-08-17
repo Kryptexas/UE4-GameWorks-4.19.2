@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -35,17 +35,17 @@ void CefStringVisitorCToCpp::Visit(const CefString& string) {
 CefStringVisitorCToCpp::CefStringVisitorCToCpp() {
 }
 
-template<> cef_string_visitor_t* CefCToCpp<CefStringVisitorCToCpp,
+template<> cef_string_visitor_t* CefCToCppRefCounted<CefStringVisitorCToCpp,
     CefStringVisitor, cef_string_visitor_t>::UnwrapDerived(CefWrapperType type,
     CefStringVisitor* c) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
-#ifndef NDEBUG
-template<> base::AtomicRefCount CefCToCpp<CefStringVisitorCToCpp,
+#if DCHECK_IS_ON()
+template<> base::AtomicRefCount CefCToCppRefCounted<CefStringVisitorCToCpp,
     CefStringVisitor, cef_string_visitor_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefStringVisitorCToCpp, CefStringVisitor,
-    cef_string_visitor_t>::kWrapperType = WT_STRING_VISITOR;
+template<> CefWrapperType CefCToCppRefCounted<CefStringVisitorCToCpp,
+    CefStringVisitor, cef_string_visitor_t>::kWrapperType = WT_STRING_VISITOR;

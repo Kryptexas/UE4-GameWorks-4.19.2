@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -88,17 +88,17 @@ void CefDragHandlerCToCpp::OnDraggableRegionsChanged(
 CefDragHandlerCToCpp::CefDragHandlerCToCpp() {
 }
 
-template<> cef_drag_handler_t* CefCToCpp<CefDragHandlerCToCpp, CefDragHandler,
-    cef_drag_handler_t>::UnwrapDerived(CefWrapperType type,
+template<> cef_drag_handler_t* CefCToCppRefCounted<CefDragHandlerCToCpp,
+    CefDragHandler, cef_drag_handler_t>::UnwrapDerived(CefWrapperType type,
     CefDragHandler* c) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
-#ifndef NDEBUG
-template<> base::AtomicRefCount CefCToCpp<CefDragHandlerCToCpp, CefDragHandler,
-    cef_drag_handler_t>::DebugObjCt = 0;
+#if DCHECK_IS_ON()
+template<> base::AtomicRefCount CefCToCppRefCounted<CefDragHandlerCToCpp,
+    CefDragHandler, cef_drag_handler_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefDragHandlerCToCpp, CefDragHandler,
-    cef_drag_handler_t>::kWrapperType = WT_DRAG_HANDLER;
+template<> CefWrapperType CefCToCppRefCounted<CefDragHandlerCToCpp,
+    CefDragHandler, cef_drag_handler_t>::kWrapperType = WT_DRAG_HANDLER;

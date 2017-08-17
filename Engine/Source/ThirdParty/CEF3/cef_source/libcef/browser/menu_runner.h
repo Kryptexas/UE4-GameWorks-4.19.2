@@ -5,24 +5,23 @@
 #ifndef CEF_LIBCEF_BROWSER_MENU_RUNNER_H_
 #define CEF_LIBCEF_BROWSER_MENU_RUNNER_H_
 
-#include "base/memory/scoped_ptr.h"
+#include <memory>
+
+#include "base/macros.h"
 #include "base/strings/string16.h"
 
 namespace content {
 struct ContextMenuParams;
 }
 
-namespace ui {
-class MenuModel;
-}
-
 class CefBrowserHostImpl;
+class CefMenuModelImpl;
 
 // Provides platform-specific menu implementations for CefMenuCreator.
 class CefMenuRunner {
  public:
   virtual bool RunContextMenu(CefBrowserHostImpl* browser,
-                              ui::MenuModel* model,
+                              CefMenuModelImpl* model,
                               const content::ContextMenuParams& params) = 0;
   virtual void CancelContextMenu() {}
   virtual bool FormatLabel(base::string16& label) { return false; }

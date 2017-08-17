@@ -13,13 +13,15 @@
 #include "include/wrapper/cef_helpers.h"
 #include "include/wrapper/cef_message_router.h"
 #include "include/wrapper/cef_resource_manager.h"
-#include "cefclient/browser/client_types.h"
+#include "tests/cefclient/browser/client_types.h"
 
 #if defined(OS_LINUX)
-#include "cefclient/browser/dialog_handler_gtk.h"
+#include "tests/cefclient/browser/dialog_handler_gtk.h"
 #endif
 
 namespace client {
+
+class ClientDownloadImageCallback;
 
 // Client handler abstract base class. Provides common functionality shared by
 // all concrete client handler implementations.
@@ -28,6 +30,7 @@ class ClientHandler : public CefClient,
                       public CefDisplayHandler,
                       public CefDownloadHandler,
                       public CefDragHandler,
+                      public CefFocusHandler,
                       public CefGeolocationHandler,
                       public CefKeyboardHandler,
                       public CefLifeSpanHandler,
@@ -35,7 +38,8 @@ class ClientHandler : public CefClient,
                       public CefRequestHandler {
  public:
   // Implement this interface to receive notification of ClientHandler
-  // events. The methods of this class will be called on the main thread.
+  // events. The methods of this class will be called on the main thread unless
+  // otherwise indicated.
   class Delegate {
    public:
     // Called when the browser is created.
@@ -53,6 +57,9 @@ class ClientHandler : public CefClient,
     // Set the window title.
     virtual void OnSetTitle(const std::string& title) = 0;
 
+    // Set the Favicon image.
+    virtual void OnSetFavicon(CefRefPtr<CefImage> image) {};
+
     // Set fullscreen mode.
     virtual void OnSetFullscreen(bool fullscreen) = 0;
 
@@ -64,6 +71,12 @@ class ClientHandler : public CefClient,
     // Set the draggable regions.
     virtual void OnSetDraggableRegions(
         const std::vector<CefDraggableRegion>& regions) = 0;
+
+    // Set focus to the next/previous control.
+    virtual void OnTakeFocus(bool next) {}
+
+    // Called on the UI thread before a context menu is displayed.
+    virtual void OnBeforeContextMenu(CefRefPtr<CefMenuModel> model) {}
 
    protected:
     virtual ~Delegate() {}
@@ -92,6 +105,9 @@ class ClientHandler : public CefClient,
     return this;
   }
   CefRefPtr<CefDragHandler> GetDragHandler() OVERRIDE {
+    return this;
+  }
+  CefRefPtr<CefFocusHandler> GetFocusHandler() OVERRIDE {
     return this;
   }
   CefRefPtr<CefGeolocationHandler> GetGeolocationHandler() OVERRIDE {
@@ -139,6 +155,8 @@ class ClientHandler : public CefClient,
                        const CefString& url) OVERRIDE;
   void OnTitleChange(CefRefPtr<CefBrowser> browser,
                      const CefString& title) OVERRIDE;
+  void OnFaviconURLChange(CefRefPtr<CefBrowser> browser,
+                          const std::vector<CefString>& icon_urls) OVERRIDE;
   void OnFullscreenModeChange(CefRefPtr<CefBrowser> browser,
                               bool fullscreen) OVERRIDE;
   bool OnConsoleMessage(CefRefPtr<CefBrowser> browser,
@@ -161,10 +179,12 @@ class ClientHandler : public CefClient,
   bool OnDragEnter(CefRefPtr<CefBrowser> browser,
                    CefRefPtr<CefDragData> dragData,
                    CefDragHandler::DragOperationsMask mask) OVERRIDE;
-
   void OnDraggableRegionsChanged(
       CefRefPtr<CefBrowser> browser,
       const std::vector<CefDraggableRegion>& regions) OVERRIDE;
+
+  // CefFocusHandler methods
+  void OnTakeFocus(CefRefPtr<CefBrowser> browser, bool next) OVERRIDE;
 
   // CefGeolocationHandler methods
   bool OnRequestGeolocationPermission(
@@ -245,6 +265,13 @@ class ClientHandler : public CefClient,
       const CefString& request_url,
       CefRefPtr<CefSSLInfo> ssl_info,
       CefRefPtr<CefRequestCallback> callback) OVERRIDE;
+  bool OnSelectClientCertificate(
+      CefRefPtr<CefBrowser> browser,
+      bool isProxy,
+      const CefString& host,
+      int port,
+      const X509CertificateList& certificates,
+      CefRefPtr<CefSelectClientCertificateCallback> callback) OVERRIDE;
   void OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser,
                                  TerminationStatus status) OVERRIDE;
 
@@ -259,13 +286,31 @@ class ClientHandler : public CefClient,
   // Close the existing DevTools popup window, if any.
   void CloseDevTools(CefRefPtr<CefBrowser> browser);
 
+  // Test if the current site has SSL information available.
+  bool HasSSLInformation(CefRefPtr<CefBrowser> browser);
+
+  // Show SSL information for the current site.
+  void ShowSSLInformation(CefRefPtr<CefBrowser> browser);
+
+  // Returns the Delegate.
+  Delegate* delegate() const { return delegate_; }
+
   // Returns the startup URL.
   std::string startup_url() const { return startup_url_; }
 
   // Returns true if this handler uses off-screen rendering.
   bool is_osr() const { return is_osr_; }
 
+  // Set/get whether the client should download favicon images. Only safe to
+  // call immediately after client creation or on the browser process UI thread.
+  bool download_favicon_images() const { return download_favicon_images_; }
+  void set_download_favicon_images(bool allow) {
+    download_favicon_images_ = allow;
+  }
+
  private:
+  friend class ClientDownloadImageCallback;
+
   // Create a new popup window using the specified information. |is_devtools|
   // will be true if the window will be used for DevTools. Return true to
   // proceed with popup browser creation or false to cancel the popup browser.
@@ -284,12 +329,14 @@ class ClientHandler : public CefClient,
   void NotifyBrowserClosed(CefRefPtr<CefBrowser> browser);
   void NotifyAddress(const CefString& url);
   void NotifyTitle(const CefString& title);
+  void NotifyFavicon(CefRefPtr<CefImage> image);
   void NotifyFullscreen(bool fullscreen);
   void NotifyLoadingState(bool isLoading,
                           bool canGoBack,
                           bool canGoForward);
   void NotifyDraggableRegions(
       const std::vector<CefDraggableRegion>& regions);
+  void NotifyTakeFocus(bool next);
 
   // Test context menu creation.
   void BuildTestMenu(CefRefPtr<CefMenuModel> model);
@@ -306,6 +353,9 @@ class ClientHandler : public CefClient,
 
   // True if mouse cursor change is disabled.
   bool mouse_cursor_change_disabled_;
+
+  // True if Favicon images should be downloaded.
+  bool download_favicon_images_;
 
 #if defined(OS_LINUX)
   // Custom dialog handler for GTK.

@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -33,18 +33,18 @@ void CefDeleteCookiesCallbackCToCpp::OnComplete(int num_deleted) {
 CefDeleteCookiesCallbackCToCpp::CefDeleteCookiesCallbackCToCpp() {
 }
 
-template<> cef_delete_cookies_callback_t* CefCToCpp<CefDeleteCookiesCallbackCToCpp,
+template<> cef_delete_cookies_callback_t* CefCToCppRefCounted<CefDeleteCookiesCallbackCToCpp,
     CefDeleteCookiesCallback, cef_delete_cookies_callback_t>::UnwrapDerived(
     CefWrapperType type, CefDeleteCookiesCallback* c) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
-#ifndef NDEBUG
-template<> base::AtomicRefCount CefCToCpp<CefDeleteCookiesCallbackCToCpp,
+#if DCHECK_IS_ON()
+template<> base::AtomicRefCount CefCToCppRefCounted<CefDeleteCookiesCallbackCToCpp,
     CefDeleteCookiesCallback, cef_delete_cookies_callback_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefDeleteCookiesCallbackCToCpp,
+template<> CefWrapperType CefCToCppRefCounted<CefDeleteCookiesCallbackCToCpp,
     CefDeleteCookiesCallback, cef_delete_cookies_callback_t>::kWrapperType =
     WT_DELETE_COOKIES_CALLBACK;

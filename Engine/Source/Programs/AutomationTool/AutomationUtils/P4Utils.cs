@@ -3364,6 +3364,7 @@ namespace AutomationTool
 		/// <returns>List of files in the specified directory.</returns>
 		public List<string> Files(string CommandLine)
 		{
+			List<string> DeleteActions = new List<string> { "delete", "move/delete", "archive", "purge" };
 			string FilesCmdLine = String.Format("files {0}", CommandLine);
 			IProcessResult P4Result = P4(FilesCmdLine, AllowSpew: false);
 			if (P4Result.ExitCode != 0)
@@ -3372,7 +3373,7 @@ namespace AutomationTool
 			}
 			List<string> Result = new List<string>();
 			string[] Lines = P4Result.Output.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
-			Regex OutputSplitter = new Regex(@"(?<filename>.+)#\d+ \- (?<action>[a-zA-Z]+) .+");
+			Regex OutputSplitter = new Regex(@"(?<filename>.+)#\d+ \- (?<action>[a-zA-Z/]+) .+");
 			foreach (string Line in Lines)
 			{
 				if (!Line.Contains("no such file") && OutputSplitter.IsMatch(Line))
@@ -3380,7 +3381,7 @@ namespace AutomationTool
 					Match RegexMatch = OutputSplitter.Match(Line);
 					string Filename = RegexMatch.Groups["filename"].Value;
 					string Action = RegexMatch.Groups["action"].Value;
-					if (Action != "delete")
+					if (!DeleteActions.Contains(Action))
 					{
 						Result.Add(Filename);
 					}

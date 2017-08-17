@@ -6,6 +6,9 @@
 
 #include <utility>
 
+#include "libcef/browser/context.h"
+
+#include "base/memory/ptr_util.h"
 #include "build/build_config.h"
 
 #if defined(OS_WIN)
@@ -21,46 +24,73 @@
 #error A delegate implementation is not available for your platform.
 #endif
 
+#if defined(USE_AURA)
+#include "libcef/browser/views/browser_platform_delegate_views.h"
+#endif
+
 namespace {
 
-scoped_ptr<CefBrowserPlatformDelegateNative> CreateNativeDelegate(
-    const CefWindowInfo& window_info) {
+std::unique_ptr<CefBrowserPlatformDelegateNative> CreateNativeDelegate(
+    const CefWindowInfo& window_info,
+    SkColor background_color) {
 #if defined(OS_WIN)
-  return make_scoped_ptr(new CefBrowserPlatformDelegateNativeWin(window_info));
+  return base::MakeUnique<CefBrowserPlatformDelegateNativeWin>(
+      window_info, background_color);
 #elif defined(OS_MACOSX)
-  return make_scoped_ptr(new CefBrowserPlatformDelegateNativeMac(window_info));
+  return base::MakeUnique<CefBrowserPlatformDelegateNativeMac>(
+      window_info, background_color);
 #elif defined(OS_LINUX)
-  return make_scoped_ptr(
-      new CefBrowserPlatformDelegateNativeLinux(window_info));
+  return base::MakeUnique<CefBrowserPlatformDelegateNativeLinux>(
+      window_info, background_color);
 #endif
 }
 
-scoped_ptr<CefBrowserPlatformDelegateOsr> CreateOSRDelegate(
-    scoped_ptr<CefBrowserPlatformDelegateNative> native_delegate) {
+std::unique_ptr<CefBrowserPlatformDelegateOsr> CreateOSRDelegate(
+    std::unique_ptr<CefBrowserPlatformDelegateNative> native_delegate) {
 #if defined(OS_WIN)
-  return make_scoped_ptr(
-        new CefBrowserPlatformDelegateOsrWin(std::move(native_delegate)));
+  return base::MakeUnique<CefBrowserPlatformDelegateOsrWin>(
+      std::move(native_delegate));
 #elif defined(OS_MACOSX)
-  return make_scoped_ptr(
-        new CefBrowserPlatformDelegateOsrMac(std::move(native_delegate)));
+  return base::MakeUnique<CefBrowserPlatformDelegateOsrMac>(
+      std::move(native_delegate));
 #elif defined(OS_LINUX)
-  return make_scoped_ptr(
-        new CefBrowserPlatformDelegateOsrLinux(std::move(native_delegate)));
+  return base::MakeUnique<CefBrowserPlatformDelegateOsrLinux>(
+      std::move(native_delegate));
 #endif
 }
 
 }  // namespace
 
 // static
-scoped_ptr<CefBrowserPlatformDelegate> CefBrowserPlatformDelegate::Create(
-    const CefWindowInfo& window_info,
-    const CefBrowserSettings& settings,
-    CefRefPtr<CefClient> client) {
-  scoped_ptr<CefBrowserPlatformDelegateNative> native_delegate =
-      CreateNativeDelegate(window_info);
-  if (window_info.windowless_rendering_enabled &&
-      client->GetRenderHandler().get()) {
-    return CreateOSRDelegate(std::move(native_delegate));
+std::unique_ptr<CefBrowserPlatformDelegate> CefBrowserPlatformDelegate::Create(
+    CefBrowserHostImpl::CreateParams& create_params) {
+  const bool is_windowless =
+      create_params.window_info &&
+      create_params.window_info->windowless_rendering_enabled &&
+      create_params.client &&
+      create_params.client->GetRenderHandler().get();
+  const SkColor background_color = CefContext::Get()->GetBackgroundColor(
+      &create_params.settings, is_windowless ? STATE_ENABLED : STATE_DISABLED);
+
+  if (create_params.window_info) {
+    std::unique_ptr<CefBrowserPlatformDelegateNative> native_delegate =
+        CreateNativeDelegate(*create_params.window_info.get(),
+                             background_color);
+    if (is_windowless)
+      return CreateOSRDelegate(std::move(native_delegate));
+    return std::move(native_delegate);
   }
-  return std::move(native_delegate);
+#if defined(USE_AURA)
+  else {
+    // CefWindowInfo is not used in this case.
+    std::unique_ptr<CefBrowserPlatformDelegateNative> native_delegate =
+        CreateNativeDelegate(CefWindowInfo(), background_color);
+    return base::MakeUnique<CefBrowserPlatformDelegateViews>(
+        std::move(native_delegate),
+        static_cast<CefBrowserViewImpl*>(create_params.browser_view.get()));
+  }
+#endif  // defined(USE_AURA)
+
+  NOTREACHED();
+  return nullptr;
 }

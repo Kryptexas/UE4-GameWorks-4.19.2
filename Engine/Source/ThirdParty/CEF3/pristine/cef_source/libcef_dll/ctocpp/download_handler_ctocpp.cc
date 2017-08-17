@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -88,18 +88,18 @@ void CefDownloadHandlerCToCpp::OnDownloadUpdated(CefRefPtr<CefBrowser> browser,
 CefDownloadHandlerCToCpp::CefDownloadHandlerCToCpp() {
 }
 
-template<> cef_download_handler_t* CefCToCpp<CefDownloadHandlerCToCpp,
+template<> cef_download_handler_t* CefCToCppRefCounted<CefDownloadHandlerCToCpp,
     CefDownloadHandler, cef_download_handler_t>::UnwrapDerived(
     CefWrapperType type, CefDownloadHandler* c) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
-#ifndef NDEBUG
-template<> base::AtomicRefCount CefCToCpp<CefDownloadHandlerCToCpp,
+#if DCHECK_IS_ON()
+template<> base::AtomicRefCount CefCToCppRefCounted<CefDownloadHandlerCToCpp,
     CefDownloadHandler, cef_download_handler_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefDownloadHandlerCToCpp,
+template<> CefWrapperType CefCToCppRefCounted<CefDownloadHandlerCToCpp,
     CefDownloadHandler, cef_download_handler_t>::kWrapperType =
     WT_DOWNLOAD_HANDLER;

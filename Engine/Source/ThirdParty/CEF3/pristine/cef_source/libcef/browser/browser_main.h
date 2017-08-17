@@ -6,15 +6,13 @@
 #define CEF_LIBCEF_BROWSER_BROWSER_MAIN_H_
 #pragma once
 
-#include "libcef/browser/browser_context_impl.h"
 #include "libcef/browser/net/url_request_context_getter_impl.h"
 
 #include "base/macros.h"
-#include "base/memory/scoped_ptr.h"
 #include "base/memory/scoped_vector.h"
-#include "base/prefs/pref_service.h"
 #include "base/strings/string_piece.h"
 #include "build/build_config.h"
+#include "components/prefs/pref_service.h"
 #include "content/public/browser/browser_main_parts.h"
 #include "net/url_request/url_request_context_getter.h"
 
@@ -32,6 +30,13 @@ class ExtensionsBrowserClient;
 class ExtensionsClient;
 }
 
+#if defined(USE_AURA)
+namespace wm {
+class WMState;
+}
+#endif
+
+class CefBrowserContextImpl;
 class CefDevToolsDelegate;
 
 class CefBrowserMainParts : public content::BrowserMainParts {
@@ -48,8 +53,8 @@ class CefBrowserMainParts : public content::BrowserMainParts {
   void PostMainMessageLoopRun() override;
   void PostDestroyThreads() override;
 
-  scoped_refptr<CefBrowserContextImpl> browser_context() const {
-    return global_browser_context_;
+  CefBrowserContextImpl* browser_context() const {
+    return global_browser_context_.get();
   }
   CefDevToolsDelegate* devtools_delegate() const {
     return devtools_delegate_;
@@ -58,15 +63,18 @@ class CefBrowserMainParts : public content::BrowserMainParts {
  private:
 #if defined(OS_WIN)
   void PlatformInitialize();
-  void PlatformPreMainMessageLoopRun();
 #endif  // defined(OS_WIN)
 
-  scoped_refptr<CefBrowserContextImpl> global_browser_context_;
+  std::unique_ptr<CefBrowserContextImpl> global_browser_context_;
   CefDevToolsDelegate* devtools_delegate_;  // Deletes itself.
-  scoped_ptr<base::MessageLoop> message_loop_;
+  std::unique_ptr<base::MessageLoop> message_loop_;
 
-  scoped_ptr<extensions::ExtensionsClient> extensions_client_;
-  scoped_ptr<extensions::ExtensionsBrowserClient> extensions_browser_client_;
+  std::unique_ptr<extensions::ExtensionsClient> extensions_client_;
+  std::unique_ptr<extensions::ExtensionsBrowserClient> extensions_browser_client_;
+
+#if defined(USE_AURA)
+  std::unique_ptr<wm::WMState> wm_state_;
+#endif
 
   DISALLOW_COPY_AND_ASSIGN(CefBrowserMainParts);
 };

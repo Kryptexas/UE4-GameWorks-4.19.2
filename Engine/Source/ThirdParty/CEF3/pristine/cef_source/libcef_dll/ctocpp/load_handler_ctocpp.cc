@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -39,7 +39,7 @@ void CefLoadHandlerCToCpp::OnLoadingStateChange(CefRefPtr<CefBrowser> browser,
 }
 
 void CefLoadHandlerCToCpp::OnLoadStart(CefRefPtr<CefBrowser> browser,
-    CefRefPtr<CefFrame> frame) {
+    CefRefPtr<CefFrame> frame, TransitionType transition_type) {
   cef_load_handler_t* _struct = GetStruct();
   if (CEF_MEMBER_MISSING(_struct, on_load_start))
     return;
@@ -58,7 +58,8 @@ void CefLoadHandlerCToCpp::OnLoadStart(CefRefPtr<CefBrowser> browser,
   // Execute
   _struct->on_load_start(_struct,
       CefBrowserCppToC::Wrap(browser),
-      CefFrameCppToC::Wrap(frame));
+      CefFrameCppToC::Wrap(frame),
+      transition_type);
 }
 
 void CefLoadHandlerCToCpp::OnLoadEnd(CefRefPtr<CefBrowser> browser,
@@ -123,17 +124,17 @@ void CefLoadHandlerCToCpp::OnLoadError(CefRefPtr<CefBrowser> browser,
 CefLoadHandlerCToCpp::CefLoadHandlerCToCpp() {
 }
 
-template<> cef_load_handler_t* CefCToCpp<CefLoadHandlerCToCpp, CefLoadHandler,
-    cef_load_handler_t>::UnwrapDerived(CefWrapperType type,
+template<> cef_load_handler_t* CefCToCppRefCounted<CefLoadHandlerCToCpp,
+    CefLoadHandler, cef_load_handler_t>::UnwrapDerived(CefWrapperType type,
     CefLoadHandler* c) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
-#ifndef NDEBUG
-template<> base::AtomicRefCount CefCToCpp<CefLoadHandlerCToCpp, CefLoadHandler,
-    cef_load_handler_t>::DebugObjCt = 0;
+#if DCHECK_IS_ON()
+template<> base::AtomicRefCount CefCToCppRefCounted<CefLoadHandlerCToCpp,
+    CefLoadHandler, cef_load_handler_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefLoadHandlerCToCpp, CefLoadHandler,
-    cef_load_handler_t>::kWrapperType = WT_LOAD_HANDLER;
+template<> CefWrapperType CefCToCppRefCounted<CefLoadHandlerCToCpp,
+    CefLoadHandler, cef_load_handler_t>::kWrapperType = WT_LOAD_HANDLER;

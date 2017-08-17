@@ -7,15 +7,22 @@
 
 #include <vector>
 
+#include "libcef/browser/thread_util.h"
+
 #include "base/bind.h"
 #include "base/logging.h"
 #include "base/message_loop/message_loop.h"
 #include "content/public/common/menu_item.h"
 #include "ui/base/accelerators/accelerator.h"
+#include "ui/gfx/geometry/point.h"
 
 namespace {
 
 const int kSeparatorId = -1;
+const int kInvalidGroupId = -1;
+const int kInvalidCommandId = -1;
+const int kDefaultIndex = -1;
+const int kInvalidIndex = -2;
 
 // A simple MenuModel implementation that delegates to CefMenuModelImpl.
 class CefSimpleMenuModel : public ui::MenuModel {
@@ -68,6 +75,10 @@ class CefSimpleMenuModel : public ui::MenuModel {
 
   bool IsItemDynamicAt(int index) const override {
     return false;
+  }
+
+  const gfx::FontList* GetLabelFontListAt(int index) const override {
+    return impl_->GetLabelFontListAt(index);
   }
 
   bool GetAcceleratorAt(int index,
@@ -136,12 +147,37 @@ class CefSimpleMenuModel : public ui::MenuModel {
     return NULL;
   }
 
+  void MouseOutsideMenu(const gfx::Point& screen_point) override {
+    impl_->MouseOutsideMenu(screen_point);
+  }
+
+  void UnhandledOpenSubmenu(bool is_rtl) override {
+    impl_->UnhandledOpenSubmenu(is_rtl);
+  }
+
+  void UnhandledCloseSubmenu(bool is_rtl) override {
+    impl_->UnhandledCloseSubmenu(is_rtl);
+  }
+
+  bool GetTextColor(int index,
+                    bool is_minor,
+                    bool is_hovered,
+                    SkColor* override_color) const override {
+    return impl_->GetTextColor(index, is_minor, is_hovered, override_color);
+  }
+
+  bool GetBackgroundColor(int index,
+                          bool is_hovered,
+                          SkColor* override_color) const override {
+    return impl_->GetBackgroundColor(index, is_hovered, override_color);
+  }
+
   void MenuWillShow() override {
     impl_->MenuWillShow();
   }
 
-  void MenuClosed() override {
-    impl_->MenuClosed();
+  void MenuWillClose() override {
+    impl_->MenuWillClose();
   }
 
   void SetMenuModelDelegate(
@@ -160,8 +196,36 @@ class CefSimpleMenuModel : public ui::MenuModel {
   DISALLOW_COPY_AND_ASSIGN(CefSimpleMenuModel);
 };
 
+cef_menu_color_type_t GetMenuColorType(bool is_text,
+                                       bool is_accelerator,
+                                       bool is_hovered) {
+  if (is_text) {
+    if (is_accelerator) {
+      return is_hovered ? CEF_MENU_COLOR_TEXT_ACCELERATOR_HOVERED :
+                          CEF_MENU_COLOR_TEXT_ACCELERATOR;
+    }
+    return is_hovered ? CEF_MENU_COLOR_TEXT_HOVERED : CEF_MENU_COLOR_TEXT;
+  }
+  
+  DCHECK(!is_accelerator);
+  return is_hovered ? CEF_MENU_COLOR_BACKGROUND_HOVERED :
+                      CEF_MENU_COLOR_BACKGROUND;
+}
+
 }  // namespace
 
+// static
+CefRefPtr<CefMenuModel> CefMenuModel::CreateMenuModel(
+    CefRefPtr<CefMenuModelDelegate> delegate) {
+  CEF_REQUIRE_UIT_RETURN(nullptr);
+  DCHECK(delegate);
+  if (!delegate)
+    return nullptr;
+
+  CefRefPtr<CefMenuModelImpl> menu_model =
+      new CefMenuModelImpl(nullptr, delegate, false);
+  return menu_model;
+}
 
 struct CefMenuModelImpl::Item {
   Item(cef_menu_item_type_t type,
@@ -171,15 +235,7 @@ struct CefMenuModelImpl::Item {
       : type_(type),
         command_id_(command_id),
         label_(label),
-        group_id_(group_id),
-        enabled_(true),
-        visible_(true),
-        checked_(false),
-        has_accelerator_(false),
-        key_code_(0),
-        shift_pressed_(false),
-        ctrl_pressed_(false),
-        alt_pressed_(false) {
+        group_id_(group_id) {
   }
 
   // Basic information.
@@ -190,26 +246,42 @@ struct CefMenuModelImpl::Item {
   CefRefPtr<CefMenuModelImpl> submenu_;
 
   // State information.
-  bool enabled_;
-  bool visible_;
-  bool checked_;
+  bool enabled_ = true;
+  bool visible_ = true;
+  bool checked_ = false;
 
   // Accelerator information.
-  bool has_accelerator_;
-  int key_code_;
-  bool shift_pressed_;
-  bool ctrl_pressed_;
-  bool alt_pressed_;
+  bool has_accelerator_ = false;
+  int key_code_ = 0;
+  bool shift_pressed_ = false;
+  bool ctrl_pressed_ = false;
+  bool alt_pressed_ = false;
+
+  cef_color_t colors_[CEF_MENU_COLOR_COUNT] = {0};
+  gfx::FontList font_list_;
+  bool has_font_list_ = false;
 };
 
 
-CefMenuModelImpl::CefMenuModelImpl(Delegate* delegate)
+CefMenuModelImpl::CefMenuModelImpl(
+    Delegate* delegate,
+    CefRefPtr<CefMenuModelDelegate> menu_model_delegate,
+    bool is_submenu)
     : supported_thread_id_(base::PlatformThread::CurrentId()),
-      delegate_(delegate) {
+      delegate_(delegate),
+      menu_model_delegate_(menu_model_delegate),
+      is_submenu_(is_submenu) {
+  DCHECK(delegate_ || menu_model_delegate_);
   model_.reset(new CefSimpleMenuModel(this));
 }
 
 CefMenuModelImpl::~CefMenuModelImpl() {
+}
+
+bool CefMenuModelImpl::IsSubMenu() {
+  if (!VerifyContext())
+    return false;
+  return is_submenu_;
 }
 
 bool CefMenuModelImpl::Clear() {
@@ -231,7 +303,8 @@ bool CefMenuModelImpl::AddSeparator() {
   if (!VerifyContext())
     return false;
 
-  AppendItem(Item(MENUITEMTYPE_SEPARATOR, kSeparatorId, CefString(), -1));
+  AppendItem(Item(MENUITEMTYPE_SEPARATOR, kSeparatorId, CefString(),
+                  kInvalidGroupId));
   return true;
 }
 
@@ -239,7 +312,8 @@ bool CefMenuModelImpl::AddItem(int command_id, const CefString& label) {
   if (!VerifyContext())
     return false;
 
-  AppendItem(Item(MENUITEMTYPE_COMMAND, command_id, label, -1));
+  AppendItem(Item(MENUITEMTYPE_COMMAND, command_id, label,
+                  kInvalidGroupId));
   return true;
 }
 
@@ -247,7 +321,7 @@ bool CefMenuModelImpl::AddCheckItem(int command_id, const CefString& label) {
   if (!VerifyContext())
     return false;
 
-  AppendItem(Item(MENUITEMTYPE_CHECK, command_id, label, -1));
+  AppendItem(Item(MENUITEMTYPE_CHECK, command_id, label, kInvalidGroupId));
   return true;
 }
 
@@ -265,8 +339,8 @@ CefRefPtr<CefMenuModel> CefMenuModelImpl::AddSubMenu(int command_id,
   if (!VerifyContext())
     return NULL;
 
-  Item item(MENUITEMTYPE_SUBMENU, command_id, label, -1);
-  item.submenu_ = new CefMenuModelImpl(delegate_);
+  Item item(MENUITEMTYPE_SUBMENU, command_id, label, kInvalidGroupId);
+  item.submenu_ = new CefMenuModelImpl(delegate_, menu_model_delegate_, true);
   AppendItem(item);
   return item.submenu_.get();
 }
@@ -275,8 +349,9 @@ bool CefMenuModelImpl::InsertSeparatorAt(int index) {
   if (!VerifyContext())
     return false;
 
-  InsertItemAt(Item(MENUITEMTYPE_SEPARATOR, kSeparatorId, CefString(), -1),
-                    index);
+  InsertItemAt(Item(MENUITEMTYPE_SEPARATOR, kSeparatorId, CefString(),
+                    kInvalidGroupId),
+               index);
   return true;
 }
 
@@ -285,7 +360,8 @@ bool CefMenuModelImpl::InsertItemAt(int index, int command_id,
   if (!VerifyContext())
     return false;
 
-  InsertItemAt(Item(MENUITEMTYPE_COMMAND, command_id, label, -1), index);
+  InsertItemAt(Item(MENUITEMTYPE_COMMAND, command_id, label, kInvalidGroupId),
+               index);
   return true;
 }
 
@@ -294,7 +370,8 @@ bool CefMenuModelImpl::InsertCheckItemAt(int index, int command_id,
   if (!VerifyContext())
     return false;
 
-  InsertItemAt(Item(MENUITEMTYPE_CHECK, command_id, label, -1), index);
+  InsertItemAt(Item(MENUITEMTYPE_CHECK, command_id, label, kInvalidGroupId),
+               index);
   return true;
 }
 
@@ -303,7 +380,7 @@ bool CefMenuModelImpl::InsertRadioItemAt(int index, int command_id,
   if (!VerifyContext())
     return false;
 
-  InsertItemAt(Item(MENUITEMTYPE_RADIO, command_id, label, -1), index);
+  InsertItemAt(Item(MENUITEMTYPE_RADIO, command_id, label, group_id), index);
   return true;
 }
 
@@ -312,8 +389,8 @@ CefRefPtr<CefMenuModel> CefMenuModelImpl::InsertSubMenuAt(
   if (!VerifyContext())
     return NULL;
 
-  Item item(MENUITEMTYPE_SUBMENU, command_id, label, -1);
-  item.submenu_ = new CefMenuModelImpl(delegate_);
+  Item item(MENUITEMTYPE_SUBMENU, command_id, label, kInvalidGroupId);
+  item.submenu_ = new CefMenuModelImpl(delegate_, menu_model_delegate_, true);
   InsertItemAt(item, index);
   return item.submenu_.get();
 }
@@ -335,23 +412,23 @@ bool CefMenuModelImpl::RemoveAt(int index) {
 
 int CefMenuModelImpl::GetIndexOf(int command_id) {
   if (!VerifyContext())
-    return -1;
+    return kInvalidIndex;
 
   for (ItemVector::iterator i = items_.begin(); i != items_.end(); ++i) {
     if ((*i).command_id_ == command_id) {
       return static_cast<int>(std::distance(items_.begin(), i));
     }
   }
-  return -1;
+  return kInvalidIndex;
 }
 
 int CefMenuModelImpl::GetCommandIdAt(int index) {
   if (!VerifyContext())
-    return -1;
+    return kInvalidCommandId;
 
   if (index >= 0 && index < static_cast<int>(items_.size()))
     return items_[index].command_id_;
-  return -1;
+  return kInvalidCommandId;
 }
 
 bool CefMenuModelImpl::SetCommandIdAt(int index, int command_id) {
@@ -412,11 +489,11 @@ int CefMenuModelImpl::GetGroupId(int command_id) {
 
 int CefMenuModelImpl::GetGroupIdAt(int index) {
   if (!VerifyContext())
-    return -1;
+    return kInvalidGroupId;
 
   if (index >= 0 && index < static_cast<int>(items_.size()))
     return items_[index].group_id_;
-  return -1;
+  return kInvalidGroupId;
 }
 
 bool CefMenuModelImpl::SetGroupId(int command_id, int group_id) {
@@ -617,32 +694,237 @@ bool CefMenuModelImpl::GetAcceleratorAt(int index, int& key_code,
   return false;
 }
 
+bool CefMenuModelImpl::SetColor(int command_id,
+                                cef_menu_color_type_t color_type,
+                                cef_color_t color) {
+  return SetColorAt(GetIndexOf(command_id), color_type, color);
+}
+
+bool CefMenuModelImpl::SetColorAt(int index,
+                                  cef_menu_color_type_t color_type,
+                                  cef_color_t color) {
+  if (!VerifyContext())
+    return false;
+
+  if (color_type < 0 || color_type >= CEF_MENU_COLOR_COUNT)
+    return false;
+
+  if (index == kDefaultIndex) {
+    default_colors_[color_type] = color;
+    return true;
+  }
+
+  if (index >= 0 && index < static_cast<int>(items_.size())) {
+    Item& item = items_[index];
+    item.colors_[color_type] = color;
+    return true;
+  }
+
+  return false;
+}
+
+bool CefMenuModelImpl::GetColor(int command_id,
+                                cef_menu_color_type_t color_type,
+                                cef_color_t& color) {
+  return GetColorAt(GetIndexOf(command_id), color_type, color);
+}
+
+bool CefMenuModelImpl::GetColorAt(int index,
+                                  cef_menu_color_type_t color_type,
+                                  cef_color_t& color) {
+  if (!VerifyContext())
+    return false;
+
+  if (color_type < 0 || color_type >= CEF_MENU_COLOR_COUNT)
+    return false;
+
+  if (index == kDefaultIndex) {
+    color = default_colors_[color_type];
+    return true;
+  }
+
+  if (index >= 0 && index < static_cast<int>(items_.size())) {
+    Item& item = items_[index];
+    color = item.colors_[color_type];
+    return true;
+  }
+
+  return false;
+}
+
+bool CefMenuModelImpl::SetFontList(int command_id, const CefString& font_list) {
+  return SetFontListAt(GetIndexOf(command_id), font_list);
+}
+
+bool CefMenuModelImpl::SetFontListAt(int index, const CefString& font_list) {
+  if (!VerifyContext())
+    return false;
+
+  if (index == kDefaultIndex) {
+    if (font_list.empty()) {
+      has_default_font_list_ = false;
+    } else {
+      default_font_list_ = gfx::FontList(font_list);
+      has_default_font_list_ = true;
+    }
+    return true;
+  }
+
+  if (index >= 0 && index < static_cast<int>(items_.size())) {
+    Item& item = items_[index];
+    if (font_list.empty()) {
+      item.has_font_list_ = false;
+    } else {
+      item.font_list_ = gfx::FontList(font_list);
+      item.has_font_list_ = true;
+    }
+    return true;
+  }
+  return false;
+}
+
 void CefMenuModelImpl::ActivatedAt(int index, cef_event_flags_t event_flags) {
-  if (VerifyContext() && delegate_)
-    delegate_->ExecuteCommand(this, GetCommandIdAt(index), event_flags);
+  if (!VerifyContext())
+    return;
+  
+  const int command_id = GetCommandIdAt(index);
+  if (delegate_)
+    delegate_->ExecuteCommand(this, command_id, event_flags);
+  if (menu_model_delegate_)
+    menu_model_delegate_->ExecuteCommand(this, command_id, event_flags);
+}
+
+void CefMenuModelImpl::MouseOutsideMenu(const gfx::Point& screen_point) {
+  if (!VerifyContext())
+    return;
+
+  // Allow the callstack to unwind before notifying the delegate since it may
+  // result in the menu being destroyed.
+  base::MessageLoop::current()->task_runner()->PostTask(
+      FROM_HERE,
+      base::Bind(&CefMenuModelImpl::OnMouseOutsideMenu, this, screen_point));
+}
+
+void CefMenuModelImpl::UnhandledOpenSubmenu(bool is_rtl) {
+  if (!VerifyContext())
+    return;
+
+  // Allow the callstack to unwind before notifying the delegate since it may
+  // result in the menu being destroyed.
+  base::MessageLoop::current()->task_runner()->PostTask(
+      FROM_HERE,
+      base::Bind(&CefMenuModelImpl::OnUnhandledOpenSubmenu, this, is_rtl));
+}
+
+void CefMenuModelImpl::UnhandledCloseSubmenu(bool is_rtl) {
+  if (!VerifyContext())
+    return;
+
+  // Allow the callstack to unwind before notifying the delegate since it may
+  // result in the menu being destroyed.
+  base::MessageLoop::current()->task_runner()->PostTask(
+      FROM_HERE,
+      base::Bind(&CefMenuModelImpl::OnUnhandledCloseSubmenu, this, is_rtl));
+}
+
+bool CefMenuModelImpl::GetTextColor(int index,
+                                    bool is_accelerator,
+                                    bool is_hovered,
+                                    SkColor* override_color) const {
+  if (index >= 0 && index < static_cast<int>(items_.size())) {
+    const Item& item = items_[index];
+    if (!item.enabled_) {
+      // Use accelerator color for disabled item text.
+      is_accelerator = true;
+    }
+
+    const cef_menu_color_type_t color_type =
+        GetMenuColorType(true, is_accelerator, is_hovered);
+    if (item.colors_[color_type] != 0) {
+      *override_color = item.colors_[color_type];
+      return true;
+    }
+  }
+
+  const cef_menu_color_type_t color_type =
+      GetMenuColorType(true, is_accelerator, is_hovered);
+  if (default_colors_[color_type] != 0) {
+    *override_color = default_colors_[color_type];
+    return true;
+  }
+
+  return false;
+}
+
+bool CefMenuModelImpl::GetBackgroundColor(int index,
+                                          bool is_hovered,
+                                          SkColor* override_color) const {
+  const cef_menu_color_type_t color_type =
+      GetMenuColorType(false, false, is_hovered);
+
+  if (index >= 0 && index < static_cast<int>(items_.size())) {
+    const Item& item = items_[index];
+    if (item.colors_[color_type] != 0) {
+      *override_color = item.colors_[color_type];
+      return true;
+    }
+  }
+
+  if (default_colors_[color_type] != 0) {
+    *override_color = default_colors_[color_type];
+    return true;
+  }
+
+  return false;
 }
 
 void CefMenuModelImpl::MenuWillShow() {
-  if (VerifyContext() && delegate_)
+  if (!VerifyContext())
+    return;
+  
+  if (delegate_)
     delegate_->MenuWillShow(this);
+  if (menu_model_delegate_)
+    menu_model_delegate_->MenuWillShow(this);
 }
 
-void CefMenuModelImpl::MenuClosed() {
+void CefMenuModelImpl::MenuWillClose() {
   if (!VerifyContext())
+    return;
+
+  if (!auto_notify_menu_closed_)
     return;
 
   // Due to how menus work on the different platforms, ActivatedAt will be
   // called after this.  It's more convenient for the delegate to be called
   // afterwards, though, so post a task.
-  base::MessageLoop::current()->PostTask(
+  base::MessageLoop::current()->task_runner()->PostTask(
       FROM_HERE,
       base::Bind(&CefMenuModelImpl::OnMenuClosed, this));
 }
 
 base::string16 CefMenuModelImpl::GetFormattedLabelAt(int index) {
   base::string16 label = GetLabelAt(index).ToString16();
-  delegate_->FormatLabel(label);
+  if (delegate_)
+    delegate_->FormatLabel(this, label);
+  if (menu_model_delegate_) {
+    CefString new_label = label;
+    if (menu_model_delegate_->FormatLabel(this, new_label))
+      label = new_label;
+  }
   return label;
+}
+
+const gfx::FontList* CefMenuModelImpl::GetLabelFontListAt(int index) const {
+  if (index >= 0 && index < static_cast<int>(items_.size())) {
+    const Item& item = items_[index];
+    if (item.has_font_list_)
+      return &item.font_list_;
+  }
+
+  if (has_default_font_list_)
+    return &default_font_list_;
+  return nullptr;
 }
 
 bool CefMenuModelImpl::VerifyRefCount() {
@@ -697,6 +979,11 @@ void CefMenuModelImpl::AddMenuItem(const content::MenuItem& menu_item) {
   }
 }
 
+void CefMenuModelImpl::NotifyMenuClosed() {
+  DCHECK(!auto_notify_menu_closed_);
+  OnMenuClosed();
+}
+
 void CefMenuModelImpl::AppendItem(const Item& item) {
   ValidateItem(item);
   items_.push_back(item);
@@ -714,18 +1001,43 @@ void CefMenuModelImpl::InsertItemAt(const Item& item, int index) {
 }
 
 void CefMenuModelImpl::ValidateItem(const Item& item) {
-#ifndef NDEBUG
+#if DCHECK_IS_ON()
   if (item.type_ == MENUITEMTYPE_SEPARATOR) {
     DCHECK_EQ(item.command_id_, kSeparatorId);
   } else {
     DCHECK_GE(item.command_id_, 0);
   }
-#endif  // NDEBUG
+#endif
+}
+
+void CefMenuModelImpl::OnMouseOutsideMenu(const gfx::Point& screen_point) {
+  if (delegate_)
+    delegate_->MouseOutsideMenu(this, screen_point);
+  if (menu_model_delegate_) {
+    menu_model_delegate_->MouseOutsideMenu(this,
+        CefPoint(screen_point.x(), screen_point.y()));
+  }
+}
+
+void CefMenuModelImpl::OnUnhandledOpenSubmenu(bool is_rtl) {
+  if (delegate_)
+    delegate_->UnhandledOpenSubmenu(this, is_rtl);
+  if (menu_model_delegate_)
+    menu_model_delegate_->UnhandledOpenSubmenu(this, is_rtl);
+}
+
+void CefMenuModelImpl::OnUnhandledCloseSubmenu(bool is_rtl) {
+  if (delegate_)
+    delegate_->UnhandledCloseSubmenu(this, is_rtl);
+  if (menu_model_delegate_)
+    menu_model_delegate_->UnhandledCloseSubmenu(this, is_rtl);
 }
 
 void CefMenuModelImpl::OnMenuClosed() {
   if (delegate_)
     delegate_->MenuClosed(this);
+  if (menu_model_delegate_)
+    menu_model_delegate_->MenuClosed(this);
 }
 
 bool CefMenuModelImpl::VerifyContext() {

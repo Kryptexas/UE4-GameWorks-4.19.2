@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -175,18 +175,18 @@ CefPostDataElementCppToC::CefPostDataElementCppToC() {
   GetStruct()->get_bytes = post_data_element_get_bytes;
 }
 
-template<> CefRefPtr<CefPostDataElement> CefCppToC<CefPostDataElementCppToC,
+template<> CefRefPtr<CefPostDataElement> CefCppToCRefCounted<CefPostDataElementCppToC,
     CefPostDataElement, cef_post_data_element_t>::UnwrapDerived(
     CefWrapperType type, cef_post_data_element_t* s) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
-#ifndef NDEBUG
-template<> base::AtomicRefCount CefCppToC<CefPostDataElementCppToC,
+#if DCHECK_IS_ON()
+template<> base::AtomicRefCount CefCppToCRefCounted<CefPostDataElementCppToC,
     CefPostDataElement, cef_post_data_element_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCppToC<CefPostDataElementCppToC,
+template<> CefWrapperType CefCppToCRefCounted<CefPostDataElementCppToC,
     CefPostDataElement, cef_post_data_element_t>::kWrapperType =
     WT_POST_DATA_ELEMENT;

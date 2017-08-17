@@ -14,274 +14,306 @@
 #include "Interfaces/IBuildPatchServicesModule.h"
 #include "HAL/ThreadSafeBool.h"
 #include "BuildPatchProgress.h"
+#include "Core/Platform.h"
+#include "Core/ProcessTimer.h"
+#include "Common/HttpManager.h"
 
-class FBuildPatchInstallationInfo;
-class FBuildPatchInstaller;
-
-typedef TSharedPtr< class FBuildPatchInstaller, ESPMode::ThreadSafe > FBuildPatchInstallerPtr;
-typedef TSharedRef< class FBuildPatchInstaller, ESPMode::ThreadSafe > FBuildPatchInstallerRef;
-typedef TWeakPtr< class FBuildPatchInstaller, ESPMode::ThreadSafe > FBuildPatchInstallerWeakPtr;
-
-/**
- * FBuildPatchInstaller
- * This class controls a thread that wraps the code to install/patch an app from manifests
- */
-class FBuildPatchInstaller
-	: public IBuildInstaller
-	, public FRunnable
+namespace BuildPatchServices
 {
-private:
-	// Hold a pointer to my thread for easier deleting
-	FRunnableThread* Thread;
-
-	// The delegates that we will be calling
-	FBuildPatchBoolManifestDelegate OnCompleteDelegate;
-
-	// The installer configuration
-	FInstallerConfiguration Configuration;
-
-	// The manifest for the build we have installed (if applicable)
-	FBuildPatchAppManifestPtr CurrentBuildManifest;
-
-	// The manifest for the build we want to install
-	FBuildPatchAppManifestRef NewBuildManifest;
-
-	// The directory created in staging, to store local patch data
-	FString DataStagingDir;
-
-	// The directory created in staging to construct install files to
-	FString InstallStagingDir;
-
-	// The filename used to mark a previous install that did not complete but moved staged files into the install directory
-	FString PreviousMoveMarker;
-
-	// The filename for the local machine config. This is used for per-machine values rather than per-user or shipped config.
-	const FString LocalMachineConfigFile;
-
-	// A critical section to protect variables
-	mutable FCriticalSection ThreadLock;
-
-	// A flag to store if we are installing file data
-	const bool bIsFileData;
-
-	// A flag to store if we are installing chunk data (to help readability)
-	const bool bIsChunkData;
-
-	// A flag storing whether the process was a success
-	FThreadSafeBool bSuccess;
-
-	// A flag marking that we a running
-	FThreadSafeBool bIsRunning;
-
-	// A flag marking that we initialized correctly
-	FThreadSafeBool bIsInited;
-
-	// A flag that stores whether we are on the first install iteration
-	FThreadSafeBool bFirstInstallIteration;
-
-	// The download speed value
-	double DownloadSpeedValue;
-
-	// The current download health value
-	EBuildPatchDownloadHealth DownloadHealthValue;
-
-	// The number of bytes left to download
-	int64 DownloadBytesLeft;
-
-	// Keep track of build stats
-	FBuildInstallStats BuildStats;
-
-	// Keep track of install progress
-	FBuildPatchProgress BuildProgress;
-
-	// Cache the float value for number of chunk downloads for progress calculations
-	float InitialNumChunkDownloads;
-
-	// Cache the float value for number of chunk constructions for progress calculations
-	float InitialNumChunkConstructions;
-
-	// Cache the number of bytes required to download
-	int64 TotalInitialDownloadSize;
-
-	// Track the time the installer was paused so we can record pause time
-	double TimePausedAt;
-
-	// Holds a list of files that have been placed into the install directory
-	TArray<FString> FilesInstalled;
-
-	// Holds the files which are all required
-	TSet<FString> TaggedFiles;
-
-	// The files that the installation process required to construct
-	TSet<FString> FilesToConstruct;
-
-	// The list of prerequisites that have already been installed. Will also be updated on successful installation
-	TSet<FString> InstalledPrereqs;
-
-	// Reference to the module's installation info
-	FBuildPatchInstallationInfo& InstallationInfo;
-
-public:
-	/**
-	 * Constructor takes configuration and dependencies.
-	 * @param Configuration             The installer configuration structure.
-	 * @param InstallationInfoRef       Reference to the module's installation info that keeps record of locally installed apps for use as chunk sources.
-	 * @param InLocalMachineConfigFile  Filename for the local machine's config. This is used for per-machine configuration rather than shipped or user config.
-	 * @param OnCompleteDelegate        Delegate for when the process has completed.
-	 */
-	FBuildPatchInstaller(FInstallerConfiguration Configuration, FBuildPatchInstallationInfo& InstallationInfoRef, const FString& InLocalMachineConfigFile, FBuildPatchBoolManifestDelegate OnCompleteDelegate);
+	struct FChunkDbSourceConfig;
+	struct FCloudSourceConfig;
+	struct FInstallSourceConfig;
+	class IInstallerError;
+	class IInstallerStatistics;
+	class IInstallerAnalytics;
+	class IMachineConfig;
+	class IDownloadService;
+	class IMessagePump;
 
 	/**
-	 * Default Destructor, will delete the allocated Thread
+	 * FBuildPatchInstaller
+	 * This class controls a thread that wraps the code to install/patch an app from manifests.
 	 */
-	~FBuildPatchInstaller();
+	class FBuildPatchInstaller
+		: public IBuildInstaller
+		, public FRunnable
+	{
+	private:
+		// Hold a pointer to my thread for easier deleting.
+		FRunnableThread* Thread;
 
-	// Begin FRunnable
-	uint32 Run() override;
-	// End FRunnable
+		// The delegates that we will be calling.
+		FBuildPatchBoolManifestDelegate OnCompleteDelegate;
 
-	// Begin IBuildInstaller
-	virtual bool IsComplete() const override;
-	virtual bool IsCanceled() const override;
-	virtual bool IsPaused() const override;
-	virtual bool IsResumable() const override;
-	virtual bool HasError() const override;
-	virtual EBuildPatchInstallError GetErrorType() const override;
-	virtual FString GetErrorCode() const override;
-	//@todo this is deprecated and shouldn't be used anymore [6/4/2014 justin.sargent]
-	virtual FText GetPercentageText() const override;
-	//@todo this is deprecated and shouldn't be used anymore [6/4/2014 justin.sargent]
-	virtual FText GetDownloadSpeedText() const override;
-	virtual double GetDownloadSpeed() const override;
-	virtual int64 GetInitialDownloadSize() const override;
-	virtual int64 GetTotalDownloaded() const override;
-	virtual EBuildPatchState GetState() const override;
-	virtual FText GetStatusText() const override;
-	virtual float GetUpdateProgress() const override;
-	virtual FBuildInstallStats GetBuildStatistics() const override;
-	virtual EBuildPatchDownloadHealth GetDownloadHealth() const override;
-	virtual FText GetErrorText() const override;
-	virtual void CancelInstall() override;
-	virtual bool TogglePauseInstall() override;
-	// End IBuildInstaller interface
+		// The installer configuration.
+		FInstallerConfiguration Configuration;
 
-	/**
-	 * Begin the installation process
-	 * @return true if the installation started successfully, or is already running
-	 */
-	bool StartInstallation();
+		// The manifest for the build we have installed (if applicable).
+		FBuildPatchAppManifestPtr CurrentBuildManifest;
 
-	/**
-	 * Executes the on complete delegate. This should only be called when completed, and is separated out
-	 * to allow control to make this call on the main thread.
-	 */
-	void ExecuteCompleteDelegate();
+		// The manifest for the build we want to install.
+		FBuildPatchAppManifestRef NewBuildManifest;
 
-	/**
-	 * Only returns once the thread has finished running
-	 */
-	void WaitForThread() const;
+		// The directory created in staging, to store local patch data.
+		FString DataStagingDir;
 
-private:
+		// The directory created in staging to construct install files to.
+		FString InstallStagingDir;
 
-	/**
-	 * Initialise the installer.
-	 * @return Whether initialization was successful.
-	 */
-	bool Initialize();
+		// The filename used to mark a previous install that did not complete but moved staged files into the install directory.
+		FString PreviousMoveMarker;
 
-	/**
-	 * Checks the installation directory for any already existing files of the correct size, with may account for manual
-	 * installation. Should be used for new installation detecting existing files.
-	 * NB: Not useful for patches, where we'd expect existing files anyway.
-	 * @return    Returns true if there were potentially already installed files
-	 */
-	bool CheckForExternallyInstalledFiles();
+		// A critical section to protect variables.
+		mutable FCriticalSection ThreadLock;
 
-	/**
-	 * Runs the installation process
-	 * @param	CorruptFiles	A list of files that were corrupt, to only install those.
-	 * @return    Returns true if there were no errors blocking installation
-	 */
-	bool RunInstallation(TArray<FString>& CorruptFiles);
+		// A flag to store if we are installing file data.
+		const bool bIsFileData;
 
-	/**
-	 * Runs the backup process for locally changed files, and then moves new files into installation directory
-	 * @return    Returns true if there were no errors
-	 */
-	bool RunBackupAndMove();
+		// A flag to store if we are installing chunk data (to help readability).
+		const bool bIsChunkData;
 
-	/**
-	 * Runs the process to setup all file attributes required
-	 * @param bForce		Set true if also removing attributes to force the api calls to be made
-	 * @return    Returns true if there were no errors
-	 */
-	bool RunFileAttributes( bool bForce = false );
+		// A flag storing whether the process was a success.
+		FThreadSafeBool bSuccess;
 
-	/**
-	 * Runs the verification process
-	 * @param CorruptFiles  OUT     Receives the list of files that failed verification
-	 * @return    Returns true if there were no corrupt files
-	 */
-	bool RunVerification( TArray< FString >& CorruptFiles );
+		// A flag marking that we a running.
+		FThreadSafeBool bIsRunning;
 
-	/**
-	 * Checks a particular file in the install directory to see if it needs backing up, and does so if necessary
-	 * @param Filename                      The filename to check, which should match a filename in a manifest
-	 * @param bDiscoveredByVerification     Optional, whether the file was detected changed already by verification stage. Default: false.
-	 * @return    Returns true if there were no errors
-	 */
-	bool BackupFileIfNecessary( const FString& Filename, bool bDiscoveredByVerification = false );
+		// A flag marking that we initialized correctly.
+		FThreadSafeBool bIsInited;
 
-	/**
-	 * Runs any prerequisites associated with the installation
-	 * @return    Returns true if the prerequisites installer succeeded, false otherwise
-	 */
-	bool RunPrereqInstaller();
-	
-	/**
-	 * Sets the current byte download speed
-	 * @param ByteSpeed	The download speed
-	 */
-	void SetDownloadSpeed( double ByteSpeed );
+		// A flag that stores whether we are on the first install iteration.
+		FThreadSafeBool bFirstInstallIteration;
 
-	/**
-	 * Sets the bytes left to download
-	 * @param BytesLeft	The number of bytes left
-	 */
-	void SetDownloadBytesLeft( const int64& BytesLeft );
+		// Keep track of build stats.
+		FBuildInstallStats BuildStats;
 
-	/**
-	 * Sets the current download health
-	 * @param DownloadHealth	The download health
-	 */
-	void SetDownloadHealth(EBuildPatchDownloadHealth DownloadHealth);
+		// Keep track of install progress.
+		FBuildPatchProgress BuildProgress;
 
-	/**
-	 * Helper to calculate new chunk progress values
-	 * @param bReset	Resets internals without updating
-	 */
-	void UpdateDownloadProgressInfo( bool bReset = false );
+		// Whether we are currently paused.
+		bool bIsPaused;
 
-	/**
-	 * Callback for verification process to set progress
-	 * @param Percent	The current process percentage
-	 */
-	void UpdateVerificationProgress( float Percent );
+		// Whether we are needing to abort.
+		bool bShouldAbort;
 
-	/**
-	 * Delete empty directories from an installation
-	 * @param RootDirectory	 Root Directory for search
-	 */
-	void CleanupEmptyDirectories( const FString& RootDirectory );
+		// Holds a list of files that have been placed into the install directory.
+		TArray<FString> FilesInstalled;
 
-	/**
-	 * Loads the configuration values for this computer, call from main thread.
-	 */
-	void LoadLocalMachineConfig();
+		// Holds the files which are all required.
+		TSet<FString> TaggedFiles;
 
-	/**
-	 * Saves updated configuration values for this computer, call from main thread.
-	 */
-	void SaveLocalMachineConfig();
-};
+		// The files that the installation process required to construct.
+		TSet<FString> FilesToConstruct;
+
+		// Map of registered installations.
+		TMap<FString, FBuildPatchAppManifestRef> InstallationInfo;
+
+		// The file which contains per machine configuration information.
+		FString LocalMachineConfigFile;
+
+		// HTTP manager used to make requests for download data.
+		TUniquePtr<IHttpManager> HttpManager;
+
+		// File systems for classes requiring disk access.
+		TUniquePtr<IFileSystem> FileSystem;
+
+		// Platform abstraction.
+		TUniquePtr<IPlatform> Platform;
+
+		// Installer error tracking system.
+		TUniquePtr<IInstallerError> InstallerError;
+
+		// The analytics provider interface.
+		TSharedPtr<IAnalyticsProvider> Analytics;
+
+		// The HTTP tracker service interface.
+		TSharedPtr<FHttpServiceTracker> HttpTracker;
+
+		// Installer analytics handler.
+		TUniquePtr<IInstallerAnalytics> InstallerAnalytics;
+
+		// Installer statistics tracking.
+		TUniquePtr<IInstallerStatistics> InstallerStatistics;
+
+		// Download service.
+		TUniquePtr<IDownloadService> DownloadService;
+
+		// The message pump controller.
+		TUniquePtr<IMessagePump> MessagePump;
+
+		// List of controllable classes that have been constructed.
+		TArray<IControllable*> Controllables;
+
+		// List of message handlers that have been registered.
+		TArray<FMessageHandler*> MessageHandlers;
+
+		// Stage timers for build stats.
+		FProcessTimer InitializeTimer;
+		FProcessTimer ConstructTimer;
+		FProcessTimer MoveFromStageTimer;
+		FProcessTimer FileAttributesTimer;
+		FProcessTimer VerifyTimer;
+		FProcessTimer CleanUpTimer;
+		FProcessTimer PrereqTimer;
+		FProcessTimer ProcessPausedTimer;
+		FProcessTimer ProcessActiveTimer;
+		FProcessTimer ProcessExecuteTimer;
+
+	public:
+		/**
+		 * Constructor takes configuration and dependencies.
+		 * @param Configuration             The installer configuration structure.
+		 * @param InstallationInfo          Map of locally installed apps for use as chunk sources.
+		 * @param LocalMachineConfigFile    Filename for the local machine's config. This is used for per-machine configuration rather than shipped or user config.
+		 * @param Analytics                 Optionally valid ptr to an analytics provider for sending events.
+		 * @param HttpTracker               Optionally valid ptr to HTTP tracker to collect HTTP requests.
+		 * @param OnCompleteDelegate        Delegate for when the process has completed.
+		 */
+		FBuildPatchInstaller(FInstallerConfiguration Configuration, TMap<FString, FBuildPatchAppManifestRef> InstallationInfo, const FString& LocalMachineConfigFile, TSharedPtr<IAnalyticsProvider> Analytics, TSharedPtr<FHttpServiceTracker> HttpTracker, FBuildPatchBoolManifestDelegate OnCompleteDelegate);
+
+		/**
+		 * Default Destructor, will delete the allocated Thread.
+		 */
+		~FBuildPatchInstaller();
+
+		// FRunnable interface begin.
+		uint32 Run() override;
+		// FRunnable interface end.
+
+		// IBuildInstaller interface begin.
+		virtual bool IsComplete() const override;
+		virtual bool IsCanceled() const override;
+		virtual bool IsPaused() const override;
+		virtual bool IsResumable() const override;
+		virtual bool HasError() const override;
+		virtual EBuildPatchInstallError GetErrorType() const override;
+		virtual FString GetErrorCode() const override;
+		//@todo this is deprecated and shouldn't be used anymore [6/4/2014 justin.sargent]
+		virtual FText GetPercentageText() const override;
+		//@todo this is deprecated and shouldn't be used anymore [6/4/2014 justin.sargent]
+		virtual FText GetDownloadSpeedText() const override;
+		virtual double GetDownloadSpeed() const override;
+		virtual int64 GetInitialDownloadSize() const override;
+		virtual int64 GetTotalDownloaded() const override;
+		virtual EBuildPatchState GetState() const override;
+		virtual FText GetStatusText() const override;
+		virtual float GetUpdateProgress() const override;
+		virtual FBuildInstallStats GetBuildStatistics() const override;
+		virtual EBuildPatchDownloadHealth GetDownloadHealth() const override;
+		virtual FText GetErrorText() const override;
+		virtual void CancelInstall() override;
+		virtual bool TogglePauseInstall() override;
+		virtual void RegisterMessageHandler(FMessageHandler* MessageHandler) override;
+		virtual void UnregisterMessageHandler(FMessageHandler* MessageHandler) override;
+		// IBuildInstaller interface end.
+
+		/**
+		 * Begin the installation process.
+		 * @return true if the installation started successfully, or is already running.
+		 */
+		bool StartInstallation();
+
+		/**
+		 * Executes the on complete delegate. This should only be called when completed, and is separated out
+		 * to allow control to make this call on the main thread.
+		 */
+		void ExecuteCompleteDelegate();
+
+		/**
+		 * Pumps all queued messages to registered handlers.
+		 */
+		void PumpMessages();
+
+		/**
+		 * Only returns once the thread has finished running.
+		 */
+		void WaitForThread() const;
+
+		/**
+		 * Called by the module during shutdown.
+		 */
+		void PreExit();
+
+	private:
+
+		/**
+		 * Initialise the installer.
+		 * @return Whether initialization was successful.
+		 */
+		bool Initialize();
+
+		/**
+		 * Checks the installation directory for any already existing files of the correct size, with may account for manual
+		 * installation. Should be used for new installation detecting existing files.
+		 * NB: Not useful for patches, where we'd expect existing files anyway.
+		 * @return    Returns true if there were potentially already installed files.
+		 */
+		bool CheckForExternallyInstalledFiles();
+
+		/**
+		 * Runs the installation process.
+		 * @param   CorruptFiles    A list of files that were corrupt, to only install those.
+		 * @return  Returns true if there were no errors blocking installation.
+		 */
+		bool RunInstallation(TArray<FString>& CorruptFiles);
+
+		/**
+		 * Runs the prerequisite installation process.
+		 */
+		bool RunPrerequisites();
+
+		/**
+		 * Runs the backup process for locally changed files, and then moves new files into installation directory.
+		 * @return    Returns true if there were no errors.
+		 */
+		bool RunBackupAndMove();
+
+		/**
+		 * Runs the process to setup all file attributes required.
+		 * @param bForce            Set true if also removing attributes to force the API calls to be made.
+		 * @return    Returns true if there were no errors.
+		 */
+		bool RunFileAttributes(bool bForce = false);
+
+		/**
+		 * Runs the verification process.
+		 * @param CorruptFiles  OUT     Receives the list of files that failed verification.
+		 * @return    Returns true if there were no corrupt files.
+		 */
+		bool RunVerification(TArray<FString>& CorruptFiles);
+
+		/**
+		 * Checks a particular file in the install directory to see if it needs backing up, and does so if necessary.
+		 * @param Filename                      The filename to check, which should match a filename in a manifest.
+		 * @param bDiscoveredByVerification     Optional, whether the file was detected changed already by verification stage. Default: false.
+		 * @return    Returns true if there were no errors.
+		 */
+		bool BackupFileIfNecessary(const FString& Filename, bool bDiscoveredByVerification = false);
+
+		/**
+		 * Delete empty directories from an installation.
+		 * @param RootDirectory     Root Directory for search.
+		 */
+		void CleanupEmptyDirectories(const FString& RootDirectory);
+
+		/**
+		 * Builds the chunkdb source configuration struct.
+		 */
+		FChunkDbSourceConfig BuildChunkDbSourceConfig();
+
+		/**
+		 * Builds the installation source configuration struct.
+		 * @param ChunkIgnoreSet    A set of chunks to initially not consider for loading, use for chunks that are knowingly available in higher priority sources.
+		 */
+		FInstallSourceConfig BuildInstallSourceConfig(TSet<FGuid> ChunkIgnoreSet);
+
+		/**
+		 * Builds the cloud source configuration struct.
+		 */
+		FCloudSourceConfig BuildCloudSourceConfig();
+	};
+}
+
+typedef TSharedPtr< BuildPatchServices::FBuildPatchInstaller, ESPMode::ThreadSafe > FBuildPatchInstallerPtr;
+typedef TSharedRef< BuildPatchServices::FBuildPatchInstaller, ESPMode::ThreadSafe > FBuildPatchInstallerRef;
+typedef TWeakPtr< BuildPatchServices::FBuildPatchInstaller, ESPMode::ThreadSafe > FBuildPatchInstallerWeakPtr;

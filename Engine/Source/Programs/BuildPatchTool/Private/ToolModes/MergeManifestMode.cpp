@@ -38,7 +38,7 @@ public:
 			UE_LOG(LogBuildPatchTool, Log, TEXT("  -ManifestB=\"\"           Specifies in quotes the file path to the update manifest."));
 			UE_LOG(LogBuildPatchTool, Log, TEXT("  -ManifestC=\"\"           Specifies in quotes the file path to the output manifest."));
 			UE_LOG(LogBuildPatchTool, Log, TEXT("  -BuildVersion=\"\"        Specifies in quotes the new version string for the build being produced."));
-
+			UE_LOG(LogBuildPatchTool, Log, TEXT(""));
 			UE_LOG(LogBuildPatchTool, Log, TEXT("Optional arguments:"));
 			UE_LOG(LogBuildPatchTool, Log, TEXT("  -MergeFileList=\"\"       Specifies in quotes, the path to a text file containing complete list of desired build root relative files followed by \\t character, followed by A or B to select the manifest to pull from. These should be seperated by \\r\\n line endings."));
 			UE_LOG(LogBuildPatchTool, Log, TEXT(""));

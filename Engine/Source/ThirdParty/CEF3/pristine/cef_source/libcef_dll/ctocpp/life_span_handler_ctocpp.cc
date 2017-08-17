@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -100,26 +100,6 @@ void CefLifeSpanHandlerCToCpp::OnAfterCreated(CefRefPtr<CefBrowser> browser) {
       CefBrowserCppToC::Wrap(browser));
 }
 
-bool CefLifeSpanHandlerCToCpp::RunModal(CefRefPtr<CefBrowser> browser) {
-  cef_life_span_handler_t* _struct = GetStruct();
-  if (CEF_MEMBER_MISSING(_struct, run_modal))
-    return false;
-
-  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
-
-  // Verify param: browser; type: refptr_diff
-  DCHECK(browser.get());
-  if (!browser.get())
-    return false;
-
-  // Execute
-  int _retval = _struct->run_modal(_struct,
-      CefBrowserCppToC::Wrap(browser));
-
-  // Return type: bool
-  return _retval?true:false;
-}
-
 bool CefLifeSpanHandlerCToCpp::DoClose(CefRefPtr<CefBrowser> browser) {
   cef_life_span_handler_t* _struct = GetStruct();
   if (CEF_MEMBER_MISSING(_struct, do_close))
@@ -163,18 +143,18 @@ void CefLifeSpanHandlerCToCpp::OnBeforeClose(CefRefPtr<CefBrowser> browser) {
 CefLifeSpanHandlerCToCpp::CefLifeSpanHandlerCToCpp() {
 }
 
-template<> cef_life_span_handler_t* CefCToCpp<CefLifeSpanHandlerCToCpp,
+template<> cef_life_span_handler_t* CefCToCppRefCounted<CefLifeSpanHandlerCToCpp,
     CefLifeSpanHandler, cef_life_span_handler_t>::UnwrapDerived(
     CefWrapperType type, CefLifeSpanHandler* c) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
-#ifndef NDEBUG
-template<> base::AtomicRefCount CefCToCpp<CefLifeSpanHandlerCToCpp,
+#if DCHECK_IS_ON()
+template<> base::AtomicRefCount CefCToCppRefCounted<CefLifeSpanHandlerCToCpp,
     CefLifeSpanHandler, cef_life_span_handler_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefLifeSpanHandlerCToCpp,
+template<> CefWrapperType CefCToCppRefCounted<CefLifeSpanHandlerCToCpp,
     CefLifeSpanHandler, cef_life_span_handler_t>::kWrapperType =
     WT_LIFE_SPAN_HANDLER;

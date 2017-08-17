@@ -11,8 +11,7 @@
 #include "UObject/Object.h"
 #include "Misc/Guid.h"
 #include "Interfaces/IBuildManifest.h"
-#include "BuildPatchChunk.h"
-#include "UObject/GCObject.h"
+#include "Data/ChunkData.h"
 #include "BuildPatchManifest.generated.h"
 
 class FBuildPatchAppManifest;
@@ -55,10 +54,13 @@ namespace EBuildPatchAppManifestVersion
 		UNUSED_1,
 		// Manifest stores chunk data SHA1 hash to use in place of data compare, for faster generation
 		StoresChunkDataShaHashes,
+		// Manifest stores Prerequisite Ids
+		StoresPrerequisiteIds,
 
 
 		// Always after the latest version, signifies the latest version plus 1 to allow initialization simplicity
 		LatestPlusOne,
+		Latest = (LatestPlusOne - 1),
 		// This is for UObject default, so that we always serialize it
 		Invalid = -1
 	};
@@ -129,6 +131,44 @@ public:
 	UPROPERTY()
 	FString Value;
 };
+
+/**
+ * A UStruct wrapping SHA1 hash data for serialization
+ */
+USTRUCT()
+struct FSHAHashData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	uint8 Hash[FSHA1::DigestSize];
+
+	FSHAHashData();
+	FString ToString() const;
+	bool IsZero() const;
+
+	friend bool operator==(const FSHAHashData& X, const FSHAHashData& Y)
+	{
+		return FMemory::Memcmp(X.Hash, Y.Hash, FSHA1::DigestSize) == 0;
+	}
+
+	friend bool operator==(const FSHAHashData& X, const FSHAHash& Y)
+	{
+		return FMemory::Memcmp(X.Hash, Y.Hash, FSHA1::DigestSize) == 0;
+	}
+
+	friend bool operator!=(const FSHAHashData& X, const FSHAHashData& Y)
+	{
+		return FMemory::Memcmp(X.Hash, Y.Hash, FSHA1::DigestSize) != 0;
+	}
+
+	friend bool operator!=(const FSHAHashData& X, const FSHAHash& Y)
+	{
+		return FMemory::Memcmp(X.Hash, Y.Hash, FSHA1::DigestSize) != 0;
+	}
+};
+
+static_assert(FSHA1::DigestSize == 20, "If this changes a lot of stuff here will break!");
 
 /**
  * A data structure describing a chunk file
@@ -259,6 +299,9 @@ public:
 	FString LaunchCommand;
 
 	UPROPERTY()
+	TSet<FString> PrereqIds;
+
+	UPROPERTY()
 	FString PrereqName;
 
 	UPROPERTY()
@@ -354,6 +397,7 @@ public:
 // Required to allow private access to manifest builder for now..
 namespace BuildPatchServices
 {
+	class FBuildPatchInstaller;
 	class FManifestBuilder;
 }
 
@@ -366,7 +410,7 @@ class FBuildPatchAppManifest
 	// Allow access to build processor classes
 	friend class FBuildDataGenerator;
 	friend class FBuildDataFileProcessor;
-	friend class FBuildPatchInstaller;
+	friend class BuildPatchServices::FBuildPatchInstaller;
 	friend class BuildPatchServices::FManifestBuilder;
 	friend class FBuildMergeManifests;
 	friend class FBuildDiffManifests;
@@ -398,6 +442,7 @@ public:
 	virtual const FString& GetVersionString() const override;
 	virtual const FString& GetLaunchExe() const override;
 	virtual const FString& GetLaunchCommand() const override;
+	virtual const TSet<FString>& GetPrereqIds() const override;
 	virtual const FString& GetPrereqName() const override;
 	virtual const FString& GetPrereqPath() const override;
 	virtual const FString& GetPrereqArgs() const override;
@@ -426,21 +471,21 @@ public:
 	 * @param Filename		The file to load JSON from
 	 * @return		True if successful.
 	 */
-	bool LoadFromFile(const FString& Filename);
+	virtual bool LoadFromFile(const FString& Filename);
 
 	/**
 	 * Sets up the object from the passed in data
 	 * @param DataInput		The data to deserialize from
 	 * @return		True if successful.
 	 */
-	bool DeserializeFromData(const TArray<uint8>& DataInput);
+	virtual bool DeserializeFromData(const TArray<uint8>& DataInput);
 
 	/**
 	 * Sets up the object from the passed in JSON string
 	 * @param JSONInput		The JSON string to deserialize from
 	 * @return		True if successful.
 	 */
-	bool DeserializeFromJSON(const FString& JSONInput);
+	virtual bool DeserializeFromJSON(const FString& JSONInput);
 
 	/**
 	 * Saves out the manifest information
@@ -448,57 +493,48 @@ public:
 	 * @param bUseBinary	Whether to save out in the new UObject binary format
 	 * @return		True if successful.
 	 */
-	bool SaveToFile(const FString& Filename, bool bUseBinary);
+	virtual bool SaveToFile(const FString& Filename, bool bUseBinary);
 
 	/**
 	 * Creates the object in JSON format
 	 * @param JSONOutput		A string to receive the JSON representation
 	 */
-	void SerializeToJSON(FString& JSONOutput);
+	virtual void SerializeToJSON(FString& JSONOutput);
 
 	/**
 	 * Gets the version for this manifest. Useful for manifests that were loaded from JSON.
 	 * @return		The highest available feature support
 	 */
-	EBuildPatchAppManifestVersion::Type GetManifestVersion() const;
-
-	/**
-	 * Provides a list of chunks required to produce the list of given files.
-	 * @param FileList          IN      The list of files.
-	 * @param RequiredChunks    OUT     The list of chunk GUIDs needed for those files.
-	 * @param bAddUnique        IN      If true, will not add duplicate entries. Optional, default true.
-	 */
-	void GetChunksRequiredForFiles(const TArray<FString>& FileList, TArray<FGuid>& RequiredChunks, bool bAddUnique = true) const;
-	void GetChunksRequiredForFiles(const TSet<FString>&   FileList, TArray<FGuid>& RequiredChunks, bool bAddUnique = true) const;
+	virtual EBuildPatchAppManifestVersion::Type GetManifestVersion() const;
 
 	/**
 	 * Provides the set of chunks required to produce the given files.
 	 * @param Filenames         IN      The set of files.
 	 * @param RequiredChunks    OUT     The set of chunk GUIDs needed for those files.
 	 */
-	void GetChunksRequiredForFiles(const TSet<FString>& Filenames, TSet<FGuid>& RequiredChunks) const;
+	virtual void GetChunksRequiredForFiles(const TSet<FString>& Filenames, TSet<FGuid>& RequiredChunks) const;
 
 	/**
 	 * Get the number of times a chunks is referenced in this manifest
 	 * @param ChunkGuid		The chunk GUID
 	 * @return	The number of references to this chunk
 	 */
-	uint32 GetNumberOfChunkReferences(const FGuid& ChunkGuid) const;
+	virtual uint32 GetNumberOfChunkReferences(const FGuid& ChunkGuid) const;
 
 	/**
 	 * Returns the size of a particular data file by it's GUID.
 	 * @param DataGuid		The GUID for the data
 	 * @return		File size.
 	 */
-	int64 GetDataSize(const FGuid& DataGuid) const;
+	virtual int64 GetDataSize(const FGuid& DataGuid) const;
 
 	/**
 	 * Returns the total size of all data files in it's list.
 	 * @param DataGuids		The GUID array for the data
 	 * @return		File size.
 	 */
-	int64 GetDataSize(const TArray<FGuid>& DataGuids) const;
-	int64 GetDataSize(const TSet<FGuid>&   DataGuids) const;
+	virtual int64 GetDataSize(const TArray<FGuid>& DataGuids) const;
+	virtual int64 GetDataSize(const TSet  <FGuid>& DataGuids) const;
 
 	/**
 	 * Returns the size of a particular file in the build
@@ -506,7 +542,7 @@ public:
 	 * @param Filename		The file.
 	 * @return		File size.
 	 */
-	int64 GetFileSize(const FString& Filename) const;
+	virtual int64 GetFileSize(const FString& Filename) const;
 
 	/**
 	 * Returns the total size of all files in the array
@@ -514,46 +550,48 @@ public:
 	 * @param Filenames		The array of files.
 	 * @return		Total size of files in array.
 	 */
-	int64 GetFileSize(const TArray<FString>& Filenames) const;
-	int64 GetFileSize(const TSet<FString>&   Filenames) const;
+	virtual int64 GetFileSize(const TArray<FString>& Filenames) const;
+	virtual int64 GetFileSize(const TSet  <FString>& Filenames) const;
 
 	/**
 	 * Returns the number of files in this build.
 	 * @return		The number of files.
 	 */
-	uint32 GetNumFiles() const;
+	virtual uint32 GetNumFiles() const;
 
 	/**
 	 * Get the list of files described by this manifest
-	 * @param Filenames		OUT		Receives the array of files.
+	 * @param Filenames		OUT		Receives the list of files.
 	 */
-	void GetFileList(TArray<FString>& Filenames) const;
+	virtual void GetFileList(TArray<FString>& Filenames) const;
+	virtual void GetFileList(TSet  <FString>& Filenames) const;
 
 	/**
 	 * Get the list of files that are tagged with the provided tags
 	 * @param Tags					The tags for the required file groups.
 	 * @param TaggedFiles	OUT		Receives the tagged files.
 	 */
-	void GetTaggedFileList(const TSet<FString>& Tags, TSet<FString>& TaggedFiles) const;
+	virtual void GetTaggedFileList(const TSet<FString>& Tags, TSet<FString>& TaggedFiles) const;
 
 	/**
 	* Get the list of Guids for all files described by this manifest
 	* @param DataGuids		OUT		Receives the array of Guids.
 	*/
-	void GetDataList(TArray< FGuid >& DataGuids) const;
+	virtual void GetDataList(TArray<FGuid>& DataGuids) const;
+	virtual void GetDataList(TSet  <FGuid>& DataGuids) const;
 
 	/**
 	 * Returns the manifest for a particular file in the app, nullptr if non-existing
 	 * @param Filename	The filename.
 	 * @return	The file manifest, or invalid ptr
 	 */
-	const FFileManifestData* GetFileManifest(const FString& Filename) const;
+	virtual const FFileManifestData* GetFileManifest(const FString& Filename) const;
 
 	/**
 	 * Gets whether this manifest is made up of file data instead of chunk data
 	 * @return	True if the build is made from file data. False if the build is constructed from chunk data.
 	 */
-	bool IsFileDataManifest() const;
+	virtual bool IsFileDataManifest() const;
 
 	/**
 	 * Gets the chunk hash for a given chunk
@@ -561,7 +599,7 @@ public:
 	 * @param OutHash		OUT		Receives the hash value if found
 	 * @return	true if we had the hash for this chunk
 	 */
-	bool GetChunkHash(const FGuid& ChunkGuid, uint64& OutHash) const;
+	virtual bool GetChunkHash(const FGuid& ChunkGuid, uint64& OutHash) const;
 
 	/**
 	 * Gets the SHA1 hash for a given chunk
@@ -569,7 +607,7 @@ public:
 	 * @param OutHash		OUT		Receives the hash value if found
 	 * @return	true if we had the hash for this chunk
 	 */
-	bool GetChunkShaHash(const FGuid& ChunkGuid, FSHAHashData& OutHash) const;
+	virtual bool GetChunkShaHash(const FGuid& ChunkGuid, FSHAHashData& OutHash) const;
 
 	/**
 	 * Gets the file hash for given file data
@@ -577,7 +615,7 @@ public:
 	 * @param OutHash		OUT		Receives the hash value if found
 	 * @return	true if we had the hash for this file
 	 */
-	bool GetFileHash(const FGuid& FileGuid, FSHAHashData& OutHash) const; // DEPRECATE ME
+	virtual bool GetFileHash(const FGuid& FileGuid, FSHAHashData& OutHash) const; // DEPRECATE ME
 
 	/**
 	 * Gets the file hash for a given file
@@ -585,7 +623,7 @@ public:
 	 * @param OutHash		OUT		Receives the hash value if found
 	 * @return	true if we had the hash for this file
 	 */
-	bool GetFileHash(const FString& Filename, FSHAHashData& OutHash) const;
+	virtual bool GetFileHash(const FString& Filename, FSHAHashData& OutHash) const;
 
 	/**
 	 * Gets the file hash for given file data. Valid for non-chunked manifest
@@ -593,15 +631,16 @@ public:
 	 * @param OutHash		OUT		Receives the hash value if found
 	 * @return	true if we had the hash for this file
 	 */
-	bool GetFilePartHash(const FGuid& FilePartGuid, uint64& OutHash) const;
+	virtual bool GetFilePartHash(const FGuid& FilePartGuid, uint64& OutHash) const;
 
 	/**
 	 * Populates an array of chunks that should be producible from this local build, given the list of chunks needed. Also checks source files exist and match size.
 	 * @param InstallDirectory	IN		The directory of the build where chunks would be sourced from.
 	 * @param ChunksRequired	IN		A list of chunks that are needed.
 	 * @param ChunksAvailable	OUT		A list to receive the chunks that could be constructed locally.
+	 * @return the number of chunks added to the ChunksAvailable set.
 	 */
-	void EnumerateProducibleChunks(const FString& InstallDirectory, const TArray<FGuid>& ChunksRequired, TArray<FGuid>& ChunksAvailable) const;
+	virtual int32 EnumerateProducibleChunks(const FString& InstallDirectory, const TSet<FGuid>& ChunksRequired, TSet<FGuid>& ChunksAvailable) const;
 
 	/**
 	 * Gets a list of files that have changed or are new in the this manifest, compared to those in the old manifest, or are missing from disk.
@@ -609,27 +648,24 @@ public:
 	 * @param InstallDirectory	IN		The Build installation directory, so that it can be checked for missing files.
 	 * @param OutDatedFiles		OUT		The files that changed hash, are new, are wrong size, or missing on disk.
 	 */
-	BUILDPATCHSERVICES_API void GetOutdatedFiles(const FBuildPatchAppManifestPtr& OldManifest, const FString& InstallDirectory, TSet<FString>& OutDatedFiles) const;
+	virtual void GetOutdatedFiles(const FBuildPatchAppManifestPtr& OldManifest, const FString& InstallDirectory, TSet<FString>& OutDatedFiles) const;
 
 	/**
 	 * Check a single file to see if it will be effected by patching from a previous version.
 	 * @param OldManifest		The Build Manifest that is currently installed. Shared Ref - Implicitly valid.
 	 * @param Filename			The Build installation directory, so that it can be checked for missing files.
 	 */
-	bool IsFileOutdated(const FBuildPatchAppManifestRef& OldManifest, const FString& Filename) const;
+	virtual bool IsFileOutdated(const FBuildPatchAppManifestRef& OldManifest, const FString& Filename) const;
 
 	/**
-	 * Populates a map of FFileChunkParts referring to the chunks in the given array, that should be accessible locally.
-	 * @param ChunksRequired		IN		A list of chunks that are needed.
-	 * @param ChunkPartsAvailable	OUT		A map to receive the FFileChunkParts keyed by chunk guid.
+	 * Gets a list of file parts that can be used to recreate a chunk from this installation.
+	 * @param ChunkId       The guid for the desired chunk.
+	 * @return The array of file parts that can produce this chunk. Array is empty if the chunk cannot be produced.
 	 */
-	void EnumerateChunkPartInventory(const TArray< FGuid >& ChunksRequired, TMap< FGuid, TArray< FFileChunkPart > >& ChunkPartsAvailable) const;
+	virtual TArray<FFileChunkPart> GetFilePartsForChunk(const FGuid& ChunkId) const;
 
 	/** @return True if any files in this manifest have file attributes to be set */
-	bool HasFileAttributes() const;
-
-	/** @return True if this manifest is for the same build, i.e. same ID, Name, and Version */
-	bool IsSameAs(FBuildPatchAppManifestRef InstallManifest) const;
+	virtual bool HasFileAttributes() const;
 
 private:
 
@@ -655,6 +691,7 @@ private:
 	FString BuildVersion;
 	FString LaunchExe;
 	FString LaunchCommand;
+	TSet<FString> PrereqIds;
 	FString PrereqName;
 	FString PrereqPath;
 	FString PrereqArgs;

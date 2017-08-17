@@ -12,23 +12,19 @@
 
 #include "include/cef_app.h"
 
-#include "base/memory/scoped_ptr.h"
 #include "base/threading/platform_thread.h"
+#include "third_party/skia/include/core/SkColor.h"
 
 namespace base {
 class WaitableEvent;
 }
 
-namespace component_updater {
-class ComponentUpdateService;
-}
-
 namespace content {
-class ContentMainRunner;
+class ContentServiceManagerMainDelegate;
 }
 
-namespace printing {
-class PrintJobManager;
+namespace service_manager {
+struct MainParams;
 }
 
 class CefBrowserHostImpl;
@@ -64,11 +60,16 @@ class CefContext {
 
   const CefSettings& settings() const { return settings_; }
 
-  printing::PrintJobManager* print_job_manager() const {
-    return print_job_manager_.get();
-  }
-
-  component_updater::ComponentUpdateService* component_updater();
+  // Returns the background color for the browser. If |browser_settings| is
+  // nullptr or does not specify a color then the global settings will be used.
+  // The alpha component will be either SK_AlphaTRANSPARENT or SK_AlphaOPAQUE
+  // (e.g. fully transparent or fully opaque). If |is_windowless| is
+  // STATE_DISABLED then SK_AlphaTRANSPARENT will always be returned. If
+  // |is_windowless| is STATE_ENABLED then SK_ColorTRANSPARENT may be returned
+  // to enable transparency for windowless browsers. See additional comments on
+  // CefSettings.background_color and CefBrowserSettings.background_color.
+  SkColor GetBackgroundColor(const CefBrowserSettings* browser_settings,
+                             cef_state_t windowless_state) const;
 
   CefTraceSubscriber* GetTraceSubscriber();
 
@@ -95,16 +96,11 @@ class CefContext {
 
   CefSettings settings_;
 
-  scoped_ptr<CefMainDelegate> main_delegate_;
-  scoped_ptr<content::ContentMainRunner> main_runner_;
-  scoped_ptr<CefTraceSubscriber> trace_subscriber_;
-  scoped_ptr<CefBrowserInfoManager> browser_info_manager_;
-
-  // Only accessed on the UI Thread.
-  scoped_ptr<printing::PrintJobManager> print_job_manager_;
-
-  // Initially only for Widevine components.
-  scoped_ptr<component_updater::ComponentUpdateService> component_updater_;
+  std::unique_ptr<CefMainDelegate> main_delegate_;
+  std::unique_ptr<content::ContentServiceManagerMainDelegate> sm_main_delegate_;
+  std::unique_ptr<service_manager::MainParams> sm_main_params_;
+  std::unique_ptr<CefTraceSubscriber> trace_subscriber_;
+  std::unique_ptr<CefBrowserInfoManager> browser_info_manager_;
 };
 
 // Helper macro that returns true if the global context is in a valid state.

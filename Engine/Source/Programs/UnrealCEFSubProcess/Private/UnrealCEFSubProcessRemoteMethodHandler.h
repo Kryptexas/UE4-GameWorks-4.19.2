@@ -26,7 +26,7 @@ THIRD_PARTY_INCLUDES_END
 class FUnrealCEFSubProcessRemoteScripting;
 
 class FUnrealCEFSubProcessRemoteObject
-	: public CefBase
+	: public CefBaseRefCounted
 {
 public:
 	FUnrealCEFSubProcessRemoteObject(FUnrealCEFSubProcessRemoteScripting* InRemoteScripting, CefRefPtr<CefBrowser> InBrowser, const FGuid& InObjectId)

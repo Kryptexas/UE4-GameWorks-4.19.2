@@ -1,14 +1,17 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "ToolMode.h"
-#include "IBuildPatchServicesModule.h"
-#include "BuildPatchTool.h"
-#include "PatchGenerationMode.h"
-#include "CompactifyMode.h"
-#include "EnumerationMode.h"
-#include "MergeManifestMode.h"
-#include "DiffManifestMode.h"
+#include "Interfaces/ToolMode.h"
 #include "Misc/CommandLine.h"
+#include "Interfaces/IBuildPatchServicesModule.h"
+#include "ToolModes/PatchGenerationMode.h"
+#include "ToolModes/CompactifyMode.h"
+#include "ToolModes/EnumerationMode.h"
+#include "ToolModes/MergeManifestMode.h"
+#include "ToolModes/DiffManifestMode.h"
+#include "ToolModes/PackageChunksMode.h"
+#include "ToolModes/VerifyChunksMode.h"
+#include "ToolModes/AutomationMode.h"
+#include "BuildPatchTool.h"
 
 namespace BuildPatchTool
 {
@@ -37,6 +40,11 @@ namespace BuildPatchTool
 			UE_LOG(LogBuildPatchTool, Log, TEXT("  -mode=Enumeration        Mode that outputs the paths to referenced patch data given a single manifest."));
 			UE_LOG(LogBuildPatchTool, Log, TEXT("  -mode=MergeManifests     Mode that can combine two manifest files to create a new one, primarily used to create hotfixes."));
 			UE_LOG(LogBuildPatchTool, Log, TEXT("  -mode=DiffManifests      Mode that can diff two manifests and outputs what chunks would need to be downloaded and some stats."));
+			UE_LOG(LogBuildPatchTool, Log, TEXT("  -mode=PackageChunks      Mode that packages data required for an installation into larger files which can be used as local sources for build patch installers."));
+			UE_LOG(LogBuildPatchTool, Log, TEXT("  -mode=VerifyChunks       Mode that allows you to verify the integrity of patch data. It will load chunk or chunkdb files to verify they are not corrupt."));
+#if !UE_BUILD_SHIPPING
+			UE_LOG(LogBuildPatchTool, Log, TEXT("  -mode=AutomationTests    Mode that will run automation testing."));
+#endif // !UE_BUILD_SHIPPING
 
 			// Error if this wasn't just a help request
 			return bRequestedHelp ? EReturnCode::OK : EReturnCode::UnknownToolMode;
@@ -69,6 +77,20 @@ namespace BuildPatchTool
 			{
 				return FDiffManifestToolModeFactory::Create(BpsInterface);
 			}
+			else if (ToolModeValue == TEXT("packagechunks"))
+			{
+				return FPackageChunksToolModeFactory::Create(BpsInterface);
+			}
+			else if (ToolModeValue == TEXT("verifychunks"))
+			{
+				return FVerifyChunksToolModeFactory::Create(BpsInterface);
+			}
+#if !UE_BUILD_SHIPPING
+			else if (ToolModeValue == TEXT("automationtests"))
+			{
+				return FAutomationToolModeFactory::Create(BpsInterface);
+			}
+#endif // !UE_BUILD_SHIPPING
 		}
 		
 		// No mode provided so create the generic help, which will return ok if -help was provided else return UnknownToolMode error

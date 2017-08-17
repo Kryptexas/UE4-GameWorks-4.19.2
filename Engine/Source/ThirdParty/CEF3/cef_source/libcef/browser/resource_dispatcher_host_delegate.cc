@@ -10,7 +10,6 @@
 #include <utility>
 
 #include "libcef/browser/browser_host_impl.h"
-#include "libcef/browser/extensions/api/streams_private/streams_private_api.h"
 #include "libcef/browser/origin_whitelist_impl.h"
 #include "libcef/browser/resource_context.h"
 #include "libcef/browser/thread_util.h"
@@ -19,8 +18,10 @@
 #include "base/guid.h"
 #include "base/memory/scoped_vector.h"
 #include "build/build_config.h"
+#include "chrome/browser/extensions/api/streams_private/streams_private_api.h"
 #include "content/public/browser/plugin_service.h"
 #include "content/public/browser/plugin_service_filter.h"
+#include "content/public/browser/render_frame_host.h"
 #include "content/public/browser/resource_request_info.h"
 #include "content/public/browser/stream_info.h"
 #include "content/public/common/resource_response.h"
@@ -33,23 +34,29 @@
 
 namespace {
 
-void SendExecuteMimeTypeHandlerEvent(scoped_ptr<content::StreamInfo> stream,
-                                     int64_t expected_content_size,
-                                     int render_process_id,
-                                     int render_frame_id,
-                                     const std::string& extension_id,
-                                     const std::string& view_id,
-                                     bool embedded) {
+void SendExecuteMimeTypeHandlerEvent(
+    std::unique_ptr<content::StreamInfo> stream,
+    int64_t expected_content_size,
+    const std::string& extension_id,
+    const std::string& view_id,
+    bool embedded,
+    int frame_tree_node_id,
+    int render_process_id,
+    int render_frame_id) {
   CEF_REQUIRE_UIT();
 
-  CefRefPtr<CefBrowserHostImpl> browser =
-      CefBrowserHostImpl::GetBrowserForFrame(render_process_id,
-                                             render_frame_id);
-  if (!browser.get())
-    return;
+  content::WebContents* web_contents = nullptr;
+  if (frame_tree_node_id != -1) {
+    web_contents =
+        content::WebContents::FromFrameTreeNodeId(frame_tree_node_id);
+  } else {
+    web_contents = content::WebContents::FromRenderFrameHost(
+        content::RenderFrameHost::FromID(render_process_id, render_frame_id));
+  }
 
-  content::WebContents* web_contents = browser->web_contents();
-  if (!web_contents)
+  CefRefPtr<CefBrowserHostImpl> browser =
+      CefBrowserHostImpl::GetBrowserForContents(web_contents);
+  if (!browser.get())
     return;
 
   content::BrowserContext* browser_context = web_contents->GetBrowserContext();
@@ -59,14 +66,9 @@ void SendExecuteMimeTypeHandlerEvent(scoped_ptr<content::StreamInfo> stream,
   if (!streams_private)
     return;
 
-  // A |tab_id| value of -1 disables zoom management in the PDF extension.
-  // Otherwise we need to implement chrome.tabs zoom handling. See
-  // chrome/browser/resources/pdf/browser_api.js.
-  int tab_id = -1;
-
   streams_private->ExecuteMimeTypeHandler(
-      extension_id, tab_id, std::move(stream), view_id, expected_content_size,
-      embedded, render_process_id, render_frame_id);
+      extension_id, std::move(stream), view_id, expected_content_size, embedded,
+      frame_tree_node_id, render_process_id, render_frame_id);
 }
 
 }  // namespace
@@ -79,24 +81,12 @@ CefResourceDispatcherHostDelegate::~CefResourceDispatcherHostDelegate() {
 
 bool CefResourceDispatcherHostDelegate::HandleExternalProtocol(
     const GURL& url,
-    int child_id,
-    const content::ResourceRequestInfo::WebContentsGetter& web_contents_getter,
-    bool is_main_frame,
-    ui::PageTransition page_transition,
-    bool has_user_gesture) {
-  if (CEF_CURRENTLY_ON_UIT()) {
-    content::WebContents* web_contents = web_contents_getter.Run();
-    CefRefPtr<CefBrowserHostImpl> browser =
-        CefBrowserHostImpl::GetBrowserForContents(web_contents);
-    if (browser.get())
-      browser->HandleExternalProtocol(url);
-  } else {
-    CEF_POST_TASK(CEF_UIT,
-        base::Bind(base::IgnoreResult(&CefResourceDispatcherHostDelegate::
-                       HandleExternalProtocol),
-                   base::Unretained(this), url, child_id, web_contents_getter,
-                   is_main_frame, page_transition, has_user_gesture));
-  }
+    content::ResourceRequestInfo* info) {
+  CEF_POST_TASK(CEF_UIT,
+      base::Bind(base::IgnoreResult(&CefResourceDispatcherHostDelegate::
+                      HandleExternalProtocolOnUIThread),
+                  base::Unretained(this), url,
+                  info->GetWebContentsGetterForRequest()));
   return false;
 }
 
@@ -170,7 +160,7 @@ bool CefResourceDispatcherHostDelegate::ShouldInterceptResourceAsStream(
 // ChromeResourceDispatcherHostDelegate::OnStreamCreated.
 void CefResourceDispatcherHostDelegate::OnStreamCreated(
     net::URLRequest* request,
-    scoped_ptr<content::StreamInfo> stream) {
+    std::unique_ptr<content::StreamInfo> stream) {
   DCHECK(extensions::ExtensionsEnabled());
   const content::ResourceRequestInfo* info =
       content::ResourceRequestInfo::ForRequest(request);
@@ -180,9 +170,9 @@ void CefResourceDispatcherHostDelegate::OnStreamCreated(
   bool embedded = info->GetResourceType() != content::RESOURCE_TYPE_MAIN_FRAME;
   CEF_POST_TASK(CEF_UIT,
       base::Bind(&SendExecuteMimeTypeHandlerEvent, base::Passed(&stream),
-                 request->GetExpectedContentSize(), info->GetChildID(),
-                 info->GetRenderFrameID(), ix->second.extension_id,
-                 ix->second.view_id, embedded));
+                 request->GetExpectedContentSize(), ix->second.extension_id,
+                 ix->second.view_id, embedded, info->GetFrameTreeNodeId(),
+                 info->GetChildID(), info->GetRenderFrameID()));
   stream_target_info_.erase(request);
 }
 
@@ -202,5 +192,26 @@ void CefResourceDispatcherHostDelegate::OnRequestRedirected(
     response->head.headers->AddHeader("Access-Control-Allow-Origin: " +
         active_url.scheme() + "://" + active_url.host());
     response->head.headers->AddHeader("Access-Control-Allow-Credentials: true");
+  }
+}
+
+std::unique_ptr<net::ClientCertStore>
+    CefResourceDispatcherHostDelegate::CreateClientCertStore(
+        content::ResourceContext* resource_context) {
+  return static_cast<CefResourceContext*>(resource_context)->
+      CreateClientCertStore();
+}
+
+void CefResourceDispatcherHostDelegate::HandleExternalProtocolOnUIThread(
+    const GURL& url,
+    const content::ResourceRequestInfo::WebContentsGetter&
+        web_contents_getter) {
+  CEF_REQUIRE_UIT();
+  content::WebContents* web_contents = web_contents_getter.Run();
+  if (web_contents) {
+    CefRefPtr<CefBrowserHostImpl> browser =
+        CefBrowserHostImpl::GetBrowserForContents(web_contents);
+    if (browser.get())
+      browser->HandleExternalProtocol(url);
   }
 }

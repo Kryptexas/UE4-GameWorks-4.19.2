@@ -8,10 +8,13 @@
 
 #include <stdint.h>
 
+#include <memory>
+
 #include "include/cef_request.h"
 
 #include "base/synchronization/lock.h"
 #include "third_party/WebKit/public/platform/WebHTTPBody.h"
+#include "url/gurl.h"
 
 namespace navigation_interception {
 class NavigationParams;
@@ -121,9 +124,9 @@ class CefRequestImpl : public CefRequest {
 
   void Reset();
 
-  CefString url_;
-  CefString method_;
-  CefString referrer_url_;
+  GURL url_;
+  std::string method_;
+  GURL referrer_url_;
   ReferrerPolicy referrer_policy_;
   CefRefPtr<CefPostData> postdata_;
   HeaderMap headermap_;
@@ -133,7 +136,7 @@ class CefRequestImpl : public CefRequest {
 
   // The below members are used by CefURLRequest.
   int flags_;
-  CefString first_party_for_cookies_;
+  GURL first_party_for_cookies_;
 
   // True if this object is read-only.
   bool read_only_;
@@ -165,7 +168,7 @@ class CefPostDataImpl : public CefPostData {
   void Set(const net::UploadData& data);
   void Set(const net::UploadDataStream& data_stream);
   void Get(net::UploadData& data) const;
-  net::UploadDataStream* Get() const;
+  std::unique_ptr<net::UploadDataStream> Get() const;
   void Set(const blink::WebHTTPBody& data);
   void Get(blink::WebHTTPBody& data) const;
 
@@ -216,7 +219,7 @@ class CefPostDataElementImpl : public CefPostDataElement {
   void Set(const net::UploadElement& element);
   void Set(const net::UploadElementReader& element_reader);
   void Get(net::UploadElement& element) const;
-  net::UploadElementReader* Get() const;
+  std::unique_ptr<net::UploadElementReader> Get() const;
   void Set(const blink::WebHTTPBody::Element& element);
   void Get(blink::WebHTTPBody::Element& element) const;
 

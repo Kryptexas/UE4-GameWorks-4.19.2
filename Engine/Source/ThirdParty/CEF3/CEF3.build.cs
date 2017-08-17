@@ -2,13 +2,14 @@
 
 using UnrealBuildTool;
 using System.IO;
+using System.Collections.Generic;
 
 public class CEF3 : ModuleRules
 {
 	public CEF3(ReadOnlyTargetRules Target) : base(Target)
 	{
 		/** Mark the current version of the library */
-		string CEFVersion = "3.2623.1395.g3034273";
+		string CEFVersion = "3.3071.1611.g4a19305";
 		string CEFPlatform = "";
 
 		Type = ModuleType.External;
@@ -27,6 +28,7 @@ public class CEF3 : ModuleRules
 		}
 		else if(Target.Platform == UnrealTargetPlatform.Linux)
 		{
+			CEFVersion = "3.2623.1395.g3034273";
 			CEFPlatform = "linux64";
 		}
 
@@ -60,13 +62,14 @@ public class CEF3 : ModuleRules
                 PublicLibraryPaths.Add(WrapperLibraryPath);
                 PublicAdditionalLibraries.Add("libcef_dll_wrapper.lib");
 
-                string[] Dlls = {
-                    "d3dcompiler_43.dll",
-                    "d3dcompiler_47.dll",
-                    "libcef.dll",
-                    "libEGL.dll",
-                    "libGLESv2.dll",
-                };
+				List<string> Dlls = new List<string>();
+
+				Dlls.Add("chrome_elf.dll");
+				Dlls.Add("d3dcompiler_43.dll");
+				Dlls.Add("d3dcompiler_47.dll");
+				Dlls.Add("libcef.dll");
+				Dlls.Add("libEGL.dll");
+				Dlls.Add("libGLESv2.dll");
 
 				PublicDelayLoadDLLs.AddRange(Dlls);
 
@@ -82,13 +85,7 @@ public class CEF3 : ModuleRules
                 RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/CEF3/" + Target.Platform.ToString() + "/natives_blob.bin"));
                 RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/CEF3/" + Target.Platform.ToString() + "/snapshot_blob.bin"));
 
-				// For Win32 builds, we need a helper executable when running under WOW (32 bit apps under 64 bit windows)
-				if (Target.Platform == UnrealTargetPlatform.Win32)
-				{
-					RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/CEF3/Win32/wow_helper.exe"));
-				}
-
-                // And the entire Resources folder. Enunerate the entire directory instead of mentioning each file manually here.
+                // And the entire Resources folder. Enumerate the entire directory instead of mentioning each file manually here.
                 foreach (string FileName in Directory.EnumerateFiles(Path.Combine(RuntimePath, "Resources"), "*", SearchOption.AllDirectories))
                 {
                     string DependencyName = FileName.Substring(Target.UEThirdPartyBinariesDirectory.Length).Replace('\\', '/');

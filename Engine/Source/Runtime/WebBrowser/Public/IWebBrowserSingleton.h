@@ -8,6 +8,7 @@
 class FCEFWebBrowserWindow;
 class IWebBrowserCookieManager;
 class IWebBrowserWindow;
+class IWebBrowserSchemeHandlerFactory;
 struct FWebBrowserWindowInfo;
 
 class IWebBrowserWindowFactory
@@ -147,6 +148,20 @@ public:
 
 	// @return the application cache dir where the cookies are stored
 	virtual FString ApplicationCacheDir() const = 0;
+	/**
+	 * Registers a custom scheme handler factory, for a given scheme and domain. The domain is ignored if the scheme is not a browser built in scheme
+	 * and all requests will go through this factory.
+	 * @param Scheme                            The scheme name to handle.
+	 * @param Domain                            The domain name to handle.
+	 * @param WebBrowserSchemeHandlerFactory    The factory implementation for creating request handlers for this scheme.
+	 */
+	virtual bool RegisterSchemeHandlerFactory(FString Scheme, FString Domain, IWebBrowserSchemeHandlerFactory* WebBrowserSchemeHandlerFactory) = 0;
+
+	/**
+	 * Unregister a custom scheme handler factory. The factory may still be used by existing open browser windows, but will no longer be provided for new ones.
+	 * @param WebBrowserSchemeHandlerFactory    The factory implementation to remove.
+	 */
+	virtual bool UnregisterSchemeHandlerFactory(IWebBrowserSchemeHandlerFactory* WebBrowserSchemeHandlerFactory) = 0;
 
 	/**
 	 * Enable or disable CTRL/CMD-SHIFT-I shortcut to show the Chromium Dev tools window.

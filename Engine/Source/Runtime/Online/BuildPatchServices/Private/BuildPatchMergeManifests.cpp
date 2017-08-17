@@ -152,6 +152,7 @@ bool FBuildMergeManifests::MergeManifests(const FString& ManifestFilePathA, cons
 	MergedManifest.AppName = ManifestB->AppName;
 	MergedManifest.LaunchExe = ManifestB->LaunchExe;
 	MergedManifest.LaunchCommand = ManifestB->LaunchCommand;
+	MergedManifest.PrereqIds = ManifestB->PrereqIds;
 	MergedManifest.PrereqName = ManifestB->PrereqName;
 	MergedManifest.PrereqPath = ManifestB->PrereqPath;
 	MergedManifest.PrereqArgs = ManifestB->PrereqArgs;

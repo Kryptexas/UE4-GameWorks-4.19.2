@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -41,21 +41,25 @@ void CefAppCToCpp::OnBeforeCommandLineProcessing(const CefString& process_type,
 }
 
 void CefAppCToCpp::OnRegisterCustomSchemes(
-    CefRefPtr<CefSchemeRegistrar> registrar) {
+    CefRawPtr<CefSchemeRegistrar> registrar) {
   cef_app_t* _struct = GetStruct();
   if (CEF_MEMBER_MISSING(_struct, on_register_custom_schemes))
     return;
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
-  // Verify param: registrar; type: refptr_diff
-  DCHECK(registrar.get());
-  if (!registrar.get())
+  // Verify param: registrar; type: rawptr_diff
+  DCHECK(registrar);
+  if (!registrar)
     return;
+
+  // Translate param: registrar; type: rawptr_diff
+  CefOwnPtr<CefSchemeRegistrarCppToC> registrarPtr(
+      CefSchemeRegistrarCppToC::WrapRaw(registrar));
 
   // Execute
   _struct->on_register_custom_schemes(_struct,
-      CefSchemeRegistrarCppToC::Wrap(registrar));
+      registrarPtr->GetStruct());
 }
 
 CefRefPtr<CefResourceBundleHandler> CefAppCToCpp::GetResourceBundleHandler() {
@@ -109,16 +113,16 @@ CefRefPtr<CefRenderProcessHandler> CefAppCToCpp::GetRenderProcessHandler() {
 CefAppCToCpp::CefAppCToCpp() {
 }
 
-template<> cef_app_t* CefCToCpp<CefAppCToCpp, CefApp, cef_app_t>::UnwrapDerived(
-    CefWrapperType type, CefApp* c) {
+template<> cef_app_t* CefCToCppRefCounted<CefAppCToCpp, CefApp,
+    cef_app_t>::UnwrapDerived(CefWrapperType type, CefApp* c) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
-#ifndef NDEBUG
-template<> base::AtomicRefCount CefCToCpp<CefAppCToCpp, CefApp,
+#if DCHECK_IS_ON()
+template<> base::AtomicRefCount CefCToCppRefCounted<CefAppCToCpp, CefApp,
     cef_app_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefAppCToCpp, CefApp,
+template<> CefWrapperType CefCToCppRefCounted<CefAppCToCpp, CefApp,
     cef_app_t>::kWrapperType = WT_APP;

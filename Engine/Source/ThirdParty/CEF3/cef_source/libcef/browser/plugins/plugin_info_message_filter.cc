@@ -14,15 +14,16 @@
 #include "libcef/common/extensions/extensions_util.h"
 
 #include "base/bind.h"
-#include "base/memory/scoped_ptr.h"
 #include "base/metrics/histogram_macros.h"
 #include "base/strings/utf_string_conversions.h"
-#include "base/thread_task_runner_handle.h"
+#include "base/threading/thread_task_runner_handle.h"
 #include "build/build_config.h"
 #include "chrome/browser/plugins/plugin_finder.h"
+#include "chrome/browser/plugins/plugins_field_trial.h"
+#include "chrome/common/features.h"
 #include "chrome/common/pref_names.h"
 #include "components/content_settings/core/browser/content_settings_utils.h"
-#include "components/content_settings/core/browser/plugins_field_trial.h"
+#include "components/keyed_service/content/browser_context_keyed_service_shutdown_notifier_factory.h"
 #include "content/public/browser/browser_context.h"
 #include "content/public/browser/browser_thread.h"
 #include "content/public/browser/plugin_service.h"
@@ -35,6 +36,7 @@
 #include "extensions/common/extension.h"
 #include "extensions/common/manifest_handlers/webview_info.h"
 #include "url/gurl.h"
+#include "url/origin.h"
 
 #include "widevine_cdm_version.h"  // In SHARED_INTERMEDIATE_DIR.
 
@@ -47,18 +49,38 @@ using content::WebPluginInfo;
 
 namespace {
 
-#if defined(OS_WIN) || defined(OS_MACOSX)
-// These are the mime-types of plugins which are known to have PPAPI versions.
-const char* kPepperPluginMimeTypes[] = {
-    "application/pdf",
-    "application/x-google-chrome-pdf",
-    "application/x-nacl",
-    "application/x-pnacl",
-    "application/vnd.chromium.remoting-viewer",
-    "application/x-shockwave-flash",
-    "application/futuresplash",
+// There's a race condition between deletion of the CefPluginInfoMessageFilter
+// object on the UI thread and deletion of the PrefService (owned by Profile)
+// on the UI thread. If the PrefService will be deleted first then
+// PrefMember::Destroy() must be called from ShutdownOnUIThread() to avoid
+// heap-use-after-free on CefPluginInfoMessageFilter destruction (due to
+// ~PrefMember trying to access the already-deleted PrefService).
+// ShutdownNotifierFactory makes sure that ShutdownOnUIThread() is called in
+// this case.
+class ShutdownNotifierFactory
+    : public BrowserContextKeyedServiceShutdownNotifierFactory {
+ public:
+  static ShutdownNotifierFactory* GetInstance();
+
+ private:
+  friend struct base::LazyInstanceTraitsBase<ShutdownNotifierFactory>;
+
+  ShutdownNotifierFactory()
+      : BrowserContextKeyedServiceShutdownNotifierFactory(
+            "CefPluginInfoMessageFilter") {
+  }
+  ~ShutdownNotifierFactory() override {}
+
+  DISALLOW_COPY_AND_ASSIGN(ShutdownNotifierFactory);
 };
-#endif
+
+base::LazyInstance<ShutdownNotifierFactory>::Leaky
+    g_shutdown_notifier_factory = LAZY_INSTANCE_INITIALIZER;
+
+// static
+ShutdownNotifierFactory* ShutdownNotifierFactory::GetInstance() {
+  return g_shutdown_notifier_factory.Pointer();
+}
 
 // For certain sandboxed Pepper plugins, use the JavaScript Content Settings.
 bool ShouldUseJavaScriptSettingForPlugin(const WebPluginInfo& plugin) {
@@ -73,18 +95,18 @@ bool ShouldUseJavaScriptSettingForPlugin(const WebPluginInfo& plugin) {
     return true;
 #endif
 
-#if defined(WIDEVINE_CDM_AVAILABLE) && defined(ENABLE_PEPPER_CDMS)
+#if defined(WIDEVINE_CDM_AVAILABLE) && BUILDFLAG(ENABLE_PEPPER_CDMS)
   // Treat CDM invocations like JavaScript.
   if (plugin.name == base::ASCIIToUTF16(kWidevineCdmDisplayName)) {
     DCHECK(plugin.type == WebPluginInfo::PLUGIN_TYPE_PEPPER_OUT_OF_PROCESS);
     return true;
   }
-#endif  // defined(WIDEVINE_CDM_AVAILABLE) && defined(ENABLE_PEPPER_CDMS)
+#endif  // defined(WIDEVINE_CDM_AVAILABLE) && BUILDFLAG(ENABLE_PEPPER_CDMS)
 
   return false;
 }
 
-#if defined(ENABLE_PEPPER_CDMS)
+#if BUILDFLAG(ENABLE_PEPPER_CDMS)
 
 enum PluginAvailabilityStatusForUMA {
   PLUGIN_NOT_REGISTERED,
@@ -105,14 +127,14 @@ static void SendPluginAvailabilityUMA(const std::string& mime_type,
 #endif  // defined(WIDEVINE_CDM_AVAILABLE)
 }
 
-#endif  // defined(ENABLE_PEPPER_CDMS)
+#endif  // BUILDFLAG(ENABLE_PEPPER_CDMS)
 
 void ReportMetrics(const std::string& mime_type,
                    const GURL& url,
-                   const GURL& origin_url) {
+                   const url::Origin& main_frame_origin) {
 }
 
-#if defined(ENABLE_EXTENSIONS)
+#if BUILDFLAG(ENABLE_EXTENSIONS)
 // Returns whether a request from a plugin to load |resource| from a renderer
 // with process id |process_id| is a request for an internal resource by an app
 // listed in |accessible_resources| in its manifest.
@@ -142,7 +164,7 @@ bool IsPluginLoadingAccessibleResourceInWebView(
   return renderer_state->GetOwnerInfo(process_id, nullptr, &owner_extension) &&
          owner_extension == extension_id;
 }
-#endif  // defined(ENABLE_EXTENSIONS)
+#endif  // BUILDFLAG(ENABLE_EXTENSIONS)
 
 }  // namespace
 
@@ -150,9 +172,10 @@ CefPluginInfoMessageFilter::Context::Context(
     int render_process_id,
     CefBrowserContext* profile)
     : render_process_id_(render_process_id),
-      resource_context_(profile->GetResourceContext()),
+      resource_context_(
+          static_cast<CefResourceContext*>(profile->GetResourceContext())),
       host_content_settings_map_(profile->GetHostContentSettingsMap()) {
-#if defined(ENABLE_EXTENSIONS)
+#if BUILDFLAG(ENABLE_EXTENSIONS)
   if (extensions::ExtensionsEnabled())
     extension_registry_ = extensions::ExtensionRegistry::Get(profile);
 #endif
@@ -160,26 +183,41 @@ CefPluginInfoMessageFilter::Context::Context(
   allow_outdated_plugins_.Init(prefs::kPluginsAllowOutdated,
                                profile->GetPrefs());
   allow_outdated_plugins_.MoveToThread(
-      content::BrowserThread::GetMessageLoopProxyForThread(
+      content::BrowserThread::GetTaskRunnerForThread(
           content::BrowserThread::IO));
   always_authorize_plugins_.Init(prefs::kPluginsAlwaysAuthorize,
                                  profile->GetPrefs());
   always_authorize_plugins_.MoveToThread(
-      content::BrowserThread::GetMessageLoopProxyForThread(
+      content::BrowserThread::GetTaskRunnerForThread(
           content::BrowserThread::IO));
 }
 
 CefPluginInfoMessageFilter::Context::~Context() {
 }
 
+void CefPluginInfoMessageFilter::Context::ShutdownOnUIThread() {
+  DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
+  always_authorize_plugins_.Destroy();
+  allow_outdated_plugins_.Destroy();
+}
+
 CefPluginInfoMessageFilter::CefPluginInfoMessageFilter(
     int render_process_id,
     CefBrowserContext* profile)
     : BrowserMessageFilter(ExtensionMsgStart),
-      browser_context_(profile),
       context_(render_process_id, profile),
       main_thread_task_runner_(base::ThreadTaskRunnerHandle::Get()),
       weak_ptr_factory_(this) {
+  shutdown_notifier_ =
+      ShutdownNotifierFactory::GetInstance()->Get(profile)->Subscribe(
+           base::Bind(&CefPluginInfoMessageFilter::ShutdownOnUIThread,
+                      base::Unretained(this)));
+}
+
+void CefPluginInfoMessageFilter::ShutdownOnUIThread() {
+  DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
+  context_.ShutdownOnUIThread();
+  shutdown_notifier_.reset();
 }
 
 bool CefPluginInfoMessageFilter::OnMessageReceived(
@@ -187,7 +225,7 @@ bool CefPluginInfoMessageFilter::OnMessageReceived(
   IPC_BEGIN_MESSAGE_MAP(CefPluginInfoMessageFilter, message)
     IPC_MESSAGE_HANDLER_DELAY_REPLY(CefViewHostMsg_GetPluginInfo,
                                     OnGetPluginInfo)
-#if defined(ENABLE_PEPPER_CDMS)
+#if BUILDFLAG(ENABLE_PEPPER_CDMS)
     IPC_MESSAGE_HANDLER(
         CefViewHostMsg_IsInternalPluginAvailableForMimeType,
         OnIsInternalPluginAvailableForMimeType)
@@ -210,20 +248,23 @@ CefPluginInfoMessageFilter::~CefPluginInfoMessageFilter() {}
 struct CefPluginInfoMessageFilter::GetPluginInfo_Params {
   int render_frame_id;
   GURL url;
-  GURL top_origin_url;
+  bool is_main_frame;
+  url::Origin main_frame_origin;
   std::string mime_type;
 };
 
 void CefPluginInfoMessageFilter::OnGetPluginInfo(
     int render_frame_id,
     const GURL& url,
-    const GURL& top_origin_url,
+    bool is_main_frame,
+    const url::Origin& main_frame_origin,
     const std::string& mime_type,
     IPC::Message* reply_msg) {
   GetPluginInfo_Params params = {
     render_frame_id,
     url,
-    top_origin_url,
+    is_main_frame,
+    main_frame_origin,
     mime_type
   };
   PluginService::GetInstance()->GetPlugins(
@@ -237,12 +278,10 @@ void CefPluginInfoMessageFilter::PluginsLoaded(
     IPC::Message* reply_msg,
     const std::vector<WebPluginInfo>& plugins) {
   CefViewHostMsg_GetPluginInfo_Output output;
-  CefRefPtr<CefRequestContextHandler> handler =
-        browser_context_->GetHandler();
 
   // This also fills in |actual_mime_type|.
-  scoped_ptr<PluginMetadata> plugin_metadata;
-  context_.FindEnabledPlugin(params, handler.get(),
+  std::unique_ptr<PluginMetadata> plugin_metadata;
+  context_.FindEnabledPlugin(params,
                              &output.status, &output.plugin,
                              &output.actual_mime_type,
                              &plugin_metadata);
@@ -258,11 +297,11 @@ void CefPluginInfoMessageFilter::PluginsLoaded(
       CefViewHostMsg_GetPluginInfo_Status::kNotFound) {
     main_thread_task_runner_->PostTask(
         FROM_HERE, base::Bind(&ReportMetrics, output.actual_mime_type,
-                              params.url, params.top_origin_url));
+                              params.url, params.main_frame_origin));
   }
 }
 
-#if defined(ENABLE_PEPPER_CDMS)
+#if BUILDFLAG(ENABLE_PEPPER_CDMS)
 
 void CefPluginInfoMessageFilter::OnIsInternalPluginAvailableForMimeType(
     const std::string& mime_type,
@@ -298,23 +337,19 @@ void CefPluginInfoMessageFilter::OnIsInternalPluginAvailableForMimeType(
       mime_type, is_plugin_disabled ? PLUGIN_DISABLED : PLUGIN_NOT_REGISTERED);
 }
 
-#endif // defined(ENABLE_PEPPER_CDMS)
+#endif // BUILDFLAG(ENABLE_PEPPER_CDMS)
 
 void CefPluginInfoMessageFilter::Context::DecidePluginStatus(
     const GetPluginInfo_Params& params,
     const WebPluginInfo& plugin,
     const PluginMetadata* plugin_metadata,
     CefViewHostMsg_GetPluginInfo_Status* status) const {
-  if (plugin.type == WebPluginInfo::PLUGIN_TYPE_NPAPI) {
-    CHECK(content::BrowserThread::CurrentlyOn(content::BrowserThread::IO));
-    // NPAPI plugins are not supported inside <webview> guests.
-#if defined(ENABLE_EXTENSIONS)
-    if (extensions::WebViewRendererState::GetInstance()->IsGuest(
-        render_process_id_)) {
-      *status = CefViewHostMsg_GetPluginInfo_Status::kNPAPINotSupported;
-      return;
-    }
-#endif
+  PluginMetadata::SecurityStatus plugin_status =
+      plugin_metadata->GetSecurityStatus(plugin);
+
+  if (plugin_status == PluginMetadata::SECURITY_STATUS_FULLY_TRUSTED) {
+    *status = CefViewHostMsg_GetPluginInfo_Status::kAllowed;
+    return;
   }
 
   ContentSetting plugin_setting = CONTENT_SETTING_DEFAULT;
@@ -322,44 +357,18 @@ void CefPluginInfoMessageFilter::Context::DecidePluginStatus(
   bool is_managed = false;
   // Check plugin content settings. The primary URL is the top origin URL and
   // the secondary URL is the plugin URL.
-  GetPluginContentSetting(plugin, params.top_origin_url, params.url,
+  GetPluginContentSetting(plugin, params.main_frame_origin.GetURL(), params.url,
                           plugin_metadata->identifier(), &plugin_setting,
                           &uses_default_content_setting, &is_managed);
 
   // TODO(tommycli): Remove once we deprecate the plugin ASK policy.
   bool legacy_ask_user = plugin_setting == CONTENT_SETTING_ASK;
-  plugin_setting = content_settings::PluginsFieldTrial::EffectiveContentSetting(
-      CONTENT_SETTINGS_TYPE_PLUGINS, plugin_setting);
+  plugin_setting = PluginsFieldTrial::EffectiveContentSetting(
+      host_content_settings_map_, CONTENT_SETTINGS_TYPE_PLUGINS,
+      plugin_setting);
 
   DCHECK(plugin_setting != CONTENT_SETTING_DEFAULT);
   DCHECK(plugin_setting != CONTENT_SETTING_ASK);
-
-  PluginMetadata::SecurityStatus plugin_status =
-      plugin_metadata->GetSecurityStatus(plugin);
-#if defined(ENABLE_PLUGIN_INSTALLATION)
-  // Check if the plugin is outdated.
-  if (plugin_status == PluginMetadata::SECURITY_STATUS_OUT_OF_DATE &&
-      !allow_outdated_plugins_.GetValue()) {
-    if (allow_outdated_plugins_.IsManaged()) {
-      *status = CefViewHostMsg_GetPluginInfo_Status::kOutdatedDisallowed;
-    } else {
-      *status = CefViewHostMsg_GetPluginInfo_Status::kOutdatedBlocked;
-    }
-    return;
-  }
-#endif
-  // Check if the plugin requires authorization.
-  if (plugin_status ==
-          PluginMetadata::SECURITY_STATUS_REQUIRES_AUTHORIZATION &&
-      plugin.type != WebPluginInfo::PLUGIN_TYPE_PEPPER_IN_PROCESS &&
-      plugin.type != WebPluginInfo::PLUGIN_TYPE_PEPPER_OUT_OF_PROCESS &&
-      plugin.type != WebPluginInfo::PLUGIN_TYPE_BROWSER_PLUGIN &&
-      !always_authorize_plugins_.GetValue() &&
-      plugin_setting != CONTENT_SETTING_BLOCK &&
-      uses_default_content_setting) {
-    *status = CefViewHostMsg_GetPluginInfo_Status::kUnauthorized;
-    return;
-  }
 
   // Check if the plugin is crashing too much.
   if (PluginService::GetInstance()->IsPluginUnstable(plugin.path) &&
@@ -370,7 +379,7 @@ void CefPluginInfoMessageFilter::Context::DecidePluginStatus(
     return;
   }
 
-#if defined(ENABLE_EXTENSIONS)
+#if BUILDFLAG(ENABLE_EXTENSIONS)
   // If an app has explicitly made internal resources available by listing them
   // in |accessible_resources| in the manifest, then allow them to be loaded by
   // plugins inside a guest-view.
@@ -381,7 +390,7 @@ void CefPluginInfoMessageFilter::Context::DecidePluginStatus(
           extension_registry_, render_process_id_, params.url)) {
     plugin_setting = CONTENT_SETTING_ALLOW;
   }
-#endif  // defined(ENABLE_EXTENSIONS)
+#endif  // BUILDFLAG(ENABLE_EXTENSIONS)
 
   if (plugin_setting == CONTENT_SETTING_DETECT_IMPORTANT_CONTENT) {
     *status = CefViewHostMsg_GetPluginInfo_Status::kPlayImportantContent;
@@ -393,7 +402,7 @@ void CefPluginInfoMessageFilter::Context::DecidePluginStatus(
                   : CefViewHostMsg_GetPluginInfo_Status::kBlocked;
   }
 
-#if defined(ENABLE_EXTENSIONS)
+#if BUILDFLAG(ENABLE_EXTENSIONS)
   // Allow an embedder of <webview> to block a plugin from being loaded inside
   // the guest. In order to do this, set the status to 'Unauthorized' here,
   // and update the status as appropriate depending on the response from the
@@ -412,11 +421,10 @@ void CefPluginInfoMessageFilter::Context::DecidePluginStatus(
 
 bool CefPluginInfoMessageFilter::Context::FindEnabledPlugin(
     const GetPluginInfo_Params& params,
-    CefRequestContextHandler* handler,
     CefViewHostMsg_GetPluginInfo_Status* status,
     WebPluginInfo* plugin,
     std::string* actual_mime_type,
-    scoped_ptr<PluginMetadata>* plugin_metadata) const {
+    std::unique_ptr<PluginMetadata>* plugin_metadata) const {
   *status = CefViewHostMsg_GetPluginInfo_Status::kAllowed;
 
   bool allow_wildcard = true;
@@ -427,16 +435,6 @@ bool CefPluginInfoMessageFilter::Context::FindEnabledPlugin(
       &mime_types);
   if (matching_plugins.empty()) {
     *status = CefViewHostMsg_GetPluginInfo_Status::kNotFound;
-#if defined(OS_WIN) || defined(OS_MACOSX)
-    if (!PluginService::GetInstance()->NPAPIPluginsSupported()) {
-      // At this point it is not known for sure this is an NPAPI plugin as it
-      // could be a not-yet-installed Pepper plugin. To avoid notifying on
-      // these types, bail early based on a blacklist of pepper mime types.
-      for (auto pepper_mime_type : kPepperPluginMimeTypes)
-        if (pepper_mime_type == params.mime_type)
-          return false;
-    }
-#endif
     return false;
   }
 
@@ -453,9 +451,11 @@ bool CefPluginInfoMessageFilter::Context::FindEnabledPlugin(
     *plugin_metadata = PluginFinder::GetInstance()->GetPluginMetadata(*plugin);
 
     DecidePluginStatus(params, *plugin, (*plugin_metadata).get(), status);
-    if (filter->IsPluginAvailable(handler,
+    if (filter->IsPluginAvailable(render_process_id_,
+                                  resource_context_,
                                   params.url,
-                                  params.top_origin_url,
+                                  params.is_main_frame,
+                                  params.main_frame_origin,
                                   plugin,
                                   status)) {
       break;
@@ -487,7 +487,7 @@ void CefPluginInfoMessageFilter::Context::GetPluginContentSetting(
     ContentSetting* setting,
     bool* uses_default_content_setting,
     bool* is_managed) const {
-  scoped_ptr<base::Value> value;
+  std::unique_ptr<base::Value> value;
   content_settings::SettingInfo info;
   bool uses_plugin_specific_setting = false;
   if (ShouldUseJavaScriptSettingForPlugin(plugin)) {
@@ -499,7 +499,7 @@ void CefPluginInfoMessageFilter::Context::GetPluginContentSetting(
         &info);
   } else {
     content_settings::SettingInfo specific_info;
-    scoped_ptr<base::Value> specific_setting =
+    std::unique_ptr<base::Value> specific_setting =
         host_content_settings_map_->GetWebsiteSetting(
             policy_url,
             plugin_url,
@@ -507,7 +507,7 @@ void CefPluginInfoMessageFilter::Context::GetPluginContentSetting(
             resource,
             &specific_info);
     content_settings::SettingInfo general_info;
-    scoped_ptr<base::Value> general_setting =
+    std::unique_ptr<base::Value> general_setting =
         host_content_settings_map_->GetWebsiteSetting(
             policy_url,
             plugin_url,
@@ -517,13 +517,9 @@ void CefPluginInfoMessageFilter::Context::GetPluginContentSetting(
 
     // If there is a plugin-specific setting, we use it, unless the general
     // setting was set by policy, in which case it takes precedence.
-    // TODO(tommycli): Remove once we deprecate the plugin ASK policy.
-    bool legacy_ask_user = content_settings::ValueToContentSetting(
-                               general_setting.get()) == CONTENT_SETTING_ASK;
-    bool use_policy =
-        general_info.source == content_settings::SETTING_SOURCE_POLICY &&
-        !legacy_ask_user;
-    uses_plugin_specific_setting = specific_setting && !use_policy;
+    uses_plugin_specific_setting =
+        specific_setting &&
+        general_info.source != content_settings::SETTING_SOURCE_POLICY;
     if (uses_plugin_specific_setting) {
       value = std::move(specific_setting);
       info = specific_info;

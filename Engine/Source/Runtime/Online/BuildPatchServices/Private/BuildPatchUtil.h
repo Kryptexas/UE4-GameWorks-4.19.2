@@ -7,9 +7,27 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "BuildPatchVerification.h"
+#include "BuildPatchManifest.h"
 
-struct FChunkHeader;
+namespace BuildPatchServices
+{
+	struct FChunkHeader;
+	class IFileSystem;
+}
+
+enum class EBuildPatchDataType
+{
+	// Represents data produced by the chunked patch generation mode.
+	ChunkData   = 0,
+	// Represents data produced by the nochunks patch generation mode, which has deprecated.
+	FileData    = 1,
+};
+
+// A delegate taking a float. Used to receive progress.
+DECLARE_DELEGATE_OneParam(FBuildPatchFloatDelegate, float);
+
+// A delegate returning a bool. Used to pass a paused state.
+DECLARE_DELEGATE_RetVal(bool, FBuildPatchBoolRetDelegate);
 
 /**
  * Some utility functions
@@ -76,7 +94,7 @@ struct FBuildPatchUtils
 	 * @param DataGUID			The data Guid
 	 * @return	the data part path
 	 */
-	static FString GetDataTypeOldFilename(const FBuildPatchData::Type DataType, const FString& RootDirectory, const FGuid& Guid);
+	static FString GetDataTypeOldFilename(EBuildPatchDataType DataType, const FString& RootDirectory, const FGuid& Guid);
 
 	/**
 	 * Gets the filename for any data part. Wraps the choice between all of the above
@@ -103,59 +121,27 @@ struct FBuildPatchUtils
 	static bool UncompressChunkFile(TArray<uint8>& ChunkFileArray);
 
 	/**
-	 * Helper function to to inject a known SHA1 hash into the header of chunk data
-	 * @param ChunkFileArray	IN OUT		The data array, should contain full chunk - header plus data. Header will be overwritten to contain with sha data.
-	 * @param SHAHash			IN			The SHA1 data to be injected
-	 * @return		true if no errors occurred and the data is not corrupted
-	 */
-	static bool InjectShaToChunkFile(TArray<uint8>& ChunkFileArray, const FSHAHashData& SHAHash);
-
-	/**
-	 * Helper function to uncompress file part data. Can be called without knowing if needed and process will be just skipped.
-	 * @param DataFileArray	IN OUT		The data array, should contain full file - header plus data. Will be overwritten with uncompressed data version.
-	 * @param OutHeader		OUT			Optional ptr to a header to receive the header from the file if you need it anyway
-	 * @return		true if no errors occurred and the data is not corrupted
-	 */
-	static bool UncompressFileDataFile(TArray< uint8 >& DataFileArray, FChunkHeader* OutHeader = nullptr);
-
-	/**
 	 * Checks a file against SHA1 hashes. The function takes two so that it can return no match, match with Hash1, or match with Hash2, that way we can check the file for being the same as an old manifest or new manifest
 	 * NOTE: This function is blocking and will not return until finished. Don't run on main thread.
+	 * @param FileSystem			IN		Interface to disk access.
 	 * @param FileToVerify			IN		The file to analyze.
 	 * @param Hash1					IN		A Hash to match against the file
 	 * @param Hash2					IN		A second Hash to match against the file
 	 * @param ProgressDelegate		IN		Delegate to receive progress updates in the form of a float range 0.0f to 1.0f
 	 * @param ShouldPauseDelegate	IN		Delegate that returns a bool, which if true will pause the process
-	 * @param TimeSpentPaused		OUT		The amount of time we were paused for, in seconds.
+	 * @param ShouldAbortDelegate	IN		Delegate that returns a bool, which if true will abort the process
 	 * @return		0 if no match, 1 for match with Hash1, and 2 for match with Hash2
 	 */
-	static uint8 VerifyFile(const FString& FileToVerify, const FSHAHashData& Hash1, const FSHAHashData& Hash2, FBuildPatchFloatDelegate ProgressDelegate, FBuildPatchBoolRetDelegate ShouldPauseDelegate, double& TimeSpentPaused);
+	static uint8 VerifyFile(BuildPatchServices::IFileSystem* FileSystem, const FString& FileToVerify, const FSHAHashData& Hash1, const FSHAHashData& Hash2, FBuildPatchFloatDelegate ProgressDelegate, FBuildPatchBoolRetDelegate ShouldPauseDelegate, FBuildPatchBoolRetDelegate ShouldAbortDelegate);
 
 	/**
 	 * Checks a file against SHA1 hashes. The function takes two so that it can return no match, match with Hash1, or match with Hash2, that way we can check the file for being the same as an old manifest or new manifest
 	 * NOTE: This function is blocking and will not return until finished. Don't run on main thread. This allows the above function to be easily called without delegates
+	 * @param FileSystem			IN		Interface to disk access.
 	 * @param FileToVerify			IN		The file to analyze.
 	 * @param Hash1					IN		A Hash to match against the file
 	 * @param Hash2					IN		A second Hash to match against the file
 	 * @return		0 if no match, 1 for match with Hash1, and 2 for match with Hash2
 	 */
-	static uint8 VerifyFile(const FString& FileToVerify, const FSHAHashData& Hash1, const FSHAHashData& Hash2);
-
-	/**
-	 * Helper function to verify the integrity of a chunk file that is in memory
-	 * @param ChunkFileArray	The data array.
-	 * @param bQuickCheck		If true, will only check header and file size, not data hash.
-	 * @return		true if no errors occurred and the data is not corrupted
-	 */
-	static bool VerifyChunkFile(const TArray<uint8>& ChunkFileArray, bool bQuickCheck = false);
-
-private:
-
-	/**
-	 * Internal function to verify the integrity of a chunk file called by the various public versions of the function
-	 * @param ChunkFileData		The archive to test data on
-	 * @param bQuickCheck		If true, will only check header and file size, not data hash.
-	 * @return		true if no errors occurred and the data is not corrupted
-	 */
-	static bool VerifyChunkFile(FArchive& ChunkFileData, bool bQuickCheck = false);
+	static uint8 VerifyFile(BuildPatchServices::IFileSystem* FileSystem, const FString& FileToVerify, const FSHAHashData& Hash1, const FSHAHashData& Hash2);
 };

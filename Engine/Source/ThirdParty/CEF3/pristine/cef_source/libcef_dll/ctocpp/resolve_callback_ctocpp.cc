@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -48,18 +48,18 @@ void CefResolveCallbackCToCpp::OnResolveCompleted(cef_errorcode_t result,
 CefResolveCallbackCToCpp::CefResolveCallbackCToCpp() {
 }
 
-template<> cef_resolve_callback_t* CefCToCpp<CefResolveCallbackCToCpp,
+template<> cef_resolve_callback_t* CefCToCppRefCounted<CefResolveCallbackCToCpp,
     CefResolveCallback, cef_resolve_callback_t>::UnwrapDerived(
     CefWrapperType type, CefResolveCallback* c) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
-#ifndef NDEBUG
-template<> base::AtomicRefCount CefCToCpp<CefResolveCallbackCToCpp,
+#if DCHECK_IS_ON()
+template<> base::AtomicRefCount CefCToCppRefCounted<CefResolveCallbackCToCpp,
     CefResolveCallback, cef_resolve_callback_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefResolveCallbackCToCpp,
+template<> CefWrapperType CefCToCppRefCounted<CefResolveCallbackCToCpp,
     CefResolveCallback, cef_resolve_callback_t>::kWrapperType =
     WT_RESOLVE_CALLBACK;

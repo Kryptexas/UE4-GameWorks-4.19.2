@@ -644,6 +644,12 @@ STDAPI FTextStoreACP::InsertTextAtSelection(DWORD dwFlags, __RPC__in_ecount_full
 			return E_INVALIDARG;
 		}
 
+		// Some IMEs call InsertTextAtSelection text before OnStartComposition; in that case we need to call BeginComposition ourselves here to make sure things are notified in the correct order
+		if(!TextContext->IsComposing())
+		{
+			TextContext->BeginComposition();
+		}
+
 		TextContext->SetTextInRange(BeginIndex, Length, NewString);
 		TextContext->SetSelectionRange(BeginIndex + NewString.Len(), 0, ITextInputMethodContext::ECaretPosition::Ending);
 
@@ -757,7 +763,11 @@ STDAPI FTextStoreACP::OnStartComposition(__RPC__in_opt ITfCompositionView *pComp
 	{
 		Composition.TSFCompositionView = pComposition;
 
-		TextContext->BeginComposition();
+		// Some IMEs call InsertTextAtSelection text before OnStartComposition; in that case we need to skip calling BeginComposition ourselves here as things things were already notified in the correct order
+		if (!TextContext->IsComposing())
+		{
+			TextContext->BeginComposition();
+		}
 
 		*pfOk = TRUE;
 	}

@@ -34,13 +34,19 @@ void CefBrowserPlatformDelegate::RenderViewCreated(
     content::RenderViewHost* render_view_host) {
   // Indicate that the view has an external parent (namely us). This changes the
   // default view behavior in some cases (e.g. focus handling on Linux).
-  if (render_view_host->GetWidget()->GetView())
+  if (!IsViewsHosted() && render_view_host->GetWidget()->GetView())
     render_view_host->GetWidget()->GetView()->SetHasExternalParent(true);
 }
 
 void CefBrowserPlatformDelegate::BrowserCreated(CefBrowserHostImpl* browser) {
   DCHECK(!browser_);
   browser_ = browser;
+}
+
+void CefBrowserPlatformDelegate::NotifyBrowserCreated() {
+}
+
+void CefBrowserPlatformDelegate::NotifyBrowserDestroyed() {
 }
 
 void CefBrowserPlatformDelegate::BrowserDestroyed(CefBrowserHostImpl* browser) {
@@ -62,7 +68,25 @@ views::Widget* CefBrowserPlatformDelegate::GetWindowWidget() const {
   NOTREACHED();
   return nullptr;
 }
-#endif
+
+CefRefPtr<CefBrowserView> CefBrowserPlatformDelegate::GetBrowserView() const {
+  NOTREACHED();
+  return nullptr;
+}
+#endif  // defined(USE_AURA)
+
+void CefBrowserPlatformDelegate::PopupWebContentsCreated(
+    const CefBrowserSettings& settings,
+    CefRefPtr<CefClient> client,
+    content::WebContents* new_web_contents,
+    CefBrowserPlatformDelegate* new_platform_delegate,
+    bool is_devtools) {
+}
+
+void CefBrowserPlatformDelegate::PopupBrowserCreated(
+    CefBrowserHostImpl* new_browser,
+    bool is_devtools) {
+}
 
 void CefBrowserPlatformDelegate::SendCaptureLostEvent() {
   content::RenderWidgetHostImpl* widget =
@@ -84,21 +108,12 @@ void CefBrowserPlatformDelegate::SizeTo(int width, int height) {
 }
 #endif
 
-#if defined(OS_MACOSX)
-void CefBrowserPlatformDelegate::SetWindowVisibility(bool visible) {
-  content::RenderWidgetHostView* view =
-      browser_->web_contents()->GetRenderWidgetHostView();
-  if (view)
-    view->SetWindowVisibility(visible);
-}
-#endif
-
-scoped_ptr<CefFileDialogRunner>
+std::unique_ptr<CefFileDialogRunner>
     CefBrowserPlatformDelegate::CreateFileDialogRunner() {
   return nullptr;
 }
 
-scoped_ptr<CefJavaScriptDialogRunner>
+std::unique_ptr<CefJavaScriptDialogRunner>
     CefBrowserPlatformDelegate::CreateJavaScriptDialogRunner() {
   return nullptr;
 }
@@ -119,22 +134,27 @@ void CefBrowserPlatformDelegate::SetWindowlessFrameRate(int frame_rate) {
   NOTREACHED();
 }
 
-#if defined(OS_MACOSX)
-CefTextInputContext CefBrowserPlatformDelegate::GetNSTextInputContext() {
-  NOTREACHED();
-  return nullptr;
-}
-
-void CefBrowserPlatformDelegate::HandleKeyEventBeforeTextInputClient(
-    CefEventHandle keyEvent) {
+void CefBrowserPlatformDelegate::ImeSetComposition(const CefString& text,
+    const std::vector<CefCompositionUnderline>& underlines,
+    const CefRange& replacement_range,
+    const CefRange& selection_range) {
   NOTREACHED();
 }
 
-void CefBrowserPlatformDelegate::HandleKeyEventAfterTextInputClient(
-    CefEventHandle keyEvent) {
+void CefBrowserPlatformDelegate::ImeCommitText(
+    const CefString& text,
+    const CefRange& replacement_range,
+    int relative_cursor_pos) {
   NOTREACHED();
 }
-#endif
+
+void CefBrowserPlatformDelegate::ImeFinishComposingText(bool keep_selection) {
+  NOTREACHED();
+}
+
+void CefBrowserPlatformDelegate::ImeCancelComposition() {
+  NOTREACHED();
+}
 
 void CefBrowserPlatformDelegate::DragTargetDragEnter(
     CefRefPtr<CefDragData> drag_data,
@@ -157,6 +177,21 @@ void CefBrowserPlatformDelegate::DragTargetDrop(const CefMouseEvent& event) {
   NOTREACHED();
 }
 
+void CefBrowserPlatformDelegate::StartDragging(
+    const content::DropData& drop_data,
+    blink::WebDragOperationsMask allowed_ops,
+    const gfx::ImageSkia& image,
+    const gfx::Vector2d& image_offset,
+    const content::DragEventSourceInfo& event_info,
+    content::RenderWidgetHostImpl* source_rwh) {
+  NOTREACHED();
+}
+
+void CefBrowserPlatformDelegate::UpdateDragCursor(
+    blink::WebDragOperation operation) {
+  NOTREACHED();
+}
+
 void CefBrowserPlatformDelegate::DragSourceEndedAt(
     int x, int y,
     cef_drag_operations_mask_t op) {
@@ -172,28 +207,28 @@ int CefBrowserPlatformDelegate::TranslateModifiers(uint32 cef_modifiers) {
   int webkit_modifiers = 0;
   // Set modifiers based on key state.
   if (cef_modifiers & EVENTFLAG_SHIFT_DOWN)
-    webkit_modifiers |= blink::WebInputEvent::ShiftKey;
+    webkit_modifiers |= blink::WebInputEvent::kShiftKey;
   if (cef_modifiers & EVENTFLAG_CONTROL_DOWN)
-    webkit_modifiers |= blink::WebInputEvent::ControlKey;
+    webkit_modifiers |= blink::WebInputEvent::kControlKey;
   if (cef_modifiers & EVENTFLAG_ALT_DOWN)
-    webkit_modifiers |= blink::WebInputEvent::AltKey;
+    webkit_modifiers |= blink::WebInputEvent::kAltKey;
   if (cef_modifiers & EVENTFLAG_COMMAND_DOWN)
-    webkit_modifiers |= blink::WebInputEvent::MetaKey;
+    webkit_modifiers |= blink::WebInputEvent::kMetaKey;
   if (cef_modifiers & EVENTFLAG_LEFT_MOUSE_BUTTON)
-    webkit_modifiers |= blink::WebInputEvent::LeftButtonDown;
+    webkit_modifiers |= blink::WebInputEvent::kLeftButtonDown;
   if (cef_modifiers & EVENTFLAG_MIDDLE_MOUSE_BUTTON)
-    webkit_modifiers |= blink::WebInputEvent::MiddleButtonDown;
+    webkit_modifiers |= blink::WebInputEvent::kMiddleButtonDown;
   if (cef_modifiers & EVENTFLAG_RIGHT_MOUSE_BUTTON)
-    webkit_modifiers |= blink::WebInputEvent::RightButtonDown;
+    webkit_modifiers |= blink::WebInputEvent::kRightButtonDown;
   if (cef_modifiers & EVENTFLAG_CAPS_LOCK_ON)
-    webkit_modifiers |= blink::WebInputEvent::CapsLockOn;
+    webkit_modifiers |= blink::WebInputEvent::kCapsLockOn;
   if (cef_modifiers & EVENTFLAG_NUM_LOCK_ON)
-    webkit_modifiers |= blink::WebInputEvent::NumLockOn;
+    webkit_modifiers |= blink::WebInputEvent::kNumLockOn;
   if (cef_modifiers & EVENTFLAG_IS_LEFT)
-    webkit_modifiers |= blink::WebInputEvent::IsLeft;
+    webkit_modifiers |= blink::WebInputEvent::kIsLeft;
   if (cef_modifiers & EVENTFLAG_IS_RIGHT)
-    webkit_modifiers |= blink::WebInputEvent::IsRight;
+    webkit_modifiers |= blink::WebInputEvent::kIsRight;
   if (cef_modifiers & EVENTFLAG_IS_KEY_PAD)
-    webkit_modifiers |= blink::WebInputEvent::IsKeyPad;
+    webkit_modifiers |= blink::WebInputEvent::kIsKeyPad;
   return webkit_modifiers;
 }

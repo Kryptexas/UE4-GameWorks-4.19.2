@@ -6,6 +6,10 @@
 #include "IWebBrowserWindow.h"
 #include "Layout/WidgetPath.h"
 
+#if WITH_CEF3
+#include "CEF/CEFWebBrowserWindow.h"
+#endif
+
 FIntPoint FWebBrowserViewport::GetSize() const
 {
 	return (WebBrowserWindow->GetTexture(bIsPopup) != nullptr)
@@ -24,6 +28,12 @@ void FWebBrowserViewport::Tick( const FGeometry& AllottedGeometry, double InCurr
 	{
 		FVector2D AbsoluteSize = AllottedGeometry.GetLocalSize() * AllottedGeometry.Scale;
 		WebBrowserWindow->SetViewportSize(AbsoluteSize.IntPoint());
+
+#if WITH_CEF3
+		// Forward the AllottedGeometry to the WebBrowserWindow so the IME implementation can use it
+		TSharedPtr<FCEFWebBrowserWindow> CefWebBrowserWindow = StaticCastSharedPtr<FCEFWebBrowserWindow>(WebBrowserWindow);
+		CefWebBrowserWindow->UpdateCachedGeometry(AllottedGeometry);
+#endif
 	}
 }
 

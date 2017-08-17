@@ -2,18 +2,17 @@
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 
-#include "cefsimple/simple_handler.h"
+#include "tests/cefsimple/simple_handler.h"
 
 #include <X11/Xatom.h>
 #include <X11/Xlib.h>
 #include <string>
 
+#include "include/base/cef_logging.h"
 #include "include/cef_browser.h"
-#include "include/wrapper/cef_helpers.h"
 
-void SimpleHandler::OnTitleChange(CefRefPtr<CefBrowser> browser,
-                                  const CefString& title) {
-  CEF_REQUIRE_UI_THREAD();
+void SimpleHandler::PlatformTitleChange(CefRefPtr<CefBrowser> browser,
+                                        const CefString& title) {
   std::string titleStr(title);
 
   // Retrieve the X11 display shared with Chromium.

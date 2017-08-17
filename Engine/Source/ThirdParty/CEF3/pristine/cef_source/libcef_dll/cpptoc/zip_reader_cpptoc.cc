@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -245,17 +245,17 @@ CefZipReaderCppToC::CefZipReaderCppToC() {
   GetStruct()->eof = zip_reader_eof;
 }
 
-template<> CefRefPtr<CefZipReader> CefCppToC<CefZipReaderCppToC, CefZipReader,
-    cef_zip_reader_t>::UnwrapDerived(CefWrapperType type,
+template<> CefRefPtr<CefZipReader> CefCppToCRefCounted<CefZipReaderCppToC,
+    CefZipReader, cef_zip_reader_t>::UnwrapDerived(CefWrapperType type,
     cef_zip_reader_t* s) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
-#ifndef NDEBUG
-template<> base::AtomicRefCount CefCppToC<CefZipReaderCppToC, CefZipReader,
-    cef_zip_reader_t>::DebugObjCt = 0;
+#if DCHECK_IS_ON()
+template<> base::AtomicRefCount CefCppToCRefCounted<CefZipReaderCppToC,
+    CefZipReader, cef_zip_reader_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCppToC<CefZipReaderCppToC, CefZipReader,
+template<> CefWrapperType CefCppToCRefCounted<CefZipReaderCppToC, CefZipReader,
     cef_zip_reader_t>::kWrapperType = WT_ZIP_READER;

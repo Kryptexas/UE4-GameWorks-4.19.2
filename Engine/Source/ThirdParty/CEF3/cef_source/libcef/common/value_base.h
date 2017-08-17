@@ -12,7 +12,6 @@
 
 #include "base/logging.h"
 #include "base/memory/ref_counted.h"
-#include "base/memory/scoped_ptr.h"
 #include "base/synchronization/lock.h"
 #include "base/threading/platform_thread.h"
 
@@ -109,6 +108,11 @@ class CefValueController
   // Takes ownership of all references and dependencies currently controlled by
   // |other|. The |other| controller must already be locked.
   void TakeFrom(CefValueController* other);
+
+  // Replace all instances of |old_value| with |new_value|. Used in cases where
+  // move semantics may move the contents of an object without retaining the
+  // object pointer itself.
+  void Swap(void* old_value, void* new_value);
 
  protected:
   friend class base::RefCountedThreadSafe<CefValueController>;

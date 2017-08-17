@@ -8,7 +8,6 @@
 
 #include <string>
 #include "include/cef_scheme.h"
-#include "base/memory/scoped_ptr.h"
 #include "url/gurl.h"
 
 namespace scheme {
@@ -29,7 +28,8 @@ class InternalHandlerDelegate {
     CefRefPtr<CefStreamReader> stream;
     int stream_size;
 
-    // Option 2: Specify a resource id to load static content.
+    // Option 2: Specify a resource id to load static content. May include an
+    // optional encoding type.
     int resource_id;
 
     // Option 3: Redirect to the specified URL.
@@ -47,7 +47,7 @@ class InternalHandlerDelegate {
 // Create an internal scheme handler factory. The factory will take ownership of
 // |delegate|.
 CefRefPtr<CefSchemeHandlerFactory> CreateInternalHandlerFactory(
-    scoped_ptr<InternalHandlerDelegate> delegate);
+    std::unique_ptr<InternalHandlerDelegate> delegate);
 
 }  // namespace scheme
 

@@ -11,6 +11,10 @@ namespace BuildPatchTool
 	class IToolMode
 	{
 	public:
+		TCHAR const * const EqualsStr = TEXT("=");
+		TCHAR const * const QuoteStr = TEXT("\"");
+
+	public:
 		virtual EReturnCode Execute() = 0;
 
 		/**
@@ -21,24 +25,20 @@ namespace BuildPatchTool
 		 * @param Switches      The array of switches to search through
 		 * @return true if the switch was found
 		**/
-		bool ParseSwitch(const TCHAR* InSwitch, FString& Value, const TArray<FString>& Switches)
+		template <typename TValueType>
+		bool ParseSwitch(const TCHAR* InSwitch, TValueType& Value, const TArray<FString>& Switches)
 		{
 			// Debug check requirements for InSwitch
 			checkSlow(InSwitch != nullptr);
 			checkSlow(InSwitch[FCString::Strlen(InSwitch)-1] == TEXT('='));
 
-			static const FString Equals(TEXT("="));
-			static const FString Quote(TEXT("\""));
 			for (const FString& Switch : Switches)
 			{
 				if (Switch.StartsWith(InSwitch))
 				{
-					Switch.Split(Equals, nullptr, &Value);
-					if (Value.StartsWith(Quote))
-					{
-						Value = Value.TrimQuotes();
-					}
-					return true;
+					FString StringValue;
+					Switch.Split(EqualsStr, nullptr, &StringValue);
+					return ParseValue(StringValue, Value);
 				}
 			}
 			return false;
@@ -47,6 +47,22 @@ namespace BuildPatchTool
 		bool ParseOption(const TCHAR* InSwitch, const TArray<FString>& Switches)
 		{
 			return Switches.Contains(InSwitch);
+		}
+
+		bool ParseValue(const FString& ValueIn, FString& ValueOut)
+		{
+			ValueOut = ValueIn.TrimQuotes();
+			return true;
+		}
+
+		bool ParseValue(const FString& ValueIn, uint64& ValueOut)
+		{
+			if (FCString::IsNumeric(*ValueIn) && !ValueIn.Contains(TEXT("-"), ESearchCase::CaseSensitive))
+			{
+				ValueOut = FCString::Strtoui64(*ValueIn, nullptr, 10);
+				return true;
+			}
+			return false;
 		}
 	};
 

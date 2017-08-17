@@ -2,7 +2,7 @@
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 
-#include "cefclient/browser/root_window_gtk.h"
+#include "tests/cefclient/browser/root_window_gtk.h"
 
 #include <gdk/gdk.h>
 #include <gdk/gdkx.h>
@@ -13,14 +13,14 @@
 
 #include "include/base/cef_bind.h"
 #include "include/cef_app.h"
-#include "cefclient/browser/browser_window_osr_gtk.h"
-#include "cefclient/browser/browser_window_std_gtk.h"
-#include "cefclient/browser/main_context.h"
-#include "cefclient/browser/main_message_loop.h"
-#include "cefclient/browser/resource.h"
-#include "cefclient/browser/temp_window.h"
-#include "cefclient/browser/window_test.h"
-#include "cefclient/common/client_switches.h"
+#include "tests/cefclient/browser/browser_window_osr_gtk.h"
+#include "tests/cefclient/browser/browser_window_std_gtk.h"
+#include "tests/cefclient/browser/main_context.h"
+#include "tests/cefclient/browser/resource.h"
+#include "tests/cefclient/browser/temp_window.h"
+#include "tests/cefclient/browser/window_test_runner_gtk.h"
+#include "tests/shared/browser/main_message_loop.h"
+#include "tests/shared/common/client_switches.h"
 
 namespace client {
 
@@ -150,6 +150,12 @@ void RootWindowGtk::Show(ShowMode mode) {
     MinimizeWindow(GTK_WINDOW(window_));
   else if (mode == ShowMaximized)
     MaximizeWindow(GTK_WINDOW(window_));
+
+  // Flush the display to make sure the underlying X11 window gets created
+  // immediately.
+  GdkWindow* gdk_window = gtk_widget_get_window(window_);
+  GdkDisplay* display = gdk_window_get_display(gdk_window);
+  gdk_display_flush(display);
 }
 
 void RootWindowGtk::Hide() {
@@ -222,7 +228,7 @@ ClientWindowHandle RootWindowGtk::GetWindowHandle() const {
 
 void RootWindowGtk::CreateBrowserWindow(const std::string& startup_url) {
   if (with_osr_) {
-    OsrRenderer::Settings settings;
+    OsrRenderer::Settings settings = {};
     MainContext::Get()->PopulateOsrSettings(&settings);
     browser_window_.reset(new BrowserWindowOsrGtk(this, startup_url, settings));
   } else {
@@ -395,10 +401,12 @@ void RootWindowGtk::OnSetFullscreen(bool fullscreen) {
 
   CefRefPtr<CefBrowser> browser = GetBrowser();
   if (browser) {
+    scoped_ptr<window_test::WindowTestRunnerGtk> test_runner(
+        new window_test::WindowTestRunnerGtk());
     if (fullscreen)
-      window_test::Maximize(browser);
+      test_runner->Maximize(browser);
     else
-      window_test::Restore(browser);
+      test_runner->Restore(browser);
   }
 }
 
@@ -679,11 +687,6 @@ GtkWidget* RootWindowGtk::AddMenuEntry(GtkWidget* menu_widget,
 
   gtk_menu_shell_append(GTK_MENU_SHELL(menu_widget), entry);
   return entry;
-}
-
-// static
-scoped_refptr<RootWindow> RootWindow::Create() {
-  return new RootWindowGtk();
 }
 
 }  // namespace client

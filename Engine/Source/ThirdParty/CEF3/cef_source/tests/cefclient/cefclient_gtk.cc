@@ -18,12 +18,14 @@
 #include "include/cef_app.h"
 #include "include/cef_command_line.h"
 #include "include/wrapper/cef_helpers.h"
-#include "cefclient/browser/client_app_browser.h"
-#include "cefclient/browser/main_context_impl.h"
-#include "cefclient/browser/main_message_loop_std.h"
-#include "cefclient/browser/test_runner.h"
-#include "cefclient/common/client_app_other.h"
-#include "cefclient/renderer/client_app_renderer.h"
+#include "tests/cefclient/browser/main_context_impl.h"
+#include "tests/cefclient/browser/test_runner.h"
+#include "tests/shared/browser/client_app_browser.h"
+#include "tests/shared/browser/main_message_loop_external_pump.h"
+#include "tests/shared/browser/main_message_loop_std.h"
+#include "tests/shared/common/client_app_other.h"
+#include "tests/shared/common/client_switches.h"
+#include "tests/shared/renderer/client_app_renderer.h"
 
 namespace client {
 namespace {
@@ -89,7 +91,11 @@ int RunMain(int argc, char* argv[]) {
   context->PopulateSettings(&settings);
 
   // Create the main message loop object.
-  scoped_ptr<MainMessageLoop> message_loop(new MainMessageLoopStd);
+  scoped_ptr<MainMessageLoop> message_loop;
+  if (settings.external_message_pump)
+    message_loop = MainMessageLoopExternalPump::Create();
+  else
+    message_loop.reset(new MainMessageLoopStd);
 
   // Initialize CEF.
   context->Initialize(main_args, settings, app, NULL);
@@ -115,7 +121,7 @@ int RunMain(int argc, char* argv[]) {
 
   // Create the first window.
   context->GetRootWindowManager()->CreateRootWindow(
-      true,             // Show controls.
+      !command_line->HasSwitch(switches::kHideControls),  // Show controls.
       settings.windowless_rendering_enabled ? true : false,
       CefRect(),        // Use default system size.
       std::string());   // Use default URL.

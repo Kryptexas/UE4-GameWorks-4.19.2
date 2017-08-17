@@ -413,11 +413,6 @@ private:
 
 		void CacheWindow();
 
-		FORCEINLINE bool IsComposing() const
-		{
-			return bIsComposing;
-		}
-
 		FORCEINLINE void AbortComposition()
 		{
 			bIsComposing = false;
@@ -438,7 +433,7 @@ private:
 			return false;
 		}
 
-	private:
+		virtual bool IsComposing() override;
 		virtual bool IsReadOnly() override;
 		virtual uint32 GetTextLength() override;
 		virtual void GetSelectionRange(uint32& BeginIndex, uint32& Length, ECaretPosition& CaretPosition) override;

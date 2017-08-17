@@ -15,67 +15,20 @@
 #include "Modules/ModuleManager.h"
 #include "HttpModule.h"
 #include "HttpManager.h"
-#include "BuildPatchError.h"
-#include "BuildPatchHTTP.h"
 #include "BuildPatchCompactifier.h"
 #include "BuildPatchDataEnumeration.h"
 #include "BuildPatchMergeManifests.h"
 #include "BuildPatchDiffManifests.h"
 #include "BuildPatchHash.h"
 #include "BuildPatchGeneration.h"
-#include "BuildPatchAnalytics.h"
 #include "BuildPatchServicesPrivate.h"
+#include "BuildPatchPackageChunkData.h"
+#include "BuildPatchVerifyChunkData.h"
 
-using namespace BuildPatchConstants;
+using namespace BuildPatchServices;
 
 DEFINE_LOG_CATEGORY(LogBuildPatchServices);
 IMPLEMENT_MODULE(FBuildPatchServicesModule, BuildPatchServices);
-
-/* FBuildPatchInstallationInfo implementation
-*****************************************************************************/
-
-void FBuildPatchInstallationInfo::RegisterAppInstallation(IBuildManifestRef AppManifest, const FString& AppInstallDirectory)
-{
-	FBuildPatchAppManifestRef InternalRef = StaticCastSharedRef<FBuildPatchAppManifest>(AppManifest);
-	AvailableInstallations.Add(AppInstallDirectory, InternalRef);
-}
-
-void FBuildPatchInstallationInfo::EnumerateProducibleChunks(const TArray< FGuid >& ChunksRequired, TArray< FGuid >& ChunksAvailable)
-{
-	for (auto AvailableInstallationsIt = AvailableInstallations.CreateConstIterator(); AvailableInstallationsIt; ++AvailableInstallationsIt)
-	{
-		const FBuildPatchAppManifest& AppManifest = *AvailableInstallationsIt.Value().Get();
-		const FString& AppInstallDir = AvailableInstallationsIt.Key();
-		TArray< FGuid > ChunksFromThisManifest;
-		AppManifest.EnumerateProducibleChunks(AppInstallDir, ChunksRequired, ChunksFromThisManifest);
-		for (auto ChunksFromThisManifestIt = ChunksFromThisManifest.CreateConstIterator(); ChunksFromThisManifestIt; ++ChunksFromThisManifestIt)
-		{
-			const FGuid& ChunkGuid = *ChunksFromThisManifestIt;
-			if (ChunksAvailable.Contains(ChunkGuid) == false)
-			{
-				ChunksAvailable.Add(ChunkGuid);
-				RecyclableChunks.Add(ChunkGuid, AvailableInstallationsIt.Value());
-			}
-		}
-	}
-}
-
-FBuildPatchAppManifestPtr FBuildPatchInstallationInfo::GetManifestContainingChunk(const FGuid& ChunkGuid)
-{
-	return RecyclableChunks.FindRef(ChunkGuid);
-}
-
-const FString FBuildPatchInstallationInfo::GetManifestInstallDir(FBuildPatchAppManifestPtr AppManifest)
-{
-	for (auto AvailableInstallationsIt = AvailableInstallations.CreateConstIterator(); AvailableInstallationsIt; ++AvailableInstallationsIt)
-	{
-		if (AppManifest == AvailableInstallationsIt.Value())
-		{
-			return AvailableInstallationsIt.Key();
-		}
-	}
-	return TEXT("");
-}
 
 /* FBuildPatchServicesModule implementation
  *****************************************************************************/
@@ -140,8 +93,6 @@ void FBuildPatchServicesModule::ShutdownModule()
 	GLog->Log(ELogVerbosity::VeryVerbose, TEXT( "BuildPatchServicesModule: Removing Ticker" ) );
 	FTicker::GetCoreTicker().RemoveTicker( TickDelegateHandle );
 
-	GLog->Log(ELogVerbosity::VeryVerbose, TEXT( "BuildPatchServicesModule: Shutting down BuildPatchHTTP" ) );
-	FBuildPatchHTTP::OnShutdown();
 	GLog->Log(ELogVerbosity::VeryVerbose, TEXT( "BuildPatchServicesModule: Finished shutting down" ) );
 }
 
@@ -224,8 +175,6 @@ IBuildInstallerPtr FBuildPatchServicesModule::StartBuildInstallStageOnly(IBuildM
 IBuildInstallerRef FBuildPatchServicesModule::StartBuildInstall(BuildPatchServices::FInstallerConfiguration Configuration, FBuildPatchBoolManifestDelegate OnCompleteDelegate)
 {
 	checkf(IsInGameThread(), TEXT("FBuildPatchServicesModule::StartBuildInstall must be called from main thread."));
-	// Make sure the HTTP wrapper is already created.
-	FBuildPatchHTTP::Initialize();
 	// Handle any of the global module overrides, while they are not yet fully deprecated.
 	if (Configuration.StagingDirectory.IsEmpty())
 	{
@@ -245,7 +194,7 @@ IBuildInstallerRef FBuildPatchServicesModule::StartBuildInstall(BuildPatchServic
 		Configuration.bRunRequiredPrereqs = false;
 	}
 	// Run the installer.
-	FBuildPatchInstallerRef Installer = MakeShareable(new FBuildPatchInstaller(MoveTemp(Configuration), InstallationInfo, LocalMachineConfigFile, OnCompleteDelegate));
+	FBuildPatchInstallerRef Installer = MakeShareable(new FBuildPatchInstaller(MoveTemp(Configuration), AvailableInstallations, LocalMachineConfigFile, Analytics, HttpTracker, OnCompleteDelegate));
 	Installer->StartInstallation();
 	BuildPatchInstallers.Add(Installer);
 	return Installer;
@@ -253,25 +202,30 @@ IBuildInstallerRef FBuildPatchServicesModule::StartBuildInstall(BuildPatchServic
 
 bool FBuildPatchServicesModule::Tick( float Delta )
 {
-	// Using a local bool for this check will improve the assert message that gets displayed
-	// This one is unlikely to assert unless the FTicker's core tick is not ticked on the main thread for some reason
+	// Using a local bool for this check will improve the assert message that gets displayed.
+	// This one is unlikely to assert unless the FTicker's core tick is not ticked on the main thread for some reason.
 	const bool bIsCalledFromMainThread = IsInGameThread();
 	check( bIsCalledFromMainThread );
 
-	// Call complete delegate on each finished installer
-	for (auto& Installer : BuildPatchInstallers)
+	// Pump installer messages.
+	for (FBuildPatchInstallerPtr& Installer : BuildPatchInstallers)
 	{
-		if (Installer.IsValid() && Installer->IsComplete())
+		if (Installer.IsValid())
 		{
-			Installer->ExecuteCompleteDelegate();
-			Installer.Reset();
+			Installer->PumpMessages();
+			// If the installer is complete, execute the delegate, and reset the ptr for cleanup.
+			if (Installer->IsComplete())
+			{
+				Installer->ExecuteCompleteDelegate();
+				Installer.Reset();
+			}
 		}
 	}
 
-	// Remove completed (invalids) from the list
+	// Remove completed (invalids) from the list.
 	BuildPatchInstallers.RemoveAll([](const FBuildPatchInstallerPtr& Installer){ return Installer.IsValid() == false; });
 
-	// More ticks
+	// More ticks.
 	return true;
 }
 
@@ -280,15 +234,25 @@ bool FBuildPatchServicesModule::GenerateChunksManifestFromDirectory(const BuildP
 	return FBuildDataGenerator::GenerateChunksManifestFromDirectory( Settings );
 }
 
-bool FBuildPatchServicesModule::CompactifyCloudDirectory(float DataAgeThreshold, ECompactifyMode::Type Mode, const FString& DeletedChunkLogFile)
+bool FBuildPatchServicesModule::CompactifyCloudDirectory(const FString& CloudDirectory, float DataAgeThreshold, ECompactifyMode::Type Mode, const FString& DeletedChunkLogFile)
 {
 	const bool bPreview = Mode == ECompactifyMode::Preview;
-	return FBuildDataCompactifier::CompactifyCloudDirectory(DataAgeThreshold, bPreview, DeletedChunkLogFile);
+	return FBuildDataCompactifier::CompactifyCloudDirectory(CloudDirectory, DataAgeThreshold, bPreview, DeletedChunkLogFile);
 }
 
-bool FBuildPatchServicesModule::EnumerateManifestData(const FString& ManifestFilePath, const FString& OutputFile, bool bIncludeSizes)
+bool FBuildPatchServicesModule::EnumeratePatchData(const FString& InputFile, const FString& OutputFile, bool bIncludeSizes)
 {
-	return FBuildDataEnumeration::EnumerateManifestData(ManifestFilePath, OutputFile, bIncludeSizes);
+	return FBuildDataEnumeration::EnumeratePatchData(InputFile, OutputFile, bIncludeSizes);
+}
+
+bool FBuildPatchServicesModule::VerifyChunkData(const FString& SearchPath, const FString& OutputFile)
+{
+	return FBuildVerifyChunkData::VerifyChunkData(SearchPath, OutputFile);
+}
+
+bool FBuildPatchServicesModule::PackageChunkData(const FString& ManifestFilePath, const FString& OutputFile, const FString& CloudDir, uint64 MaxOutputFileSize)
+{
+	return FBuildPackageChunkData::PackageChunkData(ManifestFilePath, OutputFile, CloudDir, MaxOutputFileSize);
 }
 
 bool FBuildPatchServicesModule::MergeManifests(const FString& ManifestFilePathA, const FString& ManifestFilePathB, const FString& ManifestFilePathC, const FString& NewVersionString, const FString& SelectionDetailFilePath)
@@ -343,19 +307,20 @@ void FBuildPatchServicesModule::SetBackupDirectory( const FString& BackupDir )
 	BackupDirectory = BackupDir;
 }
 
-void FBuildPatchServicesModule::SetAnalyticsProvider( TSharedPtr< IAnalyticsProvider > AnalyticsProvider )
+void FBuildPatchServicesModule::SetAnalyticsProvider( TSharedPtr<IAnalyticsProvider> InAnalyticsProvider )
 {
-	FBuildPatchAnalytics::SetAnalyticsProvider( AnalyticsProvider );
+	Analytics = InAnalyticsProvider;
 }
 
-void FBuildPatchServicesModule::SetHttpTracker( TSharedPtr< FHttpServiceTracker > HttpTracker )
+void FBuildPatchServicesModule::SetHttpTracker( TSharedPtr< FHttpServiceTracker > InHttpTracker)
 {
-	FBuildPatchAnalytics::SetHttpTracker( HttpTracker );
+	HttpTracker = InHttpTracker;
 }
 
-void FBuildPatchServicesModule::RegisterAppInstallation(IBuildManifestRef AppManifest, const FString AppInstallDirectory)
+void FBuildPatchServicesModule::RegisterAppInstallation(IBuildManifestRef AppManifest, FString AppInstallDirectory)
 {
-	InstallationInfo.RegisterAppInstallation(AppManifest, AppInstallDirectory);
+	FBuildPatchAppManifestRef InternalRef = StaticCastSharedRef<FBuildPatchAppManifest>(MoveTemp(AppManifest));
+	AvailableInstallations.Add(MoveTemp(AppInstallDirectory), MoveTemp(InternalRef));
 }
 
 void FBuildPatchServicesModule::CancelAllInstallers(bool WaitForThreads)
@@ -372,12 +337,11 @@ void FBuildPatchServicesModule::CancelAllInstallers(bool WaitForThreads)
 			Installer->CancelInstall();
 			if (WaitForThreads)
 			{
-				// HACK #portal_debt
 				while (!Installer->IsComplete())
 				{
-					FHttpModule::Get().GetHttpManager().Tick(0);
+					FPlatformProcess::Sleep(0);
 				}
-				
+
 				Installer->ExecuteCompleteDelegate();
 				Installer.Reset();
 			}
@@ -391,17 +355,18 @@ void FBuildPatchServicesModule::CancelAllInstallers(bool WaitForThreads)
 void FBuildPatchServicesModule::PreExit()
 {
 	// Cleanup installers
-	if (BuildPatchInstallers.Num() > 0)
+	for (auto& Installer : BuildPatchInstallers)
 	{
-		// Set shutdown error so any running threads know to exit.
-		FBuildPatchInstallError::SetFatalError(EBuildPatchInstallError::ApplicationClosing, ApplicationClosedErrorCodes::ApplicationClosed);
-		CancelAllInstallers(true);
-		BuildPatchInstallers.Empty();
+		if (Installer.IsValid())
+		{
+			Installer->PreExit();
+		}
 	}
+	BuildPatchInstallers.Empty();
 
 	// Release our ptr to analytics
-	FBuildPatchAnalytics::SetAnalyticsProvider(NULL);
-	FBuildPatchAnalytics::SetHttpTracker(nullptr);
+	Analytics.Reset();
+	HttpTracker.Reset();
 }
 
 void FBuildPatchServicesModule::FixupLegacyConfig()
@@ -486,6 +451,8 @@ const FString& FBuildPatchServicesModule::GetBackupDirectory()
 
 /* Static variables
  *****************************************************************************/
+TSharedPtr<IAnalyticsProvider> FBuildPatchServicesModule::Analytics;
+TSharedPtr<FHttpServiceTracker> FBuildPatchServicesModule::HttpTracker;
 TArray<FString> FBuildPatchServicesModule::CloudDirectories;
 FString FBuildPatchServicesModule::StagingDirectory;
 FString FBuildPatchServicesModule::BackupDirectory;

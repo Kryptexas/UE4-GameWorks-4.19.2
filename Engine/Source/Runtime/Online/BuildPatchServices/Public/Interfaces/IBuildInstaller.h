@@ -8,6 +8,7 @@
 
 #include "CoreMinimal.h"
 #include "BuildPatchState.h"
+#include "BuildPatchMessage.h"
 
 class IBuildInstaller;
 
@@ -106,29 +107,42 @@ struct FBuildInstallStats
 {
 	// Constructor
 	FBuildInstallStats()
-		: NumFilesInBuild(0)
+		: AppName()
+		, AppInstalledVersion()
+		, AppPatchVersion()
+		, CloudDirectory()
+		, NumFilesInBuild(0)
 		, NumFilesOutdated(0)
 		, NumFilesToRemove(0)
 		, NumChunksRequired(0)
 		, ChunksQueuedForDownload(0)
 		, ChunksLocallyAvailable(0)
+		, ChunksInChunkDbs(0)
 		, NumChunksDownloaded(0)
 		, NumChunksRecycled(0)
+		, NumChunksReadFromChunkDbs(0)
 		, NumChunksCacheBooted(0)
 		, NumDriveCacheChunkLoads(0)
 		, NumFailedDownloads(0)
 		, NumBadDownloads(0)
+		, NumAbortedDownloads(0)
 		, NumRecycleFailures(0)
 		, NumDriveCacheLoadFailures(0)
+		, NumChunkDbChunksFailed(0)
 		, TotalDownloadedData(0)
 		, AverageDownloadSpeed(0.0)
 		, FinalDownloadSpeed(-1.0)
 		, TheoreticalDownloadTime(0.0f)
+		, InitializeTime(0.0f)
+		, ConstructTime(0.0f)
+		, MoveFromStageTime(0.0f)
+		, FileAttributesTime(0.0f)
 		, VerifyTime(0.0f)
 		, CleanUpTime(0.0f)
 		, PrereqTime(0.0f)
-		, ProcessExecuteTime(0.0f)
 		, ProcessPausedTime(0.0f)
+		, ProcessActiveTime(0.0f)
+		, ProcessExecuteTime(0.0f)
 		, ProcessSuccess(false)
 		, NumInstallRetries(0)
 		, FailureType(EBuildPatchInstallError::InitializationError)
@@ -145,87 +159,105 @@ struct FBuildInstallStats
 		, DisconnectedDownloadHealthTime(0.0f)
 	{}
 
-	// The name of the app being installed
+	// The name of the app being installed.
 	FString AppName;
-	// The version string currently installed, or "NONE"
+	// The version string currently installed, or "NONE".
 	FString AppInstalledVersion;
-	// The version string patching to
+	// The version string patching to.
 	FString AppPatchVersion;
-	// The cloud directory used for this install
+	// The cloud directory used for this install.
 	FString CloudDirectory;
-	// The total number of files in the build
+	// The total number of files in the build.
 	uint32 NumFilesInBuild;
-	// The total number of files outdated
+	// The total number of files outdated.
 	uint32 NumFilesOutdated;
-	// The total number of files in the previous build that can be deleted
+	// The total number of files in the previous build that can be deleted.
 	uint32 NumFilesToRemove;
-	// The total number of chunks making up those files
+	// The total number of chunks making up those files.
 	uint32 NumChunksRequired;
-	// The number of required chunks queued for download
+	// The number of required chunks queued for download.
 	uint32 ChunksQueuedForDownload;
-	// The number of chunks locally available in the build
+	// The number of chunks locally available in the build.
 	uint32 ChunksLocallyAvailable;
-	// The total number of chunks that were downloaded
+	// The number of chunks available in chunkdb files.
+	uint32 ChunksInChunkDbs;
+	// The total number of chunks that were downloaded.
 	uint32 NumChunksDownloaded;
-	// The number of chunks successfully recycled
+	// The number of chunks successfully recycled.
 	uint32 NumChunksRecycled;
-	// The number of chunks that had to be booted from the cache
+	// The number of chunks successfully read from chunkdbs.
+	uint32 NumChunksReadFromChunkDbs;
+	// The number of chunks that had to be booted from the cache.
 	uint32 NumChunksCacheBooted;
-	// The number of chunks that had to be loaded from the drive cache
+	// The number of chunks that had to be loaded from the drive cache.
 	uint32 NumDriveCacheChunkLoads;
-	// The number of chunks we did not successfully receive
+	// The number of chunks we did not successfully receive.
 	uint32 NumFailedDownloads;
-	// The number of chunks we received but were determined bad data
+	// The number of chunks we received but were determined bad data.
 	uint32 NumBadDownloads;
-	// The number of chunks that failed to be recycled from existing build
+	// The number of chunks we aborted as they were determined as taking too long.
+	uint32 NumAbortedDownloads;
+	// The number of chunks that failed to be recycled from existing build.
 	uint32 NumRecycleFailures;
-	// The number of chunks that failed to load from the drive cache
+	// The number of chunks that failed to load from the drive cache.
 	uint32 NumDriveCacheLoadFailures;
-	// The total number of bytes downloaded
+	// The number of chunks that were not successfully loaded from provided chunkdbs.
+	uint32 NumChunkDbChunksFailed;
+	// The total number of bytes downloaded.
 	int64 TotalDownloadedData;
-	// The average chunk download speed
+	// The average chunk download speed.
 	double AverageDownloadSpeed;
-	// The download speed registered at the end of the installation
+	// The download speed registered at the end of the installation.
 	double FinalDownloadSpeed;
-	// The theoretical download time (data/speed)
+	// The theoretical download time (data/speed).
 	float TheoreticalDownloadTime;
-	// The total time that the install verification took to complete
+	// The time spent during the initialization stage.
+	float InitializeTime;
+	// The time spent during the construction stage.
+	float ConstructTime;
+	// The time spent moving staged files into the installation location.
+	float MoveFromStageTime;
+	// The time spent during the file attribution stage.
+	float FileAttributesTime;
+	// The time spent during the verification stage.
 	float VerifyTime;
-	// The total time that the install cleanup took to complete
+	// The time spent during the clean up stage.
 	float CleanUpTime;
-	// The total time that the prereq install took to complete
+	// The time spent during the prerequisite stage.
 	float PrereqTime;
-	// The total time that the install process took to complete
-	float ProcessExecuteTime;
-	// The amount of time that was spent paused
+	// The amount of time that was spent paused.
 	float ProcessPausedTime;
-	// Whether the process was successful
+	// The amount of time that was spent active (un-paused).
+	float ProcessActiveTime;
+	// The total time that the install process took to complete.
+	float ProcessExecuteTime;
+	// Whether the process was successful.
 	bool ProcessSuccess;
-	// The number of times the system looped to retry
+	// The number of times the system looped to retry.
 	uint32 NumInstallRetries;
-	// The failure type for the install
+	// The failure type for the install.
 	EBuildPatchInstallError FailureType;
-	// If NumInstallRetries > 0, this will contain the list of retry reasons for retrying
+	// If NumInstallRetries > 0, this will contain the list of retry reasons for retrying.
 	TArray<EBuildPatchInstallError> RetryFailureTypes;
-	// The error code. No error results in 'OK'
+	// The error code. No error results in 'OK'.
 	FString ErrorCode;
-	// If NumInstallRetries > 0, this will contain the list of error codes for each retry
+	// If NumInstallRetries > 0, this will contain the list of error codes for each retry.
 	TArray<FString> RetryErrorCodes;
-	// The localised, more generic failure reason
+	// The localized, more generic failure reason.
 	FText FailureReasonText;
 	// Final progress state, this is the progress of the current retry attempt.
 	float FinalProgress;
-	// The overall rate of success for download requests
+	// The overall rate of success for download requests.
 	float OverallRequestSuccessRate;
-	// The amount of time that was spent with Excellent download health
+	// The amount of time that was spent with Excellent download health.
 	float ExcellentDownloadHealthTime;
-	// The amount of time that was spent with Good download health
+	// The amount of time that was spent with Good download health.
 	float GoodDownloadHealthTime;
-	// The amount of time that was spent with OK download health
+	// The amount of time that was spent with OK download health.
 	float OkDownloadHealthTime;
-	// The amount of time that was spent with Poor download health
+	// The amount of time that was spent with Poor download health.
 	float PoorDownloadHealthTime;
-	// The amount of time that was spent with Disconnected download health
+	// The amount of time that was spent with Disconnected download health.
 	float DisconnectedDownloadHealthTime;
 };
 
@@ -366,4 +398,16 @@ public:
 	 * @return true if the installer is now paused
 	 */
 	virtual bool TogglePauseInstall() = 0;
+
+	/**
+	 * Registers a message handler with the installer.
+	 * @param MessageHandler    Ptr to the message handler to add. Must not be null.
+	 */
+	virtual void RegisterMessageHandler(BuildPatchServices::FMessageHandler* MessageHandler) = 0;
+
+	/**
+	 * Unregisters a message handler, will no longer receive HandleMessage calls.
+	 * @param MessageHandler    Ptr to the message handler to remove.
+	 */
+	virtual void UnregisterMessageHandler(BuildPatchServices::FMessageHandler* MessageHandler) = 0;
 };

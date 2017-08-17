@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -262,16 +262,16 @@ bool CefClientCToCpp::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser,
 CefClientCToCpp::CefClientCToCpp() {
 }
 
-template<> cef_client_t* CefCToCpp<CefClientCToCpp, CefClient,
+template<> cef_client_t* CefCToCppRefCounted<CefClientCToCpp, CefClient,
     cef_client_t>::UnwrapDerived(CefWrapperType type, CefClient* c) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
-#ifndef NDEBUG
-template<> base::AtomicRefCount CefCToCpp<CefClientCToCpp, CefClient,
+#if DCHECK_IS_ON()
+template<> base::AtomicRefCount CefCToCppRefCounted<CefClientCToCpp, CefClient,
     cef_client_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefClientCToCpp, CefClient,
+template<> CefWrapperType CefCToCppRefCounted<CefClientCToCpp, CefClient,
     cef_client_t>::kWrapperType = WT_CLIENT;

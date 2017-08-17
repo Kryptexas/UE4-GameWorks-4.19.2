@@ -25,7 +25,7 @@ class FCEFBrowserClosureTask
 	: public CefTask
 {
 public:
-	FCEFBrowserClosureTask(CefRefPtr<CefBase> InHandle, TFunction<void ()> InClosure)
+	FCEFBrowserClosureTask(CefRefPtr<CefBaseRefCounted> InHandle, TFunction<void ()> InClosure)
 		: Handle(InHandle)
 		, Closure(InClosure)
 	{ }
@@ -36,7 +36,7 @@ public:
 	}
 
 private:
-	CefRefPtr<CefBase> Handle; // Used so the handler will not go out of scope before the closure is executed.
+	CefRefPtr<CefBaseRefCounted> Handle; // Used so the handler will not go out of scope before the closure is executed.
 	TFunction<void ()> Closure;
 	IMPLEMENT_REFCOUNTING(FCEFBrowserClosureTask);
 };

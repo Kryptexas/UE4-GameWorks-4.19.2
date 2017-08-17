@@ -11,8 +11,12 @@ using namespace BuildPatchTool;
 
 namespace Constants
 {
+	static const FString Comma(TEXT(","));
 	static const FString Equals(TEXT("="));
-	static const FString Quote(TEXT("\""));
+	static const FString DoubleQuote(TEXT("\""));
+	static const FString SingleQuote(TEXT("'"));
+	static const FString Slash(TEXT("/"));
+	static const FString Backslash(TEXT("\\"));
 	static const FString Custom(TEXT("custom"));
 	static const FString CustomInt(TEXT("customint"));
 	static const FString CustomFloat(TEXT("customfloat"));
@@ -55,6 +59,7 @@ public:
 			UE_LOG(LogBuildPatchTool, Log, TEXT("  -AppID=123456                Specifies without quotes, the ID number for the app. This will default to 0 if not provided."));
 			UE_LOG(LogBuildPatchTool, Log, TEXT("  -FileIgnoreList=\"\"           Specifies in quotes, the path to a text file containing BuildRoot relative files, separated by \\r\\n line endings, to not be included in the build."));
 			UE_LOG(LogBuildPatchTool, Log, TEXT("  -FileAttributeList=\"\"        Specifies in quotes, the path to a text file containing quoted BuildRoot relative files followed by optional attribute keywords readonly compressed executable, separated by \\r\\n line endings. These attribute will be applied when build is installed client side."));
+			UE_LOG(LogBuildPatchTool, Log, TEXT("  -PrereqIds=\"\"                Specifies in quotes, a comma-separated list of identifiers that the prerequisites satisfy. At install time, a machine which already has installed prerequisites with all of these ids will skip prerequisite installation."));
 			UE_LOG(LogBuildPatchTool, Log, TEXT("  -PrereqName=\"\"               Specifies in quotes, the display name for the prerequisites installer."));
 			UE_LOG(LogBuildPatchTool, Log, TEXT("  -PrereqPath=\"\"               Specifies in quotes, the prerequisites installer to launch on successful product install."));
 			UE_LOG(LogBuildPatchTool, Log, TEXT("                               This path supports a string replace for \"$[RootDirectory]\". This will be replaced with the root path before executing. The replacement will include trailing /."));
@@ -103,9 +108,6 @@ public:
 			}
 		}
 
-		// Setup the module
-		BpsInterface.SetCloudDirectory(CloudDir);
-
 		// Setup and run
 		BuildPatchServices::FGenerationConfiguration Settings;
 		Settings.RootDirectory = BuildRoot;
@@ -116,12 +118,14 @@ public:
 		Settings.LaunchCommand = AppArgs;
 		Settings.IgnoreListFile = FileIgnoreList;
 		Settings.AttributeListFile = FileAttributeList;
+		Settings.PrereqIds = PrereqIdsSet;
 		Settings.PrereqName = PrereqName;
 		Settings.PrereqPath = PrereqPath;
 		Settings.PrereqArgs = PrereqArgs;
 		Settings.DataAgeThreshold = TCString<TCHAR>::Atod(*DataAgeThreshold);
 		Settings.bShouldHonorReuseThreshold = DataAgeThreshold.IsEmpty() == false;
 		Settings.CustomFields = CustomFields;
+		Settings.CloudDirectory = CloudDir;
 		Settings.OutputFilename = OutputFilename;
 
 		// Run the build generation
@@ -130,6 +134,22 @@ public:
 	}
 
 private:
+
+	bool ParsePrereqIds(const FString& ParamValue, TSet<FString>& OutPrereqIds)
+	{
+		if (ParamValue.Contains(Constants::Slash)
+			|| ParamValue.Contains(Constants::Backslash)
+			|| ParamValue.Contains(Constants::DoubleQuote)
+			|| ParamValue.Contains(Constants::Slash))
+		{
+			return false;
+		}
+
+		TArray<FString> ParamValues;
+		ParamValue.ParseIntoArray(ParamValues, *Constants::Comma);
+		OutPrereqIds.Append(ParamValues);
+		return true;
+	}
 
 	bool ParseCustomField(const FString& Switch, TMap<FString, FVariant>& Fields)
 	{
@@ -197,6 +217,7 @@ private:
 		PARSE_SWITCH(AppId);
 		PARSE_SWITCH(FileIgnoreList);
 		PARSE_SWITCH(FileAttributeList);
+		PARSE_SWITCH(PrereqIds);
 		PARSE_SWITCH(PrereqName);
 		PARSE_SWITCH(PrereqPath);
 		PARSE_SWITCH(PrereqArgs);
@@ -229,6 +250,12 @@ private:
 			}
 		}
 
+		if (!PrereqIds.IsEmpty() && !ParsePrereqIds(PrereqIds, PrereqIdsSet))
+		{
+			UE_LOG(LogBuildPatchTool, Error, TEXT("An error occurred processing comma-separated list from commandline -PrereqIds=%s"), *PrereqIds);
+			return false;
+		}
+
 		return true;
 #undef PARSE_SWITCH
 	}
@@ -243,9 +270,11 @@ private:
 	FString BuildVersion;
 	FString AppLaunch;
 	FString AppArgs;
-	FString PrereqArgs;
+	FString PrereqIds;
+	TSet<FString> PrereqIdsSet;
 	FString PrereqName;
 	FString PrereqPath;
+	FString PrereqArgs;
 	FString FileIgnoreList;
 	FString FileAttributeList;
 	FString DataAgeThreshold;

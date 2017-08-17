@@ -21,45 +21,61 @@ class CefCookieStoreProxy : public net::CookieStore {
                       CefRefPtr<CefRequestContextHandler> handler);
   ~CefCookieStoreProxy() override;
 
-  // The |parent_| object may no longer be valid after this method is called.
-  void Detach();
-
   // net::CookieStore methods.
   void SetCookieWithOptionsAsync(
       const GURL& url,
       const std::string& cookie_line,
       const net::CookieOptions& options,
       const SetCookiesCallback& callback) override;
+  void SetCookieWithDetailsAsync(
+      const GURL& url,
+      const std::string& name,
+      const std::string& value,
+      const std::string& domain,
+      const std::string& path,
+      base::Time creation_time,
+      base::Time expiration_time,
+      base::Time last_access_time,
+      bool secure,
+      bool http_only,
+      net::CookieSameSite same_site,
+      net::CookiePriority priority,
+      const SetCookiesCallback& callback) override;
   void GetCookiesWithOptionsAsync(
-      const GURL& url, const net::CookieOptions& options,
+      const GURL& url,
+      const net::CookieOptions& options,
       const GetCookiesCallback& callback) override;
+  void GetCookieListWithOptionsAsync(
+      const GURL& url,
+      const net::CookieOptions& options,
+      const GetCookieListCallback& callback) override;
+  void GetAllCookiesAsync(const GetCookieListCallback& callback) override;
   void DeleteCookieAsync(const GURL& url,
                          const std::string& cookie_name,
                          const base::Closure& callback) override;
-  void GetAllCookiesForURLAsync(
-      const GURL& url,
-      const GetCookieListCallback& callback) override;
+  void DeleteCanonicalCookieAsync(const net::CanonicalCookie& cookie,
+                                  const DeleteCallback& callback) override;
   void DeleteAllCreatedBetweenAsync(const base::Time& delete_begin,
                                     const base::Time& delete_end,
                                     const DeleteCallback& callback) override;
-  void DeleteAllCreatedBetweenForHostAsync(
-      const base::Time delete_begin,
-      const base::Time delete_end,
-      const GURL& url,
+  void DeleteAllCreatedBetweenWithPredicateAsync(
+      const base::Time& delete_begin,
+      const base::Time& delete_end,
+      const CookiePredicate& predicate,
       const DeleteCallback& callback) override;
   void DeleteSessionCookiesAsync(const DeleteCallback& callback) override;
-  net::CookieMonster* GetCookieMonster() override;
-  scoped_ptr<CookieChangedSubscription> AddCallbackForCookie(
+  void FlushStore(const base::Closure& callback) override;
+  std::unique_ptr<CookieChangedSubscription> AddCallbackForCookie(
       const GURL& url,
       const std::string& name,
       const CookieChangedCallback& callback) override;
+  bool IsEphemeral() override;
 
  private:
   net::CookieStore* GetCookieStore();
 
   // The |parent_| pointer is kept alive by CefURLRequestContextGetterProxy
-  // which has a ref to the owning CefURLRequestContextGetterImpl. Detach() will
-  // be called when the CefURLRequestContextGetterProxy is destroyed.
+  // which has a ref to the owning CefURLRequestContextGetterImpl.
   CefURLRequestContextImpl* parent_;
   CefRefPtr<CefRequestContextHandler> handler_;
 

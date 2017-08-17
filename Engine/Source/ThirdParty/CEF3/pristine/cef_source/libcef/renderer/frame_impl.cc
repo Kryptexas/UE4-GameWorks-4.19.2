@@ -4,6 +4,14 @@
 
 #include "libcef/renderer/frame_impl.h"
 
+#include "base/compiler_specific.h"
+
+// Enable deprecation warnings for MSVC. See http://crbug.com/585142.
+#if defined(OS_WIN)
+#pragma warning(push)
+#pragma warning(default:4996)
+#endif
+
 #include "libcef/common/cef_messages.h"
 #include "libcef/common/net/http_header_utils.h"
 #include "libcef/common/request_impl.h"
@@ -18,7 +26,9 @@
 #include "third_party/WebKit/public/platform/WebURL.h"
 #include "third_party/WebKit/public/web/WebDocument.h"
 #include "third_party/WebKit/public/web/WebFrame.h"
+#include "third_party/WebKit/public/web/WebFrameContentDumper.h"
 #include "third_party/WebKit/public/web/WebKit.h"
+#include "third_party/WebKit/public/web/WebLocalFrame.h"
 #include "third_party/WebKit/public/web/WebView.h"
 #include "third_party/WebKit/public/web/WebScriptSource.h"
 
@@ -41,45 +51,31 @@ bool CefFrameImpl::IsValid() {
 }
 
 void CefFrameImpl::Undo() {
-  CEF_REQUIRE_RT_RETURN_VOID();
-  if (frame_)
-    frame_->executeCommand(WebString::fromUTF8("Undo"));
+  ExecuteCommand("Undo");
 }
 
 void CefFrameImpl::Redo() {
-  CEF_REQUIRE_RT_RETURN_VOID();
-  if (frame_)
-    frame_->executeCommand(WebString::fromUTF8("Redo"));
+  ExecuteCommand("Redo");
 }
 
 void CefFrameImpl::Cut() {
-  CEF_REQUIRE_RT_RETURN_VOID();
-  if (frame_)
-    frame_->executeCommand(WebString::fromUTF8("Cut"));
+  ExecuteCommand("Cut");
 }
 
 void CefFrameImpl::Copy() {
-  CEF_REQUIRE_RT_RETURN_VOID();
-  if (frame_)
-    frame_->executeCommand(WebString::fromUTF8("Copy"));
+  ExecuteCommand("Copy");
 }
 
 void CefFrameImpl::Paste() {
-  CEF_REQUIRE_RT_RETURN_VOID();
-  if (frame_)
-    frame_->executeCommand(WebString::fromUTF8("Paste"));
+  ExecuteCommand("Paste");
 }
 
 void CefFrameImpl::Delete() {
-  CEF_REQUIRE_RT_RETURN_VOID();
-  if (frame_)
-    frame_->executeCommand(WebString::fromUTF8("Delete"));
+  ExecuteCommand("Delete");
 }
 
 void CefFrameImpl::SelectAll() {
-  CEF_REQUIRE_RT_RETURN_VOID();
-  if (frame_)
-    frame_->executeCommand(WebString::fromUTF8("SelectAll"));
+  ExecuteCommand("SelectAll");
 }
 
 void CefFrameImpl::ViewSource() {
@@ -88,9 +84,10 @@ void CefFrameImpl::ViewSource() {
 
 void CefFrameImpl::GetSource(CefRefPtr<CefStringVisitor> visitor) {
   CEF_REQUIRE_RT_RETURN_VOID();
-
-  if (frame_) {
-    CefString content = std::string(frame_->contentAsMarkup().utf8());
+  if (frame_ && frame_->IsWebLocalFrame()) {
+    const CefString& content =
+        std::string(blink::WebFrameContentDumper::DumpAsMarkup(
+            frame_->ToWebLocalFrame()).Utf8());
     visitor->Visit(content);
   }
 }
@@ -99,7 +96,7 @@ void CefFrameImpl::GetText(CefRefPtr<CefStringVisitor> visitor) {
   CEF_REQUIRE_RT_RETURN_VOID();
 
   if (frame_) {
-    CefString content = webkit_glue::DumpDocumentText(frame_);
+    const CefString& content = webkit_glue::DumpDocumentText(frame_);
     visitor->Visit(content);
   }
 }
@@ -154,7 +151,7 @@ void CefFrameImpl::LoadString(const CefString& string,
 
   if (frame_) {
     GURL gurl = GURL(url.ToString());
-    frame_->loadHTMLString(string.ToString(), gurl);
+    frame_->LoadHTMLString(string.ToString(), gurl);
   }
 }
 
@@ -165,13 +162,14 @@ void CefFrameImpl::ExecuteJavaScript(const CefString& jsCode,
 
   if (jsCode.empty())
     return;
-  if (startLine < 0)
-    startLine = 0;
+  if (startLine < 1)
+    startLine = 1;
 
   if (frame_) {
     GURL gurl = GURL(scriptUrl.ToString());
-    frame_->executeScript(
-        blink::WebScriptSource(jsCode.ToString16(), gurl, startLine));
+    frame_->ExecuteScript(
+        blink::WebScriptSource(WebString::FromUTF16(jsCode.ToString16()), gurl,
+                               startLine));
   }
 }
 
@@ -179,15 +177,15 @@ bool CefFrameImpl::IsMain() {
   CEF_REQUIRE_RT_RETURN(false);
 
   if (frame_)
-    return (frame_->parent() == NULL);
+    return (frame_->Parent() == NULL);
   return false;
 }
 
 bool CefFrameImpl::IsFocused() {
   CEF_REQUIRE_RT_RETURN(false);
 
-  if (frame_ && frame_->view())
-    return (frame_->view()->focusedFrame() == frame_);
+  if (frame_ && frame_->View())
+    return (frame_->View()->FocusedFrame() == frame_);
   return false;
 }
 
@@ -196,7 +194,7 @@ CefString CefFrameImpl::GetName() {
   CEF_REQUIRE_RT_RETURN(name);
 
   if (frame_)
-    name = frame_->uniqueName();
+    name = webkit_glue::GetUniqueName(frame_);
   return name;
 }
 
@@ -210,7 +208,7 @@ CefRefPtr<CefFrame> CefFrameImpl::GetParent() {
   CEF_REQUIRE_RT_RETURN(NULL);
 
   if (frame_) {
-    blink::WebFrame* parent = frame_->parent();
+    blink::WebFrame* parent = frame_->Parent();
     if (parent)
       return browser_->GetWebFrameImpl(parent).get();
   }
@@ -223,7 +221,7 @@ CefString CefFrameImpl::GetURL() {
   CEF_REQUIRE_RT_RETURN(url);
 
   if (frame_) {
-    GURL gurl = frame_->document().url();
+    GURL gurl = frame_->GetDocument().Url();
     url = gurl.spec();
   }
   return url;
@@ -239,9 +237,9 @@ CefRefPtr<CefV8Context> CefFrameImpl::GetV8Context() {
   CEF_REQUIRE_RT_RETURN(NULL);
 
   if (frame_) {
-    v8::Isolate* isolate = blink::mainThreadIsolate();
+    v8::Isolate* isolate = blink::MainThreadIsolate();
     v8::HandleScope handle_scope(isolate);
-    return new CefV8ContextImpl(isolate, frame_->mainWorldScriptContext());
+    return new CefV8ContextImpl(isolate, frame_->MainWorldScriptContext());
   } else {
     return NULL;
   }
@@ -256,8 +254,8 @@ void CefFrameImpl::VisitDOM(CefRefPtr<CefDOMVisitor> visitor) {
   // Create a CefDOMDocumentImpl object that is valid only for the scope of this
   // method.
   CefRefPtr<CefDOMDocumentImpl> documentImpl;
-  const blink::WebDocument& document = frame_->document();
-  if (!document.isNull())
+  const blink::WebDocument& document = frame_->GetDocument();
+  if (!document.IsNull())
     documentImpl = new CefDOMDocumentImpl(browser_, frame_);
 
   visitor->Visit(documentImpl.get());
@@ -270,3 +268,15 @@ void CefFrameImpl::Detach() {
   browser_ = NULL;
   frame_ = NULL;
 }
+
+void CefFrameImpl::ExecuteCommand(const std::string& command) {
+  CEF_REQUIRE_RT_RETURN_VOID();
+  if (frame_ && frame_->IsWebLocalFrame())
+    frame_->ToWebLocalFrame()->ExecuteCommand(WebString::FromUTF8(command));
+}
+
+
+// Enable deprecation warnings for MSVC. See http://crbug.com/585142.
+#if defined(OS_WIN)
+#pragma warning(pop)
+#endif

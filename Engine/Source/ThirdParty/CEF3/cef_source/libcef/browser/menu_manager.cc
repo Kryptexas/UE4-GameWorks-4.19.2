@@ -14,10 +14,11 @@
 
 #include "base/compiler_specific.h"
 #include "base/logging.h"
+#include "cef/grit/cef_strings.h"
+#include "chrome/grit/generated_resources.h"
 #include "content/public/browser/render_frame_host.h"
 #include "content/public/browser/render_process_host.h"
 #include "content/public/browser/render_widget_host_view.h"
-#include "grit/cef_strings.h"
 
 namespace {
 
@@ -90,7 +91,7 @@ class CefRunContextMenuCallbackImpl : public CefRunContextMenuCallback {
 }  // namespace
 
 CefMenuManager::CefMenuManager(CefBrowserHostImpl* browser,
-                               scoped_ptr<CefMenuRunner> runner)
+                               std::unique_ptr<CefMenuRunner> runner)
   : content::WebContentsObserver(browser->web_contents()),
     browser_(browser),
     runner_(std::move(runner)),
@@ -98,7 +99,7 @@ CefMenuManager::CefMenuManager(CefBrowserHostImpl* browser,
     weak_ptr_factory_(this) {
   DCHECK(web_contents());
   DCHECK(runner_.get());
-  model_ = new CefMenuModelImpl(this);
+  model_ = new CefMenuModelImpl(this, nullptr, false);
 }
 
 CefMenuManager::~CefMenuManager() {
@@ -197,7 +198,7 @@ bool CefMenuManager::CreateContextMenu(
 
   if (custom_menu)
     return true;
-  return runner_->RunContextMenu(browser_, model_->model(), params_);
+  return runner_->RunContextMenu(browser_, model_.get(), params_);
 }
 
 void CefMenuManager::CancelContextMenu() {
@@ -288,7 +289,8 @@ void CefMenuManager::MenuClosed(CefRefPtr<CefMenuModelImpl> source) {
   web_contents()->NotifyContextMenuClosed(params_.custom_context);
 }
 
-bool CefMenuManager::FormatLabel(base::string16& label) {
+bool CefMenuManager::FormatLabel(CefRefPtr<CefMenuModelImpl> source,
+                                 base::string16& label) {
   return runner_->FormatLabel(label);
 }
 
@@ -317,17 +319,18 @@ void CefMenuManager::CreateDefaultModel() {
 
   if (params_.is_editable) {
     // Editable node.
-    model_->AddItem(MENU_ID_UNDO, GetLabel(IDS_MENU_UNDO));
-    model_->AddItem(MENU_ID_REDO, GetLabel(IDS_MENU_REDO));
+    model_->AddItem(MENU_ID_UNDO, GetLabel(IDS_CONTENT_CONTEXT_UNDO));
+    model_->AddItem(MENU_ID_REDO, GetLabel(IDS_CONTENT_CONTEXT_REDO));
 
     model_->AddSeparator();
-    model_->AddItem(MENU_ID_CUT, GetLabel(IDS_MENU_CUT));
-    model_->AddItem(MENU_ID_COPY, GetLabel(IDS_MENU_COPY));
-    model_->AddItem(MENU_ID_PASTE, GetLabel(IDS_MENU_PASTE));
-    model_->AddItem(MENU_ID_DELETE, GetLabel(IDS_MENU_DELETE));
+    model_->AddItem(MENU_ID_CUT, GetLabel(IDS_CONTENT_CONTEXT_CUT));
+    model_->AddItem(MENU_ID_COPY, GetLabel(IDS_CONTENT_CONTEXT_COPY));
+    model_->AddItem(MENU_ID_PASTE, GetLabel(IDS_CONTENT_CONTEXT_PASTE));
+    model_->AddItem(MENU_ID_DELETE, GetLabel(IDS_CONTENT_CONTEXT_DELETE));
 
     model_->AddSeparator();
-    model_->AddItem(MENU_ID_SELECT_ALL, GetLabel(IDS_MENU_SELECT_ALL));
+    model_->AddItem(MENU_ID_SELECT_ALL,
+                    GetLabel(IDS_CONTENT_CONTEXT_SELECTALL));
 
     if (!(params_.edit_flags & CM_EDITFLAG_CAN_UNDO))
       model_->SetEnabled(MENU_ID_UNDO, false);
@@ -375,15 +378,16 @@ void CefMenuManager::CreateDefaultModel() {
     }
   } else if (!params_.selection_text.empty()) {
     // Something is selected.
-    model_->AddItem(MENU_ID_COPY, GetLabel(IDS_MENU_COPY));
+    model_->AddItem(MENU_ID_COPY, GetLabel(IDS_CONTENT_CONTEXT_COPY));
   } else if (!params_.page_url.is_empty() || !params_.frame_url.is_empty()) {
     // Page or frame.
-    model_->AddItem(MENU_ID_BACK, GetLabel(IDS_MENU_BACK));
-    model_->AddItem(MENU_ID_FORWARD, GetLabel(IDS_MENU_FORWARD));
+    model_->AddItem(MENU_ID_BACK, GetLabel(IDS_CONTENT_CONTEXT_BACK));
+    model_->AddItem(MENU_ID_FORWARD, GetLabel(IDS_CONTENT_CONTEXT_FORWARD));
 
     model_->AddSeparator();
-    model_->AddItem(MENU_ID_PRINT, GetLabel(IDS_MENU_PRINT));
-    model_->AddItem(MENU_ID_VIEW_SOURCE, GetLabel(IDS_MENU_VIEW_SOURCE));
+    model_->AddItem(MENU_ID_PRINT, GetLabel(IDS_CONTENT_CONTEXT_PRINT));
+    model_->AddItem(MENU_ID_VIEW_SOURCE,
+                    GetLabel(IDS_CONTENT_CONTEXT_VIEWPAGESOURCE));
 
     if (!browser_->CanGoBack())
       model_->SetEnabled(MENU_ID_BACK, false);

@@ -41,7 +41,9 @@ class CefURLFetcherDelegate : public net::URLFetcherDelegate {
   // net::URLFetcherDelegate methods.
   void OnURLFetchComplete(const net::URLFetcher* source) override;
   void OnURLFetchDownloadProgress(const net::URLFetcher* source,
-                                  int64 current, int64 total) override;
+                                  int64 current,
+                                  int64 total,
+                                  int64_t current_network_bytes) override;
   void OnURLFetchUploadProgress(const net::URLFetcher* source,
                                 int64 current, int64 total) override;
 
@@ -80,7 +82,7 @@ class NET_EXPORT CefURLFetcherResponseWriter :
     return num_bytes;
   }
 
-  int Finish(const net::CompletionCallback& callback) override {
+  int Finish(int net_error, const net::CompletionCallback& callback) override {
     if (url_request_.get())
       url_request_ = NULL;
     return net::OK;
@@ -188,11 +190,11 @@ class CefBrowserURLRequest::Context
 
     // Get or create the request context and browser context.
     CefRefPtr<CefRequestContextImpl> request_context_impl =
-        CefRequestContextImpl::GetForRequestContext(request_context_);
+        CefRequestContextImpl::GetOrCreateForRequestContext(request_context_);
     DCHECK(request_context_impl.get());
-    scoped_refptr<CefBrowserContext> browser_context =
+    CefBrowserContext* browser_context =
         request_context_impl->GetBrowserContext();
-    DCHECK(browser_context.get());
+    DCHECK(browser_context);
 
     if (!request_context_.get())
       request_context_ = request_context_impl.get();
@@ -222,7 +224,7 @@ class CefBrowserURLRequest::Context
         CefURLRequestUserData::kUserDataKey,
         base::Bind(&CreateURLRequestUserData, client_));
 
-    scoped_ptr<net::URLFetcherResponseWriter> response_writer;
+    std::unique_ptr<net::URLFetcherResponseWriter> response_writer;
     if (request_flags & UR_FLAG_NO_DOWNLOAD_DATA) {
       response_writer.reset(new CefURLFetcherResponseWriter(NULL, NULL));
     } else {
@@ -301,7 +303,7 @@ class CefBrowserURLRequest::Context
     client_->OnDownloadProgress(url_request_.get(), current, total);
   }
 
-  void OnDownloadData(scoped_ptr<std::string> download_data) {
+  void OnDownloadData(std::unique_ptr<std::string> download_data) {
     DCHECK(CalledOnValidThread());
     DCHECK(url_request_.get());
 
@@ -367,8 +369,8 @@ class CefBrowserURLRequest::Context
   CefRefPtr<CefURLRequestClient> client_;
   CefRefPtr<CefRequestContext> request_context_;
   scoped_refptr<base::SequencedTaskRunner> task_runner_;
-  scoped_ptr<net::URLFetcher> fetcher_;
-  scoped_ptr<CefURLFetcherDelegate> fetcher_delegate_;
+  std::unique_ptr<net::URLFetcher> fetcher_;
+  std::unique_ptr<CefURLFetcherDelegate> fetcher_delegate_;
   CefURLRequest::Status status_;
   CefURLRequest::ErrorCode error_code_;
   CefRefPtr<CefResponse> response_;
@@ -396,13 +398,15 @@ void CefURLFetcherDelegate::OnURLFetchComplete(
     const net::URLFetcher* source) {
   // Complete asynchronously so as not to delete the URLFetcher while it's still
   // in the call stack.
-  base::MessageLoop::current()->PostTask(FROM_HERE,
+  base::MessageLoop::current()->task_runner()->PostTask(FROM_HERE,
       base::Bind(&CefBrowserURLRequest::Context::OnComplete, context_));
 }
 
 void CefURLFetcherDelegate::OnURLFetchDownloadProgress(
     const net::URLFetcher* source,
-    int64 current, int64 total) {
+    int64 current,
+    int64 total,
+    int64_t current_network_bytes) {
   context_->OnDownloadProgress(current, total);
 }
 

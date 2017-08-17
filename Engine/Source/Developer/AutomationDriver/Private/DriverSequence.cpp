@@ -967,10 +967,6 @@ private:
 			{
 				return Result;
 			}
-			else if (Result.State == FStepResult::EState::FAILED)
-			{
-				return Result;
-			}
 
 			TSharedPtr<IApplicationElement> ScrollableElement;
 			Result = FActionSequenceExtensions::LocateVisibleElement(AsyncDriver, ScrollableElementLocator, TotalProcessTime, ScrollableElement);

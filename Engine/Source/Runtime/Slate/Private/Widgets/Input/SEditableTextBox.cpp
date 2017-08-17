@@ -5,7 +5,6 @@
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Notifications/SPopUpErrorText.h"
 
-
 /**
  * Construct this widget
  *

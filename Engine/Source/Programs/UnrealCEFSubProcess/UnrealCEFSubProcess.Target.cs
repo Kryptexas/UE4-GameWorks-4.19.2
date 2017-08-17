@@ -5,6 +5,7 @@ using System.IO;
 using UnrealBuildTool;
 
 [SupportedPlatforms(UnrealTargetPlatform.Win32, UnrealTargetPlatform.Win64, UnrealTargetPlatform.Mac, UnrealTargetPlatform.Linux)]
+[SupportedConfigurations(UnrealTargetConfiguration.Debug, UnrealTargetConfiguration.Development, UnrealTargetConfiguration.Shipping)]
 public class UnrealCEFSubProcessTarget : TargetRules
 {
 	public UnrealCEFSubProcessTarget(TargetInfo Target) : base(Target)
@@ -12,6 +13,9 @@ public class UnrealCEFSubProcessTarget : TargetRules
 		Type = TargetType.Program;
 		LinkType = TargetLinkType.Monolithic;
 		LaunchModuleName = "UnrealCEFSubProcess";
+
+		// Change the undecorated exe name to be the shipping one on windows
+		UndecoratedConfiguration = UnrealTargetConfiguration.Shipping;
 	}
 
 	//

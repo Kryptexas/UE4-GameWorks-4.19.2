@@ -44,10 +44,12 @@ class CefValueImpl : public CefValue {
 
   // Copy a simple value or transfer ownership of a complex value. If ownership
   // of the value is tranferred then this object's internal reference to the
-  // value will be updated and remain valid.
-  base::Value* CopyOrTransferValue(void* new_parent_value,
-                                   bool new_read_only,
-                                   CefValueController* new_controller);
+  // value will be updated and remain valid. base::Value now uses move semantics
+  // so we need to perform the copy and swap in two steps.
+  base::Value* CopyOrDetachValue(CefValueController* new_controller);
+  void SwapValue(base::Value* new_value,
+                 void* new_parent_value,
+                 CefValueController* new_controller);
 
   // Returns a reference to the underlying data. Access must be protected by
   // calling AcquireLock/ReleaseLock.
@@ -112,7 +114,7 @@ class CefValueImpl : public CefValue {
   base::Lock lock_;
 
   // Simple values only.
-  scoped_ptr<base::Value> value_;
+  std::unique_ptr<base::Value> value_;
 
   // Complex values.
   CefRefPtr<CefBinaryValue> binary_value_;
@@ -126,11 +128,11 @@ class CefValueImpl : public CefValue {
 
 // CefBinaryValue implementation
 class CefBinaryValueImpl
-    : public CefValueBase<CefBinaryValue, base::BinaryValue> {
+    : public CefValueBase<CefBinaryValue, base::Value> {
  public:
   // Get or create a reference value.
   static CefRefPtr<CefBinaryValue> GetOrCreateRef(
-      base::BinaryValue* value,
+      base::Value* value,
       void* parent_value,
       CefValueController* controller);
 
@@ -140,28 +142,26 @@ class CefBinaryValueImpl
   // longer valid. Use GetOrCreateRef instead of this constructor if |value| is
   // owned by some other object and you do not plan to explicitly call
   // Detach(NULL).
-  CefBinaryValueImpl(base::BinaryValue* value,
+  CefBinaryValueImpl(base::Value* value,
                      bool will_delete);
 
-  // If |copy| is false this object will take ownership of the specified |data|
-  // buffer instead of copying it.
+  // The data will always be copied.
   CefBinaryValueImpl(char* data,
-                     size_t data_size,
-                     bool copy);
+                     size_t data_size);
 
   // Return a copy of the value.
-  base::BinaryValue* CopyValue();
+  base::Value* CopyValue();
 
   // If this value is a reference then return a copy. Otherwise, detach and
   // transfer ownership of the value.
-  base::BinaryValue* CopyOrDetachValue(CefValueController* new_controller);
+  base::Value* CopyOrDetachValue(CefValueController* new_controller);
 
-  bool IsSameValue(const base::BinaryValue* that);
-  bool IsEqualValue(const base::BinaryValue* that);
+  bool IsSameValue(const base::Value* that);
+  bool IsEqualValue(const base::Value* that);
 
   // Returns the underlying value. Access must be protected by calling
   // lock/unlock on the controller.
-  base::BinaryValue* GetValueUnsafe();
+  base::Value* GetValueUnsafe();
 
   // CefBinaryValue methods.
   bool IsValid() override;
@@ -177,7 +177,7 @@ class CefBinaryValueImpl
  private:
   // See the CefValueBase constructor for usage. Binary values are always
   // read-only.
-  CefBinaryValueImpl(base::BinaryValue* value,
+  CefBinaryValueImpl(base::Value* value,
                      void* parent_value,
                      ValueMode value_mode,
                      CefValueController* controller);
@@ -267,7 +267,7 @@ class CefDictionaryValueImpl
                          CefValueController* controller);
 
   bool RemoveInternal(const CefString& key);
-  void SetInternal(const CefString& key, base::Value* value);
+  base::Value* SetInternal(const CefString& key, base::Value* value);
 
   DISALLOW_COPY_AND_ASSIGN(CefDictionaryValueImpl);
 };
@@ -318,26 +318,26 @@ class CefListValueImpl
   bool SetSize(size_t size) override;
   size_t GetSize() override;
   bool Clear() override;
-  bool Remove(int index) override;
-  CefValueType GetType(int index) override;
-  CefRefPtr<CefValue> GetValue(int index) override;
-  bool GetBool(int index) override;
-  int GetInt(int index) override;
-  double GetDouble(int index) override;
-  CefString GetString(int index) override;
-  CefRefPtr<CefBinaryValue> GetBinary(int index) override;
-  CefRefPtr<CefDictionaryValue> GetDictionary(int index) override;
-  CefRefPtr<CefListValue> GetList(int index) override;
-  bool SetValue(int index, CefRefPtr<CefValue> value) override;
-  bool SetNull(int index) override;
-  bool SetBool(int index, bool value) override;
-  bool SetInt(int index, int value) override;
-  bool SetDouble(int index, double value) override;
-  bool SetString(int index, const CefString& value) override;
-  bool SetBinary(int index, CefRefPtr<CefBinaryValue> value) override;
-  bool SetDictionary(int index,
+  bool Remove(size_t index) override;
+  CefValueType GetType(size_t index) override;
+  CefRefPtr<CefValue> GetValue(size_t index) override;
+  bool GetBool(size_t index) override;
+  int GetInt(size_t index) override;
+  double GetDouble(size_t index) override;
+  CefString GetString(size_t index) override;
+  CefRefPtr<CefBinaryValue> GetBinary(size_t index) override;
+  CefRefPtr<CefDictionaryValue> GetDictionary(size_t index) override;
+  CefRefPtr<CefListValue> GetList(size_t index) override;
+  bool SetValue(size_t index, CefRefPtr<CefValue> value) override;
+  bool SetNull(size_t index) override;
+  bool SetBool(size_t index, bool value) override;
+  bool SetInt(size_t index, int value) override;
+  bool SetDouble(size_t index, double value) override;
+  bool SetString(size_t index, const CefString& value) override;
+  bool SetBinary(size_t index, CefRefPtr<CefBinaryValue> value) override;
+  bool SetDictionary(size_t index,
                      CefRefPtr<CefDictionaryValue> value) override;
-  bool SetList(int index, CefRefPtr<CefListValue> value) override;
+  bool SetList(size_t index, CefRefPtr<CefListValue> value) override;
 
  private:
   // See the CefValueBase constructor for usage.
@@ -347,8 +347,8 @@ class CefListValueImpl
                    bool read_only,
                    CefValueController* controller);
 
-  bool RemoveInternal(int index);
-  void SetInternal(int index, base::Value* value);
+  bool RemoveInternal(size_t index);
+  base::Value* SetInternal(size_t index, base::Value* value);
 
   DISALLOW_COPY_AND_ASSIGN(CefListValueImpl);
 };

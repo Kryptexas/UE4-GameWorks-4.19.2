@@ -23,6 +23,8 @@ namespace BuildPatchServices
 		FString StagingDirectory;
 		// The directory for placing files that are believed to have local changes, before we overwrite them. Empty string will use module's global setting. If both empty, the feature disables.
 		FString BackupDirectory;
+		// The list of chunk database filenames that will be used to pull patch data from.
+		TArray<FString> ChunkDatabaseFiles;
 		// The list of cloud directory roots that will be used to pull patch data from. Empty array will use module's global setting.
 		TArray<FString> CloudDirectories;
 		// The set of tags that describe what to be installed. Empty set means full installation.
@@ -45,6 +47,7 @@ namespace BuildPatchServices
 			, InstallDirectory()
 			, StagingDirectory()
 			, BackupDirectory()
+			, ChunkDatabaseFiles()
 			, CloudDirectories()
 			, InstallTags()
 			, VerifyMode(EVerifyMode::ShaVerifyAllFiles)
@@ -62,6 +65,7 @@ namespace BuildPatchServices
 			, InstallDirectory(MoveTemp(MoveFrom.InstallDirectory))
 			, StagingDirectory(MoveTemp(MoveFrom.StagingDirectory))
 			, BackupDirectory(MoveTemp(MoveFrom.BackupDirectory))
+			, ChunkDatabaseFiles(MoveTemp(MoveFrom.ChunkDatabaseFiles))
 			, CloudDirectories(MoveTemp(MoveFrom.CloudDirectories))
 			, InstallTags(MoveTemp(MoveFrom.InstallTags))
 			, VerifyMode(MoveTemp(MoveFrom.VerifyMode))
@@ -79,6 +83,7 @@ namespace BuildPatchServices
 			, InstallDirectory(CopyFrom.InstallDirectory)
 			, StagingDirectory(CopyFrom.StagingDirectory)
 			, BackupDirectory(CopyFrom.BackupDirectory)
+			, ChunkDatabaseFiles(CopyFrom.ChunkDatabaseFiles)
 			, CloudDirectories(CopyFrom.CloudDirectories)
 			, InstallTags(CopyFrom.InstallTags)
 			, VerifyMode(CopyFrom.VerifyMode)
@@ -109,6 +114,8 @@ namespace BuildPatchServices
 		FString IgnoreListFile;
 		// The path to a file containing a \r\n separated list of RootDirectory relative files followed by attribute keywords.
 		FString AttributeListFile;
+		// The set of identifiers which the prerequisites satisfy
+		TSet<FString> PrereqIds;
 		// The display name of the prerequisites installer
 		FString PrereqName;
 		// The path to the prerequisites installer
@@ -121,6 +128,8 @@ namespace BuildPatchServices
 		bool bShouldHonorReuseThreshold;
 		// Map of custom fields to add to the manifest
 		TMap<FString, FVariant> CustomFields;
+		// The cloud directory that all patch data will be saved to. An empty value will use module's global setting.
+		FString CloudDirectory;
 		// The output manifest filename.
 		FString OutputFilename;
 
@@ -136,12 +145,14 @@ namespace BuildPatchServices
 			, LaunchCommand()
 			, IgnoreListFile()
 			, AttributeListFile()
+			, PrereqIds()
 			, PrereqName()
 			, PrereqPath()
 			, PrereqArgs()
 			, DataAgeThreshold()
 			, bShouldHonorReuseThreshold()
 			, CustomFields()
+			, CloudDirectory()
 			, OutputFilename()
 		{}
 	};

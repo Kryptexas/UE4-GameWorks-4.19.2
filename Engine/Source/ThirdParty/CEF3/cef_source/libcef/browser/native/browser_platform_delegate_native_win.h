@@ -13,8 +13,8 @@
 class CefBrowserPlatformDelegateNativeWin :
     public CefBrowserPlatformDelegateNative {
  public:
-  explicit CefBrowserPlatformDelegateNativeWin(
-      const CefWindowInfo& window_info);
+  CefBrowserPlatformDelegateNativeWin(const CefWindowInfo& window_info,
+                                      SkColor background_color);
 
   // CefBrowserPlatformDelegate methods:
   void BrowserDestroyed(CefBrowserHostImpl* browser) override;
@@ -44,9 +44,9 @@ class CefBrowserPlatformDelegateNativeWin :
                            int deltaX, int deltaY) const override;
   CefEventHandle GetEventHandle(
       const content::NativeWebKeyboardEvent& event) const override;
-  scoped_ptr<CefFileDialogRunner> CreateFileDialogRunner() override;
-  scoped_ptr<CefJavaScriptDialogRunner> CreateJavaScriptDialogRunner() override;
-  scoped_ptr<CefMenuRunner> CreateMenuRunner() override;
+  std::unique_ptr<CefFileDialogRunner> CreateFileDialogRunner() override;
+  std::unique_ptr<CefJavaScriptDialogRunner> CreateJavaScriptDialogRunner() override;
+  std::unique_ptr<CefMenuRunner> CreateMenuRunner() override;
 
  private:
   void TranslateMouseEvent(blink::WebMouseEvent& result,

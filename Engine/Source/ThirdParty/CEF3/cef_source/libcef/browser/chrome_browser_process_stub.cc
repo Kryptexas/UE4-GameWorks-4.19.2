@@ -4,168 +4,230 @@
 // found in the LICENSE file.
 
 #include "libcef/browser/chrome_browser_process_stub.h"
-#include "libcef/browser/context.h"
 
-#include "base/memory/scoped_ptr.h"
+#include "libcef/browser/browser_context_impl.h"
+#include "libcef/browser/chrome_profile_manager_stub.h"
+#include "libcef/browser/thread_util.h"
+#include "libcef/common/cef_switches.h"
+
+#include "base/command_line.h"
+#include "chrome/browser/net/chrome_net_log_helper.h"
+#include "chrome/browser/printing/print_job_manager.h"
+#include "components/net_log/chrome_net_log.h"
+#include "content/public/common/content_switches.h"
 #include "ui/message_center/message_center.h"
 
 ChromeBrowserProcessStub::ChromeBrowserProcessStub()
-  : locale_("en-US") {
+  : initialized_(false),
+    context_initialized_(false),
+    shutdown_(false),
+    locale_("en-US") {
+  chrome::SetBrowserContextIncognitoHelper(this);
 }
 
 ChromeBrowserProcessStub::~ChromeBrowserProcessStub() {
+  DCHECK((!initialized_ && !context_initialized_) || shutdown_);
   g_browser_process = NULL;
+  chrome::SetBrowserContextIncognitoHelper(nullptr);
+}
+
+void ChromeBrowserProcessStub::Initialize(
+    const base::CommandLine& command_line) {
+  DCHECK(!initialized_);
+  DCHECK(!context_initialized_);
+  DCHECK(!shutdown_);
+
+  base::FilePath net_log_path;
+  if (command_line.HasSwitch(switches::kLogNetLog))
+    net_log_path = command_line.GetSwitchValuePath(switches::kLogNetLog);
+  net_log_.reset(new net_log::ChromeNetLog(
+      net_log_path, GetNetCaptureModeFromCommandLine(command_line),
+      command_line.GetCommandLineString(), std::string()));
+
+  initialized_ = true;
+}
+
+void ChromeBrowserProcessStub::OnContextInitialized() {
+  CEF_REQUIRE_UIT();
+  DCHECK(initialized_);
+  DCHECK(!context_initialized_);
+  DCHECK(!shutdown_);
+
+  // Must be created after the NotificationService.
+  print_job_manager_.reset(new printing::PrintJobManager());
+  profile_manager_.reset(new ChromeProfileManagerStub());
+  event_router_forwarder_ = new extensions::EventRouterForwarder();
+
+  context_initialized_ = true;
+}
+
+void ChromeBrowserProcessStub::Shutdown() {
+  CEF_REQUIRE_UIT();
+  DCHECK(initialized_);
+  DCHECK(context_initialized_);
+  DCHECK(!shutdown_);
+
+  // Wait for the pending print jobs to finish. Don't do this later, since
+  // this might cause a nested message loop to run, and we don't want pending
+  // tasks to run once teardown has started.
+  print_job_manager_->Shutdown();
+  print_job_manager_.reset(NULL);
+
+  profile_manager_.reset();
+  event_router_forwarder_ = nullptr;
+
+  shutdown_ = true;
 }
 
 void ChromeBrowserProcessStub::ResourceDispatcherHostCreated() {
-  NOTIMPLEMENTED();
+  NOTREACHED();
 };
 
 void ChromeBrowserProcessStub::EndSession() {
-  NOTIMPLEMENTED();
+  NOTREACHED();
 };
 
 metrics_services_manager::MetricsServicesManager*
     ChromeBrowserProcessStub::GetMetricsServicesManager() {
-  NOTIMPLEMENTED();
+  NOTREACHED();
   return NULL;
 }
 
 metrics::MetricsService* ChromeBrowserProcessStub::metrics_service() {
-  NOTIMPLEMENTED();
+  NOTREACHED();
   return NULL;
 }
 
-rappor::RapporService* ChromeBrowserProcessStub::rappor_service() {
-  NOTIMPLEMENTED();
+rappor::RapporServiceImpl* ChromeBrowserProcessStub::rappor_service() {
+  NOTREACHED();
   return NULL;
 }
 
 IOThread* ChromeBrowserProcessStub::io_thread() {
-  NOTIMPLEMENTED();
   return NULL;
 }
 
 WatchDogThread* ChromeBrowserProcessStub::watchdog_thread() {
-  NOTIMPLEMENTED();
+  NOTREACHED();
+  return NULL;
+}
+
+ukm::UkmService* ChromeBrowserProcessStub::ukm_service() {
+  NOTREACHED();
   return NULL;
 }
 
 ProfileManager* ChromeBrowserProcessStub::profile_manager() {
-  NOTIMPLEMENTED();
-  return NULL;
+  DCHECK(context_initialized_);
+  return profile_manager_.get();
 }
 
 PrefService* ChromeBrowserProcessStub::local_state() {
-  NOTIMPLEMENTED();
-  return NULL;
+  DCHECK(context_initialized_);
+  return profile_manager_->GetLastUsedProfile(
+      profile_manager_->user_data_dir())->GetPrefs();
 }
 
 net::URLRequestContextGetter*
   ChromeBrowserProcessStub::system_request_context() {
-  NOTIMPLEMENTED();
+  NOTREACHED();
   return NULL;
 }
 
 variations::VariationsService*
   ChromeBrowserProcessStub::variations_service() {
-  NOTIMPLEMENTED();
-  return NULL;
-}
-
-web_resource::PromoResourceService*
-ChromeBrowserProcessStub::promo_resource_service() {
-  NOTIMPLEMENTED();
+  NOTREACHED();
   return NULL;
 }
 
 BrowserProcessPlatformPart* ChromeBrowserProcessStub::platform_part() {
-  NOTIMPLEMENTED();
+  NOTREACHED();
   return NULL;
 }
 
 extensions::EventRouterForwarder*
     ChromeBrowserProcessStub::extension_event_router_forwarder() {
-  NOTIMPLEMENTED();
-  return NULL;
+  DCHECK(context_initialized_);
+  return event_router_forwarder_.get();
 }
 
 NotificationUIManager* ChromeBrowserProcessStub::notification_ui_manager() {
-  NOTIMPLEMENTED();
+  NOTREACHED();
+  return NULL;
+}
+
+NotificationPlatformBridge*
+  ChromeBrowserProcessStub::notification_platform_bridge() {
+  NOTREACHED();
   return NULL;
 }
 
 message_center::MessageCenter* ChromeBrowserProcessStub::message_center() {
-  NOTIMPLEMENTED();
+  NOTREACHED();
   return NULL;
 }
 
 policy::BrowserPolicyConnector*
   ChromeBrowserProcessStub::browser_policy_connector() {
-  NOTIMPLEMENTED();
+  NOTREACHED();
   return NULL;
 }
 
 policy::PolicyService* ChromeBrowserProcessStub::policy_service() {
-  NOTIMPLEMENTED();
+  NOTREACHED();
   return NULL;
 }
 
 IconManager* ChromeBrowserProcessStub::icon_manager() {
-  NOTIMPLEMENTED();
-  return NULL;
-}
-
-GLStringManager* ChromeBrowserProcessStub::gl_string_manager() {
-  NOTIMPLEMENTED();
+  NOTREACHED();
   return NULL;
 }
 
 GpuModeManager* ChromeBrowserProcessStub::gpu_mode_manager() {
-  NOTIMPLEMENTED();
+  NOTREACHED();
+  return NULL;
+}
+
+GpuProfileCache* ChromeBrowserProcessStub::gpu_profile_cache() {
+  NOTREACHED();
   return NULL;
 }
 
 void ChromeBrowserProcessStub::CreateDevToolsHttpProtocolHandler(
-    chrome::HostDesktopType host_desktop_type,
     const std::string& ip,
     uint16_t port) {
+  NOTREACHED();
 }
 
-unsigned int ChromeBrowserProcessStub::AddRefModule() {
-  NOTIMPLEMENTED();
-  return 0;
-}
-
-unsigned int ChromeBrowserProcessStub::ReleaseModule() {
-  NOTIMPLEMENTED();
-  return 0;
+void ChromeBrowserProcessStub::CreateDevToolsAutoOpener() {
+  NOTREACHED();
 }
 
 bool ChromeBrowserProcessStub::IsShuttingDown() {
-  NOTIMPLEMENTED();
+  NOTREACHED();
   return false;
 }
 
 printing::PrintJobManager* ChromeBrowserProcessStub::print_job_manager() {
-  return CefContext::Get()->print_job_manager();
+  DCHECK(context_initialized_);
+  return print_job_manager_.get();
 }
 
 printing::PrintPreviewDialogController*
     ChromeBrowserProcessStub::print_preview_dialog_controller() {
-  NOTIMPLEMENTED();
+  NOTREACHED();
   return NULL;
 }
 
 printing::BackgroundPrintingManager*
     ChromeBrowserProcessStub::background_printing_manager() {
-  NOTIMPLEMENTED();
+  NOTREACHED();
   return NULL;
 }
 
 IntranetRedirectDetector*
   ChromeBrowserProcessStub::intranet_redirect_detector() {
-  NOTIMPLEMENTED();
+  NOTREACHED();
   return NULL;
 }
 
@@ -179,39 +241,45 @@ void ChromeBrowserProcessStub::SetApplicationLocale(const std::string& locale) {
 }
 
 DownloadStatusUpdater* ChromeBrowserProcessStub::download_status_updater() {
-  NOTIMPLEMENTED();
+  NOTREACHED();
   return NULL;
 }
 
 DownloadRequestLimiter* ChromeBrowserProcessStub::download_request_limiter() {
-  NOTIMPLEMENTED();
+  NOTREACHED();
   return NULL;
 }
 
 BackgroundModeManager* ChromeBrowserProcessStub::background_mode_manager() {
-  NOTIMPLEMENTED();
+  NOTREACHED();
   return NULL;
 }
 
 void ChromeBrowserProcessStub::set_background_mode_manager_for_test(
-  scoped_ptr<BackgroundModeManager> manager) {
-  NOTIMPLEMENTED();
+  std::unique_ptr<BackgroundModeManager> manager) {
+  NOTREACHED();
 }
 
 StatusTray* ChromeBrowserProcessStub::status_tray() {
-  NOTIMPLEMENTED();
+  NOTREACHED();
   return NULL;
 }
 
 safe_browsing::SafeBrowsingService*
     ChromeBrowserProcessStub::safe_browsing_service() {
-  NOTIMPLEMENTED();
+  NOTREACHED();
   return NULL;
 }
 
 safe_browsing::ClientSideDetectionService*
     ChromeBrowserProcessStub::safe_browsing_detection_service() {
-  NOTIMPLEMENTED();
+  NOTREACHED();
+  return NULL;
+}
+
+subresource_filter::ContentRulesetService*
+   ChromeBrowserProcessStub::subresource_filter_ruleset_service() {
+  NOTREACHED();
   return NULL;
 }
 
@@ -221,68 +289,87 @@ void ChromeBrowserProcessStub::StartAutoupdateTimer() {
 #endif
 
 net_log::ChromeNetLog* ChromeBrowserProcessStub::net_log() {
-  NOTIMPLEMENTED();
-  return NULL;
+  DCHECK(initialized_);
+  return net_log_.get();
 }
 
 component_updater::ComponentUpdateService*
     ChromeBrowserProcessStub::component_updater() {
-  return CefContext::Get()->component_updater();
+  NOTREACHED();
+  return NULL;
 }
 
 CRLSetFetcher* ChromeBrowserProcessStub::crl_set_fetcher() {
-  NOTIMPLEMENTED();
+  NOTREACHED();
   return NULL;
 }
 
 component_updater::PnaclComponentInstaller*
     ChromeBrowserProcessStub::pnacl_component_installer() {
-  NOTIMPLEMENTED();
+  NOTREACHED();
   return NULL;
 }
 
 component_updater::SupervisedUserWhitelistInstaller*
     ChromeBrowserProcessStub::supervised_user_whitelist_installer() {
-  NOTIMPLEMENTED();
+  NOTREACHED();
   return NULL;
 }
 
 MediaFileSystemRegistry*
     ChromeBrowserProcessStub::media_file_system_registry() {
-  NOTIMPLEMENTED();
+  NOTREACHED();
   return NULL;
 }
 
 bool ChromeBrowserProcessStub::created_local_state() const {
-  NOTIMPLEMENTED();
+  NOTREACHED();
   return false;
 }
 
-#if defined(ENABLE_WEBRTC)
+#if BUILDFLAG(ENABLE_WEBRTC)
 WebRtcLogUploader* ChromeBrowserProcessStub::webrtc_log_uploader() {
-  NOTIMPLEMENTED();
+  NOTREACHED();
   return NULL;
 }
 #endif
 
 network_time::NetworkTimeTracker*
     ChromeBrowserProcessStub::network_time_tracker() {
-  NOTIMPLEMENTED();
+  NOTREACHED();
   return NULL;
 }
 
 gcm::GCMDriver* ChromeBrowserProcessStub::gcm_driver() {
-  NOTIMPLEMENTED();
+  NOTREACHED();
   return NULL;
 }
 
-ShellIntegration::DefaultWebClientState
+shell_integration::DefaultWebClientState
 ChromeBrowserProcessStub::CachedDefaultWebClientState() {
-  NOTIMPLEMENTED();
-  return ShellIntegration::UNKNOWN_DEFAULT;
+  NOTREACHED();
+  return shell_integration::UNKNOWN_DEFAULT;
 }
 
 memory::TabManager* ChromeBrowserProcessStub::GetTabManager() {
-  NOTIMPLEMENTED();
+  NOTREACHED();
   return NULL;
+}
+
+physical_web::PhysicalWebDataSource*
+ChromeBrowserProcessStub::GetPhysicalWebDataSource() {
+  NOTREACHED();
+  return NULL;
+}
+
+content::BrowserContext*
+ChromeBrowserProcessStub::GetBrowserContextRedirectedInIncognito(
+    content::BrowserContext* context) {
+  return CefBrowserContextImpl::GetForContext(context);
+}
+
+content::BrowserContext*
+ChromeBrowserProcessStub::GetBrowserContextOwnInstanceInIncognito(
+    content::BrowserContext* context) {
+  return GetBrowserContextRedirectedInIncognito(context);
 }

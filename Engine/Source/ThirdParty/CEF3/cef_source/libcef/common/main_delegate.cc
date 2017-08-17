@@ -7,7 +7,7 @@
 #include "libcef/browser/context.h"
 #include "libcef/common/cef_switches.h"
 #include "libcef/common/command_line_impl.h"
-#include "libcef/common/crash_reporter_client.h"
+#include "libcef/common/crash_reporting.h"
 #include "libcef/common/extensions/extensions_util.h"
 #include "libcef/renderer/content_renderer_client.h"
 #include "libcef/utility/content_utility_client.h"
@@ -16,7 +16,6 @@
 #include "base/command_line.h"
 #include "base/files/file_path.h"
 #include "base/files/file_util.h"
-#include "base/lazy_instance.h"
 #include "base/path_service.h"
 #include "base/strings/string_number_conversions.h"
 #include "base/strings/string_util.h"
@@ -35,11 +34,10 @@
 #include "extensions/common/constants.h"
 #include "pdf/pdf.h"
 #include "ui/base/layout.h"
+#include "ui/base/material_design/material_design_controller.h"
 #include "ui/base/resource/resource_bundle.h"
 #include "ui/base/ui_base_paths.h"
 #include "ui/base/ui_base_switches.h"
-
-#include "widevine_cdm_version.h"  // In SHARED_INTERMEDIATE_DIR.
 
 #include "ipc/ipc_message.h"  // For IPC_MESSAGE_LOG_ENABLED.
 
@@ -54,20 +52,13 @@
 #if defined(OS_WIN)
 #include <Objbase.h>  // NOLINT(build/include_order)
 #include "base/win/registry.h"
-#include "components/crash/content/app/breakpad_win.h"
 #endif
 
 #if defined(OS_MACOSX)
 #include "libcef/common/util_mac.h"
-#include "base/mac/os_crash_dumps.h"
 #include "base/mac/bundle_locations.h"
 #include "base/mac/foundation_util.h"
-#include "components/crash/content/app/breakpad_mac.h"
 #include "content/public/common/content_paths.h"
-#endif
-
-#if defined(OS_POSIX) && !defined(OS_MACOSX)
-#include "components/crash/content/app/breakpad_linux.h"
 #endif
 
 #if defined(OS_LINUX)
@@ -77,66 +68,42 @@
 
 namespace {
 
-base::LazyInstance<CefCrashReporterClient>::Leaky g_crash_reporter_client =
-    LAZY_INSTANCE_INITIALIZER;
-
 #if defined(OS_MACOSX)
 
-base::FilePath GetFrameworksPath() {
-  // Start out with the path to the running executable.
-  base::FilePath execPath;
-  PathService::Get(base::FILE_EXE, &execPath);
-
-  // Get the main bundle path.
-  base::FilePath bundlePath = base::mac::GetAppBundlePath(execPath);
-
-  // Go into the Contents/Frameworks directory.
-  return bundlePath.Append(FILE_PATH_LITERAL("Contents"))
-                   .Append(FILE_PATH_LITERAL("Frameworks"));
-}
-
-// The framework bundle path is used for loading resources, libraries, etc.
-base::FilePath GetFrameworkBundlePath() {
-  CFBundleRef bundleRef = CFBundleGetBundleWithIdentifier(CFSTR("org.chromium.ContentShell.framework"));
-  CFURLRef urlRef = CFBundleCopyBundleURL(bundleRef);
-  UInt8 frameworkBundlePathStr[PATH_MAX];
-  CFURLGetFileSystemRepresentation(urlRef, true, frameworkBundlePathStr, sizeof(frameworkBundlePathStr));
-  std::string frameworkBundlePathCppStr((char*) frameworkBundlePathStr);
-  return base::FilePath(frameworkBundlePathCppStr);
-}
-
 base::FilePath GetResourcesFilePath() {
-  return GetFrameworkBundlePath().Append(FILE_PATH_LITERAL("Resources"));
-}
-
-// Retrieve the name of the running executable.
-std::string GetExecutableName() {
-  base::FilePath path;
-  PathService::Get(base::FILE_EXE, &path);
-  return path.BaseName().value();
+  return util_mac::GetFrameworkResourcesDirectory();
 }
 
 // Use a "~/Library/Logs/<app name>_debug.log" file where <app name> is the name
 // of the running executable.
 base::FilePath GetDefaultLogFile() {
+  std::string exe_name = util_mac::GetMainProcessPath().BaseName().value();
   return base::mac::GetUserLibraryPath()
       .Append(FILE_PATH_LITERAL("Logs"))
-      .Append(FILE_PATH_LITERAL(GetExecutableName() + "_debug.log"));
+      .Append(FILE_PATH_LITERAL(exe_name + "_debug.log"));
 }
 
 void OverrideFrameworkBundlePath() {
-  base::mac::SetOverrideFrameworkBundlePath(GetFrameworkBundlePath());
+  CFBundleRef bundleRef = CFBundleGetBundleWithIdentifier(CFSTR("org.chromium.ContentShell.framework"));
+  CFURLRef urlRef = CFBundleCopyBundleURL(bundleRef);
+  UInt8 frameworkBundlePathStr[PATH_MAX];
+  CFURLGetFileSystemRepresentation(urlRef, true, frameworkBundlePathStr, sizeof(frameworkBundlePathStr));
+  std::string frameworkBundlePathCppStr((char*)frameworkBundlePathStr);
+  base::mac::SetOverrideFrameworkBundlePath(CefString(frameworkBundlePathCppStr));
 }
 
 void OverrideChildProcessPath() {
-  const std::string& exe_name = GetExecutableName();
-  base::FilePath helper_path = GetFrameworksPath()
-      .Append(FILE_PATH_LITERAL(exe_name + " Helper.app"))
-      .Append(FILE_PATH_LITERAL("Contents"))
-      .Append(FILE_PATH_LITERAL("MacOS"))
-      .Append(FILE_PATH_LITERAL(exe_name + " Helper"));
+  base::FilePath child_process_path =
+      base::CommandLine::ForCurrentProcess()->GetSwitchValuePath(
+          switches::kBrowserSubprocessPath);
 
-  PathService::Override(content::CHILD_PROCESS_EXE, helper_path);
+  if (child_process_path.empty()) {
+    child_process_path = util_mac::GetChildProcessPath();
+    DCHECK(!child_process_path.empty());
+  }
+
+  // Used by ChildProcessHost::GetChildPath and PlatformCrashpadInitialization.
+  PathService::Override(content::CHILD_PROCESS_EXE, child_process_path);
 }
 
 #else  // !defined(OS_MACOSX)
@@ -162,7 +129,7 @@ base::FilePath GetDefaultLogFile() {
 bool GetSystemFlashFilename(base::FilePath* out_path) {
   const wchar_t kPepperFlashRegistryRoot[] =
       L"SOFTWARE\\Macromedia\\FlashPlayerPepper";
-const wchar_t kFlashPlayerPathValueName[] = L"PlayerPath";
+  const wchar_t kFlashPlayerPathValueName[] = L"PlayerPath";
 
   base::win::RegKey path_key(
       HKEY_LOCAL_MACHINE, kPepperFlashRegistryRoot, KEY_READ);
@@ -199,7 +166,7 @@ void OverridePepperFlashSystemPluginPath() {
   if (!plugin_filename.empty()) {
     PathService::Override(chrome::FILE_PEPPER_FLASH_SYSTEM_PLUGIN,
                           plugin_filename);
-}
+  }
 }
 
 #if defined(OS_LINUX)
@@ -211,7 +178,7 @@ void OverridePepperFlashSystemPluginPath() {
 // ~/.config/google-chrome/ for official builds.
 // (This also helps us sidestep issues with other apps grabbing ~/.chromium .)
 bool GetDefaultUserDataDirectory(base::FilePath* result) {
-  scoped_ptr<base::Environment> env(base::Environment::Create());
+  std::unique_ptr<base::Environment> env(base::Environment::Create());
   base::FilePath config_dir(
       base::nix::GetXDGDirectory(env.get(),
                                  base::nix::kXdgConfigHomeEnvVar,
@@ -305,7 +272,7 @@ class CefUIThread : public base::Thread {
 
  protected:
   content::MainFunctionParams main_function_params_;
-  scoped_ptr<content::BrowserMainRunner> browser_runner_;
+  std::unique_ptr<content::BrowserMainRunner> browser_runner_;
 };
 
 }  // namespace
@@ -322,13 +289,15 @@ CefMainDelegate::~CefMainDelegate() {
 }
 
 bool CefMainDelegate::BasicStartupComplete(int* exit_code) {
-#if defined(OS_MACOSX)
-  OverrideFrameworkBundlePath();
-#endif
-
   base::CommandLine* command_line = base::CommandLine::ForCurrentProcess();
   std::string process_type =
       command_line->GetSwitchValueASCII(switches::kProcessType);
+
+#if defined(OS_POSIX)
+  // Read the crash configuration file. Platforms using Breakpad also add a
+  // command-line switch. On Windows this is done from chrome_elf.
+  crash_reporting::BasicStartupComplete(command_line);
+#endif
 
   if (process_type.empty()) {
     // In the browser process. Populate the global command-line object.
@@ -363,6 +332,15 @@ bool CefMainDelegate::BasicStartupComplete(int* exit_code) {
 #endif
       }
     }
+
+#if defined(OS_MACOSX)
+    if (settings.framework_dir_path.length > 0) {
+      base::FilePath file_path =
+          base::FilePath(CefString(&settings.framework_dir_path));
+      if (!file_path.empty())
+        command_line->AppendSwitchPath(switches::kFrameworkDirPath, file_path);
+    }
+#endif
 
     if (no_sandbox)
       command_line->AppendSwitch(switches::kNoSandbox);
@@ -462,7 +440,7 @@ bool CefMainDelegate::BasicStartupComplete(int* exit_code) {
       command_line->AppendSwitchASCII(switches::kContextSafetyImplementation,
           base::IntToString(settings.context_safety_implementation));
     }
-    }
+  }
 
   if (content_client_.application().get()) {
     // Give the application a chance to view/modify the command line.
@@ -490,16 +468,16 @@ bool CefMainDelegate::BasicStartupComplete(int* exit_code) {
       command_line->GetSwitchValueASCII(switches::kLogSeverity);
   if (!log_severity_str.empty()) {
     if (base::LowerCaseEqualsASCII(log_severity_str,
-                             switches::kLogSeverity_Verbose)) {
+                                   switches::kLogSeverity_Verbose)) {
       log_severity = logging::LOG_VERBOSE;
     } else if (base::LowerCaseEqualsASCII(log_severity_str,
-                                    switches::kLogSeverity_Warning)) {
+                                          switches::kLogSeverity_Warning)) {
       log_severity = logging::LOG_WARNING;
     } else if (base::LowerCaseEqualsASCII(log_severity_str,
-                                    switches::kLogSeverity_Error)) {
+                                          switches::kLogSeverity_Error)) {
       log_severity = logging::LOG_ERROR;
     } else if (base::LowerCaseEqualsASCII(log_severity_str,
-                                    switches::kLogSeverity_Disable)) {
+                                          switches::kLogSeverity_Disable)) {
       log_severity = LOGSEVERITY_DISABLE;
     }
   }
@@ -518,6 +496,10 @@ bool CefMainDelegate::BasicStartupComplete(int* exit_code) {
 
   content::SetContentClient(&content_client_);
 
+#if defined(OS_MACOSX)
+  OverrideFrameworkBundlePath();
+#endif
+
   return false;
 }
 
@@ -527,25 +509,7 @@ void CefMainDelegate::PreSandboxStartup() {
   const std::string& process_type =
       command_line->GetSwitchValueASCII(switches::kProcessType);
 
-  if (command_line->HasSwitch(switches::kEnableCrashReporter)) {
-    crash_reporter::SetCrashReporterClient(g_crash_reporter_client.Pointer());
-#if defined(OS_MACOSX)
-    base::mac::DisableOSCrashDumps();
-    breakpad::InitCrashReporter(process_type);
-    breakpad::InitCrashProcessInfo(process_type);
-#elif defined(OS_POSIX) && !defined(OS_MACOSX)
-    if (process_type != switches::kZygoteProcess)
-      breakpad::InitCrashReporter(process_type);
-#elif defined(OS_WIN)
-    UINT new_flags =
-        SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX;
-    UINT existing_flags = SetErrorMode(new_flags);
-    SetErrorMode(existing_flags | new_flags);
-    breakpad::InitCrashReporter(process_type);
-#endif
-  }
-
-  if (!command_line->HasSwitch(switches::kProcessType)) {
+  if (process_type.empty()) {
     // Only override these paths when executing the main process.
 #if defined(OS_MACOSX)
     OverrideChildProcessPath();
@@ -553,34 +517,26 @@ void CefMainDelegate::PreSandboxStartup() {
 
     OverridePepperFlashSystemPluginPath();
 
-    // Paths used to locate spell checking dictionary files.
     const base::FilePath& user_data_path = GetUserDataPath();
     PathService::Override(chrome::DIR_USER_DATA, user_data_path);
+
+    // Path used for crash dumps.
+    PathService::Override(chrome::DIR_CRASH_DUMPS, user_data_path);
+
+    // Path used for spell checking dictionary files.
     PathService::OverrideAndCreateIfNeeded(
         chrome::DIR_APP_DICTIONARIES,
         user_data_path.AppendASCII("Dictionaries"),
         false,  // May not be an absolute path.
         true);  // Create if necessary.
-
-#if defined(WIDEVINE_CDM_AVAILABLE) && defined(ENABLE_PEPPER_CDMS)
-    const base::FilePath& widevine_plugin_path =
-        GetResourcesFilePath().AppendASCII(kWidevineCdmAdapterFileName);
-    if (base::PathExists(widevine_plugin_path)) {
-      PathService::Override(chrome::FILE_WIDEVINE_CDM_ADAPTER,
-                            widevine_plugin_path);
-  }
-#if defined(WIDEVINE_CDM_IS_COMPONENT)
-    if (command_line->HasSwitch(switches::kEnableWidevineCdm)) {
-      PathService::Override(
-          chrome::DIR_COMPONENT_WIDEVINE_CDM,
-          user_data_path.Append(FILE_PATH_LITERAL("WidevineCDM")));
-    }
-#endif  // defined(WIDEVINE_CDM_IS_COMPONENT)
-#endif  // defined(WIDEVINE_CDM_AVAILABLE) && defined(ENABLE_PEPPER_CDMS)
   }
 
   if (command_line->HasSwitch(switches::kDisablePackLoading))
     content_client_.set_pack_loading_disabled(true);
+
+  // Initialize crash reporting state for this process/module.
+  // chrome::DIR_CRASH_DUMPS must be configured before calling this function.
+  crash_reporting::PreSandboxStartup(*command_line, process_type);
 
   InitializeResourceBundle();
   chrome::InitializePDF();
@@ -610,7 +566,7 @@ int CefMainDelegate::RunProcess(
         return exit_code;
     } else {
       // Run the UI on a separate thread.
-      scoped_ptr<base::Thread> thread;
+      std::unique_ptr<base::Thread> thread;
       thread.reset(new CefUIThread(main_function_params));
       base::Thread::Options options;
       options.message_loop_type = base::MessageLoop::TYPE_UI;
@@ -634,13 +590,12 @@ void CefMainDelegate::ProcessExiting(const std::string& process_type) {
 
 #if defined(OS_POSIX) && !defined(OS_ANDROID) && !defined(OS_MACOSX)
 void CefMainDelegate::ZygoteForked() {
-  const base::CommandLine* command_line =
+  base::CommandLine* command_line =
       base::CommandLine::ForCurrentProcess();
-  if (command_line->HasSwitch(switches::kEnableCrashReporter)) {
-    const std::string& process_type = command_line->GetSwitchValueASCII(
+  const std::string& process_type = command_line->GetSwitchValueASCII(
         switches::kProcessType);
-    breakpad::InitCrashReporter(process_type);
-  }
+  // Initialize crash reporting state for the newly forked process.
+  crash_reporting::ZygoteForked(command_line, process_type);
 }
 #endif
 
@@ -679,13 +634,13 @@ void CefMainDelegate::InitializeResourceBundle() {
                  cef_200_percent_pak_file, cef_extensions_pak_file,
                  devtools_pak_file, locales_dir;
 
-    base::FilePath resources_dir;
-    if (command_line->HasSwitch(switches::kResourcesDirPath)) {
-      resources_dir =
-          command_line->GetSwitchValuePath(switches::kResourcesDirPath);
-    }
-    if (resources_dir.empty())
-      resources_dir = GetResourcesFilePath();
+  base::FilePath resources_dir;
+  if (command_line->HasSwitch(switches::kResourcesDirPath)) {
+    resources_dir =
+        command_line->GetSwitchValuePath(switches::kResourcesDirPath);
+  }
+  if (resources_dir.empty())
+    resources_dir = GetResourcesFilePath();
   if (!resources_dir.empty())
     PathService::Override(chrome::DIR_RESOURCES, resources_dir);
 
@@ -712,6 +667,9 @@ void CefMainDelegate::InitializeResourceBundle() {
 
   std::string locale = command_line->GetSwitchValueASCII(switches::kLang);
   DCHECK(!locale.empty());
+
+  // Avoid DCHECK() in ResourceBundle::LoadChromeResources().
+  ui::MaterialDesignController::Initialize();
 
   const std::string loaded_locale =
       ui::ResourceBundle::InitSharedInstanceWithLocale(

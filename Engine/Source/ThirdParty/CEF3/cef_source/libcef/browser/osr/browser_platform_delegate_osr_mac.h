@@ -11,13 +11,10 @@
 class CefBrowserPlatformDelegateOsrMac : public CefBrowserPlatformDelegateOsr {
  public:
   explicit CefBrowserPlatformDelegateOsrMac(
-      scoped_ptr<CefBrowserPlatformDelegateNative> native_delegate);
+      std::unique_ptr<CefBrowserPlatformDelegateNative> native_delegate);
     
   // CefBrowserPlatformDelegate methods:
   CefWindowHandle GetHostWindowHandle() const override;
-  CefTextInputContext GetNSTextInputContext() override;
-  void HandleKeyEventBeforeTextInputClient(CefEventHandle keyEvent) override;
-  void HandleKeyEventAfterTextInputClient(CefEventHandle keyEvent) override;
 };
 
 #endif  // CEF_LIBCEF_BROWSER_NATIVE_BROWSER_PLATFORM_DELEGATE_OSR_MAC_H_

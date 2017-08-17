@@ -2,14 +2,14 @@
 
 #include "Generation/DataScanner.h"
 #include "HAL/ThreadSafeBool.h"
-#include "BuildPatchChunk.h"
-#include "BuildPatchHash.h"
 #include "Async/Future.h"
 #include "Async/Async.h"
+#include "Data/ChunkData.h"
+#include "BuildPatchHash.h"
 
 namespace BuildPatchServices
 {
-	const uint32 WindowSize = FBuildPatchData::ChunkDataSize;
+	const uint32 WindowSize = BuildPatchServices::ChunkDataSize;
 
 	class FDataScanner
 		: public IDataScanner

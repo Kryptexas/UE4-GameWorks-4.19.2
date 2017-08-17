@@ -96,20 +96,17 @@ namespace BuildPatchServices
 			Size = InOffset - Offset;
 		}
 		// Trim start
-		else if (InOffset <= Offset && InEnd < End /*&& checked InEnd > Offset*/)
+		else if (InOffset <= Offset && InEnd < End)
 		{
 			Offset = InEnd;
 			Size = End - Offset;
 		}
 		// Trim end
-		else if (InOffset > Offset && InEnd >= End /*&& checked InOffset < End*/)
-		{
-			Size = InOffset - Offset;
-		}
-		// Impossible to not hit something
 		else
 		{
-			checkSlow(false);
+			// If the others are false this one must be true.
+			checkSlow(InOffset > Offset && InEnd >= End);
+			Size = InOffset - Offset;
 		}
 	}
 
@@ -385,35 +382,38 @@ namespace BuildPatchServices
 	FString FBlockStructure::ToString(uint64 BlockCountLimit /*= 20*/) const
 	{
 		FString Output;
-		uint64 NumSkippedBlocks = 0;
-		bool bIsFirst = true;
-		const FBlockEntry* InputBlock = Head;
-		while (InputBlock != nullptr)
+		if (Head != nullptr)
 		{
-			if (BlockCountLimit > 0)
+			uint64 NumSkippedBlocks = 0;
+			bool bIsFirst = true;
+			const FBlockEntry* InputBlock = Head;
+			while (InputBlock != nullptr)
 			{
-				--BlockCountLimit;
-				if (bIsFirst)
+				if (BlockCountLimit > 0)
 				{
-					bIsFirst = false;
+					--BlockCountLimit;
+					if (bIsFirst)
+					{
+						bIsFirst = false;
+					}
+					else
+					{
+						Output += TEXT("-");
+					}
+					Output += FString::Printf(TEXT("[%llu,%llu]"), InputBlock->GetOffset(), InputBlock->GetSize());
 				}
 				else
 				{
-					Output += TEXT("-");
+					++NumSkippedBlocks;
 				}
-				Output += FString::Printf(TEXT("[%llu,%llu]"), InputBlock->GetOffset(), InputBlock->GetSize());
+				InputBlock = InputBlock->GetNext();
 			}
-			else
+			if (NumSkippedBlocks > 0)
 			{
-				++NumSkippedBlocks;
+				Output += FString::Printf(TEXT(".. %llu more"), NumSkippedBlocks);
 			}
-			InputBlock = InputBlock->GetNext();
+			Output += TEXT(".");
 		}
-		if (NumSkippedBlocks > 0)
-		{
-			Output += FString::Printf(TEXT(".. %llu more"), NumSkippedBlocks);
-		}
-		Output += TEXT(".");
 		return Output;
 	}
 
@@ -444,8 +444,8 @@ namespace BuildPatchServices
 			while (Entry != nullptr)
 			{
 				checkSlow((Entry->Offset + Entry->Size) <= (From->Offset + From->Size));
-				// Next block is mergeable?
-				if ((Entry->Offset + Entry->Size) > From->Offset)
+				// Prev block is mergeable?
+				if ((Entry->Offset + Entry->Size) >= From->Offset)
 				{
 					From->Merge(Entry->Offset, Entry->Size);
 					Entry->Unlink(&Head, &Foot);

@@ -10,11 +10,13 @@
 #include "include/base/cef_ref_counted.h"
 #include "include/wrapper/cef_closure_task.h"
 #include "include/wrapper/cef_helpers.h"
-#include "cefclient/browser/client_handler_osr.h"
-#include "cefclient/browser/osr_dragdrop_win.h"
-#include "cefclient/browser/osr_renderer.h"
+#include "tests/cefclient/browser/client_handler_osr.h"
+#include "tests/cefclient/browser/osr_dragdrop_win.h"
+#include "tests/cefclient/browser/osr_renderer.h"
 
 namespace client {
+
+class OsrImeHandlerWin;
 
 // Represents the native parent window for an off-screen browser. This object
 // must live on the CEF UI thread in order to handle CefRenderHandler callbacks.
@@ -94,6 +96,11 @@ class OsrWindowWin :
   void OnPaint();
   bool OnEraseBkgnd();
 
+  void OnIMESetContext(UINT message, WPARAM wParam, LPARAM lParam);
+  void OnIMEStartComposition();
+  void OnIMEComposition(UINT message, WPARAM wParam, LPARAM lParam);
+  void OnIMECancelCompositionEvent();
+
   // Manage popup bounds.
   bool IsOverPopupWidget(int x, int y) const;
   int GetPopupXOffset() const;
@@ -133,6 +140,10 @@ class OsrWindowWin :
                      int x, int y) OVERRIDE;
   void UpdateDragCursor(CefRefPtr<CefBrowser> browser,
                         CefRenderHandler::DragOperation operation) OVERRIDE;
+  void OnImeCompositionRangeChanged(
+      CefRefPtr<CefBrowser> browser,
+      const CefRange& selection_range,
+      const CefRenderHandler::RectList& character_bounds) OVERRIDE;
 
 #if defined(CEF_USE_ATL)
   // OsrDragEvents methods.
@@ -155,6 +166,9 @@ class OsrWindowWin :
   HWND hwnd_;
   HDC hdc_;
   HGLRC hrc_;
+
+  // Class that encapsulates IMM32 APIs and controls IMEs attached to a window.
+  scoped_ptr<OsrImeHandlerWin> ime_handler_;
 
   RECT client_rect_;
   float device_scale_factor_;

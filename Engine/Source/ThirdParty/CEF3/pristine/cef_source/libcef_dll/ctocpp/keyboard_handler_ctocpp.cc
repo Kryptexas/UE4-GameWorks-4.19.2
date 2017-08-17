@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -81,18 +81,18 @@ bool CefKeyboardHandlerCToCpp::OnKeyEvent(CefRefPtr<CefBrowser> browser,
 CefKeyboardHandlerCToCpp::CefKeyboardHandlerCToCpp() {
 }
 
-template<> cef_keyboard_handler_t* CefCToCpp<CefKeyboardHandlerCToCpp,
+template<> cef_keyboard_handler_t* CefCToCppRefCounted<CefKeyboardHandlerCToCpp,
     CefKeyboardHandler, cef_keyboard_handler_t>::UnwrapDerived(
     CefWrapperType type, CefKeyboardHandler* c) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
-#ifndef NDEBUG
-template<> base::AtomicRefCount CefCToCpp<CefKeyboardHandlerCToCpp,
+#if DCHECK_IS_ON()
+template<> base::AtomicRefCount CefCToCppRefCounted<CefKeyboardHandlerCToCpp,
     CefKeyboardHandler, cef_keyboard_handler_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefKeyboardHandlerCToCpp,
+template<> CefWrapperType CefCToCppRefCounted<CefKeyboardHandlerCToCpp,
     CefKeyboardHandler, cef_keyboard_handler_t>::kWrapperType =
     WT_KEYBOARD_HANDLER;

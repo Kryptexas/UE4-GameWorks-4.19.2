@@ -12,10 +12,10 @@
 #include "libcef/browser/thread_util.h"
 
 #include "components/content_settings/core/browser/host_content_settings_map.h"
-#include "content/public/browser/geolocation_provider.h"
 #include "content/public/browser/permission_type.h"
 #include "content/public/browser/web_contents.h"
 #include "content/public/common/origin_util.h"
+#include "device/geolocation/geolocation_provider.h"
 
 namespace {
 
@@ -35,7 +35,7 @@ class CefGeolocationCallbackImpl : public CefGeolocationCallback {
     if (CEF_CURRENTLY_ON_UIT()) {
       if (!callback_.is_null()) {
         if (allow) {
-          content::GeolocationProvider::GetInstance()->
+          device::GeolocationProvider::GetInstance()->
               UserDidOptIntoLocationServices();
         }
 
@@ -77,7 +77,6 @@ void CefPermissionContext::RequestPermission(
     content::WebContents* web_contents,
     const PermissionRequestID& id,
     const GURL& requesting_frame,
-    bool user_gesture,
     const BrowserPermissionCallback& callback) {
   DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
 
@@ -86,7 +85,6 @@ void CefPermissionContext::RequestPermission(
                    id,
                    requesting_frame.GetOrigin(),
                    web_contents->GetLastCommittedURL().GetOrigin(),
-                   user_gesture,
                    callback);
 }
 
@@ -114,7 +112,7 @@ void CefPermissionContext::ResetPermission(
     content::PermissionType permission,
     const GURL& requesting_origin,
     const GURL& embedding_origin) {
-  profile_->GetHostContentSettingsMap()->SetContentSetting(
+  profile_->GetHostContentSettingsMap()->SetContentSettingCustomScope(
       ContentSettingsPattern::FromURLNoWildcard(requesting_origin),
       ContentSettingsPattern::FromURLNoWildcard(embedding_origin),
       permission_util::PermissionTypeToContentSetting(permission),
@@ -144,7 +142,6 @@ void CefPermissionContext::DecidePermission(
     const PermissionRequestID& id,
     const GURL& requesting_origin,
     const GURL& embedding_origin,
-    bool user_gesture,
     const BrowserPermissionCallback& callback) {
   DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
 
@@ -162,12 +159,11 @@ void CefPermissionContext::DecidePermission(
   }
 
   ContentSetting content_setting =
-      profile_->GetHostContentSettingsMap()->
-          GetContentSettingAndMaybeUpdateLastUsage(
-              requesting_origin,
-              embedding_origin,
-              permission_util::PermissionTypeToContentSetting(permission),
-              std::string());
+      profile_->GetHostContentSettingsMap()->GetContentSetting(
+          requesting_origin,
+          embedding_origin,
+          permission_util::PermissionTypeToContentSetting(permission),
+          std::string());
 
   if (content_setting == CONTENT_SETTING_ALLOW ||
       content_setting == CONTENT_SETTING_BLOCK) {
@@ -259,7 +255,7 @@ void CefPermissionContext::UpdateContentSetting(
   DCHECK(content_setting == CONTENT_SETTING_ALLOW ||
          content_setting == CONTENT_SETTING_BLOCK);
 
-  profile_->GetHostContentSettingsMap()->SetContentSetting(
+  profile_->GetHostContentSettingsMap()->SetContentSettingCustomScope(
       ContentSettingsPattern::FromURLNoWildcard(requesting_origin),
       ContentSettingsPattern::FromURLNoWildcard(embedding_origin),
       permission_util::PermissionTypeToContentSetting(permission),

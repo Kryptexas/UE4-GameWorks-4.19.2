@@ -7,8 +7,8 @@
 
 #include <X11/cursorfont.h>
 #include <X11/Xlib.h>
+#undef Status  // Avoid conflicts with url_request_status.h
 
-#include "libcef/browser/browser_host_impl.h"
 #include "libcef/browser/native/window_x11.h"
 
 #include "third_party/WebKit/public/platform/WebCursorInfo.h"
@@ -23,104 +23,158 @@ using blink::WebCursorInfo;
 
 int ToCursorID(WebCursorInfo::Type type) {
   switch (type) {
-    case WebCursorInfo::TypePointer:
+    case WebCursorInfo::kTypePointer:
       return XC_left_ptr;
-    case WebCursorInfo::TypeCross:
+    case WebCursorInfo::kTypeCross:
       return XC_crosshair;
-    case WebCursorInfo::TypeHand:
+    case WebCursorInfo::kTypeHand:
       return XC_hand2;
-    case WebCursorInfo::TypeIBeam:
+    case WebCursorInfo::kTypeIBeam:
       return XC_xterm;
-    case WebCursorInfo::TypeWait:
+    case WebCursorInfo::kTypeWait:
       return XC_watch;
-    case WebCursorInfo::TypeHelp:
+    case WebCursorInfo::kTypeHelp:
       return XC_question_arrow;
-    case WebCursorInfo::TypeEastResize:
+    case WebCursorInfo::kTypeEastResize:
       return XC_right_side;
-    case WebCursorInfo::TypeNorthResize:
+    case WebCursorInfo::kTypeNorthResize:
       return XC_top_side;
-    case WebCursorInfo::TypeNorthEastResize:
+    case WebCursorInfo::kTypeNorthEastResize:
       return XC_top_right_corner;
-    case WebCursorInfo::TypeNorthWestResize:
+    case WebCursorInfo::kTypeNorthWestResize:
       return XC_top_left_corner;
-    case WebCursorInfo::TypeSouthResize:
+    case WebCursorInfo::kTypeSouthResize:
       return XC_bottom_side;
-    case WebCursorInfo::TypeSouthEastResize:
+    case WebCursorInfo::kTypeSouthEastResize:
       return XC_bottom_right_corner;
-    case WebCursorInfo::TypeSouthWestResize:
+    case WebCursorInfo::kTypeSouthWestResize:
       return XC_bottom_left_corner;
-    case WebCursorInfo::TypeWestResize:
+    case WebCursorInfo::kTypeWestResize:
       return XC_left_side;
-    case WebCursorInfo::TypeNorthSouthResize:
+    case WebCursorInfo::kTypeNorthSouthResize:
       return XC_sb_v_double_arrow;
-    case WebCursorInfo::TypeEastWestResize:
+    case WebCursorInfo::kTypeEastWestResize:
       return XC_sb_h_double_arrow;
-    case WebCursorInfo::TypeNorthEastSouthWestResize:
+    case WebCursorInfo::kTypeNorthEastSouthWestResize:
       return XC_left_ptr;
-    case WebCursorInfo::TypeNorthWestSouthEastResize:
+    case WebCursorInfo::kTypeNorthWestSouthEastResize:
       return XC_left_ptr;
-    case WebCursorInfo::TypeColumnResize:
+    case WebCursorInfo::kTypeColumnResize:
       return XC_sb_h_double_arrow;
-    case WebCursorInfo::TypeRowResize:
+    case WebCursorInfo::kTypeRowResize:
       return XC_sb_v_double_arrow;
-    case WebCursorInfo::TypeMiddlePanning:
+    case WebCursorInfo::kTypeMiddlePanning:
       return XC_fleur;
-    case WebCursorInfo::TypeEastPanning:
+    case WebCursorInfo::kTypeEastPanning:
       return XC_sb_right_arrow;
-    case WebCursorInfo::TypeNorthPanning:
+    case WebCursorInfo::kTypeNorthPanning:
       return XC_sb_up_arrow;
-    case WebCursorInfo::TypeNorthEastPanning:
+    case WebCursorInfo::kTypeNorthEastPanning:
       return XC_top_right_corner;
-    case WebCursorInfo::TypeNorthWestPanning:
+    case WebCursorInfo::kTypeNorthWestPanning:
       return XC_top_left_corner;
-    case WebCursorInfo::TypeSouthPanning:
+    case WebCursorInfo::kTypeSouthPanning:
       return XC_sb_down_arrow;
-    case WebCursorInfo::TypeSouthEastPanning:
+    case WebCursorInfo::kTypeSouthEastPanning:
       return XC_bottom_right_corner;
-    case WebCursorInfo::TypeSouthWestPanning:
+    case WebCursorInfo::kTypeSouthWestPanning:
       return XC_bottom_left_corner;
-    case WebCursorInfo::TypeWestPanning:
+    case WebCursorInfo::kTypeWestPanning:
       return XC_sb_left_arrow;
-    case WebCursorInfo::TypeMove:
+    case WebCursorInfo::kTypeMove:
       return XC_fleur;
-    case WebCursorInfo::TypeVerticalText:
+    case WebCursorInfo::kTypeVerticalText:
       return XC_left_ptr;
-    case WebCursorInfo::TypeCell:
+    case WebCursorInfo::kTypeCell:
       return XC_left_ptr;
-    case WebCursorInfo::TypeContextMenu:
+    case WebCursorInfo::kTypeContextMenu:
       return XC_left_ptr;
-    case WebCursorInfo::TypeAlias:
+    case WebCursorInfo::kTypeAlias:
       return XC_left_ptr;
-    case WebCursorInfo::TypeProgress:
+    case WebCursorInfo::kTypeProgress:
       return XC_left_ptr;
-    case WebCursorInfo::TypeNoDrop:
+    case WebCursorInfo::kTypeNoDrop:
       return XC_left_ptr;
-    case WebCursorInfo::TypeCopy:
+    case WebCursorInfo::kTypeCopy:
       return XC_left_ptr;
-    case WebCursorInfo::TypeNotAllowed:
+    case WebCursorInfo::kTypeNotAllowed:
       return XC_left_ptr;
-    case WebCursorInfo::TypeZoomIn:
+    case WebCursorInfo::kTypeZoomIn:
       return XC_left_ptr;
-    case WebCursorInfo::TypeZoomOut:
+    case WebCursorInfo::kTypeZoomOut:
       return XC_left_ptr;
-    case WebCursorInfo::TypeGrab:
+    case WebCursorInfo::kTypeGrab:
       return XC_left_ptr;
-    case WebCursorInfo::TypeGrabbing:
+    case WebCursorInfo::kTypeGrabbing:
       return XC_left_ptr;
-    case WebCursorInfo::TypeCustom:
-    case WebCursorInfo::TypeNone:
+    case WebCursorInfo::kTypeCustom:
+    case WebCursorInfo::kTypeNone:
       break;
   }
   NOTREACHED();
   return 0;
 }
 
+// The following XCursorCache code was deleted from ui/base/x/x11_util.cc in
+// https://crbug.com/665574#c2
+
+// A process wide singleton that manages the usage of X cursors.
+class XCursorCache {
+ public:
+  XCursorCache() {}
+  ~XCursorCache() {
+    Clear();
+  }
+
+  ::Cursor GetCursor(int cursor_shape) {
+    // Lookup cursor by attempting to insert a null value, which avoids
+    // a second pass through the map after a cache miss.
+    std::pair<std::map<int, ::Cursor>::iterator, bool> it = cache_.insert(
+        std::make_pair(cursor_shape, 0));
+    if (it.second) {
+      XDisplay* display = gfx::GetXDisplay();
+      it.first->second = XCreateFontCursor(display, cursor_shape);
+    }
+    return it.first->second;
+  }
+
+  void Clear() {
+    XDisplay* display = gfx::GetXDisplay();
+    for (std::map<int, ::Cursor>::iterator it =
+        cache_.begin(); it != cache_.end(); ++it) {
+      XFreeCursor(display, it->second);
+    }
+    cache_.clear();
+  }
+
+ private:
+  // Maps X11 font cursor shapes to Cursor IDs.
+  std::map<int, ::Cursor> cache_;
+
+  DISALLOW_COPY_AND_ASSIGN(XCursorCache);
+};
+
+XCursorCache* cursor_cache = nullptr;
+
+// Returns an X11 Cursor, sharable across the process.
+// |cursor_shape| is an X font cursor shape, see XCreateFontCursor().
+::Cursor GetXCursor(int cursor_shape) {
+  if (!cursor_cache)
+    cursor_cache = new XCursorCache;
+  return cursor_cache->GetCursor(cursor_shape);
+}
+
 }  // namespace
 
-void CefRenderWidgetHostViewOSR::PlatformCreateCompositorWidget() {
+void CefRenderWidgetHostViewOSR::PlatformCreateCompositorWidget(
+    bool is_guest_view_hack) {
   // Create a hidden 1x1 window. It will delete itself on close.
   window_ = new CefWindowX11(NULL, None, gfx::Rect(0, 0, 1, 1));
   compositor_widget_ = window_->xwindow();
+}
+
+void CefRenderWidgetHostViewOSR::PlatformResizeCompositorWidget(
+    const gfx::Size&) {
 }
 
 void CefRenderWidgetHostViewOSR::PlatformDestroyCompositorWidget() {
@@ -131,7 +185,7 @@ void CefRenderWidgetHostViewOSR::PlatformDestroyCompositorWidget() {
 
 ui::PlatformCursor CefRenderWidgetHostViewOSR::GetPlatformCursor(
     blink::WebCursorInfo::Type type) {
-  if (type == WebCursorInfo::TypeNone) {
+  if (type == WebCursorInfo::kTypeNone) {
     if (!invisible_cursor_) {
       invisible_cursor_.reset(
           new ui::XScopedCursor(ui::CreateInvisibleCursor(),
@@ -139,6 +193,6 @@ ui::PlatformCursor CefRenderWidgetHostViewOSR::GetPlatformCursor(
     }
     return invisible_cursor_->get();
   } else {
-    return ui::GetXCursor(ToCursorID(type));
+    return GetXCursor(ToCursorID(type));
   }
 }

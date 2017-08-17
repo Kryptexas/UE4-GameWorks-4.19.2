@@ -2,19 +2,20 @@
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 
-#include "cefclient/renderer/performance_test.h"
+#include "tests/cefclient/renderer/performance_test.h"
 
 #include <algorithm>
 #include <string>
 
+#include "include/base/cef_logging.h"
 #include "include/wrapper/cef_stream_resource_handler.h"
-#include "cefclient/renderer/performance_test_setup.h"
+#include "tests/cefclient/renderer/performance_test_setup.h"
 
 namespace client {
 namespace performance_test {
 
 // Use more interations for a Release build.
-#ifdef NDEBUG
+#if DCHECK_IS_ON()
 const int kDefaultIterations = 100000;
 #else
 const int kDefaultIterations = 10000;
@@ -103,7 +104,7 @@ class V8Handler : public CefV8Handler {
             retval = CefV8Value::CreateString("Hello, world!");
             break;
           case 8:
-            retval = CefV8Value::CreateObject(NULL);
+            retval = CefV8Value::CreateObject(NULL, NULL);
             break;
           case 9:
             retval = CefV8Value::CreateArray(8);

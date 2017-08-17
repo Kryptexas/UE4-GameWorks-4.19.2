@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -13,8 +13,10 @@
 #include "libcef_dll/cpptoc/browser_cpptoc.h"
 #include "libcef_dll/cpptoc/browser_host_cpptoc.h"
 #include "libcef_dll/cpptoc/drag_data_cpptoc.h"
+#include "libcef_dll/cpptoc/navigation_entry_cpptoc.h"
 #include "libcef_dll/cpptoc/request_context_cpptoc.h"
 #include "libcef_dll/ctocpp/client_ctocpp.h"
+#include "libcef_dll/ctocpp/download_image_callback_ctocpp.h"
 #include "libcef_dll/ctocpp/navigation_entry_visitor_ctocpp.h"
 #include "libcef_dll/ctocpp/pdf_print_callback_ctocpp.h"
 #include "libcef_dll/ctocpp/run_file_dialog_callback_ctocpp.h"
@@ -130,6 +132,21 @@ void CEF_CALLBACK browser_host_close_browser(struct _cef_browser_host_t* self,
       force_close?true:false);
 }
 
+int CEF_CALLBACK browser_host_try_close_browser(
+    struct _cef_browser_host_t* self) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  DCHECK(self);
+  if (!self)
+    return 0;
+
+  // Execute
+  bool _retval = CefBrowserHostCppToC::Get(self)->TryCloseBrowser();
+
+  // Return type: bool
+  return _retval;
+}
+
 void CEF_CALLBACK browser_host_set_focus(struct _cef_browser_host_t* self,
     int focus) {
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
@@ -141,19 +158,6 @@ void CEF_CALLBACK browser_host_set_focus(struct _cef_browser_host_t* self,
   // Execute
   CefBrowserHostCppToC::Get(self)->SetFocus(
       focus?true:false);
-}
-
-void CEF_CALLBACK browser_host_set_window_visibility(
-    struct _cef_browser_host_t* self, int visible) {
-  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
-
-  DCHECK(self);
-  if (!self)
-    return;
-
-  // Execute
-  CefBrowserHostCppToC::Get(self)->SetWindowVisibility(
-      visible?true:false);
 }
 
 cef_window_handle_t CEF_CALLBACK browser_host_get_window_handle(
@@ -185,6 +189,20 @@ cef_window_handle_t CEF_CALLBACK browser_host_get_opener_window_handle(
       self)->GetOpenerWindowHandle();
 
   // Return type: simple
+  return _retval;
+}
+
+int CEF_CALLBACK browser_host_has_view(struct _cef_browser_host_t* self) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  DCHECK(self);
+  if (!self)
+    return 0;
+
+  // Execute
+  bool _retval = CefBrowserHostCppToC::Get(self)->HasView();
+
+  // Return type: bool
   return _retval;
 }
 
@@ -297,6 +315,32 @@ void CEF_CALLBACK browser_host_start_download(struct _cef_browser_host_t* self,
       CefString(url));
 }
 
+void CEF_CALLBACK browser_host_download_image(struct _cef_browser_host_t* self,
+    const cef_string_t* image_url, int is_favicon, uint32 max_image_size,
+    int bypass_cache, cef_download_image_callback_t* callback) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  DCHECK(self);
+  if (!self)
+    return;
+  // Verify param: image_url; type: string_byref_const
+  DCHECK(image_url);
+  if (!image_url)
+    return;
+  // Verify param: callback; type: refptr_diff
+  DCHECK(callback);
+  if (!callback)
+    return;
+
+  // Execute
+  CefBrowserHostCppToC::Get(self)->DownloadImage(
+      CefString(image_url),
+      is_favicon?true:false,
+      max_image_size,
+      bypass_cache?true:false,
+      CefDownloadImageCallbackCToCpp::Wrap(callback));
+}
+
 void CEF_CALLBACK browser_host_print(struct _cef_browser_host_t* self) {
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -382,19 +426,7 @@ void CEF_CALLBACK browser_host_show_dev_tools(struct _cef_browser_host_t* self,
   DCHECK(self);
   if (!self)
     return;
-  // Verify param: windowInfo; type: struct_byref_const
-  DCHECK(windowInfo);
-  if (!windowInfo)
-    return;
-  // Verify param: client; type: refptr_diff
-  DCHECK(client);
-  if (!client)
-    return;
-  // Verify param: settings; type: struct_byref_const
-  DCHECK(settings);
-  if (!settings)
-    return;
-  // Unverified params: inspect_element_at
+  // Unverified params: windowInfo, client, settings, inspect_element_at
 
   // Translate param: windowInfo; type: struct_byref_const
   CefWindowInfo windowInfoObj;
@@ -426,6 +458,20 @@ void CEF_CALLBACK browser_host_close_dev_tools(
 
   // Execute
   CefBrowserHostCppToC::Get(self)->CloseDevTools();
+}
+
+int CEF_CALLBACK browser_host_has_dev_tools(struct _cef_browser_host_t* self) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  DCHECK(self);
+  if (!self)
+    return 0;
+
+  // Execute
+  bool _retval = CefBrowserHostCppToC::Get(self)->HasDevTools();
+
+  // Return type: bool
+  return _retval;
 }
 
 void CEF_CALLBACK browser_host_get_navigation_entries(
@@ -735,46 +781,96 @@ void CEF_CALLBACK browser_host_set_windowless_frame_rate(
       frame_rate);
 }
 
-cef_text_input_context_t CEF_CALLBACK browser_host_get_nstext_input_context(
+void CEF_CALLBACK browser_host_ime_set_composition(
+    struct _cef_browser_host_t* self, const cef_string_t* text,
+    size_t underlinesCount, cef_composition_underline_t const* underlines,
+    const cef_range_t* replacement_range,
+    const cef_range_t* selection_range) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  DCHECK(self);
+  if (!self)
+    return;
+  // Verify param: replacement_range; type: simple_byref_const
+  DCHECK(replacement_range);
+  if (!replacement_range)
+    return;
+  // Verify param: selection_range; type: simple_byref_const
+  DCHECK(selection_range);
+  if (!selection_range)
+    return;
+  // Unverified params: text, underlines
+
+  // Translate param: underlines; type: simple_vec_byref_const
+  std::vector<CefCompositionUnderline > underlinesList;
+  if (underlinesCount > 0) {
+    for (size_t i = 0; i < underlinesCount; ++i) {
+      CefCompositionUnderline underlinesVal = underlines[i];
+      underlinesList.push_back(underlinesVal);
+    }
+  }
+  // Translate param: replacement_range; type: simple_byref_const
+  CefRange replacement_rangeVal = replacement_range?*replacement_range:CefRange(
+      );
+  // Translate param: selection_range; type: simple_byref_const
+  CefRange selection_rangeVal = selection_range?*selection_range:CefRange();
+
+  // Execute
+  CefBrowserHostCppToC::Get(self)->ImeSetComposition(
+      CefString(text),
+      underlinesList,
+      replacement_rangeVal,
+      selection_rangeVal);
+}
+
+void CEF_CALLBACK browser_host_ime_commit_text(struct _cef_browser_host_t* self,
+    const cef_string_t* text, const cef_range_t* replacement_range,
+    int relative_cursor_pos) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  DCHECK(self);
+  if (!self)
+    return;
+  // Verify param: replacement_range; type: simple_byref_const
+  DCHECK(replacement_range);
+  if (!replacement_range)
+    return;
+  // Unverified params: text
+
+  // Translate param: replacement_range; type: simple_byref_const
+  CefRange replacement_rangeVal = replacement_range?*replacement_range:CefRange(
+      );
+
+  // Execute
+  CefBrowserHostCppToC::Get(self)->ImeCommitText(
+      CefString(text),
+      replacement_rangeVal,
+      relative_cursor_pos);
+}
+
+void CEF_CALLBACK browser_host_ime_finish_composing_text(
+    struct _cef_browser_host_t* self, int keep_selection) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  DCHECK(self);
+  if (!self)
+    return;
+
+  // Execute
+  CefBrowserHostCppToC::Get(self)->ImeFinishComposingText(
+      keep_selection?true:false);
+}
+
+void CEF_CALLBACK browser_host_ime_cancel_composition(
     struct _cef_browser_host_t* self) {
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
   if (!self)
-    return NULL;
-
-  // Execute
-  cef_text_input_context_t _retval = CefBrowserHostCppToC::Get(
-      self)->GetNSTextInputContext();
-
-  // Return type: simple
-  return _retval;
-}
-
-void CEF_CALLBACK browser_host_handle_key_event_before_text_input_client(
-    struct _cef_browser_host_t* self, cef_event_handle_t keyEvent) {
-  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
-
-  DCHECK(self);
-  if (!self)
     return;
 
   // Execute
-  CefBrowserHostCppToC::Get(self)->HandleKeyEventBeforeTextInputClient(
-      keyEvent);
-}
-
-void CEF_CALLBACK browser_host_handle_key_event_after_text_input_client(
-    struct _cef_browser_host_t* self, cef_event_handle_t keyEvent) {
-  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
-
-  DCHECK(self);
-  if (!self)
-    return;
-
-  // Execute
-  CefBrowserHostCppToC::Get(self)->HandleKeyEventAfterTextInputClient(
-      keyEvent);
+  CefBrowserHostCppToC::Get(self)->ImeCancelComposition();
 }
 
 void CEF_CALLBACK browser_host_drag_target_drag_enter(
@@ -893,6 +989,22 @@ void CEF_CALLBACK browser_host_drag_source_system_drag_ended(
   CefBrowserHostCppToC::Get(self)->DragSourceSystemDragEnded();
 }
 
+struct _cef_navigation_entry_t* CEF_CALLBACK browser_host_get_visible_navigation_entry(
+    struct _cef_browser_host_t* self) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  DCHECK(self);
+  if (!self)
+    return NULL;
+
+  // Execute
+  CefRefPtr<CefNavigationEntry> _retval = CefBrowserHostCppToC::Get(
+      self)->GetVisibleNavigationEntry();
+
+  // Return type: refptr_same
+  return CefNavigationEntryCppToC::Wrap(_retval);
+}
+
 }  // namespace
 
 
@@ -901,22 +1013,25 @@ void CEF_CALLBACK browser_host_drag_source_system_drag_ended(
 CefBrowserHostCppToC::CefBrowserHostCppToC() {
   GetStruct()->get_browser = browser_host_get_browser;
   GetStruct()->close_browser = browser_host_close_browser;
+  GetStruct()->try_close_browser = browser_host_try_close_browser;
   GetStruct()->set_focus = browser_host_set_focus;
-  GetStruct()->set_window_visibility = browser_host_set_window_visibility;
   GetStruct()->get_window_handle = browser_host_get_window_handle;
   GetStruct()->get_opener_window_handle = browser_host_get_opener_window_handle;
+  GetStruct()->has_view = browser_host_has_view;
   GetStruct()->get_client = browser_host_get_client;
   GetStruct()->get_request_context = browser_host_get_request_context;
   GetStruct()->get_zoom_level = browser_host_get_zoom_level;
   GetStruct()->set_zoom_level = browser_host_set_zoom_level;
   GetStruct()->run_file_dialog = browser_host_run_file_dialog;
   GetStruct()->start_download = browser_host_start_download;
+  GetStruct()->download_image = browser_host_download_image;
   GetStruct()->print = browser_host_print;
   GetStruct()->print_to_pdf = browser_host_print_to_pdf;
   GetStruct()->find = browser_host_find;
   GetStruct()->stop_finding = browser_host_stop_finding;
   GetStruct()->show_dev_tools = browser_host_show_dev_tools;
   GetStruct()->close_dev_tools = browser_host_close_dev_tools;
+  GetStruct()->has_dev_tools = browser_host_has_dev_tools;
   GetStruct()->get_navigation_entries = browser_host_get_navigation_entries;
   GetStruct()->set_mouse_cursor_change_disabled =
       browser_host_set_mouse_cursor_change_disabled;
@@ -943,11 +1058,11 @@ CefBrowserHostCppToC::CefBrowserHostCppToC() {
       browser_host_get_windowless_frame_rate;
   GetStruct()->set_windowless_frame_rate =
       browser_host_set_windowless_frame_rate;
-  GetStruct()->get_nstext_input_context = browser_host_get_nstext_input_context;
-  GetStruct()->handle_key_event_before_text_input_client =
-      browser_host_handle_key_event_before_text_input_client;
-  GetStruct()->handle_key_event_after_text_input_client =
-      browser_host_handle_key_event_after_text_input_client;
+  GetStruct()->ime_set_composition = browser_host_ime_set_composition;
+  GetStruct()->ime_commit_text = browser_host_ime_commit_text;
+  GetStruct()->ime_finish_composing_text =
+      browser_host_ime_finish_composing_text;
+  GetStruct()->ime_cancel_composition = browser_host_ime_cancel_composition;
   GetStruct()->drag_target_drag_enter = browser_host_drag_target_drag_enter;
   GetStruct()->drag_target_drag_over = browser_host_drag_target_drag_over;
   GetStruct()->drag_target_drag_leave = browser_host_drag_target_drag_leave;
@@ -955,19 +1070,21 @@ CefBrowserHostCppToC::CefBrowserHostCppToC() {
   GetStruct()->drag_source_ended_at = browser_host_drag_source_ended_at;
   GetStruct()->drag_source_system_drag_ended =
       browser_host_drag_source_system_drag_ended;
+  GetStruct()->get_visible_navigation_entry =
+      browser_host_get_visible_navigation_entry;
 }
 
-template<> CefRefPtr<CefBrowserHost> CefCppToC<CefBrowserHostCppToC,
+template<> CefRefPtr<CefBrowserHost> CefCppToCRefCounted<CefBrowserHostCppToC,
     CefBrowserHost, cef_browser_host_t>::UnwrapDerived(CefWrapperType type,
     cef_browser_host_t* s) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
-#ifndef NDEBUG
-template<> base::AtomicRefCount CefCppToC<CefBrowserHostCppToC, CefBrowserHost,
-    cef_browser_host_t>::DebugObjCt = 0;
+#if DCHECK_IS_ON()
+template<> base::AtomicRefCount CefCppToCRefCounted<CefBrowserHostCppToC,
+    CefBrowserHost, cef_browser_host_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCppToC<CefBrowserHostCppToC, CefBrowserHost,
-    cef_browser_host_t>::kWrapperType = WT_BROWSER_HOST;
+template<> CefWrapperType CefCppToCRefCounted<CefBrowserHostCppToC,
+    CefBrowserHost, cef_browser_host_t>::kWrapperType = WT_BROWSER_HOST;

@@ -7,6 +7,14 @@
 
 #include <utility>
 
+#include "base/compiler_specific.h"
+
+// Enable deprecation warnings for MSVC. See http://crbug.com/585142.
+#if defined(OS_WIN)
+#pragma warning(push)
+#pragma warning(default:4996)
+#endif
+
 #include "libcef/browser/context.h"
 #include "libcef/common/cef_messages.h"
 #include "libcef/common/cef_switches.h"
@@ -24,13 +32,14 @@
 #include "libcef/renderer/plugins/plugin_preroller.h"
 #include "libcef/renderer/render_frame_observer.h"
 #include "libcef/renderer/render_message_filter.h"
-#include "libcef/renderer/render_process_observer.h"
+#include "libcef/renderer/render_thread_observer.h"
 #include "libcef/renderer/thread_util.h"
 #include "libcef/renderer/v8_impl.h"
 #include "libcef/renderer/webkit_glue.h"
 
 #include "base/command_line.h"
 #include "base/macros.h"
+#include "base/memory/ptr_util.h"
 #include "base/metrics/user_metrics_action.h"
 #include "base/path_service.h"
 #include "base/stl_util.h"
@@ -41,17 +50,18 @@
 #include "chrome/common/pepper_permission_util.h"
 #include "chrome/common/url_constants.h"
 #include "chrome/grit/generated_resources.h"
+#include "chrome/grit/renderer_resources.h"
 #include "chrome/renderer/content_settings_observer.h"
 #include "chrome/renderer/loadtimes_extension_bindings.h"
 #include "chrome/renderer/pepper/chrome_pdf_print_client.h"
 #include "chrome/renderer/plugins/power_saver_info.h"
-#include "chrome/renderer/spellchecker/spellcheck.h"
-#include "chrome/renderer/spellchecker/spellcheck_provider.h"
 #include "components/content_settings/core/common/content_settings_types.h"
 #include "components/nacl/common/nacl_constants.h"
 #include "components/printing/renderer/print_web_view_helper.h"
+#include "components/spellcheck/renderer/spellcheck.h"
+#include "components/spellcheck/renderer/spellcheck_provider.h"
 #include "components/visitedlink/renderer/visitedlink_slave.h"
-#include "components/web_cache/renderer/web_cache_render_process_observer.h"
+#include "components/web_cache/renderer/web_cache_impl.h"
 #include "content/common/frame_messages.h"
 #include "content/public/browser/browser_thread.h"
 #include "content/public/browser/render_process_host.h"
@@ -69,6 +79,7 @@
 #include "ipc/ipc_sync_channel.h"
 #include "media/base/media.h"
 #include "printing/print_settings.h"
+#include "third_party/WebKit/public/platform/URLConversion.h"
 #include "third_party/WebKit/public/platform/WebPrerenderingSupport.h"
 #include "third_party/WebKit/public/platform/WebString.h"
 #include "third_party/WebKit/public/platform/WebURL.h"
@@ -92,9 +103,10 @@ namespace {
 // Stub implementation of blink::WebPrerenderingSupport.
 class CefPrerenderingSupport : public blink::WebPrerenderingSupport {
  private:
-  void add(const blink::WebPrerender& prerender) override {}
-  void cancel(const blink::WebPrerender& prerender) override {}
-  void abandon(const blink::WebPrerender& prerender) override {}
+  void Add(const blink::WebPrerender& prerender) override {}
+  void Cancel(const blink::WebPrerender& prerender) override {}
+  void Abandon(const blink::WebPrerender& prerender) override {}
+  void PrefetchFinished() override {}
 };
 
 // Stub implementation of blink::WebPrerendererClient.
@@ -104,13 +116,20 @@ class CefPrerendererClient : public content::RenderViewObserver,
   explicit CefPrerendererClient(content::RenderView* render_view)
       : content::RenderViewObserver(render_view) {
     DCHECK(render_view);
-    render_view->GetWebView()->setPrerendererClient(this);
+    render_view->GetWebView()->SetPrerendererClient(this);
   }
 
  private:
   ~CefPrerendererClient() override {}
 
-  void willAddPrerender(blink::WebPrerender* prerender) override {}
+  // RenderViewObserver methods:
+  void OnDestruct() override {
+    delete this;
+  }
+
+  // WebPrerendererClient methods:
+  void WillAddPrerender(blink::WebPrerender* prerender) override {}
+  bool IsPrefetchOnly() override { return false; }
 };
 
 void AppendParams(const std::vector<base::string16>& additional_names,
@@ -132,12 +151,13 @@ void AppendParams(const std::vector<base::string16>& additional_names,
   }
 
   for (size_t i = 0; i < additional_names.size(); ++i) {
-    names[existing_size + i] = additional_names[i];
-    values[existing_size + i] = additional_values[i];
+    names[existing_size + i] = blink::WebString::FromUTF16(additional_names[i]);
+    values[existing_size + i] =
+        blink::WebString::FromUTF16(additional_values[i]);
   }
 
-  existing_names->swap(names);
-  existing_values->swap(values);
+  existing_names->Swap(names);
+  existing_values->Swap(values);
 }
 
 }  // namespace
@@ -168,16 +188,11 @@ CefContentRendererClient::CefContentRendererClient()
     extensions::ExtensionsRendererClient::Set(
         extensions_renderer_client_.get());
   }
-#if defined(ENABLE_PRINTING)
+
   printing::SetAgent(CefContentClient::Get()->GetUserAgent());
-#endif
 }
 
 CefContentRendererClient::~CefContentRendererClient() {
-  if (!guest_views_.empty()) {
-    STLDeleteContainerPairSecondPointers(guest_views_.begin(),
-                                         guest_views_.end());
-  }
 }
 
 // static
@@ -204,7 +219,7 @@ CefRefPtr<CefBrowserImpl> CefContentRendererClient::GetBrowserForMainFrame(
   for (; it != browsers_.end(); ++it) {
     content::RenderView* render_view = it->second->render_view();
     if (render_view && render_view->GetWebView() &&
-        render_view->GetWebView()->mainFrame() == frame) {
+        render_view->GetWebView()->MainFrame() == frame) {
       return it->second;
     }
   }
@@ -236,8 +251,7 @@ bool CefContentRendererClient::HasGuestViewForView(
 void CefContentRendererClient::OnGuestViewDestroyed(CefGuestView* guest_view) {
   GuestViewMap::iterator it = guest_views_.begin();
   for (; it != guest_views_.end(); ++it) {
-    if (it->second == guest_view) {
-      delete it->second;
+    if (it->second.get() == guest_view) {
       guest_views_.erase(it);
       return;
     }
@@ -255,26 +269,26 @@ void CefContentRendererClient::WebKitInitialized() {
   CefV8IsolateCreated();
 
   // TODO(cef): Enable these once the implementation supports it.
-  blink::WebRuntimeFeatures::enableNotifications(false);
+  blink::WebRuntimeFeatures::EnableNotifications(false);
 
   const CefContentClient::SchemeInfoList* schemes =
       CefContentClient::Get()->GetCustomSchemes();
   if (!schemes->empty()) {
-    // Register the custom schemes.
+    // Register the custom schemes. The |is_standard| value is excluded here
+    // because it's not explicitly registered with Blink.
     CefContentClient::SchemeInfoList::const_iterator it = schemes->begin();
     for (; it != schemes->end(); ++it) {
       const CefContentClient::SchemeInfo& info = *it;
       const blink::WebString& scheme =
-          blink::WebString::fromUTF8(info.scheme_name);
-      if (info.is_standard) {
-        // Standard schemes must also be registered as CORS enabled to support
-        // CORS-restricted requests (for example, XMLHttpRequest redirects).
-        blink::WebSecurityPolicy::registerURLSchemeAsCORSEnabled(scheme);
-      }
+          blink::WebString::FromUTF8(info.scheme_name);
       if (info.is_local)
-        blink::WebSecurityPolicy::registerURLSchemeAsLocal(scheme);
+        webkit_glue::RegisterURLSchemeAsLocal(scheme);
       if (info.is_display_isolated)
-        blink::WebSecurityPolicy::registerURLSchemeAsDisplayIsolated(scheme);
+        blink::WebSecurityPolicy::RegisterURLSchemeAsDisplayIsolated(scheme);
+      if (info.is_secure)
+        webkit_glue::RegisterURLSchemeAsSecure(scheme);
+      if (info.is_cors_enabled)
+        webkit_glue::RegisterURLSchemeAsCORSEnabled(scheme);
     }
   }
 
@@ -284,10 +298,10 @@ void CefContentRendererClient::WebKitInitialized() {
       const Cef_CrossOriginWhiteListEntry_Params& entry =
           cross_origin_whitelist_entries_[i];
       GURL gurl = GURL(entry.source_origin);
-      blink::WebSecurityPolicy::addOriginAccessWhitelistEntry(
+      blink::WebSecurityPolicy::AddOriginAccessWhitelistEntry(
           gurl,
-          blink::WebString::fromUTF8(entry.target_protocol),
-          blink::WebString::fromUTF8(entry.target_domain),
+          blink::WebString::FromUTF8(entry.target_protocol),
+          blink::WebString::FromUTF8(entry.target_domain),
           entry.allow_target_subdomains);
     }
     cross_origin_whitelist_entries_.clear();
@@ -379,12 +393,11 @@ void CefContentRendererClient::RenderThreadStarted() {
       base::CommandLine::ForCurrentProcess();
 
   render_task_runner_ = base::ThreadTaskRunnerHandle::Get();
-  observer_.reset(new CefRenderProcessObserver());
-  web_cache_observer_.reset(new web_cache::WebCacheRenderProcessObserver());
+  observer_.reset(new CefRenderThreadObserver());
+  web_cache_impl_.reset(new web_cache::WebCacheImpl());
 
   content::RenderThread* thread = content::RenderThread::Get();
   thread->AddObserver(observer_.get());
-  thread->AddObserver(web_cache_observer_.get());
   thread->GetChannel()->AddFilter(new CefRenderMessageFilter);
 
   if (!command_line->HasSwitch(switches::kDisableSpellChecking)) {
@@ -392,16 +405,13 @@ void CefContentRendererClient::RenderThreadStarted() {
     thread->AddObserver(spellcheck_.get());
   }
 
-  visited_link_slave_.reset(new visitedlink::VisitedLinkSlave());
-  thread->AddObserver(visited_link_slave_.get());
-
   if (content::RenderProcessHost::run_renderer_in_process()) {
     // When running in single-process mode register as a destruction observer
     // on the render thread's MessageLoop.
     base::MessageLoop::current()->AddDestructionObserver(this);
   }
 
-  blink::WebPrerenderingSupport::initialize(new CefPrerenderingSupport());
+  blink::WebPrerenderingSupport::Initialize(new CefPrerenderingSupport());
 
   // Retrieve the new render thread information synchronously.
   CefProcessHostMsg_GetNewRenderThreadInfo_Params params;
@@ -411,7 +421,7 @@ void CefContentRendererClient::RenderThreadStarted() {
   cross_origin_whitelist_entries_ = params.cross_origin_whitelist_entries;
 
 #if defined(OS_MACOSX)
-  if (base::mac::IsOSLionOrLater()) {
+  {
     base::ScopedCFTypeRef<CFStringRef> key(
         base::SysUTF8ToCFStringRef("NSScrollViewRubberbanding"));
     base::ScopedCFTypeRef<CFStringRef> value;
@@ -450,15 +460,25 @@ void CefContentRendererClient::RenderThreadStarted() {
 
   // Register extensions last because it will trigger WebKit initialization.
   thread->RegisterExtension(extensions_v8::LoadTimesExtension::Get());
+
+  WebKitInitialized();
 }
 
 void CefContentRendererClient::RenderFrameCreated(
     content::RenderFrame* render_frame) {
   new CefRenderFrameObserver(render_frame);
   new CefPepperHelper(render_frame);
+  new printing::PrintWebViewHelper(
+      render_frame,
+      base::WrapUnique(new extensions::CefPrintWebViewHelperDelegate()));
 
   if (extensions::ExtensionsEnabled())
     extensions_renderer_client_->RenderFrameCreated(render_frame);
+
+  const base::CommandLine* command_line =
+      base::CommandLine::ForCurrentProcess();
+  if (!command_line->HasSwitch(switches::kDisableSpellChecking))
+    new SpellCheckProvider(render_frame, spellcheck_.get());
 
   BrowserCreated(render_frame->GetRenderView(), render_frame);
 }
@@ -466,18 +486,22 @@ void CefContentRendererClient::RenderFrameCreated(
 void CefContentRendererClient::RenderViewCreated(
     content::RenderView* render_view) {
   new CefPrerendererClient(render_view);
-  new printing::PrintWebViewHelper(
-      render_view,
-      make_scoped_ptr<printing::PrintWebViewHelper::Delegate>(
-          new extensions::CefPrintWebViewHelperDelegate()));
 
   if (extensions::ExtensionsEnabled())
     extensions_renderer_client_->RenderViewCreated(render_view);
 
   const base::CommandLine* command_line =
       base::CommandLine::ForCurrentProcess();
-  if (!command_line->HasSwitch(switches::kDisableSpellChecking))
-    new SpellCheckProvider(render_view, spellcheck_.get());
+  if (!command_line->HasSwitch(switches::kDisableSpellChecking)) {
+    // This is a workaround keeping the behavior that, the Blink side spellcheck
+    // enabled state is initialized on RenderView creation.
+    // TODO(xiaochengh): Design better way to sync between Chrome-side and
+    // Blink-side spellcheck enabled states.  See crbug.com/710097.
+    if (SpellCheckProvider* provider =
+            SpellCheckProvider::Get(render_view->GetMainRenderFrame())) {
+      provider->EnableSpellcheck(spellcheck_->IsSpellcheckEnabled());
+    }
+  }
 
   BrowserCreated(render_view, render_view->GetMainRenderFrame());
 }
@@ -487,7 +511,7 @@ bool CefContentRendererClient::OverrideCreatePlugin(
     blink::WebLocalFrame* frame,
     const blink::WebPluginParams& params,
     blink::WebPlugin** plugin) {
-  std::string orig_mime_type = params.mimeType.utf8();
+  std::string orig_mime_type = params.mime_type.Utf8();
   if (extensions::ExtensionsEnabled() &&
       !extensions_renderer_client_->OverrideCreatePlugin(render_frame,
                                                          params)) {
@@ -496,10 +520,9 @@ bool CefContentRendererClient::OverrideCreatePlugin(
 
   GURL url(params.url);
   CefViewHostMsg_GetPluginInfo_Output output;
-  blink::WebString top_origin = frame->top()->securityOrigin().toString();
   render_frame->Send(new CefViewHostMsg_GetPluginInfo(
-      render_frame->GetRoutingID(), url, GURL(top_origin), orig_mime_type,
-      &output));
+      render_frame->GetRoutingID(), url, render_frame->IsMainFrame(),
+      frame->Top()->GetSecurityOrigin(), orig_mime_type, &output));
 
   *plugin = CreatePlugin(render_frame, frame, params, output);
   return true;
@@ -508,7 +531,7 @@ bool CefContentRendererClient::OverrideCreatePlugin(
 bool CefContentRendererClient::HandleNavigation(
     content::RenderFrame* render_frame,
     bool is_content_initiated,
-    int opener_id,
+    bool render_view_was_created_by_renderer,
     blink::WebFrame* frame,
     const blink::WebURLRequest& request,
     blink::WebNavigationType type,
@@ -520,7 +543,7 @@ bool CefContentRendererClient::HandleNavigation(
         application->GetRenderProcessHandler();
     if (handler.get()) {
       CefRefPtr<CefBrowserImpl> browserPtr =
-          CefBrowserImpl::GetBrowserForMainFrame(frame->top());
+          CefBrowserImpl::GetBrowserForMainFrame(frame->Top());
       if (browserPtr.get()) {
         CefRefPtr<CefFrameImpl> framePtr = browserPtr->GetWebFrameImpl(frame);
         CefRefPtr<CefRequest> requestPtr(CefRequest::Create());
@@ -531,22 +554,22 @@ bool CefContentRendererClient::HandleNavigation(
 
         cef_navigation_type_t navigation_type = NAVIGATION_OTHER;
         switch (type) {
-          case blink::WebNavigationTypeLinkClicked:
+          case blink::kWebNavigationTypeLinkClicked:
             navigation_type = NAVIGATION_LINK_CLICKED;
             break;
-          case blink::WebNavigationTypeFormSubmitted:
+          case blink::kWebNavigationTypeFormSubmitted:
             navigation_type = NAVIGATION_FORM_SUBMITTED;
             break;
-          case blink::WebNavigationTypeBackForward:
+          case blink::kWebNavigationTypeBackForward:
             navigation_type = NAVIGATION_BACK_FORWARD;
             break;
-          case blink::WebNavigationTypeReload:
+          case blink::kWebNavigationTypeReload:
             navigation_type = NAVIGATION_RELOAD;
             break;
-          case blink::WebNavigationTypeFormResubmitted:
+          case blink::kWebNavigationTypeFormResubmitted:
             navigation_type = NAVIGATION_FORM_RESUBMITTED;
             break;
-          case blink::WebNavigationTypeOther:
+          case blink::kWebNavigationTypeOther:
             navigation_type = NAVIGATION_OTHER;
             break;
         }
@@ -569,7 +592,7 @@ bool CefContentRendererClient::ShouldFork(blink::WebLocalFrame* frame,
                                           bool is_initial_navigation,
                                           bool is_server_redirect,
                                           bool* send_referrer) {
-  DCHECK(!frame->parent());
+  DCHECK(!frame->Parent());
 
   // For now, we skip the rest for POST submissions.  This is because
   // http://crbug.com/101395 is more likely to cause compatibility issues
@@ -587,10 +610,9 @@ bool CefContentRendererClient::ShouldFork(blink::WebLocalFrame* frame,
 }
 
 bool CefContentRendererClient::WillSendRequest(
-    blink::WebFrame* frame,
+    blink::WebLocalFrame* frame,
     ui::PageTransition transition_type,
-    const GURL& url,
-    const GURL& first_party_for_cookies,
+    const blink::WebURL& url,
     GURL* new_url) {
   if (extensions::ExtensionsEnabled()) {
     return extensions_renderer_client_->WillSendRequest(frame, transition_type,
@@ -602,11 +624,12 @@ bool CefContentRendererClient::WillSendRequest(
 
 unsigned long long CefContentRendererClient::VisitedLinkHash(
     const char* canonical_url, size_t length) {
-  return visited_link_slave_->ComputeURLFingerprint(canonical_url, length);
+  return observer_->visited_link_slave()->ComputeURLFingerprint(canonical_url,
+                                                                length);
 }
 
 bool CefContentRendererClient::IsLinkVisited(unsigned long long link_hash) {
-  return visited_link_slave_->IsVisited(link_hash);
+  return observer_->visited_link_slave()->IsVisited(link_hash);
 }
 
 content::BrowserPluginDelegate*
@@ -619,24 +642,32 @@ CefContentRendererClient::CreateBrowserPluginDelegate(
        render_frame, mime_type, original_url);
 }
 
-void CefContentRendererClient::AddKeySystems(
-    std::vector<media::KeySystemInfo>* key_systems) {
+void CefContentRendererClient::AddSupportedKeySystems(
+    std::vector<std::unique_ptr<::media::KeySystemProperties>>* key_systems) {
   AddCefKeySystems(key_systems);
+}
+
+void CefContentRendererClient::RunScriptsAtDocumentStart(
+    content::RenderFrame* render_frame) {
+  if (extensions::ExtensionsEnabled())
+    extensions_renderer_client_->RunScriptsAtDocumentStart(render_frame);
+}
+
+void CefContentRendererClient::RunScriptsAtDocumentEnd(
+    content::RenderFrame* render_frame) {
+  if (extensions::ExtensionsEnabled())
+    extensions_renderer_client_->RunScriptsAtDocumentEnd(render_frame);
+}
+
+void CefContentRendererClient::RunScriptsAtDocumentIdle(
+    content::RenderFrame* render_frame) {
+  if (extensions::ExtensionsEnabled())
+    extensions_renderer_client_->RunScriptsAtDocumentIdle(render_frame);
 }
 
 void CefContentRendererClient::WillDestroyCurrentMessageLoop() {
   base::AutoLock lock_scope(single_process_cleanup_lock_);
   single_process_cleanup_complete_ = true;
-}
-
-// static
-bool CefContentRendererClient::IsExtensionOrSharedModuleWhitelisted(
-    const GURL& url, const std::set<std::string>& whitelist) {
-  DCHECK(extensions::ExtensionsEnabled());
-  const extensions::ExtensionSet* extension_set =
-      extensions::RendererExtensionRegistry::Get()->GetMainThreadExtensionSet();
-  return chrome::IsExtensionOrSharedModuleWhitelisted(url, extension_set,
-      whitelist);
 }
 
 // static
@@ -651,7 +682,7 @@ blink::WebPlugin* CefContentRendererClient::CreatePlugin(
   const std::string& identifier = output.group_identifier;
   CefViewHostMsg_GetPluginInfo_Status status = output.status;
   GURL url(original_params.url);
-  std::string orig_mime_type = original_params.mimeType.utf8();
+  std::string orig_mime_type = original_params.mime_type.Utf8();
   CefPluginPlaceholder* placeholder = NULL;
 
   // If the browser plugin is to be enabled, this should be handled by the
@@ -668,16 +699,16 @@ blink::WebPlugin* CefContentRendererClient::CreatePlugin(
       if (info.mime_types[i].mime_type == actual_mime_type) {
         AppendParams(info.mime_types[i].additional_param_names,
                      info.mime_types[i].additional_param_values,
-                     &params.attributeNames, &params.attributeValues);
+                     &params.attribute_names, &params.attribute_values);
         break;
       }
     }
-    if (params.mimeType.isNull() && (actual_mime_type.size() > 0)) {
+    if (params.mime_type.IsNull() && (actual_mime_type.size() > 0)) {
       // Webkit might say that mime type is null while we already know the
       // actual mime type via CefViewHostMsg_GetPluginInfo. In that case
       // we should use what we know since WebpluginDelegateProxy does some
       // specific initializations based on this information.
-      params.mimeType = blink::WebString::fromUTF8(actual_mime_type.c_str());
+      params.mime_type = blink::WebString::FromUTF8(actual_mime_type);
     }
 
     auto create_blocked_plugin = [&render_frame, &frame, &params, &info,
@@ -705,7 +736,7 @@ blink::WebPlugin* CefContentRendererClient::CreatePlugin(
 
         PowerSaverInfo power_saver_info =
             PowerSaverInfo::Get(render_frame, power_saver_setting_on, params,
-                                info, frame->document().url());
+                                info, frame->GetDocument().Url());
         if (power_saver_info.blocked_for_background_tab || is_prerendering ||
             !power_saver_info.poster_attribute.empty()) {
           placeholder = CefPluginPlaceholder::CreateBlockedPlugin(
@@ -720,9 +751,10 @@ blink::WebPlugin* CefContentRendererClient::CreatePlugin(
           break;
         }
 
-        scoped_ptr<content::PluginInstanceThrottler> throttler;
+        std::unique_ptr<content::PluginInstanceThrottler> throttler;
         if (power_saver_info.power_saver_enabled) {
-          throttler = content::PluginInstanceThrottler::Create();
+          throttler = content::PluginInstanceThrottler::Create(
+              content::RenderFrame::DONT_RECORD_DECISION);
           // PluginPreroller manages its own lifetime.
           new CefPluginPreroller(
               render_frame, frame, params, info, identifier, group_name,
@@ -732,14 +764,6 @@ blink::WebPlugin* CefContentRendererClient::CreatePlugin(
 
         return render_frame->CreatePlugin(frame, info, params,
                                           std::move(throttler));
-      }
-      case CefViewHostMsg_GetPluginInfo_Status::kNPAPINotSupported: {
-        content::RenderThread::Get()->RecordAction(
-            base::UserMetricsAction("Plugin_NPAPINotSupported"));
-        placeholder = create_blocked_plugin(
-            IDR_BLOCKED_PLUGIN_HTML,
-            l10n_util::GetStringUTF16(IDS_PLUGIN_NOT_SUPPORTED_METRO));
-        break;
       }
       case CefViewHostMsg_GetPluginInfo_Status::kDisabled: {
         // Intentionally using the blocked plugin resources instead of the
@@ -786,6 +810,8 @@ blink::WebPlugin* CefContentRendererClient::CreatePlugin(
             base::UserMetricsAction("Plugin_BlockedByPolicy"));
         break;
       }
+      default:
+        break;
     }
   }
   placeholder->SetStatus(status);
@@ -831,7 +857,8 @@ void CefContentRendererClient::BrowserCreated(
   if (params.is_guest_view) {
     // Don't create a CefBrowser for guest views.
     guest_views_.insert(
-        std::make_pair(render_view, new CefGuestView(render_view)));
+        std::make_pair(render_view,
+                       base::MakeUnique<CefGuestView>(render_view)));
     return;
   }
 
@@ -840,7 +867,7 @@ void CefContentRendererClient::BrowserCreated(
   // WebKit layer, or if it would be exposed as an WebView instance method; the
   // current implementation uses a static variable, and WebKit needs to be
   // patched in order to make it work for each WebView instance
-  render_view->GetWebView()->setUseExternalPopupMenusThisInstance(
+  render_view->GetWebView()->SetUseExternalPopupMenusThisInstance(
       !params.is_windowless);
 #endif
 
@@ -887,3 +914,9 @@ void CefContentRendererClient::RunSingleProcessCleanupOnUIThread() {
   if (!CefContext::Get()->settings().multi_threaded_message_loop)
     delete host;
 }
+
+
+// Enable deprecation warnings for MSVC. See http://crbug.com/585142.
+#if defined(OS_WIN)
+#pragma warning(pop)
+#endif

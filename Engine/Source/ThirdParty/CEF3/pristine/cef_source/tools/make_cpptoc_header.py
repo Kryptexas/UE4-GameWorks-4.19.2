@@ -28,15 +28,15 @@ def make_cpptoc_header(header, clsname):
 
     if dllside:
         result += """
-#ifndef BUILDING_CEF_SHARED
-#pragma message("Warning: "__FILE__" may be accessed DLL-side only")
-#else  // BUILDING_CEF_SHARED
+#if !defined(BUILDING_CEF_SHARED)
+#error This file can be included DLL-side only
+#endif
 """
     else:
         result += """
-#ifndef USING_CEF_SHARED
-#pragma message("Warning: "__FILE__" may be accessed wrapper-side only")
-#else  // USING_CEF_SHARED
+#if !defined(WRAPPING_CEF_SHARED)
+#error This file can be included wrapper-side only
+#endif
 """
 
     # include the headers for this class
@@ -51,10 +51,17 @@ def make_cpptoc_header(header, clsname):
               result += '#include "include/'+dcls.get_file_name()+'"\n' \
                         '#include "include/capi/'+dcls.get_capi_file_name()+'"\n'
 
-    result += """#include "libcef_dll/cpptoc/cpptoc.h"
+    base_class_name = header.get_base_class_name(clsname)
+    base_scoped = True if base_class_name == 'CefBaseScoped' else False
+    if base_scoped:
+        template_file = 'cpptoc_scoped.h'
+        template_class = 'CefCppToCScoped'
+    else:
+        template_file = 'cpptoc_ref_counted.h'
+        template_class = 'CefCppToCRefCounted'
 
-// Wrap a C++ class with a C structure.
-"""
+    result += '#include "libcef_dll/cpptoc/' + template_file + '"'
+    result += '\n\n// Wrap a C++ class with a C structure.\n'
 
     if dllside:
         result += '// This class may be instantiated and accessed DLL-side only.\n'
@@ -62,15 +69,10 @@ def make_cpptoc_header(header, clsname):
         result += '// This class may be instantiated and accessed wrapper-side only.\n'
 
     result +=  'class '+clsname+'CppToC\n'+ \
-               '    : public CefCppToC<'+clsname+'CppToC, '+clsname+', '+capiname+'> {\n'+ \
+               '    : public ' + template_class + '<'+clsname+'CppToC, '+clsname+', '+capiname+'> {\n'+ \
                ' public:\n'+ \
                '  '+clsname+'CppToC();\n'+ \
                '};\n\n'
-
-    if dllside:
-        result += '#endif  // BUILDING_CEF_SHARED\n'
-    else:
-        result += '#endif  // USING_CEF_SHARED\n'
 
     result += '#endif  // CEF_LIBCEF_DLL_CPPTOC_'+defname+'_CPPTOC_H_'
 
@@ -92,6 +94,9 @@ def write_cpptoc_header(header, clsname, dir, backup):
     if newcontents != oldcontents:
         if backup and oldcontents != '':
             backup_file(file)
+        file_dir = os.path.split(file)[0]
+        if not os.path.isdir(file_dir):
+            make_dir(file_dir)
         write_file(file, newcontents)
         return True
 

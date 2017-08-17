@@ -231,13 +231,13 @@ bool FSlateD3DTextureManager::LoadTexture( const FSlateBrush& InBrush, uint32& O
 		}
 		else
 		{
-			UE_LOG(LogSlateD3D, Log, TEXT("Only pngs are supported in Slate"));
+			UE_LOG(LogSlateD3D, Log, TEXT("Only pngs are supported in Slate. [%s] '%s'"), *InBrush.GetResourceName().ToString(), *ResourcePath);
 			bSucceeded = false;
 		}
 	}
 	else
 	{
-		UE_LOG(LogSlateD3D, Log, TEXT("Could not find file for Slate resource: %s"), *InBrush.GetResourceName().ToString() );
+		UE_LOG(LogSlateD3D, Log, TEXT("Could not find file for Slate resource: [%s] '%s'"), *InBrush.GetResourceName().ToString(), *ResourcePath);
 		bSucceeded = false;
 	}
 

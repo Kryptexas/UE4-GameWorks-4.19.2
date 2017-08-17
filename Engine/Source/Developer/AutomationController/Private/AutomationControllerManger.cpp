@@ -337,7 +337,7 @@ bool FAutomationControllerManager::GenerateJsonTestPassSummary(const FAutomatedT
 		}
 	}
 	
-	UE_LOG(AutomationControllerLog, Error, TEXT("Test Report Json is invalid - report not generated."));
+	UE_LOG(AutomationControllerLog, Warning, TEXT("Test Report Json is invalid - report not generated."));
 	return false;
 }
 
@@ -355,7 +355,7 @@ bool FAutomationControllerManager::GenerateHtmlTestPassSummary(const FAutomatedT
 		}
 	}
 	
-	UE_LOG(AutomationControllerLog, Error, TEXT("Test Report Html is invalid - report not generated."));
+	UE_LOG(AutomationControllerLog, Warning, TEXT("Test Report Html is invalid - report not generated."));
 	return false;
 }
 

@@ -33,12 +33,22 @@
 //
 // BCI = CefBrowserContextImpl
 //   Entry point from WC when using an isolated RCI. Owns the RC and creates the
-//   URCGI. Life span controlled by RCI and (for the global context)
-//   CefBrowserMainParts.
+//   SPI indirectly. Owned by CefBrowserMainParts for the global context or RCI
+//   for non-global contexts.
 //
 // BCP = CefBrowserContextProxy
 //   Entry point from WC when using a custom RCI. Owns the RC and creates the
-//   URCGP. Life span controlled by RCI.
+//   URCGP and SPP. Owned by RCI.
+//
+// SPI = content::StoragePartitionImpl
+//   Owns storage-related objects like Quota, IndexedDB, Cache, etc. Created by
+//   StoragePartitionImplMap::Get(). Provides access to the URCGI. Life span is
+//   controlled indirectly by BCI.
+//
+// SPP = CefStoragePartitionProxy
+//   Forwards requests for storage-related objects to SPI. Created by
+//   GetStoragePartitionFromConfig() calling BCI::GetStoragePartitionProxy().
+//   Provides access to the URCGP. Life span is controlled by BCP.
 //
 // RC = CefResourceContext
 //   Acts as a bridge for resource loading. URLRequest life span is tied to this
@@ -46,11 +56,14 @@
 //   controlled by BCI/BCP.
 //
 // URCGI = CefURLRequestContextGetterImpl
-//   Creates and owns the URCI. Life span is controlled by RC and (for the
-//   global context) CefBrowserMainParts.
+//   Creates and owns the URCI. Created by StoragePartitionImplMap::Get()
+//   calling BCI::CreateRequestContext(). Life span is controlled by RC and (for
+//   the global context) CefBrowserMainParts, and SPI.
 //
 // URCGP = CefURLRequestContextGetterProxy
-//   Creates and owns the URCP. Life span is controlled by RC.
+//   Creates and owns the URCP. Created by GetStoragePartitionFromConfig()
+//   calling BCI::GetStoragePartitionProxy(). Life span is controlled by RC and
+//   SPP.
 //
 // URCI = CefURLRequestContextImpl
 //   Owns various network-related objects including the isolated cookie manager.
@@ -70,29 +83,29 @@
 //
 // Relationship diagram:
 //   ref = reference (CefRefPtr/scoped_refptr)
-//   own = ownership (scoped_ptr)
+//   own = ownership (std::unique_ptr)
 //   ptr = raw pointer
 //
-//                    CefBrowserMainParts      isolated cookie manager, etc...
-//                       |           |            ^
-//                      ref         ref        ref/own
-//                       v           v            |
-//                /---> BCI -ref-> URCGI --own-> URCI <-ptr-- CSP
-//               /       ^           ^                        ^
-//             ptr      ref         ref                      /
-//             /         |           |                      /
-// BHI -own-> WC -ptr-> BCP -ref-> URCGP -own-> URCP --ref-/
+//                     CefBrowserMainParts----\   isolated cookie manager, etc.
+//                       |                     \             ^
+//                      own                    ref        ref/own
+//                       v                      v            |
+//                /---> BCI -own-> SPI -ref-> URCGI --own-> URCI <-ptr-- CSP
+//               /       ^          ^           ^                        ^
+//             ptr      ptr        ptr         ref                      /
+//             /         |          |           |                      /
+// BHI -own-> WC -ptr-> BCP -own-> SPP -ref-> URCGP -own-> URCP --ref-/
 //
-// BHI -ref-> RCI -ref-> BCI/BCP -own-> RC -ref-> URCGI/URCGP
+// BHI -ref-> RCI -own-> BCI/BCP -own-> RC -ref-> URCGI/URCGP
 //
 //
 // How shutdown works:
 // 1. CefBrowserHostImpl is destroyed on any thread due to browser close,
 //    ref release, etc.
-// 2. CefRequestContextImpl is destroyed on any thread due to
-//    CefBrowserHostImpl destruction, ref release, etc.
+// 2. CefRequestContextImpl is destroyed (possibly asynchronously) on the UI
+//    thread due to CefBrowserHostImpl destruction, ref release, etc.
 // 3. CefBrowserContext* is destroyed on the UI thread due to
-//    CefRequestContextImpl destruction (*Impl, *Proxy) or ref release in
+//    CefRequestContextImpl destruction (*Impl, *Proxy) or deletion in
 //    CefBrowserMainParts::PostMainMessageLoopRun() (*Impl).
 // 4. CefResourceContext is destroyed asynchronously on the IO thread due to
 //    CefBrowserContext* destruction. This cancels/destroys any pending
@@ -115,18 +128,20 @@ class CefExtensionSystem;
 // Main entry point for configuring behavior on a per-browser basis. An instance
 // of this class is passed to WebContents::Create in CefBrowserHostImpl::
 // CreateInternal. Only accessed on the UI thread unless otherwise indicated.
-class CefBrowserContext
-    : public ChromeProfileStub,
-      public base::RefCountedThreadSafe<
-          CefBrowserContext, content::BrowserThread::DeleteOnUIThread> {
+class CefBrowserContext : public ChromeProfileStub {
  public:
-  CefBrowserContext();
+  explicit CefBrowserContext(bool is_proxy);
 
   // Must be called immediately after this object is created.
   virtual void Initialize();
 
   // BrowserContext methods.
   content::ResourceContext* GetResourceContext() override;
+  net::URLRequestContextGetter* GetRequestContext() override;
+  net::URLRequestContextGetter* CreateMediaRequestContext() override;
+  net::URLRequestContextGetter* CreateMediaRequestContextForStoragePartition(
+      const base::FilePath& partition_path,
+      bool in_memory) override;
 
   // Profile methods.
   ChromeZoomLevelPrefs* GetZoomLevelPrefs() override;
@@ -139,22 +154,24 @@ class CefBrowserContext
   // thread.
   virtual CefRefPtr<CefRequestContextHandler> GetHandler() const = 0;
 
-  // Called from CefContentBrowserClient to create the URLRequestContextGetter.
-  virtual net::URLRequestContextGetter* CreateRequestContext(
-      content::ProtocolHandlerMap* protocol_handlers,
-      content::URLRequestInterceptorScopedVector request_interceptors) = 0;
-  virtual net::URLRequestContextGetter* CreateRequestContextForStoragePartition(
-      const base::FilePath& partition_path,
-      bool in_memory,
-      content::ProtocolHandlerMap* protocol_handlers,
-      content::URLRequestInterceptorScopedVector request_interceptors) = 0;
-
   // Settings for plugins and extensions.
   virtual HostContentSettingsMap* GetHostContentSettingsMap() = 0;
 
   // Called from CefBrowserHostImpl::DidNavigateAnyFrame to update the table of
   // visited links.
   virtual void AddVisitedURLs(const std::vector<GURL>& urls) = 0;
+
+  // Called from CefBrowserHostImpl::RenderFrameDeleted or
+  // CefMimeHandlerViewGuestDelegate::OnGuestDetached when a render frame is
+  // deleted.
+  void OnRenderFrameDeleted(int render_process_id,
+                            int render_frame_id,
+                            bool is_main_frame,
+                            bool is_guest_view);
+
+  // Called from CefRequestContextImpl::PurgePluginListCacheInternal when the
+  // plugin list cache should be purged.
+  void OnPurgePluginListCache();
 
   CefResourceContext* resource_context() const {
     return resource_context_.get();
@@ -163,24 +180,24 @@ class CefBrowserContext
     return extension_system_;
   }
 
-#ifndef NDEBUG
-  // Simple tracking of allocated objects.
-  static base::AtomicRefCount DebugObjCt;  // NOLINT(runtime/int)
-#endif
+  bool is_proxy() const {
+    return is_proxy_;
+  }
 
  protected:
   ~CefBrowserContext() override;
+
+  // Must be called after all services have been initialized.
+  void PostInitialize();
 
   // Must be called before the child object destructor has completed.
   void Shutdown();
 
  private:
-  // Only allow deletion via scoped_refptr().
-  friend struct content::BrowserThread::DeleteOnThread<
-      content::BrowserThread::UI>;
-  friend class base::DeleteHelper<CefBrowserContext>;
+  // True if this CefBrowserContext is a CefBrowserContextProxy.
+  const bool is_proxy_;
 
-  scoped_ptr<CefResourceContext> resource_context_;
+  std::unique_ptr<CefResourceContext> resource_context_;
 
   // Owned by the KeyedService system.
   extensions::CefExtensionSystem* extension_system_;

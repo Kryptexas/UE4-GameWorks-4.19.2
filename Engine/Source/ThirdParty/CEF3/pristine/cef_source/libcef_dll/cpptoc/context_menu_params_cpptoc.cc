@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -123,6 +123,21 @@ int CEF_CALLBACK context_menu_params_has_image_contents(
 
   // Return type: bool
   return _retval;
+}
+
+cef_string_userfree_t CEF_CALLBACK context_menu_params_get_title_text(
+    struct _cef_context_menu_params_t* self) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  DCHECK(self);
+  if (!self)
+    return NULL;
+
+  // Execute
+  CefString _retval = CefContextMenuParamsCppToC::Get(self)->GetTitleText();
+
+  // Return type: string
+  return _retval.DetachToUserFree();
 }
 
 cef_string_userfree_t CEF_CALLBACK context_menu_params_get_page_url(
@@ -352,6 +367,7 @@ CefContextMenuParamsCppToC::CefContextMenuParamsCppToC() {
       context_menu_params_get_unfiltered_link_url;
   GetStruct()->get_source_url = context_menu_params_get_source_url;
   GetStruct()->has_image_contents = context_menu_params_has_image_contents;
+  GetStruct()->get_title_text = context_menu_params_get_title_text;
   GetStruct()->get_page_url = context_menu_params_get_page_url;
   GetStruct()->get_frame_url = context_menu_params_get_frame_url;
   GetStruct()->get_frame_charset = context_menu_params_get_frame_charset;
@@ -370,18 +386,18 @@ CefContextMenuParamsCppToC::CefContextMenuParamsCppToC() {
   GetStruct()->is_pepper_menu = context_menu_params_is_pepper_menu;
 }
 
-template<> CefRefPtr<CefContextMenuParams> CefCppToC<CefContextMenuParamsCppToC,
+template<> CefRefPtr<CefContextMenuParams> CefCppToCRefCounted<CefContextMenuParamsCppToC,
     CefContextMenuParams, cef_context_menu_params_t>::UnwrapDerived(
     CefWrapperType type, cef_context_menu_params_t* s) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
-#ifndef NDEBUG
-template<> base::AtomicRefCount CefCppToC<CefContextMenuParamsCppToC,
+#if DCHECK_IS_ON()
+template<> base::AtomicRefCount CefCppToCRefCounted<CefContextMenuParamsCppToC,
     CefContextMenuParams, cef_context_menu_params_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCppToC<CefContextMenuParamsCppToC,
+template<> CefWrapperType CefCppToCRefCounted<CefContextMenuParamsCppToC,
     CefContextMenuParams, cef_context_menu_params_t>::kWrapperType =
     WT_CONTEXT_MENU_PARAMS;

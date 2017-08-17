@@ -8,8 +8,10 @@
 #include <utility>
 
 #include "libcef/browser/browser_context_proxy.h"
+#include "libcef/browser/content_browser_client.h"
 #include "libcef/browser/context.h"
 #include "libcef/browser/download_manager_delegate.h"
+#include "libcef/browser/extensions/extension_system.h"
 #include "libcef/browser/permissions/permission_manager.h"
 #include "libcef/browser/prefs/browser_prefs.h"
 #include "libcef/browser/ssl_host_state_delegate.h"
@@ -21,7 +23,6 @@
 #include "base/files/file_util.h"
 #include "base/lazy_instance.h"
 #include "base/logging.h"
-#include "base/prefs/pref_service.h"
 #include "base/strings/string_util.h"
 #include "base/threading/thread_restrictions.h"
 #include "chrome/browser/font_family_cache.h"
@@ -29,12 +30,15 @@
 #include "chrome/browser/ui/zoom/chrome_zoom_level_prefs.h"
 #include "components/content_settings/core/browser/host_content_settings_map.h"
 #include "components/guest_view/browser/guest_view_manager.h"
-#include "components/ui/zoom/zoom_event_manager.h"
+#include "components/prefs/pref_service.h"
 #include "components/visitedlink/browser/visitedlink_event_listener.h"
 #include "components/visitedlink/browser/visitedlink_master.h"
+#include "components/zoom/zoom_event_manager.h"
 #include "content/public/browser/download_manager.h"
 #include "content/public/browser/browser_thread.h"
 #include "content/public/browser/storage_partition.h"
+#include "extensions/browser/extension_protocols.h"
+#include "extensions/common/constants.h"
 #include "net/proxy/proxy_config_service.h"
 
 using content::BrowserThread;
@@ -81,10 +85,22 @@ class ImplManager {
   CefBrowserContextImpl* GetImplForContext(
       const content::BrowserContext* context) {
     CEF_REQUIRE_UIT();
+    if (!context)
+      return NULL;
+
+    const CefBrowserContext* cef_context =
+        static_cast<const CefBrowserContext*>(context);
+    const CefBrowserContextImpl* cef_context_impl = nullptr;
+    if (cef_context->is_proxy()) {
+      cef_context_impl =
+          static_cast<const CefBrowserContextProxy*>(cef_context)->parent();
+    } else {
+      cef_context_impl = static_cast<const CefBrowserContextImpl*>(cef_context);
+    }
 
     Vector::iterator it = all_.begin();
     for (; it != all_.end(); ++it) {
-      if (*it == context || (*it)->HasProxy(context))
+      if (*it == cef_context_impl)
         return *it;
     }
     return NULL;
@@ -127,7 +143,14 @@ class ImplManager {
   DISALLOW_COPY_AND_ASSIGN(ImplManager);
 };
 
-base::LazyInstance<ImplManager> g_manager = LAZY_INSTANCE_INITIALIZER;
+#if DCHECK_IS_ON()
+// Because of DCHECK()s in the object destructor.
+base::LazyInstance<ImplManager>::DestructorAtExit g_manager =
+    LAZY_INSTANCE_INITIALIZER;
+#else
+base::LazyInstance<ImplManager>::Leaky g_manager =
+    LAZY_INSTANCE_INITIALIZER;
+#endif
 
 }  // namespace
 
@@ -135,20 +158,14 @@ base::LazyInstance<ImplManager> g_manager = LAZY_INSTANCE_INITIALIZER;
 // CefBrowserContext sharing the same VisitedLinkMaster.
 class CefVisitedLinkListener : public visitedlink::VisitedLinkMaster::Listener {
  public:
-  CefVisitedLinkListener()
-      : master_(nullptr) {
-  }
-
-  void set_master(visitedlink::VisitedLinkMaster* master) {
-    DCHECK(!master_);
-    master_ = master;
+  CefVisitedLinkListener() {
+    DCHECK(listener_map_.empty());
   }
 
   void CreateListenerForContext(const CefBrowserContext* context) {
     CEF_REQUIRE_UIT();
-    scoped_ptr<visitedlink::VisitedLinkEventListener> listener(
-        new visitedlink::VisitedLinkEventListener(
-            master_, const_cast<CefBrowserContext*>(context)));
+    auto listener = base::MakeUnique<visitedlink::VisitedLinkEventListener>(
+        const_cast<CefBrowserContext*>(context));
     listener_map_.insert(std::make_pair(context, std::move(listener)));
   }
 
@@ -161,11 +178,11 @@ class CefVisitedLinkListener : public visitedlink::VisitedLinkMaster::Listener {
 
   // visitedlink::VisitedLinkMaster::Listener methods.
 
-  void NewTable(base::SharedMemory* shared_memory) override {
+  void NewTable(mojo::SharedBufferHandle table) override {
     CEF_REQUIRE_UIT();
     ListenerMap::iterator it = listener_map_.begin();
     for (; it != listener_map_.end(); ++it)
-      it->second->NewTable(shared_memory);
+      it->second->NewTable(table);
   }
 
   void Add(visitedlink::VisitedLinkCommon::Fingerprint fingerprint) override {
@@ -183,12 +200,10 @@ class CefVisitedLinkListener : public visitedlink::VisitedLinkMaster::Listener {
   }
 
  private:
-  visitedlink::VisitedLinkMaster* master_;
-
   // Map of CefBrowserContext to the associated VisitedLinkEventListener.
   typedef std::map<const CefBrowserContext*,
-                   scoped_ptr<visitedlink::VisitedLinkEventListener> >
-                      ListenerMap;
+                   std::unique_ptr<visitedlink::VisitedLinkEventListener> >
+      ListenerMap;
   ListenerMap listener_map_;
 
   DISALLOW_COPY_AND_ASSIGN(CefVisitedLinkListener);
@@ -196,12 +211,23 @@ class CefVisitedLinkListener : public visitedlink::VisitedLinkMaster::Listener {
 
 CefBrowserContextImpl::CefBrowserContextImpl(
     const CefRequestContextSettings& settings)
-    : settings_(settings) {
+    : CefBrowserContext(false),
+      settings_(settings) {
   g_manager.Get().AddImpl(this);
 }
 
 CefBrowserContextImpl::~CefBrowserContextImpl() {
+  CEF_REQUIRE_UIT();
+
+  // No CefRequestContextImpl should be referencing this object any longer.
+  DCHECK_EQ(request_context_count_, 0);
+
+  // Unregister the context first to avoid re-entrancy during shutdown.
+  g_manager.Get().RemoveImpl(this, cache_path_);
+
   Shutdown();
+
+  visitedlink_listener_->RemoveListenerForContext(this);
 
   // The FontFamilyCache references the ProxyService so delete it before the
   // ProxyService is deleted.
@@ -209,15 +235,15 @@ CefBrowserContextImpl::~CefBrowserContextImpl() {
 
   pref_proxy_config_tracker_->DetachFromPrefService();
 
-  if (host_content_settings_map_.get())
+  if (url_request_getter_)
+    url_request_getter_->ShutdownOnUIThread();
+  if (host_content_settings_map_)
     host_content_settings_map_->ShutdownOnUIThread();
 
   // Delete the download manager delegate here because otherwise we'll crash
   // when it's accessed from the content::BrowserContext destructor.
-  if (download_manager_delegate_.get())
+  if (download_manager_delegate_)
     download_manager_delegate_.reset(NULL);
-
-  g_manager.Get().RemoveImpl(this, cache_path_);
 }
 
 void CefBrowserContextImpl::Initialize() {
@@ -242,11 +268,16 @@ void CefBrowserContextImpl::Initialize() {
         CefString(&CefContext::Get()->settings().accept_language_list);
   }
 
-  // Initialize preferences.
-  base::FilePath pref_path;
-  if (!cache_path_.empty() && settings_.persist_user_preferences)
-    pref_path = cache_path_.AppendASCII(browser_prefs::kUserPrefsFileName);
-  pref_service_ = browser_prefs::CreatePrefService(pref_path);
+  // Initialize a temporary PrefService object that may be referenced during
+  // BrowserContextServices initialization.
+  pref_service_ = browser_prefs::CreatePrefService(
+      this, base::FilePath(), false, true);
+
+  CefBrowserContext::Initialize();
+
+  // Initialize the real PrefService object.
+  pref_service_ = browser_prefs::CreatePrefService(
+      this, cache_path_, !!settings_.persist_user_preferences, false);
 
   // Initialize visited links management.
   base::FilePath visited_link_path;
@@ -257,16 +288,15 @@ void CefBrowserContextImpl::Initialize() {
       new visitedlink::VisitedLinkMaster(visitedlink_listener_, this,
                                          !visited_link_path.empty(), false,
                                          visited_link_path, 0));
-  visitedlink_listener_->set_master(visitedlink_master_.get());
   visitedlink_listener_->CreateListenerForContext(this);
   visitedlink_master_->Init();
-
-  CefBrowserContext::Initialize();
 
   // Initialize proxy configuration tracker.
   pref_proxy_config_tracker_.reset(
       ProxyServiceFactory::CreatePrefProxyConfigTrackerOfLocalState(
           GetPrefs()));
+
+  CefBrowserContext::PostInitialize();
 
   // Create the CefURLRequestContextGetterImpl via an indirect call to
   // CreateRequestContext. Triggers a call to CefURLRequestContextGetterImpl::
@@ -274,52 +304,51 @@ void CefBrowserContextImpl::Initialize() {
   // CefURLRequestContextImpl.
   GetRequestContext();
   DCHECK(url_request_getter_.get());
+
+  // Create the StoragePartitionImplMap and StoragePartitionImpl for this
+  // object. This must be done before the first WebContents is created using a
+  // CefBrowserContextProxy of this object, otherwise the StoragePartitionProxy
+  // will not be created (in that case
+  // CefBrowserContextProxy::CreateRequestContext will be called, which is
+  // incorrect).
+  GetDefaultStoragePartition(this);
 }
 
 void CefBrowserContextImpl::AddProxy(const CefBrowserContextProxy* proxy) {
   CEF_REQUIRE_UIT();
-  DCHECK(!HasProxy(proxy));
-  proxy_list_.push_back(proxy);
-
   visitedlink_listener_->CreateListenerForContext(proxy);
 }
 
 void CefBrowserContextImpl::RemoveProxy(const CefBrowserContextProxy* proxy) {
   CEF_REQUIRE_UIT();
-
   visitedlink_listener_->RemoveListenerForContext(proxy);
-
-  bool found = false;
-  ProxyList::iterator it = proxy_list_.begin();
-  for (; it != proxy_list_.end(); ++it) {
-    if (*it == proxy) {
-      proxy_list_.erase(it);
-      found = true;
-      break;
-    }
-  }
-  DCHECK(found);
 }
 
-bool CefBrowserContextImpl::HasProxy(
-    const content::BrowserContext* context) const {
+void CefBrowserContextImpl::AddRequestContext() {
   CEF_REQUIRE_UIT();
-  ProxyList::const_iterator it = proxy_list_.begin();
-  for (; it != proxy_list_.end(); ++it) {
-    if (*it == context)
-      return true;
+  request_context_count_++;
+}
+
+void CefBrowserContextImpl::RemoveRequestContext() {
+  CEF_REQUIRE_UIT();
+  request_context_count_--;
+  DCHECK_GE(request_context_count_, 0);
+
+  // Delete non-global contexts when the reference count reaches zero.
+  if (request_context_count_ == 0 &&
+      this != CefContentBrowserClient::Get()->browser_context()) {
+    delete this;
   }
-  return false;
 }
 
 // static
-scoped_refptr<CefBrowserContextImpl> CefBrowserContextImpl::GetForCachePath(
+CefBrowserContextImpl* CefBrowserContextImpl::GetForCachePath(
     const base::FilePath& cache_path) {
   return g_manager.Get().GetImplForPath(cache_path);
 }
 
 // static
-CefRefPtr<CefBrowserContextImpl> CefBrowserContextImpl::GetForContext(
+CefBrowserContextImpl* CefBrowserContextImpl::GetForContext(
     content::BrowserContext* context) {
   return g_manager.Get().GetImplForContext(context);
 }
@@ -333,15 +362,15 @@ base::FilePath CefBrowserContextImpl::GetPath() const {
   return cache_path_;
 }
 
-scoped_ptr<content::ZoomLevelDelegate>
+std::unique_ptr<content::ZoomLevelDelegate>
     CefBrowserContextImpl::CreateZoomLevelDelegate(
         const base::FilePath& partition_path) {
   if (cache_path_.empty())
-    return scoped_ptr<content::ZoomLevelDelegate>();
+    return std::unique_ptr<content::ZoomLevelDelegate>();
 
-  return make_scoped_ptr(new ChromeZoomLevelPrefs(
+  return base::WrapUnique(new ChromeZoomLevelPrefs(
       GetPrefs(), cache_path_, partition_path,
-      ui_zoom::ZoomEventManager::GetForBrowserContext(this)->GetWeakPtr()));
+      zoom::ZoomEventManager::GetForBrowserContext(this)->GetWeakPtr()));
 }
 
 bool CefBrowserContextImpl::IsOffTheRecord() const {
@@ -355,35 +384,6 @@ content::DownloadManagerDelegate*
   content::DownloadManager* manager = BrowserContext::GetDownloadManager(this);
   download_manager_delegate_.reset(new CefDownloadManagerDelegate(manager));
   return download_manager_delegate_.get();
-}
-
-net::URLRequestContextGetter* CefBrowserContextImpl::GetRequestContext() {
-  CEF_REQUIRE_UIT();
-  return GetDefaultStoragePartition(this)->GetURLRequestContext();
-}
-
-net::URLRequestContextGetter*
-    CefBrowserContextImpl::GetRequestContextForRenderProcess(
-        int renderer_child_id) {
-  return GetRequestContext();
-}
-
-net::URLRequestContextGetter*
-    CefBrowserContextImpl::GetMediaRequestContext() {
-  return GetRequestContext();
-}
-
-net::URLRequestContextGetter*
-    CefBrowserContextImpl::GetMediaRequestContextForRenderProcess(
-        int renderer_child_id)  {
-  return GetRequestContext();
-}
-
-net::URLRequestContextGetter*
-    CefBrowserContextImpl::GetMediaRequestContextForStoragePartition(
-        const base::FilePath& partition_path,
-        bool in_memory) {
-  return GetRequestContext();
 }
 
 content::BrowserPluginGuestManager* CefBrowserContextImpl::GetGuestManager() {
@@ -419,6 +419,58 @@ content::BackgroundSyncController*
   return nullptr;
 }
 
+net::URLRequestContextGetter* CefBrowserContextImpl::CreateRequestContext(
+    content::ProtocolHandlerMap* protocol_handlers,
+    content::URLRequestInterceptorScopedVector request_interceptors) {
+  CEF_REQUIRE_UIT();
+  DCHECK(!url_request_getter_.get());
+
+  // Initialize the proxy configuration service.
+  std::unique_ptr<net::ProxyConfigService> proxy_config_service(
+      ProxyServiceFactory::CreateProxyConfigService(
+          pref_proxy_config_tracker_.get()));
+
+  if (extensions::ExtensionsEnabled()) {
+    // Handle only chrome-extension:// requests. CEF does not support
+    // chrome-extension-resource:// requests (it does not store shared extension
+    // data in its installation directory).
+    extensions::InfoMap* extension_info_map =
+        extension_system()->info_map();
+    (*protocol_handlers)[extensions::kExtensionScheme] =
+        linked_ptr<net::URLRequestJobFactory::ProtocolHandler>(
+            extensions::CreateExtensionProtocolHandler(
+                IsOffTheRecord(), extension_info_map).release());
+  }
+
+  url_request_getter_ = new CefURLRequestContextGetterImpl(
+      settings_,
+      GetPrefs(),
+      BrowserThread::GetTaskRunnerForThread(BrowserThread::IO),
+      BrowserThread::GetTaskRunnerForThread(BrowserThread::FILE),
+      protocol_handlers,
+      std::move(proxy_config_service),
+      std::move(request_interceptors));
+  resource_context()->set_url_request_context_getter(url_request_getter_.get());
+  return url_request_getter_.get();
+}
+
+net::URLRequestContextGetter*
+    CefBrowserContextImpl::CreateRequestContextForStoragePartition(
+        const base::FilePath& partition_path,
+        bool in_memory,
+        content::ProtocolHandlerMap* protocol_handlers,
+        content::URLRequestInterceptorScopedVector request_interceptors) {
+  return nullptr;
+}
+
+content::StoragePartition* CefBrowserContextImpl::GetStoragePartitionProxy(
+    content::BrowserContext* browser_context,
+    content::StoragePartition* partition_impl) {
+  CefBrowserContextProxy* proxy =
+      static_cast<CefBrowserContextProxy*>(browser_context);
+  return proxy->GetOrCreateStoragePartitionProxy(partition_impl);
+}
+
 PrefService* CefBrowserContextImpl::GetPrefs() {
   return pref_service_.get();
 }
@@ -435,45 +487,15 @@ CefRefPtr<CefRequestContextHandler> CefBrowserContextImpl::GetHandler() const {
   return NULL;
 }
 
-net::URLRequestContextGetter* CefBrowserContextImpl::CreateRequestContext(
-    content::ProtocolHandlerMap* protocol_handlers,
-    content::URLRequestInterceptorScopedVector request_interceptors) {
-  CEF_REQUIRE_UIT();
-  DCHECK(!url_request_getter_.get());
-
-  // Initialize the proxy configuration service.
-  scoped_ptr<net::ProxyConfigService> proxy_config_service(
-      ProxyServiceFactory::CreateProxyConfigService(
-          pref_proxy_config_tracker_.get()));
-
-  url_request_getter_ = new CefURLRequestContextGetterImpl(
-      settings_,
-      GetPrefs(),
-      BrowserThread::UnsafeGetMessageLoopForThread(BrowserThread::IO),
-      BrowserThread::UnsafeGetMessageLoopForThread(BrowserThread::FILE),
-      protocol_handlers,
-      std::move(proxy_config_service),
-      std::move(request_interceptors));
-  resource_context()->set_url_request_context_getter(url_request_getter_.get());
-  return url_request_getter_.get();
-}
-
-net::URLRequestContextGetter*
-    CefBrowserContextImpl::CreateRequestContextForStoragePartition(
-        const base::FilePath& partition_path,
-        bool in_memory,
-        content::ProtocolHandlerMap* protocol_handlers,
-        content::URLRequestInterceptorScopedVector request_interceptors) {
-  return NULL;
-}
-
 HostContentSettingsMap* CefBrowserContextImpl::GetHostContentSettingsMap() {
   DCHECK_CURRENTLY_ON(BrowserThread::UI);
   if (!host_content_settings_map_.get()) {
-    // The |incognito| argument is intentionally set to false as it otherwise
-    // limits the types of values that can be stored in the settings map (for
-    // example, default values set via DefaultProvider::SetWebsiteSetting).
-    host_content_settings_map_ = new HostContentSettingsMap(GetPrefs(), false);
+    // The |is_incognito_profile| and |is_guest_profile| arguments are
+    // intentionally set to false as they otherwise limit the types of values
+    // that can be stored in the settings map (for example, default values set
+    // via DefaultProvider::SetWebsiteSetting).
+    host_content_settings_map_ =
+        new HostContentSettingsMap(GetPrefs(), false, false);
 
     // Change the default plugin policy.
     const base::CommandLine* command_line =

@@ -7,7 +7,9 @@
 
 #pragma push_macro("OVERRIDE")
 #undef OVERRIDE // cef headers provide their own OVERRIDE macro
+THIRD_PARTY_INCLUDES_START
 #import "include/cef_application_mac.h"
+THIRD_PARTY_INCLUDES_END
 #pragma pop_macro("OVERRIDE")
 
 @interface NSApplication (CEF3UtilsApplication) < CefAppProtocol >

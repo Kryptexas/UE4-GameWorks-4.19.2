@@ -7,10 +7,12 @@
 
 #include <stdint.h>
 
+#include <memory>
+#include <vector>
+
 #include "libcef/common/net/upload_element.h"
 
 #include "base/memory/ref_counted.h"
-#include "base/memory/scoped_vector.h"
 #include "base/supports_user_data.h"
 #include "net/base/net_export.h"
 
@@ -28,7 +30,7 @@ namespace net {
 // Until there is a more abstract class for this, this one derives from
 // SupportsUserData to allow users to stash random data by
 // key and ensure its destruction when UploadData is finally deleted.
-class NET_EXPORT UploadData
+class UploadData
     : public base::RefCounted<UploadData>,
       public base::SupportsUserData {
  public:
@@ -49,15 +51,17 @@ class NET_EXPORT UploadData
   void set_last_chunk_appended(bool set) { last_chunk_appended_ = set; }
   bool last_chunk_appended() const { return last_chunk_appended_; }
 
-  const ScopedVector<UploadElement>& elements() const {
+  using ElementsVector = std::vector<std::unique_ptr<UploadElement>>;
+
+  const ElementsVector& elements() const {
     return elements_;
   }
 
-  ScopedVector<UploadElement>* elements_mutable() {
+  ElementsVector* elements_mutable() {
     return &elements_;
   }
 
-  void swap_elements(ScopedVector<UploadElement>* elements) {
+  void swap_elements(ElementsVector* elements) {
     elements_.swap(*elements);
   }
 
@@ -72,7 +76,7 @@ class NET_EXPORT UploadData
 
   ~UploadData() override;
 
-  ScopedVector<UploadElement> elements_;
+  ElementsVector elements_;
   int64_t identifier_;
   bool is_chunked_;
   bool last_chunk_appended_;

@@ -211,6 +211,10 @@ public:
 
 	void UnbindAdapter(const TSharedRef<IWebBrowserAdapter>& Adapter);
 
+	void BindInputMethodSystem(ITextInputMethodSystem* TextInputMethodSystem);
+
+	void UnbindInputMethodSystem();
+
 	/** Returns true if the browser can navigate backwards. */
 	bool CanGoBack() const;
 

@@ -14,6 +14,8 @@
 #include "STextBlock.h"
 #include "SEditableText.h"
 #include "SEditableTextBox.h"
+#include "SCheckBox.h"
+#include "NameTypes.h"
 
 class FSlateWidgetElement
 	: public IApplicationElement
@@ -177,6 +179,47 @@ public:
 		}
 
 		return false;
+	}
+
+	virtual bool IsChecked() const override
+	{
+		static FName SCheckBoxType(TEXT("SCheckBox"));
+
+		const TSharedRef<SWidget> RootWidget = WidgetPath.Widgets.Last().Widget;
+
+		TArray<TSharedRef<SWidget>> Stack;
+		Stack.Push(RootWidget);
+
+		bool bFoundCheck = false;
+		bool bResult = false;
+
+		while (Stack.Num() > 0)
+		{
+			const TSharedRef<SWidget> Widget = Stack.Pop();
+
+			if (Widget->GetType() == SCheckBoxType)
+			{
+				if (bFoundCheck == true)
+				{
+					return false;
+				}
+
+				bResult = StaticCastSharedRef<SCheckBox, SWidget>(Widget)->IsChecked();
+				bFoundCheck = true;
+			}
+			else
+			{
+				FChildren* ChildWidgets = Widget->GetChildren();
+				int32 ChildCount = ChildWidgets->Num();
+
+				for (int32 i = 0; i < ChildCount; i++)
+				{
+					Stack.Push(ChildWidgets->GetChildAt(i));
+				}
+			}
+		}
+
+		return bResult;
 	}
 
 	virtual FText GetText() const override
@@ -352,13 +395,18 @@ public:
 
 			if (Widget->GetType() == SScrollBarType)
 			{
-				if (ScrollBar.IsValid())
+				TSharedPtr<SScrollBar> FoundScrollBar = StaticCastSharedRef<SScrollBar, SWidget>(Widget);
+				
+				if (FoundScrollBar->IsNeeded())
 				{
-					ErrorCode = 2;
-					return nullptr;
-				}
+					if (ScrollBar.IsValid())
+					{
+						ErrorCode = 2;
+						return nullptr;
+					}
 
-				ScrollBar = StaticCastSharedRef<SScrollBar, SWidget>(Widget);
+					ScrollBar = FoundScrollBar;
+				}
 			}
 			else
 			{
@@ -377,14 +425,14 @@ public:
 			}
 		}
 
-		if (ScrollBar.IsValid() && ScrollBar->IsNeeded())
+		if (!ScrollBar.IsValid())
 		{
-			ErrorCode = 0;
-			return ScrollBar;
+			ErrorCode = 1;
+			return nullptr;
 		}
 
-		ErrorCode = 1;
-		return nullptr;
+		ErrorCode = 0;
+		return ScrollBar;
 	}
 
 	virtual bool IsScrollable() const override
@@ -413,7 +461,7 @@ public:
 
 		if (!ScrollBar.IsValid())
 		{
-			return false;
+			return true;
 		}
 
 		return ScrollBar->DistanceFromTop() < KINDA_SMALL_NUMBER;
@@ -426,7 +474,7 @@ public:
 
 		if (!ScrollBar.IsValid())
 		{
-			return false;
+			return true;
 		}
 
 		return ScrollBar->DistanceFromBottom() < KINDA_SMALL_NUMBER;
@@ -471,6 +519,15 @@ public:
 		return nullptr;
 	}
 
+	virtual void* GetRawElement() const override
+	{
+		if (!WidgetPath.IsValid())
+		{
+			return nullptr;
+		}
+
+		return (void*)(&WidgetPath);
+	}
 
 private:
 

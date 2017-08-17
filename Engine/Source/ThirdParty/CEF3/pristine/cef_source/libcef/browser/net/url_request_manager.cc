@@ -16,6 +16,7 @@
 #include "libcef/common/request_impl.h"
 
 #include "base/logging.h"
+#include "base/memory/ptr_util.h"
 #include "base/strings/string_util.h"
 #include "net/url_request/url_request.h"
 #include "net/url_request/url_request_context.h"
@@ -201,7 +202,7 @@ void CefURLRequestManager::SetProtocolHandlerIfNecessary(
 
   bool set_protocol = job_factory_->SetProtocolHandler(
       scheme,
-      make_scoped_ptr(add ? new CefProtocolHandler(this, scheme) : NULL));
+      base::WrapUnique(add ? new CefProtocolHandler(this, scheme) : NULL));
   DCHECK(set_protocol);
 }
 
@@ -273,7 +274,7 @@ net::URLRequestJob* CefURLRequestManager::GetRequestJob(
     job = GetBuiltinSchemeRequestJob(request, network_delegate, scheme);
   }
 
-#ifndef NDEBUG
+#if DCHECK_IS_ON()
   if (job)
     DLOG(INFO) << "CefURLRequestManager hit for " << request->url().spec();
 #endif

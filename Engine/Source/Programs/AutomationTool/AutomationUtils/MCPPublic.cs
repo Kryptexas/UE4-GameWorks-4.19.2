@@ -511,6 +511,10 @@ namespace EpicGames.MCP.Automation
 			/// </summary>
 			public string AppLaunchCmdArgs;
 			/// <summary>
+			/// The list of prerequisite Ids that this prerequisite installer satisfies.
+			/// </summary>
+			public List<string> PrereqIds;
+			/// <summary>
 			/// The prerequisites installer to launch on successful product install, must be relative to, and inside of BuildRoot.
 			/// </summary>
 			public string PrereqPath;
@@ -697,6 +701,38 @@ namespace EpicGames.MCP.Automation
 			public ManifestDiff Differential;
 		}
 
+		public class AutomationTestsOptions
+		{
+			/// <summary>
+			/// Optionally specify the tests to run.
+			/// </summary>
+			public string TestList;
+		}
+
+		public class PackageChunksOptions
+		{
+			/// <summary>
+			/// Specifies the file path to the manifest to enumerate chunks from.
+			/// </summary>
+			public string ManifestFile;
+			/// <summary>
+			/// Specifies the file path to the output package.  An extension of .chunkdb will be added if not present.
+			/// </summary>
+			public string OutputFile;
+			/// <summary>
+			/// An optional parameter which, if present, specifies the directory where chunks to be packaged can be found.
+			/// If not specified, the manifest file's location will be used as the cloud directory.
+			/// </summary>
+			public string CloudDir;
+			/// <summary>
+			/// Optional value, to restrict the maximum size of each output file (in bytes).
+			/// If not specified, then only one output file will be produced, containing all the data.
+			/// If specified, then the output files will be generated as Name.part01.chunkdb, Name.part02.chunkdb etc. The part number will have the number of digits
+			/// required for highest numbered part.
+			/// </summary>
+			public ulong? MaxOutputFileSize;
+		}
+
 		static BuildPatchToolBase Handler = null;
 
 		public static BuildPatchToolBase Get()
@@ -760,6 +796,20 @@ namespace EpicGames.MCP.Automation
 		/// <param name="Output">Will receive the data back for the diff.</param>
 		/// <param name="Version">Which version of BuildPatchTool is desired.</param>
 		public abstract void Execute(ManifestDiffOptions Opts, out ManifestDiffOutput Output, ToolVersion Version = ToolVersion.Live);
+
+		/// <summary>
+		/// Runs the Build Patch Tool executable to evaluate built in automation testing.
+		/// </summary>
+		/// <param name="Opts">Parameters which will be passed to the patch tool automation tests process.</param>
+		/// <param name="Version">Which version of BuildPatchTool is desired.</param>
+		public abstract void Execute(AutomationTestsOptions Opts, ToolVersion Version = ToolVersion.Live);
+
+		/// <summary>
+		/// Runs the Build Patch Tool executable to create ChunkDB file(s) consisting of multiple chunks to allow installing / patching to a specific build.
+		/// </summary>
+		/// <param name="Opts">Parameters which will be passed to the patch tool package chunks process.</param>
+		/// <param name="Version">Which version of BuildPatchTool is desired.</param>
+		public abstract void Execute(PackageChunksOptions Opts, ToolVersion Version = ToolVersion.Live);
 	}
 
 

@@ -29,7 +29,7 @@ bool FUnrealCEFSubProcessRemoteObject::ExecuteMethod(const CefString& MethodName
 		"		Reject = InReject;" \
 		"	});" \
 		"	return [PromiseObject, Accept, Reject];" \
-		"})()" , PromiseObjects, Exception))
+		"})()" , CefString(), 0, PromiseObjects, Exception))
 	{
 		InException = Exception->GetMessage();
 		return false;

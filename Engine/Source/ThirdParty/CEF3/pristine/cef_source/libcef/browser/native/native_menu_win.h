@@ -5,13 +5,13 @@
 #ifndef CEF_LIBCEF_BROWSER_NATIVE_NATIVE_MENU_WIN_H_
 #define CEF_LIBCEF_BROWSER_NATIVE_NATIVE_MENU_WIN_H_
 
+#include <memory>
 #include <vector>
 
 #include "libcef/browser/native/menu_wrapper.h"
 
 #include "base/macros.h"
 #include "base/compiler_specific.h"
-#include "base/memory/scoped_ptr.h"
 #include "base/memory/weak_ptr.h"
 #include "base/observer_list.h"
 #include "base/strings/string16.h"
@@ -24,13 +24,14 @@ namespace views {
 
 // A Windows implementation of MenuWrapper.
 // TODO(beng): rename to MenuWin once the old class is dead.
-class NativeMenuWin : public MenuWrapper {
+class CefNativeMenuWin : public MenuWrapper {
  public:
-  // Construct a NativeMenuWin, with a model and delegate. If |system_menu_for|
-  // is non-NULL, the NativeMenuWin wraps the system menu for that window.
+  // Construct a CefNativeMenuWin, with a model and delegate. If
+  // |system_menu_for| is non-NULL, the CefNativeMenuWin wraps the system menu
+  // for that window.
   // The caller owns the model and the delegate.
-  NativeMenuWin(ui::MenuModel* model, HWND system_menu_for);
-  ~NativeMenuWin() override;
+  CefNativeMenuWin(ui::MenuModel* model, HWND system_menu_for);
+  ~CefNativeMenuWin() override;
 
   // Overridden from MenuWrapper:
   void RunMenuAt(const gfx::Point& point, int alignment) override;
@@ -119,12 +120,13 @@ class NativeMenuWin : public MenuWrapper {
   // An object that collects all of the data associated with an individual menu
   // item.
   struct ItemData;
-  std::vector<ItemData*> items_;
+  typedef std::vector<std::unique_ptr<ItemData>> ItemDataList;
+  ItemDataList items_;
 
   // The window that receives notifications from the menu.
   class MenuHostWindow;
   friend MenuHostWindow;
-  scoped_ptr<MenuHostWindow> host_window_;
+  std::unique_ptr<MenuHostWindow> host_window_;
 
   // The HWND this menu is the system menu for, or NULL if the menu is not a
   // system menu.
@@ -144,25 +146,25 @@ class NativeMenuWin : public MenuWrapper {
   bool listeners_called_;
 
   // See comment in MenuMessageHook for details on these.
-  NativeMenuWin* menu_to_select_;
+  CefNativeMenuWin* menu_to_select_;
   int position_to_select_;
 
   // If we're a submenu, this is our parent.
-  NativeMenuWin* parent_;
+  CefNativeMenuWin* parent_;
 
   // If non-null the destructor sets this to true. This is set to non-null while
   // the menu is showing. It is used to detect if the menu was deleted while
   // running.
   bool* destroyed_flag_;
 
-  base::WeakPtrFactory<NativeMenuWin> menu_to_select_factory_;
+  base::WeakPtrFactory<CefNativeMenuWin> menu_to_select_factory_;
 
   // Ugly: a static pointer to the instance of this class that currently
   // has a menu open, because our hook function that receives keyboard
   // events doesn't have a mechanism to get a user data pointer.
-  static NativeMenuWin* open_native_menu_win_;
+  static CefNativeMenuWin* open_native_menu_win_;
 
-  DISALLOW_COPY_AND_ASSIGN(NativeMenuWin);
+  DISALLOW_COPY_AND_ASSIGN(CefNativeMenuWin);
 };
 
 }  // namespace views

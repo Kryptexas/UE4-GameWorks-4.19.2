@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -40,7 +40,7 @@ void CefWebPluginUnstableCallbackCToCpp::IsUnstable(const CefString& path,
 CefWebPluginUnstableCallbackCToCpp::CefWebPluginUnstableCallbackCToCpp() {
 }
 
-template<> cef_web_plugin_unstable_callback_t* CefCToCpp<CefWebPluginUnstableCallbackCToCpp,
+template<> cef_web_plugin_unstable_callback_t* CefCToCppRefCounted<CefWebPluginUnstableCallbackCToCpp,
     CefWebPluginUnstableCallback,
     cef_web_plugin_unstable_callback_t>::UnwrapDerived(CefWrapperType type,
     CefWebPluginUnstableCallback* c) {
@@ -48,13 +48,13 @@ template<> cef_web_plugin_unstable_callback_t* CefCToCpp<CefWebPluginUnstableCal
   return NULL;
 }
 
-#ifndef NDEBUG
-template<> base::AtomicRefCount CefCToCpp<CefWebPluginUnstableCallbackCToCpp,
+#if DCHECK_IS_ON()
+template<> base::AtomicRefCount CefCToCppRefCounted<CefWebPluginUnstableCallbackCToCpp,
     CefWebPluginUnstableCallback,
     cef_web_plugin_unstable_callback_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefWebPluginUnstableCallbackCToCpp,
+template<> CefWrapperType CefCToCppRefCounted<CefWebPluginUnstableCallbackCToCpp,
     CefWebPluginUnstableCallback,
     cef_web_plugin_unstable_callback_t>::kWrapperType =
     WT_WEB_PLUGIN_UNSTABLE_CALLBACK;

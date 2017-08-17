@@ -25,11 +25,13 @@ class CefBrowserPlatformDelegateNative : public CefBrowserPlatformDelegate {
   };
 
   // CefBrowserPlatformDelegate methods:
+  SkColor GetBackgroundColor() const override;
   void WasResized() override;
   void SendKeyEvent(const content::NativeWebKeyboardEvent& event) override;
   void SendMouseEvent(const blink::WebMouseEvent& event) override;
   void SendMouseWheelEvent(const blink::WebMouseWheelEvent& event) override;
   bool IsWindowless() const override;
+  bool IsViewsHosted() const override;
 
   const CefWindowInfo& window_info() const { return window_info_; }
 
@@ -38,9 +40,11 @@ class CefBrowserPlatformDelegateNative : public CefBrowserPlatformDelegate {
   }
 
  protected:
-  explicit CefBrowserPlatformDelegateNative(const CefWindowInfo& window_info);
+  CefBrowserPlatformDelegateNative(const CefWindowInfo& window_info,
+                                   SkColor background_color);
 
   CefWindowInfo window_info_;
+  const SkColor background_color_;
 
   WindowlessHandler* windowless_handler_;  // Not owned by this object.
 };

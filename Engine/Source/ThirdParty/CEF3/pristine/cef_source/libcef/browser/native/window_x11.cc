@@ -8,9 +8,11 @@
 
 #include <X11/extensions/XInput2.h>
 #include <X11/Xatom.h>
+#include <X11/Xlib.h>
 #include <X11/Xutil.h>
 
 #include "ui/base/x/x11_util.h"
+#include "ui/events/platform/platform_event_source.h"
 #include "ui/events/platform/x11/x11_event_source.h"
 #include "ui/views/widget/desktop_aura/desktop_window_tree_host_x11.h"
 #include "ui/views/widget/desktop_aura/x11_topmost_window_finder.h"
@@ -338,16 +340,7 @@ uint32_t CefWindowX11::DispatchEvent(const ui::PlatformEvent& event) {
         Atom protocol = static_cast<Atom>(xev->xclient.data.l[0]);
         if (protocol == atom_cache_.GetAtom(kWMDeleteWindow)) {
           // We have received a close message from the window manager.
-          if (browser_.get() && browser_->destruction_state() <=
-              CefBrowserHostImpl::DESTRUCTION_STATE_PENDING) {
-            if (browser_->destruction_state() ==
-                CefBrowserHostImpl::DESTRUCTION_STATE_NONE) {
-              // Request that the browser close.
-              browser_->CloseBrowser(false);
-            }
-
-            // Cancel the close.
-          } else {
+          if (!browser_ || browser_->TryCloseBrowser()) {
             // Allow the close.
             XDestroyWindow(xdisplay_, xwindow_);
           }

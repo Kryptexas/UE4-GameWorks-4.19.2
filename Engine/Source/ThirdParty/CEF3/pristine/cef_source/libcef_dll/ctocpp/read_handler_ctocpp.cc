@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -101,17 +101,17 @@ bool CefReadHandlerCToCpp::MayBlock() {
 CefReadHandlerCToCpp::CefReadHandlerCToCpp() {
 }
 
-template<> cef_read_handler_t* CefCToCpp<CefReadHandlerCToCpp, CefReadHandler,
-    cef_read_handler_t>::UnwrapDerived(CefWrapperType type,
+template<> cef_read_handler_t* CefCToCppRefCounted<CefReadHandlerCToCpp,
+    CefReadHandler, cef_read_handler_t>::UnwrapDerived(CefWrapperType type,
     CefReadHandler* c) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
-#ifndef NDEBUG
-template<> base::AtomicRefCount CefCToCpp<CefReadHandlerCToCpp, CefReadHandler,
-    cef_read_handler_t>::DebugObjCt = 0;
+#if DCHECK_IS_ON()
+template<> base::AtomicRefCount CefCToCppRefCounted<CefReadHandlerCToCpp,
+    CefReadHandler, cef_read_handler_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCToCpp<CefReadHandlerCToCpp, CefReadHandler,
-    cef_read_handler_t>::kWrapperType = WT_READ_HANDLER;
+template<> CefWrapperType CefCToCppRefCounted<CefReadHandlerCToCpp,
+    CefReadHandler, cef_read_handler_t>::kWrapperType = WT_READ_HANDLER;

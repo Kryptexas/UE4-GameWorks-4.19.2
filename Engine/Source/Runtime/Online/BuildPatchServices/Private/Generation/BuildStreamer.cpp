@@ -75,6 +75,7 @@ namespace BuildPatchServices
 		virtual uint32 DequeueData(uint8* Buffer, uint32 ReqSize, bool WaitForData = true) override;
 		virtual bool GetFileSpan(uint64 StartingIdx, FFileSpan& FileSpan) const override;
 		virtual TArray<FString> GetEmptyFiles() const override;
+		virtual TArray<FString> GetAllFilenames() const override;
 		virtual bool IsEndOfBuild() const override;
 		virtual bool IsEndOfData() const override;
 		virtual uint64 GetBuildSize() const override;
@@ -86,6 +87,7 @@ namespace BuildPatchServices
 		void AddEmptyFile(FString Filename);
 		void SetFileHash(uint64 StartIdx, FSHA1& FileHash);
 		void StripIgnoredFiles(TArray<FString>& AllFiles);
+		void SetEnumeratedFiles(const TArray<FString>& AllFiles);
 
 	private:
 		const FString BuildRoot;
@@ -95,10 +97,13 @@ namespace BuildPatchServices
 		FDataStream DataStream;
 		mutable FCriticalSection FilesCS;
 		TMap<uint64, FFileSpan> Files;
+		mutable FCriticalSection EnumeratedFilesCS;
+		TArray<FString> EnumeratedFiles;
 		TSet<FString> EmptyFiles;
 		mutable FSHA1 EmptyHasher; // FSHA1 is not const correct.
 		TFuture<void> Future;
 		FThreadSafeBool bShouldAbort;
+		FThreadSafeBool bFilesEnumerated;
 	};
 
 	FDataStream::FDataStream()
@@ -192,6 +197,7 @@ namespace BuildPatchServices
 		, StatsCollector(InStatsCollector)
 		, FileManager(InFileManager)
 		, bShouldAbort(false)
+		, bFilesEnumerated(false)
 	{
 		EmptyHasher.Final();
 		TFunction<void()> Task = [this]() { ReadData(); };
@@ -224,6 +230,19 @@ namespace BuildPatchServices
 	{
 		FScopeLock ScopeLock(&FilesCS);
 		return EmptyFiles.Array();
+	}
+
+	TArray<FString> FBuildStreamerImpl::GetAllFilenames() const
+	{
+		while (!bFilesEnumerated && !bShouldAbort)
+		{
+			FPlatformProcess::Sleep(0.1f);
+		}
+		TArray<FString> AllFiles;
+		EnumeratedFilesCS.Lock();
+		AllFiles.Append(EnumeratedFiles);
+		EnumeratedFilesCS.Unlock();
+		return AllFiles;
 	}
 
 	bool FBuildStreamerImpl::IsEndOfBuild() const
@@ -273,7 +292,7 @@ namespace BuildPatchServices
 		DataStream.Clear();
 
 		// Enumerate build files
-		TArray< FString > AllFiles;
+		TArray<FString> AllFiles;
 		uint32 FileEnumerationStart = FStatsCollector::GetCycles();
 		FileManager->FindFilesRecursive(AllFiles, *BuildRoot, TEXT("*.*"), true, false);
 		uint32 FileEnumerationEnd = FStatsCollector::GetCycles();
@@ -283,6 +302,9 @@ namespace BuildPatchServices
 		// Remove the files that appear in the ignore list
 		AllFiles.Sort();
 		StripIgnoredFiles(AllFiles);
+
+		// Preserve our sorted, stripped list of files, so it can be retrieved later via GetAllFilenames().
+		SetEnumeratedFiles(AllFiles);
 
 		// Track file hashes
 		FSHA1 FileHash;
@@ -429,8 +451,16 @@ namespace BuildPatchServices
 		UE_LOG(LogBuildStreamer, Log, TEXT("Stripped %d ignorable file(s)"), (OriginalNumFiles - NewNumFiles));
 	}
 
+	void FBuildStreamerImpl::SetEnumeratedFiles(const TArray<FString>& AllFiles)
+	{
+		FScopeLock ScopeLock(&EnumeratedFilesCS);
+		EnumeratedFiles = AllFiles;
+		bFilesEnumerated = true;
+	}
+
 	FBuildStreamerRef FBuildStreamerFactory::Create(const FString& BuildRoot, const FString& IgnoreListFile, const FStatsCollectorRef& StatsCollector, IFileManager* FileManager)
 	{
+		check(FileManager != nullptr);
 		return MakeShareable(new FBuildStreamerImpl(BuildRoot, IgnoreListFile, StatsCollector, FileManager));
 	}
 }

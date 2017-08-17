@@ -4,12 +4,12 @@
 
 #include "libcef/browser/pepper/browser_pepper_host_factory.h"
 
-#include "libcef/browser/pepper/pepper_flash_browser_host.h"
-#include "libcef/browser/pepper/pepper_isolated_file_system_message_filter.h"
-
 #include "build/build_config.h"
+#include "base/memory/ptr_util.h"
+#include "chrome/browser/renderer_host/pepper/pepper_flash_browser_host.h"
 #include "chrome/browser/renderer_host/pepper/pepper_flash_clipboard_message_filter.h"
 #include "chrome/browser/renderer_host/pepper/pepper_flash_drm_host.h"
+#include "chrome/browser/renderer_host/pepper/pepper_isolated_file_system_message_filter.h"
 #include "content/public/browser/browser_ppapi_host.h"
 #include "ppapi/host/message_filter_host.h"
 #include "ppapi/host/ppapi_host.h"
@@ -27,7 +27,7 @@ CefBrowserPepperHostFactory::CefBrowserPepperHostFactory(
 
 CefBrowserPepperHostFactory::~CefBrowserPepperHostFactory() {}
 
-scoped_ptr<ResourceHost> CefBrowserPepperHostFactory::CreateResourceHost(
+std::unique_ptr<ResourceHost> CefBrowserPepperHostFactory::CreateResourceHost(
     ppapi::host::PpapiHost* host,
     PP_Resource resource,
     PP_Instance instance,
@@ -36,24 +36,24 @@ scoped_ptr<ResourceHost> CefBrowserPepperHostFactory::CreateResourceHost(
 
   // Make sure the plugin is giving us a valid instance for this resource.
   if (!host_->IsValidInstance(instance))
-    return scoped_ptr<ResourceHost>();
+    return nullptr;
 
   // Flash interfaces.
   if (host_->GetPpapiHost()->permissions().HasPermission(
           ppapi::PERMISSION_FLASH)) {
     switch (message.type()) {
       case PpapiHostMsg_Flash_Create::ID:
-        return scoped_ptr<ResourceHost>(
-            new PepperFlashBrowserHost(host_, instance, resource));
+        return base::MakeUnique<chrome::PepperFlashBrowserHost>(host_, instance,
+                                                                resource);
       case PpapiHostMsg_FlashClipboard_Create::ID: {
         scoped_refptr<ResourceMessageFilter> clipboard_filter(
             new chrome::PepperFlashClipboardMessageFilter);
-        return scoped_ptr<ResourceHost>(new MessageFilterHost(
-            host_->GetPpapiHost(), instance, resource, clipboard_filter));
+        return base::MakeUnique<MessageFilterHost>(
+            host_->GetPpapiHost(), instance, resource, clipboard_filter);
       }
       case PpapiHostMsg_FlashDRM_Create::ID:
-        return scoped_ptr<ResourceHost>(
-            new chrome::PepperFlashDRMHost(host_, instance, resource));
+        return base::MakeUnique<chrome::PepperFlashDRMHost>(host_, instance,
+                                                            resource);
     }
   }
 
@@ -64,14 +64,14 @@ scoped_ptr<ResourceHost> CefBrowserPepperHostFactory::CreateResourceHost(
   // whitelisted apps which may not have access to the other private
   // interfaces.
   if (message.type() == PpapiHostMsg_IsolatedFileSystem_Create::ID) {
-    PepperIsolatedFileSystemMessageFilter* isolated_fs_filter =
-        PepperIsolatedFileSystemMessageFilter::Create(instance, host_);
+    chrome::PepperIsolatedFileSystemMessageFilter* isolated_fs_filter =
+        chrome::PepperIsolatedFileSystemMessageFilter::Create(instance, host_);
     if (!isolated_fs_filter)
-      return scoped_ptr<ResourceHost>();
-    return scoped_ptr<ResourceHost>(
-        new MessageFilterHost(host, instance, resource, isolated_fs_filter));
+      return nullptr;
+    return base::MakeUnique<MessageFilterHost>(host, instance, resource,
+                                               isolated_fs_filter);
   }
 
   NOTREACHED() << "Unhandled message type: " << message.type();
-  return scoped_ptr<ResourceHost>();
+  return nullptr;
 }

@@ -14,7 +14,6 @@
 #include "base/logging.h"
 #include "base/strings/utf_string_conversions.h"
 #include "components/url_formatter/elide_url.h"
-#include "net/base/net_util.h"
 
 namespace {
 
@@ -71,7 +70,7 @@ class CefJSDialogCallbackImpl : public CefJSDialogCallback {
 
 CefJavaScriptDialogManager::CefJavaScriptDialogManager(
     CefBrowserHostImpl* browser,
-    scoped_ptr<CefJavaScriptDialogRunner> runner)
+    std::unique_ptr<CefJavaScriptDialogRunner> runner)
     : browser_(browser),
       runner_(std::move(runner)),
       dialog_running_(false),
@@ -91,8 +90,7 @@ void CefJavaScriptDialogManager::Destroy() {
 void CefJavaScriptDialogManager::RunJavaScriptDialog(
     content::WebContents* web_contents,
     const GURL& origin_url,
-    const std::string& accept_lang,
-    content::JavaScriptMessageType message_type,
+    content::JavaScriptDialogType message_type,
     const base::string16& message_text,
     const base::string16& default_prompt_text,
     const DialogClosedCallback& callback,
@@ -108,7 +106,6 @@ void CefJavaScriptDialogManager::RunJavaScriptDialog(
 
       // Execute the user callback.
       bool handled = handler->OnJSDialog(browser_, origin_url.spec(),
-          accept_lang,
           static_cast<cef_jsdialog_type_t>(message_type),
           message_text, default_prompt_text, callbackPtr.get(),
           *did_suppress_message);
@@ -137,8 +134,8 @@ void CefJavaScriptDialogManager::RunJavaScriptDialog(
 
   dialog_running_ = true;
 
-  base::string16 display_url =
-      url_formatter::FormatUrlForSecurityDisplay(origin_url, accept_lang);
+  const base::string16& display_url =
+      url_formatter::FormatUrlForSecurityDisplay(origin_url);
 
   runner_->Run(browser_, message_type, display_url, message_text,
                default_prompt_text,
@@ -148,7 +145,6 @@ void CefJavaScriptDialogManager::RunJavaScriptDialog(
 
 void CefJavaScriptDialogManager::RunBeforeUnloadDialog(
     content::WebContents* web_contents,
-    const base::string16& message_text,
     bool is_reload,
     const DialogClosedCallback& callback) {
   if (browser_->destruction_state() >=
@@ -158,6 +154,9 @@ void CefJavaScriptDialogManager::RunBeforeUnloadDialog(
     callback.Run(true, base::string16());
     return;
   }
+
+  const base::string16& message_text =
+      base::ASCIIToUTF16("Is it OK to leave/reload this page?");
 
   CefRefPtr<CefClient> client = browser_->GetClient();
   if (client.get()) {
@@ -187,21 +186,18 @@ void CefJavaScriptDialogManager::RunBeforeUnloadDialog(
 
   dialog_running_ = true;
 
-  base::string16 new_message_text =
-      message_text +
-      base::ASCIIToUTF16("\n\nIs it OK to leave/reload this page?");
-
   runner_->Run(browser_,
-               content::JAVASCRIPT_MESSAGE_TYPE_CONFIRM,
+               content::JAVASCRIPT_DIALOG_TYPE_CONFIRM,
                base::string16(),  // display_url
-               new_message_text,
+               message_text,
                base::string16(),  // default_prompt_text
                base::Bind(&CefJavaScriptDialogManager::DialogClosed,
                           weak_ptr_factory_.GetWeakPtr(), callback));
 }
 
-void CefJavaScriptDialogManager::CancelActiveAndPendingDialogs(
-    content::WebContents* web_contents) {
+void CefJavaScriptDialogManager::CancelDialogs(
+    content::WebContents* web_contents,
+    bool reset_state) {
   CefRefPtr<CefClient> client = browser_->GetClient();
   if (client.get()) {
     CefRefPtr<CefJSDialogHandler> handler = client->GetJSDialogHandler();
@@ -215,10 +211,6 @@ void CefJavaScriptDialogManager::CancelActiveAndPendingDialogs(
     runner_->Cancel();
     dialog_running_ = false;
   }
-}
-
-void CefJavaScriptDialogManager::ResetDialogState(
-    content::WebContents* web_contents) {
 }
 
 void CefJavaScriptDialogManager::DialogClosed(

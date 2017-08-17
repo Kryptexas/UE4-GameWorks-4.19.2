@@ -6,20 +6,34 @@
 #import <Cocoa/Cocoa.h>
 #include "include/cef_app.h"
 #import "include/cef_application_mac.h"
-#include "cefclient/browser/client_app_browser.h"
-#include "cefclient/browser/main_context_impl.h"
-#include "cefclient/browser/main_message_loop_std.h"
-#include "cefclient/browser/resource.h"
-#include "cefclient/browser/root_window.h"
-#include "cefclient/browser/test_runner.h"
+#include "tests/cefclient/browser/main_context_impl.h"
+#include "tests/cefclient/browser/resource.h"
+#include "tests/cefclient/browser/root_window.h"
+#include "tests/cefclient/browser/test_runner.h"
+#include "tests/shared/browser/client_app_browser.h"
+#include "tests/shared/browser/main_message_loop_external_pump.h"
+#include "tests/shared/browser/main_message_loop_std.h"
+#include "tests/shared/common/client_switches.h"
 
 namespace {
 
-void AddMenuItem(NSMenu *menu, NSString* label, int idval) {
-  NSMenuItem* item = [menu addItemWithTitle:label
-                                     action:@selector(menuItemSelected:)
-                              keyEquivalent:@""];
-  [item setTag:idval];
+// Returns the top menu bar with the specified |tag|.
+NSMenuItem* GetMenuBarMenuWithTag(NSInteger tag) {
+  NSMenu* main_menu = [[NSApplication sharedApplication] mainMenu];
+  NSInteger found_index = [main_menu indexOfItemWithTag:tag];
+  if (found_index >= 0)
+    return [main_menu itemAtIndex:found_index];
+  return nil;
+}
+
+// Returns the item in |menu| that has the specified |action_selector|.
+NSMenuItem* GetMenuItemWithAction(NSMenu* menu, SEL action_selector) {
+  for (NSInteger i = 0; i < menu.numberOfItems; ++i) {
+    NSMenuItem* item = [menu itemAtIndex:i];
+    if (item.action == action_selector)
+      return item;
+  }
+  return nil;
 }
 
 }  // namespace
@@ -27,13 +41,30 @@ void AddMenuItem(NSMenu *menu, NSString* label, int idval) {
 // Receives notifications from the application. Will delete itself when done.
 @interface ClientAppDelegate : NSObject<NSApplicationDelegate> {
  @private
+  bool with_controls_;
   bool with_osr_;
 }
 
-- (id)initWithOsr:(bool)with_osr;
+- (id)initWithControls:(bool)with_controls andOsr:(bool)with_osr;
 - (void)createApplication:(id)object;
 - (void)tryToTerminateApplication:(NSApplication*)app;
-- (IBAction)menuItemSelected:(id)sender;
+- (void)testsItemSelected:(int)command_id;
+- (IBAction)menuTestsGetText:(id)sender;
+- (IBAction)menuTestsGetSource:(id)sender;
+- (IBAction)menuTestsWindowNew:(id)sender;
+- (IBAction)menuTestsWindowPopup:(id)sender;
+- (IBAction)menuTestsRequest:(id)sender;
+- (IBAction)menuTestsPluginInfo:(id)sender;
+- (IBAction)menuTestsZoomIn:(id)sender;
+- (IBAction)menuTestsZoomOut:(id)sender;
+- (IBAction)menuTestsZoomReset:(id)sender;
+- (IBAction)menuTestsSetFPS:(id)sender;
+- (IBAction)menuTestsSetScaleFactor:(id)sender;
+- (IBAction)menuTestsTracingBegin:(id)sender;
+- (IBAction)menuTestsTracingEnd:(id)sender;
+- (IBAction)menuTestsPrint:(id)sender;
+- (IBAction)menuTestsPrintToPdf:(id)sender;
+- (IBAction)menuTestsOtherTests:(id)sender;
 @end
 
 // Provide the CefAppProtocol implementation required by CEF.
@@ -105,8 +136,9 @@ void AddMenuItem(NSMenu *menu, NSString* label, int idval) {
 
 @implementation ClientAppDelegate
 
-- (id)initWithOsr:(bool)with_osr {
+- (id)initWithControls:(bool)with_controls andOsr:(bool)with_osr {
   if (self = [super init]) {
+    with_controls_ = with_controls;
     with_osr_ = with_osr;
   }
   return self;
@@ -115,41 +147,65 @@ void AddMenuItem(NSMenu *menu, NSString* label, int idval) {
 // Create the application on the UI thread.
 - (void)createApplication:(id)object {
   NSApplication* application = [NSApplication sharedApplication];
-  [NSBundle loadNibNamed:@"MainMenu" owner:NSApp];
+
+  // The top menu is configured using Interface Builder (IB). To modify the menu
+  // start by loading MainMenu.xib in IB.
+  //
+  // To associate MainMenu.xib with ClientAppDelegate:
+  // 1. Select "File's Owner" from the "Placeholders" section in the left side
+  //    pane.
+  // 2. Load the "Identity inspector" tab in the top-right side pane.
+  // 3. In the "Custom Class" section set the "Class" value to
+  //    "ClientAppDelegate".
+  // 4. Pass an instance of ClientAppDelegate as the |owner| parameter to
+  //    loadNibNamed:.
+  //
+  // To create a new top menu:
+  // 1. Load the "Object library" tab in the bottom-right side pane.
+  // 2. Drag a "Submenu Menu Item" widget from the Object library to the desired
+  //    location in the menu bar shown in the center pane.
+  // 3. Select the newly created top menu by left clicking on it.
+  // 4. Load the "Attributes inspector" tab in the top-right side pane.
+  // 5. Under the "Menu Item" section set the "Tag" value to a unique integer.
+  //    This is necessary for the GetMenuBarMenuWithTag function to work
+  //    properly.
+  //
+  // To create a new menu item in a top menu:
+  // 1. Add a new receiver method in ClientAppDelegate (e.g. menuTestsDoStuff:).
+  // 2. Load the "Object library" tab in the bottom-right side pane.
+  // 3. Drag a "Menu Item" widget from the Object library to the desired
+  //    location in the menu bar shown in the center pane.
+  // 4. Double-click on the new menu item to set the label.
+  // 5. Right click on the new menu item to show the "Get Source" dialog.
+  // 6. In the "Sent Actions" section drag from the circle icon and drop on the
+  //    new receiver method in the ClientAppDelegate source code file.
+  //
+  // Load the top menu from MainMenu.xib.
+  [[NSBundle mainBundle] loadNibNamed:@"MainMenu"
+                                owner:self
+                      topLevelObjects:nil];
 
   // Set the delegate for application events.
   [application setDelegate:self];
 
-  // Add the Tests menu.
-  NSMenu* menubar = [application mainMenu];
-  NSMenuItem *testItem = [[[NSMenuItem alloc] initWithTitle:@"Tests"
-                                                     action:nil
-                                              keyEquivalent:@""] autorelease];
-  NSMenu *testMenu = [[[NSMenu alloc] initWithTitle:@"Tests"] autorelease];
-  AddMenuItem(testMenu, @"Get Text",      ID_TESTS_GETSOURCE);
-  AddMenuItem(testMenu, @"Get Source",    ID_TESTS_GETTEXT);
-  AddMenuItem(testMenu, @"New Window",    ID_TESTS_WINDOW_NEW);
-  AddMenuItem(testMenu, @"Popup Window",  ID_TESTS_WINDOW_POPUP);
-  AddMenuItem(testMenu, @"Request",       ID_TESTS_REQUEST);
-  AddMenuItem(testMenu, @"Plugin Info",   ID_TESTS_PLUGIN_INFO);
-  AddMenuItem(testMenu, @"Zoom In",       ID_TESTS_ZOOM_IN);
-  AddMenuItem(testMenu, @"Zoom Out",      ID_TESTS_ZOOM_OUT);
-  AddMenuItem(testMenu, @"Zoom Reset",    ID_TESTS_ZOOM_RESET);
-  if (with_osr_) {
-    AddMenuItem(testMenu, @"Set FPS",          ID_TESTS_OSR_FPS);
-    AddMenuItem(testMenu, @"Set Scale Factor", ID_TESTS_OSR_DSF);
+  if (!with_osr_) {
+    // Remove the OSR-related menu items when OSR is disabled.
+    NSMenuItem* tests_menu = GetMenuBarMenuWithTag(8);
+    if (tests_menu) {
+      NSMenuItem* set_fps_item = GetMenuItemWithAction(
+          tests_menu.submenu, @selector(menuTestsSetFPS:));
+      if (set_fps_item)
+        [tests_menu.submenu removeItem:set_fps_item];
+      NSMenuItem* set_scale_factor_item = GetMenuItemWithAction(
+          tests_menu.submenu, @selector(menuTestsSetScaleFactor:));
+      if (set_scale_factor_item)
+        [tests_menu.submenu removeItem:set_scale_factor_item];
+    }
   }
-  AddMenuItem(testMenu, @"Begin Tracing", ID_TESTS_TRACING_BEGIN);
-  AddMenuItem(testMenu, @"End Tracing",   ID_TESTS_TRACING_END);
-  AddMenuItem(testMenu, @"Print",         ID_TESTS_PRINT);
-  AddMenuItem(testMenu, @"Print to PDF",  ID_TESTS_PRINT_TO_PDF);
-  AddMenuItem(testMenu, @"Other Tests",   ID_TESTS_OTHER_TESTS);
-  [testItem setSubmenu:testMenu];
-  [menubar addItem:testItem];
 
   // Create the first window.
   client::MainContext::Get()->GetRootWindowManager()->CreateRootWindow(
-      true,             // Show controls.
+      with_controls_,   // Show controls.
       with_osr_,        // Use off-screen rendering.
       CefRect(),        // Use default system size.
       std::string());   // Use default URL.
@@ -159,7 +215,11 @@ void AddMenuItem(NSMenu *menu, NSString* label, int idval) {
   client::MainContext::Get()->GetRootWindowManager()->CloseAllWindows(false);
 }
 
-- (IBAction)menuItemSelected:(id)sender {
+- (void)orderFrontStandardAboutPanel:(id)sender {
+  [[NSApplication sharedApplication] orderFrontStandardAboutPanel:nil];
+}
+
+- (void)testsItemSelected:(int)command_id {
   // Retrieve the active RootWindow.
   NSWindow* key_window = [[NSApplication sharedApplication] keyWindow];
   if (!key_window)
@@ -169,10 +229,72 @@ void AddMenuItem(NSMenu *menu, NSString* label, int idval) {
       client::RootWindow::GetForNSWindow(key_window);
 
   CefRefPtr<CefBrowser> browser = root_window->GetBrowser();
-  if (browser.get()) {
-    NSMenuItem *item = (NSMenuItem*)sender;
-    client::test_runner::RunTest(browser, [item tag]);
-  }
+  if (browser.get())
+    client::test_runner::RunTest(browser, command_id);
+}
+
+- (IBAction)menuTestsGetText:(id)sender {
+  [self testsItemSelected:ID_TESTS_GETTEXT];
+}
+
+- (IBAction)menuTestsGetSource:(id)sender {
+  [self testsItemSelected:ID_TESTS_GETSOURCE];
+}
+
+- (IBAction)menuTestsWindowNew:(id)sender {
+  [self testsItemSelected:ID_TESTS_WINDOW_NEW];
+}
+
+- (IBAction)menuTestsWindowPopup:(id)sender {
+  [self testsItemSelected:ID_TESTS_WINDOW_POPUP];
+}
+
+- (IBAction)menuTestsRequest:(id)sender {
+  [self testsItemSelected:ID_TESTS_REQUEST];
+}
+
+- (IBAction)menuTestsPluginInfo:(id)sender {
+  [self testsItemSelected:ID_TESTS_PLUGIN_INFO];
+}
+
+- (IBAction)menuTestsZoomIn:(id)sender {
+  [self testsItemSelected:ID_TESTS_ZOOM_IN];
+}
+
+- (IBAction)menuTestsZoomOut:(id)sender {
+  [self testsItemSelected:ID_TESTS_ZOOM_OUT];
+}
+
+- (IBAction)menuTestsZoomReset:(id)sender {
+  [self testsItemSelected:ID_TESTS_ZOOM_RESET];
+}
+
+- (IBAction)menuTestsSetFPS:(id)sender {
+  [self testsItemSelected:ID_TESTS_OSR_FPS];
+}
+
+- (IBAction)menuTestsSetScaleFactor:(id)sender {
+  [self testsItemSelected:ID_TESTS_OSR_DSF];
+}
+
+- (IBAction)menuTestsTracingBegin:(id)sender {
+  [self testsItemSelected:ID_TESTS_TRACING_BEGIN];
+}
+
+- (IBAction)menuTestsTracingEnd:(id)sender {
+  [self testsItemSelected:ID_TESTS_TRACING_END];
+}
+
+- (IBAction)menuTestsPrint:(id)sender {
+  [self testsItemSelected:ID_TESTS_PRINT];
+}
+
+- (IBAction)menuTestsPrintToPdf:(id)sender {
+  [self testsItemSelected:ID_TESTS_PRINT_TO_PDF];
+}
+
+- (IBAction)menuTestsOtherTests:(id)sender {
+  [self testsItemSelected:ID_TESTS_OTHER_TESTS];
 }
 
 - (NSApplicationTerminateReply)applicationShouldTerminate:
@@ -213,7 +335,11 @@ int RunMain(int argc, char* argv[]) {
   context->PopulateSettings(&settings);
 
   // Create the main message loop object.
-  scoped_ptr<MainMessageLoop> message_loop(new MainMessageLoopStd);
+  scoped_ptr<MainMessageLoop> message_loop;
+  if (settings.external_message_pump)
+    message_loop = MainMessageLoopExternalPump::Create();
+  else
+    message_loop.reset(new MainMessageLoopStd);
 
   // Initialize CEF.
   context->Initialize(main_args, settings, app, NULL);
@@ -223,7 +349,8 @@ int RunMain(int argc, char* argv[]) {
 
   // Create the application delegate and window.
   ClientAppDelegate* delegate = [[ClientAppDelegate alloc]
-      initWithOsr:settings.windowless_rendering_enabled ? true : false];
+      initWithControls:!command_line->HasSwitch(switches::kHideControls)
+                andOsr:settings.windowless_rendering_enabled ? true : false];
   [delegate performSelectorOnMainThread:@selector(createApplication:)
                              withObject:nil
                           waitUntilDone:NO];

@@ -99,6 +99,10 @@ EReturnCode BuildPatchToolMain(const TCHAR* CommandLine)
 
 	// Run the application
 	EReturnCode ReturnCode = RunBuildPatchTool();
+	if (ReturnCode != EReturnCode::OK)
+	{
+		UE_LOG(LogBuildPatchTool, Error, TEXT("Tool exited with: %d"), (int32)ReturnCode);
+	}
 
 	// Shutdown
 	FCoreDelegates::OnExit.Broadcast();
@@ -108,7 +112,7 @@ EReturnCode BuildPatchToolMain(const TCHAR* CommandLine)
 
 const TCHAR* ProcessApplicationCommandline(int32 ArgC, TCHAR* ArgV[])
 {
-	static FString CommandLine = TEXT("-usehyperthreading");
+	static FString CommandLine = TEXT("-usehyperthreading -UNATTENDED");
 	for (int32 Option = 1; Option < ArgC; Option++)
 	{
 		CommandLine += TEXT(" ");

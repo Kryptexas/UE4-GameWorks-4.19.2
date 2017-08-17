@@ -290,7 +290,7 @@ void FSlateD3DRenderer::Private_CreateViewport( TSharedRef<SWindow> InWindow, co
 	Hr = DXGIDevice->GetParent(__uuidof(IDXGIAdapter1), (void **)DXGIAdapter.GetInitReference());
 	if (!SUCCEEDED(Hr))
 	{
-		LogSlateD3DRendererFailure(TEXT("FSlateD3DRenderer::Private_CreateViewport() - IDXGIDevice1::GetParent"), Hr);
+		LogSlateD3DRendererFailure(TEXT("FSlateD3DRenderer::Private_CreateViewport() - IDXGIDevice1::GetParent(IDXGIAdapter1)"), Hr);
 		GEncounteredCriticalD3DDeviceError = true;
 		return;
 	}
@@ -299,7 +299,7 @@ void FSlateD3DRenderer::Private_CreateViewport( TSharedRef<SWindow> InWindow, co
 	Hr = DXGIAdapter->GetParent(__uuidof(IDXGIFactory1), (void **)DXGIFactory.GetInitReference());
 	if (!SUCCEEDED(Hr))
 	{
-		LogSlateD3DRendererFailure(TEXT("FSlateD3DRenderer::Private_CreateViewport() - IDXGIAdapter1::GetParent"), Hr);
+		LogSlateD3DRendererFailure(TEXT("FSlateD3DRenderer::Private_CreateViewport() - IDXGIAdapter1::GetParent(IDXGIFactory1)"), Hr);
 		GEncounteredCriticalD3DDeviceError = true;
 		return;
 	}

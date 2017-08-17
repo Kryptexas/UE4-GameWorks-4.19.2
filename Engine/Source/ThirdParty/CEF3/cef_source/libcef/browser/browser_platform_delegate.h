@@ -11,7 +11,9 @@
 
 #include "include/cef_client.h"
 #include "include/cef_drag_data.h"
+#include "include/views/cef_browser_view.h"
 #include "include/internal/cef_types.h"
+#include "libcef/browser/browser_host_impl.h"
 
 #include "base/callback.h"
 #include "content/public/browser/web_contents.h"
@@ -35,7 +37,6 @@ class Widget;
 }
 #endif
 
-class CefBrowserHostImpl;
 class CefBrowserInfo;
 class CefFileDialogRunner;
 class CefJavaScriptDialogRunner;
@@ -48,10 +49,8 @@ class CefBrowserPlatformDelegate {
  public:
   // Create a new CefBrowserPlatformDelegate instance. May be called on multiple
   // threads.
-  static scoped_ptr<CefBrowserPlatformDelegate> Create(
-      const CefWindowInfo& window_info,
-      const CefBrowserSettings& settings,
-      CefRefPtr<CefClient> client);
+  static std::unique_ptr<CefBrowserPlatformDelegate> Create(
+      CefBrowserHostImpl::CreateParams& create_params);
 
   // Called to create the view objects for a new WebContents. Will only be
   // called a single time per instance. May be called on multiple threads. Only
@@ -69,12 +68,22 @@ class CefBrowserPlatformDelegate {
     content::RenderViewHost* render_view_host);
 
   // Called after the owning CefBrowserHostImpl is created. Will only be called
-  // a single time per instance.
+  // a single time per instance. Do not send any client notifications from this
+  // method.
   virtual void BrowserCreated(CefBrowserHostImpl* browser);
+
+  // Send any notifications related to browser creation. Called after
+  // BrowserCreated().
+  virtual void NotifyBrowserCreated();
+
+  // Send any notifications related to browser destruction. Called before
+  // BrowserDestroyed().
+  virtual void NotifyBrowserDestroyed();
   
   // Called before the owning CefBrowserHostImpl is destroyed. Will only be
   // called a single time per instance. All references to the CefBrowserHostImpl
-  // and WebContents should be cleared when this method is called.
+  // and WebContents should be cleared when this method is called. Do not send
+  // any client notifications from this method.
   virtual void BrowserDestroyed(CefBrowserHostImpl* browser);
 
   // Create the window that hosts the browser. Will only be called a single time
@@ -96,7 +105,41 @@ class CefBrowserPlatformDelegate {
   // Returns the Widget owner for the browser window. Only used with windowed
   // rendering.
   virtual views::Widget* GetWindowWidget() const;
-#endif
+
+  // Returns the BrowserView associated with this browser. Only used with views-
+  // based browsers.
+  virtual CefRefPtr<CefBrowserView> GetBrowserView() const;
+#endif  // defined(USE_AURA)
+
+  // Called after the WebContents have been created for a new popup browser
+  // parented to this browser but before the CefBrowserHostImpl is created for
+  // the popup. |is_devtools| will be true if the popup will host DevTools. This
+  // method will be called before WebContentsCreated() is called on
+  // |new_platform_delegate|. Do not make the new browser visible in this
+  // callback.
+  virtual void PopupWebContentsCreated(
+      const CefBrowserSettings& settings,
+      CefRefPtr<CefClient> client,
+      content::WebContents* new_web_contents,
+      CefBrowserPlatformDelegate* new_platform_delegate,
+      bool is_devtools);
+
+  // Called after the CefBrowserHostImpl is created for a new popup browser
+  // parented to this browser. |is_devtools| will be true if the popup will host
+  // DevTools. This method will be called immediately after
+  // CefLifeSpanHandler::OnAfterCreated() for the popup browser. It is safe to
+  // make the new browser visible in this callback (for example, add the browser
+  // to a window and show it).
+  virtual void PopupBrowserCreated(
+      CefBrowserHostImpl* new_browser,
+      bool is_devtools);
+
+  // Returns the background color for the browser. The alpha component will be
+  // either SK_AlphaTRANSPARENT or SK_AlphaOPAQUE (e.g. fully transparent or
+  // fully opaque). SK_AlphaOPAQUE will always be returned for windowed
+  // browsers. SK_ColorTRANSPARENT may be returned for windowless browsers to
+  // enable transparency.
+  virtual SkColor GetBackgroundColor() const = 0;
 
   // Notify the window that it was resized.
   virtual void WasResized() = 0;
@@ -123,12 +166,8 @@ class CefBrowserPlatformDelegate {
   virtual void SizeTo(int width, int height);
 #endif
 
-#if defined(OS_MACOSX)
-  // Set or remove host window visibility. Only used on OS X.
-  virtual void SetWindowVisibility(bool visible);
-#endif
-
-  // Convert from view coordinates to screen coordinates.
+  // Convert from view coordinates to screen coordinates. Potential display
+  // scaling will be applied to the result.
   virtual gfx::Point GetScreenPoint(const gfx::Point& view) const = 0;
 
   // Open the specified text in the default text editor.
@@ -161,17 +200,21 @@ class CefBrowserPlatformDelegate {
       const content::NativeWebKeyboardEvent& event) const = 0;
 
   // Create the platform-specific file dialog runner.
-  virtual scoped_ptr<CefFileDialogRunner> CreateFileDialogRunner();
+  virtual std::unique_ptr<CefFileDialogRunner> CreateFileDialogRunner();
 
   // Create the platform-specific JavaScript dialog runner.
-  virtual scoped_ptr<CefJavaScriptDialogRunner> CreateJavaScriptDialogRunner();
+  virtual std::unique_ptr<CefJavaScriptDialogRunner> CreateJavaScriptDialogRunner();
 
   // Create the platform-specific menu runner.
-  virtual scoped_ptr<CefMenuRunner> CreateMenuRunner() = 0;
+  virtual std::unique_ptr<CefMenuRunner> CreateMenuRunner() = 0;
 
   // Returns true if this delegate implements windowless rendering. May be
   // called on multiple threads.
   virtual bool IsWindowless() const = 0;
+
+  // Returns true if this delegate implements views-hosted browser handling. May
+  // be called on multiple threads.
+  virtual bool IsViewsHosted() const = 0;
 
   // Notify the browser that it was hidden. Only used with windowless rendering.
   virtual void WasHidden(bool hidden);
@@ -186,13 +229,18 @@ class CefBrowserPlatformDelegate {
   // Set the windowless frame rate. Only used with windowless rendering.
   virtual void SetWindowlessFrameRate(int frame_rate);
 
-#if defined(OS_MACOSX)
-  // IME-related callbacks. See documentation in CefRenderHandler. Only used
-  // with windowless rendering on OS X.
-  virtual CefTextInputContext GetNSTextInputContext();
-  virtual void HandleKeyEventBeforeTextInputClient(CefEventHandle keyEvent);
-  virtual void HandleKeyEventAfterTextInputClient(CefEventHandle keyEvent);
-#endif
+  // IME-related callbacks. See documentation in CefBrowser and
+  // CefRenderHandler. Only used with windowless rendering.
+  virtual void ImeSetComposition(
+      const CefString& text,
+      const std::vector<CefCompositionUnderline>& underlines,
+      const CefRange& replacement_range,
+      const CefRange& selection_range);
+  virtual void ImeCommitText(const CefString& text,
+                             const CefRange& replacement_range,
+                             int relative_cursor_pos);
+  virtual void ImeFinishComposingText(bool keep_selection);
+  virtual void ImeCancelComposition();
 
   // Drag/drop-related callbacks. See documentation in CefRenderHandler. Only
   // used with windowless rendering.
@@ -203,6 +251,14 @@ class CefBrowserPlatformDelegate {
                                   cef_drag_operations_mask_t allowed_ops);
   virtual void DragTargetDragLeave();
   virtual void DragTargetDrop(const CefMouseEvent& event);
+  virtual void StartDragging(
+      const content::DropData& drop_data,
+      blink::WebDragOperationsMask allowed_ops,
+      const gfx::ImageSkia& image,
+      const gfx::Vector2d& image_offset,
+      const content::DragEventSourceInfo& event_info,
+      content::RenderWidgetHostImpl* source_rwh);
+  virtual void UpdateDragCursor(blink::WebDragOperation operation);
   virtual void DragSourceEndedAt(int x, int y,
                                  cef_drag_operations_mask_t op);
   virtual void DragSourceSystemDragEnded();

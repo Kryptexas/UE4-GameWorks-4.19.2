@@ -17,10 +17,11 @@
 #include "base/compiler_specific.h"
 #include "base/files/file_path.h"
 #include "base/memory/ref_counted.h"
-#include "base/memory/scoped_ptr.h"
-#include "content/public/browser/content_browser_client.h"
+#include "components/prefs/pref_member.h"
+#include "content/public/browser/browser_context.h"
 #include "net/url_request/url_request_job_factory.h"
 
+class PrefRegistrySimple;
 class PrefService;
 
 namespace base {
@@ -46,12 +47,18 @@ class CefURLRequestContextGetterImpl : public CefURLRequestContextGetter {
   CefURLRequestContextGetterImpl(
       const CefRequestContextSettings& settings,
       PrefService* pref_service,
-      base::MessageLoop* io_loop,
-      base::MessageLoop* file_loop,
+      scoped_refptr<base::SingleThreadTaskRunner> io_task_runner,
+      scoped_refptr<base::SingleThreadTaskRunner> file_task_runner,
       content::ProtocolHandlerMap* protocol_handlers,
-      scoped_ptr<net::ProxyConfigService> proxy_config_service,
+      std::unique_ptr<net::ProxyConfigService> proxy_config_service,
       content::URLRequestInterceptorScopedVector request_interceptors);
   ~CefURLRequestContextGetterImpl() override;
+
+  // Register preferences. Called from browser_prefs::CreatePrefService().
+  static void RegisterPrefs(PrefRegistrySimple* registry);
+
+  // Called when the BrowserContextImpl is destroyed.
+  void ShutdownOnUIThread();
 
   // net::URLRequestContextGetter implementation.
   net::URLRequestContext* GetURLRequestContext() override;
@@ -63,43 +70,66 @@ class CefURLRequestContextGetterImpl : public CefURLRequestContextGetter {
 
   void SetCookieStoragePath(const base::FilePath& path,
                             bool persist_session_cookies);
-  void SetCookieSupportedSchemes(const std::set<std::string>& schemes);
+  void SetCookieSupportedSchemes(const std::vector<std::string>& schemes);
 
   // Keep a reference to all handlers sharing this context so that they'll be
   // kept alive until the context is destroyed.
   void AddHandler(CefRefPtr<CefRequestContextHandler> handler);
 
-  net::CookieMonster* GetCookieMonster() const;
+  // Returns the existing cookie store object. Logs an error if the cookie
+  // store does not yet exist. Must be called on the IO thread.
+  net::CookieStore* GetExistingCookieStore() const;
 
   CefURLRequestManager* request_manager() const {
-    return url_request_manager_.get();
+    return io_state_->url_request_manager_.get();
   }
 
  private:
   void CreateProxyConfigService();
+  void UpdateServerWhitelist();
+  void UpdateDelegateWhitelist();
+
+  void ShutdownOnIOThread();
 
   const CefRequestContextSettings settings_;
 
-  base::MessageLoop* io_loop_;
-  base::MessageLoop* file_loop_;
+  bool shutting_down_ = false;
+
+  // State that is only accessed on the IO thread and will be reset in
+  // ShutdownOnIOThread().
+  struct IOState {
+    net::NetLog* net_log_ = nullptr;  // Guaranteed to outlive this object.
+
+    scoped_refptr<base::SingleThreadTaskRunner> io_task_runner_;
+    scoped_refptr<base::SingleThreadTaskRunner> file_task_runner_;
 
 #if defined(OS_POSIX) && !defined(OS_ANDROID)
-  std::string gsapi_library_name_;
+    std::string gsapi_library_name_;
 #endif
 
-  scoped_ptr<net::ProxyConfigService> proxy_config_service_;
-  scoped_ptr<net::URLRequestContextStorage> storage_;
-  scoped_ptr<net::HttpAuthPreferences> http_auth_preferences_;
-  scoped_ptr<CefURLRequestContextImpl> url_request_context_;
-  scoped_ptr<CefURLRequestManager> url_request_manager_;
-  scoped_ptr<net::FtpTransactionFactory> ftp_transaction_factory_;
-  content::ProtocolHandlerMap protocol_handlers_;
-  content::URLRequestInterceptorScopedVector request_interceptors_;
+    std::unique_ptr<net::ProxyConfigService> proxy_config_service_;
+    std::unique_ptr<net::URLRequestContextStorage> storage_;
+    std::unique_ptr<net::HttpAuthPreferences> http_auth_preferences_;
+    std::unique_ptr<CefURLRequestContextImpl> url_request_context_;
+    std::unique_ptr<CefURLRequestManager> url_request_manager_;
+    content::ProtocolHandlerMap protocol_handlers_;
+    content::URLRequestInterceptorScopedVector request_interceptors_;
 
-  base::FilePath cookie_store_path_;
-  std::set<std::string> cookie_supported_schemes_;
+    base::FilePath cookie_store_path_;
+    std::vector<std::string> cookie_supported_schemes_;
 
-  std::vector<CefRefPtr<CefRequestContextHandler> > handler_list_;
+    std::vector<CefRefPtr<CefRequestContextHandler> > handler_list_;
+  };
+  std::unique_ptr<IOState> io_state_;
+
+  BooleanPrefMember quick_check_enabled_;
+  BooleanPrefMember pac_https_url_stripping_enabled_;
+
+  // Member variables which are pointed to by the various context objects.
+  mutable BooleanPrefMember force_google_safesearch_;
+
+  StringPrefMember auth_server_whitelist_;
+  StringPrefMember auth_negotiate_delegate_whitelist_;
 
   DISALLOW_COPY_AND_ASSIGN(CefURLRequestContextGetterImpl);
 };

@@ -418,12 +418,15 @@ FString FWindowsOSVersionHelper::GetOSVersion()
 
 	// Get system info
 	SYSTEM_INFO SystemInfo;
+	const TCHAR* Architecture;
 	if (FPlatformMisc::Is64bitOperatingSystem())
 	{
+		Architecture = TEXT("64bit");
 		GetNativeSystemInfo(&SystemInfo);
 	}
 	else
 	{
+		Architecture = TEXT("32bit");
 		GetSystemInfo(&SystemInfo);
 	}
 
@@ -435,7 +438,7 @@ FString FWindowsOSVersionHelper::GetOSVersion()
 	if (GetVersionEx((LPOSVERSIONINFO)&OsVersionInfo))
 #pragma warning(pop)
 	{
-		return FString::Printf(TEXT("%d.%d.%d.%d.%d"), OsVersionInfo.dwMajorVersion, OsVersionInfo.dwMinorVersion, OsVersionInfo.dwBuildNumber, OsVersionInfo.wProductType, OsVersionInfo.wSuiteMask);
+		return FString::Printf(TEXT("%d.%d.%d.%d.%d.%s"), OsVersionInfo.dwMajorVersion, OsVersionInfo.dwMinorVersion, OsVersionInfo.dwBuildNumber, OsVersionInfo.wProductType, OsVersionInfo.wSuiteMask, Architecture);
 	}
 	return FString();
 }

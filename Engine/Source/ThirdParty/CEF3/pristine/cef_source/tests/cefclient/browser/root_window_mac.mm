@@ -2,18 +2,20 @@
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 
-#include "cefclient/browser/root_window_mac.h"
+#include "tests/cefclient/browser/root_window_mac.h"
+
+#include <Cocoa/Cocoa.h>
 
 #include "include/base/cef_bind.h"
 #include "include/cef_app.h"
 #include "include/cef_application_mac.h"
-#include "cefclient/browser/browser_window_osr_mac.h"
-#include "cefclient/browser/browser_window_std_mac.h"
-#include "cefclient/browser/main_context.h"
-#include "cefclient/browser/main_message_loop.h"
-#include "cefclient/browser/temp_window.h"
-#include "cefclient/browser/window_test.h"
-#include "cefclient/common/client_switches.h"
+#include "tests/cefclient/browser/browser_window_osr_mac.h"
+#include "tests/cefclient/browser/browser_window_std_mac.h"
+#include "tests/cefclient/browser/main_context.h"
+#include "tests/cefclient/browser/temp_window.h"
+#include "tests/cefclient/browser/window_test_runner_mac.h"
+#include "tests/shared/browser/main_message_loop.h"
+#include "tests/shared/common/client_switches.h"
 
 // Receives notifications from controls and the browser window. Will delete
 // itself when done.
@@ -195,6 +197,10 @@
 // Deletes itself.
 - (void)cleanup:(id)window {
   root_window_->WindowDestroyed();
+
+  // Don't want any more delegate callbacks after we destroy ourselves.
+  [window setDelegate:nil];
+
   [self release];
 }
 
@@ -431,7 +437,7 @@ void RootWindowMac::WindowDestroyed() {
 
 void RootWindowMac::CreateBrowserWindow(const std::string& startup_url) {
   if (with_osr_) {
-    OsrRenderer::Settings settings;
+    OsrRenderer::Settings settings = {};
     MainContext::Get()->PopulateOsrSettings(&settings);
     browser_window_.reset(new BrowserWindowOsrMac(this, startup_url, settings));
   } else {
@@ -466,7 +472,8 @@ void RootWindowMac::CreateRootWindow(const CefBrowserSettings& settings) {
                 styleMask:(NSTitledWindowMask |
                            NSClosableWindowMask |
                            NSMiniaturizableWindowMask |
-                           NSResizableWindowMask )
+                           NSResizableWindowMask |
+                           NSUnifiedTitleAndToolbarWindowMask )
                 backing:NSBackingStoreBuffered
                 defer:NO];
   [window_ setTitle:@"cefclient"];
@@ -491,6 +498,13 @@ void RootWindowMac::CreateRootWindow(const CefBrowserSettings& settings) {
 
   NSView* contentView = [window_ contentView];
   NSRect contentBounds = [contentView bounds];
+
+  if (!with_osr_) {
+    // Make the content view for the window have a layer. This will make all
+    // sub-views have layers. This is necessary to ensure correct layer
+    // ordering of all child views and their layers.
+    [contentView setWantsLayer:YES];
+  }
 
   if (with_controls_) {
     // Create the buttons.
@@ -613,10 +627,12 @@ void RootWindowMac::OnSetFullscreen(bool fullscreen) {
 
   CefRefPtr<CefBrowser> browser = GetBrowser();
   if (browser) {
+    scoped_ptr<window_test::WindowTestRunnerMac> test_runner(
+        new window_test::WindowTestRunnerMac());
     if (fullscreen)
-      window_test::Maximize(browser);
+      test_runner->Maximize(browser);
     else
-      window_test::Restore(browser);
+      test_runner->Restore(browser);
   }
 }
 
@@ -638,11 +654,6 @@ void RootWindowMac::NotifyDestroyedIfDone() {
   // Notify once both the window and the browser have been destroyed.
   if (window_destroyed_ && browser_destroyed_)
     delegate_->OnRootWindowDestroyed(this);
-}
-
-// static
-scoped_refptr<RootWindow> RootWindow::Create() {
-  return new RootWindowMac();
 }
 
 // static

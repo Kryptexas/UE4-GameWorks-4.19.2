@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -178,8 +178,8 @@ int CEF_CALLBACK v8context_is_same(struct _cef_v8context_t* self,
 }
 
 int CEF_CALLBACK v8context_eval(struct _cef_v8context_t* self,
-    const cef_string_t* code, struct _cef_v8value_t** retval,
-    struct _cef_v8exception_t** exception) {
+    const cef_string_t* code, const cef_string_t* script_url, int start_line,
+    struct _cef_v8value_t** retval, struct _cef_v8exception_t** exception) {
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
@@ -197,6 +197,7 @@ int CEF_CALLBACK v8context_eval(struct _cef_v8context_t* self,
   DCHECK(exception);
   if (!exception)
     return 0;
+  // Unverified params: script_url
 
   // Translate param: retval; type: refptr_same_byref
   CefRefPtr<CefV8Value> retvalPtr;
@@ -212,6 +213,8 @@ int CEF_CALLBACK v8context_eval(struct _cef_v8context_t* self,
   // Execute
   bool _retval = CefV8ContextCppToC::Get(self)->Eval(
       CefString(code),
+      CefString(script_url),
+      start_line,
       retvalPtr,
       exceptionPtr);
 
@@ -257,16 +260,17 @@ CefV8ContextCppToC::CefV8ContextCppToC() {
   GetStruct()->eval = v8context_eval;
 }
 
-template<> CefRefPtr<CefV8Context> CefCppToC<CefV8ContextCppToC, CefV8Context,
-    cef_v8context_t>::UnwrapDerived(CefWrapperType type, cef_v8context_t* s) {
+template<> CefRefPtr<CefV8Context> CefCppToCRefCounted<CefV8ContextCppToC,
+    CefV8Context, cef_v8context_t>::UnwrapDerived(CefWrapperType type,
+    cef_v8context_t* s) {
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
 
-#ifndef NDEBUG
-template<> base::AtomicRefCount CefCppToC<CefV8ContextCppToC, CefV8Context,
-    cef_v8context_t>::DebugObjCt = 0;
+#if DCHECK_IS_ON()
+template<> base::AtomicRefCount CefCppToCRefCounted<CefV8ContextCppToC,
+    CefV8Context, cef_v8context_t>::DebugObjCt = 0;
 #endif
 
-template<> CefWrapperType CefCppToC<CefV8ContextCppToC, CefV8Context,
+template<> CefWrapperType CefCppToCRefCounted<CefV8ContextCppToC, CefV8Context,
     cef_v8context_t>::kWrapperType = WT_V8CONTEXT;

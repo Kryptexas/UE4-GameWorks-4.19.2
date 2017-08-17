@@ -168,7 +168,7 @@ void FGenericPlatformProcess::AddShaderSourceDirectoryMapping(const FString& Vir
 	// Detect collisions with any other mappings.
 	check(!GShaderSourceDirectoryMappings.Contains(VirtualShaderDirectory));
 
-	// Make sur the real directory to map exists.
+	// Make sure the real directory to map exists.
 	check(FPaths::DirectoryExists(RealShaderDirectory));
 
 	// Make sure the Generated directory does not exist, because is reserved for C++ generated shader source

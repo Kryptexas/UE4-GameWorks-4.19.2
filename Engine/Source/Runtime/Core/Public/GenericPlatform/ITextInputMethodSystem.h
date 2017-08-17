@@ -24,6 +24,14 @@ public:
 	virtual ~ITextInputMethodContext() {}
 
 	/**
+	 * Returns whether or not this context is currently composing.
+	 * @note This should be set to true when BeginComposition is called, and false when EndComposition is called.
+	 *
+	 * @return	True if we are composing, false otherwise.
+	 */
+	virtual bool IsComposing() = 0;
+
+	/**
 	 * Returns whether or not this text is read-only.
 	 *
 	 * @return	True if the text is read-only, false otherwise.

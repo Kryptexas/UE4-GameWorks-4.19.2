@@ -166,6 +166,7 @@ void FAutomationDriverSpec::Define()
 				TEST_TRUE(Driver->FindElement(By::Path("Form//<SMultiLineEditableTextBox>"))->Exists());
 				TEST_TRUE(Driver->FindElement(By::Path("#Suite//#KeyA"))->Exists());
 			});
+
 		});
 	});
 
@@ -251,6 +252,13 @@ void FAutomationDriverSpec::Define()
 				TEST_EQUAL(Driver->FindElements(By::Path("#Suite//Form//Rows//#A1//<SEditableText>"))->GetElements().Num(), 1);
 				TEST_EQUAL(Driver->FindElements(By::Path("#Suite//<SVerticalBox>//Key/<STextBlock>"))->GetElements().Num(), 7);
 				TEST_EQUAL(Driver->FindElements(By::Path("#Suite//Keyboard//#KeyE/<STextBlock>"))->GetElements().Num(), 1);
+			});
+
+			It("should be capable of locating only descendants of a specific set of elements", EAsyncExecution::ThreadPool, [this]()
+			{
+				FDriverElementRef UserForm = Driver->FindElement(By::Id("UserForm"));
+				TEST_TRUE(UserForm->Exists());
+				TEST_EQUAL(Driver->FindElements(By::Path(UserForm, "Rows"))->GetElements().Num(), 3);
 			});
 		});
 	});

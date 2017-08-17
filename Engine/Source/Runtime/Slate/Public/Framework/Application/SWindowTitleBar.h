@@ -25,6 +25,7 @@
 #include "Widgets/Layout/SSpacer.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Input/SButton.h"
+#include "DriverMetaData.h"
 
 namespace SWindowTitleBarDefs
 {
@@ -199,6 +200,7 @@ protected:
 					.OnClicked(this, &SWindowTitleBar::MinimizeButton_OnClicked)
 					.Cursor(EMouseCursor::Default)
 					.ButtonStyle(FCoreStyle::Get(), "NoBorder")
+					.AddMetaData(FDriverMetaData::Id("launcher-minimizeWindowButton"))
 					[
 						SNew(SImage)
 							.Image(this, &SWindowTitleBar::GetMinimizeImage)
@@ -213,6 +215,7 @@ protected:
 					.OnClicked(this, &SWindowTitleBar::MaximizeRestoreButton_OnClicked)
 					.Cursor(EMouseCursor::Default)
 					.ButtonStyle(FCoreStyle::Get(), "NoBorder")
+					.AddMetaData(FDriverMetaData::Id("launcher-maximizeRestoreWindowButton"))
 					[
 						SNew(SImage)
 							.Image(this, &SWindowTitleBar::GetMaximizeRestoreImage)
@@ -227,6 +230,7 @@ protected:
 					.OnClicked(this, &SWindowTitleBar::CloseButton_OnClicked)
 					.Cursor(EMouseCursor::Default)
 					.ButtonStyle(FCoreStyle::Get(), "NoBorder")
+					.AddMetaData(FDriverMetaData::Id("launcher-closeWindowButton"))
 					[
 						SNew(SImage)
 							.Image(this, &SWindowTitleBar::GetCloseImage)

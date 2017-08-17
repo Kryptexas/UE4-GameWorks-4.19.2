@@ -10,7 +10,6 @@
 
 #include "libcef/browser/native/native_menu_win.h"
 
-#include "base/memory/scoped_ptr.h"
 
 class CefMenuRunnerWin : public CefMenuRunner {
  public:
@@ -18,11 +17,11 @@ class CefMenuRunnerWin : public CefMenuRunner {
 
   // CefMenuRunner methods.
   bool RunContextMenu(CefBrowserHostImpl* browser,
-                      ui::MenuModel* model,
+                      CefMenuModelImpl* model,
                       const content::ContextMenuParams& params) override;
 
  private:
-  scoped_ptr<views::NativeMenuWin> menu_;
+  std::unique_ptr<views::CefNativeMenuWin> menu_;
 };
 
 #endif  // CEF_LIBCEF_BROWSER_NATIVE_MENU_RUNNER_WIN_H_

@@ -2,7 +2,7 @@
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 
-#include "cefclient/browser/browser_window_osr_mac.h"
+#include "tests/cefclient/browser/browser_window_osr_mac.h"
 
 #include <Cocoa/Cocoa.h>
 #import <objc/runtime.h>
@@ -11,38 +11,22 @@
 #include "include/base/cef_logging.h"
 #include "include/cef_parser.h"
 #include "include/wrapper/cef_closure_task.h"
-#include "cefclient/browser/bytes_write_handler.h"
-#include "cefclient/browser/geometry_util.h"
-#include "cefclient/browser/main_message_loop.h"
+#include "tests/cefclient/browser/bytes_write_handler.h"
+#include "tests/cefclient/browser/main_context.h"
+#include "tests/cefclient/browser/text_input_client_osr_mac.h"
+#include "tests/shared/browser/geometry_util.h"
+#include "tests/shared/browser/main_message_loop.h"
 
-// Forward declare methods and constants that are only available with newer SDK
-// versions to avoid -Wpartial-availability compiler warnings.
+namespace {
 
-#if !defined(MAC_OS_X_VERSION_10_7) || \
-    MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_7
+CefTextInputClientOSRMac* GetInputClientFromContext(
+    const NSTextInputContext* context) {
+  if (!context)
+    return NULL;
+  return reinterpret_cast<CefTextInputClientOSRMac*>([context client]);
+}
 
-@interface NSEvent (LionSDK)
-- (NSEventPhase)phase;
-@end
-
-@interface NSView (LionSDK)
-- (NSPoint)convertPointFromBacking:(NSPoint)aPoint;
-- (NSPoint)convertPointToBacking:(NSPoint)aPoint;
-- (NSRect)convertRectFromBacking:(NSRect)aRect;
-- (NSRect)convertRectToBacking:(NSRect)aRect;
-- (void)setWantsBestResolutionOpenGLSurface:(BOOL)flag;
-@end
-
-@interface NSWindow (LionSDK)
-- (CGFloat)backingScaleFactor;
-@end
-
-extern "C" {
-extern NSString* const NSWindowDidChangeBackingPropertiesNotification;
-}  // extern "C"
-
-#endif  // MAC_OS_X_VERSION_10_7
-
+}  // namespace
 
 @interface BrowserOpenGLView
     : NSOpenGLView <NSDraggingSource, NSDraggingDestination> {
@@ -58,12 +42,15 @@ extern NSString* const NSWindowDidChangeBackingPropertiesNotification;
 
   float device_scale_factor_;
 
-  // Drag and drop
+  // Drag and drop.
   CefRefPtr<CefDragData> current_drag_data_;
   NSDragOperation current_drag_op_;
   NSDragOperation current_allowed_ops_;
   NSPasteboard* pasteboard_;
   CFStringRef fileUTI_;
+
+  // For intreacting with IME.
+  NSTextInputContext* text_input_context_osr_mac_;
 
   // Event monitor for scroll wheel end event.
   id endWheelMonitor_;
@@ -110,34 +97,12 @@ extern NSString* const NSWindowDidChangeBackingPropertiesNotification;
 - (NSPoint)convertPointToBackingInternal:(NSPoint)aPoint;
 - (NSRect)convertRectFromBackingInternal:(NSRect)aRect;
 - (NSRect)convertRectToBackingInternal:(NSRect)aRect;
-
+- (void)ChangeCompositionRange:(CefRange)range
+        character_bounds:(const CefRenderHandler::RectList&) character_bounds;
 @end
 
 
 namespace {
-
-// This method will return YES for OS X versions 10.7.3 and later, and NO
-// otherwise.
-// Used to prevent a crash when building with the 10.7 SDK and accessing the
-// notification below. See: http://crbug.com/260595.
-BOOL SupportsBackingPropertiesChangedNotification() {
-  // windowDidChangeBackingProperties: method has been added to the
-  // NSWindowDelegate protocol in 10.7.3, at the same time as the
-  // NSWindowDidChangeBackingPropertiesNotification notification was added.
-  // If the protocol contains this method description, the notification should
-  // be supported as well.
-  Protocol* windowDelegateProtocol = NSProtocolFromString(@"NSWindowDelegate");
-  struct objc_method_description methodDescription =
-      protocol_getMethodDescription(
-          windowDelegateProtocol,
-          @selector(windowDidChangeBackingProperties:),
-          NO,
-          YES);
-
-  // If the protocol does not contain the method, the returned method
-  // description is {NULL, NULL}
-  return methodDescription.name != NULL || methodDescription.types != NULL;
-}
 
 NSString* const kCEFDragDummyPboardType = @"org.CEF.drag-dummy-type";
 NSString* const kNSURLTitlePboardType = @"public.url-name";
@@ -163,6 +128,11 @@ BrowserOpenGLView* GLView(NSView* view) {
   return static_cast<BrowserOpenGLView*>(view);
 }
 
+NSPoint ConvertPointFromWindowToScreen(NSWindow* window, NSPoint point) {
+  NSRect point_rect = NSMakeRect(point.x, point.y, 0, 0);
+  return [window convertRectToScreen:point_rect].origin;
+}
+
 }  // namespace
 
 
@@ -174,7 +144,6 @@ BrowserOpenGLView* GLView(NSView* view) {
   NSOpenGLPixelFormat * pixelFormat =
       [[NSOpenGLPixelFormat alloc]
        initWithAttributes:(NSOpenGLPixelFormatAttribute[]) {
-           NSOpenGLPFAWindow,
            NSOpenGLPFADoubleBuffer,
            NSOpenGLPFADepthSize,
            32,
@@ -197,11 +166,8 @@ BrowserOpenGLView* GLView(NSView* view) {
                                     userInfo:nil];
     [self addTrackingArea:tracking_area_];
 
-    if ([self respondsToSelector:
-            @selector(setWantsBestResolutionOpenGLSurface:)]) {
-      // enable HiDPI buffer
-      [self setWantsBestResolutionOpenGLSurface:YES];
-    }
+    // enable HiDPI buffer
+    [self setWantsBestResolutionOpenGLSurface:YES];
 
     [self resetDragDrop];
 
@@ -218,13 +184,14 @@ BrowserOpenGLView* GLView(NSView* view) {
 }
 
 - (void)dealloc {
-  static BOOL supportsBackingPropertiesNotification =
-      SupportsBackingPropertiesChangedNotification();
-  if (supportsBackingPropertiesNotification) {
-    [[NSNotificationCenter defaultCenter]
-        removeObserver:self
-                  name:NSWindowDidChangeBackingPropertiesNotification
-                object:nil];
+  [[NSNotificationCenter defaultCenter]
+      removeObserver:self
+                name:NSWindowDidChangeBackingPropertiesNotification
+              object:nil];
+
+  if (text_input_context_osr_mac_) {
+    [GetInputClientFromContext(text_input_context_osr_mac_) release];
+    [text_input_context_osr_mac_ release];
   }
 
   [super dealloc];
@@ -233,6 +200,8 @@ BrowserOpenGLView* GLView(NSView* view) {
 - (void)detach {
   renderer_ = NULL;
   browser_window_ = NULL;
+  if (text_input_context_osr_mac_)
+    [GetInputClientFromContext(text_input_context_osr_mac_) detach];
 }
 
 - (CefRefPtr<CefBrowser>)getBrowser {
@@ -369,18 +338,25 @@ BrowserOpenGLView* GLView(NSView* view) {
 
 - (void)keyDown:(NSEvent*)event {
   CefRefPtr<CefBrowser> browser = [self getBrowser];
-  if (!browser.get())
+  if (!browser.get() || !text_input_context_osr_mac_)
     return;
 
   if ([event type] != NSFlagsChanged) {
-    browser->GetHost()->HandleKeyEventBeforeTextInputClient(event);
+    CefTextInputClientOSRMac* client = GetInputClientFromContext(
+        text_input_context_osr_mac_);
 
-    // The return value of this method seems to always be set to YES,
-    // thus we ignore it and ask the host view whether IME is active
-    // or not.
-    [[self inputContext] handleEvent:event];
+    if (client) {
+      [client HandleKeyEventBeforeTextInputClient:event];
 
-    browser->GetHost()->HandleKeyEventAfterTextInputClient(event);
+      // The return value of this method seems to always be set to YES, thus we
+      // ignore it and ask the host view whether IME is active or not.
+      [text_input_context_osr_mac_ handleEvent:event];
+
+      CefKeyEvent keyEvent;
+      [self getKeyEvent:keyEvent forEvent:event];
+
+      [client HandleKeyEventAfterTextInputClient:keyEvent];
+    }
   }
 }
 
@@ -404,7 +380,6 @@ BrowserOpenGLView* GLView(NSView* view) {
 }
 
 - (void)shortCircuitScrollWheelEvent:(NSEvent*)event {
-  // Phase is only supported in OS-X 10.7 and newer.
   if ([event phase] != NSEventPhaseEnded &&
       [event phase] != NSEventPhaseCancelled)
     return;
@@ -418,13 +393,11 @@ BrowserOpenGLView* GLView(NSView* view) {
 }
 
 - (void)scrollWheel:(NSEvent*)event {
-  // Phase is only supported in OS-X 10.7 and newer.
   // Use an NSEvent monitor to listen for the wheel-end end. This ensures that
   // the event is received even when the mouse cursor is no longer over the
   // view when the scrolling ends. Also it avoids sending duplicate scroll
   // events to the renderer.
-  if ([event respondsToSelector:@selector(phase)] &&
-      [event phase] == NSEventPhaseBegan && !endWheelMonitor_) {
+  if ([event phase] == NSEventPhaseBegan && !endWheelMonitor_) {
     endWheelMonitor_ =
         [NSEvent addLocalMonitorForEventsMatchingMask:NSScrollWheelMask
             handler:^(NSEvent* blockEvent) {
@@ -559,10 +532,16 @@ BrowserOpenGLView* GLView(NSView* view) {
 }
 
 - (NSTextInputContext*)inputContext {
-  CefRefPtr<CefBrowser> browser = [self getBrowser];
-  if (browser.get())
-    return browser->GetHost()->GetNSTextInputContext();
-  return NULL;
+  if (!text_input_context_osr_mac_) {
+    CefTextInputClientOSRMac* text_input_client =
+        [[[CefTextInputClientOSRMac alloc]
+            initWithBrowser:[self getBrowser]] retain];
+
+    text_input_context_osr_mac_ = [[[NSTextInputContext alloc] initWithClient:
+                                   text_input_client] retain];
+  }
+
+  return text_input_context_osr_mac_;
 }
 
 - (void)getMouseEvent:(CefMouseEvent&)mouseEvent forEvent:(NSEvent*)event {
@@ -726,7 +705,8 @@ BrowserOpenGLView* GLView(NSView* view) {
   CefRefPtr<CefBrowser> browser = [self getBrowser];
   if ([self inLiveResize] || !browser.get()) {
     // Fill with the background color.
-    const cef_color_t background_color = renderer_->GetBackgroundColor();
+    const cef_color_t background_color =
+        client::MainContext::Get()->GetBackgroundColor();
     NSColor* color =
         [NSColor colorWithCalibratedRed:
                               float(CefColorGetR(background_color)) / 255.0f
@@ -1073,12 +1053,8 @@ BrowserOpenGLView* GLView(NSView* view) {
 - (void)resetDeviceScaleFactor {
   float device_scale_factor = 1.0f;
   NSWindow* window = [self window];
-  if (window) {
-    if ([window respondsToSelector:@selector(backingScaleFactor)])
-      device_scale_factor = [window backingScaleFactor];
-    else
-      device_scale_factor = [window userSpaceScaleFactor];
-  }
+  if (window)
+    device_scale_factor = [window backingScaleFactor];
   [self setDeviceScaleFactor:device_scale_factor];
 }
 
@@ -1141,32 +1117,31 @@ BrowserOpenGLView* GLView(NSView* view) {
 
 // Convert from scaled coordinates to view coordinates.
 - (NSPoint)convertPointFromBackingInternal:(NSPoint)aPoint {
-  if ([self respondsToSelector:@selector(convertPointFromBacking:)])
-    return [self convertPointFromBacking:aPoint];
-  return aPoint;
+  return [self convertPointFromBacking:aPoint];
 }
 
 // Convert from view coordinates to scaled coordinates.
 - (NSPoint)convertPointToBackingInternal:(NSPoint)aPoint {
-  if ([self respondsToSelector:@selector(convertPointToBacking:)])
-    return [self convertPointToBacking:aPoint];
-  return aPoint;
+  return [self convertPointToBacking:aPoint];
 }
 
 // Convert from scaled coordinates to view coordinates.
 - (NSRect)convertRectFromBackingInternal:(NSRect)aRect {
-  if ([self respondsToSelector:@selector(convertRectFromBacking:)])
-    return [self convertRectFromBacking:aRect];
-  return aRect;
+  return [self convertRectFromBacking:aRect];
 }
 
 // Convert from view coordinates to scaled coordinates.
 - (NSRect)convertRectToBackingInternal:(NSRect)aRect {
-  if ([self respondsToSelector:@selector(convertRectToBacking:)])
-    return [self convertRectToBacking:aRect];
-  return aRect;
+  return [self convertRectToBacking:aRect];
 }
 
+- (void)ChangeCompositionRange:(CefRange)range
+    character_bounds:(const CefRenderHandler::RectList&) bounds {
+  CefTextInputClientOSRMac* client =
+      GetInputClientFromContext(text_input_context_osr_mac_);
+  if (client)
+    [client ChangeCompositionRange: range character_bounds:bounds];
+}
 @end
 
 
@@ -1201,7 +1176,7 @@ void BrowserWindowOsrMac::CreateBrowser(
   Create(parent_handle, rect);
 
   CefWindowInfo window_info;
-  window_info.SetAsWindowless(nsview_, renderer_.IsTransparent());
+  window_info.SetAsWindowless(nsview_);
 
   // Create the browser asynchronously.
   CefBrowserHost::CreateBrowser(window_info, client_handler_,
@@ -1214,7 +1189,7 @@ void BrowserWindowOsrMac::GetPopupConfig(CefWindowHandle temp_handle,
                                          CefRefPtr<CefClient>& client,
                                          CefBrowserSettings& settings) {
   // Note: This method may be called on any thread.
-  windowInfo.SetAsWindowless(temp_handle, renderer_.IsTransparent());
+  windowInfo.SetAsWindowless(temp_handle);
   client = client_handler_;
 }
 
@@ -1239,7 +1214,7 @@ void BrowserWindowOsrMac::Show() {
 
   if (hidden_) {
     // Set the browser as visible.
-    browser_->GetHost()->SetWindowVisibility(true);
+    browser_->GetHost()->WasHidden(false);
     hidden_ = false;
   }
 
@@ -1258,7 +1233,7 @@ void BrowserWindowOsrMac::Hide() {
 
   if (!hidden_) {
     // Set the browser as hidden.
-    browser_->GetHost()->SetWindowVisibility(false);
+    browser_->GetHost()->WasHidden(true);
     hidden_ = true;
   }
 }
@@ -1362,7 +1337,8 @@ bool BrowserWindowOsrMac::GetScreenPoint(CefRefPtr<CefBrowser> browser,
 
   // Convert to screen coordinates.
   NSPoint window_pt = [nsview_ convertPoint:view_pt toView:nil];
-  NSPoint screen_pt = [[nsview_ window] convertBaseToScreen:window_pt];
+  NSPoint screen_pt =
+      ConvertPointFromWindowToScreen([nsview_ window], window_pt);
 
   screenX = screen_pt.x;
   screenY = screen_pt.y;
@@ -1505,6 +1481,18 @@ void BrowserWindowOsrMac::UpdateDragCursor(
     [GLView(nsview_) setCurrentDragOp:operation];
 }
 
+void BrowserWindowOsrMac::OnImeCompositionRangeChanged(
+    CefRefPtr<CefBrowser> browser,
+    const CefRange& selection_range,
+    const CefRenderHandler::RectList& bounds) {
+  CEF_REQUIRE_UI_THREAD();
+
+  if (nsview_) {
+    [GLView(nsview_) ChangeCompositionRange:selection_range
+                           character_bounds:bounds];
+  }
+}
+
 void BrowserWindowOsrMac::Create(ClientWindowHandle parent_handle,
                                  const CefRect& rect) {
   REQUIRE_MAIN_THREAD();
@@ -1522,17 +1510,11 @@ void BrowserWindowOsrMac::Create(ClientWindowHandle parent_handle,
   // Determine the default scale factor.
   [GLView(nsview_) resetDeviceScaleFactor];
 
-  // Backing property notifications crash on 10.6 when building with the 10.7
-  // SDK, see http://crbug.com/260595.
-  static BOOL supportsBackingPropertiesNotification =
-      SupportsBackingPropertiesChangedNotification();
-  if (supportsBackingPropertiesNotification) {
-    [[NSNotificationCenter defaultCenter]
-      addObserver:nsview_
-         selector:@selector(windowDidChangeBackingProperties:)
-             name:NSWindowDidChangeBackingPropertiesNotification
-           object:[nsview_ window]];
-  }
+  [[NSNotificationCenter defaultCenter]
+    addObserver:nsview_
+       selector:@selector(windowDidChangeBackingProperties:)
+           name:NSWindowDidChangeBackingPropertiesNotification
+         object:[nsview_ window]];
 }
 
 }  // namespace client

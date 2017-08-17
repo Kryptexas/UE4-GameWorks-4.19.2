@@ -28,7 +28,7 @@ base::FilePath FilePathFromASCII(const std::string& str) {
 #endif
 }
 
-static std::string GetMimeType(const std::string& filename) {
+std::string GetMimeType(const std::string& filename) {
   // Requests should not block on the disk!  On POSIX this goes to disk.
   // http://code.google.com/p/chromium/issues/detail?id=59849
   base::ThreadRestrictions::ScopedAllowIO allow_io;
@@ -130,7 +130,7 @@ class InternalHandler : public CefResourceHandler {
 class InternalHandlerFactory : public CefSchemeHandlerFactory {
  public:
   explicit InternalHandlerFactory(
-      scoped_ptr<InternalHandlerDelegate> delegate)
+      std::unique_ptr<InternalHandlerDelegate> delegate)
       : delegate_(std::move(delegate)) {
   }
 
@@ -174,7 +174,7 @@ class InternalHandlerFactory : public CefSchemeHandlerFactory {
   }
 
  private:
-  scoped_ptr<InternalHandlerDelegate> delegate_;
+  std::unique_ptr<InternalHandlerDelegate> delegate_;
 
   IMPLEMENT_REFCOUNTING(InternalHandlerFactory);
 };
@@ -187,7 +187,7 @@ InternalHandlerDelegate::Action::Action()
 }
 
 CefRefPtr<CefSchemeHandlerFactory> CreateInternalHandlerFactory(
-    scoped_ptr<InternalHandlerDelegate> delegate) {
+    std::unique_ptr<InternalHandlerDelegate> delegate) {
   DCHECK(delegate.get());
   return new InternalHandlerFactory(std::move(delegate));
 }
