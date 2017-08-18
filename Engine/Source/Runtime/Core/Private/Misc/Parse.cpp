@@ -225,65 +225,82 @@ bool FParse::Value(
 	bool			bShouldStopOnSeparator
 )
 {
-	const TCHAR* Found = FCString::Strifind(Stream,Match);
+	bool bSuccess = false;
+	int32 MatchLen = FCString::Strlen(Match);
 
-	if (!Found)
+	for (const TCHAR* Found = FCString::Strifind(Stream, Match); Found != nullptr; Found = FCString::Strifind(Found + MatchLen, Match))
 	{
-		return false;
-	}
+		const TCHAR* Start = Found + MatchLen;
 
-	const TCHAR* Start = Found + FCString::Strlen(Match);
+		// Check for quoted arguments' string with spaces
+		// -Option="Value1 Value2"
+		//         ^~~~Start
+		bool bArgumentsQuoted = *Start == '"';
 
-	// Check for quoted arguments' string with spaces
-	// -Option="Value1 Value2"
-	//         ^~~~Start
-	bool bArgumentsQuoted = *Start == '"';
+		// Number of characters we can look back from found looking for first parenthesis.
+		uint32 AllowedBacktraceCharactersCount = Found - Stream;
 
-	// Number of characters we can look back from found looking for first parenthesis.
-	uint32 AllowedBacktraceCharactersCount = Found - Stream;
+		// Check for fully quoted string with spaces
+		bool bFullyQuoted = 
+			// "-Option=Value1 Value2"
+			//   ^~~~Found
+			AllowedBacktraceCharactersCount > 1 && *(Found - 1) == '-' && *(Found - 2) == '"';
 
-	// Check for fully quoted string with spaces
-	bool bFullyQuoted = 
-		// "Option=Value1 Value2"
-		//  ^~~~Found
-		(AllowedBacktraceCharactersCount > 0 && (*(Found - 1) == '"'))
-		// "-Option=Value1 Value2"
-		//   ^~~~Found
-		|| (AllowedBacktraceCharactersCount > 1 && ((*(Found - 1) == '-') && (*(Found - 2) == '"')));
+		// If we are parsing within a parameter value, this is an invalid match - skip past and try again
+		bool bWithinParamValue = bFullyQuoted &&
+			// -Param="-Option=Value1 Value2"
+			//   ^~~~Found
+			AllowedBacktraceCharactersCount > 2 && *(Found - 3) == '=';
 
-	if (bArgumentsQuoted || bFullyQuoted)
-	{
-		// Skip quote character if only params were quoted.
-		int32 QuoteCharactersToSkip = bArgumentsQuoted ? 1 : 0;
-		FCString::Strncpy(Value, Start + QuoteCharactersToSkip, MaxLen);
-
-		Value[MaxLen-1]=0;
-		TCHAR* Temp = FCString::Strstr( Value, TEXT("\x22") );
-		if (Temp != nullptr)
+		if (bWithinParamValue)
 		{
-			*Temp = 0;
+			continue;
 		}
-	}
-	else
-	{
-		// Skip initial whitespace
-		Start += FCString::Strspn(Start, TEXT(" \r\n\t"));
 
-		// Non-quoted string without spaces.
-		FCString::Strncpy( Value, Start, MaxLen );
-		Value[MaxLen-1]=0;
-		TCHAR* Temp;
-		Temp = FCString::Strstr( Value, TEXT(" ")  ); if( Temp ) *Temp=0;
-		Temp = FCString::Strstr( Value, TEXT("\r") ); if( Temp ) *Temp=0;
-		Temp = FCString::Strstr( Value, TEXT("\n") ); if( Temp ) *Temp=0;
-		Temp = FCString::Strstr( Value, TEXT("\t") ); if( Temp ) *Temp=0;
-		if (bShouldStopOnSeparator)
+
+		bFullyQuoted = bFullyQuoted ||
+			// "Option=Value1 Value2"
+			//  ^~~~Found
+			(AllowedBacktraceCharactersCount > 0 && *(Found - 1) == '"');
+
+		if (bArgumentsQuoted || bFullyQuoted)
 		{
-			Temp = FCString::Strstr( Value, TEXT(",")  ); if( Temp ) *Temp=0;
-			Temp = FCString::Strstr( Value, TEXT(")")  ); if( Temp ) *Temp=0;
+			// Skip quote character if only params were quoted.
+			int32 QuoteCharactersToSkip = bArgumentsQuoted ? 1 : 0;
+			FCString::Strncpy(Value, Start + QuoteCharactersToSkip, MaxLen);
+
+			Value[MaxLen-1]=0;
+			TCHAR* Temp = FCString::Strstr( Value, TEXT("\x22") );
+			if (Temp != nullptr)
+			{
+				*Temp = 0;
+			}
 		}
+		else
+		{
+			// Skip initial whitespace
+			Start += FCString::Strspn(Start, TEXT(" \r\n\t"));
+
+			// Non-quoted string without spaces.
+			FCString::Strncpy( Value, Start, MaxLen );
+			Value[MaxLen-1]=0;
+			TCHAR* Temp;
+			Temp = FCString::Strstr( Value, TEXT(" ")  ); if( Temp ) *Temp=0;
+			Temp = FCString::Strstr( Value, TEXT("\r") ); if( Temp ) *Temp=0;
+			Temp = FCString::Strstr( Value, TEXT("\n") ); if( Temp ) *Temp=0;
+			Temp = FCString::Strstr( Value, TEXT("\t") ); if( Temp ) *Temp=0;
+			if (bShouldStopOnSeparator)
+			{
+				Temp = FCString::Strstr( Value, TEXT(",")  ); if( Temp ) *Temp=0;
+				Temp = FCString::Strstr( Value, TEXT(")")  ); if( Temp ) *Temp=0;
+			}
+		}
+
+		bSuccess = true;
+		break;
 	}
-	return true;
+
+	return bSuccess;
 }
 
 //

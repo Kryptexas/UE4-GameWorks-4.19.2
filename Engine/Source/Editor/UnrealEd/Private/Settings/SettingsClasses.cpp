@@ -370,6 +370,7 @@ ULevelEditorPlaySettings::ULevelEditorPlaySettings( const FObjectInitializer& Ob
 	ClientWindowWidth = 640;
 	ClientWindowHeight = 480;
 	PlayNumberOfClients = 1;
+	ServerPort = 17777;
 	PlayNetDedicated = false;
 	RunUnderOneProcess = true;
 	RouteGamepadToSecondWindow = false;

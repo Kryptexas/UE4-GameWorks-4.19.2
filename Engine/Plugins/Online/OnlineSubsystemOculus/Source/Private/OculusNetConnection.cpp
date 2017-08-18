@@ -104,7 +104,13 @@ void UOculusNetConnection::LowLevelSend(void* Data, int32 CountBytes, int32 Coun
 		}
 	}
 
-	if (CountBytes > 0)
+	bool bBlockSend = false;
+
+#if !UE_BUILD_SHIPPING
+	LowLevelSendDel.ExecuteIfBound((void*)DataToSend, CountBytes, bBlockSend);
+#endif
+
+	if (!bBlockSend && CountBytes > 0)
 	{
 		ovr_Net_SendPacket(PeerID, static_cast<size_t>(CountBytes), DataToSend, (InternalAck) ? ovrSend_Reliable : ovrSend_Unreliable);
 	}

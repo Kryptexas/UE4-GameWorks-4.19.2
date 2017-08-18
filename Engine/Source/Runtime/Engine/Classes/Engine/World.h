@@ -56,6 +56,7 @@ class UNetDriver;
 class UPrimitiveComponent;
 class UTexture2D;
 struct FUniqueNetIdRepl;
+struct FEncryptionKeyResponse;
 
 template<typename,typename> class TOctree;
 
@@ -2882,6 +2883,10 @@ private:
 
 	/** Private version without inlining that does *not* check Dedicated server build flags (which should already have been done). */
 	ENetMode InternalGetNetMode() const;
+
+	// Sends the NMT_Challenge message to Connection.
+	void SendChallengeControlMessage(UNetConnection* Connection);
+	void SendChallengeControlMessage(const FEncryptionKeyResponse& Response, TWeakObjectPtr<UNetConnection> WeakConnection);
 
 public:
 

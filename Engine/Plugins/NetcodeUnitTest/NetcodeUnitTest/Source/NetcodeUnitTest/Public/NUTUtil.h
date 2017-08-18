@@ -9,24 +9,13 @@
 #include "Engine/Engine.h"
 #include "Misc/OutputDeviceError.h"
 
+
 class UNetDriver;
 class UUnitTest;
 struct FStackTracker;
 class FOutputDeviceFile;
 
-// @todo #JohnBRefactor: Convert to multicast delegate
-
 // @todo #JohnBRefactor: Adjust all of these utility .h files, so that they implement code in .cpp, as these probably slow down compilation
-
-#if !UE_BUILD_SHIPPING
-// Process even callback, which passes an extra parameter, for identifying the origin of the hook
-typedef bool (*InternalProcessEventCallback)(AActor* /*Actor*/, UFunction* /*Function*/, void* /*Parameters*/, void* /*HookOrigin*/);
-
-
-/** Track callbacks not by setting the global extern/hook above, but by indirectly handling multiple callbacks locally */
-extern TMap<void*, InternalProcessEventCallback> ActiveProcessEventCallbacks;
-#endif
-
 
 
 /**
@@ -218,58 +207,6 @@ public:
 	/** List of disabled asserts */
 	TArray<FString> DisabledAsserts;
 };
-
-
-#if !UE_BUILD_SHIPPING
-static bool HandleProcessEventCallback(AActor* Actor, UFunction* Function, void* Parameters)
-{
-	bool bBlockEvent = false;
-
-	for (auto It = ActiveProcessEventCallbacks.CreateConstIterator(); It; ++It)
-	{
-		InternalProcessEventCallback CurCallback = It->Value;
-
-		// Replace 'Parameters' with the TMap void*, which refers to the object that set the callback
-		if (CurCallback(Actor, Function, Parameters, It->Key))
-		{
-			bBlockEvent = true;
-		}
-	}
-
-	return bBlockEvent;
-}
-
-// HookOrigin should reference the object responsible for the callback, for identification
-static void AddProcessEventCallback(void* HookOrigin, InternalProcessEventCallback InCallback)
-{
-	if (HookOrigin != NULL)
-	{
-		if (ActiveProcessEventCallbacks.Num() == 0)
-		{
-			AActor::ProcessEventDelegate.BindStatic(&HandleProcessEventCallback);
-		}
-
-		ActiveProcessEventCallbacks.Add(HookOrigin, InCallback);
-	}
-	else
-	{
-		UE_LOG(LogUnitTest, Log, TEXT("AddProcessEventCallback: HookOrigin == NULL"));
-	}
-}
-
-static void RemoveProcessEventCallback(void* HookOrigin, InternalProcessEventCallback InCallback)
-{
-	if (HookOrigin != NULL)
-	{
-		ActiveProcessEventCallbacks.Remove(HookOrigin);
-
-		if (ActiveProcessEventCallbacks.Num() == 0)
-		{
-			AActor::ProcessEventDelegate.Unbind();
-		}
-	}
-}
-#endif
 
 
 // Hack for accessing private members in various Engine classes

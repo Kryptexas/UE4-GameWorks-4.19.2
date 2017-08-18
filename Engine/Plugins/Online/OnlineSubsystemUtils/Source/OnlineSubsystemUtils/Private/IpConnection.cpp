@@ -151,25 +151,34 @@ void UIpConnection::LowLevelSend(void* Data, int32 CountBytes, int32 CountBits)
 		}
 	}
 
-	// Send to remote.
-	int32 BytesSent = 0;
-	CLOCK_CYCLES(Driver->SendCycles);
+	bool bBlockSend = false;
 
-	if ( CountBytes > MaxPacket )
+#if !UE_BUILD_SHIPPING
+	LowLevelSendDel.ExecuteIfBound((void*)DataToSend, CountBytes, bBlockSend);
+#endif
+
+	if (!bBlockSend)
 	{
-		UE_LOG( LogNet, Warning, TEXT( "UIpConnection::LowLevelSend: CountBytes > MaxPacketSize! Count: %i, MaxPacket: %i %s" ), CountBytes, MaxPacket, *Describe() );
+		// Send to remote.
+		int32 BytesSent = 0;
+		CLOCK_CYCLES(Driver->SendCycles);
+
+		if ( CountBytes > MaxPacket )
+		{
+			UE_LOG( LogNet, Warning, TEXT( "UIpConnection::LowLevelSend: CountBytes > MaxPacketSize! Count: %i, MaxPacket: %i %s" ), CountBytes, MaxPacket, *Describe() );
+		}
+
+		FPacketAudit::NotifyLowLevelSend((uint8*)DataToSend, CountBytes, CountBits);
+
+		if (CountBytes > 0)
+		{
+			Socket->SendTo(DataToSend, CountBytes, BytesSent, *RemoteAddr);
+		}
+
+		UNCLOCK_CYCLES(Driver->SendCycles);
+		NETWORK_PROFILER(GNetworkProfiler.FlushOutgoingBunches(this));
+		NETWORK_PROFILER(GNetworkProfiler.TrackSocketSendTo(Socket->GetDescription(),DataToSend,BytesSent,NumPacketIdBits,NumBunchBits,NumAckBits,NumPaddingBits,this));
 	}
-
-	FPacketAudit::NotifyLowLevelSend((uint8*)DataToSend, CountBytes, CountBits);
-
-	if (CountBytes > 0)
-	{
-		Socket->SendTo(DataToSend, CountBytes, BytesSent, *RemoteAddr);
-	}
-
-	UNCLOCK_CYCLES(Driver->SendCycles);
-	NETWORK_PROFILER(GNetworkProfiler.FlushOutgoingBunches(this));
-	NETWORK_PROFILER(GNetworkProfiler.TrackSocketSendTo(Socket->GetDescription(),DataToSend,BytesSent,NumPacketIdBits,NumBunchBits,NumAckBits,NumPaddingBits,this));
 }
 
 FString UIpConnection::LowLevelGetRemoteAddress(bool bAppendPort)

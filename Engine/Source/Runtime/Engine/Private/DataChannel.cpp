@@ -1073,13 +1073,6 @@ int32 UChannel::IsNetReady( bool Saturate )
 	return Connection->IsNetReady( Saturate );
 }
 
-
-bool UChannel::IsKnownChannelType( int32 Type )
-{
-	return Type>=0 && Type<CHTYPE_MAX && ChannelClasses[Type];
-}
-
-
 void UChannel::ReceivedNak( int32 NakPacketId )
 {
 	for( FOutBunch* Out=OutRec; Out; Out=Out->Next )
@@ -1104,9 +1097,6 @@ void UChannel::PrintReliableBunchBuffer()
 	UE_LOG(LogNetTraffic, Warning, TEXT("-------------------------\n"));
 #endif
 }
-
-
-UClass* UChannel::ChannelClasses[CHTYPE_MAX]={0,0,0,0,0,0,0,0};
 
 /*-----------------------------------------------------------------------------
 	UControlChannel implementation.
@@ -1352,6 +1342,10 @@ void UControlChannel::ReceivedBunch( FInBunch& Bunch )
 					break;
 				case NMT_NetGUIDAssign:
 					FNetControlMessage<NMT_NetGUIDAssign>::Discard(Bunch);
+					break;
+				case NMT_EncryptionAck:
+					//FNetControlMessage<NMT_EncryptionAck>::Discard(Bunch);
+					break;
 				case NMT_BeaconWelcome:
 					//FNetControlMessage<NMT_BeaconWelcome>::Discard(Bunch);
 					break;
@@ -1896,6 +1890,11 @@ void UActorChannel::SetChannelActor( AActor* InActor )
 	Connection->Driver->GetNetworkObjectList().ClearRecentlyDormantConnection(Actor, Connection, Connection->Driver->NetDriverName);
 }
 
+void UActorChannel::NotifyActorChannelOpen(AActor* InActor, FInBunch& InBunch)
+{
+	Actor->OnActorChannelOpen(InBunch, Connection);
+}
+
 void UActorChannel::SetChannelActorForDestroy( FActorDestructionInfo *DestructInfo )
 {
 	check(Connection->Channels[ChIndex]==this);
@@ -2165,7 +2164,12 @@ void UActorChannel::ProcessBunch( FInBunch & Bunch )
 			check( !bSpawnedNewActor );
 			UE_LOG(LogNet, Warning, TEXT("UActorChannel::ProcessBunch: SerializeNewActor failed to find/spawn actor. Actor: %s, Channel: %i"), NewChannelActor ? *NewChannelActor->GetFullName() : TEXT( "NULL" ), ChIndex);
 			Broken = 1;
-			if ( !Connection->InternalAck )
+
+			if (!Connection->InternalAck
+#if !UE_BUILD_SHIPPING
+				&& !bBlockChannelFailure
+#endif
+				)
 			{
 				FNetControlMessage<NMT_ActorChannelFailure>::Send(Connection, ChIndex);
 			}
@@ -2175,7 +2179,7 @@ void UActorChannel::ProcessBunch( FInBunch & Bunch )
 		UE_LOG(LogNetTraffic, Log, TEXT("      Channel Actor %s:"), *NewChannelActor->GetFullName() );
 		SetChannelActor( NewChannelActor );
 
-		Actor->OnActorChannelOpen(Bunch, Connection);
+		NotifyActorChannelOpen(Actor, Bunch);
 
 		RepFlags.bNetInitial = true;
 
@@ -2356,25 +2360,34 @@ bool UActorChannel::ReplicateActor()
 		UE_LOG(LogNet, Log, TEXT( "ReplicateActor: bPausedUntilReliableACK is ending now that reliables have been ACK'd. %s"), *Describe());
 	}
 
-
+	const TArray<FNetViewer>& NetViewers = ActorWorld->GetWorldSettings()->ReplicationViewers;
 	bool bIsNewlyReplicationPaused = false;
 	bool bIsNewlyReplicationUnpaused = false;
-	if (OpenPacketId.First != INDEX_NONE)
+	
+	if (OpenPacketId.First != INDEX_NONE && NetViewers.Num() > 0)
 	{
-		const TArray<FNetViewer>& NetViewers = ActorWorld->GetWorldSettings()->ReplicationViewers;
+		bool bNewPaused = true;
 
-		for (int32 viewerIdx = 0; viewerIdx < NetViewers.Num(); viewerIdx++)
+		for (const FNetViewer& NetViewer : NetViewers)
 		{
-			bool bIsReplicationPausedForConnection = Actor->IsReplicationPausedForConnection(NetViewers[viewerIdx]);
-			bool bOldIsReplicationPaused = IsReplicationPaused();
-			bIsNewlyReplicationPaused = bIsReplicationPausedForConnection && !bOldIsReplicationPaused;
-			bIsNewlyReplicationUnpaused = !bIsReplicationPausedForConnection && bOldIsReplicationPaused;
-			SetReplicationPaused(bIsReplicationPausedForConnection);
-			if (bIsReplicationPausedForConnection && bOldIsReplicationPaused)
+			if (!Actor->IsReplicationPausedForConnection(NetViewer))
 			{
-				return false;
+				bNewPaused = false;
+				break;
 			}
 		}
+
+		const bool bOldPaused = IsReplicationPaused();
+
+		// We were paused and still are, don't do anything.
+		if (bOldPaused && bNewPaused)
+		{
+			return false;
+		}
+
+		bIsNewlyReplicationUnpaused = bOldPaused && !bNewPaused;
+		bIsNewlyReplicationPaused = !bOldPaused && bNewPaused;
+		SetReplicationPaused(bNewPaused);
 	}
 
 	// The package map shouldn't have any carry over guids

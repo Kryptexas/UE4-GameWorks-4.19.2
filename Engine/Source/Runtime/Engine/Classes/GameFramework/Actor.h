@@ -2074,6 +2074,19 @@ public:
 	//--------------------------------------------------------------------------------------
 	// Actor relevancy determination
 
+protected:
+
+	/**
+	 * Determines whether or not the distance between the given SrcLocation and the Actor's location
+	 * is within the net relevancy distance. Actors outside relevancy distance may not be replicated.
+	 *
+	 * @param SrcLocation	Location to test against.
+	 * @return True if the actor is within net relevancy distance, false otherwise.
+	 */
+	bool IsWithinNetRelevancyDistance(const FVector& SrcLocation) const;
+	
+public:	
+
 	/** 
 	  * @param RealViewer - is the "controlling net object" associated with the client for which network relevancy is being checked (typically player controller)
 	  * @param ViewTarget - is the Actor being used as the point of view for the RealViewer
@@ -2321,7 +2334,7 @@ public:
 	bool IsInLevel(const class ULevel *TestLevel) const;
 
 	/** Return the ULevel that this Actor is part of. */
-	ULevel* GetLevel() const { return Cast<ULevel>(GetOuter()); }
+	ULevel* GetLevel() const;
 
 	/**	Do anything needed to clear out cross level references; Called from ULevel::PreSave	 */
 	virtual void ClearCrossLevelReferences();

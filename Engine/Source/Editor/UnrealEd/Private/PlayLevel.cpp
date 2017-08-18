@@ -1222,12 +1222,23 @@ void UEditorEngine::StartQueuedPlayMapRequest()
 			NumClients++;
 		}
 
-		// Spawn number of clients
+		// Build the connection String
+		FString ConnectionAddr(TEXT("127.0.0.1"));
 		const bool WillAutoConnectToServer = [&PlayInSettings] { bool AutoConnectToServer(false); return (PlayInSettings->GetAutoConnectToServer(AutoConnectToServer) && AutoConnectToServer); }();
+		if (WillAutoConnectToServer)
+		{
+			uint16 ServerPort = 0;
+			if (PlayInSettings->GetServerPort(ServerPort))
+			{
+				ConnectionAddr += FString::Printf(TEXT(":%hu"), ServerPort);
+			}
+		}
+
+		// Spawn number of clients
 		const int32 PlayNumberOfClients = [&PlayInSettings]{ int32 NumberOfClients(0); return (PlayInSettings->GetPlayNumberOfClients(NumberOfClients) ? NumberOfClients : 0); }();
 		for (int32 i = NumClients; i < PlayNumberOfClients; ++i)
 		{
-			PlayStandaloneLocalPc(TEXT("127.0.0.1"), &WinPosition, i, false);
+			PlayStandaloneLocalPc(*ConnectionAddr, &WinPosition, i, false);
 		}
 	}
 	else
@@ -1356,6 +1367,12 @@ void UEditorEngine::PlayStandaloneLocalPc(FString MapNameOverride, FIntPoint* Wi
 	{
 		AdditionalParameters += TEXT(" ");
 		AdditionalParameters += PlayInSettings->AdditionalLaunchParameters;
+	}
+
+	uint16 ServerPort = 0;
+	if (bIsServer && PlayInSettings->GetServerPort(ServerPort))
+	{
+		AdditionalParameters += FString::Printf(TEXT(" -port=%hu"), ServerPort);
 	}
 
 	// Decide if fullscreen or windowed based on what is specified in the params

@@ -529,66 +529,75 @@ void UIpNetDriver::LowLevelSend(FString Address, void* Data, int32 CountBits)
 
 void UIpNetDriver::ProcessRemoteFunction(class AActor* Actor, UFunction* Function, void* Parameters, FOutParmRec* OutParms, FFrame* Stack, class UObject* SubObject )
 {
-	bool bIsServer = IsServer();
+#if !UE_BUILD_SHIPPING
+	bool bBlockSendRPC = false;
 
-	UNetConnection* Connection = NULL;
-	if (bIsServer)
+	SendRPCDel.ExecuteIfBound(Actor, Function, Parameters, OutParms, Stack, SubObject, bBlockSendRPC);
+
+	if (!bBlockSendRPC)
+#endif
 	{
-		if ((Function->FunctionFlags & FUNC_NetMulticast))
+		bool bIsServer = IsServer();
+
+		UNetConnection* Connection = NULL;
+		if (bIsServer)
 		{
-			// Multicast functions go to every client
-			TArray<UNetConnection*> UniqueRealConnections;
-			for (int32 i=0; i<ClientConnections.Num(); ++i)
+			if ((Function->FunctionFlags & FUNC_NetMulticast))
 			{
-				Connection = ClientConnections[i];
-				if (Connection && Connection->ViewTarget)
+				// Multicast functions go to every client
+				TArray<UNetConnection*> UniqueRealConnections;
+				for (int32 i=0; i<ClientConnections.Num(); ++i)
 				{
-					// Do relevancy check if unreliable.
-					// Reliables will always go out. This is odd behavior. On one hand we wish to guarantee "reliables always get there". On the other
-					// hand, replicating a reliable to something on the other side of the map that is non relevant seems weird. 
-					//
-					// Multicast reliables should probably never be used in gameplay code for actors that have relevancy checks. If they are, the 
-					// rpc will go through and the channel will be closed soon after due to relevancy failing.
+					Connection = ClientConnections[i];
+					if (Connection && Connection->ViewTarget)
+					{
+						// Do relevancy check if unreliable.
+						// Reliables will always go out. This is odd behavior. On one hand we wish to guarantee "reliables always get there". On the other
+						// hand, replicating a reliable to something on the other side of the map that is non relevant seems weird. 
+						//
+						// Multicast reliables should probably never be used in gameplay code for actors that have relevancy checks. If they are, the 
+						// rpc will go through and the channel will be closed soon after due to relevancy failing.
 
-					bool IsRelevant = true;
-					if ((Function->FunctionFlags & FUNC_NetReliable) == 0)
-					{
-						FNetViewer Viewer(Connection, 0.f);
-						IsRelevant = Actor->IsNetRelevantFor(Viewer.InViewer, Viewer.ViewTarget, Viewer.ViewLocation);
-					}
-					
-					if (IsRelevant)
-					{
-						if (Connection->GetUChildConnection() != NULL)
+						bool IsRelevant = true;
+						if ((Function->FunctionFlags & FUNC_NetReliable) == 0)
 						{
-							Connection = ((UChildConnection*)Connection)->Parent;
+							FNetViewer Viewer(Connection, 0.f);
+							IsRelevant = Actor->IsNetRelevantFor(Viewer.InViewer, Viewer.ViewTarget, Viewer.ViewLocation);
 						}
+					
+						if (IsRelevant)
+						{
+							if (Connection->GetUChildConnection() != NULL)
+							{
+								Connection = ((UChildConnection*)Connection)->Parent;
+							}
 						
-						InternalProcessRemoteFunction( Actor, SubObject, Connection, Function, Parameters, OutParms, Stack, bIsServer );
+							InternalProcessRemoteFunction( Actor, SubObject, Connection, Function, Parameters, OutParms, Stack, bIsServer );
+						}
 					}
+				}			
+
+				// Replicate any RPCs to the replay net driver so that they can get saved in network replays
+				UNetDriver* NetDriver = GEngine->FindNamedNetDriver(GetWorld(), NAME_DemoNetDriver);
+				if (NetDriver)
+				{
+					NetDriver->ProcessRemoteFunction(Actor, Function, Parameters, OutParms, Stack, SubObject);
 				}
-			}			
-
-			// Replicate any RPCs to the replay net driver so that they can get saved in network replays
-			UNetDriver* NetDriver = GEngine->FindNamedNetDriver(GetWorld(), NAME_DemoNetDriver);
-			if (NetDriver)
-			{
-				NetDriver->ProcessRemoteFunction(Actor, Function, Parameters, OutParms, Stack, SubObject);
+				// Return here so we don't call InternalProcessRemoteFunction again at the bottom of this function
+				return;
 			}
-			// Return here so we don't call InternalProcessRemoteFunction again at the bottom of this function
-			return;
 		}
-	}
 
-	// Send function data to remote.
-	Connection = Actor->GetNetConnection();
-	if (Connection)
-	{
-		InternalProcessRemoteFunction( Actor, SubObject, Connection, Function, Parameters, OutParms, Stack, bIsServer );
-	}
-	else
-	{
-		UE_LOG(LogNet, Warning, TEXT("UIpNetDriver::ProcesRemoteFunction: No owning connection for actor %s. Function %s will not be processed."), *Actor->GetName(), *Function->GetName());
+		// Send function data to remote.
+		Connection = Actor->GetNetConnection();
+		if (Connection)
+		{
+			InternalProcessRemoteFunction( Actor, SubObject, Connection, Function, Parameters, OutParms, Stack, bIsServer );
+		}
+		else
+		{
+			UE_LOG(LogNet, Warning, TEXT("UIpNetDriver::ProcessRemoteFunction: No owning connection for actor %s. Function %s will not be processed."), *Actor->GetName(), *Function->GetName());
+		}
 	}
 }
 

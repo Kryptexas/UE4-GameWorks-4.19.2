@@ -31,8 +31,6 @@ class ENGINE_API UVoiceChannel : public UChannel
 	UVoiceChannel(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get())
 		: UChannel(ObjectInitializer)
 	{
-		// Register with the network channel system
-		ChannelClasses[CHTYPE_Voice] = GetClass();
 		ChType = CHTYPE_Voice;
 	}
 

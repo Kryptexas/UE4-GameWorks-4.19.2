@@ -969,14 +969,23 @@ void UDemoNetDriver::TickDispatch( float DeltaSeconds )
 
 void UDemoNetDriver::ProcessRemoteFunction( class AActor* Actor, class UFunction* Function, void* Parameters, struct FOutParmRec* OutParms, struct FFrame* Stack, class UObject* SubObject )
 {
-	if ( IsRecording() )
+#if !UE_BUILD_SHIPPING
+	bool bBlockSendRPC = false;
+
+	SendRPCDel.ExecuteIfBound(Actor, Function, Parameters, OutParms, Stack, SubObject, bBlockSendRPC);
+
+	if (!bBlockSendRPC)
+#endif
 	{
-		if ((Function->FunctionFlags & FUNC_NetMulticast))
+		if ( IsRecording() )
 		{
-			// Handle role swapping if this is a client-recorded replay.
-			FScopedActorRoleSwap RoleSwap(Actor);
+			if ((Function->FunctionFlags & FUNC_NetMulticast))
+			{
+				// Handle role swapping if this is a client-recorded replay.
+				FScopedActorRoleSwap RoleSwap(Actor);
 			
-			InternalProcessRemoteFunction(Actor, SubObject, ClientConnections[0], Function, Parameters, OutParms, Stack, IsServer());
+				InternalProcessRemoteFunction(Actor, SubObject, ClientConnections[0], Function, Parameters, OutParms, Stack, IsServer());
+			}
 		}
 	}
 }

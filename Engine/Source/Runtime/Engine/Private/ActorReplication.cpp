@@ -235,6 +235,11 @@ void AActor::SyncReplicatedPhysicsSimulation()
 	}
 }
 
+bool AActor::IsWithinNetRelevancyDistance(const FVector& SrcLocation) const
+{
+	return FVector::DistSquared(SrcLocation, GetActorLocation()) < NetCullDistanceSquared;
+}
+
 bool AActor::IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const
 {
 	if (bAlwaysRelevant || IsOwnedBy(ViewTarget) || IsOwnedBy(RealViewer) || this == ViewTarget || ViewTarget == Instigator)
@@ -263,12 +268,9 @@ bool AActor::IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget
 		UE_LOG(LogNet, Warning, TEXT("Actor %s / %s has no root component in AActor::IsNetRelevantFor. (Make bAlwaysRelevant=true?)"), *GetClass()->GetName(), *GetName() );
 		return false;
 	}
-	if (GetDefault<AGameNetworkManager>()->bUseDistanceBasedRelevancy)
-	{
-		return ((SrcLocation - GetActorLocation()).SizeSquared() < NetCullDistanceSquared);
-	}
 
-	return true;
+	return !GetDefault<AGameNetworkManager>()->bUseDistanceBasedRelevancy ||
+			IsWithinNetRelevancyDistance(SrcLocation);
 }
 
 bool AActor::IsReplayRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation, const float CullDistanceOverrideSq) const

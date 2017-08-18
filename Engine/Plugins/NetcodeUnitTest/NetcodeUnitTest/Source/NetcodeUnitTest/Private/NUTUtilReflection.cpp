@@ -345,26 +345,26 @@ FVMReflection& FVMReflection::operator [](const ANSICHAR* InFieldType)
 	UArrayProperty* ArrayProp = Cast<UArrayProperty>(FieldProp);
 	UStruct* StructField = Cast<UStruct>(FieldInstance);
 
-	if (!bIsError && FieldInstance != NULL && FieldAddress != NULL && !bVerifiedFieldType)
+	if (!bIsError && FieldInstance != nullptr && FieldAddress != nullptr && !bVerifiedFieldType)
 	{
-		UField* ActualFieldType = NULL;
+		UField* ActualFieldType = nullptr;
 		FString ActualFieldTypeStr = TEXT("");
 		const TCHAR* CheckType = TEXT("");
 
 		// Static arrays
-		if (FieldProp != NULL && FieldProp->ArrayDim > 1)
+		if (FieldProp != nullptr && FieldProp->ArrayDim > 1)
 		{
 			ActualFieldType = FieldProp;
 			CheckType = TEXT("array");
 		}
 		// Dynamic arrays
-		else if (ArrayProp != NULL)
+		else if (ArrayProp != nullptr)
 		{
 			ActualFieldType = ArrayProp->Inner;
 			CheckType = TEXT("array");
 		}
 		// Structs
-		else if (StructField != NULL)
+		else if (StructField != nullptr)
 		{
 			ActualFieldType = StructField;
 			CheckType = TEXT("struct");
@@ -377,14 +377,14 @@ FVMReflection& FVMReflection::operator [](const ANSICHAR* InFieldType)
 		// Handle special case of struct-arrays
 		UStructProperty* StructProp = Cast<UStructProperty>(ActualFieldType);
 
-		if (StructProp != NULL)
+		if (StructProp != nullptr)
 		{
 			ActualFieldType = StructProp->Struct;
 			CheckType = TEXT("struct array");
 		}
 
 
-		if (ActualFieldType != NULL)
+		if (ActualFieldType != nullptr)
 		{
 			bool bTypeValid = false;
 
@@ -488,7 +488,7 @@ FVMReflection& FVMReflection::operator [](const ANSICHAR* InFieldType)
 			{
 				UStruct* StructRef = Cast<UStruct>(ActualFieldType);
 
-				if (StructRef != NULL)
+				if (StructRef != nullptr)
 				{
 					FString ClassName = ExpectedFieldType.Mid(1);
 

@@ -18,25 +18,22 @@ class ANUTActor;
  * Enum for defining custom NetcodeUnitTest control channel commands (sent through NMT_NUTControl)
  */
 // @todo #JohnBDoc: Fully document individually
-namespace ENUTControlCommand
+enum class ENUTControlCommand : uint8
 {
-	enum Type
-	{
-		Command_NoResult		= 0,
-		Command_SendResult		= 1,
-		CommandResult_Failed	= 2,
-		CommandResult_Success	= 3,
-		Ping					= 4,
-		Pong					= 5,
-		WatchEvent				= 6,
-		NotifyEvent				= 7,
-		Summon					= 8,
-		SuspendProcess			= 9
-	};
-}
+	Command_NoResult		= 0,
+	Command_SendResult		= 1,
+	CommandResult_Failed	= 2,
+	CommandResult_Success	= 3,
+	Ping					= 4,
+	Pong					= 5,
+	WatchEvent				= 6,
+	NotifyEvent				= 7,
+	Summon					= 8,
+	SuspendProcess			= 9
+};
 
 // Custom control channel message, used to communicate with the server NUTActor over the control channel
-DEFINE_CONTROL_CHANNEL_MESSAGE_TWOPARAM(NUTControl, 250, uint8, FString);
+DEFINE_CONTROL_CHANNEL_MESSAGE_TWOPARAM(NUTControl, 250, ENUTControlCommand, FString);
 
 
 /**

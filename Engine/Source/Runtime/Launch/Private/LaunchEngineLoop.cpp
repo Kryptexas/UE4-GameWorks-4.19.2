@@ -253,8 +253,17 @@ class FOutputDeviceStdOutput : public FOutputDevice
 public:
 
 	FOutputDeviceStdOutput()
+		: AllowedLogVerbosity(ELogVerbosity::Display)
 	{
-		bAllowLogVerbosity = FParse::Param(FCommandLine::Get(), TEXT("AllowStdOutLogVerbosity"));
+		if (FParse::Param(FCommandLine::Get(), TEXT("AllowStdOutLogVerbosity")))
+		{
+			AllowedLogVerbosity = ELogVerbosity::Log;
+		}
+
+		if (FParse::Param(FCommandLine::Get(), TEXT("FullStdOutLogOutput")))
+		{
+			AllowedLogVerbosity = ELogVerbosity::All;
+		}
 	}
 
 	virtual ~FOutputDeviceStdOutput()
@@ -268,7 +277,7 @@ public:
 
 	virtual void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category ) override
 	{
-		if ( (bAllowLogVerbosity && Verbosity <= ELogVerbosity::Log) || (Verbosity <= ELogVerbosity::Display) )
+		if (Verbosity <= AllowedLogVerbosity)
 		{
 #if PLATFORM_USE_LS_SPEC_FOR_WIDECHAR
 			wprintf(TEXT("%ls\n"), *FOutputDeviceHelper::FormatLogLine(Verbosity, Category, V, GPrintLogTimes));
@@ -280,7 +289,7 @@ public:
 	}
 
 private:
-	bool bAllowLogVerbosity;
+	ELogVerbosity::Type AllowedLogVerbosity;
 };
 
 

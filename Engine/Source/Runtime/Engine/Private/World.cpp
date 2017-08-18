@@ -1717,7 +1717,7 @@ void UWorld::EnsureCollisionTreeIsBuilt()
 		PhysicsScene->EnsureCollisionTreeIsBuilt(this);
 	}
 
-    bIsBuilt = true;
+	bIsBuilt = true;
 }
 
 void UWorld::InvalidateModelGeometry(ULevel* InLevel)
@@ -2272,10 +2272,10 @@ void UWorld::RemoveFromWorld( ULevel* Level, bool bAllowIncrementalRemoval )
 				} while (!IsTimeLimitExceeded(TEXT("unregistering components"), StartTime, Level, GLevelStreamingUnregisterComponentsTimeLimit));
 			}
 		}
-        else
-        {
+		else
+		{
 			Level->bIsBeingRemoved = true;
-        }
+		}
 
 		if ( bFinishRemovingLevel )
 		{
@@ -2284,11 +2284,6 @@ void UWorld::RemoveFromWorld( ULevel* Level, bool bAllowIncrementalRemoval )
 				if (AActor* Actor = Level->Actors[ActorIdx])
 				{
 					Actor->RouteEndPlay(EEndPlayReason::RemovedFromWorld);
-
-					if (NetDriver)
-					{
-						NetDriver->NotifyActorLevelUnloaded(Actor);
-					}
 				}
 			}
 
@@ -2325,15 +2320,6 @@ void UWorld::RemoveFromWorld( ULevel* Level, bool bAllowIncrementalRemoval )
 					{
 						LocalPlayerController->ServerUpdateLevelVisibility(LocalPlayerController->NetworkRemapPath(Level->GetOutermost()->GetFName(), false), false);
 					}
-				}
-			}
-		
-			// Remove any actors in the network list
-			for (AActor* Actor : Level->Actors)
-			{
-				if (Actor)
-				{
-					RemoveNetworkActor(Actor);
 				}
 			}
 
@@ -4162,8 +4148,9 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 				uint8 IsLittleEndian = 0;
 				uint32 RemoteNetworkVersion = 0;
 				uint32 LocalNetworkVersion = FNetworkVersion::GetLocalNetworkVersion();
+				FString EncryptionToken;
 
-				FNetControlMessage<NMT_Hello>::Receive(Bunch, IsLittleEndian, RemoteNetworkVersion);
+				FNetControlMessage<NMT_Hello>::Receive(Bunch, IsLittleEndian, RemoteNetworkVersion, EncryptionToken);
 
 				if (!FNetworkVersion::IsNetworkCompatible(LocalNetworkVersion, RemoteNetworkVersion))
 				{
@@ -4176,10 +4163,25 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 				}
 				else
 				{
-					Connection->Challenge = FString::Printf(TEXT("%08X"), FPlatformTime::Cycles());
-					Connection->SetExpectedClientLoginMsgType( NMT_Login );
-					FNetControlMessage<NMT_Challenge>::Send(Connection, Connection->Challenge);
-					Connection->FlushNet();
+					if (EncryptionToken.IsEmpty())
+					{
+						SendChallengeControlMessage(Connection);
+					}
+					else
+					{
+						if (FNetDelegates::OnReceivedNetworkEncryptionToken.IsBound())
+						{
+							TWeakObjectPtr<UNetConnection> WeakConnection = Connection;
+							FNetDelegates::OnReceivedNetworkEncryptionToken.Execute(EncryptionToken, FOnEncryptionKeyResponse::CreateUObject(this, &UWorld::SendChallengeControlMessage, WeakConnection));
+						}
+						else
+						{
+							FString FailureMsg(TEXT("Encryption failure"));
+							UE_LOG(LogNet, Warning, TEXT("%s: No delegate available to handle encryption token, disconnecting."), *Connection->GetName());
+							FNetControlMessage<NMT_Failure>::Send(Connection, FailureMsg);
+							Connection->FlushNet(true);
+						}
+					}
 				}
 				break;
 			}
@@ -4455,6 +4457,61 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 				break;
 			}
 		}
+	}
+}
+
+void UWorld::SendChallengeControlMessage(UNetConnection* Connection)
+{
+	if (Connection)
+	{
+		if (Connection->State != USOCK_Invalid && Connection->State != USOCK_Closed && Connection->Driver)
+		{
+			Connection->Challenge = FString::Printf(TEXT("%08X"), FPlatformTime::Cycles());
+			Connection->SetExpectedClientLoginMsgType(NMT_Login);
+			FNetControlMessage<NMT_Challenge>::Send(Connection, Connection->Challenge);
+			Connection->FlushNet();
+		}
+		else
+		{
+			UE_LOG(LogNet, Log, TEXT("UWorld::SendChallengeControlMessage: connection in invalid state. %s"), *Connection->Describe());
+		}
+	}
+	else
+	{
+		UE_LOG(LogNet, Log, TEXT("UWorld::SendChallengeControlMessage: Connection is null."));
+	}
+}
+
+void UWorld::SendChallengeControlMessage(const FEncryptionKeyResponse& Response, TWeakObjectPtr<UNetConnection> WeakConnection)
+{
+	UNetConnection* Connection = WeakConnection.Get();
+	if (Connection)
+	{
+		if (Connection->State != USOCK_Invalid && Connection->State != USOCK_Closed && Connection->Driver)
+		{
+			if (Response.Response == EEncryptionResponse::Success)
+			{
+				Connection->EnableEncryptionWithKeyServer(Response.EncryptionKey);
+				SendChallengeControlMessage(Connection);
+			}
+			else
+			{
+				FString ResponseStr(Lex::ToString(Response.Response));
+				UE_LOG(LogNet, Warning, TEXT("UWorld::SendChallengeControlMessage: encryption failure [%s] %s"), *ResponseStr, *Response.ErrorMsg);
+				FNetControlMessage<NMT_Failure>::Send(Connection, ResponseStr);
+				Connection->FlushNet();
+				// Can't close the connection here since it will leave the failure message in the send buffer and just close the socket. 
+				// Connection->Close();
+			}
+		}
+		else
+		{
+			UE_LOG(LogNet, Warning, TEXT("UWorld::SendChallengeControlMessage: connection in invalid state. %s"), *Connection->Describe());
+		}
+	}
+	else
+	{
+		UE_LOG(LogNet, Warning, TEXT("UWorld::SendChallengeControlMessage: Connection is null."));
 	}
 }
 
@@ -5269,7 +5326,7 @@ UWorld* FSeamlessTravelHandler::Tick()
 				ProcessActor(Player);
 			}
 
- 			bool bCreateNewGameMode = !bIsClient;
+			bool bCreateNewGameMode = !bIsClient;
 			{
 				// scope because after GC the kept pointers will be bad
 				AGameModeBase* KeptGameMode = nullptr;
@@ -6247,6 +6304,28 @@ void UWorld::SetActiveLevelCollection(const FLevelCollection* InCollection)
 	GameState = InCollection->GetGameState();
 	NetDriver = InCollection->GetNetDriver();
 	DemoNetDriver = InCollection->GetDemoNetDriver();
+
+	// TODO: START TEMP FIX FOR UE-42508
+	if (NetDriver && NetDriver->NetDriverName != NAME_None)
+	{
+		UNetDriver* TempNetDriver = GEngine->FindNamedNetDriver(this, NetDriver->NetDriverName);
+		if (TempNetDriver != NetDriver)
+		{
+			UE_LOG(LogWorld, Warning, TEXT("SetActiveLevelCollection attempted to use an out of date NetDriver: %s"), *(NetDriver->NetDriverName.ToString()));
+			NetDriver = TempNetDriver;
+		}
+	}
+
+	if (DemoNetDriver && DemoNetDriver->NetDriverName != NAME_None)
+	{
+		UDemoNetDriver* TempDemoNetDriver = Cast<UDemoNetDriver>(GEngine->FindNamedNetDriver(this, DemoNetDriver->NetDriverName));
+		if (TempDemoNetDriver != DemoNetDriver)
+		{
+			UE_LOG(LogWorld, Warning, TEXT("SetActiveLevelCollection attempted to use an out of date DemoNetDriver: %s"), *(DemoNetDriver->NetDriverName.ToString()));
+			DemoNetDriver = TempDemoNetDriver;
+		}
+	}
+	// TODO: END TEMP FIX FOR UE-42508
 }
 
 static ULevel* DuplicateLevelWithPrefix(ULevel* InLevel, int32 InstanceID )
@@ -6373,25 +6452,25 @@ void UWorld::ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel, bool bSho
 	{
 		UE_LOG(LogWorld, Log, TEXT("Changing Feature Level (Enum) from %i to %i"), (int)FeatureLevel, (int)InFeatureLevel);
 		FScopedSlowTask SlowTask(100.f, NSLOCTEXT("Engine", "ChangingPreviewRenderingLevelMessage", "Changing Preview Rendering Level"), bShowSlowProgressDialog);
-        SlowTask.MakeDialog();
-        {
-            SlowTask.EnterProgressFrame(10.0f);
-            // Give all scene components the opportunity to prepare for pending feature level change.
-            for (TObjectIterator<USceneComponent> It; It; ++It)
-            {
-                USceneComponent* SceneComponent = *It;
-                if (SceneComponent->GetWorld() == this)
-                {
-                    SceneComponent->PreFeatureLevelChange(InFeatureLevel);
-                }
-            }
+		SlowTask.MakeDialog();
+		{
+			SlowTask.EnterProgressFrame(10.0f);
+			// Give all scene components the opportunity to prepare for pending feature level change.
+			for (TObjectIterator<USceneComponent> It; It; ++It)
+			{
+				USceneComponent* SceneComponent = *It;
+				if (SceneComponent->GetWorld() == this)
+				{
+					SceneComponent->PreFeatureLevelChange(InFeatureLevel);
+				}
+			}
 
-            SlowTask.EnterProgressFrame(10.0f);
-            FGlobalComponentReregisterContext RecreateComponents;
-            FlushRenderingCommands();
+			SlowTask.EnterProgressFrame(10.0f);
+			FGlobalComponentReregisterContext RecreateComponents;
+			FlushRenderingCommands();
 
-            // Decrement refcount on old feature level
-            UMaterialInterface::SetGlobalRequiredFeatureLevel(InFeatureLevel, true);
+			// Decrement refcount on old feature level
+			UMaterialInterface::SetGlobalRequiredFeatureLevel(InFeatureLevel, true);
 
             SlowTask.EnterProgressFrame(10.0f);
             UMaterial::AllMaterialsCacheResourceShadersForRendering();
@@ -6402,21 +6481,21 @@ void UWorld::ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel, bool bSho
             SlowTask.EnterProgressFrame(10.0f);
             GShaderCompilingManager->ProcessAsyncResults(false, true);
 
-            SlowTask.EnterProgressFrame(10.0f);
-            //invalidate global bound shader states so they will be created with the new shaders the next time they are set (in SetGlobalBoundShaderState)
-            for (TLinkedList<FGlobalBoundShaderStateResource*>::TIterator It(FGlobalBoundShaderStateResource::GetGlobalBoundShaderStateList()); It; It.Next())
-            {
-                BeginUpdateResourceRHI(*It);
-            }
+			SlowTask.EnterProgressFrame(10.0f);
+			//invalidate global bound shader states so they will be created with the new shaders the next time they are set (in SetGlobalBoundShaderState)
+			for (TLinkedList<FGlobalBoundShaderStateResource*>::TIterator It(FGlobalBoundShaderStateResource::GetGlobalBoundShaderStateList()); It; It.Next())
+			{
+				BeginUpdateResourceRHI(*It);
+			}
 
-            FeatureLevel = InFeatureLevel;
+			FeatureLevel = InFeatureLevel;
 
-            SlowTask.EnterProgressFrame(10.0f);
+			SlowTask.EnterProgressFrame(10.0f);
 			RecreateScene(InFeatureLevel);
 
-            SlowTask.EnterProgressFrame(10.0f);
-            TriggerStreamingDataRebuild();
-        }
+			SlowTask.EnterProgressFrame(10.0f);
+			TriggerStreamingDataRebuild();
+		}
 	}
 }
 

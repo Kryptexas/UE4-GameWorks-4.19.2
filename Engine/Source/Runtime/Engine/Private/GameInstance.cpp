@@ -90,6 +90,9 @@ void UGameInstance::Init()
 				App->RegisterConsoleCommandListener(GenericApplication::FOnConsoleCommandListener::CreateUObject(this, &ThisClass::OnConsoleInput));
 			}
 		}
+
+		FNetDelegates::OnReceivedNetworkEncryptionToken.BindUObject(this, &ThisClass::ReceivedNetworkEncryptionToken);
+		FNetDelegates::OnReceivedNetworkEncryptionAck.BindUObject(this, &ThisClass::ReceivedNetworkEncryptionAck);
 	}
 }
 
@@ -127,6 +130,9 @@ void UGameInstance::Shutdown()
 			RemoveLocalPlayer(Player);
 		}
 	}
+
+	FNetDelegates::OnReceivedNetworkEncryptionToken.Unbind();
+	FNetDelegates::OnReceivedNetworkEncryptionAck.Unbind();
 
 	// Clear the world context pointer to prevent further access.
 	WorldContext = nullptr;
@@ -252,7 +258,15 @@ FGameInstancePIEResult UGameInstance::StartPlayInEditorGameInstance(ULocalPlayer
 	{
 		FString Error;
 		FURL BaseURL = WorldContext->LastURL;
-		if (EditorEngine->Browse(*WorldContext, FURL(&BaseURL, TEXT("127.0.0.1"), (ETravelType)TRAVEL_Absolute), Error) == EBrowseReturnVal::Pending)
+
+		FString URLString(TEXT("127.0.0.1"));
+		uint16 ServerPort = 0;
+		if (PlayInSettings->GetServerPort(ServerPort))
+		{
+			URLString += FString::Printf(TEXT(":%hu"), ServerPort);
+		}
+
+		if (EditorEngine->Browse(*WorldContext, FURL(&BaseURL, *URLString, (ETravelType)TRAVEL_Absolute), Error) == EBrowseReturnVal::Pending)
 		{
 			EditorEngine->TransitionType = TT_WaitingToConnect;
 		}
@@ -327,6 +341,13 @@ FGameInstancePIEResult UGameInstance::StartPlayInEditorGameInstance(ULocalPlayer
 		
 		if (PlayNetMode == PIE_ListenServer)
 		{
+			// Add port
+			uint16 ServerPort = 0;
+			if (PlayInSettings->GetServerPort(ServerPort))
+			{
+				URL.Port = ServerPort;
+			}
+
 			// start listen server with the built URL
 			PlayWorld->Listen(URL);
 		}
@@ -977,6 +998,18 @@ void UGameInstance::AddUserToReplay(const FString& UserString)
 	{
 		CurrentWorld->DemoNetDriver->AddUserToReplay( UserString );
 	}
+}
+
+void UGameInstance::ReceivedNetworkEncryptionToken(const FString& EncryptionToken, const FOnEncryptionKeyResponse& Delegate)
+{
+	FEncryptionKeyResponse Response(EEncryptionResponse::Failure, TEXT("ReceivedNetworkEncryptionToken not implemented"));
+	Delegate.ExecuteIfBound(Response);
+}
+
+void UGameInstance::ReceivedNetworkEncryptionAck(const FOnEncryptionKeyResponse& Delegate)
+{
+	FEncryptionKeyResponse Response(EEncryptionResponse::Failure, TEXT("ReceivedNetworkEncryptionAck not implemented"));
+	Delegate.ExecuteIfBound(Response);
 }
 
 TSubclassOf<UOnlineSession> UGameInstance::GetOnlineSessionClass()

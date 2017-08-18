@@ -498,6 +498,10 @@ public:
 				.DisplayName(LOCTEXT("NumberOfPlayersLabel", "Number of Players"))
 				.IsEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FLevelEditorPlaySettingsCustomization::HandlePlayNumberOfClientsIsEnabled)));
 
+			NetworkCategory.AddProperty("ServerPort")
+				.DisplayName(LOCTEXT("ServerPortLabel", "Server Port"))
+				.IsEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FLevelEditorPlaySettingsCustomization::HandleServerPortIsEnabled)));
+
 			NetworkCategory.AddProperty("AdditionalServerGameOptions")
 				.DisplayName(LOCTEXT("ServerGameOptionsLabel", "Server Game Options"))
 				.IsEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FLevelEditorPlaySettingsCustomization::HandleGameOptionsIsEnabled)));
@@ -700,6 +704,12 @@ private:
 	bool HandlePlayNumberOfClientsIsEnabled( ) const
 	{
 		return GetDefault<ULevelEditorPlaySettings>()->IsPlayNumberOfClientsActive();
+	}
+
+	// Callback for checking whether the ServerPort is enabled.
+	bool HandleServerPortIsEnabled() const
+	{
+		return GetDefault<ULevelEditorPlaySettings>()->IsServerPortActive();
 	}
 
 	// Callback for checking whether the AdditionalServerGameOptions is enabled.

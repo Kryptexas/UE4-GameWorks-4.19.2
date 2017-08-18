@@ -220,7 +220,7 @@ void UUnitTestManager::InitializeLogs()
 				}
 			}
 
-			bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory)
+			virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory) override
 			{
 				if (bIsDirectory)
 				{
@@ -1285,7 +1285,7 @@ void UUnitTestManager::Tick(float DeltaTime)
 
 					// @todo #JohnB: Move NetTick to UClientUnitTest?
 					if ((CurTime - CurUnitTest->LastNetTick) > NetTickInterval && CurClientUnitTest != nullptr &&
-						CurClientUnitTest->UnitConn != nullptr)
+						CurClientUnitTest->MinClient != nullptr)
 					{
 						CurUnitTest->NetTick();
 						CurUnitTest->LastNetTick = CurTime;
@@ -1551,7 +1551,7 @@ bool UUnitTestManager::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar
 	// Debug unit test commands
 	else if (UnitTestName == TEXT("debug"))
 	{
-		UUnitTest** TargetUnitTestRef = (InWorld != NULL ? ActiveUnitTests.FindByPredicate(
+		UUnitTest** TargetUnitTestRef = (InWorld != nullptr ? ActiveUnitTests.FindByPredicate(
 			[&InWorld](const UUnitTest* InElement)
 			{
 				auto CurUnitTest = Cast<UClientUnitTest>(InElement);
@@ -1559,18 +1559,18 @@ bool UUnitTestManager::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar
 
 				return CurMinClient != nullptr && CurMinClient->GetUnitWorld() == InWorld;
 			})
-			: NULL);
+			: nullptr);
 
-		UClientUnitTest* TargetUnitTest = (TargetUnitTestRef != NULL ? Cast<UClientUnitTest>(*TargetUnitTestRef) : NULL);
+		UClientUnitTest* TargetUnitTest = (TargetUnitTestRef != nullptr ? Cast<UClientUnitTest>(*TargetUnitTestRef) : nullptr);
 
 		// Alternatively, if a unit test has not launched started connecting to a server, its world may not be setup,
 		// so can detect by checking the active log unit test too
-		if (TargetUnitTest == NULL && GActiveLogUnitTest != NULL)
+		if (TargetUnitTest == nullptr && GActiveLogUnitTest != nullptr)
 		{
 			TargetUnitTest = Cast<UClientUnitTest>(GActiveLogUnitTest);
 		}
 
-		if (TargetUnitTest != NULL)
+		if (TargetUnitTest != nullptr)
 		{
 			if (FParse::Command(&Cmd, TEXT("Requirements")))
 			{
@@ -1609,21 +1609,24 @@ bool UUnitTestManager::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar
 			}
 			else if (FParse::Command(&Cmd, TEXT("ForceReady")))
 			{
-				if (TargetUnitTest != NULL && !!(TargetUnitTest->UnitTestFlags & EUnitTestFlags::LaunchServer) &&
-					TargetUnitTest->ServerHandle.IsValid() && TargetUnitTest->UnitPC == NULL)
+				if (TargetUnitTest != nullptr && !!(TargetUnitTest->UnitTestFlags & EUnitTestFlags::LaunchServer) &&
+					TargetUnitTest->ServerHandle.IsValid() && TargetUnitTest->UnitPC == nullptr)
 				{
 					Ar.Logf(TEXT("Forcing unit test '%s' as ready to connect client."), *TargetUnitTest->GetUnitTestName());
 
-					TargetUnitTest->ConnectFakeClient();
+					TargetUnitTest->ConnectMinimalClient();
 				}
 			}
 			else if (FParse::Command(&Cmd, TEXT("Disconnect")))
 			{
-				if (TargetUnitTest != NULL && TargetUnitTest->UnitConn != NULL)
+				UNetConnection* UnitConn = (TargetUnitTest != nullptr && TargetUnitTest->MinClient != nullptr ?
+											TargetUnitTest->MinClient->GetConn() : nullptr);
+
+				if (UnitConn != nullptr)
 				{
 					Ar.Logf(TEXT("Forcing unit test '%s' to disconnect."), *TargetUnitTest->GetUnitTestName());
 
-					TargetUnitTest->UnitConn->Close();
+					UnitConn->Close();
 				}
 			}
 		}
@@ -1762,10 +1765,10 @@ void UUnitTestManager::Serialize(const TCHAR* Data, ELogVerbosity::Type Verbosit
 				}
 
 
-				FString* LogLine = NULL;
+				FString* LogLine = nullptr;
 				UUnitTest* CurLogUnitTest = Cast<UUnitTest>(GActiveLogUnitTest);
 
-				if (CurLogUnitTest != NULL)
+				if (CurLogUnitTest != nullptr)
 				{
 					// Store the log within the unit test
 					CurLogUnitTest->StatusLogSummary.Add(MakeShareable(new FUnitStatusLog(CurLogType, FString(Data))));
@@ -1802,18 +1805,20 @@ void UUnitTestManager::Serialize(const TCHAR* Data, ELogVerbosity::Type Verbosit
 
 
 			ELogType CurLogType = ELogType::Local | GActiveLogTypeFlags;
-			UUnitTest* SourceUnitTest = NULL;
+			UUnitTest* SourceUnitTest = nullptr;
 
 			// If this log was triggered, while a unit test net connection was processing a packet, find and notify the unit test
-			if (GActiveReceiveUnitConnection != NULL)
+			if (GActiveReceiveUnitConnection != nullptr)
 			{
 				CurLogType |= ELogType::OriginNet;
 
 				for (auto CurUnitTest : ActiveUnitTests)
 				{
 					UClientUnitTest* CurClientUnitTest = Cast<UClientUnitTest>(CurUnitTest);
+					UNetConnection* UnitConn = (CurClientUnitTest != nullptr && CurClientUnitTest->MinClient != nullptr ?
+												CurClientUnitTest->MinClient->GetConn() : nullptr);
 
-					if (CurClientUnitTest != NULL && CurClientUnitTest->UnitConn == GActiveReceiveUnitConnection)
+					if (UnitConn != nullptr && UnitConn == GActiveReceiveUnitConnection)
 					{
 						SourceUnitTest = CurUnitTest;
 						break;
@@ -1821,19 +1826,19 @@ void UUnitTestManager::Serialize(const TCHAR* Data, ELogVerbosity::Type Verbosit
 				}
 			}
 			// If it was triggered from within a unit test log, also notify
-			else if (GActiveLogUnitTest != NULL)
+			else if (GActiveLogUnitTest != nullptr)
 			{
 				CurLogType |= ELogType::OriginUnitTest;
 				SourceUnitTest = Cast<UUnitTest>(GActiveLogUnitTest);
 			}
 			// If it was triggered within an engine event, within a unit test, again notify
-			else if (GActiveLogEngineEvent != NULL)
+			else if (GActiveLogEngineEvent != nullptr)
 			{
 				CurLogType |= ELogType::OriginEngine;
 				SourceUnitTest = Cast<UUnitTest>(GActiveLogEngineEvent);
 			}
 			// If it was triggered during UWorld::Tick, for the world assigned to a unit test, again find and notify
-			else if (GActiveLogWorld != NULL)
+			else if (GActiveLogWorld != nullptr)
 			{
 				CurLogType |= ELogType::OriginEngine;
 
@@ -1850,7 +1855,7 @@ void UUnitTestManager::Serialize(const TCHAR* Data, ELogVerbosity::Type Verbosit
 				}
 			}
 
-			if (SourceUnitTest != NULL && (CurLogType & ELogType::OriginMask) != ELogType::None)
+			if (SourceUnitTest != nullptr && (CurLogType & ELogType::OriginMask) != ELogType::None)
 			{
 				SourceUnitTest->NotifyLocalLog(CurLogType, Data, Verbosity, Category);
 			}
@@ -2055,17 +2060,14 @@ static bool UnitTestExec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 		{
 			uint8* Data = (uint8*)PointerVal;
 
+			// NOTE: This case covers TArray's which are empty, and can be allocated (Data != nullptr) or unallocated (Data == nullptr)
 			if (Data != nullptr || DataLen == 0)
 			{
 				NUTDebug::LogHexDump(Data, DataLen);
 			}
-			else if (Data == nullptr)
+			else //if (Data == nullptr)
 			{
 				Ar.Logf(TEXT("Invalid Data parameter."));
-			}
-			else // if (DataLen == 0)
-			{
-				Ar.Logf(TEXT("Invalid DataLen parameter."));
 			}
 		}
 		else
@@ -2090,17 +2092,14 @@ static bool UnitTestExec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 		{
 			uint8* Data = (uint8*)PointerVal;
 
+			// NOTE: This case covers TArray's which are empty, and can be allocated (Data != nullptr) or unallocated (Data == nullptr)
 			if (Data != nullptr || DataLen == 0)
 			{
 				NUTDebug::LogBitDump(Data, DataLen);
 			}
-			else if (Data == nullptr)
+			else //if (Data == nullptr)
 			{
 				Ar.Logf(TEXT("Invalid Data parameter."));
-			}
-			else // if (DataLen == 0)
-			{
-				Ar.Logf(TEXT("Invalid DataLen parameter."));
 			}
 		}
 		else

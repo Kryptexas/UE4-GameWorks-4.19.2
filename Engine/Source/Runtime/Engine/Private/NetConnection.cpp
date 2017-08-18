@@ -24,6 +24,7 @@
 #include "Net/DataChannel.h"
 #include "Engine/PackageMapClient.h"
 #include "Engine/NetworkObjectList.h"
+#include "EncryptionComponent.h"
 
 #include "Net/PerfCountersHelpers.h"
 #include "GameDelegates.h"
@@ -34,6 +35,8 @@ static TAutoConsoleVariable<int32> CVarPingDisplayServerTime( TEXT( "net.PingDis
 #endif
 
 static TAutoConsoleVariable<int32> CVarTickAllOpenChannels( TEXT( "net.TickAllOpenChannels" ), 0, TEXT( "If nonzero, each net connection will tick all of its open channels every tick. Leaving this off will improve performance." ) );
+
+static TAutoConsoleVariable<int32> CVarRandomizeSequence(TEXT("net.RandomizeSequence"), 1, TEXT("Randomize initial packet sequence"));
 
 DECLARE_CYCLE_STAT(TEXT("NetConnection SendAcks"), Stat_NetConnectionSendAck, STATGROUP_Net);
 DECLARE_CYCLE_STAT(TEXT("NetConnection Tick"), Stat_NetConnectionTick, STATGROUP_Net);
@@ -48,6 +51,7 @@ UNetConnection* UNetConnection::GNetConnectionBeingCleanedUp = NULL;
 UNetConnection::UNetConnection(const FObjectInitializer& ObjectInitializer)
 :	UPlayer(ObjectInitializer)
 ,	Driver				( NULL )
+,	PackageMapClass		( UPackageMapClient::StaticClass() )
 ,	PackageMap			( NULL )
 ,	ViewTarget			( NULL )
 ,   OwningActor			( NULL )
@@ -100,6 +104,9 @@ UNetConnection::UNetConnection(const FObjectInitializer& ObjectInitializer)
 ,	GameNetworkProtocolVersion( FNetworkVersion::GetGameNetworkProtocolVersion() )
 ,	ClientWorldPackageName( NAME_None )
 ,	bResendAllDataSinceOpen( false )
+#if !UE_BUILD_SHIPPING
+,	ReceivedRawPacketDel()
+#endif
 ,	PlayerOnlinePlatformName( NAME_None )
 {
 }
@@ -171,9 +178,13 @@ void UNetConnection::InitBase(UNetDriver* InDriver,class FSocket* InSocket, cons
 	}
 
 	// Create package map.
-	auto PackageMapClient = NewObject<UPackageMapClient>(this);
-	PackageMapClient->Initialize(this, Driver->GuidCache);
-	PackageMap = PackageMapClient;
+	UPackageMapClient* PackageMapClient = NewObject<UPackageMapClient>(this, PackageMapClass);
+
+	if (ensure(PackageMapClient != nullptr))
+	{
+		PackageMapClient->Initialize(this, Driver->GuidCache);
+		PackageMap = PackageMapClient;
+	}
 
 	// Create the voice channel
 	CreateChannel(CHTYPE_Voice, true, VOICE_CHANNEL_INDEX);
@@ -277,28 +288,65 @@ void UNetConnection::InitHandler()
 
 void UNetConnection::InitSequence(int32 IncomingSequence, int32 OutgoingSequence)
 {
-	// Make sure the sequence hasn't already been initialized
-	check(InPacketId == -1);
+	// Make sure the sequence hasn't already been initialized on the server, and ignore multiple initializations on the client
+	check(InPacketId == -1 || Driver->ServerConnection != nullptr);
 
-	// Initialize the base UNetConnection packet sequence (not very useful/effective at preventing attacks)
-	InPacketId = IncomingSequence - 1;
-	OutPacketId = OutgoingSequence;
-	OutAckPacketId = OutgoingSequence - 1;
-
-	// Initialize the reliable packet sequence (more useful/effective at preventing attacks)
-	InitInReliable = IncomingSequence & (MAX_CHSEQUENCE - 1);
-	InitOutReliable = OutgoingSequence & (MAX_CHSEQUENCE - 1);
-
-	UE_LOG(LogNet, Verbose, TEXT("InitSequence: IncomingSequence: %i, OutgoingSequence: %i, InitInReliable: %i, InitOutReliable: %i"), IncomingSequence, OutgoingSequence, InitInReliable, InitOutReliable);
-
-	for (int32 i=0; i<ARRAY_COUNT(InReliable); i++)
+	if (InPacketId == -1 && CVarRandomizeSequence.GetValueOnAnyThread() > 0)
 	{
-		InReliable[i] = InitInReliable;
+		// Initialize the base UNetConnection packet sequence (not very useful/effective at preventing attacks)
+		InPacketId = IncomingSequence - 1;
+		OutPacketId = OutgoingSequence;
+		OutAckPacketId = OutgoingSequence - 1;
+
+		// Initialize the reliable packet sequence (more useful/effective at preventing attacks)
+		InitInReliable = IncomingSequence & (MAX_CHSEQUENCE - 1);
+		InitOutReliable = OutgoingSequence & (MAX_CHSEQUENCE - 1);
+
+		UE_LOG(LogNet, Verbose, TEXT("InitSequence: IncomingSequence: %i, OutgoingSequence: %i, InitInReliable: %i, InitOutReliable: %i"), IncomingSequence, OutgoingSequence, InitInReliable, InitOutReliable);
+
+		for (int32 i=0; i<ARRAY_COUNT(InReliable); i++)
+		{
+			InReliable[i] = InitInReliable;
+		}
+
+		for (int32 i=0; i<ARRAY_COUNT(OutReliable); i++)
+		{
+			OutReliable[i] = InitOutReliable;
+		}
 	}
+}
 
-	for (int32 i=0; i<ARRAY_COUNT(OutReliable); i++)
+void UNetConnection::EnableEncryptionWithKey(TArrayView<const uint8> Key)
+{
+	if (Handler.IsValid())
 	{
-		OutReliable[i] = InitOutReliable;
+		UE_LOG(LogNet, Verbose, TEXT("UNetConnection::EnableEncryptionWithKey, %s"), *Describe());
+
+		TSharedPtr<FEncryptionComponent> EncryptionComponent = Handler->GetEncryptionComponent();
+		if (EncryptionComponent.IsValid())
+		{
+			EncryptionComponent->SetEncryptionKey(Key);
+			EncryptionComponent->EnableEncryption();
+		}
+		else
+		{
+			UE_LOG(LogNet, Warning, TEXT("UNetConnection::EnableEncryptionWithKey, encryption component not found!"));
+		}
+	}
+}
+
+void UNetConnection::EnableEncryptionWithKeyServer(TArrayView<const uint8> Key)
+{
+	if (State != USOCK_Invalid && State != USOCK_Closed && Driver)
+	{
+		FNetControlMessage<NMT_EncryptionAck>::Send(this);
+		FlushNet();
+
+		EnableEncryptionWithKey(Key);
+	}
+	else
+	{
+		UE_LOG(LogNet, Log, TEXT("UNetConnection::EnableEncryptionWithKeyServer, connection in invalid state. %s"), *Describe());
 	}
 }
 
@@ -591,6 +639,18 @@ void UNetConnection::InitSendBuffer()
 
 void UNetConnection::ReceivedRawPacket( void* InData, int32 Count )
 {
+#if !UE_BUILD_SHIPPING
+	// Add an opportunity for the hook to block further processing
+	bool bBlockReceive = false;
+
+	ReceivedRawPacketDel.ExecuteIfBound(InData, Count, bBlockReceive);
+
+	if (bBlockReceive)
+	{
+		return;
+	}
+#endif
+
 	uint8* Data = (uint8*)InData;
 
 	if (Handler.IsValid())
@@ -616,6 +676,13 @@ void UNetConnection::ReceivedRawPacket( void* InData, int32 Count )
 			CLOSE_CONNECTION_DUE_TO_SECURITY_VIOLATION(this, ESecurityEvent::Malformed_Packet,
 														TEXT("Packet failed PacketHandler processing."));
 
+			return;
+		}
+		
+		// See if we receive a packet that wasn't fully consumed by the handler before the handler is initialized.
+		if (!Handler->IsFullyInitialized())
+		{
+			UE_LOG(LogNet, Warning, TEXT("PacketHander isn't fully initialized and also didn't fully consume a packet! This will cause the connection to try to send a packet before the initial packet sequence has been established. Ignoring. Connection: %s"), *Describe());
 			return;
 		}
 	}
@@ -679,10 +746,6 @@ void UNetConnection::FlushNet(bool bIgnoreSimulation)
 {
 	check(Driver);
 
-	// Due to the PacketHandler handshake code, servers must never send the client data,
-	// before first receiving a client control packet (which is taken as an indication of a complete handshake).
-	check(HasReceivedClientPacket())
-
 	// Update info.
 	ValidateSendBuffer();
 	LastEnd = FBitWriterMark();
@@ -691,6 +754,15 @@ void UNetConnection::FlushNet(bool bIgnoreSimulation)
 	// If there is any pending data to send, send it.
 	if ( SendBuffer.GetNumBits() || ( Driver->Time-LastSendTime > Driver->KeepAliveTime && !InternalAck && State != USOCK_Closed ) )
 	{
+		// Due to the PacketHandler handshake code, servers must never send the client data,
+		// before first receiving a client control packet (which is taken as an indication of a complete handshake).
+		if ( !HasReceivedClientPacket() && CVarRandomizeSequence.GetValueOnAnyThread() != 0 )
+		{
+			UE_LOG(LogNet, Log, TEXT("Attempting to send data before handshake is complete. %s"), *Describe());
+			Close();
+			return;
+		}
+
 		// If sending keepalive packet, still write the packet id
 		if ( SendBuffer.GetNumBits() == 0 )
 		{
@@ -1208,7 +1280,7 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 			if( !Channel )
 			{
 				// Validate channel type.
-				if ( !UChannel::IsKnownChannelType( Bunch.ChType ) )
+				if ( !Driver->IsKnownChannelType( Bunch.ChType ) )
 				{
 					// Unknown type.
 					CLOSE_CONNECTION_DUE_TO_SECURITY_VIOLATION(this, ESecurityEvent::Invalid_Data, TEXT( "UNetConnection::ReceivedPacket: Connection unknown channel type (%i)" ), (int)Bunch.ChType);
@@ -1283,7 +1355,10 @@ int32 UNetConnection::WriteBitsToSendBuffer(
 #if !UE_BUILD_SHIPPING
 	// Now that the stateless handshake is responsible for initializing the packet sequence numbers,
 	//	we can't allow any packets to be written to the send buffer until after this has completed
-	check(!Handler.IsValid() || Handler->IsFullyInitialized());
+	if (CVarRandomizeSequence.GetValueOnAnyThread() > 0)
+	{
+		checkf(!Handler.IsValid() || Handler->IsFullyInitialized(), TEXT("Attempted to write to send buffer before packet handler was fully initialized. Connection: %s"), *Describe());
+	}
 #endif
 
 	const int32 TotalSizeInBits = SizeInBits + ExtraSizeInBits;
@@ -1517,7 +1592,7 @@ int32 UNetConnection::SendRawBunch( FOutBunch& Bunch, bool InAllowMerge )
 
 UChannel* UNetConnection::CreateChannel( EChannelType ChType, bool bOpenedLocally, int32 ChIndex )
 {
-	check(UChannel::IsKnownChannelType(ChType));
+	check(Driver->IsKnownChannelType(ChType));
 	AssertValid();
 
 	// If no channel index was specified, find the first available.
@@ -1556,7 +1631,7 @@ UChannel* UNetConnection::CreateChannel( EChannelType ChType, bool bOpenedLocall
 	check(Channels[ChIndex]==NULL);
 
 	// Create channel.
-	UChannel* Channel = NewObject<UChannel>(GetTransientPackage(), UChannel::ChannelClasses[ChType]);
+	UChannel* Channel = NewObject<UChannel>(GetTransientPackage(), Driver->ChannelClasses[ChType]);
 	Channel->Init( this, ChIndex, bOpenedLocally );
 	Channels[ChIndex] = Channel;
 	OpenChannels.Add(Channel);

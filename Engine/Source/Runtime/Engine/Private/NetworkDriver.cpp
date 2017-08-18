@@ -44,6 +44,7 @@
 #include "Engine/PackageMapClient.h"
 #include "Net/RepLayout.h"
 #include "Net/DataReplication.h"
+#include "Engine/ControlChannel.h"
 #include "Engine/ActorChannel.h"
 #include "Engine/VoiceChannel.h"
 #include "Engine/NetworkObjectList.h"
@@ -168,6 +169,11 @@ static TAutoConsoleVariable<int32> CVarUseAdaptiveNetUpdateFrequency(
 	1, 
 	TEXT( "If 1, NetUpdateFrequency will be calculated based on how often actors actually send something when replicating" ) );
 
+TAutoConsoleVariable<int32> CVarNetAllowEncryption(
+	TEXT("net.AllowEncryption"),
+	1,
+	TEXT("If true, the engine will attempt to load an encryption PacketHandler component and fill in the EncryptionToken parameter of the NMT_Hello message based on the ?EncryptionToken= URL option and call callbacks if it's non-empty."));
+
 /*-----------------------------------------------------------------------------
 	UNetDriver implementation.
 -----------------------------------------------------------------------------*/
@@ -204,11 +210,17 @@ UNetDriver::UNetDriver(const FObjectInitializer& ObjectInitializer)
 ,	LastCleanupTime(0.0)
 ,	NetTag(0)
 ,	DebugRelevantActors(false)
+#if !UE_BUILD_SHIPPING
+,	SendRPCDel()
+#endif
 ,	ProcessQueuedBunchesCurrentFrameMilliseconds(0.0f)
 ,	NetworkObjects(new FNetworkObjectList)
 ,	LagState(ENetworkLagState::NotLagging)
 ,	DuplicateLevelID(INDEX_NONE)
 {
+	ChannelClasses[CHTYPE_Control]	= UControlChannel::StaticClass();
+	ChannelClasses[CHTYPE_Actor]	= UActorChannel::StaticClass();
+	ChannelClasses[CHTYPE_Voice]	= UVoiceChannel::StaticClass();
 }
 
 void UNetDriver::InitPacketSimulationSettings()
@@ -249,6 +261,8 @@ void UNetDriver::PostInitProperties()
 		// Do not time out in PIE since the server is local.
 		bNoTimeouts = bNoTimeouts || (GEditor && GEditor->PlayWorld);
 #endif // WITH_EDITOR
+	
+		OnLevelRemovedFromWorldHandle = FWorldDelegates::LevelRemovedFromWorld.AddUObject(this, &UNetDriver::OnLevelRemovedFromWorld);
 	}
 }
 
@@ -1349,6 +1363,7 @@ void UNetDriver::InternalProcessRemoteFunction
 		// Bump the ReplicationFrame value to invalidate any properties marked as "unchanged" for this frame.
 		ReplicationFrame++;
 		
+		Ch->GetActor()->CallPreReplication(this);
 		Ch->ReplicateActor();
 	}
 
@@ -1638,6 +1653,7 @@ void UNetDriver::Serialize( FArchive& Ar )
 		ClientConnections.CountBytes(Ar);
 	}
 }
+
 void UNetDriver::FinishDestroy()
 {
 	if ( !HasAnyFlags(RF_ClassDefaultObject) )
@@ -1665,6 +1681,8 @@ void UNetDriver::FinishDestroy()
 
 		// Delete the guid cache
 		GuidCache.Reset();
+
+		FWorldDelegates::LevelRemovedFromWorld.Remove(OnLevelRemovedFromWorldHandle);
 	}
 	else
 	{
@@ -1971,23 +1989,13 @@ FActorDestructionInfo *	CreateDestructionInfo( UNetDriver * NetDriver, AActor* T
 	FActorDestructionInfo &NewInfo = NetDriver->DestroyedStartupOrDormantActors.FindOrAdd( NetGUID );
 	NewInfo.DestroyedPosition = ThisActor->GetActorLocation();
 	NewInfo.NetGUID = NetGUID;
+	NewInfo.Level = ThisActor->GetLevel();
 	NewInfo.ObjOuter = ThisActor->GetOuter();
 	NewInfo.PathName = ThisActor->GetName();
 
-	// get the level for the object
-	const ULevel* Level = NULL;
-	for (const UObject* Obj = ThisActor; Obj != NULL; Obj = Obj->GetOuter())
+	if (NewInfo.Level.IsValid() && !NewInfo.Level->IsPersistentLevel() )
 	{
-		Level = Cast<const ULevel>(Obj);
-		if (Level != NULL)
-		{
-			break;
-		}
-	}
-
-	if (Level && !Level->IsPersistentLevel() )
-	{
-		NewInfo.StreamingLevelName = Level->GetOutermost()->GetFName();
+		NewInfo.StreamingLevelName = NewInfo.Level->GetOutermost()->GetFName();
 	}
 	else
 	{
@@ -2925,15 +2933,21 @@ int32 UNetDriver::ServerReplicateActors_PrioritizeActors( UNetConnection* Connec
 
 int32 UNetDriver::ServerReplicateActors_ProcessPrioritizedActors( UNetConnection* Connection, const TArray<FNetViewer>& ConnectionViewers, FActorPriority** PriorityActors, const int32 FinalSortedCount, int32& OutUpdated )
 {
-	if ( !Connection->IsNetReady( 0 ) )
-	{
-		// Connection saturated, don't process any actors
-		return 0;
-	}
-
 	int32 ActorUpdatesThisConnection		= 0;
 	int32 ActorUpdatesThisConnectionSent	= 0;
 	int32 FinalRelevantCount				= 0;
+
+	if ( !Connection->IsNetReady( 0 ) )
+	{
+		// Connection saturated, don't process any actors
+
+		// Update stats even though there was no processing.
+		SET_DWORD_STAT( STAT_NumReplicatedActorAttempts, ActorUpdatesThisConnection );
+		SET_DWORD_STAT( STAT_NumReplicatedActors, ActorUpdatesThisConnectionSent );
+		SET_DWORD_STAT( STAT_NumRelevantActors, FinalRelevantCount );
+
+		return 0;
+	}
 
 	for ( int32 j = 0; j < FinalSortedCount; j++ )
 	{
@@ -3633,6 +3647,42 @@ TSharedPtr< FReplicationChangelistMgr > UNetDriver::GetReplicationChangeListMgr(
 	}
 
 	return *ReplicationChangeListMgrPtr;
+}
+
+void UNetDriver::OnLevelRemovedFromWorld(class ULevel* InLevel, class UWorld* InWorld)
+{
+	if (InWorld == World)
+	{
+		for (AActor* Actor : InLevel->Actors)
+		{
+			if (Actor)
+			{
+				NotifyActorLevelUnloaded(Actor);
+				GetNetworkObjectList().Remove(Actor);
+			}
+		}
+
+		TArray<FNetworkGUID> RemovedGUIDs;
+		for (auto It = DestroyedStartupOrDormantActors.CreateIterator(); It; ++It)
+		{
+			if (It->Value.Level == InLevel)
+			{
+				RemovedGUIDs.Add(It->Key);
+				It.RemoveCurrent();
+			}
+		}
+
+		if (RemovedGUIDs.Num())
+		{
+			for (UNetConnection* Connection : ClientConnections)
+			{
+				for (const FNetworkGUID& GUIDToRemove : RemovedGUIDs)
+				{
+					Connection->DestroyedStartupOrDormantActors.Remove(GUIDToRemove);
+				}
+			}
+		}
+	}
 }
 
 FAutoConsoleCommandWithWorld	DumpRelevantActorsCommand(

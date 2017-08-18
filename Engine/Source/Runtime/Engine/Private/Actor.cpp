@@ -336,6 +336,7 @@ FVector AActor::GetVelocity() const
 
 void AActor::ClearCrossLevelReferences()
 {
+	// TODO: Change GetOutermost to GetLevel?
 	if(RootComponent && GetRootComponent()->GetAttachParent() && (GetOutermost() != GetRootComponent()->GetAttachParent()->GetOutermost()))
 	{
 		GetRootComponent()->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
@@ -486,7 +487,7 @@ void AActor::RemoveControllingMatineeActor( AMatineeActor& InMatineeActor )
 
 void AActor::BeginDestroy()
 {
-	ULevel* OwnerLevel = Cast<ULevel>(GetOuter());
+	ULevel* OwnerLevel = GetLevel();
 	UnregisterAllComponents();
 	if (OwnerLevel && !OwnerLevel->HasAnyInternalFlags(EInternalObjectFlags::Unreachable))
 	{
@@ -1723,7 +1724,20 @@ bool AActor::ActorHasTag(FName Tag) const
 
 bool AActor::IsInLevel(const ULevel *TestLevel) const
 {
-	return (GetOuter() == TestLevel);
+	return (GetLevel() == TestLevel);
+}
+
+ULevel* AActor::GetLevel() const
+{
+	for (UObject* Outer = GetOuter(); Outer != nullptr; Outer = Outer->GetOuter())
+	{
+		if (ULevel* Level = Cast<ULevel>(Outer))
+		{
+			return Level;
+		}
+	}
+
+	return nullptr;
 }
 
 bool AActor::IsInPersistentLevel(bool bIncludeLevelStreamingPersistent) const

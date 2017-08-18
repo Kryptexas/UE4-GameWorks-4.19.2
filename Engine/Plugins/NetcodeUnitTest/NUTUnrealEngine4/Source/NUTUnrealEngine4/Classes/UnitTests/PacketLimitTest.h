@@ -3,6 +3,8 @@
 #pragma once
 
 
+// @todo #JohnB: Restore in a game-level package, eventually
+#if 0
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "ClientUnitTest.h"
@@ -61,9 +63,6 @@ protected:
 	/** The current stage of testing */
 	ELimitTestStage TestStage;
 
-	/** The last attempted send size passed to LowLevelSend (before PacketHandlers) */
-	int32 LastSendSize;
-
 	/** The last attempted send size passed to the connection socket (after PacketHandlers) */
 	int32 LastSocketSendSize;
 
@@ -75,7 +74,8 @@ public:
 
 	virtual bool ValidateUnitTestSettings(bool bCDOCheck) override;
 
-	virtual bool ConnectFakeClient(FUniqueNetIdRepl* InNetID) override;
+	// @todo #JohnB: Remove
+	//virtual bool ConnectMinimalClient(FUniqueNetIdRepl* InNetID) override;
 
 	virtual void ExecuteClientUnitTest() override;
 
@@ -91,3 +91,5 @@ protected:
 	 */
 	void NextTestStage();
 };
+
+#endif

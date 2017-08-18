@@ -35,15 +35,15 @@ void FScopedLog::InternalConstruct(const TArray<FString>& InLogCategories, UClie
 	bRemoteLogging = bInRemoteLogging;
 
 
+	UMinimalClient* MinClient = (UnitTest != nullptr ? UnitTest->MinClient : nullptr);
+	UNetConnection* UnitConn = (MinClient != nullptr ? MinClient->GetConn() : nullptr);
+
 	// If you want to do remote logging, you MUST specify the client unit test doing the logging
 	if (bRemoteLogging)
 	{
 		UNIT_ASSERT(UnitTest != nullptr);
-		UNIT_ASSERT(UnitTest->UnitConn != nullptr);
+		UNIT_ASSERT(UnitConn != nullptr);
 	}
-
-
-	UNetConnection* UnitConn = (UnitTest != nullptr ? UnitTest->UnitConn : nullptr);
 
 	// Flush all current packets, so the log messages only relate to scoped code
 	if (UnitConn != nullptr)
@@ -53,14 +53,14 @@ void FScopedLog::InternalConstruct(const TArray<FString>& InLogCategories, UClie
 
 
 	// If specified, enable logs remotely
-	if (bRemoteLogging && UnitTest != nullptr)
+	if (bRemoteLogging && MinClient != nullptr)
 	{
-		FOutBunch* ControlChanBunch = NUTNet::CreateChannelBunch(UnitTest->ControlBunchSequence, UnitConn, CHTYPE_Control, 0);
+		FOutBunch* ControlChanBunch = MinClient->CreateChannelBunch(CHTYPE_Control, 0);
 
 		if (ControlChanBunch != nullptr)
 		{
 			uint8 ControlMsg = NMT_NUTControl;
-			uint8 ControlCmd = ENUTControlCommand::Command_NoResult;
+			ENUTControlCommand ControlCmd = ENUTControlCommand::Command_NoResult;
 			FString Cmd = TEXT("");
 
 			for (auto CurCategory : LogCategories)
@@ -72,7 +72,7 @@ void FScopedLog::InternalConstruct(const TArray<FString>& InLogCategories, UClie
 				*ControlChanBunch << Cmd;
 			}
 
-			NUTNet::SendControlBunch(UnitConn, *ControlChanBunch);
+			MinClient->SendControlBunch(ControlChanBunch);
 
 
 			// Need to flush again now to get the above parsed on server first
@@ -83,9 +83,9 @@ void FScopedLog::InternalConstruct(const TArray<FString>& InLogCategories, UClie
 
 	// Now enable local logging
 	FString Cmd = TEXT("");
-	UWorld* UnitWorld = (UnitTest != nullptr && UnitTest->MinClient != nullptr) ? UnitTest->MinClient->GetUnitWorld() : nullptr;
+	UWorld* UnitWorld = (MinClient != nullptr ? MinClient->GetUnitWorld() : nullptr);
 
-	for (auto CurCategory : LogCategories)
+	for (FString CurCategory : LogCategories)
 	{
 		Cmd = TEXT("Log ") + CurCategory + TEXT(" All");
 
@@ -95,10 +95,11 @@ void FScopedLog::InternalConstruct(const TArray<FString>& InLogCategories, UClie
 
 FScopedLog::~FScopedLog()
 {
-	UNetConnection* UnitConn = (UnitTest != NULL ? UnitTest->UnitConn : NULL);
+	UMinimalClient* MinClient = (UnitTest != nullptr ? UnitTest->MinClient : nullptr);
+	UNetConnection* UnitConn = (MinClient != nullptr ? MinClient->GetConn() : nullptr);
 
 	// Flush all built-up packets
-	if (UnitConn != NULL)
+	if (UnitConn != nullptr)
 	{
 		UnitConn->FlushNet();
 	}
@@ -106,7 +107,7 @@ FScopedLog::~FScopedLog()
 
 	// Reset local logging
 	FString Cmd = TEXT("");
-	UWorld* UnitWorld = (UnitTest != nullptr && UnitTest->MinClient != nullptr) ? UnitTest->MinClient->GetUnitWorld() : nullptr;
+	UWorld* UnitWorld = (MinClient != nullptr ? MinClient->GetUnitWorld() : nullptr);
 
 	for (int32 i=LogCategories.Num()-1; i>=0; i--)
 	{
@@ -117,14 +118,14 @@ FScopedLog::~FScopedLog()
 
 
 	// Reset remote logging (and flush immediately)
-	if (bRemoteLogging && UnitTest != nullptr)
+	if (bRemoteLogging && MinClient != nullptr)
 	{
-		FOutBunch* ControlChanBunch = NUTNet::CreateChannelBunch(UnitTest->ControlBunchSequence, UnitConn, CHTYPE_Control, 0);
+		FOutBunch* ControlChanBunch = MinClient->CreateChannelBunch(CHTYPE_Control, 0);
 
 		if (ControlChanBunch != nullptr)
 		{
 			uint8 ControlMsg = NMT_NUTControl;
-			uint8 ControlCmd = ENUTControlCommand::Command_NoResult;
+			ENUTControlCommand ControlCmd = ENUTControlCommand::Command_NoResult;
 
 			for (int32 i=LogCategories.Num()-1; i>=0; i--)
 			{
@@ -135,14 +136,15 @@ FScopedLog::~FScopedLog()
 				*ControlChanBunch << Cmd;
 			}
 
-			NUTNet::SendControlBunch(UnitConn, *ControlChanBunch);
+			MinClient->SendControlBunch(ControlChanBunch);
 
 			UnitConn->FlushNet();
 		}
 	}
 }
 
-
+// @todo #JohnB: Reimplement eventually - see header file, needs to be merged with a similar class
+#if 0
 #if !UE_BUILD_SHIPPING
 /**
  * FProcessEventHookBase
@@ -179,7 +181,11 @@ bool FProcessEventHookBase::InternalProcessEventHook(AActor* Actor, UFunction* F
 
 	return bReturnVal;
 }
+#endif
+#endif
 
+// @todo #JohnB: Reimplement when needed. See header file.
+#if 0
 void FScopedProcessEventLog::ProcessEventHook(AActor* Actor, UFunction* Function, void* Parameters)
 {
 	UE_LOG(LogUnitTest, Log, TEXT("FScopedProcessEventLog: Actor: %s, Function: %s"),

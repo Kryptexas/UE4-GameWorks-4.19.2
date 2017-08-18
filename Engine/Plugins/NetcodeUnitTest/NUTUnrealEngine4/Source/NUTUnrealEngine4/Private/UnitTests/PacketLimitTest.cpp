@@ -1,12 +1,18 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "UnitTests/PacketLimitTest.h"
+
+// @todo #JohnB: Restore in a game-level package, eventually
+#if 0
 #include "EngineGlobals.h"
 #include "Engine/Engine.h"
 #include "Sockets.h"
 #include "Engine/NetConnection.h"
-#include "IpConnection.h"
 
+// @todo #JohnB: Remove when migrated
+//#include "IpConnection.h"
+
+#include "MinimalClient.h"
 #include "UnitTestEnvironment.h"
 
 #include "Net/NUTUtilNet.h"
@@ -22,7 +28,6 @@ UPacketLimitTest::UPacketLimitTest(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, bUseOodle(false)
 	, TestStage(ELimitTestStage::LTS_LowLevel_AtLimit)
-	, LastSendSize(0)
 	, LastSocketSendSize(0)
 	, TargetSocketSendSize(0)
 {
@@ -40,8 +45,9 @@ UPacketLimitTest::UPacketLimitTest(const FObjectInitializer& ObjectInitializer)
 	UnitTestTimeout = 60;
 
 
-	UnitTestFlags |= (EUnitTestFlags::LaunchServer | EUnitTestFlags::SkipControlJoin | EUnitTestFlags::AutoReconnect |
-						EUnitTestFlags::RequirePing | EUnitTestFlags::CaptureSendRaw);
+	SetFlags<EUnitTestFlags::LaunchServer | EUnitTestFlags::AutoReconnect | EUnitTestFlags::RequirePing |
+				EUnitTestFlags::CaptureSendRaw,
+				EMinClientFlags::SkipControlJoin>();
 }
 
 void UPacketLimitTest::InitializeEnvironmentSettings()
@@ -68,7 +74,9 @@ bool UPacketLimitTest::ValidateUnitTestSettings(bool bCDOCheck)
 	return bReturnVal;
 }
 
-bool UPacketLimitTest::ConnectFakeClient(FUniqueNetIdRepl* InNetID)
+// @todo #JohnB: Remove
+#if 0
+bool UPacketLimitTest::ConnectMinimalClient(FUniqueNetIdRepl* InNetID)
 {
 	bool bReturnVal = false;
 	bool bForceEnableDefault = UUnitTestNetConnection::bForceEnableHandler;
@@ -79,7 +87,7 @@ bool UPacketLimitTest::ConnectFakeClient(FUniqueNetIdRepl* InNetID)
 		GEngine->Exec(NULL, TEXT("Oodle ForceEnable On"));
 	}
 
-	bReturnVal = Super::ConnectFakeClient(InNetID);
+	bReturnVal = Super::ConnectMinimalClient(InNetID);
 
 	if (bUseOodle)
 	{
@@ -90,6 +98,7 @@ bool UPacketLimitTest::ConnectFakeClient(FUniqueNetIdRepl* InNetID)
 
 	return bReturnVal;
 }
+#endif
 
 void UPacketLimitTest::ExecuteClientUnitTest()
 {
@@ -97,17 +106,17 @@ void UPacketLimitTest::ExecuteClientUnitTest()
 	bool bBunchSend = TestStage == ELimitTestStage::LTS_Bunch_AtLimit || TestStage == ELimitTestStage::LTS_Bunch_OverLimit;
 
 	// You can't access LowLevelSend from UNetConnection, but you can from UIpConnection, as it's exported there
-	UIpConnection* IpConn = Cast<UIpConnection>(UnitConn);
+	UIpConnection* IpConn = (MinClient != nullptr ? Cast<UIpConnection>(MinClient->GetConn()) : nullptr);
 
 	if (IpConn != nullptr)
 	{
-		int32 PacketLimit = UnitConn->MaxPacket;
-		int32 SocketLimit = UnitConn->MaxPacket;
+		int32 PacketLimit = IpConn->MaxPacket;
+		int32 SocketLimit = IpConn->MaxPacket;
 		TArray<uint8> PacketData;
 
 		if (bBunchSend)
 		{
-			int64 FreeBits = UnitConn->SendBuffer.GetMaxBits() - MAX_BUNCH_HEADER_BITS + MAX_PACKET_TRAILER_BITS;
+			int64 FreeBits = IpConn->SendBuffer.GetMaxBits() - MAX_BUNCH_HEADER_BITS + MAX_PACKET_TRAILER_BITS;
 
 			PacketLimit = FreeBits / 8;
 
@@ -148,24 +157,34 @@ void UPacketLimitTest::ExecuteClientUnitTest()
 			}
 			else if (bBunchSend)
 			{
-				UUnitTestNetConnection* UnitTestConn = CastChecked<UUnitTestNetConnection>(UnitConn);
+				UUnitTestNetConnection* UnitTestConn = CastChecked<UUnitTestNetConnection>(IpConn);
 
 				// If the bunch is to go over the limit, disable asserts
 				bool bBunchOverLimit = TestStage == ELimitTestStage::LTS_Bunch_OverLimit;
 
 				UnitTestConn->bDisableValidateSend = bBunchOverLimit;
 
-				UnitConn->FlushNet();
+				// @todo #JohnB: To re-enable this code above, you have to reimplement this now-removed UUnitTestNetConnection code:
+#if 0
+void UUnitTestNetConnection::ValidateSendBuffer()
+{
+	if (!bDisableValidateSend)
+	{
+		Super::ValidateSendBuffer();
+	}
+}
+#endif
+
+				IpConn->FlushNet();
 
 
-				int32 DummyControlBunchSequence = 0;
-				FOutBunch* TestBunch = NUTNet::CreateChannelBunch(DummyControlBunchSequence, UnitConn, CHTYPE_Control, 0);
+				FOutBunch* TestBunch = MinClient->CreateChannelBunch(CHTYPE_Control, 0);
 
 				if (TestBunch != nullptr)
 				{
 					TestBunch->Serialize(PacketData.GetData(), PacketData.Num());
 
-					UnitConn->SendRawBunch(*TestBunch, false);
+					IpConn->SendRawBunch(*TestBunch, false);
 				}
 				else
 				{
@@ -178,7 +197,7 @@ void UPacketLimitTest::ExecuteClientUnitTest()
 				if (bBunchOverLimit)
 				{
 					// For a successful test, the bunch must cause a send error
-					if (UnitConn->SendBuffer.IsError())
+					if (IpConn->SendBuffer.IsError())
 					{
 						bPacketAtLimit = true;
 
@@ -195,7 +214,7 @@ void UPacketLimitTest::ExecuteClientUnitTest()
 				}
 
 
-				UnitConn->FlushNet();
+				IpConn->FlushNet();
 
 				UnitTestConn->bDisableValidateSend = false;
 			}
@@ -238,11 +257,6 @@ void UPacketLimitTest::ExecuteClientUnitTest()
 	}
 }
 
-void UPacketLimitTest::NotifySendRawPacket(void* Data, int32 Count, bool& bBlockSend)
-{
-	LastSendSize = Count;
-}
-
 void UPacketLimitTest::NotifySocketSendRawPacket(void* Data, int32 Count, bool& bBlockSend)
 {
 	LastSocketSendSize = Count;
@@ -258,6 +272,8 @@ void UPacketLimitTest::NotifySocketSendRawPacket(void* Data, int32 Count, bool& 
 			bBlockSend = true;
 		}
 	}
+
+	Super::NotifySocketSendRawPacket(Data, Count, bBlockSend);
 }
 
 void UPacketLimitTest::NotifyProcessLog(TWeakPtr<FUnitTestProcess> InProcess, const TArray<FString>& InLogLines)
@@ -342,4 +358,4 @@ void UPacketLimitTest::NextTestStage()
 		TriggerAutoReconnect();
 	}
 }
-
+#endif

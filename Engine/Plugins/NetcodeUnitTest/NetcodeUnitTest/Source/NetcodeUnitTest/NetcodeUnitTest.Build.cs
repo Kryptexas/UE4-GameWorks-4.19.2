@@ -15,7 +15,6 @@ namespace UnrealBuildTool.Rules
 					"Core",
 					"CoreUObject",
 					"Engine",
-					"OnlineSubsystemUtils",
 					"Sockets"
 				}
 			);

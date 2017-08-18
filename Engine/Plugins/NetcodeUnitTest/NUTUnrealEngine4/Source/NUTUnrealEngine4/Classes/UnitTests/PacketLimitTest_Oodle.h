@@ -2,6 +2,9 @@
 
 #pragma once
 
+// @todo #JohnB: Restore in a game-level package, eventually
+#if 0
+
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "UnitTests/PacketLimitTest.h"
@@ -16,3 +19,4 @@ class UPacketLimitTest_Oodle : public UPacketLimitTest
 {
 	GENERATED_UCLASS_BODY()
 };
+#endif

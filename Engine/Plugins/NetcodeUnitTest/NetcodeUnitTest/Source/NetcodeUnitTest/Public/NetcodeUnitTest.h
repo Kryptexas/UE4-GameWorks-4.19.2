@@ -163,9 +163,6 @@ extern UNetConnection* GActiveReceiveUnitConnection;
 /** Whether not an actor channel, is in the process of initializing the remote actor */
 extern bool GIsInitializingActorChan;
 
-/** Set whenever a bunch is sent; used to test RPC sends, by setting this to false, calling the RPC, and then testing the value */
-extern bool GSentBunch;
-
 /** The current ELogType flag modifiers, associated with a UNIT_LOG or UNIT_STATUS_LOG/STATUS_LOG call */
 extern NETCODEUNITTEST_API ELogType GActiveLogTypeFlags;
 
@@ -211,6 +208,7 @@ inline ELogType OptionalFlags(ELogType InFlags=ELogType::None)
 		UE_LOG(LogUnitTest, Error, TEXT(PREPROCESSOR_TO_STRING(__FILE__)) TEXT(": Line: ") TEXT(PREPROCESSOR_TO_STRING(__LINE__)) \
 				TEXT(":")); \
 		UE_LOG(LogUnitTest, Error, TEXT("Condition '(") TEXT(PREPROCESSOR_TO_STRING(Condition)) TEXT(")' failed")); \
+		check(false); /* Try to get a meaningful stack trace. */ \
 		FPlatformMisc::RequestExit(true); \
 		CA_ASSUME(false); \
 	}
@@ -221,7 +219,7 @@ inline ELogType OptionalFlags(ELogType InFlags=ELogType::None)
 #define UNIT_LOG_BEGIN(UnitTestObj, UnitLogTypeFlags) \
 	{ \
 		UUnitTestBase* OldUnitLogVal = GActiveLogUnitTest; \
-		GActiveLogUnitTest = (UnitTestObj != NULL ? UnitTestObj : GActiveLogUnitTest); \
+		GActiveLogUnitTest = (UnitTestObj != nullptr ? UnitTestObj : GActiveLogUnitTest); \
 		GActiveLogTypeFlags = ELogType::UnitStatus | OptionalFlags(UnitLogTypeFlags);
 
 #define UNIT_LOG_END() \
@@ -295,8 +293,8 @@ inline ELogType OptionalFlags(ELogType InFlags=ELogType::None)
 #define UNIT_EVENT_CLEAR \
 	UUnitTestBase* OldEventLogVal = GActiveLogEngineEvent; \
 	UWorld* OldEventLogWorld = GActiveLogWorld; \
-	GActiveLogEngineEvent = NULL; \
-	GActiveLogWorld = NULL;
+	GActiveLogEngineEvent = nullptr; \
+	GActiveLogWorld = nullptr;
 
 /**
  * Restores all stored/cleared engine-log-capture events
@@ -332,7 +330,7 @@ inline ELogType OptionalFlags(ELogType InFlags=ELogType::None)
 		UNIT_EVENT_CLEAR; \
 		if ((GActiveLogTypeFlags & ELogType::StatusError) == ELogType::StatusError) \
 		{ \
-			if (SourceUnitTest != NULL) \
+			if (SourceUnitTest != nullptr) \
 			{ \
 				UE_LOG(LogUnitTest, Error, TEXT("%s: %s"), *SourceUnitTest->GetUnitTestName(), *FString::Printf(Format, ##__VA_ARGS__)); \
 			} \
@@ -343,7 +341,7 @@ inline ELogType OptionalFlags(ELogType InFlags=ELogType::None)
 		} \
 		else if ((GActiveLogTypeFlags & ELogType::StatusWarning) == ELogType::StatusWarning) \
 		{ \
-			if (SourceUnitTest != NULL) \
+			if (SourceUnitTest != nullptr) \
 			{ \
 				UE_LOG(LogUnitTest, Warning, TEXT("%s: %s"), *SourceUnitTest->GetUnitTestName(), \
 						*FString::Printf(Format, ##__VA_ARGS__)); \
@@ -362,7 +360,7 @@ inline ELogType OptionalFlags(ELogType InFlags=ELogType::None)
 		GActiveLogTypeFlags = ELogType::None; \
 	}
 
-#define STATUS_LOG(UnitLogTypeFlags, Format, ...) STATUS_LOG_OBJ(NULL, UnitLogTypeFlags, Format, ##__VA_ARGS__)
+#define STATUS_LOG(UnitLogTypeFlags, Format, ...) STATUS_LOG_OBJ(nullptr, UnitLogTypeFlags, Format, ##__VA_ARGS__)
 
 /**
  * Version of the above, for unit test status window entries, which are from specific unit tests

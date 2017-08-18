@@ -5,7 +5,7 @@
 
 
 #include "NUTActor.h"
-
+#include "MinimalClient.h"
 #include "Net/NUTUtilNet.h"
 #include "UnitTestEnvironment.h"
 
@@ -19,7 +19,7 @@ UClass* UUTT61_DebugReplicateData::RepClass = FindObject<UClass>(ANY_PACKAGE, TE
 
 UUTT61_DebugReplicateData::UUTT61_DebugReplicateData(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
-	, Replicator(NULL)
+	, Replicator(nullptr)
 {
 	UnitTestName = TEXT("ReplicateDataCheck");
 	UnitTestType = TEXT("DevExploit");
@@ -43,9 +43,9 @@ UUTT61_DebugReplicateData::UUTT61_DebugReplicateData(const FObjectInitializer& O
 	UnitTestTimeout = 60;
 
 
-	UnitTestFlags |= (EUnitTestFlags::LaunchServer | EUnitTestFlags::AcceptActors | EUnitTestFlags::NotifyNetActors |
-						EUnitTestFlags::AcceptPlayerController | EUnitTestFlags::RequirePlayerController | EUnitTestFlags::SendRPCs |
-						EUnitTestFlags::ExpectServerCrash | EUnitTestFlags::ExpectDisconnect);
+	SetFlags<EUnitTestFlags::LaunchServer | EUnitTestFlags::AcceptPlayerController | EUnitTestFlags::RequirePlayerController |
+				EUnitTestFlags::ExpectServerCrash | EUnitTestFlags::ExpectDisconnect,
+				EMinClientFlags::AcceptActors | EMinClientFlags::NotifyNetActors | EMinClientFlags::SendRPCs>();
 }
 
 void UUTT61_DebugReplicateData::InitializeEnvironmentSettings()
@@ -54,17 +54,17 @@ void UUTT61_DebugReplicateData::InitializeEnvironmentSettings()
 	BaseServerParameters = UnitEnv->GetDefaultServerParameters();
 }
 
-bool UUTT61_DebugReplicateData::NotifyAllowNetActor(UClass* ActorClass, bool bActorChannel)
+void UUTT61_DebugReplicateData::NotifyAllowNetActor(UClass* ActorClass, bool bActorChannel, bool& bBlockActor)
 {
-	bool bAllow = Super::NotifyAllowNetActor(ActorClass, bActorChannel);
+	Super::NotifyAllowNetActor(ActorClass, bActorChannel, bBlockActor);
 
-	if (!bAllow)
+	if (bBlockActor)
 	{
-		if (RepClass != NULL)
+		if (RepClass != nullptr)
 		{
 			if (ActorClass->IsChildOf(RepClass))
 			{
-				bAllow = true;
+				bBlockActor = false;
 			}
 		}
 		else
@@ -75,23 +75,21 @@ bool UUTT61_DebugReplicateData::NotifyAllowNetActor(UClass* ActorClass, bool bAc
 			VerificationState = EUnitTestVerification::VerifiedNeedsUpdate;
 		}
 	}
-
-	return bAllow;
 }
 
 void UUTT61_DebugReplicateData::NotifyNetActor(UActorChannel* ActorChannel, AActor* Actor)
 {
 	Super::NotifyNetActor(ActorChannel, Actor);
 
-	if (Replicator == NULL)
+	if (Replicator == nullptr)
 	{
-		if (RepClass != NULL)
+		if (RepClass != nullptr)
 		{
 			if (Actor->IsA(RepClass))
 			{
 				Replicator = Actor;
 
-				if (Replicator != NULL)
+				if (Replicator != nullptr)
 				{
 					// Once the replicator is found, pass back to the main exploit function
 					ExecuteClientUnitTest();
@@ -118,21 +116,11 @@ void UUTT61_DebugReplicateData::ExecuteClientUnitTest()
 		ResetTimeout(LogMsg);
 		UNIT_LOG(ELogType::StatusImportant, TEXT("%s"), *LogMsg);
 
-		FOutBunch* ControlChanBunch = NUTNet::CreateChannelBunch(ControlBunchSequence, UnitConn, CHTYPE_Control, 0);
 
-		if (ControlChanBunch != nullptr)
-		{
-			uint8 ControlMsg = NMT_NUTControl;
-			uint8 ControlCmd = ENUTControlCommand::Summon;
-			FString Cmd = TEXT("GameplayDebugger.GameplayDebuggingReplicator -ForceBeginPlay -GameplayDebuggerHack");
+		FString Cmd = TEXT("GameplayDebugger.GameplayDebuggingReplicator -ForceBeginPlay -GameplayDebuggerHack");
+		bool bSuccess = SendNUTControl(ENUTControlCommand::Summon, Cmd);
 
-			*ControlChanBunch << ControlMsg;
-			*ControlChanBunch << ControlCmd;
-			*ControlChanBunch << Cmd;
-
-			NUTNet::SendControlBunch(UnitConn, *ControlChanBunch);
-		}
-		else
+		if (!bSuccess)
 		{
 			UNIT_LOG(ELogType::StatusFailure, TEXT("Failed to send summon command - marking unit test as needing update."));
 
@@ -155,7 +143,7 @@ void UUTT61_DebugReplicateData::ExecuteClientUnitTest()
 		};
 
 		ServerReplicateMessageParms Parms;
-		Parms.Actor = NULL;
+		Parms.Actor = nullptr;
 		Parms.InMessage = 4; //EDebugComponentMessage::ActivateDataView;
 		Parms.DataView = -1;
 

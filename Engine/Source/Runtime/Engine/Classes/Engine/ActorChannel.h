@@ -88,13 +88,20 @@ class ENGINE_API UActorChannel
 
 	TArray< class FOutBunch * >			QueuedExportBunches;			// Bunches that need to be appended to the export list on the next SendBunch call. This list is used for queued RPC's.
 
+#if !UE_BUILD_SHIPPING
+	/** Whether or not to block sending of NMT_ActorChannelFailure (for NetcodeUnitTest) */
+	bool bBlockChannelFailure;
+#endif
+
 	/**
 	 * Default constructor
 	 */
 	UActorChannel(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get())
 		: UChannel(ObjectInitializer)
+#if !UE_BUILD_SHIPPING
+		, bBlockChannelFailure(false)
+#endif
 	{
-		ChannelClasses[CHTYPE_Actor] = GetClass();
 		ChType = CHTYPE_Actor;
 		bClearRecentActorRefs = true;
 	}
@@ -126,6 +133,8 @@ public:
 
 	/** Allocate replication tables for the actor channel. */
 	void SetChannelActor( AActor* InActor );
+
+	virtual void NotifyActorChannelOpen(AActor* InActor, FInBunch& InBunch);
 
 	void SetChannelActorForDestroy( struct FActorDestructionInfo *DestructInfo );
 

@@ -143,10 +143,6 @@ void ACharacter::PostInitializeComponents()
 void ACharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	if (Mesh)
-	{
-		CacheInitialMeshOffset(Mesh->RelativeLocation, Mesh->RelativeRotation);
-	}
 }
 
 

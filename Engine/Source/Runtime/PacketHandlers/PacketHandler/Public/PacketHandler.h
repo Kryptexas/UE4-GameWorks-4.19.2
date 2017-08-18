@@ -15,6 +15,7 @@ PACKETHANDLER_API DECLARE_LOG_CATEGORY_EXTERN(PacketHandlerLog, Log, All);
 
 
 class HandlerComponent;
+class FEncryptionComponent;
 class ReliabilityHandlerComponent;
 
 
@@ -329,6 +330,8 @@ public:
 		return Outgoing_Internal(Packet, CountBits, true, Address);
 	}
 
+	/** Returns a pointer to the component set as the encryption handler, if any. */
+	TSharedPtr<FEncryptionComponent> GetEncryptionComponent();
 
 protected:
 	/**
@@ -510,6 +513,8 @@ private:
 	/** The HandlerComponent pipeline, for processing incoming/outgoing packets */
 	TArray<TSharedPtr<HandlerComponent>> HandlerComponents;
 
+	/** A direct pointer to the component configured as the encryption component. Will also be present in the HandlerComponents array. */
+	TSharedPtr<FEncryptionComponent> EncryptionComponent;
 
 	/** The maximum supported packet size (reflects UNetConnection::MaxPacket) */
 	uint32 MaxPacketBits;

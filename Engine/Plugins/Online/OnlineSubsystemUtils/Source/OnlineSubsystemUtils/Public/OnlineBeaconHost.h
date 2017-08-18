@@ -11,6 +11,7 @@ class AOnlineBeaconClient;
 class AOnlineBeaconHostObject;
 class FInBunch;
 class UNetConnection;
+struct FEncryptionKeyResponse;
 
 /**
  * Main actor that listens for side channel communication from another Unreal Engine application
@@ -109,6 +110,7 @@ private:
 
 	/** Sends the welcome control message to the client. Used as a delegate if encryption is being negotiated. */
 	void SendWelcomeControlMessage(UNetConnection* Connection);
+	void SendWelcomeControlMessage(const FEncryptionKeyResponse& Response, TWeakObjectPtr<UNetConnection> WeakConnection);
 
 	/** Delegate to route a connection attempt to the appropriate beacon host, by type */
 	DECLARE_DELEGATE_RetVal_OneParam(AOnlineBeaconClient*, FOnBeaconSpawned, UNetConnection*);
