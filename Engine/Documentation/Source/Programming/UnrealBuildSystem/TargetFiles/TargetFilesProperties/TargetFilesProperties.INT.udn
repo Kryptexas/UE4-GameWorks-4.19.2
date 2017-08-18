@@ -96,6 +96,8 @@ $ bCompileSpeedTree (Boolean): Whether to compile SpeedTree support.
 
 $ bForceEnableExceptions (Boolean): Enable exceptions for all modules.
 
+$ bForceEnableObjCExceptions (Boolean): Enable exceptions for all modules.
+
 $ bForceEnableRTTI (Boolean): Enable RTTI for all modules.
 
 $ bWithServerCode (Boolean): Compile server-only code.

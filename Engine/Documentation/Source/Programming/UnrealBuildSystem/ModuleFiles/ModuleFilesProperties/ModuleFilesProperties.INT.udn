@@ -27,6 +27,8 @@ $ bEnableBufferSecurityChecks (Boolean): Enable buffer security checks.  This sh
 
 $ bEnableExceptions (Boolean): Enable exception handling
 
+$ bEnableObjCExceptions (Boolean): Enable objective C exception handling
+
 $ bEnableShadowVariableWarnings (Boolean): Enable warnings for shadowed variables
 
 $ bEnableUndefinedIdentifierWarnings (Boolean): Enable warnings for using undefined identifiers in #if expressions
