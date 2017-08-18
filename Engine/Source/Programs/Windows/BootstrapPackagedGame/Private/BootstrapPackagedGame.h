@@ -2,6 +2,8 @@
 
 #pragma once
 
+struct IUnknown;
+
 #include <windows.h>
 #include <tchar.h>
 #include <assert.h>
