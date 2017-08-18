@@ -236,7 +236,7 @@ public:
 	DEFINE_ONLINE_PLAYER_DELEGATE_ONE_PARAM(MAX_LOCAL_PLAYERS, OnLogoutComplete, bool);
 
 	/**
-	 * Delegate called when the online subsystem requires an the login flow to logout and cleanup
+	 * Delegate called when the online subsystem requires the login flow to logout and cleanup
 	 * @param LoginDomains login domains to be cleaned up
 	 */
 	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnLoginFlowLogout, const TArray<FString>& /*LoginDomains*/);

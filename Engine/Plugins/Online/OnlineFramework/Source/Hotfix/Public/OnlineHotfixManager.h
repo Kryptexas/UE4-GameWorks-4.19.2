@@ -119,8 +119,12 @@ protected:
 
 	struct FConfigFileBackup
 	{
+		/** Name of the ini file backed up*/
 		FString IniName;
+		/** Previous ini data backed up */
 		FConfigFile ConfigData;
+		/** UClasses reloaded as a result of the current ini */
+		TArray<FString> ClassesReloaded;
 	};
 
 	/** Holds which files are pending download */
@@ -180,7 +184,7 @@ protected:
 	/** Unmounts any changed PAK files so they can be re-mounted after downloading */
 	void UnmountHotfixFiles();
 	/** Stores off the INI file for restoration later */
-	void BackupIniFile(const FString& IniName, const FConfigFile* ConfigFile);
+	FConfigFileBackup& BackupIniFile(const FString& IniName, const FConfigFile* ConfigFile);
 	/** Restores any changed INI files to their default loaded state */
 	void RestoreBackupIniFiles();
 	/** Builds the list of files that are different between two runs of the hotfix process */

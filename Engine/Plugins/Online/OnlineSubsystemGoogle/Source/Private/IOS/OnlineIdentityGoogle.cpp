@@ -38,33 +38,21 @@ bool FOnlineIdentityGoogle::Init()
 
 void FOnlineIdentityGoogle::OnSignInComplete(const FGoogleSignInData& InSignInData)
 {
-	UE_LOG_ONLINE(Verbose, TEXT("OnSignInComplete"));
+	UE_LOG_ONLINE(Verbose, TEXT("OnSignInComplete %s"), ToString(InSignInData.Response));
 
-	FAuthTokenGoogle AuthToken;
-
-	if (InSignInData.Response == EGoogleLoginResponse::RESPONSE_OK)
+	// @todo verify that SignInSilently is working right
+	//if (InSignInData.Response != EGoogleLoginResponse::RESPONSE_NOAUTH)
+	if (LoginCompletionDelegate.IsBound())
 	{
-		AuthToken.AuthType = EGoogleAuthTokenType::AccessToken;
-		AuthToken.AccessToken = InSignInData.AccessToken;
-		AuthToken.TokenType = TEXT("Bearer");
-		AuthToken.RefreshToken = InSignInData.RefreshToken;
-		AuthToken.IdToken = InSignInData.IdToken;
-		if (!AuthToken.IdTokenJWT.Parse(AuthToken.IdToken))
-		{
-			UE_LOG_ONLINE(Verbose, TEXT("Failed to parse id token"));
-		}
-		AuthToken.ExpiresInUTC = InSignInData.AccessTokenExpiresIn;
-		AuthToken.ExpiresIn = (InSignInData.AccessTokenExpiresIn - FDateTime::UtcNow()).GetTotalSeconds();
+		//ensure(LoginCompletionDelegate.IsBound());
+		LoginCompletionDelegate.ExecuteIfBound(InSignInData.Response, InSignInData.AuthToken);
+		LoginCompletionDelegate.Unbind();
 	}
-
-	//ensure(LoginCompletionDelegate.IsBound());
-	LoginCompletionDelegate.ExecuteIfBound(InSignInData.Response, AuthToken);
-	LoginCompletionDelegate.Unbind();
 }
 
 void FOnlineIdentityGoogle::OnSignOutComplete(const FGoogleSignOutData& InSignOutData)
 {
-	UE_LOG_ONLINE(Verbose, TEXT("OnLogoutComplete"));
+	UE_LOG_ONLINE(Verbose, TEXT("OnSignOutComplete %s"), ToString(InSignOutData.Response));
 	ensure(LogoutCompletionDelegate.IsBound());
 	LogoutCompletionDelegate.ExecuteIfBound(InSignOutData.Response);
 	LogoutCompletionDelegate.Unbind();

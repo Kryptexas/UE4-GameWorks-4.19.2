@@ -108,7 +108,7 @@ public:
 	/**
 	 * Constructor
 	 */
-	FOnlineMessageHeader(FUniqueNetId* InFromUserId, FUniqueNetId* InMessageId)
+	FOnlineMessageHeader(const TSharedRef<const FUniqueNetId>& InFromUserId, const TSharedRef<FUniqueMessageId>& InMessageId)
 		: FromUserId(InFromUserId)
 		, MessageId(InMessageId)
 	{

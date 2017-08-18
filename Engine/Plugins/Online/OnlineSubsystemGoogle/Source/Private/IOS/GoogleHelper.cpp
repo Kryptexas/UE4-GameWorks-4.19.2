@@ -7,6 +7,46 @@
 #include "IOSAppDelegate.h"
 #include "IOS/IOSAsyncTask.h"
 
+// Explicit refresh token
+//refreshTokensWithHandler:
+
+// Possibly refresh token, handled by SDK
+//getTokensWithHandler:
+
+bool GetAuthTokenFromGoogleUser(GIDGoogleUser* user, FAuthTokenGoogle& OutAuthToken)
+{
+	bool bSuccess = false;
+
+	OutAuthToken.AccessToken = user.authentication.accessToken;
+	if (!OutAuthToken.AccessToken.IsEmpty())
+	{
+		OutAuthToken.IdToken = user.authentication.idToken;
+		if (!OutAuthToken.IdToken.IsEmpty() && OutAuthToken.IdTokenJWT.Parse(OutAuthToken.IdToken))
+		{
+			OutAuthToken.TokenType = TEXT("Bearer");
+			OutAuthToken.ExpiresIn = 3600.0;
+			OutAuthToken.RefreshToken = user.authentication.refreshToken;
+
+			OutAuthToken.AuthData.Add("refresh_token", OutAuthToken.RefreshToken);
+			OutAuthToken.AuthData.Add("access_token", OutAuthToken.AccessToken);
+			OutAuthToken.AuthData.Add("id_token", OutAuthToken.IdToken);
+			OutAuthToken.AuthType = EGoogleAuthTokenType::AccessToken;
+			OutAuthToken.ExpiresInUTC = FDateTime::UtcNow() + FTimespan(OutAuthToken.ExpiresIn * ETimespan::TicksPerSecond);
+			bSuccess = true;
+		}
+		else
+		{
+			UE_LOG_ONLINE(Verbose, TEXT("GetAuthTokenFromGoogleUser: Failed to parse id token"));
+		}
+	}
+	else
+	{
+		UE_LOG_ONLINE(Verbose, TEXT("GetAuthTokenFromGoogleUser: Access token missing"));
+	}
+
+	return bSuccess;
+}
+
 @implementation FGoogleHelper
 
 - (id) initwithClientId: (NSString*) inClientId withBasicProfile: (bool) bWithProfile
@@ -48,6 +88,12 @@
 	return Delegate.GetHandle();
 }
 
+-(FDelegateHandle)AddOnGoogleDisconnectComplete: (const FOnGoogleSignOutCompleteDelegate&) Delegate
+{
+	_OnDisconnectComplete.Add(Delegate);
+	return Delegate.GetHandle();
+}
+
 - (void) login: (NSArray*) InScopes
 {
 	[self printAuthStatus];
@@ -55,17 +101,34 @@
 	dispatch_async(dispatch_get_main_queue(), ^
 	{
 		GIDSignIn* signIn = [GIDSignIn sharedInstance];
-		[signIn setScopes: InScopes];//[[NSArray alloc] initWithArray: InScopes]];
+		[signIn setScopes: InScopes];
 		[signIn signIn];
 	});
 }
 
 - (void) logout
 {
+	UE_LOG(LogOnline, Display, TEXT("logout"));
+
 	dispatch_async(dispatch_get_main_queue(), ^
 	{
 		GIDSignIn* signIn = [GIDSignIn sharedInstance];
 		[signIn signOut];
+		
+		FGoogleSignOutData SignOutData;
+		SignOutData.Response = EGoogleLoginResponse::RESPONSE_OK;
+
+		[FIOSAsyncTask CreateTaskWithBlock : ^ bool(void)
+		{
+			UE_LOG(LogOnline, Display, TEXT("logoutComplete: %s"), *SignOutData.ToDebugString());
+
+			// Notify on the game thread
+			_OnSignOutComplete.Broadcast(SignOutData);
+			return true;
+		}];
+
+		// Revokes access (use to clear keychain/cache), triggers didDisconnectWithUser
+		// [signIn disconnect];
 	});
 }
 
@@ -74,55 +137,23 @@
 	FGoogleSignInData SignInData;
 	SignInData.ErrorStr = MoveTemp(FString([error localizedDescription]));
 
-	UE_LOG(LogOnline, Display, TEXT("signIn GID:%p User:%p Error:%s"), signIn, user, *SignInData.ErrorStr);
+	UE_LOG(LogOnline, Display, TEXT("signIn didSignInForUser GID:%p User:%p Error:%s"), signIn, user, *SignInData.ErrorStr);
 	[self printAuthStatus];
 
 	if (user)
 	{
-		SignInData.UserId = FString(user.userID);
-		SignInData.IdToken = FString(user.authentication.idToken);
-		SignInData.RealName = FString(user.profile.name);
-		SignInData.FirstName = FString(user.profile.givenName);
-		SignInData.LastName = FString(user.profile.familyName);
-		SignInData.Email = FString(user.profile.email);
-		// user.profile.imageURL
-		SignInData.Response = EGoogleLoginResponse::RESPONSE_OK;
-
-		SignInData.AccessToken = user.authentication.accessToken;
-		SignInData.RefreshToken = user.authentication.refreshToken;
-
-#if __IPHONE_OS_VERSION_MIN_REQUIRED >= __IPHONE_10_0
-		NSISO8601DateFormatter* dateFormatter = [[NSISO8601DateFormatter alloc] init];
-		dateFormatter.formatOptions = NSISO8601DateFormatWithInternetDateTime | NSISO8601DateFormatWithDashSeparatorInDate | NSISO8601DateFormatWithColonSeparatorInTime | NSISO8601DateFormatWithTimeZone;
-#else
-		// see https://developer.apple.com/library/content/qa/qa1480/_index.html
-		NSDateFormatter* dateFormatter = [[NSDateFormatter alloc] init];
-		NSLocale* enUSPOSIXLocale = [NSLocale localeWithLocaleIdentifier:@"en_US_POSIX"];
-		[dateFormatter setLocale:enUSPOSIXLocale];
-		[dateFormatter setDateFormat:@"yyyy-MM-dd'T'HH:mm:ssZZZZZ"];
-#endif
-
-		NSString* accessTokenExpirationDate = [dateFormatter stringFromDate: user.authentication.accessTokenExpirationDate];
-		NSString* idTokenExpirationDate = [dateFormatter stringFromDate: user.authentication.idTokenExpirationDate];
-
-		if (!FDateTime::ParseIso8601(*FString(accessTokenExpirationDate), SignInData.AccessTokenExpiresIn))
+		if (GetAuthTokenFromGoogleUser(user, SignInData.AuthToken))
 		{
-			UE_LOG(LogOnline, Display, TEXT("Failed to parse access token expiration time"));
+			SignInData.Response = EGoogleLoginResponse::RESPONSE_OK;
 		}
-
-		if (!FDateTime::ParseIso8601(*FString(idTokenExpirationDate), SignInData.IdTokenExpiresIn))
+		else
 		{
-			UE_LOG(LogOnline, Display, TEXT("Failed to parse ID token expiration time"));
+			SignInData.Response = EGoogleLoginResponse::RESPONSE_ERROR;
 		}
-
-		[dateFormatter release];
-
-	//refreshTokensWithHandler:
-	//getTokensWithHandler:
 	}
 	else if (error.code == kGIDSignInErrorCodeHasNoAuthInKeychain)
 	{
-		SignInData.Response = EGoogleLoginResponse::RESPONSE_OK;
+		SignInData.Response = EGoogleLoginResponse::RESPONSE_NOAUTH;
 	}
 	else if (error.code == kGIDSignInErrorCodeCanceled)
 	{
@@ -147,17 +178,15 @@
 {
 	FGoogleSignOutData SignOutData;
 	SignOutData.ErrorStr = MoveTemp(FString([error localizedDescription]));
-
-	UE_LOG(LogOnline, Display, TEXT("didDisconnectWithUser %p %p %s"), signIn, user, *SignOutData.ErrorStr);
-	// User disconnected
-
-	UE_LOG(LogOnline, Display, TEXT("SignOut: %s"), *SignOutData.ToDebugString());
+	SignOutData.Response = SignOutData.ErrorStr.IsEmpty() ? EGoogleLoginResponse::RESPONSE_OK : EGoogleLoginResponse::RESPONSE_ERROR;
 
 	[FIOSAsyncTask CreateTaskWithBlock : ^ bool(void)
 	{
-		 // Notify on the game thread
-		 _OnSignOutComplete.Broadcast(SignOutData);
-		 return true;
+		UE_LOG(LogOnline, Display, TEXT("didDisconnectWithUser Complete: %s"), *SignOutData.ToDebugString());
+
+		// Notify on the game thread
+		_OnDisconnectComplete.Broadcast(SignOutData);
+		return true;
 	}];
 }
 

@@ -54,6 +54,12 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("SessionInt"), STAT_Session_Interface, STATGROUP_
 /** Total time to process both local/remote voice */
 DECLARE_CYCLE_STAT_EXTERN(TEXT("VoiceInt"), STAT_Voice_Interface, STATGROUP_Online, ONLINESUBSYSTEM_API);
 
+#if UE_BUILD_SHIPPING
+#define OSS_REDACT(x) TEXT("<Redacted>")
+#else
+#define OSS_REDACT(x) (x)
+#endif
+
 #define ONLINE_LOG_PREFIX TEXT("OSS: ")
 #define UE_LOG_ONLINE(Verbosity, Format, ...) \
 { \
@@ -402,24 +408,24 @@ public:
 	virtual IOnlineChatPtr GetChatInterface() const = 0;
 
 	/**
-	* Get the notification handler instance for this subsystem
-	* @return Pointer for the appropriate notification handler
-	*/
+	 * Get the notification handler instance for this subsystem
+	 * @return Pointer for the appropriate notification handler
+	 */
 	FOnlineNotificationHandlerPtr GetOnlineNotificationHandler() const
 	{
 		return OnlineNotificationHandler;
 	}
 
 	/**
-	* Get the interface for managing turn based multiplayer games
-	* @return Interface pointer for the appropriate online user service
-	*/
+	 * Get the interface for managing turn based multiplayer games
+	 * @return Interface pointer for the appropriate online user service
+	 */
 	virtual IOnlineTurnBasedPtr GetTurnBasedInterface() const = 0;
 
 	/**
-	* Get the transport manager instance for this subsystem
-	* @return Pointer for the appropriate transport manager
-	*/
+	 * Get the transport manager instance for this subsystem
+	 * @return Pointer for the appropriate transport manager
+	 */
 	FOnlineNotificationTransportManagerPtr GetOnlineNotificationTransportManager() const
 	{
 		return OnlineNotificationTransportManager;

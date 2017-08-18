@@ -641,7 +641,7 @@ bool UOnlineHotfixManager::HotfixIniFile(const FString& FileName, const FString&
 {
 	FConfigFile* ConfigFile = GetConfigFile(FileName);
 	// Store the original file so we can undo this later
-	BackupIniFile(FileName, ConfigFile);
+	FConfigFileBackup& BackupFile = BackupIniFile(FileName, ConfigFile);
 	// Merge the string into the config file
 	ConfigFile->CombineFromBuffer(IniData);
 	TArray<UClass*> Classes;
@@ -676,6 +676,7 @@ bool UOnlineHotfixManager::HotfixIniFile(const FString& FileName, const FString&
 						{
 							// Add this to the list to check against
 							Classes.Add(Class);
+							BackupFile.ClassesReloaded.AddUnique(Class->GetPathName());
 						}
 					}
 					else if (FileName.Contains(TEXT("Engine.ini")))
@@ -706,6 +707,7 @@ bool UOnlineHotfixManager::HotfixIniFile(const FString& FileName, const FString&
 						if (PerObject != nullptr)
 						{
 							PerObjectConfigObjects.Add(PerObject);
+							BackupFile.ClassesReloaded.AddUnique(ObjectClass->GetPathName());
 						}
 					}
 					else
@@ -734,6 +736,7 @@ bool UOnlineHotfixManager::HotfixIniFile(const FString& FileName, const FString&
 					if (It->IsA(Classes[ClassIndex]))
 					{
 						// Force a reload of the config vars
+						UE_LOG(LogHotfixManager, Verbose, TEXT("Reloading %s"), *It->GetPathName());
 						It->ReloadConfig();
 						NumObjectsReloaded++;
 						break;
@@ -745,6 +748,7 @@ bool UOnlineHotfixManager::HotfixIniFile(const FString& FileName, const FString&
 	// Reload any PerObjectConfig objects that were affected
 	for (auto ReloadObject : PerObjectConfigObjects)
 	{
+		UE_LOG(LogHotfixManager, Verbose, TEXT("Reloading %s"), *ReloadObject->GetPathName());
 		ReloadObject->ReloadConfig();
 		NumObjectsReloaded++;
 	}
@@ -936,13 +940,15 @@ void UOnlineHotfixManager::OnReadFileProgress(const FString& FileName, uint64 By
 	}
 }
 
-void UOnlineHotfixManager::BackupIniFile(const FString& IniName, const FConfigFile* ConfigFile)
+UOnlineHotfixManager::FConfigFileBackup& UOnlineHotfixManager::BackupIniFile(const FString& IniName, const FConfigFile* ConfigFile)
 {
 	int32 AddAt = IniBackups.AddDefaulted();
-	IniBackups[AddAt].IniName = GetConfigFileNamePath(GetStrippedConfigFileName(IniName));
-	IniBackups[AddAt].ConfigData = *ConfigFile;
+	FConfigFileBackup& NewBackup = IniBackups[AddAt];
+	NewBackup.IniName = GetConfigFileNamePath(GetStrippedConfigFileName(IniName));
+	NewBackup.ConfigData = *ConfigFile;
 	// There's a lack of deep copy related to the SourceConfigFile so null it out
-	IniBackups[AddAt].ConfigData.SourceConfigFile = nullptr;
+	NewBackup.ConfigData.SourceConfigFile = nullptr;
+	return NewBackup;
 }
 
 void UOnlineHotfixManager::RestoreBackupIniFiles()
@@ -952,7 +958,8 @@ void UOnlineHotfixManager::RestoreBackupIniFiles()
 		return;
 	}
 	const double StartTime = FPlatformTime::Seconds();
-	TArray<FString> RestoredInis;
+	TArray<FString> ClassesToRestore;
+
 	// Restore any changed INI files and build a list of which ones changed for UObject reloading below
 	for (auto& FileHeader : ChangedHotfixFileList)
 	{
@@ -961,16 +968,19 @@ void UOnlineHotfixManager::RestoreBackupIniFiles()
 			const FString ProcessedName = GetConfigFileNamePath(GetStrippedConfigFileName(FileHeader.FileName));
 			for (int32 Index = 0; Index < IniBackups.Num(); Index++)
 			{
+				const FConfigFileBackup& BackupFile = IniBackups[Index];
 				if (IniBackups[Index].IniName == ProcessedName)
 				{
-					GConfig->SetFile(IniBackups[Index].IniName, &IniBackups[Index].ConfigData);
+					ClassesToRestore.Append(BackupFile.ClassesReloaded);
+
+					GConfig->SetFile(BackupFile.IniName, &BackupFile.ConfigData);
 					IniBackups.RemoveAt(Index);
-					RestoredInis.Add(ProcessedName);
 					break;
 				}
 			}
 		}
 	}
+
 	// Also restore any files that were previously part of the hotfix and now are not
 	for (auto& FileHeader : RemovedHotfixFileList)
 	{
@@ -979,29 +989,45 @@ void UOnlineHotfixManager::RestoreBackupIniFiles()
 			const FString ProcessedName = GetConfigFileNamePath(GetStrippedConfigFileName(FileHeader.FileName));
 			for (int32 Index = 0; Index < IniBackups.Num(); Index++)
 			{
-				if (IniBackups[Index].IniName == ProcessedName)
+				const FConfigFileBackup& BackupFile = IniBackups[Index];
+				if (BackupFile.IniName == ProcessedName)
 				{
-					GConfig->SetFile(IniBackups[Index].IniName, &IniBackups[Index].ConfigData);
+					ClassesToRestore.Append(BackupFile.ClassesReloaded);
+
+					GConfig->SetFile(BackupFile.IniName, &BackupFile.ConfigData);
 					IniBackups.RemoveAt(Index);
-					RestoredInis.Add(ProcessedName);
 					break;
 				}
 			}
 		}
 	}
-	// Finally reload any UObjects that were affected by this
+
 	uint32 NumObjectsReloaded = 0;
-	if (RestoredInis.Num() > 0)
+	if (ClassesToRestore.Num() > 0)
 	{
+		TArray<UClass*> RestoredClasses;
+		RestoredClasses.Reserve(ClassesToRestore.Num());
+		for (int32 Index = 0; Index < ClassesToRestore.Num(); Index++)
+		{
+			UClass* Class = FindObject<UClass>(nullptr, *ClassesToRestore[Index], true);
+			if (Class != nullptr)
+			{
+				// Add this to the list to check against
+				RestoredClasses.Add(Class);
+			}
+		}
+
 		for (FObjectIterator It; It; ++It)
 		{
 			UClass* Class = It->GetClass();
 			if (Class->HasAnyClassFlags(CLASS_Config))
 			{
-				for (int32 Index = 0; Index < RestoredInis.Num(); Index++)
+				// Check to see if this class is in our list (yes, potentially n^2, but not in practice)
+				for (int32 ClassIndex = 0; ClassIndex < RestoredClasses.Num(); ClassIndex++)
 				{
-					if (Class->GetConfigName() == RestoredInis[Index])
+					if (It->IsA(RestoredClasses[ClassIndex]))
 					{
+						UE_LOG(LogHotfixManager, Verbose, TEXT("Restoring %s"), *It->GetPathName());
 						It->ReloadConfig();
 						NumObjectsReloaded++;
 						break;
@@ -1010,8 +1036,8 @@ void UOnlineHotfixManager::RestoreBackupIniFiles()
 			}
 		}
 	}
-	UE_LOG(LogHotfixManager, Log, TEXT("Restoring config for %d changed INI files took %f seconds reloading %d objects"),
-		RestoredInis.Num(), FPlatformTime::Seconds() - StartTime, NumObjectsReloaded);
+	UE_LOG(LogHotfixManager, Log, TEXT("Restoring config for %d changed classes took %f seconds reloading %d objects"),
+		ClassesToRestore.Num(), FPlatformTime::Seconds() - StartTime, NumObjectsReloaded);
 }
 
 struct FHotfixManagerExec :

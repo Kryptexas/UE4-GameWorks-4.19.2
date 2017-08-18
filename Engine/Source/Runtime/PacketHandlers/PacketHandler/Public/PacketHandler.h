@@ -8,9 +8,6 @@
 #include "Modules/ModuleInterface.h"
 #include "Containers/Queue.h"
 
-/** Temporary version-check macro for BeginHandshaking function, for backwards-compatibility. */
-#define PACKETHANDLER_HAS_BEGINHANDSHAKING 1
-
 PACKETHANDLER_API DECLARE_LOG_CATEGORY_EXTERN(PacketHandlerLog, Log, All);
 
 

@@ -22,6 +22,8 @@ FOnlineIdentityFacebook::FOnlineIdentityFacebook(FOnlineSubsystemFacebook* InSub
 		UE_LOG(LogOnline, Warning, TEXT("Missing bUsePopup= in [OnlineSubsystemFacebook.OnlineIdentityFacebook] of DefaultEngine.ini"));
 	}
 
+	GConfig->GetArray(TEXT("OnlineSubsystemFacebook.OnlineIdentityFacebook"), TEXT("LoginDomains"), LoginDomains, GEngineIni);
+
 	LoginURLDetails.ClientId = InSubsystem->GetAppId();
 	if (LoginURLDetails.ClientId.IsEmpty())
 	{
@@ -258,6 +260,9 @@ bool FOnlineIdentityFacebook::Logout(int32 LocalUserNum)
 		UserIds.Remove(LocalUserNum);
 		// reset scope permissions
 		GConfig->GetArray(TEXT("OnlineSubsystemFacebook.OnlineIdentityFacebook"), TEXT("ScopeFields"), LoginURLDetails.ScopeFields, GEngineIni);
+
+		TriggerOnLoginFlowLogoutDelegates(LoginDomains);
+
 		// not async but should call completion delegate anyway
 		FacebookSubsystem->ExecuteNextTick([this, LocalUserNum, UserId]() {
 			TriggerOnLogoutCompleteDelegates(LocalUserNum, true);
@@ -268,8 +273,7 @@ bool FOnlineIdentityFacebook::Logout(int32 LocalUserNum)
 	}
 	else
 	{
-		UE_LOG(LogOnline, Warning, TEXT("No logged in user found for LocalUserNum=%d."),
-			LocalUserNum);
+		UE_LOG(LogOnline, Warning, TEXT("No logged in user found for LocalUserNum=%d."), LocalUserNum);
 		FacebookSubsystem->ExecuteNextTick([this, LocalUserNum]() {
 			TriggerOnLogoutCompleteDelegates(LocalUserNum, false);
 		});

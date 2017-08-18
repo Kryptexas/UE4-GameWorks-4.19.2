@@ -6,6 +6,11 @@
 #include "OnlineJsonSerializer.h"
 #include "OnlineSubsystemGooglePackage.h"
 
+class FAuthTokenGoogle;
+#if PLATFORM_IOS
+@class GIDGoogleUser;
+#endif
+
 
 /**
  * Types of supported auth tokens
@@ -267,6 +272,10 @@ private:
 		ONLINE_JSON_SERIALIZE("refresh_token", RefreshToken);
 		ONLINE_JSON_SERIALIZE("id_token", IdToken);
 	END_ONLINE_JSON_SERIALIZER
+
+#if PLATFORM_IOS
+	friend bool GetAuthTokenFromGoogleUser(GIDGoogleUser* user, FAuthTokenGoogle& OutAuthToken);
+#endif
 };
 
 /**

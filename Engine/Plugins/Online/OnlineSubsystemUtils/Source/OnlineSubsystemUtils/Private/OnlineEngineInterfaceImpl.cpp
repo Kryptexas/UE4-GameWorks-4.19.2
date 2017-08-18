@@ -513,11 +513,11 @@ void UOnlineEngineInterfaceImpl::BindToExternalUIOpening(const FOnlineExternalUI
 		}
 	}
 
-	IOnlineSubsystem* SubSystemConsole = IOnlineSubsystem::GetByPlatform();
-	if (SubSystemConsole != nullptr &&
-		SubSystem != SubSystemConsole)
+	IOnlineSubsystem* PlatformSubSystem = IOnlineSubsystem::GetByPlatform();
+	if (PlatformSubSystem != nullptr &&
+		SubSystem != PlatformSubSystem)
 	{
-		IOnlineExternalUIPtr ExternalUI = SubSystemConsole->GetExternalUIInterface();
+		IOnlineExternalUIPtr ExternalUI = PlatformSubSystem->GetExternalUIInterface();
 		if (ExternalUI.IsValid())
 		{
 			FOnExternalUIChangeDelegate OnExternalUIChangeDelegate;

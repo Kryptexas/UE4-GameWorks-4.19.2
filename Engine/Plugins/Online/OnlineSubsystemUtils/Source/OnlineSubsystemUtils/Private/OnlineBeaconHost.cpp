@@ -11,11 +11,6 @@
 #include "Net/DataChannel.h"
 #include "OnlineBeaconClient.h"
 
-/** For backwards compatibility with engine encryption support */
-#ifndef SUPPORTS_ENCRYPTION_TOKEN
-	#define SUPPORTS_ENCRYPTION_TOKEN 0
-#endif
-
 AOnlineBeaconHost::AOnlineBeaconHost(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer)
 {
@@ -99,11 +94,8 @@ void AOnlineBeaconHost::NotifyControlMessage(UNetConnection* Connection, uint8 M
 				uint32 LocalNetworkVersion = FNetworkVersion::GetLocalNetworkVersion();
 				FString EncryptionToken;
 
-#if SUPPORTS_ENCRYPTION_TOKEN
 				FNetControlMessage<NMT_Hello>::Receive(Bunch, IsLittleEndian, RemoteNetworkVersion, EncryptionToken);
-#else
-				FNetControlMessage<NMT_Hello>::Receive(Bunch, IsLittleEndian, RemoteNetworkVersion);
-#endif
+
 				if (!FNetworkVersion::IsNetworkCompatible(LocalNetworkVersion, RemoteNetworkVersion))
 				{
 					UE_LOG(LogBeacon, Error, TEXT("Client not network compatible %s (Local=%d, Remote=%d)"), *Connection->GetName(), LocalNetworkVersion, RemoteNetworkVersion);
@@ -116,7 +108,6 @@ void AOnlineBeaconHost::NotifyControlMessage(UNetConnection* Connection, uint8 M
 					{
 						SendWelcomeControlMessage(Connection);
 					}
-#if SUPPORTS_ENCRYPTION_TOKEN
 					else
 					{
 						if (FNetDelegates::OnReceivedNetworkEncryptionToken.IsBound())
@@ -132,7 +123,6 @@ void AOnlineBeaconHost::NotifyControlMessage(UNetConnection* Connection, uint8 M
 							bCloseConnection = true;
 						}
 					}
-#endif
 				}
 				break;
 			}

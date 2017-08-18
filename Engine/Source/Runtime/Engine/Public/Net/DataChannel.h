@@ -13,9 +13,6 @@
 #include "Net/DataBunch.h"
 #include "Engine/ChildConnection.h"
 
-// Backwards-compatibility macro for online game plugins to test
-#define SUPPORTS_ENCRYPTION_TOKEN 1
-
 /*-----------------------------------------------------------------------------
 	UControlChannel base class.
 -----------------------------------------------------------------------------*/

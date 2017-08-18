@@ -85,4 +85,21 @@ class ONLINESUBSYSTEMUTILS_API UIpNetDriver : public UNetDriver
 	// It may get called multiple times in a single frame if additional processing after a previous alert exceeds the threshold again
 	DECLARE_MULTICAST_DELEGATE(FOnNetworkProcessingCausingSlowFrame);
 	static FOnNetworkProcessingCausingSlowFrame OnNetworkProcessingCausingSlowFrame;
+
+private:
+	/** Number of bytes that will be passed to FSocket::SetReceiveBufferSize when initializing a server. */
+	UPROPERTY(Config)
+	uint32 ServerDesiredSocketReceiveBufferBytes;
+
+	/** Number of bytes that will be passed to FSocket::SetSendBufferSize when initializing a server. */
+	UPROPERTY(Config)
+	uint32 ServerDesiredSocketSendBufferBytes;
+
+	/** Number of bytes that will be passed to FSocket::SetReceiveBufferSize when initializing a client. */
+	UPROPERTY(Config)
+	uint32 ClientDesiredSocketReceiveBufferBytes;
+
+	/** Number of bytes that will be passed to FSocket::SetSendBufferSize when initializing a client. */
+	UPROPERTY(Config)
+	uint32 ClientDesiredSocketSendBufferBytes;
 };

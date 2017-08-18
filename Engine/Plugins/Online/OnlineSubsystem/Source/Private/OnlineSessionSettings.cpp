@@ -184,7 +184,7 @@ int32 FOnlineSessionSettings::GetID(FName Key) const
 	}
 
 	UE_LOG(LogOnline, Warning, TEXT("Unable to find key for ID request: %s"), *Key.ToString());
-	return -1;
+	return INVALID_SESSION_SETTING_ID;
 }
 
 template<typename ValueType>

@@ -18,6 +18,8 @@ FOnlineIdentityGoogle::FOnlineIdentityGoogle(FOnlineSubsystemGoogle* InSubsystem
 		UE_LOG(LogOnline, Warning, TEXT("Missing RedirectPort= in [OnlineSubsystemGoogle.OnlineIdentityGoogle] of DefaultEngine.ini"));
 	}
 
+	GConfig->GetArray(TEXT("OnlineSubsystemGoogle.OnlineIdentityGoogle"), TEXT("LoginDomains"), LoginDomains, GEngineIni);
+
 	LoginURLDetails.ClientId = InSubsystem->GetAppId();
 
 	// Setup permission scope fields
@@ -416,6 +418,9 @@ bool FOnlineIdentityGoogle::Logout(int32 LocalUserNum)
 		UserIds.Remove(LocalUserNum);
 		// reset scope permissions
 		GConfig->GetArray(TEXT("OnlineSubsystemGoogle.OnlineIdentityGoogle"), TEXT("ScopeFields"), LoginURLDetails.ScopeFields, GEngineIni);
+
+		TriggerOnLoginFlowLogoutDelegates(LoginDomains);
+
 		// not async but should call completion delegate anyway
 		GoogleSubsystem->ExecuteNextTick([this, LocalUserNum, UserId]() 
 		{
@@ -427,8 +432,7 @@ bool FOnlineIdentityGoogle::Logout(int32 LocalUserNum)
 	}
 	else
 	{
-		UE_LOG(LogOnline, Warning, TEXT("No logged in user found for LocalUserNum=%d."),
-			LocalUserNum);
+		UE_LOG(LogOnline, Warning, TEXT("No logged in user found for LocalUserNum=%d."), LocalUserNum);
 		GoogleSubsystem->ExecuteNextTick([this, LocalUserNum]() 
 		{
 			TriggerOnLogoutCompleteDelegates(LocalUserNum, false);

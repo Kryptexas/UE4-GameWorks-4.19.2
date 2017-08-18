@@ -101,9 +101,6 @@ private:
 	/** Interface for external UI services on Twitch */
 	FOnlineExternalUITwitchPtr TwitchExternalUIInterface;
 
-	/** The client id given to us by Twitch */
-	FString ClientId;
-
 	/** Twitch API version */
 	FString TwitchApiVersion;
 };

@@ -152,6 +152,12 @@ class FRedeemCodeRequest
 public:
 	/** Code to redeem */
 	FString Code;
+
+	/** Optional CodeUseId that was given if code was previously locked before redeeming - See IOnlineCodeRedemption::LockCode */
+	FString CodeUseId;
+
+	/** Where this code is being fulfilled from - e.g. Launcher, GameName*/
+	FString FulfillmentSource;
 };
 
 /**
@@ -176,7 +182,7 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FOnUnexpectedPurchaseReceipt, const FUniqueN
 typedef FOnUnexpectedPurchaseReceipt::FDelegate FOnUnexpectedPurchaseReceiptDelegate;
 
 /**
- *	IOnlinePurchase - Interface for IAP (In App Purchases) services
+ * IOnlinePurchase - Interface for IAP (In App Purchases) services
  */
 class IOnlinePurchase
 {

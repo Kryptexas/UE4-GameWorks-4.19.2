@@ -7,6 +7,7 @@
 #include "Interfaces/IAnalyticsProvider.h"
 
 #define QOS_STATS_VERSION 1
+#define DEBUG_QOS_STATS 0
 
 // Events
 const FString FQosDatacenterStats::QosStats_DatacenterEvent = TEXT("QosStats_DatacenterEvent");
@@ -26,6 +27,24 @@ const FString FQosDatacenterStats::QosStats_RegionDetails = TEXT("QosStats_Regio
 const FString FQosDatacenterStats::QosStats_NumResults = TEXT("QosStats_NumResults");
 const FString FQosDatacenterStats::QosStats_NumSuccessCount = TEXT("QosStats_NumSuccessCount");
 const FString FQosDatacenterStats::QosStats_SearchDetails = TEXT("QosStats_SearchDetails");
+
+/**
+ * Debug output for the contents of a recorded stats event
+ *
+ * @param StatsEvent event type recorded
+ * @param Attributes attribution of the event
+ */
+inline void PrintEventAndAttributes(const FString& StatsEvent, const TArray<FAnalyticsEventAttribute>& Attributes)
+{
+#if DEBUG_QOS_STATS
+	UE_LOG(LogQos, Display, TEXT("Event: %s"), *StatsEvent);
+	for (int32 AttrIdx = 0; AttrIdx<Attributes.Num(); AttrIdx++)
+	{
+		const FAnalyticsEventAttribute& Attr = Attributes[AttrIdx];
+		UE_LOG(LogQos, Display, TEXT("\t%s : %s"), *Attr.AttrName, *Attr.AttrValue);
+	}
+#endif
+}
 
 FQosDatacenterStats::FQosDatacenterStats() :
 	StatsVersion(QOS_STATS_VERSION),
@@ -200,6 +219,7 @@ void FQosDatacenterStats::ParseQosResults(TSharedPtr<IAnalyticsProvider>& Analyt
 	}
 	QoSAttributes.Add(FAnalyticsEventAttribute(QosStats_SearchDetails, SearchDetails));
 
+	PrintEventAndAttributes(QosStats_DatacenterEvent, QoSAttributes);
 	if (AnalyticsProvider.IsValid())
 	{
 		AnalyticsProvider->RecordEvent(QosStats_DatacenterEvent, QoSAttributes);

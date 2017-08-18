@@ -13,12 +13,13 @@ Notes:
 #include "Engine/World.h"
 #include "Engine/Engine.h"
 #include "UObject/Package.h"
-#include "PacketAudit.h"
 #include "PacketHandlers/StatelessConnectHandlerComponent.h"
 #include "Engine/NetConnection.h"
 #include "Engine/ChildConnection.h"
 #include "SocketSubsystem.h"
 #include "IpConnection.h"
+
+#include "PacketAudit.h"
 
 #include "IPAddress.h"
 #include "Sockets.h"
@@ -31,6 +32,8 @@ Notes:
 /*-----------------------------------------------------------------------------
 	Declarations.
 -----------------------------------------------------------------------------*/
+
+DECLARE_CYCLE_STAT(TEXT("IpNetDriver Add new connection"), Stat_IpNetDriverAddNewConnection, STATGROUP_Net);
 
 UIpNetDriver::FOnNetworkProcessingCausingSlowFrame UIpNetDriver::OnNetworkProcessingCausingSlowFrame;
 
@@ -55,6 +58,10 @@ FAutoConsoleVariableRef GIpNetDriverLongFramePrintoutThresholdSecsCVar(
 
 UIpNetDriver::UIpNetDriver(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, ServerDesiredSocketReceiveBufferBytes(0x20000)
+	, ServerDesiredSocketSendBufferBytes(0x20000)
+	, ClientDesiredSocketReceiveBufferBytes(0x8000)
+	, ClientDesiredSocketSendBufferBytes(0x8000)
 {
 }
 
@@ -131,9 +138,9 @@ bool UIpNetDriver::InitBase( bool bInitAsClient, FNetworkNotify* InNotify, const
 	}
 
 	// Increase socket queue size, because we are polling rather than threading
-	// and thus we rely on Windows Sockets to buffer a lot of data on the server.
-	int32 RecvSize = bInitAsClient ? 0x8000 : 0x20000;
-	int32 SendSize = bInitAsClient ? 0x8000 : 0x20000;
+	// and thus we rely on the OS socket to buffer a lot of data.
+	int32 RecvSize = bInitAsClient ? ClientDesiredSocketReceiveBufferBytes	: ServerDesiredSocketReceiveBufferBytes;
+	int32 SendSize = bInitAsClient ? ClientDesiredSocketSendBufferBytes		: ServerDesiredSocketSendBufferBytes;
 	Socket->SetReceiveBufferSize(RecvSize,RecvSize);
 	Socket->SetSendBufferSize(SendSize,SendSize);
 	UE_LOG(LogInit, Log, TEXT("%s: Socket queue %i / %i"), SocketSubsystem->GetSocketAPIName(), RecvSize, SendSize );
@@ -416,6 +423,8 @@ void UIpNetDriver::TickDispatch( float DeltaTime )
 
 					if (bPassedChallenge)
 					{
+						SCOPE_CYCLE_COUNTER(Stat_IpNetDriverAddNewConnection);
+
 						UE_LOG(LogNet, Log, TEXT("Server accepting post-challenge connection from: %s"), *FromAddr->ToString(true));
 
 						Connection = NewObject<UIpConnection>(GetTransientPackage(), NetConnectionClass);
@@ -506,12 +515,10 @@ void UIpNetDriver::LowLevelSend(FString Address, void* Data, int32 CountBits)
 		int32 BytesSent = 0;
 		uint32 CountBytes = FMath::DivideAndRoundUp(CountBits, 8);
 
-		FPacketAudit::NotifyLowLevelSend((uint8*)Data, CountBytes, CountBits);
-
 		if (CountBits > 0)
 		{
 			CLOCK_CYCLES(SendCycles);
-			Socket->SendTo(DataToSend, CountBytes, BytesSent, *RemoteAddr);
+			Socket->SendTo(DataToSend, FMath::DivideAndRoundUp(CountBits, 8), BytesSent, *RemoteAddr);
 			UNCLOCK_CYCLES(SendCycles);
 		}
 

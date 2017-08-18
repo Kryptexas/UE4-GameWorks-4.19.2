@@ -22,7 +22,7 @@ bool FOnlineExternalUITwitch::ShowLoginUI(const int ControllerIndex, bool bShowO
 			if (URLDetails.IsValid())
 			{
 				const FString& CurrentLoginNonce = IdentityInt->GetCurrentLoginNonce();
-				const FString RequestedURL = URLDetails.GetURL(CurrentLoginNonce);
+				const FString RequestedURL = URLDetails.GetAuthUrl(CurrentLoginNonce);
 				if (OnLoginFlowUIRequiredDelegates.IsBound())
 				{
 					bool bShouldContinueLoginFlow = false;
@@ -33,19 +33,19 @@ bool FOnlineExternalUITwitch::ShowLoginUI(const int ControllerIndex, bool bShowO
 				}
 				else
 				{
-					IOnlineSubsystem* ConsoleSubsystem = IOnlineSubsystem::GetByPlatform();
-					IOnlineExternalUIPtr ConsoleExternalUI = ConsoleSubsystem ? ConsoleSubsystem->GetExternalUIInterface() : nullptr;
-					if (ConsoleExternalUI.IsValid())
+					IOnlineSubsystem* PlatformSubsystem = IOnlineSubsystem::GetByPlatform();
+					IOnlineExternalUIPtr PlatformExternalUI = PlatformSubsystem ? PlatformSubsystem->GetExternalUIInterface() : nullptr;
+					if (PlatformExternalUI.IsValid())
 					{
 						FShowWebUrlParams ShowParams;
 						ShowParams.bEmbedded = false; // TODO:  See if we can pipe along the embedded coordinates
 						ShowParams.bShowBackground = true;
 						ShowParams.bShowCloseButton = true;
 						ShowParams.bResetCookies = true; // potential for previously logged in user
-						ShowParams.CallbackPath = URLDetails.LoginRedirectUrl;
+						ShowParams.CallbackPath = URLDetails.GetLoginRedirectUrl();
 
 						FOnShowWebUrlClosedDelegate OnConsoleShowWebUrlCompleteDelegate = FOnShowWebUrlClosedDelegate::CreateThreadSafeSP(this, &FOnlineExternalUITwitch::OnConsoleShowWebUrlComplete, ControllerIndex, Delegate);
-						bStarted = ConsoleExternalUI->ShowWebURL(RequestedURL, ShowParams, OnConsoleShowWebUrlCompleteDelegate);
+						bStarted = PlatformExternalUI->ShowWebURL(RequestedURL, ShowParams, OnConsoleShowWebUrlCompleteDelegate);
 						if (!bStarted)
 						{
 							UE_LOG_ONLINE(Warning, TEXT("FOnlineExternalUITwitch::ShowLoginUI: Console ShowWebURL failed"));
@@ -85,7 +85,7 @@ FLoginFlowResult FOnlineExternalUITwitch::ParseRedirectResult(const FTwitchLogin
 
 	TMap<FString, FString> ParamsMap;
 
-	FString ResponseStr = RedirectURL.Mid(URLDetails.LoginRedirectUrl.Len() + 1);
+	FString ResponseStr = RedirectURL.Mid(URLDetails.GetLoginRedirectUrl().Len() + 1);
 	{
 		TArray<FString> Params;
 		ResponseStr.ParseIntoArray(Params, TEXT("&"));
@@ -106,7 +106,7 @@ FLoginFlowResult FOnlineExternalUITwitch::ParseRedirectResult(const FTwitchLogin
 		check(IdentityInt.IsValid());
 
 		const FString& CurrentLoginNonce = IdentityInt->GetCurrentLoginNonce();
-		if (CurrentLoginNonce == URLDetails.GetNonce(*State))
+		if (CurrentLoginNonce == URLDetails.ParseNonce(*State))
 		{
 			const FString* AccessToken = ParamsMap.Find(TWITCH_ACCESS_TOKEN);
 			if (AccessToken)
@@ -143,7 +143,7 @@ FLoginFlowResult FOnlineExternalUITwitch::OnLoginRedirectURL(const FString& Redi
 		if (URLDetails.IsValid())
 		{
 			// Wait for the RedirectURI to appear
-			if (RedirectURL.StartsWith(URLDetails.LoginRedirectUrl))
+			if (RedirectURL.StartsWith(URLDetails.GetLoginRedirectUrl()))
 			{
 				Result = ParseRedirectResult(URLDetails, RedirectURL);
 			}

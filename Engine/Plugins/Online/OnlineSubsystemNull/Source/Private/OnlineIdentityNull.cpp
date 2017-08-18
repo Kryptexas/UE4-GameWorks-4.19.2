@@ -69,7 +69,7 @@ bool FOnlineIdentityNull::Login(int32 LocalUserNum, const FOnlineAccountCredenti
 {
 	FString ErrorStr;
 	TSharedPtr<FUserOnlineAccountNull> UserAccountPtr;
-	
+
 	// valid local player index
 	if (LocalUserNum < 0 || LocalUserNum >= MAX_LOCAL_PLAYERS)
 	{

@@ -28,35 +28,22 @@ typedef TMap<FString, TSharedRef<FUserOnlineAccountTwitch> > FUserOnlineAccountT
 /**
  * Contains URL details for Twitch interaction
  */
-struct FTwitchLoginURL
+struct ONLINESUBSYSTEMTWITCH_API FTwitchLoginURL
 {
-	FTwitchLoginURL()
-		: bForceVerify(false)
+	FTwitchLoginURL(FOnlineSubsystemTwitch* InSubsystem)
+		: Subsystem(InSubsystem)
 	{
 	}
-
-	/** The endpoint at Twitch we are supposed to hit for auth */
-	FString LoginUrl;
-	/** Whether or not we should always prompt the user for authorization */
-	bool bForceVerify;
-	/** The redirect url for Twitch to redirect to upon completion. */
-	FString LoginRedirectUrl;
-	/** The url to validate a OAuth token with Twitch */
-	FString TokenValidateUrl;
-	/** The client id given to us by Twitch */
-	FString ClientId;
-	/** Config based list of permission scopes to use when logging in */
-	TArray<FString> ScopeFields;
-	/** Prefix for the state field */
-	FString StatePrefix;
 
 	/** 
 	 * @return whether this is properly configured or not
 	 */
-	bool IsValid() const
-	{
-		return !LoginUrl.IsEmpty() && !LoginRedirectUrl.IsEmpty() && !ClientId.IsEmpty();
-	}
+	bool IsValid() const;
+
+	/** 
+	 * @return the auth url to spawn in the browser
+	 */
+	FString GetAuthUrl(const FString& Nonce) const;
 
 	/** 
 	 * @return a random nonce
@@ -67,46 +54,49 @@ struct FTwitchLoginURL
 		return FGuid::NewGuid().ToString();
 	}
 
-	/** 
-	 * @return the auth url to spawn in the browser
-	 */
-	FString GetURL(const FString& Nonce) const
-	{
-		FString Scopes = FString::Join(ScopeFields, TEXT(" "));
-		FString State;
-		if (!StatePrefix.IsEmpty())
-		{
-			State = FString::Printf(TEXT("%s+%s"), *StatePrefix, *Nonce);
-		}
-		else
-		{
-			State = Nonce;
-		}
-
-		return FString::Printf(TEXT("%s?force_verify=%s&response_type=token&client_id=%s&scope=%s&state=%s&redirect_uri=%s"),
-			*LoginUrl,
-			bForceVerify ? TEXT("true") : TEXT("false"),
-			*FGenericPlatformHttp::UrlEncode(ClientId),
-			*FGenericPlatformHttp::UrlEncode(Scopes),
-			*FGenericPlatformHttp::UrlEncode(State),
-			*FGenericPlatformHttp::UrlEncode(LoginRedirectUrl));
-	}
-
-	/** 
+	/**
 	 * Get the Nonce from the specified State
 	 */
-	FString GetNonce(const FString& State) const
-	{
-		FString DecodedState(FGenericPlatformHttp::UrlDecode(State));
-		if (StatePrefix.IsEmpty() ||
-			DecodedState.Len() < (StatePrefix.Len() + 1) ||
-			!DecodedState.StartsWith(StatePrefix) ||
-			DecodedState[StatePrefix.Len()] != TEXT('+'))
-		{
-			return DecodedState;
-		}
-		return DecodedState.Mid(StatePrefix.Len() + 1);
-	}
+	static FString ParseNonce(const FString& State);
+
+	// Settings accessors
+	/** 
+	 * @return the login url
+	 */
+	FString GetLoginUrl() const;
+
+	/**
+	 * @return the ForceVerify setting
+	 */
+	bool GetForceVerify() const;
+	
+	/** 
+	 * @return the redirect url
+	 */
+	FString GetLoginRedirectUrl() const;
+
+	/** 
+	 * @return the state prefix to put before the nonce
+	 */
+	FString GetStatePrefix() const;
+
+	/** 
+	 * Override the state prefix
+	 * @param InStatePrefixOverride the state prefix override
+	 */
+	void OverrideStatePrefix(const FString& InStatePrefixOverride);
+
+	/**
+	 * @return the scope fields we are requesting permissions for
+	 */
+	TArray<FString> GetScopeFields() const;
+
+private:
+	/** Owning subsystem */
+	FOnlineSubsystemTwitch* Subsystem;
+
+	/** Overridden StatePrefix */
+	FString StatePrefixOverride;
 };
 
 /**
@@ -138,9 +128,14 @@ public:
 	virtual FPlatformUserId GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& UniqueNetId) override;
 	virtual FString GetAuthType() const override;
 
-PACKAGE_SCOPE:
-
 	// FOnlineIdentityTwitch
+	/** 
+	 * Set the state prefix
+	 * @param StatePrefix the state prefix
+	 */
+	void SetStatePrefix(const FString& StatePrefix);
+
+PACKAGE_SCOPE:
 
 	/**
 	 * Constructor
@@ -258,14 +253,10 @@ private:
 
 	/** Const details about communicating with twitch API */
 	FTwitchLoginURL LoginURLDetails;
-	/** Domains used for login, for cookie management */
-	TArray<FString> LoginDomains;
 	/** Nonce for current login attempt */
 	FString CurrentLoginNonce;
 	/** Whether we have a registration in flight or not */
 	bool bHasLoginOutstanding;
-	/** URL used to revoke an access token */
-	FString TokenRevokeUrl;
 
 	/** Re-usable empty unique id for errors */
 	TSharedRef<FUniqueNetId> ZeroId;

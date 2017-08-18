@@ -130,11 +130,6 @@ bool FOnlineSubsystemTwitch::Init()
 {
 	UE_LOG_ONLINE(Verbose, TEXT("FOnlineSubsystemTwitch::Init() Name: %s"), *InstanceName.ToString());
 
-	if (!GConfig->GetString(TEXT("OnlineSubsystemTwitch"), TEXT("ClientId"), ClientId, GEngineIni))
-	{
-		UE_LOG(LogOnline, Warning, TEXT("Missing ClientId= in [OnlineSubsystemTwitch] of DefaultEngine.ini"));
-	}
-
 	TwitchIdentity = MakeShared<FOnlineIdentityTwitch, ESPMode::ThreadSafe>(this);
 	TwitchExternalUIInterface = MakeShared<FOnlineExternalUITwitch, ESPMode::ThreadSafe>(this);
 
@@ -168,6 +163,17 @@ bool FOnlineSubsystemTwitch::Shutdown()
 
 FString FOnlineSubsystemTwitch::GetAppId() const
 {
+	FString ClientId;
+	if (!GConfig->GetString(TEXT("OnlineSubsystemTwitch"), TEXT("ClientId"), ClientId, GEngineIni) ||
+		ClientId.IsEmpty())
+	{
+		static bool bWarned = false;
+		if (!bWarned)
+		{
+			bWarned = true;
+			UE_LOG(LogOnline, Warning, TEXT("Missing ClientId= in [OnlineSubsystemTwitch] of DefaultEngine.ini"));
+		}
+	}
 	return ClientId;
 }
 

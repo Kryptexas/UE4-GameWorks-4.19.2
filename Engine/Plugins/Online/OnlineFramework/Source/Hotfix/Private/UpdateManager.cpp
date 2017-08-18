@@ -229,18 +229,24 @@ void UUpdateManager::StartPatchCheck()
 
 	SetUpdateState(EUpdateState::CheckingForPatch);
 
-	IOnlineSubsystem* OnlineSubConsole = IOnlineSubsystem::GetByPlatform();
-	if (OnlineSubConsole)
+	IOnlineSubsystem* PlatformOnlineSub = IOnlineSubsystem::GetByPlatform();
+	if (PlatformOnlineSub)
 	{
-		IOnlineIdentityPtr OnlineIdentityConsole = OnlineSubConsole->GetIdentityInterface();
-		if (OnlineIdentityConsole.IsValid())
+		IOnlineIdentityPtr PlatformOnlineIdentity = PlatformOnlineSub->GetIdentityInterface();
+		if (PlatformOnlineIdentity.IsValid())
 		{
-			TSharedPtr<const FUniqueNetId> UserId = GetFirstSignedInUser(OnlineIdentityConsole);
-			if (UserId.IsValid())
+			TSharedPtr<const FUniqueNetId> UserId = GetFirstSignedInUser(PlatformOnlineIdentity);
+			if (UserId.IsValid() && (PlatformOnlineIdentity->GetLoginStatus(*UserId) == ELoginStatus::LoggedIn))
 			{
 				bStarted = true;
-				OnlineIdentityConsole->GetUserPrivilege(*UserId,
+				PlatformOnlineIdentity->GetUserPrivilege(*UserId,
 					EUserPrivileges::CanPlayOnline, IOnlineIdentity::FOnGetUserPrivilegeCompleteDelegate::CreateUObject(this, &ThisClass::OnCheckForPatchComplete, true));
+			}
+			else if (!bInitialUpdateFinished)
+			{
+				UE_LOG(LogHotfixManager, Verbose, TEXT("Skipping initial patch check with no signed in user"));
+				bStarted = true;
+				PatchCheckComplete(EPatchCheckResult::NoPatchRequired);
 			}
 			else
 			{

@@ -9,6 +9,127 @@
 #include "Http.h"
 #include "Misc/ConfigCacheIni.h"
 
+bool FTwitchLoginURL::IsValid() const
+{
+	return !GetLoginUrl().IsEmpty() && !GetLoginRedirectUrl().IsEmpty() && !Subsystem->GetAppId().IsEmpty();
+}
+
+FString FTwitchLoginURL::GetAuthUrl(const FString& Nonce) const
+{
+	const bool bForceVerify(GetForceVerify());
+	const FString LoginUrl(GetLoginUrl());
+	const FString LoginRedirectUrl(GetLoginRedirectUrl());
+	const FString StatePrefix(GetStatePrefix());
+	const FString ClientId(Subsystem->GetAppId());
+	const TArray<FString> ScopeFields(GetScopeFields());
+
+	const FString Scopes = FString::Join(ScopeFields, TEXT(" "));
+	FString State;
+	if (!StatePrefix.IsEmpty())
+	{
+		State = FString::Printf(TEXT("%s-%s"), *StatePrefix, *Nonce);
+	}
+	else
+	{
+		State = Nonce;
+	}
+
+	return FString::Printf(TEXT("%s?force_verify=%s&response_type=token&client_id=%s&scope=%s&state=%s&redirect_uri=%s"),
+		*LoginUrl,
+		bForceVerify ? TEXT("true") : TEXT("false"),
+		*FGenericPlatformHttp::UrlEncode(ClientId),
+		*FGenericPlatformHttp::UrlEncode(Scopes),
+		*FGenericPlatformHttp::UrlEncode(State),
+		*FGenericPlatformHttp::UrlEncode(LoginRedirectUrl));
+}
+
+FString FTwitchLoginURL::ParseNonce(const FString& State)
+{
+	const FString DecodedState(FGenericPlatformHttp::UrlDecode(State));
+	FString Nonce;
+	// Get everything after the last '-'
+	static const FString HyphenString(TEXT("-"));
+	if (DecodedState.Split(HyphenString, nullptr, &Nonce, ESearchCase::CaseSensitive, ESearchDir::FromEnd) &&
+		!Nonce.IsEmpty())
+	{
+		return Nonce;
+	}
+	// Return the url decoded State parameter
+	return DecodedState;
+}
+
+bool FTwitchLoginURL::GetForceVerify() const
+{
+	bool bForceVerify = false;
+	if (!GConfig->GetBool(TEXT("OnlineSubsystemTwitch.OnlineIdentityTwitch"), TEXT("bForceVerify"), bForceVerify, GEngineIni))
+	{
+		static bool bWarned = false;
+		if (!bWarned)
+		{
+			bWarned = true;
+			UE_LOG_ONLINE(Warning, TEXT("Missing bForceVerify= in [OnlineSubsystemTwitch.OnlineIdentityTwitch] of DefaultEngine.ini"));
+		}
+	}
+	return bForceVerify;
+}
+
+FString FTwitchLoginURL::GetLoginUrl() const
+{
+	FString LoginUrl;
+	if (!GConfig->GetString(TEXT("OnlineSubsystemTwitch.OnlineIdentityTwitch"), TEXT("LoginUrl"), LoginUrl, GEngineIni) ||
+		LoginUrl.IsEmpty())
+	{
+		static bool bWarned = false;
+		if (!bWarned)
+		{
+			bWarned = true;
+			UE_LOG_ONLINE(Warning, TEXT("Missing LoginUrl= in [OnlineSubsystemTwitch.OnlineIdentityTwitch] of DefaultEngine.ini"));
+		}
+	}
+	return LoginUrl;
+}
+
+FString FTwitchLoginURL::GetStatePrefix() const
+{
+	// See if the app has overridden the state prefix
+	if (!StatePrefixOverride.IsEmpty())
+	{
+		return StatePrefixOverride;
+	}
+
+	FString StatePrefix;
+	GConfig->GetString(TEXT("OnlineSubsystemTwitch.OnlineIdentityTwitch"), TEXT("StatePrefix"), StatePrefix, GEngineIni);
+	return StatePrefix;
+}
+
+void FTwitchLoginURL::OverrideStatePrefix(const FString& InStatePrefixOverride)
+{
+	StatePrefixOverride = InStatePrefixOverride;
+}
+
+TArray<FString> FTwitchLoginURL::GetScopeFields() const
+{
+	TArray<FString> ScopeFields;
+	GConfig->GetArray(TEXT("OnlineSubsystemTwitch.OnlineIdentityTwitch"), TEXT("ScopeFields"), ScopeFields, GEngineIni);
+	return ScopeFields;
+}
+
+FString FTwitchLoginURL::GetLoginRedirectUrl() const
+{
+	FString LoginRedirectUrl;
+	if (!GConfig->GetString(TEXT("OnlineSubsystemTwitch.OnlineIdentityTwitch"), TEXT("LoginRedirectUrl"), LoginRedirectUrl, GEngineIni) ||
+		LoginRedirectUrl.IsEmpty())
+	{
+		static bool bWarned = false;
+		if (!bWarned)
+		{
+			bWarned = true;
+			UE_LOG_ONLINE(Warning, TEXT("Missing LoginRedirectUrl= in [OnlineSubsystemTwitch.OnlineIdentityTwitch] of DefaultEngine.ini"));
+		}
+	}
+	return LoginRedirectUrl;
+}
+
 TSharedPtr<FUserOnlineAccountTwitch> FOnlineIdentityTwitch::GetUserAccountTwitch(const FUniqueNetId& UserId) const
 {
 	TSharedPtr<FUserOnlineAccountTwitch> Result;
@@ -78,7 +199,7 @@ bool FOnlineIdentityTwitch::Login(int32 LocalUserNum, const FOnlineAccountCreden
 	else if (!LoginURLDetails.IsValid())
 	{
 		ErrorStr = FString::Printf(TEXT("OnlineSubsystemTwitch is improperly configured in DefaultEngine.ini LoginURL=%s LoginRedirectUrl=%s ClientId=%s"),
-			*LoginURLDetails.LoginUrl, *LoginURLDetails.LoginRedirectUrl, *LoginURLDetails.ClientId);
+			*LoginURLDetails.GetLoginUrl(), *LoginURLDetails.GetLoginRedirectUrl(), *Subsystem->GetAppId());
 	}
 	else if (LocalUserNum < 0 || LocalUserNum >= MAX_LOCAL_PLAYERS)
 	{
@@ -142,7 +263,8 @@ void FOnlineIdentityTwitch::OnValidateAuthTokenComplete(int32 LocalUserNum, cons
 			// Confirm we have all of the scope permissions we require
 			bool bHasAllPermissions = true;
 			FString MissingScopeFields;
-			for (const FString& ScopeField : LoginURLDetails.ScopeFields)
+			const TArray<FString> RequiredScopeFields(LoginURLDetails.GetScopeFields());
+			for (const FString& ScopeField : RequiredScopeFields)
 			{
 				const bool bHasPermission = User->GetScopePermissions().Contains(ScopeField);
 				if (!bHasPermission)
@@ -190,7 +312,18 @@ void FOnlineIdentityTwitch::ValidateAuthToken(int32 LocalUserNum, const FOnlineA
 	// kick off http request to validate access token
 	TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
 
-	FString Url(FString::Printf(TEXT("%s?client_id=%s"), *LoginURLDetails.TokenValidateUrl, *FGenericPlatformHttp::UrlEncode(LoginURLDetails.ClientId)));
+	FString TokenValidateUrl;
+	if (!GConfig->GetString(TEXT("OnlineSubsystemTwitch.OnlineIdentityTwitch"), TEXT("TokenValidateUrl"), TokenValidateUrl, GEngineIni) ||
+		TokenValidateUrl.IsEmpty())
+	{
+		static bool bWarned = false;
+		if (!bWarned)
+		{
+			bWarned = true;
+			UE_LOG_ONLINE(Warning, TEXT("Missing TokenValidateUrl= in [OnlineSubsystemTwitch.OnlineIdentityTwitch] of DefaultEngine.ini"));
+		}
+	}
+	FString Url(FString::Printf(TEXT("%s?client_id=%s"), *TokenValidateUrl, *FGenericPlatformHttp::UrlEncode(Subsystem->GetAppId())));
 
 	HttpRequest->OnProcessRequestComplete().BindThreadSafeSP(this, &FOnlineIdentityTwitch::ValidateAuthToken_HttpRequestComplete, LocalUserNum, AccountCredentials, InCompletionDelegate);
 	HttpRequest->SetURL(MoveTemp(Url));
@@ -373,6 +506,9 @@ void FOnlineIdentityTwitch::OnTwitchLogoutComplete(const FUniqueNetId& UserId)
 		// remove cached user id
 		UserIds.Remove(LocalUserNum);
 
+		TArray<FString> LoginDomains;
+		GConfig->GetArray(TEXT("OnlineSubsystemTwitch.OnlineIdentityTwitch"), TEXT("LoginDomains"), LoginDomains, GEngineIni);
+
 		TriggerOnLoginFlowLogoutDelegates(LoginDomains);
 
 		TSharedRef<const FUniqueNetId> UserIdRef(UserId.AsShared());
@@ -419,12 +555,22 @@ void FOnlineIdentityTwitch::RevokeAuthTokenInternal(const FUniqueNetId& UserId, 
 	// kick off http request to validate access token
 	TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
 
-	FString Url(TokenRevokeUrl);
-	FString PostData(FString::Printf(TEXT("client_id=%s&token=%s"), *FGenericPlatformHttp::UrlEncode(LoginURLDetails.ClientId), *FGenericPlatformHttp::UrlEncode(AuthToken)));
+	FString TokenRevokeUrl;
+	if (!GConfig->GetString(TEXT("OnlineSubsystemTwitch.OnlineIdentityTwitch"), TEXT("TokenRevokeUrl"), TokenRevokeUrl, GEngineIni) ||
+		TokenRevokeUrl.IsEmpty())
+	{
+		static bool bWarned = false;
+		if (!bWarned)
+		{
+			bWarned = true;
+			UE_LOG_ONLINE(Warning, TEXT("Missing TokenRevokeUrl= in [OnlineSubsystemTwitch.OnlineIdentityTwitch] of DefaultEngine.ini"));
+		}
+	}
+	FString PostData(FString::Printf(TEXT("client_id=%s&token=%s"), *FGenericPlatformHttp::UrlEncode(Subsystem->GetAppId()), *FGenericPlatformHttp::UrlEncode(AuthToken)));
 
 	TSharedRef<const FUniqueNetId> UserIdRef(UserId.AsShared());
 	HttpRequest->OnProcessRequestComplete().BindThreadSafeSP(this, &FOnlineIdentityTwitch::RevokeAuthToken_HttpRequestComplete, UserIdRef, InCompletionDelegate);
-	HttpRequest->SetURL(TokenRevokeUrl);
+	HttpRequest->SetURL(MoveTemp(TokenRevokeUrl));
 	HttpRequest->SetHeader(TEXT("Accept"), Subsystem->GetTwitchApiVersion());
 	HttpRequest->SetHeader(TEXT("Content-Type"), TEXT("application/x-www-form-urlencoded"));
 	HttpRequest->SetVerb(TEXT("POST"));
@@ -557,40 +703,11 @@ FString FOnlineIdentityTwitch::GetAuthToken(int32 LocalUserNum) const
 
 FOnlineIdentityTwitch::FOnlineIdentityTwitch(FOnlineSubsystemTwitch* InSubsystem)
 	: Subsystem(InSubsystem)
+	, LoginURLDetails(InSubsystem)
 	, bHasLoginOutstanding(false)
 	, ZeroId(MakeShared<FUniqueNetIdString>())
 {
 	check(InSubsystem);
-	if (!GConfig->GetString(TEXT("OnlineSubsystemTwitch.OnlineIdentityTwitch"), TEXT("LoginUrl"), LoginURLDetails.LoginUrl, GEngineIni))
-	{
-		UE_LOG_ONLINE(Warning, TEXT("Missing LoginUrl= in [OnlineSubsystemTwitch.OnlineIdentityTwitch] of DefaultEngine.ini"));
-	}
-	if (!GConfig->GetBool(TEXT("OnlineSubsystemTwitch.OnlineIdentityTwitch"), TEXT("bForceVerify"), LoginURLDetails.bForceVerify, GEngineIni))
-	{
-		UE_LOG_ONLINE(Warning, TEXT("Missing bForceVerify= in [OnlineSubsystemTwitch.OnlineIdentityTwitch] of DefaultEngine.ini"));
-	}
-	if (!GConfig->GetString(TEXT("OnlineSubsystemTwitch.OnlineIdentityTwitch"), TEXT("LoginRedirectUrl"), LoginURLDetails.LoginRedirectUrl, GEngineIni))
-	{
-		UE_LOG_ONLINE(Warning, TEXT("Missing LoginRedirectUrl= in [OnlineSubsystemTwitch.OnlineIdentityTwitch] of DefaultEngine.ini"));
-	}
-	if (!GConfig->GetString(TEXT("OnlineSubsystemTwitch.OnlineIdentityTwitch"), TEXT("TokenValidateUrl"), LoginURLDetails.TokenValidateUrl, GEngineIni))
-	{
-		UE_LOG_ONLINE(Warning, TEXT("Missing TokenValidateUrl= in [OnlineSubsystemTwitch.OnlineIdentityTwitch] of DefaultEngine.ini"));
-	}
-	// StatePrefix is optional
-	GConfig->GetString(TEXT("OnlineSubsystemTwitch.OnlineIdentityTwitch"), TEXT("StatePrefix"), LoginURLDetails.StatePrefix, GEngineIni);
-
-	LoginURLDetails.ClientId = Subsystem->GetAppId();
-
-	GConfig->GetArray(TEXT("OnlineSubsystemTwitch.OnlineIdentityTwitch"), TEXT("LoginDomains"), LoginDomains, GEngineIni);
-
-	// Setup permission scope fields
-	GConfig->GetArray(TEXT("OnlineSubsystemTwitch.OnlineIdentityTwitch"), TEXT("ScopeFields"), LoginURLDetails.ScopeFields, GEngineIni);
-
-	if (!GConfig->GetString(TEXT("OnlineSubsystemTwitch.OnlineIdentityTwitch"), TEXT("TokenRevokeUrl"), TokenRevokeUrl, GEngineIni))
-	{
-		UE_LOG_ONLINE(Warning, TEXT("Missing TokenRevokeUrl= in [OnlineSubsystemTwitch.OnlineIdentityTwitch] of DefaultEngine.ini"));
-	}
 }
 
 FPlatformUserId FOnlineIdentityTwitch::GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& UniqueNetId)
@@ -615,4 +732,10 @@ void FOnlineIdentityTwitch::GetUserPrivilege(const FUniqueNetId& UserId, EUserPr
 FString FOnlineIdentityTwitch::GetAuthType() const
 {
 	return TEXT("twitch");
+}
+
+void FOnlineIdentityTwitch::SetStatePrefix(const FString& StatePrefix)
+{
+	UE_LOG_ONLINE(Log, TEXT("FOnlineIdentityTwitch::SetStatePrefix: Setting StatePrefix to %s"), *StatePrefix);
+	LoginURLDetails.OverrideStatePrefix(StatePrefix);
 }
