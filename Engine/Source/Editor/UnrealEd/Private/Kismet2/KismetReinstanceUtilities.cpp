@@ -1479,11 +1479,6 @@ UClass* FBlueprintCompileReinstancer::MoveCDOToNewClass(UClass* OwnerClass, cons
 	OwnerClass->ClassFlags |= CLASS_NewerVersionExists;
 
 	UObject* OldCDO = OwnerClass->ClassDefaultObject;
-	if(bAvoidCDODuplication)
-	{
-		// prevent duplication of CDO by hiding it from StaticDuplicateObject
-		OwnerClass->ClassDefaultObject = nullptr;
-	}
 	const FName ReinstanceName = MakeUniqueObjectName(GetTransientPackage(), OwnerClass->GetClass(), *(FString(TEXT("REINST_")) + *OwnerClass->GetName()));
 	UClass* CopyOfOwnerClass = CastChecked<UClass>(StaticDuplicateObject(OwnerClass, GetTransientPackage(), ReinstanceName, ~RF_Transactional));
 
@@ -1513,10 +1508,13 @@ UClass* FBlueprintCompileReinstancer::MoveCDOToNewClass(UClass* OwnerClass, cons
 
 	CopyOfOwnerClass->Bind();
 	CopyOfOwnerClass->StaticLink(true);
+
 	if(OldCDO)
 	{
+		// @todo: #dano, rename bAvoidCDODuplication because it's really a flag to move the CDO aside not 'prevent duplication':
 		if(bAvoidCDODuplication)
 		{
+			OwnerClass->ClassDefaultObject = nullptr;
 			OldCDO->Rename(nullptr, CopyOfOwnerClass->GetOuter(), REN_DoNotDirty | REN_DontCreateRedirectors | REN_ForceNoResetLoaders);
 			CopyOfOwnerClass->ClassDefaultObject = OldCDO;
 		}
