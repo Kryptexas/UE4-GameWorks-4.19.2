@@ -314,10 +314,12 @@ namespace Audio
 
 	void FMixerDevice::ResumeContext()
 	{
+        AudioMixerPlatform->ResumeContext();
 	}
 
 	void FMixerDevice::SuspendContext()
 	{
+        AudioMixerPlatform->SuspendContext();
 	}
 
 	void FMixerDevice::EnableDebugAudioOutput()
