@@ -861,7 +861,8 @@ bool UWorld::PreSaveRoot(const TCHAR* Filename)
 	{
 		for (UBlueprint* Blueprint : PersistentLevel->GetLevelBlueprints())
 		{
-			FKismetEditorUtilities::CompileBlueprint(Blueprint, EBlueprintCompileOptions::SkipGarbageCollection);
+			const uint8 EBlueprintCompileOptionsSkipSave = 0x80; // Can't add entry to EBlueprintCompileOptions in hotfix, so using a constant here
+			FKismetEditorUtilities::CompileBlueprint(Blueprint, EBlueprintCompileOptions::SkipGarbageCollection | (EBlueprintCompileOptions)EBlueprintCompileOptionsSkipSave);
 		}
 	}
 #endif

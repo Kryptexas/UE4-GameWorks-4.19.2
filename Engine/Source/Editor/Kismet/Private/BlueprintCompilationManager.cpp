@@ -162,6 +162,9 @@ void FBlueprintCompilationManagerImpl::CompileSynchronouslyImpl(const FBPCompile
 	const bool bBatchCompile				= (Request.CompileOptions & EBlueprintCompileOptions::BatchCompile				) != EBlueprintCompileOptions::None;
 	const bool bSkipReinstancing			= (Request.CompileOptions & EBlueprintCompileOptions::SkipReinstancing			) != EBlueprintCompileOptions::None;
 
+	const uint8 EBlueprintCompileOptionsSkipSave = 0x80; // Can't add entry to EBlueprintCompileOptions in hotfix, so using a constant here
+	const bool bSkipSaving					= ((uint8)Request.CompileOptions & EBlueprintCompileOptionsSkipSave				) != 0;
+
 	// Wipe the PreCompile log, any generated messages are now irrelevant
 	Request.BPToCompile->PreCompileLog.Reset();
 
@@ -215,15 +218,18 @@ void FBlueprintCompilationManagerImpl::CompileSynchronouslyImpl(const FBPCompile
 		}
 	}
 
-	if(CompiledBlueprintsToSave.Num() > 0)
+	if (CompiledBlueprintsToSave.Num() > 0)
 	{
-		TArray<UPackage*> PackagesToSave;
-		for(UBlueprint* BP : CompiledBlueprintsToSave)
+		if (!bSkipSaving)
 		{
-			PackagesToSave.Add(BP->GetOutermost());
+			TArray<UPackage*> PackagesToSave;
+			for (UBlueprint* BP : CompiledBlueprintsToSave)
+			{
+				PackagesToSave.Add(BP->GetOutermost());
+			}
+
+			FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, /*bCheckDirty =*/true, /*bPromptToSave =*/false);
 		}
-	
-		FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, /*bCheckDirty =*/true, /*bPromptToSave =*/false);
 		CompiledBlueprintsToSave.Empty();
 	}
 }
