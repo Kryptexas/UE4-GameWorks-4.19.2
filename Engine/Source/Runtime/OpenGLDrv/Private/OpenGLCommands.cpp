@@ -3549,4 +3549,14 @@ IRHICommandContextContainer* FOpenGLDynamicRHI::RHIGetCommandContextContainer(in
 	return nullptr;
 }
 
+void FOpenGLDynamicRHI::RHIInvalidateCachedState()
+{
+	RenderingContextState = FOpenGLContextState();
+	SharedContextState = FOpenGLContextState();
+
+	RenderingContextState.InitializeResources(FOpenGL::GetMaxCombinedTextureImageUnits(), OGL_MAX_COMPUTE_STAGE_UAV_UNITS);
+	SharedContextState.InitializeResources(FOpenGL::GetMaxCombinedTextureImageUnits(), OGL_MAX_COMPUTE_STAGE_UAV_UNITS);
+}
+
+
 

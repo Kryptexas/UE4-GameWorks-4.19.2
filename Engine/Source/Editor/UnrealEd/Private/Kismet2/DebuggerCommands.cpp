@@ -192,8 +192,9 @@ protected:
 	 * @param Text The main message text.
 	 * @param Detail The detailed description.
 	 * @param TutorialLink A link to an associated tutorial.
+	 * @param DocumentationLink A link to documentation.
 	 */
-	static void AddMessageLog( const FText& Text, const FText& Detail, const FString& TutorialLink );
+	static void AddMessageLog( const FText& Text, const FText& Detail, const FString& TutorialLink, const FString& DocumentationLink);
 
 	/**
 	 * Checks whether the specified platform has a default device that can be launched on.
@@ -1867,8 +1868,9 @@ bool FInternalPlayWorldCommandCallbacks::IsReadyToLaunchOnDevice(FString DeviceI
 	if (Platform)
 	{
 		FString NotInstalledTutorialLink;
+		FString DocumentationLink;
 		FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()) : FPaths::RootDir() / FApp::GetProjectName() / FApp::GetProjectName() + TEXT(".uproject");
-		int32 Result = Platform->CheckRequirements(ProjectPath, bHasCode, NotInstalledTutorialLink);
+		int32 Result = Platform->CheckRequirements(ProjectPath, bHasCode, NotInstalledTutorialLink, DocumentationLink);
 		
 		// report to analytics
 		FEditorAnalytics::ReportBuildRequirementsFailure(TEXT("Editor.LaunchOn.Failed"), PlatformName, bHasCode, Result);
@@ -1881,7 +1883,20 @@ bool FInternalPlayWorldCommandCallbacks::IsReadyToLaunchOnDevice(FString DeviceI
 			AddMessageLog(
 				LOCTEXT("SdkNotFoundMessage", "Software Development Kit (SDK) not found."),
 				FText::Format(LOCTEXT("SdkNotFoundMessageDetail", "Please install the SDK for the {0} target platform!"), Platform->DisplayName()),
-				NotInstalledTutorialLink
+				NotInstalledTutorialLink,
+				DocumentationLink
+			);
+
+			UnrecoverableError = true;
+		}
+
+		if ((Result & ETargetPlatformReadyStatus::LicenseNotAccepted) != 0)
+		{
+			AddMessageLog(
+				LOCTEXT("LicenseNotAcceptedMessage", "License not accepted."),
+				LOCTEXT("LicenseNotAcceptedMessageDetail", "License must be accepted in project settings to deploy your app to the device."),
+				NotInstalledTutorialLink,
+				DocumentationLink
 			);
 
 			UnrecoverableError = true;
@@ -1892,7 +1907,8 @@ bool FInternalPlayWorldCommandCallbacks::IsReadyToLaunchOnDevice(FString DeviceI
 			AddMessageLog(
 				LOCTEXT("ProvisionNotFoundMessage", "Provision not found."),
 				LOCTEXT("ProvisionNotFoundMessageDetail", "A provision is required for deploying your app to the device."),
-				NotInstalledTutorialLink
+				NotInstalledTutorialLink,
+				DocumentationLink
 			);
 
 			UnrecoverableError = true;
@@ -1903,7 +1919,8 @@ bool FInternalPlayWorldCommandCallbacks::IsReadyToLaunchOnDevice(FString DeviceI
 			AddMessageLog(
 				LOCTEXT("SigningKeyNotFoundMessage", "Signing key not found."),
 				LOCTEXT("SigningKeyNotFoundMessageDetail", "The app could not be digitally signed, because the signing key is not configured."),
-				NotInstalledTutorialLink
+				NotInstalledTutorialLink,
+				DocumentationLink
 			);
 
 			UnrecoverableError = true;
@@ -1914,8 +1931,9 @@ bool FInternalPlayWorldCommandCallbacks::IsReadyToLaunchOnDevice(FString DeviceI
 			AddMessageLog(
 				LOCTEXT("ManifestNotFound", "Manifest not found."),
 				LOCTEXT("ManifestNotFoundMessageDetail", "The generated application manifest could not be found."),
-				NotInstalledTutorialLink
-				);
+				NotInstalledTutorialLink,
+				DocumentationLink
+			);
 
 			UnrecoverableError = true;
 		}
@@ -2220,13 +2238,13 @@ bool FInternalPlayWorldCommandCallbacks::CanPossessEjectPlayer()
 }
 
 
-void FInternalPlayWorldCommandCallbacks::AddMessageLog( const FText& Text, const FText& Detail, const FString& TutorialLink )
+void FInternalPlayWorldCommandCallbacks::AddMessageLog( const FText& Text, const FText& Detail, const FString& TutorialLink, const FString& DocumentationLink)
 {
 	TSharedRef<FTokenizedMessage> Message = FTokenizedMessage::Create(EMessageSeverity::Error);
 	Message->AddToken(FTextToken::Create(Text));
 	Message->AddToken(FTextToken::Create(Detail));
 	Message->AddToken(FTutorialToken::Create(TutorialLink));
-	Message->AddToken(FDocumentationToken::Create(TEXT("Platforms/iOS/QuickStart/6")));
+	Message->AddToken(FDocumentationToken::Create(DocumentationLink));
 
 	FMessageLog MessageLog("PackagingResults");
 	MessageLog.AddMessage(Message);

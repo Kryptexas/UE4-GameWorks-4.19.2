@@ -554,7 +554,13 @@ public:
 
 	virtual void RHIPopEvent() = 0;
 
-	virtual void RHIUpdateTextureReference(FTextureReferenceRHIParamRef TextureRef, FTextureRHIParamRef NewTexture) = 0;	
+	virtual void RHIUpdateTextureReference(FTextureReferenceRHIParamRef TextureRef, FTextureRHIParamRef NewTexture) = 0;
+
+	/**
+	 * Some RHI implementations (OpenGL) cache render state internally
+	 * Signal to RHI that cached state is no longer valid
+	 */
+	virtual void RHIInvalidateCachedState() {};	
 };
 
 /** The interface which is implemented by the dynamically bound RHI. */

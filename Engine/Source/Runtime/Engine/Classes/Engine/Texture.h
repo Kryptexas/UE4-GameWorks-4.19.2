@@ -118,6 +118,18 @@ enum ETextureSourceFormat
 	TSF_MAX
 };
 
+UENUM()
+enum ETextureCompressionQuality
+{
+	TCQ_Default = 0		UMETA(DisplayName="Default"),
+	TCQ_Lowest = 1		UMETA(DisplayName="Lowest"),
+	TCQ_Low = 2			UMETA(DisplayName="Low"),
+	TCQ_Medium = 3		UMETA(DisplayName="Medium"),
+	TCQ_High= 4			UMETA(DisplayName="High"),
+	TCQ_Highest = 5		UMETA(DisplayName="Highest"),
+	TCQ_MAX,
+};
+
 /**
  * Texture source data management.
  */
@@ -429,6 +441,10 @@ public:
 	/** The maximum resolution for generated textures. A value of 0 means the maximum size for the format on each platform, except HDR long/lat cubemaps, which default to a resolution of 512. */ 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Compression, meta=(DisplayName="Maximum Texture Size", ClampMin = "0.0"), AdvancedDisplay)
 	int32 MaxTextureSize;
+
+	/** The compression quality for generated textures. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Compression, meta = (DisplayName = "Compression Quality"), AdvancedDisplay)
+	TEnumAsByte<enum ETextureCompressionQuality> CompressionQuality;
 
 	/** When true, the alpha channel of mip-maps and the base image are dithered for smooth LOD transitions. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Texture, AdvancedDisplay)

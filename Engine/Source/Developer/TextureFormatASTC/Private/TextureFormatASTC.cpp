@@ -145,10 +145,10 @@ static EPixelFormat GetQualityFormat(int32 OverrideSizeValue=-1)
 	return Format;
 }
 
-static uint16 GetQualityVersion()
+static uint16 GetQualityVersion(int32 OverrideSizeValue = -1)
 {
 	// top 3 bits for size compression value, and next 3 for speed
-	return (GetDefaultCompressionBySizeValue() << 13) | (GetDefaultCompressionBySpeedValue() << 10);
+	return ((OverrideSizeValue >= 0 ? OverrideSizeValue : GetDefaultCompressionBySizeValue()) << 13) | (GetDefaultCompressionBySpeedValue() << 10);
 }
 
 static bool CompressSliceToASTC(
@@ -322,9 +322,12 @@ public:
 	}
 
 	// Version for all ASTC textures, whether it's handled by the ARM encoder or the ISPC encoder.
-	virtual uint16 GetVersion(FName Format) const override
+	virtual uint16 GetVersion(
+		FName Format,
+		const struct FTextureBuildSettings* BuildSettings = nullptr
+	) const override
 	{
-		return GetQualityVersion() + BASE_ASTC_FORMAT_VERSION;
+		return GetQualityVersion((BuildSettings ? BuildSettings->CompressionQuality : -1) + BASE_ASTC_FORMAT_VERSION);
 	}
 
 //	// Since we want to have per texture [group] compression settings, we need to have the key based on the texture
@@ -378,12 +381,12 @@ public:
 		if (bIsRGBColor)
 		{
 			CompressedPixelFormat = GetQualityFormat();
-			CompressionParameters = FString::Printf(TEXT("%s %s -esw bgra -ch 1 1 1 0"), *GetQualityString(), /*BuildSettings.bSRGB ? TEXT("-srgb") :*/ TEXT("") );
+			CompressionParameters = FString::Printf(TEXT("%s %s -esw bgra -ch 1 1 1 0"), *GetQualityString(BuildSettings.CompressionQuality), /*BuildSettings.bSRGB ? TEXT("-srgb") :*/ TEXT("") );
 		}
 		else if (bIsRGBAColor)
 		{
 			CompressedPixelFormat = GetQualityFormat();
-			CompressionParameters = FString::Printf(TEXT("%s %s -esw bgra -ch 1 1 1 1"), *GetQualityString(), /*BuildSettings.bSRGB ? TEXT("-srgb") :*/ TEXT("") );
+			CompressionParameters = FString::Printf(TEXT("%s %s -esw bgra -ch 1 1 1 1"), *GetQualityString(BuildSettings.CompressionQuality), /*BuildSettings.bSRGB ? TEXT("-srgb") :*/ TEXT("") );
 		}
 		else if (BuildSettings.TextureFormatName == GTextureFormatNameASTC_NormalAG)
 		{

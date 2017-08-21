@@ -11,6 +11,7 @@
 #include "UnrealEngine.h"
 #include "Misc/ConfigCacheIni.h"
 #include "Misc/FeedbackContext.h"
+#include "Math/Vector.h"
 
 THIRD_PARTY_INCLUDES_START
 #include <android/asset_manager.h>
@@ -76,6 +77,7 @@ void FJavaWrapper::FindClassesAndMethods(JNIEnv* Env)
 	AndroidThunkJava_GetMetaDataBoolean = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_GetMetaDataBoolean", "(Ljava/lang/String;)Z", bIsOptional);
 	AndroidThunkJava_GetMetaDataInt = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_GetMetaDataInt", "(Ljava/lang/String;)I", bIsOptional);
 	AndroidThunkJava_GetMetaDataString = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_GetMetaDataString", "(Ljava/lang/String;)Ljava/lang/String;", bIsOptional);
+	AndroidThunkJava_SetSustainedPerformanceMode = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_SetSustainedPerformanceMode", "(Z)V", bIsOptional);
 	AndroidThunkJava_ShowHiddenAlertDialog = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_ShowHiddenAlertDialog", "()V", bIsOptional);
 	AndroidThunkJava_LocalNotificationScheduleAtTime = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_LocalNotificationScheduleAtTime", "(Ljava/lang/String;ZLjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V", bIsOptional);
 	AndroidThunkJava_LocalNotificationClearAll = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_LocalNotificationClearAll", "()V", bIsOptional);
@@ -122,6 +124,7 @@ void FJavaWrapper::FindClassesAndMethods(JNIEnv* Env)
 	AndroidThunkJava_SetDesiredViewSize = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_SetDesiredViewSize", "(II)V", bIsOptional);
 
 	AndroidThunkJava_IsVirtuaInputClicked = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_IsVirtuaInputClicked", "(II)Z", bIsOptional);
+	
 }
 
 void FJavaWrapper::FindGooglePlayMethods(JNIEnv* Env)
@@ -286,6 +289,7 @@ jmethodID FJavaWrapper::AndroidThunkJava_LocalNotificationGetLaunchNotification;
 //jmethodID FJavaWrapper::AndroidThunkJava_LocalNotificationDestroyIfExists;
 jmethodID FJavaWrapper::AndroidThunkJava_HasActiveWiFiConnection;
 jmethodID FJavaWrapper::AndroidThunkJava_GetAndroidId;
+jmethodID FJavaWrapper::AndroidThunkJava_SetSustainedPerformanceMode;
 
 jclass FJavaWrapper::InputDeviceInfoClass;
 jfieldID FJavaWrapper::InputDeviceInfo_VendorId;
@@ -506,6 +510,14 @@ FString AndroidThunkCpp_GetMetaDataString(const FString& Key)
 		}
 	}
 	return Result;
+}
+
+void AndroidThunkCpp_SetSustainedPerformanceMode(bool bEnable)
+{
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
+	{
+		FJavaWrapper::CallVoidMethod(Env, FJavaWrapper::GameActivityThis, FJavaWrapper::AndroidThunkJava_SetSustainedPerformanceMode, bEnable);
+	}
 }
 
 void AndroidThunkCpp_ShowHiddenAlertDialog()
@@ -1321,4 +1333,27 @@ JNI_METHOD bool Java_com_epicgames_ue4_GameActivity_nativeIsShippingBuild(JNIEnv
 JNI_METHOD void Java_com_epicgames_ue4_GameActivity_nativeOnActivityResult(JNIEnv* jenv, jobject thiz, jobject activity, jint requestCode, jint resultCode, jobject data)
 {
 	FJavaWrapper::OnActivityResultDelegate.Broadcast(jenv, thiz, activity, requestCode, resultCode, data);
+}
+
+
+JNI_METHOD void Java_com_epicgames_ue4_GameActivity_nativeHandleSensorEvents(JNIEnv* jenv, jobject thiz, jfloatArray tilt, jfloatArray rotation_rate, jfloatArray gravity, jfloatArray acceleration)
+{
+	jfloat* tiltFloatValues = jenv->GetFloatArrayElements(tilt, 0);
+	FVector current_tilt(tiltFloatValues[0], tiltFloatValues[1], tiltFloatValues[2]);
+	jenv->ReleaseFloatArrayElements(tilt, tiltFloatValues, 0);
+
+	jfloat* rotation_rate_FloatValues = jenv->GetFloatArrayElements(rotation_rate, 0);
+	FVector current_rotation_rate(rotation_rate_FloatValues[0], rotation_rate_FloatValues[1], rotation_rate_FloatValues[2]);
+	jenv->ReleaseFloatArrayElements(rotation_rate, rotation_rate_FloatValues, 0);
+
+	jfloat* gravity_FloatValues = jenv->GetFloatArrayElements(gravity, 0);
+	FVector current_gravity(gravity_FloatValues[0], gravity_FloatValues[1], gravity_FloatValues[2]);
+	jenv->ReleaseFloatArrayElements(gravity, gravity_FloatValues, 0);
+	
+	jfloat* acceleration_FloatValues = jenv->GetFloatArrayElements(acceleration, 0);
+	FVector current_acceleration(acceleration_FloatValues[0], acceleration_FloatValues[1], acceleration_FloatValues[2]);
+	jenv->ReleaseFloatArrayElements(acceleration, acceleration_FloatValues, 0);
+
+	FAndroidInputInterface::QueueMotionData(current_tilt, current_rotation_rate, current_gravity, current_acceleration);
+
 }

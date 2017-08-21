@@ -12,7 +12,6 @@ namespace UnrealBuildTool
 	class HTML5ToolChain : VCToolChain
 	{
 		// ini configurations
-		static bool targetingWasm = false;
 		static bool targetWebGL2 = true; // Currently if this is set to true, UE4 can still fall back to WebGL 1 at runtime if browser does not support WebGL 2.
 		static bool enableSIMD = false;
 		static bool enableMultithreading = false;
@@ -20,10 +19,10 @@ namespace UnrealBuildTool
 
 		// verbose feedback
 		delegate void VerbosePrint(CppConfiguration Configuration, bool bOptimizeForSize);	// proto
-        static VerbosePrint PrintOnce = new VerbosePrint(PrintOnceOn);						// fn ptr
-        static void PrintOnceOff(CppConfiguration Configuration, bool bOptimizeForSize) {}	// noop
-        static void PrintOnceOn(CppConfiguration Configuration, bool bOptimizeForSize)
-        {
+		static VerbosePrint PrintOnce = new VerbosePrint(PrintOnceOn);						// fn ptr
+		static void PrintOnceOff(CppConfiguration Configuration, bool bOptimizeForSize) {}	// noop
+		static void PrintOnceOn(CppConfiguration Configuration, bool bOptimizeForSize)
+		{
 			if (Configuration == CppConfiguration.Debug)
 				Log.TraceInformation("HTML5ToolChain: " + Configuration + " -O0 faster compile time");
 			else if (bOptimizeForSize)
@@ -32,7 +31,7 @@ namespace UnrealBuildTool
 				Log.TraceInformation("HTML5ToolChain: " + Configuration + " -O2 aggressive size and speed optimization");
 			else if (Configuration == CppConfiguration.Shipping)
 				Log.TraceInformation("HTML5ToolChain: " + Configuration + " -O3 favor speed over size");
-            PrintOnce = new VerbosePrint(PrintOnceOff); // clear
+			PrintOnce = new VerbosePrint(PrintOnceOff); // clear
 		}
 
 		public HTML5ToolChain(FileReference InProjectFile)
@@ -54,35 +53,27 @@ namespace UnrealBuildTool
 			ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, ProjectDir, UnrealTargetPlatform.HTML5);
 
 			// these will be going away...
-			bool targetingAsmjs = true; // inverted check
 			bool targetWebGL1 = false; // inverted check
-			if ( Ini.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "TargetAsmjs", out targetingAsmjs) )
-			{
-				targetingWasm = !targetingAsmjs;
-			}
 			if ( Ini.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "TargetWebGL1", out targetWebGL1) )
 			{
 				targetWebGL2  = !targetWebGL1;
 			}
-			Ini.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "EnableSIMD", out enableSIMD);
-			Ini.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "EnableMultithreading", out enableMultithreading);
+//			Ini.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "EnableSIMD", out enableSIMD);
+//			Ini.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "EnableMultithreading", out enableMultithreading);
 			Ini.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "EnableTracing", out bEnableTracing);
-			Log.TraceInformation("HTML5ToolChain: TargetWasm = "         + targetingWasm        );
+
+			// TODO: remove this "fix" when emscripten supports (SIMD & pthreads) + WASM
+				enableSIMD = false;
+				// TODO: double check Engine/Source/Runtime/Core/Private/HTML5/HTML5PlatformProcess.cpp::SupportsMultithreading()
+				enableMultithreading = false;
+
 			Log.TraceInformation("HTML5ToolChain: TargetWebGL2 = "       + targetWebGL2         );
 			Log.TraceInformation("HTML5ToolChain: EnableSIMD = "         + enableSIMD           );
 			Log.TraceInformation("HTML5ToolChain: EnableMultithreading " + enableMultithreading );
 			Log.TraceInformation("HTML5ToolChain: EnableTracing = "      + bEnableTracing       );
 
-			// TODO: remove this "fix" when emscripten supports (SIMD & pthreads) + WASM
-			if ( targetingWasm )
-			{
-				enableSIMD = false;
-
-				// TODO: double check Engine/Source/Runtime/Core/Private/HTML5/HTML5PlatformProcess.cpp::SupportsMultithreading()
-				enableMultithreading = false;
-			}
-            PrintOnce = new VerbosePrint(PrintOnceOn); // reset
-        }
+			PrintOnce = new VerbosePrint(PrintOnceOn); // reset
+		}
 
 		public static void PreBuildSync()
 		{
@@ -101,40 +92,31 @@ namespace UnrealBuildTool
 		string GetSharedArguments_Global(CppConfiguration Configuration, bool bOptimizeForSize, string Architecture, bool bEnableShadowVariableWarnings, bool bShadowVariableWarningsAsErrors, bool bEnableUndefinedIdentifierWarnings, bool bUndefinedIdentifierWarningsAsErrors)
 		{
 			string Result = " ";
-
-			if (Architecture == "-win32") // simulator
-			{
-				return Result;
-			}
+//			string Result = " -Werror";
 
 			Result += " -fno-exceptions";
 
 			Result += " -Wdelete-non-virtual-dtor";
-			Result += " -Wno-unused-value"; // appErrorf triggers this
 			Result += " -Wno-switch"; // many unhandled cases
-			Result += " -Wno-tautological-constant-out-of-range-compare"; // disables some warnings about comparisons from TCHAR being a char
-			// this hides the "warning : comparison of unsigned expression < 0 is always false" type warnings due to constant comparisons, which are possible with template arguments
-			Result += " -Wno-tautological-compare";
+			Result += " -Wno-tautological-constant-out-of-range-compare"; // comparisons from TCHAR being a char
+			Result += " -Wno-tautological-compare"; // comparison of unsigned expression < 0 is always false" (constant comparisons, which are possible with template arguments)
+			Result += " -Wno-tautological-undefined-compare"; // pointer cannot be null in well-defined C++ code; comparison may be assumed to always evaluate
 			Result += " -Wno-inconsistent-missing-override"; // as of 1.35.0, overriding a member function but not marked as 'override' triggers warnings
-			Result += " -Wno-expansion-to-defined"; // 1.36.11
 			Result += " -Wno-undefined-var-template"; // 1.36.11
-			Result += " -Wno-nonportable-include-path"; // 1.36.11
+			Result += " -Wno-invalid-offsetof"; // using offsetof on non-POD types
+			Result += " -Wno-gnu-string-literal-operator-template"; // allow static FNames
 
-			Result += " -Wno-logical-op-parentheses"; // appErrorf triggers this
-			Result += " -Wno-array-bounds"; // some VectorLoads go past the end of the array, but it's okay in that case
-			// needed to suppress warnings about using offsetof on non-POD types.
-			Result += " -Wno-invalid-offsetof";
-			// we use this feature to allow static FNames.
-			Result += " -Wno-gnu-string-literal-operator-template";
+// no longer needed as of UE4.18
+//			Result += " -Wno-array-bounds"; // some VectorLoads go past the end of the array, but it's okay in that case
 
 			if (bEnableShadowVariableWarnings)
 			{
-				Result += " -Wshadow" + (bShadowVariableWarningsAsErrors ? "" : " -Wno-error=shadow");
+				Result += " -Wshadow" ;//+ (bShadowVariableWarningsAsErrors ? "" : " -Wno-error=shadow");
 			}
 
 			if (bEnableUndefinedIdentifierWarnings)
 			{
-				Result += " -Wundef" + (bUndefinedIdentifierWarningsAsErrors ? "" : " -Wno-error=undef");
+				Result += " -Wundef" ;//+ (bUndefinedIdentifierWarningsAsErrors ? "" : " -Wno-error=undef");
 			}
 
 			// --------------------------------------------------------------------------------
@@ -159,12 +141,12 @@ namespace UnrealBuildTool
 				Result += " -O3"; // favor speed over size
 			}
 
-            PrintOnce(Configuration, bOptimizeForSize);
+			PrintOnce(Configuration, bOptimizeForSize);
 
-            // --------------------------------------------------------------------------------
+			// --------------------------------------------------------------------------------
 
-            // JavaScript option overrides (see src/settings.js)
-            if (enableSIMD)
+			// JavaScript option overrides (see src/settings.js)
+			if (enableSIMD)
 			{
 				Result += " -msse2 -s SIMD=1";
 			}
@@ -176,14 +158,6 @@ namespace UnrealBuildTool
 
 			// --------------------------------------------------------------------------------
 			// normally, these option are for linking -- but it using here to force recompile when
-			if (targetingWasm) // flipping between asmjs and wasm
-			{
-				Result += " -s BINARYEN=1";
-			}
-			else
-			{
-				Result += " -s BINARYEN=0";
-			}
 			if (targetWebGL2) // flipping between webgl1 and webgl2
 			{
 				Result += " -s USE_WEBGL2=1";
@@ -216,22 +190,15 @@ namespace UnrealBuildTool
 		{
 			string Result = GetSharedArguments_Global(CompileEnvironment.Configuration, CompileEnvironment.bOptimizeForSize, CompileEnvironment.Architecture, CompileEnvironment.bEnableShadowVariableWarnings, CompileEnvironment.bShadowVariableWarningsAsErrors, CompileEnvironment.bEnableUndefinedIdentifierWarnings, CompileEnvironment.bUndefinedIdentifierWarningsAsErrors);
 
-			if (CompileEnvironment.Architecture != "-win32")  // ! simulator
-			{
-				Result += " -Wno-reorder"; // we disable constructor order warnings.
-			}
+// no longer needed as of UE4.18
+//			Result += " -Wno-reorder"; // we disable constructor order warnings.
 
 			return Result;
 		}
 
 		static string GetCLArguments_CPP(CppCompileEnvironment CompileEnvironment)
 		{
-			string Result = "";
-
-			if (CompileEnvironment.Architecture != "-win32") // ! simulator
-			{
-				Result = " -std=c++14";
-			}
+			string Result = " -std=c++14";
 
 			return Result;
 		}
@@ -239,6 +206,7 @@ namespace UnrealBuildTool
 		static string GetCLArguments_C(string Architecture)
 		{
 			string Result = "";
+
 			return Result;
 		}
 
@@ -253,119 +221,121 @@ namespace UnrealBuildTool
 			 *    > rm Engine/Binaries/HTML5/UE4Game.js*
 			 */
 
-			if (LinkEnvironment.Architecture != "-win32") // ! simulator
+			// suppress link time warnings
+// no longer needed as of UE4.18
+//			Result += " -Wno-parentheses"; // precedence order
+
+			// enable verbose mode
+			Result += " -v";
+
+			// do we want debug info?
+			if (LinkEnvironment.Configuration == CppConfiguration.Debug || LinkEnvironment.bCreateDebugInfo)
 			{
-				// suppress link time warnings
-				Result += " -Wno-ignored-attributes"; // function alias that always gets resolved
-				Result += " -Wno-parentheses"; // precedence order
-				Result += " -Wno-shift-count-overflow"; // 64bit is more than enough for shift 32
+				// TODO: Would like to have -g2 enabled here, but the UE4 manifest currently requires that UE4Game.js.symbols
+				// is always generated to the build, but that file is redundant if -g2 is passed (i.e. --emit-symbol-map gets ignored)
+				// so in order to enable -g2 builds, the UE4 packager should be made aware that .symbols file might not always exist.
+//				Result += " -g2";
 
-				// enable verbose mode
-				Result += " -v";
+				// As a lightweight alternative, just retain function names in output.
+				Result += " --profiling-funcs";
 
-				// do we want debug info?
-				if (LinkEnvironment.Configuration == CppConfiguration.Debug || LinkEnvironment.bCreateDebugInfo)
-				{
-					// TODO: Would like to have -g2 enabled here, but the UE4 manifest currently requires that UE4Game.js.symbols
-					// is always generated to the build, but that file is redundant if -g2 is passed (i.e. --emit-symbol-map gets ignored)
-					// so in order to enable -g2 builds, the UE4 packager should be made aware that .symbols file might not always exist.
-//					Result += " -g2";
-
-					// As a lightweight alternative, just retain function names in output.
-					Result += " --profiling-funcs";
-
-					// dump headers: http://stackoverflow.com/questions/42308/tool-to-track-include-dependencies
-//					Result += " -H";
-				}
-				else if (LinkEnvironment.Configuration == CppConfiguration.Development)
-				{
-					// Development builds always have their function names intact.
-					Result += " --profiling-funcs";
-				}
-
-				// Emit a .symbols map file of the minified function names. (on -g2 builds this has no effect)
-				Result += " --emit-symbol-map";
-
-				if (LinkEnvironment.Configuration != CppConfiguration.Debug)
-				{
-					if (LinkEnvironment.bOptimizeForSize) Result += " -s OUTLINING_LIMIT=40000";
-					else Result += " -s OUTLINING_LIMIT=110000";
-				}
-
-				if (LinkEnvironment.Configuration == CppConfiguration.Debug || LinkEnvironment.Configuration == CppConfiguration.Development)
-				{
-					// check for alignment/etc checking
-//					Result += " -s SAFE_HEAP=1";
-					//Result += " -s CHECK_HEAP_ALIGN=1";
-					//Result += " -s SAFE_DYNCALLS=1";
-
-					// enable assertions in non-Shipping/Release builds
-					Result += " -s ASSERTIONS=1";
-					Result += " -s GL_ASSERTIONS=1";
-
-					// In non-shipping builds, don't run ctol evaller, it can take a bit of extra time.
-					Result += " -s EVAL_CTORS=0";
-				}
-
-				if (targetingWasm)
-				{
-					Result += " -s BINARYEN=1 -s ALLOW_MEMORY_GROWTH=1";
-//					Result += " -s BINARYEN_METHOD=\\'native-wasm\\'";
-//					Result += " -s BINARYEN_MEM_MAX=-1";
-				}
-				else
-				{
-					// Memory init file is an asm.js only needed construct, in wasm the global data section is embedded in the wasm module,
-					// so this flag is not needed there.
-					Result += " --memory-init-file 1";
-
-					// Separate the asm.js code to its own file so that browsers can optimize memory usage for the script files for debugging.
-					Result += " -Wno-separate-asm";
-					Result += " --separate-asm";
-				}
-
-				// we have to specify the full amount of memory with Asm.JS.
-				// For Wasm, this is only the initial size, and the size can freely grow after that.
-//				Result += " -s TOTAL_MEMORY=256*1024*1024";
-
-				// no need for exceptions
-				Result += " -s DISABLE_EXCEPTION_CATCHING=1";
-
-				if (targetWebGL2)
-				{
-					// Enable targeting WebGL 2 when available.
-					Result += " -s USE_WEBGL2=1";
-
-					// Also enable WebGL 1 emulation in WebGL 2 contexts. This adds backwards compatibility related features to WebGL 2,
-					// such as:
-					//  - keep supporting GL_EXT_shader_texture_lod extension in GLSLES 1.00 shaders
-					//  - support for WebGL1 unsized internal texture formats
-					//  - mask the GL_HALF_FLOAT_OES != GL_HALF_FLOAT mixup
-					Result += " -s WEBGL2_BACKWARDS_COMPATIBILITY_EMULATION=1";
-//					Result += " -s FULL_ES3=1";
-				}
-//				else
-//				{
-//					Result += " -s FULL_ES2=1";
-//				}
-
-				// The HTML page template precreates the WebGL context, so instruct the runtime to hook into that if available.
-				Result += " -s GL_PREINITIALIZED_CONTEXT=1";
-
-				// export console command handler. Export main func too because default exports ( e.g Main ) are overridden if we use custom exported functions.
-				Result += " -s EXPORTED_FUNCTIONS=\"['_main', '_on_fatal']\"";
-
-				Result += " -s NO_EXIT_RUNTIME=1";
-
-				Result += " -s ERROR_ON_UNDEFINED_SYMBOLS=1";
-
-				if (bEnableTracing)
-				{
-					Result += " --tracing";
-				}
-
-				Result += " -s CASE_INSENSITIVE_FS=1";
+				// dump headers: http://stackoverflow.com/questions/42308/tool-to-track-include-dependencies
+//				Result += " -H";
 			}
+			else if (LinkEnvironment.Configuration == CppConfiguration.Development)
+			{
+				// Development builds always have their function names intact.
+				Result += " --profiling-funcs";
+			}
+
+			// Emit a .symbols map file of the minified function names. (on -g2 builds this has no effect)
+			Result += " --emit-symbol-map";
+
+			if (LinkEnvironment.Configuration != CppConfiguration.Debug)
+			{
+				if (LinkEnvironment.bOptimizeForSize) Result += " -s OUTLINING_LIMIT=40000";
+				else Result += " -s OUTLINING_LIMIT=110000";
+			}
+
+			if (LinkEnvironment.Configuration == CppConfiguration.Debug || LinkEnvironment.Configuration == CppConfiguration.Development)
+			{
+				// check for alignment/etc checking
+//				Result += " -s SAFE_HEAP=1";
+				//Result += " -s CHECK_HEAP_ALIGN=1";
+				//Result += " -s SAFE_DYNCALLS=1";
+
+				// enable assertions in non-Shipping/Release builds
+				Result += " -s ASSERTIONS=1";
+				Result += " -s GL_ASSERTIONS=1";
+//				Result += " -s ASSERTIONS=2";
+//				Result += " -s GL_ASSERTIONS=2";
+
+				// In non-shipping builds, don't run ctol evaller, it can take a bit of extra time.
+				Result += " -s EVAL_CTORS=0";
+
+//				// add source map loading to code
+//				string source_map = Path.Combine(HTML5SDKInfo.EMSCRIPTEN_ROOT, "src", "emscripten-source-map.min.js");
+//				source_map = source_map.Replace("\\", "/").Replace(" ","\\ "); // use "unix path" and escape spaces
+//				Result += " --pre-js " + source_map;
+
+				// link in libcxxabi demangling
+				Result += " -s DEMANGLE_SUPPORT=1";
+			}
+
+			Result += " -s BINARYEN=1 -s ALLOW_MEMORY_GROWTH=1";
+//			Result += " -s BINARYEN_METHOD=\\'native-wasm\\'";
+//			Result += " -s BINARYEN_MEM_MAX=-1";
+
+			// no need for exceptions
+			Result += " -s DISABLE_EXCEPTION_CATCHING=1";
+
+			if (targetWebGL2)
+			{
+				// WARNING - WARNING - WARNING - WARNING
+				// ensure the following chunk of code is added near the end of "Parse args" at the end of "shared.Settings..." section
+				// in file: .../Engine/Extras/ThirdPartyNotUE/emsdk/emscripten/XXX/emcc.py
+				//		## *** UE4 EDIT start ***
+				//		if shared.Settings.USE_WEBGL2:
+				//		  newargs.append('-DUE4_HTML5_TARGET_WEBGL2=1')
+				//		## *** UE4 EDIT end ***
+
+				// Enable targeting WebGL 2 when available.
+				Result += " -s USE_WEBGL2=1";
+
+				// Also enable WebGL 1 emulation in WebGL 2 contexts. This adds backwards compatibility related features to WebGL 2,
+				// such as:
+				//  - keep supporting GL_EXT_shader_texture_lod extension in GLSLES 1.00 shaders
+				//  - support for WebGL1 unsized internal texture formats
+				//  - mask the GL_HALF_FLOAT_OES != GL_HALF_FLOAT mixup
+				Result += " -s WEBGL2_BACKWARDS_COMPATIBILITY_EMULATION=1";
+//				Result += " -s FULL_ES3=1";
+			}
+//			else
+//			{
+//				Result += " -s FULL_ES2=1";
+//			}
+
+			// The HTML page template precreates the WebGL context, so instruct the runtime to hook into that if available.
+			Result += " -s GL_PREINITIALIZED_CONTEXT=1";
+
+			// export console command handler. Export main func too because default exports ( e.g Main ) are overridden if we use custom exported functions.
+			Result += " -s EXPORTED_FUNCTIONS=\"['_main', '_on_fatal']\"";
+
+			Result += " -s NO_EXIT_RUNTIME=1";
+
+			Result += " -s ERROR_ON_UNDEFINED_SYMBOLS=1";
+
+			if (bEnableTracing)
+			{
+				Result += " --tracing";
+			}
+
+			Result += " -s CASE_INSENSITIVE_FS=1";
+
+//			if (enableMultithreading)
+//			{
+//				Result += " -s ASYNCIFY=1"; // alllow BLOCKING calls (i.e. sleep)
+//			}
 
 			return Result;
 		}
@@ -373,32 +343,6 @@ namespace UnrealBuildTool
 		static string GetLibArguments(LinkEnvironment LinkEnvironment)
 		{
 			string Result = "";
-
-			if (LinkEnvironment.Architecture == "-win32") // simulator
-			{
-				// Prevents the linker from displaying its logo for each invocation.
-				Result += " /NOLOGO";
-
-				// Prompt the user before reporting internal errors to Microsoft.
-				Result += " /errorReport:prompt";
-
-				// Win32 build
-				Result += " /MACHINE:x86";
-
-				// Always CONSOLE because of main()
-				Result += " /SUBSYSTEM:CONSOLE";
-
-				//
-				//	Shipping & LTCG
-				//
-				if (LinkEnvironment.Configuration == CppConfiguration.Shipping)
-				{
-					// Use link-time code generation.
-					Result += " /ltcg";
-				}
-
-				return Result;
-			}
 
 			return Result;
 		}
@@ -460,11 +404,6 @@ namespace UnrealBuildTool
 
 		public override CPPOutput CompileCPPFiles(CppCompileEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName, ActionGraph ActionGraph)
 		{
-			if (CompileEnvironment.Architecture == "-win32") // simulator
-			{
-				return base.CompileCPPFiles(CompileEnvironment, SourceFiles, ModuleName, ActionGraph);
-			}
-
 			string Arguments = GetCLArguments_Global(CompileEnvironment);
 
 			CPPOutput Result = new CPPOutput();
@@ -556,11 +495,6 @@ namespace UnrealBuildTool
 		{
 			CPPOutput Result = new CPPOutput();
 
-			if (CompileEnvironment.Architecture == "-win32") // simulator
-			{
-				return base.CompileRCFiles(CompileEnvironment, RCFiles, ActionGraph);
-			}
-
 			return Result;
 		}
 
@@ -620,11 +554,6 @@ namespace UnrealBuildTool
 
 		public override FileItem LinkFiles(LinkEnvironment LinkEnvironment, bool bBuildImportLibraryOnly, ActionGraph ActionGraph)
 		{
-			if (LinkEnvironment.Architecture == "-win32") // simulator
-			{
-				return base.LinkFiles(LinkEnvironment, bBuildImportLibraryOnly, ActionGraph);
-			}
-
 			FileItem OutputFile;
 
 			// Make the final javascript file
@@ -639,6 +568,12 @@ namespace UnrealBuildTool
 			LinkAction.WorkingDirectory = UnrealBuildTool.EngineSourceDirectory.FullName;
 			LinkAction.CommandPath = HTML5SDKInfo.Python();
 			LinkAction.CommandArguments = HTML5SDKInfo.EmscriptenCompiler();
+//			bool bIsBuildingLibrary = LinkEnvironment.bIsBuildingLibrary || bBuildImportLibraryOnly;
+//			ReponseLines.Add(
+//					bIsBuildingLibrary ?
+//					GetLibArguments(LinkEnvironment) :
+//					GetLinkArguments(LinkEnvironment)
+//				);
 			ReponseLines.Add(GetLinkArguments(LinkEnvironment));
 
 			// Add the input files to a response file, and pass the response file on the command-line.
@@ -722,16 +657,7 @@ namespace UnrealBuildTool
 			// we need to include the generated .mem and .symbols file.
 			if (Binary.Config.Type != UEBuildBinaryType.StaticLibrary)
 			{
-				if (targetingWasm)
-				{
-					BuildProducts.Add(Binary.Config.OutputFilePath.ChangeExtension("wasm"), BuildProductType.RequiredResource);
-				}
-				else
-				{
-					BuildProducts.Add(Binary.Config.OutputFilePath + ".mem", BuildProductType.RequiredResource);
-					BuildProducts.Add(Binary.Config.OutputFilePath.ChangeExtension("asm.js"), BuildProductType.RequiredResource);
-					// TODO: add "_asm.js"
-				}
+				BuildProducts.Add(Binary.Config.OutputFilePath.ChangeExtension("wasm"), BuildProductType.RequiredResource);
 				BuildProducts.Add(Binary.Config.OutputFilePath + ".symbols", BuildProductType.RequiredResource);
 			}
 		}

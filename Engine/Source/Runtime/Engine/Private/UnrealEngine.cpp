@@ -205,7 +205,6 @@
 #include "EngineBuildSettings.h"
 #endif
 
-
 DEFINE_LOG_CATEGORY(LogEngine);
 IMPLEMENT_MODULE( FEngineModule, Engine );
 
@@ -10121,8 +10120,6 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 
 	FLoadTimeTracker::Get().ResetRawLoadTimes();
 
-	FPlatformMisc::PreLoadMap(URL.Map, WorldContext.LastURL.Map, nullptr);
-	
 	// make sure level streaming isn't frozen
 	if (WorldContext.World())
 	{

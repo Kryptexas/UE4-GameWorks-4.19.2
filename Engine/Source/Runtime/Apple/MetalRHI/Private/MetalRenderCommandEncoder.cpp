@@ -237,7 +237,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 #if METAL_NEW_NONNULL_DECL
 - (void)setVertexTextures:(const id <MTLTexture> __nullable [__nonnull])textures withRange:(NSRange)range
 #else
-- (void)setVertexTextures:(const id <MTLTexture> __nullable [__nullable])textures withRange:(NSRange)range
+- (void)setVertexTextures : (const id <MTLTexture> __nullable[__nullable])textures withRange : (NSRange)range
 #endif
 {
 #if METAL_DEBUG_OPTIONS
@@ -296,7 +296,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 #if METAL_NEW_NONNULL_DECL
 - (void)setVertexSamplerStates:(const id <MTLSamplerState> __nullable [__nonnull])samplers withRange:(NSRange)range
 #else
-- (void)setVertexSamplerStates:(const id <MTLSamplerState> __nullable [__nullable])samplers withRange:(NSRange)range
+- (void)setVertexSamplerStates : (const id <MTLSamplerState> __nullable[__nullable])samplers withRange : (NSRange)range
 #endif
 {
 #if METAL_DEBUG_OPTIONS
@@ -356,7 +356,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 #if METAL_NEW_NONNULL_DECL
 - (void)setVertexSamplerStates:(const id <MTLSamplerState> __nullable [__nonnull])samplers lodMinClamps:(const float [__nonnull])lodMinClamps lodMaxClamps:(const float [__nonnull])lodMaxClamps withRange:(NSRange)range
 #else
-- (void)setVertexSamplerStates:(const id <MTLSamplerState> __nullable [__nullable])samplers lodMinClamps:(const float [__nullable])lodMinClamps lodMaxClamps:(const float [__nullable])lodMaxClamps withRange:(NSRange)range
+- (void)setVertexSamplerStates : (const id <MTLSamplerState> __nullable[__nullable])samplers lodMinClamps : (const float[__nullable])lodMinClamps lodMaxClamps : (const float[__nullable])lodMaxClamps withRange : (NSRange)range
 #endif
 {
 #if METAL_DEBUG_OPTIONS
@@ -558,7 +558,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 #if METAL_NEW_NONNULL_DECL
 - (void)setFragmentTextures:(const id <MTLTexture> __nullable [__nonnull])textures withRange:(NSRange)range
 #else
-- (void)setFragmentTextures:(const id <MTLTexture> __nullable [__nullable])textures withRange:(NSRange)range
+- (void)setFragmentTextures : (const id <MTLTexture> __nullable[__nullable])textures withRange : (NSRange)range
 #endif
 {
 #if METAL_DEBUG_OPTIONS
@@ -618,7 +618,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 #if METAL_NEW_NONNULL_DECL
 - (void)setFragmentSamplerStates:(const id <MTLSamplerState> __nullable [__nonnull])samplers withRange:(NSRange)range
 #else
-- (void)setFragmentSamplerStates:(const id <MTLSamplerState> __nullable [__nullable])samplers withRange:(NSRange)range
+- (void)setFragmentSamplerStates : (const id <MTLSamplerState> __nullable[__nullable])samplers withRange : (NSRange)range
 #endif
 {
 #if METAL_DEBUG_OPTIONS
@@ -678,7 +678,7 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 #if METAL_NEW_NONNULL_DECL
 - (void)setFragmentSamplerStates:(const id <MTLSamplerState> __nullable [__nonnull])samplers lodMinClamps:(const float [__nonnull])lodMinClamps lodMaxClamps:(const float [__nonnull])lodMaxClamps withRange:(NSRange)range
 #else
-- (void)setFragmentSamplerStates:(const id <MTLSamplerState> __nullable [__nullable])samplers lodMinClamps:(const float [__nullable])lodMinClamps lodMaxClamps:(const float [__nullable])lodMaxClamps withRange:(NSRange)range
+- (void)setFragmentSamplerStates : (const id <MTLSamplerState> __nullable[__nullable])samplers lodMinClamps : (const float[__nullable])lodMinClamps lodMaxClamps : (const float[__nullable])lodMaxClamps withRange : (NSRange)range
 #endif
 {
 #if METAL_DEBUG_OPTIONS
@@ -1289,49 +1289,48 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugRenderCommandEncoder)
 	return self;
 }
 
-#if (METAL_NEW_NONNULL_DECL && !PLATFORM_MAC)
 // Null implementations of these functions to support iOS 11 beta.  To be filled out later
-- (void)setDepthClipMode:(MTLDepthClipMode)depthClipMode
+#if (METAL_NEW_NONNULL_DECL && !PLATFORM_MAC && __IPHONE_OS_VERSION_MIN_REQUIRED >= __IPHONE_11_0)
+- (void)setDepthClipMode:(MTLDepthClipMode)depthClipMode NS_AVAILABLE(10_13, 11_0)
 {
-	[Inner setDepthClipMode:depthClipMode];
+	[Inner setDepthClipMode : depthClipMode];
 }
 
-- (void)setColorStoreActionOptions:(MTLStoreActionOptions)storeActionOptions atIndex:(NSUInteger)colorAttachmentIndex
+-(void)setColorStoreActionOptions : (MTLStoreActionOptions)storeActionOptions atIndex : (NSUInteger)colorAttachmentIndex NS_AVAILABLE(10_13, 11_0)
 {
-	[Inner setColorStoreActionOptions:storeActionOptions atIndex:colorAttachmentIndex];
+	[Inner setColorStoreActionOptions : storeActionOptions atIndex : colorAttachmentIndex];
 }
 
-- (void)setDepthStoreActionOptions:(MTLStoreActionOptions)storeActionOptions
+-(void)setDepthStoreActionOptions : (MTLStoreActionOptions)storeActionOptions NS_AVAILABLE(10_13, 11_0)
 {
-	[Inner setDepthStoreActionOptions:storeActionOptions];
+	[Inner setDepthStoreActionOptions : storeActionOptions];
 }
 
-- (void)setStencilStoreActionOptions:(MTLStoreActionOptions)storeActionOptions
+-(void)setStencilStoreActionOptions : (MTLStoreActionOptions)storeActionOptions NS_AVAILABLE(10_13, 11_0)
 {
-	[Inner setStencilStoreActionOptions:storeActionOptions];
+	[Inner setStencilStoreActionOptions : storeActionOptions];
 }
 
-- (void)useResource:(id <MTLResource>)resource usage:(MTLResourceUsage)usage
+-(void)useResource : (id <MTLResource>)resource usage : (MTLResourceUsage)usage NS_AVAILABLE(10_13, 11_0)
 {
-	[Inner useResource:resource usage:usage];
+	[Inner useResource : resource usage : usage];
 }
 
-- (void)useResources:(const id <MTLResource> __nonnull[__nonnull])resources count:(NSUInteger)count usage:(MTLResourceUsage)usage
+-(void)useResources : (const id <MTLResource> __nonnull[__nonnull])resources count : (NSUInteger)count usage : (MTLResourceUsage)usage NS_AVAILABLE(10_13, 11_0)
 {
-	[Inner useResources:resources count:count usage:usage];
+	[Inner useResources : resources count : count usage : usage];
 }
 
-- (void)useHeap:(id <MTLHeap>)heap
+-(void)useHeap : (id <MTLHeap>)heap NS_AVAILABLE(10_13, 11_0)
 {
-	[Inner useHeap:heap];
+	[Inner useHeap : heap];
 }
 
-- (void)useHeaps:(const id <MTLHeap> __nonnull[__nonnull])heaps count:(NSUInteger)count
+-(void)useHeaps : (const id <MTLHeap> __nonnull[__nonnull])heaps count : (NSUInteger)count NS_AVAILABLE(10_13, 11_0)
 {
-	[Inner useHeaps:heaps count:count];
+	[Inner useHeaps : heaps count : count];
 }
-#endif //(METAL_NEW_NONNULL_DECL && !PLATFORM_MAC)
-
+#endif
 
 @end
 

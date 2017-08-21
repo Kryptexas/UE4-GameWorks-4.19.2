@@ -147,8 +147,6 @@ namespace iPhonePackager
 
 			MacMobileProvisionFilename = MachineName + "_UE4Temp.mobileprovision";
 			MacSigningIdentityFilename = MachineName + "_UE4Temp.p12";
-
-			CurrentBaseXCodeCommandLine = GetBaseXcodeCommandline();
 		}
 
 		/// <summary>
@@ -267,6 +265,25 @@ namespace iPhonePackager
 			string FinalMobileProvisionFilename = Path.Combine(Config.PCXcodeStagingDir, MacMobileProvisionFilename);
 			FileOperations.CopyRequiredFile(ProvisionWithPrefix, FinalMobileProvisionFilename);
 
+            // make sure this .mobileprovision file is newer than any other .mobileprovision file on the Mac (this file gets multiple games named the same file, 
+            // so the time stamp checking can fail when moving between games, a la the buildmachines!)
+            File.SetLastWriteTime(FinalMobileProvisionFilename, DateTime.UtcNow);
+			string ProjectFile = Config.RootRelativePath + @"Engine\Intermediate\ProjectFiles\UE4.xcodeproj\project.pbxproj";
+			if (Program.GameName != "UE4Game")
+			{
+				ProjectFile = Path.GetDirectoryName(Config.IntermediateDirectory) + @"\ProjectFiles\" + Program.GameName + @".xcodeproj\project.pbxproj";
+			}
+			FileOperations.CopyRequiredFile(ProjectFile, Path.Combine(Config.PCXcodeStagingDir, @"project.pbxproj.datecheck"));
+			
+			// copy the signing certificate over
+			// export the signing certificate to a file
+			MobileProvision Provision = MobileProvisionParser.ParseFile(ProvisionWithPrefix);
+			var Certificate = CodeSignatureBuilder.FindCertificate(Provision);
+			byte[] Data = Certificate.Export(System.Security.Cryptography.X509Certificates.X509ContentType.Pkcs12, "A");
+			File.WriteAllBytes(Path.Combine(Config.PCXcodeStagingDir, MacSigningIdentityFilename), Data);
+            Config.CodeSigningIdentity = Certificate.FriendlyName; // since the pipeline will use a temporary keychain that will contain only this certificate, this should be the only identity that will work
+            CurrentBaseXCodeCommandLine = GetBaseXcodeCommandline();
+
             // get the UUID
             string AllText = File.ReadAllText(FinalMobileProvisionFilename);
             string UUID = "";
@@ -282,23 +299,6 @@ namespace iPhonePackager
             }
             CurrentBaseXCodeCommandLine += String.Format(" PROVISIONING_PROFILE=" + UUID);
 
-            // make sure this .mobileprovision file is newer than any other .mobileprovision file on the Mac (this file gets multiple games named the same file, 
-            // so the time stamp checking can fail when moving between games, a la the buildmachines!)
-            File.SetLastWriteTime(FinalMobileProvisionFilename, DateTime.UtcNow);
-			string ProjectFile = Config.RootRelativePath + @"Engine\Intermediate\ProjectFiles\UE4.xcodeproj\project.pbxproj";
-			if (Program.GameName != "UE4Game")
-			{
-				ProjectFile = Path.GetDirectoryName(Config.IntermediateDirectory) + @"\ProjectFiles\" + Program.GameName + @".xcodeproj\project.pbxproj";
-			}
-			FileOperations.CopyRequiredFile(ProjectFile, Path.Combine(Config.PCXcodeStagingDir, @"project.pbxproj.datecheck"));
-			
-			// copy the signing certificate over
-			// export the signing certificate to a file
-			MobileProvision Provision = MobileProvisionParser.ParseFile(ProvisionWithPrefix);
-			var Certificate = CodeSignatureBuilder.FindCertificate(Provision);
-			byte[] Data = Certificate.Export(System.Security.Cryptography.X509Certificates.X509ContentType.Cert);
-			File.WriteAllBytes(Path.Combine(Config.PCXcodeStagingDir, MacSigningIdentityFilename), Data);
-
 			// needs Mac line endings so it can be executed
 			string SrcPath = @"..\..\..\Build\" + Config.OSString + @"\XcodeSupportFiles\prepackage.sh";
 			string DestPath = Path.Combine(Config.PCXcodeStagingDir, @"prepackage.sh");
@@ -313,13 +313,13 @@ namespace iPhonePackager
 		/**
 		 * Handle spawning of the RPCUtility with parameters
 		 */
-		public static bool RunRPCUtilty( string RPCCommand )
+		public static bool RunRPCUtilty( string RPCCommand, bool bIsSilent = false )
 		{
 			string CommandLine = "";
 			string WorkingFolder = "";
 			string DisplayCommandLine = "";
-			string TempKeychain = "$HOME/Library/Keychains/UE4TempKeychain.keychain";
-			string Certificate = "XcodeSupportFiles/" + MacSigningIdentityFilename;
+            string TempKeychain = "$HOME/Library/Keychains/UE4TempKeychain.keychain";
+            string Certificate = "XcodeSupportFiles/" + MacSigningIdentityFilename;
 			string LoginKeychain = "$HOME/Library/Keychains/login.keychain";
 			ErrorCodes Error = ErrorCodes.Error_Unknown;
 
@@ -376,8 +376,8 @@ namespace iPhonePackager
 			case "makeapp":
 				Program.Log(" ... making application (codesign, etc...)");
 				Program.Log("  Using signing identity '{0}'", Config.CodeSigningIdentity);
-				DisplayCommandLine = CurrentBaseXCodeCommandLine;
-				CommandLine = "\"" + MacXcodeStagingDir + "/..\" " + DisplayCommandLine;
+                DisplayCommandLine = "security -v unlock-keychain -p \"A\" \"" + TempKeychain + "\" && " + CurrentBaseXCodeCommandLine;
+                CommandLine = "\"" + MacXcodeStagingDir + "/..\" " + DisplayCommandLine;
 				WorkingFolder = "\"" + MacXcodeStagingDir + "/..\"";
 				Error = ErrorCodes.Error_RemoteCertificatesNotFound;
 				break;
@@ -385,12 +385,12 @@ namespace iPhonePackager
 			case "createkeychain":
 				Program.Log(" ... creating temporary key chain with signing certificate");
 				Program.Log("  Using signing identity '{0}'", Config.CodeSigningIdentity);
-				DisplayCommandLine = "security create-keychain -p \"\" \"" + TempKeychain + "\" && security list-keychains -s \"" + TempKeychain + "\" && security -v unlock-keychain -p \"\" \"" + TempKeychain + "\" && security import " + Certificate + " -k \"" + TempKeychain + "\" -P \"\" -A -t cert";
-				CommandLine = "\"" + MacXcodeStagingDir + "/..\" " + DisplayCommandLine;
+                DisplayCommandLine = "security create-keychain -p \"A\" \"" + TempKeychain + "\" && security list-keychains -s \"" + TempKeychain + "\" && security list-keychains && security set-keychain-settings -t 3600 -l  \"" + TempKeychain + "\" && security -v unlock-keychain -p \"A\" \"" + TempKeychain + "\" && security import " + Certificate + " -k \"" + TempKeychain + "\" -P \"A\" -T /usr/bin/codesign -T /usr/bin/security -t agg && CERT_IDENTITY=$(security find-identity -v -p codesigning \"" + TempKeychain + "\" | head -1 | grep '\"' | sed -e 's/[^\"]*\"//' -e 's/\".*//') && security default-keychain -s \"" + TempKeychain + "\" && security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k \"A\" -D \"$CERT_IDENTITY\" -t private " + TempKeychain;
+                CommandLine = "\"" + MacXcodeStagingDir + "/..\" " + DisplayCommandLine;
 				WorkingFolder = "\"" + MacXcodeStagingDir + "/..\"";
 				break;
 
-			case "deletekeychain":
+            case "deletekeychain":
 				Program.Log(" ... remove temporary key chain");
 				Program.Log("  Using signing identity '{0}'", Config.CodeSigningIdentity);
 				DisplayCommandLine = "security list-keychains -s \"" + LoginKeychain + "\" && security delete-keychain \"" + TempKeychain + "\"";
@@ -433,7 +433,7 @@ namespace iPhonePackager
 				WorkingFolder = "\"" + MacStagingRootDir + "\"";
 				break;
 
-			case "zip":
+            case "zip":
 				Program.Log( " ... zipping" );
 
 				// NOTE: -y preserves symbolic links which is needed for iOS distro builds
@@ -492,7 +492,7 @@ namespace iPhonePackager
 				RPCUtil.WaitForExit();
 
 				bSuccess = (RPCUtil.ExitCode == 0);
-				if (bSuccess == false)
+				if (bSuccess == false && !bIsSilent)
 				{
 					Program.Error("RPCCommand {0} failed with return code {1}", RPCCommand, RPCUtil.ExitCode);
 					switch (RPCCommand.ToLowerInvariant())
@@ -509,7 +509,7 @@ namespace iPhonePackager
 			{
 				Program.Log("Running SSH on " + MacName + " ... ");
 				bSuccess = SSHCommandHelper.Command(MacName, DisplayCommandLine, WorkingFolder);
-				if (bSuccess == false)
+				if (bSuccess == false && !bIsSilent)
 				{
 					Program.Error("RPCCommand {0} failed with return code {1}", RPCCommand, Error);
 					Program.ReturnCode = (int)Error;
@@ -543,8 +543,8 @@ namespace iPhonePackager
 			// Copy staged files from PC to Mac
 			Program.ExecuteCommand("StageMacFiles", null);
 
-			// Set the executable bit on the EXE
-			CompileTime.ExecuteRemoteCommand("SetExec");
+            // Set the executable bit on the EXE
+            CompileTime.ExecuteRemoteCommand("SetExec");
 
 			// Install the provision (necessary for MakeApp to succeed)
 			CompileTime.ExecuteRemoteCommand("EnsureProvisionDirExists");
@@ -560,15 +560,16 @@ namespace iPhonePackager
 			CompileTime.ExecuteRemoteCommand("PrePackage");
 			if (!Config.bUseRPCUtil)
 			{
-				CompileTime.ExecuteRemoteCommand("CreateKeyChain");
+                CompileTime.ExecuteRemoteCommand("DeleteKeyChain", true);
+                CompileTime.ExecuteRemoteCommand("CreateKeyChain");
 			}
 			CompileTime.ExecuteRemoteCommand("MakeApp");
-			if (!Config.bUseRPCUtil)
-			{
-				CompileTime.ExecuteRemoteCommand("DeleteKeyChain");
-			}
+            if (!Config.bUseRPCUtil)
+            {
+                CompileTime.ExecuteRemoteCommand("DeleteKeyChain");
+            }
 
-			Program.Log(String.Format("Finished creating .app directory on Mac (took {0:0.00} s)",
+            Program.Log(String.Format("Finished creating .app directory on Mac (took {0:0.00} s)",
 				(DateTime.Now - StartTime).TotalSeconds));
 		}
 		
@@ -604,9 +605,9 @@ namespace iPhonePackager
 			CompileTime.ExecuteRemoteCommand("MakeApp");
 		}
 
-		static public void ExecuteRemoteCommand(string RemoteCommand)
+		static public void ExecuteRemoteCommand(string RemoteCommand, bool bIsSilent = false)
 		{
-			RunRPCUtilty(RemoteCommand);
+            RunRPCUtilty(RemoteCommand, bIsSilent);
 		}
 
 		static public bool ExecuteCompileCommand(string Command, string RPCCommand)

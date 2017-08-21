@@ -138,7 +138,7 @@ bool FALAudioDevice::InitializeHardware( void )
 		ALC_STEREO_SOURCES, 4,
 		0, 0
 	};
-#if PLATFORM_HTML5_WIN32 || PLATFORM_LINUX
+#if PLATFORM_LINUX
 	SoundContext = alcCreateContext( HardwareDevice, Caps );
 #elif PLATFORM_HTML5
 	SoundContext = alcCreateContext( HardwareDevice, 0 );

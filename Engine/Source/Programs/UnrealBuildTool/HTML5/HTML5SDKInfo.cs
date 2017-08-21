@@ -10,13 +10,13 @@ using System.Text.RegularExpressions;
 namespace UnrealBuildTool
 {
 	/// <summary>
-	/// 
+	///
 	/// </summary>
 	public class HTML5SDKInfo
 	{
-		static string SDKVersion = "1.37.9";
-		static string LLVM_VER = "e1.37.9_64bit";
-		static string BINARYEN_VER = "e1.37.9_64bit";
+		static string SDKVersion = "1.37.19";
+		static string LLVM_VER = "e1.37.19_64bit";
+//		static string BINARYEN_VER = "e1.37.9_64bit";
 //		static string SDKVersion = "incoming";
 //		static string LLVM_VER = "incoming";
 //		static string BINARYEN_VER = "incoming";
@@ -31,15 +31,15 @@ namespace UnrealBuildTool
 			{
 				// If user has configured a custom Emscripten toolchain, use that automatically.
 				if (Environment.GetEnvironmentVariable("EMSDK") != null) return Environment.GetEnvironmentVariable("EMSDK");
-                // Otherwise, use the one embedded in this repository.
-                return FileReference.Combine(UnrealBuildTool.EngineDirectory, "Extras", "ThirdPartyNotUE", "emsdk").FullName;
+				// Otherwise, use the one embedded in this repository.
+				return FileReference.Combine(UnrealBuildTool.EngineDirectory, "Extras", "ThirdPartyNotUE", "emsdk").FullName;
 			}
 		}
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <returns></returns>
-        static public string EMSCRIPTEN_ROOT
+		/// <summary>
+		///
+		/// </summary>
+		/// <returns></returns>
+		static public string EMSCRIPTEN_ROOT
 		{
 			get
 			{
@@ -50,11 +50,11 @@ namespace UnrealBuildTool
 				return Path.Combine(SDKBase, "emscripten", SDKVersion);
 			}
 		}
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <returns></returns>
-        static public string EmscriptenCMakeToolChainFile { get { return Path.Combine(EMSCRIPTEN_ROOT,  "cmake", "Modules", "Platform", "Emscripten.cmake"); } }
+		/// <summary>
+		///
+		/// </summary>
+		/// <returns></returns>
+		static public string EmscriptenCMakeToolChainFile { get { return Path.Combine(EMSCRIPTEN_ROOT,  "cmake", "Modules", "Platform", "Emscripten.cmake"); } }
 		// --------------------------------------------------
 		// --------------------------------------------------
 		static string CURRENT_PLATFORM
@@ -98,7 +98,7 @@ namespace UnrealBuildTool
 			if (config != null && File.Exists(config))
 			{
 				Log.TraceInformation( "NOTE[ReadEmscriptenConfigFile]: using EM_CONFIG" );
-                config = File.ReadAllText(config);
+				config = File.ReadAllText(config);
 			}
 			return config;
 		}
@@ -107,7 +107,7 @@ namespace UnrealBuildTool
 		static string GetEmscriptenConfigVar(string variable)
 		{
 			string config = ReadEmscriptenConfigFile();
-            if (config == null) return null;
+			if (config == null) return null;
 			string[] tokens = config.Split('\n');
 
 			// Parse lines of type "KEY='value'"
@@ -132,7 +132,7 @@ namespace UnrealBuildTool
 				if (llvm_root != null) return llvm_root;
 
 				// Otherwise, use the one embedded in this repository.
-                return Path.Combine(SDKBase, CURRENT_PLATFORM, "clang", LLVM_VER);
+				return Path.Combine(SDKBase, CURRENT_PLATFORM, "clang", LLVM_VER);
 			}
 		}
 		static string BINARYEN_ROOT
@@ -144,7 +144,8 @@ namespace UnrealBuildTool
 				if (binaryen_root != null) return binaryen_root;
 
 				// Otherwise, use the one embedded in this repository.
-                return Path.Combine(SDKBase, CURRENT_PLATFORM, "binaryen", BINARYEN_VER);
+//				return Path.Combine(SDKBase, CURRENT_PLATFORM, "binaryen", BINARYEN_VER);
+				return Path.Combine(SDKBase, CURRENT_PLATFORM, "clang", LLVM_VER, "binaryen");
 			}
 		}
 		static string NODE_JS
@@ -167,7 +168,7 @@ namespace UnrealBuildTool
 				string python = GetEmscriptenConfigVar("PYTHON");
 				if (python != null) return python;
 
-                switch (BuildHostPlatform.Current.Platform)
+				switch (BuildHostPlatform.Current.Platform)
 				{
 					case UnrealTargetPlatform.Win64:
 						return Path.Combine(SDKBase, "Win64", "python", PYTHON_VER, "python.exe");
@@ -182,10 +183,10 @@ namespace UnrealBuildTool
 			}
 		}
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <returns></returns>
+		/// <summary>
+		///
+		/// </summary>
+		/// <returns></returns>
 		public static string HTML5Intermediatory
 		{
 			get
@@ -198,33 +199,33 @@ namespace UnrealBuildTool
 				return HTML5IntermediatoryPath;
 			}
 		}
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <returns></returns>
-        static public string DOT_EMSCRIPTEN
-        {
-            get
-            {
+		/// <summary>
+		///
+		/// </summary>
+		/// <returns></returns>
+		static public string DOT_EMSCRIPTEN
+		{
+			get
+			{
 				// If user has configured a custom Emscripten toolchain, use that automatically.
-                if (Environment.GetEnvironmentVariable("EMSDK") != null && Environment.GetEnvironmentVariable("EM_CONFIG") != null && File.Exists(Environment.GetEnvironmentVariable("EM_CONFIG")))
-                {
+				if (Environment.GetEnvironmentVariable("EMSDK") != null && Environment.GetEnvironmentVariable("EM_CONFIG") != null && File.Exists(Environment.GetEnvironmentVariable("EM_CONFIG")))
+				{
 					Log.TraceInformation( "NOTE[DOT_EMSCRIPTEN]: using EM_CONFIG" );
-                    return Environment.GetEnvironmentVariable("EM_CONFIG");
-                }
+					return Environment.GetEnvironmentVariable("EM_CONFIG");
+				}
 
 				// Otherwise, use the one embedded in this repository.
-                return Path.Combine(HTML5Intermediatory, ".emscripten");
-            }
-        }
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <returns></returns>
-        static public string EMSCRIPTEN_CACHE { get { return Path.Combine(HTML5Intermediatory, "EmscriptenCache"); ; } }
+				return Path.Combine(HTML5Intermediatory, ".emscripten");
+			}
+		}
+		/// <summary>
+		///
+		/// </summary>
+		/// <returns></returns>
+		static public string EMSCRIPTEN_CACHE { get { return Path.Combine(HTML5Intermediatory, "EmscriptenCache"); ; } }
 
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <returns></returns>
 		public static string SetupEmscriptenTemp()
@@ -255,10 +256,10 @@ namespace UnrealBuildTool
 			return TempPath;
 		}
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <returns></returns>
+		/// <summary>
+		///
+		/// </summary>
+		/// <returns></returns>
 		public static string PLATFORM_USER_HOME
 		{
 			get
@@ -277,7 +278,7 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <returns></returns>
 		public static string SetUpEmscriptenConfigFile()
@@ -382,7 +383,7 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <returns></returns>
 		public static string EmscriptenVersion()
@@ -391,7 +392,7 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <returns></returns>
 		public static string EmscriptenPackager()
@@ -400,7 +401,7 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <returns></returns>
 		public static string EmscriptenCompiler()
@@ -409,7 +410,7 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <returns></returns>
 		public static string Python()
@@ -418,7 +419,7 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <returns></returns>
 		public static bool IsSDKInstalled()
@@ -440,17 +441,17 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <returns></returns>
 		public static int HeapSize(ConfigHierarchy ConfigCache, string BuildType)
 		{
-            // defaults for this script
+			// defaults for this script
 			int ConfigHeapSize = BuildType == "Development" ? 1024 : 512;
 
-            // values set by editor
+			// values set by editor
 			var bGotHeapSize = ConfigCache.GetInt32("/Script/HTML5PlatformEditor.HTML5TargetSettings", "HeapSize" + BuildType, out ConfigHeapSize);
-	
+
 			Log.TraceInformation("Setting Heap size to {0} Mb ", ConfigHeapSize);
 			return ConfigHeapSize;
 		}

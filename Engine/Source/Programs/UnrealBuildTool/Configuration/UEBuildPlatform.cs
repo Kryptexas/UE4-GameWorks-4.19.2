@@ -286,7 +286,7 @@ namespace UnrealBuildTool
 				case CppPlatform.Android:			return UnrealTargetPlatform.Android;
 				case CppPlatform.IOS:				return UnrealTargetPlatform.IOS;
 				case CppPlatform.HTML5:			return UnrealTargetPlatform.HTML5;
-                case CppPlatform.Linux:			return UnrealTargetPlatform.Linux;
+				case CppPlatform.Linux:			return UnrealTargetPlatform.Linux;
 				case CppPlatform.TVOS:			return UnrealTargetPlatform.TVOS;
 				case CppPlatform.Switch: 			return UnrealTargetPlatform.Switch;
 			}
@@ -459,7 +459,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Whether this platform requires the use of absolute paths in Unity files. The compiler will try to combine paths in
 		/// each #include directive with the standard include paths, and unity files in intermediate directories can result in the
-		/// maximum path length being exceeded on Windows. On the other hand, remote compilation requires relative paths so 
+		/// maximum path length being exceeded on Windows. On the other hand, remote compilation requires relative paths so
 		/// dependency checking works correctly on the local machine as well as on the remote machine.
 		/// </summary>
 		/// <returns>bool true if it is required, false if not</returns>
@@ -485,15 +485,6 @@ namespace UnrealBuildTool
 		/// <param name="Target">The target being build</param>
 		public virtual void ModifyModuleRulesForOtherPlatform(string ModuleName, ModuleRules Rules, ReadOnlyTargetRules Target)
 		{
-		}
-
-		/// <summary>
-		/// Allow the platform to override the NMake output name
-		/// </summary>
-		public virtual FileReference ModifyNMakeOutput(FileReference ExeName)
-		{
-			// by default, use original
-			return ExeName;
 		}
 
 		/// <summary>
@@ -556,7 +547,7 @@ namespace UnrealBuildTool
 		{
 			List<UnrealTargetConfiguration> Configurations = new List<UnrealTargetConfiguration>()
 			{
-				UnrealTargetConfiguration.Development, 
+				UnrealTargetConfiguration.Development,
 			};
 
 			if (bIncludeDebug)
@@ -623,8 +614,8 @@ namespace UnrealBuildTool
 		{
 			string[] BoolKeys = new string[] {
 				"bCompileApex", "bCompileICU", "bCompileSimplygon", "bCompileSimplygonSSF",
-				"bCompileLeanAndMeanUE", "bIncludeADO", "bCompileRecast", "bCompileSpeedTree", 
-				"bCompileWithPluginSupport", "bCompilePhysXVehicle", "bCompileFreeType", 
+				"bCompileLeanAndMeanUE", "bIncludeADO", "bCompileRecast", "bCompileSpeedTree",
+				"bCompileWithPluginSupport", "bCompilePhysXVehicle", "bCompileFreeType",
 				"bCompileForSize", "bCompileCEF3"
 			};
 
@@ -703,12 +694,12 @@ namespace UnrealBuildTool
 			GlobalLinkEnvironment.bCreateDebugInfo = GlobalCompileEnvironment.bCreateDebugInfo;
 		}
 
-        /// <summary>
-        /// Whether this platform should create debug information or not
-        /// </summary>
-        /// <param name="Target">The target being built</param>
-        /// <returns>bool    true if debug info should be generated, false if not</returns>
-        public abstract bool ShouldCreateDebugInfo(ReadOnlyTargetRules Target);
+		/// <summary>
+		/// Whether this platform should create debug information or not
+		/// </summary>
+		/// <param name="Target">The target being built</param>
+		/// <returns>bool    true if debug info should be generated, false if not</returns>
+		public abstract bool ShouldCreateDebugInfo(ReadOnlyTargetRules Target);
 
 		/// <summary>
 		/// Creates a toolchain instance for the given platform. There should be a single toolchain instance per-target, as their may be

@@ -57,22 +57,47 @@ void UIOSRuntimeSettings::PostEditChangeProperty(struct FPropertyChangedEvent& P
 	}
 
 	// Ensure that at least one API is supported
-	if (!bSupportsMetal && !bSupportsOpenGLES2 /*&& !bSupportsMetalMRT*/)
+	if (!bSupportsMetal)
 	{
-		bSupportsOpenGLES2 = true;
+		bSupportsMetal = true;
+		UpdateSinglePropertyInConfigFile(GetClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bSupportsMetal)), GetDefaultConfigFilename());
+	}
+	if (bSupportsOpenGLES2)
+	{
+		bSupportsOpenGLES2 = false;
 		UpdateSinglePropertyInConfigFile(GetClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bSupportsOpenGLES2)), GetDefaultConfigFilename());
 	}
 
 	// Ensure that at least arm64 is selected for shipping and dev
-	if (!bDevForArmV7 && !bDevForArm64 && !bDevForArmV7S)
+	if (!bDevForArm64)
 	{
 		bDevForArm64 = true;
 		UpdateSinglePropertyInConfigFile(GetClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bDevForArm64)), GetDefaultConfigFilename());
 	}
-	if (!bShipForArmV7 && !bShipForArm64 && !bShipForArmV7S)
+	if (bDevForArmV7)
+	{
+		bDevForArmV7 = false;
+		UpdateSinglePropertyInConfigFile(GetClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bDevForArmV7)), GetDefaultConfigFilename());
+	}
+	if (bDevForArmV7S)
+	{
+		bDevForArmV7S = false;
+		UpdateSinglePropertyInConfigFile(GetClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bDevForArmV7S)), GetDefaultConfigFilename());
+	}
+	if (!bShipForArm64)
 	{
 		bShipForArm64 = true;
 		UpdateSinglePropertyInConfigFile(GetClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bShipForArm64)), GetDefaultConfigFilename());
+	}
+	if (bShipForArmV7)
+	{
+		bShipForArmV7 = false;
+		UpdateSinglePropertyInConfigFile(GetClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bShipForArmV7)), GetDefaultConfigFilename());
+	}
+	if (bShipForArmV7S)
+	{
+		bShipForArmV7S = false;
+		UpdateSinglePropertyInConfigFile(GetClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bShipForArmV7S)), GetDefaultConfigFilename());
 	}
 }
 
@@ -112,25 +137,42 @@ void UIOSRuntimeSettings::PostInitProperties()
 		}
 	}
 
-	// switch IOS_6.1 and IOS_7 to IOS_8
-	if (MinimumiOSVersion < EIOSVersion::IOS_8)
+	// switch IOS_6.1, IOS_7, and IOS_8 to IOS_9
+	if (MinimumiOSVersion < EIOSVersion::IOS_9)
 	{
-		MinimumiOSVersion = EIOSVersion::IOS_8;
+		MinimumiOSVersion = EIOSVersion::IOS_9;
 	}
-
-	// disable 32-bit support if in binary release and update the ini file
-	if (!FEngineBuildSettings::IsSourceDistribution())
+	if (bSupportsOpenGLES2)
 	{
-		if (bDevForArmV7)
-		{
-			bDevForArmV7 = false;
-			UpdateSinglePropertyInConfigFile(GetClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bDevForArmV7)), GetDefaultConfigFilename());
-		}
-		if (bShipForArmV7)
-		{
-			bShipForArmV7 = false;
-			UpdateSinglePropertyInConfigFile(GetClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bShipForArmV7)), GetDefaultConfigFilename());
-		}
+		bSupportsOpenGLES2 = false;
+	}
+	if (bDevForArmV7)
+	{
+		bDevForArmV7 = false;
+	}
+	if (bDevForArmV7S)
+	{
+		bDevForArmV7S = false;
+	}
+	if (bShipForArmV7)
+	{
+		bShipForArmV7 = false;
+	}
+	if (bShipForArmV7S)
+	{
+		bShipForArmV7S = false;
+	}
+	if (!bSupportsMetal)
+	{
+		bSupportsMetal = true;
+	}
+	if (!bDevForArm64)
+	{
+		bDevForArm64 = true;
+	}
+	if (!bShipForArm64)
+	{
+		bShipForArm64 = true;
 	}
 }
 #endif

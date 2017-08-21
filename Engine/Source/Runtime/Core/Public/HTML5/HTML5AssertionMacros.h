@@ -1,16 +1,14 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#pragma once 
+#pragma once
 
-// scratch pad for HTML5 assertion macros macros. 
+// scratch pad for HTML5 assertion macros macros.
 
-#if !PLATFORM_HTML5_WIN32
 extern "C" {
 void emscripten_log(int flags, ...);
 }
-#endif
 
-#if DO_CHECK && !PLATFORM_HTML5_WIN32
+#if DO_CHECK
 
 // For the asm.js builds, use emscripten-specific versions of these macros
 
@@ -33,9 +31,9 @@ inline void html5_break_msg(const char* msg, const char* file, int line) {
 	{
 		var InMsg = Pointer_stringify($0);
 		var InFile = Pointer_stringify($1);
-		alert('Expression ('+InMsg+') failed in '+InFile+':'+$2+'!\nCheck console for details.\n'); 
-		var callstack = new Error; 
-		throw callstack.stack; 
+		alert('Expression ('+InMsg+') failed in '+InFile+':'+$2+'!\nCheck console for details.\n');
+		var callstack = new Error;
+		throw callstack.stack;
 	}, msg, file, line);
 }
 
@@ -66,7 +64,7 @@ inline void html5_break_msg(const char* msg, const char* file, int line) {
 
 #endif
 
-#if DO_GUARD_SLOW && !PLATFORM_HTML5_WIN32
+#if DO_GUARD_SLOW
 
 #undef checkSlow
 #undef checkfSlow

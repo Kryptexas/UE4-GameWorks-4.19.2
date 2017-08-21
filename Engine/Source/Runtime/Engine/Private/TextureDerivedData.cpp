@@ -143,7 +143,7 @@ static void SerializeForKey(FArchive& Ar, const FTextureBuildSettings& Settings)
 		TextureFormat = TPM->FindTextureFormat(BuildSettings.TextureFormatName);
 		if (TextureFormat)
 		{
-			Version = TextureFormat->GetVersion(BuildSettings.TextureFormatName);
+			Version = TextureFormat->GetVersion(BuildSettings.TextureFormatName, &BuildSettings);
 		}
 	}
 	
@@ -329,6 +329,7 @@ static void GetTextureBuildSettings(
 	OutBuildSettings.ChromaKeyColor = Texture.ChromaKeyColor;
 	OutBuildSettings.bChromaKeyTexture = Texture.bChromaKeyTexture;
 	OutBuildSettings.ChromaKeyThreshold = Texture.ChromaKeyThreshold;
+	OutBuildSettings.CompressionQuality = Texture.CompressionQuality - 1; // translate from enum's 0 .. 5 to desired compression (-1 .. 4, where -1 is default while 0 .. 4 are actual quality setting override)
 }
 
 /**

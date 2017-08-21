@@ -9,19 +9,14 @@ public class libWebSockets : ModuleRules
 		Type = ModuleType.External;
 		string WebsocketPath = Path.Combine(Target.UEThirdPartySourceDirectory, "libWebSockets", "libwebsockets");
 		string PlatformSubdir = Target.Platform.ToString();
-		
+
 		switch (Target.Platform)
 		{
 		case UnrealTargetPlatform.HTML5:
-			if (Target.Architecture == "-win32")
-			{
-				PlatformSubdir = "Win32";
-				goto case UnrealTargetPlatform.Win32;
-			}
 			return;
 
 		case UnrealTargetPlatform.Win64:
-	 	case UnrealTargetPlatform.Win32:
+		case UnrealTargetPlatform.Win32:
 			PlatformSubdir = Path.Combine(PlatformSubdir, Target.WindowsPlatform.GetVisualStudioCompilerVersionName());
 			if (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT)
 			{

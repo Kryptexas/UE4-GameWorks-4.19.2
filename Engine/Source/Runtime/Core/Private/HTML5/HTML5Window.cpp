@@ -4,9 +4,7 @@
 #include "HAL/OutputDevices.h"
 
 THIRD_PARTY_INCLUDES_START
-	#if !PLATFORM_HTML5_WIN32
-		#include <emscripten/emscripten.h>
-	#endif
+	#include <emscripten/emscripten.h>
 	#include <SDL.h>
 THIRD_PARTY_INCLUDES_END
 
@@ -49,15 +47,9 @@ FPlatformRect FHTML5Window::GetScreenRect()
 	ScreenRect.Top = 0;
 
 	int Width, Height;
-#if !PLATFORM_HTML5_WIN32
 	int fs;
 	emscripten_get_canvas_size(&Width, &Height, &fs);
 	UE_LOG(LogHTML5Window, Verbose, TEXT("emscripten_get_canvas_size: Width:%d, Height:%d, Fullscreen:%d"), Width, Height, fs);
-#else
-	SDL_Window* WindowHandle= SDL_GL_GetCurrentWindow();
-	SDL_GetWindowSize(WindowHandle, &Width, &Height);
-	UE_LOG(LogHTML5Window, Verbose, TEXT("SDL_GetWindowSize: Width:%d, Height:%d"), Width, Height);
-#endif
 	CalculateSurfaceSize(NULL,Width,Height);
 	ScreenRect.Right = Width;
 	ScreenRect.Bottom = Height;
@@ -70,19 +62,13 @@ void FHTML5Window::CalculateSurfaceSize(void* InWindow, int32_t& SurfaceWidth, i
 	const int DividableBy = 8;
 	SurfaceWidth  = ((SurfaceWidth  + DividableBy - 1) / DividableBy) * DividableBy;
 	SurfaceHeight = ((SurfaceHeight + DividableBy - 1) / DividableBy) * DividableBy;
-
 }
 
 EWindowMode::Type FHTML5Window::GetWindowMode() const
 {
-#if !PLATFORM_HTML5_WIN32
 	int Width,Height,FullScreen;
 	emscripten_get_canvas_size(&Width,&Height,&FullScreen);
 	return FullScreen ? EWindowMode::Fullscreen : EWindowMode::Windowed;
-#else
-	return EWindowMode::Windowed;
-#endif
-
 }
 
 void FHTML5Window::ReshapeWindow(int32 X, int32 Y, int32 Width, int32 Height)

@@ -6,16 +6,14 @@
 #include "HttpManager.h"
 #include "Misc/App.h"
 
-#if PLATFORM_HTML5_BROWSER
 #include "HTML5JavaScriptFx.h"
-#endif
 
 /****************************************************************************
 * FHTML5HttpRequest implementation
 ***************************************************************************/
 
 FHTML5HttpRequest::FHTML5HttpRequest()
-	:   bCanceled(false)
+	:	bCanceled(false)
 	,	bCompleted(false)
 	,	BytesSent(0)
 	,	CompletionStatus(EHttpRequestStatus::NotStarted)
@@ -323,7 +321,6 @@ void FHTML5HttpRequest::ProgressCallback(void* arg, int Loaded, int Total)
 	UE_LOG(LogHttp, Verbose, TEXT("Loaded: %d, Total: %d"), Loaded, Total);
 }
 
-#if PLATFORM_HTML5_BROWSER
 extern "C" void Register_OnBeforeUnload(void *ctx, void(*callback)(void*))
 {
 	UE_Register_OnBeforeUnload(ctx,callback);
@@ -333,19 +330,9 @@ extern "C" void UnRegister_OnBeforeUnload(void *ctx, void(*callback)(void*))
 {
 	UE_UnRegister_OnBeforeUnload(ctx,callback);
 }
-#endif
 
 bool FHTML5HttpRequest::StartRequest()
 {
-#if ! PLATFORM_HTML5_BROWSER
-	UE_LOG(LogHttp, Verbose, TEXT("FHTML5HttpRequest::StartRequest()"));
-
-	UE_LOG(LogHttp, Verbose, TEXT("%p: URL='%s'"), this, *URL);
-	UE_LOG(LogHttp, Verbose, TEXT("%p: Verb='%s'"), this, *Verb);
-	UE_LOG(LogHttp, Verbose, TEXT("%p: Custom headers are %s"), this, Headers.Num() ? TEXT("present") : TEXT("NOT present"));
-	UE_LOG(LogHttp, Verbose, TEXT("%p: Payload size=%d"), this, RequestPayload.Num());
-#else
-	// for some reason, UE_LOG() above is crashing in the browser...
 	if( UE_LOG_ACTIVE(LogHttp, Verbose) )
 	{
 		const TCHAR* zurl = *URL;
@@ -359,7 +346,6 @@ bool FHTML5HttpRequest::StartRequest()
 			console.log( "- Payload size=" + $4 );
 		}, this, zurl, zverb, Headers.Num() ? TEXT("present") : TEXT("NOT present"), RequestPayload.Num());
 	}
-#endif
 
 	if (!FHttpModule::Get().IsHttpEnabled())
 	{
@@ -382,7 +368,7 @@ bool FHTML5HttpRequest::StartRequest()
 	//"User-Agent" && "Content-Length" are automatically set by the browser xhr request. We can't do much.
 
 	// make a fake header, so server has some idea this is UE
-    SetHeader(TEXT("X-UnrealEngine-Agent"), FString::Printf(TEXT("game=%s, engine=UE4, version=%s"), FApp::GetProjectName(), *FEngineVersion::Current().ToString()));
+	SetHeader(TEXT("X-UnrealEngine-Agent"), FString::Printf(TEXT("game=%s, engine=UE4, version=%s"), FApp::GetProjectName(), *FEngineVersion::Current().ToString()));
 
 	// Add "Pragma: no-cache" to mimic WinInet behavior
 	if (GetHeader("Pragma").IsEmpty())
@@ -394,7 +380,7 @@ bool FHTML5HttpRequest::StartRequest()
 
 	// Create a String which emscripten can understand.
 	FString RequestHeaders = FString::Join(AllHeaders, TEXT("%"));
-	
+
 	// set up verb (note that Verb is expected to be uppercase only)
 	if (Verb == TEXT("POST"))
 	{
@@ -402,12 +388,7 @@ bool FHTML5HttpRequest::StartRequest()
 		// (if we pass, don't check here and trust the request)
 		check(!GetHeader("Content-Type").IsEmpty() || IsURLEncoded(RequestPayload));
 
-#if PLATFORM_HTML5_BROWSER
 		UE_MakeHTTPDataRequest(this, TCHAR_TO_ANSI(*URL), "POST", (char*)RequestPayload.GetData(), RequestPayload.Num(),TCHAR_TO_ANSI(*RequestHeaders), 1, 0, StaticReceiveCallback, StaticErrorCallback, StaticProgressCallback);
-#else
-		return false;
-#endif
-
 	}
 	else if (Verb == TEXT("PUT"))
 	{
@@ -421,11 +402,7 @@ bool FHTML5HttpRequest::StartRequest()
 	}
 	else if (Verb == TEXT("GET"))
 	{
-#if PLATFORM_HTML5_BROWSER
 		UE_MakeHTTPDataRequest(this, TCHAR_TO_ANSI(*URL), "GET", NULL, 0,TCHAR_TO_ANSI(*RequestHeaders), 1, 1, StaticReceiveCallback, StaticErrorCallback, StaticProgressCallback);
-#else
-		return false;
-#endif
 	}
 	else if (Verb == TEXT("HEAD"))
 	{

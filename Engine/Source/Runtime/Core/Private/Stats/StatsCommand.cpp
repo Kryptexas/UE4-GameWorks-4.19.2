@@ -2267,7 +2267,7 @@ bool DirectStatsCommand(const TCHAR* Cmd, bool bBlockForCompletion /*= false*/, 
 				FSimpleDelegateGraphTask::FDelegate::CreateStatic(&StatCmd, FullCmd, bStatCommand, Ar),
 				GET_STATID(STAT_FSimpleDelegateGraphTask_StatCmd), NULL, ThreadType
 			);
-			if (bBlockForCompletion)
+			if (bBlockForCompletion && FPlatformProcess::SupportsMultithreading())
 			{
 				FTaskGraphInterface::Get().WaitUntilTaskCompletes(CompleteHandle);
 				GLog->FlushThreadedLogs();

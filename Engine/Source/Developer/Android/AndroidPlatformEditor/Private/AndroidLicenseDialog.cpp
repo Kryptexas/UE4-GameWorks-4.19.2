@@ -93,11 +93,11 @@ void SAndroidLicenseDialog::Construct(const FArguments& InArgs)
 				FMemory::Free(ConvertedBuffer);
 
 				FSHA1::HashBuffer(LicenseStart, LicenseLength, LicenseHash.Hash);
-				FMemory::Free(Buffer);
 
 				bLicenseValid = true;
 			}
 		}
+		FMemory::Free(Buffer);
 	}
 
 	ChildSlot
@@ -227,6 +227,11 @@ bool SAndroidLicenseDialog::HasLicense()
 	return false;
 }
 
+void SAndroidLicenseDialog::SetLicenseAcceptedCallback(const FSimpleDelegate& InOnLicenseAccepted)
+{
+	OnLicenseAccepted = InOnLicenseAccepted;
+}
+
 FReply SAndroidLicenseDialog::OnAgree()
 {
 	FString LicensePath = GetLicensePath();
@@ -249,6 +254,8 @@ FReply SAndroidLicenseDialog::OnAgree()
 			delete FileHandle;
 		}
 	}
+
+	OnLicenseAccepted.ExecuteIfBound();
 
 	TSharedRef<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(AsShared()).ToSharedRef();
 	FSlateApplication::Get().RequestDestroyWindow(ParentWindow);

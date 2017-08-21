@@ -82,7 +82,7 @@ public class BuildCommonTools : BuildCommand
 	{
 		// Create the build agenda
 		UE4Build.BuildAgenda Agenda = new UE4Build.BuildAgenda();
-		
+
 		// C# binaries
 		Agenda.SwarmProject = @"Engine\Source\Programs\UnrealSwarm\UnrealSwarm.sln";
 		Agenda.DotNetProjects.Add(@"Engine/Source/Editor/SwarmInterface/DotNET/SwarmInterface.csproj");
@@ -132,10 +132,10 @@ public class BuildCommonTools : BuildCommand
 
 			Agenda.DotNetProjects.Add(@"Engine/Source/Programs/iOS/DeploymentServer/DeploymentServer.csproj");
 			ExtraBuildProducts.Add(CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, @"Engine/Binaries/DotNET/iOS/DeploymentServer.exe"));
-	
+
 			Agenda.DotNetProjects.Add(@"Engine/Source/Programs/iOS/DeploymentInterface/DeploymentInterface.csproj");
 			ExtraBuildProducts.Add(CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, @"Engine/Binaries/DotNET/iOS/DeploymentInterface.dll"));
-			
+
 			Agenda.DotNetProjects.Add(@"Engine/Source/Programs/iOS/MobileDeviceInterface/MobileDeviceInterface.csproj");
 			ExtraBuildProducts.Add(CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, @"Engine/Binaries/DotNET/iOS/MobileDeviceInterface.dll"));
 		}
@@ -151,7 +151,7 @@ public class BuildCommonTools : BuildCommand
 			Agenda.DotNetProjects.Add(CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, @"Engine/Source/Programs/PS4/PS4SymbolTools/PS4SymbolTool.csproj"));
 			ExtraBuildProducts.Add(CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, @"Engine/Binaries/DotNET/PS4/PS4SymbolTool.exe"));
 		}
-		
+
 		// Xbox One binaries
 		if(Platforms.Contains(UnrealBuildTool.UnrealTargetPlatform.XboxOne))
 		{
@@ -164,34 +164,34 @@ public class BuildCommonTools : BuildCommand
 			Agenda.DotNetProjects.Add(@"Engine/Source/Programs/HTML5/HTML5LaunchHelper/HTML5LaunchHelper.csproj");
 			ExtraBuildProducts.Add(CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, @"Engine/Binaries/DotNET/HTML5LaunchHelper.exe"));
 		}
-		
+
 		return Agenda;
 	}
 }
 
 public class ZipProjectUp : BuildCommand
 {
-    public override void ExecuteBuild()
-    {
-        // Get Directories
-        string ProjectDirectory = ParseParamValue("project", "");
-        string InstallDirectory = ParseParamValue("install", "");
-        ProjectDirectory = Path.GetDirectoryName(ProjectDirectory);
+	public override void ExecuteBuild()
+	{
+		// Get Directories
+		string ProjectDirectory = ParseParamValue("project", "");
+		string InstallDirectory = ParseParamValue("install", "");
+		ProjectDirectory = Path.GetDirectoryName(ProjectDirectory);
 
-        Log("Started zipping project up");
-        Log("Project directory: {0}", ProjectDirectory);
+		Log("Started zipping project up");
+		Log("Project directory: {0}", ProjectDirectory);
 		Log("Install directory: {0}", InstallDirectory);
-        Log("Packaging up the project...");
+		Log("Packaging up the project...");
 
-        // Setup filters
-        FileFilter Filter = new FileFilter();
-        Filter.Include("/Config/...");
-        Filter.Include("/Content/...");
-        Filter.Include("/Source/...");
-        Filter.Include("*.uproject");
+		// Setup filters
+		FileFilter Filter = new FileFilter();
+		Filter.Include("/Config/...");
+		Filter.Include("/Content/...");
+		Filter.Include("/Source/...");
+		Filter.Include("*.uproject");
 
-        ZipFiles(new FileReference(InstallDirectory), new DirectoryReference(ProjectDirectory), Filter);
+		ZipFiles(new FileReference(InstallDirectory), new DirectoryReference(ProjectDirectory), Filter);
 
 		Log("Completed zipping project up");
-    }
+	}
 }

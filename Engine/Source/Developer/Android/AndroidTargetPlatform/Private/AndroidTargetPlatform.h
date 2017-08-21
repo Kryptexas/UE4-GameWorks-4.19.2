@@ -135,6 +135,8 @@ public:
 
 	virtual bool IsSdkInstalled(bool bProjectHasCode, FString& OutDocumentationPath) const override;
 
+	virtual int32 CheckRequirements(const FString& ProjectPath, bool bProjectHasCode, FString& OutTutorialPath, FString& OutDocumentationPath) const override;
+
 	virtual bool SupportsFeature( ETargetPlatformFeatures Feature ) const override;
 
 	virtual bool SupportsTextureFormat( FName Format ) const 

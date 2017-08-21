@@ -25,7 +25,7 @@ namespace UnrealBuildTool
 
 		///
 		///	VisualStudio project generation functions
-		///	
+		///
 		/// <summary>
 		/// Whether this build platform has native support for VisualStudio
 		/// </summary>

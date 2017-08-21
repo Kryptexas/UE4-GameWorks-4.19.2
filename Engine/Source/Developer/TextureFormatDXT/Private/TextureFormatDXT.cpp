@@ -409,7 +409,10 @@ class FTextureFormatDXT : public ITextureFormat
 		return true;
 	}
 
-	virtual uint16 GetVersion(FName Format) const override
+	virtual uint16 GetVersion(
+		FName Format,
+		const struct FTextureBuildSettings* BuildSettings = nullptr
+	) const override
 	{
 		return 0;
 	}

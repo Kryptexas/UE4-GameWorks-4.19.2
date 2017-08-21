@@ -39,8 +39,16 @@ namespace UnrealBuildTool
 				return false;
 			}
 
-			string BundleVersion = MacToolChain.LoadEngineDisplayVersion();
-			PListData = PListData.Replace("${EXECUTABLE_NAME}", ExeName).Replace("${APP_NAME}", GameName).Replace("${ICON_NAME}", GameName).Replace("${MACOSX_DEPLOYMENT_TARGET}", MacToolChain.Settings.MinMacOSVersion).Replace("${BUNDLE_VERSION}", BundleVersion);
+            // bundle identifier
+            // plist replacements
+            DirectoryReference DirRef = bIsUE4Game ? (!string.IsNullOrEmpty(UnrealBuildTool.GetRemoteIniPath()) ? new DirectoryReference(UnrealBuildTool.GetRemoteIniPath()) : null) : new DirectoryReference(ProjectDirectory);
+            ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, DirRef, UnrealTargetPlatform.IOS);
+
+            string BundleIdentifier;
+            Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "BundleIdentifier", out BundleIdentifier);
+
+            string BundleVersion = MacToolChain.LoadEngineDisplayVersion();
+			PListData = PListData.Replace("${EXECUTABLE_NAME}", ExeName).Replace("${APP_NAME}", BundleIdentifier.Replace("[PROJECT_NAME]", ProjectName).Replace("_", "")).Replace("${ICON_NAME}", GameName).Replace("${MACOSX_DEPLOYMENT_TARGET}", MacToolChain.Settings.MinMacOSVersion).Replace("${BUNDLE_VERSION}", BundleVersion);
 
 			if (!Directory.Exists(IntermediateDirectory))
 			{

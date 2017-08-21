@@ -50,15 +50,11 @@ struct CORE_API FHTML5Misc : public FGenericPlatformMisc
 	{
 		if (IsDebuggerPresent())
 		{
-#if PLATFORM_HTML5_WIN32
-			__debugbreak();
-#else
 			emscripten_log(255, "DebugBreak() called!");
 			EM_ASM(
 				var callstack = new Error;
 				throw callstack.stack;
 			);
-#endif
 		}
 	}
 
@@ -90,8 +86,6 @@ struct CORE_API FHTML5Misc : public FGenericPlatformMisc
 	{
 		wprintf(TEXT("%ls"), Str);
 	}
-
-	static const void PreLoadMap(FString&, FString&, void*);
 };
 
 typedef FHTML5Misc FPlatformMisc;

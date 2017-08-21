@@ -1910,7 +1910,13 @@ static void TaskGraphBenchmark(const TArray<FString>& Args)
 	double StartTime, QueueTime, EndTime, JoinTime;
 	FThreadSafeCounter Counter;
 	FThreadSafeCounter Cycles;
-	
+
+	if (!FPlatformProcess::SupportsMultithreading())
+	{
+		UE_LOG(LogConsoleResponse, Display, TEXT("WARNING: TaskGraphBenchmark disabled for non multi-threading platforms"));
+		return;
+	}
+
 	if (Args.Num() == 1 && Args[0] == TEXT("infinite"))
 	{
 		while (true)
@@ -2204,6 +2210,12 @@ struct FTestRigLIFO
 static void TestLockFree(int32 OuterIters = 3)
 {
 	FSlowHeartBeatScope SuspendHeartBeat;
+
+	if (!FPlatformProcess::SupportsMultithreading())
+	{
+		UE_LOG(LogConsoleResponse, Display, TEXT("WARNING: TestLockFree disabled for non multi-threading platforms"));
+		return;
+	}
 
 	for (int32 Iter = 0; Iter < OuterIters; Iter++)
 	{

@@ -25,35 +25,29 @@ public class VorbisFile : ModuleRules
 			PublicDelayLoadDLLs.Add("libvorbisfile.dll");
 			RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/Vorbis/Win32/VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName() + "/libvorbisfile.dll"));
 		}
-        else if (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32") // simulator
-        {
-            string VorbisLibPath = VorbisPath + "Lib/HTML5Win32/";
-            PublicLibraryPaths.Add(VorbisLibPath);
-            PublicAdditionalLibraries.Add("libvorbisfile.lib");
-        }
-        else if (Target.Platform == UnrealTargetPlatform.HTML5)
-        {
-            string VorbisLibPath = VorbisPath + "lib/HTML5/";
-            PublicLibraryPaths.Add(VorbisLibPath);
+		else if (Target.Platform == UnrealTargetPlatform.HTML5)
+		{
+			string VorbisLibPath = VorbisPath + "lib/HTML5/";
+			PublicLibraryPaths.Add(VorbisLibPath);
 
-            string OpimizationSuffix = "";
-            if (Target.bCompileForSize)
-            {
-                OpimizationSuffix = "_Oz";
-            }
-            else
-            {
-                if (Target.Configuration == UnrealTargetConfiguration.Development)
-                {
-                    OpimizationSuffix = "_O2";
-                }
-                else if (Target.Configuration == UnrealTargetConfiguration.Shipping)
-                {
-                    OpimizationSuffix = "_O3";
-                }
-            }
-            PublicAdditionalLibraries.Add(VorbisLibPath + "libvorbisfile" + OpimizationSuffix + ".bc");
-        }
+			string OpimizationSuffix = "";
+			if (Target.bCompileForSize)
+			{
+				OpimizationSuffix = "_Oz";
+			}
+			else
+			{
+				if (Target.Configuration == UnrealTargetConfiguration.Development)
+				{
+					OpimizationSuffix = "_O2";
+				}
+				else if (Target.Configuration == UnrealTargetConfiguration.Shipping)
+				{
+					OpimizationSuffix = "_O3";
+				}
+			}
+			PublicAdditionalLibraries.Add(VorbisLibPath + "libvorbisfile" + OpimizationSuffix + ".bc");
+		}
 		else if (Target.Platform == UnrealTargetPlatform.Android)
 		{
 			// filtered in toolchain
@@ -66,8 +60,8 @@ public class VorbisFile : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux)
 		{
-            PublicAdditionalLibraries.Add(VorbisPath + "lib/Linux/" + Target.Architecture + "/libvorbisfile.a");
-            PublicAdditionalLibraries.Add(VorbisPath + "lib/Linux/" + Target.Architecture + "/libvorbisenc.a");
+			PublicAdditionalLibraries.Add(VorbisPath + "lib/Linux/" + Target.Architecture + "/libvorbisfile.a");
+			PublicAdditionalLibraries.Add(VorbisPath + "lib/Linux/" + Target.Architecture + "/libvorbisenc.a");
 		}
 		else if (Target.Platform == UnrealTargetPlatform.XboxOne)
 		{

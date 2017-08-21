@@ -38,16 +38,23 @@ namespace UnrealBuildTool
 
 		static private Dictionary<string, string[]> LibrariesToSkip = new Dictionary<string, string[]> {
 			{ "-armv7", new string[] { } }, 
-			{ "-arm64", new string[] { "nvToolsExt", "nvToolsExtStub", "oculus", "OVRPlugin", "vrapi", "ovrkernel", "systemutils", "openglloader", } },
-			{ "-x86",   new string[] { "nvToolsExt", "nvToolsExtStub", "oculus", "OVRPlugin", "vrapi", "ovrkernel", "systemutils", "openglloader", "opus", "speex_resampler", } }, 
-			{ "-x64",   new string[] { "nvToolsExt", "nvToolsExtStub", "oculus", "OVRPlugin", "vrapi", "ovrkernel", "systemutils", "openglloader", "gpg", } }, 
+			{ "-arm64", new string[] { "nvToolsExt", "nvToolsExtStub", "oculus", "OVRPlugin", "vrapi", "ovrkernel", "systemutils", "openglloader", "ThirdParty/Oculus/LibOVRPlatform/LibOVRPlatform/lib/libovrplatformloader.so" } },
+			{ "-x86",   new string[] { "nvToolsExt", "nvToolsExtStub", "oculus", "OVRPlugin", "vrapi", "ovrkernel", "systemutils", "openglloader", "ThirdParty/Oculus/LibOVRPlatform/LibOVRPlatform/lib/libovrplatformloader.so", "opus", "speex_resampler", } }, 
+			{ "-x64",   new string[] { "nvToolsExt", "nvToolsExtStub", "oculus", "OVRPlugin", "vrapi", "ovrkernel", "systemutils", "openglloader", "ThirdParty/Oculus/LibOVRPlatform/LibOVRPlatform/lib/libovrplatformloader.so", "gpg", } }, 
 		};
 
 		static private Dictionary<string, string[]> ModulesToSkip = new Dictionary<string, string[]> {
 			{ "-armv7", new string[] {  } }, 
-			{ "-arm64", new string[] {  } }, 
-			{ "-x86",   new string[] {  } }, 
-			{ "-x64",   new string[] { "OnlineSubsystemGooglePlay", } }, 
+			{ "-arm64", new string[] { "OnlineSubsystemOculus", } }, 
+			{ "-x86",   new string[] { "OnlineSubsystemOculus", } }, 
+			{ "-x64",   new string[] { "OnlineSubsystemOculus", "OnlineSubsystemGooglePlay", } }, 
+		};
+
+		static private Dictionary<string, string[]> GeneratedModulesToSkip = new Dictionary<string, string[]> {
+			{ "-armv7", new string[] {  } },
+			{ "-arm64", new string[] { "OculusEntitlementCallbackProxy", "OculusCreateSessionCallbackProxy", "OculusFindSessionsCallbackProxy", "OculusIdentityCallbackProxy", "OculusNetConnection", "OculusNetDriver", "OnlineSubsystemOculus_init" } },
+			{ "-x86",   new string[] { "OculusEntitlementCallbackProxy", "OculusCreateSessionCallbackProxy", "OculusFindSessionsCallbackProxy", "OculusIdentityCallbackProxy", "OculusNetConnection", "OculusNetDriver", "OnlineSubsystemOculus_init" } },
+			{ "-x64",   new string[] { "OculusEntitlementCallbackProxy", "OculusCreateSessionCallbackProxy", "OculusFindSessionsCallbackProxy", "OculusIdentityCallbackProxy", "OculusNetConnection", "OculusNetDriver", "OnlineSubsystemOculus_init" } },
 		};
 
 		private void SetClangVersion(int Major, int Minor, int Patch)
@@ -918,6 +925,10 @@ namespace UnrealBuildTool
 				foreach (var ModName in ModulesToSkip[Arch])
 				{
 					Result.Add("  void EmptyLinkFunctionForStaticInitialization" + ModName + "(){}");
+				}
+				foreach (var ModName in GeneratedModulesToSkip[Arch])
+				{
+					Result.Add("  void EmptyLinkFunctionForGeneratedCode" + ModName + "(){}");
 				}
 				Result.Add("#endif");
 			}

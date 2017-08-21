@@ -42,7 +42,7 @@ class ULevelStreamingKismet : public ULevelStreaming
  	* @return Streaming level object for a level instance
  	*/ 
  	UFUNCTION(BlueprintCallable, Category = LevelStreaming,meta=(WorldContext="WorldContextObject"))
- 	static ULevelStreamingKismet* LoadLevelInstance(UObject* WorldContextObject, const FString& LevelName, const FVector& Location, const FRotator& Rotation, bool& bOutSuccess);
+ 	static ENGINE_API ULevelStreamingKismet* LoadLevelInstance(UObject* WorldContextObject, const FString& LevelName, const FVector& Location, const FRotator& Rotation, bool& bOutSuccess);
  	
 	//~ Begin UObject Interface
 	virtual void PostLoad() override;

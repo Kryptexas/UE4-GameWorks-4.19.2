@@ -16,6 +16,7 @@
 #include <android/keycodes.h>
 #include <string.h>
 #include <dlfcn.h>
+#include <sys/statfs.h>
 
 #include "AndroidPlatformCrashContext.h"
 #include "PlatformMallocCrash.h"
@@ -1603,6 +1604,27 @@ void FAndroidMisc::GetOSVersions(FString& out_OSVersionLabel, FString& out_OSSub
 FString FAndroidMisc::GetOSVersion()
 {
 	return GetAndroidVersion();
+}
+
+bool FAndroidMisc::GetDiskTotalAndFreeSpace(const FString& InPath, uint64& TotalNumberOfBytes, uint64& NumberOfFreeBytes)
+{
+	extern FString GExternalFilePath;
+	struct statfs FSStat = { 0 };
+	FTCHARToUTF8 Converter(*GExternalFilePath);
+	int Err = statfs((ANSICHAR*)Converter.Get(), &FSStat);
+	
+	if (Err == 0)
+	{
+		TotalNumberOfBytes = FSStat.f_blocks * FSStat.f_bsize;
+		NumberOfFreeBytes = FSStat.f_bavail * FSStat.f_bsize;
+	}
+	else
+	{
+		int ErrNo = errno;
+		UE_LOG(LogEngine, Warning, TEXT("Unable to statfs('%s'): errno=%d (%s)"), *GExternalFilePath, ErrNo, UTF8_TO_TCHAR(strerror(ErrNo)));
+	}
+	
+	return (Err == 0);
 }
 
 uint32 FAndroidMisc::GetCoreFrequency(int32 CoreIndex, ECoreFrequencyProperty CoreFrequencyProperty)

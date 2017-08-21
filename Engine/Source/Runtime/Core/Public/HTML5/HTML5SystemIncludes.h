@@ -11,16 +11,7 @@
 // Set up compiler pragmas, etc
 #include "HTML5/HTML5PlatformCompilerSetup.h"
 
-// map the Windows functions (that UE4 unfortunately uses be default) to normal functions
-#if PLATFORM_HTML5_WIN32
-
-#include <intrin.h>
-
-#else
-
 #define _alloca alloca
-
-#endif
 
 struct tagRECT
 {

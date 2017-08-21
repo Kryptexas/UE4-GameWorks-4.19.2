@@ -14,7 +14,7 @@
 // Changing this causes a full shader recompile
 static TAutoConsoleVariable<int32> CVarMobileDisableVertexFog(
 	TEXT("r.Mobile.DisableVertexFog"),
-	0,
+	1,
 	TEXT("Set to 1 to disable vertex fogging in all mobile shaders."),
 	ECVF_ReadOnly | ECVF_RenderThreadSafe);
 

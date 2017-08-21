@@ -47,6 +47,7 @@ public:
 	//static jmethodID AndroidThunkJava_LocalNotificationDestroyIfExists; - This is not needed yet but will be soon so just leaving commented out for now
 	static jmethodID AndroidThunkJava_HasActiveWiFiConnection;
 	static jmethodID AndroidThunkJava_GetAndroidId;
+	static jmethodID AndroidThunkJava_SetSustainedPerformanceMode;
 
 	static jmethodID AndroidThunkCpp_IsVirtuaInputClicked;
 

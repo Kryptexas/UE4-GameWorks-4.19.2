@@ -1829,6 +1829,7 @@ public:
 	FShaderParameter OverlayColor;
 	FShaderParameter FringeIntensity;
 	FShaderParameter SRGBAwareTargetParam;
+	FShaderParameter DefaultEyeExposure;
 
 	/** Initialization constructor. */
 	FPostProcessTonemapPS_ES2(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
@@ -1854,8 +1855,9 @@ public:
 		OverlayColor.Bind(Initializer.ParameterMap, TEXT("OverlayColor"));
 		FringeIntensity.Bind(Initializer.ParameterMap, TEXT("FringeIntensity"));
 
-		
 		SRGBAwareTargetParam.Bind(Initializer.ParameterMap, TEXT("SRGBAwareTarget"));
+
+		DefaultEyeExposure.Bind(Initializer.ParameterMap, TEXT("DefaultEyeExposure"));
 	}
 	
 	// FShader interface.
@@ -1867,7 +1869,8 @@ public:
 			<< ColorMatrixR_ColorCurveCd1 << ColorMatrixG_ColorCurveCd3Cm3 << ColorMatrixB_ColorCurveCm2 << ColorCurve_Cm0Cd0_Cd2_Ch0Cm1_Ch3 << ColorCurve_Ch1_Ch2 << ColorShadow_Luma << ColorShadow_Tint1 << ColorShadow_Tint2
 			<< OverlayColor
 			<< FringeIntensity
-			<< SRGBAwareTargetParam;
+			<< SRGBAwareTargetParam
+			<< DefaultEyeExposure;
 
 		return bShaderHasOutdatedParameters;
 	}
@@ -1950,6 +1953,9 @@ public:
 		}
 
 		SetShaderValue(Context.RHICmdList, ShaderRHI, SRGBAwareTargetParam, bSRGBAwareTarget ? 1.0f : 0.0f );
+
+		float DefaultEyeExposureValue = FRCPassPostProcessEyeAdaptation::ComputeExposureScaleValue(Context.View);
+		SetShaderValue(Context.RHICmdList, ShaderRHI, DefaultEyeExposure, DefaultEyeExposureValue);
 	}
 	
 	static const TCHAR* GetSourceFilename()

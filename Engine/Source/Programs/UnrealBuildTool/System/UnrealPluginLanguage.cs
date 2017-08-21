@@ -71,6 +71,7 @@ namespace UnrealBuildTool
 	 * Variables may also be set from a property in an ini file:
 	 * 
 	 *	<setBoolFromProperty result="" ini="" section="" property="" default=""/>
+	 *	<setBoolFromPropertyContains result="" ini="" section="" property="" default="" contains=""/>
 	 *	<setIntFromProperty result="" ini="" section="" property="" default=""/>
 	 *	<setStringFromProperty result="" ini="" section="" property="" default=""/>
      *	
@@ -1707,6 +1708,40 @@ namespace UnrealBuildTool
 									if (!ConfigIni.GetBool(Section, Property, out Value))
 									{
 										Value = StringToBool(DefaultVal);
+									}
+								}
+								CurrentContext.BoolVariables[Result] = Value;
+							}
+						}
+						break;
+
+					case "setBoolFromPropertyContains":
+						{
+							string Result = GetAttribute(CurrentContext, Node, "result");
+							string Ini = GetAttribute(CurrentContext, Node, "ini");
+							string Section = GetAttribute(CurrentContext, Node, "section");
+							string Property = GetAttribute(CurrentContext, Node, "property");
+							string DefaultVal = GetAttribute(CurrentContext, Node, "default", true, false, "false");
+							string Contains = GetAttribute(CurrentContext, Node, "contains", true, true, "");
+							if (Result != null && Ini != null && Section != null && Property != null)
+							{
+								bool Value = StringToBool(DefaultVal);
+
+								ConfigCacheIni_UPL ConfigIni = GetConfigCacheIni_UPL(Ini);
+								if (ConfigIni != null)
+								{
+									List<string> StringList;
+									if (ConfigIni.GetArray(Section, Property, out StringList))
+									{
+										Value = false;
+										foreach (string Entry in StringList)
+										{
+											if (Entry.Equals(Contains))
+											{
+												Value = true;
+												break;
+											}
+										}
 									}
 								}
 								CurrentContext.BoolVariables[Result] = Value;

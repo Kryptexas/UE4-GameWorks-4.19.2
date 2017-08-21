@@ -43,7 +43,7 @@ FWebSocket::FWebSocket(
 :IsServerSide(false)
 {
 
-#if !PLATFORM_HTML5_BROWSER
+#if !PLATFORM_HTML5
 
 #if !UE_BUILD_SHIPPING
 	lws_set_log_level(LLL_ERR | LLL_WARN | LLL_NOTICE | LLL_DEBUG | LLL_INFO, lws_debugLogS);
@@ -80,10 +80,11 @@ FWebSocket::FWebSocket(
 	Wsi = lws_client_connect_via_info(&ConnectInfo);
 	check(Wsi);
 
-#else // PLATFORM_HTML5_BROWSER
+#else // PLATFORM_HTML5
 
 	SockFd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (SockFd == -1) {
+	if (SockFd == -1)
+	{
 		UE_LOG(LogHTML5Networking, Error, TEXT("Socket creationg failed "));
 	}
 	else
@@ -121,7 +122,7 @@ FWebSocket::FWebSocket(
 	}
 #endif
 
-#if PLATFORM_HTML5_BROWSER
+#if PLATFORM_HTML5
 	int Ret = connect(SockFd, (struct sockaddr *)&RemoteAddr, sizeof(RemoteAddr));
 	UE_LOG(LogHTML5Networking, Warning, TEXT(" Connect socket returned %d"), Ret);
 #endif
@@ -370,7 +371,7 @@ void FWebSocket::OnRawWebSocketWritable(WebSocketInternal* wsi)
 
 	TArray <uint8>& Packet = OutgoingBuffer[0];
 
-#if !PLATFORM_HTML5_BROWSER
+#if !PLATFORM_HTML5
 
 	uint32 TotalDataSize = Packet.Num() - LWS_PRE;
 	uint32 DataToSend = TotalDataSize;
@@ -391,7 +392,7 @@ void FWebSocket::OnRawWebSocketWritable(WebSocketInternal* wsi)
 
 	check(Wsi == wsi);
 
-#else // PLATFORM_HTML5_BROWSER
+#else // PLATFORM_HTML5
 
 	uint32 TotalDataSize = Packet.Num();
 	uint32 DataToSend = TotalDataSize;

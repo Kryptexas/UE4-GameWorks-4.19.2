@@ -1056,12 +1056,6 @@ public:
 	static EScreenPhysicalAccuracy ConvertPixelsToInches(float Pixels, float& OutInches);
 
 	/**
-	* Execute platform dependent pre load map actions
-	*/
-	static const void PreLoadMap(FString&, FString&, void*)
-	{}
-
-	/**
 	 * Allows platform at runtime to disable unsupported plugins
 	 *  @param	PluginName	Name of enabled plugin to consider
 	 *	@return	bool		true if plugin should be disabled

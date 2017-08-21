@@ -13,8 +13,7 @@ public class OpenSSL : ModuleRules
 		string OpenSSL102hPath = Path.Combine(Target.UEThirdPartySourceDirectory, "OpenSSL", "1_0_2h");
 		string OpenSSL102Path = Path.Combine(Target.UEThirdPartySourceDirectory, "OpenSSL", "1.0.2g");
 
-        string PlatformSubdir = (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32") ? "Win32" :
-        	Target.Platform.ToString();
+		string PlatformSubdir = Target.Platform.ToString();
 		string ConfigFolder = (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT) ? "Debug" : "Release";
 
 		if (Target.Platform == UnrealTargetPlatform.Mac)
@@ -35,8 +34,7 @@ public class OpenSSL : ModuleRules
 			PublicAdditionalLibraries.Add(LibraryPath + "/" + "libssl.a");
 			PublicAdditionalLibraries.Add(LibraryPath + "/" + "libcrypto.a");
 		}
-		else if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32 ||
-				(Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32"))
+		else if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32)
 		{
 			string LibPath = Path.Combine(OpenSSL102Path, "lib", PlatformSubdir, "VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName());
 			string LibPostfixAndExt = (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT) ? "d.lib" : ".lib";
@@ -55,8 +53,8 @@ public class OpenSSL : ModuleRules
 
 			PublicIncludePaths.Add(IncludePath);
 			PublicLibraryPaths.Add(LibraryPath);
-		    PublicAdditionalLibraries.Add(LibraryPath + "/libssl.a");
-		    PublicAdditionalLibraries.Add(LibraryPath + "/libcrypto.a");
+			PublicAdditionalLibraries.Add(LibraryPath + "/libssl.a");
+			PublicAdditionalLibraries.Add(LibraryPath + "/libcrypto.a");
 
 			PublicDependencyModuleNames.Add("zlib");
 //			PublicAdditionalLibraries.Add("z");

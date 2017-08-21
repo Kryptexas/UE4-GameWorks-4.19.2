@@ -56,13 +56,12 @@ public:
 					return Char1 - Char2;
 				}
 			}
-			
 		}
 		return 0;
 	}
 
-	/** 
-	 * Unicode implementation 
+	/**
+	 * Unicode implementation
 	 **/
 	static FORCEINLINE WIDECHAR* Strcpy(WIDECHAR* Dest, SIZE_T DestCount, const WIDECHAR* Src)
 	{
@@ -118,20 +117,12 @@ public:
 
 	static FORCEINLINE int64 Atoi64(const WIDECHAR* String)
 	{
-#if PLATFORM_HTML5_WIN32
-		return _wtoi64(String);
-#else
 		return wcstoll( String, NULL, 10 );
-#endif
 	}
 
 	static FORCEINLINE float Atof(const WIDECHAR* String)
 	{
-#if PLATFORM_HTML5_WIN32
-		return (float)_wtof(String);
-#else
 		return wcstof( String, NULL );
-#endif
 	}
 
 	static FORCEINLINE double Atod(const WIDECHAR* String)
@@ -139,36 +130,24 @@ public:
 		return wcstod( String, NULL );
 	}
 
-	static FORCEINLINE int32 Strtoi( const WIDECHAR* Start, WIDECHAR** End, int32 Base ) 
+	static FORCEINLINE int32 Strtoi( const WIDECHAR* Start, WIDECHAR** End, int32 Base )
 	{
 		return wcstol( Start, End, Base );
 	}
 
-	static FORCEINLINE int64 Strtoi64( const WIDECHAR* Start, WIDECHAR** End, int32 Base ) 
+	static FORCEINLINE int64 Strtoi64( const WIDECHAR* Start, WIDECHAR** End, int32 Base )
 	{
-#if PLATFORM_HTML5_WIN32
-		return _wtoi64(Start);
-#else
 		return wcstoll( Start, End, Base );
-#endif
 	}
 
-	static FORCEINLINE uint64 Strtoui64( const WIDECHAR* Start, WIDECHAR** End, int32 Base ) 
+	static FORCEINLINE uint64 Strtoui64( const WIDECHAR* Start, WIDECHAR** End, int32 Base )
 	{
-#if PLATFORM_HTML5_WIN32
-		return _wtoi64(Start);
-#else
 		return wcstoull( Start, End, Base );
-#endif
 	}
 
 	static FORCEINLINE WIDECHAR* Strtok(WIDECHAR* StrToken, const WIDECHAR* Delim, WIDECHAR** Context)
 	{
-#if PLATFORM_HTML5_WIN32
-		return wcstok(StrToken, Delim);
-#else
 		return wcstok(StrToken, Delim, Context);
-#endif
 	}
 
 #if PLATFORM_USE_SYSTEM_VSWPRINTF
@@ -178,7 +157,7 @@ public:
 		// fix up the Fmt string, as fast as possible, without using an FString
 		const WIDECHAR* OldFormat = Fmt;
 		WIDECHAR* NewFormat = (WIDECHAR*)alloca((Strlen(Fmt) * 2 + 1) * sizeof(WIDECHAR));
-		
+
 		int32 NewIndex = 0;
 
 		for (; *OldFormat != 0; NewIndex++, OldFormat++)
@@ -195,11 +174,11 @@ public:
 				else
 				{
 					const WIDECHAR* NextChar = OldFormat;
-					
-					while(*NextChar != 0 && !FChar::IsAlpha(*NextChar)) 
-					{ 
+
+					while(*NextChar != 0 && !FChar::IsAlpha(*NextChar))
+					{
 						NewFormat[NewIndex++] = *NextChar;
-						++NextChar; 
+						++NextChar;
 					};
 
 					if (*NextChar == LITERAL(WIDECHAR, 's'))
@@ -232,8 +211,8 @@ public:
 	static int32 GetVarArgs( WIDECHAR* Dest, SIZE_T DestSize, int32 Count, const WIDECHAR*& Fmt, va_list ArgPtr );
 #endif // PLATFORM_USE_SYSTEM_VSWPRINTF
 
-	/** 
-	 * Ansi implementation 
+	/**
+	 * Ansi implementation
 	 **/
 	static FORCEINLINE ANSICHAR* Strcpy(ANSICHAR* Dest, SIZE_T DestCount, const ANSICHAR* Src)
 	{
@@ -264,7 +243,7 @@ public:
 
 	static FORCEINLINE int32 Strlen( const ANSICHAR* String )
 	{
-		return strlen( String ); 
+		return strlen( String );
 	}
 
 	static FORCEINLINE const ANSICHAR* Strstr( const ANSICHAR* String, const ANSICHAR* Find)
@@ -284,49 +263,37 @@ public:
 
 	static FORCEINLINE int32 Atoi(const ANSICHAR* String)
 	{
-		return atoi( String ); 
+		return atoi( String );
 	}
 
 	static FORCEINLINE int64 Atoi64(const ANSICHAR* String)
 	{
-#if PLATFORM_HTML5_WIN32
-		return _atoi64(String);
-#else
 		return strtoll( String, NULL, 10 );
-#endif
 	}
 
 	static FORCEINLINE float Atof(const ANSICHAR* String)
 	{
-		return (float)atof( String ); 
+		return (float)atof( String );
 	}
 
 	static FORCEINLINE double Atod(const ANSICHAR* String)
 	{
-		return atof( String ); 
+		return atof( String );
 	}
 
-	static FORCEINLINE int32 Strtoi( const ANSICHAR* Start, ANSICHAR** End, int32 Base ) 
+	static FORCEINLINE int32 Strtoi( const ANSICHAR* Start, ANSICHAR** End, int32 Base )
 	{
-		return strtol( Start, End, Base ); 
+		return strtol( Start, End, Base );
 	}
 
-	static FORCEINLINE int64 Strtoi64( const ANSICHAR* Start, ANSICHAR** End, int32 Base ) 
+	static FORCEINLINE int64 Strtoi64( const ANSICHAR* Start, ANSICHAR** End, int32 Base )
 	{
-#if PLATFORM_HTML5_WIN32
-		return _atoi64(Start);
-#else
 		return strtoll(Start, End, Base);
-#endif
 	}
 
-	static FORCEINLINE uint64 Strtoui64( const ANSICHAR* Start, ANSICHAR** End, int32 Base ) 
+	static FORCEINLINE uint64 Strtoui64( const ANSICHAR* Start, ANSICHAR** End, int32 Base )
 	{
-#if PLATFORM_HTML5_WIN32
-		return _atoi64(Start);
-#else
 		return strtoull(Start, End, Base);
-#endif
 	}
 
 	static FORCEINLINE ANSICHAR* Strtok(ANSICHAR* StrToken, const ANSICHAR* Delim, ANSICHAR** Context)
@@ -341,8 +308,8 @@ public:
 		return Result;
 	}
 
-	/** 
-	 * UCS2 implementation 
+	/**
+	 * UCS2 implementation
 	 **/
 
 	static FORCEINLINE int32 Strlen( const UCS2CHAR* String )

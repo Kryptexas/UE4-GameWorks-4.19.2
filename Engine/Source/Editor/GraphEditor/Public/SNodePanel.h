@@ -943,6 +943,9 @@ protected:
 	/** The current transaction for undo/redo */
 	TSharedPtr<FScopedTransaction> ScopedTransactionPtr;
 
+	/** Cached geometry for use within the active timer */
+	FGeometry CachedGeometry;
+
 private:
 	/** Active timer that handles deferred zooming until the target zoom is reached */
 	EActiveTimerReturnType HandleZoomToFit(double InCurrentTime, float InDeltaTime);
@@ -950,9 +953,6 @@ private:
 private:
 	/** The handle to the active timer */
 	TWeakPtr<FActiveTimerHandle> ActiveTimerHandle;
-
-	/** Cached geometry for use within the active timer */
-	FGeometry CachedGeometry;
 
 	/** Zoom target rectangle */
 	FVector2D ZoomTargetTopLeft;

@@ -40,14 +40,6 @@ public:
 	// ------------------------------------------------------------
 
 	/**
-	 * Target ASMJS builds
-	 * NOTE 1: to ensure this fits in memory space, build this for "Shipping"
-	 * NOTE 2: ASMJS will be going away in future UE4 releases.
-	 */
-	UPROPERTY(GlobalConfig, EditAnywhere, Category=Emscripten, Meta = (DisplayName = "asmjs Build (else build WASM [EXPERIMENTAL])"))
-	bool TargetAsmjs;
-
-	/**
 	 * Target WebGL1 builds
 	 * NOTE: WebGL1 target will be going away soon...
 	 */
@@ -57,7 +49,7 @@ public:
 	/**
 	 * Use IndexedDB storage
 	 */
-	UPROPERTY(GlobalConfig, EditAnywhere, Category=Emscripten, Meta = (DisplayName = "IndexedDB storage (WASM only - during shipping packaging [EXPERIMENTAL])"))
+	UPROPERTY(GlobalConfig, EditAnywhere, Category=Emscripten, Meta = (DisplayName = "IndexedDB storage"))
 	bool EnableIndexedDB;
 
 	/**
@@ -66,21 +58,23 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category=Emscripten, Meta = (DisplayName = "Fixed TimeStep (i.e. use requestAnimationFrame)"))
 	bool UseFixedTimeStep; // need to make a note of: answerhub 409629
 
-	/**
-	 * Enable SIMD
-	 * NOTE 1: this does not currently work with WASM - it will be forced false in this case.
-	 * NOTE 2: SIMD will be supported during WASM builds in a future emscripten release.
-	 */
-	UPROPERTY(GlobalConfig, EditAnywhere, Category=Emscripten, Meta = (DisplayName = "SIMD support (asm.js only)"))
-	bool EnableSIMD;
+//	TODO: re-enable these when they become supported in WASM
+//	/**
+//	 * Enable SIMD
+//	 * NOTE 1: this does not currently work with WASM - it will be forced false in this case.
+//	 * NOTE 2: SIMD will be supported during WASM builds in a future emscripten release.
+//	 */
+//	UPROPERTY(GlobalConfig, EditAnywhere, Category=Emscripten, Meta = (DisplayName = "SIMD support"))
+//	bool EnableSIMD;
 
-	/**
-	 * Enable Multithreading
-	 * NOTE 1: this is not supported currently in WASM - it will be forced false in this case.
-	 * NOTE 2: Multithreading will be supported during WASM builds in a future emscripten release.
-	 */
-	UPROPERTY(GlobalConfig, EditAnywhere, Category=Emscripten, Meta = (DisplayName = "Multithreading support (asm.js only - experimental)"))
-	bool EnableMultithreading;
+//	TODO: re-enable these when they become supported in WASM
+//	/**
+//	 * Enable Multithreading
+//	 * NOTE 1: this is not supported currently in WASM - it will be forced false in this case.
+//	 * NOTE 2: Multithreading will be supported during WASM builds in a future emscripten release.
+//	 */
+//	UPROPERTY(GlobalConfig, EditAnywhere, Category=Emscripten, Meta = (DisplayName = "Multithreading support"))
+//	bool EnableMultithreading;
 
 	/**
 	 * Enable Tracing (trace.h)
@@ -98,18 +92,6 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category=Packaging, Meta = (DisplayName = "Compress files during shipping packaging"))
 	bool Compressed;
 
-	/**
-	 * Setting to control HTML5 Heap size (in Development)
-	 */
-	UPROPERTY(GlobalConfig, EditAnywhere, Category=Packaging, Meta = (DisplayName = "Development Heap Size (in MB) - ASM.js", ClampMin="1", ClampMax="4096"))
-	int32 HeapSizeDevelopment;
-
-	/**
-	 * Setting to control HTML5 Heap size
-	 */
-	UPROPERTY(GlobalConfig, EditAnywhere, Category=Packaging, Meta = (DisplayName = "Heap Size (in MB) - ASM.js", ClampMin="1", ClampMax="4096"))
-	int32 HeapSizeShipping;
-
 	// ------------------------------------------------------------
 
 	/**
@@ -117,12 +99,6 @@ public:
 	 */
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Launch, Meta = (DisplayName = "Port to use when deploying game from the editor", ClampMin="49152", ClampMax="65535"))
 	int32 DeployServerPort;
-
-	/**
-	 * Use a loading level and download maps during transitions.
-	 */
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = Launch, Meta = (DisplayName = "Download maps on the fly"))
-	bool UseAsyncLevelLoading;
 
 	/**
 	 * Generate Delta Pak files for these level transitions.

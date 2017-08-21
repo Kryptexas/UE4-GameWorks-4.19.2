@@ -93,7 +93,7 @@ public:
 	virtual bool SupportsFeature( ETargetPlatformFeatures Feature ) const override;
 
 	virtual bool IsSdkInstalled(bool bProjectHasCode, FString& OutTutorialPath) const override;
-	virtual int32 CheckRequirements(const FString& ProjectPath, bool bProjectHasCode, FString& OutTutorialPath) const override;
+	virtual int32 CheckRequirements(const FString& ProjectPath, bool bProjectHasCode, FString& OutTutorialPath, FString& OutDocumenationPath) const override;
 
 
 #if WITH_ENGINE

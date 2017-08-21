@@ -224,6 +224,7 @@ void FMapPakDownloader::CachePak()
 
 void FMapPakDownloader::Cache(FString& Map, FString& InLastMap, void* InDynData)
 {
+#if 0 // TODO: currently disabled -- this will be converted to use CHUNK settings -- in part 2 of level streaming support for HTML5
 	bool UseMapDownloader = false;
 	if (GConfig)
 	{
@@ -247,5 +248,6 @@ void FMapPakDownloader::Cache(FString& Map, FString& InLastMap, void* InDynData)
 		}
 
 	}
+#endif
 }
 

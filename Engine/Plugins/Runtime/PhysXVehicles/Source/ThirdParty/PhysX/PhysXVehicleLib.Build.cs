@@ -84,7 +84,7 @@ public class PhysXVehicleLib : ModuleRules
 
             PublicAdditionalLibraries.Add(String.Format("PhysX3Vehicle{0}_x64.lib", LibrarySuffix));
         }
-        else if (Target.Platform == UnrealTargetPlatform.Win32 || (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32"))
+        else if (Target.Platform == UnrealTargetPlatform.Win32)
         {
             PublicLibraryPaths.Add(PhysXLibDir + "Win32/VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName());
 

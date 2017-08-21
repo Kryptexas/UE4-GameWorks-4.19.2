@@ -322,6 +322,7 @@ public:
 
 #if VULKAN_HAS_DEBUGGING_ENABLED
 protected:
+	bool bSupportsDebugCallbackExt;
 	VkDebugReportCallbackEXT MsgCallback;
 	void SetupDebugLayerCallback();
 	void RemoveDebugLayerCallback();

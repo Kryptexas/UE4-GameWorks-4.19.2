@@ -453,9 +453,7 @@ float4 TonemapCommonPS(
 			ExposureScale = BloomDirtMask.Tint.w;
 		#endif
 		
-		#if FEATURE_LEVEL > FEATURE_LEVEL_ES3_1 // On mobile ExposureScale applied in base pass PS
-			LinearColor *= ExposureScale;
-		#endif
+		LinearColor *= ExposureScale;
 
 		#if USE_VIGNETTE
 			LinearColor.rgb *= ComputeVignetteMask( InExposureScaleVignette.yz, TonemapperParams.x );
@@ -772,6 +770,10 @@ void MainPS_ES2(
 		// Match PC naming.
 		half3 LinearColor = SceneColor.rgb;
 
+		#if EYEADAPTATION_EXPOSURE_FIX != 1
+			LinearColor *= DefaultEyeExposure;
+		#endif
+		
 		#if USE_32BPP_HDR && USE_VIGNETTE
 			LinearColor.rgb *= ComputeVignetteMask( InVignette, TonemapperParams.x );
 			LinearColor = max(LinearColor, float3(0, 0, 0));

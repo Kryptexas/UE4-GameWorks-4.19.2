@@ -517,6 +517,18 @@ FIOSPlatformMisc::EIOSDevice FIOSPlatformMisc::GetIOSDeviceType()
 				DeviceType = IOS_IPadPro_129;
 			}
 		}
+		else if (Major == 7)
+		{
+			if (Minor == 3 || Minor == 4)
+			{
+				DeviceType = IOS_IPadPro_105;
+			}
+			else
+			{
+				DeviceType = IOS_IPadPro2_129;
+			}
+		}
+
 		// Default to highest settings currently available for any future device
 		else if (Major > 6)
 		{
@@ -713,6 +725,18 @@ FString FIOSPlatformMisc::GetDeviceId()
 FString FIOSPlatformMisc::GetOSVersion()
 {
 	return FString([[UIDevice currentDevice] systemVersion]);
+}
+
+bool FIOSPlatformMisc::GetDiskTotalAndFreeSpace(const FString& InPath, uint64& TotalNumberOfBytes, uint64& NumberOfFreeBytes)
+{
+	NSDictionary<NSFileAttributeKey, id>* FSStat = [[NSFileManager defaultManager] attributesOfFileSystemForPath:NSHomeDirectory() error:nil];
+	if (FSStat)
+	{
+		TotalNumberOfBytes = [[FSStat objectForKey:NSFileSystemSize] longLongValue];
+		NumberOfFreeBytes = [[FSStat objectForKey:NSFileSystemFreeSize] longLongValue];
+		return true;
+	}
+	return false;
 }
 
 
@@ -1087,7 +1111,7 @@ int32 FIOSPlatformMisc::IOSVersionCompare(uint8 Major, uint8 Minor, uint8 Revisi
 EScreenPhysicalAccuracy FIOSPlatformMisc::ComputePhysicalScreenDensity(int32& ScreenDensity)
 {
 	EIOSDevice Device = GetIOSDeviceType();
-	static_assert( EIOSDevice::IOS_Unknown == 25, "Every device needs to be handled here." );
+	static_assert( EIOSDevice::IOS_Unknown == 27, "Every device needs to be handled here." );
 
 	ScreenDensity = 0;
 	EScreenPhysicalAccuracy Accuracy = EScreenPhysicalAccuracy::Unknown;
@@ -1133,6 +1157,8 @@ EScreenPhysicalAccuracy FIOSPlatformMisc::ComputePhysicalScreenDensity(int32& Sc
 		break;
 	case IOS_IPadPro:
 	case IOS_IPadPro_129:
+	case IOS_IPadPro_105:
+	case IOS_IPadPro2_129:
 		ScreenDensity = 264;
 		Accuracy = EScreenPhysicalAccuracy::Truth;
 		break;

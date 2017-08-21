@@ -12,8 +12,6 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHTML5, Log, All);
 DEFINE_LOG_CATEGORY(LogHTML5);
 DEFINE_LOG_CATEGORY_STATIC(LogHTML5Input, Log, All);
 
-
-#if PLATFORM_HTML5_BROWSER
 THIRD_PARTY_INCLUDES_START
 #include <emscripten/emscripten.h>
 #include <emscripten/html5.h>
@@ -56,8 +54,6 @@ static FGamepadKeyNames::Type ButtonMapping[16] =
 	FGamepadKeyNames::DPadLeft,
 	FGamepadKeyNames::DPadRight
 };
-
-#endif
 
 
 TSharedRef< FHTML5InputInterface > FHTML5InputInterface::Create(  const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler, const TSharedPtr< ICursor >& InCursor )
@@ -174,7 +170,6 @@ void FHTML5InputInterface::Tick(float DeltaTime, const SDL_Event& Event,TSharedR
 
 void FHTML5InputInterface::SendControllerEvents()
 {
-#if PLATFORM_HTML5_BROWSER
 	// game pads can only be polled.
 	static int PrevNumGamepads = 0;
 	static bool GamepadSupported = true;
@@ -243,7 +238,4 @@ void FHTML5InputInterface::SendControllerEvents()
 			}
 		}
 	}
-
-#endif
-
 }

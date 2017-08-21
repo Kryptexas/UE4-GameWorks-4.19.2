@@ -27,6 +27,8 @@ public:
 
 	bool HasLicense();
 
+	void SetLicenseAcceptedCallback(const FSimpleDelegate& InOnLicenseAccepted);
+
 private:
 	bool bLicenseValid;
 
@@ -37,5 +39,7 @@ private:
 
 	/** The widget that scrolls the license text */
 	TSharedPtr<SScrollBox> ScrollBox;
+
+	FSimpleDelegate OnLicenseAccepted;
 };
 

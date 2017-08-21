@@ -23,7 +23,7 @@
 	#error Unsupported platform!
 #endif
 
-#if UE_BUILD_DEBUG || PLATFORM_WINDOWS
+#if UE_BUILD_DEBUG || PLATFORM_WINDOWS || (PLATFORM_ANDROID && UE_BUILD_DEVELOPMENT)
 	#define VULKAN_HAS_DEBUGGING_ENABLED 1 //!!!
 #else
 	#define VULKAN_HAS_DEBUGGING_ENABLED 0
@@ -80,15 +80,6 @@ inline EDescriptorSetStage GetDescriptorSetForStage(EShaderFrequency Stage)
 
 #define VULKAN_CUSTOM_MEMORY_MANAGER_ENABLED					0
 	
-
-// This disables/overrides some if the graphics pipeline setup
-// Please remove this after we are done with testing
-#if PLATFORM_WINDOWS
-	#define VULKAN_DISABLE_DEBUG_CALLBACK						0	/* Disable the DebugReportFunction() callback in VulkanDebug.cpp */
-#else
-	#define VULKAN_DISABLE_DEBUG_CALLBACK						1	/* Disable the DebugReportFunction() callback in VulkanDebug.cpp */
-#endif
-
 #define VULKAN_USE_MSAA_RESOLVE_ATTACHMENTS						1
 
 #define VULKAN_ENABLE_AGGRESSIVE_STATS							0
@@ -105,15 +96,6 @@ inline EDescriptorSetStage GetDescriptorSetForStage(EShaderFrequency Stage)
 	#define VULKAN_SIGNAL_UNIMPLEMENTED()	checkf(false, TEXT("Unimplemented vulkan functionality: %s"), __PRETTY_FUNCTION__)
 #else
 	#define VULKAN_SIGNAL_UNIMPLEMENTED()				checkf(false, TEXT("Unimplemented vulkan functionality: %s"), TEXT(__FUNCTION__))
-#endif
-
-#if VULKAN_HAS_DEBUGGING_ENABLED
-#else
-	// Ensures all debug related defines are disabled
-	#ifdef VULKAN_DISABLE_DEBUG_CALLBACK
-		#undef VULKAN_DISABLE_DEBUG_CALLBACK
-		#define VULKAN_DISABLE_DEBUG_CALLBACK 0
-	#endif
 #endif
 
 namespace EVulkanBindingType

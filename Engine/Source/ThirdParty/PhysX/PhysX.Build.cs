@@ -172,7 +172,7 @@ public class PhysX : ModuleRules
 				RuntimeDependencies.Add(new RuntimeDependency(PxSharedBinariesDir + String.Format(DLL, LibrarySuffix)));
 			}
 		}
-		else if (Target.Platform == UnrealTargetPlatform.Win32 || (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32"))
+		else if (Target.Platform == UnrealTargetPlatform.Win32)
 		{
 			PhysXLibDir += "Win32/VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName();
 			PxSharedLibDir += "Win32/VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName();
@@ -191,9 +191,9 @@ public class PhysX : ModuleRules
 			};
 
 			string[] DelayLoadDLLsX86 = new string[] {
-                "PxFoundation{0}_x86.dll",
-                "PxPvdSDK{0}_x86.dll",
-                "PhysX3{0}_x86.dll",
+				"PxFoundation{0}_x86.dll",
+				"PxPvdSDK{0}_x86.dll",
+				"PhysX3{0}_x86.dll",
 				"PhysX3Cooking{0}_x86.dll",
 				"PhysX3Common{0}_x86.dll"
 			};
@@ -247,8 +247,8 @@ public class PhysX : ModuleRules
 			string[] DynamicLibrariesMac = new string[] {
 				"/libPhysX3{0}.dylib",
 				"/libPhysX3Cooking{0}.dylib",
-                "/libPhysX3Common{0}.dylib",
-                "/libPxFoundation{0}.dylib",
+				"/libPhysX3Common{0}.dylib",
+				"/libPxFoundation{0}.dylib",
 				"/libPxPvdSDK{0}.dylib",
 			};
 

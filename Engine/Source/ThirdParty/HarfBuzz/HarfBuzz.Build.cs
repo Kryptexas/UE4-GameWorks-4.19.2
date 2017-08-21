@@ -8,7 +8,7 @@ public class HarfBuzz : ModuleRules
 	public HarfBuzz(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
-		
+
 		// Can't be used without our dependencies
 		if (!Target.bCompileFreeType || !Target.bCompileICU)
 		{
@@ -24,18 +24,13 @@ public class HarfBuzz : ModuleRules
 
 		string PlatformFolderName = Target.Platform.ToString();
 
-        string HarfBuzzLibPath = HarfBuzzRootPath + PlatformFolderName + "/";
-        if (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32")
-        {
-            HarfBuzzLibPath = HarfBuzzRootPath + "Win32/";
-        }
+		string HarfBuzzLibPath = HarfBuzzRootPath + PlatformFolderName + "/";
 
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||
-			(Target.Platform == UnrealTargetPlatform.Win32) || 
-            (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32"))
+			(Target.Platform == UnrealTargetPlatform.Win32))
 		{
 			Definitions.Add("WITH_HARFBUZZ=1");
-			
+
 			string VSVersionFolderName = "VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName();
 			HarfBuzzLibPath += VSVersionFolderName + "/";
 
@@ -48,8 +43,8 @@ public class HarfBuzz : ModuleRules
 			PublicAdditionalLibraries.Add("harfbuzz.lib");
 		}
 
-        else if (Target.Platform == UnrealTargetPlatform.HTML5 )
-        {
+		else if (Target.Platform == UnrealTargetPlatform.HTML5 )
+		{
 			Definitions.Add("WITH_HARFBUZZ=1");
 
 			string OpimizationSuffix = "_Oz"; // i.e. bCompileForSize
@@ -68,7 +63,7 @@ public class HarfBuzz : ModuleRules
 						break;
 			}	}
 			PublicAdditionalLibraries.Add(HarfBuzzRootPath + "HTML5/libharfbuzz" + OpimizationSuffix + ".bc");
-        }
+		}
 
 		else if (Target.Platform == UnrealTargetPlatform.Mac || Target.Platform == UnrealTargetPlatform.IOS)
 		{

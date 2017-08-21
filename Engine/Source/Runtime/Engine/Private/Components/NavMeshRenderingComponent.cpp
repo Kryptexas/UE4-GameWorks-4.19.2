@@ -1209,10 +1209,10 @@ bool UNavMeshRenderingComponent::IsNavigationShowFlagSet(const UWorld* World)
 		bShowNavigation = WorldContext->GameViewport != nullptr && WorldContext->GameViewport->EngineShowFlags.Navigation;
 		if (bShowNavigation == false)
 		{
-			// we have to check all vieports because we can't to distinguish between SIE and PIE at this point.
+			// we have to check all viewports because we can't to distinguish between SIE and PIE at this point.
 			for (FEditorViewportClient* CurrentViewport : GEditor->AllViewportClients)
 			{
-				if (CurrentViewport && CurrentViewport->IsVisible() && CurrentViewport->EngineShowFlags.Navigation)
+				if (CurrentViewport && CurrentViewport->EngineShowFlags.Navigation)
 				{
 					bShowNavigation = true;
 					break;

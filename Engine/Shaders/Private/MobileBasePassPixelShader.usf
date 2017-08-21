@@ -616,10 +616,9 @@ void Main(
 		#endif
 	#endif
 
-	#if !MATERIALBLENDING_MODULATE
-		// The exposure scale is just a scalar but needs to be a float4 to workaround a driver bug on IOS.
-		// After 4.2 we can put the workaround in the cross compiler.
-		OutColor.rgba *= ResolvedView.ExposureScale.xyzw;
+	#if !MATERIALBLENDING_MODULATE && OUTPUT_GAMMA_SPACE
+		// MobileHDR applies ExposureScale in tonemapper
+		OutColor.rgb *= ResolvedView.ExposureScale;
 	#endif
 
 #if USE_EDITOR_COMPOSITING && (MOBILE_EMULATION)

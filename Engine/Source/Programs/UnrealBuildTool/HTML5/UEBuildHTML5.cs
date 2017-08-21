@@ -11,7 +11,7 @@ namespace UnrealBuildTool
 	class HTML5Platform : UEBuildPlatform
 	{
 		/// <summary>
-		/// Architecture to build for. Use -win32 for win32 builds (build html5 platform as a win32 binary for debugging).
+		/// Architecture to build for.
 		/// </summary>
 		[XmlConfigFile]
 		public static string HTML5Architecture = "";
@@ -50,27 +50,20 @@ namespace UnrealBuildTool
 			Target.bCompileNvCloth = false;
 			Target.bCompilePhysX = true;
 			Target.bCompileSimplygon = false;
-            Target.bCompileSimplygonSSF = false;
-			Target.bCompileForSize = true;			// {true:[all:-Oz], false:[developer:-O2, shipping:-O3]}  WARNING: WASM fails when this is false....
+			Target.bCompileSimplygonSSF = false;
+			Target.bCompileForSize = true;			// {true:[all:-Oz], false:[developer:-O2, shipping:-O3]}  WARNING: need emscripten version >= 1.37.13
 			Target.bUsePCHFiles = false;
 			Target.bDeployAfterCompile = true;
 		}
 
 		public override void PreBuildSync()
 		{
-            HTML5ToolChain.PreBuildSync();
-		}
-
-		// F5 should always try to run the Win32 version
-		public override FileReference ModifyNMakeOutput(FileReference ExeName)
-		{
-			// nmake Run should always run the win32 version
-			return (ExeName + "-win32").ChangeExtension(".exe");
+			HTML5ToolChain.PreBuildSync();
 		}
 
 		public override bool CanUseXGE()
 		{
-			return (HTML5Architecture == "-win32");
+			return false; // NOTE: setting to true may break CIS builds...
 		}
 
 		/// <summary>
@@ -80,41 +73,21 @@ namespace UnrealBuildTool
 		/// <returns>string    The binary extension (ie 'exe' or 'dll')</returns>
 		public override string GetBinaryExtension(UEBuildBinaryType InBinaryType)
 		{
-			if (HTML5Architecture == "-win32")
+			switch (InBinaryType)
 			{
-				switch (InBinaryType)
-				{
-					case UEBuildBinaryType.DynamicLinkLibrary:
-						return ".dll";
-					case UEBuildBinaryType.Executable:
-						return ".exe";
-					case UEBuildBinaryType.StaticLibrary:
-						return ".lib";
-					case UEBuildBinaryType.Object:
-						return ".o";
-					case UEBuildBinaryType.PrecompiledHeader:
-						return ".gch";
-				}
-				return base.GetBinaryExtension(InBinaryType);
+				case UEBuildBinaryType.DynamicLinkLibrary:
+					return ".js";
+				case UEBuildBinaryType.Executable:
+					return ".js";
+				case UEBuildBinaryType.StaticLibrary:
+					return ".bc";
+				case UEBuildBinaryType.Object:
+					return ".bc";
+				case UEBuildBinaryType.PrecompiledHeader:
+					return ".gch";
 			}
-			else
-			{
-				switch (InBinaryType)
-				{
-					case UEBuildBinaryType.DynamicLinkLibrary:
-						return ".js";
-					case UEBuildBinaryType.Executable:
-						return ".js";
-					case UEBuildBinaryType.StaticLibrary:
-						return ".bc";
-					case UEBuildBinaryType.Object:
-						return ".bc";
-					case UEBuildBinaryType.PrecompiledHeader:
-						return ".gch";
-				}
 
-				return base.GetBinaryExtension(InBinaryType);
-			}
+			return base.GetBinaryExtension(InBinaryType);
 		}
 
 		/// <summary>
@@ -125,21 +98,7 @@ namespace UnrealBuildTool
 		/// <returns>string    The debug info extension (i.e. 'pdb')</returns>
 		public override string GetDebugInfoExtension(ReadOnlyTargetRules InTarget, UEBuildBinaryType InBinaryType)
 		{
-			if (HTML5Architecture == "-win32")
-			{
-				switch (InBinaryType)
-				{
-					case UEBuildBinaryType.DynamicLinkLibrary:
-						return ".pdb";
-					case UEBuildBinaryType.Executable:
-						return ".pdb";
-				}
-				return "";
-			}
-			else
-			{
-				return "";
-			}
+			return "";
 		}
 
 		/// <summary>
@@ -223,21 +182,7 @@ namespace UnrealBuildTool
 		/// <param name="LinkEnvironment">The link environment for this target</param>
 		public override void SetUpEnvironment(ReadOnlyTargetRules Target, CppCompileEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment)
 		{
-			if (Target.Architecture == "-win32")
-			{
-				LinkEnvironment.ExcludedLibraries.Add("LIBCMT");
-			}
-
 			CompileEnvironment.Definitions.Add("PLATFORM_HTML5=1");
-			if (CompileEnvironment.Architecture == "-win32")
-			{
-				CompileEnvironment.Definitions.Add("PLATFORM_HTML5_WIN32=1");
-				LinkEnvironment.AdditionalLibraries.Add("delayimp.lib");
-			}
-			else
-			{
-				CompileEnvironment.Definitions.Add("PLATFORM_HTML5_BROWSER=1");
-			}
 
 			// @todo needed?
 			CompileEnvironment.Definitions.Add("UNICODE");
@@ -276,7 +221,7 @@ namespace UnrealBuildTool
 		/// <param name="ExtraModuleNames"></param>
 		public override void AddExtraModules(ReadOnlyTargetRules Target, List<string> ExtraModuleNames)
 		{
-            ExtraModuleNames.Add("HTML5PlatformFeatures");
+			ExtraModuleNames.Add("HTML5PlatformFeatures");
 		}
 
 		/// <summary>
@@ -381,14 +326,7 @@ namespace UnrealBuildTool
 					// Register this build platform for HTML5
 					Log.TraceVerbose("        Registering for {0}", UnrealTargetPlatform.HTML5.ToString());
 					UEBuildPlatform.RegisterBuildPlatform(new HTML5Platform(SDK));
-					if (HTML5Platform.HTML5Architecture == "-win32")
-					{
-						UEBuildPlatform.RegisterPlatformWithGroup(UnrealTargetPlatform.HTML5, UnrealPlatformGroup.Simulator);
-					}
-					else
-					{
-						UEBuildPlatform.RegisterPlatformWithGroup(UnrealTargetPlatform.HTML5, UnrealPlatformGroup.Device);
-					}
+					UEBuildPlatform.RegisterPlatformWithGroup(UnrealTargetPlatform.HTML5, UnrealPlatformGroup.Device);
 				}
 			}
 

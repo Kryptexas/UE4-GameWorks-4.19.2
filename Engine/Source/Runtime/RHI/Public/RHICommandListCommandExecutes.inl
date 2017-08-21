@@ -614,4 +614,10 @@ void FRHICommandPopEvent<CmdListType>::Execute(FRHICommandListBase& CmdList)
 template struct FRHICommandPopEvent<ECmdList::EGfx>;
 template struct FRHICommandPopEvent<ECmdList::ECompute>;
 
+void FRHICommandInvalidateCachedState::Execute(FRHICommandListBase& CmdList)
+{
+	RHISTAT(RHIInvalidateCachedState);
+	INTERNAL_DECORATOR(RHIInvalidateCachedState)();
+}
+
 

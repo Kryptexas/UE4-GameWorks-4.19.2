@@ -727,6 +727,12 @@ void UNavigationSystem::OnWorldInitDone(FNavigationSystemRunMode Mode)
 
 	if (Mode == FNavigationSystemRunMode::EditorMode)
 	{
+#if	WITH_EDITOR
+		// make sure this static get applied to this instance
+		bNavigationAutoUpdateEnabled = !bNavigationAutoUpdateEnabled; 
+		SetNavigationAutoUpdateEnabled(!bNavigationAutoUpdateEnabled, this);
+#endif		
+		
 		// update navigation invokers
 		if (bGenerateNavigationOnlyAroundNavigationInvokers)
 		{

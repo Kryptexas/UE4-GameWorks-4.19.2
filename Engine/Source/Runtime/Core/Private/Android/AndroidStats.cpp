@@ -36,11 +36,12 @@ DECLARE_FLOAT_COUNTER_STAT(TEXT("Freq Group 1 : highest core utilization %"), ST
 DECLARE_FLOAT_COUNTER_STAT(TEXT("Freq Group 2 : highest core utilization %"), STAT_FreqGroup2MaxUtilization, STATGROUP_AndroidCPU);
 DECLARE_FLOAT_COUNTER_STAT(TEXT("Freq Group 3 : highest core utilization %"), STAT_FreqGroup3MaxUtilization, STATGROUP_AndroidCPU);
 
-int32 GAndroidCollectCPUStats = 1;
-static FAutoConsoleVariableRef CVarAndroidCollectCPUStats(
-	TEXT("Android.CollectCPUStats"),
-	GAndroidCollectCPUStats,
-	TEXT("Collect CPU Stats (Default: 1)"),
+float GAndroidCPUStatsUpdateRate = 0.100;
+static FAutoConsoleVariableRef CVarAndroidCollectCPUStatsRate(
+	TEXT("Android.CPUStatsUpdateRate"),
+	GAndroidCPUStatsUpdateRate,
+	TEXT("Update rate in seconds for collecting CPU Stats (Default: 0.1)\n")
+	TEXT("0 to disable."),
 	ECVF_Default);
 
 #if !STATS
@@ -64,10 +65,18 @@ void FAndroidStats::UpdateAndroidStats()
 }
 
 void FAndroidStats::UpdateAndroidStats()
-{
-	if (GAndroidCollectCPUStats == 0)
+{	 
+	static uint64 LastCollectionTime = FPlatformTime::Cycles64();
+	uint64 CurrentTime = FPlatformTime::Cycles64();
+	if (GAndroidCPUStatsUpdateRate <= 0.0f)
 	{
 		return;
+	}
+	bool bUpdateStats = ((FPlatformTime::ToSeconds(CurrentTime - LastCollectionTime) >= GAndroidCPUStatsUpdateRate));
+	
+	if( bUpdateStats )
+	{
+		LastCollectionTime = CurrentTime;
 	}
 
 	static const FName AndroidFrequencyGroupMaxFreqStats[] = {
@@ -105,9 +114,9 @@ void FAndroidStats::UpdateAndroidStats()
 		GET_STATFNAME(STAT_FreqGroup3MaxUtilization),
 	};
 
+	static const uint32 MaxFrequencyGroupStats = 4;
 	const int32 MaxCoresStatsSupport = 16;
 	int32 NumCores = FMath::Min(FAndroidMisc::NumberOfCores(), MaxCoresStatsSupport);
-	uint32 CurrentCPUFrequency[MaxCoresStatsSupport];
 
 	struct FFrequencyGroup
 	{
@@ -175,22 +184,29 @@ void FAndroidStats::UpdateAndroidStats()
 		return 0.0f;
 	};
 
+	static float CurrentFrequencies[MaxFrequencyGroupStats] = { 0,0,0,0 };
 	for (int32 FrequencyGroupIndex = 0; FrequencyGroupIndex < FrequencyGroups.Num(); FrequencyGroupIndex++)
 	{
-		const FFrequencyGroup& FrequencyGroup = FrequencyGroups[FrequencyGroupIndex];
-		SET_FLOAT_STAT_BY_FNAME(AndroidFrequencyGroupCurrentFreqStats[FrequencyGroupIndex], GetFrequencyGroupCurrentFrequency(FrequencyGroupIndex));
+		if (bUpdateStats)
+		{
+			CurrentFrequencies[FrequencyGroupIndex] = GetFrequencyGroupCurrentFrequency(FrequencyGroupIndex);
+		}
+
+		SET_FLOAT_STAT_BY_FNAME(AndroidFrequencyGroupCurrentFreqStats[FrequencyGroupIndex], CurrentFrequencies[FrequencyGroupIndex]);
 	}
 
-	FAndroidMisc::FCPUState& AndroidCPUState = FAndroidMisc::GetCPUState();
-	static const uint32 MaxFrequencyGroupStats = 4;
-	float MaxSingleCoreUtilization[MaxFrequencyGroupStats] = { 0.0f };
-	for (int32 CoreIndex = 0; CoreIndex < NumCores; CoreIndex++)
+	static float MaxSingleCoreUtilization[MaxFrequencyGroupStats] = { 0.0f };
+	if( bUpdateStats )
 	{
-		uint32 FrequencyGroupIndex = CoreFrequencyGroupIndex[CoreIndex];
-		if (FrequencyGroupIndex != 0xFFFFFFFF)
+		FAndroidMisc::FCPUState& AndroidCPUState = FAndroidMisc::GetCPUState();
+		for (int32 CoreIndex = 0; CoreIndex < NumCores; CoreIndex++)
 		{
-			float& MaxCoreUtilization = MaxSingleCoreUtilization[FrequencyGroupIndex];
-			MaxCoreUtilization = FMath::Max((float)AndroidCPUState.Utilization[CoreIndex], MaxCoreUtilization);
+			uint32 FrequencyGroupIndex = CoreFrequencyGroupIndex[CoreIndex];
+			if (FrequencyGroupIndex != 0xFFFFFFFF)
+			{
+				float& MaxCoreUtilization = MaxSingleCoreUtilization[FrequencyGroupIndex];
+				MaxCoreUtilization = FMath::Max((float)AndroidCPUState.Utilization[CoreIndex], MaxCoreUtilization);
+			}
 		}
 	}
 	for (int32 FrequencyGroupIndex = 0; FrequencyGroupIndex < FrequencyGroups.Num(); FrequencyGroupIndex++)

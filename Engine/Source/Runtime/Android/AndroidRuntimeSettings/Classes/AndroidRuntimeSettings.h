@@ -193,8 +193,8 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging)
 	TEnumAsByte<EAndroidInstallLocation::Type> InstallLocation;
 
-	// Experimental: Use Gradle instead of Ant for Java compiling and APK generation
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging, Meta = (DisplayName = "Enable Gradle instead of Ant [Experimental]"))
+	// Use Gradle instead of Ant for Java compiling and APK generation
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging, Meta = (DisplayName = "Enable Gradle instead of Ant"))
 	bool bEnableGradle;
 
 	// Should the data be placed into the .apk file instead of a separate .obb file. Amazon requires this to be enabled, but Google Play Store will not allow .apk files larger than 50MB, so only small games will work with this enabled.

@@ -1459,6 +1459,11 @@ struct FRHICommandPopEvent : public FRHICommand<FRHICommandPopEvent<CmdListType>
 	RHI_API void Execute(FRHICommandListBase& CmdList);
 };
 
+struct FRHICommandInvalidateCachedState : public FRHICommand<FRHICommandInvalidateCachedState>
+{
+	RHI_API void Execute(FRHICommandListBase& CmdList);
+};
+
 struct FRHICommandDebugBreak : public FRHICommand<FRHICommandDebugBreak>
 {
 	void Execute(FRHICommandListBase& CmdList)
@@ -2288,7 +2293,17 @@ public:
 		}
 		new (AllocCommand<FRHICommandPopEvent<ECmdList::EGfx>>()) FRHICommandPopEvent<ECmdList::EGfx>();
 	}
-
+	
+	FORCEINLINE_DEBUGGABLE void RHIInvalidateCachedState()
+	{
+		if (Bypass())
+		{
+			CMD_CONTEXT(RHIInvalidateCachedState)();
+			return;
+		}
+		new (AllocCommand<FRHICommandInvalidateCachedState>()) FRHICommandInvalidateCachedState();
+	}
+	
 	FORCEINLINE_DEBUGGABLE void BreakPoint()
 	{
 #if !UE_BUILD_SHIPPING

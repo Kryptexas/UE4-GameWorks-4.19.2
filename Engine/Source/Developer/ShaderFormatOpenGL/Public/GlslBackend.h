@@ -26,7 +26,7 @@ public:
 
 	virtual bool SupportsIntegerModulo() const override
 	{
-#if PLATFORM_HTML5_BROWSER 
+#if PLATFORM_HTML5
 		// For backwards compatibility when targeting WebGL 2 shaders,
 		// generate GLES2/WebGL 1 style shaders but with GLES3/WebGL 2
 		// constructs available.
@@ -55,7 +55,6 @@ struct SHADERFORMATOPENGL_API FGlslCodeBackend : public FCodeBackend
 {
 	FGlslCodeBackend(unsigned int InHlslCompileFlags, EHlslCompileTarget InTarget) :
 		FCodeBackend(InHlslCompileFlags, InTarget)
-
 	{
 	}
 

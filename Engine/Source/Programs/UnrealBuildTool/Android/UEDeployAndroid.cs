@@ -42,6 +42,7 @@ namespace UnrealBuildTool
 		private bool bGradleEnabled = false;
 
 		private UnrealPluginLanguage UPL = null;
+		private bool GearVRPluginEnabled = false;
 		private bool GoogleVRPluginEnabled = false;
 		private bool CrashlyticsPluginEnabled = false;
 
@@ -53,21 +54,27 @@ namespace UnrealBuildTool
 				NDKArches.Add(GetNDKArch(Arch));
 			}
 
-			// check if the GoogleVR plugin was enabled
+			// check if certain plugins are enabled
 			GoogleVRPluginEnabled = false;
+			GearVRPluginEnabled = false;
+			CrashlyticsPluginEnabled = false;
 			foreach (var Plugin in inPluginExtraData)
 			{
+				// check if the Gear VR plugin was enabled
+				if (Plugin.Contains("GearVR_APL"))
+				{
+					GearVRPluginEnabled = true;
+					break;
+				}
+
+				// check if the GoogleVR plugin was enabled
 				if (Plugin.Contains("GoogleVRHMD"))
 				{
 					GoogleVRPluginEnabled = true;
 					break;
 				}
-			}
 
-			// check if Crashlytics plugin was enabled
-			CrashlyticsPluginEnabled = false;
-			foreach (var Plugin in inPluginExtraData)
-			{
+				// check if Crashlytics plugin was enabled
 				// NOTE: There is a thirdparty plugin using Crashlytics_UPL_Android.xml which shouldn't use this code so check full name
 				if (Plugin.Contains("Crashlytics_UPL.xml"))
 				{
@@ -381,6 +388,26 @@ namespace UnrealBuildTool
 				// changes the mode, there will be no setting string to look up here
 				return true;
 			}
+		}
+
+		public bool IsPackagingForGearVR(ConfigHierarchy Ini = null)
+		{
+			// always false if the GearVR plugin wasn't enabled
+			if (!GearVRPluginEnabled)
+			{
+				return false;
+			}
+
+			// make a new one if one wasn't passed in
+			if (Ini == null)
+			{
+				Ini = GetConfigCacheIni(ConfigHierarchyType.Engine);
+			}
+
+			bool bPackageForGearVR = false;
+			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bPackageForGearVR", out bPackageForGearVR);
+
+			return bPackageForGearVR;
 		}
 
 		public bool DisableVerifyOBBOnStartUp(ConfigHierarchy Ini = null)
@@ -982,6 +1009,26 @@ namespace UnrealBuildTool
 			}
 		}
 
+		void CopyVulkanValidationLayers(string UE4BuildPath, string UE4Arch, string NDKArch, string Configuration)
+		{
+			bool bSupportsVulkan = false;
+			ConfigHierarchy Ini = GetConfigCacheIni(ConfigHierarchyType.Engine);
+			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bSupportsVulkan", out bSupportsVulkan);
+
+			bool bCopyVulkanLayers = bSupportsVulkan && (Configuration == "Debug" || Configuration == "Development");
+			if (bCopyVulkanLayers)
+			{
+				string VulkanLayersDir = Environment.ExpandEnvironmentVariables("%NDKROOT%/sources/third_party/vulkan/src/build-android/jniLibs/") + NDKArch;
+				if (Directory.Exists(VulkanLayersDir))
+				{
+					Console.WriteLine("Copying vulkan layers from {0}", VulkanLayersDir);
+					string DestDir = Path.Combine(UE4BuildPath, "libs", NDKArch);
+					Directory.CreateDirectory(DestDir);
+					CopyFileDirectory(VulkanLayersDir, DestDir);
+				}
+			}
+		}
+
 		private static int RunCommandLineProgramAndReturnResult(string WorkingDirectory, string Command, string Params, string OverrideDesc = null, bool bUseShellExecute = false)
 		{
 			if (OverrideDesc == null)
@@ -1497,9 +1544,8 @@ namespace UnrealBuildTool
 			ConfigHierarchy Ini = GetConfigCacheIni(ConfigHierarchyType.Engine);
 			bool bShowLaunchImage = false;
 			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bShowLaunchImage", out bShowLaunchImage);
-			bool bPackageForGearVR;
-			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bPackageForGearVR", out bPackageForGearVR);
-			bool bPackageForDaydream = IsPackagingForDaydream();
+			bool bPackageForGearVR = IsPackagingForGearVR(Ini); ;
+			bool bPackageForDaydream = IsPackagingForDaydream(Ini);
 			
 			//override the parameters if we are not showing a launch image or are packaging for GearVR and Daydream
 			if (bPackageForGearVR || bPackageForDaydream || !bShowLaunchImage)
@@ -1769,8 +1815,7 @@ namespace UnrealBuildTool
 			Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "ExtraApplicationSettings", out ExtraApplicationSettings);
 			List<string> ExtraPermissions;
 			Ini.GetArray("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "ExtraPermissions", out ExtraPermissions);
-			bool bPackageForGearVR;
-			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bPackageForGearVR", out bPackageForGearVR);
+			bool bPackageForGearVR = IsPackagingForGearVR(Ini);
 			bool bEnableIAP = false;
 			Ini.GetBool("OnlineSubsystemGooglePlay.Store", "bSupportsInAppPurchasing", out bEnableIAP);
 			bool bShowLaunchImage = false;
@@ -1834,7 +1879,7 @@ namespace UnrealBuildTool
 				}
 			}
 
-			bool bPackageForDaydream = IsPackagingForDaydream();
+			bool bPackageForDaydream = IsPackagingForDaydream(Ini);
 			// disable splash screen for daydream
 			if (bPackageForDaydream)
 			{
@@ -2494,12 +2539,43 @@ namespace UnrealBuildTool
 			return bEnableGradle;
 		}
 
+		private bool IsLicenseAgreementValid()
+		{
+			string LicensePath = Environment.ExpandEnvironmentVariables("%ANDROID_HOME%/licenses");
+
+			// directory must exist
+			if (!Directory.Exists(LicensePath))
+			{
+				Log.TraceInformation("Directory doesn't exist {0}", LicensePath);
+				return false;
+			}
+
+			// license file must exist
+			string LicenseFilename = Path.Combine(LicensePath, "android-sdk-license");
+			if (!File.Exists(LicenseFilename))
+			{
+				Log.TraceInformation("File doesn't exist {0}", LicenseFilename);
+				return false;
+			}
+
+			// ignore contents of hash for now (Gradle will report if it isn't valid)
+			return true;
+		}
+
 		private void MakeApk(AndroidToolChain ToolChain, string ProjectName, string ProjectDirectory, string OutputPath, string EngineDirectory, bool bForDistribution, string CookFlavor, bool bMakeSeparateApks, bool bIncrementalPackage, bool bDisallowPackagingDataInApk, bool bDisallowExternalFilesDir)
 		{
 			Log.TraceInformation("\n===={0}====PREPARING TO MAKE APK=================================================================", DateTime.Now.ToString());
 
 			// check for Gradle enabled for this project
 			bGradleEnabled = GradleEnabled();
+
+			if (bGradleEnabled)
+			{
+				if (!IsLicenseAgreementValid())
+				{
+					throw new BuildException("Android SDK license file not found.  Please agree to license in Android project settings in the editor.");
+				}
+			}
 
 			// do this here so we'll stop early if there is a problem with the SDK API level (cached so later calls will return the same)
 			string SDKAPILevel = GetSdkApiLevel(ToolChain);
@@ -2992,6 +3068,7 @@ namespace UnrealBuildTool
 				// copy libgnustl_shared.so to library (use 4.8 if possible, otherwise 4.6)
 				CopySTL(ToolChain, UE4BuildPath, Arch, NDKArch, bForDistribution);
 				CopyGfxDebugger(UE4BuildPath, Arch, NDKArch);
+				CopyVulkanValidationLayers(UE4BuildPath, Arch, NDKArch, Configuration);
 
 				// copy postbuild plugin files
 				UPL.ProcessPluginNode(NDKArch, "resourceCopies", "");
@@ -3140,10 +3217,24 @@ namespace UnrealBuildTool
 					GradleBuildAdditionsContent.AppendLine("apply from: 'aar-imports.gradle'");
 					GradleBuildAdditionsContent.AppendLine("apply from: 'projects.gradle'");
 
+					GradleBuildAdditionsContent.AppendLine("android {");
+					GradleBuildAdditionsContent.AppendLine("\tdefaultConfig {");
+					GradleBuildAdditionsContent.AppendLine("\t\tndk {");
+					GradleBuildAdditionsContent.AppendLine(string.Format("\t\t\tabiFilter \"{0}\"", NDKArch));
+					GradleBuildAdditionsContent.AppendLine("\t\t}");
+					GradleBuildAdditionsContent.AppendLine("\t}");
+
 					string GradleBuildType = ":app:assembleDebug";
 					if (bForDistribution)
 					{
+						bool bDisableV2Signing = false;
 						GradleBuildType = ":app:assembleRelease";
+
+						if (IsPackagingForGearVR())
+						{
+							bDisableV2Signing = true;
+							Log.TraceInformation("Disabling v2Signing for Gear VR APK");
+						}
 
 						string KeyAlias, KeyStore, KeyStorePassword, KeyPassword;
 						Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "KeyStore", out KeyStore);
@@ -3168,16 +3259,18 @@ namespace UnrealBuildTool
 							throw new BuildException("Keystore file is missing. Check the DistributionSettings section in the Android tab of Project Settings");
 						}
 
-						GradleBuildAdditionsContent.AppendLine("android {");
 						GradleBuildAdditionsContent.AppendLine("\tsigningConfigs {");
 						GradleBuildAdditionsContent.AppendLine("\t\trelease {");
 						GradleBuildAdditionsContent.AppendLine(string.Format("\t\t\tstoreFile file('{0}')", KeyStoreFilename.Replace("\\", "/")));
 						GradleBuildAdditionsContent.AppendLine(string.Format("\t\t\tstorePassword '{0}'", KeyStorePassword));
 						GradleBuildAdditionsContent.AppendLine(string.Format("\t\t\tkeyAlias '{0}'", KeyAlias));
 						GradleBuildAdditionsContent.AppendLine(string.Format("\t\t\tkeyPassword '{0}'", KeyPassword));
+						if (bDisableV2Signing)
+						{
+							GradleBuildAdditionsContent.AppendLine("\t\t\tv2SigningEnabled false");
+						}
 						GradleBuildAdditionsContent.AppendLine("\t\t}");
 						GradleBuildAdditionsContent.AppendLine("\t}");
-						GradleBuildAdditionsContent.AppendLine("}");
 
 						// Generate the Proguard file contents and write it
 						string ProguardContents = GenerateProguard(NDKArch, UE4BuildFilesPath, GameBuildFilesPath);
@@ -3191,13 +3284,12 @@ namespace UnrealBuildTool
 					else
 					{
 						// empty just for Gradle not to complain
-						GradleBuildAdditionsContent.AppendLine("android {");
 						GradleBuildAdditionsContent.AppendLine("\tsigningConfigs {");
 						GradleBuildAdditionsContent.AppendLine("\t\trelease {");
 						GradleBuildAdditionsContent.AppendLine("\t\t}");
 						GradleBuildAdditionsContent.AppendLine("\t}");
-						GradleBuildAdditionsContent.AppendLine("}");
 					}
+					GradleBuildAdditionsContent.AppendLine("}");
 
 					// Add any UPL app buildGradleAdditions
 					GradleBuildAdditionsContent.Append(UPL.ProcessPluginNode(NDKArch, "buildGradleAdditions", ""));

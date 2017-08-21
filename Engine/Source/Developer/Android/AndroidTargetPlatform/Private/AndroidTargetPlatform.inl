@@ -15,6 +15,13 @@
 #include "UObject/NameTypes.h"
 #include "Logging/LogMacros.h"
 #include "Stats/Stats.h"
+#include "Serialization/Archive.h"
+#include "Misc/FileHelper.h"
+#include "FileManager.h"
+#include "PlatformFilemanager.h"
+#include "Interfaces/IAndroidDeviceDetectionModule.h"
+#include "Interfaces/IAndroidDeviceDetection.h"
+
 #define LOCTEXT_NAMESPACE "FAndroidTargetPlatform"
 
 class Error;
@@ -76,6 +83,140 @@ static bool SupportsVulkan()
 #endif
 
 	return bSupportsVulkan && GlslangAvailable;
+}
+
+static FString GetLicensePath()
+{
+	auto &AndroidDeviceDetection = FModuleManager::LoadModuleChecked<IAndroidDeviceDetectionModule>("AndroidDeviceDetection");
+	IAndroidDeviceDetection* DeviceDetection = AndroidDeviceDetection.GetAndroidDeviceDetection();
+	FString ADBPath = DeviceDetection->GetADBPath();
+
+	if (!FPaths::FileExists(*ADBPath))
+	{
+		return TEXT("");
+	}
+
+	// strip off the adb.exe part
+	FString PlatformToolsPath;
+	FString Filename;
+	FString Extension;
+	FPaths::Split(ADBPath, PlatformToolsPath, Filename, Extension);
+
+	// remove the platform-tools part and point to licenses
+	FPaths::NormalizeDirectoryName(PlatformToolsPath);
+	FString LicensePath = PlatformToolsPath + "/../licenses";
+	FPaths::CollapseRelativeDirectories(LicensePath);
+
+	return LicensePath;
+}
+
+static bool GetLicenseHash(FSHAHash& LicenseHash)
+{
+	bool bLicenseValid = false;
+
+	// from Android SDK Tools 25.2.3
+	FString LicenseFilename = FPaths::EngineDir() + TEXT("Source/ThirdParty/Android/package.xml");
+
+	// Create file reader
+	TUniquePtr<FArchive> FileReader(IFileManager::Get().CreateFileReader(*LicenseFilename));
+	if (FileReader)
+	{
+		// Create buffer for file input
+		uint32 BufferSize = FileReader->TotalSize();
+		uint8* Buffer = (uint8*)FMemory::Malloc(BufferSize);
+		FileReader->Serialize(Buffer, BufferSize);
+
+		uint8 StartPattern[] = "<license id=\"android-sdk-license\" type=\"text\">";
+		int32 StartPatternLength = strlen((char *)StartPattern);
+
+		uint8* LicenseStart = Buffer;
+		uint8* BufferEnd = Buffer + BufferSize - StartPatternLength;
+		while (LicenseStart < BufferEnd)
+		{
+			if (!memcmp(LicenseStart, StartPattern, StartPatternLength))
+			{
+				break;
+			}
+			LicenseStart++;
+		}
+
+		if (LicenseStart < BufferEnd)
+		{
+			LicenseStart += StartPatternLength;
+
+			uint8 EndPattern[] = "</license>";
+			int32 EndPatternLength = strlen((char *)EndPattern);
+
+			uint8* LicenseEnd = LicenseStart;
+			BufferEnd = Buffer + BufferSize - EndPatternLength;
+			while (LicenseEnd < BufferEnd)
+			{
+				if (!memcmp(LicenseEnd, EndPattern, EndPatternLength))
+				{
+					break;
+				}
+				LicenseEnd++;
+			}
+
+			if (LicenseEnd < BufferEnd)
+			{
+				int32 LicenseLength = LicenseEnd - LicenseStart;
+				FSHA1::HashBuffer(LicenseStart, LicenseLength, LicenseHash.Hash);
+				bLicenseValid = true;
+			}
+		}
+		FMemory::Free(Buffer);
+	}
+
+	return bLicenseValid;
+}
+
+static bool HasLicense()
+{
+	FString LicensePath = GetLicensePath();
+
+	if (LicensePath.IsEmpty())
+	{
+		return false;
+	}
+
+	// directory must exist
+	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
+	if (!PlatformFile.DirectoryExists(*LicensePath))
+	{
+		return false;
+	}
+
+	// license file must exist
+	FString LicenseFilename = LicensePath + "/android-sdk-license";
+	if (!PlatformFile.FileExists(*LicenseFilename))
+	{
+		return false;
+	}
+
+	FSHAHash LicenseHash;
+	if (!GetLicenseHash(LicenseHash))
+	{
+		return false;
+	}
+
+	// contents must match hash of license text
+	FString FileData = "";
+	FFileHelper::LoadFileToString(FileData, *LicenseFilename);
+	TArray<FString> lines;
+	int32 lineCount = FileData.ParseIntoArray(lines, TEXT("\n"), true);
+
+	FString LicenseString = LicenseHash.ToString().ToLower();
+	for (FString &line : lines)
+	{
+		if (line.TrimTrailing().Trim().Equals(LicenseString))
+		{
+			return true;
+		}
+	}
+
+	// doesn't match
+	return false;
 }
 
 template<class TPlatformProperties>
@@ -161,6 +302,31 @@ inline bool FAndroidTargetPlatform<TPlatformProperties>::IsSdkInstalled(bool bPr
 	return true;
 }
 
+template<class TPlatformProperties>
+inline int32 FAndroidTargetPlatform<TPlatformProperties>::CheckRequirements(const FString& ProjectPath, bool bProjectHasCode, FString& OutTutorialPath, FString& OutDocumentationPath) const
+{
+	OutDocumentationPath = TEXT("Platforms/Android/GettingStarted");
+
+	int32 bReadyToBuild = ETargetPlatformReadyStatus::Ready;
+	if (!IsSdkInstalled(bProjectHasCode, OutTutorialPath))
+	{
+		bReadyToBuild |= ETargetPlatformReadyStatus::SDKNotFound;
+	}
+
+	bool bEnableGradle;
+	GConfig->GetBool(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("bEnableGradle"), bEnableGradle, GEngineIni);
+
+	if (bEnableGradle)
+	{
+		// need to check license was accepted
+		if (!HasLicense())
+		{
+			bReadyToBuild |= ETargetPlatformReadyStatus::LicenseNotAccepted;
+		}
+	}
+
+	return bReadyToBuild;
+}
 
 template<class TPlatformProperties>
 inline bool FAndroidTargetPlatform<TPlatformProperties>::SupportsFeature( ETargetPlatformFeatures Feature ) const

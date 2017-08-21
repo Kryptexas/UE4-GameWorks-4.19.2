@@ -51,7 +51,7 @@
 	#endif
 	#ifndef GL_TESS_EVALUATION_SHADER
 	#define GL_TESS_EVALUATION_SHADER 0x8E87
-	#endif 
+	#endif
 	#ifndef GL_TESS_CONTROL_SHADER
 	#define GL_TESS_CONTROL_SHADER 0x8E88
 	#endif
@@ -59,16 +59,16 @@
 	#include "OpenGLUtil.h"
 #include "OpenGLShaderResources.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogOpenGLShaderCompiler, Log, All); 
+DEFINE_LOG_CATEGORY_STATIC(LogOpenGLShaderCompiler, Log, All);
 
 
 #define VALIDATE_GLSL_WITH_DRIVER		0
 #define ENABLE_IMAGINATION_COMPILER		1
- 
-  
+
+
 static FORCEINLINE bool IsES2Platform(GLSLVersion Version)
 {
-	return (Version == GLSL_ES2 || Version == GLSL_150_ES2 || Version == GLSL_ES2_WEBGL || Version == GLSL_ES2_IOS || Version == GLSL_150_ES2_NOUB); 
+	return (Version == GLSL_ES2 || Version == GLSL_150_ES2 || Version == GLSL_ES2_WEBGL || Version == GLSL_ES2_IOS || Version == GLSL_150_ES2_NOUB);
 }
 
 static FORCEINLINE bool IsPCES2Platform(GLSLVersion Version)
@@ -439,7 +439,7 @@ GLenum GLFrequencyTable[] =
 	GL_FRAGMENT_SHADER, // SF_Pixel
 	GL_GEOMETRY_SHADER,	// SF_Geometry
 	GL_COMPUTE_SHADER,  // SF_Compute
-	
+
 };
 
 static_assert(ARRAY_COUNT(GLFrequencyTable) == SF_NumFrequencies, "Frequency table size mismatch.");
@@ -552,7 +552,7 @@ static TCHAR* SetIndex(TCHAR* Str, int32 Offset, int32 Index)
  */
 void FOpenGLFrontend::BuildShaderOutput(
 	FShaderCompilerOutput& ShaderOutput,
-	const FShaderCompilerInput& ShaderInput, 
+	const FShaderCompilerInput& ShaderInput,
 	const ANSICHAR* InShaderSource,
 	int32 SourceLen,
 	GLSLVersion Version
@@ -564,7 +564,7 @@ void FOpenGLFrontend::BuildShaderOutput(
 	{
 		UE_LOG(LogOpenGLShaderCompiler, Error, TEXT("Bad hlslcc header found"));
 	}
-	
+
 	if (*USFSource != '#')
 	{
 		UE_LOG(LogOpenGLShaderCompiler, Error, TEXT("Bad hlslcc header found! Missing '#'!"));
@@ -858,15 +858,15 @@ void FOpenGLFrontend::BuildShaderOutput(
 			}
 			else
 			{
-			ParameterMap.AddParameterAllocation(
-				*SamplerState,
-				0,
-				Sampler.Offset,
-				Sampler.Count
-				);
+				ParameterMap.AddParameterAllocation(
+					*SamplerState,
+					0,
+					Sampler.Offset,
+					Sampler.Count
+					);
+			}
 		}
-	}	
-	}	
+	}
 
 	// Then UAVs (images in GLSL)
 	for (auto& UAV : CCHeader.UAVs)
@@ -938,9 +938,9 @@ void FOpenGLFrontend::BuildShaderOutput(
 		Ar.Serialize((void*)USFSource, SourceLen + 1 - (USFSource - InShaderSource));
 			ShaderOutput.bSucceeded = true;
 		}
-		
+
 		// store data we can pickup later with ShaderCode.FindOptionalData('n'), could be removed for shipping
-		// Daniel L: This GenerateShaderName does not generate a deterministic output among shaders as the shader code can be shared. 
+		// Daniel L: This GenerateShaderName does not generate a deterministic output among shaders as the shader code can be shared.
 		//			uncommenting this will cause the project to have non deterministic materials and will hurt patch sizes
 		//ShaderOutput.ShaderCode.AddOptionalData('n', TCHAR_TO_UTF8(*ShaderInput.GenerateShaderName()));
 
@@ -969,7 +969,7 @@ void FOpenGLFrontend::ConvertOpenGLVersionFromGLSLVersion(GLSLVersion InVersion,
 			OutMinorVersion = 2;
 			break;
 		case GLSL_ES2_IOS:
-		case GLSL_ES2_WEBGL: 
+		case GLSL_ES2_WEBGL:
 		case GLSL_ES2:
 		case GLSL_ES3_1_ANDROID:
 			OutMajorVersion = 0;
@@ -987,7 +987,7 @@ void FOpenGLFrontend::ConvertOpenGLVersionFromGLSLVersion(GLSLVersion InVersion,
 static const TCHAR* GetGLSLES2CompilerExecutable(bool bNDACompiler)
 {
 	// Unfortunately no env var is set to handle install path
-	return (bNDACompiler 
+	return (bNDACompiler
 		? TEXT("C:\\Imagination\\PowerVR\\GraphicsSDK\\Compilers\\OGLES\\Windows_x86_32\\glslcompiler_sgx543_nda.exe")
 		: TEXT("C:\\Imagination\\PowerVR\\GraphicsSDK\\Compilers\\OGLES\\Windows_x86_32\\glslcompiler_sgx543.exe"));
 }
@@ -1015,11 +1015,11 @@ static FString CreateGLSLES2CompilerArguments(const FString& ShaderFile, const F
 	{
 		Arguments += " -disasm";
 	}
-	
+
 	return Arguments;
 }
 
-static FString CreateCommandLineGLSLES2(const FString& ShaderFile, const FString& OutputFile, GLSLVersion Version, EHlslShaderFrequency Frequency, bool bNDACompiler) 
+static FString CreateCommandLineGLSLES2(const FString& ShaderFile, const FString& OutputFile, GLSLVersion Version, EHlslShaderFrequency Frequency, bool bNDACompiler)
 {
 	if (Version != GLSL_ES2 && Version != GLSL_ES2_WEBGL && Version != GLSL_ES2_IOS)
 	{
@@ -1143,7 +1143,7 @@ void FOpenGLFrontend::PrecompileShader(FShaderCompilerOutput& ShaderOutput, cons
 		return;
 	}
 
-	if (Version == GLSL_ES2 || Version == GLSL_ES2_WEBGL || Version == GLSL_ES2_IOS) 
+	if (Version == GLSL_ES2 || Version == GLSL_ES2_WEBGL || Version == GLSL_ES2_IOS)
 	{
 		PrecompileGLSLES2(ShaderOutput, ShaderInput, ShaderSource, Frequency);
 	}
@@ -1174,7 +1174,7 @@ void FOpenGLFrontend::PrecompileShader(FShaderCompilerOutput& ShaderOutput, cons
 				ShaderOutput.Target = ShaderInput.Target;
 				BuildShaderOutput(
 					ShaderOutput,
-					ShaderInput, 
+					ShaderInput,
 					ShaderSource,
 					(int32)SourceLen,
 					Version
@@ -1229,7 +1229,7 @@ void FOpenGLFrontend::PrecompileShader(FShaderCompilerOutput& ShaderOutput, cons
 	External interface.
 ------------------------------------------------------------------------------*/
 
-static FString CreateCrossCompilerBatchFile( const FString& ShaderFile, const FString& OutputFile, const FString& EntryPoint, EHlslShaderFrequency Frequency, GLSLVersion Version, uint32 CCFlags ) 
+static FString CreateCrossCompilerBatchFile( const FString& ShaderFile, const FString& OutputFile, const FString& EntryPoint, EHlslShaderFrequency Frequency, GLSLVersion Version, uint32 CCFlags )
 {
 	const TCHAR* VersionSwitch = TEXT("");
 	switch (Version)
@@ -1303,7 +1303,7 @@ void FOpenGLFrontend::SetupPerVersionCompilationEnvironment(GLSLVersion Version,
 			AdditionalDefines.SetDefine(TEXT("ES2_PROFILE"), 1);
 			HlslCompilerTarget = HCT_FeatureLevelES2;
 			AdditionalDefines.SetDefine(TEXT("row_major"), TEXT(""));
-			break; 
+			break;
 
 		case GLSL_ES2_IOS:
 			AdditionalDefines.SetDefine(TEXT("IOS"), 1);
@@ -1312,15 +1312,15 @@ void FOpenGLFrontend::SetupPerVersionCompilationEnvironment(GLSLVersion Version,
 			HlslCompilerTarget = HCT_FeatureLevelES2;
 			AdditionalDefines.SetDefine(TEXT("row_major"), TEXT(""));
 			AdditionalDefines.SetDefine(TEXT("noperspective"), TEXT(""));
-			
-			break; 
+
+			break;
 
 		case GLSL_ES2:
 			AdditionalDefines.SetDefine(TEXT("COMPILER_GLSL_ES2"), 1);
 			AdditionalDefines.SetDefine(TEXT("ES2_PROFILE"), 1);
 			HlslCompilerTarget = HCT_FeatureLevelES2;
 			AdditionalDefines.SetDefine(TEXT("row_major"), TEXT(""));
-			break; 
+			break;
 
 		case GLSL_150_ES2:
 		case GLSL_150_ES2_NOUB:
@@ -1407,7 +1407,7 @@ FGlslCodeBackend* FOpenGLFrontend::CreateBackend(GLSLVersion Version, uint32 CCF
 
 FGlslLanguageSpec* FOpenGLFrontend::CreateLanguageSpec(GLSLVersion Version)
 {
-#if PLATFORM_HTML5_BROWSER
+#if PLATFORM_HTML5
 	// For backwards compatibility when targeting WebGL 2 shaders,
 	// generate GLES2/WebGL 1 style shaders but with GLES3/WebGL 2
 	// constructs available.
@@ -1439,7 +1439,7 @@ void FOpenGLFrontend::CompileShader(const FShaderCompilerInput& Input,FShaderCom
 	SetupPerVersionCompilationEnvironment(Version, AdditionalDefines, HlslCompilerTarget);
 
 	AdditionalDefines.SetDefine(TEXT("COMPILER_HLSLCC"), 1);
-	
+
 	const bool bDumpDebugInfo = (Input.DumpDebugInfoPath != TEXT("") && IFileManager::Get().DirectoryExists(*Input.DumpDebugInfoPath));
 
 	if(Input.Environment.CompilerFlags.Contains(CFLAG_AvoidFlowControl) || PlatformFlowControl == CFLAG_AvoidFlowControl)
@@ -1584,7 +1584,7 @@ void FOpenGLFrontend::CompileShader(const FShaderCompilerInput& Input,FShaderCom
 					free(GlslShaderSource);
 					GlslShaderSource = Dest;
 					GlslSourceLen = FCStringAnsi::Strlen(GlslShaderSource);
-					
+
 					FArchive* FileWriter = IFileManager::Get().CreateFileWriter(*(Input.DumpDebugInfoPath / Input.VirtualSourceFilePath + TEXT(".glsl")));
 					if (FileWriter)
 					{

@@ -103,23 +103,23 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugParallelRenderCommandEncoder)
     [Inner setStencilStoreAction:storeAction];
 }
 
-#if (METAL_NEW_NONNULL_DECL && !PLATFORM_MAC)
 // Null implementations of these functions to support iOS 11 beta.  To be filled out later
-- (void)setColorStoreActionOptions:(MTLStoreActionOptions)storeActionOptions atIndex:(NSUInteger)colorAttachmentIndex
+#if (METAL_NEW_NONNULL_DECL && !PLATFORM_MAC && __IPHONE_OS_VERSION_MIN_REQUIRED >= __IPHONE_11_0)
+-(void)setColorStoreActionOptions:(MTLStoreActionOptions)storeActionOptions atIndex : (NSUInteger)colorAttachmentIndex NS_AVAILABLE(10_13, 11_0)
 {
-	[Inner setColorStoreActionOptions:storeActionOptions atIndex:colorAttachmentIndex];
+	[Inner setColorStoreActionOptions : storeActionOptions atIndex : colorAttachmentIndex];
 }
 
-- (void)setDepthStoreActionOptions:(MTLStoreActionOptions)storeActionOptions
+-(void)setDepthStoreActionOptions : (MTLStoreActionOptions)storeActionOptions NS_AVAILABLE(10_13, 11_0)
 {
-	[Inner setDepthStoreActionOptions:storeActionOptions];
+	[Inner setDepthStoreActionOptions : storeActionOptions];
 }
 
-- (void)setStencilStoreActionOptions:(MTLStoreActionOptions)storeActionOptions
+-(void)setStencilStoreActionOptions : (MTLStoreActionOptions)storeActionOptions NS_AVAILABLE(10_13, 11_0)
 {
-	[Inner setStencilStoreActionOptions:storeActionOptions];
+	[Inner setStencilStoreActionOptions : storeActionOptions];
 }
-#endif //(METAL_NEW_NONNULL_DECL && !PLATFORM_MAC)
+#endif
 
 @end
 

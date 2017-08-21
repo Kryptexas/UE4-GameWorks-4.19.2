@@ -423,7 +423,7 @@ void FMainFrameActionCallbacks::PackageBuildConfiguration( EProjectPackagingBuil
 bool FMainFrameActionCallbacks::CanPackageBuildConfiguration( EProjectPackagingBuildConfigurations BuildConfiguration )
 {
 	UProjectPackagingSettings* PackagingSettings = Cast<UProjectPackagingSettings>(UProjectPackagingSettings::StaticClass()->GetDefaultObject());
-	if (PackagingSettings->ForDistribution && BuildConfiguration != PPBC_Shipping)
+	if (PackagingSettings->ForDistribution && BuildConfiguration != PPBC_Shipping && BuildConfiguration != PPBC_ShippingClient)
 	{
 		return false;
 	}
@@ -473,8 +473,9 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 		if (Platform)
 		{
 			FString NotInstalledTutorialLink;
+			FString DocumentationLink;
 			FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()) : FPaths::RootDir() / FApp::GetProjectName() / FApp::GetProjectName() + TEXT(".uproject");
-			int32 Result = Platform->CheckRequirements(ProjectPath, bProjectHasCode, NotInstalledTutorialLink);
+			int32 Result = Platform->CheckRequirements(ProjectPath, bProjectHasCode, NotInstalledTutorialLink, DocumentationLink);
 
 			// report to analytics
 			FEditorAnalytics::ReportBuildRequirementsFailure(TEXT("Editor.Package.Failed"), PlatformInfo->TargetPlatformName.ToString(), bProjectHasCode, Result);
@@ -488,8 +489,21 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 				AddMessageLog(
 					LOCTEXT("SdkNotFoundMessage", "Software Development Kit (SDK) not found."),
 					FText::Format(LOCTEXT("SdkNotFoundMessageDetail", "Please install the SDK for the {0} target platform!"), Platform->DisplayName()),
-					NotInstalledTutorialLink
+					NotInstalledTutorialLink,
+					DocumentationLink
 				);
+				UnrecoverableError = true;
+			}
+
+			if ((Result & ETargetPlatformReadyStatus::LicenseNotAccepted) != 0)
+			{
+				AddMessageLog(
+					LOCTEXT("LicenseNotAcceptedMessage", "License not accepted."),
+					LOCTEXT("LicenseNotAcceptedMessageDetail", "License must be accepted in project settings to deploy your app to the device."),
+					NotInstalledTutorialLink,
+					DocumentationLink
+				);
+
 				UnrecoverableError = true;
 			}
 
@@ -498,7 +512,8 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 				AddMessageLog(
 					LOCTEXT("ProvisionNotFoundMessage", "Provision not found."),
 					LOCTEXT("ProvisionNotFoundMessageDetail", "A provision is required for deploying your app to the device."),
-					NotInstalledTutorialLink
+					NotInstalledTutorialLink,
+					DocumentationLink
 				);
 				UnrecoverableError = true;
 			}
@@ -508,7 +523,8 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 				AddMessageLog(
 					LOCTEXT("SigningKeyNotFoundMessage", "Signing key not found."),
 					LOCTEXT("SigningKeyNotFoundMessageDetail", "The app could not be digitally signed, because the signing key is not configured."),
-					NotInstalledTutorialLink
+					NotInstalledTutorialLink,
+					DocumentationLink
 				);
 				UnrecoverableError = true;
 			}
@@ -518,8 +534,9 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 				AddMessageLog(
 					LOCTEXT("ManifestNotFound", "Manifest not found."),
 					LOCTEXT("ManifestNotFoundMessageDetail", "The generated application manifest could not be found."),
-					NotInstalledTutorialLink
-					);
+					NotInstalledTutorialLink,
+					DocumentationLink
+				);
 				UnrecoverableError = true;
 			}
 
@@ -528,8 +545,9 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 				AddMessageLog(
 					LOCTEXT("RemoveServerNameNotFound", "Remote compiling requires a server name. "),
 					LOCTEXT("RemoveServerNameNotFoundDetail", "Please specify one in the Remote Server Name settings field."),
-					NotInstalledTutorialLink
-					);
+					NotInstalledTutorialLink,
+					DocumentationLink
+				);
 				UnrecoverableError = true;
 			}
 
@@ -691,6 +709,11 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 
 	FString Configuration = FindObject<UEnum>(ANY_PACKAGE, TEXT("EProjectPackagingBuildConfigurations"))->GetNameStringByValue(PackagingSettings->BuildConfiguration);
 	Configuration = Configuration.Replace(TEXT("PPBC_"), TEXT(""));
+	if (Configuration.Right(6) == TEXT("Client"))
+	{
+		OptionalParams += TEXT(" -client");
+		Configuration = Configuration.LeftChop(6);
+	}
 
 	FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()) : FPaths::RootDir() / FApp::GetProjectName() / FApp::GetProjectName() + TEXT(".uproject");
 	FString CommandLine = FString::Printf(TEXT("-ScriptsForProject=\"%s\" BuildCookRun %s%s -nop4 -project=\"%s\" -cook -stage -archive -archivedirectory=\"%s\" -package -clientconfig=%s -ue4exe=%s %s -utf8output"),
@@ -1109,13 +1132,13 @@ void FMainFrameActionCallbacks::OpenWidgetReflector_Execute()
 /* FMainFrameActionCallbacks implementation
  *****************************************************************************/
 
-void FMainFrameActionCallbacks::AddMessageLog( const FText& Text, const FText& Detail, const FString& TutorialLink )
+void FMainFrameActionCallbacks::AddMessageLog( const FText& Text, const FText& Detail, const FString& TutorialLink, const FString& DocumentationLink )
 {
 	TSharedRef<FTokenizedMessage> Message = FTokenizedMessage::Create(EMessageSeverity::Error);
 	Message->AddToken(FTextToken::Create(Text));
 	Message->AddToken(FTextToken::Create(Detail));
 	Message->AddToken(FTutorialToken::Create(TutorialLink));
-	Message->AddToken(FDocumentationToken::Create(TEXT("Platforms/iOS/QuickStart/6")));
+	Message->AddToken(FDocumentationToken::Create(DocumentationLink));
 
 	FMessageLog MessageLog("PackagingResults");
 	MessageLog.AddMessage(Message);

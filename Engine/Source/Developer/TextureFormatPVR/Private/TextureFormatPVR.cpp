@@ -243,11 +243,11 @@ static int32 GetDefaultCompressionValue()
 	return CompressionModeValue;
 }
 
-static FString GetPVRTCQualityString()
+static FString GetPVRTCQualityString(int32 OverrideSizeValue = -1)
 {
 	// convert to a string
 	FString CompressionMode;
-	switch (GetDefaultCompressionValue())
+	switch (OverrideSizeValue >= 0 ? OverrideSizeValue : GetDefaultCompressionValue())
 	{
 		case 0:	CompressionMode = TEXT("fastest"); break;
 		case 1:	CompressionMode = TEXT("fast"); break;
@@ -260,10 +260,10 @@ static FString GetPVRTCQualityString()
 	return CompressionMode;
 }
 
-static uint16 GetPVRTCQualityForVersion()
+static uint16 GetPVRTCQualityForVersion(int32 OverrideSizeValue = -1)
 {
 	// top 3 bits for compression value
-	return GetDefaultCompressionValue() << 13;
+	return (OverrideSizeValue >= 0 ? OverrideSizeValue : GetDefaultCompressionValue()) << 13;
 }
 
 /**
@@ -276,9 +276,12 @@ class FTextureFormatPVR : public ITextureFormat
 		return true;
 	}
 
-	virtual uint16 GetVersion(FName Format) const override
+	virtual uint16 GetVersion(
+		FName Format,
+		const struct FTextureBuildSettings* BuildSettings = nullptr
+	) const override
 	{
-		return 7 + GetPVRTCQualityForVersion();
+		return 7 + GetPVRTCQualityForVersion(BuildSettings ? BuildSettings->CompressionQuality : -1);
 	}
 
 	virtual void GetSupportedFormats(TArray<FName>& OutFormats) const override
@@ -354,7 +357,8 @@ class FTextureFormatPVR : public ITextureFormat
 				Image.SizeY,
 				Image.IsGammaCorrected(),
 				FinalSquareSize,
-				CompressedSliceData
+				CompressedSliceData,
+				BuildSettings
 				);
 			OutCompressedImage.RawData.Append(CompressedSliceData);
 		}
@@ -370,7 +374,7 @@ class FTextureFormatPVR : public ITextureFormat
 		return bCompressionSucceeded;
 	}
 
-	static bool CompressImageUsingPVRTexTool( void* SourceData, EPixelFormat PixelFormat, int32 SizeX, int32 SizeY, bool bSRGB, int32 FinalSquareSize, TArray<uint8>& OutCompressedData )
+	static bool CompressImageUsingPVRTexTool( void* SourceData, EPixelFormat PixelFormat, int32 SizeX, int32 SizeY, bool bSRGB, int32 FinalSquareSize, TArray<uint8>& OutCompressedData, const struct FTextureBuildSettings& BuildSettings )
 	{
 		// Figure out whether to use 2 bits or 4 bits per pixel (PVRTC2/PVRTC4)
 		bool bIsPVRTC2 = (PixelFormat == PF_PVRTC2);
@@ -441,7 +445,7 @@ class FTextureFormatPVR : public ITextureFormat
 		delete PVRFile;
 
 		// Compress PVR file to PVRTC
-		FString CompressionMode = GetPVRTCQualityString();
+		FString CompressionMode = GetPVRTCQualityString(BuildSettings.CompressionQuality);
 
 		// Use PowerVR's new CLI tool commandline
 		FString Params = FString::Printf(TEXT("-i \"%s\" -o \"%s\" %s -legacypvr -q pvrtc%s -f PVRTC1_%d"),

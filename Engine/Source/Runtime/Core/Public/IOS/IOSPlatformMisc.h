@@ -172,6 +172,7 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 	static FString GetDeviceId();
 	static FString GetOSVersion();
 	static FString GetUniqueAdvertisingId();
+	static bool GetDiskTotalAndFreeSpace(const FString& InPath, uint64& TotalNumberOfBytes, uint64& NumberOfFreeBytes);
 
 	// Possible iOS devices
 	enum EIOSDevice
@@ -202,6 +203,8 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 		IOS_IPhoneSE,
 		IOS_IPadPro_129,
 		IOS_IPadPro_97,
+		IOS_IPadPro_105,
+		IOS_IPadPro2_129,
 		IOS_Unknown,
 	};
 
@@ -236,6 +239,8 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 			L"IPhoneSE",
 			L"IPadPro129",
 			L"IPadPro97",
+			L"IPadPro105",
+			L"IPadPro2_129",
 			L"Unknown",
 		};
 		static_assert((sizeof(IOSDeviceNames) / sizeof(IOSDeviceNames[0])) == ((int32)IOS_Unknown + 1), "Mismatched IOSDeviceNames and EIOSDevice.");

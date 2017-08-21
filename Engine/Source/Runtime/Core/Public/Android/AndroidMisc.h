@@ -93,7 +93,8 @@ public:
 	static FString GetCPUVendor();
 	static FString GetCPUBrand();
 	static void GetOSVersions(FString& out_OSVersionLabel, FString& out_OSSubVersionLabel);
-
+	static bool GetDiskTotalAndFreeSpace(const FString& InPath, uint64& TotalNumberOfBytes, uint64& NumberOfFreeBytes);
+	
 	enum EBatteryState
 	{
 		BATTERY_STATE_UNKNOWN = 1,

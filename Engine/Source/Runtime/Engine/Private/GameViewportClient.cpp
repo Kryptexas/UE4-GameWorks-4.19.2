@@ -292,7 +292,14 @@ FString UGameViewportClient::ConsoleCommand( const FString& Command)
 
 void UGameViewportClient::SetEnabledStats(const TArray<FString>& InEnabledStats)
 {
-	EnabledStats = InEnabledStats;
+	if (FPlatformProcess::SupportsMultithreading())
+	{
+		EnabledStats = InEnabledStats;
+	}
+	else
+	{
+		UE_LOG(LogPlayerManagement, Warning, TEXT("WARNING: Stats disabled for non multi-threading platforms"));
+	}
 
 #if !UE_BUILD_SHIPPING
 	if (UWorld* MyWorld = GetWorld())

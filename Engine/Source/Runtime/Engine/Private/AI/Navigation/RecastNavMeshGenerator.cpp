@@ -3365,6 +3365,10 @@ bool FRecastNavMeshGenerator::RebuildAll()
 {
 	DestNavMesh->UpdateNavVersion();
 	
+	// Recreate recast navmesh
+	DestNavMesh->GetRecastNavMeshImpl()->ReleaseDetourNavMesh();
+	ConstructTiledNavMesh();
+	
 	// if rebuilding all no point in keeping "old" invalidated areas
 	TArray<FNavigationDirtyArea> DirtyAreas;
 	for (FBox AreaBounds : InclusionBounds)
@@ -3497,12 +3501,9 @@ void FRecastNavMeshGenerator::RebuildDirtyAreas(const TArray<FNavigationDirtyAre
 	if (DetourMesh == nullptr)
 	{
 		ConstructTiledNavMesh();
-		RebuildAll();
 	}
-	else
-	{
-		MarkDirtyTiles(InDirtyAreas);
-	}
+	
+	MarkDirtyTiles(InDirtyAreas);
 }
 
 void FRecastNavMeshGenerator::OnAreaAdded(const UClass* AreaClass, int32 AreaID)

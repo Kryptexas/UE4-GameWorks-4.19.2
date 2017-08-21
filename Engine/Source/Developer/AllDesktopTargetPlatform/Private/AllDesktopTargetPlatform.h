@@ -115,7 +115,7 @@ public:
 		return true;
 	}
 
-	virtual int32 CheckRequirements(const FString& ProjectPath, bool bProjectHasCode, FString& OutTutorialPath) const override
+	virtual int32 CheckRequirements(const FString& ProjectPath, bool bProjectHasCode, FString& OutTutorialPath, FString& OutDocumenationPath) const override
 	{
 		return ETargetPlatformReadyStatus::Ready;
 	}

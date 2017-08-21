@@ -16,7 +16,88 @@ DEFINE_LOG_CATEGORY(LogEGL);
 
 #define ENABLE_CONFIG_FILTER 1
 #define ENABLE_EGL_DEBUG 0
+#define ENABLE_VERIFY_EGL 0
+#define ENABLE_VERIFY_EGL_TRACE 0
 
+#if ENABLE_VERIFY_EGL
+
+#define VERIFY_EGL(msg) { VerifyEGLResult(eglGetError(),TEXT(#msg),TEXT(""),TEXT(__FILE__),__LINE__); }
+
+void VerifyEGLResult(EGLint ErrorCode, const TCHAR* Msg1, const TCHAR* Msg2, const TCHAR* Filename, uint32 Line)
+{
+	if (ErrorCode != EGL_SUCCESS)
+	{
+		static const TCHAR* EGLErrorStrings[] =
+		{
+			TEXT("EGL_NOT_INITIALIZED"),
+			TEXT("EGL_BAD_ACCESS"),
+			TEXT("EGL_BAD_ALLOC"),
+			TEXT("EGL_BAD_ATTRIBUTE"),
+			TEXT("EGL_BAD_CONFIG"),
+			TEXT("EGL_BAD_CONTEXT"),
+			TEXT("EGL_BAD_CURRENT_SURFACE"),
+			TEXT("EGL_BAD_DISPLAY"),
+			TEXT("EGL_BAD_MATCH"),
+			TEXT("EGL_BAD_NATIVE_PIXMAP"),
+			TEXT("EGL_BAD_NATIVE_WINDOW"),
+			TEXT("EGL_BAD_PARAMETER"),
+			TEXT("EGL_BAD_SURFACE"),
+			TEXT("EGL_CONTEXT_LOST"),
+			TEXT("UNKNOWN EGL ERROR")
+		};
+
+		uint32 ErrorIndex = FMath::Min<uint32>(ErrorCode - EGL_SUCCESS, ARRAY_COUNT(EGLErrorStrings) - 1);
+		UE_LOG(LogRHI, Warning, TEXT("%s(%u): %s%s failed with error %s (0x%x)"),
+			Filename, Line, Msg1, Msg2, EGLErrorStrings[ErrorIndex], ErrorCode);
+		check(0);
+	}
+}
+
+class FEGLErrorScope
+{
+public:
+	FEGLErrorScope(
+		const TCHAR* InFunctionName,
+		const TCHAR* InFilename,
+		const uint32 InLine)
+		: FunctionName(InFunctionName)
+		, Filename(InFilename)
+		, Line(InLine)
+	{
+#if ENABLE_VERIFY_EGL_TRACE
+		UE_LOG(LogRHI, Log, TEXT("EGL log before %s(%d): %s"), InFilename, InLine, InFunctionName);
+#endif
+		CheckForErrors(TEXT("Before "));
+	}
+
+	~FEGLErrorScope()
+	{
+#if ENABLE_VERIFY_EGL_TRACE
+		UE_LOG(LogRHI, Log, TEXT("EGL log after  %s(%d): %s"), Filename, Line, FunctionName);
+#endif
+		CheckForErrors(TEXT("After "));
+	}
+
+private:
+	const TCHAR* FunctionName;
+	const TCHAR* Filename;
+	const uint32 Line;
+
+	void CheckForErrors(const TCHAR* PrefixString)
+	{
+		VerifyEGLResult(eglGetError(), PrefixString, FunctionName, Filename, Line);
+	}
+};
+
+#define MACRO_TOKENIZER(IdentifierName, Msg, FileName, LineNumber) FEGLErrorScope IdentifierName_ ## LineNumber (Msg, FileName, LineNumber)
+#define MACRO_TOKENIZER2(IdentifierName, Msg, FileName, LineNumber) MACRO_TOKENIZER(IdentiferName, Msg, FileName, LineNumber)
+#define VERIFY_EGL_SCOPE_WITH_MSG_STR(MsgStr) MACRO_TOKENIZER2(ErrorScope_, MsgStr, TEXT(__FILE__), __LINE__)
+#define VERIFY_EGL_SCOPE() VERIFY_EGL_SCOPE_WITH_MSG_STR(ANSI_TO_TCHAR(__FUNCTION__))
+#define VERIFY_EGL_FUNC(Func, ...) { VERIFY_EGL_SCOPE_WITH_MSG_STR(TEXT(#Func)); Func(__VA_ARGS__); }
+#else
+#define VERIFY_EGL(...)
+#define VERIFY_EGL_SCOPE(...)
+#endif
 const  int EGLMinRedBits		= 5;
 const  int EGLMinGreenBits		= 6;
 const  int EGLMinBlueBits		= 5;
@@ -138,6 +219,7 @@ AndroidEGL::AndroidEGL()
 
 void AndroidEGL::ResetDisplay()
 {
+	VERIFY_EGL_SCOPE();
 	if(PImplData->eglDisplay != EGL_NO_DISPLAY)
 	{
 		FPlatformMisc::LowLevelOutputDebugStringf( TEXT("AndroidEGL::ResetDisplay()" ));
@@ -148,6 +230,7 @@ void AndroidEGL::ResetDisplay()
 
 void AndroidEGL::DestroySurface()
 {
+	VERIFY_EGL_SCOPE();
 	FPlatformMisc::LowLevelOutputDebugStringf( TEXT("AndroidEGL::DestroySurface()" ));
 	if( PImplData->eglSurface != EGL_NO_SURFACE )
 	{
@@ -167,6 +250,7 @@ void AndroidEGL::DestroySurface()
 
 void AndroidEGL::TerminateEGL()
 {
+	VERIFY_EGL_SCOPE();
 
 	eglTerminate(PImplData->eglDisplay);
 	PImplData->eglDisplay = EGL_NO_DISPLAY;
@@ -176,6 +260,7 @@ void AndroidEGL::TerminateEGL()
 /* Can be called from any thread */
 EGLBoolean AndroidEGL::SetCurrentContext(EGLContext InContext, EGLSurface InSurface)
 {
+	VERIFY_EGL_SCOPE();
 	//context can be null.so can surface from PlatformNULLContextSetup
 	EGLBoolean Result = EGL_FALSE;
 	EGLContext CurrentContext = GetCurrentContext();
@@ -228,6 +313,8 @@ void AndroidEGL::ResetInternal()
 
 void AndroidEGL::CreateEGLSurface(ANativeWindow* InWindow, bool bCreateWndSurface)
 {
+	VERIFY_EGL_SCOPE();
+
 	// due to possible early initialization, don't redo this
 	if (PImplData->eglSurface != EGL_NO_SURFACE)
 	{
@@ -330,6 +417,7 @@ void AndroidEGL::CreateEGLSurface(ANativeWindow* InWindow, bool bCreateWndSurfac
 
 void AndroidEGL::InitEGL(APIVariant API)
 {
+	VERIFY_EGL_SCOPE();
 	// make sure we only do this once (it's optionally done early for cooker communication)
 //	static bool bAlreadyInitialized = false;
 	if (PImplData->Initalized)
@@ -363,7 +451,7 @@ void AndroidEGL::InitEGL(APIVariant API)
 	}
 	else
 	{
-		checkf( 0, TEXT("Attempt to initialize EGL with unedpected API type"));
+		checkf( 0, TEXT("Attempt to initialize EGL with unexpected API type"));
 	}
 
 	checkf( result == EGL_TRUE, TEXT("eglBindAPI error: 0x%x "), eglGetError());
@@ -409,6 +497,11 @@ void AndroidEGL::InitEGL(APIVariant API)
 		if (eglGetConfigAttrib(PImplData->eglDisplay, EGLConfigList[i], EGL_DEPTH_ENCODING_NV, &ResultValue))
 		{
 			bNonLinearDepth = (ResultValue == EGL_DEPTH_ENCODING_NONLINEAR_NV) ? 1 : 0;
+		}
+		else
+		{
+			// explicitly consume the egl error if EGL_DEPTH_ENCODING_NV does not exist.
+			GetError();
 		}
 
 		// Favor EGLConfigLists by RGB, then Depth, then Non-linear Depth, then Stencil, then Alpha
@@ -493,6 +586,8 @@ AndroidEGL* AndroidEGL::GetInstance()
 
 void AndroidEGL::DestroyBackBuffer()
 {
+	VERIFY_GL_SCOPE();
+
 	if(PImplData->ResolveFrameBuffer)
 	{
 		glDeleteFramebuffers(1, &PImplData->ResolveFrameBuffer);
@@ -633,6 +728,7 @@ void AndroidEGL::GetDimensions(uint32& OutWidth, uint32& OutHeight)
 
 void AndroidEGL::DestroyContext(EGLContext InContext)
 {
+	VERIFY_EGL_SCOPE();
 	if(InContext != EGL_NO_CONTEXT) //soft fail
 	{
 		eglDestroyContext(PImplData->eglDisplay, InContext);
@@ -641,6 +737,7 @@ void AndroidEGL::DestroyContext(EGLContext InContext)
 
 EGLContext AndroidEGL::CreateContext(EGLContext InSharedContext)
 {
+	VERIFY_EGL_SCOPE();
 	return eglCreateContext(PImplData->eglDisplay, PImplData->eglConfigParam,  InSharedContext , ContextAttributes);
 }
 
@@ -651,6 +748,7 @@ int32 AndroidEGL::GetError()
 
 bool AndroidEGL::SwapBuffers(int32 SyncInterval)
 {
+	VERIFY_EGL_SCOPE();
 	if (PImplData->SyncInterval != SyncInterval)
 	{
 		// make sure requested interval is in supported range
@@ -710,12 +808,14 @@ GLuint AndroidEGL::GetResolveFrameBuffer()
 
 bool AndroidEGL::IsCurrentContextValid()
 {
+	VERIFY_EGL_SCOPE();
 	EGLContext eglContext =  eglGetCurrentContext();
 	return ( eglContext != EGL_NO_CONTEXT);
 }
 
 EGLContext AndroidEGL::GetCurrentContext()
 {
+	VERIFY_EGL_SCOPE();
 	return eglGetCurrentContext();
 }
 
@@ -896,6 +996,7 @@ void FAndroidAppEntry::DestroyWindow()
 
 void AndroidEGL::LogConfigInfo(EGLConfig  EGLConfigInfo)
 {
+	VERIFY_EGL_SCOPE();
 	EGLint ResultValue = 0 ;
 	eglGetConfigAttrib(PImplData->eglDisplay, EGLConfigInfo, EGL_RED_SIZE, &ResultValue); FPlatformMisc::LowLevelOutputDebugStringf( TEXT("EGLConfigInfo : EGL_RED_SIZE :	%u" ), ResultValue );
 	eglGetConfigAttrib(PImplData->eglDisplay, EGLConfigInfo, EGL_GREEN_SIZE, &ResultValue);  FPlatformMisc::LowLevelOutputDebugStringf( TEXT("EGLConfigInfo :EGL_GREEN_SIZE :	%u" ), ResultValue );

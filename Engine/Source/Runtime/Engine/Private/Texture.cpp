@@ -137,6 +137,7 @@ void UTexture::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEven
 		static const FName DeferCompressionName("DeferCompression");
 #if WITH_EDITORONLY_DATA
 		static const FName MaxTextureSizeName("MaxTextureSize");
+		static const FName CompressionQualityName("CompressionQuality");
 #endif // #if WITH_EDITORONLY_DATA
 
 		const FName PropertyName = PropertyThatChanged->GetFName();
@@ -149,6 +150,10 @@ void UTexture::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEven
 			DeferCompressionWasEnabled = DeferCompression;
 		}
 #if WITH_EDITORONLY_DATA
+		else if (PropertyName == CompressionQualityName)
+		{
+			RequiresNotifyMaterials = true;
+		}
 		else if (PropertyName == MaxTextureSizeName)
 		{
 			if (MaxTextureSize <= 0)

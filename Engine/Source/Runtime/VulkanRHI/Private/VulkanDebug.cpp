@@ -205,7 +205,12 @@ static VkBool32 VKAPI_PTR DebugReportFunction(
 
 void FVulkanDynamicRHI::SetupDebugLayerCallback()
 {
-#if !VULKAN_DISABLE_DEBUG_CALLBACK
+	if (!bSupportsDebugCallbackExt)
+	{
+		UE_LOG(LogVulkanRHI, Warning, TEXT("Instance does not support 'VK_EXT_debug_report' extension; debug reporting skipped!"));
+		return;
+	}
+	
 	PFN_vkCreateDebugReportCallbackEXT CreateMsgCallback = (PFN_vkCreateDebugReportCallbackEXT)(void*)VulkanRHI::vkGetInstanceProcAddr(Instance, CREATE_MSG_CALLBACK);
 	if (CreateMsgCallback)
 	{
@@ -253,19 +258,16 @@ void FVulkanDynamicRHI::SetupDebugLayerCallback()
 	{
 		UE_LOG(LogVulkanRHI, Warning, TEXT("GetProcAddr: Unable to find vkDbgCreateMsgCallback/vkGetInstanceProcAddr; debug reporting skipped!"));
 	}
-#endif
 }
 
 void FVulkanDynamicRHI::RemoveDebugLayerCallback()
 {
-#if !VULKAN_DISABLE_DEBUG_CALLBACK
 	if (MsgCallback != VK_NULL_HANDLE)
 	{
 		PFN_vkDestroyDebugReportCallbackEXT DestroyMsgCallback = (PFN_vkDestroyDebugReportCallbackEXT)(void*)VulkanRHI::vkGetInstanceProcAddr(Instance, DESTROY_MSG_CALLBACK);
 		checkf(DestroyMsgCallback, TEXT("GetProcAddr: Unable to find vkDbgCreateMsgCallback\vkGetInstanceProcAddr Failure"));
 		DestroyMsgCallback(Instance, MsgCallback, nullptr);
 	}
-#endif
 }
 
 

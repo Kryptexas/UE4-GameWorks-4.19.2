@@ -120,10 +120,7 @@ public:
 
 		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI());
 
-		float ExposureScale = FRCPassPostProcessEyeAdaptation::ComputeExposureScaleValue(Context.View);
-
-		FVector4 BloomThresholdValue(Settings.BloomThreshold, 0, 0, ExposureScale);
-		SetShaderValue(Context.RHICmdList, ShaderRHI, BloomThreshold, BloomThresholdValue);
+		SetShaderValue(Context.RHICmdList, ShaderRHI, BloomThreshold, Settings.BloomThreshold);
 	}
 
 	// FShader interface.
@@ -365,10 +362,7 @@ public:
 
 		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 
-		float ExposureScale = FRCPassPostProcessEyeAdaptation::ComputeExposureScaleValue(Context.View);
-
-		FVector4 BloomThresholdValue(Settings.BloomThreshold, 0, 0, ExposureScale);
-		SetShaderValue(Context.RHICmdList, ShaderRHI, BloomThreshold, BloomThresholdValue);
+		SetShaderValue(Context.RHICmdList, ShaderRHI, BloomThreshold, Settings.BloomThreshold);
 	}
 
 	// FShader interface.

@@ -342,6 +342,7 @@ FVulkanDynamicRHI::FVulkanDynamicRHI()
 	, DumpMemoryCmd(nullptr)
 #endif
 #if VULKAN_HAS_DEBUGGING_ENABLED
+	, bSupportsDebugCallbackExt(false)
 	, MsgCallback(VK_NULL_HANDLE)
 #endif
 	, PresentCount(0)
@@ -426,7 +427,7 @@ void FVulkanDynamicRHI::Shutdown()
 	delete Device;
 	Device = nullptr;
 
-#if !VULKAN_DISABLE_DEBUG_CALLBACK && VULKAN_HAS_DEBUGGING_ENABLED
+#if VULKAN_HAS_DEBUGGING_ENABLED
 	RemoveDebugLayerCallback();
 #endif
 
@@ -482,6 +483,9 @@ void FVulkanDynamicRHI::CreateInstance()
 	#if VULKAN_HAS_DEBUGGING_ENABLED
 		InstInfo.enabledLayerCount = (GValidationCvar.GetValueOnAnyThread() > 0) ? InstanceLayers.Num() : 0;
 		InstInfo.ppEnabledLayerNames = InstInfo.enabledLayerCount > 0 ? InstanceLayers.GetData() : nullptr;
+		bSupportsDebugCallbackExt = InstanceExtensions.ContainsByPredicate([](const ANSICHAR* Key) { 
+			return Key && !FCStringAnsi::Strcmp(Key, VK_EXT_DEBUG_REPORT_EXTENSION_NAME); 
+		});
 	#endif
 
 	VkResult Result = VulkanRHI::vkCreateInstance(&InstInfo, nullptr, &Instance);
@@ -514,7 +518,7 @@ void FVulkanDynamicRHI::CreateInstance()
 			"Failed to find all required Vulkan entry points! Try updating your driver."), TEXT("No Vulkan entry points found!"));
 	}
 
-#if !VULKAN_DISABLE_DEBUG_CALLBACK && VULKAN_HAS_DEBUGGING_ENABLED
+#if VULKAN_HAS_DEBUGGING_ENABLED
 	SetupDebugLayerCallback();
 #endif
 }

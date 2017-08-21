@@ -575,7 +575,7 @@ void UProjectPackagingSettings::PostEditChangeProperty( FPropertyChangedEvent& P
 	}
 	else if (Name == FName(TEXT("ForDistribution")) || Name == FName(TEXT("BuildConfiguration")))
 	{
-		if (ForDistribution)
+		if (ForDistribution && BuildConfiguration != EProjectPackagingBuildConfigurations::PPBC_Shipping && BuildConfiguration != EProjectPackagingBuildConfigurations::PPBC_ShippingClient)
 		{
 			BuildConfiguration = EProjectPackagingBuildConfigurations::PPBC_Shipping;
 		}

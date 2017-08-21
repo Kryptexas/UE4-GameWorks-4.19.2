@@ -3,6 +3,10 @@
 #include "HTML5PlatformApplicationMisc.h"
 #include "HTML5Application.h"
 
+THIRD_PARTY_INCLUDES_START
+#include <SDL.h>
+THIRD_PARTY_INCLUDES_END
+
 GenericApplication* FHTML5PlatformApplicationMisc::CreateApplication()
 {
 	return FHTML5Application::CreateHTML5Application();

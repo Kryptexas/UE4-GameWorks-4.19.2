@@ -46,7 +46,18 @@ private:
 	// Called when EnableGradle is modified
 	void OnEnableGradleChange();
 
+	// Called when License accepted
+	void OnLicenseAccepted();
+
+	// returns whether Android SDK license valid
+	bool IsLicenseInvalid() const;
+
+	// Show license agreement for user to accept
+	FReply OnAcceptSDKLicenseClicked();
+
 private:
+	double LastLicenseChecktime;
+
 	const FString AndroidRelativePath;
 
 	const FString EngineAndroidPath;

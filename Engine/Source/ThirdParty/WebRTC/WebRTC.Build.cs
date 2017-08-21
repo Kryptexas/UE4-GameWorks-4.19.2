@@ -32,18 +32,16 @@ public class WebRTC : ModuleRules
 			string VS2013Friendly_WebRtcSdkPath = Target.UEThirdPartySourceDirectory + "WebRTC/VS2013_friendly";
 			string LinuxTrunk_WebRtcSdkPath = Target.UEThirdPartySourceDirectory + "WebRTC/sdk_trunk_linux";
 
-			string PlatformSubdir = (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32") ? "Win32" :
-				Target.Platform.ToString();
+			string PlatformSubdir = Target.Platform.ToString();
 			string ConfigPath = (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT) ? "Debug" : "Release";
 
 
-			if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32 ||
-				(Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32"))
+			if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32)
 			{
 				Definitions.Add("WEBRTC_WIN=1");
 
 				string VisualStudioVersionFolder = "VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName();
-				
+
 				string IncludePath = Path.Combine(VS2013Friendly_WebRtcSdkPath, "include", PlatformSubdir, VisualStudioVersionFolder);
 				PublicSystemIncludePaths.Add(IncludePath);
 
@@ -95,10 +93,10 @@ public class WebRTC : ModuleRules
 				Definitions.Add("SSL_USE_OPENSSL");
 				Definitions.Add("EXPAT_RELATIVE_PATH");
 
-                string IncludePath = Path.Combine(VS2013Friendly_WebRtcSdkPath, "include", PlatformSubdir);
-                PublicSystemIncludePaths.Add(IncludePath);
+				string IncludePath = Path.Combine(VS2013Friendly_WebRtcSdkPath, "include", PlatformSubdir);
+				PublicSystemIncludePaths.Add(IncludePath);
 
-                string LibraryPath = Path.Combine(VS2013Friendly_WebRtcSdkPath, "lib", PlatformSubdir, ConfigPath);
+				string LibraryPath = Path.Combine(VS2013Friendly_WebRtcSdkPath, "lib", PlatformSubdir, ConfigPath);
 
 				PublicAdditionalLibraries.Add(Path.Combine(LibraryPath, "rtc_base.a"));
 				PublicAdditionalLibraries.Add(Path.Combine(LibraryPath, "rtc_base_approved.a"));

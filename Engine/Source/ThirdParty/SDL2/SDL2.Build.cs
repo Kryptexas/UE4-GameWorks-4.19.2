@@ -15,45 +15,38 @@ public class SDL2 : ModuleRules
 
 		if (Target.Platform == UnrealTargetPlatform.Linux)
 		{
-            PublicIncludePaths.Add(SDL2Path + "include");
-            if (Target.Configuration == UnrealTargetConfiguration.Debug)
-            {
-                // Debug version should be built with -fPIC and usable in all targets
-                PublicAdditionalLibraries.Add(SDL2LibPath + "Linux/" + Target.Architecture + "/libSDL2_fPIC_Debug.a");
-            }
-            else if (Target.LinkType == TargetLinkType.Monolithic)
-            {
-                PublicAdditionalLibraries.Add(SDL2LibPath + "Linux/" + Target.Architecture + "/libSDL2.a");
-            }
-            else
-            {
-                PublicAdditionalLibraries.Add(SDL2LibPath + "Linux/" + Target.Architecture + "/libSDL2_fPIC.a");
-            }
+			PublicIncludePaths.Add(SDL2Path + "include");
+			if (Target.Configuration == UnrealTargetConfiguration.Debug)
+			{
+				// Debug version should be built with -fPIC and usable in all targets
+				PublicAdditionalLibraries.Add(SDL2LibPath + "Linux/" + Target.Architecture + "/libSDL2_fPIC_Debug.a");
+			}
+			else if (Target.LinkType == TargetLinkType.Monolithic)
+			{
+				PublicAdditionalLibraries.Add(SDL2LibPath + "Linux/" + Target.Architecture + "/libSDL2.a");
+			}
+			else
+			{
+				PublicAdditionalLibraries.Add(SDL2LibPath + "Linux/" + Target.Architecture + "/libSDL2_fPIC.a");
+			}
 		}
-        else if (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32")
-        {
-            PublicIncludePaths.Add(SDL2Path + "include");
-            SDL2LibPath += "Win32/";
-            PublicAdditionalLibraries.Add(SDL2LibPath + "SDL2.lib");
-            PublicDelayLoadDLLs.Add("SDL2.dll");
-        }
-        else if (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture != "-win32")
-        {
-            PublicIncludePaths.Add(Target.UEThirdPartySourceDirectory + "SDL2/HTML5/SDL2-master/include/");
-            SDL2LibPath = Target.UEThirdPartySourceDirectory + "SDL2/HTML5/SDL2-master/libs/";
-            PublicAdditionalLibraries.Add(SDL2LibPath + "/libSDL2.a");
-        }
-        else if (Target.Platform == UnrealTargetPlatform.Win64)
-        {
-            PublicIncludePaths.Add(SDL2Path + "include");
+		else if (Target.Platform == UnrealTargetPlatform.HTML5)
+		{
+			PublicIncludePaths.Add(Target.UEThirdPartySourceDirectory + "SDL2/HTML5/SDL2-master/include/");
+			SDL2LibPath = Target.UEThirdPartySourceDirectory + "SDL2/HTML5/SDL2-master/libs/";
+			PublicAdditionalLibraries.Add(SDL2LibPath + "/libSDL2.a");
+		}
+		else if (Target.Platform == UnrealTargetPlatform.Win64)
+		{
+			PublicIncludePaths.Add(SDL2Path + "include");
 
-            SDL2LibPath += "Win64/";
+			SDL2LibPath += "Win64/";
 
-            PublicAdditionalLibraries.Add(SDL2LibPath + "SDL2.lib");
+			PublicAdditionalLibraries.Add(SDL2LibPath + "SDL2.lib");
 
-            RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/SDL2/Win64/SDL2.dll"));
-            PublicDelayLoadDLLs.Add("SDL2.dll");
-        }
+			RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/SDL2/Win64/SDL2.dll"));
+			PublicDelayLoadDLLs.Add("SDL2.dll");
+		}
 
-    }
+	}
 }

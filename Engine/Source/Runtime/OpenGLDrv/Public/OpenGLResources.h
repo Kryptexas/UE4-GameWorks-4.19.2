@@ -51,7 +51,7 @@ namespace OpenGLConsoleVariables
 
 #if PLATFORM_WINDOWS || PLATFORM_ANDROIDESDEFERRED
 #define RESTRICT_SUBDATA_SIZE 1
-#else 
+#else
 #define RESTRICT_SUBDATA_SIZE 0
 #endif
 
@@ -84,7 +84,7 @@ class TOpenGLBuffer : public BaseType
 			while ( InSize > 0)
 			{
 				const uint32 BufferSize = FMath::Min<uint32>( BlockSize, InSize);
-			
+
 				FOpenGL::BufferSubData( Type, InOffset, BufferSize, Data);
 
 				InOffset += BufferSize;
@@ -107,7 +107,7 @@ class TOpenGLBuffer : public BaseType
 public:
 
 	GLuint Resource;
-	
+
 	/** Needed on OS X to force a rebind of the texture buffer to the texture name to workaround radr://18379338 */
 	uint64 ModificationCount;
 
@@ -212,11 +212,11 @@ public:
 		bIsLocked = true;
 		bIsLockReadOnly = bReadOnly;
 		uint8 *Data = NULL;
-		
+
 		// Discard if the input size is the same as the backing store size, regardless of the input argument, as orphaning the backing store will typically be faster.
 		bDiscard = bDiscard || (!bReadOnly && InSize == RealSize);
-		
-#if PLATFORM_HTML5_BROWSER
+
+#if PLATFORM_HTML5
 		// In browsers calling glBufferData() to discard-reupload is slower than calling glBufferSubData(),
 		// because changing glBufferData() with a different size from before incurs security related validation.
 		// Therefore never use the glBufferData() discard trick on HTML5 builds.
@@ -226,11 +226,11 @@ public:
 		// Map buffer is faster in some circumstances and slower in others, decide when to use it carefully.
 		bool const bCanUseMapBuffer = FOpenGL::SupportsMapBuffer() && BaseType::GLSupportsType();
 		bool const bUseMapBuffer = bCanUseMapBuffer && (bReadOnly || OpenGLConsoleVariables::bUseMapBuffer);
-		
+
 		// If we're able to discard the current data, do so right away
 		// If we can then we should orphan the buffer name & reallocate the backing store only once as calls to glBufferData may do so even when the size is the same.
 		uint32 DiscardSize = (bDiscard && !bUseMapBuffer && InSize == RealSize && !RESTRICT_SUBDATA_SIZE) ? 0 : RealSize;
-		
+
 		// Don't call BufferData if Bindless is on, as bindless texture buffers make buffers immutable
 		if ( bDiscard && !OpenGLConsoleVariables::bBindlessTexture && OpenGLConsoleVariables::bUseBufferDiscard)
 		{
@@ -245,7 +245,7 @@ public:
 			FOpenGL::EResourceLockMode LockMode = bReadOnly ? FOpenGL::RLM_ReadOnly : FOpenGL::RLM_WriteOnly;
 			Data = static_cast<uint8*>( FOpenGL::MapBufferRange( Type, InOffset, InSize, LockMode ) );
 //			checkf(Data != NULL, TEXT("FOpenGL::MapBufferRange Failed, glError %d (0x%x)"), glGetError(), glGetError());
-			
+
 			LockOffset = InOffset;
 			LockSize = InSize;
 			LockBuffer = Data;
@@ -282,8 +282,8 @@ public:
 
 		// Discard if the input size is the same as the backing store size, regardless of the input argument, as orphaning the backing store will typically be faster.
 		bDiscard = bDiscard || InSize == RealSize;
-		
-#if PLATFORM_HTML5_BROWSER
+
+#if PLATFORM_HTML5
 		// In browsers calling glBufferData() to discard-reupload is slower than calling glBufferSubData(),
 		// because changing glBufferData() with a different size from before incurs security related validation.
 		// Therefore never use the glBufferData() discard trick on HTML5 builds.
@@ -293,11 +293,11 @@ public:
 		// Map buffer is faster in some circumstances and slower in others, decide when to use it carefully.
 		bool const bCanUseMapBuffer = FOpenGL::SupportsMapBuffer() && BaseType::GLSupportsType();
 		bool const bUseMapBuffer = bCanUseMapBuffer && OpenGLConsoleVariables::bUseMapBuffer;
-		
+
 		// If we're able to discard the current data, do so right away
 		// If we can then we should orphan the buffer name & reallocate the backing store only once as calls to glBufferData may do so even when the size is the same.
 		uint32 DiscardSize = (bDiscard && !bUseMapBuffer && InSize == RealSize && !RESTRICT_SUBDATA_SIZE) ? 0 : RealSize;
-		
+
 		// Don't call BufferData if Bindless is on, as bindless texture buffers make buffers immutable
 		if ( bDiscard && !OpenGLConsoleVariables::bBindlessTexture && OpenGLConsoleVariables::bUseBufferDiscard)
 		{
@@ -306,7 +306,7 @@ public:
 				glBufferData( Type, DiscardSize, NULL, GetAccess());
 			}
 		}
-		
+
 		if ( bUseMapBuffer)
 		{
 			FOpenGL::EResourceLockMode LockMode = bDiscard ? FOpenGL::RLM_WriteOnly : FOpenGL::RLM_WriteOnlyUnsynchronized;
@@ -338,7 +338,7 @@ public:
 		if (bIsLocked)
 		{
 			Bind();
-			
+
 			if ( FOpenGL::SupportsMapBuffer() && BaseType::GLSupportsType() && (OpenGLConsoleVariables::bUseMapBuffer || bIsLockReadOnly))
 			{
 				check(!bLockBufferWasAllocated);
@@ -360,7 +360,7 @@ public:
 					// Check for the typical, optimized case
 					if( LockSize == RealSize )
 					{
-#if PLATFORM_HTML5_BROWSER
+#if PLATFORM_HTML5
 						// In browsers using glBufferData() to upload data is slower
 						// than using glBufferSubData(), because glBufferData()
 						// can resize the buffer storage, and so incurs extra validation.
@@ -736,7 +736,7 @@ public:
 
 
 /**
- * Combined shader state and vertex definition for rendering geometry. 
+ * Combined shader state and vertex definition for rendering geometry.
  * Each unique instance consists of a vertex decl, vertex shader, and pixel shader.
  */
 class FOpenGLBoundShaderState : public FRHIBoundShaderState
@@ -810,7 +810,7 @@ protected:
 public:
 	// Pointer to current sampler state in this unit
 	class FOpenGLSamplerState* SamplerState;
-	
+
 	/** The OpenGL texture resource. */
 	GLuint Resource;
 
@@ -822,7 +822,7 @@ public:
 
 	/** The OpenGL attachment point. This should always be GL_COLOR_ATTACHMENT0 in case of color buffer, but the actual texture may be attached on other color attachments. */
 	GLenum Attachment;
-	
+
 	/** OpenGL 3 Stencil/SRV workaround texture resource */
 	GLuint SRVResource;
 
@@ -854,7 +854,7 @@ public:
 	{
 		MemorySize = InMemorySize;
 	}
-	
+
 	void SetIsPowerOfTwo(bool bInIsPowerOfTwo)
 	{
 		bIsPowerOfTwo  = bInIsPowerOfTwo ? 1 : 0;
@@ -917,7 +917,7 @@ public:
 		PixelBuffers.AddZeroed(this->GetNumMips() * (bCubemap ? 6 : 1) * GetEffectiveSizeZ());
 		bAllocatedStorage.Init(bInAllocatedStorage, this->GetNumMips() * (bCubemap ? 6 : 1));
 		ClientStorageBuffers.AddZeroed(this->GetNumMips() * (bCubemap ? 6 : 1) * GetEffectiveSizeZ());
-	
+
 		FShaderCache* ShaderCache = FShaderCache::GetShaderCache();
 		if ( ShaderCache )
 		{
@@ -970,7 +970,7 @@ public:
 					Tex.Type = SCTT_Invalid;
 				}
 			}
-			
+
 			if (Tex.Type != SCTT_Invalid)
 			{
 				FShaderCache::LogTexture(Tex, this);
@@ -1032,7 +1032,7 @@ public:
 			ReleaseOpenGLFramebuffers(OpenGLRHI, this);
 		}
 	}
-	
+
 	virtual void* GetTextureBaseRHI() override final
 	{
 		return static_cast<FOpenGLTextureBase*>(this);
@@ -1052,7 +1052,7 @@ public:
 
 	/** Get PBO Resource for readback */
 	GLuint GetBufferResource(uint32 MipIndex,uint32 ArrayIndex);
-	
+
 	// Accessors.
 	bool IsDynamic() const { return (this->GetFlags() & TexCreate_Dynamic) != 0; }
 	bool IsCubemap() const { return bCubemap != 0; }
@@ -1061,7 +1061,7 @@ public:
 
 	/** FRHITexture override.  See FRHITexture::GetNativeResource() */
 	virtual void* GetNativeResource() const override
-	{ 
+	{
 		return const_cast<void *>(reinterpret_cast<const void*>(&Resource));
 	}
 
@@ -1082,7 +1082,7 @@ public:
 	 * Clone texture from a source using CopyImageSubData
 	 */
 	void CloneViaCopyImage( TOpenGLTexture* Src, uint32 InNumMips, int32 SrcOffset, int32 DstOffset);
-	
+
 	/**
 	 * Clone texture from a source going via PBOs
 	 */
@@ -1134,7 +1134,7 @@ public:
 private:
 	uint32 SampleCount;
 	/* For render targets on Android tiled GPUs, the number of samples to use internally */
-	uint32 SampleCountTileMem; 
+	uint32 SampleCountTileMem;
 };
 
 class FOpenGLBaseTexture2DArray : public FRHITexture2DArray
@@ -1161,7 +1161,7 @@ public:
 	uint32 GetSizeX() const { return GetSize(); }
 	uint32 GetSizeY() const { return GetSize(); } //-V524
 	uint32 GetSizeZ() const { return ArraySize > 1 ? ArraySize : 0; }
-	
+
 	uint32 GetArraySize() const {return ArraySize;}
 private:
 	uint32 ArraySize;
@@ -1196,7 +1196,7 @@ public:
 
 	void SetReferencedTexture(FRHITexture* InTexture);
 	FOpenGLTextureBase* GetTexturePtr() const { return TexturePtr; }
-	
+
 	virtual void* GetTextureBaseRHI() override final
 	{
 		return TexturePtr;
@@ -1342,9 +1342,9 @@ public:
 	{
 
 	}
-	  
+
 	GLuint	Resource;
-	GLuint  BufferResource;
+	GLuint	BufferResource;
 	GLenum	Format;
 
 	virtual uint32 GetBufferSize()
@@ -1395,7 +1395,7 @@ public:
 	FTexture2DRHIRef Texture2D;
 
 	int32 LimitMip;
-	
+
 	/** Needed on OS X to force a rebind of the texture buffer to the texture name to workaround radr://18379338 */
 	FVertexBufferRHIRef VertexBuffer;
 	uint64 ModificationVersion;
@@ -1410,7 +1410,7 @@ public:
 	,	OpenGLRHI(InOpenGLRHI)
 	,	OwnsResource(true)
 	{}
-	
+
 	FOpenGLShaderResourceView( FOpenGLDynamicRHI* InOpenGLRHI, GLuint InResource, GLenum InTarget, FVertexBufferRHIParamRef InVertexBuffer, uint8 InFormat )
 	:	Resource(InResource)
 	,	Target(InTarget)

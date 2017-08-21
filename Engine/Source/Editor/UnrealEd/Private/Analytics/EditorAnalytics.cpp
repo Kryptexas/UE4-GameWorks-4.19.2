@@ -22,6 +22,10 @@ void FEditorAnalytics::ReportBuildRequirementsFailure(FString EventName, FString
 	{
 		ReportEvent(EventName, PlatformName, bHasCode, EAnalyticsErrorCodes::SDKNotFound, ParamArray);
 	}
+	if (Requirements & ETargetPlatformReadyStatus::LicenseNotAccepted)
+	{
+		ReportEvent(EventName, PlatformName, bHasCode, EAnalyticsErrorCodes::LicenseNotAccepted, ParamArray);
+	}
 	if (Requirements & ETargetPlatformReadyStatus::ProvisionNotFound)
 	{
 		ReportEvent(EventName, PlatformName, bHasCode, EAnalyticsErrorCodes::ProvisionNotFound, ParamArray);

@@ -19,18 +19,21 @@ public class HTMLPakAutomation
 	string PakOrderFileLocation;
 
 	Dictionary<string, object> DependencyJson;
-	
+
 	public static bool CanCreateMapPaks(ProjectParams Param)
 	{
-		bool UseAsyncLevelLoading = false;
-		var ConfigCache = UnrealBuildTool.ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, DirectoryReference.FromFile(Param.RawProjectPath), UnrealTargetPlatform.HTML5);
-		ConfigCache.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "UseAsyncLevelLoading", out UseAsyncLevelLoading);
+        // TODO: setting this to false for now -- this will be converted to return CHUNK settings -- in part 2 of level streaming support for HTML5
+        return false;
 
-		if (Param.Run)
-			return false; 
+        //bool UseAsyncLevelLoading = false;
+        //var ConfigCache = UnrealBuildTool.ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, DirectoryReference.FromFile(Param.RawProjectPath), UnrealTargetPlatform.HTML5);
+        //ConfigCache.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "UseAsyncLevelLoading", out UseAsyncLevelLoading);
 
-		return UseAsyncLevelLoading;
-	}
+        //if (Param.Run)
+        //	return false; 
+
+        //return UseAsyncLevelLoading;
+    }
 
 	public HTMLPakAutomation(ProjectParams InParam, DeploymentContext InSC)
 	{
@@ -51,7 +54,7 @@ public class HTMLPakAutomation
 			Directory.Delete(PakPath,true);
 		}
 
-		// read in the json file. 
+		// read in the json file.
 		string JsonFile = CommandUtils.CombinePaths(new string[] { SC.ProjectRoot.FullName, "Saved", "Cooked", "HTML5", Params.ShortProjectName, "MapDependencyGraph.json" });
 		string text = File.ReadAllText(JsonFile);
 
@@ -60,8 +63,8 @@ public class HTMLPakAutomation
 	}
 
 	/// <summary>
-	/// Create Emscripten Data package with Necessary Packages. 
-	/// 
+	/// Create Emscripten Data package with Necessary Packages.
+	///
 	/// </summary>
 	public void CreateEmscriptenDataPackage(string PackagePath, string FinalDataLocation)
 	{
@@ -80,29 +83,29 @@ public class HTMLPakAutomation
 	}
 
 	/// <summary>
-	/// Create a Pak from Engine Contents. 
+	/// Create a Pak from Engine Contents.
 	/// </summary>
 	public void CreateEnginePak()
 	{
 		string StagedDir = Path.Combine(Params.BaseStageDirectory, "HTML5");// CommandUtils.CombinePaths(SC.ProjectRoot, "Saved", "Cooked", "HTML5");
-	
-		 string PakPath = Path.Combine( new string [] { Path.GetDirectoryName(Params.RawProjectPath.FullName), "Binaries", "HTML5", SC.ShortProjectName, "Content","Paks"});
-		 if (!Directory.Exists(PakPath))
-		 {
-			 Directory.CreateDirectory(PakPath);
-		 }
 
-		 // find list of files in the Engine Dir. 
-		 string[] files = Directory.GetFiles( Path.Combine(StagedDir, "Engine"), "*", SearchOption.AllDirectories);
+		string PakPath = Path.Combine( new string [] { Path.GetDirectoryName(Params.RawProjectPath.FullName), "Binaries", "HTML5", SC.ShortProjectName, "Content","Paks"});
+		if (!Directory.Exists(PakPath))
+		{
+			Directory.CreateDirectory(PakPath);
+		}
 
-		 Dictionary<string,string> UnrealPakResponseFile = new Dictionary<string,string>();
+		// find list of files in the Engine Dir.
+		string[] files = Directory.GetFiles( Path.Combine(StagedDir, "Engine"), "*", SearchOption.AllDirectories);
 
-		 // create response file structure. 
-		 foreach( string file in files )  
-		 {
-			 string MountPoint = file.Remove(0, StagedDir.Length + 1);
-			 UnrealPakResponseFile[file] = "../../../" +  MountPoint; 
-		 }
+		Dictionary<string,string> UnrealPakResponseFile = new Dictionary<string,string>();
+
+		// create response file structure.
+		foreach( string file in files )
+		{
+			string MountPoint = file.Remove(0, StagedDir.Length + 1);
+			UnrealPakResponseFile[file] = "../../../" +  MountPoint;
+		}
 
 		RunUnrealPak(UnrealPakResponseFile, PakPath + "\\EnginePak.pak", null, "", true);
 	}
@@ -113,7 +116,7 @@ public class HTMLPakAutomation
 	/// </summary>
 	public void CreateGamePak()
 	{
-		// create a pak of game config and first level files. 
+		// create a pak of game config and first level files.
 
 		string StagedDir = Path.Combine(Params.BaseStageDirectory, "HTML5");// CommandUtils.CombinePaths(SC.ProjectRoot, "Saved", "Cooked", "HTML5");
 
@@ -131,7 +134,7 @@ public class HTMLPakAutomation
 		}
 		catch ( Exception /*Ex*/)
 		{
-			// not found. 
+			// not found.
 		}
 
 		try
@@ -141,7 +144,7 @@ public class HTMLPakAutomation
 		}
 		catch (Exception /*Ex*/)
 		{
-			// not found. 
+			// not found.
 		}
 
 		string[] ConfigFiles = Directory.GetFiles(Path.Combine(StagedDir, Params.ShortProjectName, "Config"), "*", SearchOption.AllDirectories);
@@ -154,7 +157,7 @@ public class HTMLPakAutomation
 
 		Dictionary<string, string> UnrealPakResponseFile = new Dictionary<string, string>();
 
-		// create response file structure. 
+		// create response file structure.
 		foreach (string file in AllFiles)
 		{
 			string MountPoint = file.Remove(0, StagedDir.Length + 1);
@@ -162,7 +165,7 @@ public class HTMLPakAutomation
 		}
 
 		RunUnrealPak(UnrealPakResponseFile, PakPath + "\\" + Params.ShortProjectName + ".pak", null, "", true);
-		
+
 	}
 
 	/// <summary>
@@ -181,7 +184,7 @@ public class HTMLPakAutomation
 	/// </summary>
 	public void CreateMapPak()
 	{
-		// read in the json file. 
+		// read in the json file.
 
 		object[] Value = (object[])DependencyJson["ContentDirectoryAssets"];
 		List<string> ContentDirectory = Array.ConvertAll<object, string>(Value, Convert.ToString).ToList();
@@ -196,7 +199,7 @@ public class HTMLPakAutomation
 
 			if (Pak != "ContentDirectoryAssets")
 			{
-				// remove content directory assets. 
+				// remove content directory assets.
 				Assets = Assets.Except(ContentDirectory).ToList();
 				string[] Tokens = Pak.Split('/');
 				CreatePak(Tokens[Tokens.Length - 1], Assets);
@@ -206,7 +209,7 @@ public class HTMLPakAutomation
 	}
 
 	/// <summary>
-	/// Create Delta Paks based on Level Transitions. 
+	/// Create Delta Paks based on Level Transitions.
 	/// </summary>
 	/// <param name="MapFrom"></param>
 	/// <param name="MapTo"></param>
@@ -215,11 +218,11 @@ public class HTMLPakAutomation
 		foreach (string NameKey in DependencyJson.Keys)
 		{
 			if (NameKey.Contains(MapFrom))
-			{ 
+			{
 				MapFrom = NameKey;
 			}
 			if (NameKey.Contains(MapTo))
-			{ 
+			{
 				MapTo = NameKey;
 			}
 		}
@@ -232,10 +235,10 @@ public class HTMLPakAutomation
 		object[] Value = (object[])DependencyJson["ContentDirectoryAssets"];
 		List<string> ContentDirectory = Array.ConvertAll<object, string>(Value, Convert.ToString).ToList();
 
-		// Delta. 
+		// Delta.
 		List<string> DeltaAssets = MapToAssets.Except(MapFromAssets).Except(ContentDirectory).ToList();
 
-		// create a pak file for this delta. 
+		// create a pak file for this delta.
 		string[] Tokens_MapFrom = MapFrom.Split('/');
 		string[] Tokens_MapTo = MapTo.Split('/');
 
@@ -256,10 +259,12 @@ public class HTMLPakAutomation
 			foreach (var Entry in ResponseFile)
 			{
 				string Line = String.Format("\"{0}\" \"{1}\"", Entry.Key, Entry.Value);
-				if (Compressed)
-				{
-					Line += " -compress";
-				}
+// this will be enabled again in the near future when IndexedDB is used more extensively
+// (this will happen when the new filesystem feature goes in [post multi-threading] for wasm)
+//				if (Compressed)
+//				{
+//					Line += " -compress";
+//				}
 				Writer.WriteLine(Line);
 			}
 		}
@@ -313,15 +318,15 @@ public class HTMLPakAutomation
 			Directory.CreateDirectory(PakPath);
 		}
 
-		Assets.Add(Name); 
+		Assets.Add(Name);
 		List<string> Files = new List<string>();
 		foreach( string Asset in Assets)
 		{
 			string GameDir = "/Game/";
 			if (Asset.StartsWith(GameDir))
 			{
-				string PathOnDiskasset  = CommandUtils.CombinePaths(CookedDir, Params.ShortProjectName, "Content", Asset.Remove(0, GameDir.Length) + ".uasset");
-				string PathOnDiskmap    = CommandUtils.CombinePaths(CookedDir, Params.ShortProjectName, "Content", Asset.Remove(0, GameDir.Length)+ ".umap");
+				string PathOnDiskasset = CommandUtils.CombinePaths(CookedDir, Params.ShortProjectName, "Content", Asset.Remove(0, GameDir.Length) + ".uasset");
+				string PathOnDiskmap   = CommandUtils.CombinePaths(CookedDir, Params.ShortProjectName, "Content", Asset.Remove(0, GameDir.Length)+ ".umap");
 
 				if (File.Exists(PathOnDiskmap))
 				{
@@ -333,19 +338,19 @@ public class HTMLPakAutomation
 				}
 				else
 				{
-					System.Console.WriteLine(Asset + " not found, skipping !!"); 
+					System.Console.WriteLine(Asset + " not found, skipping !!");
 				}
 			}
 		}
 
-		// we have all the files. 
+		// we have all the files.
 		Dictionary<string, string> UnrealPakResponseFile = new Dictionary<string, string>();
 
-		// create response file structure. 
+		// create response file structure.
 		foreach (string file in Files)
 		{
 			string MountPoint = file.Remove(0, CookedDir.Length + 1);
-			UnrealPakResponseFile[file] ="../../../" +  MountPoint;
+			UnrealPakResponseFile[file] ="../../../" + MountPoint;
 		}
 		RunUnrealPak(UnrealPakResponseFile, PakPath + "\\"+ Name + ".pak", null, "", true);
 	}

@@ -8,10 +8,8 @@
 #include "HTML5Application.h"
 #include "HTML5PlatformProcess.h"
 
-#if PLATFORM_HTML5_BROWSER
 #include "HTML5JavaScriptFx.h"
 #include <emscripten/trace.h>
-#endif
 
 THIRD_PARTY_INCLUDES_START
 	#include "unicode/locid.h"
@@ -45,14 +43,12 @@ const TCHAR* FHTML5Misc::GetPlatformFeaturesModuleName()
 
 FString FHTML5Misc::GetDefaultLocale()
 {
-#if PLATFORM_HTML5_BROWSER
 	char AsciiCultureName[512];
 	if (UE_GetCurrentCultureName(AsciiCultureName,sizeof(AsciiCultureName)))
 	{
 		return FString(StringCast<TCHAR>(AsciiCultureName).Get());
 	}
 	else
-#endif
 	{
 		icu::Locale ICUDefaultLocale = icu::Locale::getDefault();
 		return FString(ICUDefaultLocale.getName());
@@ -61,28 +57,15 @@ FString FHTML5Misc::GetDefaultLocale()
 
 EAppReturnType::Type FHTML5Misc::MessageBoxExt(EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption)
 {
-
-#if PLATFORM_HTML5_BROWSER
-
 	ANSICHAR* AText = TCHAR_TO_ANSI(Text);
 	ANSICHAR* ACaption = TCHAR_TO_ANSI(Caption);
 	return static_cast<EAppReturnType::Type>(UE_MessageBox(MsgType,AText,ACaption));
-
-#endif
-
-#if PLATFORM_HTML5_WIN32
-
-	return FGenericPlatformMisc::MessageBoxExt(MsgType, Text, Caption);
-
-#endif
-
 }
 
 void (*GHTML5CrashHandler)(const FGenericCrashContext& Context) = nullptr;
 
 extern "C"
 {
-#if PLATFORM_HTML5_BROWSER
 	// callback from javascript.
 	void on_fatal(const char* msg, const char* error)
 	{
@@ -97,18 +80,11 @@ extern "C"
 			GHTML5CrashHandler(Ctx);
 		}
 	}
-#endif
 }
 
 void FHTML5Misc::SetCrashHandler(void(* CrashHandler)(const FGenericCrashContext& Context))
 {
 	GHTML5CrashHandler = CrashHandler;
-}
-
-const void FHTML5Misc::PreLoadMap(FString& Map, FString& LastMap, void* DynData)
-{
-	static TSharedPtr<FMapPakDownloader> Downloader = FModuleManager::GetModulePtr<IMapPakDownloaderModule>("MapPakDownloader")->GetDownloader();
-	Downloader->Cache(Map, LastMap, DynData);
 }
 
 void FHTML5Misc::PlatformPostInit()

@@ -4,7 +4,10 @@
 package com.epicgames.ue4;
 
 import java.io.File;
-
+import android.hardware.SensorManager;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
 import java.lang.Override;
 import java.util.Map;
 import java.util.HashMap;
@@ -121,13 +124,14 @@ import android.view.inputmethod.InputMethodManager;
 import android.graphics.Rect;
 import android.view.ViewTreeObserver;
 
+import java.lang.reflect.Method;
+
 import android.widget.FrameLayout;
 import android.widget.RelativeLayout;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputConnectionWrapper;
 import android.util.AttributeSet;
 import android.graphics.Color;
-
 //$${gameActivityImportAdditions}$$
 
 //$${gameActivityPostImportAdditions}$$
@@ -144,8 +148,25 @@ import android.graphics.Color;
 
 public class GameActivity extends NativeActivity implements SurfaceHolder.Callback2,
 															GoogleApiClient.ConnectionCallbacks,
-															GoogleApiClient.OnConnectionFailedListener
+															GoogleApiClient.OnConnectionFailedListener,
+															SensorEventListener
 {
+	private SensorManager sensorManager;
+	private Sensor accelerometer;
+	private Sensor magnetometer;
+	private Sensor gyroscope;
+	
+	private final float[] rotationMatrix = new float[9];
+	private final float[] orientationAngles = new float[3];
+
+	static float[] last_accelerometer = new float[]{0, 0, 0};
+	static float[] last_magnetometer = new float[]{0, 0, 0};
+	// Buffered, historical, motion data.
+	static float[] last_tilt = new float[]{0, 0, 0};
+	static float[] last_gravity = new float[]{0, 0, 0};
+
+	static boolean first_acceleration_sample = true;
+	static final float SampleDecayRate = 0.85f;
 	public static Logger Log = new Logger("UE4");
 	
 	public static final int DOWNLOAD_ACTIVITY_ID = 80001; // so we can identify the activity later
@@ -191,7 +212,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 
 	//container for SurfaceView and virtual keyboard input
 	private FrameLayout containerFrameLayout;
-
+	
 	// Keep a reference to the main content view so we can bring up the virtual keyboard without an editbox
 	private View mainView;
 	private boolean bKeyboardShowing;
@@ -381,7 +402,10 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	public void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
-
+		sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+		accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+		magnetometer = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
+		gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
 		// create splashscreen dialog (if launched by SplashActivity)
 		Bundle intentBundle = getIntent().getExtras();
 		if (intentBundle != null)
@@ -1017,6 +1041,11 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		Log.debug("==============> GameActive.onCreate complete!");
 	}
 
+	@Override
+	public void onAccuracyChanged(Sensor sensor, int accuracy)
+	{
+	}
+	
 	private Handler mRestoreImmersiveModeHandler = new Handler();
 	private Runnable restoreImmersiveModeRunnable = new Runnable()
 	{
@@ -1077,7 +1106,9 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	public void onResume()
 	{
 		super.onResume();
-
+		sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_GAME);
+		sensorManager.registerListener(this, magnetometer, SensorManager.SENSOR_DELAY_GAME);
+		sensorManager.registerListener(this, gyroscope, SensorManager.SENSOR_DELAY_GAME);
 		// invalidate window cache
 		nativeSetWindowInfo(getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT, DepthBufferPreference);
 		
@@ -1139,6 +1170,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	protected void onPause()
 	{
 		super.onPause();
+		sensorManager.unregisterListener(this);
 
 		// hide virtual keyboard before going into the background
 		if( bKeyboardShowing )
@@ -1173,7 +1205,131 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 //$${gameActivityOnPauseAdditions}$$
 		Log.debug("==============> GameActive.onPause complete!");
 	}
+	
+	@Override
+	public void onSensorChanged(SensorEvent event)
+	{
+		float[] current_accelerometer = new float[]{0, 0, 0};
+		float[] current_gyroscope = new float[]{0, 0, 0};
+		float[] current_magnetometer = new float[]{0, 0, 0};
+		int current_accelerometer_sample_count = 0;
+		int current_gyroscope_sample_count = 0;
+		int current_magnetometer_sample_count = 0;
 
+		if (accelerometer != null && magnetometer != null)
+		{
+			if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER)
+			{
+			  System.arraycopy(event.values, 0, current_accelerometer, 0, current_accelerometer.length);
+			  ++current_accelerometer_sample_count;
+			}
+			else if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD)
+			{
+			  System.arraycopy(event.values, 0, current_magnetometer, 0, current_magnetometer.length);
+			  ++current_magnetometer_sample_count;
+			}
+			else if (event.sensor.getType() == Sensor.TYPE_GYROSCOPE)
+			{
+			  System.arraycopy(event.values, 0, current_gyroscope, 0, current_gyroscope.length);
+			  ++current_gyroscope_sample_count;
+			}
+
+			if (current_accelerometer_sample_count > 0)
+			{
+				// Do simple average of the samples we just got.
+				for(int i = 0; i < current_accelerometer.length; i++)
+					current_accelerometer[i] /= (float)current_accelerometer_sample_count;
+				last_accelerometer = current_accelerometer;
+			}
+			else
+			{
+				current_accelerometer = last_accelerometer;
+			}
+
+			if (current_gyroscope_sample_count > 0)
+			{
+				// Do simple average of the samples we just got.
+				for(int i = 0; i < current_gyroscope.length; i++)
+					current_gyroscope[i] /= (float)current_gyroscope_sample_count;
+			}
+
+			if (current_magnetometer_sample_count > 0)
+			{
+				// Do simple average of the samples we just got.
+				for(int i = 0; i < current_magnetometer.length; i++)
+					current_magnetometer[i] /= (float)current_magnetometer_sample_count;
+				last_magnetometer = current_magnetometer;
+			}
+			else
+			{
+				current_magnetometer = last_magnetometer;
+			}
+
+			// If we have motion samples we generate the single event.
+			if (current_accelerometer_sample_count > 0 || current_gyroscope_sample_count > 0 ||	current_magnetometer_sample_count > 0)
+			{
+				// The data we compose the motion event from.
+				float[] current_tilt = new float[]{0, 0, 0};
+				float[] current_rotation_rate = new float[]{0, 0, 0};
+				float[] current_gravity = new float[]{0, 0, 0};
+				float[] current_acceleration = new float[]{0, 0, 0};
+
+				
+
+				// We use a low-pass filter to synthesize the gravity
+				// vector.
+				
+				if (!first_acceleration_sample)
+				{
+					current_gravity[0] = last_gravity[0] * SampleDecayRate + current_accelerometer[0]*(1.0f - SampleDecayRate);
+					current_gravity[1] = last_gravity[1] * SampleDecayRate + current_accelerometer[1]*(1.0f - SampleDecayRate);
+					current_gravity[2] = last_gravity[2] * SampleDecayRate + current_accelerometer[2]*(1.0f - SampleDecayRate);
+				}
+				first_acceleration_sample = false;
+
+				// get the rotation matrix value, the convert those to Euler angle rotation values
+				updateOrientationAngles(current_accelerometer, current_magnetometer);
+
+				current_tilt = new float[]{orientationAngles[1], orientationAngles[2], orientationAngles[0]};
+
+				// And take out the gravity from the accel to get
+				// the linear acceleration.
+				for (int i = 0; i < current_acceleration.length; ++i)
+					current_acceleration[i] = current_accelerometer[i] - current_gravity[i];
+
+				if (current_gyroscope_sample_count > 0)
+				{
+					// The rotation rate is the what the gyroscope gives us.
+					current_rotation_rate = current_gyroscope;
+				}
+				else if (null == gyroscope)
+				{
+					// If we don't have a gyroscope at all we need to calc a rotation
+					// rate from our calculated tilt and a delta.
+					for (int index = 0; index < current_rotation_rate.length; ++index)
+						current_rotation_rate[index] = current_tilt[index] - last_tilt[index];
+				}
+
+				// Finally record the motion event with all the data.
+				
+				nativeHandleSensorEvents(current_tilt, current_rotation_rate, current_gravity, current_acceleration);
+
+				// Update history values.
+				last_tilt = current_tilt;
+				last_gravity = current_gravity;
+			}
+		}
+	}
+
+	
+	public void updateOrientationAngles(float[] accelerometerReading, float[] magnetometerReading)
+	{
+
+		sensorManager.getRotationMatrix(rotationMatrix, null, accelerometerReading, magnetometerReading);
+
+		sensorManager.getOrientation(rotationMatrix, orientationAngles);
+	}
+	
 	@Override
 	public void onNewIntent(Intent newIntent)
 	{
@@ -1443,7 +1599,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		{
 			public void run()
 			{
-				Log.debug("Hide newVirtualKeyboardInput");
+				//Log.debug("Hide newVirtualKeyboardInput");
 
 		        InputMethodManager imm =(InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
 				imm.hideSoftInputFromWindow(newVirtualKeyboardInput.getWindowToken(), 0);
@@ -2669,6 +2825,35 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		return _bundle.getString(key);
 	}
 			
+
+	public void AndroidThunkJava_SetSustainedPerformanceMode(final boolean bEnable)
+	{
+		if (ANDROID_BUILD_VERSION >= 24)
+		{
+			Log.debug("==================================> SetSustainedPerformanceMode:"+bEnable);
+			_activity.runOnUiThread(new Runnable()
+			{
+				public void run()
+				{
+					try
+					{
+						android.view.Window ActivityWindow = _activity.getWindow();
+						Method m = android.view.Window.class.getMethod("setSustainedPerformanceMode",Boolean.TYPE);
+						m.invoke(ActivityWindow, bEnable);
+					}
+					catch (Exception e)
+					{
+						Log.debug("SetSustainedPerformanceMode: failed "+ e.getMessage());
+					}
+				}
+			});
+		}
+		else
+		{
+			Log.debug("==================================> API<24, cannot use SetSustainedPerformanceMode");
+		}
+	}
+				
 	//virtual keyboard input class - custom EditText
 	public class VirtualKeyboardInput extends EditText 
 	{
@@ -2853,6 +3038,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	public native void nativeGoogleClientConnectCompleted(boolean bSuccess, String accessToken);
 
 	public native void nativeVirtualKeyboardShown(int left, int top, int right, int bottom);
+
 	public native void nativeVirtualKeyboardVisible(boolean bShown);
 		
 	static
@@ -2861,5 +3047,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 //$${soLoadLibrary}$$
 		System.loadLibrary("UE4");
 	}
+
+	public native void nativeHandleSensorEvents(float[] tilt, float[] rotation_rate, float[] gravity, float[] acceleration);
 }
 

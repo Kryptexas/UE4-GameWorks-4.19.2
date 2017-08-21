@@ -57,7 +57,7 @@ struct FWorldZoomLevelsContainer
 
 	int32	GetNumZoomLevels() const override
 	{
-		return 100;
+		return 300;
 	}
 
 	int32	GetDefaultZoomLevel() const override
@@ -106,30 +106,9 @@ public:
 		ZoomLevels = MakeUnique<FWorldZoomLevelsContainer>();
 
 		SNodePanel::Construct();
-	
-		//// bind commands
-		//const FWorldTileCommands& Commands = FWorldTileCommands::Get();
-		//FUICommandList& ActionList = *CommandList;
 
-		//ActionList.MapAction(Commands.FitToSelection,
-		//	FExecuteAction::CreateSP(this, &SWorldCompositionGrid::FitToSelection_Executed),
-		//	FCanExecuteAction::CreateSP(this, &SWorldCompositionGrid::AreAnyItemsSelected));
-
-		//ActionList.MapAction(Commands.MoveLevelLeft,
-		//	FExecuteAction::CreateSP(this, &SWorldCompositionGrid::MoveLevelLeft_Executed),
-		//	FCanExecuteAction::CreateSP(this, &SWorldCompositionGrid::AreAnyItemsSelected));
-
-		//ActionList.MapAction(Commands.MoveLevelRight,
-		//	FExecuteAction::CreateSP(this, &SWorldCompositionGrid::MoveLevelRight_Executed),
-		//	FCanExecuteAction::CreateSP(this, &SWorldCompositionGrid::AreAnyItemsSelected));
-
-		//ActionList.MapAction(Commands.MoveLevelUp,
-		//	FExecuteAction::CreateSP(this, &SWorldCompositionGrid::MoveLevelUp_Executed),
-		//	FCanExecuteAction::CreateSP(this, &SWorldCompositionGrid::AreAnyItemsSelected));
-
-		//ActionList.MapAction(Commands.MoveLevelDown,
-		//	FExecuteAction::CreateSP(this, &SWorldCompositionGrid::MoveLevelDown_Executed),
-		//	FCanExecuteAction::CreateSP(this, &SWorldCompositionGrid::AreAnyItemsSelected));
+		// otherwise tiles will be drawn outside of this widget area
+		SetClipping(EWidgetClipping::ClipToBounds);
 
 		//
 		WorldModel = InArgs._InWorldModel;
@@ -727,7 +706,7 @@ protected:
 	virtual void OnEndNodeInteraction(const TSharedRef<SNode>& InNodeDragged) override
 	{
 		const SWorldTileItem& Item = static_cast<const SWorldTileItem&>(InNodeDragged.Get());
-		if (Item.IsItemEditable())
+		if (Item.IsItemEditable() && !WorldModel->IsLockTilesLocationEnabled())
 		{
 			FVector2D AbsoluteDelta = Item.GetLevelModel()->GetLevelTranslationDelta();
 			FIntPoint IntAbsoluteDelta = FIntPoint(AbsoluteDelta.X, AbsoluteDelta.Y);
@@ -794,8 +773,14 @@ protected:
 			FVector2D MinCorner, MaxCorner;
 			if (GetBoundsForNodes(true, MinCorner, MaxCorner, 0.f))
 			{
-				FVector2D TargetPosition = MaxCorner/2.f + MinCorner/2.f;
-				RequestScrollTo(TargetPosition, MaxCorner - MinCorner);
+				FSlateRect SelectionRect = FSlateRect(GraphCoordToPanelCoord(MinCorner), GraphCoordToPanelCoord(MaxCorner));
+				FSlateRect PanelRect = FSlateRect(FVector2D::ZeroVector, CachedGeometry.GetLocalSize());
+				bool bIsVisible = FSlateRect::DoRectanglesIntersect(PanelRect, SelectionRect);
+				if (!bIsVisible)
+				{
+					FVector2D TargetPosition = MaxCorner/2.f + MinCorner/2.f;
+					RequestScrollTo(TargetPosition, MaxCorner - MinCorner);
+				}
 			}
 		}
 		bUpdatingSelection = false;
@@ -890,7 +875,7 @@ protected:
 	{
 		auto ItemDragged = StaticCastSharedPtr<SWorldTileItem>(InNodeToDrag);
 	
-		if (ItemDragged->IsItemEditable())
+		if (ItemDragged->IsItemEditable() && !WorldModel->IsLockTilesLocationEnabled())
 		{
 			// Current translation snapping value
 			float SnappingDistanceWorld = 0.f;

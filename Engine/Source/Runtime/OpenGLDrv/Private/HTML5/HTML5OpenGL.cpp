@@ -3,14 +3,10 @@
 #include "OpenGLDrvPrivate.h"
 THIRD_PARTY_INCLUDES_START
 #include <SDL.h>
-#if !PLATFORM_HTML5_WIN32
 #include <emscripten/emscripten.h>
 #include <emscripten/html5.h>
-#endif
 THIRD_PARTY_INCLUDES_END
-#if PLATFORM_HTML5_BROWSER
 #include "HTML5JavaScriptFx.h"
-#endif
 
 DEFINE_LOG_CATEGORY_STATIC(LogHTML5OpenGL, Log, All);
 
@@ -69,7 +65,6 @@ void FHTML5OpenGL::ProcessExtensions( const FString& ExtensionsString )
 	bSupportsDrawBuffers = ExtensionsString.Contains(TEXT("WEBGL_draw_buffers"));
 	bSupportsInstancing = ExtensionsString.Contains(TEXT("ANGLE_instanced_arrays"));
 
-#if PLATFORM_HTML5_BROWSER
 	// WebGL 1 extensions that were adopted to core WebGL 2 spec:
 	if (UE_BrowserWebGLVersion() == 2)
 	{
@@ -89,10 +84,6 @@ void FHTML5OpenGL::ProcessExtensions( const FString& ExtensionsString )
 	// needs WEBGL_depth_texture (at which point it's DEPTH_STENCIL + UNSIGNED_INT_24_8)
 	// @todo: if we can always create PF_DepthStencil as DEPTH_STENCIL renderbuffers, we could remove the dependency
 	bSupportsPackedDepthStencil = bSupportsDepthTexture;
-#else
-	bCombinedDepthStencilAttachment = false;
-	bSupportsPackedDepthStencil = ExtensionsString.Contains(TEXT("GL_OES_packed_depth_stencil"));
-#endif
 
 	if (!bSupportsDepthTexture) {
 		UE_LOG(LogRHI, Warning, TEXT("This browser does not support WEBGL_depth_texture. Rendering will not function since fallback code is not available."));
@@ -118,10 +109,6 @@ void FHTML5OpenGL::ProcessExtensions( const FString& ExtensionsString )
 		}
 
 		GLuint tex, fb;
-#if PLATFORM_HTML5_WIN32
-		glClearColor( 1.0, 0.5, 0.0,1.0);
-		glClear( GL_COLOR_BUFFER_BIT );
-#endif
 		glGenTextures(1, &tex);
 		glBindTexture(GL_TEXTURE_2D, tex);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -135,20 +122,7 @@ void FHTML5OpenGL::ProcessExtensions( const FString& ExtensionsString )
 
 		GLenum fbstatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 
-#if PLATFORM_HTML5_WIN32
-		// keep glReadPixel out of floating point tests for HTML5 Browser builds, glReadPixels doesn't work consistently across browser and is
-		// hidden behind inconsistent webgl extentions.
-		TArray<FLinearColor> Data;
-		Data.AddUninitialized(32*32);
-		glViewport(0, 0, 32, 32);
-		glClear(GL_COLOR_BUFFER_BIT);
-		FMemory::Memzero(Data.GetData(),32*32*sizeof(FLinearColor));
-		glReadPixels(0, 0, 32, 32, GL_RGBA, GL_FLOAT, Data.GetData());
-		err = glGetError();
-		UE_LOG(LogRHI, Log, TEXT(" %f %f %f %f"), Data[0].R,Data[0].G,Data[0].B,Data[0].A);
-#endif
 		bSupportsColorBufferHalfFloat = fbstatus == GL_FRAMEBUFFER_COMPLETE && err == GL_NO_ERROR;
-
 		if (bSupportsColorBufferHalfFloat)
 		{
 			UE_LOG(LogRHI, Log, TEXT("Enabling implicit ColorBufferHalfFloat after checking fb completeness"));
@@ -185,10 +159,8 @@ struct FPlatformOpenGLContext
 	}
 };
 
-#if PLATFORM_HTML5_BROWSER
 extern "C" int GSystemResolution_ResX();
 extern "C" int GSystemResolution_ResY();
-#endif
 
 struct FPlatformOpenGLDevice
 {
@@ -212,9 +184,7 @@ struct FPlatformOpenGLDevice
 		emscripten_get_canvas_size(&width, &height, &isFullscreen);
 		WindowHandle = SDL_CreateWindow("HTML5", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
 			width, height, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
-#if PLATFORM_HTML5_BROWSER
 		UE_GSystemResolution( GSystemResolution_ResX, GSystemResolution_ResY );
-#endif
 		PlatformCreateOpenGLContext(this,WindowHandle);
 	}
 
@@ -379,12 +349,9 @@ void PlatformReleaseRenderQuery( GLuint Query, uint64 QueryContext )
 
 void PlatformRestoreDesktopDisplayMode()
 {
-#if PLATFORM_HTML5_BROWSER
 	EM_ASM( Module['canvas'].UE_canvas.bIsFullScreen = 0; );
-#endif
 }
 
-#if PLATFORM_HTML5_BROWSER
 #include "UnrealEngine.h" // GSystemResolution
 extern "C"
 {
@@ -398,6 +365,5 @@ extern "C"
 		return GSystemResolution.ResY;
 	}
 }
-#endif
 
 

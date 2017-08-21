@@ -502,7 +502,7 @@ namespace UnrealBuildTool
 			Content.Append("\t\t" + ProjectGuid + " /* Project object */ = {" + ProjectFileGenerator.NewLine);
 			Content.Append("\t\t\tisa = PBXProject;" + ProjectFileGenerator.NewLine);
 			Content.Append("\t\t\tattributes = {" + ProjectFileGenerator.NewLine);
-			Content.Append("\t\t\t\tLastUpgradeCheck = 0800;" + ProjectFileGenerator.NewLine);
+			Content.Append("\t\t\t\tLastUpgradeCheck = 0900;" + ProjectFileGenerator.NewLine);
 			Content.Append("\t\t\t\tORGANIZATIONNAME = \"Epic Games, Inc.\";" + ProjectFileGenerator.NewLine);
             Content.Append("\t\t\t\tTargetAttributes = {" + ProjectFileGenerator.NewLine);
             Content.Append("\t\t\t\t\t" + TargetGuid + " = {" + ProjectFileGenerator.NewLine);
@@ -535,7 +535,7 @@ namespace UnrealBuildTool
             Content.Append("\t\t\t\t};" + ProjectFileGenerator.NewLine);
             Content.Append("\t\t\t};" + ProjectFileGenerator.NewLine);
 			Content.Append("\t\t\tbuildConfigurationList = " + ProjectBuildConfigGuid + " /* Build configuration list for PBXProject \"" + TargetName + "\" */;" + ProjectFileGenerator.NewLine);
-			Content.Append("\t\t\tcompatibilityVersion = \"Xcode 3.2\";" + ProjectFileGenerator.NewLine);
+			Content.Append("\t\t\tcompatibilityVersion = \"Xcode 8.0\";" + ProjectFileGenerator.NewLine);
 			Content.Append("\t\t\tdevelopmentRegion = English;" + ProjectFileGenerator.NewLine);
 			Content.Append("\t\t\thasScannedForEncodings = 0;" + ProjectFileGenerator.NewLine);
 			Content.Append("\t\t\tknownRegions = (" + ProjectFileGenerator.NewLine);

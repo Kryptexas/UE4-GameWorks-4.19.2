@@ -17,11 +17,20 @@ enum EProjectPackagingBuildConfigurations
 	/** Debug configuration. */
 	PPBC_DebugGame UMETA(DisplayName="DebugGame"),
 
+	/** Debug Client configuration. */
+	PPBC_DebugGameClient UMETA(DisplayName = "DebugGame Client"),
+
 	/** Development configuration. */
 	PPBC_Development UMETA(DisplayName="Development"),
 
+	/** Development Client configuration. */
+	PPBC_DevelopmentClient UMETA(DisplayName = "Development Client"),
+
 	/** Shipping configuration. */
-	PPBC_Shipping UMETA(DisplayName="Shipping")
+	PPBC_Shipping UMETA(DisplayName="Shipping"),
+
+	/** Shipping Client configuration. */
+	PPBC_ShippingClient UMETA(DisplayName = "Shipping Client")
 };
 
 /**

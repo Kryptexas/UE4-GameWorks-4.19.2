@@ -9,10 +9,7 @@
 #include "Containers/BitArray.h"
 THIRD_PARTY_INCLUDES_START
 	#include <SDL.h>
-
-	#if PLATFORM_HTML5_BROWSER
-		#include <emscripten/html5.h>
-	#endif
+	#include <emscripten/html5.h>
 THIRD_PARTY_INCLUDES_END
 
 
@@ -51,11 +48,7 @@ private:
 
 	TBitArray<FDefaultBitArrayAllocator> KeyStates;
 
-#if PLATFORM_HTML5_BROWSER
-
 	EmscriptenGamepadEvent PrevGamePadState[5];
 	double LastPressedTime[5][15];
-
-#endif
 
 };

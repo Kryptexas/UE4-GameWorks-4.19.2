@@ -893,6 +893,7 @@ namespace UnrealBuildTool
 				}
 
 				// write out directories to copy
+                // NOTE: this can fail if you rach 64k tmp files in USER/username/AppData/Local/Temp, should catch this excpetion and either write out a better error message or try to clean the directory
 				string RSyncPathsFile = Path.GetTempFileName();
 				string IncludeFromFile = Path.GetTempFileName();
 				File.WriteAllLines(RSyncPathsFile, RelativeRsyncDirs.ToArray());

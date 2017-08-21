@@ -11,7 +11,7 @@ public class RHI : ModuleRules
 
 		if (Target.bCompileAgainstEngine)
 		{
-            DynamicallyLoadedModuleNames.Add("NullDrv");
+			DynamicallyLoadedModuleNames.Add("NullDrv");
 
 			// UEBuildAndroid.cs adds VulkanRHI for Android builds if it is enabled
 			if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64))
@@ -20,7 +20,7 @@ public class RHI : ModuleRules
 
 				//#todo-rco: D3D12 requires different SDK headers not compatible with WinXP
 				DynamicallyLoadedModuleNames.Add("D3D12RHI");
-            }
+			}
 
 			if ((Target.Platform == UnrealTargetPlatform.Win64) ||
 				(Target.Platform == UnrealTargetPlatform.Win32) ||
@@ -31,12 +31,12 @@ public class RHI : ModuleRules
 
 			if ((Target.Platform == UnrealTargetPlatform.Win32) ||
 				(Target.Platform == UnrealTargetPlatform.Win64) ||
-                (Target.Platform == UnrealTargetPlatform.Linux && Target.Type != TargetRules.TargetType.Server) ||  // @todo should servers on all platforms skip this?
-                (Target.Platform == UnrealTargetPlatform.HTML5))
+				(Target.Platform == UnrealTargetPlatform.Linux && Target.Type != TargetRules.TargetType.Server) ||  // @todo should servers on all platforms skip this?
+				(Target.Platform == UnrealTargetPlatform.HTML5))
 			{
 				DynamicallyLoadedModuleNames.Add("OpenGLDrv");
 			}
-        }
+		}
 
 		if (Target.Configuration != UnrealTargetConfiguration.Shipping)
 		{

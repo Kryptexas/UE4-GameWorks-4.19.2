@@ -488,6 +488,7 @@ public:
 	virtual void RHIEnableDepthBoundsTest(bool bEnable, float MinDepth, float MaxDepth) final override;
 	virtual void RHIPushEvent(const TCHAR* Name, FColor Color) final override;
 	virtual void RHIPopEvent() final override;
+	virtual void RHIInvalidateCachedState() final override;
 
 	void Cleanup();
 

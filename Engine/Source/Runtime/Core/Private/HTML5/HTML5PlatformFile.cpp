@@ -24,44 +24,15 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
-
-#if PLATFORM_HTML5_WIN32
-	#include <io.h>
-	#include <direct.h>
-#else
-	#include <unistd.h>
-#endif
-
+#include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
-
-#if PLATFORM_HTML5_WIN32
-	#ifndef S_ISDIR /* NEXT */
-		#define S_ISDIR(m) (((m)&S_IFMT)==S_IFDIR)
-		#define S_ISREG(m) (((m)&S_IFMT)==S_IFREG)
-	#endif
-	
-	#ifndef S_IRUSR
-		#define S_IRUSR S_IREAD
-		#define S_IWUSR S_IWRITE
-		#define S_IXUSR S_IEXEC
-	#endif
-
-	/* access function */
-	#define	F_OK		0		/* test for existence of file */
-	#define	X_OK		0x01	/* test for execute or search permission */
-	#define	W_OK		0x02	/* test for write permission */
-	#define	R_OK		0x04	/* test for read permission */
-	#include <sys/utime.h>
-#else
-	#include <dirent.h>
-	#include <utime.h>
-#endif
+#include <dirent.h>
+#include <utime.h>
 
 #ifndef O_BINARY
 	#define O_BINARY 0
 #endif
-
 
 DEFINE_LOG_CATEGORY_STATIC(LogHTML5PlatformFile, Log, All);
 
@@ -331,11 +302,6 @@ public:
 		{
 			return new FFileHandleHTML5(Handle, Filename);
 		}
-
-#if PLATFORM_HTML5_WIN32
-		int err = errno;
-		UE_LOG(LogHTML5PlatformFile, Display, TEXT("OpenRead: %s failed, errno %d"), (*fn), err);
-#endif
 		return NULL;
 	}
 
@@ -389,20 +355,12 @@ public:
 	}
 	virtual bool CreateDirectory(const TCHAR* Directory) override
 	{
-#if PLATFORM_HTML5_WIN32
-		return _mkdir(TCHAR_TO_ANSI(*NormalizeFilename(Directory))) || (errno == EEXIST);
-#else
 		return mkdir(TCHAR_TO_UTF8(*NormalizeFilename(Directory)), 0755) == 0;
-#endif
 	}
 
 	virtual bool DeleteDirectory(const TCHAR* Directory) override
 	{
-#if PLATFORM_HTML5_WIN32
-		return _rmdir(TCHAR_TO_UTF8(*NormalizeFilename(Directory))) == 0;
-#else
 		return rmdir(TCHAR_TO_UTF8(*NormalizeFilename(Directory))) == 0;
-#endif
 	}
 
 	virtual FFileStatData GetStatData(const TCHAR* FilenameOrDirectory) override
@@ -418,50 +376,16 @@ public:
 
 	virtual bool IterateDirectory(const TCHAR* Directory, FDirectoryVisitor& Visitor) override
 	{
-#if PLATFORM_HTML5_WIN32
-		const FString DirectoryStr = Directory;
-		return IterateDirectoryCommon(Directory, [&](struct _finddata_t& InFindData) -> bool
-		{
-			const bool bIsDirectory = ((InFindData.attrib & _A_SUBDIR) != 0);
-			return Visitor.Visit(*(DirectoryStr / UTF8_TO_TCHAR(InFindData.name)), bIsDirectory);
-		});
-#else
 		const FString DirectoryStr = Directory;
 		return IterateDirectoryCommon(Directory, [&](struct dirent* InEntry) -> bool
 		{
 			const bool bIsDirectory = InEntry->d_type == DT_DIR;
 			return Visitor.Visit(*(DirectoryStr / UTF8_TO_TCHAR(InEntry->d_name)), bIsDirectory);
 		});
-#endif
 	}
 
 	virtual bool IterateDirectoryStat(const TCHAR* Directory, FDirectoryStatVisitor& Visitor) override
 	{
-#if PLATFORM_HTML5_WIN32
-		const FString DirectoryStr = Directory;
-		const FString NormalizedDirectoryStr = NormalizeFilename(Directory);
-		return IterateDirectoryCommon(Directory, [&](struct _finddata_t& InFindData) -> bool
-		{
-			const bool bIsDirectory = ((InFindData.attrib & _A_SUBDIR) != 0);
-			
-			int64 FileSize = -1;
-			if (!bIsDirectory)
-			{
-				FileSize = static_cast<int64>(InFindData.size);
-			}
-
-			const FFileStatData StatData(
-				HTML5Epoch + FTimespan(0, 0, InFindData.time_create),
-				HTML5Epoch + FTimespan(0, 0, InFindData.time_access),
-				HTML5Epoch + FTimespan(0, 0, InFindData.time_write),
-				FileSize,
-				bIsDirectory,
-				((InFindData.attrib & _A_RDONLY) != 0)
-				);
-			
-			return Visitor.Visit(*(DirectoryStr / UTF8_TO_TCHAR(InFindData.name)), StatData);
-		});
-#else
 		const FString DirectoryStr = Directory;
 		const FString NormalizedDirectoryStr = NormalizeFilename(Directory);
 		return IterateDirectoryCommon(Directory, [&](struct dirent* InEntry) -> bool
@@ -476,33 +400,8 @@ public:
 			}
 			return true;
 		});
-#endif
 	}
 
-#if PLATFORM_HTML5_WIN32
-	bool IterateDirectoryCommon(const TCHAR* Directory, const TFunctionRef<bool(struct _finddata_t&)>& Visitor)
-	{
-		bool Result = false;
-		// If Directory is an empty string, assume that we want to iterate Binaries/Mac (current dir), but because we're an app bundle, iterate bundle's Contents/Frameworks instead
-		FString FilePath = FPaths::Combine(*NormalizeFilename(Directory), TEXT("*"));
-		struct _finddata_t c_file;
-		long hFile = _findfirst(TCHAR_TO_UTF8(*FilePath), &c_file);
-
-		if (hFile  != -1L )
-		{
-			Result = true;
-			while ( _findnext(hFile,&c_file) == 0 )
-			{
-				if (FCString::Strcmp(UTF8_TO_TCHAR(c_file.name), TEXT(".")) && FCString::Strcmp(UTF8_TO_TCHAR(c_file.name), TEXT("..")))
-				{
-					Result = Visitor(c_file);
-				}
-			}
-			_findclose(hFile);
-		}
-		return Result;
-	}
-#else
 	bool IterateDirectoryCommon(const TCHAR* Directory, const TFunctionRef<bool(struct dirent*)>& Visitor)
 	{
 		bool Result = false;
@@ -523,7 +422,6 @@ public:
 		}
 		return Result;
 	}
-#endif
 
 	bool CreateDirectoriesFromPath(const TCHAR* Path)
 	{
@@ -539,15 +437,15 @@ public:
 		char *DirPath = reinterpret_cast<char *>(FMemory::Malloc((Len+2) * sizeof(char)));
 		char *SubPath = reinterpret_cast<char *>(FMemory::Malloc((Len+2) * sizeof(char)));
 		strcpy(DirPath, TCHAR_TO_UTF8(*NormalizeFilename(Path)));
-	
+
 		for (int32 i=0; i<Len; ++i)
 		{
 			SubPath[i] = DirPath[i];
-	
+
 			if (SubPath[i] == '/')
 			{
 				SubPath[i+1] = 0;
-	
+
 				// directory exists?
 				struct stat SubPathFileInfo;
 				if (stat(SubPath, &SubPathFileInfo) == -1)
@@ -565,7 +463,7 @@ public:
 				}
 			}
 		}
-	
+
 		FMemory::Free(DirPath);
 		FMemory::Free(SubPath);
 		return true;

@@ -18,9 +18,7 @@ public class UElibPNG : ModuleRules
 			string LibFileName = "libpng" + (Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT ? "d" : "") + "_64.lib";
 			PublicAdditionalLibraries.Add(LibFileName);
 		}
-		else if (Target.Platform == UnrealTargetPlatform.Win32 ||
-				(Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32") // simulator
-		)
+		else if (Target.Platform == UnrealTargetPlatform.Win32)
 		{
 			libPNGPath = libPNGPath + "/lib/Win32/VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName();
 			PublicLibraryPaths.Add(libPNGPath);
@@ -109,17 +107,17 @@ public class UElibPNG : ModuleRules
 			PublicLibraryPaths.Add(libPNGPath + "/lib/PS4");
 			PublicAdditionalLibraries.Add("png152");
 		}
-        else if (Target.Platform == UnrealTargetPlatform.XboxOne)
-        {
-            // Use reflection to allow type not to exist if console code is not present
-            System.Type XboxOnePlatformType = System.Type.GetType("UnrealBuildTool.XboxOnePlatform,UnrealBuildTool");
-            if (XboxOnePlatformType != null)
-            {
-                System.Object VersionName = XboxOnePlatformType.GetMethod("GetVisualStudioCompilerVersionName").Invoke(null, null);
-                PublicLibraryPaths.Add(libPNGPath + "/lib/XboxOne/VS" + VersionName.ToString());
-                PublicAdditionalLibraries.Add("libpng125_XboxOne.lib");
-            }
-        }
+		else if (Target.Platform == UnrealTargetPlatform.XboxOne)
+		{
+			// Use reflection to allow type not to exist if console code is not present
+			System.Type XboxOnePlatformType = System.Type.GetType("UnrealBuildTool.XboxOnePlatform,UnrealBuildTool");
+			if (XboxOnePlatformType != null)
+			{
+				System.Object VersionName = XboxOnePlatformType.GetMethod("GetVisualStudioCompilerVersionName").Invoke(null, null);
+				PublicLibraryPaths.Add(libPNGPath + "/lib/XboxOne/VS" + VersionName.ToString());
+				PublicAdditionalLibraries.Add("libpng125_XboxOne.lib");
+			}
+		}
 		else if (Target.Platform == UnrealTargetPlatform.Switch)
 		{
 			PublicAdditionalLibraries.Add(System.IO.Path.Combine(libPNGPath, "lib/Switch/libPNG.a"));

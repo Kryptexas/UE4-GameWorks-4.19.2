@@ -51,7 +51,8 @@ TSharedRef<IDetailCustomization> FAndroidTargetSettingsCustomization::MakeInstan
 }
 
 FAndroidTargetSettingsCustomization::FAndroidTargetSettingsCustomization()
-	: AndroidRelativePath(TEXT(""))
+	: LastLicenseChecktime(-1.0)
+	, AndroidRelativePath(TEXT(""))
 	, EngineAndroidPath(FPaths::EngineDir() + TEXT("Build/Android/Java"))
 	, GameAndroidPath(FPaths::ProjectDir() + TEXT("Build/Android"))
 	, EngineGooglePlayAppIDPath(EngineAndroidPath / TEXT("res") / TEXT("values") / TEXT("GooglePlayAppID.xml"))
@@ -140,7 +141,27 @@ void FAndroidTargetSettingsCustomization::BuildAppManifestSection(IDetailLayoutB
 				]
 			]
 		];
-	
+
+	APKPackagingCategory.AddCustomRow(LOCTEXT("AndroidSDKLicenses", "Android SDK Licenses"), false)
+		.WholeRowWidget
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.Padding(FMargin(0, 5, 5, 5))
+			.AutoWidth()
+			[
+				SNew(SButton)
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				.OnClicked(this, &FAndroidTargetSettingsCustomization::OnAcceptSDKLicenseClicked)
+				.IsEnabled(this, &FAndroidTargetSettingsCustomization::IsLicenseInvalid)
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("AcceptSDKLicense", "Accept SDK License"))
+				]
+			]
+		];
+
 	APKPackagingCategory.AddCustomRow(LOCTEXT("BuildFolderLabel", "Build Folder"), false)
 		.IsEnabled(SetupForPlatformAttribute)
 		.NameContent()
@@ -259,6 +280,68 @@ void FAndroidTargetSettingsCustomization::BuildAppManifestSection(IDetailLayoutB
 	EnableGradleProperty->SetOnPropertyValueChanged(EnableGradleChange);
 }
 
+bool FAndroidTargetSettingsCustomization::IsLicenseInvalid() const
+{
+	static bool bInvalid = true;
+
+	// only check every 30 seconds after first time
+	double CurrentTime = FApp::GetCurrentTime();
+	if (LastLicenseChecktime < 0.0 || CurrentTime - LastLicenseChecktime >= 30.0)
+	{
+		const_cast<FAndroidTargetSettingsCustomization *>(this)->LastLicenseChecktime = CurrentTime;
+
+		TSharedPtr<SAndroidLicenseDialog> LicenseDialog = SNew(SAndroidLicenseDialog);
+		bInvalid = !LicenseDialog->HasLicense();
+	}
+
+	return bInvalid;
+}
+
+void FAndroidTargetSettingsCustomization::OnLicenseAccepted()
+{
+	LastLicenseChecktime = -1.0;
+}
+
+FReply FAndroidTargetSettingsCustomization::OnAcceptSDKLicenseClicked()
+{
+	// only show if don't have a valid license
+	TSharedPtr<SAndroidLicenseDialog> LicenseDialog = SNew(SAndroidLicenseDialog);
+	if (!LicenseDialog->HasLicense())
+	{
+		FSimpleDelegate LicenseAcceptedCallback = FSimpleDelegate::CreateSP(this, &FAndroidTargetSettingsCustomization::OnLicenseAccepted);
+		LicenseDialog->SetLicenseAcceptedCallback(LicenseAcceptedCallback);
+
+		const FText AndroidLicenseWindowTitle = LOCTEXT("AndroidLicenseUnrealEditor", "Android SDK License");
+
+		TSharedPtr<SWindow> AndroidLicenseWindow =
+			SNew(SWindow)
+			.Title(AndroidLicenseWindowTitle)
+			.ClientSize(FVector2D(600.f, 700.f))
+			.SupportsMaximize(false)
+			.SupportsMinimize(false)
+			.SizingRule(ESizingRule::FixedSize)
+			[
+				LicenseDialog.ToSharedRef()
+			];
+
+		IMainFrameModule& MainFrame = FModuleManager::LoadModuleChecked<IMainFrameModule>("MainFrame");
+		TSharedPtr<SWindow> ParentWindow = MainFrame.GetParentWindow();
+
+		if (ParentWindow.IsValid())
+		{
+			FSlateApplication::Get().AddModalWindow(AndroidLicenseWindow.ToSharedRef(), ParentWindow.ToSharedRef());
+		}
+		else
+		{
+			FSlateApplication::Get().AddWindow(AndroidLicenseWindow.ToSharedRef());
+		}
+	}
+
+	LastLicenseChecktime = -1.0;
+
+	return FReply::Handled();
+}
+
 void FAndroidTargetSettingsCustomization::OnEnableGradleChange()
 {
 	// only need to do this if enabling
@@ -271,6 +354,9 @@ void FAndroidTargetSettingsCustomization::OnEnableGradleChange()
 	TSharedPtr<SAndroidLicenseDialog> LicenseDialog = SNew(SAndroidLicenseDialog);
 	if (!LicenseDialog->HasLicense())
 	{
+		FSimpleDelegate LicenseAcceptedCallback = FSimpleDelegate::CreateSP(this, &FAndroidTargetSettingsCustomization::OnLicenseAccepted);
+		LicenseDialog->SetLicenseAcceptedCallback(LicenseAcceptedCallback);
+
 		const FText AndroidLicenseWindowTitle = LOCTEXT("AndroidLicenseUnrealEditor", "Android SDK License");
 
 		TSharedPtr<SWindow> AndroidLicenseWindow =

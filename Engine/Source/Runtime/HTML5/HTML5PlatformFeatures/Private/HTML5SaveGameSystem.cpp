@@ -1,7 +1,5 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#if PLATFORM_HTML5_BROWSER
-
 #include "HTML5SaveGameSystem.h"
 #include "GameDelegates.h"
 #include "HTML5JavaScriptFx.h"
@@ -30,7 +28,7 @@ void FHTML5SaveGameSystem::Initialize()
 //		FS.mkdir('/persistent');
 //		FS.mount(IDBFS, {}, '/persistent');
 //		FS.syncfs(true, function (err) {
-//		      // handle callback
+//			// handle callback
 //		});
 //	);
 }
@@ -62,7 +60,7 @@ bool FHTML5SaveGameSystem::LoadGame(bool bAttemptToUseUI, const TCHAR* Name, con
 	int		Size;
 	bool Result = UE_LoadGame(GetSaveGamePath(Name,UserIndex),&OutData,&Size);
 	if (!Result)
-		return false; 
+		return false;
 	Data.Append((uint8*)OutData,Size);
 	::free (OutData);
 	return true;
@@ -78,5 +76,3 @@ const char* FHTML5SaveGameSystem::GetSaveGamePath(const TCHAR* Name, const int32
 	FString path = FString::Printf(TEXT("%s""SaveGames/%s%d.sav"), *FPaths::ProjectSavedDir(), Name, UserIndex);
 	return TCHAR_TO_ANSI(*path);
 }
-
-#endif

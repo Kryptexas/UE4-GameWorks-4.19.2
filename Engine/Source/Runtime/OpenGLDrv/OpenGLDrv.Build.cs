@@ -10,11 +10,11 @@ public class OpenGLDrv : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
-				"Core", 
-				"CoreUObject", 
-				"Engine", 
-				"RHI", 
-				"RenderCore", 
+				"Core",
+				"CoreUObject",
+				"Engine",
+				"RHI",
+				"RenderCore",
 				"ShaderCore",
 				"UtilityShaders",
 			}
@@ -23,12 +23,9 @@ public class OpenGLDrv : ModuleRules
 		PrivateIncludePathModuleNames.Add("ImageWrapper");
 		DynamicallyLoadedModuleNames.Add("ImageWrapper");
 
-        if (Target.Platform != UnrealTargetPlatform.HTML5)
-		    AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenGL");
-
-		if (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32")
+		if (Target.Platform != UnrealTargetPlatform.HTML5)
 		{
-		    AddEngineThirdPartyPrivateStaticDependencies(Target, "ANGLE"); 
+			AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenGL");
 		}
 
 		if (Target.Platform == UnrealTargetPlatform.Linux)
@@ -48,12 +45,12 @@ public class OpenGLDrv : ModuleRules
 				new string[]
 				{
 					"TaskGraph"
-                }
+				}
 			);
 		}
 
-		if(Target.Platform != UnrealTargetPlatform.Win32 && Target.Platform != UnrealTargetPlatform.Win64 && 
-			Target.Platform != UnrealTargetPlatform.IOS && Target.Platform != UnrealTargetPlatform.Android 
+		if(Target.Platform != UnrealTargetPlatform.Win32 && Target.Platform != UnrealTargetPlatform.Win64 &&
+			Target.Platform != UnrealTargetPlatform.IOS && Target.Platform != UnrealTargetPlatform.Android
 			&& Target.Platform != UnrealTargetPlatform.HTML5 && Target.Platform != UnrealTargetPlatform.Linux)
 		{
 			PrecompileForTargets = PrecompileTargetsType.None;
