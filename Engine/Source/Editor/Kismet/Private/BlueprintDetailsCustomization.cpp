@@ -5168,16 +5168,13 @@ bool FBlueprintGlobalOptionsDetails::CanDeprecateBlueprint() const
 {
 	if (UBlueprint* Blueprint = GetBlueprintObj())
 	{
-		if (ensure(Blueprint->ParentClass))
+		// If the parent is deprecated, we cannot modify deprecation on this Blueprint
+		if (Blueprint->ParentClass && Blueprint->ParentClass->HasAnyClassFlags(CLASS_Deprecated))
 		{
-			// If the parent is deprecated, we cannot modify deprecation on this Blueprint
-			if (Blueprint->ParentClass->HasAnyClassFlags(CLASS_Deprecated))
-			{
-				return false;
-			}
-
-			return true;
+			return false;
 		}
+
+		return true;
 	}
 
 	return false;
