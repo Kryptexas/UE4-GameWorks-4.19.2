@@ -174,7 +174,16 @@ void FBlueprintCompilerCppBackend::EmitCastObjToInterfaceStatement(FEmitterLocal
 	FString InterfaceValue = TermToText(EmitterContext, Statement.LHS, ENativizedTermUsage::UnspecifiedOrReference);
 
 	// Both here and in UObject::execObjectToInterface IsValid function should be used.
-	EmitterContext.AddLine(FString::Printf(TEXT("if ( %s && %s->GetClass()->ImplementsInterface(%s) )"), *ObjectValue, *ObjectValue, *InterfaceClass));
+
+	if (ObjectValue.Equals(TEXT("this")))
+	{
+		//if ObjectValue is "this", we will be checking "this" against nullptr, which will not pass a strict compiler check (e.g. PS4)
+		EmitterContext.AddLine(FString::Printf(TEXT("if ( %s->GetClass()->ImplementsInterface(%s) )"), *ObjectValue, *InterfaceClass));
+	}
+	else
+	{
+		EmitterContext.AddLine(FString::Printf(TEXT("if ( %s && %s->GetClass()->ImplementsInterface(%s) )"), *ObjectValue, *ObjectValue, *InterfaceClass));
+	}
 	EmitterContext.AddLine(FString::Printf(TEXT("{")));
 	EmitterContext.AddLine(FString::Printf(TEXT("\t%s.SetObject(%s);"), *InterfaceValue, *ObjectValue));
 	EmitterContext.AddLine(FString::Printf(TEXT("\tvoid* IAddress = %s->GetInterfaceAddress(%s);"), *ObjectValue, *InterfaceClass));
