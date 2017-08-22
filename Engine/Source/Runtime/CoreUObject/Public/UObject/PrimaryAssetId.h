@@ -72,9 +72,11 @@ private:
  */
 struct FPrimaryAssetId
 {
-	/** The Type of this object, by default it's base class's name */
+	/** An FName describing the logical type of this object, usually the name of a base UClass. For example, any Blueprint derived from APawn will have a Primary Asset Type of "Pawn".
+	"PrimaryAssetType:PrimaryAssetName" should form a unique name across your project. */
 	FPrimaryAssetType PrimaryAssetType;
-	/** The Name of this object, by default it's short name */
+	/** An FName describing this asset. This is usually the short name of the object, but could be a full asset path for things like maps, or objects with GetPrimaryId() overridden.
+	"PrimaryAssetType:PrimaryAssetName" should form a unique name across your project. */
 	FName PrimaryAssetName;
 
 	/** Static names to represent the AssetRegistry tags for the above data */

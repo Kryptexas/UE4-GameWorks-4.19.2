@@ -13,16 +13,16 @@
 UENUM()
 enum class EPrimaryAssetCookRule : uint8
 {
-	/** Nothing specifically known about this asset, it will cook if something else depends on it */
+	/** Nothing is known about this asset specifically. It will cook if something else depends on it. */
 	Unknown,
 
-	/** Asset should never be cooked/shipped in any situation, error if it something depends on it */
+	/** Asset should never be cooked/shipped in any situation. An error will be generated if something depends on it. */
 	NeverCook,
 
-	/** Asset can be cooked for development and testing, but should never be shipped in a production build */
+	/** Asset can be cooked for development and testing, but should never be shipped in a production build. */
 	DevelopmentCook,
 
-	/** Asset will always be cooked, in both production and development */
+	/** Asset will always be cooked, in both production and development. */
 	AlwaysCook,
 };
 
@@ -32,19 +32,19 @@ struct FPrimaryAssetRules
 {
 	GENERATED_BODY()
 	
-	/** Primary Assets with a higher priority will take precedence over lower priorities when assigning management for referenced assets. If priorities match, both will manage the same secondary asset */
+	/** Primary Assets with a higher priority will take precedence over lower priorities when assigning management for referenced assets. If priorities match, both will manage the same Secondary Asset. */
 	UPROPERTY(EditAnywhere, Category = Rules)
 	int32 Priority;
 
-	/** If true, will apply this rule to all referenced secondary assets recursively, if they are not managed by a higher priority Primary Asset */
+	/** If true, this rule will apply to all referenced Secondary Assets recursively, as long as they are not managed by a higher-priority Primary Asset. */
 	UPROPERTY(EditAnywhere, Category = Rules)
 	bool bApplyRecursively;
 
-	/** Assets will be put into this chunk id specifically, if set to something other than -1 */
-	UPROPERTY(EditAnywhere, Category = Rules)
+	/** Assets will be put into this Chunk ID specifically, if set to something other than -1. The default Chunk is Chunk 0. */
+	UPROPERTY(EditAnywhere, Category = Rules, meta = (DisplayName = "Chunk ID"))
 	int32 ChunkId;
 
-	/** Rule describing when this asset should be cooked */
+	/** Rule describing when this asset should be cooked. */
 	UPROPERTY(EditAnywhere, Category = Rules)
 	EPrimaryAssetCookRule CookRule;
 
@@ -61,17 +61,17 @@ struct FPrimaryAssetRules
 			&& CookRule == Other.CookRule;
 	}
 
-	/** Checks if all rules are the same as the default, if so this will be ignored */
+	/** Checks if all rules are the same as the default. If so this will be ignored. */
 	ENGINE_API bool IsDefault() const;
 
-	/** Override non-default rules from an override struct */
+	/** Override non-default rules from an override struct. */
 	ENGINE_API void OverrideRules(const FPrimaryAssetRules& OverrideRules);
 
-	/** Propagate cook rules from parent to child, won't override non default values */
+	/** Propagate cook rules from parent to child, won't override non-default values. */
 	ENGINE_API void PropagateCookRules(const FPrimaryAssetRules& ParentRules);
 };
 
-/** Structure with publicly exposed information about an asset type. These can be loaded out of a config file */
+/** Structure with publicly exposed information about an asset type. These can be loaded out of a config file. */
 USTRUCT()
 struct FPrimaryAssetTypeInfo
 {
