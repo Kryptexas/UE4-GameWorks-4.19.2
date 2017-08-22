@@ -1443,7 +1443,7 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 			if(bUseFixedFrameRate)
 			{
 				// We are on fixed framerate but had to delay, we set the current time with a fixed time step, which will set Delta below
-				const float FrameTime = 1.f / FixedFrameRate;
+				const double FrameTime = 1.0 / FixedFrameRate;
 				FApp::SetCurrentTime(LastRealTime + FrameTime);
 				bTimeWasManipulated = true;
 			}
@@ -1455,7 +1455,7 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 		else if(bUseFixedFrameRate && MaxTickRate == FixedFrameRate)
 		{
 			// We are doing fixed framerate and the real delta time is bigger than our desired delta time. In this case we start falling behind real time (and that's ok)
-			const float FrameTime = 1.f / FixedFrameRate;
+			const double FrameTime = 1.0 / FixedFrameRate;
 			FApp::SetCurrentTime(LastRealTime + FrameTime);
 			bTimeWasManipulated = true;
 		}
