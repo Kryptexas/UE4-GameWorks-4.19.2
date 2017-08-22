@@ -1,9 +1,4 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
-
-/*=============================================================================
-	BuildPatchError.h: Declares classes involved setting and getting error information.
-=============================================================================*/
-
 #pragma once
 
 #include "CoreMinimal.h"
