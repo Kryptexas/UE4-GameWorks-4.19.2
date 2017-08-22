@@ -207,65 +207,73 @@ namespace SteamAudio
 			{
 				// Set the User ID on the audio component
 				UAudioComponent* AudioComponent = Cast<UAudioComponent>(PhononSourceComponent->GetOwner()->GetComponentByClass(UAudioComponent::StaticClass()));
-				AudioComponent->AudioComponentUserID = PhononSourceComponent->UniqueIdentifier;
-
-				GBakeTickable->SetDisplayText(NSLOCTEXT("SteamAudio", "Baking...", "Baking..."));
-				GNumProbeVolumes = PhononProbeVolumes.Num();
-				GCurrentProbeVolume = 1;
-
-				for (auto PhononProbeVolumeActor : PhononProbeVolumes)
+				
+				if (AudioComponent == nullptr)
 				{
-					auto PhononProbeVolume = Cast<APhononProbeVolume>(PhononProbeVolumeActor);
+					UE_LOG(LogSteamAudioEditor, Warning, TEXT("Actor containing the Phonon source \"%s\" has no Audio Component. It will be skipped."), *(PhononSourceComponent->UniqueIdentifier.ToString()));
+				}
+				else
+				{
+					AudioComponent->AudioComponentUserID = PhononSourceComponent->UniqueIdentifier;
 
-					IPLhandle ProbeBox = nullptr;
-					iplLoadProbeBox(PhononProbeVolume->GetProbeBoxData(), PhononProbeVolume->GetProbeBoxDataSize(), &ProbeBox);
+					GBakeTickable->SetDisplayText(NSLOCTEXT("SteamAudio", "Baking...", "Baking..."));
+					GNumProbeVolumes = PhononProbeVolumes.Num();
+					GCurrentProbeVolume = 1;
 
-					IPLSphere SourceInfluence;
-					SourceInfluence.radius = PhononSourceComponent->BakingRadius * SteamAudio::SCALEFACTOR;
-					SourceInfluence.center = SteamAudio::UnrealToPhononIPLVector3(PhononSourceComponent->GetComponentLocation());
+					for (auto PhononProbeVolumeActor : PhononProbeVolumes)
+					{
+						auto PhononProbeVolume = Cast<APhononProbeVolume>(PhononProbeVolumeActor);
 
-					iplDeleteBakedDataByName(ProbeBox, TCHAR_TO_ANSI(*AudioComponent->GetAudioComponentUserID().ToString()));
-					iplBakePropagation(PhononEnvironment, ProbeBox, SourceInfluence, TCHAR_TO_ANSI(*AudioComponent->GetAudioComponentUserID().ToString().ToLower()),
-						BakingSettings, BakeProgressCallback);
+						IPLhandle ProbeBox = nullptr;
+						iplLoadProbeBox(PhononProbeVolume->GetProbeBoxData(), PhononProbeVolume->GetProbeBoxDataSize(), &ProbeBox);
+
+						IPLSphere SourceInfluence;
+						SourceInfluence.radius = PhononSourceComponent->BakingRadius * SteamAudio::SCALEFACTOR;
+						SourceInfluence.center = SteamAudio::UnrealToPhononIPLVector3(PhononSourceComponent->GetComponentLocation());
+
+						iplDeleteBakedDataByName(ProbeBox, TCHAR_TO_ANSI(*AudioComponent->GetAudioComponentUserID().ToString()));
+						iplBakePropagation(PhononEnvironment, ProbeBox, SourceInfluence, TCHAR_TO_ANSI(*AudioComponent->GetAudioComponentUserID().ToString().ToLower()),
+							BakingSettings, BakeProgressCallback);
+
+						if (!GIsBaking.load())
+						{
+							iplDestroyProbeBox(&ProbeBox);
+							break;
+						}
+
+						FBakedDataInfo BakedDataInfo;
+						BakedDataInfo.Name = PhononSourceComponent->UniqueIdentifier;
+						BakedDataInfo.Size = iplGetBakedDataSizeByName(ProbeBox, TCHAR_TO_ANSI(*PhononSourceComponent->UniqueIdentifier.ToString().ToLower()));
+
+						auto ExistingInfo = PhononProbeVolume->BakedDataInfo.FindByPredicate([=](const FBakedDataInfo& InfoItem)
+						{
+							return InfoItem.Name == BakedDataInfo.Name;
+						});
+
+						if (ExistingInfo)
+						{
+							ExistingInfo->Size = BakedDataInfo.Size;
+						}
+						else
+						{
+							PhononProbeVolume->BakedDataInfo.Add(BakedDataInfo);
+							PhononProbeVolume->BakedDataInfo.Sort();
+						}
+
+						PhononProbeVolume->UpdateProbeBoxData(ProbeBox);
+						iplDestroyProbeBox(&ProbeBox);
+						++GCurrentProbeVolume;
+					}
 
 					if (!GIsBaking.load())
 					{
-						iplDestroyProbeBox(&ProbeBox);
 						break;
 					}
 
-					FBakedDataInfo BakedDataInfo;
-					BakedDataInfo.Name = PhononSourceComponent->UniqueIdentifier;
-					BakedDataInfo.Size = iplGetBakedDataSizeByName(ProbeBox, TCHAR_TO_ANSI(*PhononSourceComponent->UniqueIdentifier.ToString().ToLower()));
+					BakedSourceUpdated.ExecuteIfBound(PhononSourceComponent->UniqueIdentifier);
 
-					auto ExistingInfo = PhononProbeVolume->BakedDataInfo.FindByPredicate([=](const FBakedDataInfo& InfoItem)
-					{
-						return InfoItem.Name == BakedDataInfo.Name;
-					});
-
-					if (ExistingInfo)
-					{
-						ExistingInfo->Size = BakedDataInfo.Size;
-					}
-					else
-					{
-						PhononProbeVolume->BakedDataInfo.Add(BakedDataInfo);
-						PhononProbeVolume->BakedDataInfo.Sort();
-					}
-
-					PhononProbeVolume->UpdateProbeBoxData(ProbeBox);
-					iplDestroyProbeBox(&ProbeBox);
-					++GCurrentProbeVolume;
+					++GCurrentBakeTask;
 				}
-
-				if (!GIsBaking.load())
-				{
-					break;
-				}
-
-				BakedSourceUpdated.ExecuteIfBound(PhononSourceComponent->UniqueIdentifier);
-
-				++GCurrentBakeTask;
 			}
 
 			iplDestroyEnvironment(&PhononEnvironment);
