@@ -419,6 +419,9 @@ FStaticMeshLODResources::FStaticMeshLODResources()
 	, DepthOnlyNumTriangles(0)
 	, SplineVertexFactory(nullptr)
 	, SplineVertexFactoryOverrideColorVertexBuffer(nullptr)
+#if STATS
+	, StaticMeshIndexMemory(0)
+#endif
 {
 }
 
@@ -446,6 +449,18 @@ void FStaticMeshLODResources::InitResources(UStaticMesh* Parent)
 			UE_LOG(LogStaticMesh, Warning, TEXT("[%s] Mesh has more that 65535 vertices, incompatible with mobile; forcing 16-bit (will probably cause rendering issues)." ), *Parent->GetName());
 		}
 	}
+
+#if STATS
+	uint32 iMem = IndexBuffer.GetAllocatedSize();
+	uint32 wiMem = WireframeIndexBuffer.GetAllocatedSize();
+	uint32 riMem = ReversedIndexBuffer.GetAllocatedSize();
+	uint32 doiMem = DepthOnlyIndexBuffer.GetAllocatedSize();
+	uint32 rdoiMem = ReversedDepthOnlyIndexBuffer.GetAllocatedSize();
+	uint32 aiMem = AdjacencyIndexBuffer.GetAllocatedSize();
+	StaticMeshIndexMemory = iMem + wiMem + riMem + doiMem + rdoiMem + aiMem;
+	INC_DWORD_STAT_BY(STAT_StaticMeshIndexMemory, StaticMeshIndexMemory);
+#endif
+
 	BeginInitResource(&IndexBuffer);
 	if( WireframeIndexBuffer.GetNumIndices() > 0 )
 	{
@@ -497,14 +512,10 @@ void FStaticMeshLODResources::InitResources(UStaticMesh* Parent)
 			const uint32 StaticMeshVertexMemory =
 			This->VertexBuffer.GetStride() * This->VertexBuffer.GetNumVertices() +
 			This->PositionVertexBuffer.GetStride() * This->PositionVertexBuffer.GetNumVertices();
-			const uint32 StaticMeshIndexMemory = This->IndexBuffer.GetAllocatedSize()
-				+ This->WireframeIndexBuffer.GetAllocatedSize()
-				+ (RHISupportsTessellation( GShaderPlatformForFeatureLevel[GMaxRHIFeatureLevel] ) ? This->AdjacencyIndexBuffer.GetAllocatedSize() : 0);
 			const uint32 ResourceVertexColorMemory = This->ColorVertexBuffer.GetStride() * This->ColorVertexBuffer.GetNumVertices();
 
 			INC_DWORD_STAT_BY( STAT_StaticMeshVertexMemory, StaticMeshVertexMemory );
 			INC_DWORD_STAT_BY( STAT_ResourceVertexColorMemory, ResourceVertexColorMemory );
-			INC_DWORD_STAT_BY( STAT_StaticMeshIndexMemory, StaticMeshIndexMemory );
 		});
 }
 
@@ -513,9 +524,6 @@ void FStaticMeshLODResources::ReleaseResources()
 	const uint32 StaticMeshVertexMemory = 
 		VertexBuffer.GetStride() * VertexBuffer.GetNumVertices() + 
 		PositionVertexBuffer.GetStride() * PositionVertexBuffer.GetNumVertices();
-	const uint32 StaticMeshIndexMemory = IndexBuffer.GetAllocatedSize()
-		+ WireframeIndexBuffer.GetAllocatedSize()
-		+ (RHISupportsTessellation( GShaderPlatformForFeatureLevel[GMaxRHIFeatureLevel] ) ? AdjacencyIndexBuffer.GetAllocatedSize() : 0);
 	const uint32 ResourceVertexColorMemory = ColorVertexBuffer.GetStride() * ColorVertexBuffer.GetNumVertices();
 
 	DEC_DWORD_STAT_BY( STAT_StaticMeshVertexMemory, StaticMeshVertexMemory );

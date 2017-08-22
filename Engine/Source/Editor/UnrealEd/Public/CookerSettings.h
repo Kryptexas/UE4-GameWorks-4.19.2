@@ -36,6 +36,10 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Cooker, meta = (DisplayName = "Iterative cooking for builds launched from the editor (launch on)"))
 	bool bIterativeCookingForLaunchOn;
 
+	/** Enable -iterate for launch on */
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Cooker, meta = (DisplayName = "Iterative cooking for the File->Cook Content menu item"))
+	bool bIterativeCookingForFileCookContent;
+
 	/** Ignore ini changes when doing iterative cooking, either in editor or out of editor */
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Cooker, AdvancedDisplay)
 	bool bIgnoreIniSettingsOutOfDateForIteration;

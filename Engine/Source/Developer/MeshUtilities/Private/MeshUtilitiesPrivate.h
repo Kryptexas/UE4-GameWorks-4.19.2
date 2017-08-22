@@ -64,6 +64,12 @@ private:
 	/** True if we disable triangle order optimization.  For debugging purposes only */
 	bool bDisableTriangleOrderOptimization;
 
+	/** True if depth-only index buffers are enabled */
+	bool bEnableDepthOnlyIndexBuffer;
+	
+	/** True if reversed index buffers are enabled */
+	bool bEnableReversedIndexBuffer;
+
 	// IMeshUtilities interface.
 	virtual const FString& GetVersionString() const override
 	{

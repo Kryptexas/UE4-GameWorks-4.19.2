@@ -31,6 +31,7 @@
 #include "EditorStyleSet.h"
 #include "Editor/EditorPerProjectUserSettings.h"
 #include "Settings/EditorExperimentalSettings.h"
+#include "CookerSettings.h"
 #include "UnrealEdMisc.h"
 #include "FileHelpers.h"
 #include "Dialogs/Dialogs.h"
@@ -391,6 +392,12 @@ void FMainFrameActionCallbacks::CookContent(const FName InPlatformInfoName)
 	}
 
 	OptionalParams += GetCookingOptionalParams();
+
+	UCookerSettings const* CookerSettings = GetDefault<UCookerSettings>();
+	if (CookerSettings->bIterativeCookingForFileCookContent)
+	{
+		OptionalParams += TEXT(" -iterate");
+	}
 
 	if (FApp::IsRunningDebug())
 	{

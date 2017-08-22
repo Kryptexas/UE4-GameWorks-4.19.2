@@ -510,6 +510,17 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ConfigRestartRequired = true))
 		uint32 bGPUSkinLimit2BoneInfluences : 1;
 
+	UPROPERTY(config, EditAnywhere, Category = Optimizations, meta = (
+		ConsoleVariable = "r.SupportDepthOnlyIndexBuffers", DisplayName = "Support depth-only index buffers",
+		ToolTip = "Support depth-only index buffers, which provide a minor rendering speedup at the expense of using twice the index buffer memory.",
+		ConfigRestartRequired = true))
+		uint32 bSupportDepthOnlyIndexBuffers : 1;
+
+	UPROPERTY(config, EditAnywhere, Category = Optimizations, meta = (
+		ConsoleVariable = "r.SupportReversedIndexBuffers", DisplayName = "Support reversed index buffers",
+		ToolTip = "Support reversed index buffers, which provide a minor rendering speedup at the expense of using twice the index buffer memory.",
+		ConfigRestartRequired = true))
+		uint32 bSupportReversedIndexBuffers : 1;
 public:
 
 	//~ Begin UObject Interface

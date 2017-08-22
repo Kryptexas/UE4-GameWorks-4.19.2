@@ -270,6 +270,10 @@ struct FStaticMeshLODResources
 	struct FSplineMeshVertexFactory* SplineVertexFactory;
 	struct FSplineMeshVertexFactory* SplineVertexFactoryOverrideColorVertexBuffer;
 
+#if STATS
+	uint32 StaticMeshIndexMemory;
+#endif
+	
 	/** Default constructor. */
 	FStaticMeshLODResources();
 

@@ -4444,15 +4444,15 @@ void UCookOnTheFlyServer::PopulateCookedPackagesFromDisk(const TArray<ITargetPla
 			const FName CookedFile = CookedPaths.Value;
 			const FName UncookedFilename = CookedPaths.Key;
 			const FName* FoundPackageName = GetCachedPackageFilenameToPackageFName(UncookedFilename);
+			const FName PackageName = FoundPackageName ? *FoundPackageName : FName();
+			bool bShouldKeep = true;
+
 			if ( !FoundPackageName )
 			{
 				++NumPackagesRemoved;
+				bShouldKeep = false;
 			}
-			const FName PackageName = *FoundPackageName;
-			const FString UncookedFilenameString = UncookedFilename.ToString();
-			bool bShouldKeep = true;
-
-			if (ModifiedPackages.Contains(PackageName))
+			else if (ModifiedPackages.Contains(PackageName))
 			{
 				++NumPackagesFileHashMismatch;
 				bShouldKeep = false;
@@ -4511,6 +4511,7 @@ void UCookOnTheFlyServer::PopulateCookedPackagesFromDisk(const TArray<ITargetPla
 				{
 					// the cooker should rebuild this package because it's not in the cooked package list
 					// the new package will have higher priority then the package in the original shared cooked build
+					const FString UncookedFilenameString = UncookedFilename.ToString();
 					UE_LOG(LogCook, Verbose, TEXT("Shared cooked build: Detected package is out of date %s"), *UncookedFilenameString);
 				}
 			}

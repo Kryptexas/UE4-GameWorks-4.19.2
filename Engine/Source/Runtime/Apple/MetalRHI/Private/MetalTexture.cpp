@@ -1367,12 +1367,16 @@ void* FMetalSurface::Lock(uint32 MipIndex, uint32 ArrayIndex, EResourceLockMode 
 				//kick the current command buffer.
 				GetMetalDeviceContext().SubmitCommandBufferAndWait();
 #endif
+				
+				// This block breaks the texture atlas system in Ocean, which depends on nonzero strides coming back from compressed textures. Turning off.
+#if 0
 				if (PixelFormat == PF_PVRTC2 || PixelFormat == PF_PVRTC4)
 				{
 					// for compressed textures metal debug RT expects 0 for rowBytes and imageBytes.
 					DestStride = 0;
 					MipBytes = 0;
 				}
+#endif
 				uint32 BytesPerRow = DestStride;
 				if (PixelFormat == PF_PVRTC2 || PixelFormat == PF_PVRTC4)
 				{
