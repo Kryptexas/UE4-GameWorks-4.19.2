@@ -635,7 +635,9 @@ public:
 		int32 Len = 0;
 		Ar >> Len;
 
-		if (!Ar.HasOverflow() && Ar.CurrentOffset + Len <= Ar.NumBytes)
+		// Check this way to trust NumBytes and CurrentOffset to be more accurate than the packet Len value
+		const bool bSizeOk = (Len >= 0) && (Len <= (Ar.NumBytes - Ar.CurrentOffset));
+		if (!Ar.HasOverflow() && bSizeOk)
 		{
 			// Handle strings of zero length
 			if (Len > 0)
@@ -741,10 +743,12 @@ public:
 					int32 Length;
 					Ar >> Length;
 
-					if (!Ar.HasOverflow() && Ar.CurrentOffset + Length <= Ar.NumBytes)
+					// Check this way to trust NumBytes and CurrentOffset to be more accurate than the packet Len value
+					const bool bSizeOk = (Length >= 0) && (Length <= (Ar.NumBytes - Ar.CurrentOffset));
+					if (!Ar.HasOverflow() && bSizeOk)
 					{
 						// Now directly copy the blob data
-						KeyValuePair.SetValue(Length,&Ar.Data[Ar.CurrentOffset]);
+						KeyValuePair.SetValue(Length, &Ar.Data[Ar.CurrentOffset]);
 						Ar.CurrentOffset += Length;
 					}
 					else

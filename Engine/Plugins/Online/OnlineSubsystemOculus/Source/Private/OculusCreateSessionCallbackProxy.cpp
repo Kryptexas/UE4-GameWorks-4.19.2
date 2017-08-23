@@ -43,7 +43,7 @@ void UOculusCreateSessionCallbackProxy::Activate()
 			Settings.Set(SETTING_OCULUS_POOL, OculusPool, EOnlineDataAdvertisementType::ViaOnlineService);
 		}
 
-		OculusSessionInterface->CreateSession(0, GameSessionName, Settings);
+		OculusSessionInterface->CreateSession(0, NAME_GameSession, Settings);
 	}
 	else
 	{
@@ -63,7 +63,7 @@ void UOculusCreateSessionCallbackProxy::OnCreateCompleted(FName SessionName, boo
 		if (bWasSuccessful)
 		{
 			StartCompleteDelegateHandle = OculusSessionInterface->AddOnStartSessionCompleteDelegate_Handle(StartCompleteDelegate);
-			OculusSessionInterface->StartSession(GameSessionName);
+			OculusSessionInterface->StartSession(NAME_GameSession);
 
 			// OnStartCompleted will get called, nothing more to do now
 			return;

@@ -35,7 +35,7 @@
 #include "Tests/TestVoice.h"
 #include "Tests/TestExternalUIInterface.h"
 
-UAudioComponent* CreateVoiceAudioComponent(uint32 SampleRate)
+UAudioComponent* CreateVoiceAudioComponent(uint32 SampleRate, int32 NumChannels)
 {
 	UAudioComponent* AudioComponent = nullptr;
 	if (GEngine != nullptr)
@@ -44,7 +44,7 @@ UAudioComponent* CreateVoiceAudioComponent(uint32 SampleRate)
 		{
 			USoundWaveProcedural* SoundStreaming = NewObject<USoundWaveProcedural>();
 			SoundStreaming->SampleRate = SampleRate;
-			SoundStreaming->NumChannels = 1;
+			SoundStreaming->NumChannels = NumChannels;
 			SoundStreaming->Duration = INDEFINITELY_LOOPING_DURATION;
 			SoundStreaming->SoundGroup = SOUNDGROUP_Voice;
 			SoundStreaming->bLooping = false;

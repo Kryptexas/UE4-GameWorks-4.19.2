@@ -710,7 +710,7 @@ FOnlineIdentityTwitch::FOnlineIdentityTwitch(FOnlineSubsystemTwitch* InSubsystem
 	check(InSubsystem);
 }
 
-FPlatformUserId FOnlineIdentityTwitch::GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& UniqueNetId)
+FPlatformUserId FOnlineIdentityTwitch::GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& UniqueNetId) const
 {
 	for (int PlayerIdx = 0; PlayerIdx < MAX_LOCAL_PLAYERS; ++PlayerIdx)
 	{

@@ -332,7 +332,7 @@ public:
 	bool HasPendingPartyJoin() const;
 
 	/**
-	 * Get the session name (if available) for the primary player, typically GameSessionName
+	 * Get the session name (if available) for the primary player, typically NAME_GameSession
 	 *
 	 * @return Session name
 	 */

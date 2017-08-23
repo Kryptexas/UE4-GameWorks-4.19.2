@@ -7,7 +7,3 @@
 #include "CoreMinimal.h"
 #include "VoiceModule.h"
 
-// Module includes
-
-#define VOICE_SAMPLE_RATE 16000
-#define NUM_VOICE_CHANNELS 1

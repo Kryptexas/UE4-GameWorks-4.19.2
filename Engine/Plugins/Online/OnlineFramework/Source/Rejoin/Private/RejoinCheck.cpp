@@ -311,7 +311,7 @@ void URejoinCheck::TravelToSession()
 	ULocalPlayer* LP = GEngine->GetFirstGamePlayer(GetWorld());
 	if (ensure(LP))
 	{
-		bResult = GameInstance->ClientTravelToSession(LP->GetControllerId(), GameSessionName);
+		bResult = GameInstance->ClientTravelToSession(LP->GetControllerId(), NAME_GameSession);
 		if (bResult)
 		{
 			UE_LOG(LogOnline, Log, TEXT("URejoinCheck::TravelToSession: Performing ClientTravelToSession"));

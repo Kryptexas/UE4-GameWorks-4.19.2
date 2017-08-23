@@ -219,7 +219,7 @@ void FOnlineIdentitySteam::GetUserPrivilege(const FUniqueNetId& UserId, EUserPri
 	Delegate.ExecuteIfBound(UserId, Privilege, (uint32)EPrivilegeResults::NoFailures);
 }
 
-FPlatformUserId FOnlineIdentitySteam::GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& UniqueNetId)
+FPlatformUserId FOnlineIdentitySteam::GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& UniqueNetId) const
 {
 	for (int i = 0; i < MAX_LOCAL_PLAYERS; ++i)
 	{

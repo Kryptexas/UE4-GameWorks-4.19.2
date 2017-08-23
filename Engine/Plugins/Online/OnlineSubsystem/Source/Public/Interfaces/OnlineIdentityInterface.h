@@ -386,7 +386,7 @@ public:
 	 * @param UniqueNetId The unique id to look up
 	 * @return The corresponding id or PLATFORMID_NONE if not found
 	 */
-	virtual FPlatformUserId GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& UniqueNetId) = 0;
+	virtual FPlatformUserId GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& UniqueNetId) const = 0;
 
 	/**
 	 * Get the auth type associated with accounts for this platform

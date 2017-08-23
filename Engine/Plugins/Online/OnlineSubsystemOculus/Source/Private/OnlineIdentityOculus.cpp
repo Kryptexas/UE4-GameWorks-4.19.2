@@ -294,7 +294,7 @@ void FOnlineIdentityOculus::GetUserPrivilege(const FUniqueNetId& UserId, EUserPr
 		}));
 }
 
-FPlatformUserId FOnlineIdentityOculus::GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& UniqueNetId)
+FPlatformUserId FOnlineIdentityOculus::GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& UniqueNetId) const
 {
 	for (int i = 0; i < MAX_LOCAL_PLAYERS; ++i)
 	{

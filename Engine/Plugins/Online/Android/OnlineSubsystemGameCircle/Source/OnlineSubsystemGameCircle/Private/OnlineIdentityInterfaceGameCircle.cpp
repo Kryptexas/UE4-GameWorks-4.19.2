@@ -123,7 +123,7 @@ void FOnlineIdentityGameCircle::GetUserPrivilege(const FUniqueNetId& UserId, EUs
 	Delegate.ExecuteIfBound(UserId, Privilege, (uint32)EPrivilegeResults::NoFailures);
 }
 
-FPlatformUserId FOnlineIdentityGameCircle::GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& NetId)
+FPlatformUserId FOnlineIdentityGameCircle::GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& NetId) const
 {
 	for (int i = 0; i < MAX_LOCAL_PLAYERS; ++i)
 	{

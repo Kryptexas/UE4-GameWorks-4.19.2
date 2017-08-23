@@ -8,8 +8,9 @@
 #include "Voice.h"
 #include "Runtime/HeadMountedDisplay/Public/IHeadMountedDisplayModule.h"
 #include "HAL/IConsoleManager.h"
+#if PLATFORM_SUPPORTS_VOICE_CAPTURE
 
-FVoiceCaptureDeviceWindows* FVoiceCaptureDeviceWindows::Singleton = NULL;
+FVoiceCaptureDeviceWindows* FVoiceCaptureDeviceWindows::Singleton = nullptr;
 
 /** Helper for printing MS guids */
 FString PrintMSGUID(LPGUID Guid)
@@ -38,19 +39,30 @@ BOOL CALLBACK CaptureDeviceCallback(
 	FVoiceCaptureDeviceWindows* VCPtr = (FVoiceCaptureDeviceWindows*)(lpContext);
 	UE_LOG(LogVoiceCapture, Display, TEXT("Device: %s Desc: %s GUID: %s Context:0x%08x"), lpcstrDescription, lpcstrModule, *PrintMSGUID(lpGuid), lpContext);
 
-	// Allow HMD to override the voice capture device
-	if(!VCPtr->HMDAudioInputDevice.IsEmpty() && !VCPtr->HMDAudioInputDevice.Compare((LPCWSTR) lpcstrModule))
+	if (lpGuid != nullptr)
 	{
-		UE_LOG(LogVoice, Display, TEXT("VoiceCapture device overridden by HMD to use '%s' %s"), lpcstrDescription, *PrintMSGUID(lpGuid));
-		VCPtr->VoiceCaptureDeviceGuid = *lpGuid;
-	}
+		// Save the enumerated device information for later use
+		FString DeviceDescription((LPCWSTR)lpcstrDescription);
+		FVoiceCaptureDeviceWindows::FCaptureDeviceInfo DeviceDesc;
+		DeviceDesc.DeviceName = DeviceDescription;
+		DeviceDesc.DeviceId = *lpGuid;
+		VCPtr->Devices.Emplace(DeviceDescription, DeviceDesc);
 
+		// Allow HMD to override the default voice capture device
+		if (!VCPtr->HMDAudioInputDevice.IsEmpty() && !VCPtr->HMDAudioInputDevice.Compare((LPCWSTR)lpcstrModule))
+		{
+			UE_LOG(LogVoice, Display, TEXT("VoiceCapture device overridden by HMD to use '%s' %s"), lpcstrDescription, *PrintMSGUID(lpGuid));
+			VCPtr->DefaultVoiceCaptureDevice = DeviceDesc;
+			VCPtr->Devices.Add(FString(DEFAULT_DEVICE_NAME), VCPtr->DefaultVoiceCaptureDevice);
+		}
+	}
+	
 	return true;
 }
 
 FVoiceCaptureDeviceWindows::FVoiceCaptureDeviceWindows() :
 	bInitialized(false),
-	DirectSound(NULL)
+	DirectSound(nullptr)
 {
 }
 
@@ -61,7 +73,7 @@ FVoiceCaptureDeviceWindows::~FVoiceCaptureDeviceWindows()
 
 FVoiceCaptureDeviceWindows* FVoiceCaptureDeviceWindows::Create()
 {
-	if (Singleton == NULL)
+	if (Singleton == nullptr)
 	{
 		Singleton = new FVoiceCaptureDeviceWindows();
 		if (!Singleton->Init())
@@ -79,7 +91,7 @@ void FVoiceCaptureDeviceWindows::Destroy()
 	{
 		// calls Shutdown() above
 		delete Singleton;
-		Singleton = NULL;
+		Singleton = nullptr;
 	}
 }
 
@@ -104,25 +116,25 @@ public:
 		HRESULT hr = S_OK;
 
 		// Activate session manager.
-		IAudioSessionManager2* pSessionManager2 = NULL;
+		IAudioSessionManager2* pSessionManager2 = nullptr;
 		if (SUCCEEDED(hr))
 		{
 			hr = pEndpoint->Activate(__uuidof(IAudioSessionManager2),
 				CLSCTX_INPROC_SERVER,
-				NULL,
+				nullptr,
 				reinterpret_cast<void **>(&pSessionManager2));
 		}
 
-		IAudioSessionControl* pSessionControl = NULL;
+		IAudioSessionControl* pSessionControl = nullptr;
 		if (SUCCEEDED(hr))
 		{
-			hr = pSessionManager2->GetAudioSessionControl(NULL, 0, &pSessionControl);
+			hr = pSessionManager2->GetAudioSessionControl(nullptr, 0, &pSessionControl);
 
 			pSessionManager2->Release();
-			pSessionManager2 = NULL;
+			pSessionManager2 = nullptr;
 		}
 
-		IAudioSessionControl2* pSessionControl2 = NULL;
+		IAudioSessionControl2* pSessionControl2 = nullptr;
 		if (SUCCEEDED(hr))
 		{
 			hr = pSessionControl->QueryInterface(
@@ -130,7 +142,7 @@ public:
 				(void**)&pSessionControl2);
 
 			pSessionControl->Release();
-			pSessionControl = NULL;
+			pSessionControl = nullptr;
 		}
 
 		//  Sync the ducking state with the specified preference.
@@ -143,7 +155,7 @@ public:
 			}
 
 			pSessionControl2->Release();
-			pSessionControl2 = NULL;
+			pSessionControl2 = nullptr;
 		}
 		return hr;
 	}
@@ -153,16 +165,16 @@ public:
 		HRESULT hr = S_OK;
 
 		//  Start with the default endpoint.
-		IMMDeviceEnumerator* pDeviceEnumerator = NULL;
+		IMMDeviceEnumerator* pDeviceEnumerator = nullptr;
 		hr = CoCreateInstance(__uuidof(MMDeviceEnumerator),
-			NULL,
+			nullptr,
 			CLSCTX_INPROC_SERVER,
 			IID_PPV_ARGS(&pDeviceEnumerator));
 
 		if (SUCCEEDED(hr))
 		{
 			{
-				IMMDevice* pEndpoint = NULL;
+				IMMDevice* pEndpoint = nullptr;
 				hr = pDeviceEnumerator->GetDefaultAudioEndpoint(eRender, eConsole, &pEndpoint);
 				if (SUCCEEDED(hr))
 				{
@@ -173,18 +185,18 @@ public:
 
 					FAudioDuckingWindows::EnableDuckingOptOut(pEndpoint, bDuckingOptOutChecked);
 					pEndpoint->Release();
-					pEndpoint = NULL;
+					pEndpoint = nullptr;
 				}
 			}
 
 			if (0) // reference for enumerating all endpoints in case its necessary
 			{
-				IMMDeviceCollection* pDeviceCollection = NULL;
-				IMMDevice* pCollEndpoint = NULL;
+				IMMDeviceCollection* pDeviceCollection = nullptr;
+				IMMDevice* pCollEndpoint = nullptr;
 				hr = pDeviceEnumerator->EnumAudioEndpoints(eRender, DEVICE_STATE_ACTIVE, &pDeviceCollection);
 				if (SUCCEEDED(hr))
 				{
-					IPropertyStore *pProps = NULL;
+					IPropertyStore *pProps = nullptr;
 
 					::UINT DeviceCount = 0;
 					pDeviceCollection->GetCount(&DeviceCount);
@@ -215,28 +227,28 @@ public:
 
 									CoTaskMemFree(Desc);
 
-									Desc = NULL;
+									Desc = nullptr;
 									PropVariantClear(&varName);
 
 									pProps->Release();
-									pProps = NULL;
+									pProps = nullptr;
 								}
 							}
 
 							FAudioDuckingWindows::EnableDuckingOptOut(pCollEndpoint, bDuckingOptOutChecked);
 
 							pCollEndpoint->Release();
-							pCollEndpoint = NULL;
+							pCollEndpoint = nullptr;
 						}
 					}
 
 					pDeviceCollection->Release();
-					pDeviceCollection = NULL;
+					pDeviceCollection = nullptr;
 				}
 			}
 
 			pDeviceEnumerator->Release();
-			pDeviceEnumerator = NULL;
+			pDeviceEnumerator = nullptr;
 		}
 
 		if (FAILED(hr))
@@ -250,19 +262,23 @@ public:
 
 bool FVoiceCaptureDeviceWindows::Init()
 {
-	HRESULT hr = DirectSoundCreate8(NULL, &DirectSound, NULL);
+	HRESULT hr = DirectSoundCreate8(nullptr, &DirectSound, nullptr);
 	if (FAILED(hr))
 	{
 		UE_LOG(LogVoiceCapture, Warning, TEXT("Failed to init DirectSound %d"), hr);
 		return false;
 	}
 
-	if(IHeadMountedDisplayModule::IsAvailable())
+	if (IHeadMountedDisplayModule::IsAvailable())
 	{
 		HMDAudioInputDevice = IHeadMountedDisplayModule::Get().GetAudioInputDevice();
 	}
 
-	VoiceCaptureDeviceGuid = DSDEVID_DefaultVoiceCapture;
+	DefaultVoiceCaptureDevice.DeviceName = FString(DEFAULT_DEVICE_NAME);
+	DefaultVoiceCaptureDevice.DeviceId = DSDEVID_DefaultVoiceCapture;
+
+	Devices.Empty();
+	Devices.Add(FString(DEFAULT_DEVICE_NAME), DefaultVoiceCaptureDevice);
 
 	hr = DirectSoundCaptureEnumerate((LPDSENUMCALLBACK)CaptureDeviceCallback, this);
 	if (FAILED(hr))
@@ -300,26 +316,26 @@ void FVoiceCaptureDeviceWindows::Shutdown()
 	if (DirectSound)
 	{
 		DirectSound->Release();
-		DirectSound = NULL;
+		DirectSound = nullptr;
 	}
 
 	bInitialized = false;
 }
 
-FVoiceCaptureWindows* FVoiceCaptureDeviceWindows::CreateVoiceCaptureObject()
+FVoiceCaptureWindows* FVoiceCaptureDeviceWindows::CreateVoiceCaptureObject(const FString& DeviceName, int32 SampleRate, int32 NumChannels)
 {
-	FVoiceCaptureWindows* NewVoiceCapture = NULL;
+	FVoiceCaptureWindows* NewVoiceCapture = nullptr;
 
 	if (bInitialized)
 	{
 		NewVoiceCapture = new FVoiceCaptureWindows();
-		if (NewVoiceCapture->Init(VOICE_SAMPLE_RATE, NUM_VOICE_CHANNELS))
+		if (NewVoiceCapture->Init(DeviceName, SampleRate, NumChannels))
 		{
 			ActiveVoiceCaptures.Add(NewVoiceCapture);
 		}
 		else
 		{
-			NewVoiceCapture = NULL;
+			NewVoiceCapture = nullptr;
 		}
 	}
 
@@ -328,7 +344,7 @@ FVoiceCaptureWindows* FVoiceCaptureDeviceWindows::CreateVoiceCaptureObject()
 
 void FVoiceCaptureDeviceWindows::FreeVoiceCaptureObject(IVoiceCapture* VoiceCaptureObj)
 {
-	if (VoiceCaptureObj != NULL)
+	if (VoiceCaptureObj != nullptr)
 	{
 		int32 RemoveIdx = ActiveVoiceCaptures.Find(VoiceCaptureObj);
 		if (RemoveIdx != INDEX_NONE)
@@ -344,7 +360,7 @@ void FVoiceCaptureDeviceWindows::FreeVoiceCaptureObject(IVoiceCapture* VoiceCapt
 
 bool InitVoiceCapture()
 {
-	return FVoiceCaptureDeviceWindows::Create() != NULL;
+	return FVoiceCaptureDeviceWindows::Create() != nullptr;
 }
 
 void ShutdownVoiceCapture()
@@ -352,32 +368,34 @@ void ShutdownVoiceCapture()
 	FVoiceCaptureDeviceWindows::Destroy();
 }
 
-IVoiceCapture* CreateVoiceCaptureObject()
+IVoiceCapture* CreateVoiceCaptureObject(const FString& DeviceName, int32 SampleRate, int32 NumChannels)
 {
 	FVoiceCaptureDeviceWindows* VoiceCaptureDev = FVoiceCaptureDeviceWindows::Get();
-	return VoiceCaptureDev ? VoiceCaptureDev->CreateVoiceCaptureObject() : NULL;
+	return VoiceCaptureDev ? VoiceCaptureDev->CreateVoiceCaptureObject(DeviceName, SampleRate, NumChannels) : nullptr;
 }
 
-IVoiceEncoder* CreateVoiceEncoderObject()
+IVoiceEncoder* CreateVoiceEncoderObject(int32 SampleRate, int32 NumChannels, EAudioEncodeHint EncodeHint)
 {
 	FVoiceEncoderOpus* NewEncoder = new FVoiceEncoderOpus();
-	if (!NewEncoder->Init(VOICE_SAMPLE_RATE, NUM_VOICE_CHANNELS))
+	if (!NewEncoder->Init(SampleRate, NumChannels, EncodeHint))
 	{
 		delete NewEncoder;
-		NewEncoder = NULL;
+		NewEncoder = nullptr;
 	}
 
 	return NewEncoder; 
 }
 
-IVoiceDecoder* CreateVoiceDecoderObject()
+IVoiceDecoder* CreateVoiceDecoderObject(int32 SampleRate, int32 NumChannels)
 {
 	FVoiceDecoderOpus* NewDecoder = new FVoiceDecoderOpus();
-	if (!NewDecoder->Init(VOICE_SAMPLE_RATE, NUM_VOICE_CHANNELS))
+	if (!NewDecoder->Init(SampleRate, NumChannels))
 	{
 		delete NewDecoder;
-		NewDecoder = NULL;
+		NewDecoder = nullptr;
 	}
 
 	return NewDecoder; 
 }
+
+#endif // PLATFORM_SUPPORTS_VOICE_CAPTURE

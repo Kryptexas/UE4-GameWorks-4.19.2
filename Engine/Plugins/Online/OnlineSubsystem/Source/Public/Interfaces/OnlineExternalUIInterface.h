@@ -258,7 +258,7 @@ public:
 	 *
 	 * @return true if it was able to show the UI, false if it failed
 	 */
-	virtual bool ShowInviteUI(int32 LocalUserNum, FName SessionName = GameSessionName) = 0;
+	virtual bool ShowInviteUI(int32 LocalUserNum, FName SessionName = NAME_GameSession) = 0;
 
 	/**
 	 *	Displays the UI that shows a user's list of achievements

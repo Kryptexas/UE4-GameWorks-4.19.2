@@ -103,7 +103,7 @@ ALobbyBeaconPlayerState* ALobbyBeaconHost::HandlePlayerLogin(ALobbyBeaconClient*
 		{
 			// Register the player as part of the session
 			bool bWasFromInvite = UGameplayStatics::HasOption(Options, TEXT("bIsFromInvite"));
-			SessionInt->RegisterPlayer(GameSessionName, *InUniqueId, bWasFromInvite);
+			SessionInt->RegisterPlayer(NAME_GameSession, *InUniqueId, bWasFromInvite);
 		}
 	}
 
@@ -298,7 +298,7 @@ void ALobbyBeaconHost::NotifyClientDisconnected(AOnlineBeaconClient* LeavingClie
 			check(GameMode->GameSession);
 
 			// Notify the session (updates reservation beacon, unregisters the player, etc)
-			GameMode->GameSession->NotifyLogout(GameSessionName, Player->UniqueId);
+			GameMode->GameSession->NotifyLogout(NAME_GameSession, Player->UniqueId);
 			HandlePlayerLogout(Player->UniqueId);
 		}
 	}

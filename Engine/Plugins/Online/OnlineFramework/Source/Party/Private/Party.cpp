@@ -298,7 +298,7 @@ FName UParty::GetPlayerSessionName() const
 			return PlayerController->PlayerState->SessionName;
 		}
 	}
-	return GameSessionName;
+	return NAME_GameSession;
 }
 
 UPartyGameState* UParty::GetParty(const FOnlinePartyId& InPartyId) const

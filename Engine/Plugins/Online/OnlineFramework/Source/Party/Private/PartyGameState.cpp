@@ -1052,7 +1052,7 @@ bool UPartyGameState::IsInJoinableGameState() const
 		bool bGameInviteOnly = false;
 		bool bGameAllowInvites = false;
 
-		FNamedOnlineSession* GameSession = SessionInt->GetNamedSession(GameSessionName);
+		FNamedOnlineSession* GameSession = SessionInt->GetNamedSession(NAME_GameSession);
 		if (GameSession != NULL &&
 			GameSession->GetJoinability(bGamePublicJoinable, bGameFriendJoinable, bGameInviteOnly, bGameAllowInvites))
 		{
@@ -1408,7 +1408,7 @@ void UPartyGameState::GetSessionInfo(FName SessionName, FString& URL, FString& S
 	IOnlineSessionPtr SessionInt = Online::GetSessionInterface(World);
 	if (ensure(SessionInt.IsValid()))
 	{
-		ensure(SessionInt->GetResolvedConnectString(SessionName, URL, BeaconPort));
+		ensure(SessionInt->GetResolvedConnectString(SessionName, URL, NAME_BeaconPort));
 
 		FNamedOnlineSession* Session = SessionInt->GetNamedSession(SessionName);
 		if (Session)

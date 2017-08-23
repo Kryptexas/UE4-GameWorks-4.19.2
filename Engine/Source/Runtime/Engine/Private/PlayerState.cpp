@@ -30,7 +30,7 @@ APlayerState::APlayerState(const FObjectInitializer& ObjectInitializer)
 	bNetLoadOnClient = false;
 
 	EngineMessageClass = UEngineMessage::StaticClass();
-	SessionName = GameSessionName;
+	SessionName = NAME_GameSession;
 }
 
 void APlayerState::UpdatePing(float InPing)

@@ -360,7 +360,7 @@ void FOnlineIdentityAmazon::GetUserPrivilege(const FUniqueNetId& UserId, EUserPr
 	Delegate.ExecuteIfBound(UserId, Privilege, (uint32)EPrivilegeResults::NoFailures);
 }
 
-FPlatformUserId FOnlineIdentityAmazon::GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& UniqueNetId)
+FPlatformUserId FOnlineIdentityAmazon::GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& UniqueNetId) const
 {
 	for (int i = 0; i < MAX_LOCAL_PLAYERS; ++i)
 	{

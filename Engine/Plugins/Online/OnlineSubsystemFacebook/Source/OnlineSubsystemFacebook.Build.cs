@@ -74,6 +74,14 @@ public class OnlineSubsystemFacebook : ModuleRules
 			Definitions.Add("WITH_FACEBOOK=1");
 			PrivateIncludePaths.Add("Private/Windows");
 		}
+		else if (Target.Platform == UnrealTargetPlatform.XboxOne)
+		{
+			PrivateIncludePaths.Add("Private/XboxOne");
+		}
+		else if (Target.Platform == UnrealTargetPlatform.PS4)
+		{
+			PrivateIncludePaths.Add("Private/PS4");
+		}
 		else
 		{
 			Definitions.Add("WITH_FACEBOOK=0");

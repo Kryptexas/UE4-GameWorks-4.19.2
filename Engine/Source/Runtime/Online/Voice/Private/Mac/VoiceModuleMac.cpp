@@ -94,7 +94,7 @@ public:
 	}
 	
 	// IVoiceCapture
-	virtual bool Init(int32 InSampleRate, int32 InNumChannels) override
+	virtual bool Init(const FString& DeviceName, int32 InSampleRate, int32 InNumChannels) override
 	{
 		check(VoiceCaptureState == EVoiceCaptureState::UnInitialized);
 		
@@ -268,6 +268,7 @@ public:
 		
 		return true;
 	}
+
 	virtual void Shutdown() override
 	{
 		switch (VoiceCaptureState)
@@ -301,6 +302,7 @@ public:
 				break;
 		}
 	}
+
 	virtual bool Start() override
 	{
 		check(StreamComponent && VoiceCaptureState == EVoiceCaptureState::NotCapturing);
@@ -326,6 +328,7 @@ public:
 			return false;
 		}
 	}
+
 	virtual void Stop() override
 	{
 		check(IsCapturing());
@@ -345,10 +348,18 @@ public:
 			FMemory::Memzero(BufferList[i].mData, BufferSize);
 		}
 	}
+
+	virtual bool ChangeDevice(const FString& DeviceName, int32 SampleRate, int32 NumChannels)
+	{
+		/** NYI */
+		return false;
+	}
+
 	virtual bool IsCapturing() override
 	{
 		return StreamComponent && VoiceCaptureState > EVoiceCaptureState::NotCapturing;
 	}
+
 	virtual EVoiceCaptureState::Type GetCaptureState(uint32& OutAvailableVoiceData) const override
 	{
 		if (VoiceCaptureState != EVoiceCaptureState::UnInitialized &&
@@ -362,101 +373,6 @@ public:
 		}
 		
 		return VoiceCaptureState;
-	}
-	
-	struct FAudioFileIO
-	{
-		uint32 SrcReadFrames;
-		AudioBufferList* SrcBuffer;
-		uint32 SrcBufferSize;
-		uint32 SrcBytesPerFrame;
-	};
-	
-	static OSStatus ConvertInputFormat( AudioConverterRef AudioConverter,
-										UInt32* IONumberDataPackets,
-										AudioBufferList* IOData,
-										AudioStreamPacketDescription** OutDataPacketDescription,
-										void* InUserData )
-	{
-		FAudioFileIO* Input = (FAudioFileIO*)InUserData;
-		
-		if ( Input && Input->SrcBuffer )
-		{
-			*IOData = *Input->SrcBuffer;
-			
-			int32 Num = *IONumberDataPackets;
-			if ( ( Input->SrcReadFrames * (Input->SrcBytesPerFrame)) < Input->SrcBufferSize )
-			{
-				if ( (Num * Input->SrcBytesPerFrame) < IOData->mBuffers[0].mDataByteSize )
-				{
-					IOData->mBuffers[0].mDataByteSize = Num * Input->SrcBytesPerFrame;
-				}
-				else
-				{
-					*IONumberDataPackets = IOData->mBuffers[0].mDataByteSize / Input->SrcBytesPerFrame;
-				}
-				Input->SrcReadFrames += *IONumberDataPackets;
-			}
-			else
-			{
-				*IONumberDataPackets = 0;
-				IOData->mBuffers[0].mDataByteSize = 0;
-				return eofErr;
-			}
-		}
-		
-		return noErr;
-	}
-	
-	EVoiceCaptureState::Type CopyBuffer(uint8 InReadBuffer, uint8* OutVoiceBuffer, uint32 InReadOffset, uint32* ReadLen, uint32* WriteLen)
-	{
-		EVoiceCaptureState::Type State = VoiceCaptureState;
-		if ( *ReadLen )
-		{
-			uint8* Data = (uint8*)(BufferList[InReadBuffer].mData) + InReadOffset;
-			
-			if ( StreamDesc.mSampleRate == OutputDesc.mSampleRate )
-			{
-				FMemory::Memcpy(OutVoiceBuffer, Data, *ReadLen);
-				*WriteLen = *ReadLen;
-				State = EVoiceCaptureState::Ok;
-			}
-			else
-			{
-				UInt32 FramesToCopy = (*ReadLen / OutputDesc.mBytesPerFrame);
-				AudioBufferList OutputBuffer;
-				OutputBuffer.mNumberBuffers = 1;
-				OutputBuffer.mBuffers[0].mNumberChannels = StreamDesc.mChannelsPerFrame;
-				OutputBuffer.mBuffers[0].mDataByteSize = *ReadLen;
-				OutputBuffer.mBuffers[0].mData = OutVoiceBuffer;
-				
-				AudioBufferList InputBuffer;
-				InputBuffer.mNumberBuffers = 1;
-				InputBuffer.mBuffers[0].mNumberChannels =  StreamDesc.mChannelsPerFrame;
-				InputBuffer.mBuffers[0].mDataByteSize = BufferList[InReadBuffer].mDataByteSize;
-				InputBuffer.mBuffers[0].mData = Data;
-				
-				FAudioFileIO inUserData;
-				inUserData.SrcBuffer = &InputBuffer;
-				inUserData.SrcBytesPerFrame = StreamDesc.mBytesPerFrame;
-				inUserData.SrcBufferSize = *ReadLen;
-				inUserData.SrcReadFrames = 0;
-				
-				OSStatus result = AudioConverterFillComplexBuffer(StreamConverter, &FVoiceCaptureCoreAudio::ConvertInputFormat, &inUserData, &FramesToCopy, &OutputBuffer, nullptr);
-				if ( result == 0 || result == eofErr )
-				{
-					State = EVoiceCaptureState::Ok;
-					*ReadLen = inUserData.SrcReadFrames * StreamDesc.mBytesPerFrame;
-					*WriteLen = FramesToCopy * OutputDesc.mBytesPerFrame;
-				}
-				else
-				{
-					State = EVoiceCaptureState::Error;
-					VoiceCaptureState = EVoiceCaptureState::Error;
-				}
-			}
-		}
-		return State;
 	}
 	
 	virtual EVoiceCaptureState::Type GetVoiceData(uint8* OutVoiceBuffer, uint32 InVoiceBufferSize, uint32& OutAvailableVoiceData) override
@@ -524,6 +440,115 @@ public:
 		}
 		return State;
 	}
+
+	virtual int32 GetBufferSize() const
+	{
+		/** NYI */
+		return 0;
+	}
+
+	virtual void DumpState() const
+	{
+		/** NYI */
+		UE_LOG(LogVoiceCapture, Display, TEXT("NYI"));
+	}
+
+private:
+
+	struct FAudioFileIO
+	{
+		uint32 SrcReadFrames;
+		AudioBufferList* SrcBuffer;
+		uint32 SrcBufferSize;
+		uint32 SrcBytesPerFrame;
+	};
+
+	static OSStatus ConvertInputFormat(AudioConverterRef AudioConverter,
+										UInt32* IONumberDataPackets,
+										AudioBufferList* IOData,
+										AudioStreamPacketDescription** OutDataPacketDescription,
+										void* InUserData)
+	{
+		FAudioFileIO* Input = (FAudioFileIO*)InUserData;
+
+		if (Input && Input->SrcBuffer)
+		{
+			*IOData = *Input->SrcBuffer;
+
+			int32 Num = *IONumberDataPackets;
+			if ((Input->SrcReadFrames * (Input->SrcBytesPerFrame)) < Input->SrcBufferSize)
+			{
+				if ((Num * Input->SrcBytesPerFrame) < IOData->mBuffers[0].mDataByteSize)
+				{
+					IOData->mBuffers[0].mDataByteSize = Num * Input->SrcBytesPerFrame;
+				}
+				else
+				{
+					*IONumberDataPackets = IOData->mBuffers[0].mDataByteSize / Input->SrcBytesPerFrame;
+				}
+				Input->SrcReadFrames += *IONumberDataPackets;
+			}
+			else
+			{
+				*IONumberDataPackets = 0;
+				IOData->mBuffers[0].mDataByteSize = 0;
+				return eofErr;
+			}
+		}
+
+		return noErr;
+	}
+
+	EVoiceCaptureState::Type CopyBuffer(uint8 InReadBuffer, uint8* OutVoiceBuffer, uint32 InReadOffset, uint32* ReadLen, uint32* WriteLen)
+	{
+		EVoiceCaptureState::Type State = VoiceCaptureState;
+		if (*ReadLen)
+		{
+			uint8* Data = (uint8*)(BufferList[InReadBuffer].mData) + InReadOffset;
+
+			if (StreamDesc.mSampleRate == OutputDesc.mSampleRate)
+			{
+				FMemory::Memcpy(OutVoiceBuffer, Data, *ReadLen);
+				*WriteLen = *ReadLen;
+				State = EVoiceCaptureState::Ok;
+			}
+			else
+			{
+				UInt32 FramesToCopy = (*ReadLen / OutputDesc.mBytesPerFrame);
+				AudioBufferList OutputBuffer;
+				OutputBuffer.mNumberBuffers = 1;
+				OutputBuffer.mBuffers[0].mNumberChannels = StreamDesc.mChannelsPerFrame;
+				OutputBuffer.mBuffers[0].mDataByteSize = *ReadLen;
+				OutputBuffer.mBuffers[0].mData = OutVoiceBuffer;
+
+				AudioBufferList InputBuffer;
+				InputBuffer.mNumberBuffers = 1;
+				InputBuffer.mBuffers[0].mNumberChannels = StreamDesc.mChannelsPerFrame;
+				InputBuffer.mBuffers[0].mDataByteSize = BufferList[InReadBuffer].mDataByteSize;
+				InputBuffer.mBuffers[0].mData = Data;
+
+				FAudioFileIO inUserData;
+				inUserData.SrcBuffer = &InputBuffer;
+				inUserData.SrcBytesPerFrame = StreamDesc.mBytesPerFrame;
+				inUserData.SrcBufferSize = *ReadLen;
+				inUserData.SrcReadFrames = 0;
+
+				OSStatus result = AudioConverterFillComplexBuffer(StreamConverter, &FVoiceCaptureCoreAudio::ConvertInputFormat, &inUserData, &FramesToCopy, &OutputBuffer, nullptr);
+				if (result == 0 || result == eofErr)
+				{
+					State = EVoiceCaptureState::Ok;
+					*ReadLen = inUserData.SrcReadFrames * StreamDesc.mBytesPerFrame;
+					*WriteLen = FramesToCopy * OutputDesc.mBytesPerFrame;
+				}
+				else
+				{
+					State = EVoiceCaptureState::Error;
+					VoiceCaptureState = EVoiceCaptureState::Error;
+				}
+			}
+		}
+		return State;
+	}
 	
 private:
 	/** Descriptor for stream format */
@@ -563,10 +588,10 @@ void ShutdownVoiceCapture()
 {
 }
 
-IVoiceCapture* CreateVoiceCaptureObject()
+IVoiceCapture* CreateVoiceCaptureObject(const FString& DeviceName, int32 SampleRate, int32 NumChannels)
 {
 	IVoiceCapture* Capture = new FVoiceCaptureCoreAudio;
-	if ( !Capture || !Capture->Init(VOICE_SAMPLE_RATE, NUM_VOICE_CHANNELS) )
+	if ( !Capture || !Capture->Init(DeviceName, SampleRate, NumChannels) )
 	{
 		delete Capture;
 		Capture = nullptr;
@@ -574,25 +599,25 @@ IVoiceCapture* CreateVoiceCaptureObject()
 	return Capture;
 }
 
-IVoiceEncoder* CreateVoiceEncoderObject()
+IVoiceEncoder* CreateVoiceEncoderObject(int32 SampleRate, int32 NumChannels, EAudioEncodeHint EncodeHint)
 {
 	FVoiceEncoderOpus* NewEncoder = new FVoiceEncoderOpus;
-	if (!NewEncoder->Init(VOICE_SAMPLE_RATE, NUM_VOICE_CHANNELS))
+	if (!NewEncoder->Init(SampleRate, NumChannels, EncodeHint))
 	{
 		delete NewEncoder;
-		NewEncoder = NULL;
+		NewEncoder = nullptr;
 	}
 	
 	return NewEncoder;
 }
 
-IVoiceDecoder* CreateVoiceDecoderObject()
+IVoiceDecoder* CreateVoiceDecoderObject(int32 SampleRate, int32 NumChannels)
 {
 	FVoiceDecoderOpus* NewDecoder = new FVoiceDecoderOpus;
-	if (!NewDecoder->Init(VOICE_SAMPLE_RATE, NUM_VOICE_CHANNELS))
+	if (!NewDecoder->Init(SampleRate, NumChannels))
 	{
 		delete NewDecoder;
-		NewDecoder = NULL;
+		NewDecoder = nullptr;
 	}
 	
 	return NewDecoder;

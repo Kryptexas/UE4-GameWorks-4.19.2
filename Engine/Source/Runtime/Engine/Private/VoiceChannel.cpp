@@ -105,12 +105,12 @@ void UVoiceChannel::Tick()
 			}
 		}
 
-		if(Index >= VoicePackets.Num())
+		if (Index >= VoicePackets.Num())
 		{
 			// all sent, can throw everything away
 			VoicePackets.Empty();
 		}
-		else if(Index > 0)
+		else if (Index > 0)
 		{
 			// didn't send everything, just remove all packets actually sent
 			VoicePackets.RemoveAt(0,Index);
@@ -119,16 +119,16 @@ void UVoiceChannel::Tick()
 
 	// make sure we keep any reliable messages to try again next time
 	// but ditch any unreliable messages we've not managed to send
-	int PacketLoss = 0;
-	for(int i=VoicePackets.Num() - 1; i >= 0; i--)
+	int32 PacketLoss = 0;
+	for (int32 i = VoicePackets.Num() - 1; i >= 0; i--)
 	{
-		if(!VoicePackets[i]->IsReliable())
+		if (!VoicePackets[i]->IsReliable())
 		{
 			VoicePackets.RemoveAt(i,1,false);
 			PacketLoss++;
 		}
 	}
-	if(bHandshakeCompleted && PacketLoss > 0)
+	if (bHandshakeCompleted && PacketLoss > 0)
 	{
 		UE_LOG(LogNet, Log, TEXT("Dropped %d packets due to congestion in the voicechannel"), PacketLoss);
 	}

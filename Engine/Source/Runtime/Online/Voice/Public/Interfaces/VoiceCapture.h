@@ -78,12 +78,13 @@ public:
 	/**
 	 * Initialize the voice capture object
 	 *
+	 * @param DeviceName name of device to capture audio data with, empty for default device
 	 * @param SampleRate sampling rate of voice capture
 	 * @param NumChannels number of channels to capture
 	 *
 	 * @return true if successful, false otherwise
 	 */
-	virtual bool Init(int32 SampleRate, int32 NumChannels) = 0;
+	virtual bool Init(const FString& DeviceName, int32 SampleRate, int32 NumChannels) = 0;
 
 	/**
 	 * Shutdown the voice capture object
@@ -103,12 +104,23 @@ public:
 	virtual void Stop() = 0;
 
 	/**
+	 * Change the associated capture device
+	 *
+	 * @param DeviceName name of device to capture audio data with, empty for default device
+	 * @param SampleRate sampling rate of voice capture
+	 * @param NumChannels number of channels to capture
+	 *
+	 * @return true if change was successful, false otherwise
+	 */
+	virtual bool ChangeDevice(const FString& DeviceName, int32 SampleRate, int32 NumChannels) = 0;
+
+	/**
 	 * Is the voice capture object actively capturing
 	 *
 	 * @return true if voice is being captured, false otherwise
 	 */
 	virtual bool IsCapturing() = 0;
-	
+
 	/**
 	 * Return the state of the voice data and its availability
 	 *
@@ -128,4 +140,12 @@ public:
 	 * @return state of the voice capture buffer
 	 */
 	virtual EVoiceCaptureState::Type GetVoiceData(uint8* OutVoiceBuffer, uint32 InVoiceBufferSize, uint32& OutAvailableVoiceData) = 0;
+
+	/**
+	 * @return number of bytes currently allocated in the capture buffer
+	 */
+	virtual int32 GetBufferSize() const = 0;
+
+	/** Dump the state of the voice capture device */
+	virtual void DumpState() const = 0;
 };

@@ -84,7 +84,7 @@ void UOnlineSessionClient::OnSessionUserInviteAccepted(bool bWasSuccessful, int3
 		if (SearchResult.IsValid())
 		{
 			bIsFromInvite = true;
-			JoinSession(GameSessionName, SearchResult);
+			JoinSession(NAME_GameSession, SearchResult);
 		}
 		else
 		{
@@ -264,7 +264,7 @@ bool UOnlineSessionClient::HandleDisconnectInternal(UWorld* World, UNetDriver* N
 		if (!bHandlingDisconnect)
 		{
 			bHandlingDisconnect = true;
-			DestroyExistingSession_Impl(OnDestroyForMainMenuCompleteDelegateHandle, GameSessionName, OnDestroyForMainMenuCompleteDelegate);
+			DestroyExistingSession_Impl(OnDestroyForMainMenuCompleteDelegateHandle, NAME_GameSession, OnDestroyForMainMenuCompleteDelegate);
 		}
 
 		return true;

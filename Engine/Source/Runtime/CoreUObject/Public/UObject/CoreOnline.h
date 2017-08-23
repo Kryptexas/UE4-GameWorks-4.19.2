@@ -5,11 +5,10 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 
-const FName GameSessionName(TEXT("Game"));
-const FName PartySessionName(TEXT("Party"));
-
-const FName GamePort(TEXT("GamePort"));
-const FName BeaconPort(TEXT("BeaconPort"));
+#define GameSessionName NAME_GameSession
+#define PartySessionName NAME_PartySession
+#define GamePort NAME_GamePort
+#define BeaconPort NAME_BeaconPort
 
 #if !CPP
 // Circular dependency on Core vs UHT means we have to noexport these structs so tools can build

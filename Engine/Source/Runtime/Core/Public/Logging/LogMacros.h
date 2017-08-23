@@ -39,7 +39,7 @@ struct CORE_API FMsg
 ----------------------------------------------------------------------------*/
 
 #ifndef COMPILED_IN_MINIMUM_VERBOSITY
-	#define COMPILED_IN_MINIMUM_VERBOSITY Log
+	#define COMPILED_IN_MINIMUM_VERBOSITY VeryVerbose
 #else
 	#if !IS_MONOLITHIC
 		#error COMPILED_IN_MINIMUM_VERBOSITY can only be defined in monolithic builds.

@@ -316,7 +316,7 @@ void FOnlineIdentityIOS::GetUserPrivilege(const FUniqueNetId& UserId, EUserPrivi
 	 }
 }
 
-FPlatformUserId FOnlineIdentityIOS::GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& InUniqueNetId)
+FPlatformUserId FOnlineIdentityIOS::GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& InUniqueNetId) const
 {
 	for (int i = 0; i < MAX_LOCAL_PLAYERS; ++i)
 	{

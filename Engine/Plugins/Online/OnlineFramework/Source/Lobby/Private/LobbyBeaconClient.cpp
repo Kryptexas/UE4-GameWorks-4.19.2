@@ -48,7 +48,7 @@ void ALobbyBeaconClient::ConnectToLobby(const FOnlineSessionSearchResult& Desire
 		if (SessionInt.IsValid())
 		{
 			FString ConnectInfo;
-			if (SessionInt->GetResolvedConnectString(DesiredHost, BeaconPort, ConnectInfo))
+			if (SessionInt->GetResolvedConnectString(DesiredHost, NAME_BeaconPort, ConnectInfo))
 			{
 				FURL ConnectURL(NULL, *ConnectInfo, TRAVEL_Absolute);
 				if (InitClient(ConnectURL) && DesiredHost.Session.SessionInfo.IsValid())
@@ -306,7 +306,7 @@ void ALobbyBeaconClient::ClientPlayerJoined_Implementation(const FText& NewPlaye
 		if (SessionInt.IsValid() && InUniqueId.IsValid())
 		{
 			// Register the player as part of the session
-			SessionInt->RegisterPlayer(GameSessionName, *InUniqueId, false);
+			SessionInt->RegisterPlayer(NAME_GameSession, *InUniqueId, false);
 		}
 	}
 
@@ -323,7 +323,7 @@ void ALobbyBeaconClient::ClientPlayerLeft_Implementation(const FUniqueNetIdRepl&
 		if (SessionInt.IsValid() && InUniqueId.IsValid())
 		{
 			// Register the player as part of the session
-			SessionInt->UnregisterPlayer(GameSessionName, *InUniqueId);
+			SessionInt->UnregisterPlayer(NAME_GameSession, *InUniqueId);
 		}
 	}
 

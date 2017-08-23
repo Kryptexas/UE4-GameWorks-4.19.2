@@ -13,14 +13,23 @@ DEFINE_LOG_CATEGORY(LogVoiceCapture);
 
 DEFINE_STAT(STAT_Voice_Encoding);
 DEFINE_STAT(STAT_Voice_Decoding);
+DEFINE_STAT(STAT_Encode_SampleRate);
+DEFINE_STAT(STAT_Encode_NumChannels);
+DEFINE_STAT(STAT_Encode_Bitrate);
+DEFINE_STAT(STAT_Encode_CompressionRatio);
+DEFINE_STAT(STAT_Encode_OutSize);
+DEFINE_STAT(STAT_Decode_SampleRate);
+DEFINE_STAT(STAT_Decode_NumChannels);
+DEFINE_STAT(STAT_Decode_CompressionRatio);
+DEFINE_STAT(STAT_Decode_OutSize);
 
 #if PLATFORM_SUPPORTS_VOICE_CAPTURE
 /** Implement these functions per platform to create the voice objects */
 extern bool InitVoiceCapture();
 extern void ShutdownVoiceCapture();
-extern IVoiceCapture* CreateVoiceCaptureObject();
-extern IVoiceEncoder* CreateVoiceEncoderObject();
-extern IVoiceDecoder* CreateVoiceDecoderObject();
+extern IVoiceCapture* CreateVoiceCaptureObject(const FString& DeviceName, int32 SampleRate, int32 NumChannels);
+extern IVoiceEncoder* CreateVoiceEncoderObject(int32 SampleRate, int32 NumChannels, EAudioEncodeHint EncodeHint);
+extern IVoiceDecoder* CreateVoiceDecoderObject(int32 SampleRate, int32 NumChannels);
 #endif
 
 void FVoiceModule::StartupModule()
@@ -64,42 +73,42 @@ bool FVoiceModule::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 	return false;
 }
 
-TSharedPtr<IVoiceCapture> FVoiceModule::CreateVoiceCapture()
+TSharedPtr<IVoiceCapture> FVoiceModule::CreateVoiceCapture(const FString& DeviceName, int32 SampleRate, int32 NumChannels)
 {
 #if PLATFORM_SUPPORTS_VOICE_CAPTURE
 	if (bEnabled)
 	{
 		// Create the platform specific instance
-		return TSharedPtr<IVoiceCapture>(CreateVoiceCaptureObject());
+		return TSharedPtr<IVoiceCapture>(CreateVoiceCaptureObject(DeviceName, SampleRate, NumChannels));
 	}
 #endif
-	return NULL;
+	return nullptr;
 }
 
-TSharedPtr<IVoiceEncoder> FVoiceModule::CreateVoiceEncoder()
+TSharedPtr<IVoiceEncoder> FVoiceModule::CreateVoiceEncoder(int32 SampleRate, int32 NumChannels, EAudioEncodeHint EncodeHint)
 {
 #if PLATFORM_SUPPORTS_VOICE_CAPTURE
 	if (bEnabled)
 	{
 		// Create the platform specific instance
-		return TSharedPtr<IVoiceEncoder>(CreateVoiceEncoderObject());
+		return TSharedPtr<IVoiceEncoder>(CreateVoiceEncoderObject(SampleRate, NumChannels, EncodeHint));
 	}
 #endif
 
-	return NULL;
+	return nullptr;
 }
 
-TSharedPtr<IVoiceDecoder> FVoiceModule::CreateVoiceDecoder()
+TSharedPtr<IVoiceDecoder> FVoiceModule::CreateVoiceDecoder(int32 SampleRate, int32 NumChannels)
 {
 #if PLATFORM_SUPPORTS_VOICE_CAPTURE
 	if (bEnabled)
 	{
 		// Create the platform specific instance
-		return TSharedPtr<IVoiceDecoder>(CreateVoiceDecoderObject());
+		return TSharedPtr<IVoiceDecoder>(CreateVoiceDecoderObject(SampleRate, NumChannels));
 	}
 #endif
 
-	return NULL;
+	return nullptr;
 }
 
 

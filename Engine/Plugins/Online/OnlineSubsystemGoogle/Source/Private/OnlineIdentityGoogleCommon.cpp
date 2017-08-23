@@ -52,7 +52,7 @@ bool FJsonWebTokenGoogle::Parse(const FString& InJWTStr)
 							static const FString Issuer2 = TEXT("accounts.google.com");
 							if ((Payload.ISS == Issuer1) || (Payload.ISS == Issuer2))
 							{
-								// Verify that the value of aud in the ID token is equal to your app’s client ID.
+								// Verify that the value of aud in the ID token is equal to your app's client ID.
 								FOnlineSubsystemGoogle* GoogleSubsystem = static_cast<FOnlineSubsystemGoogle*>(IOnlineSubsystem::Get(GOOGLE_SUBSYSTEM));
 								if (Payload.Aud == GoogleSubsystem->GetAppId() ||
 									Payload.Aud == GoogleSubsystem->GetServerClientId())
@@ -493,7 +493,7 @@ void FOnlineIdentityGoogleCommon::GetUserPrivilege(const FUniqueNetId& UserId, E
 	Delegate.ExecuteIfBound(UserId, Privilege, (uint32)EPrivilegeResults::NoFailures);
 }	
 
-FPlatformUserId FOnlineIdentityGoogleCommon::GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& UniqueNetId)
+FPlatformUserId FOnlineIdentityGoogleCommon::GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& UniqueNetId) const
 {
 	for (int i = 0; i < MAX_LOCAL_PLAYERS; ++i)
 	{
