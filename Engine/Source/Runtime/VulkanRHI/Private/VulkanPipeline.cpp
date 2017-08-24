@@ -1092,11 +1092,14 @@ FVulkanPipelineStateCache::FGfxPipelineEntry* FVulkanPipelineStateCache::CreateG
 		{
 			PixelShaderRHI = TShaderMapRef<FNULLPS>(GetGlobalShaderMap(GMaxRHIFeatureLevel))->GetPixelShader();
 		}
-				
-		FVulkanPixelShader* PS = ResourceCast(PixelShaderRHI);
-		Shaders[SF_Pixel] = PS;
-		const FVulkanCodeHeader& PSHeader = PS->GetCodeHeader();
-		DescriptorSetLayoutInfo.AddBindingsForStage(VK_SHADER_STAGE_FRAGMENT_BIT, EDescriptorSetStage::Pixel, PSHeader);
+		
+		if (PixelShaderRHI)
+		{
+			FVulkanPixelShader* PS = ResourceCast(PixelShaderRHI);
+			Shaders[SF_Pixel] = PS;
+			const FVulkanCodeHeader& PSHeader = PS->GetCodeHeader();
+			DescriptorSetLayoutInfo.AddBindingsForStage(VK_SHADER_STAGE_FRAGMENT_BIT, EDescriptorSetStage::Pixel, PSHeader);
+		}
 	}
 	if (BSI.GeometryShaderRHI)
 	{
