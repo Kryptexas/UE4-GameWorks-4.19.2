@@ -2181,7 +2181,7 @@ void FBlueprintCompileReinstancer::CopyPropertiesForUnrelatedObjects(UObject* Ol
 
 	UEngine::FCopyPropertiesForUnrelatedObjectsParams Params;
 	Params.bAggressiveDefaultSubobjectReplacement = false;//true;
-	Params.bDoDelta = false;
+	Params.bDoDelta = !OldObject->HasAnyFlags(RF_ClassDefaultObject);
 	Params.bCopyDeprecatedProperties = true;
 	Params.bSkipCompilerGeneratedDefaults = true;
 	Params.bClearReferences = bClearExternalReferences;
