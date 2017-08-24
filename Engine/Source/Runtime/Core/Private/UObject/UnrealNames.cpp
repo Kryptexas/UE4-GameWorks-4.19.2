@@ -1359,8 +1359,8 @@ FNameEntry* AllocateNameEntry(const TCharType* Name, NAME_INDEX Index)
 	int32 NameEntrySize	  = FNameInitHelper<TCharType>::GetSize( NameLen );
 	FNameEntry* NameEntry = GNameEntryPoolAllocator.Allocate( NameEntrySize );
 	FName::NameEntryMemorySize += NameEntrySize;
-	NameEntry->Index      = (Index << NAME_INDEX_SHIFT) | (FNameInitHelper<TCharType>::GetIndexShiftValue());
-	NameEntry->HashNext   = nullptr;
+	FPlatformAtomics::InterlockedExchange(&NameEntry->Index, (Index << NAME_INDEX_SHIFT) | (FNameInitHelper<TCharType>::GetIndexShiftValue()));
+	FPlatformAtomics::InterlockedExchangePtr((void**)&NameEntry->HashNext, nullptr);
 	FNameInitHelper<TCharType>::SetNameString(NameEntry, Name, NameLen);
 	IncrementNameCount<TCharType>();
 	return NameEntry;

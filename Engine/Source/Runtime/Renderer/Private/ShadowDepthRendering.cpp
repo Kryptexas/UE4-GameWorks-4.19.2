@@ -153,6 +153,12 @@ enum EShadowDepthVertexShaderMode
 	VertexShadowDepth_OnePassPointLight
 };
 
+static TAutoConsoleVariable<int32> CVarSupportPointLightWholeSceneShadows(
+	TEXT("r.SupportPointLightWholeSceneShadows"),
+	1,
+	TEXT("Enables shadowcasting point lights."),
+	ECVF_ReadOnly | ECVF_RenderThreadSafe);
+
 /**
  * A vertex shader for rendering the depth of a mesh.
  */
@@ -171,7 +177,12 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		if (bIsForGeometryShader && !RHISupportsGeometryShaders(Platform) && !RHISupportsVertexShaderLayer(Platform))
+		static const auto CVarSupportAllShaderPermutations = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SupportAllShaderPermutations"));
+		const bool bForceAllPermutations = CVarSupportAllShaderPermutations && CVarSupportAllShaderPermutations->GetValueOnAnyThread() != 0;
+		const bool bSupportPointLightWholeSceneShadows = CVarSupportPointLightWholeSceneShadows.GetValueOnAnyThread() != 0 || bForceAllPermutations;
+		const bool bRHISupportsShadowCastingPointLights = RHISupportsGeometryShaders(Platform) || RHISupportsVertexShaderLayer(Platform);
+
+		if (bIsForGeometryShader && (!bSupportPointLightWholeSceneShadows || !bRHISupportsShadowCastingPointLights))
 		{
 			return false;
 		}
@@ -842,8 +853,14 @@ static void SetViewFlagsForShadowPass(FDrawingPolicyRenderState& DrawRenderState
 	check(MobileHDRCvar);
 	const bool bPlatformReversesCulling = (RHINeedsToSwitchVerticalAxis(ShaderPlatform) && MobileHDRCvar->GetValueOnAnyThread() == 0);
 
-	DrawRenderState.ModifyViewOverrideFlags() |= (bIsTwoSided) ? EDrawingPolicyOverrideFlags::TwoSided : EDrawingPolicyOverrideFlags::None;
-	DrawRenderState.ModifyViewOverrideFlags() ^= (XOR(bPlatformReversesCulling, isOnePassPointLightShadow)) ? EDrawingPolicyOverrideFlags::ReverseCullMode : EDrawingPolicyOverrideFlags::None;
+	EDrawingPolicyOverrideFlags& ViewOverrideFlags = DrawRenderState.ModifyViewOverrideFlags();
+
+	ViewOverrideFlags = (View.bRenderSceneTwoSided || bIsTwoSided) ?
+		ViewOverrideFlags | EDrawingPolicyOverrideFlags::TwoSided : 
+		ViewOverrideFlags & ~EDrawingPolicyOverrideFlags::TwoSided;
+	ViewOverrideFlags = XOR(View.bReverseCulling, XOR(bPlatformReversesCulling, isOnePassPointLightShadow)) ?
+		ViewOverrideFlags | EDrawingPolicyOverrideFlags::ReverseCullMode : 
+		ViewOverrideFlags & ~EDrawingPolicyOverrideFlags::ReverseCullMode;
 }
 
 template <bool bRenderingReflectiveShadowMaps>

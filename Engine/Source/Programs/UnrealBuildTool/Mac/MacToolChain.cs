@@ -30,7 +30,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Which version of the Mac OS X to allow at run time
 		/// </summary>
-		public string MacOSVersion = "10.9";
+		public string MacOSVersion = "10.11";
 
 		/// <summary>
 		/// Minimum version of Mac OS X to actually run on, running on earlier versions will display the system minimum version error dialog and exit.
@@ -124,6 +124,7 @@ namespace UnrealBuildTool
 
             string AddressSanitizer = Environment.GetEnvironmentVariable("ENABLE_ADDRESS_SANITIZER");
 			string ThreadSanitizer = Environment.GetEnvironmentVariable("ENABLE_THREAD_SANITIZER");
+			string UndefSanitizerMode = Environment.GetEnvironmentVariable("ENABLE_UNDEFINED_BEHAVIOR_SANITIZER");
 			if (AddressSanitizer != null && AddressSanitizer == "YES")
 			{
 				Result += " -fsanitize=address";
@@ -131,6 +132,10 @@ namespace UnrealBuildTool
 			else if (ThreadSanitizer != null && ThreadSanitizer == "YES")
 			{
 				Result += " -fsanitize=thread";
+			}
+			else if(UndefSanitizerMode != null && UndefSanitizerMode == "YES")
+			{
+				Result += " -fsanitize=undefined";
 			}
 
 			Result += " -Wall -Werror";
@@ -180,8 +185,15 @@ namespace UnrealBuildTool
 			Result += " -isysroot " + Settings.BaseSDKDir + "/MacOSX" + Settings.MacOSSDKVersion + ".sdk";
 			Result += " -mmacosx-version-min=" + (CompileEnvironment.bEnableOSX109Support ? "10.9" : Settings.MacOSVersion);
 
+			bool bStaticAnalysis = false;
+			string StaticAnalysisMode = Environment.GetEnvironmentVariable("CLANG_STATIC_ANALYZER_MODE");
+			if(StaticAnalysisMode != null && StaticAnalysisMode != "")
+			{
+				bStaticAnalysis = true;
+			}
+
 			// Optimize non- debug builds.
-			if (CompileEnvironment.bOptimizeCode)
+			if (CompileEnvironment.bOptimizeCode && !bStaticAnalysis)
 			{
 				// Don't over optimise if using AddressSanitizer or you'll get false positive errors due to erroneous optimisation of necessary AddressSanitizer instrumentation.
 				if (AddressSanitizer != null && AddressSanitizer == "YES")
@@ -210,12 +222,6 @@ namespace UnrealBuildTool
 			if (CompileEnvironment.bCreateDebugInfo)
 			{
 				Result += " -gdwarf-2";
-			}
-
-			string StaticAnalysisMode = Environment.GetEnvironmentVariable("CLANG_STATIC_ANALYZER_MODE");
-			if(StaticAnalysisMode != null && StaticAnalysisMode != "")
-			{
-				Result += " --analyze";
 			}
 
 			return Result;
@@ -314,6 +320,7 @@ namespace UnrealBuildTool
 
             string AddressSanitizer = Environment.GetEnvironmentVariable("ENABLE_ADDRESS_SANITIZER");
 			string ThreadSanitizer = Environment.GetEnvironmentVariable("ENABLE_THREAD_SANITIZER");
+			string UndefSanitizerMode = Environment.GetEnvironmentVariable("ENABLE_UNDEFINED_BEHAVIOR_SANITIZER");
 			if (AddressSanitizer != null && AddressSanitizer == "YES")
 			{
 				Result += " -g -fsanitize=address";
@@ -321,6 +328,10 @@ namespace UnrealBuildTool
 			else if (ThreadSanitizer != null && ThreadSanitizer == "YES")
 			{
 				Result += " -g -fsanitize=thread";
+			}
+			else if(UndefSanitizerMode != null && UndefSanitizerMode == "YES")
+			{
+				Result += " -g -fsanitize=undefined";
 			}
 
 			if (LinkEnvironment.bIsBuildingDLL)
@@ -459,6 +470,7 @@ namespace UnrealBuildTool
 				// Add the C++ source file and its included files to the prerequisite item list.
 				AddPrerequisiteSourceFile(CompileEnvironment, SourceFile, CompileAction.PrerequisiteItems);
 
+				string OutputFilePath = null;
 				if (CompileEnvironment.PrecompiledHeaderAction == PrecompiledHeaderAction.Create)
 				{
 					var PrecompiledHeaderExtension = UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.Mac).GetBinaryExtension(UEBuildBinaryType.PrecompiledHeader);
@@ -497,6 +509,7 @@ namespace UnrealBuildTool
 					CompileAction.ProducedItems.Add(RemoteObjectFile);
 					Result.ObjectFiles.Add(RemoteObjectFile);
 					FileArguments += string.Format(" -o \"{0}\"", RemoteObjectFile.AbsolutePath);
+					OutputFilePath = RemoteObjectFile.AbsolutePath;
 				}
 
 				// Add the source file path to the command-line.
@@ -506,15 +519,28 @@ namespace UnrealBuildTool
 				{
 					CompileAction.ActionHandler = new Action.BlockingActionHandler(RPCUtilHelper.RPCActionHandler);
 				}
+				
+				string AllArgs = Arguments + FileArguments + CompileEnvironment.AdditionalArguments;
+				string CompilerPath = Settings.ToolchainDir + MacCompiler;
+				
+				// Analyze and then compile using the shell to perform the indirection
+				string StaticAnalysisMode = Environment.GetEnvironmentVariable("CLANG_STATIC_ANALYZER_MODE");
+				if(StaticAnalysisMode != null && StaticAnalysisMode != "" && OutputFilePath != null)
+				{
+					string TempArgs = "-c \"" + CompilerPath + " " + AllArgs + " --analyze -Wno-unused-command-line-argument -Xclang -analyzer-output=html -Xclang -analyzer-config -Xclang path-diagnostics-alternate=true -Xclang -analyzer-config -Xclang report-in-main-source-file=true -Xclang -analyzer-disable-checker -Xclang deadcode.DeadStores -o " + OutputFilePath.Replace(".o", ".html") + "; " + CompilerPath + " " + AllArgs + "\"";
+					AllArgs = TempArgs;
+					CompilerPath = "/bin/sh";
+				}
 
 				CompileAction.WorkingDirectory = GetMacDevSrcRoot();
-				CompileAction.CommandPath = Settings.ToolchainDir + MacCompiler;
-				CompileAction.CommandArguments = Arguments + FileArguments + CompileEnvironment.AdditionalArguments;
+				CompileAction.CommandPath = CompilerPath;
+				CompileAction.CommandArguments = AllArgs;
 				CompileAction.CommandDescription = "Compile";
 				CompileAction.StatusDescription = Path.GetFileName(SourceFile.AbsolutePath);
 				CompileAction.bIsGCCCompiler = true;
 				// We're already distributing the command by execution on Mac.
 				CompileAction.bCanExecuteRemotely = false;
+				CompileAction.bShouldOutputStatusDescription = true;
 				CompileAction.OutputEventHandler = new DataReceivedEventHandler(RemoteOutputReceivedEventHandler);
 			}
 			return Result;
@@ -1001,7 +1027,10 @@ namespace UnrealBuildTool
 				// Prepare a script that will be called by FinalizeAppBundle.sh to copy all necessary third party dylibs to the app bundle
 				// This is done this way as FinalizeAppBundle.sh script can be created before all the libraries are processed, so
 				// at the time of it's creation we don't have the full list of third party dylibs all modules need.
-				FileReference DylibCopyScriptPath = FileReference.Combine(LinkEnvironment.IntermediateDirectory, "DylibCopy.sh");
+				if (DylibCopyScriptPath == null)
+				{
+					DylibCopyScriptPath = FileReference.Combine(LinkEnvironment.IntermediateDirectory, "DylibCopy.sh");
+				}
 				if (!bHasWipedCopyDylibScript)
 				{
 					if (FileReference.Exists(DylibCopyScriptPath))
@@ -1806,6 +1835,7 @@ namespace UnrealBuildTool
 
 		private FileItem FixDylibOutputFile = null;
 		private List<FileItem> ExecutablesThatNeedDsyms = new List<FileItem>();
+		private FileReference DylibCopyScriptPath = null;
 
 		public void StripSymbols(FileReference SourceFile, FileReference TargetFile)
 		{

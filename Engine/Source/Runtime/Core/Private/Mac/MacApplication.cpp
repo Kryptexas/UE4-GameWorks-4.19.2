@@ -79,7 +79,7 @@ FMacApplication::FMacApplication()
 ,	CurrentModifierFlags(0)
 ,	bIsRightClickEmulationEnabled(true)
 ,	bEmulatingRightClick(false)
-,	bIgnoreMouseMoveDelta(false)
+,	bIgnoreMouseMoveDelta(0)
 ,	bIsWorkspaceSessionActive(true)
 {
 	TextInputMethodSystem = MakeShareable(new FMacTextInputMethodSystem);
@@ -379,7 +379,7 @@ void FMacApplication::DeferEvent(NSObject* Object)
 			case NSRightMouseDragged:
 			case NSOtherMouseDragged:
 			case NSEventTypeSwipe:
-				DeferredEvent.Delta = bIgnoreMouseMoveDelta ? FVector2D::ZeroVector : FVector2D([Event deltaX], [Event deltaY]);
+				DeferredEvent.Delta = (bIgnoreMouseMoveDelta != 0) ? FVector2D::ZeroVector : FVector2D([Event deltaX], [Event deltaY]);
 				break;
 
 			case NSLeftMouseDown:
@@ -567,7 +567,7 @@ void FMacApplication::ProcessEvent(const FDeferredMacEvent& Event)
 			case NSOtherMouseDragged:
 				ConditionallyUpdateModifierKeys(Event);
 				ProcessMouseMovedEvent(Event, EventWindow);
-				bIgnoreMouseMoveDelta = false;
+				FPlatformAtomics::InterlockedExchange(&bIgnoreMouseMoveDelta, 0);
 				break;
 
 			case NSLeftMouseDown:
@@ -907,7 +907,7 @@ void FMacApplication::ProcessMouseUpEvent(const FDeferredMacEvent& Event, TShare
 	}
 
 	FPlatformMisc::bChachedMacMenuStateNeedsUpdate = true;
-	DraggedWindow = nullptr;
+	FPlatformAtomics::InterlockedExchangePtr((void**)&DraggedWindow, nullptr);
 }
 
 void FMacApplication::ProcessScrollWheelEvent(const FDeferredMacEvent& Event, TSharedPtr<FMacWindow> EventWindow)

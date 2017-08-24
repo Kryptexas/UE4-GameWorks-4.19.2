@@ -218,7 +218,7 @@ enum EOcclusionCombineMode
 	/** 
 	 * Multiply together occlusion values from Distance Field Ambient Occlusion and Screen Space Ambient Occlusion.  
 	 * This gives a good sense of depth everywhere, but can cause over-occlusion. 
-	 * SSAO should be tweaked to be less strong compard to Minimum.
+	 * SSAO should be tweaked to be less strong compared to Minimum.
 	 */
 	OCM_Multiply,
 	OCM_MAX,

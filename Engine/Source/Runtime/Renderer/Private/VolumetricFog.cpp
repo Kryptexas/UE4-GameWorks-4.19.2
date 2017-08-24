@@ -597,31 +597,31 @@ void FDeferredShadingSceneRenderer::RenderLocalLightsForVolumetricFog(
 				}
 				else
 				{
-				if (bDynamicallyShadowed)
-				{
-					if (bInverseSquared)
+					if (bDynamicallyShadowed)
 					{
+						if (bInverseSquared)
+						{
 							SetInjectShadowedLocalLightShaders<true, true, false>(RHICmdList, View, IntegrationData, LightSceneInfo, LightBounds, FogInfo, ProjectedShadowInfo, VolumetricFogGridSize, VolumeZBounds.X);
-					}
-					else
-					{
+						}
+						else
+						{
 							SetInjectShadowedLocalLightShaders<true, false, false>(RHICmdList, View, IntegrationData, LightSceneInfo, LightBounds, FogInfo, ProjectedShadowInfo, VolumetricFogGridSize, VolumeZBounds.X);
-					}
-				}
-				else
-				{
-					if (bInverseSquared)
-					{
-							SetInjectShadowedLocalLightShaders<false, true, false>(RHICmdList, View, IntegrationData, LightSceneInfo, LightBounds, FogInfo, ProjectedShadowInfo, VolumetricFogGridSize, VolumeZBounds.X);
+						}
 					}
 					else
 					{
+						if (bInverseSquared)
+						{
+							SetInjectShadowedLocalLightShaders<false, true, false>(RHICmdList, View, IntegrationData, LightSceneInfo, LightBounds, FogInfo, ProjectedShadowInfo, VolumetricFogGridSize, VolumeZBounds.X);
+						}
+						else
+						{
 							SetInjectShadowedLocalLightShaders<false, false, false>(RHICmdList, View, IntegrationData, LightSceneInfo, LightBounds, FogInfo, ProjectedShadowInfo, VolumetricFogGridSize, VolumeZBounds.X);
 						}
 					}
 				}
 
-				RHICmdList.SetStreamSource(0, GCircleRasterizeVertexBuffer.VertexBufferRHI, sizeof(FScreenVertex), 0);
+				RHICmdList.SetStreamSource(0, GCircleRasterizeVertexBuffer.VertexBufferRHI, 0);
 				const int32 NumInstances = VolumeZBounds.Y - VolumeZBounds.X;
 				const int32 NumTriangles = FCircleRasterizeVertexBuffer::NumVertices - 2;
 				RHICmdList.DrawIndexedPrimitive(GCircleRasterizeIndexBuffer.IndexBufferRHI, PT_TriangleList, 0, 0, FCircleRasterizeVertexBuffer::NumVertices, 0, NumTriangles, NumInstances);
@@ -666,6 +666,8 @@ public:
 		DirectionalLightFunctionWorldToShadow.Bind(Initializer.ParameterMap, TEXT("DirectionalLightFunctionWorldToShadow"));
 		LightFunctionTexture.Bind(Initializer.ParameterMap, TEXT("LightFunctionTexture"));
 		LightFunctionSampler.Bind(Initializer.ParameterMap, TEXT("LightFunctionSampler"));
+		StaticLightingScatteringIntensity.Bind(Initializer.ParameterMap, TEXT("StaticLightingScatteringIntensity"));
+		SkyLightUseStaticShadowing.Bind(Initializer.ParameterMap, TEXT("SkyLightUseStaticShadowing"));
 		SkyLightVolumetricScatteringIntensity.Bind(Initializer.ParameterMap, TEXT("SkyLightVolumetricScatteringIntensity"));
 		SkySH.Bind(Initializer.ParameterMap, TEXT("SkySH"));
 		PhaseG.Bind(Initializer.ParameterMap, TEXT("PhaseG"));
@@ -733,28 +735,34 @@ public:
 
 		FScene* Scene = (FScene*)View.Family->Scene;
 		FDistanceFieldAOParameters AOParameterData(Scene->DefaultMaxDistanceFieldOcclusionDistance);
+		FSkyLightSceneProxy* SkyLight = Scene->SkyLight;
 
-		if (Scene->SkyLight
+		if (SkyLight
 			// Skylights with static lighting had their diffuse contribution baked into lightmaps
-			&& !Scene->SkyLight->bHasStaticLighting
+			&& !SkyLight->bHasStaticLighting
 			&& View.Family->EngineShowFlags.SkyLighting)
 		{
-			SetShaderValue(RHICmdList, ShaderRHI, SkyLightVolumetricScatteringIntensity, Scene->SkyLight->VolumetricScatteringIntensity);
+			const float LocalSkyLightUseStaticShadowing = SkyLight->bWantsStaticShadowing && SkyLight->bCastShadows ? 1.0f : 0.0f;
+			SetShaderValue(RHICmdList, ShaderRHI, SkyLightUseStaticShadowing, LocalSkyLightUseStaticShadowing);
+			SetShaderValue(RHICmdList, ShaderRHI, SkyLightVolumetricScatteringIntensity, SkyLight->VolumetricScatteringIntensity);
 
-			const FSHVectorRGB3& SkyIrradiance = Scene->SkyLight->IrradianceEnvironmentMap;
+			const FSHVectorRGB3& SkyIrradiance = SkyLight->IrradianceEnvironmentMap;
 			SetShaderValue(RHICmdList, ShaderRHI, SkySH, (FVector4&)SkyIrradiance.R.V, 0);
 			SetShaderValue(RHICmdList, ShaderRHI, SkySH, (FVector4&)SkyIrradiance.G.V, 1);
 			SetShaderValue(RHICmdList, ShaderRHI, SkySH, (FVector4&)SkyIrradiance.B.V, 2);
 
-			AOParameterData = FDistanceFieldAOParameters(Scene->SkyLight->OcclusionMaxDistance, Scene->SkyLight->Contrast);
+			AOParameterData = FDistanceFieldAOParameters(SkyLight->OcclusionMaxDistance, SkyLight->Contrast);
 		}
 		else
 		{
+			SetShaderValue(RHICmdList, ShaderRHI, SkyLightUseStaticShadowing, 0.0f);
 			SetShaderValue(RHICmdList, ShaderRHI, SkyLightVolumetricScatteringIntensity, 0.0f);
 			SetShaderValue(RHICmdList, ShaderRHI, SkySH, FVector4(0, 0, 0, 0), 0);
 			SetShaderValue(RHICmdList, ShaderRHI, SkySH, FVector4(0, 0, 0, 0), 1);
 			SetShaderValue(RHICmdList, ShaderRHI, SkySH, FVector4(0, 0, 0, 0), 2);
 		}
+
+		SetShaderValue(RHICmdList, ShaderRHI, StaticLightingScatteringIntensity, View.Family->EngineShowFlags.GlobalIllumination ? FogInfo.VolumetricFogStaticLightingScatteringIntensity : 0.0f);
 
 		SetShaderValue(RHICmdList, ShaderRHI, PhaseG, FogInfo.VolumetricFogScatteringDistribution);
 		SetShaderValue(RHICmdList, ShaderRHI, InverseSquaredLightDistanceBiasScale, GInverseSquaredLightDistanceBiasScale);
@@ -782,6 +790,8 @@ public:
 		Ar << DirectionalLightFunctionWorldToShadow;
 		Ar << LightFunctionTexture;
 		Ar << LightFunctionSampler;
+		Ar << StaticLightingScatteringIntensity;
+		Ar << SkyLightUseStaticShadowing;
 		Ar << SkyLightVolumetricScatteringIntensity;
 		Ar << SkySH;
 		Ar << PhaseG;
@@ -804,6 +814,8 @@ private:
 	FShaderParameter DirectionalLightFunctionWorldToShadow;
 	FShaderResourceParameter LightFunctionTexture;
 	FShaderResourceParameter LightFunctionSampler;
+	FShaderParameter StaticLightingScatteringIntensity;
+	FShaderParameter SkyLightUseStaticShadowing;
 	FShaderParameter SkyLightVolumetricScatteringIntensity;
 	FShaderParameter SkySH;
 	FShaderParameter PhaseG;

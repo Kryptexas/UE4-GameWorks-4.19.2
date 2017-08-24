@@ -240,6 +240,7 @@ void NiagaraEffectRendererMeshes::GetDynamicMeshElements(const TArray<const FSce
 				false,
 				false,
 				false,
+				false,
 				SceneProxy->UseEditorDepthTest(),
 				SceneProxy->GetLightingChannelMask()
 				);

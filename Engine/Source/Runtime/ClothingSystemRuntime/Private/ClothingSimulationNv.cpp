@@ -1292,7 +1292,6 @@ void FClothingSimulationNv::DebugDraw_SelfCollision(USkeletalMeshComponent* Owne
 
 		const float SelfCollisionThickness = Config.SelfCollisionRadius;
 
-		
 		const FClothLODData& LodData = Asset->LodData[Actor.CurrentLodIndex];
 		const FClothPhysicalMeshData& PhysMesh = LodData.PhysicalMeshData;
 

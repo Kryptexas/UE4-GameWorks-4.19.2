@@ -11,13 +11,19 @@
 @interface FMetalView : FCocoaTextView
 @end
 #endif
+#include "PlatformFramePacer.h"
 
 enum EMetalViewportAccessFlag
 {
 	EMetalViewportAccessRHI,
 	EMetalViewportAccessRenderer,
-	EMetalViewportAccessGame
+	EMetalViewportAccessGame,
+	EMetalViewportAccessDisplayLink
 };
+
+class FMetalCommandQueue;
+
+typedef void (^FMetalViewportPresentHandler)(uint32 CGDirectDisplayID);
 
 class FMetalViewport : public FRHIViewport
 {
@@ -25,29 +31,47 @@ public:
 	FMetalViewport(void* WindowHandle, uint32 InSizeX, uint32 InSizeY, bool bInIsFullscreen,EPixelFormat Format);
 	~FMetalViewport();
 
-	void BeginDrawingViewport();
 	void Resize(uint32 InSizeX, uint32 InSizeY, bool bInIsFullscreen,EPixelFormat Format);
 	
-	FMetalTexture2D* GetBackBuffer(EMetalViewportAccessFlag Accessor) const;
+	TRefCountPtr<FMetalTexture2D> GetBackBuffer(EMetalViewportAccessFlag Accessor) const;
 	id<MTLDrawable> GetDrawable(EMetalViewportAccessFlag Accessor);
 	id<MTLTexture> GetDrawableTexture(EMetalViewportAccessFlag Accessor);
 	void ReleaseDrawable(void);
+
+	// supports pulling the raw MTLTexture
+	virtual void* GetNativeBackBufferTexture() const override { return GetBackBuffer(EMetalViewportAccessRenderer).GetReference(); }
+	virtual void* GetNativeBackBufferRT() const override { return (const_cast<FMetalViewport *>(this))->GetDrawableTexture(EMetalViewportAccessRenderer); }
 	
 #if PLATFORM_MAC
 	NSWindow* GetWindow() const;
+	
+	virtual void SetCustomPresent(FRHICustomPresent* InCustomPresent) override
+	{
+		CustomPresent = InCustomPresent;
+	}
+
+	virtual FRHICustomPresent* GetCustomPresent() const override { return CustomPresent; }
 #endif
+	
+	void Present(FMetalCommandQueue& CommandQueue);
+	void Swap();
 	
 private:
 	uint32 GetViewportIndex(EMetalViewportAccessFlag Accessor) const;
 
 private:
-	id<MTLDrawable> Drawable;
+	TMetalPtr<id<MTLDrawable>> Drawable;
 	TRefCountPtr<FMetalTexture2D> BackBuffer[2];
-	TArray<TRefCountPtr<FMetalTexture2D>> BackBuffersQueue;
-	FCriticalSection Mutex;
+	mutable FCriticalSection Mutex;
+	
+	uint32 DisplayID;
+	FMetalViewportPresentHandler Block;
+	volatile int32 FrameAvailable;
+	TRefCountPtr<FMetalTexture2D> LastCompleteFrame;
 
 #if PLATFORM_MAC
 	FMetalView* View;
+	FRHICustomPresent* CustomPresent;
 #endif
 };
 

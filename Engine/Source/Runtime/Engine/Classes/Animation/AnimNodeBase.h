@@ -605,6 +605,7 @@ struct ENGINE_API FAnimNode_Base
 	 * @param	Output		Output structure to write pose or curve data to. Also provides access to relevant data as a context.
 	 */
 	virtual void Evaluate_AnyThread(FPoseContext& Output);
+	virtual void Evaluate_AnyThread(FPoseContext& Output, bool bExpectsAdditivePose);
 
 	/** 
 	 * Called to evaluate component-space bone transforms according to the weights set up in Update().

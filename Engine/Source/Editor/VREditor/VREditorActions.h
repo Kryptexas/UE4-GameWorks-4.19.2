@@ -226,6 +226,4 @@ public:
 
 	static FText SelectingCandidateActorsText;
 
-}
-;
-
+};

@@ -43,6 +43,8 @@ public:
 	virtual bool AllowsSharingSamplers() const override { return false; }
 
 	virtual void SetupLanguageIntrinsics(_mesa_glsl_parse_state* State, exec_list* ir) override;
+
+	virtual bool AllowsImageLoadsForNonScalar() const { return !bIsES2; }
 };
 
 class ir_variable;

@@ -81,6 +81,7 @@ DEFINE_LOG_CATEGORY(LogEditorViewport);
 static const float MIN_ACTOR_BOUNDS_EXTENT	= 1.0f;
 
 TArray< TWeakObjectPtr< AActor > > FLevelEditorViewportClient::DropPreviewActors;
+bool FLevelEditorViewportClient::bIsDroppingPreviewActor;
 
 /** Static: List of objects we're hovering over */
 TSet<FViewportHoverTarget> FLevelEditorViewportClient::HoveredObjects;
@@ -1224,6 +1225,7 @@ bool FLevelEditorViewportClient::DropObjectsAtCoordinates(int32 MouseX, int32 Mo
 
 	if(DroppedObjects.Num() > 0)
 	{
+		bIsDroppingPreviewActor = bCreateDropPreview;
 		Viewport->InvalidateHitProxy();
 
 		FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
@@ -1417,6 +1419,9 @@ bool FLevelEditorViewportClient::DropObjectsAtCoordinates(int32 MouseX, int32 Mo
 			FEditorDelegates::OnNewActorsDropped.Broadcast(DroppedObjects, OutNewActors);
 		}
 	}
+
+	// Reset if creating a preview actor.
+	bIsDroppingPreviewActor = false;
 
 	return bResult;
 }

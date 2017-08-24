@@ -359,6 +359,17 @@ FCocoaRunLoopSource* FCocoaRunLoopSource::GameRunLoopSource = nullptr;
 
 - (void)main
 {
+	struct sched_param Sched;
+	FMemory::Memzero(&Sched, sizeof(struct sched_param));
+	int32 Policy = SCHED_RR; // It may be that Mac would also benefit from FIFO for Game, Render & RHI thread scheduling
+	
+	// Read the current policy
+	pthread_getschedparam(pthread_self(), &Policy, &Sched);
+	
+	// set the priority appropriately
+	Sched.sched_priority = 45; // Equivalent to TPri_Highest
+	pthread_setschedparam(pthread_self(), Policy, &Sched);
+	
 	NSRunLoop* GameRunLoop = [NSRunLoop currentRunLoop];
 	
 	// Register game run loop source

@@ -172,7 +172,7 @@ uint32 FSlateLoadingThreadTask::Run()
 	SyncMechanism->SlateThreadRunMainLoop();
 
 	// Tear down the slate loading thread ID
-	GSlateLoadingThreadId = 0;
+	FPlatformAtomics::InterlockedExchange((int32*)&GSlateLoadingThreadId, 0);
 
 	return 0;
 }

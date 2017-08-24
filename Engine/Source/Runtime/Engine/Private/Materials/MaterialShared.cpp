@@ -2918,7 +2918,7 @@ FMaterialCustomOutputAttributeDefintion::FMaterialCustomOutputAttributeDefintion
 		const FGuid& InAttributeID, const FString& InDisplayName, const FString& InFunctionName, EMaterialProperty InProperty,
 		EMaterialValueType InValueType, const FVector4& InDefaultValue, EShaderFrequency InShaderFrequency, MaterialAttributeBlendFunction InBlendFunction /*= nullptr*/)
 	: FMaterialAttributeDefintion(InAttributeID, InDisplayName, InProperty, InValueType, InDefaultValue, InShaderFrequency, INDEX_NONE, false, InBlendFunction)
-	, FunctionName(InDisplayName)
+	, FunctionName(InFunctionName)
 {
 }
 

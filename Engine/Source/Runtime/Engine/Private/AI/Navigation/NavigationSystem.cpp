@@ -3379,11 +3379,11 @@ ANavigationData* UNavigationSystem::CreateNavigationDataInstance(const FNavDataC
 					AgentToNavDataMap.Remove(ExistingNavigationData->GetConfig());
 				}
 
-				ExistingObject->Rename(NULL, NULL, REN_DontCreateRedirectors | REN_ForceGlobalUnique | REN_DoNotDirty | REN_NonTransactional);
+				ExistingObject->Rename(NULL, NULL, REN_DontCreateRedirectors | REN_ForceGlobalUnique | REN_DoNotDirty | REN_NonTransactional | REN_ForceNoResetLoaders);
 			}
 
 			// Set descriptive name
-			Instance->Rename(*StrName, NULL, REN_DoNotDirty);
+			Instance->Rename(*StrName, NULL, REN_DoNotDirty | REN_ForceNoResetLoaders);
 #if WITH_EDITOR
 			if (World->WorldType == EWorldType::Editor)
 			{

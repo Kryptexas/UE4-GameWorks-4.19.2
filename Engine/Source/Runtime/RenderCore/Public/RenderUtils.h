@@ -112,6 +112,9 @@ extern RENDERCORE_API class FTexture* GBlackArrayTexture;
 /** A global black volume texture. */
 extern RENDERCORE_API class FTexture* GBlackVolumeTexture;
 
+/** A global black volume texture<uint>  */
+extern RENDERCORE_API class FTexture* GBlackUintVolumeTexture;
+
 /** A global white cube texture. */
 extern RENDERCORE_API class FTexture* GWhiteTextureCube;
 
@@ -311,6 +314,11 @@ RENDERCORE_API ECubeFace GetCubeFaceFromName(const FString& Name);
 RENDERCORE_API FVertexDeclarationRHIRef& GetVertexDeclarationFVector4();
 
 RENDERCORE_API FVertexDeclarationRHIRef& GetVertexDeclarationFVector3();
+
+inline bool PlatformSupportsGPUInterpolatedVolumetricLightmaps(ERHIFeatureLevel::Type FeatureLevel)
+{
+	return FeatureLevel >= ERHIFeatureLevel::SM4;
+}
 
 RENDERCORE_API bool PlatformSupportsSimpleForwardShading(EShaderPlatform Platform);
 

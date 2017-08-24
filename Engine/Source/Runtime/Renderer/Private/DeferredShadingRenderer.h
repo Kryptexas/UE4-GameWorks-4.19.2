@@ -305,7 +305,13 @@ private:
 		bool bProjectingForForwardShading) const;
 
 	/** Sets up ViewState buffers for rendering capsule shadows. */
-	void SetupIndirectCapsuleShadows(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, bool bPrepareLightData, int32& NumCapsuleShapes, int32& NumMeshesWithCapsules, int32& NumMeshDistanceFieldCasters) const;
+	void SetupIndirectCapsuleShadows(
+		FRHICommandListImmediate& RHICmdList, 
+		const FViewInfo& View, 
+		int32& NumCapsuleShapes, 
+		int32& NumMeshesWithCapsules, 
+		int32& NumMeshDistanceFieldCasters,
+		FShaderResourceViewRHIParamRef& IndirectShadowLightDirectionSRV) const;
 
 	/** Renders indirect shadows from capsules modulated onto scene color. */
 	void RenderIndirectCapsuleShadows(
@@ -415,6 +421,8 @@ private:
 		float VolumetricFogDistance);
 
 	void ComputeVolumetricFog(FRHICommandListImmediate& RHICmdList);
+
+	void VisualizeVolumetricLightmap(FRHICommandListImmediate& RHICmdList);
 
 	/** Output SpecularColor * IndirectDiffuseGI for metals so they are not black in reflections */
 	void RenderReflectionCaptureSpecularBounceForAllViews(FRHICommandListImmediate& RHICmdList, FGraphicsPipelineStateInitializer& GraphicsPSOInit);

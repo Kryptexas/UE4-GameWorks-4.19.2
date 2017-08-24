@@ -79,7 +79,9 @@ inline EDescriptorSetStage GetDescriptorSetForStage(EShaderFrequency Stage)
 #define VULKAN_SINGLE_ALLOCATION_PER_RESOURCE					0
 
 #define VULKAN_CUSTOM_MEMORY_MANAGER_ENABLED					0
-	
+
+#define VULKAN_RETAIN_BUFFERS									0
+
 #define VULKAN_USE_MSAA_RESOLVE_ATTACHMENTS						1
 
 #define VULKAN_ENABLE_AGGRESSIVE_STATS							0
@@ -93,7 +95,7 @@ inline EDescriptorSetStage GetDescriptorSetForStage(EShaderFrequency Stage)
 #if PLATFORM_ANDROID
 	#define VULKAN_SIGNAL_UNIMPLEMENTED()
 #elif PLATFORM_LINUX
-	#define VULKAN_SIGNAL_UNIMPLEMENTED()	checkf(false, TEXT("Unimplemented vulkan functionality: %s"), __PRETTY_FUNCTION__)
+	#define VULKAN_SIGNAL_UNIMPLEMENTED()				checkf(false, TEXT("Unimplemented vulkan functionality: %s"), __PRETTY_FUNCTION__)
 #else
 	#define VULKAN_SIGNAL_UNIMPLEMENTED()				checkf(false, TEXT("Unimplemented vulkan functionality: %s"), TEXT(__FUNCTION__))
 #endif

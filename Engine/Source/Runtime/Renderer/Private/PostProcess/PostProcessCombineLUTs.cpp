@@ -13,7 +13,6 @@
 #include "ScreenRendering.h"
 #include "PipelineStateCache.h"
 
-
 // CVars
 static TAutoConsoleVariable<float> CVarColorMin(
 	TEXT("r.Color.Min"),
@@ -549,7 +548,8 @@ public:
 	{
 	}
 	
-	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, FTexture* Textures[BlendCount], float Weights[BlendCount])
+	template <typename TRHICommandList>
+	void SetParameters(TRHICommandList& RHICmdList, const FSceneView& View, FTexture* Textures[BlendCount], float Weights[BlendCount])
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 		CombineLUTsShaderParameters.Set(RHICmdList, ShaderRHI, View, Textures, Weights);
@@ -668,11 +668,11 @@ IMPLEMENT_SHADER_TYPE(template<>,FLUTBlenderCS<3>,TEXT("/Engine/Private/PostProc
 IMPLEMENT_SHADER_TYPE(template<>,FLUTBlenderCS<4>,TEXT("/Engine/Private/PostProcessCombineLUTs.usf"),TEXT("MainCS"),SF_Compute);
 IMPLEMENT_SHADER_TYPE(template<>,FLUTBlenderCS<5>,TEXT("/Engine/Private/PostProcessCombineLUTs.usf"),TEXT("MainCS"),SF_Compute);
 
-
-static void SetLUTBlenderShader(FRenderingCompositePassContext& Context, uint32 BlendCount, FTexture* Texture[], float Weights[], const FVolumeBounds& VolumeBounds)
+template <typename TRHICommandList>
+static void SetLUTBlenderShader(FRenderingCompositePassContext& Context, TRHICommandList& RHICmdList, uint32 BlendCount, FTexture* Texture[], float Weights[], const FVolumeBounds& VolumeBounds)
 {
 	FGraphicsPipelineStateInitializer GraphicsPSOInit;
-	Context.RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+	RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 	GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
 	GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
 	GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
@@ -717,12 +717,12 @@ static void SetLUTBlenderShader(FRenderingCompositePassContext& Context, uint32 
 		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
 		GraphicsPSOInit.BoundShaderState.GeometryShaderRHI = GETSAFERHISHADER_GEOMETRY(*GeometryShader);
 		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(LocalPixelShader);
-		SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
+		SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
-		VertexShader->SetParameters(Context.RHICmdList, VolumeBounds, FIntVector(VolumeBounds.MaxX - VolumeBounds.MinX));
+		VertexShader->SetParameters(RHICmdList, VolumeBounds, FIntVector(VolumeBounds.MaxX - VolumeBounds.MinX));
 		if(GeometryShader.IsValid())
 		{
-			GeometryShader->SetParameters(Context.RHICmdList, VolumeBounds.MinZ);
+			GeometryShader->SetParameters(RHICmdList, VolumeBounds.MinZ);
 		}
 	}
 	else
@@ -732,7 +732,7 @@ static void SetLUTBlenderShader(FRenderingCompositePassContext& Context, uint32 
 		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
 		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
 		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(LocalPixelShader);
-		SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
+		SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 		VertexShader->SetParameters(Context);
 	}
@@ -740,7 +740,7 @@ static void SetLUTBlenderShader(FRenderingCompositePassContext& Context, uint32 
 	case BlendCount: \
 	{ \
 	TShaderMapRef<FLUTBlenderPS<BlendCount> > PixelShader(ShaderMap); \
-	PixelShader->SetParameters(Context.RHICmdList, View, Texture, Weights); \
+	PixelShader->SetParameters(RHICmdList, View, Texture, Weights); \
 	}; \
 	break;
 
@@ -901,7 +901,7 @@ void FRCPassPostProcessCombineLUTs::Process(FRenderingCompositePassContext& Cont
 		&PassOutputs[0].RequestSurface(Context);
 	
 	check(DestRenderTarget);
-
+	static auto* RenderPassCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.RHIRenderPasses"));
 	if (bIsComputePass)
 	{
 		FIntRect DestRect(0, 0, bUseVolumeTextureLUT ? GLUTSize : GLUTSize * GLUTSize, GLUTSize);
@@ -918,7 +918,7 @@ void FRCPassPostProcessCombineLUTs::Process(FRenderingCompositePassContext& Cont
 			// Async path
 			FRHIAsyncComputeCommandListImmediate& RHICmdListComputeImmediate = FRHICommandListExecutor::GetImmediateAsyncComputeCommandList();
 			{
- 				SCOPED_COMPUTE_EVENT(RHICmdListComputeImmediate, AsyncCombineLUTs);
+				SCOPED_COMPUTE_EVENT(RHICmdListComputeImmediate, AsyncCombineLUTs);
 				RHICmdListComputeImmediate.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EGfxToCompute, DestRenderTarget->UAV);
 				DispatchCS(RHICmdListComputeImmediate, Context, DestRect, DestRenderTarget->UAV, LocalCount, LocalTextures, LocalWeights);
 				RHICmdListComputeImmediate.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToGfx, DestRenderTarget->UAV, AsyncEndFence);
@@ -950,7 +950,7 @@ void FRCPassPostProcessCombineLUTs::Process(FRenderingCompositePassContext& Cont
 
 		const FVolumeBounds VolumeBounds(GLUTSize);
 
-		SetLUTBlenderShader(Context, LocalCount, LocalTextures, LocalWeights, VolumeBounds);
+		SetLUTBlenderShader(Context, Context.RHICmdList, LocalCount, LocalTextures, LocalWeights, VolumeBounds);
 
 		if (bUseVolumeTextureLUT)
 		{

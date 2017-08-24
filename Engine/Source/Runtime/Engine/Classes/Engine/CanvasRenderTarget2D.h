@@ -17,7 +17,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnCanvasRenderTargetUpdate, UCan
 
 /**
  * CanvasRenderTarget2D is 2D render target which exposes a Canvas interface to allow you to draw elements onto 
- * it directly.  Use FindCanvasRenderTarget2D() to find or create a render target texture by unique name, then
+ * it directly.  Use CreateCanvasRenderTarget2D() to create a render target texture by unique name, then
  * bind a function to the OnCanvasRenderTargetUpdate delegate which will be called when the render target is
  * updated.  If you need to repaint your canvas every single frame, simply call UpdateResource() on it from a Tick
  * function.  Also, remember to hold onto your new canvas render target with a reference so that it doesn't get

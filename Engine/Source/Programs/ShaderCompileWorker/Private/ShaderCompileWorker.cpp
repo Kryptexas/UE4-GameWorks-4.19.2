@@ -125,7 +125,7 @@ static void ProcessCompilationJob(const FShaderCompilerInput& Input,FShaderCompi
 class FWorkLoop
 {
 public:
-	FWorkLoop(const TCHAR* ParentProcessIdText,const TCHAR* InWorkingDirectory,const TCHAR* InInputFilename,const TCHAR* InOutputFilename, TMap<FString, uint16>& InFormatVersionMap)
+	FWorkLoop(const TCHAR* ParentProcessIdText,const TCHAR* InWorkingDirectory,const TCHAR* InInputFilename,const TCHAR* InOutputFilename, TMap<FString, uint32>& InFormatVersionMap)
 	:	ParentProcessId(FCString::Atoi(ParentProcessIdText))
 	,	WorkingDirectory(InWorkingDirectory)
 	,	InputFilename(InInputFilename)
@@ -206,7 +206,7 @@ private:
 
 	const FString InputFilePath;
 	const FString OutputFilePath;
-	TMap<FString, uint16> FormatVersionMap;
+	TMap<FString, uint32> FormatVersionMap;
 	FString TempFilePath;
 
 	/** Opens an input file, trying multiple times if necessary. */
@@ -230,7 +230,7 @@ private:
 		return InputFile;
 	}
 
-	void VerifyFormatVersions(TMap<FString, uint16>& ReceivedFormatVersionMap)
+	void VerifyFormatVersions(TMap<FString, uint32>& ReceivedFormatVersionMap)
 	{
 		for (auto Pair : ReceivedFormatVersionMap)
 		{
@@ -255,7 +255,7 @@ private:
 			ExitWithoutCrash(ESCWErrorCode::BadInputVersion, FString::Printf(TEXT("Exiting due to ShaderCompilerWorker expecting input version %d, got %d instead! Did you forget to build ShaderCompilerWorker?"), ShaderCompileWorkerInputVersion, InputVersion));
 		}
 
-		TMap<FString, uint16> ReceivedFormatVersionMap;
+		TMap<FString, uint32> ReceivedFormatVersionMap;
 		InputFile << ReceivedFormatVersionMap;
 
 		VerifyFormatVersions(ReceivedFormatVersionMap);
@@ -730,94 +730,16 @@ static void DirectCompile(const TArray<const class IShaderFormat*>& ShaderFormat
 	Input.Target.Frequency = Frequency;
 	Input.bSkipPreprocessedCache = !bUseMCPP;
 
-	auto AddResourceTableEntry = [](TMap<FString, FResourceTableEntry>& Map, const FString& Name, const FString& UBName, int32 Type, int32 ResourceIndex)
+	uint32 ResourceIndex = 0;
+	auto AddResourceTableEntry = [&ResourceIndex](TMap<FString, FResourceTableEntry>& Map, const FString& Name, const FString& UBName, int32 Type)
 	{
 		FResourceTableEntry LambdaEntry;
 		LambdaEntry.UniformBufferName = UBName;
 		LambdaEntry.Type = Type;
 		LambdaEntry.ResourceIndex = ResourceIndex;
 		Map.Add(Name, LambdaEntry);
+		++ResourceIndex;
 	};
-
-	// Sample setup for Uniform Buffers as SCW does not rely on the Engine/Renderer. These change quite infrequently...
-	Input.Environment.ResourceTableLayoutHashes.Add(TEXT("View"), 178850472);
-	Input.Environment.ResourceTableLayoutHashes.Add(TEXT("InstancedView"), 178257920);
-	Input.Environment.ResourceTableLayoutHashes.Add(TEXT("BuiltinSamplers"), 134219776);
-	Input.Environment.ResourceTableLayoutHashes.Add(TEXT("Primitive"), 18874368);
-	Input.Environment.ResourceTableLayoutHashes.Add(TEXT("DrawRectangleParameters"), 3145728);
-	Input.Environment.ResourceTableLayoutHashes.Add(TEXT("SpeedTreeData"), 39845888);
-	Input.Environment.ResourceTableLayoutHashes.Add(TEXT("GBuffers"), 16842752);
-	Input.Environment.ResourceTableLayoutHashes.Add(TEXT("PrimitiveFade"), 1048576);
-	Input.Environment.ResourceTableLayoutHashes.Add(TEXT("VectorFieldVis"), 9437184);
-	Input.Environment.ResourceTableLayoutHashes.Add(TEXT("Material"), 6815848);
-
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("View_GlobalDistanceFieldTexture0_UB"), TEXT("View"), 9, 0);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("View_GlobalDistanceFieldSampler0_UB"), TEXT("View"), 8, 1);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("View_GlobalDistanceFieldTexture1_UB"), TEXT("View"), 9, 2);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("View_GlobalDistanceFieldSampler1_UB"), TEXT("View"), 8, 3);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("View_GlobalDistanceFieldTexture2_UB"), TEXT("View"), 9, 4);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("View_GlobalDistanceFieldSampler2_UB"), TEXT("View"), 8, 5);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("View_GlobalDistanceFieldTexture3_UB"), TEXT("View"), 9, 6);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("View_GlobalDistanceFieldSampler3_UB"), TEXT("View"), 8, 7);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("View_AtmosphereTransmittanceTexture_UB"), TEXT("View"), 9, 8);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("View_AtmosphereTransmittanceTextureSampler_UB"), TEXT("View"), 8, 9);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("View_AtmosphereIrradianceTexture_UB"), TEXT("View"), 9, 10);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("View_AtmosphereIrradianceTextureSampler_UB"), TEXT("View"), 8, 11);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("View_AtmosphereInscatterTexture_UB"), TEXT("View"), 9, 12);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("View_AtmosphereInscatterTextureSampler_UB"), TEXT("View"), 8, 13);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("View_PerlinNoiseGradientTexture"), TEXT("View"), 9, 14);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("View_PerlinNoiseGradientTextureSampler"), TEXT("View"), 8, 15);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("View_PerlinNoise3DTexture"), TEXT("View"), 9, 16);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("View_PerlinNoise3DTextureSampler"), TEXT("View"), 8, 17);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("BuiltinSamplers_Bilinear"), TEXT("BuiltinSamplers"), 8, 0);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("BuiltinSamplers_BilinearClamped"), TEXT("BuiltinSamplers"), 8, 1);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("BuiltinSamplers_Point"), TEXT("BuiltinSamplers"), 8, 2);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("BuiltinSamplers_PointClamped"), TEXT("BuiltinSamplers"), 8, 3);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("BuiltinSamplers_Trilinear"), TEXT("BuiltinSamplers"), 8, 4);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("BuiltinSamplers_TrilinearClamped"), TEXT("BuiltinSamplers"), 8, 5);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("GBuffers_GBufferATexture"), TEXT("GBuffers"), 9, 0);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("GBuffers_GBufferBTexture"), TEXT("GBuffers"), 9, 1);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("GBuffers_GBufferCTexture"), TEXT("GBuffers"), 9, 2);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("GBuffers_GBufferDTexture"), TEXT("GBuffers"), 9, 3);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("GBuffers_GBufferETexture"), TEXT("GBuffers"), 9, 4);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("GBuffers_GBufferVelocityTexture"), TEXT("GBuffers"), 9, 5);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("GBuffers_GBufferATextureNonMS"), TEXT("GBuffers"), 9, 6);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("GBuffers_GBufferBTextureNonMS"), TEXT("GBuffers"), 9, 7);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("GBuffers_GBufferCTextureNonMS"), TEXT("GBuffers"), 9, 8);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("GBuffers_GBufferDTextureNonMS"), TEXT("GBuffers"), 9, 9);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("GBuffers_GBufferETextureNonMS"), TEXT("GBuffers"), 9, 10);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("GBuffers_GBufferVelocityTextureNonMS"), TEXT("GBuffers"), 9, 11);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("GBuffers_GBufferATextureMS"), TEXT("GBuffers"), 9, 12);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("GBuffers_GBufferBTextureMS"), TEXT("GBuffers"), 9, 13);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("GBuffers_GBufferCTextureMS"), TEXT("GBuffers"), 9, 14);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("GBuffers_GBufferDTextureMS"), TEXT("GBuffers"), 9, 15);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("GBuffers_GBufferETextureMS"), TEXT("GBuffers"), 9, 16);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("GBuffers_GBufferVelocityTextureMS"), TEXT("GBuffers"), 9, 17);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("GBuffers_GBufferATextureSampler"), TEXT("GBuffers"), 8, 18);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("GBuffers_GBufferBTextureSampler"), TEXT("GBuffers"), 8, 19);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("GBuffers_GBufferCTextureSampler"), TEXT("GBuffers"), 8, 20);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("GBuffers_GBufferDTextureSampler"), TEXT("GBuffers"), 8, 21);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("GBuffers_GBufferETextureSampler"), TEXT("GBuffers"), 8, 22);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("GBuffers_GBufferVelocityTextureSampler"), TEXT("GBuffers"), 8, 23);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("Material_Clamp_WorldGroupSettings"), TEXT("Material"), 8, 1);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("Material_Wrap_WorldGroupSettings"), TEXT("Material"), 8, 0);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("Material_Texture2D_0"), TEXT("Material"), 9, 0);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("Material_Texture2D_1"), TEXT("Material"), 9, 1);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("Material_Texture2D_2"), TEXT("Material"), 9, 2);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("Material_Texture2D_3"), TEXT("Material"), 9, 3);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("Material_Texture2D_4"), TEXT("Material"), 9, 4);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("Material_Texture2D_5"), TEXT("Material"), 9, 5);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("Material_Texture2D_6"), TEXT("Material"), 9, 6);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("Material_Texture2D_7"), TEXT("Material"), 9, 7);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("Material_Texture2D_0Sampler"), TEXT("Material"), 8, 8);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("Material_Texture2D_1Sampler"), TEXT("Material"), 8, 9);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("Material_Texture2D_2Sampler"), TEXT("Material"), 8, 10);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("Material_Texture2D_3Sampler"), TEXT("Material"), 8, 11);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("Material_Texture2D_4Sampler"), TEXT("Material"), 8, 12);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("Material_Texture2D_5Sampler"), TEXT("Material"), 8, 13);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("Material_Texture2D_6Sampler"), TEXT("Material"), 8, 14);
-	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("Material_Texture2D_7Sampler"), TEXT("Material"), 8, 15);
-
 
 	uint32 CFlag = 0;
 	while (CFlags != 0)
@@ -872,7 +794,7 @@ static int32 GuardedMain(int32 argc, TCHAR* argv[], bool bDirectMode)
 	// We just enumerate the shader formats here for debugging.
 	const TArray<const class IShaderFormat*>& ShaderFormats = GetShaderFormats();
 	check(ShaderFormats.Num());
-	TMap<FString, uint16> FormatVersionMap;
+	TMap<FString, uint32> FormatVersionMap;
 	for (int32 Index = 0; Index < ShaderFormats.Num(); Index++)
 	{
 		TArray<FName> OutFormats;
@@ -881,7 +803,7 @@ static int32 GuardedMain(int32 argc, TCHAR* argv[], bool bDirectMode)
 		for (int32 InnerIndex = 0; InnerIndex < OutFormats.Num(); InnerIndex++)
 		{
 			UE_LOG(LogShaders, Display, TEXT("Available Shader Format %s"), *OutFormats[InnerIndex].ToString());
-			uint16 Version = ShaderFormats[Index]->GetVersion(OutFormats[InnerIndex]);
+			uint32 Version = ShaderFormats[Index]->GetVersion(OutFormats[InnerIndex]);
 			FormatVersionMap.Add(OutFormats[InnerIndex].ToString(), Version);
 		}
 	}

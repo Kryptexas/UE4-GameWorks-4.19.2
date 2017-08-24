@@ -425,4 +425,3 @@ protected:
 	    Otherwise the panel will immediately start scaling because the user is using the analog stick to aim at the radial menu items. */
 	bool bPanelCanScale;
 };
-

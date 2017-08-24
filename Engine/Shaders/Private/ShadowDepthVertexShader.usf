@@ -140,7 +140,7 @@ struct FShadowDepthDSToPS : FShadowDepthVSToPS
 	float4 Position : SV_POSITION;
 #if ONEPASS_POINTLIGHT_SHADOW && USING_VERTEX_SHADER_LAYER
 	uint LayerIndex : SV_RenderTargetArrayIndex;
-	float ClipDistance : SV_ClipDistance0;
+	float ClipDistance : SV_ClipDistance2;
 #endif
 };
 
@@ -207,7 +207,7 @@ void Main(
 	out FShadowDepthVSToPS OutParameters,
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && ONEPASS_POINTLIGHT_SHADOW && USING_VERTEX_SHADER_LAYER
 	out uint LayerIndex : SV_RenderTargetArrayIndex,
-	out float ClipDistance : SV_ClipDistance0,
+	out float ClipDistance : SV_ClipDistance2,
 #endif
 #endif
 	OPTIONAL_VertexID
@@ -294,7 +294,7 @@ void MainForGS(
 	out FShadowDepthVSToPS OutParameters,
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && ONEPASS_POINTLIGHT_SHADOW && USING_VERTEX_SHADER_LAYER
 	out uint LayerIndex : SV_RenderTargetArrayIndex,
-	out float ClipDistance : SV_ClipDistance0,
+	out float ClipDistance : SV_ClipDistance2,
 #endif
 #endif
 	OPTIONAL_VertexID
@@ -317,7 +317,7 @@ void PositionOnlyMain(
 	in FPositionOnlyVertexFactoryInput Input,
 #if USING_ONEPASS_POINT_VERTEX_LAYER
 	out uint LayerIndex : SV_RenderTargetArrayIndex,
-	out float ClipDistance : SV_ClipDistance0,
+	out float ClipDistance : SV_ClipDistance2,
 #endif
 	out FShadowDepthVSToPS OutParameters,
 	out float4 OutPosition : SV_POSITION
@@ -363,7 +363,7 @@ void PositionOnlyMainForGS(
 	in FPositionOnlyVertexFactoryInput Input,
 #if USING_ONEPASS_POINT_VERTEX_LAYER
 	out uint LayerIndex : SV_RenderTargetArrayIndex,
-	out float ClipDistance : SV_ClipDistance0,
+	out float ClipDistance : SV_ClipDistance2,
 #endif
 	out FShadowDepthVSToPS OutParameters,
 	out float4 OutPosition : SV_POSITION

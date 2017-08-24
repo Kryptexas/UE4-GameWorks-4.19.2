@@ -145,6 +145,16 @@ FColor FLinearColor::Quantize() const
 		);
 }
 
+FColor FLinearColor::QuantizeRound() const
+{
+	return FColor(
+		(uint8)FMath::Clamp<int32>(FMath::RoundToInt(R*255.f),0,255),
+		(uint8)FMath::Clamp<int32>(FMath::RoundToInt(G*255.f),0,255),
+		(uint8)FMath::Clamp<int32>(FMath::RoundToInt(B*255.f),0,255),
+		(uint8)FMath::Clamp<int32>(FMath::RoundToInt(A*255.f),0,255)
+		);
+}
+
 /**
  * Returns a desaturated color, with 0 meaning no desaturation and 1 == full desaturation
  *

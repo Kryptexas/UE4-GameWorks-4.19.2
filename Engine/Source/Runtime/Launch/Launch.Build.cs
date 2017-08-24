@@ -35,7 +35,8 @@ public class Launch : ModuleRules
 				"Slate",
 				"SlateCore",
 				"Sockets",
-				"Overlay",
+                "Overlay",
+				"UtilityShaders",
 			}
 		);
 

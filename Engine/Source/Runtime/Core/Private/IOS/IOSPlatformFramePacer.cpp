@@ -8,7 +8,8 @@
 
 // Collection of events listening for this trigger.
 static TArray<FEvent*> ListeningEvents;
-
+static FCriticalSection HandlersMutex;
+static NSMutableSet<FIOSFramePacerHandler>* Handlers = [NSMutableSet new];
 
 /*******************************************************************
  * FIOSFramePacer implementation
@@ -76,6 +77,13 @@ static TArray<FEvent*> ListeningEvents;
 
 -(void)signal:(id)param
 {
+	{
+		FScopeLock Lock(&HandlersMutex);
+		for (FIOSFramePacerHandler Handler in Handlers)
+		{
+			Handler(0);
+		}
+	}	
     for( auto& NextEvent : ListeningEvents )
     {
         NextEvent->Trigger();
@@ -138,6 +146,22 @@ void FIOSPlatformRHIFramePacer::InitWithEvent(FEvent* TriggeredEvent)
         
     // Only one supported for now, we may want more eventually.
     ListeningEvents.Add( TriggeredEvent );
+}
+
+void FIOSPlatformRHIFramePacer::AddHandler(FIOSFramePacerHandler Handler)
+{
+	check (FramePacer);
+	FScopeLock Lock(&HandlersMutex);
+	FIOSFramePacerHandler Copy = Block_copy(Handler);
+	[Handlers addObject:Copy];
+	Block_release(Copy);
+}
+
+void FIOSPlatformRHIFramePacer::RemoveHandler(FIOSFramePacerHandler Handler)
+{
+	check (FramePacer);
+	FScopeLock Lock(&HandlersMutex);
+	[Handlers removeObject:Handler];
 }
 
 void FIOSPlatformRHIFramePacer::Suspend()

@@ -223,15 +223,17 @@ int64 FStreamingTexture::UpdateRetentionPriority_Async()
 
 	if (Texture)
 	{
-		const bool bShouldKeep = bIsTerrainTexture || bForceFullyLoadHeuristic || bLooksLowRes;
+		const bool bIsHuge    = GetSize(BudgetedMips) >= 8 * 1024 * 1024 && LODGroup != TEXTUREGROUP_Lightmap && LODGroup != TEXTUREGROUP_Shadowmap;
+		const bool bShouldKeep = bIsTerrainTexture || bForceFullyLoadHeuristic || (bLooksLowRes && !bIsHuge);
 		const bool bIsSmall   = GetSize(BudgetedMips) <= 200 * 1024; 
 		const bool bIsVisible = VisibleWantedMips >= HiddenWantedMips; // Whether the first mip dropped would be a visible mip or not.
 
 		// Here we try to have a minimal amount of priority flags for last render time to be meaningless.
 		// We mostly want thing not seen from a long time to go first to avoid repeating load / unload patterns.
 
-		if (bShouldKeep)						RetentionPriority += 1024; // Keep forced fully load as much as possible.
-		if (bIsVisible)							RetentionPriority += 512; // Keep visible things as much as possible.
+		if (bShouldKeep)						RetentionPriority += 2048; // Keep forced fully load as much as possible.
+		if (bIsVisible)							RetentionPriority += 1024; // Keep visible things as much as possible.
+		if (!bIsHuge)							RetentionPriority += 512; // Drop high resolution which usually target ultra close range quality.
 		if (bIsCharacterTexture || bIsSmall)	RetentionPriority += 256; // Try to keep character of small texture as they don't pay off.
 		if (!bIsVisible)						RetentionPriority += FMath::Clamp<int32>(255 - (int32)LastRenderTime, 1, 255); // Keep last visible first.
 

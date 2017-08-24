@@ -44,7 +44,7 @@ groupshared uint SortedTileReflectionCaptureIndices[MAX_CAPTURES];
 
 // Whether to use reflection captures culled to the light grid, or tiled culling
 // .93ms -> .70ms when enabled on 970 GTX. PS4 cost is about the same.
-#define USE_LIGHT_GRID_REFLECTION_CAPTURE_CULLING !COMPILER_METAL
+#define USE_LIGHT_GRID_REFLECTION_CAPTURE_CULLING (!COMPILER_METAL || MAX_SHADER_LANGUAGE_VERSION >= 2)
 #define SORT_CAPTURES 1
 
 #if USE_LIGHT_GRID_REFLECTION_CAPTURE_CULLING

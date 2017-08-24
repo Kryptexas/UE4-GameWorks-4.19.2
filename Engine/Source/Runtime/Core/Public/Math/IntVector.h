@@ -55,6 +55,13 @@ public:
 	/**
 	 * Constructor
 	 *
+	 * @param InVector float vector converted to int
+	 */
+	explicit FIntVector( FVector InVector  );
+
+	/**
+	 * Constructor
+	 *
 	 * @param EForceInit Force init enum
 	 */
 	explicit FORCEINLINE FIntVector( EForceInit );

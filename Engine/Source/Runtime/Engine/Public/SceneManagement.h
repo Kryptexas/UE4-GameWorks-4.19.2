@@ -816,7 +816,7 @@ public:
 inline bool DoesPlatformSupportDistanceFieldShadowing(EShaderPlatform Platform)
 {
 	// Hasn't been tested elsewhere yet
-	return Platform == SP_PCD3D_SM5 || Platform == SP_PS4 || Platform == SP_METAL_SM5 || Platform == SP_XBOXONE_D3D12 || Platform == SP_XBOXONE_D3D11;
+	return Platform == SP_PCD3D_SM5 || Platform == SP_PS4 || (IsMetalPlatform(Platform) && GetMaxSupportedFeatureLevel(Platform) >= ERHIFeatureLevel::SM5 && RHIGetShaderLanguageVersion(Platform) >= 2) || Platform == SP_XBOXONE_D3D12 || Platform == SP_XBOXONE_D3D11 || Platform == SP_VULKAN_SM5;
 }
 
 /** Represents a USkyLightComponent to the rendering thread. */
@@ -856,6 +856,18 @@ public:
 	EOcclusionCombineMode OcclusionCombineMode;
 };
 
+struct FLightParameters
+{
+	FVector4 LightPositionAndInvRadius;
+	FVector4 LightColorAndFalloffExponent;
+	FVector NormalizedLightDirection;
+	FVector NormalizedLightTangent;
+	FVector2D SpotAngles;
+	float LightSourceRadius;
+	float LightSoftSourceRadius;
+	float LightSourceLength;
+	float LightMinRoughness;
+};
 
 /** 
  * Encapsulates the data which is used to render a light by the rendering thread. 
@@ -896,6 +908,7 @@ public:
 	virtual bool IsInverseSquared() const { return false; }
 	virtual float GetLightSourceAngle() const { return 0.0f; }
 	virtual float GetTraceDistance() const { return 0.0f; }
+	virtual float GetEffectiveScreenRadius(const FViewMatrices& ShadowViewMatrices) const { return 0.0f; }
 
 	virtual FVector2D GetLightShaftConeParams() const
 	{
@@ -903,7 +916,7 @@ public:
 	}
 
 	/** Accesses parameters needed for rendering the light. */
-	virtual void GetParameters(FVector4& LightPositionAndInvRadius, FVector4& LightColorAndFalloffExponent, FVector& NormalizedLightDirection, FVector2D& SpotAngles, float& LightSourceRadius, float& LightSourceLength, float& LightMinRoughness) const {}
+	virtual void GetParameters(FLightParameters& LightParameters) const {}
 
 	virtual FVector2D GetDirectionalLightDistanceFadeParameters(ERHIFeatureLevel::Type InFeatureLevel, bool bPrecomputedLightingIsValid) const
 	{

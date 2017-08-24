@@ -35,7 +35,7 @@ public:
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
-		const bool bIsAndroidGLES = (Platform == EShaderPlatform::SP_OPENGL_ES3_1_ANDROID || Platform == EShaderPlatform::SP_OPENGL_ES2_ANDROID);
+		const bool bIsAndroidGLES = RHISupportsMobileMultiView(Platform);
 		OutEnvironment.SetDefine(TEXT("MOBILE_MULTI_VIEW"), (bMobileMultiView && bIsAndroidGLES) ? 1u : 0u);
 	}
 
@@ -96,7 +96,7 @@ public:
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
-		const bool bIsAndroidGLES = (Platform == EShaderPlatform::SP_OPENGL_ES3_1_ANDROID || Platform == EShaderPlatform::SP_OPENGL_ES2_ANDROID);
+		const bool bIsAndroidGLES = RHISupportsMobileMultiView(Platform);
 		OutEnvironment.SetDefine(TEXT("MOBILE_MULTI_VIEW"), (bMobileMultiView && bIsAndroidGLES) ? 1u : 0u);
 	}
 
@@ -165,7 +165,7 @@ public:
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
-		const bool bIsAndroidGLES = (Platform == EShaderPlatform::SP_OPENGL_ES3_1_ANDROID || Platform == EShaderPlatform::SP_OPENGL_ES2_ANDROID);
+		const bool bIsAndroidGLES = RHISupportsMobileMultiView(Platform);
 		OutEnvironment.SetDefine(TEXT("MOBILE_MULTI_VIEW"), (bMobileMultiView && bIsAndroidGLES) ? 1u : 0u);
 	}
 

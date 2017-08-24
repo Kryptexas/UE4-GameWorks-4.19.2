@@ -18,7 +18,7 @@ ENGINE_API void RasterizeToVolumeTexture(FRHICommandList& RHICmdList, FVolumeBou
 {
 	// Setup the viewport to only render to the given bounds
 	RHICmdList.SetViewport(VolumeBounds.MinX, VolumeBounds.MinY, 0, VolumeBounds.MaxX, VolumeBounds.MaxY, 0);
-	RHICmdList.SetStreamSource(0, GVolumeRasterizeVertexBuffer.VertexBufferRHI, sizeof(FScreenVertex), 0);
+	RHICmdList.SetStreamSource(0, GVolumeRasterizeVertexBuffer.VertexBufferRHI, 0);
 	const int32 NumInstances = VolumeBounds.MaxZ - VolumeBounds.MinZ;
 	// Render a quad per slice affected by the given bounds
 	RHICmdList.DrawPrimitive(PT_TriangleStrip, 0, 2, NumInstances);

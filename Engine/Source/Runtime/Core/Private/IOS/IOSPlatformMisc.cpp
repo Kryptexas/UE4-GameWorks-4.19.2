@@ -16,10 +16,6 @@
 #include "IOSChunkInstaller.h"
 #include "Misc/CommandLine.h"
 #include "Misc/ConfigCacheIni.h"
-#include "Apple/ApplePlatformDebugEvents.h"
-#include "HAL/FileManager.h"
-#include "Misc/FileHelper.h"
-
 #include "Apple/ApplePlatformCrashContext.h"
 #include "IOSPlatformCrashContext.h"
 #if !PLATFORM_TVOS
@@ -27,6 +23,7 @@
 #include "PLCrashReport.h"
 #include "PLCrashReportTextFormatter.h"
 #endif
+#include "HAL/FileManager.h"
 #include "HAL/PlatformOutputDevices.h"
 #include "Misc/OutputDeviceError.h"
 #include "Misc/OutputDeviceRedirector.h"
@@ -97,102 +94,6 @@ void FIOSPlatformMisc::PlatformInit()
 void FIOSPlatformMisc::PlatformHandleSplashScreen(bool ShowSplashScreen)
 {
 //    GShowSplashScreen = ShowSplashScreen;
-}
-
-void FIOSPlatformMisc::GetEnvironmentVariable(const TCHAR* VariableName, TCHAR* Result, int32 ResultLength)
-{
-	ANSICHAR *AnsiResult = getenv(TCHAR_TO_ANSI(VariableName));
-	if (AnsiResult)
-	{
-		wcsncpy(Result, ANSI_TO_TCHAR(AnsiResult), ResultLength);
-	}
-	else
-	{
-		*Result = 0;
-	}
-}
-
-// Make sure that SetStoredValue and GetStoredValue generate the same key
-static NSString* MakeStoredValueKeyName(const FString& SectionName, const FString& KeyName)
-{
-	return [NSString stringWithFString:(SectionName + "/" + KeyName)];
-}
-
-bool FIOSPlatformMisc::SetStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName, const FString& InValue)
-{
-	NSUserDefaults* UserSettings = [NSUserDefaults standardUserDefaults];
-
-	// convert input to an NSString
-	NSString* StoredValue = [NSString stringWithFString:InValue];
-
-	// store it
-	[UserSettings setObject:StoredValue forKey:MakeStoredValueKeyName(InSectionName, InKeyName)];
-
-	return true;
-}
-
-bool FIOSPlatformMisc::GetStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName, FString& OutValue)
-{
-	NSUserDefaults* UserSettings = [NSUserDefaults standardUserDefaults];
-	
-	// get the stored NSString
-	NSString* StoredValue = [UserSettings objectForKey:MakeStoredValueKeyName(InSectionName, InKeyName)];
-
-	// if it was there, convert back to FString
-	if (StoredValue != nil)
-	{
-		OutValue = StoredValue;
-		return true;
-	}
-
-	return false;
-}
-
-bool FIOSPlatformMisc::DeleteStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName)
-{
-	// No Implementation (currently only used by editor code so not needed on iOS)
-	return false;
-}
-
-//void FIOSPlatformMisc::LowLevelOutputDebugStringf(const TCHAR *Fmt, ... )
-//{
-//
-//}
-
-void FIOSPlatformMisc::LowLevelOutputDebugString( const TCHAR *Message )
-{
-	//NsLog will out to all iOS output consoles, instead of just the Xcode console.
-	NSLog(@"%@", [NSString stringWithUTF8String:TCHAR_TO_UTF8(Message)]);
-}
-
-const TCHAR* FIOSPlatformMisc::GetSystemErrorMessage(TCHAR* OutBuffer, int32 BufferCount, int32 Error)
-{
-	// There's no iOS equivalent for GetLastError()
-	check(OutBuffer && BufferCount);
-	*OutBuffer = TEXT('\0');
-	return OutBuffer;
-}
-
-FString FIOSPlatformMisc::GetDefaultLanguage()
-{
-	CFArrayRef Languages = CFLocaleCopyPreferredLanguages();
-	CFStringRef LangCodeStr = (CFStringRef)CFArrayGetValueAtIndex(Languages, 0);
-	FString LangCode((__bridge NSString*)LangCodeStr);
-	CFRelease(Languages);
-
-	return LangCode;
-}
-
-FString FIOSPlatformMisc::GetDefaultLocale()
-{
-	CFLocaleRef Locale = CFLocaleCopyCurrent();
-	CFStringRef LangCodeStr = (CFStringRef)CFLocaleGetValue(Locale, kCFLocaleLanguageCode);
-	FString LangCode((__bridge NSString*)LangCodeStr);
-	CFStringRef CountryCodeStr = (CFStringRef)CFLocaleGetValue(Locale, kCFLocaleCountryCode);
-	FString CountryCode((__bridge NSString*)CountryCodeStr);
-	CFRelease(Locale);
-
-	return CountryCode.IsEmpty() ? LangCode : FString::Printf(TEXT("%s-%s"), *LangCode, *CountryCode);
 }
 
 EAppReturnType::Type FIOSPlatformMisc::MessageBoxExt( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption )
@@ -347,21 +248,6 @@ bool FIOSPlatformMisc::IsRunningOnBattery()
 	return [[IOSAppDelegate GetDelegate] IsRunningOnBattery];
 }
 
-int32 FIOSPlatformMisc::NumberOfCores()
-{
-	// cache the number of cores
-	static int32 NumberOfCores = -1;
-	if (NumberOfCores == -1)
-	{
-		SIZE_T Size = sizeof(int32);
-		if (sysctlbyname("hw.ncpu", &NumberOfCores, &Size, NULL, 0) != 0)
-		{
-			NumberOfCores = 1;
-		}
-	}
-	return NumberOfCores;
-}
-
 #include "ModuleManager.h"
 
 void FIOSPlatformMisc::LoadPreInitModules()
@@ -369,16 +255,6 @@ void FIOSPlatformMisc::LoadPreInitModules()
 	FModuleManager::Get().LoadModule(TEXT("OpenGLDrv"));
 	FModuleManager::Get().LoadModule(TEXT("IOSAudio"));
 	FModuleManager::Get().LoadModule(TEXT("AudioMixerAudioUnit"));
-}
-
-void* FIOSPlatformMisc::CreateAutoreleasePool()
-{
-	return [[NSAutoreleasePool alloc] init];
-}
-
-void FIOSPlatformMisc::ReleaseAutoreleasePool(void *Pool)
-{
-	[(NSAutoreleasePool*)Pool release];
 }
 
 void* FIOSPlatformMisc::GetHardwareWindow()
@@ -653,6 +529,11 @@ FIOSPlatformMisc::EIOSDevice FIOSPlatformMisc::GetIOSDeviceType()
 	return DeviceType;
 }
 
+int FIOSPlatformMisc::GetDefaultStackSize()
+{
+	return 4 * 1024 * 1024;
+}
+
 void FIOSPlatformMisc::SetMemoryWarningHandler(void (* InHandler)(const FGenericMemoryWarningContext& Context))
 {
 	GMemoryWarningHandler = InHandler;
@@ -798,187 +679,6 @@ class IPlatformChunkInstall* FIOSPlatformMisc::GetPlatformChunkInstall()
 	return ChunkInstall;
 }
 
-
-struct FFontHeader
-{
-	int32 Version;
-	uint16 NumTables;
-	uint16 SearchRange;
-	uint16 EntrySelector;
-	uint16 RangeShift;
-};
-
-struct FFontTableEntry
-{
-	uint32 Tag;
-	uint32 CheckSum;
-	uint32 Offset;
-	uint32 Length;
-};
-
-
-static uint32 CalcTableCheckSum(const uint32 *Table, uint32 NumberOfBytesInTable)
-{
-	uint32 Sum = 0;
-	uint32 NumLongs = (NumberOfBytesInTable + 3) / 4;
-	while (NumLongs-- > 0)
-	{
-		Sum += CFSwapInt32HostToBig(*Table++);
-	}
-	return Sum;
-}
-
-static uint32 CalcTableDataRefCheckSum(CFDataRef DataRef)
-{
-	const uint32 *DataBuff = (const uint32 *)CFDataGetBytePtr(DataRef);
-	uint32 DataLength = (uint32)CFDataGetLength(DataRef);
-	return CalcTableCheckSum(DataBuff, DataLength);
-}
-
-/**
- * In order to get a system font from IOS we need to build one from the data we can gather from a CGFontRef
- * @param InFontName - The name of the system font we are seeking to load.
- * @param OutBytes - The data we have built for the font.
- */
-void GetBytesForFont(const NSString* InFontName, OUT TArray<uint8>& OutBytes)
-{
-	CGFontRef cgFont = CGFontCreateWithFontName((CFStringRef)InFontName);
-
-	if (cgFont)
-	{
-		CFRetain(cgFont);
-
-		// Gather information on the font tags
-		CFArrayRef Tags = CGFontCopyTableTags(cgFont);
-		int TableCount = CFArrayGetCount(Tags);
-
-		// Collate the table sizes
-		TArray<size_t> TableSizes;
-
-		bool bContainsCFFTable = false;
-
-		size_t TotalSize = sizeof(FFontHeader)+sizeof(FFontTableEntry)* TableCount;
-		for (int TableIndex = 0; TableIndex < TableCount; ++TableIndex)
-		{
-			size_t TableSize = 0;
-			
-			uint64 aTag = (uint64)CFArrayGetValueAtIndex(Tags, TableIndex);
-			if (aTag == 'CFF ' && !bContainsCFFTable)
-			{
-				bContainsCFFTable = true;
-			}
-
-			CFDataRef TableDataRef = CGFontCopyTableForTag(cgFont, aTag);
-			if (TableDataRef != NULL)
-			{
-				TableSize = CFDataGetLength(TableDataRef);
-				CFRelease(TableDataRef);
-			}
-
-			TotalSize += (TableSize + 3) & ~3;
-			TableSizes.Add( TableSize );
-		}
-
-		OutBytes.Reserve( TotalSize );
-		OutBytes.AddZeroed( TotalSize );
-
-		// Start copying the table data into our buffer
-		uint8* DataStart = OutBytes.GetData();
-		uint8* DataPtr = DataStart;
-
-		// Compute font header entries
-		uint16 EntrySelector = 0;
-		uint16 SearchRange = 1;
-		while (SearchRange < TableCount >> 1)
-		{
-			EntrySelector++;
-			SearchRange <<= 1;
-		}
-		SearchRange <<= 4;
-
-		uint16 RangeShift = (TableCount << 4) - SearchRange;
-
-		// Write font header (also called sfnt header, offset subtable)
-		FFontHeader* OffsetTable = (FFontHeader*)DataPtr;
-
-		// OpenType Font contains CFF Table use 'OTTO' as version, and with .otf extension
-		// otherwise 0001 0000
-		OffsetTable->Version = bContainsCFFTable ? 'OTTO' : CFSwapInt16HostToBig(1);
-		OffsetTable->NumTables = CFSwapInt16HostToBig((uint16)TableCount);
-		OffsetTable->SearchRange = CFSwapInt16HostToBig((uint16)SearchRange);
-		OffsetTable->EntrySelector = CFSwapInt16HostToBig((uint16)EntrySelector);
-		OffsetTable->RangeShift = CFSwapInt16HostToBig((uint16)RangeShift);
-
-		DataPtr += sizeof(FFontHeader);
-
-		// Write tables
-		FFontTableEntry* CurrentTableEntry = (FFontTableEntry*)DataPtr;
-		DataPtr += sizeof(FFontTableEntry) * TableCount;
-
-		for (int TableIndex = 0; TableIndex < TableCount; ++TableIndex)
-		{
-			uint64 aTag = (uint64)CFArrayGetValueAtIndex(Tags, TableIndex);
-			CFDataRef TableDataRef = CGFontCopyTableForTag(cgFont, aTag);
-			uint32 TableSize = CFDataGetLength(TableDataRef);
-
-			FMemory::Memcpy(DataPtr, CFDataGetBytePtr(TableDataRef), TableSize);
-
-			CurrentTableEntry->Tag = CFSwapInt32HostToBig((uint32_t)aTag);
-			CurrentTableEntry->CheckSum = CFSwapInt32HostToBig(CalcTableCheckSum((uint32 *)DataPtr, TableSize));
-
-			uint32 Offset = DataPtr - DataStart;
-			CurrentTableEntry->Offset = CFSwapInt32HostToBig((uint32)Offset);
-			CurrentTableEntry->Length = CFSwapInt32HostToBig((uint32)TableSize);
-
-			DataPtr += (TableSize + 3) & ~3;
-			++CurrentTableEntry;
-
-			CFRelease(TableDataRef);
-		}
-
-		CFRelease(cgFont);
-	}
-}
-
-
-TArray<uint8> FIOSPlatformMisc::GetSystemFontBytes()
-{
-#if PLATFORM_TVOS
-	NSString* SystemFontName = [UIFont preferredFontForTextStyle:UIFontTextStyleBody].fontName;
-#else
-	// Gather some details about the system font
-	uint32 SystemFontSize = [UIFont systemFontSize];
-	NSString* SystemFontName = [UIFont systemFontOfSize:SystemFontSize].fontName;
-#endif
-
-	TArray<uint8> FontBytes;
-	GetBytesForFont(SystemFontName, FontBytes);
-
-	return FontBytes;
-}
-
-TArray<FString> FIOSPlatformMisc::GetPreferredLanguages()
-{
-	TArray<FString> Results;
-
-	NSArray* Languages = [NSLocale preferredLanguages];
-	for (NSString* Language in Languages)
-	{
-		Results.Add(FString(Language));
-	}
-	return Results;
-}
-
-FString FIOSPlatformMisc::GetLocalCurrencyCode()
-{
-	return FString([[NSLocale currentLocale] objectForKey:NSLocaleCurrencyCode]);
-}
-
-FString FIOSPlatformMisc::GetLocalCurrencySymbol()
-{
-	return FString([[NSLocale currentLocale] objectForKey:NSLocaleCurrencySymbol]);
-}
-
 void FIOSPlatformMisc::RegisterForRemoteNotifications()
 {
 #if !PLATFORM_TVOS && NOTIFICATIONS_ENABLED
@@ -1027,7 +727,7 @@ bool FIOSPlatformMisc::HasActiveWiFiConnection()
 	FMemory::Memzero(&ZeroAddress, sizeof(ZeroAddress));
 	ZeroAddress.sin_len = sizeof(ZeroAddress);
 	ZeroAddress.sin_family = AF_INET;
-
+	
 	SCNetworkReachabilityRef ReachabilityRef = SCNetworkReachabilityCreateWithAddress(kCFAllocatorDefault, (const struct sockaddr*)&ZeroAddress);
 	SCNetworkReachabilityFlags ReachabilityFlags;
 	bool bFlagsAvailable = SCNetworkReachabilityGetFlags(ReachabilityRef, &ReachabilityFlags);
@@ -1036,33 +736,16 @@ bool FIOSPlatformMisc::HasActiveWiFiConnection()
 	bool bHasActiveWiFiConnection = false;
 	if (bFlagsAvailable)
 	{
-        bool bReachable =	(ReachabilityFlags & kSCNetworkReachabilityFlagsReachable) != 0 && 
-							(ReachabilityFlags & kSCNetworkReachabilityFlagsConnectionRequired) == 0 &&
-							// in case kSCNetworkReachabilityFlagsConnectionOnDemand  || kSCNetworkReachabilityFlagsConnectionOnTraffic
-							(ReachabilityFlags & kSCNetworkReachabilityFlagsInterventionRequired) == 0; 
-					
+		bool bReachable =	(ReachabilityFlags & kSCNetworkReachabilityFlagsReachable) != 0 &&
+		(ReachabilityFlags & kSCNetworkReachabilityFlagsConnectionRequired) == 0 &&
+		// in case kSCNetworkReachabilityFlagsConnectionOnDemand  || kSCNetworkReachabilityFlagsConnectionOnTraffic
+		(ReachabilityFlags & kSCNetworkReachabilityFlagsInterventionRequired) == 0;
+		
 		bHasActiveWiFiConnection = bReachable && (ReachabilityFlags & kSCNetworkReachabilityFlagsIsWWAN) == 0;
 	}
 	
-	return bHasActiveWiFiConnection; 
+	return bHasActiveWiFiConnection;
 }
-
-#if IOS_PROFILING_ENABLED
-void FIOSPlatformMisc::BeginNamedEvent(const struct FColor& Color,const TCHAR* Text)
-{
-	FApplePlatformDebugEvents::BeginNamedEvent(Color, Text);
-}
-
-void FIOSPlatformMisc::BeginNamedEvent(const struct FColor& Color,const ANSICHAR* Text)
-{
-	FApplePlatformDebugEvents::BeginNamedEvent(Color, Text);
-}
-
-void FIOSPlatformMisc::EndNamedEvent()
-{
-	FApplePlatformDebugEvents::EndNamedEvent();
-}
-#endif
 
 FString FIOSPlatformMisc::GetCPUVendor()
 {

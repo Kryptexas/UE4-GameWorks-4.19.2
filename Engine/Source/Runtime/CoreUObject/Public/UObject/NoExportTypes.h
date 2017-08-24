@@ -122,6 +122,7 @@ enum EPixelFormat
 {
 	PF_Unknown,
 	PF_A32B32G32R32F,
+	/** UNORM (0..1), corresponds to FColor.  Unpacks as rgba in the shader. */
 	PF_B8G8R8A8,
 	/** UNORM red (0..1) */
 	PF_G8,
@@ -130,9 +131,9 @@ enum EPixelFormat
 	PF_DXT3,
 	PF_DXT5,
 	PF_UYVY,
-	/** A RGB FP format with platform-specific implementation, for use with render targets. */
+	/** Same as PF_FloatR11G11B10 */
 	PF_FloatRGB,
-	/** A RGBA FP format with platform-specific implementation, for use with render targets. */
+	/** RGBA 16 bit signed FP format.  Use FFloat16Color on the CPU. */
 	PF_FloatRGBA,
 	/** A depth+stencil format with platform-specific implementation, for use with render targets. */
 	PF_DepthStencil,
@@ -152,7 +153,7 @@ enum EPixelFormat
 	/** SNORM red, green (-1..1). Not supported on all RHI e.g. Metal */
 	PF_V8U8,
 	PF_A1,
-	/** A low precision floating point format. */
+	/** A low precision floating point format, unsigned.  Use FFloat3Packed on the CPU. */
 	PF_FloatR11G11B10,
 	PF_A8,
 	PF_R32_UINT,
@@ -199,6 +200,9 @@ enum EPixelFormat
 	PF_R8_UINT,
 	PF_L8,
 	PF_XGXR8,
+	PF_R8G8B8A8_UINT,
+	/** SNORM (-1..1), corresponds to FFixedRGBASigned8. */
+	PF_R8G8B8A8_SNORM, 
 	PF_MAX,
 };
 

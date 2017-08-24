@@ -416,14 +416,14 @@ class FStatGroupEnableManager : public IStatGroupEnableManager
 		check(UPTRINT(&Align.Temp) % sizeof(FMinimalName) == 0);
 
 		Align.Temp = NameToMinimalName(StatName);
-		*(uint64*)&DisablePtr->Name = *(uint64 const*)&Align.Temp;
+		FPlatformAtomics::InterlockedExchange((int64*)&DisablePtr->Name, (*(int64 const*)&Align.Temp));
 	}
 
 	void DisableStat(TStatIdData* DisablePtr)
 	{
 		static_assert(sizeof( FMinimalName ) == sizeof( uint64 ), "FMinimalName should have the same size of uint64.");
-		check( UPTRINT( &DisablePtr->Name ) % sizeof( FMinimalName ) == 0 );
-		*(uint64*)&DisablePtr->Name = *(uint64 const*)TStatId::GetStatNone();
+        check( UPTRINT( &DisablePtr->Name ) % sizeof( FMinimalName ) == 0 );
+        FPlatformAtomics::InterlockedExchange((int64*)&DisablePtr->Name, (*(int64 const*)TStatId::GetStatNone()));
 	}
 
 public:

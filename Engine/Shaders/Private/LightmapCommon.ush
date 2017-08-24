@@ -1,6 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "/Engine/Generated/UniformBuffers/PrecomputedLightingBuffer.ush"
+#include "VolumetricLightmapShared.ush"
 
 #if HQ_TEXTURE_LIGHTMAP || LQ_TEXTURE_LIGHTMAP
  
@@ -80,6 +81,10 @@ void GetLightMapColorHQ( float2 LightmapUV0, float2 LightmapUV1, half3 WorldNorm
 	#endif
 #else
 	half Directionality = 0.6;
+
+	#if MATERIAL_SHADINGMODEL_TWOSIDED_FOLIAGE
+		OutSubsurfaceLighting = L * Directionality * UVW;
+	#endif
 #endif
 
 	half Luma = L * Directionality;
@@ -118,7 +123,7 @@ float GetAOMaterialMask(float2 LightmapUV)
 #endif
 
 // Used by deferred renderer only
-half4 GetPrecomputedShadowMasks(FVertexFactoryInterpolantsVSToPS Interpolants)
+half4 GetPrecomputedShadowMasks(FVertexFactoryInterpolantsVSToPS Interpolants, float3 WorldPosition, float3 VolumetricLightmapBrickTextureUVs)
 {
 	// Note: WRITES_PRECSHADOWFACTOR_ZERO have to match the logic here
 	#if STATICLIGHTING_TEXTUREMASK && STATICLIGHTING_SIGNEDDISTANCEFIELD
@@ -139,9 +144,21 @@ half4 GetPrecomputedShadowMasks(FVertexFactoryInterpolantsVSToPS Interpolants)
 
 	#else
 
-		// Mark as unshadowed by default
+		float DirectionalLightShadowing = Primitive.UseSingleSampleShadowFromStationaryLights > 0 ? PrecomputedLightingBuffer.DirectionalLightShadowing : 1;
+
+		BRANCH
+		if (Primitive.UseVolumetricLightmapShadowFromStationaryLights > 0)
+		{
+			#if !PRECOMPUTED_IRRADIANCE_VOLUME_LIGHTING
+				// Compute brick UVs if we haven't already
+				VolumetricLightmapBrickTextureUVs = ComputeVolumetricLightmapBrickTextureUVs(WorldPosition);
+			#endif
+
+			DirectionalLightShadowing = GetVolumetricLightmapDirectionalLightShadowing(VolumetricLightmapBrickTextureUVs);
+		}
+
 		// Directional light is always packed into the first static shadowmap channel, so output the per-primitive directional light shadowing there if requested
-		return half4(Primitive.UseSingleSampleShadowFromStationaryLights > 0 ? PrecomputedLightingBuffer.DirectionalLightShadowing : 1, 1, 1, 1);
+		return half4(DirectionalLightShadowing, 1, 1, 1);
 
 	#endif
 }

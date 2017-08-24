@@ -8,23 +8,87 @@
 #include "MetalProfiler.h"
 #include "MetalCommandBuffer.h"
 #include "Containers/ResourceArray.h"
+#include "RenderUtils.h"
 
 /** Constructor */
 FMetalIndexBuffer::FMetalIndexBuffer(uint32 InStride, uint32 InSize, uint32 InUsage)
 	: FRHIIndexBuffer(InStride, InSize, InUsage)
+	, Buffer(nil)
+	, LinearTexture(nil)
 	, LockOffset(0)
 	, LockSize(0)
 	, IndexType((InStride == 2) ? MTLIndexTypeUInt16 : MTLIndexTypeUInt32)
 {
-	MTLStorageMode Mode = BUFFER_STORAGE_MODE;
-	Buffer = GetMetalDeviceContext().CreatePooledBuffer(FMetalPooledBufferArgs(GetMetalDeviceContext().GetDevice(), InSize, Mode));
-	INC_DWORD_STAT_BY(STAT_MetalIndexMemAlloc, InSize);
+	if (FMetalCommandQueue::SupportsFeature(EMetalFeaturesLinearTextures) && (InUsage & (BUF_UnorderedAccess|BUF_ShaderResource)))
+	{
+		InSize = Align(InSize, 1024);
+	}
+	
+	Alloc(InSize);
 }
 
 FMetalIndexBuffer::~FMetalIndexBuffer()
 {
+	if (LinearTexture)
+	{
+		SafeReleaseMetalObject(LinearTexture);
+		LinearTexture = nil;
+	}
+
 	INC_DWORD_STAT_BY(STAT_MetalIndexMemFreed, GetSize());
 	SafeReleasePooledBuffer(Buffer);
+}
+
+void FMetalIndexBuffer::Alloc(uint32 InSize)
+{
+	check(!Buffer);
+
+	MTLStorageMode Mode = BUFFER_STORAGE_MODE;
+	Buffer = GetMetalDeviceContext().CreatePooledBuffer(FMetalPooledBufferArgs(GetMetalDeviceContext().GetDevice(), InSize, Mode));
+	INC_DWORD_STAT_BY(STAT_MetalIndexMemAlloc, InSize);
+	
+	if (FMetalCommandQueue::SupportsFeature(EMetalFeaturesLinearTextures) && (GetUsage() & (BUF_UnorderedAccess|BUF_ShaderResource)))
+	{
+		check(!LinearTexture);
+
+		MTLPixelFormat MTLFormat = IndexType == MTLIndexTypeUInt32 ? MTLPixelFormatR32Uint : MTLPixelFormatR16Uint;
+		uint32 NumElements = (Buffer.length / GetStride());
+		uint32 SizeX = NumElements;
+		uint32 SizeY = 1;
+		if (NumElements > GMaxTextureDimensions)
+		{
+			uint32 Dimension = GMaxTextureDimensions;
+			while((NumElements % Dimension) != 0)
+			{
+				check(Dimension >= 1);
+				Dimension = (Dimension >> 1);
+			}
+			SizeX = Dimension;
+			SizeY = NumElements / Dimension;
+			check(SizeX <= GMaxTextureDimensions);
+			check(SizeY <= GMaxTextureDimensions);
+		}
+		
+		MTLTextureDescriptor* Desc = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLFormat width:SizeX height:SizeY mipmapped:NO];
+		
+		id<FMTLBufferExtensions> BufferWithExtraAPI = (id<FMTLBufferExtensions>)Buffer;
+		Desc.resourceOptions = (BufferWithExtraAPI.storageMode << MTLResourceStorageModeShift) | (BufferWithExtraAPI.cpuCacheMode << MTLResourceCPUCacheModeShift);
+		Desc.storageMode = BufferWithExtraAPI.storageMode;
+		Desc.cpuCacheMode = BufferWithExtraAPI.cpuCacheMode;
+		if (GetUsage() & BUF_ShaderResource)
+		{
+			Desc.usage |= MTLTextureUsageShaderRead;
+		}
+		if (GetUsage() & BUF_UnorderedAccess)
+		{
+			Desc.usage |= MTLTextureUsageShaderWrite;
+		}
+		
+		check(((SizeX*GetStride()) % 1024) == 0);
+		
+		LinearTexture = [BufferWithExtraAPI newTextureWithDescriptor:Desc offset: 0 bytesPerRow: SizeX*GetStride()];
+		check(LinearTexture);
+	}
 }
 
 void* FMetalIndexBuffer::Lock(EResourceLockMode LockMode, uint32 Offset, uint32 Size)
@@ -34,12 +98,16 @@ void* FMetalIndexBuffer::Lock(EResourceLockMode LockMode, uint32 Offset, uint32 
 	// In order to properly synchronise the buffer access, when a dynamic buffer is locked for writing, discard the old buffer & create a new one. This prevents writing to a buffer while it is being read by the GPU & thus causing corruption. This matches the logic of other RHIs.
 	if ((GetUsage() & BUFFER_DYNAMIC_REALLOC) && LockMode == RLM_WriteOnly)
 	{
-		INC_MEMORY_STAT_BY(STAT_MetalIndexMemAlloc, GetSize());
-		INC_MEMORY_STAT_BY(STAT_MetalIndexMemFreed, GetSize());
-		
+		uint32 InSize = Buffer.length;
+		INC_MEMORY_STAT_BY(STAT_MetalIndexMemFreed, InSize);		
 		GetMetalDeviceContext().ReleasePooledBuffer(Buffer);
-		MTLStorageMode Mode = BUFFER_STORAGE_MODE;
-		Buffer = GetMetalDeviceContext().CreatePooledBuffer(FMetalPooledBufferArgs(GetMetalDeviceContext().GetDevice(), GetSize(), Mode));
+		Buffer = nil;
+		if (LinearTexture)
+		{
+			SafeReleaseMetalObject(LinearTexture);
+			LinearTexture = nil;
+		}
+		Alloc(InSize);
 	}
 	
 	if(LockMode != RLM_ReadOnly)

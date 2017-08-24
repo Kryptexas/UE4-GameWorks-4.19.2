@@ -32,6 +32,12 @@ static bool bWantVisibleBanner = false;
 	return Singleton;
 }
 
+-(void)dealloc
+{
+	[BannerView release];
+	[super dealloc];
+}
+
 /**
 * Will show an iAd on the top or bottom of screen, on top of the GL view (doesn't resize
 * the view)

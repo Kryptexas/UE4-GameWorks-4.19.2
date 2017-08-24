@@ -45,8 +45,10 @@ BEGIN_UNIFORM_BUFFER_STRUCT(FDeferredLightUniformStruct,)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector,LightColor)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float,LightFalloffExponent)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector,NormalizedLightDirection)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector,NormalizedLightTangent)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector2D,SpotAngles)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float,SourceRadius)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float,SoftSourceRadius)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float,SourceLength)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float,MinRoughness)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float,ContactShadowLength)
@@ -69,25 +71,23 @@ void SetDeferredLightParameters(
 	const FLightSceneInfo* LightSceneInfo,
 	const FSceneView& View)
 {
-	FVector4 LightPositionAndInvRadius;
-	FVector4 LightColorAndFalloffExponent;
-		
 	FDeferredLightUniformStruct DeferredLightUniformsValue;
 
-	// Get the light parameters
-	LightSceneInfo->Proxy->GetParameters(
-		LightPositionAndInvRadius,
-		LightColorAndFalloffExponent,
-		DeferredLightUniformsValue.NormalizedLightDirection,
-		DeferredLightUniformsValue.SpotAngles,
-		DeferredLightUniformsValue.SourceRadius,
-		DeferredLightUniformsValue.SourceLength,
-		DeferredLightUniformsValue.MinRoughness);
+	FLightParameters LightParameters;
+
+	LightSceneInfo->Proxy->GetParameters(LightParameters);
 	
-	DeferredLightUniformsValue.LightPosition = LightPositionAndInvRadius;
-	DeferredLightUniformsValue.LightInvRadius = LightPositionAndInvRadius.W;
-	DeferredLightUniformsValue.LightColor = LightColorAndFalloffExponent;
-	DeferredLightUniformsValue.LightFalloffExponent = LightColorAndFalloffExponent.W;
+	DeferredLightUniformsValue.LightPosition = LightParameters.LightPositionAndInvRadius;
+	DeferredLightUniformsValue.LightInvRadius = LightParameters.LightPositionAndInvRadius.W;
+	DeferredLightUniformsValue.LightColor = LightParameters.LightColorAndFalloffExponent;
+	DeferredLightUniformsValue.LightFalloffExponent = LightParameters.LightColorAndFalloffExponent.W;
+	DeferredLightUniformsValue.NormalizedLightDirection = LightParameters.NormalizedLightDirection;
+	DeferredLightUniformsValue.NormalizedLightTangent = LightParameters.NormalizedLightTangent;
+	DeferredLightUniformsValue.SpotAngles = LightParameters.SpotAngles;
+	DeferredLightUniformsValue.SourceRadius = LightParameters.LightSourceRadius;
+	DeferredLightUniformsValue.SoftSourceRadius = LightParameters.LightSoftSourceRadius;
+	DeferredLightUniformsValue.SourceLength = LightParameters.LightSourceLength;
+	DeferredLightUniformsValue.MinRoughness = LightParameters.LightMinRoughness;
 
 	const FVector2D FadeParams = LightSceneInfo->Proxy->GetDirectionalLightDistanceFadeParameters(View.GetFeatureLevel(), LightSceneInfo->IsPrecomputedLightingValid());
 
@@ -1743,10 +1743,10 @@ public:
 		FTextureRHIParamRef ShadowDepthTextureValue = ShadowInfo 
 			? ShadowInfo->RenderTargets.DepthTarget->GetRenderTargetItem().ShaderResourceTexture->GetTextureCube()
 			: GBlackTextureDepthCube->TextureRHI.GetReference();
-        if (!ShadowDepthTextureValue)
-        {
-            ShadowDepthTextureValue = GBlackTextureDepthCube->TextureRHI.GetReference();
-        }
+		if (!ShadowDepthTextureValue)
+		{
+			ShadowDepthTextureValue = GBlackTextureDepthCube->TextureRHI.GetReference();
+		}
 
 		SetTextureParameter(
 			RHICmdList, 
@@ -1931,15 +1931,15 @@ public:
 		PCSSParameters.Bind(Initializer.ParameterMap, TEXT("PCSSParameters"));
 	}
 
-	static bool ShouldCache(EShaderPlatform Platform)
-	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && Platform == SP_PCD3D_SM5;
-	}
-
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		TShadowProjectionPS<Quality, bUseFadePlane>::ModifyCompilationEnvironment(Platform, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("USE_PCSS"), 1);
+	}
+
+	static bool ShouldCache(EShaderPlatform Platform)
+	{
+		return TShadowProjectionPS<Quality, bUseFadePlane>::ShouldCache(Platform) && (Platform == SP_PCD3D_SM5 || Platform == SP_VULKAN_SM5 || Platform == SP_METAL_SM5);
 	}
 
 	virtual void SetParameters(
@@ -1963,6 +1963,68 @@ public:
 		float SZ = ShadowInfo->MaxSubjectZ - ShadowInfo->MinSubjectZ;
 
 		FVector4 PCSSParameterValues = FVector4(TanLightSourceAngle * SZ / SW, MaxKernelSize / float(ShadowInfo->ResolutionX), 0, 0);
+		SetShaderValue(RHICmdList, ShaderRHI, PCSSParameters, PCSSParameterValues);
+	}
+
+	/**
+	* Serialize the parameters for this shader
+	* @param Ar - archive to serialize to
+	*/
+	virtual bool Serialize(FArchive& Ar) override
+	{
+		bool bShaderHasOutdatedParameters = TShadowProjectionPS<Quality, bUseFadePlane>::Serialize(Ar);
+		Ar << PCSSParameters;
+		return bShaderHasOutdatedParameters;
+	}
+
+protected:
+	FShaderParameter PCSSParameters;
+};
+
+
+/** Pixel shader to project PCSS spot light onto the scene. */
+template<uint32 Quality, bool bUseFadePlane>
+class TSpotPercentageCloserShadowProjectionPS : public TShadowProjectionPS<Quality, bUseFadePlane>
+{
+	DECLARE_SHADER_TYPE(TSpotPercentageCloserShadowProjectionPS, Global);
+public:
+
+	TSpotPercentageCloserShadowProjectionPS() {}
+	TSpotPercentageCloserShadowProjectionPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) :
+		TShadowProjectionPS<Quality, bUseFadePlane>(Initializer)
+	{
+		PCSSParameters.Bind(Initializer.ParameterMap, TEXT("PCSSParameters"));
+	}
+
+	static bool ShouldCache(EShaderPlatform Platform)
+	{
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && (Platform == SP_PCD3D_SM5 || Platform == SP_VULKAN_SM5 || Platform == SP_METAL_SM5);
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		TShadowProjectionPS<Quality, bUseFadePlane>::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		OutEnvironment.SetDefine(TEXT("USE_PCSS"), 1);
+		OutEnvironment.SetDefine(TEXT("SPOT_LIGHT_PCSS"), 1);
+	}
+
+	virtual void SetParameters(
+		FRHICommandList& RHICmdList,
+		int32 ViewIndex,
+		const FSceneView& View,
+		const FProjectedShadowInfo* ShadowInfo) override
+	{
+		check(ShadowInfo->GetLightSceneInfo().Proxy->GetLightType() == LightType_Spot);
+
+		TShadowProjectionPS<Quality, bUseFadePlane>::SetParameters(RHICmdList, ViewIndex, View, ShadowInfo);
+
+		const FPixelShaderRHIParamRef ShaderRHI = this->GetPixelShader();
+
+		static IConsoleVariable* CVarMaxSoftShadowKernelSize = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shadow.MaxSoftKernelSize"));
+		check(CVarMaxSoftShadowKernelSize);
+		int32 MaxKernelSize = CVarMaxSoftShadowKernelSize->GetInt();
+
+		FVector4 PCSSParameterValues = FVector4(0, MaxKernelSize / float(ShadowInfo->ResolutionX), 0, 0);
 		SetShaderValue(RHICmdList, ShaderRHI, PCSSParameters, PCSSParameterValues);
 	}
 

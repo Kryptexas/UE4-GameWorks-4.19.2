@@ -51,6 +51,14 @@ struct FMacPlatformMath : public FGenericPlatformMath
 		return -(_mm_cvt_ss2si(_mm_set_ss(-0.5f - (F + F))) >> 1);
 	}
 
+    /**
+	 * Use the SSE instruction to count bits
+	 */
+	static FORCEINLINE int32 CountBits(uint64 Bits)
+	{
+		return __builtin_popcountll(Bits);
+	}
+
 	static FORCEINLINE float CeilToFloat(float F)
 	{
 		return (float)CeilToInt(F);

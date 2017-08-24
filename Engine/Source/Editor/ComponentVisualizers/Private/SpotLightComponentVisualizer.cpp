@@ -17,7 +17,7 @@ void FSpotLightComponentVisualizer::DrawVisualization( const UActorComponent* Co
 			TransformNoScale.RemoveScaling();
 
 			// Draw point light source shape
-			DrawWireCapsule(PDI, TransformNoScale.GetTranslation(), -TransformNoScale.GetUnitAxis( EAxis::Z ), TransformNoScale.GetUnitAxis( EAxis::Y ), TransformNoScale.GetUnitAxis( EAxis::X ),
+			DrawWireCapsule(PDI, TransformNoScale.GetTranslation(), TransformNoScale.GetUnitAxis( EAxis::X ), TransformNoScale.GetUnitAxis( EAxis::Y ), TransformNoScale.GetUnitAxis( EAxis::Z ),
 							FColor(231, 239, 0, 255), SpotLightComp->SourceRadius, 0.5f * SpotLightComp->SourceLength + SpotLightComp->SourceRadius, 25, SDPG_World);
 
 			// Draw outer light cone

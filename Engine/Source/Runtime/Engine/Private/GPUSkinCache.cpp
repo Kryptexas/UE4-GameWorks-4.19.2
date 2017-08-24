@@ -45,7 +45,7 @@ static TAutoConsoleVariable<int32> CVarEnableGPUSkinCache(
 	TEXT("This will perform skinning on a compute job and not skin on the vertex shader.\n")
 	TEXT("Requires r.SkinCache.CompileShaders=1\n")
 	TEXT(" 0: off\n")
-	TEXT(" 1: on(default)")
+	TEXT(" 1: on(default)\n")
 	TEXT(" 2: only use skin cache for skinned meshes that ticked the Recompute Tangents checkbox (unavailable in shipping builds)"),
 	ECVF_RenderThreadSafe
 	);
@@ -66,7 +66,8 @@ static int32 GForceRecomputeTangents = 0;
 FAutoConsoleVariableRef CVarGPUSkinCacheForceRecomputeTangents(
 	TEXT("r.SkinCache.ForceRecomputeTangents"),
 	GForceRecomputeTangents,
-	TEXT("Forces enabling/using the skincache and forces all skinned object to Recompute Tangents\n"),
+	TEXT("0: off (default)\n")
+	TEXT("1: Forces enabling and using the skincache and forces all skinned object to Recompute Tangents\n"),
 	ECVF_RenderThreadSafe | ECVF_ReadOnly
 );
 
@@ -101,6 +102,11 @@ bool IsGPUSkinCacheAvailable()
 	return GEnableGPUSkinCacheShaders != 0 || GForceRecomputeTangents != 0;
 }
 
+static inline bool DoesPlatformSupportGPUSkinCache(EShaderPlatform Platform)
+{
+	return Platform == SP_PCD3D_SM5 || Platform == SP_METAL_SM5 || Platform == SP_METAL_MRT_MAC || Platform == SP_METAL_MRT || Platform == SP_VULKAN_SM5;
+}
+
 // We don't have it always enabled as it's not clear if this has a performance cost
 // Call on render thread only!
 // Should only be called if SM5 (compute shaders, atomics) are supported.
@@ -108,14 +114,14 @@ ENGINE_API bool DoSkeletalMeshIndexBuffersNeedSRV()
 {
 	// currently only implemented and tested on Window SM5 (needs Compute, Atomics, SRV for index buffers, UAV for VertexBuffers)
 //#todo-gpuskin: Enable on PS4 when SRVs for IB exist
-	return (GMaxRHIShaderPlatform == SP_PCD3D_SM5 || GMaxRHIShaderPlatform == SP_METAL_SM5) && IsGPUSkinCacheAvailable();
+	return DoesPlatformSupportGPUSkinCache(GMaxRHIShaderPlatform) && IsGPUSkinCacheAvailable();
 }
 
 ENGINE_API bool DoRecomputeSkinTangentsOnGPU_RT()
 {
 	// currently only implemented and tested on Window SM5 (needs Compute, Atomics, SRV for index buffers, UAV for VertexBuffers)
 //#todo-gpuskin: Enable on PS4 when SRVs for IB exist
-	return (GMaxRHIShaderPlatform == SP_PCD3D_SM5 || GMaxRHIShaderPlatform == SP_METAL_SM5) && GEnableGPUSkinCacheShaders != 0 && ((GEnableGPUSkinCache && GSkinCacheRecomputeTangents != 0) || GForceRecomputeTangents != 0);
+	return DoesPlatformSupportGPUSkinCache(GMaxRHIShaderPlatform) && GEnableGPUSkinCacheShaders != 0 && ((GEnableGPUSkinCache && GSkinCacheRecomputeTangents != 0) || GForceRecomputeTangents != 0);
 }
 
 
@@ -128,6 +134,7 @@ public:
 		, GPUSkin(InGPUSkin)
 		, MorphBuffer(0)
 		, LOD(InGPUSkin->GetLOD())
+		, IndexBuffer(nullptr)
 	{
 		
 		const TArray<FSkelMeshSection>& Sections = InGPUSkin->GetRenderSections(LOD);
@@ -155,9 +162,6 @@ public:
 
 		FGPUBaseSkinVertexFactory* SourceVertexFactory;
 		FGPUSkinPassthroughVertexFactory* TargetVertexFactory;
-
-		// triangle index buffer (input for the RecomputeSkinTangents, might need special index buffer unique to position and normal, not considering UV/vertex color)
-		FShaderResourceViewRHIParamRef IndexBuffer;
 
 		const FSkelMeshSection* Section;
 
@@ -195,7 +199,6 @@ public:
 		FSectionDispatchData()
 			: SourceVertexFactory(nullptr)
 			, TargetVertexFactory(nullptr)
-			, IndexBuffer(nullptr)
 			, Section(nullptr)
 			, SectionIndex(-1)
 			, SkinType(0)
@@ -296,21 +299,6 @@ public:
 		Data.InputWeightStart = (InputWeightStride * Section->BaseVertexIndex) / sizeof(float);
 		Data.SourceVertexFactory = InSourceVertexFactory;
 		Data.TargetVertexFactory = InTargetVertexFactory;
-
-		int32 RecomputeTangentsMode = GForceRecomputeTangents > 0 ? 1 : GSkinCacheRecomputeTangents;
-		if (RecomputeTangentsMode > 0)
-		{
-			if (Section->bRecomputeTangent || RecomputeTangentsMode == 1)
-			{
-				FRawStaticIndexBuffer16or32Interface* IndexBuffer = LodModel.MultiSizeIndexContainer.GetIndexBuffer();
-				Data.IndexBuffer = IndexBuffer->GetSRV();
-				if (Data.IndexBuffer)
-				{
-					Data.NumTriangles = Section->NumTriangles;
-					Data.IndexBufferOffsetValue = Section->BaseIndex;
-				}
-			}
-		}
 	}
 
 protected:
@@ -323,6 +311,9 @@ protected:
 	FShaderResourceViewRHIRef InputWeightStreamSRV;
 	FShaderResourceViewRHIParamRef MorphBuffer;
 	int32 LOD;
+
+	// triangle index buffer (input for the RecomputeSkinTangents, might need special index buffer unique to position and normal, not considering UV/vertex color)
+	FShaderResourceViewRHIParamRef IndexBuffer;
 
 	friend class FGPUSkinCache;
 	friend class FBaseGPUSkinCacheCS;
@@ -569,7 +560,7 @@ public:
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
 		// currently only implemented and tested on Window SM5 (needs Compute, Atomics, SRV for index buffers, UAV for VertexBuffers)
-		return Platform == SP_PCD3D_SM5 || Platform == SP_METAL_SM5;
+		return DoesPlatformSupportGPUSkinCache(Platform) && IsGPUSkinCacheAvailable();
 	}
 
 	static const uint32 ThreadGroupSizeX = 64;
@@ -613,7 +604,7 @@ public:
 		SetSRVParameter(RHICmdList, ShaderRHI, GPUSkinCacheBuffer, DispatchData.GetRWBuffer()->SRV);
 		SetShaderValue(RHICmdList, ShaderRHI, SkinCacheStart, DispatchData.OutputStreamStart);
 
-		SetSRVParameter(RHICmdList, ShaderRHI, IndexBuffer, DispatchData.IndexBuffer);
+		SetSRVParameter(RHICmdList, ShaderRHI, IndexBuffer, Entry->IndexBuffer);
 		SetShaderValue(RHICmdList, ShaderRHI, IndexBufferOffset, DispatchData.IndexBufferOffsetValue);
 		
 		SetShaderValue(RHICmdList, ShaderRHI, InputStreamStart, DispatchData.InputStreamStart);
@@ -691,7 +682,7 @@ class FRecomputeTangentsPerVertexPassCS : public FGlobalShader
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
 		// currently only implemented and tested on Window SM5 (needs Compute, Atomics, SRV for index buffers, UAV for VertexBuffers)
-		return Platform == SP_PCD3D_SM5 || Platform == SP_METAL_SM5;
+		return DoesPlatformSupportGPUSkinCache(Platform) && IsGPUSkinCacheAvailable();
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -788,7 +779,7 @@ void FGPUSkinCache::DispatchUpdateSkinTangents(FRHICommandListImmediate& RHICmdL
 		if (StagingBuffers.Num() != GNumTangentIntermediateBuffers)
 		{
 			// Release extra buffers if shrinking
-			for (int32 Index = 0; Index < StagingBuffers.Num() - 1; ++Index)
+			for (int32 Index = GNumTangentIntermediateBuffers; Index < StagingBuffers.Num(); ++Index)
 			{
 				StagingBuffers[Index].Release();
 			}
@@ -897,7 +888,7 @@ void FGPUSkinCache::DoDispatch(FRHICommandListImmediate& RHICmdList, FGPUSkinCac
 	//RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EGfxToCompute, DispatchData.GetRWBuffer());
 	SkinCacheEntry->UpdateVertexFactoryDeclaration(Section);
 
-	if (SkinCacheEntry->DispatchData[Section].IndexBuffer)
+	if (SkinCacheEntry->IndexBuffer)
 	{
 		DispatchUpdateSkinTangents(RHICmdList, SkinCacheEntry, Section);
 	}
@@ -943,6 +934,7 @@ void FGPUSkinCache::ProcessEntry(FRHICommandListImmediate& RHICmdList, FGPUBaseS
 		}
 	}
 
+	int32 RecomputeTangentsMode = GForceRecomputeTangents > 0 ? 1 : GSkinCacheRecomputeTangents;
 	// Try to allocate a new entry
 	if (!InOutEntry)
 	{
@@ -958,6 +950,15 @@ void FGPUSkinCache::ProcessEntry(FRHICommandListImmediate& RHICmdList, FGPUBaseS
 
 		InOutEntry = new FGPUSkinCacheEntry(this, Skin, NewAllocation);
 		InOutEntry->GPUSkin = Skin;
+
+		if (RecomputeTangentsMode > 0)
+		{
+			if (BatchElement.bRecomputeTangent || RecomputeTangentsMode == 1)
+			{
+				FRawStaticIndexBuffer16or32Interface* IndexBuffer = LodModel.MultiSizeIndexContainer.GetIndexBuffer();
+				InOutEntry->IndexBuffer = IndexBuffer->GetSRV();
+			}
+		}
 
 		InOutEntry->SetupSection(Section, NewAllocation, &LodModel.Sections[Section], MorphVertexBuffer, NumVertices, InputStreamStart, StreamStrides[0], VertexFactory, TargetVertexFactory);
 		Entries.Add(InOutEntry);
@@ -984,6 +985,12 @@ void FGPUSkinCache::ProcessEntry(FRHICommandListImmediate& RHICmdList, FGPUBaseS
 	}
 	InOutEntry->DispatchData[Section].SkinType = MorphVertexBuffer ? 1 : 0;
 
+	if (InOutEntry->IndexBuffer)
+	{
+		InOutEntry->DispatchData[Section].NumTriangles = BatchElement.NumTriangles;
+		InOutEntry->DispatchData[Section].IndexBufferOffsetValue = BatchElement.BaseIndex;
+	}
+
 	DoDispatch(RHICmdList, InOutEntry, Section, FrameNumber);
 
 	InOutEntry->UpdateVertexFactoryDeclaration(Section);
@@ -1009,7 +1016,7 @@ void FGPUSkinCache::SetVertexStreams(FGPUSkinCacheEntry* Entry, int32 Section, F
 	FGPUSkinCacheEntry::FSectionDispatchData& DispatchData = Entry->DispatchData[Section];
 
 	//UE_LOG(LogSkinCache, Warning, TEXT("*** SetVertexStreams E %p All %p Sec %d(%p) LOD %d"), Entry, Entry->DispatchData[Section].Allocation, Section, Entry->DispatchData[Section].Section, Entry->LOD);
-	RHICmdList.SetStreamSource(VertexFactory->GetStreamIndex(), DispatchData.GetRWBuffer()->Buffer, RWStrideInFloats * sizeof(float), 0);
+	RHICmdList.SetStreamSource(VertexFactory->GetStreamIndex(), DispatchData.GetRWBuffer()->Buffer, 0);
 
 	FVertexShaderRHIParamRef ShaderRHI = Shader->GetVertexShader();
 	if (ShaderRHI && PreviousStreamBuffer.IsBound())

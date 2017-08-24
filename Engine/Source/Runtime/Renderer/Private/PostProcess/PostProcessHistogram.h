@@ -24,7 +24,7 @@ public:
 	// changing this number require Histogram.usf to be recompiled
 	static const uint32 ThreadGroupSizeX = 8;
 	// changing this number require Histogram.usf to be recompiled
-	static const uint32 ThreadGroupSizeY = 8;
+	static const uint32 ThreadGroupSizeY = 4;
 
 	static const uint32 HistogramSize = 64;
 

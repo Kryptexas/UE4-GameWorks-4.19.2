@@ -11,6 +11,8 @@
 #include "MacApplication.h"
 #include "HAL/FileManager.h"
 #include <mach-o/dyld.h>
+#include <mach/thread_act.h>
+#include <mach/thread_policy.h>
 #include <libproc.h>
 
 void* FMacPlatformProcess::GetDllHandle( const TCHAR* Filename )
@@ -1247,9 +1249,17 @@ FString FMacPlatformProcess::FProcEnumInfo::GetName() const
 	return FPaths::GetCleanFilename(GetFullPath());
 }
 
-#include "MacPlatformRunnableThread.h"
-
 FRunnableThread* FMacPlatformProcess::CreateRunnableThread()
 {
-	return new FRunnableThreadMac();
+	return new FRunnableThreadApple();
+}
+
+void FMacPlatformProcess::SetThreadAffinityMask(uint64 AffinityMask)
+{
+	if( AffinityMask != FPlatformAffinity::GetNoAffinityMask() )
+	{
+		thread_affinity_policy AP;
+		AP.affinity_tag = AffinityMask;
+		thread_policy_set(pthread_mach_thread_np(pthread_self()), THREAD_AFFINITY_POLICY, (integer_t*)&AP, THREAD_AFFINITY_POLICY_COUNT);
+	}
 }

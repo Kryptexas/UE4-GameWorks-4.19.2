@@ -23,8 +23,11 @@ typedef FIOSPlatformTypes FPlatformTypes;
 
 #ifdef __LP64__
 #define PLATFORM_64BITS					1
+// Technically the underlying platform has 128bit atomics, but clang might not issue optimal code
+#define PLATFORM_HAS_128BIT_ATOMICS		0
 #else
 #define PLATFORM_64BITS					0
+#define PLATFORM_HAS_128BIT_ATOMICS		0
 #endif
 
 // Base defines, defaults are commented out
@@ -55,8 +58,10 @@ typedef FIOSPlatformTypes FPlatformTypes;
 #define PLATFORM_UI_NEEDS_TOOLTIPS						0
 #define PLATFORM_UI_NEEDS_FOCUS_OUTLINES				0
 
-// @todo iOS: temporarily use Ansi allocator as wxWidgets cause problems with MallocTBB
-#define FORCE_ANSI_ALLOCATOR 1
+//mallocpoison not safe with aligned ansi allocator.  returns the larger unaligned size during Free() which causes writes off the end of the allocation.
+#define UE_USE_MALLOC_FILL_BYTES 0 
+
+#define PLATFORM_RHITHREAD_DEFAULT_BYPASS				1
 
 // Function type macros.
 #define VARARGS															/* Functions with variable arguments */

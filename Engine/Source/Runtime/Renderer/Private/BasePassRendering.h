@@ -47,6 +47,7 @@ public:
 	FVector4 LightColorAndFalloffExponent;
 	FVector4 LightDirectionAndShadowMapChannelMask;
 	FVector4 SpotAnglesAndSourceRadiusPacked;
+	FVector4 LightTangentAndSoftSourceRadius;
 };
 
 /** Parameters for computing forward lighting. */
@@ -94,10 +95,14 @@ public:
 			InstancedNumCulledLightsGrid.SetBuffer(RHICmdList, ShaderRHI, InstancedView.ForwardLightingResources->NumCulledLightsGrid);
 			InstancedCulledLightDataGrid.SetBuffer(RHICmdList, ShaderRHI, InstancedView.ForwardLightingResources->CulledLightDataGrid);
 		}
-		else if (InstancedForwardGlobalLightData.IsBound())
+		else
 		{
-			check(View.ForwardLightingResources->ForwardGlobalLightData.IsValid());
+			// Metal & Vulkan require all slots be bound even if we don't care to use them at runtime.
+			check(!InstancedForwardGlobalLightData.IsBound() || View.ForwardLightingResources->ForwardGlobalLightData.IsValid());
 			SetUniformBufferParameter(RHICmdList, ShaderRHI, InstancedForwardGlobalLightData, View.ForwardLightingResources->ForwardGlobalLightData);
+			SetSRVParameter(RHICmdList, ShaderRHI, InstancedForwardLocalLightBuffer, View.ForwardLightingResources->ForwardLocalLightBuffer.SRV);
+			InstancedNumCulledLightsGrid.SetBuffer(RHICmdList, ShaderRHI, View.ForwardLightingResources->NumCulledLightsGrid);
+			InstancedCulledLightDataGrid.SetBuffer(RHICmdList, ShaderRHI, View.ForwardLightingResources->CulledLightDataGrid);
 		}
 
 		FSceneRenderTargets& SceneRenderTargets = FSceneRenderTargets::Get(RHICmdList);
@@ -476,7 +481,8 @@ public:
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		Super::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
-		OutEnvironment.SetDefine(TEXT("BASEPASS_ATMOSPHERIC_FOG"), bEnableAtmosphericFog);
+		// @todo MetalMRT: Remove this hack and implement proper atmospheric-fog solution for Metal MRT...
+		OutEnvironment.SetDefine(TEXT("BASEPASS_ATMOSPHERIC_FOG"), (Platform != SP_METAL_MRT && Platform != SP_METAL_MRT_MAC) ? bEnableAtmosphericFog : 0);
 	}
 };
 
@@ -1404,6 +1410,13 @@ void ProcessBasePassMeshForSimpleForwardShading(
 			Action.template Process< FUniformLightMapPolicy >(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_SIMPLE_LIGHTMAP_ONLY_LIGHTING), Parameters.Mesh.LCI);
 		}
 	}
+	if (bIsLitMaterial
+		&& bAllowStaticLighting
+		&& Action.UseVolumetricLightmap()
+		&& Parameters.PrimitiveSceneProxy)
+	{
+		Action.template Process< FUniformLightMapPolicy >(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_SIMPLE_STATIONARY_VOLUMETRICLIGHTMAP_SHADOW_LIGHTING), Parameters.Mesh.LCI);
+	}
 	else if (bIsLitMaterial
 		&& IsIndirectLightingCacheAllowed(Parameters.FeatureLevel)
 		&& Action.AllowIndirectLightingCache()
@@ -1471,7 +1484,14 @@ void ProcessBasePassMesh(
 	// Render self-shadowing only for >= SM4 and fallback to non-shadowed for lesser shader models
 	else if (bIsLitMaterial && Action.UseTranslucentSelfShadowing() && Parameters.FeatureLevel >= ERHIFeatureLevel::SM4)
 	{
-		if (IsIndirectLightingCacheAllowed(Parameters.FeatureLevel)
+		if (bIsLitMaterial
+			&& bAllowStaticLighting
+			&& Action.UseVolumetricLightmap()
+			&& Parameters.PrimitiveSceneProxy)
+		{
+			Action.template Process<FSelfShadowedVolumetricLightmapPolicy>(RHICmdList, Parameters, FSelfShadowedVolumetricLightmapPolicy(), FSelfShadowedTranslucencyPolicy::ElementDataType(Action.GetTranslucentSelfShadow()));
+		}
+		else if (IsIndirectLightingCacheAllowed(Parameters.FeatureLevel)
 				&& Action.AllowIndirectLightingCache()
 				&& Parameters.PrimitiveSceneProxy)
 		{
@@ -1517,6 +1537,13 @@ void ProcessBasePassMesh(
 			break;
 		default:
 			if (bIsLitMaterial
+				&& bAllowStaticLighting
+				&& Action.UseVolumetricLightmap()
+				&& Parameters.PrimitiveSceneProxy)
+			{
+				Action.template Process< FUniformLightMapPolicy >(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_PRECOMPUTED_IRRADIANCE_VOLUME_INDIRECT_LIGHTING), Parameters.Mesh.LCI);
+			}
+			else if (bIsLitMaterial
 				&& IsIndirectLightingCacheAllowed(Parameters.FeatureLevel)
 				&& Action.AllowIndirectLightingCache()
 				&& Parameters.PrimitiveSceneProxy)

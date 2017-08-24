@@ -39,6 +39,11 @@ public class ShaderCompileWorkerTarget : TargetRules
 		bBuildWithEditorOnlyData = true;
 		bCompileCEF3 = false;
 
+		if (Target.Configuration == UnrealTargetConfiguration.Debug)
+		{
+			bDebugBuildsActuallyUseDebugCRT = true;
+		}
+
 		// Never use malloc profiling in ShaderCompileWorker.
 		bUseMallocProfiler = false;
 

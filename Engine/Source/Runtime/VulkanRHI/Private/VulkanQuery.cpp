@@ -129,6 +129,15 @@ inline bool FVulkanBufferedQueryPool::GetResults(FVulkanCommandListContext& Cont
 		// Try to read in bulk if possible
 		const uint64 AllUsedMask = (uint64)-1;
 		uint32 Word = Query->GetActiveQueryIndex() / 64;
+
+		if ((StartedQueryBits[Word] & BitMask) == 0)
+		{
+			// query never started/ended so how can we get a result ?
+			OutResult = 0;
+			return true;
+		}
+
+
 #if 0
 		if ((UsedQueryBits[Word] & AllUsedMask) == AllUsedMask && ReadResultsBits[Word] == 0)
 		{
@@ -333,6 +342,9 @@ void FVulkanCommandListContext::AdvanceQuery(FVulkanRenderQuery* Query)
 		Query->SetActiveQueryIndex(QueryIndex);
 		Query->SetActiveQueryPool(Pool);
 	}
+
+	// mark at begin
+	((FVulkanBufferedQueryPool*)Query->GetActiveQueryPool())->MarkQueryAsStarted(Query->GetActiveQueryIndex());
 }
 
 void FVulkanCommandListContext::RHIEndRenderQuery(FRenderQueryRHIParamRef QueryRHI)

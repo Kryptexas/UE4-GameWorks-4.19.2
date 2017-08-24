@@ -297,6 +297,9 @@ struct FLinearColor
 	/** Quantizes the linear color and returns the result as a FColor.  This bypasses the SRGB conversion. */
 	CORE_API FColor Quantize() const;
 
+	/** Quantizes the linear color with rounding and returns the result as a FColor.  This bypasses the SRGB conversion. */
+	CORE_API FColor QuantizeRound() const;
+
 	/** Quantizes the linear color and returns the result as a FColor with optional sRGB conversion and quality as goal. */
 	CORE_API FColor ToFColor(const bool bSRGB) const;
 

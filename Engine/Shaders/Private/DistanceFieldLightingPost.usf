@@ -16,6 +16,9 @@ Texture2D ConfidenceTexture;
 Texture2D BentNormalHistoryTexture;
 Texture2D ConfidenceHistoryTexture;
 SamplerState BentNormalHistorySampler;
+#if !SUPPORTS_INDEPENDENT_SAMPLERS
+SamplerState ConfidenceHistorySampler;
+#endif
 Texture2D IrradianceHistoryTexture;
 SamplerState IrradianceHistorySampler;
 float HistoryWeight;
@@ -59,7 +62,11 @@ void UpdateHistoryDepthRejectionPS(
 	// Distance field AO was computed at 0,0 regardless of viewrect min
 	float2 DistanceFieldUVs = UVAndScreenPos.xy - View.ViewRectMin.xy * View.BufferSizeAndInvSize.zw;
 	float4 NewValue = Texture2DSampleLevel(BentNormalAOTexture, BentNormalAOSampler, DistanceFieldUVs, 0);
+#if SUPPORTS_INDEPENDENT_SAMPLERS
 	float NewConfidence = Texture2DSampleLevel(ConfidenceTexture, BentNormalAOSampler, DistanceFieldUVs, 0);
+#else
+	float NewConfidence = Texture2DSampleLevel(ConfidenceTexture, ConfidenceSampler, DistanceFieldUVs, 0);
+#endif
 	float SceneDepth = NewValue.w;
 	float PixelSpeed;
 
@@ -126,10 +133,17 @@ void UpdateHistoryDepthRejectionPS(
 		float4 Corner11Value = Texture2DSampleLevel(BentNormalHistoryTexture, BentNormalHistorySampler, OldDistanceFieldUVsCorner11, 0);
 		float4 Corner10Value = Texture2DSampleLevel(BentNormalHistoryTexture, BentNormalHistorySampler, OldDistanceFieldUVsCorner10, 0);
 
+#if SUPPORTS_INDEPENDENT_SAMPLERS
 		float Corner00Confidence = Texture2DSampleLevel(ConfidenceHistoryTexture, BentNormalHistorySampler, OldDistanceFieldUVsCorner00, 0);
 		float Corner01Confidence = Texture2DSampleLevel(ConfidenceHistoryTexture, BentNormalHistorySampler, OldDistanceFieldUVsCorner01, 0);
 		float Corner11Confidence = Texture2DSampleLevel(ConfidenceHistoryTexture, BentNormalHistorySampler, OldDistanceFieldUVsCorner11, 0);
 		float Corner10Confidence = Texture2DSampleLevel(ConfidenceHistoryTexture, BentNormalHistorySampler, OldDistanceFieldUVsCorner10, 0);
+#else
+		float Corner00Confidence = Texture2DSampleLevel(ConfidenceHistoryTexture, ConfidenceHistorySampler, OldDistanceFieldUVsCorner00, 0);
+		float Corner01Confidence = Texture2DSampleLevel(ConfidenceHistoryTexture, ConfidenceHistorySampler, OldDistanceFieldUVsCorner01, 0);
+		float Corner11Confidence = Texture2DSampleLevel(ConfidenceHistoryTexture, ConfidenceHistorySampler, OldDistanceFieldUVsCorner11, 0);
+		float Corner10Confidence = Texture2DSampleLevel(ConfidenceHistoryTexture, ConfidenceHistorySampler, OldDistanceFieldUVsCorner10, 0);
+#endif
 
 	#define COMPUTE_SEPARATE_POSITION_WEIGHTS 1
 	#if COMPUTE_SEPARATE_POSITION_WEIGHTS
@@ -199,7 +213,11 @@ void UpdateHistoryDepthRejectionPS(
 	// Fast path that uses hardware interpolation
 	// This fails to reject based on depth consistently because the depth has been filtered
 	float4 HistoryValue = Texture2DSampleLevel(BentNormalHistoryTexture, BentNormalHistorySampler, OldDistanceFieldUVs, 0);
+#if SUPPORTS_INDEPENDENT_SAMPLERS
 	float HistoryConfidence = Texture2DSampleLevel(ConfidenceHistoryTexture, BentNormalHistorySampler, OldDistanceFieldUVs, 0);
+#else
+	float HistoryConfidence = Texture2DSampleLevel(ConfidenceHistoryTexture, ConfidenceHistorySampler, OldDistanceFieldUVs, 0);
+#endif
 	float PositionWeight = ComputeHistoryWeightBasedOnPosition(UVAndScreenPos.zw, SceneDepth, OldScreenPosition, HistoryValue.w);
 
 	EffectiveHistoryWeight *= PositionWeight;
@@ -251,7 +269,11 @@ void FilterHistoryPS(
 	)
 {
 	float4 HistoryValue = Texture2DSampleLevel(BentNormalAOTexture, BentNormalAOSampler, UVAndScreenPos.xy, 0);
+#if SUPPORTS_INDEPENDENT_SAMPLERS
 	float HistoryConfidence = Texture2DSampleLevel(ConfidenceTexture, BentNormalAOSampler, UVAndScreenPos.xy, 0);
+#else
+	float HistoryConfidence = Texture2DSampleLevel(ConfidenceTexture, ConfidenceSampler, UVAndScreenPos.xy, 0);
+#endif
 
 #if SUPPORT_IRRADIANCE
 	float3 IrradianceValue = Texture2DSampleLevel(IrradianceTexture, IrradianceSampler, UVAndScreenPos.xy, 0).xyz;

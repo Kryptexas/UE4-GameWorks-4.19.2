@@ -8,6 +8,8 @@
 #include "DeferredShadingCommon.ush"
 #include "FastMath.ush"
 #include "DistanceFieldLightingShared.ush"
+#include "SHCommon.ush"
+#include "VolumetricLightmapShared.ush"
 
 #ifndef THREADGROUP_SIZEX
 #define THREADGROUP_SIZEX 1
@@ -55,6 +57,18 @@
 #if LIGHT_SOURCE_MODE == LIGHT_SOURCE_FROM_CAPSULE
 Buffer<float4> LightDirectionData;
 
+void DecodeLightDirectionW(float LightDirectionW, out float LightAngle, out float MinVisibility)
+{
+	uint WInt = asuint(LightDirectionW);
+	LightAngle = f16tof32(WInt);
+	MinVisibility = f16tof32(WInt >> 16);
+}
+
+float EncodeLightDirectionW(float LightAngle, float MinVisibility)
+{
+	return asfloat(f32tof16(LightAngle) | f32tof16(MinVisibility) << 16);
+}
+
 void GetLightDirectionData(uint ShapeIndex, bool bDistanceFieldCaster, out float3 LightDirection, out float LightAngle, out float MinVisibility)
 {
 	// Light data for distance field casters is placed after light data for capsules in SetupIndirectCapsuleShadows
@@ -62,9 +76,52 @@ void GetLightDirectionData(uint ShapeIndex, bool bDistanceFieldCaster, out float
 
 	float4 VectorValue = LightDirectionData[ShapeIndex + BaseLightDataIndex];
 	LightDirection = VectorValue.xyz;
-	uint WInt = asuint(VectorValue.w);
-	LightAngle = f16tof32(WInt);
-	MinVisibility = f16tof32(WInt >> 16);
+	DecodeLightDirectionW(VectorValue.w, LightAngle, MinVisibility);
+}
+
+uint UseStationarySkylightShadowing;
+float CapsuleIndirectConeAngle;
+float CapsuleSkyAngleScale;
+float CapsuleMinSkyAngle;
+uint NumLightDirectionData;
+
+RWBuffer<float4> RWComputedLightDirectionData;
+
+[numthreads(THREADGROUP_SIZEX, 1, 1)]
+void ComputeLightDirectionFromVolumetricLightmapCS(
+	uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	if (DispatchThreadId.x < NumLightDirectionData)
+	{
+		float4 LightData = LightDirectionData[DispatchThreadId.x];
+		float3 ObjectPosition = LightData.xyz;
+		float3 BrickTextureUVs = ComputeVolumetricLightmapBrickTextureUVs(ObjectPosition);
+		float3 LightDirection;
+		float LightAngle;
+
+		if (UseStationarySkylightShadowing > 0)
+		{
+			float3 SkyBentNormal = GetVolumetricLightmapSkyBentNormal(BrickTextureUVs);
+			float SkyBentNormalLength = length(SkyBentNormal);
+
+			float ConeAngle = max(SkyBentNormalLength * CapsuleSkyAngleScale * .5f * PI, CapsuleMinSkyAngle * PI / 180.0f);
+			LightDirection = SkyBentNormal / max(SkyBentNormalLength, .0001f);
+			LightAngle = ConeAngle;
+		}
+		else
+		{
+			FTwoBandSHVectorRGB IrradianceSH = GetVolumetricLightmapSH2(BrickTextureUVs);
+			LightDirection = GetMaximumDirection(GetLuminance(IrradianceSH));
+			LightAngle = CapsuleIndirectConeAngle;
+		}
+
+		float Unused;
+		float MinVisibility;
+		DecodeLightDirectionW(LightData.w, Unused, MinVisibility);
+
+		float4 PackedLightDirection = float4(LightDirection, EncodeLightDirectionW(LightAngle, MinVisibility));
+		RWComputedLightDirectionData[DispatchThreadId.x] = PackedLightDirection;
+	}
 }
 
 #endif
@@ -481,6 +538,18 @@ float SphericalCapIntersectionAreaFast(float fRadius0, float fRadius1, float fDi
 	return fArea;
 }
 
+// CosFadeStartAngle in x, 1 / (1 - CosFadeStartAngle) in y
+float2 CosFadeStartAngle;
+
+void ApplyFadeToCapsuleRadius(inout float CapsuleRadius, float3 LightDirection)
+{
+	#if LIGHT_SOURCE_MODE == LIGHT_SOURCE_FROM_CAPSULE
+		// Fade out when nearly vertical up due to self shadowing artifacts
+		float ShapeFadeAlpha = 1 - saturate(2 * (-LightDirection.z - CosFadeStartAngle.x) * CosFadeStartAngle.y);
+		CapsuleRadius *= ShapeFadeAlpha;
+	#endif
+}
+
 float ShadowConeTraceAgainstCulledCapsuleShapes(
 	float3 WorldRayStart, 
 	float3 UnitRayDirection,
@@ -524,6 +593,8 @@ float ShadowConeTraceAgainstCulledCapsuleShapes(
 		#endif
 
 		float4 CapsuleCenterAndRadius = ShadowCapsuleShapes[ObjectIndex * 2];
+		ApplyFadeToCapsuleRadius(CapsuleCenterAndRadius.w, UnitRayDirection);
+
 		float4 CapsuleOrientationAndLength = ShadowCapsuleShapes[ObjectIndex * 2 + 1];
 
 		float DistanceToShadowSphere;

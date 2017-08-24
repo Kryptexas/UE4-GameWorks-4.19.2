@@ -16,6 +16,8 @@ class Error;
 
 namespace CrossCompiler
 {
+	EParseResult ParseResultError();
+
 	struct FSymbolScope;
 	//struct FInfo;
 
@@ -174,7 +176,7 @@ namespace CrossCompiler
 	{
 		if (!Token)
 		{
-			return EParseResult::Error;
+			return ParseResultError();
 		}
 
 		bool bMatched = false;
@@ -383,7 +385,7 @@ namespace CrossCompiler
 					}
 					else if (TypeFlags & ETF_ERROR_IF_NOT_USER_TYPE)
 					{
-						return EParseResult::Error;
+						return ParseResultError();
 					}
 				}
 			}
@@ -391,7 +393,7 @@ namespace CrossCompiler
 			return EParseResult::NotMatched;
 		}
 
-		return EParseResult::Error;
+		return ParseResultError();
 	}
 
 	EParseResult ParseGeneralType(FHlslScanner& Scanner, int32 TypeFlags, FSymbolScope* SymbolScope, FLinearAllocator* Allocator, AST::FTypeSpecifier** OutSpecifier)
@@ -416,14 +418,14 @@ namespace CrossCompiler
 					if (!InnerOrType)
 					{
 						Scanner.SourceError(*FString::Printf(TEXT("Expecting identifier for type '%s'!"), InnerOrType ? *InnerOrType->String : TEXT("null")));
-						return EParseResult::Error;
+						return ParseResultError();
 					}
 
 					Namespace = Namespace->FindNamespace(*OuterNamespace->String);
 					if (!Namespace)
 					{
 						Scanner.SourceError(*FString::Printf(TEXT("Unknown namespace '%s'!"), *TypeString));
-						return EParseResult::Error;
+						return ParseResultError();
 					}
 					TypeString += OuterNamespace->String;
 					TypeString += TEXT("::");
@@ -447,7 +449,7 @@ namespace CrossCompiler
 							else
 							{
 								Scanner.SourceError(*FString::Printf(TEXT("Unknown type '%s'!"), *TypeString));
-								return EParseResult::Error;
+								return ParseResultError();
 							}
 						}
 						break;
@@ -579,7 +581,7 @@ namespace CrossCompiler
 		}
 
 		// Ran out of tokens!
-		return EParseResult::Error;
+		return ParseResultError();
 	}
 
 	EParseResult MatchSuffixOperator(FHlslScanner& Scanner, /*FInfo& Info,*/ FSymbolScope* SymbolScope, bool bAllowAssignment, FLinearAllocator* Allocator, AST::FExpression** InOutExpression, AST::FExpression** OutTernaryExpression)
@@ -602,13 +604,13 @@ namespace CrossCompiler
 				if (Result != EParseResult::Matched)
 				{
 					Scanner.SourceError(TEXT("Expected expression!"));
-					return EParseResult::Error;
+					return ParseResultError();
 				}
 
 				if (!Scanner.MatchToken(EHlslToken::RightSquareBracket))
 				{
 					Scanner.SourceError(TEXT("Expected ']'!"));
-					return EParseResult::Error;
+					return ParseResultError();
 				}
 
 				auto* ArrayIndexExpression = new(Allocator) AST::FBinaryExpression(Allocator, AST::EOperators::ArrayIndex, PrevExpression, ArrayIndex, Token->SourceInfo);
@@ -623,7 +625,7 @@ namespace CrossCompiler
 				if (!Scanner.MatchToken(EHlslToken::Identifier))
 				{
 					Scanner.SourceError(TEXT("Expected identifier for member or swizzle!"));
-					return EParseResult::Error;
+					return ParseResultError();
 				}
 				auto* FieldExpression = new(Allocator) AST::FUnaryExpression(Allocator, AST::EOperators::FieldSelection, PrevExpression, Token->SourceInfo);
 				FieldExpression->Identifier = Allocator->Strdup(Identifier->String);
@@ -641,7 +643,7 @@ namespace CrossCompiler
 				if (Result != EParseResult::Matched)
 				{
 					Scanner.SourceError(TEXT("Expected ')'!"));
-					return EParseResult::Error;
+					return ParseResultError();
 				}
 
 				PrevExpression = FunctionCall;
@@ -672,18 +674,18 @@ namespace CrossCompiler
 				if (ComputeExpr(Scanner, 0, /*Info,*/ SymbolScope, true, Allocator, &Left, nullptr) != EParseResult::Matched)
 				{
 					Scanner.SourceError(TEXT("Expected expression!"));
-					return EParseResult::Error;
+					return ParseResultError();
 				}
 				if (!Scanner.MatchToken(EHlslToken::Colon))
 				{
 					Scanner.SourceError(TEXT("Expected ':'!"));
-					return EParseResult::Error;
+					return ParseResultError();
 				}
 				AST::FExpression* Right = nullptr;
 				if (ComputeExpr(Scanner, 0, /*Info,*/ SymbolScope, true, Allocator, &Right, nullptr) != EParseResult::Matched)
 				{
 					Scanner.SourceError(TEXT("Expected expression!"));
-					return EParseResult::Error;
+					return ParseResultError();
 				}
 
 				auto* Ternary = new(Allocator) AST::FExpression(Allocator, AST::EOperators::Conditional, nullptr, Left, Right, Token->SourceInfo);
@@ -709,7 +711,7 @@ namespace CrossCompiler
 		auto* Token = Scanner.GetCurrentToken();
 		if (!Token || UnaryResult == EParseResult::Error)
 		{
-			return EParseResult::Error;
+			return ParseResultError();
 		}
 
 		AST::FExpression* AtomExpression = nullptr;
@@ -774,13 +776,13 @@ namespace CrossCompiler
 			if (ComputeExpr(Scanner, 1, /*Info,*/ SymbolScope, bAllowAssignment, Allocator, &AtomExpression, nullptr) != EParseResult::Matched)
 			{
 				Scanner.SourceError(TEXT("Expected expression!"));
-				return EParseResult::Error;
+				return ParseResultError();
 			}
 
 			if (!Scanner.MatchToken(EHlslToken::RightParenthesis))
 			{
 				Scanner.SourceError(TEXT("Expected ')'!"));
-				return EParseResult::Error;
+				return ParseResultError();
 			}
 		}
 			break;
@@ -809,7 +811,7 @@ namespace CrossCompiler
 					if (Result != EParseResult::Matched)
 					{
 						Scanner.SourceError(TEXT("Unexpected type in numeric constructor!"));
-						return EParseResult::Error;
+						return ParseResultError();
 					}
 
 					AtomExpression = FunctionCall;
@@ -817,7 +819,7 @@ namespace CrossCompiler
 				else
 				{
 					Scanner.SourceError(TEXT("Unexpected type in declaration!"));
-					return EParseResult::Error;
+					return ParseResultError();
 				}
 				break;
 			}
@@ -826,7 +828,7 @@ namespace CrossCompiler
 				if (UnaryResult == EParseResult::Matched)
 				{
 					Scanner.SourceError(TEXT("Expected expression!"));
-					return EParseResult::Error;
+					return ParseResultError();
 				}
 
 				return EParseResult::NotMatched;
@@ -840,7 +842,7 @@ namespace CrossCompiler
 		//auto* Token = Scanner.GetCurrentToken();
 		if (/*!Token || */SuffixResult == EParseResult::Error)
 		{
-			return EParseResult::Error;
+			return ParseResultError();
 		}
 
 		// Patch unary if necessary
@@ -1016,7 +1018,7 @@ namespace CrossCompiler
 			Result = ComputeExpr(Scanner, NextMinPrec, /*Info,*/ SymbolScope, bAllowAssignment, Allocator, &RHSExpression, &RHSTernaryExpression);
 			if (Result == EParseResult::Error)
 			{
-				return EParseResult::Error;
+				return ParseResultError();
 			}
 			else if (Result == EParseResult::NotMatched)
 			{
@@ -1098,12 +1100,12 @@ namespace CrossCompiler
 				if (Result == EParseResult::Error)
 				{
 					Scanner.SourceError(TEXT("Invalid expression list\n"));
-					return EParseResult::Error;
+					return ParseResultError();
 				}
 				else if (Result == EParseResult::NotMatched)
 				{
 					Scanner.SourceError(TEXT("Expected expression\n"));
-					return EParseResult::Error;
+					return ParseResultError();
 				}
 
 				OutExpression->Expressions.Add(Expression);
@@ -1122,6 +1124,12 @@ namespace CrossCompiler
 			break;
 		}
 
+		return ParseResultError();
+	}
+
+	EParseResult ParseResultError()
+	{
+		// Extracted into a function so callstacks can be seen/debugged in the case of an error
 		return EParseResult::Error;
 	}
 }

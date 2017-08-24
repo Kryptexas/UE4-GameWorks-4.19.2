@@ -18,7 +18,7 @@ DECLARE_DELEGATE_FourParams(FOnRadialMenuGenerated, FMenuBuilder&, TSharedPtr<FU
 * VR Editor user interface manager
 */
 UCLASS()
-class UVRRadialMenuHandler : public UObject
+class UVRRadialMenuHandler: public UObject
 {
 	GENERATED_BODY()
 

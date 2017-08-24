@@ -212,17 +212,17 @@ void FVulkanLayout::Compile()
 	const TArray<VkDescriptorSetLayout>& LayoutHandles = DescriptorSetLayout.GetHandles();
 
 #if !VULKAN_KEEP_CREATE_INFO
-	VkPipelineLayoutCreateInfo CreateInfo;
+	VkPipelineLayoutCreateInfo PipelineLayoutCreateInfo;
 #endif
-	FMemory::Memzero(CreateInfo);
-	CreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	CreateInfo.pNext = nullptr;
-	CreateInfo.setLayoutCount = LayoutHandles.Num();
-	CreateInfo.pSetLayouts = LayoutHandles.GetData();
-	CreateInfo.pushConstantRangeCount = 0;
-	CreateInfo.pPushConstantRanges = nullptr;
+	FMemory::Memzero(PipelineLayoutCreateInfo);
+	PipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+	//PipelineLayoutCreateInfo.pNext = nullptr;
+	PipelineLayoutCreateInfo.setLayoutCount = LayoutHandles.Num();
+	PipelineLayoutCreateInfo.pSetLayouts = LayoutHandles.GetData();
+	//PipelineLayoutCreateInfo.pushConstantRangeCount = 0;
+	//PipelineLayoutCreateInfo.pPushConstantRanges = nullptr;
 
-	VERIFYVULKANRESULT(VulkanRHI::vkCreatePipelineLayout(Device->GetInstanceHandle(), &CreateInfo, nullptr, &PipelineLayout));
+	VERIFYVULKANRESULT(VulkanRHI::vkCreatePipelineLayout(Device->GetInstanceHandle(), &PipelineLayoutCreateInfo, nullptr, &PipelineLayout));
 }
 
 

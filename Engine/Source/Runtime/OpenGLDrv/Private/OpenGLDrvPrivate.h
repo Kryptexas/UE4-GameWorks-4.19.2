@@ -490,25 +490,6 @@ inline uint32 CalcDynamicBufferSize(uint32 Size)
  */
 void InitDefaultGLContextState(void);
 
-/** Vertex declaration for just one FVector4 position. */
-class FOpenGLVector4VertexDeclaration : public FRenderResource
-{
-public:
-	FVertexDeclarationRHIRef VertexDeclarationRHI;
-	virtual void InitRHI() override
-	{
-		FVertexDeclarationElementList Elements;
-		Elements.Add(FVertexElement(0,0,VET_Float4,0,sizeof(FVector4)));
-		VertexDeclarationRHI = RHICreateVertexDeclaration(Elements);
-	}
-	virtual void ReleaseRHI() override
-	{
-		VertexDeclarationRHI.SafeRelease();
-	}
-};
-
-extern TGlobalResource<FOpenGLVector4VertexDeclaration> GOpenGLVector4VertexDeclaration;
-
 extern bool GUseEmulatedUniformBuffers;
 
 inline bool OpenGLShaderPlatformNeedsBindLocation(const EShaderPlatform InShaderPlatform)

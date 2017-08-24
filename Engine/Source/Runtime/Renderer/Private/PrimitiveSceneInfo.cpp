@@ -23,7 +23,7 @@ public:
 	{}
 
 	// FStaticPrimitiveDrawInterface.
-	virtual void SetHitProxy(HHitProxy* HitProxy)
+	virtual void SetHitProxy(HHitProxy* HitProxy) final override
 	{
 		CurrentHitProxy = HitProxy;
 
@@ -39,7 +39,7 @@ public:
 		}
 	}
 
-	virtual void DrawMesh(const FMeshBatch& Mesh, float ScreenSize)
+	virtual void DrawMesh(const FMeshBatch& Mesh, float ScreenSize) final override
 	{
 		if (Mesh.GetNumPrimitives() > 0)
 		{

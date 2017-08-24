@@ -75,7 +75,8 @@ public:
 		{
 			return false;
 		}
-
+		
+		TSAN_AFTER(&Tail->NextNode);
 		OutItem = MoveTemp(Popped->Item);
 
 		TNode* OldTail = Tail;
@@ -113,16 +114,18 @@ public:
 
 		if (Mode == EQueueMode::Mpsc)
 		{
-			OldHead = (TNode*)FPlatformAtomics::InterlockedExchangePtr((void**)&Head, NewNode);
+            OldHead = (TNode*)FPlatformAtomics::InterlockedExchangePtr((void**)&Head, NewNode);
+			TSAN_BEFORE(&OldHead->NextNode);
+			FPlatformAtomics::InterlockedExchangePtr((void**)&OldHead->NextNode, NewNode);
 		}
 		else
 		{
 			OldHead = Head;
 			Head = NewNode;
+			TSAN_BEFORE(&OldHead->NextNode);
 			FPlatformMisc::MemoryBarrier();
+            OldHead->NextNode = NewNode;
 		}
-
-		OldHead->NextNode = NewNode;
 
 		return true;
 	}
@@ -147,16 +150,18 @@ public:
 
 		if (Mode == EQueueMode::Mpsc)
 		{
-			OldHead = (TNode*)FPlatformAtomics::InterlockedExchangePtr((void**)&Head, NewNode);
+            OldHead = (TNode*)FPlatformAtomics::InterlockedExchangePtr((void**)&Head, NewNode);
+			TSAN_BEFORE(&OldHead->NextNode);
+            FPlatformAtomics::InterlockedExchangePtr((void**)&OldHead->NextNode, NewNode);
 		}
 		else
 		{
 			OldHead = Head;
 			Head = NewNode;
+			TSAN_BEFORE(&OldHead->NextNode);
 			FPlatformMisc::MemoryBarrier();
+			OldHead->NextNode = NewNode;
 		}
-
-		OldHead->NextNode = NewNode;
 
 		return true;
 	}
@@ -225,7 +230,7 @@ private:
 
 	/** Holds a pointer to the tail of the list. */
 	TNode* Tail;
-
+	
 private:
 
 	/** Hidden copy constructor. */

@@ -1393,23 +1393,18 @@ void FLightPropagationVolume::InjectLightDirect(FRHICommandListImmediate& RHICmd
 		SCOPED_DRAW_EVENT(RHICmdList, LpvDirectLightInjection);
 
 		FLpvDirectLightInjectParameters InjectUniformBufferParams;
-		// Get light params
-		FVector4	LightPositionAndInvRadius;
-		FVector4	LightColorAndFalloffExponent;
-		FVector		LightDirection;	
-		FVector2D	SpotAngles;
-		float		SourceRadius;
-		float		LightSourceLength;
-		float		LightMinRoughness;
-		Light.GetParameters( LightPositionAndInvRadius, LightColorAndFalloffExponent, LightDirection, SpotAngles, SourceRadius, LightSourceLength, LightMinRoughness );
 
+		FLightParameters LightParameters;
+
+		Light.GetParameters(LightParameters);
+		
 		InjectUniformBufferParams.LightColor = Light.GetColor() * Light.GetIndirectLightingScale();
 		InjectUniformBufferParams.LightPosition = Light.GetPosition();
 		InjectUniformBufferParams.LightRadius = Light.GetRadius();
-		InjectUniformBufferParams.LightFalloffExponent = LightColorAndFalloffExponent.W;
-		InjectUniformBufferParams.LightDirection = LightDirection;
-		InjectUniformBufferParams.LightSpotAngles = SpotAngles;
-		InjectUniformBufferParams.LightSourceLength = LightSourceLength;
+		InjectUniformBufferParams.LightFalloffExponent = LightParameters.LightColorAndFalloffExponent.W;
+		InjectUniformBufferParams.LightDirection = LightParameters.NormalizedLightDirection;
+		InjectUniformBufferParams.LightSpotAngles = LightParameters.SpotAngles;
+		InjectUniformBufferParams.LightSourceLength = LightParameters.LightSourceLength;
 		InjectUniformBufferParams.bLightInverseSquaredAttenuation = Light.IsInverseSquared() ? 1.0f : 0.0f;
 
 		FLpvInjectShader_Base* Shader = nullptr;

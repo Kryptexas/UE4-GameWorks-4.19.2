@@ -313,13 +313,6 @@ protected:
 	int64 MemoryOverBudget;
 	int64 MaxEverRequired;
 
-	/** Unmodified texture pool size, in bytes, as specified in the .ini file. */
-	int64 OriginalTexturePoolSize;
-	/** Timestamp when we last shrunk the pool size because of memory usage. */
-	double PreviousPoolSizeTimestamp;
-	/** PoolSize CVar setting the last time we adjusted the pool size. */
-	int32 PreviousPoolSizeSetting;
-
 	/** Whether texture streaming is paused or not. When paused, it won't stream any textures in or out. */
 	bool bPauseTextureStreaming;
 
@@ -336,7 +329,6 @@ protected:
 	uint64 MaxOptimalTextureSize;
 	int64 MaxStreamingOverBudget;
 	uint64 MaxTexturePoolAllocatedSize;
-	uint64 MinLargestHoleSize;
 	uint32 MaxNumWantingTextures;
 #endif
 	

@@ -736,5 +736,29 @@ namespace CrossCompiler
 			const TCHAR* Name;
 			TLinearArray<FAttributeArgument*> Arguments;
 		};
+
+		static inline bool IsAssignmentOperator(EOperators Operator)
+		{
+			switch (Operator)
+			{
+			case EOperators::Assign:
+			case EOperators::MulAssign:
+			case EOperators::DivAssign:
+			case EOperators::ModAssign:
+			case EOperators::AddAssign:
+			case EOperators::SubAssign:
+			case EOperators::LSAssign:
+			case EOperators::RSAssign:
+			case EOperators::AndAssign:
+			case EOperators::XorAssign:
+			case EOperators::OrAssign:
+				return true;
+
+			default:
+				break;
+			}
+
+			return false;
+		}
 	}
 }

@@ -2,6 +2,7 @@
 // Updated to SDK 1.0.42.2
 
 #include "VulkanShaderFormat.h"
+#include "ShaderCore.h"
 
 #if defined(_MSC_VER) && _MSC_VER == 1800
 	#pragma warning(push)
@@ -163,7 +164,7 @@ static EShLanguage GetStage(EHlslShaderFrequency Frequency)
 	return EShLangCount;
 }
 
-bool GenerateSpirv(const ANSICHAR* Source, FCompilerInfo& CompilerInfo, FString& OutErrors, const FString& DumpDebugInfoPath, TArray<uint8>& OutSpirv)
+bool GenerateSpirv(const ANSICHAR* Source, FCompilerInfo& CompilerInfo, FString& OutErrors, const FString& DumpDebugInfoPath, FSpirv& OutSpirv)
 {
 	glslang::TProgram* Program = new glslang::TProgram;
 
@@ -193,26 +194,15 @@ bool GenerateSpirv(const ANSICHAR* Source, FCompilerInfo& CompilerInfo, FString&
 			return false;
 		}
 
-		if (0)
-		{
-			/*
-				Uniform reflection:
-				pu_ipb1: offset 0, type 8b55, size 1, index 0
-				pu_mpb2: offset 0, type 8b52, size 14, index 1
-				pu_hpb0: offset 0, type 8b52, size 10, index 2
-				ps0: offset -1, type 8b60, size 1, index -1
-
-				Uniform block reflection:
-				pb1: offset -1, type ffffffff, size 16, index -1
-				pb2: offset -1, type ffffffff, size 224, index -1
-				pb0: offset -1, type ffffffff, size 160, index -1
-			*/
-			Program->buildReflection();
-			Program->dumpReflection();
-		}
-
 		if (!Program->getIntermediate(Stage))
 		{
+			OutErrors += ANSI_TO_TCHAR(Program->getInfoLog());
+			return false;
+		}
+
+		if (!Program->buildReflection())
+		{
+			OutErrors += ANSI_TO_TCHAR(Program->getInfoLog());
 			return false;
 		}
 
@@ -220,8 +210,8 @@ bool GenerateSpirv(const ANSICHAR* Source, FCompilerInfo& CompilerInfo, FString&
 		glslang::GlslangToSpv(*Program->getIntermediate((EShLanguage)Stage), Spirv);
 
 		uint32 SizeInBytes = Spirv.size() * sizeof(Spirv[0]);
-		OutSpirv.AddZeroed(SizeInBytes);
-		FMemory::Memcpy(OutSpirv.GetData(), &Spirv[0], SizeInBytes);
+		OutSpirv.Data.AddZeroed(SizeInBytes);
+		FMemory::Memcpy(OutSpirv.Data.GetData(), &Spirv[0], SizeInBytes);
 
 		if (CompilerInfo.bDebugDump)
 		{
@@ -240,14 +230,60 @@ bool GenerateSpirv(const ANSICHAR* Source, FCompilerInfo& CompilerInfo, FString&
 				File.close();
 			}
 		}
+		else if (CompilerInfo.Input.bSkipPreprocessedCache)
+		{
+			spv::Parameterize();
+			spv::Disassemble(std::cout, Spirv);
+		}
+
+		if (CompilerInfo.Input.bSkipPreprocessedCache)
+		{
+			Program->dumpReflection();
+		}
+
+		for (int32 Index = 0; Index < Program->getNumLiveUniformVariables(); ++Index)
+		{
+			const char* AnsiName = Program->getUniformName(Index);
+			FString Name = AnsiName ? ANSI_TO_TCHAR(AnsiName) : TEXT("NULL");
+			const auto* Type = Program->getAttributeTType(Index);
+			int32 Binding = -1;
+			if (Type && Type->getQualifier().hasBinding())
+			{
+				Binding = Type->getQualifier().layoutBinding;
+			}
+			else
+			{
+				Binding = Program->getUniformBinding(Index);
+			}
+			FSpirv::FEntry Entry{Name, Binding};
+			OutSpirv.ReflectionInfo.Add(Entry);
+		}
+
+		for (int32 Index = 0; Index < Program->getNumLiveUniformBlocks(); ++Index)
+		{
+			const char* AnsiName = Program->getUniformBlockName(Index);
+			FString Name = AnsiName ? ANSI_TO_TCHAR(AnsiName) : TEXT("NULL");
+			const auto* Type = Program->getUniformBlockTType(Index);
+			int32 Binding = -1;
+			if (Type && Type->getQualifier().hasBinding())
+			{
+				Binding = Type->getQualifier().layoutBinding;
+			}
+			else
+			{
+				Binding = Program->getUniformBinding(Index);
+			}
+			FSpirv::FEntry Entry{Name, Binding};
+			OutSpirv.ReflectionInfo.Add(Entry);
+		}
 
 		return true;
 	};
 
 	bool bResult = DoGenerate();
 
-	delete Shader;
 	delete Program;
+	delete Shader;
 
 	return bResult;
 }

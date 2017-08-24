@@ -10,24 +10,14 @@
 #include "Apple/ApplePlatformMemory.h"
 
 /**
- *	Max implementation of the FGenericPlatformMemoryStats.
- */
-struct FPlatformMemoryStats : public FGenericPlatformMemoryStats
-{};
-
-/**
 * Mac implementation of the memory OS functions
 **/
-struct CORE_API FMacPlatformMemory : public FGenericPlatformMemory
+struct CORE_API FMacPlatformMemory : public FApplePlatformMemory
 {
 	//~ Begin FGenericPlatformMemory Interface
-	static void Init();
 	static FPlatformMemoryStats GetStats();
 	static const FPlatformMemoryConstants& GetConstants();
 	static FMalloc* BaseAllocator();
-	static bool PageProtect(void* const Ptr, const SIZE_T Size, const bool bCanRead, const bool bCanWrite);
-	static void* BinnedAllocFromOS( SIZE_T Size );
-	static void BinnedFreeToOS( void* Ptr, SIZE_T Size );
 	//~ End FGenericPlatformMemory Interface
 };
 

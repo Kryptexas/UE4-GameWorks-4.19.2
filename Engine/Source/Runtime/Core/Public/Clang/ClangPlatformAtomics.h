@@ -68,6 +68,7 @@ struct CORE_API FClangPlatformAtomics : public FGenericPlatformAtomics
 	{
 		return __sync_val_compare_and_swap(Dest, Comperand, Exchange);
 	}
+    
 	static FORCEINLINE int64 AtomicRead64(volatile const int64* Src)
 	{
 		return InterlockedCompareExchange((volatile int64*)Src, 0, 0);

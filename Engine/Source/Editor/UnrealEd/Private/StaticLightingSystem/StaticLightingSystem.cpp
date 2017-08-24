@@ -286,7 +286,7 @@ void FStaticLightingManager::CreateStaticLightingSystem(const FLightingBuildOpti
 		for (ULevel* Level : GWorld->GetLevels())
 		{
 			if (Level->bIsLightingScenario && Level->bIsVisible)
-	{
+			{
 				StaticLightingSystems.Emplace(new FStaticLightingSystem(Options, GWorld, Level));
 			}
 		}
@@ -306,19 +306,14 @@ void FStaticLightingManager::CreateStaticLightingSystem(const FLightingBuildOpti
 		}
 		else
 		{
-			DestroyStaticLightingSystems();
+			FStaticLightingManager::Get()->FailLightingBuild();
 		}
 	}
 	else
 	{
 		// Tell the user that they must close their current build first.
-		FNotificationInfo Info( LOCTEXT("LightBuildInProgressWarning", "A lighting build is already in progress! Please cancel it before triggering a new build.") );
-		Info.ExpireDuration = 5.0f;
-		TSharedPtr<SNotificationItem> Notification = FSlateNotificationManager::Get().AddNotification(Info);
-		if (Notification.IsValid())
-		{
-			Notification->SetCompletionState(SNotificationItem::CS_Fail);
-		}
+		FStaticLightingManager::Get()->FailLightingBuild(
+			LOCTEXT("LightBuildInProgressWarning", "A lighting build is already in progress! Please cancel it before triggering a new build."));
 	}
 }
 
@@ -330,7 +325,7 @@ void FStaticLightingManager::UpdateBuildLighting()
 		ActiveStaticLightingSystem->UpdateLightingBuild();
 
 		if (ActiveStaticLightingSystem && ActiveStaticLightingSystem->CurrentBuildStage == FStaticLightingSystem::Finished)
-	{
+		{
 			ActiveStaticLightingSystem = nullptr;
 			StaticLightingSystems.RemoveAt(0);
 
@@ -346,7 +341,7 @@ void FStaticLightingManager::UpdateBuildLighting()
 				}
 				else
 				{
-					DestroyStaticLightingSystems();
+					FStaticLightingManager::Get()->FailLightingBuild();
 				}
 			}
 		}
@@ -1374,6 +1369,7 @@ void FStaticLightingSystem::ReportStatistics()
 		UE_LOG(LogStaticLightingSystem, Log,
 			TEXT("Breakdown of Export Times\n")
 			TEXT("   %8.1fs\tVisibility Data\n")
+			TEXT("   %8.1fs\tVolumetricLightmap Data\n")
 			TEXT("   %8.1fs\tLights\n")
 			TEXT("   %8.1fs\tModels\n")
 			TEXT("   %8.1fs\tStatic Meshes\n")
@@ -1382,6 +1378,7 @@ void FStaticLightingSystem::ReportStatistics()
 			TEXT("   %8.1fs\tLandscape Instances\n")
 			TEXT("   %8.1fs\tMappings\n")
 			, LightmassStatistics.ExportVisibilityDataTime
+			, LightmassStatistics.ExportVolumetricLightmapDataTime
 			, LightmassStatistics.ExportLightsTime
 			, LightmassStatistics.ExportModelsTime
 			, LightmassStatistics.ExportStaticMeshesTime

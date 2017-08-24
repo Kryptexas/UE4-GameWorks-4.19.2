@@ -35,7 +35,7 @@ private:
 	/** The track's video output handle */
 	AVPlayerItemVideoOutput* Output;
 	
-#if WITH_ENGINE && !PLATFORM_MAC
+#if WITH_ENGINE && COREVIDEO_SUPPORTS_METAL
 private:
 	/** The Metal texture cache for unbuffered texture uploads. */
 	CVMetalTextureCacheRef MetalTextureCache;

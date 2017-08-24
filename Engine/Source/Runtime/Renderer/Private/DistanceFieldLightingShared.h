@@ -36,7 +36,7 @@ extern int32 GDistanceFieldGI;
 
 inline bool DoesPlatformSupportDistanceFieldGI(EShaderPlatform Platform)
 {
-	return Platform == SP_PCD3D_SM5;
+	return Platform == SP_PCD3D_SM5|| Platform == SP_VULKAN_SM5;
 }
 
 inline bool SupportsDistanceFieldGI(ERHIFeatureLevel::Type FeatureLevel, EShaderPlatform ShaderPlatform)
@@ -71,8 +71,8 @@ public:
 		{
 			const uint32 BufferFlags = BUF_ShaderResource;
 
-			Bounds.Initialize(sizeof(float), 4 * MaxObjects, PF_R32_FLOAT);
-			Data.Initialize(sizeof(float), 4 * MaxObjects * ObjectDataStride, PF_R32_FLOAT);
+			Bounds.Initialize(sizeof(float), 4 * MaxObjects, PF_R32_FLOAT, 0, TEXT("FDistanceFieldObjectBuffers::Bounds"));
+			Data.Initialize(sizeof(float), 4 * MaxObjects * ObjectDataStride, PF_R32_FLOAT, 0, TEXT("FDistanceFieldObjectBuffers::Data"));
 		}
 	}
 

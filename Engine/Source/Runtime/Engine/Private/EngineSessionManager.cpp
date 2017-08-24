@@ -425,6 +425,7 @@ void FEngineSessionManager::DeleteStoredRecord(const FSessionRecord& Record)
  * @EventParam CurrentUserActivity - If one was set when the session abnormally terminated, this is the activity taken from the FUserActivityTracking API.
  * @EventParam IsVanilla - Value from the engine's IsVanillaProduct() method. Basically if this is a Epic-distributed Editor with zero third party plugins or game code modules.
  * @EventParam GPUCrash - A GPU Hang or Crash was detected before the final assert, fatal log, or other exit.
+ 
  *
  * @TODO: Debugger should be a completely separate flag, since it's orthogonal to whether we detect a crash or shutdown.
  *

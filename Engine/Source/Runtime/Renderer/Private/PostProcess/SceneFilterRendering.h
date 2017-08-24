@@ -56,19 +56,19 @@ extern void DrawRectangle(
 
 extern void DrawTransformedRectangle(
 	FRHICommandListImmediate& RHICmdList,
-    float X,
-    float Y,
-    float SizeX,
-    float SizeY,
-    const FMatrix& PosTransform,
-    float U,
-    float V,
-    float SizeU,
-    float SizeV,
-    const FMatrix& TexTransform,
-    FIntPoint TargetSize,
-    FIntPoint TextureSize
-    );
+	float X,
+	float Y,
+	float SizeX,
+	float SizeY,
+	const FMatrix& PosTransform,
+	float U,
+	float V,
+	float SizeU,
+	float SizeV,
+	const FMatrix& TexTransform,
+	FIntPoint TargetSize,
+	FIntPoint TextureSize
+	);
 
 extern void DrawHmdMesh(
 	FRHICommandList& RHICmdList,

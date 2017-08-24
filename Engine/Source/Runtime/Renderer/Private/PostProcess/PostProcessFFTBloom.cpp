@@ -41,7 +41,8 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && (!IsMetalPlatform(Platform) || RHIGetShaderLanguageVersion(Platform) >= 2);
+		// @todo MetalMRT: Metal MRT can't cope with the threadgroup storage requirements for these shaders right now
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && (!IsMetalPlatform(Platform) || RHIGetShaderLanguageVersion(Platform) >= 2) && (Platform != SP_METAL_MRT);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -137,7 +138,8 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && (!IsMetalPlatform(Platform) || RHIGetShaderLanguageVersion(Platform) >= 2);
+		// @todo MetalMRT: Metal MRT can't cope with the threadgroup storage requirements for these shaders right now
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && (!IsMetalPlatform(Platform) || RHIGetShaderLanguageVersion(Platform) >= 2) && (Platform != SP_METAL_MRT);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -225,7 +227,8 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && (!IsMetalPlatform(Platform) || RHIGetShaderLanguageVersion(Platform) >= 2);
+		// @todo MetalMRT: Metal MRT can't cope with the threadgroup storage requirements for these shaders right now
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && (!IsMetalPlatform(Platform) || RHIGetShaderLanguageVersion(Platform) >= 2) && (Platform != SP_METAL_MRT);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -322,7 +325,8 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && (!IsMetalPlatform(Platform) || RHIGetShaderLanguageVersion(Platform) >= 2);
+		// @todo MetalMRT: Metal MRT can't cope with the threadgroup storage requirements for these shaders right now
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && (!IsMetalPlatform(Platform) || RHIGetShaderLanguageVersion(Platform) >= 2) && (Platform != SP_METAL_MRT);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)

@@ -42,6 +42,15 @@ static float DumpCull = 1.0f;
 //Whether or not we render stats in certain modes
 bool GRenderStats = true;
 
+static TAutoConsoleVariable<int32> GCVarDumpHitchesAllThreads(
+	TEXT("t.DumpHitches.AllThreads"),
+	0,
+	TEXT("Dump all Threads when doing stat dumphitches\n")
+	TEXT(" 0: Only Game and Render Threads (default)\n")
+	TEXT(" 1: All threads"),
+	ECVF_RenderThreadSafe
+);
+
 
 void FromString( EStatCompareBy::Type& OutValue, const TCHAR* Buffer )
 {
@@ -685,7 +694,7 @@ static void DumpHitch(int64 Frame)
 		const int64 MinCycles = int64(MinTimeToReportInSecs / FPlatformTime::GetSecondsPerCycle());
 		FRawStatStackNode* GameThread = NULL;
 		FRawStatStackNode* RenderThread = NULL;
-
+		bool bDumpAllThreads = GCVarDumpHitchesAllThreads.GetValueOnAnyThread() != 0;
 		for( auto ChildIter = Stack.Children.CreateConstIterator(); ChildIter; ++ChildIter )
 		{
 			const FName ThreadName = ChildIter.Value()->Meta.NameAndInfo.GetShortName();
@@ -703,6 +712,13 @@ static void DumpHitch(int64 Frame)
 				UE_LOG( LogStats, Log, TEXT( "------------------ Render Thread (%s) %.2fms" ), *RenderThread->Meta.NameAndInfo.GetRawName().ToString(), RenderThreadTime * 1000.0f );
 				RenderThread->CullByCycles( MinCycles );
 				RenderThread->DebugPrint(nullptr, 127);
+			}
+			else if (bDumpAllThreads)
+			{
+				FRawStatStackNode* OtherThread = ChildIter.Value();
+				UE_LOG(LogStats, Log, TEXT("------------------ OTHER Thread (%s)"), *OtherThread->Meta.NameAndInfo.GetRawName().ToString());
+				OtherThread->CullByCycles(MinCycles);
+				OtherThread->DebugPrint();
 			}
 		}
 

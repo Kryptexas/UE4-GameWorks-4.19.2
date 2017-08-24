@@ -368,6 +368,8 @@ void ScalabilityCVarsSinkCallback()
 
 	LocalScalabilityCVars.bInitialized = true;
 
+	FlushRenderingCommands();
+
 	if (!GCachedScalabilityCVars.bInitialized)
 	{
 		// optimization: the first time we assume the render thread wasn't started and we don't need to destroy proxies
@@ -390,8 +392,6 @@ void ScalabilityCVarsSinkCallback()
 
 		if (bRecreateRenderstate || bCacheResourceShaders)
 		{
-			FlushRenderingCommands();
-
 			// after FlushRenderingCommands() to not have render thread pick up the data partially
 			GCachedScalabilityCVars = LocalScalabilityCVars;
 
@@ -7644,7 +7644,7 @@ void UEngine::PerformanceCapture(UWorld* World, const FString& MapName, const FS
 		UConsole* ViewportConsole = (GEngine->GameViewport != nullptr) ? GEngine->GameViewport->ViewportConsole : nullptr;
 		FConsoleOutputDevice StrOut(ViewportConsole);
 
-		StrOut.Logf(TEXT("  frame:%d %s"), GFrameCounter, *ScreenshotName);
+		StrOut.Logf(TEXT("  frame:%llu %s"), (uint64)GFrameCounter, *ScreenshotName);
 	}
 
 	const bool bShowUI = false;

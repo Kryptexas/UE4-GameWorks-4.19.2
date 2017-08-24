@@ -58,7 +58,10 @@ enum class EIOSMetalShaderStandard : uint8
     IOSMetalSLStandard_1_1 = 1 UMETA(DisplayName="Metal v1.1 (iOS 9.0/tvOS 9.0)"),
     
     /** Metal Shaders Compatible With iOS 10.0/tvOS 10.0 or later (std=ios-metal1.2) */
-    IOSMetalSLStandard_1_2 = 2 UMETA(DisplayName="Metal v1.2 (iOS 10.0/tvOS 10.0)"),
+	IOSMetalSLStandard_1_2 = 2 UMETA(DisplayName="Metal v1.2 (iOS 10.0/tvOS 10.0)"),
+	
+	/** Metal Shaders Compatible With iOS 11.0/tvOS 11.0 or later (std=ios-metal2.0) */
+	IOSMetalSLStandard_2_0 = 3 UMETA(DisplayName="Metal v2.0 (iOS 11.0/tvOS 11.0)"),
 };
 
 /**
@@ -188,14 +191,12 @@ public:
     UPROPERTY(GlobalConfig, EditAnywhere, Category = Online)
     uint32 bEnableRemoteNotificationsSupport : 1;
     
-	// Whether or not to add support for Metal API (requires IOS8 and A7 processors).
-	UPROPERTY(GlobalConfig)
+	// Whether or not to compile iOS Metal shaders for the Mobile renderer (requires iOS 8+ and an A7 processor).
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Rendering, meta = (DisplayName = "Metal Mobile Renderer"))
 	bool bSupportsMetal;
 
-	// This feature is no longer supported and will be replaced by a Metal 2-based renderer. The setting UI is disabled for 4.17.
-	//
-	// Whether or not to add support for deferred rendering Metal API (requires IOS8 and A8 processors)
-	UPROPERTY(GlobalConfig)
+	// Whether or not to compile iOS Metal shaders for the desktop Forward renderer (requires iOS 9+ and an A8 processor, MSAA requires an A9 processor)
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Rendering, meta = (DisplayName = "Metal Desktop-Forward Renderer"))
 	bool bSupportsMetalMRT;
 	
 	// Whether or not to add support for PVRTC textures
@@ -377,7 +378,25 @@ public:
     // The maximum supported Metal shader langauge version.
     // This defines what features may be used and OS versions supported.
     UPROPERTY(EditAnywhere, config, Category=Rendering, meta = (DisplayName = "Max. Metal Shader Standard To Target", ConfigRestartRequired = true))
-    uint8 MaxShaderLanguageVersion;
+	uint8 MaxShaderLanguageVersion;
+	
+	/**
+	 * Whether to use the Metal shading language's "fast" intrinsics.
+	 * Fast intrinsics assume that no NaN or INF value will be provided as input,
+	 * so are more efficient. However, they will produce undefined results if NaN/INF
+	 * is present in the argument/s.
+	 */
+	UPROPERTY(EditAnywhere, config, Category=Rendering, meta = (DisplayName = "Use Fast-Math intrinsics", ConfigRestartRequired = true))
+	bool UseFastIntrinsics;
+	
+	/**
+	 * Whether to use of Metal shader-compiler's -ffast-math optimisations.
+	 * Fast-Math performs algebraic-equivalent & reassociative optimisations not permitted by the floating point arithmetic standard (IEEE-754).
+	 * These can improve shader performance at some cost to precision and can lead to NaN/INF propagation as they rely on
+	 * shader inputs or variables not containing NaN/INF values. By default fast-math is enabled for performance.
+	 */
+	UPROPERTY(EditAnywhere, config, Category=Rendering, meta = (DisplayName = "Enable Fast-Math optimisations", ConfigRestartRequired = true))
+	bool EnableMathOptimisations;
 	
 	// Whether or not the keyboard should be usable on it's own without a UITextField
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Input)

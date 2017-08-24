@@ -93,6 +93,12 @@ void FAnimNode_Base::Evaluate_AnyThread(FPoseContext& Output)
 	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
+void FAnimNode_Base::Evaluate_AnyThread(FPoseContext& Output, bool bExpectsAdditivePose)
+{
+	// Should assert if not overridden but may break too many things
+	Evaluate_AnyThread(Output);
+}
+
 void FAnimNode_Base::EvaluateComponentSpace_AnyThread(FComponentSpacePoseContext& Output)
 {
 	// Call legacy implementation for backwards compatibility
@@ -267,7 +273,7 @@ void FPoseLink::Evaluate(FPoseContext& Output, bool bExpectsAdditivePose)
 #if ENABLE_ANIMNODE_POSE_DEBUG
 		CurrentPose.ResetToAdditiveIdentity();
 #endif
-		LinkedNode->Evaluate_AnyThread(Output);
+		LinkedNode->Evaluate_AnyThread(Output, bExpectsAdditivePose);
 #if ENABLE_ANIMNODE_POSE_DEBUG
 		CurrentPose.CopyBonesFrom(Output.Pose);
 #endif

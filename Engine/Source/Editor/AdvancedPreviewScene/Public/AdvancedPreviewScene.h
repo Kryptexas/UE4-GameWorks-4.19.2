@@ -65,7 +65,6 @@ protected:
 	void OnAssetViewerSettingsRefresh(const FName& InPropertyName);
 
 protected:
-	USkyLightComponent* SkyLightComponent;
 	UStaticMeshComponent* SkyComponent;
 	USphereReflectionCaptureComponent* SphereReflectionComponent;
 	UMaterialInstanceConstant* InstancedSkyMaterial;

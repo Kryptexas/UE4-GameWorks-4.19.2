@@ -19,6 +19,10 @@ public:
 
 	VkSampler Sampler;
 	FVulkanDevice& Device;
+
+#if VULKAN_KEEP_CREATE_INFO
+	VkSamplerCreateInfo SamplerInfo;
+#endif
 };
 
 class FVulkanRasterizerState : public FRHIRasterizerState

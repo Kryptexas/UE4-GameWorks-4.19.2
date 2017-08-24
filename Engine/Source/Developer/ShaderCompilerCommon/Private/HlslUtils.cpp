@@ -880,26 +880,23 @@ struct FRemoveUnusedOutputs : FRemoveAlgorithm
 	}
 };
 
-static void HlslParserCallbackWrapperRemoveOutputs(void* CallbackData, CrossCompiler::FLinearAllocator* Allocator, CrossCompiler::TLinearArray<CrossCompiler::AST::FNode*>& ASTNodes)
-{
-	auto* RemoveUnusedOutputsData = (FRemoveUnusedOutputs*)CallbackData;
-	RemoveUnusedOutputsData->Allocator = Allocator;
-	RemoveUnusedOutputsData->RemoveUnusedOutputs(ASTNodes);
-	if (!RemoveUnusedOutputsData->bSuccess)
-	{
-		int i = 0;
-		++i;
-	}
-}
-
-
 bool RemoveUnusedOutputs(FString& InOutSourceCode, const TArray<FString>& InUsedOutputs, const TArray<FString>& InExceptions, FString& EntryPoint, TArray<FString>& OutErrors)
 {
 	FString DummyFilename(TEXT("/Engine/Private/RemoveUnusedOutputs.usf"));
 	FRemoveUnusedOutputs Data(InUsedOutputs, InExceptions);
 	Data.EntryPoint = EntryPoint;
+	auto Lambda = [&Data](CrossCompiler::FLinearAllocator* Allocator, CrossCompiler::TLinearArray<CrossCompiler::AST::FNode*>& ASTNodes)
+	{
+		Data.Allocator = Allocator;
+		Data.RemoveUnusedOutputs(ASTNodes);
+		if (!Data.bSuccess)
+		{
+			int i = 0;
+			++i;
+		}
+	};
 	CrossCompiler::FCompilerMessages Messages;
-	if (!CrossCompiler::Parser::Parse(InOutSourceCode, DummyFilename, Messages, HlslParserCallbackWrapperRemoveOutputs, &Data))
+	if (!CrossCompiler::Parser::Parse(InOutSourceCode, DummyFilename, Messages, Lambda))
 	{
 		Data.Errors.Add(FString(TEXT("RemoveUnusedOutputs: Failed to compile!")));
 		OutErrors = Data.Errors;
@@ -1340,25 +1337,23 @@ struct FRemoveUnusedInputs : FRemoveAlgorithm
 	}
 };
 
-static void HlslParserCallbackWrapperRemoveInputs(void* CallbackData, CrossCompiler::FLinearAllocator* Allocator, CrossCompiler::TLinearArray<CrossCompiler::AST::FNode*>& ASTNodes)
-{
-	auto* RemoveUnusedInputsData = (FRemoveUnusedInputs*)CallbackData;
-	RemoveUnusedInputsData->Allocator = Allocator;
-	RemoveUnusedInputsData->RemoveUnusedInputs(ASTNodes);
-	if (!RemoveUnusedInputsData->bSuccess)
-	{
-		int i = 0;
-		++i;
-	}
-}
-
 bool RemoveUnusedInputs(FString& InOutSourceCode, const TArray<FString>& InInputs, FString& EntryPoint, TArray<FString>& OutErrors)
 {
 	FString DummyFilename(TEXT("/Engine/Private/RemoveUnusedInputs.usf"));
 	FRemoveUnusedInputs Data(InInputs);
 	Data.EntryPoint = EntryPoint;
 	CrossCompiler::FCompilerMessages Messages;
-	if (!CrossCompiler::Parser::Parse(InOutSourceCode, DummyFilename, Messages, HlslParserCallbackWrapperRemoveInputs, &Data))
+	auto Lambda = [&Data](CrossCompiler::FLinearAllocator* Allocator, CrossCompiler::TLinearArray<CrossCompiler::AST::FNode*>& ASTNodes)
+	{
+		Data.Allocator = Allocator;
+		Data.RemoveUnusedInputs(ASTNodes);
+		if (!Data.bSuccess)
+		{
+			int i = 0;
+			++i;
+		}
+	};
+	if (!CrossCompiler::Parser::Parse(InOutSourceCode, DummyFilename, Messages, Lambda))
 	{
 		Data.Errors.Add(FString(TEXT("RemoveUnusedInputs: Failed to compile!")));
 		OutErrors = Data.Errors;

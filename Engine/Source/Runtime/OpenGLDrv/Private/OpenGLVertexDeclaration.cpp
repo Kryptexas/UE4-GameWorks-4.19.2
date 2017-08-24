@@ -26,9 +26,14 @@ struct FOpenGLVertexDeclarationKey
 	/** Hash of the vertex elements. */
 	uint32 Hash;
 
+	uint16 StreamStrides[MaxVertexElementCount];
+
 	/** Initialization constructor. */
 	explicit FOpenGLVertexDeclarationKey(const FVertexDeclarationElementList& InElements)
 	{
+		uint16 UsedStreamsMask = 0;
+		FMemory::Memzero(StreamStrides);
+
 		for(int32 ElementIndex = 0;ElementIndex < InElements.Num();ElementIndex++)
 		{
 			const FVertexElement& Element = InElements[ElementIndex];
@@ -90,6 +95,17 @@ struct FOpenGLVertexDeclarationKey
 				case VET_URGB10A2N:		SetupGLElement(GLElement, GL_UNSIGNED_INT_2_10_10_10_REV, 4, true, true); break;
 				default: UE_LOG(LogRHI, Fatal,TEXT("Unknown RHI vertex element type %u"),(uint8)InElements[ElementIndex].Type);
 			};
+
+			if ((UsedStreamsMask & 1 << Element.StreamIndex) != 0)
+			{
+				ensure(StreamStrides[Element.StreamIndex] == Element.Stride);
+			}
+			else
+			{
+				UsedStreamsMask = UsedStreamsMask | (1 << Element.StreamIndex);
+				StreamStrides[Element.StreamIndex] = Element.Stride;
+			}
+
 			VertexElements.Add(GLElement);
 		}
 
@@ -104,6 +120,7 @@ struct FOpenGLVertexDeclarationKey
 		Sort( VertexElements.GetData(), VertexElements.Num(), FCompareFOpenGLVertexElement() );
 
 		Hash = FCrc::MemCrc_DEPRECATED(VertexElements.GetData(),VertexElements.Num()*sizeof(FOpenGLVertexElement));
+		Hash = FCrc::MemCrc_DEPRECATED(StreamStrides, sizeof(StreamStrides), Hash);
 	}
 };
 
@@ -140,7 +157,7 @@ FVertexDeclarationRHIRef FOpenGLDynamicRHI::RHICreateVertexDeclaration(const FVe
 	if (VertexDeclarationRefPtr == NULL)
 	{
 		// Create and add to the cache if it doesn't exist.
-		VertexDeclarationRefPtr = &GOpenGLVertexDeclarationCache.Add(Key,new FOpenGLVertexDeclaration(Key.VertexElements));
+		VertexDeclarationRefPtr = &GOpenGLVertexDeclarationCache.Add(Key,new FOpenGLVertexDeclaration(Key.VertexElements, Key.StreamStrides));
 		
 		check(VertexDeclarationRefPtr);
 		check(IsValidRef(*VertexDeclarationRefPtr));

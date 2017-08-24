@@ -62,7 +62,7 @@ float3 GetSkyLightReflectionSupportingBlend(float3 ReflectionVector, float Rough
 
 /** 
  * Computes sky diffuse lighting from the SH irradiance map.  
- * This has the SH basis evaluation and diffuse convolusion weights combined for minimal ALU's - see "Stupid Spherical Harmonics (SH) Tricks" 
+ * This has the SH basis evaluation and diffuse convolution weights combined for minimal ALU's - see "Stupid Spherical Harmonics (SH) Tricks" 
  */
 float3 GetSkySHDiffuse(float3 Normal)
 {
@@ -87,7 +87,7 @@ float3 GetSkySHDiffuse(float3 Normal)
 
 /**
 * Computes sky diffuse lighting from the SH irradiance map.
-* This has the SH basis evaluation and diffuse convolusion weights combined for minimal ALU's - see "Stupid Spherical Harmonics (SH) Tricks"
+* This has the SH basis evaluation and diffuse convolution weights combined for minimal ALU's - see "Stupid Spherical Harmonics (SH) Tricks"
 * Only does the first 3 components for speed.
 */
 float3 GetSkySHDiffuseSimple(float3 Normal)

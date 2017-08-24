@@ -178,7 +178,7 @@ extern CORE_API bool GEdSelectionLock;
 extern CORE_API bool GIsClient;
 extern CORE_API bool GIsServer;
 extern CORE_API bool GIsCriticalError;
-extern CORE_API bool GIsRunning;
+extern CORE_API TSAN_ATOMIC(bool) GIsRunning;
 extern CORE_API bool GIsDuplicatingClassForReinstancing;
 
 /**
@@ -295,7 +295,7 @@ extern CORE_API bool GPakCache_AcceptPrecacheRequests;
 extern CORE_API bool GIsRetrievingVTablePtr;
 
 /** Steadily increasing frame counter. */
-extern CORE_API uint64 GFrameCounter;
+extern CORE_API TSAN_ATOMIC(uint64) GFrameCounter;
 
 /** GFrameCounter the last time GC was run. */
 extern CORE_API uint64 GLastGCFrame;

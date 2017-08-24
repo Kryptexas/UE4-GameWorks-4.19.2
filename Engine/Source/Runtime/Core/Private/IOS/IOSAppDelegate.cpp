@@ -28,7 +28,7 @@
 #if (UE_BUILD_SHIPPING || UE_BUILD_TEST)
 #define GAME_THREAD_STACK_SIZE 1024 * 1024
 #else
-#define GAME_THREAD_STACK_SIZE 8 * 1024 * 1024
+#define GAME_THREAD_STACK_SIZE 16 * 1024 * 1024
 #endif
 
 DEFINE_LOG_CATEGORY(LogIOSAudioSession);
@@ -129,6 +129,25 @@ void EngineCrashHandler(const FGenericCrashContext& GenericContext)
 @synthesize timer;
 @synthesize IdleTimerEnableTimer;
 @synthesize IdleTimerEnablePeriod;
+
+-(void)dealloc
+{
+#if !UE_BUILD_SHIPPING && !PLATFORM_TVOS
+#if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_9_0
+	[ConsoleAlert release];
+#endif
+#ifdef __IPHONE_8_0
+	[ConsoleAlertController release];
+#endif
+	[ConsoleHistoryValues release];
+#endif
+	[Window release];
+	[IOSView release];
+	[IOSController release];
+	[SlateController release];
+	[timer release];
+	[super dealloc];
+}
 
 -(void) ParseCommandLineOverrides
 {
@@ -603,7 +622,7 @@ void EngineCrashHandler(const FGenericCrashContext& GenericContext)
 		// use IPhone6 image for now
 		[ImageString appendString : @"-IPhone6Plus-Landscape"];
 	}
-	else if (Device == FPlatformMisc::IOS_IPadPro)
+	else if (Device == FPlatformMisc::IOS_IPadPro_129)
 	{
 		if (!self.bDeviceInPortraitMode)
 		{
@@ -968,12 +987,6 @@ void EngineCrashHandler(const FGenericCrashContext& GenericContext)
 #endif
 
 #if !PLATFORM_TVOS
-// the below code breaks all of the plist specifying what to support
-/*- (NSUInteger)application:(UIApplication*)application supportedInterfaceOrientationsForWindow:(UIWindow*)window
-{
- 	// UIImagePickerController or GameCenter might have portrait-only variant and will throw exception if portrait is not supported here
- 	return UIInterfaceOrientationMaskAll;
-}*/
 
 - (void)application:(UIApplication *)application didReceiveLocalNotification:(UILocalNotification *)notification
 {

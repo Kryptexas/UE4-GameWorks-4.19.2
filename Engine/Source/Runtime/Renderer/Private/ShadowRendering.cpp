@@ -117,12 +117,6 @@ uint32 GetShadowQuality()
 	return FMath::Clamp(Ret, 0, 5);
 }
 
-static TAutoConsoleVariable<int32> CVarSupportPointLightWholeSceneShadows(
-	TEXT("r.SupportPointLightWholeSceneShadows"),
-	1,
-	TEXT("Enables shadowcasting point lights."),
-	ECVF_ReadOnly | ECVF_RenderThreadSafe);
-
 float GetLightFadeFactor(const FSceneView& View, const FLightSceneProxy* Proxy)
 {
 	// Distance fade
@@ -246,9 +240,17 @@ IMPLEMENT_SHADOW_PROJECTION_PIXEL_SHADER(5,false);
 IMPLEMENT_SHADOW_PROJECTION_PIXEL_SHADER(5,true);
 #undef IMPLEMENT_SHADOW_PROJECTION_PIXEL_SHADER
 
+// Implements a pixel shader for spot light PCSS.
+#define IMPLEMENT_SHADOW_PROJECTION_PIXEL_SHADER(Quality,UseFadePlane) \
+	typedef TSpotPercentageCloserShadowProjectionPS<Quality, UseFadePlane> TSpotPercentageCloserShadowProjectionPS##Quality##UseFadePlane; \
+	IMPLEMENT_SHADER_TYPE(template<>,TSpotPercentageCloserShadowProjectionPS##Quality##UseFadePlane,TEXT("/Engine/Private/ShadowProjectionPixelShader.usf"),TEXT("Main"),SF_Pixel);
+IMPLEMENT_SHADOW_PROJECTION_PIXEL_SHADER(5, false);
+IMPLEMENT_SHADOW_PROJECTION_PIXEL_SHADER(5, true);
+#undef IMPLEMENT_SHADOW_PROJECTION_PIXEL_SHADER
+
 void StencilingGeometry::DrawSphere(FRHICommandList& RHICmdList)
 {
-	RHICmdList.SetStreamSource(0, StencilingGeometry::GStencilSphereVertexBuffer.VertexBufferRHI, sizeof(FVector4), 0);
+	RHICmdList.SetStreamSource(0, StencilingGeometry::GStencilSphereVertexBuffer.VertexBufferRHI, 0);
 	RHICmdList.DrawIndexedPrimitive(StencilingGeometry::GStencilSphereIndexBuffer.IndexBufferRHI, PT_TriangleList, 0, 0,
 		StencilingGeometry::GStencilSphereVertexBuffer.GetVertexCount(), 0, 
 		StencilingGeometry::GStencilSphereIndexBuffer.GetIndexCount() / 3, 1);
@@ -256,7 +258,7 @@ void StencilingGeometry::DrawSphere(FRHICommandList& RHICmdList)
 		
 void StencilingGeometry::DrawVectorSphere(FRHICommandList& RHICmdList)
 {
-	RHICmdList.SetStreamSource(0, StencilingGeometry::GStencilSphereVectorBuffer.VertexBufferRHI, sizeof(FVector), 0);
+	RHICmdList.SetStreamSource(0, StencilingGeometry::GStencilSphereVectorBuffer.VertexBufferRHI, 0);
 	RHICmdList.DrawIndexedPrimitive(StencilingGeometry::GStencilSphereIndexBuffer.IndexBufferRHI, PT_TriangleList, 0, 0,
 									StencilingGeometry::GStencilSphereVectorBuffer.GetVertexCount(), 0,
 									StencilingGeometry::GStencilSphereIndexBuffer.GetIndexCount() / 3, 1);
@@ -265,7 +267,7 @@ void StencilingGeometry::DrawVectorSphere(FRHICommandList& RHICmdList)
 void StencilingGeometry::DrawCone(FRHICommandList& RHICmdList)
 {
 	// No Stream Source needed since it will generate vertices on the fly
-	RHICmdList.SetStreamSource(0, StencilingGeometry::GStencilConeVertexBuffer.VertexBufferRHI, sizeof(FVector4), 0);
+	RHICmdList.SetStreamSource(0, StencilingGeometry::GStencilConeVertexBuffer.VertexBufferRHI, 0);
 
 	RHICmdList.DrawIndexedPrimitive(StencilingGeometry::GStencilConeIndexBuffer.IndexBufferRHI, PT_TriangleList, 0, 0,
 		FStencilConeIndexBuffer::NumVerts, 0, StencilingGeometry::GStencilConeIndexBuffer.GetIndexCount() / 3, 1);
@@ -350,15 +352,22 @@ static void GetShadowProjectionShaders(
 		}
 		else
 		{
-			switch (Quality)
+			if (CVarFilterMethod.GetValueOnRenderThread() == 1 && ShadowInfo->GetLightSceneInfo().Proxy->GetLightType() == LightType_Spot)
 			{
-			case 1: *OutShadowProjPS = View.ShaderMap->GetShader<TShadowProjectionPS<1, false> >(); break;
-			case 2: *OutShadowProjPS = View.ShaderMap->GetShader<TShadowProjectionPS<2, false> >(); break;
-			case 3: *OutShadowProjPS = View.ShaderMap->GetShader<TShadowProjectionPS<3, false> >(); break;
-			case 4: *OutShadowProjPS = View.ShaderMap->GetShader<TShadowProjectionPS<4, false> >(); break;
-			case 5: *OutShadowProjPS = View.ShaderMap->GetShader<TShadowProjectionPS<5, false> >(); break;
-			default:
-				check(0);
+				*OutShadowProjPS = View.ShaderMap->GetShader<TSpotPercentageCloserShadowProjectionPS<5, false> >();
+			}
+			else
+			{
+				switch (Quality)
+				{
+				case 1: *OutShadowProjPS = View.ShaderMap->GetShader<TShadowProjectionPS<1, false> >(); break;
+				case 2: *OutShadowProjPS = View.ShaderMap->GetShader<TShadowProjectionPS<2, false> >(); break;
+				case 3: *OutShadowProjPS = View.ShaderMap->GetShader<TShadowProjectionPS<3, false> >(); break;
+				case 4: *OutShadowProjPS = View.ShaderMap->GetShader<TShadowProjectionPS<4, false> >(); break;
+				case 5: *OutShadowProjPS = View.ShaderMap->GetShader<TShadowProjectionPS<5, false> >(); break;
+				default:
+					check(0);
+				}
 			}
 		}
 	}
@@ -956,6 +965,8 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(ShadowProjPS);
 
 		SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+        
+        RHICmdList.SetStencilRef(0);
 
 		ShadowProjVS->SetParameters(RHICmdList, *View, this);
 		ShadowProjPS->SetParameters(RHICmdList, ViewIndex, *View, this);

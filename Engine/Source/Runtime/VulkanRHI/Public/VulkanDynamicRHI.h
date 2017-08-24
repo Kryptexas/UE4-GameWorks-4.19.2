@@ -31,7 +31,6 @@ public:
 	virtual const TCHAR* GetName() override { return TEXT("Vulkan"); }
 
 	void InitInstance();
-	void IssueLongGPUTask();
 
 	virtual FSamplerStateRHIRef RHICreateSamplerState(const FSamplerStateInitializerRHI& Initializer) final override;
 	virtual FRasterizerStateRHIRef RHICreateRasterizerState(const FRasterizerStateInitializerRHI& Initializer) final override;
@@ -139,6 +138,7 @@ public:
 
 	virtual void* RHIGetNativeDevice() final override;
 	virtual class IRHICommandContext* RHIGetDefaultContext() final override;
+	virtual class IRHIComputeContext* RHIGetDefaultAsyncComputeContext() final override;
 	virtual class IRHICommandContextContainer* RHIGetCommandContextContainer(int32 Index, int32 Num) final override;
 
 	///////// Pass through functions that allow RHIs to optimize certain calls.

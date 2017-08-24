@@ -15,6 +15,7 @@
 #include "ProfilingDebugging/CookStats.h"
 #include "UniquePtr.h"
 #include "Engine/StaticMesh.h"
+#include "AutomationTest.h"
 
 #if WITH_EDITOR
 #include "DerivedDataCacheInterface.h"
@@ -87,7 +88,7 @@ static TAutoConsoleVariable<int32> CVarDistFieldAtlasResZ(
 
 static TAutoConsoleVariable<int32> CVarLandscapeGI(
 	TEXT("r.GenerateLandscapeGIData"),
-	1,
+	0,
 	TEXT("Whether to generate a low-resolution base color texture for landscapes for rendering real-time global illumination.\n")
 	TEXT("This feature requires GenerateMeshDistanceFields is also enabled, and will increase mesh build times and memory usage.\n"),
 	ECVF_Default);
@@ -760,7 +761,12 @@ void FDistanceFieldAsyncQueue::BlockUntilBuildComplete(UStaticMesh* StaticMesh, 
 	} 
 	while (bReferenced);
 
-	if (bHadToBlock && bWarnIfBlocked)
+	if (bHadToBlock &&
+		bWarnIfBlocked
+#if WITH_EDITOR
+		&& !FAutomationTestFramework::Get().GetCurrentTest() // HACK - Don't output this warning during automation test
+#endif
+		)
 	{
 		UE_LOG(LogStaticMesh, Warning, TEXT("Main thread blocked for %.3fs for async distance field build of %s to complete!  This can happen if the mesh is rebuilt excessively."),
 			(float)(FPlatformTime::Seconds() - StartTime), 

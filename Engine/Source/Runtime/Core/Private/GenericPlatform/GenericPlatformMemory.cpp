@@ -17,7 +17,7 @@
 #include "Misc/CoreDelegates.h"
 #include "HAL/LowLevelMemTracker.h"
 
-#if PLATFORM_LINUX || PLATFORM_MAC
+#if PLATFORM_LINUX || PLATFORM_MAC || PLATFORM_IOS
 	#include <sys/mman.h>
 	// more mmap()-based platforms can be added
 	#define UE4_PLATFORM_USES_MMAP_FOR_BINNED_OS_ALLOCS			1

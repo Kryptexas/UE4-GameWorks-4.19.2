@@ -28,7 +28,7 @@ class FShaderFormatD3D : public IShaderFormat
 	}
 
 public:
-	virtual uint16 GetVersion(FName Format) const override
+	virtual uint32 GetVersion(FName Format) const override
 	{
 		CheckFormat(Format);
 		if (Format == NAME_PCD3D_SM5) 

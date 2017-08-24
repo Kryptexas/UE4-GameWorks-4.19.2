@@ -93,6 +93,7 @@ template<int32 SHOrder>
 void FStaticLightingSystem::CalculateApproximateDirectLighting(
 	const FStaticLightingVertex& Vertex,
 	float SampleRadius,
+	const TArray<FVector, TInlineAllocator<1>>& VertexOffsets,
 	float LightSampleFraction,
 	bool bCompositeAllLights,
 	bool bCalculateForIndirectLighting,
@@ -107,13 +108,23 @@ void FStaticLightingSystem::CalculateApproximateDirectLighting(
 		int asdf = 0;
 	}
 
+	check(VertexOffsets.Num() > 0);
+
 	for (int32 LightIndex = 0; LightIndex < Lights.Num(); LightIndex++)
 	{
 		const FLight* Light = Lights[LightIndex];
 
 		if (Light->AffectsBounds(FBoxSphereBounds(FSphere(Vertex.WorldPosition, SampleRadius))))
 		{
-			const FLinearColor LightIntensity = Light->GetDirectIntensity(Vertex.WorldPosition, bCalculateForIndirectLighting);
+			FLinearColor LightIntensity(0, 0, 0, 0);
+
+			for (int32 OffsetIndex = 0; OffsetIndex < VertexOffsets.Num(); OffsetIndex++)
+			{
+				LightIntensity += Light->GetDirectIntensity(Vertex.WorldPosition + VertexOffsets[OffsetIndex] * SampleRadius, bCalculateForIndirectLighting);
+			}
+
+			LightIntensity /= (float)VertexOffsets.Num();
+
 			FLinearColor Transmission = FLinearColor::Black;
 
 			if ((Light->LightFlags & GI_LIGHT_CASTSHADOWS) && (Light->LightFlags & GI_LIGHT_CASTSTATICSHADOWS))

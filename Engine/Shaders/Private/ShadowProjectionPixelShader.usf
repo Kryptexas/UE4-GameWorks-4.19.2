@@ -24,6 +24,10 @@
 	#define USE_PCSS 0
 #endif
 
+#ifndef SPOT_LIGHT_PCSS
+#define SPOT_LIGHT_PCSS 0
+#endif
+
 
 #include "Common.ush"
 
@@ -90,16 +94,11 @@ void Main(
 	float SceneW = CalcSceneDepth( ScreenUV );
 	float4 ScreenPosition = float4(((ScreenUV.xy - View.ScreenPositionScaleBias.wz ) / View.ScreenPositionScaleBias.xy) * SceneW, SceneW, 1);
 	float4 ShadowPosition = mul(ScreenPosition, ScreenToShadowMatrix);
-	
-	#if USE_PCSS
-		float3 ScreenPositionDDX = ddx_fine(ScreenPosition.xyz);
-		float3 ScreenPositionDDY = ddy_fine(ScreenPosition.xyz);
-		float4 ShadowPositionDDX = mul(float4(ScreenPositionDDX, 0), ScreenToShadowMatrix);
-		float4 ShadowPositionDDY = mul(float4(ScreenPositionDDY, 0), ScreenToShadowMatrix);
-	#endif
+	float4 HomogeneousWorldPosition = mul(ScreenPosition, View.ScreenToWorld);
+	float3 WorldPosition = HomogeneousWorldPosition.xyz / HomogeneousWorldPosition.w;
 
-	// TODO: Take care of ShadowPositionDDX/Y for non directional shadows.
-	ShadowPosition.xy /= ShadowPosition.w;
+	float ShadowZ = ShadowPosition.z;
+	ShadowPosition.xyz /= ShadowPosition.w;
 
 #if MODULATED_SHADOWS
 	// UE-29083 : work around precision issues with ScreenToShadowMatrix on low end devices.
@@ -107,11 +106,24 @@ void Main(
 	ShadowPosition.xy += ShadowTileOffsetAndSize.xy;
 #endif
 
+#if USE_PCSS
+	float3 ScreenPositionDDX = DDX(ScreenPosition.xyz);
+	float3 ScreenPositionDDY = DDY(ScreenPosition.xyz);
+	float4 ShadowPositionDDX = mul(float4(ScreenPositionDDX, 0), ScreenToShadowMatrix);
+	float4 ShadowPositionDDY = mul(float4(ScreenPositionDDY, 0), ScreenToShadowMatrix);
+	#if SPOT_LIGHT_PCSS
+		// perspective correction for derivatives, could be good enough and way cheaper to just use ddx(ScreenPosition)
+		ShadowPositionDDX.xyz -= ShadowPosition.xyz * ShadowPositionDDX.w;
+		ShadowPositionDDY.xyz -= ShadowPosition.xyz * ShadowPositionDDY.w;
+	#endif
+#endif
+
+
 	// Clamp pixel depth in light space for shadowing opaque, because areas of the shadow depth buffer that weren't rendered to will have been cleared to 1
 	// We want to force the shadow comparison to result in 'unshadowed' in that case, regardless of whether the pixel being shaded is in front or behind that plane
-	float LightSpacePixelDepthForOpaque = min(ShadowPosition.z, 0.99999f);
+	float LightSpacePixelDepthForOpaque = min(ShadowZ, 0.99999f);
 	// Must not clamp for SSS shadowing, the subsurface gradient must continue past the far plane
-	float LightSpacePixelDepthForSSS = ShadowPosition.z;
+	float LightSpacePixelDepthForSSS = ShadowZ;
 
 
 	float Shadow = 1;
@@ -128,19 +140,31 @@ void Main(
 	}
 	#elif APPLY_TRANSLUCENCY_SHADOWS
 	{
-		Shadow = CalculateTranslucencyShadowing(ShadowPosition.xy, ShadowPosition.z);
+		Shadow = CalculateTranslucencyShadowing(ShadowPosition.xy, ShadowZ);
 	}
 	#elif USE_PCSS
 	{
 		FPCSSSamplerSettings Settings;
-		
+
+		#if SPOT_LIGHT_PCSS
+		{
+			float CotanOuterCone = DeferredLightUniforms.SpotAngles.x * rsqrt(1. - DeferredLightUniforms.SpotAngles.x * DeferredLightUniforms.SpotAngles.x);
+			float WorldLightDistance = dot(DeferredLightUniforms.NormalizedLightDirection, DeferredLightUniforms.LightPosition - WorldPosition);
+			Settings.ProjectedSourceRadius = 0.5 * DeferredLightUniforms.SourceRadius * CotanOuterCone / WorldLightDistance;
+			Settings.TanLightSourceAngle = 0;
+		}
+		#else
+		{
+			Settings.ProjectedSourceRadius = 0;
+			Settings.TanLightSourceAngle = PCSSParameters.x;
+		}
+		#endif
 		Settings.ShadowDepthTexture = ShadowDepthTexture;
 		Settings.ShadowDepthTextureSampler = ShadowDepthTextureSampler;
 		Settings.ShadowBufferSize = ShadowBufferSize;
 		Settings.ShadowTileOffsetAndSize = ShadowTileOffsetAndSize;
 		Settings.SceneDepth = LightSpacePixelDepthForOpaque;
 		Settings.TransitionScale = SoftTransitionScale.z;
-		Settings.TanLightSourceAngle = PCSSParameters.x;
 		Settings.MaxKernelSize = PCSSParameters.y;
 		Settings.SvPosition = SVPos;
 		Settings.PQMPContext = PQMPContext;
@@ -229,8 +253,6 @@ void Main(
 	float FadedShadow = lerp(1.0f, Square(Shadow), ShadowFadeFraction);
 
 #if FORWARD_SHADING
-	float4 HomogeneousWorldPosition = mul(float4(ScreenPosition.xy * SceneW, SceneW, 1), View.ScreenToWorld);
-	float3 WorldPosition = HomogeneousWorldPosition.xyz / HomogeneousWorldPosition.w;
 	float LightInfluenceMask = GetLightInfluenceMask(WorldPosition);
 	// Constrain shadowing from this light to pixels inside the light's influence, since other non-overlapping lights are packed into the same channel
 	FadedShadow = lerp(1, FadedShadow, LightInfluenceMask);

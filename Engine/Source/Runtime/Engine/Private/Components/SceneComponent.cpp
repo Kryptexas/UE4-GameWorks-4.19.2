@@ -2002,7 +2002,7 @@ void USceneComponent::DetachFromComponent(const FDetachmentTransformRules& Detac
 		// Make sure parent points to us if we're registered
 		ensureMsgf(!bRegistered || GetAttachParent()->GetAttachChildren().Contains(this), TEXT("Attempt to detach SceneComponent '%s' owned by '%s' from AttachParent '%s' while not attached."), *GetName(), (Owner ? *Owner->GetName() : TEXT("Unowned")), *GetAttachParent()->GetName());
 
-		if (DetachmentRules.bCallModify)
+		if (DetachmentRules.bCallModify && !HasAnyFlags(RF_Transient))
 		{
 			Modify();
 			GetAttachParent()->Modify();

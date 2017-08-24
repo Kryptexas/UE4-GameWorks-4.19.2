@@ -136,7 +136,11 @@
 #define FORCE_FLOATS 0
 #endif
 
-#if (!(COMPILER_GLSL_ES2 || COMPILER_GLSL_ES3_1) && !METAL_PROFILE) || FORCE_FLOATS
+#ifndef EXPERIMENTAL_FP16
+#define EXPERIMETNAL_FP16 0
+#endif
+
+#if !EXPERIMENTAL_FP16 && ((!(COMPILER_GLSL_ES2 || COMPILER_GLSL_ES3_1) && !METAL_PROFILE) || FORCE_FLOATS)
 	// Always use floats when not using the ES2 compiler, because low precision modifiers are currently only tweaked for ES2, 
 	// And we don't want potential side effects on other platforms
 	#define half float
@@ -236,7 +240,7 @@
 	#define STENCIL_COMPONENT_SWIZZLE .x
 
 #elif METAL_MRT_PROFILE
-	#define FEATURE_LEVEL FEATURE_LEVEL_SM4
+	#define FEATURE_LEVEL FEATURE_LEVEL_SM5
 	#define FCOLOR_COMPONENT_SWIZZLE .bgra
 	#define STENCIL_COMPONENT_SWIZZLE .x
 
@@ -306,7 +310,7 @@
 // When enabled, different texture lookups can share samplers to allow more artist samplers in the base pass
 // Ideally this would just be enabled for all SM4 and above feature level platforms
 // @todo metal mrt: No reason this can't work with Metal, once cross compiler is fixed
-#define SUPPORTS_INDEPENDENT_SAMPLERS (PS4_PROFILE || SM5_PROFILE || SM4_PROFILE || METAL_MRT_PROFILE || METAL_SM4_PROFILE || METAL_SM5_PROFILE)
+#define SUPPORTS_INDEPENDENT_SAMPLERS (PS4_PROFILE || SM5_PROFILE || SM4_PROFILE || METAL_MRT_PROFILE || METAL_SM4_PROFILE || METAL_SM5_PROFILE || VULKAN_SM5_PROFILE || VULKAN_SM4_PROFILE || VULKAN_PROFILE)
 
 // Whether the platform supports a global clip plane through SV_ClipDistance
 // Ideally this would just be enabled for all SM4 and above feature level platforms, but not tested everywhere yet
@@ -432,18 +436,17 @@
 
 // ---------------------------------------------------- Compiler missing implementations
 
-#if COMPILER_GLSL_ES2 || COMPILER_METAL || COMPILER_SWITCH
+#if COMPILER_GLSL_ES2 || (COMPILER_METAL && MAX_SHADER_LANGUAGE_VERSION < 2) || COMPILER_SWITCH
 
 	float determinant(float3x3 M)
-	{    
-		return	
+	{
+		return
 			M[0][0] * (M[1][1] * M[2][2] - M[1][2] * M[2][1]) -
 			M[1][0] * (M[0][1] * M[2][2] - M[0][2] * M[2][1]) +
 			M[2][0] * (M[0][1] * M[1][2] - M[0][2] * M[1][1]);
 	}
 
-#endif   
-
+#endif
 
 #if COMPILER_HLSLCC
 #define ddx_fine(x) ddx(x)

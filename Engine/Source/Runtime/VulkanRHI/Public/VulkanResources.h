@@ -638,7 +638,15 @@ public:
 	{
 		QueryOutput.SetNum(InNumQueries);
 		UsedQueryBits.AddZeroed((InNumQueries + 63) / 64);
+		StartedQueryBits.AddZeroed((InNumQueries + 63) / 64);
 		ReadResultsBits.AddZeroed((InNumQueries + 63) / 64);
+	}
+
+	void MarkQueryAsStarted(uint32 QueryIndex)
+	{
+		uint32 Word = QueryIndex / 64;
+		uint64 Bit = (uint64)1 << (QueryIndex % 64);
+		StartedQueryBits[Word] = StartedQueryBits[Word] | Bit;
 	}
 
 	bool AcquireQuery(uint32& OutIndex)
@@ -706,6 +714,7 @@ public:
 			const uint32 Word = CurrentQueryIndex / 64;
 			const uint64 Bit = (uint64)1 << (CurrentQueryIndex % 64);
 			ReadResultsBits[Word] = ReadResultsBits[Word] & ~Bit;
+			StartedQueryBits[Word] = StartedQueryBits[Word] & ~Bit;
 		}
 	}
 
@@ -727,6 +736,7 @@ public:
 
 protected:
 	TArray<uint64> UsedQueryBits;
+	TArray<uint64> StartedQueryBits;
 	TArray<uint64> ReadResultsBits;
 
 	// Last potentially free index in the pool
@@ -787,6 +797,7 @@ struct FVulkanBufferView : public FRHIResource, public VulkanRHI::FDeviceChild
 
 	void Create(FVulkanBuffer& Buffer, EPixelFormat Format, uint32 Offset, uint32 Size);
 	void Create(FVulkanResourceMultiBuffer* Buffer, EPixelFormat Format, uint32 Offset, uint32 Size);
+	void Create(VkFormat Format, FVulkanResourceMultiBuffer* Buffer, uint32 Offset, uint32 Size);
 	void Destroy();
 
 	VkBufferView View;
@@ -927,7 +938,7 @@ public:
 		return Buffers[DynamicBufferIndex]->GetOffset();
 	}
 
-	VkBufferUsageFlags GetBufferUsageFlags() const
+	inline VkBufferUsageFlags GetBufferUsageFlags() const
 	{
 		return BufferUsageFlags;
 	}
@@ -1010,6 +1021,8 @@ public:
 	{
 	}
 
+	~FVulkanUnorderedAccessView();
+
 	void UpdateView();
 
 	// The texture that this UAV come from
@@ -1019,6 +1032,7 @@ public:
 
 	// The vertex buffer this UAV comes from (can be null)
 	TRefCountPtr<FVulkanVertexBuffer> SourceVertexBuffer;
+	TRefCountPtr<FVulkanIndexBuffer> SourceIndexBuffer;
 	TRefCountPtr<FVulkanBufferView> BufferView;
 	EPixelFormat BufferViewFormat;
 
@@ -1045,6 +1059,7 @@ public:
 	// The vertex buffer this SRV comes from (can be null)
 	TRefCountPtr<FVulkanBufferView> BufferView;
 	TRefCountPtr<FVulkanVertexBuffer> SourceVertexBuffer;
+	TRefCountPtr<FVulkanIndexBuffer> SourceIndexBuffer;
 	EPixelFormat BufferViewFormat;
 
 	// The texture that this SRV come from
@@ -1120,7 +1135,7 @@ public:
 	{
 	}
 
-	void Init(const FVulkanCodeHeader* InCodeHeader, uint64& OutPackedUniformBufferStagingMask)
+	void Init(const FVulkanCodeHeader* InCodeHeader, uint64& OutPackedUniformBufferStagingMask, uint64& OutUniformBuffersWithDataMask)
 	{
 		CodeHeader = InCodeHeader;
 		PackedUniformBuffers.AddDefaulted(CodeHeader->NEWPackedGlobalUBSizes.Num());
@@ -1130,6 +1145,7 @@ public:
 		}
 
 		OutPackedUniformBufferStagingMask = ((uint64)1 << (uint64)CodeHeader->NEWPackedGlobalUBSizes.Num()) - 1;
+		OutUniformBuffersWithDataMask = InCodeHeader->UniformBuffersWithDescriptorMask;
 	}
 
 	inline void SetPackedGlobalParameter(uint32 BufferIndex, uint32 ByteOffset, uint32 NumBytes, const void* NewValue, uint64& InOutPackedUniformBufferStagingDirty)

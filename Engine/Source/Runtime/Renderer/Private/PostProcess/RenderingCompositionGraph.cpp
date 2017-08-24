@@ -104,8 +104,8 @@ void Test()
 		void SetBaseValues(){}
 		static FName GetFName()
 		{
- 			static const FName Name(TEXT("ObjectSize4"));
- 			return Name;
+			static const FName Name(TEXT("ObjectSize4"));
+			return Name;
 		}
 		uint8 Data[4];
 	};
@@ -115,8 +115,8 @@ void Test()
 		void SetBaseValues(){}
 		static FName GetFName()
 		{
- 			static const FName Name(TEXT("ObjectAligned16"));
- 			return Name;
+			static const FName Name(TEXT("ObjectAligned16"));
+			return Name;
 		}
 		uint8 Data[16];
 	} GCC_ALIGN(16);
@@ -810,15 +810,19 @@ void FPostProcessPassParameters::Bind(const FShaderParameterMap& ParameterMap)
 	}
 }
 
-void FPostProcessPassParameters::SetPS(const FPixelShaderRHIParamRef& ShaderRHI, const FRenderingCompositePassContext& Context, FSamplerStateRHIParamRef Filter, EFallbackColor FallbackColor, FSamplerStateRHIParamRef* FilterOverrideArray)
+template <typename TRHICmdList>
+void FPostProcessPassParameters::SetPS(TRHICmdList& RHICmdList, const FPixelShaderRHIParamRef& ShaderRHI, const FRenderingCompositePassContext& Context, FSamplerStateRHIParamRef Filter, EFallbackColor FallbackColor, FSamplerStateRHIParamRef* FilterOverrideArray)
 {
-	Set(ShaderRHI, Context, Context.RHICmdList, Filter, FallbackColor, FilterOverrideArray);
+	Set(RHICmdList, ShaderRHI, Context, Filter, FallbackColor, FilterOverrideArray);
 }
+
+template void FPostProcessPassParameters::SetPS(FRHICommandList& RHICmdList, const FPixelShaderRHIParamRef& ShaderRHI, const FRenderingCompositePassContext& Context, FSamplerStateRHIParamRef Filter, EFallbackColor FallbackColor, FSamplerStateRHIParamRef* FilterOverrideArray);
+template void FPostProcessPassParameters::SetPS(FRHICommandListImmediate& RHICmdList, const FPixelShaderRHIParamRef& ShaderRHI, const FRenderingCompositePassContext& Context, FSamplerStateRHIParamRef Filter, EFallbackColor FallbackColor, FSamplerStateRHIParamRef* FilterOverrideArray);
 
 template< typename TRHICmdList >
 void FPostProcessPassParameters::SetCS(const FComputeShaderRHIParamRef& ShaderRHI, const FRenderingCompositePassContext& Context, TRHICmdList& RHICmdList, FSamplerStateRHIParamRef Filter, EFallbackColor FallbackColor, FSamplerStateRHIParamRef* FilterOverrideArray)
 {
-	Set(ShaderRHI, Context, RHICmdList, Filter, FallbackColor, FilterOverrideArray);
+	Set(RHICmdList, ShaderRHI, Context, Filter, FallbackColor, FilterOverrideArray);
 }
 template void FPostProcessPassParameters::SetCS< FRHICommandListImmediate >(
 	const FComputeShaderRHIParamRef& ShaderRHI,
@@ -840,14 +844,14 @@ template void FPostProcessPassParameters::SetCS< FRHIAsyncComputeCommandListImme
 
 void FPostProcessPassParameters::SetVS(const FVertexShaderRHIParamRef& ShaderRHI, const FRenderingCompositePassContext& Context, FSamplerStateRHIParamRef Filter, EFallbackColor FallbackColor, FSamplerStateRHIParamRef* FilterOverrideArray)
 {
-	Set(ShaderRHI, Context, Context.RHICmdList, Filter, FallbackColor, FilterOverrideArray);
+	Set(Context.RHICmdList, ShaderRHI, Context, Filter, FallbackColor, FilterOverrideArray);
 }
 
-template< typename ShaderRHIParamRef, typename TRHICmdList >
+template< typename TShaderRHIParamRef, typename TRHICmdList >
 void FPostProcessPassParameters::Set(
-	const ShaderRHIParamRef& ShaderRHI,
-	const FRenderingCompositePassContext& Context,
 	TRHICmdList& RHICmdList,
+	const TShaderRHIParamRef& ShaderRHI,
+	const FRenderingCompositePassContext& Context,
 	FSamplerStateRHIParamRef Filter,
 	EFallbackColor FallbackColor,
 	FSamplerStateRHIParamRef* FilterOverrideArray)
@@ -910,7 +914,7 @@ void FPostProcessPassParameters::Set(
 
 	//Calculate a base scene texture min max which will be pulled in by a pixel for each PP input.
 	FIntRect ContextViewportRect = Context.IsViewportValid() ? Context.GetViewport() : FIntRect(0,0,0,0);
-	const FIntPoint SceneRTSize = FSceneRenderTargets::Get(RHICmdList).GetBufferSizeXY();
+	const FIntPoint SceneRTSize = FSceneRenderTargets::Get(Context.RHICmdList).GetBufferSizeXY();
 	FVector4 BaseSceneTexMinMax(	((float)ContextViewportRect.Min.X/SceneRTSize.X), 
 									((float)ContextViewportRect.Min.Y/SceneRTSize.Y), 
 									((float)ContextViewportRect.Max.X/SceneRTSize.X), 
@@ -991,11 +995,11 @@ void FPostProcessPassParameters::Set(
 	// todo warning if Input[] or InputSize[] is bound but not available, maybe set a specific input texture (blinking?)
 }
 
-#define IMPLEMENT_POST_PROCESS_PARAM_SET( ShaderRHIParamRef, TRHICmdList ) \
-	template void FPostProcessPassParameters::Set< ShaderRHIParamRef >( \
-		const ShaderRHIParamRef& ShaderRHI,				\
-		const FRenderingCompositePassContext& Context,	\
+#define IMPLEMENT_POST_PROCESS_PARAM_SET( TShaderRHIParamRef, TRHICmdList ) \
+	template void FPostProcessPassParameters::Set< TShaderRHIParamRef >( \
 		TRHICmdList& RHICmdList,						\
+		const TShaderRHIParamRef& ShaderRHI,			\
+		const FRenderingCompositePassContext& Context,	\
 		FSamplerStateRHIParamRef Filter,				\
 		EFallbackColor FallbackColor,					\
 		FSamplerStateRHIParamRef* FilterOverrideArray	\

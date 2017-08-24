@@ -28,7 +28,6 @@
 #include "Misc/FeedbackContext.h"
 #include "Internationalization/Internationalization.h"
 #include "Internationalization/Culture.h"
-#include "Apple/ApplePlatformDebugEvents.h"
 
 #include <dlfcn.h>
 #include <IOKit/IOKitLib.h>
@@ -590,21 +589,6 @@ void FMacPlatformMisc::ActivateApplication()
 	}, NSDefaultRunLoopMode, false);
 }
 
-void FMacPlatformMisc::GetEnvironmentVariable(const TCHAR* InVariableName, TCHAR* Result, int32 ResultLength)
-{
-	FString VariableName = InVariableName;
-	VariableName.ReplaceInline(TEXT("-"), TEXT("_"));
-	ANSICHAR *AnsiResult = getenv(TCHAR_TO_ANSI(*VariableName));
-	if (AnsiResult)
-	{
-		wcsncpy(Result, ANSI_TO_TCHAR(AnsiResult), ResultLength);
-	}
-	else
-	{
-		*Result = 0;
-	}
-}
-
 void FMacPlatformMisc::SetEnvironmentVar(const TCHAR* InVariableName, const TCHAR* Value)
 {
 	FString VariableName = InVariableName;
@@ -718,26 +702,6 @@ void FMacPlatformMisc::RequestExit( bool Force )
 void FMacPlatformMisc::RequestMinimize()
 {
 	[NSApp hide : nil];
-}
-
-const TCHAR* FMacPlatformMisc::GetSystemErrorMessage(TCHAR* OutBuffer, int32 BufferCount, int32 Error)
-{
-	// There's no Mac equivalent for GetLastError()
-	check(OutBuffer && BufferCount);
-	*OutBuffer = TEXT('\0');
-	return OutBuffer;
-}
-
-void FMacPlatformMisc::CreateGuid(FGuid& Result)
-{
-	uuid_t UUID;
-	uuid_generate(UUID);
-	
-	uint32* Values = (uint32*)(&UUID[0]);
-	Result[0] = Values[0];
-	Result[1] = Values[1];
-	Result[2] = Values[2];
-	Result[3] = Values[3];
 }
 
 EAppReturnType::Type FMacPlatformMisc::MessageBoxExt(EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption)
@@ -955,17 +919,7 @@ int32 FMacPlatformMisc::NumberOfCores()
 
 int32 FMacPlatformMisc::NumberOfCoresIncludingHyperthreads()
 {
-	static int32 NumberOfCores = -1;
-	if (NumberOfCores == -1)
-	{
-		SIZE_T Size = sizeof(int32);
-		
-		if (sysctlbyname("hw.ncpu", &NumberOfCores, &Size, NULL, 0) != 0)
-		{
-			NumberOfCores = 1;
-		}
-	}
-	return NumberOfCores;
+	return FApplePlatformMisc::NumberOfCores();
 }
 
 void FMacPlatformMisc::NormalizePath(FString& InPath)
@@ -1403,8 +1357,8 @@ FGPUDriverInfo FMacPlatformMisc::GetGPUDriverInfo(const FString& DeviceDescripti
 						gmtime_r(&DylibTime, &Time);
 						Info.DriverDate = FString::Printf(TEXT("%d-%d-%d"), Time.tm_mon + 1, Time.tm_mday, 1900 + Time.tm_year);
 
-						bGotInternalVersionInfo = true;
-						bGotDate = true;
+						bGotInternalVersionInfo = Major != 0 || Minor != 0 || Patch != 0;
+						bGotDate = (1900 + Time.tm_year) >= 2014;
 						break;
 					}
 					else if (SourceVersion)
@@ -1423,8 +1377,8 @@ FGPUDriverInfo FMacPlatformMisc::GetGPUDriverInfo(const FString& DeviceDescripti
 						gmtime_r(&Stat.st_mtime, &Time);
 						Info.DriverDate = FString::Printf(TEXT("%d-%d-%d"), Time.tm_mon + 1, Time.tm_mday, 1900 + Time.tm_year);
 						
-						bGotInternalVersionInfo = true;
-						bGotDate = true;
+						bGotInternalVersionInfo = A != 0 || B != 0 || C != 0 || D != 0;
+						bGotDate = (1900 + Time.tm_year) >= 2014;
 					}
 				}
 			}
@@ -1535,16 +1489,6 @@ void FMacPlatformMisc::LoadPreInitModules()
 {
 	FModuleManager::Get().LoadModule(TEXT("CoreAudio"));
 	FModuleManager::Get().LoadModule(TEXT("AudioMixerAudioUnit"));
-}
-
-void* FMacPlatformMisc::CreateAutoreleasePool()
-{
-	return [[NSAutoreleasePool alloc] init];
-}
-
-void FMacPlatformMisc::ReleaseAutoreleasePool(void *Pool)
-{
-	[(NSAutoreleasePool*)Pool release];
 }
 
 FString FMacPlatformMisc::GetCPUVendor()
@@ -2750,19 +2694,12 @@ void FMacPlatformMisc::UpdateDriverMonitorStatistics(int32 DeviceIndex)
 	}
 }
 
-#if MAC_PROFILING_ENABLED
-void FMacPlatformMisc::BeginNamedEvent(const struct FColor& Color,const TCHAR* Text)
+int FMacPlatformMisc::GetDefaultStackSize()
 {
-	FApplePlatformDebugEvents::BeginNamedEvent(Color, Text);
-}
-
-void FMacPlatformMisc::BeginNamedEvent(const struct FColor& Color,const ANSICHAR* Text)
-{
-	FApplePlatformDebugEvents::BeginNamedEvent(Color, Text);
-}
-
-void FMacPlatformMisc::EndNamedEvent()
-{
-	FApplePlatformDebugEvents::EndNamedEvent();
-}
+	// Thread sanitiser requires 5x the memory.
+#if __has_feature(thread_sanitizer)
+	return 20 * 1024 * 1024;
+#else
+	return 4 * 1024 * 1024;
 #endif
+}

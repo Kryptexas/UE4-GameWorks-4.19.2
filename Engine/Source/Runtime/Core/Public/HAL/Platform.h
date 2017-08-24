@@ -121,9 +121,22 @@
 //------------------------------------------------------------------
 // Setup macros for static code analysis
 //------------------------------------------------------------------
+#ifndef PLATFORM_COMPILER_CLANG
+	#if defined(__clang__)
+		#define PLATFORM_COMPILER_CLANG			1
+	#else
+		#define PLATFORM_COMPILER_CLANG			0
+	#endif // defined(__clang__)
+#endif
 
 #if PLATFORM_WINDOWS
-	#include "Windows/WindowsPlatformCodeAnalysis.h"
+    #include "Windows/WindowsPlatformCodeAnalysis.h"
+#elif PLATFORM_COMPILER_CLANG
+    #include "Clang/ClangPlatformCodeAnalysis.h"
+#endif
+
+#ifndef USING_ADDRESS_SANITISER
+	#define USING_ADDRESS_SANITISER 0
 #endif
 
 //------------------------------------------------------------------
@@ -190,13 +203,6 @@
 #endif
 #ifndef PLATFORM_USE_SYSTEM_VSWPRINTF
 	#define PLATFORM_USE_SYSTEM_VSWPRINTF		1
-#endif
-#ifndef PLATFORM_COMPILER_CLANG
-	#if defined(__clang__)
-		#define PLATFORM_COMPILER_CLANG			1
-	#else
-		#define PLATFORM_COMPILER_CLANG			0
-	#endif // defined(__clang__)
 #endif
 #ifndef PLATFORM_COMPILER_DISTINGUISHES_INT_AND_LONG
 	#define PLATFORM_COMPILER_DISTINGUISHES_INT_AND_LONG			0
@@ -387,6 +393,10 @@
 
 #ifndef PLATFORM_LIMIT_MOBILE_BONE_MATRICES
 	#define PLATFORM_LIMIT_MOBILE_BONE_MATRICES					0
+#endif
+
+#ifndef PLATFORM_WEAKLY_CONSISTENT_MEMORY
+	#define PLATFORM_WEAKLY_CONSISTENT_MEMORY PLATFORM_CPU_ARM_FAMILY
 #endif
 
 // deprecated, do not use

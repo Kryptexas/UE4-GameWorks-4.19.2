@@ -11,12 +11,14 @@
 #include "LightMap.h"
 #include "UObject/UObjectAnnotation.h"
 #include "PrecomputedLightVolume.h"
+#include "PrecomputedVolumetricLightmap.h"
 #include "Engine/MapBuildDataRegistry.h"
 #include "ShadowMap.h"
 #include "UObject/Package.h"
 #include "EngineUtils.h"
 #include "Components/ModelComponent.h"
 #include "ComponentRecreateRenderStateContext.h"
+#include "UObject/RenderingObjectVersion.h"
 
 FArchive& operator<<(FArchive& Ar, FMeshMapBuildData& MeshMapBuildData)
 {
@@ -98,7 +100,7 @@ void ULevel::HandleLegacyMapBuildData()
 		if (LegacyLevelData.Id != FGuid())
 		{
 			Registry = CreateRegistryForLegacyMap(this);
-			Registry->AddLevelBuildData(LegacyLevelData.Id, LegacyLevelData.Data);
+			Registry->AddLevelPrecomputedLightVolumeBuildData(LegacyLevelData.Id, LegacyLevelData.Data);
 		}
 
 		for (int32 ActorIndex = 0; ActorIndex < Actors.Num(); ActorIndex++)
@@ -213,10 +215,18 @@ void UMapBuildDataRegistry::Serialize(FArchive& Ar)
 
 	FStripDataFlags StripFlags(Ar, 0);
 
+	Ar.UsingCustomVersion(FRenderingObjectVersion::GUID);
+
 	if (!StripFlags.IsDataStrippedForServer())
 	{
 		Ar << MeshBuildData;
-		Ar << LevelBuildData;
+		Ar << LevelPrecomputedLightVolumeBuildData;
+
+		if (Ar.CustomVer(FRenderingObjectVersion::GUID) >= FRenderingObjectVersion::VolumetricLightmaps)
+		{
+			Ar << LevelPrecomputedVolumetricLightmapBuildData;
+		}
+
 		Ar << LightBuildData;
 	}
 }
@@ -263,22 +273,22 @@ FMeshMapBuildData* UMapBuildDataRegistry::GetMeshBuildData(FGuid MeshId)
 	return MeshBuildData.Find(MeshId);
 }
 
-FPrecomputedLightVolumeData& UMapBuildDataRegistry::AllocateLevelBuildData(const FGuid& LevelId)
+FPrecomputedLightVolumeData& UMapBuildDataRegistry::AllocateLevelPrecomputedLightVolumeBuildData(const FGuid& LevelId)
 {
 	check(LevelId.IsValid());
 	MarkPackageDirty();
-	return *LevelBuildData.Add(LevelId, new FPrecomputedLightVolumeData());
+	return *LevelPrecomputedLightVolumeBuildData.Add(LevelId, new FPrecomputedLightVolumeData());
 }
 
-void UMapBuildDataRegistry::AddLevelBuildData(const FGuid& LevelId, FPrecomputedLightVolumeData* InData)
+void UMapBuildDataRegistry::AddLevelPrecomputedLightVolumeBuildData(const FGuid& LevelId, FPrecomputedLightVolumeData* InData)
 {
 	check(LevelId.IsValid());
-	LevelBuildData.Add(LevelId, InData);
+	LevelPrecomputedLightVolumeBuildData.Add(LevelId, InData);
 }
 
-const FPrecomputedLightVolumeData* UMapBuildDataRegistry::GetLevelBuildData(FGuid LevelId) const
+const FPrecomputedLightVolumeData* UMapBuildDataRegistry::GetLevelPrecomputedLightVolumeBuildData(FGuid LevelId) const
 {
-	const FPrecomputedLightVolumeData* const * DataPtr = LevelBuildData.Find(LevelId);
+	const FPrecomputedLightVolumeData* const * DataPtr = LevelPrecomputedLightVolumeBuildData.Find(LevelId);
 	
 	if (DataPtr)
 	{
@@ -288,9 +298,46 @@ const FPrecomputedLightVolumeData* UMapBuildDataRegistry::GetLevelBuildData(FGui
 	return NULL;
 }
 
-FPrecomputedLightVolumeData* UMapBuildDataRegistry::GetLevelBuildData(FGuid LevelId)
+FPrecomputedLightVolumeData* UMapBuildDataRegistry::GetLevelPrecomputedLightVolumeBuildData(FGuid LevelId)
 {
-	FPrecomputedLightVolumeData** DataPtr = LevelBuildData.Find(LevelId);
+	FPrecomputedLightVolumeData** DataPtr = LevelPrecomputedLightVolumeBuildData.Find(LevelId);
+
+	if (DataPtr)
+	{
+		return *DataPtr;
+	}
+
+	return NULL;
+}
+
+FPrecomputedVolumetricLightmapData& UMapBuildDataRegistry::AllocateLevelPrecomputedVolumetricLightmapBuildData(const FGuid& LevelId)
+{
+	check(LevelId.IsValid());
+	MarkPackageDirty();
+	return *LevelPrecomputedVolumetricLightmapBuildData.Add(LevelId, new FPrecomputedVolumetricLightmapData());
+}
+
+void UMapBuildDataRegistry::AddLevelPrecomputedVolumetricLightmapBuildData(const FGuid& LevelId, FPrecomputedVolumetricLightmapData* InData)
+{
+	check(LevelId.IsValid());
+	LevelPrecomputedVolumetricLightmapBuildData.Add(LevelId, InData);
+}
+
+const FPrecomputedVolumetricLightmapData* UMapBuildDataRegistry::GetLevelPrecomputedVolumetricLightmapBuildData(FGuid LevelId) const
+{
+	const FPrecomputedVolumetricLightmapData* const * DataPtr = LevelPrecomputedVolumetricLightmapBuildData.Find(LevelId);
+	
+	if (DataPtr)
+	{
+		return *DataPtr;
+	}
+
+	return NULL;
+}
+
+FPrecomputedVolumetricLightmapData* UMapBuildDataRegistry::GetLevelPrecomputedVolumetricLightmapBuildData(FGuid LevelId)
+{
+	FPrecomputedVolumetricLightmapData** DataPtr = LevelPrecomputedVolumetricLightmapBuildData.Find(LevelId);
 
 	if (DataPtr)
 	{
@@ -331,7 +378,7 @@ void UMapBuildDataRegistry::InvalidateStaticLighting(UWorld* World)
 		LightBuildData.Empty();
 	}
 	
-	if (LevelBuildData.Num() > 0)
+	if (LevelPrecomputedLightVolumeBuildData.Num() > 0 || LevelPrecomputedVolumetricLightmapBuildData.Num() > 0)
 	{
 		for (int32 LevelIndex = 0; LevelIndex < World->GetNumLevels(); LevelIndex++)
 		{
@@ -357,12 +404,19 @@ void UMapBuildDataRegistry::EmptyData()
 	MeshBuildData.Empty();
 	LightBuildData.Empty();
 
-	for (TMap<FGuid, FPrecomputedLightVolumeData*>::TIterator It(LevelBuildData); It; ++It)
+	for (TMap<FGuid, FPrecomputedLightVolumeData*>::TIterator It(LevelPrecomputedLightVolumeBuildData); It; ++It)
 	{
 		delete It.Value();
 	}
 
-	LevelBuildData.Empty();
+	LevelPrecomputedLightVolumeBuildData.Empty();
+
+	for (TMap<FGuid, FPrecomputedVolumetricLightmapData*>::TIterator It(LevelPrecomputedVolumetricLightmapBuildData); It; ++It)
+	{
+		delete It.Value();
+	}
+
+	LevelPrecomputedVolumetricLightmapBuildData.Empty();
 }
 
 FUObjectAnnotationSparse<FMeshMapBuildLegacyData, true> GComponentsWithLegacyLightmaps;

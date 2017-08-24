@@ -222,9 +222,15 @@ float CubemapHardwarePCF(float3 WorldPosition, float3 LightPosition, float Light
 
 /** Textures and parameters needed for Fourier opacity maps. */
 Texture2D TranslucencyShadowTransmission0;
-SamplerState TranslucencyShadowTransmission0Sampler;
 Texture2D TranslucencyShadowTransmission1;
-SamplerState TranslucencyShadowTransmission1Sampler;
+
+#if SUPPORTS_INDEPENDENT_SAMPLERS
+	#define TranslucencyShadowTransmission0Sampler View.SharedBilinearClampSampler
+	#define TranslucencyShadowTransmission1Sampler View.SharedBilinearClampSampler
+#else
+	SamplerState TranslucencyShadowTransmission0Sampler;
+	SamplerState TranslucencyShadowTransmission1Sampler;
+#endif
 
 /** These have been tweaked to minimize ringing while not losing too much high frequency in the captured opacity function. */
 static const float RingingSuppressionFactor = 1;

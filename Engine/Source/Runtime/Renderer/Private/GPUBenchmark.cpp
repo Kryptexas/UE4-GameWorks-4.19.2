@@ -228,7 +228,7 @@ void RunBenchmarkShader(FRHICommandList& RHICmdList, FVertexBufferRHIParamRef Ve
 			uint32 VerticesThisPass = FMath::Min(TotalNumVertices, GBenchmarkVertices);
 			uint32 PrimitivesThisPass = VerticesThisPass / 3;
 
-			RHICmdList.SetStreamSource(0, VertexThroughputBuffer, VertexThroughputBuffer ? sizeof(FBenchmarkVertex) : 0, 0);
+			RHICmdList.SetStreamSource(0, VertexThroughputBuffer, 0);
 
 			RHICmdList.DrawPrimitive(PT_TriangleList, 0, PrimitivesThisPass, 1);
 

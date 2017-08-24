@@ -44,7 +44,7 @@ class CORE_API FAsyncWriter : public FRunnable, public FArchive
 	};
 
 	/** Thread to run the worker FRunnable on. Serializes the ring buffer to disk. */
-	FRunnableThread* Thread;
+	volatile FRunnableThread* Thread;
 	/** Stops this thread */
 	FThreadSafeCounter StopTaskCounter;
 
@@ -53,9 +53,9 @@ class CORE_API FAsyncWriter : public FRunnable, public FArchive
 	/** Data ring buffer */
 	TArray<uint8> Buffer;
 	/** [WRITER THREAD] Position where the unserialized data starts in the buffer */
-	int32 BufferStartPos;
+	volatile int32 BufferStartPos;
 	/** [CLIENT THREAD] Position where the unserialized data ends in the buffer (such as if (BufferEndPos > BufferStartPos) Length = BufferEndPos - BufferStartPos; */
-	int32 BufferEndPos;
+	volatile int32 BufferEndPos;
 	/** [CLIENT THREAD] Sync object for the buffer pos */
 	FCriticalSection BufferPosCritical;
 	/** [CLIENT/WRITER THREAD] Outstanding serialize request counter. This is to make sure we flush all requests. */
@@ -100,7 +100,7 @@ class CORE_API FAsyncWriter : public FRunnable, public FArchive
 				Ar.Serialize(Buffer.GetData(), BufferEndPos);
 			}
 			// Modify the start pos. Only the worker thread modifies this value so it's ok to not guard it with a critical section.
-			BufferStartPos = ThisThreadEndPos;
+			FPlatformAtomics::InterlockedExchange(&BufferStartPos, ThisThreadEndPos);
 
 			// Decrement the request counter, we now know we serialized at least one request.
 			// We might have serialized more requests but it's irrelevant, the counter will go down to 0 eventually
@@ -163,7 +163,7 @@ public:
 		if (FPlatformProcess::SupportsMultithreading())
 		{
 			FString WriterName = FString::Printf(TEXT("FAsyncWriter_%s"), *FPaths::GetBaseFilename(Ar.GetArchiveName()));
-			Thread = FRunnableThread::Create(this, *WriterName, 0, TPri_BelowNormal);
+			FPlatformAtomics::InterlockedExchangePtr((void**)&Thread, FRunnableThread::Create(this, *WriterName, 0, TPri_BelowNormal));
 		}
 	}
 
@@ -224,7 +224,7 @@ public:
 		}
 
 		// Update the end position and let the async thread know we need to write to disk
-		BufferEndPos = (BufferEndPos + Length) % Buffer.Num();
+		FPlatformAtomics::InterlockedExchange(&BufferEndPos, (BufferEndPos + Length) % Buffer.Num());
 		SerializeRequestCounter.Increment();
 
 		// No async thread? Serialize now.

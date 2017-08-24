@@ -188,6 +188,12 @@ namespace UnrealBuildTool
 			{
 				Result += " -fsanitize=address";
 			}
+			
+			string UndefSanitizerMode = Environment.GetEnvironmentVariable("ENABLE_UNDEFINED_BEHAVIOR_SANITIZER");
+			if(UndefSanitizerMode != null && UndefSanitizerMode == "YES")
+			{
+				Result += " -fsanitize=undefined -fno-sanitize=bounds,enum,return,float-divide-by-zero";
+			}
 
 			Result += GetRTTIFlag(CompileEnvironment);
 			Result += " -fvisibility=hidden"; // hides the linker warnings with PhysX
@@ -231,6 +237,11 @@ namespace UnrealBuildTool
 				Result += " -Wno-unused-local-typedef"; // PhysX has some, hard to remove
 			}
 			
+			// fix for Xcode 8.3 enabling nonportable include checks, but p4 has some invalid cases in it
+			if (Settings.Value.IOSSDKVersionFloat >= 10.3)
+			{
+				Result += " -Wno-nonportable-include-path";
+			}
 
 			// fix for Xcode 8.3 enabling nonportable include checks, but p4 has some invalid cases in it
 			if (Settings.Value.IOSSDKVersionFloat >= 10.3)
@@ -258,9 +269,16 @@ namespace UnrealBuildTool
 			}
 
 			Result += " -m" +  GetXcodeMinVersionParam() + "=" + ProjectSettings.RuntimeVersion;
+			
+			bool bStaticAnalysis = false;
+			string StaticAnalysisMode = Environment.GetEnvironmentVariable("CLANG_STATIC_ANALYZER_MODE");
+			if(StaticAnalysisMode != null && StaticAnalysisMode != "")
+			{
+				bStaticAnalysis = true;
+			}
 
 			// Optimize non- debug builds.
-			if (CompileEnvironment.bOptimizeCode)
+			if (CompileEnvironment.bOptimizeCode && !bStaticAnalysis)
 			{
 				if (CompileEnvironment.bOptimizeForSize)
 				{
@@ -509,6 +527,13 @@ namespace UnrealBuildTool
 				Result += " -rpath \"@executable_path/Frameworks/libclang_rt.asan_ios_dynamic.dylib\"";
 				Result += " -fsanitize=address";
 			}
+			
+			string UndefSanitizerMode = Environment.GetEnvironmentVariable("ENABLE_UNDEFINED_BEHAVIOR_SANITIZER");
+			if(UndefSanitizerMode != null && UndefSanitizerMode == "YES")
+			{
+				Result += " -rpath \"@executable_path/libclang_rt.ubsan_ios_dynamic.dylib\"";
+				Result += " -fsanitize=undefined";
+			}
 
 			Result += " " + GetAdditionalLinkerFlags(LinkEnvironment.Configuration);
 
@@ -645,6 +670,7 @@ namespace UnrealBuildTool
 				// Add the C++ source file and its included files to the prerequisite item list.
 				AddPrerequisiteSourceFile(CompileEnvironment, SourceFile, CompileAction.PrerequisiteItems);
 
+				string OutputFilePath = null;
 				if (CompileEnvironment.PrecompiledHeaderAction == PrecompiledHeaderAction.Create)
 				{
 					var PrecompiledFileExtension = UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.IOS).GetBinaryExtension(UEBuildBinaryType.PrecompiledHeader);
@@ -683,6 +709,7 @@ namespace UnrealBuildTool
 					CompileAction.ProducedItems.Add(RemoteObjectFile);
 					Result.ObjectFiles.Add(RemoteObjectFile);
 					FileArguments += string.Format(" -o \"{0}\"", RemoteObjectFile.AbsolutePath);
+					OutputFilePath = RemoteObjectFile.AbsolutePath;
 				}
 
 				// Add the source file path to the command-line.
@@ -705,11 +732,21 @@ namespace UnrealBuildTool
 
 					AllArgs = AllArgs.Replace("-Oz", "-O3");
 				}*/
+				
+				// Analyze and then compile using the shell to perform the indirection
+				string StaticAnalysisMode = Environment.GetEnvironmentVariable("CLANG_STATIC_ANALYZER_MODE");
+				if(StaticAnalysisMode != null && StaticAnalysisMode != "" && OutputFilePath != null)
+				{
+					string TempArgs = "-c \"" + CompilerPath + " " + AllArgs + " --analyze -Wno-unused-command-line-argument -Xclang -analyzer-output=html -Xclang -analyzer-config -Xclang path-diagnostics-alternate=true -Xclang -analyzer-config -Xclang report-in-main-source-file=true -Xclang -analyzer-disable-checker -Xclang deadcode.DeadStores -o " + OutputFilePath.Replace(".o", ".html") + "; " + CompilerPath + " " + AllArgs + "\"";
+					AllArgs = TempArgs;
+					CompilerPath = "/bin/sh";
+				}
 
 				// RPC utility parameters are in terms of the Mac side
 				CompileAction.WorkingDirectory = GetMacDevSrcRoot();
 				CompileAction.CommandPath = CompilerPath;
 				CompileAction.CommandArguments = AllArgs; // Arguments + FileArguments + CompileEnvironment.AdditionalArguments;
+				CompileAction.CommandDescription = "Compile";
 				CompileAction.StatusDescription = string.Format("{0}", Path.GetFileName(SourceFile.AbsolutePath));
 				CompileAction.bIsGCCCompiler = true;
 				// We're already distributing the command by execution on Mac.

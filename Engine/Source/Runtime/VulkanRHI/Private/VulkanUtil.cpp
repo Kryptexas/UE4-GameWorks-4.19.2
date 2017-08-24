@@ -214,14 +214,6 @@ void FVulkanGPUProfiler::BeginFrame(FVulkanCommandListContext* InCmdList, FVulka
 		bLatchedGProfilingGPU = false; // we do NOT permit an ordinary GPU profile during hitch profiles
 	}
 
-	if (bLatchedGProfilingGPU)
-	{
-		// Issue a bunch of GPU work at the beginning of the frame, to make sure that we are GPU bound
-		// We can't isolate idle time from GPU timestamps
-		//#todo-rco: Not working yet
-		//InRHI->IssueLongGPUTask();
-	}
-
 	// if we are starting a hitch profile or this frame is a gpu profile, then save off the state of the draw events
 	if (bLatchedGProfilingGPU || (!bPreviousLatchedGProfilingGPUHitches && bLatchedGProfilingGPUHitches))
 	{
@@ -312,81 +304,6 @@ void FVulkanGPUProfiler::EndFrame()
 #include "VulkanRHI.h"
 #include "StaticBoundShaderState.h"
 
-/** Vertex declaration for just one FVector4 position. */
-class FVulkanVector4VertexDeclaration : public FRenderResource
-{
-public:
-	FVertexDeclarationRHIRef VertexDeclarationRHI;
-	virtual void InitRHI() override
-	{
-		FVertexDeclarationElementList Elements;
-		Elements.Add(FVertexElement(0, 0, VET_Float4, 0, sizeof(FVector4)));
-		VertexDeclarationRHI = RHICreateVertexDeclaration(Elements);
-	}
-	virtual void ReleaseRHI() override
-	{
-		VertexDeclarationRHI.SafeRelease();
-	}
-};
-
-TGlobalResource<FVulkanVector4VertexDeclaration> GVulkanVector4VertexDeclaration;
-
-void FVulkanDynamicRHI::IssueLongGPUTask()
-{
-	int32 LargestViewportIndex = INDEX_NONE;
-	int32 LargestViewportPixels = 0;
-
-	for (int32 ViewportIndex = 0; ViewportIndex < Viewports.Num(); ViewportIndex++)
-	{
-		FVulkanViewport* Viewport = Viewports[ViewportIndex];
-
-		if (Viewport->GetSizeXY().X * Viewport->GetSizeXY().Y > LargestViewportPixels)
-		{
-			LargestViewportPixels = Viewport->GetSizeXY().X * Viewport->GetSizeXY().Y;
-			LargestViewportIndex = ViewportIndex;
-		}
-	}
-
-	if (LargestViewportIndex >= 0)
-	{
-		FVulkanViewport* Viewport = Viewports[LargestViewportIndex];
-
-		const ERHIFeatureLevel::Type FeatureLevel = GMaxRHIFeatureLevel;
-
-		FRHICommandList_RecursiveHazardous RHICmdList(&Device->GetImmediateContext());
-		SetRenderTarget(RHICmdList, Viewport->GetBackBuffer(RHICmdList), FTextureRHIRef());
-		FGraphicsPipelineStateInitializer GraphicsPSOInit;
-		RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
-
-		GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One>::GetRHI();
-		GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
-		GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
-
-		TShaderMap<FGlobalShaderType>* ShaderMap = GetGlobalShaderMap(FeatureLevel);
-		TShaderMapRef<TOneColorVS<true> > VertexShader(ShaderMap);
-		TShaderMapRef<FLongGPUTaskPS> PixelShader(ShaderMap);
-
-		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GVulkanVector4VertexDeclaration.VertexDeclarationRHI;
-		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
-		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
-		GraphicsPSOInit.PrimitiveType = PT_TriangleStrip;
-
-		SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
-		RHICmdList.SetBlendFactor(FLinearColor::Black);
-
-		// Draw a fullscreen quad
-		FVector4 Vertices[4];
-		Vertices[0].Set(-1.0f, 1.0f, 0, 1.0f);
-		Vertices[1].Set(1.0f, 1.0f, 0, 1.0f);
-		Vertices[2].Set(-1.0f, -1.0f, 0, 1.0f);
-		Vertices[3].Set(1.0f, -1.0f, 0, 1.0f);
-		DrawPrimitiveUP(RHICmdList, PT_TriangleStrip, 2, Vertices, sizeof(Vertices[0]));
-
-		// RHICmdList flushes on destruction
-	}
-}
-
-
 namespace VulkanRHI
 {
 	VkBuffer CreateBuffer(FVulkanDevice* InDevice, VkDeviceSize Size, VkBufferUsageFlags BufferUsageFlags, VkMemoryRequirements& OutMemoryRequirements)
@@ -470,6 +387,7 @@ DEFINE_STAT(STAT_VulkanCreateUniformBufferTime);
 DEFINE_STAT(STAT_VulkanPipelineBind);
 DEFINE_STAT(STAT_VulkanNumBoundShaderState);
 DEFINE_STAT(STAT_VulkanNumRenderPasses);
+DEFINE_STAT(STAT_VulkanNumPhysicalMemAllocations);
 DEFINE_STAT(STAT_VulkanDynamicVBSize);
 DEFINE_STAT(STAT_VulkanDynamicIBSize);
 DEFINE_STAT(STAT_VulkanDynamicVBLockTime);
@@ -485,6 +403,7 @@ DEFINE_STAT(STAT_VulkanWaitQuery);
 DEFINE_STAT(STAT_VulkanResetQuery);
 DEFINE_STAT(STAT_VulkanWaitSwapchain);
 DEFINE_STAT(STAT_VulkanAcquireBackBuffer);
+DEFINE_STAT(STAT_VulkanStagingBuffer);
 #if VULKAN_ENABLE_AGGRESSIVE_STATS
 DEFINE_STAT(STAT_VulkanApplyDSResources);
 DEFINE_STAT(STAT_VulkanUpdateDescriptorSets);

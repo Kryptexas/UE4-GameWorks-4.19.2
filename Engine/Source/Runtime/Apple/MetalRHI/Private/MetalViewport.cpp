@@ -12,8 +12,13 @@
 #include "IOSAppDelegate.h"
 #endif
 #include "RenderCommandFence.h"
+#include "Set.h"
+#include "MetalProfiler.h"
 
 extern int32 GMetalSupportsIntermediateBackBuffer;
+extern int32 GMetalSeparatePresentThread;
+extern int32 GMetalNonBlockingPresent;
+extern float GMetalPresentFramePacing;
 
 #if PLATFORM_MAC
 
@@ -42,8 +47,15 @@ extern int32 GMetalSupportsIntermediateBackBuffer;
 
 #endif
 
+static FCriticalSection ViewportsMutex;
+static TSet<FMetalViewport*> Viewports;
+
 FMetalViewport::FMetalViewport(void* WindowHandle, uint32 InSizeX,uint32 InSizeY,bool bInIsFullscreen,EPixelFormat Format)
-: Drawable(nil)
+: DisplayID(0)
+, Block(nil)
+#if PLATFORM_MAC
+, CustomPresent(nullptr)
+#endif
 {
 #if PLATFORM_MAC
 	MainThreadCall(^{
@@ -77,24 +89,31 @@ FMetalViewport::FMetalViewport(void* WindowHandle, uint32 InSizeX,uint32 InSizeY
 	}, NSDefaultRunLoopMode, true);
 #endif
 	Resize(InSizeX, InSizeY, bInIsFullscreen, Format);
+	
+	{
+		FScopeLock Lock(&ViewportsMutex);
+		Viewports.Add(this);
+	}
 }
 
 FMetalViewport::~FMetalViewport()
 {
+	if (GMetalSeparatePresentThread && Block)
+	{
+		FScopeLock BlockLock(&Mutex);
+		FPlatformRHIFramePacer::RemoveHandler(Block);
+		Block_release(Block);
+		Block = nil;
+	}
+	{
+		FScopeLock Lock(&ViewportsMutex);
+		Viewports.Remove(this);
+	}
+	
 	BackBuffer[0].SafeRelease();	// when the rest of the engine releases it, its framebuffers will be released too (those the engine knows about)
 	BackBuffer[1].SafeRelease();
 	check(!IsValidRef(BackBuffer[0]));
 	check(!IsValidRef(BackBuffer[1]));
-}
-
-void FMetalViewport::BeginDrawingViewport()
-{
-	FScopeLock Lock(&Mutex);
-	if (BackBuffersQueue.Num() > 0)
-	{
-		uint32 Index = GetViewportIndex(EMetalViewportAccessRHI);
-		BackBuffer[Index] = BackBuffersQueue.Pop(false);
-	}
 }
 
 uint32 FMetalViewport::GetViewportIndex(EMetalViewportAccessFlag Accessor) const
@@ -103,7 +122,9 @@ uint32 FMetalViewport::GetViewportIndex(EMetalViewportAccessFlag Accessor) const
 	{
 		case EMetalViewportAccessRHI:
 			check(IsInRHIThread() || IsInRenderingThread());
-            return GRHISupportsRHIThread ? Accessor : EMetalViewportAccessRenderer;
+			// Deliberate fall-through
+		case EMetalViewportAccessDisplayLink: // Displaylink is not an index, merely an alias that avoids the check...
+			return (GRHISupportsRHIThread && IsRunningRHIInSeparateThread()) ? EMetalViewportAccessRHI : EMetalViewportAccessRenderer;
 		case EMetalViewportAccessRenderer:
 			check(IsInRenderingThread());
 			return Accessor;
@@ -126,8 +147,6 @@ void FMetalViewport::Resize(uint32 InSizeX, uint32 InSizeY, bool bInIsFullscreen
 #endif
 
 	uint32 Index = GetViewportIndex(EMetalViewportAccessGame);
-	
-	FRHIResourceCreateInfo CreateInfo;
 
 	Format = (Format == PF_FloatRGBA && bCanUseHDR) ? PF_FloatRGBA : PF_B8G8R8A8;
 	MTLPixelFormat MetalFormat = (Format == PF_FloatRGBA && bCanUseHDR) ? MTLPixelFormatRGBA16Float : MTLPixelFormatBGRA8Unorm;
@@ -146,15 +165,7 @@ void FMetalViewport::Resize(uint32 InSizeX, uint32 InSizeY, bool bInIsFullscreen
 		Fence.BeginFence();	
 		Fence.Wait();
 	}
-
-	if (GMetalSupportsIntermediateBackBuffer)
-	{
-		BackBuffer[Index] = (FMetalTexture2D*)(FTexture2DRHIParamRef)GDynamicRHI->RHICreateTexture2D(InSizeX, InSizeY, Format, 1, 1, TexCreate_RenderTargetable, CreateInfo);
-	}
-	else
-	{
-		BackBuffer[Index] = (FMetalTexture2D*)(FTexture2DRHIParamRef)GDynamicRHI->RHICreateTexture2D(InSizeX, InSizeY, Format, 1, 1, TexCreate_RenderTargetable | TexCreate_Presentable, CreateInfo);
-	}
+    
 #if PLATFORM_MAC
 	MainThreadCall(^
 	{
@@ -175,30 +186,64 @@ void FMetalViewport::Resize(uint32 InSizeX, uint32 InSizeY, bool bInIsFullscreen
 		
 	}, NSDefaultRunLoopMode, true);
 #else
-	IOSAppDelegate* AppDelegate = [IOSAppDelegate GetDelegate];
-	FIOSView* GLView = AppDelegate.IOSView;
-	[GLView UpdateRenderWidth:InSizeX andHeight:InSizeY];
-	
-	// check the size of the window
-	float ScalingFactor = [[IOSAppDelegate GetDelegate].IOSView contentScaleFactor];
-	CGRect ViewFrame = [[IOSAppDelegate GetDelegate].IOSView frame];
-	check(FMath::TruncToInt(ScalingFactor * ViewFrame.size.width) == InSizeX &&
-		  FMath::TruncToInt(ScalingFactor * ViewFrame.size.height) == InSizeY);
+    IOSAppDelegate* AppDelegate = [IOSAppDelegate GetDelegate];
+    FIOSView* GLView = AppDelegate.IOSView;
+    [GLView UpdateRenderWidth:InSizeX andHeight:InSizeY];
+    
+    // check the size of the window
+    float ScalingFactor = [[IOSAppDelegate GetDelegate].IOSView contentScaleFactor];
+    CGRect ViewFrame = [[IOSAppDelegate GetDelegate].IOSView frame];
+    check(FMath::TruncToInt(ScalingFactor * ViewFrame.size.width) == InSizeX &&
+          FMath::TruncToInt(ScalingFactor * ViewFrame.size.height) == InSizeY);
 #endif
-	BackBuffer[Index]->Surface.Viewport = this;
-    if (GRHISupportsRHIThread)
-	{
-		FScopeLock Lock(&Mutex);
-		BackBuffersQueue.Insert(BackBuffer[Index], 0);
-	}
+
+    {
+        FScopeLock Lock(&Mutex);
+        FRHIResourceCreateInfo CreateInfo;
+        FTexture2DRHIRef NewBackBuffer;
+        FTexture2DRHIRef DoubleBuffer;
+        if (GMetalSupportsIntermediateBackBuffer)
+        {
+            NewBackBuffer = (FMetalTexture2D*)(FTexture2DRHIParamRef)GDynamicRHI->RHICreateTexture2D(InSizeX, InSizeY, Format, 1, 1, TexCreate_RenderTargetable, CreateInfo);
+            
+            if (GMetalSeparatePresentThread)
+            {
+                DoubleBuffer = GDynamicRHI->RHICreateTexture2D(InSizeX, InSizeY, Format, 1, 1, TexCreate_RenderTargetable, CreateInfo);
+                ((FMetalTexture2D*)DoubleBuffer.GetReference())->Surface.Viewport = this;
+            }
+        }
+        else
+        {
+            NewBackBuffer = (FMetalTexture2D*)(FTexture2DRHIParamRef)GDynamicRHI->RHICreateTexture2D(InSizeX, InSizeY, Format, 1, 1, TexCreate_RenderTargetable | TexCreate_Presentable, CreateInfo);
+        }
+        ((FMetalTexture2D*)NewBackBuffer.GetReference())->Surface.Viewport = this;
+        
+        BackBuffer[Index] = (FMetalTexture2D*)NewBackBuffer.GetReference();
+        if (GMetalSeparatePresentThread)
+        {
+            BackBuffer[EMetalViewportAccessRHI] = (FMetalTexture2D*)DoubleBuffer.GetReference();
+        }
+        else
+        {
+            BackBuffer[EMetalViewportAccessRHI] = BackBuffer[Index];
+        }
+    }
 }
 
-FMetalTexture2D* FMetalViewport::GetBackBuffer(EMetalViewportAccessFlag Accessor) const
+TRefCountPtr<FMetalTexture2D> FMetalViewport::GetBackBuffer(EMetalViewportAccessFlag Accessor) const
 {
+	FScopeLock Lock(&Mutex);
+	
 	uint32 Index = GetViewportIndex(Accessor);
 	check(IsValidRef(BackBuffer[Index]));
 	return BackBuffer[Index];
 }
+
+#if PLATFORM_MAC
+@protocol CAMetalLayerSPI <NSObject>
+- (BOOL)isDrawableAvailable;
+@end
+#endif
 
 id<MTLDrawable> FMetalViewport::GetDrawable(EMetalViewportAccessFlag Accessor)
 {
@@ -210,16 +255,25 @@ id<MTLDrawable> FMetalViewport::GetDrawable(EMetalViewportAccessFlag Accessor)
 			
 	#if PLATFORM_MAC
 			CAMetalLayer* CurrentLayer = (CAMetalLayer*)[View layer];
-			Drawable = CurrentLayer ? [[CurrentLayer nextDrawable] retain] : nil;
+			if (GMetalNonBlockingPresent == 0 || [((id<CAMetalLayerSPI>)CurrentLayer) isDrawableAvailable])
+			{
+				Drawable = CurrentLayer ? [CurrentLayer nextDrawable] : nil;
+			}
+			else
+			{
+				Drawable = nil;
+			}
 	#else
-			Drawable = [[[IOSAppDelegate GetDelegate].IOSView MakeDrawable] retain];
+			Drawable = [[IOSAppDelegate GetDelegate].IOSView MakeDrawable];
 	#endif
+			
 #if METAL_DEBUG_OPTIONS
-			if (((id<CAMetalDrawable>)Drawable).layer.drawableSize.width != BackBuffer[GetViewportIndex(Accessor)]->GetSizeX() || ((id<CAMetalDrawable>)Drawable).layer.drawableSize.height != BackBuffer[GetViewportIndex(Accessor)]->GetSizeY())
+			if ((((id<CAMetalDrawable>)Drawable).layer.drawableSize.width != BackBuffer[GetViewportIndex(Accessor)]->GetSizeX() || ((id<CAMetalDrawable>)Drawable).layer.drawableSize.height != BackBuffer[GetViewportIndex(Accessor)]->GetSizeY()))
 			{
 				UE_LOG(LogMetal, Display, TEXT("Viewport Size Mismatch: Drawable W:%f H:%f, Viewport W:%u H:%u"), ((id<CAMetalDrawable>)Drawable).layer.drawableSize.width, ((id<CAMetalDrawable>)Drawable).layer.drawableSize.height, BackBuffer[GetViewportIndex(Accessor)]->GetSizeX(), BackBuffer[GetViewportIndex(Accessor)]->GetSizeY());
 			}
 #endif
+			
 			GRenderThreadIdle[ERenderThreadIdleTypes::WaitingForGPUPresent] += FPlatformTime::Cycles() - IdleStart;
 			GRenderThreadNumIdle[ERenderThreadIdleTypes::WaitingForGPUPresent]++;
 		}
@@ -252,14 +306,16 @@ id<MTLTexture> FMetalViewport::GetDrawableTexture(EMetalViewportAccessFlag Acces
 
 void FMetalViewport::ReleaseDrawable()
 {
-	if (Drawable)
+	if (!GMetalSeparatePresentThread)
 	{
-		[Drawable release];
-		Drawable = nil;
-	}
-	if (!GMetalSupportsIntermediateBackBuffer && IsValidRef(BackBuffer[GetViewportIndex(EMetalViewportAccessRHI)]))
-	{
-		BackBuffer[GetViewportIndex(EMetalViewportAccessRHI)]->Surface.Texture = nil;
+		if (Drawable)
+		{
+			Drawable = nil;
+		}
+		if (!GMetalSupportsIntermediateBackBuffer && IsValidRef(BackBuffer[GetViewportIndex(EMetalViewportAccessRHI)]))
+		{
+			BackBuffer[GetViewportIndex(EMetalViewportAccessRHI)]->Surface.Texture = nil;
+		}
 	}
 }
 
@@ -269,6 +325,127 @@ NSWindow* FMetalViewport::GetWindow() const
 	return [View window];
 }
 #endif
+
+void FMetalViewport::Present(FMetalCommandQueue& CommandQueue)
+{
+	FScopeLock Lock(&Mutex);
+	
+	bool bIsLiveResize = false;
+#if PLATFORM_MAC
+	NSNumber* ScreenId = [View.window.screen.deviceDescription objectForKey:@"NSScreenNumber"];
+	DisplayID = ScreenId.unsignedIntValue;
+	bIsLiveResize = View.inLiveResize;
+#endif
+	
+	LastCompleteFrame = GetBackBuffer(EMetalViewportAccessRHI);
+	FPlatformAtomics::InterlockedExchange(&FrameAvailable, 1);
+	
+	if (!Block)
+	{
+		Block = Block_copy(^(uint32 InDisplayID)
+		{
+			bool bIsInLiveResize = false;
+#if PLATFORM_MAC
+			bIsInLiveResize = View.inLiveResize;
+#endif
+			if (FrameAvailable > 0 && (InDisplayID == 0 || (DisplayID == InDisplayID && !bIsInLiveResize)))
+			{
+				FPlatformAtomics::InterlockedDecrement(&FrameAvailable);
+				id<CAMetalDrawable> LocalDrawable = (id<CAMetalDrawable>)[GetDrawable(EMetalViewportAccessDisplayLink) retain];
+				{
+					FScopeLock BlockLock(&Mutex);
+#if PLATFORM_MAC
+					bIsInLiveResize = View.inLiveResize;
+#endif
+					
+					if (LocalDrawable && LocalDrawable.texture && (InDisplayID == 0 || !bIsInLiveResize))
+					{
+						id<MTLCommandBuffer> CurrentCommandBuffer = CommandQueue.CreateCommandBuffer();
+						check(CurrentCommandBuffer);
+						
+						if (GMetalSupportsIntermediateBackBuffer)
+						{
+							TRefCountPtr<FMetalTexture2D> Texture = LastCompleteFrame;
+							check(IsValidRef(Texture));
+							
+							id<MTLTexture> Src = [Texture->Surface.Texture retain];
+							id<MTLTexture> Dst = [LocalDrawable.texture retain];
+							
+							NSUInteger Width = FMath::Min(Src.width, Dst.width);
+							NSUInteger Height = FMath::Min(Src.height, Dst.height);
+							
+							id<MTLBlitCommandEncoder> Encoder = [CurrentCommandBuffer blitCommandEncoder];
+							check(Encoder);
+							
+							[Encoder copyFromTexture:Src sourceSlice:0 sourceLevel:0 sourceOrigin:MTLOriginMake(0, 0, 0) sourceSize:MTLSizeMake(Width, Height, 1) toTexture:Dst destinationSlice:0 destinationLevel:0 destinationOrigin:MTLOriginMake(0, 0, 0)];
+							
+							[Encoder endEncoding];
+							
+							[CurrentCommandBuffer addCompletedHandler:^(id<MTLCommandBuffer>) {
+								[Src release];
+								[Dst release];
+							}];
+							
+							Drawable = nil;
+						}
+      
+#if PLATFORM_MAC
+                        FCocoaWindow* Window = (FCocoaWindow*)GetWindow();
+#endif
+                        [CurrentCommandBuffer addCompletedHandler:^(id<MTLCommandBuffer>) {
+                            [LocalDrawable release];
+#if PLATFORM_MAC
+                            MainThreadCall(^{
+                                [Window startRendering];
+                            }, NSDefaultRunLoopMode, false);
+#endif
+                        }];                  
+                        
+                        [CurrentCommandBuffer addScheduledHandler:^(id<MTLCommandBuffer>) {
+							[LocalDrawable present];
+						}];
+						
+						FMetalGPUProfiler::RecordPresent(CurrentCommandBuffer);
+						
+						CommandQueue.CommitCommandBuffer(CurrentCommandBuffer);
+					}
+				}
+			}
+		});
+		
+		if (GMetalSeparatePresentThread)
+		{
+			FPlatformRHIFramePacer::AddHandler(Block);
+		}
+	}
+	
+	if (bIsLiveResize || !GMetalSeparatePresentThread)
+	{
+		Block(0);
+	}
+	
+	if (!(GRHISupportsRHIThread && IsRunningRHIInSeparateThread()))
+	{
+		Swap();
+	}
+}
+
+void FMetalViewport::Swap()
+{
+	if (GMetalSeparatePresentThread)
+	{
+		FScopeLock Lock(&Mutex);
+		
+		check(IsValidRef(BackBuffer[0]));
+		check(IsValidRef(BackBuffer[1]));
+		
+		TRefCountPtr<FMetalTexture2D> BB0 = BackBuffer[0];
+		TRefCountPtr<FMetalTexture2D> BB1 = BackBuffer[1];
+		
+		BackBuffer[0] = BB1;
+		BackBuffer[1] = BB0;
+	}
+}
 
 /*=============================================================================
  *	The following RHI functions must be called from the main thread.
@@ -316,8 +493,6 @@ void FMetalRHIImmediateCommandContext::RHIBeginDrawingViewport(FViewportRHIParam
 	FMetalViewport* Viewport = ResourceCast(ViewportRHI);
 	check(Viewport);
 
-	Viewport->BeginDrawingViewport();
-	
 	((FMetalDeviceContext*)Context)->BeginDrawingViewport(Viewport);
 
 	// Set the render target and viewport.
@@ -344,12 +519,6 @@ void FMetalRHIImmediateCommandContext::RHIEndDrawingViewport(FViewportRHIParamRe
 	@autoreleasepool {
 	FMetalViewport* Viewport = ResourceCast(ViewportRHI);
 	((FMetalDeviceContext*)Context)->EndDrawingViewport(Viewport, bPresent);
-#if PLATFORM_MAC
-	FCocoaWindow* Window = (FCocoaWindow*)Viewport->GetWindow();
-	MainThreadCall(^{
-		[Window startRendering];
-	}, NSDefaultRunLoopMode, false);
-#endif
 	}
 }
 
@@ -357,10 +526,18 @@ FTexture2DRHIRef FMetalDynamicRHI::RHIGetViewportBackBuffer(FViewportRHIParamRef
 {
 	@autoreleasepool {
 	FMetalViewport* Viewport = ResourceCast(ViewportRHI);
-	return Viewport->GetBackBuffer(EMetalViewportAccessRenderer);
+	return FTexture2DRHIRef(Viewport->GetBackBuffer(EMetalViewportAccessRenderer).GetReference());
 	}
 }
 
 void FMetalDynamicRHI::RHIAdvanceFrameForGetViewportBackBuffer()
 {
+	if (GMetalSeparatePresentThread && (GRHISupportsRHIThread && IsRunningRHIInSeparateThread()))
+	{
+		FScopeLock Lock(&ViewportsMutex);
+		for (FMetalViewport* Viewport : Viewports)
+		{
+			Viewport->Swap();
+		}
+	}
 }

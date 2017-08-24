@@ -165,21 +165,29 @@ void FAsyncTextureStreamingTask::UpdateBudgetedMips_Async(int64& MemoryUsed, int
 
 	bool bResetMipBias = false;
 
-	int64 PraticalPoolSize = PoolSize;
-	if (Settings.bLimitPoolSizeToVRAM && GPoolSizeVRAMPercentage > 0 && TotalGraphicsMemory > 0)
+	const int64 NonStreamingTextureMemory =  AllocatedMemory - MemoryUsed;
+	int64 AvailableMemoryForStreaming = PoolSize - NonStreamingTextureMemory - MemoryMargin;
+
+	// If the platform defines a max VRAM usage, check if the pool size must be reduced,
+	// but also check if it would be safe to some of the NonStreamingTextureMemory from the pool size computation.
+	// The later helps significantly in low budget settings, where NonStreamingTextureMemory would take too much of the texture pool.
+	if (GPoolSizeVRAMPercentage > 0 && TotalGraphicsMemory > 0)
 	{
-		PraticalPoolSize = FMath::Min<int64>(PoolSize, TotalGraphicsMemory * GPoolSizeVRAMPercentage / 100);
+		const int64 UsableVRAM = TotalGraphicsMemory * GPoolSizeVRAMPercentage / 100 - (int64)GCurrentRendertargetMemorySize * 1024ll; // Add any other...
+		const int64 AvailableVRAMForStreaming = FMath::Min<int64>(UsableVRAM - NonStreamingTextureMemory - MemoryMargin, PoolSize);
+		if (Settings.bLimitPoolSizeToVRAM || AvailableVRAMForStreaming > AvailableMemoryForStreaming)
+		{
+			AvailableMemoryForStreaming = AvailableVRAMForStreaming;
+		}
 	}
 
 	// Update EffectiveStreamingPoolSize, trying to stabilize it independently of temp memory, allocator overhead and non-streaming resources normal variation.
 	// It's hard to know how much temp memory and allocator overhead is actually in AllocatedMemorySize as it is platform specific.
 	// We handle it by not using all memory available. If temp memory and memory margin values are effectively bigger than the actual used values, the pool will stabilize.
-	const int64 AvailableMemoryForStreaming =  PraticalPoolSize - (AllocatedMemory - MemoryUsed);
-
 	if (AvailableMemoryForStreaming < MemoryBudget)
 	{
 		// Reduce size immediately to avoid taking more memory.
-		MemoryBudget = AvailableMemoryForStreaming;
+		MemoryBudget = FMath::Max<int64>(AvailableMemoryForStreaming, 0);
 	}
 	else if (AvailableMemoryForStreaming - MemoryBudget > TempMemoryBudget + MemoryMargin)
 	{

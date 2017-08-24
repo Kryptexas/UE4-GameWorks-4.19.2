@@ -1187,3 +1187,9 @@ void FAutomationControllerManager::WriteLineToCheckpointFile(FString StringToWri
 		CheckpointFile->Flush();
 	}
 }
+
+void FAutomationControllerManager::ResetAutomationTestTimeout(const TCHAR* Reason)
+{
+	GLog->Logf(ELogVerbosity::Display, TEXT("Resetting automation test timeout: %s"), Reason);
+	LastTimeUpdateTicked = FPlatformTime::Seconds();
+}

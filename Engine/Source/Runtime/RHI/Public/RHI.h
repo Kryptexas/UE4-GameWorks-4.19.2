@@ -111,6 +111,18 @@ RHI_API bool RHISupportsPixelShaderUAVs(const EShaderPlatform Platform);
 // helper to check if a preview feature level has been requested.
 RHI_API bool RHIGetPreviewFeatureLevel(ERHIFeatureLevel::Type& PreviewFeatureLevelOUT);
 
+inline bool RHISupportsInstancedStereo(const EShaderPlatform Platform)
+{
+	// Only D3D SM5, PS4 and Metal SM5 supports Instanced Stereo
+	return (Platform == EShaderPlatform::SP_PCD3D_SM5 || Platform == EShaderPlatform::SP_PS4 || Platform == EShaderPlatform::SP_METAL_SM5);
+}
+
+inline bool RHISupportsMultiView(const EShaderPlatform Platform)
+{
+	// Only PS4 and Metal SM5 from 10.13 onward supports Multi-View
+	return (Platform == EShaderPlatform::SP_PS4) || (Platform == EShaderPlatform::SP_METAL_SM5 && RHIGetShaderLanguageVersion(Platform) >= 3);
+}
+
 // Wrapper for GRHI## global variables, allows values to be overridden for mobile preview modes.
 template <typename TValueType>
 class TRHIGlobal
@@ -238,6 +250,9 @@ extern RHI_API bool GSupportsParallelOcclusionQueries;
 
 /** true if the RHI supports aliasing of transient resources */
 extern RHI_API bool GSupportsTransientResourceAliasing;
+
+/** true if the RHI requires a valid RT bound during UAV scatter operation inside the pixel shader */
+extern RHI_API bool GRHIRequiresRenderTargetForPixelShaderUAVs;
 
 /** The minimum Z value in clip space for the RHI. */
 extern RHI_API float GMinClipZ;

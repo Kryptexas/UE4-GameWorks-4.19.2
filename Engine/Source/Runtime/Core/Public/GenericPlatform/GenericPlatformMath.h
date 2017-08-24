@@ -611,6 +611,15 @@ struct FGenericPlatformMath
 		return CurMax;
 	}
 
+	static FORCEINLINE int32 CountBits(uint64 Bits)
+	{
+		// https://en.wikipedia.org/wiki/Hamming_weight
+		Bits -= (Bits >> 1) & 0x5555555555555555ull;
+		Bits = (Bits & 0x3333333333333333ull) + ((Bits >> 2) & 0x3333333333333333ull);
+		Bits = (Bits + (Bits >> 4)) & 0x0f0f0f0f0f0f0f0full;
+		return (Bits * 0x0101010101010101) >> 56;
+	}
+
 #if WITH_DEV_AUTOMATION_TESTS
 	/** Test some of the tricky functions above **/
 	static void AutoTest();

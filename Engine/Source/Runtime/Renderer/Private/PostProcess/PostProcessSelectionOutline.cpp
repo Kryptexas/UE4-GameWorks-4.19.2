@@ -223,7 +223,7 @@ public:
 		const FSceneViewFamily& ViewFamily = *(Context.View.Family);
 		FSceneViewState* ViewState = (FSceneViewState*)Context.View.State;
 
-		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+		PostprocessParameter.SetPS(Context.RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 
 		// PostprocessInput1MS and EditorPrimitivesStencil
 		{

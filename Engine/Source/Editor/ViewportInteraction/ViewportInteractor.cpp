@@ -213,9 +213,10 @@ bool UViewportInteractor::HandleInputKey( FEditorViewportClient& ViewportClient,
 											UPrimitiveComponent* ClickedTransformGizmoComponent = nullptr;
 											const bool bIsPlacingNewObjects = false;
 											const bool bAllowInterpolationWhenPlacing = false;
+											const bool bShouldUseLaserImpactDrag = false;
 											const bool bStartTransaction = !WorldInteraction->GetTrackingTransaction().IsActive();
 											const bool bWithGrabberSphere = false;	// @todo grabber: Not supported yet
-											WorldInteraction->StartDragging( OtherInteractor, ClickedTransformGizmoComponent, OtherInteractor->GetHoverLocation(), bIsPlacingNewObjects, bAllowInterpolationWhenPlacing, bStartTransaction, bWithGrabberSphere );
+											WorldInteraction->StartDragging( OtherInteractor, ClickedTransformGizmoComponent, OtherInteractor->GetHoverLocation(), bIsPlacingNewObjects, bAllowInterpolationWhenPlacing, bShouldUseLaserImpactDrag, bStartTransaction, bWithGrabberSphere );
 										}
 
 										InteractorData.DraggingMode = InteractorData.LastDraggingMode = EViewportInteractionDraggingMode::AssistingDrag;
@@ -238,6 +239,9 @@ bool UViewportInteractor::HandleInputKey( FEditorViewportClient& ViewportClient,
 										InteractorData.GizmoLastTransform = InteractorData.GizmoTargetTransform = InteractorData.GizmoUnsnappedTargetTransform = InteractorData.GizmoInterpolationSnapshotTransform = InteractorData.GizmoStartTransform;
 										InteractorData.GizmoStartLocalBounds = OtherInteractorData->GizmoStartLocalBounds;
 										InteractorData.GizmoSpaceFirstDragUpdateOffsetAlongAxis = FVector::ZeroVector;	// Will be determined on first update
+										InteractorData.LockedWorldDragMode = ELockedWorldDragMode::Unlocked;
+										InteractorData.GizmoScaleSinceDragStarted = 0.0f;
+										InteractorData.GizmoRotationRadiansSinceDragStarted = 0.0f;
 										InteractorData.GizmoSpaceDragDeltaFromStartOffset = FVector::ZeroVector;	// Set every frame while dragging
 
 										WorldInteraction->SetDraggedSinceLastSelection( true );
@@ -343,9 +347,10 @@ bool UViewportInteractor::HandleInputKey( FEditorViewportClient& ViewportClient,
 
 										const bool bIsPlacingNewObjects = false;
 										const bool bAllowInterpolationWhenPlacing = true;
+										const bool bShouldUseLaserImpactDrag = false;
 										const bool bStartTransaction = !bSelectionChanged;
 										const bool bWithGrabberSphere = false;	// @todo grabber: Not supported yet
-										WorldInteraction->StartDragging( this, ClickedTransformGizmoComponent, HitResult.ImpactPoint, bIsPlacingNewObjects, bAllowInterpolationWhenPlacing, bStartTransaction, bWithGrabberSphere );
+										WorldInteraction->StartDragging( this, ClickedTransformGizmoComponent, HitResult.ImpactPoint, bIsPlacingNewObjects, bAllowInterpolationWhenPlacing, bShouldUseLaserImpactDrag, bStartTransaction, bWithGrabberSphere );
 
 										Action->bIsInputCaptured = true;
 									}
@@ -425,6 +430,9 @@ bool UViewportInteractor::HandleInputKey( FEditorViewportClient& ViewportClient,
 					InteractorData.GizmoStartTransform = FTransform::Identity;
 					InteractorData.GizmoStartLocalBounds = FBox(ForceInit);
 					InteractorData.GizmoLastTransform = InteractorData.GizmoTargetTransform = InteractorData.GizmoUnsnappedTargetTransform = InteractorData.GizmoInterpolationSnapshotTransform = InteractorData.GizmoStartTransform;
+					InteractorData.LockedWorldDragMode = ELockedWorldDragMode::Unlocked;
+					InteractorData.GizmoScaleSinceDragStarted = 0.0f;
+					InteractorData.GizmoRotationRadiansSinceDragStarted = 0.0f;
 					InteractorData.GizmoSpaceFirstDragUpdateOffsetAlongAxis = FVector::ZeroVector;
 					InteractorData.GizmoSpaceDragDeltaFromStartOffset = FVector::ZeroVector;
 

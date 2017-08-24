@@ -196,7 +196,9 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 		else
 		{
 			// @todo Error message should be localized!
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 			NSRunInformationalAlertPanel( @"Error", @"Window creation failed!", @"Yes", NULL, NULL );
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 			check(0);
 		}
 	}, UE4ShowEventMode, true);
@@ -349,15 +351,15 @@ void FMacWindow::Restore()
 {
 	MainThreadCall(^{
 		SCOPED_AUTORELEASE_POOL;
-		if( [WindowHandle isZoomed] )
+		if( WindowHandle.miniaturized )
+		{
+			[WindowHandle deminiaturize:nil];
+			WindowHandle->bZoomed = WindowHandle.zoomed;
+		}
+		else if ( WindowHandle.zoomed )
 		{
 			WindowHandle->bZoomed = !WindowHandle->bZoomed;
 			[WindowHandle zoom:nil];
-		}
-		else
-		{
-			WindowHandle->bZoomed = false;
-			[WindowHandle deminiaturize:nil];
 		}
 	}, UE4ResizeEventMode, true);
 }
@@ -417,6 +419,8 @@ void FMacWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 		
 		WindowHandle.TargetWindowMode = NewWindowMode;
 		
+		FPlatformMisc::PumpMessages(true);
+
 		MainThreadCall(^{
 			SCOPED_AUTORELEASE_POOL;
 			[WindowHandle toggleFullScreen:nil];

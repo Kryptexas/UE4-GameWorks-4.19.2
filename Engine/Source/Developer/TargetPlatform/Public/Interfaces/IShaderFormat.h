@@ -30,7 +30,7 @@ public:
 	 * @param Format The format to get the version for.
 	 * @return Version number.
 	 */
-	virtual uint16 GetVersion( FName Format ) const = 0;
+	virtual uint32 GetVersion( FName Format ) const = 0;
 
 	/**
 	 * Gets the list of supported formats.

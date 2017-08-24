@@ -22,10 +22,13 @@ public:
 	/** Elements of the vertex declaration. */
 	FD3D12VertexElements VertexElements;
 
+	uint16 StreamStrides[MaxVertexElementCount];
+
 	/** Initialization constructor. */
-	explicit FD3D12VertexDeclaration(const FD3D12VertexElements& InElements)
+	explicit FD3D12VertexDeclaration(const FD3D12VertexElements& InElements, const uint16* InStrides)
 		: VertexElements(InElements)
 	{
+		FMemory::Memcpy(StreamStrides, InStrides, sizeof(StreamStrides));
 	}
 };
 
@@ -175,6 +178,7 @@ public:
 #endif
 
 	D3D12_INPUT_LAYOUT_DESC InputLayout;
+	uint16 StreamStrides[MaxVertexElementCount];
 
 	bool bShaderNeedsGlobalConstantBuffer[SF_NumFrequencies];
 	uint64 UniqueID;

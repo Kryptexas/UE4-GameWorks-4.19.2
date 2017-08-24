@@ -62,13 +62,13 @@ FVertexData GetVertex(uint VertexIndex)
 		if(FULL_PRECISION_UV)
 		{
 			// float precision
-			Ret.UV.x = SkinStreamInputBuffer[InputOffset + GPUSKIN_VB_OFFSET_UVS + 0];
-			Ret.UV.y = SkinStreamInputBuffer[InputOffset + GPUSKIN_VB_OFFSET_UVS + 1];
+			Ret.UV.x = asfloat(SkinStreamInputBuffer[InputOffset + GPUSKIN_VB_OFFSET_UVS + 0]);
+			Ret.UV.y = asfloat(SkinStreamInputBuffer[InputOffset + GPUSKIN_VB_OFFSET_UVS + 1]);
 		}
 		else
 		{
 			// half precision
-			uint IntUV = asuint(SkinStreamInputBuffer[InputOffset + GPUSKIN_VB_OFFSET_UVS + 0]);
+			uint IntUV = SkinStreamInputBuffer[InputOffset + GPUSKIN_VB_OFFSET_UVS + 0];
 			Ret.UV.x = f16tof32(IntUV & 0xffff);
 			Ret.UV.y = f16tof32(IntUV >> 16);
 		}

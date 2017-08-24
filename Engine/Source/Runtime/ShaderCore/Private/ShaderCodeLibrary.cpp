@@ -132,6 +132,7 @@ public:
 				*Ar << OutSize;
 				*Ar << OutCode;
 				Ar->Close();
+				delete Ar;
 				return true;
 			}
 		}

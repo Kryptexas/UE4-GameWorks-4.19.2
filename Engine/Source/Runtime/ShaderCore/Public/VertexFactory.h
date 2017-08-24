@@ -457,7 +457,7 @@ protected:
 
 		friend bool operator==(const FVertexStream& A,const FVertexStream& B)
 		{
-			return A.VertexBuffer == B.VertexBuffer && A.Stride == B.Stride && A.Offset == B.Offset;
+			return A.VertexBuffer == B.VertexBuffer && A.Stride == B.Stride && A.Offset == B.Offset && A.bUseInstanceIndex == B.bUseInstanceIndex;
 		}
 
 		FVertexStream()

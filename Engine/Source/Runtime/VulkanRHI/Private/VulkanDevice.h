@@ -35,9 +35,19 @@ public:
 		return GfxQueue;
 	}
 
+	inline FVulkanQueue* GetComputeQueue()
+	{
+		return ComputeQueue;
+	}
+
 	inline FVulkanQueue* GetTransferQueue()
 	{
 		return TransferQueue;
+	}
+
+	inline FVulkanQueue* GetPresentQueue()
+	{
+		return PresentQueue;
 	}
 
 	inline VkPhysicalDevice GetPhysicalHandle() const
@@ -120,6 +130,11 @@ public:
 		return *ImmediateContext;
 	}
 
+	inline FVulkanCommandListContext& GetImmediateComputeContext()
+	{
+		return *ComputeContext;
+	}
+
 	void NotifyDeletedRenderTarget(VkImage Image);
 	void NotifyDeletedImage(VkImage Image);
 
@@ -183,17 +198,25 @@ public:
 
 	void NotifyDeletedGfxPipeline(class FVulkanGraphicsPipelineState* Pipeline);
 	void NotifyDeletedComputePipeline(class FVulkanComputePipeline* Pipeline);
-	
+
+	FVulkanCommandListContext* AcquireDeferredContext();
+	void ReleaseDeferredContext(FVulkanCommandListContext* InContext);
+
 	struct FOptionalVulkanDeviceExtensions
 	{
 		uint32 HasKHRMaintenance1 : 1;
+		uint32 HasMirrorClampToEdge : 1;
 	};
-	const FOptionalVulkanDeviceExtensions& GetOptionalExtensions() const { return OptionalDeviceExtensions;  }
+	inline const FOptionalVulkanDeviceExtensions& GetOptionalExtensions() const { return OptionalDeviceExtensions;  }
+
+	void SetupPresentQueue(const VkSurfaceKHR& Surface);
 
 private:
 	void MapFormatSupport(EPixelFormat UEFormat, VkFormat VulkanFormat);
 	void MapFormatSupport(EPixelFormat UEFormat, VkFormat VulkanFormat, int32 BlockBytes);
 	void SetComponentMapping(EPixelFormat UEFormat, VkComponentSwizzle r, VkComponentSwizzle g, VkComponentSwizzle b, VkComponentSwizzle a);
+
+	void SubmitCommands(FVulkanCommandListContext* Context);
 
 	VkPhysicalDevice Gpu;
 	VkPhysicalDeviceProperties GpuProps;
@@ -225,11 +248,15 @@ private:
 	FVulkanTimestampPool* TimestampQueryPool;
 
 	FVulkanQueue* GfxQueue;
+	FVulkanQueue* ComputeQueue;
 	FVulkanQueue* TransferQueue;
+	FVulkanQueue* PresentQueue;
 
 	VkComponentMapping PixelFormatComponentMapping[PF_MAX];
 
 	FVulkanCommandListContext* ImmediateContext;
+	FVulkanCommandListContext* ComputeContext;
+	TArray<FVulkanCommandListContext*> CommandContexts;
 
 	void GetDeviceExtensions(TArray<const ANSICHAR*>& OutDeviceExtensions, TArray<const ANSICHAR*>& OutDeviceLayers, bool& bOutDebugMarkers);
 

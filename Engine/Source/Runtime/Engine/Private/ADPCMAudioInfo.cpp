@@ -36,12 +36,25 @@ void FADPCMAudioInfo::SeekToTime(const float SeekTime)
 	{
 		CurrentUncompressedBlockSampleIndex = UncompressedBlockSize / sizeof(uint16);
 		CurrentCompressedBlockIndex = 0;
-	
+
 		CurrentUncompressedBlockSampleIndex = 0;
 		CurrentChunkIndex = 0;
 		CurrentChunkBufferOffset = 0;
 		TotalSamplesStreamed = 0;
 		CurCompressedChunkData = NULL;
+	}
+	else
+	{
+		if (Format == WAVE_FORMAT_LPCM)
+		{
+			// There are no "blocks" on LPCM, so only update the total samples streamed (which is based off sample rate).
+			// Note that TotalSamplesStreamed is per-channel in the ReadCompressedInfo. Channels are takin into account there.
+			TotalSamplesStreamed = (uint32)(SeekTime * (float)(*WaveInfo.pSamplesPerSec));
+		}
+		else
+		{
+			//TODO: implementation for ADPCM
+		}
 	}
 }
 
@@ -107,12 +120,10 @@ bool FADPCMAudioInfo::ReadCompressedInfo(const uint8* InSrcBufferData, uint32 In
 	
 	if (QualityInfo)
 	{
-		uint32 TrueSampleCount = TotalDecodedSize / *WaveInfo.pBitsPerSample;
-
 		QualityInfo->SampleRate = *WaveInfo.pSamplesPerSec;
 		QualityInfo->NumChannels = *WaveInfo.pChannels;
 		QualityInfo->SampleDataSize = TotalDecodedSize;
-		QualityInfo->Duration = (float)TrueSampleCount / QualityInfo->SampleRate;
+		QualityInfo->Duration = (float)TotalSamplesPerChannel / QualityInfo->SampleRate;
 	}
 	
 	CurrentCompressedBlockIndex = 0;
@@ -294,12 +305,10 @@ bool FADPCMAudioInfo::StreamCompressedInfo(USoundWave* Wave, struct FSoundQualit
 		TotalDecodedSize = ((WaveInfo.SampleDataSize + CompressedBlockSize - 1) / CompressedBlockSize) * UncompressedBlockSize;
 		if (QualityInfo)
 		{
-			uint32 TrueSampleCount = TotalDecodedSize / *WaveInfo.pBitsPerSample;
-
 			QualityInfo->SampleRate = *WaveInfo.pSamplesPerSec;
 			QualityInfo->NumChannels = *WaveInfo.pChannels;
 			QualityInfo->SampleDataSize = TotalDecodedSize;
-			QualityInfo->Duration = (float)TrueSampleCount / QualityInfo->SampleRate;
+			QualityInfo->Duration = (float)TotalSamplesPerChannel / QualityInfo->SampleRate;
 		}
 		
 		UncompressedBlockData = (uint8*)FMemory::Realloc(UncompressedBlockData, NumChannels * UncompressedBlockSize);

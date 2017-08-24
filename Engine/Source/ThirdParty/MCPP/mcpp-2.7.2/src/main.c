@@ -481,10 +481,26 @@ int mcpp_run(
 		{
 			// Skip whitespace.
 			while (*p && (*p == ' ' || *p == '\t')) { p++; }
+
+			int bFoundQuote = 0;
+			if (*p == '\"')
+			{
+				bFoundQuote = 1;
+				++p;
+			}
+
 			// Store pointer to argument.
 			argv[argc++] = p;
+
 			// Skip argument.
-			while (*p && *p != ' ' && *p != '\t') { p++; }
+			if (bFoundQuote)
+			{
+				while (*p && *p != '\"') { ++p; }
+			}
+			else
+			{
+				while (*p && *p != ' ' && *p != '\t') { p++; }
+			}
 			// Add null terminator for argument if needed.
 			if (*p) { *p++ = 0; }
 		}

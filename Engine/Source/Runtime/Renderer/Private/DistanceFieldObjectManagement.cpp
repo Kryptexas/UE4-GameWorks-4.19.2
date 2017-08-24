@@ -732,10 +732,16 @@ void UpdateGlobalDistanceFieldObjectRemoves(FRHICommandListImmediate& RHICmdList
 
 					DispatchComputeShader(RHICmdList, *ComputeShader, FMath::DivideAndRoundUp<uint32>(RemoveObjectIndices.Num(), UpdateObjectsGroupSize), 1, 1);
 					ComputeShader->UnsetParameters(RHICmdList, Scene);
-
-					TemporaryCopySourceBuffers->Release();
-					delete TemporaryCopySourceBuffers;
 				}
+			}
+			
+			// make sure to delete the temporary buffer (even if RemoveObjectIndices is empty)
+			if (TemporaryCopySourceBuffers)
+			{
+				check(bUseRemoveAtSwap == false);
+				TemporaryCopySourceBuffers->Release();
+				delete TemporaryCopySourceBuffers;
+				TemporaryCopySourceBuffers = nullptr;
 			}
 		}
 	}

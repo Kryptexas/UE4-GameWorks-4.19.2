@@ -24,7 +24,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogHeadMountedDisplayCommand, Display, All);
 */
 static TAutoConsoleVariable<int32> CVarHiddenAreaMask(
 	TEXT("vr.HiddenAreaMask"),
-	1,
+	0,
 	*LOCTEXT("CVarText_HiddenAreaMask", "Enable or disable hidden area mask\n0: disabled\n1: enabled").ToString(),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 

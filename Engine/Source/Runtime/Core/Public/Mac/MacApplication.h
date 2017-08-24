@@ -209,7 +209,7 @@ public:
 
 	void OnCursorLock();
 
-	void IgnoreMouseMoveDelta() { bIgnoreMouseMoveDelta = true; }
+	void IgnoreMouseMoveDelta() { FPlatformAtomics::InterlockedExchange(&bIgnoreMouseMoveDelta, 1); }
 
 	void SetIsRightClickEmulationEnabled(bool bEnabled) { bIsRightClickEmulationEnabled = bEnabled; }
 
@@ -328,7 +328,7 @@ private:
 	bool bIsRightClickEmulationEnabled;
 	bool bEmulatingRightClick;
 
-	bool bIgnoreMouseMoveDelta;
+	volatile int32 bIgnoreMouseMoveDelta;
 
 	TArray<FCocoaWindow*> WindowsToClose;
 

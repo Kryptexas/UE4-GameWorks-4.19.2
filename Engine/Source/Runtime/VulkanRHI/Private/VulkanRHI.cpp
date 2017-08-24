@@ -42,11 +42,13 @@ ENUM_VK_ENTRYPOINTS_ALL(DEFINE_VK_ENTRYPOINTS)
 
 ///////////////////////////////////////////////////////////////////////////////
 
-static TAutoConsoleVariable<int32> GRHIThreadCvar(
+TAutoConsoleVariable<int32> GRHIThreadCvar(
 	TEXT("r.Vulkan.RHIThread"),
 	1,
-	TEXT("1 to use RHI Thread")
-	);
+	TEXT("0 to only use Render Thread\n")
+	TEXT("1 to use ONE RHI Thread\n")
+	TEXT("2 to use multiple RHI Thread\n")
+);
 
 #if VULKAN_CUSTOM_MEMORY_MANAGER_ENABLED
 VkAllocationCallbacks GCallbacks;
@@ -276,9 +278,10 @@ FDynamicRHI* FVulkanDynamicRHIModule::CreateRHI(ERHIFeatureLevel::Type InRequest
 IMPLEMENT_MODULE(FVulkanDynamicRHIModule, VulkanRHI);
 
 
-FVulkanCommandListContext::FVulkanCommandListContext(FVulkanDynamicRHI* InRHI, FVulkanDevice* InDevice, bool bInIsImmediate)
+FVulkanCommandListContext::FVulkanCommandListContext(FVulkanDynamicRHI* InRHI, FVulkanDevice* InDevice, FVulkanQueue* InQueue, bool bInIsImmediate)
 	: RHI(InRHI)
 	, Device(InDevice)
+	, Queue(InQueue)
 	, bIsImmediate(bInIsImmediate)
 	, bSubmitAtNextSafePoint(false)
 	, bAutomaticFlushAfterComputeShader(true)
@@ -616,7 +619,7 @@ void FVulkanDynamicRHI::InitInstance()
 		GSupportsRenderTargetFormat_PF_G8 = false;	// #todo-rco
 		GSupportsQuads = false;	// Not supported in Vulkan
 		GRHISupportsTextureStreaming = true;
-		GSupportsTimestampRenderQueries = false;	// #todo-rco
+		GSupportsTimestampRenderQueries = true;
 		GRHIRequiresEarlyBackBufferRenderTarget = false;
 		GSupportsGenerateMips = true;
 #if VULKAN_ENABLE_DUMP_LAYER
@@ -624,6 +627,7 @@ void FVulkanDynamicRHI::InitInstance()
 		GRHISupportsRHIThread = false;
 #else
 		GRHISupportsRHIThread = GRHIThreadCvar->GetInt() != 0;
+		GRHISupportsParallelRHIExecute = GRHIThreadCvar->GetInt() > 1;
 #endif
 
 		GSupportsVolumeTextureRendering = true;
@@ -642,10 +646,15 @@ void FVulkanDynamicRHI::InitInstance()
 		GRHISupportsBaseVertexIndex = true;
 		GSupportsSeparateRenderTargetBlendState = true;
 
+		// Currently not supported as it requires changing shaders to use input_attachment instead of textures
+		GSupportsDepthFetchDuringDepthTest = false;
+
 		GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES2] = GMaxRHIFeatureLevel == ERHIFeatureLevel::ES2 ? GMaxRHIShaderPlatform : SP_NumPlatforms;
 		GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES3_1] = GMaxRHIFeatureLevel == ERHIFeatureLevel::ES3_1 ? GMaxRHIShaderPlatform : SP_NumPlatforms;
 		GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM4] = (GMaxRHIFeatureLevel == ERHIFeatureLevel::SM4 && bDeviceSupportsGeometryShaders) ? GMaxRHIShaderPlatform : SP_NumPlatforms;
 		GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM5] = (GMaxRHIFeatureLevel == ERHIFeatureLevel::SM5 && bDeviceSupportsTessellation) ? GMaxRHIShaderPlatform : SP_NumPlatforms;
+
+		GRHIRequiresRenderTargetForPixelShaderUAVs = true;
 
 		GDynamicRHI = this;
 
@@ -745,7 +754,7 @@ void FVulkanCommandListContext::RHIEndDrawingViewport(FViewportRHIParamRef Viewp
 
 	WriteEndTimestamp(CmdBuffer);
 
-	bool bNativePresent = Viewport->Present(CmdBuffer, Device->GetGraphicsQueue(), bLockToVsync);
+	bool bNativePresent = Viewport->Present(CmdBuffer, Queue, Device->GetPresentQueue(), bLockToVsync);
 	if (bNativePresent)
 	{
 		//#todo-rco: Check for r.FinishCurrentFrame
@@ -768,7 +777,7 @@ void FVulkanCommandListContext::RHIEndFrame()
 
 	//FRCLog::Printf(FString::Printf(TEXT("FVulkanCommandListContext::RHIEndFrame()")));
 
-	Device->GetStagingManager().ProcessPendingFree();
+	Device->GetStagingManager().ProcessPendingFree(false, true);
 	Device->GetResourceHeapManager().ReleaseFreedPages();
 
 
@@ -864,8 +873,18 @@ IRHICommandContext* FVulkanDynamicRHI::RHIGetDefaultContext()
 	return &Device->GetImmediateContext();
 }
 
+IRHIComputeContext* FVulkanDynamicRHI::RHIGetDefaultAsyncComputeContext()
+{
+	return &Device->GetImmediateComputeContext();
+}
+
 IRHICommandContextContainer* FVulkanDynamicRHI::RHIGetCommandContextContainer(int32 Index, int32 Num)
 {
+	if (GRHIThreadCvar.GetValueOnAnyThread() > 1)
+	{
+		return new FVulkanCommandContextContainer(Device);
+	}
+
 	return nullptr;
 }
 
@@ -1130,15 +1149,22 @@ void FVulkanBufferView::Create(FVulkanBuffer& Buffer, EPixelFormat Format, uint3
 
 void FVulkanBufferView::Create(FVulkanResourceMultiBuffer* Buffer, EPixelFormat Format, uint32 Offset, uint32 Size)
 {
+	check(Format != PF_Unknown);
+	const FPixelFormatInfo& FormatInfo = GPixelFormats[Format];
+	check(FormatInfo.Supported);
+	Create((VkFormat)FormatInfo.PlatformFormat, Buffer, Offset, Size);
+}
+
+
+void FVulkanBufferView::Create(VkFormat Format, FVulkanResourceMultiBuffer* Buffer, uint32 Offset, uint32 Size)
+{
 	VkBufferViewCreateInfo ViewInfo;
 	FMemory::Memzero(ViewInfo);
 	ViewInfo.sType = VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO;
 	ViewInfo.buffer = Buffer->GetHandle();
 
-	check(Format != PF_Unknown);
-	const FPixelFormatInfo& FormatInfo = GPixelFormats[Format];
-	check(FormatInfo.Supported);
-	ViewInfo.format = (VkFormat)FormatInfo.PlatformFormat;
+	check(Format != VK_FORMAT_UNDEFINED);
+	ViewInfo.format = Format;
 
 	// @todo vulkan: Because the buffer could be the ring buffer, maybe we should pass in a size here as well (for the sub part of the ring buffer)
 	ViewInfo.offset = Offset;

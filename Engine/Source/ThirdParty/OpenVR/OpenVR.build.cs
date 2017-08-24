@@ -9,7 +9,12 @@ public class OpenVR : ModuleRules
 	public OpenVR(ReadOnlyTargetRules Target) : base(Target)
 	{
 		/** Mark the current version of the OpenVR SDK */
-		string OpenVRVersion = "v1_0_7";
+        string OpenVRVersion = "v1_0_7";
+		if (Target.Platform == UnrealTargetPlatform.Mac)
+		{
+			OpenVRVersion = "v1_0_6";
+		}
+		
 		Type = ModuleType.External;
 
 		string SdkBase = Target.UEThirdPartySourceDirectory + "OpenVR/OpenVR" + OpenVRVersion;
@@ -44,12 +49,11 @@ public class OpenVR : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Mac)
 		{
-			string DylibPath = SdkBase + "/bin/osx32/libopenvr_api.dylib";
+			string DylibPath = Target.UEThirdPartyBinariesDirectory + "OpenVR/OpenVR" + OpenVRVersion + "/osx32/libopenvr_api.dylib";
 			PublicDelayLoadDLLs.Add(DylibPath);
 			PublicAdditionalShadowFiles.Add(DylibPath);
-
-			string OpenVRBinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/OpenVR/OpenVR{0}/osx32/", OpenVRVersion);
-			RuntimeDependencies.Add(new RuntimeDependency(OpenVRBinariesDir + "libopenvr_api.dylib"));
+			RuntimeDependencies.Add(new RuntimeDependency(DylibPath));
+			PublicIncludePaths.Add(SdkBase + "/headers/osx");
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux && Target.Architecture.StartsWith("x86_64"))
 		{

@@ -4599,7 +4599,7 @@ void UCookOnTheFlyServer::CleanSandbox(const bool bIterative)
 
 				FString SandboxDirectory = GetSandboxDirectory(Target->PlatformName()); // GetOutputDirectory(Target->PlatformName());
 				IFileManager::Get().DeleteDirectory(*SandboxDirectory, false, true);
-
+				
 				ClearPlatformCookedData(FName(*Target->PlatformName()));
 
 				IniSettingsOutOfDate(Target);
@@ -5880,7 +5880,7 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 
 	if (!IsChildCooker())
 	{
-		for (ITargetPlatform* Platform : TargetPlatforms)
+		for (const auto &Platform : TargetPlatforms)
 		{
 			FName PlatformName = FName(*Platform->PlatformName());
 

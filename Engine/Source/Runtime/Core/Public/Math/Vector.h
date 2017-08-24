@@ -1083,6 +1083,11 @@ FORCEINLINE FVector::FVector(const FVector2D V, float InZ)
 	DiagnosticCheckNaN();
 }
 
+FORCEINLINE FIntVector::FIntVector( FVector InVector )
+	: X(FMath::TruncToInt(InVector.X))
+	, Y(FMath::TruncToInt(InVector.Y))
+	, Z(FMath::TruncToInt(InVector.Z))
+{ }
 
 inline FVector FVector::RotateAngleAxis(const float AngleDeg, const FVector& Axis) const
 {

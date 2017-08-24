@@ -57,13 +57,17 @@ FRingBuffer::FRingBuffer(id<MTLDevice> Device, MTLResourceOptions InOptions, uin
 	DefaultAlignment = InDefaultAlignment;
 	InitialSize = Size;
 	Options = InOptions;
-	Buffer = [Device newBufferWithLength:Size options:((MTLResourceOptions)BUFFER_CACHE_MODE|Options)];
+	
+	TSharedPtr<FMetalRingBuffer, ESPMode::ThreadSafe> NewBuffer = MakeShared<FMetalRingBuffer, ESPMode::ThreadSafe>();
+	NewBuffer->Buffer = [Device newBufferWithLength:Size options:((MTLResourceOptions)BUFFER_CACHE_MODE|Options)];
+	TRACK_OBJECT(STAT_MetalBufferCount, NewBuffer->Buffer);
+	NewBuffer->LastRead = 0;
+	Buffer = NewBuffer;
+	
 	Offset = 0;
-	LastRead = Size;
 	LastWritten = 0;
 	FMemory::Memzero(FrameSize);
 	LastFrameChange = 0;
-	TRACK_OBJECT(STAT_MetalBufferCount, Buffer);
 }
 
 void FRingBuffer::Shrink()
@@ -75,16 +79,19 @@ void FRingBuffer::Shrink()
 	}
 	
 	uint32 NecessarySize = FMath::Max(FrameMax, InitialSize);
-	uint32 ThreeQuarterSize = Align((Buffer.length / 4) * 3, DefaultAlignment);
+	uint32 ThreeQuarterSize = Align((Buffer->Buffer.length / 4) * 3, DefaultAlignment);
 	
-	if ((GFrameNumberRenderThread - LastFrameChange) >= 120 && NecessarySize < ThreeQuarterSize && NecessarySize < Buffer.length)
+	if ((GFrameNumberRenderThread - LastFrameChange) >= 120 && NecessarySize < ThreeQuarterSize && NecessarySize < Buffer->Buffer.length)
 	{
-		UE_LOG(LogMetal, Display, TEXT("Shrinking RingBuffer from %u to %u as max. usage is %u at frame %lld]"), (uint32)Buffer.length, ThreeQuarterSize, FrameMax, GFrameNumberRenderThread);
-		SafeReleaseMetalResource(Buffer);
-		Buffer = [GetMetalDeviceContext().GetDevice() newBufferWithLength:ThreeQuarterSize options:((MTLResourceOptions)BUFFER_CACHE_MODE|Options)];
-		TRACK_OBJECT(STAT_MetalBufferCount, Buffer);
+		UE_LOG(LogMetal, Display, TEXT("Shrinking RingBuffer from %u to %u as max. usage is %u at frame %lld]"), (uint32)Buffer->Buffer.length, ThreeQuarterSize, FrameMax, GFrameNumberRenderThread);
+		
+		TSharedPtr<FMetalRingBuffer, ESPMode::ThreadSafe> NewBuffer = MakeShared<FMetalRingBuffer, ESPMode::ThreadSafe>();
+		NewBuffer->Buffer = [GetMetalDeviceContext().GetDevice() newBufferWithLength:ThreeQuarterSize options:((MTLResourceOptions)BUFFER_CACHE_MODE|Options)];
+		TRACK_OBJECT(STAT_MetalBufferCount, NewBuffer->Buffer);
+		NewBuffer->LastRead = ThreeQuarterSize;
+		Buffer = NewBuffer;
+		
 		Offset = 0;
-		LastRead = ThreeQuarterSize;
 		LastWritten = 0;
 		LastFrameChange = GFrameNumberRenderThread;
 	}
@@ -99,13 +106,13 @@ uint32 FRingBuffer::Allocate(uint32 Size, uint32 Alignment)
 		Alignment = DefaultAlignment;
 	}
 	
-	if(LastRead <= Offset)
+	if(Buffer->LastRead <= Offset)
 	{
 		// align the offset
 		Offset = Align(Offset, Alignment);
 		
 		// wrap if needed
-		if (Offset + Size <= Buffer.length)
+		if (Offset + Size <= Buffer->Buffer.length)
 		{
 			// get current location
 			uint32 ReturnOffset = Offset;
@@ -114,7 +121,7 @@ uint32 FRingBuffer::Allocate(uint32 Size, uint32 Alignment)
 #if METAL_DEBUG_OPTIONS
 			if (GMetalBufferZeroFill)
 			{
-				FMemory::Memset(((uint8*)[Buffer contents]) + ReturnOffset, 0x0, Size);
+				FMemory::Memset(((uint8*)[Buffer->Buffer contents]) + ReturnOffset, 0x0, Size);
 			}
 #endif
 
@@ -128,7 +135,7 @@ uint32 FRingBuffer::Allocate(uint32 Size, uint32 Alignment)
 	
 	// align the offset
 	Offset = Align(Offset, Alignment);
-	if(Offset + Size < LastRead)
+	if(Offset + Size < Buffer->LastRead)
 	{
 		// get current location
 		uint32 ReturnOffset = Offset;
@@ -137,7 +144,7 @@ uint32 FRingBuffer::Allocate(uint32 Size, uint32 Alignment)
 #if METAL_DEBUG_OPTIONS
 		if (GMetalBufferZeroFill)
 		{
-			FMemory::Memset(((uint8*)[Buffer contents]) + ReturnOffset, 0x0, Size);
+			FMemory::Memset(((uint8*)[Buffer->Buffer contents]) + ReturnOffset, 0x0, Size);
 		}
 #endif
 		
@@ -145,15 +152,19 @@ uint32 FRingBuffer::Allocate(uint32 Size, uint32 Alignment)
 	}
 	else
 	{
-		const uint32 BufferSize = Buffer.length;
-		uint32 NewBufferSize = AlignArbitrary(BufferSize + Size, Buffer.length / 4);
+		const uint32 BufferSize = Buffer->Buffer.length;
+		uint32 NewBufferSize = AlignArbitrary(BufferSize + Size, Buffer->Buffer.length / 4);
 		
-		UE_LOG(LogMetal, Warning, TEXT("Reallocating ring-buffer from %d to %d to avoid wrapping write at offset %d into outstanding buffer region %d at frame %lld]"), BufferSize, NewBufferSize, Offset, LastRead, GFrameCounter);
-		SafeReleaseMetalResource(Buffer);
-		Buffer = [GetMetalDeviceContext().GetDevice() newBufferWithLength:NewBufferSize options:((MTLResourceOptions)BUFFER_CACHE_MODE|Options)];
-		TRACK_OBJECT(STAT_MetalBufferCount, Buffer);
+		UE_LOG(LogMetal, Warning, TEXT("Reallocating ring-buffer from %d to %d to avoid wrapping write at offset %d into outstanding buffer region %d at frame %lld]"), BufferSize, NewBufferSize, Offset, Buffer->LastRead, (uint64)GFrameCounter);
+
+		SafeReleaseMetalResource(Buffer->Buffer);
+		TSharedPtr<FMetalRingBuffer, ESPMode::ThreadSafe> NewBuffer = MakeShared<FMetalRingBuffer, ESPMode::ThreadSafe>();
+		NewBuffer->Buffer = [GetMetalDeviceContext().GetDevice() newBufferWithLength:NewBufferSize options:((MTLResourceOptions)BUFFER_CACHE_MODE|Options)];
+		TRACK_OBJECT(STAT_MetalBufferCount, NewBuffer->Buffer);
+		NewBuffer->LastRead = NewBufferSize;
+		Buffer = NewBuffer;
+		
 		Offset = 0;
-		LastRead = NewBufferSize;
 
 		// get current location
 		uint32 ReturnOffset = Offset;
@@ -162,7 +173,7 @@ uint32 FRingBuffer::Allocate(uint32 Size, uint32 Alignment)
 #if METAL_DEBUG_OPTIONS
 		if (GMetalBufferZeroFill)
 		{
-			FMemory::Memset(((uint8*)[Buffer contents]) + ReturnOffset, 0x0, Size);
+			FMemory::Memset(((uint8*)[Buffer->Buffer contents]) + ReturnOffset, 0x0, Size);
 		}
 #endif
 

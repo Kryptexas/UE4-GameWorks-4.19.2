@@ -1590,6 +1590,12 @@ inline FTextureRHIParamRef OrBlack3DIfNull(FTextureRHIParamRef Tex)
 	return OrBlack2DIfNull(Tex ? Tex : GBlackVolumeTexture->TextureRHI.GetReference());
 }
 
+inline FTextureRHIParamRef OrBlack3DUintIfNull(FTextureRHIParamRef Tex)
+{
+	// we fall back to 2D which are unbound es2 parameters
+	return OrBlack2DIfNull(Tex ? Tex : GBlackUintVolumeTexture->TextureRHI.GetReference());
+}
+
 inline void SetBlack2DIfNull(FTextureRHIParamRef& Tex)
 {
 	if (!Tex)

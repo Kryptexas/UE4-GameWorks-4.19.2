@@ -274,6 +274,22 @@ bool FWaitForMapToLoadCommand::Update()
 	return false;
 }
 
+bool FWaitForSpecifiedMapToLoadCommand::Update()
+{
+	UWorld* TestWorld = AutomationCommon::GetAnyGameWorld();
+
+	if ( TestWorld && TestWorld->GetName() == MapName && TestWorld->AreActorsInitialized() )
+	{
+		AGameStateBase* GameState = TestWorld->GetGameState();
+		if (GameState && GameState->HasMatchStarted() )
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 ///////////////////////////////////////////////////////////////////////
 // Common Latent commands which are used across test type. I.e. Engine, Network, etc...
 

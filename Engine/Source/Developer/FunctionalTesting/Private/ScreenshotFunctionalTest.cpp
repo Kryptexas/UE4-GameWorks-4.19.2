@@ -13,6 +13,7 @@
 
 AScreenshotFunctionalTest::AScreenshotFunctionalTest( const FObjectInitializer& ObjectInitializer )
 	: AFunctionalTest(ObjectInitializer)
+	, bCameraCutOnScreenshotPrep(false)
 	, ScreenshotOptions(EComparisonTolerance::Low)
 {
 	ScreenshotCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
@@ -22,12 +23,28 @@ AScreenshotFunctionalTest::AScreenshotFunctionalTest( const FObjectInitializer& 
 void AScreenshotFunctionalTest::PrepareTest()
 {
 	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	PlayerController->SetViewTarget(this, FViewTargetTransitionParams());
+	if (PlayerController)
+	{
+		PlayerController->SetViewTarget(this, FViewTargetTransitionParams());
+	}
 
 	// It's possible the defaults for certain tolerance levels have changed, so reset them on test start.
 	ScreenshotOptions.SetToleranceAmounts(ScreenshotOptions.Tolerance);
 
 	Super::PrepareTest();
+
+	// Apply a camera cut if requested
+	if (bCameraCutOnScreenshotPrep)
+	{
+		if (PlayerController && PlayerController->PlayerCameraManager)
+		{
+			PlayerController->PlayerCameraManager->bGameCameraCutThisFrame = true;
+			if (ScreenshotCamera)
+			{
+				ScreenshotCamera->NotifyCameraCut();
+			}
+		}
+	}
 }
 
 bool AScreenshotFunctionalTest::IsReady_Implementation()

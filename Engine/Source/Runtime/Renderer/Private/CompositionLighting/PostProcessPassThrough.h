@@ -35,7 +35,8 @@ public:
 	// FShader interface.
 	virtual bool Serialize(FArchive& Ar) override;
 
-	void SetParameters(const FRenderingCompositePassContext& Context);
+	template <typename TRHICmdList>
+	void SetParameters(TRHICmdList& RHICmdList, const FRenderingCompositePassContext& Context);
 };
 
 // ePId_Input0: Input image

@@ -48,7 +48,7 @@ static inline FSHAHash GetShaderHashForStage(const FGraphicsPipelineStateInitial
 FVulkanPipeline::FVulkanPipeline(FVulkanDevice* InDevice)
 	: Device(InDevice)
 	, Pipeline(VK_NULL_HANDLE)
-	, Layout(InDevice)
+	, Layout(nullptr)
 {
 }
 
@@ -56,37 +56,13 @@ FVulkanPipeline::~FVulkanPipeline()
 {
 	Device->GetDeferredDeletionQueue().EnqueueResource(VulkanRHI::FDeferredDeletionQueue::EType::Pipeline, Pipeline);
 	Pipeline = VK_NULL_HANDLE;
+	/* we do NOT own Layout !*/
 }
 
-FVulkanComputePipeline::FVulkanComputePipeline(FVulkanDevice* InDevice, FVulkanComputeShader* InComputeShader)
+FVulkanComputePipeline::FVulkanComputePipeline(FVulkanDevice* InDevice)
 	: FVulkanPipeline(InDevice)
-	, ComputeShader(InComputeShader)
-{
-	check(ComputeShader);
-	Layout.AddBindingsForStage(VK_SHADER_STAGE_COMPUTE_BIT, EDescriptorSetStage::Compute, ComputeShader->GetCodeHeader());
-	Layout.Compile();
-
-	//#todo-rco: Move to shader pipeline
-	VkComputePipelineCreateInfo PipelineInfo;
-	FMemory::Memzero(PipelineInfo);
-	PipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-	PipelineInfo.stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	PipelineInfo.stage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
-	PipelineInfo.stage.module = ComputeShader->GetHandle();
-	PipelineInfo.stage.pName = "main";
-	PipelineInfo.layout = Layout.GetPipelineLayout();
-
-	double BeginTime = FPlatformTime::Seconds();
-	VERIFYVULKANRESULT(VulkanRHI::vkCreateComputePipelines(Device->GetInstanceHandle(), VK_NULL_HANDLE, 1, &PipelineInfo, nullptr, &Pipeline));
-	double EndTime = FPlatformTime::Seconds();
-	double Delta = EndTime - BeginTime;
-	if (Delta > HitchTime)
-	{
-		UE_LOG(LogVulkanRHI, Warning, TEXT("Hitchy compute pipeline key CS %s (%.3f ms)"),
-			*ComputeShader->DebugName,
-			(float)(Delta * 1000.0));
-	}
-}
+	, ComputeShader(nullptr)
+{}
 
 FVulkanComputePipeline::~FVulkanComputePipeline()
 {
@@ -97,12 +73,6 @@ FVulkanGfxPipeline::FVulkanGfxPipeline(FVulkanDevice* InDevice)
 	: FVulkanPipeline(InDevice), bRuntimeObjectsValid(false)
 {}
 
-FVulkanGfxPipeline::FVulkanGfxPipeline(FVulkanDevice* InDevice, const FGraphicsPipelineStateInitializer& InPSOInitializer)
-	: FVulkanPipeline(InDevice), bRuntimeObjectsValid(false)
-{
-	CreateRuntimeObjects(InPSOInitializer);
-}
-
 void FVulkanGfxPipeline::CreateRuntimeObjects(const FGraphicsPipelineStateInitializer& InPSOInitializer)
 {
 	const FBoundShaderStateInput& BSI = InPSOInitializer.BoundShaderState;
@@ -110,38 +80,6 @@ void FVulkanGfxPipeline::CreateRuntimeObjects(const FGraphicsPipelineStateInitia
 	check(BSI.VertexShaderRHI);
 	FVulkanVertexShader* VS = ResourceCast(BSI.VertexShaderRHI);
 	const FVulkanCodeHeader& VSHeader = VS->GetCodeHeader();
-	Layout.AddBindingsForStage(VK_SHADER_STAGE_VERTEX_BIT, EDescriptorSetStage::Vertex, VSHeader);
-
-	if (BSI.PixelShaderRHI)
-	{
-		FVulkanPixelShader* PS = ResourceCast(BSI.PixelShaderRHI);
-		const FVulkanCodeHeader& PSHeader = PS->GetCodeHeader();
-		Layout.AddBindingsForStage(VK_SHADER_STAGE_FRAGMENT_BIT, EDescriptorSetStage::Pixel, PSHeader);
-	}
-	if (BSI.GeometryShaderRHI)
-	{
-		FVulkanGeometryShader* GS = ResourceCast(BSI.GeometryShaderRHI);
-		const FVulkanCodeHeader& GSHeader = GS->GetCodeHeader();
-		Layout.AddBindingsForStage(VK_SHADER_STAGE_GEOMETRY_BIT, EDescriptorSetStage::Geometry, GSHeader);
-	}
-	if (BSI.HullShaderRHI)
-	{
-		// Can't have Hull w/o Domain
-		check(BSI.DomainShaderRHI);
-		FVulkanHullShader* HS = ResourceCast(BSI.HullShaderRHI);
-		FVulkanDomainShader* DS = ResourceCast(BSI.DomainShaderRHI);
-		const FVulkanCodeHeader& HSHeader = HS->GetCodeHeader();
-		const FVulkanCodeHeader& DSHeader = DS->GetCodeHeader();
-		Layout.AddBindingsForStage(VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT, EDescriptorSetStage::Hull, HSHeader);
-		Layout.AddBindingsForStage(VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT, EDescriptorSetStage::Domain, DSHeader);
-	}
-	else
-	{
-		// Can't have Domain w/o Hull
-		check(BSI.DomainShaderRHI == nullptr);
-	}
-
-	Layout.Compile();
 
 	VertexInputState.Generate(ResourceCast(InPSOInitializer.BoundShaderState.VertexDeclarationRHI), VSHeader.SerializedBindings.InOutMask);
 	bRuntimeObjectsValid = true;
@@ -149,9 +87,11 @@ void FVulkanGfxPipeline::CreateRuntimeObjects(const FGraphicsPipelineStateInitia
 
 FVulkanGraphicsPipelineState::~FVulkanGraphicsPipelineState()
 {
-	Pipeline->Device->NotifyDeletedGfxPipeline(this);
-
-	delete Pipeline;	
+	if (Pipeline)
+	{
+		Pipeline->Device->NotifyDeletedGfxPipeline(this);
+		Pipeline = nullptr;
+	}
 }
 
 
@@ -166,6 +106,11 @@ FVulkanPipelineStateCache::FGfxPipelineEntry::~FGfxPipelineEntry()
 {
 	check(!bLoaded);
 	check(!RenderPass);
+}
+
+FVulkanPipelineStateCache::FComputePipelineEntry::~FComputePipelineEntry()
+{
+	check(!bLoaded);
 }
 
 FVulkanPipelineStateCache::FVulkanPipelineStateCache(FVulkanDevice* InDevice)
@@ -188,9 +133,9 @@ FVulkanPipelineStateCache::~FVulkanPipelineStateCache()
 	PipelineCache = VK_NULL_HANDLE;
 }
 
-bool FVulkanPipelineStateCache::Load(const TArray<FString>& CacheFilenames, TArray<uint8>& OutDeviceCache)
+bool FVulkanPipelineStateCache::Load(const TArray<FString>& CacheFilenames)
 {
-	bool bLoaded = false;
+	// Given a list of filenames, it will only use the first one it fully succeeds.
 	for (const FString& CacheFilename : CacheFilenames)
 	{
 		TArray<uint8> MemFile;
@@ -204,6 +149,39 @@ bool FVulkanPipelineStateCache::Load(const TArray<FString>& CacheFilenames, TArr
 				UE_LOG(LogVulkanRHI, Warning, TEXT("Unable to load shader cache '%s' due to mismatched Version %d != %d"), *CacheFilename, Version, (int32)VERSION);
 				continue;
 			}
+
+			TArray<uint8> DeviceCache;
+			Ar << DeviceCache;
+
+			bool bBinaryCacheMatches = false;
+			if (DeviceCache.Num() > 4)
+			{
+				uint32* Data = (uint32*)DeviceCache.GetData();
+				uint32 HeaderSize = *Data++;
+				// 16 is HeaderSize + HeaderVersion
+				if (HeaderSize == 16 + VK_UUID_SIZE)
+				{
+					uint32 HeaderVersion = *Data++;
+					if (HeaderVersion == VK_PIPELINE_CACHE_HEADER_VERSION_ONE)
+					{
+						uint32 VendorID = *Data++;
+						if (VendorID == Device->GetDeviceProperties().vendorID)
+						{
+							uint32 DeviceID = *Data++;
+							if (DeviceID == Device->GetDeviceProperties().deviceID)
+							{
+								uint8* Uuid = (uint8*)Data;
+								if (FMemory::Memcmp(Device->GetDeviceProperties().pipelineCacheUUID, Uuid, VK_UUID_SIZE) == 0)
+								{
+									// This particular binary cache matches this device
+									bBinaryCacheMatches = true;
+								}
+							}
+						}
+					}
+				}
+			}
+
 			int32 SizeOfGfxEntry = -1;
 			Ar << SizeOfGfxEntry;
 			if (SizeOfGfxEntry != (int32)(sizeof(FGfxPipelineEntry)))
@@ -211,8 +189,22 @@ bool FVulkanPipelineStateCache::Load(const TArray<FString>& CacheFilenames, TArr
 				UE_LOG(LogVulkanRHI, Warning, TEXT("Unable to load shader cache '%s' due to mismatched size of FGfxEntry %d != %d; forgot to bump up VERSION?"), *CacheFilename, SizeOfGfxEntry, (int32)sizeof(FGfxPipelineEntry));
 				continue;
 			}
-			Ar << GfxPipelineEntries;
 
+			double BeginTime = FPlatformTime::Seconds();
+
+			// Create the binary cache if it matched this device
+			if (bBinaryCacheMatches)
+			{
+				ensure(PipelineCache == VK_NULL_HANDLE);
+				VkPipelineCacheCreateInfo PipelineCacheInfo;
+				FMemory::Memzero(PipelineCacheInfo);
+				PipelineCacheInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
+				PipelineCacheInfo.initialDataSize = DeviceCache.Num();
+				PipelineCacheInfo.pInitialData = DeviceCache.GetData();
+				VERIFYVULKANRESULT(VulkanRHI::vkCreatePipelineCache(Device->GetInstanceHandle(), &PipelineCacheInfo, nullptr, &PipelineCache));
+			}
+
+			Ar << GfxPipelineEntries;
 			for (int32 Index = 0; Index < GfxPipelineEntries.Num(); ++Index)
 			{
 				FVulkanGfxPipeline* Pipeline = new FVulkanGfxPipeline(Device);
@@ -238,40 +230,33 @@ bool FVulkanPipelineStateCache::Load(const TArray<FString>& CacheFilenames, TArr
 				Found->Add(EntryHash, Pipeline);
 			}
 
-			Ar << OutDeviceCache;
-
-			if (OutDeviceCache.Num() > 4)
+			int32 SizeOfComputeEntry = -1;
+			Ar << SizeOfComputeEntry;
+			if (SizeOfComputeEntry != (int32)(sizeof(FComputePipelineEntry)))
 			{
-				uint32* Data = (uint32*)OutDeviceCache.GetData();
-				uint32 HeaderSize = *Data++;
-				if (HeaderSize == 16 + VK_UUID_SIZE)
-				{
-					uint32 HeaderVersion = *Data++;
-					if (HeaderVersion == VK_PIPELINE_CACHE_HEADER_VERSION_ONE)
-					{
-						uint32 VendorID = *Data++;
-						if (VendorID == Device->GetDeviceProperties().vendorID)
-						{
-							uint32 DeviceID = *Data++;
-							if (DeviceID == Device->GetDeviceProperties().deviceID)
-							{
-								uint8* Uuid = (uint8*)Data;
-								if (FMemory::Memcmp(Device->GetDeviceProperties().pipelineCacheUUID, Uuid, VK_UUID_SIZE) == 0)
-								{
-									bLoaded = true;
-								}
-							}
-						}
-					}
+				UE_LOG(LogVulkanRHI, Warning, TEXT("Unable to load shader cache '%s' due to mismatched size of FComputePipelineEntry %d != %d; forgot to bump up VERSION?"), *CacheFilename, SizeOfComputeEntry, (int32)sizeof(FComputePipelineEntry));
+				continue;
+			}
+			Ar << ComputePipelineEntries;
+			for (int32 Index = 0; Index < ComputePipelineEntries.Num(); ++Index)
+			{
+				FComputePipelineEntry* ComputeEntry = &ComputePipelineEntries[Index];
+				ComputeEntry->CalculateHash();
+
+				CreateComputeEntryRuntimeObjects(ComputeEntry);
+
+				FVulkanComputePipeline* Pipeline = CreateComputePipelineFromEntry(ComputeEntry);
+				ComputeEntryToPipelineMap.Add(ComputeEntry->Hash, Pipeline);
+				Pipeline->AddRef();
+			}
+
+			double EndTime = FPlatformTime::Seconds();
+			UE_LOG(LogVulkanRHI, Display, TEXT("Loaded pipeline cache file '%s' in %.2f seconds: %d Gfx Pipelines, %d Compute Pipelines, %d bytes%s"), *CacheFilename, (float)(EndTime - BeginTime), GfxPipelineEntries.Num(), ComputePipelineEntries.Num(), MemFile.Num(), (bBinaryCacheMatches ? TEXT("(VkPipelineCache binary compatible)") : TEXT("")));
+			return true;
 				}
 			}
 
-			UE_LOG(LogVulkanRHI, Display, TEXT("Loaded pipeline cache file '%s', %d Pipelines, %d bytes %s"), *CacheFilename, GfxPipelineEntries.Num(), MemFile.Num(), (bLoaded ? TEXT("VkPipelineCache compatible") : TEXT("")));
-			break;
-		}
-	}
-
-	return bLoaded;
+	return false;
 }
 
 
@@ -289,8 +274,6 @@ void FVulkanPipelineStateCache::DestroyPipeline(FVulkanGfxPipeline* Pipeline)
 
 void FVulkanPipelineStateCache::InitAndLoad(const TArray<FString>& CacheFilenames)
 {
-	TArray<uint8> DeviceCache;
-
 	bool bLoaded = false;
 	if (GEnablePipelineCacheLoadCvar.GetValueOnAnyThread() == 0)
 	{
@@ -298,26 +281,28 @@ void FVulkanPipelineStateCache::InitAndLoad(const TArray<FString>& CacheFilename
 	}
 	else
 	{
-		bLoaded = Load(CacheFilenames, DeviceCache);
+		bLoaded = Load(CacheFilenames);
 	}
 
-	VkPipelineCacheCreateInfo PipelineCacheInfo;
-	FMemory::Memzero(PipelineCacheInfo);
-	PipelineCacheInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
-	PipelineCacheInfo.initialDataSize = bLoaded ? DeviceCache.Num() : 0;
-	PipelineCacheInfo.pInitialData = bLoaded ? DeviceCache.GetData() : 0;
-	VERIFYVULKANRESULT(VulkanRHI::vkCreatePipelineCache(Device->GetInstanceHandle(), &PipelineCacheInfo, nullptr, &PipelineCache));
+	// Lazily create the cache in case the load failed
+	if (PipelineCache == VK_NULL_HANDLE)
+	{
+		VkPipelineCacheCreateInfo PipelineCacheInfo;
+		FMemory::Memzero(PipelineCacheInfo);
+		PipelineCacheInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
+		VERIFYVULKANRESULT(VulkanRHI::vkCreatePipelineCache(Device->GetInstanceHandle(), &PipelineCacheInfo, nullptr, &PipelineCache));
+	}
 }
 
 void FVulkanPipelineStateCache::Save(FString& CacheFilename)
 {
 	TArray<uint8> MemFile;
 	FMemoryWriter Ar(MemFile);
+
 	int32 Version = VERSION;
 	Ar << Version;
-	int32 SizeOfGfxEntry = (int32)sizeof(FGfxPipelineEntry);
-	Ar << SizeOfGfxEntry;
-	Ar << GfxPipelineEntries;
+
+	// First save Device Cache
 	TArray<uint8> DeviceCache;
 	size_t Size = 0;
 	VERIFYVULKANRESULT(VulkanRHI::vkGetPipelineCacheData(Device->GetInstanceHandle(), PipelineCache, &Size, nullptr));
@@ -328,17 +313,25 @@ void FVulkanPipelineStateCache::Save(FString& CacheFilename)
 	}
 	Ar << DeviceCache;
 
-	MemFile.Num();
+	// Then Gfx entries
+	int32 SizeOfGfxEntry = (int32)sizeof(FGfxPipelineEntry);
+	Ar << SizeOfGfxEntry;
+	Ar << GfxPipelineEntries;
+
+	// And Compute entries
+	int32 SizeOfComputeEntry = (int32)sizeof(FComputePipelineEntry);
+	Ar << SizeOfComputeEntry;
+	Ar << ComputePipelineEntries;
 
 	if (FFileHelper::SaveArrayToFile(MemFile, *CacheFilename))
 	{
-		UE_LOG(LogVulkanRHI, Display, TEXT("Saved pipeline cache file '%s', %d Pipelines, %d bytes"), *CacheFilename, GfxPipelineEntries.Num(), MemFile.Num());
+		UE_LOG(LogVulkanRHI, Display, TEXT("Saved pipeline cache file '%s', %d Gfx Pipelines, %d Compute Pipelines %d bytes"), *CacheFilename, GfxPipelineEntries.Num(), ComputePipelineEntries.Num(), MemFile.Num());
 	}
 }
 
 FVulkanGraphicsPipelineState* FVulkanPipelineStateCache::CreateAndAdd(const FGraphicsPipelineStateInitializer& PSOInitializer, uint32 PSOInitializerHash, FGfxPipelineEntry* GfxEntry)
 {
-	FVulkanGfxPipeline* Pipeline = new FVulkanGfxPipeline(Device, PSOInitializer);
+	FVulkanGfxPipeline* Pipeline = new FVulkanGfxPipeline(Device);
 
 	if (GfxEntry == nullptr)
 	{
@@ -347,13 +340,22 @@ FVulkanGraphicsPipelineState* FVulkanPipelineStateCache::CreateAndAdd(const FGra
 	GfxPipelineEntries.Add(GfxEntry);
 
 	// Create the pipeline
+
+	double BeginTime = FPlatformTime::Seconds();
 	CreateGfxPipelineFromEntry(GfxEntry, Pipeline);
+	Pipeline->CreateRuntimeObjects(PSOInitializer);
+	double EndTime = FPlatformTime::Seconds();
+	double Delta = EndTime - BeginTime;
+	if (Delta > HitchTime)
+	{
+		UE_LOG(LogVulkanRHI, Verbose, TEXT("Hitchy gfx pipeline (%.3f ms)"), (float)(Delta * 1000.0));
+	}
 
 	FVulkanGraphicsPipelineState* PipelineState = new FVulkanGraphicsPipelineState(PSOInitializer, Pipeline);
 	PipelineState->AddRef();
 
 	{
-		FScopeLock Lock(&CS);
+		FScopeLock Lock(&InitializerToPipelineMapCS);
 		InitializerToPipelineMap.Add(PSOInitializerHash, PipelineState);
 	}
 
@@ -757,6 +759,22 @@ FArchive& operator << (FArchive& Ar, FVulkanPipelineStateCache::FGfxPipelineEntr
 	return Ar << (*Entry);
 }
 
+FArchive& operator << (FArchive& Ar, FVulkanPipelineStateCache::FComputePipelineEntry& Entry)
+{
+	// Modify VERSION if serialization changes
+	Entry.ShaderMicrocode.BulkSerialize(Ar);
+	Ar << Entry.ShaderHash;
+
+	Ar << Entry.DescriptorSetLayoutBindings;
+
+	return Ar;
+}
+
+FArchive& operator << (FArchive& Ar, FVulkanPipelineStateCache::FComputePipelineEntry* Entry)
+{
+	return Ar << (*Entry);
+}
+
 uint32 FVulkanPipelineStateCache::FGfxPipelineEntry::GetHash(uint32 Crc /*= 0*/)
 {
 	TArray<uint8> MemFile;
@@ -886,14 +904,8 @@ void FVulkanPipelineStateCache::CreateGfxPipelineFromEntry(const FGfxPipelineEnt
 	PipelineInfo.pDynamicState = &DynamicState;
 
 	//#todo-rco: Fix me
-#if 0
-	double BeginTime = BSS ? FPlatformTime::Seconds() : 0.0;
-	//#todo-rco: Group the pipelines and create multiple (derived) pipelines at once
-#endif
 	VERIFYVULKANRESULT(VulkanRHI::vkCreateGraphicsPipelines(Device->GetInstanceHandle(), PipelineCache, 1, &PipelineInfo, nullptr, &Pipeline->Pipeline));
 #if 0
-	double EndTime = BSS ? FPlatformTime::Seconds() : 0.0;
-	double Delta = EndTime - BeginTime;
 	if (Delta > HitchTime)
 	{
 		UE_LOG(LogVulkanRHI, Verbose, TEXT("Hitchy pipeline key 0x%08x%08x 0x%08x%08x VtxInKey 0x%08x VS %s GS %s PS %s (%.3f ms)"), 
@@ -906,6 +918,8 @@ void FVulkanPipelineStateCache::CreateGfxPipelineFromEntry(const FGfxPipelineEnt
 			(float)(Delta * 1000.0));
 	}
 #endif
+
+	Pipeline->Layout = GfxEntry->Layout;
 }
 
 void FVulkanPipelineStateCache::CreatGfxEntryRuntimeObjects(FGfxPipelineEntry* GfxEntry)
@@ -952,66 +966,95 @@ void FVulkanPipelineStateCache::CreatGfxEntryRuntimeObjects(FGfxPipelineEntry* G
 		GfxEntry->RenderTargets.WriteInto(RTLayout);
 		GfxEntry->RenderPass = Device->GetImmediateContext().PrepareRenderPassForPSOCreation(RTLayout);
 	}
+
+	GfxEntry->bLoaded = true;
 }
 
 
 void FVulkanPipelineStateCache::DestroyCache()
 {
 	VkDevice DeviceHandle = Device->GetInstanceHandle();
-	auto DestroyGfxEntry = [DeviceHandle](FGfxPipelineEntry& GfxEntry)
+
+	// Graphics
 	{
-		for (int32 Index = 0; Index < ARRAY_COUNT(GfxEntry.ShaderModules); ++Index)
+		auto DestroyGfxEntry = [DeviceHandle](FGfxPipelineEntry& GfxEntry)
 		{
-			if (GfxEntry.ShaderModules[Index] != VK_NULL_HANDLE)
+			for (int32 Index = 0; Index < ARRAY_COUNT(GfxEntry.ShaderModules); ++Index)
 			{
-				VulkanRHI::vkDestroyShaderModule(DeviceHandle, GfxEntry.ShaderModules[Index], nullptr);
+				if (GfxEntry.ShaderModules[Index] != VK_NULL_HANDLE)
+				{
+					VulkanRHI::vkDestroyShaderModule(DeviceHandle, GfxEntry.ShaderModules[Index], nullptr);
+				}
+			}
+			GfxEntry.RenderPass = nullptr;
+		};
+
+		for (auto Pair : InitializerToPipelineMap)
+		{
+			FVulkanGraphicsPipelineState* Pipeline = Pair.Value;
+			//when DestroyCache is called as part of r.Vulkan.RebuildPipelineCache, a pipeline can still be referenced by FVulkanPendingGfxState
+			ensure(GIsRHIInitialized || (!GIsRHIInitialized && Pipeline->GetRefCount() == 1));
+			Pipeline->Release();
+		}
+		InitializerToPipelineMap.Empty();
+
+		for (FGfxPipelineEntry& Entry : GfxPipelineEntries)
+		{
+			if (Entry.bLoaded)
+			{
+				DestroyGfxEntry(Entry);
+				Entry.bLoaded = false;
+			}
+			else
+			{
+				Entry.RenderPass = nullptr;
 			}
 		}
-#if 0
-		VulkanRHI::vkDestroyPipelineLayout(DeviceHandle, GfxEntry.PipelineLayout, nullptr);
+		GfxPipelineEntries.Empty();
 
-		for (int32 Index = 0; Index < GfxEntry.DescriptorSetLayouts.Num(); ++Index)
+		// This map can simply be cleared as InitializerToPipelineMap already decreased the refcount of the pipeline objects	
 		{
-			VulkanRHI::vkDestroyDescriptorSetLayout(DeviceHandle, GfxEntry.DescriptorSetLayouts[Index], nullptr);
-		}
-#endif
-		delete GfxEntry.RenderPass;
-		GfxEntry.RenderPass = nullptr;
-	};
-
-	for (auto Pair : InitializerToPipelineMap)
-	{
-		FVulkanGraphicsPipelineState* Pipeline = Pair.Value;
-		//when DestroyCache is called as part of r.Vulkan.RebuildPipelineCache, a pipeline can still be referenced by FVulkanPendingGfxState
-		ensure(GIsRHIInitialized || (!GIsRHIInitialized && Pipeline->GetRefCount() == 1));
-		Pipeline->Release();
-	}
-	InitializerToPipelineMap.Empty();
-	
-	for (FGfxPipelineEntry& Entry : GfxPipelineEntries)
-	{
-		if (Entry.bLoaded)
-		{
-			DestroyGfxEntry(Entry);
-			Entry.bLoaded = false;
-		}
-		else
-		{
-			Entry.RenderPass = nullptr;
+			FScopeLock Lock(&ShaderHashToGfxEntriesMapCS);
+			ShaderHashToGfxEntriesMap.Empty();
 		}
 	}
-	GfxPipelineEntries.Empty();
 
-	// This map can simply be cleared as InitializerToPipelineMap already decreased the refcount of the pipeline objects	
+	// Compute
 	{
-		FScopeLock Lock(&ShaderHashToGfxEntriesMapCS);
-		ShaderHashToGfxEntriesMap.Empty();
+		for (auto Pair : ComputeEntryToPipelineMap)
+		{
+			FVulkanComputePipeline* Pipeline = Pair.Value;
+			//when DestroyCache is called as part of r.Vulkan.RebuildPipelineCache, a pipeline can still be referenced by FVulkanPendingGfxState
+			ensure(GIsRHIInitialized || (!GIsRHIInitialized && Pipeline->GetRefCount() == 1));
+			Pipeline->Release();
+		}
+		ComputeEntryToPipelineMap.Empty();
+		ComputeShaderToPipelineMap.Empty();
+
+		auto DestroyComputeEntry = [DeviceHandle](FComputePipelineEntry& ComputeEntry)
+		{
+			if (ComputeEntry.ShaderModule != VK_NULL_HANDLE)
+			{
+				VulkanRHI::vkDestroyShaderModule(DeviceHandle, ComputeEntry.ShaderModule, nullptr);
+			}
+		};
+
+		for (FComputePipelineEntry& Entry : ComputePipelineEntries)
+		{
+			if (Entry.bLoaded)
+			{
+				DestroyComputeEntry(Entry);
+				Entry.bLoaded = false;
+			}
+		}
+		ComputePipelineEntries.Empty();
 	}
+
 }
 
 void FVulkanPipelineStateCache::RebuildCache()
 {
-	UE_LOG(LogVulkanRHI, Warning, TEXT("Rebuilding pipeline cache; ditching %d entries"), GfxPipelineEntries.Num());
+	UE_LOG(LogVulkanRHI, Warning, TEXT("Rebuilding pipeline cache; ditching %d entries"), GfxPipelineEntries.Num() + ComputePipelineEntries.Num());
 
 	if (IsInGameThread())
 	{
@@ -1196,7 +1239,7 @@ FVulkanGraphicsPipelineState* FVulkanPipelineStateCache::FindInLoadedLibrary(con
 		}
 		FVulkanGraphicsPipelineState* PipelineState = new FVulkanGraphicsPipelineState(PSOInitializer, *p);
 		{
-			FScopeLock Lock2(&CS);
+			FScopeLock Lock2(&InitializerToPipelineMapCS);
 			InitializerToPipelineMap.Add(PSOInitializerHash, PipelineState);
 		}
 		GfxPipelineEntries.Add(GfxEntry);
@@ -1247,4 +1290,145 @@ FGraphicsPipelineStateRHIRef FVulkanDynamicRHI::RHICreateGraphicsPipelineState(c
 	// have we made a matching state object yet?
 	FVulkanGraphicsPipelineState* PipelineState = Device->GetPipelineStateCache()->CreateAndAdd(PSOInitializer, PSOInitializerHash, GfxEntry);
 	return PipelineState;
+}
+
+FVulkanComputePipeline* FVulkanPipelineStateCache::GetOrCreateComputePipeline(FVulkanComputeShader* ComputeShader)
+{
+	// Fast path, try based on FVulkanComputeShader pointer
+	FVulkanComputePipeline** ComputePipelinePtr = ComputeShaderToPipelineMap.Find(ComputeShader);
+	if (ComputePipelinePtr)
+	{
+		return *ComputePipelinePtr;
+	}
+
+	// create entry based on shader
+	FComputePipelineEntry * ComputeEntry = CreateComputeEntry(ComputeShader);
+
+	// Find pipeline based on entry
+	ComputePipelinePtr = ComputeEntryToPipelineMap.Find(ComputeEntry->Hash);
+	if (ComputePipelinePtr)
+	{
+		if ((*ComputePipelinePtr)->ComputeShader == nullptr) //if loaded from disk, link it to actual shader (1 time initialize step)
+		{
+			(*ComputePipelinePtr)->ComputeShader = ComputeShader;
+		}
+		ComputeShaderToPipelineMap.Add(ComputeShader, *ComputePipelinePtr);
+		return *ComputePipelinePtr;
+	}
+
+	// create pipeline of entry + store entry
+	double BeginTime = FPlatformTime::Seconds();
+
+	FVulkanComputePipeline* ComputePipeline = CreateComputePipelineFromEntry(ComputeEntry);
+	ComputePipeline->ComputeShader = ComputeShader;
+
+	double EndTime = FPlatformTime::Seconds();
+	double Delta = EndTime - BeginTime;
+	if (Delta > HitchTime)
+	{
+		UE_LOG(LogVulkanRHI, Warning, TEXT("Hitchy compute pipeline key CS (%.3f ms)"),
+			(float)(Delta * 1000.0));
+	}
+
+	ComputePipeline->AddRef();
+	ComputeEntryToPipelineMap.Add(ComputeEntry->Hash, ComputePipeline);
+	ComputeShaderToPipelineMap.Add(ComputeShader, ComputePipeline);
+	ComputePipelineEntries.Add(ComputeEntry);
+
+	return ComputePipeline;
+}
+
+void FVulkanPipelineStateCache::FComputePipelineEntry::CalculateHash()
+{
+	TArray<uint8> MemFile;
+	FMemoryWriter Ar(MemFile);
+	Ar << this;
+	Hash = FCrc::MemCrc32(MemFile.GetData(), MemFile.GetTypeSize() * MemFile.Num());
+}
+
+FVulkanPipelineStateCache::FComputePipelineEntry* FVulkanPipelineStateCache::CreateComputeEntry(const FVulkanComputeShader* ComputeShader)
+{
+	FComputePipelineEntry* OutComputeEntry = new FComputePipelineEntry();
+
+	check(ComputeShader->CodeSize != 0);
+	OutComputeEntry->ShaderMicrocode.AddUninitialized(ComputeShader->CodeSize);
+	FMemory::Memcpy(OutComputeEntry->ShaderMicrocode.GetData(), ComputeShader->Code, ComputeShader->CodeSize);
+	OutComputeEntry->ShaderHash = ComputeShader->GetHash();
+	OutComputeEntry->ShaderModule = ComputeShader->GetHandle();
+
+	FVulkanDescriptorSetsLayoutInfo DescriptorSetLayoutInfo;
+	DescriptorSetLayoutInfo.AddBindingsForStage(VK_SHADER_STAGE_COMPUTE_BIT, EDescriptorSetStage::Compute, ComputeShader->GetCodeHeader());
+	OutComputeEntry->Layout = FindOrAddLayout(DescriptorSetLayoutInfo);
+
+	const TArray<FVulkanDescriptorSetsLayout::FSetLayout>& Layouts = DescriptorSetLayoutInfo.GetLayouts();
+	OutComputeEntry->DescriptorSetLayoutBindings.AddDefaulted(Layouts.Num());
+	for (int32 Index = 0; Index < Layouts.Num(); ++Index)
+	{
+		for (int32 SubIndex = 0; SubIndex < Layouts[Index].LayoutBindings.Num(); ++SubIndex)
+		{
+			FDescriptorSetLayoutBinding* Binding = new(OutComputeEntry->DescriptorSetLayoutBindings[Index]) FDescriptorSetLayoutBinding;
+			Binding->ReadFrom(Layouts[Index].LayoutBindings[SubIndex]);
+		}
+	}
+
+	OutComputeEntry->CalculateHash();
+	return OutComputeEntry;
+}
+
+FVulkanComputePipeline* FVulkanPipelineStateCache::CreateComputePipelineFromEntry(const FComputePipelineEntry* ComputeEntry)
+{
+	FVulkanComputePipeline* Pipeline = new FVulkanComputePipeline(Device);
+
+	VkComputePipelineCreateInfo PipelineInfo;
+	FMemory::Memzero(PipelineInfo);
+	PipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+	PipelineInfo.stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	PipelineInfo.stage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+	PipelineInfo.stage.module = ComputeEntry->ShaderModule;
+	PipelineInfo.stage.pName = "main";
+	PipelineInfo.layout = ComputeEntry->Layout->GetPipelineLayout();
+		
+	VERIFYVULKANRESULT(VulkanRHI::vkCreateComputePipelines(Device->GetInstanceHandle(), VK_NULL_HANDLE, 1, &PipelineInfo, nullptr, &Pipeline->Pipeline));	
+
+	Pipeline->Layout = ComputeEntry->Layout;
+
+	return Pipeline;
+}
+
+void FVulkanPipelineStateCache::CreateComputeEntryRuntimeObjects(FComputePipelineEntry* ComputeEntry)
+{
+	{
+		// Descriptor Set Layouts
+		check(!ComputeEntry->Layout);
+
+		FVulkanDescriptorSetsLayoutInfo Info;
+		for (int32 SetIndex = 0; SetIndex < ComputeEntry->DescriptorSetLayoutBindings.Num(); ++SetIndex)
+		{
+			for (int32 Index = 0; Index < ComputeEntry->DescriptorSetLayoutBindings[SetIndex].Num(); ++Index)
+			{
+				VkDescriptorSetLayoutBinding Binding;
+				Binding.descriptorCount = 1;
+				Binding.pImmutableSamplers = nullptr;
+				ComputeEntry->DescriptorSetLayoutBindings[SetIndex][Index].WriteInto(Binding);
+				Info.AddDescriptor(SetIndex, Binding, Index);
+			}
+		}
+
+		ComputeEntry->Layout = FindOrAddLayout(Info);
+	}
+
+	{
+		// Shader
+		if (ComputeEntry->ShaderMicrocode.Num() != 0)
+		{
+			VkShaderModuleCreateInfo ModuleCreateInfo;
+			FMemory::Memzero(ModuleCreateInfo);
+			ModuleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+			ModuleCreateInfo.codeSize = ComputeEntry->ShaderMicrocode.Num();
+			ModuleCreateInfo.pCode = (uint32*)ComputeEntry->ShaderMicrocode.GetData();
+			VERIFYVULKANRESULT(VulkanRHI::vkCreateShaderModule(Device->GetInstanceHandle(), &ModuleCreateInfo, nullptr, &ComputeEntry->ShaderModule));
+		}		
+	}
+
+	ComputeEntry->bLoaded = true;
 }

@@ -220,7 +220,7 @@ void FEvent::AdvanceStats()
 {
 #if	STATS
 	EventId = FPlatformAtomics::InterlockedAdd( (int32*)&EventUniqueId, 1 );
-	EventStartCycles = 0;
+	FPlatformAtomics::InterlockedExchange((int32*)&EventStartCycles, 0);
 #endif // STATS
 }
 
@@ -232,7 +232,7 @@ void FEvent::WaitForStats()
 	{
 		const uint64 PacketEventIdAndCycles = ((uint64)EventId << 32) | 0;
 		STAT_ADD_CUSTOMMESSAGE_PTR( STAT_EventWaitWithId, PacketEventIdAndCycles );
-		EventStartCycles = FPlatformTime::Cycles();
+		FPlatformAtomics::InterlockedExchange((int32*)&EventStartCycles, FPlatformTime::Cycles());
 	}
 #endif // STATS
 }

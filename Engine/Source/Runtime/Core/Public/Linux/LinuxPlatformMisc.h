@@ -131,6 +131,9 @@ struct CORE_API FLinuxPlatformMisc : public FGenericPlatformMisc
 	 */
 	static uint32 GetCPUInfo();
 
+	static bool HasNonoptionalCPUFeatures();
+	static bool NeedsNonoptionalCPUFeaturesCheck();
+
 #if !UE_BUILD_SHIPPING	// only in non-shipping because we break into the debugger in non-shipping builds only
 	/**
 	 * Ungrabs input (useful before breaking into debugging)

@@ -407,7 +407,7 @@ FDynamicRHI* FD3D12DynamicRHIModule::CreateRHI(ERHIFeatureLevel::Type RequestedF
 void FD3D12DynamicRHIModule::StartupModule()
 {
 #if USE_PIX
-	static FString WindowsPixDllRelativePath("../../Binaries/ThirdParty/Windows/DirectX/x64");
+	static FString WindowsPixDllRelativePath("../../../Engine/Binaries/ThirdParty/Windows/DirectX/x64");
 	static FString WindowsPixDll("WinPixEventRuntime.dll");
 	UE_LOG(LogD3D12RHI, Log, TEXT("Loading %s for PIX profiling (from %s)."), WindowsPixDll.GetCharArray().GetData(), WindowsPixDllRelativePath.GetCharArray().GetData());
 	WindowsPixDllHandle = FPlatformProcess::GetDllHandle(*FPaths::Combine(*WindowsPixDllRelativePath, *WindowsPixDll));
@@ -502,11 +502,6 @@ void FD3D12DynamicRHI::Init()
 	{
 		// Clamp to 1 GB if we're less than 64-bit
 		FD3D12GlobalStats::GTotalGraphicsMemory = FMath::Min(FD3D12GlobalStats::GTotalGraphicsMemory, 1024ll * 1024ll * 1024ll);
-	}
-	else
-	{
-		// Clamp to 1.9 GB if we're 64-bit
-		FD3D12GlobalStats::GTotalGraphicsMemory = FMath::Min(FD3D12GlobalStats::GTotalGraphicsMemory, 1945ll * 1024ll * 1024ll);
 	}
 
 	if (GPoolSizeVRAMPercentage > 0)

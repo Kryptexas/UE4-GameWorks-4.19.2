@@ -2,7 +2,7 @@
 
 /*=============================================================================
 	ShaderCache.h: Shader precompilation mechanism
-=============================================================================*/
+ =============================================================================*/
 
 #pragma once
 
@@ -21,7 +21,7 @@ struct SHADERCORE_API FShaderCacheCustomVersion
 {
 	static const FGuid Key;
 	static const FGuid GameKey;
-	enum Type {	Initial, PreDraw, CacheHashes, OptimisedHashes, StreamingKeys, AdditionalResources, SeparateBinaries, IndexedSets, PreDrawEntries, CompressedBinaries, CacheMerging, ShaderPipelines, SimpleVersioning, PlatformLibraries, OptionalResourceTracking, Latest = OptionalResourceTracking };
+	enum Type {	Initial, PreDraw, CacheHashes, OptimisedHashes, StreamingKeys, AdditionalResources, SeparateBinaries, IndexedSets, PreDrawEntries, CompressedBinaries, CacheMerging, ShaderPipelines, SimpleVersioning, PlatformLibraries, OptionalResourceTracking, PipelineStateObjects, PipelineStateObjects2, Latest = PipelineStateObjects2 };
 };
 
 enum EShaderCacheOptions
@@ -44,21 +44,21 @@ enum EShaderCacheOptions
  *  - An option to accelerate asynchronous precompilation when in a non-interactive mode such as a load screen (r.AccelTargetPrecompileFrameTime Time (ms), 0 to use r.TargetPrecompileFrameTime).
  *  - A maximum amount of time to spend loading the shaders at launch before moving on to asynchrous precompilation (r.InitialShaderLoadTime Time (ms), -1 to load synchronously).
  *
- * The cache should be populated by enabling r.UseShaderCaching & r.UseShaderDrawLog on a development machine. 
- * Users/players should then consume the cache by enabling r.UseShaderCaching & r.UseShaderPredraw. 
- * Draw logging (r.UseShaderDrawLog) adds noticeable fixed overhead so should be avoided if possible. 
+ * The cache should be populated by enabling r.UseShaderCaching & r.UseShaderDrawLog on a development machine.
+ * Users/players should then consume the cache by enabling r.UseShaderCaching & r.UseShaderPredraw.
+ * Draw logging (r.UseShaderDrawLog) adds noticeable fixed overhead so should be avoided if possible.
  * The binary shader cache can be accumulated during play as an alternative or adjunct to FShaderCodeLibrary which generates solid shader libraries.
- * For OpenGL the binary cache contains enough data about shader pipelines to construct fully linked GL programs or GL program pipelines (depending on availability of GL_ARB_separate_shader_objects) but not enough for pipeline construction on any other RHI. 
+ * For OpenGL the binary cache contains enough data about shader pipelines to construct fully linked GL programs or GL program pipelines (depending on availability of GL_ARB_separate_shader_objects) but not enough for pipeline construction on any other RHI.
  * This can help reduce the amount of hitching on OpenGL without first playing through the game, though this is still advisable for maximum effect.
- * Since the caching is done via shader hashes it is also advisable to only use this as a final optimisation tool 
- * when content is largely complete as changes to shader hashes will result in unusued entries accumulating in the cache, 
+ * Since the caching is done via shader hashes it is also advisable to only use this as a final optimisation tool
+ * when content is largely complete as changes to shader hashes will result in unusued entries accumulating in the cache,
  * increasing cache size without reducing hitches.
- * 
+ *
  * Cache locations:
  *  - While populating: <Game>/Saved/DrawCache.ushadercache, <Game>/Saved/ByteCodeCache.ushadercode
  *  - For distribution: <Game>/Content/DrawCache.ushadercache, <Game>/Content/ByteCodeCache.ushadercode
  * The code will first try and load the writeable cache, then fallback to the distribution cache if needed.
- * 
+ *
  * To Integrate Into A Project;
  *  - Enable r.UseShaderCaching & r.UseShaderPredraw in the project configuration for all users.
  *  - If possible enable r.UseShaderDrawLog only for internal builds & ensure that shader draw states are recorded during final QA for each release. When not feasible (e.g. an extremely large and/or streaming game) enable for all users.
@@ -66,7 +66,7 @@ enum EShaderCacheOptions
  *  - If the above is insufficient then also enable bShareMaterialShaderCode in the ProjectPackagingSettings which will cache all the shaders into a single library at cook time.
  *	- If cook time shader library generation is unnacceptable or shaders are being cooked as text then enable r.UseShaderBinaryCache to cache the shaders at runtime.
  *  - All shader code will now be loaded at startup and all predraw operations will occur on the first frame, so if the loading times are too extreme also set r.PredrawBatchTime to a value greater than 0 in ms to spend predrawing each frame.
- *  - You may also wish to specify a larger value for r.AccelPredrawBatchTime that can be applied when showing loading screens or other non-interactive content. 
+ *  - You may also wish to specify a larger value for r.AccelPredrawBatchTime that can be applied when showing loading screens or other non-interactive content.
  *  - To inform the shader cache that it may accelerate predrawing at the expense of game frame rate call FShaderCache::BeginAcceleratedBatching and when it is necessary to return to the less expensive predraw batching call FShaderCache::EndAcceleratedBatching.
  *  - A call to FShaderCache::FlushOutstandingBatches will cause all remaining shaders to be processed in the next frame.
  *  - If the project still takes too long to load initially then enable r.UseAsyncShaderPrecompilation and set r.InitialShaderLoadTime to a value > 0, the longer this is the less work that must be done while the game is running.
@@ -76,14 +76,14 @@ enum EShaderCacheOptions
  *
  * Handling Updates/Invalidation:
  * When the cache needs to be updated & writable caches invalidated the game should specify a new GameVersion.
- * Call FShaderCache::SetGameVersion before initialisating the RHI (which initialises the cache), which will cause 
+ * Call FShaderCache::SetGameVersion before initialisating the RHI (which initialises the cache), which will cause
  * the contents of caches from previous version to be ignored. At present you cannot carry over cache entries from a previous version.
  *
  * Region/Stream Batching:
  * For streaming games, or where the cache becomes very large, calls to FShaderCache::LogStreamingKey should be added with unique values for
  * the currently relevant game regions/streaming levels (as required). Logged draw states will be linked to the active streaming key.
  * This limits predrawing to only those draw states required by the active streaming key on subsequent runs.
- * 
+ *
  * Limitations:
  * The shader cache consumes considerable memory, especially when binary shader caching is enabled. It is not recommended that binary caching be enabled for memory constrained platforms.
  * At present only Mac support has received significant testing, other platforms may work but there may be unanticipated issues in the current version.
@@ -97,9 +97,9 @@ enum EShaderCacheOptions
  * Parallel Context Aware Notes:
  * - Work in this was done before Engine PSO So this now needs a refector in the recording and playback on pipeline states.
  * - We should be able to remove FShaderCacheState and replace the logic with FGraphicsPipelineStateInitializer which we should be able to record from the RHI current pipeline state
- * - 
+ * -
  */
- 
+
 //
 //FShaderCacheState
 //
@@ -111,7 +111,6 @@ public:
 	FShaderCacheState()
 	: bCurrentDepthStencilTarget(false)
 	, CurrentNumRenderTargets(0)
-	, CurrentShaderState(nullptr)
 	, bIsPreDraw(false)
 	, bIsPreBind(false)
 	, InvalidResourceCount(0)
@@ -125,58 +124,56 @@ private:
 	uint32 CurrentNumRenderTargets;
 	FRHIDepthRenderTargetView CurrentDepthStencilTarget;
 	FRHIRenderTargetView CurrentRenderTargets[MaxSimultaneousRenderTargets];
+	FShaderCacheGraphicsPipelineState CurrentPSO;
 	FShaderDrawKey CurrentDrawKey;
-	FBoundShaderStateRHIRef CurrentShaderState;
-	int32 BoundShaderStateIndex;
 	uint32 Viewport[4];
 	float DepthRange[2];
 	bool bIsPreDraw;
 	bool bIsPreBind;
-		
+	
 	// When the invalid resource count is greater than 0 no draw keys will be stored to prevent corrupting the shader cache.
 	// Warnings are emitted to indicate that the shader cache has encountered a resource lifetime error.
 	uint32 InvalidResourceCount;
 };
-		
+
 //
 //FShaderCache
-// 
+//
 class SHADERCORE_API FShaderCache : public FTickableObjectRenderThread
-		{
+{
 	friend class FShaderCacheLibrary;
 	
 public:
 	FShaderCache(uint32 Options);
 	virtual ~FShaderCache();
 	
-    /** Called by the game to set the game specific shader cache version, only caches of this version will be loaded. Must be called before RHI initialisation, as InitShaderCache will load any existing cache. Defaults to FEngineVersion::Current().GetChangelist() if never called. */
+	/** Called by the game to set the game specific shader cache version, only caches of this version will be loaded. Must be called before RHI initialisation, as InitShaderCache will load any existing cache. Defaults to FEngineVersion::Current().GetChangelist() if never called. */
 	static void SetGameVersion(int32 InGameVersion);
 	static int32 GetGameVersion() { return GameVersion; }
-		
+	
 	static FORCEINLINE void SetMaxShaderResources(uint32 InMaxResources)
-		{
-		check(InMaxResources <= FShaderDrawKey::MaxNumResources);
+	{
+		check(InMaxResources <= EShaderCacheMaxNumResources);
 		MaxResources = InMaxResources;
-		}
-		
+		FShaderDrawKey::CurrentMaxResources = InMaxResources;
+	}
+	
 	/** Shader cache initialisation, called only by the RHI. */
 	static void InitShaderCache(uint32 Options);
 	/** Loads any existing cache of shader binaries, called by the RHI after full initialisation. */
 	static void LoadBinaryCache();
 	/** Save binary cache immediately to the given output dir for the given platform. */
 	static void SaveBinaryCache(FString OutputDir, FName PlatformName);
-	/** Merge the shader draw state cache files at Left & Right into a new file at Output */
-	static bool MergeShaderCacheFiles(FString Left, FString Right, FString Output);
 	/** Shader cache shutdown, called only by the RHI. */
 	static void ShutdownShaderCache();
 	
 	/** Get the global shader cache if it exists or nullptr otherwise. */
 	static FORCEINLINE FShaderCache* GetShaderCache()
-		{
+	{
 		return bUseShaderCaching ? Cache : nullptr;
-		}
+	}
 	
-	/**Retuns a Cache State object for the Context if we have a ShaderCache - This function is not intended for regular use - objects should cache this result*/	
+	/**Retuns a Cache State object for the Context if we have a ShaderCache - This function is not intended for regular use - objects should cache this result*/
 	static FORCEINLINE FShaderCacheState* CreateOrFindCacheStateForContext(const IRHICommandContext* Context)
 	{
 		if(Cache && Context)
@@ -185,26 +182,26 @@ public:
 		}
 		
 		return nullptr;
-		}
-		
+	}
+	
 	static FORCEINLINE void RemoveCacheStateForContext(const IRHICommandContext* Context)
-		{
+	{
 		if(Cache && Context)
-			{
+		{
 			Cache->InternalRemoveCacheStateForContext(Context);
 		}
-			}
-			
+	}
+	
 	static FORCEINLINE FShaderCacheState* GetDefaultCacheState()
-			{
+	{
 		if(Cache)
 		{
 			return Cache->DefaultCacheState;
-			}
-			
+		}
+		
 		return nullptr;
-			}
-			
+	}
+	
 	/** Instantiate or retrieve a vertex shader from the cache for the provided code & hash. */
 	FVertexShaderRHIRef GetVertexShader(EShaderPlatform Platform, FSHAHash Hash, TArray<uint8> const& Code);
 	/** Instantiate or retrieve a pixel shader from the cache for the provided code & hash. */
@@ -224,41 +221,41 @@ public:
 	static FORCEINLINE FVertexShaderRHIRef CreateVertexShader(EShaderPlatform Platform, FSHAHash Hash, TArray<uint8> const& Code)
 	{
 		if ( Cache )
-			{
+		{
 			return Cache->GetVertexShader(Platform, Hash, Code);
-			}
+		}
 		else
 		{
 			return FShaderCodeLibrary::CreateVertexShader(Platform, Hash, Code);
 		}
-		}
-		
+	}
+	
 	/** Instantiate or retrieve a pixel shader from the cache for the provided code & hash. */
 	static FORCEINLINE FPixelShaderRHIRef CreatePixelShader(EShaderPlatform Platform, FSHAHash Hash, TArray<uint8> const& Code)
-		{
+	{
 		if ( Cache )
-			{
+		{
 			return Cache->GetPixelShader(Platform, Hash, Code);
 		}
 		else
-				{
+		{
 			return FShaderCodeLibrary::CreatePixelShader(Platform, Hash, Code);
 		}
-				}
-				
+	}
+	
 	/** Instantiate or retrieve a geometry shader from the cache for the provided code & hash. */
 	static FORCEINLINE FGeometryShaderRHIRef CreateGeometryShader(EShaderPlatform Platform, FSHAHash Hash, TArray<uint8> const& Code)
-				{
+	{
 		if ( Cache )
-					{
+		{
 			return Cache->GetGeometryShader(Platform, Hash, Code);
-					}
+		}
 		else
-					{
+		{
 			return FShaderCodeLibrary::CreateGeometryShader(Platform, Hash, Code);
-					}
-				}
-				
+		}
+	}
+	
 	/** Instantiate or retrieve a hull shader from the cache for the provided code & hash. */
 	static FORCEINLINE FHullShaderRHIRef CreateHullShader(EShaderPlatform Platform, FSHAHash Hash, TArray<uint8> const& Code)
 	{
@@ -269,29 +266,29 @@ public:
 		else
 		{
 			return FShaderCodeLibrary::CreateHullShader(Platform, Hash, Code);
-			}
 		}
-		
+	}
+	
 	/** Instantiate or retrieve a domain shader from the cache for the provided code & hash. */
 	static FORCEINLINE FDomainShaderRHIRef CreateDomainShader(EShaderPlatform Platform, FSHAHash Hash, TArray<uint8> const& Code)
-		{
+	{
 		if ( Cache )
-				{
+		{
 			return Cache->GetDomainShader(Platform, Hash, Code);
-				}
+		}
 		else
-				{
+		{
 			return FShaderCodeLibrary::CreateDomainShader(Platform, Hash, Code);
-				}
-			}
+		}
+	}
 	
 	/** Instantiate or retrieve a compute shader from the cache for the provided code & hash. */
 	static FORCEINLINE FComputeShaderRHIRef CreateComputeShader(EShaderPlatform Platform, FSHAHash Hash, TArray<uint8> const& Code)
-			{
+	{
 		if ( Cache )
 		{
 			return Cache->GetComputeShader(Platform, Hash, Code);
-			}
+		}
 		else
 		{
 			return FShaderCodeLibrary::CreateComputeShader(Platform, Hash, Code);
@@ -325,8 +322,20 @@ public:
 		}
 	}
 	
+	/** Called by the RHI. Logs the construction of a PSO & will record it for prebinding on subsequent runs. */
+	static FORCEINLINE void LogGraphicsPipelineState(FShaderCacheState* CacheState,
+													 EShaderPlatform Platform,
+													 const FGraphicsPipelineStateInitializer& Initializer,
+													 FGraphicsPipelineStateRHIParamRef PSO)
+	{
+		if ( Cache && CacheState)
+		{
+			Cache->InternalLogGraphicsPipelineState(*CacheState, Platform, Initializer, PSO);
+		}
+	}
+	
 	/** Called by the RHI. Logs the construction of a bound shader state & will record it for prebinding on subsequent runs. */
-	static FORCEINLINE void LogBoundShaderState(FShaderCacheState* CacheState,
+	static DEPRECATED(4.16, "Use SetGraphicsPipelineState") FORCEINLINE void LogBoundShaderState(FShaderCacheState* CacheState,
 												EShaderPlatform Platform,
 												FVertexDeclarationRHIParamRef VertexDeclaration,
 												FVertexShaderRHIParamRef VertexShader,
@@ -424,7 +433,7 @@ public:
 	}
 	
 	/** Called by the RHI. Records the current blend state when r.UseShaderDrawLog or r.UseShaderPredraw are enabled. */
-	static FORCEINLINE void SetBlendState(FShaderCacheState* CacheState,FBlendStateRHIParamRef State)
+	static DEPRECATED(4.16, "Use SetGraphicsPipelineState") FORCEINLINE void SetBlendState(FShaderCacheState* CacheState,FBlendStateRHIParamRef State)
 	{
 		if ( Cache && CacheState )
 		{
@@ -433,7 +442,7 @@ public:
 	}
 	
 	/** Called by the RHI. Records the current rasterizer state when r.UseShaderDrawLog or r.UseShaderPredraw are enabled. */
-	static FORCEINLINE void SetRasterizerState(FShaderCacheState* CacheState, FRasterizerStateRHIParamRef State)
+	static DEPRECATED(4.16, "Use SetGraphicsPipelineState") FORCEINLINE void SetRasterizerState(FShaderCacheState* CacheState, FRasterizerStateRHIParamRef State)
 	{
 		if ( Cache && CacheState )
 		{
@@ -442,7 +451,7 @@ public:
 	}
 	
 	/** Called by the RHI. Records the current depth stencil state when r.UseShaderDrawLog or r.UseShaderPredraw are enabled. */
-	static FORCEINLINE void SetDepthStencilState(FShaderCacheState* CacheState, FDepthStencilStateRHIParamRef State)
+	static DEPRECATED(4.16, "Use SetGraphicsPipelineState") FORCEINLINE void SetDepthStencilState(FShaderCacheState* CacheState, FDepthStencilStateRHIParamRef State)
 	{
 		if ( Cache && CacheState)
 		{
@@ -486,8 +495,17 @@ public:
 		}
 	}
 	
+	/** Called by the RHI. Records the current pipeline state when r.UseShaderDrawLog or r.UseShaderPredraw are enabled. */
+	static FORCEINLINE void SetGraphicsPipelineStateObject(FShaderCacheState* CacheState, FGraphicsPipelineStateRHIParamRef State)
+	{
+		if ( Cache && CacheState)
+		{
+			Cache->InternalSetGraphicsPipelineState(*CacheState, State);
+		}
+	}
+	
 	/** Called by the RHI. Records the current bound shader state when r.UseShaderDrawLog or r.UseShaderPredraw are enabled. */
-	static FORCEINLINE void SetBoundShaderState(FShaderCacheState* CacheState, FBoundShaderStateRHIParamRef State)
+	static DEPRECATED(4.16, "Use SetGraphicsPipelineState") FORCEINLINE void SetBoundShaderState(FShaderCacheState* CacheState, FBoundShaderStateRHIParamRef State)
 	{
 		if ( Cache && CacheState)
 		{
@@ -505,23 +523,23 @@ public:
 	}
 	
 	/** Called by the RHI. Records the current draw state using the information captured from the other Log/Set* calls if and only if r.UseShaderCaching & r.UseShaderDrawLog are enabled. */
-	static FORCEINLINE void LogDraw(FShaderCacheState* CacheState, uint8 IndexType)
+	static FORCEINLINE void LogDraw(FShaderCacheState* CacheState, uint32 PrimitiveType, uint8 IndexType)
 	{
 		if ( Cache && CacheState)
 		{
-			Cache->InternalLogDraw(*CacheState, IndexType);
+			Cache->InternalLogDraw(*CacheState, PrimitiveType, IndexType);
 		}
 	}
 	
 	/** Called by the RHI. Returns whether the current draw call is a predraw call for shader variant submission in the underlying driver rather than a real UE4 draw call. */
 	static FORCEINLINE bool IsPredrawCall(FShaderCacheState const* CacheState)
-		{
+	{
 		return CacheState && CacheState->bIsPreDraw;
 	}
 	
 	/** Called by the RHI. Returns whether the current CreateBSS is a prebind call for shader  submission to the underlying driver rather than a real UE4 CreateBSS call. */
 	static FORCEINLINE bool IsPrebindCall(FShaderCacheState const* CacheState)
-		{
+	{
 		return CacheState && CacheState->bIsPreBind;
 	}
 	
@@ -543,7 +561,7 @@ public:
 	/** Returns the number of shaders waiting for precompilation */
 	static uint32 NumShaderPrecompilesRemaining();
 	
-		
+	
 	typedef TMap<EShaderPlatform, class FShaderCacheLibrary*> FShaderCacheLibraryMap;
 	
 public: // From FTickableObjectRenderThread
@@ -556,15 +574,22 @@ public: // From FTickableObjectRenderThread
 	virtual TStatId GetStatId() const final override;
 	
 private:
+	void SaveAll();
+	void OnAppDeactivate();
 	
-	static void MergePlatformCaches(FShaderPlatformCache& Target, FShaderPlatformCache const& Source);
-	static void MergeShaderCaches(FShaderCaches& Target, FShaderCaches const& Source);
 	static bool LoadShaderCache(FString Path, FShaderCaches* Cache);
 	static bool SaveShaderCache(FString Path, FShaderCaches* Cache);
 	
 	void InternalLogStreamingKey(uint32 StreamKey, bool const bActive);
-
+	
 	void InternalLogVertexDeclaration(const FShaderCacheState& CacheState, const FVertexDeclarationElementList& VertexElements, FVertexDeclarationRHIParamRef VertexDeclaration);
+	void InternalLogGraphicsPipelineState(const FShaderCacheState& CacheState,
+										  EShaderPlatform Platform,
+										  const FGraphicsPipelineStateInitializer& Initializer,
+										  FGraphicsPipelineStateRHIParamRef PSO);
+	void InternalPrelockedLogGraphicsPipelineState(EShaderPlatform Platform,
+										  const FGraphicsPipelineStateInitializer& Initializer,
+										  FGraphicsPipelineStateRHIParamRef PSO);
 	void InternalLogBoundShaderState(const FShaderCacheState& CacheState,
 									 EShaderPlatform Platform, FVertexDeclarationRHIParamRef VertexDeclaration,
 									 FVertexShaderRHIParamRef VertexShader,
@@ -574,13 +599,13 @@ private:
 									 FGeometryShaderRHIParamRef GeometryShader,
 									 FBoundShaderStateRHIParamRef BoundState);
 	
-	void InternalPrelockedLogBoundShaderState(EShaderPlatform Platform, FVertexDeclarationRHIParamRef VertexDeclaration,
-									 FVertexShaderRHIParamRef VertexShader,
-									 FPixelShaderRHIParamRef PixelShader,
-									 FHullShaderRHIParamRef HullShader,
-									 FDomainShaderRHIParamRef DomainShader,
-									 FGeometryShaderRHIParamRef GeometryShader,
-									 FBoundShaderStateRHIParamRef BoundState);
+	int32 InternalPrelockedLogBoundShaderState(EShaderPlatform Platform, FVertexDeclarationRHIParamRef VertexDeclaration,
+											  FVertexShaderRHIParamRef VertexShader,
+											  FPixelShaderRHIParamRef PixelShader,
+											  FHullShaderRHIParamRef HullShader,
+											  FDomainShaderRHIParamRef DomainShader,
+											  FGeometryShaderRHIParamRef GeometryShader,
+											  FBoundShaderStateRHIParamRef BoundState);
 	
 	void InternalLogBlendState(FShaderCacheState const& CacheState, FBlendStateInitializerRHI const& Init, FBlendStateRHIParamRef State);
 	void InternalLogRasterizerState(FShaderCacheState const& CacheState, FRasterizerStateInitializerRHI const& Init, FRasterizerStateRHIParamRef State);
@@ -602,8 +627,9 @@ private:
 	void InternalSetSRV(FShaderCacheState& CacheState, EShaderFrequency Frequency, uint32 Index, FShaderResourceViewRHIParamRef SRV);
 	void InternalSetBoundShaderState(FShaderCacheState& CacheState, FBoundShaderStateRHIParamRef State);
 	void InternalSetViewport(FShaderCacheState& CacheState, uint32 MinX, uint32 MinY, float MinZ, uint32 MaxX, uint32 MaxY, float MaxZ);
+	void InternalSetGraphicsPipelineState(FShaderCacheState& CacheState, FGraphicsPipelineStateRHIParamRef State);
 	
-	void InternalLogDraw(FShaderCacheState& CacheState, uint8 IndexType);
+	void InternalLogDraw(FShaderCacheState& CacheState, uint32 PrimitiveType, uint8 IndexType);
 	void InternalPreDrawShaders(FRHICommandList& RHICmdList, float DeltaTime);
 	
 	void InternalLogShader(EShaderPlatform Platform, EShaderFrequency Frequency, FSHAHash Hash, uint32 UncompressedSize, TArray<uint8> const& Code, FShaderCacheState* CacheState);
@@ -630,7 +656,32 @@ private:
 	bool ShouldPreDrawShaders(int64 CurrentPreDrawTime) const;
 	
 private:
-
+	//struct FShaderCacheOpenGLDrawState
+	//{
+		TMap<FSamplerStateRHIParamRef, int32> SamplerStates;
+		TMap<FTextureRHIParamRef, int32> Textures;
+		TMap<FShaderResourceViewRHIParamRef, FShaderResourceKey> SRVs;
+		
+		// Caches to track application & predraw created textures/SRVs so that we minimise temporary resource creation
+		TMap<FShaderTextureKey, FTextureRHIParamRef> CachedTextures;
+		TMap<FShaderResourceKey, FShaderResourceViewBinding> CachedSRVs;
+		
+		// Temporary shader resources for pre-draw
+		// Cleared after each round of pre-drawing is complete
+		TSet<FShaderTextureBinding> PredrawBindings;
+		TMap<FShaderRenderTargetKey, FTextureRHIParamRef> PredrawRTs;
+		TSet<FVertexBufferRHIRef> PredrawVBs;
+		
+		// Permanent shader pre-draw resources
+		FIndexBufferRHIRef IndexBufferUInt16;
+		FIndexBufferRHIRef IndexBufferUInt32;
+		
+		// Growable pre-draw resources
+		FVertexBufferRHIRef PredrawVB; // Standard VB
+		FVertexBufferRHIRef PredrawZVB; // Zero-stride VB
+	//};
+	
+private:
 	// Serialised
 	FShaderCaches Caches;
 	
@@ -655,16 +706,14 @@ private:
 	TMap<FShaderCacheKey, FComputeShaderRHIRef> CachedComputeShaders;
 	TMap<FVertexDeclarationRHIParamRef, FVertexDeclarationElementList> VertexDeclarations;
 	TMap<FShaderCacheBoundState, FBoundShaderStateRHIRef> BoundShaderStates;
+	TMap<FShaderCacheGraphicsPipelineState, FGraphicsPipelineStateRHIRef> GraphicsPSOs;
 	
 	// Transient non-invasive tracking of RHI resources for shader predrawing
 	TMap<FBlendStateRHIParamRef, FBlendStateInitializerRHI> BlendStates;
 	TMap<FRasterizerStateRHIParamRef, FRasterizerStateInitializerRHI> RasterizerStates;
 	TMap<FDepthStencilStateRHIParamRef, FDepthStencilStateInitializerRHI> DepthStencilStates;
-	TMap<FSamplerStateRHIParamRef, int32> SamplerStates;
-	TMap<FTextureRHIParamRef, int32> Textures;
-	TMap<FShaderResourceViewRHIParamRef, FShaderResourceKey> SRVs;
-	
 	TMap<FBoundShaderStateRHIParamRef, FShaderCacheBoundState> ShaderStates;
+	TMap<FGraphicsPipelineStateRHIParamRef, FShaderCacheGraphicsPipelineState> GraphicsPSOStates;
 	
 	// Active streaming keys
 	TSet<uint32> ActiveStreamingKeys;
@@ -680,23 +729,8 @@ private:
 	// Shaders we need to predraw
 	TMap<uint32, FShaderStreamingCache> ShadersToDraw;
 	
-	// Caches to track application & predraw created textures/SRVs so that we minimise temporary resource creation
-	TMap<FShaderTextureKey, FTextureRHIParamRef> CachedTextures;
-	TMap<FShaderResourceKey, FShaderResourceViewBinding> CachedSRVs;
-	
-	// Temporary shader resources for pre-draw
-	// Cleared after each round of pre-drawing is complete
-	TSet<FShaderTextureBinding> PredrawBindings;
-	TMap<FShaderRenderTargetKey, FTextureRHIParamRef> PredrawRTs;
-	TSet<FVertexBufferRHIRef> PredrawVBs;
-	
-	// Permanent shader pre-draw resources
-	FIndexBufferRHIRef IndexBufferUInt16;
-	FIndexBufferRHIRef IndexBufferUInt32;
-	
-	// Growable pre-draw resources
-	FVertexBufferRHIRef PredrawVB; // Standard VB
-	FVertexBufferRHIRef PredrawZVB; // Zero-stride VB
+	// OpenGL specific functionality
+	// FShaderCacheOpenGLDrawState OpenGLDrawState;
 	
 	//Cache Options
 	uint32 Options;

@@ -217,6 +217,12 @@ void FVulkanCommandListContext::FTransitionState::NotifyDeletedRenderTarget(FVul
 			{
 				List->Framebuffer.RemoveAtSwap(Index, 1, false);
 				Framebuffer->Destroy(InDevice);
+
+				if (Framebuffer == CurrentFramebuffer)
+				{
+					CurrentFramebuffer = nullptr;
+				}
+
 				delete Framebuffer;
 			}
 		}
@@ -242,8 +248,6 @@ void FVulkanCommandListContext::RHISetRenderTargets(uint32 NumSimultaneousRender
 	{
 		DepthView = FRHIDepthRenderTargetView(FTextureRHIParamRef(), ERenderTargetLoadAction::ENoAction, ERenderTargetStoreAction::ENoAction, ERenderTargetLoadAction::ENoAction, ERenderTargetStoreAction::ENoAction);
 	}
-
-	ensure(NumUAVs == 0);
 
 	if (NumSimultaneousRenderTargets == 1 && (!NewRenderTargets || !NewRenderTargets->Texture))
 	{
@@ -288,6 +292,19 @@ void FVulkanCommandListContext::RHISetRenderTargets(uint32 NumSimultaneousRender
 			((RenderTargetsInfo.NumColorRenderTargets == 1) && RenderTargetsInfo.ColorRenderTarget[0].Texture))
 		{
 			TransitionState.BeginRenderPass(*this, *Device, CmdBuffer, RenderTargetsInfo, RTLayout, RenderPass, Framebuffer);
+		}
+	}
+
+	// Yuck - Bind pending pixel shader UAVs from SetRenderTargets
+	{
+		PendingPixelUAVs.Reset();
+		for (uint32 UAVIndex = 0; UAVIndex < NumUAVs; ++UAVIndex)
+		{
+			FVulkanUnorderedAccessView* UAV = ResourceCast(UAVs[UAVIndex]);
+			if (UAV)
+			{
+				PendingPixelUAVs.Add({UAV, UAVIndex});
+			}
 		}
 	}
 }
@@ -757,6 +774,11 @@ void FVulkanCommandListContext::RHITransitionResources(EResourceTransitionAccess
 			VkBufferMemoryBarrier& Barrier = BufferBarriers[BufferBarriers.AddUninitialized()];
 			VulkanRHI::SetupAndZeroBufferBarrier(Barrier, SrcAccess, DestAccess, UAV->SourceStructuredBuffer->GetHandle(), UAV->SourceStructuredBuffer->GetOffset(), UAV->SourceStructuredBuffer->GetSize());
 		}
+		else if (UAV->SourceIndexBuffer)
+		{
+			VkBufferMemoryBarrier& Barrier = BufferBarriers[BufferBarriers.AddUninitialized()];
+			VulkanRHI::SetupAndZeroBufferBarrier(Barrier, SrcAccess, DestAccess, UAV->SourceIndexBuffer->GetHandle(), UAV->SourceIndexBuffer->GetOffset(), UAV->SourceIndexBuffer->GetSize());
+		}
 		else
 		{
 			ensure(0);
@@ -781,6 +803,11 @@ void FVulkanCommandListContext::RHITransitionResources(EResourceTransitionAccess
 	default:
 		ensure(0);
 		break;
+	}
+
+	if (BufferBarriers.Num() && TransitionState.CurrentRenderPass != nullptr)
+	{
+		TransitionState.EndRenderPass(CmdBuffer);
 	}
 
 	VulkanRHI::vkCmdPipelineBarrier(CmdBuffer->GetHandle(), SourceStage, DestStage, 0, 0, nullptr, BufferBarriers.Num(), BufferBarriers.GetData(), ImageBarriers.Num(), ImageBarriers.GetData());
@@ -964,12 +991,13 @@ void FVulkanCommandListContext::RHITransitionResources(EResourceTransitionAccess
 
 		for (int32 i = 0; i < NumTextures; ++i)
 		{
-			SCOPED_RHI_CONDITIONAL_DRAW_EVENTF(*this, RHITransitionResourcesLoop, bShowTransitionEvents, TEXT("To:%i - %s"), i, *InTextures[i]->GetName().ToString());
 			FRHITexture* RHITexture = InTextures[i];
 			if (!RHITexture)
 			{
 				continue;
 			}
+
+			SCOPED_RHI_CONDITIONAL_DRAW_EVENTF(*this, RHITransitionResourcesLoop, bShowTransitionEvents, TEXT("To:%i - %s"), i, *InTextures[i]->GetName().ToString());
 
 			FRHITexture2D* RHITexture2D = RHITexture->GetTexture2D();
 			if (RHITexture2D)

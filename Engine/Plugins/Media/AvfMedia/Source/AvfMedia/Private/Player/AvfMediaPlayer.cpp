@@ -412,8 +412,9 @@ void FAvfMediaPlayer::Close()
 			if(MediaHelper != nil)
 			{
 				[[NSNotificationCenter defaultCenter] removeObserver:MediaHelper name:AVPlayerItemDidPlayToEndTimeNotification object:PlayerItem];
+                [PlayerItem removeObserver:MediaHelper forKeyPath:@"status" context:PlayerItem];
 			}
-			[PlayerItem removeObserver:MediaHelper forKeyPath:@"status"];
+			
 			[PlayerItem release];
 			PlayerItem = nil;
 		}
@@ -438,6 +439,8 @@ void FAvfMediaPlayer::Close()
 		Info.Empty();
 	
 		MediaEvent.Broadcast(EMediaEvent::MediaClosed);
+        
+        State = EMediaState::Closed;
 		
 		bPrerolled = false;
 

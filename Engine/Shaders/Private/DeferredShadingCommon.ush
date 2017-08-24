@@ -392,6 +392,13 @@ struct FScreenSpaceData
 	float2 DirectionalOcclusion;
 };
 
+/** Sets up the Gbuffer for an unlit material. */
+void SetGBufferForUnlit(out float4 OutGBufferB)
+{
+	OutGBufferB = 0;
+	OutGBufferB.a = EncodeShadingModelIdAndSelectiveOutputMask(SHADINGMODELID_UNLIT, 0);
+}
+
 /** Populates OutGBufferA, B and C */
 void EncodeGBuffer(
 	FGBufferData GBuffer,
@@ -407,7 +414,7 @@ void EncodeGBuffer(
 	if (GBuffer.ShadingModelID == SHADINGMODELID_UNLIT)
 	{
 		OutGBufferA = 0;
-		OutGBufferB = 0;
+		SetGBufferForUnlit(OutGBufferB);
 		OutGBufferC = 0;
 		OutGBufferD = 0;
 		OutGBufferE = 0;

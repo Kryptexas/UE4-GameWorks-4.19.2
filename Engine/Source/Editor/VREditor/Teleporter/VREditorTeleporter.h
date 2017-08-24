@@ -34,6 +34,9 @@ public:
 	/** Whether we are currently aiming to teleport. */
 	bool IsAiming() const;
 
+	bool IsTeleporting() const;
+
+
 private:
 
 	//~ Begin AActor interface

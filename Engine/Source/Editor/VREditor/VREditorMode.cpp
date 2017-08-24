@@ -3,14 +3,18 @@
 #include "VREditorMode.h"
 #include "Modules/ModuleManager.h"
 #include "Framework/Application/SlateApplication.h"
+#include "UObject/ConstructorHelpers.h"
 #include "SDockTab.h"
 #include "Engine/EngineTypes.h"
 #include "Components/SceneComponent.h"
+#include "Misc/ConfigCacheIni.h"
 #include "GameFramework/Actor.h"
 #include "Engine/World.h"
 #include "Components/SpotLightComponent.h"
 #include "GameFramework/WorldSettings.h"
 #include "DrawDebugHelpers.h"
+#include "Materials/MaterialInterface.h"
+#include "Materials/Material.h"
 #include "VREditorUISystem.h"
 #include "VIBaseTransformGizmo.h"
 #include "ViewportWorldInteraction.h"
@@ -44,12 +48,15 @@
 #include "EditorModes.h"
 #include "VRModeSettings.h"
 #include "IVREditorModule.h"
+#include "Engine/StaticMeshActor.h"
+#include "EngineUtils.h"
+#include "Kismet/GameplayStatics.h"
 
 #define LOCTEXT_NAMESPACE "VREditorMode"
 
 namespace VREd
 {
-	static FAutoConsoleVariable DefaultVRNearClipPlane(TEXT("VREd.DefaultVRNearClipPlane"), 1.0f, TEXT("The near clip plane to use for VR"));
+	static FAutoConsoleVariable DefaultVRNearClipPlane(TEXT("VREd.DefaultVRNearClipPlane"), 5.0f, TEXT("The near clip plane to use for VR"));
 	static FAutoConsoleVariable SlateDragDistanceOverride( TEXT( "VREd.SlateDragDistanceOverride" ), 40.0f, TEXT( "How many pixels you need to drag before a drag and drop operation starts in VR" ) );
 	static FAutoConsoleVariable DefaultWorldToMeters(TEXT("VREd.DefaultWorldToMeters"), 100.0f, TEXT("Default world to meters scale"));
 
@@ -71,7 +78,7 @@ namespace VREd
 const FString UVREditorMode::AssetContainerPath = FString("/Engine/VREditor/VREditorAssetContainerData");
 bool UVREditorMode::bDebugModeEnabled = false;
 
-UVREditorMode::UVREditorMode() : 
+UVREditorMode::UVREditorMode() :
 	Super(),
 	bWantsToExitMode( false ),
 	bIsFullyInitialized( false ),
@@ -87,10 +94,10 @@ UVREditorMode::UVREditorMode() :
 	LeftHandInteractor( nullptr ),
 	RightHandInteractor( nullptr ),
 	bFirstTick( true ),
-	SavedWorldToMetersScaleForPIE(0.0f),
-	bStartedPlayFromVREditor(false),
-	bStartedPlayFromVREditorSimulate(false),
-	AssetContainer(nullptr)
+	SavedWorldToMetersScaleForPIE( 100.f ),
+	bStartedPlayFromVREditor( false ),
+	bStartedPlayFromVREditorSimulate( false ),
+	AssetContainer( nullptr )
 {
 }
 
@@ -426,6 +433,11 @@ void UVREditorMode::Exit(const bool bShouldDisableStereo)
 
 	GEditor->OnEditorClose().RemoveAll( this );
 
+	if (GEditor->bIsSimulatingInEditor)
+	{
+		GEditor->RequestEndPlayMap();
+	}
+
 	bWantsToExitMode = false;
 	SetActive(false);
 	bFirstTick = false;
@@ -494,6 +506,8 @@ void UVREditorMode::PostTick( float DeltaTime )
 		// Move our avatar mesh along with the room.  We need our hand components to remain the same coordinate space as the 
 		AvatarActor->SetActorTransform( GetRoomTransform() );
 		AvatarActor->TickManually( DeltaTime );
+
+
 	}
 
 	// Updating the scale and intensity of the flashlight according to the world scale
@@ -812,7 +826,6 @@ void UVREditorMode::ToggleSIEAndVREditor()
 	}
 	else if (GEditor->PlayWorld != nullptr && GEditor->bIsSimulatingInEditor)
 	{
-		SavedWorldToMetersScaleForPIE = GetWorld()->GetWorldSettings()->WorldToMeters;
 		GEditor->RequestEndPlayMap();
 	}
 }
@@ -873,16 +886,6 @@ void UVREditorMode::TransitionWorld(UWorld* NewWorld)
 	Super::TransitionWorld(NewWorld);
 
 	UISystem->TransitionWorld(NewWorld);
-}
-
-void UVREditorMode::LeftSimulateInEditor(UWorld* SimulateWorld)
-{
-	if (SimulateWorld != nullptr)
-	{
-		const float SimulateWorldToMeters = SimulateWorld->GetWorldSettings()->WorldToMeters;
-		GetWorld()->GetWorldSettings()->WorldToMeters = SimulateWorldToMeters;
-		WorldInteraction->SetWorldToMetersScale(SimulateWorldToMeters);
-	}
 }
 
 void UVREditorMode::StartViewport(TSharedPtr<SLevelViewport> Viewport)
@@ -1003,8 +1006,12 @@ void UVREditorMode::StartViewport(TSharedPtr<SLevelViewport> Viewport)
 		GAreScreenMessagesEnabled = false;
 
 		// Save the world to meters scale
-		const float DefaultWorldToMeters = VREd::DefaultWorldToMeters->GetFloat();
-		SavedEditorState.WorldToMetersScale = DefaultWorldToMeters != 0.0f ? DefaultWorldToMeters : VRViewportClient.GetWorld()->GetWorldSettings()->WorldToMeters;
+		{
+			const float DefaultWorldToMeters = VREd::DefaultWorldToMeters->GetFloat();
+			const float SavedWorldToMeters = DefaultWorldToMeters != 0.0f ? DefaultWorldToMeters : VRViewportClient.GetWorld()->GetWorldSettings()->WorldToMeters;
+			SavedEditorState.WorldToMetersScale = SavedWorldToMeters;
+			SavedWorldToMetersScaleForPIE = SavedWorldToMeters;
+		}
 
 		if (bActuallyUsingVR)
 		{
@@ -1109,7 +1116,6 @@ void UVREditorMode::CloseViewport( const bool bShouldDisableStereo )
 void UVREditorMode::RestoreFromPIE()
 {
 	SetActive(true);
-	bStartedPlayFromVREditor = false;
 	bStartedPlayFromVREditorSimulate = false;
 
 	GetWorld()->GetWorldSettings()->WorldToMeters = SavedWorldToMetersScaleForPIE;
@@ -1220,7 +1226,7 @@ bool UVREditorMode::IsAimingTeleport() const
 
 void UVREditorMode::PostPIEStarted( bool bIsSimulatingInEditor )
 {
-	if (!bIsSimulatingInEditor && bStartedPlayFromVREditor)
+	if (!bIsSimulatingInEditor)
 	{
 		GEnableVREditorHacks = false;
 	}
@@ -1229,17 +1235,28 @@ void UVREditorMode::PostPIEStarted( bool bIsSimulatingInEditor )
 
 void UVREditorMode::PrePIEEnded( bool bWasSimulatingInEditor )
 {
-	if (!bWasSimulatingInEditor && bStartedPlayFromVREditor && !bStartedPlayFromVREditorSimulate)
+	if (!bWasSimulatingInEditor && !bStartedPlayFromVREditorSimulate)
 	{
+		GEnableVREditorHacks = true;
+	}
+	else if (bStartedPlayFromVREditorSimulate)
+	{
+		// Pre PIE to SIE. When exiting play with escape, the delegate toggle PIE and SIE won't be called. We know that we started PIE from simulate. However simulate will also be closed.
 		GEnableVREditorHacks = true;
 	}
 }
 
 void UVREditorMode::OnEndPIE(bool bWasSimulatingInEditor)
 {
-	if (bStartedPlayFromVREditor && !bWasSimulatingInEditor && !bStartedPlayFromVREditorSimulate)
+	if (!bWasSimulatingInEditor && !bStartedPlayFromVREditorSimulate)
 	{
 		RestoreFromPIE();
+	}
+	else if (bStartedPlayFromVREditorSimulate)
+	{
+		// Post PIE to SIE
+		RestoreFromPIE();
+		GetOwningCollection()->ShowAllActors(true);
 	}
 }
 

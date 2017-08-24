@@ -772,6 +772,8 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldLighting(
 	bool bVisualizeAmbientOcclusion,
 	bool bVisualizeGlobalIllumination)
 {
+	SCOPED_DRAW_EVENT(RHICmdList, RenderDistanceFieldLighting);
+
 	//@todo - support multiple views
 	const FViewInfo& View = Views[0];
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);

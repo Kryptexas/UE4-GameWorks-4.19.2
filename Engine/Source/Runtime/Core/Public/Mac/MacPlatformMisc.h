@@ -7,23 +7,19 @@
 #pragma once
 #include "GenericPlatform/GenericPlatformMisc.h"
 #include "Mac/MacSystemIncludes.h"
-
-#ifndef MAC_PROFILING_ENABLED
-#define MAC_PROFILING_ENABLED (UE_BUILD_DEBUG | UE_BUILD_DEVELOPMENT)
-#endif
+#include "Apple/ApplePlatformMisc.h"
 
 typedef void (*UpdateCachedMacMenuStateProc)(void);
 
 /**
 * Mac implementation of the misc OS functions
 **/
-struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
+struct CORE_API FMacPlatformMisc : public FApplePlatformMisc
 {
 	static void PlatformPreInit();
 	static void PlatformInit();
 	static void PlatformPostInit();
 	static void PlatformTearDown();
-	static void GetEnvironmentVariable(const TCHAR* VariableName, TCHAR* Result, int32 ResultLength);
 	static void SetEnvironmentVar(const TCHAR* VariableName, const TCHAR* Value);
 	static const TCHAR* GetPathVarDelimiter()
 	{
@@ -32,72 +28,10 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 
 	DEPRECATED(4.14, "GetMacAddress is deprecated. It is not reliable on all platforms")
 	static TArray<uint8> GetMacAddress();
-#if !UE_BUILD_SHIPPING
-	FORCEINLINE static bool IsDebuggerPresent()
-	{
-		extern CORE_API bool GIgnoreDebugger;
-
-		if (GIgnoreDebugger)
-		{
-			return false;
-		}
-
-		// Based on http://developer.apple.com/library/mac/#qa/qa1361/_index.html
-
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wmissing-braces"
-		struct kinfo_proc Info = { 0 };
-#pragma clang diagnostic pop
-		int32 Mib[] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid() };
-		SIZE_T Size = sizeof(Info);
-
-		sysctl( Mib, sizeof( Mib ) / sizeof( *Mib ), &Info, &Size, NULL, 0 );
-
-		return ( Info.kp_proc.p_flag & P_TRACED ) != 0;
-	}
-	FORCEINLINE static void DebugBreak()
-	{
-		if( IsDebuggerPresent() )
-		{
-			__asm__ ( "int $3" );
-		}
-	}
-#endif
-
-	/** Break into debugger. Returning false allows this function to be used in conditionals. */
-	FORCEINLINE static bool DebugBreakReturningFalse()
-	{
-#if !UE_BUILD_SHIPPING
-		DebugBreak();
-#endif
-		return false;
-	}
-
-	/** Prompts for remote debugging if debugger is not attached. Regardless of result, breaks into debugger afterwards. Returns false for use in conditionals. */
-	static FORCEINLINE bool DebugBreakAndPromptForRemoteReturningFalse(bool bIsEnsure = false)
-	{
-#if !UE_BUILD_SHIPPING
-		if (!IsDebuggerPresent())
-		{
-			PromptForRemoteDebugging(bIsEnsure);
-		}
-
-		DebugBreak();
-#endif
-
-		return false;
-	}
-
-	FORCEINLINE static void MemoryBarrier()
-	{
-		__sync_synchronize();
-	}
 
 	static void PumpMessages(bool bFromMainLoop);
 	static void RequestExit(bool Force);
 	static void RequestMinimize();
-	static const TCHAR* GetSystemErrorMessage(TCHAR* OutBuffer, int32 BufferCount, int32 Error);
-	static void CreateGuid(struct FGuid& Result);
 	static EAppReturnType::Type MessageBoxExt( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption );
 	static bool CommandLineCommands();
 	static int32 NumberOfCores();
@@ -144,7 +78,10 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 	 *			Bits 28-31	Reserved
 	 */
 	static uint32 GetCPUInfo();
-	
+
+    static bool HasNonoptionalCPUFeatures() { return true; }
+    static bool NeedsNonoptionalCPUFeaturesCheck() { return true; }
+
 	static void SetGracefulTerminationHandler();
 	
 	static void SetCrashHandler(void (* CrashHandler)(const FGenericCrashContext& Context));
@@ -223,39 +160,8 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
     /** Update the driver monitor statistics for the given GPU - called once a frame by the Mac RHI's, no need to call otherwise - use GetPerformanceStatistics instead. */
     static void UpdateDriverMonitorStatistics(int32 DeviceIndex);
 
-#if MAC_PROFILING_ENABLED
-	static void BeginNamedEvent(const struct FColor& Color,const TCHAR* Text);
-	static void BeginNamedEvent(const struct FColor& Color,const ANSICHAR* Text);
-	static void EndNamedEvent();
-#endif
-	static void* CreateAutoreleasePool();
-	static void ReleaseAutoreleasePool(void *Pool);
+	static int GetDefaultStackSize();
 };
-
-#ifdef __OBJC__
-
-class FScopeAutoreleasePool
-{
-public:
-
-	FScopeAutoreleasePool()
-	{
-		Pool = [[NSAutoreleasePool alloc] init];
-	}
-
-	~FScopeAutoreleasePool()
-	{
-		[Pool release];
-	}
-
-private:
-
-	NSAutoreleasePool*	Pool;
-};
-
-#define SCOPED_AUTORELEASE_POOL const FScopeAutoreleasePool PREPROCESSOR_JOIN(Pool,__LINE__);
-
-#endif // __OBJC__
 
 typedef FMacPlatformMisc FPlatformMisc;
 

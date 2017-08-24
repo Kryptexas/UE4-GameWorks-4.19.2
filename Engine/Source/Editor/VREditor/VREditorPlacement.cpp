@@ -41,7 +41,9 @@ namespace VREd
 	static FAutoConsoleVariable HoverHapticFeedbackTime( TEXT( "VREd.HoverHapticFeedbackTime" ), 0.2f, TEXT( "The minimum time between haptic feedback for hovering" ) );
 	static FAutoConsoleVariable PivotPointTransformGizmo( TEXT( "VREd.PivotPointTransformGizmo" ), 1, TEXT( "If the pivot point transform gizmo is used instead of the bounding box gizmo" ) );
 	static FAutoConsoleVariable DragHapticFeedbackStrength( TEXT( "VREd.DragHapticFeedbackStrength" ), 1.0f, TEXT( "Default strength for haptic feedback when starting to drag objects" ) );
-	static FAutoConsoleVariable PlacementInterpolationDuration( TEXT( "VREd.PlacementInterpolationDuration" ), 0.6f, TEXT( "How long we should interpolate newly-placed objects to their target location." ) );
+	static FAutoConsoleVariable PlacementInterpolationEnabled( TEXT( "VREd.PlacementInterpolationEnabled" ), 1, TEXT( "If we interpolate to desired size and the end of the laser when dragging out of content browser." ) );
+	static FAutoConsoleVariable PlacementToEndOfLaser( TEXT( "VREd.PlacementToEndOfLaser" ), 0, TEXT( "If we interpolate to the end of the laser when dragging out of content browser." ) );
+	static FAutoConsoleVariable HideContentBrowserWhileDragging( TEXT( "VREd.HideContentBrowserWhileDragging" ), 0, TEXT( "" ) );
 }
 
 UVREditorPlacement::UVREditorPlacement() : 
@@ -78,16 +80,7 @@ void UVREditorPlacement::Shutdown()
 
 void UVREditorPlacement::StopDragging( UViewportInteractor* Interactor )
 {
-	EViewportInteractionDraggingMode InteractorDraggingMode = Interactor->GetDraggingMode();
-
-	if ( InteractorDraggingMode == EViewportInteractionDraggingMode::Material )
-	{
-		// If we were placing a material, go ahead and do that now
-		PlaceDraggedMaterialOrTexture( Interactor );
-	}	
-	else if ( FloatingUIAssetDraggedFrom != nullptr && 
-		( InteractorDraggingMode == EViewportInteractionDraggingMode::TransformablesAtLaserImpact ||
-		  InteractorDraggingMode == EViewportInteractionDraggingMode::Material ) )
+	if (FloatingUIAssetDraggedFrom != nullptr)
 	{
 		// If we were placing something, bring the window back
 		const bool bShouldShow = true;
@@ -97,6 +90,14 @@ void UVREditorPlacement::StopDragging( UViewportInteractor* Interactor )
 		VRMode->GetUISystem().ShowEditorUIPanel(FloatingUIAssetDraggedFrom, Cast<UVREditorInteractor>(Interactor->GetOtherInteractor()), bShouldShow, bSpawnInFront, bDragFromOpen, bPlaySound);
 		FloatingUIAssetDraggedFrom = nullptr;
 	}
+
+	const EViewportInteractionDraggingMode InteractorDraggingMode = Interactor->GetDraggingMode();
+
+	if ( InteractorDraggingMode == EViewportInteractionDraggingMode::Material )
+	{
+		// If we were placing a material, go ahead and do that now
+		PlaceDraggedMaterialOrTexture( Interactor );
+	}	
 	else if (Interactor->GetDraggingMode() == EViewportInteractionDraggingMode::TransformablesFreely)
 	{
 		UVREditorMotionControllerInteractor* MotionController = Cast<UVREditorMotionControllerInteractor>(Interactor);
@@ -153,6 +154,9 @@ void UVREditorPlacement::StartDraggingMaterialOrTexture( UViewportInteractor* In
 
 		InteractorData.GizmoSpaceFirstDragUpdateOffsetAlongAxis = FVector::ZeroVector;	// Will be determined on first update
 		InteractorData.GizmoSpaceDragDeltaFromStartOffset = FVector::ZeroVector;	// Set every frame while dragging
+		InteractorData.LockedWorldDragMode = ELockedWorldDragMode::Unlocked;
+		InteractorData.GizmoScaleSinceDragStarted = 0.0f;
+		InteractorData.GizmoRotationRadiansSinceDragStarted = 0.0f;
 
 		ViewportWorldInteraction->SetDraggedSinceLastSelection( false );
 		ViewportWorldInteraction->SetLastDragGizmoStartTransform( FTransform::Identity );
@@ -205,11 +209,14 @@ void UVREditorPlacement::OnAssetDragStartedFromContentBrowser( const TArray<FAss
 
 			if( DroppedObjects.Num() > 0 )
 			{
-				// Hide the UI panel that's being used to drag
-				FloatingUIAssetDraggedFrom = PlacingWithInteractor->GetLastHoveredWidgetComponent();
-				VRMode->GetUISystem().ShowEditorUIPanel( FloatingUIAssetDraggedFrom, PlacingWithInteractor, false, false, false );
+				if( VREd::HideContentBrowserWhileDragging->GetInt() != 0 )
+				{
+					// Hide the UI panel that's being used to drag
+					FloatingUIAssetDraggedFrom = PlacingWithInteractor->GetLastHoveredWidgetComponent();
+					VRMode->GetUISystem().ShowEditorUIPanel( FloatingUIAssetDraggedFrom, PlacingWithInteractor, false, false, false );
+				}
 
-				const bool bShouldInterpolateFromDragLocation = VREd::PlacementInterpolationDuration->GetFloat() > KINDA_SMALL_NUMBER;
+				const bool bShouldInterpolateFromDragLocation = VREd::PlacementInterpolationEnabled->GetInt() == 1;
 				StartPlacingObjects( DroppedObjects, FactoryToUse, PlacingWithInteractor, bShouldInterpolateFromDragLocation );
 
 				const UVREditorAssetContainer& AssetContainer = VRMode->GetAssetContainer();
@@ -221,6 +228,8 @@ void UVREditorPlacement::OnAssetDragStartedFromContentBrowser( const TArray<FAss
 
 void UVREditorPlacement::StartPlacingObjects( const TArray<UObject*>& ObjectsToPlace, UActorFactory* FactoryToUse, UVREditorInteractor* PlacingWithInteractor, const bool bShouldInterpolateFromDragLocation )
 {
+	const bool bToEndOfLaser = VREd::PlacementToEndOfLaser->GetInt() == 1;
+
 	if( ViewportWorldInteraction == nullptr || PlacingWithInteractor == nullptr )
 	{
 		return;
@@ -253,7 +262,7 @@ void UVREditorPlacement::StartPlacingObjects( const TArray<UObject*>& ObjectsToP
 
 		// Only place the object at the laser impact point if we're NOT going to interpolate to the impact
 		// location.  When interpolation is enabled, it looks much better to blend to the new location
-		if( !bShouldInterpolateFromDragLocation )
+		if( !bShouldInterpolateFromDragLocation && bToEndOfLaser )
 		{
 			FVector HitLocation = FVector::ZeroVector;
 			if( ViewportWorldInteraction->FindPlacementPointUnderLaser( PlacingWithInteractor, /* Out */ HitLocation ) )
@@ -391,7 +400,7 @@ void UVREditorPlacement::StartPlacingObjects( const TArray<UObject*>& ObjectsToP
 			const bool bAllowInterpolationWhenPlacing = bShouldInterpolateFromDragLocation;
 			const bool bStartTransaction = false;
 			const bool bWithGrabberSphere = false;	// Always place using the laser, not the grabber sphere
-			ViewportWorldInteraction->StartDragging( PlacingWithInteractor, ClickedTransformGizmoComponent, PlaceAt, bIsPlacingNewObjects, bAllowInterpolationWhenPlacing, bStartTransaction, bWithGrabberSphere );
+			ViewportWorldInteraction->StartDragging( PlacingWithInteractor, ClickedTransformGizmoComponent, PlaceAt, bIsPlacingNewObjects, bAllowInterpolationWhenPlacing, bToEndOfLaser, bStartTransaction, bWithGrabberSphere );
 
 			// If we're interpolating, update the target transform of the actors to use our overridden size.  When
 			// we placed them we set their size to be 'thumbnail sized', and we want them to interpolate to

@@ -393,6 +393,7 @@ public:
 	/** Returns the LOD of this instance. */
 	virtual uint32 GetLODIndices() const { return 0; }
 	virtual uint32 GetHLODRange() const { return 0; }
+	bool DoesMeshBelongToLOD0() const;
 
 	/** For debugging */
 	virtual void SetDebugMaterial(bool bUseDebugMaterial, FLinearColor Diffuse);

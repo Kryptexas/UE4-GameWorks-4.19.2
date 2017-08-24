@@ -138,6 +138,7 @@ static const ANSICHAR* GDeviceExtensions[] =
 #if SUPPORTS_MAINTENANCE_LAYER
 	VK_KHR_MAINTENANCE1_EXTENSION_NAME,
 #endif
+	VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME,
 	nullptr
 };
 
@@ -459,23 +460,21 @@ void FVulkanDevice::GetDeviceExtensions(TArray<const ANSICHAR*>& OutDeviceExtens
 		}
 	}
 
+#if VULKAN_HAS_DEBUGGING_ENABLED
 	#if VULKAN_ENABLE_DRAW_MARKERS
 	{
-		if (bRenderDocFound)
+		for (int32 i = 0; i < Extensions.ExtensionProps.Num(); i++)
 		{
-			for (int32 i = 0; i < Extensions.ExtensionProps.Num(); i++)
+			if (!FCStringAnsi::Strcmp(Extensions.ExtensionProps[i].extensionName, VK_EXT_DEBUG_MARKER_EXTENSION_NAME))
 			{
-				if (!FCStringAnsi::Strcmp(Extensions.ExtensionProps[i].extensionName, VK_EXT_DEBUG_MARKER_EXTENSION_NAME))
-				{
-					OutDeviceExtensions.Add(VK_EXT_DEBUG_MARKER_EXTENSION_NAME);
-					bOutDebugMarkers = true;
-					break;
-				}
+				OutDeviceExtensions.Add(VK_EXT_DEBUG_MARKER_EXTENSION_NAME);
+				bOutDebugMarkers = true;
+				break;
 			}
 		}
 	}
 	#endif
-
+#endif
 	if (OutDeviceExtensions.Num() > 0)
 	{
 		UE_LOG(LogVulkanRHI, Display, TEXT("Using device extensions"));
@@ -511,5 +510,10 @@ void FVulkanDevice::ParseOptionalDeviceExtensions(const TArray<const ANSICHAR *>
 	};
 #if SUPPORTS_MAINTENANCE_LAYER
 	OptionalDeviceExtensions.HasKHRMaintenance1 = HasExtension(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
+#endif
+	OptionalDeviceExtensions.HasMirrorClampToEdge = HasExtension(VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME);
+#if !PLATFORM_ANDROID
+	// Verify the assumption on FVulkanSamplerState::FVulkanSamplerState()!
+	ensure(OptionalDeviceExtensions.HasMirrorClampToEdge != 0);
 #endif
 }

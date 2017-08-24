@@ -13,6 +13,7 @@ class FVulkanDevice;
 class FVulkanCommandBufferPool;
 class FVulkanCommandBufferManager;
 class FVulkanRenderTargetLayout;
+class FVulkanQueue;
 
 namespace VulkanRHI
 {
@@ -224,6 +225,7 @@ public:
 private:
 	FVulkanDevice* Device;
 	FVulkanCommandBufferPool Pool;
+	FVulkanQueue* Queue;
 	FVulkanCmdBuffer* ActiveCmdBuffer;
 	FVulkanCmdBuffer* UploadCmdBuffer;
 };

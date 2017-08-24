@@ -59,12 +59,13 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	void SetParameters(const FRenderingCompositePassContext& Context, const FPooledRenderTargetDesc* InputDesc)
+	template <typename TRHICmdList>
+	void SetParameters(TRHICmdList& RHICmdList, const FRenderingCompositePassContext& Context, const FPooledRenderTargetDesc* InputDesc)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters<FViewUniformShaderParameters>(Context.RHICmdList, ShaderRHI, Context.View.ViewUniformBuffer);
-		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View, MD_PostProcess);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, Context.View.ViewUniformBuffer);
+		DeferredParameters.Set(RHICmdList, ShaderRHI, Context.View, MD_PostProcess);
 
 		// filter only if needed for better performance
 		FSamplerStateRHIParamRef Filter = (Method == 2) ? 
@@ -75,10 +76,10 @@ public:
 			float PixelScale = (Method == 2) ? 0.5f : 1.0f;
  
 			FVector4 DownsampleParamsValue(PixelScale / InputDesc->Extent.X, PixelScale / InputDesc->Extent.Y, 0, 0);
-			SetShaderValue(Context.RHICmdList, ShaderRHI, DownsampleParams, DownsampleParamsValue);
+			SetShaderValue(RHICmdList, ShaderRHI, DownsampleParams, DownsampleParamsValue);
 		}
 
-		PostprocessParameter.SetPS(ShaderRHI, Context, Filter);
+		PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, Filter);
 	}
 
 	static const TCHAR* GetSourceFilename()
@@ -256,7 +257,7 @@ void FRCPassPostProcessDownsample::SetShader(const FRenderingCompositePassContex
 	GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
 	SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
 
-	PixelShader->SetParameters(Context, InputDesc);
+	PixelShader->SetParameters(Context.RHICmdList, Context, InputDesc);
 	VertexShader->SetParameters(Context);
 }
 

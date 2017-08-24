@@ -470,6 +470,7 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 						*GetFormatedMessageErrorInTestData(CleanFilename, TestPlan->TestPlanName, TEXT("Warning_Number"), ExpectedResultIndex))));
 					break;
 				}
+
 				if (WarningNum != ExpectedResult.ExpectedPresetsDataInteger[0])
 				{
 					ExecutionInfo.AddEvent(FAutomationEvent(EAutomationEventType::Error, FString::Printf(TEXT("%s [%d warnings but expected %d]"),

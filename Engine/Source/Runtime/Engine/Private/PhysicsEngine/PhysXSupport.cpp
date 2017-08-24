@@ -397,7 +397,7 @@ void FPhysXSimEventCallback::onContact(const PxContactPairHeader& PairHeader, co
 	// Check actors are not destroyed
 	if( PairHeader.flags & (PxContactPairHeaderFlag::eREMOVED_ACTOR_0 | PxContactPairHeaderFlag::eREMOVED_ACTOR_1) )
 	{
-		UE_LOG(LogPhysics, Log, TEXT("%d onContact(): Actors have been deleted!"), GFrameCounter );
+		UE_LOG(LogPhysics, Log, TEXT("%llu onContact(): Actors have been deleted!"), (uint64)GFrameCounter );
 		return;
 	}
 

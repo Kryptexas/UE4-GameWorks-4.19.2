@@ -21,7 +21,6 @@ MONOLITHIC_HEADER_BOILERPLATE()
 #include "SceneTypes.h"
 #include "GenericOctreePublic.h"
 #include "GenericOctree.h"
-#include "PrecomputedLightVolume.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/Pawn.h"
 #include "PixelFormat.h"

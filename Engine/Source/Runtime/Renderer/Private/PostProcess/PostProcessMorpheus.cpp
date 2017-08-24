@@ -87,14 +87,15 @@ public:
 	}
 
 
-	void SetPS(const FRenderingCompositePassContext& Context, FIntRect SrcRect, FIntPoint SrcBufferSize, EStereoscopicPass StereoPass, FMatrix& QuadTexTransform)
+	template <typename TRHICmdList>
+	void SetPS(TRHICmdList& RHICmdList, const FRenderingCompositePassContext& Context, FIntRect SrcRect, FIntPoint SrcBufferSize, EStereoscopicPass StereoPass, FMatrix& QuadTexTransform)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 		
-		FGlobalShader::SetParameters<FViewUniformShaderParameters>(Context.RHICmdList, ShaderRHI, Context.View.ViewUniformBuffer);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, Context.View.ViewUniformBuffer);
 
-		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear, AM_Border, AM_Border, AM_Border>::GetRHI());
-		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View, MD_PostProcess);
+		PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Bilinear, AM_Border, AM_Border, AM_Border>::GetRHI());
+		DeferredParameters.Set(RHICmdList, ShaderRHI, Context.View, MD_PostProcess);
 
 		{
 			check(GEngine->HMDDevice.IsValid());
@@ -107,23 +108,23 @@ public:
 			auto BCoefs = HMDDevice->GetBlueDistortionParameters();
 			for (uint32 i = 0; i < 5; ++i)
 			{
-				SetShaderValue(Context.RHICmdList, ShaderRHI, RCoefficients, RCoefs[i], i);
-				SetShaderValue(Context.RHICmdList, ShaderRHI, GCoefficients, GCoefs[i], i);
-				SetShaderValue(Context.RHICmdList, ShaderRHI, BCoefficients, BCoefs[i], i);
+				SetShaderValue(RHICmdList, ShaderRHI, RCoefficients, RCoefs[i], i);
+				SetShaderValue(RHICmdList, ShaderRHI, GCoefficients, GCoefs[i], i);
+				SetShaderValue(RHICmdList, ShaderRHI, BCoefficients, BCoefs[i], i);
 			}
 
 			check (StereoPass != eSSP_FULL);
 			if (StereoPass == eSSP_LEFT_EYE)
 			{
-				SetShaderValue(Context.RHICmdList, ShaderRHI, TextureScale, HMDDevice->GetTextureScaleLeft());
-				SetShaderValue(Context.RHICmdList, ShaderRHI, TextureOffset, HMDDevice->GetTextureOffsetLeft());
-				SetShaderValue(Context.RHICmdList, ShaderRHI, TextureUVOffset, 0.0f);
+				SetShaderValue(RHICmdList, ShaderRHI, TextureScale, HMDDevice->GetTextureScaleLeft());
+				SetShaderValue(RHICmdList, ShaderRHI, TextureOffset, HMDDevice->GetTextureOffsetLeft());
+				SetShaderValue(RHICmdList, ShaderRHI, TextureUVOffset, 0.0f);
 			}
 			else
 			{
-				SetShaderValue(Context.RHICmdList, ShaderRHI, TextureScale, HMDDevice->GetTextureScaleRight());
-				SetShaderValue(Context.RHICmdList, ShaderRHI, TextureOffset, HMDDevice->GetTextureOffsetRight());
-				SetShaderValue(Context.RHICmdList, ShaderRHI, TextureUVOffset, -0.5f);
+				SetShaderValue(RHICmdList, ShaderRHI, TextureScale, HMDDevice->GetTextureScaleRight());
+				SetShaderValue(RHICmdList, ShaderRHI, TextureOffset, HMDDevice->GetTextureOffsetRight());
+				SetShaderValue(RHICmdList, ShaderRHI, TextureUVOffset, -0.5f);
 			}				
 				  
 			QuadTexTransform = FMatrix::Identity;            
@@ -236,7 +237,7 @@ void FRCPassPostProcessMorpheus::Process(FRenderingCompositePassContext& Context
 	FMatrix QuadTexTransform;
 	FMatrix QuadPosTransform = FMatrix::Identity;
 
-	PixelShader->SetPS(Context, SrcRect, SrcSize, View.StereoPass, QuadTexTransform);
+	PixelShader->SetPS(Context.RHICmdList, Context, SrcRect, SrcSize, View.StereoPass, QuadTexTransform);
 
 	// Draw a quad mapping scene color to the view's render target
 	DrawTransformedRectangle(

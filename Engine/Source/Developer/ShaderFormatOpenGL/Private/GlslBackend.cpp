@@ -52,10 +52,10 @@ PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
 #define _strdup strdup
 #endif
 
-static inline FCustomStdString FixHlslName(const glsl_type* Type, bool bIsES2)
+static inline std::string FixHlslName(const glsl_type* Type, bool bIsES2)
 {
 	check(Type->is_image() || Type->is_vector() || Type->is_numeric() || Type->is_void() || Type->is_sampler() || Type->is_scalar());
-	FCustomStdString Name = Type->name;
+	std::string Name = Type->name;
 	if (Type == glsl_type::half_type)
 	{
 		return "float";
@@ -214,6 +214,10 @@ static const char * const GLSLExpressionTable[ir_opcode_count][4] =
 	/*@{*/
 	{ "dFdx(", ")", "", "" }, // ir_unop_dFdx,
 	{ "dFdy(", ")", "", "" }, // ir_unop_dFdy,
+	{ "dfdx_fine(", ")", "", "" }, // ir_unop_dFdxFine,
+	{ "dfdy_fine(", ")", "", "" }, // ir_unop_dFdyFine,
+	{ "dfdx_coarse(", ")", "", "" }, // ir_unop_dFdxCoarse,
+	{ "dfdy_coarse(", ")", "", "" }, // ir_unop_dFdyCoarse,
 	/*@}*/
 
 	{ "isnan(", ")", "", "" }, // ir_unop_isnan,
@@ -228,6 +232,8 @@ static const char * const GLSLExpressionTable[ir_opcode_count][4] =
 	{ "bitCount(", ")", "", "" }, // ir_unop_bitcount,
 	{ "findMSB(", ")", "", "" }, // ir_unop_msb,
 	{ "findLSB(", ")", "", "" }, // ir_unop_lsb,
+
+	{ "ERROR_NO_SATURATE_FUNCS(", ")", "", "" }, // ir_unop_saturate,
 
 	{ "ERROR_NO_NOISE_FUNCS(", ")", "", "" }, // ir_unop_noise,
 
@@ -297,6 +303,7 @@ static const char * const GLSLExpressionTable[ir_opcode_count][4] =
 	{ "mix(", ",", ",", ")" }, // ir_ternop_lerp,
 	{ "smoothstep(", ",", ",", ")" }, // ir_ternop_smoothstep,
 	{ "clamp(", ",", ",", ")" }, // ir_ternop_clamp,
+	{ "ERROR_NO_FMA_FUNCS(", ",", ",", ")" }, // ir_ternop_fma,
 
 	{ "ERROR_QUADOP_VECTOR(", ",", ")" }, // ir_quadop_vector,
 };
@@ -721,7 +728,7 @@ class ir_gen_glsl_visitor : public ir_visitor
 		}
 		else 
 		{
-			FCustomStdString Name = FixHlslName(t, bIsES && !bIsES31);
+			std::string Name = FixHlslName(t, bIsES && !bIsES31);
 			ralloc_asprintf_append(buffer, "%s", Name.c_str());
 		}
 	}
@@ -1635,7 +1642,11 @@ class ir_gen_glsl_visitor : public ir_visitor
 		{
 			if (bIsStructured)
 			{
-				check(src == nullptr);
+				if (src)
+				{
+					src->accept(this);
+					ralloc_asprintf_append(buffer, " = ");
+				}
 				deref->image->accept(this);
 				ralloc_asprintf_append(buffer, "[");
 				deref->image_index->accept(this);
@@ -2455,7 +2466,7 @@ class ir_gen_glsl_visitor : public ir_visitor
 		for (_mesa_glsl_parse_state::TUniformList::iterator Iter = Samplers.begin(); Iter != Samplers.end(); ++Iter)
 		{
 			glsl_packed_uniform& Sampler = *Iter;
-			FCustomStdString SamplerStates("");
+			std::string SamplerStates("");
 			TStringToSetMap::iterator IterFound = TextureToSamplerMap.find(Sampler.Name);
 			if (IterFound != TextureToSamplerMap.end())
 			{
@@ -2492,7 +2503,7 @@ class ir_gen_glsl_visitor : public ir_visitor
 /*
 		for (TStringToSetMap::iterator Iter = state->TextureToSamplerMap.begin(); Iter != state->TextureToSamplerMap.end(); ++Iter)
 		{
-		const FCustomStdString& Texture = Iter->first;
+		const std::string& Texture = Iter->first;
 		TStringSet& Samplers = Iter->second;
 		if (!Samplers.empty())
 		{
@@ -2907,7 +2918,7 @@ class ir_gen_glsl_visitor : public ir_visitor
 		if(state->target == tessellation_evaluation_shader)
 		{
 
-			std::basic_stringstream<char, std::char_traits<char>, FCustomStdAllocator<char> > str;
+			std::basic_stringstream<char, std::char_traits<char>, std::allocator<char> > str;
 
 			switch (tessellation.outputtopology)
 			{

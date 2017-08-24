@@ -16,15 +16,23 @@ namespace UnrealBuildTool.Rules
 				new string[] {
                     "AvfMediaFactory",
 					"Core",
+                    "ShaderCore",
 					"RenderCore",
 					"RHI",
+                    "UtilityShaders",
 				}
 			);
+
+            PrivateIncludePathModuleNames.AddRange(
+                new string[] {
+                    "UtilityShaders",
+                }
+            );
 
 			PrivateIncludePathModuleNames.AddRange(
 				new string[] {
 					"Media",
-				}
+ 				}
 			);
 
 			PrivateIncludePaths.AddRange(
@@ -38,6 +46,7 @@ namespace UnrealBuildTool.Rules
 			PublicFrameworks.AddRange(
 				new string[] {
 					"CoreMedia",
+                    "CoreVideo",
 					"AVFoundation",
 					"AudioToolbox",
 					"QuartzCore"

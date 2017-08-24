@@ -21,6 +21,7 @@
 #include "SlateUpdatableBuffer.h"
 #include "SlatePostProcessor.h"
 #include "Modules/ModuleManager.h"
+#include "PipelineStateCache.h"
 #include "Math/RandomStream.h"
 #include "DeviceProfiles/DeviceProfile.h"
 #include "DeviceProfiles/DeviceProfileManager.h"
@@ -571,11 +572,11 @@ void FSlateRHIRenderingPolicy::DrawElements(
 								RHICmdList.SetStencilRef(MaskingID + 1);
 
 								//TODO Slate If we ever decided to add masking with a texture, we could do that here.
-								FVector4 Vertices[4];
-								Vertices[0].Set(MaskQuad.TopLeft.X, MaskQuad.TopLeft.Y, 0, 1.0f);
-								Vertices[1].Set(MaskQuad.TopRight.X, MaskQuad.TopRight.Y, 0, 1.0f);
-								Vertices[2].Set(MaskQuad.BottomLeft.X, MaskQuad.BottomLeft.Y, 0, 1.0f);
-								Vertices[3].Set(MaskQuad.BottomRight.X, MaskQuad.BottomRight.Y, 0, 1.0f);
+								FVector2D Vertices[4];
+								Vertices[0].Set(MaskQuad.TopLeft.X, MaskQuad.TopLeft.Y);
+								Vertices[1].Set(MaskQuad.TopRight.X, MaskQuad.TopRight.Y);
+								Vertices[2].Set(MaskQuad.BottomLeft.X, MaskQuad.BottomLeft.Y);
+								Vertices[3].Set(MaskQuad.BottomRight.X, MaskQuad.BottomRight.Y);
 								DrawPrimitiveUP(RHICmdList, PT_TriangleStrip, 2, Vertices, sizeof(Vertices[0]));
 							}
 
@@ -614,11 +615,11 @@ void FSlateRHIRenderingPolicy::DrawElements(
 							const FSlateClippingZone& MaskQuad = StencilQuads[MaskIndex];
 
 							//TODO Slate If we ever decided to add masking with a texture, we could do that here.
-							FVector4 Vertices[4];
-							Vertices[0].Set(MaskQuad.TopLeft.X, MaskQuad.TopLeft.Y, 0, 1.0f);
-							Vertices[1].Set(MaskQuad.TopRight.X, MaskQuad.TopRight.Y, 0, 1.0f);
-							Vertices[2].Set(MaskQuad.BottomLeft.X, MaskQuad.BottomLeft.Y, 0, 1.0f);
-							Vertices[3].Set(MaskQuad.BottomRight.X, MaskQuad.BottomRight.Y, 0, 1.0f);
+							FVector2D Vertices[4];
+							Vertices[0].Set(MaskQuad.TopLeft.X, MaskQuad.TopLeft.Y);
+							Vertices[1].Set(MaskQuad.TopRight.X, MaskQuad.TopRight.Y);
+							Vertices[2].Set(MaskQuad.BottomLeft.X, MaskQuad.BottomLeft.Y);
+							Vertices[3].Set(MaskQuad.BottomRight.X, MaskQuad.BottomRight.Y);
 							DrawPrimitiveUP(RHICmdList, PT_TriangleStrip, 2, Vertices, sizeof(Vertices[0]));
 						}
 
@@ -652,6 +653,8 @@ void FSlateRHIRenderingPolicy::DrawElements(
 							StencilRef = MaskingID;
 						}
 					}
+
+					RHICmdList.ApplyCachedRenderTargets(InGraphicsPSOInit);
 				}
 				else
 				{
@@ -748,8 +751,7 @@ void FSlateRHIRenderingPolicy::DrawElements(
 				GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(PixelShader);
 				GraphicsPSOInit.PrimitiveType = GetRHIPrimitiveType(RenderBatch.DrawPrimitiveType);
 
-				FLocalGraphicsPipelineState BaseGraphicsPSO = RHICmdList.BuildLocalGraphicsPipelineState(GraphicsPSOInit);
-				RHICmdList.SetLocalGraphicsPipelineState(BaseGraphicsPSO);
+				SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 				RHICmdList.SetStencilRef(StencilRef);
 
@@ -883,13 +885,13 @@ void FSlateRHIRenderingPolicy::DrawElements(
 				// for RHIs that can't handle VertexOffset, we need to offset the stream source each time
 				if (!GRHISupportsBaseVertexIndex && !bAbsoluteIndices)
 				{
-					RHICmdList.SetStreamSource(0, VertexBuffer->VertexBufferRHI, sizeof(FSlateVertex), RenderBatch.VertexOffset * sizeof(FSlateVertex));
+					RHICmdList.SetStreamSource(0, VertexBuffer->VertexBufferRHI, RenderBatch.VertexOffset * sizeof(FSlateVertex));
 					RHICmdList.DrawIndexedPrimitive(IndexBuffer->IndexBufferRHI, GetRHIPrimitiveType(RenderBatch.DrawPrimitiveType), 0, 0, RenderBatch.NumVertices, RenderBatch.IndexOffset, PrimitiveCount, RenderBatch.InstanceCount);
 				}
 				else
 				{
 					uint32 VertexOffset = bAbsoluteIndices ? 0 : RenderBatch.VertexOffset; 
-					RHICmdList.SetStreamSource(0, VertexBuffer->VertexBufferRHI, sizeof(FSlateVertex), 0);
+					RHICmdList.SetStreamSource(0, VertexBuffer->VertexBufferRHI, 0);
 					RHICmdList.DrawIndexedPrimitive(IndexBuffer->IndexBufferRHI, GetRHIPrimitiveType(RenderBatch.DrawPrimitiveType), VertexOffset, 0, RenderBatch.NumVertices, RenderBatch.IndexOffset, PrimitiveCount, RenderBatch.InstanceCount);
 				}
 			}
@@ -1021,13 +1023,13 @@ void FSlateRHIRenderingPolicy::DrawElements(
 								// for RHIs that can't handle VertexOffset, we need to offset the stream source each time
 								if (!GRHISupportsBaseVertexIndex && !bAbsoluteIndices)
 								{
-									RHICmdList.SetStreamSource(0, VertexBuffer->VertexBufferRHI, sizeof(FSlateVertex), RenderBatch.VertexOffset * sizeof(FSlateVertex));
+									RHICmdList.SetStreamSource(0, VertexBuffer->VertexBufferRHI, RenderBatch.VertexOffset * sizeof(FSlateVertex));
 									RHICmdList.DrawIndexedPrimitive(IndexBuffer->IndexBufferRHI, GetRHIPrimitiveType(RenderBatch.DrawPrimitiveType), 0, 0, RenderBatch.NumVertices, RenderBatch.IndexOffset, PrimitiveCount, InstanceCount);
 								}
 								else
 								{
-									uint32 VertexOffset = bAbsoluteIndices ? 0 : RenderBatch.VertexOffset;
-									RHICmdList.SetStreamSource(0, VertexBuffer->VertexBufferRHI, sizeof(FSlateVertex), 0);
+									uint32 VertexOffset = bAbsoluteIndices ? 0 : RenderBatch.VertexOffset; 
+									RHICmdList.SetStreamSource(0, VertexBuffer->VertexBufferRHI, 0);
 									RHICmdList.DrawIndexedPrimitive(IndexBuffer->IndexBufferRHI, GetRHIPrimitiveType(RenderBatch.DrawPrimitiveType), VertexOffset, 0, RenderBatch.NumVertices, RenderBatch.IndexOffset, PrimitiveCount, InstanceCount);
 								}
 							}
@@ -1041,7 +1043,7 @@ void FSlateRHIRenderingPolicy::DrawElements(
 							//		// for RHIs that can't handle VertexOffset, we need to offset the stream source each time
 							//		if ( !GRHISupportsBaseVertexIndex )
 							//		{
-							//			RHICmdList.SetStreamSource(0, VertexBuffer->VertexBufferRHI, sizeof(FSlateVertex), RenderBatch.VertexOffset * sizeof(FSlateVertex));
+							//			RHICmdList.SetStreamSource(0, VertexBuffer->VertexBufferRHI, RenderBatch.VertexOffset * sizeof(FSlateVertex));
 							//			RHICmdList.DrawIndexedPrimitive(IndexBuffer->IndexBufferRHI, GetRHIPrimitiveType(RenderBatch.DrawPrimitiveType), 0, 0, RenderBatch.NumVertices, RenderBatch.IndexOffset, PrimitiveCount, 1);
 							//		}
 							//		else
@@ -1053,18 +1055,18 @@ void FSlateRHIRenderingPolicy::DrawElements(
 						}
 						else
 						{
-							RHICmdList.SetStreamSource(1, nullptr, 0, 0);
+							RHICmdList.SetStreamSource(1, nullptr, 0);
 
 							// for RHIs that can't handle VertexOffset, we need to offset the stream source each time
 							if ( !GRHISupportsBaseVertexIndex && !bAbsoluteIndices)
 							{
-								RHICmdList.SetStreamSource(0, VertexBuffer->VertexBufferRHI, sizeof(FSlateVertex), RenderBatch.VertexOffset * sizeof(FSlateVertex));
+								RHICmdList.SetStreamSource(0, VertexBuffer->VertexBufferRHI, RenderBatch.VertexOffset * sizeof(FSlateVertex));
 								RHICmdList.DrawIndexedPrimitive(IndexBuffer->IndexBufferRHI, GetRHIPrimitiveType(RenderBatch.DrawPrimitiveType), 0, 0, RenderBatch.NumVertices, RenderBatch.IndexOffset, PrimitiveCount, 1);
 							}
 							else
 							{
 								uint32 VertexOffset = bAbsoluteIndices ? 0 : RenderBatch.VertexOffset; 
-								RHICmdList.SetStreamSource(0, VertexBuffer->VertexBufferRHI, sizeof(FSlateVertex), 0);
+								RHICmdList.SetStreamSource(0, VertexBuffer->VertexBufferRHI, 0);
 								RHICmdList.DrawIndexedPrimitive(IndexBuffer->IndexBufferRHI, GetRHIPrimitiveType(RenderBatch.DrawPrimitiveType), VertexOffset, 0, RenderBatch.NumVertices, RenderBatch.IndexOffset, PrimitiveCount, 1);
 							}
 						}
@@ -1114,8 +1116,8 @@ void FSlateRHIRenderingPolicy::DrawElements(
 				CustomDrawer->DrawRenderThread(RHICmdList, &BackBuffer.GetRenderTargetTexture());
 
 				// Something may have messed with the viewport size so set it back to the full target.
-				RHICmdList.SetViewport(0, 0, 0, BackBuffer.GetSizeXY().X, BackBuffer.GetSizeXY().Y, 0.0f);
-				RHICmdList.SetStreamSource(0, VertexBuffer->VertexBufferRHI, sizeof(FSlateVertex), 0);
+				RHICmdList.SetViewport( 0,0,0,BackBuffer.GetSizeXY().X, BackBuffer.GetSizeXY().Y, 0.0f ); 
+				RHICmdList.SetStreamSource(0, VertexBuffer->VertexBufferRHI, 0);
 			}
 		}
 	}

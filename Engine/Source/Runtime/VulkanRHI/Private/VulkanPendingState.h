@@ -67,9 +67,13 @@ public:
 		{
 			// make sure any dynamically backed UAV points to current memory
 			UAV->UpdateView();
-			if (UAV->BufferView)
+			if (UAV->SourceStructuredBuffer)
 			{
-				CurrentState->SetUAVBufferViewState(UAVIndex, UAV->BufferView);
+				CurrentState->SetStorageBuffer(UAVIndex, UAV->SourceStructuredBuffer->GetHandle(), UAV->SourceStructuredBuffer->GetOffset(), UAV->SourceStructuredBuffer->GetSize(), UAV->SourceStructuredBuffer->GetBufferUsageFlags());
+			}
+			else if (UAV->BufferView)
+			{
+				CurrentState->SetUAVTexelBufferViewState(UAVIndex, UAV->BufferView);
 			}
 			else if (UAV->SourceTexture)
 			{
@@ -98,6 +102,10 @@ public:
 				checkf(SRV->BufferView != VK_NULL_HANDLE, TEXT("Empty SRV"));
 				CurrentState->SetSRVBufferViewState(BindIndex, SRV->BufferView);
 			}
+			else if (SRV->SourceStructuredBuffer)
+			{
+				CurrentState->SetStorageBuffer(BindIndex, SRV->SourceStructuredBuffer->GetHandle(), SRV->SourceStructuredBuffer->GetOffset(), SRV->SourceStructuredBuffer->GetSize(), SRV->SourceStructuredBuffer->GetBufferUsageFlags());
+			}
 			else
 			{
 				checkf(SRV->TextureView.View != VK_NULL_HANDLE, TEXT("Empty SRV"));
@@ -125,9 +133,6 @@ public:
 		CurrentState->SetSamplerState(BindPoint, Sampler);
 	}
 
-	//#todo-rco: Move to pipeline cache
-	FVulkanComputePipeline* GetOrCreateComputePipeline(FVulkanComputeShader* ComputeShader);
-
 	void NotifyDeletedPipeline(FVulkanComputePipeline* Pipeline)
 	{
 		PipelineStates.Remove(Pipeline);
@@ -141,9 +146,6 @@ protected:
 	FVulkanComputePipelineState* CurrentState;
 
 	TMap<FVulkanComputePipeline*, FVulkanComputePipelineState*> PipelineStates;
-
-	//#todo-rco: Move to pipeline cache
-	TMap<FVulkanComputeShader*, FVulkanComputePipeline*> ComputePipelineCache;
 
 	friend class FVulkanCommandListContext;
 };
@@ -233,7 +235,7 @@ public:
 		NeedsUpdateMask |= ENeedsScissor;
 	}
 
-	inline void SetStreamSource(uint32 StreamIndex, FVulkanResourceMultiBuffer* VertexBuffer, uint32 Stride, uint32 Offset)
+	inline void SetStreamSource(uint32 StreamIndex, FVulkanResourceMultiBuffer* VertexBuffer, uint32 Offset)
 	{
 		//PendingStreams[StreamIndex].Stream = VertexBuffer;
 		PendingStreams[StreamIndex].Stream2  = VertexBuffer;
@@ -242,7 +244,7 @@ public:
 		bDirtyVertexStreams = true;
 	}
 
-	inline void SetStreamSource(uint32 StreamIndex, VkBuffer VertexBuffer, uint32 Stride, uint32 Offset)
+	inline void SetStreamSource(uint32 StreamIndex, VkBuffer VertexBuffer, uint32 Offset)
 	{
 		PendingStreams[StreamIndex].Stream2  = nullptr;
 		PendingStreams[StreamIndex].Stream3 = VertexBuffer;
@@ -262,8 +264,32 @@ public:
 
 	inline void SetUniformBuffer(EShaderFrequency Stage, uint32 BindPoint, const FVulkanUniformBuffer* UniformBuffer)
 	{
-		//#todo-rco
-		ensure(0);
+		CurrentState->SetUniformBuffer(Stage, BindPoint, UniformBuffer);
+	}
+
+	inline void SetUAV(EShaderFrequency Stage, uint32 UAVIndex, FVulkanUnorderedAccessView* UAV)
+	{
+		if (UAV)
+		{
+			// make sure any dynamically backed UAV points to current memory
+			UAV->UpdateView();
+			if (UAV->SourceStructuredBuffer)
+			{
+				CurrentState->SetStorageBuffer(Stage, UAVIndex, UAV->SourceStructuredBuffer->GetHandle(), UAV->SourceStructuredBuffer->GetOffset(), UAV->SourceStructuredBuffer->GetSize(), UAV->SourceStructuredBuffer->GetBufferUsageFlags());
+			}
+			else if (UAV->BufferView)
+			{
+				CurrentState->SetUAVTexelBufferViewState(Stage, UAVIndex, UAV->BufferView);
+			}
+			else if (UAV->SourceTexture)
+			{
+				CurrentState->SetUAVTextureView(Stage, UAVIndex, UAV->TextureView);
+			}
+			else
+			{
+				ensure(0);
+			}
+		}
 	}
 
 	inline void SetSRV(EShaderFrequency Stage, uint32 BindIndex, FVulkanShaderResourceView* SRV)
@@ -276,6 +302,10 @@ public:
 			{
 				checkf(SRV->BufferView != VK_NULL_HANDLE, TEXT("Empty SRV"));
 				CurrentState->SetSRVBufferViewState(Stage, BindIndex, SRV->BufferView);
+			}
+			else if (SRV->SourceStructuredBuffer)
+			{
+				CurrentState->SetStorageBuffer(Stage, BindIndex, SRV->SourceStructuredBuffer->GetHandle(), SRV->SourceStructuredBuffer->GetOffset(), SRV->SourceStructuredBuffer->GetSize(), SRV->SourceStructuredBuffer->GetBufferUsageFlags());
 			}
 			else
 			{

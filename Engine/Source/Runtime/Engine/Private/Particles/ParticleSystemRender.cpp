@@ -780,21 +780,21 @@ bool FDynamicSpriteEmitterData::GetVertexAndIndexDataNonInstanced(void* VertexDa
 
 		const FVector2D* SubUVVertexData = nullptr;
 
-		if (Source.RequiredModule->IsBoundingGeometryValid())
+		if (Source.RequiredModule->bCutoutTexureIsValid)
 		{
 			const int32 SubImageIndexInt = FMath::TruncToInt(SubImageIndex);
-			int32 FrameIndex = SubImageIndexInt % Source.RequiredModule->GetNumFrames();
+			int32 FrameIndex = SubImageIndexInt % Source.RequiredModule->NumFrames;
 
 			if (SubImageIndexInt < 0)
 			{
 				// Mod operator returns remainder toward zero, not toward negative which is what we want
-				FrameIndex = Source.RequiredModule->GetNumFrames() - SubImageIndexInt;
+				FrameIndex = Source.RequiredModule->NumFrames - SubImageIndexInt;
 			}
 
-			SubUVVertexData = Source.RequiredModule->GetFrameData(FrameIndex);
+			SubUVVertexData = &Source.RequiredModule->FrameData[FrameIndex];
 		}
 
-		const bool bHasUVVertexData = SubUVVertexData && Source.RequiredModule->IsBoundingGeometryValid();
+		const bool bHasUVVertexData = SubUVVertexData && Source.RequiredModule->bCutoutTexureIsValid;
 
 		for (int32 VertexIndex = 0; VertexIndex < NumVerticesPerParticle; ++VertexIndex)
 		{
@@ -1007,9 +1007,9 @@ FParticleVertexFactoryBase *FDynamicSpriteEmitterData::CreateVertexFactory()
 {
 	FParticleSpriteVertexFactory *VertexFactory = new FParticleSpriteVertexFactory();
 	VertexFactory->SetParticleFactoryType(PVFT_Sprite);
-	const UParticleModuleRequired* RequiredModule = GetSourceData()->RequiredModule;
-	// this check needs to match the code inside FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter()
-	VertexFactory->SetNumVertsInInstanceBuffer(RequiredModule->IsBoundingGeometryValid() && RequiredModule->AlphaThreshold ? RequiredModule->GetNumBoundingVertices() : 4);
+	const FParticleRequiredModule * RequiredModule = GetSourceData()->RequiredModule;
+	VertexFactory->SetNumVertsInInstanceBuffer(RequiredModule->bCutoutTexureIsValid && RequiredModule->AlphaThreshold ? RequiredModule->NumBoundingVertices : 4);
+	VertexFactory->SetUsesDynamicParameter(bUsesDynamicParameter, bUsesDynamicParameter ? GetDynamicParameterVertexStride(): 0);
 	VertexFactory->InitResource();
 	return VertexFactory;
 }
@@ -1037,10 +1037,10 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 			int32 NumTrianglesPerParticle = 2;
 
 			// this check needs to match the code inside FDynamicSpriteEmitterData::CreateVertexFactory()
-			if (SourceData->RequiredModule->IsBoundingGeometryValid() && SourceData->RequiredModule->AlphaThreshold)
+			if (SourceData->RequiredModule->bCutoutTexureIsValid)
 			{
-				NumVerticesPerParticle = SourceData->RequiredModule->GetNumBoundingVertices();
-				NumTrianglesPerParticle = SourceData->RequiredModule->GetNumBoundingTriangles();
+				NumVerticesPerParticle = SourceData->RequiredModule->NumBoundingVertices;
+				NumTrianglesPerParticle = SourceData->RequiredModule->NumBoundingTriangles;
 			}
 
 			const int32 NumVerticesPerParticleInBuffer = bInstanced ? 1 : NumVerticesPerParticle;
@@ -1163,9 +1163,9 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 					SpriteVertexFactory->SetInstanceBuffer(Allocation.VertexBuffer, Allocation.VertexOffset, InstanceBufferStride, bInstanced);
 					SpriteVertexFactory->SetDynamicParameterBuffer(DynamicParameterAllocation.VertexBuffer, DynamicParameterAllocation.VertexOffset, GetDynamicParameterVertexStride(), bInstanced);
 
-					if (SourceData->RequiredModule->IsBoundingGeometryValid() && SourceData->RequiredModule->AlphaThreshold)
+					if (SourceData->RequiredModule->bCutoutTexureIsValid && SourceData->RequiredModule->AlphaThreshold)
 					{
-						SpriteVertexFactory->SetCutoutParameters(SourceData->RequiredModule->GetNumBoundingVertices(), SourceData->RequiredModule->GetBoundingGeometrySRV());
+						SpriteVertexFactory->SetCutoutParameters(SourceData->RequiredModule->NumBoundingVertices, SourceData->RequiredModule->BoundingGeometryBufferSRV);
 					}
 
 					if (bInstanced)
@@ -1532,7 +1532,7 @@ FParticleVertexFactoryBase *FDynamicMeshEmitterData::CreateVertexFactory()
 	SetupVertexFactory(VertexFactory, StaticMesh->RenderData->LODResources[0]);
 
 	const int32 InstanceVertexStride = GetDynamicVertexStride(ERHIFeatureLevel::Type::SM5);	// featurelevel is ignored
-	const int32 DynamicParameterVertexStride = GetDynamicParameterVertexStride();
+	const int32 DynamicParameterVertexStride = bUsesDynamicParameter ? GetDynamicParameterVertexStride() : 0;
 	VertexFactory->SetStrides(InstanceVertexStride, DynamicParameterVertexStride);
 	VertexFactory->InitResource();
 
@@ -2653,12 +2653,13 @@ public:
 
 
 FParticleVertexFactoryBase *FDynamicBeam2EmitterData::CreateVertexFactory()
-	{
-		FParticleBeamTrailVertexFactory *VertexFactory = new FParticleBeamTrailVertexFactory();
-		VertexFactory->SetParticleFactoryType(PVFT_BeamTrail);
-		VertexFactory->InitResource();
-		return VertexFactory;
-	}
+{
+	FParticleBeamTrailVertexFactory *VertexFactory = new FParticleBeamTrailVertexFactory();
+	VertexFactory->SetParticleFactoryType(PVFT_BeamTrail);
+	VertexFactory->SetUsesDynamicParameter(bUsesDynamicParameter);
+	VertexFactory->InitResource();
+	return VertexFactory;
+}
 
 
 void FDynamicBeam2EmitterData::GetDynamicMeshElementsEmitter(const FParticleSystemSceneProxy* Proxy, const FSceneView* View, const FSceneViewFamily& ViewFamily, int32 ViewIndex, FMeshElementCollector& Collector, FParticleVertexFactoryBase *VertexFactory) const
@@ -5432,9 +5433,10 @@ FParticleVertexFactoryBase* FDynamicTrailsEmitterData::BuildVertexFactory(const 
 FParticleVertexFactoryBase *FDynamicTrailsEmitterData::CreateVertexFactory()
 {
 	FParticleBeamTrailVertexFactory *VertexFactory = new FParticleBeamTrailVertexFactory();
-		VertexFactory->SetParticleFactoryType(PVFT_BeamTrail);
-		VertexFactory->InitResource();
-		return VertexFactory;
+	VertexFactory->SetParticleFactoryType(PVFT_BeamTrail);
+	VertexFactory->SetUsesDynamicParameter(bUsesDynamicParameter);
+	VertexFactory->InitResource();
+	return VertexFactory;
 }
 
 
@@ -7170,6 +7172,7 @@ void FParticleSystemSceneProxy::UpdateWorldSpacePrimitiveUniformBuffer() const
 			false,
 			false,
 			UseSingleSampleShadowFromStationaryLights(),
+			GetScene().HasPrecomputedVolumetricLightmap_RenderThread(),
 			UseEditorDepthTest(),
 			GetLightingChannelMask(),
 			1.0f			// LPV bias

@@ -4,6 +4,8 @@
 	SHCommon.usf: Spherical Harmonic functionality
 =============================================================================*/
 
+#pragma once
+
 /** The SH coefficients for the projection of a function that maps directions to scalar values. */
 struct FOneBandSHVector
 {
@@ -125,6 +127,20 @@ half3 DotSH3(FThreeBandSHVectorRGB A,FThreeBandSHVector B)
 	Result.g = DotSH3(A.G,B);
 	Result.b = DotSH3(A.B,B);
 	return Result;
+}
+
+FTwoBandSHVector GetLuminance(FTwoBandSHVectorRGB InRGBVector)
+{
+	FTwoBandSHVector Out;
+	Out.V = InRGBVector.R.V * 0.3f + InRGBVector.G.V * 0.59f + InRGBVector.B.V * 0.11f;
+	return Out;
+}
+
+/** Compute the direction which the spherical harmonic is highest at. */
+float3 GetMaximumDirection(FTwoBandSHVector SHVector)
+{
+	// This is an approximation which only takes into account first and second order spherical harmonics.
+	return normalize(float3(-SHVector.V.w, -SHVector.V.y, SHVector.V.z));
 }
 
 /** Computes the value of the SH basis functions for a given direction. */

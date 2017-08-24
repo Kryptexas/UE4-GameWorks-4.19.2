@@ -187,12 +187,12 @@ class UMaterialInstance : public UMaterialInterface
 	UPROPERTY()
 	uint32 bHasStaticPermutationResource:1;
 
-	/** Flag to detect cycles in the material instance graph. */
-	uint32 ReentrantFlag:1;
-
 	/** Defines if SubsurfaceProfile from this instance is used or it uses the parent one. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = MaterialInstance)
 	uint32 bOverrideSubsurfaceProfile:1;
+	
+	/** Flag to detect cycles in the material instance graph. */
+	bool ReentrantFlag;
 
 	/** Font parameters. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=MaterialInstance)

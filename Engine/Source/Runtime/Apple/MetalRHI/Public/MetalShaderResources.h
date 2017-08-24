@@ -59,6 +59,7 @@ struct FMetalShaderBindings
 	uint8	NumSamplers;
 	uint8	NumUniformBuffers;
 	uint8	NumUAVs;
+	uint8	AtomicUAVs;
 	bool	bHasRegularUniformBuffers;
 
 	FMetalShaderBindings() :
@@ -66,6 +67,7 @@ struct FMetalShaderBindings
 		NumSamplers(0),
 		NumUniformBuffers(0),
 		NumUAVs(0),
+		AtomicUAVs(0),
 		bHasRegularUniformBuffers(false)
 	{
 	}
@@ -78,6 +80,7 @@ struct FMetalShaderBindings
 		bEqual &= A.NumSamplers == B.NumSamplers;
 		bEqual &= A.NumUniformBuffers == B.NumUniformBuffers;
 		bEqual &= A.NumUAVs == B.NumUAVs;
+		bEqual &= A.AtomicUAVs == B.AtomicUAVs;
 		bEqual &= A.bHasRegularUniformBuffers == B.bHasRegularUniformBuffers;
 		bEqual &= A.PackedGlobalArrays.Num() == B.PackedGlobalArrays.Num();
 		bEqual &= A.PackedUniformBuffers.Num() == B.PackedUniformBuffers.Num();
@@ -108,6 +111,7 @@ struct FMetalShaderBindings
 		Hash |= Binding.NumSamplers << 16;
 		Hash |= Binding.NumUniformBuffers << 24;
 		Hash ^= Binding.NumUAVs;
+		Hash ^= Binding.AtomicUAVs;
 		Hash ^= Binding.bHasRegularUniformBuffers << 8;
 		Hash ^= FCrc::MemCrc_DEPRECATED(Binding.PackedGlobalArrays.GetData(), Binding.PackedGlobalArrays.GetTypeSize()*Binding.PackedGlobalArrays.Num());
 
@@ -129,6 +133,7 @@ inline FArchive& operator<<(FArchive& Ar, FMetalShaderBindings& Bindings)
 	Ar << Bindings.NumSamplers;
 	Ar << Bindings.NumUniformBuffers;
 	Ar << Bindings.NumUAVs;
+	Ar << Bindings.AtomicUAVs;
 	Ar << Bindings.bHasRegularUniformBuffers;
 	return Ar;
 }
@@ -202,6 +207,9 @@ struct FMetalCodeHeader
     
     FMetalTessellationOutputs TessellationOutputAttribs;
 
+	uint64 CompilerBuild;
+	uint32 CompilerVersion;
+
 	uint32 TessellationOutputControlPoints;
 	uint32 TessellationDomain; // 3 = tri, 4 = quad // TODO unused
 	uint32 TessellationInputControlPoints; // TODO unused
@@ -260,6 +268,9 @@ inline FArchive& operator<<(FArchive& Ar, FMetalCodeHeader& Header)
 	Ar << Header.ShaderName;
 
     Ar << Header.TessellationOutputAttribs;
+
+	Ar << Header.CompilerVersion;
+	Ar << Header.CompilerBuild;
     
 	Ar << Header.TessellationOutputControlPoints;
 	Ar << Header.TessellationDomain;

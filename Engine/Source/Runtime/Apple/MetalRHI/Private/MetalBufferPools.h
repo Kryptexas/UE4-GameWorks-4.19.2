@@ -4,6 +4,7 @@
 #pragma once
 
 #import <Metal/Metal.h>
+#include "Templates/SharedPointer.h"
 
 struct FMetalPooledBufferArgs
 {
@@ -44,22 +45,29 @@ struct FMetalQueryBufferPool
 	class FMetalContext* Context;
 };
 
+struct FMetalRingBuffer
+{
+	void SetLastRead(uint32 Read) { FPlatformAtomics::InterlockedExchange((int32*)&LastRead, Read); }
+	
+	id<MTLBuffer> Buffer;
+	uint32 LastRead;
+};
+
 struct FRingBuffer
 {
 	FRingBuffer(id<MTLDevice> Device, MTLResourceOptions Options, uint32 Size, uint32 InDefaultAlignment);
 
 	uint32 GetOffset() { return Offset; }
-	void SetLastRead(uint32 Read) { FPlatformAtomics::InterlockedExchange((int32*)&LastRead, Read); }
 	uint32 Allocate(uint32 Size, uint32 Alignment);
 	void Shrink();
 
+	TSharedPtr<FMetalRingBuffer, ESPMode::ThreadSafe> Buffer;
+	
 	uint32 FrameSize[10];
 	uint64 LastFrameChange;
 	MTLResourceOptions Options;
 	uint32 InitialSize;
 	uint32 DefaultAlignment;
-	id<MTLBuffer> Buffer;
 	uint32 Offset;
-	uint32 LastRead;
 	uint32 LastWritten;
 };

@@ -634,7 +634,7 @@ public:
 	 * Indicates that the material and its instances can be use with distortion
 	 * This will result in the shaders required to support distortion being compiled which will increase shader compile time and memory usage.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Usage)
+	UPROPERTY()
 	uint32 bUsesDistortion:1;
 
 	/** 

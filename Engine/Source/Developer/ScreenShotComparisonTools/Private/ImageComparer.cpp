@@ -274,8 +274,8 @@ TSharedPtr<FComparableImage> FImageComparer::Open(const FString& ImagePath, FTex
 	return Image;
 }
 
-FImageComparer::FImageComparer()
-	: DeltaDirectory(FPlatformProcess::UserTempDir())
+FImageComparer::FImageComparer(const FString& Directory)
+	: DeltaDirectory(Directory.IsEmpty() ? FPlatformProcess::UserTempDir() : Directory)
 {
 }
 
@@ -448,6 +448,8 @@ double FImageComparer::CompareStructuralSimilarity(const FString& ImagePathA, co
 
 	int32 TotalWindows = 0;
 	double TotalSSIM = 0;
+	
+	FImageDelta ImageDelta(ImageWidth, ImageHeight);
 
 	for ( int32 X = 0; X < ImageWidth; X += MaxWindowSize )
 	{
@@ -534,11 +536,18 @@ double FImageComparer::CompareStructuralSimilarity(const FString& ImagePathA, co
 			double Contrast = ( 2 * CovarianceAB + C2) / ( VarianceA + VarianceB + C2 );
 
 			double WindowSSIM = Luminance * Contrast;
+			double WindowDSIM = (1 - FMath::Clamp(WindowSSIM, 0.0, 1.0)) / 2;
+			auto Color = FColor(WindowDSIM, WindowDSIM, WindowDSIM);
+			for (int i = 0; i < MaxWindowSize; ++i) for (int j = 0; j < MaxWindowSize; ++j) {
+				ImageDelta.SetErrorPixel(X + i, Y + j, Color);
+			}
 
 			TotalSSIM += WindowSSIM;
 			TotalWindows++;
 		}
 	}
+
+	ImageDelta.Save(DeltaDirectory);
 
 	double SSIM = TotalSSIM / TotalWindows;
 	

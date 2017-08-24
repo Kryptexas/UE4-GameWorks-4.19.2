@@ -78,6 +78,7 @@ class ENGINE_API UMeshComponent : public UPrimitiveComponent
 	 *	@param bPrioritizeCharacterTextures		Whether character textures should be prioritized for a while by the streaming system
 	 *	@param CinematicTextureGroups			Bitfield indicating which texture groups that use extra high-resolution mips
 	 */
+	UFUNCTION(BlueprintCallable, Category = "Rendering")
 	virtual void PrestreamTextures( float Seconds, bool bPrioritizeCharacterTextures, int32 CinematicTextureGroups = 0 );
 
 	/** Get the material info for texture stremaing. Return whether the data is valid or not. */

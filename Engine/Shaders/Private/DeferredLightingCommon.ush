@@ -24,6 +24,8 @@ struct FDeferredLightData
 	float4 LightPositionAndInvRadius;
 	float4 LightColorAndFalloffExponent;
 	float3 LightDirection;
+	float3 LightTangent;
+    float SoftSourceRadius;
 	float4 SpotAnglesAndSourceRadius;
 	float MinRoughness;
 	float ContactShadowLength;
@@ -156,6 +158,11 @@ float3 SphereLightingMIS( FGBufferData GBuffer, FDeferredLightData LightData, fl
 	return Lighting;
 }
 
+float Softmin(float y)
+{
+    return rcp(pow(1 + rcp(Pow3(y)), 1.0f / 3));
+}
+
 // Find representative incoming light direction and energy modification
 float3 AreaLightSpecular( FDeferredLightData LightData, inout float3 LobeRoughness, inout float3 ToLight, inout float3 L, float3 V, half3 N )
 {
@@ -163,30 +170,40 @@ float3 AreaLightSpecular( FDeferredLightData LightData, inout float3 LobeRoughne
 
 	LobeRoughness = max( LobeRoughness, LightData.MinRoughness );
 	float3 m = LobeRoughness * LobeRoughness;
-	
+    float3 m2 = m * m;
+
 	const float SourceRadius = LightData.SpotAnglesAndSourceRadius.z;
 	const float SourceLength = LightData.SpotAnglesAndSourceRadius.w;
 
 	// TODO early out for point lights
 	
 	float3 R = reflect( -V, N );
-	float InvDistToLight = rsqrt( dot( ToLight, ToLight ) );
+    float DistToLightSqr = dot( ToLight, ToLight );
 
 	// Point lobe in off-specular peak direction
 	float a = Square( LobeRoughness[1] );
 	R = lerp( N, R, (1 - a) * ( sqrt(1 - a) + a ) );
 	R = normalize( R );
 
+    BRANCH
+    if (LightData.SoftSourceRadius > 0)
+    {
+        float SphereAngleSqr = saturate(Pow2(LightData.SoftSourceRadius) / DistToLightSqr);
+        m2 += SphereAngleSqr / (saturate(dot(N, V)) * 3.6 + 0.4);
+        LobeRoughness = sqrt(sqrt(m2));
+    }
+
 	BRANCH
 	if( SourceLength > 0 )
 	{
-		// Energy conservation
 		// asin(x) is angle to sphere, atan(x) is angle to disk, saturate(x) is free and in the middle
-		float LineAngle = saturate( SourceLength * InvDistToLight );
-		LobeEnergy *= m / saturate( m + 0.5 * LineAngle );
+        float LineAngleSqr = saturate(Pow2(SourceLength) / DistToLightSqr);
+
+		// Energy conservation
+        LobeEnergy *= sqrt(m2 / (m2 + LineAngleSqr / (saturate(dot(N, V)) * 3.6 + 0.4)));
 
 		// Closest point on line segment to ray
-		float3 L01 = LightData.LightDirection * SourceLength;
+		float3 L01 = LightData.LightTangent * SourceLength;
 		float3 L0 = ToLight - 0.5 * L01;
 		float3 L1 = ToLight + 0.5 * L01;
 
@@ -211,15 +228,17 @@ float3 AreaLightSpecular( FDeferredLightData LightData, inout float3 LobeRoughne
 	BRANCH
 	if( SourceRadius > 0 )
 	{
-		// Energy conservation
 		// asin(x) is angle to sphere, atan(x) is angle to disk, saturate(x) is free and in the middle
-		float SphereAngle = saturate( SourceRadius * InvDistToLight );
-		LobeEnergy *= Square( m / saturate( m + 0.5 * SphereAngle ) );
-		
+		float SphereAngleSqr = saturate( Pow2( SourceRadius ) / DistToLightSqr );
+
+		// Energy conservation
+        LobeEnergy *= LobeRoughness[1] / (LobeRoughness[1] + 0.375892 * tan(saturate(SourceRadius / length(ToLight) / 2.0f)) * rsqrt(LobeRoughness[1]));
+   
 		// Closest point on sphere to ray
 		float3 ClosestPointOnRay = dot( ToLight, R ) * R;
 		float3 CenterToRay = ClosestPointOnRay - ToLight;
-		float3 ClosestPointOnSphere = ToLight + CenterToRay * saturate( SourceRadius * rsqrt( dot( CenterToRay, CenterToRay ) ) );
+        float MinValue = Softmin(SourceRadius * rsqrt(dot(CenterToRay, CenterToRay)));
+        float3 ClosestPointOnSphere = ToLight + CenterToRay * max(0, MinValue);
 		ToLight = ClosestPointOnSphere;
 	}
 
@@ -355,7 +374,7 @@ void GetLocalLightAttenuation(
 			if( SourceLength > 0 )
 			{
 				// Line segment irradiance
-				float3 L01 = LightData.LightDirection * SourceLength;
+				float3 L01 = LightData.LightTangent * SourceLength;
 				float3 ToLight0 = ToLight - 0.5 * L01;
 				float3 ToLight1 = ToLight + 0.5 * L01;
 

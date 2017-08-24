@@ -357,6 +357,11 @@ struct CORE_API FGenericPlatformMisc
 	 */
 	static uint32 GetCPUInfo();
 
+	/** @return whether this cpu supports certain required instructions or not */
+	static bool HasNonoptionalCPUFeatures();
+	/** @return whether to check for specific CPU compatibility or not */
+	static bool NeedsNonoptionalCPUFeaturesCheck();
+
 	/** 
 	 * Uses cpuid instruction to get the CPU brand string
 	 *

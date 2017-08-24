@@ -85,7 +85,7 @@ static void RunSynthBenchmark(const TArray<FString>& Args)
 	ISynthBenchmark::Get().Run(Result, true, WorkScale);
 }
 
-static FAutoConsoleCommand GDumpDrawListStatsCmd(
+static FAutoConsoleCommand GSynthBenchmarkCmd(
 	TEXT("SynthBenchmark"),
 	TEXT("Run simple benchmark to get some metrics to find reasonable game settings automatically\n")
 	TEXT("Optional (float) parameter allows to scale with work amount to trade time or precision (default: 10)."),

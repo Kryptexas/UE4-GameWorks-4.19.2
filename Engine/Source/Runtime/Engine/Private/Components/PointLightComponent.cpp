@@ -43,29 +43,44 @@ class FPointLightSceneProxy : public TPointLightSceneProxy<FPointLightPolicy>
 public:
 
 	/** Accesses parameters needed for rendering the light. */
-	virtual void GetParameters(FVector4& LightPositionAndInvRadius, FVector4& LightColorAndFalloffExponent, FVector& NormalizedLightDirection, FVector2D& SpotAngles, float& LightSourceRadius, float& LightSourceLength, float& LightMinRoughness) const
+	virtual void GetParameters(FLightParameters& LightParameters) const override
 	{
-		LightPositionAndInvRadius = FVector4(
+		LightParameters.LightPositionAndInvRadius = FVector4(
 			GetOrigin(),
 			InvRadius);
 
-		LightColorAndFalloffExponent = FVector4(
+		LightParameters.LightColorAndFalloffExponent = FVector4(
 			GetColor().R,
 			GetColor().G,
 			GetColor().B,
 			FalloffExponent);
 
-		NormalizedLightDirection = -GetDirection();
-		SpotAngles = FVector2D( -2.0f, 1.0f );
-		LightSourceRadius = SourceRadius;
-		LightSourceLength = SourceLength;
+		const FVector XAxis(WorldToLight.M[0][0], WorldToLight.M[1][0], WorldToLight.M[2][0]);
+		const FVector ZAxis(WorldToLight.M[0][2], WorldToLight.M[1][2], WorldToLight.M[2][2]);
+
+		LightParameters.NormalizedLightDirection = ZAxis;
+		LightParameters.NormalizedLightTangent = XAxis;
+		LightParameters.SpotAngles = FVector2D( -2.0f, 1.0f );
+		LightParameters.LightSourceRadius = SourceRadius;
+		LightParameters.LightSoftSourceRadius = SoftSourceRadius;
+		LightParameters.LightSourceLength = SourceLength;
 		// Prevent 0 Roughness which causes NaNs in Vis_SmithJointApprox
-		LightMinRoughness = FMath::Max(MinRoughness, .04f);
+		LightParameters.LightMinRoughness = FMath::Max(MinRoughness, .04f);
 	}
 
 	virtual FSphere GetBoundingSphere() const
 	{
 		return FSphere(GetPosition(), GetRadius());
+	}
+
+	virtual float GetEffectiveScreenRadius(const FViewMatrices& ShadowViewMatrices) const override
+	{
+		// Use the distance from the view origin to the light to approximate perspective projection
+		// We do not use projected screen position since it causes problems when the light is behind the camera
+
+		const float LightDistance = (GetOrigin() - ShadowViewMatrices.GetViewOrigin()).Size();
+
+		return ShadowViewMatrices.GetScreenScale() * GetRadius() / FMath::Max(LightDistance, 1.0f);
 	}
 
 	/**
@@ -120,6 +135,7 @@ UPointLightComponent::UPointLightComponent(const FObjectInitializer& ObjectIniti
 	AttenuationRadius = 1000;
 	LightFalloffExponent = 8.0f;
 	SourceRadius = 0.0f;
+	SoftSourceRadius = 0.0f;
 	SourceLength = 0.0f;
 	bUseInverseSquaredFalloff = true;
 }
@@ -156,6 +172,16 @@ void UPointLightComponent::SetSourceRadius(float NewValue)
 		&& SourceRadius != NewValue)
 	{
 		SourceRadius = NewValue;
+		MarkRenderStateDirty();
+	}
+}
+
+void UPointLightComponent::SetSoftSourceRadius(float NewValue)
+{
+	if (AreDynamicDataChangesAllowed()
+		&& SoftSourceRadius != NewValue)
+	{
+		SoftSourceRadius = NewValue;
 		MarkRenderStateDirty();
 	}
 }
@@ -278,6 +304,7 @@ void UPointLightComponent::PostEditChangeProperty(FPropertyChangedEvent& Propert
 	// Make sure exponent is > 0.
 	LightFalloffExponent = FMath::Max( (float) KINDA_SMALL_NUMBER, LightFalloffExponent );
 	SourceRadius = FMath::Max(0.0f, SourceRadius);
+	SoftSourceRadius = FMath::Max(0.0f, SoftSourceRadius);
 	SourceLength = FMath::Max(0.0f, SourceLength);
 	Intensity = FMath::Max(0.0f, Intensity);
 	LightmassSettings.IndirectLightingSaturation = FMath::Max(LightmassSettings.IndirectLightingSaturation, 0.0f);

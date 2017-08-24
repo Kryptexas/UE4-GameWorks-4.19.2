@@ -15,7 +15,6 @@
 
 float SampleWeights[9];
 float PlusWeights[5];
-float VelocityScaling;
 float CurrentFrameWeight;
 
 #if COMPUTESHADER
@@ -23,6 +22,42 @@ float CurrentFrameWeight;
 float4 TemporalAAComputeParams;
 RWTexture2D<float4> OutComputeTex;
 #endif
+
+// On PS4, those are already defined.
+#if !PS4_PROFILE
+
+// TODO move to common
+float min3( float a, float b, float c )
+{
+	return min( a, min( b, c ) );
+}
+
+float max3( float a, float b, float c )
+{
+	return max( a, max( b, c ) );
+}
+
+float4 min3( float4 a, float4 b, float4 c )
+{
+	return float4(
+		min3( a.x, b.x, c.x ),
+		min3( a.y, b.y, c.y ),
+		min3( a.z, b.z, c.z ),
+		min3( a.w, b.w, c.w )
+	);
+}
+
+float4 max3( float4 a, float4 b, float4 c )
+{
+	return float4(
+		max3( a.x, b.x, c.x ),
+		max3( a.y, b.y, c.y ),
+		max3( a.z, b.z, c.z ),
+		max3( a.w, b.w, c.w )
+	);
+}
+
+#endif // !PS4_PROFILE
 
 float3 RGBToYCoCg( float3 RGB )
 {
@@ -63,110 +98,7 @@ float HdrWeight4(float3 Color, float Exposure)
 
 float HdrWeightY(float Color, float Exposure) 
 {
-	return rcp(Color * Exposure + 1.0);
-}
-
-float HdrWeightG(float3 Color, float Exposure) 
-{
-	return rcp(Color.g * Exposure + 1.0);
-}
-
-float HdrWeightG_(float Color, float Exposure) 
-{
-	return rcp(Color * Exposure + 1.0);
-}
-
-
-// Optimized HDR weighting function.
-float HdrWeight4_(float Color, float Exposure) 
-{
 	return rcp(Color * Exposure + 4.0);
-}
-
-// Optimized HDR weighting inverse.
-float HdrWeightInv4(float3 Color, float Exposure) 
-{
-	return 4.0 * rcp(Luma4(Color) * (-Exposure) + 1.0);
-}
-
-float HdrWeightInvG(float3 Color, float Exposure) 
-{
-	return rcp(Color.g * (-Exposure) + 1.0);
-}
-
-float HdrWeightInvY(float Color, float Exposure) 
-{
-	return rcp(Color * (-Exposure) + 1.0);
-}
-
-float HdrWeightInv4_(float Color, float Exposure) 
-{
-	return 4.0 * rcp(Color * (-Exposure) + 1.0);
-}
-
-float HdrWeightInvG_(float Color, float Exposure) 
-{
-	return rcp(Color * (-Exposure) + 1.0);
-}
-
-
-// This returns exposure normalized linear luma from a PerceptualLuma4().
-float LinearLuma4(float Channel, float Exposure) 
-{
-	return Channel * HdrWeightInv4_(Channel, Exposure);
-}
-
-// This returns exposure normalized linear luma from a PerceptualLuma4().
-float LinearLumaG(float Channel, float Exposure) 
-{
-	return Channel * HdrWeightInvG_(Channel, Exposure);
-}
-
-
-float PerceptualLuma4(float3 Color, float Exposure) 
-{
-	float L = Luma4(Color);
-	return L * HdrWeight4_(L, Exposure);
-}
-
-float PerceptualLumaG(float3 Color, float Exposure) 
-{
-	return Color.g * HdrWeightG_(Color.g, Exposure);
-}
-
-
-
-float Luma(float3 Color) 
-{
-	#if 1
-		// This seems to work better (less same luma ghost trails).
-		// CCIR 601 function for luma.
-		return dot(Color, float3(0.299, 0.587, 0.114));
-	#else
-		// Rec 709 function for luma.
-		return dot(Color, float3(0.2126, 0.7152, 0.0722));
-	#endif
-}
-
-float HighlightCompression(float Channel) 
-{
-	return Channel * rcp(1.0 + Channel);
-}
-	
-float HighlightDecompression(float Channel) 
-{
-	return Channel * rcp(1.0 - Channel);
-}
-
-float PerceptualLuma(float3 Color, float Exposure) 
-{
-	return sqrt(HighlightCompression(Luma(Color) * Exposure));
-}
-
-float LinearLuma(float Channel) 
-{
-	// This returns exposure normalized linear luma from a PerceptualLuma().
-	return HighlightDecompression(Channel * Channel);
 }
 
 // Intersect ray with AABB, knowing there is an intersection.
@@ -186,47 +118,42 @@ float IntersectAABB(float3 Dir, float3 Org, float3 Box)
 	return max(max(min(TNeg.x, TPos.x), min(TNeg.y, TPos.y)), min(TNeg.z, TPos.z));
 }
 
-float HistoryClamp(float3 History, float3 Filtered, float3 NeighborMin, float3 NeighborMax)
+float HistoryClip(float3 History, float3 Filtered, float3 NeighborMin, float3 NeighborMax)
 {
+#if 0
 	float3 Min = min(Filtered, min(NeighborMin, NeighborMax));
 	float3 Max = max(Filtered, max(NeighborMin, NeighborMax));	
 	float3 Avg2 = Max + Min;
 	float3 Dir = Filtered - History;
 	float3 Org = History - Avg2 * 0.5;
 	float3 Scale = Max - Avg2 * 0.5;
-	return saturate(IntersectAABB(Dir, Org, Scale));	
+	return saturate(IntersectAABB(Dir, Org, Scale));
+#else
+	float3 BoxMin = NeighborMin;
+	float3 BoxMax = NeighborMax;
+	//float3 BoxMin = min( Filtered, NeighborMin );
+	//float3 BoxMax = max( Filtered, NeighborMax );
+
+	float3 RayOrigin = History;
+	float3 RayDir = Filtered - History;
+	RayDir = abs( RayDir ) < (1.0/65536.0) ? (1.0/65536.0) : RayDir;
+	float3 InvRayDir = rcp( RayDir );
+
+	float3 MinIntersect = (BoxMin - RayOrigin) * InvRayDir;
+	float3 MaxIntersect = (BoxMax - RayOrigin) * InvRayDir;
+	float3 EnterIntersect = min( MinIntersect, MaxIntersect );
+	return max3( EnterIntersect.x, EnterIntersect.y, EnterIntersect.z );
+#endif
 }
 
-float HdrWeight(float3 Color, float Exposure) 
+float4 WeightedLerp( float4 ColorA, float WeightA, float4 ColorB, float WeightB, float Blend ) 
 {
-	return rcp(max(Luma(Color) * Exposure, 1.0));
-}
-
-float4 HdrLerp(float4 ColorA, float4 ColorB, float Blend, float Exposure) 
-{
-	float BlendA = (1.0 - Blend) * HdrWeight(ColorA.rgb, Exposure);
-	float BlendB =        Blend  * HdrWeight(ColorB.rgb, Exposure);
+	float BlendA = (1.0 - Blend) * WeightA;
+	float BlendB =        Blend  * WeightB;
 	float RcpBlend = rcp(BlendA + BlendB);
 	BlendA *= RcpBlend;
 	BlendB *= RcpBlend;
 	return ColorA * BlendA + ColorB * BlendB;
-}
-
-void WeightTrackedAlphaClamping(
-		inout float NeighborAlphaMin, inout float NeighborMinWeight,
-		inout float NeighborAlphaMax, inout float NeighborMaxWeight,
-		in float NeighborAlpha, in float NeighborWeight)
-{
-	if (NeighborAlpha < NeighborAlphaMin)
-	{
-		NeighborAlphaMin = NeighborAlpha;
-		NeighborMinWeight = NeighborWeight;
-	}
-	else if (NeighborAlpha > NeighborAlphaMax)
-	{
-		NeighborAlphaMax = NeighborAlpha;
-		NeighborMaxWeight = NeighborWeight;
-	}
 }
 
 #define MINIMAL_REPROJECTION_DEBUG 0
@@ -286,10 +213,10 @@ float4 DOFTemporalAACommon(in float2 UV, in float InExposureScale)
 	float4 OutColor = 0;
 
 #if ENABLE_TEMPORAL_AA
-	#define AA_FILTERED 0
+	#define AA_FILTERED 0		// TODO Turn back on when Catmull-Rom weights can be disabled
 	#define AA_ALPHA 1
 	#define AA_CROSS 4
-	#define AA_DYNAMIC 1
+	#define AA_AABB 0
 	#define AA_NAN 1
 	#define AA_BORDER 1
 	#define AA_FORCE_ALPHA_CLAMP 1
@@ -376,11 +303,13 @@ float4 MainTemporalAACommon(in float2 UV, in float4 SvPosition, in float InExpos
 		#define AA_ALPHA (POST_PROCESS_ALPHA)
 		#define AA_BORDER 1
 		#define AA_CROSS 2
-		#define AA_AABB 1
+		#define AA_AABB 0
+		#define AA_ROUND 0
 		#define AA_YCOCG 1
 		#define AA_BICUBIC 1
-		#define AA_ACCURATE_ALPHA (POST_PROCESS_ALPHA)
 		#define AA_DYNAMIC_ANTIGHOST 1
+		#define AA_TONE 1
+		#define AA_CLAMP 1
 	#if COMPUTESHADER
 		#define AA_SINGLE_PASS_RESPONSIVE 1
 	#endif
@@ -438,9 +367,9 @@ float4 MainFastTemporalAACommon(in float2 UV, in float InExposureScale)
 	#define AA_ALPHA (POST_PROCESS_ALPHA)
 	#define AA_BORDER 1
 	#define AA_CROSS 2
+	#define AA_AABB 0
 	#define AA_YCOCG 1
 	#define AA_BICUBIC 1
-	#define AA_ACCURATE_ALPHA (POST_PROCESS_ALPHA)
 #if COMPUTESHADER
 	#define AA_SINGLE_PASS_RESPONSIVE 1
 #endif

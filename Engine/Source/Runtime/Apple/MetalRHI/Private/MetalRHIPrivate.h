@@ -16,7 +16,7 @@ const uint32 BufferOffsetAlignment = 256;
 // The buffer page size that can be uploaded in a set*Bytes call
 const uint32 MetalBufferPageSize = 4096;
 
-#define BUFFER_CACHE_MODE MTLResourceCPUCacheModeWriteCombined
+#define BUFFER_CACHE_MODE MTLResourceCPUCacheModeDefaultCache
 
 #if PLATFORM_MAC
 #define BUFFER_MANAGED_MEM MTLResourceStorageModeManaged
@@ -38,7 +38,16 @@ const uint32 MaxMetalStreams = 30;
 #define METAL_STATISTICS 0
 #endif
 
+// Unavailable on iOS, but dealing with this clutters the code.
+enum EMTLTextureType
+{
+	EMTLTextureTypeCubeArray = 6
+};
+
 #define METAL_SUPPORTS_HEAPS !PLATFORM_MAC
+// This is the right VERSION check, see Availability.h in the SDK
+#define METAL_SUPPORTS_INDIRECT_ARGUMENT_BUFFERS !PLATFORM_MAC && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
+#define METAL_SUPPORTS_CAPTURE_MANAGER (PLATFORM_MAC && __MAC_OS_X_VERSION_MAX_ALLOWED >= 101300) || (!PLATFORM_MAC && __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000)
 
 #define METAL_DEBUG_OPTIONS !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 #if METAL_DEBUG_OPTIONS
@@ -88,6 +97,10 @@ FMetalSurface* GetMetalSurfaceFromRHITexture(FRHITexture* Texture);
 #define MTLResourceHazardTrackingModeUntracked 0
 #endif
 
+@protocol FMTLBufferExtensions <MTLBuffer>  // extend MTLBuffer.  This overrides the availability declared in MTLBuffer.
+- (id <MTLTexture>)newTextureWithDescriptor:(MTLTextureDescriptor*)descriptor offset:(NSUInteger)offset bytesPerRow:(NSUInteger)bytesPerRow;
+@end
+
 #if SHOULD_TRACK_OBJECTS
 void TrackMetalObject(NSObject* Object);
 void UntrackMetalObject(NSObject* Object);
@@ -98,13 +111,6 @@ void UntrackMetalObject(NSObject* Object);
 #define UNTRACK_OBJECT(Stat, Obj) DEC_DWORD_STAT(Stat)
 #endif
 
-enum EMetalIndexType
-{
-	EMetalIndexType_None   = 0,
-	EMetalIndexType_UInt16 = 1,
-	EMetalIndexType_UInt32 = 2
-};
-
 FORCEINLINE MTLIndexType GetMetalIndexType(EMetalIndexType IndexType)
 {
 	switch (IndexType)
@@ -112,6 +118,7 @@ FORCEINLINE MTLIndexType GetMetalIndexType(EMetalIndexType IndexType)
 		case EMetalIndexType_UInt16: return MTLIndexTypeUInt16;
 		case EMetalIndexType_UInt32: return MTLIndexTypeUInt32;
 		case EMetalIndexType_None:
+		default:
 		{
 			UE_LOG(LogMetal, Fatal, TEXT("There is not equivalent MTLIndexType for EMetalIndexType_None"));
 			return MTLIndexTypeUInt16;
@@ -125,6 +132,7 @@ FORCEINLINE EMetalIndexType GetRHIMetalIndexType(MTLIndexType IndexType)
 	{
 		case MTLIndexTypeUInt16: return EMetalIndexType_UInt16;
 		case MTLIndexTypeUInt32: return EMetalIndexType_UInt32;
+		default: return EMetalIndexType_None;
 	}
 }
 
@@ -157,6 +165,14 @@ FORCEINLINE MTLLoadAction GetMetalRTLoadAction(ERenderTargetLoadAction LoadActio
 uint32 TranslateElementTypeToSize(EVertexElementType Type);
 
 MTLPrimitiveType TranslatePrimitiveType(uint32 PrimitiveType);
+
+#if PLATFORM_MAC
+MTLPrimitiveTopologyClass TranslatePrimitiveTopology(uint32 PrimitiveType);
+#endif
+
+MTLPixelFormat ToSRGBFormat(MTLPixelFormat LinMTLFormat);
+
+uint8 GetMetalPixelFormatKey(MTLPixelFormat Format);
 
 template<typename TRHIType>
 static FORCEINLINE typename TMetalResourceTraits<TRHIType>::TConcreteType* ResourceCast(TRHIType* Resource)

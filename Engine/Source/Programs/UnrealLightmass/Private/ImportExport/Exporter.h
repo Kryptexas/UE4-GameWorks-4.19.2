@@ -37,6 +37,7 @@ namespace Lightmass
 		 */
 		void ExportResults(struct FTextureMappingStaticLightingData& LightingData, bool bUseUniqueChannel) const;
 		void ExportResults(const struct FPrecomputedVisibilityData& TaskData) const;
+		void ExportResults(const struct FVolumetricLightmapTaskData& TaskData) const;
 
 		/**
 		 * Used when exporting multiple mappings into a single file

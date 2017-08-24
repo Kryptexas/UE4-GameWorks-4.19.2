@@ -18,7 +18,8 @@ public class FunctionalTesting : ModuleRules
                 "RenderCore",
                 "AssetRegistry",
                 "RHI",
-                "UMG"
+                "UMG",
+				"AutomationController"
             }
         );
 

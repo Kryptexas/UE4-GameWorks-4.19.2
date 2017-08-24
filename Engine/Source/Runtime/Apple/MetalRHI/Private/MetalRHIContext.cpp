@@ -112,6 +112,15 @@ void FMetalRHIComputeContext::RHISetComputeShader(FComputeShaderRHIParamRef Comp
 	FMetalRHICommandContext::RHISetComputeShader(ComputeShader);
 }
 
+void FMetalRHIComputeContext::RHISetComputePipelineState(FRHIComputePipelineState* ComputePipelineState)
+{
+	if (!Context->GetCurrentCommandBuffer())
+	{
+		Context->InitFrame(false);
+	}
+	FMetalRHICommandContext::RHISetComputePipelineState(ComputePipelineState);
+}
+
 void FMetalRHIComputeContext::RHISubmitCommandsHint()
 {
 	if (!Context->GetCurrentCommandBuffer())

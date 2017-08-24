@@ -7,7 +7,7 @@
 // basic stuff needed by everybody
 #pragma warning( disable: 4799 )		// function '...' has no EMMS instruction)
 
-#if (PLATFORM_MAC || PLATFORM_LINUX)
+#if (PLATFORM_MAC && __clang_major__ < 9) || PLATFORM_LINUX
 #if !__has_builtin(__rdtsc)
 inline unsigned long long __rdtsc()
 {

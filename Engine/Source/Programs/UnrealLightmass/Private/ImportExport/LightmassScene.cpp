@@ -19,6 +19,7 @@ FSceneFileHeader::FSceneFileHeader(const FSceneFileHeader& Other)
 	GeneralSettings = Other.GeneralSettings;
 	SceneConstants = Other.SceneConstants;
 	DynamicObjectSettings = Other.DynamicObjectSettings;
+	VolumetricLightmapSettings = Other.VolumetricLightmapSettings;
 	PrecomputedVisibilitySettings = Other.PrecomputedVisibilitySettings;
 	VolumeDistanceFieldSettings = Other.VolumeDistanceFieldSettings;
 	MeshAreaLightSettings = Other.MeshAreaLightSettings;
@@ -177,6 +178,8 @@ void FScene::Import( FLightmassImporter& Importer )
 	int32 NumCameraTrackPositions;
 	Importer.ImportData(&NumCameraTrackPositions);
 	Importer.ImportArray(CameraTrackPositions, NumCameraTrackPositions);
+
+	Importer.ImportArray(VolumetricLightmapTaskGuids, NumVolumetricLightmapTasks);
 
 	Importer.ImportObjectArray( DirectionalLights, NumDirectionalLights, Importer.GetLights() );
 	Importer.ImportObjectArray( PointLights, NumPointLights, Importer.GetLights() );
@@ -488,6 +491,12 @@ void FLight::Import( FLightmassImporter& Importer )
 bool FLight::AffectsBounds(const FBoxSphereBounds& Bounds) const
 {
 	return true;
+}
+
+FSphere FLight::GetBoundingSphere() const
+{
+	// Directional lights will have a radius of WORLD_MAX
+	return FSphere(FVector(0, 0, 0), (float)WORLD_MAX);
 }
 
 /**
@@ -1174,10 +1183,10 @@ FVector4 FPointLight::LightCenterPosition(const FVector4& ReceivingPosition, con
 	{
 		FVector4 ToLight = Position - ReceivingPosition;
 
-		FVector4 Dir = Direction;
-		if( Dot3( ReceivingNormal, Direction ) < 0.0f )
+		FVector4 Dir = GetLightTangent();
+		if( Dot3( ReceivingNormal, Dir ) < 0.0f )
 		{
-			Dir = -Direction;
+			Dir = -Dir;
 		}
 
 		// Clip to hemisphere
@@ -1234,6 +1243,12 @@ FVector4 FPointLight::GetDirectLightingDirection(const FVector4& Point, const FV
 	}
 }
 
+FVector FPointLight::GetLightTangent() const
+{
+	// For point lights, light tangent is not provided, however it doesn't matter much since point lights are omni-directional
+	return Direction;
+}
+
 /** Generates a sample on the light's surface. */
 void FPointLight::SampleLightSurface(FLMRandomStream& RandomStream, FLightSurfaceSample& Sample) const
 {
@@ -1251,9 +1266,12 @@ void FPointLight::SampleLightSurface(FLMRandomStream& RandomStream, FLightSurfac
 	}
 	else
 	{
-		float CylinderSurfaceArea = 2.0f * (float)PI * LightSourceRadius * LightSourceLength;
-		float SphereSurfaceArea = 4.0f * (float)PI * LightSourceRadius * LightSourceRadius;
+		const float ClampedLightSourceRadius = FMath::Max(DELTA, LightSourceRadius);
+		float CylinderSurfaceArea = 2.0f * (float)PI * ClampedLightSourceRadius * LightSourceLength;
+		float SphereSurfaceArea = 4.0f * (float)PI * ClampedLightSourceRadius * ClampedLightSourceRadius;
 		float TotalSurfaceArea = CylinderSurfaceArea + SphereSurfaceArea;
+
+		const FVector TubeLightDirection = GetLightTangent();
 
 		// Cylinder End caps
 		// The chance of calculating a point on the end sphere is equal to it's percentage of total surface area
@@ -1262,15 +1280,15 @@ void FPointLight::SampleLightSurface(FLMRandomStream& RandomStream, FLightSurfac
 			// Generate a sample on the surface of the sphere with uniform density over the surface area of the sphere
 			//@todo - stratify
 			const FVector4 UnitSpherePosition = GetUnitVector(RandomStream);
-			Sample.Position = UnitSpherePosition * LightSourceRadius + Position;
+			Sample.Position = UnitSpherePosition * ClampedLightSourceRadius + Position;
 
-			if (Dot3(UnitSpherePosition, Direction) > 0)
+			if (Dot3(UnitSpherePosition, TubeLightDirection) > 0)
 			{
-				Sample.Position += Direction * (LightSourceLength * 0.5f);
+				Sample.Position += TubeLightDirection * (LightSourceLength * 0.5f);
 			}
 			else
 			{
-				Sample.Position += -Direction * (LightSourceLength * 0.5f);
+				Sample.Position += -TubeLightDirection * (LightSourceLength * 0.5f);
 			}
 
 			Sample.Normal = UnitSpherePosition;
@@ -1279,13 +1297,13 @@ void FPointLight::SampleLightSurface(FLMRandomStream& RandomStream, FLightSurfac
 		else
 		{
 			// Get point along center line
-			FVector4 CentreLinePosition = Position + Direction * LightSourceLength * (RandomStream.GetFraction() - 0.5f);
+			FVector4 CentreLinePosition = Position + TubeLightDirection * LightSourceLength * (RandomStream.GetFraction() - 0.5f);
 			// Get point radius away from center line at random angle
 			float Theta = 2.0f * (float)PI * RandomStream.GetFraction();
 			FVector4 CylEdgePos = FVector4(0, FMath::Cos(Theta), FMath::Sin(Theta), 1);
-			CylEdgePos = FRotationMatrix::MakeFromZ( Direction ).TransformVector( CylEdgePos );
+			CylEdgePos = FRotationMatrix::MakeFromZ( TubeLightDirection ).TransformVector( CylEdgePos );
 
-			Sample.Position = CylEdgePos * LightSourceRadius + CentreLinePosition;
+			Sample.Position = CylEdgePos * ClampedLightSourceRadius + CentreLinePosition;
 			Sample.Normal = CylEdgePos;
 		}
 
@@ -1302,6 +1320,18 @@ void FSpotLight::Import( FLightmassImporter& Importer )
 	FPointLight::Import( Importer );
 
 	Importer.ImportData( (FSpotLightData*)this );
+}
+
+void FSpotLight::Initialize(float InIndirectPhotonEmitConeAngle)
+{
+	FPointLight::Initialize(InIndirectPhotonEmitConeAngle);
+
+	float ClampedInnerConeAngle = FMath::Clamp(InnerConeAngle, 0.0f, 89.0f) * (float)PI / 180.0f;
+	float ClampedOuterConeAngle = FMath::Clamp(OuterConeAngle * (float)PI / 180.0f,ClampedInnerConeAngle + 0.001f,89.0f * (float)PI / 180.0f + 0.001f);
+
+	SinOuterConeAngle = FMath::Sin(ClampedOuterConeAngle),
+	CosOuterConeAngle = FMath::Cos(ClampedOuterConeAngle);
+	CosInnerConeAngle = FMath::Cos(ClampedInnerConeAngle);
 }
 
 /**
@@ -1323,22 +1353,18 @@ bool FSpotLight::AffectsBounds(const FBoxSphereBounds& Bounds) const
 	}
 
 	// Cone check
-	float	ClampedInnerConeAngle = FMath::Clamp(InnerConeAngle,0.0f,89.0f) * (float)PI / 180.0f,
-			ClampedOuterConeAngle = FMath::Clamp(OuterConeAngle * (float)PI / 180.0f,ClampedInnerConeAngle + 0.001f,89.0f * (float)PI / 180.0f + 0.001f);
 
-	float	Sin = FMath::Sin(ClampedOuterConeAngle),
-			Cos = FMath::Cos(ClampedOuterConeAngle);
 
-	FVector4	U = Position - (Bounds.SphereRadius / Sin) * Direction,
+	FVector4	U = Position - (Bounds.SphereRadius / SinOuterConeAngle) * Direction,
 				D = Bounds.Origin - U;
 	float	dsqr = Dot3(D, D),
 			E = Dot3(Direction, D);
-	if(E > 0.0f && E * E >= dsqr * FMath::Square(Cos))
+	if(E > 0.0f && E * E >= dsqr * FMath::Square(CosOuterConeAngle))
 	{
 		D = Bounds.Origin - Position;
 		dsqr = Dot3(D, D);
 		E = -Dot3(Direction, D);
-		if(E > 0.0f && E * E >= dsqr * FMath::Square(Sin))
+		if(E > 0.0f && E * E >= dsqr * FMath::Square(SinOuterConeAngle))
 			return dsqr <= FMath::Square(Bounds.SphereRadius);
 		else
 			return true;
@@ -1347,18 +1373,20 @@ bool FSpotLight::AffectsBounds(const FBoxSphereBounds& Bounds) const
 	return false;
 }
 
+FSphere FSpotLight::GetBoundingSphere() const
+{
+	// Use the law of cosines to find the distance to the furthest edge of the spotlight cone from a position that is halfway down the spotlight direction
+	const float BoundsRadius = FMath::Sqrt(1.25f * Radius * Radius - Radius * Radius * CosOuterConeAngle);
+	return FSphere(Position + .5f * Direction * Radius, BoundsRadius);
+}
+
 /**
  * Computes the intensity of the direct lighting from this light on a specific point.
  */
 FLinearColor FSpotLight::GetDirectIntensity(const FVector4& Point, bool bCalculateForIndirectLighting) const
 {
-	float	ClampedInnerConeAngle = FMath::Clamp(InnerConeAngle,0.0f,89.0f) * (float)PI / 180.0f,
-			ClampedOuterConeAngle = FMath::Clamp(OuterConeAngle * (float)PI / 180.0f,ClampedInnerConeAngle + 0.001f,89.0f * (float)PI / 180.0f + 0.001f),
-			OuterCone = FMath::Cos(ClampedOuterConeAngle),
-			InnerCone = FMath::Cos(ClampedInnerConeAngle);
-
 	FVector4 LightVector = (Point - Position).GetSafeNormal();
-	float SpotAttenuation = FMath::Square(FMath::Clamp<float>((Dot3(LightVector, Direction) - OuterCone) / (InnerCone - OuterCone),0.0f,1.0f));
+	float SpotAttenuation = FMath::Square(FMath::Clamp<float>((Dot3(LightVector, Direction) - CosOuterConeAngle) / (CosInnerConeAngle - CosOuterConeAngle),0.0f,1.0f));
 
 	if( LightFlags & GI_LIGHT_INVERSE_SQUARED )
 	{
@@ -1403,7 +1431,7 @@ FLinearColor FSpotLight::GetDirectIntensity(const FVector4& Point, bool bCalcula
 int32 FSpotLight::GetNumDirectPhotons(float DirectPhotonDensity) const
 {
 	const float InfluenceSphereSurfaceAreaMillions = 4.0f * (float)PI * FMath::Square(Radius) / 1000000.0f;
-	const float ConeSolidAngle = 2.0f * float(PI) * (1.0f - FMath::Cos(OuterConeAngle * (float)PI / 180.0f));
+	const float ConeSolidAngle = 2.0f * float(PI) * (1.0f - CosOuterConeAngle);
 	// Find the fraction of the sphere's surface area that is inside the cone
 	const float ConeSurfaceAreaSphereFraction = ConeSolidAngle / (4.0f * (float)PI);
 	// Gather enough photons to meet DirectPhotonDensity on the spherical cap at the influence radius of the spot light.
@@ -1418,7 +1446,6 @@ void FSpotLight::SampleDirection(FLMRandomStream& RandomStream, FLightRay& Sampl
 	FVector4 YAxis(0,0,0);
 	GenerateCoordinateSystem(Direction, XAxis, YAxis);
 
-	const float CosOuterConeAngle = FMath::Cos(OuterConeAngle * (float)PI / 180.0f);
 	//@todo - the PDF should be affected by inner cone angle too
 	const FVector4 ConeSampleDirection = UniformSampleCone(RandomStream, CosOuterConeAngle, XAxis, YAxis, Direction);
 
@@ -1435,6 +1462,11 @@ void FSpotLight::SampleDirection(FLMRandomStream& RandomStream, FLightRay& Sampl
 	RayPDF = UniformConePDF(CosOuterConeAngle);
 	checkSlow(RayPDF > 0.0f);
 	Power = IndirectColor * Brightness * PointLightIntensityScale;
+}
+
+FVector FSpotLight::GetLightTangent() const
+{
+	return LightTangent;
 }
 
 //----------------------------------------------------------------------------

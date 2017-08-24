@@ -92,7 +92,8 @@ struct FLocalLightData
 	float4 LightPositionAndInvRadius;
 	float4 LightColorAndFalloffExponent;
 	float4 SpotAnglesAndSourceRadiusPacked;
-	float4 LightDirectionAndShadowMask;
+    float4 LightDirectionAndShadowMask;
+    float4 LightTangentAndSoftSourceRadius;
 };
 
 FLocalLightData GetLocalLightData(uint GridIndex, uint EyeIndex)
@@ -106,8 +107,9 @@ FLocalLightData GetLocalLightData(uint GridIndex, uint EyeIndex)
 		Result.LightPositionAndInvRadius = ForwardLocalLightBuffer[LocalLightBaseIndex + 0];
 		Result.LightColorAndFalloffExponent = ForwardLocalLightBuffer[LocalLightBaseIndex + 1];
 		Result.LightDirectionAndShadowMask = ForwardLocalLightBuffer[LocalLightBaseIndex + 2];
-		Result.SpotAnglesAndSourceRadiusPacked = ForwardLocalLightBuffer[LocalLightBaseIndex + 3];
-	}
+        Result.SpotAnglesAndSourceRadiusPacked = ForwardLocalLightBuffer[LocalLightBaseIndex + 3];
+        Result.LightTangentAndSoftSourceRadius = ForwardLocalLightBuffer[LocalLightBaseIndex + 4];
+    }
 	else
 	{
 		uint LocalLightIndex = InstancedCulledLightDataGrid[GridIndex];
@@ -115,8 +117,9 @@ FLocalLightData GetLocalLightData(uint GridIndex, uint EyeIndex)
 		Result.LightPositionAndInvRadius = InstancedForwardLocalLightBuffer[LocalLightBaseIndex + 0];
 		Result.LightColorAndFalloffExponent = InstancedForwardLocalLightBuffer[LocalLightBaseIndex + 1];
 		Result.LightDirectionAndShadowMask = InstancedForwardLocalLightBuffer[LocalLightBaseIndex + 2];
-		Result.SpotAnglesAndSourceRadiusPacked = InstancedForwardLocalLightBuffer[LocalLightBaseIndex + 3];
-	}
+        Result.SpotAnglesAndSourceRadiusPacked = InstancedForwardLocalLightBuffer[LocalLightBaseIndex + 3];
+        Result.LightTangentAndSoftSourceRadius = InstancedForwardLocalLightBuffer[LocalLightBaseIndex + 4];
+    }
 
 	return Result;
 }

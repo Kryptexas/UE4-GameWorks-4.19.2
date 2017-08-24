@@ -50,6 +50,12 @@ namespace UnrealBuildTool.Rules
                 AddEngineThirdPartyPrivateStaticDependencies(Target, "Vulkan");
                 PrivateDependencyModuleNames.Add("VulkanRHI");
             }
+            else if (Target.Platform == UnrealTargetPlatform.Mac)
+            {
+				PublicFrameworks.Add("IOSurface");
+                AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenVR");
+                PrivateDependencyModuleNames.AddRange(new string[] { "MetalRHI" });
+            }
             else if (Target.Platform == UnrealTargetPlatform.Linux && Target.Architecture.StartsWith("x86_64"))
 			{
 				AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenVR");

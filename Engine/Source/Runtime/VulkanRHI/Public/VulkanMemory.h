@@ -454,6 +454,11 @@ namespace VulkanRHI
 		uint32 AlignedOffset;
 		uint32 AllocationSize;
 		uint32 AllocationOffset;
+#if VULKAN_TRACK_MEMORY_USAGE
+		const char* File;
+		uint32 Line;
+		friend class FSubresourceAllocator;
+#endif
 	};
 
 	// Suballocation of a VkBuffer
@@ -886,13 +891,18 @@ namespace VulkanRHI
 	{
 	public:
 		FStagingManager() :
-			Device(nullptr),
-			Queue(nullptr)
+			PeakUsedMemory(0),
+			UsedMemory(0),
+			Device(nullptr)
 		{
 		}
 		~FStagingManager();
 
-		void Init(FVulkanDevice* InDevice, FVulkanQueue* InQueue);
+		void Init(FVulkanDevice* InDevice)
+		{
+			Device = InDevice;
+		}
+
 		void Deinit();
 
 		FStagingBuffer* AcquireBuffer(uint32 Size, VkBufferUsageFlags InUsageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT, bool bCPURead = false);
@@ -900,26 +910,45 @@ namespace VulkanRHI
 		// Sets pointer to nullptr
 		void ReleaseBuffer(FVulkanCmdBuffer* CmdBuffer, FStagingBuffer*& StagingBuffer);
 
-		void ProcessPendingFree(bool bImmediately = false);
+		void ProcessPendingFree(bool bImmediately, bool bFreeToOS);
 
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 		void DumpMemory();
 #endif
 
 	protected:
-		struct FPendingItem
+		struct FPendingItemsPerCmdBuffer
 		{
 			FVulkanCmdBuffer* CmdBuffer;
-			uint64 FenceCounter;
-			FStagingBuffer* Resource;
+			struct FPendingItems
+			{
+				uint64 FenceCounter;
+				TArray<FStagingBuffer*> Resources;
+			};
+
+
+			inline FPendingItems* FindOrAddItemsForFence(uint64 Fence);
+
+			TArray<FPendingItems> PendingItems;
 		};
 
 		TArray<FStagingBuffer*> UsedStagingBuffers;
-		TArray<FPendingItem> PendingFreeStagingBuffers;
-		TArray<FPendingItem> FreeStagingBuffers;
+		TArray<FPendingItemsPerCmdBuffer> PendingFreeStagingBuffers;
+		struct FFreeEntry
+		{
+			FStagingBuffer* Buffer;
+			uint32 FrameNumber;
+		};
+		TArray<FFreeEntry> FreeStagingBuffers;
+
+		uint64 PeakUsedMemory;
+		uint64 UsedMemory;
+
+		FPendingItemsPerCmdBuffer* FindOrAdd(FVulkanCmdBuffer* CmdBuffer);
+
+		void ProcessPendingFreeNoLock(bool bImmediately, bool bFreeToOS);
 
 		FVulkanDevice* Device;
-		FVulkanQueue* Queue;
 	};
 
 	class FFence

@@ -147,6 +147,9 @@ FActorSpawnParameters::FActorSpawnParameters()
 , bNoFail(false)
 , bDeferConstruction(false)
 , bAllowDuringConstructionScript(false)
+#if WITH_EDITOR
+, bTemporaryEditorActor(false)
+#endif
 , ObjectFlags(RF_Transactional)
 {
 }

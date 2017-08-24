@@ -310,6 +310,8 @@ public:
 
 	virtual void WriteLineToCheckpointFile(FString LineToWrite) override;
 
+	virtual void ResetAutomationTestTimeout(const TCHAR* Reason) override;
+	
 protected:
 
 	/**

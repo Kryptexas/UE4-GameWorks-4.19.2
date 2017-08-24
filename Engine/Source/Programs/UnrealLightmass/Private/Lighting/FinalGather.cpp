@@ -20,12 +20,63 @@
 namespace Lightmass
 {
 
+void FStaticLightingSystem::GatherVolumeImportancePhotonDirections(
+	const FVector WorldPosition,
+	FVector FirstHemisphereNormal,
+	FVector SecondHemisphereNormal,
+	TArray<FVector4>& FirstHemisphereImportancePhotonDirections,
+	TArray<FVector4>& SecondHemisphereImportancePhotonDirections,
+	bool bDebugThisSample) const
+{
+	if (GeneralSettings.NumIndirectLightingBounces > 0 && PhotonMappingSettings.bUsePhotonMapping && PhotonMappingSettings.bUsePhotonSegmentsForVolumeLighting)
+	{
+		TArray<FPhotonSegmentElement> FoundPhotonSegments;
+		// Gather nearby first bounce photons, which give an estimate of the first bounce incident radiance function,
+		// Which we can use to importance sample the real first bounce incident radiance function.
+		// See the "Extended Photon Map Implementation" paper.
+
+		FindNearbyPhotonsInVolumeIterative(
+			FirstBouncePhotonSegmentMap, 
+			WorldPosition, 
+			PhotonMappingSettings.NumImportanceSearchPhotons, 
+			PhotonMappingSettings.MinImportancePhotonSearchDistance, 
+			PhotonMappingSettings.MaxImportancePhotonSearchDistance, 
+			FoundPhotonSegments,
+			bDebugThisSample);
+
+		FirstHemisphereImportancePhotonDirections.Empty(FoundPhotonSegments.Num());
+		SecondHemisphereImportancePhotonDirections.Empty(FoundPhotonSegments.Num());
+
+		for (int32 PhotonIndex = 0; PhotonIndex < FoundPhotonSegments.Num(); PhotonIndex++)
+		{
+			const FPhoton& CurrentPhoton = *FoundPhotonSegments[PhotonIndex].Photon;
+			// Calculate the direction from the current position to the photon's source
+			// Using the photon's incident direction unmodified produces artifacts proportional to the distance to that photon
+			const FVector4 NewDirection = CurrentPhoton.GetPosition() + CurrentPhoton.GetIncidentDirection() * CurrentPhoton.GetDistance() - WorldPosition;
+			// Only use the direction if it is in the hemisphere of the normal
+			// FindNearbyPhotons only returns photons whose incident directions lie in this hemisphere, but the recalculated direction might not.
+			if (Dot3(NewDirection, FirstHemisphereNormal) > 0.0f)
+			{
+				FirstHemisphereImportancePhotonDirections.Add(NewDirection.GetUnsafeNormal3());
+			}
+
+			if (Dot3(NewDirection, SecondHemisphereNormal) > 0.0f)
+			{
+				SecondHemisphereImportancePhotonDirections.Add(NewDirection.GetUnsafeNormal3());
+			}
+		}
+	}
+}
+
 /** Calculates incident radiance for a given world space position. */
 void FStaticLightingSystem::CalculateVolumeSampleIncidentRadiance(
 	const TArray<FVector4>& UniformHemisphereSamples,
 	const TArray<FVector2D>& UniformHemisphereSampleUniforms,
 	float MaxUnoccludedLength,
+	const TArray<FVector, TInlineAllocator<1>>& VertexOffsets,
 	FVolumeLightingSample& LightingSample,
+	float& OutBackfacingHitsFraction,
+	float& OutMinDistanceToSurface,
 	FLMRandomStream& RandomStream,
 	FStaticLightingMappingContext& MappingContext,
 	bool bDebugThisSample
@@ -36,7 +87,33 @@ void FStaticLightingSystem::CalculateVolumeSampleIncidentRadiance(
 		int32 asdf = 0;
 	}
 
+	const double StartTime = FPlatformTime::Seconds();
+
 	const FVector4 Position = LightingSample.GetPosition();
+
+	TArray<FVector4> UpperHemisphereImportancePhotonDirections;
+	TArray<FVector4> LowerHemisphereImportancePhotonDirections;
+	
+	GatherVolumeImportancePhotonDirections(
+		Position,
+		FVector(0, 0, 1),
+		FVector(0, 0, -1),
+		UpperHemisphereImportancePhotonDirections,
+		LowerHemisphereImportancePhotonDirections,
+		bDebugThisSample);
+
+	if (bDebugThisSample)
+	{
+		FScopeLock DebugOutputLock(&DebugOutputSync);
+		FDebugStaticLightingVertex DebugVertex;
+		DebugVertex.VertexNormal = FVector(0, 0, 1);
+		DebugVertex.VertexPosition = LightingSample.GetPosition();
+		DebugOutput.Vertices.Add(DebugVertex);
+	}
+		
+	const double EndGatherTime = FPlatformTime::Seconds();
+	MappingContext.Stats.VolumetricLightmapGatherImportancePhotonsTime += EndGatherTime - StartTime;
+
 	FFullStaticLightingVertex RepresentativeVertex;
 	RepresentativeVertex.WorldPosition = Position;
 	RepresentativeVertex.TextureCoordinates[0] = FVector2D(0,0);
@@ -52,13 +129,14 @@ void FStaticLightingSystem::CalculateVolumeSampleIncidentRadiance(
 	FGatheredLightSample3 UpperToggleableDirectLighting;
 	float UpperToggleableDirectionalLightShadowing = 1;
 
-	CalculateApproximateDirectLighting(RepresentativeVertex, 0, .1f, false, false, bDebugThisSample, MappingContext, UpperStaticDirectLighting, UpperToggleableDirectLighting, UpperToggleableDirectionalLightShadowing);
+	CalculateApproximateDirectLighting(RepresentativeVertex, LightingSample.GetRadius(), VertexOffsets, .1f, false, false, bDebugThisSample, MappingContext, UpperStaticDirectLighting, UpperToggleableDirectLighting, UpperToggleableDirectionalLightShadowing);
+	
+	const double EndUpperDirectLightingTime = FPlatformTime::Seconds();
+	MappingContext.Stats.VolumetricLightmapDirectLightingTime += EndUpperDirectLightingTime - EndGatherTime;
 
-	// Reduce quality from the defaults to keep sample build times reasonable
-	int32 NumSampleAdaptiveRefinementLevels = FMath::Max(ImportanceTracingSettings.NumAdaptiveRefinementLevels - 2, 0);
-	float SampleAdaptiveRefinementBrightnessScale = 10.0f;
-	FLightingCacheGatherInfo GatherInfo;
-	TArray<FVector4> ImportancePhotonDirections;
+	int32 NumSampleAdaptiveRefinementLevels = ImportanceTracingSettings.NumAdaptiveRefinementLevels;
+	float SampleAdaptiveRefinementBrightnessScale = 1.0f;
+	FLightingCacheGatherInfo UpperGatherInfo;
 
 	FFinalGatherSample3 UpperHemisphereSample;
 	
@@ -67,19 +145,20 @@ void FStaticLightingSystem::CalculateVolumeSampleIncidentRadiance(
 		UpperHemisphereSample = IncomingRadianceAdaptive<FFinalGatherSample3>(
 			NULL, 
 			RepresentativeVertex, 
-			0.0f, 
+			LightingSample.GetRadius(), 
 			false,
 			0, 
 			1, 
+			RBM_ScaledNormalOffset,
 			NumSampleAdaptiveRefinementLevels,
 			SampleAdaptiveRefinementBrightnessScale,
 			UniformHemisphereSamples,
 			UniformHemisphereSampleUniforms,
 			MaxUnoccludedLength,
-			ImportancePhotonDirections, 
+			UpperHemisphereImportancePhotonDirections, 
 			MappingContext, 
 			RandomStream, 
-			GatherInfo, 
+			UpperGatherInfo, 
 			false,
 			false,
 			bDebugThisSample);
@@ -89,30 +168,37 @@ void FStaticLightingSystem::CalculateVolumeSampleIncidentRadiance(
 		UpperHemisphereSample = IncomingRadianceUniform<FFinalGatherSample3>(
 			NULL,
 			RepresentativeVertex,
-			0.0f,
+			LightingSample.GetRadius(),
 			0,
 			1,
 			UniformHemisphereSamples,
 			MaxUnoccludedLength,
-			ImportancePhotonDirections,
+			UpperHemisphereImportancePhotonDirections,
 			MappingContext,
 			RandomStream,
-			GatherInfo,
+			UpperGatherInfo,
 			bDebugThisSample
 			);
 	}
+
+	const double EndUpperFinalGatherTime = FPlatformTime::Seconds();
+	MappingContext.Stats.VolumetricLightmapFinalGatherTime += EndUpperFinalGatherTime - EndUpperDirectLightingTime;
 
 	// Construct a vertex to capture incident radiance for the negative Z hemisphere
 	RepresentativeVertex.WorldTangentZ = RepresentativeVertex.TriangleNormal = FVector4(0,0,-1);
 	RepresentativeVertex.GenerateVertexTangents();
 	RepresentativeVertex.GenerateTriangleTangents();
 
+	FLightingCacheGatherInfo LowerGatherInfo;
 	FGatheredLightSample3 LowerStaticDirectLighting;
 	// Stationary point and spot light direct contribution
 	FGatheredLightSample3 LowerToggleableDirectLighting;
 	float LowerToggleableDirectionalLightShadowing = 1;
 
-	CalculateApproximateDirectLighting(RepresentativeVertex, 0, .1f, false, false, bDebugThisSample, MappingContext, LowerStaticDirectLighting, LowerToggleableDirectLighting, LowerToggleableDirectionalLightShadowing);
+	CalculateApproximateDirectLighting(RepresentativeVertex, LightingSample.GetRadius(), VertexOffsets, .1f, false, false, bDebugThisSample, MappingContext, LowerStaticDirectLighting, LowerToggleableDirectLighting, LowerToggleableDirectionalLightShadowing);
+
+	const double EndLowerDirectLightingTime = FPlatformTime::Seconds();
+	MappingContext.Stats.VolumetricLightmapDirectLightingTime += EndLowerDirectLightingTime - EndUpperFinalGatherTime;
 
 	FFinalGatherSample3 LowerHemisphereSample;
 	
@@ -121,19 +207,20 @@ void FStaticLightingSystem::CalculateVolumeSampleIncidentRadiance(
 		LowerHemisphereSample = IncomingRadianceAdaptive<FFinalGatherSample3>(
 			NULL, 
 			RepresentativeVertex, 
-			0.0f, 
+			LightingSample.GetRadius(), 
 			false,
 			0, 
 			1, 
+			RBM_ScaledNormalOffset,
 			NumSampleAdaptiveRefinementLevels,
 			SampleAdaptiveRefinementBrightnessScale,
 			UniformHemisphereSamples,
 			UniformHemisphereSampleUniforms,
 			MaxUnoccludedLength,
-			ImportancePhotonDirections, 
+			LowerHemisphereImportancePhotonDirections, 
 			MappingContext, 
 			RandomStream, 
-			GatherInfo, 
+			LowerGatherInfo, 
 			false,
 			false,
 			bDebugThisSample);
@@ -143,15 +230,15 @@ void FStaticLightingSystem::CalculateVolumeSampleIncidentRadiance(
 		LowerHemisphereSample = IncomingRadianceUniform<FFinalGatherSample3>(
 			NULL,
 			RepresentativeVertex,
-			0.0f,
+			LightingSample.GetRadius(),
 			0,
 			1,
 			UniformHemisphereSamples,
 			MaxUnoccludedLength,
-			ImportancePhotonDirections,
+			LowerHemisphereImportancePhotonDirections,
 			MappingContext,
 			RandomStream,
-			GatherInfo,
+			LowerGatherInfo,
 			bDebugThisSample
 			);
 	}
@@ -179,6 +266,12 @@ void FStaticLightingSystem::CalculateVolumeSampleIncidentRadiance(
 
 	// Only using the upper hemisphere sky bent normal
 	LightingSample.SkyBentNormal = UpperHemisphereSample.SkyOcclusion;
+
+	OutBackfacingHitsFraction = .5f * (UpperGatherInfo.BackfacingHitsFraction + LowerGatherInfo.BackfacingHitsFraction);
+	OutMinDistanceToSurface = FMath::Min(UpperGatherInfo.MinDistance, LowerGatherInfo.MinDistance);
+
+	const double EndTime = FPlatformTime::Seconds();
+	MappingContext.Stats.VolumetricLightmapFinalGatherTime += EndTime - EndLowerDirectLightingTime;
 }
 
 FGatheredLightSample FStaticLightingSystem::CalculateApproximateSkyLighting(
@@ -341,8 +434,10 @@ FLinearColor FStaticLightingSystem::CalculateExitantRadiance(
 				FGatheredLightSample DirectLightingSample;
 				FGatheredLightSample UnusedSample;
 				float UnusedShadowing;
-					
-				CalculateApproximateDirectLighting(Vertex, 0, .1f, true, true, bDebugThisTexel, MappingContext, DirectLightingSample, UnusedSample, UnusedShadowing);
+				TArray<FVector, TInlineAllocator<1>> VertexOffsets;
+				VertexOffsets.Add(FVector(0, 0, 0));		
+
+				CalculateApproximateDirectLighting(Vertex, 0, VertexOffsets, .1f, true, true, bDebugThisTexel, MappingContext, DirectLightingSample, UnusedSample, UnusedShadowing);
 				DirectLighting = DirectLightingSample.IncidentLighting;
 			}
 			const FLinearColor& PhotonIrradiance = NearestPhoton ? NearestPhoton->GetIrradiance() : FLinearColor::Black;
@@ -559,6 +654,7 @@ FLinearColor FStaticLightingSystem::FinalGatherSample(
 	const FVector4& TriangleTangentPathDirection,
 	float SampleRadius,
 	int32 BounceNumber,
+	EFinalGatherRayBiasMode RayBiasMode,
 	bool bSkyLightingOnly,
 	bool bGatheringForCachedDirectLighting,
 	bool bDebugThisTexel,
@@ -605,14 +701,20 @@ FLinearColor FStaticLightingSystem::FinalGatherSample(
 		//SampleOffset = Vertex.WorldTangentX * DiskPosition.X * SampleRadius * .5f + Vertex.WorldTangentY * DiskPosition.Y * SampleRadius * .5f;
 	}
 
+	const float RayStartNormalBiasScale = RayBiasMode == RBM_ConstantNormalOffset
+		? SceneConstants.VisibilityNormalOffsetSampleRadiusScale 
+		: (SceneConstants.VisibilityTangentOffsetSampleRadiusScale * TangentPathDirection.Z);
+
+	// Apply various offsets to the start of the ray.
+	// The offset along the ray direction is to avoid incorrect self-intersection due to floating point precision.
+	// The offset along the normal is to push self-intersection patterns (like triangle shape) on highly curved surfaces onto the backfaces.
+	FVector RayStart = Vertex.WorldPosition
+		+ WorldPathDirection * SceneConstants.VisibilityRayOffsetDistance
+		+ Vertex.WorldTangentZ * RayStartNormalBiasScale * SampleRadius
+		+ SampleOffset;
+
 	const FLightRay PathRay(
-		// Apply various offsets to the start of the ray.
-		// The offset along the ray direction is to avoid incorrect self-intersection due to floating point precision.
-		// The offset along the normal is to push self-intersection patterns (like triangle shape) on highly curved surfaces onto the backfaces.
-		Vertex.WorldPosition 
-		+ WorldPathDirection * SceneConstants.VisibilityRayOffsetDistance 
-		+ Vertex.WorldTangentZ * SampleRadius * SceneConstants.VisibilityNormalOffsetSampleRadiusScale 
-		+ SampleOffset,
+		RayStart,
 		Vertex.WorldPosition + WorldPathDirection * MaxRayDistance,
 		Mapping,
 		NULL
@@ -818,6 +920,7 @@ public:
 		const FFullStaticLightingVertex& Vertex,
 		float SampleRadius,
 		int32 BounceNumber,
+		EFinalGatherRayBiasMode RayBiasMode,
 		bool bSkyLightingOnly,
 		bool bGatheringForCachedDirectLighting,
 		int32 NumAdaptiveRefinementLevels,
@@ -1159,6 +1262,7 @@ public:
 								SampleDirection,
 								SampleRadius,
 								BounceNumber,
+								RayBiasMode,
 								bSkyLightingOnly,
 								bGatheringForCachedDirectLighting,
 								bDebugThisTexel,
@@ -1238,6 +1342,7 @@ SampleType FStaticLightingSystem::IncomingRadianceAdaptive(
 	bool bIntersectingSurface,
 	int32 ElementIndex,
 	int32 BounceNumber,
+	EFinalGatherRayBiasMode RayBiasMode,
 	int32 NumAdaptiveRefinementLevels,
 	float BrightnessThresholdScale,
 	const TArray<FVector4>& UniformHemisphereSamples,
@@ -1285,6 +1390,7 @@ SampleType FStaticLightingSystem::IncomingRadianceAdaptive(
 				TriangleTangentPathDirection,
 				SampleRadius,
 				BounceNumber,
+				RayBiasMode,
 				bSkyLightingOnly,
 				bGatheringForCachedDirectLighting,
 				bDebugThisTexel,
@@ -1325,6 +1431,7 @@ SampleType FStaticLightingSystem::IncomingRadianceAdaptive(
 			Vertex,
 			SampleRadius,
 			BounceNumber,
+			RayBiasMode,
 			bSkyLightingOnly,
 			bGatheringForCachedDirectLighting,
 			NumAdaptiveRefinementLevels,
@@ -1845,7 +1952,7 @@ FFinalGatherSample FStaticLightingSystem::CachePointIncomingRadiance(
 		{
 			// Using final gathering with photon mapping, hemisphere gathering without photon mapping, path tracing and/or just calculating ambient occlusion
 			TArray<FVector4> ImportancePhotonDirections;
-			const int32 UniformHemisphereSamples = GetNumUniformHemisphereSamples(BounceNumber);
+
 			if (GeneralSettings.NumIndirectLightingBounces > 0)
 			{
 				if (PhotonMappingSettings.bUsePhotonMapping)
@@ -1899,6 +2006,7 @@ FFinalGatherSample FStaticLightingSystem::CachePointIncomingRadiance(
 					bIntersectingSurface,
 					ElementIndex, 
 					BounceNumber, 
+					RBM_ConstantNormalOffset,
 					ImportanceTracingSettings.NumAdaptiveRefinementLevels,
 					1.0f,
 					CachedHemisphereSamples,

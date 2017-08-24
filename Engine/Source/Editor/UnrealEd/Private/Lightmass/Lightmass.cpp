@@ -16,6 +16,7 @@
 #include "Engine/World.h"
 #include "StaticMeshLight.h"
 #include "PrecomputedLightVolume.h"
+#include "PrecomputedVolumetricLightmap.h"
 #include "Engine/MapBuildDataRegistry.h"
 #include "ModelLight.h"
 #include "LandscapeLight.h"
@@ -337,6 +338,12 @@ void FLightmassProcessor::SwarmCallback( NSwarm::FMessage* CallbackMessage, void
 						Processor->CompletedVisibilityTasks.AddElement( NewElement );
 						FPlatformAtomics::InterlockedIncrement( &Processor->NumCompletedTasks );
 					}
+					else if (Processor->Exporter->VolumetricLightmapTaskGuids.Contains(TaskStateMessage->TaskGuid))
+					{
+						TList<FGuid>* NewElement = new TList<FGuid>(TaskStateMessage->TaskGuid, NULL);
+						Processor->CompletedVolumetricLightmapTasks.AddElement( NewElement );
+						FPlatformAtomics::InterlockedIncrement( &Processor->NumCompletedTasks );
+					}
 					else if (TaskStateMessage->TaskGuid == MeshAreaLightDataGuid)
 					{
 						FPlatformAtomics::InterlockedIncrement( &MeshAreaLightDataTaskCompleted );
@@ -577,6 +584,7 @@ void FLightmassExporter::WriteToChannel( FLightmassStatistics& Stats, FGuid& Deb
 			Scene.NumLandscapeTextureMappings = LandscapeTextureMappings.Num();
 			Scene.NumSpeedTreeMappings = 0;
 			Scene.NumPrecomputedVisibilityBuckets = VisibilityBucketGuids.Num();
+			Scene.NumVolumetricLightmapTasks = VolumetricLightmapTaskGuids.Num();
 			Swarm.WriteChannel( Channel, &Scene, sizeof(Scene) );
 
 			const int32 UserNameLength = FCString::Strlen(FPlatformProcess::UserName());
@@ -608,6 +616,10 @@ void FLightmassExporter::WriteToChannel( FLightmassStatistics& Stats, FGuid& Deb
 			{
 				FLightmassStatistics::FScopedGather VisibilityStat(Stats.ExportVisibilityDataTime);
 				WriteVisibilityData(Channel);
+			}
+			{
+				FLightmassStatistics::FScopedGather VisibilityStat(Stats.ExportVolumetricLightmapDataTime);
+				WriteVolumetricLightmapData(Channel);
 			}
 			{
 				FLightmassStatistics::FScopedGather LightStat(Stats.ExportLightsTime);
@@ -932,6 +944,13 @@ void FLightmassExporter::WriteVisibilityData( int32 Channel )
 	Swarm.WriteChannel( Channel, CameraTrackPositions.GetData(), CameraTrackPositions.Num() * CameraTrackPositions.GetTypeSize() );
 }
 
+void FLightmassExporter::WriteVolumetricLightmapData( int32 Channel )
+{
+	TArray<FGuid> VolumetricLightmapTaskGuidsArray;
+	VolumetricLightmapTaskGuids.GenerateKeyArray(VolumetricLightmapTaskGuidsArray);
+	Swarm.WriteChannel( Channel, VolumetricLightmapTaskGuidsArray.GetData(), VolumetricLightmapTaskGuidsArray.Num() * VolumetricLightmapTaskGuidsArray.GetTypeSize() );
+}
+
 void FLightmassExporter::WriteLights( int32 Channel )
 {
 	// Export directional lights.
@@ -988,6 +1007,7 @@ void FLightmassExporter::WriteLights( int32 Channel )
 		PointData.FalloffExponent = Light->LightFalloffExponent;
 		SpotData.InnerConeAngle = Light->InnerConeAngle; 
 		SpotData.OuterConeAngle = Light->OuterConeAngle;
+		SpotData.LightTangent = Light->GetComponentTransform().GetUnitAxis(EAxis::Z);
 		Swarm.WriteChannel( Channel, &LightData, sizeof(LightData) );
 		Swarm.WriteChannel( Channel, &PointData, sizeof(PointData) );
 		Swarm.WriteChannel( Channel, &SpotData, sizeof(SpotData) );
@@ -1821,6 +1841,45 @@ bool FLightmassExporter::FindDebugMapping(FGuid& DebugMappingGuid)
 	}
 }
 
+void FLightmassExporter::SetVolumetricLightmapSettings(Lightmass::FVolumetricLightmapSettings& OutSettings)
+{
+	FBox CombinedImportanceVolume(ForceInit);
+
+	for (int32 i = 0; i < ImportanceVolumes.Num(); i++)
+	{
+		CombinedImportanceVolume += ImportanceVolumes[i];
+	}
+
+	OutSettings.VolumeMin = CombinedImportanceVolume.Min;
+	OutSettings.VolumeSize = CombinedImportanceVolume.GetSize();
+
+	verify(GConfig->GetInt(TEXT("DevOptions.VolumetricLightmaps"), TEXT("BrickSize"), OutSettings.BrickSize, GLightmassIni));
+	verify(GConfig->GetInt(TEXT("DevOptions.VolumetricLightmaps"), TEXT("MaxRefinementLevels"), OutSettings.MaxRefinementLevels, GLightmassIni));
+	verify(GConfig->GetFloat(TEXT("DevOptions.VolumetricLightmaps"), TEXT("VoxelizationCellExpansionForGeometry"), OutSettings.VoxelizationCellExpansionForGeometry, GLightmassIni));
+	verify(GConfig->GetFloat(TEXT("DevOptions.VolumetricLightmaps"), TEXT("VoxelizationCellExpansionForLights"), OutSettings.VoxelizationCellExpansionForLights, GLightmassIni));
+	verify(GConfig->GetFloat(TEXT("DevOptions.VolumetricLightmaps"), TEXT("MinBrickError"), OutSettings.MinBrickError, GLightmassIni));
+	verify(GConfig->GetFloat(TEXT("DevOptions.VolumetricLightmaps"), TEXT("SurfaceLightmapMinTexelsPerVoxelAxis"), OutSettings.SurfaceLightmapMinTexelsPerVoxelAxis, GLightmassIni));
+	verify(GConfig->GetBool(TEXT("DevOptions.VolumetricLightmaps"), TEXT("bCullBricksBelowLandscape"), OutSettings.bCullBricksBelowLandscape, GLightmassIni));
+	verify(GConfig->GetFloat(TEXT("DevOptions.VolumetricLightmaps"), TEXT("LightBrightnessSubdivideThreshold"), OutSettings.LightBrightnessSubdivideThreshold, GLightmassIni));
+
+	OutSettings.BrickSize = FMath::RoundUpToPowerOfTwo(OutSettings.BrickSize);
+	OutSettings.MaxRefinementLevels = FMath::Clamp(OutSettings.MaxRefinementLevels, 1, 6);
+	OutSettings.VoxelizationCellExpansionForGeometry = FMath::Max(OutSettings.VoxelizationCellExpansionForGeometry, 0.0f);
+	OutSettings.VoxelizationCellExpansionForLights = FMath::Max(OutSettings.VoxelizationCellExpansionForLights, 0.0f);
+
+	const float TargetDetailCellSize = World->GetWorldSettings()->LightmassSettings.VolumetricLightmapDetailCellSize;
+
+	const FIntVector FullGridSize(
+		FMath::TruncToInt(OutSettings.VolumeSize.X / TargetDetailCellSize) + 1,
+		FMath::TruncToInt(OutSettings.VolumeSize.Y / TargetDetailCellSize) + 1,
+		FMath::TruncToInt(OutSettings.VolumeSize.Z / TargetDetailCellSize) + 1);
+
+	const int32 BrickSizeLog2 = FMath::FloorLog2(OutSettings.BrickSize);
+	const int32 DetailCellsPerTopLevelCell = 1 << (OutSettings.MaxRefinementLevels * BrickSizeLog2);
+
+	OutSettings.TopLevelGridSize = FIntVector::DivideAndRoundUp(FullGridSize, DetailCellsPerTopLevelCell);
+}
+
 /** Fills out the Scene's settings, read from the engine ini. */
 void FLightmassExporter::WriteSceneSettings( Lightmass::FSceneFileHeader& Scene )
 {
@@ -1981,6 +2040,9 @@ void FLightmassExporter::WriteSceneSettings( Lightmass::FSceneFileHeader& Scene 
 		Scene.DynamicObjectSettings.DetailVolumeSampleSpacing *= LevelSettings.VolumeLightSamplePlacementScale;
 	}
 	{
+		SetVolumetricLightmapSettings(Scene.VolumetricLightmapSettings);
+	}
+	{
 		verify(GConfig->GetBool(TEXT("DevOptions.PrecomputedVisibility"), TEXT("bVisualizePrecomputedVisibility"), bConfigBool, GLightmassIni));
 		Scene.PrecomputedVisibilitySettings.bVisualizePrecomputedVisibility = bConfigBool;
 		verify(GConfig->GetBool(TEXT("DevOptions.PrecomputedVisibility"), TEXT("bPlaceCellsOnOpaqueOnly"), bConfigBool, GLightmassIni));
@@ -2097,6 +2159,9 @@ void FLightmassExporter::WriteSceneSettings( Lightmass::FSceneFileHeader& Scene 
 		verify(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("IrradiancePhotonSearchConeAngle"), IrradiancePhotonSearchConeAngle, GLightmassIni));
 		Scene.PhotonMappingSettings.MinCosIrradiancePhotonSearchCone = FMath::Cos((90.0f - FMath::Clamp(IrradiancePhotonSearchConeAngle, 1.0f, 90.0f)) * (float)PI / 180.0f);
 		verify(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("CachedIrradiancePhotonDownsampleFactor"), Scene.PhotonMappingSettings.CachedIrradiancePhotonDownsampleFactor, GLightmassIni));
+		verify(GConfig->GetBool(TEXT("DevOptions.PhotonMapping"), TEXT("bUsePhotonSegmentsForVolumeLighting"), Scene.PhotonMappingSettings.bUsePhotonSegmentsForVolumeLighting, GLightmassIni));
+		verify(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("PhotonSegmentMaxLength"), Scene.PhotonMappingSettings.PhotonSegmentMaxLength, GLightmassIni));
+		verify(GConfig->GetFloat(TEXT("DevOptions.PhotonMapping"), TEXT("GeneratePhotonSegmentChance"), Scene.PhotonMappingSettings.GeneratePhotonSegmentChance, GLightmassIni));
 	}
 	{
 		verify(GConfig->GetBool(TEXT("DevOptions.IrradianceCache"), TEXT("bAllowIrradianceCaching"), bConfigBool, GLightmassIni));
@@ -2472,9 +2537,33 @@ void FLightmassProcessor::InitiateExport()
 	auto FirstGuid = FGuid(0,0,0,0);
 	check(FindLevel(FirstGuid) == System.GetWorld()->PersistentLevel);
 
-	for (int32 DistributionBucketIndex = 0; DistributionBucketIndex < NumCellDistributionBuckets; DistributionBucketIndex++)
+	if (System.GetWorld()->GetWorldSettings()->bPrecomputeVisibility)
 	{
-		Exporter->VisibilityBucketGuids.Add(FGuid::NewGuid());
+		for (int32 DistributionBucketIndex = 0; DistributionBucketIndex < NumCellDistributionBuckets; DistributionBucketIndex++)
+		{
+			Exporter->VisibilityBucketGuids.Add(FGuid::NewGuid());
+		}
+	}
+
+	if (System.GetWorld()->GetWorldSettings()->LightmassSettings.VolumeLightingMethod == VLM_VolumetricLightmap)
+	{
+		Lightmass::FVolumetricLightmapSettings VolumetricLightmapSettings;
+		GetLightmassExporter()->SetVolumetricLightmapSettings(VolumetricLightmapSettings);
+
+		const int32 NumTopLevelBricks = VolumetricLightmapSettings.TopLevelGridSize.X * VolumetricLightmapSettings.TopLevelGridSize.Y * VolumetricLightmapSettings.TopLevelGridSize.Z;
+		
+		int32 TargetNumVolumetricLightmapTasks;
+		verify(GConfig->GetInt(TEXT("DevOptions.VolumetricLightmaps"), TEXT("TargetNumVolumetricLightmapTasks"), TargetNumVolumetricLightmapTasks, GLightmassIni));
+
+		const int32 NumTasksPerTopLevelBrick = FMath::Clamp(TargetNumVolumetricLightmapTasks / NumTopLevelBricks, 1, VolumetricLightmapSettings.BrickSize * VolumetricLightmapSettings.BrickSize * VolumetricLightmapSettings.BrickSize);
+
+		// Generate task guids for top level volumetric lightmap cells
+		for (int32 VolumetricLightmapTaskIndex = 0; 
+			VolumetricLightmapTaskIndex < NumTopLevelBricks * NumTasksPerTopLevelBrick; 
+			VolumetricLightmapTaskIndex++)
+		{
+			Exporter->VolumetricLightmapTaskGuids.Add(FGuid::NewGuid(), VolumetricLightmapTaskIndex);
+		}
 	}
 
 	Exporter->WriteToChannel(Statistics, DebugMappingGuid);
@@ -2735,7 +2824,29 @@ bool FLightmassProcessor::BeginRun()
 
 	if (!bOnlyBuildVisibility)
 	{
+		const EVolumeLightingMethod VolumeLightingMethod = System.GetWorld()->GetWorldSettings()->LightmassSettings.VolumeLightingMethod;
+
+		if (VolumeLightingMethod == VLM_VolumetricLightmap)
 		{
+			for (TMap<FGuid, int32>::TIterator It(Exporter->VolumetricLightmapTaskGuids); It; ++It )
+			{
+				NSwarm::FTaskSpecification NewTaskSpecification(It.Key(), TEXT("VolumetricLightmap"), NSwarm::JOB_TASK_FLAG_USE_DEFAULTS );
+				//@todo - accurately estimate cost
+				NewTaskSpecification.Cost = 10000;
+				ErrorCode = Swarm.AddTask( NewTaskSpecification );
+				if( ErrorCode >= 0 )
+				{
+					NumTotalSwarmTasks++;
+				}
+				else
+				{
+					UE_LOG(LogLightmassSolver, Log,  TEXT("Error, AddTask failed with error code %d"), ErrorCode );
+				}
+			}
+		}
+		else
+		{
+			check(VolumeLightingMethod == VLM_SparseVolumeLightingSamples);
 			NSwarm::FTaskSpecification NewTaskSpecification( Lightmass::PrecomputedVolumeLightingGuid, TEXT("VolumeSamples"), NSwarm::JOB_TASK_FLAG_USE_DEFAULTS );
 			//@todo - accurately estimate cost
 			// Changed estimated cost: this should be the maximum cost, because it became really big if there are WORLD_MAX size light-mapping
@@ -2946,6 +3057,12 @@ bool FLightmassProcessor::CompleteRun()
 	if ( !bProcessingFailed && !GEditor->GetMapBuildCancelled() )
 	{
 		ImportVolumeSamples();
+
+		if (Exporter->VolumetricLightmapTaskGuids.Num() > 0)
+		{
+			ImportVolumetricLightmap();
+		}
+		
 		ImportPrecomputedVisibility();
 		ImportMeshAreaLightData();
 		ImportVolumeDistanceFieldData();
@@ -2972,6 +3089,7 @@ bool FLightmassProcessor::CompleteRun()
 	}
 	CompletedMappingTasks.Clear();
 	CompletedVisibilityTasks.Clear();
+	CompletedVolumetricLightmapTasks.Clear();
 
 	double ApplyTimeDelta = Statistics.ApplyTimeInProcessing - OriginalApplyTime;
 	Statistics.ImportTimeInProcessing += FPlatformTime::Seconds() - ImportStartTime - ApplyTimeDelta;
@@ -3062,7 +3180,7 @@ void FLightmassProcessor::ImportVolumeSamples()
 				{
 					ULevel* CurrentStorageLevel = System.LightingScenario ? System.LightingScenario : CurrentLevel;
 					UMapBuildDataRegistry* CurrentRegistry = CurrentStorageLevel->GetOrCreateMapBuildData();
-					FPrecomputedLightVolumeData& CurrentLevelData = CurrentRegistry->AllocateLevelBuildData(CurrentLevel->LevelBuildDataId);
+					FPrecomputedLightVolumeData& CurrentLevelData = CurrentRegistry->AllocateLevelPrecomputedLightVolumeBuildData(CurrentLevel->LevelBuildDataId);
 
 					FBox LevelVolumeBounds(ForceInit);
 
@@ -3895,20 +4013,6 @@ void FLightmassProcessor::ProcessAvailableMappings()
 		{
 			bDoneProcessing = true;
 		}
-	}
-}
-
-/** Reads in a TArray from the given channel. */
-template<class T>
-void FLightmassProcessor::ReadArray(int32 Channel, TArray<T>& Array)
-{
-	int32 ArrayNum = 0;
-	Swarm.ReadChannel(Channel, &ArrayNum, sizeof(ArrayNum));
-	if (ArrayNum > 0)
-	{
-		Array.Empty(ArrayNum);
-		Array.AddZeroed(ArrayNum);
-		Swarm.ReadChannel(Channel, Array.GetData(), Array.GetTypeSize() * ArrayNum);
 	}
 }
 

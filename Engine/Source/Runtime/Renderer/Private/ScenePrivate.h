@@ -745,6 +745,7 @@ public:
 	FShaderResourceViewRHIRef IndirectShadowMeshDistanceFieldCasterIndicesSRV;
 	FVertexBufferRHIRef IndirectShadowLightDirectionVertexBuffer;
 	FShaderResourceViewRHIRef IndirectShadowLightDirectionSRV;
+	FRWBuffer IndirectShadowVolumetricLightmapDerivedLightDirection;
 	FRWBuffer CapsuleTileIntersectionCountsBuffer;
 
 	/** Timestamp queries around separate translucency, used for auto-downsampling. */
@@ -1322,6 +1323,55 @@ public:
 	void ResizeCubemapArrayGPU(uint32 InMaxCubemaps, int32 InCubemapSize);
 };
 
+class FVolumetricLightmapSceneData
+{
+public:
+
+	FVolumetricLightmapSceneData() :
+		IndirectionTextureSize(FVector::ZeroVector),
+		BrickSize(0),
+		BrickDataTexelSize(FVector::ZeroVector),
+		VolumeWorldToUVScale(FVector::ZeroVector),
+		VolumeWorldToUVAdd(FVector::ZeroVector)
+	{}
+
+	void Release()
+	{
+		IndirectionTexture.SafeRelease();
+		AmbientVectorTextureRHI.SafeRelease();
+
+		for (int32 i = 0; i < ARRAY_COUNT(SHCoefficientsTextureRHI); i++)
+		{
+			SHCoefficientsTextureRHI[i].SafeRelease();
+		}
+
+		SkyBentNormalTextureRHI.SafeRelease();
+		DirectionalLightShadowingTextureRHI.SafeRelease();
+	}
+
+	bool HasData() const { return LevelVolumetricLightmaps.Num() > 0; }
+	void AddLevelVolume(const class FPrecomputedVolumetricLightmap* InVolume, ERHIFeatureLevel::Type FeatureLevel);
+	void RemoveLevelVolume(const class FPrecomputedVolumetricLightmap* InVolume);
+
+	FVector IndirectionTextureSize;
+
+	/** Size of the unique data in a brick, in one dimension, in texels. */
+	float BrickSize;
+	/** Size of a texel in the brick data textures. */
+	FVector BrickDataTexelSize;
+	FVector VolumeWorldToUVScale;
+	FVector VolumeWorldToUVAdd;
+
+	FTexture3DRHIRef IndirectionTexture;
+	FTexture3DRHIRef AmbientVectorTextureRHI;
+	FTexture3DRHIRef SHCoefficientsTextureRHI[6];
+	FTexture3DRHIRef SkyBentNormalTextureRHI;
+	FTexture3DRHIRef DirectionalLightShadowingTextureRHI;
+
+private:
+	TArray<const FPrecomputedVolumetricLightmap*> LevelVolumetricLightmaps;
+};
+
 class FPrimitiveAndInstance
 {
 public:
@@ -1880,6 +1930,7 @@ public:
 	/** Base pass draw list - self shadowed translucency*/
 	TStaticMeshDrawList<TBasePassDrawingPolicy<FSelfShadowedTranslucencyPolicy> > BasePassSelfShadowedTranslucencyDrawList[EBasePass_MAX];
 	TStaticMeshDrawList<TBasePassDrawingPolicy<FSelfShadowedCachedPointIndirectLightingPolicy> > BasePassSelfShadowedCachedPointIndirectTranslucencyDrawList[EBasePass_MAX];
+	TStaticMeshDrawList<TBasePassDrawingPolicy<FSelfShadowedVolumetricLightmapPolicy> > BasePassSelfShadowedVolumetricLightmapTranslucencyDrawList[EBasePass_MAX];
 
 	/** hit proxy draw list (includes both opaque and translucent objects) */
 	TStaticMeshDrawList<FHitProxyDrawingPolicy> HitProxyDrawList;
@@ -1999,6 +2050,8 @@ public:
 
 	/** Interpolates and caches indirect lighting for dynamic objects. */
 	FIndirectLightingCache IndirectLightingCache;
+
+	FVolumetricLightmapSceneData VolumetricLightmapSceneData;
 
 	/** Distance field object scene data. */
 	FDistanceFieldSceneData DistanceFieldSceneData;
@@ -2120,6 +2173,9 @@ public:
 	virtual void UpdateSkyCaptureContents(const USkyLightComponent* CaptureComponent, bool bCaptureEmissiveOnly, UTextureCube* SourceCubemap, FTexture* OutProcessedTexture, float& OutAverageBrightness, FSHVectorRGB3& OutIrradianceEnvironmentMap) override; 
 	virtual void AddPrecomputedLightVolume(const class FPrecomputedLightVolume* Volume) override;
 	virtual void RemovePrecomputedLightVolume(const class FPrecomputedLightVolume* Volume) override;
+	virtual bool HasPrecomputedVolumetricLightmap_RenderThread() const override;
+	virtual void AddPrecomputedVolumetricLightmap(const class FPrecomputedVolumetricLightmap* Volume) override;
+	virtual void RemovePrecomputedVolumetricLightmap(const class FPrecomputedVolumetricLightmap* Volume) override;
 	virtual void UpdateLightTransform(ULightComponent* Light) override;
 	virtual void UpdateLightColorAndBrightness(ULightComponent* Light) override;
 	virtual void AddExponentialHeightFog(UExponentialHeightFogComponent* FogComponent) override;

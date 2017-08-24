@@ -16,9 +16,13 @@
 #include "AllowWindowsPlatformTypes.h"
 #include <d3d11.h>
 #include "HideWindowsPlatformTypes.h"
+#elif PLATFORM_MAC
+#include <IOSurface/IOSurface.h>
 #endif
 
+#if !PLATFORM_MAC // No OpenGL on Mac anymore
 #include "OpenGLDrv.h"
+#endif
 
 #include "SceneViewExtension.h"
 #include "SteamVRAssetManager.h"
@@ -55,6 +59,52 @@ struct FSteamVRLayer
 	friend bool GetLayerDescMember(const FSteamVRLayer& Layer, FLayerDesc& OutLayerDesc);
 	friend void SetLayerDescMember(FSteamVRLayer& Layer, const FLayerDesc& InLayerDesc);
 	friend void MarkLayerTextureForUpdate(FSteamVRLayer& Layer);
+};
+
+/**
+ * Render target swap chain
+ */
+class FRHITextureSet2D : public FRHITexture2D
+{
+public:
+	
+	FRHITextureSet2D(const uint32 TextureSetSize, EPixelFormat Format, uint32 SizeX, uint32 SizeY, uint32 NumMips, uint32 NumSamples, uint32 Flags, const FClearValueBinding& InClearValue)
+	: FRHITexture2D(SizeX, SizeY, NumMips, NumSamples, Format, Flags, InClearValue)
+	, TextureIndex(0)
+	{
+		TextureSet.AddZeroed(TextureSetSize);
+	}
+	
+	virtual ~FRHITextureSet2D()
+	{}
+	
+	void AddTexture(FTexture2DRHIRef& Texture, const uint32 Index)
+	{
+		check(Index < static_cast<uint32>(TextureSet.Num()));
+		// todo: Check texture format to ensure it matches the set
+		TextureSet[Index] = Texture;
+	}
+	
+	void Advance()
+	{
+		TextureIndex = (TextureIndex + 1) % static_cast<uint32>(TextureSet.Num());
+	}
+	
+	virtual void* GetTextureBaseRHI() override
+	{
+		check(TextureSet[TextureIndex].IsValid());
+		return TextureSet[TextureIndex]->GetTextureBaseRHI();
+	}
+	
+	virtual void* GetNativeResource() const override
+	{
+		check(TextureSet[TextureIndex].IsValid());
+		return TextureSet[TextureIndex]->GetNativeResource();
+	}
+	
+private:
+	TArray<FTexture2DRHIRef> TextureSet;
+	uint32 TextureIndex;
 };
 
 /**
@@ -131,6 +181,10 @@ public:
 	virtual EHMDTrackingOrigin::Type GetTrackingOrigin() override;
 
 	virtual void RecordAnalytics() override;
+	
+#if PLATFORM_MAC
+	virtual bool AllocateRenderTargetTexture(uint32 Index, uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 InTexFlags, uint32 InTargetableTextureFlags, FTexture2DRHIRef& OutTargetableTexture, FTexture2DRHIRef& OutShaderResourceTexture, uint32 NumSamples = 1) override;
+#endif
 
 	/** IStereoRendering interface */
 	virtual bool IsStereoEnabled() const override;
@@ -150,6 +204,7 @@ public:
 		return IsStereoEnabled();
 	}
 	virtual void UpdateViewport(bool bUseSeparateRenderTarget, const FViewport& Viewport, SViewport*) override;
+	virtual void DrawDebug(UCanvas* Canvas) override;
 	virtual IStereoLayers* GetStereoLayers () override;
 
 	/** ISceneViewExtension interface */
@@ -166,13 +221,59 @@ public:
 	// Create/Set/Get/Destroy inherited from TStereoLayerManager
 	virtual void UpdateSplashScreen() override;
 
+	/** FrameSettings struct contains information about the current render target frame, which is used to coordinate adaptive pixel density between the main and render threads */
+	struct FFrameSettings
+	{
+		/** Whether or not we need to update this next frame */
+		bool bNeedsUpdate;
+
+		/** Whether or not adaptive pixel density is enabled */
+		bool bAdaptivePixelDensity;
+
+		/** Used for disabling TAA when changing pixel densities, because of incorrect texture look ups in the history buffer.  If other than INDEX_NONE, the r.PostProcessingAAQuality cvar will be set to this value next frame */
+		int32 PostProcessAARestoreValue;
+
+		/** Current pixel density, which should match the current setting of r.ScreenPercentage for the frame */
+		float CurrentPixelDensity;
+		
+		/** Min and max bounds for pixel density, which can change from frame to frame potentially */
+		float PixelDensityMin;
+		float PixelDensityMax;
+
+		/** How many frames to remain locked for, in order to limit adapting too frequently */
+		int32 PixelDensityAdaptiveLockedFrames;
+
+		/** The recommended (i.e. PD = 1.0) render target size requested by the device */
+		uint32 RecommendedWidth, RecommendedHeight;
+
+		/** The sub-rect of the render target representing the view for each eye, given the CurrentPixelDensity (0 = left, 1 = right) */
+		FIntRect EyeViewports[2];
+		/** The sub-rect of the render target representing the view for each eye at PixelDensityMax, which is the upper bounds (0 = left, 1 = right) */
+		FIntRect MaxViewports[2];
+
+		/** The current render target size.  This should only change on initialization, when adaptive is turned on and off, or when PixelDensityMax changes */
+		FIntPoint RenderTargetSize;
+
+		FFrameSettings()
+			: bNeedsUpdate(false)
+			, bAdaptivePixelDensity(false)
+			, PostProcessAARestoreValue(INDEX_NONE)
+			, CurrentPixelDensity(1.f)
+   			, PixelDensityMin(0.7f)
+			, PixelDensityMax(1.f)
+			, PixelDensityAdaptiveLockedFrames(0)
+			, RecommendedWidth(0)
+			, RecommendedHeight(0)
+		{
+		}
+	};
+	
 	// SpectatorScreen
 private:
 	void CreateSpectatorScreenController();
 public:
 	virtual FIntRect GetFullFlatEyeRect(FTexture2DRHIRef EyeTexture) const override;
 	virtual void CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef SrcTexture, FIntRect SrcRect, FTexture2DRHIParamRef DstTexture, FIntRect DstRect, bool bClearBlack) const override;
-
 
 	class BridgeBaseImpl : public FRHICustomPresent
 	{
@@ -181,7 +282,9 @@ public:
 			FRHICustomPresent(nullptr),
 			Plugin(plugin),
 			bNeedReinitRendererAPI(true),
-			bInitialized(false)
+			bInitialized(false),
+			FrameNumber(0),
+			LastPresentedFrameNumber(-1)
 		{}
 
 		bool IsInitialized() const { return bInitialized; }
@@ -194,10 +297,34 @@ public:
 		virtual void Reset() = 0;
 		virtual void Shutdown() = 0;
 
+		/** Copies the current FrameSettings for the HMD to the bridge for use on the render thread */
+		void UpdateFrameSettings(struct FSteamVRHMD::FFrameSettings& NewSettings);
+		FFrameSettings GetFrameSettings(int32 NumBufferedFrames = 0);
+		
+		void IncrementFrameNumber()
+		{
+			FScopeLock Lock(&FrameNumberLock);
+			++FrameNumber;
+		}
+		int32 GetFrameNumber() const
+		{
+			FScopeLock Lock(&FrameNumberLock);
+			return FrameNumber;
+		}
+		bool IsOnLastPresentedFrame() const
+		{
+			FScopeLock Lock(&FrameNumberLock);
+			return (LastPresentedFrameNumber == FrameNumber);
+		}
+		
 	protected:
-		FSteamVRHMD*		Plugin;
-		bool				bNeedReinitRendererAPI;
-		bool				bInitialized;
+		FSteamVRHMD*			Plugin;
+		bool					bNeedReinitRendererAPI;
+		bool					bInitialized;
+		int32					FrameNumber;
+		int32					LastPresentedFrameNumber;
+		mutable FCriticalSection	FrameNumberLock;
+		TArray<FFrameSettings>		FrameSettingsStack;
 	};
 
 #if PLATFORM_WINDOWS
@@ -222,8 +349,9 @@ public:
 	protected:
 		ID3D11Texture2D* RenderTargetTexture = NULL;
 	};
-#endif
+#endif // PLATFORM_WINDOWS
 
+#if !PLATFORM_MAC
 	class VulkanBridge : public BridgeBaseImpl
 	{
 	public:
@@ -269,6 +397,32 @@ public:
 		GLuint RenderTargetTexture = 0;
 
 	};
+	
+#elif PLATFORM_MAC
+
+	class MetalBridge : public BridgeBaseImpl
+	{
+	public:
+		MetalBridge(FSteamVRHMD* plugin);
+		
+		virtual void OnBackBufferResize() override;
+		virtual bool Present(int& SyncInterval) override;
+		virtual void PostPresent() override;
+		
+		virtual void BeginRendering() override;
+		void FinishRendering();
+		virtual void UpdateViewport(const FViewport& Viewport, FRHIViewport* InViewportRHI) override;
+		virtual void Reset() override;
+		virtual void Shutdown() override
+		{
+			Reset();
+		}
+		
+		IOSurfaceRef GetSurface(const uint32 SizeX, const uint32 SizeY);
+		
+		FTexture2DRHIRef TextureSet;
+	};
+#endif // PLATFORM_MAC
 
 	BridgeBaseImpl* GetActiveRHIBridgeImpl();
 	void ShutdownRendering();
@@ -383,6 +537,43 @@ private:
 
 	void SetupOcclusionMeshes();
 
+	/** Command handler for turning on and off adaptive pixel density */
+	FAutoConsoleCommand CUseAdaptivePD;
+	void AdaptivePixelDensityCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
+
+	static void ConsoleSinkHandler();
+	static FAutoConsoleVariableSink ConsoleVariableSink;
+
+	/** Returns the current pixel density, which is the ratio of the current r.ScreenPercentage to the IdealScreenPercentage provided by the device */
+	float GetPixelDensity() const;
+	
+	/** Sets the current pixel density, which is the ratio of r.ScreenPercentage to the IdealScreenPercentage provided by the device */
+	void SetPixelDensity(float NewPD);
+	
+	/** Determines what the current Pixel Density should be, given the performance of the GPU under its current load.  Ruturns how many buckets should be jumped up or down given the frame history */
+	int32 CalculateScalabilityFactor();
+
+	/** Array of floats representing pixel density values to jump to, based on performance.  The list index will be adjusted up and down based on CalculateScalabilityFactor's rules */	
+	TArray<float>			AdaptivePixelDensityBuckets;
+	
+	/** The current AdaptivePixelDensityBucket index that we're at */
+	int32					CurrentAdaptiveBucket;
+	
+	/** An array of buffered frame times, so that we can see how performance is trending with adaptive pixel density adjustments */
+	TArray<float>			PreviousFrameTimes;
+
+	const int32				PreviousFrameBufferSize = 4;
+	
+	/** Index of the current frame timing data in PreviousFrameTimes that we're on */
+	int32					CurrentFrameTimesBufferIndex;
+
+	/** Contains the settings for the current frame, including render target size and subrect viewports, given the current PixelDensity */
+	FFrameSettings FrameSettings;
+	mutable FCriticalSection FrameSettingsLock;
+
+	/** Updates FrameSettings based on the current adaptive pixel density requirements */
+	void UpdateStereoRenderingParams();
+
 	bool bHmdEnabled;
 	EHMDWornState::Type HmdWornState;
 	bool bStereoDesired;
@@ -474,6 +665,10 @@ private:
 
 	uint32 WindowMirrorBoundsWidth;
 	uint32 WindowMirrorBoundsHeight;
+
+	/** The screen percentage requested by the current headset that would give a perceived pixel density of 1.0 */
+	float IdealScreenPercentage;
+
 	/** How far the HMD has to move before it's considered to be worn */
 	float HMDWornMovementThreshold;
 

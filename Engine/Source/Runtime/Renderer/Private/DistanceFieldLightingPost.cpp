@@ -96,8 +96,10 @@ public:
 		DeferredParameters.Bind(Initializer.ParameterMap);
 		BentNormalAOTexture.Bind(Initializer.ParameterMap, TEXT("BentNormalAOTexture"));
 		ConfidenceTexture.Bind(Initializer.ParameterMap, TEXT("ConfidenceTexture"));
+		ConfidenceSampler.Bind(Initializer.ParameterMap, TEXT("ConfidenceSampler"));
 		BentNormalAOSampler.Bind(Initializer.ParameterMap, TEXT("BentNormalAOSampler"));
 		BentNormalHistoryTexture.Bind(Initializer.ParameterMap, TEXT("BentNormalHistoryTexture"));
+		ConfidenceHistorySampler.Bind(Initializer.ParameterMap, TEXT("ConfidenceHistorySampler"));
 		ConfidenceHistoryTexture.Bind(Initializer.ParameterMap, TEXT("ConfidenceHistoryTexture"));
 		BentNormalHistorySampler.Bind(Initializer.ParameterMap, TEXT("BentNormalHistorySampler"));
 		IrradianceTexture.Bind(Initializer.ParameterMap, TEXT("IrradianceTexture"));
@@ -144,7 +146,7 @@ public:
 			RHICmdList,
 			ShaderRHI,
 			ConfidenceTexture,
-			BentNormalAOSampler,
+			ConfidenceSampler.IsBound() ? ConfidenceSampler : BentNormalAOSampler,
 			TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
 			DistanceFieldAOConfidence.ShaderResourceTexture
 			);
@@ -162,7 +164,7 @@ public:
 			RHICmdList,
 			ShaderRHI,
 			ConfidenceHistoryTexture,
-			BentNormalHistorySampler,
+			ConfidenceHistorySampler.IsBound() ? ConfidenceHistorySampler : BentNormalHistorySampler,
 			TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
 			ConfidenceHistoryTextureValue.ShaderResourceTexture
 			);
@@ -223,9 +225,11 @@ public:
 		Ar << DeferredParameters;
 		Ar << BentNormalAOTexture;
 		Ar << ConfidenceTexture;
+		Ar << ConfidenceSampler;
 		Ar << BentNormalAOSampler;
 		Ar << BentNormalHistoryTexture;
 		Ar << ConfidenceHistoryTexture;
+		Ar << ConfidenceHistorySampler;
 		Ar << BentNormalHistorySampler;
 		Ar << IrradianceTexture;
 		Ar << IrradianceSampler;
@@ -247,9 +251,11 @@ private:
 	FDeferredPixelShaderParameters DeferredParameters;
 	FShaderResourceParameter BentNormalAOTexture;
 	FShaderResourceParameter ConfidenceTexture;
+	FShaderResourceParameter ConfidenceSampler;
 	FShaderResourceParameter BentNormalAOSampler;
-	FShaderResourceParameter BentNormalHistoryTexture;
+	FShaderResourceParameter ConfidenceHistorySampler;
 	FShaderResourceParameter ConfidenceHistoryTexture;
+	FShaderResourceParameter BentNormalHistoryTexture;
 	FShaderResourceParameter BentNormalHistorySampler;
 	FShaderResourceParameter IrradianceTexture;
 	FShaderResourceParameter IrradianceSampler;
@@ -295,6 +301,7 @@ public:
 	{
 		BentNormalAOTexture.Bind(Initializer.ParameterMap, TEXT("BentNormalAOTexture"));
 		ConfidenceTexture.Bind(Initializer.ParameterMap, TEXT("ConfidenceTexture"));
+		ConfidenceSampler.Bind(Initializer.ParameterMap, TEXT("ConfidenceSampler"));
 		BentNormalAOSampler.Bind(Initializer.ParameterMap, TEXT("BentNormalAOSampler"));
 		IrradianceTexture.Bind(Initializer.ParameterMap, TEXT("IrradianceTexture"));
 		IrradianceSampler.Bind(Initializer.ParameterMap, TEXT("IrradianceSampler"));
@@ -329,7 +336,7 @@ public:
 			RHICmdList,
 			ShaderRHI,
 			ConfidenceTexture,
-			BentNormalAOSampler,
+			ConfidenceSampler.IsBound() ? ConfidenceSampler : BentNormalAOSampler,
 			TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
 			ConfidenceHistoryTextureValue.ShaderResourceTexture
 			);
@@ -369,6 +376,7 @@ public:
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << BentNormalAOTexture;
 		Ar << ConfidenceTexture;
+		Ar << ConfidenceSampler;
 		Ar << BentNormalAOSampler;
 		Ar << IrradianceTexture;
 		Ar << IrradianceSampler;
@@ -383,6 +391,7 @@ private:
 
 	FShaderResourceParameter BentNormalAOTexture;
 	FShaderResourceParameter ConfidenceTexture;
+	FShaderResourceParameter ConfidenceSampler;
 	FShaderResourceParameter BentNormalAOSampler;
 	FShaderResourceParameter IrradianceTexture;
 	FShaderResourceParameter IrradianceSampler;

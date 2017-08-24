@@ -153,6 +153,10 @@ public:
 	virtual void AddPrecomputedLightVolume(const class FPrecomputedLightVolume* Volume) {}
 	virtual void RemovePrecomputedLightVolume(const class FPrecomputedLightVolume* Volume) {}
 
+	virtual bool HasPrecomputedVolumetricLightmap_RenderThread() const { return false; }
+	virtual void AddPrecomputedVolumetricLightmap(const class FPrecomputedVolumetricLightmap* Volume) {}
+	virtual void RemovePrecomputedVolumetricLightmap(const class FPrecomputedVolumetricLightmap* Volume) {}
+
 	/** 
 	 * Updates the transform of a light which has already been added to the scene. 
 	 *

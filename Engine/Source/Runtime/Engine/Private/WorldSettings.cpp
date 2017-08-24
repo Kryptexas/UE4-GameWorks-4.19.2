@@ -353,6 +353,17 @@ bool AWorldSettings::CanEditChange(const UProperty* InProperty) const
 				return LightmassSettings.bUseAmbientOcclusion;
 			}
 
+			if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FLightmassWorldInfoSettings, VolumetricLightmapDetailCellSize)
+				|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FLightmassWorldInfoSettings, VolumetricLightmapMaximumBrickMemoryMb))
+			{
+				return LightmassSettings.VolumeLightingMethod == VLM_VolumetricLightmap;
+			}
+
+			if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FLightmassWorldInfoSettings, VolumeLightSamplePlacementScale))
+			{
+				return LightmassSettings.VolumeLightingMethod == VLM_SparseVolumeLightingSamples;
+			}
+
 			if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FLightmassWorldInfoSettings, EnvironmentColor))
 			{
 				return LightmassSettings.EnvironmentIntensity > 0;

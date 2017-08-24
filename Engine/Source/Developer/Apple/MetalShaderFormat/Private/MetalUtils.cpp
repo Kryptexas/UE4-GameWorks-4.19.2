@@ -189,17 +189,7 @@ namespace MetalUtils
 		{"SV_InstanceID", glsl_type::uint_type, "IN_InstanceID", ir_var_in, "[[ instance_id ]]"},
 		{"SV_Position", glsl_type::vec4_type, "Position", ir_var_out, "[[ position ]]"},
 		{"SV_RenderTargetArrayIndex", glsl_type::uint_type, "OUT_Layer", ir_var_out, "[[ render_target_array_index ]]"},
-        {"SV_ClipDistance", glsl_type::float_type, "ClipDistance0", ir_var_out, "[[ clip_distance ]]"},
-        {"SV_ClipDistance0", glsl_type::float_type, "ClipDistance0", ir_var_out, "[[ clip_distance ]]"},
-		//#todo-rco: Values 1..7 are not really defined well in the Metal Language Doc...
-		//#todo-marksatt: Perhaps not, but this is a semantic marker not a 'slot' so I think we can just use 0-8.
-        {"SV_ClipDistance1", glsl_type::float_type, "ClipDistance1", ir_var_out, "[[ clip_distance ]]"},
-		{"SV_ClipDistance2", glsl_type::float_type, "ClipDistance2", ir_var_out, "[[ clip_distance ]]"},
-		{"SV_ClipDistance3", glsl_type::float_type, "ClipDistance3", ir_var_out, "[[ clip_distance ]]"},
-		{"SV_ClipDistance4", glsl_type::float_type, "ClipDistance4", ir_var_out, "[[ clip_distance ]]"},
-		{"SV_ClipDistance5", glsl_type::float_type, "ClipDistance5", ir_var_out, "[[ clip_distance ]]"},
-		{"SV_ClipDistance6", glsl_type::float_type, "ClipDistance6", ir_var_out, "[[ clip_distance ]]"},
-		{"SV_ClipDistance7", glsl_type::float_type, "ClipDistance7", ir_var_out, "[[ clip_distance ]]"},
+		{"SV_ViewPortArrayIndex", glsl_type::uint_type, "OUT_Viewport", ir_var_out, "[[ viewport_array_index ]]"},
 		{NULL, NULL, NULL, ir_var_auto, nullptr}
 	};
 
@@ -211,6 +201,7 @@ namespace MetalUtils
 		{"SV_IsFrontFace", glsl_type::bool_type, "IN_FrontFacing", ir_var_in, "[[ front_facing ]]"},
 		//{"SV_PrimitiveID", glsl_type::int_type, "IN_PrimitiveID", ir_var_in, "[[  ]]"},
 		//{"SV_RenderTargetArrayIndex", glsl_type::uint_type, "IN_Layer", ir_var_in, "[[ render_target_array_index ]]"},
+		//{"SV_ViewPortArrayIndex", glsl_type::uint_type, "IN_Viewport", ir_var_in, "[[ viewport_array_index ]]"},
 		{"SV_Target0", glsl_type::half4_type, "FragColor0", ir_var_out, "[[ color(0) ]]"},
 		{"SV_Target1", glsl_type::half4_type, "FragColor1", ir_var_out, "[[ color(1) ]]"},
 		{"SV_Target2", glsl_type::half4_type, "FragColor2", ir_var_out, "[[ color(2) ]]"},
@@ -256,6 +247,7 @@ namespace MetalUtils
 		{"SV_Coverage", glsl_type::uint_type, "OUT_Coverage", ir_var_out, "[[ sample_mask ]]"},
 		//{"SV_PrimitiveID", glsl_type::int_type, "IN_PrimitiveID", ir_var_in, "[[  ]]"},
 		//{"SV_RenderTargetArrayIndex", glsl_type::uint_type, "IN_Layer", ir_var_in, "[[ render_target_array_index ]]"},
+		//{"SV_ViewPortArrayIndex", glsl_type::uint_type, "IN_Viewport", ir_var_in, "[[ viewport_array_index ]]"},
 		{"SV_Target0", glsl_type::vec4_type, "FragColor0", ir_var_out, "[[ color(0) ]]"},
 		{"SV_Target1", glsl_type::vec4_type, "FragColor1", ir_var_out, "[[ color(1) ]]"},
 		{"SV_Target2", glsl_type::vec4_type, "FragColor2", ir_var_out, "[[ color(2) ]]"},
@@ -359,17 +351,7 @@ namespace MetalUtils
 		{"SV_DomainLocation", glsl_type::vec2_type, "PositionInPatch", ir_var_in, "[[ position_in_patch ]]"}, // @todo maybe add a NULL/void_type/error_type and set it using the passed in type for GenerateInputFromSemantic -- use it to simplify SV_Target as well
 		{"SV_DomainLocation", glsl_type::vec3_type, "PositionInPatch", ir_var_in, "[[ position_in_patch ]]"},
 		{"SV_RenderTargetArrayIndex", glsl_type::uint_type, "OUT_Layer", ir_var_out, "[[ render_target_array_index ]]"},
-		{"SV_ClipDistance", glsl_type::float_type, "ClipDistance0", ir_var_out, "[[ clip_distance ]]"},
-		{"SV_ClipDistance0", glsl_type::float_type, "ClipDistance0", ir_var_out, "[[ clip_distance ]]"},
-		//#todo-rco: Values 1..7 are not really defined well in the Metal Language Doc...
-		//#todo-marksatt: Perhaps not, but this is a semantic marker not a 'slot' so I think we can just use 0-8.
-		{"SV_ClipDistance1", glsl_type::float_type, "ClipDistance1", ir_var_out, "[[ clip_distance ]]"},
-		{"SV_ClipDistance2", glsl_type::float_type, "ClipDistance2", ir_var_out, "[[ clip_distance ]]"},
-		{"SV_ClipDistance3", glsl_type::float_type, "ClipDistance3", ir_var_out, "[[ clip_distance ]]"},
-		{"SV_ClipDistance4", glsl_type::float_type, "ClipDistance4", ir_var_out, "[[ clip_distance ]]"},
-		{"SV_ClipDistance5", glsl_type::float_type, "ClipDistance5", ir_var_out, "[[ clip_distance ]]"},
-		{"SV_ClipDistance6", glsl_type::float_type, "ClipDistance6", ir_var_out, "[[ clip_distance ]]"},
-		{"SV_ClipDistance7", glsl_type::float_type, "ClipDistance7", ir_var_out, "[[ clip_distance ]]"},
+		{"SV_ViewPortArrayIndex", glsl_type::uint_type, "OUT_Viewport", ir_var_out, "[[ viewport_array_index ]]"},
 		{NULL, NULL, NULL, ir_var_auto, nullptr}
 	};
 
@@ -477,11 +459,21 @@ namespace MetalUtils
 
 		// If we're here, no built-in variables matched.
 		bool bUseSlice = false;
+		bool bUseViewport = false;
+		bool bUseSampleID = false;
 		if (FCStringAnsi::Strnicmp(Semantic, "SV_", 3) == 0)
 		{
 			if (FCStringAnsi::Strnicmp(Semantic, "SV_RenderTargetArrayIndex", 25) == 0)
 			{
 				bUseSlice = true;
+			}
+			else if (FCStringAnsi::Strnicmp(Semantic, "SV_ViewPortArrayIndex", 21) == 0)
+			{
+				bUseViewport = true;
+			}
+			else if (FCStringAnsi::Strnicmp(Semantic, "SV_SampleIndex", 14) == 0)
+			{
+				bUseSampleID = true;
 			}
 			else
 			{
@@ -508,6 +500,16 @@ namespace MetalUtils
 		{
 			check(Frequency == HSF_PixelShader);
 			Variable->semantic = ralloc_asprintf(ParseState, "[[ render_target_array_index ]]");
+		}
+		else if (bUseViewport)
+		{
+			check(Frequency == HSF_PixelShader);
+			Variable->semantic = ralloc_asprintf(ParseState, "[[ viewport_array_index ]]");
+		}
+		else if (bUseSampleID)
+		{
+			check(Frequency == HSF_PixelShader);
+			Variable->semantic = ralloc_asprintf(ParseState, "[[ sample_id ]]");
 		}
 
 		if (Variable->type->is_patch())
@@ -661,6 +663,60 @@ namespace MetalUtils
 			}
 		}
 
+		uint32 const ClipPrefixLen = 15;
+		if (Semantic && FCStringAnsi::Strnicmp(Semantic, "SV_ClipDistance", ClipPrefixLen) == 0 && !Variable)
+		{
+			Variable = ParseState->symbols->get_variable("clip_distance_array");
+			
+			FMetalLanguageSpec* Spec = (FMetalLanguageSpec*)ParseState->LanguageSpec;
+			uint32 const Count = Spec->GetClipDistanceCount();
+			check(Count > 0);
+			
+			*DestVariableType = (Count > 1) ? glsl_type::get_array_instance(glsl_type::float_type, Count) : glsl_type::float_type;
+			if (!Variable)
+			{
+				Variable = new(ParseState)ir_variable(*DestVariableType, "clip_distance_array", ir_var_out);
+				Variable->semantic = ralloc_asprintf(ParseState, "[[ clip_distance ]]");
+				DeclInstructions->push_tail(Variable);
+				ParseState->symbols->add_variable(Variable);
+			}
+
+			ir_rvalue* VariableDeref = new(ParseState)ir_dereference_variable(Variable);
+			if (Count > 0)
+			{
+				uint32 Index = 0;
+				if (Semantic[ClipPrefixLen] >= '1' && Semantic[ClipPrefixLen] <= '7')
+				{
+					Index = Semantic[ClipPrefixLen] - '0';
+				}
+				ir_variable* IndexVar = nullptr;
+				for (uint32 i = 0; i < 8; i++)
+				{
+					check(i < Count);
+					char* IndexName = ralloc_asprintf(ParseState, "ClipDistanceIndex%u", i);
+					IndexVar = ParseState->symbols->get_variable(IndexName);
+					if (!IndexVar)
+					{
+						IndexVar = new(ParseState)ir_variable(*DestVariableType, IndexName, ir_var_const_in);
+						IndexVar->constant_value = new(ParseState) ir_constant((unsigned)i);
+						IndexVar->constant_initializer = new(ParseState) ir_constant((unsigned)i);
+						ParseState->symbols->add_variable(IndexVar);
+						break;
+					}
+				}
+				check(IndexVar);
+				ir_dereference_array* ArrayDeref = new(ParseState)ir_dereference_array(
+																					   VariableDeref,
+																					   IndexVar->constant_value->clone(ParseState, NULL)
+																					   );
+				return ArrayDeref;
+			}
+			else
+			{
+				return VariableDeref;
+			}
+		}
+		
 		if (Semantic && FCStringAnsi::Strnicmp(Semantic, "SV_", 3) == 0 && !Variable)
 		{
 			_mesa_glsl_warning(ParseState, "unrecognized system value output '%s'", Semantic);
@@ -1071,15 +1127,39 @@ void FMetalCodeBackend::MovePackedUniformsToMain(exec_list* ir, _mesa_glsl_parse
 		auto* Var = Instruction->as_variable();
 		if (Var)
 		{
-			check(Var->mode == ir_var_uniform || Var->mode == ir_var_out || Var->mode == ir_var_in || Var->mode == ir_var_shared);
-			if ((!Var->type->is_sampler() && !Var->type->is_image()) || Var->type->sampler_buffer)
-            {
-                OutBuffers.Buffers.Add(Var);
-            }
-            else
-            {
-                OutBuffers.Textures.Add(Var);
-            }
+			bool bIsBuffer = false;
+			bool bIsStructuredBuffer = Var->type->sampler_buffer && (Var->type->inner_type->is_record() || !strncmp(Var->type->name, "RWStructuredBuffer<", 19) || !strncmp(Var->type->name, "StructuredBuffer<", 17));
+			bool bIsByteAddressBuffer = Var->type->sampler_buffer && (!strncmp(Var->type->name, "RWByteAddressBuffer<", 20) || !strncmp(Var->type->name, "ByteAddressBuffer<", 18));
+							
+			switch(TypedMode)
+			{
+				case EMetalTypeBufferModeNone:
+				{
+					bIsBuffer = (!Var->type->is_sampler() && !Var->type->is_image()) || Var->type->sampler_buffer;
+					break;
+				}
+				case EMetalTypeBufferModeSRV:
+				{
+					bIsBuffer = (!Var->type->is_sampler() && !Var->type->is_image()) || (Var->type->sampler_buffer && (Var->type->is_image() || bIsStructuredBuffer || bIsByteAddressBuffer || OutBuffers.AtomicVariables.find(Var) != OutBuffers.AtomicVariables.end()));
+					break;
+				}
+				case EMetalTypeBufferModeUAV:
+				{
+					bIsBuffer = (!Var->type->is_sampler() && !Var->type->is_image()) || (Var->type->sampler_buffer && (OutBuffers.AtomicVariables.find(Var) != OutBuffers.AtomicVariables.end() || bIsStructuredBuffer || bIsByteAddressBuffer));
+					break;
+				}
+				default:
+					check(false);
+					break;
+			}
+			if (bIsBuffer)
+			{
+				OutBuffers.AddBuffer(Var);
+			}
+			else
+			{
+				OutBuffers.AddTexture(Var);
+			}
 		}
 	}
     
@@ -1289,7 +1369,8 @@ static FSystemValue VertexSystemValueTable[] =
 {
 	{"SV_VertexID", glsl_type::uint_type, "gl_VertexID", ir_var_in, false, false},
 	{"SV_InstanceID", glsl_type::uint_type, "gl_InstanceID", ir_var_in, false, false},
-    {"SV_RenderTargetArrayIndex", glsl_type::uint_type, "OUT_Layer", ir_var_out, false, false},
+	{"SV_RenderTargetArrayIndex", glsl_type::uint_type, "OUT_Layer", ir_var_out, false, false},
+	{"SV_ViewPortArrayIndex", glsl_type::uint_type, "OUT_Viewport", ir_var_out, false, false},
     //{ "SV_Position", glsl_type::vec4_type, "gl_Position", ir_var_out, false, true },
 	{NULL, NULL, NULL, ir_var_auto, false, false}
 };
@@ -1303,9 +1384,11 @@ static FSystemValue PixelSystemValueTable[] =
 	{"SV_Coverage", glsl_type::uint_type, "OUT_Coverage", ir_var_out, false, false},
 	//	{ "SV_IsFrontFace", glsl_type::bool_type, "gl_FrontFacing", ir_var_in, false, true },
     {"SV_PrimitiveID", glsl_type::int_type, "gl_PrimitiveID", ir_var_in, false, false},
-    {"SV_RenderTargetArrayIndex", glsl_type::uint_type, "IN_Layer", ir_var_in, false, false},
+	{"SV_RenderTargetArrayIndex", glsl_type::uint_type, "IN_Layer", ir_var_in, false, false},
+	{"SV_ViewPortArrayIndex", glsl_type::uint_type, "IN_Viewport", ir_var_in, false, false},
 	//	{ "SV_RenderTargetArrayIndex", glsl_type::uint_type, "gl_Layer", ir_var_in, false, false },
 	//	{ "SV_Target0", glsl_type::vec4_type, "gl_FragColor", ir_var_out, false, true },
+	{ "SV_SampleIndex", glsl_type::uint_type, "IN_SampleID", ir_var_in, false, false },
 	{NULL, NULL, NULL, ir_var_auto, false, false}
 };
 
@@ -1649,7 +1732,7 @@ void FMetalCodeBackend::PackInputsAndOutputs(exec_list* Instructions, _mesa_glsl
 
 	// Input stage variables
 	ir_variable* VSStageIn = nullptr;
-	std::map<FCustomStdString, glsl_struct_field> OriginalVSStageInMembers;
+	std::map<std::string, glsl_struct_field> OriginalVSStageInMembers;
 	ir_variable* PSStageIn = nullptr;
 
 	// Extra arguments needed for input (VertexID, etc)

@@ -26,6 +26,8 @@ When an `AActor` or `UActorComponent` is destroyed or otherwise removed from pla
 
 It is important to realize that this feature applies only to `UActorComponent` or `AActor` references marked with `UPROPERTY` or stored in an Unreal Engine container class. An Object reference stored in a raw pointer will be unknown to the Unreal Engine, and will not be automatically nulled, nor will it prevent garbage collection. Note this does not mean that all `UObject*` variables must be `UProperties`. If you want an Object pointer that is not a `UProperty`, consider using `TWeakObjectPtr`. This is a "weak" pointer, meaning it will not prevent garbage collection, but it can be queried for validity before being accessed and will be set to null if the Object it points to is destroyed.
 
+Another case where a referenced UObject UProperty will be automatically null'ed is when using 'Force Delete' on an asset in the editor.  As a result, all code operating on UObjects which are assets must handle these pointers becoming null.
+
 ## Serialization
 
 When a `UObject` is serialized, all UProperty values are automatically written or read unless explicitly marked as "transient". For example, you could place an `AEnemy` instance in a level, set its Health to 500, save it and successfully reload it without writing a single line of code beyond the `UClass` definition.

@@ -336,17 +336,26 @@ ir_visitor_status ir_validate::visit_leave(ir_expression *ir)
 	case ir_unop_abs:
 	case ir_unop_sign:
 	case ir_unop_rcp:
-	case ir_unop_rsq:
-	case ir_unop_sqrt:
 		ValidateTypes(ir->type, ir->operands[0]->type);
 		break;
 
+	case ir_unop_rsq:
+	case ir_unop_sqrt:
 	case ir_unop_exp:
 	case ir_unop_log:
 	case ir_unop_exp2:
 	case ir_unop_log2:
-		validate_expr(ir->operands[0]->type->is_float());
-		validate_expr(ir->type == ir->operands[0]->type);
+		{
+			validate_expr(ir->operands[0]->type->is_float() || ir->operands[0]->type->is_integer());
+			if (ir->operands[0]->type->is_integer())
+			{
+				validate_expr(ir->type == glsl_type::get_instance(GLSL_TYPE_FLOAT, ir->operands[0]->type->vector_elements, ir->operands[0]->type->matrix_columns));
+			}
+			else
+			{
+				validate_expr(ir->type == ir->operands[0]->type);
+			}
+		}
 		break;
 
 	case ir_unop_f2i:
@@ -460,6 +469,7 @@ ir_visitor_status ir_validate::visit_leave(ir_expression *ir)
 	case ir_unop_normalize:
 	case ir_unop_dFdx:
 	case ir_unop_dFdy:
+	case ir_unop_saturate:
 		validate_expr(ir->operands[0]->type->is_float());
 		ValidateTypes(ir->operands[0]->type, ir->type);
 		break;
@@ -721,6 +731,13 @@ ir_visitor_status ir_validate::visit_leave(ir_expression *ir)
 		validate_expr(ir->operands[0]->type == ir->type);
 		validate_expr(ir->operands[1]->type->base_type == ir->type->base_type);
 		validate_expr(ir->operands[2]->type->base_type == ir->type->base_type);
+		break;
+
+	case ir_ternop_fma:
+		validate_expr(ir->type->is_float());
+		validate_expr(ir->operands[0]->type == ir->type);
+		validate_expr(ir->operands[1]->type == ir->type);
+		validate_expr(ir->operands[2]->type == ir->type);
 		break;
 
 	case ir_quadop_vector:

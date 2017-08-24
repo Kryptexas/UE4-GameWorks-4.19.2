@@ -139,7 +139,6 @@ void FPreviewScene::RemoveComponent(UActorComponent* Component)
 void FPreviewScene::AddReferencedObjects( FReferenceCollector& Collector )
 {
 	Collector.AddReferencedObjects( Components );
-	Collector.AddReferencedObject( DirectionalLight );
 	Collector.AddReferencedObject( PreviewWorld );
 }
 

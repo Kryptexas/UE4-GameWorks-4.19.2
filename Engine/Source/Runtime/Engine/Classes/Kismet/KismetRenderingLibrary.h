@@ -7,12 +7,12 @@
 #include "RHI.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "Components/SkinnedMeshComponent.h"
+#include "Engine/TextureRenderTarget2D.h"
 #include "KismetRenderingLibrary.generated.h"
 
 class UCanvas;
 class UMaterialInterface;
 class UTexture2D;
-class UTextureRenderTarget2D;
 template<typename TRHICmdList> struct TDrawEvent;
 
 USTRUCT(BlueprintType)
@@ -47,7 +47,7 @@ class UKismetRenderingLibrary : public UBlueprintFunctionLibrary
 	 * Creates a new render target and initializes it to the specified dimensions
 	 */
 	UFUNCTION(BlueprintCallable, Category="Rendering", meta=(WorldContext="WorldContextObject"))
-	static ENGINE_API UTextureRenderTarget2D* CreateRenderTarget2D(UObject* WorldContextObject, int32 Width = 256, int32 Height = 256, bool bHDR = true);
+	static ENGINE_API UTextureRenderTarget2D* CreateRenderTarget2D(UObject* WorldContextObject, int32 Width = 256, int32 Height = 256, ETextureRenderTargetFormat Format = RTF_RGBA16f);
 	
 	/**
 	 * Manually releases GPU resources of a render target. This is useful for blueprint creating a lot of render target that would

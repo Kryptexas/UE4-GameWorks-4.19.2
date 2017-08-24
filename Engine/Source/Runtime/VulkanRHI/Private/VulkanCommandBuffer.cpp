@@ -153,23 +153,27 @@ void FVulkanCommandBufferPool::Create(uint32 QueueFamilyIndex)
 FVulkanCommandBufferManager::FVulkanCommandBufferManager(FVulkanDevice* InDevice, FVulkanCommandListContext* InContext)
 	: Device(InDevice)
 	, Pool(InDevice)
+	, Queue(InContext->GetQueue())
 	, ActiveCmdBuffer(nullptr)
 	, UploadCmdBuffer(nullptr)
 {
 	check(Device);
 
-	Pool.Create(Device->GetGraphicsQueue()->GetFamilyIndex());
+	Pool.Create(Queue->GetFamilyIndex());
 
 	ActiveCmdBuffer = Pool.Create();
 	ActiveCmdBuffer->Begin();
 
-	// Insert the Begin frame timestamp query. On EndDrawingViewport() we'll insert the End and immediately after a new Begin()
-	InContext->WriteBeginTimestamp(ActiveCmdBuffer);
+	if (InContext->IsImmediate())
+	{
+		// Insert the Begin frame timestamp query. On EndDrawingViewport() we'll insert the End and immediately after a new Begin()
+		InContext->WriteBeginTimestamp(ActiveCmdBuffer);
 
-	// Flush the cmd buffer immediately to ensure a valid
-	// 'Last submitted' cmd buffer exists at frame 0.
-	SubmitActiveCmdBuffer(false);
-	PrepareForNewActiveCommandBuffer();
+		// Flush the cmd buffer immediately to ensure a valid
+		// 'Last submitted' cmd buffer exists at frame 0.
+		SubmitActiveCmdBuffer(false);
+		PrepareForNewActiveCommandBuffer();
+	}
 }
 
 FVulkanCommandBufferManager::~FVulkanCommandBufferManager()
@@ -190,7 +194,7 @@ void FVulkanCommandBufferManager::SubmitUploadCmdBuffer(bool bWaitForFence)
 	check(UploadCmdBuffer);
 	check(UploadCmdBuffer->IsOutsideRenderPass());
 	UploadCmdBuffer->End();
-	Device->GetGraphicsQueue()->Submit(UploadCmdBuffer, nullptr, 0, nullptr);
+	Queue->Submit(UploadCmdBuffer, nullptr, 0, nullptr);
 	if (bWaitForFence)
 	{
 		if (UploadCmdBuffer->IsSubmitted())
@@ -212,7 +216,7 @@ void FVulkanCommandBufferManager::SubmitActiveCmdBuffer(bool bWaitForFence)
 		ActiveCmdBuffer->EndRenderPass();
 	}
 	ActiveCmdBuffer->End();
-	Device->GetGraphicsQueue()->Submit(ActiveCmdBuffer, nullptr, 0, nullptr);
+	Queue->Submit(ActiveCmdBuffer, nullptr, 0, nullptr);
 	if (bWaitForFence)
 	{
 		if (ActiveCmdBuffer->IsSubmitted())

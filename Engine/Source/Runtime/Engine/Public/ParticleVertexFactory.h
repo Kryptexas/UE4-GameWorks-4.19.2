@@ -140,7 +140,9 @@ public:
 		NumVertsInInstanceBuffer(0),
 		NumCutoutVerticesPerFrame(0),
 		CutoutGeometrySRV(nullptr),
-		bCustomAlignment(false)
+		bCustomAlignment(false),
+		bUsesDynamicParameter(true),
+		DynamicParameterStride(0)
 	{}
 
 	FParticleSpriteVertexFactory() 
@@ -148,7 +150,9 @@ public:
 		NumVertsInInstanceBuffer(0),
 		NumCutoutVerticesPerFrame(0),
 		CutoutGeometrySRV(nullptr),
-		bCustomAlignment(false)
+		bCustomAlignment(false),
+		bUsesDynamicParameter(true),
+		DynamicParameterStride(0)
 	{}
 
 	// FRenderResource interface.
@@ -180,6 +184,11 @@ public:
 	 * Set the source vertex buffer that contains particle dynamic parameter data.
 	 */
 	void SetDynamicParameterBuffer(const FVertexBuffer* InDynamicParameterBuffer, uint32 StreamOffset, uint32 Stride, bool bInstanced);
+	inline void SetUsesDynamicParameter(bool bInUsesDynamicParameter, uint32 Stride)
+	{
+		bUsesDynamicParameter = bInUsesDynamicParameter;
+		DynamicParameterStride = Stride;
+	}
 
 	/**
 	 * Set the uniform buffer for this vertex factory.
@@ -235,4 +244,6 @@ private:
 	int32 NumCutoutVerticesPerFrame;
 	FShaderResourceViewRHIParamRef CutoutGeometrySRV;
 	bool bCustomAlignment;
+	bool bUsesDynamicParameter;
+	uint32 DynamicParameterStride;
 };

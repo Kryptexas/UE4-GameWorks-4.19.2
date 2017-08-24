@@ -10,6 +10,20 @@
 #include "VulkanContext.h"
 #include "Misc/Paths.h"
 
+TAutoConsoleVariable<int32> GRHIAllowAsyncComputeCvar(
+	TEXT("r.Vulkan.AllowAsyncCompute"),
+	0,
+	TEXT("0 to disable async compute queue(if available)")
+	TEXT("1 to allow async compute queue")
+);
+
+TAutoConsoleVariable<int32> GAllowPresentOnComputeQueue(
+	TEXT("r.Vulkan.AllowPresentOnComputeQueue"),
+	0,
+	TEXT("0 to present on the graphics queue")
+	TEXT("1 to allow presenting on the compute queue if available")
+);
+
 FVulkanDevice::FVulkanDevice(VkPhysicalDevice InGpu)
 	: Gpu(InGpu)
 	, Device(VK_NULL_HANDLE)
@@ -20,8 +34,11 @@ FVulkanDevice::FVulkanDevice(VkPhysicalDevice InGpu)
 	, DefaultImageView(VK_NULL_HANDLE)
 	, TimestampQueryPool(nullptr)
 	, GfxQueue(nullptr)
+	, ComputeQueue(nullptr)
 	, TransferQueue(nullptr)
+	, PresentQueue(nullptr)
 	, ImmediateContext(nullptr)
+	, ComputeContext(nullptr)
 #if VULKAN_ENABLE_DRAW_MARKERS
 	, CmdDbgMarkerBegin(nullptr)
 	, CmdDbgMarkerEnd(nullptr)
@@ -69,6 +86,7 @@ void FVulkanDevice::CreateDevice()
 	// Setup Queue info
 	TArray<VkDeviceQueueCreateInfo> QueueFamilyInfos;
 	int32 GfxQueueFamilyIndex = -1;
+	int32 ComputeQueueFamilyIndex = -1;
 	int32 TransferQueueFamilyIndex = -1;
 	UE_LOG(LogVulkanRHI, Display, TEXT("Found %d Queue Families"), QueueFamilyProps.Num());
 	uint32 NumPriorities = 0;
@@ -90,32 +108,42 @@ void FVulkanDevice::CreateDevice()
 			}
 		}
 
+		if ((CurrProps.queueFlags & VK_QUEUE_COMPUTE_BIT) == VK_QUEUE_COMPUTE_BIT)
+		{
+			if (ComputeQueueFamilyIndex == -1 && 
+				(GRHIAllowAsyncComputeCvar.GetValueOnAnyThread() != 0 || GAllowPresentOnComputeQueue.GetValueOnAnyThread() != 0) && GfxQueueFamilyIndex != FamilyIndex)
+			{
+				ComputeQueueFamilyIndex = FamilyIndex;
+				bIsValidQueue = true;
+			}
+		}
+
 		if ((CurrProps.queueFlags & VK_QUEUE_TRANSFER_BIT) == VK_QUEUE_TRANSFER_BIT)
 		{
 			// Prefer a non-gfx transfer queue
-			if (TransferQueueFamilyIndex == -1 && (CurrProps.queueFlags & VK_QUEUE_GRAPHICS_BIT) != VK_QUEUE_GRAPHICS_BIT)
+			if (TransferQueueFamilyIndex == -1 && (CurrProps.queueFlags & VK_QUEUE_GRAPHICS_BIT) != VK_QUEUE_GRAPHICS_BIT && (CurrProps.queueFlags & VK_QUEUE_COMPUTE_BIT) != VK_QUEUE_COMPUTE_BIT)
 			{
 				TransferQueueFamilyIndex = FamilyIndex;
 				bIsValidQueue = true;
 			}
 		}
 
-		auto GetQueueInfoString = [&]()
+		auto GetQueueInfoString = [](const VkQueueFamilyProperties& Props)
 		{
 			FString Info;
-			if ((CurrProps.queueFlags & VK_QUEUE_GRAPHICS_BIT) == VK_QUEUE_GRAPHICS_BIT)
+			if ((Props.queueFlags & VK_QUEUE_GRAPHICS_BIT) == VK_QUEUE_GRAPHICS_BIT)
 			{
 				Info += TEXT(" Gfx");
 			}
-			if ((CurrProps.queueFlags & VK_QUEUE_COMPUTE_BIT) == VK_QUEUE_COMPUTE_BIT)
+			if ((Props.queueFlags & VK_QUEUE_COMPUTE_BIT) == VK_QUEUE_COMPUTE_BIT)
 			{
 				Info += TEXT(" Compute");
 			}
-			if ((CurrProps.queueFlags & VK_QUEUE_TRANSFER_BIT) == VK_QUEUE_TRANSFER_BIT)
+			if ((Props.queueFlags & VK_QUEUE_TRANSFER_BIT) == VK_QUEUE_TRANSFER_BIT)
 			{
 				Info += TEXT(" Xfer");
 			}
-			if ((CurrProps.queueFlags & VK_QUEUE_SPARSE_BINDING_BIT) == VK_QUEUE_SPARSE_BINDING_BIT)
+			if ((Props.queueFlags & VK_QUEUE_SPARSE_BINDING_BIT) == VK_QUEUE_SPARSE_BINDING_BIT)
 			{
 				Info += TEXT(" Sparse");
 			}
@@ -125,7 +153,7 @@ void FVulkanDevice::CreateDevice()
 
 		if (!bIsValidQueue)
 		{
-			UE_LOG(LogVulkanRHI, Display, TEXT("Skipping unnecessary Queue Family %d: %d queues%s"), FamilyIndex, CurrProps.queueCount, *GetQueueInfoString());
+			UE_LOG(LogVulkanRHI, Display, TEXT("Skipping unnecessary Queue Family %d: %d queues%s"), FamilyIndex, CurrProps.queueCount, *GetQueueInfoString(CurrProps));
 			continue;
 		}
 
@@ -136,7 +164,7 @@ void FVulkanDevice::CreateDevice()
 		CurrQueue.queueFamilyIndex = FamilyIndex;
 		CurrQueue.queueCount = CurrProps.queueCount;
 		NumPriorities += CurrProps.queueCount;
-		UE_LOG(LogVulkanRHI, Display, TEXT("Initializing Queue Family %d: %d queues%s"), FamilyIndex, CurrProps.queueCount, *GetQueueInfoString());
+		UE_LOG(LogVulkanRHI, Display, TEXT("Initializing Queue Family %d: %d queues%s"), FamilyIndex, CurrProps.queueCount, *GetQueueInfoString(CurrProps));
 	}
 
 	TArray<float> QueuePriorities;
@@ -164,10 +192,16 @@ void FVulkanDevice::CreateDevice()
 
 	// Create Graphics Queue, here we submit command buffers for execution
 	GfxQueue = new FVulkanQueue(this, GfxQueueFamilyIndex, 0);
+	if (ComputeQueueFamilyIndex == -1)
+	{
+		// If we didn't find a dedicated Queue, use the default one
+		ComputeQueueFamilyIndex = GfxQueueFamilyIndex;
+	}
+	ComputeQueue = new FVulkanQueue(this, ComputeQueueFamilyIndex, 0);
 	if (TransferQueueFamilyIndex == -1)
 	{
 		// If we didn't find a dedicated Queue, use the default one
-		TransferQueueFamilyIndex = GfxQueueFamilyIndex;
+		TransferQueueFamilyIndex = ComputeQueueFamilyIndex;
 	}
 	TransferQueue = new FVulkanQueue(this, TransferQueueFamilyIndex, 0);
 
@@ -322,6 +356,12 @@ void FVulkanDevice::SetupFormats()
 	MapFormatSupport(PF_R8G8B8A8, VK_FORMAT_R8G8B8A8_UNORM);
 	SetComponentMapping(PF_R8G8B8A8, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
 
+	MapFormatSupport(PF_R8G8B8A8_UINT, VK_FORMAT_R8G8B8A8_UINT);
+	SetComponentMapping(PF_R8G8B8A8_UINT, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
+
+	MapFormatSupport(PF_R8G8B8A8_SNORM, VK_FORMAT_R8G8B8A8_SNORM);
+	SetComponentMapping(PF_R8G8B8A8_SNORM, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
+
 	MapFormatSupport(PF_R16G16_UINT, VK_FORMAT_R16G16_UINT);
 	SetComponentMapping(PF_R16G16_UINT, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_ZERO, VK_COMPONENT_SWIZZLE_ZERO);
 
@@ -331,7 +371,7 @@ void FVulkanDevice::SetupFormats()
 	MapFormatSupport(PF_R16G16B16A16_SINT, VK_FORMAT_R16G16B16A16_SINT);
 	SetComponentMapping(PF_R16G16B16A16_SINT, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
 
-	MapFormatSupport(PF_R32G32B32A32_UINT, VK_FORMAT_R32G32B32_UINT);
+	MapFormatSupport(PF_R32G32B32A32_UINT, VK_FORMAT_R32G32B32A32_UINT);
 	SetComponentMapping(PF_R32G32B32A32_UINT, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
 
 	MapFormatSupport(PF_R8G8, VK_FORMAT_R8G8_UNORM);
@@ -511,7 +551,7 @@ void FVulkanDevice::InitGPU(int32 DeviceIndex)
 
 	FenceManager.Init(this);
 
-	StagingManager.Init(this, GfxQueue);
+	StagingManager.Init(this);
 
 	PipelineStateCache = new FVulkanPipelineStateCache(this);
 
@@ -533,7 +573,27 @@ void FVulkanDevice::InitGPU(int32 DeviceIndex)
 		UE_LOG(LogVulkanRHI, Warning, TEXT("Timestamps not supported on Device"));
 	}
 
-	ImmediateContext = new FVulkanCommandListContext((FVulkanDynamicRHI*)GDynamicRHI, this, true);
+	ImmediateContext = new FVulkanCommandListContext((FVulkanDynamicRHI*)GDynamicRHI, this, GfxQueue, true);
+
+	if (GfxQueue->GetFamilyIndex() != ComputeQueue->GetFamilyIndex() && GRHIAllowAsyncComputeCvar.GetValueOnAnyThread() != 0)
+	{
+		ComputeContext = new FVulkanCommandListContext((FVulkanDynamicRHI*)GDynamicRHI, this, ComputeQueue, true);
+	}
+	else
+	{
+		ComputeContext = ImmediateContext;
+	}
+
+	extern TAutoConsoleVariable<int32> GRHIThreadCvar;
+	if (GRHIThreadCvar->GetInt() > 1)
+	{
+		int32 Num = FTaskGraphInterface::Get().GetNumWorkerThreads();
+		for (int32 Index = 0; Index < Num; Index++)
+		{
+			FVulkanCommandListContext* CmdContext = new FVulkanCommandListContext((FVulkanDynamicRHI*)GDynamicRHI, this, GfxQueue, false);
+			CommandContexts.Add(CmdContext);
+		}
+	}
 
 	PipelineStateCache->InitAndLoad(CacheFilenames);
 
@@ -556,12 +616,19 @@ void FVulkanDevice::PrepareForDestroy()
 void FVulkanDevice::Destroy()
 {
 	VulkanRHI::vkDestroyImageView(GetInstanceHandle(), DefaultImageView, nullptr);
+	DefaultImageView = VK_NULL_HANDLE;
 
 	delete DefaultSampler;
 	DefaultSampler = nullptr;
 
 	delete DefaultImage;
 	DefaultImage = nullptr;
+
+	if (ComputeContext != ImmediateContext)
+	{
+		delete ComputeContext;
+	}
+	ComputeContext = nullptr;
 
 	delete ImmediateContext;
 	ImmediateContext = nullptr;
@@ -579,20 +646,28 @@ void FVulkanDevice::Destroy()
 	}
 	OcclusionQueryPools.SetNum(0, false);
 
+	for (FVulkanQueryPool* QueryPool : TimestampQueryPools)
+	{
+		QueryPool->Destroy();
+		delete QueryPool;
+	}
+	TimestampQueryPools.SetNum(0, false);
+
 	delete PipelineStateCache;
 	PipelineStateCache = nullptr;
-
 	StagingManager.Deinit();
 
 	ResourceHeapManager.Deinit();
 
 	delete TransferQueue;
+	delete ComputeQueue;
 	delete GfxQueue;
 
 	FenceManager.Deinit();
 
 	MemoryManager.Deinit();
 
+	FRHIResource::FlushPendingDeletes();
 	DeferredDeletionQueue.Clear();
 
 	VulkanRHI::vkDestroyDevice(Device, nullptr);
@@ -659,11 +734,9 @@ void FVulkanDevice::PrepareForCPURead()
 	ImmediateContext->PrepareForCPURead();
 }
 
-void FVulkanDevice::SubmitCommandsAndFlushGPU()
+void FVulkanDevice::SubmitCommands(FVulkanCommandListContext* Context)
 {
-	//#todo-rco: Process other contexts first!
-
-	FVulkanCommandBufferManager* CmdMgr = ImmediateContext->GetCommandBufferManager();
+	FVulkanCommandBufferManager* CmdMgr = Context->GetCommandBufferManager();
 	if (CmdMgr->HasPendingUploadCmdBuffer())
 	{
 		CmdMgr->SubmitUploadCmdBuffer(true);
@@ -671,9 +744,9 @@ void FVulkanDevice::SubmitCommandsAndFlushGPU()
 	if (CmdMgr->HasPendingActiveCmdBuffer())
 	{
 		//#todo-rco: If we get real render passes then this is not needed
-		if (ImmediateContext->TransitionState.CurrentRenderPass)
+		if (Context->TransitionState.CurrentRenderPass)
 		{
-			ImmediateContext->TransitionState.EndRenderPass(CmdMgr->GetActiveCmdBuffer());
+			Context->TransitionState.EndRenderPass(CmdMgr->GetActiveCmdBuffer());
 		}
 
 		CmdMgr->SubmitActiveCmdBuffer(true);
@@ -681,8 +754,25 @@ void FVulkanDevice::SubmitCommandsAndFlushGPU()
 	CmdMgr->PrepareForNewActiveCommandBuffer();
 }
 
+void FVulkanDevice::SubmitCommandsAndFlushGPU()
+{
+	if (ComputeContext != ImmediateContext)
+	{
+		SubmitCommands(ComputeContext);
+	}
+
+	SubmitCommands(ImmediateContext);
+
+	//#todo-rco: Process other contexts first!
+}
+
 void FVulkanDevice::NotifyDeletedGfxPipeline(class FVulkanGraphicsPipelineState* Pipeline)
 {
+	if (ComputeContext != ImmediateContext)
+	{
+		//ensure(0);
+	}
+
 	//#todo-rco: Loop through all contexts!
 	if (ImmediateContext)
 	{
@@ -692,9 +782,30 @@ void FVulkanDevice::NotifyDeletedGfxPipeline(class FVulkanGraphicsPipelineState*
 
 void FVulkanDevice::NotifyDeletedComputePipeline(class FVulkanComputePipeline* Pipeline)
 {
+	if (ComputeContext != ImmediateContext)
+	{
+		ComputeContext->PendingComputeState->NotifyDeletedPipeline(Pipeline);
+	}
+
 	//#todo-rco: Loop through all contexts!
 	if (ImmediateContext)
 	{
 		ImmediateContext->PendingComputeState->NotifyDeletedPipeline(Pipeline);
+	}
+}
+
+static FCriticalSection GContextCS;
+FVulkanCommandListContext* FVulkanDevice::AcquireDeferredContext()
+{
+	FScopeLock Lock(&GContextCS);
+	return CommandContexts.Pop(false);
+}
+
+void FVulkanDevice::ReleaseDeferredContext(FVulkanCommandListContext* InContext)
+{
+	check(InContext);
+	{
+		FScopeLock Lock(&GContextCS);
+		CommandContexts.Push(InContext);
 	}
 }

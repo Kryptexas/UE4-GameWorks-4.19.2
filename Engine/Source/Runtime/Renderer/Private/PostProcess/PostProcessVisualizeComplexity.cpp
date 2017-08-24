@@ -40,7 +40,9 @@ FVisualizeComplexityApplyPS::FVisualizeComplexityApplyPS(const ShaderMetaType::C
 	QuadOverdrawTexture.Bind(Initializer.ParameterMap,TEXT("QuadOverdrawTexture"));
 }
 
+template <typename TRHICmdList>
 void FVisualizeComplexityApplyPS::SetParameters(
+	TRHICmdList& RHICmdList,
 	const FRenderingCompositePassContext& Context,
 	const TArray<FLinearColor>& Colors,
 	EColorSampling ColorSampling,
@@ -50,25 +52,25 @@ void FVisualizeComplexityApplyPS::SetParameters(
 {
 	const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-	FGlobalShader::SetParameters<FViewUniformShaderParameters>(Context.RHICmdList, ShaderRHI, Context.View.ViewUniformBuffer);
+	FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, Context.View.ViewUniformBuffer);
 
-	PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI());
+	PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI());
 
 	int32 NumColors = FMath::Min<int32>(Colors.Num(), MaxNumShaderComplexityColors);
 	if (NumColors > 0)
 	{	//pass the complexity -> color mapping into the pixel shader
 		for (int32 ColorIndex = 0; ColorIndex < NumColors; ColorIndex++)
 		{
-			SetShaderValue(Context.RHICmdList, ShaderRHI, ShaderComplexityColors, Colors[ColorIndex], ColorIndex);
+			SetShaderValue(RHICmdList, ShaderRHI, ShaderComplexityColors, Colors[ColorIndex], ColorIndex);
 		}
 	}
 	else // Otherwise fallback to a safe value.
 	{
 		NumColors = 1;
-		SetShaderValue(Context.RHICmdList, ShaderRHI, ShaderComplexityColors, FLinearColor::Gray, 0);
+		SetShaderValue(RHICmdList, ShaderRHI, ShaderComplexityColors, FLinearColor::Gray, 0);
 	}
 
-	SetTextureParameter(Context.RHICmdList, ShaderRHI, MiniFontTexture, GEngine->MiniFontTexture ? GEngine->MiniFontTexture->Resource->TextureRHI : GSystemTextures.WhiteDummy->GetRenderTargetItem().TargetableTexture);
+	SetTextureParameter(RHICmdList, ShaderRHI, MiniFontTexture, GEngine->MiniFontTexture ? GEngine->MiniFontTexture->Resource->TextureRHI : GSystemTextures.WhiteDummy->GetRenderTargetItem().TargetableTexture);
 
 	// Whether acccess or not the QuadOverdraw buffer.
 	EDebugViewShaderMode DebugViewShaderMode = Context.View.Family->GetDebugViewShaderMode();
@@ -77,19 +79,19 @@ void FVisualizeComplexityApplyPS::SetParameters(
 		const FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(Context.RHICmdList);
 		if (SceneContext.QuadOverdrawBuffer.IsValid() && SceneContext.QuadOverdrawBuffer->GetRenderTargetItem().ShaderResourceTexture.IsValid())
 		{
-			Context.RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EGfxToGfx, SceneContext.QuadOverdrawBuffer->GetRenderTargetItem().UAV);
-			SetTextureParameter(Context.RHICmdList, ShaderRHI, QuadOverdrawTexture, SceneContext.QuadOverdrawBuffer->GetRenderTargetItem().ShaderResourceTexture);
+			RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EGfxToGfx, SceneContext.QuadOverdrawBuffer->GetRenderTargetItem().UAV);
+			SetTextureParameter(RHICmdList, ShaderRHI, QuadOverdrawTexture, SceneContext.QuadOverdrawBuffer->GetRenderTargetItem().ShaderResourceTexture);
 		}
 		else // Otherwise fallback to a complexity mode that does not require the QuadOverdraw resources.
 		{
-			SetTextureParameter(Context.RHICmdList, ShaderRHI, QuadOverdrawTexture, FTextureRHIRef());
+			SetTextureParameter(RHICmdList, ShaderRHI, QuadOverdrawTexture, FTextureRHIRef());
 			DebugViewShaderMode = DVSM_ShaderComplexity;
 		}
 	}
 
 	FIntPoint UsedQuadBufferSize = (Context.View.ViewRect.Size() + FIntPoint(1, 1)) / 2;
-	SetShaderValue(Context.RHICmdList, ShaderRHI, ShaderComplexityParams, FVector4(bLegend, DebugViewShaderMode, ColorSampling, ComplexityScale));
-	SetShaderValue(Context.RHICmdList, ShaderRHI, ShaderComplexityParams2, FVector4((float)Colors.Num(), 0, (float)UsedQuadBufferSize.X, (float)UsedQuadBufferSize.Y));
+	SetShaderValue(RHICmdList, ShaderRHI, ShaderComplexityParams, FVector4(bLegend, DebugViewShaderMode, ColorSampling, ComplexityScale));
+	SetShaderValue(RHICmdList, ShaderRHI, ShaderComplexityParams2, FVector4((float)Colors.Num(), 0, (float)UsedQuadBufferSize.X, (float)UsedQuadBufferSize.Y));
 }
 
 IMPLEMENT_SHADER_TYPE(,FVisualizeComplexityApplyPS,TEXT("/Engine/Private/ShaderComplexityApplyPixelShader.usf"),TEXT("Main"),SF_Pixel);
@@ -142,7 +144,7 @@ void FRCPassPostProcessVisualizeComplexity::Process(FRenderingCompositePassConte
 
 	SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
 
-	PixelShader->SetParameters(Context, Colors, ColorSampling, ComplexityScale, bLegend);
+	PixelShader->SetParameters(Context.RHICmdList, Context, Colors, ColorSampling, ComplexityScale, bLegend);
 	
 	DrawRectangle(
 		Context.RHICmdList,

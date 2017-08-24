@@ -26,13 +26,16 @@ struct VIEWPORTINTERACTION_API FViewportActionKeyInput
 	{}
 
 	/** The name of this action */
+	UPROPERTY()
 	FName ActionType;
 
 	/** Input event */
-	EInputEvent Event;
+	UPROPERTY()
+	TEnumAsByte<EInputEvent> Event;
 
 	/** True if this action owned by an interactor is "captured" for each possible action type, meaning that only the active captor should 
 	handle input events until it is no longer captured.  It's the captors responsibility to set this using OnVRAction(), or clear it when finished with capturing. */
+	UPROPERTY()
 	bool bIsInputCaptured;
 };
 
@@ -91,4 +94,12 @@ struct VIEWPORTINTERACTION_API FTransformGizmoHandlePlacement
 	The center axis index is valid for edges, and defines the axis perpendicular to that edge direction,
 	or INDEX_NONE if it's not an edge */
 	void GetCenterHandleCountAndFacingAxisIndex( int32& OutCenterHandleCount, int32& OutFacingAxisIndex, int32& OutCenterAxisIndex ) const;
+};
+
+
+enum class ELockedWorldDragMode
+{
+	Unlocked,
+	OnlyRotating,
+	OnlyScaling,
 };

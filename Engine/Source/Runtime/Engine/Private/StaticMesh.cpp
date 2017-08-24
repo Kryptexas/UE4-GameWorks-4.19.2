@@ -133,10 +133,10 @@ void FStaticMeshLODResources::Serialize(FArchive& Ar, UObject* Owner, int32 Inde
 	bHasReversedDepthOnlyIndices = false;
 	DepthOnlyNumTriangles = 0;
 
-    // Defined class flags for possible stripping
+	// Defined class flags for possible stripping
 	const uint8 AdjacencyDataStripFlag = 1;
 
-    // Actual flags used during serialization
+	// Actual flags used during serialization
 	uint8 ClassDataStripFlags = 0;
 	ClassDataStripFlags |= (Ar.IsCooking() && !Ar.CookingTarget()->SupportsFeature(ETargetPlatformFeatures::Tessellation)) ? AdjacencyDataStripFlag : 0;
 
@@ -223,7 +223,7 @@ void FStaticMeshLODResources::InitVertexFactory(
 	Params.Parent = InParentMesh;
 
 	uint32 TangentXOffset = 0;
-	uint32 TangetnZOffset = 0;
+	uint32 TangentZOffset = 0;
 	uint32 UVsBaseOffset = 0;
 
 	SELECT_STATIC_MESH_VERTEX_TYPE(
@@ -232,17 +232,13 @@ void FStaticMeshLODResources::InitVertexFactory(
 		Params.LODResources->VertexBuffer.GetNumTexCoords(),
 		{
 			TangentXOffset = STRUCT_OFFSET(VertexType, TangentX);
-			TangetnZOffset = STRUCT_OFFSET(VertexType, TangentZ);
+			TangentZOffset = STRUCT_OFFSET(VertexType, TangentZ);
 			UVsBaseOffset = STRUCT_OFFSET(VertexType, UVs);
 		});
 
 	// Initialize the static mesh's vertex factory.
-	ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(
-		InitStaticMeshVertexFactory,
-		InitStaticMeshVertexFactoryParams, Params, Params,
-		uint32, TangentXOffset, TangentXOffset,
-		uint32, TangetnZOffset, TangetnZOffset,
-		uint32, UVsBaseOffset, UVsBaseOffset,
+	ENQUEUE_RENDER_COMMAND(InitStaticMeshVertexFactory)(
+		[Params, TangentXOffset, TangentZOffset, UVsBaseOffset](FRHICommandListImmediate& RHICmdList)
 		{
 			FLocalVertexFactory::FDataType Data;
 			Data.PositionComponent = FVertexStreamComponent(
@@ -263,7 +259,7 @@ void FStaticMeshLODResources::InitVertexFactory(
 
 			Data.TangentBasisComponents[1] = FVertexStreamComponent(
 				&Params.LODResources->VertexBuffer,
-				TangetnZOffset,
+				TangentZOffset,
 				Params.LODResources->VertexBuffer.GetStride(),
 				Params.LODResources->VertexBuffer.GetUseHighPrecisionTangentBasis() ?
 					TStaticMeshVertexTangentTypeSelector<EStaticMeshVertexTangentBasisType::HighPrecision>::VertexElementType : 
@@ -1432,9 +1428,9 @@ void UStaticMesh::InitResources()
 		UpdateMemoryStats,
 		UStaticMesh*, This, this,
 		{
- 			const uint32 StaticMeshResourceSize = This->GetResourceSizeBytes( EResourceSizeMode::Exclusive );
- 			INC_DWORD_STAT_BY( STAT_StaticMeshTotalMemory, StaticMeshResourceSize );
- 			INC_DWORD_STAT_BY( STAT_StaticMeshTotalMemory2, StaticMeshResourceSize );
+			const uint32 StaticMeshResourceSize = This->GetResourceSizeBytes( EResourceSizeMode::Exclusive );
+			INC_DWORD_STAT_BY( STAT_StaticMeshTotalMemory, StaticMeshResourceSize );
+			INC_DWORD_STAT_BY( STAT_StaticMeshTotalMemory2, StaticMeshResourceSize );
 		} );
 #endif // STATS
 }

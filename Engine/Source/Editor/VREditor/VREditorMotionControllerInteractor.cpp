@@ -51,12 +51,14 @@ namespace VREd
 	static FAutoConsoleVariable LaserRadiusScaleWhenOverUI( TEXT( "VREd.LaserRadiusScaleWhenOverUI" ), 0.25f, TEXT( "How much to scale down the size of the laser pointer radius when over UI" ) );
 	static FAutoConsoleVariable HoverBallRadiusScaleWhenOverUI(TEXT("VREd.HoverBallRadiusScaleWhenOverUI"), 0.4f, TEXT("How much to scale down the size of the hover ball when over UI"));
 	//Trigger
-	static FAutoConsoleVariable TriggerDeadZone_Vive( TEXT( "VI.TriggerDeadZone_Vive" ), 0.01f, TEXT( "Trigger dead zone.  The trigger must be fully released before we'll trigger a new 'light press'" ) );
-	static FAutoConsoleVariable TriggerDeadZone_Rift( TEXT( "VI.TriggerDeadZone_Rift" ), 0.15f, TEXT( "Trigger dead zone.  The trigger must be fully released before we'll trigger a new 'light press'" ) );
+	static FAutoConsoleVariable TriggerTouchThreshold_Vive(TEXT("VI.TriggerTouchThreshold_Vive"), 0.025f, TEXT("Minimum trigger threshold before we consider the trigger 'touched'"));
+	static FAutoConsoleVariable TriggerTouchThreshold_Rift(TEXT("VI.TriggerTouchThreshold_Rift"), 0.15f, TEXT("Minimum trigger threshold before we consider the trigger 'touched'"));
+	static FAutoConsoleVariable TriggerDeadZone_Vive( TEXT( "VI.TriggerDeadZone_Vive" ), 0.25f, TEXT( "Trigger dead zone.  The trigger must be fully released before we'll trigger a new 'light press'" ) );
+	static FAutoConsoleVariable TriggerDeadZone_Rift( TEXT( "VI.TriggerDeadZone_Rift" ), 0.25f, TEXT( "Trigger dead zone.  The trigger must be fully released before we'll trigger a new 'light press'" ) );
 	static FAutoConsoleVariable TriggerFullyPressedThreshold_Vive( TEXT( "VI.TriggerFullyPressedThreshold_Vive" ), 0.90f, TEXT( "Minimum trigger threshold before we consider the trigger 'fully pressed'" ) );
 	static FAutoConsoleVariable TriggerFullyPressedThreshold_Rift( TEXT( "VI.TriggerFullyPressedThreshold_Rift" ), 0.99f, TEXT( "Minimum trigger threshold before we consider the trigger 'fully pressed'" ) );
 
-	static FAutoConsoleVariable TrackpadAbsoluteDragSpeed( TEXT( "VREd.TrackpadAbsoluteDragSpeed" ), 40.0f, TEXT( "How fast objects move toward or away when you drag on the touchpad while carrying them" ) );
+	static FAutoConsoleVariable TrackpadAbsoluteDragSpeed( TEXT( "VREd.TrackpadAbsoluteDragSpeed" ), 80.0f, TEXT( "How fast objects move toward or away when you drag on the touchpad while carrying them" ) );
 	static FAutoConsoleVariable TrackpadRelativeDragSpeed( TEXT( "VREd.TrackpadRelativeDragSpeed" ), 8.0f, TEXT( "How fast objects move toward or away when you hold a direction on an analog stick while carrying them" ) );
 	static FAutoConsoleVariable TrackpadStopImpactAtLaserBuffer( TEXT( "VREd.TrackpadStopImpactAtLaserBuffer" ), 0.4f, TEXT( "Required amount to slide with input to stop transforming to end of laser" ) );
 	static FAutoConsoleVariable InvertTrackpadVertical( TEXT( "VREd.InvertTrackpadVertical" ), 1, TEXT( "Toggles inverting the touch pad vertical axis" ) );
@@ -584,8 +586,8 @@ void UVREditorMotionControllerInteractor::CalculateDragRay( float& InOutDragRayL
 			{
 				InOutDragRayLength = 0.0f;
 				InOutDragRayVelocity = 0.0f;
-			}			
-			
+			}	
+
 			// Stop transforming object to laser impact point when trying to slide with touchpad or analog stick.
 			if (InteractorData.DraggingMode == EViewportInteractionDraggingMode::TransformablesAtLaserImpact && !FMath::IsNearlyZero(SlideDelta, VREd::TrackpadStopImpactAtLaserBuffer->GetFloat()))
 			{
@@ -623,7 +625,7 @@ void UVREditorMotionControllerInteractor::CalculateDragRay( float& InOutDragRayL
 
 EHMDDeviceType::Type UVREditorMotionControllerInteractor::GetHMDDeviceType() const
 {
-	return GEngine->HMDDevice.IsValid() ? GEngine->HMDDevice->GetHMDDeviceType() : EHMDDeviceType::DT_SteamVR; //@todo: ViewportInteraction, assumption that it's steamvr ??
+	return (GEngine && GEngine->HMDDevice.IsValid()) ? GEngine->HMDDevice->GetHMDDeviceType() : EHMDDeviceType::DT_SteamVR; //@todo: ViewportInteraction, assumption that it's steamvr ??
 }
 
 
@@ -703,19 +705,22 @@ void UVREditorMotionControllerInteractor::PreviewInputKey( FEditorViewportClient
 			bOutWasHandled = true;
 
 			// Try to place the object currently selected
-			TArray<UObject*> ObjectsToPlace;
+			TArray<UObject*> SelectedObjects;
 			{
 				FEditorDelegates::LoadSelectedAssetsIfNeeded.Broadcast();
-				GEditor->GetSelectedObjects()->GetSelectedObjects( /* Out */ ObjectsToPlace );
+				GEditor->GetSelectedObjects()->GetSelectedObjects( /* Out */ SelectedObjects );
 			}
 
-			if( ObjectsToPlace.Num() > 0 )
+			if( SelectedObjects.Num() > 0 )
 			{
+				TArray<UObject*> ObjectToPlace;
+				ObjectToPlace.Add(SelectedObjects[0]);
+
 				Action.bIsInputCaptured = true;
 
 				const bool bShouldInterpolateFromDragLocation = false;
 				UActorFactory* FactoryToUse = nullptr;	// Use default factory
-				GetVRMode().GetPlacementSystem()->StartPlacingObjects( ObjectsToPlace, FactoryToUse, this, bShouldInterpolateFromDragLocation );
+				GetVRMode().GetPlacementSystem()->StartPlacingObjects( ObjectToPlace, FactoryToUse, this, bShouldInterpolateFromDragLocation );
 			}
 		}
 	}
@@ -740,9 +745,10 @@ void UVREditorMotionControllerInteractor::HandleInputKey( FEditorViewportClient&
 				FVector PlaceAt = GetHoverLocation();
 				const bool bIsPlacingActors = true;
 				const bool bAllowInterpolationWhenPlacing = true;
+				const bool bShouldUseLaserImpactDrag = true;
 				const bool bStartTransaction = true;
 				const bool bWithGrabberSphere = false;	// Never use the grabber sphere when dragging at laser impact
-				WorldInteraction->StartDragging( this, WorldInteraction->GetTransformGizmoActor()->GetRootComponent(), PlaceAt, bIsPlacingActors, bAllowInterpolationWhenPlacing, bStartTransaction, bWithGrabberSphere );
+				WorldInteraction->StartDragging( this, WorldInteraction->GetTransformGizmoActor()->GetRootComponent(), PlaceAt, bIsPlacingActors, bAllowInterpolationWhenPlacing, bShouldUseLaserImpactDrag, bStartTransaction, bWithGrabberSphere );
 			}
 		}
 		else if( Event == IE_Released )
@@ -1306,7 +1312,7 @@ void UVREditorMotionControllerInteractor::UpdateSplineLaser(const FVector& InSta
 		const FVector StraightLaserEndLocation = InStartLocation + (InForward * Distance);
 		const int32 NumLaserSplinePoints = LaserSplineMeshComponents.Num();
 
-		LaserSplineComponent->AddSplinePoint(InStartLocation, ESplineCoordinateSpace::World, false);
+		LaserSplineComponent->AddSplinePoint(InStartLocation, ESplineCoordinateSpace::Local, false);
 		for (int32 Index = 1; Index < NumLaserSplinePoints; Index++)
 		{
 			float Alpha = (float)Index / (float)NumLaserSplinePoints;
@@ -1314,9 +1320,9 @@ void UVREditorMotionControllerInteractor::UpdateSplineLaser(const FVector& InSta
 			const FVector PointOnStraightLaser = FMath::Lerp(InStartLocation, StraightLaserEndLocation, Alpha);
 			const FVector PointOnSmoothLaser = FMath::Lerp(InStartLocation, InEndLocation, Alpha);
 			const FVector PointBetweenLasers = FMath::Lerp(PointOnStraightLaser, PointOnSmoothLaser, Alpha);
-			LaserSplineComponent->AddSplinePoint(PointBetweenLasers, ESplineCoordinateSpace::World, false);
+			LaserSplineComponent->AddSplinePoint(PointBetweenLasers, ESplineCoordinateSpace::Local, false);
 		}
-		LaserSplineComponent->AddSplinePoint(InEndLocation, ESplineCoordinateSpace::World, false);
+		LaserSplineComponent->AddSplinePoint(InEndLocation, ESplineCoordinateSpace::Local, false);
 
 		// Update all the segments of the spline
 		LaserSplineComponent->UpdateSpline();

@@ -966,11 +966,6 @@ void FD3D11DynamicRHI::InitD3DDevice()
 					// Clamp to 1 GB if we're less than 64-bit
 					FD3D11GlobalStats::GTotalGraphicsMemory = FMath::Min( FD3D11GlobalStats::GTotalGraphicsMemory, 1024ll * 1024ll * 1024ll );
 				}
-				else
-				{
-					// Clamp to 1.9 GB if we're 64-bit
-					FD3D11GlobalStats::GTotalGraphicsMemory = FMath::Min( FD3D11GlobalStats::GTotalGraphicsMemory, 1945ll * 1024ll * 1024ll );
-				}
 
 				if ( GPoolSizeVRAMPercentage > 0 )
 				{

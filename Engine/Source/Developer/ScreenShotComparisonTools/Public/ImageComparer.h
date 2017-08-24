@@ -291,7 +291,7 @@ public:
 	FString ImageRootB;
 	FString DeltaDirectory;
 
-	FImageComparer();
+	FImageComparer(const FString& Directory = "");
 
 	FImageComparisonResult Compare(const FString& ImagePathA, const FString& ImagePathB, FImageTolerance Tolerance);
 

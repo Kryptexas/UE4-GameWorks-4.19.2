@@ -24,10 +24,6 @@ static FAutoConsoleVariableRef CVarSyncTemporalResources(
 	ECVF_RenderThreadSafe
 	);
 
-namespace D3D12RHI
-{
-	TGlobalResource<FVector4VertexDeclaration> GD3D12Vector4VertexDeclaration;
-}
 using namespace D3D12RHI;
 
 #define DECLARE_ISBOUNDSHADER(ShaderType) inline void ValidateBoundShader(FD3D12StateCache& InStateCache, F##ShaderType##RHIParamRef ShaderType##RHI) \
@@ -44,6 +40,10 @@ DECLARE_ISBOUNDSHADER(GeometryShader)
 DECLARE_ISBOUNDSHADER(HullShader)
 DECLARE_ISBOUNDSHADER(DomainShader)
 DECLARE_ISBOUNDSHADER(ComputeShader)
+
+#if EXECUTE_DEBUG_COMMAND_LISTS
+bool GIsDoingQuery = false;
+#endif
 
 #if DO_CHECK
 #define VALIDATE_BOUND_SHADER(s) ValidateBoundShader(StateCache, s)
@@ -93,6 +93,13 @@ void FD3D12CommandContext::RHISetStreamSource(uint32 StreamIndex, FVertexBufferR
 	FD3D12VertexBuffer* VertexBuffer = RetrieveObject<FD3D12VertexBuffer>(VertexBufferRHI);
 
 	StateCache.SetStreamSource(VertexBuffer ? &VertexBuffer->ResourceLocation : nullptr, StreamIndex, Stride, Offset);
+}
+
+void FD3D12CommandContext::RHISetStreamSource(uint32 StreamIndex, FVertexBufferRHIParamRef VertexBufferRHI, uint32 Offset)
+{
+	FD3D12VertexBuffer* VertexBuffer = RetrieveObject<FD3D12VertexBuffer>(VertexBufferRHI);
+
+	StateCache.SetStreamSource(VertexBuffer ? &VertexBuffer->ResourceLocation : nullptr, StreamIndex, Offset);
 }
 
 // Stream-Out state.
@@ -275,7 +282,10 @@ void FD3D12CommandContext::RHITransitionResources(EResourceTransitionAccess Tran
 	if (TransitionType == EResourceTransitionAccess::EMetaData && InTextures[0])
 	{
 		FD3D12Resource* Resource = RetrieveTextureBase(InTextures[0])->GetResource();
-		CommandListHandle.AddAliasingBarrier(Resource);
+		if (Resource->IsPlacedResource())
+		{
+			CommandListHandle.AddAliasingBarrier(Resource);
+		}
 	}
 #endif // !USE_D3D12RHI_RESOURCE_STATE_TRACKING
 }
@@ -408,11 +418,6 @@ void FD3D12CommandContext::RHISetViewport(uint32 MinX, uint32 MinY, float MinZ, 
 		StateCache.SetViewport(Viewport);
 		SetScissorRectIfRequiredWhenSettingViewport(MinX, MinY, MaxX, MaxY);
 	}
-}
-
-void FD3D12CommandContext::RHISetStereoViewport(uint32 LeftMinX, uint32 RightMinX, uint32 MinY, float MinZ, uint32 LeftMaxX, uint32 RightMaxX, uint32 MaxY, float MaxZ)
-{
-	UE_LOG(LogD3D12RHI, Fatal, TEXT("D3D12 RHI does not support set stereo viewport!"));
 }
 
 void FD3D12CommandContext::RHISetScissorRect(bool bEnable, uint32 MinX, uint32 MinY, uint32 MaxX, uint32 MaxY)

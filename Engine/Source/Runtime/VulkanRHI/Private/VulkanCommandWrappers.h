@@ -1066,26 +1066,28 @@ namespace VulkanRHI
 		VkDeviceSize                                offset,
 		uint32                                    drawCount,
 		uint32                                    stride);
-
-	static FORCEINLINE_DEBUGGABLE void  vkCmdDrawIndexedIndirect(
-		VkCommandBuffer                             commandBuffer,
-		VkBuffer                                    Buffer,
-		VkDeviceSize                                offset,
-		uint32                                    drawCount,
-		uint32                                    stride);
 #endif
+	static FORCEINLINE_DEBUGGABLE void  vkCmdDrawIndexedIndirect(VkCommandBuffer CommandBuffer, VkBuffer Buffer, VkDeviceSize Offset, uint32 DrawCount, uint32 Stride)
+	{
+		CmdPrintfBegin(CommandBuffer, FString::Printf(TEXT("vkCmdDrawIndexedIndirect(Buffer=%p, Offset=%d, DrawCount=%d, Stride=%d)"), (void*)Buffer, Offset, DrawCount, Stride));
+
+		VULKANAPINAMESPACE::vkCmdDrawIndexedIndirect(CommandBuffer, Buffer, Offset, DrawCount, Stride);
+	}
+
 	static FORCEINLINE_DEBUGGABLE void  vkCmdDispatch(VkCommandBuffer CommandBuffer, uint32 X, uint32 Y, uint32 Z)
 	{
 		CmdPrintfBegin(CommandBuffer, FString::Printf(TEXT("vkCmdDispatch(X=%d, Y=%d Z=%d)"), X, Y, Z));
 
 		VULKANAPINAMESPACE::vkCmdDispatch(CommandBuffer, X, Y, Z);
 	}
-#if 0
-	static FORCEINLINE_DEBUGGABLE void  vkCmdDispatchIndirect(
-		VkCommandBuffer                             commandBuffer,
-		VkBuffer                                    Buffer,
-		VkDeviceSize                                offset);
-#endif
+
+	static FORCEINLINE_DEBUGGABLE void  vkCmdDispatchIndirect(VkCommandBuffer CommandBuffer, VkBuffer Buffer, VkDeviceSize Offset)
+	{
+		CmdPrintfBegin(CommandBuffer, FString::Printf(TEXT("vkCmdDispatchIndirect(Buffer=%p, Offset=%d)"), (void*)Buffer, Offset));
+
+		VULKANAPINAMESPACE::vkCmdDispatchIndirect(CommandBuffer, Buffer, Offset);
+	}
+
 	static FORCEINLINE_DEBUGGABLE void  vkCmdCopyBuffer(VkCommandBuffer CommandBuffer, VkBuffer SrcBuffer, VkBuffer DstBuffer, uint32 RegionCount, const VkBufferCopy* Regions)
 	{
 		DumpCmdCopyBuffer(CommandBuffer, SrcBuffer, DstBuffer, RegionCount, Regions);

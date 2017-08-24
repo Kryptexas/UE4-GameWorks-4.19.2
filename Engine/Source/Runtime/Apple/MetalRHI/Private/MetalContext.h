@@ -12,6 +12,7 @@
 #include "MetalCommandList.h"
 #include "MetalRenderPass.h"
 #include "MetalHeap.h"
+#include "MetalCaptureManager.h"
 #if PLATFORM_IOS
 #include "IOSView.h"
 #endif
@@ -173,6 +174,7 @@ public:
 	void ReleaseResource(id<MTLResource> Object);
 	void ReleaseTexture(FMetalSurface* Surface, id<MTLTexture> Texture);
 	void ReleaseFence(id<MTLFence> Fence);
+	void ReleaseHeap(id<MTLHeap> Heap);
 	
 	void BeginFrame();
 	void FlushFreeList();
@@ -213,14 +215,19 @@ private:
 	/** Dynamic memory heap */
 	FMetalHeap Heap;
 	
+	/** GPU Frame Capture Manager */
+	FMetalCaptureManager CaptureManager;
+	
 	/** Free lists for releasing objects only once it is safe to do so */
 	TSet<id> ObjectFreeList;
 	TSet<id<MTLResource>> ResourceFreeList;
+	TSet<id<MTLHeap>> HeapFreeList;
 	struct FMetalDelayedFreeList
 	{
 		dispatch_semaphore_t Signal;
 		TSet<id> ObjectFreeList;
 		TSet<id<MTLResource>> ResourceFreeList;
+		TSet<id<MTLHeap>> HeapFreeList;
 #if METAL_DEBUG_OPTIONS
 		int32 DeferCount;
 #endif

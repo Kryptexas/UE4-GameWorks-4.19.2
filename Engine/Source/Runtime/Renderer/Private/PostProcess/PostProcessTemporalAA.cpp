@@ -103,11 +103,12 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	void SetParameters(const FRenderingCompositePassContext& Context, bool bUseDither)
+	template <typename TRHICmdList>
+	void SetParameters(TRHICmdList& RHICmdList, const FRenderingCompositePassContext& Context, bool bUseDither)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters<FViewUniformShaderParameters>(Context.RHICmdList, ShaderRHI, Context.View.ViewUniformBuffer);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, Context.View.ViewUniformBuffer);
 		
 		FSamplerStateRHIParamRef FilterTable[4];
 		FilterTable[0] = TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
@@ -115,9 +116,9 @@ public:
 		FilterTable[2] = FilterTable[0];
 		FilterTable[3] = FilterTable[0];
 
-		PostprocessParameter.SetPS(ShaderRHI, Context, 0, eFC_0000, FilterTable);
+		PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, 0, eFC_0000, FilterTable);
 
-		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View, MD_PostProcess);
+		DeferredParameters.Set(RHICmdList, ShaderRHI, Context.View, MD_PostProcess);
 
 		FSceneViewState* ViewState = (FSceneViewState*)Context.View.State;
 
@@ -178,23 +179,23 @@ public:
 			
 			for( int32 i = 0; i < 9; i++ )
 			{
-				SetShaderValue(Context.RHICmdList, ShaderRHI, SampleWeights, Weights[i] / TotalWeight, i );
+				SetShaderValue(RHICmdList, ShaderRHI, SampleWeights, Weights[i] / TotalWeight, i );
 			}
 
 			for( int32 i = 0; i < 5; i++ )
 			{
-				SetShaderValue(Context.RHICmdList, ShaderRHI, PlusWeights, WeightsPlus[i] / TotalWeightPlus, i );
+				SetShaderValue(RHICmdList, ShaderRHI, PlusWeights, WeightsPlus[i] / TotalWeightPlus, i );
 			}
 		}
 
-		SetShaderValue(Context.RHICmdList, ShaderRHI, DitherScale, bUseDither ? 1.0f : 0.0f);
+		SetShaderValue(RHICmdList, ShaderRHI, DitherScale, bUseDither ? 1.0f : 0.0f);
 
 		const bool bIgnoreVelocity = (ViewState && ViewState->bSequencerIsPaused);
-		SetShaderValue(Context.RHICmdList, ShaderRHI, VelocityScaling, bIgnoreVelocity ? 0.0f : 1.0f);
+		SetShaderValue(RHICmdList, ShaderRHI, VelocityScaling, bIgnoreVelocity ? 0.0f : 1.0f);
 
-		SetShaderValue(Context.RHICmdList, ShaderRHI, CurrentFrameWeight, CVarTemporalAACurrentFrameWeight.GetValueOnRenderThread());
+		SetShaderValue(RHICmdList, ShaderRHI, CurrentFrameWeight, CVarTemporalAACurrentFrameWeight.GetValueOnRenderThread());
 
-		SetUniformBufferParameter(Context.RHICmdList, ShaderRHI, GetUniformBufferParameter<FCameraMotionParameters>(), CreateCameraMotionParametersUniformBuffer(Context.View));
+		SetUniformBufferParameter(RHICmdList, ShaderRHI, GetUniformBufferParameter<FCameraMotionParameters>(), CreateCameraMotionParametersUniformBuffer(Context.View));
 	}
 };
 
@@ -472,7 +473,7 @@ void FRCPassPostProcessSSRTemporalAA::Process(FRenderingCompositePassContext& Co
 	SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
 
 	VertexShader->SetVS(Context);
-	PixelShader->SetParameters(Context, false);
+	PixelShader->SetParameters(Context.RHICmdList, Context, false);
 
 	DrawPostProcessPass(
 		Context.RHICmdList,
@@ -552,7 +553,7 @@ void FRCPassPostProcessDOFTemporalAA::Process(FRenderingCompositePassContext& Co
 			// Async path
 			FRHIAsyncComputeCommandListImmediate& RHICmdListComputeImmediate = FRHICommandListExecutor::GetImmediateAsyncComputeCommandList();
 			{
- 				SCOPED_COMPUTE_EVENT(RHICmdListComputeImmediate, AsyncDOFTemporalAA);
+				SCOPED_COMPUTE_EVENT(RHICmdListComputeImmediate, AsyncDOFTemporalAA);
 				WaitForInputPassComputeFences(RHICmdListComputeImmediate);
 					
 				RHICmdListComputeImmediate.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EGfxToCompute, DestRenderTarget.UAV);
@@ -605,7 +606,7 @@ void FRCPassPostProcessDOFTemporalAA::Process(FRenderingCompositePassContext& Co
 		SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
 
 		VertexShader->SetVS(Context);
-		PixelShader->SetParameters(Context, false);
+		PixelShader->SetParameters(Context.RHICmdList, Context, false);
 
 		DrawPostProcessPass(
 			Context.RHICmdList,
@@ -706,7 +707,7 @@ void FRCPassPostProcessDOFTemporalAANear::Process(FRenderingCompositePassContext
 	SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
 
 	VertexShader->SetVS(Context);
-	PixelShader->SetParameters(Context, false);
+	PixelShader->SetParameters(Context.RHICmdList, Context, false);
 
 	DrawPostProcessPass(
 		Context.RHICmdList,
@@ -794,7 +795,7 @@ void FRCPassPostProcessLightShaftTemporalAA::Process(FRenderingCompositePassCont
 	SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
 
 	VertexShader->SetVS(Context);
-	PixelShader->SetParameters(Context, false);
+	PixelShader->SetParameters(Context.RHICmdList, Context, false);
 
 	DrawPostProcessPass(
 		Context.RHICmdList,
@@ -882,7 +883,7 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 			// Async path
 			FRHIAsyncComputeCommandListImmediate& RHICmdListComputeImmediate = FRHICommandListExecutor::GetImmediateAsyncComputeCommandList();
 			{
- 				SCOPED_COMPUTE_EVENT(RHICmdListComputeImmediate, AsyncTemporalAA);
+				SCOPED_COMPUTE_EVENT(RHICmdListComputeImmediate, AsyncTemporalAA);
 				WaitForInputPassComputeFences(RHICmdListComputeImmediate);
 					
 				RHICmdListComputeImmediate.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EGfxToCompute, DestRenderTarget.UAV);
@@ -943,7 +944,7 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 				SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
 
 				VertexShader->SetVS(Context);
-				PixelShader->SetParameters(Context, bUseDither);
+				PixelShader->SetParameters(Context.RHICmdList, Context, bUseDither);
 			}
 			else
 			{
@@ -955,7 +956,7 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 				SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
 
 				VertexShader->SetVS(Context);
-				PixelShader->SetParameters(Context, bUseDither);
+				PixelShader->SetParameters(Context.RHICmdList, Context, bUseDither);
 			}
 	
 			DrawPostProcessPass(
@@ -996,7 +997,7 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 					SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
 
 					VertexShader->SetVS(Context);
-					PixelShader->SetParameters(Context, bUseDither);
+					PixelShader->SetParameters(Context.RHICmdList, Context, bUseDither);
 				}
 				else
 				{
@@ -1008,7 +1009,7 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 					SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
 
 					VertexShader->SetVS(Context);
-					PixelShader->SetParameters(Context, bUseDither);
+					PixelShader->SetParameters(Context.RHICmdList, Context, bUseDither);
 				}
 		
 				DrawPostProcessPass(
@@ -1047,7 +1048,7 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 					SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
 
 					VertexShader->SetVS(Context);
-					PixelShader->SetParameters(Context, bUseDither);
+					PixelShader->SetParameters(Context.RHICmdList, Context, bUseDither);
 				}
 				else
 				{
@@ -1059,7 +1060,7 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 					SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
 
 					VertexShader->SetVS(Context);
-					PixelShader->SetParameters(Context, bUseDither);
+					PixelShader->SetParameters(Context.RHICmdList, Context, bUseDither);
 				}
 	
 				DrawPostProcessPass(

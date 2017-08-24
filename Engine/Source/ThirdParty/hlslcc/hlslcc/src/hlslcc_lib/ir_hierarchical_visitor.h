@@ -83,10 +83,11 @@ enum ir_visitor_status {
 class ir_hierarchical_visitor {
 public:
    ir_hierarchical_visitor();
+   virtual ~ir_hierarchical_visitor() {}
 
    /**
-    * \name Visit methods for leaf-node classes
-    */
+	* \name Visit methods for leaf-node classes
+	*/
    /*@{*/
    virtual ir_visitor_status visit(class ir_rvalue *);
    virtual ir_visitor_status visit(class ir_variable *);
@@ -94,25 +95,25 @@ public:
    virtual ir_visitor_status visit(class ir_loop_jump *);
 
    /**
-    * ir_dereference_variable isn't technically a leaf, but it is treated as a
-    * leaf here for a couple reasons.  By not automatically visiting the one
-    * child ir_variable node from the ir_dereference_variable, ir_variable
-    * nodes can always be handled as variable declarations.  Code that used
-    * non-hierarchical visitors had to set an "in a dereference" flag to
-    * determine how to handle an ir_variable.  By forcing the visitor to
-    * handle the ir_variable within the ir_dereference_variable visitor, this
-    * kludge can be avoided.
-    *
-    * In addition, I can envision no use for having separate enter and leave
-    * methods.  Anything that could be done in the enter and leave methods
-    * that couldn't just be done in the visit method.
-    */
+	* ir_dereference_variable isn't technically a leaf, but it is treated as a
+	* leaf here for a couple reasons.  By not automatically visiting the one
+	* child ir_variable node from the ir_dereference_variable, ir_variable
+	* nodes can always be handled as variable declarations.  Code that used
+	* non-hierarchical visitors had to set an "in a dereference" flag to
+	* determine how to handle an ir_variable.  By forcing the visitor to
+	* handle the ir_variable within the ir_dereference_variable visitor, this
+	* kludge can be avoided.
+	*
+	* In addition, I can envision no use for having separate enter and leave
+	* methods.  Anything that could be done in the enter and leave methods
+	* that couldn't just be done in the visit method.
+	*/
    virtual ir_visitor_status visit(class ir_dereference_variable *);
    /*@}*/
 
    /**
-    * \name Visit methods for internal-node classes
-    */
+	* \name Visit methods for internal-node classes
+	*/
    /*@{*/
    virtual ir_visitor_status visit_enter(class ir_loop *);
    virtual ir_visitor_status visit_leave(class ir_loop *);
@@ -148,40 +149,40 @@ public:
 
 
    /**
-    * Utility function to process a linked list of instructions with a visitor
-    */
+	* Utility function to process a linked list of instructions with a visitor
+	*/
    void run(struct exec_list *instructions);
 
    /* Some visitors may need to insert new variable declarations and
-    * assignments for portions of a subtree, which means they need a
-    * pointer to the current instruction in the stream, not just their
-    * node in the tree rooted at that instruction.
-    *
-    * This is implemented by visit_list_elements -- if the visitor is
-    * not called by it, nothing good will happen.
-    */
+	* assignments for portions of a subtree, which means they need a
+	* pointer to the current instruction in the stream, not just their
+	* node in the tree rooted at that instruction.
+	*
+	* This is implemented by visit_list_elements -- if the visitor is
+	* not called by it, nothing good will happen.
+	*/
    class ir_instruction *base_ir;
 
    /**
-    * Callback function that is invoked on entry to each node visited.
-    *
-    * \warning
-    * Visitor classes derived from \c ir_hierarchical_visitor \b may \b not
-    * invoke this function.  This can be used, for example, to cause the
-    * callback to be invoked on every node type execpt one.
-    */
+	* Callback function that is invoked on entry to each node visited.
+	*
+	* \warning
+	* Visitor classes derived from \c ir_hierarchical_visitor \b may \b not
+	* invoke this function.  This can be used, for example, to cause the
+	* callback to be invoked on every node type execpt one.
+	*/
    void (*callback)(class ir_instruction *ir, void *data);
 
    /**
-    * Extra data parameter passed to the per-node callback function
-    */
+	* Extra data parameter passed to the per-node callback function
+	*/
    void *data;
 
    /**
-    * Currently in the LHS of an assignment?
-    *
-    * This is set and cleared by the \c ir_assignment::accept method.
-    */
+	* Currently in the LHS of an assignment?
+	*
+	* This is set and cleared by the \c ir_assignment::accept method.
+	*/
    bool in_assignee;
 };
 
@@ -190,7 +191,7 @@ void visit_tree(ir_instruction *ir,
 		void *data);
 
 ir_visitor_status visit_list_elements(ir_hierarchical_visitor *v, exec_list *l,
-                                      bool statement_list = true);
+									  bool statement_list = true);
 
 // Using bUnsafe will first make a list of intructions to traverse, then execute them; this is helpful on situations where
 // we want to replace an existing instruction but can't modify it during the visitor.

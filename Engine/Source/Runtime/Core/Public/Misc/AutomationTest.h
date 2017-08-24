@@ -2534,6 +2534,8 @@ public: \
 		{\
 			TClass TClass##AutomationTestInstance( TEXT(#TClass) );\
 		}
+	#define IMPLEMENT_COMPLEX_AUTOMATION_CLASS( TClass, PrettyName, TFlags ) \
+		IMPLEMENT_COMPLEX_AUTOMATION_TEST_PRIVATE(TClass, FAutomationTestBase, PrettyName, TFlags, __FILE__, __LINE__)
 	#define IMPLEMENT_NETWORKED_AUTOMATION_TEST(TClass, PrettyName, TFlags, NumParticipants) \
 		IMPLEMENT_NETWORKED_AUTOMATION_TEST_PRIVATE(TClass, FAutomationTestBase, PrettyName, TFlags, NumParticipants, __FILE__, __LINE__) \
 		namespace\

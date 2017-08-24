@@ -113,7 +113,7 @@ public:
 	 * Get the internal ring-buffer used for temporary allocations.
 	 * @returns The temporary allocation buffer for the command-pass.
 	 */
-	TSharedRef<FRingBuffer, ESPMode::ThreadSafe> GetRingBuffer(void) const;
+	FRingBuffer& GetRingBuffer(void);
 	
 private:
 #pragma mark -

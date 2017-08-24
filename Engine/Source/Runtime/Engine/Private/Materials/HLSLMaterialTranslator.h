@@ -304,6 +304,7 @@ public:
 		SharedPixelProperties[MP_AmbientOcclusion] = true;
 		SharedPixelProperties[MP_Refraction] = true;
 		SharedPixelProperties[MP_PixelDepthOffset] = true;
+		SharedPixelProperties[MP_SubsurfaceColor] = true;
 
 		{
 			for (int32 Frequency = 0; Frequency < SF_NumFrequencies; ++Frequency)
@@ -936,8 +937,10 @@ public:
 		{
 			OutEnvironment.SetDefine(TEXT("USES_EYE_ADAPTATION"), TEXT("1"));
 		}
-		OutEnvironment.SetDefine(TEXT("MATERIAL_ATMOSPHERIC_FOG"), bUsesAtmosphericFog);
-		OutEnvironment.SetDefine(TEXT("INTERPOLATE_VERTEX_COLOR"), bUsesVertexColor); 
+		
+		// @todo MetalMRT: Remove this hack and implement proper atmospheric-fog solution for Metal MRT...
+		OutEnvironment.SetDefine(TEXT("MATERIAL_ATMOSPHERIC_FOG"), (InPlatform != SP_METAL_MRT && InPlatform != SP_METAL_MRT_MAC) ? bUsesAtmosphericFog : 0);
+		OutEnvironment.SetDefine(TEXT("INTERPOLATE_VERTEX_COLOR"), bUsesVertexColor);
 		OutEnvironment.SetDefine(TEXT("NEEDS_PARTICLE_COLOR"), bUsesParticleColor); 
 		OutEnvironment.SetDefine(TEXT("NEEDS_PARTICLE_TRANSFORM"), bUsesParticleTransform);
 		OutEnvironment.SetDefine(TEXT("USES_TRANSFORM_VECTOR"), bUsesTransformVector);
@@ -976,9 +979,10 @@ public:
 
 				const EMaterialProperty Property = (EMaterialProperty)PropertyIndex;
 				check(FMaterialAttributeDefinitionMap::GetShaderFrequency(Property) == SF_Pixel);
-				const FString PropertyName = FMaterialAttributeDefinitionMap::GetDisplayName(Property);
+				// Special case MP_SubsurfaceColor as the actual property is a combination of the color and the profile but we don't want to expose the profile
+				const FString PropertyName = Property == MP_SubsurfaceColor ? "Subsurface" : FMaterialAttributeDefinitionMap::GetDisplayName(Property);
 				check(PropertyName.Len() > 0);				
-				const EMaterialValueType Type = FMaterialAttributeDefinitionMap::GetValueType(Property);
+				const EMaterialValueType Type = Property == MP_SubsurfaceColor ? MCT_Float4 : FMaterialAttributeDefinitionMap::GetValueType(Property);
 
 				// Normal requires its own separate initializer
 				if (Property == MP_Normal)
@@ -1071,7 +1075,6 @@ public:
 		LazyPrintf.PushParam(*GenerateFunctionCode(MP_WorldDisplacement));
 		LazyPrintf.PushParam(*FString::Printf(TEXT("return %.5f"),Material->GetMaxDisplacement()));
 		LazyPrintf.PushParam(*GenerateFunctionCode(MP_TessellationMultiplier));
-		LazyPrintf.PushParam(*GenerateFunctionCode(MP_SubsurfaceColor));
 		LazyPrintf.PushParam(*GenerateFunctionCode(MP_CustomData0));
 		LazyPrintf.PushParam(*GenerateFunctionCode(MP_CustomData1));
 

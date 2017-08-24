@@ -319,6 +319,8 @@ protected:
 			D3D12_RECT CurrentViewportScissorRects[D3D12_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE];
 			uint32 CurrentNumberOfScissorRects;
 
+			uint16 StreamStrides[MaxVertexElementCount];
+
 			FD3D12RenderTargetView* RenderTargetArray[D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT];
 
 			FD3D12DepthStencilView* CurrentDepthStencilTarget;
@@ -677,6 +679,7 @@ public:
 	{
 		if (BoundShaderState)
 		{
+			SetStreamStrides(BoundShaderState->StreamStrides);
 			SetShader(BoundShaderState->GetVertexShader());
 			SetShader(BoundShaderState->GetPixelShader());
 			SetShader(BoundShaderState->GetDomainShader());
@@ -685,6 +688,8 @@ public:
 		}
 		else
 		{
+			uint16 NullStrides[MaxVertexElementCount] = {0};
+			SetStreamStrides(NullStrides);
 			SetShader<FD3D12VertexShader>(nullptr);
 			SetShader<FD3D12PixelShader>(nullptr);
 			SetShader<FD3D12HullShader>(nullptr);
@@ -762,9 +767,20 @@ public:
 		*InputLayout = PipelineState.Graphics.HighLevelDesc.BoundShaderState->InputLayout;
 	}
 
+	D3D12_STATE_CACHE_INLINE void SetStreamStrides(const uint16* InStreamStrides)
+	{
+		FMemory::Memcpy(PipelineState.Graphics.StreamStrides, InStreamStrides, sizeof(PipelineState.Graphics.StreamStrides));
+	}
+
 	D3D12_STATE_CACHE_INLINE void SetStreamSource(FD3D12ResourceLocation* VertexBufferLocation, uint32 StreamIndex, uint32 Stride, uint32 Offset)
 	{
+		ensure(Stride == PipelineState.Graphics.StreamStrides[StreamIndex]);
 		InternalSetStreamSource(VertexBufferLocation, StreamIndex, Stride, Offset);
+	}
+
+	D3D12_STATE_CACHE_INLINE void SetStreamSource(FD3D12ResourceLocation* VertexBufferLocation, uint32 StreamIndex, uint32 Offset)
+	{
+		InternalSetStreamSource(VertexBufferLocation, StreamIndex, PipelineState.Graphics.StreamStrides[StreamIndex], Offset);
 	}
 
 	D3D12_STATE_CACHE_INLINE bool IsShaderResource(const FD3D12ResourceLocation* VertexBufferLocation) const

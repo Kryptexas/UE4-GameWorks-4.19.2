@@ -17,10 +17,8 @@ THIRD_PARTY_INCLUDES_START
 THIRD_PARTY_INCLUDES_END
 #endif // __UNREAL__
 
-#include "CustomStdAllocator.h"
-
-typedef std::map<FCustomStdString, ir_variable*> TStringIRVarMap;
-typedef std::map<FCustomStdString, TStringIRVarMap> TStringStringIRVarMap;
+typedef std::map<std::string, ir_variable*> TStringIRVarMap;
+typedef std::map<std::string, TStringIRVarMap> TStringStringIRVarMap;
 typedef std::list<ir_variable*> TIRVarList;
 
 
@@ -80,7 +78,7 @@ void FlattenUniformBufferStructures(exec_list* Instructions, _mesa_glsl_parse_st
  * @param bGroupFlattenedUBs - 
  * @param OutUniformMap - Mapping table used during backend code gen for cross referencing source/packed uniforms
  */
-void PackUniforms(exec_list* Instructions, _mesa_glsl_parse_state* ParseState, bool bFlattenStructure, bool bGroupFlattenedUBs, bool bPackGlobalArraysIntoUniformBuffers, TVarVarMap& OutUniformMap);
+void PackUniforms(exec_list* Instructions, _mesa_glsl_parse_state* ParseState, bool bFlattenStructure, bool bGroupFlattenedUBs, bool bPackGlobalArraysIntoUniformBuffers, bool bKeepNames, TVarVarMap& OutUniformMap);
 
 // Expand any full assignments (a = b) to per element (a[0] = b[0]; a[1] = b[1]; etc) so the array can be split
 bool ExpandArrayAssignments(exec_list* ir, _mesa_glsl_parse_state* State);

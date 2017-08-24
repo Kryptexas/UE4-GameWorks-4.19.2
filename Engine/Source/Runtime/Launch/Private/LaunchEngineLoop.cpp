@@ -125,6 +125,7 @@
 	#include "Framework/Application/SlateApplication.h"
 	#include "IMessagingModule.h"
 	#include "Engine/DemoNetDriver.h"
+	#include "LongGPUTask.h"
 
 #if !UE_SERVER
 	#include "IHeadMountedDisplayModule.h"
@@ -920,6 +921,18 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	{
 		// Fail, shipping builds will crash if setting command line fails
 		return -1;
+	}
+
+	// Check for special instruction cpu support if needed
+	if (FPlatformMisc::NeedsNonoptionalCPUFeaturesCheck())
+	{
+		bool bHasNonoptionalCPUFeatures = FPlatformMisc::HasNonoptionalCPUFeatures();
+		// If it's not supported, we'll crash later so better to return an error
+		if (!bHasNonoptionalCPUFeatures)
+		{
+			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("RequiresNonoptionalCPUFeatures", "Error: This application requires a CPU that supports the specific instruction set(s)"));
+			return -1;
+		}
 	}
 
 #if WITH_ENGINE
@@ -3092,11 +3105,34 @@ void FEngineLoop::Tick()
 	{
 		SCOPE_CYCLE_COUNTER( STAT_FrameTime );
 
+		#if WITH_PROFILEGPU
+			// Issue the measurement of the execution time of a basic LongGPUTask unit on the very first frame
+			// The results will be retrived on the first call of IssueScalableLongGPUTask
+			if (GFrameCounter == 0 && IsFeatureLevelSupported(GMaxRHIShaderPlatform, ERHIFeatureLevel::SM4) && FApp::CanEverRender())
+			{
+				FlushRenderingCommands();
+
+				ENQUEUE_UNIQUE_RENDER_COMMAND(
+					MeasureLongGPUTaskExecutionTimeCmd,
+					{
+						MeasureLongGPUTaskExecutionTime(RHICmdList);
+					});
+			}
+		#endif
+
 		ENQUEUE_UNIQUE_RENDER_COMMAND(
 			BeginFrame,
 		{
 			GRHICommandList.LatchBypass();
 			GFrameNumberRenderThread++;
+
+			// If we are profiling, kick off a long GPU task to make the GPU always behind the CPU so that we
+			// won't get GPU idle time measured in profiling results
+			if (GTriggerGPUProfile && !GTriggerGPUHitchProfile)
+			{
+				IssueScalableLongGPUTask(RHICmdList);
+			}
+
 			RHICmdList.PushEvent(*FString::Printf(TEXT("Frame%d"),GFrameNumberRenderThread), FColor(0, 255, 0, 255));
 			GPU_STATS_BEGINFRAME(RHICmdList);
 			RHICmdList.BeginFrame();

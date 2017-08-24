@@ -230,6 +230,10 @@ protected:
 
 	void Compile();
 
+#if VULKAN_KEEP_CREATE_INFO
+	VkPipelineLayoutCreateInfo PipelineLayoutCreateInfo;
+#endif
+
 	friend class FVulkanComputePipeline;
 	friend class FVulkanGfxPipeline;
 	friend class FVulkanPipelineStateCache;
@@ -364,13 +368,16 @@ public:
 		BufferViewReferences[DescriptorIndex] = View;
 	}
 
-	void WriteStorageBuffer(uint32 DescriptorIndex, FVulkanBufferView* View)
+	void WriteStorageBuffer(uint32 DescriptorIndex, VkBuffer Buffer, uint32 Offset, uint32 Range)
 	{
 		check(DescriptorIndex < NumWrites);
-		check(WriteDescriptors[DescriptorIndex].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-		WriteDescriptors[DescriptorIndex].pTexelBufferView = &View->View;
+		check(WriteDescriptors[DescriptorIndex].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER || WriteDescriptors[DescriptorIndex].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC);
+		VkDescriptorBufferInfo* BufferInfo = const_cast<VkDescriptorBufferInfo*>(WriteDescriptors[DescriptorIndex].pBufferInfo);
+		check(BufferInfo);
+		BufferInfo->buffer = Buffer;
+		BufferInfo->offset = Offset;
+		BufferInfo->range = Range;
 		DirtyMask = DirtyMask | ((uint64)1 << DescriptorIndex);
-		BufferViewReferences[DescriptorIndex] = View;
 	}
 
 	void WriteUniformTexelBuffer(uint32 DescriptorIndex, FVulkanBufferView* View)

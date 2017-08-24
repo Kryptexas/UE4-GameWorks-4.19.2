@@ -77,14 +77,7 @@ void FOpenGLGPUProfiler::BeginFrame(FOpenGLDynamicRHI* InRHI)
 	{
 		bLatchedGProfilingGPU = false; // we do NOT permit an ordinary GPU profile during hitch profiles
 	}
-
-	if (bLatchedGProfilingGPU)
-	{
-		// Issue a bunch of GPU work at the beginning of the frame, to make sure that we are GPU bound
-		// We can't isolate idle time from GPU timestamps
-		InRHI->IssueLongGPUTask();
-	}
-
+	
 	// if we are starting a hitch profile or this frame is a gpu profile, then save off the state of the draw events
 	if (bLatchedGProfilingGPU || (!bPreviousLatchedGProfilingGPUHitches && bLatchedGProfilingGPUHitches))
 	{
@@ -381,61 +374,6 @@ float FOpenGLEventNode::GetTiming()
 	}
 
 	return Result;
-}
-
-void FOpenGLDynamicRHI::IssueLongGPUTask()
-{
-	int32 LargestViewportIndex = INDEX_NONE;
-	int32 LargestViewportPixels = 0;
-
-	for (int32 ViewportIndex = 0; ViewportIndex < Viewports.Num(); ViewportIndex++)
-	{
-		FOpenGLViewport* Viewport = Viewports[ViewportIndex];
-
-		if (Viewport->GetSizeXY().X * Viewport->GetSizeXY().Y > LargestViewportPixels)
-		{
-			LargestViewportPixels = Viewport->GetSizeXY().X * Viewport->GetSizeXY().Y;
-			LargestViewportIndex = ViewportIndex;
-		}
-	}
-
-	if (LargestViewportIndex >= 0)
-	{
-		FOpenGLViewport* Viewport = Viewports[LargestViewportIndex];
-
-		const auto FeatureLevel = GMaxRHIFeatureLevel;
-
-		FRHICommandList_RecursiveHazardous RHICmdList(this);
-		FGraphicsPipelineStateInitializer GraphicsPSOInit;
-		SetRenderTarget(RHICmdList, Viewport->GetBackBuffer(), FTextureRHIRef());
-		RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
-
-		GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One>::GetRHI();
-		GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
-		GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
-
-		auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
-		TShaderMapRef<TOneColorVS<true> > VertexShader(ShaderMap);
-		TShaderMapRef<FLongGPUTaskPS> PixelShader(ShaderMap);
-
-		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GOpenGLVector4VertexDeclaration.VertexDeclarationRHI;
-		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
-		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
-		GraphicsPSOInit.PrimitiveType = PT_TriangleStrip;
-
-		SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
-		RHICmdList.SetBlendFactor(FLinearColor::Black);
-
-		// Draw a fullscreen quad
-		FVector4 Vertices[4];
-		Vertices[0].Set( -1.0f,  1.0f, 0, 1.0f );
-		Vertices[1].Set(  1.0f,  1.0f, 0, 1.0f );
-		Vertices[2].Set( -1.0f, -1.0f, 0, 1.0f );
-		Vertices[3].Set(  1.0f, -1.0f, 0, 1.0f );
-		DrawPrimitiveUP(RHICmdList, PT_TriangleStrip, 2, Vertices, sizeof(Vertices[0]));
-
-		// RHICmdList flushes on destruction
-	}
 }
 
 void FOpenGLDynamicRHI::InitializeStateResources()

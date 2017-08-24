@@ -397,7 +397,7 @@ namespace CrossCompiler
 				break;
 
 			default:
-				if (Writer.ExpressionScope != 0)
+				if (Writer.ExpressionScope != 0 && !IsAssignmentOperator(Operator))
 				{
 					Writer << (TCHAR)'(';
 				}
@@ -408,7 +408,7 @@ namespace CrossCompiler
 				Writer << (TCHAR)' ';
 				SubExpressions[1]->Write(Writer);
 				--Writer.ExpressionScope;
-				if (Writer.ExpressionScope != 0)
+				if (Writer.ExpressionScope != 0 && !IsAssignmentOperator(Operator))
 				{
 					Writer << (TCHAR)')';
 				}

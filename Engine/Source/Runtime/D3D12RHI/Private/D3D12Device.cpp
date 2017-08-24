@@ -120,6 +120,19 @@ void FD3D12Device::SetupAfterDeviceCreation()
 {
 	ID3D12Device* Direct3DDevice = GetParentAdapter()->GetD3DDevice();
 
+#if PLATFORM_WINDOWS
+	IUnknown* RenderDoc;
+	IID RenderDocID;
+	if (SUCCEEDED(IIDFromString(L"{A7AA6116-9C8D-4BBA-9083-B4D816B71B78}", &RenderDocID)))
+	{
+		if (SUCCEEDED(Direct3DDevice->QueryInterface(RenderDocID, (void**)(&RenderDoc))))
+		{
+			// Running under RenderDoc, so enable capturing mode
+			GDynamicRHI->EnableIdealGPUCaptureOptions(true);
+		}
+	}
+#endif
+
 	// Init offline descriptor allocators
 	RTVAllocator.Init(Direct3DDevice);
 	DSVAllocator.Init(Direct3DDevice);

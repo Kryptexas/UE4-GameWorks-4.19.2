@@ -419,6 +419,7 @@ void FStaticLightingSystem::CacheIrradiancePhotonsTextureMapping(FStaticLighting
 						false,
 						TexelToVertex.ElementIndex, 
 						1, 
+						RBM_ConstantNormalOffset,
 						NumAdaptiveRefinementLevels,
 						1.0f,
 						CachedHemisphereSamplesForApproximateSkyLighting,
@@ -480,8 +481,10 @@ void FStaticLightingSystem::CacheIrradiancePhotonsTextureMapping(FStaticLighting
 				FGatheredLightSample DirectLighting;
 				FGatheredLightSample Unused;
 				float Unused2;
+				TArray<FVector, TInlineAllocator<1>> VertexOffsets;
+				VertexOffsets.Add(FVector(0, 0, 0));
 
-				CalculateApproximateDirectLighting(CurrentVertex, TexelToVertex.TexelRadius, .1f, true, true, bDebugThisTexel && PhotonMappingSettings.bVisualizeCachedApproximateDirectLighting, MappingContext, DirectLighting, Unused, Unused2);
+				CalculateApproximateDirectLighting(CurrentVertex, TexelToVertex.TexelRadius, VertexOffsets, .1f, true, true, bDebugThisTexel && PhotonMappingSettings.bVisualizeCachedApproximateDirectLighting, MappingContext, DirectLighting, Unused, Unused2);
 
 #if USE_ADAPTIVE_SOLVER_FOR_CACHED_SKYLIGHTING
 				FFinalGatherSample SkyLighting;
@@ -523,7 +526,7 @@ void FStaticLightingSystem::CacheIrradiancePhotonsTextureMapping(FStaticLighting
  */
 void FStaticLightingSystem::ProcessTextureMapping(FStaticLightingTextureMapping* TextureMapping)
 {
-	FPlatformAtomics::InterlockedIncrement(&MappingTasksInProgressThatWillNeedHelp);
+	FPlatformAtomics::InterlockedIncrement(&TasksInProgressThatWillNeedHelp);
 	checkSlow(TextureMapping);
 	// calculate the total time just for processing
 	double StartTime = FPlatformTime::Seconds();
@@ -563,7 +566,6 @@ void FStaticLightingSystem::ProcessTextureMapping(FStaticLightingTextureMapping*
 	if (bDebugThisMapping)
 	{
 		DebugOutput.bValid = true;
-		DebugOutput.Vertices.Empty(TextureMapping->CachedSizeY * TextureMapping->CachedSizeX);
 		for (int32 Y = 0;Y < TextureMapping->CachedSizeY;Y++)
 		{
 			for (int32 X = 0;X < TextureMapping->CachedSizeX;X++)
@@ -729,7 +731,7 @@ void FStaticLightingSystem::ProcessTextureMapping(FStaticLightingTextureMapping*
 		MappingContext.Stats.TexelRasterizationTime += FPlatformTime::Seconds() - ErrorAndMaterialColoringStart;
 	}
 #else
-	FPlatformAtomics::InterlockedDecrement(&MappingTasksInProgressThatWillNeedHelp);
+	FPlatformAtomics::InterlockedDecrement(&TasksInProgressThatWillNeedHelp);
 #endif
 
 	const double PaddingStart = FPlatformTime::Seconds();
@@ -2898,8 +2900,10 @@ void FStaticLightingSystem::CalculateDirectLightingTextureMappingPhotonMap(
 						FGatheredLightSample DirectLightingSample;
 						FGatheredLightSample Unused;
 						float Unused2;
+						TArray<FVector, TInlineAllocator<1>> VertexOffsets;
+						VertexOffsets.Add(FVector(0, 0, 0));
 
-						CalculateApproximateDirectLighting(CurrentVertex, TexelToVertex.TexelRadius, .1f, true, true, bDebugThisTexel, MappingContext, DirectLightingSample, Unused, Unused2);
+						CalculateApproximateDirectLighting(CurrentVertex, TexelToVertex.TexelRadius, VertexOffsets, .1f, true, true, bDebugThisTexel, MappingContext, DirectLightingSample, Unused, Unused2);
 
 						const FGatheredLightSample SkyLighting = CalculateApproximateSkyLighting(TexelToVertex.GetFullVertex(), TexelToVertex.TexelRadius, CachedHemisphereSamplesForApproximateSkyLighting, MappingContext);
 
@@ -3010,7 +3014,15 @@ void FStaticLightingSystem::ProcessCacheIndirectLightingTask(FCacheIndirectTaskD
 	}
 
 	const float TaskExecutionTime = FPlatformTime::Seconds() - StartTime;
-	Task->MappingContext.Stats.IndirectLightingCacheTaskThreadTime += TaskExecutionTime;
+
+	if (bProcessedByMappingThread)
+	{
+		Task->MappingContext.Stats.IndirectLightingCacheTaskThreadTime += TaskExecutionTime;
+	}
+	else
+	{
+		Task->MappingContext.Stats.IndirectLightingCacheTaskThreadTimeSeparateTask += TaskExecutionTime;
+	}
 }
 
 /** 
@@ -3101,7 +3113,15 @@ void FStaticLightingSystem::ProcessInterpolateTask(FInterpolateIndirectTaskDescr
 	}
 
 	const float TaskExecutionTime = FPlatformTime::Seconds() - StartTime;
-	Task->MappingContext.Stats.SecondPassIrradianceCacheInterpolationTime += TaskExecutionTime;
+
+	if (bProcessedByMappingThread)
+	{
+		Task->MappingContext.Stats.SecondPassIrradianceCacheInterpolationTime += TaskExecutionTime;
+	}
+	else
+	{
+		Task->MappingContext.Stats.SecondPassIrradianceCacheInterpolationTimeSeparateTask += TaskExecutionTime;
+	}
 }
 
 /** Handles indirect lighting calculations for a single texture mapping. */
@@ -3283,7 +3303,7 @@ void FStaticLightingSystem::CalculateIndirectLightingTextureMapping(
 		MappingContext.Stats.BlockOnIndirectLightingInterpolateTasksTime += FPlatformTime::Seconds() - EndCacheTime;
 	}
 
-	FPlatformAtomics::InterlockedDecrement(&MappingTasksInProgressThatWillNeedHelp);
+	FPlatformAtomics::InterlockedDecrement(&TasksInProgressThatWillNeedHelp);
 }
 
 /** Overrides LightMapData with material attributes if MaterialSettings.ViewMaterialAttribute != VMA_None */

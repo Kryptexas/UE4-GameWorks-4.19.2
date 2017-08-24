@@ -261,13 +261,12 @@ void UVREditorUISystem::Shutdown()
 		AVREditorFloatingUI* UIPanel = CurrentUI.Value;
 		if (UIPanel != nullptr)
 		{
-			UIPanel->Destroy(false, false);
-			UIPanel = nullptr;
+			VRMode->DestroyTransientActor(UIPanel);
 		}
 	}
 	FloatingUIs.Reset();
 
-	QuickRadialMenu->Destroy(false, false);
+	VRMode->DestroyTransientActor(QuickRadialMenu);
 	QuickRadialMenu = nullptr;
 	InfoDisplayPanel = nullptr;
 	CurrentWidgetOnInfoDisplay.Reset();
@@ -1132,18 +1131,21 @@ void UVREditorUISystem::CreateUIs()
 
 void UVREditorUISystem::OnAssetEditorOpened(UObject* Asset)
 {
-	// We need to disable drag drop on the tabs spawned in VR mode.
-	TArray<IAssetEditorInstance*> Editors = FAssetEditorManager::Get().FindEditorsForAsset(Asset);
-	for ( IAssetEditorInstance* Editor : Editors )
+	
 	{
-		if (Editor->GetAssociatedTabManager().IsValid())
+		// We need to disable drag drop on the tabs spawned in VR mode.
+		TArray<IAssetEditorInstance*> Editors = FAssetEditorManager::Get().FindEditorsForAsset(Asset);
+		for ( IAssetEditorInstance* Editor : Editors )
 		{
-			Editor->GetAssociatedTabManager()->SetCanDoDragOperation(false);
-		}
-		else
-		{
-			FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
-			LevelEditorModule.GetLevelEditorTabManager().ToSharedRef()->SetCanDoDragOperation(false);
+			if (Editor->GetAssociatedTabManager().IsValid())
+			{
+				Editor->GetAssociatedTabManager()->SetCanDoDragOperation(false);
+			}
+			else
+			{
+				FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
+				LevelEditorModule.GetLevelEditorTabManager().ToSharedRef()->SetCanDoDragOperation(false);
+			}
 		}
 	}
 }
@@ -2102,8 +2104,16 @@ UVREditorMotionControllerInteractor* UVREditorUISystem::GetUIInteractor()
 
 AVREditorFloatingUI* UVREditorUISystem::GetPanel(const VREditorPanelID& InPanelID) const
 {
-	AVREditorFloatingUI *const * FoundPanel = FloatingUIs.Find(InPanelID);
-	return FoundPanel != nullptr ? *FoundPanel : nullptr;
+	AVREditorFloatingUI* Result = nullptr;
+	if (FloatingUIs.Num() > 0)
+	{
+		AVREditorFloatingUI *const * FoundPanel = FloatingUIs.Find(InPanelID);
+		if (FoundPanel != nullptr)
+		{
+			Result = *FoundPanel;
+		}
+	}
+	return Result;
 }
 
 void UVREditorUISystem::SequencerRadialMenuGenerator(FMenuBuilder& MenuBuilder, TSharedPtr<FUICommandList> CommandList, UVREditorMode* InVRMode, float& RadiusOverride)

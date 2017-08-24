@@ -84,6 +84,8 @@ void FVulkanQueue::Submit(FVulkanCmdBuffer* CmdBuffer, FVulkanSemaphore* WaitSem
 	UpdateLastSubmittedCommandBuffer(CmdBuffer);
 
 	CmdBuffer->GetOwner()->RefreshFenceStatus();
+
+	Device->GetStagingManager().ProcessPendingFree(false, false);
 }
 
 void FVulkanQueue::UpdateLastSubmittedCommandBuffer(FVulkanCmdBuffer* CmdBuffer)

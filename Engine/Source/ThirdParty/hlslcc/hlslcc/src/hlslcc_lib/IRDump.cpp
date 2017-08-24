@@ -239,7 +239,7 @@ void DebugPrintVisitor::visit(ir_texture* ir)
 			if (ir->shadow_comparitor)
 			{
 				irdump_printf(",");
-				ir->offset->accept(this);
+				ir->shadow_comparitor->accept(this);
 			}
 
 			if (ir->offset)
@@ -299,7 +299,7 @@ void DebugPrintVisitor::visit(ir_texture* ir)
 			if (ir->shadow_comparitor)
 			{
 				irdump_printf(",");
-				ir->offset->accept(this);
+				ir->shadow_comparitor->accept(this);
 			}
 			irdump_printf(",");
 			ir->lod_info.lod->accept(this);
@@ -678,9 +678,9 @@ void DebugPrintVisitor::PrintType(const glsl_type* Type)
 	}
 }
 
-FCustomStdString DebugPrintVisitor::GetVarName(ir_variable* var)
+std::string DebugPrintVisitor::GetVarName(ir_variable* var)
 {
-	FCustomStdString s("");
+	std::string s("");
 	if (var->name)
 	{
 		if (var->mode == ir_var_uniform || var->mode == ir_var_in || var->mode == ir_var_out || var->mode == ir_var_inout || var->mode == ir_var_shared)
@@ -699,7 +699,7 @@ FCustomStdString DebugPrintVisitor::GetVarName(ir_variable* var)
 				TNameSet::iterator FoundName = UniqueNames.find(var->name);
 				if (FoundName != UniqueNames.end())
 				{
-					std::basic_stringstream<char, std::char_traits<char>, FCustomStdAllocator<char>> ss("");
+					std::basic_stringstream<char, std::char_traits<char>, std::allocator<char>> ss("");
 					ss << *FoundName;
 					ss << ID++;
 					s = ss.str();
@@ -725,7 +725,7 @@ FCustomStdString DebugPrintVisitor::GetVarName(ir_variable* var)
 			}
 			else
 			{
-				std::basic_stringstream<char, std::char_traits<char>, FCustomStdAllocator<char>> ss("");
+				std::basic_stringstream<char, std::char_traits<char>, std::allocator<char>> ss("");
 				ss << var->name;
 				ss << ID++;
 				s = ss.str();
@@ -743,7 +743,7 @@ FCustomStdString DebugPrintVisitor::GetVarName(ir_variable* var)
 		}
 		else
 		{
-			std::basic_stringstream<char, std::char_traits<char>, FCustomStdAllocator<char>> ss("");
+			std::basic_stringstream<char, std::char_traits<char>, std::allocator<char>> ss("");
 			ss << "Param";
 			ss << ID++;
 			s = ss.str();

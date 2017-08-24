@@ -12,6 +12,7 @@
 #include "DistanceFieldAOShared.ush"
 #include "GlobalDistanceFieldShared.ush"
 #include "VolumeLightingCommon.ush"
+#include "VolumetricLightmapShared.ush"
 
 RWTexture3D<float4> RWVBufferA;
 RWTexture3D<float4> RWVBufferB;
@@ -204,7 +205,9 @@ void InjectShadowedLocalLightPS(
 		LightData.LightPositionAndInvRadius = float4(DeferredLightUniforms.LightPosition, DeferredLightUniforms.LightInvRadius);
 		LightData.LightColorAndFalloffExponent = float4(DeferredLightUniforms.LightColor, DeferredLightUniforms.LightFalloffExponent);
 		LightData.LightDirection = DeferredLightUniforms.NormalizedLightDirection;
+        LightData.LightTangent = DeferredLightUniforms.NormalizedLightTangent;
 		LightData.SpotAnglesAndSourceRadius = float4(DeferredLightUniforms.SpotAngles, DeferredLightUniforms.SourceRadius, DeferredLightUniforms.SourceLength);
+        LightData.SoftSourceRadius = DeferredLightUniforms.SoftSourceRadius;
 		LightData.MinRoughness = DeferredLightUniforms.MinRoughness;
 		LightData.ContactShadowLength = DeferredLightUniforms.ContactShadowLength;
 		LightData.DistanceFadeMAD = DeferredLightUniforms.DistanceFadeMAD;
@@ -376,7 +379,9 @@ float HemisphereConeTraceAgainstGlobalDistanceField(float3 WorldShadingPosition,
 	return MinVisibility;
 }
 
-float ComputeSkyVisibility(float3 WorldPosition)
+float SkyLightUseStaticShadowing;
+
+float ComputeSkyVisibility(float3 WorldPosition, float3 BrickTextureUVs)
 {
 	float Visibility = 1;
 
@@ -386,6 +391,14 @@ float ComputeSkyVisibility(float3 WorldPosition)
 
 	Visibility = HemisphereConeTraceAgainstGlobalDistanceField(WorldPosition, float3(0, 0, 1), TanConeHalfAngle);
 	
+#endif
+
+#if ALLOW_STATIC_LIGHTING
+	if (SkyLightUseStaticShadowing > 0)
+	{
+		float3 SkyBentNormal = GetVolumetricLightmapSkyBentNormal(BrickTextureUVs);
+		Visibility = length(SkyBentNormal);
+	}
 #endif
 
 	return Visibility;
@@ -449,6 +462,7 @@ float SkyLightVolumetricScatteringIntensity;
 float4 SkySH[3];
 float UseHeightFogColors;
 float UseDirectionalLightShadowing;
+float StaticLightingScatteringIntensity;
 
 [numthreads(THREADGROUP_SIZE, THREADGROUP_SIZE, THREADGROUP_SIZE)]
 void LightScatteringCS(
@@ -537,12 +551,21 @@ void LightScatteringCS(
 				* PhaseFunction(PhaseG, dot(ForwardGlobalLightData.DirectionalLightDirection, -CameraVector)));
 		}
 
+		FTwoBandSHVector RotatedHGZonalHarmonic;
+		RotatedHGZonalHarmonic.V = float4(1.0f, CameraVector.y, CameraVector.z, CameraVector.x) * float4(1.0f, PhaseG, PhaseG, PhaseG);
+
+		float3 BrickTextureUVs = 0;
+
+#if ALLOW_STATIC_LIGHTING
+		if (SkyLightVolumetricScatteringIntensity > 0 || StaticLightingScatteringIntensity > 0)
+		{
+			BrickTextureUVs = ComputeVolumetricLightmapBrickTextureUVs(WorldPosition);
+		}
+#endif
+
 		// Skylight
 		if (SkyLightVolumetricScatteringIntensity > 0)
 		{
-			FTwoBandSHVector RotatedHGZonalHarmonic;
-			RotatedHGZonalHarmonic.V = float4(1.0f, CameraVector.y, CameraVector.z, CameraVector.x) * float4(1.0f, PhaseG, PhaseG, PhaseG);
-		
 			float3 SkyLighting;
 
 			if (UseHeightFogColors > 0)
@@ -566,10 +589,20 @@ void LightScatteringCS(
 				SkyLighting = View.SkyLightColor.rgb * max(DotSH(SkyIrradianceSH, RotatedHGZonalHarmonic), 0) / PI;
 			}
 
-			float SkyVisibility = ComputeSkyVisibility(WorldPosition);
+			float SkyVisibility = ComputeSkyVisibility(WorldPosition, BrickTextureUVs);
 			LightScattering += (SkyVisibility * SkyLightVolumetricScatteringIntensity) * SkyLighting;
 		}
 
+#if ALLOW_STATIC_LIGHTING
+		// Indirect lighting of Stationary lights and Direct + Indirect lighting of Static lights
+		if (StaticLightingScatteringIntensity > 0)
+		{
+			FTwoBandSHVectorRGB IrradianceSH = GetVolumetricLightmapSH2(BrickTextureUVs);
+
+			LightScattering += (StaticLightingScatteringIntensity / PI) * max(DotSH(IrradianceSH, RotatedHGZonalHarmonic), 0);
+		}
+#endif
+		
 		uint GridIndex = ComputeLightGridCellIndex(GridCoordinate.xy * VolumetricFog.FogGridToPixelXY, SceneDepth, 0);
 		const FCulledLightsGridData CulledLightsGrid = GetCulledLightsGrid(GridIndex, 0);
 
@@ -594,6 +627,8 @@ void LightScatteringCS(
 				LightData.LightDirection = LocalLight.LightDirectionAndShadowMask.xyz;
 				float SourceLength = f16tof32(asuint(LocalLight.SpotAnglesAndSourceRadiusPacked.w));
 				LightData.SpotAnglesAndSourceRadius = float4(LocalLight.SpotAnglesAndSourceRadiusPacked.xyz, SourceLength);
+                LightData.LightTangent = LocalLight.LightTangentAndSoftSourceRadius.xyz;
+                LightData.SoftSourceRadius = LocalLight.LightTangentAndSoftSourceRadius.w;
 				LightData.bInverseSquared = LightData.LightColorAndFalloffExponent.w == 0;
 				LightData.bRadialLight = true;
 				LightData.bSpotLight = LightData.SpotAnglesAndSourceRadius.x > -2.0f;

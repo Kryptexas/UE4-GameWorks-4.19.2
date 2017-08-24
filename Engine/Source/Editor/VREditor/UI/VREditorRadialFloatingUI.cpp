@@ -11,6 +11,7 @@
 #include "SlateApplication.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "VREditorAssetContainer.h"
+#include "VRModeSettings.h"
 
 namespace VREd
 {
@@ -324,7 +325,7 @@ void AVREditorRadialFloatingUI::UpdateFadingState( const float DeltaTime )
 		}
 
  		// Set material color
-		const float UIBrightness = FadeAlpha * VREd::RadialUIBrightness->GetFloat();
+		const float UIBrightness = FadeAlpha * GetDefault<UVRModeSettings>()->UIBrightness;;
 		for (UVREditorWidgetComponent* WidgetComponent : WidgetComponents)
 		{
 			WidgetComponent->SetTintColorAndOpacity(FLinearColor(UIBrightness, UIBrightness, UIBrightness).CopyWithNewOpacity(FadeAlpha));

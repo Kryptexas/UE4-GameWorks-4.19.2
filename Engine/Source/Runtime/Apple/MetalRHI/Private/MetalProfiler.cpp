@@ -4,6 +4,7 @@
 #include "MetalProfiler.h"
 #include "EngineGlobals.h"
 #include "StaticBoundShaderState.h"
+#include "MetalCommandBuffer.h"
 
 DEFINE_STAT(STAT_MetalMakeDrawableTime);
 DEFINE_STAT(STAT_MetalDrawCallTime);
@@ -64,9 +65,14 @@ DEFINE_STAT(STAT_MetalManagedTextureCount);
 DEFINE_STAT(STAT_MetalTexturePageOnTime);
 DEFINE_STAT(STAT_MetalPrivateTextureMem);
 DEFINE_STAT(STAT_MetalManagedTextureMem);
-#if STATS
+DEFINE_STAT(STAT_MetalGPUWorkTime);
+DEFINE_STAT(STAT_MetalGPUIdleTime);
+DEFINE_STAT(STAT_MetalPresentTime);
+
 int64 volatile GMetalTexturePageOnTime = 0;
-#endif
+int64 volatile GMetalGPUWorkTime = 0;
+int64 volatile GMetalGPUIdleTime = 0;
+int64 volatile GMetalPresentTime = 0;
 
 DEFINE_STAT(STAT_MetalCommandBufferCreatedPerFrame);
 DEFINE_STAT(STAT_MetalCommandBufferCommittedPerFrame);
@@ -209,10 +215,19 @@ void FMetalEventNode::StartTiming()
 
 MTLCommandBufferHandler FMetalEventNode::Start(void)
 {
-	return Block_copy(^(id<MTLCommandBuffer>)
-	{
-		StartTime = mach_absolute_time();
-	});
+    return Block_copy(^(id<MTLCommandBuffer> CompletedBuffer)
+    {
+        if (FMetalCommandQueue::SupportsFeature(EMetalFeaturesGPUCommandBufferTimes))
+        {
+            const CFTimeInterval GpuTimeSeconds = ((id<IMetalCommandBufferExtensions>)CompletedBuffer).GPUStartTime;
+            const double CyclesPerSecond = 1.0 / FPlatformTime::GetSecondsPerCycle();
+            StartTime = GpuTimeSeconds * CyclesPerSecond;
+        }
+        else
+        {
+            StartTime = mach_absolute_time();
+        }
+    });
 }
 
 void FMetalEventNode::StopTiming()
@@ -222,19 +237,35 @@ void FMetalEventNode::StopTiming()
 
 MTLCommandBufferHandler FMetalEventNode::Stop(void)
 {
-	return Block_copy(^(id<MTLCommandBuffer>)
-	{
-		EndTime = mach_absolute_time();
-	 
-		if(bRoot)
-		{
-			GGPUFrameTime = FMath::TruncToInt( double(GetTiming()) / double(FPlatformTime::GetSecondsPerCycle()) );
-			if(!bFullProfiling)
-			{
-				delete this;
-			}
-		}
-	});
+    return Block_copy(^(id<MTLCommandBuffer> CompletedBuffer)
+    {
+        if (FMetalCommandQueue::SupportsFeature(EMetalFeaturesGPUCommandBufferTimes))
+        {
+            // This is still used by ProfileGPU
+            const CFTimeInterval GpuTimeSeconds = ((id<IMetalCommandBufferExtensions>)CompletedBuffer).GPUEndTime;
+            const double CyclesPerSecond = 1.0 / FPlatformTime::GetSecondsPerCycle();
+            EndTime = GpuTimeSeconds * CyclesPerSecond;
+        }
+        else
+        {
+            EndTime = mach_absolute_time();
+        }
+        
+        if(bRoot)
+        {
+            // But we have a different mechanism for the overall frametime that works even with empty encoders and that doesn't report any GPU idle time between frames, we only use the fallback code below on older OSes.
+            if (!FMetalCommandQueue::SupportsFeature(EMetalFeaturesGPUCommandBufferTimes))
+            {
+                uint32 Time = FMath::TruncToInt( double(GetTiming()) / double(FPlatformTime::GetSecondsPerCycle()) );
+                FPlatformAtomics::InterlockedExchange((int32*)&GGPUFrameTime, (int32)Time);
+            }
+            
+            if(!bFullProfiling)
+            {
+                delete this;
+            }
+        }
+    });
 }
 
 #if METAL_STATISTICS
@@ -417,6 +448,10 @@ void FMetalGPUProfiler::EndFrame()
 #if STATS
 		SET_CYCLE_COUNTER(STAT_MetalTexturePageOnTime, GMetalTexturePageOnTime);
 		GMetalTexturePageOnTime = 0;
+		
+		SET_CYCLE_COUNTER(STAT_MetalGPUIdleTime, GMetalGPUIdleTime);
+		SET_CYCLE_COUNTER(STAT_MetalGPUWorkTime, GMetalGPUWorkTime);
+		SET_CYCLE_COUNTER(STAT_MetalPresentTime, GMetalPresentTime);
 #endif
 		
 		if(CurrentEventNodeFrame)
@@ -486,3 +521,98 @@ void FMetalGPUProfiler::FinishGPUWork(void)
 	}
 #endif
 }
+
+void FMetalGPUProfiler::IncrementFrameIndex()
+{
+    if (FMetalCommandQueue::SupportsFeature(EMetalFeaturesGPUCommandBufferTimes))
+    {
+		FPlatformAtomics::InterlockedExchange(&FrameTimeGPUIndex, ((FrameTimeGPUIndex + 1) % MAX_FRAME_HISTORY));
+		FPlatformAtomics::InterlockedExchange(&FrameStartGPU[FrameTimeGPUIndex], 0);
+		FPlatformAtomics::InterlockedExchange(&FrameEndGPU[FrameTimeGPUIndex], 0);
+		FPlatformAtomics::InterlockedExchange(&FrameGPUTime[FrameTimeGPUIndex], 0);
+		FPlatformAtomics::InterlockedExchange(&FrameIdleTime[FrameTimeGPUIndex], 0);
+		FPlatformAtomics::InterlockedExchange(&FramePresentTime[FrameTimeGPUIndex], 0);
+    }
+}
+
+void FMetalGPUProfiler::RecordFrame(id<MTLCommandBuffer> Buffer)
+{
+	RecordCommandBuffer(Buffer);
+	
+	if (FMetalCommandQueue::SupportsFeature(EMetalFeaturesGPUCommandBufferTimes))
+	{
+		uint32 Existing = FrameTimeGPUIndex;
+		[Buffer addCompletedHandler:^(id <MTLCommandBuffer> InBuffer)
+		{
+			uint32 Time = FMath::TruncToInt(FPlatformTime::ToSeconds64(FrameEndGPU[Existing] - FrameStartGPU[Existing]) / FPlatformTime::GetSecondsPerCycle64());
+			FPlatformAtomics::InterlockedExchange((int32*)&GGPUFrameTime, (int32)Time);
+#if STATS
+			FPlatformAtomics::InterlockedExchange(&GMetalGPUWorkTime, FrameGPUTime[Existing]);
+			
+			Time = FMath::TruncToInt(FPlatformTime::ToSeconds64(((FrameEndGPU[Existing] - FrameStartGPU[Existing]) - FrameGPUTime[Existing])) / FPlatformTime::GetSecondsPerCycle64());
+			FPlatformAtomics::InterlockedExchange(&FrameIdleTime[Existing], (int32)Time);
+			FPlatformAtomics::InterlockedExchange(&GMetalGPUIdleTime, Time);
+#endif //STATS
+		}];
+	}
+}
+
+void FMetalGPUProfiler::RecordPresent(id<MTLCommandBuffer> Buffer)
+{
+	if (FMetalCommandQueue::SupportsFeature(EMetalFeaturesGPUCommandBufferTimes))
+	{
+		uint32 Existing = FrameTimeGPUIndex;
+		[Buffer addCompletedHandler:^(id <MTLCommandBuffer> InBuffer)
+		{
+			id<IMetalCommandBufferExtensions> CB = (id<IMetalCommandBufferExtensions>)InBuffer;
+			const CFTimeInterval GpuStartTimeSeconds = CB.GPUStartTime;
+			const CFTimeInterval GpuEndTimeSeconds = CB.GPUEndTime;
+			const double CyclesPerSecond = 1.0 / FPlatformTime::GetSecondsPerCycle();
+			uint64 StartTime = GpuStartTimeSeconds * CyclesPerSecond;
+			uint64 EndTime = GpuEndTimeSeconds * CyclesPerSecond;
+			uint32 Time = FMath::TruncToInt(FPlatformTime::ToSeconds64(EndTime - StartTime) / FPlatformTime::GetSecondsPerCycle64());
+			FPlatformAtomics::InterlockedExchange(&FramePresentTime[Existing], (int32)Time);
+			FPlatformAtomics::InterlockedExchange(&GMetalPresentTime, Time);
+		}];
+	}
+}
+
+void FMetalGPUProfiler::RecordCommandBuffer(id<MTLCommandBuffer> Buffer)
+{
+    if (FMetalCommandQueue::SupportsFeature(EMetalFeaturesGPUCommandBufferTimes))
+    {
+		uint32 Index = FrameTimeGPUIndex;
+        [Buffer addCompletedHandler:^(id <MTLCommandBuffer> InBuffer)
+        {
+            id<IMetalCommandBufferExtensions> CB = (id<IMetalCommandBufferExtensions>)InBuffer;
+
+            const CFTimeInterval GpuTimeSeconds = CB.GPUEndTime;
+            const double CyclesPerSecond = 1.0 / FPlatformTime::GetSecondsPerCycle();
+            uint64 Time = GpuTimeSeconds * CyclesPerSecond;
+            uint64 Existing, New;
+			do
+			{
+				Existing = FrameEndGPU[Index];
+				New = Existing > 0 ? FMath::Max(Existing, Time) : Time;
+			} while(FPlatformAtomics::InterlockedCompareExchange(&FrameEndGPU[Index], New, Existing) != Existing);
+			
+			const CFTimeInterval GpuStartTimeSeconds = CB.GPUStartTime;
+			uint64 StartTime = GpuStartTimeSeconds * CyclesPerSecond;
+			do
+			{
+				Existing = FrameStartGPU[Index];
+				New = Existing > 0 ? FMath::Min(Existing, StartTime) : Time;
+			} while(FPlatformAtomics::InterlockedCompareExchange(&FrameStartGPU[Index], New, Existing) != Existing);
+			
+			Time = FMath::TruncToInt(FPlatformTime::ToSeconds64(Time - StartTime) / FPlatformTime::GetSecondsPerCycle64());
+			FPlatformAtomics::InterlockedAdd(&FrameGPUTime[Index], (int32)Time);
+        }];
+    }
+}
+	
+volatile int32 FMetalGPUProfiler::FrameTimeGPUIndex = 0;
+volatile int64 FMetalGPUProfiler::FrameStartGPU[MAX_FRAME_HISTORY];
+volatile int64 FMetalGPUProfiler::FrameEndGPU[MAX_FRAME_HISTORY];
+volatile int64 FMetalGPUProfiler::FrameGPUTime[MAX_FRAME_HISTORY];
+volatile int64 FMetalGPUProfiler::FrameIdleTime[MAX_FRAME_HISTORY];
+volatile int64 FMetalGPUProfiler::FramePresentTime[MAX_FRAME_HISTORY];

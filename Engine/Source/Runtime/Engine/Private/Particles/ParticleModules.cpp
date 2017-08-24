@@ -3136,7 +3136,7 @@ uint64 UParticleModuleLight::SpawnHQLight(const FLightParticlePayload& Payload, 
 	}
 
 	// Construct the new component and attach as needed				
-	UPointLightComponent* PointLightComponent = NewObject<UPointLightComponent>(HQLightContainer, NAME_None, RF_NoFlags);
+	UPointLightComponent* PointLightComponent = NewObject<UPointLightComponent>(HQLightContainer, NAME_None, RF_Transient);
 	if (PointLightComponent)
 	{
 		LightId = (uint64)PointLightComponent;
@@ -3156,7 +3156,7 @@ uint64 UParticleModuleLight::SpawnHQLight(const FLightParticlePayload& Payload, 
 		PointLightComponent->bUseInverseSquaredFalloff = bUseInverseSquaredFalloff;
 		PointLightComponent->bAffectTranslucentLighting = bAffectsTranslucency;
 		PointLightComponent->VolumetricScatteringIntensity = VolumetricScatteringIntensity;
-		PointLightComponent->SetCastShadows(bShadowCastingLights);
+		PointLightComponent->SetCastShadows(bShadowCastingLights);		
 
 		PointLightComponent->RegisterComponent();
 		Owner->HighQualityLights.Add(PointLightComponent);

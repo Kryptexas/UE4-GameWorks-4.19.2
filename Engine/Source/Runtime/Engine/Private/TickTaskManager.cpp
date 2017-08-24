@@ -257,7 +257,7 @@ public:
 	{
 		if (bLogTick)
 		{
-			UE_LOG(LogTick, Log, TEXT("tick %s [%1d, %1d] %6d %2d %s"), Target->bHighPriority ? TEXT("*") : TEXT(" "), (int32)Target->GetActualTickGroup(), (int32)Target->GetActualEndTickGroup(), GFrameCounter, (int32)CurrentThread, *Target->DiagnosticMessage());
+			UE_LOG(LogTick, Log, TEXT("tick %s [%1d, %1d] %6llu %2d %s"), Target->bHighPriority ? TEXT("*") : TEXT(" "), (int32)Target->GetActualTickGroup(), (int32)Target->GetActualEndTickGroup(), (uint64)GFrameCounter, (int32)CurrentThread, *Target->DiagnosticMessage());
 			if (bLogTicksShowPrerequistes)
 			{
 				Target->ShowPrerequistes();
@@ -514,7 +514,7 @@ public:
 	{
 		if (bLogTicks)
 		{
-			UE_LOG(LogTick, Log, TEXT("tick %6d ---------------------------------------- Release tick group %d"),GFrameCounter, (int32)WorldTickGroup);
+			UE_LOG(LogTick, Log, TEXT("tick %6llu ---------------------------------------- Release tick group %d"),(uint64)GFrameCounter, (int32)WorldTickGroup);
 		}
 		checkSlow(WorldTickGroup >= 0 && WorldTickGroup < TG_MAX);
 
@@ -572,7 +572,7 @@ public:
 
 		if (bLogTicks)
 		{
-			UE_LOG(LogTick, Log, TEXT("tick %6d ---------------------------------------- Start Frame"),GFrameCounter);
+			UE_LOG(LogTick, Log, TEXT("tick %6llu ---------------------------------------- Start Frame"),(uint64)GFrameCounter);
 		}
 
 		if (SingleThreadedMode())
@@ -606,7 +606,7 @@ public:
 	{
 		if (bLogTicks)
 		{
-			UE_LOG(LogTick, Log, TEXT("tick %6d ---------------------------------------- End Frame"),GFrameCounter);
+			UE_LOG(LogTick, Log, TEXT("tick %6llu ---------------------------------------- End Frame"),(uint64)GFrameCounter);
 		}
 	}
 private:
@@ -1838,15 +1838,18 @@ void FTickFunction::QueueTickFunctionParallel(const struct FTickContext& TickCon
 				for (int32 PrereqIndex = 0; PrereqIndex < Prerequisites.Num(); PrereqIndex++)
 				{
 					FTickFunction* Prereq = Prerequisites[PrereqIndex].Get();
+#if USING_THREAD_SANITISER
+					if (Prereq) { TSAN_AFTER(&Prereq->TickQueuedGFrameCounter); }
+#endif
 					if (!Prereq)
 					{
 						// stale prereq, delete it
 						Prerequisites.RemoveAtSwap(PrereqIndex--);
 					}
-					else if (StackForCycleDetection.Contains(Prereq))
-					{
-						UE_LOG(LogTick, Warning, TEXT("While processing prerequisites for %s, could use %s because it would form a cycle."), *DiagnosticMessage(), *Prereq->DiagnosticMessage());
-					}
+                    else if (StackForCycleDetection.Contains(Prereq))
+                    {
+                        UE_LOG(LogTick, Warning, TEXT("While processing prerequisites for %s, could use %s because it would form a cycle."), *DiagnosticMessage(), *Prereq->DiagnosticMessage());
+                    }
 					else if (Prereq->bRegistered)
 					{
 						// recursive call to make sure my prerequisite is set up so I can use its completion handle
@@ -1901,9 +1904,13 @@ void FTickFunction::QueueTickFunctionParallel(const struct FTickContext& TickCon
 			}
 		}
 		bWasInterval = false;
-
+		
+		TSAN_BEFORE(&TickQueuedGFrameCounter);
 		FPlatformMisc::MemoryBarrier();
-		TickQueuedGFrameCounter = GFrameCounter;
+		
+		// MSVC enforces acq/rel semantics on volatile values, but clang cannot (supports more backend architectures).
+		// consequently on ARM64 you would end up racing
+		FPlatformAtomics::InterlockedExchange(&TickQueuedGFrameCounter, GFrameCounter);
 	}
 	else
 	{

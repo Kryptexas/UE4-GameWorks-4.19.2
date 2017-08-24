@@ -1225,48 +1225,6 @@ void FOpenGLFrontend::PrecompileShader(FShaderCompilerOutput& ShaderOutput, cons
 	}
 }
 
-/*------------------------------------------------------------------------------
-	External interface.
-------------------------------------------------------------------------------*/
-
-static FString CreateCrossCompilerBatchFile( const FString& ShaderFile, const FString& OutputFile, const FString& EntryPoint, EHlslShaderFrequency Frequency, GLSLVersion Version, uint32 CCFlags )
-{
-	const TCHAR* VersionSwitch = TEXT("");
-	switch (Version)
-	{
-		case GLSL_150:
-		case GLSL_150_ES2:
-		case GLSL_150_ES3_1:
-		case GLSL_150_ES2_NOUB:
-			VersionSwitch = TEXT(" -gl3");
-			break;
-
-		case GLSL_ES3_1_ANDROID:
-			VersionSwitch = TEXT(" -es31");
-			break;
-		case GLSL_310_ES_EXT:
-			VersionSwitch = TEXT(" -es31ext");
-			break;
-
-		case GLSL_430:
-			VersionSwitch = TEXT(" -gl4");
-			break;
-
-		case GLSL_ES2:
-		case GLSL_ES2_WEBGL:
-		case GLSL_ES2_IOS:
-			VersionSwitch = TEXT(" -es2");
-			break;
-
-		default:
-			return TEXT("");
-	}
-
-	return CrossCompiler::CreateBatchFileContents(ShaderFile, OutputFile, Frequency, EntryPoint, VersionSwitch, CCFlags, TEXT(""));
-}
-
-
-
 void FOpenGLFrontend::SetupPerVersionCompilationEnvironment(GLSLVersion Version, FShaderCompilerDefinitions& AdditionalDefines, EHlslCompileTarget& HlslCompilerTarget)
 	{
 	switch (Version)
@@ -1457,182 +1415,178 @@ void FOpenGLFrontend::CompileShader(const FShaderCompilerInput& Input,FShaderCom
 		AdditionalDefines.SetDefine(TEXT("FORCE_FLOATS"), (uint32)1);
 	}
 
-	auto DoPreprocess = [&]() -> bool
+	if (Input.bSkipPreprocessedCache)
 	{
-		if (Input.bSkipPreprocessedCache)
+		if (!FFileHelper::LoadFileToString(PreprocessedShader, *Input.VirtualSourceFilePath))
 		{
-			return FFileHelper::LoadFileToString(PreprocessedShader, *Input.VirtualSourceFilePath);
+			return;
 		}
-		else
+
+		// Remove const as we are on debug-only mode
+		CrossCompiler::CreateEnvironmentFromResourceTable(PreprocessedShader, (FShaderCompilerEnvironment&)Input.Environment);
+	}
+	else
+	{
+		if (!PreprocessShader(PreprocessedShader, Output, Input, AdditionalDefines))
 		{
-			return PreprocessShader(PreprocessedShader, Output, Input, AdditionalDefines);
+			// The preprocessing stage will add any relevant errors.
+			return;
 		}
+	}
+
+	char* GlslShaderSource = NULL;
+	char* ErrorLog = NULL;
+
+	const bool bIsSM5 = IsSM5(Version);
+
+	const EHlslShaderFrequency FrequencyTable[] =
+	{
+		HSF_VertexShader,
+		bIsSM5 ? HSF_HullShader : HSF_InvalidFrequency,
+		bIsSM5 ? HSF_DomainShader : HSF_InvalidFrequency,
+		HSF_PixelShader,
+		IsES2Platform(Version) ? HSF_InvalidFrequency : HSF_GeometryShader,
+		bIsSM5 ? HSF_ComputeShader : HSF_InvalidFrequency
 	};
 
-	if (DoPreprocess())
+	const EHlslShaderFrequency Frequency = FrequencyTable[Input.Target.Frequency];
+	if (Frequency == HSF_InvalidFrequency)
 	{
-		char* GlslShaderSource = NULL;
-		char* ErrorLog = NULL;
+		Output.bSucceeded = false;
+		FShaderCompilerError* NewError = new(Output.Errors) FShaderCompilerError();
+		NewError->StrippedErrorMessage = FString::Printf(
+			TEXT("%s shaders not supported for use in OpenGL."),
+			CrossCompiler::GetFrequencyName((EShaderFrequency)Input.Target.Frequency)
+			);
+		return;
+	}
 
-		const bool bIsSM5 = IsSM5(Version);
+	// This requires removing the HLSLCC_NoPreprocess flag later on!
+	if (!RemoveUniformBuffersFromSource(PreprocessedShader))
+	{
+		return;
+	}
 
-		const EHlslShaderFrequency FrequencyTable[] =
+	// Write out the preprocessed file and a batch file to compile it if requested (DumpDebugInfoPath is valid)
+	if (bDumpDebugInfo)
+	{
+		FArchive* FileWriter = IFileManager::Get().CreateFileWriter(*(Input.DumpDebugInfoPath / Input.GetSourceFilename()));
+		if (FileWriter)
 		{
-			HSF_VertexShader,
-			bIsSM5 ? HSF_HullShader : HSF_InvalidFrequency,
-			bIsSM5 ? HSF_DomainShader : HSF_InvalidFrequency,
-			HSF_PixelShader,
-			IsES2Platform(Version) ? HSF_InvalidFrequency : HSF_GeometryShader,
-			bIsSM5 ? HSF_ComputeShader : HSF_InvalidFrequency
-		};
-
-		const EHlslShaderFrequency Frequency = FrequencyTable[Input.Target.Frequency];
-		if (Frequency == HSF_InvalidFrequency)
-		{
-			Output.bSucceeded = false;
-			FShaderCompilerError* NewError = new(Output.Errors) FShaderCompilerError();
-			NewError->StrippedErrorMessage = FString::Printf(
-				TEXT("%s shaders not supported for use in OpenGL."),
-				CrossCompiler::GetFrequencyName((EShaderFrequency)Input.Target.Frequency)
-				);
-			return;
-		}
-
-		// This requires removing the HLSLCC_NoPreprocess flag later on!
-		if (!RemoveUniformBuffersFromSource(PreprocessedShader))
-		{
-			return;
-		}
-
-		// Write out the preprocessed file and a batch file to compile it if requested (DumpDebugInfoPath is valid)
-		if (bDumpDebugInfo)
-		{
-			FArchive* FileWriter = IFileManager::Get().CreateFileWriter(*(Input.DumpDebugInfoPath / Input.GetSourceFilename()));
-			if (FileWriter)
+			auto AnsiSourceFile = StringCast<ANSICHAR>(*PreprocessedShader);
+			FileWriter->Serialize((ANSICHAR*)AnsiSourceFile.Get(), AnsiSourceFile.Length());
 			{
-				auto AnsiSourceFile = StringCast<ANSICHAR>(*PreprocessedShader);
-				FileWriter->Serialize((ANSICHAR*)AnsiSourceFile.Get(), AnsiSourceFile.Length());
-				FileWriter->Close();
-				delete FileWriter;
+				FString Line = CrossCompiler::CreateResourceTableFromEnvironment(Input.Environment);
+				FileWriter->Serialize(TCHAR_TO_ANSI(*Line), Line.Len());
 			}
-
-			if (Input.bGenerateDirectCompileFile)
-			{
-				FFileHelper::SaveStringToFile(CreateShaderCompilerWorkerDirectCommandLine(Input), *(Input.DumpDebugInfoPath / TEXT("DirectCompile.txt")));
-			}
+			FileWriter->Close();
+			delete FileWriter;
 		}
 
-		uint32 CCFlags = CalculateCrossCompilerFlags(Version, bCompileES2With310, bUseFullPrecisionInPS);
+		if (Input.bGenerateDirectCompileFile)
+		{
+			FFileHelper::SaveStringToFile(CreateShaderCompilerWorkerDirectCommandLine(Input), *(Input.DumpDebugInfoPath / TEXT("DirectCompile.txt")));
+		}
+	}
 
+	uint32 CCFlags = CalculateCrossCompilerFlags(Version, bCompileES2With310, bUseFullPrecisionInPS);
+
+	// Required as we added the RemoveUniformBuffersFromSource() function (the cross-compiler won't be able to interpret comments w/o a preprocessor)
+	CCFlags &= ~HLSLCC_NoPreprocess;
+
+	FGlslCodeBackend* BackEnd = CreateBackend(Version, CCFlags, HlslCompilerTarget);
+	FGlslLanguageSpec* LanguageSpec = CreateLanguageSpec(Version);
+
+	int32 Result = 0;
+	FHlslCrossCompilerContext CrossCompilerContext(CCFlags, Frequency, HlslCompilerTarget);
+	if (CrossCompilerContext.Init(TCHAR_TO_ANSI(*Input.VirtualSourceFilePath), LanguageSpec))
+	{
+		Result = CrossCompilerContext.Run(
+			TCHAR_TO_ANSI(*PreprocessedShader),
+			TCHAR_TO_ANSI(*Input.EntryPointName),
+			BackEnd,
+			&GlslShaderSource,
+			&ErrorLog
+			) ? 1 : 0;
+	}
+
+	delete BackEnd;
+	delete LanguageSpec;
+
+	if (Result != 0)
+	{
+		int32 GlslSourceLen = GlslShaderSource ? FCStringAnsi::Strlen(GlslShaderSource) : 0;
 		if (bDumpDebugInfo)
 		{
 			const FString GLSLFile = (Input.DumpDebugInfoPath / TEXT("Output.glsl"));
-			const FString USFFile = Input.DumpDebugInfoPath / Input.GetSourceFilename();
-			const FString CCBatchFileContents = CreateCrossCompilerBatchFile(USFFile, GLSLFile, *Input.EntryPointName, Frequency, Version, CCFlags);
-			if (!CCBatchFileContents.IsEmpty())
+			const FString GLBatchFileContents = CreateCommandLineGLSLES2(GLSLFile, (Input.DumpDebugInfoPath / TEXT("Output.asm")), Version, Frequency, false);
+			if (!GLBatchFileContents.IsEmpty())
 			{
-				const TCHAR * ScriptName = PLATFORM_WINDOWS ? TEXT("CrossCompile.bat") : TEXT("CrossCompile.sh");
-				FFileHelper::SaveStringToFile(CCBatchFileContents, *(Input.DumpDebugInfoPath / ScriptName));
+				FFileHelper::SaveStringToFile(GLBatchFileContents, *(Input.DumpDebugInfoPath / TEXT("GLSLCompile.bat")));
+			}
+
+			const FString NDABatchFileContents = CreateCommandLineGLSLES2(GLSLFile, (Input.DumpDebugInfoPath / TEXT("Output.asm")), Version, Frequency, true);
+			if (!NDABatchFileContents.IsEmpty())
+			{
+				FFileHelper::SaveStringToFile(NDABatchFileContents, *(Input.DumpDebugInfoPath / TEXT("NDAGLSLCompile.bat")));
+			}
+
+			if (GlslSourceLen > 0)
+			{
+				uint32 Len = FCStringAnsi::Strlen(TCHAR_TO_ANSI(*Input.VirtualSourceFilePath)) + FCStringAnsi::Strlen(TCHAR_TO_ANSI(*Input.EntryPointName)) + FCStringAnsi::Strlen(GlslShaderSource) + 20;
+				char* Dest = (char*)malloc(Len);
+				FCStringAnsi::Snprintf(Dest, Len, "// ! %s:%s\n%s", (const char*)TCHAR_TO_ANSI(*Input.VirtualSourceFilePath), (const char*)TCHAR_TO_ANSI(*Input.EntryPointName), (const char*)GlslShaderSource);
+				free(GlslShaderSource);
+				GlslShaderSource = Dest;
+				GlslSourceLen = FCStringAnsi::Strlen(GlslShaderSource);
+					
+				FArchive* FileWriter = IFileManager::Get().CreateFileWriter(*(Input.DumpDebugInfoPath / Input.VirtualSourceFilePath + TEXT(".glsl")));
+				if (FileWriter)
+				{
+					FileWriter->Serialize(GlslShaderSource,GlslSourceLen+1);
+					FileWriter->Close();
+					delete FileWriter;
+				}
 			}
 		}
-
-		// Required as we added the RemoveUniformBuffersFromSource() function (the cross-compiler won't be able to interpret comments w/o a preprocessor)
-		CCFlags &= ~HLSLCC_NoPreprocess;
-
-		FGlslCodeBackend* BackEnd = CreateBackend(Version, CCFlags, HlslCompilerTarget);
-		FGlslLanguageSpec* LanguageSpec = CreateLanguageSpec(Version);
-
-		int32 Result = 0;
-		FHlslCrossCompilerContext CrossCompilerContext(CCFlags, Frequency, HlslCompilerTarget);
-		if (CrossCompilerContext.Init(TCHAR_TO_ANSI(*Input.VirtualSourceFilePath), LanguageSpec))
-		{
-			Result = CrossCompilerContext.Run(
-				TCHAR_TO_ANSI(*PreprocessedShader),
-				TCHAR_TO_ANSI(*Input.EntryPointName),
-				BackEnd,
-				&GlslShaderSource,
-				&ErrorLog
-				) ? 1 : 0;
-		}
-
-		delete BackEnd;
-		delete LanguageSpec;
-
-		if (Result != 0)
-		{
-			int32 GlslSourceLen = GlslShaderSource ? FCStringAnsi::Strlen(GlslShaderSource) : 0;
-			if (bDumpDebugInfo)
-			{
-				const FString GLSLFile = (Input.DumpDebugInfoPath / TEXT("Output.glsl"));
-				const FString GLBatchFileContents = CreateCommandLineGLSLES2(GLSLFile, (Input.DumpDebugInfoPath / TEXT("Output.asm")), Version, Frequency, false);
-				if (!GLBatchFileContents.IsEmpty())
-				{
-					FFileHelper::SaveStringToFile(GLBatchFileContents, *(Input.DumpDebugInfoPath / TEXT("GLSLCompile.bat")));
-				}
-
-				const FString NDABatchFileContents = CreateCommandLineGLSLES2(GLSLFile, (Input.DumpDebugInfoPath / TEXT("Output.asm")), Version, Frequency, true);
-				if (!NDABatchFileContents.IsEmpty())
-				{
-					FFileHelper::SaveStringToFile(NDABatchFileContents, *(Input.DumpDebugInfoPath / TEXT("NDAGLSLCompile.bat")));
-				}
-
-				if (GlslSourceLen > 0)
-				{
-					uint32 Len = FCStringAnsi::Strlen(TCHAR_TO_ANSI(*Input.VirtualSourceFilePath)) + FCStringAnsi::Strlen(TCHAR_TO_ANSI(*Input.EntryPointName)) + FCStringAnsi::Strlen(GlslShaderSource) + 20;
-					char* Dest = (char*)malloc(Len);
-					FCStringAnsi::Snprintf(Dest, Len, "// ! %s:%s\n%s", (const char*)TCHAR_TO_ANSI(*Input.VirtualSourceFilePath), (const char*)TCHAR_TO_ANSI(*Input.EntryPointName), (const char*)GlslShaderSource);
-					free(GlslShaderSource);
-					GlslShaderSource = Dest;
-					GlslSourceLen = FCStringAnsi::Strlen(GlslShaderSource);
-
-					FArchive* FileWriter = IFileManager::Get().CreateFileWriter(*(Input.DumpDebugInfoPath / Input.VirtualSourceFilePath + TEXT(".glsl")));
-					if (FileWriter)
-					{
-						FileWriter->Serialize(GlslShaderSource,GlslSourceLen+1);
-						FileWriter->Close();
-						delete FileWriter;
-					}
-				}
-			}
 
 #if VALIDATE_GLSL_WITH_DRIVER
-			PrecompileShader(Output, Input, GlslShaderSource, Version, Frequency);
+		PrecompileShader(Output, Input, GlslShaderSource, Version, Frequency);
 #else // VALIDATE_GLSL_WITH_DRIVER
-			int32 SourceLen = FCStringAnsi::Strlen(GlslShaderSource);
-			Output.Target = Input.Target;
-			BuildShaderOutput(Output, Input, GlslShaderSource, SourceLen, Version);
+		int32 SourceLen = FCStringAnsi::Strlen(GlslShaderSource);
+		Output.Target = Input.Target;
+		BuildShaderOutput(Output, Input, GlslShaderSource, SourceLen, Version);
 #endif // VALIDATE_GLSL_WITH_DRIVER
-		}
-		else
+	}
+	else
+	{
+		if (bDumpDebugInfo)
 		{
-			if (bDumpDebugInfo)
+			// Generate the batch file to help track down cross-compiler issues if necessary
+			const FString GLSLFile = (Input.DumpDebugInfoPath / TEXT("Output.glsl"));
+			const FString GLBatchFileContents = CreateCommandLineGLSLES2(GLSLFile, (Input.DumpDebugInfoPath / TEXT("Output.asm")), Version, Frequency, false);
+			if (!GLBatchFileContents.IsEmpty())
 			{
-				// Generate the batch file to help track down cross-compiler issues if necessary
-				const FString GLSLFile = (Input.DumpDebugInfoPath / TEXT("Output.glsl"));
-				const FString GLBatchFileContents = CreateCommandLineGLSLES2(GLSLFile, (Input.DumpDebugInfoPath / TEXT("Output.asm")), Version, Frequency, false);
-				if (!GLBatchFileContents.IsEmpty())
-				{
-					FFileHelper::SaveStringToFile(GLBatchFileContents, *(Input.DumpDebugInfoPath / TEXT("GLSLCompile.bat")));
-				}
-			}
-
-			FString Tmp = ANSI_TO_TCHAR(ErrorLog);
-			TArray<FString> ErrorLines;
-			Tmp.ParseIntoArray(ErrorLines, TEXT("\n"), true);
-			for (int32 LineIndex = 0; LineIndex < ErrorLines.Num(); ++LineIndex)
-			{
-				const FString& Line = ErrorLines[LineIndex];
-				CrossCompiler::ParseHlslccError(Output.Errors, Line);
+				FFileHelper::SaveStringToFile(GLBatchFileContents, *(Input.DumpDebugInfoPath / TEXT("GLSLCompile.bat")));
 			}
 		}
 
-		if (GlslShaderSource)
+		FString Tmp = ANSI_TO_TCHAR(ErrorLog);
+		TArray<FString> ErrorLines;
+		Tmp.ParseIntoArray(ErrorLines, TEXT("\n"), true);
+		for (int32 LineIndex = 0; LineIndex < ErrorLines.Num(); ++LineIndex)
 		{
-			free(GlslShaderSource);
+			const FString& Line = ErrorLines[LineIndex];
+			CrossCompiler::ParseHlslccError(Output.Errors, Line);
 		}
-		if (ErrorLog)
-		{
-			free(ErrorLog);
-		}
+	}
+
+	if (GlslShaderSource)
+	{
+		free(GlslShaderSource);
+	}
+	if (ErrorLog)
+	{
+		free(ErrorLog);
 	}
 }

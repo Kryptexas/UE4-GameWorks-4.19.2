@@ -670,6 +670,32 @@ FString FLinuxPlatformMisc::GetCPUBrand()
 	return FString(Result);
 }
 
+bool FLinuxPlatformMisc::HasNonoptionalCPUFeatures()
+{
+	static bool bHasSSSE3 = false;
+	static bool bHaveResult = false;
+
+	if (!bHaveResult)
+	{
+#if PLATFORM_HAS_CPUID
+		int Info[4];
+		__cpuid(1, Info[0], Info[1], Info[2], Info[3]);
+		bHasSSSE3 = (Info[2] & (1 << 9)) != 0;
+#endif // PLATFORM_HAS_CPUID
+
+		bHaveResult = true;
+	}
+
+	return bHasSSSE3;
+}
+
+bool FLinuxPlatformMisc::NeedsNonoptionalCPUFeaturesCheck()
+{
+	// popcnt is 64bit and intel only
+	return PLATFORM_64BITS && PLATFORM_CPU_X86_FAMILY;
+}
+
+
 #if !UE_BUILD_SHIPPING
 bool FLinuxPlatformMisc::IsDebuggerPresent()
 {

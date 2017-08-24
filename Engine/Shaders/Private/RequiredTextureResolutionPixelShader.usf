@@ -38,7 +38,7 @@ struct FTexCoordScalesParams
 
 MaterialFloat StoreTexCoordScale(in out FTexCoordScalesParams Params, float2 UV, int TextureReferenceIndex)
 {
-#if FEATURE_LEVEL >= FEATURE_LEVEL_SM5 && COMPILER_HLSL
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
 	float2 CoordDDX = ddx_fine(UV);
 	float2 CoordDDY = ddy_fine(UV);
 #else
@@ -100,7 +100,7 @@ void Main(
 #if MATERIALBLENDING_MASKED || (DECAL_BLEND_MODE == DECALBLENDMODEID_VOLUMETRIC)
 		half Mask = GetMaterialMask(PixelMaterialInputs);
 #endif
-		half4 SSData = GetMaterialSubsurfaceDataRaw(MaterialParameters);
+		half4 SSData = GetMaterialSubsurfaceDataRaw(PixelMaterialInputs);
 		float Custom0 = GetMaterialCustomData0(MaterialParameters);
 		float Custom1 = GetMaterialCustomData1(MaterialParameters);
 		float MaterialAO = GetMaterialAmbientOcclusionRaw(PixelMaterialInputs);

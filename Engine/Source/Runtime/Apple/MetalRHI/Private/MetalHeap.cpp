@@ -13,60 +13,57 @@ DECLARE_STATS_GROUP(TEXT("Metal Heap"),STATGROUP_MetalHeap, STATCAT_Advanced);
 
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("# Buffer Heaps"), STAT_MetalHeapNumBufferHeaps, STATGROUP_MetalHeap);
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("# Texture Heaps"), STAT_MetalHeapNumTextureHeaps, STATGROUP_MetalHeap);
-DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("# Compressed Texture Heaps"), STAT_MetalHeapNumCompressedTexHeaps, STATGROUP_MetalHeap);
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("# Render-Target Heaps"), STAT_MetalHeapNumRenderTargetHeaps, STATGROUP_MetalHeap);
-DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("# Depth-Stencil Heaps"), STAT_MetalHeapNumDepthStencilHeaps, STATGROUP_MetalHeap);
-DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("# MSAA Texture Heaps"), STAT_MetalHeapNumMultisampleHeaps, STATGROUP_MetalHeap);
-DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("# Texture Reallocs"), STAT_MetalHeapNumTextureReallocs, STATGROUP_MetalHeap);
-DECLARE_DWORD_COUNTER_STAT(TEXT("# Frame Texture Reallocs"), STAT_MetalHeapNumFrameTextureReallocs, STATGROUP_MetalHeap);
+DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("# Textures Defragged"), STAT_MetalHeapNumTextureReallocs, STATGROUP_MetalHeap);
+DECLARE_DWORD_COUNTER_STAT(TEXT("# Textures Defragged / Frame"), STAT_MetalHeapNumFrameTextureReallocs, STATGROUP_MetalHeap);
 
 DECLARE_MEMORY_STAT(TEXT("Total Buffer Memory"),STAT_MetalHeapTotalBuffer,STATGROUP_MetalHeap);
 DECLARE_MEMORY_STAT(TEXT("Total Texture Resource Memory"),STAT_MetalHeapTotalTexture,STATGROUP_MetalHeap);
-DECLARE_MEMORY_STAT(TEXT("Total Texture Compressed Memory"),STAT_MetalHeapTotalCompressed,STATGROUP_MetalHeap);
 DECLARE_MEMORY_STAT(TEXT("Total RenderTarget Memory"),STAT_MetalHeapTotalRenderTarget,STATGROUP_MetalHeap);
-DECLARE_MEMORY_STAT(TEXT("Total DepthStencil Memory"),STAT_MetalHeapTotalDepthStencil,STATGROUP_MetalHeap);
-DECLARE_MEMORY_STAT(TEXT("Total Multisample Memory"),STAT_MetalHeapTotalMultisample,STATGROUP_MetalHeap);
 
 DECLARE_MEMORY_STAT(TEXT("Current Buffer Memory"),STAT_MetalHeapBufferMemory,STATGROUP_MetalHeap)
 DECLARE_MEMORY_STAT(TEXT("Current Texture Resource Memory"),STAT_MetalHeapTextureMemory,STATGROUP_MetalHeap)
-DECLARE_MEMORY_STAT(TEXT("Current Texture Compressed Memory"),STAT_MetalHeapCompressedMemory,STATGROUP_MetalHeap);
 DECLARE_MEMORY_STAT(TEXT("Current RenderTarget Memory"),STAT_MetalHeapRenderTargetMemory,STATGROUP_MetalHeap);
-DECLARE_MEMORY_STAT(TEXT("Current DepthStencil Resource Memory"),STAT_MetalHeapDepthStencilMemory,STATGROUP_MetalHeap);
-DECLARE_MEMORY_STAT(TEXT("Current Multisample Resource Memory"),STAT_MetalHeapMultisampleMemory,STATGROUP_MetalHeap);
 
 DECLARE_MEMORY_STAT(TEXT("Peak Buffer Memory"),STAT_MetalHeapBufferPeakMemory,STATGROUP_MetalHeap);
 DECLARE_MEMORY_STAT(TEXT("Peak Texture Resource Memory"),STAT_MetalHeapTexturePeakMemory,STATGROUP_MetalHeap);
-DECLARE_MEMORY_STAT(TEXT("Peak Texture Compressed Memory"),STAT_MetalHeapCompressedPeakMemory,STATGROUP_MetalHeap);
 DECLARE_MEMORY_STAT(TEXT("Peak RenderTarget Memory"),STAT_MetalHeapRenderTargetPeakMemory,STATGROUP_MetalHeap);
-DECLARE_MEMORY_STAT(TEXT("Peak DepthStencil Memory"),STAT_MetalHeapDepthStencilPeakMemory,STATGROUP_MetalHeap);
-DECLARE_MEMORY_STAT(TEXT("Peak Multisample Memory"),STAT_MetalHeapMultisamplePeakMemory,STATGROUP_MetalHeap);
 
-DECLARE_FLOAT_COUNTER_STAT(TEXT("Frame Allocated Buffer Memory"),STAT_MetalHeapBufferAllocMemory,STATGROUP_MetalHeap);
-DECLARE_FLOAT_COUNTER_STAT(TEXT("Frame Allocated Texture Resource Memory"),STAT_MetalHeapTextureAllocMemory,STATGROUP_MetalHeap);
-DECLARE_FLOAT_COUNTER_STAT(TEXT("Frame Allocated Texture Compressed Memory"),STAT_MetalHeapCompressedAllocMemory,STATGROUP_MetalHeap);
-DECLARE_FLOAT_COUNTER_STAT(TEXT("Frame Allocated RenderTarget Memory"),STAT_MetalHeapRenderTargetAllocMemory,STATGROUP_MetalHeap);
-DECLARE_FLOAT_COUNTER_STAT(TEXT("Frame Allocated DepthStencil Memory"),STAT_MetalHeapDepthStencilAllocMemory,STATGROUP_MetalHeap);
-DECLARE_FLOAT_COUNTER_STAT(TEXT("Frame Allocated Multisample Memory"),STAT_MetalHeapMultisampleAllocMemory,STATGROUP_MetalHeap);
-DECLARE_FLOAT_COUNTER_STAT(TEXT("Frame Allocated Texture Realloc Memory"),STAT_MetalHeapTotalTextureReallocMemory,STATGROUP_MetalHeap);
+DECLARE_FLOAT_COUNTER_STAT(TEXT("Buffer Memory Allocated / Frame"),STAT_MetalHeapBufferAllocMemory,STATGROUP_MetalHeap);
+DECLARE_FLOAT_COUNTER_STAT(TEXT("Texture Resource Memory Allocated / Frame"),STAT_MetalHeapTextureAllocMemory,STATGROUP_MetalHeap);
+DECLARE_FLOAT_COUNTER_STAT(TEXT("RenderTarget Memory Allocated / Frame"),STAT_MetalHeapRenderTargetAllocMemory,STATGROUP_MetalHeap);
+DECLARE_FLOAT_COUNTER_STAT(TEXT("Texture Memory Defragged / Frame"),STAT_MetalHeapTotalTextureReallocMemory,STATGROUP_MetalHeap);
+
+int32 GMetalHeapMemToDefragPerFrame = PLATFORM_MAC ? 10 * 1024 * 1024 : 2 * 1024 * 1024;
+static FAutoConsoleVariableRef CVarMetalHeapMemToDefragPerFrame(
+	TEXT("rhi.Metal.HeapMemToDefragPerFrame"),
+	GMetalHeapMemToDefragPerFrame,
+	TEXT("How much MTLHeap memory (in bytes) to defrag each frame in order to reduce wasted space in MTLHeaps. (Mac: 10Mb, iOS/tvOS: 2Mb)"));
+
+float GMetalHeapDefragUnderUtilisedFraction = 0.5f;
+static FAutoConsoleVariableRef CVarMetalHeapDefragUnderUtilisedFraction(
+	TEXT("rhi.Metal.HeapDefragUnderUtilisedFraction"),
+	GMetalHeapDefragUnderUtilisedFraction,
+	TEXT("Defines the fraction of a MTLHeap that must be free for that heap to be considered for defragging. (Default: 0.5f)"));
 
 #if STATS
 static FName NumTextureHeapStats[FMetalHeap::EMetalHeapTextureUsageNum] = {
-	GET_STATFNAME(STAT_MetalHeapNumTextureHeaps), GET_STATFNAME(STAT_MetalHeapNumCompressedTexHeaps), GET_STATFNAME(STAT_MetalHeapNumRenderTargetHeaps), GET_STATFNAME(STAT_MetalHeapNumDepthStencilHeaps), GET_STATFNAME(STAT_MetalHeapNumMultisampleHeaps)
+	GET_STATFNAME(STAT_MetalHeapNumTextureHeaps), GET_STATFNAME(STAT_MetalHeapNumRenderTargetHeaps)
 };
 static FName TotalTextureHeapStats[FMetalHeap::EMetalHeapTextureUsageNum] = {
-	GET_STATFNAME(STAT_MetalHeapTotalTexture), GET_STATFNAME(STAT_MetalHeapTotalCompressed), GET_STATFNAME(STAT_MetalHeapTotalRenderTarget), GET_STATFNAME(STAT_MetalHeapTotalDepthStencil), GET_STATFNAME(STAT_MetalHeapTotalMultisample)
+	GET_STATFNAME(STAT_MetalHeapTotalTexture), GET_STATFNAME(STAT_MetalHeapTotalRenderTarget)
 };
 static FName TextureHeapStats[FMetalHeap::EMetalHeapTextureUsageNum] = {
-	GET_STATFNAME(STAT_MetalHeapTextureMemory), GET_STATFNAME(STAT_MetalHeapCompressedMemory), GET_STATFNAME(STAT_MetalHeapRenderTargetMemory), GET_STATFNAME(STAT_MetalHeapDepthStencilMemory), GET_STATFNAME(STAT_MetalHeapMultisampleMemory)
+	GET_STATFNAME(STAT_MetalHeapTextureMemory), GET_STATFNAME(STAT_MetalHeapRenderTargetMemory)
 };
 static FName PeakTextureHeapStats[FMetalHeap::EMetalHeapTextureUsageNum] = {
-	GET_STATFNAME(STAT_MetalHeapTexturePeakMemory), GET_STATFNAME(STAT_MetalHeapCompressedPeakMemory), GET_STATFNAME(STAT_MetalHeapRenderTargetPeakMemory), GET_STATFNAME(STAT_MetalHeapDepthStencilPeakMemory), GET_STATFNAME(STAT_MetalHeapMultisamplePeakMemory)
+	GET_STATFNAME(STAT_MetalHeapTexturePeakMemory), GET_STATFNAME(STAT_MetalHeapRenderTargetPeakMemory)
 };
 static FName AllocatedTextureHeapStats[FMetalHeap::EMetalHeapTextureUsageNum] = {
-	GET_STATFNAME(STAT_MetalHeapTextureAllocMemory), GET_STATFNAME(STAT_MetalHeapCompressedAllocMemory), GET_STATFNAME(STAT_MetalHeapRenderTargetAllocMemory), GET_STATFNAME(STAT_MetalHeapDepthStencilAllocMemory), GET_STATFNAME(STAT_MetalHeapMultisampleAllocMemory)
+	GET_STATFNAME(STAT_MetalHeapTextureAllocMemory), GET_STATFNAME(STAT_MetalHeapRenderTargetAllocMemory)
 };
 static uint64 PeakTextureMemory[FMetalHeap::EMetalHeapTextureUsageNum] = {
-	0, 0, 0, 0, 0
+	0, 0
 };
 static uint64 PeakBufferMemory = 0;
 #define INC_MEMORY_STAT_FNAME_BY(Stat, Amount) \
@@ -241,12 +238,10 @@ static MTLSizeAndAlign TextureSizeAndAlign(MTLTextureType TextureType, uint32 Wi
 			SizeAlign.size = RHICalcTextureCubePlatformSize(Width, MetalToRHIPixelFormat(Format), MipCount, 0, Align);
 			SizeAlign.align = Align;
 			break;
-#if PLATFORM_MAC
-		case MTLTextureTypeCubeArray:
+		case EMTLTextureTypeCubeArray:
 			SizeAlign.size = RHICalcTextureCubePlatformSize(Width, MetalToRHIPixelFormat(Format), MipCount, 0, Align) * ArrayCount;
 			SizeAlign.align = Align;
 			break;
-#endif
 		case MTLTextureType3D:
 			SizeAlign.size = RHICalcTexture3DPlatformSize(Width, Height, Depth, MetalToRHIPixelFormat(Format), MipCount, 0, Align);
 			SizeAlign.align = Align;
@@ -348,6 +343,24 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalResourceData)
 	}
 	
 	[super dealloc];
+}
+@end
+
+@interface NSObject (TMetalHeap)
+@property (nonatomic, strong) NSNumber* createdTime;
+@end
+
+@implementation NSObject (TMetalHeap)
+@dynamic createdTime;
+
+- (void)setCreatedTime:(NSNumber*)Time
+{
+	objc_setAssociatedObject(self, @selector(createdTime), Time, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
+- (NSNumber*)createdTime
+{
+	return (NSNumber*)objc_getAssociatedObject(self, @selector(createdTime));
 }
 @end
 
@@ -804,14 +817,11 @@ APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMTLHeap)
 @end
 
 static double StaticTextureHeapSizes[] = {
-	0.15, 0.25, 0.10, 0.10, 0.00
+	0.30, 0.20
 };
 static TCHAR const* StaticTextureHeapName[] = {
 	TEXT("InitialTexturePoolFraction"),
-	TEXT("InitialCompressedTexturePoolFraction"),
 	TEXT("InitialRenderTargetTexturePoolFraction"),
-	TEXT("InitialDepthStencilTexturePoolFraction"),
-	TEXT("InitialMSAATexturePoolFraction")
 };
 
 FMetalHeap::FMetalHeap(void)
@@ -896,23 +906,41 @@ void FMetalHeap::Init(FMetalCommandQueue& InQueue)
 
 id<MTLHeap> FMetalHeap::CreateHeap(FMTLHeapDescriptor& Desc)
 {
+	FScopeLock Lock(&Mutex);
 	id<MTLHeap> Heap = nil;
-	if(FMetalCommandQueue::SupportsFeature(EMetalFeaturesHeaps))
+	
+	for (id<MTLHeap> theHeap : ReleasedHeaps)
 	{
-		id<TMTLDevice> Device = (id<TMTLDevice>)Queue->GetDevice();
-		Class MTLHeapDescriptorClass = NSClassFromString(@"MTLHeapDescriptor");
-		id<TMTLHeapDescriptor> HeapDesc = (id<TMTLHeapDescriptor>)[[MTLHeapDescriptorClass alloc] init];
-		
-		HeapDesc.size = Desc.Size;
-		HeapDesc.storageMode = Desc.StorageMode;
-		HeapDesc.cpuCacheMode = Desc.CPUCacheMode;
-		Heap = [Device newHeapWithDescriptor:(MTLHeapDescriptorRef)HeapDesc];
-		
-		[HeapDesc release];
+		if (theHeap.storageMode == Desc.StorageMode && theHeap.cpuCacheMode == Desc.CPUCacheMode
+			&& Desc.Size == theHeap.size)
+		{
+			Heap = theHeap;
+			ReleasedHeaps.Remove(theHeap);
+			break;
+		}
 	}
-	else
+	
+	if (!Heap)
 	{
-		Heap = [[FMTLHeap alloc] initWithDescriptor:&Desc];
+		if(FMetalCommandQueue::SupportsFeature(EMetalFeaturesHeaps))
+		{
+			id<TMTLDevice> Device = (id<TMTLDevice>)Queue->GetDevice();
+			Class MTLHeapDescriptorClass = NSClassFromString(@"MTLHeapDescriptor");
+			id<TMTLHeapDescriptor> HeapDesc = (id<TMTLHeapDescriptor>)[[MTLHeapDescriptorClass alloc] init];
+			
+			HeapDesc.size = Desc.Size;
+			HeapDesc.storageMode = Desc.StorageMode;
+			HeapDesc.cpuCacheMode = Desc.CPUCacheMode;
+			Heap = [Device newHeapWithDescriptor:(MTLHeapDescriptorRef)HeapDesc];
+			
+			[HeapDesc release];
+		}
+		else
+		{
+			Heap = [[FMTLHeap alloc] initWithDescriptor:&Desc];
+		}
+		
+		((NSObject*)Heap).createdTime = [NSNumber numberWithUnsignedLongLong:mach_absolute_time()];
 	}
 	return Heap;
 }
@@ -939,22 +967,39 @@ id<MTLBuffer> FMetalHeap::CreateBuffer(uint32 Size, MTLResourceOptions Options)
 	}
 	
 	id<MTLHeap> Heap = nil;
-	for (uint32 i = 0, j = Usage; i <= EMetalHeapBufferLookAhead && j <= EMetalHeapBufferSizes64Mb; i++, j++)
+	if (Usage <= EMetalHeapBufferAllowLookAhead)
 	{
-		for (TPair<id<MTLHeap>, uint64>& Entry : BufferHeaps[Storage][j])
+		for (uint32 i = 0, j = Usage; i <= EMetalHeapBufferLookAhead && j <= EMetalHeapBufferAllowLookAhead; i++, j++)
 		{
-			if ([Entry.Key maxAvailableSizeWithAlignment:SizeAlign.align] >= SizeAlign.size)
+			for (TPair<id<MTLHeap>, uint64>& Entry : BufferHeaps[Storage][j])
+			{
+				if ([Entry.Key maxAvailableSizeWithAlignment:SizeAlign.align] >= SizeAlign.size)
+				{
+					Heap = Entry.Key;
+					Entry.Value = GFrameNumberRenderThread;
+					break;
+				}
+			}
+		}
+	}
+	else
+	{
+		uint32 CurrentSize = 0;
+		for (TPair<id<MTLHeap>, uint64>& Entry : BufferHeaps[Storage][Usage])
+		{
+			uint32 FreeSize = ((Entry.Key.size - Entry.Key.usedSize) - SizeAlign.size);
+			if ([Entry.Key maxAvailableSizeWithAlignment:SizeAlign.align] >= SizeAlign.size && FreeSize < CurrentSize && (FreeSize < (Entry.Key.size * GMetalHeapDefragUnderUtilisedFraction)))
 			{
 				Heap = Entry.Key;
 				Entry.Value = GFrameNumberRenderThread;
-				break;
+				CurrentSize = FreeSize;
 			}
 		}
 	}
 	if (!Heap)
 	{
 		FMTLHeapDescriptor Desc;
-		Desc.Size = HeapBufferBlock[Usage];
+		Desc.Size = (Usage < EMetalHeapBufferExactSize ? HeapBufferBlock[Usage] : SizeAlign.size);
 		Desc.Device = Queue->GetDevice();
 		Desc.StorageMode = (MTLStorageMode)(Storage / EMetalHeapCacheNum);
 		Desc.CPUCacheMode = (MTLCPUCacheMode)(Storage % EMetalHeapCacheNum);
@@ -1069,15 +1114,32 @@ id<MTLTexture> FMetalHeap::CreateTexture(MTLTextureDescriptor* Desc, FMetalSurfa
 	}
 	if (!Heap)
 	{
-		for (uint32 i = 0, j = Size; i <= EMetalHeapBufferLookAhead && j <= EMetalHeapBufferSizes64Mb; i++, j++)
+		if (Size <= EMetalHeapBufferAllowLookAhead)
 		{
-			for (TPair<id<MTLHeap>, uint64>& Entry : DynamicTextureHeaps[Storage][j][Usage])
+			for (uint32 i = 0, j = Size; i <= EMetalHeapBufferLookAhead && j <= EMetalHeapBufferAllowLookAhead; i++, j++)
 			{
-				if ([Entry.Key maxAvailableSizeWithAlignment:SizeAlign.align] >= SizeAlign.size)
+				for (TPair<id<MTLHeap>, uint64>& Entry : DynamicTextureHeaps[Storage][j][Usage])
+				{
+					if ([Entry.Key maxAvailableSizeWithAlignment:SizeAlign.align] >= SizeAlign.size)
+					{
+						Heap = Entry.Key;
+						Entry.Value = GFrameNumberRenderThread;
+						break;
+					}
+				}
+			}
+		}
+		else
+		{
+			uint32 CurrentSize = 0;
+			for (TPair<id<MTLHeap>, uint64>& Entry : DynamicTextureHeaps[Storage][Size][Usage])
+			{
+				uint32 FreeSize = ((Entry.Key.size - Entry.Key.usedSize) - SizeAlign.size);
+				if ([Entry.Key maxAvailableSizeWithAlignment:SizeAlign.align] >= SizeAlign.size && FreeSize < CurrentSize && (FreeSize < (Entry.Key.size * GMetalHeapDefragUnderUtilisedFraction)))
 				{
 					Heap = Entry.Key;
 					Entry.Value = GFrameNumberRenderThread;
-					break;
+					CurrentSize = FreeSize;
 				}
 			}
 		}
@@ -1085,7 +1147,7 @@ id<MTLTexture> FMetalHeap::CreateTexture(MTLTextureDescriptor* Desc, FMetalSurfa
 	if (!Heap)
 	{
 		FMTLHeapDescriptor Descriptor;
-		Descriptor.Size = HeapBufferBlock[Size];
+		Descriptor.Size = (Size < EMetalHeapBufferExactSize ? HeapBufferBlock[Size] : SizeAlign.size);
 		Descriptor.Device = Queue->GetDevice();
 		Descriptor.StorageMode = (MTLStorageMode)(Storage / EMetalHeapCacheNum);
 		Descriptor.CPUCacheMode = (MTLCPUCacheMode)(Storage % EMetalHeapCacheNum);
@@ -1190,7 +1252,7 @@ id<MTLTexture> FMetalHeap::CreateTexture(id<MTLHeap> Heap, MTLTextureDescriptor*
 	}
 	
 #if STATS
-	uint64 UsedSize[EMetalHeapTextureUsageNum] = {0, 0, 0, 0, 0};
+	uint64 UsedSize[EMetalHeapTextureUsageNum] = {0, 0};
 	for (uint32 i = 0; i < EMetalHeapStorageNum; i++)
 	{
 		for (uint32 k = 0; k < EMetalHeapTextureUsageNum; k++)
@@ -1220,6 +1282,16 @@ id<MTLTexture> FMetalHeap::CreateTexture(id<MTLHeap> Heap, MTLTextureDescriptor*
 #endif
 	
 	return Tex;
+}
+
+void FMetalHeap::ReleaseHeap(id<MTLHeap> Heap)
+{
+	FScopeLock Lock(&Mutex);
+
+	// Whatever was tracked before, this heap is truly dead now.
+	TextureResources.Remove(Heap);
+	ReleasedHeaps.Remove(Heap);
+	[Heap release];
 }
 
 void FMetalHeap::ReleaseTexture(FMetalSurface* Surface, id<MTLTexture> Texture)
@@ -1254,12 +1326,16 @@ id<MTLHeap> FMetalHeap::FindDefragHeap(EMetalHeapStorage Storage, EMetalHeapText
 	}
 	if (!Heap)
 	{
-		for (uint32 i = 0, j = Size; i <= EMetalHeapBufferLookAhead && j <= EMetalHeapBufferSizes64Mb; i++, j++)
+		uint64 CurrentTimestamp = ((NSObject*)CurrentHeap).createdTime.unsignedLongLongValue;
+	
+		for (uint32 i = 0, j = Size; i <= EMetalHeapBufferLookAhead && j <= EMetalHeapBufferAllowLookAhead; i++, j++)
 		{
 			for (TPair<id<MTLHeap>, uint64>& Entry : DynamicTextureHeaps[Storage][j][Usage])
 			{
 				uint64 FreeSize = (Entry.Key.size - Entry.Key.usedSize) - SizeAlign.size;
-				if (Entry.Key != CurrentHeap && (FreeSize < CurrentHeap.size) && [Entry.Key maxAvailableSizeWithAlignment:SizeAlign.align] >= SizeAlign.size)
+				uint64 NewTimestamp = ((NSObject*)Entry.Key).createdTime.unsignedLongLongValue;
+				if (Entry.Key != CurrentHeap && (FreeSize < CurrentHeap.size) && [Entry.Key maxAvailableSizeWithAlignment:SizeAlign.align] >= SizeAlign.size
+				&& (CurrentTimestamp > NewTimestamp))
 				{
 					Heap = Entry.Key;
 					Entry.Value = GFrameNumberRenderThread;
@@ -1271,12 +1347,19 @@ id<MTLHeap> FMetalHeap::FindDefragHeap(EMetalHeapStorage Storage, EMetalHeapText
 	return Heap;
 }
 
+void FMetalHeap::Compact(FMetalDeviceContext& Context, bool const bForce)
+{
+	Defrag(Context, bForce);
+	Drain(Context, bForce);
+}
 
 void FMetalHeap::Defrag(FMetalDeviceContext& Context, bool const bForce)
 {
 	if(FMetalCommandQueue::SupportsFeature(EMetalFeaturesHeaps))
 	{
 		FScopeLock Lock(&Mutex);
+		
+		int64 MemoryDefragged = 0;
 		
 		for (uint32 i = 0; i < EMetalHeapStorageNum; i++)
 		{
@@ -1288,15 +1371,23 @@ void FMetalHeap::Defrag(FMetalDeviceContext& Context, bool const bForce)
 					for (TPair<id<MTLHeap>, uint64> Pair : DynamicTextureHeaps[i][j][k])
 					{
 						// If we're only using half the space... or we've not been allocated from in a long time...
-						if ((Pair.Key.usedSize <= (Pair.Key.size / 2)) || ((Pair.Value - GFrameNumberRenderThread) > EMetalHeapConstantsCullAfterFrames))
+						if (((Pair.Key.size - Pair.Key.usedSize) >= (Pair.Key.size * GMetalHeapDefragUnderUtilisedFraction)) || ((Pair.Value - GFrameNumberRenderThread) > EMetalHeapConstantsCullAfterFrames))
 						{
 							TSet<NSObject<MTLTexture>*>& Textures = TextureResources.FindChecked(Pair.Key);
-							TSet<NSObject<MTLTexture>*> TexturesCopy = Textures;
-							
-							for (NSObject<MTLTexture>* TextureResource : TexturesCopy)
+							TSet<NSObject<MTLTexture>*> TexturesCopy;
+							for (NSObject<MTLTexture>* TextureResource : Textures)
 							{
 								// If this resource will fit and is a second or more old then we should compact it
 								if (FPlatformTime::ToSeconds(mach_absolute_time() - TextureResource.resourceData->timestamp) >= 1.0f)
+								{
+									TexturesCopy.Add(TextureResource);
+								}
+							}
+
+							// Only if all resources are old enough to defrag should we bother - otherwise we'll just bloat the memory use.
+							if (TexturesCopy.Num() == Textures.Num())
+							{
+								for (NSObject<MTLTexture>* TextureResource : TexturesCopy)
 								{
 									MTLTextureDescriptor* Desc = [[MTLTextureDescriptor new] autorelease];
 									Desc.textureType = TextureResource.textureType;
@@ -1328,9 +1419,17 @@ void FMetalHeap::Defrag(FMetalDeviceContext& Context, bool const bForce)
 										INC_DWORD_STAT(STAT_MetalHeapNumFrameTextureReallocs);
 										INC_FLOAT_STAT_BY(STAT_MetalHeapTotalTextureReallocMemory, (float)TextureResource.resourceData->size / 1024.f / 1024.f);
 										
+										MemoryDefragged += TextureResource.resourceData->size;
+										
 										Surface->ReplaceTexture(Context, TextureResource, NewTexture);
 										
 										Textures.Remove(TextureResource);
+										
+										if (!bForce && (MemoryDefragged > GMetalHeapMemToDefragPerFrame))
+										{
+											// Early out from the nested loops as we've defragged as much as we can this time around...
+											return;
+										}
 									}
 								}
 							}
@@ -1340,29 +1439,23 @@ void FMetalHeap::Defrag(FMetalDeviceContext& Context, bool const bForce)
 			}
 		}
 	}
-	
-	Drain(bForce);
 }
 
-void FMetalHeap::Drain(bool const bForce)
+void FMetalHeap::Drain(FMetalDeviceContext& Context, bool const bForce)
 {
+	FScopeLock Lock(&Mutex);
+	
 #if STATS
 	SET_MEMORY_STAT(STAT_MetalHeapTotalBuffer, 0);
 	SET_MEMORY_STAT(STAT_MetalHeapTotalTexture, 0);
-	SET_MEMORY_STAT(STAT_MetalHeapTotalCompressed, 0);
 	SET_MEMORY_STAT(STAT_MetalHeapTotalRenderTarget, 0);
-	SET_MEMORY_STAT(STAT_MetalHeapTotalDepthStencil, 0);
-	SET_MEMORY_STAT(STAT_MetalHeapTotalMultisample, 0);
 	
 	SET_MEMORY_STAT(STAT_MetalHeapBufferMemory, 0);
 	SET_MEMORY_STAT(STAT_MetalHeapTextureMemory, 0);
-	SET_MEMORY_STAT(STAT_MetalHeapCompressedMemory, 0);
 	SET_MEMORY_STAT(STAT_MetalHeapRenderTargetMemory, 0);
-	SET_MEMORY_STAT(STAT_MetalHeapDepthStencilMemory, 0);
-	SET_MEMORY_STAT(STAT_MetalHeapMultisampleMemory, 0);
 	
 	uint64 UsedBuffer = 0;
-	uint64 UsedSize[EMetalHeapTextureUsageNum] = {0, 0, 0, 0, 0};
+	uint64 UsedSize[EMetalHeapTextureUsageNum] = {0, 0};
 	
 	for (uint32 i = 0; i < EMetalHeapStorageNum; i++)
 	{
@@ -1450,10 +1543,13 @@ void FMetalHeap::Drain(bool const bForce)
 					
 					uint64 LastUsedFrame = BufferHeaps[i][j][k].Value;
 					uint64 NumFrames = GFrameNumberRenderThread - LastUsedFrame;
-					if ((bForce || NumFrames > EMetalHeapConstantsCullAfterFrames) && BufferHeaps[i][j][k].Key.usedSize == 0)
+					if ((bForce || NumFrames > EMetalHeapConstantsCullAfterFrames || j == EMetalHeapBufferExactSize) && BufferHeaps[i][j][k].Key.usedSize == 0)
 					{
 						DEC_DWORD_STAT(STAT_MetalHeapNumBufferHeaps);
-						[BufferHeaps[i][j][k].Key release];
+						
+						ReleasedHeaps.Add(BufferHeaps[i][j][k].Key);
+						Context.ReleaseHeap(BufferHeaps[i][j][k].Key);
+						
 						BufferHeaps[i][j].RemoveAt(k);
 						k--;
 					}
@@ -1474,11 +1570,14 @@ void FMetalHeap::Drain(bool const bForce)
 						
 						// There may be heaps with no resources currently in-use but the memory has yet to be released, we can dispose of these heaps
 						TSet<NSObject<MTLTexture>*>& Textures = TextureResources.FindChecked(DynamicTextureHeaps[i][j][k][l].Key);
-						if (((bForce || NumFrames > EMetalHeapConstantsCullAfterFrames) && Textures.Num() == 0) || (DynamicTextureHeaps[i][j][k][l].Key.usedSize == 0))
+						if (((bForce || NumFrames > EMetalHeapConstantsCullAfterFrames || j == EMetalHeapBufferExactSize) && Textures.Num() == 0) || (DynamicTextureHeaps[i][j][k][l].Key.usedSize == 0))
 						{
 							TotalTextureMemory -= DynamicTextureHeaps[i][j][k][l].Key.size;
 							DEC_DWORD_STAT_FName(NumTextureHeapStats[k]);
-							[DynamicTextureHeaps[i][j][k][l].Key release];
+							
+							ReleasedHeaps.Add(DynamicTextureHeaps[i][j][k][l].Key);
+							Context.ReleaseHeap(DynamicTextureHeaps[i][j][k][l].Key);
+
 							DynamicTextureHeaps[i][j][k].RemoveAt(l);
 							l--;
 						}
@@ -1502,15 +1601,21 @@ FMetalHeap::EMetalHeapStorage FMetalHeap::ResouceOptionsToStorage(MTLResourceOpt
 }
 
 uint32 FMetalHeap::HeapBufferSizes[] = {
-		16384, 65536, 262144, 1048576, 4194304, 16777216, 67108864, 134217728, 268435456
+		16384, 65536, 262144, 1048576, 4194304, 16777216, 67108864
 #if PLATFORM_MAC
+		, 134217728
 		, 1073741824
+#else
+		, 268435456
 #endif
 };
 uint32 FMetalHeap::HeapBufferBlock[] = {
-		1048576, 2097152, 2097152, 4194304, 8388608 + 4194304, 33554432, 134217728, 134217728, 268435456
+		1048576, 2097152, 2097152, 4194304, 8388608 + 4194304, 33554432, 134217728
 #if PLATFORM_MAC
+		, 134217728
 		, 1073741824
+#else
+		, 268435456
 #endif
 };
 
@@ -1543,31 +1648,12 @@ FMetalHeap::EMetalHeapBufferSizes FMetalHeap::BufferSizeToIndex(uint32 Size)
 FMetalHeap::EMetalHeapTextureUsage FMetalHeap::TextureDescToIndex(MTLTextureDescriptor* Desc)
 {
 	check(Desc);
-	if (Desc.sampleCount <= 1)
+	if (!(Desc.usage & (MTLTextureUsageShaderWrite|MTLTextureUsageRenderTarget)))
 	{
-		uint32 Format = (uint32)Desc.pixelFormat;
-		if (Format < 250 && !(Desc.usage & (MTLTextureUsageShaderWrite|MTLTextureUsageRenderTarget)))
-		{
-			if (Format < 130)
-			{
-				return EMetalHeapTextureUsageResource;
-			}
-			else
-			{
-				return EMetalHeapTextureUsageCompressed;
-			}
-		}
-		else if(Format < 250)
-		{
-			return EMetalHeapTextureUsageRenderTarget;
-		}
-		else
-		{
-			return EMetalHeapTextureUsageDepthStencil;
-		}
+		return EMetalHeapTextureUsageResource;
 	}
 	else
 	{
-		return EMetalHeapTextureUsageMultisample;
+		return EMetalHeapTextureUsageRenderTarget;
 	}
 }

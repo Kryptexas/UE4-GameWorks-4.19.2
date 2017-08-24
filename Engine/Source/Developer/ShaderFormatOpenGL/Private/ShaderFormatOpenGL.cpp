@@ -24,16 +24,16 @@ class FShaderFormatGLSL : public IShaderFormat
 	enum
 	{
 		/** Version for shader format, this becomes part of the DDC key. */
-		UE_SHADER_GLSL_150_VER = 61,
-		UE_SHADER_GLSL_430_VER = 62,
-		UE_SHADER_GLSL_ES2_VER = 61,
-		UE_SHADER_GLSL_150ES2_VER = 61,
-		UE_SHADER_GLSL_150ES2NOUB_VER = 61,
-		UE_SHADER_GLSL_150ES3_1_VER = 61,
-		UE_SHADER_GLSL_ES2_VER_WEBGL = 61,
-		UE_SHADER_GLSL_ES2_IOS_VER = 61,
-		UE_SHADER_GLSL_310_ES_EXT_VER = 62,
-		UE_SHADER_GLSL_ES3_1_ANDROID_VER = 61,
+		UE_SHADER_GLSL_150_VER = 62,
+		UE_SHADER_GLSL_430_VER = 63,
+		UE_SHADER_GLSL_ES2_VER = 62,
+		UE_SHADER_GLSL_150ES2_VER = 62,
+		UE_SHADER_GLSL_150ES2NOUB_VER = 62,
+		UE_SHADER_GLSL_150ES3_1_VER = 62,
+		UE_SHADER_GLSL_ES2_VER_WEBGL = 62,
+		UE_SHADER_GLSL_ES2_IOS_VER = 62,
+		UE_SHADER_GLSL_310_ES_EXT_VER = 63,
+		UE_SHADER_GLSL_ES3_1_ANDROID_VER = 62,
 	}; 
 
 	void CheckFormat(FName Format) const
@@ -52,7 +52,7 @@ class FShaderFormatGLSL : public IShaderFormat
 	}
 
 public:
-	virtual uint16 GetVersion(FName Format) const override
+	virtual uint32 GetVersion(FName Format) const override
 	{
 		CheckFormat(Format);
 		uint32 GLSLVersion = 0;

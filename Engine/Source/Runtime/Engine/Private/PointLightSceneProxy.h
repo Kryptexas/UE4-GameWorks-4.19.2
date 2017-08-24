@@ -27,6 +27,9 @@ public:
 	/** Radius of light source shape */
 	float SourceRadius;
 
+	/** Soft radius of light source shape */
+	float SoftSourceRadius;
+
 	/** Length of light source shape */
 	float SourceLength;
 
@@ -38,6 +41,7 @@ public:
 	:	FLightSceneProxy(Component)
 	,	FalloffExponent(Component->LightFalloffExponent)
 	,	SourceRadius(Component->SourceRadius)
+	,	SoftSourceRadius(Component->SoftSourceRadius)
 	,	SourceLength(Component->SourceLength)
 	,	bInverseSquared(Component->bUseInverseSquaredFalloff)
 	,	MaxDrawDistance(Component->MaxDrawDistance)
@@ -114,10 +118,15 @@ public:
 		}
 	}
 
+	virtual FVector GetPerObjectProjectedShadowProjectionPoint(const FBoxSphereBounds& SubjectBounds) const
+	{
+		return FMath::ClosestPointOnSegment(SubjectBounds.Origin, GetOrigin() - GetDirection() * SourceLength / 2, GetOrigin() + GetDirection() * SourceLength / 2);
+	}
+
 	virtual bool GetPerObjectProjectedShadowInitializer(const FBoxSphereBounds& SubjectBounds,class FPerObjectProjectedShadowInitializer& OutInitializer) const override
 	{
 		// Use a perspective projection looking at the primitive from the light position.
-		FVector LightPosition = LightToWorld.GetOrigin();
+		FVector LightPosition = GetPerObjectProjectedShadowProjectionPoint(SubjectBounds);
 		FVector LightVector = SubjectBounds.Origin - LightPosition;
 		float LightDistance = LightVector.Size();
 		float SilhouetteRadius = 1.0f;

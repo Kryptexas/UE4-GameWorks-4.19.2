@@ -39,6 +39,7 @@ public:
 		, IndexBuffer(nullptr)
 		, FirstIndex(0)
 		, OutTriangleCount(0)
+		, bUsesDynamicParameter(true)
 	{}
 
 	FParticleBeamTrailVertexFactory()
@@ -46,6 +47,7 @@ public:
 		, IndexBuffer(nullptr)
 		, FirstIndex(0)
 		, OutTriangleCount(0)
+		, bUsesDynamicParameter(true)
 	{}
 
 	/**
@@ -86,7 +88,10 @@ public:
 	 * Set the source vertex buffer that contains particle dynamic parameter data.
 	 */
 	void SetDynamicParameterBuffer(const FVertexBuffer* InDynamicParameterBuffer, uint32 StreamOffset, uint32 Stride);
-
+	inline void SetUsesDynamicParameter(bool bInUsesDynamicParameter)
+	{
+		bUsesDynamicParameter = bInUsesDynamicParameter;
+	}
 
 	/**
 	 * Construct shader parameters for this type of vertex factory.
@@ -117,4 +122,5 @@ private:
 	FIndexBuffer* IndexBuffer;
 	uint32 FirstIndex;
 	int32 OutTriangleCount;
+	bool bUsesDynamicParameter;
 };

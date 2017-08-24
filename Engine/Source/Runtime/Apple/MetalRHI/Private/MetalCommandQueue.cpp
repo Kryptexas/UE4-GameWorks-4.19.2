@@ -14,9 +14,17 @@
 #include "MetalStatistics.h"
 #include "ModuleManager.h"
 #endif
+#include "Misc/ConfigCacheIni.h"
+
+#pragma mark - Private C++ Constants
+enum EMetalFeatureSet
+{
+    // Workaround compile errors when using an older OS
+    EMetalFeatureSetMacOSv3 = 10003,
+};
 
 #pragma mark - Private C++ Statics -
-uint32 FMetalCommandQueue::Features = 0;
+uint64 FMetalCommandQueue::Features = 0;
 
 #pragma mark - Public C++ Boilerplate -
 
@@ -36,29 +44,7 @@ FMetalCommandQueue::FMetalCommandQueue(id<MTLDevice> Device, uint32 const MaxNum
 		CommandQueue = [Device newCommandQueueWithMaxCommandBufferCount: MaxNumCommandBuffers];
 	}
 	check(CommandQueue);
-
-#if METAL_STATISTICS
-	IMetalStatisticsModule* StatsModule = FModuleManager::Get().LoadModulePtr<IMetalStatisticsModule>(TEXT("MetalStatistics"));
-	
-	if(StatsModule && FParse::Param(FCommandLine::Get(),TEXT("metalstats")))
-	{
-		Statistics = StatsModule->CreateMetalStatistics(CommandQueue);
-		if(Statistics->SupportsStatistics())
-		{
-			Features |= EMetalFeaturesStatistics;
-			if(StatsModule->IsValidationEnabled())
-			{
-				Features |= EMetalFeaturesValidation;
-			}
-		}
-		else
-		{
-			delete Statistics;
-			Statistics = nullptr;
-		}
-	}
-#endif
-
+	bool bNoMetalv2 = FParse::Param(FCommandLine::Get(), TEXT("nometalv2"));
 #if PLATFORM_IOS
 	NSOperatingSystemVersion Vers = [[NSProcessInfo processInfo] operatingSystemVersion];
 	if(Vers.majorVersion >= 9)
@@ -66,31 +52,40 @@ FMetalCommandQueue::FMetalCommandQueue(id<MTLDevice> Device, uint32 const MaxNum
 		Features = EMetalFeaturesSeparateStencil | EMetalFeaturesSetBufferOffset | EMetalFeaturesResourceOptions | EMetalFeaturesDepthStencilBlitOptions | EMetalFeaturesShaderVersions | EMetalFeaturesSetBytes;
 
 #if PLATFORM_TVOS
-		if(!FParse::Param(FCommandLine::Get(),TEXT("nometalv2")) && [Device supportsFeatureSet:MTLFeatureSet_tvOS_GPUFamily1_v2])
+		if(!bNoMetalv2 && [Device supportsFeatureSet:MTLFeatureSet_tvOS_GPUFamily1_v2])
 		{
 			Features |= EMetalFeaturesStencilView | EMetalFeaturesGraphicsUAVs;
 		}
 #else
 		if ([Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily3_v1])
 		{
-			Features |= EMetalFeaturesCountingQueries | EMetalFeaturesBaseVertexInstance | EMetalFeaturesIndirectBuffer;
+			Features |= EMetalFeaturesCountingQueries | EMetalFeaturesBaseVertexInstance | EMetalFeaturesIndirectBuffer | EMetalFeaturesMSAADepthResolve;
 		}
 		
-		if(!FParse::Param(FCommandLine::Get(),TEXT("nometalv2")) && ([Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily3_v2] || [Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily2_v3] || [Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily1_v3]))
+		if(!bNoMetalv2 && ([Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily3_v2] || [Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily2_v3] || [Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily1_v3]))
 		{
-			Features |= EMetalFeaturesStencilView | EMetalFeaturesGraphicsUAVs | EMetalFeaturesMemoryLessResources /* | EMetalFeaturesHeaps | EMetalFeaturesFences*/;
+			Features |= EMetalFeaturesStencilView | EMetalFeaturesGraphicsUAVs | EMetalFeaturesMemoryLessResources /*| EMetalFeaturesHeaps | EMetalFeaturesFences*/;
+		}
+		
+		if(!bNoMetalv2 && [Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily3_v2])
+		{
+			Features |= EMetalFeaturesTessellation | EMetalFeaturesMSAAStoreAndResolve;
+		}
+		
+		if(Vers.majorVersion >= 10 && Vers.minorVersion >= 3)
+        {
+            Features |= EMetalFeaturesGPUCommandBufferTimes;
 			
-			// this causes cmdbuffer errors for MTLFeatureSet_iOS_GPUFamily2_v3 at the moment
-			if ([Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily3_v2])
+			if(!bNoMetalv2 && ([Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily3_v2] || [Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily2_v3] || [Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily1_v3]))
 			{
-				Features |= EMetalFeaturesDeferredStoreActions; 
+				Features |= EMetalFeaturesDeferredStoreActions | EMetalFeaturesCombinedDepthStencil;
 			}
-		}
+        }
 		
-		if(!FParse::Param(FCommandLine::Get(),TEXT("nometalv2")) && [Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily3_v2])
+		if(Vers.majorVersion >= 11)
 		{
-			Features |= EMetalFeaturesTessellation;
-		}
+			Features |= EMetalFeaturesPresentMinDuration | EMetalFeaturesGPUCaptureManager;
+        }
 #endif
 	}
 	else if(Vers.majorVersion == 8 && Vers.minorVersion >= 3)
@@ -98,25 +93,91 @@ FMetalCommandQueue::FMetalCommandQueue(id<MTLDevice> Device, uint32 const MaxNum
 		Features = EMetalFeaturesSeparateStencil | EMetalFeaturesSetBufferOffset;
 	}
 #else // Assume that Mac & other platforms all support these from the start. They can diverge later.
-	Features = EMetalFeaturesSeparateStencil | EMetalFeaturesSetBufferOffset | EMetalFeaturesDepthClipMode | EMetalFeaturesResourceOptions | EMetalFeaturesDepthStencilBlitOptions | EMetalFeaturesCountingQueries | EMetalFeaturesBaseVertexInstance | EMetalFeaturesIndirectBuffer | EMetalFeaturesLayeredRendering | EMetalFeaturesShaderVersions;
+	Features = EMetalFeaturesSeparateStencil | EMetalFeaturesSetBufferOffset | EMetalFeaturesDepthClipMode | EMetalFeaturesResourceOptions | EMetalFeaturesDepthStencilBlitOptions | EMetalFeaturesCountingQueries | EMetalFeaturesBaseVertexInstance | EMetalFeaturesIndirectBuffer | EMetalFeaturesLayeredRendering | EMetalFeaturesShaderVersions | EMetalFeaturesCombinedDepthStencil | EMetalFeaturesCubemapArrays;
     if (!FParse::Param(FCommandLine::Get(),TEXT("nometalv2")) && [Device supportsFeatureSet:MTLFeatureSet_OSX_GPUFamily1_v2])
     {
-        Features |= EMetalFeaturesStencilView | EMetalFeaturesDepth16 | EMetalFeaturesTessellation | EMetalFeaturesGraphicsUAVs | EMetalFeaturesDeferredStoreActions;
+        Features |= EMetalFeaturesStencilView | EMetalFeaturesDepth16 | EMetalFeaturesTessellation | EMetalFeaturesGraphicsUAVs | EMetalFeaturesDeferredStoreActions | EMetalFeaturesMSAADepthResolve | EMetalFeaturesMSAAStoreAndResolve;
         
         // Assume that set*Bytes only works on macOS Sierra and above as no-one has tested it anywhere else.
-        Features |= EMetalFeaturesSetBytes;
+		Features |= EMetalFeaturesSetBytes;
     }
     else if ([Device.name rangeOfString:@"Nvidia" options:NSCaseInsensitiveSearch].location != NSNotFound)
     {
+		// Using set*Bytes fixes bugs on Nvidia for 10.11 so we should use it...
     	Features |= EMetalFeaturesSetBytes;
     }
-	// Time query emulation breaks on AMD - disable by default until they can explain why, should work everywhere else.
-	if ([Device.name rangeOfString:@"AMD" options:NSCaseInsensitiveSearch].location == NSNotFound || FParse::Param(FCommandLine::Get(),TEXT("metaltimequery")))
+    
+    if([Device supportsFeatureSet:(MTLFeatureSet)EMetalFeatureSetMacOSv3])
+    {
+        Features |= EMetalFeaturesMultipleViewports | EMetalFeaturesGPUCommandBufferTimes | EMetalFeaturesGPUCaptureManager | EMetalFeaturesAbsoluteTimeQueries;
+    }
+    // Time query emulation breaks on AMD < 10.13 - disable by default until they can explain why, should work everywhere else.
+	else if ([Device.name rangeOfString:@"AMD" options:NSCaseInsensitiveSearch].location == NSNotFound || FParse::Param(FCommandLine::Get(),TEXT("metaltimequery")))
 	{
 		Features |= EMetalFeaturesAbsoluteTimeQueries;
 	}
 #endif
 	
+	Class MTLDebugDevice = NSClassFromString(@"MTLDebugDevice");
+	if ([Device isKindOfClass:MTLDebugDevice])
+	{
+		Features |= EMetalFeaturesValidation;
+	}
+	
+	static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shaders.Optimize"));
+	if (CVar->GetInt() == 0 || FParse::Param(FCommandLine::Get(),TEXT("metalshaderdebug")))
+	{
+		Features |= EMetalFeaturesGPUTrace;
+	}
+    
+    int32 MaxShaderVersion = 0;
+#if PLATFORM_MAC
+	int32 DefaultMaxShaderVersion = 2;
+    const TCHAR* const Settings = TEXT("/Script/MacTargetPlatform.MacTargetSettings");
+#else
+	int32 DefaultMaxShaderVersion = 0;
+    const TCHAR* const Settings = TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings");
+#endif
+    if(!GConfig->GetInt(Settings, TEXT("MaxShaderLanguageVersion"), MaxShaderVersion, GEngineIni))
+    {
+        MaxShaderVersion = DefaultMaxShaderVersion;
+    }
+    
+    // This value must match between the shaders compiled & the code being run or you'll get mismatched resource bindings.
+    switch(MaxShaderVersion)
+    {
+        case 3:
+            // Linear UAVs are a bit more fragile and might not work right now - don't assume you can use them
+            Features |= EMetalFeaturesLinearTextureUAVs;
+            // Deliberate fall-through
+        case 2:
+            // It might not be publicly acknowledged but Linear textures work on Sierra.
+            Features |= EMetalFeaturesLinearTextures;
+            break;
+        case 1:
+        case 0:
+        default:
+            break;
+    }
+	
+#if METAL_STATISTICS
+    IMetalStatisticsModule* StatsModule = FModuleManager::Get().LoadModulePtr<IMetalStatisticsModule>(TEXT("MetalStatistics"));
+    
+    if(StatsModule && FParse::Param(FCommandLine::Get(),TEXT("metalstats")))
+    {
+        Statistics = StatsModule->CreateMetalStatistics(CommandQueue);
+        if(Statistics->SupportsStatistics())
+        {
+            Features |= EMetalFeaturesStatistics;
+        }
+        else
+        {
+            delete Statistics;
+            Statistics = nullptr;
+        }
+    }
+#endif
+    
 	PermittedOptions = 0;
 	PermittedOptions |= MTLResourceCPUCacheModeDefaultCache;
 	PermittedOptions |= MTLResourceCPUCacheModeWriteCombined;

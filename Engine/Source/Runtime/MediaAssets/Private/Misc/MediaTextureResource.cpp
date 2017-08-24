@@ -70,17 +70,13 @@ void FMediaTextureResource::DisplayBuffer()
 	{
 		return;
 	}
-
-	if (IsInRenderingThread())
-	{
+	
+	// RenderThreadTasks will be consumed by ENQUEUE_RENDER_COMMAND in FMediaTextureResource::Tick.
+	// Since ENQUEUE_RENDER_COMMAND will decide which thread to run the tasks on, we should not
+	// make decision ourself to avoid conflict.
+	RenderThreadTasks.Enqueue([this]() {
 		SwapResource();
-	}
-	else
-	{
-		RenderThreadTasks.Enqueue([this]() {
-			SwapResource();
-		});
-	}
+	});
 }
 
 
@@ -102,16 +98,9 @@ void FMediaTextureResource::InitializeBuffer(FIntPoint OutputDim, FIntPoint Buff
 {
 	State = EState::Initializing;
 
-	if (IsInRenderingThread())
-	{
+	RenderThreadTasks.Enqueue([=]() {
 		InitializeResource(OutputDim, BufferDim, Format, Mode);
-	}
-	else
-	{
-		RenderThreadTasks.Enqueue([=]() {
-			InitializeResource(OutputDim, BufferDim, Format, Mode);
-		});
-	}
+	});
 }
 
 
@@ -148,16 +137,9 @@ void FMediaTextureResource::ShutdownBuffer()
 
 	State = EState::ShuttingDown;
 
-	if (IsInRenderingThread())
-	{
+	RenderThreadTasks.Enqueue([this]() {
 		ReleaseDynamicRHI();
-	}
-	else
-	{
-		RenderThreadTasks.Enqueue([this]() {
-			ReleaseDynamicRHI();
-		});
-	}
+	});
 }
 
 
@@ -221,16 +203,9 @@ void FMediaTextureResource::UpdateTextures(FRHITexture* RenderTarget, FRHITextur
 		Resource.ShaderResource = (ShaderResource != nullptr) ? ShaderResource->GetTexture2D() : nullptr;
 	}
 
-	if (IsInRenderingThread())
-	{
+	RenderThreadTasks.Enqueue([=]() {
 		SetResource(Resource);
-	}
-	else
-	{
-		RenderThreadTasks.Enqueue([=]() {
-			SetResource(Resource);
-		});
-	}
+	});
 }
 
 
@@ -523,9 +498,9 @@ void FMediaTextureResource::ReleaseDynamicRHI()
 
 bool FMediaTextureResource::Tick(float DeltaTime)
 {
-	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(TickMediaTextureResource, FMediaTextureResource*, This, this,
+	ENQUEUE_RENDER_COMMAND(TickMediaTextureResource)([this](FRHICommandListImmediate&)
 	{
-		This->ProcessRenderThreadTasks();
+		ProcessRenderThreadTasks();
 	});
 
 	return true;

@@ -28,6 +28,7 @@
 #include "ContentStreaming.h"
 #include "Stats/StatsData.h"
 #include "HAL/PlatformProperties.h"
+#include "Interfaces/IAutomationControllerModule.h"
 
 #define LOCTEXT_NAMESPACE "Automation"
 
@@ -268,6 +269,7 @@ void UAutomationBlueprintFunctionLibrary::FinishLoadingBeforeScreenshot()
 	if (!FPlatformProperties::RequiresCookedData())
 	{
 		GShaderCompilingManager->FinishAllCompilation();
+		FModuleManager::GetModuleChecked<IAutomationControllerModule>("AutomationController").GetAutomationController()->ResetAutomationTestTimeout(TEXT("shader compilation"));
 	}
 
 	// Force all mip maps to load before taking the screenshot.

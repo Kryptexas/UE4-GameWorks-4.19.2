@@ -80,6 +80,19 @@ enum EEmitterNormalsMode
 	ENM_MAX,
 };
 
+struct FParticleRequiredModule
+{
+	bool bCutoutTexureIsValid;
+	uint32 NumFrames;
+	uint32 NumBoundingVertices;
+	uint32 NumBoundingTriangles;
+	float AlphaThreshold;
+	TArray<FVector2D> FrameData;
+	FShaderResourceViewRHIParamRef BoundingGeometryBufferSRV;
+};
+
+
+
 UCLASS(editinlinenew, hidecategories=(Object, Cascade), meta=(DisplayName = "Required"), MinimalAPI)
 class UParticleModuleRequired : public UParticleModule
 {
@@ -429,6 +442,20 @@ class UParticleModuleRequired : public UParticleModule
 	inline const FVector2D* GetFrameData(int32 FrameIndex) const
 	{
 		return &DerivedData.BoundingGeometry[FrameIndex * GetNumBoundingVertices()];
+	}
+
+	FParticleRequiredModule *CreateRendererResource()
+	{
+		FParticleRequiredModule *FReqMod = new FParticleRequiredModule();
+		FReqMod->bCutoutTexureIsValid = IsBoundingGeometryValid();
+		FReqMod->NumFrames = GetNumFrames();
+		FReqMod->FrameData = DerivedData.BoundingGeometry;
+		FReqMod->NumBoundingVertices = GetNumBoundingVertices();
+		FReqMod->NumBoundingTriangles = GetNumBoundingTriangles();
+		check(FReqMod->NumBoundingTriangles == 2 || FReqMod->NumBoundingTriangles == 6);
+		FReqMod->AlphaThreshold = AlphaThreshold;
+		FReqMod->BoundingGeometryBufferSRV = GetBoundingGeometrySRV();
+		return FReqMod;
 	}
 
 protected:

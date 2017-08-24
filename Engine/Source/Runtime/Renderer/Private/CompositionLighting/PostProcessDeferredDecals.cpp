@@ -362,6 +362,9 @@ bool RenderPreStencil(FRenderingCompositePassContext& Context, const FMatrix& Co
 	FDecalRendering::SetVertexShaderOnly(Context.RHICmdList, GraphicsPSOInit, View, FrustumComponentToClip);
 	Context.RHICmdList.SetStencilRef(0);
 
+	// Set stream source after updating cached strides
+	Context.RHICmdList.SetStreamSource(0, GetUnitCubeVertexBuffer(), 0);
+
 	// Render decal mask
 	Context.RHICmdList.DrawIndexedPrimitive(GetUnitCubeIndexBuffer(), PT_TriangleList, 0, 0, 8, 0, ARRAY_COUNT(GCubeIndices) / 3, 1);
 
@@ -1035,9 +1038,6 @@ void FDecalRenderTargetManager::SetRenderTargetMode(FDecalRenderingCommon::ERend
 		break;
 	}
 	TargetsToTransitionWritable[CurrentRenderTargetMode] = false;
-
-	// we need to reset the stream source after any call to SetRenderTarget (at least for Metal, which doesn't queue up VB assignments)
-	RHICmdList.SetStreamSource(0, GetUnitCubeVertexBuffer(), sizeof(FVector4), 0);
 }
 
 

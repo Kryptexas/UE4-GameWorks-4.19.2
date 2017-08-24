@@ -16,9 +16,14 @@ struct FD3D11VertexDeclarationKey
 	/** Hash of the vertex elements. */
 	uint32 Hash;
 
+	uint16 StreamStrides[MaxVertexElementCount];
+
 	/** Initialization constructor. */
 	explicit FD3D11VertexDeclarationKey(const FVertexDeclarationElementList& InElements)
 	{
+		uint16 UsedStreamsMask = 0;
+		FMemory::Memzero(StreamStrides);
+
 		for(int32 ElementIndex = 0;ElementIndex < InElements.Num();ElementIndex++)
 		{
 			const FVertexElement& Element = InElements[ElementIndex];
@@ -55,6 +60,16 @@ struct FD3D11VertexDeclarationKey
 			// This is a divisor to apply to the instance index used to read from this stream.
 			D3DElement.InstanceDataStepRate = Element.bUseInstanceIndex ? 1 : 0;
 
+			if ((UsedStreamsMask & 1 << Element.StreamIndex) != 0)
+			{
+				ensure(StreamStrides[Element.StreamIndex] == Element.Stride);
+			}
+			else
+			{
+				UsedStreamsMask = UsedStreamsMask | (1 << Element.StreamIndex);
+				StreamStrides[Element.StreamIndex] = Element.Stride;
+			}
+
 			VertexElements.Add(D3DElement);
 		}
 
@@ -70,6 +85,7 @@ struct FD3D11VertexDeclarationKey
 
 		// Hash once.
 		Hash = FCrc::MemCrc_DEPRECATED(VertexElements.GetData(),VertexElements.Num()*sizeof(D3D11_INPUT_ELEMENT_DESC));
+		Hash = FCrc::MemCrc_DEPRECATED(StreamStrides, sizeof(StreamStrides), Hash);
 	}
 };
 
@@ -98,7 +114,7 @@ FVertexDeclarationRHIRef FD3D11DynamicRHI::RHICreateVertexDeclaration(const FVer
 	if (VertexDeclarationRefPtr == NULL)
 	{
 		// Create and add to the cache if it doesn't exist.
-		VertexDeclarationRefPtr = &GVertexDeclarationCache.Add(Key,new FD3D11VertexDeclaration(Key.VertexElements));
+		VertexDeclarationRefPtr = &GVertexDeclarationCache.Add(Key,new FD3D11VertexDeclaration(Key.VertexElements, Key.StreamStrides));
 	}
 
 	// The cached declaration must match the input declaration!

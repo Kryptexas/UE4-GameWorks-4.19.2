@@ -379,6 +379,8 @@ public:
 
 	virtual void WriteLineToCheckpointFile(FString LineToWrite) = 0;
 
+	virtual void ResetAutomationTestTimeout(const TCHAR* Reason) = 0;
+	
 public:
 
 	/**

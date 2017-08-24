@@ -310,6 +310,47 @@ public:
 	int32 MaxSurfaceLightSamples;
 };
 
+/** Settings for the volumetric lightmap. */
+class FVolumetricLightmapSettings
+{
+public:
+
+	/** Size of the top level grid covering the volumetric lightmap, in bricks. */
+	FIntVector TopLevelGridSize;
+
+	/** World space size of the volumetric lightmap. */
+	FVector VolumeMin;
+	FVector VolumeSize;
+
+	/** 
+	 * Size of a brick of unique lighting data.  Must be a power of 2.  
+	 * Smaller values provide more granularity, but waste more memory due to padding.
+	 */
+	int32 BrickSize;
+
+	/** Maximum number of times to subdivide bricks around geometry. */
+	int32 MaxRefinementLevels;
+
+	/** 
+	 * Fraction of a cell's size to expand it by when voxelizing.  
+	 * Larger values add more resolution around geometry, improving the lighting gradients but costing more memory.
+	 */
+	float VoxelizationCellExpansionForGeometry;
+	float VoxelizationCellExpansionForLights;
+
+	/** Bricks with RMSE below this value are culled. */
+	float MinBrickError;
+
+	/** Triangles with fewer lightmap texels than this don't cause refinement. */
+	float SurfaceLightmapMinTexelsPerVoxelAxis;
+
+	/** Whether to cull bricks entirely below landscape.  This can be an invalid optimization if the landscape has holes and caves that pass under landscape. */
+	bool bCullBricksBelowLandscape;
+
+	/** Subdivide bricks when a static point or spot light affects some part of the brick with brightness higher than this. */
+	float LightBrightnessSubdivideThreshold;
+};
+
 /** Settings for precomputed visibility. */
 class FPrecomputedVisibilitySettings
 {
@@ -624,6 +665,18 @@ public:
 
 	/** Downsample factor applied to each mapping's lighting resolution to get the resolution used for caching irradiance photons. */
 	float CachedIrradiancePhotonDownsampleFactor;
+
+	/** 
+	 * Whether to build a photon segment map, to guide importance sampling for volume queries.  
+	 * Currently costs too much memory and queries are too slow to be a net positive.
+	 */
+	bool bUsePhotonSegmentsForVolumeLighting;
+
+	/** Maximum world space length of segments that photons are split into for volumetric queries. */
+	float PhotonSegmentMaxLength;
+
+	/** Probability that a first bounce photon will be put into the photon segment map for volumetric queries. */
+	float GeneratePhotonSegmentChance;
 };
 
 /** Settings controlling irradiance caching behavior. */
@@ -729,6 +782,7 @@ struct FSceneFileHeader
 	FMeshAreaLightSettings			MeshAreaLightSettings;
 	FAmbientOcclusionSettings		AmbientOcclusionSettings;
 	FDynamicObjectSettings			DynamicObjectSettings;
+	FVolumetricLightmapSettings		VolumetricLightmapSettings;
 	FPrecomputedVisibilitySettings	PrecomputedVisibilitySettings;
 	FVolumeDistanceFieldSettings	VolumeDistanceFieldSettings;
 	FStaticShadowSettings			ShadowSettings;
@@ -776,6 +830,7 @@ struct FSceneFileHeader
 	int32		NumLandscapeTextureMappings;
 	int32		NumSpeedTreeMappings;
 	int32		NumPrecomputedVisibilityBuckets;
+	int32		NumVolumetricLightmapTasks;
 };
 
 //----------------------------------------------------------------------------
@@ -889,6 +944,8 @@ struct FSpotLightData
 {
 	float		InnerConeAngle;
 	float		OuterConeAngle;
+	// Spot lights need an additional axis to specify the direction of tube lights
+	FVector		LightTangent;
 };
 
 //----------------------------------------------------------------------------

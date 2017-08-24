@@ -11,7 +11,7 @@ NS_ASSUME_NONNULL_BEGIN
  * https://developer.apple.com/library/ios/documentation/Miscellaneous/Conceptual/MetalProgrammingGuide/Render-Ctx/Render-Ctx.html
  */
 #if PLATFORM_IOS
-#define METAL_MAX_BUFFERS 30
+#define METAL_MAX_BUFFERS 31
 #define METAL_MAX_TEXTURES 31
 typedef uint32 FMetalTextureMask;
 #elif PLATFORM_MAC
@@ -28,7 +28,8 @@ enum EMetalLimits
 {
 	ML_MaxSamplers = 16, /** Maximum number of samplers */
 	ML_MaxBuffers = METAL_MAX_BUFFERS, /** Maximum number of buffers */
-	ML_MaxTextures = METAL_MAX_TEXTURES /** Maximum number of textures - there are more textures available on Mac than iOS */
+	ML_MaxTextures = METAL_MAX_TEXTURES, /** Maximum number of textures - there are more textures available on Mac than iOS */
+	ML_MaxViewports = 16 /** Technically this may be different at runtime, but this is the likely absolute upper-bound */
 };
 
 enum EMetalShaderFrequency
@@ -52,9 +53,9 @@ struct FMetalDebugShaderResourceMask
 struct FMetalDebugBufferBindings
 {
     /** The bound buffers or nil. */
-    id<MTLBuffer> Buffers[ML_MaxBuffers];
+    id<MTLBuffer> _Nullable Buffers[ML_MaxBuffers];
     /** Optional bytes buffer used instead of an id<MTLBuffer> */
-    void const* Bytes[ML_MaxBuffers];
+    void const * _Nullable Bytes[ML_MaxBuffers];
     /** The bound buffer offsets or 0. */
     NSUInteger Offsets[ML_MaxBuffers];
 };
@@ -63,14 +64,14 @@ struct FMetalDebugBufferBindings
 struct FMetalDebugTextureBindings
 {
     /** The bound textures or nil. */
-    id<MTLTexture> Textures[ML_MaxTextures];
+    id<MTLTexture> _Nullable Textures[ML_MaxTextures];
 };
 
 /** A structure of arrays for the current sampler binding settings. */
 struct FMetalDebugSamplerBindings
 {
     /** The bound sampler states or nil. */
-    id<MTLSamplerState> Samplers[ML_MaxSamplers];
+    id<MTLSamplerState> _Nullable Samplers[ML_MaxSamplers];
 };
 
 @class FMetalDebugCommandBuffer;

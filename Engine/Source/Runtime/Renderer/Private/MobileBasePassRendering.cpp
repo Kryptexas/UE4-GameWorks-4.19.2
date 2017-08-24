@@ -94,21 +94,12 @@ FMobileBasePassDynamicPointLightInfo::FMobileBasePassDynamicPointLightInfo(const
 			FLightSceneProxy* LightProxy = LPI->GetLight()->Proxy;
 			if (LightProxy->GetLightType() == LightType_Point && LightProxy->IsMovable() && (LightProxy->GetLightingChannelMask() & InSceneProxy->GetLightingChannelMask()) != 0)
 			{
-				FVector NormalizedLightDirection;
-				FVector2D SpotAngles;
-				float SourceRadius;
-				float SourceLength;
-				float MinRoughness;
+				FLightParameters LightParameters;
 
-				// Get the light parameters
-				LightProxy->GetParameters(
-					LightPositionAndInvRadius[NumDynamicPointLights],
-					LightColorAndFalloffExponent[NumDynamicPointLights],
-					NormalizedLightDirection,
-					SpotAngles,
-					SourceRadius,
-					SourceLength,
-					MinRoughness);
+				LightProxy->GetParameters(LightParameters);
+
+				LightPositionAndInvRadius[NumDynamicPointLights] = LightParameters.LightPositionAndInvRadius;
+				LightColorAndFalloffExponent[NumDynamicPointLights] = LightParameters.LightColorAndFalloffExponent;
 
 				if (LightProxy->IsInverseSquared())
 				{

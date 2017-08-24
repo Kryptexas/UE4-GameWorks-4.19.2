@@ -83,6 +83,22 @@
 	#define CA_CONSTANT_IF(Condition) if (Condition)
 #endif
 
+#ifndef USING_THREAD_SANITISER
+	#define USING_THREAD_SANITISER 0
+#endif
+
+#if USING_THREAD_SANITISER
+	#if !defined( TSAN_SAFE ) || !defined( TSAN_BEFORE ) || !defined( TSAN_AFTER ) || !defined( TSAN_ATOMIC )
+		#error Thread Sanitiser macros are not configured correctly for this platform
+	#endif
+#else
+	// Define TSAN macros to empty when not enabled
+	#define TSAN_SAFE
+	#define TSAN_BEFORE(Addr)
+	#define TSAN_AFTER(Addr)
+	#define TSAN_ATOMIC(Type) Type
+#endif
+
 enum {INDEX_NONE	= -1				};
 enum {UNICODE_BOM   = 0xfeff			};
 

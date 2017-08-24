@@ -24,7 +24,8 @@
 			[
 				"Win64",
 				"Win32",
-				"Linux"
+				"Linux",
+				"Mac"
 			]
 		},
 		{
@@ -35,7 +36,8 @@
 			[
 				"Win64",
 				"Win32",
-				"Linux"
+				"Linux",
+				"Mac"
 			]
 		}
 	],

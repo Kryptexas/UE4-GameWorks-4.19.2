@@ -61,17 +61,20 @@ inline VkFilter TranslateMinFilterMode(ESamplerFilter InFilter)
 	return OutFilter;
 }
 
-inline VkSamplerAddressMode TranslateWrapMode(ESamplerAddressMode InAddressMode)
+inline VkSamplerAddressMode TranslateWrapMode(ESamplerAddressMode InAddressMode, const bool bSupportsMirrorClampToEdge)
 {
 	VkSamplerAddressMode OutAddressMode = VK_SAMPLER_ADDRESS_MODE_MAX_ENUM;
 
 	switch (InAddressMode)
 	{
 		case AM_Wrap:		OutAddressMode = VK_SAMPLER_ADDRESS_MODE_REPEAT;			break;
-		case AM_Clamp:		OutAddressMode = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;			break;
-		case AM_Mirror:		OutAddressMode = VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE;		break;
+		case AM_Clamp:		OutAddressMode = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;		break;
+		case AM_Mirror:		OutAddressMode = bSupportsMirrorClampToEdge
+												? VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE
+												: VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;		break;
 		case AM_Border:		OutAddressMode = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;	break;
-		default:																break;
+		default:
+			break;
 	}
 
 	// Check for missing translation
@@ -231,16 +234,25 @@ FVulkanSamplerState::FVulkanSamplerState(const FSamplerStateInitializerRHI& Init
 	Sampler(VK_NULL_HANDLE),
 	Device(InDevice)
 {
+#if !VULKAN_KEEP_CREATE_INFO
 	VkSamplerCreateInfo SamplerInfo;
+#endif
 	FMemory::Memzero(SamplerInfo);
 	SamplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 
 	SamplerInfo.magFilter = TranslateMagFilterMode(Initializer.Filter);
 	SamplerInfo.minFilter = TranslateMinFilterMode(Initializer.Filter);
 	SamplerInfo.mipmapMode = TranslateMipFilterMode(Initializer.Filter);
-	SamplerInfo.addressModeU = TranslateWrapMode(Initializer.AddressU);
-	SamplerInfo.addressModeV = TranslateWrapMode(Initializer.AddressV);
-	SamplerInfo.addressModeW = TranslateWrapMode(Initializer.AddressW);
+#if PLATFORM_ANDROID
+	// Some Android devices might not support this extension
+	const bool bSupportsMirrorClampToEdge = InDevice.GetOptionalExtensions().HasMirrorClampToEdge;
+#else
+	// All major desktop devices supports this extension
+	const bool bSupportsMirrorClampToEdge = true;
+#endif
+	SamplerInfo.addressModeU = TranslateWrapMode(Initializer.AddressU, bSupportsMirrorClampToEdge);
+	SamplerInfo.addressModeV = TranslateWrapMode(Initializer.AddressV, bSupportsMirrorClampToEdge);
+	SamplerInfo.addressModeW = TranslateWrapMode(Initializer.AddressW, bSupportsMirrorClampToEdge);
 	
 
 	SamplerInfo.mipLodBias = Initializer.MipBias;

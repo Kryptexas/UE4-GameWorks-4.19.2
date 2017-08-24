@@ -191,7 +191,7 @@ FMetalUniformBuffer::FMetalUniformBuffer(const void* Contents, const FRHIUniform
 			// Anything less than the buffer page size - currently 4Kb - is better off going through the set*Bytes API if available.
 			if (Layout.ConstantBufferSize < MetalBufferPageSize)
 			{
-				Data = [[NSData alloc] initWithBytes:Contents length:Layout.ConstantBufferSize];
+				Data = [[FMetalBufferData alloc] initWithBytes:Contents length:Layout.ConstantBufferSize];
 			}
 			else
 			{
@@ -294,7 +294,7 @@ void const* FMetalUniformBuffer::GetData()
 {
 	if (Data)
 	{
-		return Data.bytes;
+		return Data->Data;
 	}
 	else if (Buffer)
 	{

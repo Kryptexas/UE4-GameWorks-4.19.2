@@ -126,6 +126,9 @@ void FDebugCanvasDrawer::InitDebugCanvas(UWorld* InWorld)
 	{
 		FCanvas* Canvas = new FCanvas(RenderTarget, nullptr, InWorld, InWorld ? InWorld->FeatureLevel : GMaxRHIFeatureLevel);
 
+		// Do not allow the canvas to be flushed outside of our debug rendering path
+		Canvas->SetAllowedModes(FCanvas::Allow_DeleteOnRender);
+
 		GameThreadCanvas = MakeShared<FCanvas, ESPMode::ThreadSafe>(*Canvas);
 	}
 }

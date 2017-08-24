@@ -71,25 +71,35 @@ public:
 		InvCosLightShaftConeDifference = 1.0f / (FMath::Cos(ClampedInnerLightShaftConeAngle) - CosLightShaftConeAngle);
 	}
 
-	/** Accesses parameters needed for rendering the light. */
-	virtual void GetParameters(FVector4& LightPositionAndInvRadius, FVector4& LightColorAndFalloffExponent, FVector& NormalizedLightDirection, FVector2D& SpotAngles, float& LightSourceRadius, float& LightSourceLength, float& LightMinRoughness) const override
+	virtual FVector GetPerObjectProjectedShadowProjectionPoint(const FBoxSphereBounds& SubjectBounds) const
 	{
-		LightPositionAndInvRadius = FVector4(
+		const FVector ZAxis(WorldToLight.M[0][2], WorldToLight.M[1][2], WorldToLight.M[2][2]);
+		return FMath::ClosestPointOnSegment(SubjectBounds.Origin, GetOrigin() - ZAxis * SourceLength / 2, GetOrigin() + ZAxis * SourceLength / 2);
+	}
+
+	/** Accesses parameters needed for rendering the light. */
+	virtual void GetParameters(FLightParameters& LightParameters) const override
+	{
+		LightParameters.LightPositionAndInvRadius = FVector4(
 			GetOrigin(),
 			InvRadius);
 
-		LightColorAndFalloffExponent = FVector4(
+		LightParameters.LightColorAndFalloffExponent = FVector4(
 			GetColor().R,
 			GetColor().G,
 			GetColor().B,
 			FalloffExponent);
 
-		NormalizedLightDirection = -GetDirection();
-		SpotAngles = FVector2D(CosOuterCone, InvCosConeDifference);
-		LightSourceRadius = SourceRadius;
-		LightSourceLength = SourceLength;
+		const FVector ZAxis(WorldToLight.M[0][2], WorldToLight.M[1][2], WorldToLight.M[2][2]);
+
+		LightParameters.NormalizedLightDirection = -GetDirection();
+		LightParameters.NormalizedLightTangent = ZAxis;
+		LightParameters.SpotAngles = FVector2D(CosOuterCone, InvCosConeDifference);
+		LightParameters.LightSourceRadius = SourceRadius;
+		LightParameters.LightSoftSourceRadius = SoftSourceRadius;
+		LightParameters.LightSourceLength = SourceLength;
 		// Prevent 0 Roughness which causes NaNs in Vis_SmithJointApprox
-		LightMinRoughness = FMath::Max(MinRoughness, .04f);
+		LightParameters.LightMinRoughness = FMath::Max(MinRoughness, .04f);
 	}
 
 	// FLightSceneInfo interface.
@@ -153,6 +163,19 @@ public:
 		// Use the law of cosines to find the distance to the furthest edge of the spotlight cone from a position that is halfway down the spotlight direction
 		const float BoundsRadius = FMath::Sqrt(1.25f * Radius * Radius - Radius * Radius * CosOuterCone);
 		return FSphere(GetOrigin() + .5f * GetDirection() * Radius, BoundsRadius);
+	}
+
+	virtual float GetEffectiveScreenRadius(const FViewMatrices& ShadowViewMatrices) const override
+	{
+		// Heuristic: use the radius of the inscribed sphere at the cone's end as the light's effective screen radius
+		// We do so because we do not want to use the light's radius directly, which will make us overestimate the shadow map resolution greatly for a spot light
+
+		const FVector InscribedSpherePosition = GetOrigin() + GetDirection() * GetRadius();
+		const float InscribedSphereRadius = GetRadius() / InvTanOuterCone;
+
+ 		const float SphereDistanceFromViewOrigin = (InscribedSpherePosition - ShadowViewMatrices.GetViewOrigin()).Size();
+
+		return ShadowViewMatrices.GetScreenScale() * InscribedSphereRadius / FMath::Max(SphereDistanceFromViewOrigin, 1.0f);
 	}
 };
 

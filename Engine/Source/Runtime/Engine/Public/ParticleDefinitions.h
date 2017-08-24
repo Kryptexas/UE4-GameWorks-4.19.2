@@ -27,7 +27,6 @@ MONOLITHIC_HEADER_BOILERPLATE()
 #include "TimerManager.h"
 #include "GenericOctreePublic.h"
 #include "GenericOctree.h"
-#include "PrecomputedLightVolume.h"
 #include "BlendableManager.h"
 #include "FinalPostProcessSettings.h"
 #include "SceneInterface.h"

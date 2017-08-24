@@ -147,6 +147,8 @@ namespace VulkanRHI
 		HeapInfos[HeapIndex].UsedSize += AllocationSize;
 		HeapInfos[HeapIndex].PeakSize = FMath::Max(HeapInfos[HeapIndex].PeakSize, HeapInfos[HeapIndex].UsedSize);
 
+		INC_DWORD_STAT(STAT_VulkanNumPhysicalMemAllocations);
+
 		return NewAllocation;
 	}
 
@@ -160,6 +162,8 @@ namespace VulkanRHI
 		VulkanRHI::vkFreeMemory(DeviceHandle, Allocation->Handle, nullptr);
 
 		--NumAllocations;
+
+		DEC_DWORD_STAT(STAT_VulkanNumPhysicalMemAllocations);
 
 		uint32 HeapIndex = MemoryProperties.memoryTypes[Allocation->MemoryTypeIndex].heapIndex;
 
@@ -1068,7 +1072,11 @@ namespace VulkanRHI
 
 				UsedSize += AllocatedSize;
 
-				FResourceSuballocation* NewSuballocation = CreateSubAllocation(InSize, AlignedOffset, AllocatedSize, AllocatedOffset);// , File, Line);
+				FResourceSuballocation* NewSuballocation = CreateSubAllocation(InSize, AlignedOffset, AllocatedSize, AllocatedOffset);
+#if VULKAN_TRACK_MEMORY_USAGE
+				NewSuballocation->File = File;
+				NewSuballocation->Line = Line;
+#endif
 				Suballocations.Add(NewSuballocation);
 
 				//PeakNumAllocations = FMath::Max(PeakNumAllocations, ResourceAllocations.Num());
@@ -1130,16 +1138,10 @@ namespace VulkanRHI
 		check(PendingFreeStagingBuffers.Num() == 0);
 		check(FreeStagingBuffers.Num() == 0);
 	}
-	
-	void FStagingManager::Init(FVulkanDevice* InDevice, FVulkanQueue* InQueue)
-	{
-		Device = InDevice;
-		Queue = InQueue;
-	}
 
 	void FStagingManager::Deinit()
 	{
-		ProcessPendingFree(true);
+		ProcessPendingFree(true, true);
 
 		check(UsedStagingBuffers.Num() == 0);
 		check(PendingFreeStagingBuffers.Num() == 0);
@@ -1148,19 +1150,20 @@ namespace VulkanRHI
 
 	FStagingBuffer* FStagingManager::AcquireBuffer(uint32 Size, VkBufferUsageFlags InUsageFlags, bool bCPURead)
 	{
+		SCOPE_CYCLE_COUNTER(STAT_VulkanStagingBuffer);
+
 		//#todo-rco: Better locking!
 		{
 			FScopeLock Lock(&GAllocationLock);
-
 			for (int32 Index = 0; Index < FreeStagingBuffers.Num(); ++Index)
 			{
-				FPendingItem& Item = FreeStagingBuffers[Index];
-				FStagingBuffer* FreeBuffer = (FStagingBuffer*)Item.Resource;
-				if (FreeBuffer->GetSize() == Size && FreeBuffer->bCPURead == bCPURead)
+				FFreeEntry& FreeBuffer = FreeStagingBuffers[Index];
+				if (FreeBuffer.Buffer->GetSize() == Size && FreeBuffer.Buffer->bCPURead == bCPURead)
 				{
+					FStagingBuffer* Buffer = FreeBuffer.Buffer;
 					FreeStagingBuffers.RemoveAtSwap(Index, 1, false);
-					UsedStagingBuffers.Add((FStagingBuffer*)FreeBuffer);
-					return FreeBuffer;
+					UsedStagingBuffers.Add(Buffer);
+					return Buffer;
 				}
 			}
 		}
@@ -1192,18 +1195,53 @@ namespace VulkanRHI
 		{
 			FScopeLock Lock(&GAllocationLock);
 			UsedStagingBuffers.Add(StagingBuffer);
+			UsedMemory += StagingBuffer->GetSize();
+			PeakUsedMemory = FMath::Max(UsedMemory, PeakUsedMemory);
 		}
 		return StagingBuffer;
 	}
 
+	inline FStagingManager::FPendingItemsPerCmdBuffer* FStagingManager::FindOrAdd(FVulkanCmdBuffer* CmdBuffer)
+	{
+		for (int32 Index = 0; Index < PendingFreeStagingBuffers.Num(); ++Index)
+		{
+			if (PendingFreeStagingBuffers[Index].CmdBuffer == CmdBuffer)
+			{
+				return &PendingFreeStagingBuffers[Index];
+			}
+		}
+
+		FPendingItemsPerCmdBuffer* New = new(PendingFreeStagingBuffers) FPendingItemsPerCmdBuffer;
+		New->CmdBuffer = CmdBuffer;
+		return New;
+	}
+
+	inline FStagingManager::FPendingItemsPerCmdBuffer::FPendingItems* FStagingManager::FPendingItemsPerCmdBuffer::FindOrAddItemsForFence(uint64 Fence)
+	{
+		for (int32 Index = 0; Index < PendingItems.Num(); ++Index)
+		{
+			if (PendingItems[Index].FenceCounter == Fence)
+			{
+				return &PendingItems[Index];
+			}
+		}
+
+		FPendingItems* New = new(PendingItems) FPendingItems;
+		New->FenceCounter = Fence;
+		return New;
+	}
+
 	void FStagingManager::ReleaseBuffer(FVulkanCmdBuffer* CmdBuffer, FStagingBuffer*& StagingBuffer)
 	{
+		SCOPE_CYCLE_COUNTER(STAT_VulkanStagingBuffer);
+
 		FScopeLock Lock(&GAllocationLock);
 		UsedStagingBuffers.RemoveSingleSwap(StagingBuffer);
-		FPendingItem* Entry = new(PendingFreeStagingBuffers) FPendingItem;
-		Entry->CmdBuffer = CmdBuffer;
-		Entry->FenceCounter = CmdBuffer ? CmdBuffer->GetFenceSignaledCounter() : 0;
-		Entry->Resource = StagingBuffer;
+		ensure(CmdBuffer);
+
+		FPendingItemsPerCmdBuffer* ItemsForCmdBuffer = FindOrAdd(CmdBuffer);
+		FPendingItemsPerCmdBuffer::FPendingItems* ItemsForFence = ItemsForCmdBuffer->FindOrAddItemsForFence(CmdBuffer ? CmdBuffer->GetFenceSignaledCounter() : 0);
+		ItemsForFence->Resources.Add(StagingBuffer);
 		StagingBuffer = nullptr;
 	}
 
@@ -1221,47 +1259,78 @@ namespace VulkanRHI
 		UE_LOG(LogVulkanRHI, Display, TEXT("Pending CmdBuffer   Fence   BufferHandle ResourceAllocation"));
 		for (int32 Index = 0; Index < PendingFreeStagingBuffers.Num(); ++Index)
 		{
-			FPendingItem& Item = PendingFreeStagingBuffers[Index];
-			FStagingBuffer* Buffer = (FStagingBuffer*)Item.Resource;
-			UE_LOG(LogVulkanRHI, Display, TEXT("%6d %p %p %p %p"), Index, (void*)Item.CmdBuffer->GetHandle(), (void*)Item.FenceCounter, (void*)Buffer->GetHandle(), (void*)Buffer->ResourceAllocation->GetHandle());
+			FPendingItemsPerCmdBuffer& ItemPerCmdBuffer = PendingFreeStagingBuffers[Index];
+			UE_LOG(LogVulkanRHI, Display, TEXT("%6d %p"), Index, (void*)ItemPerCmdBuffer.CmdBuffer->GetHandle());
+			for (int32 FenceIndex = 0; FenceIndex < ItemPerCmdBuffer.PendingItems.Num(); ++FenceIndex)
+			{
+				FPendingItemsPerCmdBuffer::FPendingItems& ItemsPerFence = ItemPerCmdBuffer.PendingItems[FenceIndex];
+				UE_LOG(LogVulkanRHI, Display, TEXT("         Fence %p"), (void*)ItemsPerFence.FenceCounter);
+				for (int32 BufferIndex = 0; BufferIndex < ItemsPerFence.Resources.Num(); ++BufferIndex)
+				{
+					FStagingBuffer* Buffer = ItemsPerFence.Resources[BufferIndex];
+					UE_LOG(LogVulkanRHI, Display, TEXT("                   %p %p"), (void*)Buffer->GetHandle(), (void*)Buffer->ResourceAllocation->GetHandle());
+				}
+			}
 		}
 
 		UE_LOG(LogVulkanRHI, Display, TEXT("Free   BufferHandle ResourceAllocation"));
 		for (int32 Index = 0; Index < FreeStagingBuffers.Num(); ++Index)
 		{
-			FStagingBuffer* Buffer = (FStagingBuffer*)FreeStagingBuffers[Index].Resource;
-			UE_LOG(LogVulkanRHI, Display, TEXT("%6d %p %p"), Index, (void*)Buffer->GetHandle(), (void*)Buffer->ResourceAllocation->GetHandle());
+			FFreeEntry& Entry = FreeStagingBuffers[Index];
+			UE_LOG(LogVulkanRHI, Display, TEXT("%6d %p %p"), Index, (void*)Entry.Buffer->GetHandle(), (void*)Entry.Buffer->ResourceAllocation->GetHandle());
 		}
 	}
 #endif
 
-	void FStagingManager::ProcessPendingFree(bool bImmediately)
+	void FStagingManager::ProcessPendingFreeNoLock(bool bImmediately, bool bFreeToOS)
 	{
-		FScopeLock Lock(&GAllocationLock);
 		int32 NumOriginalFreeBuffers = FreeStagingBuffers.Num();
 		for (int32 Index = PendingFreeStagingBuffers.Num() - 1; Index >= 0; --Index)
 		{
-			FPendingItem& Entry = PendingFreeStagingBuffers[Index];
-			if (bImmediately || !Entry.CmdBuffer || Entry.FenceCounter < Entry.CmdBuffer->GetFenceSignaledCounter())
+			FPendingItemsPerCmdBuffer& EntriesPerCmdBuffer = PendingFreeStagingBuffers[Index];
+			for (int32 FenceIndex = EntriesPerCmdBuffer.PendingItems.Num() - 1; FenceIndex >= 0; --FenceIndex)
 			{
-				FPendingItem NewEntry = Entry;
-				NewEntry.FenceCounter = Entry.CmdBuffer ? Entry.CmdBuffer->GetFenceSignaledCounter() : 0;
+				FPendingItemsPerCmdBuffer::FPendingItems& PendingItems = EntriesPerCmdBuffer.PendingItems[FenceIndex];
+				if (bImmediately || PendingItems.FenceCounter < EntriesPerCmdBuffer.CmdBuffer->GetFenceSignaledCounter())
+				{
+					for (int32 ResourceIndex = 0; ResourceIndex < PendingItems.Resources.Num(); ++ResourceIndex)
+					{
+						FreeStagingBuffers.Add({PendingItems.Resources[ResourceIndex], GFrameNumberRenderThread});
+					}
+
+					EntriesPerCmdBuffer.PendingItems.RemoveAtSwap(FenceIndex, 1, false);
+				}
+			}
+
+			if (EntriesPerCmdBuffer.PendingItems.Num() == 0)
+			{
 				PendingFreeStagingBuffers.RemoveAtSwap(Index, 1, false);
-				FreeStagingBuffers.Add(NewEntry);
 			}
 		}
 
-		int32 NumFreeBuffers = bImmediately ? FreeStagingBuffers.Num() : NumOriginalFreeBuffers;
-		for (int32 Index = NumFreeBuffers - 1; Index >= 0; --Index)
+		if (bFreeToOS)
 		{
-			FPendingItem& Entry = FreeStagingBuffers[Index];
-			if (bImmediately || !Entry.CmdBuffer || Entry.FenceCounter  + NUM_FRAMES_TO_WAIT_BEFORE_RELEASING_TO_OS < Entry.CmdBuffer->GetFenceSignaledCounter())
+			int32 NumFreeBuffers = bImmediately ? FreeStagingBuffers.Num() : NumOriginalFreeBuffers;
+			for (int32 Index = NumFreeBuffers - 1; Index >= 0; --Index)
 			{
-				Entry.Resource->Destroy(Device);
-				delete Entry.Resource;
-				FreeStagingBuffers.RemoveAtSwap(Index, 1, false);
+				FFreeEntry& Entry = FreeStagingBuffers[Index];
+				if (bImmediately || Entry.FrameNumber + NUM_FRAMES_TO_WAIT_BEFORE_RELEASING_TO_OS < GFrameNumberRenderThread)
+				{
+					UsedMemory -= Entry.Buffer->GetSize();
+					Entry.Buffer->Destroy(Device);
+					delete Entry.Buffer;
+					FreeStagingBuffers.RemoveAtSwap(Index, 1, false);
+				}
 			}
 		}
+	}
+
+	void FStagingManager::ProcessPendingFree(bool bImmediately, bool bFreeToOS)
+	{
+		SCOPE_CYCLE_COUNTER(STAT_VulkanStagingBuffer);
+
+		FScopeLock Lock(&GAllocationLock);
+		ProcessPendingFreeNoLock(bImmediately, bFreeToOS);
 	}
 
 	FFence::FFence(FVulkanDevice* InDevice, FFenceManager* InOwner, bool bCreateSignaled)

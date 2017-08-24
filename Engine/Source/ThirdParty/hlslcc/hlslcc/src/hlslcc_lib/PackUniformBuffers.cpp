@@ -29,9 +29,9 @@ static inline T MAX2(T a, T b)
 	return a > b ? a : b;
 }
 
-static FCustomStdString GetUniformArrayName(_mesa_glsl_parser_targets Target, glsl_base_type Type, int CBIndex)
+static std::string GetUniformArrayName(_mesa_glsl_parser_targets Target, glsl_base_type Type, int CBIndex)
 {
-	std::basic_stringstream<char, std::char_traits<char>, FCustomStdAllocator<char>> Name("");
+	std::basic_stringstream<char, std::char_traits<char>, std::allocator<char>> Name("");
 
 	Name << glsl_variable_tag_from_parser_target(Target);
 
@@ -591,7 +591,7 @@ static int ProcessPackedUniformArrays(exec_list* Instructions, void* ctx, _mesa_
 {
 	// First organize all uniforms by location (CB or Global) and Precision
 	int UniformIndex = 0;
-	std::map<FCustomStdString, std::map<char, TIRVarVector> > OrganizedVars;
+	std::map<std::string, std::map<char, TIRVarVector> > OrganizedVars;
 	for (int NumUniforms = UniformVariables.Num(); UniformIndex < NumUniforms; ++UniformIndex)
 	{
 		ir_variable* var = UniformVariables[UniformIndex];
@@ -613,7 +613,7 @@ static int ProcessPackedUniformArrays(exec_list* Instructions, void* ctx, _mesa_
 	}
 
 	// Now create the list of used cb's to get their index
-	std::map<FCustomStdString, int> CBIndices;
+	std::map<std::string, int> CBIndices;
 	int CBIndex = 0;
 	CBIndices[""] = -1;
 	for (auto& Current : ParseState->CBuffersOriginal)
@@ -627,9 +627,9 @@ static int ProcessPackedUniformArrays(exec_list* Instructions, void* ctx, _mesa_
 	}
 
 	// Make sure any CB's with big matrices get at the end
-	std::vector<FCustomStdString> CBOrder;
+	std::vector<std::string> CBOrder;
 	{
-		std::vector<FCustomStdString> EndOrganizedVars;
+		std::vector<std::string> EndOrganizedVars;
 		for (auto& Pair : OrganizedVars)
 		{
 			bool bNonArrayFound = false;
@@ -665,10 +665,10 @@ static int ProcessPackedUniformArrays(exec_list* Instructions, void* ctx, _mesa_
 
 	// Now actually create the packed variables
 	TStringIRVarMap UniformArrayVarMap;
-	std::map<FCustomStdString, std::map<char, int> > NumElementsMap;
+	std::map<std::string, std::map<char, int> > NumElementsMap;
 	for (auto& SourceCB : CBOrder)
 	{
-		FCustomStdString DestCB = bGroupFlattenedUBs ? SourceCB : "";
+		std::string DestCB = bGroupFlattenedUBs ? SourceCB : "";
 		check(OrganizedVars.find(SourceCB) != OrganizedVars.end());
 		for (auto& VarSetPair : OrganizedVars[SourceCB])
 		{
@@ -681,7 +681,7 @@ static int ProcessPackedUniformArrays(exec_list* Instructions, void* ctx, _mesa_
 				const glsl_base_type array_base_type = (type->base_type == GLSL_TYPE_BOOL) ? GLSL_TYPE_UINT : type->base_type;
 				if (!UniformArrayVar)
 				{
-					FCustomStdString UniformArrayName = GetUniformArrayName(ParseState->target, type->base_type, CBIndices[DestCB]);
+					std::string UniformArrayName = GetUniformArrayName(ParseState->target, type->base_type, CBIndices[DestCB]);
 					auto IterFound = UniformArrayVarMap.find(UniformArrayName);
 					if (IterFound == UniformArrayVarMap.end())
 					{
@@ -814,7 +814,7 @@ static int ProcessPackedUniformArrays(exec_list* Instructions, void* ctx, _mesa_
 	return UniformIndex;
 }
 
-static int ProcessPackedSamplers(int UniformIndex, _mesa_glsl_parse_state* ParseState, const TIRVarVector& UniformVariables)
+static int ProcessPackedSamplers(int UniformIndex, _mesa_glsl_parse_state* ParseState, bool bKeepNames, const TIRVarVector& UniformVariables)
 {
 	int NumElements = 0;
 	check(ParseState->GlobalPackedArraysMap[EArrayType_Sampler].empty());
@@ -840,9 +840,12 @@ static int ProcessPackedSamplers(int UniformIndex, _mesa_glsl_parse_state* Parse
 		PackedSampler.Name = var->name;
 		PackedSampler.offset = NumElements;
 		PackedSampler.num_components = var->type->is_array() ? var->type->length : 1;
-		var->name = ralloc_asprintf(var, "%ss%d",
-			glsl_variable_tag_from_parser_target(ParseState->target),
-			NumElements);
+		if (!bKeepNames)
+		{
+			var->name = ralloc_asprintf(var, "%ss%d",
+				glsl_variable_tag_from_parser_target(ParseState->target),
+				NumElements);
+		}
 		PackedSampler.CB_PackedSampler = var->name;
 		ParseState->GlobalPackedArraysMap[EArrayType_Sampler].push_back(PackedSampler);
 
@@ -852,7 +855,7 @@ static int ProcessPackedSamplers(int UniformIndex, _mesa_glsl_parse_state* Parse
 	return UniformIndex;
 }
 
-static int ProcessPackedImages(int UniformIndex, _mesa_glsl_parse_state* ParseState, const TIRVarVector& UniformVariables)
+static int ProcessPackedImages(int UniformIndex, _mesa_glsl_parse_state* ParseState, bool bKeepNames, const TIRVarVector& UniformVariables)
 {
 	int NumElements = 0;
 	check(ParseState->GlobalPackedArraysMap[EArrayType_Image].empty());
@@ -879,9 +882,12 @@ static int ProcessPackedImages(int UniformIndex, _mesa_glsl_parse_state* ParseSt
 		PackedImage.offset = NumElements;
 		PackedImage.num_components = var->type->is_array() ? var->type->length : 1;
 		ParseState->GlobalPackedArraysMap[EArrayType_Image].push_back(PackedImage);
-		var->name = ralloc_asprintf(var, "%si%d",
-			glsl_variable_tag_from_parser_target(ParseState->target),
-			NumElements);
+		if (!bKeepNames)
+		{
+			var->name = ralloc_asprintf(var, "%si%d",
+				glsl_variable_tag_from_parser_target(ParseState->target),
+				NumElements);
+		}
 		
 		if (ParseState->bGenerateLayoutLocations)
 		{
@@ -1203,7 +1209,7 @@ namespace DebugPackUniforms
 * @param Instructions - The IR for which to pack uniforms.
 * @param ParseState - Parse state.
 */
-void PackUniforms(exec_list* Instructions, _mesa_glsl_parse_state* ParseState, bool bFlattenStructure, bool bGroupFlattenedUBs, bool bPackGlobalArraysIntoUniformBuffers, TVarVarMap& OutUniformMap)
+void PackUniforms(exec_list* Instructions, _mesa_glsl_parse_state* ParseState, bool bFlattenStructure, bool bGroupFlattenedUBs, bool bPackGlobalArraysIntoUniformBuffers, bool bKeepNames, TVarVarMap& OutUniformMap)
 {
 	//IRDump(Instructions);
 	void* ctx = ParseState;
@@ -1222,13 +1228,13 @@ void PackUniforms(exec_list* Instructions, _mesa_glsl_parse_state* ParseState, b
 		{
 			goto done;
 		}
-		UniformIndex = ProcessPackedSamplers(UniformIndex, ParseState, UniformVariables);
+		UniformIndex = ProcessPackedSamplers(UniformIndex, ParseState, bKeepNames, UniformVariables);
 		if (UniformIndex == -1)
 		{
 			goto done;
 		}
 
-		UniformIndex = ProcessPackedImages(UniformIndex, ParseState, UniformVariables);
+		UniformIndex = ProcessPackedImages(UniformIndex, ParseState, bKeepNames, UniformVariables);
 		if (UniformIndex == -1)
 		{
 			goto done;
@@ -1252,7 +1258,7 @@ struct SExpandArrayAssignment : public ir_hierarchical_visitor
 	bool bModified;
 	_mesa_glsl_parse_state* ParseState;
 
-	std::map<const glsl_type*, std::map<FCustomStdString, int>> MemberIsArrayMap;
+	std::map<const glsl_type*, std::map<std::string, int>> MemberIsArrayMap;
 
 	SExpandArrayAssignment(_mesa_glsl_parse_state* InState) :
 		ParseState(InState),
@@ -1414,7 +1420,7 @@ bool ExtractSamplerStatesNameInformation(exec_list* Instructions, _mesa_glsl_par
 	{
 		for (auto& Pair : SamplerNameVisitor.SamplerToTextureMap)
 		{
-			const FCustomStdString& SamplerName = Pair.first;
+			const std::string& SamplerName = Pair.first;
 			const TStringSet& Textures = Pair.second;
 			if (Textures.size() > 1)
 			{
@@ -1437,12 +1443,12 @@ struct FFixRedundantCastsVisitor : public ir_rvalue_visitor
 {
 	FFixRedundantCastsVisitor() {}
 
-	virtual ir_visitor_status visit_enter(ir_expression* ir)
+	virtual ir_visitor_status visit_enter(ir_expression* ir) override
 	{
 		return ir_rvalue_visitor::visit_enter(ir);
 	}
 
-	virtual ir_visitor_status visit_leave(ir_expression* ir)
+	virtual ir_visitor_status visit_leave(ir_expression* ir) override
 	{
 		auto Result = ir_rvalue_visitor::visit_leave(ir);
 		return Result;

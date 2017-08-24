@@ -63,17 +63,15 @@ void FVREditorModeManager::Tick( const float DeltaTime )
 		}
 	}
 
-	if( IsVREditorActive() )
+	if(CurrentVREditorMode != nullptr && CurrentVREditorMode->WantsToExitMode())
 	{
-		if( CurrentVREditorMode->WantsToExitMode() )
-		{
-			// For a standard exit, also take the HMD out of stereo mode
-			const bool bShouldDisableStereo = true;
-			CloseVREditor( bShouldDisableStereo );
-		}
+		// For a standard exit, also take the HMD out of stereo mode
+		const bool bShouldDisableStereo = true;
+		CloseVREditor( bShouldDisableStereo );
 	}
+
 	// Only check for input if we started this play session from the VR Editor
-	else if( GEditor->PlayWorld && !GEditor->bIsSimulatingInEditor && CurrentVREditorMode != nullptr)
+	if( GEditor->PlayWorld && !GEditor->bIsSimulatingInEditor && CurrentVREditorMode != nullptr)
 	{
 		// Shutdown PIE if we came from the VR Editor and we are not already requesting to start the VR Editor and when any of the players is holding down the required input
 		const float ShutDownInputKeyTime = 1.0f;

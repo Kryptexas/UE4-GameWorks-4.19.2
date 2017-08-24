@@ -166,7 +166,7 @@ bool FHlslCrossCompilerContext::Init(
 		InLanguageSpec,
 		VersionTable[CompileTarget]
 		);
-	ParseState->base_source_file = InSourceFilename;
+	ParseState->base_source_file = ralloc_strdup(MemContext, InSourceFilename);
 	ParseState->error = 0;
 	ParseState->adjust_clip_space_dx11_to_opengl = (Flags & HLSLCC_DX11ClipSpace) != 0;
 	ParseState->bFlattenUniformBuffers = bFlattenUniformBuffers;
@@ -323,8 +323,9 @@ bool FHlslCrossCompilerContext::RunBackend(
 	if (bPackUniforms)
 	{
 		const bool bPackGlobalArraysIntoUniformBuffers = ((Flags & HLSLCC_PackUniformsIntoUniformBuffers) == HLSLCC_PackUniformsIntoUniformBuffers);
+		const bool bKeepNames = (Flags & HLSLCC_KeepSamplerAndImageNames) == HLSLCC_KeepSamplerAndImageNames;
 		TVarVarMap UniformMap;
-		PackUniforms(ir, ParseState, bFlattenUBStructures, bGroupFlattenedUBs, bPackGlobalArraysIntoUniformBuffers, UniformMap);
+		PackUniforms(ir, ParseState, bFlattenUBStructures, bGroupFlattenedUBs, bPackGlobalArraysIntoUniformBuffers, bKeepNames, UniformMap);
 		//TIMER(pack_uniforms);
 
 		RemovePackedUniformBufferReferences(ir, ParseState, UniformMap);

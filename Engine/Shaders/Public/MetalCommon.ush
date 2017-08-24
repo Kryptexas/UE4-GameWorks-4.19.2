@@ -5,7 +5,7 @@
 =============================================================================*/
 
 // Update this GUID to improve shader recompilation for Metal only shaders
-// GUID = {36782442-E538-4A21-BEAA-7184F683FE5D}
+// GUID = {46782441-E548-4A21-BEAB-7184F683FE5D}
   
 #pragma once
 
@@ -14,7 +14,3 @@
 #define TESSELLATIONSHADER 1
 #endif
 #endif
-
-// Cross compiler doesn't support structured buffers.  This replacement works if it was using a builtin type.
-#define RWStructuredBuffer RWBuffer
-#define StructuredBuffer Buffer

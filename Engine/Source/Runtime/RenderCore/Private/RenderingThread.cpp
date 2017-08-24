@@ -156,7 +156,7 @@ FSuspendRenderingThread::FSuspendRenderingThread( bool bInRecreateThread )
 
 /** Destructor that starts the renderthread again */
 FSuspendRenderingThread::~FSuspendRenderingThread()
-{	
+{
 	if ( bRecreateThread )
 	{
 		GUseThreadedRendering = bUseRenderingThread;
@@ -287,7 +287,7 @@ public:
 
 	void Start()
 	{
-		Thread = FRunnableThread::Create(this, TEXT("RHIThread"), 512 * 1024, TPri_SlightlyBelowNormal, 
+		Thread = FRunnableThread::Create(this, TEXT("RHIThread"), 512 * 1024, FPlatformAffinity::GetRHIThreadPriority(),
 			FPlatformAffinity::GetRHIThreadMask()
 			);
 		check(Thread);
@@ -983,8 +983,9 @@ static void GameThreadWaitForTask(const FGraphEventRef& Task, bool bEmptyGameThr
 				}
 				bDone = Event->Wait(WaitTime);
 
+#if !WITH_EDITOR
 				// editor threads can block for quite a while... 
-				if (!bDone && !WITH_EDITOR && !FPlatformMisc::IsDebuggerPresent())
+				if (!bDone && !FPlatformMisc::IsDebuggerPresent())
 				{
 					static bool bDisabled = FParse::Param(FCommandLine::Get(), TEXT("nothreadtimeout"));
 					static bool bGPUDebugging = FParse::Param(FCommandLine::Get(), TEXT("gpucrashdebugging"));
@@ -1002,11 +1003,14 @@ static void GameThreadWaitForTask(const FGraphEventRef& Task, bool bEmptyGameThr
 		
 					// Fatal timeout if we run out of time and this thread is being monitor for heartbeats
 					// (We could just let the heartbeat monitor error for us, but this leads to better diagnostics).
+#if !PLATFORM_IOS // @todo MetalMRT: Timeout isn't long enough...
 					if (FPlatformTime::Seconds() >= EndTime && FThreadHeartBeat::Get().IsBeating() && !bDisabled)
 					{
 						UE_LOG(LogRendererCore, Fatal, TEXT("GameThread timed out waiting for RenderThread after %.02f secs"), FPlatformTime::Seconds() - StartTime);
 					}
+#endif
 				}
+#endif
 			}
 			while (!bDone);
 

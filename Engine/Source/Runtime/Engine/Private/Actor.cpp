@@ -95,6 +95,7 @@ void AActor::InitializeDefaults()
 #if WITH_EDITORONLY_DATA
 	bEditable = true;
 	bListedInSceneOutliner = true;
+	bIsEditorPreviewActor = false;
 	bHiddenEdLayer = false;
 	bHiddenEdTemporary = false;
 	bHiddenEdLevel = false;
@@ -2511,7 +2512,10 @@ void AActor::AddOwnedComponent(UActorComponent* Component)
 
 void AActor::RemoveOwnedComponent(UActorComponent* Component)
 {
-	Modify();
+	// Note: we do not mark dirty here because this can be called when in editor when modifying transient components
+	// if a component is added during this time it should not dirty.  Higher level code in the editor should always dirty the package anyway
+	const bool bMarkDirty = false;
+	Modify(bMarkDirty);
 
 	if (OwnedComponents.Remove(Component) > 0)
 	{
@@ -2993,6 +2997,13 @@ void AActor::PostActorConstruction()
 						bRunBeginPlay = (ParentActor->HasActorBegunPlay() || ParentActor->IsActorBeginningPlay());
 					}
 				}
+
+#if WITH_EDITOR
+				if (bRunBeginPlay && bIsEditorPreviewActor)
+				{
+					bRunBeginPlay = false;
+				}
+#endif
 
 				if (bRunBeginPlay)
 				{

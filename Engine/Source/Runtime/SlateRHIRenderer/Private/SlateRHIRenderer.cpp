@@ -421,8 +421,12 @@ void FSlateRHIRenderer::OnWindowDestroyed( const TSharedRef<SWindow>& InWindow )
 	{
 		OnSlateWindowDestroyedDelegate.Broadcast(&(*ViewportInfoPtr)->ViewportRHI);
 
+		// Need to flush rendering commands as the viewport may be in use by the render thread
+		// and the rendering resources must be released on the render thread before the viewport can be deleted
+		FlushRenderingCommands();
+		
 		BeginReleaseResource(*ViewportInfoPtr);
-
+		
 		// Need to flush rendering commands as the viewport may be in use by the render thread
 		// and the rendering resources must be released on the render thread before the viewport can be deleted
 		FlushRenderingCommands();
@@ -593,281 +597,282 @@ static FAutoConsoleVariableRef CVarSlateWireframe(TEXT("Slate.ShowWireFrame"), S
 /** Draws windows from a FSlateDrawBuffer on the render thread */
 void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmdList, FViewportInfo& ViewportInfo, FSlateWindowElementList& WindowElementList, bool bLockToVsync, bool bClear)
 {
-	SCOPED_DRAW_EVENT(RHICmdList, SlateUI);
-
-	// Should only be called by the rendering thread
-	check(IsInRenderingThread());
-
-	FMaterialRenderProxy::UpdateDeferredCachedUniformExpressions();
-
-	// Optional off-screen UI composition during HDR rendering
-	static const auto CVarCompositeMode = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.UI.CompositeMode"));
-	static const auto CVarHDROutputEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.EnableHDROutput"));
-
-	const bool bSupportsUIComposition = GRHISupportsHDROutput && GSupportsVolumeTextureRendering && SupportsUICompositionRendering(GetFeatureLevelShaderPlatform(GMaxRHIFeatureLevel));
-	const bool bCompositeUI = bSupportsUIComposition
-		&& CVarCompositeMode && CVarCompositeMode->GetValueOnRenderThread() != 0
-		&& CVarHDROutputEnabled && CVarHDROutputEnabled->GetValueOnRenderThread() != 0;
-
-	const int32 CompositionLUTSize = 32;
-
-	// Only need to update LUT on settings change
-	static const auto CVarHDROutputDevice = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.Display.OutputDevice"));
-	static const auto CVarHDROutputGamut = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.Display.ColorGamut"));
-
-	const int32 HDROutputDevice = CVarHDROutputDevice ? CVarHDROutputDevice->GetValueOnRenderThread() : 0;
-	const int32 HDROutputGamut = CVarHDROutputGamut ? CVarHDROutputGamut->GetValueOnRenderThread() : 0;
-
-	bool bLUTStale = ViewportInfo.ColorSpaceLUTOutputDevice != HDROutputDevice || ViewportInfo.ColorSpaceLUTOutputGamut != HDROutputGamut;
-
-	ViewportInfo.ColorSpaceLUTOutputDevice = HDROutputDevice;
-	ViewportInfo.ColorSpaceLUTOutputGamut = HDROutputGamut;
-	
-	bool bRenderedStereo = false;
-	if( CVarDrawToVRRenderTarget->GetInt() == 0 && GEngine && IsValidRef( ViewportInfo.GetRenderTargetTexture() ) && GEngine->StereoRenderingDevice.IsValid() )
 	{
-		GEngine->StereoRenderingDevice->RenderTexture_RenderThread( RHICmdList, RHICmdList.GetViewportBackBuffer( ViewportInfo.ViewportRHI ), ViewportInfo.GetRenderTargetTexture() );
-		bRenderedStereo = true;
-	}
+		SCOPED_DRAW_EVENT(RHICmdList, SlateUI);
 
-	{
-		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_SlateUI);
-		SCOPE_CYCLE_COUNTER( STAT_SlateRenderingRTTime );
+		// Should only be called by the rendering thread
+		check(IsInRenderingThread());
 
-		FSlateBatchData& BatchData = WindowElementList.GetBatchData();
-		FElementBatchMap& RootBatchMap = WindowElementList.GetRootDrawLayer().GetElementBatchMap();
+		FMaterialRenderProxy::UpdateDeferredCachedUniformExpressions();
 
-		WindowElementList.PreDraw_ParallelThread();
+		// Optional off-screen UI composition during HDR rendering
+		static const auto CVarCompositeMode = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.UI.CompositeMode"));
+		static const auto CVarHDROutputEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.EnableHDROutput"));
 
+		const bool bSupportsUIComposition = GRHISupportsHDROutput && GSupportsVolumeTextureRendering && SupportsUICompositionRendering(GetFeatureLevelShaderPlatform(GMaxRHIFeatureLevel));
+		const bool bCompositeUI = bSupportsUIComposition
+			&& CVarCompositeMode && CVarCompositeMode->GetValueOnRenderThread() != 0
+			&& CVarHDROutputEnabled && CVarHDROutputEnabled->GetValueOnRenderThread() != 0;
+
+		const int32 CompositionLUTSize = 32;
+
+		// Only need to update LUT on settings change
+		static const auto CVarHDROutputDevice = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.Display.OutputDevice"));
+		static const auto CVarHDROutputGamut = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.Display.ColorGamut"));
+
+		const int32 HDROutputDevice = CVarHDROutputDevice ? CVarHDROutputDevice->GetValueOnRenderThread() : 0;
+		const int32 HDROutputGamut = CVarHDROutputGamut ? CVarHDROutputGamut->GetValueOnRenderThread() : 0;
+
+		bool bLUTStale = ViewportInfo.ColorSpaceLUTOutputDevice != HDROutputDevice || ViewportInfo.ColorSpaceLUTOutputGamut != HDROutputGamut;
+
+		ViewportInfo.ColorSpaceLUTOutputDevice = HDROutputDevice;
+		ViewportInfo.ColorSpaceLUTOutputGamut = HDROutputGamut;
+
+		bool bRenderedStereo = false;
+		if (CVarDrawToVRRenderTarget->GetInt() == 0 && GEngine && IsValidRef(ViewportInfo.GetRenderTargetTexture()) && GEngine->StereoRenderingDevice.IsValid())
 		{
-			SCOPE_CYCLE_COUNTER(STAT_SlateRTCreateBatches);
-			// Update the vertex and index buffer
-			BatchData.CreateRenderBatches(RootBatchMap);
+			GEngine->StereoRenderingDevice->RenderTexture_RenderThread(RHICmdList, RHICmdList.GetViewportBackBuffer(ViewportInfo.ViewportRHI), ViewportInfo.GetRenderTargetTexture());
+			bRenderedStereo = true;
 		}
 
 		{
-			SCOPE_CYCLE_COUNTER(STAT_SlateRTFillVertexIndexBuffers);
-			RenderingPolicy->UpdateVertexAndIndexBuffers(RHICmdList, BatchData);
-		}
+			SCOPED_GPU_STAT(RHICmdList, Stat_GPU_SlateUI);
+			SCOPE_CYCLE_COUNTER(STAT_SlateRenderingRTTime);
 
-		// should have been created by the game thread
-		check( IsValidRef(ViewportInfo.ViewportRHI) );
+			FSlateBatchData& BatchData = WindowElementList.GetBatchData();
+			FElementBatchMap& RootBatchMap = WindowElementList.GetRootDrawLayer().GetElementBatchMap();
 
-		FTexture2DRHIRef ViewportRT = bRenderedStereo ? nullptr : ViewportInfo.GetRenderTargetTexture();
-		FTexture2DRHIRef BackBuffer = (ViewportRT) ? ViewportRT : RHICmdList.GetViewportBackBuffer(ViewportInfo.ViewportRHI);
-		
-		const uint32 ViewportWidth = (ViewportRT) ? ViewportRT->GetSizeX() : ViewportInfo.Width;
-		const uint32 ViewportHeight = (ViewportRT) ? ViewportRT->GetSizeY() : ViewportInfo.Height;
-		
-		// Check to see that targets are up-to-date
-		if (bCompositeUI && (!ViewportInfo.UITargetRT || ViewportInfo.UITargetRT->GetSizeX() != ViewportWidth || ViewportInfo.UITargetRT->GetSizeY() != ViewportHeight))
-		{
-			// Composition buffers
-			ViewportInfo.UITargetRT.SafeRelease();
-			ViewportInfo.HDRSourceRT.SafeRelease();
-			ViewportInfo.ColorSpaceLUTRT.SafeRelease();
-			ViewportInfo.UITargetSRV.SafeRelease();
+			WindowElementList.PreDraw_ParallelThread();
 
-			FRHIResourceCreateInfo CreateInfo;
-			RHICreateTargetableShaderResource2D(ViewportWidth, ViewportHeight, PF_B8G8R8A8, 1, TexCreate_None, TexCreate_RenderTargetable, false, CreateInfo, ViewportInfo.UITargetRT, ViewportInfo.UITargetSRV);
-			RHICreateTargetableShaderResource2D(ViewportWidth, ViewportHeight, GRHIHDRDisplayOutputFormat, 1, TexCreate_None, TexCreate_RenderTargetable, false, CreateInfo, ViewportInfo.HDRSourceRT, ViewportInfo.HDRSourceSRV);
+			{
+				SCOPE_CYCLE_COUNTER(STAT_SlateRTCreateBatches);
+				// Update the vertex and index buffer
+				BatchData.CreateRenderBatches(RootBatchMap);
+			}
 
-			// LUT
-			ViewportInfo.ColorSpaceLUTRT.SafeRelease();
-			ViewportInfo.ColorSpaceLUTSRV.SafeRelease();
+			{
+				SCOPE_CYCLE_COUNTER(STAT_SlateRTFillVertexIndexBuffers);
+				RenderingPolicy->UpdateVertexAndIndexBuffers(RHICmdList, BatchData);
+			}
 
-			RHICreateTargetableShaderResource3D(CompositionLUTSize, CompositionLUTSize, CompositionLUTSize, PF_A2B10G10R10, 1, TexCreate_None, TexCreate_RenderTargetable, false, CreateInfo, ViewportInfo.ColorSpaceLUTRT, ViewportInfo.ColorSpaceLUTSRV);
-			bLUTStale = true;
-		}
+			// should have been created by the game thread
+			check(IsValidRef(ViewportInfo.ViewportRHI));
 
-		FTexture2DRHIRef FinalBuffer = BackBuffer;
+			FTexture2DRHIRef ViewportRT = bRenderedStereo ? nullptr : ViewportInfo.GetRenderTargetTexture();
+			FTexture2DRHIRef BackBuffer = (ViewportRT) ? ViewportRT : RHICmdList.GetViewportBackBuffer(ViewportInfo.ViewportRHI);
 
-		if (bCompositeUI)
-		{
-			FResolveParams ResolveParams;
-			bClear = true; // Force a clear of the UI buffer to black
+			const uint32 ViewportWidth = (ViewportRT) ? ViewportRT->GetSizeX() : ViewportInfo.Width;
+			const uint32 ViewportHeight = (ViewportRT) ? ViewportRT->GetSizeY() : ViewportInfo.Height;
 
-			// Grab HDR backbuffer
-			RHICmdList.CopyToResolveTarget(FinalBuffer, ViewportInfo.HDRSourceRT, false, ResolveParams);
+			// Check to see that targets are up-to-date
+			if (bCompositeUI && (!ViewportInfo.UITargetRT || ViewportInfo.UITargetRT->GetSizeX() != ViewportWidth || ViewportInfo.UITargetRT->GetSizeY() != ViewportHeight))
+			{
+				// Composition buffers
+				ViewportInfo.UITargetRT.SafeRelease();
+				ViewportInfo.HDRSourceRT.SafeRelease();
+				ViewportInfo.ColorSpaceLUTRT.SafeRelease();
+				ViewportInfo.UITargetSRV.SafeRelease();
 
-			// UI backbuffer is temp target
-			BackBuffer = ViewportInfo.UITargetRT;
-		}
+				FRHIResourceCreateInfo CreateInfo;
+				RHICreateTargetableShaderResource2D(ViewportWidth, ViewportHeight, PF_B8G8R8A8, 1, TexCreate_None, TexCreate_RenderTargetable, false, CreateInfo, ViewportInfo.UITargetRT, ViewportInfo.UITargetSRV);
+				RHICreateTargetableShaderResource2D(ViewportWidth, ViewportHeight, GRHIHDRDisplayOutputFormat, 1, TexCreate_None, TexCreate_RenderTargetable, false, CreateInfo, ViewportInfo.HDRSourceRT, ViewportInfo.HDRSourceSRV);
 
-		if ( SlateWireFrame )
-		{
-			bClear = true;
-		}
+				// LUT
+				ViewportInfo.ColorSpaceLUTRT.SafeRelease();
+				ViewportInfo.ColorSpaceLUTSRV.SafeRelease();
 
-		RHICmdList.BeginDrawingViewport( ViewportInfo.ViewportRHI, FTextureRHIRef() );
-		RHICmdList.SetViewport(0, 0, 0, ViewportWidth, ViewportHeight, 0.0f);
-		RHICmdList.TransitionResource(EResourceTransitionAccess::EWritable, BackBuffer);
-		
-		if (ViewportInfo.bRequiresStencilTest)
-		{
-			check(IsValidRef(ViewportInfo.DepthStencil));
+				RHICreateTargetableShaderResource3D(CompositionLUTSize, CompositionLUTSize, CompositionLUTSize, PF_A2B10G10R10, 1, TexCreate_None, TexCreate_RenderTargetable, false, CreateInfo, ViewportInfo.ColorSpaceLUTRT, ViewportInfo.ColorSpaceLUTSRV);
+				bLUTStale = true;
+			}
 
-			// Reset the backbuffer as our color render target and also set a depth stencil buffer
-			FRHIRenderTargetView ColorView(BackBuffer, 0, -1, bClear ? ERenderTargetLoadAction::EClear : ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::EStore);
-			FRHIDepthRenderTargetView DepthStencilView(ViewportInfo.DepthStencil, ERenderTargetLoadAction::ENoAction, ERenderTargetStoreAction::ENoAction, ERenderTargetLoadAction::ENoAction, ERenderTargetStoreAction::EStore);
-			FRHISetRenderTargetsInfo Info(1, &ColorView, DepthStencilView);
+			FTexture2DRHIRef FinalBuffer = BackBuffer;
 
-			// Clear the stencil buffer
-			RHICmdList.SetRenderTargetsAndClear(Info);
-		}
-		else
-		{
-			SetRenderTarget(RHICmdList, BackBuffer, FTextureRHIRef(), bClear ? ESimpleRenderTargetMode::EClearColorAndDepth : ESimpleRenderTargetMode::EExistingColorAndDepth);
-		}
+			if (bCompositeUI)
+			{
+				FResolveParams ResolveParams;
+				bClear = true; // Force a clear of the UI buffer to black
 
-#if WITH_SLATE_VISUALIZERS
-		if ( CVarShowSlateBatching.GetValueOnRenderThread() != 0 || CVarShowSlateOverdraw.GetValueOnRenderThread() != 0 )
-		{
+				// Grab HDR backbuffer
+				RHICmdList.CopyToResolveTarget(FinalBuffer, ViewportInfo.HDRSourceRT, false, ResolveParams);
+
+				// UI backbuffer is temp target
+				BackBuffer = ViewportInfo.UITargetRT;
+			}
+
+			if (SlateWireFrame)
+			{
+				bClear = true;
+			}
+
+			RHICmdList.BeginDrawingViewport(ViewportInfo.ViewportRHI, FTextureRHIRef());
+			RHICmdList.SetViewport(0, 0, 0, ViewportWidth, ViewportHeight, 0.0f);
+			RHICmdList.TransitionResource(EResourceTransitionAccess::EWritable, BackBuffer);
+
 			if (ViewportInfo.bRequiresStencilTest)
 			{
+				check(IsValidRef(ViewportInfo.DepthStencil));
+
 				// Reset the backbuffer as our color render target and also set a depth stencil buffer
-				FRHIRenderTargetView ColorView(BackBuffer, 0, -1, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore);
-				FRHISetRenderTargetsInfo Info(1, &ColorView, FRHIDepthRenderTargetView(ViewportInfo.DepthStencil, ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::EStore, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore));
+				FRHIRenderTargetView ColorView(BackBuffer, 0, -1, bClear ? ERenderTargetLoadAction::EClear : ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::EStore);
+				FRHIDepthRenderTargetView DepthStencilView(ViewportInfo.DepthStencil, ERenderTargetLoadAction::ENoAction, ERenderTargetStoreAction::ENoAction, ERenderTargetLoadAction::ENoAction, ERenderTargetStoreAction::EStore);
+				FRHISetRenderTargetsInfo Info(1, &ColorView, DepthStencilView);
+
+				// Clear the stencil buffer
 				RHICmdList.SetRenderTargetsAndClear(Info);
 			}
 			else
 			{
-				SetRenderTarget(RHICmdList, BackBuffer, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorAndDepth);
-			}
-		}
-#endif
-
-		if( BatchData.GetRenderBatches().Num() > 0 )
-		{
-			SCOPE_CYCLE_COUNTER(STAT_SlateRTDrawBatches);
-
-			FSlateBackBuffer BackBufferTarget( BackBuffer, FIntPoint( ViewportWidth, ViewportHeight ) );
-
-			FSlateRenderingOptions DrawOptions(ViewMatrix * ViewportInfo.ProjectionMatrix);
-			DrawOptions.bWireFrame = !!SlateWireFrame;
-
-			RenderingPolicy->DrawElements
-			(
-				RHICmdList,
-				BackBufferTarget,
-				BackBuffer,
-				ViewportInfo.DepthStencil,
-				BatchData.GetRenderBatches(),
-				BatchData.GetRenderClipStates(),
-				DrawOptions
-			);
-		}
-
-		if (bCompositeUI)
-		{
-			SCOPED_DRAW_EVENT(RHICmdList, SlateUI_Composition);
-
-			static const FName RendererModuleName("Renderer");
-			IRendererModule& RendererModule = FModuleManager::GetModuleChecked<IRendererModule>(RendererModuleName);
-
-			const auto FeatureLevel = GMaxRHIFeatureLevel;
-			auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
-
-			// Generate composition LUT
-			if (bLUTStale)
-			{
-				SetRenderTarget(RHICmdList, ViewportInfo.ColorSpaceLUTRT, FTextureRHIRef());
-
-				FGraphicsPipelineStateInitializer GraphicsPSOInit;
-				RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
-				GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
-				GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
-				GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
-
-				TShaderMapRef<FWriteToSliceVS> VertexShader(ShaderMap);
-				TOptionalShaderMapRef<FWriteToSliceGS> GeometryShader(ShaderMap);
-				TShaderMapRef<FCompositeLUTGenerationPS> PixelShader(ShaderMap);
-				const FVolumeBounds VolumeBounds(CompositionLUTSize);
-
-				GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GScreenVertexDeclaration.VertexDeclarationRHI;
-				GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
-				GraphicsPSOInit.BoundShaderState.GeometryShaderRHI = GETSAFERHISHADER_GEOMETRY(*GeometryShader);
-				GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
-				GraphicsPSOInit.PrimitiveType = PT_TriangleStrip;
-				SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
-
-				VertexShader->SetParameters(RHICmdList, VolumeBounds, FIntVector(VolumeBounds.MaxX - VolumeBounds.MinX));
-				if(GeometryShader.IsValid())
-				{
-					GeometryShader->SetParameters(RHICmdList, VolumeBounds.MinZ);
-				}
-				PixelShader->SetParameters(RHICmdList);
-				
-				RasterizeToVolumeTexture(RHICmdList, VolumeBounds);
-
-				FResolveParams ResolveParams;
-				RHICmdList.CopyToResolveTarget(ViewportInfo.ColorSpaceLUTRT, ViewportInfo.ColorSpaceLUTSRV, false, ResolveParams);
+				SetRenderTarget(RHICmdList, BackBuffer, FTextureRHIRef(), bClear ? ESimpleRenderTargetMode::EClearColorAndDepth : ESimpleRenderTargetMode::EExistingColorAndDepth);
 			}
 
-			// Composition pass
+#if WITH_SLATE_VISUALIZERS
+			if (CVarShowSlateBatching.GetValueOnRenderThread() != 0 || CVarShowSlateOverdraw.GetValueOnRenderThread() != 0)
 			{
-				FResolveParams ResolveParams;
-				RHICmdList.CopyToResolveTarget(ViewportInfo.UITargetRT, ViewportInfo.UITargetSRV, false, ResolveParams);
-
-				SetRenderTarget(RHICmdList, FinalBuffer, FTextureRHIRef());
-
-				FGraphicsPipelineStateInitializer GraphicsPSOInit;
-				RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
-				GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
-				GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
-				GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
-
-				TShaderMapRef<FScreenVS> VertexShader(ShaderMap);
-
-				if (HDROutputDevice == 5 || HDROutputDevice == 6)
+				if (ViewportInfo.bRequiresStencilTest)
 				{
-					// ScRGB encoding
-					TShaderMapRef<FCompositePS<1>> PixelShader(ShaderMap);
-
-					GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = RendererModule.GetFilterVertexDeclaration().VertexDeclarationRHI;
-					GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
-					GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
-					GraphicsPSOInit.PrimitiveType = PT_TriangleList;
-
-					SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
-
-					PixelShader->SetParameters(RHICmdList, ViewportInfo.UITargetSRV, ViewportInfo.HDRSourceSRV, ViewportInfo.ColorSpaceLUTSRV);
+					// Reset the backbuffer as our color render target and also set a depth stencil buffer
+					FRHIRenderTargetView ColorView(BackBuffer, 0, -1, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore);
+					FRHISetRenderTargetsInfo Info(1, &ColorView, FRHIDepthRenderTargetView(ViewportInfo.DepthStencil, ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::EStore, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore));
+					RHICmdList.SetRenderTargetsAndClear(Info);
 				}
 				else
 				{
-					// ST2084 (PQ) encoding
-					TShaderMapRef<FCompositePS<0>> PixelShader(ShaderMap);
+					SetRenderTarget(RHICmdList, BackBuffer, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorAndDepth);
+				}
+			}
+#endif
 
-					GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = RendererModule.GetFilterVertexDeclaration().VertexDeclarationRHI;
+			if (BatchData.GetRenderBatches().Num() > 0)
+			{
+				SCOPE_CYCLE_COUNTER(STAT_SlateRTDrawBatches);
+
+				FSlateBackBuffer BackBufferTarget(BackBuffer, FIntPoint(ViewportWidth, ViewportHeight));
+
+				FSlateRenderingOptions DrawOptions(ViewMatrix * ViewportInfo.ProjectionMatrix);
+				DrawOptions.bWireFrame = !!SlateWireFrame;
+
+				RenderingPolicy->DrawElements
+				(
+					RHICmdList,
+					BackBufferTarget,
+					BackBuffer,
+					ViewportInfo.DepthStencil,
+					BatchData.GetRenderBatches(),
+					BatchData.GetRenderClipStates(),
+					DrawOptions
+				);
+			}
+
+			if (bCompositeUI)
+			{
+				SCOPED_DRAW_EVENT(RHICmdList, SlateUI_Composition);
+
+				static const FName RendererModuleName("Renderer");
+				IRendererModule& RendererModule = FModuleManager::GetModuleChecked<IRendererModule>(RendererModuleName);
+
+				const auto FeatureLevel = GMaxRHIFeatureLevel;
+				auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
+
+				// Generate composition LUT
+				if (bLUTStale)
+				{
+					SetRenderTarget(RHICmdList, ViewportInfo.ColorSpaceLUTRT, FTextureRHIRef());
+
+					FGraphicsPipelineStateInitializer GraphicsPSOInit;
+					RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+					GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
+					GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
+					GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+
+					TShaderMapRef<FWriteToSliceVS> VertexShader(ShaderMap);
+					TOptionalShaderMapRef<FWriteToSliceGS> GeometryShader(ShaderMap);
+					TShaderMapRef<FCompositeLUTGenerationPS> PixelShader(ShaderMap);
+					const FVolumeBounds VolumeBounds(CompositionLUTSize);
+
+					GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GScreenVertexDeclaration.VertexDeclarationRHI;
 					GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+					GraphicsPSOInit.BoundShaderState.GeometryShaderRHI = GETSAFERHISHADER_GEOMETRY(*GeometryShader);
 					GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
-					GraphicsPSOInit.PrimitiveType = PT_TriangleList;
-
+					GraphicsPSOInit.PrimitiveType = PT_TriangleStrip;
 					SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
-					PixelShader->SetParameters(RHICmdList, ViewportInfo.UITargetSRV, ViewportInfo.HDRSourceSRV, ViewportInfo.ColorSpaceLUTSRV);
+					VertexShader->SetParameters(RHICmdList, VolumeBounds, FIntVector(VolumeBounds.MaxX - VolumeBounds.MinX));
+					if (GeometryShader.IsValid())
+					{
+						GeometryShader->SetParameters(RHICmdList, VolumeBounds.MinZ);
+					}
+					PixelShader->SetParameters(RHICmdList);
+
+					RasterizeToVolumeTexture(RHICmdList, VolumeBounds);
+
+					FResolveParams ResolveParams;
+					RHICmdList.CopyToResolveTarget(ViewportInfo.ColorSpaceLUTRT, ViewportInfo.ColorSpaceLUTSRV, false, ResolveParams);
 				}
 
-				RendererModule.DrawRectangle(
-					RHICmdList,
-					0, 0,
-					ViewportWidth, ViewportHeight,
-					0, 0,
-					ViewportWidth, ViewportHeight,
-					FIntPoint(ViewportWidth, ViewportHeight),
-					FIntPoint(ViewportWidth, ViewportHeight),
-					*VertexShader,
-					EDRF_UseTriangleOptimization);
+				// Composition pass
+				{
+					FResolveParams ResolveParams;
+					RHICmdList.CopyToResolveTarget(ViewportInfo.UITargetRT, ViewportInfo.UITargetSRV, false, ResolveParams);
+
+					SetRenderTarget(RHICmdList, FinalBuffer, FTextureRHIRef());
+
+					FGraphicsPipelineStateInitializer GraphicsPSOInit;
+					RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+					GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
+					GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
+					GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+
+					TShaderMapRef<FScreenVS> VertexShader(ShaderMap);
+
+					if (HDROutputDevice == 5 || HDROutputDevice == 6)
+					{
+						// ScRGB encoding
+						TShaderMapRef<FCompositePS<1>> PixelShader(ShaderMap);
+
+						GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = RendererModule.GetFilterVertexDeclaration().VertexDeclarationRHI;
+						GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+						GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+						GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+						SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+
+						PixelShader->SetParameters(RHICmdList, ViewportInfo.UITargetSRV, ViewportInfo.HDRSourceSRV, ViewportInfo.ColorSpaceLUTSRV);
+					}
+					else
+					{
+						// ST2084 (PQ) encoding
+						TShaderMapRef<FCompositePS<0>> PixelShader(ShaderMap);
+
+						GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = RendererModule.GetFilterVertexDeclaration().VertexDeclarationRHI;
+						GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+						GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+						GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+						SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+
+						PixelShader->SetParameters(RHICmdList, ViewportInfo.UITargetSRV, ViewportInfo.HDRSourceSRV, ViewportInfo.ColorSpaceLUTSRV);
+					}
+
+					RendererModule.DrawRectangle(
+						RHICmdList,
+						0, 0,
+						ViewportWidth, ViewportHeight,
+						0, 0,
+						ViewportWidth, ViewportHeight,
+						FIntPoint(ViewportWidth, ViewportHeight),
+						FIntPoint(ViewportWidth, ViewportHeight),
+						*VertexShader,
+						EDRF_UseTriangleOptimization);
+				}
 			}
-		}
 
-		if (!bRenderedStereo && GEngine && IsValidRef(ViewportInfo.GetRenderTargetTexture()) && GEngine->StereoRenderingDevice.IsValid())
-		{
-			GEngine->StereoRenderingDevice->RenderTexture_RenderThread(RHICmdList, RHICmdList.GetViewportBackBuffer(ViewportInfo.ViewportRHI), ViewportInfo.GetRenderTargetTexture());
+			if (!bRenderedStereo && GEngine && IsValidRef(ViewportInfo.GetRenderTargetTexture()) && GEngine->StereoRenderingDevice.IsValid())
+			{
+				GEngine->StereoRenderingDevice->RenderTexture_RenderThread(RHICmdList, RHICmdList.GetViewportBackBuffer(ViewportInfo.ViewportRHI), ViewportInfo.GetRenderTargetTexture());
+			}
+			RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, BackBuffer);
 		}
-		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, BackBuffer);
 	}
-
 	// Calculate renderthread time (excluding idle time).	
 	uint32 StartTime		= FPlatformTime::Cycles();
 

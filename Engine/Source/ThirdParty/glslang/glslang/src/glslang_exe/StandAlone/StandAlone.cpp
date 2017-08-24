@@ -39,20 +39,20 @@
 
 #include "ResourceLimits.h"
 #include "Worklist.h"
-#include "./../glslang/Include/ShHandle.h"
-#include "./../glslang/Include/revision.h"
-#include "./../glslang/Public/ShaderLang.h"
-#include "../SPIRV/GlslangToSpv.h"
-#include "../SPIRV/GLSL.std.450.h"
-#include "../SPIRV/doc.h"
-#include "../SPIRV/disassemble.h"
+#include "glslang/Include/ShHandle.h"
+#include "glslang/Include/revision.h"
+#include "glslang/Public/ShaderLang.h"
+#include "SPIRV/GlslangToSpv.h"
+#include "SPIRV/GLSL.std.450.h"
+#include "SPIRV/doc.h"
+#include "SPIRV/disassemble.h"
 #include <cstring>
 #include <cstdlib>
 #include <cctype>
 #include <cmath>
 #include <array>
 
-#include "../glslang/OSDependent/osinclude.h"
+#include "glslang/OSDependent/osinclude.h"
 
 extern "C" {
     SH_IMPORT_EXPORT void ShOutputHtml();

@@ -216,6 +216,11 @@ static TAutoConsoleVariable<float> GGPUHitchThresholdCVar(
 	100.0f,
 	TEXT("Threshold for detecting hitches on the GPU (in milliseconds).")
 	);
+static TAutoConsoleVariable<int32> GCVarRHIRenderPass(
+	TEXT("r.RHIRenderPasses"),
+	0,
+	TEXT(""),
+	ECVF_Default);
 
 static TAutoConsoleVariable<int32> CVarGPUCrashDebugging(
 	TEXT("r.GPUCrashDebugging"),
@@ -223,6 +228,7 @@ static TAutoConsoleVariable<int32> CVarGPUCrashDebugging(
 	TEXT("Enable vendor specific GPU crash analysis tools"),
 	ECVF_ReadOnly
 	);
+
 
 namespace RHIConfig
 {
@@ -306,6 +312,7 @@ bool GSupportsHDR32bppEncodeModeIntrinsic = false;
 bool GSupportsParallelOcclusionQueries = false;
 bool GSupportsRenderTargetWriteMask = false;
 bool GSupportsTransientResourceAliasing = false;
+bool GRHIRequiresRenderTargetForPixelShaderUAVs = false;
 
 bool GRHISupportsMSAADepthSampleAccess = false;
 bool GRHISupportsResolveCubemapFaces = false;
@@ -576,20 +583,23 @@ RHI_API uint32 RHIGetShaderLanguageVersion(const EShaderPlatform Platform)
 	if (MaxShaderVersion < 0)
 	{
 		MaxShaderVersion = 0;
-		if (Platform == SP_METAL_SM5)
-		{
-			if(!GConfig->GetInt(TEXT("/Script/MacTargetPlatform.MacTargetSettings"), TEXT("MaxShaderLanguageVersion"), MaxShaderVersion, GEngineIni))
-			{
-				MaxShaderVersion = 1;
-			}
-		}
-		else
-		{
-			if(!GConfig->GetInt(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("MaxShaderLanguageVersion"), MaxShaderVersion, GEngineIni))
-			{
-				MaxShaderVersion = 0;
-			}
-		}
+        if (IsMetalPlatform(Platform))
+        {
+            if (IsPCPlatform(Platform))
+            {
+                if(!GConfig->GetInt(TEXT("/Script/MacTargetPlatform.MacTargetSettings"), TEXT("MaxShaderLanguageVersion"), MaxShaderVersion, GEngineIni))
+                {
+                    MaxShaderVersion = 2;
+                }
+            }
+            else
+            {
+                if(!GConfig->GetInt(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("MaxShaderLanguageVersion"), MaxShaderVersion, GEngineIni))
+                {
+                    MaxShaderVersion = 0;
+                }
+            }
+        }
 	}
 	return (uint32)MaxShaderVersion;
 }
@@ -653,4 +663,58 @@ bool RHIGetPreviewFeatureLevel(ERHIFeatureLevel::Type& PreviewFeatureLevelOUT)
 		return false;
 	}
 	return true;
+}
+
+RHI_API void FRHIRenderPassInfo::ConvertToRenderTargetsInfo(FRHISetRenderTargetsInfo& OutRTInfo) const
+{
+	for (int32 Index = 0; Index < MaxSimultaneousRenderTargets; ++Index)
+	{
+		if (!ColorRenderTargets[Index].RenderTarget)
+		{
+			break;
+		}
+
+		OutRTInfo.ColorRenderTarget[Index].Texture = ColorRenderTargets[Index].RenderTarget;
+		ERenderTargetLoadAction LoadAction = GetLoadAction(ColorRenderTargets[Index].Action);
+		OutRTInfo.ColorRenderTarget[Index].LoadAction = LoadAction;
+		OutRTInfo.ColorRenderTarget[Index].StoreAction = GetStoreAction(ColorRenderTargets[Index].Action);
+		OutRTInfo.ColorRenderTarget[Index].ArraySliceIndex = ColorRenderTargets[Index].ArraySlice;
+		OutRTInfo.ColorRenderTarget[Index].MipIndex = ColorRenderTargets[Index].MipIndex;
+		++OutRTInfo.NumColorRenderTargets;
+
+		OutRTInfo.bClearColor |= (LoadAction == ERenderTargetLoadAction::EClear);
+	}
+
+	ERenderTargetActions DepthActions = GetDepthActions(DepthStencilRenderTarget.Action);
+	ERenderTargetActions StencilActions = GetStencilActions(DepthStencilRenderTarget.Action);
+	ERenderTargetLoadAction DepthLoadAction = GetLoadAction(DepthActions);
+	ERenderTargetStoreAction DepthStoreAction = GetStoreAction(DepthActions);
+	ERenderTargetLoadAction StencilLoadAction = GetLoadAction(StencilActions);
+	ERenderTargetStoreAction StencilStoreAction = GetStoreAction(StencilActions);
+
+	if (bDEPRECATEDHasEDS)
+	{
+		OutRTInfo.DepthStencilRenderTarget = FRHIDepthRenderTargetView(DepthStencilRenderTarget.DepthStencilTarget,
+			DepthLoadAction,
+			GetStoreAction(DepthActions),
+			StencilLoadAction,
+			GetStoreAction(StencilActions),
+			DEPRECATED_EDS);
+	}
+	else
+	{
+		OutRTInfo.DepthStencilRenderTarget = FRHIDepthRenderTargetView(DepthStencilRenderTarget.DepthStencilTarget,
+			DepthLoadAction,
+			GetStoreAction(DepthActions),
+			StencilLoadAction,
+			GetStoreAction(StencilActions));
+	}
+	OutRTInfo.bClearDepth = (DepthLoadAction == ERenderTargetLoadAction::EClear);
+	OutRTInfo.bClearStencil = (StencilLoadAction == ERenderTargetLoadAction::EClear);
+}
+
+RHI_API bool RHIUseRenderPasses()
+{
+	static auto* RenderPassCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.RHIRenderPasses"));
+	return RenderPassCVar && RenderPassCVar->GetValueOnRenderThread() > 0;
 }

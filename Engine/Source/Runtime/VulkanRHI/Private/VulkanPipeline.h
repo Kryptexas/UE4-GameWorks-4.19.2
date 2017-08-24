@@ -26,13 +26,14 @@ public:
 
 	inline const FVulkanLayout& GetLayout() const
 	{
-		return Layout;
+		check(Layout);
+		return *Layout;
 	}
 
 protected:
 	FVulkanDevice* Device;
 	VkPipeline Pipeline;
-	FVulkanLayout Layout;
+	FVulkanLayout* Layout; /*owned by FVulkanPipelineStateCache, do not delete yourself !*/
 
 	friend class FVulkanPipelineStateCache;
 	friend class FVulkanGraphicsPipelineState;
@@ -41,7 +42,7 @@ protected:
 class FVulkanComputePipeline : public FVulkanPipeline, public FRHIComputePipelineState
 {
 public:
-	FVulkanComputePipeline(FVulkanDevice* InDevice, FVulkanComputeShader* InComputeShader);
+	FVulkanComputePipeline(FVulkanDevice* InDevice);
 	virtual ~FVulkanComputePipeline();
 
 	inline const FVulkanCodeHeader& GetShaderCodeHeader() const
@@ -61,13 +62,14 @@ public:
 
 protected:
 	FVulkanComputeShader* ComputeShader;
+
+	friend class FVulkanPipelineStateCache;
 };
 
-class FVulkanGfxPipeline : public FVulkanPipeline
+class FVulkanGfxPipeline : public FVulkanPipeline, public FRHIResource
 {
 public:
 	FVulkanGfxPipeline(FVulkanDevice* InDevice);
-	FVulkanGfxPipeline(FVulkanDevice* InDevice, const FGraphicsPipelineStateInitializer& InPSOInitializer);	
 	
 	inline void Bind(VkCommandBuffer CmdBuffer)
 	{
@@ -102,7 +104,7 @@ public:
 	~FVulkanGraphicsPipelineState();
 
 	FGraphicsPipelineStateInitializer PipelineStateInitializer;
-	FVulkanGfxPipeline* Pipeline;
+	TRefCountPtr<FVulkanGfxPipeline> Pipeline;
 };
 
 class FVulkanPipelineStateCache
@@ -113,7 +115,7 @@ public:
 		OutHash = FCrc::MemCrc32(&Initializer, sizeof(Initializer));
 		
 		{
-			FScopeLock Lock(&CS);
+			FScopeLock Lock(&InitializerToPipelineMapCS);
 			FVulkanGraphicsPipelineState** Found = InitializerToPipelineMap.Find(OutHash);
 			if (Found)
 			{
@@ -138,7 +140,7 @@ public:
 	enum
 	{
 		// Bump every time serialization changes
-		VERSION = 10,
+		VERSION = 12,
 	};
 
 	struct FDescriptorSetLayoutBinding
@@ -481,16 +483,44 @@ public:
 		}
 	};
 
+	struct FComputePipelineEntry
+	{
+		uint32 Hash;
+		void CalculateHash();
+
+		bool bLoaded;
+
+		TArray<uint8> ShaderMicrocode;
+		FSHAHash ShaderHash;
+		TArray<TArray<FDescriptorSetLayoutBinding>> DescriptorSetLayoutBindings;
+
+		// Runtime objects
+		VkShaderModule ShaderModule;
+		FVulkanLayout* Layout;
+
+		FComputePipelineEntry()
+			: Hash(0)
+			, bLoaded(false)
+			, ShaderModule(VK_NULL_HANDLE)
+			, Layout(nullptr)
+		{}
+
+		~FComputePipelineEntry();
+	};
+	FVulkanComputePipeline* GetOrCreateComputePipeline(FVulkanComputeShader* ComputeShader);
+
 private:
 	FVulkanDevice* Device;
 
 	// Key is a hash of the PSO, which is based off shader pointers
 	TMap<uint32, FVulkanGraphicsPipelineState*> InitializerToPipelineMap;
+	FCriticalSection InitializerToPipelineMapCS;
 
-	// Guard InitializerToPipelineMap
-	FCriticalSection CS;
+	TMap<FVulkanComputeShader*, FVulkanComputePipeline*> ComputeShaderToPipelineMap;
+	TMap<uint32, FVulkanComputePipeline*> ComputeEntryToPipelineMap;
 
 	TIndirectArray<FGfxPipelineEntry> GfxPipelineEntries;
+	TIndirectArray<FComputePipelineEntry> ComputePipelineEntries;
 
 	VkPipelineCache PipelineCache;
 
@@ -498,7 +528,7 @@ private:
 	void CreateGfxPipelineFromEntry(const FGfxPipelineEntry* GfxEntry, FVulkanGfxPipeline* Pipeline);
 	FGfxPipelineEntry* CreateGfxEntry(const FGraphicsPipelineStateInitializer& PSOInitializer);
 	void CreatGfxEntryRuntimeObjects(FGfxPipelineEntry* GfxEntry);
-	bool Load(const TArray<FString>& CacheFilenames, TArray<uint8>& OutDeviceCache);
+	bool Load(const TArray<FString>& CacheFilenames);
 	void DestroyCache();
 
 	struct FShaderHashes
@@ -546,6 +576,10 @@ private:
 	friend class FVulkanDynamicRHI;
 
 	FVulkanLayout* FindOrAddLayout(const FVulkanDescriptorSetsLayoutInfo& DescriptorSetLayoutInfo);
+
+	FComputePipelineEntry* CreateComputeEntry(const FVulkanComputeShader* ComputeShader);
+	FVulkanComputePipeline* CreateComputePipelineFromEntry(const FComputePipelineEntry* ComputeEntry);
+	void CreateComputeEntryRuntimeObjects(FComputePipelineEntry* GfxEntry);
 };
 
 template<>

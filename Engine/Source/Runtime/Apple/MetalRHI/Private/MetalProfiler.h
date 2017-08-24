@@ -70,8 +70,14 @@ DECLARE_MEMORY_STAT_EXTERN(TEXT("Managed Texture Memory"), STAT_MetalManagedText
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Texture Memory Updated Per-Frame"), STAT_MetalTextureMemUpdate, STATGROUP_MetalRHI, );
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Texture Page-On time"), STAT_MetalTexturePageOnTime, STATGROUP_MetalRHI, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("GPU Work time"), STAT_MetalGPUWorkTime, STATGROUP_MetalRHI, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("GPU Idle time"), STAT_MetalGPUIdleTime, STATGROUP_MetalRHI, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Present time"), STAT_MetalPresentTime, STATGROUP_MetalRHI, );
 #if STATS
 extern int64 volatile GMetalTexturePageOnTime;
+extern int64 volatile GMetalGPUWorkTime;
+extern int64 volatile GMetalGPUIdleTime;
+extern int64 volatile GMetalPresentTime;
 #endif
 
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Number Command Buffers Created Per-Frame"), STAT_MetalCommandBufferCreatedPerFrame, STATGROUP_MetalRHI, );
@@ -227,6 +233,11 @@ struct FMetalGPUProfiler : public FGPUProfiler
     ,   NumNestedFrames(0)
     ,	bActiveStats(false)
 	{
+		FMemory::Memzero((void*)&FrameStartGPU[0], sizeof(FrameStartGPU));
+		FMemory::Memzero((void*)&FrameEndGPU[0], sizeof(FrameEndGPU));
+		FMemory::Memzero((void*)&FrameGPUTime[0], sizeof(FrameGPUTime));
+		FMemory::Memzero((void*)&FrameIdleTime[0], sizeof(FrameIdleTime));
+		FMemory::Memzero((void*)&FramePresentTime[0], sizeof(FramePresentTime));
 	}
 	
 	virtual ~FMetalGPUProfiler() {}
@@ -243,6 +254,19 @@ struct FMetalGPUProfiler : public FGPUProfiler
 	
 	void StartGPUWork(uint32 StartPoint, uint32 EndPoint, uint32 NumPrimitives = 0, uint32 NumVertices = 0);
 	void FinishGPUWork(void);
+	
+	static void IncrementFrameIndex();
+	static void RecordFrame(id<MTLCommandBuffer> Buffer);
+	static void RecordPresent(id<MTLCommandBuffer> Buffer);
+	static void RecordCommandBuffer(id<MTLCommandBuffer> Buffer);
+	
+	#define MAX_FRAME_HISTORY 3
+	static volatile int32 FrameTimeGPUIndex;
+	static volatile int64 FrameStartGPU[MAX_FRAME_HISTORY];
+	static volatile int64 FrameEndGPU[MAX_FRAME_HISTORY];
+	static volatile int64 FrameGPUTime[MAX_FRAME_HISTORY];
+	static volatile int64 FrameIdleTime[MAX_FRAME_HISTORY];
+	static volatile int64 FramePresentTime[MAX_FRAME_HISTORY];
 	
 	FMetalGPUTiming TimingSupport;
 	FMetalContext* Context;

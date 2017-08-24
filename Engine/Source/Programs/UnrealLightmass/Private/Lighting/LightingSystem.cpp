@@ -131,6 +131,7 @@ FStaticLightingSystem::FStaticLightingSystem(const FLightingBuildOptions& InOpti
 ,	MaterialSettings(InScene.MaterialSettings)
 ,	MeshAreaLightSettings(InScene.MeshAreaLightSettings)
 ,	DynamicObjectSettings(InScene.DynamicObjectSettings)
+,	VolumetricLightmapSettings(InScene.VolumetricLightmapSettings)
 ,	PrecomputedVisibilitySettings(InScene.PrecomputedVisibilitySettings)
 ,	VolumeDistanceFieldSettings(InScene.VolumeDistanceFieldSettings)
 ,	AmbientOcclusionSettings(InScene.AmbientOcclusionSettings)
@@ -138,7 +139,7 @@ FStaticLightingSystem::FStaticLightingSystem(const FLightingBuildOptions& InOpti
 ,	ImportanceTracingSettings(InScene.ImportanceTracingSettings)
 ,	PhotonMappingSettings(InScene.PhotonMappingSettings)
 ,	IrradianceCachingSettings(InScene.IrradianceCachingSettings)
-,	MappingTasksInProgressThatWillNeedHelp(0)
+,	TasksInProgressThatWillNeedHelp(0)
 ,	NextVolumeSampleTaskIndex(-1)
 ,	NumVolumeSampleTasksOutstanding(0)
 ,	bShouldExportVolumeSampleData(false)
@@ -149,6 +150,8 @@ FStaticLightingSystem::FStaticLightingSystem(const FLightingBuildOptions& InOpti
 ,	DirectPhotonMap(FVector4(0,0,0), HALF_WORLD_MAX)
 ,	NumPhotonsEmittedFirstBounce(0)
 ,	FirstBouncePhotonMap(FVector4(0,0,0), HALF_WORLD_MAX)
+,	FirstBounceEscapedPhotonMap(FVector4(0,0,0), HALF_WORLD_MAX)
+,	FirstBouncePhotonSegmentMap(FVector4(0,0,0), HALF_WORLD_MAX)
 ,	NumPhotonsEmittedSecondBounce(0)
 ,	SecondBouncePhotonMap(FVector4(0,0,0), HALF_WORLD_MAX)
 ,	IrradiancePhotonMap(FVector4(0,0,0), HALF_WORLD_MAX)
@@ -628,6 +631,7 @@ void FStaticLightingSystem::ExportNonMappingTasks()
 	}
 
 	CompleteVisibilityTaskList.ApplyAndClear(*this);
+	CompleteVolumetricLightmapTaskList.ApplyAndClear(*this);
 
 	{
 		TMap<const FLight*, FStaticShadowDepthMap*> CompletedStaticShadowDepthMapsCopy;
@@ -989,24 +993,41 @@ void FStaticLightingSystem::DumpStats(float TotalStaticLightingTime) const
 	{
 		SolverStats += FString::Printf( TEXT("%4.1f%%%8.1fs    Volume Sample placement\n"), 100.0f * Stats.VolumeSamplePlacementThreadTime / TotalLightingBusyThreadTime, Stats.VolumeSamplePlacementThreadTime);
 	}
-	const float UnaccountedLightingThreadTime = FMath::Max(TotalLightingBusyThreadTime - (SampleSetupTime + Stats.DirectLightingTime + Stats.BlockOnIndirectLightingCacheTasksTime + Stats.BlockOnIndirectLightingInterpolateTasksTime + Stats.SecondPassIrradianceCacheInterpolationTime + Stats.VolumeSamplePlacementThreadTime + Stats.StaticShadowDepthMapThreadTime + Stats.VolumeDistanceFieldThreadTime + PrecomputedVisibilityThreadTime), 0.0f);
+	if (Stats.NumVolumetricLightmapSamples > 0)
+	{
+		SolverStats += FString::Printf( TEXT("%4.1f%%%8.1fs    Volumetric Lightmap - %.3f million samples\n"), 100.0f * Stats.TotalVolumetricLightmapLightingThreadTime / TotalLightingBusyThreadTime, Stats.TotalVolumetricLightmapLightingThreadTime, Stats.NumVolumetricLightmapSamples / 1000000.0f);
+		
+		SolverStats += FString::Printf( TEXT("%8.1f%%%8.1fs    VoxelizationTime\n"), 100.0f * Stats.VolumetricLightmapVoxelizationTime / TotalLightingBusyThreadTime, Stats.VolumetricLightmapVoxelizationTime);
+
+
+		if (Stats.VolumetricLightmapGatherImportancePhotonsTime > 0)
+		{
+			SolverStats += FString::Printf( TEXT("%8.1f%%%8.1fs    GatherImportancePhotons\n"), 100.0f * Stats.VolumetricLightmapGatherImportancePhotonsTime / TotalLightingBusyThreadTime, Stats.VolumetricLightmapGatherImportancePhotonsTime);
+		}
+
+		SolverStats += FString::Printf( TEXT("%8.1f%%%8.1fs    DirectLightingTime\n"), 100.0f * Stats.VolumetricLightmapDirectLightingTime / TotalLightingBusyThreadTime, Stats.VolumetricLightmapDirectLightingTime);
+		SolverStats += FString::Printf( TEXT("%8.1f%%%8.1fs    FinalGatherTime\n"), 100.0f * Stats.VolumetricLightmapFinalGatherTime / TotalLightingBusyThreadTime, Stats.VolumetricLightmapFinalGatherTime);
+	}
+	const float UnaccountedLightingThreadTime = FMath::Max(TotalLightingBusyThreadTime - (SampleSetupTime + Stats.DirectLightingTime + Stats.BlockOnIndirectLightingCacheTasksTime + Stats.BlockOnIndirectLightingInterpolateTasksTime + Stats.IndirectLightingCacheTaskThreadTimeSeparateTask + Stats.SecondPassIrradianceCacheInterpolationTime + Stats.SecondPassIrradianceCacheInterpolationTimeSeparateTask + Stats.VolumeSamplePlacementThreadTime + Stats.StaticShadowDepthMapThreadTime + Stats.VolumeDistanceFieldThreadTime + PrecomputedVisibilityThreadTime + Stats.TotalVolumetricLightmapLightingThreadTime), 0.0f);
 	SolverStats += FString::Printf( TEXT("%4.1f%%%8.1fs    Unaccounted\n"), 100.0f * UnaccountedLightingThreadTime / TotalLightingBusyThreadTime, UnaccountedLightingThreadTime);
 	// Send the message in multiple parts since it cuts off in the middle otherwise
 	LogSolverMessage(SolverStats);
 	SolverStats = TEXT("\n");
 
-	SolverStats += FString::Printf( TEXT("Indirect lighting cache task thread seconds: %.2f\n"), Stats.IndirectLightingCacheTaskThreadTime);
+	float IndirectLightingCacheTaskThreadTime = Stats.IndirectLightingCacheTaskThreadTime + Stats.IndirectLightingCacheTaskThreadTimeSeparateTask;
+
+	SolverStats += FString::Printf( TEXT("Indirect lighting cache task thread seconds: %.2f\n"), IndirectLightingCacheTaskThreadTime);
 	// These inner loop timings rely on rdtsc to avoid the massive overhead of Query Performance Counter.
 	// rdtsc is not dependable with multi-threading (see FRDTSCCycleTimer comments and Intel documentation) but we use it anyway because it's the only option.
 	//@todo - rdtsc is also not dependable if the OS changes which processor the thread gets executed on.  
 	// Use SetThreadAffinityMask to prevent this case.
 	if (PhotonMappingSettings.bUsePhotonMapping)
 	{
-		SolverStats += FString::Printf( TEXT("%4.1f%%%8.1fs    ImportancePhotonGatherTime\n"), 100.0f * Stats.ImportancePhotonGatherTime / Stats.IndirectLightingCacheTaskThreadTime, Stats.ImportancePhotonGatherTime);
-		SolverStats += FString::Printf( TEXT("%4.1f%%%8.1fs    CalculateImportanceSampleTime\n"), 100.0f * Stats.CalculateImportanceSampleTime / Stats.IndirectLightingCacheTaskThreadTime, Stats.CalculateImportanceSampleTime);
+		SolverStats += FString::Printf( TEXT("%4.1f%%%8.1fs    ImportancePhotonGatherTime\n"), 100.0f * Stats.ImportancePhotonGatherTime / IndirectLightingCacheTaskThreadTime, Stats.ImportancePhotonGatherTime);
+		SolverStats += FString::Printf( TEXT("%4.1f%%%8.1fs    CalculateImportanceSampleTime\n"), 100.0f * Stats.CalculateImportanceSampleTime / IndirectLightingCacheTaskThreadTime, Stats.CalculateImportanceSampleTime);
 	}
-	SolverStats += FString::Printf( TEXT("%4.1f%%%8.1fs    FirstBounceRayTraceTime for %.3f million rays\n"), 100.0f * Stats.FirstBounceRayTraceTime / Stats.IndirectLightingCacheTaskThreadTime, Stats.FirstBounceRayTraceTime, Stats.NumFirstBounceRaysTraced / 1000000.0f);
-	SolverStats += FString::Printf( TEXT("%4.1f%%%8.1fs    CalculateExitantRadiance\n"), 100.0f * Stats.CalculateExitantRadianceTime / Stats.IndirectLightingCacheTaskThreadTime, Stats.CalculateExitantRadianceTime);
+	SolverStats += FString::Printf( TEXT("%4.1f%%%8.1fs    FirstBounceRayTraceTime for %.3f million rays\n"), 100.0f * Stats.FirstBounceRayTraceTime / IndirectLightingCacheTaskThreadTime, Stats.FirstBounceRayTraceTime, Stats.NumFirstBounceRaysTraced / 1000000.0f);
+	SolverStats += FString::Printf( TEXT("%4.1f%%%8.1fs    CalculateExitantRadiance\n"), 100.0f * Stats.CalculateExitantRadianceTime / IndirectLightingCacheTaskThreadTime, Stats.CalculateExitantRadianceTime);
 
 	SolverStats += FString::Printf( TEXT("\n") );
 	SolverStats += FString::Printf( TEXT("Traced %.3f million first hit visibility rays for a total of %.1f thread seconds (%.3f million per thread second)\n"), Stats.NumFirstHitRaysTraced / 1000000.0f, Stats.FirstHitRayTraceThreadTime, Stats.NumFirstHitRaysTraced / 1000000.0f / Stats.FirstHitRayTraceThreadTime);
@@ -1020,8 +1041,9 @@ void FStaticLightingSystem::DumpStats(float TotalStaticLightingTime) const
 	LogSolverMessage(SolverStats);
 	SolverStats = TEXT("");
 
-	const float UnaccountedMappingThreadTimePct = 100.0f * FMath::Max(TotalLightingBusyThreadTime - (Stats.TotalTextureMappingLightingThreadTime + Stats.TotalVolumeSampleLightingThreadTime + PrecomputedVisibilityThreadTime), 0.0f) / TotalLightingBusyThreadTime;
-	SolverStats += FString::Printf( TEXT("%.1f%% of Total Lighting thread seconds on Texture Mappings, %1.f%% on Volume Samples, %1.f%% on Visibility, %.1f%% Unaccounted\n"), 100.0f * Stats.TotalTextureMappingLightingThreadTime / TotalLightingBusyThreadTime, 100.0f * Stats.TotalVolumeSampleLightingThreadTime / TotalLightingBusyThreadTime, 100.0f * PrecomputedVisibilityThreadTime / TotalLightingBusyThreadTime, UnaccountedMappingThreadTimePct);
+	float TextureMappingThreadTime = Stats.TotalTextureMappingLightingThreadTime + Stats.SecondPassIrradianceCacheInterpolationTimeSeparateTask + Stats.IndirectLightingCacheTaskThreadTimeSeparateTask;
+	const float UnaccountedMappingThreadTimePct = 100.0f * FMath::Max(TotalLightingBusyThreadTime - (TextureMappingThreadTime + Stats.TotalVolumeSampleLightingThreadTime + Stats.TotalVolumetricLightmapLightingThreadTime + PrecomputedVisibilityThreadTime), 0.0f) / TotalLightingBusyThreadTime;
+	SolverStats += FString::Printf( TEXT("%.1f%% of Total Lighting thread seconds on Texture Mappings, %1.f%% on Volume Samples, %1.f%% on Volumetric Lightmap, %1.f%% on Visibility, %.1f%% Unaccounted\n"), 100.0f * TextureMappingThreadTime / TotalLightingBusyThreadTime, 100.0f * Stats.TotalVolumeSampleLightingThreadTime / TotalLightingBusyThreadTime, 100.0f * Stats.TotalVolumetricLightmapLightingThreadTime / TotalLightingBusyThreadTime, 100.0f * PrecomputedVisibilityThreadTime / TotalLightingBusyThreadTime, UnaccountedMappingThreadTimePct);
 	SolverStats += FString::Printf( TEXT("%u Lights total, %.1f Shadow rays per light sample on average\n"), Stats.NumLights, Stats.NumDirectLightingShadowRays / (float)(Stats.NumMappedTexels + Stats.NumVertexSamples));
 	if (Stats.NumMeshAreaLights > 0)
 	{
@@ -1157,6 +1179,10 @@ void FStaticLightingSystem::DumpStats(float TotalStaticLightingTime) const
 		DirectPhotonMap.DumpStats(false);
 		UE_LOG(LogLightmass, Log, TEXT("FirstBouncePhotonMap"));
 		FirstBouncePhotonMap.DumpStats(false);
+		UE_LOG(LogLightmass, Log, TEXT("FirstBounceEscapedPhotonMap"));
+		FirstBounceEscapedPhotonMap.DumpStats(false);
+		UE_LOG(LogLightmass, Log, TEXT("FirstBouncePhotonSegmentMap"));
+		FirstBouncePhotonSegmentMap.DumpStats(false);
 		UE_LOG(LogLightmass, Log, TEXT("SecondBouncePhotonMap"));
 		SecondBouncePhotonMap.DumpStats(false);
 		UE_LOG(LogLightmass, Log, TEXT("IrradiancePhotonMap"));
@@ -1248,15 +1274,17 @@ void FStaticLightingSystem::CacheSamples()
 		}
 	}
 
-	FVector4 CombinedVector(0);
-
-	for (int32 SampleIndex = 0; SampleIndex < CachedHemisphereSamples.Num(); SampleIndex++)
 	{
-		CombinedVector += CachedHemisphereSamples[SampleIndex];
+		FVector4 CombinedVector(0);
+
+		for (int32 SampleIndex = 0; SampleIndex < CachedHemisphereSamples.Num(); SampleIndex++)
+		{
+			CombinedVector += CachedHemisphereSamples[SampleIndex];
+		}
+
+		CachedSamplesMaxUnoccludedLength = (CombinedVector / CachedHemisphereSamples.Num()).Size3();
 	}
-
-	CachedSamplesMaxUnoccludedLength = (CombinedVector / CachedHemisphereSamples.Num()).Size3();
-
+	
 	{
 		int32 TargetNumApproximateSkyLightingSamples = FMath::Max(FMath::TruncToInt(ImportanceTracingSettings.NumHemisphereSamples / 2 * GeneralSettings.IndirectLightingQuality), 12);
 		CachedHemisphereSamplesForApproximateSkyLighting.Empty(TargetNumApproximateSkyLightingSamples);
@@ -1279,6 +1307,26 @@ void FStaticLightingSystem::CacheSamples()
 			Light->CacheSurfaceSamples(BounceIndex, GetNumShadowRays(BounceIndex, false), GetNumShadowRays(BounceIndex, true), RandomStream);
 		}
 	}
+
+	{
+		const int32 NumUpperVolumeSamples = ImportanceTracingSettings.NumHemisphereSamples * DynamicObjectSettings.NumHemisphereSamplesScale;
+		const float NumThetaStepsFloat = FMath::Sqrt(NumUpperVolumeSamples / (float)PI);
+		const int32 NumThetaSteps = FMath::TruncToInt(NumThetaStepsFloat);
+		const int32 NumPhiSteps = FMath::TruncToInt(NumThetaStepsFloat * (float)PI);
+
+		GenerateStratifiedUniformHemisphereSamples(NumThetaSteps, NumPhiSteps, RandomStream, CachedVolumetricLightmapUniformHemisphereSamples, CachedVolumetricLightmapUniformHemisphereSampleUniforms);
+
+		FVector4 CombinedVector(0);
+
+		for (int32 SampleIndex = 0; SampleIndex < CachedVolumetricLightmapUniformHemisphereSamples.Num(); SampleIndex++)
+		{
+			CombinedVector += CachedVolumetricLightmapUniformHemisphereSamples[SampleIndex];
+		}
+
+		CachedVolumetricLightmapMaxUnoccludedLength = (CombinedVector / CachedVolumetricLightmapUniformHemisphereSamples.Num()).Size3();
+	}
+
+	CachedVolumetricLightmapVertexOffsets.Add(FVector(0, 0, 0));
 }
 
 bool FStaticLightingThreadRunnable::CheckHealth(bool bReportError) const
@@ -1350,6 +1398,7 @@ FStaticLightingMapping*	FStaticLightingSystem::ThreadGetNextMapping(
 	bool& bWaitTimedOut, 
 	bool& bDynamicObjectTask, 
 	int32& PrecomputedVisibilityTaskIndex,
+	int32& VolumetricLightmapTaskIndex,
 	bool& bStaticShadowDepthMapTask,
 	bool& bMeshAreaLightDataTask,
 	bool& bVolumeDataTask)
@@ -1360,6 +1409,7 @@ FStaticLightingMapping*	FStaticLightingSystem::ThreadGetNextMapping(
 	bWaitTimedOut = true;
 	bDynamicObjectTask = false;
 	PrecomputedVisibilityTaskIndex = INDEX_NONE;
+	VolumetricLightmapTaskIndex = INDEX_NONE;
 	bStaticShadowDepthMapTask = false;
 	bMeshAreaLightDataTask = false;
 	bVolumeDataTask = false;
@@ -1386,17 +1436,9 @@ FStaticLightingMapping*	FStaticLightingSystem::ThreadGetNextMapping(
 		double SwarmRequestEnd = FPlatformTime::Seconds();
 		if ( bGotTask )
 		{
-			int32 FoundIndex = INDEX_NONE;
-			Scene.VisibilityBucketGuids.Find(TaskGuid, FoundIndex);
 			if (TaskGuid == PrecomputedVolumeLightingGuid)
 			{
 				bDynamicObjectTask = true;
-				Swarm->AcceptTask( TaskGuid );
-				bWaitTimedOut = false;
-			}
-			else if (FoundIndex >= 0)
-			{
-				PrecomputedVisibilityTaskIndex = FoundIndex;
 				Swarm->AcceptTask( TaskGuid );
 				bWaitTimedOut = false;
 			}
@@ -1420,19 +1462,43 @@ FStaticLightingMapping*	FStaticLightingSystem::ThreadGetNextMapping(
 			}
 			else
 			{
-				FStaticLightingMapping** MappingPtr = Mappings.Find( TaskGuid );
-				if ( MappingPtr && FPlatformAtomics::InterlockedExchange(&(*MappingPtr)->bProcessed, true) == false )
+				int32 FoundVisibilityIndex = INDEX_NONE;
+				Scene.VisibilityBucketGuids.Find(TaskGuid, FoundVisibilityIndex);
+
+				if (FoundVisibilityIndex >= 0)
 				{
-					// We received a new mapping to process. Tell Swarm we accept the task.
-					Swarm->AcceptTask( TaskGuid );
+					PrecomputedVisibilityTaskIndex = FoundVisibilityIndex;
+					Swarm->AcceptTask(TaskGuid);
 					bWaitTimedOut = false;
-					Mapping = *MappingPtr;
 				}
 				else
 				{
-					// Couldn't find the mapping. Tell Swarm we reject the task and try again later.
-					UE_LOG(LogLightmass, Log,  TEXT("Lightmass - Rejecting task (%08X%08X%08X%08X)!"), TaskGuid.A, TaskGuid.B, TaskGuid.C, TaskGuid.D );
-					Swarm->RejectTask( TaskGuid );
+					int32 FoundVolumetricLightmapIndex = INDEX_NONE;
+					Scene.VolumetricLightmapTaskGuids.Find(TaskGuid, FoundVolumetricLightmapIndex);
+
+					if (FoundVolumetricLightmapIndex >= 0)
+					{
+						VolumetricLightmapTaskIndex = FoundVolumetricLightmapIndex;
+						Swarm->AcceptTask(TaskGuid);
+						bWaitTimedOut = false;
+					}
+					else
+					{
+						FStaticLightingMapping** MappingPtr = Mappings.Find(TaskGuid);
+						if (MappingPtr && FPlatformAtomics::InterlockedExchange(&(*MappingPtr)->bProcessed, true) == false)
+						{
+							// We received a new mapping to process. Tell Swarm we accept the task.
+							Swarm->AcceptTask(TaskGuid);
+							bWaitTimedOut = false;
+							Mapping = *MappingPtr;
+						}
+						else
+						{
+							// Couldn't find the mapping. Tell Swarm we reject the task and try again later.
+							UE_LOG(LogLightmass, Log, TEXT("Lightmass - Rejecting task (%08X%08X%08X%08X)!"), TaskGuid.A, TaskGuid.B, TaskGuid.C, TaskGuid.D);
+							Swarm->RejectTask(TaskGuid);
+						}
+					}
 				}
 			}
 		}
@@ -1475,6 +1541,7 @@ void FStaticLightingSystem::ThreadLoop(bool bIsMainThread, int32 ThreadIndex, FT
 		bool bRequestForTaskTimedOut;
 		bool bDynamicObjectTask;
 		int32 PrecomputedVisibilityTaskIndex;
+		int32 VolumetricLightmapTaskIndex;
 		bool bStaticShadowDepthMapTask;
 		bool bMeshAreaLightDataTask;
 		bool bVolumeDataTask;
@@ -1487,6 +1554,7 @@ void FStaticLightingSystem::ThreadLoop(bool bIsMainThread, int32 ThreadIndex, FT
 			bRequestForTaskTimedOut, 
 			bDynamicObjectTask, 
 			PrecomputedVisibilityTaskIndex,
+			VolumetricLightmapTaskIndex,
 			bStaticShadowDepthMapTask,
 			bMeshAreaLightDataTask,
 			bVolumeDataTask);
@@ -1521,6 +1589,10 @@ void FStaticLightingSystem::ThreadLoop(bool bIsMainThread, int32 ThreadIndex, FT
 		{
 			CalculatePrecomputedVisibility(PrecomputedVisibilityTaskIndex);
 		}
+		else if (VolumetricLightmapTaskIndex >= 0)
+		{
+			CalculateAdaptiveVolumetricLightmap(VolumetricLightmapTaskIndex);
+		}
 		else if (bMeshAreaLightDataTask)
 		{
 			FPlatformAtomics::InterlockedExchange(&bShouldExportMeshAreaLightData, true);
@@ -1542,7 +1614,6 @@ void FStaticLightingSystem::ThreadLoop(bool bIsMainThread, int32 ThreadIndex, FT
 			}
 
 			FCacheIndirectTaskDescription* NextCacheTask = CacheIndirectLightingTasks.Pop();
-			FInterpolateIndirectTaskDescription* NextInterpolateTask = InterpolateIndirectLightingTasks.Pop();
 
 			if (NextCacheTask)
 			{
@@ -1552,6 +1623,8 @@ void FStaticLightingSystem::ThreadLoop(bool bIsMainThread, int32 ThreadIndex, FT
 				FPlatformAtomics::InterlockedDecrement(&NextCacheTask->TextureMapping->NumOutstandingCacheTasks);
 			}
 
+			FInterpolateIndirectTaskDescription* NextInterpolateTask = InterpolateIndirectLightingTasks.Pop();
+
 			if (NextInterpolateTask)
 			{
 				//UE_LOG(LogLightmass, Warning, TEXT("Thread %u picked up Interpolate indirect task for %u"), ThreadIndex, NextInterpolateTask->TextureMapping->Guid.D);
@@ -1559,6 +1632,8 @@ void FStaticLightingSystem::ThreadLoop(bool bIsMainThread, int32 ThreadIndex, FT
 				NextInterpolateTask->TextureMapping->CompletedInterpolationTasks.Push(NextInterpolateTask);
 				FPlatformAtomics::InterlockedDecrement(&NextInterpolateTask->TextureMapping->NumOutstandingInterpolationTasks);
 			}
+
+			ProcessVolumetricLightmapTaskIfAvailable();
 			
 			if (NumVolumeSampleTasksOutstanding > 0)
 			{
@@ -1581,7 +1656,7 @@ void FStaticLightingSystem::ThreadLoop(bool bIsMainThread, int32 ThreadIndex, FT
 				&& NumVolumeSampleTasksOutstanding <= 0
 				&& NumOutstandingVolumeDataLayers <= 0)
 			{
-				if (MappingTasksInProgressThatWillNeedHelp <= 0 && !bRequestForTaskTimedOut)
+				if (TasksInProgressThatWillNeedHelp <= 0 && !bRequestForTaskTimedOut)
 				{
 					// All mappings have been processed, so end this thread.
 					bIsDone = true;

@@ -25,6 +25,10 @@ public:
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 
+	// Tests relying on temporal effects can force a camera cut to flush stale data
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera", SimpleDisplay)
+	bool bCameraCutOnScreenshotPrep;
+
 protected:
 	virtual void PrepareTest() override;
 	virtual bool IsReady_Implementation() override;

@@ -1997,7 +1997,10 @@ public:
 		{
 			Vendor = QueryCPUVendor();
 			Brand = QueryCPUBrand();
-			CPUInfo = QueryCPUInfo();
+			int Info[4];
+			QueryCPUInfo(Info);
+			CPUInfo = Info[0];
+			CPUInfo2 = Info[2];
 			CacheLineSize = QueryCacheLineSize();
 		}
 	}
@@ -2042,7 +2045,17 @@ public:
 		return CPUIDStaticCache.CPUInfo;
 	}
 
-	/** 
+	/**
+	* Gets __cpuid CPU info.
+	*
+	* @returns CPU info unsigned int queried using __cpuid.
+	*/
+	static uint32 GetCPUInfo2()
+	{
+		return CPUIDStaticCache.CPUInfo2;
+	}
+
+	/**
 	 * Gets cache line size.
 	 *
 	 * @returns Cache line size.
@@ -2139,16 +2152,9 @@ private:
 	 *
 	 * @returns CPU info unsigned int queried using __cpuid.
 	 */
-	static uint32 QueryCPUInfo()
+	static void QueryCPUInfo(int Args[4])
 	{
-		uint32 Info = 0;
-
-		int Args[4];
 		__cpuid(Args, 1);
-
-		Info = Args[0];
-
-		return Info;
 	}
 
 	/**
@@ -2183,6 +2189,7 @@ private:
 
 	/** CPU info from __cpuid. */
 	uint32 CPUInfo;
+	uint32 CPUInfo2;
 
 	/** CPU cache line size. */
 	int32 CacheLineSize;
@@ -2555,6 +2562,18 @@ bool FWindowsPlatformMisc::GetDiskTotalAndFreeSpace( const FString& InPath, uint
 uint32 FWindowsPlatformMisc::GetCPUInfo()
 {
 	return FCPUIDQueriedData::GetCPUInfo();
+}
+
+bool FWindowsPlatformMisc::HasNonoptionalCPUFeatures()
+{
+	// Check for SSSE3 instruction support
+	return (FCPUIDQueriedData::GetCPUInfo2() & (1 << 9)) != 0;
+}
+
+bool FWindowsPlatformMisc::NeedsNonoptionalCPUFeaturesCheck()
+{
+	// popcnt is 64bit and intel only
+	return PLATFORM_64BITS && PLATFORM_CPU_X86_FAMILY;
 }
 
 int32 FWindowsPlatformMisc::GetCacheLineSize()

@@ -587,7 +587,7 @@ namespace PixelInspector
 
 
 		//Low precision GBuffer
-		if (GBufferFormat == 0)
+		if (GBufferFormat == EGBufferFormat::Force8BitsPerChannel)
 		{
 			//All buffer are PF_B8G8R8A8
 			Buffer_A_RGB8[LastBufferIndex] = NewObject<UTextureRenderTarget2D>(GetTransientPackage(), TEXT("PixelInspectorBufferATarget"), RF_Standalone );
@@ -604,7 +604,7 @@ namespace PixelInspector
 			Buffer_BCDE_RGB8[LastBufferIndex]->UpdateResourceImmediate(true);
 			BufferBCDERenderTargetResource = Buffer_BCDE_RGB8[LastBufferIndex]->GameThread_GetRenderTargetResource();
 		}
-		else if(GBufferFormat == 1)
+		else if(GBufferFormat == EGBufferFormat::Default)
 		{
 			//Default is PF_A2B10G10R10
 			Buffer_A_RGB10[LastBufferIndex] = NewObject<UTextureRenderTarget2D>(GetTransientPackage(), TEXT("PixelInspectorBufferATarget"), RF_Standalone );
@@ -622,7 +622,7 @@ namespace PixelInspector
 			Buffer_BCDE_RGB8[LastBufferIndex]->UpdateResourceImmediate(true);
 			BufferBCDERenderTargetResource = Buffer_BCDE_RGB8[LastBufferIndex]->GameThread_GetRenderTargetResource();
 		}
-		else if (GBufferFormat == 5)
+		else if (GBufferFormat == EGBufferFormat::HighPrecisionNormals || GBufferFormat == EGBufferFormat::Force16BitsPerChannel)
 		{
 			//All buffer are PF_FloatRGBA
 			Buffer_A_Float[LastBufferIndex] = NewObject<UTextureRenderTarget2D>(GetTransientPackage(), TEXT("PixelInspectorBufferATarget"), RF_Standalone );
@@ -639,6 +639,10 @@ namespace PixelInspector
 			Buffer_BCDE_Float[LastBufferIndex]->UpdateResourceImmediate(true);
 			BufferBCDERenderTargetResource = Buffer_BCDE_Float[LastBufferIndex]->GameThread_GetRenderTargetResource();
 		}
+		else
+		{
+			checkf(0, TEXT("Unhandled gbuffer format (%i) during pixel inspector initializtion."), GBufferFormat);
+		}	
 		
 		SceneInterface->InitializePixelInspector(FinalColorRenderTargetResource, SceneColorRenderTargetResource, DepthRenderTargetResource, HDRRenderTargetResource, BufferARenderTargetResource, BufferBCDERenderTargetResource, LastBufferIndex);
 
@@ -696,7 +700,7 @@ namespace PixelInspector
 					}
 					PixelResult.DecodeHDR(BufferHDRValue);
 
-					if (Requests[RequestIndex].GBufferPrecision == 0)
+					if (Requests[RequestIndex].GBufferPrecision == EGBufferFormat::Force8BitsPerChannel)
 					{
 						TArray<FColor> BufferAValue;
 						FTextureRenderTargetResource* RTResourceA = Buffer_A_RGB8[Requests[RequestIndex].BufferIndex]->GameThread_GetRenderTargetResource();
@@ -714,7 +718,7 @@ namespace PixelInspector
 
 						PixelResult.DecodeBufferData(BufferAValue, BufferBCDEValue, Requests[RequestIndex].AllowStaticLighting);
 					}
-					else if (Requests[RequestIndex].GBufferPrecision == 1)
+					else if (Requests[RequestIndex].GBufferPrecision == EGBufferFormat::Default)
 					{
 						//PF_A2B10G10R10 format is not support yet
 						TArray<FLinearColor> BufferAValue;
@@ -732,7 +736,7 @@ namespace PixelInspector
 						}
 						PixelResult.DecodeBufferData(BufferAValue, BufferBCDEValue, Requests[RequestIndex].AllowStaticLighting);
 					}
-					else if (Requests[RequestIndex].GBufferPrecision == 5)
+					else if (Requests[RequestIndex].GBufferPrecision == EGBufferFormat::HighPrecisionNormals || Requests[RequestIndex].GBufferPrecision == EGBufferFormat::Force16BitsPerChannel)
 					{
 						//PF_A2B10G10R10 format is not support yet
 						TArray<FFloat16Color> BufferAValue;
@@ -750,6 +754,11 @@ namespace PixelInspector
 						}
 						PixelResult.DecodeBufferData(BufferAValue, BufferBCDEValue, Requests[RequestIndex].AllowStaticLighting);
 					}
+					else
+					{
+						checkf(0, TEXT("Unhandled gbuffer format (%i) during pixel inspector readback."), Requests[RequestIndex].GBufferPrecision);
+					}
+
 					AccumulationResult.Add(PixelResult);
 					ReleaseBuffers(RequestIndex);
 					Requests[RequestIndex].RequestComplete = true;

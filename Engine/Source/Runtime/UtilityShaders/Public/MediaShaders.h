@@ -333,6 +333,7 @@ public:
     { }
 };
 
+
 /**
  * Pixel shader to convert a UYVY (Y422, UYNV) frame to RGBA.
  *

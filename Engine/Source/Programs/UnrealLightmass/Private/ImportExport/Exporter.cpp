@@ -487,4 +487,38 @@ namespace Lightmass
 		}
 	}
 
+	void FLightmassSolverExporter::ExportResults(const FVolumetricLightmapTaskData& TaskData) const
+	{
+		const FString ChannelName = CreateChannelName(TaskData.Guid, LM_VOLUMETRICLIGHTMAP_VERSION, LM_VOLUMETRICLIGHTMAP_EXTENSION);
+		const int32 ErrorCode = Swarm->OpenChannel(*ChannelName, LM_VOLUMESAMPLES_CHANNEL_FLAGS, true);
+		if( ErrorCode >= 0 )
+		{
+			const int32 NumBricks = TaskData.BrickData.Num();
+			Swarm->Write(&NumBricks, sizeof(NumBricks));
+
+			for (int32 BrickIndex = 0; BrickIndex < NumBricks; BrickIndex++)
+			{
+				Swarm->Write(&TaskData.BrickData[BrickIndex].IndirectionTexturePosition, sizeof(TaskData.BrickData[BrickIndex].IndirectionTexturePosition));
+				Swarm->Write(&TaskData.BrickData[BrickIndex].TreeDepth, sizeof(TaskData.BrickData[BrickIndex].TreeDepth));
+				Swarm->Write(&TaskData.BrickData[BrickIndex].AverageClosestGeometryDistance, sizeof(TaskData.BrickData[BrickIndex].AverageClosestGeometryDistance));
+				WriteArray(TaskData.BrickData[BrickIndex].AmbientVector);
+
+				for (int32 i = 0; i < ARRAY_COUNT(TaskData.BrickData[BrickIndex].SHCoefficients); i++)
+				{
+					WriteArray(TaskData.BrickData[BrickIndex].SHCoefficients[i]);
+				}
+				
+				WriteArray(TaskData.BrickData[BrickIndex].SkyBentNormal);
+				WriteArray(TaskData.BrickData[BrickIndex].DirectionalLightShadowing);
+				WriteArray(TaskData.BrickData[BrickIndex].VoxelImportProcessingData);
+			}
+			
+			Swarm->CloseCurrentChannel();
+		}
+		else
+		{
+			UE_LOG(LogLightmass, Log, TEXT("Failed to open volumetric lightmap channel!"));
+		}
+	}
+
 }	//Lightmass

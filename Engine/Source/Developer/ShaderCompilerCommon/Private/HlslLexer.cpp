@@ -1119,6 +1119,31 @@ namespace CrossCompiler
 			FString Pragma = TEXT("#pragma") + Tokenizer.ReadToEndOfLine();
 			Scanner.AddToken(FHlslToken(EHlslToken::Pragma, Pragma), Tokenizer);
 		}
+		else if (Tokenizer.MatchString(MATCH_TARGET(TEXT("#if 0"))))
+		{
+			if (Tokenizer.Peek() == ' ' || Tokenizer.Peek() == '\n')
+			{
+				Tokenizer.SkipToNextLine();
+				while (Tokenizer.HasCharsAvailable() && Tokenizer.Peek() != '#')
+				{
+					Tokenizer.SkipToNextLine();
+				}
+
+				if (Tokenizer.MatchString(MATCH_TARGET(TEXT("#endif"))))
+				{
+					Tokenizer.SkipToNextLine();
+				}
+				else
+				{
+					CompilerMessages.SourceWarning(*FString::Printf(TEXT("Expected #endif preprocessor directive; HlslParser requires preprocessed input!")));
+				}
+			}
+			else
+			{
+				FString Directive = TEXT("#if 0") + Tokenizer.ReadToEndOfLine();
+				CompilerMessages.SourceWarning(*FString::Printf(TEXT("Unhandled preprocessor directive (%s); HlslParser requires preprocessed input!"), Tokenizer.Current));
+			}
+		}
 		else
 		{
 			FString Directive = TEXT("#") + Tokenizer.ReadToEndOfLine();

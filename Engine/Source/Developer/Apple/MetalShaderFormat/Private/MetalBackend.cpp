@@ -118,6 +118,11 @@ static const char * const MetalExpressionTable[ir_opcode_count][4] =
 	/*@{*/
 	{ "dfdx(", ")", "", "" }, // ir_unop_dFdx,
 	{ "dfdy(", ")", "", "" }, // ir_unop_dFdy,
+	// Metal doesn't support fine/coarse yet
+	{ "dfdx(", ")", "", "" }, // ir_unop_dFdxFine,
+	{ "dfdy(", ")", "", "" }, // ir_unop_dFdyFine,
+	{ "dfdx(", ")", "", "" }, // ir_unop_dFdxCoarse,
+	{ "dfdy(", ")", "", "" }, // ir_unop_dFdyCoarse,
 	/*@}*/
 
 	{ "isnan(", ")", "", "" }, // ir_unop_isnan,
@@ -129,9 +134,16 @@ static const char * const MetalExpressionTable[ir_opcode_count][4] =
 	{ "uintBitsToFloat(", ")", "", "" }, // ir_unop_uasf,
 
 	{ "reverse_bits(", ")", "", "" }, // ir_unop_bitreverse,
-	{ "bitCount(", ")", "", "" }, // ir_unop_bitcount,
-	{ "findMSB(", ")", "", "" }, // ir_unop_msb,
-	{ "findLSB(", ")", "", "" }, // ir_unop_lsb,
+	{ "popcount(", ")", "", "" }, // ir_unop_bitcount,
+	{ "clz(", ")", "", "" }, // ir_unop_msb,
+	{ "ctz(", ")", "", "" }, // ir_unop_lsb,
+
+	/**
+	* \name Saturate.
+	*/
+	/*@{*/
+	{ "saturate(", ")", "", "" }, // ir_unop_saturate,
+	/*@}*/
 
 	{ "ERROR_NO_NOISE_FUNCS(", ")", "", "" }, // ir_unop_noise,
 
@@ -201,7 +213,8 @@ static const char * const MetalExpressionTable[ir_opcode_count][4] =
 	{ "mix(", ",", ",", ")" }, // ir_ternop_lerp,
 	{ "smoothstep(", ",", ",", ")" }, // ir_ternop_smoothstep,
 	{ "clamp(", ",", ",", ")" }, // ir_ternop_clamp,
-
+	{ "fma(", ",", ",", ")" }, // ir_ternop_fma,
+	
 	{ "ERROR_QUADOP_VECTOR(", ",", ")" }, // ir_quadop_vector,
 };
 
@@ -438,6 +451,9 @@ protected:
 	// Need to inject the Metal vector array deref helper?
 	bool bVectorDerefHelper;
 
+	// Do we emit the static buffer sampler?
+	bool bUseBufferSampler;
+	
     const char *shaderPrefix()
     {
         switch (Frequency)
@@ -766,22 +782,57 @@ protected:
 				check(BufferIndex >= 0);
 				if (var->type->sampler_buffer)
 				{
-                    check(BufferIndex <= 30);
-					ralloc_asprintf_append(
-						buffer,
-						"device "
-						);
-					if (Buffers.AtomicVariables.find(var) != Buffers.AtomicVariables.end())
+					// Atomic RWBuffer -> buffer
+					bool bIsStructuredBuffer = (var->type->inner_type->is_record() || !strncmp(var->type->name, "RWStructuredBuffer<", 19) || !strncmp(var->type->name, "StructuredBuffer<", 17));
+					bool bIsByteAddressBuffer = (!strncmp(var->type->name, "RWByteAddressBuffer<", 20) || !strncmp(var->type->name, "ByteAddressBuffer<", 18));
+                    if (bIsStructuredBuffer || bIsByteAddressBuffer || Backend->TypedMode != EMetalTypeBufferModeUAV || Buffers.AtomicVariables.find(var) != Buffers.AtomicVariables.end())
 					{
-						ralloc_asprintf_append(buffer, "atomic_");
+						check(BufferIndex <= 30);
+						ralloc_asprintf_append(
+											   buffer,
+											   "device "
+											   );
+						if (Buffers.AtomicVariables.find(var) != Buffers.AtomicVariables.end())
+						{
+							ralloc_asprintf_append(buffer, "atomic_");
+							check(BufferIndex < 8);
+							Backend->AtomicUAVs |= (1 << BufferIndex);
+						}
+						print_type_pre(PtrType->inner_type);
+						ralloc_asprintf_append(buffer, " *%s", unique_name(var));
+						print_type_post(PtrType->inner_type);
+						ralloc_asprintf_append(
+											   buffer,
+											   " [[ buffer(%d) ]]", BufferIndex
+											   );
 					}
-					print_type_pre(PtrType->inner_type);
-					ralloc_asprintf_append(buffer, " *%s", unique_name(var));
-					print_type_post(PtrType->inner_type);
-					ralloc_asprintf_append(
-						buffer,
-						" [[ buffer(%d) ]]", BufferIndex
-						);
+					else // RWBuffer -> texture2D
+					{
+						check(PtrType->inner_type->is_numeric());
+						ralloc_asprintf_append(buffer, "texture2d<");
+						// UAVs require type per channel, not including # of channels
+						print_type_pre(PtrType->inner_type->get_scalar_type());
+						
+						uint32 Access = Backend->ImageRW.FindChecked(var);
+						switch((EMetalAccess)Access)
+						{
+							case EMetalAccessRead:
+								ralloc_asprintf_append(buffer, ", access::read> %s", unique_name(var));
+								break;
+							case EMetalAccessWrite:
+								ralloc_asprintf_append(buffer, ", access::write> %s", unique_name(var));
+								break;
+							case EMetalAccessReadWrite:
+								ralloc_asprintf_append(buffer, ", access::read_write> %s", unique_name(var));
+								break;
+							default:
+								check(false);
+						}
+						ralloc_asprintf_append(
+											   buffer,
+											   " [[ texture(%d) ]]", BufferIndex
+											   );
+					}
 				}
 				else
 				{
@@ -864,18 +915,56 @@ protected:
 						{
 							// Buffer
 							int BufferIndex = Buffers.GetIndex(var);
-							check(BufferIndex >= 0 && BufferIndex <= 30);
-							ralloc_asprintf_append(
-								buffer,
-								"const device "
-								);
-							print_type_pre(PtrType);
-							ralloc_asprintf_append(buffer, " *%s", unique_name(var));
-							print_type_post(PtrType);
-							ralloc_asprintf_append(
-								buffer,
-								" [[ buffer(%d) ]]", BufferIndex
-								);
+							check(BufferIndex >= 0);
+							
+							bool bIsStructuredBuffer = (var->type->inner_type->is_record() || !strncmp(var->type->name, "RWStructuredBuffer<", 19) || !strncmp(var->type->name, "StructuredBuffer<", 17));
+							bool bIsByteAddressBuffer = (!strncmp(var->type->name, "RWByteAddressBuffer<", 20) || !strncmp(var->type->name, "ByteAddressBuffer<", 18));
+							if (bIsStructuredBuffer || bIsByteAddressBuffer || Backend->TypedMode == EMetalTypeBufferModeNone)
+							{
+								check(BufferIndex >= 0 && BufferIndex <= 30);
+								ralloc_asprintf_append(
+													   buffer,
+													   "const device "
+													   );
+								print_type_pre(PtrType);
+								ralloc_asprintf_append(buffer, " *%s", unique_name(var));
+								print_type_post(PtrType);
+								ralloc_asprintf_append(
+													   buffer,
+													   " [[ buffer(%d) ]]", BufferIndex
+													   );
+							}
+							else
+							{
+								const char* InnerType = "float";
+								if (PtrType->inner_type)
+								{
+									check(!(PtrType->base_type == GLSL_TYPE_SAMPLER && PtrType->sampler_shadow));
+									switch (PtrType->inner_type->base_type)
+									{
+										case GLSL_TYPE_HALF:
+											InnerType = "half";
+											break;
+										case GLSL_TYPE_INT:
+											InnerType = "int";
+											break;
+										case GLSL_TYPE_UINT:
+											InnerType = "uint";
+											break;
+										default:
+											break;
+									}
+								}
+								
+								ralloc_asprintf_append(
+													   buffer,
+													   "texture2d<%s> %s", InnerType, unique_name(var));
+								print_type_post(PtrType);
+								ralloc_asprintf_append(
+													   buffer,
+													   " [[ texture(%u) ]]", BufferIndex
+													   );
+							}
 						}
 						else
 						{
@@ -1364,7 +1453,7 @@ protected:
 		{
 			check(numOps == 1);
 
-			FCustomStdString Type = expr->type->name;
+			std::string Type = expr->type->name;
 			Type = FixVecPrefix(Type);
 
 			ralloc_asprintf_append(buffer, "(%s(1.0) / ", Type.c_str());
@@ -1390,7 +1479,7 @@ protected:
 		}
 		else if (numOps == 1 && op >= ir_unop_first_conversion && op <= ir_unop_last_conversion)
 		{
-			FCustomStdString Type = expr->type->name;
+			std::string Type = expr->type->name;
 			Type = FixVecPrefix(Type);
 
 			ralloc_asprintf_append(buffer, "%s(", Type.c_str());
@@ -1448,9 +1537,13 @@ protected:
             expr->operands[0]->accept(this);
             ralloc_asprintf_append(buffer, ")");
         }
-		else if ((op == ir_ternop_clamp || op == ir_unop_sqrt || op == ir_unop_rsq) && expr->type->base_type == GLSL_TYPE_FLOAT)
+		else if ((op == ir_ternop_fma || op == ir_ternop_clamp || op == ir_unop_sqrt || op == ir_unop_rsq || op == ir_unop_saturate) && expr->type->base_type == GLSL_TYPE_FLOAT)
 		{
-			ralloc_asprintf_append(buffer, "precise::%s", MetalExpressionTable[op][0]);
+			if (!Backend->bAllowFastIntriniscs)
+			{
+				ralloc_asprintf_append(buffer, "precise::");
+			}
+			ralloc_asprintf_append(buffer, "%s", MetalExpressionTable[op][0]);
 			for (int i = 0; i < numOps; ++i)
 			{
 				expr->operands[i]->accept(this);
@@ -1467,7 +1560,7 @@ protected:
 			{
 				OpString = (OpString + 1);
 			}
-			else if(expr->type->base_type == GLSL_TYPE_FLOAT)
+			else if(!Backend->bAllowFastIntriniscs && expr->type->base_type == GLSL_TYPE_FLOAT)
 			{
 				ralloc_asprintf_append(buffer, "precise::");
 			}
@@ -1718,12 +1811,155 @@ protected:
 			{
 				auto* Texture = tex->sampler->variable_referenced();
 				int Index = Buffers.GetIndex(Texture);
-				check(Index >= 0 && Index <= 30);
+				check(Index >= 0);
 				
 				ralloc_asprintf_append(buffer, "(");
 				tex->sampler->accept(this);
-				if (Backend && Backend->bBoundsChecks)
+				
+				bool bIsStructuredBuffer = (Texture->type->inner_type->is_record() || !strncmp(Texture->type->name, "RWStructuredBuffer<", 19) || !strncmp(Texture->type->name, "StructuredBuffer<", 17));
+				bool bIsByteAddressBuffer = (!strncmp(Texture->type->name, "RWByteAddressBuffer<", 20) || !strncmp(Texture->type->name, "ByteAddressBuffer<", 18));
+				if (Backend->TypedMode != EMetalTypeBufferModeNone && Buffers.AtomicVariables.find(Texture) == Buffers.AtomicVariables.end() && !bIsStructuredBuffer && !bIsByteAddressBuffer)
 				{
+					if (Buffers.UniqueSamplerStates.Num() >= MaxMetalSamplers)
+					{
+						if (Backend->bBoundsChecks)
+						{
+							ralloc_asprintf_append(buffer, ".read(uint2(");
+							tex->coordinate->accept(this);
+							ralloc_asprintf_append(buffer, "%%");
+							tex->sampler->accept(this);
+							ralloc_asprintf_append(buffer, ".get_width(),min(");
+							tex->coordinate->accept(this);
+							ralloc_asprintf_append(buffer, "/");
+							tex->sampler->accept(this);
+							ralloc_asprintf_append(buffer, ".get_width(),");
+							tex->sampler->accept(this);
+							ralloc_asprintf_append(buffer, ".get_height()-1)))");
+							
+							switch(Texture->type->inner_type->vector_elements)
+							{
+								case 1:
+								{
+									ralloc_asprintf_append(buffer, ".x");
+									break;
+								}
+								case 2:
+								{
+									ralloc_asprintf_append(buffer, ".xy");
+									break;
+								}
+								case 3:
+								{
+									ralloc_asprintf_append(buffer, ".xyz");
+									break;
+								}
+								case 4:
+								{
+									break;
+								}
+								default:
+								{
+									check(false);
+									break;
+								}
+							}
+							
+							ralloc_asprintf_append(buffer, " * int(");
+							tex->coordinate->accept(this);
+							ralloc_asprintf_append(buffer, " < (");
+							tex->sampler->accept(this);
+							ralloc_asprintf_append(buffer, ".get_width() * ");
+							tex->sampler->accept(this);
+							ralloc_asprintf_append(buffer, ".get_height()))");
+						}
+						else
+						{
+							ralloc_asprintf_append(buffer, ".read(uint2(");
+							tex->coordinate->accept(this);
+							ralloc_asprintf_append(buffer, "%%");
+							tex->sampler->accept(this);
+							ralloc_asprintf_append(buffer, ".get_width(),");
+							tex->coordinate->accept(this);
+							ralloc_asprintf_append(buffer, "/");
+							tex->sampler->accept(this);
+							ralloc_asprintf_append(buffer, ".get_width()))");
+							
+							switch(Texture->type->inner_type->vector_elements)
+							{
+								case 1:
+								{
+									ralloc_asprintf_append(buffer, ".x");
+									break;
+								}
+								case 2:
+								{
+									ralloc_asprintf_append(buffer, ".xy");
+									break;
+								}
+								case 3:
+								{
+									ralloc_asprintf_append(buffer, ".xyz");
+									break;
+								}
+								case 4:
+								{
+									break;
+								}
+								default:
+								{
+									check(false);
+									break;
+								}
+							}
+						}
+					}
+					else
+					{
+						bUseBufferSampler = true;
+						
+						ralloc_asprintf_append(buffer, ".sample(GBufferSampler, float2((float)(");
+						tex->coordinate->accept(this);
+						ralloc_asprintf_append(buffer, "%%");
+						tex->sampler->accept(this);
+						ralloc_asprintf_append(buffer, ".get_width()),(float)(");
+						tex->coordinate->accept(this);
+						ralloc_asprintf_append(buffer, "/");
+						tex->sampler->accept(this);
+						ralloc_asprintf_append(buffer, ".get_width())))");
+						
+						switch(Texture->type->inner_type->vector_elements)
+						{
+							case 1:
+							{
+								ralloc_asprintf_append(buffer, ".x");
+								break;
+							}
+							case 2:
+							{
+								ralloc_asprintf_append(buffer, ".xy");
+								break;
+							}
+							case 3:
+							{
+								ralloc_asprintf_append(buffer, ".xyz");
+								break;
+							}
+							case 4:
+							{
+								break;
+							}
+							default:
+							{
+								check(false);
+								break;
+							}
+						}
+					}
+				}
+				else if (Backend && Backend->bBoundsChecks)
+				{
+					check(Index <= 30);
+					
 					ralloc_asprintf_append(buffer, "[");
 					ralloc_asprintf_append(buffer, "min(");
 					tex->coordinate->accept(this);
@@ -2023,10 +2259,115 @@ protected:
 					check(Index >= 0 && Index <= 30);
 					
 					ralloc_asprintf_append(buffer, "(");
-					deref->image->accept(this);
 					
-					if (Backend && Backend->bBoundsChecks)
+					bool bIsStructuredBuffer = (Texture->type->inner_type->is_record() || !strncmp(Texture->type->name, "RWStructuredBuffer<", 19) || !strncmp(Texture->type->name, "StructuredBuffer<", 17));
+					bool bIsByteAddressBuffer = (!strncmp(Texture->type->name, "RWByteAddressBuffer<", 20) || !strncmp(Texture->type->name, "ByteAddressBuffer<", 18));
+					if (Backend->TypedMode == EMetalTypeBufferModeUAV && !(bIsStructuredBuffer || bIsByteAddressBuffer || Buffers.AtomicVariables.find(Texture) != Buffers.AtomicVariables.end()))
 					{
+						deref->image->accept(this);
+						if (Backend->bBoundsChecks)
+						{
+							ralloc_asprintf_append(buffer, ".read(uint2(");
+							deref->image_index->accept(this);
+							ralloc_asprintf_append(buffer, "%%");
+							deref->image->accept(this);
+							ralloc_asprintf_append(buffer, ".get_width(),min(");
+							deref->image_index->accept(this);
+							ralloc_asprintf_append(buffer, "/");
+							deref->image->accept(this);
+							ralloc_asprintf_append(buffer, ".get_width(),");
+							deref->image->accept(this);
+							ralloc_asprintf_append(buffer, ".get_height()-1)))");
+							
+							switch(Texture->type->inner_type->vector_elements)
+							{
+								case 1:
+								{
+									ralloc_asprintf_append(buffer, ".x");
+									break;
+								}
+								case 2:
+								{
+									ralloc_asprintf_append(buffer, ".xy");
+									break;
+								}
+								case 3:
+								{
+									ralloc_asprintf_append(buffer, ".xyz");
+									break;
+								}
+								case 4:
+								{
+									break;
+								}
+								default:
+								{
+									check(false);
+									break;
+								}
+							}
+							
+							ralloc_asprintf_append(buffer, " * int(");
+							deref->image_index->accept(this);
+							ralloc_asprintf_append(buffer, " < (");
+							deref->image->accept(this);
+							ralloc_asprintf_append(buffer, ".get_width() * ");
+							deref->image->accept(this);
+							ralloc_asprintf_append(buffer, ".get_height()))");
+						}
+						else
+						{
+							ralloc_asprintf_append(buffer, ".read(uint2((");
+							deref->image_index->accept(this);
+							ralloc_asprintf_append(buffer, "%%");
+							deref->image->accept(this);
+							ralloc_asprintf_append(buffer, ".get_width()),(");
+							deref->image_index->accept(this);
+							ralloc_asprintf_append(buffer, "/");
+							deref->image->accept(this);
+							ralloc_asprintf_append(buffer, ".get_width())))");
+							
+							switch(Texture->type->inner_type->vector_elements)
+							{
+								case 1:
+								{
+									ralloc_asprintf_append(buffer, ".x");
+									break;
+								}
+								case 2:
+								{
+									ralloc_asprintf_append(buffer, ".xy");
+									break;
+								}
+								case 3:
+								{
+									ralloc_asprintf_append(buffer, ".xyz");
+									break;
+								}
+								case 4:
+								{
+									break;
+								}
+								default:
+								{
+									check(false);
+									break;
+								}
+							}
+						}
+					}
+					else if (!bIsStructuredBuffer && !bIsByteAddressBuffer && Buffers.AtomicVariables.find(Texture) == Buffers.AtomicVariables.end()
+							 && Texture->type->inner_type->is_scalar())
+					{
+						ralloc_asprintf_append(buffer, "LoadRWBuffer(");
+						deref->image->accept(this);
+						ralloc_asprintf_append(buffer, ", ");
+						deref->image_index->accept(this);
+						ralloc_asprintf_append(buffer, ", %d, BufferSizes)", Index);
+					}
+					else if (Backend && Backend->bBoundsChecks)
+					{
+						deref->image->accept(this);
 						ralloc_asprintf_append(buffer, "[");
 						ralloc_asprintf_append(buffer, "min(");
 						deref->image_index->accept(this);
@@ -2048,6 +2389,7 @@ protected:
 					}
 					else
 					{
+						deref->image->accept(this);
 						ralloc_asprintf_append(buffer, "[");
 						deref->image_index->accept(this);
 						ralloc_asprintf_append(buffer, "]"/*.%s, swizzle[dst_elements - 1]*/);
@@ -2058,9 +2400,9 @@ protected:
 			}
 			else
 			{
-				deref->image->accept(this);
 				if (bIsRWTexture)
 				{
+					deref->image->accept(this);
 					ralloc_asprintf_append(buffer, ".write(");
 					// @todo Zebra: Below is a terrible hack - the input to write is always vec<T, 4>,
 					// 				but the type T comes from the texture type.  
@@ -2157,29 +2499,120 @@ protected:
 				}
 				else
 				{
-					if (Backend && Backend->bBoundsChecks)
+					auto* Texture = deref->image->variable_referenced();
+					bool bIsStructuredBuffer = (Texture->type->inner_type->is_record() || !strncmp(Texture->type->name, "RWStructuredBuffer<", 19) || !strncmp(Texture->type->name, "StructuredBuffer<", 17));
+					bool bIsByteAddressBuffer = (!strncmp(Texture->type->name, "RWByteAddressBuffer<", 20) || !strncmp(Texture->type->name, "ByteAddressBuffer<", 18));
+					if (Backend->TypedMode == EMetalTypeBufferModeUAV && !(bIsStructuredBuffer || bIsByteAddressBuffer || Buffers.AtomicVariables.find(Texture) != Buffers.AtomicVariables.end()))
 					{
+						deref->image->accept(this);
+						ralloc_asprintf_append(buffer, ".write(");
+						// @todo Zebra: Below is a terrible hack - the input to write is always vec<T, 4>,
+						// 				but the type T comes from the texture type.
+						if(src_elements == 1)
+						{
+							switch(deref->type->base_type)
+							{
+									case GLSL_TYPE_UINT:
+									ralloc_asprintf_append(buffer, "uint4(");
+									break;
+									case GLSL_TYPE_INT:
+									ralloc_asprintf_append(buffer, "int4(");
+									break;
+									case GLSL_TYPE_HALF:
+									ralloc_asprintf_append(buffer, "half4(");
+									break;
+									case GLSL_TYPE_FLOAT:
+								default:
+									ralloc_asprintf_append(buffer, "float4(");
+									break;
+							}
+							src->accept(this);
+							ralloc_asprintf_append(buffer, ")");
+						}
+						else
+						{
+							switch(deref->type->base_type)
+							{
+									case GLSL_TYPE_UINT:
+									ralloc_asprintf_append(buffer, "(uint4)(");
+									break;
+									case GLSL_TYPE_INT:
+									ralloc_asprintf_append(buffer, "(int4)(");
+									break;
+									case GLSL_TYPE_HALF:
+									ralloc_asprintf_append(buffer, "(half4)(");
+									break;
+									case GLSL_TYPE_FLOAT:
+								default:
+									ralloc_asprintf_append(buffer, "(float4)(");
+									break;
+							}
+							src->accept(this);
+							switch (src_elements)
+							{
+									case 3:
+									ralloc_asprintf_append(buffer, ").xyzx");
+									break;
+									case 2:
+									ralloc_asprintf_append(buffer, ").xyxy");
+									break;
+								default:
+									ralloc_asprintf_append(buffer, ")");
+									break;
+							}
+						}
+						//#todo-rco: Add language spec to know if indices need to be uint
+						ralloc_asprintf_append(buffer, ",uint2((");
+						deref->image_index->accept(this);
+						ralloc_asprintf_append(buffer, "%%");
+						deref->image->accept(this);
+						ralloc_asprintf_append(buffer, ".get_width()),(");
+						deref->image_index->accept(this);
+						ralloc_asprintf_append(buffer, "/");
+						deref->image->accept(this);
+						ralloc_asprintf_append(buffer, ".get_width())))");
+					}
+					
+					else if (!bIsStructuredBuffer && !bIsByteAddressBuffer && Buffers.AtomicVariables.find(Texture) == Buffers.AtomicVariables.end()
+							 && Texture->type->inner_type->is_scalar())
+					{
+						int Index = Buffers.GetIndex(Texture);
+						check(Index >= 0 && Index <= 30);
+						
+						ralloc_asprintf_append(buffer, "StoreRWBuffer(");
+						deref->image->accept(this);
+						ralloc_asprintf_append(buffer, ", ");
+						deref->image_index->accept(this);
+						ralloc_asprintf_append(buffer, ", %d, BufferSizes, ", Index);
+						src->accept(this);
+						ralloc_asprintf_append(buffer, ")");
+					}
+					else if (Backend && Backend->bBoundsChecks)
+					{
+						deref->image->accept(this);
 						ralloc_asprintf_append(buffer, "[");
 						ralloc_asprintf_append(buffer, "min(");
 						deref->image_index->accept(this);
 						ralloc_asprintf_append(buffer, ",");
 						
-						auto* Texture = deref->image->variable_referenced();
 						int Index = Buffers.GetIndex(Texture);
 						check(Index >= 0 && Index <= 30);
 						
 						ralloc_asprintf_append(buffer, "(BufferSizes[%d] / sizeof(", Index);
 						print_type_pre(Texture->type->inner_type);
 						ralloc_asprintf_append(buffer, ")))] = ");
+						src->accept(this);
+						ralloc_asprintf_append(buffer, ""/*".%s", expand[src_elements - 1]*/);
 					}
 					else
 					{
+						deref->image->accept(this);
 						ralloc_asprintf_append(buffer, "[");
 						deref->image_index->accept(this);
 						ralloc_asprintf_append(buffer, "] = ");
+						src->accept(this);
+						ralloc_asprintf_append(buffer, ""/*".%s", expand[src_elements - 1]*/);
 					}
-					src->accept(this);
-					ralloc_asprintf_append(buffer, ""/*".%s", expand[src_elements - 1]*/);
 				}
 			}
 		}
@@ -2383,15 +2816,16 @@ protected:
 		}
 		else if (constant->type->is_array())
 		{
-			print_type_full(constant->type);
-			ralloc_asprintf_append(buffer, "(");
+			// Don't write out float4[2](float4(...), ..)
+			// Instead do {float4(...),..}
+			ralloc_asprintf_append(buffer, "{");
 			constant->get_array_element(0)->accept(this);
 			for (uint32 i = 1; i < constant->type->length; ++i)
 			{
 				ralloc_asprintf_append(buffer, ",");
 				constant->get_array_element(i)->accept(this);
 			}
-			ralloc_asprintf_append(buffer, ")");
+			ralloc_asprintf_append(buffer, "}");
 		}
 		else
 		{
@@ -2511,7 +2945,7 @@ protected:
                 }
             }
         }
-        
+		
 		if (!strcmp(call->callee_name(), "packHalf2x16"))
 		{
 			ralloc_asprintf_append(buffer, "as_type<uint>(half2(");
@@ -2595,7 +3029,7 @@ protected:
 
 			ir_instruction *const inst = (ir_instruction *) iter.get();
 			ir_assignment *assignment = inst->as_assignment();
-			if (assignment && (assignment->rhs->ir_type == ir_type_dereference_variable || assignment->rhs->ir_type == ir_type_constant))
+			if (assignment && (assignment->rhs->ir_type == ir_type_dereference_variable || assignment->rhs->ir_type == ir_type_constant || assignment->rhs->ir_type == ir_type_dereference_record))
 			{
 				dest_deref = assignment->lhs->as_dereference_variable();
 				true_value = assignment->rhs;
@@ -2620,7 +3054,7 @@ protected:
 
 			ir_instruction *const inst = (ir_instruction *) iter.get();
 			ir_assignment *assignment = inst->as_assignment();
-			if (assignment && (assignment->rhs->ir_type == ir_type_dereference_variable || assignment->rhs->ir_type == ir_type_constant))
+			if (assignment && (assignment->rhs->ir_type == ir_type_dereference_variable || assignment->rhs->ir_type == ir_type_constant || assignment->rhs->ir_type == ir_type_dereference_record))
 			{
 				ir_dereference_variable *tmp_deref = assignment->lhs->as_dereference_variable();
 				if (tmp_deref
@@ -2980,7 +3414,10 @@ protected:
 					ralloc_asprintf_append(buffer, "\t");
 					print_type_pre(s->fields.structure[j].type);
 					ralloc_asprintf_append(buffer, " %s", s->fields.structure[j].name);
-					print_type_post(s->fields.structure[j].type);
+					if (!s->fields.structure[j].semantic || strncmp(s->fields.structure[j].semantic, "[[", 2))
+					{
+						print_type_post(s->fields.structure[j].type);
+					}
 					//@todo-rco
 					if (s->fields.structure[j].semantic)
 					{
@@ -2993,9 +3430,30 @@ protected:
 							ralloc_asprintf_append(buffer, " [[ depth(any) ]]");
 							output_variables.push_tail(new(state) extern_var(new(state)ir_variable(s->fields.structure[j].type, "FragDepth", ir_var_out)));
 						}
+						else if (!strncmp(s->fields.structure[j].semantic, "[[ color(", 9))
+						{
+							static const char* const FragColor[] = { "FragColor0",
+							"FragColor1",
+							"FragColor2",
+							"FragColor3",
+							"FragColor4",
+							"FragColor5",
+							"FragColor6",
+							"FragColor7" };
+							
+							unsigned Index = (s->fields.structure[j].semantic[9] - '0');
+							check(Index < 8);
+							
+							ralloc_asprintf_append(buffer, " %s", s->fields.structure[j].semantic);
+							output_variables.push_tail(new(state) extern_var(new(state)ir_variable(s->fields.structure[j].type, FragColor[Index], ir_var_out)));
+						}
 						else if (!strcmp(s->fields.structure[j].semantic, "SV_RenderTargetArrayIndex"))
 						{
 							ralloc_asprintf_append(buffer, " [[ render_target_array_index ]]");
+						}
+						else if (!strcmp(s->fields.structure[j].semantic, "SV_ViewPortArrayIndex"))
+						{
+							ralloc_asprintf_append(buffer, " [[ viewport_array_index ]]");
 						}
 						else if (!strcmp(s->fields.structure[j].semantic, "SV_Coverage") || !strcmp(s->fields.structure[j].semantic, "[[ sample_mask ]]"))
 						{
@@ -3004,6 +3462,7 @@ protected:
 						else if (!strncmp(s->fields.structure[j].semantic, "[[", 2))
 						{
 							ralloc_asprintf_append(buffer, " %s", s->fields.structure[j].semantic);
+							print_type_post(s->fields.structure[j].type);
 						}
 						else if (Backend->bIsTessellationVSHS)
 						{
@@ -3068,7 +3527,7 @@ protected:
 		for (_mesa_glsl_parse_state::TUniformList::iterator Iter = Samplers.begin(); Iter != Samplers.end(); ++Iter)
 		{
 			glsl_packed_uniform& Sampler = *Iter;
-			FCustomStdString SamplerStates("");
+			std::string SamplerStates("");
 			TStringToSetMap::iterator IterFound = TextureToSamplerMap.find(Sampler.Name);
 			if (IterFound != TextureToSamplerMap.end())
 			{
@@ -3115,9 +3574,7 @@ protected:
 		for (_mesa_glsl_parse_state::TUniformList::iterator Iter = Uniforms.begin(); Iter != Uniforms.end(); ++Iter)
 		{
 			glsl_packed_uniform& Uniform = *Iter;
-			ANSICHAR Name[32];
-			FCStringAnsi::Sprintf(Name, "%si%u", glsl_variable_tag_from_parser_target(Frequency), Uniform.offset);
-			int32 Offset = Buffers.GetIndex(Name);
+			int32 Offset = Buffers.GetIndex(Uniform.Name);
             check(Offset >= 0);
 			ralloc_asprintf_append(
 				buffer,
@@ -3492,7 +3949,7 @@ protected:
 			check(Backend->patchesPerThreadgroup != 0);
 			ralloc_asprintf_append(buffer, "// @TessellationPatchesPerThreadGroup: %d\n", Backend->patchesPerThreadgroup);
             
-            FCustomStdString patchCountName("patchCount");
+            std::string patchCountName("patchCount");
             int32 patchIndex = Buffers.GetIndex(patchCountName);
             if(patchIndex < 0 || patchIndex > 30)
             {
@@ -3500,7 +3957,7 @@ protected:
             }
             ralloc_asprintf_append(buffer, "// @TessellationPatchCountBuffer: %u\n", (uint32)patchIndex);
 
-            FCustomStdString indexBufferName("indexBuffer");
+            std::string indexBufferName("indexBuffer");
             int32 ibIndex = Buffers.GetIndex(indexBufferName);
             if (ibIndex >= 0)
             {
@@ -3508,7 +3965,7 @@ protected:
                 ralloc_asprintf_append(buffer, "// @TessellationIndexBuffer: %u\n", (uint32)ibIndex);
             }
             
-            FCustomStdString HSOutName("__HSOut");
+            std::string HSOutName("__HSOut");
             int32 hsOutIndex = Buffers.GetIndex(HSOutName);
             if(hsOutIndex > 30)
             {
@@ -3516,7 +3973,7 @@ protected:
             }
 			ralloc_asprintf_append(buffer, "// @TessellationHSOutBuffer: %u\n", (uint32)hsOutIndex);
 			
-			FCustomStdString PatchControlPointOutBufferName("PatchControlPointOutBuffer");
+			std::string PatchControlPointOutBufferName("PatchControlPointOutBuffer");
 			int32 patchControlIndex = Buffers.GetIndex(PatchControlPointOutBufferName);
             if(patchControlIndex < 0 || patchControlIndex > 30)
             {
@@ -3524,7 +3981,7 @@ protected:
             }
 			ralloc_asprintf_append(buffer, "// @TessellationControlPointOutBuffer: %u\n", (uint32)patchControlIndex);
 
-            FCustomStdString HSTFOutName("__HSTFOut");
+            std::string HSTFOutName("__HSTFOut");
             int32 hstfOutIndex = Buffers.GetIndex(HSTFOutName);
             if(hstfOutIndex < 0 || hstfOutIndex > 30)
             {
@@ -3591,7 +4048,7 @@ protected:
 			}
 			ralloc_asprintf_append(buffer, "\n");
 			
-			FCustomStdString HSOutName("__DSStageIn");
+			std::string HSOutName("__DSStageIn");
             int32 hsOutIndex = Buffers.GetIndex(HSOutName);
             if(hsOutIndex > 30)
             {
@@ -3599,7 +4056,7 @@ protected:
             }
 			ralloc_asprintf_append(buffer, "// @TessellationHSOutBuffer: %u\n", (uint32)hsOutIndex);
 			
-			FCustomStdString PatchControlPointOutBufferName("__DSPatch");
+			std::string PatchControlPointOutBufferName("__DSPatch");
             int32 patchControlIndex = Buffers.GetIndex(PatchControlPointOutBufferName);
             if(patchControlIndex < 0 || patchControlIndex > 30)
             {
@@ -3649,6 +4106,7 @@ public:
 		, bCubeArrayHackFloat3(false)
 		, bReverseBitsWAR(false)
 		, bVectorDerefHelper(false)
+		, bUseBufferSampler(false)
 	{
 		printable_names = hash_table_ctor(32, hash_table_pointer_hash, hash_table_pointer_compare);
 		used_structures = hash_table_ctor(128, hash_table_pointer_hash, hash_table_pointer_compare);
@@ -3684,6 +4142,10 @@ public:
 		char* decl_buffer = ralloc_asprintf(mem_ctx, "");
 		buffer = &decl_buffer;
 		declare_structs(ParseState);
+		if (bUseBufferSampler)
+		{
+			ralloc_asprintf_append(buffer, "\nconstexpr sampler GBufferSampler(coord::pixel, address::clamp_to_zero, filter::nearest);\n");
+		}
 		buffer = 0;
 
 		char* signature = ralloc_asprintf(mem_ctx, "");
@@ -3760,6 +4222,104 @@ public:
 		}
 		
 		buffer = 0;
+
+		char* RWBufferLoadStoreHelper = ralloc_asprintf(mem_ctx, "");
+		if (Backend->Version < 3)
+		{
+			buffer = &RWBufferLoadStoreHelper;
+			
+			ralloc_asprintf_append(buffer, "enum ECastablePixelFormats\n");
+			ralloc_asprintf_append(buffer, "{\n");
+			ralloc_asprintf_append(buffer, "\t	PF_R32_FLOAT\t	=13,\n");
+			ralloc_asprintf_append(buffer, "\t	PF_R16F\t	=21,\n");
+			ralloc_asprintf_append(buffer, "\t	PF_R32_UINT\t	=28,\n");
+			ralloc_asprintf_append(buffer, "\t	PF_R32_SINT\t	=29,\n");
+			ralloc_asprintf_append(buffer, "\t	PF_R16_UINT\t	=32,\n");
+			ralloc_asprintf_append(buffer, "\t	PF_R16_SINT\t	=33,\n");
+			ralloc_asprintf_append(buffer, "\t	PF_R8_UINT\t	=57,\n");
+			ralloc_asprintf_append(buffer, "\t	PF_MAX\t	=59,\n");
+			ralloc_asprintf_append(buffer, "};\n");
+			ralloc_asprintf_append(buffer, "\n");
+			ralloc_asprintf_append(buffer, "template<typename T>\n");
+			ralloc_asprintf_append(buffer, "static T LoadRWBuffer(device T* RWBuffer, uint Coord, uint Index, constant uint* BufferSizes)\n");
+			ralloc_asprintf_append(buffer, "{\n");
+			ralloc_asprintf_append(buffer, "\t	uint Size = BufferSizes[Index];\n");
+			ralloc_asprintf_append(buffer, "\t	uint Type = BufferSizes[Index+31];\n");
+			ralloc_asprintf_append(buffer, "\t	uint NewIndex = Coord;\n");
+			ralloc_asprintf_append(buffer, "\t	switch(Type)\n");
+			ralloc_asprintf_append(buffer, "\t	{\n");
+			ralloc_asprintf_append(buffer, "\t	\t	case PF_R32_FLOAT:\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	NewIndex = min(Coord, (Size / sizeof(float)) - 1);\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	return (T)((device float*)RWBuffer)[NewIndex] * int(Coord < (Size / sizeof(float)));\n");
+			ralloc_asprintf_append(buffer, "\t	\t	case PF_R16F:\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	NewIndex = min(Coord, (Size / sizeof(half)) - 1);\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	return (T)((device half*)RWBuffer)[NewIndex] * int(Coord < (Size / sizeof(float)));\n");
+			ralloc_asprintf_append(buffer, "\t	\t	case PF_R32_UINT:\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	NewIndex = min(Coord, (Size / sizeof(uint)) - 1);\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	return (T)((device uint*)RWBuffer)[NewIndex] * int(Coord < (Size / sizeof(float)));\n");
+			ralloc_asprintf_append(buffer, "\t	\t	case PF_R32_SINT:\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	NewIndex = min(Coord, (Size / sizeof(int)) - 1);\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	return (T)((device int*)RWBuffer)[NewIndex] * int(Coord < (Size / sizeof(float)));\n");
+			ralloc_asprintf_append(buffer, "\t	\t	case PF_R16_UINT:\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	NewIndex = min(Coord, (Size / sizeof(ushort)) - 1);\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	return (T)((device ushort*)RWBuffer)[NewIndex] * int(Coord < (Size / sizeof(float)));\n");
+			ralloc_asprintf_append(buffer, "\t	\t	case PF_R16_SINT:\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	NewIndex = min(Coord, (Size / sizeof(short)) - 1);\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	return (T)((device short*)RWBuffer)[NewIndex] * int(Coord < (Size / sizeof(float)));\n");
+			ralloc_asprintf_append(buffer, "\t	\t	case PF_R8_UINT:\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	NewIndex = min(Coord, (Size / sizeof(uchar)) - 1);\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	return (T)((device uchar*)RWBuffer)[NewIndex] * int(Coord < (Size / sizeof(float)));\n");
+			ralloc_asprintf_append(buffer, "\t	\t	default:\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	NewIndex = min(Coord, (Size / sizeof(T)) - 1);\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	return RWBuffer[NewIndex] * int(Coord < (Size / sizeof(T)));\n");
+			ralloc_asprintf_append(buffer, "\t	}\n");
+			ralloc_asprintf_append(buffer, "}\n");
+			ralloc_asprintf_append(buffer, "\n");
+			ralloc_asprintf_append(buffer, "template<typename T>\n");
+			ralloc_asprintf_append(buffer, "static void StoreRWBuffer(device T* RWBuffer, uint Coord, uint Index, constant uint* BufferSizes, T Value)\n");
+			ralloc_asprintf_append(buffer, "{\n");
+			ralloc_asprintf_append(buffer, "\t	uint Size = BufferSizes[Index];\n");
+			ralloc_asprintf_append(buffer, "\t	uint Type = BufferSizes[Index+31];\n");
+			ralloc_asprintf_append(buffer, "\t	uint NewIndex = Coord;\n");
+			ralloc_asprintf_append(buffer, "\t	switch(Type)\n");
+			ralloc_asprintf_append(buffer, "\t	{\n");
+			ralloc_asprintf_append(buffer, "\t	\t	case PF_R32_FLOAT:\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	NewIndex = min(Coord, (Size / sizeof(float)));\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	((device float*)RWBuffer)[NewIndex] = (float)Value;\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	break;\n");
+			ralloc_asprintf_append(buffer, "\t	\t	case PF_R16F:\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	NewIndex = min(Coord, (Size / sizeof(half)));\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	((device half*)RWBuffer)[NewIndex] = (half)Value;\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	break;\n");
+			ralloc_asprintf_append(buffer, "\t	\t	case PF_R32_UINT:\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	NewIndex = min(Coord, (Size / sizeof(uint)));\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	((device uint*)RWBuffer)[NewIndex] = (uint)Value;\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	break;\n");
+			ralloc_asprintf_append(buffer, "\t	\t	case PF_R32_SINT:\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	NewIndex = min(Coord, (Size / sizeof(int)));\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	((device int*)RWBuffer)[NewIndex] = (int)Value;\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	break;\n");
+			ralloc_asprintf_append(buffer, "\t	\t	case PF_R16_UINT:\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	NewIndex = min(Coord, (Size / sizeof(ushort)));\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	((device ushort*)RWBuffer)[NewIndex] = (ushort)Value;\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	break;\n");
+			ralloc_asprintf_append(buffer, "\t	\t	case PF_R16_SINT:\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	NewIndex = min(Coord, (Size / sizeof(short)));\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	((device short*)RWBuffer)[NewIndex] = (short)Value;\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	break;\n");
+			ralloc_asprintf_append(buffer, "\t	\t	case PF_R8_UINT:\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	NewIndex = min(Coord, (Size / sizeof(uchar)));\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	((device uchar*)RWBuffer)[NewIndex] = (uchar)Value;\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	break;\n");
+			ralloc_asprintf_append(buffer, "\t	\t	default:\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	NewIndex = min(Coord, (Size / sizeof(T)));\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	RWBuffer[NewIndex] = Value;\n");
+			ralloc_asprintf_append(buffer, "\t	\t	\t	break;\n");
+			ralloc_asprintf_append(buffer, "\t	}\n");
+			ralloc_asprintf_append(buffer, "}\n\n");
+		}
+		
+		buffer = 0;
 		
 		char* CubemapHack = ralloc_asprintf(mem_ctx, "");
 		// Convert CubeMapArray to 2DArray for iOS/tvOS: x=>x, y=>y, z=>Face
@@ -3768,33 +4328,46 @@ public:
 			buffer = &CubemapHack;
 			if (bCubeArrayHackFloat4)
 			{
+				//CubeFaces as laid out in UE4 as a flat array seem to be
+				// Right (x+), Left(x-), Forward(y+), Back(y-), Up (z+), Down (z-)
+				// Largest vector component of the vector chooses a face, and is used to project the other two
+				// into a 0-1 UV space on that face.
 				ralloc_asprintf_append(buffer, "static float3 CubemapTo2DArrayFace(float4 P)\n");
 				ralloc_asprintf_append(buffer, "{\n");
 				ralloc_asprintf_append(buffer, "	\tfloat ArrayIndex = P.w * 6;\n");
+				//take abs of incoming vector to make face selection simpler
 				ralloc_asprintf_append(buffer, "	\tfloat3 Coords = abs(P.xyz);\n");
+				ralloc_asprintf_append(buffer, "	\tfloat CubeFace = 0;\n");
+				ralloc_asprintf_append(buffer, "	\tfloat ProjectionAxis = 0;\n");
+				ralloc_asprintf_append(buffer, "	\tfloat u = 0;\n");
+				ralloc_asprintf_append(buffer, "	\tfloat v = 0;\n");
 				ralloc_asprintf_append(buffer, "	\tif(Coords.x >= Coords.y && Coords.x >= Coords.z)\n");
 				ralloc_asprintf_append(buffer, "	\t{\n");
-				ralloc_asprintf_append(buffer, "	\t	\tCoords.xy = P.zy / P.x;\n");
-				ralloc_asprintf_append(buffer, "	\t	\tCoords.z = P.x >= 0 ? 0 : 1;\n");
-				ralloc_asprintf_append(buffer, "	\t	\tCoords.x *= -(1 - Coords.z);\n");
+				//here we are +-X face
+				ralloc_asprintf_append(buffer, "	\t	\tCubeFace = P.x >= 0 ? 0 : 1;\n");
+				ralloc_asprintf_append(buffer, "	\t	\tProjectionAxis = Coords.x;\n");
+				ralloc_asprintf_append(buffer, "	\t	\tu = P.x >= 0 ? -P.z : P.z;\n");
+				ralloc_asprintf_append(buffer, "	\t	\tv = -P.y;\n");
 				ralloc_asprintf_append(buffer, "	\t}\n");
+				//here we are +-Y face
 				ralloc_asprintf_append(buffer, "	\telse if(Coords.y >= Coords.x && Coords.y >= Coords.z)\n");
 				ralloc_asprintf_append(buffer, "	\t{\n");
-				ralloc_asprintf_append(buffer, "	\t	\tCoords.xy = P.xz / P.y;\n");
-				ralloc_asprintf_append(buffer, "	\t	\tCoords.z = P.y >= 0 ? 0 : 1;\n");
-				ralloc_asprintf_append(buffer, "	\t	\tCoords.y *= -(1 - Coords.z);\n");
-				ralloc_asprintf_append(buffer, "	\t	\tCoords.z += 2;\n");
+				ralloc_asprintf_append(buffer, "	\t	\tCubeFace = P.y >= 0 ? 2 : 3;\n");
+				ralloc_asprintf_append(buffer, "	\t	\tProjectionAxis = Coords.y;\n");
+				ralloc_asprintf_append(buffer, "	\t	\tu = P.x;\n");
+				ralloc_asprintf_append(buffer, "	\t	\tv = P.y >= 0 ? P.z : -P.z;\n");
 				ralloc_asprintf_append(buffer, "	\t}\n");
+				//here we are +-Z face
 				ralloc_asprintf_append(buffer, "	\telse\n");
 				ralloc_asprintf_append(buffer, "	\t{\n");
-				ralloc_asprintf_append(buffer, "	\t	\tCoords.xy = P.xy / P.z;\n");
-				ralloc_asprintf_append(buffer, "	\t	\tCoords.z = P.z >= 0 ? 0 : 1;\n");
-				ralloc_asprintf_append(buffer, "	\t	\tCoords.x *= -(Coords.z);\n");
-				ralloc_asprintf_append(buffer, "	\t	\tCoords.z += 4;\n");
+				ralloc_asprintf_append(buffer, "	\t	\tCubeFace = P.z >= 0 ? 4 : 5;\n");
+				ralloc_asprintf_append(buffer, "	\t	\tProjectionAxis = Coords.z;\n");
+				ralloc_asprintf_append(buffer, "	\t	\tu = P.z >= 0 ? P.x : -P.x;\n");
+				ralloc_asprintf_append(buffer, "	\t	\tv = -P.y;\n");
 				ralloc_asprintf_append(buffer, "	\t}\n");
-				ralloc_asprintf_append(buffer, "	\tCoords.xy = 0.5 * (Coords.xy + 1);\n");
-				ralloc_asprintf_append(buffer, "	\tCoords.z += ArrayIndex;\n");
-				ralloc_asprintf_append(buffer, "	\treturn Coords;\n");
+				ralloc_asprintf_append(buffer, "	\tu = 0.5 * (u/ProjectionAxis + 1);\n");
+				ralloc_asprintf_append(buffer, "	\tv = 0.5 * (v/ProjectionAxis + 1);\n");
+				ralloc_asprintf_append(buffer, "	\treturn float3(u, v, CubeFace + ArrayIndex);\n");				
 				ralloc_asprintf_append(buffer, "}\n");
 				ralloc_asprintf_append(buffer, "\n");
 			}
@@ -3812,13 +4385,14 @@ public:
 
 		char* full_buffer = ralloc_asprintf(
 			ParseState,
-			"// Compiled by HLSLCC\n%s\n%s\n#include <metal_stdlib>\n%s\nusing namespace metal;\n\n%s%s%s%s%s",
+			"// Compiled by HLSLCC\n%s\n%s\n#include <metal_stdlib>\n%s\nusing namespace metal;\n\n%s%s%s%s%s%s",
 			signature,
 			metal_defines,
 			bNeedsComputeInclude ? "#include <metal_compute>" : "",
 			CubemapHack,
 			reverse_bits,
 			VectorDerefHelper,
+			RWBufferLoadStoreHelper,
 			decl_buffer,
 			code_buffer
 			);
@@ -3841,7 +4415,9 @@ char* FMetalCodeBackend::GenerateCode(exec_list* ir, _mesa_glsl_parse_state* sta
 
 	// Move all inputs & outputs to structs for Metal
 	PackInputsAndOutputs(ir, state, Frequency, visitor.input_variables);
-
+	
+	FindAtomicVariables(ir, Buffers.AtomicVariables);
+	
 	// ir_var_uniform instances be global, so move them as arguments to main
 	MovePackedUniformsToMain(ir, state, Buffers);
 
@@ -3867,12 +4443,14 @@ char* FMetalCodeBackend::GenerateCode(exec_list* ir, _mesa_glsl_parse_state* sta
 		// Metal can't read from a packed_* type, which for us come from a constant buffer
 		//@todo-rco: Might not work if accessing packed_half* m[N]!
 		RemovePackedVarReferences(ir, state);
-
+		
+		// We've probably removed a bunch of the variables now, we might have inserted some too..
+		Buffers.AtomicVariables.clear();
 		FindAtomicVariables(ir, Buffers.AtomicVariables);
 
 		bool bConvertUniformsToFloats = (HlslCompileFlags & HLSLCC_FlattenUniformBuffers) != HLSLCC_FlattenUniformBuffers;
 		ConvertHalfToFloatUniformsAndSamples(ir, state, bConvertUniformsToFloats, true);
-
+		
 		Validate(ir, state);
 	}
 
@@ -3881,49 +4459,19 @@ char* FMetalCodeBackend::GenerateCode(exec_list* ir, _mesa_glsl_parse_state* sta
 	return _strdup(code);
 }
 
-struct FMetalCheckNonComputeRestrictionsVisitor : public ir_hierarchical_visitor
-{
-	_mesa_glsl_parse_state* ParseState;
-    uint8 Version;
-	bool bErrors;
-	FMetalCheckNonComputeRestrictionsVisitor(_mesa_glsl_parse_state* InParseState, uint8 InVersion)
-		: ParseState(InParseState)
-        , Version(InVersion)
-		, bErrors(false)
-	{
-	}
-
-	virtual ir_visitor_status visit(ir_variable* IR) override
-	{
-		if (IR->type && IR->type->is_image() && (Version < 2 || ParseState->target != fragment_shader))
-		{
-			if (IR->name)
-			{
-				_mesa_glsl_error(ParseState, "Metal doesn't allow UAV '%s' on non-compute shader stages.", IR->name);
-			}
-			else
-			{
-				_mesa_glsl_error(ParseState, "Metal doesn't allow UAV on non-compute shader stages.");
-			}
-			bErrors = true;
-			return visit_stop;
-		}
-		// @todo validate that GLSL_OUTPUTTOPOLOGY_POINT, GLSL_OUTPUTTOPOLOGY_LINE are not used
-
-		return visit_continue;
-	}
-}; 
-
 struct FMetalCheckComputeRestrictionsVisitor : public ir_rvalue_visitor
 {
-    TMap<ir_variable*, uint32>& ImageRW;
+	TMap<ir_variable*, uint32>& ImageRW;
 	_mesa_glsl_parse_state* ParseState;
-    uint8 Version;
+    EMetalTypeBufferMode TypeMode;
+	uint8 Version;
     bool bErrors;
 
-	FMetalCheckComputeRestrictionsVisitor(TMap<ir_variable*, uint32>& InImageRW, _mesa_glsl_parse_state* InParseState, uint8 InVersion)
+	FMetalCheckComputeRestrictionsVisitor(TMap<ir_variable*, uint32>& InImageRW, _mesa_glsl_parse_state* InParseState,
+    EMetalTypeBufferMode InTypeMode, uint8 InVersion)
 		: ImageRW(InImageRW)
         , ParseState(InParseState)
+		, TypeMode(InTypeMode)
         , Version(InVersion)
 		, bErrors(false)
 	{
@@ -3939,10 +4487,10 @@ struct FMetalCheckComputeRestrictionsVisitor : public ir_rvalue_visitor
 		return ir_rvalue_visitor::visit(IR);
 	}
 
-	void VerifyDeReference(ir_dereference* DeRef, bool bWrite)
+	virtual void VerifyDeReference(ir_dereference* DeRef, bool bWrite)
 	{
 		auto* Var = DeRef->variable_referenced();
-		if (Var && Var->type && Var->type->is_image() && !Var->type->sampler_buffer)
+		if (Var && Var->type && Var->type->is_image() && (!Var->type->sampler_buffer || TypeMode == EMetalTypeBufferModeUAV))
 		{
 			if (bWrite)
 			{
@@ -3988,19 +4536,70 @@ struct FMetalCheckComputeRestrictionsVisitor : public ir_rvalue_visitor
 	}
 };
 
+struct FMetalCheckNonComputeRestrictionsVisitor : public FMetalCheckComputeRestrictionsVisitor
+{
+	FMetalCheckNonComputeRestrictionsVisitor(TMap<ir_variable*, uint32>& InImageRW, _mesa_glsl_parse_state* InParseState, EMetalTypeBufferMode InTypeMode, uint8 InVersion)
+	: FMetalCheckComputeRestrictionsVisitor(InImageRW, InParseState, InTypeMode, InVersion)
+	{
+	}
+	
+	virtual ir_visitor_status visit(ir_variable* IR) override
+	{
+		if (IR->type && IR->type->is_image() && (Version < 2))
+		{
+			if (IR->name)
+			{
+				_mesa_glsl_error(ParseState, "Metal doesn't allow UAV '%s' on non-compute shader stage %d.", IR->name, (unsigned)ParseState->target);
+			}
+			else
+			{
+				_mesa_glsl_error(ParseState, "Metal doesn't allow UAV on non-compute shader stage %d.", (unsigned)ParseState->target);
+			}
+			bErrors = true;
+			return visit_stop;
+		}
+		// @todo validate that GLSL_OUTPUTTOPOLOGY_POINT, GLSL_OUTPUTTOPOLOGY_LINE are not used
+		
+		return FMetalCheckComputeRestrictionsVisitor::visit(IR);
+	}
+	
+	virtual void VerifyDeReference(ir_dereference* DeRef, bool bWrite) override
+	{
+		FMetalCheckComputeRestrictionsVisitor::VerifyDeReference(DeRef, bWrite);
+		
+		auto* Var = DeRef->variable_referenced();
+		if (Var && Var->type && Var->type->is_image() && Var->type->sampler_buffer)
+		{
+			if (bWrite)
+			{
+				ImageRW[Var] |= EMetalAccessWrite;
+			}
+			else
+			{
+				ImageRW[Var] |= EMetalAccessRead;
+			}
+			
+			if (ImageRW[Var] == EMetalAccessWrite && (ParseState->target != fragment_shader))
+			{
+				_mesa_glsl_error(ParseState, "Metal cannot write to resources in vertex shaders %s%s%s!", Var->name ? "(" : "", Var->name ? Var->name : "", Var->name ? ")" : "");
+				bErrors = true;
+			}
+		}
+	}
+};
 
 bool FMetalCodeBackend::ApplyAndVerifyPlatformRestrictions(exec_list* Instructions, _mesa_glsl_parse_state* ParseState, EHlslShaderFrequency Frequency)
 {
 	if (Frequency == HSF_ComputeShader)
 	{
-		FMetalCheckComputeRestrictionsVisitor Visitor(ImageRW, ParseState, Version);
+		FMetalCheckComputeRestrictionsVisitor Visitor(ImageRW, ParseState, TypedMode, Version);
 		Visitor.run(Instructions);
 
 		return !Visitor.bErrors;
 	}
 	else
 	{
-		FMetalCheckNonComputeRestrictionsVisitor Visitor(ParseState, Version);
+		FMetalCheckNonComputeRestrictionsVisitor Visitor(ImageRW, ParseState, TypedMode, Version);
 		Visitor.run(Instructions);
 
 		return !Visitor.bErrors;
@@ -4009,6 +4608,8 @@ bool FMetalCodeBackend::ApplyAndVerifyPlatformRestrictions(exec_list* Instructio
 
 bool FMetalCodeBackend::GenerateMain(EHlslShaderFrequency Frequency, const char* EntryPoint, exec_list* Instructions, _mesa_glsl_parse_state* ParseState)
 {
+	ParseState->maxunrollcount = MaxUnrollLoops;
+	
 	auto* EntryPointSig = FindEntryPointFunction(Instructions, ParseState, EntryPoint);
 	if (!EntryPointSig)
 	{
@@ -4231,6 +4832,49 @@ bool FMetalCodeBackend::GenerateMain(EHlslShaderFrequency Frequency, const char*
 		}
 	}
 
+	uint32 ClipDistancesUsed = 0;
+	uint32& NumClipDistancesUsed = ((FMetalLanguageSpec*)ParseState->LanguageSpec)->ClipDistanceCount;
+	uint32 const ClipPrefixLen = 15;
+	
+	// get number of input and output control points
+	foreach_iter(exec_list_iterator, Iter, EntryPointSig->parameters)
+	{
+		const ir_variable* Variable = (ir_variable*)Iter.get();
+		if (Variable->mode == ir_var_out && Variable->semantic != NULL && FCStringAnsi::Strnicmp(Variable->semantic, "SV_ClipDistance", ClipPrefixLen) == 0)
+		{
+			uint32 Index = 0;
+			if (Variable->semantic[ClipPrefixLen] >= '1' && Variable->semantic[ClipPrefixLen] <= '7')
+			{
+				Index = Variable->semantic[ClipPrefixLen] - '0';
+			}
+			if (!(ClipDistancesUsed & (1 << Index)))
+			{
+				ClipDistancesUsed |= (1 << Index);
+				NumClipDistancesUsed++;
+			}
+		}
+	}
+	if (!EntryPointSig->return_type->is_void() && EntryPointSig->return_type->is_record() && !bIsTessellationVSHS)
+	{
+		for (uint32 i = 0; i < EntryPointSig->return_type->length; ++i)
+		{
+			const char* FieldSemantic = EntryPointSig->return_type->fields.structure[i].semantic;
+			if (FieldSemantic != NULL && FCStringAnsi::Strnicmp(FieldSemantic, "SV_ClipDistance", ClipPrefixLen) == 0)
+			{
+				uint32 Index = 0;
+				if (FieldSemantic[ClipPrefixLen] >= '1' && FieldSemantic[ClipPrefixLen] <= '7')
+				{
+					Index = FieldSemantic[ClipPrefixLen] - '0';
+				}
+				if (!(ClipDistancesUsed & (1 << Index)))
+				{
+					ClipDistancesUsed |= (1 << Index);
+					NumClipDistancesUsed++;
+				}
+			}
+		}
+	}
+	
 	ir_variable* InputPatchVar = NULL;
 
 	ParseState->symbols->push_scope();
@@ -5372,14 +6016,18 @@ void FMetalCodeBackend::CallPatchConstantFunction(_mesa_glsl_parse_state* ParseS
 	pv_if->then_instructions.push_tail(thread_if);
 }
 
-FMetalCodeBackend::FMetalCodeBackend(FMetalTessellationOutputs& TessOutputAttribs, unsigned int InHlslCompileFlags, EHlslCompileTarget InTarget, uint8 InVersion, EMetalGPUSemantics bInDesktop, bool bInZeroInitialise, bool bInBoundsChecks) :
+FMetalCodeBackend::FMetalCodeBackend(FMetalTessellationOutputs& TessOutputAttribs, unsigned int InHlslCompileFlags, EHlslCompileTarget InTarget, uint8 InVersion, EMetalGPUSemantics bInDesktop, EMetalTypeBufferMode InTypedMode, uint32 InMaxUnrollLoops, bool bInZeroInitialise, bool bInBoundsChecks, bool bInAllFastIntriniscs) :
 	FCodeBackend(InHlslCompileFlags, HCT_FeatureLevelES3_1),
-	TessAttribs(TessOutputAttribs)
+	TessAttribs(TessOutputAttribs),
+	AtomicUAVs(0)
 {
     Version = InVersion;
 	bIsDesktop = bInDesktop;
+	TypedMode = InTypedMode;
+	MaxUnrollLoops = InMaxUnrollLoops;
 	bZeroInitialise = bInZeroInitialise;
 	bBoundsChecks = bInBoundsChecks;
+	bAllowFastIntriniscs = bInAllFastIntriniscs;
 }
 
 void FMetalLanguageSpec::SetupLanguageIntrinsics(_mesa_glsl_parse_state* State, exec_list* ir)

@@ -15,6 +15,10 @@
 
 #import <AVFoundation/AVFoundation.h>
 
+#if !PLATFORM_MAC || (MAC_OS_X_VERSION_MIN_REQUIRED >= 101100)
+#include <CoreVideo/CVMetalTextureCache.h>
+#endif
+
 #if PLATFORM_MAC
 	#include "CocoaThread.h"
 #endif

@@ -552,6 +552,10 @@ protected:
 	uint8 bListedInSceneOutliner:1;
 
 public:
+	/** True if this actor is the preview actor dragged out of the content browser */
+	UPROPERTY()
+	uint8 bIsEditorPreviewActor:1;
+
 	/** Whether this actor is hidden by the layer browser. */
 	UPROPERTY()
 	uint8 bHiddenEdLayer:1;
@@ -2122,7 +2126,6 @@ public:
 	/** Called to finish the spawning process, generally in the case of deferred spawning */
 	void FinishSpawning(const FTransform& Transform, bool bIsDefaultTransform = false, const FComponentInstanceDataCache* InstanceDataCache = nullptr);
 
-private:
 	/** Called after the actor has run its construction. Responsible for finishing the actor spawn process. */
 	void PostActorConstruction();
 
@@ -2635,6 +2638,7 @@ public:
 	 *	@param bEnableStreaming	- Whether to start (true) or stop (false) streaming
 	 *	@param CinematicTextureGroups - Bitfield indicating which texture groups that use extra high-resolution mips
 	 */
+	UFUNCTION(BlueprintCallable, Category = "Rendering")
 	virtual void PrestreamTextures( float Seconds, bool bEnableStreaming, int32 CinematicTextureGroups = 0 );
 
 	/**

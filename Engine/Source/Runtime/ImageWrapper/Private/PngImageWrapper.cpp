@@ -50,12 +50,12 @@ public:
 	{
 		if (PNGRowPointers != NULL)
 		{
-			png_free( *png_ptr, *PNGRowPointers );
+			png_free( *png_ptr, PNGRowPointers );
 		}
 		png_destroy_read_struct( png_ptr, info_ptr, NULL );
 	}
 
-	void SetRowPointers( png_bytep** InRowPointers )
+	void SetRowPointers( png_bytep* InRowPointers )
 	{
 		PNGRowPointers = InRowPointers;
 	}
@@ -63,7 +63,7 @@ public:
 private:
 	png_structp* png_ptr;
 	png_infop* info_ptr;
-	png_bytep** PNGRowPointers;
+	png_bytep* PNGRowPointers;
 };
 
 
@@ -84,12 +84,12 @@ public:
 	{
 		if (PNGRowPointers != NULL)
 		{
-			png_free( *PNGWriteStruct, *PNGRowPointers );
+			png_free( *PNGWriteStruct, PNGRowPointers );
 		}
 		png_destroy_write_struct( PNGWriteStruct, info_ptr );
 	}
 
-	void SetRowPointers( png_bytep** InRowPointers )
+	void SetRowPointers( png_bytep* InRowPointers )
 	{
 		PNGRowPointers = InRowPointers;
 	}
@@ -97,7 +97,7 @@ public:
 private:
 	png_structp* PNGWriteStruct;
 	png_infop* info_ptr;
-	png_bytep** PNGRowPointers;
+	png_bytep* PNGRowPointers;
 };
 
 
@@ -135,18 +135,18 @@ void FPngImageWrapper::Compress( int32 Quality )
 		png_infop info_ptr	= png_create_info_struct( png_ptr );
 		check(info_ptr);
 
+		png_bytep* row_pointers = (png_bytep*) png_malloc( png_ptr, Height*sizeof(png_bytep) );
 		PNGWriteGuard PNGGuard(&png_ptr, &info_ptr);
+		PNGGuard.SetRowPointers( row_pointers );
 		{
 			png_set_compression_level(png_ptr, Z_BEST_SPEED);
 			png_set_IHDR(png_ptr, info_ptr, Width, Height, RawBitDepth, (RawFormat == ERGBFormat::Gray) ? PNG_COLOR_TYPE_GRAY : PNG_COLOR_TYPE_RGBA, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
 			png_set_write_fn(png_ptr, this, FPngImageWrapper::user_write_compressed, FPngImageWrapper::user_flush_data);
-			png_bytep* row_pointers = (png_bytep*) png_malloc( png_ptr, Height*sizeof(png_bytep) );
 
 			const uint32 PixelChannels = (RawFormat == ERGBFormat::Gray) ? 1 : 4;
 			const uint32 BytesPerPixel = (RawBitDepth * PixelChannels) / 8;
 			const uint32 BytesPerRow = BytesPerPixel * Width;
 
-			PNGGuard.SetRowPointers( &row_pointers );
 			for (int32 i = 0; i < Height; i++)
 			{
 				row_pointers[i]= &RawData[i * BytesPerRow];
@@ -225,8 +225,10 @@ void FPngImageWrapper::UncompressPNGData( const ERGBFormat::Type InFormat, const
 	try
 #endif
 	{
-	PNGReadGuard PNGGuard( &png_ptr, &info_ptr );
-	{
+    png_bytep* row_pointers = (png_bytep*) png_malloc( png_ptr, Height*sizeof(png_bytep) );
+    PNGReadGuard PNGGuard( &png_ptr, &info_ptr );
+    PNGGuard.SetRowPointers(row_pointers);
+    {
 		if (ColorType == PNG_COLOR_TYPE_PALETTE)
 		{
 			png_set_palette_to_rgb(png_ptr);
@@ -268,8 +270,6 @@ void FPngImageWrapper::UncompressPNGData( const ERGBFormat::Type InFormat, const
 
 		png_set_read_fn( png_ptr, this, FPngImageWrapper::user_read_compressed );
 
-		png_bytep* row_pointers = (png_bytep*) png_malloc( png_ptr, Height*sizeof(png_bytep) );
-		PNGGuard.SetRowPointers(&row_pointers);
 		for (int32 i = 0; i < Height; i++)
 		{
 			row_pointers[i]= &RawData[i * BytesPerRow];

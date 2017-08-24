@@ -492,6 +492,11 @@ public:
 	
 	/* Determines whether or not the actor may be spawned when running a construction script. If true spawning will fail if a construction script is being run. */
 	uint16	bAllowDuringConstructionScript:1;
+
+#if WITH_EDITOR
+	/** Determines whether the begin play cycle will run on the spawned actor when in the editor. */
+	uint16 bTemporaryEditorActor:1;
+#endif
 	
 	/* Flags used to describe the spawned actor/object instance. */
 	EObjectFlags ObjectFlags;		

@@ -6,6 +6,8 @@
 
 #pragma once
 
+#define USE_IMAGE_ACQUIRE_FENCES	1
+
 namespace VulkanRHI
 {
 	class FFence;
@@ -21,7 +23,7 @@ public:
 
 	void Destroy();
 
-	bool Present(FVulkanQueue* Queue, FVulkanSemaphore* BackBufferRenderingDoneSemaphore);
+	bool Present(FVulkanQueue* GfxQueue, FVulkanQueue* PresentQueue, FVulkanSemaphore* BackBufferRenderingDoneSemaphore);
 
 protected:
 	VkSwapchainKHR SwapChain;
@@ -35,7 +37,9 @@ protected:
 	uint32 NumAcquireCalls;
 	VkInstance Instance;
 	TArray<FVulkanSemaphore*> ImageAcquiredSemaphore;
+#if USE_IMAGE_ACQUIRE_FENCES
 	TArray<VulkanRHI::FFence*> ImageAcquiredFences;
+#endif
 
 	int32 AcquireImageIndex(FVulkanSemaphore** OutSemaphore);
 

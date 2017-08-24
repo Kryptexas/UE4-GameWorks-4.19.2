@@ -228,18 +228,12 @@ public:
 	
 	enum EMetalHeapTextureUsage
 	{
-		/** Regular uncompressed texture resource */
+		/** Regular texture resource */
 		EMetalHeapTextureUsageResource = 0,
-		/** Compressed format texture resource */
-		EMetalHeapTextureUsageCompressed = 1,
-		/** Colour render target or UAV */
-		EMetalHeapTextureUsageRenderTarget = 2,
-		/** Depth/stencil surfaces */
-		EMetalHeapTextureUsageDepthStencil = 3,
-		/** MSAA format textures */
-		EMetalHeapTextureUsageMultisample = 4,
+		/** Render target or UAV that can be aliased */
+		EMetalHeapTextureUsageRenderTarget = 1,
 		/** Number of texture usage types */
-		EMetalHeapTextureUsageNum = 5
+		EMetalHeapTextureUsageNum = 2
 	};
 	
 	enum EMetalHeapBufferSizes
@@ -272,16 +266,22 @@ public:
 		/** Heap size of 128Mb */
 		EMetalHeapBufferSizes64Mb,
 		
-		/** The following aren't allocated in heaps as the size largely precludes aliasing */
-		EMetalHeapBufferSizes128Mb,
-		EMetalHeapBufferSizes256Mb,
 #if PLATFORM_MAC
-		EMetalHeapBufferSizes1024Mb,
+		/** Max. block size of 128Mb */
+		/** Heap size of 128Mb */
+		EMetalHeapBufferSizes128Mb,
 #endif
+
+		/** The start bucket for heaps that are sized to the allocation, rather than bucketed for sharing */
+		EMetalHeapBufferExactSize,
+		/** Sizes greater than this aren't allocated in bucketed heaps as the size means trying to alias leads to wasteful memory usage */
 		EMetalHeapBufferSizesNum,
 
 		/** To avoid allocating more heaps look through the larger heap sizes (up to EMetalHeapBufferLookAhead) for existing an existing heap. */
-		EMetalHeapBufferLookAhead = 1
+		EMetalHeapBufferLookAhead = 1,
+		
+		/** Only heaps at or beneath this index may perform look ahead */
+		EMetalHeapBufferAllowLookAhead = EMetalHeapBufferSizes64Mb,
 	};
 	
 public:
@@ -295,16 +295,18 @@ public:
 	id<MTLBuffer> CreateBuffer(uint32 Size, MTLResourceOptions Options);
 	id<MTLTexture> CreateTexture(MTLTextureDescriptor* Desc, FMetalSurface* Surface);
 	
+	void ReleaseHeap(id<MTLHeap> Heap);
 	void ReleaseTexture(FMetalSurface* Surface, id<MTLTexture> Texture);
 	
-	void Defrag(FMetalDeviceContext& Context, bool const bForce);
+	void Compact(FMetalDeviceContext& Context, bool const bForce);
 
 	static EMetalHeapStorage ResouceOptionsToStorage(MTLResourceOptions Options);
 	static EMetalHeapBufferSizes BufferSizeToIndex(uint32 Size);
 	static EMetalHeapTextureUsage TextureDescToIndex(MTLTextureDescriptor* Desc);
 	
 private:
-	void Drain(bool const bForce);
+	void Defrag(FMetalDeviceContext& Context, bool const bForce);
+	void Drain(FMetalDeviceContext& Context, bool const bForce);
 	id<MTLTexture> CreateTexture(id<MTLHeap> Heap, MTLTextureDescriptor* Desc, FMetalSurface* Surface);
 	id<MTLHeap> FindDefragHeap(EMetalHeapStorage Storage, EMetalHeapTextureUsage Usage, MTLTextureDescriptor* Desc, id<MTLHeap> CurrentHeap);
 	
@@ -323,4 +325,5 @@ private:
 	id<MTLHeap> StaticTextureHeaps[EMetalHeapStorageNum][EMetalHeapTextureUsageNum];
 	
 	TMap<id<MTLHeap>, TSet<NSObject<MTLTexture>*>> TextureResources;
+	TSet<id<MTLHeap>> ReleasedHeaps;
 };

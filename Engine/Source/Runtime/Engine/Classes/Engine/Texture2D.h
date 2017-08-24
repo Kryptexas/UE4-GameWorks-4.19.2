@@ -77,12 +77,12 @@ private:
 	/** True if streaming is temporarily disabled so we can update subregions of this texture's resource 
 	without streaming clobbering it. Automatically cleared before saving. */
 	UPROPERTY(transient)
-	uint32 bTemporarilyDisableStreaming:1;
+	bool bTemporarilyDisableStreaming;
 
 public:
 	/** Whether the texture is currently streamable or not.						*/
 	UPROPERTY(transient, NonTransactional)
-	uint32 bIsStreamable:1;
+	bool bIsStreamable;
 
 	/** Whether some mips might be streamed soon. If false, the texture is not planned resolution will be stable. */
 	UPROPERTY(transient, NonTransactional)

@@ -273,7 +273,7 @@ bool FStaticMeshSceneProxy::GetShadowMeshElement(int32 LODIndex, int32 BatchInde
 
 	FMeshBatchElement& OutBatchElement = OutMeshBatch.Elements[0];
 	OutMeshBatch.MaterialRenderProxy = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy(false, false);
-	OutMeshBatch.VertexFactory = &LOD.VertexFactory;
+	OutMeshBatch.VertexFactory = ProxyLODInfo.OverrideColorVertexBuffer ? &LOD.VertexFactoryOverrideColorVertexBuffer : &LOD.VertexFactory;
 	OutBatchElement.IndexBuffer = bUseReversedIndices ? &LOD.ReversedDepthOnlyIndexBuffer : &LOD.DepthOnlyIndexBuffer;
 	OutMeshBatch.Type = PT_TriangleList;
 	OutBatchElement.FirstIndex = 0;
@@ -413,10 +413,11 @@ bool FStaticMeshSceneProxy::GetMeshElement(
 bool FStaticMeshSceneProxy::GetWireframeMeshElement(int32 LODIndex, int32 BatchIndex, const FMaterialRenderProxy* WireframeRenderProxy, uint8 InDepthPriorityGroup, bool bAllowPreCulledIndices, FMeshBatch& OutMeshBatch) const
 {
 	const FStaticMeshLODResources& LODModel = RenderData->LODResources[LODIndex];
-	
+	const FLODInfo& ProxyLODInfo = LODs[LODIndex];
+
 	FMeshBatchElement& OutBatchElement = OutMeshBatch.Elements[0];
 
-	OutMeshBatch.VertexFactory = &LODModel.VertexFactory;
+	OutMeshBatch.VertexFactory = ProxyLODInfo.OverrideColorVertexBuffer ? &LODModel.VertexFactoryOverrideColorVertexBuffer : &LODModel.VertexFactory;
 	OutMeshBatch.MaterialRenderProxy = WireframeRenderProxy;
 	OutBatchElement.PrimitiveUniformBufferResource = &GetUniformBuffer();
 	OutBatchElement.MinVertexIndex = 0;
@@ -1634,16 +1635,20 @@ FLODMask FStaticMeshSceneProxy::GetLODMask(const FSceneView* View) const
 				}
 
 			}
+
+			static TConsoleVariableData<float>* CVarStaticMeshLODDistanceScale = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.StaticMeshLODDistanceScale"));
+			float InvScreenSizeScale = 1.f / CVarStaticMeshLODDistanceScale->GetValueOnRenderThread();
+
 			if (bUseDithered)
 			{
 				for (int32 Sample = 0; Sample < 2; Sample++)
 				{
-					Result.SetLODSample(ComputeTemporalStaticMeshLOD(RenderData, ProxyBounds.Origin, ProxyBounds.SphereRadius, *View, ClampedMinLOD, 1.0f, Sample), Sample);
+					Result.SetLODSample(ComputeTemporalStaticMeshLOD(RenderData, ProxyBounds.Origin, ProxyBounds.SphereRadius, *View, ClampedMinLOD, InvScreenSizeScale, Sample), Sample);
 				}
 			}
 			else
 			{
-				Result.SetLOD(ComputeStaticMeshLOD(RenderData, ProxyBounds.Origin, ProxyBounds.SphereRadius, *View, ClampedMinLOD));
+				Result.SetLOD(ComputeStaticMeshLOD(RenderData, ProxyBounds.Origin, ProxyBounds.SphereRadius, *View, ClampedMinLOD, InvScreenSizeScale));
 			}
 		}
 	}

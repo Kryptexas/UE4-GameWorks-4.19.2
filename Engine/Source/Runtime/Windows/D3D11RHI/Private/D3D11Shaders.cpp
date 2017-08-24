@@ -235,6 +235,8 @@ FD3D11BoundShaderState::FD3D11BoundShaderState(
 	D3D11_INPUT_ELEMENT_DESC NullInputElement;
 	FMemory::Memzero(&NullInputElement,sizeof(D3D11_INPUT_ELEMENT_DESC));
 
+	FMemory::Memcpy(StreamStrides, InVertexDeclaration->StreamStrides, sizeof(StreamStrides));
+
 	FShaderCodeReader VertexShaderCode(InVertexShader->Code);
 
 	VERIFYD3D11RESULT_EX(

@@ -7,6 +7,12 @@
 #if WITH_ENGINE
 #include "RenderingThread.h"
 #include "RHI.h"
+#include "MediaShaders.h"
+#include "StaticBoundShaderState.h"
+#include "Misc/ScopeLock.h"
+#include "PipelineStateCache.h"
+#include "RHIStaticStates.h"
+#include "Class.h"
 #endif
 
 @interface FAVPlayerItemLegibleOutputPushDelegate : NSObject<AVPlayerItemLegibleOutputPushDelegate>
@@ -62,7 +68,7 @@ public:
 	 */
 	virtual uint32 GetResourceBulkDataSize() const override
 	{
-		return ImageBuffer ? ~0u : 0;
+		return 0;
 	}
 	
 	/**
@@ -71,6 +77,11 @@ public:
 	virtual void Discard() override
 	{
 		delete this;
+	}
+	
+	virtual EBulkDataType GetResourceType() const override
+	{
+		return EBulkDataType::MediaTexture;
 	}
 	
 	virtual ~FAvfTexture2DResourceWrapper()
@@ -370,7 +381,11 @@ void FAvfMediaTracks::Initialize(AVPlayerItem* InPlayerItem, FString& OutInfo)
 			// iOS/tvOS:
 			// On iOS only bi-planar kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange/kCVPixelFormatType_420YpCbCr8BiPlanarFullRange are supported for YUV so an additional conversion is required.
 			// The only RGBA format is 32BGRA
+#if COREVIDEO_SUPPORTS_METAL
+			[OutputSettings setObject : [NSNumber numberWithInt : kCVPixelFormatType_420YpCbCr8BiPlanarFullRange] forKey : (NSString*)kCVPixelBufferPixelFormatTypeKey];
+#else
 			[OutputSettings setObject : [NSNumber numberWithInt : kCVPixelFormatType_32BGRA] forKey : (NSString*)kCVPixelBufferPixelFormatTypeKey];
+#endif
 
 #if WITH_ENGINE
 			// Setup sharing with RHI's starting with the optional Metal RHI
@@ -433,11 +448,17 @@ void FAvfMediaTracks::Reset()
 {
 	FScopeLock Lock(&CriticalSection);
 
-	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(InitialiseAvfVideoSampler, FAvfMediaTracks*, This, this,
-    {
-		This->VideoSampler->SetTrack(nullptr, nil);
-    });
-	
+	if (VideoSampler)
+	{
+		if (VideoSampler->IsTickable())
+		{
+			ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(InitialiseAvfVideoSampler, FAvfMediaTracks*, This, this,
+			{
+				This->VideoSampler->SetTrack(nullptr, nil);
+			});
+		}
+	}
+
 	SelectedAudioTrack = INDEX_NONE;
 	SelectedCaptionTrack = INDEX_NONE;
 	SelectedVideoTrack = INDEX_NONE;
@@ -1219,7 +1240,7 @@ void FAvfMediaTracks::InitializeVideoSink()
 FAvfVideoSampler::FAvfVideoSampler()
 : VideoSink(nullptr)
 , Output(nil)
-#if WITH_ENGINE && !PLATFORM_MAC
+#if WITH_ENGINE && COREVIDEO_SUPPORTS_METAL
 , MetalTextureCache(nullptr)
 #endif
 {
@@ -1229,7 +1250,7 @@ FAvfVideoSampler::FAvfVideoSampler()
 FAvfVideoSampler::~FAvfVideoSampler()
 {
 	[Output release];
-#if WITH_ENGINE && !PLATFORM_MAC
+#if WITH_ENGINE && COREVIDEO_SUPPORTS_METAL
 	if (MetalTextureCache)
 	{
 		CFRelease(MetalTextureCache);
@@ -1273,7 +1294,7 @@ void FAvfVideoSampler::Tick(float /*DeltaTime*/)
 			if(Frame)
 			{
 #if WITH_ENGINE
-#if !PLATFORM_MAC // On iOS/tvOS we use the Metal texture cache
+#if COREVIDEO_SUPPORTS_METAL // On iOS/tvOS we use the Metal texture cache, we can do the same on macOS only when the min.version is 10.11+
 				if (IsMetalPlatform(GMaxRHIShaderPlatform))
 				{
 					if (!MetalTextureCache)
@@ -1285,29 +1306,125 @@ void FAvfVideoSampler::Tick(float /*DeltaTime*/)
 						check(Return == kCVReturnSuccess);
 					}
 					check(MetalTextureCache);
-					
-					int32 Width = CVPixelBufferGetWidth(Frame);
-					int32 Height = CVPixelBufferGetHeight(Frame);
-					
-					CVMetalTextureRef TextureRef = nullptr;
-					CVReturn Result = CVMetalTextureCacheCreateTextureFromImage(kCFAllocatorDefault, MetalTextureCache, Frame, nullptr, MTLPixelFormatBGRA8Unorm_sRGB, Width, Height, 0, &TextureRef);
-					check(Result == kCVReturnSuccess);
-					check(TextureRef);
-					
-					FRHIResourceCreateInfo CreateInfo;
-					CreateInfo.BulkData = new FAvfTexture2DResourceWrapper(TextureRef);
-					CreateInfo.ResourceArray = nullptr;
-					
-					uint32 TexCreateFlags = TexCreate_SRGB;
-					TexCreateFlags |= TexCreate_Dynamic | TexCreate_NoTiling;
-					
-					TRefCountPtr<FRHITexture2D> RenderTarget;
-					TRefCountPtr<FRHITexture2D> ShaderResource;
-					
-					ShaderResource = RHICreateTexture2D(Width, Height, PF_B8G8R8A8, 1, 1, TexCreateFlags | TexCreate_ShaderResource, CreateInfo);
-														
-					VideoSink->UpdateTextureSinkResource(ShaderResource, ShaderResource);
-					CFRelease(TextureRef);
+                    
+                    if (CVPixelBufferIsPlanar(Frame))
+                    {
+                        check(IsMetalPlatform(GMaxRHIShaderPlatform));
+                        
+                        uint32 TexCreateFlags = TexCreate_Dynamic | TexCreate_NoTiling;
+                        
+                        int32 YWidth = CVPixelBufferGetWidthOfPlane(Frame, 0);
+                        int32 YHeight = CVPixelBufferGetHeightOfPlane(Frame, 0);
+                        
+                        CVMetalTextureRef YTextureRef = nullptr;
+                        CVReturn Result = CVMetalTextureCacheCreateTextureFromImage(kCFAllocatorDefault, MetalTextureCache, Frame, nullptr, MTLPixelFormatR8Unorm, YWidth, YHeight, 0, &YTextureRef);
+                        check(Result == kCVReturnSuccess);
+                        check(YTextureRef);
+                        
+                        int32 UVWidth = CVPixelBufferGetWidthOfPlane(Frame, 1);
+                        int32 UVHeight = CVPixelBufferGetHeightOfPlane(Frame, 1);
+                        
+                        CVMetalTextureRef UVTextureRef = nullptr;
+                        Result = CVMetalTextureCacheCreateTextureFromImage(kCFAllocatorDefault, MetalTextureCache, Frame, nullptr, MTLPixelFormatRG8Unorm, UVWidth, UVHeight, 1, &UVTextureRef);
+                        check(Result == kCVReturnSuccess);
+                        check(UVTextureRef);
+                        
+                        // Metal can upload directly from an IOSurface to a 2D texture, so we can just wrap it.
+                        FRHIResourceCreateInfo YCreateInfo;
+                        YCreateInfo.BulkData = new FAvfTexture2DResourceWrapper(YTextureRef);
+                        YCreateInfo.ResourceArray = nullptr;
+                        
+                        FRHIResourceCreateInfo UVCreateInfo;
+                        UVCreateInfo.BulkData = new FAvfTexture2DResourceWrapper(UVTextureRef);
+                        UVCreateInfo.ResourceArray = nullptr;
+                        
+                        TRefCountPtr<FRHITexture2D> YTex = RHICreateTexture2D(YWidth, YHeight, PF_G8, 1, 1, TexCreateFlags | TexCreate_ShaderResource, YCreateInfo);
+                        TRefCountPtr<FRHITexture2D> UVTex = RHICreateTexture2D(UVWidth, UVHeight, PF_R8G8, 1, 1, TexCreateFlags | TexCreate_ShaderResource, UVCreateInfo);
+                        
+                        FRHIResourceCreateInfo Info;
+                        TRefCountPtr<FRHITexture2D> ShaderResource = RHICreateTexture2D(YWidth, YHeight, PF_B8G8R8A8, 1, 1, TexCreateFlags | TexCreate_ShaderResource | TexCreate_RenderTargetable, Info);
+                        
+                        // render video frame into sink texture
+                        FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
+                        {
+                            // configure media shaders
+                            auto ShaderMap = GetGlobalShaderMap(ERHIFeatureLevel::SM5);
+                            TShaderMapRef<FMediaShadersVS> VertexShader(ShaderMap);
+                            TShaderMapRef<FYCbCrConvertPS> PixelShader(ShaderMap);
+                            
+                            SetRenderTarget(RHICmdList, ShaderResource, nullptr, ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthNop_StencilNop);
+                            
+                            FGraphicsPipelineStateInitializer GraphicsPSOInit;
+                            RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+                            
+                            GraphicsPSOInit.BlendState = TStaticBlendStateWriteMask<CW_RGBA, CW_NONE, CW_NONE, CW_NONE, CW_NONE, CW_NONE, CW_NONE, CW_NONE>::GetRHI();
+                            GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
+                            GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+                            
+                            GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GMediaVertexDeclaration.VertexDeclarationRHI;
+                            GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+                            GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+                            GraphicsPSOInit.PrimitiveType = PT_TriangleStrip;
+                            
+                            SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+                            
+                            PixelShader->SetParameters(RHICmdList, YTex, UVTex, MediaShaders::YuvToSrgbPs4, true);
+                            
+                            // draw full-size quad
+                            FMediaElementVertex Vertices[4];
+                            Vertices[0].Position.Set(-1.0f,  1.0f, 1.0f, 1.0f); // Top Left
+                            Vertices[1].Position.Set( 1.0f,  1.0f, 1.0f, 1.0f); // Top Right
+                            Vertices[2].Position.Set(-1.0f, -1.0f, 1.0f, 1.0f); // Bottom Left
+                            Vertices[3].Position.Set( 1.0f, -1.0f, 1.0f, 1.0f); // Bottom Right
+                            
+                            const float ULeft   = 0.0f;
+                            const float URight  = 1.0f;
+                            const float VTop    = 0.0f;
+                            const float VBottom = 1.0f;
+                            
+                            Vertices[0].TextureCoordinate.Set(ULeft, VTop);
+                            Vertices[1].TextureCoordinate.Set(URight, VTop);
+                            Vertices[2].TextureCoordinate.Set(ULeft, VBottom);
+                            Vertices[3].TextureCoordinate.Set(URight, VBottom);
+                            
+                            RHICmdList.SetViewport(0, 0, 0.0f, YWidth, YHeight, 1.0f);
+                            
+                            
+                            DrawPrimitiveUP(RHICmdList, PT_TriangleStrip, 2, Vertices, sizeof(Vertices[0]));
+                            
+                            RHICmdList.CopyToResolveTarget(ShaderResource, ShaderResource, true, FResolveParams());
+                        }
+                        
+                        
+                        VideoSink->UpdateTextureSinkResource(ShaderResource, ShaderResource);
+                        CFRelease(YTextureRef);
+                        CFRelease(UVTextureRef);
+                    }
+                    else
+                    {
+                        int32 Width = CVPixelBufferGetWidth(Frame);
+                        int32 Height = CVPixelBufferGetHeight(Frame);
+                        
+                        CVMetalTextureRef TextureRef = nullptr;
+                        CVReturn Result = CVMetalTextureCacheCreateTextureFromImage(kCFAllocatorDefault, MetalTextureCache, Frame, nullptr, MTLPixelFormatBGRA8Unorm_sRGB, Width, Height, 0, &TextureRef);
+                        check(Result == kCVReturnSuccess);
+                        check(TextureRef);
+                        
+                        FRHIResourceCreateInfo CreateInfo;
+                        CreateInfo.BulkData = new FAvfTexture2DResourceWrapper(TextureRef);
+                        CreateInfo.ResourceArray = nullptr;
+                        
+                        uint32 TexCreateFlags = TexCreate_SRGB;
+                        TexCreateFlags |= TexCreate_Dynamic | TexCreate_NoTiling;
+                        
+                        TRefCountPtr<FRHITexture2D> RenderTarget;
+                        TRefCountPtr<FRHITexture2D> ShaderResource;
+                        
+                        ShaderResource = RHICreateTexture2D(Width, Height, PF_B8G8R8A8, 1, 1, TexCreateFlags | TexCreate_ShaderResource, CreateInfo);
+                        
+                        VideoSink->UpdateTextureSinkResource(ShaderResource, ShaderResource);
+                        CFRelease(TextureRef);
+                    }
 				}
 				else // Ran out of time to implement efficient OpenGLES texture upload - its running out of memory.
 				/*{
@@ -1368,7 +1485,7 @@ void FAvfVideoSampler::Tick(float /*DeltaTime*/)
 						CreateInfo.BulkData = new FAvfTexture2DResourceMem(Frame);
 					}
 					CreateInfo.ResourceArray = nullptr;
-						
+					
 					int32 Width = CVPixelBufferGetWidth(Frame);
 					int32 Height = CVPixelBufferGetHeight(Frame);
 					
@@ -1377,11 +1494,10 @@ void FAvfVideoSampler::Tick(float /*DeltaTime*/)
 					
 					TRefCountPtr<FRHITexture2D> RenderTarget;
 					TRefCountPtr<FRHITexture2D> ShaderResource;
-					
 					ShaderResource = RHICreateTexture2D(Width, Height, PF_B8G8R8A8, 1, 1, TexCreateFlags | TexCreate_ShaderResource, CreateInfo);
-														
+					
 					VideoSink->UpdateTextureSinkResource(ShaderResource, ShaderResource);
-				}
+ 				}
 #else
 				int32 Pitch = CVPixelBufferGetBytesPerRow(Frame);
 

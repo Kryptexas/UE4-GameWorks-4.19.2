@@ -1494,7 +1494,7 @@ struct FDynamicSpriteEmitterReplayDataBase
 	: public FDynamicEmitterReplayDataBase
 {
 	UMaterialInterface*				MaterialInterface;
-	class UParticleModuleRequired*	RequiredModule;
+	struct FParticleRequiredModule	*RequiredModule;
 	FVector							NormalsSphereCenter;
 	FVector							NormalsCylinderDirection;
 	float							InvDeltaSeconds;
@@ -1520,6 +1520,7 @@ struct FDynamicSpriteEmitterReplayDataBase
 	
 	/** Constructor */
 	FDynamicSpriteEmitterReplayDataBase();
+	~FDynamicSpriteEmitterReplayDataBase();
 
 	/** Serialization */
 	virtual void Serialize( FArchive& Ar );

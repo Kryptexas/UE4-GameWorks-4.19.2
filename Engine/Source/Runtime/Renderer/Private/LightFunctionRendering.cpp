@@ -375,7 +375,7 @@ bool FDeferredShadingSceneRenderer::RenderLightFunctionForMaterial(
 					LightSceneInfo->Proxy->SetScissorRect(RHICmdList, View);
 
 					// Render a bounding light sphere.
-					RHICmdList.SetLocalGraphicsPipelineState(RHICmdList.BuildLocalGraphicsPipelineState(GraphicsPSOInit));
+					SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 					VertexShader->SetParameters(RHICmdList, View, LightSceneInfo);
 					PixelShader->SetParameters(RHICmdList, View, LightSceneInfo, MaterialProxy, bRenderingPreviewShadowsIndicator, FadeAlpha);
 

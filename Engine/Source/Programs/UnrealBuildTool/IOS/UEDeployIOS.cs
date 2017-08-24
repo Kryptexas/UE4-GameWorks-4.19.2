@@ -302,6 +302,9 @@ namespace UnrealBuildTool
 					case "IOS_10":
 						MinVersion = "10.0";
 						break;
+					case "IOS_11":
+						MinVersion = "11.0";
+						break;
 				}
 			}
 			else

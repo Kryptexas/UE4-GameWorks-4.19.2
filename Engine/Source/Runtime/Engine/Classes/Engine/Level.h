@@ -443,6 +443,9 @@ public:
 	*/
 	class FPrecomputedLightVolume*				PrecomputedLightVolume;
 
+	/** The volumetric lightmap data for this level. */
+	class FPrecomputedVolumetricLightmap*			PrecomputedVolumetricLightmap;
+
 	/** Contains precomputed visibility data for this level. */
 	FPrecomputedVisibilityHandler				PrecomputedVisibilityHandler;
 

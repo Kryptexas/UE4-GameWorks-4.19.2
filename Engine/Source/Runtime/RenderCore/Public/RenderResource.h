@@ -171,10 +171,18 @@ public:
 		InitGlobalResource();
 	}
 
-	/** Initialization constructor: 1 parameter. */
+	/** Initialization constructor: 2 parameters. */
 	template<typename T1, typename T2>
 	explicit TGlobalResource(T1 Param1, T2 Param2)
 		: ResourceType(Param1, Param2)
+	{
+		InitGlobalResource();
+	}
+
+	/** Initialization constructor: 3 parameters. */
+	template<typename T1, typename T2, typename T3>
+	explicit TGlobalResource(T1 Param1, T2 Param2, T3 Param3)
+		: ResourceType(Param1, Param2, Param3)
 	{
 		InitGlobalResource();
 	}
@@ -296,8 +304,8 @@ struct FMipBiasFade
 	 */
 	inline float	CalcMipBias() const
 	{
- 		float DeltaTime		= GRenderingRealtimeClock.GetCurrentTime() - StartTime;
- 		float TimeFactor	= FMath::Min<float>(DeltaTime * MipCountFadingRate, 1.0f);
+		float DeltaTime		= GRenderingRealtimeClock.GetCurrentTime() - StartTime;
+		float TimeFactor	= FMath::Min<float>(DeltaTime * MipCountFadingRate, 1.0f);
 		float MipBias		= BiasOffset - MipCountDelta*TimeFactor;
 		return FMath::FloatSelect(GEnableMipLevelFading, MipBias, 0.0f);
 	}

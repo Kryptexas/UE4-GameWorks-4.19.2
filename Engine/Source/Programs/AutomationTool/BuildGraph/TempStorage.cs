@@ -143,7 +143,7 @@ namespace AutomationTool
 		public bool Compare(DirectoryReference RootDir)
 		{
 			string Message;
-			if(CompareInternal(RootDir, out Message))
+			if(Compare(RootDir, out Message))
 			{
 				if(Message != null)
 				{
@@ -165,20 +165,9 @@ namespace AutomationTool
 		/// Compare stored for this file with the one on disk, and output an error if they differ.
 		/// </summary>
 		/// <param name="RootDir">Root directory for this branch</param>
-		/// <returns>True if the files are identical, false otherwise</returns>
-		public bool CompareSilent(DirectoryReference RootDir)
-		{
-			string Message;
-			return CompareInternal(RootDir, out Message);
-		}
-
-		/// <summary>
-		/// Compare stored for this file with the one on disk, and output an error if they differ.
-		/// </summary>
-		/// <param name="RootDir">Root directory for this branch</param>
 		/// <param name="Message">Message describing the difference</param>
 		/// <returns>True if the files are identical, false otherwise</returns>
-		bool CompareInternal(DirectoryReference RootDir, out string Message)
+		public bool Compare(DirectoryReference RootDir, out string Message)
 		{
 			FileReference LocalFile = ToFileReference(RootDir);
 

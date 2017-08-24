@@ -24,6 +24,7 @@
 #include "MaterialShared.h"
 #include "SceneManagement.h"
 #include "PrecomputedLightVolume.h"
+#include "PrecomputedVolumetricLightmap.h"
 #include "Components/LightComponent.h"
 #include "GameFramework/WorldSettings.h"
 #include "Components/DecalComponent.h"
@@ -680,6 +681,7 @@ FScene::~FScene()
 	ReflectionSceneData.CubemapArray.ReleaseResource();
 	IndirectLightingCache.ReleaseResource();
 	DistanceFieldSceneData.Release();
+	VolumetricLightmapSceneData.Release();
 
 	if (AtmosphericFog)
 	{
@@ -1661,6 +1663,101 @@ void FScene::RemovePrecomputedLightVolume(const FPrecomputedLightVolume* Volume)
 		{
 			Scene->PrecomputedLightVolumes.Remove(Volume);
 			Scene->IndirectLightingCache.SetLightingCacheDirty(Scene, Volume);
+		});
+}
+
+void CreateVolumetricLightmapTexture(FIntVector Dimensions, FVolumetricLightmapDataLayer* DataLayer, FTexture3DRHIRef& OutTexture)
+{
+	FRHIResourceCreateInfo CreateInfo;
+	CreateInfo.BulkData = DataLayer;
+
+	OutTexture = RHICreateTexture3D(
+		Dimensions.X, 
+		Dimensions.Y, 
+		Dimensions.Z, 
+		DataLayer->Format,
+		1,
+		TexCreate_ShaderResource,
+		CreateInfo);
+}
+
+void FVolumetricLightmapSceneData::AddLevelVolume(const FPrecomputedVolumetricLightmap* InVolume, ERHIFeatureLevel::Type FeatureLevel)
+{
+	LevelVolumetricLightmaps.Add(InVolume);
+
+	if (PlatformSupportsGPUInterpolatedVolumetricLightmaps(FeatureLevel))
+	{
+		FRHIResourceCreateInfo CreateInfo;
+		CreateInfo.BulkData = &InVolume->Data->IndirectionTexture;
+
+		IndirectionTexture = RHICreateTexture3D(
+			InVolume->Data->IndirectionTextureDimensions.X,
+			InVolume->Data->IndirectionTextureDimensions.Y,
+			InVolume->Data->IndirectionTextureDimensions.Z,
+			InVolume->Data->IndirectionTexture.Format,
+			1,
+			TexCreate_ShaderResource,
+			CreateInfo);
+
+		CreateVolumetricLightmapTexture(InVolume->Data->BrickDataDimensions, &InVolume->Data->BrickData.AmbientVector, AmbientVectorTextureRHI);
+
+		static_assert(ARRAY_COUNT(InVolume->Data->BrickData.SHCoefficients) == ARRAY_COUNT(SHCoefficientsTextureRHI), "Mismatched coefficient count");
+
+		for (int32 i = 0; i < ARRAY_COUNT(SHCoefficientsTextureRHI); i++)
+		{
+			CreateVolumetricLightmapTexture(InVolume->Data->BrickDataDimensions, &InVolume->Data->BrickData.SHCoefficients[i], SHCoefficientsTextureRHI[i]);
+		}
+
+		if (InVolume->Data->BrickData.SkyBentNormal.Data.Num() > 0)
+		{
+			CreateVolumetricLightmapTexture(InVolume->Data->BrickDataDimensions, &InVolume->Data->BrickData.SkyBentNormal, SkyBentNormalTextureRHI);
+		}
+
+		CreateVolumetricLightmapTexture(InVolume->Data->BrickDataDimensions, &InVolume->Data->BrickData.DirectionalLightShadowing, DirectionalLightShadowingTextureRHI);
+	}
+
+	const FBox& VolumeBounds = InVolume->Data->GetBounds();
+	const FVector InvVolumeSize = FVector(1.0f) / VolumeBounds.GetSize();
+	VolumeWorldToUVScale = InvVolumeSize;
+	VolumeWorldToUVAdd = -VolumeBounds.Min * InvVolumeSize;
+
+	IndirectionTextureSize = FVector(InVolume->Data->IndirectionTextureDimensions);
+	BrickSize = InVolume->Data->BrickSize;
+	BrickDataTexelSize = FVector(1.0f, 1.0f, 1.0f) / FVector(InVolume->Data->BrickDataDimensions);
+}
+
+void FVolumetricLightmapSceneData::RemoveLevelVolume(const FPrecomputedVolumetricLightmap* InVolume)
+{
+	if (LevelVolumetricLightmaps.Remove(InVolume) > 0)
+	{
+		Release();
+	}
+}
+
+bool FScene::HasPrecomputedVolumetricLightmap_RenderThread() const
+{
+	return VolumetricLightmapSceneData.HasData();
+}
+
+void FScene::AddPrecomputedVolumetricLightmap(const FPrecomputedVolumetricLightmap* Volume)
+{
+	FScene* Scene = this;
+
+	ENQUEUE_RENDER_COMMAND(AddVolumeCommand)
+		([Scene, Volume](FRHICommandListImmediate& RHICmdList) 
+		{
+			Scene->VolumetricLightmapSceneData.AddLevelVolume(Volume, Scene->GetFeatureLevel());
+		});
+}
+
+void FScene::RemovePrecomputedVolumetricLightmap(const FPrecomputedVolumetricLightmap* Volume)
+{
+	FScene* Scene = this; 
+
+	ENQUEUE_RENDER_COMMAND(RemoveVolumeCommand)
+		([Scene, Volume](FRHICommandListImmediate& RHICmdList) 
+		{
+			Scene->VolumetricLightmapSceneData.RemoveLevelVolume(Volume);
 		});
 }
 
@@ -3034,6 +3131,12 @@ template<>
 TStaticMeshDrawList<TBasePassDrawingPolicy<FSelfShadowedCachedPointIndirectLightingPolicy> >& FScene::GetBasePassDrawList<FSelfShadowedCachedPointIndirectLightingPolicy>(EBasePassDrawListType DrawType)
 {
 	return BasePassSelfShadowedCachedPointIndirectTranslucencyDrawList[DrawType];
+}
+
+template<>
+TStaticMeshDrawList<TBasePassDrawingPolicy<FSelfShadowedVolumetricLightmapPolicy> >& FScene::GetBasePassDrawList<FSelfShadowedVolumetricLightmapPolicy>(EBasePassDrawListType DrawType)
+{
+	return BasePassSelfShadowedVolumetricLightmapTranslucencyDrawList[DrawType];
 }
 
 /**  */

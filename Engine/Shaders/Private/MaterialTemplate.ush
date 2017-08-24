@@ -1489,14 +1489,14 @@ half GetMaterialTessellationMultiplier(FMaterialTessellationParameters Parameter
 }
 
 // .rgb:SubsurfaceColor, .a:SSProfileId in 0..1 range
-half4 GetMaterialSubsurfaceDataRaw(FMaterialPixelParameters Parameters)
+half4 GetMaterialSubsurfaceDataRaw(FPixelMaterialInputs PixelMaterialInputs)
 {
-%s;
+	return PixelMaterialInputs.Subsurface;
 }
 
-half4 GetMaterialSubsurfaceData(FMaterialPixelParameters Parameters)
+half4 GetMaterialSubsurfaceData(FPixelMaterialInputs PixelMaterialInputs)
 {
-	half4 OutSubsurface = GetMaterialSubsurfaceDataRaw(Parameters);
+	half4 OutSubsurface = GetMaterialSubsurfaceDataRaw(PixelMaterialInputs);
 	OutSubsurface.rgb = saturate(OutSubsurface.rgb);
 	return OutSubsurface;
 }

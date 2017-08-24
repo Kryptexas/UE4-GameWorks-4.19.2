@@ -30,6 +30,16 @@ struct FVolumeLightingProximityOctreeSemantics
 	}
 };
 
+void FVolumeLightingSample::SetFromSHVector(const FSHVectorRGB3& SHVector)
+{
+	for (int32 CoefficientIndex = 0; CoefficientIndex < LM_NUM_SH_COEFFICIENTS; CoefficientIndex++)
+	{
+		HighQualityCoefficients[CoefficientIndex][0] = SHVector.R.V[CoefficientIndex];
+		HighQualityCoefficients[CoefficientIndex][1] = SHVector.G.V[CoefficientIndex];
+		HighQualityCoefficients[CoefficientIndex][2] = SHVector.B.V[CoefficientIndex];
+	}
+}
+
 /** Constructs an SH environment from this lighting sample. */
 void FVolumeLightingSample::ToSHVector(FSHVectorRGB3& SHVector) const
 {
@@ -299,25 +309,14 @@ void FStaticLightingSystem::BeginCalculateVolumeSamples()
 
 		check(Meshes.Num() == AllMappings.Num());
 		// Rasterize all meshes in the scene and place high detail samples on their surfaces.
-		// Iterate through mappings and retreive the mesh from that, so we can make decisions based on whether the mesh is using texture or vertex lightmaps.
+		// Iterate through mappings and retrieve the mesh from that, so we can make decisions based on whether the mesh is using texture or vertex lightmaps.
 		for (int32 MappingIndex = 0; MappingIndex < AllMappings.Num(); MappingIndex++)
 		{
 			const FStaticLightingMapping* CurrentMapping = AllMappings[MappingIndex];
 			const FStaticLightingTextureMapping* TextureMapping = CurrentMapping->GetTextureMapping();
 			const FStaticLightingMesh* CurrentMesh = CurrentMapping->Mesh;
 
-			const uint32 GeoMeshLODIndex = CurrentMesh->GetLODIndices() & 0xFFFF;
-			const uint32 GeoHLODTreeIndex = (CurrentMesh->GetLODIndices() & 0xFFFF0000) >> 16;
-			const uint32 GeoHLODRange = CurrentMesh->GetHLODRange();
-			const uint32 GeoHLODRangeStart = GeoHLODRange & 0xFFFF;
-			const uint32 GeoHLODRangeEnd = (GeoHLODRange & 0xFFFF0000) >> 16;
-
-			bool bMeshBelongsToLOD0 = GeoMeshLODIndex == 0;
-
-			if (GeoHLODTreeIndex > 0)
-			{
-				bMeshBelongsToLOD0 = GeoHLODRangeStart == GeoHLODRangeEnd;
-			}
+			const bool bMeshBelongsToLOD0 = CurrentMesh->DoesMeshBelongToLOD0();
 
 			// Only place samples on shadow casting meshes.
 			if ((CurrentMesh->LightingFlags & GI_INSTANCE_CASTSHADOW) && bMeshBelongsToLOD0)
@@ -552,7 +551,20 @@ void FStaticLightingSystem::ProcessVolumeSamplesTask(const FVolumeSamplesTaskDes
 			&& (!PhotonMappingSettings.bUsePhotonMapping || PhotonMappingSettings.bUseFinalGathering))
 		{
 			const bool bDebugSamples = false;
-			CalculateVolumeSampleIncidentRadiance(UniformHemisphereSamples, UniformHemisphereSampleUniforms, MaxUnoccludedLength, CurrentSample, RandomStream, MappingContext, bDebugSamples);
+			float BackfacingHitsFraction = 0.0f;
+			float Unused = 0.0f;
+
+			// Sample radius stores the interpolation radius, but CalculateVolumeSampleIncidentRadiance will use this to push out final gather rays (ignore geometry inside the radius)
+			// Save off and restore the sample radius later
+			const float SampleRadius = CurrentSample.PositionAndRadius.W;
+			CurrentSample.PositionAndRadius.W = 0.0f;
+
+			TArray<FVector, TInlineAllocator<1>> VertexOffsets;
+			VertexOffsets.Add(FVector(0, 0, 0));
+
+			CalculateVolumeSampleIncidentRadiance(UniformHemisphereSamples, UniformHemisphereSampleUniforms, MaxUnoccludedLength, VertexOffsets, CurrentSample, BackfacingHitsFraction, Unused, RandomStream, MappingContext, bDebugSamples);
+			
+			CurrentSample.PositionAndRadius.W = SampleRadius;
 		}
 #if ALLOW_LIGHTMAP_SAMPLE_DEBUGGING
 		if (Scene.DebugMapping && DynamicObjectSettings.bVisualizeVolumeLightSamples)

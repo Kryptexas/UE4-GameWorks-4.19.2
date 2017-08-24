@@ -792,8 +792,8 @@ void MainPSandCS(in float4 UVAndScreenPos, float4 SvPosition, out float4 OutColo
 	}
 #endif
 
-	// we don't support ddx_fine() for GLSL yet and SM4 doesn't have it
-#if !COMPUTE_SHADER && QUAD_MESSAGE_PASSING_BLUR > 0 && FEATURE_LEVEL >= FEATURE_LEVEL_SM5 && COMPILER_HLSL
+	// we don't support ddx_fine() for SM4
+#if !COMPUTE_SHADER && QUAD_MESSAGE_PASSING_BLUR > 0 && FEATURE_LEVEL >= FEATURE_LEVEL_SM5
 	{
 		// .x: AO output, .y:SceneDepth .zw:view space normal
 		float4 CenterPixel = float4(OutColor.r, SceneDepth, normalize(ViewSpaceNormal).xy); 

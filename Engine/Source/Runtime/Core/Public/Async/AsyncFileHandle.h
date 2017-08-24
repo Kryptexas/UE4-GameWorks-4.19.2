@@ -73,7 +73,7 @@ public:
 	* Nonblocking poll of the state of completion.
 	* @return true if the request is complete
 	**/
-	FORCEINLINE bool PollCompletion()
+	FORCEINLINE bool PollCompletion() TSAN_SAFE
 	{
 		return bCompleteAndCallbackCalled;
 	}
@@ -119,7 +119,7 @@ public:
 	* Return the bytes of a completed read request. Not legal to call unless the request is complete.
 	* @return Returned memory block which if non-null contains the bytes read. Caller owns the memory block and must call FMemory::Free on it when done. Can be null if the file was not found or could not be read or the request was cancelled, or the request priority was AIOP_Precache.
 	**/
-	FORCEINLINE uint8* GetReadResults()
+	FORCEINLINE uint8* GetReadResults() TSAN_SAFE
 	{
 		check(bDataIsReady && !bSizeRequest);
 		uint8* Result = Memory;
@@ -162,7 +162,7 @@ protected:
 		FPlatformMisc::MemoryBarrier();
 	}
 
-	void SetComplete()
+	void SetComplete() TSAN_SAFE
 	{
 		SetDataComplete();
 		SetAllComplete();

@@ -121,8 +121,10 @@ bool GVisualizeMipLevels = false;
 // If renaming or refactoring these, remember to update FMaterialResource::GetRepresentativeInstructionCounts and FPreviewMaterial::ShouldCache().
 IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( FSelfShadowedTranslucencyPolicy, FSelfShadowedTranslucencyPolicy );
 IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( FSelfShadowedCachedPointIndirectLightingPolicy, FSelfShadowedCachedPointIndirectLightingPolicy );
+IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( FSelfShadowedVolumetricLightmapPolicy, FSelfShadowedVolumetricLightmapPolicy );
 
 IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( TUniformLightMapPolicy<LMP_NO_LIGHTMAP>, FNoLightMapPolicy );
+IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( TUniformLightMapPolicy<LMP_PRECOMPUTED_IRRADIANCE_VOLUME_INDIRECT_LIGHTING>, FPrecomputedVolumetricLightmapLightingPolicy );
 IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( TUniformLightMapPolicy<LMP_CACHED_VOLUME_INDIRECT_LIGHTING>, FCachedVolumeIndirectLightingPolicy );
 IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( TUniformLightMapPolicy<LMP_CACHED_POINT_INDIRECT_LIGHTING>, FCachedPointIndirectLightingPolicy );
 IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( TUniformLightMapPolicy<LMP_SIMPLE_NO_LIGHTMAP>, FSimpleNoLightmapLightingPolicy );
@@ -130,6 +132,7 @@ IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( TUniformLightMapPolicy<LMP_SIMPLE_LI
 IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( TUniformLightMapPolicy<LMP_SIMPLE_DIRECTIONAL_LIGHT_LIGHTING>, FSimpleDirectionalLightLightingPolicy );
 IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( TUniformLightMapPolicy<LMP_SIMPLE_STATIONARY_PRECOMPUTED_SHADOW_LIGHTING>, FSimpleStationaryLightPrecomputedShadowsLightingPolicy );
 IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( TUniformLightMapPolicy<LMP_SIMPLE_STATIONARY_SINGLESAMPLE_SHADOW_LIGHTING>, FSimpleStationaryLightSingleSampleShadowsLightingPolicy );
+IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( TUniformLightMapPolicy<LMP_SIMPLE_STATIONARY_VOLUMETRICLIGHTMAP_SHADOW_LIGHTING>, FSimpleStationaryLightVolumetricLightmapShadowsLightingPolicy );
 IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( TUniformLightMapPolicy<LMP_LQ_LIGHTMAP>, TLightMapPolicyLQ );
 IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( TUniformLightMapPolicy<LMP_HQ_LIGHTMAP>, TLightMapPolicyHQ );
 IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( TUniformLightMapPolicy<LMP_DISTANCE_FIELD_SHADOWS_AND_HQ_LIGHTMAP>, TDistanceFieldShadowsAndLightMapPolicyHQ  );
@@ -432,6 +435,11 @@ public:
 	{
 		return true;
 	}
+	
+	bool UseVolumetricLightmap() const
+	{
+		return Scene->VolumetricLightmapSceneData.HasData();
+	}
 
 	/** Draws the mesh with a specific light-map type */
 	template<typename LightMapPolicyType>
@@ -546,6 +554,14 @@ public:
 	bool AllowIndirectLightingCacheVolumeTexture() const
 	{
 		return true;
+	}
+
+	bool UseVolumetricLightmap() const
+	{
+		const FScene* Scene = (const FScene*)View.Family->Scene;
+		return View.Family->EngineShowFlags.VolumetricLightmap 
+			&& Scene 
+			&& Scene->VolumetricLightmapSceneData.HasData();
 	}
 
 	/** Draws the translucent mesh with a specific light-map type, and shader complexity predicate. */
@@ -705,10 +721,16 @@ void FSelfShadowedCachedPointIndirectLightingPolicy::SetMesh(
 {
 	if (PixelShaderParameters)
 	{
-		FUniformBufferRHIParamRef PrecomputedLightingBuffer = GEmptyPrecomputedLightingUniformBuffer.GetUniformBufferRHI();;
+		FUniformBufferRHIParamRef PrecomputedLightingBuffer = nullptr;
+		
 		if (View.Family->EngineShowFlags.GlobalIllumination && PrimitiveSceneProxy && PrimitiveSceneProxy->GetPrimitiveSceneInfo())
 		{
 			PrecomputedLightingBuffer = PrimitiveSceneProxy->GetPrimitiveSceneInfo()->IndirectLightingCacheUniformBuffer;
+		}
+		
+		if (!PrecomputedLightingBuffer)
+		{
+			PrecomputedLightingBuffer = GEmptyPrecomputedLightingUniformBuffer.GetUniformBufferRHI();
 		}
 
 		if (PixelShaderParameters->BufferParameter.IsBound())
@@ -729,6 +751,53 @@ void FSelfShadowedCachedPointIndirectLightingPolicy::SetMesh(
 		MaterialRenderProxy,
 		ElementData);
 }
+
+void FSelfShadowedVolumetricLightmapPolicy::SetMesh(
+	FRHICommandList& RHICmdList, 
+	const FSceneView& View,
+	const FPrimitiveSceneProxy* PrimitiveSceneProxy,
+	const VertexParametersType* VertexShaderParameters,
+	const PixelParametersType* PixelShaderParameters,
+	FShader* VertexShader,
+	FShader* PixelShader,
+	const FVertexFactory* VertexFactory,
+	const FMaterialRenderProxy* MaterialRenderProxy,
+	const ElementDataType& ElementData
+	) const
+{
+	if (PixelShaderParameters)
+	{
+		FUniformBufferRHIParamRef PrecomputedLightingBuffer = nullptr;
+		
+		if (View.Family->EngineShowFlags.GlobalIllumination && PrimitiveSceneProxy && PrimitiveSceneProxy->GetPrimitiveSceneInfo())
+		{
+			PrecomputedLightingBuffer = PrimitiveSceneProxy->GetPrimitiveSceneInfo()->IndirectLightingCacheUniformBuffer;
+		}
+		
+		if (!PrecomputedLightingBuffer)
+		{
+			PrecomputedLightingBuffer = GEmptyPrecomputedLightingUniformBuffer.GetUniformBufferRHI();
+		}
+
+		if (PixelShaderParameters->BufferParameter.IsBound())
+		{
+			SetUniformBufferParameter(RHICmdList, PixelShader->GetPixelShader(), PixelShaderParameters->BufferParameter, PrecomputedLightingBuffer);
+		}
+	}
+
+	FSelfShadowedTranslucencyPolicy::SetMesh(
+		RHICmdList, 
+		View, 
+		PrimitiveSceneProxy, 
+		VertexShaderParameters,
+		PixelShaderParameters,
+		VertexShader,
+		PixelShader,
+		VertexFactory,
+		MaterialRenderProxy,
+		ElementData);
+}
+
 /**
  * Get shader templates allowing to redirect between compatible shaders.
  */
@@ -795,6 +864,9 @@ void GetBasePassShaders<FUniformLightMapPolicy>(
 {
 	switch (LightMapPolicy.GetIndirectPolicy())
 	{
+	case LMP_PRECOMPUTED_IRRADIANCE_VOLUME_INDIRECT_LIGHTING:
+		GetUniformBasePassShaders<LMP_PRECOMPUTED_IRRADIANCE_VOLUME_INDIRECT_LIGHTING>(Material, VertexFactoryType, bNeedsHSDS, bEnableAtmosphericFog, bEnableSkyLight, HullShader, DomainShader, VertexShader, PixelShader);
+		break;
 	case LMP_CACHED_VOLUME_INDIRECT_LIGHTING:
 		GetUniformBasePassShaders<LMP_CACHED_VOLUME_INDIRECT_LIGHTING>(Material, VertexFactoryType, bNeedsHSDS, bEnableAtmosphericFog, bEnableSkyLight, HullShader, DomainShader, VertexShader, PixelShader);
 		break;
@@ -815,6 +887,9 @@ void GetBasePassShaders<FUniformLightMapPolicy>(
 		break;
 	case LMP_SIMPLE_STATIONARY_SINGLESAMPLE_SHADOW_LIGHTING:
 		GetUniformBasePassShaders<LMP_SIMPLE_STATIONARY_SINGLESAMPLE_SHADOW_LIGHTING>(Material, VertexFactoryType, bNeedsHSDS, bEnableAtmosphericFog, bEnableSkyLight, HullShader, DomainShader, VertexShader, PixelShader);
+		break;
+	case LMP_SIMPLE_STATIONARY_VOLUMETRICLIGHTMAP_SHADOW_LIGHTING:
+		GetUniformBasePassShaders<LMP_SIMPLE_STATIONARY_VOLUMETRICLIGHTMAP_SHADOW_LIGHTING>(Material, VertexFactoryType, bNeedsHSDS, bEnableAtmosphericFog, bEnableSkyLight, HullShader, DomainShader, VertexShader, PixelShader);
 		break;
 	case LMP_LQ_LIGHTMAP:
 		GetUniformBasePassShaders<LMP_LQ_LIGHTMAP>(Material, VertexFactoryType, bNeedsHSDS, bEnableAtmosphericFog, bEnableSkyLight, HullShader, DomainShader, VertexShader, PixelShader);
@@ -1167,7 +1242,11 @@ static void SetupBasePassView(FRHICommandList& RHICmdList, const FViewInfo& View
 			const uint32 LeftMaxX = View.Family->Views[0]->ViewRect.Max.X;
 			const uint32 RightMinX = View.Family->Views[1]->ViewRect.Min.X;
 			const uint32 RightMaxX = View.Family->Views[1]->ViewRect.Max.X;
-			RHICmdList.SetStereoViewport(LeftMinX, RightMinX, 0, 0.0f, LeftMaxX, RightMaxX, View.ViewRect.Max.Y, 1.0f);
+			
+			const uint32 LeftMaxY = View.Family->Views[0]->ViewRect.Max.Y;
+			const uint32 RightMaxY = View.Family->Views[1]->ViewRect.Max.Y;
+			
+			RHICmdList.SetStereoViewport(LeftMinX, RightMinX, 0, 0, 0.0f, LeftMaxX, RightMaxX, LeftMaxY, RightMaxY, 1.0f);
 		}
 		else
 		{

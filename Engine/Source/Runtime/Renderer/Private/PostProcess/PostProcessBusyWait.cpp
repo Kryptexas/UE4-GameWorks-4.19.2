@@ -47,13 +47,14 @@ public:
 		GPUBusyWait.Bind(Initializer.ParameterMap,TEXT("GPUBusyWait"));
 	}
 
-	void SetPS(const FRenderingCompositePassContext& Context)
+	template <typename TRHICmdList>
+	void SetPS(TRHICmdList& RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters<FViewUniformShaderParameters>(Context.RHICmdList, ShaderRHI, Context.View.ViewUniformBuffer);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, Context.View.ViewUniformBuffer);
 
-		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+		PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		{
@@ -66,7 +67,7 @@ public:
 			// divide by viewport pixel count
 			uint32 Value = (uint32)(CVarValue * 1000000000.0 / 6.12 / PixelCount);
 
-			SetShaderValue(Context.RHICmdList, ShaderRHI, GPUBusyWait, Value);
+			SetShaderValue(RHICmdList, ShaderRHI, GPUBusyWait, Value);
 		}
 #endif
 	}
@@ -116,7 +117,7 @@ void FRCPassPostProcessBusyWait::Process(FRenderingCompositePassContext& Context
 
 	SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
 
-	PixelShader->SetPS(Context);
+	PixelShader->SetPS(Context.RHICmdList, Context);
 
 	// Draw a quad mapping scene color to the view's render target
 	DrawRectangle(

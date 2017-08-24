@@ -50,7 +50,8 @@ public:
 
 	FVisualizeComplexityApplyPS() {}
 
-	virtual void SetParameters(const FRenderingCompositePassContext& Context, const TArray<FLinearColor>& Colors, EColorSampling ColorSampling, float ComplexityScale, bool bLegend);
+	template <typename TRHICmdList>
+	void SetParameters(TRHICmdList& RHICmdList, const FRenderingCompositePassContext& Context, const TArray<FLinearColor>& Colors, EColorSampling ColorSampling, float ComplexityScale, bool bLegend);
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{

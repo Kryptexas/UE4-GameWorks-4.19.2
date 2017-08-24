@@ -12,6 +12,7 @@
 // Forward declare the ios frame pacer class we will be using.
 @class FIOSFramePacer;
 
+typedef void (^FIOSFramePacerHandler)(uint32 IgnoredId);
 
 /**
  * iOS implementation of FGenericPlatformRHIFramePacer
@@ -21,6 +22,8 @@ struct FIOSPlatformRHIFramePacer : public FGenericPlatformRHIFramePacer
     // FGenericPlatformRHIFramePacer interface
     static bool IsEnabled();
 	static void InitWithEvent(class FEvent* TriggeredEvent);
+	static void AddHandler(FIOSFramePacerHandler Handler);
+	static void RemoveHandler(FIOSFramePacerHandler Handler);
     static void Destroy();
     
     /** Access to the IOS Frame Pacer: CADisplayLink */
@@ -38,3 +41,4 @@ struct FIOSPlatformRHIFramePacer : public FGenericPlatformRHIFramePacer
 
 
 typedef FIOSPlatformRHIFramePacer FPlatformRHIFramePacer;
+typedef FIOSFramePacerHandler FPlatformRHIFramePacerHandler;

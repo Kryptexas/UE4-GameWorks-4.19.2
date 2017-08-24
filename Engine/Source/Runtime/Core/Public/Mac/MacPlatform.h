@@ -22,6 +22,8 @@ typedef FMacPlatformTypes FPlatformTypes;
 // Base defines, must define these for the platform, there are no defaults
 #define PLATFORM_DESKTOP				1
 #define PLATFORM_64BITS					1
+// Technically the underlying platform has 128bit atomics, but clang might not issue optimal code
+#define PLATFORM_HAS_128BIT_ATOMICS		0
 #define PLATFORM_CAN_SUPPORT_EDITORONLY_DATA	1
 
 // Base defines, defaults are commented out
@@ -41,6 +43,8 @@ typedef FMacPlatformTypes FPlatformTypes;
 #define PLATFORM_SUPPORTS_TBB						1
 #define PLATFORM_SUPPORTS_STACK_SYMBOLS				1
 #define PLATFORM_HAS_BSD_SOCKET_FEATURE_MSG_DONTWAIT	1
+
+#define PLATFORM_RHITHREAD_DEFAULT_BYPASS			WITH_EDITOR
 
 // Function type macros.
 #define VARARGS															/* Functions with variable arguments */

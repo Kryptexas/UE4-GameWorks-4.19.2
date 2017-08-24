@@ -192,6 +192,7 @@ struct FEngineShowFlags
 		SetDistanceFieldAO(false);
 		SetDistanceFieldGI(false);
 		SetVolumetricFog(false);
+		SetVolumetricLightmap(false);
 	}
 
 	void EnableAdvancedFeatures()
@@ -370,6 +371,7 @@ private:
 		SetDistanceCulledPrimitives(InitMode == ESFIM_Editor);
 		SetVisualizeLightCulling(false);
 		SetPrecomputedVisibilityCells(false);
+		SetVisualizeVolumetricLightmap(false);
 		SetVolumeLightingSamples(false);
 		// we enable it manually on the editor view ports
 		SetSnap(false);

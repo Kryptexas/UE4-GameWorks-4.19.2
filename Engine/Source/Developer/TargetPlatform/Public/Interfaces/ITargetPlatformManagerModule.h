@@ -143,7 +143,7 @@ public:
 	 * @param Name Name of the shader format to get the version for.
 	 * @return Version number.
 	 */
-	virtual uint16 ShaderFormatVersion(FName Name) = 0;
+	virtual uint32 ShaderFormatVersion(FName Name) = 0;
 
 	/**
 	 * Allows changes to environment for a given platform

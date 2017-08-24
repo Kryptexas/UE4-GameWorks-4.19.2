@@ -16,7 +16,6 @@ MONOLITHIC_HEADER_BOILERPLATE()
 #include "RawIndexBuffer.h"
 #include "GenericOctreePublic.h"
 #include "GenericOctree.h"
-#include "PrecomputedLightVolume.h"
 #include "Model.h"
 #include "ComponentInstanceDataCache.h"
 #include "EngineLogs.h"

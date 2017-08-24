@@ -36,6 +36,7 @@ public class MeshUtilities : ModuleRules
 				"SkeletonEditor",
 				"PropertyEditor",
 				"EditorStyle",
+                "GraphColor",
             }
 		);
 

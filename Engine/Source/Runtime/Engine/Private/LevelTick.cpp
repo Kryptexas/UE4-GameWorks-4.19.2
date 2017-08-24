@@ -312,7 +312,7 @@ void FDetailedTickStats::DumpStats()
 		Totals.Count		= 0;
 
 		// Dump tick stats sorted by total time.
-		UE_LOG(LogLevel, Log, TEXT("Per object stats, frame # %i"), GFrameCounter);
+		UE_LOG(LogLevel, Log, TEXT("Per object stats, frame # %llu"), (uint64)GFrameCounter);
 		for( int32 i=0; i<SortedTickStats.Num(); i++ )
 		{
 			const FTickStats& TickStats = SortedTickStats[i];
@@ -874,6 +874,42 @@ bool UWorld::HasEndOfFrameUpdates()
 	return ComponentsThatNeedEndOfFrameUpdate_OnGameThread.Num() > 0 || ComponentsThatNeedEndOfFrameUpdate.Num() > 0;
 }
 
+TDrawEvent<FRHICommandList>* BeginSendEndOfFrameUpdatesDrawEvent()
+{
+	TDrawEvent<FRHICommandList>* DrawEvent = NULL;
+
+#if WANTS_DRAW_MESH_EVENTS
+	DrawEvent = new TDrawEvent<FRHICommandList>();
+
+	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+		BeginDrawEventCommand,
+		TDrawEvent<FRHICommandList>*,DrawEvent,DrawEvent,
+	{
+		BEGIN_DRAW_EVENTF(
+			RHICmdList, 
+			SendAllEndOfFrameUpdates, 
+			(*DrawEvent),
+			TEXT("SendAllEndOfFrameUpdates"));
+	});
+
+#endif
+
+	return DrawEvent;
+}
+
+void EndSendEndOfFrameUpdatesDrawEvent(TDrawEvent<FRHICommandList>* DrawEvent)
+{
+#if WANTS_DRAW_MESH_EVENTS
+	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+		EndDrawEventCommand,
+		TDrawEvent<FRHICommandList>*,DrawEvent,DrawEvent,
+	{
+		STOP_DRAW_EVENT((*DrawEvent));
+		delete DrawEvent;
+	});
+#endif
+}
+
 /**
 	* Send all render updates to the rendering thread.
 	*/
@@ -884,6 +920,10 @@ void UWorld::SendAllEndOfFrameUpdates()
 	{
 		return;
 	}
+
+	// Issue a GPU event to wrap GPU work done during SendAllEndOfFrameUpdates, like skin cache updates
+	TDrawEvent<FRHICommandList>* DrawEvent = BeginSendEndOfFrameUpdatesDrawEvent();
+
 	// update all dirty components. 
 	TGuardValue<bool> GuardIsFlushedGlobal( bPostTickComponentUpdate, true ); 
 
@@ -947,6 +987,8 @@ void UWorld::SendAllEndOfFrameUpdates()
 		ParallelFor(LocalComponentsThatNeedEndOfFrameUpdate.Num(), ParallelWork);
 	}
 	LocalComponentsThatNeedEndOfFrameUpdate.Reset();
+
+	EndSendEndOfFrameUpdatesDrawEvent(DrawEvent);
 }
 
 

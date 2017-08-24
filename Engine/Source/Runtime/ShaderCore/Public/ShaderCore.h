@@ -162,6 +162,11 @@ public:
 		return Ar << InParameterMap.ParameterMap;
 	}
 
+	inline void GetAllParameterNames(TArray<FString>& OutNames) const
+	{
+		ParameterMap.GenerateKeyArray(OutNames);
+	}
+
 private:
 	struct FParameterAllocation
 	{

@@ -283,6 +283,18 @@ uint32 FGenericPlatformMisc::GetCPUInfo()
 	return 0;
 }
 
+bool FGenericPlatformMisc::HasNonoptionalCPUFeatures()
+{
+	// Not implemented cross-platform. Each platform may or may not choose to implement this.
+	return false;
+}
+
+bool FGenericPlatformMisc::NeedsNonoptionalCPUFeaturesCheck()
+{
+	// This is opt in on a per platform basis
+	return false;
+}
+
 FString FGenericPlatformMisc::GetPrimaryGPUBrand()
 {
 	// Not implemented cross-platform. Each platform may or may not choose to implement this.

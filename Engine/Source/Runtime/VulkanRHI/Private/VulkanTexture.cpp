@@ -132,6 +132,8 @@ inline void FVulkanSurface::InternalLockWrite(FVulkanCommandListContext& Context
 	VulkanSetImageLayout(StagingCommandBuffer, Surface->Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, SubresourceRange);
 
 	Surface->Device->GetStagingManager().ReleaseBuffer(CmdBuffer, StagingBuffer);
+
+	Context.GetCommandBufferManager()->SubmitUploadCmdBuffer(false);
 }
 
 struct FRHICommandLockWriteTexture : public FRHICommand<FRHICommandLockWriteTexture>
@@ -1866,6 +1868,9 @@ void FVulkanDynamicRHI::RHIVirtualTextureSetFirstMipVisible(FTexture2DRHIParamRe
 
 static VkMemoryRequirements FindOrCalculateTexturePlatformSize(FVulkanDevice* Device, VkImageViewType ViewType, uint32 SizeX, uint32 SizeY, uint32 SizeZ, uint8 Format, uint32 NumMips, uint32 NumSamples, uint32 Flags)
 {
+	// Adjust number of mips as UTexture can request non-valid # of mips
+	NumMips = FMath::Min(FMath::FloorLog2(FMath::Max(SizeX, FMath::Max(SizeY, SizeZ))) + 1, NumMips);
+
 	struct FTexturePlatformSizeKey
 	{
 		VkImageViewType ViewType;

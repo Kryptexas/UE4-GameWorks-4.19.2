@@ -727,10 +727,13 @@ public:
 	/** Elements of the vertex declaration. */
 	FOpenGLVertexElements VertexElements;
 
+	uint16 StreamStrides[MaxVertexElementCount];
+
 	/** Initialization constructor. */
-	explicit FOpenGLVertexDeclaration(const FOpenGLVertexElements& InElements)
+	FOpenGLVertexDeclaration(const FOpenGLVertexElements& InElements, const uint16* InStrides)
 		: VertexElements(InElements)
 	{
+		FMemory::Memcpy(StreamStrides, InStrides, sizeof(StreamStrides));
 	}
 };
 
@@ -744,6 +747,8 @@ class FOpenGLBoundShaderState : public FRHIBoundShaderState
 public:
 
 	FCachedBoundShaderStateLink CacheLink;
+
+	uint16 StreamStrides[MaxVertexElementCount];
 
 	FOpenGLLinkedProgram* LinkedProgram;
 	TRefCountPtr<FOpenGLVertexDeclaration> VertexDeclaration;

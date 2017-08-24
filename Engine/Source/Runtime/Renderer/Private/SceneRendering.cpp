@@ -89,7 +89,7 @@ static TAutoConsoleVariable<int32> CVarMultiView(
 	TEXT("vr.MultiView"),
 	0,
 	TEXT("0 to disable multi-view instanced stereo, 1 to enable.\n")
-	TEXT("Currently only supported by the PS4 RHI."),
+	TEXT("Currently only supported by the PS4 & Metal RHIs."),
 	ECVF_ReadOnly | ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<int32> CVarMobileMultiView(
@@ -733,6 +733,39 @@ void UpdateNoiseTextureParameters(FViewUniformShaderParameters& ViewUniformShade
 	check(ViewUniformShaderParameters.SobolSamplingTexture);
 }
 
+void SetupPrecomputedVolumetricLightmapUniformBufferParameters(const FScene* Scene, FViewUniformShaderParameters& ViewUniformShaderParameters)
+{
+	if (Scene)
+	{
+		ViewUniformShaderParameters.VolumetricLightmapIndirectionTexture = OrBlack3DUintIfNull(Scene->VolumetricLightmapSceneData.IndirectionTexture);
+		ViewUniformShaderParameters.VolumetricLightmapBrickAmbientVector = OrBlack3DIfNull(Scene->VolumetricLightmapSceneData.AmbientVectorTextureRHI);
+		ViewUniformShaderParameters.VolumetricLightmapBrickSHCoefficients0 = OrBlack3DIfNull(Scene->VolumetricLightmapSceneData.SHCoefficientsTextureRHI[0]);
+		ViewUniformShaderParameters.VolumetricLightmapBrickSHCoefficients1 = OrBlack3DIfNull(Scene->VolumetricLightmapSceneData.SHCoefficientsTextureRHI[1]);
+		ViewUniformShaderParameters.VolumetricLightmapBrickSHCoefficients2 = OrBlack3DIfNull(Scene->VolumetricLightmapSceneData.SHCoefficientsTextureRHI[2]);
+		ViewUniformShaderParameters.VolumetricLightmapBrickSHCoefficients3 = OrBlack3DIfNull(Scene->VolumetricLightmapSceneData.SHCoefficientsTextureRHI[3]);
+		ViewUniformShaderParameters.VolumetricLightmapBrickSHCoefficients4 = OrBlack3DIfNull(Scene->VolumetricLightmapSceneData.SHCoefficientsTextureRHI[4]);
+		ViewUniformShaderParameters.VolumetricLightmapBrickSHCoefficients5 = OrBlack3DIfNull(Scene->VolumetricLightmapSceneData.SHCoefficientsTextureRHI[5]);
+		ViewUniformShaderParameters.SkyBentNormalBrickTexture = OrBlack3DIfNull(Scene->VolumetricLightmapSceneData.SkyBentNormalTextureRHI);
+		ViewUniformShaderParameters.DirectionalLightShadowingBrickTexture = OrBlack3DIfNull(Scene->VolumetricLightmapSceneData.DirectionalLightShadowingTextureRHI);
+
+		ViewUniformShaderParameters.VolumetricLightmapWorldToUVScale = Scene->VolumetricLightmapSceneData.VolumeWorldToUVScale;
+		ViewUniformShaderParameters.VolumetricLightmapWorldToUVAdd = Scene->VolumetricLightmapSceneData.VolumeWorldToUVAdd;
+		ViewUniformShaderParameters.VolumetricLightmapIndirectionTextureSize = Scene->VolumetricLightmapSceneData.IndirectionTextureSize;
+		ViewUniformShaderParameters.VolumetricLightmapBrickSize = Scene->VolumetricLightmapSceneData.BrickSize;
+		ViewUniformShaderParameters.VolumetricLightmapBrickTexelSize = Scene->VolumetricLightmapSceneData.BrickDataTexelSize;
+	}
+	else
+	{
+		// Resources are initialized in FViewUniformShaderParameters ctor, only need to set defaults for non-resource types
+
+		ViewUniformShaderParameters.VolumetricLightmapWorldToUVScale = FVector::ZeroVector;
+		ViewUniformShaderParameters.VolumetricLightmapWorldToUVAdd = FVector::ZeroVector;
+		ViewUniformShaderParameters.VolumetricLightmapIndirectionTextureSize = FVector::ZeroVector;
+		ViewUniformShaderParameters.VolumetricLightmapBrickSize = 0;
+		ViewUniformShaderParameters.VolumetricLightmapBrickTexelSize = FVector::ZeroVector;
+	}
+}
+
 /** Creates the view's uniform buffers given a set of view transforms. */
 void FViewInfo::SetupUniformBufferParameters(
 	FSceneRenderTargets& SceneContext,
@@ -855,6 +888,8 @@ void FViewInfo::SetupUniformBufferParameters(
 	SetupDefaultGlobalDistanceFieldUniformBufferParameters(ViewUniformShaderParameters);
 
 	SetupVolumetricFogUniformBufferParameters(ViewUniformShaderParameters);
+
+	SetupPrecomputedVolumetricLightmapUniformBufferParameters(Scene, ViewUniformShaderParameters);
 
 	uint32 StateFrameIndexMod8 = 0;
 
@@ -1537,7 +1572,7 @@ void FSceneRenderer::RenderFinish(FRHICommandListImmediate& RHICmdList)
 					}
 					if (bShowGlobalClipPlaneWarning)
 					{
-						static const FText Message = NSLOCTEXT("Renderer", "NoGlobalClipPlane", "GLOBAL CLIP PLANE PROJECT SETTING NOT ENABLED");
+						static const FText Message = NSLOCTEXT("Renderer", "NoGlobalClipPlane", "PLANAR REFLECTION REQUIRES GLOBAL CLIP PLANE PROJECT SETTING ENABLED TO WORK PROPERLY");
 						Canvas.DrawShadowedText(10, Y, Message, GetStatsFont(), FLinearColor(1.0, 0.05, 0.05, 1.0));
 						Y += 14;
 					}
@@ -1935,9 +1970,6 @@ static void ViewExtensionPreRender_RenderThread(FRHICommandListImmediate& RHICmd
 {
 	FMemMark MemStackMark(FMemStack::Get());
 
-	// update any resources that needed a deferred update
-	FDeferredUpdateResource::UpdateResources(RHICmdList);
-
 	for (int ViewExt = 0; ViewExt < SceneRenderer->ViewFamily.ViewExtensions.Num(); ViewExt++)
 	{
 		SceneRenderer->ViewFamily.ViewExtensions[ViewExt]->PreRenderViewFamily_RenderThread(RHICmdList, SceneRenderer->ViewFamily);
@@ -1946,6 +1978,9 @@ static void ViewExtensionPreRender_RenderThread(FRHICommandListImmediate& RHICmd
 			SceneRenderer->ViewFamily.ViewExtensions[ViewExt]->PreRenderView_RenderThread(RHICmdList, SceneRenderer->Views[ViewIndex]);
 		}
 	}
+    
+    // update any resources that needed a deferred update
+    FDeferredUpdateResource::UpdateResources(RHICmdList);
 }
 
 /**
@@ -2359,7 +2394,7 @@ static void DisplayInternals(FRHICommandListImmediate& RHICmdList, FSceneView& I
 		CANVAS_LINE(false, TEXT("  FrameNumberRT: %u"), GFrameNumberRenderThread)
 		CANVAS_LINE(false, TEXT("  Scalability CVar Hash: %x (use console command \"Scalability\")"), ComputeScalabilityCVarHash())
 		//not really useful as it is non deterministic and should not be used for rendering features:  CANVAS_LINE(false, TEXT("  FrameNumberRT: %u"), GFrameNumberRenderThread)
-		CANVAS_LINE(false, TEXT("  FrameCounter: %u"), GFrameCounter)
+		CANVAS_LINE(false, TEXT("  FrameCounter: %llu"), (uint64)GFrameCounter)
 		CANVAS_LINE(false, TEXT("  rand()/SRand: %x/%x"), FMath::Rand(), FMath::GetRandSeed())
 		{
 			bool bHighlight = Family->DisplayInternalsData.NumPendingStreamingRequests != 0;
@@ -2431,6 +2466,25 @@ TSharedPtr<ISceneViewExtension, ESPMode::ThreadSafe> GetRendererViewExtension()
 /**
 * Saves a previously rendered scene color target
 */
+
+class FDummySceneColorResolveBuffer : public FVertexBuffer
+{
+public:
+	virtual void InitRHI() override
+	{
+		const int32 NumDummyVerts = 3;
+		const uint32 Size = sizeof(FVector4) * NumDummyVerts;
+		FRHIResourceCreateInfo CreateInfo;
+		void* BufferData = nullptr;
+		VertexBufferRHI = RHICreateAndLockVertexBuffer(Size, BUF_Static, CreateInfo, BufferData);
+		FMemory::Memset(BufferData, 0, Size);		
+		RHIUnlockVertexBuffer(VertexBufferRHI);		
+	}
+};
+
+TGlobalResource<FDummySceneColorResolveBuffer> GResolveDummyVertexBuffer;
+extern int32 GAllowCustomMSAAResolves;
+
 void FSceneRenderer::ResolveSceneColor(FRHICommandList& RHICmdList)
 {
 	SCOPED_DRAW_EVENT(RHICmdList, ResolveSceneColor);
@@ -2440,7 +2494,7 @@ void FSceneRenderer::ResolveSceneColor(FRHICommandList& RHICmdList)
 	uint32 CurrentNumSamples = CurrentSceneColor->GetDesc().NumSamples;
 
 	const EShaderPlatform CurrentShaderPlatform = GShaderPlatformForFeatureLevel[SceneContext.GetCurrentFeatureLevel()];
-	if (CurrentNumSamples <= 1 || !RHISupportsSeparateMSAAAndResolveTextures(CurrentShaderPlatform))
+	if (CurrentNumSamples <= 1 || !RHISupportsSeparateMSAAAndResolveTextures(CurrentShaderPlatform) || !GAllowCustomMSAAResolves)
 	{
 		RHICmdList.CopyToResolveTarget(SceneContext.GetSceneColorSurface(), SceneContext.GetSceneColorTexture(), true, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
 	}
@@ -2459,7 +2513,7 @@ void FSceneRenderer::ResolveSceneColor(FRHICommandList& RHICmdList)
 			GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
 			GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
 			GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
-			RHICmdList.SetStreamSource(0, NULL, 0, 0);
+			RHICmdList.SetStreamSource(0, GResolveDummyVertexBuffer.VertexBufferRHI, 0);
 
 			// Resolve views individually
 			// In the case of adaptive resolution, the view family will be much larger than the views individually

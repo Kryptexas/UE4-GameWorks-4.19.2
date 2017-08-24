@@ -48,7 +48,13 @@ public:
 		DSWriter.ResetDirty();
 	}
 
-	inline void SetUAVBufferViewState(uint32 BindPoint, FVulkanBufferView* View)
+	inline void SetStorageBuffer(uint32 BindPoint, VkBuffer Buffer, uint32 Offset, uint32 Size, VkBufferUsageFlags UsageFlags)
+	{
+		check((UsageFlags & VK_BUFFER_USAGE_STORAGE_BUFFER_BIT) == VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+		DSWriter.WriteStorageBuffer(BindPoint, Buffer, Offset, Size);
+	}
+
+	inline void SetUAVTexelBufferViewState(uint32 BindPoint, FVulkanBufferView* View)
 	{
 		check(View && (View->Flags & VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT) == VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT);
 		DSWriter.WriteStorageTexelBuffer(BindPoint, View);
@@ -95,8 +101,10 @@ public:
 
 	inline void SetUniformBuffer(uint32 BindPoint, const FVulkanUniformBuffer* UniformBuffer)
 	{
-		//#todo-rco
-		ensure(0);
+		if ((UniformBuffersWithDataMask & (1ULL << (uint64)BindPoint)) != 0)
+		{
+			DSWriter.WriteUniformBuffer(BindPoint, UniformBuffer->GetHandle(), UniformBuffer->GetOffset(), UniformBuffer->GetSize());
+		}
 	}
 
 	bool UpdateDescriptorSets(FVulkanCommandListContext* CmdListContext, FVulkanCmdBuffer* CmdBuffer, FVulkanGlobalUniformPool* GlobalUniformPool);
@@ -112,6 +120,7 @@ protected:
 	uint64 PackedUniformBuffersMask;
 	uint64 PackedUniformBuffersDirty;
 	FVulkanDescriptorSetWriter DSWriter;
+	uint64 UniformBuffersWithDataMask;
 
 	FVulkanComputePipeline* ComputePipeline;
 
@@ -131,7 +140,13 @@ public:
 		BSS->Release();
 	}
 
-	inline void SetUAVBufferViewState(EShaderFrequency Stage, uint32 BindPoint, FVulkanBufferView* View)
+	inline void SetStorageBuffer(EShaderFrequency Stage, uint32 BindPoint, VkBuffer Buffer, uint32 Offset, uint32 Size, VkBufferUsageFlags UsageFlags)
+	{
+		check((UsageFlags & VK_BUFFER_USAGE_STORAGE_BUFFER_BIT) == VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+		DSWriter[Stage].WriteStorageBuffer(BindPoint, Buffer, Offset, Size);
+	}
+
+	inline void SetUAVTexelBufferViewState(EShaderFrequency Stage, uint32 BindPoint, FVulkanBufferView* View)
 	{
 		check(View && (View->Flags & VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT) == VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT);
 		DSWriter[Stage].WriteStorageTexelBuffer(BindPoint, View);
@@ -162,7 +177,7 @@ public:
 
 	inline void SetSamplerState(EShaderFrequency Stage, uint32 BindPoint, FVulkanSamplerState* Sampler)
 	{
-		check(Sampler);
+		check(Sampler && Sampler->Sampler != VK_NULL_HANDLE);
 		DSWriter[Stage].WriteSampler(BindPoint, Sampler->Sampler);
 	}
 
@@ -176,10 +191,12 @@ public:
 		PackedUniformBuffers[Stage].SetEmulatedUniformBufferIntoPacked(BindPoint, ConstantData, PackedUniformBuffersDirty[Stage]);
 	}
 
-	inline void SetUniformBuffer(uint32 BindPoint, const FVulkanUniformBuffer* UniformBuffer)
+	inline void SetUniformBuffer(EShaderFrequency Stage, uint32 BindPoint, const FVulkanUniformBuffer* UniformBuffer)
 	{
-		//#todo-rco
-		ensure(0);
+		if ((UniformBuffersWithDataMask[Stage] & (1ULL << (uint64)BindPoint)) != 0)
+		{
+			DSWriter[Stage].WriteUniformBuffer(BindPoint, UniformBuffer->GetHandle(), UniformBuffer->GetOffset(), UniformBuffer->GetSize());
+		}
 	}
 
 	bool UpdateDescriptorSets(FVulkanCommandListContext* CmdListContext, FVulkanCmdBuffer* CmdBuffer, FVulkanGlobalUniformPool* GlobalUniformPool);
@@ -232,6 +249,7 @@ protected:
 	FPackedUniformBuffers PackedUniformBuffers[SF_Compute];
 	uint64 PackedUniformBuffersMask[SF_Compute];
 	uint64 PackedUniformBuffersDirty[SF_Compute];
+	uint64 UniformBuffersWithDataMask[SF_Compute];
 	FVulkanDescriptorSetWriter DSWriter[SF_Compute];
 
 	FVulkanGraphicsPipelineState* GfxPipeline;

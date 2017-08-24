@@ -9,8 +9,6 @@
 #include "VulkanPipeline.h"
 #include "VulkanContext.h"
 
-static FCriticalSection GCS;
-
 FVulkanDescriptorPool::FVulkanDescriptorPool(FVulkanDevice* InDevice)
 	: Device(InDevice)
 	, MaxDescriptorSets(0)
@@ -153,20 +151,6 @@ void FVulkanPendingComputeState::PrepareForDispatch(FVulkanCommandListContext* C
 			CurrentState->BindDescriptorSets(CmdBuffer);
 		}
 	}
-}
-
-FVulkanComputePipeline* FVulkanPendingComputeState::GetOrCreateComputePipeline(FVulkanComputeShader* ComputeShader)
-{
-	FScopeLock ScopeLock(&GCS);
-	FVulkanComputePipeline** Found = ComputePipelineCache.Find(ComputeShader);
-	if (Found)
-	{
-		return *Found;
-	}
-
-	FVulkanComputePipeline* NewPipeline = new FVulkanComputePipeline(Device, ComputeShader);
-	ComputePipelineCache.Add(ComputeShader, NewPipeline);
-	return NewPipeline;
 }
 
 FVulkanPendingGfxState::~FVulkanPendingGfxState()

@@ -161,23 +161,26 @@ public:
 	}
 
 	/** Accesses parameters needed for rendering the light. */
-	virtual void GetParameters(FVector4& LightPositionAndInvRadius, FVector4& LightColorAndFalloffExponent, FVector& NormalizedLightDirection, FVector2D& SpotAngles, float& LightSourceRadius, float& LightSourceLength, float& LightMinRoughness) const override
+	virtual void GetParameters(FLightParameters& LightParameters) const override
 	{
-		LightPositionAndInvRadius = FVector4(0, 0, 0, 0);
+		LightParameters.LightPositionAndInvRadius = FVector4(0, 0, 0, 0);
 
-		LightColorAndFalloffExponent = FVector4(
+		LightParameters.LightColorAndFalloffExponent = FVector4(
 			GetColor().R,
 			GetColor().G,
 			GetColor().B,
 			0);
 
-		NormalizedLightDirection = -GetDirection();
+		LightParameters.NormalizedLightDirection = -GetDirection();
 
-		SpotAngles = FVector2D(0, 0);
-		LightSourceRadius = 0.0f;
-		LightSourceLength = 0.0f;
+		LightParameters.NormalizedLightTangent = -GetDirection();
+
+		LightParameters.SpotAngles = FVector2D(0, 0);
+		LightParameters.LightSourceRadius = 0.0f;
+		LightParameters.LightSoftSourceRadius = 0.0f;
+		LightParameters.LightSourceLength = 0.0f;
 		// Prevent 0 Roughness which causes NaNs in Vis_SmithJointApprox
-		LightMinRoughness = FMath::Max(MinRoughness, .02f);
+		LightParameters.LightMinRoughness = FMath::Max(MinRoughness, .02f);
 	}
 
 	virtual float GetLightSourceAngle() const override

@@ -2440,7 +2440,9 @@ FBoundShaderStateRHIRef FOpenGLDynamicRHI::RHICreateBoundShaderState(
 				DomainShaderRHI
 				);
 
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 			FShaderCache::LogBoundShaderState(FShaderCache::GetDefaultCacheState(), FOpenGL::GetShaderPlatform(), VertexDeclarationRHI, VertexShaderRHI, PixelShaderRHI, HullShaderRHI, DomainShaderRHI, GeometryShaderRHI, BoundShaderState);
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 			return BoundShaderState;
 		}
@@ -2646,6 +2648,15 @@ FOpenGLBoundShaderState::FOpenGLBoundShaderState(
 	DomainShader = InDomainShader;
 
 	LinkedProgram = InLinkedProgram;
+
+	if (InVertexDeclaration)
+	{
+		FMemory::Memcpy(StreamStrides, InVertexDeclaration->StreamStrides, sizeof(StreamStrides));
+	}
+	else
+	{
+		FMemory::Memzero(StreamStrides, sizeof(StreamStrides));
+	}
 }
 
 FOpenGLBoundShaderState::~FOpenGLBoundShaderState()

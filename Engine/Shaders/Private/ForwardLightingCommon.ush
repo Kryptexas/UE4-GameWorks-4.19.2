@@ -155,6 +155,8 @@ float3 GetForwardDirectLighting(uint GridIndex, float3 WorldPosition, float3 Cam
 		LightData.LightDirection = LocalLight.LightDirectionAndShadowMask.xyz;
 		float SourceLength = f16tof32(asuint(LocalLight.SpotAnglesAndSourceRadiusPacked.w));
 		LightData.SpotAnglesAndSourceRadius = float4(LocalLight.SpotAnglesAndSourceRadiusPacked.xyz, SourceLength);
+        LightData.LightTangent = LocalLight.LightTangentAndSoftSourceRadius.xyz;
+        LightData.SoftSourceRadius = LocalLight.LightTangentAndSoftSourceRadius.w;
 		LightData.bInverseSquared = LightData.LightColorAndFalloffExponent.w == 0;
 		LightData.bRadialLight = true;
 		LightData.bSpotLight = LightData.SpotAnglesAndSourceRadius.x > -2.0f;

@@ -23,8 +23,6 @@
 #include "HideWindowsPlatformTypes.h"
 #endif
 
-TGlobalResource<FVector4VertexDeclaration> GD3D11Vector4VertexDeclaration;
-
 #define DECLARE_ISBOUNDSHADER(ShaderType) inline void ValidateBoundShader(FD3D11StateCache& InStateCache, F##ShaderType##RHIParamRef ShaderType##RHI) \
 { \
 	ID3D11##ShaderType* CachedShader; \
@@ -164,6 +162,14 @@ void FD3D11DynamicRHI::RHISetStreamSource(uint32 StreamIndex,FVertexBufferRHIPar
 	StateCache.SetStreamSource(D3DBuffer, StreamIndex, Stride, Offset);
 }
 
+void FD3D11DynamicRHI::RHISetStreamSource(uint32 StreamIndex, FVertexBufferRHIParamRef VertexBufferRHI, uint32 Offset)
+{
+	FD3D11VertexBuffer* VertexBuffer = ResourceCast(VertexBufferRHI);
+
+	ID3D11Buffer* D3DBuffer = VertexBuffer ? VertexBuffer->Resource : NULL;
+	StateCache.SetStreamSource(D3DBuffer, StreamIndex, Offset);
+}
+
 void FD3D11DynamicRHI::RHISetStreamOutTargets(uint32 NumTargets, const FVertexBufferRHIParamRef* VertexBuffers, const uint32* Offsets)
 {
 	ID3D11Buffer* D3DVertexBuffers[D3D11_SO_BUFFER_SLOT_COUNT] = {0};
@@ -248,11 +254,6 @@ void FD3D11DynamicRHI::RHISetViewport(uint32 MinX,uint32 MinY,float MinZ,uint32 
 	}
 }
 
-void FD3D11DynamicRHI::RHISetStereoViewport(uint32 LeftMinX, uint32 RightMinX, uint32 MinY, float MinZ, uint32 LeftMaxX, uint32 RightMaxX, uint32 MaxY, float MaxZ)
-{
-	UE_LOG(LogD3D11RHI, Fatal, TEXT("D3D11 RHI does not support set stereo viewport!"));
-}
-
 void FD3D11DynamicRHI::RHISetScissorRect(bool bEnable,uint32 MinX,uint32 MinY,uint32 MaxX,uint32 MaxY)
 {
 	if(bEnable)
@@ -286,6 +287,7 @@ void FD3D11DynamicRHI::RHISetBoundShaderState( FBoundShaderStateRHIParamRef Boun
 
 	FD3D11BoundShaderState* BoundShaderState = ResourceCast(BoundShaderStateRHI);
 
+	StateCache.SetStreamStrides(BoundShaderState->StreamStrides);
 	StateCache.SetInputLayout(BoundShaderState->InputLayout);
 	StateCache.SetVertexShader(BoundShaderState->VertexShader);
 	StateCache.SetPixelShader(BoundShaderState->PixelShader);

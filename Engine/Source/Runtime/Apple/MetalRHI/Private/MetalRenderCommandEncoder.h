@@ -8,6 +8,11 @@ NS_ASSUME_NONNULL_BEGIN
 
 @class FMetalShaderPipeline;
 
+@protocol IMetalRenderCommandEncoder <MTLRenderCommandEncoder>
+- (void)setViewports:(const MTLViewport [])viewports count:(NSUInteger)count;
+- (void)setScissorRects:(const MTLScissorRect [])scissorRects count:(NSUInteger)count;
+@end
+
 @interface FMetalDebugRenderCommandEncoder : FMetalDebugCommandEncoder<MTLRenderCommandEncoder>
 {
     @private

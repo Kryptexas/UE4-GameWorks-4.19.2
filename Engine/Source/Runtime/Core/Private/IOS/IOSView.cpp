@@ -199,6 +199,11 @@ id<MTLDevice> GMetalDevice = nil;
 	return self;
 }
 
+-(void)dealloc
+{
+	[markedTextStyle release];
+	[super dealloc];
+}
 
 - (bool)CreateFramebuffer:(bool)bIsForOnDevice
 {
@@ -1020,6 +1025,7 @@ id<MTLDevice> GMetalDevice = nil;
 - (void) viewDidUnload
 {
 	UE_LOG(LogIOS, Log, TEXT("IOSViewController unloaded the view. This is unexpected, tell Josh Adams"));
+	[super viewDidUnload];
 }
 
 /**

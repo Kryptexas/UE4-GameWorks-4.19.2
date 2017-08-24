@@ -186,7 +186,7 @@ float3 GetTranslucencyVolumeLighting(
 				// Setup a pow lobe to approximate anisotropic in-scattering near to the light direction
 				float InScattering = pow(saturate(dot(DirectionalLightDirection, MaterialParameters.CameraVector)), InScatterPower);
 
-				float4 SSData = GetMaterialSubsurfaceData(MaterialParameters);
+				float4 SSData = GetMaterialSubsurfaceData(PixelMaterialInputs);
 				float3 SubsurfaceColor = SSData.rgb;
 
 				BackscatteredLighting = 
@@ -223,7 +223,7 @@ float3 GetTranslucencyVolumeLighting(
 #endif
 
 /** Computes sky diffuse lighting, including precomputed shadowing. */
-void GetSkyLighting(float3 WorldNormal, float2 LightmapUV, out float3 OutDiffuseLighting, out float3 OutSubsurfaceLighting)
+void GetSkyLighting(float3 WorldNormal, float2 LightmapUV, float3 SkyOcclusionUV3D, out float3 OutDiffuseLighting, out float3 OutSubsurfaceLighting)
 {
 	OutDiffuseLighting = 0;
 	OutSubsurfaceLighting = 0;
@@ -234,11 +234,17 @@ void GetSkyLighting(float3 WorldNormal, float2 LightmapUV, out float3 OutDiffuse
 	float GeometryTerm = 1;
 	float3 SkyLightingNormal = WorldNormal;
 	
-	#if HQ_TEXTURE_LIGHTMAP || CACHED_POINT_INDIRECT_LIGHTING || CACHED_VOLUME_INDIRECT_LIGHTING
+	#if HQ_TEXTURE_LIGHTMAP || CACHED_POINT_INDIRECT_LIGHTING || CACHED_VOLUME_INDIRECT_LIGHTING || PRECOMPUTED_IRRADIANCE_VOLUME_LIGHTING
 		BRANCH
 		if (View.SkyLightParameters.x > 0)
 		{
-			#if HQ_TEXTURE_LIGHTMAP
+			#if PRECOMPUTED_IRRADIANCE_VOLUME_LIGHTING
+			
+				float3 SkyBentNormal = GetVolumetricLightmapSkyBentNormal(SkyOcclusionUV3D);
+				SkyVisibility = length(SkyBentNormal);
+				float3 NormalizedBentNormal = SkyBentNormal / max(SkyVisibility, .0001f);
+
+			#elif HQ_TEXTURE_LIGHTMAP
 
 				// Bent normal from precomputed texture
 				float4 WorldSkyBentNormalAndOcclusion = GetSkyBentNormalAndOcclusion(LightmapUV * float2(1, 2));
@@ -290,8 +296,8 @@ void GetSkyLighting(float3 WorldNormal, float2 LightmapUV, out float3 OutDiffuse
 }
 
 #if SUPPORTS_INDEPENDENT_SAMPLERS
-	#define ILCSharedSampler1 PrecomputedLightingBuffer.IndirectLightingCacheTextureSampler0
-	#define ILCSharedSampler2 PrecomputedLightingBuffer.IndirectLightingCacheTextureSampler0
+	#define ILCSharedSampler1 View.SharedBilinearClampSampler
+	#define ILCSharedSampler2 View.SharedBilinearClampSampler
 #else
 	#define ILCSharedSampler1 PrecomputedLightingBuffer.IndirectLightingCacheTextureSampler1
 	#define ILCSharedSampler2 PrecomputedLightingBuffer.IndirectLightingCacheTextureSampler2
@@ -303,6 +309,7 @@ void GetPrecomputedIndirectLightingAndSkyLight(
 	FVertexFactoryInterpolantsVSToPS Interpolants,
 	FBasePassInterpolantsVSToPS BasePassInterpolants,
 	float3 DiffuseDir,
+	float3 VolumetricLightmapBrickTextureUVs,
 	out float3 OutDiffuseLighting,
 	out float3 OutSubsurfaceLighting,
 	out float OutIndirectIrradiance)
@@ -312,8 +319,24 @@ void GetPrecomputedIndirectLightingAndSkyLight(
 	OutSubsurfaceLighting = 0;
 	float2 SkyOcclusionUV = 0;
 
+	#if PRECOMPUTED_IRRADIANCE_VOLUME_LIGHTING
+
+		FThreeBandSHVectorRGB IrradianceSH = GetVolumetricLightmapSH3(VolumetricLightmapBrickTextureUVs);
+
+		// Diffuse convolution
+		FThreeBandSHVector DiffuseTransferSH = CalcDiffuseTransferSH3(DiffuseDir, 1);
+		OutDiffuseLighting = max(float3(0,0,0), DotSH3(IrradianceSH, DiffuseTransferSH)) / PI;
+
+		#if MATERIAL_SHADINGMODEL_TWOSIDED_FOLIAGE
+			FThreeBandSHVector SubsurfaceTransferSH = CalcDiffuseTransferSH3(-DiffuseDir, 1);
+			OutSubsurfaceLighting += max(float3(0,0,0), DotSH3(IrradianceSH, SubsurfaceTransferSH)) / PI;
+		#endif
+
+		// Visualize volumetric lightmap texel positions
+		//OutDiffuseLighting = frac(VolumetricLightmapBrickTextureUVs / View.VolumetricLightmapBrickTexelSize - .5f);
+
 	// Method for movable components which want to use a volume texture of interpolated SH samples
-	#if CACHED_VOLUME_INDIRECT_LIGHTING
+	#elif CACHED_VOLUME_INDIRECT_LIGHTING
 	
 		// Compute volume texture UVs from world position
 		float3 VolumeUVs = MaterialParameters.AbsoluteWorldPosition * PrecomputedLightingBuffer.IndirectLightingCachePrimitiveScale + PrecomputedLightingBuffer.IndirectLightingCachePrimitiveAdd;
@@ -415,14 +438,14 @@ void GetPrecomputedIndirectLightingAndSkyLight(
 
 	float3 SkyDiffuseLighting;
 	float3 SkySubsurfaceLighting;
-	GetSkyLighting(DiffuseDir, SkyOcclusionUV, SkyDiffuseLighting, SkySubsurfaceLighting);
+	GetSkyLighting(DiffuseDir, SkyOcclusionUV, VolumetricLightmapBrickTextureUVs, SkyDiffuseLighting, SkySubsurfaceLighting);
 
 	OutSubsurfaceLighting += SkySubsurfaceLighting;
 
 	// Sky lighting must contribute to IndirectIrradiance for ReflectionEnvironment lightmap mixing
 	OutDiffuseLighting += SkyDiffuseLighting;
 
-	#if HQ_TEXTURE_LIGHTMAP || LQ_TEXTURE_LIGHTMAP || CACHED_VOLUME_INDIRECT_LIGHTING || CACHED_POINT_INDIRECT_LIGHTING
+	#if HQ_TEXTURE_LIGHTMAP || LQ_TEXTURE_LIGHTMAP || CACHED_VOLUME_INDIRECT_LIGHTING || CACHED_POINT_INDIRECT_LIGHTING || PRECOMPUTED_IRRADIANCE_VOLUME_LIGHTING
 		OutIndirectIrradiance = Luminance(OutDiffuseLighting);
 	#endif
 }
@@ -759,7 +782,7 @@ void FPixelShaderInOut_MainPS(
 	float3 SubsurfaceColor = 0;
 #if MATERIAL_SHADINGMODEL_SUBSURFACE || MATERIAL_SHADINGMODEL_PREINTEGRATED_SKIN || MATERIAL_SHADINGMODEL_SUBSURFACE_PROFILE || MATERIAL_SHADINGMODEL_TWOSIDED_FOLIAGE || MATERIAL_SHADINGMODEL_CLOTH
 	{
-		float4 SubsurfaceData = GetMaterialSubsurfaceData(MaterialParameters);
+		float4 SubsurfaceData = GetMaterialSubsurfaceData(PixelMaterialInputs);
 
 #if MATERIAL_SHADINGMODEL_SUBSURFACE || MATERIAL_SHADINGMODEL_PREINTEGRATED_SKIN || MATERIAL_SHADINGMODEL_TWOSIDED_FOLIAGE
 		SubsurfaceColor = SubsurfaceData.rgb * View.DiffuseOverrideParameter.w + View.DiffuseOverrideParameter.xyz;
@@ -802,12 +825,18 @@ void FPixelShaderInOut_MainPS(
 
 	half Opacity = GetMaterialOpacity(PixelMaterialInputs);
 
+	float3 VolumetricLightmapBrickTextureUVs;
+		
+#if PRECOMPUTED_IRRADIANCE_VOLUME_LIGHTING
+	VolumetricLightmapBrickTextureUVs = ComputeVolumetricLightmapBrickTextureUVs(MaterialParameters.AbsoluteWorldPosition);
+#endif
+
 	FGBufferData GBuffer = (FGBufferData)0;
 
 	GBuffer.GBufferAO = MaterialAO;
 	GBuffer.PerObjectGBufferData = Primitive.PerObjectGBufferData;
 	GBuffer.Depth = MaterialParameters.ScreenPosition.w;
-	GBuffer.PrecomputedShadowFactors = GetPrecomputedShadowMasks(Interpolants);
+	GBuffer.PrecomputedShadowFactors = GetPrecomputedShadowMasks(Interpolants, MaterialParameters.AbsoluteWorldPosition, VolumetricLightmapBrickTextureUVs);
 
 	SetGBufferForShadingModel(
 		GBuffer, 
@@ -915,7 +944,7 @@ void FPixelShaderInOut_MainPS(
 
 		float3 DiffuseIndirectLighting;
 		float3 SubsurfaceIndirectLighting;
-		GetPrecomputedIndirectLightingAndSkyLight(MaterialParameters, Interpolants, BasePassInterpolants, DiffuseDir, DiffuseIndirectLighting, SubsurfaceIndirectLighting, IndirectIrradiance);
+		GetPrecomputedIndirectLightingAndSkyLight(MaterialParameters, Interpolants, BasePassInterpolants, DiffuseDir, VolumetricLightmapBrickTextureUVs, DiffuseIndirectLighting, SubsurfaceIndirectLighting, IndirectIrradiance);
 		
 		float IndirectOcclusion = 1.0f;
 		float2 NearestResolvedDepthScreenUV = 0;
@@ -953,9 +982,11 @@ void FPixelShaderInOut_MainPS(
 					Color += GetForwardDirectLighting(GridIndex, MaterialParameters.AbsoluteWorldPosition, MaterialParameters.CameraVector, GBuffer, NearestResolvedDepthScreenUV, EyeIndex);
 				#endif
 			#endif
-
-			Color += GetImageBasedReflectionLighting(MaterialParameters, GBuffer.Roughness, GBuffer.SpecularColor, IndirectIrradiance, GridIndex, EyeIndex) * IndirectOcclusion * AOMultiBounce( GBuffer.SpecularColor, SpecOcclusion );
-		#endif
+            
+            #if !MATERIAL_SHADINGMODEL_HAIR
+			    Color += GetImageBasedReflectionLighting(MaterialParameters, GBuffer.Roughness, GBuffer.SpecularColor, IndirectIrradiance, GridIndex, EyeIndex) * IndirectOcclusion * AOMultiBounce( GBuffer.SpecularColor, SpecOcclusion );
+		    #endif
+        #endif
 
 		#if SIMPLE_FORWARD_DIRECTIONAL_LIGHT
 
@@ -969,6 +1000,8 @@ void FPixelShaderInOut_MainPS(
 			
 			#if STATICLIGHTING_SIGNEDDISTANCEFIELD
 				DirectionalLighting *= GBuffer.PrecomputedShadowFactors.x;
+			#elif PRECOMPUTED_IRRADIANCE_VOLUME_LIGHTING
+				DirectionalLighting *= GetVolumetricLightmapDirectionalLightShadowing(VolumetricLightmapBrickTextureUVs);
 			#elif CACHED_POINT_INDIRECT_LIGHTING
 				DirectionalLighting *= PrecomputedLightingBuffer.DirectionalLightShadowing;
 			#endif

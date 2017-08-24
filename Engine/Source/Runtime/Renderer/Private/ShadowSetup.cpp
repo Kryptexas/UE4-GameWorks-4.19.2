@@ -31,12 +31,11 @@
 #include "LightPropagationVolumeSettings.h"
 #include "CapsuleShadowRendering.h"
 
-static float GMinScreenRadiusForShadowCaster = 0.03f;
+static float GMinScreenRadiusForShadowCaster = 0.01f;
 static FAutoConsoleVariableRef CVarMinScreenRadiusForShadowCaster(
 	TEXT("r.Shadow.RadiusThreshold"),
 	GMinScreenRadiusForShadowCaster,
-	TEXT("Cull shadow casters if they are too small, value is the minimal screen space bounding sphere radius\n")
-	TEXT("(default 0.03)"),
+	TEXT("Cull shadow casters if they are too small, value is the minimal screen space bounding sphere radius"),
 	ECVF_Scalability | ECVF_RenderThreadSafe
 	);
 
@@ -151,9 +150,15 @@ static TAutoConsoleVariable<float> CVarShadowTexelsPerPixel(
 	TEXT("The ratio of subject pixels to shadow texels for per-object shadows"),
 	ECVF_RenderThreadSafe);
 
+static TAutoConsoleVariable<float> CVarShadowTexelsPerPixelPointlight(
+	TEXT("r.Shadow.TexelsPerPixelPointlight"),
+	1.27324f,
+	TEXT("The ratio of subject pixels to shadow texels for point lights"),
+	ECVF_RenderThreadSafe);
+
 static TAutoConsoleVariable<float> CVarShadowTexelsPerPixelSpotlight(
 	TEXT("r.Shadow.TexelsPerPixelSpotlight"),
-	1.27324f,
+	2.0f * 1.27324f,
 	TEXT("The ratio of subject pixels to shadow texels for spotlights"),
 	ECVF_RenderThreadSafe);
 
@@ -1955,14 +1960,23 @@ void FSceneRenderer::CreateWholeSceneProjectedShadow(FLightSceneInfo* LightScene
 		{
 			const FViewInfo& View = Views[ViewIndex];
 
-			// Determine the size of the light's bounding sphere in this view.
-			const FVector4 ScreenPosition = View.WorldToScreen(LightSceneInfo->Proxy->GetOrigin());
-			const float ScreenRadius = View.ShadowViewMatrices.GetScreenScale() *
-				LightSceneInfo->Proxy->GetRadius() /
-				FMath::Max(ScreenPosition.W,1.0f);
+			const float ScreenRadius = LightSceneInfo->Proxy->GetEffectiveScreenRadius(View.ShadowViewMatrices);
 
 			// Determine the amount of shadow buffer resolution needed for this view.
-			const float UnclampedResolution = ScreenRadius * CVarShadowTexelsPerPixelSpotlight.GetValueOnRenderThread();
+			float UnclampedResolution = 1.0f;
+
+			switch (LightSceneInfo->Proxy->GetLightType())
+			{
+			case LightType_Point:
+				UnclampedResolution = ScreenRadius * CVarShadowTexelsPerPixelPointlight.GetValueOnRenderThread();
+				break;
+			case LightType_Spot:
+				UnclampedResolution = ScreenRadius * CVarShadowTexelsPerPixelSpotlight.GetValueOnRenderThread();
+				break;
+			default:
+				// directional lights are not handled here
+				checkf(false, TEXT("Unexpected LightType appears in CreateWholeSceneProjectedShadow"));
+			}
 
 			// Compute FadeAlpha before ShadowResolutionScale contribution (artists want to modify the softness of the shadow, not change the fade ranges)
 			const float FadeAlpha = CalculateShadowFadeAlpha( UnclampedResolution, ShadowFadeResolution, MinShadowResolution );
@@ -2293,7 +2307,7 @@ void FSceneRenderer::InitProjectedShadowVisibility(FRHICommandListImmediate& RHI
 								DrawFrustumWireframe(&ShadowFrustumPDI, (ViewMatrix * FPerspectiveMatrix(ActualFOV, AspectRatio, 1.0f, Mid, Far)).Inverse(), FColor::White, 0);
 
 								// Subfrustum Sphere Bounds
-								DrawWireSphere(&ShadowFrustumPDI, FTransform(ProjectedShadowInfo.ShadowBounds.Center), Color, ProjectedShadowInfo.ShadowBounds.W, 40, 0);
+								//DrawWireSphere(&ShadowFrustumPDI, FTransform(ProjectedShadowInfo.ShadowBounds.Center), Color, ProjectedShadowInfo.ShadowBounds.W, 40, 0);
 
 								// Shadow Map Projection Bounds
 								DrawFrustumWireframe(&ShadowFrustumPDI, ProjectedShadowInfo.SubjectAndReceiverMatrix.Inverse() * FTranslationMatrix(-ProjectedShadowInfo.PreShadowTranslation), Color, 0);

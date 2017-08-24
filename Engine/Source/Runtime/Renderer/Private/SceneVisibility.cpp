@@ -2674,7 +2674,7 @@ void FSceneRenderer::PostVisibilityFrameSetup(FILCUpdatePrimTaskData& OutILCTask
 		bCheckLightShafts = ViewFamily.EngineShowFlags.LightShafts && GLightShafts;
 	}
 
-	if (ViewFamily.EngineShowFlags.HitProxies == 0)
+	if (ViewFamily.EngineShowFlags.HitProxies == 0 && Scene->PrecomputedLightVolumes.Num() > 0)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_PostVisibilityFrameSetup_IndirectLightingCache_Update);
 		if (GILCUpdatePrimTaskEnabled)
@@ -2781,20 +2781,15 @@ void FSceneRenderer::PostVisibilityFrameSetup(FILCUpdatePrimTaskData& OutILCTask
 
 				if( DistanceSqr < Radius * Radius )
 				{
-					FVector4	PositionAndInvRadius;
-					FVector4	ColorAndFalloffExponent;
-					FVector		Direction;
-					FVector2D	SpotAngles;
-					float		SourceRadius;
-					float		SourceLength;
-					float		MinRoughness;
-					Proxy->GetParameters( PositionAndInvRadius, ColorAndFalloffExponent, Direction, SpotAngles, SourceRadius, SourceLength, MinRoughness );
+					FLightParameters LightParameters;
+
+					Proxy->GetParameters(LightParameters);
 
 					// Force to be at least 0.75 pixels
 					float CubemapSize = 128.0f;
 					float Distance = FMath::Sqrt( DistanceSqr );
 					float MinRadius = Distance * 0.75f / CubemapSize;
-					SourceRadius = FMath::Max( MinRadius, SourceRadius );
+					LightParameters.LightSourceRadius = FMath::Max( MinRadius, LightParameters.LightSourceRadius );
 
 					// Snap to cubemap pixel center to reduce aliasing
 					FVector Scale = ToLight.GetAbs();
@@ -2807,16 +2802,16 @@ void FSceneRenderer::PostVisibilityFrameSetup(FILCUpdatePrimTaskData& OutILCTask
 					}
 					Origin = ToLight + View.ViewMatrices.GetViewOrigin();
 				
-					FLinearColor Color( ColorAndFalloffExponent );
+					FLinearColor Color( LightParameters.LightColorAndFalloffExponent );
 
-					Color /= PI * FMath::Square( SourceRadius ) + 0.5f * PI * SourceRadius * SourceLength;
+					Color /= PI * FMath::Square( LightParameters.LightSourceRadius ) + 0.5f * PI * LightParameters.LightSourceRadius * LightParameters.LightSourceLength;
 
 					if( Proxy->IsInverseSquared() )
 					{
 						// Correction for lumen units
 						Color *= 16.0f;
 						
-						float LightRadiusMask = FMath::Square( 1.0f - FMath::Square( DistanceSqr * FMath::Square( PositionAndInvRadius.W ) ) );
+						float LightRadiusMask = FMath::Square( 1.0f - FMath::Square( DistanceSqr * FMath::Square( LightParameters.LightPositionAndInvRadius.W ) ) );
 						Color.A = LightRadiusMask;
 					}
 					else
@@ -2825,19 +2820,19 @@ void FSceneRenderer::PostVisibilityFrameSetup(FILCUpdatePrimTaskData& OutILCTask
 						Color *= DistanceSqr + 1.0f;
 
 						// Apply falloff
-						Color.A = FMath::Pow( 1.0f - DistanceSqr * FMath::Square( PositionAndInvRadius.W ), ColorAndFalloffExponent.W ); 
+						Color.A = FMath::Pow( 1.0f - DistanceSqr * FMath::Square(LightParameters.LightPositionAndInvRadius.W ), LightParameters.LightColorAndFalloffExponent.W );
 					}
 					
 					// Spot falloff
 					FVector L = ToLight.GetSafeNormal();
-					Color.A *= FMath::Square( FMath::Clamp( ( (L | Direction) - SpotAngles.X ) * SpotAngles.Y, 0.0f, 1.0f ) );
+					Color.A *= FMath::Square( FMath::Clamp( ( (L | LightParameters.NormalizedLightDirection) - LightParameters.SpotAngles.X ) * LightParameters.SpotAngles.Y, 0.0f, 1.0f ) );
 				
 					FMaterialRenderProxy* const ColoredMeshInstance = new(FMemStack::Get()) FColoredMaterialRenderProxy( GEngine->DebugMeshMaterial->GetRenderProxy(false), Color );
 
 					FViewElementPDI LightPDI( &View, NULL );
 					// Scaled sphere to handle SourceLength
-					const float ZScale = FMath::Max(SourceRadius, SourceLength);
-					DrawSphere(&LightPDI, Origin, FRotationMatrix::MakeFromZ(Direction).Rotator(), FVector(SourceRadius, SourceRadius, ZScale), 36, 24, ColoredMeshInstance, SDPG_World);
+					const float ZScale = FMath::Max(LightParameters.LightSourceRadius, LightParameters.LightSourceLength);
+					DrawSphere(&LightPDI, Origin, FRotationMatrix::MakeFromZ(LightParameters.NormalizedLightDirection).Rotator(), FVector(LightParameters.LightSourceRadius, LightParameters.LightSourceRadius, ZScale), 36, 24, ColoredMeshInstance, SDPG_World);
 				}
 			}
 		}

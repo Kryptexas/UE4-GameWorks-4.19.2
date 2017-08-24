@@ -1779,6 +1779,11 @@ int TProgram::getUniformBlockIndex(int index) const          { return reflection
 int TProgram::getUniformType(int index) const                { return reflection->getUniform(index).glDefineType; }
 int TProgram::getUniformBufferOffset(int index) const        { return reflection->getUniform(index).offset; }
 int TProgram::getUniformArraySize(int index) const           { return reflection->getUniform(index).size; }
+//#Epic - Expose missing functionality
+int TProgram::getUniformBinding(int index) const
+{
+	return reflection->getUniform(index).getBinding();
+}
 int TProgram::getNumLiveAttributes() const                   { return reflection->getNumAttributes(); }
 const char* TProgram::getAttributeName(int index) const      { return reflection->getAttribute(index).name.c_str(); }
 int TProgram::getAttributeType(int index) const              { return reflection->getAttribute(index).glDefineType; }

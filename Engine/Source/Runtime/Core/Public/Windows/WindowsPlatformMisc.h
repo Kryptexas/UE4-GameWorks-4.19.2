@@ -193,6 +193,11 @@ struct CORE_API FWindowsPlatformMisc
 	 */
 	static uint32 GetCPUInfo();
 
+	/** @return whether this cpu supports certain required instructions or not */
+	static bool HasNonoptionalCPUFeatures();
+	/** @return whether to check for specific CPU compatibility or not */
+	static bool NeedsNonoptionalCPUFeaturesCheck();
+
 	/** 
 	 * Provides a simpler interface for fetching and cleanup of registry value queries
 	 *

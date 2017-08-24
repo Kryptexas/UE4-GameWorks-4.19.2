@@ -202,8 +202,8 @@ void FOnlineSubsystemIOS::InitStoreKitHelper()
 
 void FOnlineSubsystemIOS::CleanupStoreKitHelper()
 {
-	[StoreHelper release];
-	StoreHelper = nil;
+	// @todo MetalMRT: This needs to be analyzed with ASAN - but this pointer is garbage on shutdown...
+	// [StoreHelper release];
 }
 
 void FOnlineSubsystemIOS::InitAppStoreHelper()

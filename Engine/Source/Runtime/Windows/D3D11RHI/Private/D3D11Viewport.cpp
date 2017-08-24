@@ -573,7 +573,9 @@ void FD3D11DynamicRHI::RHIEndDrawingViewport(FViewportRHIParamRef ViewportRHI,bo
 
 	StateCache.SetVertexShader(nullptr);
 
-	for(uint32 StreamIndex = 0;StreamIndex < 16;StreamIndex++)
+	uint16 NullStreamStrides[MaxVertexElementCount] = {0};
+	StateCache.SetStreamStrides(NullStreamStrides);
+	for (uint32 StreamIndex = 0; StreamIndex < MaxVertexElementCount; ++StreamIndex)
 	{
 		StateCache.SetStreamSource(nullptr, StreamIndex, 0, 0);
 	}

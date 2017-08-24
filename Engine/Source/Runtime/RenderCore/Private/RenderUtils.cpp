@@ -125,7 +125,9 @@ FPixelFormatInfo	GPixelFormats[PF_MAX] =
 	{ TEXT("BC7"),				4,			4,			1,			16,			4,				0,				1,				PF_BC7				},
 	{ TEXT("R8_UINT"),			1,			1,			1,			1,			1,				0,				1,				PF_R8_UINT			},
 	{ TEXT("L8"),				1,			1,			1,			1,			1,				0,				0,				PF_L8				},
-	{ TEXT("XGXR8"),			1,			1,			1,			4,			4,				0,				1,				PF_XGXR8 },
+	{ TEXT("XGXR8"),			1,			1,			1,			4,			4,				0,				1,				PF_XGXR8 			},
+	{ TEXT("R8G8B8A8_UINT"),	1,			1,			1,			4,			4,				0,				1,				PF_R8G8B8A8_UINT	},
+	{ TEXT("R8G8B8A8_SNORM"),	1,			1,			1,			4,			4,				0,				1,				PF_R8G8B8A8_SNORM	},
 };
 
 static struct FValidatePixelFormats
@@ -255,6 +257,7 @@ private:
 /**
  * A class representing a 1x1x1 black volume texture.
  */
+template <EPixelFormat PixelFormat>
 class FBlackVolumeTexture : public FTexture
 {
 public:
@@ -269,7 +272,7 @@ public:
 			// Create the texture.
 			FBlackVolumeTextureResourceBulkDataInterface BlackTextureBulkData;
 			FRHIResourceCreateInfo CreateInfo(&BlackTextureBulkData);
-			FTexture3DRHIRef Texture3D = RHICreateTexture3D(1,1,1,PF_B8G8R8A8,1,TexCreate_ShaderResource,CreateInfo);
+			FTexture3DRHIRef Texture3D = RHICreateTexture3D(1,1,1,PixelFormat,1,TexCreate_ShaderResource,CreateInfo);
 			TextureRHI = Texture3D;	
 
 			// Create the sampler state.
@@ -296,7 +299,10 @@ public:
 };
 
 /** Global black volume texture resource. */
-FTexture* GBlackVolumeTexture = new TGlobalResource<FBlackVolumeTexture>();
+FTexture* GBlackVolumeTexture = new TGlobalResource<FBlackVolumeTexture<PF_B8G8R8A8>>();
+
+/** Global black volume texture resource. */
+FTexture* GBlackUintVolumeTexture = new TGlobalResource<FBlackVolumeTexture<PF_R8G8B8A8_UINT>>();
 
 class FBlackArrayTexture : public FTexture
 {

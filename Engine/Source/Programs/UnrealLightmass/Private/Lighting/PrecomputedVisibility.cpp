@@ -924,7 +924,7 @@ bool ComputeBoxVisibility(
 
 			// Trace importance sampled rays to try and find visible meshes through small cracks
 			// This is only slightly effective, but doesn't cost much compared to explicit sampling due to the small number of rays
-			for (int32 ImportanceSampleIndex = 0; ImportanceSampleIndex < PrecomputedVisibilitySettings.NumImportanceSamples && !bVisible; ImportanceSampleIndex++)
+			for (int32 ImportanceSampleIndex = 0; ImportanceSampleIndex < PrecomputedVisibilitySettings.NumImportanceSamples && !bVisible && FurthestSamples.Num() > 0; ImportanceSampleIndex++)
 			{
 				// Pick one of the furthest samples with uniform probability
 				const int32 SampleIndex = FMath::TruncToInt(RandomStream.GetFraction() * FurthestSamples.Num());

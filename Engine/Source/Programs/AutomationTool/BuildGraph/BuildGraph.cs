@@ -692,14 +692,18 @@ namespace AutomationTool
 			}
 
 			// Check that none of the inputs have been clobbered
-			List<TempStorageFile> ModifiedFiles = InputManifests.Values.SelectMany(x => x.Files).Where(x => !x.CompareSilent(CommandUtils.RootDirectory)).ToList();
+			Dictionary<string, string> ModifiedFiles = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase);
+			foreach(TempStorageFile File in InputManifests.Values.SelectMany(x => x.Files))
+			{
+				string Message;
+				if(!ModifiedFiles.ContainsKey(File.RelativePath) && !File.Compare(CommandUtils.RootDirectory, out Message))
+				{
+					ModifiedFiles.Add(File.RelativePath, Message);
+				}
+			}
 			if(ModifiedFiles.Count > 0)
 			{
-				foreach(TempStorageFile ModifiedFile in ModifiedFiles)
-				{
-					CommandUtils.LogError("Build product from a previous step has been modified: {0}", ModifiedFile.RelativePath);
-				}
-				return false;
+				throw new AutomationException("Build {0} from a previous step have been modified:\n{1}", (ModifiedFiles.Count == 1)? "product" : "products", String.Join("\n", ModifiedFiles.Select(x => x.Value)));
 			}
 
 			// Determine all the output files which are required to be copied to temp storage (because they're referenced by nodes in another agent)

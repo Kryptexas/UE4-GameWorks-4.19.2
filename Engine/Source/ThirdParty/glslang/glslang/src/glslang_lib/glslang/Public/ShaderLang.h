@@ -520,7 +520,9 @@ public:
     int getUniformType(int index) const;                   // can be used for glGetActiveUniformsiv(GL_UNIFORM_TYPE)
     int getUniformBufferOffset(int index) const;           // can be used for glGetActiveUniformsiv(GL_UNIFORM_OFFSET)
     int getUniformArraySize(int index) const;              // can be used for glGetActiveUniformsiv(GL_UNIFORM_SIZE)
-    int getNumLiveAttributes() const;                      // can be used for glGetProgramiv(GL_ACTIVE_ATTRIBUTES)
+	//#Epic - Expose missing functionality
+	int getUniformBinding(int index) const;
+	int getNumLiveAttributes() const;                      // can be used for glGetProgramiv(GL_ACTIVE_ATTRIBUTES)
     unsigned getLocalSize(int dim) const;                  // return dim'th local size
     const char *getAttributeName(int index) const;         // can be used for glGetActiveAttrib()
     int getAttributeType(int index) const;                 // can be used for glGetActiveAttrib()

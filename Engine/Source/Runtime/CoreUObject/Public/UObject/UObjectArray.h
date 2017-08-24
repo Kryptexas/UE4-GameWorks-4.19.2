@@ -206,7 +206,7 @@ class FFixedUObjectArray
 
 public:
 
-	FFixedUObjectArray()
+	FFixedUObjectArray() TSAN_SAFE
 		: Objects(nullptr)
 		, MaxElements(0)
 		, NumElements(0)
@@ -222,14 +222,14 @@ public:
 	* Expands the array so that Element[Index] is allocated. New pointers are all zero.
 	* @param Index The Index of an element we want to be sure is allocated
 	**/
-	void PreAllocate(int32 InMaxElements)
+	void PreAllocate(int32 InMaxElements) TSAN_SAFE
 	{
 		check(!Objects);
 		Objects = new FUObjectItem[InMaxElements];
 		MaxElements = InMaxElements;
 	}
 
-	int32 AddSingle()
+	int32 AddSingle() TSAN_SAFE
 	{
 		int32 Result = NumElements;
 		checkf(NumElements + 1 <= MaxElements, TEXT("Maximum number of UObjects (%d) exceeded, make sure you update MaxObjectsInGame/MaxObjectsInEditor in project settings."), MaxElements);
@@ -240,7 +240,7 @@ public:
 		return Result;
 	}
 
-	int32 AddRange(int32 Count)
+	int32 AddRange(int32 Count) TSAN_SAFE
 	{
 		int32 Result = NumElements + Count - 1;
 		checkf(NumElements + Count <= MaxElements, TEXT("Maximum number of UObjects (%d) exceeded, make sure you update MaxObjectsInGame/MaxObjectsInEditor in project settings."), MaxElements);
@@ -251,13 +251,13 @@ public:
 		return Result;
 	}
 
-	FORCEINLINE FUObjectItem const* GetObjectPtr(int32 Index) const
+	FORCEINLINE FUObjectItem const* GetObjectPtr(int32 Index) const TSAN_SAFE
 	{
 		check(Index >= 0 && Index < NumElements);
 		return &Objects[Index];
 	}
 
-	FORCEINLINE FUObjectItem* GetObjectPtr(int32 Index)
+	FORCEINLINE FUObjectItem* GetObjectPtr(int32 Index) TSAN_SAFE
 	{
 		check(Index >= 0 && Index < NumElements);
 		return &Objects[Index];
@@ -268,7 +268,7 @@ public:
 	* Thread safe, but you know, someone might have added more elements before this even returns
 	* @return	the number of elements in the array
 	**/
-	FORCEINLINE int32 Num() const
+	FORCEINLINE int32 Num() const TSAN_SAFE
 	{
 		return NumElements;
 	}

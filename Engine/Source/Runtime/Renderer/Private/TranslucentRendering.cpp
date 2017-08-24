@@ -421,6 +421,12 @@ public:
 		// This will force the cheaper single sample interpolated GI path
 		return false;
 	}
+	
+	bool UseVolumetricLightmap() const
+	{
+		const FScene* Scene = (const FScene*)View.Family->Scene;
+		return View.Family->EngineShowFlags.VolumetricLightmap && Scene && Scene->VolumetricLightmapSceneData.HasData();
+	}
 
 	/** Draws the translucent mesh with a specific light-map type, and fog volume type */
 	template<typename LightMapPolicyType>
@@ -705,6 +711,17 @@ public:
 
 	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 	{
+		// Never needs clear here as it is already done in RenderTranslucency.
+		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
+		if (SceneContext.IsSeparateTranslucencyPass())
+		{
+			SceneContext.BeginRenderingSeparateTranslucency(RHICmdList, View, false);
+		}
+		else
+		{
+			SceneContext.BeginRenderingTranslucency(RHICmdList, View, false);
+		}
+
 		PrimSet.DrawAPrimitive(RHICmdList, View, DrawRenderState, Renderer, TranslucencyPass, Index);
 		RHICmdList.HandleRTThreadTaskCompletion(MyCompletionGraphEvent);
 	}
