@@ -100,10 +100,6 @@ void FStaticMeshInstanceBuffer::UpdateInstanceData(UInstancedStaticMeshComponent
 	// Allocate the vertex data storage type.
 	InstanceData->AllocateInstances(NumInstances, false);
 
-	// Setup our random number generator such that random values are generated consistently for any
-	// given instance index between reattaches
-	FRandomStream RandomStream(InComponent->InstancingRandomSeed);
-
 	const FMeshMapBuildData* MeshMapBuildData = NULL;
 
 	if (InComponent->LODData.Num() > 0)
@@ -161,7 +157,7 @@ void FStaticMeshInstanceBuffer::UpdateInstanceData(UInstancedStaticMeshComponent
 	InComponent->RemovedInstances.Reset();
 }
 
-void FStaticMeshInstanceBuffer::Init(UInstancedStaticMeshComponent* InComponent, const TArray<TRefCountPtr<HHitProxy> >& InHitProxies)
+void FStaticMeshInstanceBuffer::Init(UInstancedStaticMeshComponent* InComponent, const TArray<TRefCountPtr<HHitProxy> >& InHitProxies, bool InitializeBufferFromData)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FStaticMeshInstanceBuffer_Init);
 	
@@ -172,7 +168,15 @@ void FStaticMeshInstanceBuffer::Init(UInstancedStaticMeshComponent* InComponent,
 
 	SetupCPUAccess(InComponent);
 
-	UpdateInstanceData(InComponent, InHitProxies, 0, InComponent->PerInstanceSMData.Num());
+	// Setup our random number generator such that random values are generated consistently for any
+	// given instance index between reattaches
+	check(InComponent->InstancingRandomSeed != 0)
+	RandomStream.Initialize(InComponent->InstancingRandomSeed);
+
+	if (InitializeBufferFromData)
+	{
+		UpdateInstanceData(InComponent, InHitProxies, 0, InComponent->PerInstanceSMData.Num());
+	}
 
 	float ThisTime = (StartTime - FPlatformTime::Seconds()) * 1000.0f;
 	if (ThisTime > 30.0f)
@@ -184,6 +188,11 @@ void FStaticMeshInstanceBuffer::Init(UInstancedStaticMeshComponent* InComponent,
 void FStaticMeshInstanceBuffer::InitFromPreallocatedData(UInstancedStaticMeshComponent* InComponent, FStaticMeshInstanceData& Other)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FStaticMeshInstanceBuffer_InitFromPreallocatedData);
+
+	// Setup our random number generator such that random values are generated consistently for any
+	// given instance index between reattaches
+	RandomStream.Initialize(InComponent->InstancingRandomSeed);
+
 	const uint32 NewNumInstances = Other.NumInstances();
 	AllocateData(Other);
 	NumInstances = NewNumInstances;
@@ -253,6 +262,11 @@ void FStaticMeshInstanceBuffer::InitRHI()
 void FStaticMeshInstanceBuffer::UpdateRHIVertexBuffer(const TSet<int32>& InIndexList)
 {
 	check(IsInRenderingThread());
+
+	if (InstanceData->NumInstances() == 0)
+	{
+		return;
+	}
 
 	//TODO: to uncomment when RHI interface support proper vertex buffer partial update lock/unlock
 //	if (InIndexList.Num() == 0 || InIndexList.Num() == InstanceData->NumInstances())
@@ -872,14 +886,18 @@ UInstancedStaticMeshComponent::UInstancedStaticMeshComponent(const FObjectInitia
 	PhysicsSerializer = ObjectInitializer.CreateDefaultSubobject<UPhysicsSerializer>(this, TEXT("PhysicsSerializer"));
 	bDisallowMeshPaintPerInstance = true;
 
-	if (FApp::CanEverRender() && !HasAnyFlags(RF_ClassDefaultObject))
+	if (FApp::CanEverRender() && !HasAnyFlags(RF_ClassDefaultObject|RF_ArchetypeObject))
 	{
-		InitPerInstanceRenderData();
+		while (InstancingRandomSeed == 0)
+		{
+			InstancingRandomSeed = FMath::Rand();
+		}
 	}
 }
 
 UInstancedStaticMeshComponent::~UInstancedStaticMeshComponent()
 {
+	ReleasePerInstanceRenderData();
 	FlushAsyncBuildInstanceBufferTask();
 }
 
@@ -1015,9 +1033,7 @@ void UInstancedStaticMeshComponent::ApplyComponentInstanceData(FInstancedStaticM
 
 	// Force recreation of the render data
 	ReleasePerInstanceRenderData();
-	InitPerInstanceRenderData();
-	PerInstanceRenderData->UpdateInstanceData(this, 0, PerInstanceSMData.Num());
-
+	InitPerInstanceRenderData(true);
 	MarkRenderStateDirty();
 #endif
 }
@@ -1823,7 +1839,7 @@ void UInstancedStaticMeshComponent::ClearInstances()
 	// Indicate we need to update render state to reflect changes
 	bPerInstanceRenderDataWasPrebuilt = false;
 	ReleasePerInstanceRenderData();
-	InitPerInstanceRenderData();
+	InitPerInstanceRenderData(false);
 	MarkRenderStateDirty();
 
 	UNavigationSystem::UpdateComponentInNavOctree(*this);
@@ -1863,8 +1879,13 @@ void UInstancedStaticMeshComponent::SetupNewInstanceData(FInstancedStaticMeshIns
 	}
 }
 
-void UInstancedStaticMeshComponent::InitPerInstanceRenderData(FStaticMeshInstanceData* InSharedInstanceBufferData)
+void UInstancedStaticMeshComponent::InitPerInstanceRenderData(bool InitializeFromCurrentData, FStaticMeshInstanceData* InSharedInstanceBufferData)
 {
+	while (InstancingRandomSeed == 0)
+	{
+		InstancingRandomSeed = FMath::Rand();
+	}
+
 	UWorld* World = GetWorld();
 
 	ERHIFeatureLevel::Type FeatureLevel = World != nullptr ? World->FeatureLevel : GMaxRHIFeatureLevel;
@@ -1890,7 +1911,7 @@ void UInstancedStaticMeshComponent::InitPerInstanceRenderData(FStaticMeshInstanc
 		}
 		else
 		{
-			PerInstanceRenderData = MakeShareable(new FPerInstanceRenderData(this, FeatureLevel, IsDynamic));
+			PerInstanceRenderData = MakeShareable(new FPerInstanceRenderData(this, FeatureLevel, IsDynamic, InitializeFromCurrentData));
 		}
 	}
 }
@@ -1899,11 +1920,11 @@ void UInstancedStaticMeshComponent::PostLoad()
 {
 	Super::PostLoad();
 
-	if (!HasAnyFlags(RF_ClassDefaultObject))
+	if (!HasAnyFlags(RF_ClassDefaultObject|RF_ArchetypeObject))
 	{
-		InitPerInstanceRenderData();
+		InitPerInstanceRenderData(false);
 
-		if (PerInstanceSMData.Num() > 0)
+		if (PerInstanceSMData.Num() > 0 && PerInstanceRenderData->InstanceBuffer.GetNumInstances() == 0) // only load the data if it's not already loaded
 		{
 			UWorld* World = GetWorld();
 
@@ -1911,10 +1932,7 @@ void UInstancedStaticMeshComponent::PostLoad()
 			if (CVarASyncInstaneBufferConversion.GetValueOnGameThread() > 0 && World != nullptr && World->IsGameWorld())
 			{
 				World->AsyncPreRegisterLevelStreamingTasks.Increment();
-				while (InstancingRandomSeed == 0)
-				{
-					InstancingRandomSeed = FMath::Rand();
-				}
+
 				AsyncBuildInstanceBufferTask = new FAsyncTask<FAsyncBuildInstanceBuffer>(this, World);
 				AsyncBuildInstanceBufferTask->StartBackgroundTask();
 			}
@@ -2034,20 +2052,18 @@ void UInstancedStaticMeshComponent::GetResourceSizeEx(FResourceSizeEx& Cumulativ
 
 void UInstancedStaticMeshComponent::BeginDestroy()
 {
+	ReleasePerInstanceRenderData();
 	bPerInstanceRenderDataWasPrebuilt = false;
 	Super::BeginDestroy();
-	ReleasePerInstanceRenderData();
 }
 
 void UInstancedStaticMeshComponent::PostDuplicate(bool bDuplicateForPIE)
 {
 	Super::PostDuplicate(bDuplicateForPIE);
 
-	InitPerInstanceRenderData();
-
-	if (PerInstanceSMData.Num() > 0)
+	if (!HasAnyFlags(RF_ClassDefaultObject|RF_ArchetypeObject) && bDuplicateForPIE)
 	{
-		PerInstanceRenderData->UpdateInstanceData(this, 0, PerInstanceSMData.Num());
+		InitPerInstanceRenderData(true);		
 	}
 }
 
@@ -2092,13 +2108,7 @@ void UInstancedStaticMeshComponent::PostEditChangeChainProperty(FPropertyChanged
 		{
 			// Force a full refresh of the instance buffer
 			ReleasePerInstanceRenderData();
-			InitPerInstanceRenderData();
-
-			if (PerInstanceRenderData.IsValid())
-			{
-				PerInstanceRenderData->UpdateInstanceData(this, 0, PerInstanceSMData.Num());
-			}
-
+			InitPerInstanceRenderData(true);
 			MarkRenderStateDirty();
 		}
 	}

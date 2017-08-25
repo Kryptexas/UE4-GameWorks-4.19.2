@@ -764,12 +764,12 @@ void FFoliageMeshInfo::CreateNewComponent(AInstancedFoliageActor* InIFA, const U
 	}
 
 	UFoliageInstancedStaticMeshComponent* FoliageComponent = NewObject<UFoliageInstancedStaticMeshComponent>(InIFA, ComponentClass, NAME_None, RF_Transactional);
+	FoliageComponent->InitPerInstanceRenderData(false);
 
 	Component = FoliageComponent;
 	Component->SetStaticMesh(InSettings->GetStaticMesh());
 	Component->bSelectable = true;
 	Component->bHasPerInstanceHitProxies = true;
-	Component->InstancingRandomSeed = FMath::Rand();
 
 	if (Component->GetStaticMesh() != nullptr)
 	{
@@ -1282,7 +1282,7 @@ void FFoliageMeshInfo::ReapplyInstancesToComponent()
 		const bool bWasRegistered = Component->IsRegistered();
 		Component->UnregisterComponent();
 		Component->ClearInstances();
-		Component->InitPerInstanceRenderData();
+		Component->InitPerInstanceRenderData(false);
 
 		Component->bAutoRebuildTreeOnInstanceChanges = false;
 
