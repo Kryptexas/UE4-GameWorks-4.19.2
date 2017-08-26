@@ -3196,7 +3196,7 @@ void FNativeClassHeaderGenerator::ExportGeneratedStructBodyMacros(FOutputDevice&
 	}
 	else
 	{
-		OuterFunc = FString::Printf(TEXT("[](){ return FindOrConstructDynamicTypePackage(TEXT(\"%s\")); }"), *FClass::GetTypePackageName(Struct));
+		OuterFunc = FString::Printf(TEXT("[](){ return (UObject*)FindOrConstructDynamicTypePackage(TEXT(\"%s\")); }"), *FClass::GetTypePackageName(Struct));
 	}
 
 	FString MetaDataParams = OutputMetaDataCodeForObject(GeneratedStructRegisterFunctionText, Struct, TEXT("Struct_MetaDataParams"), TEXT("\t\t\t"));
