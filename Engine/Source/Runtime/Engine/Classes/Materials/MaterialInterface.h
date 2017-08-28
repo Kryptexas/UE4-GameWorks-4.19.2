@@ -220,6 +220,8 @@ protected:
 	/** Because of redirector, the texture names need to be resorted at each load in case they changed. */
 	UPROPERTY(transient)
 	bool bTextureStreamingDataSorted;
+	UPROPERTY()
+	int32 TextureStreamingDataVersion;
 #endif
 
 	/** Data used by the texture streaming to know how each texture is sampled by the material. Sorted by names for quick access. */

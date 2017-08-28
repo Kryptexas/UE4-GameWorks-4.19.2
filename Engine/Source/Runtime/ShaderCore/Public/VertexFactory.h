@@ -338,11 +338,13 @@ class SHADERCORE_API FVertexFactory : public FRenderResource
 {
 public:
 	FVertexFactory() 
+		: bNeedsDeclaration(true)
 	{
 	}
 
 	FVertexFactory(ERHIFeatureLevel::Type InFeatureLevel) 
 		: FRenderResource(InFeatureLevel)
+		, bNeedsDeclaration(true)
 	{
 	}
 
@@ -413,6 +415,7 @@ public:
 	 */
 	virtual uint64 GetStaticBatchElementVisibility(const class FSceneView& View, const struct FMeshBatch* Batch) const { return 1; }
 
+	bool NeedsDeclaration() const { return bNeedsDeclaration; }
 protected:
 
 	/**
@@ -472,6 +475,9 @@ protected:
 
 	/** The vertex streams used to render the factory. */
 	TArray<FVertexStream,TFixedAllocator<MaxVertexElementCount> > Streams;
+
+	/* VF can explicitly set this to false to avoid errors without decls; this is for VFs that fetch from buffers directly (e.g. Niagara) */
+	bool bNeedsDeclaration;
 
 private:
 

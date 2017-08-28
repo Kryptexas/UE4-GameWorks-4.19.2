@@ -19,8 +19,9 @@ public class ComponentVisualizers : ModuleRules
 				"UnrealEd",
                 "PropertyEditor",
                 "EditorStyle",
-				"AIModule"
+				"AIModule",
+				"ViewportInteraction"
 			}
-			);
+		);
 	}
 }

@@ -64,11 +64,11 @@ enum class EVectorVMOp : uint8
 	min,
 	max,
 	pow,
+	round,
 	sign,
 	step,
 	random,
 	noise,
-	output,
 
 	//Comparison ops.
 	cmplt,
@@ -93,6 +93,7 @@ enum class EVectorVMOp : uint8
 	absi,
 	negi,
 	signi,
+	randomi,
 	cmplti,
 	cmplei,
 	cmpgti,
@@ -135,10 +136,6 @@ enum class EVectorVMOp : uint8
 	/** Utility ops for hooking into the stats system for performance analysis. */
 	enter_stat_scope,
 	exit_stat_scope,
-
-	//TODO: Move back to the float ops when we can auto recompile existing data.
-	round,
-
 
 	NumOpcodes
 };
@@ -192,18 +189,17 @@ namespace VectorVM
 	VECTORVM_API void Exec(
 		uint8 const* Code,
 		uint8** InputRegisters,
-		uint8* InputRegisterSizes,
 		int32 NumInputRegisters,
 		uint8** OutputRegisters,
-		uint8* OutputRegisterSizes,
 		int32 NumOutputRegisters,
 		uint8 const* ConstantTable,
 		TArray<FDataSetMeta> &DataSetMetaTable,
 		FVMExternalFunction* ExternalFunctionTable,
+		void** UserPtrTable,
 		int32 NumInstances
 
 #if STATS
-		, TArray<TStatId>& StatScopes
+		, const TArray<TStatId>& StatScopes
 #endif
 		);
 
@@ -230,6 +226,8 @@ struct FVectorVMContext
 	int32 NumSecondaryDataSets;
 	/** Pointer to the shared data table. */
 	FVMExternalFunction* RESTRICT ExternalFunctionTable;
+	/** Table of user pointers.*/
+	void** UserPtrTable;
 	/** Number of instances to process. */
 	int32 NumInstances;
 	/** Start instance of current chunk. */
@@ -237,7 +235,7 @@ struct FVectorVMContext
 
 #if STATS
 	TArray<FCycleCounter> StatCounterStack;
-	TArray<TStatId>& StatScopes;
+	const TArray<TStatId>& StatScopes;
 #endif
 
 	/** Initialization constructor. */
@@ -248,10 +246,11 @@ struct FVectorVMContext
 		int32 *InDataSetIndexTable,
 		int32 *InDataSetOffsetTable,
 		FVMExternalFunction* InExternalFunctionTable,
+		void** InUserPtrTable,
 		int32 InNumInstances,
 		int32 InStartInstance
 #if STATS
-		, TArray<TStatId>& InStatScopes
+		, const TArray<TStatId>& InStatScopes
 #endif
 	)
 		: Code(InCode)
@@ -260,6 +259,7 @@ struct FVectorVMContext
 		, DataSetIndexTable(InDataSetIndexTable)
 		, DataSetOffsetTable(InDataSetOffsetTable)
 		, ExternalFunctionTable(InExternalFunctionTable)
+		, UserPtrTable(InUserPtrTable)
 		, NumInstances(InNumInstances)
 		, StartInstance(InStartInstance)
 #if STATS
@@ -368,6 +368,22 @@ struct FRegisterHandlerBase
 	FRegisterHandlerBase(FVectorVMContext& Context)
 		: RegisterIndex(DecodeU16(Context))
 	{}
+};
+
+template<typename T>
+struct FUserPtrHandler
+{
+	int32 UserPtrIdx;
+	T* Ptr;
+	FUserPtrHandler(FVectorVMContext& Context)
+		: UserPtrIdx(*(int32*)(Context.ConstantTable + DecodeU16(Context)))
+		, Ptr((T*)Context.UserPtrTable[UserPtrIdx])
+	{
+		check(UserPtrIdx != INDEX_NONE);
+	}
+	FORCEINLINE T* Get() { return Ptr; }
+	FORCEINLINE T* operator->() { return Ptr; }
+	FORCEINLINE operator T*() { return Ptr; }
 };
 
 template<typename T>

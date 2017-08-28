@@ -21,8 +21,6 @@ PRAGMA_POP
 #include "ir.h"
 
 #include "VectorVM.h"
-#include "INiagaraCompiler.h"
-
 
 //Additional helper during scalaization to split any special vector expressions such as dot into their scalar operations.
 class ir_vec_op_to_scalar_visitor : public ir_hierarchical_visitor
@@ -36,6 +34,8 @@ public:
 	ir_dereference* get_deref_or_create_temp(ir_rvalue* rval, ir_dereference* result)
 	{
 		ir_dereference *deref = rval->as_dereference();
+
+		check(base_ir->next && base_ir->prev);
 
 		void* parent = ralloc_parent(base_ir);
 		/* Avoid making a temporary if we don't need to to avoid aliasing. */
@@ -85,6 +85,7 @@ public:
 
 		do_length(result, deref);
 
+		check(call->next && call->prev);
 		call->remove();
 
 		return visit_continue;
@@ -123,6 +124,7 @@ public:
 		case ir_unop_normalize: do_normalize(result, op[0]); break;
 		};
 
+		check(orig_assign->next && orig_assign->prev);
 		orig_assign->remove();
 		return visit_continue;
 	}
@@ -139,6 +141,7 @@ void ir_vec_op_to_scalar_visitor::do_dot(ir_dereference *result, ir_dereference 
 {
 	ir_assignment *assign;
 	ir_expression *expr;
+	check(base_ir->next && base_ir->prev);
 	check(a->type == b->type);
 	void* parent = ralloc_parent(base_ir);
 
@@ -164,6 +167,7 @@ void ir_vec_op_to_scalar_visitor::do_dot(ir_dereference *result, ir_dereference 
 void ir_vec_op_to_scalar_visitor::do_cross(ir_dereference *result, ir_dereference *a, ir_dereference *b)
 {
 	ir_assignment *assign;
+	check(base_ir->next && base_ir->prev);
 	check(a->type == b->type);
 	check(a->type->is_vector());
 	check(a->type->vector_elements == 3);
@@ -201,6 +205,7 @@ void ir_vec_op_to_scalar_visitor::do_normalize(ir_dereference *result, ir_derefe
 {
 	ir_assignment *assign;
 	ir_expression *expr;
+	check(base_ir->next && base_ir->prev);
 	check(a->type->is_vector());
 
 	void* parent = ralloc_parent(base_ir);
@@ -233,6 +238,7 @@ void ir_vec_op_to_scalar_visitor::do_length(ir_dereference *result, ir_dereferen
 {
 	ir_assignment *assign;
 	ir_expression *expr;
+	check(base_ir->next && base_ir->prev);
 	check(a->type->is_vector());
 
 	void* parent = ralloc_parent(base_ir);

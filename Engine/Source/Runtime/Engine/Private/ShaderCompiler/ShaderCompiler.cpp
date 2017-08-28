@@ -1934,6 +1934,9 @@ void FShaderCompilingManager::ProcessCompiledShaderMaps(
 	}
 }
 
+
+
+
 void FShaderCompilingManager::PropagateMaterialChangesToPrimitives(const TMap<FMaterial*, FMaterialShaderMap*>& MaterialsToUpdate)
 {
 	TArray<UMaterialInterface*> UsedMaterials;
@@ -1985,6 +1988,7 @@ void FShaderCompilingManager::PropagateMaterialChangesToPrimitives(const TMap<FM
 	ComponentContexts.Empty();
 }
 
+
 /**
  * Shutdown the shader compile manager
  * this function should be used when ending the game to shutdown shader compile threads
@@ -2028,7 +2032,6 @@ bool FShaderCompilingManager::HandlePotentialRetryOnError(TMap<int32, FShaderMap
 				}
 			}
 
-			check(ShaderMap || It.Key() == GlobalShaderMapId);
 
 #if WITH_EDITORONLY_DATA
 
@@ -2351,14 +2354,16 @@ void FShaderCompilingManager::ProcessAsyncResults(bool bLimitExecutionTime, bool
 
 				TArray<int32> ShaderMapsToRemove;
 
+				// Get all material shader maps to finalize
+				//
 				for (TMap<int32, FShaderMapCompileResults>::TIterator It(ShaderMapJobs); It; ++It)
 				{
 					const FShaderMapCompileResults& Results = It.Value();
 
 					if (GetNumTotalJobs(Results.FinishedJobs) == Results.NumJobsQueued)
 					{
-						PendingFinalizeShaderMaps.Add(It.Key(), FShaderMapFinalizeResults(Results));
 						ShaderMapsToRemove.Add(It.Key());
+						PendingFinalizeShaderMaps.Add(It.Key(), FShaderMapFinalizeResults(Results));
 					}
 				}
 
@@ -2385,6 +2390,7 @@ void FShaderCompilingManager::ProcessAsyncResults(bool bLimitExecutionTime, bool
 				ProcessCompiledShaderMaps(PendingFinalizeShaderMaps, TimeBudget);
 				check(bLimitExecutionTime || PendingFinalizeShaderMaps.Num() == 0);
 			}
+
 
 			if (bBlockOnGlobalShaderCompletion)
 			{

@@ -830,6 +830,9 @@ public:
 	 */
 	ENGINE_API void SetVertexColorData(const TMap<FVector, FColor>& VertexColorData);
 
+	/** Removes all vertex colors from this mesh and rebuilds it (Editor only */
+	ENGINE_API void RemoveVertexColors();
+
 	void EnforceLightmapRestrictions();
 
 	/** Calculates the extended bounds */

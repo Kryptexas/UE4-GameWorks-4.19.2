@@ -6,12 +6,12 @@
 #include "EditorFramework/AssetImportData.h"
 #include "ThumbnailRendering/SceneThumbnailInfo.h"
 #include "AssetTools.h"
-
 #include "Editor/StaticMeshEditor/Public/StaticMeshEditorModule.h"
-
 #include "FbxMeshUtils.h"
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
+#include "MessageDialog.h"
+#include "ScopedSlowTask.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 
@@ -47,6 +47,15 @@ void FAssetTypeActions_StaticMesh::GetActions( const TArray<UObject*>& InObjects
 		false,
 		FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions")
 		);
+
+	MenuBuilder.AddMenuEntry(
+		NSLOCTEXT("AssetTypeActions_StaticMesh", "ObjectContext_ClearVertexColors", "Remove Vertex Colors"),
+		NSLOCTEXT("AssetTypeActions_StaticMesh", "ObjectContext_ClearVertexColors", "Removes vertex colors from all LODS in all selected meshes."),
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateSP(this, &FAssetTypeActions_StaticMesh::ExecuteRemoveVertexColors, Meshes)
+		)
+	);
 }
 
 void FAssetTypeActions_StaticMesh::OpenAssetEditor( const TArray<UObject*>& InObjects, TSharedPtr<IToolkitHost> EditWithinLevelEditor )
@@ -243,6 +252,24 @@ void FAssetTypeActions_StaticMesh::ExecuteSaveGeneratedLODsInPackage(TArray<TWea
 		if (StaticMesh)
 		{
 			StaticMesh->GenerateLodsInPackage();
+		}
+	}
+}
+
+void FAssetTypeActions_StaticMesh::ExecuteRemoveVertexColors(TArray<TWeakObjectPtr<UStaticMesh>> Objects)
+{
+	FText WarningMessage = LOCTEXT("Warning_RemoveVertexColors", "Are you sure you want to remove vertex colors from all selected meshes?  There is no undo available.");
+	if (FMessageDialog::Open(EAppMsgType::YesNo, WarningMessage) == EAppReturnType::Yes)
+	{
+		FScopedSlowTask SlowTask(1.0f, LOCTEXT("RemovingVertexColors", "Removing Vertex Colors"));
+		for (auto StaticMeshPtr : Objects)
+		{
+			bool bRemovedVertexColors = false;
+			UStaticMesh* Mesh = StaticMeshPtr.Get();
+			if (Mesh)
+			{
+				Mesh->RemoveVertexColors();
+			}
 		}
 	}
 }

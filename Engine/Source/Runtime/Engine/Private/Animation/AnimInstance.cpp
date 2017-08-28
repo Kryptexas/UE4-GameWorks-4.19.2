@@ -293,10 +293,11 @@ void UAnimInstance::UpdateMontage(float DeltaSeconds)
 	// if we do multi threading, make sure this stays in game thread. 
 	// This is because branch points need to execute arbitrary code inside this call.
 	Montage_Advance(DeltaSeconds);
+}
 
-	// now we know all montage has advanced
-	// time to test sync groups
-	for (auto& MontageInstance : MontageInstances)
+void UAnimInstance::UpdateMontageSyncGroup()
+{
+	for (FAnimMontageInstance* MontageInstance : MontageInstances)
 	{
 		bool bRecordNeedsResetting = true;
 		if (MontageInstance->bDidUseMarkerSyncThisTick)
@@ -304,13 +305,13 @@ void UAnimInstance::UpdateMontage(float DeltaSeconds)
 			const int32 GroupIndexToUse = MontageInstance->GetSyncGroupIndex();
 
 			// that is public data, so if anybody decided to play with it
-			if (ensure (GroupIndexToUse != INDEX_NONE))
+			if (ensure(GroupIndexToUse != INDEX_NONE))
 			{
 				bRecordNeedsResetting = false;
 				FAnimGroupInstance* SyncGroup;
 				FAnimTickRecord& TickRecord = GetProxyOnGameThread<FAnimInstanceProxy>().CreateUninitializedTickRecord(GroupIndexToUse, /*out*/ SyncGroup);
-				MakeMontageTickRecord(TickRecord, MontageInstance->Montage, MontageInstance->GetPosition(), 
-					MontageInstance->GetPreviousPosition(), MontageInstance->GetDeltaMoved(), MontageInstance->GetWeight(), 
+				MakeMontageTickRecord(TickRecord, MontageInstance->Montage, MontageInstance->GetPosition(),
+					MontageInstance->GetPreviousPosition(), MontageInstance->GetDeltaMoved(), MontageInstance->GetWeight(),
 					MontageInstance->MarkersPassedThisTick, MontageInstance->MarkerTickRecord);
 
 				// Update the sync group if it exists
@@ -327,9 +328,6 @@ void UAnimInstance::UpdateMontage(float DeltaSeconds)
 			MontageInstance->MarkerTickRecord.Reset();
 		}
 	}
-
-	// update montage eval data
-	UpdateMontageEvaluationData();
 }
 
 void UAnimInstance::UpdateAnimation(float DeltaSeconds, bool bNeedsValidRootMotion)
@@ -340,6 +338,40 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds, bool bNeedsValidRootMoti
 #endif
 	SCOPE_CYCLE_COUNTER(STAT_UpdateAnimation);
 	FScopeCycleCounterUObject AnimScope(this);
+
+	if (const USkeletalMeshComponent* SkelMeshComp = GetSkelMeshComponent())
+	{
+		/**
+			If we're set to OnlyTickMontagesWhenNotRendered and we haven't been recently rendered,
+			then only update montages and skip everything else.
+		*/
+		if ((SkelMeshComp->MeshComponentUpdateFlag == EMeshComponentUpdateFlag::OnlyTickMontagesWhenNotRendered)
+			&& !SkelMeshComp->bRecentlyRendered)
+		{
+			/**
+				Clear NotifyQueue prior to ticking montages. 
+				This is typically done in 'PreUpdate', but we're skipping this here since we're not updating the graph.
+				A side effect of this, is that we're stopping all state notifies in the graph, until ticking resumes.
+				This should be fine. But if it is ever a problem, we should keep two versions of them. One for montages and one for the graph.
+			*/
+			NotifyQueue.Reset(GetSkelMeshComponent());
+
+			UpdateMontage(DeltaSeconds);
+
+			/**
+				We intentionally skip UpdateMontageSyncGroup(), since SyncGroup update is skipped along with AnimGraph update
+				when EMeshComponentUpdateFlag::OnlyTickMontagesWhenNotRendered.
+
+				We also intentionally do not call UpdateMontageEvaluationData after the call to UpdateMontage.
+				As we would have to call 'UpdateAnimation' on the graph as well, so weights could be in sync with this new data.
+				The problem lies in the fact that 'Evaluation' can be called without a call to 'Update' prior.
+				This means our data would be out of sync. So we only call UpdateMontageEvaluationData below
+				when we also update the AnimGraph as well.
+				This means that calls to 'Evaluation' without a call to 'Update' prior will render stale data, but that's to be expected.
+			*/
+			return;
+		}
+	}
 
 	// acquire the proxy as we need to update
 	FAnimInstanceProxy& Proxy = GetProxyOnGameThread<FAnimInstanceProxy>();
@@ -375,7 +407,16 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds, bool bNeedsValidRootMoti
 
 	// need to update montage BEFORE node update or Native Update.
 	// so that node knows where montage is
-	UpdateMontage(DeltaSeconds);
+	{
+		UpdateMontage(DeltaSeconds);
+
+		// now we know all montage has advanced
+		// time to test sync groups
+		UpdateMontageSyncGroup();
+
+		// Update montage eval data, to be used by AnimGraph Update and Evaluate phases.
+		UpdateMontageEvaluationData();
+	}
 
 	{
 		SCOPE_CYCLE_COUNTER(STAT_NativeUpdateAnimation);
@@ -2624,6 +2665,11 @@ void UAnimInstance::RecordMachineWeight(const int32 InMachineClassIndex, const f
 void UAnimInstance::RecordStateWeight(const int32 InMachineClassIndex, const int32 InStateIndex, const float InStateWeight)
 {
 	GetProxyOnAnyThread<FAnimInstanceProxy>().RecordStateWeight(InMachineClassIndex, InStateIndex, InStateWeight);
+}
+
+const FGraphTraversalCounter& UAnimInstance::GetUpdateCounter() const
+{
+	return GetProxyOnGameThread<FAnimInstanceProxy>().GetUpdateCounter();
 }
 
 FBoneContainer& UAnimInstance::GetRequiredBones()

@@ -2867,12 +2867,10 @@ void ULandscapeComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext&
 			const FVector2D& Scale = Lightmap->GetCoordinateScale();
 			if (Scale.X > SMALL_NUMBER && Scale.Y > SMALL_NUMBER)
 			{
-				float LightmapFactorX = TexelFactor / Scale.X;
-				float LightmapFactorY = TexelFactor / Scale.Y;
-				FStreamingTexturePrimitiveInfo& StreamingTexture = *new(OutStreamingTextures)FStreamingTexturePrimitiveInfo;
-				StreamingTexture.Bounds = BoundingSphere;
-				StreamingTexture.TexelFactor = FMath::Max(LightmapFactorX, LightmapFactorY);
-				StreamingTexture.Texture = Lightmap->GetTexture(LightmapIndex);
+				const float LightmapTexelFactor = TexelFactor / FMath::Min(Scale.X, Scale.Y);
+				new (OutStreamingTextures) FStreamingTexturePrimitiveInfo(Lightmap->GetTexture(LightmapIndex), Bounds, LightmapTexelFactor);
+				new (OutStreamingTextures) FStreamingTexturePrimitiveInfo(Lightmap->GetAOMaterialMaskTexture(), Bounds, LightmapTexelFactor);
+				new (OutStreamingTextures) FStreamingTexturePrimitiveInfo(Lightmap->GetSkyOcclusionTexture(), Bounds, LightmapTexelFactor);
 			}
 		}
 
@@ -2883,12 +2881,8 @@ void ULandscapeComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext&
 			const FVector2D& Scale = Shadowmap->GetCoordinateScale();
 			if (Scale.X > SMALL_NUMBER && Scale.Y > SMALL_NUMBER)
 			{
-				float ShadowmapFactorX = TexelFactor / Scale.X;
-				float ShadowmapFactorY = TexelFactor / Scale.Y;
-				FStreamingTexturePrimitiveInfo& StreamingTexture = *new(OutStreamingTextures)FStreamingTexturePrimitiveInfo;
-				StreamingTexture.Bounds = BoundingSphere;
-				StreamingTexture.TexelFactor = FMath::Max(ShadowmapFactorX, ShadowmapFactorY);
-				StreamingTexture.Texture = Shadowmap->GetTexture();
+				const float ShadowmapTexelFactor = TexelFactor / FMath::Min(Scale.X, Scale.Y);
+				new (OutStreamingTextures) FStreamingTexturePrimitiveInfo(Shadowmap->GetTexture(), Bounds, ShadowmapTexelFactor);
 			}
 		}
 	}

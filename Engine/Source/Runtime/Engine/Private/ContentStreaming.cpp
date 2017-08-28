@@ -1023,12 +1023,22 @@ void FStreamingManagerCollection::NotifyPrimitiveDetached( const UPrimitiveCompo
  * Replaces previous info.
  */
 void FStreamingManagerCollection::NotifyPrimitiveUpdated_Concurrent( const UPrimitiveComponent* Primitive )
+{
+	// Route to streaming managers.
+	for( int32 ManagerIndex=0; ManagerIndex<StreamingManagers.Num(); ManagerIndex++ )
 	{
-		// Route to streaming managers.
-		for( int32 ManagerIndex=0; ManagerIndex<StreamingManagers.Num(); ManagerIndex++ )
-		{
-			IStreamingManager* StreamingManager = StreamingManagers[ManagerIndex];
+		IStreamingManager* StreamingManager = StreamingManagers[ManagerIndex];
 		StreamingManager->NotifyPrimitiveUpdated_Concurrent( Primitive );
+	}
+}
+
+void FStreamingManagerCollection::PropagateLightingScenarioChange()
+{
+	// Route to streaming managers.
+	for( int32 ManagerIndex=0; ManagerIndex<StreamingManagers.Num(); ManagerIndex++ )
+	{
+		IStreamingManager* StreamingManager = StreamingManagers[ManagerIndex];
+		StreamingManager->PropagateLightingScenarioChange();
 	}
 }
 

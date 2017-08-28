@@ -605,10 +605,10 @@ void FViewInfo::Init()
 		TranslucencyLightingVolumeSize[CascadeIndex] = FVector(0);
 	}
 
-	const int32 MaxMobileShadowCascadeCount = FMath::Clamp(CVarMaxMobileShadowCascades.GetValueOnAnyThread(), 1, MAX_MOBILE_SHADOWCASCADES);
+	const int32 MaxMobileShadowCascadeCount = FMath::Clamp(CVarMaxMobileShadowCascades.GetValueOnAnyThread(), 0, MAX_MOBILE_SHADOWCASCADES);
 	const int32 MaxShadowCascadeCountUpperBound = GetFeatureLevel() >= ERHIFeatureLevel::SM4 ? 10 : MaxMobileShadowCascadeCount;
 
-	MaxShadowCascades = FMath::Clamp<int32>(CVarMaxShadowCascades.GetValueOnAnyThread(), 1, MaxShadowCascadeCountUpperBound);
+	MaxShadowCascades = FMath::Clamp<int32>(CVarMaxShadowCascades.GetValueOnAnyThread(), 0, MaxShadowCascadeCountUpperBound);
 
 	ShaderMap = GetGlobalShaderMap(FeatureLevel);
 
@@ -2256,6 +2256,24 @@ void FRendererModule::DrawRectangle(
 TGlobalResource<FFilterVertexDeclaration>& FRendererModule::GetFilterVertexDeclaration()
 {
 	return GFilterVertexDeclaration;
+}
+
+void FRendererModule::RegisterPostOpaqueComputeDispatcher(FComputeDispatcher *Dispatcher)
+{
+	PostOpaqueDispatchers.AddUnique(Dispatcher);
+}
+
+void FRendererModule::UnRegisterPostOpaqueComputeDispatcher(FComputeDispatcher *Dispatcher)
+{
+	PostOpaqueDispatchers.Remove(Dispatcher);
+}
+
+void FRendererModule::DispatchPostOpaqueCompute(FRHICommandList &RHICmdList)
+{
+	for (FComputeDispatcher *Dispatcher : PostOpaqueDispatchers)
+	{
+		Dispatcher->Execute(RHICmdList);
+	}
 }
 
 void FRendererModule::RegisterPostOpaqueRenderDelegate(const FPostOpaqueRenderDelegate& InPostOpaqueRenderDelegate)

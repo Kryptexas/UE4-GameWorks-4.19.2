@@ -88,7 +88,7 @@ namespace Scalability
 	*
 	* @param bGameThread	If true, the game thread value for the CVar is returned, otherwise the render thread value is returned. Useful when accessing the CVar from a game task.
 	*/
-	int32 GetEffectsQualityDirect(bool bGameThread);
+	ENGINE_API int32 GetEffectsQualityDirect(bool bGameThread);
 
 	/**  */
 	ENGINE_API void InitScalabilitySystem();

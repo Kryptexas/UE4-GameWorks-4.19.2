@@ -225,7 +225,7 @@ void FMeshElementCollector::ProcessTasks()
 
 void FMeshElementCollector::AddMesh(int32 ViewIndex, FMeshBatch& MeshBatch)
 {
-	checkSlow(MeshBatch.GetNumPrimitives() > 0);
+	//checkSlow(MeshBatch.GetNumPrimitives() > 0);
 	checkSlow(MeshBatch.VertexFactory && MeshBatch.MaterialRenderProxy);
 	checkSlow(PrimitiveSceneProxy);
 

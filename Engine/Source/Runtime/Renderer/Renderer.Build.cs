@@ -10,8 +10,8 @@ public class Renderer : ModuleRules
 			new string[] {
 				"Runtime/Renderer/Private",
 				"Runtime/Renderer/Private/CompositionLighting",
-				"Runtime/Renderer/Private/PostProcess",
-			}
+				"Runtime/Renderer/Private/PostProcess"
+            }
 		);
 
 		PublicDependencyModuleNames.Add("Core");

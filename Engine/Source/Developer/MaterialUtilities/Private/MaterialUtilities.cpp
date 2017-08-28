@@ -2178,6 +2178,7 @@ bool FMaterialUtilities::ExportMaterialUVDensities(UMaterialInterface* InMateria
 			return false;
 		}
 
+
 		FBox2D DummyBounds(FVector2D(0, 0), FVector2D(1, 1));
 		TArray<FVector2D> EmptyTexCoords;
 		FMaterialMergeData MaterialData(InMaterial, nullptr, nullptr, 0, DummyBounds, EmptyTexCoords);

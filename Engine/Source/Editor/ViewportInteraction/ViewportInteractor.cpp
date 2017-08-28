@@ -176,18 +176,24 @@ bool UViewportInteractor::HandleInputKey( FEditorViewportClient& ViewportClient,
 							const bool bHaveLaserPointer = GetLaserPointer( /* Out */ LaserPointerStart, /* Out */ LaserPointerEnd );
 							check( bHaveLaserPointer );
 
+							bool bCanBeSelected = true;
 							if ( IViewportInteractableInterface* ActorInteractable = Cast<IViewportInteractableInterface>( Actor ) )
 							{
-								bHandled = true;
-								bool bResultedInInteractableDrag = false;
-								ActorInteractable->OnPressed( this, HitResult, bResultedInInteractableDrag );
-
-								if ( bResultedInInteractableDrag )
+								bCanBeSelected = ActorInteractable->CanBeSelected();
+								if (!bCanBeSelected)
 								{
-									WorldInteraction->SetDraggedInteractable(ActorInteractable, this);
+									bHandled = true;
+									bool bResultedInInteractableDrag = false;
+									ActorInteractable->OnPressed(this, HitResult, bResultedInInteractableDrag);
+
+									if (bResultedInInteractableDrag)
+									{
+										WorldInteraction->SetDraggedInteractable(ActorInteractable, this);
+									}
 								}
 							}
-							else
+
+							if (bCanBeSelected)
 							{
 								bHandled = true;
 

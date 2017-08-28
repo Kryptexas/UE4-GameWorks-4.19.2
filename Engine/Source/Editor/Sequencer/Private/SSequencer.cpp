@@ -2297,7 +2297,7 @@ void SSequencer::OnSequenceInstanceActivated( FMovieSceneSequenceIDRef ActiveIns
 	if ( Sequencer.IsValid() )
 	{
 		UMovieScene* MovieScene = Sequencer->GetFocusedMovieSceneSequence()->GetMovieScene();
-		if ( MovieScene->GetFixedFrameInterval() == 0 )
+		if ( MovieScene->GetForceFixedFrameIntervalPlayback() && MovieScene->GetFixedFrameInterval() == 0 )
 		{
 			MovieScene->Modify();
 			MovieScene->SetFixedFrameInterval(Settings->GetTimeSnapInterval());

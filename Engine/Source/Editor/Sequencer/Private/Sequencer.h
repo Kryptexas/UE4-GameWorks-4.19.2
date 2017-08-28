@@ -623,8 +623,13 @@ public:
 	virtual void KeyProperty(FKeyPropertyParams KeyPropertyParams) override;
 	virtual FSequencerSelection& GetSelection() override;
 	virtual FSequencerSelectionPreview& GetSelectionPreview() override;
+	virtual void GetSelectedTracks(TArray<UMovieSceneTrack*>& OutSelectedTracks) override;
+	virtual void GetSelectedSections(TArray<UMovieSceneSection*>& OutSelectedSections) override;
 	virtual void SelectObject(FGuid ObjectBinding) override;
+	virtual void SelectTrack(UMovieSceneTrack* Track) override;
+	virtual void SelectSection(UMovieSceneSection* Section) override;
 	virtual void SelectByPropertyPaths(const TArray<FString>& InPropertyPaths) override;
+	virtual void EmptySelection() override;
 	virtual FOnGlobalTimeChanged& OnGlobalTimeChanged() override { return OnGlobalTimeChangedDelegate; }
 	virtual FOnBeginScrubbingEvent& OnBeginScrubbingEvent() override { return OnBeginScrubbingDelegate; }
 	virtual FOnEndScrubbingEvent& OnEndScrubbingEvent() override { return OnEndScrubbingDelegate; }
@@ -632,6 +637,7 @@ public:
 	virtual FOnMovieSceneBindingsChanged& OnMovieSceneBindingsChanged() override { return OnMovieSceneBindingsChangedDelegate; }
 	virtual FOnSelectionChangedObjectGuids& GetSelectionChangedObjectGuids() override { return OnSelectionChangedObjectGuidsDelegate; }
 	virtual FOnSelectionChangedTracks& GetSelectionChangedTracks() override { return OnSelectionChangedTracksDelegate; }
+	virtual FOnSelectionChangedSections& GetSelectionChangedSections() override { return OnSelectionChangedSectionsDelegate; }
 	virtual FGuid CreateBinding(UObject& InObject, const FString& InName) override;
 	virtual UObject* GetPlaybackContext() const override;
 	virtual TArray<UObject*> GetEventContexts() const override;
@@ -1005,6 +1011,9 @@ private:
 
 	/** A delegate which is called any time the sequencer selection changes. */
 	FOnSelectionChangedTracks OnSelectionChangedTracksDelegate;
+
+	/** A delegate which is called any time the sequencer selection changes. */
+	FOnSelectionChangedSections OnSelectionChangedSectionsDelegate;
 
 	FOnActorAddedToSequencer OnActorAddedToSequencerEvent;
 	FOnCameraCut OnCameraCutEvent;

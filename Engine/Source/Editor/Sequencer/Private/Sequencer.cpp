@@ -1720,11 +1720,18 @@ void FSequencer::ScrollIntoView(float InLocalTime)
 		if (RangeOffset != 0.f)
 		{
 			TRange<float> WorkingRange = GetClampRange();
-			if (TargetViewRange.GetLowerBoundValue() + RangeOffset > WorkingRange.GetLowerBoundValue() &&
-				TargetViewRange.GetUpperBoundValue() + RangeOffset < WorkingRange.GetUpperBoundValue())
+
+			// Adjust the offset so that the target range will be within the working range.
+			if (TargetViewRange.GetLowerBoundValue() + RangeOffset < WorkingRange.GetLowerBoundValue())
 			{
-				SetViewRange(TRange<float>(TargetViewRange.GetLowerBoundValue() + RangeOffset, TargetViewRange.GetUpperBoundValue() + RangeOffset), EViewRangeInterpolation::Immediate);
+				RangeOffset = WorkingRange.GetLowerBoundValue() - TargetViewRange.GetLowerBoundValue();
 			}
+			else if (TargetViewRange.GetUpperBoundValue() + RangeOffset > WorkingRange.GetUpperBoundValue())
+			{
+				RangeOffset = WorkingRange.GetUpperBoundValue() - TargetViewRange.GetUpperBoundValue();
+			}
+
+			SetViewRange(TRange<float>(TargetViewRange.GetLowerBoundValue() + RangeOffset, TargetViewRange.GetUpperBoundValue() + RangeOffset), EViewRangeInterpolation::Immediate);
 		}
 	}
 }
@@ -3935,6 +3942,15 @@ void FSequencer::OnSelectedOutlinerNodesChanged()
 
 	OnSelectionChangedObjectGuidsDelegate.Broadcast(Selection.GetBoundObjectsGuids());
 	OnSelectionChangedTracksDelegate.Broadcast(Selection.GetSelectedTracks());
+	TArray<UMovieSceneSection*> SelectedSections;
+	for (TWeakObjectPtr<UMovieSceneSection> SelectedSectionPtr : Selection.GetSelectedSections())
+	{
+		if (SelectedSectionPtr.IsValid())
+		{
+			SelectedSections.Add(SelectedSectionPtr.Get());
+		}
+	}
+	OnSelectionChangedSectionsDelegate.Broadcast(SelectedSections);
 }
 
 
@@ -4217,6 +4233,21 @@ FSequencerSelectionPreview& FSequencer::GetSelectionPreview()
 	return SelectionPreview;
 }
 
+void FSequencer::GetSelectedTracks(TArray<UMovieSceneTrack*>& OutSelectedTracks)
+{
+	OutSelectedTracks.Append(Selection.GetSelectedTracks());
+}
+
+void FSequencer::GetSelectedSections(TArray<UMovieSceneSection*>& OutSelectedSections)
+{
+	for (TWeakObjectPtr<UMovieSceneSection> SelectedSection : Selection.GetSelectedSections())
+	{
+		if (SelectedSection.IsValid())
+		{
+			OutSelectedSections.Add(SelectedSection.Get());
+		}
+	}
+}
 
 void FSequencer::SelectObject(FGuid ObjectBinding)
 {
@@ -4226,6 +4257,28 @@ void FSequencer::SelectObject(FGuid ObjectBinding)
 		GetSelection().Empty();
 		GetSelection().AddToSelection(Node->ToSharedRef());
 	}
+}
+
+void FSequencer::SelectTrack(UMovieSceneTrack* Track)
+{
+	for (TSharedRef<FSequencerDisplayNode> Node : NodeTree->GetAllNodes())
+	{
+		if (Node->GetType() == ESequencerNode::Track)
+		{
+			TSharedRef<FSequencerTrackNode> TrackNode = StaticCastSharedRef<FSequencerTrackNode>(Node);
+			UMovieSceneTrack* TrackForNode = TrackNode->GetTrack();
+			if (TrackForNode == Track)
+			{
+				Selection.AddToSelection(Node);
+				break;
+			}
+		}
+	}
+}
+
+void FSequencer::SelectSection(UMovieSceneSection* Section)
+{
+	Selection.AddToSelection(Section);
 }
 
 void FSequencer::SelectByPropertyPaths(const TArray<FString>& InPropertyPaths)
@@ -4257,6 +4310,11 @@ void FSequencer::SelectByPropertyPaths(const TArray<FString>& InPropertyPaths)
 	{
 		Selection.AddToSelection(NodesToSelect);
 	}
+}
+
+void FSequencer::EmptySelection()
+{
+	Selection.Empty();
 }
 
 float FSequencer::GetOverlayFadeCurve() const

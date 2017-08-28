@@ -2771,7 +2771,7 @@ public:
 
 #endif
 
-class FNullDynamicParameterVertexBuffer : public FVertexBuffer
+class ENGINE_API FNullDynamicParameterVertexBuffer : public FVertexBuffer
 {
 public:
 	/** 
@@ -2790,7 +2790,7 @@ public:
 };
 
 /** The global null color vertex buffer, which is set with a stride of 0 on meshes without a color component. */
-extern TGlobalResource<FNullDynamicParameterVertexBuffer> GNullDynamicParameterVertexBuffer;
+extern ENGINE_API TGlobalResource<FNullDynamicParameterVertexBuffer> GNullDynamicParameterVertexBuffer;
 
 FORCEINLINE FVector GetParticleBaseSize(const FBaseParticle& Particle, bool bKeepFlipScale = false)
 {

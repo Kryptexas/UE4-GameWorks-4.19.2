@@ -129,6 +129,21 @@ void FAnimInstanceProxy::Initialize(UAnimInstance* InAnimInstance)
 #endif
 
 	ReinitializeSlotNodes();
+
+	if (const USkeletalMeshComponent* SkelMeshComp = InAnimInstance->GetOwningComponent())
+	{
+		ComponentTransform = SkelMeshComp->GetComponentTransform();
+		ComponentRelativeTransform = SkeletalMeshComponent->GetRelativeTransform();
+
+		const AActor* OwningActor = SkeletalMeshComponent->GetOwner();
+		ActorTransform = OwningActor ? OwningActor->GetActorTransform() : FTransform::Identity;
+	}
+	else
+	{
+		ComponentTransform = FTransform::Identity;
+		ComponentRelativeTransform = FTransform::Identity;
+		ActorTransform = FTransform::Identity;
+	}
 }
 
 void FAnimInstanceProxy::InitializeRootNode()

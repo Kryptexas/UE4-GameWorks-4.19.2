@@ -190,6 +190,9 @@ protected:
 		return bShowLabel ? EVisibility::Visible : EVisibility::Collapsed;
 	}
 
+	/** Get the widget we should put in the label space, which displays the name of the pin.*/
+	virtual TSharedRef<SWidget> GetLabelWidget(const FName& InPinLabelStyle);
+
 	/** @return The brush with which to paint this graph pin's incoming/outgoing bullet point */
 	virtual const FSlateBrush* GetPinIcon() const;
 

@@ -242,7 +242,6 @@ namespace PropertyEditorHelpers
 	 * @return The array of allowed enums.  NOTE: If an empty array is returned all enum values are allowed.  It is an error for a property to hide all enum values so that state is undefined here.
 	 */
 	TArray<FName> GetValidEnumsFromPropertyOverride(const UProperty* Property, const UEnum* InEnum);
-
 	/**
 	 * Whether or not a category is hidden by a given root object
 	 * @param InRootNode	The root node that for the objects we are customizing

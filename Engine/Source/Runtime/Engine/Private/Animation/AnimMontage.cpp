@@ -15,8 +15,16 @@
 #include "Animation/AnimNotifies/AnimNotify.h"
 #include "Animation/AnimNotifies/AnimNotifyState.h"
 #include "Animation/AnimSingleNodeInstance.h"
+#include "Engine/Engine.h"
 
 DEFINE_LOG_CATEGORY(LogAnimMontage);
+
+// Pre-built FNames so we don't take the hit of constructing FNames at spawn time
+namespace MontageFNames
+{
+	static FName TimeStretchCurveName(TEXT("MontageTimeStretchCurve"));
+}
+
 ///////////////////////////////////////////////////////////////////////////
 //
 UAnimMontage::UAnimMontage(const FObjectInitializer& ObjectInitializer)
@@ -31,6 +39,8 @@ UAnimMontage::UAnimMontage(const FObjectInitializer& ObjectInitializer)
 	BlendOutTime_DEPRECATED = -1.f;
 
 	AddSlot(FAnimSlotGroup::DefaultSlotName);
+
+	TimeStretchCurveName = MontageFNames::TimeStretchCurveName;
 }
 
 FSlotAnimationTrack& UAnimMontage::AddSlot(FName SlotName)
@@ -316,6 +326,13 @@ void UAnimMontage::UnregisterOnMontageChanged(void* Unregister)
 }
 #endif	//WITH_EDITOR
 
+void UAnimMontage::PreSave(const class ITargetPlatform* TargetPlatform)
+{
+	BakeTimeStretchCurve();
+
+	Super::PreSave(TargetPlatform);
+}
+
 void UAnimMontage::PostLoad()
 {
 	Super::PostLoad();
@@ -594,15 +611,8 @@ void UAnimMontage::AddBranchingPointMarker(FBranchingPointMarker TickMarker, TMa
 	}
 }
 
-const FBranchingPointMarker* UAnimMontage::FindFirstBranchingPointMarker(float StartTrackPos, float EndTrackPos)
+const FBranchingPointMarker* UAnimMontage::FindFirstBranchingPointMarker(float StartTrackPos, float EndTrackPos) const
 {
-	// Auto refresh this in editor to catch changes being made to AnimNotifies.
-	// RefreshCacheData should handle this but I'm not 100% sure it will cover all existing cases
-	if (GIsEditor && (!GetWorld() || !GetWorld()->IsPlayInEditor()))
-	{
-		RefreshBranchingPointMarkers();
-	}
-
 	if (BranchingPointMarkers.Num() > 0)
 	{
 		const bool bSearchBackwards = (EndTrackPos < StartTrackPos);
@@ -639,7 +649,7 @@ const FBranchingPointMarker* UAnimMontage::FindFirstBranchingPointMarker(float S
 			}
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 void UAnimMontage::FilterOutNotifyBranchingPoints(TArray<const FAnimNotifyEvent*>& InAnimNotifies)
@@ -1387,6 +1397,8 @@ void FAnimMontageInstance::Initialize(class UAnimMontage * InMontage)
 		{
 			SyncGroupIndex = AnimInstance.Get()->GetSyncGroupIndexFromName(Montage->SyncGroup);
 		}
+
+		MontageSubStepper.Initialize(*this);
 	}
 }
 
@@ -1698,125 +1710,434 @@ void FAnimMontageInstance::UpdateWeight(float DeltaTime)
 
 bool FAnimMontageInstance::SimulateAdvance(float DeltaTime, float& InOutPosition, FRootMotionMovementParams & OutRootMotionParams) const
 {
-	if( !IsValid() )
+	if (!IsValid())
 	{
 		return false;
 	}
 
-	const float CombinedPlayRate = PlayRate * Montage->RateScale;
-	const bool bPlayingForward = (CombinedPlayRate > 0.f);
-
 	const bool bExtractRootMotion = Montage->HasRootMotion() && !IsRootMotionDisabled();
 
-	float DesiredDeltaMove = CombinedPlayRate * DeltaTime;
-	float OriginalMoveDelta = DesiredDeltaMove;
-
-	while( (FMath::Abs(DesiredDeltaMove) > KINDA_SMALL_NUMBER) && ((OriginalMoveDelta * DesiredDeltaMove) > 0.f) )
+	FMontageSubStepper SimulateMontageSubStepper;
+	SimulateMontageSubStepper.Initialize(*this);
+	SimulateMontageSubStepper.AddEvaluationTime(DeltaTime);
+	while (SimulateMontageSubStepper.HasTimeRemaining())
 	{
-		// Get position relative to current montage section.
-		float PosInSection;
-		int32 CurrentSectionIndex = Montage->GetAnimCompositeSectionIndexFromPos(InOutPosition, PosInSection);
+		const float PreviousSubStepPosition = InOutPosition;
+		EMontageSubStepResult SubStepResult = SimulateMontageSubStepper.Advance(InOutPosition, nullptr);
 
-		if( Montage->IsValidSectionIndex(CurrentSectionIndex) )
-		{
-			const FCompositeSection& CurrentSection = Montage->GetAnimCompositeSection(CurrentSectionIndex);
-
-			// we need to advance within section
-			check(NextSections.IsValidIndex(CurrentSectionIndex));
-			const int32 NextSectionIndex = bPlayingForward ? NextSections[CurrentSectionIndex] : PrevSections[CurrentSectionIndex];
-
-			// Find end of current section. We only update one section at a time.
-			const float CurrentSectionLength = Montage->GetSectionLength(CurrentSectionIndex);
-			float StoppingPosInSection = CurrentSectionLength;
-
-			// Also look for a branching point. If we have one, stop there first to handle it.
-			const float CurrentSectionEndPos = CurrentSection.GetTime() + CurrentSectionLength;
-
-			// Update position within current section.
-			// Note that we explicitly disallow looping there, we handle it ourselves to simplify code by not having to handle time wrapping around in multiple places.
-			const float PrevPosInSection = PosInSection;
-			const ETypeAdvanceAnim AdvanceType = FAnimationRuntime::AdvanceTime(false, DesiredDeltaMove, PosInSection, StoppingPosInSection);
-			// ActualDeltaPos == ActualDeltaMove since we break down looping in multiple steps. So we don't have to worry about time wrap around here.
-			const float ActualDeltaPos = PosInSection - PrevPosInSection;
-			const float ActualDeltaMove = ActualDeltaPos;
-
-			// Decrease actual move from desired move. We'll take another iteration if there is anything left.
-			DesiredDeltaMove -= ActualDeltaMove;
-
-			float PrevPosition = Position;
-			InOutPosition = FMath::Clamp<float>(InOutPosition + ActualDeltaPos, CurrentSection.GetTime(), CurrentSectionEndPos);
-
-			if( FMath::Abs(ActualDeltaMove) > 0.f )
-			{
-				// Extract Root Motion for this time slice, and accumulate it.
-				if( bExtractRootMotion )
-				{
-					OutRootMotionParams.Accumulate(Montage->ExtractRootMotionFromTrackRange(PrevPosition, InOutPosition));
-				}
-
-				// if we reached end of section, and we were not processing a branching point, and no events has messed with out current position..
-				// .. Move to next section.
-				// (this also handles looping, the same as jumping to a different section).
-				if( AdvanceType != ETAA_Default )
-				{
-					// Get recent NextSectionIndex in case it's been changed by previous events.
-					const int32 RecentNextSectionIndex = bPlayingForward ? NextSections[CurrentSectionIndex] : PrevSections[CurrentSectionIndex];
-					if( RecentNextSectionIndex != INDEX_NONE )
-					{
-						float LatestNextSectionStartTime;
-						float LatestNextSectionEndTime;
-						Montage->GetSectionStartAndEndTime(RecentNextSectionIndex, LatestNextSectionStartTime, LatestNextSectionEndTime);
-						// Jump to next section's appropriate starting point (start or end).
-						InOutPosition = bPlayingForward ? LatestNextSectionStartTime : (LatestNextSectionEndTime - KINDA_SMALL_NUMBER); // remain within section
-					}
-				}
-			}
-			else
-			{
-				break;
-			}
-		}
-		else
+		if (SubStepResult != EMontageSubStepResult::Moved)
 		{
 			// stop and leave this loop
 			break;
+		}
+
+		// Extract Root Motion for this time slice, and accumulate it.
+		if (bExtractRootMotion)
+		{
+			OutRootMotionParams.Accumulate(Montage->ExtractRootMotionFromTrackRange(PreviousSubStepPosition, InOutPosition));
+		}
+
+		// if we reached end of section, and we were not processing a branching point, and no events has messed with out current position..
+		// .. Move to next section.
+		// (this also handles looping, the same as jumping to a different section).
+		if (SimulateMontageSubStepper.HasReachedEndOfSection())
+		{
+			const int32 CurrentSectionIndex = SimulateMontageSubStepper.GetCurrentSectionIndex();
+			const bool bPlayingForward = SimulateMontageSubStepper.GetbPlayingForward();
+
+			// Get recent NextSectionIndex in case it's been changed by previous events.
+			const int32 RecentNextSectionIndex = bPlayingForward ? NextSections[CurrentSectionIndex] : PrevSections[CurrentSectionIndex];
+			if (RecentNextSectionIndex != INDEX_NONE)
+			{
+				float LatestNextSectionStartTime;
+				float LatestNextSectionEndTime;
+				Montage->GetSectionStartAndEndTime(RecentNextSectionIndex, LatestNextSectionStartTime, LatestNextSectionEndTime);
+
+				// Jump to next section's appropriate starting point (start or end).
+				InOutPosition = bPlayingForward ? LatestNextSectionStartTime : (LatestNextSectionEndTime - KINDA_SMALL_NUMBER); // remain within section
+			}
+			else
+			{
+				// Reached end of last section. Exit.
+				break;
+			}
 		}
 	}
 
 	return true;
 }
 
-void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementParams * OutRootMotionParams, bool bBlendRootMotion)
+void FMontageSubStepper::Initialize(const struct FAnimMontageInstance& InAnimInstance)
+{
+	MontageInstance = &InAnimInstance;
+	Montage = MontageInstance->Montage;
+}
+
+EMontageSubStepResult FMontageSubStepper::Advance(float& InOut_P_Original, const FBranchingPointMarker** OutBranchingPointMarkerPtr)
+{
+	DeltaMove = 0.f;
+
+	if (MontageInstance == nullptr || (Montage == nullptr))
+	{
+		return EMontageSubStepResult::InvalidMontage;
+	}
+
+	bReachedEndOfSection = false;
+
+	// Update Current Section info in case it's needed by the montage's update loop.
+	// We need to do this even if we're not going to move this frame.
+	// We could have been moved externally via a SetPosition() call.
+	float PositionInSection;
+	CurrentSectionIndex = Montage->GetAnimCompositeSectionIndexFromPos(InOut_P_Original, PositionInSection);
+	if (!Montage->IsValidSectionIndex(CurrentSectionIndex))
+	{
+		return EMontageSubStepResult::InvalidSection;
+	}
+
+	const FCompositeSection& CurrentSection = Montage->GetAnimCompositeSection(CurrentSectionIndex);
+	CurrentSectionStartTime = CurrentSection.GetTime();
+
+	// Find end of current section. We only update one section at a time.
+	CurrentSectionLength = Montage->GetSectionLength(CurrentSectionIndex);
+
+	if (!MontageInstance->bPlaying || FMath::IsNearlyZero(TimeRemaining))
+	{
+		return EMontageSubStepResult::NotMoved;
+	}
+
+	// If we're forcing next position, this is our DeltaMove.
+	// We don't use play rate and delta time to move.
+	if (MontageInstance->ForcedNextPosition.IsSet())
+	{
+		const float NewPosition = MontageInstance->ForcedNextPosition.GetValue();
+		DeltaMove = NewPosition - InOut_P_Original;
+		PlayRate = DeltaMove / TimeRemaining;
+		bPlayingForward = (DeltaMove >= 0.f);
+		TimeStretchMarkerIndex = INDEX_NONE;
+	}
+	else 
+	{
+		PlayRate = MontageInstance->PlayRate * Montage->RateScale;
+
+		if (FMath::IsNearlyZero(PlayRate))
+		{
+			return EMontageSubStepResult::NotMoved;
+		}
+
+		// See if we can attempt to use a TimeStretchCurve.
+		const bool bAttemptTimeStretchCurve = Montage->TimeStretchCurve.IsValid() && !FMath::IsNearlyEqual(PlayRate, 1.f);
+		if (bAttemptTimeStretchCurve)
+		{
+			// First we need to see if we have valid cached data and if it is up to date.
+			ConditionallyUpdateTimeStretchCurveCachedData();
+		}
+
+		// If we're not using a TimeStretchCurve, play rate is constant.
+		if (!bAttemptTimeStretchCurve || !bHasValidTimeStretchCurveData)
+		{
+			bPlayingForward = (PlayRate > 0.f);
+			DeltaMove = TimeRemaining * PlayRate;
+			TimeStretchMarkerIndex = INDEX_NONE;
+		}
+		else
+		{
+			// We're using a TimeStretchCurve.
+
+			// Find P_Target for current InOut_P_Original.
+			// Not that something external could have modified the montage's position.
+			// So we need to refresh our P_Target.
+			float P_Target = FindMontagePosition_Target(InOut_P_Original);
+
+			// With P_Target, we're in 'play back time' space. 
+			// So we can add our delta time there directly.
+			P_Target += bPlayingForward ? TimeRemaining : -TimeRemaining;
+			// Make sure we don't exceed our boundaries.
+			P_Target = TimeStretchCurveInstance.Clamp_P_Target(P_Target);
+
+			// Now we can map this back into 'original' space and find which frame of animation we should play.
+			const float NewP_Original = FindMontagePosition_Original(P_Target);
+
+			// And from there, derive our DeltaMove and actual PlayRate for this substep.
+			DeltaMove = NewP_Original - InOut_P_Original;
+			PlayRate = DeltaMove / TimeRemaining;
+		}
+	}
+
+	// Now look for a branching point. If we have one, stop there first to handle it.
+	// We need to stop at branching points, because they can trigger events that can cause side effects
+	// (jumping to a new position, changing sections, changing play rate, etc).
+	if (OutBranchingPointMarkerPtr)
+	{
+		*OutBranchingPointMarkerPtr = Montage->FindFirstBranchingPointMarker(InOut_P_Original, InOut_P_Original + DeltaMove);
+		if (*OutBranchingPointMarkerPtr)
+		{
+			// If we have a branching point, adjust DeltaMove so we stop there.
+			DeltaMove = (*OutBranchingPointMarkerPtr)->TriggerTime - InOut_P_Original;
+		}
+	}
+
+	// Finally clamp DeltaMove by section markers.
+	{
+		// Clamp DeltaMove based on move allowed within current section
+		// We stop at each section marker to evaluate whether we should jump to another section marker or not.
+		// Test is inclusive, so we know if we've reached marker or not.
+		if (bPlayingForward)
+		{
+			const float MaxSectionMove = CurrentSectionLength - PositionInSection;
+			if (DeltaMove >= MaxSectionMove)
+			{
+				DeltaMove = MaxSectionMove;
+				bReachedEndOfSection = true;
+			}
+		}
+		else
+		{
+			const float MinSectionMove = /* 0.f */ - PositionInSection;
+			if (DeltaMove <= MinSectionMove)
+			{
+				DeltaMove = MinSectionMove;
+				bReachedEndOfSection = true;
+			}
+		}
+	}
+
+	// DeltaMove is now final, see if it has any effect on our position.
+	if (FMath::Abs(DeltaMove) > 0.f)
+	{
+		// Note that we don't worry about looping and wrapping around here.
+		// We step per section to simplify code to extract notifies/root motion/etc.
+		InOut_P_Original += DeltaMove;
+
+		// Decrease RemainingTime with actual time elapsed 
+		// So we can take more substeps as needed.
+		const float TimeStep = DeltaMove / PlayRate;
+		ensure(TimeStep >= 0.f);
+		TimeRemaining = FMath::Max(TimeRemaining - TimeStep, 0.f);
+
+		return EMontageSubStepResult::Moved;
+	}
+	else
+	{
+		return EMontageSubStepResult::NotMoved;
+	}
+}
+
+void FMontageSubStepper::ConditionallyUpdateTimeStretchCurveCachedData()
+{
+	// CombinedPlayRate defines our overall desired play back time, aka T_Target.
+	// When using a TimeStretchCurve, this also defines S and U.
+	// Only update these if CombinedPlayRate has changed.
+	const float CombinedPlayRate = MontageInstance->PlayRate * Montage->RateScale;
+	if (CombinedPlayRate == Cached_CombinedPlayRate)
+	{
+		return;
+	}
+	Cached_CombinedPlayRate = CombinedPlayRate;
+	
+	// We'll set this to true at the end, if we succeed with valid data.
+	bHasValidTimeStretchCurveData = false;
+
+	// We should not be using this code path with a 0 play rate
+	// or a 1 play rate. we can use traditional cheaper update without curve.
+	ensure(!FMath::IsNearlyZero(CombinedPlayRate));
+	ensure(!FMath::IsNearlyEqual(CombinedPlayRate, 1.f));
+
+	bPlayingForward = (CombinedPlayRate > 0.f);
+	TimeStretchCurveInstance.InitializeFromPlayRate(CombinedPlayRate, Montage->TimeStretchCurve);
+
+	/*
+		Section Segment Positions in Target space will have to be re-cached, as needed.
+		This is to determine 'remaining time until end' to trigger blend outs.
+		But most montages don't use sections.
+		So this is optional and done on demand.
+	*/
+	{
+		const int32 NumSections = Montage->CompositeSections.Num();
+		SectionStartPositions_Target.Reset(NumSections);
+		SectionStartPositions_Target.Init(-1.f, NumSections);
+		SectionEndPositions_Target.Reset(NumSections);
+		SectionEndPositions_Target.Init(-1.f, NumSections);
+	}
+
+	bHasValidTimeStretchCurveData = TimeStretchCurveInstance.HasValidData();
+}
+
+float FMontageSubStepper::FindMontagePosition_Target(float In_P_Original)
+{
+	check(bHasValidTimeStretchCurveData);
+
+	// See if our cached version is not up to date.
+	// Then we need to update it.
+	if (In_P_Original != Cached_P_Original)
+	{
+		// Update cached value.
+		Cached_P_Original = In_P_Original;
+
+		// Update TimeStretchMarkerIndex if needed.
+		// This would happen if we jumped position due to sections or external input.
+		TimeStretchCurveInstance.UpdateMarkerIndexForPosition(TimeStretchMarkerIndex, Cached_P_Original, TimeStretchCurveInstance.GetMarkers_Original());
+
+		// With an accurate TimeStretchMarkerIndex, we can map P_Original to P_Target
+		Cached_P_Target = TimeStretchCurveInstance.Convert_P_Original_To_Target(TimeStretchMarkerIndex, Cached_P_Original);
+	}
+
+	return Cached_P_Target;
+}
+
+float FMontageSubStepper::FindMontagePosition_Original(float In_P_Target)
+{
+	check(bHasValidTimeStretchCurveData);
+
+	// See if our cached version is not up to date.
+	// Then we need to update it.
+	if (In_P_Target != Cached_P_Target)
+	{
+		// Update cached value.
+		Cached_P_Target = In_P_Target;
+
+		// Update TimeStretchMarkerIndex if needed.
+		// This would happen if we jumped position due to sections or external input.
+		TimeStretchCurveInstance.UpdateMarkerIndexForPosition(TimeStretchMarkerIndex, Cached_P_Target, TimeStretchCurveInstance.GetMarkers_Target());
+
+		// With an accurate TimeStretchMarkerIndex, we can map P_Original to P_Target
+		Cached_P_Original = TimeStretchCurveInstance.Convert_P_Target_To_Original(TimeStretchMarkerIndex, Cached_P_Target);
+	}
+
+	return Cached_P_Original;
+}
+
+float FMontageSubStepper::GetCurrSectionStartPosition_Target() const
+{
+	check(bHasValidTimeStretchCurveData);
+
+	const float CachedSectionStartPosition_Target = SectionStartPositions_Target[CurrentSectionIndex];
+	if (CachedSectionStartPosition_Target >= 0.f)
+	{
+		return CachedSectionStartPosition_Target;
+	}
+
+	const int32 SectionStartMarkerIndex = TimeStretchCurveInstance.BinarySearchMarkerIndex(CurrentSectionStartTime, TimeStretchCurveInstance.GetMarkers_Original());
+	const float SectionStart_Target = TimeStretchCurveInstance.Convert_P_Original_To_Target(SectionStartMarkerIndex, CurrentSectionStartTime);
+
+	SectionStartPositions_Target[CurrentSectionIndex] = SectionStart_Target;
+
+	return SectionStart_Target;
+}
+
+float FMontageSubStepper::GetCurrSectionEndPosition_Target() const
+{
+	check(bHasValidTimeStretchCurveData);
+
+	const float CachedSectionEndPosition_Target = SectionEndPositions_Target[CurrentSectionIndex];
+	if (CachedSectionEndPosition_Target >= 0.f)
+	{
+		return CachedSectionEndPosition_Target;
+	}
+
+	const float SectionEnd_Original = CurrentSectionStartTime + CurrentSectionLength;
+	const int32 SectionEndMarkerIndex = TimeStretchCurveInstance.BinarySearchMarkerIndex(SectionEnd_Original, TimeStretchCurveInstance.GetMarkers_Original());
+	const float SectionEnd_Target = TimeStretchCurveInstance.Convert_P_Original_To_Target(SectionEndMarkerIndex, SectionEnd_Original);
+
+	SectionEndPositions_Target[CurrentSectionIndex] = SectionEnd_Target;
+
+	return SectionEnd_Target;
+}
+
+float FMontageSubStepper::GetRemainingPlayTimeToSectionEnd(const float In_P_Original)
+{
+	// If our current play rate is zero, we can't predict our remaining play time.
+	if (FMath::IsNearlyZero(PlayRate))
+	{
+		return BIG_NUMBER;
+	}
+
+	// Find position in montage where current section ends.
+	const float CurrSectionEnd_Original = bPlayingForward
+		? (CurrentSectionStartTime + CurrentSectionLength)
+		: CurrentSectionStartTime;
+
+	// If we have no TimeStretchCurve, it's pretty straight forward.
+	// Assume constant play rate.
+	if (TimeStretchMarkerIndex == INDEX_NONE)
+	{
+		const float DeltaPositionToEnd = CurrSectionEnd_Original - In_P_Original;
+		const float RemainingPlayTime = FMath::Abs(DeltaPositionToEnd / PlayRate);
+		return RemainingPlayTime;
+	}
+
+	// We're using a TimeStretchCurve.
+	check(bHasValidTimeStretchCurveData);
+
+	// Find our position in 'target' space. This is in play back time.
+	const float P_Target = FindMontagePosition_Target(In_P_Original);
+	if (bPlayingForward)
+	{
+		// Find CurrSectionEnd_Target.
+		if (FMath::IsNearlyEqual(CurrSectionEnd_Original, TimeStretchCurveInstance.Get_T_Original()))
+		{
+			const float RemainingPlayTime = (TimeStretchCurveInstance.Get_T_Target() - P_Target);
+			return RemainingPlayTime;
+		}
+		else
+		{
+			const float CurrSectionEnd_Target = GetCurrSectionEndPosition_Target();
+			const float RemainingPlayTime = (CurrSectionEnd_Target - P_Target);
+			return RemainingPlayTime;
+		}
+	}
+	// Playing Backwards
+	else
+	{
+		// Find CurrSectionEnd_Target.
+		if (FMath::IsNearlyEqual(CurrSectionEnd_Original, 0.f))
+		{
+			const float RemainingPlayTime = P_Target;
+			return RemainingPlayTime;
+		}
+		else
+		{
+			const float CurrSectionStart_Target = GetCurrSectionStartPosition_Target();
+			const float RemainingPlayTime = (P_Target - CurrSectionStart_Target);
+			return RemainingPlayTime;
+		}
+	}
+}
+
+#if WITH_EDITOR
+void FAnimMontageInstance::EditorOnly_PreAdvance()
+{
+	// this is necessary and it is not easy to do outside of here
+	// since undo also can change composite sections
+	if ((Montage->CompositeSections.Num() != NextSections.Num()) || (Montage->CompositeSections.Num() != PrevSections.Num()))
+	{
+		RefreshNextPrevSections();
+	}
+
+	// Auto refresh this in editor to catch changes being made to AnimNotifies.
+	// RefreshCacheData should handle this but I'm not 100% sure it will cover all existing cases
+	Montage->RefreshBranchingPointMarkers();
+
+	// Bake TimeStretchCurve in editor to catch any edits made to source curve.
+	Montage->BakeTimeStretchCurve();
+	// Clear cached data, so it can be recached from updated time stretch curve.
+	MontageSubStepper.ClearCachedData();
+}
+#endif
+
+void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementParams* OutRootMotionParams, bool bBlendRootMotion)
 {
 	SCOPE_CYCLE_COUNTER(STAT_AnimMontageInstance_Advance);
 	FScopeCycleCounterUObject MontageScope(Montage);
 
-	if( IsValid() )
+	if (IsValid())
 	{
-#if WITH_EDITOR
-		// this is necessary and it is not easy to do outside of here
-		// since undo also can change composite sections
-		if( (Montage->CompositeSections.Num() != NextSections.Num()) || (Montage->CompositeSections.Num() != PrevSections.Num()))
-		{
-			RefreshNextPrevSections();
-		}
-#endif
-
 		// with custom curves, we can't just filter by weight
 		// also if you have custom curve with longer 0, you'll likely to pause montage during that blending time
 		// I think that is a bug. It still should move, the weight might come back later. 
-		if( bPlaying )
+		if (bPlaying)
 		{
-			const float CombinedPlayRate = PlayRate * Montage->RateScale;
-			const bool bPlayingForward = (CombinedPlayRate > 0.f);
-
-			const bool bExtractRootMotion = (OutRootMotionParams != NULL) && Montage->HasRootMotion();
+			const bool bExtractRootMotion = (OutRootMotionParams != nullptr) && Montage->HasRootMotion();
 			
-			float DesiredDeltaMove = ForcedNextPosition.IsSet() ? ForcedNextPosition.GetValue() - Position : CombinedPlayRate * DeltaTime;
-			float OriginalMoveDelta = DesiredDeltaMove;
-
-			ForcedNextPosition.Reset();
-
 			DeltaMoved = 0.f;
 			PreviousPosition = Position;
 
@@ -1825,150 +2146,145 @@ void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementPa
 			{
 				MarkersPassedThisTick.Reset();
 			}
+			
+			/** 
+				Limit number of iterations for performance.
+				This can get out of control if PlayRate is set really high, or there is a hitch, and Montage is looping for example.
+			*/
+			const int32 MaxIterations = 10;
+			int32 NumIterations = 0;
 
-			while( bPlaying && (FMath::Abs(DesiredDeltaMove) > KINDA_SMALL_NUMBER) && ((OriginalMoveDelta * DesiredDeltaMove) > 0.f) )
+			/** 
+				If we're hitting our max number of iterations for whatever reason,
+				make sure we're not accumulating too much time, and go out of range.
+			*/
+			if (MontageSubStepper.GetRemainingTime() < 10.f)
+			{
+				MontageSubStepper.AddEvaluationTime(DeltaTime);
+			}
+
+			while (bPlaying && MontageSubStepper.HasTimeRemaining() && (++NumIterations < MaxIterations))
 			{
 				SCOPE_CYCLE_COUNTER(STAT_AnimMontageInstance_Advance_Iteration);
 
-				// Get position relative to current montage section.
-				float PosInSection;
-				int32 CurrentSectionIndex = Montage->GetAnimCompositeSectionIndexFromPos(Position, PosInSection);
-				
-				if( Montage->IsValidSectionIndex(CurrentSectionIndex) )
-				{
-					const FCompositeSection& CurrentSection = Montage->GetAnimCompositeSection(CurrentSectionIndex);
+				const float PreviousSubStepPosition = Position;
+				const FBranchingPointMarker* BranchingPointMarker = nullptr;
+				EMontageSubStepResult SubStepResult = MontageSubStepper.Advance(Position, &BranchingPointMarker);
 
-					// we need to advance within section
-					check(NextSections.IsValidIndex(CurrentSectionIndex));
-					const int32 NextSectionIndex = bPlayingForward ? NextSections[CurrentSectionIndex] : PrevSections[CurrentSectionIndex];
-
-					// Find end of current section. We only update one section at a time.
-					const float CurrentSectionLength = Montage->GetSectionLength(CurrentSectionIndex);
-					float StoppingPosInSection = CurrentSectionLength;
-
-					// Also look for a branching point. If we have one, stop there first to handle it.
-					const float CurrentSectionEndPos = CurrentSection.GetTime() + CurrentSectionLength;
-					const FBranchingPointMarker* BranchingPointMarker = Montage->FindFirstBranchingPointMarker(Position, FMath::Clamp(Position + DesiredDeltaMove, CurrentSection.GetTime(), CurrentSectionEndPos));
-					if (BranchingPointMarker)
-					{
-						// get the first one to see if it's less than AnimEnd
-						StoppingPosInSection = BranchingPointMarker->TriggerTime - CurrentSection.GetTime();
-					}
-
-					// Update position within current section.
-					// Note that we explicitly disallow looping there, we handle it ourselves to simplify code by not having to handle time wrapping around in multiple places.
-					const float PrevPosInSection = PosInSection;
-					const ETypeAdvanceAnim AdvanceType = FAnimationRuntime::AdvanceTime(false, DesiredDeltaMove, PosInSection, StoppingPosInSection);
-					// ActualDeltaPos == ActualDeltaMove since we break down looping in multiple steps. So we don't have to worry about time wrap around here.
-					const float ActualDeltaPos = PosInSection - PrevPosInSection;
-					const float ActualDeltaMove = ActualDeltaPos;
-					DeltaMoved += ActualDeltaMove;
-
-					// Decrease actual move from desired move. We'll take another iteration if there is anything left.
-					DesiredDeltaMove -= ActualDeltaMove;
-
-					float PrevPosition = Position;
-					Position = FMath::Clamp<float>(Position + ActualDeltaPos, CurrentSection.GetTime(), CurrentSectionEndPos);
-
-					if (bDidUseMarkerSyncThisTick)
-					{
-						Montage->MarkerData.CollectMarkersInRange(PrevPosition, Position, MarkersPassedThisTick, ActualDeltaMove);
-					}
-
-					const float PositionBeforeFiringEvents = Position;
-
-					const bool bHaveMoved = FMath::Abs(ActualDeltaMove) > 0.f;
-
-					const float Weight = Blend.GetBlendedValue();
-
-					if (bHaveMoved)
-					{
-						// Extract Root Motion for this time slice, and accumulate it.
-						// IsRootMotionDisabled() can be changed by AnimNotifyState BranchingPoints while advancing, so it needs to be checked here.
-						if (bExtractRootMotion && AnimInstance.IsValid() && !IsRootMotionDisabled())
-						{
-							const FTransform RootMotion = Montage->ExtractRootMotionFromTrackRange(PrevPosition, Position);
-							if (bBlendRootMotion)
-							{
-								// Defer blending in our root motion until after we get our slot weight updated
-								AnimInstance.Get()->QueueRootMotionBlend(RootMotion, Montage->SlotAnimTracks[0].SlotName, Weight);
-							}
-							else
-							{
-								OutRootMotionParams->Accumulate(RootMotion);
-							}
-
-							UE_LOG(LogRootMotion, Log, TEXT("\tFAnimMontageInstance::Advance ExtractedRootMotion: %s, AccumulatedRootMotion: %s, bBlendRootMotion: %d")
-								, *RootMotion.GetTranslation().ToCompactString()
-								, *OutRootMotionParams->GetRootMotionTransform().GetTranslation().ToCompactString()
-								, bBlendRootMotion
-								);
-						}
-					}
-
-					// If current section is last one, check to trigger a blend out and if it hasn't stopped yet, see if we should stop
-					if (NextSectionIndex == INDEX_NONE && !IsStopped())
-					{
-						const float DeltaPosToEnd = bPlayingForward ? (CurrentSectionLength - PosInSection) : PosInSection;
-						const float DeltaTimeToEnd = DeltaPosToEnd / FMath::Abs(CombinedPlayRate);
-
-						const bool bCustomBlendOutTriggerTime = (Montage->BlendOutTriggerTime >= 0);
-						const float DefaultBlendOutTime = Montage->BlendOut.GetBlendTime() * DefaultBlendTimeMultiplier;
-						const float BlendOutTriggerTime = bCustomBlendOutTriggerTime ? Montage->BlendOutTriggerTime : DefaultBlendOutTime;
-							
-						// ... trigger blend out if within blend out time window.
-						if (DeltaTimeToEnd <= FMath::Max<float>(BlendOutTriggerTime, KINDA_SMALL_NUMBER))
-						{
-							const float BlendOutTime = bCustomBlendOutTriggerTime ? DefaultBlendOutTime : DeltaTimeToEnd;
-							Stop(FAlphaBlend(Montage->BlendOut, BlendOutTime), false);
-						}
-					}
-
-					if (bHaveMoved)
-					{
-						// Delegate has to be called last in this loop
-						// so that if this changes position, the new position will be applied in the next loop
-						// first need to have event handler to handle it
-
-						// Save position before firing events.
-						if (!bInterrupted)
-						{
-							HandleEvents(PrevPosition, Position, BranchingPointMarker);
-						}
-					}
-
-					// if we reached end of section, and we were not processing a branching point, and no events has messed with out current position..
-					// .. Move to next section.
-					// (this also handles looping, the same as jumping to a different section).
-					if ((AdvanceType != ETAA_Default) && !BranchingPointMarker && (PositionBeforeFiringEvents == Position))
-					{
-						// Get recent NextSectionIndex in case it's been changed by previous events.
-						const int32 RecentNextSectionIndex = bPlayingForward ? NextSections[CurrentSectionIndex] : PrevSections[CurrentSectionIndex];
-
-						if( RecentNextSectionIndex != INDEX_NONE )
-						{
-							float LatestNextSectionStartTime, LatestNextSectionEndTime;
-							Montage->GetSectionStartAndEndTime(RecentNextSectionIndex, LatestNextSectionStartTime, LatestNextSectionEndTime);
-
-							// Jump to next section's appropriate starting point (start or end).
-							float EndOffset = KINDA_SMALL_NUMBER/2.f; //KINDA_SMALL_NUMBER/2 because we use KINDA_SMALL_NUMBER to offset notifies for triggering and SMALL_NUMBER is too small
-							Position = bPlayingForward ? LatestNextSectionStartTime : (LatestNextSectionEndTime - EndOffset);
-						}
-					}
-
-					if (!bHaveMoved)
-					{
-						// If it hasn't moved, there is nothing much to do but weight update
-						break;
-					}
-				}
-				else
+				if (SubStepResult == EMontageSubStepResult::InvalidSection
+					|| SubStepResult == EMontageSubStepResult::InvalidMontage)
 				{
 					// stop and leave this loop
 					Stop(FAlphaBlend(Montage->BlendOut, Montage->BlendOut.GetBlendTime() * DefaultBlendTimeMultiplier), false);
 					break;
 				}
+
+				const float SubStepDeltaMove = MontageSubStepper.GetDeltaMove();
+				DeltaMoved += SubStepDeltaMove;
+				const bool bPlayingForward = MontageSubStepper.GetbPlayingForward();
+
+				// If current section is last one, check to trigger a blend out and if it hasn't stopped yet, see if we should stop
+				// We check this even if we haven't moved, in case our position was different from last frame.
+				// (Code triggered a position jump).
+				if (!IsStopped())
+				{
+					const int32 CurrentSectionIndex = MontageSubStepper.GetCurrentSectionIndex();
+					check(NextSections.IsValidIndex(CurrentSectionIndex));
+					const int32 NextSectionIndex = bPlayingForward ? NextSections[CurrentSectionIndex] : PrevSections[CurrentSectionIndex];
+					if (NextSectionIndex == INDEX_NONE)
+					{
+						const float PlayTimeToEnd = MontageSubStepper.GetRemainingPlayTimeToSectionEnd(Position);
+
+						const bool bCustomBlendOutTriggerTime = (Montage->BlendOutTriggerTime >= 0);
+						const float DefaultBlendOutTime = Montage->BlendOut.GetBlendTime() * DefaultBlendTimeMultiplier;
+						const float BlendOutTriggerTime = bCustomBlendOutTriggerTime ? Montage->BlendOutTriggerTime : DefaultBlendOutTime;
+
+						// ... trigger blend out if within blend out time window.
+						if (PlayTimeToEnd <= FMath::Max<float>(BlendOutTriggerTime, KINDA_SMALL_NUMBER))
+						{
+							const float BlendOutTime = bCustomBlendOutTriggerTime ? DefaultBlendOutTime : PlayTimeToEnd;
+							Stop(FAlphaBlend(Montage->BlendOut, BlendOutTime), false);
+						}
+					}
+				}
+
+				const bool bHaveMoved = (SubStepResult == EMontageSubStepResult::Moved);
+				if (bHaveMoved)
+				{
+					if (bDidUseMarkerSyncThisTick)
+					{
+						Montage->MarkerData.CollectMarkersInRange(PreviousSubStepPosition, Position, MarkersPassedThisTick, SubStepDeltaMove);
+					}
+
+					// Extract Root Motion for this time slice, and accumulate it.
+					// IsRootMotionDisabled() can be changed by AnimNotifyState BranchingPoints while advancing, so it needs to be checked here.
+					if (bExtractRootMotion && AnimInstance.IsValid() && !IsRootMotionDisabled())
+					{
+						const FTransform RootMotion = Montage->ExtractRootMotionFromTrackRange(PreviousSubStepPosition, Position);
+						if (bBlendRootMotion)
+						{
+							// Defer blending in our root motion until after we get our slot weight updated
+							const float Weight = Blend.GetBlendedValue();
+							AnimInstance.Get()->QueueRootMotionBlend(RootMotion, Montage->SlotAnimTracks[0].SlotName, Weight);
+						}
+						else
+						{
+							OutRootMotionParams->Accumulate(RootMotion);
+						}
+
+						UE_LOG(LogRootMotion, Log, TEXT("\tFAnimMontageInstance::Advance ExtractedRootMotion: %s, AccumulatedRootMotion: %s, bBlendRootMotion: %d")
+							, *RootMotion.GetTranslation().ToCompactString()
+							, *OutRootMotionParams->GetRootMotionTransform().GetTranslation().ToCompactString()
+							, bBlendRootMotion
+							);
+					}
+
+					// Delegate has to be called last in this loop
+					// so that if this changes position, the new position will be applied in the next loop
+					// first need to have event handler to handle it
+					// Save off position before triggering events, in case they cause a jump to another position
+					const float PositionBeforeFiringEvents = Position;
+
+					// Save position before firing events.
+					if (!bInterrupted)
+					{
+						HandleEvents(PreviousSubStepPosition, Position, BranchingPointMarker);
+					}
+
+					// if we reached end of section, and we were not processing a branching point, and no events has messed with out current position..
+					// .. Move to next section.
+					// (this also handles looping, the same as jumping to a different section).
+					if (MontageSubStepper.HasReachedEndOfSection() && !BranchingPointMarker && (PositionBeforeFiringEvents == Position))
+					{
+						// Get recent NextSectionIndex in case it's been changed by previous events.
+						const int32 CurrentSectionIndex = MontageSubStepper.GetCurrentSectionIndex();
+						const int32 RecentNextSectionIndex = bPlayingForward ? NextSections[CurrentSectionIndex] : PrevSections[CurrentSectionIndex];
+						if (RecentNextSectionIndex != INDEX_NONE)
+						{
+							float LatestNextSectionStartTime, LatestNextSectionEndTime;
+							Montage->GetSectionStartAndEndTime(RecentNextSectionIndex, LatestNextSectionStartTime, LatestNextSectionEndTime);
+
+							// Jump to next section's appropriate starting point (start or end).
+							const float EndOffset = KINDA_SMALL_NUMBER / 2.f; //KINDA_SMALL_NUMBER/2 because we use KINDA_SMALL_NUMBER to offset notifies for triggering and SMALL_NUMBER is too small
+							Position = bPlayingForward ? LatestNextSectionStartTime : (LatestNextSectionEndTime - EndOffset);
+						}
+						else
+						{
+							// If there is no next section and we've reached the end of this one, exit
+							break;
+						}
+					}
+				}
+
+				if (SubStepResult == EMontageSubStepResult::NotMoved)
+				{
+					// If it hasn't moved, there is nothing much to do but weight update
+					break;
+				}
 			}
+		
+			// if we had a ForcedNextPosition set, reset it.
+			ForcedNextPosition.Reset();
 		}
 	}
 
@@ -2319,3 +2635,27 @@ bool FAnimMontageInstance::CanUseMarkerSync() const
 	return SyncGroupIndex != INDEX_NONE && IsStopped() && Blend.IsComplete() == false;
 }
 
+void UAnimMontage::BakeTimeStretchCurve()
+{
+	TimeStretchCurve.Reset();
+
+	// See if Montage is hosting a curve named 'TimeStretchCurveName'
+	FFloatCurve* TimeStretchFloatCurve = nullptr;
+	if (const USkeleton* MySkeleton = GetSkeleton())
+	{
+		if (const FSmartNameMapping* CurveNameMapping = MySkeleton->GetSmartNameContainer(USkeleton::AnimCurveMappingName))
+		{
+			if (const USkeleton::AnimCurveUID CurveUID = CurveNameMapping->FindUID(TimeStretchCurveName))
+			{
+				TimeStretchFloatCurve = (FFloatCurve*)(GetCurveData().GetCurveData(CurveUID));
+			}
+		}
+	}
+
+	if (TimeStretchFloatCurve == nullptr)
+	{
+		return;
+	}
+	
+	TimeStretchCurve.BakeFromFloatCurve(*TimeStretchFloatCurve, SequenceLength);
+}

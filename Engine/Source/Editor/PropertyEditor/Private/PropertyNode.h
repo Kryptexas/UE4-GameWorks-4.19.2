@@ -542,6 +542,13 @@ public:
 	/** Broadcasts when a child of this property changes */
 	FPropertyValueChangedEvent& OnChildPropertyValueChanged() { return ChildPropertyValueChangedEvent; }
 
+	/** Broadcasts when a property value changes */
+	DECLARE_EVENT(FPropertyNode, FPropertyValuePreChangeEvent);
+	FPropertyValuePreChangeEvent& OnPropertyValuePreChange() { return PropertyValuePreChangeEvent; }
+
+	/** Broadcasts when a child of this property changes */
+	FPropertyValuePreChangeEvent& OnChildPropertyValuePreChange() { return ChildPropertyValuePreChangeEvent; }
+
 	/**
 	 * Marks window's seem due to filtering flags
 	 * @param InFilterStrings	- List of strings that must be in the property name in order to display
@@ -851,6 +858,13 @@ protected:
 	 */
 	void BroadcastPropertyChangedDelegates();
 
+
+	/**
+	* Helper function for derived members to be able to
+	* broadcast property pre-change notifications
+	*/
+	void BroadcastPropertyPreChangeDelegates();
+
 	/**
 	 * Gets a value tracker for the default of this property in the passed in object
 	 *
@@ -893,6 +907,12 @@ protected:
 
 	/** Called when this node's children are rebuilt */
 	FSimpleDelegate OnRebuildChildren;
+
+	/** Called when this node's property value is about to change (called during NotifyPreChange) */
+	FPropertyValuePreChangeEvent PropertyValuePreChangeEvent;
+
+	/** Called when a child's property value is about to change */
+	FPropertyValuePreChangeEvent ChildPropertyValuePreChangeEvent;
 
 	/** Called when this node's property value has changed (called during NotifyPostChange) */
 	FPropertyValueChangedEvent PropertyValueChangedEvent;

@@ -609,6 +609,12 @@ void ProcessSerializedInlineShaderMaps(UMaterialInterface* Owner, TArray<FMateri
 		check(DesiredQL < EMaterialQualityLevel::Num);
 		const int32 DesiredScore = QualityScores[DesiredQL];
 
+		FMaterialShaderMap* BestShaderMap[ERHIFeatureLevel::Num];
+		for (int32 FeatureIdx = 0; FeatureIdx < ERHIFeatureLevel::Num; ++FeatureIdx)
+		{
+			BestShaderMap[FeatureIdx] = nullptr;
+		}
+
 		for (int32 ResourceIndex = 0; ResourceIndex < LoadedResources.Num(); ResourceIndex++)
 		{
 			FMaterialResource& LoadedResource = LoadedResources[ResourceIndex];
@@ -637,17 +643,25 @@ void ProcessSerializedInlineShaderMaps(UMaterialInterface* Owner, TArray<FMateri
 				const int32 PotentialScore = FMath::Abs(QualityScores[LoadedQualityLevel] - DesiredScore);
 				if (PotentialScore < CurrentScore)
 				{
-					// replace existing shadermap with loadedshadermap.
-					for (int32 QualityLevelIndex = 0; QualityLevelIndex < EMaterialQualityLevel::Num; QualityLevelIndex++)
+					BestShaderMap[LoadedFeatureLevel] = LoadedShaderMap;
+				}
+			}
+		}
+
+		for (int32 FeatureIdx = 0; FeatureIdx < ERHIFeatureLevel::Num; ++FeatureIdx)
+		{
+			if (BestShaderMap[FeatureIdx])
+			{
+				// replace existing shadermap with loadedshadermap.
+				for (int32 QualityLevelIndex = 0; QualityLevelIndex < EMaterialQualityLevel::Num; QualityLevelIndex++)
+				{
+					if (!OutMaterialResourcesLoaded[QualityLevelIndex][FeatureIdx])
 					{
-						if (!OutMaterialResourcesLoaded[QualityLevelIndex][LoadedFeatureLevel])
-						{
-							OutMaterialResourcesLoaded[QualityLevelIndex][LoadedFeatureLevel] =
-								OwnerMaterialInstance ? OwnerMaterialInstance->AllocatePermutationResource() : OwnerMaterial->AllocateResource();
-						}
-						OutMaterialResourcesLoaded[QualityLevelIndex][LoadedFeatureLevel]->ReleaseShaderMap();
-						OutMaterialResourcesLoaded[QualityLevelIndex][LoadedFeatureLevel]->SetInlineShaderMap(LoadedShaderMap);
+						OutMaterialResourcesLoaded[QualityLevelIndex][FeatureIdx] =
+							OwnerMaterialInstance ? OwnerMaterialInstance->AllocatePermutationResource() : OwnerMaterial->AllocateResource();
 					}
+					OutMaterialResourcesLoaded[QualityLevelIndex][FeatureIdx]->ReleaseShaderMap();
+					OutMaterialResourcesLoaded[QualityLevelIndex][FeatureIdx]->SetInlineShaderMap(BestShaderMap[FeatureIdx]);
 				}
 			}
 		}

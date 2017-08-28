@@ -5,6 +5,11 @@
 #include "CoreTypes.h"
 #include "HAL/PlatformMisc.h"
 
+namespace ELogVerbosity
+{
+	enum Type : uint8;
+}
+
 /**
  * FDebug
  * These functions offer debugging and diagnostic functionality and its presence 
@@ -52,6 +57,19 @@ struct CORE_API FDebug
 	 */
 	static bool VARARGS OptionallyLogFormattedEnsureMessageReturningFalse(bool bLog, const ANSICHAR* Expr, const ANSICHAR* File, int32 Line, const TCHAR* FormattedMsg, ...);
 #endif // DO_CHECK || DO_GUARD_SLOW
+
+	/**
+	* Logs an a message to the provided log channel. If a callstack is included (detected by lines starting with 0x) if will be logged in the standard Unreal 
+	* format of [Callstack] Address FunctionInfo [File]
+	*
+	* @param	LogName		Log channel. If NAME_None then LowLevelOutputDebugStringf is used
+	* @param	File		File name ANSI string (__FILE__)
+	* @param	Line		Line number (__LINE__)
+	* @param	Heading		Informative heading displayed above the message callstack
+	* @param	Message		Multi-line message with a callstack
+	*
+	*/
+	static void LogFormattedMessageWithCallstack(const FName& LogName, const ANSICHAR* File, int32 Line, const TCHAR* Heading, const TCHAR* Message, ELogVerbosity::Type Verbosity);
 };
 
 /*----------------------------------------------------------------------------

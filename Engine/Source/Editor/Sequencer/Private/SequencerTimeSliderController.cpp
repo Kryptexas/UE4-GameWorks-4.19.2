@@ -137,6 +137,12 @@ struct FDrawTickArgs
 
 void FSequencerTimeSliderController::DrawTicks( FSlateWindowElementList& OutDrawElements, const struct FScrubRangeToScreen& RangeToScreen, FDrawTickArgs& InArgs ) const
 {
+	// The math here breaks down when pixels per input is near zero or zero, so just skip drawing ticks to avoid an infinite loop.
+	if (FMath::IsNearlyZero(RangeToScreen.PixelsPerInput))
+	{
+		return;
+	}
+
 	float MinDisplayTickSpacing = ScrubConstants::MinDisplayTickSpacing;
 	if (SequencerSnapValues::IsTimeSnapIntervalFrameRate(TimeSliderArgs.TimeSnapInterval.Get()) && TimeSliderArgs.TimeSnapInterval.Get())
 	{

@@ -800,10 +800,13 @@ int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam,
 		}
 
 #if WINVER >= 0x0601
+		// ORION - REMOVED FOR WACOM SUPPORT!
+		/*
 		if (IsFakeMouseInputMessage(msg))
 		{
 			return 0;
 		}
+		*/
 #endif
 
 		switch(msg)

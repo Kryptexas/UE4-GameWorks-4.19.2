@@ -28,7 +28,7 @@
 #include "ParticleHelper.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "StaticMeshResources.h"
-#include "Particles/ParticleResources.h"
+#include "ParticleResources.h"
 #include "Particles/TypeData/ParticleModuleTypeDataBeam2.h"
 #include "Particles/TypeData/ParticleModuleTypeDataMesh.h"
 #include "Particles/TypeData/ParticleModuleTypeDataRibbon.h"

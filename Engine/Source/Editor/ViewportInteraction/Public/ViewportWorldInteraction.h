@@ -454,6 +454,9 @@ private:
 	/** If there is a transformable with velocity in simulate */
 	bool HasTransformableWithVelocityInSimulate() const;
 
+	/** Get mode tools from the viewport client. */
+	class FEditorModeTools& GetModeTools() const;
+
 	//
 	// Colors
 	//

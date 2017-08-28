@@ -112,7 +112,7 @@ FORCEINLINE void BlendCurves(const TArrayView<const FBlendedCurve* const> Source
 				SumOfWeight += Weight;
 			}
 
-			if (SumOfWeight > ZERO_ANIMWEIGHT_THRESH)
+			if (FAnimWeight::IsRelevant(SumOfWeight))
 			{
 				TArray<float> NormalizeSourceWeights;
 				NormalizeSourceWeights.AddUninitialized(SourceWeights.Num());
@@ -454,13 +454,81 @@ void FAnimationRuntime::BlendPosesTogetherPerBoneInMeshSpace(
 	}
 }
 
+void FAnimationRuntime::LerpPoses(FCompactPose& PoseA, const FCompactPose& PoseB, FBlendedCurve& CurveA, const FBlendedCurve& CurveB, float Alpha)
+{
+	// If pose A is full weight, we're set.
+	if (FAnimWeight::IsRelevant(Alpha))
+	{
+		// Make sure poses are compatible with each other.
+		check(&PoseA.GetBoneContainer() == &PoseB.GetBoneContainer());
+
+		// If pose 2 is full weight, just copy, no need to blend.
+		if (FAnimWeight::IsFullWeight(Alpha))
+		{
+			PoseA.CopyBonesFrom(PoseB);
+			CurveA.CopyFrom(CurveB);
+		}
+		else
+		{
+			const ScalarRegister VWeightOfPose1(1.f - Alpha);
+			const ScalarRegister VWeightOfPose2(Alpha);
+			for (FCompactPoseBoneIndex BoneIndex : PoseA.ForEachBoneIndex())
+			{
+				FTransform& InOutBoneTransform1 = PoseA[BoneIndex];
+				InOutBoneTransform1 *= VWeightOfPose1;
+
+				const FTransform& BoneTransform2 = PoseB[BoneIndex];
+				InOutBoneTransform1.AccumulateWithShortestRotation(BoneTransform2, VWeightOfPose2);
+
+				InOutBoneTransform1.NormalizeRotation();
+			}
+
+			CurveA.LerpTo(CurveB, Alpha);
+		}
+	}
+}
+
+void FAnimationRuntime::LerpPosesPerBone(FCompactPose& PoseA, const FCompactPose& PoseB, FBlendedCurve& CurveA, const FBlendedCurve& CurveB, float Alpha, const TArray<float>& PerBoneWeights)
+{
+	// If pose A is full weight, we're set.
+	if (FAnimWeight::IsRelevant(Alpha))
+	{
+		// Make sure poses are compatible with each other.
+		check(&PoseA.GetBoneContainer() == &PoseB.GetBoneContainer());
+
+		for (FCompactPoseBoneIndex BoneIndex : PoseA.ForEachBoneIndex())
+		{
+			const float BoneAlpha = Alpha * PerBoneWeights[BoneIndex.GetInt()];
+			if (FAnimWeight::IsRelevant(BoneAlpha))
+			{
+				const ScalarRegister VWeightOfPose1(1.f - BoneAlpha);
+				const ScalarRegister VWeightOfPose2(BoneAlpha);
+
+				FTransform& InOutBoneTransform1 = PoseA[BoneIndex];
+				InOutBoneTransform1 *= VWeightOfPose1;
+
+				const FTransform& BoneTransform2 = PoseB[BoneIndex];
+				InOutBoneTransform1.AccumulateWithShortestRotation(BoneTransform2, VWeightOfPose2);
+
+				InOutBoneTransform1.NormalizeRotation();
+			}
+		}
+
+		// @note : This isn't perfect as curve can link to joint, and it would be the best to use that information
+		// but that is very expensive option as we have to have another indirect look up table to search. 
+		// For now, replacing with combine (non-zero will be overridden)
+		// in the future, we might want to do this outside if we want per bone blend to apply curve also UE-39182
+		CurveA.Combine(CurveB);
+	}
+}
+
 void FAnimationRuntime::LerpBoneTransforms(TArray<FTransform>& A, const TArray<FTransform>& B, float Alpha, const TArray<FBoneIndexType>& RequiredBonesArray)
 {
-	if (Alpha >= (1.f - ZERO_ANIMWEIGHT_THRESH))
+	if (FAnimWeight::IsFullWeight(Alpha))
 	{
 		A = B;
 	}
-	else if (Alpha > ZERO_ANIMWEIGHT_THRESH)
+	else if (FAnimWeight::IsRelevant(Alpha))
 	{
 		FTransform* ATransformData = A.GetData(); 
 		const FTransform* BTransformData = B.GetData();
@@ -605,10 +673,10 @@ void FAnimationRuntime::AccumulateAdditivePose(FCompactPose& BasePose, const FCo
 
 void FAnimationRuntime::AccumulateLocalSpaceAdditivePose(FCompactPose& BasePose, const FCompactPose& AdditivePose, FBlendedCurve& BaseCurve, const FBlendedCurve& AdditiveCurve, float Weight)
 {
-	if (Weight > ZERO_ANIMWEIGHT_THRESH)
+	if (FAnimWeight::IsRelevant(Weight))
 	{
 		const ScalarRegister VBlendWeight(Weight);
-		if (Weight >= (1.f - ZERO_ANIMWEIGHT_THRESH))
+		if (FAnimWeight::IsFullWeight(Weight))
 		{
 			// fast path, no need to weight additive.
 			for (FCompactPoseBoneIndex BoneIndex : BasePose.ForEachBoneIndex())
@@ -633,7 +701,7 @@ void FAnimationRuntime::AccumulateMeshSpaceRotationAdditiveToLocalPose(FCompactP
 {
 	SCOPE_CYCLE_COUNTER(STAT_AccumulateMeshSpaceRotAdditiveToLocalPose);
 
-	if (Weight > ZERO_ANIMWEIGHT_THRESH)
+	if (FAnimWeight::IsRelevant(Weight))
 	{
 		// Convert base pose from local space to mesh space rotation.
 		FAnimationRuntime::ConvertPoseToMeshRotation(BasePose);
@@ -950,12 +1018,12 @@ void FAnimationRuntime::BlendMeshPosesPerBoneWeights(
 		const float BlendWeight = FMath::Clamp(BoneBlendWeights[BoneIndex.GetInt()].BlendWeight, 0.f, 1.f);
 		MaxPoseWeights[PoseIndex] = FMath::Max(MaxPoseWeights[PoseIndex], BlendWeight);
 
-		if (BlendWeight < ZERO_ANIMWEIGHT_THRESH)
+		if (!FAnimWeight::IsRelevant(BlendWeight))
 		{
 			BlendAtom = BaseAtom;
 			BlendRotations[BoneIndex] = SourceRotations[BoneIndex];
 		}
-		else if ((1.0 - BlendWeight) < ZERO_ANIMWEIGHT_THRESH)
+		else if (FAnimWeight::IsFullWeight(BlendWeight))
 		{
 			BlendAtom = TargetAtom;
 			BlendRotations[BoneIndex] = TargetRotations[BoneIndex];
@@ -1043,11 +1111,11 @@ void FAnimationRuntime::BlendLocalPosesPerBoneWeights(
 		const float BlendWeight = FMath::Clamp(BoneBlendWeights[BoneIndex.GetInt()].BlendWeight, 0.f, 1.f);
 		MaxPoseWeights[PoseIndex] = FMath::Max(MaxPoseWeights[PoseIndex], BlendWeight);
 
-		if (BlendWeight < ZERO_ANIMWEIGHT_THRESH)
+		if (!FAnimWeight::IsRelevant(BlendWeight))
 		{
 			OutPose[BoneIndex] = BaseAtom;
 		}
-		else if ((1.0 - BlendWeight) < ZERO_ANIMWEIGHT_THRESH)
+		else if (FAnimWeight::IsFullWeight(BlendWeight))
 		{
 			OutPose[BoneIndex] = BlendPoses[PoseIndex][BoneIndex];
 		}

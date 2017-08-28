@@ -9,7 +9,6 @@
 #include "CrossCompilerCommon.h"
 #include "ShaderCompilerCommon.h"
 #include "ShaderPreprocessor.h"
-#include "INiagaraCompiler.h"
 
 #include "VectorVM.h"
 
@@ -21,13 +20,13 @@ DEFINE_LOG_CATEGORY_STATIC(LogVectorVMShaderCompiler, Log, All);
  * @param Input - The input shader code and environment.
  * @param Output - Contains shader compilation results upon return.
  */
-void CompileShader_VectorVM(const FShaderCompilerInput& Input, FShaderCompilerOutput& Output, const FString& WorkingDirectory, uint8 Version)
+bool CompileShader_VectorVM(const FShaderCompilerInput& Input, FShaderCompilerOutput& Output, const FString& WorkingDirectory, uint8 Version)
 {
-
+	return false;
 }
 
 //TODO: Move to this output living in the shader eco-system with the compute shaders too but for now just do things more directly.
-void CompileShader_VectorVM(const FShaderCompilerInput& Input, FShaderCompilerOutput& Output,const FString& WorkingDirectory, uint8 Version, FNiagaraCompilationOutput& NiagaraOutput)
+bool CompileShader_VectorVM(const FShaderCompilerInput& Input, FShaderCompilerOutput& Output,const FString& WorkingDirectory, uint8 Version, FVectorVMCompilationOutput& VMCompilationOutput)
 {
 	FString PreprocessedShader;
 	FShaderCompilerDefinitions AdditionalDefines;
@@ -45,7 +44,7 @@ void CompileShader_VectorVM(const FShaderCompilerInput& Input, FShaderCompilerOu
 	{
 		if (!FFileHelper::LoadFileToString(PreprocessedShader, *Input.VirtualSourceFilePath))
 		{
-			return;
+			return false;
 		}
 
 		// Remove const as we are on debug-only mode
@@ -56,7 +55,7 @@ void CompileShader_VectorVM(const FShaderCompilerInput& Input, FShaderCompilerOu
 		if (!PreprocessShader(PreprocessedShader, Output, Input, AdditionalDefines))
 		{
 			// The preprocessing stage will add any relevant errors.
-			return;
+			return false;
 		}
 	}
 
@@ -92,7 +91,7 @@ void CompileShader_VectorVM(const FShaderCompilerInput& Input, FShaderCompilerOu
 
 	//Is stuff like this needed? What others?
 	uint32 CCFlags = HLSLCC_NoPreprocess;
-	CCFlags |= HLSLCC_PrintAST;
+		//CCFlags |= HLSLCC_PrintAST;
 	//CCFlags |= HLSLCC_UseFullPrecisionInPS;
 
 	//TODO: Do this later when we implement the rest of the shader plumbing stuff.
@@ -112,10 +111,10 @@ void CompileShader_VectorVM(const FShaderCompilerInput& Input, FShaderCompilerOu
 	// Required as we added the RemoveUniformBuffersFromSource() function (the cross-compiler won't be able to interpret comments w/o a preprocessor)
 	//CCFlags &= ~HLSLCC_NoPreprocess;
 
-	FVectorVMCodeBackend VVMBackEnd(CCFlags, HlslCompilerTarget, NiagaraOutput);
+	FVectorVMCodeBackend VVMBackEnd(CCFlags, HlslCompilerTarget, VMCompilationOutput);
 	FVectorVMLanguageSpec VVMLanguageSpec; 
 
-	int32 Result = 0;
+	bool Result = false;
 	FHlslCrossCompilerContext CrossCompilerContext(CCFlags, Frequency, HlslCompilerTarget);
 	if (CrossCompilerContext.Init(TCHAR_TO_ANSI(*Input.VirtualSourceFilePath), &VVMLanguageSpec))
 	{
@@ -128,7 +127,7 @@ void CompileShader_VectorVM(const FShaderCompilerInput& Input, FShaderCompilerOu
 			) ? 1 : 0;
 	}
 
-	NiagaraOutput.Errors = ErrorLog;
+	VMCompilationOutput.Errors = ErrorLog;
 
 	//TODO: Try to get rid of the CompilationOutput and have the vm bytecode life in the shader eco-system as the compute shader version will.
 //		int32 SourceLen = VVMBackEnd.ByteCode.Num();//ShaderSource ? FCStringAnsi::Strlen(ShaderSource) : 0;
@@ -208,4 +207,7 @@ void CompileShader_VectorVM(const FShaderCompilerInput& Input, FShaderCompilerOu
 		UE_LOG(LogVectorVMShaderCompiler, Warning, TEXT("%s"), (const char*)ErrorLog);
 		free(ErrorLog);
 	}
+
+	return Result;
 }
+

@@ -643,6 +643,22 @@ void FPropertyValueImpl::SetOnChildPropertyValueChanged( const FSimpleDelegate& 
 	}
 }
 
+void FPropertyValueImpl::SetOnPropertyValuePreChange(const FSimpleDelegate& InOnPropertyValuePreChange)
+{
+	if (PropertyNode.IsValid())
+	{
+		PropertyNode.Pin()->OnPropertyValuePreChange().Add(InOnPropertyValuePreChange);
+	}
+}
+
+void FPropertyValueImpl::SetOnChildPropertyValuePreChange(const FSimpleDelegate& InOnChildPropertyValuePreChange)
+{
+	if (PropertyNode.IsValid())
+	{
+		PropertyNode.Pin()->OnChildPropertyValuePreChange().Add(InOnChildPropertyValuePreChange);
+	}
+}
+
 void FPropertyValueImpl::SetOnRebuildChildren( const FSimpleDelegate& InOnRebuildChildren )
 {
 	if( PropertyNode.IsValid() )
@@ -2233,6 +2249,16 @@ void FPropertyHandleBase::SetOnPropertyValueChanged( const FSimpleDelegate& InOn
 void FPropertyHandleBase::SetOnChildPropertyValueChanged( const FSimpleDelegate& InOnChildPropertyValueChanged )
 {
 	Implementation->SetOnChildPropertyValueChanged( InOnChildPropertyValueChanged );
+}
+
+void FPropertyHandleBase::SetOnPropertyValuePreChange(const FSimpleDelegate& InOnPropertyValuePreChange)
+{
+	Implementation->SetOnPropertyValuePreChange(InOnPropertyValuePreChange);
+}
+
+void FPropertyHandleBase::SetOnChildPropertyValuePreChange(const FSimpleDelegate& InOnChildPropertyValuePreChange)
+{
+	Implementation->SetOnChildPropertyValuePreChange(InOnChildPropertyValuePreChange);
 }
 
 TSharedPtr<FPropertyNode> FPropertyHandleBase::GetPropertyNode() const

@@ -2249,6 +2249,18 @@ FString AActor::GetHumanReadableName() const
 
 void AActor::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
 {
+	// Draw box around Actor being debugged.
+#if ENABLE_DRAW_DEBUG
+	{
+		FVector BoundsOrigin, BoundsExtent;
+		GetActorBounds(true, BoundsOrigin, BoundsExtent);
+
+		// Expand extent a little bit
+		BoundsExtent *= 1.1f;
+		DrawDebugBox(GetWorld(), BoundsOrigin, BoundsExtent, FColor::Green, false, -1.f, 0, 2.f);
+	}
+#endif
+
 	FDisplayDebugManager& DisplayDebugManager = Canvas->DisplayDebugManager;
 	DisplayDebugManager.SetDrawColor(FColor(255, 0, 0));
 

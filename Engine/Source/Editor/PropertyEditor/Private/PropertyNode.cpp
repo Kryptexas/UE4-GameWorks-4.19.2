@@ -2300,6 +2300,9 @@ void FPropertyNode::NotifyPreChange( UProperty* PropertyAboutToChange, FNotifyHo
 			}
 		}
 	}
+
+	// Broadcast the change to any listeners
+	BroadcastPropertyPreChangeDelegates();
 }
 
 void FPropertyNode::NotifyPostChange( FPropertyChangedEvent& InPropertyChangedEvent, class FNotifyHook* InNotifyHook )
@@ -2457,6 +2460,24 @@ void FPropertyNode::BroadcastPropertyChangedDelegates()
 		if( LocalParentNode->OnChildPropertyValueChanged().IsBound() )
 		{
 			LocalParentNode->OnChildPropertyValueChanged().Broadcast();
+		}
+
+		LocalParentNode = LocalParentNode->GetParentNode();
+	}
+
+}
+
+void FPropertyNode::BroadcastPropertyPreChangeDelegates()
+{
+	PropertyValuePreChangeEvent.Broadcast();
+
+	// Walk through the parents and broadcast
+	FPropertyNode* LocalParentNode = GetParentNode();
+	while (LocalParentNode)
+	{
+		if (LocalParentNode->OnChildPropertyValuePreChange().IsBound())
+		{
+			LocalParentNode->OnChildPropertyValuePreChange().Broadcast();
 		}
 
 		LocalParentNode = LocalParentNode->GetParentNode();

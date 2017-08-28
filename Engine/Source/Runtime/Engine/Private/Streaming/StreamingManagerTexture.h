@@ -180,6 +180,9 @@ struct FStreamingManagerTexture : public ITextureStreamingManager
 	/** Return all bounds related to the ref object */
 	virtual void GetObjectReferenceBounds(const UObject* RefObject, TArray<FBox>& AssetBoxes) override;
 
+	/** Propagates a change to the active lighting scenario. */
+	void PropagateLightingScenarioChange() override;
+
 protected:
 //BEGIN: Thread-safe functions and data
 		friend class FAsyncTextureStreamingTask;

@@ -4144,6 +4144,28 @@ void FSlateEditorStyle::FStyle::SetupGraphEditorStyles()
 				.SetShadowOffset( FVector2D::ZeroVector )
 				.SetShadowColorAndOpacity( FLinearColor(0.8f,0.8f,0.8f, 0.5) )
 			);
+
+			// Inline Editable Text Block
+			{
+				FTextBlockStyle InlineEditableTextBlockReadOnly = FTextBlockStyle(NormalText)
+					.SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 9))
+					.SetColorAndOpacity(FLinearColor(218.0f / 255.0f, 218.0f / 255.0f, 218.0f / 255.0f))
+					.SetShadowOffset(FVector2D::ZeroVector)
+					.SetShadowColorAndOpacity(FLinearColor(0.8f, 0.8f, 0.8f, 0.5));
+
+				FEditableTextBoxStyle InlineEditableTextBlockEditable = FEditableTextBoxStyle()
+					.SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 9))
+					.SetBackgroundImageNormal(BOX_BRUSH("Common/TextBox", FMargin(4.0f / 16.0f)))
+					.SetBackgroundImageHovered(BOX_BRUSH("Common/TextBox_Hovered", FMargin(4.0f / 16.0f)))
+					.SetBackgroundImageFocused(BOX_BRUSH("Common/TextBox_Hovered", FMargin(4.0f / 16.0f)))
+					.SetBackgroundImageReadOnly(BOX_BRUSH("Common/TextBox_ReadOnly", FMargin(4.0f / 16.0f)))
+					.SetScrollBarStyle(ScrollBar);
+
+				FInlineEditableTextBlockStyle InlineEditableTextBlockStyle = FInlineEditableTextBlockStyle()
+					.SetTextStyle(InlineEditableTextBlockReadOnly)
+					.SetEditableTextBoxStyle(InlineEditableTextBlockEditable);
+				Set("Graph.Node.InlineEditablePinName", InlineEditableTextBlockStyle);
+			}
 		}
 
 		{
@@ -4695,10 +4717,10 @@ void FSlateEditorStyle::FStyle::SetupLevelEditorStyle()
 		Set( "LevelEditor.FoliageMode.Selected", new IMAGE_BRUSH( "Icons/icon_Mode_Foliage_selected_40x", Icon40x40 ) );
 		Set( "LevelEditor.FoliageMode.Selected.Small", new IMAGE_BRUSH( "Icons/icon_Mode_Foliage_selected_40x", Icon20x20 ) );
 
-		Set("LevelEditor.BspMode", new IMAGE_BRUSH("Icons/icon_Mode_GeoEdit_40px", Icon40x40));
-		Set("LevelEditor.BspMode.Small", new IMAGE_BRUSH("Icons/icon_Mode_GeoEdit_40px", Icon20x20));
-		Set("LevelEditor.BspMode.Selected", new IMAGE_BRUSH("Icons/icon_Mode_GeoEdit-a_40px", Icon40x40));
-		Set("LevelEditor.BspMode.Selected.Small", new IMAGE_BRUSH("Icons/icon_Mode_GeoEdit-a_40px", Icon20x20));
+		Set( "LevelEditor.BspMode", new IMAGE_BRUSH( "Icons/icon_Mode_GeoEdit_40px", Icon40x40 ) );
+		Set( "LevelEditor.BspMode.Small", new IMAGE_BRUSH( "Icons/icon_Mode_GeoEdit_40px", Icon20x20 ) );
+		Set( "LevelEditor.BspMode.Selected", new IMAGE_BRUSH( "Icons/icon_Mode_GeoEdit-a_40px", Icon40x40 ) );
+		Set( "LevelEditor.BspMode.Selected.Small", new IMAGE_BRUSH( "Icons/icon_Mode_GeoEdit-a_40px", Icon20x20 ) );
 
 		Set( "LevelEditor.WorldProperties", new IMAGE_BRUSH( "Icons/icon_worldscript_40x", Icon40x40 ) );
 		Set( "LevelEditor.WorldProperties.Small", new IMAGE_BRUSH( "Icons/icon_worldscript_40x", Icon20x20 ) );

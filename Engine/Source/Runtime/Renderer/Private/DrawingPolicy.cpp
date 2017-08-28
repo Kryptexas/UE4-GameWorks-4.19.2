@@ -205,6 +205,7 @@ const FVertexDeclarationRHIRef& FMeshDrawingPolicy::GetVertexDeclaration() const
 {
 	check(VertexFactory && VertexFactory->IsInitialized());
 	const FVertexDeclarationRHIRef& VertexDeclaration = VertexFactory->GetDeclaration();
-	check(IsValidRef(VertexDeclaration));
+	check(VertexFactory->NeedsDeclaration()==false || IsValidRef(VertexDeclaration));
+
 	return VertexDeclaration;
 }

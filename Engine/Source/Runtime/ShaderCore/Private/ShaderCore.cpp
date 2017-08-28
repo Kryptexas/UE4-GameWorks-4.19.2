@@ -71,6 +71,8 @@ IMPLEMENT_MODULE( FShaderCoreModule, ShaderCore );
 // Shader stats
 //
 
+DEFINE_STAT(STAT_ShaderCompiling_NiagaraShaders);
+DEFINE_STAT(STAT_ShaderCompiling_NumTotalNiagaraShaders);
 
 DEFINE_STAT(STAT_ShaderCompiling_MaterialShaders);
 DEFINE_STAT(STAT_ShaderCompiling_GlobalShaders);
@@ -552,6 +554,10 @@ static void GetShaderIncludes(const TCHAR* EntryPointVirtualFilePath, const TCHA
 					// Check virtual.
 					bIgnoreInclude |= !CheckVirtualShaderFilePath(ExtractedIncludeFilename);
 			
+					// Ignore Niagara generated shader code
+					bIgnoreInclude |= (ExtractedIncludeFilename == TEXT("/Engine/Private/NiagaraEmitterInstance.usf"));
+					bIgnoreInclude |= (ExtractedIncludeFilename == TEXT("/Engine/Private/NiagaraSimulation.usf"));
+
 					// Some headers aren't required to be found (platforms that the user doesn't have access to)
 					// @todo: Is there some way to generalize this"
 					const bool bIsOptionalInclude = (ExtractedIncludeFilename == TEXT("/Engine/Public/PS4/PS4Common.ush") 

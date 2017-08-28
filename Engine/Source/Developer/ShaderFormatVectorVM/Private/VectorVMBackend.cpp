@@ -20,7 +20,6 @@ PRAGMA_POP
 #include "ir.h"
 
 #include "VectorVM.h"
-#include "INiagaraCompiler.h"
 
 #if !PLATFORM_WINDOWS
 #define _strdup strdup
@@ -76,21 +75,26 @@ char* FVectorVMCodeBackend::GenerateCode(exec_list* ir, _mesa_glsl_parse_state* 
 		progress = do_copy_propagation_elements(ir) || progress;
 		progress = do_swizzle_swizzle(ir) || progress;
 	} while (progress);
+	//validate_ir_tree(ir, state);
 	vm_debug_dump(ir, state);
 	if (state->error) return nullptr;
 	
 	vm_debug_print("== Branches to selects ==\n");
 	vm_flatten_branches_to_selects(ir, state);
+	//validate_ir_tree(ir, state);
 	vm_debug_dump(ir, state);
 
 	vm_debug_print("== To Single Op ==\n");
 	vm_to_single_op(ir, state);
+	//validate_ir_tree(ir, state);
 	vm_debug_dump(ir, state);
 	if (state->error) return nullptr;
 
 	vm_debug_print("== Scalarize ==\n");
 	vm_scalarize_ops(ir, state);
+	//validate_ir_tree(ir, state);
 	vm_debug_dump(ir, state);
+	//validate_ir_tree(ir, state);
 	if (state->error) return nullptr;
 
 	//99% complete code to remove all matrices from the code and replace them with just swizzled vectors. 
@@ -102,11 +106,14 @@ char* FVectorVMCodeBackend::GenerateCode(exec_list* ir, _mesa_glsl_parse_state* 
 
 	vm_debug_print("== Merge Ops ==\n");
 	vm_merge_ops(ir, state);
+//	validate_ir_tree(ir, state);
 	vm_debug_dump(ir, state);
+	//validate_ir_tree(ir, state);
 	if (state->error) return nullptr;
 
 	vm_debug_print("== Propagate non-expressions ==\n");
 	vm_propagate_non_expressions_visitor(ir, state);
+	//validate_ir_tree(ir, state);
 	vm_debug_dump(ir, state);
 	if (state->error) return nullptr;
 
@@ -125,6 +132,8 @@ char* FVectorVMCodeBackend::GenerateCode(exec_list* ir, _mesa_glsl_parse_state* 
 	} while (progress);
 	vm_debug_dump(ir, state);
 
+	//validate_ir_tree(ir, state);
+
 	if (state->error) return nullptr;
 
 	vm_gen_bytecode(ir, state, CompilationOutput);
@@ -137,7 +146,8 @@ void FVectorVMLanguageSpec::SetupLanguageIntrinsics(_mesa_glsl_parse_state* Stat
 // 	//We fine if the func is unused entirely but we need to keep the scalar signatures for when we scalarize the call.
 // 	//Maybe we can just keep the wrong sig but still replace the ret val and params?
 // 	make_intrinsic_genType(ir, State, "mad", ir_invalid_opcode, IR_INTRINSIC_FLOAT, 3, 1, 4);
-	make_intrinsic_genType(ir, State, "rand", ir_invalid_opcode, IR_INTRINSIC_FLOAT, 1, 1, 4); 
+	make_intrinsic_genType(ir, State, "rand", ir_invalid_opcode, IR_INTRINSIC_FLOAT, 1, 1, 4);
+	make_intrinsic_genType(ir, State, "rand", ir_invalid_opcode, IR_INTRINSIC_INT, 1, 1, 4);
 	make_intrinsic_genType(ir, State, "Modulo", ir_invalid_opcode, IR_INTRINSIC_FLOAT, 1, 1, 4);
 
 // Dont need all these as we're only using the basic scalar function which we provide the signature for in the usf.

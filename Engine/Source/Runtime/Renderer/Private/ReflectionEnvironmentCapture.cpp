@@ -1411,6 +1411,12 @@ void FScene::UpdateReflectionCaptureContents(UReflectionCaptureComponent* Captur
 				return;
 			}
 
+			if (FPlatformProperties::RequiresCookedData())
+			{
+				UE_LOG(LogEngine, Warning, TEXT("No built data for %s, skipping generation in cooked build."), *CaptureComponent->GetPathName() )
+				return;
+			}
+
 			ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER( 
 				ClearCommand,
 				int32, ReflectionCaptureSize, ReflectionCaptureSize,

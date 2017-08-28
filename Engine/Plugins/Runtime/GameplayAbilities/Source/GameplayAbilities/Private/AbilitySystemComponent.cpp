@@ -1552,6 +1552,50 @@ void UAbilitySystemComponent::OnRep_ServerDebugString()
 	}
 }
 
+float UAbilitySystemComponent::GetFilteredAttributeValue(const FGameplayAttribute& Attribute, const FGameplayTagRequirements& SourceTags, const FGameplayTagContainer& TargetTags)
+{
+	float AttributeValue = 0.f;
+
+	if (SourceTags.RequireTags.Num() == 0 && SourceTags.IgnoreTags.Num() == 0)
+	{
+		// No qualifiers so we can just read this attribute normally
+		AttributeValue = GetNumericAttribute(Attribute);
+	}
+	else
+	{
+		// Need to capture qualified attributes
+		FGameplayEffectAttributeCaptureDefinition CaptureDef(Attribute.GetUProperty(), EGameplayEffectAttributeCaptureSource::Source, false);
+		FGameplayEffectAttributeCaptureSpec CaptureSpec(CaptureDef);
+
+		CaptureAttributeForGameplayEffect(CaptureSpec);
+
+		// Source Tags
+		static FGameplayTagContainer QuerySourceTags;
+		QuerySourceTags.Reset();
+
+		GetOwnedGameplayTags(QuerySourceTags);
+		QuerySourceTags.AppendTags(SourceTags.RequireTags);
+
+		// Target Tags
+		static FGameplayTagContainer QueryTargetTags;
+		QueryTargetTags.Reset();
+
+		QueryTargetTags.AppendTags(TargetTags);
+
+		FAggregatorEvaluateParameters Params;
+		Params.SourceTags = &QuerySourceTags;
+		Params.TargetTags = &QueryTargetTags;
+		Params.IncludePredictiveMods = true;
+
+		if (CaptureSpec.AttemptCalculateAttributeMagnitude(Params, AttributeValue) == false)
+		{
+			UE_LOG(LogAbilitySystemComponent, Warning, TEXT("Failed to calculate Attribute %s. On: %s"), *Attribute.GetName(), *GetFullName());
+		}
+	}
+
+	return AttributeValue;
+}
+
 bool UAbilitySystemComponent::ServerPrintDebug_RequestWithStrings_Validate(const TArray<FString>& Strings)
 {
 	return true;

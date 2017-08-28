@@ -1394,10 +1394,6 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 
 		//ensure canvas has been flushed before rendering UI
 		SceneCanvas->Flush_GameThread();
-		if (DebugCanvas != NULL)
-		{
-			DebugCanvas->Flush_GameThread();
-		}
 
 		DrawnDelegate.Broadcast();
 

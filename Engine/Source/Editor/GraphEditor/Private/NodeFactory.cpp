@@ -84,8 +84,6 @@
 #include "MaterialGraphConnectionDrawingPolicy.h"
 
 #include "EdGraphUtilities.h"
-#include "EdGraphSchema_Niagara.h"
-
 TSharedPtr<SGraphNode> FNodeFactory::CreateNodeWidget(UEdGraphNode* InNode)
 {
 	check(InNode != NULL);

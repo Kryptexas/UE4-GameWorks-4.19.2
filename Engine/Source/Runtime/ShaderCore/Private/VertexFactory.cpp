@@ -181,8 +181,15 @@ void FVertexFactory::Set(FRHICommandList& RHICmdList) const
 		const FVertexStream& Stream = Streams[StreamIndex];
 		if (!Stream.bSetByVertexFactoryInSetMesh)
 		{
-			checkf(Stream.VertexBuffer->IsInitialized(), TEXT("Vertex buffer was not initialized! Stream %u, Stride %u, Name %s"), StreamIndex, Stream.Stride, *Stream.VertexBuffer->GetFriendlyName());
-			RHICmdList.SetStreamSource(StreamIndex, Stream.VertexBuffer->VertexBufferRHI, Stream.Offset);
+			if (!Stream.VertexBuffer)
+			{
+				RHICmdList.SetStreamSource(StreamIndex, nullptr, 0);
+			}
+			else
+			{
+				checkf(Stream.VertexBuffer->IsInitialized(), TEXT("Vertex buffer was not initialized! Stream %u, Stride %u, Name %s"), StreamIndex, Stream.Stride, *Stream.VertexBuffer->GetFriendlyName());
+				RHICmdList.SetStreamSource(StreamIndex, Stream.VertexBuffer->VertexBufferRHI, Stream.Offset);
+			}
 		}
 	}
 }

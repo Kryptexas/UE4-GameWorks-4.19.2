@@ -53,6 +53,8 @@ void FAnimSingleNodeInstanceProxy::PropagatePreviewCurve(FPoseContext& Output)
 
 void FAnimSingleNodeInstanceProxy::UpdateAnimationNode(float DeltaSeconds)
 {
+	UpdateCounter.Increment();
+
 	FAnimationUpdateContext UpdateContext(this, DeltaSeconds);
 	SingleNode.Update_AnyThread(UpdateContext);
 }

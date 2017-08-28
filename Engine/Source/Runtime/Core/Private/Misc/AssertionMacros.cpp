@@ -27,6 +27,42 @@ bool FDebug::bHasAsserted = false;
 
 #define FILE_LINE_DESC TEXT(" [File:%s] [Line: %i] ")
 
+
+/*
+	Ensure behavior
+
+	* ensure() macro calls OptionallyLogFormattedEnsureMessageReturningFalse 
+	* OptionallyLogFormattedEnsureMessageReturningFalse calls EnsureFailed()
+	* EnsureFailed() -
+		* Formats the ensure failure and calls StaticFailDebug to populate the global error info (without callstack)
+		* Prints the script callstack (if any)
+		* Halts if a debugger is attached 
+		* If not, logs the callstack and attempts to submit an error report
+	* execution continues as normal, (on some platforms this can take ~30 secs to perform)
+
+	Check behavior
+
+	* check() macro calls LogAssertFailedMessage
+	* LogAssertFailedMessage formats the assertion message and calls StaticFailDebug
+	* StaticFailDebug populates global error info with the failure message and if supported (AllowsCallStackDumpDuringAssert) the callstack
+	* If a debugger is attached execution halts
+	* If not FDebug::AssertFailed is called
+	* FDebug::AssertFailed logs the assert message and description to GError
+	* At this point behavior depends on the platform-specific error output device implementation
+		* Desktop platforms (Windows, Mac, Linux) will generally throw an exception and in the handler attempt to submit a crash report and exit
+		* Console platforms will generally dump the info to the log and abort()
+
+	Fatal-error behavior
+
+	* The UE_LOG macro calls FMsg::Logf which checks for "Fatal" verbosity
+	* FMsg::Logf formats the failure message and calls StaticFailDebug
+	* StaticFailDebug populates global error info with the failure message and if supported (AllowsCallStackDumpDuringAssert) the callstack
+	* FDebug::AssertFailed is then called, and from this point behavior is identical to an assert but with a different message
+
+*/
+
+
+
 /** Lock used to synchronize the fail debug calls. */
 static FCriticalSection	FailDebugCriticalSection;
 
@@ -71,50 +107,85 @@ void PrintScriptCallstack(bool bEmptyWhenDone)
  */
 void StaticFailDebug( const TCHAR* Error, const ANSICHAR* File, int32 Line, const TCHAR* Description, bool bIsEnsure )
 {
-	// For ensure log should be flushed in the engine loop.
-	if( !bIsEnsure )
+	TCHAR DescriptionAndTrace[4096];
+
+	FCString::Strncpy(DescriptionAndTrace, Description, ARRAY_COUNT(DescriptionAndTrace) - 1);
+
+	// some platforms (Windows, Mac, Linux) generate this themselves by throwing an exception and capturing
+	// the backtrace later on
+	if (FPlatformProperties::AllowsCallStackDumpDuringAssert() && bIsEnsure == false)
 	{
-		GLog->PanicFlushThreadedLogs();
+		ANSICHAR StackTrace[4096];
+		if (StackTrace != NULL)
+		{
+			StackTrace[0] = 0;
+			FPlatformStackWalk::StackWalkAndDump(StackTrace, ARRAY_COUNT(StackTrace), CALLSTACK_IGNOREDEPTH);
+
+			FCString::Strncat(DescriptionAndTrace, TEXT("\n"), ARRAY_COUNT(DescriptionAndTrace) - 1);
+			FCString::Strncat(DescriptionAndTrace, ANSI_TO_TCHAR(StackTrace), ARRAY_COUNT(DescriptionAndTrace) - 1);
+		}
 	}
 
 	FScopeLock Lock( &FailDebugCriticalSection );
-	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("%s") FILE_LINE_DESC TEXT("\n%s\n"), Error, ANSI_TO_TCHAR(File), Line, Description);
 
 	// Copy the detailed error into the error message.
-	FCString::Snprintf( GErrorMessage, ARRAY_COUNT( GErrorMessage ), TEXT( "%s" ) FILE_LINE_DESC TEXT( "\n%s\n" ), Error, ANSI_TO_TCHAR( File ), Line, Description );
+	FCString::Snprintf( GErrorMessage, ARRAY_COUNT( GErrorMessage ), TEXT( "%s" ) FILE_LINE_DESC TEXT( "\n%s\n" ), Error, ANSI_TO_TCHAR( File ), Line, DescriptionAndTrace);
 
 	// Copy the error message to the error history.
 	FCString::Strncpy( GErrorHist, GErrorMessage, ARRAY_COUNT( GErrorHist ) );
 	FCString::Strncat( GErrorHist, TEXT( "\r\n\r\n" ), ARRAY_COUNT( GErrorHist ) );
 }
 
-void OutputMultiLineCallstack(const ANSICHAR* File, int32 Line, const FName& LogName, const TCHAR* Heading, TCHAR* Message, ELogVerbosity::Type Verbosity)
+
+void FDebug::LogFormattedMessageWithCallstack(const FName& LogName, const ANSICHAR* File, int32 Line, const TCHAR* Heading, const TCHAR* Message, ELogVerbosity::Type Verbosity)
 {
-	const bool bWriteUATMarkers = FParse::Param(FCommandLine::Get(), TEXT("CrashForUAT")) && FParse::Param(FCommandLine::Get(), TEXT("stdout"));
+	const bool bLowLevel = LogName == NAME_None;
+	const bool bWriteUATMarkers = FParse::Param(FCommandLine::Get(), TEXT("CrashForUAT")) && FParse::Param(FCommandLine::Get(), TEXT("stdout")) && !bLowLevel;
 
 	if (bWriteUATMarkers)
 	{
 		FMsg::Logf(File, Line, LogName, Verbosity, TEXT("begin: stack for UAT"));
 	}
 
-	FMsg::Logf(File, Line, LogName, Verbosity, TEXT("%s"), Heading);
-	FMsg::Logf(File, Line, LogName, Verbosity, TEXT(""));
-
-	for (TCHAR* LineStart = Message;; )
+	if (bLowLevel)
 	{
+		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("%s\n"), Heading);
+	}
+	else
+	{
+		FMsg::Logf(File, Line, LogName, Verbosity, TEXT("%s"), Heading);
+		FMsg::Logf(File, Line, LogName, Verbosity, TEXT(""));
+	}
+
+	for (const TCHAR* LineStart = Message;; )
+	{
+		TCHAR SingleLine[1024];
+
 		// Find the end of the current line
-		TCHAR* LineEnd = LineStart;
+		const TCHAR* LineEnd = LineStart;
+		TCHAR* SingleLineWritePos = SingleLine;
+
 		while (*LineEnd != 0 && *LineEnd != '\r' && *LineEnd != '\n')
 		{
-			LineEnd++;
+			*SingleLineWritePos++ = *LineEnd++;
 		}
 
-		// Output it
-		TCHAR LineEndCharacter = *LineEnd;
-		*LineEnd = 0;
-		FMsg::Logf(File, Line, LogName, Verbosity, TEXT("%s"), LineStart);
-		*LineEnd = LineEndCharacter;
+		// cap it it
+		*SingleLineWritePos = 0;
 
+		// prefix function lines with [Callstack] for parsing tools
+		const TCHAR* Prefix = (FCString::Strnicmp(LineStart, TEXT("0x"), 2) == 0) ? TEXT("[Callstack] ") : TEXT("");
+
+		// if this is an address line, prefix it with [Callstack]
+		if (bLowLevel)
+		{
+			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("%s%s\n"), Prefix, SingleLine);
+		}
+		else
+		{
+			FMsg::Logf(File, Line, LogName, Verbosity, TEXT("%s%s"), Prefix, SingleLine);
+		}
+		
 		// Quit if this was the last line
 		if (*LineEnd == 0)
 		{
@@ -138,29 +209,17 @@ void OutputMultiLineCallstack(const ANSICHAR* File, int32 Line, const FName& Log
 //
 void VARARGS FDebug::LogAssertFailedMessage(const ANSICHAR* Expr, const ANSICHAR* File, int32 Line, const TCHAR* Format/*=TEXT("")*/, ...)
 {
-	// Print out the blueprint callstack
-	PrintScriptCallstack(true);
-
 	// Ignore this assert if we're already forcibly shutting down because of a critical error.
 	if( !GIsCriticalError )
 	{
+		// Print out the blueprint callstack
+		PrintScriptCallstack(true);
+
 		TCHAR DescriptionString[4096];
 		GET_VARARGS( DescriptionString, ARRAY_COUNT( DescriptionString ), ARRAY_COUNT( DescriptionString ) - 1, Format, Format );
 
 		TCHAR ErrorString[MAX_SPRINTF];
 		FCString::Sprintf( ErrorString, TEXT( "Assertion failed: %s" ), ANSI_TO_TCHAR( Expr ) );
-
-		if( FPlatformProperties::AllowsCallStackDumpDuringAssert() )
-		{
-			ANSICHAR StackTrace[4096];
-			if( StackTrace != NULL )
-			{
-				StackTrace[0] = 0;
-				FPlatformStackWalk::StackWalkAndDump( StackTrace, ARRAY_COUNT(StackTrace), CALLSTACK_IGNOREDEPTH );
-
-				FCString::Strncat( DescriptionString, ANSI_TO_TCHAR( StackTrace ), ARRAY_COUNT( DescriptionString ) - 1 );
-			}
-		}
 
 		StaticFailDebug( ErrorString, File, Line, DescriptionString, false );
 	}
@@ -243,7 +302,7 @@ void FDebug::EnsureFailed(const ANSICHAR* Expr, const ANSICHAR* File, int32 Line
 
 		// Dump the error and flush the log.
 #if !NO_LOGGING
-		OutputMultiLineCallstack(__FILE__, __LINE__, LogOutputDevice.GetCategoryName(), TEXT("=== Handled ensure: ==="), ErrorMsg, ELogVerbosity::Error);
+		FDebug::LogFormattedMessageWithCallstack(LogOutputDevice.GetCategoryName(), __FILE__, __LINE__, TEXT("=== Handled ensure: ==="), ErrorMsg, ELogVerbosity::Error);
 #endif
 		GLog->Flush();
 
@@ -345,7 +404,7 @@ void VARARGS FDebug::AssertFailed(const ANSICHAR* Expr, const ANSICHAR* File, in
 	GET_VARARGS(DescriptionString, ARRAY_COUNT(DescriptionString), ARRAY_COUNT(DescriptionString) - 1, Format, Format);
 
 	TCHAR ErrorString[MAX_SPRINTF];
-	FCString::Sprintf(ErrorString, TEXT("Assertion failed: %s"), ANSI_TO_TCHAR(Expr));
+	FCString::Sprintf(ErrorString, TEXT("%s"), ANSI_TO_TCHAR(Expr));
 	GError->Logf(TEXT("Assertion failed: %s") FILE_LINE_DESC TEXT("\n%s\n"), ErrorString, ANSI_TO_TCHAR(File), Line, DescriptionString);
 }
 
@@ -390,7 +449,7 @@ void FDebug::DumpStackTraceToLog()
 
 	// Dump the error and flush the log.
 	// ELogVerbosity::Error to make sure it gets printed in log for conveniency.
-	OutputMultiLineCallstack(__FILE__, __LINE__, LogOutputDevice.GetCategoryName(), TEXT("=== FDebug::DumpStackTrace(): ==="), ANSI_TO_TCHAR(StackTrace), ELogVerbosity::Error);
+	FDebug::LogFormattedMessageWithCallstack(LogOutputDevice.GetCategoryName(), __FILE__, __LINE__, TEXT("=== FDebug::DumpStackTrace(): ==="), ANSI_TO_TCHAR(StackTrace), ELogVerbosity::Error);
 	GLog->Flush();
 	FMemory::SystemFree(StackTrace);
 #endif

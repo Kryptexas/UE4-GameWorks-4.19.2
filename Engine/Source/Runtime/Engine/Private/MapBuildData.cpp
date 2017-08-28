@@ -19,6 +19,7 @@
 #include "Components/ModelComponent.h"
 #include "ComponentRecreateRenderStateContext.h"
 #include "UObject/RenderingObjectVersion.h"
+#include "ContentStreaming.h"
 
 FArchive& operator<<(FArchive& Ar, FMeshMapBuildData& MeshMapBuildData)
 {
@@ -69,6 +70,8 @@ void UWorld::PropagateLightingScenarioChange(bool bLevelWasMadeVisible)
 			ModelComponent->PropagateLightingScenarioChange();
 		}
 	}
+
+	IStreamingManager::Get().PropagateLightingScenarioChange();
 
 	// Skipping the reflection capture update if made invisible, in most cases another lighting scenario level will be made visible shortly after, 
 	// Or we're unloading all levels and then it doesn't matter if lighting is updated.

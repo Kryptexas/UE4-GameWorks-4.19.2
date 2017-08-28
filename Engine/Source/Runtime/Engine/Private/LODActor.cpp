@@ -19,6 +19,8 @@
 
 #if WITH_EDITOR
 #include "Editor.h"
+
+#include "HierarchicalLODUtilitiesModule.h"
 #endif
 
 #define LOCTEXT_NAMESPACE "LODActor"
@@ -188,6 +190,7 @@ FString ALODActor::GetDetailedInfoInternal() const
 void ALODActor::PostLoad()
 {
 	Super::PostLoad();
+	StaticMeshComponent->MinDrawDistance = LODDrawDistance;
 	UpdateRegistrationToMatchMaximumLODLevel();
 
 #if WITH_EDITOR
@@ -550,7 +553,21 @@ const bool ALODActor::HasValidSubActors() const
 	{
 		TInlineComponentArray<UStaticMeshComponent*> Components;
 		SubActor->GetComponents(/*out*/ Components);
+
+#if WITH_EDITOR
+		FHierarchicalLODUtilitiesModule& Module = FModuleManager::LoadModuleChecked<FHierarchicalLODUtilitiesModule>("HierarchicalLODUtilities");
+		IHierarchicalLODUtilities* Utilities = Module.GetUtilities();
+
+		for (UStaticMeshComponent* Component : Components)
+		{
+			if (!Component->bHiddenInGame && Component->ShouldGenerateAutoLOD())
+			{
+				++NumMeshes;
+			}
+		}
+#else
 		NumMeshes += Components.Num();
+#endif
 
 		if (NumMeshes > 1)
 		{

@@ -1524,6 +1524,8 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 	{
 		SCOPE_CYCLE_COUNTER(STAT_TickTime);
 
+		FWorldDelegates::OnWorldPostActorTick.Broadcast(this, TickType, DeltaSeconds);
+
 		if ( PhysicsScene != NULL )
 		{
 			GPhysCommandHandler->Flush();

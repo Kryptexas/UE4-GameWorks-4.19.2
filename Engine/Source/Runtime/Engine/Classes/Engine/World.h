@@ -3233,6 +3233,9 @@ public:
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnWorldTickStart, ELevelTick, float);
 	static FOnWorldTickStart OnWorldTickStart;
 
+	DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnWorldPostActorTick, UWorld* /*World*/, ELevelTick/**Tick Type*/, float/**Delta Seconds*/);
+	static FOnWorldPostActorTick OnWorldPostActorTick;
+
 	// Callback for world creation
 	static FWorldEvent OnPostWorldCreation;
 	

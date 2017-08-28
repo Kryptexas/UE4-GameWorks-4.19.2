@@ -43,4 +43,7 @@ public:
 
 	/** Get dragging operation */
 	virtual class UViewportDragOperationComponent* GetDragOperationComponent() PURE_VIRTUAL( IViewportInteractableInterface::GetDragOperationComponent, return nullptr; );
+
+	/** Whether this interactable can be selected. */
+	virtual bool CanBeSelected() PURE_VIRTUAL( IViewportInteractableInterface::CanBeSelected, return false; );
 };

@@ -136,6 +136,8 @@ public:
 
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnSelectionChangedTracks, TArray<UMovieSceneTrack*> /*Tracks*/)
 
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnSelectionChangedSections, TArray<UMovieSceneSection*> /*Sections*/)
+
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnActorAddedToSequencer, AActor*, const FGuid);
 
 public:
@@ -383,11 +385,26 @@ public:
 	virtual FSequencerSelection& GetSelection() = 0;
 	virtual FSequencerSelectionPreview& GetSelectionPreview() = 0;
 
+	/** Gets the currently selected tracks. */
+	virtual void GetSelectedTracks(TArray<UMovieSceneTrack*>& OutSelectedTracks) = 0;
+
+	/** Gets the currently selected sections. */
+	virtual void GetSelectedSections(TArray<UMovieSceneSection*>& OutSelectedSections) = 0;
+
 	/** Selects an object by GUID */
 	virtual void SelectObject(FGuid ObjectBinding) = 0;
 
+	/** Selects a track */
+	virtual void SelectTrack(UMovieSceneTrack* Track) = 0;
+
+	/** Selects a section */
+	virtual void SelectSection(UMovieSceneSection* Section) = 0;
+
 	/** Selects property tracks by property path */
 	virtual void SelectByPropertyPaths(const TArray<FString>& InPropertyPaths) = 0;
+
+	/** Empties the current selection. */
+	virtual void EmptySelection() = 0;
 
 	/** Gets a multicast delegate which is executed whenever the global time changes. */
 	virtual FOnGlobalTimeChanged& OnGlobalTimeChanged() = 0;
@@ -409,6 +426,9 @@ public:
 
 	/** Gets a multicast delegate with an array of UMovieSceneTracks which is called when the outliner node selection changes. */
 	virtual FOnSelectionChangedTracks& GetSelectionChangedTracks() = 0;
+
+	/** Gets a multicast delegate with an array of UMovieSceneSections which is called when the outliner node selection changes. */
+	virtual FOnSelectionChangedSections& GetSelectionChangedSections() = 0;
 
 	/** @return a numeric type interface that will parse and display numbers as frames and times correctly */
 	virtual TSharedRef<INumericTypeInterface<float>> GetNumericTypeInterface() = 0;

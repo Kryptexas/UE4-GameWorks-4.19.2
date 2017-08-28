@@ -13,7 +13,7 @@
 #include "RHIStaticStates.h"
 #include "SceneUtils.h"
 #include "ParticleHelper.h"
-#include "Particles/ParticleResources.h"
+#include "ParticleResources.h"
 #include "ShaderParameterUtils.h"
 #include "GlobalShader.h"
 #include "FXSystem.h"

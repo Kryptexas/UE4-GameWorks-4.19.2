@@ -808,8 +808,22 @@ bool FWindowsPlatformStackWalk::InitStackWalking()
 		SymSetOptions( SymOpts );
 	
 		// Initialize the symbol engine.		
-		const FString RemoteStorage = GetRemoteStorage(GetDownstreamStorage());
+		FString RemoteStorage = GetRemoteStorage(GetDownstreamStorage());
 #if WINVER > 0x502
+		if (RemoteStorage.IsEmpty())
+		{
+			// by default passing null to SymInitialize will use the current working dir to search for a pdb, 
+			// but to support the basedir argument that allows an exe to run against data in a different location
+			// we'll put the path of the executing module first.
+			TCHAR ModulePath[MAX_PATH] = { 0 };
+			if (::GetModuleFileName(::GetModuleHandle(NULL), ModulePath, MAX_PATH))
+			{
+				RemoteStorage = FPaths::GetPath(ModulePath);
+				RemoteStorage += ";";
+				RemoteStorage += FPlatformProcess::GetCurrentWorkingDirectory();
+			}
+		}
+		
 		SymInitializeW( GetCurrentProcess(), RemoteStorage.IsEmpty() ? nullptr : *RemoteStorage, true );
 #else
 		SymInitialize( GetCurrentProcess(), nullptr, true );

@@ -140,7 +140,7 @@ void FStreamingManagerTexture::OnPreGarbageCollect()
 		if (LevelManager.GetLevel()->IsPendingKill())
 		{
 			FRemovedTextureArray RemovedTextures;
-			LevelManager.Remove(RemovedTextures);
+			LevelManager.Remove(&RemovedTextures);
 			SetTexturesRemovedTimestamp(RemovedTextures);
 
 			// Remove the level entry. The async task view will still be valid as it uses a shared ptr.
@@ -394,14 +394,13 @@ void FStreamingManagerTexture::ConditionalUpdateStaticData()
 			PreviousSettings.bUseNewMetrics != Settings.bUseNewMetrics ||
 			PreviousSettings.bUsePerTextureBias != Settings.bUsePerTextureBias)
 		{
-			TArray<ULevel*> Levels;
-			FRemovedTextureArray RemovedTextures;
+			TArray<ULevel*, TInlineAllocator<32> > Levels;
 
 			// RemoveLevel data
 			for (FLevelTextureManager& LevelManager : LevelTextureManagers)
 			{
 				Levels.Push(LevelManager.GetLevel());
-				LevelManager.Remove(RemovedTextures);
+				LevelManager.Remove(nullptr);
 			}
 			LevelTextureManagers.Empty();
 
@@ -549,7 +548,7 @@ void FStreamingManagerTexture::RemoveLevel( ULevel* Level )
 			if (LevelManager.GetLevel() == Level)
 			{
 				FRemovedTextureArray RemovedTextures;
-				LevelManager.Remove(RemovedTextures);
+				LevelManager.Remove(&RemovedTextures);
 				SetTexturesRemovedTimestamp(RemovedTextures);
 
 				// Remove the level entry. The async task view will still be valid as it uses a shared ptr.
@@ -1233,6 +1232,24 @@ void FStreamingManagerTexture::GetObjectReferenceBounds(const UObject* RefObject
 	}
 }
 
+void FStreamingManagerTexture::PropagateLightingScenarioChange()
+{
+	// Note that dynamic components don't need to be handled because their renderstates are updated, which triggers and update.
+	
+	TArray<ULevel*, TInlineAllocator<32> > Levels;
+	for (FLevelTextureManager& LevelManager : LevelTextureManagers)
+	{
+		Levels.Push(LevelManager.GetLevel());
+		LevelManager.Remove(nullptr);
+	}
+
+	LevelTextureManagers.Empty();
+
+	for (ULevel* Level : Levels)
+	{
+		AddLevel(Level);
+	}
+}
 
 #if STATS_FAST
 bool FStreamingManagerTexture::HandleDumpTextureStreamingStatsCommand( const TCHAR* Cmd, FOutputDevice& Ar )
@@ -1268,11 +1285,15 @@ bool FStreamingManagerTexture::HandleListStreamingTexturesCommand( const TCHAR* 
 		SortedTextures.Add(StreamingTexture.Texture->GetFullName(), TextureIndex);
 	}
 
+	const bool bShouldOnlyListUnkownRef = FParse::Command(&Cmd, TEXT("UNKOWNREF"));
+
 	SortedTextures.KeySort(TLess<FString>());
 
 	for (TMap<FString, int32>::TConstIterator It(SortedTextures); It; ++It)
 	{
 		const FStreamingTexture& StreamingTexture = StreamingTextures[It.Value()];
+		if (bShouldOnlyListUnkownRef && !StreamingTexture.bUseUnkownRefHeuristic) continue;
+
 		const UTexture2D* Texture2D = StreamingTexture.Texture;
 		UE_LOG(LogContentStreaming, Log,  TEXT("Texture [%d] : %s"), It.Value(), *Texture2D->GetFullName() );
 

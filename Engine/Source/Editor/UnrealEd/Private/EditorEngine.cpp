@@ -918,7 +918,6 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 			TEXT("TreeMap"),
 			TEXT("SizeMap"),
 			TEXT("MergeActors"),
-			TEXT("NiagaraEditor"),
 			TEXT("InputBindingEditor"),
 			TEXT("AudioEditor")
 		};

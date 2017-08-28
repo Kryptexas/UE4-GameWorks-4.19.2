@@ -23,6 +23,7 @@
 
 class FGlobalShaderType;
 class FMaterialShaderType;
+class FNiagaraShaderType;
 class FMeshMaterialShaderType;
 class FShaderPipelineType;
 class FShaderType;
@@ -793,7 +794,8 @@ public:
 	{
 		Global,
 		Material,
-		MeshMaterial
+		MeshMaterial,
+		Niagara
 	};
 
 	typedef class FShader* (*ConstructSerializedType)();
@@ -877,6 +879,14 @@ public:
 	FORCEINLINE const FMeshMaterialShaderType* GetMeshMaterialShaderType() const
 	{
 		return (ShaderTypeForDynamicCast == EShaderTypeForDynamicCast::MeshMaterial) ? reinterpret_cast<const FMeshMaterialShaderType*>(this) : nullptr;
+	}
+	FORCEINLINE const FNiagaraShaderType* GetNiagaraShaderType() const
+	{
+		return (ShaderTypeForDynamicCast == EShaderTypeForDynamicCast::Niagara) ? reinterpret_cast<const FNiagaraShaderType*>(this) : nullptr;
+	}
+	FORCEINLINE FNiagaraShaderType* GetNiagaraShaderType()
+	{
+		return (ShaderTypeForDynamicCast == EShaderTypeForDynamicCast::Niagara) ? reinterpret_cast<FNiagaraShaderType*>(this) : nullptr;
 	}
 
 	// Accessors.

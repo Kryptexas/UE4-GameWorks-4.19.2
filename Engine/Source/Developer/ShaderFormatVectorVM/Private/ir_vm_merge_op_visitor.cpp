@@ -20,7 +20,6 @@ PRAGMA_POP
 #include "ir.h"
 
 #include "VectorVM.h"
-#include "INiagaraCompiler.h"
 
 
 
@@ -100,8 +99,6 @@ public:
 						ir_rvalue* mul_operand = assign->rhs->clone(ralloc_parent(expr), NULL);
 						ir_rvalue* add_operand = equiv_operand == 0 ? expr->operands[1] : expr->operands[0];
 
-						expr->operands[0]->replace_with(mul_operand);
-						expr->operands[1]->replace_with(add_operand);
 						expr->operands[0] = mul_operand;
 						expr->operands[1] = add_operand;
 
@@ -151,8 +148,6 @@ public:
 						ir_rvalue* add_operand = equiv_operand == 0 ? expr->operands[1] : expr->operands[0];
 
 						expr->operation = ir_binop_sub;
-						expr->operands[0]->replace_with(add_operand);
-						expr->operands[1]->replace_with(neg_operand);
 						expr->operands[0] = add_operand;
 						expr->operands[1] = neg_operand;
 

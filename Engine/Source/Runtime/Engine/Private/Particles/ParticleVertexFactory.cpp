@@ -6,7 +6,7 @@
 
 #include "ParticleVertexFactory.h"
 #include "ParticleHelper.h"
-#include "Particles/ParticleResources.h"
+#include "ParticleResources.h"
 #include "ShaderParameterUtils.h"
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FParticleSpriteUniformParameters,TEXT("SpriteVF"));

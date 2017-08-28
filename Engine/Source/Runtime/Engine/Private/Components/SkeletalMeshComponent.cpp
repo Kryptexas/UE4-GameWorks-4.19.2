@@ -588,10 +588,10 @@ void USkeletalMeshComponent::InitAnim(bool bForceReinit)
 		// this has to be called before Initialize Animation because it will required RequiredBones list when InitializeAnimScript
 		RecalcRequiredBones(0);
 
-		bool bDoRefreshBoneTransform = true;
-		if (InitializeAnimScriptInstance(bForceReinit))
+		const bool bInitializedAnimInstance = InitializeAnimScriptInstance(bForceReinit);
+		// Make sure we have a valid pose.
+		if (bInitializedAnimInstance || (AnimScriptInstance == nullptr))
 		{
-			//Make sure we have a valid pose
 			if (bUseRefPoseOnInitAnim)
 			{
 				BoneSpaceTransforms = SkeletalMesh->RefSkeleton.GetRefBonePose();
@@ -599,20 +599,19 @@ void USkeletalMeshComponent::InitAnim(bool bForceReinit)
 				FillComponentSpaceTransforms(SkeletalMesh, BoneSpaceTransforms, GetEditableComponentSpaceTransforms());
 				bNeedToFlipSpaceBaseBuffers = true; // Have updated space bases so need to flip
 				FlipEditableSpaceBases();
-				bDoRefreshBoneTransform = false;
 			}
 			else
 			{
 				TickAnimation(0.f, false);
+				RefreshBoneTransforms();
 			}
 
-			OnAnimInitialized.Broadcast();
+			if (bInitializedAnimInstance)
+			{
+				OnAnimInitialized.Broadcast();
+			}
 		}
 
-		if (bDoRefreshBoneTransform)
-		{
-			RefreshBoneTransforms();
-		}
 		UpdateComponentToWorld();
 	}
 }
@@ -924,6 +923,16 @@ void USkeletalMeshComponent::TickAnimation(float DeltaTime, bool bNeedsValidRoot
 		{
 			PostProcessAnimInstance->UpdateAnimation(DeltaTime * GlobalAnimRateScale, false);
 		}
+
+		/**
+			If we're called directly for autonomous proxies, TickComponent is not guaranteed to get called.
+			So dispatch all queued events here if we're doing MontageOnly ticking.
+		*/
+		if ((MeshComponentUpdateFlag == EMeshComponentUpdateFlag::OnlyTickMontagesWhenNotRendered)
+			&& !bRecentlyRendered)
+		{
+			ConditionallyDispatchQueuedAnimEvents();
+		}
 	}
 }
 
@@ -940,9 +949,7 @@ bool USkeletalMeshComponent::UpdateLODStatus()
 
 bool USkeletalMeshComponent::ShouldUpdateTransform(bool bLODHasChanged) const
 {
-
-#if WITH_EDITOR
-	
+#if WITH_EDITOR	
 	// If we're in an editor world (Non running, WorldType will be PIE when simulating or in PIE) then we only want transform updates on LOD changes as the
 	// animation isn't running so it would just waste CPU time
 	if(GetWorld()->WorldType == EWorldType::Editor)
@@ -972,8 +979,7 @@ bool USkeletalMeshComponent::ShouldUpdateTransform(bool bLODHasChanged) const
 	// If forcing RefPose we can skip updating the skeleton for perf, except if it's using MorphTargets.
 	const bool bSkipBecauseOfRefPose = bForceRefpose && bOldForceRefPose && (MorphTargetCurves.Num() == 0) && ((AnimScriptInstance) ? !AnimScriptInstance->HasMorphTargetCurves() : true);
 
-	// LOD changing should always trigger an update.
-	return (bLODHasChanged || !bRequiredBonesUpToDate || (!bNoSkeletonUpdate && !bSkipBecauseOfRefPose && Super::ShouldUpdateTransform(bLODHasChanged)));
+	return (!bNoSkeletonUpdate && !bSkipBecauseOfRefPose && Super::ShouldUpdateTransform(bLODHasChanged));
 }
 
 bool USkeletalMeshComponent::ShouldTickPose() const
@@ -1845,6 +1851,29 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 		CachedBoneSpaceTransforms.Reset();
 		CachedComponentSpaceTransforms.Reset();
 		CachedCurve.Empty();
+	}
+
+	// If we need to eval the graph, and we're not going to update it.
+	// make sure it's been ticked at least once!
+	if (bShouldDoEvaluation)
+	{
+		bool bShouldTickAnimation = false;		
+		if (AnimScriptInstance && !AnimScriptInstance->NeedsUpdate())
+		{
+			bShouldTickAnimation = bShouldTickAnimation || !AnimScriptInstance->GetUpdateCounter().HasEverBeenUpdated();
+			for (const UAnimInstance* SubInstance : SubInstances)
+			{
+				bShouldTickAnimation = bShouldTickAnimation || (SubInstance && !SubInstance->GetUpdateCounter().HasEverBeenUpdated());
+			}
+		}
+
+		bShouldTickAnimation = bShouldTickAnimation || (PostProcessAnimInstance && !PostProcessAnimInstance->NeedsUpdate() && !PostProcessAnimInstance->GetUpdateCounter().HasEverBeenUpdated());
+
+		if (bShouldTickAnimation)
+		{
+			// We bypass TickPose() and call TickAnimation directly, so URO doesn't intercept us.
+			TickAnimation(0.f, false);
+		}
 	}
 
 	if(AnimScriptInstance)

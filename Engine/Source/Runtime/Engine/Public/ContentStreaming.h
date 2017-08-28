@@ -269,6 +269,11 @@ struct IStreamingManager
 		return NumWantingResourcesCounter;
 	}
 
+	/** Propagates a change to the active lighting scenario. */
+	virtual void PropagateLightingScenarioChange() 
+	{
+	}
+
 protected:
 
 	/**
@@ -592,6 +597,9 @@ struct FStreamingManagerCollection : public IStreamingManager
 	 * Replaces previous info.
 	 */
 	virtual void NotifyPrimitiveUpdated_Concurrent( const UPrimitiveComponent* Primitive ) override;
+
+	/** Propagates a change to the active lighting scenario. */
+	void PropagateLightingScenarioChange() override;
 
 protected:
 

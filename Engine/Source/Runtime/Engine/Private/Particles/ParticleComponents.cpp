@@ -1749,7 +1749,7 @@ void UParticleEmitter::CacheEmitterModuleInfo()
 
 float UParticleEmitter::GetQualityLevelSpawnRateMult()
 {
-	int32 EffectsQuality = Scalability::GetEffectsQualityDirect(true);
+	int32 EffectsQuality = Scalability::GetEffectsQualityDirect(IsInGameThread());
 	int32 ReferenceLevel = CVarQLSpawnRateReferenceLevel.GetValueOnAnyThread(true);
 	float Level = (ReferenceLevel - EffectsQuality);
 	float Q = FMath::Pow(QualityLevelSpawnRateScale, Level);

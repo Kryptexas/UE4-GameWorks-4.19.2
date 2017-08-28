@@ -2343,12 +2343,6 @@ void UMaterialInstance::SetTextureParameterValueInternal(FName ParameterName, UT
 		// set as an ensure, because it is somehow possible to accidentally pass non-textures into here via blueprints...
 		if (Value && ensureMsgf(Value->IsA(UTexture::StaticClass()), TEXT("Expecting a UTexture! Value='%s' class='%s'"), *Value->GetName(), *Value->GetClass()->GetName()))
 		{
-			if ( FPlatformProperties::RequiresCookedData() )
-			{
-				// Daniel L: Temporary code to track down OR-40458 REMOVE ME
-				check(IsInGameThread());
-				check(!Value->IsPendingKill());
-			}
 			ParameterValue->ParameterValue = Value;
 			// Update the material instance data in the rendering thread.
 			GameThread_UpdateMIParameter(this, *ParameterValue);

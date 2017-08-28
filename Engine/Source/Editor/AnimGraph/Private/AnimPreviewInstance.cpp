@@ -459,6 +459,25 @@ void UAnimPreviewInstance::NativeInitializeAnimation()
 	Proxy.RefreshCurveBoneControllers(CurrentAsset);
 }
 
+void UAnimPreviewInstance::Montage_Advance(float DeltaTime)
+{
+	/*
+		We're running in the Animation Editor.
+		Call 'EditorOnly_PreAdvance' on montage instances.
+		So they can do editor specific updates.
+	*/
+	for (int32 InstanceIndex = 0; InstanceIndex < MontageInstances.Num(); InstanceIndex++)
+	{
+		FAnimMontageInstance* const MontageInstance = MontageInstances[InstanceIndex];
+		if (MontageInstance && MontageInstance->IsValid())
+		{
+			MontageInstance->EditorOnly_PreAdvance();
+		}
+	}
+
+	Super::Montage_Advance(DeltaTime);
+}
+
 FAnimNode_ModifyBone* UAnimPreviewInstance::FindModifiedBone(const FName& InBoneName, bool bCurveController/*=false*/)
 {
 	return GetProxyOnGameThread<FAnimPreviewInstanceProxy>().FindModifiedBone(InBoneName, bCurveController);

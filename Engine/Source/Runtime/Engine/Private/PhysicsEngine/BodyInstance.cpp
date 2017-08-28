@@ -3982,7 +3982,8 @@ static bool GetSquaredDistanceToBodyHelper(const PxRigidActor* RigidActor, const
 {
 	bool bFoundValidBody = false;
 	
-	PxGeometry& PGeom = PShape->getGeometry().any();
+	PxGeometryHolder Holder = PShape->getGeometry();	// getGeometry() result is stored on the stack, if we don't hold on to it it may be gone next statement.
+	PxGeometry& PGeom = Holder.any();
 	PxTransform PGlobalPose = GetPxTransform_AssumesLocked(PShape, RigidActor);
 	PxGeometryType::Enum GeomType = PShape->getGeometryType();
 	
@@ -4050,7 +4051,7 @@ bool FBodyInstance::GetSquaredDistanceToBody(const FVector& Point, float& OutDis
 			}
 			
 			PxGeometryHolder Holder = PShape->getGeometry();	// getGeometry() result is stored on the stack, if we don't hold on to it it may be gone next statement.
-			PxGeometry& PGeom = Holder.any();			
+			PxGeometry& PGeom = Holder.any();
 			
 			bool bFinish = false;
 			bool bSkip = false;

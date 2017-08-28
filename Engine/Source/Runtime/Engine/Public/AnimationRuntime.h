@@ -301,6 +301,19 @@ public:
 	/** Accumulate a MeshSpaceRotation Additive pose to a local pose. Rotations are NOT normalized */
 	static void AccumulateMeshSpaceRotationAdditiveToLocalPose(FCompactPose& BasePose, const FCompactPose& MeshSpaceRotationAdditive, FBlendedCurve& BaseCurve, const FBlendedCurve& AdditiveCurve, float Weight);
 
+	/** Lerp for BoneTransforms. Stores results in A. Performs A = Lerp(A, B, Alpha);
+	* @param A : In/Out FCompactPose.
+	* @param B : B In FCompactPose.
+	* @param Alpha : Alpha.
+	*/
+	static void LerpPoses(FCompactPose& PoseA, const FCompactPose& PoseB, FBlendedCurve& CurveA, const FBlendedCurve& CurveB, float Alpha);
+
+	/** Lerp for BoneTransforms. Stores results in A. Performs A = Lerp(A, B, Alpha);
+	* @param A : In/Out FCompactPose.
+	* @param B : B In FCompactPose.
+	* @param Alpha : Alpha.
+	*/
+	static void LerpPosesPerBone(FCompactPose& PoseA, const FCompactPose& PoseB, FBlendedCurve& CurveA, const FBlendedCurve& CurveB, float Alpha, const TArray<float>& PerBoneWeights);
 
 	/** Lerp for BoneTransforms. Stores results in A. Performs A = Lerp(A, B, Alpha);
 	 * @param A : In/Out transform array.
@@ -389,8 +402,8 @@ public:
 #endif
 
 	/* Weight utility functions */
-	static bool IsFullWeight(float Weight) { return Weight > 1.f - ZERO_ANIMWEIGHT_THRESH; }
-	static bool HasWeight(float Weight) { return Weight > ZERO_ANIMWEIGHT_THRESH; }
+	static FORCEINLINE bool IsFullWeight(float Weight) { return FAnimWeight::IsFullWeight(Weight); }
+	static FORCEINLINE bool HasWeight(float Weight) { return FAnimWeight::IsRelevant(Weight); }
 	
 	/**
 	* Combine CurveKeys (that reference morph targets by name) and ActiveAnims (that reference morphs by reference) into the ActiveMorphTargets array.

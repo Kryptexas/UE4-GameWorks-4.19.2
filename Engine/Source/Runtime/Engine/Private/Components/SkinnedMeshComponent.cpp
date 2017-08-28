@@ -618,7 +618,7 @@ bool USkinnedMeshComponent::ShouldTickPose() const
 
 bool USkinnedMeshComponent::ShouldUpdateTransform(bool bLODHasChanged) const
 {
-	return (bLODHasChanged || bRecentlyRendered || (MeshComponentUpdateFlag == EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones));
+	return (bRecentlyRendered || (MeshComponentUpdateFlag == EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones));
 }
 
 bool USkinnedMeshComponent::ShouldUseUpdateRateOptimizations() const
@@ -2372,11 +2372,6 @@ bool USkinnedMeshComponent::UpdateLODStatus()
 		{
 			bLODChanged |= SlaveComponents->UpdateLODStatus();
 		}
-	}
-
-	if (bLODChanged)
-	{
-		MarkRenderDynamicDataDirty();
 	}
 
 	return bLODChanged;

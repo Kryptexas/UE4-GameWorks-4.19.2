@@ -64,6 +64,12 @@ namespace EMeshComponentUpdateFlag
 		AlwaysTickPoseAndRefreshBones,
 		/** Always Tick, but Refresh BoneTransforms only when rendered. */
 		AlwaysTickPose,
+		/**
+			When rendered Tick Pose and Refresh Bone Transforms,
+			otherwise, just update montages and skip everything else.
+			(AnimBP graph will not be updated).
+		*/
+		OnlyTickMontagesWhenNotRendered,
 		/** Tick only when rendered, and it will only RefreshBoneTransforms when rendered. */
 		OnlyTickPoseWhenRendered,
 	};

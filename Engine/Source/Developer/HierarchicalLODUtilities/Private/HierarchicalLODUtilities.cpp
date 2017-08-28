@@ -265,34 +265,34 @@ bool FHierarchicalLODUtilities::BuildStaticMeshForLODActor(ALODActor* LODActor, 
 	return false;
 }
 
-bool FHierarchicalLODUtilities::ShouldGenerateCluster(AActor* Actor)
+EClusterGenerationError FHierarchicalLODUtilities::ShouldGenerateCluster(AActor* Actor)
 {
 	if (!Actor)
 	{
-		return false;
+		return EClusterGenerationError::InvalidActor;
 	}
 
 	if (Actor->bHidden)
 	{
-		return false;
+		return EClusterGenerationError::ActorHiddenInGame;
 	}
 
 	if (!Actor->bEnableAutoLODGeneration)
 	{
-		return false;
+		return EClusterGenerationError::ExcludedActor;
 	}
 
 	ALODActor* LODActor = Cast<ALODActor>(Actor);
 	if (LODActor)
 	{
-		return false;
+		return EClusterGenerationError::LODActor;
 	}
 
 	FVector Origin, Extent;
 	Actor->GetActorBounds(false, Origin, Extent);
 	if (Extent.SizeSquared() <= 0.1)
 	{
-		return false;
+		return EClusterGenerationError::ActorTooSmall;
 	}
 
 	// for now only consider staticmesh - I don't think skel mesh would work with simplygon merge right now @fixme
@@ -303,30 +303,37 @@ bool FHierarchicalLODUtilities::ShouldGenerateCluster(AActor* Actor)
 
 	int32 ValidComponentCount = 0;
 	// now make sure you check parent primitive, so that we don't build for the actor that already has built. 
+
+	EClusterGenerationError ErrorType = EClusterGenerationError::None;
+
 	if (Components.Num() > 0)
 	{
 		for (auto& ComponentIter : Components)
 		{
 			if (ComponentIter->GetLODParentPrimitive())
 			{
-				return false;
+				return EClusterGenerationError::AlreadyClustered;
 			}
 
 			if (ComponentIter->bHiddenInGame)
 			{
-				return false;
+				return EClusterGenerationError::ComponentHiddenInGame;
 			}
 
 			// see if we should generate it
 			if (ComponentIter->ShouldGenerateAutoLOD())
 			{
 				++ValidComponentCount;
-				break;
+				ErrorType |= EClusterGenerationError::ValidActor;
+			}
+			else
+			{
+				ErrorType |= (ComponentIter->bEnableAutoLODGeneration ? EClusterGenerationError::MoveableComponent: EClusterGenerationError::ExcludedComponent);
 			}
 		}
 	}
 
-	return (ValidComponentCount > 0);
+	return ErrorType;
 }
 
 ALODActor* FHierarchicalLODUtilities::GetParentLODActor(const AActor* InActor)

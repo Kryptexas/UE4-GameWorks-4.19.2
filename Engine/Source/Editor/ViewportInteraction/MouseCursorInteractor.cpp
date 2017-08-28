@@ -33,7 +33,7 @@ void UMouseCursorInteractor::PollInput()
 	InteractorData.LastRoomSpaceTransform = InteractorData.RoomSpaceTransform;
 
 	// Make sure we have a valid viewport with a cursor over it, and that the viewport's world is the same as ours
-	FEditorViewportClient* ViewportClientPtr = GCurrentLevelEditingViewportClient;
+	FEditorViewportClient* ViewportClientPtr = WorldInteraction->GetDefaultOptionalViewportClient();
 	if( ViewportClientPtr != nullptr && ViewportClientPtr->GetWorld() == WorldInteraction->GetWorld() )
 	{
 		FEditorViewportClient& ViewportClient = *ViewportClientPtr;

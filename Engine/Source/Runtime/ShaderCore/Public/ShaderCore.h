@@ -26,6 +26,9 @@ SHADERCORE_API DECLARE_LOG_CATEGORY_EXTERN(LogShaders, Log, All);
 SHADERCORE_API DECLARE_LOG_CATEGORY_EXTERN(LogShaders, Error, All);
 #endif
 
+DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Num Total Niagara Shaders"), STAT_ShaderCompiling_NumTotalNiagaraShaders, STATGROUP_ShaderCompiling, SHADERCORE_API);
+DECLARE_FLOAT_ACCUMULATOR_STAT_EXTERN(TEXT("Total Niagara Shader Compiling Time"), STAT_ShaderCompiling_NiagaraShaders, STATGROUP_ShaderCompiling, SHADERCORE_API);
+
 DECLARE_FLOAT_ACCUMULATOR_STAT_EXTERN(TEXT("Total Material Shader Compiling Time"),STAT_ShaderCompiling_MaterialShaders,STATGROUP_ShaderCompiling, SHADERCORE_API);
 DECLARE_FLOAT_ACCUMULATOR_STAT_EXTERN(TEXT("Total Global Shader Compiling Time"),STAT_ShaderCompiling_GlobalShaders,STATGROUP_ShaderCompiling, SHADERCORE_API);
 DECLARE_FLOAT_ACCUMULATOR_STAT_EXTERN(TEXT("RHI Compile Time"),STAT_ShaderCompiling_RHI,STATGROUP_ShaderCompiling, SHADERCORE_API);
@@ -186,6 +189,8 @@ private:
 	};
 
 	TMap<FString,FParameterAllocation> ParameterMap;
+public:
+
 };
 
 /** Container for shader compiler definitions. */

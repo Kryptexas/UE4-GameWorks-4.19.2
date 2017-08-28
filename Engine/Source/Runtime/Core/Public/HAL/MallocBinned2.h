@@ -55,7 +55,7 @@
 	#if UE_BUILD_SHIPPING && !WITH_EDITOR
 		#define BINNED2_ALLOCATOR_STATS 0	
 	#else
-		#define BINNED2_ALLOCATOR_STATS 0
+		#define BINNED2_ALLOCATOR_STATS 1
 	#endif
 #endif
 

@@ -137,6 +137,11 @@ public:
 		: InternalCounter(INDEX_NONE)
 	{}
 
+	bool HasEverBeenUpdated() const
+	{
+		return (InternalCounter != INDEX_NONE);
+	}
+
 	int16 Get() const
 	{
 		return InternalCounter;

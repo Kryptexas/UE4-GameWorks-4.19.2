@@ -235,13 +235,19 @@ FD3D11BoundShaderState::FD3D11BoundShaderState(
 	D3D11_INPUT_ELEMENT_DESC NullInputElement;
 	FMemory::Memzero(&NullInputElement,sizeof(D3D11_INPUT_ELEMENT_DESC));
 
-	FMemory::Memcpy(StreamStrides, InVertexDeclaration->StreamStrides, sizeof(StreamStrides));
-
 	FShaderCodeReader VertexShaderCode(InVertexShader->Code);
 
-	VERIFYD3D11RESULT_EX(
+	if (InVertexDeclaration == nullptr)
+	{
+		InputLayout = nullptr;
+	}
+	else
+	{
+		FMemory::Memcpy(StreamStrides, InVertexDeclaration->StreamStrides, sizeof(StreamStrides));
+
+		VERIFYD3D11RESULT_EX(
 		Direct3DDevice->CreateInputLayout(
-			InVertexDeclaration ? InVertexDeclaration->VertexElements.GetData() : &NullInputElement,
+			InVertexDeclaration && InVertexDeclaration->VertexElements.Num() ? InVertexDeclaration->VertexElements.GetData() : &NullInputElement,
 			InVertexDeclaration ? InVertexDeclaration->VertexElements.Num() : 0,
 			&InVertexShader->Code[ InVertexShader->Offset ],			// TEMP ugly
 			VertexShaderCode.GetActualShaderCodeSize() - InVertexShader->Offset,
@@ -249,6 +255,7 @@ FD3D11BoundShaderState::FD3D11BoundShaderState(
 			),
 		Direct3DDevice
 		);
+	}
 
 	VertexShader = InVertexShader->Resource;
 	PixelShader = InPixelShader ? InPixelShader->Resource : NULL;

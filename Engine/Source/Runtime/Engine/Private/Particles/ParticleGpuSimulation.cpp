@@ -33,7 +33,7 @@
 #include "Particles/FXSystemPrivate.h"
 #include "Particles/ParticleSortingGPU.h"
 #include "Particles/ParticleCurveTexture.h"
-#include "Particles/ParticleResources.h"
+#include "ParticleResources.h"
 #include "ShaderParameterUtils.h"
 #include "GlobalShader.h"
 #include "VectorFieldVisualization.h"

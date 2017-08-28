@@ -2144,4 +2144,7 @@ ULandscapeHeightfieldCollisionComponent::ULandscapeHeightfieldCollisionComponent
 
 	HeightfieldRowsCount = -1;
 	HeightfieldColumnsCount = -1;
+
+	// landscape collision components should be deterministically created and therefor are addressable over the network
+	SetNetAddressable();
 }

@@ -1195,6 +1195,8 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		}
 	}
 
+	RendererModule.DispatchPostOpaqueCompute(RHICmdList);
+
 	// No longer needed, release
 	LightShaftOutput.LightShaftOcclusion = NULL;
 

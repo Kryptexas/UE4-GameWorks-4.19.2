@@ -24,8 +24,8 @@ public:
 
 	ULevel* GetLevel() const { return Level; }
 
-	// Remove the whole level
-	void Remove(FRemovedTextureArray& RemovedTextures);
+	// Remove the whole level. Optional list of textures referenced
+	void Remove(FRemovedTextureArray* RemovedTextures);
 
 	// Invalidate a component reference.
 

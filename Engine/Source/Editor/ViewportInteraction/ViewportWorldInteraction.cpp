@@ -2608,6 +2608,10 @@ void UViewportWorldInteraction::RefreshTransformGizmo( const bool bNewObjectsSel
 		{
 			ViewerLocation = GetHeadTransform().GetLocation();
 		}
+		else if (DefaultOptionalViewportClient != nullptr)
+		{
+			ViewerLocation = DefaultOptionalViewportClient->GetViewLocation();
+		}
 		else if( GCurrentLevelEditingViewportClient != nullptr )
 		{
 			ViewerLocation = GCurrentLevelEditingViewportClient->GetViewLocation();
@@ -2859,19 +2863,19 @@ void UViewportWorldInteraction::ApplyVelocityDamping( FVector& Velocity, const b
 void UViewportWorldInteraction::CycleTransformGizmoCoordinateSpace()
 {
 	const bool bGetRawValue = true;
-	const ECoordSystem CurrentCoordSystem = GLevelEditorModeTools().GetCoordSystem( bGetRawValue );
+	const ECoordSystem CurrentCoordSystem = GetModeTools().GetCoordSystem( bGetRawValue );
 	SetTransformGizmoCoordinateSpace( CurrentCoordSystem == COORD_World ? COORD_Local : COORD_World );
 }
 
 void UViewportWorldInteraction::SetTransformGizmoCoordinateSpace( const ECoordSystem NewCoordSystem )
 {
-	GLevelEditorModeTools().SetCoordSystem( NewCoordSystem );
+	GetModeTools().SetCoordSystem( NewCoordSystem );
 }
 
 ECoordSystem UViewportWorldInteraction::GetTransformGizmoCoordinateSpace() const
 {
 	const bool bGetRawValue = false;
-	const ECoordSystem CurrentCoordSystem = GLevelEditorModeTools().GetCoordSystem( bGetRawValue );
+	const ECoordSystem CurrentCoordSystem = GetModeTools().GetCoordSystem( bGetRawValue );
 	return CurrentCoordSystem;
 }
 
@@ -3042,7 +3046,7 @@ EGizmoHandleTypes UViewportWorldInteraction::GetCurrentGizmoType() const
 	}
 	else
 	{
-		switch( GLevelEditorModeTools().GetWidgetMode() )
+		switch( GetModeTools().GetWidgetMode() )
 		{
 			case FWidget::WM_TranslateRotateZ:
 				return EGizmoHandleTypes::All;
@@ -3069,19 +3073,19 @@ void UViewportWorldInteraction::SetGizmoHandleType( const EGizmoHandleTypes InGi
 	{
 		case EGizmoHandleTypes::All:
 			GizmoType = InGizmoHandleType;
-			GLevelEditorModeTools().SetWidgetMode( FWidget::WM_Translate );
+			GetModeTools().SetWidgetMode( FWidget::WM_Translate );
 			break;
 
 		case EGizmoHandleTypes::Translate:
-			GLevelEditorModeTools().SetWidgetMode( FWidget::WM_Translate );
+			GetModeTools().SetWidgetMode( FWidget::WM_Translate );
 			break;
 
 		case EGizmoHandleTypes::Rotate:
-			GLevelEditorModeTools().SetWidgetMode( FWidget::WM_Rotate );
+			GetModeTools().SetWidgetMode( FWidget::WM_Rotate );
 			break;
 
 		case EGizmoHandleTypes::Scale:
-			GLevelEditorModeTools().SetWidgetMode( FWidget::WM_Scale );
+			GetModeTools().SetWidgetMode( FWidget::WM_Scale );
 			break;
 
 		check(0);
@@ -3535,6 +3539,11 @@ bool UViewportWorldInteraction::HasTransformableWithVelocityInSimulate() const
 	}
 
 	return bResult;
+}
+
+FEditorModeTools& UViewportWorldInteraction::GetModeTools() const
+{
+	return DefaultOptionalViewportClient == nullptr ? GLevelEditorModeTools() : *DefaultOptionalViewportClient->GetModeTools();
 }
 
 FVector UViewportWorldInteraction::SnapLocation(const bool bLocalSpaceSnapping, const FVector& DesiredGizmoLocation, const FTransform &GizmoStartTransform, const FVector SnapGridBase, const bool bShouldConstrainMovement, const FVector AlignAxes)

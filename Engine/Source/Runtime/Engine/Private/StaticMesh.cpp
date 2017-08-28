@@ -3087,6 +3087,37 @@ void UStaticMesh::SetVertexColorData(const TMap<FVector, FColor>& VertexColorDat
 #endif // #if WITH_EDITOR
 }
 
+ENGINE_API void UStaticMesh::RemoveVertexColors()
+{
+#if WITH_EDITOR
+	bool bRemovedVertexColors = false;
+
+	for (FStaticMeshSourceModel& SourceModel : SourceModels)
+	{
+		if (SourceModel.RawMeshBulkData && !SourceModel.RawMeshBulkData->IsEmpty())
+		{
+			FRawMesh RawMesh;
+			SourceModel.RawMeshBulkData->LoadRawMesh(RawMesh);
+
+			if (RawMesh.WedgeColors.Num() > 0)
+			{
+				RawMesh.WedgeColors.Empty();
+
+				SourceModel.RawMeshBulkData->SaveRawMesh(RawMesh);
+
+				bRemovedVertexColors = true;
+			}
+		}
+	}
+
+	if (bRemovedVertexColors)
+	{
+		Build();
+		MarkPackageDirty();
+	}
+#endif
+}
+
 void UStaticMesh::EnforceLightmapRestrictions()
 {
 	// Legacy content may contain a lightmap resolution of 0, which was valid when vertex lightmaps were supported, but not anymore with only texture lightmaps

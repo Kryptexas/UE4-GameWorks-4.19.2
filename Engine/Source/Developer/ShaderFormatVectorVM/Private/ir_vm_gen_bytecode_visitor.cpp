@@ -21,7 +21,6 @@ PRAGMA_POP
 #include "ir.h"
 
 #include "VectorVM.h"
-#include "INiagaraCompiler.h"
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -321,32 +320,26 @@ void BuildExpressionMap()
 	}
 }
 
-//TODO: remove this. Handle internal constants in a way that doesn't require them being written back into the parameters set.
-FNiagaraTypeDefinition GetNiagaraTypeDef(const glsl_type *type)
-{
-	check(type->is_scalar());
-	if (type->is_float())
-	{
-		return FNiagaraTypeDefinition::GetFloatDef();
-	}
-	else if (type->is_integer())
-	{
-		return FNiagaraTypeDefinition::GetIntDef();
-	}
-	else if (type->is_boolean())
-	{
-		return FNiagaraTypeDefinition::GetBoolDef();
-	}
-
-	return FNiagaraTypeDefinition::GetFloatDef();
-}
-
 EVectorVMOp get_special_vm_opcode(ir_function_signature* signature)
 {
 	EVectorVMOp VVMOpCode = EVectorVMOp::done;
 	if (strcmp(signature->function_name(), "rand") == 0)
 	{
-		VVMOpCode = EVectorVMOp::random;
+		unsigned num_operands = 0;
+		foreach_iter(exec_list_iterator, iter, signature->parameters)
+		{
+			ir_variable *const param = (ir_variable *)iter.get();
+			check(param->type->is_scalar());
+			switch (param->type->base_type)
+			{
+			case GLSL_TYPE_FLOAT: VVMOpCode = EVectorVMOp::random; break;
+			case GLSL_TYPE_INT: VVMOpCode = EVectorVMOp::randomi; break;
+			//case GLSL_TYPE_BOOL: v->constant_table_size_bytes += sizeof(int32); break;
+			default: check(0);
+			}
+			++num_operands;
+		}
+		check(num_operands == 1);
 	}
 	else if (strcmp(signature->function_name(), "Modulo") == 0)
 	{
@@ -571,7 +564,7 @@ struct op_base
 		check(component);
 		if (ir_variable* var = component->owner->ir->as_variable())
 		{
-			if (var->mode == ir_var_temporary || var->mode == ir_var_auto)
+			if (component->offset == INDEX_NONE && (var->mode == ir_var_temporary || var->mode == ir_var_auto))
 			{
 				for (unsigned j = 0; j < num_temp_registers; ++j)
 				{
@@ -579,6 +572,9 @@ struct op_base
 					{
 						component->offset = VectorVM::FirstTempRegister + j;
 						registers[j] = component->last_read;
+#if VM_VERBOSE_LOGGING
+						UE_LOG(LogVVMBackend, Log, TEXT("OP:%d | Comp:%p allocated Reg: %d | Last Read: %d |"), op_idx, component, j, component->last_read);
+#endif
 						break;
 					}
 				}
@@ -1068,11 +1064,12 @@ class ir_gen_vvm_visitor : public ir_hierarchical_visitor
 	void *mem_ctx;
 
 	/** Helper class allowing us to feed information about constants back into the compilers representation of constants. This can be removed when "internal" constants are handled differently. */
-	FNiagaraCompilationOutput& CompilationOutput;
+	FVectorVMCompilationOutput& CompilationOutput;
 
 	/** contains a var_info for each variable and constant seen. Each having a tree describing the whole variable and data locations. */
 	hash_table* var_info_table;
 
+	TArray<variable_info*> param_vars;
 	unsigned num_input_components;
 	unsigned num_output_components;
 	unsigned constant_table_size_bytes;
@@ -1087,7 +1084,7 @@ class ir_gen_vvm_visitor : public ir_hierarchical_visitor
 
 	TArray<ir_constant*> seen_constants;
 
-	explicit ir_gen_vvm_visitor(_mesa_glsl_parse_state *in_parse_state, FNiagaraCompilationOutput& InCompilationOutput)
+	explicit ir_gen_vvm_visitor(_mesa_glsl_parse_state *in_parse_state, FVectorVMCompilationOutput& InCompilationOutput)
 		: parse_state(in_parse_state)
 		, mem_ctx(ralloc_context(0))
 		, CompilationOutput(InCompilationOutput)
@@ -1134,6 +1131,7 @@ class ir_gen_vvm_visitor : public ir_hierarchical_visitor
 		ir_gen_vvm_visitor* v = (ir_gen_vvm_visitor*)user_ptr;
 		check(node->is_scalar());
 
+		v->param_vars.AddUnique(node->owner);
 		node->offset = v->constant_table_size_bytes;
 		switch (node->type->base_type)
 		{
@@ -1259,31 +1257,47 @@ class ir_gen_vvm_visitor : public ir_hierarchical_visitor
 			//Internal constants should be written to a header on the bytecode or something and appended to the VM constant table after all the real uniforms.
 			//This is just an implementation quirk of the VM. The System above should know nothing about it.
 
-			//TODO: If we're really gonna do this (for now) maybe better to build up a single struct for all the internal constants and add it as a single uniform.
-			FNiagaraTypeDefinition TypeDef = GetNiagaraTypeDef(constant->type);
-
-			FName Name(*FString::Printf(TEXT("internal_const_%u"), seen_constants.Num()));
-			FNiagaraVariable Uni(TypeDef, Name);
-			switch (type->base_type)
-			{
-			case GLSL_TYPE_FLOAT: Uni.SetValue(constant->value.f[0]); break;
-			case GLSL_TYPE_INT: Uni.SetValue(constant->value.i[0]); break;
-			case GLSL_TYPE_BOOL: Uni.SetValue(constant->value.b[0] ? 0xFFFFFFFF : 0x0); break;
-			default: check(0);
-			};
-			CompilationOutput.InternalParameters.SetOrAdd(Uni);
-
 			varinfo = ralloc(mem_ctx, variable_info);
 			hash_table_insert(var_info_table, varinfo, constant);
 			varinfo->Init(mem_ctx, constant, EVectorVMOperandLocation::Constant);
-			assign_uniform_loc(varinfo->root, this);
+			int32 offset = CompilationOutput.InternalConstantData.Num();
+			varinfo->root->offset = constant_table_size_bytes + offset;
 			seen_constants.Add(constant);
+
+			switch (type->base_type)
+			{
+			case GLSL_TYPE_FLOAT: 
+			{
+				CompilationOutput.InternalConstantOffsets.Add(offset);
+				CompilationOutput.InternalConstantTypes.Add(EVectorVMBaseTypes::Float);
+				CompilationOutput.InternalConstantData.AddUninitialized(sizeof(float));
+				*(float*)(CompilationOutput.InternalConstantData.GetData() + offset) = constant->value.f[0];
+				break;
+			}
+			case GLSL_TYPE_INT:
+			{
+				CompilationOutput.InternalConstantOffsets.Add(offset);
+				CompilationOutput.InternalConstantTypes.Add(EVectorVMBaseTypes::Int);
+				CompilationOutput.InternalConstantData.AddUninitialized(sizeof(int32));
+				*(int32*)(CompilationOutput.InternalConstantData.GetData() + offset) = constant->value.i[0];
+				break;
+			}
+			case GLSL_TYPE_BOOL:
+			{
+				CompilationOutput.InternalConstantOffsets.Add(offset);
+				CompilationOutput.InternalConstantTypes.Add(EVectorVMBaseTypes::Bool);
+				CompilationOutput.InternalConstantData.AddUninitialized(sizeof(int32));
+				*(int32*)(CompilationOutput.InternalConstantData.GetData() + offset) = constant->value.b[0] ? 0xFFFFFFFF : 0x0;
+				break;
+			}
+			default: check(0);
+			};
 		}
 
 		check(varinfo->root->is_scalar());
 		check(varinfo);
 		curr_node = varinfo->root;
-		curr_node->last_read = ordered_ops.Num();
+		curr_node->last_read = ordered_ops.Num() - 1;
 
 		return visit_continue;
 	}
@@ -1301,7 +1315,7 @@ class ir_gen_vvm_visitor : public ir_hierarchical_visitor
 		check(var_info);
 		check(curr_node == nullptr);
 		curr_node = var_info->root->children[index->get_int_component(0)];
-		curr_node->last_read = ordered_ops.Num();
+		curr_node->last_read = ordered_ops.Num() - 1;
 
 		return visit_continue_with_parent;
 	}
@@ -1319,7 +1333,7 @@ class ir_gen_vvm_visitor : public ir_hierarchical_visitor
 		}
 
 		curr_node = var_info->root;
-		curr_node->last_read = ordered_ops.Num();
+		curr_node->last_read = ordered_ops.Num() - 1;
 
 		return visit_continue;
 	}
@@ -1353,7 +1367,7 @@ class ir_gen_vvm_visitor : public ir_hierarchical_visitor
 			curr_node = curr_node->children[swiz_comp];
 		}
 
-		curr_node->last_read = ordered_ops.Num();
+		curr_node->last_read = ordered_ops.Num() - 1;
 
 		//swizzles must be the final entry in a deref chain so we have to have reached a scalar by now.
 		check(curr_node->is_scalar());
@@ -1379,7 +1393,7 @@ class ir_gen_vvm_visitor : public ir_hierarchical_visitor
 		}
 		check(prev_node != curr_node);//We have to find a child to move into.
 
-		curr_node->last_read = ordered_ops.Num();
+		curr_node->last_read = ordered_ops.Num() - 1;
 
 		return visit_continue;
 	}
@@ -1672,7 +1686,7 @@ class ir_gen_vvm_visitor : public ir_hierarchical_visitor
 			func->function_index = CompilationOutput.CalledVMFunctionTable.AddDefaulted();
 			func->sig = call->callee;
 			check(func->function_index != INDEX_NONE);
-			FNiagaraCompilationOutput::FCalledVMFunction& CalledFunc = CompilationOutput.CalledVMFunctionTable[func->function_index];
+			FVectorVMCompilationOutput::FCalledVMFunction& CalledFunc = CompilationOutput.CalledVMFunctionTable[func->function_index];
 			CalledFunc.Name = call->callee->function_name();
 
 			exec_node* sig_param_node = call->callee->parameters.get_head();
@@ -1762,6 +1776,9 @@ class ir_gen_vvm_visitor : public ir_hierarchical_visitor
 		//Allocate temp registers
 		const unsigned num_temp_registers = VectorVM::NumTempRegisters;
 		unsigned *registers = rzalloc_array(mem_ctx, unsigned, num_temp_registers);
+#if VM_VERBOSE_LOGGING
+		UE_LOG(LogVVMBackend, Log, TEXT("\n-------------------------------\nTemporary Allocations\n------------------------------\n"));
+#endif
 		for (int32 i = 0; i < ordered_ops.Num(); ++i)
 		{
 			if (!ordered_ops[i]->finalize_temporary_allocations(num_temp_registers, registers, i))
@@ -1791,20 +1808,84 @@ class ir_gen_vvm_visitor : public ir_hierarchical_visitor
 
 	void DumpOps()
 	{
+#if VM_VERBOSE_LOGGING
 		FString OpStr;
 
-		for (int32 op_idx = 0; op_idx < ordered_ops.Num(); ++op_idx)
+		//Dump the constant table
+		OpStr += TEXT("\n-------------------------------\n");
+		OpStr += TEXT("Constant Table\n");
+		OpStr += TEXT("-------------------------------\n");
+		//First go through all the parameters.
+
+		TFunction<void(variable_info_node*, FString)> GatherConstantTable = [&](variable_info_node* node, FString accumulated_name)
 		{
-			OpStr += ordered_ops[op_idx]->to_string();
+			accumulated_name += node->name;
+			if (node->is_scalar())
+			{
+				check(node->offset != INDEX_NONE);
+				OpStr += FString::Printf(TEXT("%d | %s\n"), node->offset, *accumulated_name);
+			}
+			else
+			{
+				for (unsigned i = 0; i < node->num_children; ++i)
+				{
+					GatherConstantTable(node->children[i], accumulated_name);
+				}
+			}
+		};
+
+		for(variable_info* varinfo : param_vars)
+		{
+			GatherConstantTable(varinfo->root, FString());
 		}
 
-#if VM_VERBOSE_LOGGING
+		//Then go through all the internal constants.
+		for (int32 i = 0; i < CompilationOutput.InternalConstantOffsets.Num(); ++i)
+		{
+			EVectorVMBaseTypes Type = CompilationOutput.InternalConstantTypes[i];
+			int32 Offset = CompilationOutput.InternalConstantOffsets[i];
+			int32 TableOffset = constant_table_size_bytes + Offset;
+			switch (Type)
+			{
+			case EVectorVMBaseTypes::Float:
+			{
+				float Val = *(float*)(CompilationOutput.InternalConstantData.GetData() + Offset);
+				OpStr += FString::Printf(TEXT("%d | %f\n"), TableOffset, Val);
+			}
+			break;
+			case EVectorVMBaseTypes::Int:
+			{
+				int32 Val = *(int32*)(CompilationOutput.InternalConstantData.GetData() + Offset);
+				OpStr += FString::Printf(TEXT("%d | %d\n"), TableOffset, Val);
+			}
+			break;
+			case EVectorVMBaseTypes::Bool:
+			{
+				int32 Val = *(int32*)(CompilationOutput.InternalConstantData.GetData() + Offset);
+				OpStr += FString::Printf(TEXT("%d | %s\n"), TableOffset, Val == INDEX_NONE ? TEXT("True") : (Val == 0 ? TEXT("False") : TEXT("Invalid") ));
+			}
+			break;
+			}
+		}
+
+		OpStr += TEXT("-------------------------------\n");
+		OpStr += TEXT("Byte Code\n");
+		OpStr += TEXT("-------------------------------\n");
+		
+		//Dump the bytecode		
+		for (int32 op_idx = 0; op_idx < ordered_ops.Num(); ++op_idx)
+		{
+			OpStr += FString::Printf(TEXT("%d\t| "),op_idx) + ordered_ops[op_idx]->to_string();
+		}
+		
+		OpStr += TEXT("-------------------------------\n");
+
 		UE_LOG(LogVVMBackend, Log, TEXT("\n%s"), *OpStr);
 #endif
 	}
 
 public:
-	static char* run(exec_list *ir, _mesa_glsl_parse_state *state, FNiagaraCompilationOutput& InCompOutput)
+	static char* run(exec_list *ir, _mesa_glsl_parse_state *state, FVectorVMCompilationOutput& InCompOutput)
 	{
 		//now visit all assignments and gather operations info.
 		ir_gen_vvm_visitor genv(state, InCompOutput);
@@ -1827,7 +1908,7 @@ public:
 };
 
 
-void vm_gen_bytecode(exec_list *ir, _mesa_glsl_parse_state *state, FNiagaraCompilationOutput& InCompOutput)
+void vm_gen_bytecode(exec_list *ir, _mesa_glsl_parse_state *state, FVectorVMCompilationOutput& InCompOutput)
 {
 	BuildExpressionMap();
 

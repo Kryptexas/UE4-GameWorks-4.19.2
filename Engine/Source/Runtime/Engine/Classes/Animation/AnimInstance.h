@@ -981,6 +981,8 @@ public:
 	void ResetDynamics();
 
 public:
+	/** Access a read only version of the Updater Counter from the AnimInstanceProxy on the GameThread. */
+	const FGraphTraversalCounter& GetUpdateCounter() const; 
 
 	/** Access the required bones array */
 	FBoneContainer& GetRequiredBones();
@@ -1123,6 +1125,7 @@ private:
 private:
 	// update montage
 	void UpdateMontage(float DeltaSeconds);
+	void UpdateMontageSyncGroup();
 
 protected:
 	// Updates the montage data used for evaluation based on the current playing montages

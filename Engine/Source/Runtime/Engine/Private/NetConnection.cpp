@@ -1667,7 +1667,7 @@ float UNetConnection::GetTimeoutValue()
 
 	float Timeout = Driver->InitialConnectTimeout;
 
-	if ( ( State != USOCK_Pending ) && ( bPendingDestroy || ( OwningActor && OwningActor->UseShortConnectTimeout() ) ) )
+	if ((State != USOCK_Pending) && (bPendingDestroy || (OwningActor && OwningActor->UseShortConnectTimeout())))
 	{
 		const float ConnectionTimeout = Driver->ConnectionTimeout;
 
@@ -1675,12 +1675,16 @@ float UNetConnection::GetTimeoutValue()
 		Timeout = bPendingDestroy ? 2.f : ConnectionTimeout;
 	}
 
-#if WITH_EDITOR || UE_BUILD_DEBUG
-	if (Driver->TimeoutMultiplierForUnoptimizedBuilds > 0)
+	// Longtimeouts allows a multiplier to be added to get correct disconnection behavior
+	// with with additional leniancy when required. Implicit in debug/editor builds
+	static bool LongTimeouts = FParse::Param(FCommandLine::Get(), TEXT("longtimeouts"));
+
+	if (Driver->TimeoutMultiplierForUnoptimizedBuilds > 0 
+		&& (LongTimeouts || WITH_EDITOR || UE_BUILD_DEBUG)
+		)
 	{
 		Timeout *= Driver->TimeoutMultiplierForUnoptimizedBuilds;
 	}
-#endif
 
 	return Timeout;
 }

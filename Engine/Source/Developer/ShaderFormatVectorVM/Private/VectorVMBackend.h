@@ -7,7 +7,7 @@
 #include "LanguageSpec.h"
 #include "VectorVM.h"
 
-struct FNiagaraCompilationOutput;
+struct FVectorVMCompilationOutput;
 
 class FVectorVMLanguageSpec : public ILanguageSpec
 {
@@ -35,7 +35,7 @@ class ir_variable;
 // Generates VectorVM compliant code from IR tokens
 struct FVectorVMCodeBackend : public FCodeBackend
 {
-	FVectorVMCodeBackend(unsigned int InHlslCompileFlags, EHlslCompileTarget InTarget, FNiagaraCompilationOutput& InCompilerOutput) :
+	FVectorVMCodeBackend(unsigned int InHlslCompileFlags, EHlslCompileTarget InTarget, FVectorVMCompilationOutput& InCompilerOutput) :
 		FCodeBackend(InHlslCompileFlags, InTarget), CompilationOutput(InCompilerOutput)
 	{
 	}
@@ -52,7 +52,7 @@ struct FVectorVMCodeBackend : public FCodeBackend
 	//TODO: Do we need to generate a main()?
 	//virtual bool GenerateMain(EHlslShaderFrequency Frequency, const char* EntryPoint, exec_list* Instructions, _mesa_glsl_parse_state* ParseState) override;
 
-	FNiagaraCompilationOutput& CompilationOutput;
+	FVectorVMCompilationOutput& CompilationOutput;
 };
 
 class ir_call;
@@ -77,7 +77,7 @@ void vm_to_single_op(exec_list *ir, _mesa_glsl_parse_state *state);
 void vm_merge_ops(exec_list *ir, _mesa_glsl_parse_state *state);
 void vm_scalarize_ops(exec_list* ir, _mesa_glsl_parse_state* state);
 void vm_propagate_non_expressions_visitor(exec_list* ir, _mesa_glsl_parse_state* state);
-void vm_gen_bytecode(exec_list *ir, _mesa_glsl_parse_state *state, FNiagaraCompilationOutput& InCompOutput);
+void vm_gen_bytecode(exec_list *ir, _mesa_glsl_parse_state *state, FVectorVMCompilationOutput& InCompOutput);
 
 
 //////////////////////////////////////////////////////////////////////////

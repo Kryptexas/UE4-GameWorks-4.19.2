@@ -174,7 +174,6 @@ public class Engine : ModuleRules
 				"HeadMountedDisplay",
 				"MRMesh",
 				"StreamingPauseRendering",
-				"Niagara",
 			}
 		);
 
@@ -422,7 +421,5 @@ public class Engine : ModuleRules
 		{
 			RuntimeDependencies.Add("$(EngineDir)/Content/Stats/...", StagedFileType.UFS);
 		}
-
-		DynamicallyLoadedModuleNames.Add("Niagara");
 	}
 }

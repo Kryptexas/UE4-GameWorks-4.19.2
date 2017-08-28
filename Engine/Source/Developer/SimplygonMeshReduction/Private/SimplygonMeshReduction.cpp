@@ -133,7 +133,8 @@ public:
 			{
 				if ( Task != nullptr)
 				{
-					Task->EnterProgressFrame(ProgressPercent - PreviousProgress);
+					// @todo: jurre this is temporary fix for UE-48222
+					//Task->EnterProgressFrame(ProgressPercent - PreviousProgress);
 					PreviousProgress = ProgressPercent;
 				}
 			}

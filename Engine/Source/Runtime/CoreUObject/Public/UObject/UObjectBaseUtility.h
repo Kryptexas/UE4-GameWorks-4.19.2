@@ -134,8 +134,7 @@ public:
 	/**
 	 * Marks this object as RF_PendingKill.
 	 */
-	// Daniel L: Temporarily Virtual to track down OR-40458 remove virtual!
-	virtual void MarkPendingKill()
+	FORCEINLINE void MarkPendingKill()
 	{
 		check(!IsRooted());
 		GUObjectArray.IndexToObject(InternalIndex)->SetPendingKill();

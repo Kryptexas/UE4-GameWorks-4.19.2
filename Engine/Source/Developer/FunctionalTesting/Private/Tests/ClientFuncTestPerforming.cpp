@@ -8,81 +8,13 @@
 #include "FunctionalTestingModule.h"
 #include "EngineGlobals.h"
 #include "Tests/AutomationCommon.h"
+#include "FunctionalTestingHelper.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
 
 #define LOCTEXT_NAMESPACE "FunctionalTesting"
 
-DEFINE_LATENT_AUTOMATION_COMMAND(FWaitForFTestsToFinish);
-bool FWaitForFTestsToFinish::Update()
-{
-	return IFunctionalTestingModule::Get().IsRunning() == false;
-}
-
-DEFINE_LATENT_AUTOMATION_COMMAND(FTriggerFTests);
-bool FTriggerFTests::Update()
-{
-	IFunctionalTestingModule& Module = IFunctionalTestingModule::Get();
-	if (Module.IsFinished())
-	{
-		// if tests have been already triggered by level script just make sure it's not looping
-		if (Module.IsRunning())
-		{
-			Module.SetLooping(false);
-		}
-		else
-		{
-			Module.RunAllTestsOnMap(false, false);
-		}
-	}
-
-	return true;
-}
-
-
-DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FTriggerFTest, FString, TestName);
-bool FTriggerFTest::Update()
-{
-	IFunctionalTestingModule& Module = IFunctionalTestingModule::Get();
-	if (Module.IsFinished() )
-	{
-		// if tests have been already triggered by level script just make sure it's not looping
-		if (Module.IsRunning() )
-		{
-			Module.SetLooping(false);
-		}
-		else
-		{
-			Module.RunTestOnMap(TestName, false, false);
-		}
-	}
-
-	return true;
-}
-
-
-DEFINE_LATENT_AUTOMATION_COMMAND(FStartFTestsOnMap);
-bool FStartFTestsOnMap::Update()
-{
-	// This should now be handled by your IsReady override of the functional test.
-	//should really be wait until the map is properly loaded....in PIE or gameplay....
-	//ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(15.f));
-
-	ADD_LATENT_AUTOMATION_COMMAND(FTriggerFTests);
-	ADD_LATENT_AUTOMATION_COMMAND(FWaitForFTestsToFinish);	
-
-	return true;
-}
-
-
-DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FStartFTestOnMap, FString, TestName);
-bool FStartFTestOnMap::Update()
-{
-	ADD_LATENT_AUTOMATION_COMMAND(FTriggerFTest(TestName));
-	ADD_LATENT_AUTOMATION_COMMAND(FWaitForFTestsToFinish);
-
-	return true;
-}
+DEFINE_LOG_CATEGORY_STATIC(LogFunctionalTesting, Log, All);
 
 class FClientFunctionalTestingMapsBase : public FAutomationTestBase
 {

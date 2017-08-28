@@ -267,7 +267,7 @@ public:
 		{
 #if DO_TIMEGUARD
 			FTimerNameDelegate NameFunction = FTimerNameDelegate::CreateLambda( [&]{ return FString::Printf(TEXT("Slowtick %s "), *Target->DiagnosticMessage()); } );
-			SCOPE_TIME_GUARD_DELEGATE_MS(NameFunction, 2);
+			SCOPE_TIME_GUARD_DELEGATE_MS(NameFunction, 4);
 #endif
 
 			Target->ExecuteTick(Target->CalculateDeltaTime(Context), Context.TickType, CurrentThread, MyCompletionGraphEvent);

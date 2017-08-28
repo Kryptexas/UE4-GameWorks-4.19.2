@@ -918,7 +918,7 @@ public:
 	/** Accesses parameters needed for rendering the light. */
 	virtual void GetParameters(FLightParameters& LightParameters) const {}
 
-	virtual FVector2D GetDirectionalLightDistanceFadeParameters(ERHIFeatureLevel::Type InFeatureLevel, bool bPrecomputedLightingIsValid) const
+	virtual FVector2D GetDirectionalLightDistanceFadeParameters(ERHIFeatureLevel::Type InFeatureLevel, bool bPrecomputedLightingIsValid, int32 MaxNearCascades) const
 	{
 		return FVector2D(0, 0);
 	}
@@ -1005,7 +1005,7 @@ public:
 	{
 	}
 
-	virtual bool ShouldCreateRayTracedCascade(ERHIFeatureLevel::Type Type, bool bPrecomputedLightingIsValid) const { return false; }
+	virtual bool ShouldCreateRayTracedCascade(ERHIFeatureLevel::Type Type, bool bPrecomputedLightingIsValid, int32 MaxNearCascades) const { return false; }
 
 	// Accessors.
 	float GetUserShadowBias() const { return ShadowBias; }
