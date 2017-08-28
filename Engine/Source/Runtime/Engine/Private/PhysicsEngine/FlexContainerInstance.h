@@ -67,8 +67,8 @@ struct FFlexContainerInstance : public PxDeletionListener
 	void DestroyInstance(NvFlexExtInstance* Asset);
 
 	// spawns a new instance of a soft joint into the container
-	NvFlexExtJoint* CreateJointInstance(const TArray<int32>& ParticleIndices, const TArray<FVector>& ParticleLocalPositions, const int32 NumParticles, const float Stiffness);
-	void DestroyJointInstance(NvFlexExtJoint* joint);
+	NvFlexExtSoftJoint* CreateSoftJointInstance(const TArray<int32>& ParticleIndices, const TArray<FVector>& ParticleLocalPositions, const int32 NumParticles, const float Stiffness);
+	void DestroySoftJointInstance(NvFlexExtSoftJoint* joint);
 
 	// convert a phase to the solver format, will allocate a new group if requested
 	int32 GetPhase(const FFlexPhase& Phase);

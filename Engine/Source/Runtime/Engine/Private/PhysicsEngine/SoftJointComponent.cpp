@@ -46,7 +46,7 @@ void USoftJointComponent::OnUnregister()
 
 	if (ContainerInstance && Joint)
 	{
-		ContainerInstance->DestroyJointInstance(Joint);
+		ContainerInstance->DestroySoftJointInstance(Joint);
 		Joint = nullptr;
 
 		ParticleIndices.Empty();
@@ -135,7 +135,7 @@ void USoftJointComponent::TickComponent(float DeltaTime, enum ELevelTick TickTyp
 				ContainerInstance = Container;
 				ContainerInstance->Register(this);
 
-				Joint = ContainerInstance->CreateJointInstance(ParticleIndices, ParticleLocalPositions, NumParticles, Stiffness);
+				Joint = ContainerInstance->CreateSoftJointInstance(ParticleIndices, ParticleLocalPositions, NumParticles, Stiffness);
 			}
 		}
 

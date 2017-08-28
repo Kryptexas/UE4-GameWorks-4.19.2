@@ -938,19 +938,19 @@ void FFlexContainerInstance::DestroyInstance(NvFlexExtInstance* Inst)
 	NvFlexExtDestroyInstance(Container, Inst);
 }
 
-NvFlexExtJoint* FFlexContainerInstance::CreateJointInstance(const TArray<int32>& ParticleIndices, const TArray<FVector>& ParticleLocalPositions, const int32 NumParticles, const float Stiffness)
+NvFlexExtSoftJoint* FFlexContainerInstance::CreateSoftJointInstance(const TArray<int32>& ParticleIndices, const TArray<FVector>& ParticleLocalPositions, const int32 NumParticles, const float Stiffness)
 {
 	if (NumParticles == 0)
 		return nullptr;
 
-	NvFlexExtJoint* joint = NvFlexExtCreateJoint(Container, (int*)&ParticleIndices[0], (float*)&ParticleLocalPositions[0], NumParticles, Stiffness);
+	NvFlexExtSoftJoint* joint = NvFlexExtCreateSoftJoint(Container, (int*)&ParticleIndices[0], (float*)&ParticleLocalPositions[0], NumParticles, Stiffness);
 
 	return joint;
 }
 
-void FFlexContainerInstance::DestroyJointInstance(NvFlexExtJoint* joint)
+void FFlexContainerInstance::DestroySoftJointInstance(NvFlexExtSoftJoint* joint)
 {
-	NvFlexExtDestroyJoint(Container, joint);
+	NvFlexExtDestroySoftJoint(Container, joint);
 }
 
 int32 FFlexContainerInstance::GetPhase(const FFlexPhase& Phase)

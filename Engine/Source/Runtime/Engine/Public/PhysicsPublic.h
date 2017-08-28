@@ -129,7 +129,7 @@ extern ENGINE_API apex::ModuleClothing*		GApexModuleClothing;
 class UFlexContainer;
 struct FFlexContainerInstance;
 extern ENGINE_API bool GFlexIsInitialized;
-struct NvFlexExtJoint;
+struct NvFlexExtSoftJoint;
 #endif
 
 /** Information about a specific object involved in a rigid body collision */

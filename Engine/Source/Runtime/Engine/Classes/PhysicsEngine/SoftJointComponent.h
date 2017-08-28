@@ -9,7 +9,7 @@
 #include "CollisionQueryParams.h"
 #include "SoftJointComponent.generated.h"
 
-struct NvFlexExtJoint;
+struct NvFlexExtSoftJoint;
 
 /**
 *	Used to emit a soft joint that can affect flex objects in the same container.
@@ -46,7 +46,7 @@ class ENGINE_API USoftJointComponent : public USceneComponent, public IFlexConta
 	/** Whether it has been initialized */
 	bool bJointIsInitialized;
 
-	NvFlexExtJoint* Joint;
+	NvFlexExtSoftJoint* Joint;
 
 public:
 
