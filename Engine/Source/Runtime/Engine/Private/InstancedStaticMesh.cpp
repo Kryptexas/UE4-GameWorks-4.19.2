@@ -188,6 +188,7 @@ void FStaticMeshInstanceBuffer::InitFromPreallocatedData(UInstancedStaticMeshCom
 	AllocateData(Other);
 	NumInstances = NewNumInstances;
 	SetupCPUAccess(InComponent);
+	InstanceData->SetAllowCPUAccess(true);		// GDC demo hack!
 }
 
 void FStaticMeshInstanceBuffer::SetPerInstanceEditorData(UInstancedStaticMeshComponent* InComponent, const TArray<TRefCountPtr<HHitProxy>>& InHitProxies, int32 UpdateInstanceStartingIndex, int32 UpdateInstanceIndexCount)
