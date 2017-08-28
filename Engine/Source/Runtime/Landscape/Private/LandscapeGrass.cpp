@@ -2394,6 +2394,8 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 
 						if (!HierarchicalInstancedStaticMeshComponent->PerInstanceRenderData.IsValid())
 						{
+							ENGINE_API extern bool GbInitializeFromCurrentData;
+							GbInitializeFromCurrentData = true;
 							HierarchicalInstancedStaticMeshComponent->InitPerInstanceRenderData(&Inner.Builder->InstanceBuffer);
 						}
 						else
