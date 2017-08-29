@@ -324,32 +324,14 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 	{ // begin GTimeCompiling scope 
 		FScopedDurationTimer SetupTimer(GTimeCompiling); 
 
-		// STAGE I: Add any child blueprints that were not compiled, we will need to run a link pass on them:
+		// STAGE I: Add any related blueprints that were not compiled, then add any children so that they will be relinked:
+		TArray<UBlueprint*> BlueprintsToRecompile;
 		for(const FBPCompileRequest& ComplieJob : QueuedRequests)
 		{
-			if(UClass* OldSkeletonClass = ComplieJob.BPToCompile->SkeletonGeneratedClass)
-			{
-				TArray<UClass*> SkeletonClassesToReparentList;
-				GetDerivedClasses(OldSkeletonClass, SkeletonClassesToReparentList);
-		
-				for(UClass* ChildClass : SkeletonClassesToReparentList)
-				{
-					if(UBlueprint* ChildBlueprint = UBlueprint::GetBlueprintFromClass(ChildClass))
-					{
-						if(!IsQueuedForCompilation(ChildBlueprint))
-						{
-							ChildBlueprint->bQueuedForCompilation = true;
-							ensure(ChildBlueprint->bHasBeenRegenerated);
-							CurrentlyCompilingBPs.Add(FCompilerData(ChildBlueprint, ECompilationManagerJobType::RelinkOnly, nullptr, EBlueprintCompileOptions::None, false));
-						}
-					}
-				}
-			}
-			
 			// Add any dependent blueprints for a bytecode compile, this is needed because we 
 			// have no way to keep bytecode safe when a function is renamed or parameters are
 			// added or removed - strictly speaking we only need to do this when function 
-			// parameters changed, but that's a somewhat dubious optmization - ideally this
+			// parameters changed, but that's a somewhat dubious optimization - ideally this
 			// work *never* needs to happen:
 			if(!FBlueprintEditorUtils::IsInterfaceBlueprint(ComplieJob.BPToCompile))
 			{
@@ -361,6 +343,7 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 					{
 						DependentBlueprint->bQueuedForCompilation = true;
 						CurrentlyCompilingBPs.Add(FCompilerData(DependentBlueprint, ECompilationManagerJobType::Normal, nullptr, EBlueprintCompileOptions::None, true));
+						BlueprintsToRecompile.Add(DependentBlueprint);
 					}
 				}
 			}
@@ -430,9 +413,34 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 			else
 			{
 				CurrentlyCompilingBPs.Add(FCompilerData(QueuedBP, ECompilationManagerJobType::Normal, QueuedJob.ClientResultsLog, QueuedJob.CompileOptions, false));
+				BlueprintsToRecompile.Add(QueuedBP);
+			}
+		}
+			
+		for(UBlueprint* BP : BlueprintsToRecompile)
+		{
+			// make sure all children are at least re-linked:
+			if(UClass* OldSkeletonClass = BP->SkeletonGeneratedClass)
+			{
+				TArray<UClass*> SkeletonClassesToReparentList;
+				GetDerivedClasses(OldSkeletonClass, SkeletonClassesToReparentList);
+		
+				for(UClass* ChildClass : SkeletonClassesToReparentList)
+				{
+					if(UBlueprint* ChildBlueprint = UBlueprint::GetBlueprintFromClass(ChildClass))
+					{
+						if(!IsQueuedForCompilation(ChildBlueprint))
+						{
+							ChildBlueprint->bQueuedForCompilation = true;
+							ensure(ChildBlueprint->bHasBeenRegenerated);
+							CurrentlyCompilingBPs.Add(FCompilerData(ChildBlueprint, ECompilationManagerJobType::RelinkOnly, nullptr, EBlueprintCompileOptions::None, false));
+						}
+					}
+				}
 			}
 		}
 
+		BlueprintsToRecompile.Empty();
 		QueuedRequests.Empty();
 
 		// STAGE III: Sort into correct compilation order. We want to compile root types before their derived (child) types:
@@ -851,12 +859,7 @@ void FBlueprintCompilationManagerImpl::FlushCompilationQueueImpl(TArray<UObject*
 				{
 					// for interface changes, auto-refresh nodes on any dependent blueprints
 					// note: RefreshAllNodes() will internally send a change notification event to the dependent blueprint
-					if (bIsInterface)
-					{
-						ensure(!Dependent->bIsRegeneratingOnLoad);
-						FBlueprintEditorUtils::RefreshAllNodes(Dependent);
-					}
-					else if(!BP->bIsRegeneratingOnLoad)
+					if(!BP->bIsRegeneratingOnLoad)
 					{
 						// Some logic (e.g. UObject::ProcessInternal) uses this flag to suppress warnings:
 						TGuardValue<bool> ReinstancingGuard(GIsReinstancing, true);
