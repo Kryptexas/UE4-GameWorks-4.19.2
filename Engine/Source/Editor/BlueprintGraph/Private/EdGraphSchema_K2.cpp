@@ -6469,7 +6469,7 @@ void UEdGraphSchema_K2::CombineTwoPinNetsAndRemoveOldPins(UEdGraphPin* InPinA, U
 			UEdGraphPin* FarB = InPinB->LinkedTo[IndexB];
 			// TODO: Michael N. says this if check should be unnecessary once the underlying issue is fixed.
 			// (Probably should use a check() instead once it's removed though.  See additional cases below.
-			if (FarB != NULL)
+			if (FarB != nullptr)
 			{
 				FarB->DefaultValue = InPinA->DefaultValue;
 				FarB->DefaultObject = InPinA->DefaultObject;
@@ -6485,7 +6485,7 @@ void UEdGraphSchema_K2::CombineTwoPinNetsAndRemoveOldPins(UEdGraphPin* InPinA, U
 			UEdGraphPin* FarA = InPinA->LinkedTo[IndexA];
 			// TODO: Michael N. says this if check should be unnecessary once the underlying issue is fixed.
 			// (Probably should use a check() instead once it's removed though.  See additional cases above and below.
-			if (FarA != NULL)
+			if (FarA != nullptr)
 			{
 				FarA->DefaultValue = InPinB->DefaultValue;
 				FarA->DefaultObject = InPinB->DefaultObject;
@@ -6501,14 +6501,19 @@ void UEdGraphSchema_K2::CombineTwoPinNetsAndRemoveOldPins(UEdGraphPin* InPinA, U
 			UEdGraphPin* FarA = InPinA->LinkedTo[IndexA];
 			// TODO: Michael N. says this if check should be unnecessary once the underlying issue is fixed.
 			// (Probably should use a check() instead once it's removed though.  See additional cases above.
-			if (FarA != NULL)
+			if (FarA != nullptr)
 			{
 				for (int32 IndexB = 0; IndexB < InPinB->LinkedTo.Num(); ++IndexB)
 				{
 					UEdGraphPin* FarB = InPinB->LinkedTo[IndexB];
-					FarA->Modify();
-					FarB->Modify();
-					FarA->MakeLinkTo(FarB);
+
+					if (FarB != nullptr)
+					{
+						FarA->Modify();
+						FarB->Modify();
+						FarA->MakeLinkTo(FarB);
+					}
+					
 				}
 			}
 		}
