@@ -802,6 +802,12 @@ NV_FLEX_API NvFlexExtSoftJoint* NvFlexExtCreateSoftJoint(NvFlexExtContainer* c, 
 */
 NV_FLEX_API void NvFlexExtDestroySoftJoint(NvFlexExtContainer* c, NvFlexExtSoftJoint* joint);
 
+/** Transform all the local particles of the soft joint
+* @param[in] position A pointer to a vec3 storing the soft joint new position
+* @param[in] rotation A pointer to a quaternion storing the soft joint new rotation
+*/
+NV_FLEX_API void NvFlexExtSoftJointSetTransform(NvFlexExtContainer* c, NvFlexExtSoftJoint* joint, const float* newPosition, const float* newRotation);
+
 } // extern "C"
 
 #endif // NV_FLEX_EXT_H
