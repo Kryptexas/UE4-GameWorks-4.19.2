@@ -988,7 +988,7 @@ FActorComponentInstanceData* UInstancedStaticMeshComponent::GetComponentInstance
 #endif
 }
 
-ENGINE_API extern bool GbInitializeFromCurrentData = false;
+ENGINE_API bool GbInitializeFromCurrentData = false;
 
 void UInstancedStaticMeshComponent::ApplyComponentInstanceData(FInstancedStaticMeshComponentInstanceData* InstancedMeshData)
 {
@@ -1846,7 +1846,7 @@ void UInstancedStaticMeshComponent::ClearInstances()
 	ReleasePerInstanceRenderData();
 
 	GbInitializeFromCurrentData = false;
-	InitPerInstanceRenderData(false);
+	InitPerInstanceRenderData();
 	MarkRenderStateDirty();
 
 	UNavigationSystem::UpdateComponentInNavOctree(*this);
