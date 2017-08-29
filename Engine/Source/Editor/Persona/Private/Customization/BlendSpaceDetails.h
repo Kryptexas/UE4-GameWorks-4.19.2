@@ -18,9 +18,7 @@ public:
 
 	// IDetailCustomization interface
 	virtual void CustomizeDetails(class IDetailLayoutBuilder& DetailBuilder) override;
-
 private:
-	FDelegateHandle Handle;
 	class IDetailLayoutBuilder* Builder;
 	class UBlendSpaceBase* BlendSpaceBase;
 };

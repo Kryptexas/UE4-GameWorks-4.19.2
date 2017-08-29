@@ -22,18 +22,10 @@ FBlendSpaceDetails::FBlendSpaceDetails()
 {
 	Builder = nullptr;
 	BlendSpaceBase = nullptr;
-	Handle = FCoreUObjectDelegates::OnObjectPropertyChanged.AddLambda([this](UObject* Object, struct FPropertyChangedEvent& Event)
-	{
-		if (Builder && Object == BlendSpaceBase && (Event.Property == nullptr || (Event.MemberProperty && Event.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(UBlendSpaceBase, BlendParameters) && Event.Property && Event.Property->GetFName() == GET_MEMBER_NAME_CHECKED(FBlendParameter, DisplayName))))
-		{
-			Builder->ForceRefreshDetails(); 
-		} 
-	});
 }
 
 FBlendSpaceDetails::~FBlendSpaceDetails()
 {
-	FCoreUObjectDelegates::OnObjectPropertyChanged.Remove(Handle);
 }
 
 void FBlendSpaceDetails::CustomizeDetails(class IDetailLayoutBuilder& DetailBuilder)
@@ -88,14 +80,18 @@ void FBlendSpaceDetails::CustomizeDetails(class IDetailLayoutBuilder& DetailBuil
 			DefaultProperty->MarkHiddenByCustomization();
 		}
 
+		FSimpleDelegate RefreshDelegate = FSimpleDelegate::CreateLambda([this]() { Builder->ForceRefreshDetails(); });
+
 		// Retrieve blend samples array
 		TSharedPtr<IPropertyHandleArray> BlendSamplesArrayProperty = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UBlendSpaceBase, SampleData), UBlendSpaceBase::StaticClass())->AsArray();
-
+		BlendSamplesArrayProperty->SetOnNumElementsChanged(RefreshDelegate);
+		
 		uint32 NumBlendSampleEntries = 0;
 		BlendSamplesArrayProperty->GetNumElements(NumBlendSampleEntries);
 		for (uint32 SampleIndex = 0; SampleIndex < NumBlendSampleEntries; ++SampleIndex)
 		{
 			TSharedPtr<IPropertyHandle> BlendSampleProperty = BlendSamplesArrayProperty->GetElement(SampleIndex);
+			BlendSampleProperty->SetOnChildPropertyValueChanged(RefreshDelegate);
 			TSharedPtr<IPropertyHandle> AnimationProperty = BlendSampleProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FBlendSample, Animation));
 			TSharedPtr<IPropertyHandle> SampleValueProperty = BlendSampleProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FBlendSample, SampleValue));
 			TSharedPtr<IPropertyHandle> RateScaleProperty = BlendSampleProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FBlendSample, RateScale));

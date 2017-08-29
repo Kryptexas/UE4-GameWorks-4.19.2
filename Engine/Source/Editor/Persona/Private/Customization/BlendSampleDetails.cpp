@@ -95,9 +95,9 @@ void FBlendSampleDetails::GenerateBlendSampleWidget(TFunction<FDetailWidgetRow& 
 	const int32 NumParameters = BlendSpace->IsA<UBlendSpace1D>() ? 1 : 2;
 	for (int32 ParameterIndex = 0; ParameterIndex < NumParameters; ++ParameterIndex)
 	{
-		const FBlendParameter& BlendParameter = BlendSpace->GetBlendParameter(ParameterIndex);
-		auto ValueChangedLambda = [BlendSpace, SampleIndex, ParameterIndex, BlendParameter, OnSampleMoved](const float NewValue)
+		auto ValueChangedLambda = [BlendSpace, SampleIndex, ParameterIndex, OnSampleMoved](const float NewValue)
 		{
+			const FBlendParameter& BlendParameter = BlendSpace->GetBlendParameter(ParameterIndex);
 			const FBlendSample& Sample = BlendSpace->GetBlendSample(SampleIndex);
 			FVector SampleValue = Sample.SampleValue;
 
@@ -120,7 +120,7 @@ void FBlendSampleDetails::GenerateBlendSampleWidget(TFunction<FDetailWidgetRow& 
 		[
 			SNew(STextBlock)
 			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-			.Text(FText::FromString(BlendParameter.DisplayName))
+			.Text_Lambda([BlendSpace, ParameterIndex]() { return FText::FromString(BlendSpace->GetBlendParameter(ParameterIndex).DisplayName); })
 		];
 
 		ParameterRow.ValueContent()
@@ -148,16 +148,16 @@ void FBlendSampleDetails::GenerateBlendSampleWidget(TFunction<FDetailWidgetRow& 
 			})
 			.LabelVAlign(VAlign_Center)
 			.AllowSpin(true)
-			.MinValue_Lambda([BlendParameter]() -> float { return BlendParameter.Min; })
-			.MaxValue_Lambda([BlendParameter]() -> float { return BlendParameter.Max; })
-			.MinSliderValue_Lambda([BlendParameter]() -> float { return BlendParameter.Min; })
-			.MaxSliderValue_Lambda([BlendParameter]() -> float { return BlendParameter.Max; })
+			.MinValue_Lambda([BlendSpace, ParameterIndex]() -> float { return BlendSpace->GetBlendParameter(ParameterIndex).Min; })
+			.MaxValue_Lambda([BlendSpace, ParameterIndex]() -> float { return BlendSpace->GetBlendParameter(ParameterIndex).Max; })
+			.MinSliderValue_Lambda([BlendSpace, ParameterIndex]() -> float { return BlendSpace->GetBlendParameter(ParameterIndex).Min; })
+			.MaxSliderValue_Lambda([BlendSpace, ParameterIndex]() -> float { return BlendSpace->GetBlendParameter(ParameterIndex).Max; })
 			.MinDesiredValueWidth(60.0f)
 			.Label()
 			[
 				SNew(STextBlock)
 				.Visibility(bShowLabel ? EVisibility::Visible : EVisibility::Collapsed)
-				.Text_Lambda([=]() { return FText::FromString(BlendParameter.DisplayName); })
+				.Text_Lambda([BlendSpace, ParameterIndex]() { return FText::FromString(BlendSpace->GetBlendParameter(ParameterIndex).DisplayName); })
 			]
 		];
 	}
