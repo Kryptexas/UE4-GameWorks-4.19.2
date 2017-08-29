@@ -15,12 +15,14 @@ namespace UnrealBuildTool
 	{
 		WindowsCompiler Compiler;
 		bool bWithStaticAnalyzer;
+		bool bStrictConformanceMode;
 
-		public VCToolChain(CppPlatform CppPlatform, WindowsCompiler Compiler, bool bWithStaticAnalyzer)
+		public VCToolChain(CppPlatform CppPlatform, WindowsCompiler Compiler, bool bWithStaticAnalyzer, bool bStrictConformanceMode)
 			: base(CppPlatform)
 		{
 			this.Compiler = Compiler;
 			this.bWithStaticAnalyzer = bWithStaticAnalyzer;
+			this.bStrictConformanceMode = bStrictConformanceMode;
 		}
 
 		static void AddDefinition(List<string> Arguments, string Definition)
@@ -244,7 +246,7 @@ namespace UnrealBuildTool
 			}
 
 			// Disable Microsoft extensions on VS2017+ for improved standards compliance.
-			if (Compiler >= WindowsCompiler.VisualStudio2017)
+			if (Compiler >= WindowsCompiler.VisualStudio2017 && bStrictConformanceMode)
 			{
 				Arguments.Add("/permissive-");
 				Arguments.Add("/Zc:strictStrings-"); // Have to disable strict const char* semantics due to Windows headers not being compliant.

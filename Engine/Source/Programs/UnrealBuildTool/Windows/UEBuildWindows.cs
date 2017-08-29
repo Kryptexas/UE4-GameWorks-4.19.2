@@ -117,6 +117,13 @@ namespace UnrealBuildTool
 		/// </summary>
 		public string ModuleDefinitionFile;
 
+		/// <summary>
+		/// Enables strict standard conformance mode (/permissive-) in VS2017+.
+		/// </summary>
+		[XmlConfigFile(Category = "WindowsPlatform")]
+		[CommandLine("-Strict")]
+		public bool bStrictConformanceMode = false; 
+
 		/// VS2015 updated some of the CRT definitions but not all of the Windows SDK has been updated to match.
 		/// Microsoft provides legacy_stdio_definitions library to enable building with VS2015 until they fix everything up.
 		public bool bNeedsLegacyStdioDefinitionsLib
@@ -208,6 +215,11 @@ namespace UnrealBuildTool
 		public bool bNeedsLegacyStdioDefinitionsLib
 		{
 			get { return Inner.bNeedsLegacyStdioDefinitionsLib; }
+		}
+
+		public bool bStrictConformanceMode
+		{
+			get { return Inner.bStrictConformanceMode; }
 		}
 
 		public string GetVisualStudioCompilerVersionName()
@@ -1007,11 +1019,11 @@ namespace UnrealBuildTool
 			}
 			else if(Target.WindowsPlatform.StaticAnalyzer == WindowsStaticAnalyzer.VisualCpp)
 			{
-				return new VCToolChain(CppPlatform, Target.WindowsPlatform.Compiler, true);
+				return new VCToolChain(CppPlatform, Target.WindowsPlatform.Compiler, true, Target.WindowsPlatform.bStrictConformanceMode);
 			}
 			else
 			{
-				return new VCToolChain(CppPlatform, Target.WindowsPlatform.Compiler, false);
+				return new VCToolChain(CppPlatform, Target.WindowsPlatform.Compiler, false, Target.WindowsPlatform.bStrictConformanceMode);
 			}
 		}
 
