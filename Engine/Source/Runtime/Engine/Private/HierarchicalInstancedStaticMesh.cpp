@@ -1944,7 +1944,7 @@ bool UHierarchicalInstancedStaticMeshComponent::RemoveInstance(int32 InstanceInd
 
 bool UHierarchicalInstancedStaticMeshComponent::UpdateInstanceTransform(int32 InstanceIndex, const FTransform& NewInstanceTransform, bool bWorldSpace, bool bMarkRenderStateDirty, bool bTeleport)
 {
-	if (!PerInstanceSMData.IsValidIndex(InstanceIndex))
+	if (!PerInstanceSMData.IsValidIndex(InstanceIndex) || !InstanceReorderTable.IsValidIndex(InstanceIndex))
 	{
 		return false;
 	}
@@ -1992,6 +1992,13 @@ bool UHierarchicalInstancedStaticMeshComponent::UpdateInstanceTransform(int32 In
 	}
 
 	return Result;
+}
+
+void HierApplyComponentInstanceData(UInstancedStaticMeshComponent* Component, FInstancedStaticMeshComponentInstanceData* InstancedMeshData)
+{
+	Component->ApplyComponentInstanceData(InstancedMeshData);
+
+	CastChecked<UHierarchicalInstancedStaticMeshComponent>(Component)->BuildTreeIfOutdated(false, false);
 }
 
 int32 UHierarchicalInstancedStaticMeshComponent::AddInstance(const FTransform& InstanceTransform)
@@ -2355,7 +2362,7 @@ bool UHierarchicalInstancedStaticMeshComponent::BuildTreeIfOutdated(bool Async, 
 		|| UnbuiltInstanceBoundsList.Num() > 0
 		|| GetLinkerUE4Version() < VER_UE4_REBUILD_HIERARCHICAL_INSTANCE_TREES)
 	{
-		if (!GetStaticMesh()->HasAnyFlags(RF_NeedLoad)) // we can build the tree if the static mesh is not even loaded, and we can't call PostLoad as the load is not even done
+		if (GetStaticMesh() != nullptr && !GetStaticMesh()->HasAnyFlags(RF_NeedLoad)) // we can build the tree if the static mesh is not even loaded, and we can't call PostLoad as the load is not even done
 		{
 			GetStaticMesh()->ConditionalPostLoad();
 

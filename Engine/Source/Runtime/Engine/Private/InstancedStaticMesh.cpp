@@ -23,6 +23,7 @@
 #include "GameFramework/WorldSettings.h"
 #include "ComponentRecreateRenderStateContext.h"
 #include "SceneManagement.h"
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
 
 const int32 InstancedStaticMeshMaxTexCoord = 8;
 
@@ -914,6 +915,8 @@ void UInstancedStaticMeshComponent::FlushAsyncBuildInstanceBufferTask()
 
 
 #if WITH_EDITOR
+void HierApplyComponentInstanceData(UInstancedStaticMeshComponent* Component, FInstancedStaticMeshComponentInstanceData* InstancedMeshData);
+
 /** Helper class used to preserve lighting/selection state across blueprint reinstancing */
 class FInstancedStaticMeshComponentInstanceData : public FSceneComponentInstanceData
 {
@@ -928,7 +931,17 @@ public:
 	virtual void ApplyToComponent(UActorComponent* Component, const ECacheApplyPhase CacheApplyPhase) override
 	{
 		FSceneComponentInstanceData::ApplyToComponent(Component, CacheApplyPhase);
-		CastChecked<UInstancedStaticMeshComponent>(Component)->ApplyComponentInstanceData(this);
+
+		UHierarchicalInstancedStaticMeshComponent* HierComponent = Cast<UHierarchicalInstancedStaticMeshComponent>(Component);
+
+		if (HierComponent != nullptr)
+		{
+			HierApplyComponentInstanceData(CastChecked<UInstancedStaticMeshComponent>(Component), this);
+		}
+		else
+		{
+			CastChecked<UInstancedStaticMeshComponent>(Component)->ApplyComponentInstanceData(this);
+		}
 	}
 
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override
