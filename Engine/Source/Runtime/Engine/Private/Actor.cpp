@@ -3615,8 +3615,10 @@ UPrimitiveComponent* AActor::GetRootPrimitiveComponent() const
 bool AActor::SetRootComponent(class USceneComponent* NewRootComponent)
 {
 	/** Only components owned by this actor can be used as a its root component. */
-	if (ensure(NewRootComponent == NULL || NewRootComponent->GetOwner() == this))
+	if (ensure(NewRootComponent == nullptr || NewRootComponent->GetOwner() == this))
 	{
+		Modify();
+
 		RootComponent = NewRootComponent;
 		return true;
 	}
