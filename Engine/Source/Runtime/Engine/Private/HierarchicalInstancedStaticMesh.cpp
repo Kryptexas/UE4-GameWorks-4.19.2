@@ -28,6 +28,7 @@
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "InstancedStaticMesh.h"
 #include "SceneManagement.h"
+#include "AI/Navigation/NavigationTypes.h"
 
 static TAutoConsoleVariable<int32> CVarFoliageSplitFactor(
 	TEXT("foliage.SplitFactor"),
@@ -2693,7 +2694,7 @@ void UHierarchicalInstancedStaticMeshComponent::PartialNavigationUpdate(int32 In
 		// Accumulate dirty areas and send them to navigation system once cluster tree is rebuilt
 		UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
 		// Check if this component is registered in navigation system
-		if (NavSys && NavSys->GetObjectsNavOctreeId(this))
+		if (NavSys && (NavSys->GetObjectsNavOctreeId(this) || NavSys->PendingOctreeUpdates.Contains(FNavigationDirtyElement(this))))
 		{
 			FTransform InstanceTransform(PerInstanceSMData[InstanceIdx].Transform);
 			FBox InstanceBox = GetStaticMesh()->GetBounds().TransformBy(InstanceTransform*GetComponentTransform()).GetBox(); // in world space
