@@ -1263,6 +1263,57 @@ void FFlexContainerInstance::DebugDraw()
 			DrawDebugBox(Owner->GetOwningWorld(), ComponentBounds.Origin, ComponentBounds.BoxExtent, FColor(0, 255, 0), true);
 		}
 
+		ShapeGeometry.map();
+		ShapeFlags.map();
+		ShapePositions.map();
+		ShapeRotations.map();
+
+
+		// draw shape bounds
+		for (int32 i=0; i < ShapeGeometry.size(); ++i)
+		{
+			NvFlexCollisionGeometry Geo = ShapeGeometry[i];
+			int Type = ShapeFlags[i]&eNvFlexShapeFlagTypeMask;
+
+			FVector Translation = ShapePositions[i];
+			FQuat Rotation = ShapeRotations[i];
+
+			FVector HalfExtents(0.0f);
+			FVector Center;
+
+			if (Type == eNvFlexShapeConvexMesh)
+			{
+				int ConvexMeshId = Geo.convexMesh.mesh;
+
+				FVector Lower, Upper;
+				NvFlexGetConvexMeshBounds(GFlexLib, ConvexMeshId, &Lower.X, &Upper.X);
+
+				FVector Scale = (FVector&)Geo.convexMesh.scale;
+				Lower *= Scale;
+				Upper *= Scale;
+
+				FVector Edges = Upper-Lower;
+				FVector LocalCenter = (Upper+Lower)*0.5f;
+
+				Center = Rotation*LocalCenter + Translation;
+				HalfExtents = Edges*0.5f;
+			}
+			else if (Type == eNvFlexShapeBox)
+			{
+				HalfExtents = (FVector&)Geo.box.halfExtents;
+				Center = Translation;
+			}
+			
+			if (HalfExtents.X != 0.0f)
+				DrawDebugBox(Owner->GetOwningWorld(), Center, HalfExtents, Rotation, FColor(255, 0, 0), true);
+		}
+
+		ShapeGeometry.unmap();
+		ShapeFlags.unmap();
+		ShapePositions.unmap();
+		ShapeRotations.unmap();
+
+
 		//draw container bounds
 		DrawDebugBox(Owner->GetOwningWorld(), Bounds.Origin, Bounds.BoxExtent, FColor(255, 255, 255), true);
 
