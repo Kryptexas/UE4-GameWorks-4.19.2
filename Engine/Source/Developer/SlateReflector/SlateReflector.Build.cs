@@ -26,7 +26,8 @@ public class SlateReflector : ModuleRules
 
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {
-				"Messaging",
+                "Messaging",
+				"MessagingCommon",
 			}
 		);
 

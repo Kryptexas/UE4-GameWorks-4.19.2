@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "../WmfMediaPrivate.h"
+#include "WmfMediaPrivate.h"
 
 #if WMFMEDIA_SUPPORTED_PLATFORM
 
@@ -24,9 +24,6 @@ public:
 	 * @param InArchive The archive to stream from.
 	 */
 	FWmfMediaByteStream(const TSharedRef<FArchive, ESPMode::ThreadSafe>& InArchive);
-
-	/** Virtual destructor. */
-	virtual ~FWmfMediaByteStream() { }
 
 public:
 
@@ -60,6 +57,11 @@ public:
 
 private:
 
+	/** Hidden destructor. */
+	virtual ~FWmfMediaByteStream();
+
+private:
+
 	/** Whether the stream is currently being read asynchronously. */
 	bool AsyncReadInProgress;
 
@@ -76,4 +78,4 @@ private:
 
 #include "HideWindowsPlatformTypes.h"
 
-#endif
+#endif //WMFMEDIA_SUPPORTED_PLATFORM

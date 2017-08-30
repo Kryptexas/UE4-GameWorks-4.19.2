@@ -2,16 +2,12 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+#include "CoreTypes.h"
+#include "Containers/Array.h"
 #include "Interfaces/ITargetDevice.h"
+#include "Templates/SharedPointer.h"
 
 class FDeviceProcessesProcessTreeNode;
-
-/** Type definition for shared pointers to instances of FDeviceProcessesProcessTreeNode. */
-typedef TSharedPtr<class FDeviceProcessesProcessTreeNode> FDeviceProcessesProcessTreeNodePtr;
-
-/** Type definition for shared references to instances of FDeviceProcessesProcessTreeNode. */
-typedef TSharedRef<class FDeviceProcessesProcessTreeNode> FDeviceProcessesProcessTreeNodeRef;
 
 
 /**
@@ -22,82 +18,88 @@ class FDeviceProcessesProcessTreeNode
 public:
 
 	/**
-	 * Creates and initializes a new instance.
+	 * Create and initializes a new instance.
 	 *
 	 * @param InProcessInfo The node's process information.
 	 */
-	FDeviceProcessesProcessTreeNode( const FTargetDeviceProcessInfo& InProcessInfo )
+	FDeviceProcessesProcessTreeNode(const FTargetDeviceProcessInfo& InProcessInfo)
 		: ProcessInfo(InProcessInfo)
 	{ }
 
 public:
 
 	/**
-	 * Adds a child process node to this node.
+	 * Add a child process node to this node.
 	 *
 	 * @param The child node to add.
+	 * @see ClearChildren, GetChildren
 	 */
-	void AddChild( const FDeviceProcessesProcessTreeNodePtr& Child )
+	void AddChild(const TSharedPtr<FDeviceProcessesProcessTreeNode>& Child)
 	{
 		Children.Add(Child);
 	}
 
 	/**
-	 * Clears the collection of child nodes.
+	 * Clear the collection of child nodes.
+	 *
+	 * @see AddChild, GetChildren
 	 */
-	void ClearChildren( )
+	void ClearChildren()
 	{
 		Children.Reset();
 	}
 
 	/**
-	 * Gets the child nodes.
+	 * Get the child nodes.
 	 *
 	 * @return Child nodes.
+	 * @see GetParent
 	 */
-	const TArray<FDeviceProcessesProcessTreeNodePtr>& GetChildren( )
+	const TArray<TSharedPtr<FDeviceProcessesProcessTreeNode>>& GetChildren()
 	{
 		return Children;
 	}
 
 	/**
-	 * Gets the parent node.
+	 * Get the parent node.
 	 *
 	 * @return Parent node.
+	 * @see GetChildren, SetParent
 	 */
-	const FDeviceProcessesProcessTreeNodePtr& GetParent( )
+	const TSharedPtr<FDeviceProcessesProcessTreeNode>& GetParent()
 	{
 		return Parent;
 	}
 
 	/**
-	 * Gets the node's process information.
+	 * Get the node's process information.
 	 *
 	 * @return The process information.
 	 */
-	const FTargetDeviceProcessInfo& GetProcessInfo( ) const
+	const FTargetDeviceProcessInfo& GetProcessInfo() const
 	{
 		return ProcessInfo;
 	}
 
 	/**
-	 * Sets the parent node.
+	 * Set the parent node.
 	 *
 	 * @param Node The parent node to set.
+	 * @see GetParent
 	 */
-	void SetParent( const FDeviceProcessesProcessTreeNodePtr& Node )
+	void SetParent(const TSharedPtr<FDeviceProcessesProcessTreeNode>& Node)
 	{
 		Parent = Node;
 	}
 
 private:
 
-	// Holds the child process nodes
-	TArray<FDeviceProcessesProcessTreeNodePtr> Children;
+	/** The child process nodes. */
+	TArray<TSharedPtr<FDeviceProcessesProcessTreeNode>> Children;
 
-	// Holds a pointer to the parent node.
-	FDeviceProcessesProcessTreeNodePtr Parent;
+	/** Pointer to the parent node. */
+	TSharedPtr<FDeviceProcessesProcessTreeNode> Parent;
 
-	// Holds the process information
+	/** The process information. */
 	FTargetDeviceProcessInfo ProcessInfo;
 };

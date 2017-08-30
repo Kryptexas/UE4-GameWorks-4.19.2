@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Misc/AutomationTest.h"
-#include "Interfaces/IAutomationReport.h"
+#include "IAutomationReport.h"
 
 /**
  * Interface for automation test results modules.

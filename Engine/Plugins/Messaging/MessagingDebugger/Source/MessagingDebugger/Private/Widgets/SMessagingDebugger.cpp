@@ -1,24 +1,28 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Widgets/SMessagingDebugger.h"
-#include "Widgets/SBoxPanel.h"
-#include "Textures/SlateIcon.h"
+
+#include "IMessageTracer.h"
 #include "Framework/Commands/UICommandList.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Framework/Docking/WorkspaceItem.h"
 #include "Framework/Docking/TabManager.h"
+#include "Textures/SlateIcon.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Docking/SDockTab.h"
+
 #include "Models/MessagingDebuggerCommands.h"
+#include "Models/MessagingDebuggerModel.h"
 #include "Widgets/Breakpoints/SMessagingBreakpoints.h"
-#include "Widgets/Toolbar/SMessagingDebuggerToolbar.h"
 #include "Widgets/EndpointDetails/SMessagingEndpointDetails.h"
 #include "Widgets/Endpoints/SMessagingEndpoints.h"
 #include "Widgets/Graph/SMessagingGraph.h"
-#include "Widgets/MessageData/SMessagingMessageData.h"
-#include "Widgets/MessageDetails/SMessagingMessageDetails.h"
 #include "Widgets/History/SMessagingHistory.h"
 #include "Widgets/Interceptors/SMessagingInterceptors.h"
+#include "Widgets/MessageData/SMessagingMessageData.h"
+#include "Widgets/MessageDetails/SMessagingMessageDetails.h"
+#include "Widgets/Toolbar/SMessagingDebuggerToolbar.h"
 #include "Widgets/Types/SMessagingTypes.h"
-#include "Widgets/Docking/SDockTab.h"
 
 
 #define LOCTEXT_NAMESPACE "SMessagingDebugger"

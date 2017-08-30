@@ -2,24 +2,24 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+#include "EditorStyleSet.h"
 #include "Styling/SlateColor.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/Images/SImage.h"
 #include "Widgets/Input/SButton.h"
-#include "EditorStyleSet.h"
 
-struct FSlateBrush;
 class FText;
+struct FSlateBrush;
+
 
 /* Static helpers
  *****************************************************************************/
 
 // @todo gmp: move this into a shared library or create a SImageButton widget.
-static TSharedRef<SButton> MakeImageButton( const FSlateBrush* ButtonImage, const FText& ButtonTip, const FOnClicked& OnClickedDelegate )
+static TSharedRef<SButton> MakeImageButton(const FSlateBrush* ButtonImage, const FText& ButtonTip, const FOnClicked& OnClickedDelegate)
 {
 	return SNew(SButton)
-		.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
+		.ButtonStyle(FEditorStyle::Get(), "NoBorder")
 		.OnClicked(OnClickedDelegate)
 		.ToolTipText(ButtonTip)
 		.ContentPadding(2)

@@ -2,7 +2,9 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+#include "CoreTypes.h"
+#include "Containers/Map.h"
+#include "Containers/UnrealString.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
 #include "MediaSource.h"

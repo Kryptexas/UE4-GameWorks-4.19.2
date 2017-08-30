@@ -166,13 +166,16 @@ class UPropertyEditorTestObject : public UObject
 	UPROPERTY(EditAnywhere, Category=BasicProperties)
 	FText TextProperty;
 
-	UPROPERTY(EditAnywhere, Category=BasicProperties)
+	UPROPERTY(EditAnywhere, Category=BasicProperties, meta=(AllowPreserveRatio))
+	FIntPoint IntPointProperty;
+
+	UPROPERTY(EditAnywhere, Category=BasicProperties, meta=(AllowPreserveRatio))
 	FVector Vector3Property;
 
-	UPROPERTY(EditAnywhere, Category=BasicProperties)
+	UPROPERTY(EditAnywhere, Category=BasicProperties, meta=(AllowPreserveRatio))
 	FVector2D Vector2Property;
 
-	UPROPERTY(EditAnywhere, Category=BasicProperties)
+	UPROPERTY(EditAnywhere, Category=BasicProperties, meta=(AllowPreserveRatio))
 	FVector4 Vector4Property;
 
 	UPROPERTY(EditAnywhere, Category=BasicProperties)
@@ -192,6 +195,12 @@ class UPropertyEditorTestObject : public UObject
 
 	UPROPERTY(EditAnywhere, Category=BasicProperties)
 	TEnumAsByte<enum PropertEditorTestEnum> EnumProperty;
+
+	UPROPERTY(EditAnywhere, Category = BasicProperties)
+	FMatrix MatrixProperty;
+
+	UPROPERTY(EditAnywhere, Category = BasicProperties)
+	FTransform TransformProperty;
 
 	// Integer
 	UPROPERTY(EditAnywhere, Category=ArraysOfProperties)

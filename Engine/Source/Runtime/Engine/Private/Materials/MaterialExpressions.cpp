@@ -355,6 +355,77 @@ bool CanConnectMaterialValueTypes(uint32 InputType, uint32 OutputType)
 	return false;
 }
 
+#if WITH_EDITOR
+
+/**
+ * Helper function that wraps the supplied texture coordinates in the necessary math to transform them for external textures
+ *
+ * @param Compiler                The compiler to add code to
+ * @param TexCoordCodeIndex       Index to the code chunk that supplies the vanilla texture coordinates
+ * @param TextureReferenceIndex   Index of the texture within the material (used to access the external texture transform at runtime)
+ * @param ParameterName           (Optional) Parameter name of the texture parameter that's assigned to the sample (used to access the external texture transform at runtime)
+ * @return Index to a new code chunk that supplies the transformed UV coordinates
+ */
+int32 CompileExternalTextureCoordinates(FMaterialCompiler* Compiler, int32 TexCoordCodeIndex, int32 TextureReferenceIndex, TOptional<FName> ParameterName = TOptional<FName>())
+{
+	int32 ScaleRotationCode = Compiler->ExternalTextureCoordinateScaleRotation(TextureReferenceIndex, ParameterName);
+	int32 OffsetCode = Compiler->ExternalTextureCoordinateOffset(TextureReferenceIndex, ParameterName);
+
+	return Compiler->RotateScaleOffsetTexCoords(TexCoordCodeIndex, ScaleRotationCode, OffsetCode);
+}
+
+/**
+ * Compile a texture sample taking into consideration external textures (which may use different sampling code in the shader on some platforms)
+ *
+ * @param Compiler                The compiler to add code to
+ * @param TexCoordCodeIndex       Index to the code chunk that supplies the vanilla texture coordinates
+ * @param SamplerType             The type of sampler that is to be used
+ * @param ParameterName           (Optional) Parameter name of the texture parameter that's assigned to the sample
+ * @param MipValue0Index          (Optional) Mip value (0) code index when mips are being used
+ * @param MipValue1Index          (Optional) Mip value (1) code index when mips are being used
+ * @param MipValueMode            (Optional) Texture MIP value mode
+ * @param SamplerSource           (Optional) Sampler source override
+ * @return Index to a new code chunk that samples the texture
+ */
+int32 CompileTextureSample(
+	FMaterialCompiler* Compiler,
+	UTexture* Texture,
+	int32 TexCoordCodeIndex,
+	EMaterialSamplerType SamplerType,
+	TOptional<FName> ParameterName = TOptional<FName>(),
+	int32 MipValue0Index=INDEX_NONE,
+	int32 MipValue1Index=INDEX_NONE,
+	ETextureMipValueMode MipValueMode=TMVM_None,
+	ESamplerSourceMode SamplerSource=SSM_FromTextureAsset
+	)
+{
+	int32 TextureReferenceIndex = INDEX_NONE;
+	int32 TextureCodeIndex = INDEX_NONE;
+	if (SamplerType == SAMPLERTYPE_External)
+	{
+		// External sampler, so generate the necessary external uniform expression based on whether we're using a parameter name or not
+		TextureCodeIndex = ParameterName.IsSet() ? Compiler->ExternalTextureParameter(ParameterName.GetValue(), Texture, TextureReferenceIndex) : Compiler->ExternalTexture(Texture, TextureReferenceIndex);
+
+		// External textures need an extra transform applied to the UV coordinates
+		TexCoordCodeIndex = CompileExternalTextureCoordinates(Compiler, TexCoordCodeIndex, TextureReferenceIndex, ParameterName);
+	}
+	else
+	{
+		TextureCodeIndex = ParameterName.IsSet() ? Compiler->TextureParameter(ParameterName.GetValue(), Texture, TextureReferenceIndex, SamplerSource) : Compiler->Texture(Texture, TextureReferenceIndex, SamplerSource, MipValueMode);
+	}
+
+	return Compiler->TextureSample(
+					TextureCodeIndex,
+					TexCoordCodeIndex,
+					SamplerType,
+					MipValue0Index,
+					MipValue1Index,
+					MipValueMode,
+					SamplerSource,
+					TextureReferenceIndex);
+}
+#endif
+
 UMaterialExpression::UMaterialExpression(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 #if WITH_EDITORONLY_DATA
@@ -1219,6 +1290,11 @@ EMaterialSamplerType UMaterialExpressionTextureBase::GetSamplerTypeForTexture(co
 {
 	if (Texture)
 	{
+		if (Texture->GetMaterialType() == MCT_TextureExternal)
+		{
+			return SAMPLERTYPE_External;
+		}
+
 		switch (Texture->CompressionSettings)
 		{
 			case TC_Normalmap:
@@ -1465,10 +1541,24 @@ int32 UMaterialExpressionTextureSample::Compile(class FMaterialCompiler* Compile
 	if (Texture || TextureObject.Expression) // We deal with reroute textures later on in this function..
 	{
 		int32 TextureReferenceIndex = INDEX_NONE;
-		int32 TextureCodeIndex = TextureObject.Expression ? TextureObject.Compile(Compiler) : Compiler->Texture(Texture, TextureReferenceIndex, SamplerSource, MipValueMode);
+		int32 TextureCodeIndex = INDEX_NONE;
+
+		if (TextureObject.Expression)
+		{
+			TextureCodeIndex = TextureObject.Compile(Compiler);
+		}
+		else if (SamplerType == SAMPLERTYPE_External)
+		{
+			TextureCodeIndex = Compiler->ExternalTexture(Texture, TextureReferenceIndex);
+		}
+		else
+		{
+			TextureCodeIndex = Compiler->Texture(Texture, TextureReferenceIndex, SamplerSource, MipValueMode);
+		}
 
 		UTexture* EffectiveTexture = Texture;
-		EMaterialSamplerType EffectiveSamplerType = (EMaterialSamplerType)SamplerType;
+		EMaterialSamplerType EffectiveSamplerType = SamplerType;
+		TOptional<FName> EffectiveParameterName;
 		if (TextureObject.Expression)
 		{
 			UMaterialExpression* InputExpression = TextureObject.Expression;
@@ -1487,7 +1577,7 @@ int32 UMaterialExpressionTextureSample::Compile(class FMaterialCompiler* Compile
 				else if (OutputIndex >= 0)
 				{
 					uint32 OutputType = InputExpression->GetOutputType(OutputIndex);
-					if (OutputType != MCT_Texture2D && OutputType != MCT_TextureCube && OutputType != MCT_Texture)
+					if (OutputType != MCT_Texture2D && OutputType != MCT_TextureCube && OutputType != MCT_Texture && OutputType != MCT_TextureExternal)
 					{
 						return Compiler->Errorf(TEXT("TextureSample> Reroute not bound to proper texture type!"));
 					}
@@ -1527,6 +1617,7 @@ int32 UMaterialExpressionTextureSample::Compile(class FMaterialCompiler* Compile
 			{
 				EffectiveTexture = TextureObjectParameter->Texture;
 				EffectiveSamplerType = TextureObjectParameter->SamplerType;
+				EffectiveParameterName = TextureObjectParameter->ParameterName;
 			}
 
 			TextureReferenceIndex = Compiler->GetTextureReferenceIndex(EffectiveTexture);
@@ -1543,10 +1634,19 @@ int32 UMaterialExpressionTextureSample::Compile(class FMaterialCompiler* Compile
 				}
 			}
 
+			int32 CoordinateIndex = Coordinates.GetTracedInput().Expression ? Coordinates.Compile(Compiler) : Compiler->TextureCoordinate(ConstCoordinate, false, false);
+
+			// If the sampler type is an external texture, we have might have a scale/bias to apply to the UV coordinates.
+			// Generate that code for the TextureReferenceIndex here so we compile it using the correct texture based on possible reroute textures above
+			if (EffectiveSamplerType == SAMPLERTYPE_External)
+			{
+				CoordinateIndex = CompileExternalTextureCoordinates(Compiler, CoordinateIndex, TextureReferenceIndex, EffectiveParameterName);
+			}
+
 			return Compiler->TextureSample(
 				TextureCodeIndex,
-				Coordinates.GetTracedInput().Expression ? Coordinates.Compile(Compiler) : Compiler->TextureCoordinate(ConstCoordinate, false, false),
-				(EMaterialSamplerType)EffectiveSamplerType,
+				CoordinateIndex,
+				EffectiveSamplerType,
 				CompileMipValue0(Compiler),
 				CompileMipValue1(Compiler),
 				MipValueMode,
@@ -1719,19 +1819,16 @@ int32 UMaterialExpressionTextureSampleParameter::Compile(class FMaterialCompiler
 		return UMaterialExpressionTextureSample::Compile(Compiler, OutputIndex);
 	}
 
-	int32 MipValue0Index = CompileMipValue0(Compiler);
-	int32 MipValue1Index = CompileMipValue1(Compiler);
-	int32 TextureReferenceIndex = INDEX_NONE;
-
-	return Compiler->TextureSample(
-					Compiler->TextureParameter(ParameterName, Texture, TextureReferenceIndex, SamplerSource),
-					Coordinates.GetTracedInput().Expression ? Coordinates.Compile(Compiler) : Compiler->TextureCoordinate(ConstCoordinate, false, false),
-					(EMaterialSamplerType)SamplerType,
-					MipValue0Index,
-					MipValue1Index,
-					MipValueMode,
-					SamplerSource,
-					TextureReferenceIndex);
+	return CompileTextureSample(
+		Compiler,
+		Texture,
+		Coordinates.GetTracedInput().Expression ? Coordinates.Compile(Compiler) : Compiler->TextureCoordinate(ConstCoordinate, false, false),
+		SamplerType,
+		ParameterName,
+		CompileMipValue0(Compiler),
+		CompileMipValue1(Compiler),
+		MipValueMode,
+		SamplerSource);
 }
 
 void UMaterialExpressionTextureSampleParameter::GetCaption(TArray<FString>& OutCaptions) const
@@ -1839,7 +1936,7 @@ int32 UMaterialExpressionTextureObjectParameter::Compile(class FMaterialCompiler
 		return CompilerError(Compiler, GetRequirements());
 	}
 
-	return Compiler->TextureParameter(ParameterName, Texture);
+	return SamplerType == SAMPLERTYPE_External ? Compiler->ExternalTextureParameter(ParameterName, Texture) : Compiler->TextureParameter(ParameterName, Texture);
 }
 
 int32 UMaterialExpressionTextureObjectParameter::CompilePreview(class FMaterialCompiler* Compiler, int32 OutputIndex)
@@ -1850,7 +1947,7 @@ int32 UMaterialExpressionTextureObjectParameter::CompilePreview(class FMaterialC
 	}
 
 	// Preview the texture object by actually sampling it
-	return Compiler->TextureSample(Compiler->TextureParameter(ParameterName, Texture), Compiler->TextureCoordinate(0, false, false),(EMaterialSamplerType)SamplerType);
+	return CompileTextureSample(Compiler, Texture, Compiler->TextureCoordinate(0, false, false), SamplerType, ParameterName);
 }
 #endif // WITH_EDITOR
 
@@ -1915,7 +2012,7 @@ int32 UMaterialExpressionTextureObject::Compile(class FMaterialCompiler* Compile
 	{
 		return CompilerError(Compiler, TEXT("Requires valid texture"));
 	}
-	return Compiler->Texture(Texture);
+	return SamplerType == SAMPLERTYPE_External ? Compiler->ExternalTexture(Texture) : Compiler->Texture(Texture);
 }
 
 int32 UMaterialExpressionTextureObject::CompilePreview(class FMaterialCompiler* Compiler, int32 OutputIndex)
@@ -1925,8 +2022,7 @@ int32 UMaterialExpressionTextureObject::CompilePreview(class FMaterialCompiler* 
 		return CompilerError(Compiler, TEXT("Requires valid texture"));
 	}
 
-	// Preview the texture object by actually sampling it
-	return Compiler->TextureSample(Compiler->Texture(Texture), Compiler->TextureCoordinate(0, false, false), UMaterialExpressionTextureBase::GetSamplerTypeForTexture( Texture ));
+	return CompileTextureSample(Compiler, Texture, Compiler->TextureCoordinate(0, false, false), UMaterialExpressionTextureBase::GetSamplerTypeForTexture( Texture ));
 }
 
 uint32 UMaterialExpressionTextureObject::GetOutputType(int32 OutputIndex)
@@ -2079,6 +2175,10 @@ bool UMaterialExpressionTextureSampleParameter2D::TextureIsValid( UTexture* InTe
 			Result = true;
 		}
 		if ( InTexture->IsA(UTexture2DDynamic::StaticClass()) )
+		{
+			Result = true;
+		}
+		if ( InTexture->GetMaterialType() == MCT_TextureExternal )
 		{
 			Result = true;
 		}

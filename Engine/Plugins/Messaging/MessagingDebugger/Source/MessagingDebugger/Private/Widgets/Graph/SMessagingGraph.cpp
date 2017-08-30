@@ -2,6 +2,8 @@
 
 #include "Widgets/Graph/SMessagingGraph.h"
 
+#include "Styling/ISlateStyle.h"
+
 
 #define LOCTEXT_NAMESPACE "SMessagingGraph"
 

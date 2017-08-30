@@ -15,7 +15,7 @@ public:
 
 	// UTexture Interface.
 	APPLEARKIT_API virtual FTextureResource* CreateResource() override;
-	APPLEARKIT_API virtual EMaterialValueType GetMaterialType() override { return MCT_Texture2D; }
+	APPLEARKIT_API virtual EMaterialValueType GetMaterialType() const override { return MCT_Texture2D; }
 	APPLEARKIT_API virtual float GetSurfaceWidth() const override;
 	APPLEARKIT_API virtual float GetSurfaceHeight() const override;
 };

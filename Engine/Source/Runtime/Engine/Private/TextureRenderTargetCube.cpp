@@ -78,7 +78,7 @@ FTextureResource* UTextureRenderTargetCube::CreateResource()
 }
 
 
-EMaterialValueType UTextureRenderTargetCube::GetMaterialType()
+EMaterialValueType UTextureRenderTargetCube::GetMaterialType() const
 {
 	return MCT_TextureCube;
 }

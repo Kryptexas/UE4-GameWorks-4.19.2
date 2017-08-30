@@ -22,7 +22,7 @@ public:
 	 *
 	 * @return The new instance.
 	 */
-	static TSharedRef<IPropertyTypeCustomization> MakeInstance( )
+	static TSharedRef<IPropertyTypeCustomization> MakeInstance()
 	{
 		return MakeShareable(new FDateTimeStructCustomization());
 	}
@@ -31,8 +31,8 @@ public:
 
 	// IPropertyTypeCustomization interface
 
-	virtual void CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
-	virtual void CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
+	virtual void CustomizeChildren(TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override;
+	virtual void CustomizeHeader(TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override;
 
 protected:
 	FDateTimeStructCustomization();
@@ -40,16 +40,16 @@ protected:
 private:
 
 	/** Handles getting the text color of the editable text box. */
-	FSlateColor HandleTextBoxForegroundColor( ) const;
+	FSlateColor HandleTextBoxForegroundColor() const;
 
 	/** Handles getting the text to be displayed in the editable text box. */
-	FText HandleTextBoxText( ) const;
+	FText HandleTextBoxText() const;
 
 	/** Handles changing the value in the editable text box. */
-	void HandleTextBoxTextChanged( const FText& NewText );
+	void HandleTextBoxTextChanged(const FText& NewText);
 
 	/** Handles committing the text in the editable text box. */
-	void HandleTextBoxTextCommited( const FText& NewText, ETextCommit::Type CommitInfo );
+	void HandleTextBoxTextCommited(const FText& NewText, ETextCommit::Type CommitInfo);
 
 private: // Timezone handling methods
 	/** UTC constant */

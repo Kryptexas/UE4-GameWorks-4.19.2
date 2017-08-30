@@ -373,7 +373,7 @@ static bool TryAndCreateMaterialInput( UMaterial* UnrealMaterial, EMaterialKind:
 	UnrealMaterial->Expressions.Add( UnrealTextureExpression );
 	MaterialInput.Expression = UnrealTextureExpression;
 	UnrealTextureExpression->Texture = UnrealTexture;
-	UnrealTextureExpression->SamplerType = bSetupAsNormalMap ? SAMPLERTYPE_Normal : SAMPLERTYPE_Color;
+	UnrealTextureExpression->AutoSetSampleType();
 	UnrealTextureExpression->MaterialExpressionEditorX += X;
 	UnrealTextureExpression->MaterialExpressionEditorY += Y;
 
@@ -1630,6 +1630,8 @@ void FLevelEditorViewportClient::InitializeVisibilityFlags()
 FSceneView* FLevelEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily, const EStereoscopicPass StereoPass)
 {
 	bWasControlledByOtherViewport = false;
+
+	UpdateViewForLockedActor();
 
 	// set all other matching viewports to my location, if the LOD locking is enabled,
 	// unless another viewport already set me this frame (otherwise they fight)

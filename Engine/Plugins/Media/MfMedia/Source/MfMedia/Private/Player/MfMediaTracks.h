@@ -6,8 +6,15 @@
 
 #if MFMEDIA_SUPPORTED_PLATFORM
 
-#include "IMediaOutput.h"
+#include "CoreTypes.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "HAL/CriticalSection.h"
 #include "IMediaTracks.h"
+#include "Internationalization/Text.h"
+#include "Math/IntPoint.h"
+#include "Math/Range.h"
+#include "Windows/COMPointer.h"
 
 #if PLATFORM_WINDOWS
 	#include "WindowsHWrapper.h"
@@ -16,43 +23,60 @@
 	#include "XboxOneAllowPlatformTypes.h"
 #endif
 
-class IMediaOptions;
+class FMediaSamples;
+class FMfMediaAudioSamplePool;
+class FMfMediaTextureSamplePool; 
+
+enum class EMediaTextureSampleFormat;
+
+struct FMfMediaSourceReaderSample;
 
 
 /**
- * Implements the track collection for Microsoft Media Framework based media players.
+ * Track collection for Media Foundation based media players.
  */
 class FMfMediaTracks
-	: public IMediaOutput
-	, public IMediaTracks
+	: public IMediaTracks
 {
-	struct FStreamInfo
+	struct FFormat
 	{
+		TComPtr<IMFMediaType> InputType;
+		TComPtr<IMFMediaType> OutputType;
+		FString TypeName;
+
+		struct
+		{
+			uint32 BitsPerSample;
+			uint32 NumChannels;
+			uint32 SampleRate;
+		}
+		Audio;
+
+		struct 
+		{
+			uint32 BitRate;
+			FIntPoint BufferDim;
+			uint32 BufferStride;
+			GUID FormatType;
+			float FrameRate;
+			TRange<float> FrameRates;
+			FIntPoint OutputDim;
+			EMediaTextureSampleFormat SampleFormat;
+		}
+		Video;
+	};
+
+	struct FTrack
+	{
+		TComPtr<IMFStreamDescriptor> Descriptor;
 		FText DisplayName;
+		TArray<FFormat> Formats;
+		TComPtr<IMFMediaTypeHandler> Handler;
 		FString Language;
 		FString Name;
-		float SecondsUntilNextSample;
+		bool Protected;
+		int32 SelectedFormat;
 		int32 StreamIndex;
-	};
-
-	struct FAudioTrack : FStreamInfo
-	{
-		uint32 BitsPerSample;
-		uint32 NumChannels;
-		uint32 SampleRate;
-	};
-
-	struct FCaptionTrack : FStreamInfo
-	{
-	};
-
-	struct FVideoTrack : FStreamInfo
-	{
-		uint32 BitRate;
-		FIntPoint BufferDim;
-		float FrameRate;
-		FIntPoint OutputDim;
-		EMediaTextureSinkFormat SinkFormat;
 	};
 
 public:
@@ -60,74 +84,141 @@ public:
 	/** Default constructor. */
 	FMfMediaTracks();
 
-	/** Destructor. */
-	~FMfMediaTracks();
+	/** Virtual destructor. */
+	virtual ~FMfMediaTracks();
 
 public:
 
 	/**
-	 * Initialize this track collection.
+	 * Append track statistics information to the given string.
 	 *
-	 * @param InPresentationDescriptor The presentation descriptor object.
-	 * @param InMediaSourceObject The media source object.
-	 * @param InSourceReader The source reader to use.
-	 * @param OutInfo String to append debug information to.
-	 * @see Reinitialize
+	 * @param OutStats The string to append the statistics to.
 	 */
-	void Initialize(IMFPresentationDescriptor* InPresentationDescriptor, IMFMediaSource* InMediaSource, IMFSourceReader* InSourceReader, FString& OutInfo);
+	void AppendStats(FString &OutStats) const;
 
 	/**
-	 * Reinitialize with the previous presentation descriptor and media source.
+	 * Clear the streams flags.
 	 *
-	 * @see Initialize
+	 * @see GetFlags
 	 */
-	void Reinitialize();
-
-	/** Reset this object. */
-	void Reset();
+	void ClearFlags();
 
 	/**
-	 * Set whether tracks are enabled.
+	 * Get the total duration of the current media source.
 	 *
-	 * @param InEnabled true if tracks are enabled, false otherwise.
+	 * @return Media duration.
+	 * @see GetInfo, Initialize
 	 */
-	void SetEnabled(bool InEnabled);
+	FTimespan GetDuration() const;
 
-	/** Called each frame. */
-	void Tick(float DeltaTime);
+	/**
+	 * Get the current flags.
+	 *
+	 * @param OutMediaSourceChanged Will indicate whether the media source changed.
+	 * @param OutSelectionChanged Will indicate whether the track selection changed.
+	 * @see ClearFlags
+	 */
+	void GetFlags(bool& OutMediaSourceChanged, bool& OutSelectionChanged) const;
 
-public:
+	/**
+	 * Get the information string for the currently loaded media source.
+	 *
+	 * @return Info string.
+	 * @see GetDuration, GetSamples
+	 */
+	const FString& GetInfo() const
+	{
+		return Info;
+	}
 
-	//~ IMediaOutput interface
+	/**
+	 * Get the current media source object.
+	 *
+	 * @return The media source, or nullptr if not initialized.
+	 * @see GetSourceReader
+	 */
+	IMFMediaSource* GetMediaSource();
 
-	virtual void SetAudioSink(IMediaAudioSink* Sink) override;
-	virtual void SetMetadataSink(IMediaBinarySink* Sink) override;
-	virtual void SetOverlaySink(IMediaOverlaySink* Sink) override;
-	virtual void SetVideoSink(IMediaTextureSink* Sink) override;
+	/**
+	 * Get the current source reader object.
+	 *
+	 * @return The source reader, or nullptr if not initialized.
+	 * @see GetMediaSource
+	 */
+	IMFSourceReader* GetSourceReader();
+
+	/**
+	 * Initialize the track collection.
+	 *
+	 * @param InMediaSource The media source object.
+	 * @param InSourceReaderCallback The player's source reader callback.
+	 * @param InSamples The sample collection that receives output samples.
+	 * @see IsInitialized, Shutdown
+	 */
+	void Initialize(IMFMediaSource* InMediaSource, IMFSourceReaderCallback* InSourceReaderCallback, const TSharedRef<FMediaSamples, ESPMode::ThreadSafe>& InSamples);
+
+	/**
+	 * Whether this object has been initialized.
+	 *
+	 * @return true if initialized, false otherwise.
+	 * @see Initialize, Shutdown
+	 */
+	bool IsInitialized() const
+	{
+		return (MediaSource != NULL);
+	}
+
+	/**
+	 * Process a media sample from the source reader callback.
+	 *
+	 * @param ReaderSample The sample to process.
+	 */
+	void ProcessSample(IMFSample* Sample, HRESULT Status, DWORD StreamFlags, DWORD StreamIndex, FTimespan Time);
+
+	/** Restart stream sampling. */
+	void Restart();
+
+	/**
+	 * Shut down the track collection.
+	 *
+	 * @see Initialize, IsInitialized
+	 */
+	void Shutdown();
+
+	/**
+	 * Tick audio sample processing.
+	 *
+	 * @param Rate The current playback rate.
+	 * @param Time The current presentation time.
+	 * @see TickVideo
+	 */
+	void TickAudio(float Rate, FTimespan Time);
+
+	/**
+	 * Tick caption & video sample processing.
+	 *
+	 * @param Rate The current playback rate.
+	 * @param Time The current presentation time.
+	 * @param DeltaTime Time since the last tick.
+	 * @see TickAudio
+	 */
+	void TickInput(float Rate, FTimespan Time, FTimespan DeltaTime);
 
 public:
 
 	//~ IMediaTracks interface
 
-	virtual uint32 GetAudioTrackChannels(int32 TrackIndex) const override;
-	virtual uint32 GetAudioTrackSampleRate(int32 TrackIndex) const override;
+	virtual bool GetAudioTrackFormat(int32 TrackIndex, int32 FormatIndex, FMediaAudioTrackFormat& OutFormat) const override;
 	virtual int32 GetNumTracks(EMediaTrackType TrackType) const override;
+	virtual int32 GetNumTrackFormats(EMediaTrackType TrackType, int32 TrackIndex) const override;
 	virtual int32 GetSelectedTrack(EMediaTrackType TrackType) const override;
 	virtual FText GetTrackDisplayName(EMediaTrackType TrackType, int32 TrackIndex) const override;
+	virtual int32 GetTrackFormat(EMediaTrackType TrackType, int32 TrackIndex) const override;
 	virtual FString GetTrackLanguage(EMediaTrackType TrackType, int32 TrackIndex) const override;
 	virtual FString GetTrackName(EMediaTrackType TrackType, int32 TrackIndex) const override;
-	virtual uint32 GetVideoTrackBitRate(int32 TrackIndex) const override;
-	virtual FIntPoint GetVideoTrackDimensions(int32 TrackIndex) const override;
-	virtual float GetVideoTrackFrameRate(int32 TrackIndex) const override;
+	virtual bool GetVideoTrackFormat(int32 TrackIndex, int32 FormatIndex, FMediaVideoTrackFormat& OutFormat) const override;
 	virtual bool SelectTrack(EMediaTrackType TrackType, int32 TrackIndex) override;
-
-public:
-
-	//~ IUnknown interface
-
-	STDMETHODIMP QueryInterface(REFIID RefID, void** Object);
-	STDMETHODIMP_(ULONG) AddRef();
-	STDMETHODIMP_(ULONG) Release();
+	virtual bool SetTrackFormat(EMediaTrackType TrackType, int32 TrackIndex, int32 FormatIndex) override;
 
 protected:
 
@@ -135,45 +226,123 @@ protected:
 	 * Adds the specified stream to the track collection.
 	 *
 	 * @param StreamIndex The index number of the stream in the presentation descriptor.
-	 * @param PresentationDescriptor The presentation descriptor object.
-	 * @param MediaSource The media source object.
-	 * @param SourceReader The source reader to use.
 	 * @param OutInfo String to append debug information to.
 	 */
-	void AddStreamToTracks(uint32 StreamIndex, IMFPresentationDescriptor* PresentationDescriptor, IMFMediaSource* MediaSource, FString& OutInfo);
+	void AddStreamToTracks(uint32 StreamIndex, FString& OutInfo);
 
-	/** Initialize the current audio sink. */
-	void InitializeAudioSink();
+	/**
+	 * Get the specified audio format.
+	 *
+	 * @param TrackIndex Index of the audio track that contains the format.
+	 * @param FormatIndex Index of the format to return.
+	 * @return Pointer to format, or nullptr if not found.
+	 * @see GetVideoFormat
+	 */
+	const FFormat* GetAudioFormat(int32 TrackIndex, int32 FormatIndex) const;
 
-	/** Initialize the current text overlay sink. */
-	void InitializeOverlaySink();
+	/**
+	 * Get the specified track information.
+	 *
+	 * @param TrackType The type of track.
+	 * @param TrackIndex Index of the track to return.
+	 * @return Pointer to track, or nullptr if not found.
+	 */
+	const FTrack* GetTrack(EMediaTrackType TrackType, int32 TrackIndex) const;
 
-	/** Initialize the current video sink. */
-	void InitializeVideoSink();
+	/**
+	 * Get the specified video format.
+	 *
+	 * @param TrackIndex Index of the video track that contains the format.
+	 * @param FormatIndex Index of the format to return.
+	 * @return Pointer to format, or nullptr if not found.
+	 * @see GetAudioFormat
+	 */
+	const FFormat* GetVideoFormat(int32 TrackIndex, int32 FormatIndex) const;
+
+	/**
+	 * Request a new media sample for the specified stream.
+	 *
+	 * @param StreamIndex The index of the stream to request a sample for.
+	 * @return true if a sample was requested, false otherwise.
+	 */
+	bool RequestSample(DWORD StreamIndex);
+
+	/**
+	 * Request more audio samples, if needed.
+	 *
+	 * @see UpdateCaptions, UpdateVideo
+	 */
+	void UpdateAudio();
+
+	/**
+	 * Request more caption samples, if needed.
+	 *
+	 * @see UpdateAudio, UpdateVideo
+	 */
+	void UpdateCaptions();
+
+	/**
+	 * Request more video samples, if needed.
+	 *
+	 * @see UpdateAudio, UpdateCaptions
+	 */
+	void UpdateVideo();
 
 private:
 
-	/** The currently used audio sink. */
-	IMediaAudioSink* AudioSink;
+	/** Whether the audio track has reached the end. */
+	bool AudioDone;
 
-	/** The currently used text overlay sink. */
-	IMediaOverlaySink* OverlaySink;
+	/** Whether the next audio sample has been requested. */
+	bool AudioSamplePending;
 
-	/** The currently used video sink. */
-	IMediaTextureSink* VideoSink;
+	/** Audio sample object pool. */
+	FMfMediaAudioSamplePool* AudioSamplePool;
 
-private:
+	/** Time range of audio samples to be requested. */
+	TRange<FTimespan> AudioSampleRange;
 
 	/** The available audio tracks. */
-	TArray<FAudioTrack> AudioTracks;
+	TArray<FTrack> AudioTracks;
+
+	/** Whether the caption track has reached the end. */
+	bool CaptionDone;
+
+	/** Whether the next caption sample has been requested. */
+	bool CaptionSamplePending;
+
+	/** Time range of caption samples to be requested. */
+	TRange<FTimespan> CaptionSampleRange;
 
 	/** The available caption tracks. */
-	TArray<FCaptionTrack> CaptionTracks;
+	TArray<FTrack> CaptionTracks;
 
-	/** The available video tracks. */
-	TArray<FVideoTrack> VideoTracks;
+	/** Synchronizes write access to track arrays, selections & sinks. */
+	mutable FCriticalSection CriticalSection;
 
-private:
+	/** Media information string. */
+	FString Info;
+
+	/** Timestamp of the last processed audio sample. */
+	FTimespan LastAudioSampleTime;
+
+	/** Timestamp of the last processed caption sample. */
+	FTimespan LastCaptionSampleTime;
+
+	/** Timestamp of the last processed video sample. */
+	FTimespan LastVideoSampleTime;
+
+	/** The currently opened media. */
+	TComPtr<IMFMediaSource> MediaSource;
+
+	/** Whether the media source has changed. */
+	bool MediaSourceChanged;
+
+	/** The presentation descriptor of the currently opened media. */
+	TComPtr<IMFPresentationDescriptor> PresentationDescriptor;
+
+	/** Media sample collection that receives the output. */
+	TSharedPtr<FMediaSamples, ESPMode::ThreadSafe> Samples;
 
 	/** Index of the selected audio track. */
 	int32 SelectedAudioTrack;
@@ -184,22 +353,8 @@ private:
 	/** Index of the selected video track. */
 	int32 SelectedVideoTrack;
 
-private:
-
-	/** Whether the audio track has reached the end. */
-	bool AudioDone;
-
-	/** Whether the caption track has reached the end. */
-	bool CaptionDone;
-
-	/** Synchronizes write access to track arrays, selections & sinks. */
-	FCriticalSection CriticalSection;
-
-	/** Whether tracks are enabled. */
-	bool Enabled;
-
-	/** Holds a reference counter for this instance. */
-	int32 RefCount;
+	/** Whether the track selection changed. */
+	bool SelectionChanged;
 
 	/** The source reader to use. */
 	TComPtr<IMFSourceReader> SourceReader;
@@ -207,8 +362,17 @@ private:
 	/** Whether the video track has reached the end. */
 	bool VideoDone;
 
-	/** Whether the tracks have started playback. Set on first enabled tick. */
-	bool bIsStarted;
+	/** Whether the next video sample has been requested. */
+	bool VideoSamplePending;
+
+	/** Video sample object pool. */
+	FMfMediaTextureSamplePool* VideoSamplePool;
+
+	/** Time range of video samples to be requested. */
+	TRange<FTimespan> VideoSampleRange;
+
+	/** The available video tracks. */
+	TArray<FTrack> VideoTracks;
 };
 
 

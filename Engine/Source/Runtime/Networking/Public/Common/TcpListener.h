@@ -120,7 +120,6 @@ public:
 	 * To temporarily disable accepting connections, use the Enable() and Disable() methods.
 	 *
 	 * @return The delegate.
-	 * @see Enable, Disable
 	 */
 	FOnTcpListenerConnectionAccepted& OnConnectionAccepted()
 	{
@@ -138,10 +137,8 @@ public:
 			Socket = FTcpSocketBuilder(TEXT("FTcpListener server"))
 				.AsReusable()
 				.BoundToEndpoint(Endpoint)
-				.Listening(8);
-
-			int32 NewSize = 0;
-			Socket->SetReceiveBufferSize(2*1024*1024, NewSize);
+				.Listening(8)
+				.WithSendBufferSize(2 * 1024 * 1024);
 		}
 
 		return (Socket != nullptr);

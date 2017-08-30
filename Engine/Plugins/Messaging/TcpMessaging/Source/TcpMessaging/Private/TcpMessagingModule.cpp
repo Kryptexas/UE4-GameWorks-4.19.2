@@ -1,21 +1,24 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
+#include "TcpMessagingPrivate.h"
+
 #include "CoreMinimal.h"
+#include "MessageBridgeBuilder.h"
 #include "Misc/CoreMisc.h"
 #include "Misc/CommandLine.h"
 #include "Misc/CoreDelegates.h"
 #include "Misc/App.h"
 #include "Modules/ModuleManager.h"
-#include "Helpers/MessageBridgeBuilder.h"
 #include "Interfaces/IPv4/IPv4Endpoint.h"
-#include "TcpMessagingPrivate.h"
 #include "Settings/TcpMessagingSettings.h"
-#include "Transport/TcpMessageTransport.h"
+
 #if WITH_EDITOR
-#include "ISettingsModule.h"
-#include "ISettingsSection.h"
+	#include "ISettingsModule.h"
+	#include "ISettingsSection.h"
 #endif
+
 #include "ITcpMessagingModule.h"
+#include "Transport/TcpMessageTransport.h"
 
 
 DEFINE_LOG_CATEGORY(LogTcpMessaging);

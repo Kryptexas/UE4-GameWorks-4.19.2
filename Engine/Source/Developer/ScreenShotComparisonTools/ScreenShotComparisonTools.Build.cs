@@ -16,19 +16,19 @@ public class ScreenShotComparisonTools : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"AutomationMessages",
-				"UnrealEdMessages",
-				"Slate",
                 "EditorStyle",
 				"ImageWrapper",
 				"Json",
-				"JsonUtilities"
-			}
-		);
+				"JsonUtilities",
+				"Slate",
+                "UnrealEdMessages",
+            }
+        );
 
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {
-				"Messaging"
-			}
+                "MessagingCommon",
+            }
 		);
 
 		PrivateIncludePaths.AddRange(

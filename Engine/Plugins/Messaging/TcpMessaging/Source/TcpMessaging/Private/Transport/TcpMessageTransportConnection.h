@@ -222,7 +222,7 @@ private:
 	int32 ConnectionRetryDelay;
 
 	/** Message data we're currently in the process of receiving, if any */
-	FArrayReaderPtr RecvMessageData;
+	TSharedPtr<FArrayReader, ESPMode::ThreadSafe> RecvMessageData;
 
 	/** The number of bytes of incoming message data we're still waiting on before we have a complete message */
 	int32 RecvMessageDataRemaining;

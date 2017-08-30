@@ -60,6 +60,12 @@ bool FSpawnTrackEditor::SupportsType(TSubclassOf<UMovieSceneTrack> Type) const
 }
 
 
+bool FSpawnTrackEditor::SupportsSequence(UMovieSceneSequence* InSequence) const
+{
+	return (InSequence != nullptr) && (InSequence->GetClass()->GetName() == TEXT("LevelSequence"));
+}
+
+
 TSharedRef<ISequencerSection> FSpawnTrackEditor::MakeSectionInterface(UMovieSceneSection& SectionObject, UMovieSceneTrack& Track, FGuid ObjectBinding)
 {
 	return MakeShareable(new FBoolPropertySection(SectionObject, Track.GetDisplayName()));

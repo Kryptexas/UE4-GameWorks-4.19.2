@@ -294,7 +294,7 @@ void FMediaPlayerEditorToolkit::BindCommands()
 	ToolkitCommands->MapAction(
 		Commands.NextMedia,
 		FExecuteAction::CreateLambda([this]{ MediaPlayer->Next(); }),
-		FCanExecuteAction::CreateLambda([this]{ return (MediaPlayer->GetPlaylist() != nullptr) && (MediaPlayer->GetPlaylist()->Num() > 1); })
+		FCanExecuteAction::CreateLambda([this]{ return (MediaPlayer->GetPlaylistRef().Num() > 1); })
 	);
 
 	ToolkitCommands->MapAction(
@@ -312,7 +312,7 @@ void FMediaPlayerEditorToolkit::BindCommands()
 	ToolkitCommands->MapAction(
 		Commands.PreviousMedia,
 		FExecuteAction::CreateLambda([this]{ MediaPlayer->Previous(); }),
-		FCanExecuteAction::CreateLambda([this]{ return (MediaPlayer->GetPlaylist() != nullptr) && (MediaPlayer->GetPlaylist()->Num() > 1); })
+		FCanExecuteAction::CreateLambda([this]{ return (MediaPlayer->GetPlaylistRef().Num() > 1); })
 	);
 
 	ToolkitCommands->MapAction(

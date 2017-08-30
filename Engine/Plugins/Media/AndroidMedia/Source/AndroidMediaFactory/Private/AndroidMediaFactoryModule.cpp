@@ -1,13 +1,19 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CoreMinimal.h"
+#include "AndroidMediaFactoryPrivate.h"
+
+#include "CoreTypes.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "Internationalization/Internationalization.h"
 #include "Misc/Paths.h"
 #include "Modules/ModuleInterface.h"
 #include "Modules/ModuleManager.h"
 #include "IMediaModule.h"
-#include "IAndroidMediaModule.h"
-#include "AndroidMediaFactoryPrivate.h"
 #include "IMediaPlayerFactory.h"
+#include "UObject/NameTypes.h"
+
+#include "../../AndroidMedia/Public/IAndroidMediaModule.h"
 
 
 DEFINE_LOG_CATEGORY(LogAndroidMediaFactory);
@@ -26,7 +32,7 @@ public:
 
 	//~ IMediaPlayerFactory interface
 
-	virtual bool CanPlayUrl(const FString& Url, const IMediaOptions& Options, TArray<FText>* OutWarnings, TArray<FText>* OutErrors) const override
+	virtual bool CanPlayUrl(const FString& Url, const IMediaOptions* /*Options*/, TArray<FText>* /*OutWarnings*/, TArray<FText>* OutErrors) const override
 	{
 		FString Scheme;
 		FString Location;
@@ -71,10 +77,10 @@ public:
 		return true;
 	}
 
-	virtual TSharedPtr<IMediaPlayer, ESPMode::ThreadSafe> CreatePlayer() override
+	virtual TSharedPtr<IMediaPlayer, ESPMode::ThreadSafe> CreatePlayer(IMediaEventSink& EventSink) override
 	{
 		auto AndroidMediaModule = FModuleManager::LoadModulePtr<IAndroidMediaModule>("AndroidMedia");
-		return (AndroidMediaModule != nullptr) ? AndroidMediaModule->CreatePlayer() : nullptr;
+		return (AndroidMediaModule != nullptr) ? AndroidMediaModule->CreatePlayer(EventSink) : nullptr;
 	}
 
 	virtual FText GetDisplayName() const override
@@ -91,6 +97,13 @@ public:
 	virtual const TArray<FString>& GetSupportedPlatforms() const override
 	{
 		return SupportedPlatforms;
+	}
+
+	virtual bool SupportsFeature(EMediaFeature Feature) const override
+	{
+		return ((Feature == EMediaFeature::AudioTracks) ||
+				(Feature == EMediaFeature::VideoSamples) ||
+				(Feature == EMediaFeature::VideoTracks));
 	}
 
 public:

@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Interfaces/IAutomationReport.h"
+#include "IAutomationReport.h"
 #include "Misc/IFilter.h"
 
 class FAutomationFilter

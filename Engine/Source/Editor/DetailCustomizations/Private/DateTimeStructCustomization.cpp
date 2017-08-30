@@ -15,13 +15,13 @@
 /* IDetailCustomization interface
  *****************************************************************************/
 
-void FDateTimeStructCustomization::CustomizeChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
+void FDateTimeStructCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
 	/* do nothing */
 }
 
 
-void FDateTimeStructCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
+void FDateTimeStructCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
 	PropertyHandle = StructPropertyHandle;
 
@@ -55,7 +55,7 @@ FDateTimeStructCustomization::FDateTimeStructCustomization()
 /* FDateTimeStructCustomization callbacks
  *****************************************************************************/
 
-FSlateColor FDateTimeStructCustomization::HandleTextBoxForegroundColor( ) const
+FSlateColor FDateTimeStructCustomization::HandleTextBoxForegroundColor() const
 {
 	if (InputValid)
 	{
@@ -67,7 +67,7 @@ FSlateColor FDateTimeStructCustomization::HandleTextBoxForegroundColor( ) const
 }
 
 
-FText FDateTimeStructCustomization::HandleTextBoxText( ) const
+FText FDateTimeStructCustomization::HandleTextBoxText() const
 {
 	TArray<void*> RawData;
 	PropertyHandle->AccessRawData(RawData);
@@ -87,14 +87,14 @@ FText FDateTimeStructCustomization::HandleTextBoxText( ) const
 }
 
 
-void FDateTimeStructCustomization::HandleTextBoxTextChanged( const FText& NewText )
+void FDateTimeStructCustomization::HandleTextBoxTextChanged(const FText& NewText)
 {
 	FDateTime DateTime;
 	InputValid = ParseDateTimeZone(NewText.ToString(), DateTime);
 }
 
 
-void FDateTimeStructCustomization::HandleTextBoxTextCommited( const FText& NewText, ETextCommit::Type CommitInfo )
+void FDateTimeStructCustomization::HandleTextBoxTextCommited(const FText& NewText, ETextCommit::Type CommitInfo)
 {
 	FDateTime ParsedDateTime;
 

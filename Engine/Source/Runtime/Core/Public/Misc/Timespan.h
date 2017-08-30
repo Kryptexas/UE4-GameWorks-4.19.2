@@ -3,12 +3,27 @@
 #pragma once
 
 #include "CoreTypes.h"
-#include "CoreFwd.h"
+#include "Containers/UnrealString.h"
 
-class FString;
+class FArchive;
+class FOutputDevice;
+class UObject;
 
+
+/**
+ * Time span related constants.
+ */
 namespace ETimespan
 {
+	/** The maximum number of ticks that can be represented in FTimespan. */
+	const int64 MaxTicks = 9223372036854775807;
+
+	/** The minimum number of ticks that can be represented in FTimespan. */
+	const int64 MinTicks = -9223372036854775807 - 1;
+
+	/** The number of nanoseconds per tick. */
+	const int64 NanosecondsPerTick = 100;
+
 	/** The number of timespan ticks per day. */
 	const int64 TicksPerDay = 864000000000;
 
@@ -44,6 +59,10 @@ namespace ETimespan
  * based arithmetic, such as calculating the difference between two dates or adding a certain amount
  * of time to a given date.
  *
+ * When initializing time span values from single components, consider using the FromHours, FromMinutes,
+ * FromSeconds, Zero, MinValue and related methods instead of calling the overloaded constructors as
+ * they will make your code easier to read and understand.
+ *
  * @see FDateTime
  */
 struct FTimespan
@@ -54,58 +73,68 @@ public:
 	FTimespan() { }
 
 	/**
-	 * Creates and initializes a new time interval with the specified number of ticks.
+	 * Create and initialize a new time interval with the specified number of ticks.
+	 *
+	 * For better readability, consider using MinValue, MaxValue and Zero.
 	 *
 	 * @param Ticks The number of ticks.
+	 * @see MaxValue, MinValue, Zero
 	 */
 	FTimespan(int64 InTicks)
 		: Ticks(InTicks)
-	{ }
+	{
+		check((InTicks >= ETimespan::MinTicks) && (InTicks <= ETimespan::MaxTicks));
+	}
 
 	/**
-	 * Creates and initializes a new time interval with the specified number of hours, minutes and seconds.
+	 * Create and initialize a new time interval with the specified number of hours, minutes and seconds.
+	 *
+	 * For better readability, consider using FromHours, FromMinutes and FromSeconds.
 	 *
 	 * @param Hours The hours component.
 	 * @param Minutes The minutes component.
 	 * @param Seconds The seconds component.
+	 * @see FromHours, FromMinutes, FromSeconds
 	 */
 	FTimespan(int32 Hours, int32 Minutes, int32 Seconds)
 	{
-		Assign(0, Hours, Minutes, Seconds, 0, 0);
+		Assign(0, Hours, Minutes, Seconds, 0);
 	}
 
 	/**
-	 * Creates and initializes a new time interval with the specified number of days, hours, minutes and seconds.
+	 * Create and initialize a new time interval with the specified number of days, hours, minutes and seconds.
+	 *
+	 * For better readability, consider using FromDays, FromHours, FromMinutes and FromSeconds.
 	 *
 	 * @param Days The days component.
 	 * @param Hours The hours component.
 	 * @param Minutes The minutes component.
 	 * @param Seconds The seconds component.
+	 * @see FromDays, FromHours, FromMinutes, FromSeconds
 	 */
 	FTimespan(int32 Days, int32 Hours, int32 Minutes, int32 Seconds)
 	{
-		Assign(Days, Hours, Minutes, Seconds, 0, 0);
+		Assign(Days, Hours, Minutes, Seconds, 0);
 	}
 
 	/**
-	 * Creates and initializes a new time interval with the specified number of days, hours, minutes and seconds.
+	 * Create and initialize a new time interval with the specified number of days, hours, minutes and seconds.
 	 *
 	 * @param Days The days component.
 	 * @param Hours The hours component.
 	 * @param Minutes The minutes component.
 	 * @param Seconds The seconds component.
-	 * @param Milliseconds The milliseconds component.
-	 * @param Microseconds The microseconds component (default = 0).
+	 * @param FractionNano The fractional seconds (in nanosecond resolution).
 	 */
-	FTimespan(int32 Days, int32 Hours, int32 Minutes, int32 Seconds, int32 Milliseconds, int32 Microseconds = 0)
-	{
-		Assign(Days, Hours, Minutes, Seconds, Milliseconds, Microseconds);
-	}
+ 	FTimespan(int32 Days, int32 Hours, int32 Minutes, int32 Seconds, int32 FractionNano)
+ 	{
+ 		Assign(Days, Hours, Minutes, Seconds, FractionNano);
+ 	}
 
 public:
 
 	/**
-	 * Returns result of adding the given time span to this time span.
+	 * Return the result of adding the given time span to this time span.
 	 *
 	 * @return A time span whose value is the sum of this time span and the given time span.
 	 */
@@ -126,7 +155,7 @@ public:
 	}
 
 	/**
-	 * Returns the inverse of this time span.
+	 * Return the inverse of this time span.
 	 *
 	 * The value of this time span must be greater than FTimespan::MinValue(), or else an overflow will occur.
 	 *
@@ -138,7 +167,7 @@ public:
 	}
 
 	/**
-	 * Returns the result of subtracting the given time span from this time span.
+	 * Return the result of subtracting the given time span from this time span.
 	 *
 	 * @param Other The time span to compare with.
 	 * @return A time span whose value is the difference of this time span and the given time span.
@@ -149,7 +178,7 @@ public:
 	}
 
 	/**
-	 * Subtracts the given time span from this time span.
+	 * Subtract the given time span from this time span.
 	 *
 	 * @param Other The time span to subtract.
 	 * @return This time span.
@@ -161,30 +190,53 @@ public:
 	}
 
 	/**
-	 * Returns the result of multiplying the this time span with the given scalar.
+	 * Return the result of multiplying the this time span with the given scalar.
 	 *
 	 * @param Scalar The scalar to multiply with.
 	 * @return A time span whose value is the product of this time span and the given scalar.
 	 */
-	FTimespan operator*(float Scalar) const
+	FTimespan operator*(double Scalar) const
 	{
 		return FTimespan((int64)(Ticks * Scalar));
 	}
 
 	/**
-	 * Multiplies this time span with the given scalar.
+	 * Multiply this time span with the given scalar.
 	 *
 	 * @param Scalar The scalar to multiply with.
 	 * @return This time span.
 	 */
-	FTimespan& operator*=(float Scalar)
+	FTimespan& operator*=(double Scalar)
 	{
 		Ticks = (int64)(Ticks * Scalar);
 		return *this;
 	}
 
 	/**
-	 * Returns the result of calculating the modulus of this time span with another time span.
+	 * Return the result of dividing the this time span by the given scalar.
+	 *
+	 * @param Scalar The scalar to divide by.
+	 * @return A time span whose value is the quotient of this time span and the given scalar.
+	 */
+	FTimespan operator/(double Scalar) const
+	{
+		return FTimespan((int64)(Ticks / Scalar));
+	}
+
+	/**
+	 * Divide this time span by the given scalar.
+	 *
+	 * @param Scalar The scalar to divide by.
+	 * @return This time span.
+	 */
+	FTimespan& operator/=(double Scalar)
+	{
+		Ticks = (int64)(Ticks / Scalar);
+		return *this;
+	}
+
+	/**
+	 * Return the result of calculating the modulus of this time span with another time span.
 	 *
 	 * @param Other The time span to divide by.
 	 * @return A time span representing the remainder of the modulus operation.
@@ -195,7 +247,7 @@ public:
 	}
 
 	/**
-	 * Calculates this time span modulo another.
+	 * Calculate this time span modulo another.
 	 *
 	 * @param Other The time span to divide by.
 	 * @return This time span.
@@ -207,7 +259,7 @@ public:
 	}
 
 	/**
-	 * Compares this time span with the given time span for equality.
+	 * Compare this time span with the given time span for equality.
 	 *
 	 * @param Other The time span to compare with.
 	 * @return true if the time spans are equal, false otherwise.
@@ -218,7 +270,7 @@ public:
 	}
 
 	/**
-	 * Compares this time span with the given time span for inequality.
+	 * Compare this time span with the given time span for inequality.
 	 *
 	 * @param Other The time span to compare with.
 	 * @return true if the time spans are not equal, false otherwise.
@@ -229,7 +281,7 @@ public:
 	}
 
 	/**
-	 * Checks whether this time span is greater than the given time span.
+	 * Check whether this time span is greater than the given time span.
 	 *
 	 * @param Other The time span to compare with.
 	 * @return true if this time span is greater, false otherwise.
@@ -240,7 +292,7 @@ public:
 	}
 
 	/**
-	 * Checks whether this time span is greater than or equal to the given time span.
+	 * Check whether this time span is greater than or equal to the given time span.
 	 *
 	 * @param Other The time span to compare with.
 	 * @return true if this time span is greater or equal, false otherwise.
@@ -251,7 +303,7 @@ public:
 	}
 
 	/**
-	 * Checks whether this time span is less than the given time span.
+	 * Check whether this time span is less than the given time span.
 	 *
 	 * @param Other The time span to compare with.
 	 * @return true if this time span is less, false otherwise.
@@ -262,7 +314,7 @@ public:
 	}
 
 	/**
-	 * Checks whether this time span is less than or equal to the given time span.
+	 * Check whether this time span is less than or equal to the given time span.
 	 *
 	 * @param Other The time span to compare with.
 	 * @return true if this time span is less or equal, false otherwise.
@@ -275,7 +327,7 @@ public:
 public:
 
 	/**
-	 * Exports this time span value to a string.
+	 * Export this time span value to a string.
 	 *
 	 * @param ValueStr Will hold the string value.
 	 * @param DefaultValue The default value.
@@ -288,7 +340,7 @@ public:
 	CORE_API bool ExportTextItem(FString& ValueStr, FTimespan const& DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope) const;
 
 	/**
-	 * Gets the days component of this time span.
+	 * Get the days component of this time span.
 	 *
 	 * @return Days component.
 	 */
@@ -298,7 +350,7 @@ public:
 	}
 
 	/**
-	 * Returns a time span with the absolute value of this time span.
+	 * Get a time span with the absolute value of this time span.
 	 *
 	 * This method may overflow the timespan if its value is equal to MinValue.
 	 *
@@ -308,6 +360,38 @@ public:
 	FTimespan GetDuration()
 	{
 		return FTimespan(Ticks >= 0 ? Ticks : -Ticks);
+	}
+
+	/**
+	 * Gets the fractional seconds (in microsecond resolution).
+	 *
+	 * @return Number of microseconds in fractional part.
+	 * @see GetTotalMicroseconds
+	 */
+	int32 GetFractionMicro() const
+	{
+		return (int32)((Ticks % ETimespan::TicksPerSecond) / ETimespan::TicksPerMicrosecond);
+	}
+
+	/**
+	 * Gets the fractional seconds (in millisecond resolution).
+	 *
+	 * @return Number of milliseconds in fractional part.
+	 * @see GetTotalMilliseconds
+	 */
+	int32 GetFractionMilli() const
+	{
+		return (int32)((Ticks % ETimespan::TicksPerSecond) / ETimespan::TicksPerMillisecond);
+	}
+
+	/**
+	 * Gets the fractional seconds (in nanosecond resolution).
+	 *
+	 * @return Number of nanoseconds in fractional part.
+	 */
+	int32 GetFractionNano() const
+	{
+		return (int32)((Ticks % ETimespan::TicksPerSecond) * ETimespan::NanosecondsPerTick);
 	}
 
 	/**
@@ -322,29 +406,7 @@ public:
 	}
 
 	/**
-	 * Gets the microseconds component of this time span.
-	 *
-	 * @return Microseconds component.
-	 * @see GetTotalMicroseconds
-	 */
-	int32 GetMicroseconds() const
-	{
-		return (int32)((Ticks / ETimespan::TicksPerMicrosecond) % 1000);
-	}
-
-	/**
-	 * Gets the milliseconds component of this time span.
-	 *
-	 * @return Milliseconds component.
-	 * @see GetTotalMilliseconds
-	 */
-	int32 GetMilliseconds() const
-	{
-		return (int32)((Ticks / ETimespan::TicksPerMillisecond) % 1000);
-	}
-
-	/**
-	 * Gets the minutes component of this time span.
+	 * Get the minutes component of this time span.
 	 *
 	 * @return Minutes component.
 	 * @see GetTotalMinutes
@@ -355,7 +417,7 @@ public:
 	}
 
 	/**
-	 * Gets the seconds component of this time span.
+	 * Get the seconds component of this time span.
 	 *
 	 * @return Seconds component.
 	 * @see GetTotalSeconds
@@ -366,7 +428,7 @@ public:
 	}
 
 	/**
-	 * Gets the number of ticks represented by this time span.
+	 * Get the number of ticks represented by this time span.
 	 *
 	 * @return Number of ticks.
 	 */
@@ -376,7 +438,7 @@ public:
 	}
 
 	/**
-	 * Gets the total number of days represented by this time span.
+	 * Get the total number of days represented by this time span.
 	 *
 	 * @return Number of days.
 	 * @see GetDays
@@ -387,7 +449,7 @@ public:
 	}
 
 	/**
-	 * Gets the total number of hours represented by this time span.
+	 * Get the total number of hours represented by this time span.
 	 *
 	 * @return Number of hours.
 	 * @see GetHours
@@ -398,10 +460,10 @@ public:
 	}
 
 	/**
-	 * Gets the total number of microseconds represented by this time span.
+	 * Get the total number of microseconds represented by this time span.
 	 *
 	 * @return Number of microseconds.
-	 * @see GetMicroseconds
+	 * @see GetFractionMicro
 	 */
 	double GetTotalMicroseconds() const
 	{
@@ -409,10 +471,10 @@ public:
 	}
 
 	/**
-	 * Gets the total number of milliseconds represented by this time span.
+	 * Get the total number of milliseconds represented by this time span.
 	 *
 	 * @return Number of milliseconds.
-	 * @see GetMilliseconds
+	 * @see GetFractionMilli
 	 */
 	double GetTotalMilliseconds() const
 	{
@@ -420,7 +482,7 @@ public:
 	}
 
 	/**
-	 * Gets the total number of minutes represented by this time span.
+	 * Get the total number of minutes represented by this time span.
 	 *
 	 * @return Number of minutes.
 	 * @see GetMinutes
@@ -431,7 +493,7 @@ public:
 	}
 
 	/**
-	 * Gets the total number of seconds represented by this time span.
+	 * Get the total number of seconds represented by this time span.
 	 *
 	 * @return Number of seconds.
 	 * @see GetSeconds
@@ -442,7 +504,7 @@ public:
 	}
 
 	/**
-	 * Imports a time span value from a text buffer.
+	 * Import a time span value from a text buffer.
 	 *
 	 * @param Buffer The text buffer to import from.
 	 * @param PortFlags Not used.
@@ -465,7 +527,7 @@ public:
 	}
 
 	/**
-	 * Serializes this time span from or into the specified archive.
+	 * Serialize this time span from or into the specified archive.
 	 *
 	 * @param Ar The archive to serialize from or into.
 	 * @return true on success, false otherwise.
@@ -473,10 +535,20 @@ public:
 	CORE_API bool Serialize(FArchive& Ar);
 
 	/**
-	 * Returns the string representation of this time span using a default format.
+	 * Return the string representation of this time span using a default format.
 	 *
 	 * The returned string has the following format:
-	 *		[-][d.]hh:mm:ss.fff
+	 *		p[d.]hh:mm:ss.fff
+	 *
+	 * Note that 'p' is the plus or minus sign, and the date component is
+	 * omitted for time spans that are shorter than one day.
+	 *
+	 * Examples:
+	 *      -42.15:11:36.457 (45 days, 15 hours, 11 minutes, 36.457 seconds in the past)
+	 *      +42.15:11:36.457 (45 days, 15 hours, 11 minutes, 36.457 seconds in the future)
+	 *      +15:11:36.457 (15 hours, 11 minutes, 36.457 seconds in the future)
+	 *      +00:11:36.457 (11 minutes, 36.457 seconds in the future)
+	 *      +00:00:36.457 (36.457 seconds in the future)
 	 *
 	 * @return String representation.
 	 * @see Parse
@@ -484,23 +556,22 @@ public:
 	CORE_API FString ToString() const;
 
 	/**
-	 * Converts this time span to its string representation.
+	 * Convert this time span to its string representation.
 	 *
 	 * The following formatting codes are available:
-	 *		%n - prints the minus sign (for negative time spans only)
-	 *		%N - prints the minus or plus sign (always)
-	 *		%d - prints the time span's days part
-	 *		%h - prints the time span's hours part (0..23)
-	 *		%m - prints the time span's minutes part (0..59)
-	 *		%s - prints the time span's seconds part (0..59)
-	 *		%f - prints the time span's milliseconds part (0..999)
-	 *		%D - prints the total number of days (without minus sign)
-	 *		%H - prints the total number of hours (without minus sign)
-	 *		%M - prints the total number of minutes (without minus sign)
-	 *		%S - prints the total number of seconds (without minus sign)
-	 *		%F - prints the total number of milliseconds (without minus sign)
+	 *		%d - prints the days component
+	 *		%D - prints the zero-padded days component (00000000..10675199)
+	 *		%h - prints the zero-padded hours component (00..23)
+	 *		%m - prints the zero-padded minutes component (00..59)
+	 *		%s - prints the zero-padded seconds component (00..59)
+	 *		%f - prints the zero-padded fractional seconds (000..999)
+	 *		%u - prints the zero-padded fractional seconds (000000..999999)
+	 *		%n - prints the zero-padded fractional seconds (000000000..999999999)
 	 *
-	 * @param Format - The format of the returned string.
+	 * Depending on whether the time span is positive or negative, a plus or minus
+	 * sign character will always be added in front of the generated string.
+	 *
+	 * @param Format The format of the returned string.
 	 * @return String representation.
 	 * @see Parse
 	 */
@@ -509,61 +580,79 @@ public:
 public:
 
 	/**
-	 * Creates a time span that represents the specified number of days.
+	 * Create a time span that represents the specified number of days.
 	 *
 	 * @param Days The number of days.
 	 * @return Time span.
 	 * @see FromHours, FromMicroseconds, FromMilliseconds, FromMinutes, FromSeconds
 	 */
-	static CORE_API FTimespan FromDays(double Days);
+	static FTimespan FromDays(double Days)
+	{
+		return FTimespan(Days * ETimespan::TicksPerDay);
+	}
 
 	/**
-	 * Creates a time span that represents the specified number of hours.
+	 * Create a time span that represents the specified number of hours.
 	 *
 	 * @param Hours The number of hours.
 	 * @return Time span.
 	 * @see FromDays, FromMicroseconds, FromMilliseconds, FromMinutes, FromSeconds
 	 */
-	static CORE_API FTimespan FromHours(double Hours);
+	static FTimespan FromHours(double Hours)
+	{
+		return FTimespan(Hours * ETimespan::TicksPerHour);
+	}
 
 	/**
-	 * Creates a time span that represents the specified number of microseconds.
+	 * Create a time span that represents the specified number of microseconds.
 	 *
 	 * @param Microseconds The number of microseconds.
 	 * @return Time span.
 	 * @see FromDays, FromHours, FromMinutes, FromSeconds, FromMilliseconds
 	 */
-	static CORE_API FTimespan FromMicroseconds(double Microseconds);
+	static FTimespan FromMicroseconds(double Microseconds)
+	{
+		return FTimespan(Microseconds * ETimespan::TicksPerMicrosecond);
+	}
 
 	/**
-	 * Creates a time span that represents the specified number of milliseconds.
+	 * Create a time span that represents the specified number of milliseconds.
 	 *
 	 * @param Milliseconds The number of milliseconds.
 	 * @return Time span.
 	 * @see FromDays, FromHours, FromMicroseconds, FromMinutes, FromSeconds
 	 */
-	static CORE_API FTimespan FromMilliseconds(double Milliseconds);
+	static FTimespan FromMilliseconds(double Milliseconds)
+	{
+		return FTimespan(Milliseconds * ETimespan::TicksPerMillisecond);
+	}
 
 	/**
-	 * Creates a time span that represents the specified number of minutes.
+	 * Create a time span that represents the specified number of minutes.
 	 *
 	 * @param Minutes The number of minutes.
 	 * @return Time span.
 	 * @see FromDays, FromHours, FromMicroseconds, FromMilliseconds, FromSeconds
 	 */
-	static CORE_API FTimespan FromMinutes(double Minutes);
+	static FTimespan FromMinutes(double Minutes)
+	{
+		return FTimespan(Minutes * ETimespan::TicksPerMinute);
+	}
 
 	/**
-	 * Creates a time span that represents the specified number of seconds.
+	 * Create a time span that represents the specified number of seconds.
 	 *
 	 * @param Seconds The number of seconds.
 	 * @return Time span.
 	 * @see FromDays, FromHours, FromMicroseconds, FromMilliseconds, FromMinutes
 	 */
-	static CORE_API FTimespan FromSeconds(double Seconds);
+	static FTimespan FromSeconds(double Seconds)
+	{
+		return FTimespan(Seconds * ETimespan::TicksPerSecond);
+	}
 
 	/**
-	 * Returns the maximum time span value.
+	 * Return the maximum time span value.
 	 *
 	 * The maximum time span value is slightly more than 10,675,199 days.
 	 *
@@ -572,11 +661,11 @@ public:
 	 */
 	static FTimespan MaxValue()
 	{
-		return FTimespan(9223372036854775807);
+		return FTimespan(ETimespan::MaxTicks);
 	}
 
 	/**
-	 * Returns the minimum time span value.
+	 * Return the minimum time span value.
 	 *
 	 * The minimum time span value is slightly less than -10,675,199 days.
 	 *
@@ -585,14 +674,19 @@ public:
 	 */
 	static FTimespan MinValue()
 	{
-		return FTimespan(-9223372036854775807 - 1);
+		return FTimespan(ETimespan::MinTicks);
 	}
 
 	/**
-	 * Converts a string to a time span.
+	 * Convert a string to a time span.
 	 *
-	 * Currently, the string must be in the format written by FTimespan.ToString().
-	 * Other formats are not supported at this time.
+	 * The string must be in one of the following formats:
+	 *    p[d.]hh::mm::ss.fff
+	 *    p[d.]hh::mm::ss.uuuuuu
+	 *    p[d.]hh::mm::ss.nnnnnnnnn
+	 *
+	 * Note that 'p' is the plus or minus sign, and the date component may be
+	 * omitted for time spans that are shorter than one day.
 	 *
 	 * @param TimespanString The string to convert.
 	 * @param OutTimespan Will contain the parsed time span.
@@ -602,7 +696,24 @@ public:
 	static CORE_API bool Parse(const FString& TimespanString, FTimespan& OutTimespan);
 
 	/**
-	 * Returns the zero time span value.
+	 * Ratio between two time spans (handles zero values).
+	 *
+	 * @param Dividend The dividend.
+	 * @param Divisor The divisor.
+	 * @return The quotient, i.e. Dividend / Divisor.
+	 */
+	static double Ratio(FTimespan Dividend, FTimespan Divisor)
+	{
+		if (Divisor == FTimespan::Zero())
+		{
+			return 0.0;
+		}
+
+		return (double)Dividend.GetTicks() / (double)Divisor.GetTicks();
+	}
+
+	/**
+	 * Return the zero time span value.
 	 *
 	 * The zero time span value can be used in comparison operations with other time spans.
 	 *
@@ -619,39 +730,43 @@ public:
 	friend class UObject;
 
 	/**
-	 * Serializes the given time span from or into the specified archive.
+	 * Serialize the given time span from or into the specified archive.
 	 *
 	 * @param Ar The archive to serialize from or into.
 	 * @param Timespan The time span value to serialize.
 	 * @return The archive.
-	 *
-	 * @todo gmp: Figure out better include order in Core.h so this can be inlined.
 	 */
-	friend CORE_API FArchive& operator<<(FArchive& Ar, FTimespan& Timespan);
+	friend CORE_API FArchive& operator<<(FArchive& Ar, FTimespan& Timespan)
+	{
+		return Ar << Timespan.Ticks;
+	}
 
 	/**
-	 * Gets the hash for the specified time span.
+	 * Get the hash for the specified time span.
 	 *
 	 * @param Timespan The timespan to get the hash for.
 	 * @return Hash value.
 	 */
-	friend CORE_API uint32 GetTypeHash(const FTimespan& Timespan);
+	friend CORE_API uint32 GetTypeHash(const FTimespan& Timespan)
+	{
+		return GetTypeHash(Timespan.Ticks);
+	}
 
 protected:
 
 	/**
-	 * Assigns the specified components to this time span.
+	 * Assign the specified components to this time span.
 	 *
 	 * @param Days The days component.
 	 * @param Hours The hours component.
 	 * @param Minutes The minutes component.
 	 * @param Seconds The seconds component.
-	 * @param Milliseconds The milliseconds component.
-	 * @param Microseconds The microseconds component.
+	 * @param FractionNano The fractional seconds (in nanosecond resolution).
 	 */
-	void CORE_API Assign(int32 Days, int32 Hours, int32 Minutes, int32 Seconds, int32 Milliseconds, int32 Microseconds);
+	void CORE_API Assign(int32 Days, int32 Hours, int32 Minutes, int32 Seconds, int32 FractionNano);
 
 private:
+
 #ifdef COREUOBJECT_API
 	friend COREUOBJECT_API class UScriptStruct* Z_Construct_UScriptStruct_FTimespan();
 #else
@@ -660,13 +775,13 @@ private:
 
 private:
 
-	/** Holds the time span in 100 nanoseconds resolution. */
+	/** The time span value in 100 nanoseconds resolution. */
 	int64 Ticks;
 };
 
 
 /**
- * Pre-multiplies a time span with the given scalar.
+ * Pre-multiply a time span with the given scalar.
  *
  * @param Scalar The scalar to pre-multiply with.
  * @param Timespan The time span to multiply.

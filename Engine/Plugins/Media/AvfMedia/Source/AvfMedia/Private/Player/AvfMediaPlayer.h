@@ -2,14 +2,17 @@
 
 #pragma once
 
-#include "../AvfMediaPrivate.h"
-#include "CoreMinimal.h"
-#include "AvfMediaTracks.h"
+#include "Containers/Queue.h"
+#include "IMediaCache.h"
 #include "IMediaControls.h"
 #include "IMediaPlayer.h"
-#include "Containers/Queue.h"
-#include "Containers/Ticker.h"
+#include "IMediaView.h"
 
+#import <AVFoundation/AVFoundation.h>
+
+class FAvfMediaTracks;
+class FMediaSamples;
+class IMediaEventSink;
 
 @class AVPlayer;
 @class AVPlayerItem;
@@ -20,67 +23,74 @@
  * Implements a media player using the AV framework.
  */
 class FAvfMediaPlayer
-	: public IMediaControls
-	, public IMediaPlayer
+	: public IMediaPlayer
+	, protected IMediaCache
+	, protected IMediaControls
+	, protected IMediaView
 {
 public:
 
-	/** Default constructor. */
-	FAvfMediaPlayer();
+	/**
+	 * Create and initialize a new instance.
+	 *
+	 * @param InEventSink The object that receives media events from this player.
+	 */
+	FAvfMediaPlayer(IMediaEventSink& InEventSink);
 
 	/** Destructor. */
 	~FAvfMediaPlayer();
 
-	/** Called by the delegate whenever the player item status changes. */
-	void HandleStatusNotification(AVPlayerItemStatus Status);
-
-	/** Called by the delegate when the playback reaches the end. */
-	void HandleDidReachEnd();
-
 public:
 
-	//~ IMediaControls interface
+	/** Called by the delegate when the playback reaches the end. */
+	void OnEndReached();
 
-	virtual FTimespan GetDuration() const override;
-	virtual float GetRate() const override;
-	virtual EMediaState GetState() const override;
-	virtual TRange<float> GetSupportedRates(EMediaPlaybackDirections Direction, bool Unthinned) const override;
-	virtual FTimespan GetTime() const override;
-	virtual bool IsLooping() const override;
-	virtual bool Seek(const FTimespan& Time) override;
-	virtual bool SetLooping(bool Looping) override;
-	virtual bool SetRate(float Rate) override;
-	virtual bool SupportsRate(float Rate, bool Unthinned) const override;
-	virtual bool SupportsScrubbing() const override;
-	virtual bool SupportsSeeking() const override;
+	/** Called by the delegate whenever the player item status changes. */
+	void OnStatusNotification(AVPlayerItemStatus Status);
 
 public:
 
 	//~ IMediaPlayer interface
 
 	virtual void Close() override;
+	virtual IMediaCache& GetCache() override;
 	virtual IMediaControls& GetControls() override;
 	virtual FString GetInfo() const override;
 	virtual FName GetName() const override;
-	virtual IMediaOutput& GetOutput() override;
+	virtual IMediaSamples& GetSamples() override;
 	virtual FString GetStats() const override;
 	virtual IMediaTracks& GetTracks() override;
 	virtual FString GetUrl() const override;
-	virtual bool Open(const FString& Url, const IMediaOptions& Options) override;
-	virtual bool Open(const TSharedRef<FArchive, ESPMode::ThreadSafe>& Archive, const FString& OriginalUrl, const IMediaOptions& Options) override;
-	virtual void TickPlayer(float DeltaTime) override;
-	virtual void TickVideo(float DeltaTime) override;
+	virtual IMediaView& GetView() override;
+	virtual bool Open(const FString& Url, const IMediaOptions* Options) override;
+	virtual bool Open(const TSharedRef<FArchive, ESPMode::ThreadSafe>& Archive, const FString& OriginalUrl, const IMediaOptions* Options) override;
+	virtual void TickAudio() override;
+	virtual void TickFetch(FTimespan DeltaTime) override;
+	virtual void TickInput(FTimespan DeltaTime) override;
 
-	DECLARE_DERIVED_EVENT(FVlcMediaPlayer, IMediaPlayer::FOnMediaEvent, FOnMediaEvent);
-	virtual FOnMediaEvent& OnMediaEvent() override
-	{
-		return MediaEvent;
-	}
+protected:
+
+	//~ IMediaControls interface
+
+	virtual bool CanControl(EMediaControl Control) const override;
+	virtual FTimespan GetDuration() const override;
+	virtual float GetRate() const override;
+	virtual EMediaState GetState() const override;
+	virtual EMediaStatus GetStatus() const override;
+	virtual TRangeSet<float> GetSupportedRates(EMediaRateThinning Thinning) const override;
+	virtual FTimespan GetTime() const override;
+	virtual bool IsLooping() const override;
+	virtual bool Seek(const FTimespan& Time) override;
+	virtual bool SetLooping(bool Looping) override;
+	virtual bool SetRate(float Rate) override;
 
 private:
 
 	/** The current playback rate. */
 	float CurrentRate;
+
+	/** Media playback state. */
+	EMediaState CurrentState;
 
 	/** The current time of the playback. */
 	FTimespan CurrentTime;
@@ -88,11 +98,11 @@ private:
 	/** The duration of the media. */
     FTimespan Duration;
 
+	/** The media event handler. */
+	IMediaEventSink& EventSink;
+
 	/** Media information string. */
 	FString Info;
-
-	/** Holds an event delegate that is invoked when a media event occurred. */
-	FOnMediaEvent MediaEvent;
 
 	/** Cocoa helper object we can use to keep track of ns property changes in our media items */
 	FAVPlayerDelegate* MediaHelper;
@@ -109,14 +119,17 @@ private:
 	/** Tasks to be executed on the player thread. */
 	TQueue<TFunction<void()>> PlayerTasks;
 
+	/** The media sample queue. */
+	FMediaSamples* Samples;
+
 	/** Should the video loop to the beginning at completion */
     bool ShouldLoop;
 
 	/** The media track collection. */
-	FAvfMediaTracks Tracks;
-	
-	/** Media playback state. */
-	EMediaState State;
+	FAvfMediaTracks* Tracks;
 	
 	bool bPrerolled;
+
+	/** Mutex to ensure thread-safe access */
+	FCriticalSection CriticalSection;
 };

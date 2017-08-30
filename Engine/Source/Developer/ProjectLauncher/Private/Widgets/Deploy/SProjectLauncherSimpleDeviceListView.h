@@ -2,15 +2,21 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "Misc/Attribute.h"
+#include "Containers/Array.h"
 #include "Layout/Visibility.h"
+#include "Misc/Attribute.h"
+#include "Templates/SharedPointer.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/SCompoundWidget.h"
-#include "Widgets/Views/STableViewBase.h"
-#include "Widgets/Views/STableRow.h"
-#include "Models/ProjectLauncherModel.h"
-#include "Widgets/SProjectLauncherDelegates.h"
+#include "Widgets/Views/SListView.h"
+
+#include "Widgets/Shared/ProjectLauncherDelegates.h"
+
+class FProjectLauncherModel;
+class ITableRow;
+class ITargetDeviceProxy;
+class STableViewBase;
+
 
 /**
  * Implements the deployment targets panel.
@@ -27,10 +33,8 @@ public:
 
 public:
 
-	/**
-	 * Destructor.
-	 */
-	~SProjectLauncherSimpleDeviceListView( );
+	/** Destructor. */
+	~SProjectLauncherSimpleDeviceListView();
 
 public:
 
@@ -41,52 +45,47 @@ public:
 	 * @param InModel The data model.
 	 * @param InAdvanced Whether or not the elements should show advanced data.
 	 */
-	void Construct(const FArguments& InArgs, const FProjectLauncherModelRef& InModel);
+	void Construct(const FArguments& InArgs, const TSharedRef<FProjectLauncherModel>& InModel);
 
 protected:
 
-	/**
-	 * Refreshes the list of device proxies.
-	 */
+	/** Refresh the list of device proxies. */
 	void RefreshDeviceProxyList();
 
 private:
 
-	// Callback for getting the enabled state of a device proxy list row.
-	bool HandleDeviceListRowIsEnabled(ITargetDeviceProxyPtr DeviceProxy) const;
+	/** Callback for getting the enabled state of a device proxy list row. */
+	bool HandleDeviceListRowIsEnabled(TSharedPtr<ITargetDeviceProxy> DeviceProxy) const;
 
-	// Callback when the user clicks the Device Manager hyperlink.
+	/** Callback when the user clicks the Device Manager hyperlink. */
 	void HandleDeviceManagerHyperlinkNavigate() const;
 
-	// Callback for getting the tool tip text of a device proxy list row.
-	FText HandleDeviceListRowToolTipText(ITargetDeviceProxyPtr DeviceProxy) const;
+	/** Callback for getting the tool tip text of a device proxy list row. */
+	FText HandleDeviceListRowToolTipText(TSharedPtr<ITargetDeviceProxy> DeviceProxy) const;
 
-	// Callback for generating a row in the device list view.
-	TSharedRef<ITableRow> HandleDeviceProxyListViewGenerateRow(ITargetDeviceProxyPtr InItem, const TSharedRef<STableViewBase>& OwnerTable) const;
+	/** Callback for generating a row in the device list view. */
+	TSharedRef<ITableRow> HandleDeviceProxyListViewGenerateRow(TSharedPtr<ITargetDeviceProxy> InItem, const TSharedRef<STableViewBase>& OwnerTable) const;
 
-	// Callback for determining the visibility of the device list view.
-	EVisibility HandleDeviceProxyListViewVisibility() const;
+	/** Callback for when a device proxy has been added to the device proxy manager. */
+	void HandleDeviceProxyManagerProxyAdded(const TSharedRef<ITargetDeviceProxy>& AddedProxy);
 
-	// Callback for when a device proxy has been added to the device proxy manager.
-	void HandleDeviceProxyManagerProxyAdded(const ITargetDeviceProxyRef& AddedProxy);
-
-	// Callback for when a device proxy has been added to the device proxy manager.
-	void HandleDeviceProxyManagerProxyRemoved(const ITargetDeviceProxyRef& RemovedProxy);
+	/** Callback for when a device proxy has been added to the device proxy manager. */
+	void HandleDeviceProxyManagerProxyRemoved(const TSharedRef<ITargetDeviceProxy>& RemovedProxy);
 
 private:
 
-	// Holds the list of available device proxies.
-	TArray<ITargetDeviceProxyPtr> DeviceProxyList;
+	/** Holds the list of available device proxies. */
+	TArray<TSharedPtr<ITargetDeviceProxy>> DeviceProxyList;
 
-	// Holds the device proxy list view .
-	TSharedPtr<SListView<ITargetDeviceProxyPtr> > DeviceProxyListView;
+	/** Holds the device proxy list view . */
+	TSharedPtr<SListView<TSharedPtr<ITargetDeviceProxy>> > DeviceProxyListView;
 
-	// Holds a pointer to the data model.
-	FProjectLauncherModelPtr Model;
+	/** Holds a pointer to the data model. */
+	TSharedPtr<FProjectLauncherModel> Model;
 
-	// Specifies whether advanced options are shown.
+	/** Specifies whether advanced options are shown. */
 	TAttribute<bool> IsAdvanced;
 
-	// Holds a delegate to be invoked when a profile is run.
+	/** Holds a delegate to be invoked when a profile is run. */
 	FOnProfileRun OnProfileRun;
 };

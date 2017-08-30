@@ -67,7 +67,7 @@ public:
 	virtual float GetSurfaceHeight() const override { return GetSizeY(); }
 	virtual FTextureResource* CreateResource() override;
 	virtual void UpdateResource() override;
-	virtual EMaterialValueType GetMaterialType() override { return MCT_TextureCube; }
+	virtual EMaterialValueType GetMaterialType() const override { return MCT_TextureCube; }
 	virtual FTexturePlatformData** GetRunningPlatformData() override { return &PlatformData; }
 	virtual TMap<FString, FTexturePlatformData*> *GetCookedPlatformData() override { return &CookedPlatformData; }
 	//~ End UTexture Interface

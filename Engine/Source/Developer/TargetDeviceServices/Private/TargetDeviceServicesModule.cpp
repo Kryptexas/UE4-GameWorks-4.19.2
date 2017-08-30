@@ -1,9 +1,11 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CoreMinimal.h"
+#include "TargetDeviceServicesPrivate.h"
+
+#include "CoreTypes.h"
 #include "Modules/ModuleManager.h"
-#include "Interfaces/ITargetDeviceServicesModule.h"
-#include "TargetDeviceServicesLog.h"
+
+#include "ITargetDeviceServicesModule.h"
 #include "TargetDeviceProxyManager.h"
 #include "TargetDeviceServiceManager.h"
 
@@ -19,9 +21,9 @@ class FTargetDeviceServicesModule
 {
 public:
 
-	// ITargetDeviceServicesModule interface
+	//~ ITargetDeviceServicesModule interface
 
-	virtual ITargetDeviceProxyManagerRef GetDeviceProxyManager() override
+	virtual TSharedRef<ITargetDeviceProxyManager> GetDeviceProxyManager() override
 	{
 		if (!DeviceProxyManagerSingleton.IsValid())
 		{
@@ -31,7 +33,7 @@ public:
 		return DeviceProxyManagerSingleton.ToSharedRef();
 	}
 
-	virtual ITargetDeviceServiceManagerRef GetDeviceServiceManager() override
+	virtual TSharedRef<ITargetDeviceServiceManager> GetDeviceServiceManager() override
 	{
 		if (!DeviceServiceManagerSingleton.IsValid())
 		{
@@ -44,10 +46,10 @@ public:
 private:
 
 	/** Holds the device proxy manager singleton. */
-	ITargetDeviceProxyManagerPtr DeviceProxyManagerSingleton;
+	TSharedPtr<FTargetDeviceProxyManager> DeviceProxyManagerSingleton;
 
 	/** Holds the device service manager singleton. */
-	ITargetDeviceServiceManagerPtr DeviceServiceManagerSingleton;
+	TSharedPtr<FTargetDeviceServiceManager> DeviceServiceManagerSingleton;
 };
 
 

@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "AndroidJava.h"
+#include "RHI.h"
+#include "RHIResources.h"
 
 // Wrapper for com/epicgames/ue4/MediaPlayer*.java.
 class FJavaAndroidMediaPlayer : public FJavaClassObject
@@ -42,17 +44,20 @@ public:
 	};
 
 public:
-	FJavaAndroidMediaPlayer(bool vulkanRenderer);
+	FJavaAndroidMediaPlayer(bool swizzlePixels, bool vulkanRenderer);
 	int32 GetDuration();
 	void Reset();
 	void Stop();
 	int32 GetCurrentPosition();
 	bool IsLooping();
 	bool IsPlaying();
+	bool IsPrepared();
+	bool DidComplete();
 	bool SetDataSource(const FString & Url);
 	bool SetDataSource(const FString& MoviePathOnDevice, int64 offset, int64 size);
 	bool SetDataSource(jobject AssetMgr, const FString& AssetPath, int64 offset, int64 size);
 	bool Prepare();
+	bool PrepareAsync();
 	void SeekTo(int32 Milliseconds);
 	void SetLooping(bool Looping);
 	void Release();
@@ -69,6 +74,8 @@ public:
 	bool GetCaptionTracks(TArray<FCaptionTrack>& CaptionTracks);
 	bool GetVideoTracks(TArray<FVideoTrack>& VideoTracks);
 	bool DidResolutionChange();
+	int32 GetExternalTextureId();
+	bool UpdateVideoFrame(int32 ExternalTextureId, int32 *CurrentPosition, bool *bRegionChanged);
 
 private:
 	static FName GetClassName();
@@ -81,10 +88,13 @@ private:
 	FJavaClassMethod GetCurrentPositionMethod;
 	FJavaClassMethod IsLoopingMethod;
 	FJavaClassMethod IsPlayingMethod;
+	FJavaClassMethod IsPreparedMethod;
+	FJavaClassMethod DidCompleteMethod;
 	FJavaClassMethod SetDataSourceURLMethod;
 	FJavaClassMethod SetDataSourceFileMethod;
 	FJavaClassMethod SetDataSourceAssetMethod;
 	FJavaClassMethod PrepareMethod;
+	FJavaClassMethod PrepareAsyncMethod;
 	FJavaClassMethod SeekToMethod;
 	FJavaClassMethod SetLoopingMethod;
 	FJavaClassMethod ReleaseMethod;
@@ -101,6 +111,18 @@ private:
 	FJavaClassMethod GetCaptionTracksMethod;
 	FJavaClassMethod GetVideoTracksMethod;
 	FJavaClassMethod DidResolutionChangeMethod;
+	FJavaClassMethod GetExternalTextureIdMethod;
+	FJavaClassMethod UpdateVideoFrameMethod;
+
+	// FrameUpdateInfo member field ids
+	jclass FrameUpdateInfoClass;
+	jfieldID FrameUpdateInfo_CurrentPosition;
+	jfieldID FrameUpdateInfo_FrameReady;
+	jfieldID FrameUpdateInfo_RegionChanged;
+	jfieldID FrameUpdateInfo_UScale;
+	jfieldID FrameUpdateInfo_UOffset;
+	jfieldID FrameUpdateInfo_VScale;
+	jfieldID FrameUpdateInfo_VOffset;
 
 	// AudioDeviceInfo member field ids
 	jclass AudioTrackInfoClass;
@@ -128,4 +150,37 @@ private:
 	jfieldID VideoTrackInfo_Width;
 	jfieldID VideoTrackInfo_Height;
 	jfieldID VideoTrackInfo_FrameRate;
+
+	FTextureRHIRef VideoTexture;
+	bool bVideoTextureValid;
+
+	float UScale, UOffset;
+	float VScale, VOffset;
+
+public:
+	FTextureRHIRef GetVideoTexture()
+	{
+		return VideoTexture;
+	}
+
+	void SetVideoTexture(FTextureRHIRef Texture)
+	{
+		VideoTexture = Texture;
+	}
+
+	void SetVideoTextureValid(bool Condition)
+	{
+		bVideoTextureValid = Condition;
+	}
+
+	bool IsVideoTextureValid()
+	{
+		return bVideoTextureValid;
+	}
+
+	float GetUScale() { return UScale; }
+	float GetUOffset() { return UOffset; }
+
+	float GetVScale() { return VScale; }
+	float GetVOffset() { return VOffset; }
 };

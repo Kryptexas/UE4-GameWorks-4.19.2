@@ -186,7 +186,8 @@
 #include "DDSLoader.h"
 #include "Factories/HDRLoader.h"
 #include "Factories/IESLoader.h"
-#include "Interfaces/IImageWrapperModule.h"
+#include "IImageWrapper.h"
+#include "IImageWrapperModule.h"
 
 #include "FbxImporter.h"
 #include "FbxErrors.h"
@@ -204,16 +205,17 @@
 #include "InstancedFoliageActor.h"
 
 #if PLATFORM_WINDOWS
-// Needed for DDS support.
-#include "WindowsHWrapper.h"
-#include "AllowWindowsPlatformTypes.h"
-	#include <ddraw.h>
-#include "HideWindowsPlatformTypes.h"
+	// Needed for DDS support.
+	#include "WindowsHWrapper.h"
+	#include "AllowWindowsPlatformTypes.h"
+		#include <ddraw.h>
+	#include "HideWindowsPlatformTypes.h"
 #endif
 
 #if WITH_EDITOR
-#include "CubemapUnwrapUtils.h"
+	#include "CubemapUnwrapUtils.h"
 #endif
+
 #include "Components/BrushComponent.h"
 #include "EngineUtils.h"
 #include "Engine/AssetUserData.h"
@@ -2821,7 +2823,7 @@ UTexture* UTextureFactory::ImportTexture(UClass* Class, UObject* InParent, FName
 	//
 	// PNG
 	//
-	IImageWrapperPtr PngImageWrapper = ImageWrapperModule.CreateImageWrapper( EImageFormat::PNG );
+	TSharedPtr<IImageWrapper> PngImageWrapper = ImageWrapperModule.CreateImageWrapper( EImageFormat::PNG );
 	if ( PngImageWrapper.IsValid() && PngImageWrapper->SetCompressed( Buffer, Length ) )
 	{
 		if ( !IsImportResolutionValid( PngImageWrapper->GetWidth(), PngImageWrapper->GetHeight(), bAllowNonPowerOfTwo, Warn ) )
@@ -2832,7 +2834,8 @@ UTexture* UTextureFactory::ImportTexture(UClass* Class, UObject* InParent, FName
 		// Select the texture's source format
 		ETextureSourceFormat TextureFormat = TSF_Invalid;
 		int32 BitDepth = PngImageWrapper->GetBitDepth();
-		ERGBFormat::Type Format = PngImageWrapper->GetFormat();
+		ERGBFormat Format = PngImageWrapper->GetFormat();
+
 		if (Format == ERGBFormat::Gray)
 		{
 			if (BitDepth <= 8)
@@ -2906,7 +2909,7 @@ UTexture* UTextureFactory::ImportTexture(UClass* Class, UObject* InParent, FName
 	//
 	// JPEG
 	//
-	IImageWrapperPtr JpegImageWrapper = ImageWrapperModule.CreateImageWrapper( EImageFormat::JPEG );
+	TSharedPtr<IImageWrapper> JpegImageWrapper = ImageWrapperModule.CreateImageWrapper( EImageFormat::JPEG );
 	if ( JpegImageWrapper.IsValid() && JpegImageWrapper->SetCompressed( Buffer, Length ) )
 	{
 		if ( !IsImportResolutionValid( JpegImageWrapper->GetWidth(), JpegImageWrapper->GetHeight(), bAllowNonPowerOfTwo, Warn ) )
@@ -2917,7 +2920,7 @@ UTexture* UTextureFactory::ImportTexture(UClass* Class, UObject* InParent, FName
 		// Select the texture's source format
 		ETextureSourceFormat TextureFormat = TSF_Invalid;
 		int32 BitDepth = JpegImageWrapper->GetBitDepth();
-		ERGBFormat::Type Format = JpegImageWrapper->GetFormat();
+		ERGBFormat Format = JpegImageWrapper->GetFormat();
 
 		if ( Format == ERGBFormat::Gray )
 		{
@@ -2977,7 +2980,7 @@ UTexture* UTextureFactory::ImportTexture(UClass* Class, UObject* InParent, FName
 	//
 	// EXR
 	//
-	IImageWrapperPtr ExrImageWrapper = ImageWrapperModule.CreateImageWrapper( EImageFormat::EXR );
+	TSharedPtr<IImageWrapper> ExrImageWrapper = ImageWrapperModule.CreateImageWrapper( EImageFormat::EXR );
 	if ( ExrImageWrapper.IsValid() && ExrImageWrapper->SetCompressed( Buffer, Length ) )
 	{
 		int32 Width = ExrImageWrapper->GetWidth();
@@ -2991,7 +2994,7 @@ UTexture* UTextureFactory::ImportTexture(UClass* Class, UObject* InParent, FName
 		// Select the texture's source format
 		ETextureSourceFormat TextureFormat = TSF_Invalid;
 		int32 BitDepth = ExrImageWrapper->GetBitDepth();
-		ERGBFormat::Type Format = ExrImageWrapper->GetFormat();
+		ERGBFormat Format = ExrImageWrapper->GetFormat();
 
 		if ( Format == ERGBFormat::RGBA && BitDepth == 16 )
 		{
@@ -3039,7 +3042,7 @@ UTexture* UTextureFactory::ImportTexture(UClass* Class, UObject* InParent, FName
 	//
 	// BMP
 	//
-	IImageWrapperPtr BmpImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::BMP);
+	TSharedPtr<IImageWrapper> BmpImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::BMP);
 	if (BmpImageWrapper.IsValid() && BmpImageWrapper->SetCompressed(Buffer, Length))
 	{
 		// Check the resolution of the imported texture to ensure validity

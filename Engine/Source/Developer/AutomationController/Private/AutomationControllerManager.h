@@ -7,9 +7,9 @@
 #include "Misc/Guid.h"
 #include "Containers/Queue.h"
 #include "Misc/AutomationTest.h"
-#include "Interfaces/IAutomationControllerManager.h"
+#include "IAutomationControllerManager.h"
 #include "IMessageContext.h"
-#include "Helpers/MessageEndpoint.h"
+#include "MessageEndpoint.h"
 #include "Developer/AutomationController/Private/AutomationDeviceClusterManager.h"
 #include "Developer/AutomationController/Private/AutomationReportManager.h"
 #include "Async/Future.h"
@@ -391,31 +391,31 @@ protected:
 private:
 
 	/** Handles FAutomationWorkerFindWorkersResponse messages. */
-	void HandleFindWorkersResponseMessage( const FAutomationWorkerFindWorkersResponse& Message, const IMessageContextRef& Context );
+	void HandleFindWorkersResponseMessage( const FAutomationWorkerFindWorkersResponse& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context );
 
 	/** Handles FAutomationWorkerPong messages. */
-	void HandlePongMessage( const FAutomationWorkerPong& Message, const IMessageContextRef& Context );
+	void HandlePongMessage( const FAutomationWorkerPong& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context );
 
 	/** Handles FAutomationWorkerScreenImage messages. */
-	void HandleReceivedScreenShot( const FAutomationWorkerScreenImage& Message, const IMessageContextRef& Context );
+	void HandleReceivedScreenShot( const FAutomationWorkerScreenImage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context );
 
 	/** Handles FAutomationWorkerTestDataRequest messages. */
-	void HandleTestDataRequest(const FAutomationWorkerTestDataRequest& Message, const IMessageContextRef& Context);
+	void HandleTestDataRequest(const FAutomationWorkerTestDataRequest& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context);
 
 	/** Handles FAutomationWorkerPerformanceDataRequest messages. */
-	void HandlePerformanceDataRequest(const FAutomationWorkerPerformanceDataRequest& Message, const IMessageContextRef& Context);
+	void HandlePerformanceDataRequest(const FAutomationWorkerPerformanceDataRequest& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context);
 
 	/** Handles FAutomationWorkerRequestNextNetworkCommand messages. */
-	void HandleRequestNextNetworkCommandMessage( const FAutomationWorkerRequestNextNetworkCommand& Message, const IMessageContextRef& Context );
+	void HandleRequestNextNetworkCommandMessage( const FAutomationWorkerRequestNextNetworkCommand& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context );
 
 	/** Handles FAutomationWorkerRequestTestsReplyComplete messages. */
-	void HandleRequestTestsReplyCompleteMessage(const FAutomationWorkerRequestTestsReplyComplete& Message, const IMessageContextRef& Context);
+	void HandleRequestTestsReplyCompleteMessage(const FAutomationWorkerRequestTestsReplyComplete& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context);
 
 	/** Handles FAutomationWorkerRunTestsReply messages. */
-	void HandleRunTestsReplyMessage( const FAutomationWorkerRunTestsReply& Message, const IMessageContextRef& Context );
+	void HandleRunTestsReplyMessage( const FAutomationWorkerRunTestsReply& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context );
 
 	/** Handles FAutomationWorkerWorkerOffline messages. */
-	void HandleWorkerOfflineMessage( const FAutomationWorkerWorkerOffline& Message, const IMessageContextRef& Context );
+	void HandleWorkerOfflineMessage( const FAutomationWorkerWorkerOffline& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context );
 
 private:
 
@@ -465,7 +465,7 @@ private:
 	double LastTimeUpdateTicked;
 
 	/** Holds the messaging endpoint. */
-	FMessageEndpointPtr MessageEndpoint;
+	TSharedPtr<FMessageEndpoint, ESPMode::ThreadSafe> MessageEndpoint;
 
 	/** Counter for number of workers we have received responses from for Refreshing the Test List */
 	uint32 RefreshTestResponses;

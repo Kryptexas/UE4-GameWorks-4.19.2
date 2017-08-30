@@ -34,7 +34,7 @@
 #include "ShaderCompiler.h"
 #include "Interfaces/ITargetPlatform.h"
 #include "Interfaces/ITargetPlatformManagerModule.h"
-#include "Interfaces/INetworkFileSystemModule.h"
+#include "INetworkFileSystemModule.h"
 #include "GameDelegates.h"
 #include "CookerSettings.h"
 #include "ShaderCompiler.h"

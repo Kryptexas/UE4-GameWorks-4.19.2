@@ -1,10 +1,14 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Transport/UdpMessageBeacon.h"
+#include "UdpMessagingPrivate.h"
+
+#include "HAL/Event.h"
 #include "HAL/RunnableThread.h"
+#include "Interfaces/IPv4/IPv4Endpoint.h"
+#include "IPAddress.h"
 #include "Serialization/ArrayWriter.h"
 #include "Sockets.h"
-#include "UdpMessagingPrivate.h"
 
 
 /* FUdpMessageHelloSender static initialization

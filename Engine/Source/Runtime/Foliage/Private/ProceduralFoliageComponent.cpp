@@ -213,7 +213,7 @@ bool UProceduralFoliageComponent::ExecuteSimulation(TArray<FDesiredFoliageInstan
 			for (int Y = 0; Y < TileLayout.NumTilesY; ++Y)
 			{
 				bool bFirstTime = true;
-				while (Futures[FutureIdx].WaitFor(FTimespan(0, 0, 0, 0, 100)) == false || bFirstTime)
+				while (Futures[FutureIdx].WaitFor(FTimespan::FromMilliseconds(100.0)) == false || bFirstTime)
 				{
 					if (GWarn->ReceivedUserCancel() && bCancelled == false)
 					{

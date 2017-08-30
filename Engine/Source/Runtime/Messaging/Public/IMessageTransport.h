@@ -2,9 +2,14 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+#include "Containers/Array.h"
 #include "Misc/Guid.h"
-#include "IMessageContext.h"
+#include "Templates/SharedPointer.h"
+#include "UObject/NameTypes.h"
+
+class IMessageContext;
+class IMessageTransportHandler;
+
 
 /**
  * Interface for message transport technologies.
@@ -26,10 +31,11 @@ public:
 	/**
 	 * Starts up the message transport.
 	 *
+	 * @param Handler The handler of inbound transport messages and events.
 	 * @return Whether the transport was started successfully.
 	 * @see StopTransport
 	 */
-	virtual bool StartTransport() = 0;
+	virtual bool StartTransport(IMessageTransportHandler& Handler) = 0;
 
 	/**
 	 * Shuts down the message transport.
@@ -47,20 +53,6 @@ public:
 	 */
 	virtual bool TransportMessage(const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context, const TArray<FGuid>& Recipients) = 0;
 
-public:
-
-	/** A delegate that is executed when message data has been received. */
-	DECLARE_DELEGATE_TwoParams(FOnMessageReceived, const IMessageContextRef& /*MessageContext*/, const FGuid& /*NodeId*/)
-	virtual FOnMessageReceived& OnMessageReceived() = 0;
-
-	/** A delegate that is executed when a transport node has been discovered. */
-	DECLARE_DELEGATE_OneParam(FOnNodeDiscovered, const FGuid& /*NodeId*/)
-	virtual FOnNodeDiscovered& OnNodeDiscovered() = 0;
-
-	/** A delegate that is executed when a transport node has closed or timed out. */
-	DECLARE_DELEGATE_OneParam(FOnNodeLost, const FGuid& /*NodeId*/)
-	virtual FOnNodeLost& OnNodeLost() = 0;
-
 protected:
 
 	/** Virtual destructor. */
@@ -69,4 +61,5 @@ protected:
 
 
 /** Type definition for shared references to instances of ITransportMessages. */
+DEPRECATED(4.16, "IMessageTransportRef is deprecated. Please use 'TSharedRef<IMessageTransport, ESPMode::ThreadSafe>' instead!")
 typedef TSharedRef<IMessageTransport, ESPMode::ThreadSafe> IMessageTransportRef;

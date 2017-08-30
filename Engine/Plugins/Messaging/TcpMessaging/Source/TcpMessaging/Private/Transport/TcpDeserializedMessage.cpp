@@ -34,7 +34,7 @@ FTcpDeserializedMessage::~FTcpDeserializedMessage()
 /* FTcpDeserializedMessage interface
  *****************************************************************************/
 
-bool FTcpDeserializedMessage::Deserialize(const FArrayReaderPtr& Message)
+bool FTcpDeserializedMessage::Deserialize(const TSharedPtr<FArrayReader, ESPMode::ThreadSafe>& Message)
 {
 	FArrayReader& MessageReader = Message.ToSharedRef().Get();
 
@@ -161,7 +161,7 @@ const TWeakObjectPtr<UScriptStruct>& FTcpDeserializedMessage::GetMessageTypeInfo
 }
 
 
-IMessageContextPtr FTcpDeserializedMessage::GetOriginalContext() const
+TSharedPtr<IMessageContext, ESPMode::ThreadSafe> FTcpDeserializedMessage::GetOriginalContext() const
 {
 	return nullptr;
 }

@@ -2,15 +2,20 @@
 
 #pragma once
 
-#include "../WmfMediaPrivate.h"
-#include "IMediaControls.h"
+#include "WmfMediaPrivate.h"
 
 #if WMFMEDIA_SUPPORTED_PLATFORM
 
+#include "CoreTypes.h"
+#include "Containers/Queue.h"
+#include "HAL/CriticalSection.h"
+#include "IMediaControls.h"
+#include "IMediaEventSink.h"
+#include "Misc/Timespan.h"
+
 #include "AllowWindowsPlatformTypes.h"
 
-// forward declarations
-enum class EMediaPlaybackDirections;
+enum class EMediaEvent;
 
 
 /**
@@ -20,12 +25,10 @@ enum class EMediaPlaybackDirections;
  * immediately, such as seeking and playback rate changes. A media session may
  * generate events during playback that are then handled by this class.
  *
- * Windows Media Foundation also queues up most playback commands, which may have
- * undesired side effects, such as unresponsive or sluggish user interfaces. For
- * this reason, this helper class also implements a mechanism to manage pending
- * operations efficiently.
- *
- * @todo gmp: implement better command queuing.
+ * Windows Media Foundation has a number of odd quirks and problems that require
+ * special handling, such as certain state changes not being allowed, and some
+ * calls causing occasional deadlocks. The added complexity in the implementation
+ * of this class is for working around those issues.
  */
 class FWmfMediaSession
 	: public IMFAsyncCallback
@@ -33,52 +36,8 @@ class FWmfMediaSession
 {
 public:
 
-	/**
-	 * Create a placeholder instance.
-	 *
-	 * This constructor is used by WmfMediaPlayer when no media
-	 * is open or when a media URL is currently being resolved.
-	 *
-	 * @param InState Must be either Closed or Preparing.
-	 */
-	FWmfMediaSession(EMediaState InState);
-
-	/**
-	 * Creates and initializes a new instance.
-	 *
-	 * @param InDuration The duration of the media.
-	 */
-	FWmfMediaSession(const FTimespan& InDuration);
-
-	/** Virtual destructor. */
-	virtual ~FWmfMediaSession() { }
-
-public:
-
-	/**
-	 * Set the given playback topology.
-	 *
-	 * @param NewTopology The topology to set.
-	 * @return true on success, false otherwise.
-	 */
-	bool SetTopology(const TComPtr<IMFTopology>& NewTopology);
-
-public:
-
-	//~ IMediaControls interface
-
-	virtual FTimespan GetDuration() const override;
-	virtual float GetRate() const override;
-	virtual EMediaState GetState() const override;
-	virtual TRange<float> GetSupportedRates(EMediaPlaybackDirections Direction, bool Unthinned) const override;
-	virtual FTimespan GetTime() const override;
-	virtual bool IsLooping() const override;
-	virtual bool Seek(const FTimespan& Time) override;
-	virtual bool SetLooping(bool Looping) override;
-	virtual bool SetRate(float Rate) override;
-	virtual bool SupportsRate(float Rate, bool Unthinned) const override;
-	virtual bool SupportsScrubbing() const override;
-	virtual bool SupportsSeeking() const override;
+	/** Default constructor. */
+	FWmfMediaSession();
 
 public:
 
@@ -86,6 +45,7 @@ public:
 	 * Gets the session capabilities.
 	 *
 	 * @return Capabilities bit mask.
+	 * @see GetEvents
 	 */
 	DWORD GetCapabilities() const
 	{
@@ -93,28 +53,60 @@ public:
 	}
 
 	/**
-	 * Sets the media state.
+	 * Gets all deferred player events.
 	 *
-	 * @param NewState The media state to set.
-	 * @return true if the state will be changed, false otherwise.
+	 * @param OutEvents Will contain the events.
+	 * @see GetCapabilities
 	 */
-	bool SetState(EMediaState NewState);
+	void GetEvents(TArray<EMediaEvent>& OutEvents);
+
+	/**
+	 * Initialize the media session.
+	 *
+	 * @param LowLatency Whether to enable low latency processing.
+	 * @see SetTopolgy, Shutdown
+	 */
+	bool Initialize(bool LowLatency);
+
+	/**
+	 * Set the playback topology to be used by this session.
+	 *
+	 * @param InTopology The topology to set.
+	 * @param InDuration Total duration of the media being played.
+	 * @return true on success, false otherwise.
+	 * @see Initialize, Shutdown
+	 */
+	bool SetTopology(const TComPtr<IMFTopology>& InTopology, FTimespan InDuration);
+
+	/**
+	 * Close the media session.
+	 *
+	 * @see Initialize
+	 */
+	void Shutdown();
 
 public:
 
-	/** Gets an event delegate that is invoked when the last presentation segment finished playing. */
-	DECLARE_EVENT_OneParam(FWmfMediaSession, FOnSessionEvent, MediaEventType /*EventType*/)
-	FOnSessionEvent& OnSessionEvent()
-	{
-		return SessionEvent;
-	}
+	//~ IMediaControls interface
+
+	virtual bool CanControl(EMediaControl Control) const override;
+	virtual FTimespan GetDuration() const override;
+	virtual float GetRate() const override;
+	virtual EMediaState GetState() const override;
+	virtual EMediaStatus GetStatus() const override;
+	virtual TRangeSet<float> GetSupportedRates(EMediaRateThinning Thinning) const override;
+	virtual FTimespan GetTime() const override;
+	virtual bool IsLooping() const override;
+	virtual bool Seek(const FTimespan& Time) override;
+	virtual bool SetLooping(bool Looping) override;
+	virtual bool SetRate(float Rate) override;
 
 public:
 
 	//~ IMFAsyncCallback interface
 
 	STDMETHODIMP_(ULONG) AddRef();
-	STDMETHODIMP GetParameters(unsigned long*, unsigned long*);
+	STDMETHODIMP GetParameters(unsigned long* Flags, unsigned long* Queue);
 	STDMETHODIMP Invoke(IMFAsyncResult* AsyncResult);
 	STDMETHODIMP QueryInterface(REFIID RefID, void** Object);
 	STDMETHODIMP_(ULONG) Release();
@@ -122,49 +114,66 @@ public:
 protected:
 
 	/**
-	 * Attempts to change the session state using the requested settings.
+	 * Commit the specified play rate.
 	 *
-	 * @return true if the state is being changed, false otherwise.
+	 * The caller holds the lock to the critical section.
+	 *
+	 * @param Rate The play rate to commit.
+	 * @param Thinning The thinning mode.
+	 * @see CommitTime, CommitTopology
 	 */
-	bool ChangeState();
+	bool CommitRate(float Rate, EMediaRateThinning Thinning);
 
 	/**
-	 * Updates the CurrentPlayRate if it is different than the RequestedPlayRate.
+	 * Commit the specified play position.
 	 *
-	 * @return Whether playback was stopped as a result of the update.
+	 * The caller holds the lock to the critical section.
+	 *
+	 * @param Time The play position to commit.
+	 * @see CommitRate, CommitTopology
 	 */
-	bool UpdateRate();
+	bool CommitTime(FTimespan Time);
 
 	/**
-	 * Gets the playback position as known by the internal WMF clock.
+	 * Commit the given playback topology.
 	 *
-	 * @return The internal playback position.
+	 * @param Topology The topology to set.
+	 * @see CommitRate, CommitTime
 	 */
-	FTimespan GetInternalPosition() const;
+	bool CommitTopology(IMFTopology* Topology);
 
 	/**
-	 * Updates the state machine after a state transition was completed.
+	 * Discard all pending state changes.
 	 *
-	 * @param CompletedState The state that was completed.
+	 * @see UpdatePendingState
 	 */
-	void UpdateState(EMediaState CompletedState);
+	void DiscardPendingState();
+
+	/**
+	 * Applies any pending state changes.
+	 *
+	 * @see DiscardPendingState
+	 */
+	void UpdatePendingState();
 
 private:
 
-	/** Whether the media source is buffering data. */
-	bool Buffering;
+	/** Hidden destructor (this class is reference counted). */
+	virtual ~FWmfMediaSession();
 
-	/** Caches whether the media supports scrubbing. */
+private:
+
+	/** Whether the media session supports scrubbing. */
 	bool CanScrub;
 
 	/** The session's capabilities. */
 	DWORD Capabilities;
 
-	/** Whether a new state change has been requested. */
-	bool ChangeRequested;
-
-	/** Critical section for locking access to this object. */
+	/** Synchronizes write access to session state. */
 	mutable FCriticalSection CriticalSection;
+
+	/** The duration of the media. */
+	FTimespan CurrentDuration;
 
 	/** The current playback rate. */
 	float CurrentRate;
@@ -172,14 +181,20 @@ private:
 	/** The current playback state. */
 	EMediaState CurrentState;
 
-	/** The duration of the media. */
-	FTimespan Duration;
+	/** The full playback topology currently set on the media session. */
+	TComPtr<IMFTopology> CurrentTopology;
+
+	/** Media events to be forwarded to main thread. */
+	TQueue<EMediaEvent> DeferredEvents;
 
 	/** The media session that handles all playback. */
 	TComPtr<IMFMediaSession> MediaSession;
 
-	/** Whether playback should loop to the beginning. */
-	bool Looping;
+	/** The last play head position before playback was stopped. */
+	FTimespan LastTime;
+
+	/** Whether a state change is pending. */
+	bool PendingChange;
 
 	/** The media session's clock. */
 	TComPtr<IMFPresentationClock> PresentationClock;
@@ -193,28 +208,32 @@ private:
 	/** Holds a reference counter for this instance. */
 	int32 RefCount;
 
-	/** The requested playback rate. */
+	/** Deferred play rate change value. */
 	float RequestedRate;
 
-	/** The requested playback position. */
+	/** Thinning of the deferred play rate. */
+	EMediaRateThinning RequestedThinning;
+
+	/** Deferred playback topology to set. */
+	TComPtr<IMFTopology> RequestedTopology;
+
+	/** Deferred play time change value. */
 	FTimespan RequestedTime;
 
-	/** The requested playback state. */
-	EMediaState RequestedState;
+	/** Whether playback should loop to the beginning. */
+	bool ShouldLoop;
 
-	/** Whether a state change is currently in progress. */
-	bool StateChangePending;
+	/** Current status flags. */
+	EMediaStatus Status;
 
-	/** The playback topology to use. */
-	TComPtr<IMFTopology> Topology;
+	/** The thinned play rates that the current media session supports. */
+	TRangeSet<float> ThinnedRates;
 
-private:
-
-	/** Holds an event delegate that is invoked when an event occurs in the session. */
-	FOnSessionEvent SessionEvent;
+	/** The unthinned play rates that the current media session supports. */
+	TRangeSet<float> UnthinnedRates;
 };
 
 
 #include "HideWindowsPlatformTypes.h"
 
-#endif
+#endif //WMFMEDIA_SUPPORTED_PLATFORM

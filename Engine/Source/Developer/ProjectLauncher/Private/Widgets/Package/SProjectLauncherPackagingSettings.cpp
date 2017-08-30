@@ -1,17 +1,18 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "Widgets/Package/SProjectLauncherPackagingSettings.h"
-#include "Widgets/SBoxPanel.h"
+#include "SProjectLauncherPackagingSettings.h"
+
+#include "DesktopPlatformModule.h"
+#include "EditorStyleSet.h"
+#include "Framework/Application/SlateApplication.h"
 #include "Styling/SlateTypes.h"
 #include "SlateOptMacros.h"
-#include "Framework/Application/SlateApplication.h"
-#include "Widgets/Layout/SBorder.h"
-#include "Widgets/Text/STextBlock.h"
+#include "Widgets/SBoxPanel.h"
 #include "Widgets/Input/SEditableTextBox.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SCheckBox.h"
-#include "EditorStyleSet.h"
-#include "DesktopPlatformModule.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Text/STextBlock.h"
 
 
 #define LOCTEXT_NAMESPACE "SProjectLauncherPackagingSettings"
@@ -20,7 +21,7 @@
 /* SProjectLauncherPackagingSettings structors
  *****************************************************************************/
 
-SProjectLauncherPackagingSettings::~SProjectLauncherPackagingSettings( )
+SProjectLauncherPackagingSettings::~SProjectLauncherPackagingSettings()
 {
 	if (Model.IsValid())
 	{
@@ -33,7 +34,7 @@ SProjectLauncherPackagingSettings::~SProjectLauncherPackagingSettings( )
  *****************************************************************************/
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-void SProjectLauncherPackagingSettings::Construct( const FArguments& InArgs, const FProjectLauncherModelRef& InModel )
+void SProjectLauncherPackagingSettings::Construct(const FArguments& InArgs, const TSharedRef<FProjectLauncherModel>& InModel)
 {
 	Model = InModel;
 
@@ -116,10 +117,12 @@ void SProjectLauncherPackagingSettings::Construct( const FArguments& InArgs, con
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
+
 void SProjectLauncherPackagingSettings::UpdateDirectoryPathText()
 {
 	DirectoryPathTextBox->SetText(HandleDirectoryPathText());
 }
+
 
 /* SProjectLauncherPackagingSettings callbacks
  *****************************************************************************/
@@ -148,7 +151,6 @@ ECheckBoxState SProjectLauncherPackagingSettings::HandleForDistributionCheckBoxI
 }
 
 
-
 FText SProjectLauncherPackagingSettings::HandleDirectoryTitleText() const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
@@ -168,6 +170,7 @@ FText SProjectLauncherPackagingSettings::HandleDirectoryTitleText() const
 	return FText::GetEmpty();
 }
 
+
 FText SProjectLauncherPackagingSettings::HandleDirectoryPathText() const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
@@ -184,6 +187,7 @@ FText SProjectLauncherPackagingSettings::HandleDirectoryPathText() const
 	return FText::GetEmpty();
 }
 
+
 FText SProjectLauncherPackagingSettings::HandleHintPathText() const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
@@ -197,10 +201,12 @@ FText SProjectLauncherPackagingSettings::HandleHintPathText() const
 	return FText::GetEmpty();
 }
 
-void SProjectLauncherPackagingSettings::HandleProfileManagerProfileSelected( const ILauncherProfilePtr& SelectedProfile, const ILauncherProfilePtr& PreviousProfile )
+
+void SProjectLauncherPackagingSettings::HandleProfileManagerProfileSelected(const ILauncherProfilePtr& SelectedProfile, const ILauncherProfilePtr& PreviousProfile)
 {
 	UpdateDirectoryPathText();
 }
+
 
 FReply SProjectLauncherPackagingSettings::HandleBrowseButtonClicked()
 {
@@ -238,6 +244,7 @@ FReply SProjectLauncherPackagingSettings::HandleBrowseButtonClicked()
 	return FReply::Handled();
 }
 
+
 bool SProjectLauncherPackagingSettings::IsEditable() const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
@@ -249,6 +256,7 @@ bool SProjectLauncherPackagingSettings::IsEditable() const
 	return false;
 }
 
+
 void SProjectLauncherPackagingSettings::OnTextChanged(const FText& InText)
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
@@ -258,6 +266,7 @@ void SProjectLauncherPackagingSettings::OnTextChanged(const FText& InText)
 		SelectedProfile->SetPackageDirectory(InText.ToString());
 	}
 }
+
 
 void SProjectLauncherPackagingSettings::OnTextCommitted(const FText& InText, ETextCommit::Type CommitInfo)
 {
@@ -271,5 +280,6 @@ void SProjectLauncherPackagingSettings::OnTextCommitted(const FText& InText, ETe
 		}
 	}
 }
+
 
 #undef LOCTEXT_NAMESPACE

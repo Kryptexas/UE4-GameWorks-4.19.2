@@ -2,39 +2,40 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+#include "EditorStyleSet.h"
 #include "InputCoreTypes.h"
 #include "Framework/Commands/InputChord.h"
 #include "Framework/Commands/Commands.h"
-#include "EditorStyleSet.h"
+#include "Templates/SharedPointer.h"
+
 
 #define LOCTEXT_NAMESPACE "ProjectLauncherCommands"
+
 
 /**
  * The project launcher UI commands
  */
-class FProjectLauncherCommands : public TCommands<FProjectLauncherCommands>
+class FProjectLauncherCommands
+	: public TCommands<FProjectLauncherCommands>
 {
 public:
 
-	/**
-	 * Default constructor.
-	 */
-	FProjectLauncherCommands( )
+	/** Default constructor. */
+	FProjectLauncherCommands()
 		: TCommands<FProjectLauncherCommands>(
 			"LauncherCommand",
 			NSLOCTEXT("Contexts", "LauncherCommand", "Project Launcher Command"),
 			NAME_None,
 			FEditorStyle::GetStyleSetName()
-	)
+		)
 	{ }
 	
 public:
 
-	// TCommands interface
+	//~ TCommands interface
 
 	PRAGMA_DISABLE_OPTIMIZATION
-	virtual void RegisterCommands( ) override
+	virtual void RegisterCommands() override
 	{
 		UI_COMMAND(QuickLaunch, "Quick Launch", "Builds, cooks, and launches a build.", EUserInterfaceActionType::ToggleButton, FInputChord(EModifierKey::Control, EKeys::L));
 		UI_COMMAND(CreateBuild, "Build", "Creates a build.", EUserInterfaceActionType::ToggleButton, FInputChord(EModifierKey::Control, EKeys::B));
@@ -50,20 +51,14 @@ public:
 public:
 
 	TSharedPtr<FUICommandInfo> CreateBuild;
-
 	TSharedPtr<FUICommandInfo> DeployBuild;
-
 	TSharedPtr<FUICommandInfo> QuickLaunch;
-
 	TSharedPtr<FUICommandInfo> AdvancedBuild;
-
 	TSharedPtr<FUICommandInfo> CloseSettings;
-
 	TSharedPtr<FUICommandInfo> RenameProfile;
-
 	TSharedPtr<FUICommandInfo> DuplicateProfile;
-
 	TSharedPtr<FUICommandInfo> DeleteProfile;
 };
+
 
 #undef LOCTEXT_NAMESPACE

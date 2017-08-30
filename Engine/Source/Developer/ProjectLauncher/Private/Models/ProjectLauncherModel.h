@@ -2,16 +2,21 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+#include "CoreTypes.h"
+#include "Containers/Array.h"
+#include "Delegates/Delegate.h"
+#include "GameProjectHelper.h"
+#include "ILauncher.h"
+#include "ILauncherProfileManager.h"
 #include "Misc/Paths.h"
 #include "Misc/ConfigCacheIni.h"
 #include "Misc/App.h"
-#include "Interfaces/ILauncherProfileManager.h"
-#include "Interfaces/ILauncher.h"
-#include "Common/GameProjectHelper.h"
+#include "Templates/SharedPointer.h"
+
 
 class FProjectLauncherModel;
 class SProjectLauncher;
+
 
 namespace ELauncherPanels
 {
@@ -29,18 +34,11 @@ namespace ELauncherPanels
 }
 
 
-/** Type definition for shared pointers to instances of FProjectLauncherModel. */
-typedef TSharedPtr<class FProjectLauncherModel> FProjectLauncherModelPtr;
-
-/** Type definition for shared references to instances of FProjectLauncherModel. */
-typedef TSharedRef<class FProjectLauncherModel> FProjectLauncherModelRef;
-
-
 /**
  * Delegate type for launcher profile selection changes.
  *
- * The first parameter is the newly selected profile (or NULL if none was selected).
- * The second parameter is the old selected profile (or NULL if none was previous selected).
+ * The first parameter is the newly selected profile (or nullptr if none was selected).
+ * The second parameter is the old selected profile (or nullptr if none was previous selected).
  */
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnSelectedSProjectLauncherProfileChanged, const ILauncherProfilePtr&, const ILauncherProfilePtr&)
 
@@ -55,11 +53,11 @@ public:
 	/**
 	 * Creates and initializes a new instance.
 	 *
-	 * @param InDeviceProxyManager - The device proxy manager to use.
-	 * @param InLauncher - The launcher to use.
-	 * @param InProfileManager - The profile manager to use.
+	 * @param InDeviceProxyManager The device proxy manager to use.
+	 * @param InLauncher The launcher to use.
+	 * @param InProfileManager The profile manager to use.
 	 */
-	FProjectLauncherModel(const ITargetDeviceProxyManagerRef& InDeviceProxyManager, const ILauncherRef& InLauncher, const ILauncherProfileManagerRef& InProfileManager)
+	FProjectLauncherModel(const TSharedRef<ITargetDeviceProxyManager>& InDeviceProxyManager, const TSharedRef<ILauncher>& InLauncher, const TSharedRef<ILauncherProfileManager>& InProfileManager)
 		: DeviceProxyManager(InDeviceProxyManager)
 		, SProjectLauncher(InLauncher)
 		, ProfileManager(InProfileManager)
@@ -70,9 +68,7 @@ public:
 		LoadConfig();
 	}
 
-	/**
-	 * Destructor.
-	 */
+	/** Destructor. */
 	~FProjectLauncherModel()
 	{
 		ProfileManager->OnProfileAdded().RemoveAll(this);
@@ -88,7 +84,7 @@ public:
 	 *
 	 * @return Device proxy manager.
 	 */
-	const ITargetDeviceProxyManagerRef& GetDeviceProxyManager() const
+	const TSharedRef<ITargetDeviceProxyManager>& GetDeviceProxyManager() const
 	{
 		return DeviceProxyManager;
 	}
@@ -98,7 +94,7 @@ public:
 	 *
 	 * @return SProjectLauncher.
 	 */
-	const ILauncherRef& GetSProjectLauncher() const
+	const TSharedRef<ILauncher>& GetSProjectLauncher() const
 	{
 		return SProjectLauncher;
 	}
@@ -107,21 +103,20 @@ public:
 	 * Get the model's profile manager.
 	 *
 	 * @return Profile manager.
+	 * @see GetProfiles
 	 */
-	const ILauncherProfileManagerRef& GetProfileManager() const
+	const TSharedRef<ILauncherProfileManager>& GetProfileManager() const
 	{
 		return ProfileManager;
 	}
-
 
 	/**
 	 * Gets the active profile.
 	 *
 	 * @return The active profile.
-	 *
-	 * @see GetProfiles
+	 * @see GetProfiles, GetProfileManager, SelectProfile
 	 */
-	const ILauncherProfilePtr& GetSelectedProfile() const
+	const TSharedPtr<ILauncherProfile>& GetSelectedProfile() const
 	{
 		return SelectedProfile;
 	}
@@ -129,15 +124,16 @@ public:
 	/**
 	 * Sets the active profile.
 	 *
-	 * @param InProfile The profile to assign as active,, or NULL to deselect all.
+	 * @param InProfile The profile to assign as active,, or nullptr to deselect all.
+	 * @see GetSelectedProfile
 	 */
-	void SelectProfile(const ILauncherProfilePtr& Profile)
+	void SelectProfile(const TSharedPtr<ILauncherProfile>& Profile)
 	{
 		if (!Profile.IsValid() || ProfileManager->GetAllProfiles().Contains(Profile))
 		{
 			if (Profile != SelectedProfile)
 			{
-				ILauncherProfilePtr& PreviousProfile = SelectedProfile;
+				TSharedPtr<ILauncherProfile>& PreviousProfile = SelectedProfile;
 				SelectedProfile = Profile;
 
 				ProfileSelectedDelegate.Broadcast(Profile, PreviousProfile);
@@ -151,6 +147,7 @@ public:
 	 * Returns a delegate to be invoked when the profile list has been modified.
 	 *
 	 * @return The delegate.
+	 * @see OnProfileSelected
 	 */
 	FSimpleMulticastDelegate& OnProfileListChanged()
 	{
@@ -161,6 +158,7 @@ public:
 	 * Returns a delegate to be invoked when the selected profile changed.
 	 *
 	 * @return The delegate.
+	 * @see OnProfileListChanged
 	 */
 	FOnSelectedSProjectLauncherProfileChanged& OnProfileSelected()
 	{
@@ -171,11 +169,14 @@ protected:
 
 	/*
 	 * Load all profiles from disk.
+	 *
+	 * @see SaveConfig
 	 */
 	void LoadConfig()
 	{
 		// restore the previous project selection
 		FString ProjectPath;
+
 		if (FPaths::IsProjectFilePathSet())
 		{
 			ProjectPath = FPaths::GetProjectFilePath();
@@ -184,19 +185,22 @@ protected:
 		{
 			ProjectPath = FPaths::RootDir() / FApp::GetProjectName() / FApp::GetProjectName() + TEXT(".uproject");
 		}
-		else if (GConfig != NULL)
+		else if (GConfig != nullptr)
 		{
 			GConfig->GetString(TEXT("FProjectLauncherModel"), TEXT("SelectedProjectPath"), ProjectPath, GEngineIni);
 		}
+
 		ProfileManager->SetProjectPath(ProjectPath);
 	}
 
 	/*
 	 * Saves all profiles to disk.
+
+	 * @see LoadConfig
 	 */
 	void SaveConfig()
 	{
-		if (GConfig != NULL && !FPaths::IsProjectFilePathSet() && !FGameProjectHelper::IsGameAvailable(FApp::GetProjectName()))
+		if (GConfig != nullptr && !FPaths::IsProjectFilePathSet() && !FGameProjectHelper::IsGameAvailable(FApp::GetProjectName()))
 		{
 			FString ProjectPath = ProfileManager->GetProjectPath();
 			GConfig->SetString(TEXT("FProjectLauncherModel"), TEXT("SelectedProjectPath"), *ProjectPath, GEngineIni);
@@ -205,22 +209,22 @@ protected:
 
 private:
 
-	// Callback for when a profile was added to the profile manager.
-	void HandleProfileManagerProfileAdded(const ILauncherProfileRef& Profile)
+	/** Callback for when a profile was added to the profile manager. */
+	void HandleProfileManagerProfileAdded(const TSharedRef<ILauncherProfile>& Profile)
 	{
 		ProfileListChangedDelegate.Broadcast();
 
 		SelectProfile(Profile);
 	}
 
-	// Callback for when a profile was removed from the profile manager.
-	void HandleProfileManagerProfileRemoved(const ILauncherProfileRef& Profile)
+	/** Callback for when a profile was removed from the profile manager. */
+	void HandleProfileManagerProfileRemoved(const TSharedRef<ILauncherProfile>& Profile)
 	{
 		ProfileListChangedDelegate.Broadcast();
 
 		if (Profile == SelectedProfile)
 		{
-			const TArray<ILauncherProfilePtr>& Profiles = ProfileManager->GetAllProfiles();
+			const TArray<TSharedPtr<ILauncherProfile>>& Profiles = ProfileManager->GetAllProfiles();
 
 			if (Profiles.Num() > 0)
 			{
@@ -228,34 +232,33 @@ private:
 			}
 			else
 			{
-				SelectProfile(NULL);
+				SelectProfile(nullptr);
 			}
 		}
 	}
 
 private:
 
-	// Holds a pointer to the device proxy manager.
-	ITargetDeviceProxyManagerRef DeviceProxyManager;
+	/** Pointer to the device proxy manager. */
+	TSharedRef<ITargetDeviceProxyManager> DeviceProxyManager;
 
-	// Holds a pointer to the launcher.
-	ILauncherRef SProjectLauncher;
+	/** Pointer to the launcher. */
+	TSharedRef<ILauncher> SProjectLauncher;
 
-	// Holds a pointer to the profile manager.
-	ILauncherProfileManagerRef ProfileManager;
+	/** Pointer to the profile manager. */
+	TSharedRef<ILauncherProfileManager> ProfileManager;
 
-	// Holds a pointer to active profile.
-	ILauncherProfilePtr SelectedProfile;
+	/** Pointer to active profile. */
+	TSharedPtr<ILauncherProfile> SelectedProfile;
 
 private:
 
-	// Holds a delegate to be invoked when the project path has been modified.
+	/** A delegate to be invoked when the project path has been modified. */
 	FSimpleMulticastDelegate ProjectPathChangedDelegate;
 
-	// Holds a delegate to be invoked when the profile list has been modified.
+	/** A delegate to be invoked when the profile list has been modified. */
 	FSimpleMulticastDelegate ProfileListChangedDelegate;
 
-	// Holds a delegate to be invoked when the selected profile changed.
+	/** A delegate to be invoked when the selected profile changed. */
 	FOnSelectedSProjectLauncherProfileChanged ProfileSelectedDelegate;
-
 };

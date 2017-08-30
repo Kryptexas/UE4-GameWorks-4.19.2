@@ -3,11 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Interfaces/INetworkFileSystemModule.h"
 #include "CoreMisc.h"
+#include "INetworkFileSystemModule.h"
 
 class FSandboxPlatformFile;
 class ITargetPlatform;
+
 
 /**
  * This class processes all incoming messages from the client.

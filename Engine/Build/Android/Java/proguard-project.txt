@@ -53,6 +53,9 @@
 -keep class com.epicgames.ue4.GameActivity$JavaAchievement {
 	public *;
 }
+-keep class com.epicgames.ue4.MediaPlayer14$FrameUpdateInfo {
+	public *;
+}
 -keep class com.epicgames.ue4.MediaPlayer14$AudioTrackInfo {
 	public *;
 }

@@ -1,12 +1,14 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "ImageComparer.h"
+
+#include "Async/ParallelFor.h"
+#include "IImageWrapper.h"
+#include "IImageWrapperModule.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "Modules/ModuleManager.h"
 
-#include "Interfaces/IImageWrapperModule.h"
-#include "Async/ParallelFor.h"
 
 #define LOCTEXT_NAMESPACE "ImageComparer"
 
@@ -14,6 +16,7 @@ const FImageTolerance FImageTolerance::DefaultIgnoreNothing(0, 0, 0, 0, 0, 255, 
 const FImageTolerance FImageTolerance::DefaultIgnoreLess(16, 16, 16, 16, 16, 240, false, false, 0.02f, 0.02f);
 const FImageTolerance FImageTolerance::DefaultIgnoreAntiAliasing(32, 32, 32, 32, 64, 96, true, false, 0.02f, 0.02f);
 const FImageTolerance FImageTolerance::DefaultIgnoreColors(16, 16, 16, 16, 16, 240, false, true, 0.02f, 0.02f);
+
 
 class FImageDelta
 {
@@ -83,7 +86,7 @@ public:
 		FString TempDeltaFile = FPaths::CreateTempFilename(*TempDir, TEXT("ImageCompare-"), TEXT(".png"));
 
 		IImageWrapperModule& ImageWrapperModule = FModuleManager::GetModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
-		IImageWrapperPtr ImageWriter = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
+		TSharedPtr<IImageWrapper> ImageWriter = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
 
 		if ( ImageWriter.IsValid() )
 		{
@@ -232,7 +235,7 @@ void FComparableImage::Process()
 TSharedPtr<FComparableImage> FImageComparer::Open(const FString& ImagePath, FText& OutError)
 {
 	IImageWrapperModule& ImageWrapperModule = FModuleManager::GetModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
-	IImageWrapperPtr ImageReader = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
+	TSharedPtr<IImageWrapper> ImageReader = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
 
 	if ( !ImageReader.IsValid() )
 	{

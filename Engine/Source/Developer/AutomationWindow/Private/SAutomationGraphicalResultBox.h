@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
-#include "Interfaces/IAutomationControllerManager.h"
+#include "IAutomationControllerManager.h"
 #include "Styling/SlateColor.h"
 #include "Widgets/SCompoundWidget.h"
 

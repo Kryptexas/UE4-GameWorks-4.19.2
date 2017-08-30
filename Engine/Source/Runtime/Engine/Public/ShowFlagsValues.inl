@@ -324,5 +324,7 @@ SHOWFLAG_FIXED_IN_SHIPPING(0, RequiredTextureResolution, SFG_Hidden, LOCTEXT("Re
 SHOWFLAG_ALWAYS_ACCESSIBLE(WidgetComponents, SFG_Normal, LOCTEXT("WidgetComponentsSF", "Widget Components"))
 /** Draw the bones of all skeletal meshes */
 SHOWFLAG_FIXED_IN_SHIPPING(0, Bones, SFG_Developer, LOCTEXT("BoneSF", "Bones"))
+/** If media planes should be shown */
+SHOWFLAG_ALWAYS_ACCESSIBLE(MediaPlanes, SFG_Normal, LOCTEXT("MediaPlanesSF", "Media Planes"))
 #undef SHOWFLAG_ALWAYS_ACCESSIBLE
 #undef SHOWFLAG_FIXED_IN_SHIPPING

@@ -2,13 +2,17 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "SlateFwd.h"
+#include "CoreTypes.h"
+#include "Templates/SharedPointer.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/SCompoundWidget.h"
-#include "Widgets/Views/STableViewBase.h"
-#include "Widgets/Views/STableRow.h"
-#include "Models/DeviceBrowserFilter.h"
+#include "Widgets/Views/SListView.h"
+
+class FDeviceBrowserFilter;
+class SSearchBox;
+
+struct FDeviceBrowserFilterEntry;
+
 
 /**
  * Implements the device browser filter bar widget.
@@ -23,56 +27,32 @@ public:
 
 public:
 
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	SDeviceBrowserFilterBar()
-		: Filter(NULL)
+		: Filter(nullptr)
 	{ }
 
-	/**
-	 * Destructor.
-	 */
+	/** Destructor. */
 	~SDeviceBrowserFilterBar();
 
 public:
 
 	/**
-	 * Construct this widget
+	 * Construct this widget.
 	 *
 	 * @param InArgs The declaration data for this widget.
 	 * @param InFilter The filter model to use.
 	 */
-	void Construct(const FArguments& InArgs, FDeviceBrowserFilterRef InFilter);
+	void Construct(const FArguments& InArgs, TSharedRef<FDeviceBrowserFilter> InFilter);
 
 private:
 
-	// Callback for filter model resets.
-	void HandleFilterReset();
+	/** Pointer to the filter model. */
+	TSharedPtr<FDeviceBrowserFilter> Filter;
 
-	// Callback for changing the filter string text box text.
-	void HandleFilterStringTextChanged(const FText& NewText);
-
-	// Callback for changing the checked state of the given platform filter row.
-	void HandlePlatformListRowCheckStateChanged(ECheckBoxState CheckState, TSharedPtr<FDeviceBrowserFilterEntry> PlatformEntry);
-
-	// Callback for getting the checked state of the given platform filter row.
-	ECheckBoxState HandlePlatformListRowIsChecked(TSharedPtr<FDeviceBrowserFilterEntry> PlatformEntry) const;
-
-	// Callback for getting the text for a row in the platform filter drop-down.
-	FText HandlePlatformListRowText(TSharedPtr<FDeviceBrowserFilterEntry> PlatformEntry) const;
-
-	// Generates a row widget for the platform filter list.
-	TSharedRef<ITableRow> HandlePlatformListViewGenerateRow(TSharedPtr<FDeviceBrowserFilterEntry> PlatformEntry, const TSharedRef<STableViewBase>& OwnerTable);
-
-private:
-
-	// Holds a pointer to the filter model.
-	FDeviceBrowserFilterPtr Filter;
-
-	// Holds the filter string text box.
+	/** The filter string text box. */
 	TSharedPtr<SSearchBox> FilterStringTextBox;
 
-	// Holds the platform filters list view.
+	/** The platform filters list view. */
 	TSharedPtr<SListView<TSharedPtr<FDeviceBrowserFilterEntry>>> PlatformListView;
 };

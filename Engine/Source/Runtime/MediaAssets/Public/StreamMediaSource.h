@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "UObject/ObjectMacros.h"
 #include "BaseMediaSource.h"
+#include "Containers/UnrealString.h"
+#include "UObject/ObjectMacros.h"
 
 #include "StreamMediaSource.generated.h"
 

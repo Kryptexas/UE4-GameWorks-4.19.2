@@ -38,7 +38,7 @@ static const FName DeviceToolbarTabId("DeviceToolbar");
 /* SDeviceManager constructors
  *****************************************************************************/
 
-SDeviceManager::SDeviceManager( )
+SDeviceManager::SDeviceManager()
 	: Model(MakeShareable(new FDeviceManagerModel()))
 { }
 
@@ -46,7 +46,7 @@ SDeviceManager::SDeviceManager( )
 /* SDeviceManager interface
  *****************************************************************************/
 
-void SDeviceManager::Construct( const FArguments& InArgs, const ITargetDeviceServiceManagerRef& InDeviceServiceManager, const TSharedRef<SDockTab>& ConstructUnderMajorTab, const TSharedPtr<SWindow>& ConstructUnderWindow )
+void SDeviceManager::Construct(const FArguments& InArgs, const TSharedRef<ITargetDeviceServiceManager>& InDeviceServiceManager, const TSharedRef<SDockTab>& ConstructUnderMajorTab, const TSharedPtr<SWindow>& ConstructUnderWindow)
 {
 	DeviceServiceManager = InDeviceServiceManager;
 
@@ -134,6 +134,7 @@ void SDeviceManager::Construct( const FArguments& InArgs, const ITargetDeviceSer
 		"Window"
 	);
 
+	// construct children
 	ChildSlot
 	[
 		SNew(SVerticalBox)
@@ -156,7 +157,7 @@ void SDeviceManager::Construct( const FArguments& InArgs, const ITargetDeviceSer
 /* SDeviceManager implementation
  *****************************************************************************/
 
-void SDeviceManager::BindCommands( )
+void SDeviceManager::BindCommands()
 {
 	const FDeviceDetailsCommands& Commands = FDeviceDetailsCommands::Get();
 
@@ -183,14 +184,14 @@ void SDeviceManager::BindCommands( )
 		FIsActionChecked::CreateSP(this, &SDeviceManager::HandleShareActionIsChecked));
 
 	// connectivity commands
-	UICommandList->MapAction( 
+	UICommandList->MapAction(
 		Commands.Connect, 
-		FExecuteAction::CreateSP( this, &SDeviceManager::HandleConnectActionExecute),
+		FExecuteAction::CreateSP(this, &SDeviceManager::HandleConnectActionExecute),
 		FCanExecuteAction::CreateSP(this, &SDeviceManager::HandleConnectActionCanExecute));
 
-	UICommandList->MapAction( 
+	UICommandList->MapAction(
 		Commands.Disconnect, 
-		FExecuteAction::CreateSP( this, &SDeviceManager::HandleDisconnectActionExecute),
+		FExecuteAction::CreateSP(this, &SDeviceManager::HandleDisconnectActionExecute),
 		FCanExecuteAction::CreateSP(this, &SDeviceManager::HandleDisconnectActionCanExecute));
 
 	// remote control commands
@@ -216,7 +217,7 @@ void SDeviceManager::BindCommands( )
 }
 
 
-void SDeviceManager::FillWindowMenu( FMenuBuilder& MenuBuilder, const TSharedPtr<FTabManager> TabManager )
+void SDeviceManager::FillWindowMenu(FMenuBuilder& MenuBuilder, const TSharedPtr<FTabManager> TabManager)
 {
 	if (!TabManager.IsValid())
 	{
@@ -231,7 +232,7 @@ void SDeviceManager::FillWindowMenu( FMenuBuilder& MenuBuilder, const TSharedPtr
 }
 
 
-bool SDeviceManager::ValidateDeviceAction( const ITargetDeviceRef& Device ) const
+bool SDeviceManager::ValidateDeviceAction(const ITargetDeviceRef& Device) const
 {
 	// @todo gmp: this needs to be improved, i.e. TargetPlatformManager::GetLocalDevice
 	if (Device->GetName() != FPlatformProcess::ComputerName())
@@ -248,7 +249,7 @@ bool SDeviceManager::ValidateDeviceAction( const ITargetDeviceRef& Device ) cons
 /* SDeviceManager callbacks
  *****************************************************************************/
 
-bool SDeviceManager::HandleClaimActionCanExecute( )
+bool SDeviceManager::HandleClaimActionCanExecute()
 {
 	ITargetDeviceServicePtr DeviceService = Model->GetSelectedDeviceService();
 
@@ -256,7 +257,7 @@ bool SDeviceManager::HandleClaimActionCanExecute( )
 }
 
 
-void SDeviceManager::HandleClaimActionExecute( )
+void SDeviceManager::HandleClaimActionExecute()
 {
 	ITargetDeviceServicePtr DeviceService = Model->GetSelectedDeviceService();
 
@@ -267,7 +268,7 @@ void SDeviceManager::HandleClaimActionExecute( )
 }
 
 
-bool SDeviceManager::HandleConnectActionCanExecute( )
+bool SDeviceManager::HandleConnectActionCanExecute()
 {
 	ITargetDeviceServicePtr DeviceService = Model->GetSelectedDeviceService();
 
@@ -285,7 +286,7 @@ bool SDeviceManager::HandleConnectActionCanExecute( )
 }
 
 
-void SDeviceManager::HandleConnectActionExecute( )
+void SDeviceManager::HandleConnectActionExecute()
 {
 	ITargetDeviceServicePtr DeviceService = Model->GetSelectedDeviceService();
 
@@ -304,7 +305,7 @@ void SDeviceManager::HandleConnectActionExecute( )
 }
 
 
-bool SDeviceManager::HandleDisconnectActionCanExecute( )
+bool SDeviceManager::HandleDisconnectActionCanExecute()
 {
 	ITargetDeviceServicePtr DeviceService = Model->GetSelectedDeviceService();
 
@@ -322,7 +323,7 @@ bool SDeviceManager::HandleDisconnectActionCanExecute( )
 }
 
 
-void SDeviceManager::HandleDisconnectActionExecute( )
+void SDeviceManager::HandleDisconnectActionExecute()
 {
 	ITargetDeviceServicePtr DeviceService = Model->GetSelectedDeviceService();
 
@@ -338,7 +339,7 @@ void SDeviceManager::HandleDisconnectActionExecute( )
 }
 
 
-bool SDeviceManager::HandlePowerOffActionCanExecute( )
+bool SDeviceManager::HandlePowerOffActionCanExecute()
 {
 	ITargetDeviceServicePtr DeviceService = Model->GetSelectedDeviceService();
 
@@ -356,7 +357,7 @@ bool SDeviceManager::HandlePowerOffActionCanExecute( )
 }
 
 
-void SDeviceManager::HandlePowerOffActionExecute( bool Force )
+void SDeviceManager::HandlePowerOffActionExecute(bool Force)
 {
 	ITargetDeviceServicePtr DeviceService = Model->GetSelectedDeviceService();
 
@@ -372,7 +373,7 @@ void SDeviceManager::HandlePowerOffActionExecute( bool Force )
 }
 
 
-bool SDeviceManager::HandlePowerOnActionCanExecute( )
+bool SDeviceManager::HandlePowerOnActionCanExecute()
 {
 	ITargetDeviceServicePtr DeviceService = Model->GetSelectedDeviceService();
 
@@ -390,7 +391,7 @@ bool SDeviceManager::HandlePowerOnActionCanExecute( )
 }
 
 
-void SDeviceManager::HandlePowerOnActionExecute( )
+void SDeviceManager::HandlePowerOnActionExecute()
 {
 	ITargetDeviceServicePtr DeviceService = Model->GetSelectedDeviceService();
 
@@ -406,7 +407,7 @@ void SDeviceManager::HandlePowerOnActionExecute( )
 }
 
 
-bool SDeviceManager::HandleRebootActionCanExecute( )
+bool SDeviceManager::HandleRebootActionCanExecute()
 {
 	ITargetDeviceServicePtr DeviceService = Model->GetSelectedDeviceService();
 
@@ -424,7 +425,7 @@ bool SDeviceManager::HandleRebootActionCanExecute( )
 }
 
 
-void SDeviceManager::HandleRebootActionExecute( )
+void SDeviceManager::HandleRebootActionExecute()
 {
 	ITargetDeviceServicePtr DeviceService = Model->GetSelectedDeviceService();
 
@@ -440,7 +441,7 @@ void SDeviceManager::HandleRebootActionExecute( )
 }
 
 
-bool SDeviceManager::HandleReleaseActionCanExecute( )
+bool SDeviceManager::HandleReleaseActionCanExecute()
 {
 	ITargetDeviceServicePtr DeviceService = Model->GetSelectedDeviceService();
 
@@ -448,7 +449,7 @@ bool SDeviceManager::HandleReleaseActionCanExecute( )
 }
 
 
-void SDeviceManager::HandleReleaseActionExecute( )
+void SDeviceManager::HandleReleaseActionExecute()
 {
 	ITargetDeviceServicePtr DeviceService = Model->GetSelectedDeviceService();
 
@@ -459,7 +460,7 @@ void SDeviceManager::HandleReleaseActionExecute( )
 }
 
 
-bool SDeviceManager::HandleRemoveActionCanExecute( )
+bool SDeviceManager::HandleRemoveActionCanExecute()
 {
 	ITargetDeviceServicePtr DeviceService = Model->GetSelectedDeviceService();
 
@@ -468,7 +469,7 @@ bool SDeviceManager::HandleRemoveActionCanExecute( )
 }
 
 
-void SDeviceManager::HandleRemoveActionExecute( )
+void SDeviceManager::HandleRemoveActionExecute()
 {
 	ITargetDeviceServicePtr DeviceService = Model->GetSelectedDeviceService();
 
@@ -479,7 +480,7 @@ void SDeviceManager::HandleRemoveActionExecute( )
 }
 
 
-bool SDeviceManager::HandleShareActionIsChecked( )
+bool SDeviceManager::HandleShareActionIsChecked()
 {
 	ITargetDeviceServicePtr DeviceService = Model->GetSelectedDeviceService();
 
@@ -487,7 +488,7 @@ bool SDeviceManager::HandleShareActionIsChecked( )
 }
 
 
-void SDeviceManager::HandleShareActionExecute( )
+void SDeviceManager::HandleShareActionExecute()
 {
 	ITargetDeviceServicePtr DeviceService = Model->GetSelectedDeviceService();
 
@@ -498,7 +499,7 @@ void SDeviceManager::HandleShareActionExecute( )
 }
 
 
-bool SDeviceManager::HandleShareActionCanExecute( )
+bool SDeviceManager::HandleShareActionCanExecute()
 {
 	ITargetDeviceServicePtr DeviceService = Model->GetSelectedDeviceService();
 
@@ -506,7 +507,7 @@ bool SDeviceManager::HandleShareActionCanExecute( )
 }
 
 
-TSharedRef<SDockTab> SDeviceManager::HandleTabManagerSpawnTab( const FSpawnTabArgs& Args, FName TabIdentifier )
+TSharedRef<SDockTab> SDeviceManager::HandleTabManagerSpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 {
 	TSharedPtr<SWidget> TabWidget = SNullWidget::NullWidget;
 	bool AutoSizeTab = false;

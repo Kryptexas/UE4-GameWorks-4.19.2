@@ -53,10 +53,10 @@
 #include "Interfaces/IShaderFormat.h"
 #include "Interfaces/ITextureFormat.h"
 #include "IMessageContext.h"
-#include "Helpers/MessageEndpoint.h"
-#include "Helpers/MessageEndpointBuilder.h"
-#include "Interfaces/INetworkFileServer.h"
-#include "Interfaces/INetworkFileSystemModule.h"
+#include "MessageEndpoint.h"
+#include "MessageEndpointBuilder.h"
+#include "INetworkFileServer.h"
+#include "INetworkFileSystemModule.h"
 #include "PlatformInfo.h"
 
 #include "AssetRegistryModule.h"
@@ -1032,9 +1032,7 @@ bool UCookOnTheFlyServer::BroadcastFileserverPresence( const FGuid &InstanceId )
 		}
 	}
 
-
-
-	FMessageEndpointPtr MessageEndpoint = FMessageEndpoint::Builder("UCookOnTheFlyServer").Build();
+	TSharedPtr<FMessageEndpoint, ESPMode::ThreadSafe> MessageEndpoint = FMessageEndpoint::Builder("UCookOnTheFlyServer").Build();
 
 	if (MessageEndpoint.IsValid())
 	{

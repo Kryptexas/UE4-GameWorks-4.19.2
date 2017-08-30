@@ -22,7 +22,7 @@ public class IOSTargetPlatform : ModuleRules
 
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {
-				"Messaging",
+                "MessagingCommon",
 				"TargetDeviceServices",
 			}
 		);

@@ -7,7 +7,7 @@
 #include "Widgets/SWidget.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "SOutputLog.h"
-#include "Interfaces/TargetDeviceId.h"
+#include "TargetDeviceId.h"
 #include "Interfaces/ITargetDevice.h"
 
 class SComboButton;

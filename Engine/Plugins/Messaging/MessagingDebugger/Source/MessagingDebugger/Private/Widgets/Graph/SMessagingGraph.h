@@ -2,10 +2,12 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "Styling/ISlateStyle.h"
+#include "CoreTypes.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/SCompoundWidget.h"
+
+class ISlateStyle;
+
 
 /**
  * Implements the message interaction graph panel.
@@ -21,12 +23,12 @@ public:
 public:
 
 	/**
-	 * Construct this widget
+	 * Construct this widget.
 	 *
 	 * @param InArgs The declaration data for this widget.
 	 * @param InStyle The visual style to use for this widget.
 	 */
-	void Construct( const FArguments& InArgs, const TSharedRef<ISlateStyle>& InStyle );
+	void Construct(const FArguments& InArgs, const TSharedRef<ISlateStyle>& InStyle);
 
 private:
 

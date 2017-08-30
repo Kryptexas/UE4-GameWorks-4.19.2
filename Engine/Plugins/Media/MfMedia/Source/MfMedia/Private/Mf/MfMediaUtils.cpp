@@ -4,6 +4,15 @@
 
 #if MFMEDIA_SUPPORTED_PLATFORM
 
+#include "HAL/FileManager.h"
+#include "HAL/PlatformProcess.h"
+#include "Misc/FileHelper.h"
+#include "Serialization/Archive.h"
+#include "Serialization/ArrayReader.h"
+
+#include "MfMediaByteStream.h"
+#include "MfMediaPrivate.h"
+
 #if PLATFORM_WINDOWS
 	#include "AllowWindowsPlatformTypes.h"
 #else
@@ -13,6 +22,171 @@
 
 namespace MfMedia
 {
+	TComPtr<IMFMediaType> CreateOutputType(const GUID& MajorType, const GUID& SubType, bool AllowNonStandardCodecs)
+	{
+		TComPtr<IMFMediaType> OutputType;
+		{
+			HRESULT Result = ::MFCreateMediaType(&OutputType);
+
+			if (FAILED(Result))
+			{
+				UE_LOG(LogMfMedia, Warning, TEXT("Failed to create %s output type (%s)"), *MajorTypeToString(MajorType), *ResultToString(Result));
+				return NULL;
+			}
+
+			Result = OutputType->SetUINT32(MF_MT_ALL_SAMPLES_INDEPENDENT, TRUE);
+
+			if (FAILED(Result))
+			{
+				UE_LOG(LogMfMedia, Warning, TEXT("Failed to initialize %s output type (%s)"), *MajorTypeToString(MajorType), *ResultToString(Result));
+				return NULL;
+			}
+		}
+
+		if (MajorType == MFMediaType_Audio)
+		{
+#if PLATFORM_XBOXONE
+			// filter unsupported audio formats (XboxOne only supports AAC)
+			if (SubType != MFAudioFormat_AAC)
+			{
+				UE_LOG(LogMfMedia, Warning, TEXT("Skipping unsupported audio type %s (%s) \"%s\""), *SubTypeToString(SubType), *GuidToString(SubType), *FourccToString(SubType.Data1));
+				return NULL;
+			}
+#else
+			// filter unsupported audio formats
+			if (FMemory::Memcmp(&SubType.Data2, &MFMPEG4Format_Base.Data2, 12) == 0)
+			{
+				if (AllowNonStandardCodecs)
+				{
+					UE_LOG(LogMfMedia, Verbose, TEXT("Allowing non-standard MP4 audio type %s (%s) \"%s\""), *SubTypeToString(SubType), *GuidToString(SubType), *FourccToString(SubType.Data1));
+				}
+				else
+				{
+					const bool DocumentedFormat =
+						(SubType.Data1 == WAVE_FORMAT_ADPCM) ||
+						(SubType.Data1 == WAVE_FORMAT_ALAW) ||
+						(SubType.Data1 == WAVE_FORMAT_MULAW) ||
+						(SubType.Data1 == WAVE_FORMAT_IMA_ADPCM) ||
+						(SubType.Data1 == MFAudioFormat_AAC.Data1) ||
+						(SubType.Data1 == MFAudioFormat_MP3.Data1) ||
+						(SubType.Data1 == MFAudioFormat_PCM.Data1);
+
+					const bool UndocumentedFormat =
+						(SubType.Data1 == WAVE_FORMAT_WMAUDIO2) ||
+						(SubType.Data1 == WAVE_FORMAT_WMAUDIO3) ||
+						(SubType.Data1 == WAVE_FORMAT_WMAUDIO_LOSSLESS);
+
+					if (!DocumentedFormat && !UndocumentedFormat)
+					{
+						UE_LOG(LogMfMedia, Warning, TEXT("Skipping non-standard MP4 audio type %s (%s) \"%s\""), *SubTypeToString(SubType), *GuidToString(SubType), *FourccToString(SubType.Data1));
+						return NULL;
+					}
+				}
+			}
+			else if (FMemory::Memcmp(&SubType.Data2, &MFAudioFormat_Base.Data2, 12) != 0)
+			{
+				if (AllowNonStandardCodecs)
+				{
+					UE_LOG(LogMfMedia, Verbose, TEXT("Allowing non-standard audio type %s (%s) \"%s\""), *SubTypeToString(SubType), *GuidToString(SubType), *FourccToString(SubType.Data1));
+				}
+				else
+				{
+					UE_LOG(LogMfMedia, Warning, TEXT("Skipping non-standard audio type %s (%s) \"%s\""), *SubTypeToString(SubType), *GuidToString(SubType), *FourccToString(SubType.Data1));
+					return NULL;
+				}
+			}
+#endif //PLATFORM_XBOXONE
+
+			// configure audio output
+			if (FAILED(OutputType->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Audio)) ||
+				FAILED(OutputType->SetGUID(MF_MT_SUBTYPE, MFAudioFormat_PCM)) ||
+				FAILED(OutputType->SetUINT32(MF_MT_AUDIO_BITS_PER_SAMPLE, 16u)))
+				//FAILED(OutputType->SetGUID(MF_MT_SUBTYPE, MFAudioFormat_Float)) ||
+				//FAILED(OutputType->SetUINT32(MF_MT_AUDIO_BITS_PER_SAMPLE, 32u)))
+			{
+				UE_LOG(LogMfMedia, Warning, TEXT("Failed to initialize audio output type"));
+				return NULL;
+			}
+		}
+		else if (MajorType == MFMediaType_SAMI)
+		{
+			// configure caption output
+			const HRESULT Result = OutputType->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_SAMI);
+
+			if (FAILED(Result))
+			{
+				UE_LOG(LogMfMedia, Warning, TEXT("Failed to initialize caption output type (%s)"), *ResultToString(Result));
+				return NULL;
+			}
+		}
+		else if (MajorType == MFMediaType_Video)
+		{
+#if PLATFORM_XBOXONE
+			// filter unsupported video types (XboxOne only supports H.264)
+			if ((SubType != MFVideoFormat_H264) && (SubType == MFVideoFormat_H264_ES))
+			{
+				UE_LOG(LogMfMedia, Warning, TEXT("Unsupported video type %s (%s) \"%i\""), *SubTypeToString(SubType), *GuidToString(SubType), *FourccToString(SubType.Data1));
+				return NULL;
+			}
+#else
+			// filter unsupported video types
+			if (FMemory::Memcmp(&SubType.Data2, &MFVideoFormat_Base.Data2, 12) != 0)
+			{
+				if (AllowNonStandardCodecs)
+				{
+					UE_LOG(LogMfMedia, Verbose, TEXT("Allowing non-standard video type %s (%s) \"%s\""), *SubTypeToString(SubType), *GuidToString(SubType), *FourccToString(SubType.Data1));
+				}
+				else
+				{
+					UE_LOG(LogMfMedia, Warning, TEXT("Skipping non-standard video type %s (%s) \"%s\""), *SubTypeToString(SubType), *GuidToString(SubType), *FourccToString(SubType.Data1));
+					return NULL;
+				}
+			}
+
+			if ((SubType == MFVideoFormat_HEVC) && !FWindowsPlatformMisc::VerifyWindowsVersion(10, 0))
+			{
+				UE_LOG(LogMfMedia, Warning, TEXT("Your Windows version is %s"), *FPlatformMisc::GetOSVersion());
+
+				if ((SubType == MFVideoFormat_HEVC) && !FWindowsPlatformMisc::VerifyWindowsVersion(6, 2))
+				{
+					UE_LOG(LogMfMedia, Warning, TEXT("HEVC video type requires Windows 10 or newer"));
+					return NULL;
+				}
+
+				UE_LOG(LogMfMedia, Warning, TEXT("HEVC video type requires Windows 10 or newer (game must be manifested for Windows 10)"));
+			}
+#endif //PLATFORM_XBOXONE
+
+			// configure video output
+			HRESULT Result = OutputType->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video);
+
+			if (FAILED(Result))
+			{
+				UE_LOG(LogMfMedia, Warning, TEXT("Failed to set video output type (%s)"), *ResultToString(Result));
+				return NULL;
+			}
+
+#if 1//PLATFORM_XBOXONE
+			Result = OutputType->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_NV12); // XboxOne only supports NV12
+#else
+			Result = OutputType->SetGUID(MF_MT_SUBTYPE, (SubType == MFVideoFormat_RGB32) ? MFVideoFormat_RGB32 : MFVideoFormat_NV12);
+#endif
+
+			if (FAILED(Result))
+			{
+				UE_LOG(LogMfMedia, Warning, TEXT("Failed to set video output sub-type (%s)"), *ResultToString(Result));
+				return NULL;
+			}
+		}
+		else
+		{
+			return NULL; // unsupported input type
+		}
+
+		return OutputType;
+	}
+
+
 	FString FourccToString(unsigned long Fourcc)
 	{
 		return FString::Printf(TEXT("%c%c%c%c"),
@@ -51,6 +225,218 @@ namespace MfMedia
 		if (MajorType == MFMediaType_Stream) return TEXT("Stream");
 
 		return GuidToString(MajorType);
+	}
+
+
+	FString MediaEventToString(MediaEventType Event)
+	{
+		switch (Event)
+		{
+		case MEUnknown: return TEXT("Unknown");
+		case MEError: return TEXT("Error");
+		case MEExtendedType: return TEXT("Extended Type");
+		case MENonFatalError: return TEXT("Non-fatal Error");
+		case MESessionUnknown: return TEXT("Session Unknown");
+		case MESessionTopologySet: return TEXT("Session Topology Set");
+		case MESessionTopologiesCleared: return TEXT("Session Topologies Cleared");
+		case MESessionStarted: return TEXT("Session Started");
+		case MESessionPaused: return TEXT("Session Paused");
+		case MESessionStopped: return TEXT("Session Stopped");
+		case MESessionClosed: return TEXT("Session Closed");
+		case MESessionEnded: return TEXT("Session Ended");
+		case MESessionRateChanged: return TEXT("Session Rate Changed");
+		case MESessionScrubSampleComplete: return TEXT("Session Scrub Sample Complete");
+		case MESessionCapabilitiesChanged: return TEXT("Session Capabilities Changed");
+		case MESessionTopologyStatus: return TEXT("Session Topology Status");
+		case MESessionNotifyPresentationTime: return TEXT("Session Notify Presentation Time");
+		case MENewPresentation: return TEXT("New Presentation");
+		case MELicenseAcquisitionStart: return TEXT("License Acquisition Start");
+		case MELicenseAcquisitionCompleted: return TEXT("License Acquisition Completed");
+		case MEIndividualizationStart: return TEXT("Individualization Start");
+		case MEIndividualizationCompleted: return TEXT("Individualization Completed");
+		case MEEnablerProgress: return TEXT("Enabler Progress");
+		case MEEnablerCompleted: return TEXT("Enabler Completed");
+		case MEPolicyError: return TEXT("Policy Error");
+		case MEPolicyReport: return TEXT("Policy Report");
+		case MEBufferingStarted: return TEXT("Buffering Started");
+		case MEBufferingStopped: return TEXT("Buffering Stopped");
+		case MEConnectStart: return TEXT("Connect Start");
+		case MEConnectEnd: return TEXT("Connect End");
+		case MEReconnectStart: return TEXT("Reconnect Start");
+		case MEReconnectEnd: return TEXT("Reconnect End");
+		case MERendererEvent: return TEXT("Renderer Event");
+		case MESessionStreamSinkFormatChanged: return TEXT("Session Stream Sink Format Changed");
+		case MESourceUnknown: return TEXT("Source Unknown");
+		case MESourceStarted: return TEXT("Source Started");
+		case MEStreamStarted: return TEXT("Stream Started");
+		case MESourceSeeked: return TEXT("Source Seeked");
+		case MEStreamSeeked: return TEXT("Stream Seeked");
+		case MENewStream: return TEXT("New Stream");
+		case MEUpdatedStream: return TEXT("Updated Stream");
+		case MESourceStopped: return TEXT("Source Stopped");
+		case MEStreamStopped: return TEXT("Stream Stopped");
+		case MESourcePaused: return TEXT("Source Paused");
+		case MEStreamPaused: return TEXT("Stream Paused");
+		case MEEndOfPresentation: return TEXT("End of Presentation");
+		case MEEndOfStream: return TEXT("End of Stream");
+		case MEMediaSample: return TEXT("Media Sample");
+		case MEStreamTick: return TEXT("Stream Tick");
+		case MEStreamThinMode: return TEXT("Stream Thin Mode");
+		case MEStreamFormatChanged: return TEXT("Stream Format Changed");
+		case MESourceRateChanged: return TEXT("Source Rate Changed");
+		case MEEndOfPresentationSegment: return TEXT("End of Presentation Segment");
+		case MESourceCharacteristicsChanged: return TEXT("Source Characteristics Changed");
+		case MESourceRateChangeRequested: return TEXT("Source Rate Change Requested");
+		case MESourceMetadataChanged: return TEXT("Source Metadata Changed");
+		case MESequencerSourceTopologyUpdated: return TEXT("Sequencer Source Topology Updated");
+		case MESinkUnknown: return TEXT("Sink Unknown");
+		case MEStreamSinkStarted: return TEXT("Stream Sink Started");
+		case MEStreamSinkStopped: return TEXT("Stream Sink Stopped");
+		case MEStreamSinkPaused: return TEXT("Strema Sink Paused");
+		case MEStreamSinkRateChanged: return TEXT("Stream Sink Rate Changed");
+		case MEStreamSinkRequestSample: return TEXT("Stream Sink Request Sample");
+		case MEStreamSinkMarker: return TEXT("Stream Sink Marker");
+		case MEStreamSinkPrerolled: return TEXT("Stream Sink Prerolled");
+		case MEStreamSinkScrubSampleComplete: return TEXT("Stream Sink Scrub Sample Complete");
+		case MEStreamSinkFormatChanged: return TEXT("Stream Sink Format Changed");
+		case MEStreamSinkDeviceChanged: return TEXT("Stream Sink Device Changed");
+		case MEQualityNotify: return TEXT("Quality Notify");
+		case MESinkInvalidated: return TEXT("Sink Invalidated");
+		case MEAudioSessionNameChanged: return TEXT("Audio Session Name Changed");
+		case MEAudioSessionVolumeChanged: return TEXT("Audio Session Volume Changed");
+		case MEAudioSessionDeviceRemoved: return TEXT("Audio Session Device Removed");
+		case MEAudioSessionServerShutdown: return TEXT("Audio Session Server Shutdown");
+		case MEAudioSessionGroupingParamChanged: return TEXT("Audio Session Grouping Param Changed");
+		case MEAudioSessionIconChanged: return TEXT("Audio Session Icion Changed");
+		case MEAudioSessionFormatChanged: return TEXT("Audio Session Format Changed");
+		case MEAudioSessionDisconnected: return TEXT("Audio Session Disconnected");
+		case MEAudioSessionExclusiveModeOverride: return TEXT("Audio Session Exclusive Mode Override");
+		case MECaptureAudioSessionVolumeChanged: return TEXT("Capture Audio Session Volume Changed");
+		case MECaptureAudioSessionDeviceRemoved: return TEXT("Capture Audio Session Device Removed");
+		case MECaptureAudioSessionFormatChanged: return TEXT("Capture Audio Session Format Changed");
+		case MECaptureAudioSessionDisconnected: return TEXT("Capture Audio Session Disconnected");
+		case MECaptureAudioSessionExclusiveModeOverride: return TEXT("Capture Audio Session Exclusive Mode Override");
+		case MECaptureAudioSessionServerShutdown: return TEXT("Capture Audio Session Server Shutdown");
+		case METrustUnknown: return TEXT("Trust Unknown");
+		case MEPolicyChanged: return TEXT("Policy Changed");
+		case MEContentProtectionMessage: return TEXT("Content Protection Message");
+		case MEPolicySet: return TEXT("Policy Set");
+		case MEWMDRMLicenseBackupCompleted: return TEXT("WM DRM License Backup Completed");
+		case MEWMDRMLicenseBackupProgress: return TEXT("WM DRM License Backup Progress");
+		case MEWMDRMLicenseRestoreCompleted: return TEXT("WM DRM License Restore Completed");
+		case MEWMDRMLicenseRestoreProgress: return TEXT("WM DRM License Restore Progress");
+		case MEWMDRMLicenseAcquisitionCompleted: return TEXT("WM DRM License Acquisition Completed");
+		case MEWMDRMIndividualizationCompleted: return TEXT("WM DRM Individualization Completed");
+		case MEWMDRMIndividualizationProgress: return TEXT("WM DRM Individualization Progress");
+		case MEWMDRMProximityCompleted: return TEXT("WM DRM Proximity Completed");
+		case MEWMDRMLicenseStoreCleaned: return TEXT("WM DRM License Store Cleaned");
+		case MEWMDRMRevocationDownloadCompleted: return TEXT("WM DRM Revocation Download Completed");
+		case METransformUnknown: return TEXT("Transform Unkonwn");
+		case METransformNeedInput: return TEXT("Transform Need Input");
+		case METransformHaveOutput: return TEXT("Transform Have Output");
+		case METransformDrainComplete: return TEXT("Transform Drain Complete");
+		case METransformMarker: return TEXT("Transform Marker");
+		case MEByteStreamCharacteristicsChanged: return TEXT("Byte Stream Characteristics Changed");
+		case MEVideoCaptureDeviceRemoved: return TEXT("Video Capture Device Removed");
+		case MEVideoCaptureDevicePreempted: return TEXT("Video Capture Device Preempted");
+
+		default:
+			return FString::Printf(TEXT("Unknown event %i"), Event);
+		}
+	}
+
+
+	TComPtr<IMFMediaSource> ResolveMediaSource(TSharedPtr<FArchive, ESPMode::ThreadSafe> Archive, const FString& Url, bool Precache)
+	{
+		// load media source
+		if (!Archive.IsValid() && Url.StartsWith(TEXT("file://")))
+		{
+			const TCHAR* FilePath = &Url[7];
+
+			if (Precache)
+			{
+				FArrayReader* Reader = new FArrayReader;
+
+				if (FFileHelper::LoadFileToArray(*Reader, FilePath))
+				{
+					Archive = MakeShareable(Reader);
+				}
+				else
+				{
+					delete Reader;
+				}
+			}
+			else
+			{
+				Archive = MakeShareable(IFileManager::Get().CreateFileReader(FilePath));
+			}
+
+			if (!Archive.IsValid())
+			{
+				UE_LOG(LogMfMedia, Error, TEXT("Failed to open or read media file %s"), FilePath);
+				return NULL;
+			}
+
+			if (Archive->TotalSize() == 0)
+			{
+				UE_LOG(LogMfMedia, Error, TEXT("Cannot open media from empty file %s."), FilePath);
+				return NULL;
+			}
+		}
+
+		// create source resolver
+		TComPtr<IMFSourceResolver> SourceResolver;
+		{
+			const HRESULT Result = ::MFCreateSourceResolver(&SourceResolver);
+
+			if (FAILED(Result))
+			{
+				UE_LOG(LogMfMedia, Error, TEXT("Failed to create media source resolver (%s)"), *MfMedia::ResultToString(Result));
+				return NULL;
+			}
+		}
+
+		// resolve media source
+		TComPtr<IUnknown> SourceObject;
+		{
+			MF_OBJECT_TYPE ObjectType;
+
+			if (Archive.IsValid())
+			{
+				TComPtr<FMfMediaByteStream> ByteStream = new FMfMediaByteStream(Archive.ToSharedRef());
+				const HRESULT Result = SourceResolver->CreateObjectFromByteStream(ByteStream, *Url, MF_RESOLUTION_MEDIASOURCE, NULL, &ObjectType, &SourceObject);
+
+				if (FAILED(Result))
+				{
+					UE_LOG(LogMfMedia, Error, TEXT("Failed to resolve byte stream %s (%s)"), *Url, *MfMedia::ResultToString(Result));
+					return NULL;
+				}
+			}
+			else
+			{
+				const HRESULT Result = SourceResolver->CreateObjectFromURL(*Url, MF_RESOLUTION_MEDIASOURCE, NULL, &ObjectType, &SourceObject);
+
+				if (FAILED(Result))
+				{
+					UE_LOG(LogMfMedia, Error, TEXT("Failed to resolve URL %s (%s)"), *Url, *MfMedia::ResultToString(Result));
+					return NULL;
+				}
+			}
+		}
+
+		// get media source interface
+		TComPtr<IMFMediaSource> MediaSource;
+		{
+			const HRESULT Result = SourceObject->QueryInterface(IID_PPV_ARGS(&MediaSource));
+
+			if (FAILED(Result))
+			{
+				UE_LOG(LogMfMedia, Error, TEXT("Failed to query media source interface: %s"), *MfMedia::ResultToString(Result));
+				return NULL;
+			}
+		}
+
+		return MediaSource;
 	}
 
 
@@ -131,6 +517,77 @@ namespace MfMedia
 
 	FString SubTypeToString(const GUID& SubType)
 	{
+		if (SubType == GUID_NULL) return TEXT("Null");
+
+		// image formats
+		if (SubType == MFImageFormat_JPEG) return TEXT("Jpeg");
+		if (SubType == MFImageFormat_RGB32) return TEXT("RGB32");
+
+		// stream formats
+		if (SubType == MFStreamFormat_MPEG2Transport) return TEXT("MPEG-2 Transport");
+		if (SubType == MFStreamFormat_MPEG2Program) return TEXT("MPEG-2 Program");
+
+		// video formats
+		if (SubType == MFVideoFormat_RGB32) return TEXT("RGB32");
+		if (SubType == MFVideoFormat_ARGB32) return TEXT("ARGB32");
+		if (SubType == MFVideoFormat_RGB24) return TEXT("RGB24");
+		if (SubType == MFVideoFormat_RGB555) return TEXT("RGB525");
+		if (SubType == MFVideoFormat_RGB565) return TEXT("RGB565");
+		if (SubType == MFVideoFormat_RGB8) return TEXT("RGB8");
+		if (SubType == MFVideoFormat_AI44) return TEXT("AI44");
+		if (SubType == MFVideoFormat_AYUV) return TEXT("AYUV");
+		if (SubType == MFVideoFormat_YUY2) return TEXT("YUY2");
+		if (SubType == MFVideoFormat_YVYU) return TEXT("YVYU");
+		if (SubType == MFVideoFormat_YVU9) return TEXT("YVU9");
+		if (SubType == MFVideoFormat_UYVY) return TEXT("UYVY");
+		if (SubType == MFVideoFormat_NV11) return TEXT("NV11");
+		if (SubType == MFVideoFormat_NV12) return TEXT("NV12");
+		if (SubType == MFVideoFormat_YV12) return TEXT("YV12");
+		if (SubType == MFVideoFormat_I420) return TEXT("I420");
+		if (SubType == MFVideoFormat_IYUV) return TEXT("IYUV");
+		if (SubType == MFVideoFormat_Y210) return TEXT("Y210");
+		if (SubType == MFVideoFormat_Y216) return TEXT("Y216");
+		if (SubType == MFVideoFormat_Y410) return TEXT("Y410");
+		if (SubType == MFVideoFormat_Y416) return TEXT("Y416");
+		if (SubType == MFVideoFormat_Y41P) return TEXT("Y41P");
+		if (SubType == MFVideoFormat_Y41T) return TEXT("Y41T");
+		if (SubType == MFVideoFormat_Y42T) return TEXT("Y42T");
+		if (SubType == MFVideoFormat_P210) return TEXT("P210");
+		if (SubType == MFVideoFormat_P216) return TEXT("P216");
+		if (SubType == MFVideoFormat_P010) return TEXT("P010");
+		if (SubType == MFVideoFormat_P016) return TEXT("P016");
+		if (SubType == MFVideoFormat_v210) return TEXT("v210");
+		if (SubType == MFVideoFormat_v216) return TEXT("v216");
+		if (SubType == MFVideoFormat_v410) return TEXT("v410");
+		if (SubType == MFVideoFormat_MP43) return TEXT("MP43");
+		if (SubType == MFVideoFormat_MP4S) return TEXT("MP4S");
+		if (SubType == MFVideoFormat_M4S2) return TEXT("M4S2");
+		if (SubType == MFVideoFormat_MP4V) return TEXT("MP4V");
+		if (SubType == MFVideoFormat_WMV1) return TEXT("WMV1");
+		if (SubType == MFVideoFormat_WMV2) return TEXT("WMV2");
+		if (SubType == MFVideoFormat_WMV3) return TEXT("WMV3");
+		if (SubType == MFVideoFormat_WVC1) return TEXT("WVC1");
+		if (SubType == MFVideoFormat_MSS1) return TEXT("MSS1");
+		if (SubType == MFVideoFormat_MSS2) return TEXT("MSS2");
+		if (SubType == MFVideoFormat_MPG1) return TEXT("MPG1");
+		if (SubType == MFVideoFormat_DVSL) return TEXT("DVSL");
+		if (SubType == MFVideoFormat_DVSD) return TEXT("DVSD");
+		if (SubType == MFVideoFormat_DVHD) return TEXT("DVHD");
+		if (SubType == MFVideoFormat_DV25) return TEXT("DV25");
+		if (SubType == MFVideoFormat_DV50) return TEXT("DV50");
+		if (SubType == MFVideoFormat_DVH1) return TEXT("DVH1");
+		if (SubType == MFVideoFormat_DVC) return TEXT("DVC");
+		if (SubType == MFVideoFormat_H264) return TEXT("H264");
+		if (SubType == MFVideoFormat_MJPG) return TEXT("MJPG");
+		if (SubType == MFVideoFormat_420O) return TEXT("420O");
+
+#if (WINVER >= _WIN32_WINNT_WIN8)
+		if (SubType == MFVideoFormat_H263) return TEXT("H263");
+#endif
+
+		if (SubType == MFVideoFormat_H264_ES) return TEXT("H264 ES");
+		if (SubType == MFVideoFormat_MPEG2) return TEXT("MPEG-2");
+
 		// audio formats
 		if ((FMemory::Memcmp(&SubType.Data2, &MFAudioFormat_Base.Data2, 12) == 0) ||
 			(FMemory::Memcmp(&SubType.Data2, &MFMPEG4Format_Base.Data2, 12) == 0))
@@ -398,75 +855,7 @@ namespace MfMedia
 			if (SubType.Data1 == WAVE_FORMAT_FLAC) return TEXT("flac.sourceforge.net");
 		}
 
-		// image formats
-		if (SubType == MFImageFormat_JPEG) return TEXT("Jpeg");
-		if (SubType == MFImageFormat_RGB32) return TEXT("RGB32");
-
-		// stream formats
-		if (SubType == MFStreamFormat_MPEG2Transport) return TEXT("MPEG-2 Transport");
-		if (SubType == MFStreamFormat_MPEG2Program) return TEXT("MPEG-2 Program");
-
-		// video formats
-		if (SubType == MFVideoFormat_RGB32) return TEXT("RGB32");
-		if (SubType == MFVideoFormat_ARGB32) return TEXT("ARGB32");
-		if (SubType == MFVideoFormat_RGB24) return TEXT("RGB24");
-		if (SubType == MFVideoFormat_RGB555) return TEXT("RGB525");
-		if (SubType == MFVideoFormat_RGB565) return TEXT("RGB565");
-		if (SubType == MFVideoFormat_RGB8) return TEXT("RGB8");
-		if (SubType == MFVideoFormat_AI44) return TEXT("AI44");
-		if (SubType == MFVideoFormat_AYUV) return TEXT("AYUV");
-		if (SubType == MFVideoFormat_YUY2) return TEXT("YUY2");
-		if (SubType == MFVideoFormat_YVYU) return TEXT("YVYU");
-		if (SubType == MFVideoFormat_YVU9) return TEXT("YVU9");
-		if (SubType == MFVideoFormat_UYVY) return TEXT("UYVY");
-		if (SubType == MFVideoFormat_NV11) return TEXT("NV11");
-		if (SubType == MFVideoFormat_NV12) return TEXT("NV12");
-		if (SubType == MFVideoFormat_YV12) return TEXT("YV12");
-		if (SubType == MFVideoFormat_I420) return TEXT("I420");
-		if (SubType == MFVideoFormat_IYUV) return TEXT("IYUV");
-		if (SubType == MFVideoFormat_Y210) return TEXT("Y210");
-		if (SubType == MFVideoFormat_Y216) return TEXT("Y216");
-		if (SubType == MFVideoFormat_Y410) return TEXT("Y410");
-		if (SubType == MFVideoFormat_Y416) return TEXT("Y416");
-		if (SubType == MFVideoFormat_Y41P) return TEXT("Y41P");
-		if (SubType == MFVideoFormat_Y41T) return TEXT("Y41T");
-		if (SubType == MFVideoFormat_Y42T) return TEXT("Y42T");
-		if (SubType == MFVideoFormat_P210) return TEXT("P210");
-		if (SubType == MFVideoFormat_P216) return TEXT("P216");
-		if (SubType == MFVideoFormat_P010) return TEXT("P010");
-		if (SubType == MFVideoFormat_P016) return TEXT("P016");
-		if (SubType == MFVideoFormat_v210) return TEXT("v210");
-		if (SubType == MFVideoFormat_v216) return TEXT("v216");
-		if (SubType == MFVideoFormat_v410) return TEXT("v410");
-		if (SubType == MFVideoFormat_MP43) return TEXT("MP43");
-		if (SubType == MFVideoFormat_MP4S) return TEXT("MP4S");
-		if (SubType == MFVideoFormat_M4S2) return TEXT("M4S2");
-		if (SubType == MFVideoFormat_MP4V) return TEXT("MP4V");
-		if (SubType == MFVideoFormat_WMV1) return TEXT("WMV1");
-		if (SubType == MFVideoFormat_WMV2) return TEXT("WMV2");
-		if (SubType == MFVideoFormat_WMV3) return TEXT("WMV3");
-		if (SubType == MFVideoFormat_WVC1) return TEXT("WVC1");
-		if (SubType == MFVideoFormat_MSS1) return TEXT("MSS1");
-		if (SubType == MFVideoFormat_MSS2) return TEXT("MSS2");
-		if (SubType == MFVideoFormat_MPG1) return TEXT("MPG1");
-		if (SubType == MFVideoFormat_DVSL) return TEXT("DVSL");
-		if (SubType == MFVideoFormat_DVSD) return TEXT("DVSD");
-		if (SubType == MFVideoFormat_DVHD) return TEXT("DVHD");
-		if (SubType == MFVideoFormat_DV25) return TEXT("DV25");
-		if (SubType == MFVideoFormat_DV50) return TEXT("DV50");
-		if (SubType == MFVideoFormat_DVH1) return TEXT("DVH1");
-		if (SubType == MFVideoFormat_DVC) return TEXT("DVC");
-		if (SubType == MFVideoFormat_H264) return TEXT("H264");
-		if (SubType == MFVideoFormat_MJPG) return TEXT("MJPG");
-		if (SubType == MFVideoFormat_420O) return TEXT("420O");
-
-#if (WINVER >= _WIN32_WINNT_WIN8)
-		if (SubType == MFVideoFormat_H263) return TEXT("H263");
-#endif
-
-		if (SubType == MFVideoFormat_H264_ES) return TEXT("H264 ES");
-		if (SubType == MFVideoFormat_MPEG2) return TEXT("MPEG-2");
-
+		// unknown type
 		return FString::Printf(TEXT("%s (%s)"), *GuidToString(SubType), *FourccToString(SubType.Data1));
 	}
 }

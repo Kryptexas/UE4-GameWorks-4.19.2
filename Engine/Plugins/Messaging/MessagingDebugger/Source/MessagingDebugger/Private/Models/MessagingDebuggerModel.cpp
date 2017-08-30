@@ -2,6 +2,8 @@
 
 #include "Models/MessagingDebuggerModel.h"
 
+#include "IMessageTracer.h"
+
 
 /* FMessagingDebuggerModel interface
  *****************************************************************************/

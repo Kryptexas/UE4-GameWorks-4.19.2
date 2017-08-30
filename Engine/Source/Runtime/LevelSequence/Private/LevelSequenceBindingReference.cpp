@@ -106,7 +106,6 @@ UObject* FLevelSequenceLegacyObjectReference::Resolve(UObject* InContext) const
 			UE_LOG(LogMovieScene, Warning, TEXT("Attempted to resolve object with a PIE instance that has not been fixed up yet. This is probably due to a streamed level not being available yet."));
 			return nullptr;
 		}
-
 		FLazyObjectPtr LazyPtr;
 		LazyPtr = FixedUpId;
 

@@ -5,6 +5,7 @@
 #include "Templates/TypeHash.h"
 #include "UObject/PropertyPortFlags.h"
 
+
 /* FDateTime constants
  *****************************************************************************/
 
@@ -15,7 +16,7 @@ const int32 FDateTime::DaysToMonth[] = { 0, 31, 59, 90, 120, 151, 181, 212, 243,
 /* FDateTime structors
  *****************************************************************************/
 
-FDateTime::FDateTime( int32 Year, int32 Month, int32 Day, int32 Hour, int32 Minute, int32 Second, int32 Millisecond )
+FDateTime::FDateTime(int32 Year, int32 Month, int32 Day, int32 Hour, int32 Minute, int32 Second, int32 Millisecond)
 {
 	check(Validate(Year, Month, Day, Hour, Minute, Second, Millisecond));
 
@@ -26,8 +27,8 @@ FDateTime::FDateTime( int32 Year, int32 Month, int32 Day, int32 Hour, int32 Minu
 		++TotalDays;
 	}
 
-	Year--;											// the current year is not a full year yet
-	Month--;										// the current month is not a full month yet
+	--Year;											// the current year is not a full year yet
+	--Month;										// the current month is not a full month yet
 
 	TotalDays += Year * 365;
 	TotalDays += Year / 4;							// leap year day every four years...
@@ -47,7 +48,7 @@ FDateTime::FDateTime( int32 Year, int32 Month, int32 Day, int32 Hour, int32 Minu
 /* FDateTime interface
  *****************************************************************************/
 
-bool FDateTime::ExportTextItem( FString& ValueStr, FDateTime const& DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const
+bool FDateTime::ExportTextItem(FString& ValueStr, FDateTime const& DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope) const
 {
 	if (0 != (PortFlags & EPropertyPortFlags::PPF_ExportCpp))
 	{
@@ -61,7 +62,7 @@ bool FDateTime::ExportTextItem( FString& ValueStr, FDateTime const& DefaultValue
 }
 
 
-void FDateTime::GetDate( int32& OutYear, int32& OutMonth, int32& OutDay ) const
+void FDateTime::GetDate(int32& OutYear, int32& OutMonth, int32& OutDay) const
 {
 	// Based on FORTRAN code in:
 	// Fliegel, H. F. and van Flandern, T. C.,
@@ -152,25 +153,27 @@ int32 FDateTime::GetYear() const
 }
 
 
-bool FDateTime::ImportTextItem( const TCHAR*& Buffer, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText )
+bool FDateTime::ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText)
 {
-	if (FPlatformString::Strlen(Buffer) < 19)
+	const int32 ExportDateTimeLen = 19;
+
+	if (FPlatformString::Strlen(Buffer) < ExportDateTimeLen)
 	{
 		return false;
 	}
 
-	if (!Parse(FString(Buffer).Left(19), *this))
+	if (!Parse(FString(Buffer).Left(ExportDateTimeLen), *this))
 	{
 		return false;
 	}
 
-	Buffer += 19;
+	Buffer += ExportDateTimeLen;
 
 	return true;
 }
 
 
-bool FDateTime::Serialize( FArchive& Ar )
+bool FDateTime::Serialize(FArchive& Ar)
 {
 	Ar << *this;
 
@@ -178,14 +181,11 @@ bool FDateTime::Serialize( FArchive& Ar )
 }
 
 
-FString FDateTime::ToIso8601() const
-{
-	return ToString(TEXT("%Y-%m-%dT%H:%M:%S.%sZ"));
-}
-
 FString FDateTime::ToHttpDate() const
 {
 	FString DayStr;
+	FString MonthStr;
+
 	switch (GetDayOfWeek())
 	{
 		case EDayOfWeek::Monday:	DayStr = TEXT("Mon");	break;
@@ -197,7 +197,6 @@ FString FDateTime::ToHttpDate() const
 		case EDayOfWeek::Sunday:	DayStr = TEXT("Sun");	break;
 	}
 
-	FString MonthStr;
 	switch (GetMonthOfYear())
 	{
 		case EMonthOfYear::January:		MonthStr = TEXT("Jan");	break;
@@ -215,8 +214,16 @@ FString FDateTime::ToHttpDate() const
 	}
 
 	FString Time = FString::Printf(TEXT("%02i:%02i:%02i"), GetHour(), GetMinute(), GetSecond());
+
 	return FString::Printf(TEXT("%s, %02d %s %d %s GMT"), *DayStr, GetDay(), *MonthStr, GetYear(), *Time);
 }
+
+
+FString FDateTime::ToIso8601() const
+{
+	return ToString(TEXT("%Y-%m-%dT%H:%M:%S.%sZ"));
+}
+
 
 FString FDateTime::ToString() const
 {
@@ -224,7 +231,7 @@ FString FDateTime::ToString() const
 }
 
 
-FString FDateTime::ToString( const TCHAR* Format ) const
+FString FDateTime::ToString(const TCHAR* Format) const
 {
 	FString Result;
 
@@ -268,7 +275,7 @@ FString FDateTime::ToString( const TCHAR* Format ) const
 /* FDateTime static interface
  *****************************************************************************/
 
-int32 FDateTime::DaysInMonth( int32 Year, int32 Month )
+int32 FDateTime::DaysInMonth(int32 Year, int32 Month)
 {
 	check((Month >= 1) && (Month <= 12));
 
@@ -281,7 +288,7 @@ int32 FDateTime::DaysInMonth( int32 Year, int32 Month )
 }
 
 
-int32 FDateTime::DaysInYear( int32 Year )
+int32 FDateTime::DaysInYear(int32 Year)
 {
 	if (IsLeapYear(Year))
 	{
@@ -292,7 +299,7 @@ int32 FDateTime::DaysInYear( int32 Year )
 }
 
 
-bool FDateTime::IsLeapYear( int32 Year )
+bool FDateTime::IsLeapYear(int32 Year)
 {
 	if ((Year % 4) == 0)
 	{
@@ -314,17 +321,15 @@ FDateTime FDateTime::Now()
 }
 
 
-bool FDateTime::Parse( const FString& DateTimeString, FDateTime& OutDateTime )
+bool FDateTime::Parse(const FString& DateTimeString, FDateTime& OutDateTime)
 {
 	// first replace -, : and . with space
 	FString FixedString = DateTimeString.Replace(TEXT("-"), TEXT(" "));
-
 	FixedString.ReplaceInline(TEXT(":"), TEXT(" "), ESearchCase::CaseSensitive);
 	FixedString.ReplaceInline(TEXT("."), TEXT(" "), ESearchCase::CaseSensitive);
 
-	TArray<FString> Tokens;
-
 	// split up on a single delimiter
+	TArray<FString> Tokens;
 	FixedString.ParseIntoArray(Tokens, TEXT(" "), true);
 
 	// make sure it parsed it properly (within reason)
@@ -353,160 +358,6 @@ bool FDateTime::Parse( const FString& DateTimeString, FDateTime& OutDateTime )
 }
 
 
-bool FDateTime::ParseIso8601( const TCHAR* DateTimeString, FDateTime& OutDateTime )
-{
-	// DateOnly: YYYY-MM-DD
-	// DateTime: YYYY-mm-ddTHH:MM:SS(.ssss)(Z|+th:tm|-th:tm)
-
-	const TCHAR* Ptr = DateTimeString;
-	TCHAR* Next = nullptr;
-
-	int32 Year = 0, Month = 0, Day = 0;
-	int32 Hour = 0, Minute = 0, Second = 0, Millisecond = 0;
-	int32 TzHour = 0, TzMinute = 0;
-
-	// get date
-	Year = FCString::Strtoi(Ptr, &Next, 10);
-
-	if ((Next <= Ptr) || (*Next == TCHAR('\0')))
-	{
-		return false;
-	}
-
-	Ptr = Next + 1; // skip separator
-	Month = FCString::Strtoi(Ptr, &Next, 10);
-
-	if ((Next <= Ptr) || (*Next == TCHAR('\0')))
-	{
-		return false;
-	}
-
-	Ptr = Next + 1; // skip separator
-	Day = FCString::Strtoi(Ptr, &Next, 10);
-
-	if (Next <= Ptr)
-	{
-		return false;
-	}
-
-	// check whether this is date and time
-	if (*Next == TCHAR('T'))
-	{
-		Ptr = Next + 1;
-
-		// parse time
-		Hour = FCString::Strtoi(Ptr, &Next, 10);
-
-		if ((Next <= Ptr) || (*Next == TCHAR('\0')))
-		{
-			return false;
-		}
-
-		Ptr = Next + 1; // skip separator
-		Minute = FCString::Strtoi(Ptr, &Next, 10);
-
-		if ((Next <= Ptr) || (*Next == TCHAR('\0')))
-		{
-			return false;
-		}
-
-		Ptr = Next + 1; // skip separator
-		Second = FCString::Strtoi(Ptr, &Next, 10);
-
-		if (Next <= Ptr)
-		{
-			return false;
-		}
-
-		// check for milliseconds
-		if (*Next == TCHAR('.'))
-		{
-			Ptr = Next + 1;
-			Millisecond = FCString::Strtoi(Ptr, &Next, 10);
-
-			// should be no more than 3 digits
-			if ((Next <= Ptr) || (Next > Ptr + 3))
-			{
-				return false;
-			}
-
-			for (int32 Digits = Next - Ptr; Digits < 3; ++Digits)
-			{
-				Millisecond *= 10;
-			}
-		}
-
-		// see if the timezone offset is included
-		if (*Next == TCHAR('+') || *Next == TCHAR('-'))
-		{
-			// include the separator since it's + or -
-			Ptr = Next;
-
-			// parse the timezone offset
-			TzHour = FCString::Strtoi(Ptr, &Next, 10);
-
-			if ((Next <= Ptr) || (*Next == TCHAR('\0')))
-			{
-				return false;
-			}
-
-			Ptr = Next + 1; // skip separator
-			TzMinute = FCString::Strtoi(Ptr, &Next, 10);
-
-			if (Next <= Ptr)
-			{
-				return false;
-			}
-		}
-		else if ((*Next != TCHAR('\0')) && (*Next != TCHAR('Z')))
-		{
-			return false;
-		}
-	}
-	else if (*Next != TCHAR('\0'))
-	{
-		return false;
-	}
-
-	if (!Validate(Year, Month, Day, Hour, Minute, Second, Millisecond))
-	{
-		return false;
-	}
-
-	FDateTime Final(Year, Month, Day, Hour, Minute, Second, Millisecond);
-
-	// adjust for the timezone (bringing the DateTime into UTC)
-	int32 TzOffsetMinutes = (TzHour < 0) ? TzHour * 60 - TzMinute : TzHour * 60 + TzMinute;
-	Final -= FTimespan(0, TzOffsetMinutes, 0);
-	OutDateTime = Final;
-
-	return true;
-}
-
-/**
- * Parse a string of the HTTP-date format from a web server
- * https://www.w3.org/Protocols/rfc2616/rfc2616-sec3.html#sec3.3.1
- *
- *   HTTP-date    = rfc1123-date | rfc850-date | asctime-date
- *	 rfc1123-date = wkday "," SP date1 SP time SP "GMT"
- *	 rfc850-date  = weekday "," SP date2 SP time SP "GMT"
- *   asctime-date = wkday SP date3 SP time SP 4DIGIT
- *   date1        = 2DIGIT SP month SP 4DIGIT
- *				  ; day month year (e.g., 02 Jun 1982)
- *   date2        = 2DIGIT "-" month "-" 2DIGIT
- *				  ; day-month-year (e.g., 02-Jun-82)
- *   date3        = month SP ( 2DIGIT | ( SP 1DIGIT ))
- *				  ; month day (e.g., Jun  2)
- *   time         = 2DIGIT ":" 2DIGIT ":" 2DIGIT
- *				  ; 00:00:00 - 23:59:59
- *   wkday        = "Mon" | "Tue" | "Wed"
- *				  | "Thu" | "Fri" | "Sat" | "Sun"
- *   weekday      = "Monday" | "Tuesday" | "Wednesday"
- *				  | "Thursday" | "Friday" | "Saturday" | "Sunday"
- *   month        = "Jan" | "Feb" | "Mar" | "Apr"
- *				  | "May" | "Jun" | "Jul" | "Aug"
- *				  | "Sep" | "Oct" | "Nov" | "Dec"
- */
 bool FDateTime::ParseHttpDate(const FString& HttpDate, FDateTime& OutDateTime)
 {
 	auto ParseTime = [](const FString& Time, int32& Hour, int32& Minute, int32& Second) -> bool
@@ -517,11 +368,13 @@ bool FDateTime::ParseHttpDate(const FString& HttpDate, FDateTime& OutDateTime)
 
 		// split up on a single delimiter
 		int32 NumTokens = Time.ParseIntoArray(Tokens, TEXT(":"), true);
+
 		if (NumTokens == 3)
 		{
 			Hour = FCString::Atoi(*Tokens[0]);
 			Minute = FCString::Atoi(*Tokens[1]);
 			Second = FCString::Atoi(*Tokens[2]);
+
 			return (Hour >= 0 && Hour < 24) && (Minute >= 0 && Minute <= 59) && (Second >= 0 && Second <= 59);
 		}
 
@@ -531,6 +384,7 @@ bool FDateTime::ParseHttpDate(const FString& HttpDate, FDateTime& OutDateTime)
 	auto ParseWkday = [](const FString& WkDay) -> int32
 	{
 		const int32 NumChars = WkDay.Len();
+
 		if (NumChars == 3)
 		{
 			if (WkDay.Equals(TEXT("Mon")))
@@ -569,6 +423,7 @@ bool FDateTime::ParseHttpDate(const FString& HttpDate, FDateTime& OutDateTime)
 	auto ParseWeekday = [](const FString& WeekDay) -> int32
 	{
 		const int32 NumChars = WeekDay.Len();
+
 		if (NumChars >= 6 && NumChars <= 9)
 		{
 			if (WeekDay.Equals(TEXT("Monday")))
@@ -607,6 +462,7 @@ bool FDateTime::ParseHttpDate(const FString& HttpDate, FDateTime& OutDateTime)
 	auto ParseMonth = [](const FString& Month) -> int32
 	{
 		const int32 NumChars = Month.Len();
+
 		if (NumChars == 3)
 		{
 			if (Month.Equals(TEXT("Jan")))
@@ -734,6 +590,7 @@ bool FDateTime::ParseHttpDate(const FString& HttpDate, FDateTime& OutDateTime)
 				if (Tokens.Num() == 6)
 				{
 					int32 WkDay = ParseWkday(Tokens[0]);
+
 					if (WkDay > 0)
 					{
 						// rfc1123 - date = wkday "," SP date1 SP time SP "GMT"
@@ -747,6 +604,7 @@ bool FDateTime::ParseHttpDate(const FString& HttpDate, FDateTime& OutDateTime)
 				{
 					// rfc850 - date = weekday "," SP date2 SP time SP "GMT"
 					int32 WeekDay = ParseWeekday(Tokens[0]);
+
 					if (WeekDay > 0)
 					{
 						if (ParseDate2(Tokens[1], Month, Day, Year))
@@ -761,6 +619,7 @@ bool FDateTime::ParseHttpDate(const FString& HttpDate, FDateTime& OutDateTime)
 			{
 				// asctime - date = wkday SP date3 SP time SP 4DIGIT
 				int32 WkDay = ParseWkday(Tokens[0]);
+
 				if (WkDay > 0)
 				{
 					if (ParseDate3(Tokens[1], Tokens[2], Month, Day))
@@ -780,6 +639,7 @@ bool FDateTime::ParseHttpDate(const FString& HttpDate, FDateTime& OutDateTime)
 			{
 				// convert the tokens to numbers
 				OutDateTime = FDateTime(Year, Month, Day, Hour, Minute, Second, Millisecond);
+
 				return true;
 			}
 		}
@@ -787,6 +647,138 @@ bool FDateTime::ParseHttpDate(const FString& HttpDate, FDateTime& OutDateTime)
 
 	return false;
 }
+
+
+bool FDateTime::ParseIso8601(const TCHAR* DateTimeString, FDateTime& OutDateTime)
+{
+	// DateOnly: YYYY-MM-DD
+	// DateTime: YYYY-mm-ddTHH:MM:SS(.ssss)(Z|+th:tm|-th:tm)
+
+	const TCHAR* Ptr = DateTimeString;
+	TCHAR* Next = nullptr;
+
+	int32 Year = 0, Month = 0, Day = 0;
+	int32 Hour = 0, Minute = 0, Second = 0, Millisecond = 0;
+	int32 TzHour = 0, TzMinute = 0;
+
+	// get date
+	Year = FCString::Strtoi(Ptr, &Next, 10);
+
+	if ((Next <= Ptr) || (*Next == TCHAR('\0')))
+	{
+		return false;
+	}
+
+	Ptr = Next + 1; // skip separator
+	Month = FCString::Strtoi(Ptr, &Next, 10);
+
+	if ((Next <= Ptr) || (*Next == TCHAR('\0')))
+	{
+		return false;
+	}
+
+	Ptr = Next + 1; // skip separator
+	Day = FCString::Strtoi(Ptr, &Next, 10);
+
+	if (Next <= Ptr)
+	{
+		return false;
+	}
+
+	// check whether this is date and time
+	if (*Next == TCHAR('T'))
+	{
+		Ptr = Next + 1;
+
+		// parse time
+		Hour = FCString::Strtoi(Ptr, &Next, 10);
+
+		if ((Next <= Ptr) || (*Next == TCHAR('\0')))
+		{
+			return false;
+		}
+
+		Ptr = Next + 1; // skip separator
+		Minute = FCString::Strtoi(Ptr, &Next, 10);
+
+		if ((Next <= Ptr) || (*Next == TCHAR('\0')))
+		{
+			return false;
+		}
+
+		Ptr = Next + 1; // skip separator
+		Second = FCString::Strtoi(Ptr, &Next, 10);
+
+		if (Next <= Ptr)
+		{
+			return false;
+		}
+
+		// check for milliseconds
+		if (*Next == TCHAR('.'))
+		{
+			Ptr = Next + 1;
+			Millisecond = FCString::Strtoi(Ptr, &Next, 10);
+
+			// should be no more than 3 digits
+			if ((Next <= Ptr) || (Next > Ptr + 3))
+			{
+				return false;
+			}
+
+			for (int32 Digits = Next - Ptr; Digits < 3; ++Digits)
+			{
+				Millisecond *= 10;
+			}
+		}
+
+		// see if the timezone offset is included
+		if (*Next == TCHAR('+') || *Next == TCHAR('-'))
+		{
+			// include the separator since it's + or -
+			Ptr = Next;
+
+			// parse the timezone offset
+			TzHour = FCString::Strtoi(Ptr, &Next, 10);
+
+			if ((Next <= Ptr) || (*Next == TCHAR('\0')))
+			{
+				return false;
+			}
+
+			Ptr = Next + 1; // skip separator
+			TzMinute = FCString::Strtoi(Ptr, &Next, 10);
+
+			if (Next <= Ptr)
+			{
+				return false;
+			}
+		}
+		else if ((*Next != TCHAR('\0')) && (*Next != TCHAR('Z')))
+		{
+			return false;
+		}
+	}
+	else if (*Next != TCHAR('\0'))
+	{
+		return false;
+	}
+
+	if (!Validate(Year, Month, Day, Hour, Minute, Second, Millisecond))
+	{
+		return false;
+	}
+
+	FDateTime Final(Year, Month, Day, Hour, Minute, Second, Millisecond);
+
+	// adjust for the timezone (bringing the DateTime into UTC)
+	int32 TzOffsetMinutes = (TzHour < 0) ? TzHour * 60 - TzMinute : TzHour * 60 + TzMinute;
+	Final -= FTimespan::FromMinutes(TzOffsetMinutes);
+	OutDateTime = Final;
+
+	return true;
+}
+
 
 FDateTime FDateTime::UtcNow()
 {
@@ -799,7 +791,7 @@ FDateTime FDateTime::UtcNow()
 }
 
 
-bool FDateTime::Validate( int32 Year, int32 Month, int32 Day, int32 Hour, int32 Minute, int32 Second, int32 Millisecond )
+bool FDateTime::Validate(int32 Year, int32 Month, int32 Day, int32 Hour, int32 Minute, int32 Second, int32 Millisecond)
 {
 	return (Year >= 1) && (Year <= 9999) &&
 		(Month >= 1) && (Month <= 12) &&
@@ -810,16 +802,3 @@ bool FDateTime::Validate( int32 Year, int32 Month, int32 Day, int32 Hour, int32 
 		(Millisecond >= 0) && (Millisecond <= 999);
 }
 
-
-/* FDateTime friend functions
- *****************************************************************************/
-
-FArchive& operator<<( FArchive& Ar, FDateTime& DateTime )
-{
-	return Ar << DateTime.Ticks;
-}
-
-uint32 GetTypeHash(const FDateTime& DateTime)
-{
-	return GetTypeHash(DateTime.Ticks);
-}

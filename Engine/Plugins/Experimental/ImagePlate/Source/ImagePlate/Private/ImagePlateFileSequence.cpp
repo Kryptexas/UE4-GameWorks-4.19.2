@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "ImagePlateFileSequence.h"
+#include "IImageWrapper.h"
 #include "IImageWrapperModule.h"
 #include "ModuleManager.h"
 #include "FileHelper.h"
@@ -537,8 +538,8 @@ namespace ImagePlateFrameCache
 
 		IImageWrapperModule& ImageWrapperModule = FModuleManager::GetModuleChecked<IImageWrapperModule>("ImageWrapper");
 
-		EImageFormat::Type ImageType = ImageWrapperModule.DetectImageFormat(SourceFileData.GetData(), SourceFileData.Num());
-		IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper(ImageType);
+		EImageFormat ImageType = ImageWrapperModule.DetectImageFormat(SourceFileData.GetData(), SourceFileData.Num());
+		TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(ImageType);
 
 		if (!ImageWrapper.IsValid())
 		{

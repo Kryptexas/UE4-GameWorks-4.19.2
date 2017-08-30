@@ -863,7 +863,7 @@ static void ParseHistoryResults(const FP4RecordSet& InRecords, const TArray<FPer
 				Revision->ClientSpec = ClientSpec;
 				Revision->Action = Action;
 				Revision->BranchSource = BranchSource;
-				Revision->Date = FDateTime(1970, 1, 1, 0, 0, 0, 0) + FTimespan(0, 0, FCString::Atoi(*Date));
+				Revision->Date = FDateTime(1970, 1, 1, 0, 0, 0, 0) + FTimespan::FromSeconds(FCString::Atoi(*Date));
 				Revision->FileSize = FCString::Atoi(*FileSize);
 
 				Revisions.Add(Revision);

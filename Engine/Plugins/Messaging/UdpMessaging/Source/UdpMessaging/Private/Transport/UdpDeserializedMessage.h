@@ -2,10 +2,17 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "IMessageAttachment.h"
+#include "CoreTypes.h"
+#include "Containers/Array.h"
 #include "IMessageContext.h"
-#include "Transport/UdpReassembledMessage.h"
+#include "Misc/DateTime.h"
+#include "Templates/SharedPointer.h"
+#include "UObject/WeakObjectPtrTemplates.h"
+
+class FUdpReassembledMessage;
+class IMessageAttachment;
+class UScriptStruct;
+
 
 /**
  * Holds a deserialized message.
@@ -33,7 +40,7 @@ public:
 	 * @param ReassembledMessage The reassembled message to deserialize.
 	 * @return true on success, false otherwise.
 	 */
-	bool Deserialize(const FReassembledUdpMessage& ReassembledMessage);
+	bool Deserialize(const FUdpReassembledMessage& ReassembledMessage);
 
 public:
 
@@ -44,7 +51,7 @@ public:
 	virtual const FDateTime& GetExpiration() const override;
 	virtual const void* GetMessage() const override;
 	virtual const TWeakObjectPtr<UScriptStruct>& GetMessageTypeInfo() const override;
-	virtual IMessageContextPtr GetOriginalContext() const override;
+	virtual TSharedPtr<IMessageContext, ESPMode::ThreadSafe> GetOriginalContext() const override;
 	virtual const TArray<FMessageAddress>& GetRecipients() const override;
 	virtual EMessageScope GetScope() const override;
 	virtual const FMessageAddress& GetSender() const override;

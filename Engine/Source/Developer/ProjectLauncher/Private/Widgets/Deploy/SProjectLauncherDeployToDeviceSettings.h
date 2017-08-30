@@ -29,7 +29,7 @@ public:
 	 * @param InArgs - The Slate argument list.
 	 * @param InModel - The data model.
 	 */
-	void Construct(	const FArguments& InArgs, const FProjectLauncherModelRef& InModel, EVisibility InShowAdvanced = EVisibility::Visible );
+	void Construct(	const FArguments& InArgs, const TSharedRef<FProjectLauncherModel>& InModel, EVisibility InShowAdvanced = EVisibility::Visible );
 
 protected:
 
@@ -42,5 +42,5 @@ private:
 	ECheckBoxState HandleIncrementalCheckBoxIsChecked( ) const;
 
 	// Holds a pointer to the data model.
-	FProjectLauncherModelPtr Model;
+	TSharedPtr<FProjectLauncherModel> Model;
 };

@@ -1,26 +1,632 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "WmfMediaUtils.h"
-#include "HAL/PlatformProcess.h"
 
 #if WMFMEDIA_SUPPORTED_PLATFORM
 
+#include "HAL/FileManager.h"
+#include "HAL/PlatformMisc.h"
+#include "HAL/PlatformProcess.h"
+#include "Math/NumericLimits.h"
+#include "Misc/FileHelper.h"
+#include "Serialization/Archive.h"
+#include "Serialization/ArrayReader.h"
+
+#include "WmfMediaByteStream.h"
+
 #include "AllowWindowsPlatformTypes.h"
 
+#define WMFMEDIA_FRAMERATELUT_SIZE 9
+
+// MPEG-2 audio sub-types
+#define OTHER_FORMAT_MPEG2_AC3				0xe06d80e4 // MPEG-2 AC3
+#define OTHER_FORMAT_MPEG2_AUDIO			0xe06d802b // MPEG-2 Audio
+#define OTHER_FORMAT_MPEG2_DOLBY_AC3		0xe06d802c // Dolby AC3
+#define OTHER_FORMAT_MPEG2_DTS				0xe06d8033 // MPEG-2 DTS
+#define OTHER_FORMAT_MPEG2_LPCM_AUDIO		0xe06d8032 // DVD LPCM Audio
+#define OTHER_FORMAT_MPEG2_SDDS				0xe06d8034 // SDDS
+
+// MPEG-2 video sub-types
+#define OTHER_FORMAT_MPEG2_DVD_SUBPICTURE	0xe06d802d // DVD Sub-picture
+#define OTHER_FORMAT_MPEG2_VIDEO			0xe06d80e3 // MPEG-2 Video
+
+
+/* Local constants & helpers
+ *****************************************************************************/
 
 namespace WmfMedia
 {
+	// common media formats not defined by WMF
+	const GUID OtherFormatMpeg2_Base = { 0x00000000, 0xdb46, 0x11cf, { 0xb4, 0xd1, 0x00, 0x80, 0x05f, 0x6c, 0xbb, 0xea } };
+	const GUID OtherVideoFormat_LifeCam = { 0x3032344d, 0x0000, 0x0010, { 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 } }; // Microsoft LifeCam UVC 1.0 video
 	const GUID OtherVideoFormat_QuickTime = { 0x61766331, 0x767a, 0x494d, { 0xb4, 0x78, 0xf2, 0x9d, 0x25, 0xdc, 0x90, 0x37 } }; // 1cva
+
+
+	/** Lookup table for frame rates that are handled specially in WMF. */
+	const struct FFrameRateLut
+	{
+		float FrameRate;
+		int32 Numerator;
+		int32 Denominator;
+		int32 DurationTicks;
+	}
+	FrameRateLut[WMFMEDIA_FRAMERATELUT_SIZE] = {
+		{ 59.95f, 60000, 1001, 166833 },
+		{ 29.97f, 30000, 1001, 333667 },
+		{ 23.976f, 24000, 1001, 417188 },
+		{ 60.0f, 60, 1, 166667 },
+		{ 30.0f, 30, 1, 333333 },
+		{ 50.0f, 50, 1, 200000 },
+		{ 25.0f, 25, 1, 400000 },
+		{ 24.0f, 24, 1, 416667 },
+		{ 0.0f, 0, 1, 0 }
+	};
+
+	/** List of supported major media types. */
+	GUID const* const SupportedMajorTypes[] = {
+		&MFMediaType_Audio,
+		&MFMediaType_Binary,
+		&MFMediaType_Image,
+		&MFMediaType_SAMI,
+		&MFMediaType_Video
+	};
+
+	/** List of supported audio channel counts (in order of preference). */
+	const DWORD SupportedAudioChannels[] = { 1, 2, 3, 4, 5, 6, 7, 8 };
+
+	/** List of supported audio types (in order of preference). */
+	const struct FAudioFormat
+	{
+		GUID const* const SubType;
+		UINT32 BitsPerSample;
+	}
+	SupportedAudioFormats[] = {
+		{ &MFAudioFormat_Float, 32u },
+		{ &MFAudioFormat_Float, 64u },
+		{ &MFAudioFormat_PCM, 32u },
+		{ &MFAudioFormat_PCM, 16u },
+		{ &MFAudioFormat_PCM, 8u }
+	};
+
+	/** List of supported video media types (in order of preference). */
+	GUID const* const SupportedVideoFormats[] =
+	{
+		// uncompressed
+//		&MFVideoFormat_A2R10G10B10,
+//		&MFVideoFormat_A16B16G16R16F,
+//		&MFVideoFormat_ARGB32
+		&MFVideoFormat_RGB24,
+		&MFVideoFormat_RGB32,
+//		&MFVideoFormat_RGB555,
+//		&MFVideoFormat_RGB565,
+//		&MFVideoFormat_RGB8,
+
+		// 8-bit YUV (packed)
+		&MFVideoFormat_AYUV,
+		&MFVideoFormat_UYVY,
+		&MFVideoFormat_YUY2,
+		&MFVideoFormat_YVYU,
+
+		// 8-bit YUV (planar)
+//		&MFVideoFormat_I420,
+//		&MFVideoFormat_IYUV,
+		&MFVideoFormat_NV12
+//		&MFVideoFormat_YV12,
+
+		// 10-bit YUV (packed)
+//		&MFVideoFormat_v210,
+//		&MFVideoFormat_v410,
+//		&MFVideoFormat_Y210,
+//		&MFVideoFormat_Y410,
+
+		// 10-bit YUV (planar)
+//		&MFVideoFormat_P010,
+//		&MFVideoFormat_P210,
+
+		// 16-bit YUV (packed)
+//		&MFVideoFormat_v216,
+//		&MFVideoFormat_Y216,
+//		&MFVideoFormat_Y416,
+
+		// 16-bit YUV (planar)
+//		&MFVideoFormat_P016,
+//		&MFVideoFormat_P216,
+	};
+
+
+	/** List of supported audio types. */
+	TArray<TComPtr<IMFMediaType>> SupportedAudioTypes;
+
+	/** List of supported binary types. */
+	TArray<TComPtr<IMFMediaType>> SupportedBinaryTypes;
+
+	/** List of supported SAMI types. */
+	TArray<TComPtr<IMFMediaType>> SupportedSamiTypes;
+
+	/** List of supported video types. */
+	TArray<TComPtr<IMFMediaType>> SupportedVideoTypes;
+
+
+	/** Initialize the lists of supported media types. */
+	void InitializeSupportedTypes()
+	{
+		static bool Initialized = false;
+
+		if (Initialized)
+		{
+			return;
+		}
+
+		// initialize audio types
+		for (const FAudioFormat& Format : SupportedAudioFormats)
+		{
+			for (UINT32 NumChannels : SupportedAudioChannels)
+			{
+				TComPtr<IMFMediaType> MediaType;
+
+				if (FAILED(::MFCreateMediaType(&MediaType)) ||
+					FAILED(MediaType->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Audio)) ||
+					FAILED(MediaType->SetGUID(MF_MT_SUBTYPE, *Format.SubType)) ||
+					FAILED(MediaType->SetUINT32(MF_MT_ALL_SAMPLES_INDEPENDENT, TRUE)) ||
+					FAILED(MediaType->SetUINT32(MF_MT_AUDIO_BITS_PER_SAMPLE, Format.BitsPerSample)) ||
+					FAILED(MediaType->SetUINT32(MF_MT_AUDIO_NUM_CHANNELS, NumChannels)))
+				{
+					UE_LOG(LogWmfMedia, Error, TEXT("Failed to initialize supported audio types"));
+					return;
+				}
+
+				SupportedAudioTypes.Add(MediaType);
+			}
+		}
+
+		// initialize binary types
+		{
+			TComPtr<IMFMediaType> MediaType;
+
+			if (FAILED(::MFCreateMediaType(&MediaType)) ||
+				FAILED(MediaType->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Binary)) ||
+				FAILED(MediaType->SetUINT32(MF_MT_ALL_SAMPLES_INDEPENDENT, TRUE)))
+			{
+				UE_LOG(LogWmfMedia, Error, TEXT("Failed to initialize supported binary types"));
+				return;
+			}
+
+			SupportedBinaryTypes.Add(MediaType);
+		}
+
+		// initialize SAMI types
+		{
+			TComPtr<IMFMediaType> MediaType;
+
+			if (FAILED(::MFCreateMediaType(&MediaType)) ||
+				FAILED(MediaType->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_SAMI)) ||
+				FAILED(MediaType->SetUINT32(MF_MT_ALL_SAMPLES_INDEPENDENT, TRUE)))
+			{
+				UE_LOG(LogWmfMedia, Error, TEXT("Failed to initialize supported SAMI types"));
+				return;
+			}
+
+			SupportedSamiTypes.Add(MediaType);
+		}
+
+		// initialize video types
+		for (GUID const* const Format : SupportedVideoFormats)
+		{
+			TComPtr<IMFMediaType> MediaType;
+
+			if (FAILED(::MFCreateMediaType(&MediaType)) ||
+				FAILED(MediaType->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video)) ||
+				FAILED(MediaType->SetGUID(MF_MT_SUBTYPE, *Format)) ||
+				FAILED(MediaType->SetUINT32(MF_MT_ALL_SAMPLES_INDEPENDENT, TRUE)))
+			{
+				UE_LOG(LogWmfMedia, Error, TEXT("Failed to initialize supported video types"));
+				return;
+			}
+
+			SupportedVideoTypes.Add(MediaType);
+		}
+	}
+}
+
+
+/* WmfMedia functions
+ *****************************************************************************/
+
+namespace WmfMedia
+{
+	FString CaptureDeviceRoleToString(ERole Role)
+	{
+		switch (Role)
+		{
+		case eCommunications:
+			return TEXT("Communications");
+
+		case eConsole:
+			return TEXT("Console");
+
+		case eMultimedia:
+			return TEXT("Multimedia");
+
+		default:
+			return TEXT("Unknown");
+		}
+	}
+
+
+	TComPtr<IMFMediaType> CreateOutputType(const GUID& MajorType, const GUID& SubType, bool AllowNonStandardCodecs)
+	{
+		TComPtr<IMFMediaType> OutputType;
+		{
+			HRESULT Result = ::MFCreateMediaType(&OutputType);
+
+			if (FAILED(Result))
+			{
+				UE_LOG(LogWmfMedia, Warning, TEXT("Failed to create %s output type (%s)"), *MajorTypeToString(MajorType), *ResultToString(Result));
+				return NULL;
+			}
+
+			Result = OutputType->SetUINT32(MF_MT_ALL_SAMPLES_INDEPENDENT, TRUE);
+
+			if (FAILED(Result))
+			{
+				UE_LOG(LogWmfMedia, Warning, TEXT("Failed to initialize %s output type (%s)"), *MajorTypeToString(MajorType), *ResultToString(Result));
+				return NULL;
+			}
+		}
+
+		if (MajorType == MFMediaType_Audio)
+		{
+			// filter unsupported audio formats
+			if (FMemory::Memcmp(&SubType.Data2, &MFMPEG4Format_Base.Data2, 12) == 0)
+			{
+				if (AllowNonStandardCodecs)
+				{
+					UE_LOG(LogWmfMedia, Verbose, TEXT("Allowing non-standard MP4 audio type %s (%s) \"%s\""), *SubTypeToString(SubType), *GuidToString(SubType), *FourccToString(SubType.Data1));
+				}
+				else
+				{
+					const bool DocumentedFormat =
+						(SubType.Data1 == WAVE_FORMAT_ADPCM) ||
+						(SubType.Data1 == WAVE_FORMAT_ALAW) ||
+						(SubType.Data1 == WAVE_FORMAT_MULAW) ||
+						(SubType.Data1 == WAVE_FORMAT_IMA_ADPCM) ||
+						(SubType.Data1 == MFAudioFormat_AAC.Data1) ||
+						(SubType.Data1 == MFAudioFormat_MP3.Data1) ||
+						(SubType.Data1 == MFAudioFormat_PCM.Data1);
+
+					const bool UndocumentedFormat =
+						(SubType.Data1 == WAVE_FORMAT_WMAUDIO2) ||
+						(SubType.Data1 == WAVE_FORMAT_WMAUDIO3) ||
+						(SubType.Data1 == WAVE_FORMAT_WMAUDIO_LOSSLESS);
+
+					if (!DocumentedFormat && !UndocumentedFormat)
+					{
+						UE_LOG(LogWmfMedia, Warning, TEXT("Skipping non-standard MP4 audio type %s (%s) \"%s\""), *SubTypeToString(SubType), *GuidToString(SubType), *FourccToString(SubType.Data1));
+						return NULL;
+					}
+				}
+			}
+			else if (FMemory::Memcmp(&SubType.Data2, &MFAudioFormat_Base.Data2, 12) != 0)
+			{
+				if (AllowNonStandardCodecs)
+				{
+					UE_LOG(LogWmfMedia, Verbose, TEXT("Allowing non-standard audio type %s (%s) \"%s\""), *SubTypeToString(SubType), *GuidToString(SubType), *FourccToString(SubType.Data1));
+				}
+				else
+				{
+					UE_LOG(LogWmfMedia, Warning, TEXT("Skipping non-standard audio type %s (%s) \"%s\""), *SubTypeToString(SubType), *GuidToString(SubType), *FourccToString(SubType.Data1));
+					return NULL;
+				}
+			}
+
+			// configure audio output (re-sampling fails for many media types, so we don't attempt it)
+			if (FAILED(OutputType->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Audio)) ||
+				FAILED(OutputType->SetGUID(MF_MT_SUBTYPE, MFAudioFormat_PCM)) ||
+				FAILED(OutputType->SetUINT32(MF_MT_AUDIO_BITS_PER_SAMPLE, 16u)))
+			{
+				UE_LOG(LogWmfMedia, Warning, TEXT("Failed to initialize audio output type"));
+				return NULL;
+			}
+		}
+		else if (MajorType == MFMediaType_Binary)
+		{
+			const HRESULT Result = OutputType->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Binary);
+
+			if (FAILED(Result))
+			{
+				UE_LOG(LogWmfMedia, Warning, TEXT("Failed to initialize binary output type (%s)"), *ResultToString(Result));
+				return NULL;
+			}
+		}
+		else if (MajorType == MFMediaType_SAMI)
+		{
+			// configure caption output
+			const HRESULT Result = OutputType->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_SAMI);
+
+			if (FAILED(Result))
+			{
+				UE_LOG(LogWmfMedia, Warning, TEXT("Failed to initialize caption output type (%s)"), *ResultToString(Result));
+				return NULL;
+			}
+		}
+		else if (MajorType == MFMediaType_Video)
+		{
+			// filter unsupported video types
+			if (FMemory::Memcmp(&SubType.Data2, &MFVideoFormat_Base.Data2, 12) != 0)
+			{
+				if (AllowNonStandardCodecs)
+				{
+					UE_LOG(LogWmfMedia, Verbose, TEXT("Allowing non-standard video type %s (%s) \"%s\""), *SubTypeToString(SubType), *GuidToString(SubType), *FourccToString(SubType.Data1));
+				}
+				else
+				{
+					UE_LOG(LogWmfMedia, Warning, TEXT("Skipping non-standard video type %s (%s) \"%s\""), *SubTypeToString(SubType), *GuidToString(SubType), *FourccToString(SubType.Data1));
+					return NULL;
+				}
+			}
+
+			if ((SubType == MFVideoFormat_HEVC) && !FWindowsPlatformMisc::VerifyWindowsVersion(10, 0))
+			{
+				UE_LOG(LogWmfMedia, Warning, TEXT("Your Windows version is %s"), *FPlatformMisc::GetOSVersion());
+
+				if ((SubType == MFVideoFormat_HEVC) && !FWindowsPlatformMisc::VerifyWindowsVersion(6, 2))
+				{
+					UE_LOG(LogWmfMedia, Warning, TEXT("HEVC video type requires Windows 10 or newer"));
+					return NULL;
+				}
+
+				UE_LOG(LogWmfMedia, Warning, TEXT("HEVC video type requires Windows 10 or newer (game must be manifested for Windows 10)"));
+			}
+
+			// configure video output
+			HRESULT Result = OutputType->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video);
+
+			if (FAILED(Result))
+			{
+				UE_LOG(LogWmfMedia, Warning, TEXT("Failed to set video output type (%s)"), *ResultToString(Result));
+				return NULL;
+			}
+
+			if (SubType == MFVideoFormat_HEVC)
+			{
+				Result = OutputType->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_NV12);
+			}
+			else
+			{
+				const bool Uncompressed =
+					(SubType == MFVideoFormat_RGB555) ||
+					(SubType == MFVideoFormat_RGB565) ||
+					(SubType == MFVideoFormat_RGB24) ||
+					(SubType == MFVideoFormat_RGB32) ||
+					(SubType == MFVideoFormat_ARGB32);
+
+				Result = OutputType->SetGUID(MF_MT_SUBTYPE, Uncompressed ? MFVideoFormat_RGB32 : MFVideoFormat_YUY2);
+			}
+
+			if (FAILED(Result))
+			{
+				UE_LOG(LogWmfMedia, Warning, TEXT("Failed to set video output sub-type (%s)"), *ResultToString(Result));
+				return NULL;
+			}
+		}
+		else
+		{
+			return NULL; // unsupported input type
+		}
+
+		return OutputType;
+	}
+
+
+	void EnumerateCaptureDevices(GUID DeviceType, TArray<TComPtr<IMFActivate>>& OutDevices)
+	{
+		if ((DeviceType != MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_AUDCAP_GUID) &&
+			(DeviceType != MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_GUID))
+		{
+			return; // unsupported device type
+		}
+
+		// create attribute store for search criteria
+		TComPtr<IMFAttributes> Attributes;
+		{
+			const HRESULT Result = ::MFCreateAttributes(&Attributes, 1);
+
+			if (FAILED(Result))
+			{
+				UE_LOG(LogWmfMedia, Error, TEXT("Failed to create capture device enumeration attributes: %s"), *WmfMedia::ResultToString(Result));
+				return;
+			}
+		}
+
+		// request capture devices
+		{
+			const HRESULT Result = Attributes->SetGUID(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE, DeviceType);
+
+			if (FAILED(Result))
+			{
+				UE_LOG(LogWmfMedia, Error, TEXT("Failed to set capture device enumeration type: %s"), *WmfMedia::ResultToString(Result));
+				return;
+			}
+		}
+
+		IMFActivate** Devices = nullptr;
+		UINT32 DeviceCount = 0;
+		{
+			const HRESULT Result = ::MFEnumDeviceSources(Attributes, &Devices, &DeviceCount);
+
+			if (DeviceCount == 0)
+			{
+				return; // no devices found
+			}
+		}
+
+		for (DWORD DeviceIndex = 0; DeviceIndex < DeviceCount; ++DeviceIndex)
+		{
+			TComPtr<IMFActivate> Device = Devices[DeviceIndex];
+			OutDevices.Add(Device);
+			Device->Release();
+		}
+
+		::CoTaskMemFree(Devices);
+	}
 
 
 	FString FourccToString(unsigned long Fourcc)
 	{
-		return FString::Printf(TEXT("%c%c%c%c"),
-			(Fourcc >> 24) & 0xff,
-			(Fourcc >> 16) & 0xff,
-			(Fourcc >> 8) & 0xff,
-			Fourcc & 0xff		
-		);
+		FString Result;
+
+		for (int32 CharIndex = 0; CharIndex < 4; ++CharIndex)
+		{
+			const unsigned char C = Fourcc & 0xff;
+			Result += FString::Printf(TChar<char>::IsPrint(C) ? TEXT("%c") : TEXT("[%d]"), C);
+			Fourcc >>= 8;
+		}
+
+		return Result;
+	}
+
+
+	bool FrameRateToRatio(float FrameRate, int32& OutNumerator, int32& OutDenominator)
+	{
+		if (FrameRate < 0.0f)
+		{
+			return false;
+		}
+
+		// use lookup table first to match WMF behavior
+		// see https://msdn.microsoft.com/en-us/library/windows/desktop/aa370467(v=vs.85).aspx
+
+		for (int32 LutIndex = 0; LutIndex < WMFMEDIA_FRAMERATELUT_SIZE; ++LutIndex)
+		{
+			const FFrameRateLut& Lut = FrameRateLut[LutIndex];
+
+			if (Lut.FrameRate == FrameRate)
+			{
+				OutNumerator = Lut.Numerator;
+				OutDenominator = Lut.Denominator;
+
+				return true;
+			}
+		}
+
+		// calculate a ratio (we could do better here, but this is fast)
+		const int32 NumeratorScale = 10000;
+
+		if (FrameRate > (MAX_int32 / NumeratorScale))
+		{
+			return false;
+		}
+
+		OutNumerator = (int32)(FrameRate * NumeratorScale);
+		OutDenominator = NumeratorScale;
+
+		return true;
+	}
+
+
+	bool GetCaptureDeviceInfo(IMFActivate& Device, FText& OutDisplayName, FString& OutInfo, bool& OutSoftwareDevice, FString& OutUrl)
+	{
+		GUID DeviceType;
+		{
+			if (FAILED(Device.GetGUID(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE, &DeviceType)))
+			{
+				return false; // failed to get device type
+			}
+
+			if ((DeviceType != MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_AUDCAP_GUID) &&
+				(DeviceType != MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_GUID))
+			{
+				return false; // unsupported device type
+			}
+		}
+
+		const bool IsAudioDevice = (DeviceType == MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_AUDCAP_GUID);
+
+		// display name
+		PWSTR OutString = NULL;
+		UINT32 OutLength = 0;
+
+		if (SUCCEEDED(Device.GetAllocatedString(MF_DEVSOURCE_ATTRIBUTE_FRIENDLY_NAME, &OutString, &OutLength)))
+		{
+			OutDisplayName = FText::FromString(OutString);
+			::CoTaskMemFree(OutString);
+		}
+		else
+		{
+			OutDisplayName = NSLOCTEXT("WmfMedia", "UnknownCaptureDeviceName", "Unknown");
+		}
+
+		// debug information
+		if (IsAudioDevice)
+		{
+			UINT32 Role = 0;
+			if (SUCCEEDED(Device.GetUINT32(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_AUDCAP_ROLE, &Role)))
+			{
+				OutInfo += TEXT("Role: ") + CaptureDeviceRoleToString((ERole)Role) + TEXT("\n");
+			}
+		}
+		else
+		{
+			UINT32 MaxBuffers = 0;
+			if (SUCCEEDED(Device.GetUINT32(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_MAX_BUFFERS, &MaxBuffers)))
+			{
+				OutInfo += FString::Printf(TEXT("Max Buffers: %i"), MaxBuffers);
+			}
+		}
+
+		// software device
+		UINT32 HwSource = 0;
+
+		if (SUCCEEDED(Device.GetUINT32(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_HW_SOURCE, &HwSource)))
+		{
+			OutSoftwareDevice = (HwSource == 0);
+		}
+		else
+		{
+			OutSoftwareDevice = false;
+		}
+
+		// symbolic link
+		const GUID SymbolicLinkAttribute = IsAudioDevice ? MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_AUDCAP_ENDPOINT_ID : MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_SYMBOLIC_LINK;
+		const FString UrlScheme = IsAudioDevice ? TEXT("audcap://") : TEXT("vidcap://");
+
+		if (SUCCEEDED(Device.GetAllocatedString(SymbolicLinkAttribute, &OutString, &OutLength)))
+		{
+			OutUrl = UrlScheme + OutString;
+			::CoTaskMemFree(OutString);
+		}
+
+		return true;
+	}
+
+
+	const TArray<TComPtr<IMFMediaType>>& GetSupportedMediaTypes(const GUID& MajorType)
+	{
+		InitializeSupportedTypes();
+
+		if (MajorType == MFMediaType_Audio)
+		{
+			return SupportedAudioTypes;
+		}
+
+		if (MajorType == MFMediaType_Binary)
+		{
+			return SupportedBinaryTypes;
+		}
+
+		if (MajorType == MFMediaType_SAMI)
+		{
+			return SupportedSamiTypes;
+		}
+
+		if (MajorType == MFMediaType_Video)
+		{
+			return SupportedVideoTypes;
+		}
+
+		static TArray<TComPtr<IMFMediaType>> Empty;
+
+		return Empty;
 	}
 
 
@@ -42,6 +648,20 @@ namespace WmfMedia
 	}
 
 
+	bool IsSupportedMajorType(const GUID& MajorType)
+	{
+		for (GUID const* const Type : SupportedMajorTypes)
+		{
+			if (*Type == MajorType)
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+
 	FString MajorTypeToString(const GUID& MajorType)
 	{
 		if (MajorType == MFMediaType_Default) return TEXT("Default");
@@ -60,82 +680,7 @@ namespace WmfMedia
 	}
 
 
-	FString ResultToString(HRESULT Result)
-	{
-		void* DllHandle = nullptr;
-
-		// load error resource library
-		if (HRESULT_FACILITY(Result) == FACILITY_MF)
-		{
-			const LONG Code = HRESULT_CODE(Result);
-
-			if (((Code >= 0) && (Code <= 1199)) || ((Code >= 3000) && (Code <= 13999)))
-			{
-				static void* WmErrorDll = nullptr;
-
-				if (WmErrorDll == nullptr)
-				{
-					WmErrorDll = FPlatformProcess::GetDllHandle(TEXT("wmerror.dll"));
-				}
-
-				DllHandle = WmErrorDll;
-			}
-			else if ((Code >= 2000) && (Code <= 2999))
-			{
-				static void* AsfErrorDll = nullptr;
-
-				if (AsfErrorDll == nullptr)
-				{
-					AsfErrorDll = FPlatformProcess::GetDllHandle(TEXT("asferror.dll"));
-				}
-
-				DllHandle = AsfErrorDll;
-			}
-			else if ((Code >= 14000) & (Code <= 44999))
-			{
-				static void* MfErrorDll = nullptr;
-
-				if (MfErrorDll == nullptr)
-				{
-					MfErrorDll = FPlatformProcess::GetDllHandle(TEXT("mferror.dll"));
-				}
-
-				DllHandle = MfErrorDll;
-			}
-		}
-
-		TCHAR Buffer[1024];
-		Buffer[0] = TEXT('\0');
-		DWORD BufferLength = 0;
-
-		// resolve error code
-		if (DllHandle != nullptr)
-		{
-			BufferLength = FormatMessage(FORMAT_MESSAGE_FROM_HMODULE | FORMAT_MESSAGE_IGNORE_INSERTS, DllHandle, Result, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), Buffer, 1024, NULL);
-		}
-		else
-		{
-			BufferLength = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, Result, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), Buffer, 1024, NULL);
-		}
-
-		if (BufferLength == 0)
-		{
-			return FString::Printf(TEXT("0x%08x"), Result);
-		}
-
-		// remove line break
-		TCHAR* NewLine = FCString::Strchr(Buffer, TEXT('\r'));
-
-		if (NewLine != nullptr)
-		{
-			*NewLine = TEXT('\0');
-		}
-
-		return Buffer;
-	}
-
-
-	FString SessionEventToString(MediaEventType Event)
+	FString MediaEventToString(MediaEventType Event)
 	{
 		switch (Event)
 		{
@@ -249,19 +794,363 @@ namespace WmfMedia
 		case MEStreamSinkFormatInvalidated: return TEXT("Stream Sink Format Invalidated");
 		case MEEncodingParameters: return TEXT("Encoding Paramters");
 		case MEContentProtectionMetadata: return TEXT("Content Protection Metadata");
+
 		default:
 			return FString::Printf(TEXT("Unknown event %i"), Event);
 		}
 	}
 
 
+	float RatioToFrameRate(int32 Numerator, int32 Denominator)
+	{
+		if (Denominator == 0)
+		{
+			return false;
+		}
+
+		// use lookup table first to match WMF behavior
+		// see https://msdn.microsoft.com/en-us/library/windows/desktop/aa370467(v=vs.85).aspx
+
+		for (int32 LutIndex = 0; LutIndex < WMFMEDIA_FRAMERATELUT_SIZE; ++LutIndex)
+		{
+			const FFrameRateLut& Lut = FrameRateLut[LutIndex];
+
+			if ((Lut.Numerator == Numerator) && (Lut.Denominator == Denominator))
+			{
+				return Lut.FrameRate;
+			}
+		}
+
+		return ((float)Numerator / (float)Denominator);
+	}
+
+
+	TComPtr<IMFMediaSource> ResolveMediaSource(TSharedPtr<FArchive, ESPMode::ThreadSafe> Archive, const FString& Url, bool Precache)
+	{
+		if (!Archive.IsValid())
+		{
+			// create capture device media source
+			if (Url.StartsWith(TEXT("audcap://")) || Url.StartsWith(TEXT("vidcap://")))
+			{
+				const TCHAR* EndpointOrSymlink = &Url[9];
+
+				TComPtr<IMFAttributes> Attributes;
+				{
+					HRESULT Result = ::MFCreateAttributes(&Attributes, 2);
+
+					if (FAILED(Result))
+					{
+						UE_LOG(LogWmfMedia, Error, TEXT("Failed to create capture device attributes (%s)"), *WmfMedia::ResultToString(Result));
+						return NULL;
+					}
+
+					const bool IsAudioDevice = Url.StartsWith(TEXT("audcap://"));
+
+					Result = Attributes->SetGUID(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE, IsAudioDevice
+						? MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_AUDCAP_GUID
+						: MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_GUID);
+
+					if (FAILED(Result))
+					{
+						UE_LOG(LogWmfMedia, Error, TEXT("Failed to set capture device source type attribute (%s)"), *WmfMedia::ResultToString(Result));
+						return NULL;
+					}
+
+					if (IsAudioDevice)
+					{
+						Result = Attributes->SetString(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_AUDCAP_ENDPOINT_ID, EndpointOrSymlink);
+					}
+					else
+					{
+						Result = Attributes->SetString(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_SYMBOLIC_LINK, EndpointOrSymlink);
+					}
+
+					if (FAILED(Result))
+					{
+						UE_LOG(LogWmfMedia, Error, TEXT("Failed to set capture device endpoint/symlink attribute (%s)"), *WmfMedia::ResultToString(Result));
+						return NULL;
+					}
+				}
+
+				TComPtr<IMFMediaSource> MediaSource;
+				{
+					const HRESULT Result = ::MFCreateDeviceSource(Attributes, &MediaSource);
+
+					if (FAILED(Result))
+					{
+						UE_LOG(LogWmfMedia, Error, TEXT("Failed to create capture device media source (%s)"), *WmfMedia::ResultToString(Result));
+						return NULL;
+					}
+				}
+
+				return MediaSource;
+			}
+
+			// load file media source
+			if (Url.StartsWith(TEXT("file://")))
+			{
+				const TCHAR* FilePath = &Url[7];
+
+				if (Precache)
+				{
+					FArrayReader* Reader = new FArrayReader;
+
+					if (FFileHelper::LoadFileToArray(*Reader, FilePath))
+					{
+						Archive = MakeShareable(Reader);
+					}
+					else
+					{
+						delete Reader;
+					}
+				}
+				else
+				{
+					Archive = MakeShareable(IFileManager::Get().CreateFileReader(FilePath));
+				}
+
+				if (!Archive.IsValid())
+				{
+					UE_LOG(LogWmfMedia, Error, TEXT("Failed to open or read media file %s"), FilePath);
+					return NULL;
+				}
+
+				if (Archive->TotalSize() == 0)
+				{
+					UE_LOG(LogWmfMedia, Error, TEXT("Cannot open media from empty file %s."), FilePath);
+					return NULL;
+				}
+			}
+		}
+
+		// create source resolver
+		TComPtr<IMFSourceResolver> SourceResolver;
+		{
+			const HRESULT Result = ::MFCreateSourceResolver(&SourceResolver);
+
+			if (FAILED(Result))
+			{
+				UE_LOG(LogWmfMedia, Error, TEXT("Failed to create media source resolver (%s)"), *WmfMedia::ResultToString(Result));
+				return NULL;
+			}
+		}
+
+		// resolve media source
+		TComPtr<IUnknown> SourceObject;
+		{
+			MF_OBJECT_TYPE ObjectType;
+
+			if (Archive.IsValid())
+			{
+				TComPtr<FWmfMediaByteStream> ByteStream = new FWmfMediaByteStream(Archive.ToSharedRef());
+				const HRESULT Result = SourceResolver->CreateObjectFromByteStream(ByteStream, *Url, MF_RESOLUTION_MEDIASOURCE, NULL, &ObjectType, &SourceObject);
+
+				if (FAILED(Result))
+				{
+					UE_LOG(LogWmfMedia, Error, TEXT("Failed to resolve byte stream %s (%s)"), *Url, *WmfMedia::ResultToString(Result));
+					return NULL;
+				}
+			}
+			else
+			{
+				const HRESULT Result = SourceResolver->CreateObjectFromURL(*Url, MF_RESOLUTION_MEDIASOURCE, NULL, &ObjectType, &SourceObject);
+
+				if (FAILED(Result))
+				{
+					UE_LOG(LogWmfMedia, Error, TEXT("Failed to resolve URL %s (%s)"), *Url, *WmfMedia::ResultToString(Result));
+					return NULL;
+				}
+			}
+		}
+
+		// get media source interface
+		TComPtr<IMFMediaSource> MediaSource;
+		{
+			const HRESULT Result = SourceObject->QueryInterface(IID_PPV_ARGS(&MediaSource));
+
+			if (FAILED(Result))
+			{
+				UE_LOG(LogWmfMedia, Error, TEXT("Failed to query media source interface: %s"), *WmfMedia::ResultToString(Result));
+				return NULL;
+			}
+		}
+
+		return MediaSource;
+	}
+
+
+	FString ResultToString(HRESULT Result)
+	{
+		void* DllHandle = nullptr;
+
+		// load error resource library
+		if (HRESULT_FACILITY(Result) == FACILITY_MF)
+		{
+			const LONG Code = HRESULT_CODE(Result);
+
+			if (((Code >= 0) && (Code <= 1199)) || ((Code >= 3000) && (Code <= 13999)))
+			{
+				static void* WmErrorDll = nullptr;
+
+				if (WmErrorDll == nullptr)
+				{
+					WmErrorDll = FPlatformProcess::GetDllHandle(TEXT("wmerror.dll"));
+				}
+
+				DllHandle = WmErrorDll;
+			}
+			else if ((Code >= 2000) && (Code <= 2999))
+			{
+				static void* AsfErrorDll = nullptr;
+
+				if (AsfErrorDll == nullptr)
+				{
+					AsfErrorDll = FPlatformProcess::GetDllHandle(TEXT("asferror.dll"));
+				}
+
+				DllHandle = AsfErrorDll;
+			}
+			else if ((Code >= 14000) & (Code <= 44999))
+			{
+				static void* MfErrorDll = nullptr;
+
+				if (MfErrorDll == nullptr)
+				{
+					MfErrorDll = FPlatformProcess::GetDllHandle(TEXT("mferror.dll"));
+				}
+
+				DllHandle = MfErrorDll;
+			}
+		}
+
+		TCHAR Buffer[1024];
+		Buffer[0] = TEXT('\0');
+		DWORD BufferLength = 0;
+
+		// resolve error code
+		if (DllHandle != nullptr)
+		{
+			BufferLength = FormatMessage(FORMAT_MESSAGE_FROM_HMODULE | FORMAT_MESSAGE_IGNORE_INSERTS, DllHandle, Result, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), Buffer, 1024, NULL);
+		}
+		else
+		{
+			BufferLength = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, Result, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), Buffer, 1024, NULL);
+		}
+
+		if (BufferLength == 0)
+		{
+			return FString::Printf(TEXT("0x%08x"), Result);
+		}
+
+		// remove line break
+		TCHAR* NewLine = FCString::Strchr(Buffer, TEXT('\r'));
+
+		if (NewLine != nullptr)
+		{
+			*NewLine = TEXT('\0');
+		}
+
+		return Buffer;
+	}
+
+
 	FString SubTypeToString(const GUID& SubType)
 	{
+		if (SubType == GUID_NULL) return TEXT("Null");
+
+		// image formats
+		if (SubType == MFImageFormat_JPEG) return TEXT("Jpeg");
+		if (SubType == MFImageFormat_RGB32) return TEXT("RGB32");
+
+		// stream formats
+		if (SubType == MFStreamFormat_MPEG2Transport) return TEXT("MPEG-2 Transport");
+		if (SubType == MFStreamFormat_MPEG2Program) return TEXT("MPEG-2 Program");
+
+		// video formats
+		if (SubType == MFVideoFormat_RGB32) return TEXT("RGB32");
+		if (SubType == MFVideoFormat_ARGB32) return TEXT("ARGB32");
+		if (SubType == MFVideoFormat_RGB24) return TEXT("RGB24");
+		if (SubType == MFVideoFormat_RGB555) return TEXT("RGB525");
+		if (SubType == MFVideoFormat_RGB565) return TEXT("RGB565");
+		if (SubType == MFVideoFormat_RGB8) return TEXT("RGB8");
+		if (SubType == MFVideoFormat_AI44) return TEXT("AI44");
+		if (SubType == MFVideoFormat_AYUV) return TEXT("AYUV");
+		if (SubType == MFVideoFormat_YUY2) return TEXT("YUY2");
+		if (SubType == MFVideoFormat_YVYU) return TEXT("YVYU");
+		if (SubType == MFVideoFormat_YVU9) return TEXT("YVU9");
+		if (SubType == MFVideoFormat_UYVY) return TEXT("UYVY");
+		if (SubType == MFVideoFormat_NV11) return TEXT("NV11");
+		if (SubType == MFVideoFormat_NV12) return TEXT("NV12");
+		if (SubType == MFVideoFormat_YV12) return TEXT("YV12");
+		if (SubType == MFVideoFormat_I420) return TEXT("I420");
+		if (SubType == MFVideoFormat_IYUV) return TEXT("IYUV");
+		if (SubType == MFVideoFormat_Y210) return TEXT("Y210");
+		if (SubType == MFVideoFormat_Y216) return TEXT("Y216");
+		if (SubType == MFVideoFormat_Y410) return TEXT("Y410");
+		if (SubType == MFVideoFormat_Y416) return TEXT("Y416");
+		if (SubType == MFVideoFormat_Y41P) return TEXT("Y41P");
+		if (SubType == MFVideoFormat_Y41T) return TEXT("Y41T");
+		if (SubType == MFVideoFormat_Y42T) return TEXT("Y42T");
+		if (SubType == MFVideoFormat_P210) return TEXT("P210");
+		if (SubType == MFVideoFormat_P216) return TEXT("P216");
+		if (SubType == MFVideoFormat_P010) return TEXT("P010");
+		if (SubType == MFVideoFormat_P016) return TEXT("P016");
+		if (SubType == MFVideoFormat_v210) return TEXT("v210");
+		if (SubType == MFVideoFormat_v216) return TEXT("v216");
+		if (SubType == MFVideoFormat_v410) return TEXT("v410");
+		if (SubType == MFVideoFormat_MP43) return TEXT("MP43");
+		if (SubType == MFVideoFormat_MP4S) return TEXT("MP4S");
+		if (SubType == MFVideoFormat_M4S2) return TEXT("M4S2");
+		if (SubType == MFVideoFormat_MP4V) return TEXT("MP4V");
+		if (SubType == MFVideoFormat_WMV1) return TEXT("WMV1");
+		if (SubType == MFVideoFormat_WMV2) return TEXT("WMV2");
+		if (SubType == MFVideoFormat_WMV3) return TEXT("WMV3");
+		if (SubType == MFVideoFormat_WVC1) return TEXT("WVC1");
+		if (SubType == MFVideoFormat_MSS1) return TEXT("MSS1");
+		if (SubType == MFVideoFormat_MSS2) return TEXT("MSS2");
+		if (SubType == MFVideoFormat_MPG1) return TEXT("MPG1");
+		if (SubType == MFVideoFormat_DVSL) return TEXT("DVSL");
+		if (SubType == MFVideoFormat_DVSD) return TEXT("DVSD");
+		if (SubType == MFVideoFormat_DVHD) return TEXT("DVHD");
+		if (SubType == MFVideoFormat_DV25) return TEXT("DV25");
+		if (SubType == MFVideoFormat_DV50) return TEXT("DV50");
+		if (SubType == MFVideoFormat_DVH1) return TEXT("DVH1");
+		if (SubType == MFVideoFormat_DVC) return TEXT("DVC");
+		if (SubType == MFVideoFormat_H264) return TEXT("H264");
+		if (SubType == MFVideoFormat_MJPG) return TEXT("MJPG");
+		if (SubType == MFVideoFormat_420O) return TEXT("420O");
+		if (SubType == MFVideoFormat_HEVC) return TEXT("HEVC");
+		if (SubType == MFVideoFormat_HEVC_ES) return TEXT("HEVC ES");
+
+#if (WINVER >= _WIN32_WINNT_WIN8)
+		if (SubType == MFVideoFormat_H263) return TEXT("H263");
+#endif
+
+		if (SubType == MFVideoFormat_H264_ES) return TEXT("H264 ES");
+		if (SubType == MFVideoFormat_MPEG2) return TEXT("MPEG-2");
+
+		// common non-Windows formats
+		if (SubType == OtherVideoFormat_LifeCam) return TEXT("LifeCam");
+		if (SubType == OtherVideoFormat_QuickTime) return TEXT("QuickTime");
+
+		if (FMemory::Memcmp(&SubType.Data2, &OtherFormatMpeg2_Base.Data2, 12) == 0)
+		{
+			if (SubType.Data1 == OTHER_FORMAT_MPEG2_AC3) return TEXT("MPEG-2 AC3");
+			if (SubType.Data1 == OTHER_FORMAT_MPEG2_AUDIO) return TEXT("MPEG-2 Audio");
+			if (SubType.Data1 == OTHER_FORMAT_MPEG2_DOLBY_AC3) return TEXT("Dolby AC-3");
+			if (SubType.Data1 == OTHER_FORMAT_MPEG2_DTS) return TEXT("DTS");
+			if (SubType.Data1 == OTHER_FORMAT_MPEG2_LPCM_AUDIO) return TEXT("DVD LPCM");
+			if (SubType.Data1 == OTHER_FORMAT_MPEG2_SDDS) return TEXT("SDDS");
+
+			if (SubType.Data1 == OTHER_FORMAT_MPEG2_DVD_SUBPICTURE) return TEXT("DVD Subpicture");
+			if (SubType.Data1 == OTHER_FORMAT_MPEG2_VIDEO) return TEXT("MPEG-2 Video");
+		}
+
 		// audio formats
 		if ((FMemory::Memcmp(&SubType.Data2, &MFAudioFormat_Base.Data2, 12) == 0) ||
 			(FMemory::Memcmp(&SubType.Data2, &MFMPEG4Format_Base.Data2, 12) == 0))
 		{
-			if (SubType.Data1 == WAVE_FORMAT_UNKNOWN) return TEXT("Unknown Audio Format");\
+			if (SubType.Data1 == WAVE_FORMAT_UNKNOWN) return TEXT("Unknown Audio Format");
 			if (SubType.Data1 == WAVE_FORMAT_PCM) return TEXT("PCM");
 			if (SubType.Data1 == WAVE_FORMAT_ADPCM) return TEXT("ADPCM");
 			if (SubType.Data1 == WAVE_FORMAT_IEEE_FLOAT) return TEXT("IEEE Float");
@@ -527,80 +1416,7 @@ namespace WmfMedia
 			if (SubType.Data1 == WAVE_FORMAT_FLAC) return TEXT("flac.sourceforge.net");
 		}
 
-		// image formats
-		if (SubType == MFImageFormat_JPEG) return TEXT("Jpeg");
-		if (SubType == MFImageFormat_RGB32) return TEXT("RGB32");
-
-		// stream formats
-		if (SubType == MFStreamFormat_MPEG2Transport) return TEXT("MPEG-2 Transport");
-		if (SubType == MFStreamFormat_MPEG2Program) return TEXT("MPEG-2 Program");
-
-		// video formats
-		if (SubType == MFVideoFormat_RGB32) return TEXT("RGB32");
-		if (SubType == MFVideoFormat_ARGB32) return TEXT("ARGB32");
-		if (SubType == MFVideoFormat_RGB24) return TEXT("RGB24");
-		if (SubType == MFVideoFormat_RGB555) return TEXT("RGB525");
-		if (SubType == MFVideoFormat_RGB565) return TEXT("RGB565");
-		if (SubType == MFVideoFormat_RGB8) return TEXT("RGB8");
-		if (SubType == MFVideoFormat_AI44) return TEXT("AI44");
-		if (SubType == MFVideoFormat_AYUV) return TEXT("AYUV");
-		if (SubType == MFVideoFormat_YUY2) return TEXT("YUY2");
-		if (SubType == MFVideoFormat_YVYU) return TEXT("YVYU");
-		if (SubType == MFVideoFormat_YVU9) return TEXT("YVU9");
-		if (SubType == MFVideoFormat_UYVY) return TEXT("UYVY");
-		if (SubType == MFVideoFormat_NV11) return TEXT("NV11");
-		if (SubType == MFVideoFormat_NV12) return TEXT("NV12");
-		if (SubType == MFVideoFormat_YV12) return TEXT("YV12");
-		if (SubType == MFVideoFormat_I420) return TEXT("I420");
-		if (SubType == MFVideoFormat_IYUV) return TEXT("IYUV");
-		if (SubType == MFVideoFormat_Y210) return TEXT("Y210");
-		if (SubType == MFVideoFormat_Y216) return TEXT("Y216");
-		if (SubType == MFVideoFormat_Y410) return TEXT("Y410");
-		if (SubType == MFVideoFormat_Y416) return TEXT("Y416");
-		if (SubType == MFVideoFormat_Y41P) return TEXT("Y41P");
-		if (SubType == MFVideoFormat_Y41T) return TEXT("Y41T");
-		if (SubType == MFVideoFormat_Y42T) return TEXT("Y42T");
-		if (SubType == MFVideoFormat_P210) return TEXT("P210");
-		if (SubType == MFVideoFormat_P216) return TEXT("P216");
-		if (SubType == MFVideoFormat_P010) return TEXT("P010");
-		if (SubType == MFVideoFormat_P016) return TEXT("P016");
-		if (SubType == MFVideoFormat_v210) return TEXT("v210");
-		if (SubType == MFVideoFormat_v216) return TEXT("v216");
-		if (SubType == MFVideoFormat_v410) return TEXT("v410");
-		if (SubType == MFVideoFormat_MP43) return TEXT("MP43");
-		if (SubType == MFVideoFormat_MP4S) return TEXT("MP4S");
-		if (SubType == MFVideoFormat_M4S2) return TEXT("M4S2");
-		if (SubType == MFVideoFormat_MP4V) return TEXT("MP4V");
-		if (SubType == MFVideoFormat_WMV1) return TEXT("WMV1");
-		if (SubType == MFVideoFormat_WMV2) return TEXT("WMV2");
-		if (SubType == MFVideoFormat_WMV3) return TEXT("WMV3");
-		if (SubType == MFVideoFormat_WVC1) return TEXT("WVC1");
-		if (SubType == MFVideoFormat_MSS1) return TEXT("MSS1");
-		if (SubType == MFVideoFormat_MSS2) return TEXT("MSS2");
-		if (SubType == MFVideoFormat_MPG1) return TEXT("MPG1");
-		if (SubType == MFVideoFormat_DVSL) return TEXT("DVSL");
-		if (SubType == MFVideoFormat_DVSD) return TEXT("DVSD");
-		if (SubType == MFVideoFormat_DVHD) return TEXT("DVHD");
-		if (SubType == MFVideoFormat_DV25) return TEXT("DV25");
-		if (SubType == MFVideoFormat_DV50) return TEXT("DV50");
-		if (SubType == MFVideoFormat_DVH1) return TEXT("DVH1");
-		if (SubType == MFVideoFormat_DVC) return TEXT("DVC");
-		if (SubType == MFVideoFormat_H264) return TEXT("H264");
-		if (SubType == MFVideoFormat_MJPG) return TEXT("MJPG");
-		if (SubType == MFVideoFormat_420O) return TEXT("420O");
-		if (SubType == MFVideoFormat_HEVC) return TEXT("HEVC");
-		if (SubType == MFVideoFormat_HEVC_ES) return TEXT("HEVC ES");
-
-#if (WINVER >= _WIN32_WINNT_WIN8)
-		if (SubType == MFVideoFormat_H263) return TEXT("H263");
-#endif
-
-		if (SubType == MFVideoFormat_H264_ES) return TEXT("H264 ES");
-		if (SubType == MFVideoFormat_MPEG2) return TEXT("MPEG-2");
-
-		// common non-Windows formats
-		if (SubType == OtherVideoFormat_QuickTime) return TEXT("QuickTime");
-
+		// unknown type
 		return FString::Printf(TEXT("%s (%s)"), *GuidToString(SubType), *FourccToString(SubType.Data1));
 	}
 }

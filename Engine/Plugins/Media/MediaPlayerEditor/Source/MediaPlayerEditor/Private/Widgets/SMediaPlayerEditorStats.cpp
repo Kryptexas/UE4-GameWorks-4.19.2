@@ -1,14 +1,15 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "Widgets/SMediaPlayerEditorStats.h"
-#include "IMediaPlayer.h"
-#include "MediaPlayer.h"
-#include "Widgets/Layout/SBorder.h"
-#include "Widgets/Text/STextBlock.h"
-#include "Widgets/SBoxPanel.h"
-#include "Widgets/Layout/SScrollBox.h"
-#include "Widgets/Input/SButton.h"
+#include "SMediaPlayerEditorStats.h"
+
 #include "EditorStyleSet.h"
+#include "MediaPlayer.h"
+#include "MediaPlayerFacade.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Layout/SScrollBox.h"
+#include "Widgets/Text/STextBlock.h"
 #include "HAL/PlatformApplicationMisc.h"
 
 #define LOCTEXT_NAMESPACE "SMediaPlayerEditorStats"
@@ -64,14 +65,12 @@ void SMediaPlayerEditorStats::Construct(const FArguments& InArgs, UMediaPlayer& 
 
 FText SMediaPlayerEditorStats::HandleStatsTextBlockText() const
 {
-	FMediaPlayerBase& Player = MediaPlayer->GetBasePlayer();
-
-	if (Player.GetUrl().IsEmpty())
+	if (MediaPlayer->GetUrl().IsEmpty())
 	{
 		return LOCTEXT("NoMediaOpened", "No media opened");
 	}
 
-	return FText::FromString(Player.GetStats());
+	return FText::FromString(MediaPlayer->GetPlayerFacade()->GetStats());
 }
 
 

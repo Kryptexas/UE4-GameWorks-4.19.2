@@ -3,10 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Modules/ModuleInterface.h"
 #include "Interfaces/ITargetDevice.h"
+#include "Modules/ModuleInterface.h"
 
 class ITargetPlatform;
+
 
 /**
  * Module for the target platform manager

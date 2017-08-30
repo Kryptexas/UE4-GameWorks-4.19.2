@@ -114,7 +114,7 @@ public:
 protected:
 
 	/** This is generally select(), but makes it easier for platforms without select to replace it. */
-	virtual ESocketBSDReturn HasState(ESocketBSDParam State, FTimespan WaitTime = FTimespan(0));
+	virtual ESocketBSDReturn HasState(ESocketBSDParam State, FTimespan WaitTime = FTimespan::Zero());
 
 	/** Updates this socket's time of last activity. */
 	void UpdateActivity()

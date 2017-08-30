@@ -2,17 +2,24 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+#include "CoreTypes.h"
+#include "Internationalization/Text.h"
 #include "Misc/Attribute.h"
 #include "Styling/SlateColor.h"
+#include "Templates/SharedPointer.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
-#include "Widgets/SWidget.h"
-#include "IMessageTracer.h"
-#include "Widgets/Views/STableViewBase.h"
-#include "Widgets/Views/STableRow.h"
-#include "SlateOptMacros.h"
 #include "Widgets/Views/SListView.h"
-#include "Widgets/Images/SImage.h"
+#include "Widgets/Views/STableRow.h"
+
+class IMessageTracer;
+class ISlateStyle;
+class STableViewBase;
+
+struct FMessageTracerMessageInfo;
+struct FSlateBrush;
+
+enum class EMessageScope : uint8;
+
 
 /**
  * Implements a row widget for the message history list.

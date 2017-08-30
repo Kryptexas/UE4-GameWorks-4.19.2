@@ -133,7 +133,7 @@ public:
 protected:
 
 	// This is generally select(), but makes it easier for platforms without select to replace it
-	virtual EIPv6SocketInternalState::Return HasState(EIPv6SocketInternalState::Param State, FTimespan WaitTime=FTimespan(0));
+	virtual EIPv6SocketInternalState::Return HasState(EIPv6SocketInternalState::Param State, FTimespan WaitTime = FTimespan::Zero());
 
 	// Holds the BSD socket object.
 	SOCKET Socket;

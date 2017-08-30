@@ -1,9 +1,18 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "MfMediaTracks.h"
+#include "MfMediaPrivate.h"
 
 #if MFMEDIA_SUPPORTED_PLATFORM
 
+#include "IMediaTextureSample.h"
+#include "Internationalization/Internationalization.h"
+#include "Math/IntPoint.h"
+#include "MediaSamples.h"
+#include "Misc/ScopeLock.h"
+
+#include "MfMediaAudioSample.h"
+#include "MfMediaTextureSample.h"
 #include "MfMediaUtils.h"
 
 #if PLATFORM_WINDOWS
@@ -13,472 +22,541 @@
 	#include "XboxOneAllowPlatformTypes.h"
 #endif
 
+#define MFMEDIATRACKS_TRACE_SAMPLES 0
+#define MFMEDIATRACKS_USE_ASYNCREADER 1
+#define MFMEDIATRACKS_USE_DXVA 0			// not implemented yet
 
-#define LOCTEXT_NAMESPACE "FMfMediaTracks"
-
-
-/* Local helpers
- *****************************************************************************/
-
-namespace MfMediaTracks
-{
-	/** How far ahead audio samples should be read to prevent skipping (in seconds). */
-	const float MFPLAYER_AUDIO_READ_AHEAD_SECONDS = 1.0f;
+#define LOCTEXT_NAMESPACE "FMfMediaSession"
 
 
-	/** Convert a FourCC code to string. */
-	FString FourccToString(unsigned long Fourcc)
-	{
-		return FString::Printf(TEXT("%c%c%c%c"),
-			Fourcc & 0xff,
-			(Fourcc >> 8) & 0xff,
-			(Fourcc >> 16) & 0xff,
-			(Fourcc >> 24) & 0xff
-		);
-	}
-
-
-	/** Convert a GUID to string. */
-	FString GuidToString(const GUID& Guid)
-	{
-		return FString::Printf(TEXT("%08x-%04x-%04x-%08x%08x"),
-			Guid.Data1,
-			Guid.Data2,
-			Guid.Data3,
-			*((unsigned long*)&Guid.Data4[0]),
-			*((unsigned long*)&Guid.Data4[4])
-		);
-	}
-}
-
-
-/* FAndroidMediaTracks structors
+/* FMfMediaSession structors
  *****************************************************************************/
 
 FMfMediaTracks::FMfMediaTracks()
-	: AudioSink(nullptr)
-	, OverlaySink(nullptr)
-	, VideoSink(nullptr)
+	: AudioDone(true)
+	, AudioSamplePending(false)
+	, AudioSamplePool(new FMfMediaAudioSamplePool)
+	, CaptionDone(true)
+	, CaptionSamplePending(false)
+	, LastAudioSampleTime(FTimespan::MinValue())
+	, LastCaptionSampleTime(FTimespan::MinValue())
+	, LastVideoSampleTime(FTimespan::MinValue())
+	, MediaSourceChanged(false)
 	, SelectedAudioTrack(INDEX_NONE)
 	, SelectedCaptionTrack(INDEX_NONE)
 	, SelectedVideoTrack(INDEX_NONE)
-	, AudioDone(true)
-	, CaptionDone(true)
-	, Enabled(false)
+	, SelectionChanged(false)
 	, VideoDone(true)
-	, bIsStarted(false)
-{
-}
+	, VideoSamplePending(false)
+	, VideoSamplePool(new FMfMediaTextureSamplePool)
+{ }
 
 
 FMfMediaTracks::~FMfMediaTracks()
 {
-	FlushRenderingCommands();
-	Reset();
+	Shutdown();
+
+	delete AudioSamplePool;
+	AudioSamplePool = nullptr;
+
+	delete VideoSamplePool;
+	VideoSamplePool = nullptr;
 }
 
 
 /* FMfMediaTracks structors
  *****************************************************************************/
 
-void FMfMediaTracks::Initialize(IMFPresentationDescriptor* InPresentationDescriptor, IMFMediaSource* InMediaSource, IMFSourceReader* InSourceReader, FString& OutInfo)
+void FMfMediaTracks::AppendStats(FString &OutStats) const
 {
 	FScopeLock Lock(&CriticalSection);
 
-	SourceReader = InSourceReader;
+	// audio tracks
+	OutStats += TEXT("Audio Tracks\n");
+
+	if (AudioTracks.Num() == 0)
+	{
+		OutStats += TEXT("    none\n");
+	}
+	else
+	{
+		for (const FTrack& Track : AudioTracks)
+		{
+			OutStats += FString::Printf(TEXT("    %s\n"), *Track.DisplayName.ToString());
+			OutStats += TEXT("        Not implemented yet");
+		}
+	}
+
+	// video tracks
+	OutStats += TEXT("Video Tracks\n");
+
+	if (VideoTracks.Num() == 0)
+	{
+		OutStats += TEXT("    none\n");
+	}
+	else
+	{
+		for (const FTrack& Track : VideoTracks)
+		{
+			OutStats += FString::Printf(TEXT("    %s\n"), *Track.DisplayName.ToString());
+			OutStats += TEXT("        Not implemented yet");
+		}
+	}
+}
+
+
+void FMfMediaTracks::ClearFlags()
+{
+	FScopeLock Lock(&CriticalSection);
+	
+	MediaSourceChanged = false;
+	SelectionChanged = false;
+}
+
+
+FTimespan FMfMediaTracks::GetDuration() const
+{
+	FScopeLock Lock(&CriticalSection);
+
+	if (PresentationDescriptor == NULL)
+	{
+		return FTimespan::Zero();
+	}
+
+	UINT64 PresentationDuration = 0;
+	PresentationDescriptor->GetUINT64(MF_PD_DURATION, &PresentationDuration);
+
+	return FTimespan(PresentationDuration);
+}
+
+
+void FMfMediaTracks::GetFlags(bool& OutMediaSourceChanged, bool& OutSelectionChanged) const
+{
+	FScopeLock Lock(&CriticalSection);
+
+	OutMediaSourceChanged = MediaSourceChanged;
+	OutSelectionChanged = SelectionChanged;
+}
+
+
+IMFMediaSource* FMfMediaTracks::GetMediaSource()
+{
+	FScopeLock Lock(&CriticalSection);
+	return MediaSource;
+}
+
+
+IMFSourceReader* FMfMediaTracks::GetSourceReader()
+{
+	FScopeLock Lock(&CriticalSection);
+	return SourceReader;
+}
+
+
+void FMfMediaTracks::Initialize(IMFMediaSource* InMediaSource, IMFSourceReaderCallback* InSourceReaderCallback, const TSharedRef<FMediaSamples, ESPMode::ThreadSafe>& InSamples)
+{
+	Shutdown();
+
+	FScopeLock Lock(&CriticalSection);
+
+	MediaSourceChanged = true;
+
+	if (InMediaSource == NULL)
+	{
+		return;
+	}
+
+	// create presentation descriptor
+	TComPtr<IMFPresentationDescriptor> NewPresentationDescriptor;
+	{
+		HRESULT Result = InMediaSource->CreatePresentationDescriptor(&NewPresentationDescriptor);
+
+		if (FAILED(Result))
+		{
+			UE_LOG(LogMfMedia, Error, TEXT("Failed to create presentation descriptor: %s"), *MfMedia::ResultToString(Result));
+			return;
+		}
+	}
+
+	// create source reader
+	TComPtr<IMFAttributes> Attributes;
+	{
+		if (FAILED(MFCreateAttributes(&Attributes, 1)))
+		{
+			UE_LOG(LogMfMedia, Error, TEXT("Failed to create source reader attributes"));
+			return;
+		}
+
+		if (FAILED(Attributes->SetUINT32(MF_READWRITE_ENABLE_HARDWARE_TRANSFORMS, TRUE)))
+		{
+			UE_LOG(LogMfMedia, Warning, TEXT("Failed to set one or more source reader attributes"));
+		}
+
+#if MFMEDIATRACKS_USE_DXVA
+		if (FAILED(Attributes->SetUINT32(MF_SOURCE_READER_D3D_MANAGER, D3dDeviceManager)) ||
+			FAILED(Attributes->SetUINT32(MF_SOURCE_READER_DISABLE_DXVA, FALSE)))
+		{
+			UE_LOG(LogMfMedia, Warning, TEXT("Failed to set DXVA source reader attributes"));
+		}
+#endif
+
+#if MFMEDIATRACKS_USE_ASYNCREADER
+		if (FAILED(Attributes->SetUnknown(MF_SOURCE_READER_ASYNC_CALLBACK, InSourceReaderCallback)))
+		{
+			UE_LOG(LogMfMedia, Warning, TEXT("Failed to set async callback source reader attribute"));
+		}
+#endif
+	}
+
+	TComPtr<IMFSourceReader> NewSourceReader;
+	{
+		HRESULT Result = ::MFCreateSourceReaderFromMediaSource(InMediaSource, Attributes, &NewSourceReader);
+
+		if (FAILED(Result))
+		{
+			UE_LOG(LogMfMedia, Error, TEXT("Failed to create source reader: %s"), *MfMedia::ResultToString(Result));
+			return;
+		}
+	}
 
 	// get number of streams
 	DWORD StreamCount = 0;
 	{
-		if (FAILED(InPresentationDescriptor->GetStreamDescriptorCount(&StreamCount)))
+		HRESULT Result = NewPresentationDescriptor->GetStreamDescriptorCount(&StreamCount);
+
+		if (FAILED(Result))
 		{
-			UE_LOG(LogMfMedia, Error, TEXT("Failed to get stream count"));
+			UE_LOG(LogMfMedia, Error, TEXT("Failed to get stream count (%s)"), *MfMedia::ResultToString(Result));
+			return;
+		}
+
+		UE_LOG(LogMfMedia, Verbose, TEXT("Tracks %llx: Found %i streams"), this, StreamCount);
+	}
+
+	// initialization successful
+	MediaSource = InMediaSource;
+	PresentationDescriptor = NewPresentationDescriptor;
+	Samples = InSamples;
+	SourceReader = NewSourceReader;
+
+	// add streams (Media Foundation reports them in reverse order)
+	for (int32 StreamIndex = StreamCount - 1; StreamIndex >= 0; --StreamIndex)
+	{
+		AddStreamToTracks(StreamIndex, Info);
+		Info += TEXT("\n");
+	}
+}
+
+
+void FMfMediaTracks::ProcessSample(IMFSample* Sample, HRESULT Status, DWORD StreamFlags, DWORD StreamIndex, FTimespan Time)
+{
+	FScopeLock Lock(&CriticalSection);
+
+	if (!Samples.IsValid() || FAILED(Status))
+	{
+		return;
+	}
+
+	if ((StreamFlags & MF_SOURCE_READERF_NATIVEMEDIATYPECHANGED) != 0)
+	{
+		// @todo gmp: MF3.0 re-initialize source reader
+	}
+
+	// process audio sample
+	if (SelectedAudioTrack != INDEX_NONE)
+	{
+		const FTrack& Track = AudioTracks[SelectedAudioTrack];
+
+		if (Track.StreamIndex == StreamIndex)
+		{
+			if (((StreamFlags & MF_SOURCE_READERF_ENDOFSTREAM) != 0) || ((StreamFlags & MF_SOURCE_READERF_ERROR) != 0))
+			{
+				UE_LOG(LogMfMedia, Verbose, TEXT("Tracks %llx: Audio done"), this);
+
+				AudioDone = true;
+			}
+
+			if ((Track.SelectedFormat != INDEX_NONE) && (Sample != NULL))
+			{
+				const FFormat& Format = Track.Formats[Track.SelectedFormat];
+				check(Format.OutputType.IsValid());
+
+				const TSharedRef<FMfMediaAudioSample, ESPMode::ThreadSafe> AudioSample = AudioSamplePool->AcquireShared();
+
+				if (AudioSample->Initialize(*Format.OutputType, *Sample, Format.Audio.NumChannels, Format.Audio.SampleRate))
+				{
+					Samples->AddAudio(AudioSample);
+					LastAudioSampleTime = AudioSample->GetTime();
+
+					#if MFMEDIATRACKS_TRACE_SAMPLES
+						UE_LOG(LogMfMedia, VeryVerbose, TEXT("Tracks %llx: Audio sample processed: %s"), this, *LastAudioSampleTime.ToString());
+					#endif
+				}
+			}
+
+			AudioSamplePending = false;
+			UpdateAudio();
 
 			return;
 		}
 	}
 
-	// add streams (Media Foundation reports them in reverse order)
-	for (int32 StreamIndex = StreamCount - 1; StreamIndex >= 0; --StreamIndex)
+	// process caption sample
+	if (SelectedCaptionTrack != INDEX_NONE)
 	{
-		AddStreamToTracks(StreamIndex, InPresentationDescriptor, InMediaSource, OutInfo);
-		OutInfo += TEXT("\n");
-	}
+		const FTrack& Track = CaptionTracks[SelectedCaptionTrack];
 
-	Reinitialize();
+		if (Track.StreamIndex == StreamIndex)
+		{
+			if (((StreamFlags & MF_SOURCE_READERF_ENDOFSTREAM) != 0) || ((StreamFlags & MF_SOURCE_READERF_ERROR) != 0))
+			{
+				UE_LOG(LogMfMedia, Verbose, TEXT("Tracks %llx: Caption done"), this);
+
+				CaptionDone = true;
+			}
+
+			if ((Track.SelectedFormat != INDEX_NONE) && (Sample != NULL))
+			{
+				const FFormat& Format = Track.Formats[Track.SelectedFormat];
+				check(Format.OutputType.IsValid());
+/*
+				const auto CaptionSample = MakeShared<FMfMediaOverlaySample, ESPMode::ThreadSafe>();
+
+				if (CaptionSample->Initialize(*Format.OutputType, *Sample))
+				{
+					Samples->AddCaption(CaptionSample);
+					LastCaptionSampleTime = CaptionSample->GetTime();
+*/
+					LONGLONG SampleTime = 0;
+					Sample->GetSampleTime(&SampleTime);
+					LastCaptionSampleTime = FTimespan(SampleTime);
+
+					#if MFMEDIATRACKS_TRACE_SAMPLES
+						UE_LOG(LogMfMedia, VeryVerbose, TEXT("Tracks %llx: Caption sample processed: %s"), this, *LastCaptionSampleTime.ToString());
+					#endif
+//				}
+			}
+
+			CaptionSamplePending = false;
+			UpdateCaptions();
+		}
+	}
+	
+	// process video sample
+	if (SelectedVideoTrack != INDEX_NONE)
+	{
+		const FTrack& Track = VideoTracks[SelectedVideoTrack];
+
+		if (Track.StreamIndex == StreamIndex)
+		{
+			if (((StreamFlags & MF_SOURCE_READERF_ENDOFSTREAM) != 0) || ((StreamFlags & MF_SOURCE_READERF_ERROR) != 0))
+			{
+				UE_LOG(LogMfMedia, Verbose, TEXT("Tracks %llx: Video done"), this);
+
+				VideoDone = true;
+			}
+
+			if ((Track.SelectedFormat != INDEX_NONE) && (Sample != NULL))
+			{
+				const FFormat& Format = Track.Formats[Track.SelectedFormat];
+				check(Format.OutputType.IsValid());
+
+				const TSharedRef<FMfMediaTextureSample, ESPMode::ThreadSafe> VideoSample = VideoSamplePool->AcquireShared();
+
+				if (VideoSample->Initialize(*Format.OutputType, *Sample, Format.Video.BufferDim, Format.Video.BufferStride, Format.Video.OutputDim, true))
+				{
+					Samples->AddVideo(VideoSample);
+					LastVideoSampleTime = VideoSample->GetTime();
+
+					#if MFMEDIATRACKS_TRACE_SAMPLES
+						UE_LOG(LogMfMedia, VeryVerbose, TEXT("Tracks %llx: Video sample processed: %s"), this, *LastVideoSampleTime.ToString());
+					#endif
+				}
+			}
+
+			VideoSamplePending = false;
+			UpdateVideo();
+
+			return;
+		}
+	}
 }
 
 
-void FMfMediaTracks::Reinitialize()
+void FMfMediaTracks::Restart()
 {
+	UE_LOG(LogMfMedia, Verbose, TEXT("Tracks %llx: Restarting sample processing"), this);
+
+	FScopeLock Lock(&CriticalSection);
+
+	if (SourceReader.IsValid())
+	{
+//		SourceReader->Flush(MF_SOURCE_READER_ALL_STREAMS);
+	}
+
 	AudioDone = (AudioTracks.Num() == 0);
 	CaptionDone = (CaptionTracks.Num() == 0);
 	VideoDone = (VideoTracks.Num() == 0);
+
+	AudioSampleRange = TRange<FTimespan>::Empty();
+	CaptionSampleRange = TRange<FTimespan>::Empty();
+	VideoSampleRange = TRange<FTimespan>::Empty();
+
+	AudioSamplePending = false;
+	CaptionSamplePending = false;
+	VideoSamplePending = false;
+
+	LastAudioSampleTime = FTimespan::MinValue();
+	LastCaptionSampleTime = FTimespan::MinValue();
+	LastVideoSampleTime = FTimespan::MinValue();
 }
 
 
-void FMfMediaTracks::Reset()
+void FMfMediaTracks::Shutdown()
 {
 	FScopeLock Lock(&CriticalSection);
+
+	AudioSamplePool->Reset();
+	VideoSamplePool->Reset();
 
 	SelectedAudioTrack = INDEX_NONE;
 	SelectedCaptionTrack = INDEX_NONE;
 	SelectedVideoTrack = INDEX_NONE;
 
-	if (AudioSink != nullptr)
-	{
-		AudioSink->ShutdownAudioSink();
-	}
-
-	if (OverlaySink != nullptr)
-	{
-		OverlaySink->ShutdownOverlaySink();
-	}
-
-	if (VideoSink != nullptr)
-	{
-		VideoSink->ShutdownTextureSink();
-	}
-
 	AudioTracks.Empty();
 	CaptionTracks.Empty();
 	VideoTracks.Empty();
 
+	Info.Empty();
+
+	if (MediaSource != NULL)
+	{
+		MediaSource->Shutdown();
+		MediaSource = NULL;
+	}
+
 	AudioDone = true;
 	CaptionDone = true;
 	VideoDone = true;
-	Enabled = false;
 
-	SourceReader = nullptr;
+	PresentationDescriptor.Reset();
+	Samples.Reset();
+	SourceReader.Reset();
+
+	MediaSourceChanged = false;
 }
 
 
-void FMfMediaTracks::SetEnabled(bool InEnabled)
-{
-	FScopeLock Lock(&CriticalSection);
-	Enabled = InEnabled;
-
-	if (AudioSink != nullptr)
-	{
-		if (InEnabled)
-		{
-			AudioSink->ResumeAudioSink();
-		}
-		else
-		{
-			AudioSink->PauseAudioSink();
-		}
-	}
-}
-
-
-void FMfMediaTracks::Tick(float DeltaTime)
+void FMfMediaTracks::TickAudio(float Rate, FTimespan Time)
 {
 	FScopeLock Lock(&CriticalSection);
 
-	if (!Enabled || (SourceReader == NULL))
+	if ((Rate <= 0.0f) || (Rate > 2.0f))
 	{
-		return;
+		return; // no audio in reverse or very fast forward
 	}
 
-	// Clear out the delta time on the first tick of playback.
-	// This guarantees we will start playback at the first frame.
-	if (!bIsStarted)
-	{
-		DeltaTime = 0.0f;
-		bIsStarted = true;
-	}
+	AudioSampleRange = TRange<FTimespan>::AtMost(Time + FTimespan::FromSeconds(Rate));
 
-	// Check if new video sample(s) required
-	if (VideoTracks.IsValidIndex(SelectedVideoTrack) && !VideoDone)
-	{
-		FVideoTrack& VideoTrack = VideoTracks[SelectedVideoTrack];
-
-		// Decrease the time remaining on the currently displayed sample by the passage of time
-		VideoTrack.SecondsUntilNextSample -= DeltaTime;
-
-		// Read through samples until we catch up
-		IMFSample* Sample = NULL;
-		LONGLONG Timestamp = 0;
-		while (VideoTrack.SecondsUntilNextSample <= 0)
-		{
-			SAFE_RELEASE(Sample);
-
-			DWORD StreamFlags = 0;
-			HRESULT Result = SourceReader->ReadSample(VideoTrack.StreamIndex, 0, NULL, &StreamFlags, &Timestamp, &Sample);
-			if (FAILED(Result))
-			{
-				UE_LOG(LogMfMedia, Warning, TEXT("Messed up (%s)"), *MfMedia::ResultToString(Result));
-				Sample = NULL;
-				break;
-			}
-			if (StreamFlags & MF_SOURCE_READERF_ENDOFSTREAM)
-			{
-				VideoDone = true;
-				SAFE_RELEASE(Sample);
-				break;
-			}
-			if (StreamFlags & MF_SOURCE_READERF_NATIVEMEDIATYPECHANGED)
-			{
-				//@TODO
-			}
-			if (Sample != NULL)
-			{
-				LONGLONG SampleDuration;
-				Sample->GetSampleDuration(&SampleDuration);
-				FTimespan Time(SampleDuration);
-				VideoTrack.SecondsUntilNextSample += Time.GetTotalSeconds();
-			}
-		}
-
-		// Process sample into content
-		if (Sample != NULL)
-		{
-			if (VideoSink != nullptr)
-			{
-				// get buffer data
-				TComPtr<IMFMediaBuffer> Buffer;
-				if (SUCCEEDED(Sample->ConvertToContiguousBuffer(&Buffer)))
-				{
-					DWORD Length;
-					Buffer->GetCurrentLength(&Length);
-
-					// The video sink needs to be updated on the render thread.
-					// The render thread takes ownership of the sample and is responsible for releasing it in this case.
-					// ReadSample gives us samples from a queue provided by the decoder. It's ok for us to hold onto
-					// this sample even if we ReadSample again before the render thread releases this sample.
-					ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(
-						FUpdateMediaTextureCommand,
-						TComPtr<IMFMediaBuffer>, Buffer, Buffer,
-						LONGLONG, Timestamp, Timestamp,
-						IMediaTextureSink*, VideoSink, VideoSink,
-						IMFSample*, Sample, Sample,
-						{
-							uint8* Data = nullptr;
-							if (SUCCEEDED(Buffer->Lock(&Data, nullptr, nullptr)))
-							{
-								VideoSink->UpdateTextureSinkBuffer(Data);
-								VideoSink->DisplayTextureSinkBuffer(FTimespan(Timestamp));
-								Buffer->Unlock();
-								SAFE_RELEASE(Sample);
-							}
-						});
-				}
-				else
-				{
-					SAFE_RELEASE(Sample);
-				}
-			}
-			else
-			{
-				SAFE_RELEASE(Sample);
-			}
-		}
-	}
-
-	// Check if new audio sample(s) required
-	if (AudioTracks.IsValidIndex(SelectedAudioTrack) && !AudioDone)
-	{
-		FAudioTrack& AudioTrack = AudioTracks[SelectedAudioTrack];
-
-		// Decrease the time remaining on the currently queued sample by the passage of time
-		AudioTrack.SecondsUntilNextSample -= DeltaTime;
-
-		// Read through samples until we catch up
-		while (AudioTrack.SecondsUntilNextSample <= MfMediaTracks::MFPLAYER_AUDIO_READ_AHEAD_SECONDS)
-		{
-			DWORD StreamFlags = 0;
-			LONGLONG Timestamp = 0;
-			IMFSample* Sample = NULL;
-			if (FAILED(SourceReader->ReadSample(AudioTrack.StreamIndex, 0, NULL, &StreamFlags, &Timestamp, &Sample)))
-			{
-				break;
-			}
-			if (StreamFlags & MF_SOURCE_READERF_ENDOFSTREAM)
-			{
-				AudioDone = true;
-				SAFE_RELEASE(Sample);
-				break;
-			}
-			if (Sample != NULL)
-			{
-				LONGLONG SampleDuration;
-				Sample->GetSampleDuration(&SampleDuration);
-				FTimespan Time(SampleDuration);
-				AudioTrack.SecondsUntilNextSample += Time.GetTotalSeconds();
-
-				// Process sample into content
-				if (AudioSink != nullptr)
-				{
-					// get buffer data
-					TComPtr<IMFMediaBuffer> Buffer;
-					if (SUCCEEDED(Sample->ConvertToContiguousBuffer(&Buffer)))
-					{
-						DWORD Length = 0;
-						if (SUCCEEDED(Buffer->GetCurrentLength(&Length)))
-						{
-							uint8* Data = nullptr;
-							if (SUCCEEDED(Buffer->Lock(&Data, nullptr, nullptr)))
-							{
-								AudioSink->PlayAudioSink(Data, Length, FTimespan(Timestamp));
-								Buffer->Unlock();
-							}
-						}
-					}
-				}
-
-				SAFE_RELEASE(Sample);
-			}
-		}
-	}
-
-	// Check if new caption sample(s) required
-	if (CaptionTracks.IsValidIndex(SelectedCaptionTrack) && !CaptionDone)
-	{
-		FCaptionTrack& CaptionTrack = CaptionTracks[SelectedCaptionTrack];
-
-		// Decrease the time remaining on the currently displayed sample by the passage of time
-		CaptionTrack.SecondsUntilNextSample -= DeltaTime;
-
-		// Read through samples until we catch up
-		IMFSample* Sample = NULL;
-		LONGLONG Duration = 0;
-		LONGLONG Timestamp = 0;
-		while (CaptionTrack.SecondsUntilNextSample <= 0)
-		{
-			SAFE_RELEASE(Sample);
-
-			DWORD StreamFlags = 0;
-			if (FAILED(SourceReader->ReadSample(CaptionTrack.StreamIndex, 0, NULL, &StreamFlags, &Timestamp, &Sample)))
-			{
-				Sample = NULL;
-				break;
-			}
-			if (StreamFlags & MF_SOURCE_READERF_ENDOFSTREAM)
-			{
-				CaptionDone = true;
-				SAFE_RELEASE(Sample);
-				break;
-			}
-			if (Sample != NULL)
-			{
-				Sample->GetSampleDuration(&Duration);
-				FTimespan Time(Duration);
-				CaptionTrack.SecondsUntilNextSample += Time.GetTotalSeconds();
-			}
-		}
-
-		// Process sample into content
-		if (Sample != NULL)
-		{
-			if (OverlaySink != nullptr)
-			{
-				// get buffer data
-				TComPtr<IMFMediaBuffer> Buffer;
-				if (SUCCEEDED(Sample->ConvertToContiguousBuffer(&Buffer)))
-				{
-					uint8* Data = nullptr;
-					if (SUCCEEDED(Buffer->Lock(&Data, nullptr, nullptr)))
-					{
-						OverlaySink->AddOverlaySinkText(FText::FromString((TCHAR*)Data), EMediaOverlayType::Caption, FTimespan(Timestamp), FTimespan(Duration), TOptional<FVector2D>());
-						Buffer->Unlock();
-					}
-				}
-			}
-			SAFE_RELEASE(Sample);
-		}
-	}
+	UpdateAudio();
 }
 
 
-/* IMediaOutput interface
- *****************************************************************************/
-
-void FMfMediaTracks::SetAudioSink(IMediaAudioSink* Sink)
+void FMfMediaTracks::TickInput(float Rate, FTimespan Time, FTimespan DeltaTime)
 {
-	if (Sink != AudioSink)
+	FScopeLock Lock(&CriticalSection);
+
+	if (Rate > 0.0f)
 	{
-		FScopeLock Lock(&CriticalSection);
-
-		if (AudioSink != nullptr)
-		{
-			AudioSink->ShutdownAudioSink();
-		}
-
-		AudioSink = Sink;	
-		InitializeAudioSink();
+		CaptionSampleRange = TRange<FTimespan>::AtMost(Time);
 	}
-}
-
-
-void FMfMediaTracks::SetMetadataSink(IMediaBinarySink* Sink)
-{
-	// not implemented yet
-}
-
-
-void FMfMediaTracks::SetOverlaySink(IMediaOverlaySink* Sink)
-{
-	if (Sink != OverlaySink)
+	else if (Rate < 0.0f)
 	{
-		FScopeLock Lock(&CriticalSection);
-
-		if (OverlaySink != nullptr)
-		{
-			OverlaySink->ShutdownOverlaySink();
-		}
-
-		OverlaySink = Sink;
-		InitializeOverlaySink();
+		CaptionSampleRange = TRange<FTimespan>::AtLeast(Time);
 	}
-}
 
+	VideoSampleRange = CaptionSampleRange;
 
-void FMfMediaTracks::SetVideoSink(IMediaTextureSink* Sink)
-{
-	if (Sink != VideoSink)
-	{
-		FScopeLock Lock(&CriticalSection);
-
-		if (VideoSink != nullptr)
-		{
-			VideoSink->ShutdownTextureSink();
-		}
-
-		VideoSink = Sink;
-		InitializeVideoSink();
-	}
+	UpdateCaptions();
+	UpdateVideo();
 }
 
 
 /* IMediaTracks interface
  *****************************************************************************/
 
-uint32 FMfMediaTracks::GetAudioTrackChannels(int32 TrackIndex) const
+bool FMfMediaTracks::GetAudioTrackFormat(int32 TrackIndex, int32 FormatIndex, FMediaAudioTrackFormat& OutFormat) const
 {
-	return AudioTracks.IsValidIndex(TrackIndex) ? AudioTracks[TrackIndex].NumChannels : 0;
-}
+	FScopeLock Lock(&CriticalSection);
 
+	const FFormat* Format = GetAudioFormat(TrackIndex, FormatIndex);
 
-uint32 FMfMediaTracks::GetAudioTrackSampleRate(int32 TrackIndex) const
-{
-	return AudioTracks.IsValidIndex(TrackIndex) ? AudioTracks[TrackIndex].SampleRate : 0;
+	if (Format == nullptr)
+	{
+		return false;
+	}
+
+	OutFormat.BitsPerSample = Format->Audio.BitsPerSample;
+	OutFormat.NumChannels = Format->Audio.NumChannels;
+	OutFormat.SampleRate = Format->Audio.SampleRate;
+	OutFormat.TypeName = Format->TypeName;
+
+	return true;
 }
 
 
 int32 FMfMediaTracks::GetNumTracks(EMediaTrackType TrackType) const
 {
+	FScopeLock Lock(&CriticalSection);
+
 	switch (TrackType)
 	{
 	case EMediaTrackType::Audio:
 		return AudioTracks.Num();
+
 	case EMediaTrackType::Caption:
 		return CaptionTracks.Num();
+
 	case EMediaTrackType::Video:
 		return VideoTracks.Num();
+
 	default:
-		return 0;
+		break; // unsupported track type
 	}
+
+	return 0;
+}
+
+
+int32 FMfMediaTracks::GetNumTrackFormats(EMediaTrackType TrackType, int32 TrackIndex) const
+{
+	FScopeLock Lock(&CriticalSection);
+
+	switch (TrackType)
+	{
+	case EMediaTrackType::Audio:
+		if (AudioTracks.IsValidIndex(TrackIndex))
+		{
+			return AudioTracks[TrackIndex].Formats.Num();
+		}
+
+	case EMediaTrackType::Caption:
+		if (CaptionTracks.IsValidIndex(TrackIndex))
+		{
+			return 1;
+		}
+
+	case EMediaTrackType::Video:
+		if (VideoTracks.IsValidIndex(TrackIndex))
+		{
+			return VideoTracks[TrackIndex].Formats.Num();
+		}
+
+	default:
+		break; // unsupported track type
+	}
+
+	return 0;
 }
 
 
@@ -488,18 +566,25 @@ int32 FMfMediaTracks::GetSelectedTrack(EMediaTrackType TrackType) const
 	{
 	case EMediaTrackType::Audio:
 		return SelectedAudioTrack;
+
 	case EMediaTrackType::Caption:
 		return SelectedCaptionTrack;
+
 	case EMediaTrackType::Video:
 		return SelectedVideoTrack;
+
 	default:
-		return INDEX_NONE;
+		break; // unsupported track type
 	}
+
+	return INDEX_NONE;
 }
 
 
 FText FMfMediaTracks::GetTrackDisplayName(EMediaTrackType TrackType, int32 TrackIndex) const
 {
+	FScopeLock Lock(&CriticalSection);
+
 	switch (TrackType)
 	{
 	case EMediaTrackType::Audio:
@@ -524,15 +609,26 @@ FText FMfMediaTracks::GetTrackDisplayName(EMediaTrackType TrackType, int32 Track
 		break;
 
 	default:
-		break;
+		break; // unsupported track type
 	}
 
 	return FText::GetEmpty();
 }
 
 
+int32 FMfMediaTracks::GetTrackFormat(EMediaTrackType TrackType, int32 TrackIndex) const
+{
+	FScopeLock Lock(&CriticalSection);
+
+	const FTrack* Track = GetTrack(TrackType, TrackIndex);
+	return (Track != nullptr) ? Track->SelectedFormat : INDEX_NONE;
+}
+
+
 FString FMfMediaTracks::GetTrackLanguage(EMediaTrackType TrackType, int32 TrackIndex) const
 {
+	FScopeLock Lock(&CriticalSection);
+
 	switch (TrackType)
 	{
 	case EMediaTrackType::Audio:
@@ -557,7 +653,7 @@ FString FMfMediaTracks::GetTrackLanguage(EMediaTrackType TrackType, int32 TrackI
 		break;
 
 	default:
-		break;
+		break; // unsupported track type
 	}
 
 	return FString();
@@ -566,6 +662,8 @@ FString FMfMediaTracks::GetTrackLanguage(EMediaTrackType TrackType, int32 TrackI
 
 FString FMfMediaTracks::GetTrackName(EMediaTrackType TrackType, int32 TrackIndex) const
 {
+	FScopeLock Lock(&CriticalSection);
+
 	switch (TrackType)
 	{
 	case EMediaTrackType::Audio:
@@ -590,161 +688,241 @@ FString FMfMediaTracks::GetTrackName(EMediaTrackType TrackType, int32 TrackIndex
 		break;
 
 	default:
-		break;
+		break; // unsupported track type
 	}
 
 	return FString();
 }
 
 
-uint32 FMfMediaTracks::GetVideoTrackBitRate(int32 TrackIndex) const
+bool FMfMediaTracks::GetVideoTrackFormat(int32 TrackIndex, int32 FormatIndex, FMediaVideoTrackFormat& OutFormat) const
 {
-	return VideoTracks.IsValidIndex(TrackIndex) ? VideoTracks[TrackIndex].BitRate : 0;
-}
+	FScopeLock Lock(&CriticalSection);
 
+	const FFormat* Format = GetVideoFormat(TrackIndex, FormatIndex);
 
-FIntPoint FMfMediaTracks::GetVideoTrackDimensions(int32 TrackIndex) const
-{
-	return VideoTracks.IsValidIndex(TrackIndex) ? VideoTracks[TrackIndex].OutputDim : FIntPoint::ZeroValue;
-}
+	if (Format == nullptr)
+	{
+		return false;
+	}
 
+	OutFormat.Dim = Format->Video.OutputDim;
+	OutFormat.FrameRate = Format->Video.FrameRate;
+	OutFormat.FrameRates = Format->Video.FrameRates;
+	OutFormat.TypeName = Format->TypeName;
 
-float FMfMediaTracks::GetVideoTrackFrameRate(int32 TrackIndex) const
-{
-	return VideoTracks.IsValidIndex(TrackIndex) ? VideoTracks[TrackIndex].FrameRate : 0.0f;
+	return true;
 }
 
 
 bool FMfMediaTracks::SelectTrack(EMediaTrackType TrackType, int32 TrackIndex)
 {
+	if (SourceReader == nullptr)
+	{
+		return false; // not initialized
+	}
+
 	FScopeLock Lock(&CriticalSection);
+
+	int32 OldStreamIndex = INDEX_NONE;
+	int32 NewStreamIndex = INDEX_NONE;
+	int32* SelectedTrack = nullptr;
 
 	switch (TrackType)
 	{
 	case EMediaTrackType::Audio:
-		if ((TrackIndex == INDEX_NONE) || AudioTracks.IsValidIndex(TrackIndex))
+		if (TrackIndex == SelectedAudioTrack)
 		{
-			if (TrackIndex != SelectedAudioTrack)
-			{
-				if (AudioTracks.IsValidIndex(SelectedAudioTrack))
-				{
-					SourceReader->SetStreamSelection(AudioTracks[SelectedAudioTrack].StreamIndex, FALSE);
-				}
-				if (AudioTracks.IsValidIndex(TrackIndex))
-				{
-					SourceReader->SetStreamSelection(AudioTracks[TrackIndex].StreamIndex, TRUE);
-				}
-				SelectedAudioTrack = TrackIndex;
-				InitializeAudioSink();
-			}
+			return true; // already selected
+		}
 
-			return true;
+		if ((TrackIndex != INDEX_NONE) && !AudioTracks.IsValidIndex(TrackIndex))
+		{
+			return false; // invalid track
+		}
+
+		UE_LOG(LogMfMedia, Verbose, TEXT("Tracks %llx: Selecting audio track %i instead of %i (%i tracks)"), this, TrackIndex, SelectedAudioTrack, AudioTracks.Num());
+
+		if (AudioTracks.IsValidIndex(SelectedAudioTrack))
+		{
+			OldStreamIndex = AudioTracks[SelectedAudioTrack].StreamIndex;
+		}
+
+		if (TrackIndex != INDEX_NONE)
+		{
+			NewStreamIndex = AudioTracks[TrackIndex].StreamIndex;
+		}
+
+		SelectedTrack = &SelectedAudioTrack;
+		break;
+
+	case EMediaTrackType::Video:
+		if (TrackIndex == SelectedVideoTrack)
+		{
+			return true; // already selected
+		}
+
+		if ((TrackIndex != INDEX_NONE) && !VideoTracks.IsValidIndex(TrackIndex))
+		{
+			return false; // invalid track
+		}
+
+		UE_LOG(LogMfMedia, Verbose, TEXT("Tracks %llx: Selecting video track %i instead of %i (%i tracks)"), this, TrackIndex, SelectedVideoTrack, VideoTracks.Num());
+
+		if (VideoTracks.IsValidIndex(SelectedVideoTrack))
+		{
+			OldStreamIndex = VideoTracks[SelectedVideoTrack].StreamIndex;
+		}
+
+		if (TrackIndex != INDEX_NONE)
+		{
+			NewStreamIndex = VideoTracks[TrackIndex].StreamIndex;
+		}
+
+		SelectedTrack = &SelectedVideoTrack;
+		break;
+
+	default:
+		return false;
+	}
+
+	check(SelectedTrack != nullptr);
+
+	// apply changes to source reader
+	if (OldStreamIndex != INDEX_NONE)
+	{
+		HRESULT Result = SourceReader->SetStreamSelection(OldStreamIndex, FALSE);
+
+		if (FAILED(Result))
+		{
+			UE_LOG(LogMfMedia, Warning, TEXT("Failed to deselect stream %i: %s"), OldStreamIndex, *MfMedia::ResultToString(Result));
+			return false;
+		}
+
+		Result = SourceReader->Flush(OldStreamIndex);
+
+		if (FAILED(Result))
+		{
+			UE_LOG(LogMfMedia, Warning, TEXT("Failed to flush deselected stream %i: %s"), OldStreamIndex, *MfMedia::ResultToString(Result));
+		}
+
+		UE_LOG(LogMfMedia, Verbose, TEXT("Tracks %llx: Disabled stream %i"), this, OldStreamIndex);
+
+		SelectionChanged = true;
+	}
+
+	if (NewStreamIndex != INDEX_NONE)
+	{
+		const HRESULT Result = SourceReader->SetStreamSelection(NewStreamIndex, TRUE);
+
+		if (FAILED(Result))
+		{
+			UE_LOG(LogMfMedia, Warning, TEXT("Failed to select stream %i: %s"), NewStreamIndex, *MfMedia::ResultToString(Result));
+			return false;
+		}
+
+		UE_LOG(LogMfMedia, Verbose, TEXT("Tracks %llx: Enabled stream %i"), this, NewStreamIndex);
+
+		SelectionChanged = true;
+	}
+
+	*SelectedTrack = TrackIndex;
+
+	return true;
+}
+
+
+bool FMfMediaTracks::SetTrackFormat(EMediaTrackType TrackType, int32 TrackIndex, int32 FormatIndex)
+{
+	FScopeLock Lock(&CriticalSection);
+
+	FTrack* Track = nullptr;
+
+	// get track
+	switch (TrackType)
+	{
+	case EMediaTrackType::Audio:
+		if (AudioTracks.IsValidIndex(TrackIndex))
+		{
+			Track = &AudioTracks[TrackIndex];
 		}
 		break;
 
 	case EMediaTrackType::Caption:
-		if ((TrackIndex == INDEX_NONE) || CaptionTracks.IsValidIndex(TrackIndex))
+		if (CaptionTracks.IsValidIndex(TrackIndex))
 		{
-			if (TrackIndex != SelectedCaptionTrack)
-			{
-				if (CaptionTracks.IsValidIndex(SelectedCaptionTrack))
-				{
-					SourceReader->SetStreamSelection(CaptionTracks[SelectedCaptionTrack].StreamIndex, FALSE);
-				}
-				if (CaptionTracks.IsValidIndex(TrackIndex))
-				{
-					SourceReader->SetStreamSelection(CaptionTracks[TrackIndex].StreamIndex, TRUE);
-				}
-				SelectedCaptionTrack = TrackIndex;
-				InitializeOverlaySink();
-			}
-
-			return true;
+			Track = &CaptionTracks[TrackIndex];
 		}
 		break;
 
 	case EMediaTrackType::Video:
-		if ((TrackIndex == INDEX_NONE) || VideoTracks.IsValidIndex(TrackIndex))
+		if (VideoTracks.IsValidIndex(TrackIndex))
 		{
-			if (TrackIndex != SelectedVideoTrack)
-			{
-				if (VideoTracks.IsValidIndex(SelectedVideoTrack))
-				{
-					SourceReader->SetStreamSelection(VideoTracks[SelectedVideoTrack].StreamIndex, FALSE);
-				}
-				if (VideoTracks.IsValidIndex(TrackIndex))
-				{
-					SourceReader->SetStreamSelection(VideoTracks[TrackIndex].StreamIndex, TRUE);
-				}
-				SelectedVideoTrack = TrackIndex;
-				InitializeVideoSink();
-			}
-
-			return true;
+			Track = &VideoTracks[TrackIndex];
 		}
 		break;
 
 	default:
-		break;
-	}
+		break; // unsupported track type
+	};
 
-	return false;
-}
-
-
-/* IUnknown interface
- *****************************************************************************/
-
-STDMETHODIMP FMfMediaTracks::QueryInterface(REFIID RefID, void** Object)
-{
-	if (Object == NULL)
+	if (Track == nullptr)
 	{
-		return E_INVALIDARG;
+		return false; // track not found
 	}
 
-	if ((RefID == IID_IUnknown) || (RefID == IID_IMFSourceReaderCallback))
+	if (Track->SelectedFormat == FormatIndex)
 	{
-		*Object = (LPVOID)this;
-		AddRef();
-
-		return NOERROR;
+		return true; // format already set
 	}
 
-	*Object = NULL;
-
-	return E_NOINTERFACE;
-}
-
-
-STDMETHODIMP_(ULONG) FMfMediaTracks::AddRef()
-{
-	return FPlatformAtomics::InterlockedIncrement(&RefCount);
-}
-
-
-STDMETHODIMP_(ULONG) FMfMediaTracks::Release()
-{
-	int32 CurrentRefCount = FPlatformAtomics::InterlockedDecrement(&RefCount);
-
-	if (CurrentRefCount == 0)
+	if (!Track->Formats.IsValidIndex(FormatIndex))
 	{
-		delete this;
+		return false; // format not found
 	}
 
-	return CurrentRefCount;
+	// get selected format
+	const FFormat& Format = Track->Formats[FormatIndex];
+
+	check(Format.InputType.IsValid());
+	check(Format.OutputType.IsValid());
+	check(Track->Handler.IsValid());
+
+	// set track format
+	HRESULT Result = Track->Handler->SetCurrentMediaType(Format.InputType);
+
+	if (FAILED(Result))
+	{
+		UE_LOG(LogMfMedia, Warning, TEXT("Failed to set selected media type on handler for stream %i (%s)"), Track->StreamIndex, *MfMedia::ResultToString(Result));
+		return false;
+	}
+
+	Result = SourceReader->SetCurrentMediaType(Track->StreamIndex, NULL, Format.OutputType);
+
+	if (FAILED(Result))
+	{
+		UE_LOG(LogMfMedia, Warning, TEXT("Failed to set selected media type on reader for stream %i (%s)"), Track->StreamIndex, *MfMedia::ResultToString(Result));
+		return false;
+	}
+
+	Track->SelectedFormat = FormatIndex;
+
+	return true;
 }
 
 
 /* FMfMediaTracks implementation
  *****************************************************************************/
 
-void FMfMediaTracks::AddStreamToTracks(uint32 StreamIndex, IMFPresentationDescriptor* PresentationDescriptor, IMFMediaSource* MediaSource, FString& OutInfo)
+void FMfMediaTracks::AddStreamToTracks(uint32 StreamIndex, FString& OutInfo)
 {
-	// get stream descriptor & media type handler
+	OutInfo += FString::Printf(TEXT("Stream %i\n"), StreamIndex);
+
+	// get stream descriptor
 	TComPtr<IMFStreamDescriptor> StreamDescriptor;
 	{
 		BOOL Selected = FALSE;
-		HRESULT Result = PresentationDescriptor->GetStreamDescriptorByIndex(StreamIndex, &Selected, &StreamDescriptor);
+		const HRESULT Result = PresentationDescriptor->GetStreamDescriptorByIndex(StreamIndex, &Selected, &StreamDescriptor);
 
 		if (FAILED(Result))
 		{
@@ -760,9 +938,10 @@ void FMfMediaTracks::AddStreamToTracks(uint32 StreamIndex, IMFPresentationDescri
 		}
 	}
 
+	// get media type handler
 	TComPtr<IMFMediaTypeHandler> Handler;
 	{
-		HRESULT Result = StreamDescriptor->GetMediaTypeHandler(&Handler);
+		const HRESULT Result = StreamDescriptor->GetMediaTypeHandler(&Handler);
 
 		if (FAILED(Result))
 		{
@@ -776,7 +955,7 @@ void FMfMediaTracks::AddStreamToTracks(uint32 StreamIndex, IMFPresentationDescri
 	// skip unsupported handler types
 	GUID MajorType;
 	{
-		HRESULT Result = Handler->GetMajorType(&MajorType);
+		const HRESULT Result = Handler->GetMajorType(&MajorType);
 
 		if (FAILED(Result))
 		{
@@ -786,7 +965,7 @@ void FMfMediaTracks::AddStreamToTracks(uint32 StreamIndex, IMFPresentationDescri
 			return;
 		}
 
-		UE_LOG(LogMfMedia, Verbose, TEXT("Major type of stream %i is %s"), StreamIndex, *MfMedia::MajorTypeToString(MajorType));
+		UE_LOG(LogMfMedia, Verbose, TEXT("Tracks %llx: Major type of stream %i is %s"), this, StreamIndex, *MfMedia::MajorTypeToString(MajorType));
 		OutInfo += FString::Printf(TEXT("    Type: %s\n"), *MfMedia::MajorTypeToString(MajorType));
 
 		if ((MajorType != MFMediaType_Audio) &&
@@ -800,345 +979,573 @@ void FMfMediaTracks::AddStreamToTracks(uint32 StreamIndex, IMFPresentationDescri
 		}
 	}
 
-	// get media type & make it current
-	TComPtr<IMFMediaType> MediaType;
+	// @todo gmp: handle protected content
+	const bool Protected = ::MFGetAttributeUINT32(StreamDescriptor, MF_SD_PROTECTED, FALSE) != 0;
 	{
-		DWORD NumSupportedTypes = 0;
-		HRESULT Result = Handler->GetMediaTypeCount(&NumSupportedTypes);
+		if (Protected)
+		{
+			OutInfo += FString::Printf(TEXT("    Protected content\n"));
+		}
+	}
+
+	// get number of track formats
+	DWORD NumMediaTypes = 0;
+	{
+		const HRESULT Result = Handler->GetMediaTypeCount(&NumMediaTypes);
 
 		if (FAILED(Result))
 		{
-			UE_LOG(LogMfMedia, Warning, TEXT("Failed to get number of supported media types in stream %i of type %s"), StreamIndex, *MfMedia::MajorTypeToString(MajorType));
-			OutInfo += TEXT("    failed to get supported media types\n");
-
-			return;
-		}
-
-		bool MediaFound = false;
-		if (NumSupportedTypes > 0)
-		{
-			for (DWORD TypeIndex = 0; TypeIndex < NumSupportedTypes; ++TypeIndex)
-			{
-				if (SUCCEEDED(Handler->GetMediaTypeByIndex(TypeIndex, &MediaType)) &&
-					SUCCEEDED(Handler->SetCurrentMediaType(MediaType)))
-				{
-					MediaFound = true;
-					break;
-				}
-			}
-		}
-
-		if (MediaType == NULL || !MediaFound)
-		{
-			UE_LOG(LogMfMedia, Warning, TEXT("No supported media type in stream %i of type %s"), StreamIndex, *MfMedia::MajorTypeToString(MajorType));
-			OutInfo += TEXT("    unsupported media type\n");
+			UE_LOG(LogMfMedia, Warning, TEXT("Failed to get number of track formats in stream %i of type %s"), StreamIndex, *MfMedia::MajorTypeToString(MajorType));
+			OutInfo += TEXT("    failed to get track formats\n");
 
 			return;
 		}
 	}
 
-	// get sub-type
-	GUID SubType;
+	// create & add track
+	FTrack* Track = nullptr;
+
+	if (MajorType == MFMediaType_Audio)
 	{
+		const int32 TrackIndex = AudioTracks.AddDefaulted();
+		Track = &AudioTracks[TrackIndex];
+	}
+	else if (MajorType == MFMediaType_SAMI)
+	{
+		const int32 TrackIndex = CaptionTracks.AddDefaulted();
+		Track = &CaptionTracks[TrackIndex];
+	}
+	else if (MajorType == MFMediaType_Video)
+	{
+		const int32 TrackIndex = VideoTracks.AddDefaulted();
+		Track = &VideoTracks[TrackIndex];
+	}
+
+	check(Track != nullptr);
+
+	// get current format
+	TComPtr<IMFMediaType> CurrentMediaType;
+	{
+		if (FAILED(Handler->GetCurrentMediaType(&CurrentMediaType)))
+		{
+			UE_LOG(LogMfMedia, Warning, TEXT("Failed to get current media type in stream %i of type %s"), StreamIndex, *MfMedia::MajorTypeToString(MajorType));
+		}
+	}
+
+	Track->SelectedFormat = INDEX_NONE;
+
+	// add track formats
+	const bool AllowNonStandardCodecs = false;// GetDefault<UMfMediaSettings>()->AllowNonStandardCodecs;
+
+	for (DWORD TypeIndex = 0; TypeIndex < NumMediaTypes; ++TypeIndex)
+	{
+		OutInfo += FString::Printf(TEXT("    Format %i\n"), TypeIndex);
+
+		// get media type
+		TComPtr<IMFMediaType> MediaType;
+
+		if (FAILED(Handler->GetMediaTypeByIndex(TypeIndex, &MediaType)))
+		{
+			OutInfo += TEXT("        failed to get media type\n");
+
+			continue;
+		}
+
+		// get sub-type
+		GUID SubType;
+
 		if (MajorType == MFMediaType_SAMI)
 		{
 			FMemory::Memzero(SubType);
 		}
 		else
 		{
-			HRESULT Result = MediaType->GetGUID(MF_MT_SUBTYPE, &SubType);
+			const HRESULT Result = MediaType->GetGUID(MF_MT_SUBTYPE, &SubType);
 
 			if (FAILED(Result))
 			{
-				UE_LOG(LogMfMedia, Warning, TEXT("Failed to get sub-type of stream %i (%s)"), StreamIndex, *MfMedia::ResultToString(Result));
-				OutInfo += TEXT("    failed to get sub-type\n");
+				UE_LOG(LogMfMedia, Warning, TEXT("Failed to get sub-type of format %i in stream %i (%s)"), TypeIndex, StreamIndex, *MfMedia::ResultToString(Result));
+				OutInfo += TEXT("        failed to get sub-type\n");
 
-				return;
+				continue;;
 			}
-
-			UE_LOG(LogMfMedia, Verbose, TEXT("Sub-type of stream %i is %s"), StreamIndex, *MfMedia::SubTypeToString(SubType));
-
-			OutInfo += FString::Printf(TEXT("    Codec: %s\n"), *MfMedia::SubTypeToString(SubType));
-			OutInfo += FString::Printf(TEXT("    Protected: %s\n"), (::MFGetAttributeUINT32(StreamDescriptor, MF_SD_PROTECTED, FALSE) != 0) ? *GYes.ToString() : *GNo.ToString());
 		}
-	}
 
-	// configure desired output type
-	TComPtr<IMFMediaType> OutputType;
-	{
-		HRESULT Result = ::MFCreateMediaType(&OutputType);
+		const FString TypeName = MfMedia::SubTypeToString(SubType);
+		OutInfo += FString::Printf(TEXT("        Codec: %s\n"), *TypeName);
 
-		if (FAILED(Result))
+		// create output type
+		TComPtr<IMFMediaType> OutputType = MfMedia::CreateOutputType(MajorType, SubType, AllowNonStandardCodecs);
+
+		if (!OutputType.IsValid())
 		{
-			UE_LOG(LogMfMedia, Warning, TEXT("Failed to create output type for stream %i (%s)"), StreamIndex, *MfMedia::ResultToString(Result));
-			OutInfo += TEXT("    failed to create output type\n");
+			OutInfo += TEXT("        failed to create output type\n");
 
-			return;
+			continue;
 		}
 
-		Result = OutputType->SetUINT32(MF_MT_ALL_SAMPLES_INDEPENDENT, TRUE);
-
-		if (FAILED(Result))
-		{
-			UE_LOG(LogMfMedia, Warning, TEXT("Failed to initialize output type for stream %i (%s)"), StreamIndex, *MfMedia::ResultToString(Result));
-			OutInfo += TEXT("    failed to initialize output type\n");
-
-			return;
-		}
+		// add format details
+		int32 FormatIndex = INDEX_NONE;
 
 		if (MajorType == MFMediaType_Audio)
 		{
-			// filter unsupported audio formats (XboxOne only supports AAC)
-			if (SubType != MFAudioFormat_AAC)
-			{
-				UE_LOG(LogMfMedia, Warning, TEXT("Unsupported audio type '%s' (%s) for stream %i"), *MfMediaTracks::FourccToString(SubType.Data1), *MfMediaTracks::GuidToString(SubType), StreamIndex);
-				OutInfo += TEXT("    unsupported SubType\n");
+			const uint32 BitsPerSample = ::MFGetAttributeUINT32(MediaType, MF_MT_AUDIO_BITS_PER_SAMPLE, 16);
+			const uint32 NumChannels = ::MFGetAttributeUINT32(MediaType, MF_MT_AUDIO_NUM_CHANNELS, 0);
+			const uint32 SampleRate = ::MFGetAttributeUINT32(MediaType, MF_MT_AUDIO_SAMPLES_PER_SECOND, 0);
 
-				return;
-			}
+			FormatIndex = Track->Formats.Add({
+				MediaType,
+				OutputType,
+				TypeName,
+				{
+					BitsPerSample,
+					NumChannels,
+					SampleRate
+				},
+				{ 0 }
+			});
 
-			// configure audio output
-			if (FAILED(OutputType->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Audio)) ||
-				FAILED(OutputType->SetGUID(MF_MT_SUBTYPE, MFAudioFormat_PCM)) ||
-				FAILED(OutputType->SetUINT32(MF_MT_AUDIO_BITS_PER_SAMPLE, 16u)))
-			{
-				UE_LOG(LogMfMedia, Warning, TEXT("Failed to initialize audio output type for stream %i"), StreamIndex);
-				OutInfo += TEXT("    failed to initialize output type\n");
-
-				return;
-			}
-
-			if (::MFGetAttributeUINT32(MediaType, MF_MT_AUDIO_SAMPLES_PER_SECOND, 0) != 44100)
-			{
-				UE_LOG(LogMfMedia, Warning, TEXT("Possible loss of audio quality in stream %i due to sample rate != 44100 Hz"), StreamIndex);
-			}
+			OutInfo += FString::Printf(TEXT("        Channels: %i\n"), NumChannels);
+			OutInfo += FString::Printf(TEXT("        Sample Rate: %i Hz\n"), SampleRate);
+			OutInfo += FString::Printf(TEXT("        Bits Per Sample: %i\n"), BitsPerSample);
 		}
 		else if (MajorType == MFMediaType_SAMI)
 		{
-			// configure caption output
-			Result = OutputType->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_SAMI);
-
-			if (FAILED(Result))
-			{
-				UE_LOG(LogMfMedia, Warning, TEXT("Failed to initialize caption output type for stream %i (%s)"), StreamIndex, *MfMedia::ResultToString(Result));
-				OutInfo += TEXT("    failed to set output type\n");
-
-				return;
-			}
+			FormatIndex = Track->Formats.Add({
+				MediaType,
+				OutputType,
+				TypeName,
+				{ 0 },
+				{ 0 }
+			});
 		}
 		else if (MajorType == MFMediaType_Video)
-		{		
-#if PLATFORM_XBOXONE
-			// filter unsupported video types (XboxOne only supports H.264)
-			if ((SubType != MFVideoFormat_H264) && (SubType != MFVideoFormat_H264_ES))
+		{
+			GUID OutputSubType;
 			{
-				UE_LOG(LogMfMedia, Warning, TEXT("Unsupported video type '%s' (%s) for stream %i"), *MfMediaTracks::FourccToString(SubType.Data1), *MfMediaTracks::GuidToString(SubType), StreamIndex);
-				OutInfo += TEXT("    unsupported SubType\n");
+				const HRESULT Result = OutputType->GetGUID(MF_MT_SUBTYPE, &OutputSubType);
 
-				return;
-			}
-#endif //PLATFORM_XBOXONE
+				if (FAILED(Result))
+				{
+					UE_LOG(LogMfMedia, Error, TEXT("Failed to get video output sub-type for stream %i (%s)"), StreamIndex, *MfMedia::ResultToString(Result));
+					OutInfo += FString::Printf(TEXT("        failed to get sub-type"));
 
-			// configure video output
-			Result = OutputType->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video);
-
-			if (FAILED(Result))
-			{
-				UE_LOG(LogMfMedia, Warning, TEXT("Failed to set video output type for stream %i (%s)"), StreamIndex, *MfMedia::ResultToString(Result));
-				OutInfo += TEXT("    failed to set output type\n");
-
-				return;
+					continue;
+				}
 			}
 
-#if PLATFORM_XBOXONE
-			Result = OutputType->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_NV12); // XboxOne only supports NV12
-#else
-			Result = OutputType->SetGUID(MF_MT_SUBTYPE, (SubType == MFVideoFormat_RGB32) ? MFVideoFormat_RGB32 : MFVideoFormat_NV12);
+			const uint32 BitRate = ::MFGetAttributeUINT32(MediaType, MF_MT_AVG_BITRATE, 0);
+
+			FIntPoint OutputDim;
+			{
+				if (SUCCEEDED(::MFGetAttributeSize(MediaType, MF_MT_FRAME_SIZE, (UINT32*)&OutputDim.X, (UINT32*)&OutputDim.Y)))
+				{
+					OutInfo += FString::Printf(TEXT("        Dimensions: %i x %i\n"), OutputDim.X, OutputDim.Y);
+				}
+				else
+				{
+					OutputDim = FIntPoint::ZeroValue;
+					OutInfo += FString::Printf(TEXT("        Dimensions: n/a\n"));
+				}
+			}
+
+			float FrameRate;
+			{
+				UINT32 Numerator = 0;
+				UINT32 Denominator = 1;
+
+				if (SUCCEEDED(::MFGetAttributeRatio(MediaType, MF_MT_FRAME_RATE, &Numerator, &Denominator)))
+				{
+					FrameRate = static_cast<float>(Numerator) / Denominator;
+					OutInfo += FString::Printf(TEXT("        Frame Rate: %g fps\n"), FrameRate);
+				}
+				else
+				{
+					FrameRate = 0.0f;
+					OutInfo += FString::Printf(TEXT("        Frame Rate: n/a\n"));
+				}
+			}
+
+			TRange<float> FrameRates;
+			{
+				UINT32 Numerator = 0;
+				UINT32 Denominator = 1;
+				float Min = -1.0f;
+				float Max = -1.0f;
+
+				if (SUCCEEDED(::MFGetAttributeRatio(MediaType, MF_MT_FRAME_RATE_RANGE_MIN, &Numerator, &Denominator)))
+				{
+					Min = static_cast<float>(Numerator) / Denominator;
+				}
+
+				if (SUCCEEDED(::MFGetAttributeRatio(MediaType, MF_MT_FRAME_RATE_RANGE_MAX, &Numerator, &Denominator)))
+				{
+					Max = static_cast<float>(Numerator) / Denominator;
+				}
+
+				if ((Min >= 0.0f) && (Max >= 0.0f))
+				{
+					FrameRates = TRange<float>::Inclusive(Min, Max);
+				}
+				else
+				{
+					FrameRates = TRange<float>(FrameRate);
+				}
+
+				OutInfo += FString::Printf(TEXT("        Frame Rate Range: %g - %g fps\n"), FrameRates.GetLowerBoundValue(), FrameRates.GetUpperBoundValue());
+			}
+
+			FIntPoint BufferDim;
+			uint32 BufferStride;
+			EMediaTextureSampleFormat SampleFormat;
+			{
+#if PLATFORM_WINDOWS
+				if (OutputSubType == MFVideoFormat_NV12)
 #endif
+				{
+					BufferDim = FIntPoint(Align(OutputDim.X, 16), Align(OutputDim.Y, 16) * 3 / 2);
+					BufferStride = BufferDim.X;
+					SampleFormat = EMediaTextureSampleFormat::CharNV12;
+				}
+#if PLATFORM_WINDOWS
+				else
+				{
+					long SampleStride = ::MFGetAttributeUINT32(OutputType, MF_MT_DEFAULT_STRIDE, 0);
 
-			if (FAILED(Result))
+					if (OutputSubType == MFVideoFormat_RGB32)
+					{
+						SampleFormat = EMediaTextureSampleFormat::CharBMP;
+
+						if (SampleStride == 0)
+						{
+							::MFGetStrideForBitmapInfoHeader(OutputSubType.Data1, OutputDim.X, &SampleStride);
+						}
+
+						if (SampleStride == 0)
+						{
+							SampleStride = OutputDim.X * 4;
+						}
+					}
+					else
+					{
+						SampleFormat = EMediaTextureSampleFormat::CharYUY2;
+
+						if (SampleStride == 0)
+						{
+							int32 AlignedOutputX = OutputDim.X;
+
+							if ((SubType == MFVideoFormat_H264) || (SubType == MFVideoFormat_H264_ES))
+							{
+								AlignedOutputX = Align(AlignedOutputX, 16);
+							}
+
+							SampleStride = AlignedOutputX * 2;
+						}
+					}
+
+					if (SampleStride < 0)
+					{
+						SampleStride = -SampleStride;
+					}
+
+					BufferDim = FIntPoint(SampleStride / 4, OutputDim.Y);
+					BufferStride = SampleStride;
+				}
+#endif //PLATFORM_WINDOWS
+			}
+
+			GUID FormatType = GUID_NULL;
+
+#if PLATFORM_WINDOWS
+			// prevent duplicates for legacy DirectShow media types
+			// see: https://msdn.microsoft.com/en-us/library/windows/desktop/ff485858(v=vs.85).aspx
+
+			if (SUCCEEDED(MediaType->GetGUID(MF_MT_AM_FORMAT_TYPE, &FormatType)))
 			{
-				UE_LOG(LogMfMedia, Warning, TEXT("Failed to set video output sub-type for stream %i (%s)"), StreamIndex, *MfMedia::ResultToString(Result));
-				OutInfo += TEXT("    failed to set output sub-type\n");
+				if (FormatType == FORMAT_VideoInfo)
+				{
+					for (int32 Index = Track->Formats.Num() - 1; Index >= 0; --Index)
+					{
+						const FFormat& Format = Track->Formats[Index];
 
-				return;
+						if ((Format.Video.FormatType == FORMAT_VideoInfo2) &&
+							(Format.Video.FrameRates == FrameRates) &&
+							(Format.Video.OutputDim == OutputDim) &&
+							(Format.TypeName == TypeName))
+						{
+							FormatIndex = Index; // keep newer format
+
+							break;
+						}
+					}
+				}
+				else if (FormatType == FORMAT_VideoInfo2)
+				{
+					for (int32 Index = Track->Formats.Num() - 1; Index >= 0; --Index)
+					{
+						FFormat& Format = Track->Formats[Index];
+
+						if ((Format.Video.FormatType == FORMAT_VideoInfo) &&
+							(Format.Video.FrameRates == FrameRates) &&
+							(Format.Video.OutputDim == OutputDim) &&
+							(Format.TypeName == TypeName))
+						{
+							Format.InputType = MediaType; // replace legacy format
+							FormatIndex = Index;
+
+							break;
+						}
+					}
+				}
+			}
+#endif //PLATFORM_WINDOWS
+
+			if (FormatIndex == INDEX_NONE)
+			{
+				FormatIndex = Track->Formats.Add({
+					MediaType,
+					OutputType,
+					TypeName,
+					{ 0 },
+					{
+						BitRate,
+						BufferDim,
+						BufferStride,
+						FormatType,
+						FrameRate,
+						FrameRates,
+						OutputDim,
+						SampleFormat
+					}
+				});
 			}
 		}
-	}
-
-	SourceReader->SetCurrentMediaType(StreamIndex, NULL, OutputType);
-
-	// create & add track
-	FStreamInfo* StreamInfo = nullptr;
-
-	if (MajorType == MFMediaType_Audio)
-	{
-		const int32 AudioTrackIndex = AudioTracks.AddDefaulted();
-		FAudioTrack& AudioTrack = AudioTracks[AudioTrackIndex];
+		else
 		{
-			AudioTrack.BitsPerSample = ::MFGetAttributeUINT32(MediaType, MF_MT_AUDIO_BITS_PER_SAMPLE, 16);
-			AudioTrack.NumChannels = ::MFGetAttributeUINT32(MediaType, MF_MT_AUDIO_NUM_CHANNELS, 0);
-			AudioTrack.SampleRate = ::MFGetAttributeUINT32(MediaType, MF_MT_AUDIO_SAMPLES_PER_SECOND, 0);
+			check(false); // should never get here
 		}
 
-		OutInfo += FString::Printf(TEXT("    Channels: %i\n"), AudioTrack.NumChannels);
-		OutInfo += FString::Printf(TEXT("    Sample Rate: %i Hz\n"), AudioTrack.SampleRate);
-		OutInfo += FString::Printf(TEXT("    Bits Per Sample: %i\n"), AudioTrack.BitsPerSample);
-
-		StreamInfo = &AudioTrack;
-	}
-	else if (MajorType == MFMediaType_SAMI)
-	{
-		const int32 CaptionTrackIndex = CaptionTracks.AddDefaulted();
-		FCaptionTrack& CaptionTrack = CaptionTracks[CaptionTrackIndex];
-
-		StreamInfo = &CaptionTrack;
-	}
-	else if ((MajorType == MFMediaType_Video) || (MajorType == MFMediaType_Image))
-	{
-		GUID OutputSubType;
+		if (MediaType == CurrentMediaType)
 		{
-			HRESULT Result = OutputType->GetGUID(MF_MT_SUBTYPE, &OutputSubType);
+			const HRESULT Result = SourceReader->SetCurrentMediaType(StreamIndex, NULL, OutputType);
 
-			if (FAILED(Result))
+			if (SUCCEEDED(Result))
 			{
-				UE_LOG(LogMfMedia, Error, TEXT("Failed to get video output sub-type for stream %i (%s)"), StreamIndex, *MfMedia::ResultToString(Result));
-				return;
-			}
-		}
-
-		const int32 VideoTrackIndex = VideoTracks.AddDefaulted();
-		FVideoTrack& VideoTrack = VideoTracks[VideoTrackIndex];
-		{
-			// bit rate
-			VideoTrack.BitRate = ::MFGetAttributeUINT32(MediaType, MF_MT_AVG_BITRATE, 0);
-
-			// dimensions
-			if (SUCCEEDED(::MFGetAttributeSize(MediaType, MF_MT_FRAME_SIZE, (UINT32*)&VideoTrack.OutputDim.X, (UINT32*)&VideoTrack.OutputDim.Y)))
-			{
-				OutInfo += FString::Printf(TEXT("    Dimensions: %i x %i\n"), VideoTrack.OutputDim.X, VideoTrack.OutputDim.Y);
+				Track->SelectedFormat = FormatIndex;
 			}
 			else
 			{
-				VideoTrack.OutputDim = FIntPoint::ZeroValue;
-				OutInfo += FString::Printf(TEXT("    Dimensions: n/a\n"));
+				UE_LOG(LogMfMedia, Warning, TEXT("Failed to set current media type on reader for stream %i (%s)"), Track->StreamIndex, *MfMedia::ResultToString(Result));
 			}
-
-			// frame rate
-			UINT32 Numerator = 0;
-			UINT32 Denominator = 1;
-
-			if (SUCCEEDED(::MFGetAttributeRatio(MediaType, MF_MT_FRAME_RATE, &Numerator, &Denominator)))
-			{
-				VideoTrack.FrameRate = static_cast<float>(Numerator) / Denominator;
-				OutInfo += FString::Printf(TEXT("    Frame Rate: %g fps\n"), VideoTrack.FrameRate);
-			}
-			else
-			{
-				VideoTrack.FrameRate = 0.0f;
-				OutInfo += FString::Printf(TEXT("    Frame Rate: n/a\n"));
-			}
-
-#if PLATFORM_XBOXONE
-			VideoTrack.BufferDim = FIntPoint(Align(VideoTrack.OutputDim.X, 16), Align(VideoTrack.OutputDim.Y, 16) * 3 / 2);
-			VideoTrack.SinkFormat = EMediaTextureSinkFormat::CharNV12;
-#else
-			if (OutputSubType == MFVideoFormat_NV12)
-			{
-				VideoTrack.BufferDim = FIntPoint(Align(VideoTrack.OutputDim.X, 16), Align(VideoTrack.OutputDim.Y, 16) * 3 / 2);
-				VideoTrack.SinkFormat = EMediaTextureSinkFormat::CharNV12;
-			}
-			else
-			{
-				long SampleStride = ::MFGetAttributeUINT32(MediaType, MF_MT_DEFAULT_STRIDE, 0);
-
-				if (SampleStride == 0)
-				{
-					::MFGetStrideForBitmapInfoHeader(SubType.Data1, VideoTrack.OutputDim.X, &SampleStride);
-				}
-
-				if (SampleStride == 0)
-				{
-					SampleStride = VideoTrack.OutputDim.X * 4;
-				}
-				else if (SampleStride < 0)
-				{
-					SampleStride = -SampleStride;
-				}
-
-				VideoTrack.BufferDim = FIntPoint(SampleStride / 4, VideoTrack.OutputDim.Y);
-				VideoTrack.SinkFormat = EMediaTextureSinkFormat::CharBMP;
-			}
-#endif //PLATFORM_XBOXONE	
 		}
-
-		StreamInfo = &VideoTrack;
 	}
 
 	// get stream info
-	if (StreamInfo != nullptr)
-	{
-		PWSTR OutString = NULL;
-		UINT32 OutLength;
+	PWSTR OutString = NULL;
+	UINT32 OutLength = 0;
 
-		if (SUCCEEDED(StreamDescriptor->GetAllocatedString(MF_SD_LANGUAGE, &OutString, &OutLength)))
+	if (SUCCEEDED(StreamDescriptor->GetAllocatedString(MF_SD_LANGUAGE, &OutString, &OutLength)))
+	{
+		Track->Language = OutString;
+		::CoTaskMemFree(OutString);
+	}
+
+	if (SUCCEEDED(StreamDescriptor->GetAllocatedString(MF_SD_STREAM_NAME, &OutString, &OutLength)))
+	{
+		Track->Name = OutString;
+		::CoTaskMemFree(OutString);
+	}
+
+	Track->DisplayName = (Track->Name.IsEmpty())
+		? FText::Format(LOCTEXT("UnnamedStreamFormat", "Unnamed Track (Stream {0})"), FText::AsNumber((uint32)StreamIndex))
+		: FText::FromString(Track->Name);
+
+	Track->Descriptor = StreamDescriptor;
+	Track->Handler = Handler;
+	Track->Protected = Protected;
+	Track->StreamIndex = StreamIndex;
+
+	if (Track->Formats.Num() > 0)
+	{
+		Track->SelectedFormat = 0;
+	}
+	else
+	{
+		Track->SelectedFormat = INDEX_NONE;
+
+		UE_LOG(LogMfMedia, Warning, TEXT("No supported media type in stream %i of type %s"), StreamIndex, *MfMedia::MajorTypeToString(MajorType));
+		OutInfo += TEXT("    unsupported media type\n");
+	}
+}
+
+
+const FMfMediaTracks::FFormat* FMfMediaTracks::GetAudioFormat(int32 TrackIndex, int32 FormatIndex) const
+{
+	if (AudioTracks.IsValidIndex(TrackIndex))
+	{
+		const FTrack& Track = AudioTracks[TrackIndex];
+
+		if (Track.Formats.IsValidIndex(FormatIndex))
 		{
-			StreamInfo->Language = OutString;
-			::CoTaskMemFree(OutString);
+			return &Track.Formats[FormatIndex];
+		}
+	}
+
+	return nullptr;
+}
+
+
+const FMfMediaTracks::FTrack* FMfMediaTracks::GetTrack(EMediaTrackType TrackType, int32 TrackIndex) const
+{
+	switch (TrackType)
+	{
+	case EMediaTrackType::Audio:
+		if (AudioTracks.IsValidIndex(TrackIndex))
+		{
+			return &AudioTracks[TrackIndex];
 		}
 
-		if (SUCCEEDED(StreamDescriptor->GetAllocatedString(MF_SD_STREAM_NAME, &OutString, &OutLength)))
+	case EMediaTrackType::Caption:
+		if (CaptionTracks.IsValidIndex(TrackIndex))
 		{
-			StreamInfo->Name = OutString;
-			::CoTaskMemFree(OutString);
+			return &CaptionTracks[TrackIndex];
 		}
 
-		StreamInfo->DisplayName = (StreamInfo->Name.IsEmpty())
-			? FText::Format(LOCTEXT("UnnamedStreamFormat", "Unnamed Stream {0}"), FText::AsNumber((uint32)StreamIndex))
-			: FText::FromString(StreamInfo->Name);
+	case EMediaTrackType::Video:
+		if (VideoTracks.IsValidIndex(TrackIndex))
+		{
+			return &VideoTracks[TrackIndex];
+		}
 
-		StreamInfo->SecondsUntilNextSample = 0.f;
-		StreamInfo->StreamIndex = StreamIndex;
+	default:
+		break; // unsupported track type
 	}
+
+	return nullptr;
 }
 
 
-void FMfMediaTracks::InitializeAudioSink()
+const FMfMediaTracks::FFormat* FMfMediaTracks::GetVideoFormat(int32 TrackIndex, int32 FormatIndex) const
 {
-	if ((AudioSink == nullptr) || (SelectedAudioTrack == INDEX_NONE))
+	if (VideoTracks.IsValidIndex(TrackIndex))
 	{
-		return;
+		const FTrack& Track = VideoTracks[TrackIndex];
+
+		if (Track.Formats.IsValidIndex(FormatIndex))
+		{
+			return &Track.Formats[FormatIndex];
+		}
 	}
 
-	const FAudioTrack& AudioTrack = AudioTracks[SelectedAudioTrack];
-	AudioSink->InitializeAudioSink(AudioTrack.NumChannels, AudioTrack.SampleRate);
-	if (Enabled)
-	{
-		AudioSink->ResumeAudioSink();
-	}
+	return nullptr;
 }
 
 
-void FMfMediaTracks::InitializeOverlaySink()
+bool FMfMediaTracks::RequestSample(DWORD StreamIndex)
 {
-	if ((OverlaySink == nullptr) || (SelectedCaptionTrack == INDEX_NONE))
+#if MFMEDIATRACKS_USE_ASYNCREADER
+	const HRESULT Result = SourceReader->ReadSample(StreamIndex, 0, nullptr, nullptr, nullptr, nullptr);
+
+#else
+	TComPtr<IMFSample> Sample;
+	DWORD StreamFlags;
+	LONGLONG Timestamp;
+
+	const HRESULT Result = SourceReader->ReadSample(StreamIndex, 0, nullptr, &StreamFlags, &Timestamp, &Sample);
+#endif
+
+	if (FAILED(Result))
 	{
-		return;
+		UE_LOG(LogMfMedia, VeryVerbose, TEXT("Tracks %llx: Failed to request sample for stream %i: %s"), this, StreamIndex, *MfMedia::ResultToString(Result));
+		return false;
 	}
 
-	OverlaySink->InitializeOverlaySink();
+#if MFMEDIATRACKS_USE_ASYNCREADER
+	return true;
+
+#else
+	if (SUCCEEDED(Result))
+	{
+		ProcessSample(Sample, Result, StreamFlags, StreamIndex, FTimespan(Timestamp));
+	}
+
+	return false;
+#endif
 }
 
 
-void FMfMediaTracks::InitializeVideoSink()
+void FMfMediaTracks::UpdateAudio()
 {
-	if ((VideoSink == nullptr) || (SelectedVideoTrack == INDEX_NONE))
+	if (AudioSamplePending)
 	{
-		return;
+		return; // sample request pending
 	}
 
-	const auto& VideoTrack = VideoTracks[SelectedVideoTrack];
-	VideoSink->InitializeTextureSink(VideoTrack.OutputDim, VideoTrack.BufferDim, VideoTrack.SinkFormat, EMediaTextureSinkMode::Unbuffered);
+	if (AudioDone || AudioSampleRange.IsEmpty() || (SelectedAudioTrack == INDEX_NONE))
+	{
+		return; // nothing to play
+	}
+
+	if ((LastAudioSampleTime != FTimespan::MinValue()) && !AudioSampleRange.Contains(LastAudioSampleTime))
+	{
+		return; // no new sample needed
+	}
+
+	#if MFMEDIATRACKS_TRACE_SAMPLES
+		UE_LOG(LogMfMedia, VeryVerbose, TEXT("Tracks %llx: Requesting audio sample"), this);
+	#endif
+
+	AudioSamplePending = RequestSample(AudioTracks[SelectedAudioTrack].StreamIndex);
+}
+
+
+void FMfMediaTracks::UpdateCaptions()
+{
+	if (CaptionSamplePending)
+	{
+		return; // sample request pending
+	}
+
+	if (CaptionDone || CaptionSampleRange.IsEmpty() || (SelectedCaptionTrack == INDEX_NONE))
+	{
+		return; // nothing to play
+	}
+
+	if ((LastCaptionSampleTime != FTimespan::MinValue()) && !CaptionSampleRange.Contains(LastCaptionSampleTime))
+	{
+		return; // no new sample needed
+	}
+
+	#if MFMEDIATRACKS_TRACE_SAMPLES
+		UE_LOG(LogMfMedia, VeryVerbose, TEXT("Tracks %llx: Requesting caption sample"), this);
+	#endif
+
+	CaptionSamplePending = RequestSample(CaptionTracks[SelectedCaptionTrack].StreamIndex);
+}
+
+
+void FMfMediaTracks::UpdateVideo()
+{
+	if (VideoSamplePending)
+	{
+		return; // sample request pending
+	}
+
+	if (VideoDone || VideoSampleRange.IsEmpty() || (SelectedVideoTrack == INDEX_NONE))
+	{
+		return; // nothing to play
+	}
+
+	if ((LastVideoSampleTime != FTimespan::MinValue()) && !VideoSampleRange.Contains(LastVideoSampleTime))
+	{
+		return; // no new sample needed
+	}
+
+	#if MFMEDIATRACKS_TRACE_SAMPLES
+		UE_LOG(LogMfMedia, VeryVerbose, TEXT("Tracks %llx: Requesting video sample"), this);
+	#endif
+
+	VideoSamplePending = RequestSample(VideoTracks[SelectedVideoTrack].StreamIndex);
 }
 
 

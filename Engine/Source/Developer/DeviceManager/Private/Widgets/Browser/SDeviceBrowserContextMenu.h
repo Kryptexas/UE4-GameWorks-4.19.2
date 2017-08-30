@@ -2,16 +2,19 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "Widgets/DeclarativeSyntaxSupport.h"
-#include "Widgets/SWidget.h"
-#include "Widgets/SCompoundWidget.h"
-#include "Widgets/Layout/SBorder.h"
+#include "CoreTypes.h"
 #include "EditorStyleSet.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/Layout/SBorder.h"
+
 #include "Models/DeviceDetailsCommands.h"
 
+
 #define LOCTEXT_NAMESPACE "SDeviceBrowserContextMenu"
+
 
 /**
  * Implements a context menu for the device browser list view.
@@ -32,7 +35,7 @@ public:
 	 * @param InArgs The declaration data for this widget.
 	 * @param InUICommandList The UI command list to use.
 	 */
-	void Construct( const FArguments& InArgs, const TSharedPtr<FUICommandList>& InUICommandList )
+	void Construct(const FArguments& InArgs, const TSharedPtr<FUICommandList>& InUICommandList)
 	{
 		ChildSlot
 		[
@@ -48,11 +51,11 @@ public:
 protected:
 
 	/**
-	 * Builds the context menu widget.
+	 * Build the context menu widget.
 	 *
 	 * @return The context menu.
 	 */
-	TSharedRef<SWidget> MakeContextMenu( const TSharedPtr<FUICommandList>& CommandList )
+	TSharedRef<SWidget> MakeContextMenu(const TSharedPtr<FUICommandList>& CommandList)
 	{
 		FMenuBuilder MenuBuilder(true, CommandList);
 

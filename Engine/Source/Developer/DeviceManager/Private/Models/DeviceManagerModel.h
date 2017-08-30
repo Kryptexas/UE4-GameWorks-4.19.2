@@ -2,16 +2,12 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "Interfaces/ITargetDeviceService.h"
+#include "CoreTypes.h"
+#include "Delegates/Delegate.h"
+#include "ITargetDeviceService.h"
+#include "Templates/SharedPointer.h"
 
 class FDeviceManagerModel;
-
-/** Type definition for shared pointers to instances of FDeviceManagerModel. */
-typedef TSharedPtr<class FDeviceManagerModel> FDeviceManagerModelPtr;
-
-/** Type definition for shared references to instances of FDeviceManagerModel. */
-typedef TSharedRef<class FDeviceManagerModel> FDeviceManagerModelRef;
 
 
 /**
@@ -22,21 +18,21 @@ class FDeviceManagerModel
 public:
 
 	/**
-	 * Gets the device service that is currently selected in the device browser.
+	 * Get the device service that is currently selected in the device browser.
 	 *
 	 * @return The selected device service.
 	 */
-	ITargetDeviceServicePtr GetSelectedDeviceService( ) const
+	TSharedPtr<ITargetDeviceService, ESPMode::ThreadSafe> GetSelectedDeviceService() const
 	{
 		return SelectedDeviceService;
 	}
 
 	/**
-	 * Selects the specified device service (or none if nullptr).
+	 * Select the specified device service (or none if nullptr).
 	 *
 	 * @param DeviceService The device service to select.
 	 */
-	void SelectDeviceService( const ITargetDeviceServicePtr& DeviceService )
+	void SelectDeviceService(const TSharedPtr<ITargetDeviceService, ESPMode::ThreadSafe>& DeviceService)
 	{
 		if (SelectedDeviceService != DeviceService)
 		{
@@ -48,23 +44,21 @@ public:
 public:
 
 	/**
-	 * Gets an event delegate that is invoked when the selected device service has changed.
+	 * Get an event delegate that is invoked when the selected device service has changed.
 	 *
 	 * @return The event delegate.
 	 */
 	DECLARE_EVENT(FDeviceManagerModel, FOnSelectedDeviceServiceChanged);
-	FOnSelectedDeviceServiceChanged& OnSelectedDeviceServiceChanged( )
+	FOnSelectedDeviceServiceChanged& OnSelectedDeviceServiceChanged()
 	{
 		return SelectedDeviceServiceChangedEvent;
 	}
 
 private:
 
-	// Holds the currently selected target device service.
-	ITargetDeviceServicePtr SelectedDeviceService;
+	/** The currently selected target device service. */
+	TSharedPtr<ITargetDeviceService, ESPMode::ThreadSafe> SelectedDeviceService;
 
-private:
-
-	// Holds an event delegate that is invoked when the selected message has changed.
+	/** An event delegate that is invoked when the selected message has changed. */
 	FOnSelectedDeviceServiceChanged SelectedDeviceServiceChangedEvent;
 };

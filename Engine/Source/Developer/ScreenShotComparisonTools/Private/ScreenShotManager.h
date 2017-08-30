@@ -10,10 +10,11 @@
 #include "Async/Future.h"
 #include "ImageComparer.h"
 #include "Interfaces/IScreenShotManager.h"
-#include "Helpers/MessageEndpoint.h"
+#include "MessageEndpoint.h"
 
 class FScreenshotComparisons;
 struct FScreenShotDataItem;
+
 
 /**
  * Implements the ScreenShotManager that contains screen shot data.

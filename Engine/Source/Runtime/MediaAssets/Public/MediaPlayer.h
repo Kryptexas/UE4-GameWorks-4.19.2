@@ -2,24 +2,26 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "Containers/Ticker.h"
+#include "CoreTypes.h"
+#include "Containers/UnrealString.h"
+#include "Delegates/Delegate.h"
+#include "Math/Quat.h"
+#include "Math/Rotator.h"
+#include "Templates/SharedPointer.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
 #include "UObject/ScriptMacros.h"
-#include "IMediaOverlaySink.h"
-#include "MediaPlayerBase.h"
+#include "Misc/Guid.h"
+
 #include "MediaPlayer.generated.h"
 
-
-class FMediaPlayerBase;
+class FMediaPlayerFacade;
 class IMediaPlayer;
-class UMediaOverlays;
 class UMediaPlaylist;
-class UMediaSoundWave;
 class UMediaSource;
-class UMediaTexture;
+
 enum class EMediaEvent;
+
 
 /** Multicast delegate that is invoked when a media event occurred in the player. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnMediaPlayerMediaEvent);
@@ -42,11 +44,11 @@ enum class EMediaPlayerTrack : uint8
 	/** Audio track. */
 	Audio,
 
-	/** Binary data track. */
-	Binary,
-
 	/** Caption track. */
 	Caption,
+
+	/** Metadata track. */
+	Metadata,
 
 	/** Script track. */
 	Script,
@@ -68,7 +70,6 @@ enum class EMediaPlayerTrack : uint8
 UCLASS(BlueprintType, hidecategories=(Object))
 class MEDIAASSETS_API UMediaPlayer
 	: public UObject
-	, public FTickerObjectBase
 {
 	GENERATED_UCLASS_BODY()
 
@@ -119,6 +120,39 @@ public:
 	void Close();
 
 	/**
+	 * Get the number of channels in the specified audio track.
+	 *
+	 * @param TrackIndex Index of the audio track, or INDEX_NONE for the selected one.
+	 * @param FormatIndex Index of the track format, or INDEX_NONE for the selected one.
+	 * @return Number of channels.
+	 * @see GetAudioTrackSampleRate, GetAudioTrackType
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Media|MediaPlayer")
+	int32 GetAudioTrackChannels(int32 TrackIndex, int32 FormatIndex) const;
+
+	/**
+	 * Get the sample rate of the specified audio track.
+	 *
+	 * @param TrackIndex Index of the audio track, or INDEX_NONE for the selected one.
+	 * @param FormatIndex Index of the track format, or INDEX_NONE for the selected one.
+	 * @return Samples per second.
+	 * @see GetAudioTrackChannels, GetAudioTrackType
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Media|MediaPlayer")
+	int32 GetAudioTrackSampleRate(int32 TrackIndex, int32 FormatIndex) const;
+
+	/**
+	 * Get the type of the specified audio track format.
+	 *
+	 * @param TrackIndex The index of the track, or INDEX_NONE for the selected one.
+	 * @param FormatIndex Index of the track format, or INDEX_NONE for the selected one.
+	 * @return Audio format type string.
+	 * @see GetAudioTrackSampleRate, GetAudioTrackSampleRate
+	 */
+	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
+	FString GetAudioTrackType(int32 TrackIndex, int32 FormatIndex) const;
+
+	/**
 	 * Get the name of the current desired native player.
 	 *
 	 * @return The name of the desired player, or NAME_None if not set.
@@ -137,24 +171,34 @@ public:
 	FTimespan GetDuration() const;
 
 	/**
-	 * Get the supported forward playback rates.
+	 * Get the current horizontal field of view (only for 360 videos).
 	 *
-	 * @param Unthinned Whether the rates are for unthinned playback (default = true).
-	 * @return The range of supported rates.
-	 * @see GetReverseRates
+	 * @return Horizontal field of view (in Euler degrees).
+	 * @see GetVerticalFieldOfView, GetViewRotation, SetHorizontalFieldOfView
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
-	FFloatRange GetForwardRates(bool Unthinned = true);
+	float GetHorizontalFieldOfView() const;
 
 	/**
 	 * Get the number of tracks of the given type.
 	 *
 	 * @param TrackType The type of media tracks.
 	 * @return Number of tracks.
-	 * @see GetSelectedTrack, SelectTrack
+	 * @see GetNumTrackFormats, GetSelectedTrack, SelectTrack
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
 	int32 GetNumTracks(EMediaPlayerTrack TrackType) const;
+
+	/**
+	 * Get the number of formats of the specified track.
+	 *
+	 * @param TrackType The type of media tracks.
+	 * @param TrackIndex The index of the track.
+	 * @return Number of formats.
+	 * @see GetNumTracks, GetSelectedTrack, SelectTrack
+	 */
+	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
+	int32 GetNumTrackFormats(EMediaPlayerTrack TrackType, int32 TrackIndex) const;
 
 	/**
 	 * Get the name of the current native media player.
@@ -163,6 +207,33 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
 	FName GetPlayerName() const;
+
+	/**
+	 * Get the current play list.
+	 *
+	 * Media players always have a valid play list. In C++ code you can use
+	 * the GetPlaylistRef to get a reference instead of a pointer to it.
+	 *
+	 * @return The play list.
+	 * @see GetPlaylistIndex, GetPlaylistRef
+	 */
+	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
+	UMediaPlaylist* GetPlaylist() const
+	{
+		return Playlist;
+	}
+
+	/**
+	 * Get the current play list index.
+	 *
+	 * @return Play list index.
+	 * @see GetPlaylist
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Media|MediaPlayer")
+	int32 GetPlaylistIndex() const
+	{
+		return PlaylistIndex;
+	}
 
 	/**
 	 * Get the media's current playback rate.
@@ -174,24 +245,24 @@ public:
 	float GetRate() const;
 
 	/**
-	 * Get the supported reverse playback rates.
-	 *
-	 * @param Unthinned Whether the rates are for unthinned playback (default = true).
-	 * @return The range of supported rates.
-	 * @see GetForwardRates
-	 */
-	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
-	FFloatRange GetReverseRates(bool Unthinned = true);
-
-	/**
 	 * Get the index of the currently selected track of the given type.
 	 *
 	 * @param TrackType The type of track to get.
 	 * @return The index of the selected track, or INDEX_NONE if no track is active.
-	 * @see GetNumTracks, SelectTrack
+	 * @see GetNumTracks, GetTrackFormat, SelectTrack
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
 	int32 GetSelectedTrack(EMediaPlayerTrack TrackType) const;
+
+	/**
+	 * Get the supported playback rates.
+	 *
+	 * @param Unthinned Whether the rates are for unthinned playback.
+	 * @param Will contain the the ranges of supported rates.
+	 * @see SetRate, SupportsRate
+	 */
+	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
+	void GetSupportedRates(TArray<FFloatRange>& OutRates, bool Unthinned) const;
 
 	/**
 	 * Get the media's current playback time.
@@ -206,7 +277,7 @@ public:
 	 * Get the human readable name of the specified track.
 	 *
 	 * @param TrackType The type of track.
-	 * @param TrackIndex The index of the track.
+	 * @param TrackIndex The index of the track, or INDEX_NONE for the selected one.
 	 * @return Display name.
 	 * @see GetNumTracks, GetTrackLanguage
 	 */
@@ -214,10 +285,21 @@ public:
 	FText GetTrackDisplayName(EMediaPlayerTrack TrackType, int32 TrackIndex) const;
 
 	/**
+	 * Get the index of the active format of the specified track type.
+	 *
+	 * @param TrackType The type of track.
+	 * @param TrackIndex The index of the track, or INDEX_NONE for the selected one.
+	 * @return The index of the selected format.
+	 * @see GetNumTrackFormats, GetSelectedTrack, SetTrackFormat
+	 */
+	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
+	int32 GetTrackFormat(EMediaPlayerTrack TrackType, int32 TrackIndex) const;
+
+	/**
 	 * Get the language tag of the specified track.
 	 *
 	 * @param TrackType The type of track.
-	 * @param TrackIndex The index of the track.
+	 * @param TrackIndex The index of the track, or INDEX_NONE for the selected one.
 	 * @return Language tag, i.e. "en-US" for English, or "und" for undefined.
 	 * @see GetNumTracks, GetTrackDisplayName
 	 */
@@ -234,49 +316,153 @@ public:
 	const FString& GetUrl() const;
 
 	/**
-	 * Checks whether playback is looping.
+	 * Get the current vertical field of view (only for 360 videos).
+	 *
+	 * @return Vertical field of view (in Euler degrees), or 0.0 if not available.
+	 * @see GetHorizontalFieldOfView, GetViewRotation, SetVerticalFieldOfView
+	 */
+	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
+	float GetVerticalFieldOfView() const;
+
+	/**
+	 * Get the aspect ratio of the specified video track.
+	 *
+	 * @param TrackIndex Index of the video track, or INDEX_NONE for the selected one.
+	 * @param FormatIndex Index of the track format, or INDEX_NONE for the selected one.
+	 * @return Aspect ratio.
+	 * @see GetVideoTrackDimensions, GetVideoTrackFrameRate, GetVideoTrackFrameRates, GetVideoTrackType
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Media|MediaPlayer")
+	float GetVideoTrackAspectRatio(int32 TrackIndex, int32 FormatIndex) const;
+
+	/**
+	 * Get the current dimensions of the specified video track.
+	 *
+	 * @param TrackIndex The index of the track, or INDEX_NONE for the selected one.
+	 * @param FormatIndex Index of the track format, or INDEX_NONE for the selected one.
+	 * @return Video dimensions (in pixels).
+	 * @see GetVideoTrackAspectRatio, GetVideoTrackFrameRate, GetVideoTrackFrameRates, GetVideoTrackType
+	 */
+	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
+	FIntPoint GetVideoTrackDimensions(int32 TrackIndex, int32 FormatIndex) const;
+
+	/**
+	 * Get the frame rate of the specified video track.
+	 *
+	 * @param TrackIndex The index of the track, or INDEX_NONE for the selected one.
+	 * @param FormatIndex Index of the track format, or INDEX_NONE for the selected one.
+	 * @return Frame rate (in frames per second).
+	 * @see GetVideoTrackAspectRatio, GetVideoTrackDimensions, GetVideoTrackFrameRates, GetVideoTrackType, SetVideoTrackFrameRate
+	 */
+	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
+	float GetVideoTrackFrameRate(int32 TrackIndex, int32 FormatIndex) const;
+
+	/**
+	 * Get the supported range of frame rates of the specified video track.
+	 *
+	 * @param TrackIndex The index of the track, or INDEX_NONE for the selected one.
+	 * @param FormatIndex Index of the track format, or INDEX_NONE for the selected one.
+	 * @return Frame rate range (in frames per second).
+	 * @see GetVideoTrackAspectRatio, GetVideoTrackDimensions, GetVideoTrackFrameRate, GetVideoTrackType
+	 */
+	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
+	FFloatRange GetVideoTrackFrameRates(int32 TrackIndex, int32 FormatIndex) const;
+
+	/**
+	 * Get the type of the specified video track format.
+	 *
+	 * @param TrackIndex The index of the track, or INDEX_NONE for the selected one.
+	 * @param FormatIndex Index of the track format, or INDEX_NONE for the selected one.
+	 * @return Video format type string.
+	 * @see GetVideoTrackAspectRatio, GetVideoTrackDimensions, GetVideoTrackFrameRate, GetVideoTrackFrameRates
+	 */
+	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
+	FString GetVideoTrackType(int32 TrackIndex, int32 FormatIndex) const;
+
+	/**
+	 * Get the current view rotation (only for 360 videos).
+	 *
+	 * @return View rotation, or zero rotator if not available.
+	 * @see GetHorizontalFieldOfView, GetVerticalFieldOfView, SetViewRotation
+	 */
+	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
+	FRotator GetViewRotation() const;
+
+	/**
+	 * Check whether the player is in an error state.
+	 *
+	 * When the player is in an error state, no further operations are possible.
+	 * The current media must be closed, and a new media source must be opened
+	 * before the player can be used again. Errors are usually caused by faulty
+	 * media files or interrupted network connections.
+	 *
+	 * @see IsReady
+	 */
+	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
+	bool HasError() const;
+
+	/**
+	 * Check whether playback is buffering data.
 	 *
 	 * @return true if looping, false otherwise.
-	 * @see SetLooping
+	 * @see IsConnecting, IsLooping, IsPaused, IsPlaying, IsPreparing, IsReady
+	 */
+	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
+	bool IsBuffering() const;
+
+	/**
+	 * Check whether the player is currently connecting to a media source.
+	 *
+	 * @return true if connecting, false otherwise.
+	 * @see IsBuffering, IsLooping, IsPaused, IsPlaying, IsPreparing, IsReady
+	 */
+	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
+	bool IsConnecting() const;
+
+	/**
+	 * Check whether playback is looping.
+	 *
+	 * @return true if looping, false otherwise.
+	 * @see IsBuffering, IsConnecting, IsPaused, IsPlaying, IsPreparing, IsReady, SetLooping
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
 	bool IsLooping() const;
 
 	/**
-	 * Checks whether playback is currently paused.
+	 * Check whether playback is currently paused.
 	 *
 	 * @return true if playback is paused, false otherwise.
-	 * @see CanPause, IsPlaying, IsReady, Pause
+	 * @see CanPause, IsBuffering, IsConnecting, IsLooping, IsPaused, IsPlaying, IsPreparing, IsReady, Pause
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
 	bool IsPaused() const;
 
 	/**
-	 * Checks whether playback has started.
+	 * Check whether playback has started.
 	 *
 	 * @return true if playback has started, false otherwise.
-	 * @see CanPlay, IsPaused, IsReady, Play
+	 * @see CanPlay, IsBuffering, IsConnecting, IsLooping, IsPaused, IsPlaying, IsPreparing, IsReady, Play
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
 	bool IsPlaying() const;
 
 	/**
-	 * Checks whether the media is currently opening or buffering.
+	 * Check whether the media is currently opening or buffering.
 	 *
 	 * @return true if playback is being prepared, false otherwise.
-	 * @see CanPlay, IsPaused, IsReady, Play
+	 * @see CanPlay, IsBuffering, IsConnecting, IsLooping, IsPaused, IsPlaying, IsReady, Play
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
 	bool IsPreparing() const;
 
 	/**
-	 * Checks whether media is ready for playback.
+	 * Check whether media is ready for playback.
 	 *
 	 * A player is ready for playback if it has a media source opened that
 	 * finished preparing and is not in an error state.
 	 *
 	 * @return true if media is ready, false otherwise.
-	 * @see IsPaused, IsPlaying, Stop
+	 * @see HasError, IsBuffering, IsConnecting, IsLooping, IsPaused, IsPlaying, IsPreparing
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
 	bool IsReady() const;
@@ -429,12 +615,14 @@ public:
 	/**
 	 * Select the active track of the given type.
 	 *
-	 * Only one track of a given type can be active at any time.
+	 * The selected track will use its currently active format. Active formats will
+	 * be remembered on a per track basis. The first available format is active by
+	 * default. To switch the track format, use SetTrackFormat instead.
 	 *
 	 * @param TrackType The type of track to select.
 	 * @param TrackIndex The index of the track to select, or INDEX_NONE to deselect.
 	 * @return true if the track was selected, false otherwise.
-	 * @see GetNumTracks, GetSelectedTrack
+	 * @see GetNumTracks, GetSelectedTrack, SetTrackFormat
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
 	bool SelectTrack(EMediaPlayerTrack TrackType, int32 TrackIndex);
@@ -459,15 +647,6 @@ public:
 	bool SetLooping(bool Looping);
 
 	/**
-	 * Assign the given overlays asset to the player's overlay sink.
-	 *
-	 * @param NewOverlays The overlays asset to set.
-	 * @see SetVideoTexture
-	 */
-	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
-	void SetOverlays(UMediaOverlays* NewOverlays);
-
-	/**
 	 * Changes the media's playback rate.
 	 *
 	 * @param Rate The playback rate to set.
@@ -478,25 +657,58 @@ public:
 	bool SetRate(float Rate);
 
 	/**
-	 * Assign the given sound wave to the player's audio sink.
+	 * Set the format on the specified track.
 	 *
-	 * @param NewSoundWave The sound wave to set.
-	 * @see SetVideoTexture
+	 * Selecting the format will not switch to the specified track. To switch
+	 * tracks, use SelectTrack instead. If the track is already selected, the
+	 * format change will be applied immediately.
+	 *
+	 * @param TrackType The type of track to update.
+	 * @param TrackIndex The index of the track to update.
+	 * @param FormatIndex The index of the format to select (must be valid).
+	 * @return true if the track was selected, false otherwise.
+	 * @see GetNumTrackFormats, GetNumTracks, GetTrackFormat, SelectTrack
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
-	void SetSoundWave(UMediaSoundWave* NewSoundWave);
+	bool SetTrackFormat(EMediaPlayerTrack TrackType, int32 TrackIndex, int32 FormatIndex);
 
 	/**
-	 * Assign the given texture to the player's video sink.
+	 * Set the frame rate of the specified video track.
 	 *
-	 * @param NewTexture The texture to set.
-	 * @see SetSoundWave
+	 * @param TrackIndex The index of the track, or INDEX_NONE for the selected one.
+	 * @param FormatIndex Index of the track format, or INDEX_NONE for the selected one.
+	 * @param FrameRate The frame rate to set (must be in range of format's supported frame rates).
+	 * @return true on success, false otherwise.
+	 * @see GetVideoTrackAspectRatio, GetVideoTrackDimensions, GetVideoTrackFrameRate, GetVideoTrackFrameRates, GetVideoTrackType
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
-	void SetVideoTexture(UMediaTexture* NewTexture);
+	bool SetVideoTrackFrameRate(int32 TrackIndex, int32 FormatIndex, float FrameRate);
 
 	/**
-	 * Checks whether the specified playback rate is supported.
+	 * Set the field of view (only for 360 videos).
+	 *
+	 * @param Horizontal Horizontal field of view (in Euler degrees).
+	 * @param Vertical Vertical field of view (in Euler degrees).
+	 * @param Whether the field of view change should be absolute (true) or relative (false).
+	 * @return true on success, false otherwise.
+	 * @see GetHorizontalFieldOfView, GetVerticalFieldOfView, SetViewRotation
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Media|MediaPlayer")
+	bool SetViewField(float Horizontal, float Vertical, bool Absolute);
+
+	/**
+	 * Set the view's rotation (only for 360 videos).
+	 *
+	 * @param Rotation The desired view rotation.
+	 * @param Whether the rotation change should be absolute (true) or relative (false).
+	 * @return true on success, false otherwise.
+	 * @see GetViewRotation, SetViewField
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Media|MediaPlayer")
+	bool SetViewRotation(const FRotator& Rotation, bool Absolute);
+
+	/**
+	 * Check whether the specified playback rate is supported.
 	 *
 	 * @param Rate The playback rate to check.
 	 * @param Unthinned Whether no frames should be dropped at the given rate.
@@ -506,7 +718,7 @@ public:
 	bool SupportsRate(float Rate, bool Unthinned) const;
 
 	/**
-	 * Checks whether the currently loaded media supports scrubbing.
+	 * Check whether the currently loaded media supports scrubbing.
 	 *
 	 * @return true if scrubbing is supported, false otherwise.
 	 * @see SupportsRate, SupportsSeeking
@@ -515,7 +727,7 @@ public:
 	bool SupportsScrubbing() const;
 
 	/**
-	 * Checks whether the currently loaded media can jump to a certain position.
+	 * Check whether the currently loaded media can jump to a certain position.
 	 *
 	 * @return true if seeking is supported, false otherwise.
 	 * @see SupportsRate, SupportsScrubbing
@@ -538,7 +750,9 @@ public:
 	 *
 	 * Depending on whether the underlying player implementation opens the media
 	 * synchronously or asynchronously, this event may be executed before or
-	 * after the call top OpenSource / OpenUrl returns.
+	 * after the call to OpenSource / OpenUrl returns.
+	 *
+	 * @see OnMediaOpenFailed
 	 */
 	UPROPERTY(BlueprintAssignable, Category="Media|MediaPlayer")
 	FOnMediaPlayerMediaOpened OnMediaOpened;
@@ -549,97 +763,93 @@ public:
 	 * This delegate is only executed if OpenSource / OpenUrl returned true and
 	 * the media failed to open asynchronously later. It is not executed if
 	 * OpenSource / OpenUrl returned false, indicating an immediate failure.
+	 *
+	 * @see OnMediaOpened
 	 */
 	UPROPERTY(BlueprintAssignable, Category="Media|MediaPlayer")
 	FOnMediaPlayerMediaOpenFailed OnMediaOpenFailed;
 
-	/** A delegate that is invoked when media playback has been resumed. */
+	/**
+	 * A delegate that is invoked when media playback has been resumed.
+	 *
+	 * @see OnPlaybackSuspended
+	 */
 	UPROPERTY(BlueprintAssignable, Category="Media|MediaPlayer")
 	FOnMediaPlayerMediaEvent OnPlaybackResumed;
 
-	/** A delegate that is invoked when media playback has been suspended. */
+	/**
+	 * A delegate that is invoked when media playback has been suspended.
+	 *
+	 * @see OnPlaybackResumed
+	 */
 	UPROPERTY(BlueprintAssignable, Category="Media|MediaPlayer")
 	FOnMediaPlayerMediaEvent OnPlaybackSuspended;
+
+	/**
+	 * A delegate that is invoked when a seek operation completed successfully.
+	 *
+	 * Depending on whether the underlying player implementation performs seeks
+	 * synchronously or asynchronously, this event may be executed before or
+	 * after the call to Seek.
+	 */
+	UPROPERTY(BlueprintAssignable, Category = "Media|MediaPlayer")
+	FOnMediaPlayerMediaEvent OnSeekCompleted;
 
 public:
 
 	/**
-	 * Get the player implementation of this object.
+	 * Get the Guid associated with this media player
 	 *
-	 * @return The player implementation.
+	 * @return The Guid.
 	 */
-	FMediaPlayerBase& GetBasePlayer();
-
-	/**
-	 * Get the URL of the media that was last attempted to be opened.
-	 *
-	 * @return The last attempted URL.
-	 */
-	const FString& GetLastUrl()
+	const FGuid& GetGuid()
 	{
-		return LastUrl;
+		return PlayerGuid;
 	}
 
 	/**
-	 * Get the overlays assets that receives the captions and subtitles.
+	 * Get the media player facade that manages low-level media players
 	 *
-	 * @return Overlays asset.
-	 * @see GetPlayer, GetPlaylist, GetVideoTexture
+	 * @return The media player facade.
 	 */
-	UMediaOverlays* GetOverlays() const
+	TSharedRef<FMediaPlayerFacade, ESPMode::ThreadSafe> GetPlayerFacade() const;
+
+	/**
+	 * Get the current play list.
+	 *
+	 * @return The play list.
+	 * @see GetPlaylistIndex, GetPlaylist
+	 */
+	UMediaPlaylist& GetPlaylistRef() const
 	{
-		return Overlays;
+		check(Playlist != nullptr);
+		return *Playlist;
 	}
 
 	/**
-	 * Get the currently active play list.
+	 * Get an event delegate that is invoked when a media event occurred.
 	 *
-	 * @return The play list, if any.
-	 * @see GetOverlays, GetPlayer, GetPlaylistIndex
+	 * @return The delegate.
 	 */
-	UMediaPlaylist* GetPlaylist() const
+	DECLARE_EVENT_OneParam(UMediaPlayer, FOnMediaEvent, EMediaEvent /*Event*/)
+	FOnMediaEvent& OnMediaEvent()
 	{
-		return Playlist;
-	}
-
-	/**
-	 * Get the current play list index.
-	 *
-	 * @return Play list index.
-	 * @see GetOverlays, GetPlayer, GetPlaylist
-	 */
-	int32 GetPlaylistIndex() const
-	{
-		return PlaylistIndex;
-	}
-
-	/**
-	 * Get the sound wave that receives the audio output.
-	 *
-	 * @return Sound wave asset.
-	 * @see GetOverlays, GetPlayer, GetVideoTexture
-	 */
-	UMediaSoundWave* GetSoundWave() const
-	{
-		return SoundWave;
-	}
-
-	/**
-	 * Get the media texture that receives the video output.
-	 *
-	 * @return Media texture asset.
-	 * @see GetOverlays, GetPlayer, GetSoundWave
-	 */
-	UMediaTexture* GetVideoTexture() const
-	{
-		return VideoTexture;
+		return MediaEvent;
 	}
 
 #if WITH_EDITOR
-	/** Called when PIE has been paused. */
+	/**
+	 * Called when PIE has been paused.
+	 *
+	 * @see ResumePIE
+	 */
 	void PausePIE();
 
-	/** Called when PIE has been resumed. */
+	/**
+	 * Called when PIE has been resumed.
+	 *
+	 * @see PausePIE
+	 */
 	void ResumePIE();
 #endif
 
@@ -648,90 +858,170 @@ public:
 	//~ UObject interface
 
 	virtual void BeginDestroy() override;
+	virtual bool CanBeInCluster() const override;
 	virtual FString GetDesc() override;
-	virtual void PostLoad() override; 
-	virtual bool CanBeInCluster() const override { return false; }
+	virtual void PostDuplicate(bool bDuplicateForPIE) override;
+	virtual void PostLoad() override;
 
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
 #endif
 
 public:
 
-	//~ FTickerObjectBase interface
+	/**
+	 * Duration of samples to cache ahead of the play head.
+	 *
+	 * @see CacheBehind, CacheBehindGame
+	 */
+	UPROPERTY(BlueprintReadWrite, Category=Caching)
+	FTimespan CacheAhead;
 
-	virtual bool Tick(float DeltaTime) override;
+	/**
+	 * Duration of samples to cache behind the play head (when not running as game).
+	 *
+	 * @see CacheAhead, CacheBehindGame
+	 */
+	UPROPERTY(BlueprintReadWrite, Category=Caching)
+	FTimespan CacheBehind;
+
+	/**
+	 * Duration of samples to cache behind the play head (when running as game).
+	 *
+	 * @see CacheAhead, CacheBehind
+	 */
+	UPROPERTY(BlueprintReadWrite, Category=Caching)
+	FTimespan CacheBehindGame;
 
 public:
 
-	/** Automatically start playback after media opened successfully. */
-	UPROPERTY(EditAnywhere, Category=Playback)
+	/**
+	 * Output any audio via the operating system's sound mixer instead of a Sound Wave asset.
+	 *
+	 * If enabled, the assigned Sound Wave asset will be ignored. The SetNativeVolume
+	 * function can then be used to change the audio output volume at runtime. Note that
+	 * not all media player plug-ins may support native audio output on all platforms.
+	 *
+	 * @see SetNativeVolume
+	 */
+	UPROPERTY(BlueprintReadWrite, Category=Output, AdvancedDisplay)
+	bool NativeAudioOut;
+
+public:
+
+	/**
+	 * Automatically start playback after media opened successfully.
+	 *
+	 * If disabled, listen to the OnMediaOpened Blueprint event to detect when
+	 * the media finished opening, and then start playback using the Play function.
+	 *
+	 * @see OpenFile, OpenPlaylist, OpenPlaylistIndex, OpenSource, OpenUrl, Play
+	 */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Playback)
 	bool PlayOnOpen;
 
-	/** Whether playback should shuffle media sources in the play list. */
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category=Playback)
+	/**
+	 * Whether playback should shuffle media sources in the play list.
+	 *
+	 * @see OpenPlaylist, OpenPlaylistIndex
+	 */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Playback)
 	uint32 Shuffle : 1;
-
-public:
-
-	/** Get an event delegate that is invoked when a media event occurred. */
-	DECLARE_EVENT_OneParam(UMediaPlayer, FOnMediaEvent, EMediaEvent /*Event*/)
-	FOnMediaEvent& OnMediaEvent()
-	{
-		return MediaEvent;
-	}
 
 protected:
 
-	/** Whether the player should loop when media playback reaches the end. */
+	/**
+	 * Whether the player should loop when media playback reaches the end.
+	 *
+	 * Use the SetLooping function to change this value at runtime.
+	 *
+	 * @see IsLooping, SetLooping
+	 */
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category=Playback)
 	uint32 Loop:1;
 
-	/** The overlay asset to output captions and subtitles to. */
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category=Output)
-	UMediaOverlays* Overlays;
-
-	/** The play list to use, if any. */
+	/**
+	 * The play list to use, if any.
+	 *
+	 * Use the OpenPlaylist or OpenPlaylistIndex function to change this value at runtime.
+	 *
+	 * @see OpenPlaylist, OpenPlaylistIndex
+	 */
 	UPROPERTY(BlueprintReadOnly, transient, Category=Playback)
 	UMediaPlaylist* Playlist;
 
-	/** The current index of the source in the play list being played. */
+	/**
+	 * The current index of the source in the play list being played.
+	 *
+	 * Use the Previous and Next methods to change this value at runtime.
+	 *
+	 * @see Next, Previous
+	 */
 	UPROPERTY(BlueprintReadOnly, Category=Playback)
 	int32 PlaylistIndex;
 
-	/** The media sound wave to output the audio track samples to. */
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category=Output)
-	UMediaSoundWave* SoundWave;
+protected:
 
-	/** The media texture to output the video track frames to. */
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category=Output)
-	UMediaTexture* VideoTexture;
+	/**
+	 * The initial horizontal field of view (in Euler degrees; default = 90).
+	 *
+	 * This setting is used only for 360 videos. It determines the portion of the
+	 * video that is visible at a time. To modify the field of view at runtime in
+	 * Blueprints, use the SetHorizontalFieldOfView function.
+	 *
+	 * @see GetHorizontalFieldOfView, SetHorizontalFieldOfView, VerticalFieldOfView, ViewRotation
+	 */
+	UPROPERTY(EditAnywhere, Category=ViewSettings)
+	float HorizontalFieldOfView;
+
+	/**
+	 * The initial vertical field of view (in Euler degrees; default = 60).
+	 *
+	 * This setting is used only for 360 videos. It determines the portion of the
+	 * video that is visible at a time. To modify the field of view at runtime in
+	 * Blueprints, use the SetHorizontalFieldOfView function.
+	 *
+	 * Please note that some 360 video players may be able to change only the
+	 * horizontal field of view, and this setting may be ignored.
+	 *
+	 * @see GetVerticalFieldOfView, SetVerticalFieldOfView, HorizontalFieldOfView, ViewRotation
+	 */
+	UPROPERTY(EditAnywhere, Category=ViewSettings)
+	float VerticalFieldOfView;
+
+	/**
+	 * The initial view rotation.
+	 *
+	 * This setting is used only for 360 videos. It determines the rotation of
+	 * the video's view. To modify the view orientation at runtime in Blueprints,
+	 * use the GetViewRotation and SetViewRotation functions.
+	 *
+	 * Please note that not all players may support video view rotations.
+	 *
+	 * @see GetViewRotation, SetViewRotation, HorizontalFieldOfView, VerticalFieldOfView
+	 */
+	UPROPERTY(EditAnywhere, Category=ViewSettings)
+	FRotator ViewRotation;
 
 private:
-
-	/** Callback for when a media overlays are being destroyed. */
-	void HandleMediaOverlaysBeginDestroy(UMediaOverlays& DestroyedOverlays);
-
-	/** Callback for when a media texture is being destroyed. */
-	void HandleMediaSoundWaveBeginDestroy(UMediaSoundWave& DestroyedSoundWave);
-
-	/** Callback for when a media texture is being destroyed. */
-	void HandleMediaTextureBeginDestroy(UMediaTexture& DestroyedMediaTexture);
 
 	/** Callback for when a media event occurred in the player. */
 	void HandlePlayerMediaEvent(EMediaEvent Event);
 
 private:
 
-	/** The URL of the media that was last attempted to be opened. */
-	FString LastUrl;
-
 	/** An event delegate that is invoked when a media event occurred. */
 	FOnMediaEvent MediaEvent;
 
-	/** The player implementation. */
-	TSharedPtr<FMediaPlayerBase, ESPMode::ThreadSafe> Player;
+	/** The player facade. */
+	TSharedPtr<FMediaPlayerFacade, ESPMode::ThreadSafe> PlayerFacade;
+
+	/** The player's globally unique identifier. */
+	UPROPERTY()
+	FGuid PlayerGuid;
+
+	/** Automatically start playback of next item in play list. */
+	bool PlayOnNext;
 
 #if WITH_EDITOR
 	/** Whether the player was playing in PIE/SIE. */

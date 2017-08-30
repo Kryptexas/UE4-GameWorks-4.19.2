@@ -1,10 +1,53 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "MediaTexture.h"
-#include "Misc/ScopeLock.h"
-#include "RenderUtils.h"
 #include "MediaAssetsPrivate.h"
+
+#include "ExternalTexture.h"
+#include "IMediaClock.h"
+#include "IMediaClockSink.h"
+#include "IMediaModule.h"
+#include "MediaPlayerFacade.h"
+#include "Modules/ModuleManager.h"
+#include "RenderUtils.h"
+#include "RenderingThread.h"
+#include "UObject/WeakObjectPtrTemplates.h"
+
+#include "MediaPlayer.h"
 #include "Misc/MediaTextureResource.h"
+
+
+/* Local helpers
+ *****************************************************************************/
+
+/**
+ * Media clock sink for media textures.
+ */
+class FMediaTextureClockSink
+	: public IMediaClockSink
+{
+public:
+
+	FMediaTextureClockSink(UMediaTexture& InOwner)
+		: Owner(&InOwner)
+	{ }
+
+	virtual ~FMediaTextureClockSink() { }
+
+public:
+
+	virtual void TickRender(FTimespan DeltaTime, FTimespan Timecode) override
+	{
+		if (Owner.IsValid())
+		{
+			Owner->TickResource(Timecode);
+		}
+	}
+
+private:
+
+	TWeakObjectPtr<UMediaTexture> Owner;
+};
 
 
 /* UMediaTexture structors
@@ -14,28 +57,21 @@ UMediaTexture::UMediaTexture(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, AddressX(TA_Clamp)
 	, AddressY(TA_Clamp)
+	, AutoClear(true)
 	, ClearColor(FLinearColor::Black)
-	, SinkBufferDim(FIntPoint(1, 1))
-	, SinkOutputDim(FIntPoint(1, 1))
-	, SinkFormat(EMediaTextureSinkFormat::CharBGRA)
-	, SinkMode(EMediaTextureSinkMode::Unbuffered)
+	, MediaPlayer(nullptr)
+	, Dimensions(FIntPoint::ZeroValue)
+	, Size(0)
 {
 	NeverStream = true;
 }
 
 
-/* IMediaTextureSink interface
+/* UMediaTexture interface
  *****************************************************************************/
 
 float UMediaTexture::GetAspectRatio() const
 {
-	if (Resource == nullptr)
-	{
-		return 0.0f;
-	}
-
-	const FIntPoint Dimensions = ((FMediaTextureResource*)Resource)->GetSizeXY();
-
 	if (Dimensions.Y == 0)
 	{
 		return 0.0f;
@@ -47,13 +83,13 @@ float UMediaTexture::GetAspectRatio() const
 
 int32 UMediaTexture::GetHeight() const
 {
-	return (Resource != nullptr) ? (int32)Resource->GetSizeY() : 0;
+	return Dimensions.Y;
 }
 
 
 int32 UMediaTexture::GetWidth() const
 {
-	return (Resource != nullptr) ? (int32)Resource->GetSizeX() : 0;
+	return Dimensions.X;
 }
 
 
@@ -62,33 +98,42 @@ int32 UMediaTexture::GetWidth() const
 
 FTextureResource* UMediaTexture::CreateResource()
 {
-	return new FMediaTextureResource(*this, ClearColor, SinkOutputDim, SinkFormat, SinkMode);
+	if (!ClockSink.IsValid())
+	{
+		IMediaModule* MediaModule = FModuleManager::LoadModulePtr<IMediaModule>("Media");
+
+		if (MediaModule != nullptr)
+		{
+			ClockSink = MakeShared<FMediaTextureClockSink, ESPMode::ThreadSafe>(*this);
+			MediaModule->GetClock().AddSink(ClockSink.ToSharedRef());
+		}
+	}
+
+	return new FMediaTextureResource(*this, Dimensions, Size);
 }
 
 
-EMaterialValueType UMediaTexture::GetMaterialType()
+EMaterialValueType UMediaTexture::GetMaterialType() const
 {
-	return MCT_Texture2D;
+	return MCT_TextureExternal;
 }
 
 
 float UMediaTexture::GetSurfaceWidth() const
 {
-	return (Resource != nullptr) ? Resource->GetSizeX() : 0.0f;
+	return Dimensions.X;
 }
 
 
 float UMediaTexture::GetSurfaceHeight() const
 {
-	return (Resource != nullptr) ? Resource->GetSizeY() : 0.0f;
+	return Dimensions.Y;
 }
 
 
-void UMediaTexture::UpdateResource()
+FGuid UMediaTexture::GetExternalTextureGuid() const
 {
-	FScopeLock Lock(&CriticalSection);
-
-	Super::UpdateResource();
+	return MediaPlayer ? MediaPlayer->GetGuid() : FGuid();
 }
 
 
@@ -97,15 +142,27 @@ void UMediaTexture::UpdateResource()
 
 void UMediaTexture::BeginDestroy()
 {
-	Super::BeginDestroy();
+	if (ClockSink.IsValid())
+	{
+		IMediaModule* MediaModule = FModuleManager::LoadModulePtr<IMediaModule>("Media");
 
-	BeginDestroyEvent.Broadcast(*this);
+		if (MediaModule != nullptr)
+		{
+			MediaModule->GetClock().RemoveSink(ClockSink.ToSharedRef());
+		}
+
+		ClockSink.Reset();
+	}
+
+	UnregisterPlayerGuid();
+
+	Super::BeginDestroy();
 }
 
 
 FString UMediaTexture::GetDesc()
 {
-	return FString::Printf(TEXT("%dx%d [%s]"), GetSurfaceWidth(),  GetSurfaceHeight(), GPixelFormats[PF_B8G8R8A8].Name);
+	return FString::Printf(TEXT("%ix%i [%s]"), Dimensions.X,  Dimensions.Y, GPixelFormats[PF_B8G8R8A8].Name);
 }
 
 
@@ -113,10 +170,7 @@ void UMediaTexture::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
 	Super::GetResourceSizeEx(CumulativeResourceSize);
 
-	if (Resource)
-	{
-		((FMediaTextureResource*)Resource)->GetResourceSizeEx(CumulativeResourceSize);
-	}
+	CumulativeResourceSize.AddUnknownMemoryBytes(Size);
 }
 
 
@@ -124,162 +178,120 @@ void UMediaTexture::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 
 void UMediaTexture::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-	const FName PropertyName = (PropertyChangedEvent.Property != nullptr)
-		? PropertyChangedEvent.Property->GetFName()
-		: NAME_None;
+	static const FName AddressXName = GET_MEMBER_NAME_CHECKED(UMediaTexture, AddressX);
+	static const FName AddressYName = GET_MEMBER_NAME_CHECKED(UMediaTexture, AddressY);
+	static const FName AutoClearName = GET_MEMBER_NAME_CHECKED(UMediaTexture, AutoClear);
+	static const FName ClearColorName = GET_MEMBER_NAME_CHECKED(UMediaTexture, ClearColor);
+	static const FName MediaPlayerName = GET_MEMBER_NAME_CHECKED(UMediaTexture, MediaPlayer);
 
-	if ((PropertyName == GET_MEMBER_NAME_CHECKED(UMediaTexture, ClearColor)) &&
-		(PropertyChangedEvent.ChangeType != EPropertyChangeType::ValueSet))
-	{
-		UObject::PostEditChangeProperty(PropertyChangedEvent);
-	}
-	else
+	UProperty* PropertyThatChanged = PropertyChangedEvent.Property;
+	
+	if (PropertyThatChanged == nullptr)
 	{
 		Super::PostEditChangeProperty(PropertyChangedEvent);
+
+		return;
 	}
-}
 
+	const FName PropertyName = PropertyThatChanged->GetFName();
 
-void UMediaTexture::PreEditChange(UProperty* PropertyAboutToChange)
-{
-	Super::PreEditChange(PropertyAboutToChange);
+	// don't update resource for these properties
+	if ((PropertyName == AutoClearName) ||
+		(PropertyName == ClearColorName) ||
+		(PropertyName == MediaPlayerName))
+	{
+		UObject::PostEditChangeProperty(PropertyChangedEvent);
 
-	FlushRenderingCommands();
+		return;
+	}
+
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	// notify materials for these properties
+	if ((PropertyName == AddressXName) ||
+		(PropertyName == AddressYName))
+	{
+		NotifyMaterials();
+	}
 }
 
 #endif // WITH_EDITOR
 
 
-/* IMediaTextureSink interface
+/* UMediaTexture implementation
  *****************************************************************************/
 
-void* UMediaTexture::AcquireTextureSinkBuffer()
+void UMediaTexture::TickResource(FTimespan Timecode)
 {
-	FScopeLock Lock(&CriticalSection);
-
-	return (Resource != nullptr) ? ((FMediaTextureResource*)Resource)->AcquireBuffer() : nullptr;
-}
-
-
-void UMediaTexture::DisplayTextureSinkBuffer(FTimespan /*Time*/)
-{
-	FScopeLock Lock(&CriticalSection);
-
-	if (Resource != nullptr)
+	if ((MediaPlayer == nullptr) || (Resource == nullptr))
 	{
-		((FMediaTextureResource*)Resource)->DisplayBuffer();
-	}
-}
-
-
-FIntPoint UMediaTexture::GetTextureSinkDimensions() const
-{
-	FScopeLock Lock(&CriticalSection);
-
-	return (Resource != nullptr) ? ((FMediaTextureResource*)Resource)->GetSizeXY() : FIntPoint::ZeroValue;
-}
-
-
-EMediaTextureSinkFormat UMediaTexture::GetTextureSinkFormat() const
-{
-	return SinkFormat;
-}
-
-
-EMediaTextureSinkMode UMediaTexture::GetTextureSinkMode() const
-{
-	return SinkMode;
-}
-
-
-FRHITexture* UMediaTexture::GetTextureSinkTexture()
-{
-	FScopeLock Lock(&CriticalSection);
-
-	return (Resource != nullptr) ? ((FMediaTextureResource*)Resource)->GetTexture() : nullptr;
-}
-
-
-bool UMediaTexture::InitializeTextureSink(FIntPoint OutputDim, FIntPoint BufferDim, EMediaTextureSinkFormat Format, EMediaTextureSinkMode Mode)
-{
-	UE_LOG(LogMediaAssets, Verbose, TEXT("MediaTexture initializing sink with %ix%i output and %ix%i buffer as %s."), OutputDim.X, OutputDim.Y, BufferDim.X, BufferDim.Y, (Mode == EMediaTextureSinkMode::Buffered) ? TEXT("Buffered") : TEXT("Unbuffered"));
-
-	SinkBufferDim = BufferDim;
-	SinkOutputDim = OutputDim;
-	SinkFormat = Format;
-	SinkMode = Mode;
-
-	FScopeLock Lock(&CriticalSection);
-
-	if (Resource == nullptr)
-	{
-		return false;
+		SampleQueue.Reset();
+		return;
 	}
 
-	((FMediaTextureResource*)Resource)->InitializeBuffer(OutputDim, BufferDim, Format, Mode);
+	// create a new sample queue if the player changed
+	TSharedRef<FMediaPlayerFacade, ESPMode::ThreadSafe> PlayerFacade = MediaPlayer->GetPlayerFacade();
 
-	return true;
-}
-
-
-void UMediaTexture::ReleaseTextureSinkBuffer()
-{
-	FScopeLock Lock(&CriticalSection);
-
-	if (Resource != nullptr)
+	if (PlayerFacade != CurrentPlayerFacade)
 	{
-		((FMediaTextureResource*)Resource)->ReleaseBuffer();
+		SampleQueue = MakeShared<FMediaTextureSampleQueue, ESPMode::ThreadSafe>();
+		PlayerFacade->AddVideoSampleSink(SampleQueue.ToSharedRef());
+		CurrentPlayerFacade = PlayerFacade;
 	}
-}
 
+	check(SampleQueue.IsValid());
 
-void UMediaTexture::ShutdownTextureSink()
-{
-	UE_LOG(LogMediaAssets, Verbose, TEXT("MediaTexture shutting down sink."));
+	// unregister previous external texture GUID if needed
+	const FGuid PlayerGuid = MediaPlayer->GetGuid();
 
-	if (ClearColor.A == 0.0f)
+	if (PlayerGuid != LastPlayerGuid)
+	{
+		UnregisterPlayerGuid();
+		LastPlayerGuid = PlayerGuid;
+	}
+
+	// retain the last rendered frame if player is inactive
+	const bool PlayerActive = MediaPlayer->IsPaused() || MediaPlayer->IsPlaying() || MediaPlayer->IsPreparing();
+
+	if (!PlayerActive && !AutoClear)
 	{
 		return;
 	}
 
-	// reset to 1x1 clear color
-	SinkBufferDim = FIntPoint(1, 1);
-	SinkOutputDim = FIntPoint(1, 1);
-	SinkFormat = EMediaTextureSinkFormat::CharBGRA;
-	SinkMode = EMediaTextureSinkMode::Unbuffered;
-
-	FScopeLock Lock(&CriticalSection);
-
-	if (Resource != nullptr)
+	// issue a render command to render the current sample
+	FMediaTextureResource::FRenderParams RenderParams;
 	{
-		((FMediaTextureResource*)Resource)->InitializeBuffer(SinkOutputDim, SinkBufferDim, SinkFormat, SinkMode);
+		RenderParams.ClearColor = ClearColor;
+		RenderParams.PlayerGuid = PlayerGuid;
+		RenderParams.Rate = MediaPlayer->GetRate();
+		RenderParams.SrgbOutput = SRGB;
+		RenderParams.Time = MediaPlayer->GetTime();
+
+		if (PlayerActive)
+		{
+			RenderParams.SampleSource = SampleQueue;
+		}
 	}
+
+	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(MediaTextureResourceRender,
+		FMediaTextureResource*, ResourceParam, (FMediaTextureResource*)Resource,
+		FMediaTextureResource::FRenderParams, RenderParamsParam, RenderParams,
+		{
+			ResourceParam->Render(RenderParamsParam);
+		});
 }
 
 
-bool UMediaTexture::SupportsTextureSinkFormat(EMediaTextureSinkFormat Format) const
+void UMediaTexture::UnregisterPlayerGuid()
 {
-	return true; // all formats are supported
-}
-
-
-void UMediaTexture::UpdateTextureSinkBuffer(const uint8* Data, uint32 Pitch)
-{
-	FScopeLock Lock(&CriticalSection);
-
-	if (Resource != nullptr)
+	if (!LastPlayerGuid.IsValid())
 	{
-		((FMediaTextureResource*)Resource)->UpdateBuffer(Data, Pitch);
+		return;
 	}
-}
 
-
-void UMediaTexture::UpdateTextureSinkResource(FRHITexture* RenderTarget, FRHITexture* ShaderResource)
-{
-	FScopeLock Lock(&CriticalSection);
-
-	if (Resource != nullptr)
-	{
-		((FMediaTextureResource*)Resource)->UpdateTextures(RenderTarget, ShaderResource);
-	}
+	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(MediaTextureUnregisterPlayerGuid,
+		FGuid, PlayerGuid, LastPlayerGuid,
+		{
+			FExternalTextureRegistry::Get().UnregisterExternalTexture(PlayerGuid);
+		});
 }

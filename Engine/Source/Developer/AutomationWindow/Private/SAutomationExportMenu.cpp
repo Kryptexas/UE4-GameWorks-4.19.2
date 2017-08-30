@@ -3,7 +3,7 @@
 #include "SAutomationExportMenu.h"
 #include "Misc/Paths.h"
 #include "Modules/ModuleManager.h"
-#include "Interfaces/IAutomationControllerModule.h"
+#include "IAutomationControllerModule.h"
 #include "Widgets/SBoxPanel.h"
 #include "Styling/SlateTypes.h"
 #include "Widgets/Text/STextBlock.h"

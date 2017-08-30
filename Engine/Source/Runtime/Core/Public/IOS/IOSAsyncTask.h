@@ -1,12 +1,11 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	IPhoneAppDelegate.h: IPhone application class / main loop
-=============================================================================*/
-
 #pragma once
 
+#include "CoreTypes.h"
+
 #import <Foundation/Foundation.h>
+
 
 @interface FIOSAsyncTask : NSObject
 {

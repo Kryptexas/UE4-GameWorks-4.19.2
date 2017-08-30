@@ -28,7 +28,7 @@
 #include "ContentStreaming.h"
 #include "Stats/StatsData.h"
 #include "HAL/PlatformProperties.h"
-#include "Interfaces/IAutomationControllerModule.h"
+#include "IAutomationControllerModule.h"
 
 #define LOCTEXT_NAMESPACE "Automation"
 

@@ -12,6 +12,8 @@ public class Launch : ModuleRules
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {
 				"AutomationController",
+				"Media",
+                "MediaUtils",
 				"TaskGraph",
 			}
 		);
@@ -22,7 +24,6 @@ public class Launch : ModuleRules
 				"CoreUObject",
 				"Engine",
 				"InputCore",
-				"MediaAssets",
 				"MoviePlayer",
 				"Networking",
 				"PakFile",
@@ -124,7 +125,13 @@ public class Launch : ModuleRules
 
 		if (Target.bCompileAgainstEngine)
 		{
-			PrivateIncludePathModuleNames.Add("Messaging");
+			PrivateIncludePathModuleNames.AddRange(
+				new string[] {
+					"MessagingCommon",
+					"MediaAssets"
+				}
+			);
+
 			PublicDependencyModuleNames.Add("SessionServices");
 			PrivateIncludePaths.Add("Developer/DerivedDataCache/Public");
 

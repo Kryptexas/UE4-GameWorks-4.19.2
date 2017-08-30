@@ -380,7 +380,7 @@ bool FTcpMessageTransportConnection::BlockingSend(const uint8* Data, int32 Bytes
 	int32 TotalBytes = BytesToSend;
 	while (BytesToSend > 0)
 	{
-		while (!Socket->Wait(ESocketWaitConditions::WaitForWrite, FTimespan(0, 0, 1)))
+		while (!Socket->Wait(ESocketWaitConditions::WaitForWrite, FTimespan::FromSeconds(1.0)))
 		{
 			if (Socket->GetConnectionState() == SCS_ConnectionError)
 			{

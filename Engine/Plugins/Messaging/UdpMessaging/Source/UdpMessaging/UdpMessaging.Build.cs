@@ -6,18 +6,16 @@ namespace UnrealBuildTool.Rules
 	{
 		public UdpMessaging(ReadOnlyTargetRules Target) : base(Target)
 		{
-            DynamicallyLoadedModuleNames.AddRange(
-                new string[] {
-                    "Messaging",
-				}
-            );
+			DynamicallyLoadedModuleNames.AddRange(
+				new string[] {
+					"Messaging",
+				});
 
 			PublicDependencyModuleNames.AddRange(
 				new string[]
 				{
 					"Core",
-				}
-			); 
+				});
 
 			PrivateDependencyModuleNames.AddRange(
 				new string[] {
@@ -26,14 +24,13 @@ namespace UnrealBuildTool.Rules
 					"Networking",
 					"Serialization",
 					"Sockets",
-				}
-			);
+				});
 
 			PrivateIncludePathModuleNames.AddRange(
 				new string[] {
 					"Messaging",
-				}
-			);
+					"MessagingCommon",
+				});
 
 			PrivateIncludePaths.AddRange(
 				new string[] {
@@ -42,22 +39,19 @@ namespace UnrealBuildTool.Rules
 					"UdpMessaging/Private/Transport",
 					"UdpMessaging/Private/Transport/Tests",
 					"UdpMessaging/Private/Tunnel",
-				}
-			);
+				});
 
 			if (Target.Type == TargetType.Editor)
 			{
 				DynamicallyLoadedModuleNames.AddRange(
 					new string[] {
-					"Settings",
-				}
-				);
+						"Settings",
+					});
 
 				PrivateIncludePathModuleNames.AddRange(
 					new string[] {
-					"Settings",
-				}
-				);
+						"Settings",
+					});
 			}
 		}
 	}

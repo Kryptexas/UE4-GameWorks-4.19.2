@@ -2,13 +2,15 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "Layout/Visibility.h"
+#include "CoreTypes.h"
+#include "Containers/Array.h"
+#include "Templates/SharedPointer.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/SCompoundWidget.h"
-#include "Widgets/Views/STableViewBase.h"
-#include "Widgets/Views/STableRow.h"
-#include "Models/DeviceManagerModel.h"
+#include "Widgets/Views/SListView.h"
+
+class FDeviceManagerModel;
+
 
 /**
  * Implements the device details widget.
@@ -23,10 +25,8 @@ public:
 
 public:
 
-	/**
-	 * Destructor.
-	 */
-	~SDeviceApps( );
+	/** Destructor. */
+	~SDeviceApps();
 
 public:
 
@@ -36,33 +36,16 @@ public:
 	 * @param InArgs The construction arguments.
 	 * @param InModel The view model to use.
 	 */
-	void Construct( const FArguments& InArgs, const FDeviceManagerModelRef& InModel );
-
+	void Construct(const FArguments& InArgs, const TSharedRef<FDeviceManagerModel>& InModel);
+	
 private:
 
-	// Callback for generating a row widget in the application list view.
-	TSharedRef<ITableRow> HandleAppListViewGenerateRow( TSharedPtr<FString> Item, const TSharedRef<STableViewBase>& OwnerTable );
+	/** The list of applications deployed to the device. */
+	TArray<TSharedPtr<FString>> AppList;
 
-	// Callback for selecting items in the devices list view.
-	void HandleAppListViewSelectionChanged( TSharedPtr<FString> Selection, ESelectInfo::Type SelectInfo );
-
-	// Callback for getting the enabled state of the processes panel.
-	bool HandleAppsBoxIsEnabled( ) const;
-
-	// Callback for handling device service selection changes.
-	void HandleModelSelectedDeviceServiceChanged( );
-
-	// Callback for getting the visibility of the 'Select a device' message.
-	EVisibility HandleSelectDeviceOverlayVisibility( ) const;
-
-private:
-
-	// Holds the list of applications deployed to the device.
-	TArray<TSharedPtr<FString> > AppList;
-
-	// Holds the application list view.
+	/** The application list view. */
 	TSharedPtr<SListView<TSharedPtr<FString>>> AppListView;
 
-	// Holds a pointer the device manager's view model.
-	FDeviceManagerModelPtr Model;
+	/** Pointer the device manager's view model. */
+	TSharedPtr<FDeviceManagerModel> Model;
 };

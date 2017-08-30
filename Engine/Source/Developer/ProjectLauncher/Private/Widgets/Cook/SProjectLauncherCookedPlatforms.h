@@ -14,6 +14,7 @@
 #include "Interfaces/ITargetPlatform.h"
 #include "Interfaces/ITargetPlatformManagerModule.h"
 
+
 /**
  * Implements the cooked platforms panel.
  */
@@ -28,21 +29,21 @@ public:
 public:
 
 	/**
-	 * Constructs the widget.
+	 * Construct the widget.
 	 *
 	 * @param InArgs The Slate argument list.
 	 * @param InModel The data model.
 	 */
-	void Construct(	const FArguments& InArgs, const FProjectLauncherModelRef& InModel );
+	void Construct(const FArguments& InArgs, const TSharedRef<FProjectLauncherModel>& InModel);
 
 protected:
 
 	/**
-	 * Builds the platform menu.
+	 * Build the platform menu.
 	 *
 	 * @return Platform menu widget.
 	 */
-	void MakePlatformMenu( )
+	void MakePlatformMenu()
 	{
 		TArray<ITargetPlatform*> Platforms = GetTargetPlatformManager()->GetTargetPlatforms();
 
@@ -60,8 +61,8 @@ protected:
 
 private:
 
-	// Callback for clicking the 'Select All Platforms' button.
-	void HandleAllPlatformsHyperlinkNavigate( bool AllPlatforms )
+	/** Callback for clicking the 'Select All Platforms' button. */
+	void HandleAllPlatformsHyperlinkNavigate(bool AllPlatforms)
 	{
 		ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -83,8 +84,8 @@ private:
 		}
 	}
 
-	// Callback for determining the visibility of the 'Select All Platforms' button.
-	EVisibility HandleAllPlatformsHyperlinkVisibility( ) const
+	/** Callback for determining the visibility of the 'Select All Platforms' button. */
+	EVisibility HandleAllPlatformsHyperlinkVisibility() const
 	{
 		if (GetTargetPlatformManager()->GetTargetPlatforms().Num() > 1)
 		{
@@ -94,8 +95,8 @@ private:
 		return EVisibility::Collapsed;
 	}
 
-	// Callback for getting the color of a platform menu check box.
-	FSlateColor HandlePlatformMenuEntryColorAndOpacity( FString PlatformName ) const
+	/** Callback for getting the color of a platform menu check box. */
+	FSlateColor HandlePlatformMenuEntryColorAndOpacity(FString PlatformName) const
 	{
 		ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -115,19 +116,19 @@ private:
 		return FLinearColor::Yellow;
 	}
 
-	// Handles generating a row widget in the map list view.
-	TSharedRef<ITableRow> HandlePlatformListViewGenerateRow( TSharedPtr<FString> InItem, const TSharedRef<STableViewBase>& OwnerTable );
+	/** Callback for generating a row widget in the map list view. */
+	TSharedRef<ITableRow> HandlePlatformListViewGenerateRow(TSharedPtr<FString> InItem, const TSharedRef<STableViewBase>& OwnerTable);
 
 private:
 
-	// Holds a pointer to the data model.
-	FProjectLauncherModelPtr Model;
+	/** Pointer to the data model. */
+	TSharedPtr<FProjectLauncherModel> Model;
 
-	// Holds the platform list.
+	/** The platform list. */
 	TArray<TSharedPtr<FString> > PlatformList;
 
-	// Holds the platform list view.
-	TSharedPtr<SListView<TSharedPtr<FString> > > PlatformListView;
+	/** The platform list view. */
+	TSharedPtr<SListView<TSharedPtr<FString>>> PlatformListView;
 
 };
 

@@ -1,28 +1,30 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "Widgets/SProjectLauncher.h"
-#include "Widgets/SBoxPanel.h"
-#include "Styling/SlateTypes.h"
-#include "Styling/CoreStyle.h"
-#include "SlateOptMacros.h"
-#include "Framework/Commands/UIAction.h"
-#include "Widgets/Layout/SBorder.h"
-#include "Widgets/Images/SImage.h"
-#include "Widgets/Text/STextBlock.h"
-#include "Framework/MultiBox/MultiBoxBuilder.h"
-#include "Widgets/Input/SButton.h"
-#include "Widgets/Input/SComboButton.h"
-#include "Widgets/Layout/SSplitter.h"
-#include "Widgets/Input/SCheckBox.h"
-#include "Framework/Docking/TabManager.h"
+#include "SProjectLauncher.h"
+
 #include "EditorStyleSet.h"
+#include "Framework/Commands/UIAction.h"
+#include "Framework/Docking/TabManager.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "SlateOptMacros.h"
+#include "Styling/CoreStyle.h"
+#include "Styling/SlateTypes.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "Widgets/Input/SComboButton.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Layout/SSplitter.h"
+#include "Widgets/Layout/SWidgetSwitcher.h"
+#include "Widgets/Text/STextBlock.h"
+
 #include "Models/ProjectLauncherCommands.h"
-#include "Widgets/Project/SProjectLauncherProjectPicker.h"
 #include "Widgets/Deploy/SProjectLauncherSimpleDeviceListView.h"
 #include "Widgets/Profile/SProjectLauncherProfileListView.h"
-#include "Widgets/SProjectLauncherProgress.h"
-#include "Widgets/SProjectLauncherSettings.h"
-#include "Widgets/Layout/SWidgetSwitcher.h"
+#include "Widgets/Progress/SProjectLauncherProgress.h"
+#include "Widgets/Project/SProjectLauncherProjectPicker.h"
+#include "Widgets/Settings/SProjectLauncherSettings.h"
 
 
 #define LOCTEXT_NAMESPACE "SProjectLauncher"
@@ -40,7 +42,8 @@ SProjectLauncher::SProjectLauncher()
 	}
 }
 
-SProjectLauncher::~SProjectLauncher( )
+
+SProjectLauncher::~SProjectLauncher()
 {
 	if (GConfig != NULL)
 	{
@@ -59,7 +62,7 @@ SProjectLauncher::~SProjectLauncher( )
  *****************************************************************************/
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-void SProjectLauncher::Construct( const FArguments& InArgs, const TSharedRef<SDockTab>& ConstructUnderMajorTab, const TSharedPtr<SWindow>& ConstructUnderWindow, const FProjectLauncherModelRef& InModel )
+void SProjectLauncher::Construct(const FArguments& InArgs, const TSharedRef<SDockTab>& ConstructUnderMajorTab, const TSharedPtr<SWindow>& ConstructUnderWindow, const TSharedRef<FProjectLauncherModel>& InModel)
 {
 	FProjectLauncherCommands::Register();
 
@@ -263,10 +266,11 @@ void SProjectLauncher::Construct( const FArguments& InArgs, const TSharedRef<SDo
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
+
 /* SProjectLauncher implementation
 *****************************************************************************/
 
-void SProjectLauncher::FillWindowMenu( FMenuBuilder& MenuBuilder, TSharedRef<FWorkspaceItem> RootMenuGroup )
+void SProjectLauncher::FillWindowMenu(FMenuBuilder& MenuBuilder, TSharedRef<FWorkspaceItem> RootMenuGroup)
 {
 #if !WITH_EDITOR
 	MenuBuilder.BeginSection("WindowGlobalTabSpawners", LOCTEXT("UfeMenuGroup", "Unreal Frontend"));
@@ -277,6 +281,7 @@ void SProjectLauncher::FillWindowMenu( FMenuBuilder& MenuBuilder, TSharedRef<FWo
 #endif //!WITH_EDITOR
 }
 
+
 /* SProjectLauncher callbacks
 *****************************************************************************/
 
@@ -285,26 +290,31 @@ void SProjectLauncher::OnAdvancedChanged(const ECheckBoxState NewCheckedState)
 	bAdvanced = (NewCheckedState == ECheckBoxState::Checked);
 }
 
+
 ECheckBoxState SProjectLauncher::OnIsAdvanced() const
 {
 	return (bAdvanced) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
+
 
 const FSlateBrush* SProjectLauncher::GetAdvancedToggleBrush() const
 {
 	return FEditorStyle::GetBrush("LauncherCommand.AdvancedBuild.Medium");
 }
 
+
 bool SProjectLauncher::GetIsAdvanced() const
 {
 	return bAdvanced;
 }
+
 
 void SProjectLauncher::OnProfileEdit(const ILauncherProfileRef& Profile)
 {
 	Model->SelectProfile(Profile);
 	WidgetSwitcher->SetActiveWidgetIndex(ELauncherPanels::ProfileEditor);
 }
+
 
 void SProjectLauncher::OnProfileRun(const ILauncherProfileRef& Profile)
 {
@@ -318,10 +328,12 @@ void SProjectLauncher::OnProfileRun(const ILauncherProfileRef& Profile)
 	}
 }
 
+
 void SProjectLauncher::OnProfileDelete(const ILauncherProfileRef& Profile)
 {
 	Model->GetProfileManager()->RemoveProfile(Profile);
 }
+
 
 FReply SProjectLauncher::OnAddCustomLaunchProfileClicked()
 {
@@ -334,10 +346,12 @@ FReply SProjectLauncher::OnAddCustomLaunchProfileClicked()
 	return FReply::Handled();
 }
 
+
 EVisibility SProjectLauncher::GetProfileWizardsMenuVisibility() const
 {
 	return (Model->GetProfileManager()->GetProfileWizards().Num() > 0) ? EVisibility::Visible : EVisibility::Collapsed;
 }
+
 
 TSharedRef<SWidget> SProjectLauncher::MakeProfileWizardsMenu()
 {
@@ -363,10 +377,12 @@ TSharedRef<SWidget> SProjectLauncher::MakeProfileWizardsMenu()
 	return MenuBuilder.MakeWidget();
 }
 
+
 void SProjectLauncher::ExecProfileWizard(ILauncherProfileWizardPtr InWizard)
 {
 	InWizard->HandleCreateLauncherProfile(Model->GetProfileManager());
 }
+
 
 FReply SProjectLauncher::OnProfileSettingsClose()
 {
@@ -381,6 +397,7 @@ FReply SProjectLauncher::OnProfileSettingsClose()
 	return FReply::Handled();
 }
 
+
 FReply SProjectLauncher::OnProgressClose()
 {
 	if (LauncherWorker.IsValid())
@@ -393,6 +410,7 @@ FReply SProjectLauncher::OnProgressClose()
 
 	return FReply::Handled();
 }
+
 
 FReply SProjectLauncher::OnRerunClicked()
 {
@@ -409,5 +427,6 @@ FReply SProjectLauncher::OnRerunClicked()
 
 	return FReply::Handled();
 }
+
 
 #undef LOCTEXT_NAMESPACE

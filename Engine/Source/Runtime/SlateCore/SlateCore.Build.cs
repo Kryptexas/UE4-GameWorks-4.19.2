@@ -7,13 +7,12 @@ public class SlateCore : ModuleRules
 	public SlateCore(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicDependencyModuleNames.AddRange(
-			new string[] { 
+			new string[] {
 				"Core",
 				"CoreUObject",
 				"InputCore",
 				"Json",
-			}
-		);
+			});
 
 		PrivateIncludePaths.AddRange(
 			new string[] {
@@ -32,12 +31,11 @@ public class SlateCore : ModuleRules
 				"Runtime/SlateCore/Private/Textures",
 				"Runtime/SlateCore/Private/Types",
 				"Runtime/SlateCore/Private/Widgets",
-			}
-		);
+			});
 
-        Definitions.Add("SLATE_DEFERRED_DESIRED_SIZE=0");
+		Definitions.Add("SLATE_DEFERRED_DESIRED_SIZE=0");
 
-        if (Target.Type != TargetType.Server)
+		if (Target.Type != TargetType.Server)
 		{
 			if (Target.bCompileFreeType)
 			{

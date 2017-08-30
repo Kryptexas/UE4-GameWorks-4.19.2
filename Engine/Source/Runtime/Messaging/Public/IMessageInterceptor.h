@@ -2,8 +2,12 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "IMessageContext.h"
+#include "Templates/SharedPointer.h"
+#include "UObject/NameTypes.h"
+
+class IMessageContext;
+struct FGuid;
+
 
 /**
  * Interface for message interceptors.

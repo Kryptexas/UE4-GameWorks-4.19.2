@@ -3,12 +3,12 @@
 #include "OculusNetDriver.h"
 #include "OnlineSubsystemOculusPrivate.h"
 
-
 #include "IPAddressOculus.h"
 #include "OculusNetConnection.h"
 #include "OnlineSubsystemOculus.h"
 #include "Engine/Engine.h"
 #include "Engine/ChildConnection.h"
+
 
 bool UOculusNetDriver::IsAvailable() const
 {

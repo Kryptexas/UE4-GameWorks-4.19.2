@@ -6,7 +6,8 @@ public class LiveLinkMessageBusFramework : ModuleRules
 {
     public LiveLinkMessageBusFramework(ReadOnlyTargetRules Target) : base(Target)
     {
-		PrivateDependencyModuleNames.Add("Messaging");
+		PrivateDependencyModuleNames.Add("MessagingCommon");
+        PrivateIncludePathModuleNames.Add("Messaging");
 		
         PublicDependencyModuleNames.AddRange(
             new string[] {

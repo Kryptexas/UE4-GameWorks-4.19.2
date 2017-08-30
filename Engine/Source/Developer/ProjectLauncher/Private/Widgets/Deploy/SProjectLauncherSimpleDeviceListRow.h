@@ -15,7 +15,7 @@
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Views/STableRow.h"
 #include "Models/ProjectLauncherModel.h"
-#include "Widgets/SProjectLauncherDelegates.h"
+#include "Widgets/Shared/ProjectLauncherDelegates.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Views/SListView.h"
 #include "Widgets/Images/SImage.h"
@@ -33,7 +33,7 @@
  * Implements a row widget for the launcher's device proxy list.
  */
 class SProjectLauncherSimpleDeviceListRow
-	: public STableRow<ITargetDeviceProxyPtr>
+	: public STableRow<TSharedPtr<ITargetDeviceProxy>>
 {
 public:
 
@@ -46,7 +46,7 @@ public:
 		/**
 		 * The device proxy shown in this row.
 		 */
-		SLATE_ARGUMENT(ITargetDeviceProxyPtr, DeviceProxy)
+		SLATE_ARGUMENT(TSharedPtr<ITargetDeviceProxy>, DeviceProxy)
 
 		/**
 		 * Whether the advanced options should be shown.
@@ -71,9 +71,9 @@ public:
 	 * @param InArgs - The construction arguments.
 	 * @param InModel - The launcher model this list uses.
 	 */
-	void Construct(const FArguments& InArgs, const FProjectLauncherModelRef& InModel, const TSharedRef<STableViewBase>& InOwnerTableView)
+	void Construct(const FArguments& InArgs, const TSharedRef<FProjectLauncherModel>& InModel, const TSharedRef<STableViewBase>& InOwnerTableView)
 	{
-		STableRow< ITargetDeviceProxyPtr >::ConstructInternal(
+		STableRow< TSharedPtr<ITargetDeviceProxy> >::ConstructInternal(
 			STableRow::FArguments()
 			.ShowSelection(false),
 			InOwnerTableView
@@ -468,10 +468,10 @@ private:
 private:
 
 	// Holds a pointer to the data model.
-	FProjectLauncherModelPtr Model;
+	TSharedPtr<FProjectLauncherModel> Model;
 
 	// Holds a reference to the device proxy that is displayed in this row.
-	ITargetDeviceProxyPtr DeviceProxy;
+	TSharedPtr<ITargetDeviceProxy> DeviceProxy;
 
 	// Holds a reference to the simple profile for this device
 	ILauncherSimpleProfilePtr SimpleProfile;

@@ -16,7 +16,19 @@ void USynthSound::Init(USynthComponent* InSynthComponent, int32 InNumChannels)
 	OwningSynthComponent = InSynthComponent;
 	bVirtualizeWhenSilent = true;
 	NumChannels = InNumChannels;
-	bCanProcessAsync = true;
+
+	// Turn off async generation in old audio engine on mac.
+#if PLATFORM_MAC
+	if (!InSynthComponent->GetAudioDevice()->IsAudioMixerEnabled())
+	{
+		bCanProcessAsync = false;
+	}
+	else
+#endif // #if PLATFORM_MAC
+	{
+		bCanProcessAsync = true;
+	}
+
 	Duration = INDEFINITELY_LOOPING_DURATION;
 	bLooping = true;
 	SampleRate = InSynthComponent->GetAudioDevice()->SampleRate;
@@ -53,6 +65,7 @@ USynthComponent::USynthComponent(const FObjectInitializer& ObjectInitializer)
 
 	bIsSynthPlaying = false;
 	bIsInitialized = false;
+	bIsUISound = false;
 
 	// Set the default sound class
 	SoundClass = USoundBase::DefaultSoundClassObject;
@@ -261,6 +274,7 @@ void USynthComponent::Start()
 		// Copy the attenuation and concurrency data from the synth component to the audio component
 		AudioComponent->AttenuationSettings = AttenuationSettings;
 		AudioComponent->bOverrideAttenuation = bOverrideAttenuation;
+		AudioComponent->bIsUISound = bIsUISound;
 		AudioComponent->ConcurrencySettings = ConcurrencySettings;
 		AudioComponent->AttenuationOverrides = AttenuationOverrides;
 		AudioComponent->SoundClassOverride = SoundClass;

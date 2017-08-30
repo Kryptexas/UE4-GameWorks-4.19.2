@@ -29,7 +29,8 @@
 #include "Interfaces/TargetDeviceId.h"
 #include "Interfaces/ITargetPlatform.h"
 #include "Interfaces/ITargetPlatformManagerModule.h"
-#include "Interfaces/ITargetDeviceServicesModule.h"
+#include "ITargetDeviceProxy.h"
+#include "ITargetDeviceServicesModule.h"
 #include "ISettingsModule.h"
 #include "Interfaces/IMainFrameModule.h"
 
@@ -887,7 +888,7 @@ TSharedRef< SWidget > FPlayWorldCommands::GenerateLaunchMenuContent( TSharedRef<
 			if (VanillaPlatform.PlatformInfo->SDKStatus == PlatformInfo::EPlatformSDKStatus::Installed)
 			{
 				// for each platform...
-				TArray<ITargetDeviceProxyPtr> DeviceProxies;
+				TArray<TSharedPtr<ITargetDeviceProxy>> DeviceProxies;
 				TargetDeviceServicesModule->GetDeviceProxyManager()->GetProxies(VanillaPlatform.PlatformInfo->VanillaPlatformName, false, DeviceProxies);
 					
 				// if this platform had no devices, but we want to show an extra option if not installed right
@@ -904,7 +905,7 @@ TSharedRef< SWidget > FPlayWorldCommands::GenerateLaunchMenuContent( TSharedRef<
 					// for each proxy...
 					for (auto DeviceProxyIt = DeviceProxies.CreateIterator(); DeviceProxyIt; ++DeviceProxyIt)
 					{
-						ITargetDeviceProxyPtr DeviceProxy = *DeviceProxyIt;
+						TSharedPtr<ITargetDeviceProxy> DeviceProxy = *DeviceProxyIt;
 
 						// ... create an action...
 						FUIAction LaunchDeviceAction(
@@ -2270,7 +2271,7 @@ bool FInternalPlayWorldCommandCallbacks::CanLaunchOnDevice(const FString& Device
 		TSharedPtr<ITargetDeviceProxyManager> DeviceProxyManager = DeviceProxyManagerPtr.Pin();
 		if (DeviceProxyManager.IsValid())
 		{
-			ITargetDeviceProxyPtr DeviceProxy = DeviceProxyManager->FindProxy(DeviceName);
+			TSharedPtr<ITargetDeviceProxy> DeviceProxy = DeviceProxyManager->FindProxy(DeviceName);
 			return (DeviceProxy.IsValid() && DeviceProxy->IsConnected());
 		}
 	}

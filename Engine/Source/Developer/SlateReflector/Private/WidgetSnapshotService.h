@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Misc/Guid.h"
-#include "Helpers/MessageEndpoint.h"
+#include "MessageEndpoint.h"
 
 struct FWidgetSnapshotRequest;
 struct FWidgetSnapshotResponse;
@@ -27,13 +27,13 @@ public:
 
 private:
 	/** Handles FWidgetSnapshotRequest messages */
-	void HandleWidgetSnapshotRequestMessage(const FWidgetSnapshotRequest& Message, const IMessageContextRef& Context);
+	void HandleWidgetSnapshotRequestMessage(const FWidgetSnapshotRequest& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context);
 
 	/** Handles FWidgetSnapshotResponse messages */
-	void HandleWidgetSnapshotResponseMessage(const FWidgetSnapshotResponse& Message, const IMessageContextRef& Context);
+	void HandleWidgetSnapshotResponseMessage(const FWidgetSnapshotResponse& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context);
 
 	/** Holds the message endpoint */
-	FMessageEndpointPtr MessageEndpoint;
+	TSharedPtr<FMessageEndpoint, ESPMode::ThreadSafe> MessageEndpoint;
 
 	/** Handlers awaiting their resultant snapshot data */
 	TMap<FGuid, FOnWidgetSnapshotResponse> PendingSnapshotResponseHandlers;

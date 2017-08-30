@@ -14,6 +14,22 @@ namespace FileMediaSource
 /* UFileMediaSource interface
  *****************************************************************************/
 
+FString UFileMediaSource::GetFullPath() const
+{
+	if (!FPaths::IsRelative(FilePath))
+	{
+		return FilePath;
+	}
+
+	if (FilePath.StartsWith(TEXT("./")))
+	{
+		return FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir(), FilePath.RightChop(2));
+	}
+
+	return FPaths::ConvertRelativePathToFull(FilePath);
+}
+
+
 void UFileMediaSource::SetFilePath(const FString& Path)
 {
 	if (Path.IsEmpty() || Path.StartsWith(TEXT("./")))
@@ -73,23 +89,4 @@ FString UFileMediaSource::GetUrl() const
 bool UFileMediaSource::Validate() const
 {
 	return FPaths::FileExists(GetFullPath());
-}
-
-
-/* UFileMediaSource implementation
- *****************************************************************************/
-
-FString UFileMediaSource::GetFullPath() const
-{
-	if (!FPaths::IsRelative(FilePath))
-	{
-		return FilePath;
-	}
-
-	if (FilePath.StartsWith(TEXT("./")))
-	{
-		return FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir(), FilePath.RightChop(2));
-	}
-
-	return FPaths::ConvertRelativePathToFull(FilePath);
 }

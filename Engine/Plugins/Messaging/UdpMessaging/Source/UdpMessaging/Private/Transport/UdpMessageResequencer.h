@@ -2,8 +2,11 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+#include "CoreTypes.h"
+#include "Containers/Array.h"
+#include "Templates/SharedPointer.h"
 #include "Transport/UdpReassembledMessage.h"
+
 
 /**
  * Implements a re-sequencer for messages received over the UDP transport.
@@ -42,7 +45,7 @@ public:
 	 *
 	 * @return true if a message was returned, false otherwise.
 	 */
-	bool Pop(TSharedPtr<FReassembledUdpMessage, ESPMode::ThreadSafe>& OutMessage)
+	bool Pop(TSharedPtr<FUdpReassembledMessage, ESPMode::ThreadSafe>& OutMessage)
 	{
 		if (MessageHeap.HeapTop()->GetSequence() != NextSequence)
 		{
@@ -61,7 +64,7 @@ public:
 	 * @param Message The message to resequence.
 	 * @return true if the message is in sequence, false otherwise.
 	 */
-	bool Resequence(const TSharedPtr<FReassembledUdpMessage, ESPMode::ThreadSafe>& Message)
+	bool Resequence(const TSharedPtr<FUdpReassembledMessage, ESPMode::ThreadSafe>& Message)
 	{
 		MessageHeap.HeapPush(Message, FSequenceComparer());
 
@@ -80,7 +83,7 @@ private:
 	/** Helper for ordering messages by their sequence numbers. */
 	struct FSequenceComparer
 	{
-		bool operator()(const TSharedPtr<FReassembledUdpMessage, ESPMode::ThreadSafe>& A, const TSharedPtr<FReassembledUdpMessage, ESPMode::ThreadSafe>& B) const
+		bool operator()(const TSharedPtr<FUdpReassembledMessage, ESPMode::ThreadSafe>& A, const TSharedPtr<FUdpReassembledMessage, ESPMode::ThreadSafe>& B) const
 		{
 			return A->GetSequence() < B->GetSequence();
 		}
@@ -95,7 +98,7 @@ private:
 	uint64 HighestReceivedSequence;
 
 	/** Holds the messages that need to be resequenced. */
-	TArray<TSharedPtr<FReassembledUdpMessage, ESPMode::ThreadSafe>> MessageHeap;
+	TArray<TSharedPtr<FUdpReassembledMessage, ESPMode::ThreadSafe>> MessageHeap;
 
 	/** Holds the maximum resequence window size. */
 	uint16 WindowSize;

@@ -2,16 +2,20 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "Styling/ISlateStyle.h"
-#include "Layout/Visibility.h"
+#include "CoreTypes.h"
+#include "Templates/SharedPointer.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/SCompoundWidget.h"
-#include "IMessageTracer.h"
-#include "Models/MessagingDebuggerModel.h"
-#include "Widgets/Views/STableViewBase.h"
-#include "Widgets/Views/STableRow.h"
-#include "Models/MessagingDebuggerMessageFilter.h"
+#include "Widgets/Views/SListView.h"
+
+class FMessagingDebuggerMessageFilter;
+class FMessagingDebuggerModel;
+class IMessageTracer;
+class ISlateStyle;
+class STableViewBase;
+
+struct FMessageTracerMessageInfo;
+
 
 /**
  * Implements the message history panel.
@@ -32,7 +36,7 @@ public:
 public:
 
 	/**
-	 * Construct this widget
+	 * Construct this widget.
 	 *
 	 * @param InArgs The construction arguments.
 	 * @param InModel The view model to use.

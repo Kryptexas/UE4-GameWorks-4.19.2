@@ -1,6 +1,9 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "AvfMediaPrivate.h"
+
+#include "Modules/ModuleManager.h"
+
 #include "AvfMediaPlayer.h"
 #include "IAvfMediaModule.h"
 
@@ -25,9 +28,9 @@ public:
 
 	//~ IAvfMediaModule interface
 
-	virtual TSharedPtr<IMediaPlayer, ESPMode::ThreadSafe> CreatePlayer() override
+	virtual TSharedPtr<IMediaPlayer, ESPMode::ThreadSafe> CreatePlayer(IMediaEventSink& EventSink) override
 	{
-		return MakeShareable(new FAvfMediaPlayer());
+		return MakeShared<FAvfMediaPlayer, ESPMode::ThreadSafe>(EventSink);
 	}
 
 public:

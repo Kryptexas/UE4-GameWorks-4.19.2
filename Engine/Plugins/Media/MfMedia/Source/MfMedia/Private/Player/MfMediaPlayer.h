@@ -6,11 +6,16 @@
 
 #if MFMEDIA_SUPPORTED_PLATFORM
 
+#include "Containers/UnrealString.h"
+#include "IMediaCache.h"
 #include "IMediaControls.h"
 #include "IMediaPlayer.h"
-#include "IMfMediaResolverCallbacks.h"
-#include "Containers/Ticker.h"
-#include "Containers/Queue.h"
+#include "IMediaView.h"
+#include "Misc/Timespan.h"
+#include "Templates/SharedPointer.h"
+#include "Windows/COMPointer.h"
+
+#include "IMfMediaSourceReaderSink.h"
 
 #if PLATFORM_WINDOWS
 	#include "WindowsHWrapper.h"
@@ -19,124 +24,134 @@
 	#include "XboxOneAllowPlatformTypes.h"
 #endif
 
-
-class FMfMediaAudioTrack;
-class FMfMediaCaptionTrack;
-class FMfMediaResolver;
+class FMediaSamples;
+class FMfMediaSourceReaderCallback;
 class FMfMediaTracks;
-class FMfMediaVideoTrack;
-class IMediaControls;
-class IMediaOutput;
+class IMediaEventSink;
 
 
 /**
  * Implements a media player using the Windows Media Foundation framework.
  */
 class FMfMediaPlayer
-	: public IMediaControls
-	, public IMediaPlayer
-	, protected IMfMediaResolverCallbacks
+	: public IMediaPlayer
+	, protected IMediaCache
+	, protected IMediaControls
+	, protected IMediaView
+	, protected IMfMediaSourceReaderSink
 {
 public:
 
-	/** Default constructor. */
-	FMfMediaPlayer();
+	/**
+	 * Create and initialize a new instance.
+	 *
+	 * @param InEventSink The object that receives media events from this player.
+	 */
+	FMfMediaPlayer(IMediaEventSink& InEventSink);
 
 	/** Virtual destructor. */
 	virtual ~FMfMediaPlayer();
 
 public:
 
+	//~ IMediaPlayer interface
+
+	virtual void Close() override;
+	virtual IMediaCache& GetCache() override;
+	virtual IMediaControls& GetControls() override;
+	virtual FString GetInfo() const override;
+	virtual FName GetName() const override;
+	virtual IMediaSamples& GetSamples() override;
+	virtual FString GetStats() const override;
+	virtual IMediaTracks& GetTracks() override;
+	virtual FString GetUrl() const override;
+	virtual IMediaView& GetView() override;
+	virtual bool Open(const FString& Url, const IMediaOptions* Options) override;
+	virtual bool Open(const TSharedRef<FArchive, ESPMode::ThreadSafe>& Archive, const FString& OriginalUrl, const IMediaOptions* Options) override;
+	virtual void TickAudio() override;
+	virtual void TickFetch(FTimespan DeltaTime) override;
+	virtual void TickInput(FTimespan DeltaTime) override;
+
+protected:
+
+	/**
+	 * Commit the specified play position.
+	 *
+	 * @param Time The play position to commit.
+	 */
+	bool CommitTime(FTimespan Time);
+
+	/**
+	 * Initialize the native AvPlayer instance.
+	 *
+	 * @param Archive The archive being used as a media source (optional).
+	 * @param Url The media URL being opened.
+	 * @param Precache Whether to precache media into RAM if InURL is a local file.
+	 * @return true on success, false otherwise.
+	 */
+	bool InitializePlayer(const TSharedPtr<FArchive, ESPMode::ThreadSafe>& Archive, const FString& Url, bool Precache);
+
+	/** Get the latest characteristics from the current media source. */
+	void UpdateCharacteristics();
+
+protected:
+
 	//~ IMediaControls interface
 
+	virtual bool CanControl(EMediaControl Control) const override;
 	virtual FTimespan GetDuration() const override;
 	virtual float GetRate() const override;
 	virtual EMediaState GetState() const override;
-	virtual TRange<float> GetSupportedRates(EMediaPlaybackDirections Direction, bool Unthinned) const override;
+	virtual EMediaStatus GetStatus() const override;
+	virtual TRangeSet<float> GetSupportedRates(EMediaRateThinning Thinning) const override;
 	virtual FTimespan GetTime() const override;
 	virtual bool IsLooping() const override;
 	virtual bool Seek(const FTimespan& Time) override;
 	virtual bool SetLooping(bool Looping) override;
 	virtual bool SetRate(float Rate) override;
-	virtual bool SupportsRate(float Rate, bool Unthinned) const override;
-	virtual bool SupportsScrubbing() const override;
-	virtual bool SupportsSeeking() const override;
-
-public:
-
-	//~ IMediaPlayer interface
-
-	virtual void Close() override;
-	virtual IMediaControls& GetControls() override;
-	virtual FString GetInfo() const override;
-	virtual FName GetName() const override;
-	virtual IMediaOutput& GetOutput() override;
-	virtual FString GetStats() const override;
-	virtual IMediaTracks& GetTracks() override;
-	virtual FString GetUrl() const override;
-	virtual bool Open(const FString& Url, const IMediaOptions& Options) override;
-	virtual bool Open(const TSharedRef<FArchive, ESPMode::ThreadSafe>& Archive, const FString& OriginalUrl, const IMediaOptions& Options) override;
-	virtual void TickPlayer(float DeltaTime) override;
-	virtual void TickVideo(float DeltaTime) override;
-
-	DECLARE_DERIVED_EVENT(FMfMediaPlayer, IMediaPlayer::FOnMediaEvent, FOnMediaEvent);
-	virtual FOnMediaEvent& OnMediaEvent() override
-	{
-		return MediaEvent;
-	}
 
 protected:
 
-	//~ IMfMediaResolverCallbacks interface
+	//~ IMfMediaSourceReaderSink interface
 
-	virtual void ProcessResolveComplete(TComPtr<IUnknown> SourceObject, FString ResolvedUrl) override;
-	virtual void ProcessResolveFailed(FString FailedUrl) override;
-
-protected:
-
-	/**
-	 * Finishes opening a new media source.
-	 *
-	 * @param SourceObject The media source object.
-	 * @param SourceUrl The original URL of the media source.
-	 * @return true on success, false otherwise.
-	 */
-	bool FinishOpen(IUnknown* SourceObject, const FString& SourceUrl);
+	virtual void ReceiveSourceReaderEvent(MediaEventType Event) override;
+	virtual void ReceiveSourceReaderFlush() override;
+	virtual void ReceiveSourceReaderSample(IMFSample* Sample, HRESULT Status, DWORD StreamFlags, DWORD StreamIndex, FTimespan Time) override;
 
 private:
-
-	/** Caches whether the media supports scrubbing. */
-	bool CanScrub;
 
 	/** Cached media characteristics (capabilities). */
 	ULONG Characteristics;
 
+	/** The duration of the currently loaded media. */
+	FTimespan CurrentDuration;
+
 	/** The current playback rate. */
 	float CurrentRate;
 
-	/** Current playback time/position. */
+	/** The current playback state. */
+	EMediaState CurrentState;
+
+	/** Current status flags. */
+	EMediaStatus CurrentStatus;
+
+	/** Current playback time. */
 	FTimespan CurrentTime;
 
-	/** The duration of the currently loaded media. */
-	FTimespan Duration;
+	/** The media event handler. */
+	IMediaEventSink& EventSink;
 
-	/** Tasks deferred to the game thread. */
-	TQueue<TFunction<void()>> GameThreadTasks;
-
-	/** Media information string. */
-	FString Info;
-
-	/** Whether playback should loop to the beginning. */
-	bool Looping;
-
-	/** Event delegate that is invoked when a media event occurred. */
-	FOnMediaEvent MediaEvent;
-
-	/** Pointer to the media source object. */
+	/** The currently opened media. */
 	TComPtr<IMFMediaSource> MediaSource;
 
 	/** The URL of the currently opened media. */
 	FString MediaUrl;
+
+	/** If playback just restarted from the Stopped state. */
+	bool PlaybackRestarted;
+
+	/** The presentation descriptor of the currently opened media. */
+	TComPtr<IMFPresentationDescriptor> PresentationDescriptor;
 
 	/** Optional interface for controlling playback rates. */
 	TComPtr<IMFRateControl> RateControl;
@@ -144,14 +159,29 @@ private:
 	/** Optional interface for querying supported playback rates. */
 	TComPtr<IMFRateSupport> RateSupport;
 
-	/** The media source resolver. */
-	TComPtr<FMfMediaResolver> Resolver;
+	/** Media sample collection. */
+	TSharedPtr<FMediaSamples, ESPMode::ThreadSafe> Samples;
 
-	/** The media source reader. */
+	/** Whether playback should loop to the beginning. */
+	bool ShouldLoop;
+
+	/** The source reader to use. */
 	TComPtr<IMFSourceReader> SourceReader;
 
+	/** Whether an error occurred in the source reader. */
+	bool SourceReaderError;
+
+	/** The source reader callback object.*/
+	TComPtr<FMfMediaSourceReaderCallback> SourceReaderCallback;
+
+	/** The thinned play rates that the current media session supports. */
+	TRangeSet<float> ThinnedRates;
+
 	/** Track collection. */
-	TComPtr<FMfMediaTracks> Tracks;
+	TSharedPtr<FMfMediaTracks, ESPMode::ThreadSafe> Tracks;
+
+	/** The unthinned play rates that the current media session supports. */
+	TRangeSet<float> UnthinnedRates;
 };
 
 

@@ -1,12 +1,15 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "MfMediaPlayer.h"
-#include "Serialization/ArrayReader.h"
-#include "Misc/FileHelper.h"
 
 #if MFMEDIA_SUPPORTED_PLATFORM
 
-#include "MfMediaResolver.h"
+#include "Async/Async.h"
+#include "IMediaEventSink.h"
+#include "IMediaOptions.h"
+#include "MediaSamples.h"
+
+#include "MfMediaSourceReaderCallback.h"
 #include "MfMediaTracks.h"
 #include "MfMediaUtils.h"
 
@@ -17,21 +20,28 @@
 	#include "XboxOneAllowPlatformTypes.h"
 #endif
 
+#define MFMEDIAPLAYER_USE_SEEKANDREVERSE 0 // not fully working yet
+
+#define LOCTEXT_NAMESPACE "FMfMediaPlayer"
+
 
 /* FMfVideoPlayer structors
  *****************************************************************************/
 
-FMfMediaPlayer::FMfMediaPlayer()
-	: CanScrub(false)
-	, Characteristics(0)
+FMfMediaPlayer::FMfMediaPlayer(IMediaEventSink& InEventSink)
+	: Characteristics(0)
+	, CurrentDuration(FTimespan::Zero())
 	, CurrentRate(0.0f)
+	, CurrentState(EMediaState::Closed)
+	, CurrentStatus(EMediaStatus::None)
 	, CurrentTime(FTimespan::Zero())
-	, Duration(0)
-	, Looping(false)
-{
-	Resolver = new FMfMediaResolver;
-	Tracks = new FMfMediaTracks;
-}
+	, EventSink(InEventSink)
+	, PlaybackRestarted(true)
+	, Samples(MakeShared<FMediaSamples, ESPMode::ThreadSafe>())
+	, ShouldLoop(false)
+	, SourceReaderError(false)
+	, Tracks(MakeShared<FMfMediaTracks, ESPMode::ThreadSafe>())
+{ }
 
 
 FMfMediaPlayer::~FMfMediaPlayer()
@@ -40,264 +50,53 @@ FMfMediaPlayer::~FMfMediaPlayer()
 }
 
 
-/* IMediaControls interface
- *****************************************************************************/
-
-FTimespan FMfMediaPlayer::GetDuration() const
-{
-	return Duration;
-}
-
-
-float FMfMediaPlayer::GetRate() const
-{
-	return CurrentRate;
-}
-
-
-EMediaState FMfMediaPlayer::GetState() const
-{
-	if (Resolver->IsResolving())
-	{
-		return EMediaState::Preparing;
-	}
-
-	if (SourceReader == NULL)
-	{
-		return EMediaState::Closed;
-	}
-
-	if (CurrentRate == 0.0f)
-	{
-		if (CurrentTime == FTimespan::Zero())
-		{
-			return EMediaState::Stopped;
-		}
-
-		return EMediaState::Paused;
-	}
-
-	return EMediaState::Playing;
-}
-
-
-TRange<float> FMfMediaPlayer::GetSupportedRates(EMediaPlaybackDirections Direction, bool Unthinned) const
-{
-	if (RateSupport == NULL)
-	{
-		return TRange<float>(0.0f);
-	}
-
-	float MaxRate = 0.0f;
-	float MinRate = 0.0f;
-
-	switch (Direction)
-	{
-	case EMediaPlaybackDirections::Forward:
-		RateSupport->GetSlowestRate(MFRATE_FORWARD, !Unthinned, &MinRate);
-		RateSupport->GetFastestRate(MFRATE_FORWARD, !Unthinned, &MaxRate);
-		break;
-
-	case EMediaPlaybackDirections::Reverse:
-		RateSupport->GetSlowestRate(MFRATE_REVERSE, !Unthinned, &MaxRate);
-		RateSupport->GetFastestRate(MFRATE_REVERSE, !Unthinned, &MinRate);
-		break;
-	}
-
-	return TRange<float>(MinRate, MaxRate);
-}
-
-
-FTimespan FMfMediaPlayer::GetTime() const
-{
-	return CurrentTime;
-}
-
-
-bool FMfMediaPlayer::IsLooping() const
-{
-	return Looping;
-}
-
-
-bool FMfMediaPlayer::Seek(const FTimespan& Time)
-{
-	if (SourceReader == NULL)
-	{
-		return false;
-	}
-
-	PROPVARIANT Position;
-
-	if (Time >= FTimespan::Zero())
-	{
-		Position.vt = VT_I8;
-		Position.hVal.QuadPart = Time.GetTicks();
-	}
-	else
-	{
-		PropVariantInit(&Position);
-	}
-
-	if (FAILED(SourceReader->SetCurrentPosition(GUID_NULL, Position)))
-	{
-		return false;
-	}
-
-	CurrentTime = Time;
-
-	return true;
-}
-
-
-bool FMfMediaPlayer::SetLooping(bool InLooping)
-{
-	Looping = InLooping;
-
-	return true;
-}
-
-
-bool FMfMediaPlayer::SetRate(float Rate)
-{
-	if ((MediaSource == NULL) || !SupportsRate(Rate, false))
-	{
-		return false;
-	}
-
-	if (Rate == CurrentRate)
-	{
-		return true;
-	}
-
-	if (FMath::IsNearlyZero(Rate))
-	{
-		// Make sure we set enabled to false before pausing or the render thread might get stuck waiting for another sample to read.
-		Tracks->SetEnabled(false);
-
-		if (FAILED(MediaSource->Pause()))
-		{
-			return false;
-		}
-	}
-	else
-	{
-		if (Rate != 1.0f)
-		{
-			if ((RateControl == NULL) || FAILED(RateControl->SetRate(SupportsRate(Rate, true) ? FALSE : TRUE, Rate)))
-			{
-				return false;
-			}
-		}
-
-		if (FMath::IsNearlyZero(CurrentRate))
-		{
-			PROPVARIANT StartPosition;
-
-			if (CurrentTime >= FTimespan::Zero())
-			{
-				StartPosition.vt = VT_I8;
-				StartPosition.hVal.QuadPart = CurrentTime.GetTicks();
-			}
-			else
-			{
-				PropVariantInit(&StartPosition);
-			}
-
-			if (FAILED(MediaSource->Start(NULL, &GUID_NULL, &StartPosition)))
-			{
-				return false;
-			}
-
-			Tracks->SetEnabled(true);
-		}
-	}
-
-	CurrentRate = Rate;
-
-	return true;
-}
-
-
-bool FMfMediaPlayer::SupportsRate(float Rate, bool Unthinned) const
-{
-	// @todo gmp: reverse playback doesn't seem to work correctly and breaks the source reader
-	if (Rate < 0.0f)
-	{
-		return false;
-	}
-
-	if (Rate == 1.0f)
-	{
-		return true;
-	}
-
-	if (Rate == 0.0f)
-	{
-		return ((Characteristics & MFMEDIASOURCE_CAN_SEEK) != 0);
-	}
-
-	if ((RateControl == NULL) || (RateSupport == NULL))
-	{
-		return false;
-	}
-
-	if (Unthinned)
-	{
-		return SUCCEEDED(RateSupport->IsRateSupported(FALSE, Rate, NULL));
-	}
-
-	return SUCCEEDED(RateSupport->IsRateSupported(TRUE, Rate, NULL));
-}
-
-
-bool FMfMediaPlayer::SupportsScrubbing() const
-{
-	return CanScrub && ((Characteristics & MFMEDIASOURCE_HAS_SLOW_SEEK) == 0);
-}
-
-
-bool FMfMediaPlayer::SupportsSeeking() const
-{
-	return (((Characteristics & MFMEDIASOURCE_CAN_SEEK) != 0) && (Duration > FTimespan::Zero()));
-}
-
-
 /* IMediaPlayer interface
  *****************************************************************************/
 
 void FMfMediaPlayer::Close()
 {
-	Resolver->Cancel();
-
-	if (SourceReader == NULL)
+	if ((CurrentState == EMediaState::Closed))
 	{
 		return;
 	}
 
-	// release media source
+	// reset player
 	if (MediaSource != NULL)
 	{
 		MediaSource->Shutdown();
 		MediaSource = NULL;
 	}
 
-	// reset player
-	CanScrub = false;
+	Tracks->Shutdown();
+
+	PresentationDescriptor.Reset();
+	RateControl.Reset();
+	RateSupport.Reset();
+	SourceReader.Reset();
+	SourceReaderCallback.Reset();
+
 	Characteristics = 0;
+	CurrentDuration = FTimespan::Zero();
 	CurrentRate = 0.0f;
+	CurrentState = EMediaState::Closed;
+	CurrentStatus = EMediaStatus::None;
 	CurrentTime = FTimespan::Zero();
-	Duration = 0;
-	Info.Empty();
 	MediaUrl = FString();
-	RateControl = NULL;
-	RateSupport = NULL;
-	SourceReader = NULL;
-	Tracks->Reset();
+//	PendingSeekTime.Reset();
+	PlaybackRestarted = true;
+	SourceReaderError = false;
+	ThinnedRates.Empty();
+	UnthinnedRates.Empty();
 
 	// notify listeners
-	MediaEvent.Broadcast(EMediaEvent::TracksChanged);
-	MediaEvent.Broadcast(EMediaEvent::MediaClosed);
+	EventSink.ReceiveMediaEvent(EMediaEvent::TracksChanged);
+	EventSink.ReceiveMediaEvent(EMediaEvent::MediaClosed);
+}
+
+
+IMediaCache& FMfMediaPlayer::GetCache()
+{
+	return *this;
 }
 
 
@@ -309,7 +108,7 @@ IMediaControls& FMfMediaPlayer::GetControls()
 
 FString FMfMediaPlayer::GetInfo() const
 {
-	return Info;
+	return Tracks->GetInfo();
 }
 
 
@@ -320,21 +119,25 @@ FName FMfMediaPlayer::GetName() const
 }
 
 
-IMediaOutput& FMfMediaPlayer::GetOutput()
+IMediaSamples& FMfMediaPlayer::GetSamples()
 {
-	return *((FMfMediaTracks*)Tracks);
+	check(Samples.IsValid());
+	return*Samples.Get();;
 }
 
 
 FString FMfMediaPlayer::GetStats() const
 {
-	return TEXT("MfMedia stats information not implemented yet");
+	FString Result;
+	Tracks->AppendStats(Result);
+
+	return Result;
 }
 
 
 IMediaTracks& FMfMediaPlayer::GetTracks()
 {
-	return *((FMfMediaTracks*)Tracks);
+	return *Tracks;
 }
 
 
@@ -344,7 +147,13 @@ FString FMfMediaPlayer::GetUrl() const
 }
 
 
-bool FMfMediaPlayer::Open(const FString& Url, const IMediaOptions& Options)
+IMediaView& FMfMediaPlayer::GetView()
+{
+	return *this;
+}
+
+
+bool FMfMediaPlayer::Open(const FString& Url, const IMediaOptions* Options)
 {
 	Close();
 
@@ -353,212 +162,605 @@ bool FMfMediaPlayer::Open(const FString& Url, const IMediaOptions& Options)
 		return false;
 	}
 
-	// open local files via platform file system
-	if (Url.StartsWith(TEXT("file://")))
-	{
-		TSharedPtr<FArchive, ESPMode::ThreadSafe> Archive;
-		const TCHAR* FilePath = &Url[7];
+	const bool Precache = (Options != nullptr) ? Options->GetMediaOption("PrecacheFile", false) : false;
 
-		if (Options.GetMediaOption("PrecacheFile", false))
-		{
-			FArrayReader* Reader = new FArrayReader;
-
-			if (FFileHelper::LoadFileToArray(*Reader, FilePath))
-			{
-				Archive = MakeShareable(Reader);
-			}
-			else
-			{
-				delete Reader;
-			}
-		}
-		else
-		{
-			Archive = MakeShareable(IFileManager::Get().CreateFileReader(FilePath));
-		}
-
-		if (!Archive.IsValid())
-		{
-			UE_LOG(LogMfMedia, Warning, TEXT("Failed to open media file: %s"), FilePath);
-
-			return false;
-		}
-
-		return Resolver->ResolveByteStream(Archive.ToSharedRef(), Url, *this);
-	}
-
-	return Resolver->ResolveUrl(Url, *this);
+	return InitializePlayer(nullptr, Url, Precache);
 }
 
 
-bool FMfMediaPlayer::Open(const TSharedRef<FArchive, ESPMode::ThreadSafe>& Archive, const FString& OriginalUrl, const IMediaOptions& Options)
+bool FMfMediaPlayer::Open(const TSharedRef<FArchive, ESPMode::ThreadSafe>& Archive, const FString& OriginalUrl, const IMediaOptions* /*Options*/)
 {
 	Close();
 
-	if ((Archive->TotalSize() == 0) || OriginalUrl.IsEmpty())
+	if (Archive->TotalSize() == 0)
 	{
+		UE_LOG(LogMfMedia, Error, TEXT("Cannot open media from archive (archive is empty)."));
 		return false;
 	}
 
-	return Resolver->ResolveByteStream(Archive, OriginalUrl, *this);
+	if (OriginalUrl.IsEmpty())
+	{
+		UE_LOG(LogMfMedia, Error, TEXT("Cannot open media from archive (no original URL provided)."));
+		return false;
+	}
+
+	return InitializePlayer(Archive, OriginalUrl, false);
 }
 
 
-void FMfMediaPlayer::TickPlayer(float DeltaTime)
+void FMfMediaPlayer::TickAudio()
 {
-	// process deferred tasks
-	TFunction<void()> Task;
-
-	while (GameThreadTasks.Dequeue(Task))
+	if (CurrentState == EMediaState::Playing)
 	{
-		Task();
+		Tracks->TickAudio(CurrentRate, CurrentTime);
+	}
+}
+
+
+void FMfMediaPlayer::TickFetch(FTimespan /*DeltaTime*/)
+{
+	bool MediaSourceChanged = false;
+	bool TrackSelectionChanged = false;
+
+	Tracks->GetFlags(MediaSourceChanged, TrackSelectionChanged);
+
+	if (MediaSourceChanged)
+	{
+		if (Tracks->IsInitialized())
+		{
+			if (CurrentState == EMediaState::Preparing)
+			{
+				CurrentDuration = Tracks->GetDuration();
+				MediaSource = Tracks->GetMediaSource();
+				SourceReader = Tracks->GetSourceReader();
+
+				UpdateCharacteristics();
+
+				if (MediaSource.IsValid())
+				{
+					CurrentState = EMediaState::Stopped;
+					EventSink.ReceiveMediaEvent(EMediaEvent::MediaOpened);
+				}
+				else
+				{
+					CurrentState = EMediaState::Error;
+					EventSink.ReceiveMediaEvent(EMediaEvent::MediaOpenFailed);
+				}
+			}
+
+			EventSink.ReceiveMediaEvent(EMediaEvent::TracksChanged);
+		}
+		else
+		{
+			CurrentState = EMediaState::Error;
+			EventSink.ReceiveMediaEvent(EMediaEvent::MediaOpenFailed);
+		}
 	}
 
-	if (GetState() != EMediaState::Playing)
+	if (TrackSelectionChanged)
+	{
+		if (CommitTime(CurrentTime))
+		{
+			Tracks->Restart();
+		}
+	}
+
+	if (MediaSourceChanged || TrackSelectionChanged)
+	{
+		Tracks->ClearFlags();
+	}
+}
+
+
+void FMfMediaPlayer::TickInput(FTimespan DeltaTime)
+{
+	if ((CurrentState != EMediaState::Playing) || (CurrentDuration == FTimespan::Zero()))
 	{
 		return;
 	}
 
-	// extract frame data
-	Tracks->Tick(DeltaTime);
-
-	// update playback time
-	CurrentTime += FTimespan::FromSeconds(CurrentRate * DeltaTime);
-
-	if ((CurrentTime < FTimespan::Zero()) || (CurrentTime > Duration))
+	if (SourceReaderError)
 	{
-		if (Looping)
+		CurrentState = EMediaState::Error;
+
+		return;
+	}
+
+	// update clock
+	if (PlaybackRestarted)
+	{
+		PlaybackRestarted = false;
+	}
+	else
+	{
+		CurrentTime += DeltaTime * CurrentRate;
+	}
+
+	// handle looping
+	if ((CurrentTime >= CurrentDuration) || (CurrentTime < FTimespan::Zero()))
+	{
+		EventSink.ReceiveMediaEvent(EMediaEvent::PlaybackEndReached);
+
+		if (ShouldLoop)
 		{
-			// loop to beginning/end
 			if (CurrentRate > 0.0f)
 			{
-				Seek(FTimespan::Zero());
+				CurrentTime = FTimespan::Zero();
 			}
 			else
 			{
-				Seek(Duration - FTimespan(1));
+				CurrentTime = CurrentDuration - FTimespan(1);
 			}
 
-			Tracks->Reinitialize();
+			PlaybackRestarted = true;
 		}
 		else
 		{
-			// stop playback
-			Seek(FTimespan::Zero());
-			SetRate(0.0f);
-			MediaEvent.Broadcast(EMediaEvent::PlaybackEndReached);
+			CurrentRate = 0.0f;
+			CurrentState = EMediaState::Stopped;
+			CurrentTime = FTimespan::Zero();
+
+			EventSink.ReceiveMediaEvent(EMediaEvent::PlaybackSuspended);
+		}
+
+		if (CommitTime(CurrentTime))
+		{
+			Tracks->Restart();
 		}
 	}
-}
+	else if (CurrentRate < 0.0f)
+	{
+		// IMFSourceReader does not support reverse playback, even if the media
+		// source does. we emulate the WMF behavior by seeking to key frames.
 
+		if (!CommitTime(CurrentTime))
+		{
+			CurrentState = EMediaState::Error;
+		}
+	}
 
-void FMfMediaPlayer::TickVideo(float DeltaTime)
-{
-	// do nothing
-}
-
-
-/* IMfMediaResolverCallbacks interface
- *****************************************************************************/
-
-void FMfMediaPlayer::ProcessResolveComplete(TComPtr<IUnknown> SourceObject, FString ResolvedUrl)
-{
-	GameThreadTasks.Enqueue([=]() {
-		MediaEvent.Broadcast(
-			FinishOpen(SourceObject, ResolvedUrl)
-				? EMediaEvent::MediaOpened
-				: EMediaEvent::MediaOpenFailed
-		);
-	});
-}
-
-
-void FMfMediaPlayer::ProcessResolveFailed(FString FailedUrl)
-{
-	GameThreadTasks.Enqueue([=]() {
-		MediaEvent.Broadcast(EMediaEvent::MediaOpenFailed);
-	});
+	// update tracks
+	if (CurrentState == EMediaState::Playing)
+	{
+		Tracks->TickInput(CurrentRate, CurrentTime, DeltaTime);
+	}
 }
 
 
 /* FMfMediaPlayer implementation
  *****************************************************************************/
 
-bool FMfMediaPlayer::FinishOpen(IUnknown* SourceObject, const FString& SourceUrl)
+bool FMfMediaPlayer::CommitTime(FTimespan Time)
 {
-	if (SourceObject == nullptr)
+	// perform seek
+	PROPVARIANT Position;
+
+	if (Time >= FTimespan::Zero())
 	{
-		return false;
+		Position.vt = VT_I8;
+		Position.hVal.QuadPart = Time.GetTicks();
+	}
+	else
+	{
+		::PropVariantInit(&Position);
 	}
 
-	UE_LOG(LogMfMedia, Verbose, TEXT("Initializing media session for %s"), *SourceUrl);
-
-	// create presentation descriptor
-	TComPtr<IMFMediaSource> MediaSourceObject;
-	{
-		HRESULT Result = SourceObject->QueryInterface(IID_PPV_ARGS(&MediaSourceObject));
-
-		if (FAILED(Result))
-		{
-			UE_LOG(LogMfMedia, Error, TEXT("Failed to query media source: %s"), *MfMedia::ResultToString(Result));
-			return false;
-		}
-	}
-
-	TComPtr<IMFPresentationDescriptor> PresentationDescriptor;
-	{
-		HRESULT Result = MediaSourceObject->CreatePresentationDescriptor(&PresentationDescriptor);
-
-		if (FAILED(Result))
-		{
-			UE_LOG(LogMfMedia, Error, TEXT("Failed to create presentation descriptor: %s"), *MfMedia::ResultToString(Result));
-			return false;
-		}
-	}
-
-	// create source reader
-	HRESULT Result = ::MFCreateSourceReaderFromMediaSource(MediaSourceObject, NULL, &SourceReader);
+	const HRESULT Result = SourceReader->SetCurrentPosition(GUID_NULL, Position);
 
 	if (FAILED(Result))
 	{
-		UE_LOG(LogMfMedia, Error, TEXT("Failed to create source reader: %s"), *MfMedia::ResultToString(Result));
+		UE_LOG(LogMfMedia, Warning, TEXT("Failed to commit time %s: %s"), *Time.ToString(), *MfMedia::ResultToString(Result));
 		return false;
 	}
 
-	// initialize tracks
-	Tracks->Initialize(PresentationDescriptor, MediaSourceObject, SourceReader, Info);
-	MediaEvent.Broadcast(EMediaEvent::TracksChanged);
-
-	// get media duration
-	UINT64 PresentationDuration = 0;
-	PresentationDescriptor->GetUINT64(MF_PD_DURATION, &PresentationDuration);
-	Duration = FTimespan(PresentationDuration);
-
-	// get rate control and support, if available
-	if (SUCCEEDED(SourceReader->GetServiceForStream(MF_SOURCE_READER_MEDIASOURCE, MF_RATE_CONTROL_SERVICE, IID_IMFRateControl, (LPVOID*)&RateControl)) &&
-		SUCCEEDED(SourceReader->GetServiceForStream(MF_SOURCE_READER_MEDIASOURCE, MF_RATE_CONTROL_SERVICE, IID_IMFRateSupport, (LPVOID*)&RateSupport)))
-	{
-		CanScrub = SUCCEEDED(RateSupport->IsRateSupported(TRUE, 0, NULL));
-	}
-
-	// get capabilities
-	PROPVARIANT Variant;
-	PropVariantInit(&Variant);
-
-	if (SUCCEEDED(SourceReader->GetPresentationAttribute(MF_SOURCE_READER_MEDIASOURCE, MF_SOURCE_READER_MEDIASOURCE_CHARACTERISTICS, &Variant)))
-	{
-		Characteristics = (Variant.vt == VT_UI4) ? Variant.ulVal : 0;
-	}
-
-	PropVariantClear(&Variant);
-
-	// create session
-	MediaUrl = SourceUrl;
-	MediaSource = MediaSourceObject;
+	CurrentTime = Time;
 
 	return true;
 }
 
+
+bool FMfMediaPlayer::InitializePlayer(const TSharedPtr<FArchive, ESPMode::ThreadSafe>& Archive, const FString& Url, bool Precache)
+{
+	UE_LOG(LogMfMedia, VeryVerbose, TEXT("Player %llx: Initializing %s (archive = %s, precache = %s)"), this, *Url, Archive.IsValid() ? TEXT("yes") : TEXT("no"), Precache ? TEXT("yes") : TEXT("no"));
+
+	CurrentState = EMediaState::Preparing;
+
+	MediaUrl = Url;
+	SourceReaderCallback = new FMfMediaSourceReaderCallback(*this);
+
+	// initialize presentation on a separate thread
+	const EAsyncExecution Execution = Precache ? EAsyncExecution::Thread : EAsyncExecution::ThreadPool;
+
+	Async<void>(Execution, [
+		Archive, Url, Precache,
+		Callback = TComPtr<FMfMediaSourceReaderCallback>(SourceReaderCallback),
+		SamplesPtr = TWeakPtr<FMediaSamples, ESPMode::ThreadSafe>(Samples),
+		TracksPtr = TWeakPtr<FMfMediaTracks, ESPMode::ThreadSafe>(Tracks)]()
+	{
+		TSharedPtr<FMediaSamples, ESPMode::ThreadSafe> PinnedSamples = SamplesPtr.Pin();
+		TSharedPtr<FMfMediaTracks, ESPMode::ThreadSafe> PinnedTracks= TracksPtr.Pin();
+
+		if (PinnedSamples.IsValid() && PinnedTracks.IsValid())
+		{
+			TComPtr<IMFMediaSource> MediaSource = MfMedia::ResolveMediaSource(Archive, Url, Precache);
+			PinnedTracks->Initialize(MediaSource, Callback, PinnedSamples.ToSharedRef());
+		}
+	});
+
+	return true;
+}
+
+
+void FMfMediaPlayer::UpdateCharacteristics()
+{
+	if (!MediaSource.IsValid())
+	{
+		return;
+	}
+
+	// get characteristics
+	HRESULT Result = MediaSource->GetCharacteristics(&Characteristics);
+
+	if (FAILED(Result))
+	{
+		UE_LOG(LogMfMedia, Warning, TEXT("Failed to get media source characteristics: %s"), *MfMedia::ResultToString(Result));
+	}
+
+	// get service interface
+	TComPtr<IMFGetService> GetService;
+
+	Result = MediaSource->QueryInterface(IID_PPV_ARGS(&GetService));
+
+	if (FAILED(Result))
+	{
+		UE_LOG(LogMfMedia, Warning, TEXT("Failed to query service interface: %s"), *MfMedia::ResultToString(Result));
+		return;
+	}
+
+	// get rate control & rate support, if available
+	Result = GetService->GetService(MF_RATE_CONTROL_SERVICE, IID_PPV_ARGS(&RateControl));
+
+	if (FAILED(Result))
+	{
+		UE_LOG(LogMfMedia, Log, TEXT("Rate control service unavailable (%s)"), *MfMedia::ResultToString(Result));
+	}
+	else
+	{
+		UE_LOG(LogMfMedia, Verbose, TEXT("Player %llx: Rate control ready"), this);
+	}
+
+	Result = GetService->GetService(MF_RATE_CONTROL_SERVICE, IID_PPV_ARGS(&RateSupport));
+
+	if (FAILED(Result))
+	{
+		UE_LOG(LogMfMedia, Log, TEXT("Rate support service unavailable (%s)"), *MfMedia::ResultToString(Result));
+	}
+	else
+	{
+		UE_LOG(LogMfMedia, Verbose, TEXT("Player %llx: Rate support ready"), this);
+	}
+
+	// cache rate control properties
+	if (RateSupport.IsValid())
+	{
+		float MaxRate = 0.0f;
+		float MinRate = 0.0f;
+
+		if (SUCCEEDED(RateSupport->GetSlowestRate(MFRATE_FORWARD, TRUE, &MinRate)) &&
+			SUCCEEDED(RateSupport->GetFastestRate(MFRATE_FORWARD, TRUE, &MaxRate)))
+		{
+			ThinnedRates.Add(TRange<float>::Inclusive(MinRate, MaxRate));
+		}
+
+#if MFMEDIAPLAYER_USE_SEEKANDREVERSE
+		if (SUCCEEDED(RateSupport->GetSlowestRate(MFRATE_REVERSE, TRUE, &MinRate)) &&
+			SUCCEEDED(RateSupport->GetFastestRate(MFRATE_REVERSE, TRUE, &MaxRate)))
+		{
+			ThinnedRates.Add(TRange<float>::Inclusive(MaxRate, MinRate));
+		}
+#endif
+
+		if (SUCCEEDED(RateSupport->GetSlowestRate(MFRATE_FORWARD, FALSE, &MinRate)) &&
+			SUCCEEDED(RateSupport->GetFastestRate(MFRATE_FORWARD, FALSE, &MaxRate)))
+		{
+			UnthinnedRates.Add(TRange<float>::Inclusive(MinRate, MaxRate));
+		}
+
+#if MFMEDIAPLAYER_USE_SEEKANDREVERSE
+		if (SUCCEEDED(RateSupport->GetSlowestRate(MFRATE_REVERSE, FALSE, &MinRate)) &&
+			SUCCEEDED(RateSupport->GetFastestRate(MFRATE_REVERSE, FALSE, &MaxRate)))
+		{
+			UnthinnedRates.Add(TRange<float>::Inclusive(MaxRate, MinRate));
+		}
+#endif
+	}
+	else
+	{
+		ThinnedRates.Empty();
+		UnthinnedRates.Empty();
+	}
+}
+
+
+/* IMediaControls interface
+ *****************************************************************************/
+
+bool FMfMediaPlayer::CanControl(EMediaControl Control) const
+{
+	if (SourceReader == NULL)
+	{
+		return false;
+	}
+
+	if (Control == EMediaControl::Pause)
+	{
+		return ((CurrentState == EMediaState::Playing) && ((Characteristics & MFMEDIASOURCE_CAN_PAUSE) != 0));
+	}
+
+	if (Control == EMediaControl::Resume)
+	{
+		return ((CurrentState != EMediaState::Playing) && ThinnedRates.Contains(1.0f));
+	}
+
+#if MFMEDIAPLAYER_USE_SEEKANDREVERSE
+	if (Control == EMediaControl::Scrub)
+	{
+		return (((Characteristics & MFMEDIASOURCE_HAS_SLOW_SEEK) == 0) && (ThinnedRates.Contains(0.0f)));
+	}
+
+	if (Control == EMediaControl::Seek)
+	{
+		return (((Characteristics & MFMEDIASOURCE_CAN_SEEK) != 0) && (CurrentDuration > FTimespan::Zero()));
+	}
+#endif
+
+	return false;
+}
+
+
+FTimespan FMfMediaPlayer::GetDuration() const
+{
+	return CurrentDuration;
+}
+
+
+float FMfMediaPlayer::GetRate() const
+{
+	return CurrentRate;
+}
+
+
+EMediaState FMfMediaPlayer::GetState() const
+{
+	return CurrentState;
+}
+
+
+EMediaStatus FMfMediaPlayer::GetStatus() const
+{
+	return CurrentStatus;
+}
+
+
+TRangeSet<float> FMfMediaPlayer::GetSupportedRates(EMediaRateThinning Thinning) const
+{
+	return (Thinning == EMediaRateThinning::Thinned) ? ThinnedRates : UnthinnedRates;
+}
+
+
+FTimespan FMfMediaPlayer::GetTime() const
+{
+	return CurrentTime;
+}
+
+
+bool FMfMediaPlayer::IsLooping() const
+{
+	return ShouldLoop;
+}
+
+
+bool FMfMediaPlayer::Seek(const FTimespan& Time)
+{
+	if (SourceReader == NULL)
+	{
+		return false;
+	}
+
+	// validate seek
+	if ((CurrentState == EMediaState::Closed) || (CurrentState == EMediaState::Error))
+	{
+		UE_LOG(LogMfMedia, Warning, TEXT("Cannot seek while closed or in error state"));
+		return false;
+	}
+
+	if ((Time < FTimespan::Zero()) || (Time > CurrentDuration))
+	{
+		UE_LOG(LogMfMedia, Warning, TEXT("Invalid seek time %s (media duration is %s)"), *Time.ToString(), *CurrentDuration.ToString());
+		return false;
+	}
+	
+	UE_LOG(LogMfMedia, Verbose, TEXT("Player %llx: Seeking to %s"), this, *Time.ToString());
+
+	if (!CommitTime(Time))
+	{
+		return false;
+	}
+
+	EventSink.ReceiveMediaEvent(EMediaEvent::SeekCompleted);
+
+	return true;
+}
+
+
+bool FMfMediaPlayer::SetLooping(bool Looping)
+{
+	ShouldLoop = Looping;
+
+	return true;
+}
+
+
+bool FMfMediaPlayer::SetRate(float Rate)
+{
+	if (SourceReader == NULL)
+	{
+		return false;
+	}
+
+	if (Rate == CurrentRate)
+	{
+		return true; // rate already set
+	}
+
+	if (CurrentDuration == FTimespan::Zero())
+	{
+		return false; // nothing to play
+	}
+
+	BOOL Thin;
+
+	// check whether rate is supported
+	if (UnthinnedRates.Contains(Rate))
+	{
+		UE_LOG(LogMfMedia, Verbose, TEXT("Player %llx: Setting rate from to %f to %f (unthinned)"), this, CurrentRate, Rate);
+		Thin = FALSE;
+	}
+	else if (ThinnedRates.Contains(Rate))
+	{
+		UE_LOG(LogMfMedia, Verbose, TEXT("Player %llx: Setting rate from to %f to %f (thinned)"), this, CurrentRate, Rate);
+		Thin = TRUE;
+	}
+	else
+	{
+		UE_LOG(LogMfMedia, Warning, TEXT("The rate %f is not supported"), Rate);
+		return false;
+	}
+
+	// set play rate
+	if (RateControl != NULL)
+	{
+		if (Rate <= 0.0f)
+		{
+			// Note: IMFSourceReader does not support reverse playback, even if the
+			// media source does. We switch to scrubbing mode and seek instead
+
+			const HRESULT Result = RateControl->SetRate(FALSE, 0.0f);
+
+			if (FAILED(Result))
+			{
+				UE_LOG(LogMfMedia, Warning, TEXT("Failed to commit rate change from %f to zero: %s"), CurrentRate, *MfMedia::ResultToString(Result));
+				return false;
+			}
+		}
+		else if (!ThinnedRates.IsEmpty())
+		{
+			// Note: for those media sources that support thinning in forward play,
+			// we update the rate controller
+
+			const TCHAR* ThinnedString = Thin ? TEXT("thinned") : TEXT("unthinned");
+			const HRESULT Result = RateControl->SetRate(Thin, Rate);
+
+			if (FAILED(Result))
+			{
+				UE_LOG(LogMfMedia, Warning, TEXT("Failed to commit rate change from %f to %f (%s): %s"), CurrentRate, Rate, ThinnedString, *MfMedia::ResultToString(Result));
+				return false;
+			}
+		}
+	}
+
+	// handle restarting
+	if ((CurrentRate == 0.0f) && (Rate != 0.0f))
+	{
+		if (CurrentState == EMediaState::Stopped)
+		{
+			if (Rate < 0.0f)
+			{
+				CommitTime(CurrentDuration - FTimespan(1));
+			}
+
+			PlaybackRestarted = true;
+			Tracks->Restart();
+		}
+
+		CurrentRate = Rate;
+		CurrentState = EMediaState::Playing;
+
+		EventSink.ReceiveMediaEvent(EMediaEvent::PlaybackResumed);
+
+		return true;
+	}
+
+	// handle pausing
+	if ((CurrentRate != 0.0f) && (Rate == 0.0f))
+	{
+		CurrentRate = Rate;
+		CurrentState = EMediaState::Paused;
+
+		EventSink.ReceiveMediaEvent(EMediaEvent::PlaybackSuspended);
+
+		return true;
+	}
+
+	CurrentRate = Rate;
+
+	return true;
+}
+
+
+/* IMfMediaSourceReaderSink interface
+ *****************************************************************************/
+
+void FMfMediaPlayer::ReceiveSourceReaderEvent(MediaEventType Event)
+{
+	switch (Event)
+	{
+	case MEBufferingStarted:
+		CurrentStatus |= EMediaStatus::Buffering;
+		EventSink.ReceiveMediaEvent(EMediaEvent::MediaBuffering);
+		break;
+
+	case MEBufferingStopped:
+		CurrentStatus &= ~EMediaStatus::Buffering;
+		break;
+
+	case MEConnectEnd:
+		CurrentStatus &= ~EMediaStatus::Connecting;
+		break;
+
+	case MEConnectStart:
+		CurrentStatus |= EMediaStatus::Connecting;
+		EventSink.ReceiveMediaEvent(EMediaEvent::MediaConnecting);
+		break;
+
+	case MESourceCharacteristicsChanged:
+		UpdateCharacteristics();
+		break;
+
+	default:
+		break; // unsupported event
+	}
+}
+
+
+void FMfMediaPlayer::ReceiveSourceReaderFlush()
+{
+	Samples->FlushSamples();
+}
+
+
+void FMfMediaPlayer::ReceiveSourceReaderSample(IMFSample* Sample, HRESULT Status, DWORD StreamFlags, DWORD StreamIndex, FTimespan Time)
+{
+	if ((StreamFlags & MF_SOURCE_READERF_ERROR) != 0)
+	{
+		SourceReaderError = true;
+	}
+
+	Tracks->ProcessSample(Sample, Status, StreamFlags, StreamIndex, Time);
+}
+
+
+#undef LOCTEXT_NAMESPACE
 
 #if PLATFORM_WINDOWS
 	#include "HideWindowsPlatformTypes.h"

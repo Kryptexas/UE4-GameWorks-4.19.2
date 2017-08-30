@@ -2,6 +2,9 @@
 
 #include "OnlineSubsystemFacebook.h"
 #include "OnlineSubsystemFacebookPrivate.h"
+
+#include "OnlineFriendsFacebook.h"
+#include "OnlineIdentityFacebook.h"
 #include "OnlineSharingFacebook.h"
 #include "OnlineUserFacebook.h"
 

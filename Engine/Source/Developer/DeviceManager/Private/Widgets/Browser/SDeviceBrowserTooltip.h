@@ -2,10 +2,14 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+#include "CoreTypes.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/SToolTip.h"
+
 #include "Widgets/Shared/SDeviceQuickInfo.h"
+
+class ITargetDeviceService;
+
 
 #define LOCTEXT_NAMESPACE "SDeviceBrowserTooltip"
 
@@ -24,13 +28,13 @@ public:
 public:
 
 	/**
-	 * Constructs the widget.
+	 * Construct the widget.
 	 *
 	 * @param InArgs The construction arguments.
 	 * @param InDeviceServiceManager The target device service manager to use.
 	 * @param InDeviceManagerState The optional device manager view state.
 	 */
-	void Construct( const FArguments& InArgs, const ITargetDeviceServiceRef& InDeviceService )
+	void Construct(const FArguments& InArgs, const TSharedRef<ITargetDeviceService, ESPMode::ThreadSafe>& InDeviceService)
 	{
 		SToolTip::Construct(
 			SToolTip::FArguments()

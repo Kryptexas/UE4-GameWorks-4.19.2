@@ -12,6 +12,7 @@ class FEngineService;
 class FPendingCleanupObjects;
 class ISessionService;
 
+
 /**
  * Implements the main engine loop.	
  */
@@ -22,9 +23,7 @@ class FEngineLoop
 {
 public:
 
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	FEngineLoop();
 
 	virtual ~FEngineLoop() { }
@@ -39,7 +38,7 @@ public:
 	 * @param AdditionalCommandLine Optional string to append to the command line (after ArgV is put together).
 	 * @return Returns the error level, 0 if successful and > 0 if there were errors.
 	 */ 
-	int32 PreInit(int32 ArgC, TCHAR* ArgV[], const TCHAR* AdditionalCommandline = NULL);
+	int32 PreInit(int32 ArgC, TCHAR* ArgV[], const TCHAR* AdditionalCommandline = nullptr);
 
 	/**
 	 * Pre-Initialize the main loop - parse command line, sets up GIsEditor, etc.
@@ -93,21 +92,21 @@ public:
 public:
 
 	/** Initializes the application. */
-	static bool AppInit( );
+	static bool AppInit();
 
 	/**
 	 * Prepares the application for shutdown.
 	 *
 	 * This function is called from within guarded exit code, only during non-error exits.
 	 */
-	static void AppPreExit( );
+	static void AppPreExit();
 
 	/**
 	 * Shuts down the application.
 	 *
 	 * This function called outside guarded exit code, during all exits (including error exits).
 	 */
-	static void AppExit( );
+	static void AppExit();
 
 private:
 
@@ -152,7 +151,5 @@ private:
 };
 
 
-/**
- * Global engine loop object. This is needed so wxWindows can access it.
- */
+/** Global engine loop object. This is needed so wxWindows can access it. */
 extern FEngineLoop GEngineLoop;

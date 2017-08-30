@@ -530,6 +530,19 @@ struct FAndroidESDeferredOpenGL : public FOpenGLESDeferred
 		return false;
 	}
 
+	enum class EImageExternalType : uint8
+	{
+		None,
+		ImageExternal100,
+		ImageExternal300,
+		ImageExternalESSL300
+	};
+
+	static FORCEINLINE EImageExternalType GetImageExternalType()
+	{
+		return EImageExternalType::None;
+	}
+
 	static FORCEINLINE GLuint64 GetTextureSamplerHandle(GLuint Texture, GLuint Sampler)
 	{
 		return glGetTextureSamplerHandleNV(Texture, Sampler);

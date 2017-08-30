@@ -2,21 +2,24 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+#include "CoreTypes.h"
+#include "Containers/Array.h"
+#include "ITargetDeviceService.h"
+#include "Templates/SharedPointer.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/SCompoundWidget.h"
-#include "Widgets/Views/STableViewBase.h"
-#include "Widgets/Views/STableRow.h"
-#include "Interfaces/ITargetDeviceServiceManager.h"
-#include "Models/DeviceBrowserFilter.h"
-#include "Models/DeviceManagerModel.h"
+#include "Widgets/Views/SListView.h"
 
+class FDeviceBrowserFilter;
+class FDeviceManagerModel;
 class FUICommandList;
+class ITargetDeviceServiceManager;
+
 
 /**
  * Delegate type for selection changes in the device browser.
  *
- * The first parameter is the newly selected device service (or NULL if none was selected).
+ * The first parameter is the newly selected device service (or nullptr if none was selected).
  */
 DECLARE_DELEGATE_OneParam(FOnDeviceBrowserSelectionChanged, const ITargetDeviceServicePtr&)
 
@@ -42,13 +45,13 @@ public:
 	 * @param InDeviceServiceManager The target device service manager to use.
 	 * @param InUICommandList The UI command list to use.
 	 */
-	void Construct( const FArguments& InArgs, const FDeviceManagerModelRef& InModel, const ITargetDeviceServiceManagerRef& InDeviceServiceManager, const TSharedPtr<FUICommandList>& InUICommandList );
+	void Construct(const FArguments& InArgs, const TSharedRef<FDeviceManagerModel>& InModel, const TSharedRef<ITargetDeviceServiceManager>& InDeviceServiceManager, const TSharedPtr<FUICommandList>& InUICommandList);
 
 public:
 
-	// SCompoundWidget overrides
+	//~ SCompoundWidget overrides
 
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 
 protected:
 
@@ -57,54 +60,31 @@ protected:
 	 *
 	 * @param FullyReload Whether to fully reload the service entries, or only re-apply filtering.
 	 */
-	void ReloadDeviceServiceList( bool FullyReload );
+	void ReloadDeviceServiceList(bool FullyReload);
 
 private:
 
-	// Callback for generating a context menu in the session list view.
-	TSharedPtr<SWidget> HandleDeviceServiceListViewContextMenuOpening( );
+	/** Holds the list of all available target device services. */
+	TArray<TSharedPtr<ITargetDeviceService, ESPMode::ThreadSafe>> AvailableDeviceServices;
 
-	// Callback for generating a row widget in the device service list view.
-	TSharedRef<ITableRow> HandleDeviceServiceListViewGenerateRow( ITargetDeviceServicePtr DeviceService, const TSharedRef<STableViewBase>& OwnerTable );
+	/** Holds the list of filtered target device services for display. */
+	TArray<TSharedPtr<ITargetDeviceService, ESPMode::ThreadSafe>> DeviceServiceList;
 
-	// Callback for getting the highlight text in session rows.
-	FText HandleDeviceServiceListViewHighlightText( ) const;
+	/** Holds the list view for filtered target device services. */
+	TSharedPtr<SListView<ITargetDeviceServicePtr>> DeviceServiceListView;
 
-	// Callback for selecting items in the devices list view.
-	void HandleDeviceServiceListViewSelectionChanged( ITargetDeviceServicePtr Selection, ESelectInfo::Type SelectInfo );
+	/** Holds a pointer to the target device service manager. */
+	TSharedPtr<ITargetDeviceServiceManager> DeviceServiceManager;
 
-	// Callback for added target device services.
-	void HandleDeviceServiceManagerServiceAdded( const ITargetDeviceServiceRef& AddedService );
+	/** Holds the filter model. */
+	TSharedPtr<FDeviceBrowserFilter> Filter;
 
-	// Callback for added target device services.
-	void HandleDeviceServiceManagerServiceRemoved( const ITargetDeviceServiceRef& RemovedService );
+	/** Holds a pointer the device manager's view model. */
+	TSharedPtr<FDeviceManagerModel> Model;
 
-	// Callback for changing the filter settings.
-	void HandleFilterChanged( );
-
-private:
-
-	// Holds the list of all available target device services.
-	TArray<ITargetDeviceServicePtr> AvailableDeviceServices;
-
-	// Holds the list of filtered target device services for display.
-	TArray<ITargetDeviceServicePtr> DeviceServiceList;
-
-	// Holds the list view for filtered target device services.
-	TSharedPtr<SListView<ITargetDeviceServicePtr> > DeviceServiceListView;
-
-	// Holds a pointer to the target device service manager.
-	ITargetDeviceServiceManagerPtr DeviceServiceManager;
-
-	// Holds the filter model.
-	FDeviceBrowserFilterPtr Filter;
-
-	// Holds a pointer the device manager's view model.
-	FDeviceManagerModelPtr Model;
-
-	// Holds a flag indicating whether the list of target device services needs to be refreshed.
+	/** Holds a flag indicating whether the list of target device services needs to be refreshed. */
 	bool NeedsServiceListRefresh;
 
-	// Holds a pointer to the command list for controlling the device.
+	/** Holds a pointer to the command list for controlling the device. */
 	TSharedPtr<FUICommandList> UICommandList;
 };

@@ -78,7 +78,7 @@ const TWeakObjectPtr<UScriptStruct>& FMessageContext::GetMessageTypeInfo() const
 }
 
 
-IMessageContextPtr FMessageContext::GetOriginalContext() const
+TSharedPtr<IMessageContext, ESPMode::ThreadSafe> FMessageContext::GetOriginalContext() const
 {
 	return OriginalContext;
 }

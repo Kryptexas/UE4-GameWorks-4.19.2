@@ -362,7 +362,7 @@ bool FUntypedBulkData::IsBulkDataLoaded() const
 
 bool FUntypedBulkData::IsAsyncLoadingComplete()
 {
-	return SerializeFuture.IsValid() == false || SerializeFuture.WaitFor(FTimespan(0));
+	return SerializeFuture.IsValid() == false || SerializeFuture.WaitFor(FTimespan::Zero());
 }
 
 /**
@@ -1334,7 +1334,7 @@ void FUntypedBulkData::WaitForAsyncLoading()
 {
 	check(SerializeFuture.IsValid());
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("FUntypedBulkData::WaitForAsyncLoading"), STAT_UBD_WaitForAsyncLoading, STATGROUP_Memory);
-	while (!SerializeFuture.WaitFor(FTimespan(0, 0, 0, 0, 1000)))
+	while (!SerializeFuture.WaitFor(FTimespan::FromMilliseconds(1000.0)))
 	{
 		UE_LOG(LogSerialization, Warning, TEXT("Waiting for %s bulk data (%d) to be loaded longer than 1000ms"), *Filename, GetBulkDataSize());
 	}

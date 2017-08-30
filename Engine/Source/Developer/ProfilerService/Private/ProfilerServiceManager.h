@@ -10,7 +10,7 @@
 #include "HAL/Runnable.h"
 #include "Containers/Queue.h"
 #include "Containers/Ticker.h"
-#include "Helpers/MessageEndpoint.h"
+#include "MessageEndpoint.h"
 
 struct FProfilerServiceCapture;
 struct FProfilerServiceData2;
@@ -88,7 +88,7 @@ protected:
 	FEvent* WorkEvent;
 
 	/** Holds the messaging endpoint. */
-	FMessageEndpointPtr& MessageEndpoint;
+	TSharedPtr<FMessageEndpoint, ESPMode::ThreadSafe> MessageEndpoint;
 
 	/** > 0 if we have been asked to abort work in progress at the next opportunity. */
 	FThreadSafeCounter StopTaskCounter;
@@ -210,7 +210,7 @@ private:
 	void RemoveNewFrameHandleStatsThread();
 
 	/** Holds the messaging endpoint. */
-	FMessageEndpointPtr MessageEndpoint;
+	TSharedPtr<FMessageEndpoint, ESPMode::ThreadSafe> MessageEndpoint;
 
 	/** Holds the session and instance identifier. */
 	FGuid SessionId;

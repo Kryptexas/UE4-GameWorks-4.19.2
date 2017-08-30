@@ -1,9 +1,5 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-CookOnTheFlyServer.h : handles polite cook requests via network ;)
-=============================================================================*/
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -18,7 +14,7 @@ CookOnTheFlyServer.h : handles polite cook requests via network ;)
 #include "HAL/PlatformProcess.h"
 #include "TickableEditorObject.h"
 #include "IPlatformFileSandboxWrapper.h"
-#include "Interfaces/INetworkFileSystemModule.h"
+#include "INetworkFileSystemModule.h"
 #include "CookOnTheFlyServer.generated.h"
 
 

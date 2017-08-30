@@ -2,6 +2,10 @@
 
 #include "Transport/UdpMessageSegmenter.h"
 
+#include "Serialization/Archive.h"
+
+#include "Transport/UdpSerializedMessage.h"
+
 
 /* FUdpMessageSegmenter structors
  *****************************************************************************/
@@ -76,6 +80,12 @@ void FUdpMessageSegmenter::Initialize()
 		PendingSegmentsCount = (MessageReader->TotalSize() + SegmentSize - 1) / SegmentSize;
 		PendingSegments.Init(true, PendingSegmentsCount);
 	}
+}
+
+
+bool FUdpMessageSegmenter::IsInvalid() const
+{
+	return (SerializedMessage->GetState() == EUdpSerializedMessageState::Invalid);
 }
 
 

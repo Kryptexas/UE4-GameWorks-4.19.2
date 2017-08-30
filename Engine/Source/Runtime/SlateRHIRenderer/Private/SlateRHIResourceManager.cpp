@@ -16,7 +16,8 @@
 #include "Engine/Engine.h"
 #include "Slate/SlateTextures.h"
 #include "SlateRHITextureAtlas.h"
-#include "Interfaces/IImageWrapperModule.h"
+#include "IImageWrapper.h"
+#include "IImageWrapperModule.h"
 #include "SlateNativeTextureResource.h"
 #include "SlateUTextureResource.h"
 #include "SlateMaterialResource.h"
@@ -390,7 +391,7 @@ bool FSlateRHIResourceManager::LoadTexture( const FName& TextureName, const FStr
 	if( FFileHelper::LoadFileToArray( RawFileData, *ResourcePath ) )
 	{
 		IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>( FName("ImageWrapper") );
-		IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper( EImageFormat::PNG );
+		TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper( EImageFormat::PNG );
 		if ( ImageWrapper.IsValid() && ImageWrapper->SetCompressed( RawFileData.GetData(), RawFileData.Num() ) )
 		{
 			Width = ImageWrapper->GetWidth();

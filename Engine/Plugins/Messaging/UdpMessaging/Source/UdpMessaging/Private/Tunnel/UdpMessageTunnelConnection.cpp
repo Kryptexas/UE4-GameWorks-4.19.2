@@ -1,7 +1,12 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Tunnel/UdpMessageTunnelConnection.h"
+
+#include "HAL/RunnableThread.h"
+#include "Serialization/ArrayReader.h"
 #include "Serialization/ArrayWriter.h"
+#include "Sockets.h"
+
 
 #if PLATFORM_DESKTOP
 
@@ -39,13 +44,13 @@ FUdpMessageTunnelConnection::~FUdpMessageTunnelConnection()
 /* FUdpMessageTunnelConnection interface
  *****************************************************************************/
 
-bool FUdpMessageTunnelConnection::Receive(FArrayReaderPtr& OutPayload)
+bool FUdpMessageTunnelConnection::Receive(TSharedPtr<FArrayReader, ESPMode::ThreadSafe>& OutPayload)
 {
 	return Inbox.Dequeue(OutPayload);
 }
 
 
-bool FUdpMessageTunnelConnection::Send(const FArrayReaderPtr& Payload)
+bool FUdpMessageTunnelConnection::Send(const TSharedPtr<FArrayReader, ESPMode::ThreadSafe>& Payload)
 {
 	if (IsOpen())
 	{
@@ -182,7 +187,7 @@ bool FUdpMessageTunnelConnection::ReceivePayloads()
 			TotalBytesReceived += BytesRead;
 
 			// ... receive the payload
-			FArrayReaderPtr Payload = MakeShareable(new FArrayReader(true));
+			TSharedPtr<FArrayReader, ESPMode::ThreadSafe> Payload = MakeShareable(new FArrayReader(true));
 			Payload->SetNumUninitialized(PayloadSize);
 
 			if (!Socket->Recv(Payload->GetData(), Payload->Num(), BytesRead))
@@ -216,7 +221,7 @@ bool FUdpMessageTunnelConnection::SendPayloads()
 		return true;
 	}
 
-	FArrayReaderPtr Payload;
+	TSharedPtr<FArrayReader, ESPMode::ThreadSafe> Payload;
 	Outbox.Dequeue(Payload);
 	int32 BytesSent = 0;
 

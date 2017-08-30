@@ -10,13 +10,14 @@
 #include "Async/TaskGraphInterfaces.h"
 
 #include "SwarmInterface.h"
-
 #include "SwarmMessages.h"
+
 #if USE_LOCAL_SWARM_INTERFACE
-#include "IMessageContext.h"
-#include "Helpers/MessageEndpoint.h"
-#include "Helpers/MessageEndpointBuilder.h"
+	#include "IMessageContext.h"
+	#include "MessageEndpoint.h"
+	#include "MessageEndpointBuilder.h"
 #endif
+
 
 namespace NSwarm
 {
@@ -54,17 +55,17 @@ private:
 	void PrepareTasksList();
 
 #if USE_LOCAL_SWARM_INTERFACE
-	void HandlePingMessage( const FSwarmPingMessage& Message, const IMessageContextRef& Context );
-	void HandlePongMessage( const FSwarmPongMessage& Message, const IMessageContextRef& Context );
-	void HandleInfoMessage( const FSwarmInfoMessage& Message, const IMessageContextRef& Context );
-	void HandleAlertMessage( const FSwarmAlertMessage& Message, const IMessageContextRef& Context );
-	void HandleTimingMessage( const FSwarmTimingMessage& Message, const IMessageContextRef& Context );
-	void HandleTaskRequestReleaseMessage( const FSwarmTaskRequestReleaseMessage& Message, const IMessageContextRef& Context );
-	void HandleTaskRequestReservationMessage( const FSwarmTaskRequestReservationMessage& Message, const IMessageContextRef& Context );
-	void HandleTaskRequestSpecificationMessage( const FSwarmTaskRequestSpecificationMessage& Message, const IMessageContextRef& Context );
-	void HandleJobStateMessage( const FSwarmJobStateMessage& Message, const IMessageContextRef& Context );
-	void HandleTaskStateMessage( const FSwarmTaskStateMessage& Message, const IMessageContextRef& Context );
-	void HandleQuitMessage( const FSwarmQuitMessage& Message, const IMessageContextRef& Context );
+	void HandlePingMessage( const FSwarmPingMessage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context );
+	void HandlePongMessage( const FSwarmPongMessage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context );
+	void HandleInfoMessage( const FSwarmInfoMessage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context );
+	void HandleAlertMessage( const FSwarmAlertMessage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context );
+	void HandleTimingMessage( const FSwarmTimingMessage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context );
+	void HandleTaskRequestReleaseMessage( const FSwarmTaskRequestReleaseMessage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context );
+	void HandleTaskRequestReservationMessage( const FSwarmTaskRequestReservationMessage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context );
+	void HandleTaskRequestSpecificationMessage( const FSwarmTaskRequestSpecificationMessage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context );
+	void HandleJobStateMessage( const FSwarmJobStateMessage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context );
+	void HandleTaskStateMessage( const FSwarmTaskStateMessage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context );
+	void HandleQuitMessage( const FSwarmQuitMessage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context );
 #endif
 
 	FString JobFolder;
@@ -75,7 +76,7 @@ private:
 	FConnectionCallback CallbackFunc;
 	void* CallbackData;
 #if USE_LOCAL_SWARM_INTERFACE
-	FMessageEndpointPtr MessageEndpoint;
+	TSharedPtr<FMessageEndpoint, ESPMode::ThreadSafe> MessageEndpoint;
 	FMessageAddress Recepient;
 	bool bIsConnected;
 	bool bIsEditor;
@@ -269,12 +270,12 @@ int32 FSwarmInterfaceLocalImpl::SendMessage( const FMessage& Message )
 }
 
 #if USE_LOCAL_SWARM_INTERFACE
-void FSwarmInterfaceLocalImpl::HandlePingMessage( const FSwarmPingMessage& Message, const IMessageContextRef& Context )
+void FSwarmInterfaceLocalImpl::HandlePingMessage( const FSwarmPingMessage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context )
 {
 	MessageEndpoint->Send(new FSwarmPongMessage(bIsEditor, FPlatformProcess::ComputerName()), Context->GetSender());
 }
 
-void FSwarmInterfaceLocalImpl::HandlePongMessage( const FSwarmPongMessage& Message, const IMessageContextRef& Context )
+void FSwarmInterfaceLocalImpl::HandlePongMessage( const FSwarmPongMessage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context )
 {
 	if (!Recepient.IsValid() && Message.bIsEditor != bIsEditor && Message.ComputerName == FPlatformProcess::ComputerName())
 	{
@@ -282,7 +283,7 @@ void FSwarmInterfaceLocalImpl::HandlePongMessage( const FSwarmPongMessage& Messa
 	}
 }
 	
-void FSwarmInterfaceLocalImpl::HandleInfoMessage( const FSwarmInfoMessage& Message, const IMessageContextRef& Context )
+void FSwarmInterfaceLocalImpl::HandleInfoMessage( const FSwarmInfoMessage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context )
 {
 	if( CallbackFunc )
 	{
@@ -291,7 +292,7 @@ void FSwarmInterfaceLocalImpl::HandleInfoMessage( const FSwarmInfoMessage& Messa
 	}
 }
 
-void FSwarmInterfaceLocalImpl::HandleAlertMessage( const FSwarmAlertMessage& Message, const IMessageContextRef& Context )
+void FSwarmInterfaceLocalImpl::HandleAlertMessage( const FSwarmAlertMessage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context )
 {
 	if( CallbackFunc )
 	{
@@ -300,7 +301,7 @@ void FSwarmInterfaceLocalImpl::HandleAlertMessage( const FSwarmAlertMessage& Mes
 	}
 }
 
-void FSwarmInterfaceLocalImpl::HandleTimingMessage( const FSwarmTimingMessage& Message, const IMessageContextRef& Context )
+void FSwarmInterfaceLocalImpl::HandleTimingMessage( const FSwarmTimingMessage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context )
 {
 	if( CallbackFunc )
 	{
@@ -309,7 +310,7 @@ void FSwarmInterfaceLocalImpl::HandleTimingMessage( const FSwarmTimingMessage& M
 	}
 }
 
-void FSwarmInterfaceLocalImpl::HandleTaskRequestReleaseMessage( const FSwarmTaskRequestReleaseMessage& Message, const IMessageContextRef& Context )
+void FSwarmInterfaceLocalImpl::HandleTaskRequestReleaseMessage( const FSwarmTaskRequestReleaseMessage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context )
 {
 	if( CallbackFunc )
 	{
@@ -318,7 +319,7 @@ void FSwarmInterfaceLocalImpl::HandleTaskRequestReleaseMessage( const FSwarmTask
 	}
 }
 
-void FSwarmInterfaceLocalImpl::HandleTaskRequestReservationMessage( const FSwarmTaskRequestReservationMessage& Message, const IMessageContextRef& Context )
+void FSwarmInterfaceLocalImpl::HandleTaskRequestReservationMessage( const FSwarmTaskRequestReservationMessage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context )
 {
 	if( CallbackFunc )
 	{
@@ -327,7 +328,7 @@ void FSwarmInterfaceLocalImpl::HandleTaskRequestReservationMessage( const FSwarm
 	}
 }
 
-void FSwarmInterfaceLocalImpl::HandleTaskRequestSpecificationMessage( const FSwarmTaskRequestSpecificationMessage& Message, const IMessageContextRef& Context )
+void FSwarmInterfaceLocalImpl::HandleTaskRequestSpecificationMessage( const FSwarmTaskRequestSpecificationMessage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context )
 {
 	if( CallbackFunc )
 	{
@@ -350,7 +351,7 @@ void FSwarmInterfaceLocalImpl::HandleTaskRequestSpecificationMessage( const FSwa
 	}
 }
 
-void FSwarmInterfaceLocalImpl::HandleJobStateMessage( const FSwarmJobStateMessage& Message, const IMessageContextRef& Context )
+void FSwarmInterfaceLocalImpl::HandleJobStateMessage( const FSwarmJobStateMessage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context )
 {
 	if( CallbackFunc )
 	{
@@ -359,7 +360,7 @@ void FSwarmInterfaceLocalImpl::HandleJobStateMessage( const FSwarmJobStateMessag
 	}
 }
 
-void FSwarmInterfaceLocalImpl::HandleTaskStateMessage( const FSwarmTaskStateMessage& Message, const IMessageContextRef& Context )
+void FSwarmInterfaceLocalImpl::HandleTaskStateMessage( const FSwarmTaskStateMessage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context )
 {
 	if( CallbackFunc )
 	{
@@ -368,7 +369,7 @@ void FSwarmInterfaceLocalImpl::HandleTaskStateMessage( const FSwarmTaskStateMess
 	}
 }
 
-void FSwarmInterfaceLocalImpl::HandleQuitMessage( const FSwarmQuitMessage& Message, const IMessageContextRef& Context )
+void FSwarmInterfaceLocalImpl::HandleQuitMessage( const FSwarmQuitMessage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context )
 {
 	if( CallbackFunc )
 	{

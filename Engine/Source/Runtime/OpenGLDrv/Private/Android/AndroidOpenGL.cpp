@@ -408,6 +408,7 @@ bool FAndroidOpenGL::bSupportsInstancing = false;
 bool FAndroidOpenGL::bHasHardwareHiddenSurfaceRemoval = false;
 bool FAndroidOpenGL::bSupportsMobileMultiView = false;
 bool FAndroidOpenGL::bSupportsImageExternal = false;
+FAndroidOpenGL::EImageExternalType FAndroidOpenGL::ImageExternalType = FAndroidOpenGL::EImageExternalType::None;
 GLint FAndroidOpenGL::MaxMSAASamplesTileMem = 1;
 
 FAndroidOpenGL::EFeatureLevelSupport FAndroidOpenGL::CurrentFeatureLevelSupport = FAndroidOpenGL::EFeatureLevelSupport::Invalid;
@@ -470,16 +471,68 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 		MaxMSAASamplesTileMem = 1;
 	}
 
-	if (ExtensionsString.Contains(TEXT("GL_OES_EGL_image_external")))
-	{
-		bSupportsImageExternal = true;
-		UE_LOG(LogRHI, Log, TEXT("Image external enabled."));
-	}
-
 	bSupportsETC2 = bES30Support;
 	bUseES30ShadingLanguage = bES30Support;
 
 	FString RendererString = FString(ANSI_TO_TCHAR((const ANSICHAR*)glGetString(GL_RENDERER)));
+
+	// Common GPU types
+	const bool bIsNvidiaBased = RendererString.Contains(TEXT("NVIDIA"));
+	const bool bIsPoverVRBased = RendererString.Contains(TEXT("PowerVR"));
+	const bool bIsAdrenoBased = RendererString.Contains(TEXT("Adreno"));
+	const bool bIsMaliBased = RendererString.Contains(TEXT("Mali"));
+
+	// Check for external image support for different ES versions
+	bool bHasImageExternal = ExtensionsString.Contains(TEXT("GL_OES_EGL_image_external ")) || ExtensionsString.EndsWith(TEXT("GL_OES_EGL_image_external"));
+	bool bHasImageExternalESSL3 = ExtensionsString.Contains(TEXT("OES_EGL_image_external_essl3"));
+	if (bHasImageExternal || bHasImageExternalESSL3)
+	{
+		bSupportsImageExternal = true;
+		ImageExternalType = EImageExternalType::ImageExternal100;
+		if (bUseES30ShadingLanguage)
+		{
+			if (bHasImageExternalESSL3)
+			{
+				ImageExternalType = EImageExternalType::ImageExternalESSL300;
+			}
+			else
+			{
+				// Adreno 5xx can do essl3 even without extension in list
+				if (bIsAdrenoBased && RendererString.Contains(TEXT("(TM) 5")))
+				{
+					ImageExternalType = EImageExternalType::ImageExternalESSL300;
+				}
+			}
+		}
+		if (bIsNvidiaBased)
+		{
+			// Nvidia needs version 100 even though it supports ES3
+			ImageExternalType = EImageExternalType::ImageExternal100;
+		}
+
+		switch (ImageExternalType)
+		{
+			case EImageExternalType::None:
+				bSupportsImageExternal = false;
+				break;
+
+			case EImageExternalType::ImageExternal100:
+				UE_LOG(LogRHI, Log, TEXT("Image external enabled: ImageExternal100"));
+				break;
+
+			case EImageExternalType::ImageExternal300:
+				UE_LOG(LogRHI, Log, TEXT("Image external enabled: ImageExternal300"));
+				break;
+
+			case EImageExternalType::ImageExternalESSL300:
+				UE_LOG(LogRHI, Log, TEXT("Image external enabled: ImageExternalESSL300"));
+				break;
+
+			default:
+				bSupportsImageExternal = false;
+				UE_LOG(LogRHI, Log, TEXT("Image external disabled; unknown type"));
+		}
+	}
 
 	if (RendererString.Contains(TEXT("SGX 540")))
 	{
@@ -488,14 +541,12 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 		bRequiresTexture2DPrecisionHack = true;
 	}
 
-	const bool bIsPoverVRBased = RendererString.Contains(TEXT("PowerVR"));
 	if (bIsPoverVRBased)
 	{
 		bHasHardwareHiddenSurfaceRemoval = true;
 		UE_LOG(LogRHI, Log, TEXT("Enabling support for Hidden Surface Removal on PowerVR"));
 	}
 
-	const bool bIsAdrenoBased = RendererString.Contains(TEXT("Adreno"));
 	if (bIsAdrenoBased)
 	{
 		// This is to avoid a bug in Adreno drivers that define GL_ARM_shader_framebuffer_fetch_depth_stencil even when device does not support this extension

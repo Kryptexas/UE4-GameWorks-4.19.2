@@ -1,14 +1,16 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "Widgets/Deploy/SProjectLauncherDeployToDeviceSettings.h"
-#include "Widgets/SBoxPanel.h"
-#include "Styling/SlateTypes.h"
-#include "Widgets/Layout/SBorder.h"
-#include "Widgets/Text/STextBlock.h"
-#include "Widgets/Input/SCheckBox.h"
+#include "SProjectLauncherDeployToDeviceSettings.h"
+
 #include "EditorStyleSet.h"
-#include "Widgets/Deploy/SProjectLauncherDeployTargets.h"
+#include "Styling/SlateTypes.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "Widgets/Layout/SBorder.h"
 #include "Widgets/Layout/SExpandableArea.h"
+#include "Widgets/Text/STextBlock.h"
+
+#include "Widgets/Deploy/SProjectLauncherDeployTargets.h"
 
 
 #define LOCTEXT_NAMESPACE "SProjectLauncherDeployToDeviceSettings"
@@ -17,7 +19,7 @@
 /* SProjectLauncherDeployToDeviceSettings interface
  *****************************************************************************/
 
-void SProjectLauncherDeployToDeviceSettings::Construct( const FArguments& InArgs, const FProjectLauncherModelRef& InModel, EVisibility InShowAdvanced )
+void SProjectLauncherDeployToDeviceSettings::Construct(const FArguments& InArgs, const TSharedRef<FProjectLauncherModel>& InModel, EVisibility InShowAdvanced)
 {
 	Model = InModel;
 
@@ -80,8 +82,7 @@ void SProjectLauncherDeployToDeviceSettings::Construct( const FArguments& InArgs
 /* SProjectLauncherDeployToDeviceSettings callbacks
  *****************************************************************************/
 
-
-void SProjectLauncherDeployToDeviceSettings::HandleIncrementalCheckBoxCheckStateChanged( ECheckBoxState NewState )
+void SProjectLauncherDeployToDeviceSettings::HandleIncrementalCheckBoxCheckStateChanged(ECheckBoxState NewState)
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -92,7 +93,7 @@ void SProjectLauncherDeployToDeviceSettings::HandleIncrementalCheckBoxCheckState
 }
 
 
-ECheckBoxState SProjectLauncherDeployToDeviceSettings::HandleIncrementalCheckBoxIsChecked( ) const
+ECheckBoxState SProjectLauncherDeployToDeviceSettings::HandleIncrementalCheckBoxIsChecked() const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -106,5 +107,4 @@ ECheckBoxState SProjectLauncherDeployToDeviceSettings::HandleIncrementalCheckBox
 
 	return ECheckBoxState::Unchecked;
 }
-
 #undef LOCTEXT_NAMESPACE

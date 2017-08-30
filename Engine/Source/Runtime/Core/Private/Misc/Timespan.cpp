@@ -5,18 +5,19 @@
 #include "Containers/UnrealString.h"
 #include "UObject/PropertyPortFlags.h"
 
+
 /* FTimespan interface
  *****************************************************************************/
 
 bool FTimespan::ExportTextItem(FString& ValueStr, FTimespan const& DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope) const
 {
-	if (0 != (PortFlags & EPropertyPortFlags::PPF_ExportCpp))
+	if ((PortFlags & EPropertyPortFlags::PPF_ExportCpp) != 0)
 	{
 		ValueStr += FString::Printf(TEXT("FTimespan(0x%016X)"), Ticks);
 		return true;
 	}
 
-	ValueStr += ToString(TEXT("%N%d.%h:%m:%s.%f"));
+	ValueStr += ToString(TEXT("%D.%h:%m:%s.%n"));
 
 	return true;
 }
@@ -24,8 +25,21 @@ bool FTimespan::ExportTextItem(FString& ValueStr, FTimespan const& DefaultValue,
 
 bool FTimespan::ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText)
 {
-	// @todo gmp: implement FTimespan::ImportTextItem
-	return false;
+	const int32 ExportTimespanLen = 27;
+
+	if (FPlatformString::Strlen(Buffer) < ExportTimespanLen)
+	{
+		return false;
+	}
+
+	if (!Parse(FString(Buffer).Left(ExportTimespanLen), *this))
+	{
+		return false;
+	}
+
+	Buffer += ExportTimespanLen;
+
+	return true;
 }
 
 
@@ -41,10 +55,10 @@ FString FTimespan::ToString() const
 {
 	if (GetDays() == 0)
 	{
-		return ToString(TEXT("%n%h:%m:%s.%f"));
+		return ToString(TEXT("%h:%m:%s.%f"));
 	}
 
-	return ToString(TEXT("%n%d.%h:%m:%s.%f"));
+	return ToString(TEXT("%d.%h:%m:%s.%f"));
 }
 
 
@@ -52,27 +66,23 @@ FString FTimespan::ToString(const TCHAR* Format) const
 {
 	FString Result;
 
+	Result += (Ticks < 0) ? TCHAR('-') : TCHAR('+');
+
 	while (*Format != TCHAR('\0'))
 	{
 		if ((*Format == TCHAR('%')) && (*++Format != TCHAR('\0')))
 		{
 			switch (*Format)
 			{
-			case TCHAR('n'): if (Ticks < 0) Result += TCHAR('-'); break;
-			case TCHAR('N'): Result += (Ticks < 0) ? TCHAR('-') : TCHAR('+'); break;
 			case TCHAR('d'): Result += FString::Printf(TEXT("%i"), FMath::Abs(GetDays())); break;
+			case TCHAR('D'): Result += FString::Printf(TEXT("%08i"), FMath::Abs(GetDays())); break;
 			case TCHAR('h'): Result += FString::Printf(TEXT("%02i"), FMath::Abs(GetHours())); break;
 			case TCHAR('m'): Result += FString::Printf(TEXT("%02i"), FMath::Abs(GetMinutes())); break;
 			case TCHAR('s'): Result += FString::Printf(TEXT("%02i"), FMath::Abs(GetSeconds())); break;
-			case TCHAR('f'): Result += FString::Printf(TEXT("%03i"), FMath::Abs(GetMilliseconds())); break;
-			case TCHAR('D'): Result += FString::Printf(TEXT("%f"), FMath::Abs(GetTotalDays())); break;
-			case TCHAR('H'): Result += FString::Printf(TEXT("%f"), FMath::Abs(GetTotalHours())); break;
-			case TCHAR('M'): Result += FString::Printf(TEXT("%f"), FMath::Abs(GetTotalMinutes())); break;
-			case TCHAR('S'): Result += FString::Printf(TEXT("%f"), FMath::Abs(GetTotalSeconds())); break;
-			case TCHAR('F'): Result += FString::Printf(TEXT("%f"), FMath::Abs(GetTotalMilliseconds())); break;
-
+			case TCHAR('f'): Result += FString::Printf(TEXT("%03i"), FMath::Abs(GetFractionMilli())); break;
+			case TCHAR('u'): Result += FString::Printf(TEXT("%06i"), FMath::Abs(GetFractionMicro())); break;
+			case TCHAR('n'): Result += FString::Printf(TEXT("%09i"), FMath::Abs(GetFractionNano())); break;
 			default:
-
 				Result += *Format;
 			}
 		}
@@ -91,77 +101,78 @@ FString FTimespan::ToString(const TCHAR* Format) const
 /* FTimespan static interface
  *****************************************************************************/
 
-FTimespan FTimespan::FromDays(double Days)
-{
-	check((Days >= MinValue().GetTotalDays()) && (Days <= MaxValue().GetTotalDays()));
-
-	return FTimespan(Days * ETimespan::TicksPerDay);
-}
-
-
-FTimespan FTimespan::FromHours(double Hours)
-{
-	check((Hours >= MinValue().GetTotalHours()) && (Hours <= MaxValue().GetTotalHours()));
-
-	return FTimespan(Hours * ETimespan::TicksPerHour);
-}
-
-
-FTimespan FTimespan::FromMicroseconds(double Microseconds)
-{
-	check((Microseconds >= MinValue().GetTotalMicroseconds()) && (Microseconds <= MaxValue().GetTotalMicroseconds()));
-
-	return FTimespan(Microseconds * ETimespan::TicksPerMicrosecond);
-}
-
-
-FTimespan FTimespan::FromMilliseconds(double Milliseconds)
-{
-	check((Milliseconds >= MinValue().GetTotalMilliseconds()) && (Milliseconds <= MaxValue().GetTotalMilliseconds()));
-
-	return FTimespan(Milliseconds * ETimespan::TicksPerMillisecond);
-}
-
-
-FTimespan FTimespan::FromMinutes(double Minutes)
-{
-	check((Minutes >= MinValue().GetTotalMinutes()) && (Minutes <= MaxValue().GetTotalMinutes()));
-
-	return FTimespan(Minutes * ETimespan::TicksPerMinute);
-}
-
-
-FTimespan FTimespan::FromSeconds(double Seconds)
-{
-	check((Seconds >= MinValue().GetTotalSeconds()) && (Seconds <= MaxValue().GetTotalSeconds()));
-
-	return FTimespan(Seconds * ETimespan::TicksPerSecond);
-}
-
-
 bool FTimespan::Parse(const FString& TimespanString, FTimespan& OutTimespan)
 {
-	// @todo gmp: implement stricter FTimespan parsing; this implementation is too forgiving.
-	FString TokenString = TimespanString.Replace(TEXT("."), TEXT(":"));
+	// @todo gmp: implement stricter FTimespan parsing; this implementation is too forgiving
+
+	// get string tokens
+	const bool HasFractional = TimespanString.Contains(TEXT("."));
+	FString TokenString = (HasFractional) ? TimespanString.Replace(TEXT("."), TEXT(":")) : TimespanString;
 	TokenString.ReplaceInline(TEXT(","), TEXT(":"));
 
-	bool Negative = TokenString.StartsWith(TEXT("-"));
-	TokenString.ReplaceInline(TEXT("-"), TEXT(":"), ESearchCase::CaseSensitive);
+	const bool Negative = TokenString.StartsWith(TEXT("-"));
+	TokenString.ReplaceInline(TEXT("-"), TEXT(":"));
+	TokenString.ReplaceInline(TEXT("+"), TEXT(":"));
 
 	TArray<FString> Tokens;
 	TokenString.ParseIntoArray(Tokens, TEXT(":"), true);
 
-	if (Tokens.Num() == 4)
+	if (!HasFractional)
 	{
-		Tokens.Insert(TEXT("0"), 0);
+		Tokens.AddDefaulted();
 	}
 
-	if (Tokens.Num() != 5)
+	// poor man's token verification
+	for (const FString& Token : Tokens)
+	{
+		if (!Token.IsEmpty() && !Token.IsNumeric())
+		{
+			return false;
+		}
+	}
+
+	// add missing tokens
+	if (Tokens.Num() < 5)
+	{
+		Tokens.InsertDefaulted(0, 5 - Tokens.Num());
+	}
+	else if (Tokens.Num() > 5)
 	{
 		return false;
 	}
 
-	OutTimespan.Assign(FCString::Atoi(*Tokens[0]), FCString::Atoi(*Tokens[1]), FCString::Atoi(*Tokens[2]), FCString::Atoi(*Tokens[3]), FCString::Atoi(*Tokens[4]), 0);
+	// pad fractional token with zeros
+	if (HasFractional)
+	{
+		const int32 FractionalLen = Tokens[4].Len();
+
+		if (FractionalLen > 9)
+		{
+			Tokens[4] = Tokens[4].Left(9);
+		}
+		else if (FractionalLen < 9)
+		{
+			Tokens[4] += FString(TEXT("000000000")).Left(9 - FractionalLen);
+		}
+	}
+
+	const int32 Days = FCString::Atoi(*Tokens[0]);
+	const int32 Hours = FCString::Atoi(*Tokens[1]);
+	const int32 Minutes = FCString::Atoi(*Tokens[2]);
+	const int32 Seconds = FCString::Atoi(*Tokens[3]);
+	const int32 FractionNano = FCString::Atoi(*Tokens[4]);
+
+	if ((Days > (ETimespan::MaxTicks / ETimespan::TicksPerDay) - 1))
+	{
+		return false;
+	}
+
+	if ((Hours > 23) || (Minutes > 59) || (Seconds > 59) || (FractionNano > 999999999))
+	{
+		return false;
+	}
+
+	OutTimespan.Assign(Days, Hours, Minutes, Seconds, FractionNano);
 
 	if (Negative)
 	{
@@ -172,28 +183,20 @@ bool FTimespan::Parse(const FString& TimespanString, FTimespan& OutTimespan)
 }
 
 
-/* FTimespan friend functions
- *****************************************************************************/
-
-FArchive& operator<<(FArchive& Ar, FTimespan& Timespan)
-{
-	return Ar << Timespan.Ticks;
-}
-
-
-uint32 GetTypeHash(const FTimespan& Timespan)
-{
-	return GetTypeHash(Timespan.Ticks);
-}
-
-
 /* FTimespan implementation
  *****************************************************************************/
 
-void FTimespan::Assign(int32 Days, int32 Hours, int32 Minutes, int32 Seconds, int32 Milliseconds, int32 Microseconds)
+void FTimespan::Assign(int32 Days, int32 Hours, int32 Minutes, int32 Seconds, int32 FractionNano)
 {
-	int64 TotalTicks = ETimespan::TicksPerMicrosecond * (1000 * (1000 * (60 * 60 * 24 * (int64)Days + 60 * 60 * (int64)Hours + 60 * (int64)Minutes + (int64)Seconds) + (int64)Milliseconds) + (int64)Microseconds);
-	check((TotalTicks >= MinValue().GetTicks()) && (TotalTicks <= MaxValue().GetTicks()));
+	int64 TotalTicks = 0;
+
+	TotalTicks += Days * ETimespan::TicksPerDay;
+	TotalTicks += Hours * ETimespan::TicksPerHour;
+	TotalTicks += Minutes * ETimespan::TicksPerMinute;
+	TotalTicks += Seconds * ETimespan::TicksPerSecond;
+	TotalTicks += FractionNano / ETimespan::NanosecondsPerTick;
+
+	check((TotalTicks >= ETimespan::MinTicks) && (TotalTicks <= ETimespan::MaxTicks));
 
 	Ticks = TotalTicks;
 }

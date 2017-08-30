@@ -18,7 +18,8 @@
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "LevelEditor.h"
 #include "EngineAnalytics.h"
-#include "Interfaces/IImageWrapperModule.h"
+#include "IImageWrapper.h"
+#include "IImageWrapperModule.h"
 #include "Interfaces/IMainFrameModule.h"
 #include "SurveyTitleCdnStorage.h"
 #include "AnalyticsEventAttribute.h"
@@ -91,7 +92,7 @@ TSharedPtr< FSlateDynamicImageBrush > FEpicSurvey::LoadRawDataAsBrush( FName Res
 	bool bSucceeded = false;
 	TArray<uint8> DecodedImage;
 	IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>( FName("ImageWrapper") );
-	IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper( EImageFormat::PNG );
+	TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper( EImageFormat::PNG );
 	if ( ImageWrapper.IsValid() && ImageWrapper->SetCompressed( RawData.GetData(), RawData.Num() ) )
 	{
 		Width = ImageWrapper->GetWidth();

@@ -1,6 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "LaunchEngineLoop.h"
+
 #include "HAL/PlatformStackWalk.h"
 #include "HAL/PlatformOutputDevices.h"
 #include "HAL/LowLevelMemTracker.h"
@@ -80,7 +81,7 @@
 			#include <objbase.h>
 		#include "HideWindowsPlatformTypes.h"
 	#endif
-#endif
+#endif //WITH_EDITOR
 
 #if WITH_ENGINE
 	#include "Engine/GameEngine.h"
@@ -95,7 +96,7 @@
 	#include "EngineGlobals.h"
 	#include "AudioThread.h"
 #if WITH_ENGINE && !UE_BUILD_SHIPPING
-	#include "Interfaces/IAutomationControllerModule.h"
+	#include "IAutomationControllerModule.h"
 #endif // WITH_ENGINE && !UE_BUILD_SHIPPING
 	#include "Database.h"
 	#include "DerivedDataCacheInterface.h"
@@ -128,7 +129,9 @@
 	#include "LongGPUTask.h"
 
 #if !UE_SERVER
+	#include "AppMediaTimeSource.h"
 	#include "IHeadMountedDisplayModule.h"
+	#include "IMediaModule.h"
 	#include "HeadMountedDisplay.h"
 	#include "MRMeshModule.h"
 	#include "Interfaces/ISlateRHIRendererModule.h"
@@ -147,9 +150,9 @@
 #endif
 
 #if WITH_AUTOMATION_WORKER
-	#include "Interfaces/IAutomationWorkerModule.h"
+	#include "IAutomationWorkerModule.h"
 #endif
-#endif  //WITH_ENGINE
+#endif //WITH_ENGINE
 
 class FSlateRenderer;
 class SViewport;
@@ -184,7 +187,7 @@ class FFeedbackContext;
 #endif
 
 #if defined(WITH_LAUNCHERCHECK) && WITH_LAUNCHERCHECK
-	#include "LauncherCheck.h"
+	#include "ILauncherCheckModule.h"
 #endif
 
 #if WITH_COREUOBJECT
@@ -2712,6 +2715,16 @@ int32 FEngineLoop::Init()
 
 	GetMoviePlayer()->WaitForMovieToFinish();
 
+#if !UE_SERVER
+	// initialize media framework
+	IMediaModule* MediaModule = FModuleManager::LoadModulePtr<IMediaModule>("Media");
+
+	if (MediaModule != nullptr)
+	{
+		MediaModule->SetTimeSource(MakeShareable(new FAppMediaTimeSource));
+	}
+#endif
+
 	// initialize automation worker
 #if WITH_AUTOMATION_WORKER
 	FModuleManager::Get().LoadModule("AutomationWorker");
@@ -3096,14 +3109,14 @@ void FEngineLoop::Tick()
 
 	SCOPED_NAMED_EVENT(FEngineLoopTick, FColor::Red);
 
-	// early in the Tick() to get the callbacks for cvar changes called
+	// execute callbacks for cvar changes
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_Tick_CallAllConsoleVariableSinks);
 		IConsoleManager::Get().CallAllConsoleVariableSinks();
 	}
 
 	{
-		SCOPE_CYCLE_COUNTER( STAT_FrameTime );
+		SCOPE_CYCLE_COUNTER(STAT_FrameTime);
 
 		#if WITH_PROFILEGPU
 			// Issue the measurement of the execution time of a basic LongGPUTask unit on the very first frame
@@ -3120,6 +3133,7 @@ void FEngineLoop::Tick()
 			}
 		#endif
 
+		// beginning of RHI frame
 		ENQUEUE_UNIQUE_RENDER_COMMAND(
 			BeginFrame,
 		{
@@ -3140,35 +3154,36 @@ void FEngineLoop::Tick()
 
 		FCoreDelegates::OnBeginFrame.Broadcast();
 
+		// flush debug output which has been buffered by other threads
 		{
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_FlushThreadedLogs);
-			// Flush debug output which has been buffered by other threads.
 			GLog->FlushThreadedLogs();
 		}
 
-		// Exit if frame limit is reached in benchmark mode.
-		if( (FApp::IsBenchmarking() && MaxFrameCounter && (GFrameCounter > MaxFrameCounter))
-			// or time limit is reached if set.
-			|| (MaxTickTime && (TotalTickTime > MaxTickTime)) )
+		// exit if frame limit is reached in benchmark mode, or if time limit is reached
+		if ((FApp::IsBenchmarking() && MaxFrameCounter && (GFrameCounter > MaxFrameCounter)) ||
+			(MaxTickTime && (TotalTickTime > MaxTickTime)))
 		{
 			FPlatformMisc::RequestExit(0);
 		}
 
+		// set FApp::CurrentTime, FApp::DeltaTime and potentially wait to enforce max tick rate
 		{
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_UpdateTimeAndHandleMaxTickRate);
-			// Set FApp::CurrentTime, FApp::DeltaTime and potentially wait to enforce max tick rate.
 			GEngine->UpdateTimeAndHandleMaxTickRate();
 		}
 
+		// tick performance monitoring
 		{
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_TickFPSChart);
 			GEngine->TickPerformanceMonitoring( FApp::GetDeltaTime() );
 		}
 
-		QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_Malloc_UpdateStats);
-
-		// Update memory allocator stats.
-		GMalloc->UpdateStats();
+		// update memory allocator stats
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_Malloc_UpdateStats);
+			GMalloc->UpdateStats();
+		}
 	}
 
 	FStats::AdvanceFrame( false, FStats::FOnAdvanceRenderingThreadStats::CreateStatic( &AdvanceRenderingThreadStatsGT ) );
@@ -3222,7 +3237,7 @@ void FEngineLoop::Tick()
 			{
 				WorldToScale = GEditor->PlayWorld;
 			}
-#endif	// WITH_EDITOR
+#endif //WITH_EDITOR
 
 			if( WorldToScale != nullptr )
 			{
@@ -3234,11 +3249,12 @@ void FEngineLoop::Tick()
 
 			GNewWorldToMetersScale = 0.0f;
 		}
-#endif	// WITH_ENGINE
+#endif //WITH_ENGINE
 
-		// tick the currently active platform files
+		// tick active platform files
 		FPlatformFileManager::Get().TickActivePlatformFile();
 
+		// process accumulated Slate input
 		if (FSlateApplication::IsInitialized() && !bIdleMode)
 		{
 			SCOPE_TIME_GUARD(TEXT("SlateInput"));
@@ -3251,14 +3267,34 @@ void FEngineLoop::Tick()
 			SlateApp.FinishedInputThisFrame();
 		}
 
-		GEngine->Tick( FApp::GetDeltaTime(), bIdleMode );
+#if !UE_SERVER
+		// tick media framework
+		IMediaModule* MediaModule = FModuleManager::LoadModulePtr<IMediaModule>("Media");
 
+		if (MediaModule != nullptr)
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_MediaTickPreEngine);
+			MediaModule->TickPreEngine();
+		}
+#endif
+
+		// main game engine tick (world, game objects, etc.)
+		GEngine->Tick(FApp::GetDeltaTime(), bIdleMode);
+
+#if !UE_SERVER
+		// tick media framework
+		if (MediaModule != nullptr)
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_MediaTickPostEngine);
+			MediaModule->TickPostEngine();
+		}
+#endif
+		
 		// If a movie that is blocking the game thread has been playing,
 		// wait for it to finish before we continue to tick or tick again
 		// We do this right after GEngine->Tick() because that is where user code would initiate a load / movie.
 		{
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_WaitForMovieToFinish);
-
 			GetMoviePlayer()->WaitForMovieToFinish();
 		}
 
@@ -3275,7 +3311,17 @@ void FEngineLoop::Tick()
 			GDistanceFieldAsyncQueue->ProcessAsyncTasks();
 		}
 
+#if !UE_SERVER
+		// tick media framework
+		if (MediaModule != nullptr)
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_MediaTickPreSlate);
+			MediaModule->TickPreSlate();
+		}
+#endif
+
 #if WITH_ENGINE
+		// process concurrent Slate tasks
 		FGraphEventRef ConcurrentTask;
 		const bool bDoConcurrentSlateTick = GEngine->ShouldDoAsyncEndOfFrameTasks();
 
@@ -3289,22 +3335,22 @@ void FEngineLoop::Tick()
 			if (CurrentDemoNetDriver && CurrentDemoNetDriver->ShouldTickFlushAsyncEndOfFrame())
 			{
 				ConcurrentTask = TGraphTask<FExecuteConcurrentWithSlateTickTask>::CreateTask(nullptr, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(
-					[CurrentDemoNetDriver, DeltaSeconds]()
-					{
+					[CurrentDemoNetDriver, DeltaSeconds]() {
 						if (CVarDoAsyncEndOfFrameTasksRandomize.GetValueOnAnyThread(true) > 0)
 						{
 							FPlatformProcess::Sleep(FMath::RandRange(0.0f, .003f)); // this shakes up the threading to find race conditions
 						}
+
 						if (CurrentDemoNetDriver != nullptr)
 						{
 							CurrentDemoNetDriver->TickFlushAsyncEndOfFrame(DeltaSeconds);
 						}
-					}
-				);
+					});
 			}
 		}
 #endif
 
+		// tick Slate application
 		if (FSlateApplication::IsInitialized() && !bIdleMode)
 		{
 			{
@@ -3315,7 +3361,6 @@ void FEngineLoop::Tick()
 				ProcessLocalPlayerSlateOperations();
 			}
 
-			// Tick Slate application
 			FSlateApplication::Get().Tick();
 		}
 
@@ -3329,28 +3374,27 @@ void FEngineLoop::Tick()
 #endif
 
 #if STATS
-		// Clear any stat group notifications we have pending just incase they weren't claimed during FSlateApplication::Get().Tick
+		// Clear any stat group notifications we have pending just in case they weren't claimed during FSlateApplication::Get().Tick
 		extern CORE_API void ClearPendingStatGroups();
 		ClearPendingStatGroups();
 #endif
 
 #if WITH_EDITOR && !UE_BUILD_SHIPPING
+		// tick automation controller (Editor only)
 		{
-			QUICK_SCOPE_CYCLE_COUNTER( STAT_FEngineLoop_Tick_AutomationController );
-			static FName AutomationController( "AutomationController" );
-			//Check if module loaded to support the change to allow this to be hot compilable.
-			if (FModuleManager::Get().IsModuleLoaded( AutomationController ))
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_Tick_AutomationController);
+			static FName AutomationController("AutomationController");
+			if (FModuleManager::Get().IsModuleLoaded(AutomationController))
 			{
-				FModuleManager::GetModuleChecked<IAutomationControllerModule>( AutomationController ).Tick();
+				FModuleManager::GetModuleChecked<IAutomationControllerModule>(AutomationController).Tick();
 			}
 		}
 #endif
 
-#if WITH_ENGINE
-#if WITH_AUTOMATION_WORKER
+#if WITH_ENGINE && WITH_AUTOMATION_WORKER
+		// tick automation worker
 		{
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_Tick_AutomationWorker);
-			//Check if module loaded to support the change to allow this to be hot compilable.
 			static const FName AutomationWorkerModuleName = TEXT("AutomationWorker");
 			if (FModuleManager::Get().IsModuleLoaded(AutomationWorkerModuleName))
 			{
@@ -3358,9 +3402,9 @@ void FEngineLoop::Tick()
 			}
 		}
 #endif
-#endif //WITH_ENGINE
 
-		{
+		// tick render hardware interface
+		{			
 			SCOPE_CYCLE_COUNTER(STAT_RHITickTime);
 			RHITick( FApp::GetDeltaTime() ); // Update RHI.
 		}
@@ -3369,46 +3413,52 @@ void FEngineLoop::Tick()
 		GFrameCounter++;
 
 		// Disregard first few ticks for total tick time as it includes loading and such.
-		if( GFrameCounter > 6 )
+		if (GFrameCounter > 6)
 		{
-			TotalTickTime+=FApp::GetDeltaTime();
+			TotalTickTime += FApp::GetDeltaTime();
 		}
-
 
 		// Find the objects which need to be cleaned up the next frame.
 		FPendingCleanupObjects* PreviousPendingCleanupObjects = PendingCleanupObjects;
 		PendingCleanupObjects = GetPendingCleanupObjects();
 
 		{
-			SCOPE_CYCLE_COUNTER( STAT_FrameSyncTime );
-			// this could be perhaps moved down to get greater parallelizm
+			SCOPE_CYCLE_COUNTER(STAT_FrameSyncTime);
+			// this could be perhaps moved down to get greater parallelism
 			// Sync game and render thread. Either total sync or allowing one frame lag.
 			static FFrameEndSync FrameEndSync;
 			static auto CVarAllowOneFrameThreadLag = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.OneFrameThreadLag"));
 			FrameEndSync.Sync( CVarAllowOneFrameThreadLag->GetValueOnGameThread() != 0 );
 		}
 
+		// tick core ticker, threads & deferred commands
 		{
-			SCOPE_CYCLE_COUNTER( STAT_DeferredTickTime );
+			SCOPE_CYCLE_COUNTER(STAT_DeferredTickTime);
 			// Delete the objects which were enqueued for deferred cleanup before the previous frame.
 			delete PreviousPendingCleanupObjects;
 
-			// Destroy all linkers pending delete
 #if WITH_COREUOBJECT
-			DeleteLoaders();
+			DeleteLoaders(); // destroy all linkers pending delete
 #endif
 
 			FTicker::GetCoreTicker().Tick(FApp::GetDeltaTime());
-
 			FThreadManager::Get().Tick();
-
-			GEngine->TickDeferredCommands();
+			GEngine->TickDeferredCommands();		
 		}
+
+#if !UE_SERVER
+		// tick media framework
+		if (MediaModule != nullptr)
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_MediaTickPostRender);
+			MediaModule->TickPostRender();
+		}
+#endif
 
 		FCoreDelegates::OnEndFrame.Broadcast();
 
-		ENQUEUE_UNIQUE_RENDER_COMMAND(
-			EndFrame,
+		// end of RHI frame
+		ENQUEUE_UNIQUE_RENDER_COMMAND(EndFrame,
 		{
 			RHICmdList.EndFrame();
 			GPU_STATS_ENDFRAME(RHICmdList);
@@ -3436,6 +3486,7 @@ void FEngineLoop::ClearPendingCleanupObjects()
 
 #endif // WITH_ENGINE
 
+
 static TAutoConsoleVariable<int32> CVarLogTimestamp(
 	TEXT("log.Timestamp"),
 	1,
@@ -3444,6 +3495,7 @@ static TAutoConsoleVariable<int32> CVarLogTimestamp(
 	TEXT("  1 = Log time stamps in UTC and Frametime (default) e.g. [2015.11.25-21.28.50:803][376]\n")
 	TEXT("  2 = Log timestamps in seconds elapsed since GStartTime e.g. [0130.29][420]"),
 	ECVF_Default);
+
 
 static TAutoConsoleVariable<int32> CVarLogCategory(
 	TEXT("log.Category"),

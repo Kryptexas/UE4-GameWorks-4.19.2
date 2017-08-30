@@ -59,7 +59,7 @@ FTextureResource* UTextureRenderTarget2D::CreateResource()
 	return Result;
 }
 
-EMaterialValueType UTextureRenderTarget2D::GetMaterialType()
+EMaterialValueType UTextureRenderTarget2D::GetMaterialType() const
 {
 	return MCT_Texture2D;
 }

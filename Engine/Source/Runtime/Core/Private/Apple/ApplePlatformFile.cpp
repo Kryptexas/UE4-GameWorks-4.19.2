@@ -29,13 +29,13 @@ namespace
 		}
 
 		return FFileStatData(
-			MacEpoch + FTimespan(0, 0, FileInfo.st_ctime), 
-			MacEpoch + FTimespan(0, 0, FileInfo.st_atime), 
-			MacEpoch + FTimespan(0, 0, FileInfo.st_mtime), 
+			MacEpoch + FTimespan::FromSeconds(FileInfo.st_ctime), 
+			MacEpoch + FTimespan::FromSeconds(FileInfo.st_atime), 
+			MacEpoch + FTimespan::FromSeconds(FileInfo.st_mtime), 
 			FileSize,
 			bIsDirectory,
 			!!(FileInfo.st_mode & S_IWUSR)
-			);
+		);
 	}
 }
 

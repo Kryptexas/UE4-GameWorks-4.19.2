@@ -3,11 +3,13 @@
 #include "LandscapeFileFormatPng.h"
 #include "Misc/FileHelper.h"
 #include "Modules/ModuleManager.h"
-
-#include "Interfaces/IImageWrapperModule.h"
+#include "IImageWrapper.h"
+#include "IImageWrapperModule.h"
 #include "Containers/Algo/Transform.h"
 
+
 #define LOCTEXT_NAMESPACE "LandscapeEditor.NewLandscape"
+
 
 FLandscapeHeightmapFileFormat_Png::FLandscapeHeightmapFileFormat_Png()
 {
@@ -29,7 +31,7 @@ FLandscapeHeightmapInfo FLandscapeHeightmapFileFormat_Png::Validate(const TCHAR*
 	else
 	{
 		IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>("ImageWrapper");
-		IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
+		TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
 
 		if (!ImageWrapper->SetCompressed(ImportData.GetData(), ImportData.Num()) || ImageWrapper->GetWidth() <= 0 || ImageWrapper->GetHeight() <= 0)
 		{
@@ -75,7 +77,7 @@ FLandscapeHeightmapImportData FLandscapeHeightmapFileFormat_Png::Import(const TC
 	else
 	{
 		IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>("ImageWrapper");
-		IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
+		TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
 
 		if (!ImageWrapper->SetCompressed(TempData.GetData(), TempData.Num()))
 		{
@@ -137,7 +139,7 @@ FLandscapeHeightmapImportData FLandscapeHeightmapFileFormat_Png::Import(const TC
 void FLandscapeHeightmapFileFormat_Png::Export(const TCHAR* HeightmapFilename, TArrayView<const uint16> Data, FLandscapeFileResolution DataResolution, FVector Scale) const
 {
 	IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>("ImageWrapper");
-	IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
+	TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
 
 	if (ImageWrapper->SetRaw(Data.GetData(), Data.Num() * 2, DataResolution.Width, DataResolution.Height, ERGBFormat::Gray, 16))
 	{
@@ -168,7 +170,7 @@ FLandscapeWeightmapInfo FLandscapeWeightmapFileFormat_Png::Validate(const TCHAR*
 	else
 	{
 		IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>("ImageWrapper");
-		IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
+		TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
 
 		if (!ImageWrapper->SetCompressed(ImportData.GetData(), ImportData.Num()))
 		{
@@ -205,7 +207,7 @@ FLandscapeWeightmapImportData FLandscapeWeightmapFileFormat_Png::Import(const TC
 	else
 	{
 		IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>("ImageWrapper");
-		IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
+		TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
 
 		const TArray<uint8>* RawData = nullptr;
 		if (!ImageWrapper->SetCompressed(TempData.GetData(), TempData.Num()))
@@ -241,7 +243,7 @@ FLandscapeWeightmapImportData FLandscapeWeightmapFileFormat_Png::Import(const TC
 void FLandscapeWeightmapFileFormat_Png::Export(const TCHAR* WeightmapFilename, FName LayerName, TArrayView<const uint8> Data, FLandscapeFileResolution DataResolution) const
 {
 	IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>("ImageWrapper");
-	IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
+	TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
 
 	if (ImageWrapper->SetRaw(Data.GetData(), Data.Num(), DataResolution.Width, DataResolution.Height, ERGBFormat::Gray, 8))
 	{

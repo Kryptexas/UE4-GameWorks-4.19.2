@@ -2,14 +2,20 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "Containers/Ticker.h"
-#include "Containers/TripleBuffer.h"
-#include "UnrealClient.h"
-#include "TextureResource.h"
+#include "CoreTypes.h"
 #include "Containers/Queue.h"
+#include "Math/Color.h"
+#include "MediaSampleSource.h"
+#include "Misc/Guid.h"
+#include "Misc/Timespan.h"
+#include "Templates/RefCounting.h"
+#include "Templates/SharedPointer.h"
+#include "TextureResource.h"
+#include "UnrealClient.h"
 
-
+class FMediaPlayerFacade;
+class IMediaPlayer;
+class IMediaTextureSample;
 class UMediaTexture;
 
 enum class EMediaTextureSinkFormat;
@@ -22,104 +28,53 @@ enum class EMediaTextureSinkMode;
 class FMediaTextureResource
 	: public FRenderTarget
 	, public FTextureResource
-	, public FTickerObjectBase
 {
-	struct FResource
-	{
-		void* LockedData;
-		TRefCountPtr<FRHITexture2D> RenderTarget;
-		TRefCountPtr<FRHITexture2D> ShaderResource;
-
-		FResource() : LockedData(nullptr) { }
-	};
-
 public:
 
 	/** 
 	 * Creates and initializes a new instance.
 	 *
 	 * @param InOwner The Movie texture object to create a resource for (must not be nullptr).
-	 * @param InClearColor The clear color to use.
-	 * @param InOutputDimensions
-	 * @param InSinkFormat
-	 * @param InSinkMode
+	 * @param InSink The sink that receives texture samples from the media player.
 	 */
-	FMediaTextureResource(UMediaTexture& InOwner, const FLinearColor& InClearColor, const FIntPoint& InOutputDimensions, EMediaTextureSinkFormat InSinkFormat, EMediaTextureSinkMode InSinkMode);
+	FMediaTextureResource(UMediaTexture& InOwner, FIntPoint& InOwnerDim, SIZE_T& InOwnerSize);
 
 	/** Virtual destructor. */
-	virtual ~FMediaTextureResource();
+	virtual ~FMediaTextureResource() { }
 
 public:
 
-	/**
-	 * Acquire a pointer to locked texture memory buffer to render to.
-	 *
-	 * @return Pointer to buffer on success, nullptr otherwise.
-	 */
-	void* AcquireBuffer();
-
-	/** Display the latest texture buffer. */
-	void DisplayBuffer();
-
-	/**
-	 * Get the memory size of this resource.
-	 *
-	 * @return Resource size (in bytes).
-	 */
-	DEPRECATED(4.14, "GetResourceSize is deprecated. Please use GetResourceSizeEx or GetResourceSizeBytes instead.")
-	SIZE_T GetResourceSize() const
+	/** Parameters for the Render method. */
+	struct FRenderParams
 	{
-		return GetResourceSizeBytes();
-	}
+		/** The clear color to use when clearing the texture. */
+		FLinearColor ClearColor;
 
-	void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) const
-	{
-		CumulativeResourceSize.AddUnknownMemoryBytes(CachedResourceSizeBytes);
-	}
+		/** Guid associated with media player. */
+		FGuid PlayerGuid;
 
-	SIZE_T GetResourceSizeBytes() const
-	{
-		return CachedResourceSizeBytes;
-	}
+		/** The player's play rate. */
+		float Rate;
 
-	/**
-	 * Get the render target texture to render to.
-	 *
-	 * @return The texture, or nullptr if called in Buffered mode or not on rendering thread.
-	 */
-	FRHITexture* GetTexture();
+		/** The player facade that provides the video samples to render. */
+		TWeakPtr<FMediaTextureSampleSource, ESPMode::ThreadSafe> SampleSource;
 
-	/**
-	 * Initialize the render target buffer(s).
-	 *
-	 * @param OutputDim Width and height of the video output (in pixels).
-	 * @param BufferDim Width and height of the sink buffer(s) (in pixels).
-	 * @param Format The pixel format of the sink's render target texture.
-	 * @param Mode The mode to operate the sink in (buffered vs. unbuffered).
-	 */
-	void InitializeBuffer(FIntPoint OutputDim, FIntPoint BufferDim, EMediaTextureSinkFormat Format, EMediaTextureSinkMode Mode);
+		/** Whether output should be in sRGB color space. */
+		bool SrgbOutput;
 
-	/** Release a previously acquired texture buffer. */
-	void ReleaseBuffer();
-
-	/** Shut down the render target buffers. */
-	void ShutdownBuffer();
+		/** The time of the video frame to render (in player's clock). */
+		FTimespan Time;
+	};
 
 	/**
-	 * Update the render target texture with new frame data.
+	 * Render the texture resource.
 	 *
-	 * @param Data The frame data to copy into the render target.
-	 * @param Pitch Number of bytes per pixel row (0 = default).
-	 */
-	void UpdateBuffer(const uint8* Data, uint32 Pitch);
-
-	/**
-	 * Update the underlying resource textures.
+	 * This method is called on the render thread by the MediaTexture that owns this
+	 * texture resource to clear or redraw the resource using the given parameters.
 	 *
-	 * @param RenderTarget The new render target texture.
-	 * @param ShaderResource The new shader resource texture.
+	 * @param Params Render parameters.
 	 */
-	void UpdateTextures(FRHITexture* RenderTarget, FRHITexture* ShaderResource);
+	void Render(const FRenderParams& Params);
 
 public:
 
@@ -137,145 +92,69 @@ public:
 	virtual void InitDynamicRHI() override;
 	virtual void ReleaseDynamicRHI() override;
 
-public:
-
-	//~ FTickerObjectBase interface
-
-	virtual bool Tick(float DeltaTime) override;
-
 protected:
 
-	/** Cache the size of this resource, so it doesn't need to be recalculated. */
-	void CacheResourceSize();
+	/**
+	 * Clear the texture using the given clear color.
+	 *
+	 * @param ClearColor The clear color to use.
+	 * @param SrgbOutput Whether the output texture is in sRGB color space.
+	 */
+	void ClearTexture(const FLinearColor& ClearColor, bool SrgbOutput);
 
 	/**
-	 * Helper function to convert the given resource to the target resource's pixel format.
+	 * Render the given texture sample by converting it on the GPU.
 	 *
-	 * @param Resource The texture resource to convert.
-	 * @see DisplayResource
+	 * @param Sample The texture sample to convert.
+	 * @param ClearColor The clear color to use for the output texture.
+	 * @param SrgbOutput Whether the output texture is in sRGB color space.
+	 * @see CopySample
 	 */
-	void ConvertResource(const FResource& Resource);
+	void ConvertSample(const TSharedPtr<IMediaTextureSample, ESPMode::ThreadSafe>& Sample, const FLinearColor& ClearColor, bool SrgbOutput);
 
 	/**
-	 * Helper function to display the given resource in the media texture.
+	 * Render the given texture sample by using it as or copying it to the render target.
 	 *
-	 * @param Resource The resource to display.
-	 * @see ConvertResource
+	 * @param Sample The texture sample to copy.
+	 * @param ClearColor The clear color to use for the output texture.
+	 * @param SrgbOutput Whether the output texture is in sRGB color space.
+	 * @see ConvertSample
 	 */
-	void DisplayResource(const FResource& Resource);
+	void CopySample(const TSharedPtr<IMediaTextureSample, ESPMode::ThreadSafe>& Sample, const FLinearColor& ClearColor, bool SrgbOutput);
+
+	/** Calculates the current resource size and notifies the owner texture. */
+	void UpdateResourceSize();
 
 	/**
-	 * Initialize this resource.
+	 * Set the owner's texture reference to the given texture.
 	 *
-	 * @param OutputDim Width and height of the output texture (in pixels).
-	 * @param BufferDim Width and height of the buffer texture(s) (in pixels).
-	 * @param Format The new texture format.
-	 * @param Mode The new sink mode.
+	 * @param NewTexture The texture to set.
 	 */
-	void InitializeResource(FIntPoint OutputDim, FIntPoint BufferDim, EMediaTextureSinkFormat Format, EMediaTextureSinkMode Mode);
-
-	/** Process any queued up tasks on the render thread. */
-	void ProcessRenderThreadTasks();
-
-	/**
-	 * Helper function to make the given resource the output.
-	 *
-	 * @param Resource The resource to set.
-	 */
-	void SetResource(const FResource& Resource);
-
-	/** Swap the render target resource for display. */
-	void SwapResource();
+	void UpdateTextureReference(FRHITexture2D* NewTexture);
 
 private:
+
+	/** Whether the texture has been cleared. */
+	bool Cleared;
+
+	/** Tracks the current clear color. */
+	FLinearColor CurrentClearColor;
+
+	/** Input render target if the texture samples don't provide one (for conversions). */
+	TRefCountPtr<FRHITexture2D> InputTarget;
+
+	/** Output render target if the texture samples don't provide one. */
+	TRefCountPtr<FRHITexture2D> OutputTarget;
 
 	/** The media texture that owns this resource. */
 	UMediaTexture& Owner;
 
-	/**
-	 * Texture resources for buffered mode or pixel conversions.
-	 *
-	 * In Buffered mode, all three resources are used for triple buffering.
-	 * If no pixel format conversion is required, the triple buffer's Read
-	 * buffer is used as the output resource. Otherwise the Read buffer is
-	 * converted into a separate output resource.
-	 *
-	 * In Unbuffered mode when pixel format conversion is required, only the
-	 * third buffer (index = 2) is used. Otherwise data is written directly
-	 * to a separate output resource.
-	 */
-	FResource BufferResources[3];
+	/** Reference to the owner's texture dimensions field. */
+	FIntPoint& OwnerDim;
 
-	/** Triple-buffer for texture resources. */
-	TTripleBuffer<FResource> TripleBuffer;
+	/** Reference to the owner's texture size field. */
+	SIZE_T& OwnerSize;
 
-private:
-
-	//~ The following fields are owned by the render thread
-
-	/** The clear color to use. */
-	FLinearColor BufferClearColor;
-
-	/**
-	 * Width and height of the buffer resources (in pixels).
-	 *
-	 * This may be less than OutputDimensions, because the buffers can
-	 * have formats with multiple pixels packed into a single RGBA tuple.
-	 */
-	FIntPoint BufferDimensions;
-
-	/** Number of bytes per row in buffer resources. */
-	SIZE_T BufferPitch;
-
-	/** Total size of this resource.*/
-	SIZE_T CachedResourceSizeBytes;
-
-	/** Width and height of the output resource (in pixels). */
-	FIntPoint OutputDimensions;
-
-	/**
-	 * Asynchronous tasks for the render thread.
-	 *
-	 * We can't reliably enqueue render commands using the existing macros
-	 * from the decoder thread, which runs neither on the game nor on the
-	 * render thread, so we maintain our own queue of render commands here.
-	 */
-	TQueue<TFunction<void()>> RenderThreadTasks;
-
-	/** Whether the current media sink format requires pixel format conversion. */
-	bool RequiresConversion;
-
-	/** The render target's pixel format. */
-	EMediaTextureSinkFormat SinkFormat;
-
-	/** The mode that this sink is currently operating in. */
-	EMediaTextureSinkMode SinkMode;
-
-private:
-
-	//~ The following fields are owned by the decoder thread
-
-	/**
-	 * The sink's current state.
-	 *
-	 * The purpose of this field is to prevent the decoder thread from doing
-	 * stupid things, such as calling InitializeBuffer or ShutdownBuffer in
-	 * the wrong order. Strictly speaking, it is not thread-safe, because
-	 * state changing operations are not atomic in the current implementation.
-	 * However, it shouldn't be an issue, because relevant accesses are gated.
-	 *
-	 * State changes on the decoder thread will be visible there immediately.
-	 * There are a couple places where the state is set on the render thread,
-	 * but here we are ok with eventual consistency on the decoder thread.
-	 * The latest state will eventually trickle down, and in the meantime the
-	 * decoder is in a pending state, such as Initializing or ShuttingDown.
-	 */
-	enum class EState
-	{
-		Initializing,
-		Initialized,
-		ShuttingDown,
-		ShutDown
-	}
-	State;
+	/** The current media player facade to get video samples from. */
+	TWeakPtr<FMediaPlayerFacade, ESPMode::ThreadSafe> PlayerFacadePtr;
 };

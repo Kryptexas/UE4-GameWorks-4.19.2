@@ -2,13 +2,13 @@
 
 
 #include "Toolkits/AssetEditorManager.h"
-#include "Helpers/MessageEndpoint.h"
+#include "MessageEndpoint.h"
 #include "Misc/ConfigCacheIni.h"
 #include "Misc/FeedbackContext.h"
 #include "Modules/ModuleManager.h"
 #include "Settings/EditorLoadingSavingSettings.h"
 #include "AssetEditorMessages.h"
-#include "Helpers/MessageEndpointBuilder.h"
+#include "MessageEndpointBuilder.h"
 #include "IAssetTools.h"
 #include "IAssetTypeActions.h"
 #include "AssetToolsModule.h"
@@ -493,7 +493,7 @@ FArchive& operator<<(FArchive& Ar,IAssetEditorInstance*& TypeRef)
 }
 
 
-void FAssetEditorManager::HandleRequestOpenAssetMessage( const FAssetEditorRequestOpenAsset& Message, const IMessageContextRef& Context )
+void FAssetEditorManager::HandleRequestOpenAssetMessage( const FAssetEditorRequestOpenAsset& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context )
 {
 	OpenEditorForAsset(Message.AssetName);
 }

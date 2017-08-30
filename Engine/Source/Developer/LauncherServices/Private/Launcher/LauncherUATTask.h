@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Interfaces/ILauncherWorker.h"
+#include "ILauncherWorker.h"
 #include "Misc/CommandLine.h"
 #include "Misc/Paths.h"
 #include "Launcher/LauncherTask.h"

@@ -27,7 +27,7 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=General)
 	bool bDrawThumbnails;
 
-	/** Whether to draw thumbnails or not */
+	/** Whether to draw a single thumbnail for this section or as many as can fit */
 	UPROPERTY(EditAnywhere, config, Category=General, meta=(EditCondition=bDrawThumbnails))
 	bool bDrawSingleThumbnails;
 

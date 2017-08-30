@@ -1,11 +1,13 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "SessionInstanceInfo.h"
-#include "SessionLogMessage.h"
-#include "HAL/PlatformProcess.h"
+
 #include "EngineServiceMessages.h"
-#include "Helpers/MessageEndpointBuilder.h"
+#include "HAL/PlatformProcess.h"
+#include "MessageEndpointBuilder.h"
 #include "SessionServiceMessages.h"
+
+#include "SessionLogMessage.h"
 
 
 /* FSessionInstanceInfo structors
@@ -25,7 +27,7 @@ FSessionInstanceInfo::FSessionInstanceInfo(const FGuid& InInstanceId, const TSha
 /* FSessionInstanceInfo interface
  *****************************************************************************/
 
-void FSessionInstanceInfo::UpdateFromMessage(const FEngineServicePong& Message, const IMessageContextRef& Context)
+void FSessionInstanceInfo::UpdateFromMessage(const FEngineServicePong& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 {
 	if (Message.InstanceId != InstanceId)
 	{
@@ -41,7 +43,7 @@ void FSessionInstanceInfo::UpdateFromMessage(const FEngineServicePong& Message, 
 }
 
 
-void FSessionInstanceInfo::UpdateFromMessage(const FSessionServicePong& Message, const IMessageContextRef& Context)
+void FSessionInstanceInfo::UpdateFromMessage(const FSessionServicePong& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 {
 	if (Message.InstanceId != InstanceId)
 	{
@@ -89,7 +91,7 @@ void FSessionInstanceInfo::Terminate()
 /* FSessionInstanceInfo callbacks
  *****************************************************************************/
 
-void FSessionInstanceInfo::HandleSessionLogMessage(const FSessionServiceLog& Message, const IMessageContextRef& Context)
+void FSessionInstanceInfo::HandleSessionLogMessage(const FSessionServiceLog& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 {
 	TSharedRef<FSessionLogMessage> LogMessage = MakeShareable(
 		new FSessionLogMessage(

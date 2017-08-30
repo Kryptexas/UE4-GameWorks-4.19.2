@@ -7,12 +7,12 @@
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/SCompoundWidget.h"
 #include "ISessionManager.h"
-#include "Interfaces/ITargetDeviceProxyManager.h"
 #include "Interfaces/IScreenShotManager.h"
 
 class FMenuBuilder;
 class FSpawnTabArgs;
 class FTabManager;
+class ITargetDeviceProxyManager;
 class SButton;
 class SWindow;
 
@@ -64,7 +64,7 @@ private:
 private:
 
 	/** Holds the target device proxy manager. */
-	ITargetDeviceProxyManagerPtr DeviceProxyManager;
+	TSharedPtr<ITargetDeviceProxyManager> DeviceProxyManager;
 	
 	/** Holds a flag indicating whether the launcher overlay is visible. */
 	bool LauncherOverlayVisible;

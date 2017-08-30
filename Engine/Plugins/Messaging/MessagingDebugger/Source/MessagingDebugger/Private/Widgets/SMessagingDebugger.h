@@ -8,14 +8,15 @@
 #include "Styling/ISlateStyle.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/SCompoundWidget.h"
-#include "IMessageTracer.h"
-#include "Models/MessagingDebuggerModel.h"
 
 class FMenuBuilder;
+class FMessagingDebuggerModel;
 class FSpawnTabArgs;
 class FTabManager;
 class FUICommandList;
+class IMessageTracer;
 class SWindow;
+
 
 /**
  * Implements the messaging system debugger application.
@@ -54,11 +55,11 @@ public:
 protected:
 
 	/**
-	* Fills the Window menu with menu items.
-	*
-	* @param MenuBuilder The multi-box builder that should be filled with content for this pull-down menu.
-	* @param TabManager A Tab Manager from which to populate tab spawner menu items.
-	*/
+	 * Fills the Window menu with menu items.
+	 *
+	 * @param MenuBuilder The multi-box builder that should be filled with content for this pull-down menu.
+	 * @param TabManager A Tab Manager from which to populate tab spawner menu items.
+	 */
 	static void FillWindowMenu(FMenuBuilder& MenuBuilder, const TSharedPtr<FTabManager> TabManager);
 
 protected:

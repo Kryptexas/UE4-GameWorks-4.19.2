@@ -1,8 +1,15 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealLaunchDaemonApp.h"
+
+#include "IMessageContext.h"
 #include "LaunchDaemonMessageHandler.h"
+#include "LaunchDaemonMessages.h"
+#include "MessageEndpoint.h"
+#include "MessageEndpointBuilder.h"
+
 #import <TargetConditionals.h>
+
 
 void FLaunchDaemonMessageHandler::Init()
 {
@@ -16,6 +23,7 @@ void FLaunchDaemonMessageHandler::Init()
 	}
 }
 
+
 void FLaunchDaemonMessageHandler::Shutdown()
 {
 	if (MessageEndpoint.IsValid())
@@ -24,7 +32,8 @@ void FLaunchDaemonMessageHandler::Shutdown()
 	}
 }
 
-void FLaunchDaemonMessageHandler::HandlePingMessage(const FIOSLaunchDaemonPing& Message, const IMessageContextRef& Context)
+
+void FLaunchDaemonMessageHandler::HandlePingMessage(const FIOSLaunchDaemonPing& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 {
 	if (MessageEndpoint.IsValid())
 	{
@@ -41,13 +50,15 @@ void FLaunchDaemonMessageHandler::HandlePingMessage(const FIOSLaunchDaemonPing& 
 	}
 }
 
-void FLaunchDaemonMessageHandler::HandleLaunchRequest(const FIOSLaunchDaemonLaunchApp& Message, const IMessageContextRef& Context)
+
+void FLaunchDaemonMessageHandler::HandleLaunchRequest(const FIOSLaunchDaemonLaunchApp& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 {
 	FString Error;
 	// Leaving in extra variable in case text debugging needs to be injected.
 	FString LaunchURL = FString(Message.AppID + TEXT("://") + Message.Parameters);
 	Launch(LaunchURL);
 }
+
 
 void FLaunchDaemonMessageHandler::Launch(const FString& LaunchURL)
 {

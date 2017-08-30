@@ -4,7 +4,7 @@
 #include "Misc/App.h"
 #include "WidgetSnapshotMessages.h"
 #include "IMessagingModule.h"
-#include "Helpers/MessageEndpointBuilder.h"
+#include "MessageEndpointBuilder.h"
 #include "Widgets/SWidgetSnapshotVisualizer.h"
 
 FWidgetSnapshotService::FWidgetSnapshotService()
@@ -48,7 +48,7 @@ void FWidgetSnapshotService::AbortSnapshotRequest(const FGuid& InSnapshotRequest
 	PendingSnapshotResponseHandlers.Remove(InSnapshotRequestId);
 }
 
-void FWidgetSnapshotService::HandleWidgetSnapshotRequestMessage(const FWidgetSnapshotRequest& Message, const IMessageContextRef& Context)
+void FWidgetSnapshotService::HandleWidgetSnapshotRequestMessage(const FWidgetSnapshotRequest& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 {
 	if (MessageEndpoint.IsValid() && Message.TargetInstanceId == FApp::GetInstanceId())
 	{
@@ -63,7 +63,7 @@ void FWidgetSnapshotService::HandleWidgetSnapshotRequestMessage(const FWidgetSna
 	}
 }
 
-void FWidgetSnapshotService::HandleWidgetSnapshotResponseMessage(const FWidgetSnapshotResponse& Message, const IMessageContextRef& Context)
+void FWidgetSnapshotService::HandleWidgetSnapshotResponseMessage(const FWidgetSnapshotResponse& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 {
 	const FOnWidgetSnapshotResponse* FoundResponseHandler = PendingSnapshotResponseHandlers.Find(Message.SnapshotRequestId);
 	if (FoundResponseHandler && FoundResponseHandler->IsBound())

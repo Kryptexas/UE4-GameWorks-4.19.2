@@ -44,13 +44,13 @@ namespace
 		}
 
 		return FFileStatData(
-			AndroidEpoch + FTimespan(0, 0, FileInfo.st_ctime), 
-			AndroidEpoch + FTimespan(0, 0, FileInfo.st_atime), 
-			AndroidEpoch + FTimespan(0, 0, FileInfo.st_mtime), 
+			AndroidEpoch + FTimespan::FromSeconds(FileInfo.st_ctime), 
+			AndroidEpoch + FTimespan::FromSeconds(FileInfo.st_atime), 
+			AndroidEpoch + FTimespan::FromSeconds(FileInfo.st_mtime), 
 			FileSize,
 			bIsDirectory,
 			!!(FileInfo.st_mode & S_IWUSR)
-			);
+		);
 	}
 }
 

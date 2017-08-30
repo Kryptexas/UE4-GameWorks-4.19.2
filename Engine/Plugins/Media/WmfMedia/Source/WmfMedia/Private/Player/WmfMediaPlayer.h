@@ -2,24 +2,21 @@
 
 #pragma once
 
-#include "../WmfMediaPrivate.h"
-#include "WmfMediaPlayer.h"
-#include "IMediaPlayer.h"
-#include "IMediaTracks.h"
-#include "IWmfMediaResolverCallbacks.h"
-#include "WmfMediaTracks.h"
-#include "Containers/Ticker.h"
-#include "Containers/Queue.h"
+#include "WmfMediaPrivate.h"
 
 #if WMFMEDIA_SUPPORTED_PLATFORM
 
+#include "Containers/UnrealString.h"
+#include "IMediaCache.h"
+#include "IMediaPlayer.h"
+#include "IMediaView.h"
+#include "Misc/Timespan.h"
+
 #include "AllowWindowsPlatformTypes.h"
 
-class FWmfMediaResolver;
 class FWmfMediaSession;
-class IMediaControls;
-class IMediaOutput;
-class IMediaTracks;
+class FWmfMediaTracks;
+class IMediaEventSink;
 
 
 /**
@@ -27,93 +24,71 @@ class IMediaTracks;
  */
 class FWmfMediaPlayer
 	: public IMediaPlayer
-	, protected IWmfMediaResolverCallbacks
+	, protected IMediaCache
+	, protected IMediaView
 {
 public:
 
-	/** Default constructor. */
-	FWmfMediaPlayer();
+	/**
+	 * Create and initialize a new instance.
+	 *
+	 * @param InEventSink The object that receives media events from this player.
+	 */
+	FWmfMediaPlayer(IMediaEventSink& InEventSink);
 
-	/** Destructor. */
-	~FWmfMediaPlayer();
+	/** Virtual destructor. */
+	virtual ~FWmfMediaPlayer();
 
 public:
 
 	//~ IMediaPlayer interface
 
 	virtual void Close() override;
+	virtual IMediaCache& GetCache() override;
 	virtual IMediaControls& GetControls() override;
 	virtual FString GetInfo() const override;
 	virtual FName GetName() const override;
-	virtual IMediaOutput& GetOutput() override;
+	virtual IMediaSamples& GetSamples() override;
 	virtual FString GetStats() const override;
 	virtual IMediaTracks& GetTracks() override;
 	virtual FString GetUrl() const override;
-	virtual bool Open(const FString& Url, const IMediaOptions& Options) override;
-	virtual bool Open(const TSharedRef<FArchive, ESPMode::ThreadSafe>& Archive, const FString& OriginalUrl, const IMediaOptions& Options) override;
-	virtual void TickPlayer(float DeltaTime) override;
-	virtual void TickVideo(float DeltaTime) override;
-	
-	DECLARE_DERIVED_EVENT(FWmfMediaPlayer, IMediaPlayer::FOnMediaEvent, FOnMediaEvent);
-	virtual FOnMediaEvent& OnMediaEvent() override
-	{
-		return MediaEvent;
-	}
-
-protected:
-
-	//~ IWmfMediaResolverCallbacks interface
-
-	virtual void ProcessResolveComplete(TComPtr<IUnknown> SourceObject, FString ResolvedUrl) override;
-	virtual void ProcessResolveFailed(FString FailedUrl) override;
+	virtual IMediaView& GetView() override;
+	virtual bool Open(const FString& Url, const IMediaOptions* Options) override;
+	virtual bool Open(const TSharedRef<FArchive, ESPMode::ThreadSafe>& Archive, const FString& OriginalUrl, const IMediaOptions* Options) override;
+	virtual void TickFetch(FTimespan DeltaTime) override;
+	virtual void TickInput(FTimespan DeltaTime) override;
 
 protected:
 
 	/**
-	 * Initializes the media session for the given media source.
+	 * Initialize the native AvPlayer instance.
 	 *
-	 * @param SourceObject The media source object.
-	 * @param SourceUrl The original URL of the media source.
+	 * @param Archive The archive being used as a media source (optional).
+	 * @param Url The media URL being opened.
+	 * @param Precache Whether to precache media into RAM if InURL is a local file.
 	 * @return true on success, false otherwise.
 	 */
-	bool InitializeMediaSession(IUnknown* SourceObject, const FString& SourceUrl);
-
-private:
-
-	/** Handles session events. */
-	void HandleSessionEvent(MediaEventType EventType);
+	bool InitializePlayer(const TSharedPtr<FArchive, ESPMode::ThreadSafe>& Archive, const FString& Url, bool Precache);
 
 private:
 
 	/** The duration of the currently loaded media. */
 	FTimespan Duration;
 
-	/** Media information string. */
-	FString Info;
-
-	/** Tasks to execute on the player thread. */
-	TQueue<TFunction<void()>> PlayerTasks;
-
-	/** Event delegate that is invoked when a media event occurred. */
-	FOnMediaEvent MediaEvent;
-
-	/** Asynchronous callback object for the media stream. */
-	TComPtr<FWmfMediaSession> MediaSession;
-
-	/** Pointer to the media source object. */
-	TComPtr<IMFMediaSource> MediaSource;
+	/** The media event handler. */
+	IMediaEventSink& EventSink;
 
 	/** The URL of the currently opened media. */
 	FString MediaUrl;
 
-	/** The media source resolver. */
-	TComPtr<FWmfMediaResolver> Resolver;
+	/** Asynchronous callback object for the media session. */
+	TComPtr<FWmfMediaSession> Session;
 
-	/** Track manager. */
-	FWmfMediaTracks Tracks;
+	/** Media streams collection. */
+	TSharedPtr<FWmfMediaTracks, ESPMode::ThreadSafe> Tracks;
 };
 
 
 #include "HideWindowsPlatformTypes.h"
 
-#endif
+#endif //WMFMEDIA_SUPPORTED_PLATFORM

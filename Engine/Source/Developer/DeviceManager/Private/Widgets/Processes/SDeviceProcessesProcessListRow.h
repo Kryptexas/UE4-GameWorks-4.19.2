@@ -2,60 +2,59 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "Widgets/SNullWidget.h"
-#include "Widgets/DeclarativeSyntaxSupport.h"
-#include "Widgets/SWidget.h"
+#include "CoreTypes.h"
 #include "Layout/Margin.h"
-#include "Widgets/Views/STableViewBase.h"
-#include "Widgets/SBoxPanel.h"
-#include "Widgets/Layout/SBox.h"
-#include "Widgets/Views/SExpanderArrow.h"
-#include "Widgets/Views/STableRow.h"
-#include "Widgets/Text/STextBlock.h"
-#include "Widgets/Views/SListView.h"
-#include "Widgets/Processes/SDeviceProcessesProcessTreeNode.h"
 #include "SlateOptMacros.h"
+#include "Templates/SharedPointer.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/SNullWidget.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Views/SExpanderArrow.h"
+#include "Widgets/Views/SListView.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Views/STableViewBase.h"
+
+#include "Widgets/Processes/SDeviceProcessesProcessTreeNode.h"
+
 
 #define LOCTEXT_NAMESPACE "SDeviceProcessesProcessListRow"
+
 
 /**
  * Implements a row widget for the process list view.
  */
 class SDeviceProcessesProcessListRow
-	: public SMultiColumnTableRow<FDeviceProcessesProcessTreeNodePtr>
+	: public SMultiColumnTableRow<TSharedPtr<FDeviceProcessesProcessTreeNode>>
 {
 public:
 
 	SLATE_BEGIN_ARGS(SDeviceProcessesProcessListRow) { }
-		SLATE_ARGUMENT(FDeviceProcessesProcessTreeNodePtr, Node)
+		SLATE_ARGUMENT(TSharedPtr<FDeviceProcessesProcessTreeNode>, Node)
 	SLATE_END_ARGS()
 
 public:
 
 	/**
-	 * Constructs the widget.
+	 * Construct the widget.
 	 *
 	 * @param InArgs The arguments.
 	 */
-	void Construct( const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView )
+	void Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView)
 	{
 		Node = InArgs._Node;
 
-		SMultiColumnTableRow<FDeviceProcessesProcessTreeNodePtr>::Construct(FSuperRowType::FArguments(), InOwnerTableView);
+		SMultiColumnTableRow<TSharedPtr<FDeviceProcessesProcessTreeNode>>::Construct(FSuperRowType::FArguments(), InOwnerTableView);
 	}
 
 public:
 
-	/**
-	 * Generates the widget for the specified column.
-	 *
-	 * @param ColumnName The name of the column to generate the widget for.
-	 *
-	 * @return The widget.
-	 */
+	//~ SMultiColumnTableRow interface
+
 	BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) override
+	virtual TSharedRef<SWidget> GenerateWidgetForColumn(const FName& ColumnName) override
 	{
 		if (ColumnName == TEXT("Name"))
 		{
@@ -137,8 +136,8 @@ public:
 
 private:
 
-	// Holds the name of the process.
-	FDeviceProcessesProcessTreeNodePtr Node;
+	/** The name of the process. */
+	TSharedPtr<FDeviceProcessesProcessTreeNode> Node;
 };
 
 

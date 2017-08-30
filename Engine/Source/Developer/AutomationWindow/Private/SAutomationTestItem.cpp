@@ -2,8 +2,8 @@
 
 #include "SAutomationTestItem.h"
 #include "Modules/ModuleManager.h"
-#include "Interfaces/IAutomationReport.h"
-#include "Interfaces/IAutomationControllerModule.h"
+#include "IAutomationReport.h"
+#include "IAutomationControllerModule.h"
 #include "SlateOptMacros.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Widgets/Images/SImage.h"

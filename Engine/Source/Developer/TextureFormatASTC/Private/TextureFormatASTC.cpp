@@ -9,7 +9,8 @@
 #include "Misc/Guid.h"
 #include "Misc/ConfigCacheIni.h"
 #include "ImageCore.h"
-#include "Interfaces/IImageWrapperModule.h"
+#include "IImageWrapper.h"
+#include "IImageWrapperModule.h"
 #include "Modules/ModuleManager.h"
 #include "Interfaces/ITextureFormat.h"
 #include "Interfaces/ITextureFormatModule.h"
@@ -173,7 +174,7 @@ static bool CompressSliceToASTC(
 	}
 	
 	// Compress and retrieve the PNG data to write out to disk
-	IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
+	TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
 	ImageWrapper->SetRaw(SourceData, SizeX * SizeY * 4, SizeX, SizeY, ERGBFormat::RGBA, 8);
 	const TArray<uint8>& FileData = ImageWrapper->GetCompressed();
 	int32 FileDataSize = FileData.Num();

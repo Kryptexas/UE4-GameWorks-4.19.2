@@ -12,14 +12,12 @@ namespace UnrealBuildTool.Rules
 					"CoreUObject",
 					"MediaAssets",
 					"UnrealEd",
-                }
-			);
+				});
 
 			PrivateIncludePaths.AddRange(
 				new string[] {
 					"MfMediaEditor/Private",
-				}
-			);
+				});
 		}
 	}
 }

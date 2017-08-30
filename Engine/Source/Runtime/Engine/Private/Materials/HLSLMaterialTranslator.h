@@ -1467,6 +1467,12 @@ protected:
 			return Errorf(TEXT("Operation not supported on a Texture"));
 		}
 
+		// External textures must have an external texture uniform expression
+		if ((Type & MCT_TextureExternal) && !UniformExpression->GetExternalTextureUniformExpression())
+		{
+			return Errorf(TEXT("Operation not supported on an external texture"));
+		}
+
 		if (Type == MCT_StaticBool)
 		{
 			return Errorf(TEXT("Operation not supported on a Static Bool"));
@@ -1547,6 +1553,8 @@ protected:
 		// Any code chunk can have a texture uniform expression (eg FMaterialUniformExpressionFlipBookTextureParameter),
 		// But a texture code chunk must have a texture uniform expression
 		check(!(CodeChunk.Type & MCT_Texture) || TextureUniformExpression || ExternalTextureUniformExpression);
+		// External texture samples must have a corresponding uniform expression
+		check(!(CodeChunk.Type & MCT_TextureExternal) || ExternalTextureUniformExpression);
 
 		TCHAR FormattedCode[MAX_SPRINTF]=TEXT("");
 		if(CodeChunk.Type == MCT_Float)
@@ -3678,6 +3686,48 @@ protected:
 		return AddUniformExpression(new FMaterialUniformExpressionExternalTexture(ExternalTextureGuid), MCT_TextureExternal, TEXT(""));
 	}
 
+	virtual int32 ExternalTexture(UTexture* InTexture, int32& TextureReferenceIndex) override
+	{
+		if (ShaderFrequency != SF_Pixel)
+		{
+			return INDEX_NONE;
+		}
+
+		TextureReferenceIndex = Material->GetReferencedTextures().Find(InTexture);
+		checkf(TextureReferenceIndex != INDEX_NONE, TEXT("Material expression called Compiler->ExternalTexture() without implementing UMaterialExpression::GetReferencedTexture properly"));
+
+		return AddUniformExpression(new FMaterialUniformExpressionExternalTexture(TextureReferenceIndex), MCT_TextureExternal, TEXT(""));
+	}
+
+	virtual int32 ExternalTextureParameter(FName ParameterName, UTexture* DefaultValue, int32& TextureReferenceIndex) override
+	{
+		if (ShaderFrequency != SF_Pixel)
+		{
+			return INDEX_NONE;
+		}
+
+		TextureReferenceIndex = Material->GetReferencedTextures().Find(DefaultValue);
+		checkf(TextureReferenceIndex != INDEX_NONE, TEXT("Material expression called Compiler->ExternalTextureParameter() without implementing UMaterialExpression::GetReferencedTexture properly"));
+		return AddUniformExpression(new FMaterialUniformExpressionExternalTextureParameter(ParameterName, TextureReferenceIndex), MCT_TextureExternal, TEXT(""));
+	}
+
+	virtual int32 ExternalTextureCoordinateScaleRotation(int32 TextureReferenceIndex, TOptional<FName> ParameterName) override
+	{
+		return AddUniformExpression(new FMaterialUniformExpressionExternalTextureCoordinateScaleRotation(TextureReferenceIndex, ParameterName), MCT_Float4, TEXT(""));
+	}
+	virtual int32 ExternalTextureCoordinateScaleRotation(const FGuid& ExternalTextureGuid) override
+	{
+		return AddUniformExpression(new FMaterialUniformExpressionExternalTextureCoordinateScaleRotation(ExternalTextureGuid), MCT_Float4, TEXT(""));
+	}
+	virtual int32 ExternalTextureCoordinateOffset(int32 TextureReferenceIndex, TOptional<FName> ParameterName) override
+	{
+		return AddUniformExpression(new FMaterialUniformExpressionExternalTextureCoordinateOffset(TextureReferenceIndex, ParameterName), MCT_Float4, TEXT(""));
+	}
+	virtual int32 ExternalTextureCoordinateOffset(const FGuid& ExternalTextureGuid) override
+	{
+		return AddUniformExpression(new FMaterialUniformExpressionExternalTextureCoordinateOffset(ExternalTextureGuid), MCT_Float4, TEXT(""));
+	}
+
 	virtual int32 GetTextureReferenceIndex(UTexture* TextureValue)
 	{
 		return Material->GetReferencedTextures().Find(TextureValue);
@@ -5216,6 +5266,20 @@ protected:
 		{
 			return AddInlinedCodeChunk(MCT_Float, TEXT("GetPerInstanceFadeAmount(Parameters)"));
 		}
+	}
+
+	/**
+	 * Returns a float2 texture coordinate after 2x2 transform and offset applied
+	 *
+	 * @return	Code index
+	 */
+	virtual int32 RotateScaleOffsetTexCoords(int32 TexCoordCodeIndex, int32 RotationScale, int32 Offset) override
+	{
+		return AddCodeChunk(MCT_Float2,
+			TEXT("RotateScaleOffsetTexCoords(%s, %s, %s.xy)"),
+			*GetParameterCode(TexCoordCodeIndex),
+			*GetParameterCode(RotationScale),
+			*GetParameterCode(Offset));
 	}
 
 	/**

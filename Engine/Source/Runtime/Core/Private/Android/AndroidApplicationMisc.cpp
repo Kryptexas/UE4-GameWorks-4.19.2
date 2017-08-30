@@ -1,7 +1,10 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "AndroidApplicationMisc.h"
+
 #include "AndroidApplication.h"
+#include "AndroidInputInterface.h"
+
 
 GenericApplication* FAndroidApplicationMisc::CreateApplication()
 {

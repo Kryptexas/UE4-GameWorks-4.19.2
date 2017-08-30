@@ -30,9 +30,6 @@ public:
 		, RefCount(0)
 	{ }
 
-	/** Virtual destructor. */
-	virtual ~FWmfMediaReadState() { }
-
 public:
 
 	/**
@@ -114,6 +111,14 @@ public:
 		}
 
 		return CurrentRefCount;
+	}
+
+private:
+
+	/** Hidden destructor (this class is reference counted). */
+	virtual ~FWmfMediaReadState()
+	{
+		check(RefCount == 0);
 	}
 
 private:

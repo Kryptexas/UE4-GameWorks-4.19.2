@@ -1605,7 +1605,7 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 			{
 				// Decide whether to drop high detail because of frame rate
 				GameViewport->SetDropDetail(DeltaSeconds);
-			}			
+			}
 
 			// Update the level.
 			GameCycles=0;

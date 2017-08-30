@@ -1,17 +1,25 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "AutomationAnalytics.h"
-#include "Misc/CommandLine.h"
-#include "Misc/App.h"
-#include "Misc/EngineVersion.h"
-#include "Interfaces/IAutomationWorkerModule.h"
-#include "AutomationWorkerMessages.h"
 #include "AutomationWorkerPrivate.h"
-#include "AnalyticsEventAttribute.h"
-#include "IAnalyticsProviderET.h"
+
 #include "AnalyticsET.h"
+#include "AnalyticsEventAttribute.h"
+#include "AutomationWorkerMessages.h"
+#include "IAnalyticsProvider.h"
+#include "IAnalyticsProviderET.h"
+#include "Misc/App.h"
+#include "Misc/CommandLine.h"
+#include "Misc/EngineVersion.h"
+
+#include "IAutomationWorkerModule.h"
+
 
 DEFINE_LOG_CATEGORY(LogAutomationAnalytics);
+
+
+/* Static initialization
+ *****************************************************************************/
 
 bool FAutomationAnalytics::bIsInitialized;
 TSharedPtr<IAnalyticsProviderET> FAutomationAnalytics::Analytics;
@@ -19,15 +27,17 @@ TArray<FString> FAutomationAnalytics::AutomationEventNames;
 TArray<FString> FAutomationAnalytics::AutomationParamNames;
 FString FAutomationAnalytics::MachineSpec;
 
-/**
-* Get analytics pointer
-*/
+
+/* FAutomationAnalytics static functions
+ *****************************************************************************/
+
 IAnalyticsProvider& FAutomationAnalytics::GetProvider()
 {
 	checkf(bIsInitialized && IsAvailable(), TEXT("FAutomationAnalytics::GetProvider called outside of Initialize/Shutdown."));
 
 	return *Analytics.Get();
 }
+
 
 void FAutomationAnalytics::Initialize()
 {
@@ -51,11 +61,19 @@ void FAutomationAnalytics::Initialize()
 	}
 }
 
+
+bool FAutomationAnalytics::IsAvailable()
+{
+	return Analytics.IsValid();
+}
+
+
 void FAutomationAnalytics::Shutdown()
 {
 	Analytics.Reset();
 	bIsInitialized = false;
 }
+
 
 FString FAutomationAnalytics::GetAutomationEventName(EAutomationEventName::Type InEventName)
 {
@@ -63,11 +81,13 @@ FString FAutomationAnalytics::GetAutomationEventName(EAutomationEventName::Type 
 	return AutomationEventNames[InEventName];
 }
 
+
 FString FAutomationAnalytics::GetAutomationParamName(EAutomationAnalyticParam::Type InEngineParam)
 {
 	check(InEngineParam < AutomationParamNames.Num());
 	return AutomationParamNames[InEngineParam];
 }
+
 
 void FAutomationAnalytics::InititalizeAnalyticParameterNames()
 {
@@ -122,7 +142,7 @@ void FAutomationAnalytics::InititalizeAnalyticParameterNames()
 	}
 }
 
-//Timestamp,Platform
+
 void FAutomationAnalytics::SetInitialParameters(TArray<FAnalyticsEventAttribute>& ParamArray)
 {
 	int32 TimeStamp;
@@ -136,33 +156,31 @@ void FAutomationAnalytics::SetInitialParameters(TArray<FAnalyticsEventAttribute>
 }
 
 
-/*
-* @EventName FPSCapture
-*
-* @Trigger 
-*
-* @Type Static
-*
-* @EventParam TimeStamp int32 The time in seconds when the test when the capture ended
-* @EventParam Platform string The platform in which the test is run on
-* @EventParam CL string The Changelist for the build
-* @EventParam Spec string The spec of the machine running the test
-* @EventParam MapName string The map that the test was run on
-* @EventParam MatineeName string The name of the matinee that fired the event
-* @EventParam FPS string 
-* @EventParam BuildConfiguration string Debug/Development/Test/Shipping
-* @EventParam AverageFrameTime string Time for a frame in ms
-* @EventParam AverageGameThreadTime string Time for the game thread in ms
-* @EventParam AverageRenderThreadTime string Time for the rendering thread in ms
-* @EventParam AverageGPUTime string Time for the GPU to flush in ms
-* @EventParam PercentOfFramesAtLeast30FPS string 
-* @EventParam PercentOfFramesAtLeast60FPS string 
-*
-* @Comments 
-*
-*/
 void FAutomationAnalytics::FireEvent_FPSCapture(const FAutomationPerformanceSnapshot& PerfSnapshot)
 {
+	// @EventName FPSCapture
+	//
+	// @Trigger 
+	//
+	// @Type Static
+	//
+	// @EventParam TimeStamp int32 The time in seconds when the test when the capture ended
+	// @EventParam Platform string The platform in which the test is run on
+	// @EventParam CL string The Changelist for the build
+	// @EventParam Spec string The spec of the machine running the test
+	// @EventParam MapName string The map that the test was run on
+	// @EventParam MatineeName string The name of the matinee that fired the event
+	// @EventParam FPS string 
+	// @EventParam BuildConfiguration string Debug/Development/Test/Shipping
+	// @EventParam AverageFrameTime string Time for a frame in ms
+	// @EventParam AverageGameThreadTime string Time for the game thread in ms
+	// @EventParam AverageRenderThreadTime string Time for the rendering thread in ms
+	// @EventParam AverageGPUTime string Time for the GPU to flush in ms
+	// @EventParam PercentOfFramesAtLeast30FPS string 
+	// @EventParam PercentOfFramesAtLeast60FPS string 
+	//
+	// @Comments
+
 	if (Analytics.IsValid())
 	{
 		TArray<FAnalyticsEventAttribute> ParamArray;
@@ -185,30 +203,29 @@ void FAutomationAnalytics::FireEvent_FPSCapture(const FAutomationPerformanceSnap
 	}
 }
 
-/*
-* @EventName AutomationTestResults
-*
-* @Trigger Fires when an automation test has completed
-*
-* @Type Static
-*
-* @EventParam TimeStamp int32 The time in seconds when the test ended
-* @EventParam Platform string The platform in which the test is run on
-* @EventParam CL string The Changelist for the build
-* @EventParam TestName string The execution string of the test being run
-* @EventParam BeautifiedTestName string The name displayed in the UI
-* @EventParam ExecutionCount string
-* @EventParam IsSuccess bool Where the test was a success or not
-* @EventParam Duration float The duration the test took to complete
-* @EventParam ErrorCount int32 The amount of errors during the test
-* @EventParam WarningCount int32 The amount of warnings during the test
-* @EventParam CL string The Changelist for the build
-*
-* @Comments 
-*
-*/
+
 void FAutomationAnalytics::FireEvent_AutomationTestResults(const FAutomationWorkerRunTestsReply* TestResults, const FString& BeautifiedTestName)
 {
+	// @EventName AutomationTestResults
+	//
+	// @Trigger Fires when an automation test has completed
+	//
+	// @Type Static
+	//
+	// @EventParam TimeStamp int32 The time in seconds when the test ended
+	// @EventParam Platform string The platform in which the test is run on
+	// @EventParam CL string The Changelist for the build
+	// @EventParam TestName string The execution string of the test being run
+	// @EventParam BeautifiedTestName string The name displayed in the UI
+	// @EventParam ExecutionCount string
+	// @EventParam IsSuccess bool Where the test was a success or not
+	// @EventParam Duration float The duration the test took to complete
+	// @EventParam ErrorCount int32 The amount of errors during the test
+	// @EventParam WarningCount int32 The amount of warnings during the test
+	// @EventParam CL string The Changelist for the build
+	//
+	// @Comments
+
 	if (Analytics.IsValid())
 	{
 		TArray<FAnalyticsEventAttribute> ParamArray;

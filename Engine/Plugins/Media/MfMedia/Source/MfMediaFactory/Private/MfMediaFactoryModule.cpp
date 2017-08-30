@@ -1,14 +1,19 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CoreMinimal.h"
-#include "MfMediaFactoryLog.h"
+#include "MfMediaFactoryPrivate.h"
+
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "IMediaModule.h"
+#include "IMediaOptions.h"
+#include "IMediaPlayerFactory.h"
+#include "Internationalization/Internationalization.h"
 #include "Misc/Paths.h"
 #include "Modules/ModuleInterface.h"
 #include "Modules/ModuleManager.h"
-#include "IMediaModule.h"
-#include "IMfMediaModule.h"
-#include "IMediaOptions.h"
-#include "IMediaPlayerFactory.h"
+#include "UObject/NameTypes.h"
+
+#include "../../MfMedia/Public/IMfMediaModule.h"
 
 
 DEFINE_LOG_CATEGORY(LogMfMediaFactory);
@@ -33,7 +38,7 @@ public:
 
 	//~ IMediaPlayerInfo interface
 
-	virtual bool CanPlayUrl(const FString& Url, const IMediaOptions& Options, TArray<FText>* OutWarnings, TArray<FText>* OutErrors) const override
+	virtual bool CanPlayUrl(const FString& Url, const IMediaOptions* Options, TArray<FText>* OutWarnings, TArray<FText>* OutErrors) const override
 	{
 		FString Scheme;
 		FString Location;
@@ -76,9 +81,9 @@ public:
 		}
 
 		// check options
-		if (OutWarnings != nullptr)
+		if ((OutWarnings != nullptr) && (Options != nullptr))
 		{
-			if (Options.GetMediaOption("PrecacheFile", false) && (Scheme != TEXT("file")))
+			if (Options->GetMediaOption("PrecacheFile", false) && (Scheme != TEXT("file")))
 			{
 				OutWarnings->Add(LOCTEXT("PrecachingNotSupported", "Precaching is supported for local files only"));
 			}
@@ -87,10 +92,10 @@ public:
 		return true;
 	}
 
-	virtual TSharedPtr<IMediaPlayer, ESPMode::ThreadSafe> CreatePlayer() override
+	virtual TSharedPtr<IMediaPlayer, ESPMode::ThreadSafe> CreatePlayer(IMediaEventSink& EventSink) override
 	{
 		auto MfMediaModule = FModuleManager::LoadModulePtr<IMfMediaModule>("MfMedia");
-		return (MfMediaModule != nullptr) ? MfMediaModule->CreatePlayer() : nullptr;
+		return (MfMediaModule != nullptr) ? MfMediaModule->CreatePlayer(EventSink) : nullptr;
 	}
 
 	virtual FText GetDisplayName() const override
@@ -107,6 +112,16 @@ public:
 	virtual const TArray<FString>& GetSupportedPlatforms() const override
 	{
 		return SupportedPlatforms;
+	}
+
+	virtual bool SupportsFeature(EMediaFeature Feature) const override
+	{
+		return ((Feature == EMediaFeature::AudioSamples) ||
+				(Feature == EMediaFeature::AudioTracks) ||
+				(Feature == EMediaFeature::CaptionTracks) ||
+				(Feature == EMediaFeature::OverlaySamples) ||
+				(Feature == EMediaFeature::VideoSamples) ||
+				(Feature == EMediaFeature::VideoTracks));
 	}
 
 public:
@@ -145,7 +160,7 @@ public:
 		// supported platforms
 		SupportedPlatforms.Add(TEXT("XboxOne"));
 #if defined(WINVER) && WINVER >= 0x0601
-//		SupportedPlatforms.Add(TEXT("Windows")); // disabled until 4.16, because it's currently broken on Windows
+//		SupportedPlatforms.Add(TEXT("Windows"));
 #endif
 
 		// supported schemes

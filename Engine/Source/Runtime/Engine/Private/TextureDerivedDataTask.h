@@ -13,7 +13,7 @@
 #include "Async/AsyncWork.h"
 #include "ImageCore.h"
 #include "TextureCompressorModule.h"
-#include "Interfaces/IImageWrapperModule.h"
+#include "IImageWrapperModule.h"
 #include "Engine/Texture2D.h"
 
 #endif // WITH_EDITOR

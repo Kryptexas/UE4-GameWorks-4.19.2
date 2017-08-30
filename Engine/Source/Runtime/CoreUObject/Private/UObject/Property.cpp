@@ -263,14 +263,13 @@ struct TStructOpsTypeTraits<FTimespan> : public TStructOpsTypeTraitsBase2<FTimes
 	{
 		WithCopy = true,
 		WithExportTextItem = true,
-		WithImportTextItem = false, // @todo gmp: implement FTimespan::ImportTextItem
+		WithImportTextItem = true,
 		WithSerializer = true,
 		WithZeroConstructor = true,
 		WithIdenticalViaEquality = true,
 	};
 };
 IMPLEMENT_STRUCT(Timespan);
-
 
 template<>
 struct TStructOpsTypeTraits<FSoftObjectPath> : public TStructOpsTypeTraitsBase2<FSoftObjectPath>

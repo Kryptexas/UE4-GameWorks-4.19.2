@@ -98,7 +98,7 @@ void FMessageTracer::TraceAddedSubscription(const TSharedRef<IMessageSubscriptio
 }
 
 
-void FMessageTracer::TraceDispatchedMessage(const IMessageContextRef& Context, const TSharedRef<IMessageReceiver, ESPMode::ThreadSafe>& Recipient, bool Async)
+void FMessageTracer::TraceDispatchedMessage(const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context, const TSharedRef<IMessageReceiver, ESPMode::ThreadSafe>& Recipient, bool Async)
 {
 	if (!Running)
 	{
@@ -142,7 +142,7 @@ void FMessageTracer::TraceDispatchedMessage(const IMessageContextRef& Context, c
 }
 
 
-void FMessageTracer::TraceHandledMessage(const IMessageContextRef& Context, const TSharedRef<IMessageReceiver, ESPMode::ThreadSafe>& Recipient)
+void FMessageTracer::TraceHandledMessage(const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context, const TSharedRef<IMessageReceiver, ESPMode::ThreadSafe>& Recipient)
 {
 	if (!Running)
 	{
@@ -178,7 +178,7 @@ void FMessageTracer::TraceHandledMessage(const IMessageContextRef& Context, cons
 }
 
 
-void FMessageTracer::TraceInterceptedMessage(const IMessageContextRef& Context, const TSharedRef<IMessageInterceptor, ESPMode::ThreadSafe>& Interceptor)
+void FMessageTracer::TraceInterceptedMessage(const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context, const TSharedRef<IMessageInterceptor, ESPMode::ThreadSafe>& Interceptor)
 {
 	if (!Running)
 	{
@@ -267,7 +267,7 @@ void FMessageTracer::TraceRemovedSubscription(const TSharedRef<IMessageSubscript
 }
 
 
-void FMessageTracer::TraceRoutedMessage(const IMessageContextRef& Context)
+void FMessageTracer::TraceRoutedMessage(const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 {
 	if (!Running)
 	{
@@ -294,7 +294,7 @@ void FMessageTracer::TraceRoutedMessage(const IMessageContextRef& Context)
 }
 
 
-void FMessageTracer::TraceSentMessage(const IMessageContextRef& Context)
+void FMessageTracer::TraceSentMessage(const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 {
 	if (!Running)
 	{
@@ -488,7 +488,7 @@ void FMessageTracer::ResetMessages()
 }
 
 
-bool FMessageTracer::ShouldBreak(const IMessageContextRef& Context) const
+bool FMessageTracer::ShouldBreak(const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context) const
 {
 	if (Breaking)
 	{

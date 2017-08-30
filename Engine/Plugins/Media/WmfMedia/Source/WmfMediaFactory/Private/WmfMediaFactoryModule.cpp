@@ -2,17 +2,16 @@
 
 #include "WmfMediaFactoryPrivate.h"
 
-#include "CoreMinimal.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
 #include "IMediaModule.h"
-#include "IWmfMediaModule.h"
 #include "IMediaOptions.h"
 #include "IMediaPlayerFactory.h"
+#include "Internationalization/Internationalization.h"
 #include "Misc/Paths.h"
 #include "Modules/ModuleInterface.h"
 #include "Modules/ModuleManager.h"
-#include "UObject/Class.h"
-#include "UObject/WeakObjectPtr.h"
-#include "WmfMediaSettings.h"
+#include "UObject/NameTypes.h"
 
 #if PLATFORM_WINDOWS
 	#include "WindowsHWrapper.h"
@@ -20,8 +19,13 @@
 
 #if WITH_EDITOR
 	#include "ISettingsModule.h"
-	#include "ISettingsSection.h"
+	#include "Templates/SharedPointer.h"
+	#include "UObject/Class.h"
+	#include "UObject/WeakObjectPtr.h"
+	#include "WmfMediaSettings.h"
 #endif
+
+#include "../../WmfMedia/Public/IWmfMediaModule.h"
 
 
 DEFINE_LOG_CATEGORY(LogWmfMediaFactory);
@@ -39,14 +43,13 @@ class FWmfMediaFactoryModule
 public:
 
 	/** Default constructor. */
-	FWmfMediaFactoryModule()
-	{ }
+	FWmfMediaFactoryModule() { }
 
 public:
 
-	//~ IMediaPlayerInfo interface
+	//~ IMediaPlayerFactory interface
 
-	virtual bool CanPlayUrl(const FString& Url, const IMediaOptions& Options, TArray<FText>* OutWarnings, TArray<FText>* OutErrors) const override
+	virtual bool CanPlayUrl(const FString& Url, const IMediaOptions* Options, TArray<FText>* OutWarnings, TArray<FText>* OutErrors) const override
 	{
 		FString Scheme;
 		FString Location;
@@ -89,9 +92,9 @@ public:
 		}
 
 		// check options
-		if (OutWarnings != nullptr)
+		if ((OutWarnings != nullptr) && (Options != nullptr))
 		{
-			if (Options.GetMediaOption("PrecacheFile", false) && (Scheme != TEXT("file")))
+			if (Options->GetMediaOption("PrecacheFile", false) && (Scheme != TEXT("file")))
 			{
 				OutWarnings->Add(LOCTEXT("PrecachingNotSupported", "Precaching is supported for local files only"));
 			}
@@ -100,10 +103,10 @@ public:
 		return true;
 	}
 
-	virtual TSharedPtr<IMediaPlayer, ESPMode::ThreadSafe> CreatePlayer() override
+	virtual TSharedPtr<IMediaPlayer, ESPMode::ThreadSafe> CreatePlayer(IMediaEventSink& EventSink) override
 	{
 		auto WmfMediaModule = FModuleManager::LoadModulePtr<IWmfMediaModule>("WmfMedia");
-		return (WmfMediaModule != nullptr) ? WmfMediaModule->CreatePlayer() : nullptr;
+		return (WmfMediaModule != nullptr) ? WmfMediaModule->CreatePlayer(EventSink) : nullptr;
 	}
 
 	virtual FText GetDisplayName() const override
@@ -120,6 +123,18 @@ public:
 	virtual const TArray<FString>& GetSupportedPlatforms() const override
 	{
 		return SupportedPlatforms;
+	}
+
+	virtual bool SupportsFeature(EMediaFeature Feature) const override
+	{
+		return ((Feature == EMediaFeature::AudioSamples) ||
+				(Feature == EMediaFeature::AudioTracks) ||
+				(Feature == EMediaFeature::CaptionTracks) ||
+				(Feature == EMediaFeature::MetadataTracks) ||
+				(Feature == EMediaFeature::OverlaySamples) ||
+				(Feature == EMediaFeature::SubtitleTracks) ||
+				(Feature == EMediaFeature::VideoSamples) ||
+				(Feature == EMediaFeature::VideoTracks));
 	}
 
 public:
@@ -143,6 +158,8 @@ public:
 		SupportedFileExtensions.Add(TEXT("mov"));
 		SupportedFileExtensions.Add(TEXT("mp3"));
 		SupportedFileExtensions.Add(TEXT("mp4"));
+		SupportedFileExtensions.Add(TEXT("sami"));
+		SupportedFileExtensions.Add(TEXT("smi"));
 		SupportedFileExtensions.Add(TEXT("wav"));
 		SupportedFileExtensions.Add(TEXT("wma"));
 		SupportedFileExtensions.Add(TEXT("wmv"));
@@ -151,6 +168,7 @@ public:
 		SupportedPlatforms.Add(TEXT("Windows"));
 
 		// supported schemes
+		SupportedUriSchemes.Add(TEXT("audcap"));
 		SupportedUriSchemes.Add(TEXT("file"));
 		SupportedUriSchemes.Add(TEXT("http"));
 		SupportedUriSchemes.Add(TEXT("httpd"));
@@ -159,6 +177,7 @@ public:
 		SupportedUriSchemes.Add(TEXT("rtsp"));
 		SupportedUriSchemes.Add(TEXT("rtspt"));
 		SupportedUriSchemes.Add(TEXT("rtspu"));
+		SupportedUriSchemes.Add(TEXT("vidcap"));
 
 #if WITH_EDITOR
 		// register settings
@@ -166,7 +185,7 @@ public:
 
 		if (SettingsModule != nullptr)
 		{
-			ISettingsSectionPtr SettingsSection = SettingsModule->RegisterSettings("Project", "Plugins", "WmfMedia",
+			SettingsModule->RegisterSettings("Project", "Plugins", "WmfMedia",
 				LOCTEXT("WmfMediaSettingsName", "WMF Media"),
 				LOCTEXT("WmfMediaSettingsDescription", "Configure the WMF Media plug-in."),
 				GetMutableDefault<UWmfMediaSettings>()

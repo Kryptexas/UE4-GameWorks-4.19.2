@@ -1,11 +1,16 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CoreMinimal.h"
 #include "WmfMediaPrivate.h"
-#include "IWmfMediaModule.h"
 
 #if WMFMEDIA_SUPPORTED_PLATFORM
+	#include "IMediaCaptureSupport.h"
+	#include "IMediaModule.h"
+	#include "Modules/ModuleInterface.h"
+	#include "Modules/ModuleManager.h"
+
+	#include "IWmfMediaModule.h"
 	#include "WmfMediaPlayer.h"
+	#include "WmfMediaUtils.h"
 
 	#pragma comment(lib, "mf")
 	#pragma comment(lib, "mfplat")
@@ -17,14 +22,13 @@
 
 DEFINE_LOG_CATEGORY(LogWmfMedia);
 
-#define LOCTEXT_NAMESPACE "FWmfMediaModule"
-
 
 /**
  * Implements the WmfMedia module.
  */
 class FWmfMediaModule
-	: public IWmfMediaModule
+	: public IMediaCaptureSupport
+	, public IWmfMediaModule
 {
 public:
 
@@ -35,18 +39,38 @@ public:
 
 public:
 
-	//~ IWmfMediaModule interface
+	//~ IMediaCaptureDevices interface
 
-	virtual TSharedPtr<IMediaPlayer, ESPMode::ThreadSafe> CreatePlayer() override
+	virtual void EnumerateAudioCaptureDevices(TArray<FMediaCaptureDeviceInfo>& OutDeviceInfos) override
 	{
 #if WMFMEDIA_SUPPORTED_PLATFORM
-		if (Initialized)
-		{
-			return MakeShareable(new FWmfMediaPlayer());
-		}
+		EnumerateCaptureDevices(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_AUDCAP_GUID, OutDeviceInfos);
 #endif
+	}
 
+	virtual void EnumerateVideoCaptureDevices(TArray<FMediaCaptureDeviceInfo>& OutDeviceInfos) override
+	{
+#if WMFMEDIA_SUPPORTED_PLATFORM
+		EnumerateCaptureDevices(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_GUID, OutDeviceInfos);
+#endif
+	}
+
+public:
+
+	//~ IWmfMediaModule interface
+
+	virtual TSharedPtr<IMediaPlayer, ESPMode::ThreadSafe> CreatePlayer(IMediaEventSink& EventSink) override
+	{
+#if WMFMEDIA_SUPPORTED_PLATFORM
+		if (!Initialized)
+		{
+			return nullptr;
+		}
+
+		return MakeShareable(new FWmfMediaPlayer(EventSink));
+#else
 		return nullptr;
+#endif
 	}
 
 public:
@@ -74,6 +98,14 @@ public:
 			return;
 		}
 
+		// register capture device support
+		auto MediaModule = FModuleManager::LoadModulePtr<IMediaModule>("Media");
+
+		if (MediaModule != nullptr)
+		{
+			MediaModule->RegisterCaptureSupport(*this);
+		}
+
 		Initialized = true;
 
 #endif //WMFMEDIA_SUPPORTED_PLATFORM
@@ -87,6 +119,14 @@ public:
 			return;
 		}
 
+		// unregister capture support
+		auto MediaModule = FModuleManager::GetModulePtr<IMediaModule>("Media");
+
+		if (MediaModule != nullptr)
+		{
+			MediaModule->UnregisterCaptureSupport(*this);
+		}
+
 		// shutdown Windows Media Foundation
 		MFShutdown();
 
@@ -96,6 +136,43 @@ public:
 	}
 
 protected:
+
+#if WMFMEDIA_SUPPORTED_PLATFORM
+
+	/**
+	 * Enumerate capture devices of the specified type.
+	 *
+	 * @param DeviceType The type of devices to enumerate.
+	 * @param SoftwareOnly Whether to enumerate software devices only.
+	 * @param OutDeviceInfo Will contain information about the devices.
+	 */
+	void EnumerateCaptureDevices(GUID DeviceType, TArray<FMediaCaptureDeviceInfo>& OutDeviceInfos)
+	{
+		TArray<TComPtr<IMFActivate>> Devices;
+		WmfMedia::EnumerateCaptureDevices(DeviceType, Devices);
+
+		for (auto& Device : Devices)
+		{
+			FMediaCaptureDeviceInfo DeviceInfo;
+			bool SoftwareDevice = false;
+
+			if (!WmfMedia::GetCaptureDeviceInfo(*Device, DeviceInfo.DisplayName, DeviceInfo.Info, SoftwareDevice, DeviceInfo.Url))
+			{
+				continue;
+			}
+
+			if (DeviceType == MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_GUID)
+			{
+				DeviceInfo.Type = SoftwareDevice ? EMediaCaptureDeviceType::VideoSoftware : EMediaCaptureDeviceType::Video;
+			}
+			else
+			{
+				DeviceInfo.Type = EMediaCaptureDeviceType::Audio;
+			}
+
+			OutDeviceInfos.Add(MoveTemp(DeviceInfo));
+		}
+	}
 
 	/**
 	 * Loads all required Windows libraries.
@@ -135,6 +212,8 @@ protected:
 		return true;
 	}
 
+#endif //WMFMEDIA_SUPPORTED_PLATFORM
+
 private:
 
 	/** Whether the module has been initialized. */
@@ -143,6 +222,3 @@ private:
 
 
 IMPLEMENT_MODULE(FWmfMediaModule, WmfMedia);
-
-
-#undef LOCTEXT_NAMESPACE

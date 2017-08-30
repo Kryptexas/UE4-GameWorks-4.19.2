@@ -10,7 +10,7 @@
 	"DocsURL" : "https://forums.unrealengine.com/showthread.php?46879-Media-Framework-Documentation-for-4-5-Preview",
 	"MarketplaceURL" : "",
 	"SupportURL" : "",
-	"EnabledByDefault" : false,
+	"EnabledByDefault" : true,
 	"CanContainContent" : false,
 	"IsBetaVersion" : false,
 	"Installed" : false,
@@ -20,7 +20,7 @@
 			"Name" : "MfMedia",
 			"Type" : "RuntimeNoCommandlet",
 			"LoadingPhase" : "PreLoadingScreen",
-			"WhitelistPlatforms" : [ "XboxOne" ]
+			"WhitelistPlatforms" : [ "XboxOne", "Win32", "Win64" ]
 		},
 		{
 			"Name" : "MfMediaEditor",
@@ -36,7 +36,7 @@
 			"Name" : "MfMediaFactory",
 			"Type" : "RuntimeNoCommandlet",
 			"LoadingPhase" : "PostEngineInit",
-			"WhitelistPlatforms" : [ "XboxOne" ]
+			"WhitelistPlatforms" : [ "XboxOne", "Win32", "Win64" ]
 		}
 	]
 }

@@ -7,12 +7,12 @@
 #include "Misc/ConfigCacheIni.h"
 #include "Misc/AutomationTest.h"
 #include "Misc/App.h"
-#include "Interfaces/IAutomationReport.h"
+#include "IAutomationReport.h"
 #include "AutomationWorkerMessages.h"
 #include "IMessageContext.h"
-#include "Helpers/MessageEndpoint.h"
+#include "MessageEndpoint.h"
+#include "MessageEndpointBuilder.h"
 #include "Modules/ModuleManager.h"
-#include "Helpers/MessageEndpointBuilder.h"
 #include "AssetEditorMessages.h"
 #include "ImageComparer.h"
 #include "AutomationControllerManager.h"
@@ -855,7 +855,7 @@ bool FAutomationControllerManager::IsTestRunnable(IAutomationReportPtr InReport)
 /* FAutomationControllerModule callbacks
  *****************************************************************************/
 
-void FAutomationControllerManager::HandleFindWorkersResponseMessage(const FAutomationWorkerFindWorkersResponse& Message, const IMessageContextRef& Context)
+void FAutomationControllerManager::HandleFindWorkersResponseMessage(const FAutomationWorkerFindWorkersResponse& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 {
 	if ( Message.SessionId == ActiveSessionId )
 	{
@@ -867,12 +867,12 @@ void FAutomationControllerManager::HandleFindWorkersResponseMessage(const FAutom
 	SetControllerStatus(EAutomationControllerModuleState::Ready);
 }
 
-void FAutomationControllerManager::HandlePongMessage( const FAutomationWorkerPong& Message, const IMessageContextRef& Context )
+void FAutomationControllerManager::HandlePongMessage( const FAutomationWorkerPong& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context )
 {
 	AddPingResult(Context->GetSender());
 }
 
-void FAutomationControllerManager::HandleReceivedScreenShot(const FAutomationWorkerScreenImage& Message, const IMessageContextRef& Context)
+void FAutomationControllerManager::HandleReceivedScreenShot(const FAutomationWorkerScreenImage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 {
 	FString ScreenshotIncomingFolder = FPaths::ProjectSavedDir() / TEXT("Automation/Incoming/");
 
@@ -899,7 +899,7 @@ void FAutomationControllerManager::HandleReceivedScreenShot(const FAutomationWor
 	ComparisonQueue.Enqueue(Comparison);
 }
 
-void FAutomationControllerManager::HandleTestDataRequest(const FAutomationWorkerTestDataRequest& Message, const IMessageContextRef& Context)
+void FAutomationControllerManager::HandleTestDataRequest(const FAutomationWorkerTestDataRequest& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 {
 	const FString TestDataRoot = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir() / TEXT("Test"));
 	const FString DataFile = Message.DataType / Message.DataPlatform / Message.DataTestName / Message.DataName + TEXT(".json");
@@ -944,7 +944,7 @@ void FAutomationControllerManager::HandleTestDataRequest(const FAutomationWorker
 	MessageEndpoint->Send(ResponseMessage, Context->GetSender());
 }
 
-void FAutomationControllerManager::HandlePerformanceDataRequest(const FAutomationWorkerPerformanceDataRequest& Message, const IMessageContextRef& Context)
+void FAutomationControllerManager::HandlePerformanceDataRequest(const FAutomationWorkerPerformanceDataRequest& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 {
 	//TODO Read/Performance data.
 
@@ -955,7 +955,7 @@ void FAutomationControllerManager::HandlePerformanceDataRequest(const FAutomatio
 	MessageEndpoint->Send(ResponseMessage, Context->GetSender());
 }
 
-void FAutomationControllerManager::HandleRequestNextNetworkCommandMessage(const FAutomationWorkerRequestNextNetworkCommand& Message, const IMessageContextRef& Context)
+void FAutomationControllerManager::HandleRequestNextNetworkCommandMessage(const FAutomationWorkerRequestNextNetworkCommand& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 {
 	// Harvest iteration of running the tests this result came from (stops stale results from being committed to subsequent runs)
 	if ( Message.ExecutionCount == ExecutionCount )
@@ -993,7 +993,7 @@ void FAutomationControllerManager::HandleRequestNextNetworkCommandMessage(const 
 	}
 }
 
-void FAutomationControllerManager::HandleRequestTestsReplyCompleteMessage(const FAutomationWorkerRequestTestsReplyComplete& Message, const IMessageContextRef& Context)
+void FAutomationControllerManager::HandleRequestTestsReplyCompleteMessage(const FAutomationWorkerRequestTestsReplyComplete& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 {
 	TArray<FAutomationTestInfo> TestInfo;
 	TestInfo.Reset(Message.Tests.Num());
@@ -1006,7 +1006,7 @@ void FAutomationControllerManager::HandleRequestTestsReplyCompleteMessage(const 
 	SetTestNames(Context->GetSender(), TestInfo);
 }
 
-void FAutomationControllerManager::HandleRunTestsReplyMessage(const FAutomationWorkerRunTestsReply& Message, const IMessageContextRef& Context)
+void FAutomationControllerManager::HandleRunTestsReplyMessage(const FAutomationWorkerRunTestsReply& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 {
 	// If we should commit these results
 	if ( Message.ExecutionCount == ExecutionCount )
@@ -1095,7 +1095,7 @@ void FAutomationControllerManager::HandleRunTestsReplyMessage(const FAutomationW
 	RemoveTestRunning(Context->GetSender());
 }
 
-void FAutomationControllerManager::HandleWorkerOfflineMessage( const FAutomationWorkerWorkerOffline& Message, const IMessageContextRef& Context )
+void FAutomationControllerManager::HandleWorkerOfflineMessage( const FAutomationWorkerWorkerOffline& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context )
 {
 	FMessageAddress DeviceMessageAddress = Context->GetSender();
 	DeviceClusterManager.Remove(DeviceMessageAddress);

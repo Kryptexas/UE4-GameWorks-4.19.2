@@ -108,7 +108,7 @@ void SLiveLinkMessageBusSourceEditor::OnSourceListSelectionChanged(FProviderPoll
 	SelectedResult = PollResult;
 }
 
-void SLiveLinkMessageBusSourceEditor::HandlePongMessage(const FLiveLinkPongMessage& Message, const IMessageContextRef& Context)
+void SLiveLinkMessageBusSourceEditor::HandlePongMessage(const FLiveLinkPongMessage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 {
 	if(Message.PollRequest == CurrentPollRequest)
 	{

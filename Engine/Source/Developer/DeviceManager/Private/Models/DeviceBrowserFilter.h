@@ -2,28 +2,30 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "Interfaces/ITargetDeviceService.h"
+#include "CoreTypes.h"
+#include "Containers/Array.h"
+#include "Containers/Map.h"
+#include "Containers/UnrealString.h"
+#include "Delegates/Delegate.h"
+#include "Internationalization/Text.h"
+#include "ITargetDeviceService.h"
+#include "Templates/SharedPointer.h"
 
-class FDeviceBrowserFilter;
 
-/** Type definition for shared pointers to instances of FDeviceBrowserFilter. */
-typedef TSharedPtr<class FDeviceBrowserFilter> FDeviceBrowserFilterPtr;
-
-/** Type definition for shared references to instances of FDeviceBrowserFilter. */
-typedef TSharedRef<class FDeviceBrowserFilter> FDeviceBrowserFilterRef;
-
-class FDeviceBrowserFilterEntry
+/**
+ * An entry in the device browser filter.
+ */
+struct FDeviceBrowserFilterEntry
 {
-public:
+	FString PlatformName;
+	FName PlatformLookup;
+
 	FDeviceBrowserFilterEntry(FString InPlatformName, FName InPlatformLookup)
 		: PlatformName(InPlatformName)
 		, PlatformLookup(InPlatformLookup)
-	{
-	}
-	FString PlatformName;
-	FName PlatformLookup;
+	{ }
 };
+
 
 /**
  * Implements a filter for the device browser's target device service list.
@@ -33,12 +35,12 @@ class FDeviceBrowserFilter
 public:
 
 	/**
-	 * Filters the specified target device service based on the current filter settings.
+	 * Filter the specified target device service based on the current filter settings.
 	 *
 	 * @param Device The service to filter.
 	 * @return true if the service passed the filter, false otherwise.
 	 */
-	bool FilterDeviceService( const ITargetDeviceServicePtr& DeviceService )
+	bool FilterDeviceService(const TSharedPtr<ITargetDeviceService, ESPMode::ThreadSafe>& DeviceService)
 	{
 		if (DeviceService.IsValid())
 		{
@@ -52,35 +54,35 @@ public:
 				return true;
 			}
 
-			return (DeviceService->GetDeviceName().Contains(DeviceSearchText.ToString()) );
+			return (DeviceService->GetDeviceName().Contains(DeviceSearchText.ToString()));
 		}
 
 		return false;
 	}
 
 	/**
-	 * Gets the number of target device services that have the specified platform.
+	 * Get the number of target device services that have the specified platform.
 	 *
 	 * @param PlatformName The name of the platform.
 	 * @return The number of matching services.
 	 */
-	int32 GetServiceCountPerPlatform( const FString& PlatformName ) const
+	int32 GetServiceCountPerPlatform(const FString& PlatformName) const
 	{
 		return PlatformCounters.FindRef(PlatformName);
 	}
 
 	/**
-	 * Gets the device search string.
+	 * Get the device search string.
 	 *
 	 * @return Search string.
 	 */
-	const FText& GetDeviceSearchText( ) const
+	const FText& GetDeviceSearchText() const
 	{
 		return DeviceSearchText;
 	}
 
 	/**
-	 * Returns the list of filtered platforms.
+	 * Return the list of filtered platforms.
 	 *
 	 * @return List of platform names.
 	 */
@@ -90,22 +92,23 @@ public:
 	}
 
 	/**
-	 * Checks whether the specified platform is enabled in the filter.
+	 * Check whether the specified platform is enabled in the filter.
 	 *
 	 * @param PlatformName The name of the platform to check.
 	 * @return true if the platform is enabled, false otherwise.
+	 * @see SetPlatformEnabled
 	 */
-	bool IsPlatformEnabled( const FString& PlatformName ) const
+	bool IsPlatformEnabled(const FString& PlatformName) const
 	{
 		return !DisabledPlatforms.Contains(PlatformName);
 	}
 
 	/**
-	 * Populates the filter from the given list of target device proxies.
+	 * Populate the filter from the given list of target device proxies.
 	 *
 	 * @param DeviceProxies The list of device proxies to populate the filter from.
 	 */
-	void ResetFilter( const TArray<ITargetDeviceServicePtr>& DeviceServices )
+	void ResetFilter(const TArray<ITargetDeviceServicePtr>& DeviceServices)
 	{
 		PlatformList.Reset();
 		PlatformCounters.Reset();
@@ -134,7 +137,7 @@ public:
 	 *
 	 * @param SearchText The search string.
 	 */
-	void SetDeviceSearchString( const FText& SearchText )
+	void SetDeviceSearchString(const FText& SearchText)
 	{
 		if (!DeviceSearchText.EqualTo(SearchText))
 		{
@@ -145,12 +148,13 @@ public:
 	}
 
 	/**
-	 * Sets the enabled state of the specified device proxy platform.
+	 * Set the enabled state of the specified device proxy platform.
 	 *
 	 * @param PlatformName The name of the platform to enable or disable in the filter.
 	 * @param Enabled Whether the platform is enabled.
+	 * @see IsPlatformEnabled
 	 */
-	void SetPlatformEnabled( const FString& PlatformName, bool Enabled )
+	void SetPlatformEnabled(const FString& PlatformName, bool Enabled)
 	{
 		if (Enabled)
 		{
@@ -167,49 +171,51 @@ public:
 public:
 
 	/**
-	 * Gets a delegate to be invoked when the filter state changed.
+	 * Get a delegate to be invoked when the filter state changed.
 	 *
 	 * @return The delegate.
+	 * @see OnFilterReset
 	 */
 	DECLARE_EVENT(FDeviceBrowserFilter, FOnDeviceBrowserFilterChanged);
-	FOnDeviceBrowserFilterChanged& OnFilterChanged( )
+	FOnDeviceBrowserFilterChanged& OnFilterChanged()
 	{
 		return FilterChangedEvent;
 	}
 
 	/**
-	 * Gets a delegate to be invoked when the filter has been reset.
+	 * Get a delegate to be invoked when the filter has been reset.
 	 *
 	 * @return The delegate.
+	 * @see OnFilterChanged
 	 */
 	DECLARE_EVENT(FDeviceBrowserFilter, FOnDeviceBrowserFilterReset);
-	FOnDeviceBrowserFilterReset& OnFilterReset( )
+	FOnDeviceBrowserFilterReset& OnFilterReset()
 	{
 		return FilterResetEvent;
 	}
 
 private:
 
-	// Holds the device search string.
+	/** The device search string. */
 	FText DeviceSearchText;
 
-	// Holds the list of disabled platforms.
+	/** The list of disabled platforms. */
 	TArray<FString> DisabledPlatforms;
 
-	// Holds the device counters for owner filters.
+	/** The device counters for owner filters. */
 	TMap<FString, int32> OwnerCounters;
 
-	// Holds the device counters for platform filters.
+	/** The device counters for platform filters. */
 	TMap<FString, int32> PlatformCounters;
 
-	// Holds the list of platform filters.
+	/** The list of platform filters. */
 	TArray<TSharedPtr<FDeviceBrowserFilterEntry>> PlatformList;
 
 private:
 
-	// Holds an event delegate that is invoked when the filter state changed.
+	/** An event delegate that is invoked when the filter state changed. */
 	FOnDeviceBrowserFilterChanged FilterChangedEvent;
 
-	// Holds an event delegate that is invoked when the filter has been reset.
+	/** An event delegate that is invoked when the filter has been reset. */
 	FOnDeviceBrowserFilterReset FilterResetEvent;
 };

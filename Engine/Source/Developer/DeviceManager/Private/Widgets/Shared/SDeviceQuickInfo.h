@@ -3,21 +3,23 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Widgets/DeclarativeSyntaxSupport.h"
-#include "Widgets/SCompoundWidget.h"
-#include "Interfaces/ITargetDeviceService.h"
-#include "Fonts/SlateFontInfo.h"
-#include "Misc/Paths.h"
-#include "Styling/StyleDefaults.h"
-#include "Widgets/SBoxPanel.h"
-#include "Widgets/Layout/SBox.h"
-#include "Widgets/Text/STextBlock.h"
 #include "EditorStyleSet.h"
-#include "Widgets/Images/SImage.h"
-#include "Widgets/Layout/SGridPanel.h"
+#include "Fonts/SlateFontInfo.h"
+#include "ITargetDeviceService.h"
+#include "Misc/Paths.h"
 #include "PlatformInfo.h"
+#include "Styling/StyleDefaults.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Layout/SGridPanel.h"
+#include "Widgets/Text/STextBlock.h"
+
 
 #define LOCTEXT_NAMESPACE "SDeviceQuickInfo"
+
 
 /**
  * Implements a tool tip for widget the device browser.
@@ -37,13 +39,13 @@ public:
 public:
 
 	/**
-	 * Constructs the widget.
+	 * Construct the widget.
 	 *
 	 * @param InArgs The construction arguments.
 	 * @param InDeviceServiceManager The target device service manager to use.
 	 * @param InDeviceManagerState The optional device manager view state.
 	 */
-	void Construct( const FArguments& InArgs )
+	void Construct(const FArguments& InArgs)
 	{
 		DeviceService = InArgs._InitialDeviceService.Get();
 
@@ -172,19 +174,19 @@ public:
 public:
 
 	/**
-	 * Sets the device service whose information is being shown.
+	 * Set the device service whose information is being shown.
 	 *
 	 * @param InDeviceService The device service to show.
 	 */
-	void SetDeviceService( const ITargetDeviceServicePtr& InDeviceService )
+	void SetDeviceService(const TSharedPtr<ITargetDeviceService, ESPMode::ThreadSafe>& InDeviceService)
 	{
 		DeviceService = InDeviceService;
 	}
 
 private:
 
-	// Callback for getting the device's unique identifier.
-	FText HandleDeviceIdText( ) const
+	/** Callback for getting the device's unique identifier. */
+	FText HandleDeviceIdText() const
 	{
 		if (DeviceService.IsValid())
 		{
@@ -198,8 +200,8 @@ private:
 		return LOCTEXT("UnknownValue", "<unknown>");
 	}
 
-	// Callback for getting the name of the shown device.
-	FText HandleDeviceNameText( ) const
+	/** Callback for getting the name of the shown device. */
+	FText HandleDeviceNameText() const
 	{
 		if (DeviceService.IsValid())
 		{
@@ -214,8 +216,8 @@ private:
 		return LOCTEXT("UnknownValue", "<unknown>");
 	}
 
-	// Callback for getting the text that indicates whether the shown device is the platform's default device.
-	FText HandleIsDefaultText( ) const
+	/** Callback for getting the text that indicates whether the shown device is the platform's default device. */
+	FText HandleIsDefaultText() const
 	{
 		if (DeviceService.IsValid())
 		{
@@ -232,8 +234,8 @@ private:
 		return LOCTEXT("UnknownValue", "<unknown>");
 	}
 
-	// Callback for getting the make and model of the shown device.
-	FText HandleOperatingSystemText( ) const
+	/** Callback for getting the make and model of the shown device. */
+	FText HandleOperatingSystemText() const
 	{
 		if (DeviceService.IsValid())
 		{
@@ -253,8 +255,8 @@ private:
 		return LOCTEXT("UnknownValue", "<unknown>");
 	}
 
-	// Callback for getting the icon of the device's platform.
-	const FSlateBrush* HandlePlatformIcon( ) const
+	/** Callback for getting the icon of the device's platform. */
+	const FSlateBrush* HandlePlatformIcon() const
 	{
 		if (DeviceService.IsValid())
 		{
@@ -268,8 +270,8 @@ private:
 		return FStyleDefaults::GetNoBrush();
 	}
 
-	// Callback for getting the name of the device's platform.
-	FText HandlePlatformNameText( ) const
+	/** Callback for getting the name of the device's platform. */
+	FText HandlePlatformNameText() const
 	{
 		if (DeviceService.IsValid())
 		{
@@ -284,8 +286,8 @@ private:
 		return LOCTEXT("UnknownValue", "<unknown>");
 	}
 
-	// Callback for getting the status of the device.
-	FText HandleStatusText( ) const
+	/** Callback for getting the status of the device. */
+	FText HandleStatusText() const
 	{
 		if (DeviceService.IsValid())
 		{
@@ -309,8 +311,8 @@ private:
 
 private:
 
-	// Holds the service for the device whose details are being shown.
-	ITargetDeviceServicePtr DeviceService;
+	/** The service for the device whose details are being shown. */
+	TSharedPtr<ITargetDeviceService, ESPMode::ThreadSafe> DeviceService;
 };
 
 

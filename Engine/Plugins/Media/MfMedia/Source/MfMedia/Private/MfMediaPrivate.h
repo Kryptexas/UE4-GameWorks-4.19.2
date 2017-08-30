@@ -2,50 +2,39 @@
 
 #pragma once
 
-// you can enable this plug-in on Windows by compiling the Engine and Editor
-// against Windows 7. By default, UE4 is targeting Windows Vista. The following
-// changes have to be made in SetupEnvironment() in UEBuildWindows.cs:
-//
-//   // Windows Vista or higher required
-//   InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("_WIN32_WINNT=0x0601");
-//   InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WINVER=0x0601");
+#include "Logging/LogMacros.h"
 
-//#define MFMEDIA_SUPPORTED_PLATFORM (PLATFORM_XBOXONE || (PLATFORM_WINDOWS && WINVER >= 0x0601))
-#define MFMEDIA_SUPPORTED_PLATFORM PLATFORM_XBOXONE // Windows disabled until 4.16, because broken
-
-
-#include "Runtime/Core/Public/CoreMinimal.h"
-#include "Runtime/Core/Public/Modules/ModuleManager.h"
-#include "Runtime/Core/Public/Misc/ScopeLock.h"
+#define MFMEDIA_SUPPORTED_PLATFORM (PLATFORM_XBOXONE || (PLATFORM_WINDOWS && WINVER >= 0x0601 /*Win7*/))
 
 #if MFMEDIA_SUPPORTED_PLATFORM
-	#include "Runtime/Core/Public/Async/Async.h"
-	#include "Runtime/Media/Public/IMediaAudioSink.h"
-	#include "Runtime/Media/Public/IMediaModule.h"
-	#include "Runtime/Media/Public/IMediaOptions.h"
-	#include "Runtime/Media/Public/IMediaOverlaySink.h"
-	#include "Runtime/Media/Public/IMediaPlayerFactory.h"
-	#include "Runtime/Media/Public/IMediaTextureSink.h"
-	#include "Runtime/RenderCore/Public/RenderingThread.h"
-
 	#if PLATFORM_WINDOWS
 		#include "WindowsHWrapper.h"
 	#endif
-	#include "Runtime/Core/Public/Windows/AllowWindowsPlatformTypes.h"
+
+	#include "Windows/AllowWindowsPlatformTypes.h"
+
 	#if PLATFORM_WINDOWS
 		#include <windows.h>
 		#include <propvarutil.h>
 		#include <shlwapi.h>
+
+		const GUID FORMAT_VideoInfo = { 0x05589f80, 0xc356, 0x11ce, { 0xbf, 0x01, 0x00, 0xaa, 0x00, 0x55, 0x59, 0x5a } };
+		const GUID FORMAT_VideoInfo2 = { 0xf72a76A0, 0xeb0a, 0x11d0, { 0xac, 0xe4, 0x00, 0x00, 0xc0, 0xcc, 0x16, 0xba } };
+
+		#if (WINVER < _WIN32_WINNT_WIN8)
+			const GUID MF_LOW_LATENCY = { 0x9c27891a, 0xed7a, 0x40e1, { 0x88, 0xe8, 0xb2, 0x27, 0x27, 0xa0, 0x24, 0xee } };
+		#endif
 	#endif
+
 	#include <mfapi.h>
 	#include <mferror.h>
 	#include <mfidl.h>
 	#include <Mfreadwrite.h>
-	#include "Runtime/Core/Public/Windows/COMPointer.h"
-	#include "Runtime/Core/Public/Windows/HideWindowsPlatformTypes.h"
+
+	#include "Windows/COMPointer.h"
+	#include "Windows/HideWindowsPlatformTypes.h"
 
 #elif PLATFORM_WINDOWS && !UE_SERVER
-	#include "CoreDefines.h"
 	#pragma message("Skipping MfMedia (requires WINVER >= 0x0601, but WINVER is " PREPROCESSOR_TO_STRING(WINVER) ")")
 
 #endif //MFMEDIA_SUPPORTED_PLATFORM

@@ -46,7 +46,6 @@ uint32 FMessageRouter::Run()
 		if (WorkEvent->Wait(CalculateWaitTime()))
 		{
 			CurrentTime = FDateTime::UtcNow();
-
 			CommandDelegate Command;
 
 			while (Commands.Dequeue(Command))
@@ -67,8 +66,8 @@ uint32 FMessageRouter::Run()
 void FMessageRouter::Stop()
 {
 	Tracer->Stop();
-
 	Stopping = true;
+	WorkEvent->Trigger();
 }
 
 
@@ -113,7 +112,7 @@ FTimespan FMessageRouter::CalculateWaitTime()
 }
 
 
-void FMessageRouter::DispatchMessage(const IMessageContextRef& Context)
+void FMessageRouter::DispatchMessage(const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 {
 	if (Context->IsValid())
 	{
@@ -167,7 +166,7 @@ void FMessageRouter::DispatchMessage(const IMessageContextRef& Context)
 
 void FMessageRouter::FilterSubscriptions(
 	TArray<TSharedPtr<IMessageSubscription, ESPMode::ThreadSafe>>& Subscriptions,
-	const IMessageContextRef& Context,
+	const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context,
 	TArray<TSharedPtr<IMessageReceiver, ESPMode::ThreadSafe>>& OutRecipients
 )
 {
@@ -315,7 +314,7 @@ void FMessageRouter::HandleRemoveSubscriber(TWeakPtr<IMessageReceiver, ESPMode::
 }
 
 
-void FMessageRouter::HandleRouteMessage(IMessageContextRef Context)
+void FMessageRouter::HandleRouteMessage(TSharedRef<IMessageContext, ESPMode::ThreadSafe> Context)
 {
 	Tracer->TraceRoutedMessage(Context);
 

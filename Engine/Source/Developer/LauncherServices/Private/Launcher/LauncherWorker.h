@@ -3,12 +3,13 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Interfaces/ITargetDeviceProxyManager.h"
-#include "Interfaces/ILauncherWorker.h"
+#include "ILauncherWorker.h"
 #include "HAL/PlatformProcess.h"
 #include "HAL/Runnable.h"
 
 class FLauncherTask;
+class ITargetDeviceProxyManager;
+
 
 struct FCommandDesc
 {
@@ -29,10 +30,10 @@ public:
 	/**
 	 * Creates and initializes a new instance.
 	 *
-	 * @param InProfile - The profile to process.
-	 * @param InDeviceProxyManager - The target device proxy manager to use.
+	 * @param InProfile The profile to process.
+	 * @param InDeviceProxyManager The target device proxy manager to use.
 	 */
-	FLauncherWorker( const ITargetDeviceProxyManagerRef& InDeviceProxyManager, const ILauncherProfileRef& InProfile );
+	FLauncherWorker(const TSharedRef<ITargetDeviceProxyManager>& InDeviceProxyManager, const ILauncherProfileRef& InProfile);
 
 	~FLauncherWorker()
 	{
@@ -112,7 +113,7 @@ private:
 	FCriticalSection CriticalSection;
 
 	// Holds a pointer  to the device proxy manager.
-	ITargetDeviceProxyManagerPtr DeviceProxyManager;
+	TSharedPtr<ITargetDeviceProxyManager> DeviceProxyManager;
 
 	// Holds a pointer to the launcher profile.
 	ILauncherProfilePtr Profile;

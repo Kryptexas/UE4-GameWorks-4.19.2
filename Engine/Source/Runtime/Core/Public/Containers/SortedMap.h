@@ -8,13 +8,14 @@
 #include "UObject/NameTypes.h"
 
 /** 
- * A Map of keys to value, implemented as a sorted TArray of TPairs. It has a mostly identical interface to TMap and is designed as a drop in replacement
- * Keys must be unique, there is no equivalent sorted version of TMultiMap
- * It uses half as much memory as TMap, but adding/removing elements is O(n) and finding is O(Log n)
- * In practice it is faster than TMap for low element counts, and slower as n increases
- * This map is always kept sorted by the key type so cannot be sorted manually
+ * A Map of keys to value, implemented as a sorted TArray of TPairs.
+ *
+ * It has a mostly identical interface to TMap and is designed as a drop in replacement. Keys must be unique,
+ * there is no equivalent sorted version of TMultiMap. It uses half as much memory as TMap, but adding and 
+ * removing elements is O(n), and finding is O(Log n). In practice it is faster than TMap for low element
+ * counts, and slower as n increases, This map is always kept sorted by the key type so cannot be sorted manually.
  */
-template <typename KeyType, typename ValueType, typename ArrayAllocator /*= FDefaultAllocator*/, typename SortPredicate /* = TLess<KeyType> */ >
+template <typename KeyType, typename ValueType, typename ArrayAllocator /*= FDefaultAllocator*/, typename SortPredicate /*= TLess<KeyType>*/ >
 class TSortedMap
 {
 	template <typename OtherKeyType, typename OtherValueType, typename OtherArrayAllocator, typename OtherSortPredicate>
@@ -33,21 +34,21 @@ public:
 	TSortedMap& operator=(TSortedMap&&) = default;
 	TSortedMap& operator=(const TSortedMap&) = default;
 
-	/** Constructor for moving elements from a TSortedMap with a different ArrayAllocator */
+	/** Constructor for moving elements from a TSortedMap with a different ArrayAllocator. */
 	template<typename OtherArrayAllocator>
 	TSortedMap(TSortedMap<KeyType, ValueType, OtherArrayAllocator, SortPredicate>&& Other)
 		: Pairs(MoveTemp(Other.Pairs))
 	{
 	}
 
-	/** Constructor for copying elements from a TSortedMap with a different ArrayAllocator */
+	/** Constructor for copying elements from a TSortedMap with a different ArrayAllocator. */
 	template<typename OtherArrayAllocator>
 	TSortedMap(const TSortedMap<KeyType, ValueType, OtherArrayAllocator, SortPredicate>& Other)
 		: Pairs(Other.Pairs)
 	{
 	}
 
-	/** Assignment operator for moving elements from a TSortedMap with a different ArrayAllocator */
+	/** Assignment operator for moving elements from a TSortedMap with a different ArrayAllocator. */
 	template<typename OtherArrayAllocator>
 	TSortedMap& operator=(TSortedMap<KeyType, ValueType, OtherArrayAllocator, SortPredicate>&& Other)
 	{
@@ -55,7 +56,7 @@ public:
 		return *this;
 	}
 
-	/** Assignment operator for copying elements from a TSortedMap with a different ArrayAllocator */
+	/** Assignment operator for copying elements from a TSortedMap with a different ArrayAllocator. */
 	template<typename OtherArrayAllocator>
 	TSortedMap& operator=(const TSortedMap<KeyType, ValueType, OtherArrayAllocator, SortPredicate>& Other)
 	{
@@ -63,13 +64,13 @@ public:
 		return *this;
 	}
 
-	/** Equality operator. This is efficient because pairs are always sorted */
+	/** Equality operator. This is efficient because pairs are always sorted. */
 	FORCEINLINE bool operator==(const TSortedMap& Other) const
 	{
 		return Pairs == Other.Pairs;
 	}
 
-	/** Inequality operator. This is efficient because pairs are always sorted */
+	/** Inequality operator. This is efficient because pairs are always sorted. */
 	FORCEINLINE bool operator!=(const TSortedMap& Other) const
 	{
 		return Pairs != Other.Pairs;
@@ -77,14 +78,15 @@ public:
 
 	/**
 	 * Removes all elements from the map, potentially leaving space allocated for an expected number of elements about to be added.
-	 * @param ExpectedNumElements - The number of elements about to be added to the set.
+	 *
+	 * @param ExpectedNumElements The number of elements about to be added to the set.
 	 */
 	FORCEINLINE void Empty(int32 ExpectedNumElements = 0)
 	{
 		Pairs.Empty(ExpectedNumElements);
 	}
 
-    /** Efficiently empties out the map but preserves all allocations and capacities */
+    /** Efficiently empties out the map but preserves all allocations and capacities. */
     FORCEINLINE void Reset()
     {
         Pairs.Reset();
@@ -96,7 +98,7 @@ public:
 		Pairs.Shrink();
 	}
 
-	/** Preallocates enough memory to contain Number elements */
+	/** Preallocates enough memory to contain Number elements. */
 	FORCEINLINE void Reserve(int32 Number)
 	{
 		Pairs.Reserve(Number);
@@ -109,8 +111,9 @@ public:
 	}
 
 	/** 
-	 * Helper function to return the amount of memory allocated by this container 
-	 * @return number of bytes allocated by this container
+	 * Helper function to return the amount of memory allocated by this container.
+	 *
+	 * @return number of bytes allocated by this container.
 	 */
 	FORCEINLINE uint32 GetAllocatedSize() const
 	{
@@ -126,9 +129,9 @@ public:
 	/**
 	 * Sets the value associated with a key.
 	 *
-	 * @param InKey - The key to associate the value with.
-	 * @param InValue - The value to associate with the key.
-	 * @return A reference to the value as stored in the map.  The reference is only valid until the next change to any key in the map.
+	 * @param InKey The key to associate the value with.
+	 * @param InValue The value to associate with the key.
+	 * @return A reference to the value as stored in the map (only valid until the next change to any key in the map).
 	 */
 	FORCEINLINE ValueType& Add(const KeyType&  InKey, const ValueType&  InValue) { return Emplace(         InKey ,          InValue ); }
 	FORCEINLINE ValueType& Add(const KeyType&  InKey,       ValueType&& InValue) { return Emplace(         InKey , MoveTemp(InValue)); }
@@ -138,7 +141,7 @@ public:
 	/**
 	 * Sets a default value associated with a key.
 	 *
-	 * @param InKey - The key to associate the value with.
+	 * @param InKey The key to associate the value with.
 	 * @return A reference to the value as stored in the map.  The reference is only valid until the next change to any key in the map.
 	 */
 	FORCEINLINE ValueType& Add(const KeyType&  InKey) { return Emplace(         InKey ); }
@@ -149,7 +152,7 @@ public:
 	 *
 	 * @param InKey - The key to associate the value with.
 	 * @param InValue - The value to associate with the key.
-	 * @return A reference to the value as stored in the map.  The reference is only valid until the next change to any key in the map.
+	 * @return A reference to the value as stored in the map (only valid until the next change to any key in the map).
 	 */
 	template <typename InitKeyType, typename InitValueType>
 	ValueType& Emplace(InitKeyType&& InKey, InitValueType&& InValue)
@@ -164,8 +167,8 @@ public:
 	/**
 	 * Sets a default value associated with a key.
 	 *
-	 * @param InKey - The key to associate the value with.
-	 * @return A reference to the value as stored in the map.  The reference is only valid until the next change to any key in the map.
+	 * @param InKey The key to associate the value with.
+	 * @return A reference to the value as stored in the map (only valid until the next change to any key in the map).
 	 */
 	template <typename InitKeyType>
 	ValueType& Emplace(InitKeyType&& InKey)
@@ -179,7 +182,8 @@ public:
 
 	/**
 	 * Removes all value associations for a key.
-	 * @param InKey - The key to remove associated values for.
+	 *
+	 * @param InKey The key to remove associated values for.
 	 * @return The number of values that were associated with the key.
 	 */
 	FORCEINLINE int32 Remove(KeyConstPointerType InKey)
@@ -198,9 +202,9 @@ public:
 
 	/**
 	 * Returns the key associated with the specified value.  The time taken is O(N) in the number of pairs.
-	 * @param	Value - The value to search for
-	 * @return	A pointer to the key associated with the specified value, or nullptr if the value isn't contained in this map.  The pointer
-	 *			is only valid until the next change to any key in the map.
+	 *
+	 * @param Value The value to search for.
+	 * @return A pointer to the key associated with the specified value, or nullptr if the value isn't contained in this map (only valid until the next change to any key in the map).
 	 */
 	const KeyType* FindKey(ValueInitType Value) const
 	{
@@ -216,9 +220,9 @@ public:
 
 	/**
 	 * Returns the value associated with a specified key.
-	 * @param	Key - The key to search for.
-	 * @return	A pointer to the value associated with the specified key, or nullptr if the key isn't contained in this map.  The pointer
-	 *			is only valid until the next change to any key in the map.
+	 *
+	 * @param Key The key to search for.
+	 * @return A pointer to the value associated with the specified key, or nullptr if the key isn't contained in this map.  The pointer (only valid until the next change to any key in the map).
 	 */
 	FORCEINLINE ValueType* Find(KeyConstPointerType Key)
 	{
@@ -240,16 +244,18 @@ public:
 	/**
 	 * Returns the value associated with a specified key, or if none exists, 
 	 * adds a value using the default constructor.
-	 * @param	Key - The key to search for.
-	 * @return	A reference to the value associated with the specified key.
+	 *
+	 * @param Key The key to search for.
+	 * @return A reference to the value associated with the specified key.
 	 */
 	FORCEINLINE ValueType& FindOrAdd(const KeyType&  Key) { return FindOrAddImpl(         Key ); }
 	FORCEINLINE ValueType& FindOrAdd(      KeyType&& Key) { return FindOrAddImpl(MoveTemp(Key)); }
 
 	/**
 	 * Returns a reference to the value associated with a specified key.
-	 * @param	Key - The key to search for.
-	 * @return	The value associated with the specified key, or triggers an assertion if the key does not exist.
+	 *
+	 * @param Key The key to search for.
+	 * @return The value associated with the specified key, or triggers an assertion if the key does not exist.
 	 */
 	FORCEINLINE ValueType& FindChecked(KeyConstPointerType Key)
 	{
@@ -267,8 +273,9 @@ public:
 
 	/**
 	 * Returns the value associated with a specified key.
-	 * @param	Key - The key to search for.
-	 * @return	The value associated with the specified key, or the default value for the ValueType if the key isn't contained in this map.
+	 *
+	 * @param Key The key to search for.
+	 * @return The value associated with the specified key, or the default value for the ValueType if the key isn't contained in this map.
 	 */
 	FORCEINLINE ValueType FindRef(KeyConstPointerType Key) const
 	{
@@ -282,7 +289,8 @@ public:
 
 	/**
 	 * Checks if map contains the specified key.
-	 * @param Key - The key to check for.
+	 *
+	 * @param Key The key to check for.
 	 * @return true if the map contains the key.
 	 */
 	FORCEINLINE bool Contains(KeyConstPointerType Key) const
@@ -295,8 +303,9 @@ public:
 	}
 
 	/**
-	 * Returns the unique keys contained within this map
-	 * @param OutKeys - Upon return, contains the set of unique keys in this map.
+	 * Returns the unique keys contained within this map.
+	 *
+	 * @param OutKeys Upon return, contains the set of unique keys in this map.
 	 * @return The number of unique keys in the map.
 	 */
 	template<typename Allocator> int32 GetKeys(TArray<KeyType, Allocator>& OutKeys) const
@@ -348,7 +357,8 @@ public:
 
 	/**
 	 * Describes the map's contents through an output device.
-	 * @param Ar - The output device to describe the map's contents through.
+	 *
+	 * @param Ar The output device to describe the map's contents through.
 	 */
 	void Dump(FOutputDevice& Ar)
 	{
@@ -356,10 +366,11 @@ public:
 	}
 
 	/**
-	 * Removes the pair with the specified key and copies the value that was removed to the ref parameter
-	 * @param Key - the key to search for
-	 * @param OutRemovedValue - if found, the value that was removed (not modified if the key was not found)
-	 * @return whether or not the key was found
+	 * Removes the pair with the specified key and copies the value that was removed to the ref parameter.
+	 *
+	 * @param Key The key to search for
+	 * @param OutRemovedValue If found, the value that was removed (not modified if the key was not found)
+	 * @return Whether or not the key was found
 	 */
 	FORCEINLINE bool RemoveAndCopyValue(KeyInitType Key, ValueType& OutRemovedValue)
 	{
@@ -377,8 +388,9 @@ public:
 	/**
 	 * Finds a pair with the specified key, removes it from the map, and returns the value part of the pair.
 	 * If no pair was found, an exception is thrown.
-	 * @param Key - the key to search for
-	 * @return whether or not the key was found
+	 *
+	 * @param Key The key to search for
+	 * @return Whether or not the key was found
 	 */
 	FORCEINLINE ValueType FindAndRemoveChecked(KeyConstPointerType Key)
 	{
@@ -392,7 +404,8 @@ public:
 
 	/**
 	 * Move all items from another map into our map (if any keys are in both, the value from the other map wins) and empty the other map.
-	 * @param OtherMap - The other map of items to move the elements from.
+	 *
+	 * @param OtherMap The other map of items to move the elements from.
 	 */
 	template<typename OtherArrayAllocator, typename OtherSortPredicate>
 	void Append(TSortedMap<KeyType, ValueType, OtherArrayAllocator, OtherSortPredicate>&& OtherMap)
@@ -407,8 +420,9 @@ public:
 	}
 
 	/**
-	 * Add all items from another map to our map (if any keys are in both, the value from the other map wins)
-	 * @param OtherMap - The other map of items to add.
+	 * Add all items from another map to our map (if any keys are in both, the value from the other map wins).
+	 *
+	 * @param OtherMap The other map of items to add.
 	 */
 	template<typename OtherArrayAllocator, typename OtherSortPredicate>
 	void Append(const TSortedMap<KeyType, ValueType, OtherArrayAllocator, OtherSortPredicate>& OtherMap)
@@ -661,6 +675,7 @@ private:
 	FORCEINLINE friend RangedForIteratorType		end(TSortedMap& MapBase)		{ return end(MapBase.Pairs); }
 	FORCEINLINE friend RangedForConstIteratorType	end(const TSortedMap& MapBase)	{ return end(MapBase.Pairs); }
 };
+
 
 template <typename KeyType, typename ValueType, typename ArrayAllocator, typename SortPredicate>
 struct TContainerTraits<TSortedMap<KeyType, ValueType, ArrayAllocator, SortPredicate>> : public TContainerTraitsBase<TSortedMap<KeyType, ValueType, ArrayAllocator, SortPredicate>>

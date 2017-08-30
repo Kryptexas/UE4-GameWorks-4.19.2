@@ -108,10 +108,26 @@ static bool RunCommandInternalRaw(const FString& InCommand, const FString& InPat
 	FPlatformProcess::ExecProcess(*InPathToGitBinary, *FullCommand, &ReturnCode, &OutResults, &OutErrors);
 	
 #if UE_BUILD_DEBUG
-	UE_LOG(LogSourceControl, Log, TEXT("RunCommandInternalRaw(%s): OutResults=\n%s"), *InCommand, *OutResults)
+
+	if (OutResults.IsEmpty())
+	{
+		UE_LOG(LogSourceControl, Log, TEXT("RunCommandInternalRaw: 'OutResults=n/a'"));
+	}
+	else
+	{
+		UE_LOG(LogSourceControl, Log, TEXT("RunCommandInternalRaw(%s): OutResults=\n%s"), *InCommand, *OutResults);
+	}
+
 	if(ReturnCode != 0)
 	{
-		UE_LOG(LogSourceControl, Warning, TEXT("RunCommandInternalRaw(%s): OutErrors=\n%s"), *InCommand, *OutErrors);
+		if (OutErrors.IsEmpty())
+		{
+			UE_LOG(LogSourceControl, Warning, TEXT("RunCommandInternalRaw: 'OutErrors=n/a'"));
+		}
+		else
+		{
+			UE_LOG(LogSourceControl, Warning, TEXT("RunCommandInternalRaw(%s): OutErrors=\n%s"), *InCommand, *OutErrors);
+		}
 	}
 #endif
 

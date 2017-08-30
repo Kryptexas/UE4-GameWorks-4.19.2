@@ -15,6 +15,7 @@
 #include "DeferredShadingRenderer.h"
 #include "ClearQuad.h"
 #include "PipelineStateCache.h"
+#include "ScenePrivate.h"
 
 static TAutoConsoleVariable<int32> CVarDepthOfFieldFarBlur(
 	TEXT("r.DepthOfField.FarBlur"),

@@ -108,7 +108,7 @@ void UBlueprintPlatformLibrary::ScheduleLocalNotificationAtTime(const FDateTime&
 void UBlueprintPlatformLibrary::ScheduleLocalNotificationFromNow(int32 inSecondsFromNow, const FText& Title, const FText& Body, const FText& Action, const FString& ActivationEvent)
 {
 	FDateTime TargetTime = FDateTime::Now();
-	TargetTime += FTimespan(0, 0, inSecondsFromNow);
+	TargetTime += FTimespan::FromSeconds(inSecondsFromNow);
 
 	ScheduleLocalNotificationAtTime(TargetTime, true, Title, Body, Action, ActivationEvent);
 }
@@ -129,7 +129,7 @@ void UBlueprintPlatformLibrary::ScheduleLocalNotificationBadgeAtTime(const FDate
 void UBlueprintPlatformLibrary::ScheduleLocalNotificationBadgeFromNow(int32 inSecondsFromNow, const FString& ActivationEvent)
 {
 	FDateTime TargetTime = FDateTime::Now();
-	TargetTime += FTimespan(0, 0, inSecondsFromNow);
+	TargetTime += FTimespan::FromSeconds(inSecondsFromNow);
 
 	ScheduleLocalNotificationBadgeAtTime(TargetTime, true, ActivationEvent);
 }

@@ -234,7 +234,7 @@ struct FViewMatrices
 		ScreenScale = 1.f;
 	}
 
-	FViewMatrices(const FSceneViewInitOptions& InitOptions);
+	ENGINE_API FViewMatrices(const FSceneViewInitOptions& InitOptions);
 
 private:
 	/** ViewToClip : UE4 projection matrix projects such that clip space Z=1 is the near plane, and Z=0 is the infinite far plane. */

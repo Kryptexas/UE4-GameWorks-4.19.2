@@ -181,7 +181,7 @@ private:
 	struct FDelayedMessage
 	{
 		/** Holds the context of the delayed message. */
-		IMessageContextPtr Context;
+		TSharedPtr<IMessageContext, ESPMode::ThreadSafe> Context;
 
 		/** Holds a sequence number used by the delayed message queue. */
 		int64 Sequence;

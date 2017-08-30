@@ -965,14 +965,14 @@ namespace
 			case ECheckedMetadataSpecifier::Units:
 			{
 				// Check for numeric property
-				if (!Cast<UNumericProperty>(Field))
+				if (!Field->IsA<UNumericProperty>() && !Field->IsA<UStructProperty>())
 				{
-					FError::Throwf(TEXT("'Units' meta data can only be applied to numeric properties"));
+					FError::Throwf(TEXT("'Units' meta data can only be applied to numeric and struct properties"));
 				}
 
 				if (!FUnitConversion::UnitFromString(*InValue))
 				{
-					FError::Throwf(TEXT("Unrecognized units (%s) specified for numeric property '%s'"), *InValue, *Field->GetDisplayNameText().ToString());
+					FError::Throwf(TEXT("Unrecognized units (%s) specified for property '%s'"), *InValue, *Field->GetDisplayNameText().ToString());
 				}
 			}
 			break;

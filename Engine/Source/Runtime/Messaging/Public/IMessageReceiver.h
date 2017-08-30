@@ -2,20 +2,25 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "IMessageContext.h"
+#include "Async/TaskGraphInterfaces.h"
+#include "Templates/SharedPointer.h"
+#include "UObject/NameTypes.h"
+
+class IMessageContext;
+struct FGuid;
+
 
 /**
  * Interface for message recipients.
  *
  * Classes that implement this interface are able to receive messages from a message bus. A message recipient will receive
- * a call to its ReceiveMessage() method for each message that was sent directly to it (see IMessageBus.Send) and for each
- * published message that it subscribed to (see IMessageBus.Publish).
+ * a call to its IMessageReceiver.ReceiveMessage method for each message that was sent directly to it (via IMessageBus.Send)
+ * and for each published message (via IMessageBus.Publish) that it subscribed to (via IMessageBus.Subscribe).
  *
  * This interface provides a rather low-level mechanism for receiving messages. Instead of implementing it, Most users will
  * want to use an instance of see FMessageEndpoint, which provides a much more convenient way of sending and receiving messages.
  *
- * @see FMessageEndpoint, IMessageBus, ISendMessages
+ * @see FMessageEndpoint, IMessageBus, IMessageSender
  */
 class IMessageReceiver
 {
@@ -63,7 +68,7 @@ public:
 	 *
 	 * @param Context Will hold the context of the received message.
 	 */
-	virtual void ReceiveMessage( const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context ) = 0;
+	virtual void ReceiveMessage(const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context) = 0;
 
 public:
 

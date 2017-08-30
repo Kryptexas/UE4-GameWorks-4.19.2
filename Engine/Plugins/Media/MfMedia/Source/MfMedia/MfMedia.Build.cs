@@ -12,35 +12,33 @@ namespace UnrealBuildTool.Rules
 			DynamicallyLoadedModuleNames.AddRange(
 				new string[] {
 					"Media",
-				}
-			);
+				});
 
 			PrivateDependencyModuleNames.AddRange(
 				new string[] {
 					"Core",
+					"MediaUtils",
 					"RenderCore",
-				}
-			);
+				});
 
 			PrivateIncludePathModuleNames.AddRange(
 				new string[] {
 					"Media",
-				}
-			);
+				});
 
 			PrivateIncludePaths.AddRange(
 				new string[] {
 					"MfMedia/Private",
 					"MfMedia/Private/Mf",
 					"MfMedia/Private/Player",
-				}
-			);
+				});
 
 			PublicAdditionalLibraries.Add("mfplat.lib");
 			PublicAdditionalLibraries.Add("mfreadwrite.lib");
 			PublicAdditionalLibraries.Add("mfuuid.lib");
 
-			if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64))
+			if ((Target.Platform == UnrealTargetPlatform.Win32) ||
+				(Target.Platform == UnrealTargetPlatform.Win64))
 			{
 				PublicAdditionalLibraries.Add("mf.lib");
 				PublicAdditionalLibraries.Add("Propsys.lib");

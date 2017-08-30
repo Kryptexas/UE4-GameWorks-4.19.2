@@ -2,6 +2,7 @@
 
 #include "OculusSceneCaptureCubemap.h"
 #include "OculusHMDPrivate.h"
+#include "IImageWrapper.h"
 #include "IImageWrapperModule.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/PlayerController.h"
@@ -112,7 +113,7 @@ void UOculusSceneCaptureCubemap::Tick(float DeltaTime)
 
 	//Read Whole Capture Buffer
 	IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
-	IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
+	TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
 
 	TArray<FColor> OneFaceSurface, WholeCubemapData;
 	OneFaceSurface.AddUninitialized(CaptureBoxSideRes * CaptureBoxSideRes);

@@ -29,10 +29,10 @@ DEFINE_LOG_CATEGORY(LogEngineSessionManager);
 
 namespace SessionManagerDefs
 {
-	static const FTimespan SessionRecordExpiration(30, 0, 0, 0);	// 30 days
-	static const FTimespan SessionRecordTimeout(0, 3, 0);			// 3 minutes
-	static const FTimespan GlobalLockWaitTimeout(0, 0, 0, 0, 500);	// 1/2 second
-	static const int HeartbeatPeriodSeconds(60);				// 1 minute
+	static const FTimespan SessionRecordExpiration = FTimespan::FromDays(30.0);
+	static const FTimespan SessionRecordTimeout = FTimespan::FromMinutes(3.0);
+	static const FTimespan GlobalLockWaitTimeout = FTimespan::FromSeconds(0.5);
+	static const int HeartbeatPeriodSeconds(60);
 	static const FString DefaultUserActivity(TEXT("Unknown"));
 	static const FString StoreId(TEXT("Epic Games"));
 	static const FString RunningSessionToken(TEXT("Running"));

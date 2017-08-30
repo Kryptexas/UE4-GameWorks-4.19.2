@@ -1390,6 +1390,12 @@ FTimespan UKismetMathLibrary::Multiply_TimespanFloat( FTimespan A, float Scalar 
 }
 
 KISMET_MATH_FORCEINLINE
+FTimespan UKismetMathLibrary::Divide_TimespanFloat(FTimespan A, float Scalar)
+{
+	return A / Scalar;
+}
+
+KISMET_MATH_FORCEINLINE
 bool UKismetMathLibrary::EqualEqual_TimespanTimespan( FTimespan A, FTimespan B )
 {
 	return A == B;
@@ -1446,7 +1452,7 @@ int32 UKismetMathLibrary::GetHours( FTimespan A )
 KISMET_MATH_FORCEINLINE
 int32 UKismetMathLibrary::GetMilliseconds( FTimespan A )
 {
-	return A.GetMilliseconds();
+	return A.GetFractionMilli();
 }
 
 KISMET_MATH_FORCEINLINE
@@ -1506,12 +1512,7 @@ FTimespan UKismetMathLibrary::TimespanMinValue( )
 KISMET_MATH_INLINE
 float UKismetMathLibrary::TimespanRatio( FTimespan A, FTimespan B )
 {
-	if (B != FTimespan::Zero())
-	{
-		return (float)A.GetTicks() / (float)B.GetTicks();
-	}
-
-	return 0.0;
+	return FTimespan::Ratio(A, B);
 }
 
 KISMET_MATH_FORCEINLINE

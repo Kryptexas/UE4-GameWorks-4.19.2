@@ -6,7 +6,7 @@
 #include "Misc/Guid.h"
 #include "IMessageContext.h"
 #include "IMessageBus.h"
-#include "Helpers/MessageEndpoint.h"
+#include "MessageEndpoint.h"
 #include "ISessionInstanceInfo.h"
 #include "ISessionInfo.h"
 
@@ -44,7 +44,7 @@ public:
 	 * @param Message The message containing engine information.
 	 * @param Context The message context.
 	 */
-	void UpdateFromMessage(const FEngineServicePong& Message, const IMessageContextRef& Context);
+	void UpdateFromMessage(const FEngineServicePong& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context);
 
 	/**
 	 * Updates this instance info with the data in the specified message.
@@ -52,7 +52,7 @@ public:
 	 * @param Message The message containing instance information.
 	 * @param Context The message context.
 	 */
-	void UpdateFromMessage(const FSessionServicePong& Message, const IMessageContextRef& Context);
+	void UpdateFromMessage(const FSessionServicePong& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context);
 
 public:	
 
@@ -146,7 +146,7 @@ public:
 private:
 
 	/** Handles FSessionServiceLog messages. */
-	void HandleSessionLogMessage(const FSessionServiceLog& Message, const IMessageContextRef& Context);
+	void HandleSessionLogMessage(const FSessionServiceLog& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context);
 
 private:
 
@@ -193,7 +193,7 @@ private:
 	TArray<TSharedPtr<FSessionLogMessage>> LogMessages;
 
 	/** Holds the message endpoint. */
-	FMessageEndpointPtr MessageEndpoint;
+	TSharedPtr<FMessageEndpoint, ESPMode::ThreadSafe> MessageEndpoint;
 
 	/** Holds a reference to the session that owns this instance. */
 	TWeakPtr<ISessionInfo> Owner;

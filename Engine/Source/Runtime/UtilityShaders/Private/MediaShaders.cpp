@@ -89,6 +89,7 @@ void FAYUVConvertPS::SetParameters(FRHICommandList& CommandList, TRefCountPtr<FR
  *****************************************************************************/
 
 BEGIN_UNIFORM_BUFFER_STRUCT(FBMPConvertUB, )
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, SrgbToLinear)
 DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector2D, UVScale)
 DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(Texture2D, Texture)
 DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, Sampler)
@@ -98,10 +99,11 @@ IMPLEMENT_UNIFORM_BUFFER_STRUCT(FBMPConvertUB, TEXT("BMPConvertUB"));
 IMPLEMENT_SHADER_TYPE(, FBMPConvertPS, TEXT("/Engine/Private/MediaShaders.usf"), TEXT("BMPConvertPS"), SF_Pixel);
 
 
-void FBMPConvertPS::SetParameters(FRHICommandList& CommandList, TRefCountPtr<FRHITexture2D> BMPTexture, const FIntPoint& OutputDimensions)
+void FBMPConvertPS::SetParameters(FRHICommandList& CommandList, TRefCountPtr<FRHITexture2D> BMPTexture, const FIntPoint& OutputDimensions, bool SrgbToLinear)
 {
 	FBMPConvertUB UB;
 	{
+		UB.SrgbToLinear = SrgbToLinear;
 		UB.UVScale = FVector2D((float)OutputDimensions.X / (float)BMPTexture->GetSizeX(), (float)OutputDimensions.Y / (float)BMPTexture->GetSizeY());
 		UB.Texture = BMPTexture;
 		UB.Sampler = TStaticSamplerState<SF_Bilinear>::GetRHI();
@@ -187,7 +189,6 @@ void FNV21ConvertPS::SetParameters(FRHICommandList& CommandList, TRefCountPtr<FR
 
 BEGIN_UNIFORM_BUFFER_STRUCT(FRGBConvertUB, )
 DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector2D, UVScale)
-DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, SrgbToLinear)
 DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(Texture2D, Texture)
 DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, Sampler)
 END_UNIFORM_BUFFER_STRUCT(FRGBConvertUB)
@@ -196,7 +197,7 @@ IMPLEMENT_UNIFORM_BUFFER_STRUCT(FRGBConvertUB, TEXT("RGBConvertUB"));
 IMPLEMENT_SHADER_TYPE(, FRGBConvertPS, TEXT("/Engine/Private/MediaShaders.usf"), TEXT("RGBConvertPS"), SF_Pixel);
 
 
-void FRGBConvertPS::SetParameters(FRHICommandList& CommandList, TRefCountPtr<FRHITexture2D> RGBTexture, const FIntPoint& OutputDimensions, bool SrgbToLinear)
+void FRGBConvertPS::SetParameters(FRHICommandList& CommandList, TRefCountPtr<FRHITexture2D> RGBTexture, const FIntPoint& OutputDimensions)
 {
 	FRGBConvertUB UB;
 	{

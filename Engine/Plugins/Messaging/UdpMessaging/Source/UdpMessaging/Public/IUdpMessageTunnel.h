@@ -2,10 +2,15 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+#include "CoreTypes.h"
+#include "Containers/Array.h"
+#include "Delegate.h"
+#include "Templates/SharedPointer.h"
 
 class IUdpMessageTunnelConnection;
+
 struct FIPv4Endpoint;
+
 
 /**
  * Interface for message tunnels.

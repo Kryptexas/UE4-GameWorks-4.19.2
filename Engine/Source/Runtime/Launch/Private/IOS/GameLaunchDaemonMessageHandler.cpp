@@ -1,9 +1,15 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "GameLaunchDaemonMessageHandler.h"
+
 #include "HAL/PlatformProcess.h"
-#include "Helpers/MessageEndpointBuilder.h"
+#include "IMessageContext.h"
+#include "IOSMessageProtocol.h"
+#include "MessageEndpoint.h"
+#include "MessageEndpointBuilder.h"
+
 #import <TargetConditionals.h>
+
 
 void FGameLaunchDaemonMessageHandler::Init()
 {
@@ -17,6 +23,7 @@ void FGameLaunchDaemonMessageHandler::Init()
 	}
 }
 
+
 void FGameLaunchDaemonMessageHandler::Shutdown()
 {
 	if (MessageEndpoint.IsValid())
@@ -25,7 +32,8 @@ void FGameLaunchDaemonMessageHandler::Shutdown()
 	}
 }
 
-void FGameLaunchDaemonMessageHandler::HandlePingMessage(const FIOSLaunchDaemonPing& Message, const IMessageContextRef& Context)
+
+void FGameLaunchDaemonMessageHandler::HandlePingMessage(const FIOSLaunchDaemonPing& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 {
 	if (MessageEndpoint.IsValid())
 	{
@@ -42,7 +50,8 @@ void FGameLaunchDaemonMessageHandler::HandlePingMessage(const FIOSLaunchDaemonPi
 	}
 }
 
-void FGameLaunchDaemonMessageHandler::HandleLaunchRequest(const FIOSLaunchDaemonLaunchApp& Message, const IMessageContextRef& Context)
+
+void FGameLaunchDaemonMessageHandler::HandleLaunchRequest(const FIOSLaunchDaemonLaunchApp& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 {
 	FString Error;
 

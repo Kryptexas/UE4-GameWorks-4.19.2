@@ -8,7 +8,13 @@ public class NetworkFile : ModuleRules
 	{
 		PrivateIncludePathModuleNames.Add("DerivedDataCache");
 
-		PrivateDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Sockets" });
+		PrivateDependencyModuleNames.AddRange(
+			new string[] {
+				"Core",
+				"CoreUObject",
+				"Sockets"
+			});
+
 		PublicIncludePaths.Add("Runtime/CoreUObject/Public/Interfaces");
 		PublicIncludePaths.Add("Runtime/CoreUObject/Public/UObject");
 		PublicIncludePaths.Add("Runtime/CoreUObject/Public");
@@ -19,8 +25,7 @@ public class NetworkFile : ModuleRules
 				new string[]
 				{
 					"DerivedDataCache",
-				}
-				);
+				});
 		}
 
 		if (Target.Platform == UnrealTargetPlatform.HTML5)

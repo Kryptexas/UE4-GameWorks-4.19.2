@@ -2,52 +2,35 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+#include "Containers/UnrealString.h"
+#include "Internationalization/Text.h"
+#include "Misc/Timespan.h"
 
+class FArchive;
+
+class IMediaCache;
 class IMediaControls;
 class IMediaOptions;
-class IMediaOutput;
+class IMediaSamples;
 class IMediaTracks;
+class IMediaView;
 
-/**
- * Enumerates media player related events.
- */
-enum class EMediaEvent
-{
-	/** The current media source has been closed. */
-	MediaClosed,
-
-	/** A new media source has been opened. */
-	MediaOpened,
-
-	/** A media source failed to open. */
-	MediaOpenFailed,
-
-	/** The end of the media (or beginning if playing in reverse) has been reached. */
-	PlaybackEndReached,
-
-	/** Playback has been resumed. */
-	PlaybackResumed,
-
-	/** Playback has been suspended. */
-	PlaybackSuspended,
-
-	/** Media tracks have changed. */
-	TracksChanged
-};
+struct FGuid;
 
 
 /**
  * Interface for media players.
  *
- * @see IMediaStream
+ * @see IMediaPlayerFactory
  */
 class IMediaPlayer
 {
 public:
 
+	//~ The following methods must be implemented by media players
+
 	/**
-	 * Close a previously opened media.
+	 * Close a previously opened media source.
 	 *
 	 * Call this method to free up all resources associated with an opened
 	 * media source. If no media is open, this function has no effect.
@@ -62,10 +45,22 @@ public:
 	virtual void Close() = 0;
 
 	/**
-	 * Get the media playback controls for this player.
+	 * Get the player's cache controls.
+	 *
+	 * The interface returned by this method must remain valid for the player's life time.
+	 *
+	 * @return Cache controls.
+	 * @see GetControls, GetSamples, GetTracks, GetView
+	 */
+	virtual IMediaCache& GetCache() = 0;
+
+	/**
+	 * Get the player's playback controls.
+	 *
+	 * The interface returned by this method must remain valid for the player's life time.
 	 *
 	 * @return Playback controls.
-	 * @see GetOutput, GetTracks
+	 * @see GetCache, GetSamples, GetTracks, GetView
 	 */
 	virtual IMediaControls& GetControls() = 0;
 
@@ -85,12 +80,14 @@ public:
 	virtual FName GetName() const = 0;
 
 	/**
-	 * Get access to the media player's output.
+	 * Get the player's sample queue.
 	 *
-	 * @return Media tracks interface.
-	 * @see GetControls, GetTracks
+	 * The interface returned by this method must remain valid for the player's life time.
+	 *
+	 * @return Cache interface.
+	 * @see GetCache, GetControls, GetTracks, GetView
 	 */
-	virtual IMediaOutput& GetOutput() = 0;
+	virtual IMediaSamples& GetSamples() = 0;
 
 	/**
 	 * Get playback statistics information.
@@ -101,10 +98,12 @@ public:
 	virtual FString GetStats() const = 0;
 
 	/**
-	 * Get access to the media player's tracks.
+	 * Get the player's track collection.
 	 *
-	 * @return Media tracks interface.
-	 * @see GetControls, GetOutput
+	 * The interface returned by this method must remain valid for the player's life time.
+	 *
+	 * @return Tracks interface.
+	 * @see GetCache, GetControls, GetSamples, GetView
 	 */
 	virtual IMediaTracks& GetTracks() = 0;
 
@@ -114,6 +113,16 @@ public:
 	 * @return Media URL.
 	 */
 	virtual FString GetUrl() const = 0;
+
+	/**
+	 * Get the player's view settings.
+	 *
+	 * The interface returned by this method must remain valid for the player's life time.
+	 *
+	 * @return View interface.
+	 * @see GetCache, GetControls, GetSamples, GetTracks
+	 */
+	virtual IMediaView& GetView() = 0;
 
 	/**
 	 * Open a media source from a URL with optional parameters.
@@ -132,7 +141,7 @@ public:
 	 * @return true if the media is being opened, false otherwise.
 	 * @see Close, IsReady, OnOpen, OnOpenFailed
 	 */
-	virtual bool Open(const FString& Url, const IMediaOptions& Options) = 0;
+	virtual bool Open(const FString& Url, const IMediaOptions* Options) = 0;
 
 	/**
 	 * Open a media source from a file or memory archive with optional parameters.
@@ -152,29 +161,62 @@ public:
 	 * @return true if the media is being opened, false otherwise.
 	 * @see Close, IsReady, OnOpen, OnOpenFailed
 	 */
-	virtual bool Open(const TSharedRef<FArchive, ESPMode::ThreadSafe>& Archive, const FString& OriginalUrl, const IMediaOptions& Options) = 0;
-
-	/**
-	 * Tick the media player logic.
-	 *
-	 * @param DeltaTime Time since last tick.
-	 * @see TickVideo
-	 */
-	virtual void TickPlayer(float DeltaTime) = 0;
-
-	/**
-	 * Tick the media player's video code.
-	 *
-	 * @param DeltaTime Time since last tick.
-	 * @see TickPlayer
-	 */
-	virtual void TickVideo(float DeltaTime) = 0;
+	virtual bool Open(const TSharedRef<FArchive, ESPMode::ThreadSafe>& Archive, const FString& OriginalUrl, const IMediaOptions* Options) = 0;
 
 public:
 
-	/** Get an event delegate that is invoked when an event occurred. */
-	DECLARE_EVENT_OneParam(IMediaPlayer, FOnMediaEvent, EMediaEvent /*Event*/)
-	virtual FOnMediaEvent& OnMediaEvent() = 0;
+	//~ The following methods are optional
+
+	/**
+	 * Set the player's globally unique identifier.
+	 *
+	 * @param Guid The GUID to set.
+	 */
+	virtual void SetGuid(const FGuid& Guid)
+	{
+		// override in child classes if supported
+	}
+
+	/**
+	 * Tick the player's audio related code.
+	 *
+	 * This is a high-frequency tick function. Media players override this method
+	 * to fetch and process audio samples, or to perform other time critical tasks.
+	 *
+	 * @see TickInput, TickFetch
+	 */
+	virtual void TickAudio()
+	{
+		// override in child class if needed
+	}
+
+	/**
+	 * Tick the player in the Fetch phase.
+	 *
+	 * Media players may override this method to fetch newly decoded input
+	 * samples before they are rendered on textures or audio components.
+	 *
+	 * @param DeltaTime Time since last tick.
+	 * @see TickAudio, TickInput
+	 */
+	virtual void TickFetch(FTimespan DeltaTime)
+	{
+		// override in child class if needed
+	}
+
+	/**
+	 * Tick the player in the Input phase.
+	 *
+	 * Media players may override this method to update their state before the
+	 * Engine is being ticked, or to initiate the processing of input samples.
+	 *
+	 * @param DeltaTime Time since last tick.
+	 * @see TickAudio, TickFetch
+	 */
+	virtual void TickInput(FTimespan DeltaTime)
+	{
+		// override in child class if needed
+	}
 
 public:
 

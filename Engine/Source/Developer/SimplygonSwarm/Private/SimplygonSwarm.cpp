@@ -7,7 +7,8 @@
 #include "UObject/Object.h"
 #include "Misc/Paths.h"
 #include "Misc/ScopedSlowTask.h"
-#include "Interfaces/IImageWrapperModule.h"
+#include "IImageWrapper.h"
+#include "IImageWrapperModule.h"
 #include "Editor/EditorPerProjectUserSettings.h"
 #include "Misc/EngineVersion.h"
 #include "Misc/MonitoredProcess.h"
@@ -1404,7 +1405,7 @@ bool ZipContentsForUpload(FString InputDirectoryPath, FString OutputFileName)
 		)
 	{
 		IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
-		IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
+		TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
 		 
 		TArray<uint8> TextureData;
 		if (!FFileHelper::LoadFileToArray(TextureData, *FPaths::ConvertRelativePathToFull(TexturePath)) && TextureData.Num() > 0)
@@ -1465,7 +1466,7 @@ bool ZipContentsForUpload(FString InputDirectoryPath, FString OutputFileName)
 		{
 
 			IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
-			IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
+			TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
 			
 			FString TextureOutputRelative = FString::Printf(TEXT("%s/%s.png"), ANSI_TO_TCHAR(SsfTextureTable->TexturesDirectory->Value.c_str()), *TextureName);
 			FString TextureOutputPath = FString::Printf(TEXT("%s%s"), *BaseTexturePath, *TextureOutputRelative);

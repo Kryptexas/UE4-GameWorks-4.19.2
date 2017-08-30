@@ -2,11 +2,15 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "Misc/AutomationTest.h"
+#include "CoreTypes.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
 #include "IMessageContext.h"
-#include "Helpers/MessageEndpoint.h"
-#include "Interfaces/IAutomationWorkerModule.h"
+#include "Misc/AutomationTest.h"
+
+#include "IAutomationWorkerModule.h"
+
+class FMessageEndpoint;
 
 struct FAutomationWorkerFindWorkers;
 struct FAutomationWorkerImageComparisonResults;
@@ -17,6 +21,8 @@ struct FAutomationWorkerPing;
 struct FAutomationWorkerRequestTests;
 struct FAutomationWorkerResetTests;
 struct FAutomationWorkerRunTests;
+struct FMessageAddress;
+
 
 /**
  * Implements the Automation Worker module.
@@ -26,48 +32,33 @@ class FAutomationWorkerModule
 {
 public:
 
-	//~ Begin IModuleInterface Interface
+	//~ IModuleInterface interface
 
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
-
 	virtual bool SupportsDynamicReloading() override;
-
-	//~ End IModuleInterface Interface
 
 public:
 
-	//~ Begin IAutomationWorkerModule Interface
+	//~ IAutomationWorkerModule interface
 
 	virtual void Tick() override;
 
-	//~ End IAutomationWorkerModule Interface
-
 protected:
 
-	/**
-	 * Execute all latent commands and when complete send results message back to the automation controller
-	 */
+	/** Execute all latent commands and when complete send results message back to the automation controller. */
 	bool ExecuteLatentCommands();
 
-	/**
-	 * Execute all network commands and when complete send results message back to the automation controller
-	 */
+	/** Execute all network commands and when complete send results message back to the automation controller. */
 	bool ExecuteNetworkCommands();
 
-	/**
-	 * Initializes the automation worker.
-	 */
+	/** Initializes the automation worker. */
 	void Initialize();
 
-	/**
-	 * Network phase is complete (if there were any network commands).  Send ping back to the controller
-	 */
+	/** Network phase is complete (if there were any network commands).  Send ping back to the controller. */
 	void ReportNetworkCommandComplete();
 
-	/**
-	 * Test is complete. Send results back to controller
-	 */
+	/** Test is complete. Send results back to controller. */
 	void ReportTestComplete();
 
 	/** 
@@ -75,47 +66,47 @@ protected:
 	 *
 	 * @param ControllerAddress The message address of the controller that requested the tests.
 	 */
-	void SendTests( const FMessageAddress& ControllerAddress );
+	void SendTests(const FMessageAddress& ControllerAddress);
 
 private:
 
-	// Handles FAutomationWorkerFindWorkers messages.
-	void HandleFindWorkersMessage( const FAutomationWorkerFindWorkers& Message, const IMessageContextRef& Context );
+	/** Handles FAutomationWorkerFindWorkers messages. */
+	void HandleFindWorkersMessage(const FAutomationWorkerFindWorkers& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context);
 
-	//deferred handler for sending "find worker" response in case the asset registry isn't loaded yet
+	/** Deferred handler for sending "find worker" response in case the asset registry isn't loaded yet. */
 	void SendWorkerFound();
 
-	// Handles message endpoint shutdowns.
+	/** Handles message endpoint shutdowns. */
 	void HandleMessageEndpointShutdown();
 
-	// Handles FAutomationWorkerNextNetworkCommandReply messages.
-	void HandleNextNetworkCommandReplyMessage( const FAutomationWorkerNextNetworkCommandReply& Message, const IMessageContextRef& Context );
+	/** Handles FAutomationWorkerNextNetworkCommandReply messages. */
+	void HandleNextNetworkCommandReplyMessage(const FAutomationWorkerNextNetworkCommandReply& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context);
 
-	// Handles FAutomationWorkerPing messages.
-	void HandlePingMessage( const FAutomationWorkerPing& Message, const IMessageContextRef& Context );
+	/** Handles FAutomationWorkerPing messages. */
+	void HandlePingMessage(const FAutomationWorkerPing& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context);
 
-	// Handles FAutomationWorkerResetTests messages.
-	void HandleResetTests( const FAutomationWorkerResetTests& Message, const IMessageContextRef& Context );
+	/** Handles FAutomationWorkerResetTests messages. */
+	void HandleResetTests(const FAutomationWorkerResetTests& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context);
 
-	// Handles FAutomationWorkerRequestTests messages.
-	void HandleRequestTestsMessage( const FAutomationWorkerRequestTests& Message, const IMessageContextRef& Context );
+	/** Handles FAutomationWorkerRequestTests messages. */
+	void HandleRequestTestsMessage(const FAutomationWorkerRequestTests& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context);
 
-	// Handles FAutomationWorkerRunTests messages.
-	void HandleRunTestsMessage( const FAutomationWorkerRunTests& Message, const IMessageContextRef& Context );
+	/** Handles FAutomationWorkerRunTests messages. */
+	void HandleRunTestsMessage(const FAutomationWorkerRunTests& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context);
 
-	// Handles FAutomationWorkerImageComparisonResults messages.
-	void HandleScreenShotCompared(const FAutomationWorkerImageComparisonResults& Message, const IMessageContextRef& Context);
+	/** Handles FAutomationWorkerImageComparisonResults messages. */
+	void HandleScreenShotCompared(const FAutomationWorkerImageComparisonResults& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context);
 
-	// Handles FAutomationWorkerTestDataResponse messages.
-	void HandleTestDataRetrieved(const FAutomationWorkerTestDataResponse& Message, const IMessageContextRef& Context);
+	/** Handles FAutomationWorkerTestDataResponse messages. */
+	void HandleTestDataRetrieved(const FAutomationWorkerTestDataResponse& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context);
 
-	// Handles FAutomationWorkerPerformanceDataResponse messages.
-	void HandlePerformanceDataRetrieved(const FAutomationWorkerPerformanceDataResponse& Message, const IMessageContextRef& Context);
+	/** Handles FAutomationWorkerPerformanceDataResponse messages. */
+	void HandlePerformanceDataRetrieved(const FAutomationWorkerPerformanceDataResponse& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context);
 
-	// Handles FAutomationTestFramework PreTestingEvents.
+	/** Handles FAutomationTestFramework PreTestingEvents. */
 	void HandlePreTestingEvent();
 
-	// Handles FAutomationTestFramework PostTestingEvents.
+	/** Handles FAutomationTestFramework PostTestingEvents. */
 	void HandlePostTestingEvent();
 
 #if WITH_ENGINE
@@ -123,21 +114,21 @@ private:
 	void HandleScreenShotCapturedWithName(const TArray<FColor>& RawImageData, const FAutomationScreenshotData& Data);
 #endif
 
-	//dispatches analytics events to the data collector
+	/** Dispatches analytics events to the data collector. */
 	void SendAnalyticsEvents(TArray<FString>& InAnalyticsItems);
 
-	// Helper for Performance Capture Analytics
-	void RecordPerformanceAnalytics( const FAutomationPerformanceSnapshot& PerfSnapshot );
+	/** Helper for Performance Capture Analytics. */
+	void RecordPerformanceAnalytics(const FAutomationPerformanceSnapshot& PerfSnapshot);
 
 private:
 
-	// The collection of test data we are to send to a controller
+	/** The collection of test data we are to send to a controller. */
 	TArray<FAutomationTestInfo> TestInfo;
 
 private:
 
 	/** Holds the messaging endpoint. */
-	FMessageEndpointPtr MessageEndpoint;
+	TSharedPtr<FMessageEndpoint, ESPMode::ThreadSafe> MessageEndpoint;
 
 	/** Message address of the controller sending the test request. */
 	FMessageAddress TestRequesterAddress;

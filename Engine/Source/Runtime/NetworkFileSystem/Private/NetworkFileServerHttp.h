@@ -1,19 +1,13 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	NetworkFileServerHttp.h: Declares the NetworkFileServerHttp class.
-
-	This allows NFS to use a http server for serving Unreal Files.
-
-=============================================================================*/
 #pragma  once
 
 #include "CoreMinimal.h"
 #include "HAL/ThreadSafeCounter.h"
 #include "Misc/Guid.h"
 #include "HAL/Runnable.h"
-#include "Interfaces/INetworkFileServer.h"
-#include "Interfaces/INetworkFileSystemModule.h"
+#include "INetworkFileServer.h"
+#include "INetworkFileSystemModule.h"
 
 class FInternetAddr;
 class FNetworkFileServerClientConnectionHTTP;
@@ -22,8 +16,8 @@ class ITargetPlatform;
 #if ENABLE_HTTP_FOR_NFS
 
 #if PLATFORM_WINDOWS
-#include "WindowsHWrapper.h"
-#include "AllowWindowsPlatformTypes.h"
+	#include "WindowsHWrapper.h"
+	#include "AllowWindowsPlatformTypes.h"
 #endif
 
 /*
@@ -32,13 +26,13 @@ class ITargetPlatform;
 	The define will move the openssl define out of the way.
 */
 #define UI UI_ST
-THIRD_PARTY_INCLUDES_START
-#include "libwebsockets.h"
-THIRD_PARTY_INCLUDES_END
+	THIRD_PARTY_INCLUDES_START
+	#include "libwebsockets.h"
+	THIRD_PARTY_INCLUDES_END
 #undef UI
 
 #if PLATFORM_WINDOWS
-#include "HideWindowsPlatformTypes.h"
+	#include "HideWindowsPlatformTypes.h"
 #endif
 
 

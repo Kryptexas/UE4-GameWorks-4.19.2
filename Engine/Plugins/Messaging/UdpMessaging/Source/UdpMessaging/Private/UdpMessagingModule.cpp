@@ -1,26 +1,26 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CoreMinimal.h"
+#include "UdpMessagingPrivate.h"
+
+#include "CoreTypes.h"
+#include "MessageBridgeBuilder.h"
 #include "Misc/CoreMisc.h"
 #include "Misc/CommandLine.h"
 #include "Misc/CoreDelegates.h"
 #include "Misc/App.h"
 #include "Modules/ModuleInterface.h"
 #include "Modules/ModuleManager.h"
-#include "Helpers/MessageBridgeBuilder.h"
 #include "Interfaces/IPv4/IPv4Endpoint.h"
-#include "Shared/UdpMessagingSettings.h"
-#include "Transport/UdpMessageTransport.h"
-#include "Tunnel/UdpMessageTunnel.h"
-#include "UdpMessagingPrivate.h"
 
 #if WITH_EDITOR
 	#include "ISettingsModule.h"
 	#include "ISettingsSection.h"
 #endif
 
-#if PLATFORM_DESKTOP
-#endif
+#include "IUdpMessageTunnelConnection.h"
+#include "Shared/UdpMessagingSettings.h"
+#include "Transport/UdpMessageTransport.h"
+#include "Tunnel/UdpMessageTunnel.h"
 
 
 DEFINE_LOG_CATEGORY(LogUdpMessaging);
@@ -352,7 +352,10 @@ protected:
 
 		if (!FIPv4Endpoint::Parse(Settings->TunnelUnicastEndpoint, UnicastEndpoint))
 		{
-			UE_LOG(LogUdpMessaging, Warning, TEXT("Invalid setting for UnicastEndpoint '%s' - binding to all local network adapters instead"), *Settings->UnicastEndpoint);
+			if (!Settings->TunnelUnicastEndpoint.IsEmpty())
+			{
+				UE_LOG(LogUdpMessaging, Warning, TEXT("Invalid setting for UnicastEndpoint '%s' - binding to all local network adapters instead"), *Settings->UnicastEndpoint);
+			}
 
 			UnicastEndpoint = FIPv4Endpoint::Any;
 			Settings->TunnelUnicastEndpoint = UnicastEndpoint.ToString();
@@ -361,7 +364,10 @@ protected:
 
 		if (!FIPv4Endpoint::Parse(Settings->TunnelMulticastEndpoint, MulticastEndpoint))
 		{
-			UE_LOG(LogUdpMessaging, Warning, TEXT("Invalid setting for MulticastEndpoint '%s' - using default endpoint '%s' instead"), *Settings->MulticastEndpoint, *UDP_MESSAGING_DEFAULT_MULTICAST_ENDPOINT.ToText().ToString());
+			if (!Settings->TunnelMulticastEndpoint.IsEmpty())
+			{
+				UE_LOG(LogUdpMessaging, Warning, TEXT("Invalid setting for MulticastEndpoint '%s' - using default endpoint '%s' instead"), *Settings->MulticastEndpoint, *UDP_MESSAGING_DEFAULT_MULTICAST_ENDPOINT.ToText().ToString());
+			}
 
 			MulticastEndpoint = UDP_MESSAGING_DEFAULT_MULTICAST_ENDPOINT;
 			Settings->TunnelMulticastEndpoint = MulticastEndpoint.ToString();

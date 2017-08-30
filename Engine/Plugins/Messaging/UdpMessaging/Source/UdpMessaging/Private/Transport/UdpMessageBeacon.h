@@ -2,14 +2,19 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+#include "CoreTypes.h"
+#include "Misc/DateTime.h"
 #include "Misc/Guid.h"
+#include "Misc/Timespan.h"
 #include "HAL/Runnable.h"
 #include "Shared/UdpMessageSegment.h"
+#include "Templates/SharedPointer.h"
 
+class FEvent;
 class FInternetAddr;
 class FSocket;
 struct FIPv4Endpoint;
+
 
 /**
  * Implements a beacon sender thread.

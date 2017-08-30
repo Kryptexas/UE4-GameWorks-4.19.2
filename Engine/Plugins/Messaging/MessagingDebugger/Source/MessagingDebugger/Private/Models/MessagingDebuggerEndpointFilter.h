@@ -2,8 +2,13 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+#include "CoreTypes.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "Delegates/Delegate.h"
 #include "IMessageTracer.h"
+#include "Templates/SharedPointer.h"
+
 
 /**
  * Implements a filter for the message endpoints list.

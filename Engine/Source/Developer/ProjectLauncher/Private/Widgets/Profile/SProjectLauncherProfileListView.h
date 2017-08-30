@@ -2,15 +2,18 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+#include "Templates/SharedPointer.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/SCompoundWidget.h"
-#include "Widgets/Views/STableViewBase.h"
-#include "Widgets/Views/STableRow.h"
-#include "Models/ProjectLauncherModel.h"
-#include "Widgets/SProjectLauncherDelegates.h"
+#include "Widgets/Views/SListView.h"
 
+#include "Widgets/Shared/ProjectLauncherDelegates.h"
+
+class FProjectLauncherModel;
 class FUICommandList;
+class ITableRow;
+class STableViewBase;
+
 
 /**
  * Implements the deployment targets panel.
@@ -38,92 +41,87 @@ public:
 	SLATE_END_ARGS()
 
 public:
-	/**
-	 * Constructor.
-	 */
+
+	/** Constructor. */
 	SProjectLauncherProfileListView();
 
-	/**
-	 * Destructor.
-	 */
-	~SProjectLauncherProfileListView( );
+	/** Destructor. */
+	~SProjectLauncherProfileListView();
 
 public:
 
 	/**
-	 * Constructs the widget.
+	 * Construct the widget.
 	 *
 	 * @param InArgs The Slate argument list.
 	 * @param InModel The data model.
 	 */
-	void Construct(const FArguments& InArgs, const FProjectLauncherModelRef& InModel);
+	void Construct(const FArguments& InArgs, const TSharedRef<FProjectLauncherModel>& InModel);
 
 protected:
 
-	/**
-	 * Refreshes the list of launch profiles.
-	 */
+	/** Refreshe the list of launch profiles. */
 	void RefreshLaunchProfileList();
 
 private:
 
-	// Builds the command list for the context menu on list items.
+	/** Builds the command list for the context menu on list items. */
 	void CreateCommands();
 
-	// Callback for getting the enabled state of a profile list row.
+	/** Callback for getting the enabled state of a profile list row. */
 	bool HandleProfileRowIsEnabled(ILauncherProfilePtr LaunchProfile) const;
 
-	// Callback for getting the tool tip text of a profile list row.
+	/** Callback for getting the tool tip text of a profile list row. */
 	FText HandleDeviceListRowToolTipText(ILauncherProfilePtr LaunchProfile) const;
 
-	// Callback for generating a row in the profile list view.
+	/** Callback for generating a row in the profile list view. */
 	TSharedRef<ITableRow> HandleProfileListViewGenerateRow(ILauncherProfilePtr InItem, const TSharedRef<STableViewBase>& OwnerTable) const;
 
-	// Callback for when a launch profile has been added to the profile manager.
+	/** Callback for when a launch profile has been added to the profile manager. */
 	void HandleProfileManagerProfileAdded(const ILauncherProfileRef& AddedProfile);
 
-	// Callback for when a launch profile has been removed to the profile manager.
+	/** Callback for when a launch profile has been removed to the profile manager. */
 	void HandleProfileManagerProfileRemoved(const ILauncherProfileRef& RemovedProfile);
 
-	// Callback for creating a context menu for the list.
+	/** Callback for creating a context menu for the list. */
 	TSharedPtr<SWidget> MakeProfileContextMenu();
 
-	// Callback returns true if the rename command can be executed.
+	/** Callback returns true if the rename command can be executed. */
 	bool HandleRenameProfileCommandCanExecute() const;
 
-	// Callback to execute the rename command from the context menu.
+	/** Callback to execute the rename command from the context menu. */
 	void HandleRenameProfileCommandExecute();
 
-	// Callback returns true if the duplicate command can be executed.
+	/** Callback returns true if the duplicate command can be executed. */
 	bool HandleDuplicateProfileCommandCanExecute() const;
 
-	// Callback to execute the duplicate command from the context menu.
+	/** Callback to execute the duplicate command from the context menu. */
 	void HandleDuplicateProfileCommandExecute();
 
-	// Callback returns true if the delete command can be executed.
+	/** Callback returns true if the delete command can be executed. */
 	bool HandleDeleteProfileCommandCanExecute() const;
 
-	// Callback to execute the delete command from the context menu.
+	/** Callback to execute the delete command from the context menu. */
 	void HandleDeleteProfileCommandExecute();
 
 private:
 
-	// Holds the launch profile list view .
+	/** The launch profile list view. */
 	TSharedPtr<SListView<ILauncherProfilePtr> > LaunchProfileListView;
 
-	// Holds a pointer to the data model.
-	FProjectLauncherModelPtr Model;
+	/** Pointer to the data model. */
+	TSharedPtr<FProjectLauncherModel> Model;
 
-	// Holds a delegate to be invoked when a profile is to be edited.
+	/** A delegate to be invoked when a profile is to be edited. */
 	FOnProfileRun OnProfileEdit;
 
-	// Holds a delegate to be invoked when a profile is run.
+	/** A delegate to be invoked when a profile is run. */
 	FOnProfileRun OnProfileRun;
 
-	// Holds a delegate to be invoked when a profile is deleted.
+	/** A delegate to be invoked when a profile is deleted. */
 	FOnProfileRun OnProfileDelete;
 
-	/** Commands handled by this widget */
+	/** Commands handled by this widget. */
 	TSharedRef<FUICommandList> CommandList;
 
 };

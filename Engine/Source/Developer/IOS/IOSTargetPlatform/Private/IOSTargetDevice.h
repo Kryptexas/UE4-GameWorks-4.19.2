@@ -1,52 +1,41 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	IOSTargetDevice.h: Defines an IOS device for communication
-=============================================================================*/
-
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Interfaces/ITargetDevice.h"
-#include "Interfaces/ITargetPlatform.h"
-#include "HAL/PlatformProcess.h"
 #include "IMessageContext.h"
-#include "Helpers/MessageEndpoint.h"
-#include "Helpers/MessageEndpointBuilder.h"
+#include "Interfaces/ITargetDevice.h"
+
+class FMessageEndpoint;
+class ITargetPlatform;
 
 
-/**
- * Type definition for shared pointers to instances of FIOSTargetDevice.
- */
+/** Type definition for shared pointers to instances of FIOSTargetDevice. */
 typedef TSharedPtr<class FIOSTargetDevice, ESPMode::ThreadSafe> FIOSTargetDevicePtr;
 
-/**
- * Type definition for shared references to instances of FIOSTargetDevice.
- */
+/** Type definition for shared references to instances of FIOSTargetDevice. */
 typedef TSharedRef<class FIOSTargetDevice, ESPMode::ThreadSafe> FIOSTargetDeviceRef;
 
 
 /**
  * Implements an iOS target device.
  */
-class FIOSTargetDevice : public ITargetDevice
+class FIOSTargetDevice
+	: public ITargetDevice
 {
 public:
-	FIOSTargetDevice (const ITargetPlatform& InTargetPlatform)
-		: TargetPlatform(InTargetPlatform)
-		, DeviceEndpoint()
-		, AppId()
-		, bCanReboot(false)
-		, bCanPowerOn(false)
-		, bCanPowerOff(false)
-		, DeviceType(ETargetDeviceTypes::Indeterminate)
-	{
-		DeviceId = FTargetDeviceId(TargetPlatform.PlatformName(), FPlatformProcess::ComputerName());
-		DeviceName = FPlatformProcess::ComputerName();
-		MessageEndpoint = FMessageEndpoint::Builder("FIOSTargetDevice").Build();
-	}
+
+	/**
+	 * Create and initialize a new instance.
+	 *
+	 * @param InTargetPlatform The target platform that owns the device.
+	 */
+	FIOSTargetDevice(const ITargetPlatform& InTargetPlatform);
+
 public:
-	// ITargetDevice interface
+
+	//~ ITargetDevice interface
+
 	virtual bool Connect() override;
 	virtual bool Deploy(const FString& SourceFolder, FString& OutAppId) override;
 	virtual void Disconnect() override;
@@ -68,9 +57,9 @@ public:
 	virtual bool TerminateProcess(const int64 ProcessId) override;
 	virtual void SetUserCredentials(const FString& UserName, const FString& UserPassword) override;
 	virtual bool GetUserCredentials(FString& OutUserName, FString& OutUserPassword) override;
-	// End of ITargetDevice interface
 
 public:
+
 	/** Timeout check for removing stale devices */
 	FDateTime LastPinged;
 
@@ -78,32 +67,42 @@ private:
 
 	/** The current status of this device. */
 //	ETargetDeviceStatus::Type Status;
-	/** Holds a reference to the device's target platform. */
+
+/** Holds a reference to the device's target platform. */
 	const ITargetPlatform& TargetPlatform;
+
 	/** Contains the address of the remote device */
 	FMessageAddress DeviceEndpoint;
+
 	/** MessageEndpoint for communicating with remote device */
-	FMessageEndpointPtr MessageEndpoint;
+	TSharedPtr<FMessageEndpoint, ESPMode::ThreadSafe> MessageEndpoint;
+
 	/** Contains the current AppID/GameName for Deployment/launching. */
 	FString AppId;
-	/** Containts the build configuration of the app to deploy */
+
+	/** Contains the build configuration of the app to deploy */
 	EBuildConfigurations::Type BuildConfiguration;
+
 	/** Lets us know whether the thing is a sim device or a physical device. */
 	bool bIsSimulated;
-
 
 private:
 
 	/** Remote rebootable */
 	bool bCanReboot;
+
 	/** Remote bootable */
 	bool bCanPowerOn;
+
 	/** Remote shutdown-able */
 	bool bCanPowerOff;
+
 	/** Id of device */
 	FTargetDeviceId DeviceId;
+
 	/** Name of device */
 	FString DeviceName;
+
 	/** Type of device */
 	ETargetDeviceTypes DeviceType;
 
@@ -111,15 +110,15 @@ public:
 
 	void SetFeature(ETargetDeviceFeatures InFeature, bool bFlag)
 	{
-		if(InFeature == ETargetDeviceFeatures::Reboot)
+		if (InFeature == ETargetDeviceFeatures::Reboot)
 		{
 			bCanReboot = bFlag;
 		}
-		else if(InFeature == ETargetDeviceFeatures::PowerOn)
+		else if (InFeature == ETargetDeviceFeatures::PowerOn)
 		{
 			bCanPowerOn = bFlag;
 		}
-		else if(InFeature == ETargetDeviceFeatures::PowerOff)
+		else if (InFeature == ETargetDeviceFeatures::PowerOff)
 		{
 			bCanPowerOff = bFlag;
 		}
@@ -140,19 +139,19 @@ public:
 	/** Sets the type of the device */
 	void SetDeviceType(const FString InDeviceTypeString)
 	{
-		if(InDeviceTypeString == TEXT("Browser"))
+		if (InDeviceTypeString == TEXT("Browser"))
 		{
 			DeviceType = ETargetDeviceTypes::Browser;
 		}
-		else if(InDeviceTypeString == TEXT("Console"))
+		else if (InDeviceTypeString == TEXT("Console"))
 		{
 			DeviceType = ETargetDeviceTypes::Console;
 		}
-		else if(InDeviceTypeString == TEXT("Phone"))
+		else if (InDeviceTypeString == TEXT("Phone"))
 		{
 			DeviceType = ETargetDeviceTypes::Phone;
 		}
-		else if(InDeviceTypeString == TEXT("Tablet"))
+		else if (InDeviceTypeString == TEXT("Tablet"))
 		{
 			DeviceType = ETargetDeviceTypes::Tablet;
 		}

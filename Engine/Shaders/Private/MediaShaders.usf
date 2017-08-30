@@ -22,12 +22,7 @@ float3 YuvToRgb(float3 YUV, float4x4 ColorTransform, uint SrgbToLinear)
 	YUV -= float3(0.0625, 0.5, 0.5);
 	float3 sRGB = mul(Coeff, YUV);
 
-	if (SrgbToLinear == 0)
-	{
-		return sRGB;
-	}
-
-	return sRGBToLinear(sRGB);
+	return (SrgbToLinear == 1) ? sRGBToLinear(sRGB) : sRGB;
 }
 
 
@@ -69,7 +64,10 @@ void BMPConvertPS(
 {
 	InUV.y = 1.0f - InUV.y;
 	float2 ScaledUV = InUV * BMPConvertUB.UVScale;
-	OutColor = BMPConvertUB.Texture.Sample(BMPConvertUB.Sampler, ScaledUV);
+	float4 RGB = BMPConvertUB.Texture.Sample(BMPConvertUB.Sampler, ScaledUV);
+
+	OutColor.xyz = (BMPConvertUB.SrgbToLinear == 1) ? sRGBToLinear(RGB.xyz) : RGB.xyz;
+	OutColor.w = RGB.w;
 }
 
 
@@ -132,9 +130,7 @@ void RGBConvertPS(
 	out float4 OutColor : SV_Target0)
 {
 	float2 ScaledUV = InUV * RGBConvertUB.UVScale;
-	float4 RGB = RGBConvertUB.Texture.Sample(RGBConvertUB.Sampler, ScaledUV);
-
-	OutColor.xyz = (RGBConvertUB.SrgbToLinear == 1) ? sRGBToLinear(RGB) : RGB;
+	OutColor = RGBConvertUB.Texture.Sample(RGBConvertUB.Sampler, ScaledUV);
 }
 
 

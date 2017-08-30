@@ -1,11 +1,13 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "Widgets/Apps/SDeviceApps.h"
-#include "Widgets/SOverlay.h"
-#include "SlateOptMacros.h"
-#include "Widgets/Text/STextBlock.h"
+#include "SDeviceApps.h"
+
 #include "EditorStyleSet.h"
-#include "Widgets/Views/SListView.h"
+#include "SlateOptMacros.h"
+#include "Widgets/SOverlay.h"
+#include "Widgets/Text/STextBlock.h"
+
+#include "Models/DeviceManagerModel.h"
 #include "Widgets/Apps/SDeviceAppsAppListRow.h"
 
 
@@ -15,7 +17,7 @@
 /* SMessagingEndpoints structors
 *****************************************************************************/
 
-SDeviceApps::~SDeviceApps( )
+SDeviceApps::~SDeviceApps()
 {
 	if (Model.IsValid())
 	{
@@ -28,10 +30,37 @@ SDeviceApps::~SDeviceApps( )
  *****************************************************************************/
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-void SDeviceApps::Construct( const FArguments& InArgs, const FDeviceManagerModelRef& InModel )
+void SDeviceApps::Construct(const FArguments& InArgs, const TSharedRef<FDeviceManagerModel>& InModel)
 {
 	Model = InModel;
 
+	// callback for getting the enabled state of the processes panel
+	auto AppsBoxIsEnabled = [this]() -> bool {
+		ITargetDeviceServicePtr DeviceService = Model->GetSelectedDeviceService();
+		return (DeviceService.IsValid() && DeviceService->CanStart());
+	};
+
+	// callback for generating a row widget in the application list view
+	auto AppListViewGenerateRow = [this](TSharedPtr<FString> Item, const TSharedRef<STableViewBase>& OwnerTable) -> TSharedRef<ITableRow> {
+		return SNew(SDeviceAppsAppListRow, OwnerTable);
+	};
+
+	// callback for selecting items in the devices list view
+	auto AppListViewSelectionChanged = [this](TSharedPtr<FString> Selection, ESelectInfo::Type SelectInfo) {
+		// @todo
+	};
+
+	// callback for getting the visibility of the 'Select a device' message. */
+	auto SelectDeviceOverlayVisibility = [this]() -> EVisibility {
+		if (Model->GetSelectedDeviceService().IsValid())
+		{
+			return EVisibility::Hidden;
+		}
+
+		return EVisibility::Visible;
+	};
+
+	// construct children
 	ChildSlot
 	[
 		SNew(SOverlay)
@@ -39,7 +68,7 @@ void SDeviceApps::Construct( const FArguments& InArgs, const FDeviceManagerModel
 		+ SOverlay::Slot()
 			[
 				SNew(SVerticalBox)
-					.IsEnabled(this, &SDeviceApps::HandleAppsBoxIsEnabled)
+					.IsEnabled_Lambda(AppsBoxIsEnabled)
 
 				+ SVerticalBox::Slot()
 					.FillHeight(1.0f)
@@ -53,8 +82,8 @@ void SDeviceApps::Construct( const FArguments& InArgs, const FDeviceManagerModel
 								SAssignNew(AppListView, SListView<TSharedPtr<FString> >)
 									.ItemHeight(20.0f)
 									.ListItemsSource(&AppList)
-									.OnGenerateRow(this, &SDeviceApps::HandleAppListViewGenerateRow)
-									.OnSelectionChanged(this, &SDeviceApps::HandleAppListViewSelectionChanged)
+									.OnGenerateRow_Lambda(AppListViewGenerateRow)
+									.OnSelectionChanged_Lambda(AppListViewSelectionChanged)
 									.SelectionMode(ESelectionMode::Single)
 									.HeaderRow
 									(
@@ -80,7 +109,7 @@ void SDeviceApps::Construct( const FArguments& InArgs, const FDeviceManagerModel
 				SNew(SBorder)
 					.BorderImage(FEditorStyle::GetBrush("NotificationList.ItemBackground"))
 					.Padding(8.0f)
-					.Visibility(this, &SDeviceApps::HandleSelectDeviceOverlayVisibility)
+					.Visibility_Lambda(SelectDeviceOverlayVisibility)
 					[
 						SNew(STextBlock)
 							.Text(LOCTEXT("SelectSessionOverlayText", "Please select a device from the Device Browser"))
@@ -88,48 +117,14 @@ void SDeviceApps::Construct( const FArguments& InArgs, const FDeviceManagerModel
 			]
 	];
 
-	Model->OnSelectedDeviceServiceChanged().AddRaw(this, &SDeviceApps::HandleModelSelectedDeviceServiceChanged);
+	// callback for handling device service selection changes
+	auto ModelSelectedDeviceServiceChanged = [this]() {
+		// @todo
+	};
+
+	Model->OnSelectedDeviceServiceChanged().AddLambda(ModelSelectedDeviceServiceChanged);
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
-
-
-/* SDeviceApps callbacks
- *****************************************************************************/
-
-TSharedRef<ITableRow> SDeviceApps::HandleAppListViewGenerateRow( TSharedPtr<FString> Item, const TSharedRef<STableViewBase>& OwnerTable )
-{
-	return SNew(SDeviceAppsAppListRow, OwnerTable);
-}
-
-
-void SDeviceApps::HandleAppListViewSelectionChanged( TSharedPtr<FString> Selection, ESelectInfo::Type SelectInfo )
-{
-
-}
-
-
-bool SDeviceApps::HandleAppsBoxIsEnabled( ) const
-{
-	ITargetDeviceServicePtr DeviceService = Model->GetSelectedDeviceService();
-
-	return (DeviceService.IsValid() && DeviceService->CanStart());
-}
-
-
-void SDeviceApps::HandleModelSelectedDeviceServiceChanged( )
-{
-}
-
-
-EVisibility SDeviceApps::HandleSelectDeviceOverlayVisibility( ) const
-{
-	if (Model->GetSelectedDeviceService().IsValid())
-	{
-		return EVisibility::Hidden;
-	}
-
-	return EVisibility::Visible;
-}
 
 
 #undef LOCTEXT_NAMESPACE

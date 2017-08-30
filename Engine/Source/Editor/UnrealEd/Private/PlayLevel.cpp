@@ -78,8 +78,8 @@
 #include "Logging/MessageLog.h"
 #include "Misc/UObjectToken.h"
 #include "Misc/MapErrors.h"
-#include "Interfaces/ITargetDeviceServicesModule.h"
-#include "Interfaces/ILauncherServicesModule.h"
+#include "ITargetDeviceServicesModule.h"
+#include "ILauncherServicesModule.h"
 #include "GameProjectGenerationModule.h"
 #include "SourceCodeNavigation.h"
 #include "PhysicsPublic.h"
@@ -3229,8 +3229,11 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 InPIEInstance, bool bI
 	// By this point it is safe to remove the GameInstance from the root and allow it to garbage collected as per usual
 	GameInstance->RemoveFromRoot();
 
-	// Start the game instance
+	// Start the game instance, make sure to set the PIE instance global as this is basically a tick
+	GPlayInEditorID = InPIEInstance;
 	const FGameInstancePIEResult StartResult = GameInstance->StartPlayInEditorGameInstance(NewLocalPlayer, GameInstanceParams);
+	GPlayInEditorID = -1;
+
 	if (!StartResult.IsSuccess())
 	{
 		FMessageDialog::Open(EAppMsgType::Ok, StartResult.FailureReason);

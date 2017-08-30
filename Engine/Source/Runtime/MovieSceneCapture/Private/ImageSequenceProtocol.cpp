@@ -1,6 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Protocols/ImageSequenceProtocol.h"
+
 #include "Misc/CommandLine.h"
 #include "Misc/FileHelper.h"
 #include "HAL/RunnableThread.h"
@@ -8,9 +9,9 @@
 #include "Modules/ModuleManager.h"
 #include "Async/Future.h"
 #include "Async/Async.h"
-
 #include "Templates/Casts.h"
 #include "MovieSceneCaptureSettings.h"
+
 
 void UBmpImageCaptureSettings::OnReleaseConfig(FMovieSceneCaptureSettings& InSettings)
 {
@@ -59,7 +60,8 @@ void UImageCaptureSettings::OnLoadConfig(FMovieSceneCaptureSettings& InSettings)
 }
 
 #if WITH_EDITOR
-#include "Interfaces/IImageWrapperModule.h"
+
+#include "IImageWrapperModule.h"
 
 namespace
 {
@@ -71,7 +73,7 @@ struct FImageFrameData : IFramePayload
 	FString Filename;
 };
 
-FImageSequenceProtocol::FImageSequenceProtocol(EImageFormat::Type InFormat)
+FImageSequenceProtocol::FImageSequenceProtocol(EImageFormat InFormat)
 {
 	Format = InFormat;
 	CompressionQuality = 100;
@@ -152,7 +154,7 @@ void FImageSequenceProtocol::AddFormatMappings(TMap<FString, FStringFormatArg>& 
 }
 
 
-FImageCaptureThread::FImageCaptureThread(EImageFormat::Type InFormat, int32 InCompressionQuality)
+FImageCaptureThread::FImageCaptureThread(EImageFormat InFormat, int32 InCompressionQuality)
 {
 	Format = InFormat;
 	CompressionQuality = InCompressionQuality;
@@ -258,8 +260,8 @@ uint32 FImageCaptureThread::Run()
 
 			for (int32 FrameIndex = 0; FrameIndex < ProcessingFrames.Num(); ++FrameIndex)
 			{
-				FrameFutures.Add(Async<void>(EAsyncExecution::TaskGraph, [&, FrameIndex]{
-					IImageWrapperPtr ImageWrapper = ImageWrappers.Num() ? ImageWrappers[FrameIndex] : nullptr;
+				FrameFutures.Add(Async<void>(EAsyncExecution::TaskGraph, [&, FrameIndex] {
+					TSharedPtr<IImageWrapper> ImageWrapper = ImageWrappers.Num() ? ImageWrappers[FrameIndex] : nullptr;
 					WriteFrameToDisk(ProcessingFrames[FrameIndex], ImageWrapper);
 				}));
 			}
@@ -279,7 +281,7 @@ uint32 FImageCaptureThread::Run()
 	return 0;
 }
 
-void FImageCaptureThread::WriteFrameToDisk(FCapturedFrameData& Frame, IImageWrapperPtr ImageWrapper) const
+void FImageCaptureThread::WriteFrameToDisk(FCapturedFrameData& Frame, TSharedPtr<IImageWrapper> ImageWrapper) const
 {
 	const float Width = Frame.BufferSize.X;
 	const float Height = Frame.BufferSize.Y;

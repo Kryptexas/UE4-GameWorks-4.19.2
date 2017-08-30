@@ -2,11 +2,17 @@
 
 #pragma once
 
-#include "../WmfMediaPrivate.h"
+#include "WmfMediaPrivate.h"
 
 #if WMFMEDIA_SUPPORTED_PLATFORM
 
+#include "CoreTypes.h"
+#include "Delegates/Delegate.h"
+#include "HAL/PlatformAtomics.h"
+#include "Misc/Timespan.h"
+
 #include "AllowWindowsPlatformTypes.h"
+
 
 /**
  * Clock sink events.
@@ -33,9 +39,6 @@ public:
 		: RefCount(0)
 	{ }
 
-	/** Virtual destructor. */
-	virtual ~FWmfMediaSampler() { }
-
 public:
 
 	/** Get an event that gets fired when the sampler's presentation clock changed its state. */
@@ -55,11 +58,6 @@ public:
 public:
 
 	//~ IMFSampleGrabberSinkCallback interface
-
-	STDMETHODIMP_(ULONG) AddRef()
-	{
-		return FPlatformAtomics::InterlockedIncrement(&RefCount);
-	}
 
 	STDMETHODIMP OnClockPause(MFTIME SystemTime)
 	{
@@ -111,6 +109,15 @@ public:
 		return S_OK;
 	}
 
+public:
+
+	//~ IUnknown interface
+
+	STDMETHODIMP_(ULONG) AddRef()
+	{
+		return FPlatformAtomics::InterlockedIncrement(&RefCount);
+	}
+
 #if _MSC_VER == 1900
 	#pragma warning(push)
 	#pragma warning(disable:4838)
@@ -145,6 +152,14 @@ public:
 
 private:
 
+	/** Hidden destructor (this class is reference counted). */
+	virtual ~FWmfMediaSampler()
+	{
+		check(RefCount == 0);
+	}
+
+private:
+
 	/** Event that gets fired when the sampler's presentation clock changed state. */
 	FOnClock ClockEvent;
 
@@ -158,4 +173,4 @@ private:
 
 #include "HideWindowsPlatformTypes.h"
 
-#endif
+#endif //WMFMEDIA_SUPPORTED_PLATFORM

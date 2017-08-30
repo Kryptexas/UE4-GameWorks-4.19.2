@@ -1,6 +1,8 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Framework/Text/Android/AndroidPlatformTextField.h"
+
+#include "HAL/IConsoleManager.h"
 #include "Widgets/Input/IVirtualKeyboardEntry.h"
 #include "Misc/ConfigCacheIni.h"
 #include "IConsoleManager.h"

@@ -2,9 +2,13 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+#include "CoreTypes.h"
+#include "Containers/Array.h"
+#include "Delegates/Delegate.h"
+#include "Serialization/Archive.h"
 #include "Serialization/MemoryWriter.h"
 #include "Serialization/MemoryReader.h"
+
 
 /**
  * Enumerates possibly states of a serialized message.

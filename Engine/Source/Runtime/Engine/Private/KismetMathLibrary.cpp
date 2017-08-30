@@ -613,8 +613,15 @@ void UKismetMathLibrary::BreakDateTime(FDateTime InDateTime, int32& Year, int32&
 
 FTimespan UKismetMathLibrary::MakeTimespan(int32 Days, int32 Hours, int32 Minutes, int32 Seconds, int32 Milliseconds)
 {
-	return FTimespan(Days, Hours, Minutes, Seconds, Milliseconds);
+	return FTimespan(Days, Hours, Minutes, Seconds, Milliseconds * 1000 * 1000);
 }
+
+
+FTimespan UKismetMathLibrary::MakeTimespan2(int32 Days, int32 Hours, int32 Minutes, int32 Seconds, int32 FractionNano)
+{
+	return FTimespan(Days, Hours, Minutes, Seconds, FractionNano);
+}
+
 
 void UKismetMathLibrary::BreakTimespan(FTimespan InTimespan, int32& Days, int32& Hours, int32& Minutes, int32& Seconds, int32& Milliseconds)
 {
@@ -622,8 +629,19 @@ void UKismetMathLibrary::BreakTimespan(FTimespan InTimespan, int32& Days, int32&
 	Hours = InTimespan.GetHours();
 	Minutes = InTimespan.GetMinutes();
 	Seconds = InTimespan.GetSeconds();
-	Milliseconds = InTimespan.GetMilliseconds();
+	Milliseconds = InTimespan.GetFractionMilli();
 }
+
+
+void UKismetMathLibrary::BreakTimespan2(FTimespan InTimespan, int32& Days, int32& Hours, int32& Minutes, int32& Seconds, int32& FractionNano)
+{
+	Days = InTimespan.GetDays();
+	Hours = InTimespan.GetHours();
+	Minutes = InTimespan.GetMinutes();
+	Seconds = InTimespan.GetSeconds();
+	FractionNano = InTimespan.GetFractionNano();
+}
+
 
 FTimespan UKismetMathLibrary::FromDays(float Days)
 {
@@ -645,6 +663,7 @@ FTimespan UKismetMathLibrary::FromDays(float Days)
 	return FTimespan::FromDays(Days);
 }
 
+
 FTimespan UKismetMathLibrary::FromHours(float Hours)
 {
 	if (Hours < FTimespan::MinValue().GetTotalHours())
@@ -664,6 +683,7 @@ FTimespan UKismetMathLibrary::FromHours(float Hours)
 
 	return FTimespan::FromHours(Hours);
 }
+
 
 FTimespan UKismetMathLibrary::FromMinutes(float Minutes)
 {
@@ -685,6 +705,7 @@ FTimespan UKismetMathLibrary::FromMinutes(float Minutes)
 	return FTimespan::FromMinutes(Minutes);
 }
 
+
 FTimespan UKismetMathLibrary::FromSeconds(float Seconds)
 {
 	if (Seconds < FTimespan::MinValue().GetTotalSeconds())
@@ -704,6 +725,7 @@ FTimespan UKismetMathLibrary::FromSeconds(float Seconds)
 
 	return FTimespan::FromSeconds(Seconds);
 }
+
 
 FTimespan UKismetMathLibrary::FromMilliseconds(float Milliseconds)
 {
@@ -725,8 +747,9 @@ FTimespan UKismetMathLibrary::FromMilliseconds(float Milliseconds)
 	return FTimespan::FromMilliseconds(Milliseconds);
 }
 
-/* END Timespan functions */
 
+/* Rotator functions
+*****************************************************************************/
 
 FVector UKismetMathLibrary::GetForwardVector(FRotator InRot)
 {

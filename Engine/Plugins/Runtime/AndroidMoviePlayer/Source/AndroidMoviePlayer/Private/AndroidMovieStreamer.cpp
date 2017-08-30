@@ -23,7 +23,7 @@ FAndroidMediaPlayerStreamer::FAndroidMediaPlayerStreamer()
 	: JavaMediaPlayer(nullptr)
 	, CurrentPosition(-1)
 {
-	JavaMediaPlayer = MakeShareable(new FJavaAndroidMediaPlayer(FAndroidMisc::ShouldUseVulkan()));
+	JavaMediaPlayer = MakeShareable(new FJavaAndroidMediaPlayer(false, FAndroidMisc::ShouldUseVulkan()));
 	MovieViewport = MakeShareable(new FMovieViewport());
 }
 

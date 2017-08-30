@@ -517,17 +517,33 @@ void FMaintenance::DeleteOldLogs()
 {
 	int32 PurgeLogsDays = -1; // -1 means don't delete old files
 	int32 MaxLogFilesOnDisk = -1; // -1 means keep all files
+
 	GConfig->GetInt(TEXT("LogFiles"), TEXT("PurgeLogsDays"), PurgeLogsDays, GEngineIni);
 	GConfig->GetInt(TEXT("LogFiles"), TEXT("MaxLogFilesOnDisk"), MaxLogFilesOnDisk, GEngineIni);
+
 	if (PurgeLogsDays >= 0 || MaxLogFilesOnDisk >= 0)
 	{
-		// get a list of files in the log dir
-		TArray<FString> Files;
-		IFileManager::Get().FindFiles(Files, *FString::Printf(TEXT("%s*.*"), *FPaths::ProjectLogDir()), true, false);
-		for (FString& Filename : Files)
+		// get list of files in the log directory (grouped by log name)
+		TMap<FString, TArray<FString>> LogToPaths;
 		{
-			Filename = FPaths::ProjectLogDir() / Filename;
+			TArray<FString> Files;
+			IFileManager::Get().FindFiles(Files, *FString::Printf(TEXT("%s*.*"), *FPaths::ProjectLogDir()), true, false);
+
+			for (FString& Filename : Files)
+			{
+				const int32 BackupPostfixIndex = Filename.Find(BACKUP_LOG_FILENAME_POSTFIX);
+
+				if (BackupPostfixIndex >= 0)
+				{
+					const FString LogName = Filename.Left(BackupPostfixIndex);
+					TArray<FString>& FilePaths = LogToPaths.FindOrAdd(LogName);
+					FilePaths.Add(FPaths::ProjectLogDir() / Filename);
+				}
+			}
 		}
+
+		// delete old log files in each group
+		double MaxFileAgeSeconds = 60.0 * 60.0 * 24.0 * double(PurgeLogsDays);
 
 		struct FSortByDateNewestFirst
 		{
@@ -538,30 +554,37 @@ void FMaintenance::DeleteOldLogs()
 				return TimestampB < TimestampA;
 			}
 		};
-		Files.Sort(FSortByDateNewestFirst());
 
-		// delete all those with the backup text in their name and that are older than the specified number of days
-		double MaxFileAgeSeconds = 60.0 * 60.0 * 24.0 * double(PurgeLogsDays);
-		for (int32 FileIndex = Files.Num() - 1; FileIndex >= 0; --FileIndex)
+		for (TPair<FString, TArray<FString>>& Pair : LogToPaths)
 		{
-			const FString& Filename = Files[FileIndex];
-			if (FOutputDeviceFile::IsBackupCopy(*Filename) && IFileManager::Get().GetFileAgeSeconds(*Filename) > MaxFileAgeSeconds)
-			{
-				UE_LOG(LogStreaming, Log, TEXT("Deleting old log file %s"), *Filename);
-				IFileManager::Get().Delete(*Filename);
-				Files.RemoveAt(FileIndex);
-			}
-		}
+			TArray<FString>& FilePaths = Pair.Value;
 
-		// If required, trim the number of files on disk
-		if (MaxLogFilesOnDisk >= 0 && Files.Num() > MaxLogFilesOnDisk)
-		{
-			for (int32 FileIndex = Files.Num() - 1; FileIndex >= 0 && Files.Num() > MaxLogFilesOnDisk; --FileIndex)
+			// sort the file paths by date
+			FilePaths.Sort(FSortByDateNewestFirst());
+
+			// delete files that are older than the desired number of days
+			for (int32 PathIndex = FilePaths.Num() - 1; PathIndex >= 0; --PathIndex)
 			{
-				if (FOutputDeviceFile::IsBackupCopy(*Files[FileIndex]))
+				const FString& FilePath = FilePaths[PathIndex];
+
+				if (IFileManager::Get().GetFileAgeSeconds(*FilePath) > MaxFileAgeSeconds)
 				{
-					IFileManager::Get().Delete(*Files[FileIndex]);
-					Files.RemoveAt(FileIndex);
+					UE_LOG(LogStreaming, Log, TEXT("Deleting old log file %s"), *FilePath);
+					IFileManager::Get().Delete(*FilePath);
+					FilePaths.RemoveAt(PathIndex);
+				}
+			}
+
+			// trim the number of files on disk if desired
+			if (MaxLogFilesOnDisk >= 0 && FilePaths.Num() > MaxLogFilesOnDisk)
+			{
+				for (int32 PathIndex = FilePaths.Num() - 1; PathIndex >= 0 && FilePaths.Num() > MaxLogFilesOnDisk; --PathIndex)
+				{
+					if (FOutputDeviceFile::IsBackupCopy(*FilePaths[PathIndex]))
+					{
+						IFileManager::Get().Delete(*FilePaths[PathIndex]);
+						FilePaths.RemoveAt(PathIndex);
+					}
 				}
 			}
 		}

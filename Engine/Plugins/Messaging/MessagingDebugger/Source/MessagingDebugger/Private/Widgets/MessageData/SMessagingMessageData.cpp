@@ -1,18 +1,22 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Widgets/MessageData/SMessagingMessageData.h"
-#include "Serialization/BufferArchive.h"
+
+#include "Backends/JsonStructSerializerBackend.h"
 #include "Modules/ModuleManager.h"
+#include "Serialization/BufferArchive.h"
+#include "StructSerializer.h"
+#include "Styling/ISlateStyle.h"
 #include "UObject/StructOnScope.h"
 #include "Widgets/Input/SMultiLineEditableTextBox.h"
-#include "Backends/JsonStructSerializerBackend.h"
-#include "StructSerializer.h"
 
 #if WITH_EDITOR
 	#include "IDetailsView.h"
 	#include "IStructureDetailsView.h"
 	#include "PropertyEditorModule.h"
 #endif
+
+#include "Models/MessagingDebuggerModel.h"
 
 
 #define LOCTEXT_NAMESPACE "SMessagingMessageData"

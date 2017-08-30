@@ -1,9 +1,14 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Widgets/MessageDetails/SMessagingMessageDetails.h"
-#include "Widgets/Text/STextBlock.h"
+
+#include "IMessageTracer.h"
+#include "Styling/ISlateStyle.h"
 #include "Widgets/Layout/SGridPanel.h"
-#include "Widgets/Views/SListView.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Views/STableViewBase.h"
+
+#include "Models/MessagingDebuggerModel.h"
 #include "Widgets/MessageDetails/SMessagingDispatchStateTableRow.h"
 
 

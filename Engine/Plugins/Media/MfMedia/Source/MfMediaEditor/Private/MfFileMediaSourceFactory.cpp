@@ -1,7 +1,9 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "MfFileMediaSourceFactory.h"
+
 #include "FileMediaSource.h"
+#include "UObject/UObjectGlobals.h"
 
 
 /* UMfFileMediaSourceFactory structors

@@ -97,7 +97,12 @@ public:
 
 public:
 
-	// ISequencerTrackEditor interface
+	//~ ISequencerTrackEditor interface
+
+    virtual bool SupportsSequence(UMovieSceneSequence* InSequence) const override
+    {
+        return true;
+    }
 
 	virtual bool SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const override
 	{

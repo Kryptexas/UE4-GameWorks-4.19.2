@@ -691,13 +691,24 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 
 	// Whether we need to emit texture external code or not.
 	const bool bEmitTextureExternal = (FCStringAnsi::Strstr(GlslCodeOriginal.GetData(), "samplerExternalOES") != nullptr);
-	
+
+	bool bUseES30ShadingLanguage = Capabilities.bUseES30ShadingLanguage;
+
+#if PLATFORM_ANDROID
+	FAndroidOpenGL::EImageExternalType ImageExternalType = FAndroidOpenGL::GetImageExternalType();
+
+	if (ImageExternalType == FAndroidOpenGL::EImageExternalType::ImageExternal100)
+	{
+		bUseES30ShadingLanguage = false;
+	}
+#endif
+
 	if (Capabilities.TargetPlatform == EOpenGLShaderTargetPlatform::OGLSTP_Android || Capabilities.TargetPlatform == EOpenGLShaderTargetPlatform::OGLSTP_HTML5)
 	{
 		if (IsES2Platform(Capabilities.MaxRHIShaderPlatform) && !bES31)
 		{
 			// #version NNN has to be the first line in the file, so it has to be added before anything else.
-			if (Capabilities.bUseES30ShadingLanguage)
+			if (bUseES30ShadingLanguage)
 			{
 				AppendCString(GlslCode, "#version 300 es\n");
 			}
@@ -738,7 +749,26 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 		if (GSupportsImageExternal)
 		{
 			AppendCString(GlslCode, "\n\n");
-			AppendCString(GlslCode, "#extension GL_OES_EGL_image_external_essl3 : require\n");
+
+#if PLATFORM_ANDROID
+			switch (ImageExternalType)
+			{
+				case FAndroidOpenGL::EImageExternalType::ImageExternal100:
+					AppendCString(GlslCode, "#extension GL_OES_EGL_image_external : require\n");
+					break;
+
+				case FAndroidOpenGL::EImageExternalType::ImageExternal300:
+					AppendCString(GlslCode, "#extension GL_OES_EGL_image_external : require\n");
+					break;
+
+				case FAndroidOpenGL::EImageExternalType::ImageExternalESSL300:
+					// GL_OES_EGL_image_external_essl3 is only compatible with ES 3.x
+					AppendCString(GlslCode, "#extension GL_OES_EGL_image_external_essl3 : require\n");
+					break;
+			}
+#else
+			AppendCString(GlslCode, "#extension GL_OES_EGL_image_external : require\n");
+#endif
 			AppendCString(GlslCode, "\n\n");
 		}
 		else
@@ -851,7 +881,7 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 			}
 
 			// This #define fixes compiler errors on Android (which doesn't seem to support textureCubeLodEXT)
-			if (Capabilities.bUseES30ShadingLanguage)
+			if (bUseES30ShadingLanguage)
 			{
 				if (TypeEnum == GL_VERTEX_SHADER)
 				{

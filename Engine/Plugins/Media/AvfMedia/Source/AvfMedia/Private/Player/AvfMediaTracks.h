@@ -2,49 +2,27 @@
 
 #pragma once
 
-#include "../AvfMediaPrivate.h"
-
-#include "IMediaOutput.h"
+#include "CoreTypes.h"
+#include "Containers/UnrealString.h"
+#include "HAL/CriticalSection.h"
+#include "IMediaSamples.h"
 #include "IMediaTracks.h"
+#include "Internationalization/Text.h"
+#include "Templates/SharedPointer.h"
 
-#include "TickableObjectRenderThread.h"
+#import <AVFoundation/AVFoundation.h>
 
-class FAvfVideoSampler : public FTickableObjectRenderThread
-{
-public:
-	FAvfVideoSampler();
-	virtual ~FAvfVideoSampler();
-	
-	void SetTrack(IMediaTextureSink* VideoSink, AVPlayerItemVideoOutput* Output);
+class FAvfMediaAudioSamplePool;
+class FAvfMediaVideoSamplePool;
+class FAvfMediaVideoSampler;
+class FMediaSamples;
 
-public:
-	/* FTickableObjectRenderThread interface */
-	virtual TStatId GetStatId() const override;
-	
-	virtual bool IsTickable() const override;
-	
-	virtual void Tick(float /*DeltaTime*/) override;
-	
-private:
-	/** Mutex to ensure thread-safe access */
-	FCriticalSection CriticalSection;
-	
-	/** The video sink */
-	IMediaTextureSink* VideoSink;
-	
-	/** The track's video output handle */
-	AVPlayerItemVideoOutput* Output;
-	
-#if WITH_ENGINE && COREVIDEO_SUPPORTS_METAL
-private:
-	/** The Metal texture cache for unbuffered texture uploads. */
-	CVMetalTextureCacheRef MetalTextureCache;
-#endif
-};
 
+/**
+ * 
+ */
 class FAvfMediaTracks
-	: public IMediaOutput
-	, public IMediaTracks
+	: public IMediaTracks
 {
 	enum ESyncStatus
 	{
@@ -69,15 +47,19 @@ class FAvfMediaTracks
 public:
 
 	/** Default constructor. */
-	FAvfMediaTracks();
+	FAvfMediaTracks(FMediaSamples& InSamples);
 
 	/** Virtual destructor. */
 	virtual ~FAvfMediaTracks();
 
 public:
 
-	/** Discard any pending data on the media sinks. */
-	void Flush();
+	/**
+	 * Append track statistics information to the given string.
+	 *
+	 * @param OutStats The string to append the statistics to.
+	 */
+	void AppendStats(FString &OutStats) const;
 
 	/**
 	 * Initialize the track collection.
@@ -87,8 +69,42 @@ public:
 	 */
 	void Initialize(AVPlayerItem* InPlayerItem, FString& OutInfo);
 
+	/**
+	 * Process audio frames.
+	 *
+	 * @see ProcessCaptions, ProcessVideo
+	 */
+	void ProcessAudio();
+
+	/**
+	 * Process caption frames.
+	 *
+	 * Called by the caption track delegate to provide the attributed strings
+	 * for each timecode to the caption sink.
+	 *
+	 * @param Output The caption track output that generated the strings.
+	 * @param Strings The attributed caption strings.
+	 * @param ItemTime The display time for the strings.
+	 * @see ProcessAudio, ProcessVideo
+	 */
+	void ProcessCaptions(AVPlayerItemLegibleOutput* Output, NSArray<NSAttributedString*>* Strings, NSArray* NativeSamples, CMTime ItemTime);
+
+	/**
+	 * Process video frames.
+	 *
+	 * @see ProcessAudio, ProcessCaptions
+	 */
+	void ProcessVideo();
+
 	/** Reset the stream collection. */
 	void Reset();
+
+	/**
+	 * Notify tracks that playback is seeking.
+	 *
+	 * @param Time The time to seek to.
+	 */
+	void Seek(const FTimespan& Time);
 
 	/**
 	 * Notify tracks that playback rate was changed.
@@ -97,85 +113,21 @@ public:
 	 */
 	void SetRate(float Rate);
 	
-	/**
-	 * Notify tracks that playback is seeking.
-	 *
-	 * @param Time The time to seek to.
-	 */
-	void Seek(const FTimespan& Time);
-	
-	/**
-	 * Append track statistics information to the given string.
-	 *
-	 * @param OutStats The string to append the statistics to.
-	 */
-	void AppendStats(FString &OutStats) const;
-
-	/**
-	 * Update the playback of tracks - must only be called when playing.
-	 *
-	 * @param DeltaTime Time between ticks.
-	 */
-	bool Tick(float DeltaTime);
-	
-	/**
-	 * Called by the caption track delegate to provide the attributed strings for each timecode to the caption sink.
-	 *
-	 * @param Output The caption track output that generated the strings.
-	 * @param Strings The attributed caption strings.
-	 * @param ItemTime The display time for the strings.
-	 */
-	void HandleSubtitleCaptionStrings(AVPlayerItemLegibleOutput* Output, NSArray<NSAttributedString*>* Strings, NSArray* NativeSamples, CMTime ItemTime);
-
-public:
-
-	//~ IMediaOutput interface
-
-	virtual void SetAudioSink(IMediaAudioSink* Sink) override;
-	virtual void SetMetadataSink(IMediaBinarySink* Sink) override;
-	virtual void SetOverlaySink(IMediaOverlaySink* Sink) override;
-	virtual void SetVideoSink(IMediaTextureSink* Sink) override;
-
 public:
 
 	//~ IMediaTracks interface
 
-	virtual uint32 GetAudioTrackChannels(int32 TrackIndex) const override;
-	virtual uint32 GetAudioTrackSampleRate(int32 TrackIndex) const override;
+	virtual bool GetAudioTrackFormat(int32 TrackIndex, int32 FormatIndex, FMediaAudioTrackFormat& OutFormat) const override;
 	virtual int32 GetNumTracks(EMediaTrackType TrackType) const override;
+	virtual int32 GetNumTrackFormats(EMediaTrackType TrackType, int32 TrackIndex) const override;
 	virtual int32 GetSelectedTrack(EMediaTrackType TrackType) const override;
 	virtual FText GetTrackDisplayName(EMediaTrackType TrackType, int32 TrackIndex) const override;
+	virtual int32 GetTrackFormat(EMediaTrackType TrackType, int32 TrackIndex) const override;
 	virtual FString GetTrackLanguage(EMediaTrackType TrackType, int32 TrackIndex) const override;
 	virtual FString GetTrackName(EMediaTrackType TrackType, int32 TrackIndex) const override;
-	virtual uint32 GetVideoTrackBitRate(int32 TrackIndex) const override;
-	virtual FIntPoint GetVideoTrackDimensions(int32 TrackIndex) const override;
-	virtual float GetVideoTrackFrameRate(int32 TrackIndex) const override;
+	virtual bool GetVideoTrackFormat(int32 TrackIndex, int32 FormatIndex, FMediaVideoTrackFormat& OutFormat) const override;
 	virtual bool SelectTrack(EMediaTrackType TrackType, int32 TrackIndex) override;
-
-protected:
-
-	/** Initialize the current audio sink. */
-	void InitializeAudioSink();
-
-	/** Initialize the current text overlay sink. */
-	void InitializeOverlaySink();
-
-	/** Initialize the current video sink. */
-	void InitializeVideoSink();
-	
-	/** Update the current video sink. */
-	void UpdateVideoSink();
-
-private:
-
-	/** The currently used audio sink. */
-	IMediaAudioSink* AudioSink;
-
-	/** The currently used text overlay sink. */
-	IMediaOverlaySink* OverlaySink;
-
-	/** The currently used video sink. */
-	IMediaTextureSink* VideoSink;
+	virtual bool SetTrackFormat(EMediaTrackType TrackType, int32 TrackIndex, int32 FormatIndex) override;
 
 private:
 
@@ -190,14 +142,26 @@ private:
 
 private:
 
+	/** Whether the audio is currently paused. */
+	bool AudioPaused;
+
+	/** Audio sample object pool. */
+	FAvfMediaAudioSamplePool* AudioSamplePool;
+
 	/** Synchronizes write access to track arrays, selections & sinks. */
 	mutable FCriticalSection CriticalSection;
 
+	/** The last audio sample provided to the sink. */
+	CMTime LastAudioSampleTime;
+
 	/** The player item containing the track information. */
 	AVPlayerItem* PlayerItem;
+
+	/** The media sample queue. */
+	FMediaSamples& Samples;
 	
-	/** Object to sample video frames */
-	FAvfVideoSampler* VideoSampler;
+	/** Seek to this time. */
+	double SeekTime;
 
 	/** Index of the selected audio track. */
 	int32 SelectedAudioTrack;
@@ -208,20 +172,12 @@ private:
 	/** Index of the selected video track. */
 	int32 SelectedVideoTrack;
 
-private:
-	
-	/** Target desciption for audio output required by Media framework audio sinks. */
+	/** Target description for audio output required by Media framework audio sinks. */
 	AudioStreamBasicDescription TargetDesc;
 	
-	/** Whether the audio is currently paused. */
-	bool bAudioPaused;
-	
-	/** The last audio sample provided to the sink. */
-	CMTime LastAudioSample;
-	
-	/** Seek to this time. */
-	double SeekTime;
-	
+	/** Object to sample video frames */
+	TSharedPtr<FAvfMediaVideoSampler, ESPMode::ThreadSafe> VideoSampler;
+		
 	/** Has been played with fast/slow rate? */
-	bool bZoomed;
+	bool Zoomed;
 };

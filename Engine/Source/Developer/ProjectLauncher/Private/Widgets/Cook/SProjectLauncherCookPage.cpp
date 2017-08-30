@@ -1,12 +1,14 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "Widgets/Cook/SProjectLauncherCookPage.h"
-#include "Widgets/SBoxPanel.h"
-#include "Textures/SlateIcon.h"
+#include "SProjectLauncherCookPage.h"
+
 #include "Framework/Commands/UIAction.h"
-#include "Widgets/Text/STextBlock.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Textures/SlateIcon.h"
+#include "Widgets/SBoxPanel.h"
 #include "Widgets/Input/SComboButton.h"
+#include "Widgets/Text/STextBlock.h"
+
 #include "Widgets/Cook/SProjectLauncherCookByTheBookSettings.h"
 #include "Widgets/Cook/SProjectLauncherCookOnTheFlySettings.h"
 
@@ -17,7 +19,7 @@
 /* SProjectLauncherCookPage structors
  *****************************************************************************/
 
-SProjectLauncherCookPage::~SProjectLauncherCookPage( )
+SProjectLauncherCookPage::~SProjectLauncherCookPage()
 {
 	if (Model.IsValid())
 	{
@@ -29,7 +31,7 @@ SProjectLauncherCookPage::~SProjectLauncherCookPage( )
 /* SProjectLauncherCookPage interface
  *****************************************************************************/
 
-void SProjectLauncherCookPage::Construct( const FArguments& InArgs, const FProjectLauncherModelRef& InModel )
+void SProjectLauncherCookPage::Construct(const FArguments& InArgs, const TSharedRef<FProjectLauncherModel>& InModel)
 {
 	Model = InModel;
 
@@ -106,7 +108,7 @@ void SProjectLauncherCookPage::Construct( const FArguments& InArgs, const FProje
 /* SProjectLauncherCookPage callbacks
  *****************************************************************************/
 
-EVisibility SProjectLauncherCookPage::HandleCookByTheBookSettingsVisibility( ) const
+EVisibility SProjectLauncherCookPage::HandleCookByTheBookSettingsVisibility() const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -122,7 +124,7 @@ EVisibility SProjectLauncherCookPage::HandleCookByTheBookSettingsVisibility( ) c
 }
 
 
-FText SProjectLauncherCookPage::HandleCookModeComboButtonContentText( ) const
+FText SProjectLauncherCookPage::HandleCookModeComboButtonContentText() const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -152,7 +154,7 @@ FText SProjectLauncherCookPage::HandleCookModeComboButtonContentText( ) const
 }
 
 
-void SProjectLauncherCookPage::HandleCookModeMenuEntryClicked( ELauncherProfileCookModes::Type CookMode )
+void SProjectLauncherCookPage::HandleCookModeMenuEntryClicked(ELauncherProfileCookModes::Type CookMode)
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -163,7 +165,7 @@ void SProjectLauncherCookPage::HandleCookModeMenuEntryClicked( ELauncherProfileC
 }
 
 
-EVisibility SProjectLauncherCookPage::HandleCookOnTheFlySettingsVisibility( ) const
+EVisibility SProjectLauncherCookPage::HandleCookOnTheFlySettingsVisibility() const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -179,7 +181,7 @@ EVisibility SProjectLauncherCookPage::HandleCookOnTheFlySettingsVisibility( ) co
 }
 
 
-void SProjectLauncherCookPage::HandleProfileManagerProfileSelected( const ILauncherProfilePtr& SelectedProfile, const ILauncherProfilePtr& PreviousProfile )
+void SProjectLauncherCookPage::HandleProfileManagerProfileSelected(const ILauncherProfilePtr& SelectedProfile, const ILauncherProfilePtr& PreviousProfile)
 {
 	// reload settings
 }

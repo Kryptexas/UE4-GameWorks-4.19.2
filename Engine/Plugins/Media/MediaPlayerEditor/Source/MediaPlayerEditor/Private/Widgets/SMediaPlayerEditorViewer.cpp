@@ -1,36 +1,40 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Widgets/SMediaPlayerEditorViewer.h"
-#include "Styling/CoreStyle.h"
-#include "Widgets/Input/SSlider.h"
-#include "IMediaPlayer.h"
-#include "MediaPlayer.h"
-#include "Modules/ModuleManager.h"
-#include "Framework/Commands/UIAction.h"
-#include "Textures/SlateIcon.h"
+
 #include "Internationalization/Culture.h"
+#include "Modules/ModuleManager.h"
+
+#include "IMediaModule.h"
+#include "IMediaEventSink.h"
+#include "IMediaPlayerFactory.h"
+#include "MediaPlayer.h"
+
+#include "EditorStyleSet.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Framework/Commands/UIAction.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Styling/CoreStyle.h"
+#include "Textures/SlateIcon.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/SOverlay.h"
-#include "Widgets/Layout/SBorder.h"
-#include "Widgets/Layout/SSpacer.h"
 #include "Widgets/Images/SImage.h"
-#include "Widgets/Notifications/SProgressBar.h"
-#include "Widgets/Text/STextBlock.h"
-#include "Widgets/Layout/SBox.h"
-#include "Framework/MultiBox/MultiBoxBuilder.h"
-#include "Widgets/Input/SEditableTextBox.h"
+#include "Widgets/Images/SThrobber.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SComboButton.h"
-#include "EditorStyleSet.h"
-#include "IMediaModule.h"
-#include "IMediaPlayerFactory.h"
-#include "Framework/Notifications/NotificationManager.h"
-#include "Widgets/Layout/SScaleBox.h"
+#include "Widgets/Input/SEditableTextBox.h"
+#include "Widgets/Input/SSlider.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Layout/SSpacer.h"
 #include "Widgets/Notifications/SNotificationList.h"
-#include "Shared/MediaPlayerEditorSettings.h"
-#include "Widgets/SMediaPlayerEditorOutput.h"
-#include "Framework/Application/SlateApplication.h"
-#include "Widgets/SMediaPlayerEditorOverlay.h"
+#include "Widgets/Notifications/SProgressBar.h"
+#include "Widgets/Text/STextBlock.h"
+
+#include "MediaPlayerEditorSettings.h"
+#include "SMediaPlayerEditorCache.h"
+#include "SMediaPlayerEditorViewport.h"
 
 
 #define LOCTEXT_NAMESPACE "SMediaPlayerEditorViewer"
@@ -79,6 +83,30 @@ void SMediaPlayerEditorViewer::Construct(const FArguments& InArgs, UMediaPlayer&
 		}
 	}
 
+	// initialize capture source menu
+	FMenuBuilder SourceMenuBuilder(true, nullptr);
+	{
+		SourceMenuBuilder.BeginSection("CaptureDevicesSection", LOCTEXT("CaptureDevicesSection", "Capture Devices"));
+		{
+			SourceMenuBuilder.AddSubMenu(
+				LOCTEXT("AudioMenuLabel", "Audio"),
+				LOCTEXT("AudioMenuTooltip", "Available audio capture devices"),
+				FNewMenuDelegate::CreateRaw(this, &SMediaPlayerEditorViewer::HandleAudioCaptureDevicesMenuNewMenu),
+				false,
+				FSlateIcon()
+			);
+
+			SourceMenuBuilder.AddSubMenu(
+				LOCTEXT("VideoMenuLabel", "Video"),
+				LOCTEXT("VideoMenuTooltip", "Available video capture devices"),
+				FNewMenuDelegate::CreateRaw(this, &SMediaPlayerEditorViewer::HandleVideoCaptureDevicesMenuNewMenu),
+				false,
+				FSlateIcon()
+			);
+		}
+		SourceMenuBuilder.EndSection();
+	}
+
 	// initialize settings menu
 	FMenuBuilder SettingsMenuBuilder(true, nullptr);
 	{
@@ -87,7 +115,7 @@ void SMediaPlayerEditorViewer::Construct(const FArguments& InArgs, UMediaPlayer&
 			SettingsMenuBuilder.AddSubMenu(
 				LOCTEXT("DecoderMenuLabel", "Decoder"),
 				LOCTEXT("DecoderMenuTooltip", "Select the desired media decoder"),
-				FNewMenuDelegate::CreateRaw(this, &SMediaPlayerEditorViewer::HandlePlayerMenuNewMenu),
+				FNewMenuDelegate::CreateRaw(this, &SMediaPlayerEditorViewer::HandleDecoderMenuNewMenu),
 				false,
 				FSlateIcon()
 			);
@@ -138,6 +166,50 @@ void SMediaPlayerEditorViewer::Construct(const FArguments& InArgs, UMediaPlayer&
 		}
 		SettingsMenuBuilder.EndSection();
 
+		SettingsMenuBuilder.BeginSection("FormatsSection", LOCTEXT("FormatsSection", "Formats"));
+		{
+			SettingsMenuBuilder.AddSubMenu(
+				LOCTEXT("AudioFormatMenuLabel", "Audio"),
+				LOCTEXT("AudioFormatMenuTooltip", "Select the active audio format"),
+				FNewMenuDelegate::CreateRaw(this, &SMediaPlayerEditorViewer::HandleFormatMenuNewMenu, EMediaPlayerTrack::Audio),
+				false,
+				FSlateIcon()
+			);
+
+			SettingsMenuBuilder.AddSubMenu(
+				LOCTEXT("CaptionFormatMenuLabel", "Captions"),
+				LOCTEXT("CaptionFormatMenuTooltip", "Select the active closed caption format"),
+				FNewMenuDelegate::CreateRaw(this, &SMediaPlayerEditorViewer::HandleFormatMenuNewMenu, EMediaPlayerTrack::Caption),
+				false,
+				FSlateIcon()
+			);
+
+			SettingsMenuBuilder.AddSubMenu(
+				LOCTEXT("SubtitleFormatMenuLabel", "Subtitles"),
+				LOCTEXT("SubtitleFormatMenuTooltip", "Select the active subtitle format"),
+				FNewMenuDelegate::CreateRaw(this, &SMediaPlayerEditorViewer::HandleFormatMenuNewMenu, EMediaPlayerTrack::Subtitle),
+				false,
+				FSlateIcon()
+			);
+
+			SettingsMenuBuilder.AddSubMenu(
+				LOCTEXT("TextFormatMenuLabel", "Text"),
+				LOCTEXT("TextFormatMenuTooltip", "Select the active generic text format"),
+				FNewMenuDelegate::CreateRaw(this, &SMediaPlayerEditorViewer::HandleFormatMenuNewMenu, EMediaPlayerTrack::Text),
+				false,
+				FSlateIcon()
+			);
+
+			SettingsMenuBuilder.AddSubMenu(
+				LOCTEXT("VideoFormatMenuLabel", "Video"),
+				LOCTEXT("VideoFormatMenuTooltip", "Select the active video format"),
+				FNewMenuDelegate::CreateRaw(this, &SMediaPlayerEditorViewer::HandleFormatMenuNewMenu, EMediaPlayerTrack::Video),
+				false,
+				FSlateIcon()
+			);
+		}
+		SettingsMenuBuilder.EndSection();
+
 		SettingsMenuBuilder.BeginSection("ViewSection", LOCTEXT("ViewSection", "View"));
 		{
 			SettingsMenuBuilder.AddSubMenu(
@@ -168,6 +240,7 @@ void SMediaPlayerEditorViewer::Construct(const FArguments& InArgs, UMediaPlayer&
 		SettingsMenuBuilder.EndSection();
 	}
 
+	// widget contents
 	ChildSlot
 	[
 		SNew(SOverlay)
@@ -179,21 +252,42 @@ void SMediaPlayerEditorViewer::Construct(const FArguments& InArgs, UMediaPlayer&
 				+ SVerticalBox::Slot()
 					.AutoHeight()
 					[
+						// url area
 						SNew(SHorizontalBox)
 
 						+ SHorizontalBox::Slot()
+							.AutoWidth()
+							[
+								// capture source drop-down
+								SNew(SComboButton)
+									.ContentPadding(0.0f)
+									.ButtonContent()
+									[
+										SNew(SImage)
+											.Image(InStyle->GetBrush("MediaPlayerEditor.SourceButton"))
+									]
+									.ButtonStyle(FEditorStyle::Get(), "ToggleButton")
+									.ForegroundColor(FSlateColor::UseForeground())
+									.MenuContent()
+									[
+										SourceMenuBuilder.MakeWidget()
+									]
+							]
+
+						+ SHorizontalBox::Slot()
 							.FillWidth(1.0f)
+							.Padding(4.0f, 0.0f, 0.0f, 0.0f)
 							[
 								// url box
 								SAssignNew(UrlTextBox, SEditableTextBox)
 									.BackgroundColor_Lambda([this]() -> FSlateColor {
-										return (!MediaPlayer->IsPreparing() && (MediaPlayer->GetUrl() != MediaPlayer->GetLastUrl()))
-											? FLinearColor::Red
-											: FLinearColor::White;
+										return (MediaPlayer->IsPreparing() || LastUrl.IsEmpty()) ? FLinearColor::White : FLinearColor::Red;
 									})
 									.ClearKeyboardFocusOnCommit(true)
 									.HintText(LOCTEXT("UrlTextBoxHint", "Media URL"))
-									.Text_Lambda([this]() -> FText { return FText::FromString(MediaPlayer->GetLastUrl()); })
+									.Text_Lambda([this]() -> FText {
+										return LastUrl.IsEmpty() ? FText::FromString(MediaPlayer->GetUrl()) : LastUrl;
+									})
 									.ToolTipText(LOCTEXT("UrlTextBoxToolTip", "Enter the URL of a media source"))
 									.OnKeyDownHandler(this, &SMediaPlayerEditorViewer::HandleUrlBoxKeyDown)
 									.OnTextCommitted_Lambda([this](const FText& InText, ETextCommit::Type InCommitType){
@@ -240,72 +334,9 @@ void SMediaPlayerEditorViewer::Construct(const FArguments& InArgs, UMediaPlayer&
 						SNew(SBorder)
 							.BorderImage(FCoreStyle::Get().GetBrush("BlackBrush"))
 							.Padding(0.0f)
-							.OnMouseButtonUp(this, &SMediaPlayerEditorViewer::HandleTextureMouseButtonUp)
 							[
-								SNew(SOverlay)
-
-								+ SOverlay::Slot()
-									[
-										SNew(SScaleBox)
-											.Stretch_Lambda([]() -> EStretch::Type {
-												auto Settings = GetDefault<UMediaPlayerEditorSettings>();
-												if (Settings->ViewportScale == EMediaPlayerEditorScale::Fill)
-												{
-													return EStretch::Fill;
-												}
-												if (Settings->ViewportScale == EMediaPlayerEditorScale::Fit)
-												{
-													return EStretch::ScaleToFit;
-												}
-												return EStretch::None;
-											})
-											[
-												SNew(SOverlay)
-
-												+ SOverlay::Slot()
-													[
-														// movie texture
-														SNew(SMediaPlayerEditorOutput, InMediaPlayer)
-													]
-
-												+ SOverlay::Slot()
-													[
-														// text overlays
-														SNew(SMediaPlayerEditorOverlay, InMediaPlayer)
-															.Visibility_Lambda([]{ return GetDefault<UMediaPlayerEditorSettings>()->ShowTextOverlays ? EVisibility::Visible : EVisibility::Collapsed; })
-													]
-											]
-									]
-
-								+ SOverlay::Slot()
-									.Padding(FMargin(12.0f, 8.0f))
-									[
-										SNew(SHorizontalBox)
-
-										+ SHorizontalBox::Slot()
-											.HAlign(HAlign_Left)
-											.VAlign(VAlign_Top)
-											[
-												// playback state
-												SNew(STextBlock)
-													.ColorAndOpacity(FSlateColor::UseSubduedForeground())
-													.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 18))
-													.ShadowOffset(FVector2D(1.f, 1.f))
-													.Text(this, &SMediaPlayerEditorViewer::HandleOverlayStateText)
-											]
-
-										+ SHorizontalBox::Slot()
-											.HAlign(HAlign_Right)
-											.VAlign(VAlign_Top)
-											[
-												// player name
-												SNew(STextBlock)
-													.ColorAndOpacity(FSlateColor::UseSubduedForeground())
-													.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 18))
-													.ShadowOffset(FVector2D(1.f, 1.f))
-													.Text(this, &SMediaPlayerEditorViewer::HandleOverlayPlayerNameText)
-											]
-									]
+								// movie area
+								SNew(SMediaPlayerEditorViewport, InMediaPlayer, InStyle)
 							]
 					]
 
@@ -314,6 +345,7 @@ void SMediaPlayerEditorViewer::Construct(const FArguments& InArgs, UMediaPlayer&
 					.Padding(0.0f, 2.0f, 0.0f, 0.0f)
 					.VAlign(VAlign_Center)
 					[
+						// playback controls
 						SNew(SBorder)
 							.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
 							.ForegroundColor(FLinearColor::Gray)
@@ -327,22 +359,79 @@ void SMediaPlayerEditorViewer::Construct(const FArguments& InArgs, UMediaPlayer&
 										SNew(SOverlay)
 
 										+ SOverlay::Slot()
+											.Padding(2.0f, 0.0f, 2.0f, 0.0f)
+											.VAlign(VAlign_Top)
 											[
-												// scrubber
+												// cache visualization
+												SNew(SMediaPlayerEditorCache, InMediaPlayer, InStyle)
+											]												
+
+										+ SOverlay::Slot()
+											.VAlign(VAlign_Top)
+											[
+												// time slider
 												SAssignNew(ScrubberSlider, SSlider)
-													.IsEnabled(this, &SMediaPlayerEditorViewer::HandlePositionSliderIsEnabled)
-													.OnMouseCaptureBegin(this, &SMediaPlayerEditorViewer::HandlePositionSliderMouseCaptureBegin)
-													.OnMouseCaptureEnd(this, &SMediaPlayerEditorViewer::HandlePositionSliderMouseCaptureEnd)
-													.OnValueChanged(this, &SMediaPlayerEditorViewer::HandlePositionSliderValueChanged)
+													.IsEnabled_Lambda([this]() -> bool
+													{
+														return MediaPlayer->SupportsSeeking();
+													})
+													.OnMouseCaptureBegin_Lambda([this]()
+													{
+														ScrubValue = FTimespan::Ratio(MediaPlayer->GetTime(), MediaPlayer->GetDuration());
+
+														if (MediaPlayer->SupportsScrubbing())
+														{
+															PreScrubRate = MediaPlayer->GetRate();
+															MediaPlayer->SetRate(0.0f);
+														}
+													})
+													.OnMouseCaptureEnd_Lambda([this]()
+													{
+														if (MediaPlayer->SupportsScrubbing())
+														{
+															MediaPlayer->SetRate(PreScrubRate);
+														}
+													})
+													.OnValueChanged_Lambda([this](float NewValue)
+													{
+														ScrubValue = NewValue;
+
+														if (!ScrubberSlider->HasMouseCapture() || MediaPlayer->SupportsScrubbing())
+														{
+															MediaPlayer->Seek(MediaPlayer->GetDuration() * NewValue);
+														}
+													})
 													.Orientation(Orient_Horizontal)
-													.Value(this, &SMediaPlayerEditorViewer::HandlePositionSliderValue)
+													.SliderBarColor(FLinearColor::Transparent)
+													.Style(&InStyle->GetWidgetStyle<FSliderStyle>("MediaPlayerEditor.Scrubber"))
+													.Value_Lambda([this]() -> float
+													{
+														if (ScrubberSlider->HasMouseCapture())
+														{
+															return ScrubValue;
+														}
+
+														return (MediaPlayer->GetDuration() > FTimespan::Zero())
+															? FTimespan::Ratio(MediaPlayer->GetTime(), MediaPlayer->GetDuration())
+															: 0.0f;
+													})
+													.Visibility_Lambda([this]() -> EVisibility {
+														return (MediaPlayer->SupportsScrubbing() || MediaPlayer->SupportsSeeking())
+															? EVisibility::Visible
+															: EVisibility::Hidden;
+													})
 											]
 
 										+ SOverlay::Slot()
+											.VAlign(VAlign_Center)
 											[
+												// animated progress bar
 												SNew(SProgressBar)
-													.ToolTipText(LOCTEXT("BufferingTooltip", "Buffering..."))
-													.Visibility_Lambda([this]() -> EVisibility { return MediaPlayer->IsPreparing() ? EVisibility::Visible : EVisibility::Hidden; })
+													.ToolTipText(LOCTEXT("PreparingTooltip", "Preparing..."))
+													.Visibility_Lambda([this]() -> EVisibility
+													{
+														return MediaPlayer->IsPreparing() ? EVisibility::Visible : EVisibility::Hidden;
+													})
 											]
 									]
 
@@ -355,12 +444,36 @@ void SMediaPlayerEditorViewer::Construct(const FArguments& InArgs, UMediaPlayer&
 										// timer
 										+ SHorizontalBox::Slot()
 											.AutoWidth()
-											.Padding(0.0f, 0.0f, 4.0f, 0.0f)
+											.Padding(4.0f, 0.0f, 0.0f, 0.0f)
 											.VAlign(VAlign_Center)
 											[
 												SNew(STextBlock)
 													.Text(this, &SMediaPlayerEditorViewer::HandleTimerTextBlockText)
 													.ToolTipText(this, &SMediaPlayerEditorViewer::HandleTimerTextBlockToolTipText)
+											]
+
+										// fps
+										+ SHorizontalBox::Slot()
+											.AutoWidth()
+											.Padding(8.0f, 0.0f, 4.0f, 0.0f)
+											.VAlign(VAlign_Center)
+											[
+												SNew(STextBlock)
+													.Text(this, &SMediaPlayerEditorViewer::HandleFpsTextBlockText)
+											]
+
+										// buffering indicator
+										+ SHorizontalBox::Slot()
+											.AutoWidth()
+											.Padding(4.0f, 0.0f)
+											.VAlign(VAlign_Center)
+											[
+												SNew(SThrobber)
+													.ToolTipText(LOCTEXT("BufferingTooltip", "Buffering..."))
+													.Visibility_Lambda([this]() -> EVisibility
+													{
+														return MediaPlayer->IsBuffering() ? EVisibility::Visible : EVisibility::Hidden;
+													})
 											]
 
 										// transport controls
@@ -369,14 +482,13 @@ void SMediaPlayerEditorViewer::Construct(const FArguments& InArgs, UMediaPlayer&
 											.Padding(8.0f, 0.0f)
 											.VAlign(VAlign_Center)
 											[
-												SNew(SSpacer)
-												//SNew(STransportControl)
+												SNew(SSpacer)//SNew(STransportControl)
 											]
 
 										// settings
 										+ SHorizontalBox::Slot()
 											.AutoWidth()
-											.Padding(4.0f, 0.0f, 0.0f, 0.0f)
+											.Padding(4.0f, 0.0f, 4.0f, 0.0f)
 											.VAlign(VAlign_Center)
 											[
 												SNew(SComboButton)
@@ -416,6 +528,7 @@ void SMediaPlayerEditorViewer::Construct(const FArguments& InArgs, UMediaPlayer&
 
 		+ SOverlay::Slot()
 			[
+				// drag & drop indicator
 				SNew(SBorder)
 					.BorderImage(FEditorStyle::GetBrush("WhiteBrush"))
 					.BorderBackgroundColor_Lambda([this]() -> FLinearColor {
@@ -430,8 +543,6 @@ void SMediaPlayerEditorViewer::Construct(const FArguments& InArgs, UMediaPlayer&
 					})
 			]
 	];
-
-	RegisterActiveTimer(0.0f, FWidgetActiveTimerDelegate::CreateSP(this, &SMediaPlayerEditorViewer::HandleActiveTimer));
 }
 
 
@@ -505,8 +616,28 @@ FReply SMediaPlayerEditorViewer::OnDrop(const FGeometry& MyGeometry, const FDrag
 /* SMediaPlayerEditorPlayer implementation
  *****************************************************************************/
 
+void SMediaPlayerEditorViewer::MakeCaptureDeviceMenu(TArray<FMediaCaptureDeviceInfo>& DeviceInfos, FMenuBuilder& MenuBuilder)
+{
+	for (const auto& DeviceInfo : DeviceInfos)
+	{
+		MenuBuilder.AddMenuEntry(
+			DeviceInfo.DisplayName,
+			FText::GetEmpty(),
+			FSlateIcon(),
+			FUIAction(FExecuteAction::CreateLambda([this, Url = DeviceInfo.Url] {
+				MediaPlayer->OpenUrl(Url);
+			})),
+			NAME_None,
+			EUserInterfaceActionType::Button
+		);
+	}
+}
+
+
 void SMediaPlayerEditorViewer::OpenUrl(const FText& TextUrl)
 {
+	LastUrl = TextUrl;
+
 	FString Url = TextUrl.ToString();
 	{
 		Url.Trim();
@@ -545,118 +676,15 @@ void SMediaPlayerEditorViewer::SetDesiredPlayerName(FName PlayerName)
 /* SMediaPlayerEditorPlayer callbacks
  *****************************************************************************/
 
-EActiveTimerReturnType SMediaPlayerEditorViewer::HandleActiveTimer(double InCurrentTime, float InDeltaTime)
+void SMediaPlayerEditorViewer::HandleAudioCaptureDevicesMenuNewMenu(FMenuBuilder& MenuBuilder)
 {
-	return EActiveTimerReturnType::Continue;
+	TArray<FMediaCaptureDeviceInfo> DeviceInfos;
+	MediaCaptureSupport::EnumerateAudioCaptureDevices(DeviceInfos);
+	MakeCaptureDeviceMenu(DeviceInfos, MenuBuilder);
 }
 
 
-void SMediaPlayerEditorViewer::HandleMediaPlayerMediaEvent(EMediaEvent Event)
-{
-	if (Event == EMediaEvent::MediaOpenFailed)
-	{
-		FNotificationInfo NotificationInfo(LOCTEXT("MediaOpenFailedError", "The media failed to open. Check Output Log for details!"));
-		{
-			NotificationInfo.ExpireDuration = 2.0f;
-		}
-
-		FSlateNotificationManager::Get().AddNotification(NotificationInfo)->SetCompletionState(SNotificationItem::CS_Fail);
-	}
-}
-
-
-FText SMediaPlayerEditorViewer::HandleOverlayPlayerNameText() const
-{
-	if (MediaPlayer->IsPlaying())
-	{
-		return FText::GetEmpty();
-	}
-
-	FName PlayerName = MediaPlayer->GetPlayerName();
-
-	if ((PlayerName == NAME_None) || MediaPlayer->GetUrl().IsEmpty())
-	{
-		const FName DesiredPlayerName = MediaPlayer->GetDesiredPlayerName();
-
-		if (DesiredPlayerName == NAME_None)
-		{
-			return LOCTEXT("AutoPlayerName", "Auto");
-		}
-
-		return FText::FromName(DesiredPlayerName);
-	}
-
-	return FText::FromName(PlayerName);
-}
-
-
-FText SMediaPlayerEditorViewer::HandleOverlayStateText() const
-{
-	if (MediaPlayer->GetUrl().IsEmpty())
-	{
-		return LOCTEXT("StateOverlayNoMedia", "No Media");
-	}
-
-	if (!MediaPlayer->IsReady())
-	{
-		return LOCTEXT("StateOverlayStopped", "Not Ready");
-	}
-
-	if (MediaPlayer->IsPaused())
-	{
-		return LOCTEXT("StateOverlayPaused", "Paused");
-	}
-
-	if (!MediaPlayer->IsPlaying())
-	{
-		return FText::FromString(FPaths::GetBaseFilename(MediaPlayer->GetUrl()));
-	}
-
-	float Rate = MediaPlayer->GetRate();
-
-	if (FMath::IsNearlyZero(Rate) || (Rate == 1.0f))
-	{
-		return FText::GetEmpty();
-	}
-
-	if (Rate < 0.0f)
-	{
-		return FText::Format(LOCTEXT("StateOverlayReverseFormat", "Reverse ({0}x)"), FText::AsNumber(-Rate));
-	}
-
-	return FText::Format(LOCTEXT("StateOverlayForwardFormat", "Forward ({0}x)"), FText::AsNumber(Rate));
-}
-
-
-TOptional<float> SMediaPlayerEditorViewer::HandlePlaybackRateBoxMaxValue() const
-{
-	FFloatRange Rates = MediaPlayer->GetForwardRates(false);
-
-	return Rates.IsEmpty() ? 0.0f : Rates.GetUpperBoundValue();
-}
-
-
-TOptional<float> SMediaPlayerEditorViewer::HandlePlaybackRateBoxMinValue() const
-{
-	FFloatRange Rates = MediaPlayer->GetReverseRates(false);
-
-	return Rates.IsEmpty() ? 0.0f : Rates.GetLowerBoundValue();
-}
-
-
-TOptional<float> SMediaPlayerEditorViewer::HandlePlaybackRateSpinBoxValue() const
-{
-	return MediaPlayer->GetRate();
-}
-
-
-void SMediaPlayerEditorViewer::HandlePlaybackRateBoxValueChanged( float NewValue )
-{
-	MediaPlayer->SetRate(NewValue);
-}
-
-
-void SMediaPlayerEditorViewer::HandlePlayerMenuNewMenu(FMenuBuilder& MenuBuilder)
+void SMediaPlayerEditorViewer::HandleDecoderMenuNewMenu(FMenuBuilder& MenuBuilder)
 {
 	// automatic player option
 	MenuBuilder.AddMenuEntry(
@@ -712,9 +740,9 @@ void SMediaPlayerEditorViewer::HandlePlayerMenuNewMenu(FMenuBuilder& MenuBuilder
 			FText::FromString(FString::Join(Factory->GetSupportedPlatforms(), TEXT(", "))),
 			FSlateIcon(),
 			FUIAction(
-				FExecuteAction::CreateLambda([=]{ SetDesiredPlayerName(PlayerName); }),
-				FCanExecuteAction::CreateLambda([=]{ return SupportsRunningPlatform; }),
-				FIsActionChecked::CreateLambda([=]{ return MediaPlayer->GetDesiredPlayerName() == PlayerName; })
+				FExecuteAction::CreateLambda([=] { SetDesiredPlayerName(PlayerName); }),
+				FCanExecuteAction::CreateLambda([=] { return SupportsRunningPlatform; }),
+				FIsActionChecked::CreateLambda([=] { return MediaPlayer->GetDesiredPlayerName() == PlayerName; })
 			),
 			NAME_None,
 			EUserInterfaceActionType::RadioButton
@@ -723,47 +751,132 @@ void SMediaPlayerEditorViewer::HandlePlayerMenuNewMenu(FMenuBuilder& MenuBuilder
 }
 
 
-bool SMediaPlayerEditorViewer::HandlePositionSliderIsEnabled() const
+void SMediaPlayerEditorViewer::HandleFormatMenuNewMenu(FMenuBuilder& MenuBuilder, EMediaPlayerTrack TrackType)
 {
-	return MediaPlayer->SupportsSeeking();
-}
+	const int32 SelectedTrack = MediaPlayer->GetSelectedTrack(TrackType);
+	const int32 NumFormats = MediaPlayer->GetNumTrackFormats(TrackType, SelectedTrack);
 
-
-void SMediaPlayerEditorViewer::HandlePositionSliderMouseCaptureBegin()
-{
-	if (MediaPlayer->SupportsScrubbing())
+	if ((SelectedTrack != INDEX_NONE) && (NumFormats > 0))
 	{
-		PreScrubRate = MediaPlayer->GetRate();
-		MediaPlayer->SetRate(0.0f);
+		for (int32 FormatIndex = 0; FormatIndex < NumFormats; ++FormatIndex)
+		{
+			FText DisplayText;
+
+			if (TrackType == EMediaPlayerTrack::Audio)
+			{
+				const uint32 Channels = MediaPlayer->GetAudioTrackChannels(SelectedTrack, FormatIndex);
+				const uint32 SampleRate = MediaPlayer->GetAudioTrackSampleRate(SelectedTrack, FormatIndex);
+				const FString Type = MediaPlayer->GetAudioTrackType(SelectedTrack, FormatIndex);
+
+				DisplayText = FText::Format(LOCTEXT("TrackFormatMenuAudioFormat", "{0}: {1} {2} channels @ {3} Hz"),
+					FText::AsNumber(FormatIndex),
+					FText::FromString(Type),
+					FText::AsNumber(Channels),
+					FText::AsNumber(SampleRate)
+				);
+			}
+			else if (TrackType == EMediaPlayerTrack::Video)
+			{
+				const FIntPoint Dim = MediaPlayer->GetVideoTrackDimensions(SelectedTrack, FormatIndex);
+				const float FrameRate = MediaPlayer->GetVideoTrackFrameRate(SelectedTrack, FormatIndex);
+				const TRange<float> FrameRates = MediaPlayer->GetVideoTrackFrameRates(SelectedTrack, FormatIndex);
+				const FString Type = MediaPlayer->GetVideoTrackType(SelectedTrack, FormatIndex);
+
+				FFormatNamedArguments Arguments;
+				Arguments.Add(TEXT("Index"), FText::AsNumber(FormatIndex));
+				Arguments.Add(TEXT("DimX"), FText::AsNumber(Dim.X));
+				Arguments.Add(TEXT("DimY"), FText::AsNumber(Dim.Y));
+				Arguments.Add(TEXT("Fps"), FText::AsNumber(FrameRate));
+				Arguments.Add(TEXT("Type"), FText::FromString(Type));
+
+				if (FrameRates.IsDegenerate() && (FrameRates.GetLowerBoundValue() == FrameRate))
+				{
+					DisplayText = FText::Format(LOCTEXT("TrackFormatMenuVideoFormat", "{Index}: {Type} {DimX}x{DimY} {Fps} fps"), Arguments);
+				}
+				else
+				{
+					Arguments.Add(TEXT("FpsLower"), FText::AsNumber(FrameRates.GetLowerBoundValue()));
+					Arguments.Add(TEXT("FpsUpper"), FText::AsNumber(FrameRates.GetUpperBoundValue()));
+
+					DisplayText = FText::Format(LOCTEXT("TrackFormatMenuVideoFormat", "{Index}: {Type} {DimX}x{DimY} {Fps} [{FpsLower}-{FpsUpper}] fps"), Arguments);
+				}
+			}
+			else
+			{
+				DisplayText = LOCTEXT("TrackFormatDefault", "Default");
+			}
+
+			MenuBuilder.AddMenuEntry(
+				DisplayText,
+				FText::GetEmpty(),
+				FSlateIcon(),
+				FUIAction(
+					FExecuteAction::CreateLambda([=] { MediaPlayer->SetTrackFormat(TrackType, SelectedTrack, FormatIndex); }),
+					FCanExecuteAction(),
+					FIsActionChecked::CreateLambda([=] { return (MediaPlayer->GetTrackFormat(TrackType, SelectedTrack) == FormatIndex); })
+				),
+				NAME_None,
+				EUserInterfaceActionType::RadioButton
+			);
+		}
+	}
+	else
+	{
+		FText Label = (SelectedTrack == INDEX_NONE)
+			? LOCTEXT("NoTrackSelectedLabel", "No track selected")
+			: LOCTEXT("NoFormatsAvailableLabel", "No formats available");
+
+		TSharedRef<SWidget> NoTracksAvailableWidget = SNew(SBox)
+			.Padding(FMargin(2.0f, 2.0f, 2.0f, 0.0f))
+			[
+				SNew(STextBlock)
+				.ColorAndOpacity(FSlateColor::UseSubduedForeground())
+			.Text(Label)
+			];
+
+		MenuBuilder.AddWidget(NoTracksAvailableWidget, FText::GetEmpty(), true, false);
 	}
 }
 
 
-void SMediaPlayerEditorViewer::HandlePositionSliderMouseCaptureEnd()
+FText SMediaPlayerEditorViewer::HandleFpsTextBlockText() const
 {
-	if (MediaPlayer->SupportsScrubbing())
+	if (!MediaPlayer->IsReady())
 	{
-		MediaPlayer->SetRate(PreScrubRate);
+		return FText::GetEmpty();
 	}
+
+	const int32 SelectedTrack = MediaPlayer->GetSelectedTrack(EMediaPlayerTrack::Video);
+	const int32 SelectedFormat = MediaPlayer->GetTrackFormat(EMediaPlayerTrack::Video, SelectedTrack);
+	const float FrameRate = MediaPlayer->GetVideoTrackFrameRate(SelectedTrack, SelectedFormat);
+
+	// empty string if fps n/a
+	if (FrameRate <= 0.0f)
+	{
+		return FText::GetEmpty();
+	}
+
+	FNumberFormattingOptions FormattingOptions;
+	FormattingOptions.MaximumFractionalDigits = 3;
+
+	return FText::Format(LOCTEXT("FpsTextBlockFormat", "{0} fps"), FText::AsNumber(FrameRate, &FormattingOptions));
 }
 
 
-float SMediaPlayerEditorViewer::HandlePositionSliderValue() const
+void SMediaPlayerEditorViewer::HandleMediaPlayerMediaEvent(EMediaEvent Event)
 {
-	if (MediaPlayer->GetDuration() > FTimespan::Zero())
+	if (Event == EMediaEvent::MediaOpened)
 	{
-		return (float)MediaPlayer->GetTime().GetTicks() / (float)MediaPlayer->GetDuration().GetTicks();
+		LastUrl = FText::GetEmpty();
 	}
-
-	return 0.0;
-}
-
-
-void SMediaPlayerEditorViewer::HandlePositionSliderValueChanged( float NewValue )
-{
-	if (!ScrubberSlider->HasMouseCapture() || MediaPlayer->SupportsScrubbing())
+	else if (Event == EMediaEvent::MediaOpenFailed)
 	{
-		MediaPlayer->Seek(MediaPlayer->GetDuration() * NewValue);
+		FNotificationInfo NotificationInfo(LOCTEXT("MediaOpenFailedError", "The media failed to open. Check Output Log for details!"));
+		{
+			NotificationInfo.ExpireDuration = 2.0f;
+		}
+
+		FSlateNotificationManager::Get().AddNotification(NotificationInfo)->SetCompletionState(SNotificationItem::CS_Fail);
 	}
 }
 
@@ -823,26 +936,6 @@ void SMediaPlayerEditorViewer::HandleScaleMenuNewMenu(FMenuBuilder& MenuBuilder)
 }
 
 
-FReply SMediaPlayerEditorViewer::HandleTextureMouseButtonUp(const FGeometry& /*Geometry*/, const FPointerEvent& MouseEvent)
-{
-	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
-	{
-		if (MediaPlayer->IsPlaying())
-		{
-			MediaPlayer->Pause();
-		}
-		else
-		{
-			MediaPlayer->Play();
-		}
-
-		return FReply::Handled();
-	}
-
-	return FReply::Unhandled();
-}
-
-
 FText SMediaPlayerEditorViewer::HandleTimerTextBlockText() const
 {
 	if (!MediaPlayer->IsReady())
@@ -852,6 +945,7 @@ FText SMediaPlayerEditorViewer::HandleTimerTextBlockText() const
 
 	FTimespan Time = MediaPlayer->GetTime();
 
+	// empty string if time n/a
 	if (Time < FTimespan::Zero())
 	{
 		return FText::GetEmpty();
@@ -859,12 +953,18 @@ FText SMediaPlayerEditorViewer::HandleTimerTextBlockText() const
 
 	FTimespan Duration = MediaPlayer->GetDuration();
 
+	// time only if duration n/a
 	if (Duration <= FTimespan::Zero())
 	{
 		return FText::AsTimespan(Time);
 	}
 
-	return FText::Format(LOCTEXT("TimerTextBlockFormat", "{0} / {1}"), FText::AsTimespan(Time), FText::AsTimespan(Duration));
+	// format time & duration
+	const FText DurationText = (Duration == FTimespan::MaxValue())
+		? FText::FromString(TEXT("\u221E")) // infinity symbol
+		: FText::AsTimespan(Duration);
+
+	return FText::Format(LOCTEXT("TimerTextBlockFormat", "{0} / {1}"), FText::AsTimespan(Time), DurationText);
 }
 
 
@@ -880,6 +980,11 @@ FText SMediaPlayerEditorViewer::HandleTimerTextBlockToolTipText() const
 	if (Remaining <= FTimespan::Zero())
 	{
 		return LOCTEXT("UnknownTimeRemainingTooltip", "Unknown time remaining");
+	}
+
+	if (Remaining == FTimespan::MaxValue())
+	{
+		return LOCTEXT("InfiniteTimeRemainingTooltip", "Infinite time remaining");
 	}
 
 	return FText::Format(LOCTEXT("TimeRemainingTooltipFormat", "{0} remaining"), FText::AsTimespan(Remaining));
@@ -916,35 +1021,36 @@ void SMediaPlayerEditorViewer::HandleTrackMenuNewMenu(FMenuBuilder& MenuBuilder,
 			const FCulturePtr Culture = I18n.GetCulture(Language);
 			const FString LanguageDisplayName = Culture.IsValid() ? Culture->GetDisplayName() : FString();
 			const FString LanguageNativeName = Culture.IsValid() ? Culture->GetNativeName() : FString();
+			
+			const FText DisplayText = LanguageNativeName.IsEmpty() ? DisplayName : FText::Format(LOCTEXT("TrackNameFormat", "{0} ({1})"), DisplayName, FText::FromString(LanguageNativeName));
+			const FText TooltipText = FText::FromString(LanguageDisplayName);
 
 			MenuBuilder.AddMenuEntry(
-				LanguageNativeName.IsEmpty()
-					? DisplayName
-					: FText::Format(LOCTEXT("TrackNameFormat", "{0} ({1})"), DisplayName, FText::FromString(LanguageNativeName)),
-				FText::FromString(LanguageDisplayName),
+				DisplayText,
+				TooltipText,
 				FSlateIcon(),
 				FUIAction(
-					FExecuteAction::CreateLambda([=]{ MediaPlayer->SelectTrack(TrackType, TrackIndex); }),
+					FExecuteAction::CreateLambda([=] { MediaPlayer->SelectTrack(TrackType, TrackIndex); }),
 					FCanExecuteAction(),
-					FIsActionChecked::CreateLambda([=]{ return (MediaPlayer->GetSelectedTrack(TrackType) == TrackIndex); })
+					FIsActionChecked::CreateLambda([=] { return (MediaPlayer->GetSelectedTrack(TrackType) == TrackIndex); })
 				),
 				NAME_None,
 				EUserInterfaceActionType::RadioButton
 			);
 		}
-
-		return;
 	}
+	else
+	{
+		TSharedRef<SWidget> NoTracksAvailableWidget = SNew(SBox)
+			.Padding(FMargin(2.0f, 2.0f, 2.0f, 0.0f))
+			[
+				SNew(STextBlock)
+					.ColorAndOpacity(FSlateColor::UseSubduedForeground())
+					.Text(LOCTEXT("NoTracksAvailableLabel", "No tracks available"))
+			];
 
-	TSharedRef<SWidget> NoTracksAvailableWidget = SNew(SBox)
-		.Padding(FMargin(2.0f, 2.0f, 2.0f, 0.0f))
-		[
-			SNew(STextBlock)
-				.ColorAndOpacity(FSlateColor::UseSubduedForeground())
-				.Text(LOCTEXT("NoTracksAvailableLabel", "No tracks available"))
-		];
-
-	MenuBuilder.AddWidget(NoTracksAvailableWidget, FText::GetEmpty(), true, false);
+		MenuBuilder.AddWidget(NoTracksAvailableWidget, FText::GetEmpty(), true, false);
+	}
 }
 
 
@@ -952,13 +1058,22 @@ FReply SMediaPlayerEditorViewer::HandleUrlBoxKeyDown(const FGeometry&, const FKe
 {
 	if (KeyEvent.GetKey() == EKeys::Escape)
 	{
-		UrlTextBox->SetText(FText::FromString(MediaPlayer->GetLastUrl()));
+		UrlTextBox->SetText(LastUrl);
 
 		return FReply::Handled().ClearUserFocus(true);
 	}
 
 	return FReply::Unhandled();
 }
+
+
+void SMediaPlayerEditorViewer::HandleVideoCaptureDevicesMenuNewMenu(FMenuBuilder& MenuBuilder)
+{
+	TArray<FMediaCaptureDeviceInfo> DeviceInfos;
+	MediaCaptureSupport::EnumerateVideoCaptureDevices(DeviceInfos);
+	MakeCaptureDeviceMenu(DeviceInfos, MenuBuilder);
+}
+
 
 
 #undef LOCTEXT_NAMESPACE

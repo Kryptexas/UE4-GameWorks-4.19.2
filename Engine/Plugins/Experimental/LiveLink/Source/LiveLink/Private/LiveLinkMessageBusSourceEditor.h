@@ -47,7 +47,7 @@ class SLiveLinkMessageBusSourceEditor : public SCompoundWidget
 
 private:
 
-	void HandlePongMessage(const FLiveLinkPongMessage& Message, const IMessageContextRef& Context);
+	void HandlePongMessage(const FLiveLinkPongMessage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context);
 
 	TSharedRef<ITableRow> MakeSourceListViewWidget(FProviderPollResultPtr PollResult, const TSharedRef<STableViewBase>& OwnerTable) const;
 
@@ -59,7 +59,7 @@ private:
 
 	FProviderPollResultPtr SelectedResult;
 
-	FMessageEndpointPtr MessageEndpoint;
+	TSharedPtr<FMessageEndpoint, ESPMode::ThreadSafe> MessageEndpoint;
 
 	FGuid CurrentPollRequest;
 };

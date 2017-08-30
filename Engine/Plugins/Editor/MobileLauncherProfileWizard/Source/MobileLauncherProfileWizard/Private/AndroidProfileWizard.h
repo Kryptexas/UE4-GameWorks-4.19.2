@@ -2,7 +2,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Interfaces/ILauncherProfileManager.h"
+#include "ILauncherProfileManager.h"
 
 class FAndroidProfileWizard : public ILauncherProfileWizard
 {

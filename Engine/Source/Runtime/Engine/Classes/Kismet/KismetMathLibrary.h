@@ -1260,9 +1260,17 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category="Math|Timespan", meta=(NativeMakeFunc))
 	static FTimespan MakeTimespan(int32 Days, int32 Hours, int32 Minutes, int32 Seconds, int32 Milliseconds);
 
+	/* Makes a Timespan struct */
+	UFUNCTION(BlueprintPure, Category="Math|Timespan", meta=(NativeMakeFunc))
+	static FTimespan MakeTimespan2(int32 Days, int32 Hours, int32 Minutes, int32 Seconds, int32 FractionNano);
+
 	/* Breaks a Timespan into its components */
 	UFUNCTION(BlueprintPure, Category="Math|Timespan", meta=(NativeBreakFunc))
 	static void BreakTimespan(FTimespan InTimespan, int32& Days, int32& Hours, int32& Minutes, int32& Seconds, int32& Milliseconds);
+
+	/* Breaks a Timespan into its components */
+	UFUNCTION(BlueprintPure, Category="Math|Timespan", meta=(NativeBreakFunc))
+	static void BreakTimespan2(FTimespan InTimespan, int32& Days, int32& Hours, int32& Minutes, int32& Seconds, int32& FractionNano);
 
 	/* Addition (A + B) */
 	UFUNCTION(BlueprintPure, meta=(DisplayName="Timespan + Timespan", CompactNodeTitle="+", Keywords="+ add plus"), Category="Math|Timespan")
@@ -1275,6 +1283,10 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	/* Scalar multiplication (A * s) */
 	UFUNCTION(BlueprintPure, meta=(DisplayName="Timespan * float", CompactNodeTitle="*", Keywords="* multiply"), Category="Math|Timespan")
 	static FTimespan Multiply_TimespanFloat( FTimespan A, float Scalar );
+
+	/* Scalar division (A * s) */
+	UFUNCTION(BlueprintPure, meta=(DisplayName="Timespan * float", CompactNodeTitle="/", Keywords="/ divide"), Category="Math|Timespan")
+	static FTimespan Divide_TimespanFloat( FTimespan A, float Scalar );
 
 	/* Returns true if the values are equal (A == B) */
 	UFUNCTION(BlueprintPure, meta=(DisplayName="Equal (Timespan)", CompactNodeTitle="==", Keywords="== equal"), Category="Math|Timespan")

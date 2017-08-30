@@ -9,14 +9,12 @@ namespace UnrealBuildTool.Rules
 			PublicDependencyModuleNames.AddRange(
 				new string[] {
 					"Core",
-				}
-			);
+				});
 
 			PublicIncludePathModuleNames.AddRange(
 				new string[] {
 					"TargetDeviceServices",
-				}
-			);
+				});
 
 			PrivateDependencyModuleNames.AddRange(
 				new string[] {
@@ -27,15 +25,13 @@ namespace UnrealBuildTool.Rules
 					"TargetPlatform",
 					"UnrealEdMessages",
 					"JSON",
-				}
-			);
+				});
 
 			PrivateIncludePathModuleNames.AddRange(
 				new string[] {
 					"Messaging",
 					"DesktopPlatform",
-				}
-			);
+				});
 
 			PrivateIncludePaths.AddRange(
 				new string[] {
@@ -44,8 +40,7 @@ namespace UnrealBuildTool.Rules
 					"Developer/LauncherServices/Private/Games",
 					"Developer/LauncherServices/Private/Launcher",
 					"Developer/LauncherServices/Private/Profiles",
-				}
-			);
+				});
 		}
 	}
 }

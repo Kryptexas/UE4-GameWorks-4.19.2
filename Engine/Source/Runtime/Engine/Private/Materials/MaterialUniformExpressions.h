@@ -388,6 +388,27 @@ public:
 	}
 };
 
+
+/**
+ * An external texture parameter expression.
+ */
+class FMaterialUniformExpressionExternalTextureParameter: public FMaterialUniformExpressionExternalTexture
+{
+	typedef FMaterialUniformExpressionExternalTexture Super;
+	DECLARE_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionExternalTextureParameter);
+public:
+
+	FMaterialUniformExpressionExternalTextureParameter();
+	FMaterialUniformExpressionExternalTextureParameter(FName InParameterName, int32 InTextureIndex);
+
+	virtual void Serialize(FArchive& Ar) override;
+	virtual bool IsIdentical(const FMaterialUniformExpression* OtherExpression) const override;
+	virtual bool GetExternalTexture(const FMaterialRenderContext& Context, FTextureRHIRef& OutTextureRHI, FSamplerStateRHIRef& OutSamplerStateRHI) const override;
+
+private:
+	FName ParameterName;
+};
+
 /**
  */
 class FMaterialUniformExpressionSine: public FMaterialUniformExpression
@@ -1743,4 +1764,51 @@ public:
 private:
 	TRefCountPtr<FMaterialUniformExpressionTexture> TextureExpression;
 	int8 TextureProperty;
+};
+
+
+/**
+ * A uniform expression to lookup the UV coordinate rotation and scale for an external texture
+ */
+class FMaterialUniformExpressionExternalTextureCoordinateScaleRotation : public FMaterialUniformExpressionExternalTextureBase
+{
+	DECLARE_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionExternalTextureCoordinateScaleRotation);
+public:
+
+	FMaterialUniformExpressionExternalTextureCoordinateScaleRotation(){}
+	FMaterialUniformExpressionExternalTextureCoordinateScaleRotation(const FGuid& InGuid) : FMaterialUniformExpressionExternalTextureBase(InGuid) {}
+	FMaterialUniformExpressionExternalTextureCoordinateScaleRotation(int32 InSourceTextureIndex, TOptional<FName> InParameterName) : FMaterialUniformExpressionExternalTextureBase(InSourceTextureIndex), ParameterName(InParameterName) {}
+
+	virtual void Serialize(FArchive& Ar) override;
+	virtual bool IsIdentical(const FMaterialUniformExpression* OtherExpression) const override;
+	virtual void GetNumberValue(const FMaterialRenderContext& Context, FLinearColor& OutValue) const override;
+
+protected:
+	typedef FMaterialUniformExpressionExternalTextureBase Super;
+
+	/** Optional texture parameter name */
+	TOptional<FName> ParameterName;
+};
+
+/**
+ * A uniform expression to lookup the UV coordinate offset for an external texture
+ */
+class FMaterialUniformExpressionExternalTextureCoordinateOffset : public FMaterialUniformExpressionExternalTextureBase
+{
+	DECLARE_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionExternalTextureCoordinateOffset);
+public:
+
+	FMaterialUniformExpressionExternalTextureCoordinateOffset(){}
+	FMaterialUniformExpressionExternalTextureCoordinateOffset(const FGuid& InGuid) : FMaterialUniformExpressionExternalTextureBase(InGuid) {}
+	FMaterialUniformExpressionExternalTextureCoordinateOffset(int32 InSourceTextureIndex, TOptional<FName> InParameterName) : FMaterialUniformExpressionExternalTextureBase(InSourceTextureIndex), ParameterName(InParameterName) {}
+
+	virtual void Serialize(FArchive& Ar) override;
+	virtual bool IsIdentical(const FMaterialUniformExpression* OtherExpression) const override;
+	virtual void GetNumberValue(const FMaterialRenderContext& Context, FLinearColor& OutValue) const override;
+
+protected:
+	typedef FMaterialUniformExpressionExternalTextureBase Super;
+
+	/** Optional texture parameter name */
+	TOptional<FName> ParameterName;
 };

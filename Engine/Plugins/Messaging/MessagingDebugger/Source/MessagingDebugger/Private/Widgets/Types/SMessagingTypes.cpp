@@ -1,11 +1,17 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Widgets/Types/SMessagingTypes.h"
+
+#include "IMessageTracer.h"
+#include "Styling/ISlateStyle.h"
 #include "Widgets/Images/SImage.h"
-#include "Widgets/Types/SMessagingTypesFilterBar.h"
-#include "Widgets/Views/SListView.h"
-#include "Widgets/Types/SMessagingTypesTableRow.h"
 #include "Widgets/Layout/SExpandableArea.h"
+#include "Widgets/Views/STableViewBase.h"
+
+#include "Models/MessagingDebuggerModel.h"
+#include "Models/MessagingDebuggerTypeFilter.h"
+#include "Widgets/Types/SMessagingTypesFilterBar.h"
+#include "Widgets/Types/SMessagingTypesTableRow.h"
 
 
 #define LOCTEXT_NAMESPACE "SMessagingTypes"

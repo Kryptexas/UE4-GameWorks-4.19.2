@@ -1,19 +1,27 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "AvfMediaTracks.h"
+#include "AvfMediaPrivate.h"
+
 #include "Containers/ResourceArray.h"
+#include "MediaSamples.h"
 #include "Misc/ScopeLock.h"
 
 #if WITH_ENGINE
-#include "RenderingThread.h"
-#include "RHI.h"
-#include "MediaShaders.h"
-#include "StaticBoundShaderState.h"
-#include "Misc/ScopeLock.h"
-#include "PipelineStateCache.h"
-#include "RHIStaticStates.h"
-#include "Class.h"
+	#include "RenderingThread.h"
 #endif
+
+#include "AvfMediaAudioSample.h"
+#include "AvfMediaOverlaySample.h"
+#include "AvfMediaVideoSampler.h"
+#include "AvfMediaUtils.h"
+
+#import <AudioToolbox/AudioToolbox.h>
+
+#define AUDIO_PLAYBACK_VIA_ENGINE (PLATFORM_MAC && 0)
+
+/* FAVPlayerItemLegibleOutputPushDelegate
+ *****************************************************************************/
 
 @interface FAVPlayerItemLegibleOutputPushDelegate : NSObject<AVPlayerItemLegibleOutputPushDelegate>
 {
@@ -37,134 +45,28 @@
 
 - (void)legibleOutput:(AVPlayerItemLegibleOutput *)Output didOutputAttributedStrings:(NSArray<NSAttributedString *> *)Strings nativeSampleBuffers:(NSArray *)NativeSamples forItemTime:(CMTime)ItemTime
 {
-	Tracks->HandleSubtitleCaptionStrings(Output, Strings, NativeSamples, ItemTime);
+	Tracks->ProcessCaptions(Output, Strings, NativeSamples, ItemTime);
 }
 
 @end
 
-/**
- * Passes a CV*TextureRef or CVPixelBufferRef through to the RHI to wrap in an RHI texture without traversing system memory.
- */
-class FAvfTexture2DResourceWrapper : public FResourceBulkDataInterface
-{
-public:
-	FAvfTexture2DResourceWrapper(CFTypeRef InImageBuffer)
-	: ImageBuffer(InImageBuffer)
-	{
-		check(ImageBuffer);
-		CFRetain(ImageBuffer);
-	}
-	
-	/**
-	 * @return ptr to the resource memory which has been preallocated
-	 */
-	virtual const void* GetResourceBulkData() const override
-	{
-		return ImageBuffer;
-	}
-	
-	/**
-	 * @return size of resource memory
-	 */
-	virtual uint32 GetResourceBulkDataSize() const override
-	{
-		return 0;
-	}
-	
-	/**
-	 * Free memory after it has been used to initialize RHI resource
-	 */
-	virtual void Discard() override
-	{
-		delete this;
-	}
-	
-	virtual EBulkDataType GetResourceType() const override
-	{
-		return EBulkDataType::MediaTexture;
-	}
-	
-	virtual ~FAvfTexture2DResourceWrapper()
-	{
-		CFRelease(ImageBuffer);
-		ImageBuffer = nullptr;
-	}
-	
-	CFTypeRef ImageBuffer;
-};
-
-/**
- * Allows for direct GPU mem allocation for texture resource from a CVImageBufferRef's system memory backing store.
- */
-class FAvfTexture2DResourceMem : public FResourceBulkDataInterface
-{
-public:
-	FAvfTexture2DResourceMem(CVImageBufferRef InImageBuffer)
-	: ImageBuffer(InImageBuffer)
-	{
-		check(ImageBuffer);
-		CFRetain(ImageBuffer);
-	}
-	
-	/**
-	 * @return ptr to the resource memory which has been preallocated
-	 */
-	virtual const void* GetResourceBulkData() const override
-	{
-		CVPixelBufferLockBaseAddress(ImageBuffer, kCVPixelBufferLock_ReadOnly);
-		return CVPixelBufferGetBaseAddress(ImageBuffer);
-	}
-	
-	/**
-	 * @return size of resource memory
-	 */
-	virtual uint32 GetResourceBulkDataSize() const override
-	{
-		int32 Pitch = CVPixelBufferGetBytesPerRow(ImageBuffer);
-		int32 Height = CVPixelBufferGetHeight(ImageBuffer);
-		uint32 Size = (Pitch * Height);
-		return Size;
-	}
-	
-	/**
-	 * Free memory after it has been used to initialize RHI resource
-	 */
-	virtual void Discard() override
-	{
-		CVPixelBufferUnlockBaseAddress(ImageBuffer, kCVPixelBufferLock_ReadOnly);
-		delete this;
-	}
-	
-	virtual ~FAvfTexture2DResourceMem()
-	{
-		CFRelease(ImageBuffer);
-		ImageBuffer = nullptr;
-	}
-	
-	CVImageBufferRef ImageBuffer;
-};
 
 /* FAvfMediaTracks structors
  *****************************************************************************/
 
-FAvfMediaTracks::FAvfMediaTracks()
-	: AudioSink(nullptr)
-	, OverlaySink(nullptr)
-	, VideoSink(nullptr)
+FAvfMediaTracks::FAvfMediaTracks(FMediaSamples& InSamples)
+	: AudioPaused(false)
+	, AudioSamplePool(new FAvfMediaAudioSamplePool)
 	, PlayerItem(nullptr)
-	, VideoSampler(nullptr)
+	, Samples(InSamples)
+	, SeekTime(-1.0)
 	, SelectedAudioTrack(INDEX_NONE)
 	, SelectedCaptionTrack(INDEX_NONE)
 	, SelectedVideoTrack(INDEX_NONE)
-	, bAudioPaused(false)
-	, SeekTime(-1.0)
-	, bZoomed(false)
+	, Zoomed(false)
 {
-	LastAudioSample = kCMTimeZero;
-	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(InitialiseAvfVideoSampler, FAvfMediaTracks*, This, this,
-	{
-		This->VideoSampler = new FAvfVideoSampler();
-	});
+	LastAudioSampleTime = kCMTimeZero;
+	VideoSampler = MakeShared<FAvfMediaVideoSampler, ESPMode::ThreadSafe>(Samples);
 }
 
 
@@ -172,93 +74,55 @@ FAvfMediaTracks::~FAvfMediaTracks()
 {
 	Reset();
 
-	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(UninitialiseAvfVideoSampler, FAvfMediaTracks*, This, this,
-	{
-		delete This->VideoSampler;
-	});
-
-	FlushRenderingCommands();
+	delete AudioSamplePool;
+	AudioSamplePool = nullptr;
 }
 
 
 /* FAvfMediaTracks interface
  *****************************************************************************/
 
-void FAvfMediaTracks::Flush()
+void FAvfMediaTracks::AppendStats(FString &OutStats) const
 {
 	FScopeLock Lock(&CriticalSection);
 
-	if (AudioSink != nullptr)
+	// audio tracks
+	OutStats += TEXT("Audio Tracks\n");
+
+	if (AudioTracks.Num() == 0)
 	{
-		AudioSink->FlushAudioSink();
+		OutStats += TEXT("    none\n");
+	}
+	else
+	{
+		for (uint32 TrackIndex = 0; TrackIndex < AudioTracks.Num(); TrackIndex++)
+		{
+			const FTrack& Track = AudioTracks[TrackIndex];
+
+			OutStats += FString::Printf(TEXT("    %s\n"), *GetTrackDisplayName(EMediaTrackType::Audio, TrackIndex).ToString());
+			OutStats += FString::Printf(TEXT("        Not implemented yet"));
+		}
+	}
+
+	// video tracks
+	OutStats += TEXT("Video Tracks\n");
+
+	if (VideoTracks.Num() == 0)
+	{
+		OutStats += TEXT("    none\n");
+	}
+	else
+	{
+		for (uint32 TrackIndex = 0; TrackIndex < VideoTracks.Num(); TrackIndex++)
+		{
+			const FTrack& Track = VideoTracks[TrackIndex];
+
+			OutStats += FString::Printf(TEXT("    %s\n"), *GetTrackDisplayName(EMediaTrackType::Video, TrackIndex).ToString());
+			OutStats += FString::Printf(TEXT("        BitRate: %i\n"), [Track.AssetTrack estimatedDataRate]);
+		}
 	}
 }
 
-static FString MediaTypeToString(NSString* MediaType)
-{
-	if ([MediaType isEqualToString:AVMediaTypeAudio])
-	{
-		return TEXT("Audio");
-	}
-	else if ([MediaType isEqualToString:AVMediaTypeClosedCaption])
-	{
-		return TEXT("Closed Caption");
-	}
-	else if ([MediaType isEqualToString:AVMediaTypeSubtitle])
-	{
-		return TEXT("Subtitle");
-	}
-	else if ([MediaType isEqualToString:AVMediaTypeText])
-	{
-		return TEXT("Text");
-	}
-	else if ([MediaType isEqualToString:AVMediaTypeTimecode])
-	{
-		return TEXT("Timecode (unsupported)");
-	}
-	else if ([MediaType isEqualToString:AVMediaTypeVideo])
-	{
-		return TEXT("Video");
-	}
-	return TEXT("Unknown");
-}
-
-static FString CodecTypeToString(CMVideoCodecType CodecType)
-{
-	if (CodecType == kCMVideoCodecType_422YpCbCr8) return TEXT("422YpCbCr8");
-	if (CodecType == kCMVideoCodecType_Animation) return TEXT("Animation");
-	if (CodecType == kCMVideoCodecType_Cinepak) return TEXT("Cinepak");
-	if (CodecType == kCMVideoCodecType_JPEG) return TEXT("JPEG");
-	if (CodecType == kCMVideoCodecType_JPEG_OpenDML) return TEXT("JPEG OpenDML");
-	if (CodecType == kCMVideoCodecType_SorensonVideo) return TEXT("Sorenson Video");
-	if (CodecType == kCMVideoCodecType_SorensonVideo3) return TEXT("Sorenson Video 3");
-	if (CodecType == kCMVideoCodecType_H263) return TEXT("H263");
-	if (CodecType == kCMVideoCodecType_H264) return TEXT("H264");
-	if (CodecType == kCMVideoCodecType_HEVC) return TEXT("HEVC");
-	if (CodecType == kCMVideoCodecType_MPEG4Video) return TEXT("MPEG4 Video");
-	if (CodecType == kCMVideoCodecType_MPEG2Video) return TEXT("MPEG2 Video");
-	if (CodecType == kCMVideoCodecType_MPEG1Video) return TEXT("MPEG1 Video");
-
-	if (CodecType == kCMVideoCodecType_DVCNTSC) return TEXT("DVC NTSC");
-	if (CodecType == kCMVideoCodecType_DVCPAL) return TEXT("DVC PAL");
-	if (CodecType == kCMVideoCodecType_DVCProPAL) return TEXT("DVCPro PAL");
-	if (CodecType == kCMVideoCodecType_DVCPro50NTSC) return TEXT("DVCPro50 NTSC");
-	if (CodecType == kCMVideoCodecType_DVCPro50PAL) return TEXT("DVCPro50 PAL");
-	if (CodecType == kCMVideoCodecType_DVCPROHD720p60) return TEXT("DVCPRO HD 720p 60");
-	if (CodecType == kCMVideoCodecType_DVCPROHD720p50) return TEXT("DVCPRO HD 720p 50");
-	if (CodecType == kCMVideoCodecType_DVCPROHD1080i60) return TEXT("DVCPRO HD 1080i 60");
-	if (CodecType == kCMVideoCodecType_DVCPROHD1080i50) return TEXT("DVCPRO HD 1080i 50");
-	if (CodecType == kCMVideoCodecType_DVCPROHD1080p30) return TEXT("DVCPRO HD 1080p 30");
-	if (CodecType == kCMVideoCodecType_DVCPROHD1080p25) return TEXT("DVCPRO HD 1080p 25");
-
-	if (CodecType == kCMVideoCodecType_AppleProRes4444) return TEXT("Apple ProRes 4444");
-	if (CodecType == kCMVideoCodecType_AppleProRes422HQ) return TEXT("Apple ProRes 422 HQ");
-	if (CodecType == kCMVideoCodecType_AppleProRes422) return TEXT("Apple ProRes 422");
-	if (CodecType == kCMVideoCodecType_AppleProRes422LT) return TEXT("Apple ProRes 422 LT");
-	if (CodecType == kCMVideoCodecType_AppleProRes422Proxy) return TEXT("Apple ProRes 422 Proxy");
-
-	return TEXT("Unknown");
-}
 
 void FAvfMediaTracks::Initialize(AVPlayerItem* InPlayerItem, FString& OutInfo)
 {
@@ -270,7 +134,6 @@ void FAvfMediaTracks::Initialize(AVPlayerItem* InPlayerItem, FString& OutInfo)
 
 	// initialize tracks
 	NSArray* PlayerTracks = PlayerItem.tracks;
-
 	NSError* Error = nil;
 
 	int32 StreamIndex = 0;
@@ -283,7 +146,7 @@ void FAvfMediaTracks::Initialize(AVPlayerItem* InPlayerItem, FString& OutInfo)
 		NSString* MediaType = AssetTrack.mediaType;
 
 		OutInfo += FString::Printf(TEXT("Stream %i\n"), StreamIndex);
-		OutInfo += FString::Printf(TEXT("    Type: %s\n"), *MediaTypeToString(MediaType));
+		OutInfo += FString::Printf(TEXT("    Type: %s\n"), *AvfMedia::MediaTypeToString(MediaType));
 
 		if ([MediaType isEqualToString:AVMediaTypeAudio])
 		{
@@ -293,7 +156,7 @@ void FAvfMediaTracks::Initialize(AVPlayerItem* InPlayerItem, FString& OutInfo)
 			Track->Name = FString::Printf(TEXT("Audio Track %i"), TrackIndex);
 			Track->Converter = nullptr;
 			
-#if PLATFORM_MAC
+#if AUDIO_PLAYBACK_VIA_ENGINE
 			// create asset reader
 			AVAssetReader* Reader = [[AVAssetReader alloc] initWithAsset: [AssetTrack asset] error:&Error];
 			
@@ -328,6 +191,7 @@ void FAvfMediaTracks::Initialize(AVPlayerItem* InPlayerItem, FString& OutInfo)
 
 			CMFormatDescriptionRef DescRef = (CMFormatDescriptionRef)[AssetTrack.formatDescriptions objectAtIndex:0];
 			const AudioStreamBasicDescription* Desc = CMAudioFormatDescriptionGetStreamBasicDescription(DescRef);
+
 			if (Desc)
 			{
 				OutInfo += FString::Printf(TEXT("    Channels: %u\n"), Desc->mChannelsPerFrame);
@@ -393,12 +257,13 @@ void FAvfMediaTracks::Initialize(AVPlayerItem* InPlayerItem, FString& OutInfo)
 			{
 				[OutputSettings setObject:[NSNumber numberWithBool:YES] forKey:(NSString*)kCVPixelBufferMetalCompatibilityKey];
 			}
+
 #if PLATFORM_MAC
 			[OutputSettings setObject:[NSNumber numberWithBool:YES] forKey:(NSString*)kCVPixelBufferOpenGLCompatibilityKey];
 #else
 			[OutputSettings setObject:[NSNumber numberWithBool:YES] forKey:(NSString*)kCVPixelBufferOpenGLESCompatibilityKey];
 #endif
-#endif
+#endif //WITH_ENGINE
 
 			// Use unaligned rows
 			[OutputSettings setObject:[NSNumber numberWithInteger:1] forKey:(NSString*)kCVPixelBufferBytesPerRowAlignmentKey];
@@ -420,27 +285,211 @@ void FAvfMediaTracks::Initialize(AVPlayerItem* InPlayerItem, FString& OutInfo)
 
 			CMFormatDescriptionRef DescRef = (CMFormatDescriptionRef)[AssetTrack.formatDescriptions objectAtIndex:0];
 			CMVideoCodecType CodecType = CMFormatDescriptionGetMediaSubType(DescRef);
-			OutInfo += FString::Printf(TEXT("    Codec: %s\n"), *CodecTypeToString(CodecType));
+			OutInfo += FString::Printf(TEXT("    Codec: %s\n"), *AvfMedia::CodecTypeToString(CodecType));
 			OutInfo += FString::Printf(TEXT("    Dimensions: %i x %i\n"), (int32)AssetTrack.naturalSize.width, (int32)AssetTrack.naturalSize.height);
 			OutInfo += FString::Printf(TEXT("    Frame Rate: %g fps\n"), AssetTrack.nominalFrameRate);
 			OutInfo += FString::Printf(TEXT("    BitRate: %i\n"), (int32)AssetTrack.estimatedDataRate);
 		}
 
 		OutInfo += TEXT("\n");
-		
+
 		PlayerTrack.enabled = NO;
 
-		int32 TrackStreamIndex = StreamIndex++;
+		if (Track != nullptr)
+		{
+			Track->AssetTrack = AssetTrack;
+			Track->DisplayName = FText::FromString(Track->Name);
+			Track->StreamIndex = StreamIndex;
+		}
 
-		if (Track == nullptr)
+		++StreamIndex;
+	}
+}
+
+
+void FAvfMediaTracks::ProcessAudio()
+{
+	FScopeLock Lock(&CriticalSection);
+
+#if AUDIO_PLAYBACK_VIA_ENGINE
+	if (!AudioTracks.IsValidIndex(SelectedAudioTrack) || !PlayerItem || PlayerItem.status != AVPlayerItemStatusReadyToPlay || CMTimeCompare(PlayerItem.duration, CMTimeMakeWithSeconds(0.0, 1000)) < 1)
+	{
+		return;
+	}
+
+	CMTime CurrentTime = [PlayerItem currentTime];
+
+	ESyncStatus Sync = Default;
+
+	AVAssetReaderTrackOutput* AudioReaderOutput = (AVAssetReaderTrackOutput*)AudioTracks[SelectedAudioTrack].Output;
+	check(AudioReaderOutput);
+
+	while (Sync < Ready)
+	{
+		float Delta = CMTimeGetSeconds(LastAudioSampleTime) - CMTimeGetSeconds(CurrentTime);
+
+		if ((Delta <= 1.0f) && (Delta > 0.0f))
+		{
+			Sync = Ready;
+
+			break;
+		}
+
+		Sync = Behind;
+
+		CMSampleBufferRef LatestSamples = [AudioReaderOutput copyNextSampleBuffer];
+
+		if (!LatestSamples)
+		{
+			break;
+		}
+
+		CMTime FrameTimeStamp = CMSampleBufferGetPresentationTimeStamp(LatestSamples);
+		CMTime Duration = CMSampleBufferGetOutputDuration(LatestSamples);
+		CMTime FinalTimeStamp = CMTimeAdd(FrameTimeStamp, Duration);
+		CMTime Seek = CMTimeMakeWithSeconds(SeekTime, 1000);
+
+		if ((SeekTime < 0.0f) || (CMTimeCompare(Seek, FrameTimeStamp) >= 0 && CMTimeCompare(Seek, FinalTimeStamp) < 0))
+		{
+			SeekTime = -1.0f;
+
+			CMItemCount NumSamples = CMSampleBufferGetNumSamples(LatestSamples);
+			CMFormatDescriptionRef Format = CMSampleBufferGetFormatDescription(LatestSamples);
+			check(Format);
+
+			const AudioStreamBasicDescription* ASBD = CMAudioFormatDescriptionGetStreamBasicDescription(Format);
+			check(ASBD);
+
+			CMBlockBufferRef Buffer = CMSampleBufferGetDataBuffer(LatestSamples);
+			check(Buffer);
+
+			// create & add sample to queue
+			uint32 InputLength = CMBlockBufferGetDataLength(Buffer);
+
+			if (InputLength)
+			{
+				uint32 OutputLength = (NumSamples * TargetDesc.mBytesPerPacket);
+				FTrack& AudioTrack = AudioTracks[SelectedAudioTrack];
+
+				auto AudioSample = MakeShared<FAvfMediaAudioSample, ESPMode::ThreadSafe>();
+
+				if (!AudioSample->Initialize(
+					OutputLength,
+					TargetDesc.mFramesPerPacket,
+					TargetDesc.mChannelsPerFrame,
+					TargetDesc.mSampleRate,
+					FTimespan::FromSeconds(CMTimeGetSeconds(FrameTimeStamp))))
+				{
+					continue;
+				}
+
+				if (FMemory::Memcmp(ASBD, &TargetDesc, sizeof(AudioStreamBasicDescription)) != 0)
+				{
+					// conversion to 16-bit PCM required
+					uint8* Data = new uint8[InputLength];
+
+					OSErr Err = CMBlockBufferCopyDataBytes(Buffer, 0, InputLength, Data);
+					check(Err == noErr);
+
+					if (AudioTrack.Converter == nullptr)
+					{
+						OSStatus CAErr = AudioConverterNew(ASBD, &TargetDesc, &AudioTrack.Converter);
+						check(CAErr == noErr);
+					}
+
+					OSStatus CAErr = AudioConverterConvertBuffer(AudioTrack.Converter, InputLength, Data, &OutputLength, AudioSample->GetMutableBuffer());
+					check(CAErr == noErr);
+
+					delete[] Data;
+				}
+				else
+				{
+					// data is already in 16-bit PCM
+					OSErr Err = CMBlockBufferCopyDataBytes(Buffer, 0, OutputLength, AudioSample->GetMutableBuffer());
+					check(Err == noErr);
+				}
+
+				Samples.AddAudio(AudioSample);
+				LastAudioSampleTime = FinalTimeStamp;
+			}
+		}
+
+		CFRelease(LatestSamples);
+	}
+#endif
+}
+
+
+void FAvfMediaTracks::ProcessCaptions(AVPlayerItemLegibleOutput* Output, NSArray<NSAttributedString*>* Strings, NSArray* NativeSamples, CMTime ItemTime)
+{
+	if (SelectedCaptionTrack != INDEX_NONE)
+	{
+		return;
+	}
+
+	FScopeLock Lock(&CriticalSection);
+		
+	NSDictionary* DocumentAttributes = @{NSDocumentTypeDocumentAttribute:NSPlainTextDocumentType};
+	FTimespan DisplayTime = FTimespan::FromSeconds(CMTimeGetSeconds(ItemTime));
+	
+	FString OutputString;
+	bool bFirst = true;
+
+	for (NSAttributedString* String in Strings)
+	{
+		if (!String)
 		{
 			continue;
 		}
 
-		Track->AssetTrack = AssetTrack;
-		Track->DisplayName = FText::FromString(Track->Name);
-		Track->StreamIndex = TrackStreamIndex;
+		// strip attributes from the string (we don't care for them)
+		NSRange Range = NSMakeRange(0, String.length);
+		NSData* Data = [String dataFromRange:Range documentAttributes:DocumentAttributes error:NULL];
+		NSString* Result = [[NSString alloc] initWithData:Data encoding:NSUTF8StringEncoding];
+				
+		// append the string
+		if (!bFirst)
+		{
+			OutputString += TEXT("\n");
+		}
+
+		bFirst = false;
+		OutputString += FString(Result);
 	}
+
+	if (OutputString.IsEmpty())
+	{
+		return;
+	}
+
+	// create & add sample to queue
+	auto OverlaySample = MakeShared<FAvfMediaOverlaySample, ESPMode::ThreadSafe>();
+
+	if (OverlaySample->Initialize(OutputString, DisplayTime))
+	{
+		Samples.AddCaption(OverlaySample);
+	}
+}
+
+
+void FAvfMediaTracks::ProcessVideo()
+{
+	struct FVideoSamplerTickParams
+	{
+		TWeakPtr<FAvfMediaVideoSampler, ESPMode::ThreadSafe> VideoSamplerPtr;
+	}
+	VideoSamplerTickParams = { VideoSampler };
+
+	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(AvfMediaVideoSamplerTick,
+		FVideoSamplerTickParams, Params, VideoSamplerTickParams,
+		{
+			auto PinnedVideoSampler = Params.VideoSamplerPtr.Pin();
+
+			if (PinnedVideoSampler.IsValid())
+			{
+				PinnedVideoSampler->Tick();
+			}
+		});
 }
 
 
@@ -448,38 +497,28 @@ void FAvfMediaTracks::Reset()
 {
 	FScopeLock Lock(&CriticalSection);
 
-	if (VideoSampler)
+	// reset video sampler
+	struct FResetOutputParams
 	{
-		if (VideoSampler->IsTickable())
-		{
-			ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(InitialiseAvfVideoSampler, FAvfMediaTracks*, This, this,
-			{
-				This->VideoSampler->SetTrack(nullptr, nil);
-			});
-		}
+		TWeakPtr<FAvfMediaVideoSampler, ESPMode::ThreadSafe> VideoSamplerPtr;
 	}
+	ResetOutputParams = { VideoSampler };
 
+	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(AvfMediaVideoSamplerResetOutput,
+		FResetOutputParams, Params, ResetOutputParams,
+	    {
+			auto PinnedVideoSampler = Params.VideoSamplerPtr.Pin();
+
+			if (PinnedVideoSampler.IsValid())
+			{
+				PinnedVideoSampler->SetOutput(nil, 0.0f);
+			}
+		});
+	
+	// reset tracks
 	SelectedAudioTrack = INDEX_NONE;
 	SelectedCaptionTrack = INDEX_NONE;
 	SelectedVideoTrack = INDEX_NONE;
-
-	if (AudioSink != nullptr)
-	{
-		AudioSink->ShutdownAudioSink();
-		AudioSink = nullptr;
-	}
-
-	if (OverlaySink != nullptr)
-	{
-		OverlaySink->ShutdownOverlaySink();
-		OverlaySink = nullptr;
-	}
-
-	if (VideoSink != nullptr)
-	{
-		VideoSink->ShutdownTextureSink();
-		VideoSink = nullptr;
-	}
 
 	for (FTrack& Track : AudioTracks)
 	{
@@ -488,6 +527,7 @@ void FAvfMediaTracks::Reset()
 			OSStatus CAErr = AudioConverterDispose(Track.Converter);
 			check(CAErr == noErr);
 		}
+
 		[Track.Output release];
 		[Track.Reader release];
 	}
@@ -495,6 +535,7 @@ void FAvfMediaTracks::Reset()
 	for (FTrack& Track : CaptionTracks)
 	{
 		AVPlayerItemLegibleOutput* Output = (AVPlayerItemLegibleOutput*)Track.Output;
+
 		[Output.delegate release];
 		[Track.Output release];
 		[Track.Reader release];
@@ -510,10 +551,55 @@ void FAvfMediaTracks::Reset()
 	CaptionTracks.Empty();
 	VideoTracks.Empty();
 	
-	LastAudioSample = kCMTimeZero;
-	bAudioPaused = false;
+	LastAudioSampleTime = kCMTimeZero;
+	AudioPaused = false;
 	SeekTime = -1.0;
-	bZoomed = false;
+	Zoomed = false;
+}
+
+
+void FAvfMediaTracks::Seek(const FTimespan& Time)
+{
+#if AUDIO_PLAYBACK_VIA_ENGINE
+	FScopeLock Lock(&CriticalSection);
+
+	if (SelectedAudioTrack != INDEX_NONE)
+	{
+		return;
+	}
+
+	double LastSampleTime = CMTimeGetSeconds(LastAudioSampleTime);
+	SeekTime = Time.GetTotalSeconds();
+
+	if (SeekTime >= LastSampleTime)
+	{
+		return;
+	}
+
+	AVAssetReaderTrackOutput* AudioReaderOutput = (AVAssetReaderTrackOutput*)AudioTracks[SelectedAudioTrack].Output;
+	check(AudioReaderOutput);
+
+	LastAudioSampleTime = CMTimeMakeWithSeconds(0, 1000);
+
+	CMSampleBufferRef LatestSamples = nullptr;
+	while ((LatestSamples = [AudioReaderOutput copyNextSampleBuffer]))
+	{
+		if (LatestSamples)
+		{
+			CFRelease(LatestSamples);
+		}
+	}
+
+	CMTime Start = CMTimeMakeWithSeconds(SeekTime, 1000);
+	CMTime Duration = PlayerItem.asset.duration;
+	Duration = CMTimeSubtract(Duration, Start);
+
+	CMTimeRange TimeRange = CMTimeRangeMake(Start, Duration);
+	NSValue* Value = [NSValue valueWithBytes : &TimeRange objCType : @encode(CMTimeRange)];
+	NSArray* Array = @[ Value ];
+
+	[AudioReaderOutput resetForReadingTimeRanges : Array];
+#endif
 }
 
 
@@ -521,361 +607,48 @@ void FAvfMediaTracks::SetRate(float Rate)
 {
 	FScopeLock Lock(&CriticalSection);
 
-	if (AudioSink != nullptr)
-	{
-		// Can only play sensible audio at full rate forward - when seeking, scrubbing or reversing we can't supply
-		// the correct samples.
-		bool bNearOne = FMath::IsNearlyEqual(Rate, 1.0f);
+	// Can only play sensible audio at full rate forward - when seeking, scrubbing or reversing we can't supply
+	// the correct samples.
+	const bool bNearOne = FMath::IsNearlyEqual(Rate, 1.0f);	
+	const bool bWasPaused = AudioPaused;
 		
-		bool bWasPaused = bAudioPaused;
+	AudioPaused = !bNearOne;
 		
-		bAudioPaused = !bNearOne;
-		
-		if (bAudioPaused)
-		{
-#if PLATFORM_MAC
-			if (!FMath::IsNearlyZero(Rate))
-			{
-				AudioSink->FlushAudioSink();
-			}
-#endif
-			AudioSink->PauseAudioSink();
-		}
-		else
-		{
-#if PLATFORM_MAC
-			if (bZoomed)
-			{
-				CMTime CurrentTime = [PlayerItem currentTime];
-				FTimespan Time = FTimespan::FromSeconds(CMTimeGetSeconds(CurrentTime));
-				Seek(Time);
-			}
-#endif
-			AudioSink->ResumeAudioSink();
-		}
-		
-		bZoomed = !bNearOne;
-	}
-}
-
-
-void FAvfMediaTracks::Seek(const FTimespan& Time)
-{
-#if PLATFORM_MAC
-	FScopeLock Lock(&CriticalSection);
-	
-	if (AudioSink && SelectedAudioTrack != INDEX_NONE)
-	{
-		double LastSample = CMTimeGetSeconds(LastAudioSample);
-		SeekTime = Time.GetTotalSeconds();
-		
-		if (SeekTime < LastSample)
-		{
-			AVAssetReaderTrackOutput* AudioReaderOutput = (AVAssetReaderTrackOutput*)AudioTracks[SelectedAudioTrack].Output;
-			check(AudioReaderOutput);
-			
-			LastAudioSample = CMTimeMakeWithSeconds(0, 1000);
-		
-			CMSampleBufferRef LatestSamples = nullptr;
-			while ((LatestSamples = [AudioReaderOutput copyNextSampleBuffer]))
-			{
-				if (LatestSamples)
-				{
-					CFRelease(LatestSamples);
-				}
-			}
-			
-			CMTime Start = CMTimeMakeWithSeconds(SeekTime, 1000);
-			CMTime Duration = PlayerItem.asset.duration;
-			Duration = CMTimeSubtract(Duration, Start);
-			
-			CMTimeRange TimeRange = CMTimeRangeMake(Start, Duration);
-			NSValue* Value = [NSValue valueWithBytes:&TimeRange objCType:@encode(CMTimeRange)];
-			NSArray* Array = @[ Value ];
-			
-			[AudioReaderOutput resetForReadingTimeRanges:Array];
-		}
-		
-		AudioSink->FlushAudioSink();
-	}
-#endif
-}
-
-
-void FAvfMediaTracks::AppendStats(FString &OutStats) const
-{
-	FScopeLock Lock(&CriticalSection);
-
-	// audio tracks
-	OutStats += TEXT("Audio Tracks\n");
-	
-	if (AudioTracks.Num() == 0)
-	{
-		OutStats += TEXT("    none\n");
-	}
-	else
-	{
-		for (uint32 i = 0; i < GetNumTracks(EMediaTrackType::Audio); i++)
-		{
-			OutStats += FString::Printf(TEXT("    %s\n"), *GetTrackDisplayName(EMediaTrackType::Audio, i).ToString());
-			OutStats += FString::Printf(TEXT("        Channels: %i\n"), GetAudioTrackChannels(i));
-			OutStats += FString::Printf(TEXT("        Sample Rate: %i\n\n"), GetAudioTrackSampleRate(i));
-		}
-	}
-
-	// video tracks
-	OutStats += TEXT("Video Tracks\n");
-
-	if (VideoTracks.Num() == 0)
-	{
-		OutStats += TEXT("    none\n");
-	}
-	else
-	{
-		for (uint32 i = 0; i < GetNumTracks(EMediaTrackType::Video); i++)
-		{
-			OutStats += FString::Printf(TEXT("    %s\n"), *GetTrackDisplayName(EMediaTrackType::Video, i).ToString());
-			OutStats += FString::Printf(TEXT("        BitRate: %i\n"), GetVideoTrackBitRate(i));
-			OutStats += FString::Printf(TEXT("        Frame Rate: %f\n\n"), GetVideoTrackFrameRate(i));
-		}
-	}
-}
-
-
-bool FAvfMediaTracks::Tick(float DeltaTime)
-{
-	FScopeLock Lock(&CriticalSection);
-
-#if PLATFORM_MAC
-	if (AudioSink && SelectedAudioTrack != INDEX_NONE)
+#if AUDIO_PLAYBACK_VIA_ENGINE
+	if (!AudioPaused && Zoomed)
 	{
 		CMTime CurrentTime = [PlayerItem currentTime];
-		
-		ESyncStatus Sync = Default;
-
-		AVAssetReaderTrackOutput* AudioReaderOutput = (AVAssetReaderTrackOutput*)AudioTracks[SelectedAudioTrack].Output;
-		check(AudioReaderOutput);
-		
-		while (Sync < Ready)
-		{
-			float Delta = CMTimeGetSeconds(LastAudioSample) - CMTimeGetSeconds(CurrentTime);
-			if (Delta <= 1.0f)
-			{
-				Sync = Behind;
-				
-				CMSampleBufferRef LatestSamples = [AudioReaderOutput copyNextSampleBuffer];
-				if (LatestSamples)
-				{
-					CMTime FrameTimeStamp = CMSampleBufferGetPresentationTimeStamp(LatestSamples);
-					CMTime Duration = CMSampleBufferGetOutputDuration(LatestSamples);
-					
-					CMTime FinalTimeStamp = CMTimeAdd(FrameTimeStamp, Duration);
-					
-					CMTime Seek = CMTimeMakeWithSeconds(SeekTime, 1000);
-					if ((SeekTime < 0.0f) || (CMTimeCompare(Seek, FrameTimeStamp) >= 0 && CMTimeCompare(Seek, FinalTimeStamp) < 0))
-					{
-						SeekTime = -1.0f;
-						
-						CMItemCount NumSamples = CMSampleBufferGetNumSamples(LatestSamples);
-						
-						CMFormatDescriptionRef Format = CMSampleBufferGetFormatDescription(LatestSamples);
-						check(Format);
-						
-						const AudioStreamBasicDescription* ASBD = CMAudioFormatDescriptionGetStreamBasicDescription(Format);
-						check(ASBD);
-						
-						CMBlockBufferRef Buffer = CMSampleBufferGetDataBuffer(LatestSamples);
-						check(Buffer);
-						
-						uint32 Length = CMBlockBufferGetDataLength(Buffer);
-						if (Length)
-						{
-							uint8* Data = new uint8[Length];
-							
-							OSErr Err = CMBlockBufferCopyDataBytes(Buffer, 0, Length, Data);
-							check(Err == noErr);
-							
-							UInt32 OutputLength = (NumSamples * TargetDesc.mBytesPerPacket);
-							if (FMemory::Memcmp(ASBD, &TargetDesc, sizeof(AudioStreamBasicDescription)) != 0)
-							{
-								if (AudioTracks[SelectedAudioTrack].Converter == nullptr)
-								{
-									OSStatus CAErr = AudioConverterNew(ASBD, &TargetDesc, &AudioTracks[SelectedAudioTrack].Converter);
-									check(CAErr == noErr);
-								}
-								
-								uint8* ConvertedData = new uint8[Length];
-								
-								OSStatus CAErr = AudioConverterConvertBuffer(AudioTracks[SelectedAudioTrack].Converter, (NumSamples * ASBD->mBytesPerPacket), Data, &OutputLength, ConvertedData);
-								check(CAErr == noErr);
-								
-								delete [] Data;
-								Data = ConvertedData;
-							}
-							
-							FTimespan DiplayTime = FTimespan::FromSeconds(CMTimeGetSeconds(FrameTimeStamp));
-							AudioSink->PlayAudioSink(Data, OutputLength, DiplayTime);
-							
-							delete [] Data;
-							
-							LastAudioSample = FinalTimeStamp;
-						}
-					}
-					
-					CFRelease(LatestSamples);
-				}
-				else
-				{
-					break;
-				}
-			}
-			else
-			{
-				Sync = Ready;
-			}
-		}
+		FTimespan Time = FTimespan::FromSeconds(CMTimeGetSeconds(CurrentTime));
+		Seek(Time);
 	}
 #endif
-	
-	return true;
-}
-
-void FAvfMediaTracks::HandleSubtitleCaptionStrings(AVPlayerItemLegibleOutput* Output, NSArray<NSAttributedString*>* Strings, NSArray* NativeSamples, CMTime ItemTime)
-{
-	if (OverlaySink != nil && SelectedCaptionTrack != INDEX_NONE)
-	{
-		FScopeLock Lock(&CriticalSection);
 		
-		NSDictionary* DocumentAttributes = @{NSDocumentTypeDocumentAttribute:NSPlainTextDocumentType};
-		FTimespan DiplayTime = FTimespan::FromSeconds(CMTimeGetSeconds(ItemTime));
-	
-		FString OutputString;
-		bool bFirst = true;
-
-		for (NSAttributedString* String in Strings)
-		{
-			if(String)
-			{
-				// Strip attribtues from the string - we don't care for them.
-				NSRange Range = NSMakeRange(0, String.length);
-				NSData* Data = [String dataFromRange:Range documentAttributes:DocumentAttributes error:NULL];
-				NSString* Result = [[NSString alloc] initWithData:Data encoding:NSUTF8StringEncoding];
-				
-				// Append the string.
-				if (!bFirst)
-				{
-					OutputString += TEXT("\n");
-				}
-				bFirst = false;
-				OutputString += FString(Result);
-			}
-		}
-
-		//OverlaySink->AddOverlaySinkText(FText::FromString(OutputString), DiplayTime);
-	}
-}
-
-
-
-/* IMediaOutput interface
- *****************************************************************************/
-
-void FAvfMediaTracks::SetAudioSink(IMediaAudioSink* Sink)
-{
-	if (Sink != AudioSink)
-	{
-		FScopeLock Lock(&CriticalSection);
-
-		if (AudioSink != nullptr)
-		{
-			AudioSink->ShutdownAudioSink();
-			AudioSink = nullptr;
-		}
-
-		AudioSink = Sink;	
-		InitializeAudioSink();
-	}
-}
-
-
-void FAvfMediaTracks::SetMetadataSink(IMediaBinarySink* Sink)
-{
-	// not supported
-}
-
-
-void FAvfMediaTracks::SetOverlaySink(IMediaOverlaySink* Sink)
-{
-	if (Sink != OverlaySink)
-	{
-		FScopeLock Lock(&CriticalSection);
-
-		if (OverlaySink != nullptr)
-		{
-			OverlaySink->ShutdownOverlaySink();
-			OverlaySink = nullptr;
-		}
-
-		OverlaySink = Sink;
-		InitializeOverlaySink();
-	}
-}
-
-
-void FAvfMediaTracks::SetVideoSink(IMediaTextureSink* Sink)
-{
-	if (Sink != VideoSink)
-	{
-		FScopeLock Lock(&CriticalSection);
-
-		if (VideoSink != nullptr)
-		{
-			VideoSink->ShutdownTextureSink();
-			VideoSink = nullptr;
-		}
-
-		VideoSink = Sink;
-		InitializeVideoSink();
-	}
+	Zoomed = !bNearOne;
 }
 
 
 /* IMediaTracks interface
  *****************************************************************************/
 
-uint32 FAvfMediaTracks::GetAudioTrackChannels(int32 TrackIndex) const
+bool FAvfMediaTracks::GetAudioTrackFormat(int32 TrackIndex, int32 FormatIndex, FMediaAudioTrackFormat& OutFormat) const
 {
-	uint32 NumAudioTracks = 0;
-	if (AudioTracks.IsValidIndex(TrackIndex))
+	if ((FormatIndex != 0) || !AudioTracks.IsValidIndex(TrackIndex))
 	{
-		checkf(AudioTracks[TrackIndex].AssetTrack.formatDescriptions.count == 1, TEXT("Can't handle non-uniform audio streams!"));
-		CMFormatDescriptionRef DescRef = (CMFormatDescriptionRef)[AudioTracks[TrackIndex].AssetTrack.formatDescriptions objectAtIndex:0];
-		AudioStreamBasicDescription const* Desc = CMAudioFormatDescriptionGetStreamBasicDescription(DescRef);
-		if (Desc)
-		{
-			NumAudioTracks = Desc->mChannelsPerFrame;
-		}
+		return false;
 	}
-	
-	return NumAudioTracks;
-}
 
+	const FTrack& Track = AudioTracks[TrackIndex];
+	checkf(Track.AssetTrack.formatDescriptions.count == 1, TEXT("Can't handle non-uniform audio streams!"));
 
-uint32 FAvfMediaTracks::GetAudioTrackSampleRate(int32 TrackIndex) const
-{
-	uint32 SampleRate = 0;
-	if (AudioTracks.IsValidIndex(TrackIndex))
-	{
-		checkf(AudioTracks[TrackIndex].AssetTrack.formatDescriptions.count == 1, TEXT("Can't handle non-uniform audio streams!"));
-		CMFormatDescriptionRef DescRef = (CMFormatDescriptionRef)[AudioTracks[TrackIndex].AssetTrack.formatDescriptions objectAtIndex:0];
-		AudioStreamBasicDescription const* Desc = CMAudioFormatDescriptionGetStreamBasicDescription(DescRef);
-		if (Desc)
-		{
-			SampleRate = Desc->mSampleRate;
-		}
-	}
-	
-	return SampleRate;
+	CMFormatDescriptionRef DescRef = (CMFormatDescriptionRef)[AudioTracks[TrackIndex].AssetTrack.formatDescriptions objectAtIndex : 0];
+	AudioStreamBasicDescription const* Desc = CMAudioFormatDescriptionGetStreamBasicDescription(DescRef);
+
+	OutFormat.BitsPerSample = 16;
+	OutFormat.NumChannels = (Desc != nullptr) ? Desc->mChannelsPerFrame : 0;
+	OutFormat.SampleRate = (Desc != nullptr) ? Desc->mSampleRate : 0;
+	OutFormat.TypeName = TEXT("PCM"); // @todo trepka: fix me (should be input type, not output type)
+
+	return true;
 }
 
 
@@ -885,13 +658,22 @@ int32 FAvfMediaTracks::GetNumTracks(EMediaTrackType TrackType) const
 	{
 	case EMediaTrackType::Audio:
 		return AudioTracks.Num();
+
 	case EMediaTrackType::Caption:
 		return CaptionTracks.Num();
+
 	case EMediaTrackType::Video:
 		return VideoTracks.Num();
+
 	default:
 		return 0;
 	}
+}
+
+
+int32 FAvfMediaTracks::GetNumTrackFormats(EMediaTrackType TrackType, int32 TrackIndex) const
+{
+	return ((TrackIndex >= 0) && (TrackIndex < GetNumTracks(TrackType))) ? 1 : 0;
 }
 
 
@@ -901,10 +683,13 @@ int32 FAvfMediaTracks::GetSelectedTrack(EMediaTrackType TrackType) const
 	{
 	case EMediaTrackType::Audio:
 		return SelectedAudioTrack;
+
 	case EMediaTrackType::Caption:
 		return SelectedCaptionTrack;
+
 	case EMediaTrackType::Video:
 		return SelectedVideoTrack;
+
 	default:
 		return INDEX_NONE;
 	}
@@ -941,6 +726,12 @@ FText FAvfMediaTracks::GetTrackDisplayName(EMediaTrackType TrackType, int32 Trac
 	}
 
 	return FText::GetEmpty();
+}
+
+
+int32 FAvfMediaTracks::GetTrackFormat(EMediaTrackType TrackType, int32 TrackIndex) const
+{
+	return (GetSelectedTrack(TrackType) != INDEX_NONE) ? 0 : INDEX_NONE;
 }
 
 
@@ -1005,24 +796,25 @@ FString FAvfMediaTracks::GetTrackName(EMediaTrackType TrackType, int32 TrackInde
 }
 
 
-uint32 FAvfMediaTracks::GetVideoTrackBitRate(int32 TrackIndex) const
+bool FAvfMediaTracks::GetVideoTrackFormat(int32 TrackIndex, int32 FormatIndex, FMediaVideoTrackFormat& OutFormat) const
 {
-	return VideoTracks.IsValidIndex(TrackIndex) ? [VideoTracks[TrackIndex].AssetTrack estimatedDataRate] : 0;
-}
+	if ((FormatIndex != 0) || !VideoTracks.IsValidIndex(TrackIndex))
+	{
+		return false;
+	}
 
+	const FTrack& Track = VideoTracks[TrackIndex];
 
-FIntPoint FAvfMediaTracks::GetVideoTrackDimensions(int32 TrackIndex) const
-{
-	return VideoTracks.IsValidIndex(TrackIndex)
-		? FIntPoint([VideoTracks[TrackIndex].AssetTrack naturalSize].width,
-					[VideoTracks[TrackIndex].AssetTrack naturalSize].height)
-		: FIntPoint::ZeroValue;
-}
+	OutFormat.Dim = FIntPoint(
+		[Track.AssetTrack naturalSize].width,
+		[Track.AssetTrack naturalSize].height
+	);
 
+	OutFormat.FrameRate = [Track.AssetTrack nominalFrameRate];
+	OutFormat.FrameRates = TRange<float>(OutFormat.FrameRate);
+	OutFormat.TypeName = TEXT("BGRA"); // @todo trepka: fix me (should be input format, not output format)
 
-float FAvfMediaTracks::GetVideoTrackFrameRate(int32 TrackIndex) const
-{
-	return VideoTracks.IsValidIndex(TrackIndex) ? 1.0f / [VideoTracks[TrackIndex].AssetTrack nominalFrameRate] : 0.0f;
+	return true;
 }
 
 
@@ -1033,486 +825,223 @@ bool FAvfMediaTracks::SelectTrack(EMediaTrackType TrackType, int32 TrackIndex)
 	switch (TrackType)
 	{
 	case EMediaTrackType::Audio:
-		if ((TrackIndex == INDEX_NONE) || AudioTracks.IsValidIndex(TrackIndex))
+		if (TrackIndex != SelectedAudioTrack)
 		{
-			if (TrackIndex != SelectedAudioTrack)
+			UE_LOG(LogAvfMedia, Verbose, TEXT("Selecting audio track %i instead of %i (%i tracks)."), TrackIndex, SelectedAudioTrack, AudioTracks.Num());
+
+			// disable current track
+			if (SelectedAudioTrack != INDEX_NONE)
 			{
-				if (SelectedAudioTrack != INDEX_NONE)
+				UE_LOG(LogAvfMedia, VeryVerbose, TEXT("Disabling audio track %i"), SelectedAudioTrack);
+
+#if AUDIO_PLAYBACK_VIA_ENGINE
+				AVAssetReaderTrackOutput* AudioReaderOutput = (AVAssetReaderTrackOutput*)AudioTracks[SelectedAudioTrack].Output;
+				check(AudioReaderOutput);
+
+				CMSampleBufferRef LatestSamples = nullptr;
+
+				while ((LatestSamples = [AudioReaderOutput copyNextSampleBuffer]))
 				{
-#if PLATFORM_MAC
-					AVAssetReaderTrackOutput* AudioReaderOutput = (AVAssetReaderTrackOutput*)AudioTracks[SelectedAudioTrack].Output;
-					check(AudioReaderOutput);
-					
-					CMSampleBufferRef LatestSamples = nullptr;
-					while ((LatestSamples = [AudioReaderOutput copyNextSampleBuffer]))
+					if (LatestSamples)
 					{
-						if (LatestSamples)
-						{
-							CFRelease(LatestSamples);
-						}
+						CFRelease(LatestSamples);
 					}
-					
-					CMTimeRange TimeRange = CMTimeRangeMake(kCMTimeZero, PlayerItem.asset.duration);
-					NSValue* Value = [NSValue valueWithBytes:&TimeRange objCType:@encode(CMTimeRange)];
-					NSArray* Array = @[ Value ];
-					
-					[AudioReaderOutput resetForReadingTimeRanges:Array];
+				}
+
+				CMTimeRange TimeRange = CMTimeRangeMake(kCMTimeZero, PlayerItem.asset.duration);
+				NSValue* Value = [NSValue valueWithBytes : &TimeRange objCType : @encode(CMTimeRange)];
+				NSArray* Array = @[ Value ];
+
+				[AudioReaderOutput resetForReadingTimeRanges : Array];
+
 #else
-					AVPlayerItemTrack* PlayerTrack = (AVPlayerItemTrack*)AudioTracks[SelectedAudioTrack].Output;
-					check(PlayerTrack);
-					PlayerTrack.enabled = false;
+				AVPlayerItemTrack* PlayerTrack = (AVPlayerItemTrack*)AudioTracks[SelectedAudioTrack].Output;
+				check(PlayerTrack);
+
+				PlayerTrack.enabled = NO;
 #endif
-					SelectedAudioTrack = INDEX_NONE;
-				}
 
-//				if ((TrackIndex != INDEX_NONE) && SUCCEEDED(PresentationDescriptor->SelectStream(AudioTracks[TrackIndex].StreamIndex)))
-				{
-					SelectedAudioTrack = TrackIndex;
-				}
-
-				if (SelectedAudioTrack == TrackIndex)
-				{
-					InitializeAudioSink();
-				}
+				SelectedAudioTrack = INDEX_NONE;
 			}
 
-			return true;
+			// enable new track
+			if (TrackIndex != INDEX_NONE)
+			{
+				if (!AudioTracks.IsValidIndex(TrackIndex))
+				{
+					return false;
+				}
+
+				UE_LOG(LogAvfMedia, VeryVerbose, TEXT("Enabling audio track %i"), TrackIndex);
+			}
+
+			SelectedAudioTrack = TrackIndex;
+
+			// update output
+			if (SelectedAudioTrack != INDEX_NONE)
+			{
+				const FTrack& SelectedTrack = AudioTracks[SelectedAudioTrack];
+				
+#if AUDIO_PLAYBACK_VIA_ENGINE
+				CMFormatDescriptionRef DescRef = (CMFormatDescriptionRef)[SelectedTrack.AssetTrack.formatDescriptions objectAtIndex : 0];
+				AudioStreamBasicDescription const* ASBD = CMAudioFormatDescriptionGetStreamBasicDescription(DescRef);
+
+				TargetDesc.mSampleRate = ASBD->mSampleRate;
+				TargetDesc.mFormatID = kAudioFormatLinearPCM;
+				TargetDesc.mFormatFlags = kAudioFormatFlagIsSignedInteger | kLinearPCMFormatFlagIsPacked;
+				TargetDesc.mBytesPerPacket = ASBD->mChannelsPerFrame * sizeof(int16);
+				TargetDesc.mFramesPerPacket = 1;
+				TargetDesc.mBytesPerFrame = ASBD->mChannelsPerFrame * sizeof(int16);
+				TargetDesc.mChannelsPerFrame = ASBD->mChannelsPerFrame;
+				TargetDesc.mBitsPerChannel = 16;
+				TargetDesc.mReserved = 0;
+#else
+				AVPlayerItemTrack* PlayerTrack = (AVPlayerItemTrack*)SelectedTrack.Output;
+				check(PlayerTrack);
+
+				PlayerTrack.enabled = YES;
+#endif
+			}
 		}
 		break;
 
 	case EMediaTrackType::Caption:
-		if ((TrackIndex == INDEX_NONE) || CaptionTracks.IsValidIndex(TrackIndex))
+		if (TrackIndex != SelectedCaptionTrack)
 		{
-			if (TrackIndex != SelectedCaptionTrack)
+			UE_LOG(LogAvfMedia, Verbose, TEXT("Selecting caption track %i instead of %i (%i tracks)."), TrackIndex, SelectedCaptionTrack, CaptionTracks.Num());
+
+			// disable current track
+			if (SelectedCaptionTrack != INDEX_NONE)
 			{
-				if (SelectedCaptionTrack != INDEX_NONE)
-				{
-					const FTrack& CurrTrack = CaptionTracks[SelectedCaptionTrack];
-					
-					[PlayerItem removeOutput:(AVPlayerItemOutput*)CurrTrack.Output];
-					PlayerItem.tracks[CurrTrack.StreamIndex].enabled = NO;
-					
-					SelectedCaptionTrack = INDEX_NONE;
-				}
+				UE_LOG(LogAvfMedia, VeryVerbose, TEXT("Disabling caption track %i"), SelectedCaptionTrack);
 
-//				if ((TrackIndex != INDEX_NONE) && SUCCEEDED(PresentationDescriptor->SelectStream(CaptionTracks[TrackIndex].StreamIndex)))
-				{
-					SelectedCaptionTrack = TrackIndex;
-				}
+				const FTrack& Track = CaptionTracks[SelectedCaptionTrack];
 
-				if (SelectedCaptionTrack == TrackIndex)
-				{
-					const FTrack& SelectedTrack = CaptionTracks[SelectedCaptionTrack];
-					PlayerItem.tracks[SelectedTrack.StreamIndex].enabled = YES;
-					
-					InitializeOverlaySink();
-				}
+				[PlayerItem removeOutput : (AVPlayerItemOutput*)Track.Output];
+				PlayerItem.tracks[Track.StreamIndex].enabled = NO;
+
+				SelectedCaptionTrack = INDEX_NONE;
 			}
 
-			return true;
+			// enable new track
+			if (TrackIndex != INDEX_NONE)
+			{
+				if (!CaptionTracks.IsValidIndex(TrackIndex))
+				{
+					return false;
+				}
+
+				UE_LOG(LogAvfMedia, VeryVerbose, TEXT("Enabling caption track %i"), TrackIndex);
+
+				const FTrack& SelectedTrack = CaptionTracks[TrackIndex];
+				PlayerItem.tracks[SelectedTrack.StreamIndex].enabled = YES;
+			}
+
+			SelectedCaptionTrack = TrackIndex;
+
+			// update output
+			if (SelectedCaptionTrack != INDEX_NONE)
+			{
+				[PlayerItem addOutput:(AVPlayerItemOutput*)CaptionTracks[SelectedCaptionTrack].Output];
+			}
 		}
 		break;
 
 	case EMediaTrackType::Video:
-		if ((TrackIndex == INDEX_NONE) || VideoTracks.IsValidIndex(TrackIndex))
+		if (TrackIndex != SelectedVideoTrack)
 		{
-			if (TrackIndex != SelectedVideoTrack)
+			UE_LOG(LogAvfMedia, Verbose, TEXT("Selecting video track %i instead of %i (%i tracks)"), TrackIndex, SelectedVideoTrack, VideoTracks.Num());
+
+			// disable current track
+			if (SelectedVideoTrack != INDEX_NONE)
 			{
-				if (SelectedVideoTrack != INDEX_NONE)
-				{
-					const FTrack& CurrTrack = VideoTracks[SelectedVideoTrack];
-					
-					[PlayerItem removeOutput:(AVPlayerItemOutput*)CurrTrack.Output];
-					PlayerItem.tracks[CurrTrack.StreamIndex].enabled = NO;
-					
-					SelectedVideoTrack = INDEX_NONE;
-				}
+				UE_LOG(LogAvfMedia, VeryVerbose, TEXT("Disabling video track %i"), SelectedVideoTrack);
 
-//				if ((TrackIndex != INDEX_NONE) && SUCCEEDED(PresentationDescriptor->SelectStream(VideoTracks[TrackIndex].StreamIndex)))
-				{
-					SelectedVideoTrack = TrackIndex;
-				}
+				const FTrack& Track = VideoTracks[SelectedVideoTrack];
 
-				if (SelectedVideoTrack == TrackIndex)
-				{
-					const FTrack& SelectedTrack = VideoTracks[SelectedVideoTrack];
-					PlayerItem.tracks[SelectedTrack.StreamIndex].enabled = YES;
-					
-					InitializeVideoSink();
-				}
+				[PlayerItem removeOutput : (AVPlayerItemOutput*)Track.Output];
+				PlayerItem.tracks[Track.StreamIndex].enabled = NO;
+
+				SelectedVideoTrack = INDEX_NONE;
 			}
 
-			return true;
+			// enable new track
+			if (TrackIndex != INDEX_NONE)
+			{
+				if (!VideoTracks.IsValidIndex(TrackIndex))
+				{
+					return false;
+				}
+
+				UE_LOG(LogAvfMedia, VeryVerbose, TEXT("Enabling video track %i"), TrackIndex);
+
+				const FTrack& SelectedTrack = VideoTracks[TrackIndex];
+				PlayerItem.tracks[SelectedTrack.StreamIndex].enabled = YES;
+			}
+
+			SelectedVideoTrack = TrackIndex;
+
+			// update output
+			if (SelectedVideoTrack != INDEX_NONE)
+			{
+				[PlayerItem addOutput : (AVPlayerItemOutput*)VideoTracks[SelectedVideoTrack].Output];
+
+				struct FSetOutputParams
+				{
+					AVPlayerItemVideoOutput* Output;
+					TWeakPtr<FAvfMediaVideoSampler, ESPMode::ThreadSafe> VideoSamplerPtr;
+					float FrameRate;
+				}
+				SetOutputParams = {
+					(AVPlayerItemVideoOutput*)VideoTracks[SelectedVideoTrack].Output,
+					VideoSampler,
+					1.0f / [VideoTracks[TrackIndex].AssetTrack nominalFrameRate]
+				};
+
+				ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(AvfMediaVideoSamplerSetOutput,
+					FSetOutputParams, Params, SetOutputParams,
+					{
+						auto PinnedVideoSampler = Params.VideoSamplerPtr.Pin();
+
+						if (PinnedVideoSampler.IsValid())
+						{
+							PinnedVideoSampler->SetOutput(Params.Output, Params.FrameRate);
+						}
+					});
+			}
 		}
 		break;
 
 	default:
-		break;
+		return false;
 	}
 
-	return false;
+	return true;
 }
 
 
-/* FAvfMediaTracks implementation
- *****************************************************************************/
-
-void FAvfMediaTracks::InitializeAudioSink()
+bool FAvfMediaTracks::SetTrackFormat(EMediaTrackType TrackType, int32 TrackIndex, int32 FormatIndex)
 {
-	if ((AudioSink == nullptr) || (SelectedAudioTrack == INDEX_NONE))
+	if (FormatIndex != 0)
 	{
-		return;
+		return false;
 	}
 
-#if PLATFORM_MAC
-	CMFormatDescriptionRef DescRef = (CMFormatDescriptionRef)[AudioTracks[SelectedAudioTrack].AssetTrack.formatDescriptions objectAtIndex:0];
-	AudioStreamBasicDescription const* ASBD = CMAudioFormatDescriptionGetStreamBasicDescription(DescRef);
-	
-	TargetDesc.mSampleRate = ASBD->mSampleRate;
-	TargetDesc.mFormatID = kAudioFormatLinearPCM;
-	TargetDesc.mFormatFlags = kAudioFormatFlagIsSignedInteger | kLinearPCMFormatFlagIsPacked;
-	TargetDesc.mBytesPerPacket = ASBD->mChannelsPerFrame * sizeof(int16);
-	TargetDesc.mFramesPerPacket = 1;
-	TargetDesc.mBytesPerFrame = ASBD->mChannelsPerFrame * sizeof(int16);
-	TargetDesc.mChannelsPerFrame = ASBD->mChannelsPerFrame;
-	TargetDesc.mBitsPerChannel = 16;
-	TargetDesc.mReserved = 0;
-#else
-	AVPlayerItemTrack* PlayerTrack = (AVPlayerItemTrack*)AudioTracks[SelectedAudioTrack].Output;
-	check(PlayerTrack);
-	PlayerTrack.enabled = true;
-#endif
-
-	AudioSink->InitializeAudioSink(
-		GetAudioTrackChannels(SelectedAudioTrack),
-		GetAudioTrackSampleRate(SelectedAudioTrack)
-	);
-	
-	AudioSink->FlushAudioSink();
-}
-
-
-void FAvfMediaTracks::InitializeOverlaySink()
-{
-	if ((OverlaySink == nullptr) || (SelectedCaptionTrack == INDEX_NONE))
-	{
-		return;
-	}
-	
-	[PlayerItem addOutput:(AVPlayerItemOutput*)CaptionTracks[SelectedCaptionTrack].Output];
-
-	OverlaySink->InitializeOverlaySink();
-}
-
-
-void FAvfMediaTracks::InitializeVideoSink()
-{
-	if ((VideoSink == nullptr) || (SelectedVideoTrack == INDEX_NONE))
-	{
-		return;
-	}
-
-	[PlayerItem addOutput:(AVPlayerItemOutput*)VideoTracks[SelectedVideoTrack].Output];
-
-	const FIntPoint Dimensions = GetVideoTrackDimensions(SelectedVideoTrack);
-
-	VideoSink->InitializeTextureSink(
-		Dimensions,
-		Dimensions,
-		EMediaTextureSinkFormat::CharBGRA,
-#if WITH_ENGINE
-		EMediaTextureSinkMode::Unbuffered
-#else
-		EMediaTextureSinkMode::Buffered
-#endif
-	);
-	
-	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
-		InitialiseAvfVideoSampler,
-		FAvfMediaTracks*, This, this,
-		IMediaTextureSink*, VideoSink, VideoSink,
-		AVPlayerItemVideoOutput*, Output, (AVPlayerItemVideoOutput*)VideoTracks[SelectedVideoTrack].Output,
-    {
-		This->VideoSampler->SetTrack(VideoSink, Output);
-    });
-}
-
-FAvfVideoSampler::FAvfVideoSampler()
-: VideoSink(nullptr)
-, Output(nil)
-#if WITH_ENGINE && COREVIDEO_SUPPORTS_METAL
-, MetalTextureCache(nullptr)
-#endif
-{
-	
-}
-
-FAvfVideoSampler::~FAvfVideoSampler()
-{
-	[Output release];
-#if WITH_ENGINE && COREVIDEO_SUPPORTS_METAL
-	if (MetalTextureCache)
-	{
-		CFRelease(MetalTextureCache);
-		MetalTextureCache = nullptr;
-	}
-#endif
-}
-
-void FAvfVideoSampler::SetTrack(IMediaTextureSink* InVideoSink, AVPlayerItemVideoOutput* InOutput)
-{
 	FScopeLock Lock(&CriticalSection);
-	VideoSink = InVideoSink;
-	[InOutput retain];
-	[Output release];
-	Output = InOutput;
-}
 
-/* FTickableObjectRenderThread interface
- *****************************************************************************/
-
-TStatId FAvfVideoSampler::GetStatId() const
-{
-	RETURN_QUICK_DECLARE_CYCLE_STAT(FAvfVideoSampler, STATGROUP_Tickables);
-}
-
-bool FAvfVideoSampler::IsTickable() const
-{
-	return ((VideoSink != nullptr) && (Output != nil));
-}
-
-void FAvfVideoSampler::Tick(float /*DeltaTime*/)
-{
-	FScopeLock Lock(&CriticalSection);
-	
-	if ((VideoSink != nullptr) && (Output != nil))
+	switch (TrackType)
 	{
-		CMTime OutputItemTime = [Output itemTimeForHostTime:CACurrentMediaTime()];
-		if ([Output hasNewPixelBufferForItemTime:OutputItemTime])
-		{
-			CVPixelBufferRef Frame =  [Output copyPixelBufferForItemTime:OutputItemTime itemTimeForDisplay:nullptr];
-			if(Frame)
-			{
-#if WITH_ENGINE
-#if COREVIDEO_SUPPORTS_METAL // On iOS/tvOS we use the Metal texture cache, we can do the same on macOS only when the min.version is 10.11+
-				if (IsMetalPlatform(GMaxRHIShaderPlatform))
-				{
-					if (!MetalTextureCache)
-					{
-						id<MTLDevice> Device = (id<MTLDevice>)GDynamicRHI->RHIGetNativeDevice();
-						check(Device);
-					
-						CVReturn Return = CVMetalTextureCacheCreate(kCFAllocatorDefault, nullptr, Device, nullptr, &MetalTextureCache);
-						check(Return == kCVReturnSuccess);
-					}
-					check(MetalTextureCache);
-                    
-                    if (CVPixelBufferIsPlanar(Frame))
-                    {
-                        check(IsMetalPlatform(GMaxRHIShaderPlatform));
-                        
-                        uint32 TexCreateFlags = TexCreate_Dynamic | TexCreate_NoTiling;
-                        
-                        int32 YWidth = CVPixelBufferGetWidthOfPlane(Frame, 0);
-                        int32 YHeight = CVPixelBufferGetHeightOfPlane(Frame, 0);
-                        
-                        CVMetalTextureRef YTextureRef = nullptr;
-                        CVReturn Result = CVMetalTextureCacheCreateTextureFromImage(kCFAllocatorDefault, MetalTextureCache, Frame, nullptr, MTLPixelFormatR8Unorm, YWidth, YHeight, 0, &YTextureRef);
-                        check(Result == kCVReturnSuccess);
-                        check(YTextureRef);
-                        
-                        int32 UVWidth = CVPixelBufferGetWidthOfPlane(Frame, 1);
-                        int32 UVHeight = CVPixelBufferGetHeightOfPlane(Frame, 1);
-                        
-                        CVMetalTextureRef UVTextureRef = nullptr;
-                        Result = CVMetalTextureCacheCreateTextureFromImage(kCFAllocatorDefault, MetalTextureCache, Frame, nullptr, MTLPixelFormatRG8Unorm, UVWidth, UVHeight, 1, &UVTextureRef);
-                        check(Result == kCVReturnSuccess);
-                        check(UVTextureRef);
-                        
-                        // Metal can upload directly from an IOSurface to a 2D texture, so we can just wrap it.
-                        FRHIResourceCreateInfo YCreateInfo;
-                        YCreateInfo.BulkData = new FAvfTexture2DResourceWrapper(YTextureRef);
-                        YCreateInfo.ResourceArray = nullptr;
-                        
-                        FRHIResourceCreateInfo UVCreateInfo;
-                        UVCreateInfo.BulkData = new FAvfTexture2DResourceWrapper(UVTextureRef);
-                        UVCreateInfo.ResourceArray = nullptr;
-                        
-                        TRefCountPtr<FRHITexture2D> YTex = RHICreateTexture2D(YWidth, YHeight, PF_G8, 1, 1, TexCreateFlags | TexCreate_ShaderResource, YCreateInfo);
-                        TRefCountPtr<FRHITexture2D> UVTex = RHICreateTexture2D(UVWidth, UVHeight, PF_R8G8, 1, 1, TexCreateFlags | TexCreate_ShaderResource, UVCreateInfo);
-                        
-                        FRHIResourceCreateInfo Info;
-                        TRefCountPtr<FRHITexture2D> ShaderResource = RHICreateTexture2D(YWidth, YHeight, PF_B8G8R8A8, 1, 1, TexCreateFlags | TexCreate_ShaderResource | TexCreate_RenderTargetable, Info);
-                        
-                        // render video frame into sink texture
-                        FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
-                        {
-                            // configure media shaders
-                            auto ShaderMap = GetGlobalShaderMap(ERHIFeatureLevel::SM5);
-                            TShaderMapRef<FMediaShadersVS> VertexShader(ShaderMap);
-                            TShaderMapRef<FYCbCrConvertPS> PixelShader(ShaderMap);
-                            
-                            SetRenderTarget(RHICmdList, ShaderResource, nullptr, ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthNop_StencilNop);
-                            
-                            FGraphicsPipelineStateInitializer GraphicsPSOInit;
-                            RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
-                            
-                            GraphicsPSOInit.BlendState = TStaticBlendStateWriteMask<CW_RGBA, CW_NONE, CW_NONE, CW_NONE, CW_NONE, CW_NONE, CW_NONE, CW_NONE>::GetRHI();
-                            GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
-                            GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
-                            
-                            GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GMediaVertexDeclaration.VertexDeclarationRHI;
-                            GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
-                            GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
-                            GraphicsPSOInit.PrimitiveType = PT_TriangleStrip;
-                            
-                            SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
-                            
-                            PixelShader->SetParameters(RHICmdList, YTex, UVTex, MediaShaders::YuvToSrgbPs4, true);
-                            
-                            // draw full-size quad
-                            FMediaElementVertex Vertices[4];
-                            Vertices[0].Position.Set(-1.0f,  1.0f, 1.0f, 1.0f); // Top Left
-                            Vertices[1].Position.Set( 1.0f,  1.0f, 1.0f, 1.0f); // Top Right
-                            Vertices[2].Position.Set(-1.0f, -1.0f, 1.0f, 1.0f); // Bottom Left
-                            Vertices[3].Position.Set( 1.0f, -1.0f, 1.0f, 1.0f); // Bottom Right
-                            
-                            const float ULeft   = 0.0f;
-                            const float URight  = 1.0f;
-                            const float VTop    = 0.0f;
-                            const float VBottom = 1.0f;
-                            
-                            Vertices[0].TextureCoordinate.Set(ULeft, VTop);
-                            Vertices[1].TextureCoordinate.Set(URight, VTop);
-                            Vertices[2].TextureCoordinate.Set(ULeft, VBottom);
-                            Vertices[3].TextureCoordinate.Set(URight, VBottom);
-                            
-                            RHICmdList.SetViewport(0, 0, 0.0f, YWidth, YHeight, 1.0f);
-                            
-                            
-                            DrawPrimitiveUP(RHICmdList, PT_TriangleStrip, 2, Vertices, sizeof(Vertices[0]));
-                            
-                            RHICmdList.CopyToResolveTarget(ShaderResource, ShaderResource, true, FResolveParams());
-                        }
-                        
-                        
-                        VideoSink->UpdateTextureSinkResource(ShaderResource, ShaderResource);
-                        CFRelease(YTextureRef);
-                        CFRelease(UVTextureRef);
-                    }
-                    else
-                    {
-                        int32 Width = CVPixelBufferGetWidth(Frame);
-                        int32 Height = CVPixelBufferGetHeight(Frame);
-                        
-                        CVMetalTextureRef TextureRef = nullptr;
-                        CVReturn Result = CVMetalTextureCacheCreateTextureFromImage(kCFAllocatorDefault, MetalTextureCache, Frame, nullptr, MTLPixelFormatBGRA8Unorm_sRGB, Width, Height, 0, &TextureRef);
-                        check(Result == kCVReturnSuccess);
-                        check(TextureRef);
-                        
-                        FRHIResourceCreateInfo CreateInfo;
-                        CreateInfo.BulkData = new FAvfTexture2DResourceWrapper(TextureRef);
-                        CreateInfo.ResourceArray = nullptr;
-                        
-                        uint32 TexCreateFlags = TexCreate_SRGB;
-                        TexCreateFlags |= TexCreate_Dynamic | TexCreate_NoTiling;
-                        
-                        TRefCountPtr<FRHITexture2D> RenderTarget;
-                        TRefCountPtr<FRHITexture2D> ShaderResource;
-                        
-                        ShaderResource = RHICreateTexture2D(Width, Height, PF_B8G8R8A8, 1, 1, TexCreateFlags | TexCreate_ShaderResource, CreateInfo);
-                        
-                        VideoSink->UpdateTextureSinkResource(ShaderResource, ShaderResource);
-                        CFRelease(TextureRef);
-                    }
-				}
-				else // Ran out of time to implement efficient OpenGLES texture upload - its running out of memory.
-				/*{
-					if (!OpenGLTextureCache)
-					{
-						EAGLContext* Context = [EAGLContext currentContext];
-						check(Context);
-						
-						CVReturn Return = CVOpenGLESTextureCacheCreate(kCFAllocatorDefault, nullptr, Context, nullptr, &OpenGLTextureCache);
-						check(Return == kCVReturnSuccess);
-					}
-					check(OpenGLTextureCache);
-				
-					int32 Width = CVPixelBufferGetWidth(Frame);
-					int32 Height = CVPixelBufferGetHeight(Frame);
-					
-					CVOpenGLESTextureRef TextureRef = nullptr;
-					CVReturn Result = CVOpenGLESTextureCacheCreateTextureFromImage(kCFAllocatorDefault, OpenGLTextureCache, Frame, nullptr, GL_TEXTURE_2D, GL_RGBA, Width, Height, GL_RGBA, GL_UNSIGNED_BYTE, 0, &TextureRef);
-					check(Result == kCVReturnSuccess);
-					check(TextureRef);
-				
-					FRHIResourceCreateInfo CreateInfo;
-					CreateInfo.BulkData = new FAvfTexture2DResourceWrapper(TextureRef);
-					CreateInfo.ResourceArray = nullptr;
-					
-					uint32 TexCreateFlags = 0;
-					TexCreateFlags |= TexCreate_Dynamic | TexCreate_NoTiling;
-					
-					TRefCountPtr<FRHITexture2D> RenderTarget;
-					TRefCountPtr<FRHITexture2D> ShaderResource;
-					
-					RHICreateTargetableShaderResource2D(Width,
-														Height,
-														PF_R8G8B8A8,
-														1,
-														TexCreateFlags,
-														TexCreate_RenderTargetable,
-														false,
-														CreateInfo,
-														RenderTarget,
-														ShaderResource
-														);
-														
-					VideoSink->UpdateTextureSinkResource(RenderTarget, ShaderResource);
-					CFRelease(TextureRef);
-				}*/
-#endif	// On Mac we have to use IOSurfaceRef for backward compatibility - unless we update MIN_REQUIRED_VERSION to 10.11 we link against an older version of CoreVideo that doesn't support Metal.
-				{
-					FRHIResourceCreateInfo CreateInfo;
-					if (IsMetalPlatform(GMaxRHIShaderPlatform))
-					{
-						// Metal can upload directly from an IOSurface to a 2D texture, so we can just wrap it.
-						CreateInfo.BulkData = new FAvfTexture2DResourceWrapper(Frame);
-					}
-					else
-					{
-						// OpenGL on Mac uploads as a TEXTURE_RECTANGLE for which we have no code, so upload via system memory.
-						CreateInfo.BulkData = new FAvfTexture2DResourceMem(Frame);
-					}
-					CreateInfo.ResourceArray = nullptr;
-					
-					int32 Width = CVPixelBufferGetWidth(Frame);
-					int32 Height = CVPixelBufferGetHeight(Frame);
-					
-					uint32 TexCreateFlags = TexCreate_SRGB;
-					TexCreateFlags |= TexCreate_Dynamic | TexCreate_NoTiling;
-					
-					TRefCountPtr<FRHITexture2D> RenderTarget;
-					TRefCountPtr<FRHITexture2D> ShaderResource;
-					ShaderResource = RHICreateTexture2D(Width, Height, PF_B8G8R8A8, 1, 1, TexCreateFlags | TexCreate_ShaderResource, CreateInfo);
-					
-					VideoSink->UpdateTextureSinkResource(ShaderResource, ShaderResource);
- 				}
-#else
-				int32 Pitch = CVPixelBufferGetBytesPerRow(Frame);
+	case EMediaTrackType::Audio:
+		return AudioTracks.IsValidIndex(TrackIndex);
 
-				CVPixelBufferLockBaseAddress(Frame, kCVPixelBufferLock_ReadOnly);
-				
-				uint8* VideoData = (uint8*)CVPixelBufferGetBaseAddress(Frame);
-				VideoSink->UpdateTextureSinkBuffer(VideoData, Pitch);
-				
-				CVPixelBufferUnlockBaseAddress(Frame, kCVPixelBufferLock_ReadOnly);
-#endif
-				FTimespan DiplayTime = FTimespan::FromSeconds(CMTimeGetSeconds(OutputItemTime));
-				VideoSink->DisplayTextureSinkBuffer(DiplayTime);
-				
-				CVPixelBufferRelease(Frame);
-			}
-		}
+	case EMediaTrackType::Caption:
+		return CaptionTracks.IsValidIndex(TrackIndex);
+
+	case EMediaTrackType::Video:
+		return VideoTracks.IsValidIndex(TrackIndex);
+
+	default:
+		return false;
 	}
 }
+

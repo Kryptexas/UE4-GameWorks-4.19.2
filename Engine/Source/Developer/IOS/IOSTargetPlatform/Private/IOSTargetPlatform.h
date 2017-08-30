@@ -173,7 +173,7 @@ private:
 	bool HandleTicker( float DeltaTime );
 
 	// Handles received pong messages from the LauncherDaemon.
-	void HandlePongMessage( const FIOSLaunchDaemonPong& Message, const IMessageContextRef& Context );
+	void HandlePongMessage( const FIOSLaunchDaemonPong& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context );
 
     void HandleDeviceConnected( const FIOSLaunchDaemonPong& Message );
     void HandleDeviceDisconnected( const FIOSLaunchDaemonPong& Message );
@@ -193,7 +193,7 @@ private:
 	FDelegateHandle TickDelegateHandle;
 
 	// Holds the message endpoint used for communicating with the LaunchDaemon.
-	FMessageEndpointPtr MessageEndpoint;
+	TSharedPtr<FMessageEndpoint, ESPMode::ThreadSafe> MessageEndpoint;
 
 #if WITH_ENGINE
 	// Holds the Engine INI settings, for quick use.

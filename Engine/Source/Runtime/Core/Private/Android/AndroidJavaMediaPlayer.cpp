@@ -22,17 +22,20 @@ static jfieldID FindField(JNIEnv* JEnv, jclass Class, const ANSICHAR* FieldName,
 	return Field;
 }
 
-FJavaAndroidMediaPlayer::FJavaAndroidMediaPlayer(bool vulkanRenderer)
-	: FJavaClassObject(GetClassName(), "(Z)V", vulkanRenderer)
+FJavaAndroidMediaPlayer::FJavaAndroidMediaPlayer(bool swizzlePixels, bool vulkanRenderer)
+	: FJavaClassObject(GetClassName(), "(ZZ)V", swizzlePixels, vulkanRenderer)
 	, GetDurationMethod(GetClassMethod("getDuration", "()I"))
 	, ResetMethod(GetClassMethod("reset", "()V"))
 	, GetCurrentPositionMethod(GetClassMethod("getCurrentPosition", "()I"))
+	, DidCompleteMethod(GetClassMethod("didComplete", "()Z"))
 	, IsLoopingMethod(GetClassMethod("isLooping", "()Z"))
 	, IsPlayingMethod(GetClassMethod("isPlaying", "()Z"))
+	, IsPreparedMethod(GetClassMethod("isPrepared", "()Z"))
 	, SetDataSourceURLMethod(GetClassMethod("setDataSourceURL", "(Ljava/lang/String;)Z"))
 	, SetDataSourceFileMethod(GetClassMethod("setDataSource", "(Ljava/lang/String;JJ)Z"))
 	, SetDataSourceAssetMethod(GetClassMethod("setDataSource", "(Landroid/content/res/AssetManager;Ljava/lang/String;JJ)Z"))
 	, PrepareMethod(GetClassMethod("prepare", "()V"))
+	, PrepareAsyncMethod(GetClassMethod("prepareAsync", "()V"))
 	, SeekToMethod(GetClassMethod("seekTo", "(I)V"))
 	, SetLoopingMethod(GetClassMethod("setLooping", "(Z)V"))
 	, ReleaseMethod(GetClassMethod("release", "()V"))
@@ -49,7 +52,15 @@ FJavaAndroidMediaPlayer::FJavaAndroidMediaPlayer(bool vulkanRenderer)
 	, GetCaptionTracksMethod(GetClassMethod("GetCaptionTracks", "()[Lcom/epicgames/ue4/MediaPlayer14$CaptionTrackInfo;"))
 	, GetVideoTracksMethod(GetClassMethod("GetVideoTracks", "()[Lcom/epicgames/ue4/MediaPlayer14$VideoTrackInfo;"))
 	, DidResolutionChangeMethod(GetClassMethod("didResolutionChange", "()Z"))
+	, GetExternalTextureIdMethod(GetClassMethod("getExternalTextureId", "()I"))
+	, UpdateVideoFrameMethod(GetClassMethod("updateVideoFrame", "(I)Lcom/epicgames/ue4/MediaPlayer14$FrameUpdateInfo;"))
 {
+	VideoTexture = nullptr;
+	bVideoTextureValid = false;
+
+	UScale = VScale = 1.0f;
+	UOffset = VOffset = 0.0f;
+
 	bTrackInfoSupported = FAndroidMisc::GetAndroidBuildVersion() >= 16;
 
 	if (bTrackInfoSupported)
@@ -58,6 +69,18 @@ FJavaAndroidMediaPlayer::FJavaAndroidMediaPlayer(bool vulkanRenderer)
 	}
 
 	JNIEnv* JEnv = FAndroidApplication::GetJavaEnv();
+
+	// get field IDs for FrameUpdateInfo class members
+	jclass localFrameUpdateInfoClass = FAndroidApplication::FindJavaClass("com/epicgames/ue4/MediaPlayer14$FrameUpdateInfo");
+	FrameUpdateInfoClass = (jclass)JEnv->NewGlobalRef(localFrameUpdateInfoClass);
+	JEnv->DeleteLocalRef(localFrameUpdateInfoClass);
+	FrameUpdateInfo_CurrentPosition = FindField(JEnv, FrameUpdateInfoClass, "CurrentPosition", "I", false);
+	FrameUpdateInfo_FrameReady = FindField(JEnv, FrameUpdateInfoClass, "FrameReady", "Z", false);
+	FrameUpdateInfo_RegionChanged = FindField(JEnv, FrameUpdateInfoClass, "RegionChanged", "Z", false);
+	FrameUpdateInfo_UScale = FindField(JEnv, FrameUpdateInfoClass, "UScale", "F", false);
+	FrameUpdateInfo_UOffset = FindField(JEnv, FrameUpdateInfoClass, "UOffset", "F", false);
+	FrameUpdateInfo_VScale = FindField(JEnv, FrameUpdateInfoClass, "VScale", "F", false);
+	FrameUpdateInfo_VOffset = FindField(JEnv, FrameUpdateInfoClass, "VOffset", "F", false);
 
 	// get field IDs for AudioTrackInfo class members
 	jclass localAudioTrackInfoClass = FAndroidApplication::FindJavaClass("com/epicgames/ue4/MediaPlayer14$AudioTrackInfo");
@@ -100,6 +123,8 @@ int32 FJavaAndroidMediaPlayer::GetDuration()
 
 void FJavaAndroidMediaPlayer::Reset()
 {
+	UScale = VScale = 1.0f;
+	UOffset = VOffset = 0.0f;
 	CallMethod<void>(ResetMethod);
 }
 
@@ -124,18 +149,34 @@ bool FJavaAndroidMediaPlayer::IsPlaying()
 	return CallMethod<bool>(IsPlayingMethod);
 }
 
+bool FJavaAndroidMediaPlayer::IsPrepared()
+{
+	return CallMethod<bool>(IsPreparedMethod);
+}
+
+bool FJavaAndroidMediaPlayer::DidComplete()
+{
+	return CallMethod<bool>(DidCompleteMethod);
+}
+
 bool FJavaAndroidMediaPlayer::SetDataSource(const FString & Url)
 {
+	UScale = VScale = 1.0f;
+	UOffset = VOffset = 0.0f;
 	return CallMethod<bool>(SetDataSourceURLMethod, GetJString(Url));
 }
 
 bool FJavaAndroidMediaPlayer::SetDataSource(const FString& MoviePathOnDevice, int64 offset, int64 size)
 {
+	UScale = VScale = 1.0f;
+	UOffset = VOffset = 0.0f;
 	return CallMethod<bool>(SetDataSourceFileMethod, GetJString(MoviePathOnDevice), offset, size);
 }
 
 bool FJavaAndroidMediaPlayer::SetDataSource(jobject AssetMgr, const FString& AssetPath, int64 offset, int64 size)
 {
+	UScale = VScale = 1.0f;
+	UOffset = VOffset = 0.0f;
 	return CallMethod<bool>(SetDataSourceAssetMethod, AssetMgr, GetJString(AssetPath), offset, size);
 }
 
@@ -144,6 +185,20 @@ bool FJavaAndroidMediaPlayer::Prepare()
 	// This can return an exception in some cases (URL without internet, for example)
 	JNIEnv*	JEnv = FAndroidApplication::GetJavaEnv();
 	JEnv->CallVoidMethod(Object, PrepareMethod.Method);
+	if (JEnv->ExceptionCheck())
+	{
+		JEnv->ExceptionDescribe();
+		JEnv->ExceptionClear();
+		return false;
+	}
+	return true;
+}
+
+bool FJavaAndroidMediaPlayer::PrepareAsync()
+{
+	// This can return an exception in some cases (URL without internet, for example)
+	JNIEnv*	JEnv = FAndroidApplication::GetJavaEnv();
+	JEnv->CallVoidMethod(Object, PrepareAsyncMethod.Method);
 	if (JEnv->ExceptionCheck())
 	{
 		JEnv->ExceptionDescribe();
@@ -190,13 +245,27 @@ void FJavaAndroidMediaPlayer::SetAudioEnabled(bool enabled /*= true*/)
 
 bool FJavaAndroidMediaPlayer::GetVideoLastFrameData(void* & outPixels, int64 & outCount)
 {
-	jobject buffer = CallMethod<jobject>(GetVideoLastFrameDataMethod);
+	// This can return an exception in some cases
+	JNIEnv*	JEnv = FAndroidApplication::GetJavaEnv();
+	jobject buffer = JEnv->CallObjectMethod(Object, GetVideoLastFrameDataMethod.Method);
+	if (JEnv->ExceptionCheck())
+	{
+		JEnv->ExceptionDescribe();
+		JEnv->ExceptionClear();
+		if (nullptr != buffer)
+		{
+			// the CallObjectMethod returns a local ref, but Java will still own the real buffer
+			JEnv->DeleteLocalRef(buffer);
+		}
+		return false;
+	}
 	if (nullptr != buffer)
 	{
-		JNIEnv*	JEnv = FAndroidApplication::GetJavaEnv();
 		outPixels = JEnv->GetDirectBufferAddress(buffer);
 		outCount = JEnv->GetDirectBufferCapacity(buffer);
-		// we don't reduce the buffer refcount because it is still owned by the Java class, and will be reused.
+
+		// the CallObjectMethod returns a local ref, but Java will still own the real buffer
+		JEnv->DeleteLocalRef(buffer);
 	}
 	if (nullptr == buffer || nullptr == outPixels || 0 == outCount)
 	{
@@ -218,6 +287,49 @@ void FJavaAndroidMediaPlayer::Pause()
 bool FJavaAndroidMediaPlayer::DidResolutionChange()
 {
 	return CallMethod<bool>(DidResolutionChangeMethod);
+}
+
+int32 FJavaAndroidMediaPlayer::GetExternalTextureId()
+{
+	return CallMethod<int32>(GetExternalTextureIdMethod);
+}
+
+bool FJavaAndroidMediaPlayer::UpdateVideoFrame(int32 ExternalTextureId, int32 *CurrentPosition, bool *bRegionChanged)
+{
+	// This can return an exception in some cases
+	JNIEnv*	JEnv = FAndroidApplication::GetJavaEnv();
+	jobject Result = JEnv->CallObjectMethod(Object, UpdateVideoFrameMethod.Method, ExternalTextureId);
+	if (JEnv->ExceptionCheck())
+	{
+		JEnv->ExceptionDescribe();
+		JEnv->ExceptionClear();
+		if (nullptr != Result)
+		{
+			JEnv->DeleteLocalRef(Result);
+		}
+		*CurrentPosition = -1;
+		*bRegionChanged = false;
+		return false;
+	}
+
+	if (nullptr == Result)
+	{
+		*CurrentPosition = -1;
+		*bRegionChanged = false;
+		return false;
+	}
+
+	*CurrentPosition = (int32)JEnv->GetIntField(Result, FrameUpdateInfo_CurrentPosition);
+	bool bFrameReady = (bool)JEnv->GetBooleanField(Result, FrameUpdateInfo_FrameReady);
+	*bRegionChanged = (bool)JEnv->GetBooleanField(Result, FrameUpdateInfo_RegionChanged);
+	UScale = (float)JEnv->GetFloatField(Result, FrameUpdateInfo_UScale);
+	UOffset = (float)JEnv->GetFloatField(Result, FrameUpdateInfo_UOffset);
+	VScale = (float)JEnv->GetFloatField(Result, FrameUpdateInfo_VScale);
+	VOffset = (float)JEnv->GetFloatField(Result, FrameUpdateInfo_VOffset);
+
+	JEnv->DeleteLocalRef(Result);
+
+	return bFrameReady;
 }
 
 bool FJavaAndroidMediaPlayer::GetVideoLastFrame(int32 destTexture)

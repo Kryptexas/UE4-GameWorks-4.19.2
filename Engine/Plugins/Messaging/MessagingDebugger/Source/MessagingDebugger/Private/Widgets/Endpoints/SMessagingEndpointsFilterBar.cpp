@@ -1,8 +1,11 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Widgets/Endpoints/SMessagingEndpointsFilterBar.h"
+
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Input/SSearchBox.h"
+
+#include "Models/MessagingDebuggerEndpointFilter.h"
 
 
 #define LOCTEXT_NAMESPACE "SMessagingEndpointsFilterBar"

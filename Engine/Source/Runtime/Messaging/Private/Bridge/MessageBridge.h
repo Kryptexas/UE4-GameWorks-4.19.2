@@ -2,18 +2,20 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "Misc/Guid.h"
-#include "IMessageContext.h"
-#include "IMessageTransport.h"
-#include "IMessageSubscription.h"
-#include "IMessageBus.h"
-#include "Bridge/MessageAddressBook.h"
 #include "IMessageBridge.h"
+#include "IMessageContext.h"
 #include "IMessageReceiver.h"
 #include "IMessageSender.h"
+#include "IMessageTransportHandler.h"
+#include "Misc/Guid.h"
+#include "Templates/SharedPointer.h"
 
-class Error;
+#include "Bridge/MessageAddressBook.h"
+
+class IMessageBus;
+class IMessageSubscription;
+class IMessageTransport;
+
 
 /**
  * Implements a message bridge.
@@ -34,6 +36,7 @@ class FMessageBridge
 	, public IMessageBridge
 	, public IMessageReceiver
 	, public IMessageSender
+	, protected IMessageTransportHandler
 {
 public:
 
@@ -47,7 +50,8 @@ public:
 	FMessageBridge(
 		const FMessageAddress InAddress,
 		const TSharedRef<IMessageBus, ESPMode::ThreadSafe>& InBus,
-		const TSharedRef<IMessageTransport, ESPMode::ThreadSafe>& InTransport);
+		const TSharedRef<IMessageTransport, ESPMode::ThreadSafe>& InTransport
+	);
 
 	/** Virtual destructor. */
 	virtual ~FMessageBridge();
@@ -58,64 +62,37 @@ public:
 
 	virtual void Disable() override;
 	virtual void Enable() override;
-
-	virtual bool IsEnabled() const override
-	{
-		return Enabled;
-	}
+	virtual bool IsEnabled() const override;
 
 public:
 
-	//~ IReceiveMessages interface
+	//~ IMessageReceiver interface
 
-	virtual FName GetDebugName() const override
-	{
-		return *FString::Printf(TEXT("FMessageBridge (%s)"), *Transport->GetDebugName().ToString());
-	}
-
-	virtual const FGuid& GetRecipientId() const override
-	{
-		return Id;
-	}
-
-	virtual ENamedThreads::Type GetRecipientThread() const override
-	{
-		return ENamedThreads::AnyThread;
-	}
-
-	virtual bool IsLocal() const override
-	{
-		return false;
-	}
-
-	virtual void ReceiveMessage(const IMessageContextRef& Context) override;
+	virtual FName GetDebugName() const override;
+	virtual const FGuid& GetRecipientId() const override;
+	virtual ENamedThreads::Type GetRecipientThread() const override;
+	virtual bool IsLocal() const override;
+	virtual void ReceiveMessage(const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context) override;
 
 public:
 
-	//~ ISendMessages interface
+	//~ IMessageSender interface
 
-	virtual FMessageAddress GetSenderAddress() override
-	{
-		return Address;
-	}
-
+	virtual FMessageAddress GetSenderAddress() override;
 	virtual void NotifyMessageError(const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context, const FString& Error) override;
 
 protected:
 
-	/** Shuts down the bridge. */
-	void Shutdown();
+	//~ IMessageTransportHandler interface
+
+	virtual void DiscoverTransportNode(const FGuid& NodeId) override;
+	virtual void ForgetTransportNode(const FGuid& NodeId) override;
+	virtual void ReceiveTransportMessage(const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context, const FGuid& NodeId) override;
 
 private:
 
 	/** Callback for message bus shutdowns. */
 	void HandleMessageBusShutdown();
-
-	/** Callback for messages received from the transport layer. */
-	void HandleTransportMessageReceived(const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Envelope, const FGuid& NodeId);
-
-	/** Callback for lost remote nodes. */
-	void HandleTransportNodeLost(const FGuid& NodeId);
 
 private:
 

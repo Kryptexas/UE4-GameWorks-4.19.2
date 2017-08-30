@@ -1,12 +1,23 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Transport/UdpMessageTransport.h"
+#include "UdpMessagingPrivate.h"
+
 #include "Common/UdpSocketBuilder.h"
+#include "Common/UdpSocketReceiver.h"
+#include "HAL/RunnableThread.h"
+#include "IMessageContext.h"
+#include "IMessageTransportHandler.h"
+#include "Misc/Guid.h"
+#include "Serialization/ArrayReader.h"
+#include "SocketSubsystem.h"
+#include "Sockets.h"
+
+#include "Transport/UdpReassembledMessage.h"
 #include "Transport/UdpDeserializedMessage.h"
 #include "Transport/UdpSerializedMessage.h"
 #include "Transport/UdpMessageProcessor.h"
 #include "Transport/UdpSerializeMessageTask.h"
-#include "UdpMessagingPrivate.h"
 
 
 /* FUdpMessageTransport structors
@@ -20,6 +31,7 @@ FUdpMessageTransport::FUdpMessageTransport(const FIPv4Endpoint& InUnicastEndpoin
 	, MulticastSocket(nullptr)
 	, MulticastTtl(InMulticastTtl)
 	, SocketSubsystem(ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM))
+	, TransportHandler(nullptr)
 	, UnicastEndpoint(InUnicastEndpoint)
 #if PLATFORM_DESKTOP
 	, UnicastReceiver(nullptr)
@@ -37,7 +49,13 @@ FUdpMessageTransport::~FUdpMessageTransport()
 /* IMessageTransport interface
  *****************************************************************************/
 
-bool FUdpMessageTransport::StartTransport()
+FName FUdpMessageTransport::GetDebugName() const
+{
+	return "UdpMessageTransport";
+}
+
+
+bool FUdpMessageTransport::StartTransport(IMessageTransportHandler& Handler)
 {
 #if PLATFORM_DESKTOP
 	// create & initialize unicast socket (only on multi-process platforms)
@@ -81,6 +99,8 @@ bool FUdpMessageTransport::StartTransport()
 		return false;
 #endif
 	}
+
+	TransportHandler = &Handler;
 
 	// initialize threads
 	FTimespan ThreadWaitTime = FTimespan::FromMilliseconds(100);
@@ -143,6 +163,8 @@ void FUdpMessageTransport::StopTransport()
 		UnicastSocket = nullptr;
 	}
 #endif
+
+	TransportHandler = nullptr;
 }
 
 
@@ -183,19 +205,31 @@ bool FUdpMessageTransport::TransportMessage(const TSharedRef<IMessageContext, ES
 /* FUdpMessageTransport event handlers
  *****************************************************************************/
 
-void FUdpMessageTransport::HandleProcessorMessageReassembled(const FReassembledUdpMessage& ReassembledMessage, const TSharedPtr<IMessageAttachment, ESPMode::ThreadSafe>& Attachment, const FGuid& NodeId)
+void FUdpMessageTransport::HandleProcessorMessageReassembled(const FUdpReassembledMessage& ReassembledMessage, const TSharedPtr<IMessageAttachment, ESPMode::ThreadSafe>& Attachment, const FGuid& NodeId)
 {
 	// @todo gmp: move message deserialization into an async task
 	TSharedRef<FUdpDeserializedMessage, ESPMode::ThreadSafe> DeserializedMessage = MakeShareable(new FUdpDeserializedMessage(Attachment));
 
 	if (DeserializedMessage->Deserialize(ReassembledMessage))
 	{
-		MessageReceivedDelegate.ExecuteIfBound(DeserializedMessage, NodeId);
+		TransportHandler->ReceiveTransportMessage(DeserializedMessage, NodeId);
 	}
 }
 
 
-void FUdpMessageTransport::HandleSocketDataReceived(const FArrayReaderPtr& Data, const FIPv4Endpoint& Sender)
+void FUdpMessageTransport::HandleProcessorNodeDiscovered(const FGuid& DiscoveredNodeId)
+{
+	TransportHandler->DiscoverTransportNode(DiscoveredNodeId);
+}
+
+
+void FUdpMessageTransport::HandleProcessorNodeLost(const FGuid& LostNodeId)
+{
+	TransportHandler->ForgetTransportNode(LostNodeId);
+}
+
+
+void FUdpMessageTransport::HandleSocketDataReceived(const TSharedPtr<FArrayReader, ESPMode::ThreadSafe>& Data, const FIPv4Endpoint& Sender)
 {
 	if (MessageProcessor != nullptr)
 	{

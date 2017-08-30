@@ -438,7 +438,7 @@ ESocketBSDReturn FSocketBSD::HasState(ESocketBSDParam State, FTimespan WaitTime)
 	// convert WaitTime to a timeval
 	timeval Time;
 	Time.tv_sec = (int32)WaitTime.GetTotalSeconds();
-	Time.tv_usec = WaitTime.GetMilliseconds() * 1000 + WaitTime.GetMicroseconds();
+	Time.tv_usec = WaitTime.GetFractionMicro();
 
 	fd_set SocketSet;
 

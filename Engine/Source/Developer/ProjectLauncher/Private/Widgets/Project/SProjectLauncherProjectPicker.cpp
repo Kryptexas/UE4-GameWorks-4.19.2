@@ -1,16 +1,18 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "Widgets/Project/SProjectLauncherProjectPicker.h"
-#include "Widgets/SBoxPanel.h"
+#include "SProjectLauncherProjectPicker.h"
+
+#include "DesktopPlatformModule.h"
+#include "EditorStyleSet.h"
 #include "Framework/Application/SlateApplication.h"
-#include "Textures/SlateIcon.h"
 #include "Framework/Commands/UIAction.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Textures/SlateIcon.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Input/SComboButton.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Text/STextBlock.h"
-#include "Framework/MultiBox/MultiBoxBuilder.h"
-#include "Widgets/Input/SComboButton.h"
-#include "EditorStyleSet.h"
-#include "DesktopPlatformModule.h"
+
 #include "Widgets/Shared/SProjectLauncherFormLabel.h"
 
 
@@ -20,7 +22,7 @@
 /* SProjectLauncherProjectPicker structors
  *****************************************************************************/
 
-SProjectLauncherProjectPicker::~SProjectLauncherProjectPicker( )
+SProjectLauncherProjectPicker::~SProjectLauncherProjectPicker()
 {
 	if (Model.IsValid())
 	{
@@ -32,7 +34,7 @@ SProjectLauncherProjectPicker::~SProjectLauncherProjectPicker( )
 /* SProjectLauncherProjectPicker interface
  *****************************************************************************/
 
-void SProjectLauncherProjectPicker::Construct( const FArguments& InArgs, const FProjectLauncherModelRef& InModel)
+void SProjectLauncherProjectPicker::Construct(const FArguments& InArgs, const TSharedRef<FProjectLauncherModel>& InModel)
 {
 	Model = InModel;
 
@@ -48,7 +50,7 @@ void SProjectLauncherProjectPicker::Construct( const FArguments& InArgs, const F
 /* SProjectLauncherProjectPicker implementation
  *****************************************************************************/
 
-TSharedRef<SWidget> SProjectLauncherProjectPicker::MakeProjectMenuWidget( )
+TSharedRef<SWidget> SProjectLauncherProjectPicker::MakeProjectMenuWidget()
 {
 	FMenuBuilder MenuBuilder(true, NULL);
 	{
@@ -63,7 +65,7 @@ TSharedRef<SWidget> SProjectLauncherProjectPicker::MakeProjectMenuWidget( )
 		{
 			FString ProjectPath = FPaths::RootDir() / AvailableGames[Index] / AvailableGames[Index] + TEXT(".uproject");
 			FUIAction ProjectAction(FExecuteAction::CreateSP(this, &SProjectLauncherProjectPicker::HandleProjectMenuEntryClicked, ProjectPath));
-			MenuBuilder.AddMenuEntry( FText::FromString( AvailableGames[Index] ), FText::FromString( ProjectPath ), FSlateIcon(), ProjectAction);
+			MenuBuilder.AddMenuEntry(FText::FromString(AvailableGames[Index]), FText::FromString(ProjectPath), FSlateIcon(), ProjectAction);
 		}
 
 		MenuBuilder.AddMenuSeparator();
@@ -119,7 +121,7 @@ TSharedRef<SWidget> SProjectLauncherProjectPicker::MakeProjectWidget()
 /* SProjectLauncherProjectPicker callbacks
  *****************************************************************************/
 
-FText SProjectLauncherProjectPicker::HandleProjectComboButtonText( ) const
+FText SProjectLauncherProjectPicker::HandleProjectComboButtonText() const
 {
 	if (LaunchProfileAttr.IsBound())
 	{
@@ -141,7 +143,7 @@ FText SProjectLauncherProjectPicker::HandleProjectComboButtonText( ) const
 }
 
 
-FText SProjectLauncherProjectPicker::HandleProjectComboButtonToolTip( ) const
+FText SProjectLauncherProjectPicker::HandleProjectComboButtonToolTip() const
 {
 	return LOCTEXT("SelectProjectText_Tooltip", "Select or browse for a project");
 }
@@ -160,7 +162,7 @@ void SProjectLauncherProjectPicker::HandleAnyProjectClicked(FString ProjectPath)
 }
 
 
-void SProjectLauncherProjectPicker::HandleProjectMenuEntryClicked( FString ProjectPath )
+void SProjectLauncherProjectPicker::HandleProjectMenuEntryClicked(FString ProjectPath)
 {
 	if (ProjectPath.IsEmpty())
 	{

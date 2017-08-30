@@ -10,22 +10,19 @@ public class Settings : ModuleRules
 			new string[]
 			{
 				"Core",
-			}
-		);
+			});
 
-        PrivateDependencyModuleNames.AddRange(
-            new string[]
-            {
+		PrivateDependencyModuleNames.AddRange(
+			new string[]
+			{
 				"CoreUObject",
-            }
-        );
+			});
 
 		PrivateIncludePaths.AddRange(
 			new string[]
-            {
-                "Developer/Settings/Private",
-            }
-		);
+			{
+				"Developer/Settings/Private",
+			});
 
 		PrecompileForTargets = PrecompileTargetsType.Any;
 	}

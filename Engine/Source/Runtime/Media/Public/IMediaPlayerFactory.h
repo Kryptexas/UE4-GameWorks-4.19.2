@@ -2,10 +2,56 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+#include "CoreTypes.h"
+#include "Containers/Array.h"
+#include "Internationalization/Text.h"
+#include "Templates/SharedPointer.h"
 
+class FString;
+class IMediaEventSink;
 class IMediaOptions;
 class IMediaPlayer;
+
+
+/**
+ * Enumerates available media player features.
+ */
+enum class EMediaFeature
+{
+	/** Audio output via Engine. */
+	AudioSamples,
+
+	/** Audio tracks. */
+	AudioTracks,
+
+	/** Caption tracks. */
+	CaptionTracks,
+
+	/** Metadata tracks (implies output via Engine). */
+	MetadataTracks,
+
+	/** Captions, subtitle and text output via Engine. */
+	OverlaySamples,
+
+	/** Subtitle tracks. */
+	SubtitleTracks,
+
+	/** Generic text tracks. */
+	TextTracks,
+
+	/** 360 degree video controls. */
+	Video360,
+
+	/** Video output via Engine. */
+	VideoSamples,
+
+	/** Stereoscopic video controls. */
+	VideoStereo,
+
+	/** Video tracks. */
+	VideoTracks
+};
+
 
 /**
  * Interface for media player factories.
@@ -14,6 +60,8 @@ class IMediaPlayer;
  * Most media players will be implemented inside plug-ins, which will register their
  * factories on startup. The Media module will use the CanPlayUrl() method on this
  * interface to determine which media player to instantiate for a given media source.
+ *
+ * @see IMediaPlayer
  */
 class IMediaPlayerFactory
 {
@@ -28,14 +76,15 @@ public:
 	 * @param OutErrors will contain error messages (optional).
 	 * @return true if the source can be played, false otherwise.
 	 */
-	virtual bool CanPlayUrl(const FString& Url, const IMediaOptions& Options, TArray<FText>* OutWarnings, TArray<FText>* OutErrors) const = 0;
+	virtual bool CanPlayUrl(const FString& Url, const IMediaOptions* Options, TArray<FText>* OutWarnings, TArray<FText>* OutErrors) const = 0;
 
 	/**
 	 * Creates a media player.
 	 *
+	 * @param EventSink The object that will receive the player's events.
 	 * @return A new media player, or nullptr if a player couldn't be created.
 	 */
-	virtual TSharedPtr<IMediaPlayer, ESPMode::ThreadSafe> CreatePlayer() = 0;
+	virtual TSharedPtr<IMediaPlayer, ESPMode::ThreadSafe> CreatePlayer(IMediaEventSink& EventSink) = 0;
 
 	/**
 	 * Get the human readable name of the player.
@@ -64,6 +113,14 @@ public:
 	 */
 	virtual const TArray<FString>& GetSupportedPlatforms() const = 0;
 
+	/**
+	 * Check whether the media player supports the specified feature.
+	 *
+	 * @param Feature The feature to check.
+	 * @return true if the feature is supported, false otherwise.
+	 */
+	virtual bool SupportsFeature(EMediaFeature Feature) const = 0;
+
 public:
 
 	/**
@@ -73,7 +130,7 @@ public:
 	 * @param Options Optional media player parameters.
 	 * @return true if the source can be played, false otherwise.
 	 */
-	bool CanPlayUrl(const FString& Url, const IMediaOptions& Options) const
+	bool CanPlayUrl(const FString& Url, const IMediaOptions* Options) const
 	{
 		return CanPlayUrl(Url, Options, nullptr, nullptr);
 	}

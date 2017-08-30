@@ -1,6 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "Widgets/Launch/SProjectLauncherLaunchCustomRoles.h"
+#include "SProjectLauncherLaunchCustomRoles.h"
 
 
 #define LOCTEXT_NAMESPACE "SProjectLauncherLaunchCustomRoles"
@@ -9,7 +9,7 @@
 /* SProjectLauncherLaunchCustomRoles structors
  *****************************************************************************/
 
-SProjectLauncherLaunchCustomRoles::~SProjectLauncherLaunchCustomRoles( )
+SProjectLauncherLaunchCustomRoles::~SProjectLauncherLaunchCustomRoles()
 {
 	if (Model.IsValid())
 	{
@@ -21,7 +21,7 @@ SProjectLauncherLaunchCustomRoles::~SProjectLauncherLaunchCustomRoles( )
 /* SProjectLauncherLaunchCustomRoles interface
  *****************************************************************************/
 
-void SProjectLauncherLaunchCustomRoles::Construct( const FArguments& InArgs, const FProjectLauncherModelRef& InModel )
+void SProjectLauncherLaunchCustomRoles::Construct(const FArguments& InArgs, const TSharedRef<FProjectLauncherModel>& InModel)
 {
 	Model = InModel;
 

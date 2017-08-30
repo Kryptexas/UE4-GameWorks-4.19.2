@@ -28,7 +28,6 @@
 #include "EngineModule.h"
 #include "Engine/Texture.h"
 #include "SceneView.h"
-
 #include "ShaderPlatformQualitySettings.h"
 #include "MaterialShaderQualitySettings.h"
 #include "DecalRenderingCommon.h"

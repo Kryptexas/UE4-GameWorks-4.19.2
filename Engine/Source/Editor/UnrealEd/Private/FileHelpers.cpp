@@ -964,8 +964,37 @@ void FEditorFileUtils::SaveAssetsAs(const TArray<UObject*>& Assets, TArray<UObje
 	for (UObject* Asset : Assets)
 	{
 		const FString OldPackageName = Asset->GetOutermost()->GetName();
-		const FString OldPackagePath = FPackageName::GetLongPackagePath(OldPackageName);
-		const FString OldAssetName = FPackageName::GetLongPackageAssetName(OldPackageName);
+		
+		FString OldPackagePath;
+		FString OldAssetName;
+		
+		if (Asset->HasAnyFlags(RF_Transient))
+		{
+			// determine default package path
+			const FString DefaultDirectory = FEditorDirectories::Get().GetLastDirectory(ELastDirectory::NEW_ASSET);
+			FPackageName::TryConvertFilenameToLongPackageName(DefaultDirectory, OldPackagePath);
+
+			if (OldPackagePath.IsEmpty())
+			{
+				OldPackagePath = TEXT("/Game");
+			}
+
+			// determine default asset name
+			FString DefaultName = FString(NSLOCTEXT("UnrealEd", "PrefixNew", "New").ToString() + Asset->GetClass()->GetName());
+
+			FString UniquePackageName;
+			FString UniqueAssetName;
+
+			FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
+			AssetToolsModule.Get().CreateUniqueAssetName(OldPackagePath / DefaultName, TEXT(""), UniquePackageName, UniqueAssetName);
+
+			OldAssetName = FPaths::GetCleanFilename(UniqueAssetName);
+		}
+		else
+		{
+			OldAssetName = FPackageName::GetLongPackageAssetName(OldPackageName);
+			OldPackagePath = FPackageName::GetLongPackagePath(OldPackageName);
+		}
 
 		FString NewPackageName;
 
@@ -986,7 +1015,7 @@ void FEditorFileUtils::SaveAssetsAs(const TArray<UObject*>& Assets, TArray<UObje
 		// process asset
 		if (NewPackageName.IsEmpty())
 		{
-			OutSavedAssets.Add(Asset); // user cancelled
+			OutSavedAssets.Add(Asset); // user canceled
 		}
 		else if (NewPackageName != OldPackageName)
 		{
@@ -997,9 +1026,22 @@ void FEditorFileUtils::SaveAssetsAs(const TArray<UObject*>& Assets, TArray<UObje
 
 			if (DuplicatedAsset != nullptr)
 			{
+				// update duplicated asset & notify asset registry
+				if (Asset->HasAnyFlags(RF_Transient))
+				{
+					DuplicatedAsset->ClearFlags(RF_Transient);
+					DuplicatedAsset->SetFlags(RF_Public | RF_Standalone);
+				}
+
 				DuplicatedAsset->MarkPackageDirty();
 				FAssetRegistryModule::AssetCreated(DuplicatedAsset);
 				OutSavedAssets.Add(DuplicatedAsset);
+
+				// update last save directory
+				const FString PackageFilename = FPackageName::LongPackageNameToFilename(NewPackageName);
+				const FString PackagePath = FPaths::GetPath(PackageFilename);
+
+				FEditorDirectories::Get().SetLastDirectory(ELastDirectory::NEW_ASSET, PackagePath);
 			}
 			else
 			{
@@ -1008,8 +1050,7 @@ void FEditorFileUtils::SaveAssetsAs(const TArray<UObject*>& Assets, TArray<UObje
 		}
 		else
 		{
-			// save existing asset
-			OutSavedAssets.Add(Asset);
+			OutSavedAssets.Add(Asset); // save existing asset
 		}
 	}
 

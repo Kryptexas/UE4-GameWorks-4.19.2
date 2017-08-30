@@ -1,17 +1,22 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
-#include "CoreMinimal.h"
+#include "CoreTypes.h"
+#include "Containers/Map.h"
+#include "Misc/DateTime.h"
 #include "Misc/Guid.h"
 #include "IMessageContext.h"
-#include "IMessageRpcHandler.h"
 #include "IMessageRpcServer.h"
+#include "Templates/SharedPointer.h"
 
 class FMessageEndpoint;
 class FMessagingRpcModule;
 class IAsyncProgress;
 class IAsyncTask;
+class IMessageRpcHandler;
+
 struct FMessageRpcCancel;
+
 
 /**
  * Implements an RPC server.
@@ -26,7 +31,8 @@ public:
 
 public:
 
-	// IMessageRpcServer interface
+	//~ IMessageRpcServer interface
+
 	virtual void AddHandler(const FName& RequestMessageType, const TSharedRef<IMessageRpcHandler>& Handler) override;
 	virtual const FMessageAddress& GetAddress() const override;
 	virtual FOnMessageRpcNoHandler& OnNoHandler() override;

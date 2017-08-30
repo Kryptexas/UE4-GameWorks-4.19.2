@@ -9,7 +9,7 @@
 #include "Misc/App.h"
 #include "Modules/ModuleManager.h"
 #include "Misc/FilterCollection.h"
-#include "Interfaces/IAutomationControllerModule.h"
+#include "IAutomationControllerModule.h"
 #include "FileManager.h"
 #include "Paths.h"
 #include "FileHelper.h"

@@ -6,49 +6,47 @@ namespace UnrealBuildTool.Rules
 	{
 		public WmfMedia(ReadOnlyTargetRules Target) : base(Target)
 		{
-            DynamicallyLoadedModuleNames.AddRange(
-                new string[] {
-                    "Media",
-				}
-            );
+			DynamicallyLoadedModuleNames.AddRange(
+				new string[] {
+					"Media",
+				});
 
 			PrivateDependencyModuleNames.AddRange(
 				new string[] {
 					"Core",
 					"CoreUObject",
+					"MediaUtils",
 					"RenderCore",
 					"WmfMediaFactory",
-				}
-			);
+				});
 
 			PrivateIncludePathModuleNames.AddRange(
 				new string[] {
-                    "Media",
-				}
-			);
+					"Media",
+				});
 
 			PrivateIncludePaths.AddRange(
 				new string[] {
 					"WmfMedia/Private",
-                    "WmfMedia/Private/Player",
+					"WmfMedia/Private/Player",
 					"WmfMedia/Private/Wmf",
-				}
-			);
+				});
 
 			if (Target.bCompileAgainstEngine)
 			{
+				PrivateDependencyModuleNames.Add("Engine");
 				PrivateDependencyModuleNames.Add("HeadMountedDisplay");
 			}
 
 			if ((Target.Platform == UnrealTargetPlatform.Win64) ||
 				(Target.Platform == UnrealTargetPlatform.Win32))
-            {
-                PublicDelayLoadDLLs.Add("mf.dll");
-                PublicDelayLoadDLLs.Add("mfplat.dll");
-                PublicDelayLoadDLLs.Add("mfplay.dll");
-                PublicDelayLoadDLLs.Add("mfuuid.dll");
-                PublicDelayLoadDLLs.Add("shlwapi.dll");
-            }
+			{
+				PublicDelayLoadDLLs.Add("mf.dll");
+				PublicDelayLoadDLLs.Add("mfplat.dll");
+				PublicDelayLoadDLLs.Add("mfplay.dll");
+				PublicDelayLoadDLLs.Add("mfuuid.dll");
+				PublicDelayLoadDLLs.Add("shlwapi.dll");
+			}
 		}
 	}
 }

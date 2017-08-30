@@ -40,10 +40,10 @@ public:
 private:
 
 	// Message bus message handlers
-	void HandleSubjectData(const FLiveLinkSubjectDataMessage& Message, const IMessageContextRef& Context);
-	void HandleSubjectFrame(const FLiveLinkSubjectFrameMessage& Message, const IMessageContextRef& Context);
-	void HandleHeartbeat(const FLiveLinkHeartbeatMessage& Message, const IMessageContextRef& Context);
-	void HandleClearSubject(const FLiveLinkClearSubject& Message, const IMessageContextRef& Context);
+	void HandleSubjectData(const FLiveLinkSubjectDataMessage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context);
+	void HandleSubjectFrame(const FLiveLinkSubjectFrameMessage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context);
+	void HandleHeartbeat(const FLiveLinkHeartbeatMessage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context);
+	void HandleClearSubject(const FLiveLinkClearSubject& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context);
 	// End Message bus message handlers
 
 	ILiveLinkClient* Client;
@@ -51,7 +51,7 @@ private:
 	// Our identifier in LiveLink
 	FGuid SourceGuid;
 
-	FMessageEndpointPtr MessageEndpoint;
+	TSharedPtr<FMessageEndpoint, ESPMode::ThreadSafe> MessageEndpoint;
 
 	FMessageAddress ConnectionAddress;
 

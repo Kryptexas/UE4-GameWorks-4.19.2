@@ -3,6 +3,10 @@
 #include "Launcher/LauncherWorker.h"
 #include "HAL/PlatformTime.h"
 #include "HAL/FileManager.h"
+#include "ISourceCodeAccessor.h"
+#include "ISourceCodeAccessModule.h"
+#include "ITargetDeviceProxy.h"
+#include "ITargetDeviceProxyManager.h"
 #include "Misc/CommandLine.h"
 #include "Misc/Paths.h"
 #include "HAL/ThreadSafeCounter.h"
@@ -13,20 +17,21 @@
 #include "Launcher/LauncherUATTask.h"
 #include "Launcher/LauncherVerifyProfileTask.h"
 #include "PlatformInfo.h"
-#include "ISourceCodeAccessor.h"
-#include "ISourceCodeAccessModule.h"
+
 
 #define LOCTEXT_NAMESPACE "LauncherWorker"
+
 
 /* Static class member instantiations
 *****************************************************************************/
 
 FThreadSafeCounter FLauncherTask::TaskCounter;
 
+
 /* FLauncherWorker structors
  *****************************************************************************/
 
-FLauncherWorker::FLauncherWorker( const ITargetDeviceProxyManagerRef& InDeviceProxyManager, const ILauncherProfileRef& InProfile )
+FLauncherWorker::FLauncherWorker(const TSharedRef<ITargetDeviceProxyManager>& InDeviceProxyManager, const ILauncherProfileRef& InProfile)
 	: DeviceProxyManager(InDeviceProxyManager)
 	, Profile(InProfile)
 	, Status(ELauncherWorkerStatus::Busy)
@@ -211,7 +216,7 @@ void FLauncherWorker::OnTaskCompleted(const FString& TaskName)
 	StageCompleted.Broadcast(TaskName, FPlatformTime::Seconds() - StageStartTime);
 }
 
-static void AddDeviceToLaunchCommand(const FString& DeviceId, ITargetDeviceProxyPtr DeviceProxy, const ILauncherProfileRef& InProfile, FString& DeviceNames, FString& RoleCommands, bool& bVsyncAdded)
+static void AddDeviceToLaunchCommand(const FString& DeviceId, TSharedPtr<ITargetDeviceProxy> DeviceProxy, const ILauncherProfileRef& InProfile, FString& DeviceNames, FString& RoleCommands, bool& bVsyncAdded)
 {
 	// add the platform
 	DeviceNames += TEXT("+\"") + DeviceId + TEXT("\"");
@@ -392,7 +397,7 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 		for (int32 DeviceIndex = 0; DeviceIndex < Devices.Num(); ++DeviceIndex)
 		{
 			const FString& DeviceId = Devices[DeviceIndex];
-			ITargetDeviceProxyPtr DeviceProxy = DeviceProxyManager->FindProxyDeviceForTargetDevice(DeviceId);
+			TSharedPtr<ITargetDeviceProxy> DeviceProxy = DeviceProxyManager->FindProxyDeviceForTargetDevice(DeviceId);
 			if (DeviceProxy.IsValid())
 			{
 				AddDeviceToLaunchCommand(DeviceId, DeviceProxy, InProfile, DeviceNames, RoleCommands, bVsyncAdded);
@@ -801,7 +806,7 @@ void FLauncherWorker::CreateAndExecuteTasks( const ILauncherProfileRef& InProfil
 		{
 			const FString& DeviceId = Devices[DeviceIndex];
 
-			ITargetDeviceProxyPtr DeviceProxy = DeviceProxyManager->FindProxyDeviceForTargetDevice(DeviceId);
+			TSharedPtr<ITargetDeviceProxy> DeviceProxy = DeviceProxyManager->FindProxyDeviceForTargetDevice(DeviceId);
 
 			if (DeviceProxy.IsValid())
 			{

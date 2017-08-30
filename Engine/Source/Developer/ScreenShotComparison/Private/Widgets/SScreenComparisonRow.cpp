@@ -16,7 +16,7 @@
 #include "Widgets/Input/SSlider.h"
 #include "HAL/FileManager.h"
 #include "Misc/FileHelper.h"
-#include "Interfaces/IImageWrapperModule.h"
+#include "IImageWrapperModule.h"
 #include "Framework/Application/SlateApplication.h"
 #include "JsonObjectConverter.h"
 #include "SScreenShotImagePopup.h"

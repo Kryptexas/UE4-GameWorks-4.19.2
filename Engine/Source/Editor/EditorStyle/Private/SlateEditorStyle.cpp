@@ -4919,6 +4919,7 @@ void FSlateEditorStyle::FStyle::SetupLevelEditorStyle()
 		Set( "LevelViewport.Fog", new IMAGE_BRUSH( "Icons/icon_ShowFog_16x", Icon16x16 ) );
 		Set( "LevelViewport.Grid", new IMAGE_BRUSH( "Icons/icon_ShowGrid_16x", Icon16x16 ) );
 		Set( "LevelViewport.Landscape", new IMAGE_BRUSH( "Icons/icon_ShowLandscape_16x", Icon16x16 ) );
+		Set( "LevelViewport.MediaPlanes", new IMAGE_BRUSH( "Icons/icon_ShowMediaPlanes_16x", Icon16x16 ) );
 		Set( "LevelViewport.Navigation", new IMAGE_BRUSH( "Icons/icon_ShowNavigation_16x", Icon16x16 ) );
 		Set( "LevelViewport.Particles", new IMAGE_BRUSH( "Icons/icon_ShowParticlesSprite_16x", Icon16x16 ) );
 		Set( "LevelViewport.SkeletalMeshes", new IMAGE_BRUSH( "Icons/icon_ShowSkeletalMeshes_16x", Icon16x16 ) );
@@ -5825,7 +5826,6 @@ void FSlateEditorStyle::FStyle::SetupClassIconsAndThumbnails()
 			TEXT("MaterialParameterCollection"),
 			TEXT("MatineeActor"),
 			TEXT("MediaPlayer"),
-			TEXT("MediaSoundWave"),
 			TEXT("MediaTexture"),
 			TEXT("LevelSequenceActor"),
 			TEXT("MultiFont"),

@@ -2,18 +2,22 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+#include "CoreTypes.h"
+#include "Containers/Array.h"
+#include "Containers/BitArray.h"
 #include "Interfaces/IPv4/IPv4Endpoint.h"
+#include "Misc/DateTime.h"
+
 
 /**
  * Implements a reassembled message.
  */
-class FReassembledUdpMessage
+class FUdpReassembledMessage
 {
 public:
 
 	/** Default constructor. */
-	FReassembledUdpMessage() { }
+	FUdpReassembledMessage() { }
 
 	/**
 	 * Creates and initializes a new inbound message info.
@@ -23,7 +27,7 @@ public:
 	 * @param InSequence The message sequence number.
 	 * @param InSender The IPv4 endpoint of the sender.
 	 */
-	FReassembledUdpMessage(int32 MessageSize, int32 SegmentCount, uint64 InSequence, const FIPv4Endpoint& InSender)
+	FUdpReassembledMessage(int32 MessageSize, int32 SegmentCount, uint64 InSequence, const FIPv4Endpoint& InSender)
 		: PendingSegments(true, SegmentCount)
 		, PendingSegmentsCount(SegmentCount)
 		, ReceivedBytes(0)
@@ -34,7 +38,7 @@ public:
 	}
 
 	/** Virtual destructor. */
-	virtual ~FReassembledUdpMessage() { }
+	virtual ~FUdpReassembledMessage() { }
 
 public:
 

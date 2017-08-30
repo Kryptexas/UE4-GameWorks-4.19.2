@@ -72,47 +72,65 @@ void FMinimalViewInfo::AddWeightedViewInfo(const FMinimalViewInfo& OtherView, co
 	bUseFieldOfViewForLOD |= OtherViewWeighted.bUseFieldOfViewForLOD;
 }
 
+FMatrix FMinimalViewInfo::CalculateProjectionMatrix() const
+{
+	FMatrix ProjectionMatrix;
+
+	if (ProjectionMode == ECameraProjectionMode::Orthographic)
+	{
+		const float YScale = 1.0f / AspectRatio;
+
+		const float HalfOrthoWidth = OrthoWidth / 2.0f;
+		const float ScaledOrthoHeight = OrthoWidth / 2.0f * YScale;
+
+		const float NearPlane = OrthoNearClipPlane;
+		const float FarPlane = OrthoFarClipPlane;
+
+		const float ZScale = 1.0f / (FarPlane - NearPlane);
+		const float ZOffset = -NearPlane;
+
+		ProjectionMatrix = FReversedZOrthoMatrix(
+			HalfOrthoWidth,
+			ScaledOrthoHeight,
+			ZScale,
+			ZOffset
+			);
+	}
+	else
+	{
+		// Avoid divide by zero in the projection matrix calculation by clamping FOV
+		ProjectionMatrix = FReversedZPerspectiveMatrix(
+			FMath::Max(0.001f, FOV) * (float)PI / 360.0f,
+			AspectRatio,
+			1.0f,
+			GNearClippingPlane );
+	}
+
+	if (!OffCenterProjectionOffset.IsZero())
+	{
+		const float Left = -1.0f + OffCenterProjectionOffset.X;
+		const float Right = Left + 2.0f;
+		const float Bottom = -1.0f + OffCenterProjectionOffset.Y;
+		const float Top = Bottom + 2.0f;
+		ProjectionMatrix.M[2][0] = (Left + Right) / (Left - Right);
+		ProjectionMatrix.M[2][1] = (Bottom + Top) / (Bottom - Top);
+	}
+
+	return ProjectionMatrix;
+}
+
 void FMinimalViewInfo::CalculateProjectionMatrixGivenView(const FMinimalViewInfo& ViewInfo, TEnumAsByte<enum EAspectRatioAxisConstraint> AspectRatioAxisConstraint, FViewport* Viewport, FSceneViewProjectionData& InOutProjectionData)
 {
 	// Create the projection matrix (and possibly constrain the view rectangle)
 	if (ViewInfo.bConstrainAspectRatio)
-	{			
+	{
 		// Enforce a particular aspect ratio for the render of the scene. 
 		// Results in black bars at top/bottom etc.
 		InOutProjectionData.SetConstrainedViewRectangle(Viewport->CalculateViewExtents(ViewInfo.AspectRatio, InOutProjectionData.GetViewRect()));
 
-		//
-		if (ViewInfo.ProjectionMode == ECameraProjectionMode::Orthographic)
-		{
-			const float YScale = 1.0f / ViewInfo.AspectRatio;
-	
-			const float OrthoWidth = ViewInfo.OrthoWidth / 2.0f;
-			const float OrthoHeight = ViewInfo.OrthoWidth / 2.0f * YScale;
-
-			const float NearPlane = ViewInfo.OrthoNearClipPlane;
-			const float FarPlane = ViewInfo.OrthoFarClipPlane;
-
-			const float ZScale = 1.0f / (FarPlane - NearPlane);
-			const float ZOffset = -NearPlane;
-
-			InOutProjectionData.ProjectionMatrix = FReversedZOrthoMatrix(
-				OrthoWidth,
-				OrthoHeight,
-				ZScale,
-				ZOffset
-				);
-		}
-		else
-		{
-			// Avoid divide by zero in the projection matrix calculation by clamping FOV
-			InOutProjectionData.ProjectionMatrix = FReversedZPerspectiveMatrix(
-				FMath::Max(0.001f, ViewInfo.FOV) * (float)PI / 360.0f,
-				ViewInfo.AspectRatio,
-				1.0f,
-				GNearClippingPlane );
-		}
+		InOutProjectionData.ProjectionMatrix = ViewInfo.CalculateProjectionMatrix();
 	}
-	else 
+	else
 	{
 		// Avoid divide by zero in the projection matrix calculation by clamping FOV
 		float MatrixFOV = FMath::Max(0.001f, ViewInfo.FOV) * (float)PI / 360.0f;

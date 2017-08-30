@@ -39,7 +39,7 @@ public class UnrealEd : ModuleRules
 				"MaterialEditor",
 				"MergeActors",
 				"MeshUtilities",
-				"Messaging",
+				"MessagingCommon",
 				"MovieSceneCapture",
 				"PlacementMode",
 				"Settings",

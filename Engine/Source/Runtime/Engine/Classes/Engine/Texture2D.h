@@ -174,7 +174,7 @@ public:
 	virtual float GetSurfaceWidth() const override { return GetSizeX(); }
 	virtual float GetSurfaceHeight() const override { return GetSizeY(); }
 	virtual FTextureResource* CreateResource() override;
-	virtual EMaterialValueType GetMaterialType() override { return MCT_Texture2D; }
+	virtual EMaterialValueType GetMaterialType() const override { return MCT_Texture2D; }
 	virtual void UpdateResource() override;
 	virtual float GetAverageBrightness(bool bIgnoreTrueBlack, bool bUseGrayscale) override;
 	virtual FTexturePlatformData** GetRunningPlatformData() override { return &PlatformData; }

@@ -6,33 +6,30 @@ namespace UnrealBuildTool.Rules
 	{
 		public MessagingRpc(ReadOnlyTargetRules Target) : base(Target)
 		{
-            DynamicallyLoadedModuleNames.AddRange(
-                new string[]
-                {
-                    "Messaging",
-                }
-            );
+			DynamicallyLoadedModuleNames.AddRange(
+				new string[]
+				{
+					"Messaging",
+				});
 
 			PublicDependencyModuleNames.AddRange(
 				new string[]
 				{
 					"Core",
 					"CoreUObject",
-				}
-			);
+				});
 
-            PrivateIncludePathModuleNames.AddRange(
-                new string[]
-                {
-                    "Messaging",
-                }
-            );
+			PrivateIncludePathModuleNames.AddRange(
+				new string[]
+				{
+					"Messaging",
+					"MessagingCommon",
+				});
 
 			PrivateIncludePaths.AddRange(
 				new string[] {
 					"Runtime/MessagingRpc/Private",
-				}
-			);
+				});
 		}
 	}
 }

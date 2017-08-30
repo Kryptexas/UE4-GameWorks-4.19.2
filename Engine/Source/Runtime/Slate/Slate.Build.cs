@@ -9,15 +9,14 @@ public class Slate : ModuleRules
 		SharedPCHHeaderFile = "Public/SlateSharedPCH.h";
 
 		PublicDependencyModuleNames.AddRange(
-			new string[] { 
+			new string[] {
 				"Core",
 				"CoreUObject",
 				"InputCore",
 				"Json",
 				"SlateCore",
-                "ImageWrapper"
-            }
-		);
+				"ImageWrapper"
+			});
 
 		PrivateIncludePaths.AddRange(
 			new string[] {
@@ -47,18 +46,17 @@ public class Slate : ModuleRules
 				"Runtime/Slate/Private/Widgets/Tutorials",
 				"Runtime/Slate/Private/Widgets/Views",
 
-                "Runtime/Toolbox/Public/"
-			}
-		);
+				"Runtime/Toolbox/Public/"
+			});
 
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||
 			(Target.Platform == UnrealTargetPlatform.Win32))
 		{
 			AddEngineThirdPartyPrivateStaticDependencies(Target, "XInput");
 		}
-        else if (Target.Platform == UnrealTargetPlatform.Linux)
-        {
-            AddEngineThirdPartyPrivateStaticDependencies(Target, "SDL2");
-        }
-    }
+		else if (Target.Platform == UnrealTargetPlatform.Linux)
+		{
+			AddEngineThirdPartyPrivateStaticDependencies(Target, "SDL2");
+		}
+	}
 }

@@ -10,6 +10,9 @@
 #include "AndroidPermissionFunctionLibrary.h"
 
 THIRD_PARTY_INCLUDES_START
+// begin missing GPG dependencies
+#include <vector>
+// end missing GPG depdencies
 #include "gpg/types.h"
 #include "gpg/player_manager.h"
 THIRD_PARTY_INCLUDES_END

@@ -354,10 +354,9 @@ void FOutputDeviceFile::CreateBackupCopy(const TCHAR* Filename)
 {
 	if (IFileManager::Get().FileSize(Filename) > 0)
 	{
-		FString SystemTime = FDateTime::Now().ToString();
 		FString Name, Extension;
 		FString(Filename).Split(TEXT("."), &Name, &Extension, ESearchCase::CaseSensitive, ESearchDir::FromEnd);
-		FString BackupFilename = FString::Printf(TEXT("%s%s%s.%s"), *Name, BACKUP_LOG_FILENAME_POSTFIX, *SystemTime, *Extension);
+		FString BackupFilename = FString::Printf(TEXT("%s%s%s.%s"), *Name, BACKUP_LOG_FILENAME_POSTFIX, *GSystemStartTime, *Extension);
 		IFileManager::Get().Copy(*BackupFilename, Filename, false);
 	}
 }

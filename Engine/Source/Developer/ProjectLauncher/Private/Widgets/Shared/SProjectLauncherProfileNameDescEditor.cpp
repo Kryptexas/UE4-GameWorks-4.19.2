@@ -1,8 +1,9 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "Widgets/Shared/SProjectLauncherProfileNameDescEditor.h"
-#include "Widgets/SBoxPanel.h"
+#include "SProjectLauncherProfileNameDescEditor.h"
+
 #include "Styling/CoreStyle.h"
+#include "Widgets/SBoxPanel.h"
 #include "Widgets/Images/SImage.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Text/SInlineEditableTextBlock.h"
@@ -11,8 +12,7 @@
 #define LOCTEXT_NAMESPACE "SProjectLauncherProfileNameDescEditor"
 
 
-
-void SProjectLauncherProfileNameDescEditor::Construct(const FArguments& InArgs, const FProjectLauncherModelRef& InModel, bool InShowAddDescriptionText)
+void SProjectLauncherProfileNameDescEditor::Construct(const FArguments& InArgs, const TSharedRef<FProjectLauncherModel>& InModel, bool InShowAddDescriptionText)
 {
 	EnterTextDescription = FText(LOCTEXT("LaunchProfileEnterDescription", "Enter a description here."));
 
@@ -66,6 +66,7 @@ void SProjectLauncherProfileNameDescEditor::Construct(const FArguments& InArgs, 
 				]
 		];
 }
+
 
 void SProjectLauncherProfileNameDescEditor::TriggerNameEdit()
 {

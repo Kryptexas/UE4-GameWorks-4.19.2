@@ -1,11 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-/*================================================================================
-	SplashScreen.cpp: Splash screen for game/editor startup
-================================================================================*/
-
-
 #include "Linux/LinuxPlatformSplash.h"
+
 #include "Misc/AssertionMacros.h"
 #include "HAL/UnrealMemory.h"
 #include "Misc/EngineVersionBase.h"
@@ -35,10 +31,12 @@
 #include "SDL.h"
 #include "SDL_thread.h"
 #include "SDL_timer.h"
-#include "Interfaces/IImageWrapperModule.h"
+#include "IImageWrapper.h"
+#include "IImageWrapperModule.h"
 
 #include "ft2build.h"
 #include FT_FREETYPE_H
+
 
 /**
  * Splash screen functions and static globals
@@ -83,8 +81,8 @@ static FText GSplashScreenText[ SplashTextType::NumTextTypes ];
 static Rect GSplashScreenTextRects[ SplashTextType::NumTextTypes ];
 static FString GSplashPath;
 static FString GIconPath;
-static IImageWrapperPtr GSplashImageWrapper;
-static IImageWrapperPtr GIconImageWrapper;
+static TSharedPtr<IImageWrapper> GSplashImageWrapper;
+static TSharedPtr<IImageWrapper> GIconImageWrapper;
 static FCriticalSection GSplashScreenTextCriticalSection;
 
 static int32 SplashWidth = 0, SplashHeight = 0;
@@ -533,7 +531,7 @@ static int RenderString (GLuint tex_idx)
  *
  * @return Splash surface
  */
-static SDL_Surface* LinuxSplash_LoadImage(const TCHAR* InImagePath, IImageWrapperPtr & OutImageWrapper)
+static SDL_Surface* LinuxSplash_LoadImage(const TCHAR* InImagePath, TSharedPtr<IImageWrapper>& OutImageWrapper)
 {
 	TArray<uint8> RawFileData;
 	FString ImagePath(InImagePath);

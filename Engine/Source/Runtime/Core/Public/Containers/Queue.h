@@ -65,7 +65,8 @@ public:
 	 *
 	 * @param OutValue Will hold the returned value.
 	 * @return true if a value was returned, false if the queue was empty.
-	 * @see Enqueue, IsEmpty, Peek
+	 * @note To be called only from consumer thread.
+	 * @see Empty, Enqueue, IsEmpty, Peek
 	 */
 	bool Dequeue(ItemType& OutItem)
 	{
@@ -87,7 +88,12 @@ public:
 		return true;
 	}
 
-	/** Empty the queue, discarding all items. */
+	/**
+	 * Empty the queue, discarding all items.
+	 *
+	 * @note To be called only from consumer thread.
+	 * @see Dequeue, IsEmpty, Peek
+	 */
 	void Empty()
 	{
 		ItemType DummyItem;
@@ -99,7 +105,8 @@ public:
 	 *
 	 * @param Item The item to add.
 	 * @return true if the item was added, false otherwise.
-	 * @see Dequeue, IsEmpty, Peek
+	 * @note To be called only from producer thread(s).
+	 * @see Dequeue
 	 */
 	bool Enqueue(const ItemType& Item)
 	{
@@ -135,7 +142,8 @@ public:
 	 *
 	 * @param Item The item to add.
 	 * @return true if the item was added, false otherwise.
-	 * @see Dequeue, IsEmpty, Peek
+	 * @note To be called only from producer thread(s).
+	 * @see Dequeue
 	 */
 	bool Enqueue(ItemType&& Item)
 	{
@@ -170,7 +178,8 @@ public:
 	 * Checks whether the queue is empty.
 	 *
 	 * @return true if the queue is empty, false otherwise.
-	 * @see Dequeue, Enqueue, Peek
+	 * @note To be called only from consumer thread.
+	 * @see Dequeue, Empty, Peek
 	 */
 	bool IsEmpty() const
 	{
@@ -182,7 +191,8 @@ public:
 	 *
 	 * @param OutItem Will hold the peeked at item.
 	 * @return true if an item was returned, false if the queue was empty.
-	 * @see Dequeue, Enqueue, IsEmpty
+	 * @note To be called only from consumer thread.
+	 * @see Dequeue, Empty, IsEmpty
 	 */
 	bool Peek(ItemType& OutItem) const
 	{

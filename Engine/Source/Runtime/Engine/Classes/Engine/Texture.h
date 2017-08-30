@@ -618,7 +618,7 @@ public:
 	/**
 	 * @return The material value type of this texture.
 	 */
-	virtual EMaterialValueType GetMaterialType() PURE_VIRTUAL(UTexture::GetMaterialType,return MCT_Texture;);
+	virtual EMaterialValueType GetMaterialType() const PURE_VIRTUAL(UTexture::GetMaterialType,return MCT_Texture;);
 
 	/**
 	 * Waits until all streaming requests for this texture has been fully processed.
@@ -736,6 +736,14 @@ public:
 	/** @return the height of the surface represented by the texture. */
 	virtual float GetSurfaceHeight() const PURE_VIRTUAL(UTexture::GetSurfaceHeight,return 0;);
 
+	/**
+	 * Access the GUID which defines this texture's resources externally through FExternalTextureRegistry
+	 */
+	virtual FGuid GetExternalTextureGuid() const
+	{
+		return FGuid();
+	}
+
 	//~ Begin UObject Interface.
 #if WITH_EDITOR
 	ENGINE_API virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
@@ -836,6 +844,14 @@ public:
 	 */
 	ENGINE_API static class UEnum* GetPixelFormatEnum();
 
+protected:
+
+#if WITH_EDITOR
+
+	/** Notify any loaded material instances that the texture has changed. */
+	ENGINE_API void NotifyMaterials();
+
+#endif //WITH_EDOTIR
 };
 
 /** 

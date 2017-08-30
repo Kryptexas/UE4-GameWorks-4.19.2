@@ -31,7 +31,7 @@ public:
 	 * @param InArgs The Slate argument list.
 	 * @param InModel The data model.
 	 */
-	void Construct(const FArguments& InArgs, const FProjectLauncherModelRef& InModel, bool InShowAddDescriptionText);
+	void Construct(const FArguments& InArgs, const TSharedRef<FProjectLauncherModel>& InModel, bool InShowAddDescriptionText);
 
 	/**
 	 * Triggers a name edit for the profile.
@@ -104,7 +104,7 @@ private:
 private:
 
 	/** Holds a pointer to the data model. */
-	FProjectLauncherModelPtr Model;
+	TSharedPtr<FProjectLauncherModel> Model;
 
 	// Attribute for the launch profile this widget edits. 
 	TAttribute<ILauncherProfilePtr> LaunchProfileAttr;

@@ -1,16 +1,17 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "Widgets/Archive/SProjectLauncherArchivePage.h"
-#include "Widgets/SBoxPanel.h"
-#include "Styling/SlateTypes.h"
-#include "Framework/Application/SlateApplication.h"
-#include "Widgets/Layout/SBorder.h"
-#include "Widgets/Text/STextBlock.h"
-#include "Widgets/Input/SEditableTextBox.h"
-#include "Widgets/Input/SButton.h"
-#include "Widgets/Input/SCheckBox.h"
+#include "SProjectLauncherArchivePage.h"
+
 #include "EditorStyleSet.h"
 #include "DesktopPlatformModule.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Styling/SlateTypes.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "Widgets/Input/SEditableTextBox.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Text/STextBlock.h"
 
 
 #define LOCTEXT_NAMESPACE "SProjectLauncherArchivePage"
@@ -19,14 +20,14 @@
 /* SProjectLauncherCookPage structors
  *****************************************************************************/
 
-SProjectLauncherArchivePage::~SProjectLauncherArchivePage( )
+SProjectLauncherArchivePage::~SProjectLauncherArchivePage()
 {
 }
 
 /* SProjectLauncherCookPage interface
  *****************************************************************************/
 
-void SProjectLauncherArchivePage::Construct( const FArguments& InArgs, const FProjectLauncherModelRef& InModel )
+void SProjectLauncherArchivePage::Construct(const FArguments& InArgs, const TSharedRef<FProjectLauncherModel>& InModel)
 {
 	Model = InModel;
 
@@ -53,8 +54,8 @@ void SProjectLauncherArchivePage::Construct( const FArguments& InArgs, const FPr
 					[
 						// archive mode check box
 						SNew(SCheckBox)
-						.IsChecked(this, &SProjectLauncherArchivePage::HandleArchiveIsChecked)
-						.OnCheckStateChanged(this, &SProjectLauncherArchivePage::HandleArchiveCheckedStateChanged)
+							.IsChecked(this, &SProjectLauncherArchivePage::HandleArchiveIsChecked)
+							.OnCheckStateChanged(this, &SProjectLauncherArchivePage::HandleArchiveCheckedStateChanged)
 					]
 			]
 
@@ -63,58 +64,59 @@ void SProjectLauncherArchivePage::Construct( const FArguments& InArgs, const FPr
 			.Padding(0.0, 8.0, 0.0, 0.0)
 			[
 				SNew(SBorder)
-				.Padding(8.0)
-				.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
-				.Visibility(this, &SProjectLauncherArchivePage::HandleArchiveVisibility)
-				[
-					SNew(SVerticalBox)
-					
-					+ SVerticalBox::Slot()
-					.AutoHeight()
+					.Padding(8.0)
+					.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+					.Visibility(this, &SProjectLauncherArchivePage::HandleArchiveVisibility)
 					[
-						SNew(STextBlock)
-						.Text(LOCTEXT("ArchiveDirectoryTitle", "Archive Directory Path:"))
-					]
+						SNew(SVerticalBox)
 					
-					+ SVerticalBox::Slot()
-					.AutoHeight()
-					.Padding(0.0, 4.0, 0.0, 0.0)
-					[
-						SNew(SHorizontalBox)
+						+ SVerticalBox::Slot()
+							.AutoHeight()
+							[
+								SNew(STextBlock)
+									.Text(LOCTEXT("ArchiveDirectoryTitle", "Archive Directory Path:"))
+							]
+					
+						+ SVerticalBox::Slot()
+							.AutoHeight()
+							.Padding(0.0, 4.0, 0.0, 0.0)
+							[
+								SNew(SHorizontalBox)
 
-						+ SHorizontalBox::Slot()
-						.FillWidth(1.0)
-						.Padding(0.0, 0.0, 0.0, 3.0)
-						[
-							// archive path text box
-							SNew(SEditableTextBox)
-							.Text(this, &SProjectLauncherArchivePage::GetDirectoryPathText)
-							.OnTextCommitted(this, &SProjectLauncherArchivePage::OnDirectoryTextCommitted)
-						]
+								+ SHorizontalBox::Slot()
+									.FillWidth(1.0)
+									.Padding(0.0, 0.0, 0.0, 3.0)
+									[
+										// archive path text box
+										SNew(SEditableTextBox)
+											.Text(this, &SProjectLauncherArchivePage::GetDirectoryPathText)
+											.OnTextCommitted(this, &SProjectLauncherArchivePage::OnDirectoryTextCommitted)
+									]
 
-						+ SHorizontalBox::Slot()
-						.AutoWidth()
-						.HAlign(HAlign_Right)
-						.Padding(4.0, 0.0, 0.0, 0.0)
-						[
-							// browse button
-							SNew(SButton)
-							.ContentPadding(FMargin(6.0, 2.0))
-							.IsEnabled(this, &SProjectLauncherArchivePage::IsDirectoryEditable)
-							.Text(LOCTEXT("BrowseButtonText", "Browse..."))
-							.ToolTipText(LOCTEXT("BrowseButtonToolTip", "Browse for the directory"))
-							.OnClicked(this, &SProjectLauncherArchivePage::HandleBrowseButtonClicked)
-						]
+								+ SHorizontalBox::Slot()
+									.AutoWidth()
+									.HAlign(HAlign_Right)
+									.Padding(4.0, 0.0, 0.0, 0.0)
+									[
+										// browse button
+										SNew(SButton)
+											.ContentPadding(FMargin(6.0, 2.0))
+											.IsEnabled(this, &SProjectLauncherArchivePage::IsDirectoryEditable)
+											.Text(LOCTEXT("BrowseButtonText", "Browse..."))
+											.ToolTipText(LOCTEXT("BrowseButtonToolTip", "Browse for the directory"))
+											.OnClicked(this, &SProjectLauncherArchivePage::HandleBrowseButtonClicked)
+									]
+							]
 					]
-				]
 			]
 	];
 }
 
+
 /* SProjectLauncherArchivePage callbacks
  *****************************************************************************/
 
-void SProjectLauncherArchivePage::HandleArchiveCheckedStateChanged( ECheckBoxState CheckState )
+void SProjectLauncherArchivePage::HandleArchiveCheckedStateChanged(ECheckBoxState CheckState)
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -140,7 +142,8 @@ ECheckBoxState SProjectLauncherArchivePage::HandleArchiveIsChecked() const
 	return ECheckBoxState::Unchecked;
 }
 
-EVisibility SProjectLauncherArchivePage::HandleArchiveVisibility( ) const
+
+EVisibility SProjectLauncherArchivePage::HandleArchiveVisibility() const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -155,6 +158,7 @@ EVisibility SProjectLauncherArchivePage::HandleArchiveVisibility( ) const
 	return EVisibility::Collapsed;
 }
 
+
 FText SProjectLauncherArchivePage::GetDirectoryPathText() const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
@@ -166,6 +170,7 @@ FText SProjectLauncherArchivePage::GetDirectoryPathText() const
 
 	return FText::GetEmpty();
 }
+
 
 FReply SProjectLauncherArchivePage::HandleBrowseButtonClicked()
 {
@@ -202,6 +207,7 @@ FReply SProjectLauncherArchivePage::HandleBrowseButtonClicked()
 	return FReply::Handled();
 }
 
+
 bool SProjectLauncherArchivePage::IsDirectoryEditable() const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
@@ -212,6 +218,7 @@ bool SProjectLauncherArchivePage::IsDirectoryEditable() const
 	}
 	return false;
 }
+
 
 void SProjectLauncherArchivePage::OnDirectoryTextCommitted(const FText& InText, ETextCommit::Type CommitInfo)
 {
@@ -225,5 +232,6 @@ void SProjectLauncherArchivePage::OnDirectoryTextCommitted(const FText& InText, 
 		}
 	}
 }
+
 
 #undef LOCTEXT_NAMESPACE

@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "HAL/ThreadSafeCounter.h"
-#include "Interfaces/ILauncherTask.h"
+#include "ILauncherTask.h"
 #include "HAL/PlatformProcess.h"
 #include "HAL/Runnable.h"
 #include "Launcher/LauncherTaskChainState.h"

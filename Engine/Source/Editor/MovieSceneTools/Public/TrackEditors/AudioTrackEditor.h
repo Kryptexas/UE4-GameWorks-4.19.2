@@ -70,7 +70,7 @@ protected:
 
 private:
 
-	/** Callback for executing the "Add Event Track" menu entry. */
+	/** Callback for executing the "Add Audio Track" menu entry. */
 	void HandleAddAudioTrackMenuEntryExecute();
 
 	/** Audio sub menu */

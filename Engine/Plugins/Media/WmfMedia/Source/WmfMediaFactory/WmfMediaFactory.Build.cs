@@ -6,41 +6,36 @@ namespace UnrealBuildTool.Rules
 	{
 		public WmfMediaFactory(ReadOnlyTargetRules Target) : base(Target)
 		{
-            DynamicallyLoadedModuleNames.AddRange(
-                new string[] {
-                    "Media",
-				}
-            );
+			DynamicallyLoadedModuleNames.AddRange(
+				new string[] {
+					"Media",
+				});
 
 			PrivateDependencyModuleNames.AddRange(
 				new string[] {
 					"Core",
-                    "CoreUObject",
-                    "MediaAssets",
-                }
-			);
+					"CoreUObject",
+					"MediaAssets",
+				});
 
 			PrivateIncludePathModuleNames.AddRange(
 				new string[] {
 					"Media",
 					"WmfMedia",
-				}
-			);
+				});
 
 			PrivateIncludePaths.AddRange(
 				new string[] {
 					"WmfMediaFactory/Private",
-				}
-			);
+				});
 
-            PublicDependencyModuleNames.AddRange(
-                new string[] {
-                    "Core",
-                    "CoreUObject",
-                }
-            );
+			PublicDependencyModuleNames.AddRange(
+				new string[] {
+					"Core",
+					"CoreUObject",
+				});
 
-            if (Target.Type == TargetType.Editor)
+			if (Target.Type == TargetType.Editor)
 			{
 				DynamicallyLoadedModuleNames.Add("Settings");
 				PrivateIncludePathModuleNames.Add("Settings");

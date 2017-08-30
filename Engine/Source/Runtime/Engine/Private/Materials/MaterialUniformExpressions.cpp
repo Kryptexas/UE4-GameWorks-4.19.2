@@ -386,10 +386,25 @@ FUniformBufferRHIRef FUniformExpressionSet::CreateUniformBuffer(const FMaterialR
 			ESamplerSourceMode SourceMode;
 			Uniform2DTextureExpressions[ExpressionIndex]->GetTextureValue(MaterialRenderContext,MaterialRenderContext.Material,Value,SourceMode);
 
-			// gmartin: Trying to locate UE-23902
-			ensureMsgf(!Value || Value->IsValidLowLevel(), TEXT("Texture not valid! UE-23902! Parameter (%s)"),
-				   Uniform2DTextureExpressions[ExpressionIndex]->GetType() == &FMaterialUniformExpressionTextureParameter::StaticType ?
-				   	*((FMaterialUniformExpressionTextureParameter&)*Uniform2DTextureExpressions[ExpressionIndex]).GetParameterName().ToString() : TEXT("non-parameter"));
+			if (Value)
+			{
+				// Pre-application validity checks (explicit ensures to avoid needless string allocation)
+				const FMaterialUniformExpressionTextureParameter* TextureParameter = (Uniform2DTextureExpressions[ExpressionIndex]->GetType() == &FMaterialUniformExpressionTextureParameter::StaticType) ?
+					&static_cast<const FMaterialUniformExpressionTextureParameter&>(*Uniform2DTextureExpressions[ExpressionIndex]) : nullptr;
+
+				// gmartin: Trying to locate UE-23902
+				if (!Value->IsValidLowLevel())
+				{
+					ensureMsgf(false, TEXT("Texture not valid! UE-23902! Parameter (%s)"), TextureParameter ? *TextureParameter->GetParameterName().ToString() : TEXT("non-parameter"));
+				}
+
+				// Do not allow external textures to be applied to normal texture samplers
+				if (Value->GetMaterialType() == MCT_TextureExternal)
+				{
+					ensureMsgf(false, TEXT("External texture applied to a Texture2D sampler. This may work by chance on some platforms but is not portable. Please change sampler type to 'External'. Texture '%s' on parameter '%s' (slot %i) in material '%s'"),
+						*Value->GetPathName(), TextureParameter ? *TextureParameter->GetParameterName().ToString() : TEXT("non-parameter"), ExpressionIndex, *MaterialRenderContext.Material.GetFriendlyName());
+				}
+			}
 
 			if (Value && Value->Resource)
 			{
@@ -465,7 +480,7 @@ FUniformBufferRHIRef FUniformExpressionSet::CreateUniformBuffer(const FMaterialR
 		{
 			FTextureRHIRef TextureRHI;
 			FSamplerStateRHIRef SamplerStateRHI;
-			if (UniformExternalTextureExpressions[ExpressionIndex]->GetExternalTexture(MaterialRenderContext.MaterialRenderProxy, TextureRHI, SamplerStateRHI))
+			if (UniformExternalTextureExpressions[ExpressionIndex]->GetExternalTexture(MaterialRenderContext, TextureRHI, SamplerStateRHI))
 			{
 				*ResourceTable++ = TextureRHI;
 				*ResourceTable++ = SamplerStateRHI;
@@ -571,40 +586,96 @@ bool FMaterialUniformExpressionTexture::IsIdentical(const FMaterialUniformExpres
 	return TextureIndex == OtherTextureExpression->TextureIndex;
 }
 
-
-FMaterialUniformExpressionExternalTexture::FMaterialUniformExpressionExternalTexture()
+FMaterialUniformExpressionExternalTextureBase::FMaterialUniformExpressionExternalTextureBase(int32 InSourceTextureIndex)
+	: SourceTextureIndex(InSourceTextureIndex)
 {}
 
-FMaterialUniformExpressionExternalTexture::FMaterialUniformExpressionExternalTexture(const FGuid& InGuid) :
-	ExternalTextureGuid(InGuid)
+FMaterialUniformExpressionExternalTextureBase::FMaterialUniformExpressionExternalTextureBase(const FGuid& InGuid)
+	: SourceTextureIndex(INDEX_NONE)
+	, ExternalTextureGuid(InGuid)
 {
 }
 
-bool FMaterialUniformExpressionExternalTexture::GetExternalTexture(const FMaterialRenderProxy* MaterialRenderProxy, FTextureRHIRef& OutTextureRHI, FSamplerStateRHIRef& OutSamplerStateRHI)
+void FMaterialUniformExpressionExternalTextureBase::Serialize(FArchive& Ar)
 {
-	return FExternalTextureRegistry::Get().GetExternalTexture(MaterialRenderProxy, ExternalTextureGuid, OutTextureRHI, OutSamplerStateRHI);
-}
-
-void FMaterialUniformExpressionExternalTexture::Serialize(FArchive& Ar)
-{
+	Ar << SourceTextureIndex;
 	Ar << ExternalTextureGuid;
 }
 
-bool FMaterialUniformExpressionExternalTexture::IsIdentical(const FMaterialUniformExpression* OtherExpression) const
+bool FMaterialUniformExpressionExternalTextureBase::IsIdentical(const FMaterialUniformExpression* OtherExpression) const
 {
 	if (GetType() != OtherExpression->GetType())
 	{
 		return false;
 	}
-	FMaterialUniformExpressionExternalTexture* OtherExternalTextureExpression = (FMaterialUniformExpressionExternalTexture*)OtherExpression;
 
-	return ExternalTextureGuid == OtherExternalTextureExpression->ExternalTextureGuid;
+	const auto* Other = static_cast<const FMaterialUniformExpressionExternalTextureBase*>(OtherExpression);
+	return SourceTextureIndex == Other->SourceTextureIndex && ExternalTextureGuid == Other->ExternalTextureGuid;
 }
 
-FArchive& operator<<(FArchive& Ar, FMaterialUniformExpressionExternalTexture*& Ref)
+FGuid FMaterialUniformExpressionExternalTextureBase::ResolveExternalTextureGUID(const FMaterialRenderContext& Context, TOptional<FName> ParameterName) const
 {
-	Ar << (FMaterialUniformExpression*&)Ref;
-	return Ar;
+	// Use the compile-time GUID if it is set
+	if (ExternalTextureGuid.IsValid())
+	{
+		return ExternalTextureGuid;
+	}
+
+	const UTexture* TextureParameterObject = nullptr;
+	if (ParameterName.IsSet() && Context.MaterialRenderProxy && Context.MaterialRenderProxy->GetTextureValue(ParameterName.GetValue(), &TextureParameterObject, Context) && TextureParameterObject)
+	{
+		return TextureParameterObject->GetExternalTextureGuid();
+	}
+
+	// Otherwise attempt to use the texture index in the material, if it's valid
+	const UTexture* TextureObject = SourceTextureIndex != INDEX_NONE ? GetIndexedTexture(Context.Material, SourceTextureIndex) : nullptr;
+	if (TextureObject)
+	{
+		return TextureObject->GetExternalTextureGuid();
+	}
+
+	return FGuid();
+}
+
+bool FMaterialUniformExpressionExternalTexture::GetExternalTexture(const FMaterialRenderContext& Context, FTextureRHIRef& OutTextureRHI, FSamplerStateRHIRef& OutSamplerStateRHI) const
+{
+	check(IsInParallelRenderingThread());
+
+	FGuid GuidToLookup = ResolveExternalTextureGUID(Context);
+	return GuidToLookup.IsValid() && FExternalTextureRegistry::Get().GetExternalTexture(Context.MaterialRenderProxy, GuidToLookup, OutTextureRHI, OutSamplerStateRHI);
+}
+
+FMaterialUniformExpressionExternalTextureParameter::FMaterialUniformExpressionExternalTextureParameter()
+{}
+
+FMaterialUniformExpressionExternalTextureParameter::FMaterialUniformExpressionExternalTextureParameter(FName InParameterName, int32 InTextureIndex)
+	: Super(InTextureIndex)
+	, ParameterName(InParameterName)
+{}
+
+void FMaterialUniformExpressionExternalTextureParameter::Serialize(FArchive& Ar)
+{
+	Ar << ParameterName;
+	Super::Serialize(Ar);
+}
+
+bool FMaterialUniformExpressionExternalTextureParameter::GetExternalTexture(const FMaterialRenderContext& Context, FTextureRHIRef& OutTextureRHI, FSamplerStateRHIRef& OutSamplerStateRHI) const
+{
+	check(IsInParallelRenderingThread());
+
+	FGuid GuidToLookup = ResolveExternalTextureGUID(Context, ParameterName);
+	return GuidToLookup.IsValid() && FExternalTextureRegistry::Get().GetExternalTexture(Context.MaterialRenderProxy, GuidToLookup, OutTextureRHI, OutSamplerStateRHI);
+}
+
+bool FMaterialUniformExpressionExternalTextureParameter::IsIdentical(const FMaterialUniformExpression* OtherExpression) const
+{
+	if (GetType() != OtherExpression->GetType())
+	{
+		return false;
+	}
+
+	auto* Other = static_cast<const FMaterialUniformExpressionExternalTextureParameter*>(OtherExpression);
+	return ParameterName == Other->ParameterName && Super::IsIdentical(OtherExpression);
 }
 
 void FMaterialUniformExpressionVectorParameter::GetGameThreadNumberValue(const UMaterialInterface* SourceMaterialToCopyFrom, FLinearColor& OutValue) const
@@ -673,6 +744,83 @@ void FMaterialUniformExpressionScalarParameter::GetGameThreadNumberValue(const U
 	}
 }
 
+namespace
+{
+	void SerializeOptional(FArchive Ar, TOptional<FName> OptionalName)
+	{
+		bool bIsSet = OptionalName.IsSet();
+		Ar << bIsSet;
+
+		if (bIsSet)
+		{
+			if (!OptionalName.IsSet())
+			{
+				OptionalName.Emplace();
+			}
+
+			Ar << OptionalName.GetValue();
+		}
+	}
+}
+
+void FMaterialUniformExpressionExternalTextureCoordinateScaleRotation::Serialize(FArchive& Ar)
+{
+	// Write out the optional parameter name
+	SerializeOptional(Ar, ParameterName);
+
+	Super::Serialize(Ar);
+}
+
+bool FMaterialUniformExpressionExternalTextureCoordinateScaleRotation::IsIdentical(const FMaterialUniformExpression* OtherExpression) const
+{
+	if (GetType() != OtherExpression->GetType() || !Super::IsIdentical(OtherExpression))
+	{
+		return false;
+	}
+
+	const auto* Other = static_cast<const FMaterialUniformExpressionExternalTextureCoordinateScaleRotation*>(OtherExpression);
+	return ParameterName == Other->ParameterName;
+}
+
+void FMaterialUniformExpressionExternalTextureCoordinateScaleRotation::GetNumberValue(const FMaterialRenderContext& Context, FLinearColor& OutValue) const
+{
+	FGuid GuidToLookup = ResolveExternalTextureGUID(Context, ParameterName);
+	if (!GuidToLookup.IsValid() || !FExternalTextureRegistry::Get().GetExternalTextureCoordinateScaleRotation(GuidToLookup, OutValue))
+	{
+		OutValue = FLinearColor(1.f, 0.f, 0.f, 1.f);
+	}
+}
+
+void FMaterialUniformExpressionExternalTextureCoordinateOffset::Serialize(FArchive& Ar)
+{
+	// Write out the optional parameter name
+	SerializeOptional(Ar, ParameterName);
+
+	Super::Serialize(Ar);
+}
+
+bool FMaterialUniformExpressionExternalTextureCoordinateOffset::IsIdentical(const FMaterialUniformExpression* OtherExpression) const
+{
+	if (GetType() != OtherExpression->GetType() || !Super::IsIdentical(OtherExpression))
+	{
+		return false;
+	}
+
+	const auto* Other = static_cast<const FMaterialUniformExpressionExternalTextureCoordinateOffset*>(OtherExpression);
+	return ParameterName == Other->ParameterName;
+}
+
+void FMaterialUniformExpressionExternalTextureCoordinateOffset::GetNumberValue(const FMaterialRenderContext& Context, FLinearColor& OutValue) const
+{
+	FGuid GuidToLookup = ResolveExternalTextureGUID(Context, ParameterName);
+	if (!GuidToLookup.IsValid() || !FExternalTextureRegistry::Get().GetExternalTextureCoordinateOffset(GuidToLookup, OutValue))
+	{
+		OutValue.R = OutValue.G = 0;
+		OutValue.B = OutValue.A = 0;
+	}
+}
+
+
 IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionTexture);
 IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionConstant);
 IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionTime);
@@ -680,7 +828,11 @@ IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionRealTime);
 IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionVectorParameter);
 IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionScalarParameter);
 IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionTextureParameter);
+IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionExternalTextureBase);
 IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionExternalTexture);
+IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionExternalTextureParameter);
+IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionExternalTextureCoordinateScaleRotation);
+IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionExternalTextureCoordinateOffset);
 IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionFlipBookTextureParameter);
 IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionSine);
 IMPLEMENT_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionSquareRoot);

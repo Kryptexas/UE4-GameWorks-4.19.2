@@ -5,8 +5,6 @@
 #include "MixedRealityBillboard.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "MediaPlayer.h"
-#include "IMediaPlayer.h"
-#include "IMediaTracks.h"
 #include "Materials/Material.h"
 #include "UObject/ConstructorHelpers.h"
 #include "GameFramework/Pawn.h" // for GetWorld()
@@ -290,14 +288,11 @@ bool UMixedRealityCaptureComponent::GetEditorPreviewInfo(float /*DeltaTime*/, FM
 float UMixedRealityCaptureComponent::GetDesiredAspectRatio() const
 {
 	float DesiredAspectRatio = 0.0f;
+
 	if (MediaSource)
 	{
-		TSharedPtr<IMediaPlayer, ESPMode::ThreadSafe> MediaPlayer = MediaSource->GetBasePlayer().GetNativePlayer();
-		if (MediaPlayer.IsValid())
-		{
-			IMediaTracks& Tracks = MediaPlayer->GetTracks();
-			DesiredAspectRatio = Tracks.GetVideoTrackAspectRatio(0);
-		}
+		const int32 SelectedTrack = MediaSource->GetSelectedTrack(EMediaPlayerTrack::Video);
+		DesiredAspectRatio = MediaSource->GetVideoTrackAspectRatio(SelectedTrack, MediaSource->GetTrackFormat(EMediaPlayerTrack::Video, SelectedTrack));
 	}
 
 	if (DesiredAspectRatio == 0.0f)
@@ -311,6 +306,7 @@ float UMixedRealityCaptureComponent::GetDesiredAspectRatio() const
 			DesiredAspectRatio = 16.f / 9.f;
 		}
 	}
+
 	return DesiredAspectRatio;
 }
 

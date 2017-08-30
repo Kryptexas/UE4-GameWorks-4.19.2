@@ -52,9 +52,9 @@ namespace
 		}
 
 		return FFileStatData(
-			HTML5Epoch + FTimespan(0, 0, FileInfo.st_ctime),
-			HTML5Epoch + FTimespan(0, 0, FileInfo.st_atime),
-			HTML5Epoch + FTimespan(0, 0, FileInfo.st_mtime),
+			HTML5Epoch + FTimespan::FromSeconds(FileInfo.st_ctime),
+			HTML5Epoch + FTimespan::FromSeconds(FileInfo.st_atime),
+			HTML5Epoch + FTimespan::FromSeconds(FileInfo.st_mtime),
 			FileSize,
 			bIsDirectory,
 			!!(FileInfo.st_mode & S_IWUSR)

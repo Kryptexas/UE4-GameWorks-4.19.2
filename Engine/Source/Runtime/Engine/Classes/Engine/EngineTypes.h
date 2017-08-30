@@ -476,6 +476,7 @@ enum EMaterialSamplerType
 	SAMPLERTYPE_DistanceFieldFont UMETA(DisplayName="Distance Field Font"),
 	SAMPLERTYPE_LinearColor UMETA(DisplayName = "Linear Color"),
 	SAMPLERTYPE_LinearGrayscale UMETA(DisplayName = "Linear Grayscale"),
+	SAMPLERTYPE_External UMETA(DisplayName = "External"),
 	SAMPLERTYPE_MAX,
 };
 

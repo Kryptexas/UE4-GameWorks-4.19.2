@@ -2,8 +2,16 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+#include "CoreTypes.h"
+#include "Containers/Array.h"
+#include "Delegates/Delegate.h"
 #include "IMessageTracer.h"
+#include "Templates/SharedPointer.h"
+
+struct FMessageTracerEndpointInfo;
+struct FMessageTracerMessageInfo;
+struct FMessageTracerTypeInfo;
+
 
 /**
  * Implements a view model for the messaging debugger.

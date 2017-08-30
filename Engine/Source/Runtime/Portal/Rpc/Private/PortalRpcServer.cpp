@@ -3,7 +3,7 @@
 #include "PortalRpcServer.h"
 #include "IPortalRpcServer.h"
 #include "PortalRpcMessages.h"
-#include "Helpers/MessageEndpoint.h"
+#include "MessageEndpoint.h"
 #include "MessageRpcServer.h"
 
 class FPortalRpcServerImpl

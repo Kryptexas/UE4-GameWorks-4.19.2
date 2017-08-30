@@ -3,15 +3,15 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Layout/Margin.h"
-#include "Fonts/SlateFontInfo.h"
-#include "Styling/SlateTypes.h"
-#include "Misc/Paths.h"
 #include "Brushes/SlateBorderBrush.h"
 #include "Brushes/SlateBoxBrush.h"
 #include "Brushes/SlateImageBrush.h"
+#include "Fonts/SlateFontInfo.h"
+#include "Layout/Margin.h"
+#include "Misc/Paths.h"
 #include "Styling/SlateStyleRegistry.h"
 #include "Styling/SlateStyle.h"
+#include "Styling/SlateTypes.h"
 
 
 #define IMAGE_BRUSH(RelativePath, ...) FSlateImageBrush(RootToContentDir(RelativePath, TEXT(".png")), __VA_ARGS__)
@@ -106,8 +106,8 @@ public:
 		FSlateStyleRegistry::RegisterSlateStyle(*this);
 	 }
 
-	 /** Destructor. */
-	 ~FMessagingDebuggerStyle()
+	 /** Virtual destructor. */
+	 virtual ~FMessagingDebuggerStyle()
 	 {
 		FSlateStyleRegistry::UnRegisterSlateStyle(*this);
 	 }

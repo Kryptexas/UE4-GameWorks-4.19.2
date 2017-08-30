@@ -7,8 +7,8 @@
 #include "UnrealClient.h"
 #include "Materials/Material.h"
 #include "Slate/SceneViewport.h"
-#include "Interfaces/IImageWrapper.h"
-#include "Interfaces/IImageWrapperModule.h"
+#include "IImageWrapper.h"
+#include "IImageWrapperModule.h"
 
 static TAutoConsoleVariable<int32> CVarSaveEXRCompressionQuality(
 	TEXT("r.SaveEXR.CompressionQuality"),
@@ -180,7 +180,7 @@ template<typename> struct FPixelTypeTraits {};
 
 template<> struct FPixelTypeTraits<FColor>
 {
-	static const ERGBFormat::Type SourceChannelLayout = ERGBFormat::BGRA;
+	static const ERGBFormat SourceChannelLayout = ERGBFormat::BGRA;
 
 	static FORCEINLINE bool IsWritingHDRImage(const bool)
 	{
@@ -190,7 +190,7 @@ template<> struct FPixelTypeTraits<FColor>
 
 template<> struct FPixelTypeTraits<FFloat16Color>
 {
-	static const ERGBFormat::Type SourceChannelLayout = ERGBFormat::RGBA;
+	static const ERGBFormat SourceChannelLayout = ERGBFormat::RGBA;
 
 	static FORCEINLINE bool IsWritingHDRImage(const bool bCaptureHDR)
 	{
@@ -201,7 +201,7 @@ template<> struct FPixelTypeTraits<FFloat16Color>
 
 template<> struct FPixelTypeTraits<FLinearColor>
 {
-	static const ERGBFormat::Type SourceChannelLayout = ERGBFormat::RGBA;
+	static const ERGBFormat SourceChannelLayout = ERGBFormat::RGBA;
 
 	static FORCEINLINE bool IsWritingHDRImage(const bool bCaptureHDR)
 	{
@@ -265,20 +265,20 @@ bool FHighResScreenshotConfig::SaveImage(const FString& File, const TArray<TPixe
 		ImageWriter->ImageWrapper.IsValid() &&
 		ImageWriter->ImageWrapper->SetRaw((void*)&Bitmap[0], sizeof(TPixelType)* x * y, x, y, Traits::SourceChannelLayout, BitsPerPixel))
 	{
-		ImageCompression::CompressionQuality LocalCompressionQuality = ImageCompression::Default;
+		EImageCompressionQuality LocalCompressionQuality = EImageCompressionQuality::Default;
 		
 		if(bIsWritingHDRImage && CVarSaveEXRCompressionQuality.GetValueOnAnyThread() == 0)
 		{
-			LocalCompressionQuality = ImageCompression::Uncompressed;
+			LocalCompressionQuality = EImageCompressionQuality::Uncompressed;
 		}
 
 		// Compress and write image
 		FArchive* Ar = FileManager->CreateFileWriter(Filename.GetCharArray().GetData());
 		if (Ar != nullptr)
 		{
-			const TArray<uint8>& CompressedData = ImageWriter->ImageWrapper->GetCompressed(LocalCompressionQuality);
-				int32 CompressedSize = CompressedData.Num();
-				Ar->Serialize((void*)CompressedData.GetData(), CompressedSize);
+			const TArray<uint8>& CompressedData = ImageWriter->ImageWrapper->GetCompressed((int32)LocalCompressionQuality);
+			int32 CompressedSize = CompressedData.Num();
+			Ar->Serialize((void*)CompressedData.GetData(), CompressedSize);
 			delete Ar;
 
 			bSuccess = true;

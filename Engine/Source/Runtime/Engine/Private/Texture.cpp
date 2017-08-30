@@ -1,9 +1,5 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Texture.cpp: Implementation of UTexture.
-=============================================================================*/
-
 #include "Engine/Texture.h"
 #include "Misc/App.h"
 #include "Modules/ModuleManager.h"
@@ -18,15 +14,18 @@
 #include "EngineUtils.h"
 #include "Engine/AssetUserData.h"
 #include "EditorSupportDelegates.h"
-#include "Interfaces/IImageWrapperModule.h"
+#include "IImageWrapper.h"
+#include "IImageWrapperModule.h"
 #include "EngineGlobals.h"
 #include "Engine/Engine.h"
 #include "Interfaces/ITargetPlatform.h"
 
 #if WITH_EDITORONLY_DATA
-#include "EditorFramework/AssetImportData.h"
+	#include "EditorFramework/AssetImportData.h"
 #endif
+
 #include "Engine/TextureCube.h"
+
 
 DEFINE_LOG_CATEGORY(LogTexture);
 
@@ -37,6 +36,7 @@ DECLARE_STATS_GROUP(TEXT("Texture Group"), STATGROUP_TextureGroup, STATCAT_Advan
 #define DECLARETEXTUREGROUPSTAT(Group) DECLARE_MEMORY_STAT(TEXT(#Group),STAT_##Group,STATGROUP_TextureGroup);
 FOREACH_ENUM_TEXTUREGROUP(DECLARETEXTUREGROUPSTAT)
 #undef DECLARETEXTUREGROUPSTAT
+
 
 // Initialize TextureGroupStatFNames array with the FNames for each stats.
 FName FTextureResource::TextureGroupStatFNames[TEXTUREGROUP_MAX] =
@@ -132,16 +132,20 @@ void UTexture::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEven
 	UProperty* PropertyThatChanged = PropertyChangedEvent.Property;
 	if( PropertyThatChanged )
 	{
-		static const FName CompressionSettingsName("CompressionSettings");
-		static const FName LODGroupName("LODGroup");
-		static const FName DeferCompressionName("DeferCompression");
+		static const FName CompressionSettingsName = GET_MEMBER_NAME_CHECKED(UTexture, CompressionSettings);
+		static const FName LODGroupName = GET_MEMBER_NAME_CHECKED(UTexture, LODGroup);
+		static const FName DeferCompressionName = GET_MEMBER_NAME_CHECKED(UTexture, DeferCompression);
+		static const FName SrgbName = GET_MEMBER_NAME_CHECKED(UTexture, SRGB);
 #if WITH_EDITORONLY_DATA
-		static const FName MaxTextureSizeName("MaxTextureSize");
-		static const FName CompressionQualityName("CompressionQuality");
-#endif // #if WITH_EDITORONLY_DATA
+		static const FName MaxTextureSizeName = GET_MEMBER_NAME_CHECKED(UTexture, MaxTextureSize);
+		static const FName CompressionQualityName = GET_MEMBER_NAME_CHECKED(UTexture, CompressionQuality);
+#endif //WITH_EDITORONLY_DATA
 
 		const FName PropertyName = PropertyThatChanged->GetFName();
-		if (PropertyName == CompressionSettingsName || PropertyName == LODGroupName)
+
+		if ((PropertyName == CompressionSettingsName) ||
+			(PropertyName == LODGroupName) ||
+			(PropertyName == SrgbName))
 		{
 			RequiresNotifyMaterials = true;
 		}
@@ -165,7 +169,7 @@ void UTexture::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEven
 				MaxTextureSize = FMath::Min<int32>(FMath::RoundUpToPowerOfTwo(MaxTextureSize), GetMaximumDimension());
 			}
 		}
-#endif // #if WITH_EDITORONLY_DATA
+#endif //WITH_EDITORONLY_DATA
 
 		bool bPreventSRGB = (CompressionSettings == TC_Alpha || CompressionSettings == TC_Normalmap || CompressionSettings == TC_Masks || CompressionSettings == TC_HDR || CompressionSettings == TC_HDR_Compressed);
 		if(bPreventSRGB && SRGB == true)
@@ -212,43 +216,7 @@ void UTexture::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEven
 	// Notify any loaded material instances if changed our compression format
 	if (RequiresNotifyMaterials)
 	{
-		TArray<UMaterialInterface*> MaterialsThatUseThisTexture;
-
-		// Create a material update context to safely update materials.
-		{
-			FMaterialUpdateContext UpdateContext;
-
-			// Notify any material that uses this texture
-			TSet<UMaterial*> BaseMaterialsThatUseThisTexture;
-			for (TObjectIterator<UMaterialInterface> It; It; ++It)
-			{
-				UMaterialInterface* MaterialInterface = *It;
-				if (DoesMaterialUseTexture(MaterialInterface,this))
-				{
-					MaterialsThatUseThisTexture.Add(MaterialInterface);
-
-					// This is a bit tricky. We want to make sure all materials using this texture are
-					// updated. Materials are always updated. Material instances may also have to be
-					// updated and if they have static permutations their children must be updated
-					// whether they use the texture or not! The safe thing to do is to add the instance's
-					// base material to the update context causing all materials in the tree to update.
-					BaseMaterialsThatUseThisTexture.Add(MaterialInterface->GetMaterial());
-				}
-			}
-
-			// Go ahead and update any base materials that need to be.
-			for (TSet<UMaterial*>::TConstIterator It(BaseMaterialsThatUseThisTexture); It; ++It)
-			{
-				UpdateContext.AddMaterial(*It);
-				(*It)->PostEditChange();
-			}
-		}
-
-		// Now that all materials and instances have updated send necessary callbacks.
-		for (int32 i = 0; i < MaterialsThatUseThisTexture.Num(); ++i)
-		{
-			FEditorSupportDelegates::MaterialTextureSettingsChanged.Broadcast(MaterialsThatUseThisTexture[i]);
-		}
+		NotifyMaterials();
 	}
 		
 #if WITH_EDITORONLY_DATA
@@ -668,9 +636,9 @@ void FTextureSource::Compress()
 	{
 		uint8* BulkDataPtr = (uint8*)BulkData.Lock(LOCK_READ_WRITE);
 		IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>( FName("ImageWrapper") );
-		IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper( EImageFormat::PNG );
+		TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper( EImageFormat::PNG );
 		// TODO: TSF_BGRA8 is stored as RGBA, so the R and B channels are swapped in the internal png. Should we fix this?
-		ERGBFormat::Type RawFormat = (Format == TSF_G8) ? ERGBFormat::Gray : ERGBFormat::RGBA;
+		ERGBFormat RawFormat = (Format == TSF_G8) ? ERGBFormat::Gray : ERGBFormat::RGBA;
 		if ( ImageWrapper.IsValid() && ImageWrapper->SetRaw( BulkDataPtr, BulkData.GetBulkDataSize(), SizeX, SizeY, RawFormat, Format == TSF_RGBA16 ? 16 : 8 ) )
 		{
 			const TArray<uint8>& CompressedData = ImageWrapper->GetCompressed();
@@ -710,14 +678,14 @@ uint8* FTextureSource::LockMip(int32 MipIndex)
 				}
 
 				IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>( FName("ImageWrapper") );
-				IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper( EImageFormat::PNG );
+				TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper( EImageFormat::PNG );
 				if ( ImageWrapper.IsValid() && ImageWrapper->SetCompressed( LockedMipData, BulkData.GetBulkDataSize() ) )
 				{
 					check( ImageWrapper->GetWidth() == SizeX );
 					check( ImageWrapper->GetHeight() == SizeY );
 					const TArray<uint8>* RawData = NULL;
 					// TODO: TSF_BGRA8 is stored as RGBA, so the R and B channels are swapped in the internal png. Should we fix this?
-					ERGBFormat::Type RawFormat = (Format == TSF_G8) ? ERGBFormat::Gray : ERGBFormat::RGBA;
+					ERGBFormat RawFormat = (Format == TSF_G8) ? ERGBFormat::Gray : ERGBFormat::RGBA;
 					if (ImageWrapper->GetRaw( RawFormat, Format == TSF_RGBA16 ? 16 : 8, RawData ))
 					{
 						if (RawData->Num() > 0)
@@ -787,7 +755,9 @@ bool FTextureSource::GetMipData(TArray<uint8>& OutMipData, int32 MipIndex, IImag
 				{
 					ImageWrapperModule = &FModuleManager::LoadModuleChecked<IImageWrapperModule>( FName("ImageWrapper") );
 				}
-				IImageWrapperPtr ImageWrapper = ImageWrapperModule->CreateImageWrapper( EImageFormat::PNG );
+
+				TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule->CreateImageWrapper( EImageFormat::PNG );
+
 				if ( ImageWrapper.IsValid() && ImageWrapper->SetCompressed( RawSourceData, BulkData.GetBulkDataSize() ) )
 				{
 					if (ImageWrapper->GetWidth() == SizeX
@@ -795,7 +765,7 @@ bool FTextureSource::GetMipData(TArray<uint8>& OutMipData, int32 MipIndex, IImag
 					{
 						const TArray<uint8>* RawData = NULL;
 						// TODO: TSF_BGRA8 is stored as RGBA, so the R and B channels are swapped in the internal png. Should we fix this?
-						ERGBFormat::Type RawFormat = (Format == TSF_G8) ? ERGBFormat::Gray : ERGBFormat::RGBA;
+						ERGBFormat RawFormat = (Format == TSF_G8) ? ERGBFormat::Gray : ERGBFormat::RGBA;
 						if (ImageWrapper->GetRaw( RawFormat, Format == TSF_RGBA16 ? 16 : 8, RawData ))
 						{
 							OutMipData = *RawData;
@@ -1163,3 +1133,47 @@ void GetAllDefaultTextureFormats(const class ITargetPlatform* TargetPlatform, TA
 #endif
 }
 
+#if WITH_EDITOR
+
+void UTexture::NotifyMaterials()
+{
+	TArray<UMaterialInterface*> MaterialsThatUseThisTexture;
+
+	// Create a material update context to safely update materials.
+	{
+		FMaterialUpdateContext UpdateContext;
+
+		// Notify any material that uses this texture
+		TSet<UMaterial*> BaseMaterialsThatUseThisTexture;
+		for (TObjectIterator<UMaterialInterface> It; It; ++It)
+		{
+			UMaterialInterface* MaterialInterface = *It;
+			if (DoesMaterialUseTexture(MaterialInterface, this))
+			{
+				MaterialsThatUseThisTexture.Add(MaterialInterface);
+
+				// This is a bit tricky. We want to make sure all materials using this texture are
+				// updated. Materials are always updated. Material instances may also have to be
+				// updated and if they have static permutations their children must be updated
+				// whether they use the texture or not! The safe thing to do is to add the instance's
+				// base material to the update context causing all materials in the tree to update.
+				BaseMaterialsThatUseThisTexture.Add(MaterialInterface->GetMaterial());
+			}
+		}
+
+		// Go ahead and update any base materials that need to be.
+		for (TSet<UMaterial*>::TConstIterator It(BaseMaterialsThatUseThisTexture); It; ++It)
+		{
+			UpdateContext.AddMaterial(*It);
+			(*It)->PostEditChange();
+		}
+	}
+
+	// Now that all materials and instances have updated send necessary callbacks.
+	for (int32 i = 0; i < MaterialsThatUseThisTexture.Num(); ++i)
+	{
+		FEditorSupportDelegates::MaterialTextureSettingsChanged.Broadcast(MaterialsThatUseThisTexture[i]);
+	}
+}
+
+#endif //WITH_EDITOR

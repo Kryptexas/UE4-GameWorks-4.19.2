@@ -2,33 +2,46 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+#include "CoreTypes.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "Templates/SharedPointer.h"
+#include "Templates/UnrealTemplate.h"
+
 #include "AutomationAnalyticParams.h"
 
 class IAnalyticsProvider;
 class IAnalyticsProviderET;
+
 struct FAnalyticsEventAttribute;
 struct FAutomationPerformanceSnapshot;
 struct FAutomationWorkerRunTestsReply;
 
-class FAutomationAnalytics : FNoncopyable
+
+class FAutomationAnalytics
+	: FNoncopyable
 {
 public:
+
 	/**
-	* Return the provider instance. Not valid outside of Initialize/Shutdown calls.
-	* Note: must check IsAvailable() first else this code will assert if the provider is not valid.
-	*/
+	 * Return the provider instance. Not valid outside of Initialize/Shutdown calls.
+	 *
+	 * Note: must check IsAvailable() first else this code will assert if the provider is not valid.
+	 */
 	static IAnalyticsProvider& GetProvider();
-	/** Helper function to determine if the provider is valid. */
-	static bool IsAvailable() { return Analytics.IsValid(); }
+
 	/** Called to initialize the singleton. */
 	static void Initialize();
+	
+	/** Helper function to determine if the provider is valid. */
+	static bool IsAvailable();
+
 	/** Called to shut down the singleton */
 	static void Shutdown();
 
 	/*
-	* Helper function to retrieve the parameter name from a given enum
-	*/
+	 * Helper function to retrieve the parameter name from a given enum
+	 */
 	static FString GetAutomationEventName(EAutomationEventName::Type InEventName);
 	static FString GetAutomationParamName(EAutomationAnalyticParam::Type InEngineParam);
 
@@ -36,6 +49,8 @@ public:
 	
 	/** Helper to check if the Analytics provider is Initialized */
 	static bool IsInitialized();
+
+public:
 
 	//////////////////////////////////////////////////////////////////////////
 	//	Events
@@ -57,6 +72,7 @@ private:
 	static FString MachineSpec;
 
 	static bool bIsInitialized;
+
 	/** This allows us to "opt-out" of engine automation analytics. We still create a session, but we don't send any automation events. */
 	static TSharedPtr<IAnalyticsProviderET> Analytics;
 };

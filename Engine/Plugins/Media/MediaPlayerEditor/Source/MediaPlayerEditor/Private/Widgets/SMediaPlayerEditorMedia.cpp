@@ -2,22 +2,24 @@
 
 #include "Widgets/SMediaPlayerEditorMedia.h"
 #include "Modules/ModuleManager.h"
-#include "Framework/Commands/UIAction.h"
 #include "Textures/SlateIcon.h"
 #include "IContentBrowserSingleton.h"
 #include "ContentBrowserModule.h"
-#include "Widgets/Layout/SBorder.h"
-#include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "EditorStyleSet.h"
 #include "Editor.h"
 #include "Containers/ArrayBuilder.h"
 #include "Toolkits/AssetEditorManager.h"
-#include "MediaSource.h"
 #include "FileMediaSource.h"
 #include "MediaPlayer.h"
 #include "MediaPlaylist.h"
+#include "MediaSource.h"
+
+#include "Framework/Commands/UIAction.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Layout/SBorder.h"
 #include "Widgets/Notifications/SNotificationList.h"
+#include "Widgets/Text/STextBlock.h"
 
 
 #define LOCTEXT_NAMESPACE "SMediaPlayerEditorMedia"
@@ -154,8 +156,8 @@ TSharedPtr<SWidget> SMediaPlayerEditorMedia::HandleAssetPickerGetAssetContextMen
 			);
 
 			MenuBuilder.AddMenuEntry(
-				LOCTEXT("LoadMenuAction", "Open"),
-				LOCTEXT("LoadMenuActionTooltip", "Open this media asset in the player"),
+				LOCTEXT("OpenMenuAction", "Open"),
+				LOCTEXT("OpenMenuActionTooltip", "Open this media asset in the player"),
 				FSlateIcon(Style->GetStyleSetName(), "MediaPlayerEditor.NextMedia.Small"),
 				FUIAction(
 					FExecuteAction::CreateLambda([=]() {
@@ -196,7 +198,7 @@ TSharedPtr<SWidget> SMediaPlayerEditorMedia::HandleAssetPickerGetAssetContextMen
 					FSlateIcon(FEditorStyle::GetStyleSetName(), "SystemWideCommands.FindInContentBrowser"),
 					FUIAction(
 						FExecuteAction::CreateLambda([=]() {
-							FPlatformProcess::ExploreFolder(*FileMediaSource->GetFilePath());
+							FPlatformProcess::ExploreFolder(*FileMediaSource->GetFullPath());
 						}),
 						FCanExecuteAction::CreateLambda([=]() -> bool {
 							return FileMediaSource->Validate();

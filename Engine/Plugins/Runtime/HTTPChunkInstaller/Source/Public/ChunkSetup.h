@@ -181,7 +181,7 @@ public:
 
 	bool IsDone()
 	{
-		return CompleteEvent->Wait(FTimespan(0));
+		return CompleteEvent->Wait(FTimespan::Zero());
 	}
 };
 
@@ -334,6 +334,6 @@ public:
 
 	bool IsDone()
 	{
-		return CompleteEvent->Wait(FTimespan(0));
+		return CompleteEvent->Wait(FTimespan::Zero());
 	}
 };

@@ -11,8 +11,7 @@ namespace UnrealBuildTool.Rules
 				{
 					"Core",
 					"CoreUObject",
-				}
-			); 
+				});
 
 			PrivateIncludePaths.AddRange(
 				new string[] {
@@ -20,8 +19,7 @@ namespace UnrealBuildTool.Rules
 					"Runtime/Messaging/Private/Bus",
 					"Runtime/Messaging/Private/Bridge",
 					"Runtime/Messaging/Private/Serialization",
-				}
-			);
+				});
 		}
 	}
 }

@@ -2,26 +2,7 @@
 
 #pragma once
 
-
-#include "Runtime/Core/Public/CoreMinimal.h"
-#include "Runtime/Core/Public/Modules/ModuleManager.h"
-#include "Runtime/Media/Public/IMediaAudioSink.h"
-#include "Runtime/Media/Public/IMediaModule.h"
-#include "Runtime/Media/Public/IMediaOverlaySink.h"
-#include "Runtime/Media/Public/IMediaPlayerFactory.h"
-#include "Runtime/Media/Public/IMediaTextureSink.h"
-
-#include "../../AvfMediaFactory/Public/AvfMediaSettings.h"
-
-#import <AVFoundation/AVFoundation.h>
-
-#if !PLATFORM_MAC || (MAC_OS_X_VERSION_MIN_REQUIRED >= 101100)
-#include <CoreVideo/CVMetalTextureCache.h>
-#endif
-
-#if PLATFORM_MAC
-	#include "CocoaThread.h"
-#endif
+#include "Logging/LogMacros.h"
 
 
 /** Log category for the AvfMedia module. */

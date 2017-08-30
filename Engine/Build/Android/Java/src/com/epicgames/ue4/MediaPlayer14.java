@@ -25,8 +25,26 @@ import android.util.Log;
 public class MediaPlayer14
 	extends android.media.MediaPlayer
 {
-	private boolean VulkanRenderer = false;									
+	private boolean SwizzlePixels = true;
+	private boolean VulkanRenderer = false;
+	private boolean Looping = false;
+	private boolean AudioEnabled = true;
 	private volatile boolean WaitOnBitmapRender = false;
+	private volatile boolean Prepared = false;
+	private volatile boolean Completed = false;
+
+	private BitmapRenderer mBitmapRenderer = null;
+	private OESTextureRenderer mOESTextureRenderer = null;
+
+	public class FrameUpdateInfo {
+		int CurrentPosition;
+		boolean FrameReady;
+		boolean RegionChanged;
+		float UScale;
+		float UOffset;
+		float VScale;
+		float VOffset;
+	}
 
 	public class AudioTrackInfo {
 		public int Index;
@@ -58,24 +76,73 @@ public class MediaPlayer14
 	private ArrayList<AudioTrackInfo> audioTracks = new ArrayList<AudioTrackInfo>();
 	private ArrayList<VideoTrackInfo> videoTracks = new ArrayList<VideoTrackInfo>();
 
-	public MediaPlayer14(boolean vulkanRenderer)
+	// ======================================================================================
+
+	public MediaPlayer14(boolean swizzlePixels, boolean vulkanRenderer)
 	{
+		SwizzlePixels = swizzlePixels;
 		VulkanRenderer = vulkanRenderer;
-		
-		GameActivity.Log.debug("MediaPlayer14: initialized,  VulkanRenderer: " + VulkanRenderer);
-
 		WaitOnBitmapRender = false;
+		AudioEnabled = true;
 
-		 setOnErrorListener(new OnErrorListener()
-		 {
+		setOnErrorListener(new MediaPlayer.OnErrorListener() {
 			@Override
-			public boolean onError(    MediaPlayer mp,    int what,    int extra)
-			{
-			  GameActivity.Log.warn("Error occurred while playing audio. ("+what+", "+extra+")");
-			  return true;
+			public boolean onError(MediaPlayer mp, int what, int extra) {
+				GameActivity.Log.debug("MediaPlayer14: onError returned what=" + what + ", extra=" + extra);
+				return true;
 			}
+		});
+
+		setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
+			@Override
+			public void onPrepared(MediaPlayer player) {
+				synchronized(player)
+				{
+					Prepared = true;
+				}
+			}
+		});
+
+		setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+			@Override
+			public void onCompletion(MediaPlayer player) {
+				synchronized(player)
+				{
+					if (Looping)
+					{
+						seekTo(0);
+						start();
+					}
+					Completed = true;
+				}
+			}
+		});
+	}
+
+	public boolean isPrepared()
+	{
+		boolean result;
+		synchronized(this)
+		{
+			result = Prepared;
 		}
-		);
+		return result;
+	}
+
+	public boolean didComplete()
+	{
+		boolean result;
+		synchronized(this)
+		{
+			result = Completed;
+			Completed = false;
+		}
+		return result;
+	}
+
+	public boolean isLooping()
+	{
+		return Looping;
 	}
 
 	private void updateTrackInfo(MediaExtractor extractor)
@@ -158,12 +225,20 @@ public class MediaPlayer14
 			java.lang.InterruptedException,
 			java.util.concurrent.ExecutionException
 	{
+		synchronized(this)
+		{
+			Prepared = false;
+			Completed = false;
+		}
+		Looping = false;
+		AudioEnabled = true;
 		audioTracks.clear();
 		videoTracks.clear();
 
 		try
 		{
 			setDataSource(UrlPath);
+			releaseOESTextureRenderer();
 			releaseBitmapRenderer();
 			if (android.os.Build.VERSION.SDK_INT >= 16)
 			{
@@ -191,6 +266,13 @@ public class MediaPlayer14
 			java.lang.InterruptedException,
 			java.util.concurrent.ExecutionException
 	{
+		synchronized(this)
+		{
+			Prepared = false;
+			Completed = false;
+		}
+		Looping = false;
+		AudioEnabled = true;
 		audioTracks.clear();
 		videoTracks.clear();
 
@@ -203,6 +285,7 @@ public class MediaPlayer14
 			}
 			RandomAccessFile data = new RandomAccessFile(f, "r");
 			setDataSource(data.getFD(), offset, size);
+			releaseOESTextureRenderer();
 			releaseBitmapRenderer();
 
 			if (android.os.Build.VERSION.SDK_INT >= 16)
@@ -230,6 +313,13 @@ public class MediaPlayer14
 		throws java.lang.InterruptedException,
 			java.util.concurrent.ExecutionException
 	{
+		synchronized(this)
+		{
+			Prepared = false;
+			Completed = false;
+		}
+		Looping = false;
+		AudioEnabled = true;
 		audioTracks.clear();
 		videoTracks.clear();
 
@@ -237,6 +327,7 @@ public class MediaPlayer14
 		{
 			AssetFileDescriptor assetFD = assetManager.openFd(assetPath);
 			setDataSource(assetFD.getFileDescriptor(), offset, size);
+			releaseOESTextureRenderer();
 			releaseBitmapRenderer();
 
 			if (android.os.Build.VERSION.SDK_INT >= 16)
@@ -268,6 +359,11 @@ public class MediaPlayer14
 		mVideoEnabled = enabled;
 		if (mVideoEnabled)
 		{
+			if (null != mOESTextureRenderer && null != mOESTextureRenderer.getSurface())
+			{
+				setSurface(mOESTextureRenderer.getSurface());
+			}
+
 			if (null != mBitmapRenderer && null != mBitmapRenderer.getSurface())
 			{
 				setSurface(mBitmapRenderer.getSurface());
@@ -283,6 +379,7 @@ public class MediaPlayer14
 	
 	public void setAudioEnabled(boolean enabled)
 	{
+		AudioEnabled = enabled;
 		if (enabled)
 		{
 			setVolume(1,1);
@@ -295,30 +392,154 @@ public class MediaPlayer14
 	
 	public boolean didResolutionChange()
 	{
-		if (null == mBitmapRenderer)
+		if (null != mOESTextureRenderer)
 		{
+			return mOESTextureRenderer.resolutionChanged();
+		}
+		if (null != mBitmapRenderer)
+		{
+			return mBitmapRenderer.resolutionChanged();
+		}
+		return false;
+	}
+
+	public int getExternalTextureId()
+	{
+		if (null != mOESTextureRenderer)
+		{
+			return mOESTextureRenderer.getExternalTextureId();
+		}
+		if (null != mBitmapRenderer)
+		{
+			return mBitmapRenderer.getExternalTextureId();
+		}
+		return -1;
+	}
+
+	public void start()
+	{
+		synchronized(this)
+		{
+			Completed = false;
+			super.start();
+		}
+	}
+
+	public void stop()
+	{
+		synchronized(this)
+		{
+			Completed = false;
+			super.stop();
+		}
+	}
+
+	public void seekTo(int position)
+	{
+		synchronized (this)
+		{
+			Completed = false;
+			super.seekTo(position);
+		}
+	}
+
+	public void setLooping(boolean looping)
+	{
+		// don't set on player
+		Looping = looping;
+	}
+
+	public void release()
+	{
+		if (null != mOESTextureRenderer)
+		{
+			while (WaitOnBitmapRender) ;
+			releaseOESTextureRenderer();
+		}
+		if (null != mBitmapRenderer)
+		{
+			while (WaitOnBitmapRender) ;
+			releaseOESTextureRenderer();
+		}
+		super.release();
+	}
+
+	public void reset()
+	{
+		if (null != mOESTextureRenderer)
+		{
+			while (WaitOnBitmapRender) ;
+			releaseOESTextureRenderer();
+		}
+		if (null != mBitmapRenderer)
+		{
+			while (WaitOnBitmapRender) ;
+			releaseBitmapRenderer();
+		}
+		super.reset();
+	}
+
+	// ======================================================================================
+
+	private boolean CreateBitmapRenderer()
+	{
+		releaseBitmapRenderer();
+
+		mBitmapRenderer = new BitmapRenderer(SwizzlePixels, VulkanRenderer);
+		if (!mBitmapRenderer.isValid())
+		{
+			mBitmapRenderer = null;
 			return false;
 		}
-		return mBitmapRenderer.resolutionChanged();
+		
+		// set this here as the size may have been set before the GL resources were created.
+		mBitmapRenderer.setSize(getVideoWidth(),getVideoHeight());
+
+		setOnVideoSizeChangedListener(new android.media.MediaPlayer.OnVideoSizeChangedListener() {
+			public void onVideoSizeChanged(android.media.MediaPlayer player, int w, int h)
+			{
+//				GameActivity.Log.debug("VIDEO SIZE CHANGED: " + w + " x " + h);
+				if (null != mBitmapRenderer)
+				{
+					mBitmapRenderer.setSize(w,h);
+				}
+			}
+		});
+		setVideoEnabled(true);
+		if (AudioEnabled)
+		{
+			setAudioEnabled(true);
+		}
+		return true;
+	}
+
+	void releaseBitmapRenderer()
+	{
+		if (null != mBitmapRenderer)
+		{
+			mBitmapRenderer.release();
+			mBitmapRenderer = null;
+			setSurface(null);
+			setOnVideoSizeChangedListener(null);
+		}
 	}
 
 	public void initBitmapRenderer()
 	{
 		// if not already allocated.
 		// Create bitmap renderer's gl resources in the renderer thread.
-		  if (null == mBitmapRenderer)
-		  {
+		if (null == mBitmapRenderer)
+		{
 			if (!CreateBitmapRenderer())
 			{
 				GameActivity.Log.warn("initBitmapRenderer failed to alloc mBitmapRenderer ");
 				reset();
 			  }
-		  }
+		}
 	}
 
 	public java.nio.Buffer getVideoLastFrameData()
 	{
-
 		initBitmapRenderer();
 		if (null != mBitmapRenderer)
 		{
@@ -335,6 +556,7 @@ public class MediaPlayer14
 
 	public boolean getVideoLastFrame(int destTexture)
 	{
+//		GameActivity.Log.debug("getVideoLastFrame: " + destTexture);
 		initBitmapRenderer();
 		if (null != mBitmapRenderer)
 		{
@@ -349,26 +571,6 @@ public class MediaPlayer14
 		}
 	}
 
-	public void release()
-	{
-		if (null != mBitmapRenderer)
-		{
-			while (WaitOnBitmapRender) ;
-			releaseBitmapRenderer();
-		}
-		super.release();
-	}
-
-	public void reset()
-	{
-		if (null != mBitmapRenderer)
-		{
-			while (WaitOnBitmapRender) ;
-			releaseBitmapRenderer();
-		}
-		super.reset();
-	}
-	
 	/*
 		All this internal surface view does is manage the
 		offscreen bitmap that the media player decoding can
@@ -408,14 +610,14 @@ public class MediaPlayer14
 
 		private boolean mCreatedEGLDisplay = false;
 
-		public BitmapRenderer(boolean isVulkan)
+		public BitmapRenderer(boolean swizzlePixels, boolean isVulkan)
 		{
+			mSwizzlePixels = swizzlePixels;
 			mVulkanRenderer = isVulkan;
-			mUseOwnContext = true;
 
 			mEglSurface = EGL14.EGL_NO_SURFACE;
 			mEglContext = EGL14.EGL_NO_CONTEXT;
-			mEglDisplay = EGL14.EGL_NO_DISPLAY;
+			mUseOwnContext = true;
 
 			if (mVulkanRenderer)
 			{
@@ -691,6 +893,11 @@ public class MediaPlayer14
 		public android.view.Surface getSurface()
 		{
 			return mSurface;
+		}
+
+		public int getExternalTextureId()
+		{
+			return mTextureID;
 		}
 
 		// NOTE: Synchronized with updateFrameData to prevent frame
@@ -1059,23 +1266,38 @@ public class MediaPlayer14
 			return true;
 		}
 
+		private void showGlError(String op, int error)
+		{
+			switch (error)
+			{
+				case GLES20.GL_INVALID_ENUM:						GameActivity.Log.error("MediaPlayer$BitmapRenderer: " + op + ": glGetError GL_INVALID_ENUM");  break;
+				case GLES20.GL_INVALID_OPERATION:					GameActivity.Log.error("MediaPlayer$BitmapRenderer: " + op + ": glGetError GL_INVALID_OPERATION");  break;
+				case GLES20.GL_INVALID_FRAMEBUFFER_OPERATION:		GameActivity.Log.error("MediaPlayer$BitmapRenderer: " + op + ": glGetError GL_INVALID_FRAMEBUFFER_OPERATION");  break;
+				case GLES20.GL_INVALID_VALUE:						GameActivity.Log.error("MediaPlayer$BitmapRenderer: " + op + ": glGetError GL_INVALID_VALUE");  break;
+				case GLES20.GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:	GameActivity.Log.error("MediaPlayer$BitmapRenderer: " + op + ": glGetError GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT");  break;
+				case GLES20.GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS:	GameActivity.Log.error("MediaPlayer$BitmapRenderer: " + op + ": glGetError GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS");  break;
+				case GLES20.GL_FRAMEBUFFER_UNSUPPORTED:				GameActivity.Log.error("MediaPlayer$BitmapRenderer: " + op + ": glGetError GL_FRAMEBUFFER_UNSUPPORTED");  break;
+				case GLES20.GL_OUT_OF_MEMORY:						GameActivity.Log.error("MediaPlayer$BitmapRenderer: " + op + ": glGetError GL_OUT_OF_MEMORY");  break;
+				default:											GameActivity.Log.error("MediaPlayer$BitmapRenderer: " + op + ": glGetError " + error);
+			}
+		}
+
 		private void glVerify(String op)
 		{
 			int error;
 			while ((error = GLES20.glGetError()) != GLES20.GL_NO_ERROR)
 			{
-				GameActivity.Log.error("MediaPlayer$BitmapRenderer: " + op + ": glGetError " + error);
+				showGlError(op, error);
 				throw new RuntimeException(op + ": glGetError " + error);
 			}
 		}
-
 
 		private void glWarn(String op)
 		{
 			int error;
 			while ((error = GLES20.glGetError()) != GLES20.GL_NO_ERROR)
 			{
-				GameActivity.Log.warn("MediaPlayer$BitmapRenderer: " + op + ": glGetError " + error);
+				showGlError(op, error);
 			}
 		}
 
@@ -1144,44 +1366,236 @@ public class MediaPlayer14
 		}
 	};
 
-	private boolean CreateBitmapRenderer()
-	{
-		releaseBitmapRenderer();
+	public native void nativeClearCachedAttributeState(int PositionAttrib, int TexCoordsAttrib);
 
-		mBitmapRenderer = new BitmapRenderer(VulkanRenderer);
-		if (!mBitmapRenderer.isValid())
+	// ======================================================================================
+
+	private boolean CreateOESTextureRenderer(int OESTextureId)
+	{
+		releaseOESTextureRenderer();
+
+		mOESTextureRenderer = new OESTextureRenderer(OESTextureId);
+		if (!mOESTextureRenderer.isValid())
 		{
-			mBitmapRenderer = null;
+			mOESTextureRenderer = null;
 			return false;
 		}
 		
 		// set this here as the size may have been set before the GL resources were created.
-		mBitmapRenderer.setSize(getVideoWidth(),getVideoHeight());
+		mOESTextureRenderer.setSize(getVideoWidth(),getVideoHeight());
 
 		setOnVideoSizeChangedListener(new android.media.MediaPlayer.OnVideoSizeChangedListener() {
 			public void onVideoSizeChanged(android.media.MediaPlayer player, int w, int h)
 			{
 //				GameActivity.Log.debug("VIDEO SIZE CHANGED: " + w + " x " + h);
-				mBitmapRenderer.setSize(w,h);
+				if (null != mOESTextureRenderer)
+				{
+					mOESTextureRenderer.setSize(w,h);
+				}
 			}
-			});
+		});
 		setVideoEnabled(true);
-		setAudioEnabled(true);
+		if (AudioEnabled)
+		{
+			setAudioEnabled(true);
+		}
 		return true;
 	}
 
-	void releaseBitmapRenderer()
+	void releaseOESTextureRenderer()
 	{
-		if (null != mBitmapRenderer)
+		if (null != mOESTextureRenderer)
 		{
-			mBitmapRenderer.release();
-			mBitmapRenderer = null;
+			mOESTextureRenderer.release();
+			mOESTextureRenderer = null;
 			setSurface(null);
 			setOnVideoSizeChangedListener(null);
 		}
 	}
+	
+	public FrameUpdateInfo updateVideoFrame(int externalTextureId)
+	{
+		if (null == mOESTextureRenderer)
+		{
+			if (!CreateOESTextureRenderer(externalTextureId))
+			{
+				GameActivity.Log.warn("updateVideoFrame failed to alloc mOESTextureRenderer ");
+				reset();
+				return null;
+			}
+		}
 
-	private BitmapRenderer mBitmapRenderer = null;
+		WaitOnBitmapRender = true;
+		FrameUpdateInfo result = mOESTextureRenderer.updateVideoFrame();
+		WaitOnBitmapRender = false;
+		return result;
+	}
+
+	/*
+		This handles events for our OES texture
+	*/
+	class OESTextureRenderer
+		implements android.graphics.SurfaceTexture.OnFrameAvailableListener
+	{
+		private android.graphics.SurfaceTexture mSurfaceTexture = null;
+		private int mTextureWidth = -1;
+		private int mTextureHeight = -1;
+		private android.view.Surface mSurface = null;
+		private boolean mFrameAvailable = false;
+		private int mTextureID = -1;
+		private float[] mTransformMatrix = new float[16];
+		private boolean mTextureSizeChanged = true;
+
+		private float mUScale = 1.0f;
+		private float mVScale = -1.0f;
+		private float mUOffset = 0.0f;
+		private float mVOffset = 1.0f;
+
+		public OESTextureRenderer(int OESTextureId)
+		{
+			mTextureID = OESTextureId;
+
+			mSurfaceTexture = new android.graphics.SurfaceTexture(mTextureID);
+			mSurfaceTexture.setOnFrameAvailableListener(this);
+			mSurface = new android.view.Surface(mSurfaceTexture);
+		}
+
+		public void release()
+		{
+			if (null != mSurface)
+			{
+				mSurface.release();
+				mSurface = null;
+			}
+			if (null != mSurfaceTexture)
+			{
+				mSurfaceTexture.release();
+				mSurfaceTexture = null;
+			}
+		}
+
+		public boolean isValid()
+		{
+			return mSurfaceTexture != null;
+		}
+
+		public void onFrameAvailable(android.graphics.SurfaceTexture st)
+		{
+			synchronized(this)
+			{
+				mFrameAvailable = true;
+			}
+		}
+
+		public android.graphics.SurfaceTexture getSurfaceTexture()
+		{
+			return mSurfaceTexture;
+		}
+
+		public android.view.Surface getSurface()
+		{
+			return mSurface;
+		}
+
+		public int getExternalTextureId()
+		{
+			return mTextureID;
+		}
+
+		// NOTE: Synchronized with updateFrameData to prevent frame
+		// updates while the surface may need to get reallocated.
+		public void setSize(int width, int height)
+		{
+			synchronized(this)
+			{
+				if (width != mTextureWidth ||
+					height != mTextureHeight)
+				{
+					mTextureWidth = width;
+					mTextureHeight = height;
+					mTextureSizeChanged = true;
+				}
+			}
+		}
+
+		public boolean resolutionChanged()
+		{
+			boolean changed;
+			synchronized(this)
+			{
+				changed = mTextureSizeChanged;
+				mTextureSizeChanged = false;
+			}
+			return changed;
+		}
+
+		public FrameUpdateInfo updateVideoFrame()
+		{
+			synchronized(this)
+			{
+				return getFrameUpdateInfo();
+			}
+		}
+
+		private FrameUpdateInfo getFrameUpdateInfo()
+		{
+			FrameUpdateInfo frameUpdateInfo = new FrameUpdateInfo();
+
+			frameUpdateInfo.CurrentPosition = getCurrentPosition();
+			frameUpdateInfo.FrameReady = false;
+			frameUpdateInfo.RegionChanged = false;
+			frameUpdateInfo.UScale = mUScale;
+			frameUpdateInfo.UOffset = mUOffset;
+
+			// note: the matrix has V flipped
+			frameUpdateInfo.VScale = -mVScale;
+			frameUpdateInfo.VOffset = 1.0f - mVOffset;
+
+			if (!mFrameAvailable)
+			{
+				// We only return fresh data when we generate it. At other
+				// time we return nothing to indicate that there was nothing
+				// new to return. The media player deals with this by keeping
+				// the last frame around and using that for rendering.
+				return frameUpdateInfo;
+			}
+			mFrameAvailable = false;
+			if (null == mSurfaceTexture)
+			{
+				// Can't update if there's no surface to update into.
+				return frameUpdateInfo;
+			}
+
+			frameUpdateInfo.FrameReady = true;
+
+			// Get the latest video texture frame.
+			mSurfaceTexture.updateTexImage();
+			mSurfaceTexture.getTransformMatrix(mTransformMatrix);
+
+			if (mUScale != mTransformMatrix[0] ||
+				mVScale != mTransformMatrix[5] ||
+				mUOffset != mTransformMatrix[12] ||
+				mVOffset != mTransformMatrix[13])
+			{
+				mUScale = mTransformMatrix[0];
+				mVScale = mTransformMatrix[5];
+				mUOffset = mTransformMatrix[12];
+				mVOffset = mTransformMatrix[13];
+
+				frameUpdateInfo.RegionChanged = true;
+				frameUpdateInfo.UScale = mUScale;
+				frameUpdateInfo.UOffset = mUOffset;
+
+				// note: the matrix has V flipped
+				frameUpdateInfo.VScale = -mVScale;
+				frameUpdateInfo.VOffset = 1.0f - mVOffset;
+			}
+
+			return frameUpdateInfo;
+		}
+	};
+
+	// ======================================================================================
 
 	public AudioTrackInfo[] GetAudioTracks()
 	{
@@ -1248,6 +1662,7 @@ public class MediaPlayer14
 
 		AudioTrackInfo[] AudioTracks = new AudioTrackInfo[1];
 
+		AudioTracks[0] = new AudioTrackInfo();
 		AudioTracks[0].Index = 0;
 		AudioTracks[0].MimeType = "audio/unknown";
 		AudioTracks[0].DisplayName = "Audio Track 0 (Stream 0)";
@@ -1381,7 +1796,7 @@ public class MediaPlayer14
 		{
 			VideoTrackInfo[] VideoTracks = new VideoTrackInfo[1];
 
-			VideoTrackInfo VideoTrack = new VideoTrackInfo();
+			VideoTracks[0] = new VideoTrackInfo();
 			VideoTracks[0].Index = 0;
 			VideoTracks[0].MimeType = "video/unknown";
 			VideoTracks[0].DisplayName = "Video Track 0 (Stream 0)";
@@ -1398,7 +1813,4 @@ public class MediaPlayer14
 
 		return VideoTracks;
 	}
-
-	public native void nativeClearCachedAttributeState(int PositionAttrib, int TexCoordsAttrib);
-
 }

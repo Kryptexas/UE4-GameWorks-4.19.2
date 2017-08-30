@@ -1,19 +1,20 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CoreMinimal.h"
-#include "Modules/ModuleManager.h"
-#include "Widgets/DeclarativeSyntaxSupport.h"
-#include "Textures/SlateIcon.h"
-#include "Widgets/SWidget.h"
-#include "Framework/Docking/TabManager.h"
+#include "CoreTypes.h"
 #include "EditorStyleSet.h"
-#include "Interfaces/ITargetDeviceServicesModule.h"
-#include "Interfaces/IDeviceManagerModule.h"
+#include "Framework/Docking/TabManager.h"
+#include "IDeviceManagerModule.h"
+#include "ITargetDeviceServicesModule.h"
+#include "Modules/ModuleManager.h"
+#include "Templates/SharedPointer.h"
+#include "Textures/SlateIcon.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/SDeviceManager.h"
-
+#include "Widgets/SWidget.h"
+#include "Widgets/Docking/SDockTab.h"
 #include "WorkspaceMenuStructure.h"
 #include "WorkspaceMenuStructureModule.h"
-#include "Widgets/Docking/SDockTab.h"
+
 
 static const FName DeviceManagerTabName("DeviceManager");
 
@@ -26,9 +27,9 @@ class FDeviceManagerModule
 {
 public:
 
-	// IModuleInterface interface
+	//~ IModuleInterface interface
 
-	virtual void StartupModule( ) override
+	virtual void StartupModule() override
 	{
 		// @todo gmp: implement an IoC container
 		ITargetDeviceServicesModule& TargetDeviceServicesModule = FModuleManager::LoadModuleChecked<ITargetDeviceServicesModule>(TEXT("TargetDeviceServices"));
@@ -47,16 +48,16 @@ public:
 #endif
 	}
 
-	virtual void ShutdownModule( ) override
+	virtual void ShutdownModule() override
 	{
 		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(DeviceManagerTabName);
 	}
 
 public:
 
-	// IDeviceManagerModule interface
+	//~ IDeviceManagerModule interface
 
-	virtual TSharedRef<SWidget> CreateDeviceManager( const ITargetDeviceServiceManagerRef& DeviceServiceManager, const TSharedRef<SDockTab>& ConstructUnderMajorTab, const TSharedPtr<SWindow>& ConstructUnderWindow ) override
+	virtual TSharedRef<SWidget> CreateDeviceManager(const TSharedRef<ITargetDeviceServiceManager>& DeviceServiceManager, const TSharedRef<SDockTab>& ConstructUnderMajorTab, const TSharedPtr<SWindow>& ConstructUnderWindow) override
 	{
 		return SNew(SDeviceManager, DeviceServiceManager, ConstructUnderMajorTab, ConstructUnderWindow);
 	}
@@ -69,7 +70,7 @@ private:
 	 * @param SpawnTabArgs The arguments for the tab to spawn.
 	 * @return The spawned tab.
 	 */
-	TSharedRef<SDockTab> SpawnDeviceManagerTab( const FSpawnTabArgs& SpawnTabArgs )
+	TSharedRef<SDockTab> SpawnDeviceManagerTab(const FSpawnTabArgs& SpawnTabArgs)
 	{
 		const TSharedRef<SDockTab> DockTab = SNew(SDockTab)
 			.TabRole(ETabRole::MajorTab);
@@ -82,7 +83,7 @@ private:
 private:
 
 	// @todo gmp: implement an IoC container
-	ITargetDeviceServiceManagerPtr TargetDeviceServiceManager;
+	TSharedPtr<ITargetDeviceServiceManager> TargetDeviceServiceManager;
 };
 
 

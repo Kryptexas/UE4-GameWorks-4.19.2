@@ -1,19 +1,20 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "ScreenShotManager.h"
-#include "HAL/FileManager.h"
+
+#include "AutomationWorkerMessages.h"
 #include "Async/Async.h"
+#include "HAL/FileManager.h"
+#include "MessageEndpointBuilder.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "Misc/EngineVersion.h"
 #include "Misc/FilterCollection.h"
-#include "AutomationWorkerMessages.h"
-#include "Helpers/MessageEndpointBuilder.h"
 #include "Modules/ModuleManager.h"
-
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
 #include "JsonObjectConverter.h"
+
 
 class FScreenshotComparisons
 {

@@ -6,32 +6,32 @@ namespace UnrealBuildTool.Rules
 	{
 		public AndroidMediaFactory(ReadOnlyTargetRules Target) : base(Target)
 		{
-            DynamicallyLoadedModuleNames.AddRange(
-                new string[] {
-                    "Media",
-				}
-            );
+			DynamicallyLoadedModuleNames.AddRange(
+				new string[] {
+					"Media",
+				});
 
 			PrivateDependencyModuleNames.AddRange(
 				new string[] {
-					"Core",
-                    "CoreUObject",
-                    "MediaAssets",
-                }
-			);
+					"MediaAssets",
+				});
 
 			PrivateIncludePathModuleNames.AddRange(
 				new string[] {
 					"AndroidMedia",
-                    "Media",
-				}
-			);
+					"Media",
+				});
 
 			PrivateIncludePaths.AddRange(
 				new string[] {
 					"AndroidMediaFactory/Private",
-				}
-			);
+				});
+
+			PublicDependencyModuleNames.AddRange(
+				new string[] {
+					"Core",
+					"CoreUObject",
+				});
 
 			if (Target.Platform == UnrealTargetPlatform.Android)
 			{

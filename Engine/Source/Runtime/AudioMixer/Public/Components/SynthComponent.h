@@ -116,6 +116,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Effects)
 	TArray<FSoundSubmixSendInfo> SoundSubmixSends;
 
+	/** Whether or not this sound plays when the game is paused in the UI */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Sound)
+	uint8 bIsUISound : 1;
+
 	/** Call if creating this synth component not via an actor component in BP, but in code or some other location. */
 	void Initialize();
 

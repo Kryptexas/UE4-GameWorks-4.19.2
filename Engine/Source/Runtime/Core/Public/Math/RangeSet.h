@@ -5,14 +5,17 @@
 #include "CoreTypes.h"
 #include "Containers/Array.h"
 #include "Math/Range.h"
+#include "Serialization/Archive.h"
+
 
 /**
  * Template for range sets.
  *
- * @todo gmp: TRangeSet needs an overhaul
+ * @todo gmp: Implement more efficient storage of range sets
  */
 template<typename ElementType> class TRangeSet
 {
+	typedef TRangeBound<ElementType> BoundsType;
 	typedef TRange<ElementType> RangeType;
 
 public:
@@ -28,42 +31,43 @@ public:
 	/**
 	 * Adds a range to the set.
 	 *
-	 * This method merges overlapping ranges into a single range (i.e. {[1, 4], [4, 6]} becomes [1, 6]).
-	 * Adjacent ranges (i.e. {[1, 3], [4, 6]}) are not merged.
+	 * This method merges overlapping ranges into a single range (i.e. {[1, 5], [4, 6]} becomes [1, 6]).
+	 * Adjacent ranges (i.e. {[1, 4), [4, 6)} are also merged.
 	 *
 	 * @param Range The range to add.
-	 *//*
+	 */
 	void Add(RangeType Range)
 	{
 		for (int32 Index = 0; Index < Ranges.Num(); ++Index)
 		{
-			RangeType& Current = Ranges(Index);
+			const RangeType& Current = Ranges[Index];
 
-			if ((Current.GetUpperBound() < Range.GetLowerBound()) || Current.GetLowerBound() > Range.GetUpperBound())
+			if (Current.Adjoins(Range) || Current.Overlaps(Range))
 			{
-				continue;
+				Range = RangeType(
+					BoundsType::MinLower(Current.GetLowerBound(), Range.GetLowerBound()),
+					BoundsType::MaxUpper(Current.GetUpperBound(), Range.GetUpperBound())
+				);
+
+				Ranges.RemoveAtSwap(Index--);
 			}
-
-			Range = RangeType(FMath::Min(Current.GetLowerBound(), Range.GetLowerBound()), FMath::Max(Current.GetUpperBound(), Range.GetUpperBound()));
-
-			Ranges.RemoveAtSwap(Index--);
 		}
 
 		Ranges.Add(Range);
-	}*/
+	}
 
 	/**
 	 * Merges another range set into this set.
 	 *
 	 * @param Other The range set to merge.
 	 */
-/*	void Merge(const TRangeSet& Other)
+	void Merge(const TRangeSet& Other)
 	{
 		for (typename TArray<RangeType>::TConstIterator It(Other.Ranges); It; ++It)
 		{
 			Add(*It);
 		}
-	}*/
+	}
 
 	/**
 	 * Removes a range from the set.
@@ -71,29 +75,27 @@ public:
 	 * Ranges that overlap with the removed range will be split.
 	 *
 	 * @param Range The range to remove.
-	 */
-/*	void Remove(const RangeType& Range)
+	 *//*
+	void Remove(const RangeType& Range)
 	{
 		for (int32 Index = 0; Index < Ranges.Num(); ++Index)
 		{
-			RangeType& Current = Ranges(Index);
+			const RangeType& Current = Ranges(Index);
 
-			if ((Current.GetUpperBound() < Range.GetLowerBound()) || (Current.GetLowerBound() > Range.GetUpperBound()))
+			if (Current.Overlaps(Range))
 			{
-				continue;
-			}
+				if (Current.GetLowerBound() < Range.GetLowerBound())
+				{
+					Ranges.Add(RangeType(Current.GetLowerBound(), Range.GetLowerBound()));
+				}
 
-			if (Current.GetLowerBound() < Range.GetLowerBound())
-			{
-				Ranges.Add(RangeType(Current.GetLowerBound(), Range.GetLowerBound()));
-			}
+				if (Current.GetUpperBound() > Range.GetUpperBound())
+				{
+					Ranges.Add(RangeType(Range.GetUpperBound(), Current.GetUpperBound()));
+				}
 
-			if (Current.GetUpperBound() > Range.GetUpperBound())
-			{
-				Ranges.Add(RangeType(Range.GetUpperBound(), Current.GetUpperBound()));
+				Ranges.RemoveAtSwap(Index--);
 			}
-
-			Ranges.RemoveAtSwap(Index--);
 		}
 	}*/
 
@@ -142,17 +144,104 @@ public:
 
 		return false;
 	}
-	
+
+	/**
+	 * Gets the range set's lowest bound.
+	 *
+	 * @return Lowest bound.
+	 * @see GetMaxBound, GetMinBoundValue, HasMinBound
+	 */
+	BoundsType GetMinBound() const
+	{
+		BoundsType Result;
+
+		for (const auto& Range : Ranges)
+		{
+			Result = BoundsType::MinLower(Result, Range.GetLowerBound());
+		}
+
+		return Result;
+	}
+
+	/**
+	 * Gets the value of the lowest bound.
+	 *
+	 * Use HasMinBound() to ensure that this range set actually has a lowest bound.
+	 *
+	 * @return Bound value.
+	 * @see GetMaxBoundValue, GetMinBound, HasMinBound
+	 */
+	const ElementType& GetMinBoundValue() const
+	{
+		return GetMinBound().GetValue();
+	}
+
+	/**
+	 * Gets the range set's uppermost bound.
+	 *
+	 * @return Uppermost bound.
+	 * @see GetMaxBoundValue, GetMinBound, HasMaxBound
+	 */
+	BoundsType GetMaxBound() const
+	{
+		BoundsType Result;
+
+		for (const auto& Range : Ranges)
+		{
+			Result = BoundsType::MaxUpper(Result, Range.GetUpperBound());
+		}
+
+		return Result;
+	}
+
+	/**
+	 * Gets the value of the uppermost bound.
+	 *
+	 * Use HasMaxBound() to ensure that this range actually has an upper bound.
+	 *
+	 * @return Bound value.
+	 * @see GetMaxBound, GetMinBoundValue, HasMaxBound
+	 */
+	const ElementType& GetMaxBoundValue() const
+	{
+		return GetMaxBound().GetValue();
+	}
+
+
 	/**
 	 * Returns a read-only collection of the ranges contained in this set.
 	 *
-	 * @return Array of ranges.
+	 * @param Allocator The array allocator to use.
+	 * @param OutRanges Will contain the collection of ranges.
 	 */
-	const TArray<RangeType>& GetRanges() const
+	template<typename Allocator>
+	const void GetRanges(TArray<RangeType, Allocator>& OutRanges) const
 	{
-		return Ranges;
+		OutRanges = Ranges;
 	}
 	
+	/**
+	 * Checks whether the range has a lowest bound.
+	 *
+	 * @return true if the range has a lowest bound, false otherwise.
+	 * @see GetMinBound, GetMinBoundValue, HasMaxBound
+	 */
+	bool HasMinBound() const
+	{
+		return GetMinBound().IsClosed();
+	}
+	
+	/**
+	 * Checks whether the range has an uppermost bound.
+	 *
+	 * @return true if the range has an uppermost bound, false otherwise.
+	 * @see GetUpperBound, GetUpperBoundValue, HasMinBound
+	 */
+	bool HasMaxBound() const
+	{
+		return GetMaxBound().IsClosed();
+	}
+
 	/**
 	 * Checks whether this range set is empty.
 	 *
@@ -202,7 +291,7 @@ public:
 
 		return false;
 	}
-	
+
 public:
 
 	/**

@@ -12,7 +12,7 @@
 #include "Framework/Commands/UIAction.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "EditorStyleSet.h"
-#include "Interfaces/IAutomationControllerModule.h"
+#include "IAutomationControllerModule.h"
 
 #if WITH_EDITOR
 

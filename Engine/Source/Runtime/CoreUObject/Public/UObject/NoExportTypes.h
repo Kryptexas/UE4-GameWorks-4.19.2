@@ -292,7 +292,13 @@ enum class EUnit : uint8
 	/** Arbitrary multiplier */	
 	Multiplier,
 
-	/** Symbolic entry, not specifiable on meta data. */	
+
+	/** Percentage */
+	
+	Percentage,
+
+	/** Symbolic entry, not specifiable on meta data. */
+	
 	Unspecified
 };
 

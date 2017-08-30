@@ -1,6 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved
 
 #include "IOSTargetPlatform.h"
+#include "HAL/PlatformProcess.h"
 #include "HAL/Runnable.h"
 #include "HAL/RunnableThread.h"
 
@@ -15,7 +16,7 @@ class FDeviceSyslogRelay : public FRunnable
 {
 public:
 
-	FDeviceSyslogRelay(FString const&	inDeviceID)
+	FDeviceSyslogRelay(FString const& inDeviceID)
 	{
 		deviceID = inDeviceID;
 		Stopping = false;

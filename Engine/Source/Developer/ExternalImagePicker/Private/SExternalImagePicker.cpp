@@ -9,7 +9,8 @@
 #include "Widgets/Input/SButton.h"
 #include "SResetToDefaultMenu.h"
 #include "DesktopPlatformModule.h"
-#include "Interfaces/IImageWrapperModule.h"
+#include "IImageWrapper.h"
+#include "IImageWrapperModule.h"
 #include "Widgets/Layout/SEnableBox.h"
 
 #define LOCTEXT_NAMESPACE "ExternalImagePicker"
@@ -255,7 +256,7 @@ TSharedPtr< FSlateDynamicImageBrush > SExternalImagePicker::LoadImageAsBrush( co
 	if( FFileHelper::LoadFileToArray( RawFileData, *ImagePath ) )
 	{
 		IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>( FName("ImageWrapper") );
-		IImageWrapperPtr ImageWrappers[4] =
+		TSharedPtr<IImageWrapper> ImageWrappers[4] =
 		{ 
 			ImageWrapperModule.CreateImageWrapper( EImageFormat::PNG ),
 			ImageWrapperModule.CreateImageWrapper( EImageFormat::BMP ),

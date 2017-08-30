@@ -1,6 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AutomationTest.h"
+#include "Misc/AutomationTest.h"
 #include "AutomationDriverCommon.h"
 #include "AutomationDriverTypeDefs.h"
 #include "SAutomationDriverSpecSuite.h"

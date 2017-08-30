@@ -29,7 +29,7 @@
 #include "InstalledPlatformInfo.h"
 #include "PlatformInfo.h"
 #include "DesktopPlatformModule.h"
-#include "Common/GameProjectHelper.h"
+#include "GameProjectHelper.h"
 
 #define LOCTEXT_NAMESPACE "MobileLauncherProfileWizard"
 

@@ -1,12 +1,15 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "Widgets/Browser/SDeviceBrowserDeviceAdder.h"
+#include "SDeviceBrowserDeviceAdder.h"
+
+#include "Internationalization/Text.h"
+#include "ITargetDeviceServiceManager.h"
 #include "Misc/MessageDialog.h"
 #include "Misc/CoreMisc.h"
 #include "SlateOptMacros.h"
 #include "Widgets/Images/SImage.h"
-#include "Widgets/Input/SEditableTextBox.h"
 #include "Widgets/Input/SButton.h"
+#include "Widgets/Input/SEditableTextBox.h"
 #include "EditorStyleSet.h"
 #include "Interfaces/ITargetPlatform.h"
 #include "Interfaces/ITargetPlatformManagerModule.h"
@@ -20,10 +23,148 @@
  *****************************************************************************/
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-void SDeviceBrowserDeviceAdder::Construct( const FArguments& InArgs, const ITargetDeviceServiceManagerRef& InDeviceServiceManager )
+void SDeviceBrowserDeviceAdder::Construct(const FArguments& InArgs, const TSharedRef<ITargetDeviceServiceManager>& InDeviceServiceManager)
 {
 	DeviceServiceManager = InDeviceServiceManager;
 
+	// callback for clicking of the Add button
+	auto AddButtonClicked = [this]() -> FReply {
+		ITargetPlatform* TargetPlatform = GetTargetPlatformManager()->FindTargetPlatform(*PlatformComboBox->GetSelectedItem());
+
+		FString DeviceIdString = DeviceIdTextBox->GetText().ToString();
+		bool bAdded = TargetPlatform->AddDevice(DeviceIdString, false);
+		if (bAdded)
+		{
+			// pass credentials to the newly added device
+			if (TargetPlatform->RequiresUserCredentials())
+			{
+				// We cannot guess the device id, so we have to look it up by name
+				TArray<ITargetDevicePtr> Devices;
+				TargetPlatform->GetAllDevices(Devices);
+				for (ITargetDevicePtr Device : Devices)
+				{
+					if (Device.IsValid() && Device->GetId().GetDeviceName() == DeviceIdString)
+					{
+						FString UserNameString = UserNameTextBox->GetText().ToString();
+						FString UserPassString = UserPasswordTextBox->GetText().ToString();
+
+						Device->SetUserCredentials(UserNameString, UserPassString);
+					}
+				}
+			}
+
+			DeviceIdTextBox->SetText(FText::GetEmpty());
+			DeviceNameTextBox->SetText(FText::GetEmpty());
+			UserNameTextBox->SetText(FText::GetEmpty());
+			UserPasswordTextBox->SetText(FText::GetEmpty());
+		}
+		else
+		{
+			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("DeviceAdderFailedToAddDeviceMessage", "Failed to add the device!"));
+		}
+
+		return FReply::Handled();
+	};
+
+	// callback for determining the enabled state of the 'Add' button
+	auto AddButtonIsEnabled = [this]() -> bool {
+		TSharedPtr<FString> PlatformName = PlatformComboBox->GetSelectedItem();
+
+		if (PlatformName.IsValid())
+		{
+			FString TextCheck = DeviceNameTextBox->GetText().ToString();
+			TextCheck.Trim();
+
+			if (!TextCheck.IsEmpty())
+			{
+				ITargetPlatform* Platform = GetTargetPlatformManager()->FindTargetPlatform(*PlatformName);
+
+				if (Platform != nullptr)
+				{
+					if (!Platform->RequiresUserCredentials())
+					{
+						return true;
+					}
+
+					// check user/password as well
+					TextCheck = UserNameTextBox->GetText().ToString();
+					TextCheck.Trim();
+
+					if (!TextCheck.IsEmpty())
+					{
+						// do not trim the password
+						return !UserPasswordTextBox->GetText().ToString().IsEmpty();
+					}
+				}
+			}
+		}
+
+		return false;
+	};
+
+	// callback for determining the visibility of the credentials box
+	auto CredentialsBoxVisibility = [this]() -> EVisibility {
+		TSharedPtr<FString> PlatformName = PlatformComboBox->GetSelectedItem();
+
+		if (PlatformName.IsValid())
+		{
+			ITargetPlatform* Platform = GetTargetPlatformManager()->FindTargetPlatform(*PlatformName);
+
+			if ((Platform != nullptr) && Platform->RequiresUserCredentials())
+			{
+				return EVisibility::Visible;
+			}
+		}
+
+		return EVisibility::Collapsed;
+	};
+
+	// callback for changes in the device name text box
+	auto DeviceNameTextBoxTextChanged = [this](const FString& Text) {
+		DetermineAddUnlistedButtonVisibility();
+	};
+
+	// callback for getting the name of the selected platform
+	auto PlatformComboBoxContentText = [this]() -> FText {
+		TSharedPtr<FString> SelectedPlatform = PlatformComboBox->GetSelectedItem();
+		return SelectedPlatform.IsValid() ? FText::FromString(*SelectedPlatform) : LOCTEXT("SelectAPlatform", "Select a Platform");
+	};
+
+	// callback for generating widgets for the platforms combo box
+	auto PlatformComboBoxGenerateWidget = [this](TSharedPtr<FString> Item) -> TSharedRef<SWidget> {
+		const PlatformInfo::FPlatformInfo* const PlatformInfo = PlatformInfo::FindPlatformInfo(**Item);
+
+		return
+			SNew(SHorizontalBox)
+
+			+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.HAlign(HAlign_Left)
+				[
+					SNew(SBox)
+						.WidthOverride(24)
+						.HeightOverride(24)
+						[
+							SNew(SImage)
+								.Image((PlatformInfo) ? FEditorStyle::GetBrush(PlatformInfo->GetIconStyleName(PlatformInfo::EPlatformIconSize::Normal)) : FStyleDefaults::GetNoBrush())
+						]
+				]
+
+			+ SHorizontalBox::Slot()
+				.Padding(4.0f, 0.0f, 0.0f, 0.0f)
+				.VAlign(VAlign_Center)
+				[
+					SNew(STextBlock)
+						.Text(FText::FromString(*Item))
+				];
+	};
+
+	// callback for handling platform selection changes
+	auto PlatformComboBoxSelectionChanged = [this](TSharedPtr<FString> StringItem, ESelectInfo::Type SelectInfo) {
+		// @todo
+	};
+
+	// construct children
 	ChildSlot
 	[
 		SNew(SVerticalBox)
@@ -53,14 +194,14 @@ void SDeviceBrowserDeviceAdder::Construct( const FArguments& InArgs, const ITarg
 							.HAlign(HAlign_Left)
 							.Padding(0.0f, 4.0f, 0.0f, 0.0f)
 							[
-								SAssignNew(PlatformComboBox, SComboBox<TSharedPtr<FString> >)
+								SAssignNew(PlatformComboBox, SComboBox<TSharedPtr<FString>>)
 									.ContentPadding(FMargin(6.0f, 2.0f))
 									.OptionsSource(&PlatformList)
-									.OnGenerateWidget(this, &SDeviceBrowserDeviceAdder::HandlePlatformComboBoxGenerateWidget)
-									.OnSelectionChanged(this, &SDeviceBrowserDeviceAdder::HandlePlatformComboBoxSelectionChanged)
+									.OnGenerateWidget_Lambda(PlatformComboBoxGenerateWidget)
+									.OnSelectionChanged_Lambda(PlatformComboBoxSelectionChanged)
 									[
 										SNew(STextBlock)
-											.Text(this, &SDeviceBrowserDeviceAdder::HandlePlatformComboBoxContentText)
+											.Text_Lambda(PlatformComboBoxContentText)
 									]
 							]
 					]
@@ -121,9 +262,9 @@ void SDeviceBrowserDeviceAdder::Construct( const FArguments& InArgs, const ITarg
 					[
 						SAssignNew(AddButton, SButton)
 							.ContentPadding(FMargin(9.0, 2.0))
-							.IsEnabled(this, &SDeviceBrowserDeviceAdder::HandleAddButtonIsEnabled)
+							.IsEnabled_Lambda(AddButtonIsEnabled)
 							.Text(LOCTEXT("AddButtonText", "Add"))
-							.OnClicked(this, &SDeviceBrowserDeviceAdder::HandleAddButtonClicked)
+							.OnClicked_Lambda(AddButtonClicked)
 					]
 			]
 
@@ -131,7 +272,7 @@ void SDeviceBrowserDeviceAdder::Construct( const FArguments& InArgs, const ITarg
 			.AutoHeight()
 			[
 				SNew(SHorizontalBox)
-					.Visibility(this, &SDeviceBrowserDeviceAdder::HandleCredentialsBoxVisibility)
+					.Visibility_Lambda(CredentialsBoxVisibility)
 
 				// user name input
 				+ SHorizontalBox::Slot()
@@ -190,7 +331,7 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 /* SDeviceBrowserDeviceAdder implementation
  *****************************************************************************/
 
-void SDeviceBrowserDeviceAdder::DetermineAddUnlistedButtonVisibility( )
+void SDeviceBrowserDeviceAdder::DetermineAddUnlistedButtonVisibility()
 {
 	if (PlatformComboBox->GetSelectedItem().IsValid())
 	{
@@ -202,7 +343,7 @@ void SDeviceBrowserDeviceAdder::DetermineAddUnlistedButtonVisibility( )
 }
 
 
-void SDeviceBrowserDeviceAdder::RefreshPlatformList( )
+void SDeviceBrowserDeviceAdder::RefreshPlatformList()
 {
 	TArray<ITargetPlatform*> Platforms = GetTargetPlatformManager()->GetTargetPlatforms();
 
@@ -214,154 +355,6 @@ void SDeviceBrowserDeviceAdder::RefreshPlatformList( )
 	}
 
 	PlatformComboBox->RefreshOptions();
-}
-
-
-/* SDeviceBrowserDeviceAdder event handlers
- *****************************************************************************/
-
-FReply SDeviceBrowserDeviceAdder::HandleAddButtonClicked( )
-{
-	ITargetPlatform* TargetPlatform = GetTargetPlatformManager()->FindTargetPlatform(*PlatformComboBox->GetSelectedItem());
-
-	FString DeviceIdString = DeviceIdTextBox->GetText().ToString();
-	bool bAdded = TargetPlatform->AddDevice(DeviceIdString, false);
-	if (bAdded)
-	{
-		// pass credentials to the newly added device
-		if (TargetPlatform->RequiresUserCredentials())
-		{
-			// We cannot guess the device id, so we have to look it up by name
-			TArray<ITargetDevicePtr> Devices;
-			TargetPlatform->GetAllDevices(Devices);
-			for (ITargetDevicePtr Device : Devices)
-			{
-				if (Device.IsValid() && Device->GetId().GetDeviceName() == DeviceIdString)
-				{
-					FString UserNameString = UserNameTextBox->GetText().ToString();
-					FString UserPassString = UserPasswordTextBox->GetText().ToString();
-
-					Device->SetUserCredentials(UserNameString, UserPassString);
-				}
-			}
-		}
-
-		DeviceIdTextBox->SetText(FText::GetEmpty());
-		DeviceNameTextBox->SetText(FText::GetEmpty());
-		UserNameTextBox->SetText(FText::GetEmpty());
-		UserPasswordTextBox->SetText(FText::GetEmpty());
-	}
-	else
-	{
-		FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("DeviceAdderFailedToAddDeviceMessage", "Failed to add the device!"));
-	}
-
-	return FReply::Handled();
-}
-
-
-bool SDeviceBrowserDeviceAdder::HandleAddButtonIsEnabled( ) const
-{
-	TSharedPtr<FString> PlatformName = PlatformComboBox->GetSelectedItem();
-
-	if (PlatformName.IsValid())
-	{
-		FString TextCheck = DeviceNameTextBox->GetText().ToString();
-		TextCheck.Trim();
-
-		if (!TextCheck.IsEmpty())
-		{
-			ITargetPlatform* Platform = GetTargetPlatformManager()->FindTargetPlatform(*PlatformName);
-
-			if (Platform != nullptr)
-			{
-				if (!Platform->RequiresUserCredentials())
-				{
-					return true;
-				}
-
-				// check user/password as well
-				TextCheck = UserNameTextBox->GetText().ToString();
-				TextCheck.Trim();
-
-				if (!TextCheck.IsEmpty())
-				{
-					// do not trim the password
-					return !UserPasswordTextBox->GetText().ToString().IsEmpty();
-				}
-			}
-		}
-	}
-
-	return false;
-}
-
-
-EVisibility SDeviceBrowserDeviceAdder::HandleCredentialsBoxVisibility( ) const
-{
-	TSharedPtr<FString> PlatformName = PlatformComboBox->GetSelectedItem();
-
-	if (PlatformName.IsValid())
-	{
-		ITargetPlatform* Platform = GetTargetPlatformManager()->FindTargetPlatform(*PlatformName);
-
-		if ((Platform != nullptr) && Platform->RequiresUserCredentials())
-		{
-			return EVisibility::Visible;
-		}
-	}
-
-	return EVisibility::Collapsed;
-}
-
-
-void SDeviceBrowserDeviceAdder::HandleDeviceNameTextBoxTextChanged (const FString& Text)
-{
-	DetermineAddUnlistedButtonVisibility();
-}
-
-
-FText SDeviceBrowserDeviceAdder::HandlePlatformComboBoxContentText( ) const
-{
-	TSharedPtr<FString> SelectedPlatform = PlatformComboBox->GetSelectedItem();
-
-	return SelectedPlatform.IsValid() ? FText::FromString(*SelectedPlatform) : LOCTEXT("SelectAPlatform", "Select a Platform");
-}
-
-
-TSharedRef<SWidget> SDeviceBrowserDeviceAdder::HandlePlatformComboBoxGenerateWidget( TSharedPtr<FString> Item )
-{
-	const PlatformInfo::FPlatformInfo* const PlatformInfo = PlatformInfo::FindPlatformInfo(**Item);
-
-	return
-		SNew(SHorizontalBox)
-
-		+ SHorizontalBox::Slot()
-			.AutoWidth()
-			.HAlign(HAlign_Left)
-			[
-				SNew(SBox)
-					.WidthOverride(24)
-					.HeightOverride(24)
-					[
-						SNew(SImage)
-							.Image((PlatformInfo) ? FEditorStyle::GetBrush(PlatformInfo->GetIconStyleName(PlatformInfo::EPlatformIconSize::Normal)) : FStyleDefaults::GetNoBrush())
-					]
-			]
-
-		+ SHorizontalBox::Slot()
-			.Padding(4.0f, 0.0f, 0.0f, 0.0f)
-			.VAlign(VAlign_Center)
-			[
-				SNew(STextBlock)
-					.Text(FText::FromString(*Item))
-			];
-}
-
-
-void SDeviceBrowserDeviceAdder::HandlePlatformComboBoxSelectionChanged( TSharedPtr<FString> StringItem, ESelectInfo::Type SelectInfo )
-{
-
 }
 
 

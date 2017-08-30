@@ -2,36 +2,40 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "Misc/Attribute.h"
-#include "Widgets/SNullWidget.h"
-#include "Widgets/DeclarativeSyntaxSupport.h"
-#include "Styling/SlateColor.h"
-#include "Widgets/SWidget.h"
+#include "CoreTypes.h"
+#include "EditorStyleSet.h"
+#include "HAL/PlatformProcess.h"
+#include "Internationalization/Text.h"
+#include "ITargetDeviceProxy.h"
+#include "ITargetDeviceService.h"
 #include "Layout/Margin.h"
-#include "Widgets/Views/STableViewBase.h"
+#include "Misc/Attribute.h"
+#include "PlatformInfo.h"
+#include "SlateOptMacros.h"
+#include "Styling/SlateColor.h"
 #include "Styling/SlateTypes.h"
 #include "Styling/StyleDefaults.h"
+#include "Templates/SharedPointer.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SNullWidget.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Input/SCheckBox.h"
 #include "Widgets/Layout/SBox.h"
-#include "Widgets/Views/STableRow.h"
-#include "Interfaces/ITargetDeviceService.h"
-#include "SlateOptMacros.h"
-#include "EditorStyleSet.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Views/SListView.h"
-#include "Widgets/Images/SImage.h"
-#include "PlatformInfo.h"
-#include "HAL/PlatformProcess.h"
-#include "Widgets/Input/SCheckBox.h"
-#include "Interfaces/ITargetDeviceProxy.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Views/STableViewBase.h"
+
 
 #define LOCTEXT_NAMESPACE "SDeviceBrowserDeviceListRow"
+
 
 /**
  * Implements a row widget for the device list view.
  */
 class SDeviceBrowserDeviceListRow
-	: public SMultiColumnTableRow<ITargetDeviceProxyPtr>
+	: public SMultiColumnTableRow<TSharedPtr<ITargetDeviceProxy>>
 {
 public:
 
@@ -43,11 +47,11 @@ public:
 public:
 
 	/**
-	 * Constructs the widget.
+	 * Construct the widget.
 	 *
 	 * @param InArgs The arguments.
 	 */
-	void Construct( const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView )
+	void Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView)
 	{
 		check(InArgs._DeviceService.IsValid());
 
@@ -55,19 +59,15 @@ public:
 		HighlightText = InArgs._HighlightText;
 
 		
-		SMultiColumnTableRow<ITargetDeviceProxyPtr>::Construct(FSuperRowType::FArguments(), InOwnerTableView);
+		SMultiColumnTableRow<TSharedPtr<ITargetDeviceProxy>>::Construct(FSuperRowType::FArguments(), InOwnerTableView);
 	}
 
 public:
 
-	/**
-	 * Generates the widget for the specified column.
-	 *
-	 * @param ColumnName The name of the column to generate the widget for.
-	 * @return The widget.
-	 */
+	//~ SMultiColumnTableRow interface
+
 	BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) override
+	virtual TSharedRef<SWidget> GenerateWidgetForColumn(const FName& ColumnName) override
 	{
 		if (ColumnName == TEXT("Claimed"))
 		{
@@ -148,7 +148,7 @@ public:
 private:
 
 	// Callback for getting the text in the 'Claimed' column.
-	FText HandleClaimedText( ) const
+	FText HandleClaimedText() const
 	{
 		FString ClaimUser = DeviceService->GetClaimUser();
 
@@ -161,19 +161,19 @@ private:
 	}
 
 	// Callback for getting the text in the 'Name' column.
-	FText HandleNameText( ) const
+	FText HandleNameText() const
 	{
 		return FText::FromString(DeviceService->GetDeviceName());
 	}
 
 	// Callback for changing this row's Share check box state.
-	void HandleShareCheckBoxStateChanged( ECheckBoxState NewState )
+	void HandleShareCheckBoxStateChanged(ECheckBoxState NewState)
 	{
 		DeviceService->SetShared(NewState == ECheckBoxState::Checked);
 	}
 
 	// Callback for getting the state of the 'Share' check box.
-	ECheckBoxState HandleShareCheckBoxIsChecked( ) const
+	ECheckBoxState HandleShareCheckBoxIsChecked() const
 	{
 		if (DeviceService->IsShared())
 		{
@@ -184,13 +184,13 @@ private:
 	}
 
 	// Callback for getting the enabled state of the 'Share' check box.
-	bool HandleShareCheckBoxIsEnabled( ) const
+	bool HandleShareCheckBoxIsEnabled() const
 	{
 		return DeviceService->IsRunning();
 	}
 
 	// Callback for getting the status text.
-	FText HandleStatusTextBlockText( ) const
+	FText HandleStatusTextBlockText() const
 	{
 		ITargetDevicePtr TargetDevice = DeviceService->GetDevice();
 
@@ -208,7 +208,7 @@ private:
 	}
 
 	// Callback for getting the text color.
-	FSlateColor HandleTextColorAndOpacity( ) const
+	FSlateColor HandleTextColorAndOpacity() const
 	{
 		if (DeviceService->CanStart())
 		{
@@ -221,7 +221,7 @@ private:
 private:
 
 	// Holds the target device service used to populate this row.
-	ITargetDeviceServicePtr DeviceService;
+	TSharedPtr<ITargetDeviceService, ESPMode::ThreadSafe> DeviceService;
 
 	// Holds the highlight text for the log message.
 	TAttribute<FText> HighlightText;

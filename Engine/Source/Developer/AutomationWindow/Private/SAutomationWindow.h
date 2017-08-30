@@ -6,7 +6,7 @@
 #include "SlateFwd.h"
 #include "Layout/Visibility.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
-#include "Interfaces/IAutomationReport.h"
+#include "IAutomationReport.h"
 #include "ISessionManager.h"
 #include "Input/Reply.h"
 #include "Widgets/SWidget.h"

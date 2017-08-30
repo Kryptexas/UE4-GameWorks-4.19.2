@@ -10,31 +10,27 @@ namespace UnrealBuildTool.Rules
 			bOutputPubliclyDistributable = true;
 
 			DynamicallyLoadedModuleNames.AddRange(
-                new string[] {
-                    "Media",
-				}
-            );
+				new string[] {
+					"Media",
+				});
 
 			PrivateDependencyModuleNames.AddRange(
 				new string[] {
 					"Core",
-                    "CoreUObject",
-                    "MediaAssets",
-                }
-			);
+					"CoreUObject",
+					"MediaAssets",
+				});
 
 			PrivateIncludePathModuleNames.AddRange(
 				new string[] {
 					"Media",
 					"MfMedia",
-				}
-			);
+				});
 
 			PrivateIncludePaths.AddRange(
 				new string[] {
 					"MfMediaFactory/Private",
-				}
-			);
+				});
 
 			if (Target.Platform == UnrealTargetPlatform.XboxOne)
 			{

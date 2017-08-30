@@ -1,211 +1,224 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Misc/MediaTextureResource.h"
-#include "RenderingThread.h"
-#include "Shader.h"
-#include "IMediaTextureSink.h"
-#include "MediaTexture.h"
-#include "DeviceProfiles/DeviceProfile.h"
-#include "StaticBoundShaderState.h"
-#include "SceneUtils.h"
-#include "DeviceProfiles/DeviceProfileManager.h"
-#include "RHIStaticStates.h"
-#include "MediaShaders.h"
 #include "MediaAssetsPrivate.h"
+
+#include "DeviceProfiles/DeviceProfile.h"
+#include "DeviceProfiles/DeviceProfileManager.h"
+#include "ExternalTexture.h"
+#include "IMediaPlayer.h"
+#include "IMediaSamples.h"
+#include "IMediaTextureSample.h"
+#include "MediaPlayerFacade.h"
+#include "MediaSampleSource.h"
+#include "MediaShaders.h"
 #include "PipelineStateCache.h"
+#include "SceneUtils.h"
+#include "Shader.h"
+#include "StaticBoundShaderState.h"
+#include "RenderUtils.h"
+#include "RHIStaticStates.h"
+#include "ExternalTexture.h"
+
+#include "MediaTexture.h"
+
+
+#define MEDIATEXTURERESOURCE_TRACE_RENDER 0
+
+
+/* Local helpers
+ *****************************************************************************/
+
+namespace MediaTextureResource
+{
+	/**
+	 * Get the pixel format for a given sample.
+	 *
+	 * @param Sample The sample.
+	 * @return The sample's pixel format.
+	 */
+	EPixelFormat GetPixelFormat(const TSharedPtr<IMediaTextureSample, ESPMode::ThreadSafe>& Sample)
+	{
+		switch (Sample->GetFormat())
+		{
+		case EMediaTextureSampleFormat::CharAYUV:
+		case EMediaTextureSampleFormat::CharBGRA:
+		case EMediaTextureSampleFormat::CharBMP:
+		case EMediaTextureSampleFormat::CharUYVY:
+		case EMediaTextureSampleFormat::CharYUY2:
+		case EMediaTextureSampleFormat::CharYVYU:
+			return PF_B8G8R8A8;
+
+		case EMediaTextureSampleFormat::CharNV12:
+		case EMediaTextureSampleFormat::CharNV21:
+			return PF_G8;
+
+		case EMediaTextureSampleFormat::FloatRGB:
+			return PF_FloatRGB;
+
+		case EMediaTextureSampleFormat::FloatRGBA:
+			return PF_FloatRGBA;
+
+		default:
+			return PF_Unknown;
+		}
+	}
+
+
+	/**
+	 * Check whether the given sample requires a conversion shader.
+	 *
+	 * @param Sample The sample to check.
+	 * @param SrgbOutput Whether the output is expected in sRGB color space.
+	 * @return true if conversion is required, false otherwise.
+	 * @see RequiresOutputResource
+	 */
+	bool RequiresConversion(const TSharedPtr<IMediaTextureSample, ESPMode::ThreadSafe>& Sample, bool SrgbOutput)
+	{
+		// If the output color space is expected to be sRGB, but the
+		// sample is not, a color space conversion on the GPU is required.
+
+		if (Sample->IsOutputSrgb() != SrgbOutput)
+		{
+			return true;
+		}
+
+		// If the output dimensions are not the same as the sample's
+		// dimensions, a resizing conversion on the GPU is required.
+
+		if (Sample->GetDim() != Sample->GetOutputDim())
+		{
+			return true;
+		}
+
+		// Only the following pixel formats are supported natively.
+		// All other formats require a conversion on the GPU.
+
+		const EMediaTextureSampleFormat Format = Sample->GetFormat();
+
+		return ((Format != EMediaTextureSampleFormat::CharBGRA) &&
+				(Format != EMediaTextureSampleFormat::FloatRGB) &&
+				(Format != EMediaTextureSampleFormat::FloatRGBA));
+	}
+
+
+	/**
+	 * Check whether the given sample requires an sRGB texture.
+	 *
+	 * @param Sample The sample to check.
+	 * @return true if an sRGB texture is required, false otherwise.
+	 */
+	bool RequiresSrgbTexture(const TSharedPtr<IMediaTextureSample, ESPMode::ThreadSafe>& Sample)
+	{
+		if (!Sample->IsOutputSrgb())
+		{
+			return false;
+		}
+
+		const EMediaTextureSampleFormat Format = Sample->GetFormat();
+
+		return ((Format == EMediaTextureSampleFormat::CharBGRA) ||
+				(Format == EMediaTextureSampleFormat::CharBMP) ||
+				(Format == EMediaTextureSampleFormat::FloatRGB) ||
+				(Format == EMediaTextureSampleFormat::FloatRGBA));
+	}
+}
+
 
 /* FMediaTextureResource structors
  *****************************************************************************/
 
-FMediaTextureResource::FMediaTextureResource(UMediaTexture& InOwner, const FLinearColor& InClearColor, const FIntPoint& InOutputDimensions, EMediaTextureSinkFormat InSinkFormat, EMediaTextureSinkMode InSinkMode)
-	: Owner(InOwner)
-	, TripleBuffer(BufferResources)
-	, BufferClearColor(InClearColor)
-	, BufferDimensions(InOutputDimensions)
-	, BufferPitch(0)
-	, CachedResourceSizeBytes(0)
-	, OutputDimensions(InOutputDimensions)
-	, RequiresConversion(false)
-	, SinkFormat(InSinkFormat)
-	, SinkMode(InSinkMode)
-	, State(EState::ShutDown)
+FMediaTextureResource::FMediaTextureResource(UMediaTexture& InOwner, FIntPoint& InOwnerDim, SIZE_T& InOwnerSize)
+	: Cleared(false)
+	, CurrentClearColor(FLinearColor::Transparent)
+	, Owner(InOwner)
+	, OwnerDim(InOwnerDim)
+	, OwnerSize(InOwnerSize)
 { }
-
-
-FMediaTextureResource::~FMediaTextureResource()
-{
-	FlushRenderingCommands();
-}
 
 
 /* FMediaTextureResource interface
  *****************************************************************************/
 
-void* FMediaTextureResource::AcquireBuffer()
+void FMediaTextureResource::Render(const FRenderParams& Params)
 {
-	if (State != EState::Initialized)
-	{
-		return nullptr;
-	}
-
-	if (SinkMode == EMediaTextureSinkMode::Buffered)
-	{
-		return TripleBuffer.GetWriteBuffer().LockedData;
-	}
-
 	check(IsInRenderingThread());
 
-	uint32 OutStride = 0;
-	TRefCountPtr<FRHITexture2D>& Texture = RequiresConversion
-		? BufferResources[2].RenderTarget
-		: RenderTargetTextureRHI;
+	TSharedPtr<FMediaTextureSampleSource, ESPMode::ThreadSafe> SampleSource = Params.SampleSource.Pin();
 
-	return RHILockTexture2D(Texture.GetReference(), 0, RLM_WriteOnly, OutStride, false /*bLockWithinMiptail*/, false /*bFlushRHIThread*/);
-}
-
-
-void FMediaTextureResource::DisplayBuffer()
-{
-	if (State != EState::Initialized)
+	if (SampleSource.IsValid())
 	{
-		return;
-	}
-	
-	// RenderThreadTasks will be consumed by ENQUEUE_RENDER_COMMAND in FMediaTextureResource::Tick.
-	// Since ENQUEUE_RENDER_COMMAND will decide which thread to run the tasks on, we should not
-	// make decision ourself to avoid conflict.
-	RenderThreadTasks.Enqueue([this]() {
-		SwapResource();
-	});
-}
-
-
-FRHITexture* FMediaTextureResource::GetTexture()
-{
-	if (State != EState::Initialized)
-	{
-		return nullptr;
-	}
-
-	check(IsInRenderingThread());
-	check(SinkMode == EMediaTextureSinkMode::Unbuffered);
-
-	return RenderTargetTextureRHI;
-}
-
-
-void FMediaTextureResource::InitializeBuffer(FIntPoint OutputDim, FIntPoint BufferDim, EMediaTextureSinkFormat Format, EMediaTextureSinkMode Mode)
-{
-	State = EState::Initializing;
-
-	RenderThreadTasks.Enqueue([=]() {
-		InitializeResource(OutputDim, BufferDim, Format, Mode);
-	});
-}
-
-
-void FMediaTextureResource::ReleaseBuffer()
-{
-	if (State != EState::Initialized)
-	{
-		return;
-	}
-
-	if (SinkMode == EMediaTextureSinkMode::Buffered)
-	{
-		TripleBuffer.SwapWriteBuffers();
-	}
-	else
-	{
-		check(IsInRenderingThread());
-
-		TRefCountPtr<FRHITexture2D>& Texture = RequiresConversion
-			? BufferResources[2].RenderTarget
-			: RenderTargetTextureRHI;
-
-		RHIUnlockTexture2D(Texture.GetReference(), 0, false /*bLockWithinMiptail*/);
-	}
-}
-
-
-void FMediaTextureResource::ShutdownBuffer()
-{
-	if ((State == EState::ShutDown) || (State == EState::ShuttingDown))
-	{
-		return;
-	}
-
-	State = EState::ShuttingDown;
-
-	RenderThreadTasks.Enqueue([this]() {
-		ReleaseDynamicRHI();
-	});
-}
-
-
-void FMediaTextureResource::UpdateBuffer(const uint8* Data, uint32 /*Pitch*/)
-{
-	if (State != EState::Initialized)
-	{
-		return;
-	}
-
-	// update sink
-	if (SinkMode == EMediaTextureSinkMode::Buffered)
-	{
-		uint8* Dest = (uint8*)TripleBuffer.GetWriteBuffer().LockedData;
-
-		if (Dest != nullptr)
+		// get the most current sample to be rendered
+		TSharedPtr<IMediaTextureSample, ESPMode::ThreadSafe> Sample;
+		bool SampleValid = false;
+		
+		while (SampleSource->Peek(Sample) && Sample.IsValid())
 		{
-			FMemory::Memcpy(Dest, Data, BufferPitch * BufferDimensions.Y);
+			const FTimespan StartTime = Sample->GetTime();
+			const FTimespan EndTime = StartTime + Sample->GetDuration();
 
-			if (TripleBuffer.IsDirty())
+			if (((Params.Rate > 0.0f) && (StartTime > Params.Time)) ||
+				((Params.Rate < 0.0f) && (EndTime <= Params.Time)))
 			{
-				UE_LOG(LogMediaAssets, VeryVerbose, TEXT("MediaTextureResource frame dropped."));
+				break; // future sample
 			}
 
-			TripleBuffer.SwapWriteBuffers();
+			SampleValid = SampleSource->Dequeue(Sample);
 		}
-	}
-	else if (IsInRenderingThread())
-	{
-		if (RequiresConversion)
+
+		if (!SampleValid)
 		{
-			FUpdateTextureRegion2D Region(0, 0, 0, 0, BufferDimensions.X, BufferDimensions.Y);
-			RHIUpdateTexture2D(BufferResources[2].RenderTarget.GetReference(), 0, Region, BufferPitch, Data);
-			ConvertResource(BufferResources[2]);
+			return; // no sample to render
+		}
+
+		check(Sample.IsValid());
+
+		// render the sample
+		if (Sample->GetOutputDim().GetMin() <= 0)
+		{
+			#if MEDIATEXTURERESOURCE_TRACE_RENDER
+				UE_LOG(LogMediaAssets, VeryVerbose, TEXT("TextureResource %llx: Corrupt sample with time %s at time %s"), this, *Sample->GetTime().ToString(), *Params.Time.ToString());
+			#endif
+
+			ClearTexture(FLinearColor::Red, Params.SrgbOutput); // mark corrupt sample
+		}
+		else if (MediaTextureResource::RequiresConversion(Sample, Params.SrgbOutput))
+		{
+			#if MEDIATEXTURERESOURCE_TRACE_RENDER
+				UE_LOG(LogMediaAssets, VeryVerbose, TEXT("TextureResource %llx: Converting sample with time %s at time %s"), this, *Sample->GetTime().ToString(), *Params.Time.ToString());
+			#endif
+
+			ConvertSample(Sample, Params.ClearColor, Params.SrgbOutput);
 		}
 		else
 		{
-			FUpdateTextureRegion2D Region(0, 0, 0, 0, OutputDimensions.X, OutputDimensions.Y);
-			RHIUpdateTexture2D(RenderTargetTextureRHI.GetReference(), 0, Region, BufferPitch, Data);
+			#if MEDIATEXTURERESOURCE_TRACE_RENDER
+				UE_LOG(LogMediaAssets, VeryVerbose, TEXT("TextureResource %llx: Copying sample with time %s at time %s"), this, *Sample->GetTime().ToString(), *Params.Time.ToString());
+			#endif
+
+			CopySample(Sample, Params.ClearColor, Params.SrgbOutput);
+		}
+
+		if (!GSupportsImageExternal && Params.PlayerGuid.IsValid())
+		{
+			FTextureRHIRef VideoTexture = (FTextureRHIRef)Owner.TextureReference.TextureReferenceRHI;
+			FExternalTextureRegistry::Get().RegisterExternalTexture(Params.PlayerGuid, VideoTexture, SamplerStateRHI, Sample->GetScaleRotation(), Sample->GetOffset());
 		}
 	}
-	else
+	else if (!Cleared)
 	{
-		UE_LOG(LogMediaAssets, Error, TEXT("UpdateTextureSinkBuffer must be called on render thread in Unbuffered mode."));
+		#if MEDIATEXTURERESOURCE_TRACE_RENDER
+			UE_LOG(LogMediaAssets, VeryVerbose, TEXT("TextureResource %llx: Clearing texture at time %s"), this, *Params.Time.ToString());
+		#endif
+
+		ClearTexture(Params.ClearColor, Params.SrgbOutput);
+
+		if (!GSupportsImageExternal && Params.PlayerGuid.IsValid())
+		{
+			FTextureRHIRef VideoTexture = (FTextureRHIRef)Owner.TextureReference.TextureReferenceRHI;
+			FExternalTextureRegistry::Get().RegisterExternalTexture(Params.PlayerGuid, VideoTexture, SamplerStateRHI, FLinearColor(1.0f, 0.0f, 0.0f, 1.0f), FLinearColor(0.0f, 0.0f, 0.0f, 0.0f));
+		}
 	}
-}
-
-
-void FMediaTextureResource::UpdateTextures(FRHITexture* RenderTarget, FRHITexture* ShaderResource)
-{
-	if (State != EState::Initialized)
-	{
-		return;
-	}
-
-	check(SinkMode == EMediaTextureSinkMode::Unbuffered);
-
-	FResource Resource;
-	{
-		Resource.RenderTarget = (RenderTarget != nullptr) ? RenderTarget->GetTexture2D() : nullptr;
-		Resource.ShaderResource = (ShaderResource != nullptr) ? ShaderResource->GetTexture2D() : nullptr;
-	}
-
-	RenderThreadTasks.Enqueue([=]() {
-		SetResource(Resource);
-	});
 }
 
 
@@ -214,7 +227,7 @@ void FMediaTextureResource::UpdateTextures(FRHITexture* RenderTarget, FRHITextur
 
 FIntPoint FMediaTextureResource::GetSizeXY() const
 {
-	return OutputDimensions;
+	return FIntPoint(Owner.GetWidth(), Owner.GetHeight());
 }
 
 
@@ -229,13 +242,13 @@ FString FMediaTextureResource::GetFriendlyName() const
 
 uint32 FMediaTextureResource::GetSizeX() const
 {
-	return OutputDimensions.X;
+	return Owner.GetWidth();
 }
 
 
 uint32 FMediaTextureResource::GetSizeY() const
 {
-	return OutputDimensions.Y;
+	return Owner.GetHeight();
 }
 
 
@@ -250,563 +263,388 @@ void FMediaTextureResource::InitDynamicRHI()
 	);
 
 	SamplerStateRHI = RHICreateSamplerState(SamplerStateInitializer);
-
-	if ((OutputDimensions.GetMin() <= 0) || (BufferDimensions.GetMin() <= 0))
-	{
-		return;
-	}
-
-	// determine buffer resource pixel format
-	EPixelFormat BufferFormat;
-	bool NeedsResize;
-	bool NeedsTransform;
-	bool SrgbBuffer;
-
-	switch (SinkFormat)
-	{
-	case EMediaTextureSinkFormat::CharAYUV:
-		BufferFormat = PF_B8G8R8A8;
-		BufferPitch = BufferDimensions.X * 4;
-		NeedsResize = false;
-		NeedsTransform = true;
-		SrgbBuffer = false;
-		break;
-
-	case EMediaTextureSinkFormat::CharBGRA:
-		BufferFormat = PF_B8G8R8A8;
-		BufferPitch = BufferDimensions.X * 4;
-		NeedsResize = (BufferDimensions != OutputDimensions);
-		NeedsTransform = false;
-		SrgbBuffer = true;
-		break;
-
-	case EMediaTextureSinkFormat::CharBMP:
-		BufferFormat = PF_B8G8R8A8;
-		BufferPitch = BufferDimensions.X * 4;
-		NeedsResize = true;
-		NeedsTransform = false;
-		SrgbBuffer = true;
-		break;
-
-	case EMediaTextureSinkFormat::CharNV12:
-	case EMediaTextureSinkFormat::CharNV21:
-		BufferFormat = PF_G8;
-		BufferPitch = BufferDimensions.X;
-		NeedsResize = false;
-		NeedsTransform = true;
-		SrgbBuffer = false;
-		break;
-
-	case EMediaTextureSinkFormat::CharUYVY:
-	case EMediaTextureSinkFormat::CharYUY2:
-	case EMediaTextureSinkFormat::CharYVYU:
-		BufferFormat = PF_B8G8R8A8;
-		BufferPitch = BufferDimensions.X * 4;
-		NeedsResize = false;
-		NeedsTransform = true;
-		SrgbBuffer = false;
-		break;
-
-	case EMediaTextureSinkFormat::FloatRGB:
-		BufferFormat = PF_FloatRGB;
-		BufferPitch = BufferDimensions.X * 12;
-		NeedsResize = (BufferDimensions != OutputDimensions);
-		NeedsTransform = false;
-		SrgbBuffer = true;
-		break;
-
-	case EMediaTextureSinkFormat::FloatRGBA:
-		BufferFormat = PF_FloatRGBA;
-		BufferPitch = BufferDimensions.X * 16;
-		NeedsResize = (BufferDimensions != OutputDimensions);
-		NeedsTransform = false;
-		SrgbBuffer = true;
-		break;
-
-	default:
-		return; // unsupported sink format
-	}
-
-	RequiresConversion = NeedsResize || NeedsTransform;
-
-	// determine how many buffer resources we need
-	int32 StartIndex;
-	
-	if (SinkMode == EMediaTextureSinkMode::Buffered)
-	{
-		StartIndex = 0; // triple buffer
-	}
-	else if (RequiresConversion)
-	{
-		StartIndex = 2; // single buffer (frame before pixel format conversion)
-	}
-	else
-	{
-		StartIndex = 3; // no buffering (directly writing to output or replacing resources)
-	}
-
-	// create buffer resources
-	if (StartIndex < 3)
-	{
-		TripleBuffer.Reset();
-
-		FRHIResourceCreateInfo CreateInfo = { FClearValueBinding(BufferClearColor) };
-		uint32 OutStride = 0;
-
-		// only one mip is used & textures are targetable or resolve
-		for (int32 ResourceIndex = StartIndex; ResourceIndex < 3; ++ResourceIndex)
-		{
-			FResource& Resource = BufferResources[ResourceIndex];
-
-			RHICreateTargetableShaderResource2D(
-				BufferDimensions.X,
-				BufferDimensions.Y,
-				BufferFormat,
-				1,
-				TexCreate_Dynamic | (SrgbBuffer ? TexCreate_SRGB : 0),
-				TexCreate_RenderTargetable,
-				false,
-				CreateInfo,
-				Resource.RenderTarget,
-				Resource.ShaderResource
-			);
-
-			if (ResourceIndex < 2)
-			{
-				// lock write & temp buffers (in triple buffered mode only)
-				Resource.LockedData = RHILockTexture2D(Resource.RenderTarget.GetReference(), 0, RLM_WriteOnly, OutStride, false);
-			}
-			else
-			{
-				Resource.LockedData = nullptr;
-			}
-		}
-	}
-
-	// create output resource if needed
-	if (RequiresConversion || (SinkMode == EMediaTextureSinkMode::Unbuffered))
-	{
-		// In Unbuffered mode or in Buffered mode (with conversion), this
-		// resource is used as a render target for the output frame.
-
-		FRHIResourceCreateInfo CreateInfo = { FClearValueBinding(BufferClearColor) };
-		TRefCountPtr<FRHITexture2D> Texture2DRHI;
-
-		RHICreateTargetableShaderResource2D(
-			OutputDimensions.X,
-			OutputDimensions.Y,
-			RequiresConversion ? PF_B8G8R8A8 : BufferFormat,
-			1,
-			TexCreate_Dynamic | (Owner.SRGB ? TexCreate_SRGB : 0),
-			TexCreate_RenderTargetable,
-			false,
-			CreateInfo,
-			RenderTargetTextureRHI,
-			Texture2DRHI
-		);
-
-		TextureRHI = (FTextureRHIRef&)Texture2DRHI;
-	}
-	else
-	{
-		check(StartIndex < 3);
-
-		// in Buffered mode, we pick the current read buffer as the first resource
-		// to be displayed. In Unbuffered mode (with conversion), the read buffer
-		// is used as the output render target.
-
-		const FResource& Resource = TripleBuffer.Read();
-		
-		RenderTargetTextureRHI = Resource.RenderTarget;
-		TextureRHI = Resource.ShaderResource;
-	}
-
-	// set the initial resource to be displayed
-	RHIUpdateTextureReference(Owner.TextureReference.TextureReferenceRHI, RenderTargetTextureRHI.GetReference());
-
-	// clear the displayed resource
-	FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
-	{
-		FRHIRenderTargetView View = FRHIRenderTargetView(RenderTargetTextureRHI, ERenderTargetLoadAction::EClear);
-		FRHISetRenderTargetsInfo Info(1, &View, FRHIDepthRenderTargetView());
-		RHICmdList.SetRenderTargetsAndClear(Info);
-		RHICmdList.SetViewport(0, 0, 0.0f, OutputDimensions.X, OutputDimensions.Y, 1.0f);
-		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, TextureRHI);
-	}
-
-	CacheResourceSize();
-
-	State = EState::Initialized;
-	FPlatformMisc::MemoryBarrier();
 }
 
 
 void FMediaTextureResource::ReleaseDynamicRHI()
 {
-	// release output resource if needed
-	if (RequiresConversion || (SinkMode == EMediaTextureSinkMode::Unbuffered))
-	{
-		RenderTargetTextureRHI.SafeRelease();
-		TextureRHI.SafeRelease();
-	}
+	Cleared = false;
 
-	// release buffer resources
-	int32 StartIndex;
+	InputTarget.SafeRelease();
+	OutputTarget.SafeRelease();
+	RenderTargetTextureRHI.SafeRelease();
+	TextureRHI.SafeRelease();
 
-	if (SinkMode == EMediaTextureSinkMode::Buffered)
-	{
-		StartIndex = 0; // triple buffer
-	}
-	else if (RequiresConversion)
-	{
-		StartIndex = 2; // single buffer (for pixel format conversion)
-	}
-	else
-	{
-		StartIndex = 3; // no buffering (writing directly to output)
-	}
-
-	for (int32 ResourceIndex = StartIndex; ResourceIndex < 3; ++ResourceIndex)
-	{
-		FResource& Resource = BufferResources[ResourceIndex];
-
-		if (Resource.LockedData != nullptr)
-		{
-			RHIUnlockTexture2D(Resource.RenderTarget.GetReference(), 0, false);
-			Resource.LockedData = nullptr;
-		}
-
-		Resource.ShaderResource.SafeRelease();
-		Resource.RenderTarget.SafeRelease();
-	}
-
-	// clean up
-	if (SinkMode == EMediaTextureSinkMode::Buffered)
-	{
-		TripleBuffer.Reset();
-	}
-
-	CacheResourceSize();
-
-	State = EState::ShutDown;
-	FPlatformMisc::MemoryBarrier();
-}
-
-
-/* FTickerObjectBase interface
- *****************************************************************************/
-
-bool FMediaTextureResource::Tick(float DeltaTime)
-{
-	ENQUEUE_RENDER_COMMAND(TickMediaTextureResource)([this](FRHICommandListImmediate&)
-	{
-		ProcessRenderThreadTasks();
-	});
-
-	return true;
+	UpdateTextureReference(nullptr);
 }
 
 
 /* FMediaTextureResource implementation
  *****************************************************************************/
 
-void FMediaTextureResource::CacheResourceSize()
+void FMediaTextureResource::ClearTexture(const FLinearColor& ClearColor, bool SrgbOutput)
 {
-	CachedResourceSizeBytes = 0;
+	// create output render target if we don't have one yet
+	const uint32 OutputCreateFlags = TexCreate_Dynamic | (SrgbOutput ? TexCreate_SRGB : 0);
 
-	if (OutputDimensions.GetMin() > 0)
+	if ((ClearColor != CurrentClearColor) || !OutputTarget.IsValid() || ((OutputTarget->GetFlags() & OutputCreateFlags) != OutputCreateFlags))
 	{
-		const SIZE_T BufferSize = BufferPitch * BufferDimensions.Y;
+		FRHIResourceCreateInfo CreateInfo = {
+			FClearValueBinding(ClearColor)
+		};
 
-		if (SinkMode == EMediaTextureSinkMode::Buffered)
+		TRefCountPtr<FRHITexture2D> DummyTexture2DRHI;
+
+		RHICreateTargetableShaderResource2D(
+			2,
+			2,
+			PF_B8G8R8A8,
+			1,
+			OutputCreateFlags,
+			TexCreate_RenderTargetable,
+			false,
+			CreateInfo,
+			OutputTarget,
+			DummyTexture2DRHI
+		);
+
+		CurrentClearColor = ClearColor;
+		UpdateResourceSize();
+	}
+
+	if (RenderTargetTextureRHI != OutputTarget)
+	{
+		UpdateTextureReference(OutputTarget);
+	}
+
+	// draw the clear color
+	FRHICommandListImmediate& CommandList = FRHICommandListExecutor::GetImmediateCommandList();
+	{
+		FRHIRenderTargetView View = FRHIRenderTargetView(RenderTargetTextureRHI, ERenderTargetLoadAction::EClear);
+		FRHISetRenderTargetsInfo Info(1, &View, FRHIDepthRenderTargetView());
+		CommandList.SetRenderTargetsAndClear(Info);
+		CommandList.SetViewport(0, 0, 0.0f, RenderTargetTextureRHI->GetSizeX(), RenderTargetTextureRHI->GetSizeY(), 1.0f);
+		CommandList.TransitionResource(EResourceTransitionAccess::EReadable, RenderTargetTextureRHI);
+	}
+
+	Cleared = true;
+}
+
+
+void FMediaTextureResource::ConvertSample(const TSharedPtr<IMediaTextureSample, ESPMode::ThreadSafe>& Sample, const FLinearColor& ClearColor, bool SrgbOutput)
+{
+	const EPixelFormat PixelFormat = MediaTextureResource::GetPixelFormat(Sample);
+
+	// get input texture
+	FRHITexture2D* InputTexture = nullptr;
+	{
+		// If the sample already provides a texture resource, we simply use that
+		// as the input texture. If the sample only provides raw data, then we
+		// create our own input render target and copy the data into it.
+
+		FRHITexture* SampleTexture = Sample->GetTexture();
+		FRHITexture2D* SampleTexture2D = (SampleTexture != nullptr) ? SampleTexture->GetTexture2D() : nullptr;
+
+		if (SampleTexture2D != nullptr)
 		{
-			CachedResourceSizeBytes += (3 * BufferSize);
+			InputTexture = SampleTexture2D;
+
+			InputTarget.SafeRelease();
+			UpdateResourceSize();
 		}
 		else
 		{
-			CachedResourceSizeBytes += BufferSize;
-		}
+			const bool SrgbTexture = MediaTextureResource::RequiresSrgbTexture(Sample);
+			const uint32 InputCreateFlags = TexCreate_Dynamic | (SrgbTexture ? TexCreate_SRGB : 0);
+			const FIntPoint SampleDim = Sample->GetDim();
 
-		if (RequiresConversion)
-		{
-			CachedResourceSizeBytes += (OutputDimensions.X * OutputDimensions.Y * 4);
+			// create a new input render target if necessary
+			if (!InputTarget.IsValid() || (InputTarget->GetSizeXY() != SampleDim) || (InputTarget->GetFormat() != PixelFormat) || ((InputTarget->GetFlags() & InputCreateFlags) != InputCreateFlags))
+			{
+				TRefCountPtr<FRHITexture2D> DummyTexture2DRHI;
+				FRHIResourceCreateInfo CreateInfo;
+
+				RHICreateTargetableShaderResource2D(
+					SampleDim.X,
+					SampleDim.Y,
+					PixelFormat,
+					1,
+					InputCreateFlags,
+					TexCreate_RenderTargetable,
+					false,
+					CreateInfo,
+					InputTarget,
+					DummyTexture2DRHI
+				);
+
+				UpdateResourceSize();
+			}
+
+			// copy sample data to input render target
+			FUpdateTextureRegion2D Region(0, 0, 0, 0, SampleDim.X, SampleDim.Y);
+			RHIUpdateTexture2D(InputTarget, 0, Region, Sample->GetStride(), (uint8*)Sample->GetBuffer());
+
+			InputTexture = InputTarget;
 		}
 	}
-}
 
+	// create output render target if necessary
+	const uint32 OutputCreateFlags = TexCreate_Dynamic | (SrgbOutput ? TexCreate_SRGB : 0);
+	const FIntPoint OutputDim = Sample->GetOutputDim();
 
-void FMediaTextureResource::ConvertResource(const FResource& Resource)
-{
-	check(IsInRenderingThread());
-
-	FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
-
-	SCOPED_DRAW_EVENT(RHICmdList, MediaTextureConvertResource);
-
-	FGraphicsPipelineStateInitializer GraphicsPSOInit;
-	FRHITexture* RenderTarget = RenderTargetTextureRHI.GetReference();
-	SetRenderTargets(RHICmdList, 1, &RenderTarget, nullptr, ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthNop_StencilNop);
-	RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
-
-	RHICmdList.SetViewport(0, 0, 0.0f, OutputDimensions.X, OutputDimensions.Y, 1.0f);
-
-	GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
-	GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
-	GraphicsPSOInit.BlendState = TStaticBlendStateWriteMask<CW_RGBA, CW_NONE, CW_NONE, CW_NONE, CW_NONE, CW_NONE, CW_NONE, CW_NONE>::GetRHI();
-	GraphicsPSOInit.PrimitiveType = PT_TriangleStrip;
-
-	// configure media shaders
-	auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
-	TShaderMapRef<FMediaShadersVS> VertexShader(ShaderMap);
-
-	GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GMediaVertexDeclaration.VertexDeclarationRHI;
-	GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
-
-	switch (SinkFormat)
+	if ((ClearColor != CurrentClearColor) || !OutputTarget.IsValid() || (OutputTarget->GetSizeXY() != OutputDim) || (OutputTarget->GetFormat() != PF_B8G8R8A8) || ((OutputTarget->GetFlags() & OutputCreateFlags) != OutputCreateFlags))
 	{
-	case EMediaTextureSinkFormat::CharAYUV:
+		TRefCountPtr<FRHITexture2D> DummyTexture2DRHI;
+		
+		FRHIResourceCreateInfo CreateInfo = {
+			FClearValueBinding(ClearColor)
+		};
+
+		RHICreateTargetableShaderResource2D(
+			OutputDim.X,
+			OutputDim.Y,
+			PF_B8G8R8A8,
+			1,
+			OutputCreateFlags,
+			TexCreate_RenderTargetable,
+			false,
+			CreateInfo,
+			OutputTarget,
+			DummyTexture2DRHI
+		);
+
+		CurrentClearColor = ClearColor;
+		UpdateResourceSize();
+	}
+
+	if (RenderTargetTextureRHI != OutputTarget)
+	{
+		UpdateTextureReference(OutputTarget);
+	}
+
+	// perform the conversion
+	FRHICommandListImmediate& CommandList = FRHICommandListExecutor::GetImmediateCommandList();
+	{
+		SCOPED_DRAW_EVENT(CommandList, MediaTextureConvertResource);
+
+		FGraphicsPipelineStateInitializer GraphicsPSOInit;
+		FRHITexture* RenderTarget = RenderTargetTextureRHI.GetReference();
+		SetRenderTargets(CommandList, 1, &RenderTarget, nullptr, ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthNop_StencilNop);
+
+		CommandList.ApplyCachedRenderTargets(GraphicsPSOInit);
+		CommandList.SetViewport(0, 0, 0.0f, OutputDim.X, OutputDim.Y, 1.0f);
+
+		GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+		GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
+		GraphicsPSOInit.BlendState = TStaticBlendStateWriteMask<CW_RGBA, CW_NONE, CW_NONE, CW_NONE, CW_NONE, CW_NONE, CW_NONE, CW_NONE>::GetRHI();
+		GraphicsPSOInit.PrimitiveType = PT_TriangleStrip;
+
+		// configure media shaders
+		auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
+		TShaderMapRef<FMediaShadersVS> VertexShader(ShaderMap);
+
+		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GMediaVertexDeclaration.VertexDeclarationRHI;
+		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+
+		switch (Sample->GetFormat())
+		{
+		case EMediaTextureSampleFormat::CharAYUV:
 		{
 			TShaderMapRef<FAYUVConvertPS> ConvertShader(ShaderMap);
-
 			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*ConvertShader);
-			SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
-
-			ConvertShader->SetParameters(
-				RHICmdList,
-				Resource.ShaderResource,
-				MediaShaders::YuvToSrgbDefault,
-				Owner.SRGB
-			);
+			SetGraphicsPipelineState(CommandList, GraphicsPSOInit);
+			ConvertShader->SetParameters(CommandList, InputTexture, MediaShaders::YuvToSrgbDefault, Sample->IsOutputSrgb());
 		}
 		break;
 
-	case EMediaTextureSinkFormat::CharNV12:
-		{
-			TShaderMapRef<FNV12ConvertPS> ConvertShader(ShaderMap);
-
-			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*ConvertShader);
-			SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
-
-			ConvertShader->SetParameters(
-				RHICmdList,
-				Resource.ShaderResource,
-				OutputDimensions,
-				MediaShaders::YuvToSrgbDefault,
-				Owner.SRGB
-			);
-		}
-		break;
-
-	case EMediaTextureSinkFormat::CharNV21:
-		{
-			TShaderMapRef<FNV21ConvertPS> ConvertShader(ShaderMap);
-
-			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*ConvertShader); 
-			SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
-
-			ConvertShader->SetParameters(
-				RHICmdList,
-				Resource.ShaderResource,
-				OutputDimensions,
-				MediaShaders::YuvToSrgbDefault,
-				Owner.SRGB
-			);
-		}
-		break;
-
-	case EMediaTextureSinkFormat::CharUYVY:
-		{
-			TShaderMapRef<FUYVYConvertPS> ConvertShader(ShaderMap);
-
-			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*ConvertShader);
-			SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
-
-			ConvertShader->SetParameters(
-				RHICmdList,
-				Resource.ShaderResource,
-				MediaShaders::YuvToSrgbDefault,
-				Owner.SRGB
-			);
-		}
-		break;
-
-	case EMediaTextureSinkFormat::CharYUY2:
-		{
-			TShaderMapRef<FYUY2ConvertPS> ConvertShader(ShaderMap);
-
-			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*ConvertShader);
-			SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
-
-			ConvertShader->SetParameters(
-				RHICmdList,
-				Resource.ShaderResource,
-				OutputDimensions,
-				MediaShaders::YuvToSrgbDefault,
-				Owner.SRGB
-			);
-		}
-		break;
-
-	case EMediaTextureSinkFormat::CharYVYU:
-		{
-			TShaderMapRef<FYVYUConvertPS> ConvertShader(ShaderMap);
-
-			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*ConvertShader);
-			SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
-
-			ConvertShader->SetParameters(
-				RHICmdList,
-				Resource.ShaderResource,
-				MediaShaders::YuvToSrgbDefault,
-				Owner.SRGB
-			);
-		}
-		break;
-
-	case EMediaTextureSinkFormat::CharBGRA:
-	case EMediaTextureSinkFormat::FloatRGB:
-	case EMediaTextureSinkFormat::FloatRGBA:
-		{
-			TShaderMapRef<FRGBConvertPS> ConvertShader(ShaderMap);
-
-			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*ConvertShader);
-			SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
-			ConvertShader->SetParameters(RHICmdList, Resource.ShaderResource, OutputDimensions, Owner.SRGB);
-		}
-		break;
-
-	case EMediaTextureSinkFormat::CharBMP:
+		case EMediaTextureSampleFormat::CharBMP:
 		{
 			TShaderMapRef<FBMPConvertPS> ConvertShader(ShaderMap);
-
 			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*ConvertShader);
-			SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
-			ConvertShader->SetParameters(RHICmdList, Resource.ShaderResource, OutputDimensions);
+			SetGraphicsPipelineState(CommandList, GraphicsPSOInit);
+			ConvertShader->SetParameters(CommandList, InputTexture, OutputDim, Sample->IsOutputSrgb() && !SrgbOutput);
 		}
 		break;
 
-	default:
-		return;
-	}
-
-	// draw full size quad into render target
-	FMediaElementVertex Vertices[4];
-	{
-		Vertices[0].Position.Set(-1.0f, 1.0f, 1.0f, 1.0f);
-		Vertices[0].TextureCoordinate.Set(0.0f, 0.0f);
-		Vertices[1].Position.Set(1.0f, 1.0f, 1.0f, 1.0f);
-		Vertices[1].TextureCoordinate.Set(1.0f, 0.0f);
-		Vertices[2].Position.Set(-1.0f, -1.0f, 1.0f, 1.0f);
-		Vertices[2].TextureCoordinate.Set(0.0f, 1.0f);
-		Vertices[3].Position.Set(1.0f, -1.0f, 1.0f, 1.0f);
-		Vertices[3].TextureCoordinate.Set(1.0f, 1.0f);
-	}
-
-	RHICmdList.SetViewport(0, 0, 0.0f, OutputDimensions.X, OutputDimensions.Y, 1.0f);
-
-	DrawPrimitiveUP(RHICmdList, PT_TriangleStrip, 2, Vertices, sizeof(Vertices[0]));
-
-	RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, RenderTargetTextureRHI);
-}
-
-
-void FMediaTextureResource::DisplayResource(const FResource& Resource)
-{
-	check(IsInRenderingThread());
-
-	RenderTargetTextureRHI = Resource.RenderTarget;
-	TextureRHI = Resource.ShaderResource;
-
-	RHIUpdateTextureReference(Owner.TextureReference.TextureReferenceRHI, RenderTargetTextureRHI.GetReference());
-}
-
-
-void FMediaTextureResource::InitializeResource(FIntPoint OutputDim, FIntPoint BufferDim, EMediaTextureSinkFormat Format, EMediaTextureSinkMode Mode)
-{
-	check(IsInRenderingThread());
-
-	if ((OutputDim == OutputDimensions) &&
-		(BufferDim == BufferDimensions) &&
-		(Format == SinkFormat) &&
-		(Mode == SinkMode))
-	{
-		// reuse existing resources
-		State = (OutputDimensions.GetMin() > 0) ? EState::Initialized : EState::ShutDown;
-		FPlatformMisc::MemoryBarrier();
-	}
-	else
-	{
-		// reinitialize resources
-		ReleaseDynamicRHI();
-		BufferDimensions = BufferDim;
-		OutputDimensions = OutputDim;
-		SinkFormat = Format;
-		SinkMode = Mode;
-		InitDynamicRHI();
-	}
-}
-
-
-void FMediaTextureResource::ProcessRenderThreadTasks()
-{
-	TFunction<void()> Task;
-
-	while (RenderThreadTasks.Dequeue(Task))
-	{
-		Task();
-	}
-}
-
-
-void FMediaTextureResource::SetResource(const FResource& Resource)
-{
-	check(IsInRenderingThread());
-
-	if (!Resource.RenderTarget.IsValid() || !Resource.ShaderResource.IsValid())
-	{
-		ReleaseDynamicRHI();
-		InitDynamicRHI();
-	}
-	else if (RequiresConversion)
-	{
-		ConvertResource(Resource);
-	}
-	else
-	{
-		DisplayResource(Resource);
-	}
-}
-
-
-void FMediaTextureResource::SwapResource()
-{
-	if (SinkMode == EMediaTextureSinkMode::Buffered)
-	{
-		if (TripleBuffer.IsDirty())
+		case EMediaTextureSampleFormat::CharNV12:
 		{
-			// lock & swap out old read buffer
-			FResource& OldResource = TripleBuffer.Read();
-			uint32 OutStride = 0;
-			OldResource.LockedData = RHILockTexture2D(OldResource.RenderTarget.GetReference(), 0, RLM_WriteOnly, OutStride, false /*bLockWithinMiptail*/, false /*bFlushRHIThread*/);
-			TripleBuffer.SwapReadBuffers();
+			TShaderMapRef<FNV12ConvertPS> ConvertShader(ShaderMap);
+			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*ConvertShader);
+			SetGraphicsPipelineState(CommandList, GraphicsPSOInit);
+			ConvertShader->SetParameters(CommandList, InputTexture, OutputDim, MediaShaders::YuvToSrgbDefault, Sample->IsOutputSrgb());
+		}
+		break;
 
-			// unlock & assign new read buffer
-			FResource& NewResource = TripleBuffer.Read();
-			RHIUnlockTexture2D(NewResource.RenderTarget.GetReference(), 0, false /*bLockWithinMiptail*/);
-			NewResource.LockedData = nullptr;
+		case EMediaTextureSampleFormat::CharNV21:
+		{
+			TShaderMapRef<FNV21ConvertPS> ConvertShader(ShaderMap);
+			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*ConvertShader);
+			SetGraphicsPipelineState(CommandList, GraphicsPSOInit);
+			ConvertShader->SetParameters(CommandList, InputTexture, OutputDim, MediaShaders::YuvToSrgbDefault, Sample->IsOutputSrgb());
+		}
+		break;
 
-			if (RequiresConversion)
-			{
-				ConvertResource(NewResource);
-			}
-			else
-			{
-				DisplayResource(NewResource);
-			}
+		case EMediaTextureSampleFormat::CharUYVY:
+		{
+			TShaderMapRef<FUYVYConvertPS> ConvertShader(ShaderMap);
+			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*ConvertShader);
+			SetGraphicsPipelineState(CommandList, GraphicsPSOInit);
+			ConvertShader->SetParameters(CommandList, InputTexture, MediaShaders::YuvToSrgbDefault, Sample->IsOutputSrgb());
+		}
+		break;
+
+		case EMediaTextureSampleFormat::CharYUY2:
+		{
+			TShaderMapRef<FYUY2ConvertPS> ConvertShader(ShaderMap);
+			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*ConvertShader);
+			SetGraphicsPipelineState(CommandList, GraphicsPSOInit);
+			ConvertShader->SetParameters(CommandList, InputTexture, OutputDim, MediaShaders::YuvToSrgbDefault, Sample->IsOutputSrgb());
+		}
+		break;
+
+		case EMediaTextureSampleFormat::CharYVYU:
+		{
+			TShaderMapRef<FYVYUConvertPS> ConvertShader(ShaderMap);
+			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*ConvertShader);
+			SetGraphicsPipelineState(CommandList, GraphicsPSOInit);
+			ConvertShader->SetParameters(CommandList, InputTexture, MediaShaders::YuvToSrgbDefault, Sample->IsOutputSrgb());
+		}
+		break;
+
+		case EMediaTextureSampleFormat::CharBGRA:
+		case EMediaTextureSampleFormat::FloatRGB:
+		case EMediaTextureSampleFormat::FloatRGBA:
+		{
+			TShaderMapRef<FRGBConvertPS> ConvertShader(ShaderMap);
+			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*ConvertShader);
+			SetGraphicsPipelineState(CommandList, GraphicsPSOInit);
+			ConvertShader->SetParameters(CommandList, InputTexture, OutputDim);
+		}
+		break;
+
+		default:
+			return; // unsupported format
+		}
+
+		// draw full size quad into render target
+		FMediaElementVertex Vertices[4];
+		{
+			Vertices[0].Position.Set(-1.0f, 1.0f, 1.0f, 1.0f);
+			Vertices[0].TextureCoordinate.Set(0.0f, 0.0f);
+			Vertices[1].Position.Set(1.0f, 1.0f, 1.0f, 1.0f);
+			Vertices[1].TextureCoordinate.Set(1.0f, 0.0f);
+			Vertices[2].Position.Set(-1.0f, -1.0f, 1.0f, 1.0f);
+			Vertices[2].TextureCoordinate.Set(0.0f, 1.0f);
+			Vertices[3].Position.Set(1.0f, -1.0f, 1.0f, 1.0f);
+			Vertices[3].TextureCoordinate.Set(1.0f, 1.0f);
+		}
+
+		CommandList.SetViewport(0, 0, 0.0f, OutputDim.X, OutputDim.Y, 1.0f);
+		DrawPrimitiveUP(CommandList, PT_TriangleStrip, 2, Vertices, sizeof(Vertices[0]));
+		CommandList.TransitionResource(EResourceTransitionAccess::EReadable, RenderTargetTextureRHI);
+	}
+
+	Cleared = false;
+}
+
+
+void FMediaTextureResource::CopySample(const TSharedPtr<IMediaTextureSample, ESPMode::ThreadSafe>& Sample, const FLinearColor& ClearColor, bool SrgbOutput)
+{
+	FRHITexture* SampleTexture = Sample->GetTexture();
+	FRHITexture2D* SampleTexture2D = (SampleTexture != nullptr) ? SampleTexture->GetTexture2D() : nullptr;
+
+	// If the sample already provides a texture resource, we simply use that
+	// as the output render target. If the sample only provides raw data, then
+	// we create our own output render target and copy the data into it.
+
+	if (SampleTexture2D != nullptr)
+	{
+		// use sample's texture as the new render target.
+		if (TextureRHI != SampleTexture2D)
+		{
+			UpdateTextureReference(SampleTexture2D);
+
+			OutputTarget.SafeRelease();
+			UpdateResourceSize();
 		}
 	}
-	else if (RequiresConversion)
+	else
 	{
-		ConvertResource(BufferResources[2]);
+		// create a new output render target if necessary
+		const uint32 OutputCreateFlags = TexCreate_Dynamic | (SrgbOutput ? TexCreate_SRGB : 0);
+		const EPixelFormat SampleFormat = MediaTextureResource::GetPixelFormat(Sample);
+		const FIntPoint SampleDim = Sample->GetDim();
+
+		if ((ClearColor != CurrentClearColor) || !OutputTarget.IsValid() || (OutputTarget->GetSizeXY() != SampleDim) || (OutputTarget->GetFormat() != SampleFormat) || ((OutputTarget->GetFlags() & OutputCreateFlags) != OutputCreateFlags))
+		{
+			TRefCountPtr<FRHITexture2D> DummyTexture2DRHI;
+
+			FRHIResourceCreateInfo CreateInfo = {
+				FClearValueBinding(ClearColor)
+			};
+
+			RHICreateTargetableShaderResource2D(
+				SampleDim.X,
+				SampleDim.Y,
+				SampleFormat,
+				1,
+				OutputCreateFlags,
+				TexCreate_RenderTargetable,
+				false,
+				CreateInfo,
+				OutputTarget,
+				DummyTexture2DRHI
+			);
+
+			CurrentClearColor = ClearColor;
+			UpdateResourceSize();
+		}
+
+		if (RenderTargetTextureRHI != OutputTarget)
+		{
+			UpdateTextureReference(OutputTarget);
+		}
+
+		// copy sample data to output render target
+		FUpdateTextureRegion2D Region(0, 0, 0, 0, SampleDim.X, SampleDim.Y);
+		RHIUpdateTexture2D(RenderTargetTextureRHI.GetReference(), 0, Region, Sample->GetStride(), (uint8*)Sample->GetBuffer());
+	}
+
+	Cleared = false;
+}
+
+
+void FMediaTextureResource::UpdateResourceSize()
+{
+	SIZE_T ResourceSize = 0;
+
+	if (InputTarget.IsValid())
+	{
+		ResourceSize += CalcTextureSize(InputTarget->GetSizeX(), InputTarget->GetSizeY(), InputTarget->GetFormat(), 1);
+	}
+
+	if (OutputTarget.IsValid())
+	{
+		ResourceSize += CalcTextureSize(OutputTarget->GetSizeX(), OutputTarget->GetSizeY(), OutputTarget->GetFormat(), 1);
+	}
+
+	OwnerSize = ResourceSize;
+}
+
+
+void FMediaTextureResource::UpdateTextureReference(FRHITexture2D* NewTexture)
+{
+	TextureRHI = NewTexture;
+	RenderTargetTextureRHI = NewTexture;
+
+	RHIUpdateTextureReference(Owner.TextureReference.TextureReferenceRHI, NewTexture);
+
+	if (RenderTargetTextureRHI != nullptr)
+	{
+		OwnerDim = FIntPoint(RenderTargetTextureRHI->GetSizeX(), RenderTargetTextureRHI->GetSizeY());
+	}
+	else
+	{
+		OwnerDim = FIntPoint::ZeroValue;
 	}
 }

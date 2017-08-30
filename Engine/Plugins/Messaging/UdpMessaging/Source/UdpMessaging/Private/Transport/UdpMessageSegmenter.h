@@ -2,8 +2,14 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "Transport/UdpSerializedMessage.h"
+#include "CoreTypes.h"
+#include "Containers/Array.h"
+#include "Containers/BitArray.h"
+#include "Templates/SharedPointer.h"
+
+class FArchive;
+class FUdpSerializedMessage;
+
 
 /**
  * Implements a message segmenter.
@@ -100,10 +106,7 @@ public:
 	 *
 	 * @return true if the segmenter is invalid, false otherwise.
 	 */
-	bool IsInvalid() const
-	{
-		return (SerializedMessage->GetState() == EUdpSerializedMessageState::Invalid);
-	}
+	bool IsInvalid() const;
 
 	/**
 	 * Marks the specified segment as sent.

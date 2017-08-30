@@ -59,7 +59,7 @@ void UPlatformMediaSource::Serialize(FArchive& Ar)
 		}
 		else
 		{
-			Ar << PlatformMediaSources;
+		Ar << PlatformMediaSources;
 		}
 #else
 		Ar << MediaSource;
@@ -83,13 +83,13 @@ bool UPlatformMediaSource::Validate() const
 	for (auto PlatformNameMediaSourcePair : PlatformMediaSources)
 	{
 		UMediaSource* PlatformMediaSource = PlatformNameMediaSourcePair.Value;
+
 		if (PlatformMediaSource != nullptr && PlatformMediaSource->Validate() == false)
 		{
-			// If any platform is specified but doesn't validate, the entire platform media source is not valid.
 			return false;
 		}
 	}
-	// If there are any platform media sources specified they will have been validated above.
+
 	return PlatformMediaSources.Num() > 0;
 #else
 	return (MediaSource != nullptr) ? MediaSource->Validate() : false;

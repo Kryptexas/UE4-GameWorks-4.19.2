@@ -275,39 +275,51 @@ protected:
 	UTexture* TransientOverrideValue_RenderThread;
 };
 
+class FMaterialUniformExpressionExternalTextureBase : public FMaterialUniformExpression
+{
+	DECLARE_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionExternalTextureBase);
+public:
+
+	FMaterialUniformExpressionExternalTextureBase(int32 InSourceTextureIndex = INDEX_NONE);
+	FMaterialUniformExpressionExternalTextureBase(const FGuid& InExternalTextureGuid);
+
+	virtual void Serialize(FArchive& Ar) override;
+	virtual bool IsConstant() const override { return false; }
+	virtual bool IsIdentical(const FMaterialUniformExpression* OtherExpression) const override;
+
+protected:
+
+	/** Resolve the guid that relates to texture information inside FExternalTexture */
+	FGuid ResolveExternalTextureGUID(const FMaterialRenderContext& Context, TOptional<FName> ParameterName = TOptional<FName>()) const;
+
+	/** Index of the texture in the material that should be used to retrieve the external texture GUID at runtime (or INDEX_NONE) */
+	int32 SourceTextureIndex;
+	/** Optional external texture GUID defined at compile time */
+	FGuid ExternalTextureGuid;
+};
 
 /**
 * An external texture expression.
 */
-class FMaterialUniformExpressionExternalTexture : public FMaterialUniformExpression
+class FMaterialUniformExpressionExternalTexture : public FMaterialUniformExpressionExternalTextureBase
 {
 	DECLARE_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionExternalTexture);
 public:
 
-	FMaterialUniformExpressionExternalTexture();
-
-	FMaterialUniformExpressionExternalTexture(const FGuid& InGuid);
+	FMaterialUniformExpressionExternalTexture(int32 InSourceTextureIndex = INDEX_NONE) : FMaterialUniformExpressionExternalTextureBase(InSourceTextureIndex) {}
+	FMaterialUniformExpressionExternalTexture(const FGuid& InGuid) : FMaterialUniformExpressionExternalTextureBase(InGuid) {}
 
 	// FMaterialUniformExpression interface.
-	virtual void Serialize(FArchive& Ar);
-	virtual class FMaterialUniformExpressionExternalTexture* GetExternalTextureUniformExpression() override { return this; }
+	virtual FMaterialUniformExpressionExternalTexture* GetExternalTextureUniformExpression() override { return this; }
 
 	// Lookup the external texture if it is set
-	bool GetExternalTexture(const FMaterialRenderProxy* MaterialRenderProxy, FTextureRHIRef& OutTextureRHI, FSamplerStateRHIRef& OutSamplerStateRHI);
+	virtual bool GetExternalTexture(const FMaterialRenderContext& Context, FTextureRHIRef& OutTextureRHI, FSamplerStateRHIRef& OutSamplerStateRHI) const;
 
-	virtual bool IsConstant() const
+	friend FArchive& operator<<(FArchive& Ar, FMaterialUniformExpressionExternalTexture*& Ref)
 	{
-		return false;
+		Ar << (FMaterialUniformExpression*&)Ref;
+		return Ar;
 	}
-	virtual bool IsIdentical(const FMaterialUniformExpression* OtherExpression) const;
-
-	friend FArchive& operator<<(FArchive& Ar, class FMaterialUniformExpressionExternalTexture*& Ref);
-
-	FGuid GetTextureExternalTextureGuid() const { return ExternalTextureGuid; }
-
-protected:
-	/** GUID is key for the ExternalTextures map */
-	FGuid ExternalTextureGuid;
 };
 
 /** Stores all uniform expressions for a material generated from a material translation. */
@@ -333,6 +345,7 @@ public:
 			+ UniformScalarExpressions.GetAllocatedSize()
 			+ Uniform2DTextureExpressions.GetAllocatedSize()
 			+ UniformCubeTextureExpressions.GetAllocatedSize()
+			+ UniformExternalTextureExpressions.GetAllocatedSize()
 			+ PerFrameUniformScalarExpressions.GetAllocatedSize()
 			+ PerFrameUniformVectorExpressions.GetAllocatedSize()
 			+ PerFramePrevUniformScalarExpressions.GetAllocatedSize()

@@ -95,7 +95,8 @@
 #include "ShaderCompiler.h"
 #include "Slate/SlateSoundDevice.h"
 #include "DerivedDataCacheInterface.h"
-#include "Interfaces/IImageWrapperModule.h"
+#include "IImageWrapper.h"
+#include "IImageWrapperModule.h"
 #include "EngineAnalytics.h"
 #include "TickTaskManagerInterface.h"
 #include "Net/NetworkProfiler.h"
@@ -186,12 +187,12 @@
 #include "GameplayTagsManager.h"
 
 #if !UE_BUILD_SHIPPING
-#include "Interfaces/IAutomationWorkerModule.h"
-#include "HAL/ExceptionHandling.h"
+	#include "HAL/ExceptionHandling.h"
+	#include "IAutomationWorkerModule.h"
 #endif	// UE_BUILD_SHIPPING
 
 #if ENABLE_LOC_TESTING
-#include "LocalizationModule.h"
+	#include "LocalizationModule.h"
 #endif
 
 #include "GeneralProjectSettings.h"
@@ -200,15 +201,16 @@
 #include "AssetRegistryModule.h"
 
 #if !UE_BUILD_SHIPPING
-#include "IPluginManager.h"
-#include "GenericPlatformCrashContext.h"
-#include "EngineBuildSettings.h"
+	#include "IPluginManager.h"
+	#include "GenericPlatformCrashContext.h"
+	#include "EngineBuildSettings.h"
 #endif
 
 DEFINE_LOG_CATEGORY(LogEngine);
 IMPLEMENT_MODULE( FEngineModule, Engine );
 
 #define LOCTEXT_NAMESPACE "UnrealEngine"
+
 
 void OnChangeEngineCVarRequiringRecreateRenderState(IConsoleVariable* Var)
 {
@@ -650,7 +652,7 @@ public:
 		if( InUncompressedData.Num() > 0 )
 		{
 			IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>( FName("ImageWrapper") );
-			IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper( EImageFormat::PNG );
+			TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper( EImageFormat::PNG );
 			if ( ImageWrapper.IsValid() && ImageWrapper->SetRaw( &InUncompressedData[ 0 ], InUncompressedData.Num(), InWidth, InHeight, ERGBFormat::RGBA, 8 ) )
 			{
 				OutCompressedData = ImageWrapper->GetCompressed();
@@ -679,7 +681,7 @@ public:
 		if( InCompressedData.Num() > 0 )
 		{
 			IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>( FName("ImageWrapper") );
-			IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper( EImageFormat::PNG );
+			TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper( EImageFormat::PNG );
 			if ( ImageWrapper.IsValid() && ImageWrapper->SetCompressed( &InCompressedData[ 0 ], InCompressedData.Num() ) )
 			{
 				check( ImageWrapper->GetWidth() == InWidth );
@@ -695,8 +697,6 @@ public:
 
 		return bSucceeded;
 	}
-
-
 };
 
 

@@ -896,6 +896,11 @@ float GetSphericalParticleOpacity(FMaterialPixelParameters Parameters, float Den
 	return Opacity;
 }
 
+float2 RotateScaleOffsetTexCoords(float2 InTexCoords, float4 InRotationScale, float2 InOffset)
+{
+	return float2(dot(InTexCoords, InRotationScale.xy), dot(InTexCoords, InRotationScale.zw)) + InOffset;
+}
+
 #if USES_SPEEDTREE
 
 /** Vertex offset for SpeedTree wind and LOD */

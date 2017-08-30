@@ -467,6 +467,16 @@ struct FAndroidOpenGL : public FOpenGLES2
 		return bUseES30ShadingLanguage;
 	}
 
+	enum class EImageExternalType : uint8
+	{
+		None,
+		ImageExternal100,
+		ImageExternal300,
+		ImageExternalESSL300
+	};
+
+	static FORCEINLINE EImageExternalType GetImageExternalType() { return ImageExternalType; }
+
 	// For now, framebuffer fetch is disabled with ES3.1
 	static FORCEINLINE bool SupportsShaderFramebufferFetch() { return !IsES31Usable() && FOpenGLES2::SupportsShaderFramebufferFetch(); }
 	static FORCEINLINE bool SupportsShaderDepthStencilFetch() { return !IsES31Usable() && FOpenGLES2::SupportsShaderDepthStencilFetch(); }
@@ -507,6 +517,9 @@ struct FAndroidOpenGL : public FOpenGLES2
 
 	/** Whether device supports image external */
 	static bool bSupportsImageExternal;
+
+	/** Type of image external supported */
+	static EImageExternalType ImageExternalType;
 
 	/** Maximum number of MSAA samples supported on chip in tile memory, or 1 if not available */
 	static GLint MaxMSAASamplesTileMem;

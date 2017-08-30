@@ -5,8 +5,8 @@
 #include "EngineGlobals.h"
 #include "Engine/Engine.h"
 #include "EngineServiceMessages.h"
-#include "Helpers/MessageEndpoint.h"
-#include "Helpers/MessageEndpointBuilder.h"
+#include "MessageEndpoint.h"
+#include "MessageEndpointBuilder.h"
 #include "Misc/NetworkVersion.h"
 
 
@@ -49,7 +49,7 @@ void FEngineService::SendNotification( const TCHAR* NotificationText, const FMes
 }
 
 
-void FEngineService::SendPong( const IMessageContextRef& Context )
+void FEngineService::SendPong( const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context )
 {
 	if (MessageEndpoint.IsValid())
 	{
@@ -125,7 +125,7 @@ void FEngineService::SendPong( const IMessageContextRef& Context )
 /* FEngineService callbacks
  *****************************************************************************/
 
-void FEngineService::HandleAuthGrantMessage( const FEngineServiceAuthGrant& Message, const IMessageContextRef& Context )
+void FEngineService::HandleAuthGrantMessage( const FEngineServiceAuthGrant& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context )
 {
 	if (AuthorizedUsers.Contains(Message.UserName))
 	{
@@ -140,7 +140,7 @@ void FEngineService::HandleAuthGrantMessage( const FEngineServiceAuthGrant& Mess
 }
 
 
-void FEngineService::HandleAuthDenyMessage( const FEngineServiceAuthDeny& Message, const IMessageContextRef& Context )
+void FEngineService::HandleAuthDenyMessage( const FEngineServiceAuthDeny& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context )
 {
 	if (AuthorizedUsers.Contains(Message.UserName))
 	{
@@ -155,7 +155,7 @@ void FEngineService::HandleAuthDenyMessage( const FEngineServiceAuthDeny& Messag
 }
 
 
-void FEngineService::HandleExecuteCommandMessage( const FEngineServiceExecuteCommand& Message, const IMessageContextRef& Context )
+void FEngineService::HandleExecuteCommandMessage( const FEngineServiceExecuteCommand& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context )
 {
 	if (AuthorizedUsers.Contains(Message.UserName))
 	{
@@ -177,13 +177,13 @@ void FEngineService::HandleExecuteCommandMessage( const FEngineServiceExecuteCom
 }
 
 
-void FEngineService::HandlePingMessage( const FEngineServicePing& Message, const IMessageContextRef& Context )
+void FEngineService::HandlePingMessage( const FEngineServicePing& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context )
 {
 	SendPong(Context);
 }
 
 
-void FEngineService::HandleTerminateMessage( const FEngineServiceTerminate& Message, const IMessageContextRef& Context )
+void FEngineService::HandleTerminateMessage( const FEngineServiceTerminate& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context )
 {
 	if (AuthorizedUsers.Contains(Message.UserName))
 	{

@@ -31,9 +31,9 @@ namespace
 		}
 
 		return FFileStatData(
-			IOSEpoch + FTimespan(0, 0, FileInfo.st_ctime), 
-			IOSEpoch + FTimespan(0, 0, FileInfo.st_atime), 
-			IOSEpoch + FTimespan(0, 0, FileInfo.st_mtime), 
+			IOSEpoch + FTimespan::FromSeconds(FileInfo.st_ctime), 
+			IOSEpoch + FTimespan::FromSeconds(FileInfo.st_atime), 
+			IOSEpoch + FTimespan::FromSeconds(FileInfo.st_mtime), 
 			FileSize,
 			bIsDirectory,
 			!!(FileInfo.st_mode & S_IWUSR)

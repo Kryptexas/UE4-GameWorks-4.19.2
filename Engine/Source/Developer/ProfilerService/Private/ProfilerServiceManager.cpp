@@ -1,10 +1,10 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "ProfilerServiceManager.h"
-#include "Serialization/MemoryReader.h"
+#include "MessageEndpointBuilder.h"
 #include "Misc/App.h"
-#include "Helpers/MessageEndpointBuilder.h"
 #include "ProfilerServiceMessages.h"
+#include "Serialization/MemoryReader.h"
 #include "Stats/StatsData.h"
 #include "Stats/StatsFile.h"
 

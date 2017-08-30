@@ -4,21 +4,19 @@ namespace UnrealBuildTool.Rules
 {
 	public class LaunchDaemonMessages : ModuleRules
 	{
-        public LaunchDaemonMessages(ReadOnlyTargetRules Target) : base(Target)
+		public LaunchDaemonMessages(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicDependencyModuleNames.AddRange(
 				new string[]
 				{
 					"CoreUObject",
-				}
-			);
+				});
 
 			PrivateDependencyModuleNames.AddRange(
 				new string[]
 				{
 					"Core",
-				}
-			);
+				});
 		}
 	}
 }

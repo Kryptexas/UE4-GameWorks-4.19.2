@@ -274,7 +274,7 @@ void FIOSTargetPlatform::PingNetworkDevices()
 /* FIOSTargetPlatform callbacks
  *****************************************************************************/
 
-void FIOSTargetPlatform::HandlePongMessage( const FIOSLaunchDaemonPong& Message, const IMessageContextRef& Context )
+void FIOSTargetPlatform::HandlePongMessage( const FIOSLaunchDaemonPong& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context )
 {
 	FTargetDeviceId DeviceId;
 	FTargetDeviceId::Parse(Message.DeviceID, DeviceId);
@@ -330,7 +330,7 @@ void FIOSTargetPlatform::HandleDeviceConnected(const FIOSLaunchDaemonPong& Messa
 	}
 	
 	// Add a very long time period to prevent the devices from getting disconnected due to a lack of pong messages
-	Device->LastPinged = FDateTime::UtcNow() + FTimespan(100, 0, 0, 0, 0);
+	Device->LastPinged = FDateTime::UtcNow() + FTimespan::FromDays(100.0);
 }
 
 
@@ -348,7 +348,7 @@ void FIOSTargetPlatform::HandleDeviceDisconnected(const FIOSLaunchDaemonPong& Me
 	}
 }
 
-bool FIOSTargetPlatform::HandleTicker(float DeltaTime )
+bool FIOSTargetPlatform::HandleTicker(float DeltaTime)
 {
 	PingNetworkDevices();
 

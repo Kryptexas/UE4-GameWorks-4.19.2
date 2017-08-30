@@ -1,91 +1,56 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "Widgets/SMediaPlayerEditorOutput.h"
-#include "Styling/SlateBrush.h"
+#include "SMediaPlayerEditorOutput.h"
+
+#include "AudioDevice.h"
+#include "Editor.h"
+#include "Engine/Engine.h"
+#include "IMediaEventSink.h"
 #include "Materials/Material.h"
 #include "Materials/MaterialExpressionTextureSample.h"
-#include "IMediaOutput.h"
-#include "IMediaPlayer.h"
 #include "MediaPlayer.h"
-#include "MediaSoundWave.h"
+#include "MediaSoundComponent.h"
 #include "MediaTexture.h"
+#include "Styling/SlateBrush.h"
 #include "Widgets/Images/SImage.h"
-#include "Editor.h"
-#include "AudioDevice.h"
 
 
 /* SMediaPlayerEditorOutput structors
  *****************************************************************************/
 
 SMediaPlayerEditorOutput::SMediaPlayerEditorOutput()
-	: CurrentSoundWave(nullptr)
-	, CurrentTexture(nullptr)
-	, DefaultSoundWave(nullptr)
-	, DefaultTexture(nullptr)
-	, Material(nullptr)
+	: Material(nullptr)
 	, MediaPlayer(nullptr)
-{
-	DefaultSoundWave = NewObject<UMediaSoundWave>(GetTransientPackage(), NAME_None, RF_Transient | RF_Public);
-
-	if (DefaultSoundWave != nullptr)
-	{
-		DefaultSoundWave->AddToRoot();
-
-		AudioComponent = FAudioDevice::CreateComponent(DefaultSoundWave);
-	
-		if (AudioComponent != nullptr)
-		{
-			AudioComponent->SetVolumeMultiplier(1.0f);
-			AudioComponent->SetPitchMultiplier(1.0f);
-			AudioComponent->bAllowSpatialization = false;
-			AudioComponent->bIsUISound = true;
-			AudioComponent->bAutoDestroy = false;
-			AudioComponent->AddToRoot();
-		}
-	}
-}
+	, MediaTexture(nullptr)
+	, SoundComponent(nullptr)
+{ }
 
 
 SMediaPlayerEditorOutput::~SMediaPlayerEditorOutput()
 {
-	if (MediaPlayer != nullptr)
+	if (MediaPlayer.IsValid())
 	{
 		MediaPlayer->OnMediaEvent().RemoveAll(this);
-	
-		// remove default sinks from native player
-		FMediaPlayerBase& Player = MediaPlayer->GetBasePlayer();
-
-		if (MediaPlayer->GetSoundWave() == nullptr)
-		{
-			Player.SetAudioSink(nullptr);
-		}
-
-		if (MediaPlayer->GetVideoTexture() == nullptr)
-		{
-			Player.SetVideoSink(nullptr);
-		}
-	}
-
-	// release default sinks
-	if (AudioComponent != nullptr)
-	{
-		AudioComponent->Stop();
-		AudioComponent->RemoveFromRoot();
+		MediaPlayer.Reset();
 	}
 
 	if (Material != nullptr)
 	{
 		Material->RemoveFromRoot();
+		Material = nullptr;
 	}
 
-	if (DefaultSoundWave != nullptr)
+	if (MediaTexture != nullptr)
 	{
-		DefaultSoundWave->RemoveFromRoot();
+		MediaTexture->RemoveFromRoot();
+		MediaTexture = nullptr;
 	}
 
-	if (DefaultTexture != nullptr)
+	if (SoundComponent != nullptr)
 	{
-		DefaultTexture->RemoveFromRoot();
+		SoundComponent->Stop();
+		SoundComponent->RemoveFromRoot();
+		SoundComponent = nullptr;
 	}
 }
 
@@ -97,6 +62,30 @@ void SMediaPlayerEditorOutput::Construct(const FArguments& InArgs, UMediaPlayer&
 {
 	MediaPlayer = &InMediaPlayer;
 
+	// create media sound component
+	if ((GEngine != nullptr) && GEngine->UseSound())
+	{
+		SoundComponent = NewObject<UMediaSoundComponent>(GetTransientPackage(), NAME_None, RF_Transient | RF_Public);
+
+		if (SoundComponent != nullptr)
+		{
+			SoundComponent->MediaPlayer = &InMediaPlayer;
+			SoundComponent->bIsUISound = true;
+			SoundComponent->Initialize();
+			SoundComponent->AddToRoot();
+		}
+	}
+
+	// create media texture
+	MediaTexture = NewObject<UMediaTexture>(GetTransientPackage(), NAME_None, RF_Transient | RF_Public);
+
+	if (MediaTexture != nullptr)
+	{
+		MediaTexture->MediaPlayer = &InMediaPlayer;
+		MediaTexture->UpdateResource();
+		MediaTexture->AddToRoot();
+	}
+
 	// create wrapper material
 	Material = NewObject<UMaterial>(GetTransientPackage(), NAME_None, RF_Transient | RF_Public);
 
@@ -104,7 +93,8 @@ void SMediaPlayerEditorOutput::Construct(const FArguments& InArgs, UMediaPlayer&
 	{
 		TextureSampler = NewObject<UMaterialExpressionTextureSample>(Material);
 		{
-			TextureSampler->SamplerType = SAMPLERTYPE_Color;
+			TextureSampler->Texture = MediaTexture;
+			TextureSampler->AutoSetSampleType();
 		}
 
 		FExpressionOutput& Output = TextureSampler->GetOutputs()[0];
@@ -120,6 +110,7 @@ void SMediaPlayerEditorOutput::Construct(const FArguments& InArgs, UMediaPlayer&
 
 		Material->Expressions.Add(TextureSampler);
 		Material->MaterialDomain = EMaterialDomain::MD_UI;
+		Material->PostEditChange();
 		Material->AddToRoot();
 	}
 
@@ -128,8 +119,6 @@ void SMediaPlayerEditorOutput::Construct(const FArguments& InArgs, UMediaPlayer&
 	{
 		MaterialBrush->SetResourceObject(Material);
 	}
-
-	UpdateMaterial();
 
 	ChildSlot
 	[
@@ -146,96 +135,19 @@ void SMediaPlayerEditorOutput::Construct(const FArguments& InArgs, UMediaPlayer&
 
 void SMediaPlayerEditorOutput::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
-	UpdateMaterial();
-	UpdateSoundWave();
-}
-
-
-/* SMediaPlayerEditorOutput implementation
- *****************************************************************************/
-
-void SMediaPlayerEditorOutput::UpdateMaterial()
-{
-	UMediaTexture* Texture = MediaPlayer->GetVideoTexture();
-
-	if (Texture == nullptr)
+	if (MediaTexture != nullptr)
 	{
-		// create default texture if needed
-		if (DefaultTexture == nullptr)
-		{
-			DefaultTexture = NewObject<UMediaTexture>(GetTransientPackage(), NAME_None, RF_Transient | RF_Public);
-			
-			if (DefaultTexture != nullptr)
-			{
-				DefaultTexture->UpdateResource();
-				DefaultTexture->AddToRoot();
-			}
-		}
-
-		// set default texture as output sink
-		if (DefaultTexture != nullptr)
-		{
-			MediaPlayer->GetBasePlayer().SetVideoSink(DefaultTexture);
-		}
-
-		Texture = DefaultTexture;
-	}
-
-	// assign new texture to material
-	if (Texture != CurrentTexture)
-	{
-		TextureSampler->Texture = Texture;
-		Material->PostEditChange();
-		CurrentTexture = Texture;
-	}
-
-	// resize current texture
-	if (CurrentTexture != nullptr)
-	{
-		MaterialBrush->ImageSize.X = CurrentTexture->GetSurfaceWidth();
-		MaterialBrush->ImageSize.Y = CurrentTexture->GetSurfaceHeight();
+		MaterialBrush->ImageSize.X = MediaTexture->GetSurfaceWidth();
+		MaterialBrush->ImageSize.Y = MediaTexture->GetSurfaceHeight();
 	}
 	else
 	{
 		MaterialBrush->ImageSize = FVector2D::ZeroVector;
 	}
-}
 
-
-void SMediaPlayerEditorOutput::UpdateSoundWave()
-{
-	if (AudioComponent == nullptr)
+	if (SoundComponent != nullptr)
 	{
-		return;
-	}
-
-	if (GEditor->PlayWorld == nullptr)
-	{
-		UMediaSoundWave* SoundWave = MediaPlayer->GetSoundWave();
-
-		if (SoundWave == nullptr)
-		{
-			// set default sound wave as output sink
-			if (DefaultSoundWave != nullptr)
-			{
-				MediaPlayer->GetBasePlayer().SetAudioSink(DefaultSoundWave);
-			}
-
-			SoundWave = DefaultSoundWave;
-		}
-
-		// assign new sound wave to audio component
-		if (SoundWave != CurrentSoundWave)
-		{
-			CurrentSoundWave = SoundWave;
-			AudioComponent->SetSound(SoundWave);
-		}
-	}
-	else
-	{
-		// no audio in PIE, PIV1, Simulate
-		AudioComponent->SetSound(nullptr);
-		CurrentSoundWave = nullptr;
+		SoundComponent->UpdatePlayer();
 	}
 }
 
@@ -245,20 +157,20 @@ void SMediaPlayerEditorOutput::UpdateSoundWave()
 
 void SMediaPlayerEditorOutput::HandleMediaPlayerMediaEvent(EMediaEvent Event)
 {
-	if ((AudioComponent == nullptr) || !CurrentSoundWave.IsValid())
+	if (SoundComponent == nullptr)
 	{
 		return;
 	}
 
-	switch (Event)
+	if (Event == EMediaEvent::PlaybackSuspended)
 	{
-	case EMediaEvent::PlaybackEndReached:
-	case EMediaEvent::PlaybackSuspended:
-		AudioComponent->Stop();
-		break;
-
-	case EMediaEvent::PlaybackResumed:
-		AudioComponent->Play();
-		break;
+		SoundComponent->Stop();
+	}
+	else if (Event == EMediaEvent::PlaybackResumed)
+	{
+		if (GEditor->PlayWorld == nullptr)
+		{
+			SoundComponent->Start();
+		}
 	}
 }

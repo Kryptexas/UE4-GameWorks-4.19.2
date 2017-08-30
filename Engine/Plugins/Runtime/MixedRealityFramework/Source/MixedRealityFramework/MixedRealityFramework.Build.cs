@@ -28,10 +28,8 @@ public class MixedRealityFramework : ModuleRules
 				"Core",
 				"CoreUObject",
 				"Engine",
-
 				"Media",
 				"MediaAssets",
-				"MediaUtils",
 				"HeadMountedDisplay",
 				"InputCore"
 			}

@@ -2,7 +2,8 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+class FArchive;
+
 
 /**
  * Interface for message attachments.

@@ -1,33 +1,34 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "WmfMediaPlayer.h"
-#include "WmfMediaResolver.h"
-#include "WmfMediaSession.h"
-#include "WmfMediaSampler.h"
-#include "WmfMediaUtils.h"
-#include "Serialization/ArrayReader.h"
-#include "HAL/FileManager.h"
-#include "Misc/FileHelper.h"
 
 #if WMFMEDIA_SUPPORTED_PLATFORM
 
+#include "Async/Async.h"
+#include "IMediaEventSink.h"
+#include "IMediaOptions.h"
+#include "Misc/Optional.h"
+#include "UObject/Class.h"
+
+#include "WmfMediaSession.h"
+#include "WmfMediaSettings.h"
+#include "WmfMediaTracks.h"
+#include "WmfMediaUtils.h"
+
 #include "AllowWindowsPlatformTypes.h"
+
 
 /* FWmfVideoPlayer structors
  *****************************************************************************/
 
-FWmfMediaPlayer::FWmfMediaPlayer()
+FWmfMediaPlayer::FWmfMediaPlayer(IMediaEventSink& InEventSink)
 	: Duration(0)
+	, EventSink(InEventSink)
+	, Session(new FWmfMediaSession)
+	, Tracks(MakeShared<FWmfMediaTracks, ESPMode::ThreadSafe>())
 {
-	MediaSession = new FWmfMediaSession(EMediaState::Closed);
-	Resolver = new FWmfMediaResolver;
-
-	Tracks.OnSelectionChanged().AddLambda([this]() {
-		if (MediaSession != NULL)
-		{
-			MediaSession->SetTopology(Tracks.CreateTopology());
-		}
-	});
+	check(Session != NULL);
+	check(Tracks.IsValid());
 }
 
 
@@ -42,53 +43,39 @@ FWmfMediaPlayer::~FWmfMediaPlayer()
 
 void FWmfMediaPlayer::Close()
 {
-	Resolver->Cancel();
-
-	if ((MediaSession == NULL) || (MediaSession->GetState() == EMediaState::Closed))
+	if ((Session->GetState() == EMediaState::Closed))
 	{
 		return;
 	}
 
-	// unregister session callbacks
-	MediaSession->OnSessionEvent().RemoveAll(this);
-
-	if (MediaSession->GetState() == EMediaState::Playing)
-	{
-		MediaEvent.Broadcast(EMediaEvent::PlaybackSuspended);
-	}
-
-	// close and release session
-	MediaSession->SetState(EMediaState::Closed);
-	MediaSession = new FWmfMediaSession(EMediaState::Closed);
-
-	// release media source
-	if (MediaSource != NULL)
-	{
-		MediaSource->Shutdown();
-		MediaSource = NULL;
-	}
+	Session->Shutdown();
 
 	// reset player
 	Duration = 0;
-	Info.Empty();
 	MediaUrl = FString();
-	Tracks.Reset();
+	Tracks->Shutdown();
 
 	// notify listeners
-	MediaEvent.Broadcast(EMediaEvent::TracksChanged);
-	MediaEvent.Broadcast(EMediaEvent::MediaClosed);
+	EventSink.ReceiveMediaEvent(EMediaEvent::TracksChanged);
+	EventSink.ReceiveMediaEvent(EMediaEvent::MediaClosed);
+}
+
+
+IMediaCache& FWmfMediaPlayer::GetCache()
+{
+	return *this;
 }
 
 
 IMediaControls& FWmfMediaPlayer::GetControls()
 {
-	return *MediaSession;
+	return *Session;
 }
 
 
 FString FWmfMediaPlayer::GetInfo() const
 {
-	return Info;
+	return Tracks->GetInfo();
 }
 
 
@@ -99,17 +86,16 @@ FName FWmfMediaPlayer::GetName() const
 }
 
 
-IMediaOutput& FWmfMediaPlayer::GetOutput()
+IMediaSamples& FWmfMediaPlayer::GetSamples()
 {
-	return Tracks;
+	return *Tracks;
 }
 
 
 FString FWmfMediaPlayer::GetStats() const
 {
 	FString Result;
-
-	Tracks.AppendStats(Result);
+	Tracks->AppendStats(Result);
 
 	return Result;
 }
@@ -117,7 +103,7 @@ FString FWmfMediaPlayer::GetStats() const
 
 IMediaTracks& FWmfMediaPlayer::GetTracks()
 {
-	return Tracks;
+	return *Tracks;
 }
 
 
@@ -127,7 +113,13 @@ FString FWmfMediaPlayer::GetUrl() const
 }
 
 
-bool FWmfMediaPlayer::Open(const FString& Url, const IMediaOptions& Options)
+IMediaView& FWmfMediaPlayer::GetView()
+{
+	return *this;
+}
+
+
+bool FWmfMediaPlayer::Open(const FString& Url, const IMediaOptions* Options)
 {
 	Close();
 
@@ -136,217 +128,109 @@ bool FWmfMediaPlayer::Open(const FString& Url, const IMediaOptions& Options)
 		return false;
 	}
 
-	// open local files via platform file system
-	bool Resolving = false;
+	const bool Precache = (Options != nullptr) ? Options->GetMediaOption("PrecacheFile", false) : false;
 
-	if (Url.StartsWith(TEXT("file://")))
-	{
-		TSharedPtr<FArchive, ESPMode::ThreadSafe> Archive;
-		const TCHAR* FilePath = &Url[7];
-
-		if (Options.GetMediaOption("PrecacheFile", false))
-		{
-			FArrayReader* Reader = new FArrayReader;
-
-			if (FFileHelper::LoadFileToArray(*Reader, FilePath))
-			{
-				Archive = MakeShareable(Reader);
-			}
-			else
-			{
-				delete Reader;
-			}
-		}
-		else
-		{
-			Archive = MakeShareable(IFileManager::Get().CreateFileReader(FilePath));
-		}
-
-		if (!Archive.IsValid())
-		{
-			UE_LOG(LogWmfMedia, Warning, TEXT("Failed to open media file: %s"), FilePath);
-
-			return false;
-		}
-
-		Resolving = Resolver->ResolveByteStream(Archive.ToSharedRef(), Url, *this);
-	}
-	else
-	{
-		Resolving = Resolver->ResolveUrl(Url, *this);
-	}
-
-	if (Resolving)
-	{
-		MediaSession = new FWmfMediaSession(EMediaState::Preparing);
-	}
-
-	return Resolving;
+	return InitializePlayer(nullptr, Url, Precache);
 }
 
 
-bool FWmfMediaPlayer::Open(const TSharedRef<FArchive, ESPMode::ThreadSafe>& Archive, const FString& OriginalUrl, const IMediaOptions& Options)
+bool FWmfMediaPlayer::Open(const TSharedRef<FArchive, ESPMode::ThreadSafe>& Archive, const FString& OriginalUrl, const IMediaOptions* /*Options*/)
 {
 	Close();
 
-	if ((Archive->TotalSize() == 0) || OriginalUrl.IsEmpty())
+	if (Archive->TotalSize() == 0)
 	{
+		UE_LOG(LogWmfMedia, Error, TEXT("Cannot open media from archive (archive is empty)."));
 		return false;
 	}
 
-	return Resolver->ResolveByteStream(Archive, OriginalUrl, *this);
+	if (OriginalUrl.IsEmpty())
+	{
+		UE_LOG(LogWmfMedia, Error, TEXT("Cannot open media from archive (no original URL provided)."));
+		return false;
+	}
+
+	return InitializePlayer(Archive, OriginalUrl, false);
 }
 
 
-void FWmfMediaPlayer::TickPlayer(float DeltaTime)
+void FWmfMediaPlayer::TickFetch(FTimespan /*DeltaTime*/)
 {
-	TFunction<void()> Task;
+	bool MediaSourceChanged = false;
+	bool TopologyChanged = false;
 
-	while (PlayerTasks.Dequeue(Task))
+	Tracks->GetFlags(MediaSourceChanged, TopologyChanged);
+
+	if (MediaSourceChanged)
 	{
-		Task();
+		EventSink.ReceiveMediaEvent(EMediaEvent::TracksChanged);
+	}
+
+	if (TopologyChanged)
+	{
+		if (Tracks->IsInitialized())
+		{
+			Session->SetTopology(Tracks->CreateTopology(), Tracks->GetDuration());
+		}
+		else
+		{
+			Session->Shutdown();
+			EventSink.ReceiveMediaEvent(EMediaEvent::MediaOpenFailed);
+		}
+	}
+
+	if (MediaSourceChanged || TopologyChanged)
+	{
+		Tracks->ClearFlags();
 	}
 }
 
 
-void FWmfMediaPlayer::TickVideo(float DeltaTime)
+void FWmfMediaPlayer::TickInput(FTimespan DeltaTime)
 {
-	// do nothing
-}
+	// forward session events
+	TArray<EMediaEvent> OutEvents;
+	Session->GetEvents(OutEvents);
 
-
-
-/* IWmfMediaResolverCallbacks interface
- *****************************************************************************/
-
-void FWmfMediaPlayer::ProcessResolveComplete(TComPtr<IUnknown> SourceObject, FString ResolvedUrl)
-{
-	PlayerTasks.Enqueue([=]() {
-		MediaEvent.Broadcast(
-			InitializeMediaSession(SourceObject, ResolvedUrl)
-				? EMediaEvent::MediaOpened
-				: EMediaEvent::MediaOpenFailed
-		);
-	});
-}
-
-
-void FWmfMediaPlayer::ProcessResolveFailed(FString FailedUrl)
-{
-	PlayerTasks.Enqueue([=]() {
-		MediaSession = new FWmfMediaSession(EMediaState::Closed);
-		MediaEvent.Broadcast(EMediaEvent::MediaOpenFailed);
-	});
+	for (const auto& Event : OutEvents)
+	{
+		EventSink.ReceiveMediaEvent(Event);
+	}
 }
 
 
 /* FWmfMediaPlayer implementation
  *****************************************************************************/
 
-bool FWmfMediaPlayer::InitializeMediaSession(IUnknown* SourceObject, const FString& SourceUrl)
+bool FWmfMediaPlayer::InitializePlayer(const TSharedPtr<FArchive, ESPMode::ThreadSafe>& Archive, const FString& Url, bool Precache)
 {
-	if (SourceObject == nullptr)
+	UE_LOG(LogWmfMedia, Verbose, TEXT("Player %llx: Initializing %s (archive = %s, precache = %s)"), this, *Url, Archive.IsValid() ? TEXT("yes") : TEXT("no"), Precache ? TEXT("yes") : TEXT("no"));
+
+	const auto Settings = GetDefault<UWmfMediaSettings>();
+	check(Settings != nullptr);
+
+	if (!Session->Initialize(Settings->LowLatency))
 	{
 		return false;
 	}
 
-	UE_LOG(LogWmfMedia, Verbose, TEXT("Initializing media session for %s"), *SourceUrl);
+	MediaUrl = Url;
 
-	// create presentation descriptor
-	TComPtr<IMFMediaSource> MediaSourceObject;
+	// initialize presentation on a separate thread
+	const EAsyncExecution Execution = Precache ? EAsyncExecution::Thread : EAsyncExecution::ThreadPool;
+
+	Async<void>(Execution, [Archive, Url, Precache, StreamsPtr = TWeakPtr<FWmfMediaTracks, ESPMode::ThreadSafe>(Tracks)]()
 	{
-		HRESULT Result = SourceObject->QueryInterface(IID_PPV_ARGS(&MediaSourceObject));
+		TSharedPtr<FWmfMediaTracks, ESPMode::ThreadSafe> PinnedStreams = StreamsPtr.Pin();
 
-		if (FAILED(Result))
+		if (PinnedStreams.IsValid())
 		{
-			UE_LOG(LogWmfMedia, Error, TEXT("Failed to query media source: %s"), *WmfMedia::ResultToString(Result));
-			return false;
+			TComPtr<IMFMediaSource> MediaSource = WmfMedia::ResolveMediaSource(Archive, Url, Precache);
+			PinnedStreams->Initialize(MediaSource);
 		}
-	}
-
-	TComPtr<IMFPresentationDescriptor> PresentationDescriptor;
-	{
-		HRESULT Result = MediaSourceObject->CreatePresentationDescriptor(&PresentationDescriptor);
-
-		if (FAILED(Result))
-		{
-			UE_LOG(LogWmfMedia, Error, TEXT("Failed to create presentation descriptor: %s"), *WmfMedia::ResultToString(Result));
-			return false;
-		}
-	}
-
-	// initialize tracks
-	if (!Tracks.Initialize(*MediaSourceObject, *PresentationDescriptor, Info))
-	{
-		UE_LOG(LogWmfMedia, Error, TEXT("Failed to initialize tracks"));
-		return false;
-	}
-
-	// get media duration
-	UINT64 PresentationDuration = 0;
-	PresentationDescriptor->GetUINT64(MF_PD_DURATION, &PresentationDuration);
-	Duration = FTimespan(PresentationDuration);
-
-	// create session
-	MediaUrl = SourceUrl;
-	MediaSource = MediaSourceObject;
-	MediaSession = new FWmfMediaSession(Duration);
-
-	if (MediaSession->GetState() == EMediaState::Error)
-	{
-		return false;
-	}
-
-	MediaSession->OnSessionEvent().AddRaw(this, &FWmfMediaPlayer::HandleSessionEvent);
-	MediaEvent.Broadcast(EMediaEvent::TracksChanged);
+	});
 
 	return true;
-}
-
-
-/* FWmfMediaPlayer callbacks
- *****************************************************************************/
-
-void FWmfMediaPlayer::HandleSessionEvent(MediaEventType EventType)
-{
-	TOptional<EMediaEvent> Event;
-
-	// process event
-	switch (EventType)
-	{
-	case MESessionClosed:
-	case MEError:
-		Tracks.SetPaused(true);
-		Tracks.FlushSinks();
-		break;
-
-	case MESessionStarted:
-		if (!FMath::IsNearlyZero(MediaSession->GetRate()))
-		{
-			Event = EMediaEvent::PlaybackResumed;
-			Tracks.SetPaused(false);
-		}
-		break;
-
-	case MESessionEnded:
-		Event = EMediaEvent::PlaybackEndReached;
-		Tracks.SetPaused(true);
-		Tracks.FlushSinks();
-		break;
-
-	case MESessionStopped:
-		Event = EMediaEvent::PlaybackSuspended;
-		Tracks.SetPaused(true);
-		break;
-	}
-
-	// forward event to game thread
-	if (Event.IsSet())
-	{
-		PlayerTasks.Enqueue([=]() {
-			MediaEvent.Broadcast(Event.GetValue());
-		});
-	}
 }
 
 

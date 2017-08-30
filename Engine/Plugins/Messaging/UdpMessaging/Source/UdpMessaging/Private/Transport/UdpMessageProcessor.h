@@ -2,21 +2,32 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "Misc/Guid.h"
-#include "HAL/Runnable.h"
+#include "CoreTypes.h"
+#include "Common/UdpSocketReceiver.h"
+#include "Containers/Map.h"
 #include "Containers/Queue.h"
-#include "IMessageAttachment.h"
+#include "HAL/Runnable.h"
 #include "IMessageTransport.h"
 #include "Interfaces/IPv4/IPv4Endpoint.h"
-#include "Common/UdpSocketReceiver.h"
+#include "Misc/DateTime.h"
+#include "Misc/Guid.h"
+#include "Misc/Timespan.h"
+#include "Templates/SharedPointer.h"
+
 #include "Shared/UdpMessageSegment.h"
 #include "Transport/UdpMessageResequencer.h"
-#include "Transport/UdpSerializedMessage.h"
 
+class FArrayReader;
+class FEvent;
+class FRunnableThread;
+class FSocket;
 class FUdpMessageBeacon;
 class FUdpMessageSegmenter;
+class FUdpReassembledMessage;
+class FUdpSerializedMessage;
 class FUdpSocketSender;
+class IMessageAttachment;
+
 
 /**
  * Implements a message processor for UDP messages.
@@ -37,7 +48,7 @@ class FUdpMessageProcessor
 		FGuid NodeId;
 
 		/** Holds the collection of reassembled messages. */
-		TMap<int32, TSharedPtr<FReassembledUdpMessage, ESPMode::ThreadSafe>> ReassembledMessages;
+		TMap<int32, TSharedPtr<FUdpReassembledMessage, ESPMode::ThreadSafe>> ReassembledMessages;
 
 		/** Holds the message resequencer. */
 		FUdpMessageResequencer Resequencer;
@@ -69,7 +80,7 @@ class FUdpMessageProcessor
 	struct FInboundSegment
 	{
 		/** Holds the segment data. */
-		FArrayReaderPtr Data;
+		TSharedPtr<FArrayReader, ESPMode::ThreadSafe> Data;
 
 		/** Holds the sender's network endpoint. */
 		FIPv4Endpoint Sender;
@@ -78,7 +89,7 @@ class FUdpMessageProcessor
 		FInboundSegment() { }
 
 		/** Creates and initializes a new instance. */
-		FInboundSegment(const FArrayReaderPtr& InData, const FIPv4Endpoint& InSender)
+		FInboundSegment(const TSharedPtr<FArrayReader, ESPMode::ThreadSafe>& InData, const FIPv4Endpoint& InSender)
 			: Data(InData)
 			, Sender(InSender)
 		{ }
@@ -127,7 +138,7 @@ public:
 	 * @param Sender The sender's network endpoint.
 	 * @return true if the segment was queued up, false otherwise.
 	 */
-	bool EnqueueInboundSegment(const FArrayReaderPtr& Data, const FIPv4Endpoint& Sender);
+	bool EnqueueInboundSegment(const TSharedPtr<FArrayReader, ESPMode::ThreadSafe>& Data, const FIPv4Endpoint& Sender);
 
 	/**
 	 * Queues up an outbound message.
@@ -148,7 +159,7 @@ public:
 	 *
 	 * @return The delegate.
 	 */
-	DECLARE_DELEGATE_ThreeParams(FOnMessageReassembled, const FReassembledUdpMessage& /*ReassembledMessage*/, const IMessageAttachmentPtr& /*Attachment*/, const FGuid& /*NodeId*/)
+	DECLARE_DELEGATE_ThreeParams(FOnMessageReassembled, const FUdpReassembledMessage& /*ReassembledMessage*/, const IMessageAttachmentPtr& /*Attachment*/, const FGuid& /*NodeId*/)
 	FOnMessageReassembled& OnMessageReassembled()
 	{
 		return MessageReassembledDelegate;
@@ -160,7 +171,8 @@ public:
 	 * @return The delegate.
 	 * @see OnNodeLost
 	 */
-	IMessageTransport::FOnNodeDiscovered& OnNodeDiscovered()
+	DECLARE_DELEGATE_OneParam(FOnNodeDiscovered, const FGuid& /*NodeId*/)
+	FOnNodeDiscovered& OnNodeDiscovered()
 	{
 		return NodeDiscoveredDelegate;
 	}
@@ -171,7 +183,8 @@ public:
 	 * @return The delegate.
 	 * @see OnNodeDiscovered
 	 */
-	IMessageTransport::FOnNodeLost& OnNodeLost()
+	DECLARE_DELEGATE_OneParam(FOnNodeLost, const FGuid& /*NodeId*/)
+	FOnNodeLost& OnNodeLost()
 	{
 		return NodeLostDelegate;
 	}
@@ -217,7 +230,7 @@ protected:
 	 * @param Sender The segment sender.
 	 * @return true if the segment passed the filter, false otherwise.
 	 */
-	bool FilterSegment(const FUdpMessageSegment::FHeader& Header, const FArrayReaderPtr& Data, const FIPv4Endpoint& Sender);
+	bool FilterSegment(const FUdpMessageSegment::FHeader& Header, const TSharedPtr<FArrayReader, ESPMode::ThreadSafe>& Data, const FIPv4Endpoint& Sender);
 
 	/**
 	 * Processes an Abort segment.
@@ -361,10 +374,10 @@ private:
 	FOnMessageReassembled MessageReassembledDelegate;
 
 	/** Holds a delegate to be invoked when a network node was discovered. */
-	IMessageTransport::FOnNodeDiscovered NodeDiscoveredDelegate;
+	FOnNodeDiscovered NodeDiscoveredDelegate;
 
 	/** Holds a delegate to be invoked when a network node was lost. */
-	IMessageTransport::FOnNodeLost NodeLostDelegate;
+	FOnNodeLost NodeLostDelegate;
 
 private:
 

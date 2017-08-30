@@ -50,7 +50,7 @@ private:
 	
 	const FString MachineName;
 
-	FMessageEndpointPtr MessageEndpoint;
+	TSharedPtr<FMessageEndpoint, ESPMode::ThreadSafe> MessageEndpoint;
 
 	// Array of our current connections
 	TArray<FTrackedAddress> ConnectedAddresses;
@@ -59,9 +59,9 @@ private:
 	TMap<FName, FTrackedSubject> Subjects;
 	
 	//Message bus message handlers
-	void HandlePingMessage(const FLiveLinkPingMessage& Message, const IMessageContextRef& Context);
-	void HandleConnectMessage(const FLiveLinkConnectMessage& Message, const IMessageContextRef& Context);
-	void HandleHeartbeat(const FLiveLinkHeartbeatMessage& Message, const IMessageContextRef& Context);
+	void HandlePingMessage(const FLiveLinkPingMessage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context);
+	void HandleConnectMessage(const FLiveLinkConnectMessage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context);
+	void HandleHeartbeat(const FLiveLinkHeartbeatMessage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context);
 	// End message bus message handlers
 
 	// Validate our current connections
@@ -210,12 +210,12 @@ public:
 
 const double FLiveLinkProvider::CONNECTION_TIMEOUT = 10.f;
 
-void FLiveLinkProvider::HandlePingMessage(const FLiveLinkPingMessage& Message, const IMessageContextRef& Context)
+void FLiveLinkProvider::HandlePingMessage(const FLiveLinkPingMessage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 {
 	MessageEndpoint->Send(new FLiveLinkPongMessage(ProviderName, MachineName, Message.PollRequest), Context->GetSender());
 }
 
-void FLiveLinkProvider::HandleConnectMessage(const FLiveLinkConnectMessage& Message, const IMessageContextRef& Context)
+void FLiveLinkProvider::HandleConnectMessage(const FLiveLinkConnectMessage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 {
 	const FMessageAddress& ConnectionAddress = Context->GetSender();
 
@@ -231,7 +231,7 @@ void FLiveLinkProvider::HandleConnectMessage(const FLiveLinkConnectMessage& Mess
 	}
 }
 
-void FLiveLinkProvider::HandleHeartbeat(const FLiveLinkHeartbeatMessage& Message, const IMessageContextRef& Context)
+void FLiveLinkProvider::HandleHeartbeat(const FLiveLinkHeartbeatMessage& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 {
 	FTrackedAddress* TrackedAddress = ConnectedAddresses.FindByPredicate([=](const FTrackedAddress& ConAddress) { return ConAddress.Address == Context->GetSender(); });
 	if (TrackedAddress)

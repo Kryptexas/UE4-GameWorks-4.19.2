@@ -21,17 +21,41 @@ class MEDIAASSETS_API UMediaPlaylist
 
 public:
 
+	/** Whether the play list should loop (default = true). */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Playback)
+	uint32 Loop:1;
+
+public:
+
 	/**
 	 * Add a media source to the play list.
 	 *
 	 * @param MediaSource The media source to append.
-	 * @see Insert, RemoveAll, Remove
+	 * @return true if the media source was added, false otherwise.
+	 * @see AddFile, AddUrl, Insert, RemoveAll, Remove, Replace
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlaylist")
-	void Add(UMediaSource* MediaSource)
-	{
-		Items.Add(MediaSource);
-	}
+	bool Add(UMediaSource* MediaSource);
+
+	/**
+	 * Add a media file path to the play list.
+	 *
+	 * @param FilePath The file path to add.
+	 * @return true if the file was added, false otherwise.
+	 * @see Add, AddUrl, Insert, RemoveAll, Remove, Replace
+	 */
+	UFUNCTION(BlueprintCallable, Category="Media|MediaPlaylist")
+	bool AddFile(const FString& FilePath);
+
+	/**
+	 * Add a media URL to the play list.
+	 *
+	 * @param Url The URL to add.
+	 * @return true if the URL was added, false otherwise.
+	 * @see Add, AddFile, Insert, RemoveAll, Remove, Replace
+	 */
+	UFUNCTION(BlueprintCallable, Category="Media|MediaPlaylist")
+	bool AddUrl(const FString& Url);
 
 	/**
 	 * Get the media source at the specified index.
@@ -66,26 +90,22 @@ public:
 	/**
 	 * Get a random media source in the play list.
 	 *
-	 * @param InOutIndex Index of the current media source (will contain the new index).
+	 * @param OutIndex Will contain the index of the returned media source.
 	 * @return The random media source, or nullptr if the list is empty.
 	 * @see Get, GetNext, GetPrevious
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlaylist")
-	UMediaSource* GetRandom(int32& InOutIndex);
+	UMediaSource* GetRandom(int32& OutIndex);
 
 	/**
 	 * Insert a media source into the play list at the given position.
 	 *
 	 * @param MediaSource The media source to insert.
 	 * @param Index The index to insert into.
-	 * @see Add, Remove, RemoveAll
+	 * @see Add, Remove, RemoveAll, Replace
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlaylist")
-	void Insert(UMediaSource* MediaSource, int32 Index)
-	{
-		Index = FMath::Clamp(Index, 0, Items.Num());
-		Items.Insert(MediaSource, Index);
-	}
+	void Insert(UMediaSource* MediaSource, int32 Index);
 
 	/**
 	 * Get the number of media sources in the play list.
@@ -102,28 +122,32 @@ public:
 	 * Remove all occurrences of the given media source in the play list.
 	 *
 	 * @param MediaSource The media source to remove.
-	 * @see Add, Insert, Remove
+	 * @return true if the media source was removed, false otherwise.
+	 * @see Add, Insert, Remove, Replace
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlaylist")
-	void Remove(UMediaSource* MediaSource)
-	{
-		Items.Remove(MediaSource);
-	}
+	bool Remove(UMediaSource* MediaSource);
 
 	/**
 	 * Remove the media source at the specified position.
 	 *
 	 * @param Index The index of the media source to remove.
-	 * @see Add, Insert, RemoveAll
+	 * @return true if the media source was removed, false otherwise.
+	 * @see Add, Insert, RemoveAll, Replace
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlaylist")
-	void RemoveAt(int32 Index)
-	{
-		if (Items.IsValidIndex(Index))
-		{
-			Items.RemoveAt(Index);
-		}
-	}
+	bool RemoveAt(int32 Index);
+
+	/**
+	 * Replace the media source at the specified position.
+	 *
+	 * @param Index The index of the media source to replace.
+	 * @param Replacement The replacement media source.
+	 * @return true if the media source was replaced, false otherwise.
+	 * @see Add, Insert, RemoveAll, RemoveAt
+	 */
+	UFUNCTION(BlueprintCallable, Category="Media|MediaPlaylist")
+	bool Replace(int32 Index, UMediaSource* Replacement);
 
 protected:
 

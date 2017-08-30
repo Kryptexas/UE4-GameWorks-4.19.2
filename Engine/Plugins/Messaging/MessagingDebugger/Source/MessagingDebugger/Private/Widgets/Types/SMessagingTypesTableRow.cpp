@@ -2,6 +2,10 @@
 
 #include "Widgets/Types/SMessagingTypesTableRow.h"
 
+#include "IMessageTracer.h"
+
+#include "Models/MessagingDebuggerModel.h"
+
 
 #define LOCTEXT_NAMESPACE "SMessagingTypesTableRow"
 

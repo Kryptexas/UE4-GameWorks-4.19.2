@@ -5,8 +5,8 @@
 #include "CoreMinimal.h"
 #include "Misc/Guid.h"
 #include "Modules/ModuleManager.h"
-#include "Interfaces/ILauncherProfile.h"
-#include "Interfaces/ILauncherServicesModule.h"
+#include "ILauncherProfile.h"
+#include "ILauncherServicesModule.h"
 #include "Misc/Paths.h"
 #include "Launcher/LauncherProjectPath.h"
 #include "Misc/CommandLine.h"
@@ -14,8 +14,9 @@
 #include "Misc/App.h"
 #include "Interfaces/ITargetPlatform.h"
 #include "Interfaces/ITargetPlatformManagerModule.h"
-#include "Interfaces/ITargetDeviceServicesModule.h"
-#include "Common/GameProjectHelper.h"
+#include "ITargetDeviceProxy.h"
+#include "ITargetDeviceServicesModule.h"
+#include "GameProjectHelper.h"
 #include "Profiles/LauncherProfileLaunchRole.h"
 #include "PlatformInfo.h"
 
@@ -295,16 +296,16 @@ public:
 
 			if (DefaultDeployPlatform != NAME_None)
 			{
-				TArray<ITargetDeviceProxyPtr> PlatformDeviceProxies;
+				TArray<TSharedPtr<ITargetDeviceProxy>> PlatformDeviceProxies;
 				ITargetDeviceServicesModule& TargetDeviceServicesModule = FModuleManager::LoadModuleChecked<ITargetDeviceServicesModule>("TargetDeviceServices");
-				const ITargetDeviceProxyManagerRef& InDeviceProxyManager = TargetDeviceServicesModule.GetDeviceProxyManager();
+				const TSharedRef<ITargetDeviceProxyManager>& InDeviceProxyManager = TargetDeviceServicesModule.GetDeviceProxyManager();
 
 				InDeviceProxyManager->GetProxies(NAME_None, true, PlatformDeviceProxies);
 
-				ITargetDeviceProxyPtr DefaultPlatformDevice;
+				TSharedPtr<ITargetDeviceProxy> DefaultPlatformDevice;
 				for (int32 ProxyIndex = 0; ProxyIndex < PlatformDeviceProxies.Num(); ++ProxyIndex)
 				{
-					ITargetDeviceProxyPtr DeviceProxy = PlatformDeviceProxies[ProxyIndex];
+					TSharedPtr<ITargetDeviceProxy> DeviceProxy = PlatformDeviceProxies[ProxyIndex];
 
 					if (DeviceProxy->GetVanillaPlatformId(NAME_None) == DefaultDeployPlatform)
 					{
@@ -1144,7 +1145,7 @@ public:
 
 		// devices
 		ITargetDeviceServicesModule& DeviceServiceModule = FModuleManager::LoadModuleChecked<ITargetDeviceServicesModule>(TEXT("TargetDeviceServices"));
-		ITargetDeviceProxyManagerRef DeviceProxyManager = DeviceServiceModule.GetDeviceProxyManager();
+		TSharedRef<ITargetDeviceProxyManager> DeviceProxyManager = DeviceServiceModule.GetDeviceProxyManager();
 		ILauncherDeviceGroupPtr DeviceGroup = GetDeployedDeviceGroup();
 		TMap<FString, FString> RoleCommands;
 		FString CommandLine = GetDefaultLaunchRole()->GetUATCommandLine();
@@ -1165,7 +1166,7 @@ public:
 			for (int32 DeviceIndex = 0; DeviceIndex < Devices.Num(); ++DeviceIndex)
 			{
 				const FString& DeviceId = Devices[DeviceIndex];
-				ITargetDeviceProxyPtr DeviceProxy = DeviceProxyManager->FindProxyDeviceForTargetDevice(DeviceId);
+				TSharedPtr<ITargetDeviceProxy> DeviceProxy = DeviceProxyManager->FindProxyDeviceForTargetDevice(DeviceId);
 				Writer.WriteValue(DeviceId);
 				if (DeviceProxy.IsValid())
 				{
@@ -1504,7 +1505,7 @@ public:
 
 		// Loading the Device Proxy Manager to get the needed Device Manager.
 		ITargetDeviceServicesModule& DeviceServiceModule = FModuleManager::LoadModuleChecked<ITargetDeviceServicesModule>(TEXT("TargetDeviceServices"));
-		ITargetDeviceProxyManagerRef DeviceProxyManager = DeviceServiceModule.GetDeviceProxyManager();
+		TSharedRef<ITargetDeviceProxyManager> DeviceProxyManager = DeviceServiceModule.GetDeviceProxyManager();
 
 		if (DeviceGroup.IsValid() && Platforms.Num() < 1)
 		{
@@ -1514,7 +1515,7 @@ public:
 			{
 				const FString& DeviceId = Devices[DeviceIndex];
 
-				ITargetDeviceProxyPtr DeviceProxy = DeviceProxyManager->FindProxyDeviceForTargetDevice(DeviceId);
+				TSharedPtr<ITargetDeviceProxy> DeviceProxy = DeviceProxyManager->FindProxyDeviceForTargetDevice(DeviceId);
 
 				if (DeviceProxy.IsValid())
 				{
@@ -2483,7 +2484,7 @@ protected:
 				
 				if (TargetDeviceServicesModule)
 				{
-					ITargetDeviceProxyPtr DeviceProxy = TargetDeviceServicesModule->GetDeviceProxyManager()->FindProxy(DeviceId);
+					TSharedPtr<ITargetDeviceProxy> DeviceProxy = TargetDeviceServicesModule->GetDeviceProxyManager()->FindProxy(DeviceId);
 					
 					if(DeviceProxy.IsValid())
 					{

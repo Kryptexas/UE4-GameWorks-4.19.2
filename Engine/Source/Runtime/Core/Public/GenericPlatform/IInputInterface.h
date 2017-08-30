@@ -4,6 +4,8 @@
 
 #include "CoreTypes.h"
 #include "Containers/Array.h"
+#include "Math/Color.h"
+
 
 // General identifiers for potential force feedback channels. These will be mapped according to the
 // platform specific implementation.
@@ -125,5 +127,5 @@ public:
 	/*
 	 * Sets the controller for the given controller.  Ignored if controller does not support a color.
 	 */
-	virtual void SetLightColor(int32 ControllerId, struct FColor Color) = 0;
+	virtual void SetLightColor(int32 ControllerId, FColor Color) = 0;
 };

@@ -13,23 +13,25 @@ class FSocket;
 class FTcpListener;
 class FTcpMessageTransportConnection;
 
+
 /** Entry specfying addition or removal to/from the NodeConnectionMap */
 struct FNodeConnectionMapUpdate
 {
 	FNodeConnectionMapUpdate(bool bInNewNode, const FGuid& InNodeId, const TWeakPtr<FTcpMessageTransportConnection>& InConnection)
-	:	bNewNode(bInNewNode)
-	,	NodeId(InNodeId)
-	,	Connection(InConnection)
-	{}
+		: bNewNode(bInNewNode)
+		, NodeId(InNodeId)
+		, Connection(InConnection)
+	{ }
 
 	FNodeConnectionMapUpdate()
-	:	bNewNode(false)
-	{}
+		: bNewNode(false)
+	{ }
 
 	bool bNewNode;
 	FGuid NodeId;
 	TWeakPtr<FTcpMessageTransportConnection> Connection;
 };
+
 
 /**
  * Implements a message transport technology using an Tcp network connection.
@@ -55,12 +57,10 @@ public:
 
 public:
 
-	// FTcpMessageTransport interface
-
 	void AddOutgoingConnection(const FIPv4Endpoint& Endpoint);
-
 	void RemoveOutgoingConnection(const FIPv4Endpoint& Endpoint);
 
+public:
 
 	//~ IMessageTransport interface
 
@@ -69,31 +69,18 @@ public:
 		return "TcpMessageTransport";
 	}
 
-	virtual FOnMessageReceived& OnMessageReceived() override
-	{
-		return MessageReceivedDelegate;
-	}
-
-	virtual FOnNodeDiscovered& OnNodeDiscovered() override
-	{
-		return NodeDiscoveredDelegate;
-	}
-
-	virtual FOnNodeLost& OnNodeLost() override
-	{
-		return NodeLostDelegate;
-	}
-
-	virtual bool StartTransport() override;
+	virtual bool StartTransport(IMessageTransportHandler& Handler) override;
 	virtual void StopTransport() override;
-	virtual bool TransportMessage(const IMessageContextRef& Context, const TArray<FGuid>& Recipients) override;
+	virtual bool TransportMessage(const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context, const TArray<FGuid>& Recipients) override;
+
+public:
 
 	//~ FRunnable interface
 
+	virtual void Exit() override;
 	virtual bool Init() override;
 	virtual uint32 Run() override;
 	virtual void Stop() override;
-	virtual void Exit() override;
 
 private:
 
@@ -104,15 +91,6 @@ private:
 	void HandleConnectionStateChanged(TSharedPtr<FTcpMessageTransportConnection> Connection);
 
 private:
-
-	/** Holds a delegate to be invoked when a message was received on the transport channel. */
-	FOnMessageReceived MessageReceivedDelegate;
-
-	/** Holds a delegate to be invoked when a network node was discovered. */
-	FOnNodeDiscovered NodeDiscoveredDelegate;
-
-	/** Holds a delegate to be invoked when a network node was lost. */
-	FOnNodeLost NodeLostDelegate;
 
 	/** Current settings */
 	FIPv4Endpoint ListenEndpoint;
@@ -145,4 +123,7 @@ private:
 
 	/** Holds the thread object. */
 	FRunnableThread* Thread;
+
+	/** Message transport handler. */
+	IMessageTransportHandler* TransportHandler;
 };

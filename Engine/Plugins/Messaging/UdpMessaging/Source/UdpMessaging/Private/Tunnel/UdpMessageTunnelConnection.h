@@ -2,12 +2,19 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "HAL/Runnable.h"
+#include "CoreTypes.h"
 #include "Containers/Queue.h"
+#include "HAL/Runnable.h"
 #include "Interfaces/IPv4/IPv4Endpoint.h"
-#include "Common/UdpSocketReceiver.h"
+#include "Misc/DateTime.h"
+#include "Templates/SharedPointer.h"
+
 #include "IUdpMessageTunnelConnection.h"
+
+class FArrayReader;
+class FRunnableThread;
+class FSocket;
+
 
 /**
  * Implements a UDP message tunnel connection.
@@ -39,7 +46,7 @@ public:
 	 * @return true if a payload was returned, false otherwise.
 	 * @see Send
 	 */
-	bool Receive(FArrayReaderPtr& OutPayload);
+	bool Receive(TSharedPtr<FArrayReader, ESPMode::ThreadSafe>& OutPayload);
 
 	/**
 	 * Sends a payload through this connection.
@@ -47,11 +54,11 @@ public:
 	 * @param Payload The payload to send.
 	 * @see Receive
 	 */
-	bool Send(const FArrayReaderPtr& Payload);
+	bool Send(const TSharedPtr<FArrayReader, ESPMode::ThreadSafe>& Payload);
 
 public:
 
-	// FRunnable interface
+	//~ FRunnable interface
 
 	virtual bool Init() override;
 	virtual uint32 Run() override;
@@ -60,7 +67,7 @@ public:
 
 public:
 
-	// IUdpMessageTunnelConnection interface
+	//~ IUdpMessageTunnelConnection interface
 
 	virtual void Close() override;
 	virtual uint64 GetTotalBytesReceived() const override;
@@ -93,13 +100,13 @@ private:
 	FDateTime ClosedTime;
 
 	/** Holds the collection of received payloads. */
-	TQueue<FArrayReaderPtr> Inbox;
+	TQueue<TSharedPtr<FArrayReader, ESPMode::ThreadSafe>> Inbox;
 
 	/** Holds the time at which the connection was opened. */
 	FDateTime OpenedTime;
 
 	/** Holds the collection of outbound payloads. */
-	TQueue<FArrayReaderPtr> Outbox;
+	TQueue<TSharedPtr<FArrayReader, ESPMode::ThreadSafe>> Outbox;
 
 	/** Holds the IP endpoint of the remote client. */
 	FIPv4Endpoint RemoteEndpoint;
@@ -119,10 +126,3 @@ private:
 	/** thread should continue running. */
 	bool bRun;
 };
-
-
-/** Type definition for shared pointers to instances of FUdpMessageTunnelConnection. */
-typedef TSharedPtr<FUdpMessageTunnelConnection> FUdpMessageTunnelConnectionPtr;
-
-/** Type definition for shared references to instances of FUdpMessageTunnelConnection. */
-typedef TSharedRef<FUdpMessageTunnelConnection> FUdpMessageTunnelConnectionRef;

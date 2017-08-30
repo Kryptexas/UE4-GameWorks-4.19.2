@@ -1,7 +1,28 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "IOSTargetDevice.h"
+
+#include "HAL/PlatformProcess.h"
 #include "IOSMessageProtocol.h"
+#include "Interfaces/ITargetPlatform.h"
+#include "MessageEndpoint.h"
+#include "MessageEndpointBuilder.h"
+
+
+FIOSTargetDevice::FIOSTargetDevice(const ITargetPlatform& InTargetPlatform)
+	: TargetPlatform(InTargetPlatform)
+	, DeviceEndpoint()
+	, AppId()
+	, bCanReboot(false)
+	, bCanPowerOn(false)
+	, bCanPowerOff(false)
+	, DeviceType(ETargetDeviceTypes::Indeterminate)
+{
+	DeviceId = FTargetDeviceId(TargetPlatform.PlatformName(), FPlatformProcess::ComputerName());
+	DeviceName = FPlatformProcess::ComputerName();
+	MessageEndpoint = FMessageEndpoint::Builder("FIOSTargetDevice").Build();
+}
+
 
 bool FIOSTargetDevice::Connect()
 {

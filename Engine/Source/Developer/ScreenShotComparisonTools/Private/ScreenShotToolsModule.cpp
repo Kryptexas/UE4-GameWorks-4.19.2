@@ -7,9 +7,7 @@
 #include "CoreMinimal.h"
 #include "Modules/ModuleManager.h"
 #include "Interfaces/IScreenShotToolsModule.h"
-#include "IMessagingModule.h"
 #include "ScreenShotManager.h"
-
 
 
 /**
