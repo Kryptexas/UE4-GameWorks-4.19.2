@@ -376,10 +376,17 @@ public:
 		DebugNodeIndexLookup.MultiFind(Node, RecordIndices, true);
 		for(int i = 0; i < RecordIndices.Num(); ++i)
 		{
-			const FNodeToCodeAssociation& Record = DebugNodeLineNumbers[RecordIndices[i]];
-			if (UFunction* Scope = Record.Scope.Get())
+			int32 RecordIndex = RecordIndices[i];
+			if (DebugNodeLineNumbers.IsValidIndex(RecordIndex))
 			{
-				InstallSites.Add(&(Scope->Script[Record.Offset]));
+				const FNodeToCodeAssociation& Record = DebugNodeLineNumbers[RecordIndex];
+				if (UFunction* Scope = Record.Scope.Get())
+				{
+					if (Scope->Script.IsValidIndex(Record.Offset))
+					{
+						InstallSites.Add(&(Scope->Script[Record.Offset]));
+					}
+				}
 			}
 		}
 	}
